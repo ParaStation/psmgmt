@@ -21,6 +21,8 @@ static char vcid[] __attribute__((used)) =
 #include <time.h>
 #include <sys/types.h>
 
+#include "selector.h"
+
 #include "pscommon.h"
 #include "psprotocol.h"
 #include "psdaemonprotocol.h"
@@ -68,7 +70,7 @@ int PSID_kill(pid_t pid, int sig, uid_t uid)
 		char *ptr = msg.buf;
 
 		/* Make sure to listen to the forwarder */
-		FD_SET(forwarder->fd, &PSID_readfds);
+		Selector_enable(forwarder->fd);
 
 		msg.header.type = PSP_CC_MSG;
 		msg.header.sender = PSC_getMyTID();
@@ -234,9 +236,7 @@ void PSID_sendSignal(PStask_ID_t tid, uid_t uid, PStask_ID_t sender,
 		    if (dest->group == TG_LOGGER) dest->killat++;
 		}
 		/* Let's listen to this client again */
-		if (dest->fd != -1) {
-		    FD_SET(dest->fd, &PSID_readfds);
-		}
+		if (dest->fd != -1) Selector_enable(dest->fd);
 	    }
 
 	    PSID_removeSignal(&dest->assignedSigs, sender, signal);

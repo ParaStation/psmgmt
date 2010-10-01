@@ -17,10 +17,12 @@ static char vcid[] __attribute__((used)) =
 #include <errno.h>
 #include <string.h>
 
+#include "list.h"
+#include "selector.h"
+
 #include "pscommon.h"
 #include "psprotocol.h"
 #include "psdaemonprotocol.h"
-#include "list.h"
 
 #include "psidutil.h"
 #include "psidnodes.h"
@@ -449,9 +451,9 @@ static void msg_SENDSTOP(DDMsg_t *msg)
 
     if (task->fd != -1) {
 	PSID_log(PSID_LOG_COMM,
-		 "%s: client %s at %d removed from PSID_readfds\n", __func__,
+		 "%s: client %s at %d temporarily disabled\n", __func__,
 		 PSC_printTID(msg->dest), task->fd);
-	FD_CLR(task->fd, &PSID_readfds);
+	Selector_disable(task->fd);
     }
 }
 
@@ -481,9 +483,9 @@ static void msg_SENDCONT(DDMsg_t *msg)
 
     if (task->fd != -1) {
 	PSID_log(PSID_LOG_COMM,
-		 "%s: client %s at %d re-added to PSID_readfds\n", __func__,
+		 "%s: client %s at %d re-enabled\n", __func__,
 		 PSC_printTID(msg->dest), task->fd);
-	FD_SET(task->fd, &PSID_readfds);
+	Selector_enable(task->fd);
     }
 }
 

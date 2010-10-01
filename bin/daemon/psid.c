@@ -88,33 +88,22 @@ static void psicontrol(int fd)
 
     int msglen;
 
+    PSID_log(PSID_LOG_COMM, "%s(%d)\n", __func__, fd);
+
     /* read the whole msg */
     msglen = recvMsg(fd, (DDMsg_t*)&msg, sizeof(msg));
 
     if (msglen==0) {
-	/*
-	 * closing connection
-	 */
-	if (fd == RDPSocket) {
-	    PSID_log(-1, "%s: msglen 0 on RDPsocket\n", __func__);
-	} else {
-	    PSID_log(PSID_LOG_CLIENT, "%s(%d): closing connection\n",
-		     __func__, fd);
-	    deleteClient(fd);
-	}
+	PSID_log(-1, "%s: msglen 0 on RDPsocket\n", __func__);
     } else if (msglen==-1) {
-	if ((fd != RDPSocket) || (errno != EAGAIN)) {
-	    PSID_warn(-1, errno, "%s(%d): recvMsg()", __func__, fd);
-	}
+	PSID_warn(-1, errno, "%s(%d): recvMsg()", __func__, fd);
     } else {
 	if (msg.header.type == PSP_CD_CLIENTCONNECT) {
-	    /* pass the (new) fd to corresponding handler function */
-	    size_t off = msg.header.len - sizeof(msg.header);
-	    *(int *) (msg.buf+off) = fd;
+	    PSID_log(-1, "%s: PSP_CD_CLIENTCONNECT on RDP?\n", __func__);
 	}
 
 	if (!PSID_handleMsg((DDBufferMsg_t *)&msg)) {
-	    PSID_log(-1, "%s: Problem on socket %d\n", __func__, fd);
+	    PSID_log(-1, "%s: Problem on RDP-socket\n", __func__);
 	}
     }
 }
@@ -306,7 +295,7 @@ static void sighandler(int sig)
 		}
 		if (task->fd != -1) {
 		    /* Make sure we get all pending messages */
-		    FD_SET(task->fd, &PSID_readfds);
+		    Selector_enable(task->fd);
 		} else {
 		    /* task not connected, remove from tasklist */
 		    PStask_cleanup(tid);
@@ -820,13 +809,14 @@ int main(int argc, const char *argv[])
 	struct timeval tv;  /* timeval for waiting on select()*/
 	fd_set rfds;        /* read file descriptor set */
 	fd_set wfds;        /* write file descriptor set */
-	int fd;
+	int fd, res;
 
 	timerset(&tv, &selectTime);
 	memcpy(&rfds, &PSID_readfds, sizeof(rfds));
 	memcpy(&wfds, &PSID_writefds, sizeof(wfds));
 
-	if (Sselect(FD_SETSIZE, &rfds, &wfds, (fd_set *)NULL, &tv) < 0) {
+	res = Sselect(FD_SETSIZE, &rfds, &wfds, (fd_set *)NULL, &tv);
+	if (res < 0) {
 	    PSID_warn(-1, errno, "Error while Sselect");
 
 	    checkFileTable(&PSID_readfds);
@@ -836,20 +826,15 @@ int main(int argc, const char *argv[])
 	    continue;
 	}
 
-	/*
-	 * check the client sockets for any closing connections
-	 * or control msgs
-	 */
-	for (fd=0; fd<FD_SETSIZE; fd++) {
-	    if (FD_ISSET(fd, &rfds) && fd != RDPSocket /* handled below */) {
-		psicontrol(fd);
+	/* check client sockets to flush messages */
+	if (res) {
+	    for (fd=0; fd<FD_SETSIZE; fd++) {
+		if (FD_ISSET(fd, &wfds)) {
+		    if (!flushClientMsgs(fd)) FD_CLR(fd, &PSID_writefds);
+		}
 	    }
 	}
-	for (fd=0; fd<FD_SETSIZE; fd++) {
-	    if (FD_ISSET(fd, &wfds)) {
-		if (!flushClientMsgs(fd)) FD_CLR(fd, &PSID_writefds);
-	    }
-	}
+
 	/*
 	 * Read all RDP messages
 	 */

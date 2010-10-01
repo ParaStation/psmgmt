@@ -1760,7 +1760,6 @@ static int spawnTask(PStask_t *task)
 	/* The forwarder is already connected and established */
 	registerClient(task->fd, task->tid, task);
 	setEstablishedClient(task->fd);
-	FD_SET(task->fd, &PSID_readfds);
 	/* Tell everybody about the new forwarder task */
 	incJobs(1, 0);
     } else {

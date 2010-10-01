@@ -18,6 +18,8 @@ static char vcid[] __attribute__((used)) =
 #include <errno.h>
 #include <signal.h>
 
+#include "selector.h"
+
 #include "pstask.h"
 #include "pscommon.h"
 #include "psdaemonprotocol.h"
@@ -338,7 +340,7 @@ void PStask_cleanup(PStask_ID_t tid)
     }
 
     /* Make sure we get all pending messages */
-    if (task->fd != -1) FD_SET(task->fd, &PSID_readfds);
+    if (task->fd != -1) Selector_enable(task->fd);
 
     if (list_empty(&task->childs)) {
 	/* Mark task as deleted; will be actually removed in main loop */

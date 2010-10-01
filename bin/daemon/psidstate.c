@@ -55,7 +55,6 @@ void PSID_shutdown(void)
 {
     static int phase = 0;
     static struct timeval shutdownTimer, now;
-    int i;
 
     if (!phase) timerclear(&shutdownTimer);
 
@@ -94,12 +93,7 @@ void PSID_shutdown(void)
 	break;
     case 4:
 	killAllClients(SIGKILL, 1);
-	/* close all sockets to clients */
-	for (i=0; i<FD_SETSIZE; i++) {
-	    if (FD_ISSET(i, &PSID_readfds) && i!=RDPSocket) {
-		closeConnection(i);
-	    }
-	}
+
 	if (config->useMCast) exitMCast();
 	send_DAEMONSHUTDOWN();
 	exitRDP();

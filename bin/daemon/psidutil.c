@@ -264,7 +264,6 @@ static int handleMasterSock(int fd, void *info)
     }
 
     registerClient(ssock, -1, NULL);
-    FD_SET(ssock, &PSID_readfds);
 
     PSID_log(PSID_LOG_CLIENT | PSID_LOG_VERB,
 	     "%s: new socket is %d\n", __func__, ssock);

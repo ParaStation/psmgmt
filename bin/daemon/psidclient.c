@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2009 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2010 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -22,6 +22,8 @@ static char vcid[] __attribute__((used)) =
 #define __USE_GNU
 #include <sys/socket.h>
 #undef __USE_GNU
+
+#include "selector.h"
 
 #include "pscommon.h"
 #include "psprotocol.h"
@@ -51,12 +53,47 @@ static struct {
     list_t msgs;         /**< Chain of undelivered messages */
 } clients[FD_SETSIZE];
 
+static void msg_CLIENTCONNECT(int fd, DDBufferMsg_t *bufmsg);
+
+static int handleClientConnectMsg(int fd, void *info)
+{
+    DDHugeMsg_t msg;
+
+    int msglen;
+
+    PSID_log(PSID_LOG_COMM, "%s(%d)\n", __func__, fd);
+
+    /* read the whole msg */
+    msglen = recvMsg(fd, (DDMsg_t*)&msg, sizeof(msg));
+
+    if (msglen==0) {
+	/* closing connection */
+	PSID_log(PSID_LOG_CLIENT, "%s(%d): close connection\n", __func__, fd);
+	deleteClient(fd);
+    } else if (msglen==-1) {
+	if (errno != EAGAIN) {
+	    PSID_warn(-1, errno, "%s(%d): recvMsg()", __func__, fd);
+	}
+    } else {
+	if (msg.header.type != PSP_CD_CLIENTCONNECT) {
+	    PSID_log(-1, "%s: Unexpected message of type %s\n", __func__,
+		     PSP_printMsg(msg.header.type));
+	    return 0;
+	}
+	msg_CLIENTCONNECT(fd, (DDBufferMsg_t *)&msg);
+    }
+
+    return 0;
+}
+
 void registerClient(int fd, PStask_ID_t tid, PStask_t *task)
 {
     clients[fd].tid = tid;
     clients[fd].task = task;
     clients[fd].flags |= INITIALCONTACT;
     INIT_LIST_HEAD(&clients[fd].msgs);
+
+    Selector_register(fd, handleClientConnectMsg, NULL);
 }
 
 PStask_ID_t getClientTID(int fd)
@@ -69,8 +106,39 @@ PStask_t *getClientTask(int fd)
     return clients[fd].task;
 }
 
+static int handleClientMsg(int fd, void *info)
+{
+    DDHugeMsg_t msg;
+
+    int msglen;
+
+    PSID_log(PSID_LOG_COMM, "%s(%d)\n", __func__, fd);
+
+    /* read the whole msg */
+    msglen = recvMsg(fd, (DDMsg_t*)&msg, sizeof(msg));
+
+    if (msglen==0) {
+	/* closing connection */
+	PSID_log(PSID_LOG_CLIENT, "%s(%d): close connection\n", __func__, fd);
+	deleteClient(fd);
+    } else if (msglen==-1) {
+	if (errno != EAGAIN) {
+	    PSID_warn(-1, errno, "%s(%d): recvMsg()", __func__, fd);
+	}
+    } else {
+	if (!PSID_handleMsg((DDBufferMsg_t *)&msg)) {
+	    PSID_log(-1, "%s: Problem on socket %d\n", __func__, fd);
+	}
+    }
+
+    return 0;
+}
+
 void setEstablishedClient(int fd)
 {
+    Selector_remove(fd);
+    Selector_register(fd, handleClientMsg, NULL);
+
     clients[fd].flags &= ~INITIALCONTACT;
 }
 
@@ -103,7 +171,7 @@ static int do_send(int fd, DDMsg_t *msg, int offset)
 			task->killat = time(NULL) + 10;
 		    }
 		    /* Make sure we get all pending messages */
-		    FD_SET(task->fd, &PSID_readfds);
+		    Selector_enable(task->fd);
 		} else {
 		    PSID_log(-1, "%s: No task\n", __func__);
 		    deleteClient(fd);
@@ -223,6 +291,7 @@ int sendClient(DDMsg_t *msg)
 	    errno = ENOBUFS;
 	} else {
 	    FD_SET(fd, &PSID_writefds);
+	    Selector_startOver();
 	    errno = EWOULDBLOCK;
 	}
 	return -1;
@@ -331,9 +400,10 @@ void closeConnection(int fd)
 
     shutdown(fd, SHUT_RDWR);
     close(fd);
+    Selector_remove(fd);
 
-    FD_CLR(fd, &PSID_readfds);
     FD_CLR(fd, &PSID_writefds);
+    Selector_startOver();
 }
 
 void deleteClient(int fd)
@@ -556,10 +626,8 @@ pid_t getpgid(pid_t); /* @todo HACK HACK HACK */
  *
  * @return No return value.
  */
-static void msg_CLIENTCONNECT(DDBufferMsg_t *bufmsg)
+static void msg_CLIENTCONNECT(int fd, DDBufferMsg_t *bufmsg)
 {
-    size_t off = bufmsg->header.len - sizeof(bufmsg->header);
-    int fd = *(int *) (bufmsg->buf + off);
     DDInitMsg_t *msg = (DDInitMsg_t *)bufmsg;
 
     PStask_t *task;
@@ -592,7 +660,7 @@ static void msg_CLIENTCONNECT(DDBufferMsg_t *bufmsg)
 	     msg->version, uid);
     /*
      * first check if it is a reconnection
-     * this can happen due to a exec call.
+     * this might happen due to an exec() call.
      */
     task = PStasklist_find(&managedTasks, tid);
     if (!task && msg->group != TG_SPAWNER && msg->group != TG_PSCSPAWNER) {
@@ -712,6 +780,9 @@ static void msg_CLIENTCONNECT(DDBufferMsg_t *bufmsg)
 
 	/* Tell everybody about the new task */
 	incJobs(1, (task->group==TG_ANY));
+
+	/* Remove the old selector created while accept()ing connection */
+	Selector_remove(fd);
     }
 
     registerClient(fd, tid, task);
@@ -850,6 +921,5 @@ void initClients(void)
 	INIT_LIST_HEAD(&clients[fd].msgs);
     }
 
-    PSID_registerMsg(PSP_CD_CLIENTCONNECT, msg_CLIENTCONNECT);
     PSID_registerMsg(PSP_CC_MSG, msg_CC_MSG);
 }
