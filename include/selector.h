@@ -168,6 +168,35 @@ int Selector_register(int fd, Selector_CB_t selectHandler, void *info);
 int Selector_remove(int fd);
 
 /**
+ * @brief Disable a selector.
+ *
+ * Disable a registered selector. The selector will be identified by
+ * its corresponding file-descriptor @a fd. As long as the selector is
+ * disabled, it will not be monitored within @ref Sselect() and the
+ * corresponding handler will not be called, even if the
+ * file-descriptor @a fd is explicitely monitored with the
+ * file-descriptor set passed to @ref Sselect()
+ *
+ * @param fd The file-descriptor to identify the selector.
+ *
+ * @return On success, 0 is returned. On error, -1 is returned.
+ */
+int Selector_disable(int fd);
+
+/**
+ * @brief Re-enable a selector.
+ *
+ * Re-enables a registered selector. The selector will be identified
+ * by its corresponding file-descriptor @a fd. Basically this removes
+ * the disabling via @ref Selector_disable().
+ *
+ * @param fd The file-descriptor to identify the selector.
+ *
+ * @return On success, 0 is returned. On error, -1 is returned.
+ */
+int Selector_enable(int fd);
+
+/**
  * @brief select() replacement that handles registered file-descriptors.
  *
  * Waits for a number of file-descriptors to change status. If the status
@@ -200,6 +229,22 @@ int Selector_remove(int fd);
  */
 int Sselect(int n, fd_set* readfds, fd_set* writefds, fd_set* exceptfds,
 	    struct timeval* timeout);
+
+/**
+ * @brief Let Sselect() start over
+ *
+ * Once this function is called, @ref Sselect() will return upon exit
+ * from its internal call to @ref select() with return-value 0 and all
+ * file-descriptor sets cleared.
+ *
+ * This might primarily be used in order enable changes to the
+ * file-descriptor sets used while calling Sselect(). Especially the
+ * timeout passed to @ref Sselect() will be overruled by calling this
+ * function.
+ *
+ * @return No return value
+ */
+void Selector_startOver(void);
 
 #ifdef __cplusplus
 }/* extern "C" */

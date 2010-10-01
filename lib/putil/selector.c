@@ -59,6 +59,9 @@ static char vcid[] __attribute__((used)) =
  */
 static int initialized = 0;
 
+/** Flag to let Sselect() start over, i.e. return 0 and all fds cleared */
+static int startOver = 0;
+
 /**
  * Structure to hold all info about each selector
  */
@@ -68,6 +71,7 @@ typedef struct {
     void *info;                    /**< Extra info to be passed to handler */
     int fd;                        /**< The corresponding file-descriptor. */
     int requested;                 /**< Flag used within Sselect(). */
+    int disabled;                  /**< Flag to disable fd temporarily. */
     int deleted;                   /**< Flag used for asynchronous delete. */
 } Selector_t;
 
@@ -158,6 +162,7 @@ int Selector_register(int fd, Selector_CB_t selectHandler, void *info)
 	.info = info,
 	.selectHandler = selectHandler,
 	.requested = 0,
+	.disabled = 0,
 	.deleted = 0,
     };
 
@@ -194,6 +199,42 @@ static void doRemove(Selector_t *selector)
     free(selector);
 }
 
+int Selector_disable(int fd)
+{
+    Selector_t *selector = findSelector(fd);
+
+    if (!selector) {
+	logger_print(logger, -1,
+		     "%s: no selector found for fd %d\n", __func__, fd);
+	return -1;
+    }
+
+    selector->disabled = 1;
+
+    return 0;
+}
+
+int Selector_enable(int fd)
+{
+    Selector_t *selector = findSelector(fd);
+
+    if (!selector) {
+	logger_print(logger, -1,
+		     "%s: no selector found for fd %d\n", __func__, fd);
+	return -1;
+    }
+
+    selector->disabled = 0;
+
+    return 0;
+}
+
+void Selector_startOver(void)
+{
+    logger_print(logger, -1, "%s\n", __func__);
+    startOver = 1;
+}
+
 int Sselect(int n, fd_set  *readfds,  fd_set  *writefds, fd_set *exceptfds,
 	    struct timeval *timeout)
 {
@@ -207,10 +248,15 @@ int Sselect(int n, fd_set  *readfds,  fd_set  *writefds, fd_set *exceptfds,
 	timeradd(&start, timeout, &end);              /* add given timeout */
     }
 
-    list_for_each(s, &selectorList) {
+    list_for_each_safe(s, tmp, &selectorList) {
 	Selector_t *selector = list_entry(s, Selector_t, next);
+	if (selector->deleted) { 
+	    doRemove(selector);
+	    continue;
+	}
 	selector->requested = (readfds) ? FD_ISSET(selector->fd, readfds) : 0;
-	if (selector->fd >= n) n = selector->fd + 1;
+	if (selector->disabled) continue;
+    	if (selector->fd >= n) n = selector->fd + 1;
     }
 
     do {
@@ -236,6 +282,8 @@ int Sselect(int n, fd_set  *readfds,  fd_set  *writefds, fd_set *exceptfds,
 	    Selector_t *selector = list_entry(s, Selector_t, next);
 	    if (selector->deleted) {
 		doRemove(selector);
+		continue;
+	    } else if (selector->disabled) {
 		continue;
 	    }
 	    FD_SET(selector->fd, &rfds);              /* activate port */
@@ -264,10 +312,11 @@ int Sselect(int n, fd_set  *readfds,  fd_set  *writefds, fd_set *exceptfds,
 
 	list_for_each(s, &selectorList) {
 	    Selector_t *selector = list_entry(s, Selector_t, next);
-	    if (selector->deleted) continue;
+	    if (selector->deleted || selector->disabled) continue;
 	    if (FD_ISSET(selector->fd, &rfds) && selector->selectHandler) {
 		/* Got message on handled fd */
-		int ret = selector->selectHandler(selector->fd, selector->info);
+		int ret = selector->selectHandler(selector->fd,
+						  selector->info);
 		switch (ret) {
 		case -1:
 		    retval = -1;
@@ -291,7 +340,7 @@ int Sselect(int n, fd_set  *readfds,  fd_set  *writefds, fd_set *exceptfds,
 
 	gettimeofday(&start, NULL);  /* get NEW starttime */
 
-    } while (!timeout || timercmp(&start, &end, <));
+    } while (!startOver && (!timeout || timercmp(&start, &end, <)));
 
     if (readfds) {
 	list_for_each_safe(s, tmp, &selectorList) {
@@ -303,6 +352,15 @@ int Sselect(int n, fd_set  *readfds,  fd_set  *writefds, fd_set *exceptfds,
 	    if (selector->deleted) doRemove(selector);
 	    if (!retval) break;
 	}
+    }
+
+    if (startOver) {
+	/* Hard start-over triggered */
+	startOver = 0;
+	if (readfds)   FD_ZERO(readfds);
+	if (writefds)  FD_ZERO(writefds);
+	if (exceptfds) FD_ZERO(exceptfds);
+	return 0;
     }
 
     /* copy fds back */
