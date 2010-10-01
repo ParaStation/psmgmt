@@ -231,7 +231,6 @@ int Selector_enable(int fd)
 
 void Selector_startOver(void)
 {
-    logger_print(logger, -1, "%s\n", __func__);
     startOver = 1;
 }
 
