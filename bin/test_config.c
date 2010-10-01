@@ -33,8 +33,6 @@ logger_t *PSID_logger = NULL;
 /* stub required to link against psidnodes.o */
 int sendMsg(void *amsg) {return 0;}
 /* stub required to link against psidutil.o */
-int PSID_readfds;
-/* stub required to link against psidutil.o */
 void registerClient(int fd, int tid, void *task) {}
 
 /**
