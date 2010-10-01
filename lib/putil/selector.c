@@ -249,13 +249,12 @@ int Sselect(int n, fd_set  *readfds,  fd_set  *writefds, fd_set *exceptfds,
 
     list_for_each_safe(s, tmp, &selectorList) {
 	Selector_t *selector = list_entry(s, Selector_t, next);
-	if (selector->deleted) { 
+	if (selector->deleted) {
 	    doRemove(selector);
 	    continue;
 	}
 	selector->requested = (readfds) ? FD_ISSET(selector->fd, readfds) : 0;
-	if (selector->disabled) continue;
-    	if (selector->fd >= n) n = selector->fd + 1;
+	if (selector->fd >= n) n = selector->fd + 1;
     }
 
     do {
