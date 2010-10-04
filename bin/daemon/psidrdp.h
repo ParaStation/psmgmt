@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005 Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2010 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -113,6 +113,19 @@ int sendRDP(DDMsg_t *msg);
  * @see Rrecvfrom()
  */
 int recvRDP(DDMsg_t *msg, size_t size);
+
+/**
+ * @brief Handle message on RDP's file-descriptor
+ *
+ * Handle an incoming messages on RDP's file-descriptor @a fd. It is
+ * expected that a message is actually available on @a fd, i.e. that
+ * Sselect() was called on the descriptor beforehand.
+ *
+ * @param fd File-descriptor to handle.
+ *
+ * @return No return value
+ */
+void handleRDPMsg(int fd);
 
 #ifdef __cplusplus
 }/* extern "C" */

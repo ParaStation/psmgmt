@@ -72,43 +72,6 @@ struct timeval selectTime;
 char psid_cvsid[] = "$Revision$";
 
 /**
- * @brief Handle message on file-descriptor
- *
- * Handle an incoming messages on file-descriptor @a fd. It is
- * expected that a message is actually available on @a fd, i.e. that
- * select() was called on the descriptor beforehand.
- *
- * @param fd File-descriptor to handle.
- *
- * @return No return value.
- */
-static void psicontrol(int fd)
-{
-    DDHugeMsg_t msg;
-
-    int msglen;
-
-    PSID_log(PSID_LOG_COMM, "%s(%d)\n", __func__, fd);
-
-    /* read the whole msg */
-    msglen = recvMsg(fd, (DDMsg_t*)&msg, sizeof(msg));
-
-    if (msglen==0) {
-	PSID_log(-1, "%s: msglen 0 on RDPsocket\n", __func__);
-    } else if (msglen==-1) {
-	PSID_warn(-1, errno, "%s(%d): recvMsg()", __func__, fd);
-    } else {
-	if (msg.header.type == PSP_CD_CLIENTCONNECT) {
-	    PSID_log(-1, "%s: PSP_CD_CLIENTCONNECT on RDP?\n", __func__);
-	}
-
-	if (!PSID_handleMsg((DDBufferMsg_t *)&msg)) {
-	    PSID_log(-1, "%s: Problem on RDP-socket\n", __func__);
-	}
-    }
-}
-
-/**
  * @brief MCast callback handler
  *
  * Handle a callback from the MCast facility. The callback-type is
@@ -826,29 +789,19 @@ int main(int argc, const char *argv[])
 	    continue;
 	}
 
+	/* handle RDP messages */
+	/* not in a selector since RDP itself registeres one */
+	if (FD_ISSET(RDPSocket, &rfds)) {
+	    handleRDPMsg(RDPSocket);
+	    res--;
+	}
+
 	/* check client sockets to flush messages */
 	if (res) {
 	    for (fd=0; fd<FD_SETSIZE; fd++) {
 		if (FD_ISSET(fd, &wfds)) {
 		    if (!flushClientMsgs(fd)) FD_CLR(fd, &PSID_writefds);
 		}
-	    }
-	}
-
-	/*
-	 * Read all RDP messages
-	 */
-	while (FD_ISSET(RDPSocket, &rfds)) {
-	    psicontrol(RDPSocket);
-	    FD_ZERO(&rfds);
-	    FD_SET(RDPSocket, &rfds);
-
-	    tv.tv_sec = 0;
-	    tv.tv_usec = 0;
-	    if (Sselect(RDPSocket+1,
-			&rfds, (fd_set *)NULL, (fd_set *)NULL, &tv) < 0) {
-		PSID_warn(-1, errno, "Error in Sselect");
-		break;
 	    }
 	}
 

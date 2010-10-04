@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2009 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2010 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -214,4 +214,30 @@ int recvRDP(DDMsg_t *msg, size_t size)
     int fromnode = -1;
 
     return Rrecvfrom(&fromnode, msg, size);
+}
+
+void handleRDPMsg(int fd)
+{
+    DDHugeMsg_t msg;
+
+    int msglen;
+
+    PSID_log(PSID_LOG_COMM, "%s(%d)\n", __func__, fd);
+
+    /* read the whole msg */
+    msglen = recvMsg(fd, (DDMsg_t*)&msg, sizeof(msg));
+
+    if (msglen==0) {
+	PSID_log(-1, "%s: msglen 0 on RDPsocket\n", __func__);
+    } else if (msglen==-1) {
+	PSID_warn(-1, errno, "%s(%d): recvMsg()", __func__, fd);
+    } else {
+	if (msg.header.type == PSP_CD_CLIENTCONNECT) {
+	    PSID_log(-1, "%s: PSP_CD_CLIENTCONNECT on RDP?\n", __func__);
+	}
+
+	if (!PSID_handleMsg((DDBufferMsg_t *)&msg)) {
+	    PSID_log(-1, "%s: Problem on RDP-socket\n", __func__);
+	}
+    }
 }
