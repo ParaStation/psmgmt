@@ -715,6 +715,9 @@ static void msg_CLIENTCONNECT(int fd, DDBufferMsg_t *bufmsg)
 	/* close the previous socket */
 	if (task->fd > 0) {
 	    closeConnection(task->fd);
+	} else {
+	    /* Remove the old selector created while accept()ing connection */
+	    Selector_remove(fd);
 	}
 	task->fd = fd;
 
