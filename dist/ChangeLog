@@ -1,3 +1,110 @@
+Version psmgmt-5.0.29:
+======================
+------------------------------------------------------------------------
+r8350 | eicker | 2010-10-04 15:46:12 +0200 (Mon, 04 Oct 2010) | 5 lines
+
+Enhancement: Improve RDP-performance: put msgbufs back into pool
+    immediately after ACK is received.
+Secure changes to RDP's list of msgbufs by lock. Most probably this is
+    temporarily. See #820.
+
+------------------------------------------------------------------------
+r8349 | eicker | 2010-10-04 15:36:55 +0200 (Mon, 04 Oct 2010) | 3 lines
+
+Fix warning on found selector during registration after re-connect.
+Enhance log, if selector was found during Selector_register().
+
+------------------------------------------------------------------------
+r8348 | eicker | 2010-10-04 11:06:45 +0200 (Mon, 04 Oct 2010) | 2 lines
+
+Re-organize handling of RDP-messages to the daemon.
+
+------------------------------------------------------------------------
+r8347 | eicker | 2010-10-01 17:20:51 +0200 (Fri, 01 Oct 2010) | 3 lines
+
+- Don't restrict max fd for select() too much.
+- Whitespace cleanup.
+
+------------------------------------------------------------------------
+r8346 | eicker | 2010-10-01 17:19:45 +0200 (Fri, 01 Oct 2010) | 2 lines
+
+Remove obsolete stub in test_config.c
+
+------------------------------------------------------------------------
+r8345 | eicker | 2010-10-01 17:18:49 +0200 (Fri, 01 Oct 2010) | 4 lines
+
+Reorganize handling of client's file-descriptors. They're now handled
+    directly within the Selector instead via PSID_readfds. This might
+    also help with jt:#3239 since it fixes glitches in the flow-control.
+
+------------------------------------------------------------------------
+r8344 | eicker | 2010-10-01 15:51:39 +0200 (Fri, 01 Oct 2010) | 2 lines
+
+Remove extra debug.
+
+------------------------------------------------------------------------
+r8343 | eicker | 2010-10-01 14:57:52 +0200 (Fri, 01 Oct 2010) | 4 lines
+
+Enhancement: Allow to trigger Sselect() to start-over. Might be useful
+    to enable modified fd-sets more quickly.
+Enhancement: Allow to disable registered selectors temporarily.
+
+------------------------------------------------------------------------
+r8337 | eicker | 2010-09-30 08:34:14 +0200 (Thu, 30 Sep 2010) | 2 lines
+
+Improve documentation of Sselect() usage.
+
+------------------------------------------------------------------------
+r8318 | hauke | 2010-09-24 18:16:20 +0200 (Fri, 24 Sep 2010) | 5 lines
+
+psh: Using psnameexpand and psnamecompress from pscluster/bin/pstool
+
+Fix
+#317 psh name merging will not merge
+#318 psh's NameCompress create empty result.
+------------------------------------------------------------------------
+r8314 | rauh | 2010-09-17 16:18:02 +0200 (Fri, 17 Sep 2010) | 2 lines
+
+Enhancement: removed obsolete NrofNodes in default configuration
+
+------------------------------------------------------------------------
+r8309 | rauh | 2010-09-09 12:30:40 +0200 (Thu, 09 Sep 2010) | 2 lines
+
+Enhancement: enable stack protector if supported, fixing #796
+
+------------------------------------------------------------------------
+r8308 | eicker | 2010-09-07 18:20:44 +0200 (Tue, 07 Sep 2010) | 2 lines
+
+Fix typo introduced in r8307.
+
+------------------------------------------------------------------------
+r8307 | eicker | 2010-09-07 17:51:04 +0200 (Tue, 07 Sep 2010) | 2 lines
+
+Complete correct initialization of clientStat.
+
+------------------------------------------------------------------------
+r8306 | eicker | 2010-09-07 17:33:37 +0200 (Tue, 07 Sep 2010) | 2 lines
+
+Use assignment instead of memcpy() to transfer struct timeval.
+
+------------------------------------------------------------------------
+r8303 | eicker | 2010-09-03 12:11:30 +0200 (Fri, 03 Sep 2010) | 3 lines
+
+Suppress some less interesting RDP-messages per default. These might
+    lead to problems on huge clusters due to created load.
+
+------------------------------------------------------------------------
+r8302 | eicker | 2010-08-30 13:19:20 +0200 (Mon, 30 Aug 2010) | 2 lines
+
+Fix typo.
+
+------------------------------------------------------------------------
+r8298 | eicker | 2010-08-30 10:37:52 +0200 (Mon, 30 Aug 2010) | 2 lines
+
+New version (psmgmt-5.0.28)
+
+------------------------------------------------------------------------
+
 Version psmgmt-5.0.28:
 ======================
 ------------------------------------------------------------------------
@@ -153,7 +260,7 @@ Bugfix: Due to some bugs in the flow-control between forwarder and
     logger there might be duplicated task-structures preventing
     PStasklist_find() from working as expected. At the end this might
     lead to hanging psiadmins. See jt:#2194
-Bugfix: Try to fix the bug mentioned above. 
+Bugfix: Try to fix the bug mentioned above.
 
 ------------------------------------------------------------------------
 r8133 | eicker | 2010-04-30 15:41:14 +0200 (Fri, 30 Apr 2010) | 4 lines
@@ -1135,7 +1242,7 @@ will be distributed over the daisy chain too.
 ------------------------------------------------------------------------
 r7621 | rauh | 2009-06-03 10:40:10 +0200 (Wed, 03 Jun 2009) | 3 lines
 
-Enhancement: if we use daisy chain in pmi, now the kvs_update_cache_result is 
+Enhancement: if we use daisy chain in pmi, now the kvs_update_cache_result is
 only send from the last rank in the chain.
 
 ------------------------------------------------------------------------

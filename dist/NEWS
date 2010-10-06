@@ -4,6 +4,31 @@ Copyright (C) 2010 ParTec Cluster Competence Center GmbH, Munich
 
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
+Version 5.0.29:
+===============
+
+Bugfixes:
+ - psh name merging will not merge (#317).
+ - psh's NameCompress create empty result (#318).
+ - Performance enhancement in RDP: msgbufs put back into pool
+      earlier (jt:#3239).
+ - Performance enhancement in flow-control: Don't always wait
+      for Sselect to time-out (jt:#3239).
+
+Enhancements:
+ - use selectors to handle clients' file-descriptors in psid.
+ - allow to trigger Sselect() to start-over. Useful to enable modified
+      fd-sets more quickly. Might help with jt:#3239.
+ - allow to disable registered selectors temporarily.
+ - enable stack protector, if supported (#796).
+
+Additional changes:
+ - less important RDP-messages suppressed per default. These might
+      lead to bandwidth-problems on huge clusters due to created load.
+ - psh now uses psnameexpand and psnamecompress from pscluster/bin/pstool
+ - Obsolete NrofNodes removed from default configuration
+
+
 Version 5.0.28:
 ===============
 
@@ -22,5 +47,5 @@ Enhancements:
  - Allow service-tasks to explicitely request signals on children's end (#554).
 
 Additional changes:
- - If core-dump are enabled, psid does not catch SIGBUS any longer.
+ - If core-dumps are enabled, psid does not catch SIGBUS any longer.
  - Extended accounting functionality moved into plugin.
