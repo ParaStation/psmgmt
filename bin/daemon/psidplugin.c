@@ -703,7 +703,7 @@ void initPlugins(void)
 	    nameList_t *ent = list_entry(p, nameList_t, next);
 
 	    if (!ent->name || ! *ent->name) {
-		PSID_log(-1, "%s: Illegal name '%s'\n", __func__, ent->name);
+		PSID_log(-1, "%s: No name given\n", __func__);
 		continue;
 	    }
 
