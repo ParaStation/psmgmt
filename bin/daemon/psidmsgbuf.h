@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2009 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2010 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -31,63 +31,54 @@ extern "C" {
 #endif
 
 /**
- * Pool of message buffers ready to use. Initialized by initMsgList().
- * To get a buffer from this pool, use getMsg(), to put it back into
- * it use putMsg().
+ * Message buffer used to temporarily store a message that cannot be
+ * delivered to its destination right now.
+ *
+ * To get a message buffer use getMsgbuf(). putMsgbuf() should be used
+ * to put it back.
  */
-typedef struct msgbuf {
-    DDMsg_t *msg;          /**< The actual message to store */
-    int offset;            /**< Number of bytes allready sent */
+typedef struct {
     list_t next;           /**< Pointer to the next message buffer */
+    int offset;            /**< Number of bytes allready sent */
+    char msg[0];           /**< The actual message to store */
 } msgbuf_t;
-
-/**
- * @brief Initialize message buffer pool
- *
- * Initialize the pool of messages buffers used to temporarily store
- * messages when the destination is busy.
- *
- * @return No return value
- */
-void initMsgList(void);
 
 /**
  * @brief Get a message buffer
  *
- * Get one message buffer from the pool. This message buffer is
- * intended to store a message that temporarily cannot be delivered to
+ * Get one message buffer. This message buffer is intended to store a
+ * message of length @a len that temporarily cannot be delivered to
  * its destination.
  *
+ * The required memory is allocated via malloc(3). The message buffer
+ * is intended to be freed via passing it back via @ref putMsgbuf().
+ *
+ * @param len The length of the message to be stored in the message
+ * buffer acquired.
+ *
  * @return On success a pointer to the message buffer is returned, or
- * NULL, if the pool is empty and cannot be extended.
+ * NULL, if allocating the message-buffer failed.
  */
-msgbuf_t *getMsg(void);
+msgbuf_t *getMsgbuf(size_t len);
 
 /**
- * @brief Put a message buffer into the pool
+ * @brief Put a message buffer back
  *
- * Put the message buffer @a mp back into the pool of free message
- * buffers. The message buffer had to be taken from the pool using the
- * getMsg() function.
+ * Put the message buffer @a mp back after it is no longer
+ * required. The message buffer had to be acquired using the @ref
+ * getMsgbuf() function.
  *
- * @param mp Pointer to the message buffer to be put back to the pool.
+ * @attention { The message buffer will not be removed from the list
+ * it is stored to. Thus, if @a mp is still registerd to a list when
+ * calling this function, the corresponding list will break,
+ * i.e. there will be pointers to memory not being allocated any
+ * more. }
+ *
+ * @param mp Pointer to the message buffer to be put back.
  *
  * @return No return value.
  */
-void putMsg(msgbuf_t *mp);
-
-/**
- * @brief Free content and put message buffer into pool
- *
- * Free the content of the message buffer, i.e. the stuff @a mp->msg
- * is pointing to, if any, and put the message buffer @a mp into the
- * pool using putMsg().
- *
- * @param mp Pointer to the message buffer to free and put back.
- *
- * @return No return value.
- */
-void freeMsg(msgbuf_t *mp);
+void putMsgbuf(msgbuf_t *mp);
 
 #ifdef __cplusplus
 }/* extern "C" */

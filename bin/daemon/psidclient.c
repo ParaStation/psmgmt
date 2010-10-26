@@ -188,19 +188,13 @@ static int do_send(int fd, DDMsg_t *msg, int offset)
 
 static int storeMsgClient(int fd, DDMsg_t *msg, int offset)
 {
-    msgbuf_t *msgbuf = getMsg();
+    msgbuf_t *msgbuf = getMsgbuf(msg->len);
 
     if (!msgbuf) {
 	errno = ENOMEM;
 	return -1;
     }
 
-    msgbuf->msg = malloc(msg->len);
-    if (!msgbuf->msg) {
-	putMsg(msgbuf);
-	errno = ENOMEM;
-	return -1;
-    }
     memcpy(msgbuf->msg, msg, msg->len);
     msgbuf->offset = offset;
 
@@ -220,7 +214,7 @@ int flushClientMsgs(int fd)
 
     list_for_each_safe(m, tmp, &clients[fd].msgs) {
 	msgbuf_t *msgbuf = list_entry(m, msgbuf_t, next);
-	DDMsg_t *msg = msgbuf->msg;
+	DDMsg_t *msg = (DDMsg_t *)msgbuf->msg;
 	PStask_ID_t sender = msg->sender, dest = msg->dest;
 	int sent = do_send(fd, msg, msgbuf->offset);
 
@@ -239,7 +233,7 @@ int flushClientMsgs(int fd)
 	}
 
 	list_del(&msgbuf->next);
-	freeMsg(msgbuf);
+	putMsgbuf(msgbuf);
     }
 
     if (!list_empty(&clients[fd].msgs)) {
@@ -384,18 +378,19 @@ void closeConnection(int fd)
 
     list_for_each_safe(m, tmp, &clients[fd].msgs) {
 	msgbuf_t *mp = list_entry(m, msgbuf_t, next);
+	DDMsg_t *msg = (DDMsg_t *)mp->msg;
 
 	list_del(&mp->next);
 
-	if (PSC_getPID(mp->msg->sender)) {
+	if (PSC_getPID(msg->sender)) {
 	    DDMsg_t contmsg = { .type = PSP_DD_SENDCONT,
-				.sender = mp->msg->dest,
-				.dest = mp->msg->sender,
+				.sender = msg->dest,
+				.dest = msg->sender,
 				.len = sizeof(DDMsg_t) };
 	    if (contmsg.dest != tid) sendMsg(&contmsg);
 	}
-	handleDroppedMsg(mp->msg);
-	freeMsg(mp);
+	handleDroppedMsg(msg);
+	putMsgbuf(mp);
     }
 
     shutdown(fd, SHUT_RDWR);

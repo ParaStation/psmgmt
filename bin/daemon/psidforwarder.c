@@ -648,19 +648,13 @@ static int do_write(PSLog_Msg_t *msg, int offset)
 
 static int storeMsg(PSLog_Msg_t *msg, int offset)
 {
-    msgbuf_t *msgbuf =  getMsg();
+    msgbuf_t *msgbuf =  getMsgbuf(msg->header.len);
 
     if (!msgbuf) {
 	errno = ENOMEM;
 	return -1;
     }
 
-    msgbuf->msg = malloc(msg->header.len);
-    if (!msgbuf->msg) {
-	errno = ENOMEM;
-	putMsg(msgbuf);
-	return -1;
-    }
     memcpy(msgbuf->msg, msg, msg->header.len);
     msgbuf->offset = offset;
 
@@ -674,17 +668,18 @@ static int flushMsgs(void)
     list_t *m, *tmp;
 
     list_for_each_safe(m, tmp, &oldMsgs) {
-	msgbuf_t *msg = list_entry(m, msgbuf_t, next);
-	int len = msg->msg->len - PSLog_headerSize;
-	int written = do_write((PSLog_Msg_t *)msg->msg, msg->offset);
+	msgbuf_t *msgbuf = list_entry(m, msgbuf_t, next);
+	PSLog_Msg_t *msg = (PSLog_Msg_t *)msgbuf->msg;
+	int len = msg->header.len - PSLog_headerSize;
+	int written = do_write(msg, msgbuf->offset);
 
 	if (written<0) return written;
 	if (written != len) {
-	    msg->offset = written;
+	    msgbuf->offset = written;
 	    break;
 	}
-	list_del(&msg->next);
-	freeMsg(msg);
+	list_del(&msgbuf->next);
+	putMsgbuf(msgbuf);
     }
 
     if (!list_empty(&oldMsgs)) {

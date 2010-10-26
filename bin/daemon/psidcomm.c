@@ -493,7 +493,6 @@ void initComm(void)
 {
     initMsgHash();
 
-    initMsgList();
     initRDPMsgs();
 
     PSID_registerMsg(PSP_DD_SENDSTOP, (handlerFunc_t) msg_SENDSTOP);

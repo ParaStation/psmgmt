@@ -68,8 +68,8 @@ void clearRDPMsgs(int node)
 	msgbuf_t *mp = list_entry(m, msgbuf_t, next);
 
 	list_del(&mp->next);
-	handleDroppedMsg(mp->msg);
-	freeMsg(mp);
+	handleDroppedMsg((DDMsg_t *)mp->msg);
+	putMsgbuf(mp);
     }
 
     node_bufs[node].clearing = 0;
@@ -92,7 +92,7 @@ void clearRDPMsgs(int node)
 static int storeMsgRDP(int node, DDMsg_t *msg)
 {
     int blocked = RDP_blockTimer(1), ret = 0;
-    msgbuf_t *msgbuf = getMsg();
+    msgbuf_t *msgbuf = getMsgbuf(msg->len);
 
     if (!msgbuf) {
 	errno = ENOMEM;
@@ -100,13 +100,6 @@ static int storeMsgRDP(int node, DDMsg_t *msg)
 	goto end;
     }
 
-    msgbuf->msg = malloc(msg->len);
-    if (!msgbuf->msg) {
-	putMsg(msgbuf);
-	errno = ENOMEM;
-	ret = -1;
-	goto end;
-    }
     memcpy(msgbuf->msg, msg, msg->len);
     msgbuf->offset = 0;
 
@@ -131,7 +124,7 @@ int flushRDPMsgs(int node)
 
     list_for_each_safe(m, tmp, &node_bufs[node].list) {
 	msgbuf_t *msgbuf = list_entry(m, msgbuf_t, next);
-	DDMsg_t *msg = msgbuf->msg;
+	DDMsg_t *msg = (DDMsg_t *)msgbuf->msg;
 	PStask_ID_t sender = msg->sender, dest = msg->dest;
 	int sent = Rsendto(PSC_getID(dest), msg, msg->len);
 
@@ -158,7 +151,7 @@ int flushRDPMsgs(int node)
 	}
 
 	list_del(&msgbuf->next);
-	freeMsg(msgbuf);
+	putMsgbuf(msgbuf);
     }
  end:
     RDP_blockTimer(blocked);
