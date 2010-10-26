@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2009 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2010 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -61,13 +61,15 @@ static info_t helpInfo = {
     .head = "ParaStation Admin: available commands:",
     .syntax = (syntax_t[]) {{
 	.cmd = "help",
-	.arg = "{ add | help | hwstart | hwstop | kill | list | plugins | range"
-	" | reset | resolve | restart | set | show | shutdown | sleep | test"
-	" | version | quit }"
+	.arg = "{ add | echo | help | hwstart | hwstop | kill | list | plugins"
+	" | range | reset | resolve | restart | set | show | shutdown | sleep"
+	" | test | version | quit }"
     }},
     .nodes = 0,
     .descr = NULL,
     .tags = (taggedInfo_t[]) {
+	{ .tag = "echo",
+	  .descr = "Echo remainder of the line given." },
 	{ .tag = "help",
 	  .descr = "Give help to distinct directives." },
 	{ .tag = "kill",
@@ -629,6 +631,19 @@ static info_t resolveInfo = {
     .nodes = 1,
     .descr = "Resolve mapping of ParaStation ID to hostname on all selected"
     " nodes.",
+    .tags = NULL,
+    .comment = NULL
+};
+
+static info_t echoInfo = {
+    .head = "Echo command:",
+    .syntax = (syntax_t[]) {{
+	.cmd = "echo",
+	.arg = "<line>"
+    }},
+    .nodes = 0,
+    .descr = "Echo the given <line> to stdout. This command does not support"
+    " control sequences like its counterpart /bin/echo.",
     .tags = NULL,
     .comment = NULL
 };

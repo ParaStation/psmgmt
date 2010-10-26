@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2009 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2010 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -1678,6 +1678,12 @@ static int helpSleep(char *token)
     return 0;
 }
 
+static int helpEcho(char *token)
+{
+    printInfo(&echoInfo);
+    return 0;
+}
+
 static int helpNodes(char *token)
 {
     printInfo(&nodeInfo);
@@ -1721,6 +1727,7 @@ static keylist_t helpList[] = {
     {"test", helpTest},
     {"resolve", helpResolve},
     {"plugins", helpPlugins},
+    {"echo", helpEcho},
     {"sleep", helpSleep},
     {"nodes", helpNodes},
     {"help", helpHelp},
@@ -1758,7 +1765,7 @@ static int versionCommand(char *token)
 
     printf("PSIADMIN: ParaStation administration tool\n");
     printf("Copyright (C) 1996-2004 ParTec AG Karlsruhe\n");
-    printf("Copyright (C) 2005-2009 ParTec Cluster Competence Center GmbH, Munich\n");
+    printf("Copyright (C) 2005-2010 ParTec Cluster Competence Center GmbH, Munich\n");
     printf("\n");
     printf("PSIADMIN:   %s\b/ %s\b/ %s\b \b\b\n", psiadmversion+11,
 	   commandsversion+11, parserversion+11);
@@ -1777,6 +1784,15 @@ static int versionCommand(char *token)
  error:
     printError(&versionInfo);
     return -1;
+}
+
+static int echoCommand(char *token)
+{
+    char *line = parser_getLine();
+
+    printf("%s\n", line ? line : "");
+
+    return 0;
 }
 
 static int sleepCommand(char *token)
@@ -1855,6 +1871,7 @@ static keylist_t commandList[] = {
     {"help", helpCommand},
     {"version", versionCommand},
     {"sleep", sleepCommand},
+    {"echo", echoCommand},
     {"resolve", resolveCommand},
     {"plugins", pluginCommand},
     {"exit", quitCommand},
