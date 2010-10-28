@@ -11,7 +11,7 @@
  * mpi_startup: Simple MPI 'hello world' program. This is started
  * repeatedly as a work-load within the timing-test of the startup.
  *
- * $Id$ 
+ * $Id$
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
