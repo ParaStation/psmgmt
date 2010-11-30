@@ -188,7 +188,7 @@ static int do_send(int fd, DDMsg_t *msg, int offset)
 
 static int storeMsgClient(int fd, DDMsg_t *msg, int offset)
 {
-    msgbuf_t *msgbuf = getMsgbuf(msg->len);
+    msgbuf_t *msgbuf = PSIDMsgbuf_get(msg->len);
 
     if (!msgbuf) {
 	errno = ENOMEM;
@@ -233,7 +233,7 @@ int flushClientMsgs(int fd)
 	}
 
 	list_del(&msgbuf->next);
-	putMsgbuf(msgbuf);
+	PSIDMsgbuf_put(msgbuf);
     }
 
     if (!list_empty(&clients[fd].msgs)) {
@@ -390,7 +390,7 @@ void closeConnection(int fd)
 	    if (contmsg.dest != tid) sendMsg(&contmsg);
 	}
 	handleDroppedMsg(msg);
-	putMsgbuf(mp);
+	PSIDMsgbuf_put(mp);
     }
 
     shutdown(fd, SHUT_RDWR);

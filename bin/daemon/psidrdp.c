@@ -69,7 +69,7 @@ void clearRDPMsgs(int node)
 
 	list_del(&mp->next);
 	handleDroppedMsg((DDMsg_t *)mp->msg);
-	putMsgbuf(mp);
+	PSIDMsgbuf_put(mp);
     }
 
     node_bufs[node].clearing = 0;
@@ -92,7 +92,7 @@ void clearRDPMsgs(int node)
 static int storeMsgRDP(int node, DDMsg_t *msg)
 {
     int blocked = RDP_blockTimer(1), ret = 0;
-    msgbuf_t *msgbuf = getMsgbuf(msg->len);
+    msgbuf_t *msgbuf = PSIDMsgbuf_get(msg->len);
 
     if (!msgbuf) {
 	errno = ENOMEM;
@@ -151,7 +151,7 @@ int flushRDPMsgs(int node)
 	}
 
 	list_del(&msgbuf->next);
-	putMsgbuf(msgbuf);
+	PSIDMsgbuf_put(msgbuf);
     }
  end:
     RDP_blockTimer(blocked);

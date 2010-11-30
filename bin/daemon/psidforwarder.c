@@ -648,7 +648,7 @@ static int do_write(PSLog_Msg_t *msg, int offset)
 
 static int storeMsg(PSLog_Msg_t *msg, int offset)
 {
-    msgbuf_t *msgbuf =  getMsgbuf(msg->header.len);
+    msgbuf_t *msgbuf =  PSIDMsgbuf_get(msg->header.len);
 
     if (!msgbuf) {
 	errno = ENOMEM;
@@ -679,7 +679,7 @@ static int flushMsgs(void)
 	    break;
 	}
 	list_del(&msgbuf->next);
-	putMsgbuf(msgbuf);
+	PSIDMsgbuf_put(msgbuf);
     }
 
     if (!list_empty(&oldMsgs)) {

@@ -283,6 +283,9 @@ static void sighandler(int sig)
 	PSID_log(-1, "Received signal %s. Continue\n",
 		 sys_siglist[sig] ? sys_siglist[sig] : sigStr);
 	break;
+    case  SIGUSR1:   /* user defined signal 1 */
+	PSIDMsgbuf_printStat();
+	break;
     case  SIGILL:    /* (*) illegal instruction (not reset when caught)*/
     case  SIGTRAP:   /* (*) trace trap (not reset when caught) */
     case  SIGFPE:    /* (*) floating point exception */
@@ -306,7 +309,6 @@ static void sighandler(int sig)
     case  SIGTTOU:   /* (@) background write attempted to control terminal */
     case  SIGXCPU:   /* cpu time limit exceeded (see setrlimit()) */
     case  SIGXFSZ:   /* file size limit exceeded (see setrlimit()) */
-    case  SIGUSR1:   /* user defined signal 1 */
     case  SIGUSR2:   /* user defined signal 2 */
     default:
 	PSID_log(-1, "Received signal %s. Shut down\n",

@@ -59,7 +59,7 @@ typedef struct {
  * @return On success a pointer to the message buffer is returned, or
  * NULL, if allocating the message-buffer failed.
  */
-msgbuf_t *getMsgbuf(size_t len);
+msgbuf_t *PSIDMsgbuf_get(size_t len);
 
 /**
  * @brief Put a message buffer back
@@ -68,17 +68,65 @@ msgbuf_t *getMsgbuf(size_t len);
  * required. The message buffer had to be acquired using the @ref
  * getMsgbuf() function.
  *
- * @attention { The message buffer will not be removed from the list
- * it is stored to. Thus, if @a mp is still registerd to a list when
+ * @warning The message buffer will not be removed from the list it
+ * is stored to. Thus, if @a mp is still registerd to a list when
  * calling this function, the corresponding list will break,
- * i.e. there will be pointers to memory not being allocated any
- * more. }
+ * i.e. there will be pointers to memory not being allocated any more.
  *
  * @param mp Pointer to the message buffer to be put back.
  *
  * @return No return value.
  */
-void putMsgbuf(msgbuf_t *mp);
+void PSIDMsgbuf_put(msgbuf_t *mp);
+
+/**
+ * @brief Garbage collection
+ *
+ * Do garbage collection on unused message buffers. Since this module
+ * will keep pre-allocated buffers for small messages its
+ * memory-footprint might have grown after phases of heavy
+ * usage. Thus, this function shall be called regularly in order to
+ * free() buffers no longer required.
+ *
+ * @return No return value.
+ */
+void PSIDMsgbuf_gc(void);
+
+/**
+ * @brief Memory cleanup
+ *
+ * Cleanup all memory currently used by the module. It will very
+ * aggressively free all allocated memory probably destroying existing
+ * lists of message-buffers. Thus, these lists should have been
+ * cleaned up earlier.
+ *
+ * The purpose of this function is cleanup before a fork()ed process
+ * is handling other tasks, e.g. becoming a forwarder.
+ *
+ * @warn This one is not yet implemented.
+ *
+ * @return No return value.
+ */
+void PSIDMsgbuf_clearMem(void);
+
+/**
+ * @brief Print statistics
+ *
+ * Print statistics concerning the usage of message-buffers.
+ *
+ * @return No return value.
+ */
+void PSIDMsgbuf_printStat(void);
+
+/**
+ * @brief Initialize pool of message buffers
+ *
+ * Initialize the pool of messages buffers used to temporarily store
+ * messages when the destination is busy.
+ *
+ * @return No return value
+ */
+void PSIDMsgbuf_init(void);
 
 #ifdef __cplusplus
 }/* extern "C" */
