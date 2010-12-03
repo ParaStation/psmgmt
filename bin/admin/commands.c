@@ -1592,7 +1592,7 @@ void PSIADM_ShowParamList(PSP_Option_t type, char *nl)
 		    if (options[i].value == -1) {
 			printf("unlimited");
 		    } else {
-			printf("%x", options[i].value);
+			printf("0x%x", options[i].value);
 		    }
 		    break;
 		case PSP_OP_CPUMAP:
@@ -1605,7 +1605,7 @@ void PSIADM_ShowParamList(PSP_Option_t type, char *nl)
 		    goto next_node;
 		    break;
 		default:
-		    printf("unknown type %x", options[i].option);
+		    printf("unknown type 0x%x", options[i].option);
 		    goto next_node;
 		}
 	    }
