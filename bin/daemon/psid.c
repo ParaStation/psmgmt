@@ -66,6 +66,7 @@ static char vcid[] __attribute__((used)) =
 #include "psidstate.h"
 #include "psidplugin.h"
 #include "psidscripts.h"
+#include "psidmsgbuf.h"
 
 struct timeval selectTime;
 
