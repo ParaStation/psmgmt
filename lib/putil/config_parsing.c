@@ -670,6 +670,20 @@ static int getRLimitCore(char *token)
     return 0;
 }
 
+static int getRLimitNoFile(char *token)
+{
+    rlim_t value;
+    int ret;
+
+    ret = getRLimitVal(parser_getString(), &value, "RLimit NoFile");
+    if (ret) return ret;
+
+    setLimit(RLIMIT_NOFILE, value);
+    rlimitCoreGiven = 1;
+
+    return 0;
+}
+
 static int endRLimitEnv(char *token)
 {
     return ENV_END;
@@ -682,6 +696,7 @@ static keylist_t rlimitenv_list[] = {
     {"rssize", getRLimitRSS},
     {"memlock", getRLimitMemLock},
     {"core", getRLimitCore},
+    {"nofile", getRLimitNoFile},
     {"}", endRLimitEnv},
     {NULL, parser_error}
 };
@@ -701,6 +716,7 @@ static keylist_t rlimit_list[] = {
     {"rssize", getRLimitRSS},
     {"memlock", getRLimitMemLock},
     {"core", getRLimitCore},
+    {"nofile", getRLimitNoFile},
     {NULL, parser_error}
 };
 

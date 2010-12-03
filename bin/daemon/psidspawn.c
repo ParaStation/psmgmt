@@ -847,6 +847,21 @@ static void execClient(PStask_t *task)
 	}
 	setrlimit(RLIMIT_AS, &rlim);
     }
+    /* restore number of files settings */
+    envStr = getenv("__PSI_NOFILE");
+    if (envStr) {
+	struct rlimit rlim;
+	getrlimit(RLIMIT_NOFILE, &rlim);
+	if (!strcmp("infinity", envStr)) {
+	    rlim.rlim_cur = rlim.rlim_max;
+	} else {
+	    int ret = sscanf(envStr, "%lx", &rlim.rlim_cur);
+	    if (ret < 1) rlim.rlim_cur = 0;
+	    rlim.rlim_cur =
+		(rlim.rlim_max > rlim.rlim_cur) ? rlim.rlim_cur : rlim.rlim_max;
+	}
+	setrlimit(RLIMIT_NOFILE, &rlim);
+    }
     /* restore umask settings */
     envStr = getenv("__PSI_UMASK");
     if (envStr) {
