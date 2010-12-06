@@ -1,7 +1,7 @@
 /*
  *               ParaStation
  *
- * Copyright (C) 2007-2009 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2007-2010 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -28,18 +28,17 @@ static char vcid[] __attribute__((used)) =
 #include "kvscommon.h"
 #include "timer.h"
 #include "psilogger.h"
-#include "psiloggerclient.h"
 
 #include "psiloggerkvs.h"
 
-/** Array to store the forwarder TIDs joined to kvs. */
-static PStask_ID_t *clientKvsTID;
+/** Array to store info about forwarders joined to kvs. */
+static struct {
+    PStask_ID_t tid;     /**< TID of the forwarder */
+    int joined;          /**< flag to mark forwarders that joined a barrier */
+} *clients;
 
-/** Array to store the received TIDs for tracking the barrier/cache updates. */
-static PStask_ID_t *clientKvsTrackTID;
-
-/** The actual size of clientKvsTID */
-static int maxKvsClients = 64;
+/** The actual size of clients */
+static int maxKvsClients = 0;
 
 /** Number of clients joined to kvs */
 static int noKvsClients = 0;
@@ -53,11 +52,8 @@ static int kvsCacheUpdateCount = 0;
 /** The number of kvs update msgs sends */
 static int kvsUpdateMsgCount = 0;
 
-/** Outputs kvs debug msg if set */
-static int debug_kvs = 0;
-
 /** Set the timeout of the barrier */
-static int barrierTimeout = 0;
+static int barrierTmout = 0;
 
 /** Set the number of rounds for the barrier */
 static int barrierRounds = 2;
@@ -105,20 +101,29 @@ static void sendKvsMsg(PStask_ID_t tid, char *msg)
 void initLoggerKvs(void)
 {
     char kvs_name[KVSNAME_MAX], *envstr;
-    int i;
+    int debug_kvs = 0, i;
 
-    clientKvsTID = malloc (sizeof(*clientKvsTID) * maxKvsClients);
-    clientKvsTrackTID = malloc (sizeof(*clientKvsTrackTID) * maxKvsClients);
+    /* set the init size of the job */
+    if ((envstr = getenv("PMI_SIZE"))) {
+	noKvsClients = atoi(envstr);
+    } else {
+	PSIlog_log(-1, "%s: PMI_SIZE is not correct set.\n", __func__);
+	terminateJob();
+    }
 
-    if (!clientKvsTID || !clientKvsTrackTID) {
-	PSIlog_log(-1, "%s: out of memory\n", __func__);
+    maxKvsClients = noKvsClients;
+
+    clients = malloc (sizeof(*clients) * maxKvsClients);
+
+    if (!clients) {
+	PSIlog_warn(-1, errno, "%s", __func__);
 	terminateJob();
 	exit(EXIT_FAILURE);
     }
 
     for (i=0; i<maxKvsClients; i++) {
-	clientKvsTID[i] = -1;
-	clientKvsTrackTID[i] = -1;
+	clients[i].tid = -1;
+	clients[i].joined = 0;
     }
 
     /* init the kvs */
@@ -138,27 +143,17 @@ void initLoggerKvs(void)
 	terminateJob();
     }
 
-    /* set the init size of the job */
-    if ((envstr = getenv("PMI_SIZE"))) {
-	noKvsClients = atoi(envstr);
-    } else {
-	PSIlog_log(-1, "%s: PMI_SIZE is not correct set.\n", __func__);
-	terminateJob();
-    }
+    /* init the timer structure, if necessary */
+    if (!Timer_isInitialized()) Timer_init(stderr);
 
-    /* init the timer structure */
-    if (!Timer_isInitialized()) {
-	Timer_init(stderr);
-    }
-
-    /* set the timeout for barrier */
+    /* set the timeout for barriers */
     if ((envstr = getenv("PMI_BARRIER_TMOUT"))) {
-	barrierTimeout = atoi(envstr);
-	if (barrierTimeout == -1) {
-	    PSIlog_log(PSILOG_LOG_VERB,	"pmi barrier timeout disabled\n");
+	barrierTmout = atoi(envstr);
+	PSIlog_log(PSILOG_LOG_VERB, "pmi barrier timeout");
+	if (barrierTmout == -1) {
+	    PSIlog_log(PSILOG_LOG_VERB,	" disabled\n");
 	} else {
-	    PSIlog_log(PSILOG_LOG_VERB,	"pmi barrier timeout: %i\n",
-		       barrierTimeout);
+	    PSIlog_log(PSILOG_LOG_VERB,	": %i\n", barrierTmout);
 	}
     }
 
@@ -175,6 +170,7 @@ void initLoggerKvs(void)
     } else if ((envstr = getenv("PMI_DEBUG_KVS"))) {
 	debug_kvs = atoi(envstr);
     }
+    if (debug_kvs) PSIlog_setDebugMask(PSIlog_getDebugMask() | PSILOG_LOG_KVS);
 }
 
 void switchDaisyChain(int val)
@@ -203,15 +199,15 @@ static void sendMsgToKvsClients(char *msg)
     }
 
     if (useDaisyChain) {
-	if (clientKvsTID[0] != -1) {
-	    sendKvsMsg(clientKvsTID[0], msg);
+	if (clients[0].tid != -1) {
+	    sendKvsMsg(clients[0].tid, msg);
 	} else {
 	    PSIlog_log(-1, "%s: daisy-chain enabled but unusable\n", __func__);
 	    return;
 	}
     } else {
 	for (i=0; i< maxKvsClients; i++) {
-	    if (clientKvsTID[i] != -1) sendKvsMsg(clientKvsTID[i], msg);
+	    if (clients[i].tid != -1) sendKvsMsg(clients[i].tid, msg);
 	}
     }
 }
@@ -455,10 +451,21 @@ static void sendKvsUpdateToClients(void)
  */
 static void handleBarrierTimeout(void)
 {
+    int i;
+
     PSIlog_log(-1, "Timeout: Not all clients joined the first pmi barrier: "
 	       "joined=%i left=%i round=%i\n", kvsBarrierInCount,
 	       noKvsClients - kvsBarrierInCount, barrierRounds-barrierCount+1);
+
     if (--barrierCount) return;
+
+    PSIlog_log(-1, "Missing clients:\n");
+    for (i=0; i<noKvsClients; i++) {
+	if (!clients[i].joined) {
+	    PSIlog_log(-1, "%s rank %d\n", (clients[i].tid == -1) ?
+		       "unconnected" : PSC_printTID(clients[i].tid), i);
+	}
+    }
 
     /* kill all childs */
     terminateJob();
@@ -474,13 +481,11 @@ static void setBarrierTimeout(void)
 {
     struct timeval timer;
 
-    if (barrierTimeout == -1) {
-	return;
-    }
+    if (barrierTmout == -1) return;
 
-    if (barrierTimeout) {
+    if (barrierTmout) {
 	/* timeout from user */
-	timer.tv_sec = barrierTimeout;
+	timer.tv_sec = barrierTmout;
 	timer.tv_usec = 0;
     } else {
 	/* timeout after 1 min + n * USEC_PER_CLIENT ms */
@@ -491,9 +496,50 @@ static void setBarrierTimeout(void)
     barrierCount = barrierRounds;
     timerid = Timer_register(&timer, handleBarrierTimeout);
 
-    if (timerid == -1) {
-	PSIlog_log(-1, "%s: failed to set timer\n", __func__);
+    if (timerid == -1) PSIlog_log(-1, "%s: failed to set timer\n", __func__);
+}
+
+/**
+ * @brief Test incoming message
+ *
+ * Test, if incoming message @a msg is consistent with internal KVS
+ * settings. Tests are consistency of task-ID and rank fitting into
+ * @ref clients array.
+ *
+ * @param fName Name of the calling function
+ *
+ * @param msg The message to test
+ *
+ * @return No return value.
+ */
+static void testMsg(const char fName[], PSLog_Msg_t *msg)
+{
+    /* check for clients out of range, i.e. not joined before */
+    if (msg->sender >= maxKvsClients) {
+	PSIlog_log(-1, "%s: rank %d from %s out of range\n", fName,
+		   msg->sender, PSC_printTID(msg->header.sender));
+	terminateJob();
     }
+
+    /* check for false clients */
+    if (clients[msg->sender].tid != msg->header.sender) {
+	PSIlog_log(-1, "%s: rank %d from %s", fName, msg->sender,
+		   PSC_printTID(msg->header.sender));
+	PSIlog_log(-1, " should come from %s\n",
+		   PSC_printTID(clients[msg->sender].tid));
+	terminateJob();
+    }
+}
+
+void resetTracking(void)
+{
+    int i;
+
+    if (timerid != -1) Timer_remove(timerid);
+    timerid = -1;
+
+    /* reset tracking array */
+    for (i=0; i< maxKvsClients; i++) clients[i].joined = 0;
 }
 
 /**
@@ -506,23 +552,22 @@ static void setBarrierTimeout(void)
 static void handleKvsBarrierIn(PSLog_Msg_t *msg)
 {
     char reply[PMIU_MAXLINE];
-    int i;
 
     /* check if last barrier ended successfully */
     if (kvsCacheUpdateCount > 0) {
 	PSIlog_log(-1, "%s: received barrier_in from %s while"
-		   " waiting for cache update results\n",
-		   __func__, PSC_printTID(msg->header.sender));
+		   " waiting for cache update results\n", __func__,
+		   PSC_printTID(msg->header.sender));
 	terminateJob();
     }
 
+    testMsg(__func__, msg);
+
     /* check for double barrier in msg */
-    for (i=0; i< maxKvsClients; i++) {
-	if (clientKvsTrackTID[i] == msg->sender) {
-	    PSIlog_log(-1, "%s: received barrier_in twice from %s\n",
-		       __func__, PSC_printTID(msg->header.sender));
-	    terminateJob();
-	}
+    if (clients[msg->sender].joined) {
+	PSIlog_log(-1, "%s: rank %d from %s sent barrier_in twice\n",
+		   __func__, msg->sender, PSC_printTID(msg->header.sender));
+	terminateJob();
     }
 
     /* Set timeout waiting for all clients to join barrier */
@@ -531,24 +576,17 @@ static void handleKvsBarrierIn(PSLog_Msg_t *msg)
     }
 
     /* save sender to array */
-    clientKvsTrackTID[kvsBarrierInCount] = msg->header.sender;
+    clients[msg->sender].joined = 1;
     kvsBarrierInCount++;
 
     /* debugging output */
-    if (debug_kvs) {
-	PSIlog_log(-1, "%s: ->barrier_in, barrierCount:%i,"
-		   " noKvsClients:%i\n",
-		   __func__, kvsBarrierInCount, noKvsClients);
-    }
+    PSIlog_log(PSILOG_LOG_KVS,
+	       "%s: ->barrier_in, barrierCount:%i, noKvsClients:%i\n",
+	       __func__, kvsBarrierInCount, noKvsClients);
 
-    /* all clients joined barrier */
     if (kvsBarrierInCount == noKvsClients) {
-	if (timerid != -1) Timer_remove(timerid);
-	timerid = -1;
-	/* reset tracking array */
-	for (i=0; i< maxKvsClients; i++) {
-	    clientKvsTrackTID[i] = -1;
-	}
+	/* all clients joined barrier */
+	resetTracking();
 
 	kvsBarrierInCount = 0;
 
@@ -566,7 +604,6 @@ static void handleKvsBarrierIn(PSLog_Msg_t *msg)
 static void handleKvsDaisyBarrierIn(PSLog_Msg_t *msg)
 {
     char reply[PMIU_MAXLINE];
-    int rank = getClientRank(msg->header.sender);
 
     /* check, if daisy-chaining is enabled at all */
     if (!useDaisyChain) {
@@ -576,23 +613,24 @@ static void handleKvsDaisyBarrierIn(PSLog_Msg_t *msg)
 	terminateJob();
     }
 
+    testMsg(__func__, msg);
+
     /* check, if last barrier ended successfully */
     if (kvsCacheUpdateCount > 0) {
 	PSIlog_log(-1, "%s: received daisybarrier_in from %s while"
-		   " waiting for cache update results\n",
-		   __func__, PSC_printTID(msg->header.sender));
+		   " waiting for cache update results\n", __func__,
+		   PSC_printTID(msg->header.sender));
 	terminateJob();
     }
 
     /* debugging output */
-    if (debug_kvs) {
-	PSIlog_log(-1, "%s\n", __func__);
-    }
+    PSIlog_log(PSILOG_LOG_KVS, "%s\n", __func__);
 
     /* check if we got the msg from the last client in chain */
-    if (rank != noKvsClients -1) {
-	PSIlog_log(-1, "%s: barrier from wrong rank:%i expected from %i\n",
-		   __func__, rank, noKvsClients -1);
+    if (msg->sender != noKvsClients - 1) {
+	/* @todo noKvsClient not necessarily last rank !! */
+	PSIlog_log(-1, "%s: barrier from wrong rank %i on %s\n", __func__,
+		   msg->sender, PSC_printTID(msg->header.sender));
 	terminateJob();
     }
 
@@ -660,7 +698,6 @@ static void handleKvsUpdateCacheResult(PSLog_Msg_t *msg)
 {
     char *ptr = msg->buf;
     char mc[VALLEN_MAX], reply[PMIU_MAXLINE];
-    int i, rank = getClientRank(msg->header.sender);
 
     /* check if barrier_in is finished */
     if (kvsBarrierInCount > 0 ) {
@@ -669,6 +706,8 @@ static void handleKvsUpdateCacheResult(PSLog_Msg_t *msg)
 		   __func__, PSC_printTID(msg->header.sender));
 	terminateJob();
     }
+
+    testMsg(__func__, msg);
 
     /* parse arguments */
     getpmiv("mc",ptr,mc,sizeof(mc));
@@ -688,9 +727,10 @@ static void handleKvsUpdateCacheResult(PSLog_Msg_t *msg)
     /* last forward send us an reply, so everything is ok */
     if (useDaisyChain) {
 	/* check if the result msg came from the last client in chain */
-	if (rank != noKvsClients -1) {
-	    PSIlog_log(-1, "%s: update from wrong rank:%i expected from %i\n",
-		       __func__, rank, noKvsClients -1);
+	if (msg->sender != noKvsClients - 1) {
+	    /* @todo noKvsClient not necessarily last rank !! */
+	    PSIlog_log(-1, "%s: update from wrong rank %i on %s\n", __func__,
+		       msg->sender, PSC_printTID(msg->header.sender));
 	    terminateJob();
 	}
 
@@ -704,28 +744,21 @@ static void handleKvsUpdateCacheResult(PSLog_Msg_t *msg)
 	    setBarrierTimeout();
 	}
 
+	testMsg(__func__, msg);
+
 	/* check for double update cache msg */
-	for (i=0; i< maxKvsClients; i++) {
-	    if (clientKvsTrackTID[i] == msg->sender) {
-		PSIlog_log(-1,
-			   "%s: received update cache result twice from %s\n",
-			   __func__, PSC_printTID(msg->header.sender));
-		terminateJob();
-	    }
+	if (clients[msg->sender].joined) {
+	    PSIlog_log(-1, "%s: rank %d from %s sent barrier_in twice\n",
+		       __func__, msg->sender, PSC_printTID(msg->header.sender));
+	    terminateJob();
 	}
 
-	clientKvsTrackTID[kvsCacheUpdateCount] = msg->header.sender;
+	clients[msg->sender].joined = 1;
 	kvsCacheUpdateCount++;
 
-	/* received all update requests */
 	if (kvsCacheUpdateCount == noKvsClients) {
-	    if (timerid != -1) Timer_remove(timerid);
-	    timerid=-1;
-
-	    /* reset tracking array */
-	    for (i=0; i< maxKvsClients; i++) {
-		clientKvsTrackTID[i] = -1;
-	    }
+	    /* received all update requests */
+	    resetTracking();
 
 	    kvsCacheUpdateCount = 0;
 
@@ -748,35 +781,37 @@ static void handleKvsJoin(PSLog_Msg_t *msg)
     static int count = 0;
 
     if (msg->sender >= maxKvsClients) {
+	size_t oldMax = maxKvsClients;
 	int i;
 
-	clientKvsTID = realloc(clientKvsTID,
-			       sizeof(*clientKvsTID) * 2 * msg->sender);
-	clientKvsTrackTID = realloc(clientKvsTrackTID,
-				    sizeof(*clientKvsTrackTID)*2*msg->sender);
+	PSIlog_log(-1, "%s: kvs grows for %d (%s) to %d\n", __func__,
+		   msg->sender, PSC_printTID(msg->header.sender),
+		   noKvsClients+1);
 
-	if (!clientKvsTID || !clientKvsTrackTID) {
-	    PSIlog_log(-1, "%s: realloc() failed.\n", __func__);
+	maxKvsClients = 2 * msg->sender;
+
+	clients = realloc(clients, sizeof(*clients) * maxKvsClients);
+
+	if (!clients) {
+	    PSIlog_warn(-1, errno, "%s: realloc()", __func__);
 	    terminateJob();
 	    exit(EXIT_FAILURE);
 	}
 
-	for (i=maxKvsClients; i<2*msg->sender; i++) {
-	    clientKvsTID[i] = -1;
-	    clientKvsTrackTID[i] = -1;
+	for (i=oldMax; i < maxKvsClients; i++) {
+	    clients[i].tid = -1;
+	    clients[i].joined = 0;
 	}
 
 	maxKvsClients = 2*msg->sender;
     }
-    if (clientKvsTID[msg->sender] != -1) {
+    if (clients[msg->sender].tid != -1) {
 	PSIlog_log(-1, "%s: %s (rank %d) already in kvs.\n", __func__,
 		   PSC_printTID(msg->header.sender), msg->sender);
     } else {
-	clientKvsTID[msg->sender] = msg->header.sender;
+	clients[msg->sender].tid = msg->header.sender;
 	count++;
-	if (count > noKvsClients) {
-	    noKvsClients++;
-	}
+	if (count > noKvsClients) noKvsClients++;
     }
 }
 
@@ -790,38 +825,23 @@ static void handleKvsJoin(PSLog_Msg_t *msg)
 static void handleKvsLeave(PSLog_Msg_t *msg)
 {
     /* Try to find the corresponding client */
-    int i = 0;
     char reply[PMIU_MAXLINE];
 
-    while ((i < maxKvsClients) && (clientKvsTID[i] != msg->header.sender)) i++;
+    testMsg(__func__, msg);
 
-    if (i == maxKvsClients) {
-	PSIlog_log(-1, "%s: error invalid leave kvs msg from: %s.\n",
-		   __func__, PSC_printTID(msg->header.sender));
-	errno = EBADMSG;
-	terminateJob();
-    }
-    clientKvsTID[i] = -1;
+    clients[msg->sender].tid = -1;
     noKvsClients--;
 
     /* Remove client from barrier_in waiting */
     if (kvsBarrierInCount > 0) {
-	for (i=0; i< maxKvsClients; i++) {
-	    if (clientKvsTrackTID[i] == msg->header.sender) {
-		clientKvsTrackTID[i] = -1;
-		kvsBarrierInCount--;
-		break;
-	    }
+	if (clients[msg->sender].joined) {
+	    clients[msg->sender].joined = 0;
+	    kvsBarrierInCount--;
 	}
 
-	/* all clients joined barrier */
 	if (kvsBarrierInCount == noKvsClients) {
-	    if (timerid != -1) Timer_remove(timerid);
-	    timerid = -1;
-	    /* reset tracking array */
-	    for (i=0; i< maxKvsClients; i++) {
-		clientKvsTrackTID[i] = -1;
-	    }
+	    /* all clients joined barrier */
+	    resetTracking();
 
 	    kvsBarrierInCount = 0;
 
@@ -835,23 +855,14 @@ static void handleKvsLeave(PSLog_Msg_t *msg)
 	    }
 	}
     } else if (kvsCacheUpdateCount > 0) {
-	for (i=0; i< maxKvsClients; i++) {
-	    if (clientKvsTrackTID[i] == msg->header.sender) {
-		clientKvsTrackTID[i] = -1;
-		kvsCacheUpdateCount--;
-		break;
-	    }
+	if (clients[msg->sender].joined) {
+	    clients[msg->sender].joined = 0;
+	    kvsCacheUpdateCount--;
 	}
 
-	/* received all update requests */
 	if (kvsCacheUpdateCount == noKvsClients) {
-	    if (timerid != -1) Timer_remove(timerid);
-	    timerid=-1;
-
-	    /* reset tracking array */
-	    for (i=0; i< maxKvsClients; i++) {
-		clientKvsTrackTID[i] = -1;
-	    }
+	    /* received all update requests */
+	    resetTracking();
 
 	    kvsCacheUpdateCount = 0;
 
@@ -908,13 +919,12 @@ void handleKvsMsg(PSLog_Msg_t *msg)
 {
     char cmd[VALLEN_MAX], *cmdtmp, *msgCopy;
 
-    if (debug_kvs) {
-	PSIlog_log(-1, "%s: new pmi kvs msg: '%s'\n", __func__, msg->buf);
-    }
+    PSIlog_log(PSILOG_LOG_KVS, "%s: new pmi kvs msg: '%s'\n", __func__,
+	       msg->buf);
 
     /* extract the kvs command */
     if(!(msgCopy = strdup(msg->buf))) {
-	PSIlog_log(-1, "%s: out of memory, exiting\n", __func__);
+	PSIlog_warn(-1, errno, "%s", __func__);
 	terminateJob();
 	exit(EXIT_FAILURE);
     }

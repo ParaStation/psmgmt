@@ -1,7 +1,7 @@
 /*
  *               ParaStation
  *
- * Copyright (C) 2007-2008 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2007-2010 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -20,6 +20,17 @@
 #ifndef __PSILOGGERKEYVALUESPACE
 #define __PSILOGGERKEYVALUESPACE
 
+#include <stddef.h>
+
+/**
+ * @brief Init the global kvs.
+ *
+ * Initialize the global key-value space. This function must be called
+ * before call to @ref handleKvsMsg().
+ *
+ * @return No return value.
+ */
+void initLoggerKvs(void);
 
 /**
  * @brief Parse and handle a pmi kvs message.
@@ -29,15 +40,6 @@
  * @return No return value.
  */
 void handleKvsMsg(PSLog_Msg_t *msg);
-
-
-/**
- * @brief Init the global kvs. This function must be called bevor
- * calling @ref handleKvsMsg().
- *
- * @return No return value.
- */
-void initLoggerKvs(void);
 
 /**
  * @brief Switch daisy-chain mode.
