@@ -187,8 +187,8 @@ static void freeChunk(msgbuf_schunk_t *chunk)
     /* First round: remove msgbufs from msgbufFreeList */
     for (i=0; i<MSGBUF_SCHUNK; i++) {
 	if (chunk->bufs[i].offset == UNUSED) {
-	    chunk->bufs[i].offset = DRAINED;
 	    list_del(&chunk->bufs[i].next);
+	    chunk->bufs[i].offset = DRAINED;
 	}
     }
 
@@ -200,11 +200,12 @@ static void freeChunk(msgbuf_schunk_t *chunk)
 
 	new = (msgbuf_small_t*) getSmallMsgbuf();
 
+	/* copy msgbuf's content */
+	memcpy(&new->msg, &old->msg, sizeof(new->msg));
+	new->offset = old->offset;
+
 	/* tweak the list */
 	__list_add(&new->next, old->next.prev, old->next.next);
-	/* copy msgbuf's content */
-	new->offset = old->offset;
-	memcpy(&new->msg, &old->msg, sizeof(new->msg));
 
 	old->offset = DRAINED;
 	usedSmallBufs--;
