@@ -676,7 +676,7 @@ static int startProcs(int np, char *wd, int argc, char *argv[], int verbose)
 	for (i=0; i<np; i++) {
 	    if (verbose || errors[i]) {
 		fprintf(stderr, "Could%s spawn '%s' process %d",
-			errors[i] ? " not" : "", argv[0], i+1);
+			errors[i] ? " not" : "", argv[0], i);
 		if (errors[i]) {
 		    char* errstr = strerror(errors[i]);
 		    fprintf(stderr, ": %s", errstr ? errstr : "UNKNOWN");
