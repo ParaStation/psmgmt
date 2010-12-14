@@ -66,6 +66,8 @@ logger_t* logger_init(char* tag, FILE* logfile)
     logger->tag = NULL;
     logger_setTag(logger, tag);
     logger->trail = NULL;
+    logger->trailSize = 0;
+    logger->trailUsed = 0;
     logger->timeFlag = 0;
 
     return logger;
@@ -111,13 +113,13 @@ static inline char *getTimeStr(logger_t *logger)
  * logger_warn() and @ref logger_exit() actually printing the message.
  *
  * The message defined by @a format and @a ap will be spiffed up with
- * @a logger's tag and put out to the destination also defined within
- * @a logger.
+ * @a logger's tag and some timestamp and put out to the destination
+ * also defined within @a logger.
  *
  * The message is only actually put out if @a format contains a
- * trailing newline character. Otherwise it will be stored within @a
- * logger and put in front of further messages sent via this special
- * logger.
+ * newline character. Any trails left after the last newline character
+ * will be stored within @a logger and put in front of further
+ * messages sent via this special logger.
  *
  * This function does @b no keys/mask handling, i.e. this has to be
  * done within the wrapper functions.
@@ -140,27 +142,27 @@ static inline char *getTimeStr(logger_t *logger)
  */
 static void do_print(logger_t* logger, const char* format, va_list ap)
 {
-    static char *prefix = NULL, *text = NULL, *line = NULL;
-    static int prfxlen = 0, txtlen = 0, linelen = 0;
+    static char *prefix = NULL, *text = NULL;
+    static int prfxlen = 0, txtlen = 0;
     va_list aq;
-    char *tag;
+    char *tag, *timeStr, *c;
     int len;
 
     if (!logger) return;
     tag = logger->tag;
 
-    if (!logger->trail) {
-	char *timeStr = getTimeStr(logger);
-	len = snprintf(prefix, prfxlen, "%s%s%s", tag ? tag : "", timeStr,
-		       (tag || logger->timeFlag) ? ": " : "");
-	if (len >= prfxlen) {
-	    prfxlen = len + 80; /* Some extra space */
-	    prefix = (char*)realloc(prefix, prfxlen);
-	    sprintf(prefix, "%s%s%s", tag ? tag : "", timeStr,
-		    (tag || logger->timeFlag) ? ": " : "");
-	}
+    /* Prepare prefix string */
+    timeStr = getTimeStr(logger);
+    len = snprintf(prefix, prfxlen, "%s%s%s", tag ? tag : "", timeStr,
+		   (tag || logger->timeFlag) ? ": " : "");
+    if (len >= prfxlen) {
+	prfxlen = len + 80; /* Some extra space */
+	prefix = (char*)realloc(prefix, prfxlen);
+	sprintf(prefix, "%s%s%s", tag ? tag : "", timeStr,
+		(tag || logger->timeFlag) ? ": " : "");
     }
 
+    /* Create actual output */
     va_copy(aq, ap);
     len = vsnprintf(text, txtlen, format, ap);
     if (len >= txtlen) {
@@ -170,37 +172,40 @@ static void do_print(logger_t* logger, const char* format, va_list ap)
     }
     va_end(aq);
 
-    if (logger->trail) {
-	len = snprintf(line, linelen, "%s%s", logger->trail, text);
-	if (len >= linelen) {
-	    linelen = len + 80; /* Some extra space */
-	    line = (char*)realloc(line, linelen);
-	    sprintf(line, "%s%s", logger->trail, text);
+    c = text;
+
+    while (c && *c) {
+	char *s = logger->trailUsed ? logger->trail : prefix;
+	char *r = strchr(c, '\n');
+
+	if (r) {
+	    *r = '\0';
+	    r++;
 	}
-    } else {
-	len = snprintf(line, linelen, "%s%s", prefix, text);
-	if (len >= linelen) {
-	    linelen = len + 80; /* Some extra space */
-	    line = (char*)realloc(line, linelen);
-	    sprintf(line, "%s%s", prefix, text);
+
+	if (r) {
+	    /* got newline, lets do the output */
+	    if (logger->logfile) {
+		fprintf(logger->logfile, "%s%s\n", s, c);
+	    } else {
+		syslog(LOG_ERR, "%s%s", s, c);
+	    }
+	    logger->trailUsed = 0;
+	} else {
+	    /* no newline, append to trail */
+	    len = snprintf(logger->trail, logger->trailSize, "%s%s", s, c);
+	    if (len >= logger->trailSize) {
+		logger->trailSize = len + 80; /* Some extra space */
+		logger->trail = realloc(logger->trail, logger->trailSize);
+		sprintf(logger->trail, "%s%s", s, c);
+	    }
+	    logger->trailUsed = 1;
 	}
+
+	c = r;
     }
 
-    if (logger->logfile) {
-	fprintf(logger->logfile, "%s", logger->trail ? text : line);
-	fflush(logger->logfile);
-    }
-
-    if (text[strlen(text)-1] == '\n') {
-	if (!logger->logfile) syslog(LOG_ERR, "%s", line);
-	if (logger->trail) {
-	    free(logger->trail);
-	    logger->trail = NULL;
-	}
-    } else {
-	if (logger->trail) free(logger->trail);
-	logger->trail = strdup(line);
-    }
+    if (logger->logfile) fflush(logger->logfile);
 }
 
 void logger_print(logger_t* logger, int32_t key, const char* format, ...)

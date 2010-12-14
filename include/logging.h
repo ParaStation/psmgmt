@@ -1,7 +1,7 @@
 /*
  *               ParaStation
  *
- * Copyright (C) 2005-2009 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2010 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -42,6 +42,8 @@ typedef struct {
 		      logger_setTag()/logger_getTag() or logger_init(). */
     char* trail;   /**< Remnants from the last messages that did not
 		      had a closing '\n' character. */
+    int trailSize; /**< Maximum size to be currently stored in trail */
+    char trailUsed; /**< Flag if trail is currently in use */
     char timeFlag; /**< Flag if current time shall be given within tag */
 } logger_t;
 
