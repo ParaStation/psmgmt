@@ -1351,7 +1351,7 @@ static void sendSpawnFailed(PStask_t *task, int eno)
     answer.header.sender = PSC_getMyTID();
     answer.header.len = sizeof(*errMsg);
 
-    errMsg->request = task->tid;
+    errMsg->request = task->rank;
     errMsg->error = eno;
 
     bufUsed = answer.header.len - sizeof(answer.header);

@@ -236,9 +236,11 @@ static int sendEnv(DDTypedBufferMsg_t *msg, char **env, size_t *len)
  *
  * Handle pending answers sent by the remote side on spawn
  * requests. The original spawn request asked for spawning @a count
- * processes on the nodes listed in @a dstnodes. Errors are logged
- * within @a errors, the resulting task IDs will be stored within @a
- * tids.
+ * processes on the nodes listed in @a dstnodes starting with rank @a
+ * firstRank. Errors are logged within @a errors, the resulting task
+ * IDs will be stored within @a tids.
+ *
+ * @param firstRank
  *
  * @param count The number of processes to spawn.
  *
@@ -253,13 +255,13 @@ static int sendEnv(DDTypedBufferMsg_t *msg, char **env, size_t *len)
  * general error, but answer from known node, 1: no error, 2: ignore
  * message, e.g. from unknown node or answer on "who died" question.
  */
-int handleAnswer(int count, PSnodes_ID_t *dstnodes, int *errors,
-		  PStask_ID_t *tids)
+int handleAnswer(unsigned int firstRank, int count, PSnodes_ID_t *dstnodes,
+		 int *errors, PStask_ID_t *tids)
 {
     DDBufferMsg_t answer;
     DDErrorMsg_t *errMsg = (DDErrorMsg_t *)&answer;
     DDSignalMsg_t *sigMsg = (DDSignalMsg_t *)&answer;
-    int i;
+    int rank, fallback = 0;
 
     if (PSI_recvMsg((DDMsg_t *)&answer, sizeof(answer))<0) {
 	PSI_warn(-1, errno, "%s: PSI_recvMsg", __func__);
@@ -268,21 +270,34 @@ int handleAnswer(int count, PSnodes_ID_t *dstnodes, int *errors,
     switch (answer.header.type) {
     case PSP_CD_SPAWNFAILED:
     case PSP_CD_SPAWNSUCCESS:
+	rank = errMsg->request - firstRank;
 	/* find the right task request */
-	for (i=0; i<count; i++) {
-	    if (dstnodes[i]==PSC_getID(answer.header.sender)
-		&& (!tids || !tids[i]) && !errors[i]) {
-		/*
-		 * We have to test for !errors[i], since daemon on node 0
-		 * (which has tid 0) might have returned an error.
-		 */
-		errors[i] = errMsg->error;
-		if (tids) tids[i] = answer.header.sender;
-		break;
+	if (rank && ((rank >= count)
+		     || (dstnodes[rank] != PSC_getID(answer.header.sender))
+		     || (tids && tids[rank])
+		     || errors[rank])) {
+	    fallback = 1;
+	}
+
+	if (!rank || fallback) {
+	    for (rank=0; rank<count; rank++) {
+		if (dstnodes[rank]==PSC_getID(answer.header.sender)
+		    && (!tids || !tids[rank]) && !errors[rank]) {
+		    /*
+		     * We have to test for !errors[i], since daemon on node 0
+		     * (which has tid 0) might have returned an error.
+		     */
+		    break;
+		}
 	    }
 	}
 
-	if (i==count) {
+	if (rank < count) {
+	    errors[rank] = errMsg->error;
+	    if (tids) tids[rank] = answer.header.sender;
+	}
+
+	if (rank==count) {
 	    if (PSC_getID(answer.header.sender)==PSC_getMyID()
 		&& errMsg->error==EACCES && count==1) {
 		/* This might be due to 'starting not allowed' here */
@@ -388,6 +403,7 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
     int error = 0;  /* error flag */
     int fd = 0;
     PStask_t* task; /* structure to store the information of the new process */
+    unsigned int firstRank = rank;
 
     if ((taskGroup == TG_SERVICE || taskGroup == TG_SERVICE_SIG)
 	&& count != 1) {
@@ -569,7 +585,7 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
 	    outstanding_answers++;
 
 	    while ((PSI_availMsg() > 0) && outstanding_answers) {
-		int r = handleAnswer(count, dstnodes, errors, tids);
+		int r = handleAnswer(firstRank, count, dstnodes, errors, tids);
 		switch (r) {
 		case -1:
 		    goto error;
@@ -595,7 +611,7 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
 
     /* collect outstanding answers */
     while (outstanding_answers) {
-	int r = handleAnswer(count, dstnodes, errors, tids);
+	int r = handleAnswer(firstRank, count, dstnodes, errors, tids);
 	switch (r) {
 	case -1:
 	    return -1;

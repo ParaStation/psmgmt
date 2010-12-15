@@ -36,6 +36,7 @@ static char vcid[] __attribute__((used)) =
 #include <numa.h>
 #endif
 #include <limits.h>
+#include <sys/select.h>
 
 #include "pscommon.h"
 #include "psprotocol.h"
@@ -661,7 +662,8 @@ static void doClamps(PStask_t *task)
 static int testExecutable(PStask_t *task, char **executable)
 {
     struct stat sb;
-    int execFound = 0;
+    int execFound = 0, fd, ret;
+    char buf[64];
 
     alarmFunc = __func__;
     if (!task->argv[0]) {
@@ -711,6 +713,18 @@ static int testExecutable(PStask_t *task, char **executable)
 		(!S_ISREG(sb.st_mode)) ? "S_ISREG error" :
 		(sb.st_mode & S_IXUSR) ? "" : "S_IXUSR error");
 	return EACCES;
+    }
+
+    /* Try to read first 64 bytes; on Lustre this might hang */
+    if ((fd = open(task->argv[0],O_RDONLY)) < 0) {
+	int eno = errno;
+	fprintf(stderr, "%s: open(): %s\n", __func__, get_strerror(eno));
+	return eno;
+    }
+    if ((ret = read(fd, buf, sizeof(buf))) < 0) {
+	int eno = errno;
+	fprintf(stderr, "%s: read(): %s\n", __func__, get_strerror(eno));
+	return eno;
     }
 
     *executable = task->argv[0];
@@ -1139,6 +1153,9 @@ static void execForwarder(PStask_t *task, int daemonfd)
     int ret, eno = 0;
     int PMIforwarderSock = -1;
     PMItype_t pmiType = PMI_DISABLED;
+    char *envStr;
+    struct timeval start, end = { .tv_sec = 0, .tv_usec = 0 }, stv;
+    struct timeval timeout = { .tv_sec = 30, .tv_usec = 0};
 
     /* Block until the forwarder has handled all output */
     PSID_blockSig(1, SIGCHLD);
@@ -1314,7 +1331,7 @@ static void execForwarder(PStask_t *task, int daemonfd)
     /* this is the forwarder process */
 
     /* save errno in case of error */
-    eno = errno;
+    if (pid == -1) eno = errno;
 
     /* prepare connection to child */
     task->fd = controlfds[0];
@@ -1360,6 +1377,51 @@ static void execForwarder(PStask_t *task, int daemonfd)
     /* Pass the client's PID to the forwarder. */
     task->tid = PSC_getTID(-1, pid);
 
+    /* Just wait a finite time for the client process */
+    envStr = getenv("__PSI_ALARM_TMOUT");
+    if (envStr) {
+	int tmout, ret = sscanf(envStr, "%d", &tmout);
+	if (ret > 0) timeout.tv_sec = tmout;
+    }
+    timeout.tv_sec += 2;  /* 2 secs more than client */
+
+    gettimeofday(&start, NULL);                   /* get starttime */
+    timeradd(&start, &timeout, &end);             /* add given timeout */
+
+    do {
+	fd_set rfds;
+
+	FD_ZERO(&rfds);
+	FD_SET(task->fd, &rfds);
+
+	gettimeofday(&start, NULL);               /* get NEW starttime */
+	timersub(&end, &start, &stv);
+	if (stv.tv_sec < 0) timerclear(&stv);
+
+	ret = select(task->fd+1, &rfds, NULL, NULL, &stv);
+	if (ret == -1) {
+	    if (errno == EINTR) {
+		/* Interrupted syscall, just start again */
+		const struct timeval delta = { .tv_sec = 0, .tv_usec = 10 };
+		timersub(&end, &delta, &start);       /* assure next round */
+		continue;
+	    } else {
+		eno = errno;
+		PSID_warn(-1, eno, "%s: select() failed", __func__);
+		break;
+	    }
+	} else if (!ret) {
+	    PSID_log(-1, "%s: select() timed out\n", __func__);
+	    eno = ETIME;
+	    break;
+	} else {
+	    break;
+	}
+	gettimeofday(&start, NULL);  /* get NEW starttime */
+    } while (timercmp(&start, &end, <));
+
+    if (eno) goto error;
+
 restart:
     if ((ret=read(task->fd, &eno, sizeof(eno))) < 0) {
 	if (errno == EINTR) {
@@ -1370,7 +1432,10 @@ restart:
 	goto error;
     }
 
-    if (!ret) eno = EBADMSG;
+    if (!ret) {
+	PSID_log(-1, "%s: ret is %d\n", __func__, ret);
+	eno = EBADMSG;
+    }
 
 error:
     /* Release the waiting daemon and exec forwarder */
@@ -1822,6 +1887,7 @@ static void msg_SPAWNREQUEST(DDBufferMsg_t *msg)
     answer.header.dest = msg->header.sender;
     answer.header.sender = PSC_getMyTID();
     answer.header.len = sizeof(answer);
+    answer.request = task->rank;
 
     /* If message is from my node, test if everything is okay */
     if (PSC_getID(msg->header.sender)==PSC_getMyID()) {
@@ -1831,7 +1897,6 @@ static void msg_SPAWNREQUEST(DDBufferMsg_t *msg)
 	    PStask_delete(task);
 
 	    answer.header.type = PSP_CD_SPAWNFAILED;
-
 	    sendMsg(&answer);
 
 	    return;
@@ -1917,6 +1982,7 @@ static void msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
     answer.header.dest = msg->header.sender;
     answer.header.sender = PSC_getMyTID();
     answer.header.len = sizeof(answer);
+    answer.request = 0;
     answer.error = 0;
 
     /* If message is from my node, test if everything is okay */
@@ -1924,6 +1990,7 @@ static void msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
 	&& msg->type == PSP_SPAWN_TASK) {
 	task = PStask_new();
 	PStask_decodeTask(msg->buf, task);
+	answer.request = task->rank;
 	answer.error = checkRequest(msg->header.sender, task);
 
 	if (answer.error) {
@@ -2014,6 +2081,7 @@ static void msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
     }
 
     task = PStasklist_find(&spawnTasks, msg->header.sender);
+    if (task) answer.request = task->rank;
 
     switch (msg->type) {
     case PSP_SPAWN_TASK:
@@ -2218,9 +2286,8 @@ static void msg_SPAWNSUCCESS(DDErrorMsg_t *msg)
  */
 static void msg_SPAWNFAILED(DDErrorMsg_t *msg)
 {
-    PSID_log(PSID_LOG_SPAWN, "%s: %s", __func__,
-	     PSC_printTID(msg->header.sender));
-    PSID_log(PSID_LOG_SPAWN, " reports on %s", PSC_printTID(msg->request));
+    PSID_log(PSID_LOG_SPAWN, "%s: %s reports on rank %d", __func__,
+	     PSC_printTID(msg->header.sender), msg->request);
     PSID_log(PSID_LOG_SPAWN, " error = %d sending to parent %s\n", msg->error,
 	     PSC_printTID(msg->header.dest));
 
@@ -2323,7 +2390,7 @@ static void msg_CHILDBORN(DDErrorMsg_t *msg)
 	msg->header.sender = msg->request;
 	msg->header.dest = forwarder->ptid;
 	msg->error = ENOMEM;
-	msg->request = 0;
+	msg->request = forwarder->rank;
 	sendMsg(msg);
 
 	return;
@@ -2403,9 +2470,8 @@ static void msg_CHILDBORN(DDErrorMsg_t *msg)
     msg->header.type = PSP_CD_SPAWNSUCCESS;
     msg->header.sender = child->tid;
     msg->header.dest = child->ptid;
-
+    msg->request = child->rank;
     msg->error = 0;
-    msg->request = 0;
 
     sendMsg(msg);
 }

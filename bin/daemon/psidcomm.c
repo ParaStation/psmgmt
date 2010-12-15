@@ -310,8 +310,8 @@ void handleDroppedMsg(DDMsg_t *msg)
 	errmsg.header.sender = msg->dest;
 	errmsg.header.len = sizeof(errmsg);
 
+	errmsg.request = 0;
 	errmsg.error = EHOSTDOWN;
-	errmsg.request = msg->type;
 
 	sendMsg(&errmsg);
 	break;
