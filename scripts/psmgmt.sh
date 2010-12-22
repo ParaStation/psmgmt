@@ -17,6 +17,9 @@ _psdir="/opt/parastation"
 if test -d "${_psdir}/bin" ; then
 
     export PATH="${PATH}:${_psdir}/bin"
+    if test `id -ur` -eq 0; then
+	export PATH="${PATH}:${_psdir}/sbin"
+    fi
 
     if test -d "${_psdir}/man" ; then
 	if test -z "${MANPATH}" ; then
