@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2010 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2011 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -64,7 +64,7 @@ int Selector_isInitialized(void);
  * bits of the debug-mask set via @ref Selector_setDebugMask().
  */
 typedef enum {
-    SELECTOR_LOG_DUMMY = 0x0000, /**< No non fatal messages yet */
+    SELECTOR_LOG_VERB = 0x0001, /**< Be more verbose on non fatal messages */
 } Selector_log_key_t;
 
 /**
@@ -166,6 +166,18 @@ int Selector_register(int fd, Selector_CB_t selectHandler, void *info);
  * @return On success, 0 is returned. On error, -1 is returned.
  */
 int Selector_remove(int fd);
+
+/**
+ * @brief Check for registered selector
+ *
+ * Test for a registered selector on the file-descriptor @a fd.
+ *
+ * @param fd The file-descriptor to test.
+ *
+ * @return If a selector is found, 1 is returned. Otherwise 0 is
+ * returned.
+ */
+int Selector_isRegistered(int fd);
 
 /**
  * @brief Disable a selector.

@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2010 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2011 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -202,6 +202,15 @@ static void doRemove(Selector_t *selector)
     free(selector);
 }
 
+int Selector_isRegistered(int fd)
+{
+    Selector_t *selector = findSelector(fd);
+
+    if (selector) return 1;
+
+    return 0;
+}
+
 int Selector_disable(int fd)
 {
     Selector_t *selector = findSelector(fd);
@@ -240,7 +249,7 @@ void Selector_startOver(void)
 int Sselect(int n, fd_set  *readfds,  fd_set  *writefds, fd_set *exceptfds,
 	    struct timeval *timeout)
 {
-    int retval;
+    int retval, eno = 0;
     struct timeval start, end = { .tv_sec = 0, .tv_usec = 0 }, stv;
     fd_set rfds, wfds, efds;
     list_t *s, *tmp;
@@ -299,14 +308,18 @@ int Sselect(int n, fd_set  *readfds,  fd_set  *writefds, fd_set *exceptfds,
 	Timer_handleSignals();                     /* Handle pending timers */
 	retval = select(n, &rfds, &wfds, &efds, (timeout)?(&stv):NULL);
 	if (retval == -1) {
-	    if (errno == EINTR && timeout) {
+	    logger_warn(logger, (errno == EINTR) ? SELECTOR_LOG_VERB : -1,
+			errno, "%s: select returns %d\n", __func__, retval);
+	    if (errno == EINTR) {
 		/* Interrupted syscall, just start again */
-		const struct timeval delta = { .tv_sec = 0, .tv_usec = 10 };
-		timersub(&end, &delta, &start);       /* assure next round */
+		if (timeout) {
+		    /* assure next round */
+		    const struct timeval delta = { .tv_sec = 0, .tv_usec = 10 };
+		    timersub(&end, &delta, &start);
+		}
 		continue;
 	    } else {
-		logger_warn(logger, -1, errno,
-			    "%s: select returns %d\n", __func__, retval);
+		eno = errno;
 		break;
 	    }
 	}
@@ -343,7 +356,7 @@ int Sselect(int n, fd_set  *readfds,  fd_set  *writefds, fd_set *exceptfds,
 
     } while (!startOver && (!timeout || timercmp(&start, &end, <)));
 
-    if (readfds) {
+    if (readfds && !eno) {
 	list_for_each_safe(s, tmp, &selectorList) {
 	    Selector_t *selector = list_entry(s, Selector_t, next);
 	    if (!selector->requested && FD_ISSET(selector->fd, &rfds)) {
@@ -368,6 +381,9 @@ int Sselect(int n, fd_set  *readfds,  fd_set  *writefds, fd_set *exceptfds,
     if (readfds)   memcpy(readfds, &rfds, sizeof(rfds));
     if (writefds)  memcpy(writefds, &wfds, sizeof(wfds));
     if (exceptfds) memcpy(exceptfds, &efds, sizeof(efds));
+    
+    /* restore errno */
+    errno = eno;
 
     return retval;
 }
