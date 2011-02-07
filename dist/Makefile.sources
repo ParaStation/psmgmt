@@ -41,6 +41,8 @@ bin/daemon/psidclient.c \
 bin/daemon/psidclient.h \
 bin/daemon/psidcomm.c \
 bin/daemon/psidcomm.h \
+bin/daemon/psidenv.c \
+bin/daemon/psidenv.h \
 bin/daemon/psidforwarder.c \
 bin/daemon/psidforwarder.h \
 bin/daemon/psidhw.c \

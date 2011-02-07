@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2009 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2011 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -243,6 +243,8 @@ typedef enum {
     PSP_INFO_STARTUPSCRIPT,       /**< Node's startup script */
     PSP_INFO_NODEUPSCRIPT,        /**< Node's script called upon new partner */
     PSP_INFO_NODEDOWNSCRIPT,      /**< Node's script called upon lost partner */
+
+    PSP_INFO_QUEUE_ENVS,          /**< Queue of environment entries */
 } PSP_Info_t;
 
 /** Messages concerning spawning of tasks. */
@@ -295,12 +297,20 @@ typedef enum {
 #define PSP_CD_HWSTOP            0x0054  /**< Request to stop comm hardware */
 #define PSP_CD_PLUGIN            0x0055  /**< Request to (un-)load a plugin */
 #define PSP_CD_PLUGINRES         0x0056  /**< Result of the last plugin msg */
+#define PSP_CD_ENV               0x0057  /**< Request (un-)set an environment */
+#define PSP_CD_ENVRES            0x0058  /**< Result of an environment msg */
 
 /** Kind of action within #PSP_CD_PLUGIN message */
 typedef enum {
     PSP_PLUGIN_LOAD = 0x0000,     /**< Load a new plugin */
     PSP_PLUGIN_REMOVE,            /**< Unload plugin */
 } PSP_Plugin_t;
+
+/** Kind of action within #PSP_CD_ENV message */
+typedef enum {
+    PSP_ENV_SET = 0x0000,         /**< Set an environment variable */
+    PSP_ENV_UNSET,                /**< Unset an environment variable */
+} PSP_Env_t;
 
 /** Creation and handling of partitions. */
 #define PSP_CD_CREATEPART        0x0060  /**< Bind a partition to a job */
@@ -390,6 +400,9 @@ typedef struct {
     char buf[BufMsgSize];  /**< message buffer */
 } DDBufferMsg_t;
 
+/** Buffer size of typed message. */
+#define BufTypedMsgSize (BufMsgSize-sizeof(int32_t))
+
 /**
  * Typed buffer message. Pretty much the same as #DDBufferMsg_t but
  * with an additional type (and a slightly smaller buffer)
@@ -397,7 +410,7 @@ typedef struct {
 typedef struct {
     DDMsg_t header;        /**< message header */
     int32_t type;          /**< message (sub-)type */
-    char buf[BufMsgSize-sizeof(int32_t)]; /**< message buffer */
+    char buf[BufTypedMsgSize]; /**< message buffer */
 } DDTypedBufferMsg_t;
 
 /** Simple error message */

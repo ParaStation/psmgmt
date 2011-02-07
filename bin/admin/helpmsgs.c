@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2010 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2011 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -61,9 +61,9 @@ static info_t helpInfo = {
     .head = "ParaStation Admin: available commands:",
     .syntax = (syntax_t[]) {{
 	.cmd = "help",
-	.arg = "{ add | echo | help | hwstart | hwstop | kill | list | plugins"
-	" | range | reset | resolve | restart | set | show | shutdown | sleep"
-	" | test | version | quit }"
+	.arg = "{ add | echo | environment | help | hwstart | hwstop | kill"
+	" | list | plugins | range | reset | resolve | restart | set | show"
+	" | shutdown | sleep | test | version | quit }"
     }},
     .nodes = 0,
     .descr = NULL,
@@ -105,6 +105,8 @@ static info_t privilegedInfo = {
 	{ .tag = "add",
 	  .descr = "Start the ParaStation daemon process on some or all nodes."
 	},
+	{ .tag = "environment",
+	  .descr = "List and modify the ParaStation daemon's environment" },
 	{ .tag = "hwstart",
 	  .descr = "Enable communication channels." },
 	{ .tag = "hwstop",
@@ -548,10 +550,10 @@ static info_t listInfo = {
     .syntax = (syntax_t[]) {{
 	.cmd = "list",
 	.arg = "{{[node] | count [hw <hw>] | {p|processes} [cnt <cnt>]"
-	" | {aproc|allprocesses} [cnt <cnt>] | {hardware|hw} | down | up"
-	" | load | rdp | mcast | plugins | summary [max <max>] | starttime"
-	" | startupscript | nodeupscript | nodedownscript | versions}"
-	" <nodes> |"
+	" | {aproc|allprocesses} [cnt <cnt>] | environment [key <key>]"
+	" | {hardware|hw} | down | up | load | rdp | mcast | plugins"
+	" | summary [max <max>] | starttime | startupscript | nodeupscript"
+	" | nodedownscript | versions} <nodes> |"
 	" jobs [state {r[unning] | p[ending] | s[uspended]}] [slots] [<tid>]}"
     }},
     .nodes = 1,
@@ -574,6 +576,10 @@ static info_t listInfo = {
 	  " nodes. This includes all special processes like forwarder, spawner"
 	  " etc. Up to <cnt> processes per node will be displayed. The default"
 	  " is to show 10 processes."},
+	{ .tag = "list environment [key <key>]",
+	  .descr = "Show the environment on the selected nodes. If 'key <key>'"
+	  " is given, only the environment variable <key> and its value is"
+	  " displayed." },
 	{ .tag = "list {hardware|hw}",
 	  .descr = "Show the available communcation hardware on the selected"
 	  " nodes." },
@@ -705,6 +711,31 @@ static info_t pluginInfo = {
 	  .descr = "Unload plugin named <plugin> on the selected nodes. The"
 	  " plugin might still be loaded afterwards, if it is used by another"
 	  " depending plugin." },
+	{ NULL, NULL}
+    },
+    .comment = NULL
+};
+
+static info_t envInfo = {
+    .head = "Environment command (privileged):",
+    .syntax = (syntax_t[]) {{
+	.cmd = "environment",
+	.arg = "{ list [key <key>] | set <key> <value> | { unset | delete}"
+	" <key> } <nodes>"
+    }},
+    .nodes = 1,
+    .descr = "Handle environment on the selected nodes.",
+    .tags = (taggedInfo_t[]) {
+	{ .tag = "environment list [key <key>]",
+	  .descr = "Show the environment on the selected nodes. If 'key <key>'"
+	  " is given, only the environment variable <key> and its value is"
+	  " displayed." },
+	{ .tag = "environment set <key> <value>",
+	  .descr = "Set the environment variable <key> to the value <value> on"
+	  " the selected nodes." },
+	{ .tag = "environment {delete|unset} <key>",
+	  .descr = "Unset the environment variable <key> on the selected"
+	  " nodes." },
 	{ NULL, NULL}
     },
     .comment = NULL

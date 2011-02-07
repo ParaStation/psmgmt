@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2009 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2011 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -56,6 +56,8 @@ static struct {
     { PSP_CD_HWSTOP           , "PSP_CD_HWSTOP"           },
     { PSP_CD_PLUGIN           , "PSP_CD_PLUGIN"           },
     { PSP_CD_PLUGINRES        , "PSP_CD_PLUGINRES"        },
+    { PSP_CD_ENV              , "PSP_CD_ENV"              },
+    { PSP_CD_ENVRES           , "PSP_CD_ENVRES"           },
 
     { PSP_CD_CREATEPART       , "PSP_CD_CREATEPART"       },
     { PSP_CD_CREATEPARTNL     , "PSP_CD_CREATEPARTNL"     },
@@ -150,6 +152,15 @@ static struct {
     { PSP_INFO_LIST_MEMORY,      "PSP_INFO_LIST_MEMORY" },
 
     { PSP_INFO_QUEUE_PLUGINS,    "PSP_INFO_QUEUE_PLUGINS" },
+
+    { PSP_INFO_STARTTIME,        "PSP_INFO_STARTTIME" },
+
+    { PSP_INFO_STARTUPSCRIPT,    "PSP_INFO_STARTUPSCRIPT" },
+    { PSP_INFO_NODEUPSCRIPT,     "PSP_INFO_NODEUPSCRIPT" },
+    { PSP_INFO_NODEDOWNSCRIPT,   "PSP_INFO_NODEDOWNSCRIPT" },
+
+    { PSP_INFO_QUEUE_ENVS,       "PSP_INFO_QUEUE_ENVS" },
+
     {0,NULL}
 };
 

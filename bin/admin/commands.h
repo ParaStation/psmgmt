@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2009 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2011 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -390,6 +390,26 @@ void PSIADM_VersionStat(char *nl);
 void PSIADM_PluginStat(char *nl);
 
 /**
+ * @brief Show environment.
+ *
+ * Show the environment of the daemon processes of the nodes marked
+ * within the nodelist @a nl. Therefore the corresponding information
+ * is requested from the daemons and printed to stdout.
+ *
+ * For each environment variable a line is printed containing the
+ * variables name and its value.
+ *
+ * @param key Name of the environment variable to display. If NULL,
+ * all variables are displayed.
+ *
+ * @param nl The nodelist describing the nodes from which the
+ * information should requested and put out.
+ *
+ * @return No return value.
+ */
+void PSIADM_EnvStat(char *key, char *nl);
+
+/**
  * @brief Set parameter
  *
  * Set the parameter @a type to the value @a value on the nodes marked
@@ -544,6 +564,27 @@ void PSIADM_Resolve(char *nl);
  * @return No return value.
  */
 void PSIADM_Plugin(char *nl, char *name, PSP_Plugin_t action);
+
+/**
+ * @brief Modify environment.
+ *
+ * Modify the environment variable @a key on the nodes selected within
+ * the nodelist @a nl. Depending on the @a action, the variable is set
+ * to @a value (PSP_ENV_SET) or unset (PSP_ENV_UNSET).
+ *
+ * @param nl The nodelist describing the node on which the action
+ * should take effect.
+ *
+ * @param key Name of the environment variable to modify
+ *
+ * @param value Value to be set, if @a action is PSP_ENV_SET
+ *
+ * @param action The action to apply on the requested environment
+ * variable
+ *
+ * @return No return value.
+ */
+void PSIADM_Environment(char *nl, char *key, char *value, PSP_Env_t action);
 
 /**
  * @brief Get screen width.

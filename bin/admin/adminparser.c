@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2010 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2011 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -350,8 +350,44 @@ static int listPluginCommand(char *token)
 
     return 0;
 
+error:
+    if (strcasecmp(token, "plugins")) {
+	printError(&pluginInfo);
+    } else {
+	printError(&listInfo);
+    }
+    return -1;
+}
+
+static int listEnvCommand(char *token)
+{
+    char *key = NULL, *nl_descr = parser_getString();
+    char *nl = defaultNL;
+
+
+    if (nl_descr && !strcasecmp(nl_descr, "key")) {
+	key = parser_getString();
+	if (!key) goto error;
+	nl_descr = parser_getString();
+    }
+
+    if (parser_getString()) goto error;
+
+    if (nl_descr) {
+	nl = getNodeList(nl_descr);
+	if (!nl) return -1;
+    }
+
+    PSIADM_EnvStat(key, nl);
+
+    return 0;
+
  error:
-    printError(&pluginInfo);
+    if (!strcasecmp(token, "environment")) {
+	printError(&envInfo);
+    } else {
+	printError(&listInfo);
+    }
     return -1;
 }
 
@@ -680,6 +716,7 @@ static keylist_t listList[] = {
     {"processes", listProcCommand},
     {"p", listProcCommand},
     {"plugins", listPluginCommand},
+    {"environment", listEnvCommand},
     {"rdp", listRDPCommand},
     {"summary", listSummaryCommand},
     {"s", listSummaryCommand},
@@ -1505,7 +1542,7 @@ static int testCommand(char *token)
     return -1;
 }
 
-/************************** help commands *******************************/
+/************************* plugin commands ******************************/
 
 static int pluginAddCommand(char *token)
 {
@@ -1578,6 +1615,80 @@ static int pluginCommand(char *token)
     if (!what) listPluginCommand(what);
 
     return parser_parseString(what, &pluginParser);
+}
+
+
+/*************************** env commands *******************************/
+
+static int envSetCommand(char *token)
+{
+    char *key = parser_getString();
+    char *value = parser_getQuotedString();
+    char *nl_descr = parser_getString();
+    char *nl = defaultNL;
+
+    if (parser_getString() || !key || !value) goto error;
+
+    if (nl_descr) {
+	nl = getNodeList(nl_descr);
+
+	if (!nl) return -1;
+    }
+
+    PSIADM_Environment(nl, key, value, PSP_ENV_SET);
+
+    return 0;
+
+ error:
+    printError(&envInfo);
+    return -1;
+}
+
+static int envUnsetCommand(char *token)
+{
+    char *key = parser_getString();
+    char *nl_descr = parser_getString();
+    char *nl = defaultNL;
+
+    if (parser_getString() || !key) goto error;
+
+    if (nl_descr) {
+	nl = getNodeList(nl_descr);
+
+	if (!nl) return -1;
+    }
+
+    PSIADM_Environment(nl, key, NULL, PSP_ENV_UNSET);
+
+    return 0;
+
+ error:
+    printError(&envInfo);
+    return -1;
+}
+
+int envError(char *token)
+{
+    printError(&envInfo);
+    return -1;
+}
+
+static keylist_t envList[] = {
+    {"list", listEnvCommand},
+    {"set", envSetCommand},
+    {"unset", envUnsetCommand},
+    {"delete", envUnsetCommand},
+    {NULL, envError}
+};
+static parser_t envParser = {" \t\n", envList};
+
+static int envCommand(char *token)
+{
+    char *what = parser_getString();
+
+    if (!what) listEnvCommand(what);
+
+    return parser_parseString(what, &envParser);
 }
 
 /************************** help commands *******************************/
@@ -1696,6 +1807,12 @@ static int helpPlugins(char *token)
     return 0;
 }
 
+static int helpEnv(char *token)
+{
+    printInfo(&envInfo);
+    return 0;
+}
+
 static int helpHelp(char *token)
 {
     printInfo(&helpInfo);
@@ -1727,6 +1844,7 @@ static keylist_t helpList[] = {
     {"test", helpTest},
     {"resolve", helpResolve},
     {"plugins", helpPlugins},
+    {"environment", helpEnv},
     {"echo", helpEcho},
     {"sleep", helpSleep},
     {"nodes", helpNodes},
@@ -1874,6 +1992,7 @@ static keylist_t commandList[] = {
     {"echo", echoCommand},
     {"resolve", resolveCommand},
     {"plugins", pluginCommand},
+    {"environment", envCommand},
     {"exit", quitCommand},
     {"quit", quitCommand},
     {NULL, error}
@@ -1982,6 +2101,8 @@ char **completeLine(const char *text, int start, int end)
 	    genList = listList;
 	} else if (!strncmp(token, "plugins", tokEnd-tokStart+1)) {
 	    genList = pluginList;
+	} else if (!strncmp(token, "environment", tokEnd-tokStart+1)) {
+	    genList = envList;
 	}
     }
     matches = rl_completion_matches(text, generator);

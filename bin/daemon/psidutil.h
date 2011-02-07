@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2010 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2011 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -138,6 +138,7 @@ typedef enum {
     PSID_LOG_NODES =  0x100000, /**< Book keeping on nodes */
     PSID_LOG_PLUGIN = 0x200000, /**< Plugin handling */
     PSID_LOG_MSGDUMP =0x400000, /**< Dump info on dropped messages */
+    PSID_LOG_ENV =    0x800000, /**< Environment handling */
 } PSID_log_key_t;
 
 

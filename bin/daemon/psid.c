@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2010 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2011 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -67,6 +67,7 @@ static char vcid[] __attribute__((used)) =
 #include "psidplugin.h"
 #include "psidscripts.h"
 #include "psidmsgbuf.h"
+#include "psidenv.h"
 
 struct timeval selectTime;
 
@@ -695,6 +696,7 @@ int main(int argc, const char *argv[])
     initAccount();
     initInfo();
     initPlugins();
+    initEnvironment();
 
     /* Now we start all the hardware -- this might include the accounter */
     PSID_startAllHW();

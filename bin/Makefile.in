@@ -1,7 +1,7 @@
 ###################################################### -*- Makefile -*- #####
 #                  ParaStation
 #        Copyright (c) 2002-2003 ParTec AG, Karlsruhe
-#        Copyright (c) 2005-2009 ParTec Cluster Competence Center GmbH, Munich
+#        Copyright (c) 2005-2011 ParTec Cluster Competence Center GmbH, Munich
 #############################################################################
 #
 # $Id$
@@ -98,7 +98,7 @@ psid: psidutil.o psidtask.o psidspawn.o psidforwarder.o psidpmiprotocol.o
 psid: psidsignal.o psidmsgbuf.o psidrdp.o psidclient.o psidcomm.o
 psid: psidinfo.o psidoption.o psidpartition.o psidstatus.o psidhw.o
 psid: psidaccount.o psidnodes.o psidintel.o psidamd.o psidppc.o psidstate.o
-psid: psidplugin.o psidscripts.o
+psid: psidplugin.o psidscripts.o psidenv.o
 psid: LOADLIBES:=$(LOADLIBES) -lm -lutil -lpslog -ldl
 ifeq ($(HAVE_LIBNUMA),yes)
 psid: LOADLIBES:=$(LOADLIBES) -lnuma

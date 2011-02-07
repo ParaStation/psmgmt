@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2010 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2011 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -33,6 +33,7 @@ static char vcid[] __attribute__((used)) =
 #include "psidpartition.h"
 #include "psidhw.h"
 #include "psidplugin.h"
+#include "psidenv.h"
 
 #include "psidinfo.h"
 
@@ -692,6 +693,11 @@ static void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 	    break;
 	case PSP_INFO_QUEUE_PLUGINS:
 	    PSID_sendPluginLists(inmsg->header.sender);
+	    /* send EndOfQueue */
+	    msg.type = PSP_INFO_QUEUE_SEP;
+	    break;
+	case PSP_INFO_QUEUE_ENVS:
+	    PSID_sendEnvList(inmsg->header.sender, inmsg->buf);
 	    /* send EndOfQueue */
 	    msg.type = PSP_INFO_QUEUE_SEP;
 	    break;

@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2009 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2011 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -110,6 +110,7 @@ static PSP_Info_t receiveInfo(void *buf, size_t *size, int verbose)
 	case PSP_INFO_QUEUE_NORMTASK:
 	case PSP_INFO_QUEUE_PARTITION:
 	case PSP_INFO_QUEUE_PLUGINS:
+	case PSP_INFO_QUEUE_ENVS:
 	case PSP_INFO_STARTTIME:
 	case PSP_INFO_STARTUPSCRIPT:
 	case PSP_INFO_NODEUPSCRIPT:
@@ -545,6 +546,16 @@ int PSI_infoQueueReq(PSnodes_ID_t node, PSP_Info_t what, const void *param)
 	    return -1;
 	}
 	break;
+    case PSP_INFO_QUEUE_ENVS:
+	if (param) {
+	    strncpy(msg.buf, param, sizeof(msg.buf));
+	    msg.buf[sizeof(msg.buf)-1] = '\0';
+	} else {
+	    msg.buf[0] = '*';
+	    msg.buf[1] = '\0';
+	}
+	msg.header.len += strlen(msg.buf)+1;
+	break;
     default:
 	PSI_log(-1, "%s: don't know how to handle '%s' request\n", __func__,
 		PSP_printInfo(what));
@@ -571,6 +582,7 @@ int PSI_infoQueueNext(PSP_Info_t what, void *buf, size_t size, int verbose)
     case PSP_INFO_QUEUE_NORMTASK:
     case PSP_INFO_QUEUE_PARTITION:
     case PSP_INFO_QUEUE_PLUGINS:
+    case PSP_INFO_QUEUE_ENVS:
 	break;
     default:
 	PSI_log(-1, "%s: don't know how to handle '%s' request\n", __func__,

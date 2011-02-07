@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2010 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2011 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -862,7 +862,10 @@ void PSIADM_PluginStat(char *nl)
     char line[512];
 
     if (! getHostStatus()) return;
-    if (width < 20) return;
+    if (width < 20) {
+	printf("Line too short\n");
+	return;
+    }
 
     usedWidth = printf("%4s %16s %3s   ", "Node", "Plugin", "Ver");
     printf("%.*s\n", (width-usedWidth) > 0 ? width-usedWidth : 0, "Used by");
@@ -883,9 +886,6 @@ void PSIADM_PluginStat(char *nl)
 	    printf("Error!!\n");
 	}
 
-	/* Receive full queue, no output yet */
-	/* This has to be splitted from the actual output due to
-	 * PSI_infoString() calls there */
 	while (PSI_infoQueueNext(what, line, sizeof(line), 1) > 0) {
 	    if (firstline) {
 		usedWidth = printf("%4d ", node);
@@ -894,6 +894,49 @@ void PSIADM_PluginStat(char *nl)
 		usedWidth = printf("%*s", usedWidth, "");
 	    }
 	    printf("%.*s\n", width-usedWidth, line);
+	}
+    }
+}
+
+void PSIADM_EnvStat(char *key, char *nl)
+{
+    PSnodes_ID_t node;
+    PSP_Info_t what = PSP_INFO_QUEUE_ENVS;
+    int width = getWidth(), usedWidth;
+    char line[BufTypedMsgSize];
+
+    if (! getHostStatus()) return;
+    if (width < 20) {
+	printf("Line too short\n");
+	return;
+    }
+
+    usedWidth = printf("%4s  %s\n", "Node", "<key>=<value>");
+    for (node=0; node<PSC_getNrOfNodes(); node++) {
+	int firstline = 1;
+
+	if (nl && !nl[node]) continue;
+
+	printf("%.*s\n", (width) > 0 ? width : 0,
+	       "---------------------------------------------------------"
+	       "---------------------------------------------------------");
+	if (!hostStatus.list[node]) {
+	    printf("%4d\tdown\n", node);
+	    continue;
+	}
+
+	if (PSI_infoQueueReq(node, what, key) < 0) {
+	    printf("Error!!\n");
+	}
+
+	while (PSI_infoQueueNext(what, line, sizeof(line), 1) > 0) {
+	    if (firstline) {
+		usedWidth = printf("%4d  ", node);
+		firstline = 0;
+	    } else {
+		usedWidth = printf("%*s", usedWidth, "");
+	    }
+	    printf("%s\n", line);
 	}
     }
 }
@@ -1832,6 +1875,70 @@ void PSIADM_Plugin(char *nl, char *name, PSP_Plugin_t action)
 	    }
 	} else {
 	    printf("%4d\tdown\n", node);
+	}
+    }
+}
+
+void PSIADM_Environment(char *nl, char *key, char *value, PSP_Env_t action)
+{
+    DDTypedBufferMsg_t msg = {
+	.header = {
+	    .type = PSP_CD_ENV,
+	    .sender = PSC_getMyTID(),
+	    .dest = 0,
+	    .len = sizeof(msg.header) + sizeof(msg.type) },
+	.buf = { 0 } };
+    DDTypedMsg_t answer;
+    size_t cnt;
+    PSnodes_ID_t node;
+
+    if (geteuid()) {
+	printf("Insufficient priviledge\n");
+	return;
+    }
+
+    msg.type = action;
+    switch (action) {
+    case PSP_ENV_SET:
+	cnt = snprintf(msg.buf, sizeof(msg.buf), "%s=%s", key, value);
+	if (cnt >= sizeof(msg.buf)) {
+	    printf("environment too long\n");
+	    return;
+	}
+	msg.header.len += cnt + 1;
+	break;
+    case PSP_ENV_UNSET:
+	cnt = snprintf(msg.buf, sizeof(msg.buf), "%s", key);
+	if (cnt >= sizeof(msg.buf)) {
+	    printf("name too long\n");
+	    return;
+	}
+	msg.header.len += cnt + 1;
+	break;
+    default:
+	printf("Unknown action %d\n", action);
+	return;
+    }
+
+    if (! getHostStatus()) return;
+
+    for (node=0; node<PSC_getNrOfNodes(); node++) {
+	if (nl && !nl[node]) continue;
+
+	if (hostStatus.list[node]) {
+	    msg.header.dest = PSC_getTID(node, 0);
+	    PSI_sendMsg(&msg);
+	    if (PSI_recvMsg((DDMsg_t *)&answer, sizeof(answer)) < 0) {
+		printf("%ssetting '%s' on node %d failed\n",
+		       action ? "Uns" : "S", key, node);
+	    }
+	    if (answer.type == -1) {
+		printf("Cannot %sset '%s' on node %d\n",
+		       action ? "un" : "", key, node);
+	    } else if (answer.type) {
+		printf("Cannot %sset '%s' on node %d: %s\n",
+		       action ? "un" : "", key, node, strerror(answer.type));
+	    }
 	}
     }
 }
