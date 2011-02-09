@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2009 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2011 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -179,7 +179,7 @@ char* PSC_printTID(PStask_ID_t tid)
 
 void PSC_startDaemon(in_addr_t hostaddr)
 {
-    int sock;
+    int sock, fd;
     struct sockaddr_in sa;
 
     PSC_log(PSC_LOG_VERB, "%s(%s)\n",
@@ -196,6 +196,13 @@ void PSC_startDaemon(in_addr_t hostaddr)
     default: /* I'm the parent (and returning) */
 	return;
 	break;
+    }
+
+    /* close all fds except the control channel and stdin/stdout/stderr */
+    for (fd=0; fd<getdtablesize(); fd++) {
+	if (fd!=STDIN_FILENO && fd!=STDOUT_FILENO && fd!=STDERR_FILENO) {
+	    close(fd);
+	}
     }
 
     /*
