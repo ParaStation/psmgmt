@@ -16,7 +16,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- * $Id: psidplugin.c 8355 2010-10-26 16:31:28Z eicker $
+ * $Id$
  *
  */
 #include <stdlib.h>

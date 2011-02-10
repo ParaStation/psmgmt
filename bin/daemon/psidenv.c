@@ -3,12 +3,12 @@
  *
  * Copyright (C) 2011 ParTec Cluster Competence Center GmbH, Munich
  *
- * $Id: psidplugin.c 8355 2010-10-26 16:31:28Z eicker $
+ * $Id$
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 static char vcid[] __attribute__((used)) =
-    "$Id: psidplugin.c 8355 2010-10-26 16:31:28Z eicker $";
+    "$Id$";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>

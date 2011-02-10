@@ -3,14 +3,14 @@
  *
  * Copyright (C) 2011 ParTec Cluster Competence Center GmbH, Munich
  *
- * $Id: psidplugin.h 7383 2009-04-03 13:15:13Z eicker $
+ * $Id$
  *
  */
 /**
  * @file
  * Helper functions for environment handling.
  *
- * $Id: psidplugin.h 7383 2009-04-03 13:15:13Z eicker $
+ * $Id$
  *
  * @author
  * Norbert Eicker <eicker@par-tec.com>
