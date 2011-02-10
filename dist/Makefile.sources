@@ -183,4 +183,5 @@ lib/putil/timer.c \
 scripts/Makefile.in \
 scripts/lsf/README \
 scripts/parastation.xinetd \
-scripts/mpiexec.gdb
+scripts/mpiexec.gdb \
+tests/plugins/Makefile.in

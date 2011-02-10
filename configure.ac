@@ -118,6 +118,7 @@ AC_CONFIG_FILES([lib/pscommon/Makefile])
 AC_CONFIG_FILES([lib/pslog/Makefile])
 AC_CONFIG_FILES([lib/putil/Makefile])
 AC_CONFIG_FILES([scripts/Makefile])
+AC_CONFIG_FILES([tests/plugins/Makefile])
 
 AC_CONFIG_HEADER(bin/config.h)
 
