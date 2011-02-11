@@ -27,6 +27,7 @@
 
 char name[] = "plugin7";
 
+int version = 100;
 
 /* Flag suppressing of all messages */
 char *quiet = NULL;
