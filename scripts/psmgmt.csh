@@ -17,7 +17,7 @@ set _psdir="/opt/parastation"
 if ( -d "${_psdir}/bin" ) then
 
     set path = ( ${path} "${_psdir}/bin" )
-    if ( `id -ur` -eq 0 ) then
+    if ( `id -ur` == 0 ) then
 	set path = ( ${path} "${_psdir}/sbin" )
     endif
 
