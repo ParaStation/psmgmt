@@ -1,7 +1,7 @@
 /*
  *               ParaStation
  *
- * Copyright (C) 2009-2010 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2009-2011 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -31,14 +31,24 @@ static char vcid[] __attribute__((used)) =
 
 #include "psidplugin.h"
 
+typedef int voidFunc_t(void);
+
 /** Structure holding all information concerning a plugin */
 typedef struct {
-    list_t next;       /**< Used to put into @ref pluginList */
-    list_t triggers;   /**< List of plugins triggering this one */
-    list_t depends;    /**< List of plugins this one depends on */
-    void *handle;      /**< Handle created by dlopen() */
-    char *name;        /**< Actual name */
-    int version;       /**< Actual version */
+    list_t next;             /**< Used to put into @ref pluginList */
+    list_t triggers;         /**< List of plugins triggering this one */
+    list_t depends;          /**< List of plugins this one depends on */
+    void *handle;            /**< Handle created by dlopen() */
+    char *name;              /**< Actual name */
+    voidFunc_t *initialize;  /**< Initializer (after dependencies resolved) */
+    voidFunc_t *finalize;    /**< Finalize (trigger plugin's stop) */
+    voidFunc_t *cleanup;     /**< Cleanup (immediately before unload) */
+    int version;             /**< Actual version */
+    int distance;            /**< Distance from origin on force */
+    int cleared;             /**< Flag plugin ready to finalize on force */
+    int finalized;           /**< Flag call of plugin's finalize() method */
+    int unload;              /**< Flag plugin to become unloaded */
+    struct timeval grace;    /**< Grace period before forcefully unload */
 } plugin_t;
 
 /**
@@ -50,72 +60,163 @@ typedef struct {
     list_t next;       /**< Actual list entry */
 } plugin_ref_t;
 
-/** List of currently loaded plugins */
+/** List of plugins currently loaded */
 static LIST_HEAD(pluginList);
 
 /** API version currently implemented */
-static int pluginAPIVersion = 100;
+static int pluginAPIVersion = 101;
 
+/** Grace period between finalize and unload on forcefully unloads */
+static int unloadTimeout = 4;
+
+static int finalizePlugin(plugin_t * plugin);
 static int unloadPlugin(plugin_t * plugin);
 
+/** List of unused plugin-references */
+static LIST_HEAD(refFreeList);
+
+/** Chunk size for allocation new references via malloc() */
+#define REF_CHUNK 128
+
 /**
- * @brief Find trigger
+ * @brief Get new reference
  *
- * Find the triggering plugin @a trigger in the list of triggers of
- * plugin @a plugin.
+ * Provide a new and empty plugin-reference used to store references
+ * to plugins in reference-lists. References are taken from @ref
+ * refFreeList as long as it provides free references. If no reference
+ * is available from @ref refFreeList, a new chunk of @ref REF_CHUNK
+ * references is allocated via malloc().
  *
- * @param plugin The plugin to search in
+ * @return On success a pointer to the reference is returned. If
+ * malloc() fails, NULL is returned.
+ */
+static plugin_ref_t * getRef(void){
+    plugin_ref_t *ref;
+
+    if (list_empty(&refFreeList)) {
+	plugin_ref_t *refs = malloc(REF_CHUNK*sizeof(*refs));
+	unsigned int i;
+
+	if (!refs) return NULL;
+
+	for (i=0; i<REF_CHUNK; i++) {
+	    refs[i].plugin = NULL;
+	    list_add_tail(&refs[i].next, &refFreeList);
+	}
+    }
+
+    /* get list's first usable element */
+    ref = list_entry(refFreeList.next, plugin_ref_t, next);
+    list_del(&ref->next);
+    INIT_LIST_HEAD(&ref->next);
+
+    return ref;
+}
+
+/**
+ * @brief Put reference
  *
- * @param trigger The triggering plugin to search for
+ * Put a plugin-reference no longer used back into @ref
+ * refFreeList. From here the reference might be re-used via @ref
+ * getRef(). Plugin-references are used to store references to
+ * plugins in reference-lists.
  *
- * @return Return the reference to the plugin trigger, if it is found
+ * @param ref The reference to be put back.
+ *
+ * @return No return value.
+ */
+static void putRef(plugin_ref_t *ref) {
+    ref->plugin = NULL;
+    list_add_tail(&ref->next, &refFreeList);
+}
+
+/**
+ * @brief Find reference
+ *
+ * Find the plugin-reference to the plugin @a plugin in the list of
+ * references @a refList.
+ *
+ * @param refList The reference list to search in
+ *
+ * @param plugin The plugin to search for
+ *
+ * @return Return the reference to the plugin plugin, if it is found
  * within the list. Otherwise NULL is given back.
  */
-static plugin_ref_t * findTrigger(plugin_t *plugin, plugin_t *trigger)
+static plugin_ref_t * findRef(list_t *refList, plugin_t *plugin)
 {
     list_t *t;
 
-    if (!plugin || !trigger) return NULL;
+    if (!refList || !plugin) return NULL;
 
-    list_for_each(t, &plugin->triggers) {
+    list_for_each(t, refList) {
 	plugin_ref_t *ref = list_entry(t, plugin_ref_t, next);
 
-	if (ref->plugin == trigger) return ref;
+	if (ref->plugin == plugin) return ref;
     }
 
     return NULL;
 }
 
 /**
- * @brief Add trigger
+ * @brief Add reference
  *
- * Add the triggering plugin @a trigger to the list of triggers of
- * plugin @a plugin.
+ * Add a reference to the plugin @a plugin to the list of
+ * plugin-references @a refList.
  *
- * @param plugin The plugin that was triggered
+ * @param refList The list of plugin-references to act on
  *
- * @parem trigger The triggering plugin
+ * @param plugin The plugin to add
  *
- * @return If a trigger was added, 1 is returned. In case the trigger
- * was already registered, 0 is given back. Or -1 in case of an error.
+ * @return If the plugin-reference was added, 1 is returned. In case a
+ * reference to @a plugin was already registered, 0 is given back. Or
+ * -1 in case of an error.
  */
-static int addTrigger(plugin_t *plugin, plugin_t *trigger)
+static int addRef(list_t *refList, plugin_t *plugin)
 {
-    plugin_ref_t *new;
+    plugin_ref_t *ref;
 
-    if (findTrigger(plugin, trigger)) return 0;
+    if (findRef(refList, plugin)) return 0;
 
-    new = malloc(sizeof(*new));
-    if (!new) {
+    ref = getRef();
+    if (!ref) {
 	PSID_warn(-1, errno, "%s", __func__);
 	return -1;
     }
 
-    new->plugin = trigger;
-    list_add_tail(&new->next, &plugin->triggers);
+    ref->plugin = plugin;
+    list_add_tail(&ref->next, refList);
 
     return 1;
 }
+
+/**
+ * @brief Remove reference
+ *
+ * Remove the reference to the plugin @a plugin from the list of
+ * plugin-references @a refList.
+ *
+ * @param refList The list of plugin-references to act on
+ *
+ * @param plugin The plugin to remove
+ *
+ * @return On success, the removed plugin is returned. Or NULL, if
+ * the reference to @a plugin was not found in the list.
+ */
+static plugin_t * remRef(list_t *refList, plugin_t *plugin)
+{
+    plugin_ref_t *ref = findRef(refList, plugin);
+
+    if (ref) {
+	list_del(&ref->next);
+	putRef(ref);
+
+	return plugin;
+    }
+
+    return NULL;
+}
+
 
 /**
  * @brief Remove trigger
@@ -132,85 +233,84 @@ static int addTrigger(plugin_t *plugin, plugin_t *trigger)
  */
 static plugin_t * remTrigger(plugin_t *plugin, plugin_t *trigger)
 {
-    plugin_ref_t *ref;
+    plugin_t *removed;
 
     if (!plugin || !trigger) return NULL;
 
-    ref = findTrigger(plugin, trigger);
-    if (!ref) {
+    removed = remRef(&plugin->triggers, trigger);
+
+    if (!removed) {
 	PSID_log(plugin == trigger ? PSID_LOG_PLUGIN : -1,
 		 "%s: trigger '%s' not found in '%s'\n",
 		 __func__, trigger->name, plugin->name);
 	return NULL;
     }
 
-    list_del(&ref->next);
-    free(ref);
+    if (list_empty(&plugin->triggers)) finalizePlugin(plugin);
 
-    if (list_empty(&plugin->triggers)) unloadPlugin(plugin);
-
-    return trigger;
+    return removed;
 }
 
 /**
- * @brief Create trigger list
+ * @brief Remove dependeny
  *
- * Create a string describing the list of triggering plugins @a
- * triggerlist. The character-strings is written into @a buf. At most
- * @a size characters are written into buf.
+ * Remove the depending plugin @a depend from the list of depending
+ * plugins of the plugin @a plugin.
  *
- * If @a triggerList would require more than @a size characters, the
+ * @param plugin The plugin the remove the dependency from
+ *
+ * @param depend The depending plugin to remove
+ *
+ * @return On success, the removed dependeny is returned. Or NULL, if
+ * the deending plugin was not found in the list.
+ */
+static plugin_t * remDepend(plugin_t *plugin, plugin_t *depend)
+{
+    plugin_t *removed;
+
+    if (!plugin || !depend) return NULL;
+
+    removed = remRef(&plugin->depends, depend);
+    if (!removed) {
+	PSID_log(-1, "%s: dependency '%s' not found in '%s'\n",
+		 __func__, depend->name, plugin->name);
+	return NULL;
+    }
+
+    return removed;
+}
+
+
+/**
+ * @brief Print list of plugin-references
+ *
+ * Create a string describing the list of plugin-references @a
+ * pList. The character-string is written into @a buf. At most @a size
+ * characters are written into buf.
+ *
+ * If @a pList would require more than @a size characters, the
  * describing string will be chopped.
  *
  * @param buf A buffer holding the created string upon return
  *
  * @param size Number of characters @a buf is able to hold
  *
- * @param triggerList The list of triggering plugins to be displayed
+ * @param refList The list of plugin-references to be displayed
  *
  * @return No return value.
  */
-void printTriggerList(char *buf, size_t size, list_t *triggerList)
+static void printRefList(char *buf, size_t size, list_t *refList)
 {
-    list_t *t;
+    list_t *p;
 
-    list_for_each(t, triggerList) {
-	plugin_ref_t *ref = list_entry(t, plugin_ref_t, next);
+    list_for_each(p, refList) {
+	plugin_ref_t *ref = list_entry(p, plugin_ref_t, next);
 
 	if (ref && ref->plugin && ref->plugin->name
-	    && &ref->plugin->triggers != triggerList)
+	    && &ref->plugin->triggers != refList)
 	    snprintf(buf+strlen(buf), size-strlen(buf),
 		     " %s", ref->plugin->name);
     }
-}
-
-/**
- * @brief Add dependant
- *
- * Add the depending plugin @a depend to the list of dependants of
- * plugin @a plugin.
- *
- * @param plugin The plugin that is a dependant
- *
- * @parem depend The depending plugin
- *
- * @return If a trigger was added, 1 is returned. Or -1 in case of an
- * error.
- */
-static int addDepend(plugin_t *plugin, plugin_t *depend)
-{
-    plugin_ref_t *new;
-
-    new = malloc(sizeof(*new));
-    if (!new) {
-	PSID_warn(-1, errno, "%s", __func__);
-	return -1;
-    }
-
-    new->plugin = depend;
-    list_add_tail(&new->next, &plugin->depends);
-
-    return 1;
 }
 
 /**
@@ -274,6 +374,18 @@ static plugin_t * newPlugin(void *handle, char *name, int version)
     INIT_LIST_HEAD(&plugin->triggers);
     INIT_LIST_HEAD(&plugin->depends);
 
+    if (handle) {
+	plugin->initialize = dlsym(handle, "initialize");
+	plugin->finalize = dlsym(handle, "finalize");
+	plugin->cleanup = dlsym(handle, "cleanup");
+    }
+
+    plugin->distance = 0;
+    plugin->cleared = 0;
+    plugin->finalized = 0;
+    plugin->unload = 0;
+    timerclear(&plugin->grace);
+
     return plugin;
 }
 
@@ -297,13 +409,13 @@ static void delPlugin(plugin_t *plugin)
     if (!plugin) return;
 
     if (!list_empty(&plugin->triggers)) {
-	printTriggerList(line, sizeof(line), &plugin->triggers);
+	printRefList(line, sizeof(line), &plugin->triggers);
 	PSID_log(-1, "%s: '%s' still triggered by: %s\n",
 		 __func__, plugin->name, line);
 	return;
     }
     if (!list_empty(&plugin->depends)) {
-	printTriggerList(line, sizeof(line), &plugin->depends);
+	printRefList(line, sizeof(line), &plugin->depends);
 	PSID_log(-1, "%s: '%s' still depends on: %s\n",
 		 __func__, plugin->name, line);
 	return;
@@ -342,6 +454,20 @@ static plugin_t * registerPlugin(plugin_t * new)
     list_add(&new->next, &pluginList);
 
     return NULL;
+}
+
+int PSIDplugin_getUnloadTmout(void)
+{
+    return unloadTimeout;
+}
+
+void PSIDplugin_setUnloadTmout(int tmout)
+{
+    if (tmout < 0) {
+	PSID_log(-1, "%s: Illegal value for timeout: %d\n", __func__, tmout);
+    } else {
+	unloadTimeout = tmout;
+    }
 }
 
 /**
@@ -400,14 +526,27 @@ static plugin_t * loadPlugin(char *name, int minVer, plugin_t * trigger)
     if (plugin) {
 	PSID_log(PSID_LOG_PLUGIN, "%s: version %d already loaded\n",
 		 __func__, plugin->version);
-	if (plugin->version < minVer) return NULL;
+	if (plugin->version < minVer) {
+	    PSID_log(-1, "%s: version %d of '%s' too small. %d required\n",
+		     __func__, plugin->version, plugin->name, minVer);
+	    return NULL;
+	}
 
-	if (addTrigger(plugin, trigger ? trigger : plugin) < 0) return NULL;
+	if (plugin->finalized) {
+	    PSID_log(-1, "%s: plugin '%s' already finalized\n", __func__,
+		     plugin->name);
+	    return NULL;
+	}
+
+	if (addRef(&plugin->triggers, trigger ? trigger : plugin) < 0) {
+	    return NULL;
+	}
 
 	return plugin;
     }
 
-    instDir = PSC_lookupInstalldir(NULL);
+    instDir = getenv("PSID_PLUGIN_PATH");
+    if (!instDir) instDir = PSC_lookupInstalldir(NULL);
     if (!instDir) {
 	PSID_log(-1, "%s: installation directory not found\n", __func__);
 	return NULL;
@@ -439,33 +578,37 @@ static plugin_t * loadPlugin(char *name, int minVer, plugin_t * trigger)
 	return NULL;
     }
 
-    if (plugin_name && *plugin_name) {
-	if (strcmp(plugin_name, name)) {
-	    PSID_log(-1, "%s: WARNING: plugin_name '%s' and name '%s' differ\n",
-		     __func__, plugin_name, name);
-	}
+    if (!plugin_name || !*plugin_name) {
+	PSID_log(-1, "%s: plugin-file '%s' does not define name\n", __func__,
+		 filename);
+	dlclose(handle);
+	return NULL;
+    } else if (strcmp(plugin_name, name)) {
+	PSID_log(-1, "%s: WARNING: plugin_name '%s' and name '%s' differ\n",
+		 __func__, plugin_name, name);
     }
 
-    if (plugin_version) {
-	PSID_log(PSID_LOG_PLUGIN, "%s: plugin_version is %d\n", __func__,
-		 *plugin_version);
-    }
-    if (minVer) {
-	if (!plugin_version) {
-	    PSID_log(-1, "%s: Cannot determine version of '%s'\n",
-		     __func__, name);
-	    dlclose(handle);
-	    return NULL;
-	} else if (*plugin_version < minVer) {
-	    PSID_log(-1,
-		     "%s: 'version %d or above of '%s'required. This is %d\n",
-		     __func__, minVer, name, *plugin_version);
-	    dlclose(handle);
-	    return NULL;
-	}
+    if (!plugin_version) {
+	PSID_log(-1, "%s: Cannot determine version of '%s'\n",
+		 __func__, name);
+	dlclose(handle);
+	return NULL;
     }
 
-    plugin = newPlugin(handle, name, plugin_version ? *plugin_version : 100);
+    PSID_log(PSID_LOG_PLUGIN, "%s: plugin_version is %d\n", __func__,
+	     *plugin_version);
+
+    if (minVer && *plugin_version < minVer) {
+	PSID_log(-1, "%s: 'version %d or above of '%s'required. This is %d\n",
+		 __func__, minVer, name, *plugin_version);
+	dlclose(handle);
+	return NULL;
+    }
+
+    plugin = newPlugin(handle, name, *plugin_version);
+
+    /* Register plugin before it's possibly unloaded */
+    registerPlugin(plugin);
 
     if (plugin_deps) {
 	plugin_dep_t *deps = plugin_deps;
@@ -474,86 +617,28 @@ static plugin_t * loadPlugin(char *name, int minVer, plugin_t * trigger)
 	    PSID_log(PSID_LOG_PLUGIN, "%s:   requires '%s' version %d\n",
 		     __func__, deps->name, deps->version);
 	    d = loadPlugin(deps->name, deps->version, plugin);
-	    if (!d || addDepend(plugin, d) < 0) {
+	    if (!d || addRef(&plugin->depends, d) < 0) {
+		plugin->finalized = 1;
 		unloadPlugin(plugin);
-		dlclose(handle);
 		return NULL;
 	    }
 	    deps++;
 	}
     }
 
-    if (addTrigger(plugin, trigger ? trigger : plugin) < 0)  {
+    if (addRef(&plugin->triggers, trigger ? trigger : plugin) < 0)  {
 	PSID_log(-1, "%s: addTrigger() failed\n", __func__);
+	plugin->finalized = 1;
 	unloadPlugin(plugin);
-	dlclose(handle);
 	return NULL;
     }
 
-    registerPlugin(plugin);
+    if (plugin->initialize) plugin->initialize();
 
     return plugin;
 }
 
-/**
- * @brief Unload plugin
- *
- * Unload the plugin @a plugin. Unloading a plugin might fail due to
- * still existent dependcies from other plugins. This functions is
- * unable to force unloading a specific plugin.
- *
- * @param plugin The plugin to be unloaded
- *
- * @return Without error, i.e. if the plugin was successfully
- * unloaded, 1 is returned. Or 0, if some error occurred. In the
- * latter case the plugin might still be loaded.
- */
-static int unloadPlugin(plugin_t *plugin)
-{
-    char line[80];
-    list_t *d, *tmp;
-
-    if (!plugin || !plugin->handle) return 0;
-
-    PSID_log(PSID_LOG_PLUGIN, "%s(%s)\n", __func__, plugin->name);
-    if (!list_empty(&plugin->triggers)) {
-	/* Maybe the plugin is unloaded explicitely */
-	remTrigger(plugin, plugin);
-	if (!list_empty(&plugin->triggers)) {
-	    printTriggerList(line, sizeof(line), &plugin->triggers);
-	    PSID_log(PSID_LOG_PLUGIN, "%s: '%s' still triggered by: %s\n",
-		     __func__, plugin->name, line);
-	    return 0;
-	}
-	return 1;
-    }
-
-    /* Remove triggers from plugins we depend on */
-    list_for_each_safe(d, tmp, &plugin->depends) {
-	plugin_ref_t *ref = list_entry(d, plugin_ref_t, next);
-
-	remTrigger(ref->plugin, plugin);
-	list_del(&ref->next);
-	free(ref);
-    }
-
-    if (dlclose(plugin->handle)) {
-	PSID_log(-1, "%s: dlclose(%s): %s\n",
-		 __func__, plugin->name, dlerror());
-    } else {
-	PSID_log(PSID_LOG_PLUGIN, "%s: '%s' successfully unloaded\n",
-		 __func__, plugin->name);
-    }
-    plugin->handle = NULL;
-
-    if (!list_empty(&plugin->next)) list_del(&plugin->next);
-    delPlugin(plugin);
-
-    return 1;
-}
-
-
-void PSID_sendPluginLists(PStask_ID_t dest)
+void PSIDplugin_sendList(PStask_ID_t dest)
 {
     DDTypedBufferMsg_t msg = {
 	.header = {
@@ -563,17 +648,24 @@ void PSID_sendPluginLists(PStask_ID_t dest)
 	    .len = sizeof(msg.header) + sizeof(msg.type) },
 	.type = PSP_INFO_QUEUE_PLUGINS,
 	.buf = {0}};
-
     list_t *p;
 
     list_for_each(p, &pluginList) {
 	plugin_t *plugin = list_entry(p, plugin_t, next);
 	size_t len;
 
-	snprintf(msg.buf, sizeof(msg.buf), "%16s %3d  ",
-		 plugin->name, plugin->version);
+	if (plugin->unload) continue;
+
+	if (plugin->finalized) {
+	    snprintf(msg.buf, sizeof(msg.buf), "%16s D %3d  ",
+		     plugin->name, plugin->version);
+	} else {
+	    plugin_ref_t *explicit = findRef(&plugin->triggers, plugin);
+	    snprintf(msg.buf, sizeof(msg.buf), "%16s %1s %3d  ",
+		     plugin->name, explicit ? "*" : " ", plugin->version);
+	}
 	if (!list_empty(&plugin->triggers)) {
-	    printTriggerList(msg.buf + strlen(msg.buf),
+	    printRefList(msg.buf + strlen(msg.buf),
 			      sizeof(msg.buf) - strlen(msg.buf),
 			      &plugin->triggers);
 	}
@@ -595,6 +687,361 @@ void PSID_sendPluginLists(PStask_ID_t dest)
     }
 
     return;
+}
+
+void *PSIDplugin_getHandle(char *name)
+{
+    plugin_t *plugin = findPlugin(name);
+
+    if (plugin) return plugin->handle;
+
+    return NULL;
+}
+
+/**
+ * @brief Unload plugin
+ *
+ * Unload the plugin @a plugin. For this the plugin's cleanup-method
+ * ist called, if available. This prompts the plugin to do all cleanup
+ * necessary before actually evicting the plugin from address-space
+ * via dlclose(). This includes free()ing memory segments allocated by
+ * the plugin via malloc(), unregistering of timer, message-handler
+ * and selectors, etc.
+ *
+ * Afterwards or if the plugin does not expose a cleanup-method the
+ * plugin is marked to get evicted from address-space via
+ * dlclose(). The actual action will be performed from within the
+ * main-loop.
+ *
+ * @param plugin The plugin to unload
+ *
+ * @return If @a plugin is NULL, -1 is returned. Otherwise 0 is
+ * returned.
+ */
+static int unloadPlugin(plugin_t *plugin)
+{
+    if (!plugin) return -1;
+
+    PSID_log(PSID_LOG_PLUGIN, "%s(%s)\n", __func__, plugin->name);
+
+    if (!plugin->finalized) {
+	PSID_log(-1, "%s: plugin '%s' not finalized\n", __func__, plugin->name);
+	finalizePlugin(plugin);
+    }
+
+    /* This has to be after the call to finalizePlugin(), since
+      * unloadPlugin() might be called recursively from therein. */
+    if (plugin->unload) return 0;
+
+    if (plugin->cleanup) plugin->cleanup();
+
+    plugin->unload = 1;
+
+    return 0;
+}
+
+/**
+ * @brief Finalize plugin
+ *
+ * Trigger the plugin @a plugin to get finalized. This is the standard
+ * way to safely unload a plugin in a graceful way. The plugin will
+ * not be affected, if the plugin is still triggered by another plugin
+ * depending on it. Basically, this function just removes the
+ * self-trigger of the plugin, i.e. a trigger of the plugin pointing
+ * to itself, if the plugin was loaded explicitely. If this was the
+ * plugin's last trigger, further measures will be taken in order to
+ * actually unload the plugin @a name.
+ *
+ * If the plugin exposes the function-symbol @a finalize, this method
+ * will be called. It is expected that the @a finalize method will do
+ * all necessary cleanup that has to be done in an asynchronous way
+ * (detaching from a service, etc.) before the plugin itself triggers
+ * the actual unload by calling @ref PSIDplugin_unload(). This gives a
+ * plugin the chance to cleanup properly before it is evicted from the
+ * address-space via dlclose().
+ *
+ * If no @a finalize method is exposed by the plugin @a name, calling
+ * this function behaves exactly like calling @ref
+ * PSIDplugin_unload(). Thus, the plugin will be marked to be unloaded
+ * immediately, if it is no longer required by other plugins depending
+ * on it.
+ *
+ * @param plugin The plugin to be finalized.
+ *
+ * @return If @a plugin is NULL, -1 is returned. Otherwise 0 is
+ * returned.
+ */
+static int finalizePlugin(plugin_t *plugin)
+{
+    if (!plugin) return -1;
+
+    PSID_log(PSID_LOG_PLUGIN, "%s(%s)\n", __func__, plugin->name);
+
+    if (plugin->finalized) {
+	PSID_log(-1, "%s: plugin '%s' already finalized\n", __func__,
+		 plugin->name);
+	return 0;
+    }
+
+    if (!list_empty(&plugin->triggers)) {
+	PSID_log(-1, "%s: plugin '%s' still triggered\n", __func__,
+		 plugin->name);
+	return 0;
+    }
+
+    plugin->finalized = 1;
+
+    if (!plugin->finalize) return unloadPlugin(plugin);
+
+    plugin->finalize();
+    if (timerisset(&plugin->grace)) {
+	struct timeval now, grace = {unloadTimeout, 0};
+
+	PSID_log(PSID_LOG_PLUGIN, "%s: setting grace on '%s'\n", __func__,
+		 plugin->name);
+	gettimeofday(&now, NULL);
+	timeradd(&now, &grace, &plugin->grace);
+    }
+
+    return 0;
+}
+
+/** Flag detection of loops in the dependecy-graph of the plugins */
+static int depLoopDetect = 0;
+
+/**
+ * @brief Walk dependeny graph
+ *
+ * Walk the graph of dependencies for the plugin @a plugin to unload
+ * it forcefully. This function will be called recursively to fully
+ * walk the dependency-graph. Once a root of the graph is reached,
+ * i.e. a plugin is handled that has no triggers besides being loaded
+ * explicitely, this plugin is finalized and a timeout for unloading
+ * as defined by @ref unloadTimeout is set.
+ *
+ * At the same time this function implements a modification of the
+ * Dijkstra algorithm determining the distance of each plugin to the
+ * original plugin. For this, @a distance is increased for each level
+ * of recursion. This distance might be used to identifiy the plugin
+ * to forcefully unload, i.e. to unload while ignoring existing
+ * dependencies, in the case of a loop in the dependency-graph.
+ *
+ * While walking the graph all plugins are identified that are ready
+ * for finalization because all triggers are either already finalized
+ * or are ready for finalization, too. Such plugins are marked as
+ * "cleared".
+ *
+ * If the algorithm detects a loop in the dependency-graph, the global
+ * flag @ref depLoopDetect is raised. This function cannot resolve
+ * such loops. They have to be broken up explicitely outside this
+ * function.
+ *
+ * @attention Breaking up loops might crash the daemon. In general,
+ * dependency-loops a unnecessary and shall be avoided. Instead,
+ * either combine the plugin depending each other into one plugin or
+ * extract parts depending on each other into an extra plugin.
+ *
+ * @param plugin The plugin to handle
+ *
+ * @param distance The distance of the current plugin from the
+ * original plugin to be unloaded
+ *
+ * @return If @a plugin is not defined, -1 is returned. Otherwise 0 is
+ * returned.
+ */
+static int walkDepGraph(plugin_t *plugin, int distance)
+{
+    list_t *t;
+
+    if (!plugin) return -1;
+
+    PSID_log(PSID_LOG_PLUGIN, "%s(%s, %d)\n", __func__, plugin->name, distance);
+
+    if (plugin->unload) {
+	PSID_log(PSID_LOG_PLUGIN, "%s: %s ready for unload\n", __func__,
+		 plugin->name);
+	plugin->cleared = 1;
+	return 0;
+    }
+
+    if (plugin->cleared) {
+	PSID_log(PSID_LOG_PLUGIN, "%s: %s already cleared\n", __func__,
+		 plugin->name);
+	return 0;
+    }
+
+    if (plugin->distance && plugin->distance < distance) {
+	PSID_log(PSID_LOG_PLUGIN, "%s: %s already has distance %d\n", __func__,
+		 plugin->name, plugin->distance);
+	return 0;
+    }
+
+    plugin->distance = distance;
+
+    if (plugin->finalized) {
+	if (!timerisset(&plugin->grace)) {
+	    struct timeval now, grace = {unloadTimeout, 0};
+
+	    PSID_log(PSID_LOG_PLUGIN, "%s: setting grace on '%s'\n", __func__,
+		     plugin->name);
+	    gettimeofday(&now, NULL);
+	    timeradd(&now, &grace, &plugin->grace);
+	}
+	plugin->cleared = 1;
+
+	return 0;
+    }
+
+    /* Trigger grace period on actual finalize */
+    gettimeofday(&plugin->grace, NULL);
+
+    remTrigger(plugin, plugin);
+
+    if (list_empty(&plugin->triggers)) {
+	PSID_log(PSID_LOG_PLUGIN, "%s: root %s reached\n", __func__,
+		 plugin->name);
+	PSIDplugin_finalize(plugin->name);
+
+	plugin->cleared = 1;
+
+	return 0;
+    } else {
+	int cleared = 1;
+	list_for_each(t, &plugin->triggers) {
+	    plugin_ref_t *ref = list_entry(t, plugin_ref_t, next);
+
+	    if (ref->plugin->unload) continue;
+
+	    PSID_log(PSID_LOG_PLUGIN, "%s: forcing %s\n", __func__,
+		     ref->plugin->name);
+	    walkDepGraph(ref->plugin, distance+1);
+
+	    cleared &= ref->plugin->cleared;
+	}
+
+	plugin->cleared = cleared;
+	if (!cleared) depLoopDetect = 1;
+    }
+
+    return 0;
+}
+
+/**
+ * @brief Find plugin with maximum distance
+ *
+ * After running @ref walkDepGraph() this function might be used to
+ * identify the optimal candidate to forcefully unload for breaking up
+ * a dependency-loop explicitely. For that the plugin with maximum
+ * distance to the original plugin not yet "cleared" is
+ * identified. For a detailed discussion of "cleared" plugins refer to
+ * @ref walkDepGraph().
+ *
+ * @return Returns the plugin with maximum distance to the original
+ * plugin not yet cleared. If no plugin is connected to the original
+ * plugin or all such plugins are already cleared NULL is returned.
+ */
+static plugin_t *findMaxDistPlugin(void)
+{
+    plugin_t *maxDist = NULL;
+    list_t *p;
+
+    list_for_each(p, &pluginList) {
+	plugin_t *plugin = list_entry(p, plugin_t, next);
+	PSID_log(PSID_LOG_PLUGIN, "%s: %s dist %d cleared %d\n", __func__,
+		 plugin->name, plugin->distance, plugin->cleared);
+	if (plugin->distance && !plugin->cleared
+	    && (!maxDist || plugin->distance > maxDist->distance)) {
+	    maxDist = plugin;
+	}
+    }
+
+    return maxDist;
+}
+
+/**
+ * @brief Unload plugin forcefully
+ *
+ * Forcefully unload the plugin @a name. For this, the plugin's
+ * dependency-graph is walked in order to evict all plugins it depends
+ * on in a direct or indirect way. Walking the dependcy-graph is done
+ * by calling @ref walkDepGraph().
+ *
+ * If a dependency-loop is flagged via @ref depLoopDetect, a victim is
+ * determined by calling @ref findMaxDistPlugin(). This victim is
+ * forcefully evicted from address-space.
+ *
+ * The two steps described -- walking the graph and breaking up loops
+ * -- are repeated in an iterative way until all loops are broken and
+ * the original plugin is ready to become unloaded.
+ *
+ * Actually the plugins will not be unloaded immediately but just
+ * prepared to become unloaded. As soon as all finalization of the
+ * triggers have timed-out and became in fact unloaded the plugin
+ * itself will be finalized and unloaded afterwards.
+ *
+ * @attention Breaking up dependency-loops might crash the daemon. In
+ * general, dependency-loops a unnecessary and shall be
+ * avoided. Instead, either combine the plugin depending each other
+ * into one plugin or extract parts depending on each other into an
+ * extra plugin.
+ *
+ * @return If the plugin is not found, -1 is returned. Otherwise 0 is
+ * returned.
+ */
+static int forceUnloadPlugin(char *name)
+{
+    plugin_t *plugin = findPlugin(name);
+    int rounds = 0;
+
+    if (!plugin) return -1;
+
+    do {
+	depLoopDetect = 0;
+
+	walkDepGraph(plugin, 1);
+
+	if (depLoopDetect) {
+	    plugin_t *victim = findMaxDistPlugin();
+	    list_t *t, *tmp;
+
+	    PSID_log(-1, "%s: kick out victim '%s' (distance %d) forcefully\n",
+		     __func__, victim->name, victim->distance);
+
+	    list_for_each_safe(t, tmp, &victim->triggers) {
+		plugin_ref_t *ref = list_entry(t, plugin_ref_t, next);
+
+		remDepend(ref->plugin, victim);
+		remTrigger(victim, ref->plugin);
+	    }
+	    victim->cleared = 1;
+	}
+	rounds++;
+    } while (depLoopDetect);
+
+    PSID_log((rounds > 1) ? -1 : PSID_LOG_PLUGIN,
+	     "%s: %d rounds of graph-walk required\n", __func__, rounds);
+
+    return 0;
+}
+
+int PSIDplugin_finalize(char *name)
+{
+    plugin_t *plugin = findPlugin(name);
+
+    if (!plugin) return -1;
+
+    remTrigger(plugin, plugin);
+
+    return plugin->finalized;
+}
+
+int PSIDplugin_unload(char *name)
+{
+    plugin_t *plugin = findPlugin(name);
+
+    if (!plugin) return -1;
+
+    return unloadPlugin(plugin);
 }
 
 /**
@@ -654,18 +1101,17 @@ static void msg_PLUGIN(DDTypedBufferMsg_t *inmsg)
 	    }
 	    break;
 	case PSP_PLUGIN_REMOVE:
-	{
-	    plugin_t *plugin = findPlugin(inmsg->buf);
-
-	    if (!plugin) {
+	    if (PSIDplugin_finalize(inmsg->buf) < 0) {
 		ret = ENODEV;
-		goto end;
-	    } else if (!unloadPlugin(plugin)) {
-		ret = -1;
 		goto end;
 	    }
 	    break;
-	}
+	case PSP_PLUGIN_FORCEREMOVE:
+	    if (forceUnloadPlugin(inmsg->buf) < 0) {
+		ret = ENODEV;
+		goto end;
+	    }
+	    break;
 	default:
 	    PSID_log(-1, "%s: Unknown message type %d\n", __func__,
 		     inmsg->type);
@@ -689,11 +1135,106 @@ end:
     }
 }
 
+/**
+ * @brief Unload plugin
+ *
+ * Unload the plugin @a plugin. Unloading a plugin might fail due to
+ * still existent dependcies from other plugins. This functions is
+ * unable to force unloading a specific plugin.
+ *
+ * @param plugin The plugin to be unloaded
+ *
+ * @return Without error, i.e. if the plugin was successfully
+ * unloaded, 1 is returned. Or 0, if some error occurred. In the
+ * latter case the plugin might still be loaded.
+ */
+static int doUnload(plugin_t *plugin)
+{
+    char line[80];
+    list_t *d, *tmp;
+
+    if (!plugin || !plugin->handle) return 0;
+
+    PSID_log(PSID_LOG_PLUGIN, "%s(%s)\n", __func__, plugin->name);
+
+    if (!plugin->unload) {
+	PSID_log(-1, "%s: plugin '%s' not flagged for unload\n", __func__,
+		 plugin->name);
+	return 0;
+    }
+
+    if (!list_empty(&plugin->triggers)) {
+	printRefList(line, sizeof(line), &plugin->triggers);
+	PSID_log(-1, "%s: '%s' still triggered by: %s\n", __func__,
+		 plugin->name, line);
+	return 0;
+    }
+
+    /* Remove triggers from plugins we depend on */
+    list_for_each_safe(d, tmp, &plugin->depends) {
+	plugin_ref_t *ref = list_entry(d, plugin_ref_t, next);
+
+	remTrigger(ref->plugin, plugin);
+	remDepend(plugin, ref->plugin);
+    }
+
+    /* Actual unload */
+    if (dlclose(plugin->handle)) {
+	PSID_log(-1, "%s: dlclose(%s): %s\n", __func__, plugin->name,
+		 dlerror());
+    } else {
+	PSID_log(PSID_LOG_PLUGIN, "%s: '%s' successfully unloaded\n", __func__,
+		 plugin->name);
+    }
+    plugin->handle = NULL;
+
+    list_del(&plugin->next);
+    delPlugin(plugin);
+
+    return 1;
+}
+
+/**
+ * @brief Handle plugins in main loop
+ *
+ * This function collects all actions to be exectued asynchronously in
+ * the daemon's main loop. Currently this includes
+ *
+ *   - Unloading plugins via dlclose() when flagged
+ *
+ *   - Flagging plugin to unload on forceUnload after timeout expired
+ *
+ * @return No return value
+ */
+static void handlePlugins(void)
+{
+    list_t *p, *tmp;
+    struct timeval now;
+
+    gettimeofday(&now, NULL);
+
+    list_for_each_safe(p, tmp, &pluginList) {
+	plugin_t *plugin = list_entry(p, plugin_t, next);
+
+	if (plugin->finalized && (timerisset(&plugin->grace)
+				  && timercmp(&now, &plugin->grace, >))) {
+	    PSID_log(PSID_LOG_PLUGIN, "%s: finalize() timed out for %s\n",
+		     __func__, plugin->name);
+
+	    unloadPlugin(plugin);
+	}
+
+	if (plugin->unload) doUnload(plugin);
+    }
+}
+
 void initPlugins(void)
 {
     /* Register msg-handlers for plugin load/unload */
     PSID_registerMsg(PSP_CD_PLUGIN, (handlerFunc_t)msg_PLUGIN);
     PSID_registerMsg(PSP_CD_PLUGINRES, (handlerFunc_t)sendMsg);
+
+    PSID_registerLoopAct(handlePlugins);
 
     /* Handle list of plugins found in the configuration file */
     if (!list_empty(&config->plugins)) {

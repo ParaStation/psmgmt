@@ -692,7 +692,7 @@ static void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 	    }
 	    break;
 	case PSP_INFO_QUEUE_PLUGINS:
-	    PSID_sendPluginLists(inmsg->header.sender);
+	    PSIDplugin_sendList(inmsg->header.sender);
 	    /* send EndOfQueue */
 	    msg.type = PSP_INFO_QUEUE_SEP;
 	    break;

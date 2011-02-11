@@ -867,7 +867,7 @@ void PSIADM_PluginStat(char *nl)
 	return;
     }
 
-    usedWidth = printf("%4s %16s %3s   ", "Node", "Plugin", "Ver");
+    usedWidth = printf("%4s %16s   %3s   ", "Node", "Plugin", "Ver");
     printf("%.*s\n", (width-usedWidth) > 0 ? width-usedWidth : 0, "Used by");
     for (node=0; node<PSC_getNrOfNodes(); node++) {
 	int firstline = 1;

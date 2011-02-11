@@ -1,7 +1,7 @@
 /*
  *               ParaStation
  *
- * Copyright (C) 2009 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2009-2011 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -29,9 +29,9 @@ extern "C" {
 #endif
 
 /**
- * @brief Initialize partition stuff
+ * @brief Initialize plugin stuff
  *
- * Initialize the partition handling framework. This also registers
+ * Initialize the plugin handling framework. This also registers
  * the necessary message handlers.
  *
  * @return No return value.
@@ -39,7 +39,37 @@ extern "C" {
 void initPlugins(void);
 
 /**
- * @brief Send list of requests.
+ * @brief Get unload-timeout for plugins
+ *
+ * Get the timeout before forcefully unloading a plugin in
+ * seconds.
+ *
+ * Forcefully unloading a plugin has to be triggered
+ * explicitely. Currently this requires to send a corresponding
+ * message (PSP_PLUGIN_FORCEREMOVE) to the daemon.
+ *
+ * @return The timeout in seconds
+ */
+int PSIDplugin_getUnloadTmout(void);
+
+/**
+ * @brief Set unload-timeout for plugins
+ *
+ * Set the timeout before forcefully unloading a plugin to @a tmout
+ * seconds.
+ *
+ * Forcefully unloading a plugin has to be triggered
+ * explicitely. Currently this requires to send a corresponding
+ * message (PSP_PLUGIN_FORCEREMOVE) to the daemon.
+ *
+ * @param tmout The timeout to set in seconds
+ *
+ * @return No return value
+ */
+void PSIDplugin_setUnloadTmout(int tmout);
+
+/**
+ * @brief Send list of plugins.
  *
  * Send a list of information on the plugins currently loaded in the
  * local daemon. All information about a single plugin (i.e. name,
@@ -50,8 +80,84 @@ void initPlugins(void);
  *
  * @return No return value.
  */
-void PSID_sendPluginLists(PStask_ID_t dest);
+void PSIDplugin_sendList(PStask_ID_t dest);
 
+/**
+ * @brief Get handle on plugin
+ *
+ * Get a handle on the plugin loaded via @a name. The handle was
+ * returned by dlopen() while the plugin was loaded. It might be used
+ * in order to resolve addtional symbols exposed by the plugin.
+ *
+ * @param name The name used to load the plugin. Each plugin can be
+ * uniquely identified by its name.
+ *
+ * @return If the plugin is found, the handle as returned by dlopen()
+ * while loading the plugin is returned. Otherwise NULL is returned.
+ */
+void *PSIDplugin_getHandle(char *name);
+
+/**
+ * @brief Finalize a plugin
+ *
+ * Trigger plugin @a name to get finalized. This is the standard way
+ * to safely unload a plugin in a graceful way. The plugin will not be
+ * affected, if the plugin is still triggered by another plugin
+ * depending on it. Basically, this function just removes the
+ * self-trigger of the plugin, i.e. a trigger of the plugin pointing
+ * to itself, if the plugin was loaded explicitely. If this was the
+ * plugin's last trigger, further measures will be taken in order to
+ * actually unload the plugin @a name.
+ *
+ * If the plugin exposes the function-symbol @a finalize, this method
+ * will be called. It is expected that the @a finalize method will do
+ * all necessary cleanup that has to be done in an asynchronous way
+ * (detaching from a service, etc.) before the plugin itself triggers
+ * the actual unload by calling @ref PSIDplugin_unload(). This gives a
+ * plugin the chance to cleanup properly before it is evicted from the
+ * address-space via dlclose().
+ *
+ * If no @a finalize method is exposed by the plugin @a name, calling
+ * this function behaves exactly like calling @ref
+ * PSIDplugin_unload(). Thus, the plugin will be marked to be unloaded
+ * immediately, if it is no longer required by other plugins depending
+ * on it.
+ *
+ * @param name The name of the plugin to be finalized.
+ *
+ * @return If the plugin is not found, -1 is returned. Otherwise the
+ * return-value flags, if the finalize method would have been called,
+ * i.e if there are no other plugins still depending on the plugin to
+ * finalize. If there are still pending triggers, 0 is
+ * returned. Otherwise 1 is returned.
+ */
+int PSIDplugin_finalize(char *name);
+
+/**
+ * @brief Unload a plugin
+ *
+ * Trigger the plugin @a name to get actually unloaded.
+ *
+ * Usually this function is called by the plugin itself from its @a
+ * finalize() methods once all the cleanup necessary to prepare the
+ * plugin for unload is completed. In order to trigger the plugin's
+ * method @a finalize(), @ref PSIDplugin_finalize() shall be called.
+ *
+ * If the plugin exposes the function-symbol @a cleanup, this function
+ * will be called. Within this method all cleanup necessary before
+ * actually evicting the plugin from address-space via dlclose() shall
+ * be done. This includes free()ing memory segments allocated by the
+ * plugin via malloc(), unregistering of timer, message-handler and
+ * selectors, etc. Afterwards the plugin is marked to get evicted from
+ * address-space via dlclose(). The actual action will be performed
+ * from within the main-loop.
+ *
+ * @param name The name of the plugin to be unloaded.
+ *
+ * @return If the plugin is not found, -1 is returned. Otherwise 0 is
+ * returned.
+ */
+int PSIDplugin_unload(char *name);
 
 #ifdef __cplusplus
 }/* extern "C" */

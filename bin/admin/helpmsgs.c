@@ -62,7 +62,7 @@ static info_t helpInfo = {
     .syntax = (syntax_t[]) {{
 	.cmd = "help",
 	.arg = "{ add | echo | environment | help | hwstart | hwstop | kill"
-	" | list | plugins | range | reset | resolve | restart | set | show"
+	" | list | plugin | range | reset | resolve | restart | set | show"
 	" | shutdown | sleep | test | version | quit }"
     }},
     .nodes = 0,
@@ -111,7 +111,7 @@ static info_t privilegedInfo = {
 	  .descr = "Enable communication channels." },
 	{ .tag = "hwstop",
 	  .descr = "Disable communication channels." },
-	{ .tag = "plugins",
+	{ .tag = "plugin",
 	  .descr = "Handle ParaStation daemon plugins." },
 	{ .tag = "reset",
 	  .descr = "Reset the daemons or network." },
@@ -691,26 +691,31 @@ static info_t exitInfo = {
 };
 
 static info_t pluginInfo = {
-    .head = "Plugins command (privileged):",
+    .head = "Plugin command (privileged):",
     .syntax = (syntax_t[]) {{
-	.cmd = "plugins",
-	.arg = "{ list | {add|load | delete|remove|rm|unload} <plugin> }"
-	" <nodes>"
+	.cmd = "plugin",
+	.arg = "{ list | {add|load | delete|remove|rm|unload"
+	" | forceunload|forceremove} <plugin> } <nodes>"
     }},
     .nodes = 1,
     .descr = "Handle plugins on the selected nodes.",
     .tags = (taggedInfo_t[]) {
-	{ .tag = "plugins list",
+	{ .tag = "plugin list",
 	  .descr = "Show the currently loaded plugins on the selected nodes."
 	  " The info displayed includes name and verion of the plugin plus a"
 	  " list of plugins requiring the plugin to be loaded." },
-	{ .tag = "plugins {add|load} <plugin>",
+	{ .tag = "plugin {add|load} <plugin>",
 	  .descr = "Load plugin named <plugin> on the selected nodes. This"
 	  " might trigger more plugins required by <plugin> to be loaded." },
-	{ .tag = "plugins {delete|remove|rm|unload} <plugin>",
+	{ .tag = "plugin {delete|remove|rm|unload} <plugin>",
 	  .descr = "Unload plugin named <plugin> on the selected nodes. The"
 	  " plugin might still be loaded afterwards, if it is used by another"
-	  " depending plugin." },
+	  " depending plugin or if it ignores the command to unload itself." },
+	{ .tag = "plugin {forceremove|forceunload} <plugin>",
+	  .descr = "Forcefully unload plugin named <plugin> on the selected"
+	  " nodes. The plugin might still be loaded for some time afterwards"
+	  " until all depending plugin are unloaded and all timeouts are"
+	  " expunged." },
 	{ NULL, NULL}
     },
     .comment = NULL

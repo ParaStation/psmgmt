@@ -304,6 +304,7 @@ typedef enum {
 typedef enum {
     PSP_PLUGIN_LOAD = 0x0000,     /**< Load a new plugin */
     PSP_PLUGIN_REMOVE,            /**< Unload plugin */
+    PSP_PLUGIN_FORCEREMOVE,       /**< Unload plugin forcefully */
 } PSP_Plugin_t;
 
 /** Kind of action within #PSP_CD_ENV message */

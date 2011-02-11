@@ -351,7 +351,7 @@ static int listPluginCommand(char *token)
     return 0;
 
 error:
-    if (strcasecmp(token, "plugins")) {
+    if (strcasecmp(token, "plugin")) {
 	printError(&pluginInfo);
     } else {
 	printError(&listInfo);
@@ -1590,6 +1590,29 @@ static int pluginRmCommand(char *token)
     return -1;
 }
 
+static int pluginFRmCommand(char *token)
+{
+    char *plugin = parser_getString();
+    char *nl_descr = parser_getString();
+    char *nl = defaultNL;
+
+    if (parser_getString() || !plugin) goto error;
+
+    if (nl_descr) {
+	nl = getNodeList(nl_descr);
+
+	if (!nl) return -1;
+    }
+
+    PSIADM_Plugin(nl, plugin, PSP_PLUGIN_FORCEREMOVE);
+
+    return 0;
+
+ error:
+    printError(&pluginInfo);
+    return -1;
+}
+
 int pluginError(char *token)
 {
     printError(&pluginInfo);
@@ -1604,6 +1627,8 @@ static keylist_t pluginList[] = {
     {"delete", pluginRmCommand},
     {"remove", pluginRmCommand},
     {"rm", pluginRmCommand},
+    {"forceremove", pluginFRmCommand},
+    {"forceunload", pluginFRmCommand},
     {NULL, pluginError}
 };
 static parser_t pluginParser = {" \t\n", pluginList};
@@ -1801,7 +1826,7 @@ static int helpNodes(char *token)
     return 0;
 }
 
-static int helpPlugins(char *token)
+static int helpPlugin(char *token)
 {
     printInfo(&pluginInfo);
     return 0;
@@ -1843,7 +1868,7 @@ static keylist_t helpList[] = {
     {"kill", helpKill},
     {"test", helpTest},
     {"resolve", helpResolve},
-    {"plugins", helpPlugins},
+    {"plugin", helpPlugin},
     {"environment", helpEnv},
     {"echo", helpEcho},
     {"sleep", helpSleep},
@@ -1991,7 +2016,7 @@ static keylist_t commandList[] = {
     {"sleep", sleepCommand},
     {"echo", echoCommand},
     {"resolve", resolveCommand},
-    {"plugins", pluginCommand},
+    {"plugin", pluginCommand},
     {"environment", envCommand},
     {"exit", quitCommand},
     {"quit", quitCommand},
@@ -2099,7 +2124,7 @@ char **completeLine(const char *text, int start, int end)
 	    genList = listList;
 	} else if (!strncmp(token, "list", tokEnd-tokStart+1)) {
 	    genList = listList;
-	} else if (!strncmp(token, "plugins", tokEnd-tokStart+1)) {
+	} else if (!strncmp(token, "plugin", tokEnd-tokStart+1)) {
 	    genList = pluginList;
 	} else if (!strncmp(token, "environment", tokEnd-tokStart+1)) {
 	    genList = envList;
