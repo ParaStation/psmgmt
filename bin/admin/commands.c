@@ -457,7 +457,7 @@ void PSIADM_StarttimeStat(char *nl)
 	    err = PSI_infoInt64(node, PSP_INFO_STARTTIME, NULL, &secs, 0);
 	    if (!err) {
 		time_t startTime = (time_t) secs;
-		printf("%s", ctime(&startTime));
+		printf(" %s", ctime(&startTime));
 	    }
 	} else {
 	    printf("%4d\tdown\n", node);
@@ -1188,11 +1188,11 @@ void PSIADM_JobStat(PStask_ID_t task, PSpart_list_t opt)
 	flags = *(PSpart_list_t *)(buf+len);
 	len += sizeof(PSpart_list_t);
 
-	len += PSpart_decodeReq(buf + len, req);
+	len += PSpart_decodeReq(buf + len, req, masterDaemonPSPversion);
 	if (masterDaemonPSPversion < 401) {
 	    req->tpp = 1;
 	} else if (len != recvd) {
-	    printf("Wrong number of bytes received (%ld vs. %ld)!\n",
+	    printf("Wrong number of bytes received (used %ld vs. rcvd %ld)!\n",
 		   (long)len, (long)recvd);
 	    break;
 	}
@@ -1228,7 +1228,7 @@ void PSIADM_JobStat(PStask_ID_t task, PSpart_list_t opt)
 	    if (!found) {
 		printf("%22s %5s %5s %5s %5s %-*s\n",
 		       "RootTaskId", "State", "Size", "UID ", "GID ",
-		       width-47, "Target Slots");
+		       width-47, req->num ? "Target Slots" : "Starttime");
 	    }
 
 	    printf("%22s", PSC_printTID(tid));
@@ -1247,8 +1247,13 @@ void PSIADM_JobStat(PStask_ID_t task, PSpart_list_t opt)
 		} else {
 		    printSlots(req->num, slotBuf, width-47, 47);
 		}
+		printf("\n");
+	    } else if (masterDaemonPSPversion < 407) {
+		printf(" unknown\n");
+	    } else {
+		time_t startTime = req->start;
+		printf(" %s", req->start ? ctime(&startTime) : "unknown\n");
 	    }
-	    printf("\n");
 
 	    found=1;
 	}

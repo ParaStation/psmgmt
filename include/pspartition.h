@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2007 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2011 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -74,7 +74,7 @@ typedef enum {
     PART_LIST_RUN   = 0x0004,  /**< Send running jobs */
     PART_LIST_NODES = 0x0008,  /**< Also send attached nodelists */
 } PSpart_list_t;
-				 
+
 /**
  * Structure describing a actual request to create a partition
  */
@@ -94,6 +94,7 @@ typedef struct request{
     /*C*/ uint32_t priority;       /**< Priority of the parallel task */
     /*C*/ int32_t num;             /**< Number of nodes within request */
     /*C*/ uint16_t tpp;            /**< Threads per process requested */
+    /*C*/ time_t start;            /**< starttime in PSP_INFO_QUEUE_PARTITION */
     int numGot;                    /**< Number of nodes currently received */
     unsigned int sizeGot;          /**< Number of slots currently received */
     PSnodes_ID_t *nodes;           /**< List of partition candidates */
@@ -165,7 +166,10 @@ int PSpart_delReq(PSpart_request_t *request);
  * Encode the partition request structure @a request into the the
  * buffer @a buffer of size @a size. This enables the partition
  * request to be sent to a remote node where it can be decoded using
- * the @ref PSpart_decodeReq() function.
+ * the @ref PSpart_decodeReq() function. Since the encoding-scheme
+ * might depend on the protocol-version spoken by the remote daemon
+ * the corresponding version has to be provided within @a
+ * protoVersion.
  *
  * @param buffer The buffer used to encode the partition request
  * structure.
@@ -174,20 +178,26 @@ int PSpart_delReq(PSpart_request_t *request);
  *
  * @param request The partition request structure to encode.
  *
+ * @param protoVersion Protocol version used for encoding
+ *
  * @return On success, the number of bytes written to the buffer are
  * returned. If the return value is larger than @a size, the buffer is
  * to small in order to encode the whole partition request.
  *
  * @see PSpart_decodeReq()
  */
-size_t PSpart_encodeReq(char *buffer, size_t size, PSpart_request_t *request);
+size_t PSpart_encodeReq(char *buffer, size_t size, PSpart_request_t *request,
+			int protoVersion);
 
 /**
  * @brief Decode a partition request structure.
  *
  * Decode a partition request structure encoded by @ref
  * PSpart_encodeReq() and stored within @a buffer and write it to the
- * partition request structure @a request is pointing to.
+ * partition request structure @a request is pointing to. Since the
+ * encoding-scheme might depend on the protocol-version spoken by the
+ * remote daemon the corresponding version has to be provided within
+ * @a protoVersion.
  *
  * @param buffer The buffer the encoded partition request strucure is
  * stored to.
@@ -197,7 +207,8 @@ size_t PSpart_encodeReq(char *buffer, size_t size, PSpart_request_t *request);
  * @return The number of chars within @a buffer used in order to
  * decode the partition request structure.
  */
-size_t PSpart_decodeReq(char *buffer, PSpart_request_t *request);
+size_t PSpart_decodeReq(char *buffer, PSpart_request_t *request,
+			int protoVersion);
 
 /**
  * @brief Print a partition request in a string.
@@ -211,6 +222,8 @@ size_t PSpart_decodeReq(char *buffer, PSpart_request_t *request);
  * @param size Size of the character array @a txt.
  *
  * @param request Pointer to the partition request to print.
+ *
+ * @param protoVersion Protocol version used for encoding
  *
  * @return No return value.
  */

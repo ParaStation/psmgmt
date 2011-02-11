@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2010 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2011 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -191,7 +191,7 @@ int PSIDnodes_isUp(PSnodes_ID_t id);
  *
  * @return On success, 0 is returned or -1, if an error occured.
  */
-int PSIDnodes_setProtoVersion(PSnodes_ID_t id, int version);
+int PSIDnodes_setProtoV(PSnodes_ID_t id, int version);
 
 /**
  * @brief Get the protocol version of a node.
@@ -203,7 +203,7 @@ int PSIDnodes_setProtoVersion(PSnodes_ID_t id, int version);
  * @return If the node was found, the protocol version is returned. Or
  * -1, if an error occured.
  */
-int PSIDnodes_getProtoVersion(PSnodes_ID_t id);
+int PSIDnodes_getProtoV(PSnodes_ID_t id);
 
 /**
  * @brief Set the daemon-protocol version of a node.
@@ -217,7 +217,7 @@ int PSIDnodes_getProtoVersion(PSnodes_ID_t id);
  *
  * @return On success, 0 is returned or -1, if an error occured.
  */
-int PSIDnodes_setDaemonProtoVersion(PSnodes_ID_t id, int version);
+int PSIDnodes_setDmnProtoV(PSnodes_ID_t id, int version);
 
 /**
  * @brief Get the daemon-protocol version of a node.
@@ -230,7 +230,7 @@ int PSIDnodes_setDaemonProtoVersion(PSnodes_ID_t id, int version);
  * @return If the node was found, the daemon-protocol version is
  * returned. Or -1, if an error occured.
  */
-int PSIDnodes_getDaemonProtoVersion(PSnodes_ID_t id);
+int PSIDnodes_getDmnProtoV(PSnodes_ID_t id);
 
 /**
  * @brief Set the hardware type of a node.

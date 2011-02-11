@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2008 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2011 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -121,6 +121,29 @@ void PSpart_snprintf(char* txt, size_t size, PSpart_request_t* request)
     snprintf(txt+strlen(txt), size-strlen(txt), ")");
 }
 
+typedef struct {
+    uint32_t size;
+    uint32_t hwType;
+    uid_t uid;
+    gid_t gid;
+    PSpart_sort_t sort;
+    PSpart_option_t options;
+    uint32_t priority;
+    int32_t num;
+} tmpRequest_400_t;
+
+typedef struct {
+    uint32_t size;
+    uint32_t hwType;
+    uid_t uid;
+    gid_t gid;
+    PSpart_sort_t sort;
+    PSpart_option_t options;
+    uint32_t priority;
+    int32_t num;
+    uint16_t tpp;
+} tmpRequest_406_t;
+
 static struct {
     uint32_t size;
     uint32_t hwType;
@@ -131,12 +154,16 @@ static struct {
     uint32_t priority;
     int32_t num;
     uint16_t tpp;
+    int64_t start;
 } tmpRequest;
 
 static char partString[256];
 
-size_t PSpart_encodeReq(char* buffer, size_t size, PSpart_request_t* request)
+size_t PSpart_encodeReq(char* buffer, size_t size, PSpart_request_t* request,
+			int daemonProtoVersion)
 {
+    size_t length =  sizeof(tmpRequest);
+
     if (!request) {
 	PSC_log(-1, "%s: request is NULL\n", __func__);
 	return 0;
@@ -156,17 +183,28 @@ size_t PSpart_encodeReq(char* buffer, size_t size, PSpart_request_t* request)
 	tmpRequest.priority = request->priority;
 	tmpRequest.num = request->num;
 	tmpRequest.tpp = request->tpp;
+	tmpRequest.start = request->start;
 
 	memcpy(buffer, &tmpRequest, sizeof(tmpRequest));
     } else {
 	PSC_log(-1, "%s: Buffer (size %ld) too small\n", __func__, (long)size);
     }
 
-    return sizeof(tmpRequest);
+    /* size settings for compatibility */
+    if (daemonProtoVersion < 401) {
+	length = sizeof(tmpRequest_400_t);
+    } else if (daemonProtoVersion < 407) {
+	length = sizeof(tmpRequest_406_t);
+    }
+
+    return length;
 }
 
-size_t PSpart_decodeReq(char* buffer, PSpart_request_t* request)
+size_t PSpart_decodeReq(char* buffer, PSpart_request_t* request,
+			int daemonProtoVersion)
 {
+    size_t length =  sizeof(tmpRequest);
+
     if (!request) {
 	PSC_log(-1, "%s: request is NULL\n", __func__);
 	return 0;
@@ -188,9 +226,19 @@ size_t PSpart_decodeReq(char* buffer, PSpart_request_t* request)
     request->priority = tmpRequest.priority;
     request->num = tmpRequest.num;
     request->tpp = tmpRequest.tpp;
+    request->start = tmpRequest.start;
 
     PSpart_snprintf(partString, sizeof(partString), request);
     PSC_log(PSC_LOG_PART, " received request = (%s)\n", partString);
 
-    return sizeof(tmpRequest);
+    /* size settings for compatibility */
+    if (daemonProtoVersion < 401) {
+	request->tpp = 1;
+	length = sizeof(tmpRequest_400_t);
+    } else if (daemonProtoVersion < 407) {
+	request->start = time(NULL);
+	length = sizeof(tmpRequest_406_t);
+    }
+
+    return length;
 }

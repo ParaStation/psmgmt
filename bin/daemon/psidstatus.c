@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2010 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2011 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -321,7 +321,7 @@ static void sendRDPPing(void)
 
     PSID_log(PSID_LOG_STATUS, "%s to %d\n", __func__, getMasterID());
 
-    if (PSIDnodes_getProtoVersion(getMasterID()) < 334) {
+    if (PSIDnodes_getProtoV(getMasterID()) < 334) {
 	*(PSID_Jobs_t *)ptr = myJobs;
 	ptr += sizeof(PSID_Jobs_t);
 	msg.header.len += sizeof(PSID_Jobs_t);
@@ -1147,7 +1147,7 @@ static void msg_LOAD(DDBufferMsg_t *msg)
     } else if (clientStat) { /* Ignore msg during on-going shutdown */
 	int clientNodes;
 
-	if (PSIDnodes_getProtoVersion(client) < 334) {
+	if (PSIDnodes_getProtoV(client) < 334) {
 	    clientStat[client].jobs = *(PSID_Jobs_t *)ptr;
 	    ptr += sizeof(PSID_Jobs_t);
 

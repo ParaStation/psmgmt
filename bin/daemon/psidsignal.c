@@ -581,6 +581,7 @@ static void msg_NEWCHILD(DDErrorMsg_t *msg)
 {
     PStask_t *task = PStasklist_find(&managedTasks, msg->header.dest);
     DDSignalMsg_t answer;
+    PSnodes_ID_t senderID = PSC_getID(msg->header.sender);
 
     answer.header.type = PSP_CD_RELEASERES;
     answer.header.dest = msg->header.sender;
@@ -602,8 +603,7 @@ static void msg_NEWCHILD(DDErrorMsg_t *msg)
 	    /* RELEASE already received */
 	    PSID_log(PSID_LOG_SIGNAL, "%s: inherit released child %s\n",
 		     __func__, PSC_printTID(msg->request));
-	} else if (msg->error || PSIDnodes_getDaemonProtoVersion(
-		       PSC_getID(msg->header.sender)) < 405) {
+	} else if (msg->error || PSIDnodes_getDmnProtoV(senderID) < 405) {
 	    PSID_setSignal(&task->assignedSigs, msg->request, -1);
 	}
 	if (PSID_getSignalByTID(&task->deadBefore, msg->request)) {
@@ -948,7 +948,7 @@ static void msg_RELEASE(DDSignalMsg_t *msg)
 {
     PStask_ID_t registrarTid = msg->header.sender;
     PStask_ID_t tid = msg->header.dest;
-    int PSPver = PSIDnodes_getProtoVersion(PSC_getID(msg->header.sender));
+    int PSPver = PSIDnodes_getProtoV(PSC_getID(msg->header.sender));
 
     PSID_log(PSID_LOG_SIGNAL, "%s(%s)", __func__, PSC_printTID(tid));
     PSID_log(PSID_LOG_SIGNAL, " registrar %s\n", PSC_printTID(registrarTid));

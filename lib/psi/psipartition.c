@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2010 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2011 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -850,6 +850,37 @@ static void alarmHandler(int sig)
     }
 }
 
+/**
+ * @brief Get daemon's PSprotocol version
+ *
+ * @return On success, the local daemon's protocol-version is
+ * returned. Otherwise 0 is returned.
+ */
+static int getDaemonProtocolVersion(void)
+{
+    PSP_Option_t opt = PSP_OP_DAEMONPROTOVERSION;
+    PSP_Optval_t val;
+    int err, protoVersion = 0;
+
+    err = PSI_infoOption(-1, 1, &opt, &val, 0);
+    if (err != -1) {
+	switch (opt) {
+	case PSP_OP_DAEMONPROTOVERSION:
+	    protoVersion = val;
+	    break;
+	case PSP_OP_UNKNOWN:
+	    printf(" PSP_OP_DAEMONPROTOVERSION unknown\n");
+	    break;
+	default:
+	    printf(" got option type %d\n", opt);
+	}
+    } else {
+	printf(" error getting info\n");
+    }
+
+    return protoVersion;
+}
+
 int PSI_createPartition(unsigned int size, uint32_t hwType)
 {
     DDBufferMsg_t msg = (DDBufferMsg_t) {
@@ -863,7 +894,7 @@ int PSI_createPartition(unsigned int size, uint32_t hwType)
     nodelist_t *nodelist =  NULL;
     size_t len;
     uint32_t hwEnv;
-    int ret = -1;
+    int daemonProtoVer = getDaemonProtocolVersion(), ret = -1;
 
     PSI_log(PSI_LOG_VERB, "%s()\n", __func__);
 
@@ -907,7 +938,7 @@ int PSI_createPartition(unsigned int size, uint32_t hwType)
 
     request->tpp = getTPPEnv();
 
-    len = PSpart_encodeReq(msg.buf, sizeof(msg.buf), request);
+    len = PSpart_encodeReq(msg.buf, sizeof(msg.buf), request, daemonProtoVer);
     if (len > sizeof(msg.buf)) {
 	PSI_log(-1, "%s: PSpart_encodeReq\n", __func__);
 	goto end;

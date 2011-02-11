@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2009 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2011 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -634,12 +634,12 @@ static void msg_SETOPTION(DDOptionMsg_t *msg)
 				      msg->opt[i].value);
 		break;
 	    case PSP_OP_PROTOCOLVERSION:
-		PSIDnodes_setProtoVersion(PSC_getID(msg->header.sender),
-					     msg->opt[i].value);
+		PSIDnodes_setProtoV(PSC_getID(msg->header.sender),
+				    msg->opt[i].value);
 		break;
 	    case PSP_OP_DAEMONPROTOVERSION:
-		PSIDnodes_setDaemonProtoVersion(PSC_getID(msg->header.sender),
-						msg->opt[i].value);
+		PSIDnodes_setDmnProtoV(PSC_getID(msg->header.sender),
+				       msg->opt[i].value);
 		break;
 	    case PSP_OP_PSIDDEBUG:
 		PSID_setDebugMask(msg->opt[i].value);
@@ -831,12 +831,10 @@ static void msg_GETOPTION(DDOptionMsg_t *msg)
 		break;
 	    }
 	    case PSP_OP_PROTOCOLVERSION:
-		msg->opt[out].value =
-		    PSIDnodes_getProtoVersion(PSC_getMyID());
+		msg->opt[out].value = PSIDnodes_getProtoV(PSC_getMyID());
 		break;
 	    case PSP_OP_DAEMONPROTOVERSION:
-		msg->opt[out].value =
-		    PSIDnodes_getDaemonProtoVersion(PSC_getMyID());
+		msg->opt[out].value = PSIDnodes_getDmnProtoV(PSC_getMyID());
 		break;
 	    case PSP_OP_PSIDDEBUG:
 		msg->opt[out].value = PSID_getDebugMask();

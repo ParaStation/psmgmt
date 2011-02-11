@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2010 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2011 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -376,7 +376,7 @@ int PSIDnodes_getInfoVersion(PSnodes_ID_t id)
 }
 
 /**********************************************************************/
-int PSIDnodes_setProtoVersion(PSnodes_ID_t id, int version)
+int PSIDnodes_setProtoV(PSnodes_ID_t id, int version)
 {
     if (PSIDnodes_validID(id)) {
 	nodes[id].protoVer = version;
@@ -386,7 +386,7 @@ int PSIDnodes_setProtoVersion(PSnodes_ID_t id, int version)
     }
 }
 
-int PSIDnodes_getProtoVersion(PSnodes_ID_t id)
+int PSIDnodes_getProtoV(PSnodes_ID_t id)
 {
     if (PSIDnodes_validID(id)) {
 	return nodes[id].protoVer;
@@ -395,7 +395,7 @@ int PSIDnodes_getProtoVersion(PSnodes_ID_t id)
     }
 }
 
-int PSIDnodes_setDaemonProtoVersion(PSnodes_ID_t id, int version)
+int PSIDnodes_setDmnProtoV(PSnodes_ID_t id, int version)
 {
     if (PSIDnodes_validID(id)) {
 	nodes[id].daemonProtoVer = version;
@@ -405,7 +405,7 @@ int PSIDnodes_setDaemonProtoVersion(PSnodes_ID_t id, int version)
     }
 }
 
-int PSIDnodes_getDaemonProtoVersion(PSnodes_ID_t id)
+int PSIDnodes_getDmnProtoV(PSnodes_ID_t id)
 {
     if (PSIDnodes_validID(id)) {
 	return nodes[id].daemonProtoVer;

@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2010 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2011 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -17,6 +17,7 @@ static char vcid[] __attribute__((used)) =
 #include <unistd.h>
 #include <string.h>
 #include <errno.h>
+#include <time.h>
 #include <sys/types.h>
 
 #include "pscommon.h"
@@ -1657,9 +1658,8 @@ static int sendNodelist(PSpart_request_t *request, DDBufferMsg_t *msg)
 static int sendSlotlist(PSpart_slot_t *slots, int num, DDBufferMsg_t *msg)
 {
     int offset = 0;
-    int destPSPver = PSIDnodes_getProtoVersion(PSC_getID(msg->header.dest));
-    int destDaemonPSPver =
-	PSIDnodes_getDaemonProtoVersion(PSC_getID(msg->header.dest));
+    int destPSPver = PSIDnodes_getProtoV(PSC_getID(msg->header.dest));
+    int destDmnPSPver = PSIDnodes_getDmnProtoV(PSC_getID(msg->header.dest));
     int bufOffset = msg->header.len - sizeof(msg->header);
 
     PSID_log(PSID_LOG_PART, "%s(%s)\n", __func__,
@@ -1686,7 +1686,7 @@ static int sendSlotlist(PSpart_slot_t *slots, int num, DDBufferMsg_t *msg)
 	    int n;
 	    for (n=0; n<chunk; n++) nodeBuf[n] = mySlots[n].node;
 	    msg->header.len += chunk * sizeof(*nodeBuf);
-	} else if (destDaemonPSPver < 401) {
+	} else if (destDmnPSPver < 401) {
 	    /* Map to old slotlist for compatibility reasons */
 	    PSpart_oldSlot_t *oldSlots = (PSpart_oldSlot_t *)ptr;
 	    int n;
@@ -1991,11 +1991,12 @@ static void msg_CREATEPART(DDBufferMsg_t *inmsg)
 	goto error;
     }
 
-    /* Add UID/GID to request */
+    /* Add UID/GID/starttime to request */
     task->request = PSpart_newReq();
-    PSpart_decodeReq(inmsg->buf, task->request);
+    PSpart_decodeReq(inmsg->buf, task->request, PSDaemonProtocolVersion);
     task->request->uid = task->uid;
     task->request->gid = task->gid;
+    task->request->start = task->started.tv_sec;
     if (task->protocolVersion < 337) {
 	task->request->tpp = 1;
     }
@@ -2004,8 +2005,6 @@ static void msg_CREATEPART(DDBufferMsg_t *inmsg)
 	errno = EINVAL;
 	goto error;
     }
-    inmsg->header.len = sizeof(inmsg->header)
-	+ PSpart_encodeReq(inmsg->buf, sizeof(inmsg->buf), task->request);
 
     if (task->request->num) {
 	task->request->nodes =
@@ -2022,6 +2021,10 @@ static void msg_CREATEPART(DDBufferMsg_t *inmsg)
     sendAcctQueueMsg(task);
 
     if (!knowMaster()) return; /* Automatic pull in initPartHandler() */
+
+    inmsg->header.len = sizeof(inmsg->header)
+	+ PSpart_encodeReq(inmsg->buf, sizeof(inmsg->buf), task->request,
+			   PSIDnodes_getDmnProtoV(PSC_getID(getMasterID())));
 
     inmsg->header.type = PSP_DD_GETPART;
     inmsg->header.dest = PSC_getTID(getMasterID(), 0);
@@ -2070,6 +2073,7 @@ static void msg_CREATEPART(DDBufferMsg_t *inmsg)
 static void msg_GETPART(DDBufferMsg_t *inmsg)
 {
     PSpart_request_t *req = PSpart_newReq();
+    int dmnPSPver = PSIDnodes_getDmnProtoV(PSC_getID(inmsg->header.sender));
 
     if (!knowMaster() || PSC_getMyID() != getMasterID()) return;
 
@@ -2082,11 +2086,8 @@ static void msg_GETPART(DDBufferMsg_t *inmsg)
 	goto error;
     }
 
-    PSpart_decodeReq(inmsg->buf, req);
+    PSpart_decodeReq(inmsg->buf, req, dmnPSPver);
     req->tid = inmsg->header.sender;
-    if (PSIDnodes_getDaemonProtoVersion(PSC_getID(inmsg->header.sender))<401) {
-	req->tpp = 1;
-    }
 
     /* Set the default sorting strategy, if necessary */
     if (req->sort == PART_SORT_DEFAULT) {
@@ -2306,9 +2307,8 @@ static void msg_GETPARTNL(DDBufferMsg_t *inmsg)
  */
 static void appendToSlotlist(DDBufferMsg_t *inmsg, PSpart_request_t *request)
 {
-    int PSPver = PSIDnodes_getProtoVersion(PSC_getID(inmsg->header.sender));
-    int DaemonPSPver =
-	PSIDnodes_getDaemonProtoVersion(PSC_getID(inmsg->header.sender));
+    int PSPver = PSIDnodes_getProtoV(PSC_getID(inmsg->header.sender));
+    int dmnPSPver = PSIDnodes_getDmnProtoV(PSC_getID(inmsg->header.sender));
     PSpart_slot_t *slots = request->slots + request->sizeGot;
     char *ptr = inmsg->buf;
     int chunk = *(int16_t *)ptr;
@@ -2321,7 +2321,7 @@ static void appendToSlotlist(DDBufferMsg_t *inmsg, PSpart_request_t *request)
 	    slots[n].node = nodeBuf[n];
 	    PSCPU_setAll(slots[n].CPUset);
 	}
-    } else if (DaemonPSPver < 401) {
+    } else if (dmnPSPver < 401) {
 	PSpart_oldSlot_t *oldSlots = (PSpart_oldSlot_t *)ptr;
 	int n;
 	for (n=0; n<chunk; n++) {
@@ -2574,10 +2574,8 @@ static void msg_GETNODES(DDBufferMsg_t *inmsg)
     PSID_log(PSID_LOG_PART, "%s(%d)\n", __func__, num);
 
     if (task->nextRank + num <= task->partitionSize) {
-	int PSPver =
-	    PSIDnodes_getProtoVersion(PSC_getID(inmsg->header.sender));
-	int DaemonPSPver =
-	    PSIDnodes_getDaemonProtoVersion(PSC_getID(inmsg->header.sender));
+	int PSPver = PSIDnodes_getProtoV(PSC_getID(inmsg->header.sender));
+	int dmnPSPver = PSIDnodes_getDmnProtoV(PSC_getID(inmsg->header.sender));
 	DDBufferMsg_t msg = (DDBufferMsg_t) {
 	    .header = (DDMsg_t) {
 		.type = (PSPver < 335) ? PSP_CD_NODESRES : PSP_DD_NODESRES,
@@ -2601,7 +2599,7 @@ static void msg_GETNODES(DDBufferMsg_t *inmsg)
 	    for (n=0; n<num; n++) nodeBuf[n] = slots[n].node;
 	    ptr = (char *)&nodeBuf[num];
 	    msg.header.len += num * sizeof(*nodeBuf);
-	} else if (DaemonPSPver < 401) {
+	} else if (dmnPSPver < 401) {
 	    PSpart_oldSlot_t *oldSlots = (PSpart_oldSlot_t *)ptr;
 	    unsigned int n;
 	    for (n=0; n<num; n++) {
@@ -2611,7 +2609,7 @@ static void msg_GETNODES(DDBufferMsg_t *inmsg)
 	    }
 	    ptr = (char *)&oldSlots[num];
 	    msg.header.len += num * sizeof(*oldSlots);
-	} else if (DaemonPSPver < 402) {
+	} else if (dmnPSPver < 402) {
 	    if (num > SLOTS_CHUNK) goto error;
 	    memcpy(ptr, slots, num * sizeof(*slots));
 	    ptr += num * sizeof(*slots);
@@ -2708,8 +2706,7 @@ static void msg_GETRANKNODE(DDBufferMsg_t *inmsg)
 		.len = sizeof(msg.header) },
 	    .buf = { 0 } };
 	PSpart_slot_t *slot = task->partition + rank;
-	int DaemonPSPver =
-	    PSIDnodes_getDaemonProtoVersion(PSC_getID(inmsg->header.sender));
+	int dmnPSPver = PSIDnodes_getDmnProtoV(PSC_getID(inmsg->header.sender));
 
 	ptr = msg.buf;
 
@@ -2717,7 +2714,7 @@ static void msg_GETRANKNODE(DDBufferMsg_t *inmsg)
 	ptr += sizeof(int32_t);
 	msg.header.len += sizeof(int32_t);
 
-	if (DaemonPSPver >= 402) {
+	if (dmnPSPver >= 402) {
 	    *(int16_t *)ptr = 1; /* requested */
 	    ptr += sizeof(int16_t);
 	    msg.header.len += sizeof(int16_t);
@@ -2767,8 +2764,7 @@ static void msg_GETRANKNODE(DDBufferMsg_t *inmsg)
 static void msg_NODESRES(DDBufferMsg_t *inmsg)
 {
     if (PSC_getID(inmsg->header.dest) == PSC_getMyID()) {
-	int DaemonPSPver =
-	    PSIDnodes_getDaemonProtoVersion(PSC_getID(inmsg->header.sender));
+	int dmnPSPver = PSIDnodes_getDmnProtoV(PSC_getID(inmsg->header.sender));
 	PStask_t *task = PStasklist_find(&managedTasks, inmsg->header.dest);
 	char *ptr = inmsg->buf;
 	int num = inmsg->header.len - sizeof(inmsg->header) - sizeof(int32_t);
@@ -2785,9 +2781,9 @@ static void msg_NODESRES(DDBufferMsg_t *inmsg)
 	    return;
 	}
 
-	if (DaemonPSPver < 401) {
+	if (dmnPSPver < 401) {
 	    num /= sizeof(PSpart_oldSlot_t);
-	} else if (DaemonPSPver < 402) {
+	} else if (dmnPSPver < 402) {
 	    num /= sizeof(PSpart_slot_t);
 	} else {
 	    requested = *(int16_t *)ptr;
@@ -2812,7 +2808,7 @@ static void msg_NODESRES(DDBufferMsg_t *inmsg)
 	}
 	slots = task->spawnNodes + task->spawnNum;
 
-	if (DaemonPSPver < 401) {
+	if (dmnPSPver < 401) {
 	    PSpart_oldSlot_t *oldSlots = (PSpart_oldSlot_t *)ptr;
 	    int n;
 	    for (n=0; n<num; n++) {
@@ -2823,7 +2819,7 @@ static void msg_NODESRES(DDBufferMsg_t *inmsg)
 		    PSCPU_setCPU(slots[n].CPUset, oldSlots[n].cpu);
 		}
 	    }
-	} else if (DaemonPSPver < 402) {
+	} else if (dmnPSPver < 402) {
 	    memcpy(slots, ptr, num * sizeof(*slots));
 	} else {
 	    memcpy(slots, ptr, num * sizeof(*slots));
@@ -2881,6 +2877,7 @@ int send_GETTASKS(PSnodes_ID_t node)
 static void sendRequests(void)
 {
     list_t *t;
+    int dmnPSPver = PSIDnodes_getDmnProtoV(PSC_getID(getMasterID()));
 
     list_for_each(t, &managedTasks) {
 	PStask_t *task = list_entry(t, PStask_t, next);
@@ -2895,7 +2892,8 @@ static void sendRequests(void)
 		.buf = { '\0' }};
 	    size_t len;
 
-	    len = PSpart_encodeReq(msg.buf, sizeof(msg.buf), task->request);
+	    len = PSpart_encodeReq(msg.buf, sizeof(msg.buf), task->request,
+				   dmnPSPver);
 	    if (len > sizeof(msg.buf)) {
 		PSID_log(-1, "%s: PSpart_encodeReq() failed\n", __func__);
 		continue;
@@ -2941,7 +2939,7 @@ static void sendExistingPartitions(PStask_ID_t dest)
 	    ptr += sizeof(task->partitionSize);
 	    msg.header.len += sizeof(task->partitionSize);
 
-	    if (PSIDnodes_getDaemonProtoVersion(PSC_getID(dest)) > 402) {
+	    if (PSIDnodes_getDmnProtoV(PSC_getID(dest)) > 402) {
 		*(uint32_t *)ptr = task->uid;
 		ptr += sizeof(uint32_t);
 		msg.header.len += sizeof(uint32_t);
@@ -2954,6 +2952,12 @@ static void sendExistingPartitions(PStask_ID_t dest)
 	    *(uint8_t *)ptr = task->suspended;
 	    ptr += sizeof(uint8_t);
 	    msg.header.len += sizeof(uint8_t);
+
+	    if (PSIDnodes_getDmnProtoV(PSC_getID(dest)) > 406) {
+		*(int64_t *)ptr = task->started.tv_sec;
+		ptr += sizeof(int64_t);
+		msg.header.len += sizeof(uint64_t);
+	    }
 
 	    sendMsg(&msg);
 
@@ -3058,7 +3062,7 @@ static void msg_PROVIDETASK(DDBufferMsg_t *inmsg)
     request->size = *(uint32_t *)ptr;
     ptr += sizeof(uint32_t);
 
-    if (PSIDnodes_getDaemonProtoVersion(PSC_getID(request->tid)) > 402) {
+    if (PSIDnodes_getDmnProtoV(PSC_getID(request->tid)) > 402) {
 	request->uid = *(uint32_t *)ptr;
 	ptr += sizeof(uint32_t);
 
@@ -3068,6 +3072,13 @@ static void msg_PROVIDETASK(DDBufferMsg_t *inmsg)
 
     request->suspended = *(uint8_t *)ptr;
     ptr += sizeof(uint8_t);
+
+    if (PSIDnodes_getDmnProtoV(PSC_getID(request->tid)) > 406) {
+	request->start = *(int64_t *)ptr;
+	ptr += sizeof(int64_t);
+    } else {
+	request->start = 0;
+    }
 
     if (request->size) {
 	request->slots = malloc(request->size * sizeof(*request->slots));
@@ -3162,8 +3173,8 @@ static void sendReqList(PStask_ID_t dest, PSpart_request_t *requests,
 	    .len = sizeof(msg.header) + sizeof(msg.type) },
 	.type = PSP_INFO_QUEUE_PARTITION,
 	.buf = {0}};
-    int PSPver = PSIDnodes_getProtoVersion(PSC_getID(dest));
-    int DaemonPSPver = PSIDnodes_getDaemonProtoVersion(PSC_getID(dest));
+    int PSPver = PSIDnodes_getProtoV(PSC_getID(dest));
+    int dmnPSPver = PSIDnodes_getDmnProtoV(PSC_getID(dest));
 
     while (requests) {
 	size_t len = 0;
@@ -3180,11 +3191,8 @@ static void sendReqList(PStask_ID_t dest, PSpart_request_t *requests,
 
 	tmp = requests->num;
 	num = requests->num = (opt & PART_LIST_NODES) ? requests->size : 0;
-	len += PSpart_encodeReq(ptr, sizeof(msg.buf)-len, requests);
-	if (DaemonPSPver < 401) {
-	    /* request encoding has changed */
-	    len -= sizeof(uint16_t);
-	}
+	len += PSpart_encodeReq(ptr, sizeof(msg.buf)-len, requests,
+				dmnPSPver);
 	requests->num = tmp;
 
 	if (len > sizeof(msg.buf)) {
@@ -3220,7 +3228,7 @@ static void sendReqList(PStask_ID_t dest, PSpart_request_t *requests,
 		    int n;
 		    for (n=0; n<chunk; n++) nodeBuf[n] = slots[n].node;
 		    len = chunk * sizeof(*nodeBuf);
-		} else if (DaemonPSPver < 401) {
+		} else if (dmnPSPver < 401) {
 		    PSpart_oldSlot_t *oldSlots = (PSpart_oldSlot_t *)ptr;
 		    int n;
 		    for (n=0; n<chunk; n++) {

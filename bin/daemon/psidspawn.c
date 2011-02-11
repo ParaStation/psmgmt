@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2010 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2011 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -2014,8 +2014,7 @@ static void msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
 
     if (PSC_getID(msg->header.dest) != PSC_getMyID()) {
 	/* request for a remote site. */
-	int destDaemonPSPver =
-	    PSIDnodes_getDaemonProtoVersion(PSC_getID(msg->header.dest));
+	int destDmnPSPver = PSIDnodes_getDmnProtoV(PSC_getID(msg->header.dest));
 
 	if (!PSIDnodes_isUp(PSC_getID(msg->header.dest))) {
 	    answer.header.type = PSP_CD_SPAWNFAILED;
@@ -2053,7 +2052,7 @@ static void msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
 		    .type = PSP_SPAWN_LOC };
 		char *ptr = locMsg.buf;
 
-		if (destDaemonPSPver < 401) {
+		if (destDmnPSPver < 401) {
 		    *(int16_t *)ptr =
 			PSCPU_first(ptask->spawnNodes[rank].CPUset,
 				    PSIDnodes_getPhysCPUs(
@@ -2115,15 +2114,15 @@ static void msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
 	break;
     case PSP_SPAWN_LOC:
     {
-	int srcDaemonPSPver =
-	    PSIDnodes_getDaemonProtoVersion(PSC_getID(msg->header.sender));
+	int srcDmnPSPver =
+	    PSIDnodes_getDmnProtoV(PSC_getID(msg->header.sender));
 
 	if (!task) {
 	    PSID_log(-1, "%s: PSP_SPAWN_LOC from %s: task not found\n",
 		     __func__, PSC_printTID(msg->header.sender));
 	    return;
 	}
-	if (srcDaemonPSPver < 401) {
+	if (srcDmnPSPver < 401) {
 	    PSCPU_setCPU(task->CPUset, *(int16_t *)msg->buf);
 	    usedBytes = sizeof(int16_t);
 	} else {
@@ -2292,7 +2291,7 @@ static void msg_SPAWNFAILED(DDErrorMsg_t *msg)
 	     PSC_printTID(msg->header.dest));
 
     /* Make sure an old initiator does not get extended messages */
-    if (PSIDnodes_getDaemonProtoVersion(PSC_getID(msg->header.dest)) < 404) {
+    if (PSIDnodes_getDmnProtoV(PSC_getID(msg->header.dest)) < 404) {
 	msg->header.len = sizeof(*msg);
     }
 

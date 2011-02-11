@@ -669,8 +669,8 @@ int main(int argc, const char *argv[])
     /* Start up all the hardware */
     PSID_log(PSID_LOG_HW, "%s: starting up the hardware\n", __func__);
 
-    PSIDnodes_setProtoVersion(PSC_getMyID(), PSProtocolVersion);
-    PSIDnodes_setDaemonProtoVersion(PSC_getMyID(), PSDaemonProtocolVersion);
+    PSIDnodes_setProtoV(PSC_getMyID(), PSProtocolVersion);
+    PSIDnodes_setDmnProtoV(PSC_getMyID(), PSDaemonProtocolVersion);
     PSIDnodes_setHWStatus(PSC_getMyID(), 0);
 
     /* Bring node up with correct numbers of CPUs */
