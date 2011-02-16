@@ -171,11 +171,6 @@ struct timeval RDPTimeout = {0, 100000}; /* sec, usec */
 /** The actual packet-loss rate. Get/set by getPktLossRDP()/setPktLossRDP() */
 static int RDPPktLoss = 0;
 
-/** Lock for central msgbuf-lists */
-/* @todo collect some statistics on JuRoPA. If nothing is found it
- * should be safe to remove this lock */
-static int listLock = 0;
-
 /** Signal request for cleanup of deleted msgbufs to main timeout-handler */
 static int cleanupReq = 0;
 
@@ -972,7 +967,6 @@ static void clearMsgQ(int node)
     list_t *m;
     int blocked = Timer_block(timerID, 1);
 
-    listLock = 1; /* @todo */
     list_for_each(m, &cp->pendList) {
 	msgbuf_t *mp = list_entry(m, msgbuf_t, next);
 
@@ -989,7 +983,6 @@ static void clearMsgQ(int node)
 	mp->deleted = 1;
 	cleanupReq = 1;
     }
-    listLock = 0; /* @todo */
 
     cp->ackExpected = cp->frameToSend;          /* restore initial setting */
     cp->window = MAX_WINDOW_SIZE;               /* restore window size */
@@ -1104,7 +1097,6 @@ static void resendMsgs(int node)
     case ACTIVE:
     {
 	int blocked = Timer_block(timerID, 1);
-	listLock = 1; /* @todo */
 	list_for_each(m, &conntable[node].pendList) {
 	    int ret;
 	    msgbuf_t *mp = list_entry(m, msgbuf_t, next);
@@ -1120,7 +1112,6 @@ static void resendMsgs(int node)
 			   mp->len + sizeof(rdphdr_t), 0, node, 0);
 	    if (ret < 0) break;
 	}
-	listLock = 0; /* @todo */
 	conntable[node].ackPending = 0;
 
 	Timer_block(timerID, blocked);
@@ -1460,41 +1451,31 @@ static void doACK(rdphdr_t *hdr, int fromnode)
 
     list_for_each_safe(m, tmp, &cp->pendList) {
 	msgbuf_t *mp = list_entry(m, msgbuf_t, next);
+	int32_t seqno = psntoh32(mp->msg.small->header.seqno);
 
 	if (mp->deleted) {
-	    if (!listLock) { /* @todo */
-		if (!callback) callback = !cp->window;
-		putMsg(mp);
-		cp->window++;
-	    } else {
-		RDP_log(-1, "%s: deleted mp while list is locked\n", __func__);
-	    }
+	    if (!callback) callback = !cp->window;
+	    putMsg(mp);
+	    cp->window++;
 	    continue;
 	}
 
-	RDP_log(RDP_LOG_ACKS, "%s: compare seqno %d with %d\n",
-		__func__, psntoh32(mp->msg.small->header.seqno), hdr->ackno);
-	if (RSEQCMP((int)psntoh32(mp->msg.small->header.seqno), hdr->ackno) <= 0) {
+	RDP_log(RDP_LOG_ACKS, "%s: compare seqno %d with %d\n", __func__,
+		seqno, hdr->ackno);
+	if (RSEQCMP((int)seqno, hdr->ackno) <= 0) {
 	    /* ACK this buffer */
-	    if ((int)psntoh32(mp->msg.small->header.seqno) != cp->ackExpected) {
+	    if ((int)seqno != cp->ackExpected) {
 		RDP_log(-1, "%s: strange things happen: msg.seqno = %x,"
-			" AE=%x from %d\n", __func__,
-			psntoh32(mp->msg.small->header.seqno),
-			cp->ackExpected, fromnode);
+			" AE=%x from %d\n", __func__, seqno, cp->ackExpected,
+			fromnode);
 	    }
 	    /* release msg frame */
 	    RDP_log(RDP_LOG_ACKS, "%s: release buffer seqno=%x to %d\n",
-		    __func__, psntoh32(mp->msg.small->header.seqno), fromnode);
+		    __func__, seqno, fromnode);
 
-	    if (!listLock) { /* @todo */
-		if (!callback) callback = !cp->window;
-		putMsg(mp);
-		cp->window++;
-	    } else {
-		RDP_log(-1, "%s: delete mp while list is locked\n", __func__);
-		mp->deleted = 1;
-		cleanupReq = 1;
-	    }
+	    if (!callback) callback = !cp->window;
+	    putMsg(mp);
+	    cp->window++;
 	    cp->ackExpected++;             /* inc ack count */
 	    cp->retrans = 0;               /* start new retransmission count */
 	} else {
