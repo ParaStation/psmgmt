@@ -677,9 +677,6 @@ static int MYrecvfrom(int sock, void *buf, size_t len, int flags,
 }
 
 
-/* @todo HACK HACK HACK needed for special debug in rdp #442 */
-extern int16_t myID;
-
 /**
  * @brief Send a message
  *
@@ -1598,12 +1595,10 @@ static int handleErr(void)
 #ifdef __linux__
     struct msghdr errmsg;
     struct sockaddr_in sin;
-    struct sockaddr_in *sinp;
     struct iovec iov;
     struct cmsghdr *cmsg;
     struct sock_extended_err *extErr;
     int node, handleErrno;
-    int offenderNode; // @todo required for #442 debug
     char cbuf[256];
 
     handleErrno = errno;
@@ -1674,12 +1669,6 @@ static int handleErr(void)
 	    __func__, extErr->ee_errno, extErr->ee_origin, extErr->ee_type,
 	    extErr->ee_code, extErr->ee_pad, extErr->ee_info, extErr->ee_data);
 
-    sinp = (struct sockaddr_in *)SO_EE_OFFENDER(extErr);
-    if (sinp->sin_family == AF_UNSPEC) {
-	RDP_log(-1, "%s: unknown address family\n", __func__);
-	return -1;
-    }
-
     node = lookupIPTable(sin.sin_addr);
     if (node < 0) {
 	RDP_log(-1, "%s: unable to resolve %s\n", __func__,
@@ -1688,39 +1677,19 @@ static int handleErr(void)
 	return -1;
     }
 
-    /* @todo extra debug for #442 */
-    offenderNode = lookupIPTable(sinp->sin_addr);
-    if (node < 0) {
-	RDP_log(-1, "%s: unable to resolve %s\n", __func__,
-		inet_ntoa(sinp->sin_addr));
-	errno = ELNRNG;
-	return -1;
-    }
-
-    /* @todo extra debug for #442 */
-    if (offenderNode == myID && handleErrno == ECONNREFUSED) {
-	RDP_log(-1, "%s: L sock_extended_err: ee_errno = %u, ee_origin = %hhu,"
-		" ee_type = %hhu, ee_code = %hhu, ee_pad = %hhu, ee_info = %u,"
-		" ee_data = %u\n", __func__, extErr->ee_errno,
-		extErr->ee_origin, extErr->ee_type, extErr->ee_code,
-		extErr->ee_pad, extErr->ee_info, extErr->ee_data);
-    }
-
     switch (handleErrno) {
     case ECONNREFUSED:
-	// RDP_log(RDP_LOG_CONN, "%s: CONNREFUSED from %s(%d) port %d\n", @todo #442
-	RDP_log((node == myID) ? -1 : RDP_LOG_CONN, "%s: CONNREFUSED to %s(%d) port %d",
-		__func__, inet_ntoa(sin.sin_addr), node, ntohs(sin.sin_port));
-	RDP_log((node == myID) ? -1 : RDP_LOG_CONN, "from %s", inet_ntoa(sinp->sin_addr)); // @todo #442
+	RDP_log(RDP_LOG_CONN, "%s: CONNREFUSED to %s(%d) port %d", __func__,
+		inet_ntoa(sin.sin_addr), node, ntohs(sin.sin_port));
 	closeConnection(node, 1, 0);
 	break;
     case EHOSTUNREACH:
-	RDP_log(RDP_LOG_CONN, "%s: HOSTUNREACH from %s(%d) port %d\n",
+	RDP_log(RDP_LOG_CONN, "%s: HOSTUNREACH to %s(%d) port %d\n",
 		__func__, inet_ntoa(sin.sin_addr), node, ntohs(sin.sin_port));
 	closeConnection(node, 1, 0);
 	break;
     default:
-	RDP_warn(-1, handleErrno, "%s: UNKNOWN errno %d from %s(%d) port %d\n",
+	RDP_warn(-1, handleErrno, "%s: UNKNOWN errno %d to %s(%d) port %d\n",
 		 __func__, handleErrno, inet_ntoa(sin.sin_addr), node,
 		 ntohs(sin.sin_port));
     }
@@ -2358,25 +2327,28 @@ void RDP_printStat(void)
 	RDP_log(-1, "%s: rdpSock not connected\n", __func__);
     } else {
 	struct sockaddr_in sin;
-	size_t len = sizeof(sin);
-	int sval;
-	socklen_t slen = sizeof(sval);
-	int ret;
+	socklen_t len;
+	int sval, ret;
 
 	RDP_log(-1, "%s: rdpSock is %d", __func__, rdpsock);
 
+	len = sizeof(sin);
 	ret = getsockname(rdpsock, (struct sockaddr *)&sin, &len);
 	if (ret) {
 	    RDP_log(-1, " unable to determine port\n");
 	} else {
 	    RDP_log(-1, " bound to port %d\n", ntohs(sin.sin_port));
 	}
-	if (getsockopt(rdpsock, SOL_SOCKET, SO_RCVBUF, &sval, &slen)) {
+
+	len = sizeof(sval);
+	if (getsockopt(rdpsock, SOL_SOCKET, SO_RCVBUF, &sval, &len)) {
 	    RDP_warn(-1, errno, "%s: getsockopt(SO_RCVBUF)", __func__);
 	} else {
 	    RDP_log(-1, "%s: SO_RCVBUF is %d\n", __func__, sval);
 	}
-	if (getsockopt(rdpsock, SOL_SOCKET, SO_SNDBUF, &sval, &slen)) {
+
+	len = sizeof(sval);
+	if (getsockopt(rdpsock, SOL_SOCKET, SO_SNDBUF, &sval, &len)) {
 	    RDP_warn(-1, errno, "%s: getsockopt(SO_SNDBUF)", __func__);
 	} else {
 	    RDP_log(-1, "%s: SO_SNDBUF is %d\n", __func__, sval);
