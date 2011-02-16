@@ -40,6 +40,7 @@ static char vcid[] __attribute__((used)) =
 #include <popt.h>
 
 #include "selector.h"
+#include "timer.h"
 #include "mcast.h"
 #include "rdp.h"
 #include "config_parsing.h"
@@ -678,7 +679,10 @@ int main(int argc, const char *argv[])
     if (!Selector_isInitialized()) Selector_init(logfile);
     declareNodeAlive(PSC_getMyID(), PSID_getPhysCPUs(), PSID_getVirtCPUs());
 
-    /* Initialize timers */
+    /* Initialize timer facility explicitely to ensure correct logging */    
+    if (!Timer_isInitialized()) Selector_init(logfile);
+
+    /* Initialize timeouts, etc. */
     selectTime.tv_sec = config->selectTime;
     selectTime.tv_usec = 0;
     PSID_initStarttime();
