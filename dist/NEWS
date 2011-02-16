@@ -1,8 +1,31 @@
 psmgmt NEWS -- history of user-visible changes.
 
-Copyright (C) 2010 ParTec Cluster Competence Center GmbH, Munich
+Copyright (C) 2010-2011 ParTec Cluster Competence Center GmbH, Munich
 
 Please send bug reports, questions and suggestions to <support@par-tec.com>
+
+Version 5.0.30:
+===============
+Bugfixes:
+ - Improve memory-handling when temporarily buffering messages (#689/jt:#2686).
+ - Mark psiadmin's hex-output to be in hex (#612).
+ - Improved error-messages, if PMI barrier timeout strikes (#827).
+ - Improve logging with timestamps (#719).
+
+Enhancements:
+ - New psiadmin directive: echo (#632)
+ - RLIMIT_NOFILE now configurable & propagated to remote processes
+   (#792/jt:#2691).
+ - Better handling of hanging file-systems while spawning processes (#879).
+ - psid's environment might be changed during runtime (#815).
+ - Enhanced plugin-interface within psid (#562). This is a pre-requisit for
+   psmom and psaccount plugins.
+ - Job's starttime is listed in psiadmin's 'list jobs' directive.
+
+Additional changes:
+ - Improved logging on flaws in psid's configuration file.
+ - Add /opt/parastation/sbin to root's PATH (#893).
+
 
 Version 5.0.29:
 ===============

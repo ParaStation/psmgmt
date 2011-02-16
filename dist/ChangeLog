@@ -1,3 +1,154 @@
+Version psmgmt-5.0.30:
+======================
+------------------------------------------------------------------------
+r8383 | eicker | 2011-02-16 14:13:49 +0100 (Wed, 16 Feb 2011) | 3 lines
+
+Enhancement: Let psid print some info on RDP-socket on SIGUSR1.
+closeConnection not used outside psidclient.c. Thus, make it private.
+
+------------------------------------------------------------------------
+r8382 | eicker | 2011-02-11 18:43:51 +0100 (Fri, 11 Feb 2011) | 7 lines
+
+Enhancement: Display job's starttime in psiadmin's 'list jobs', if
+    available. For this PSDaemonProtocolVersion pushed to 407.
+Refactoring: Rename PSIDnodes_setProtoVersion()->PSIDnodes_setProtoV()
+    PSIDnodes_getProtoVersion()->PSIDnodes_getProtoV(),
+    PSIDnodes_setDaemonProtoVersion()->PSIDnodes_setDmnProtoV() and
+    PSIDnodes_getDaemonProtoVersion()->PSIDnodes_getDmnProtoV()
+
+------------------------------------------------------------------------
+r8381 | eicker | 2011-02-11 18:22:21 +0100 (Fri, 11 Feb 2011) | 2 lines
+
+Bugfix: Fix typo in csh-profile introduced in r8368.
+
+------------------------------------------------------------------------
+r8380 | eicker | 2011-02-11 10:58:00 +0100 (Fri, 11 Feb 2011) | 2 lines
+
+Fix test-plugin to conform to new plugin-interface.
+
+------------------------------------------------------------------------
+r8379 | eicker | 2011-02-11 10:57:10 +0100 (Fri, 11 Feb 2011) | 3 lines
+
+Enhancement: Implement the enhance plugin-interface. This should
+    implement #562.
+
+------------------------------------------------------------------------
+r8378 | eicker | 2011-02-10 15:59:13 +0100 (Thu, 10 Feb 2011) | 2 lines
+
+Fix svn-properties of various new files.
+
+------------------------------------------------------------------------
+r8377 | eicker | 2011-02-10 15:48:31 +0100 (Thu, 10 Feb 2011) | 2 lines
+
+Add some test-plugins for testing the new plugin-interface.
+
+------------------------------------------------------------------------
+r8376 | eicker | 2011-02-09 17:05:25 +0100 (Wed, 09 Feb 2011) | 3 lines
+
+Bugfix: Close (almost) all file-descriptors to prevent strange
+    RPP-behavior in psmom.
+
+------------------------------------------------------------------------
+r8375 | eicker | 2011-02-07 17:57:36 +0100 (Mon, 07 Feb 2011) | 3 lines
+
+Bugfix: Ensure consistent fd-sets and errno on error in Sselect().
+Enhancement: Add possibility to check for registered selector on fd.
+
+------------------------------------------------------------------------
+r8374 | eicker | 2011-02-07 09:22:15 +0100 (Mon, 07 Feb 2011) | 3 lines
+
+Enhancement: Allow modifying psid's environment during runtime. This
+    will implement #815.
+
+------------------------------------------------------------------------
+r8368 | eicker | 2010-12-22 18:01:29 +0100 (Wed, 22 Dec 2010) | 2 lines
+
+Add /opt/parastation/sbin to root's PATH. This implements #893.
+
+------------------------------------------------------------------------
+r8367 | eicker | 2010-12-15 13:13:35 +0100 (Wed, 15 Dec 2010) | 5 lines
+
+Enhancement: Implement extra timeout and test within forwarder waiting
+    for the client-process to do the exec(). This implements #879.
+Enhancement: Improve return-values of the PSI_spawn() family of
+    functions. Now errors should be reported for the correct ranks.
+
+------------------------------------------------------------------------
+r8366 | eicker | 2010-12-14 23:06:33 +0100 (Tue, 14 Dec 2010) | 2 lines
+
+Bugfix: Give correct rank in mpiexec, if spawn fails.
+
+------------------------------------------------------------------------
+r8365 | eicker | 2010-12-14 23:04:25 +0100 (Tue, 14 Dec 2010) | 2 lines
+
+Bugfix: Improve logging with timestamps. This should fix #719.
+
+------------------------------------------------------------------------
+r8364 | eicker | 2010-12-09 10:54:35 +0100 (Thu, 09 Dec 2010) | 3 lines
+
+Re-order some list-operations in psidmsgbuf. These should make the list
+    handling more immune against race-conditions.
+
+------------------------------------------------------------------------
+r8363 | eicker | 2010-12-06 19:00:32 +0100 (Mon, 06 Dec 2010) | 4 lines
+
+Enhancement: More verbose info, if PMI barrier timeout strikes (#827).
+Some reorganization in psilogger's KVS stuff. Should be more effizient
+    now.
+
+------------------------------------------------------------------------
+r8362 | eicker | 2010-12-03 18:43:16 +0100 (Fri, 03 Dec 2010) | 3 lines
+
+Enhancement: Make daemon's RLIMIT_NOFILE configurable. (#792)
+Enhancement: Propagate user's RLIMIT_NOFILE to client-procs. (#792)
+
+------------------------------------------------------------------------
+r8361 | eicker | 2010-12-03 18:39:31 +0100 (Fri, 03 Dec 2010) | 2 lines
+
+Suppress one compiler-warning (forgot to #include one header).
+
+------------------------------------------------------------------------
+r8360 | eicker | 2010-12-03 18:36:26 +0100 (Fri, 03 Dec 2010) | 2 lines
+
+Mark psiadmin's hex-output to be in hex. This should help with #612.
+
+------------------------------------------------------------------------
+r8359 | eicker | 2010-11-30 12:03:09 +0100 (Tue, 30 Nov 2010) | 5 lines
+
+Bugfix: Small msgbufs within the psid are allocated within bunches in
+    order to disburden the pressure upon malloc()/free(). Additionally
+    this ensure that all memory allocated is really given back to the
+    kernel. This should finally fix #689.
+
+------------------------------------------------------------------------
+r8358 | eicker | 2010-10-28 16:17:22 +0200 (Thu, 28 Oct 2010) | 3 lines
+
+Allow to use a different signal to kill jobs in the stress-testing environment.
+Disable MPI-1 in the stress-testing environment per default.
+
+------------------------------------------------------------------------
+r8357 | eicker | 2010-10-27 00:14:19 +0200 (Wed, 27 Oct 2010) | 3 lines
+
+Bugfix: Store managing structures for temporary msgbufs directly with
+    the buffers itself. This should fix #689.
+
+------------------------------------------------------------------------
+r8356 | eicker | 2010-10-26 18:32:55 +0200 (Tue, 26 Oct 2010) | 2 lines
+
+Enhancement: Implement psiadmin's 'echo' directive. See #632.
+
+------------------------------------------------------------------------
+r8355 | eicker | 2010-10-26 18:31:28 +0200 (Tue, 26 Oct 2010) | 2 lines
+
+Improve psid's log, if plugin-definitions are wrong in configuration file.
+
+------------------------------------------------------------------------
+r8351 | eicker | 2010-10-06 12:28:37 +0200 (Wed, 06 Oct 2010) | 2 lines
+
+New version (psmgmt-5.0.29)
+
+------------------------------------------------------------------------
+
 Version psmgmt-5.0.29:
 ======================
 ------------------------------------------------------------------------
