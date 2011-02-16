@@ -287,6 +287,7 @@ static void sighandler(int sig)
 	break;
     case  SIGUSR1:   /* user defined signal 1 */
 	PSIDMsgbuf_printStat();
+	RDP_printStat();
 	break;
     case  SIGILL:    /* (*) illegal instruction (not reset when caught)*/
     case  SIGTRAP:   /* (*) trace trap (not reset when caught) */

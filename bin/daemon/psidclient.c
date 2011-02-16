@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2010 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2011 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -262,9 +262,8 @@ int sendClient(DDMsg_t *msg)
     }
 
     if (!task || task->fd==-1) {
-	PSID_log(task ? -1 : PSID_LOG_CLIENT,
-		 "%s: no fd for task %s to send\n", __func__,
-		 PSC_printTID(msg->dest));
+	PSID_log(PSID_LOG_CLIENT, "%s: no fd for task %s to send%s\n",
+		 __func__, PSC_printTID(msg->dest), task ? "" : " (no task)");
 	if (PSID_getDebugMask() & PSID_LOG_MSGDUMP) PSID_dumpMsg(msg);
 	errno = EHOSTUNREACH;
 	return -1;
@@ -362,7 +361,18 @@ int recvClient(int fd, DDMsg_t *msg, size_t size)
 }
 
 
-void closeConnection(int fd)
+/**
+ * @brief Close connection to client.
+ *
+ * Close the connection to the client connected via the file
+ * descriptor @a fd. Afterwards the relevant part of the client table
+ * is reseted.
+ *
+ * @param fd The file descriptor the client is connected through.
+ *
+ * @return No return value.
+ */
+static void closeConnection(int fd)
 {
     list_t *m, *tmp;
     PStask_ID_t tid = getClientTID(fd);

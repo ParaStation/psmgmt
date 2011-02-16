@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2010 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2011 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -2369,4 +2369,36 @@ void closeConnRDP(int node)
 int RDP_blockTimer(int block)
 {
     return Timer_block(timerID, block);
+}
+
+void RDP_printStat(void)
+{
+    if (rdpsock == -1) {
+	RDP_log(-1, "%s: rdpSock not connected\n", __func__);
+    } else {
+	struct sockaddr_in sin;
+	size_t len = sizeof(sin);
+	int sval;
+	socklen_t slen = sizeof(sval);
+	int ret;
+
+	RDP_log(-1, "%s: rdpSock is %d", __func__, rdpsock);
+
+	ret = getsockname(rdpsock, (struct sockaddr *)&sin, &len);
+	if (ret) {
+	    RDP_log(-1, " unable to determine port\n");
+	} else {
+	    RDP_log(-1, " bound to port %d\n", ntohs(sin.sin_port));
+	}
+	if (getsockopt(rdpsock, SOL_SOCKET, SO_RCVBUF, &sval, &slen)) {
+	    RDP_warn(-1, errno, "%s: getsockopt(SO_RCVBUF)", __func__);
+	} else {
+	    RDP_log(-1, "%s: SO_RCVBUF is %d\n", __func__, sval);
+	}
+	if (getsockopt(rdpsock, SOL_SOCKET, SO_SNDBUF, &sval, &slen)) {
+	    RDP_warn(-1, errno, "%s: getsockopt(SO_SNDBUF)", __func__);
+	} else {
+	    RDP_log(-1, "%s: SO_SNDBUF is %d\n", __func__, sval);
+	}
+    }
 }

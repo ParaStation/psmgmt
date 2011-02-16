@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2009 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2011 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -465,6 +465,16 @@ void closeConnRDP(int node);
  * returned.
  */
 int RDP_blockTimer(int block);
+
+/**
+ * @brief Print statistics
+ *
+ * Print some usefull statistics on RDP. Currently this includes:
+ * - Some statistics on the UDP-socket used by RDP
+ *
+ * @return No return value.
+ */
+void RDP_printStat(void);
 
 #ifdef __cplusplus
 }/* extern "C" */

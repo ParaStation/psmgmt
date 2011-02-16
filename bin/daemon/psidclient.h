@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2008 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2011 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -176,19 +176,6 @@ int sendClient(DDMsg_t *msg);
  * @see errno(3)
  */
 int recvClient(int fd, DDMsg_t *msg, size_t size);
-
-/**
- * @brief Close connection to client.
- *
- * Close the connection to the client connected via the file
- * descriptor @a fd. Afterwards the relevant part of the client table
- * is reseted.
- *
- * @param fd The file descriptor the client is connected through.
- *
- * @return No return value.
- */
-void closeConnection(int fd);
 
 /**
  * @brief Delete client.
