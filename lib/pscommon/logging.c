@@ -1,7 +1,7 @@
 /*
  *               ParaStation
  *
- * Copyright (C) 2005-2010 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2011 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -143,10 +143,9 @@ static inline char *getTimeStr(logger_t *logger)
 static void do_print(logger_t* logger, const char* format, va_list ap)
 {
     static char *prefix = NULL, *text = NULL;
-    static int prfxlen = 0, txtlen = 0;
+    static size_t prfxlen = 0, txtlen = 0, len;
     va_list aq;
     char *tag, *timeStr, *c;
-    int len;
 
     if (!logger) return;
     tag = logger->tag;
@@ -175,7 +174,6 @@ static void do_print(logger_t* logger, const char* format, va_list ap)
     c = text;
 
     while (c && *c) {
-	char *s = logger->trailUsed ? logger->trail : prefix;
 	char *r = strchr(c, '\n');
 
 	if (r) {
@@ -185,6 +183,7 @@ static void do_print(logger_t* logger, const char* format, va_list ap)
 
 	if (r) {
 	    /* got newline, lets do the output */
+	    char *s = logger->trailUsed ? logger->trail : prefix;
 	    if (logger->logfile) {
 		fprintf(logger->logfile, "%s%s\n", s, c);
 	    } else {
@@ -193,13 +192,19 @@ static void do_print(logger_t* logger, const char* format, va_list ap)
 	    logger->trailUsed = 0;
 	} else {
 	    /* no newline, append to trail */
-	    len = snprintf(logger->trail, logger->trailSize, "%s%s", s, c);
-	    if (len >= logger->trailSize) {
-		logger->trailSize = len + 80; /* Some extra space */
+	    len = (!logger->trailUsed && prefix) ? strlen(prefix) : 0;
+	    len += strlen(c);
+	    if (logger->trailUsed + len >= logger->trailSize) {
+		logger->trailSize =
+		    logger->trailUsed + len + 80; /* Some extra space */
 		logger->trail = realloc(logger->trail, logger->trailSize);
-		sprintf(logger->trail, "%s%s", s, c);
 	    }
-	    logger->trailUsed = 1;
+	    if (!logger->trailUsed && prefix) {
+		/* some prefix to be put into trail */
+		logger->trailUsed = sprintf(logger->trail, "%s", prefix);
+	    }
+	    logger->trailUsed +=
+		sprintf(logger->trail + logger->trailUsed, "%s", c);
 	}
 
 	c = r;

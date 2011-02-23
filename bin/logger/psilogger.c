@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2010 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2011 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -861,6 +861,7 @@ static void handleUSAGEMsg(PSLog_Msg_t *msg)
  */
 static void handleOutMsg(PSLog_Msg_t *msg, int outfd)
 {
+    static int lastSender = lastSenderMagic, nlAtEnd = 1;
     PSIlog_log(PSILOG_LOG_VERB, "Got %d bytes from %s\n",
 	       msg->header.len - PSLog_headerSize,
 	       PSC_printTID(msg->header.sender));
@@ -869,7 +870,6 @@ static void handleOutMsg(PSLog_Msg_t *msg, int outfd)
 	/* collect all ouput */
 	cacheOutput(msg, outfd);
     } else if (prependSource) {
-	static int lastSender = lastSenderMagic, nlAtEnd = 1;
 	char prefix[30];
 	char *buf = msg->buf;
 	size_t count = msg->header.len - PSLog_headerSize;
@@ -920,15 +920,28 @@ static void handleOutMsg(PSLog_Msg_t *msg, int outfd)
     } else {
 	switch (outfd) {
 	case STDOUT_FILENO:
+	    if (msg->sender != lastSender && !nlAtEnd) {
+		PSIlog_stdout(-1, "\n");
+	    }
 	    PSIlog_stdout(-1, "%.*s",
 			  msg->header.len-PSLog_headerSize, msg->buf);
 	    break;
 	case STDERR_FILENO:
+	    if (msg->sender != lastSender && !nlAtEnd) {
+		PSIlog_stdout(-1, "\n");
+	    }
 	    PSIlog_stderr(-1, "%.*s",
 			  msg->header.len-PSLog_headerSize, msg->buf);
 	    break;
 	default:
 	    PSIlog_log(-1, "%s: unknown outfd %d\n", __func__, outfd);
+	}
+	if (msg->buf[msg->header.len-PSLog_headerSize-1] == '\n') {
+	    lastSender = lastSenderMagic;
+	    nlAtEnd = 1;
+	} else {
+	    lastSender = msg->sender;
+	    nlAtEnd = 0;
 	}
     }
 }
