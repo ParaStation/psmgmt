@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2010 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2011 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -162,6 +162,157 @@ static char *mygetwd(const char *ext)
     return NULL;
 }
 
+/**
+ * @brief Get protocol version
+ *
+ * Get the protocol-version supported by the ParaStation daemon
+ * running on node @a node.
+ *
+ * This function does some simple caching, i.e. consecutive calls
+ * asking for the version of the same node will not request this
+ * information from the daemon more than once.
+ *
+ * @param node The node to ask.
+ *
+ * @return On success, return the protocol-version supported by the
+ * node's daemon. Otherwise, -1 is returned.
+ */
+static int getProtoVersion(PSnodes_ID_t node)
+{
+    static PSnodes_ID_t lastNode = -2;
+    static int lastProtoVersion = 0;
+    PSP_Option_t opt = PSP_OP_PROTOCOLVERSION;
+    PSP_Optval_t val;
+    int err;
+
+    if (node == lastNode) {
+	return lastProtoVersion;
+    }
+
+    lastNode = node;
+    err = PSI_infoOption(node, 1, &opt, &val, 0);
+    if (err == -1) {
+	printf(" error getting info\n");
+	lastNode = -2;
+    }
+
+    switch (opt) {
+    case PSP_OP_PROTOCOLVERSION:
+	lastProtoVersion = val;
+	return lastProtoVersion;
+	break;
+    case PSP_OP_UNKNOWN:
+	printf(" PSP_OP_PROTOCOLVERSION unknown\n");
+	break;
+    default:
+	printf(" got option type %d\n", opt);
+    }
+
+    lastNode = -2;
+
+    return -1;
+}
+
+/**
+ * @brief Send task-structure
+ *
+ * Send the actual task structure stored in @a task using the message
+ * template @a msg. @a msg has to have the destination address already
+ * filled in.
+ *
+ * This function might send -- besides the initial PSP_SPAWN_TASK
+ * message -- more messages containing trailing part of the task's
+ * working-directory. The latter will use messages of type
+ * PSP_SPAWN_WDIRCNTD.
+ *
+ * @param msg Message template prepared to send the task-structure.
+ *
+ * @param task The task to send.
+ *
+ * @return If an error occurs, -1 is returned. On success this
+ * function returns 0.
+ */
+static int sendTask(DDTypedBufferMsg_t *msg, PStask_t *task)
+{
+    /* pack the task information in the msg */
+    char *offset = NULL;
+    size_t len = PStask_encodeTask(msg->buf, sizeof(msg->buf), task, &offset);
+
+    msg->header.len += len;
+    if (PSI_sendMsg(msg)<0) {
+	PSI_warn(-1, errno, "%s: PSI_sendMsg", __func__);
+	return -1;
+    }
+    msg->header.len -= len;
+
+    while (offset) {
+	msg->type = PSP_SPAWN_WDIRCNTD;
+	if (strlen(offset) < sizeof(msg->buf)) {
+	    /* tail fits into buffer */
+	    strcpy(msg->buf, offset);
+	    len = strlen(offset) + 1;
+	    offset = NULL;
+	} else {
+	    /* buffer to small */
+	    strncpy(msg->buf, offset, sizeof(msg->buf) - 1);
+	    msg->buf[sizeof(msg->buf) - 1] = '\0';
+	    len =  sizeof(msg->buf);
+	    offset += sizeof(msg->buf) - 1;
+	}
+
+	msg->header.len += len;
+	if (PSI_sendMsg(msg)<0) {
+	    PSI_warn(-1, errno, "%s: PSI_sendMsg", __func__);
+	    return -1;
+	}
+	msg->header.len -= len;
+    }
+
+    return 0;
+}
+
+/**
+ * @brief Send argument-vector
+ *
+ * Send the argument-vector @a argv using the message template @a
+ * msg. @a msg has to have the destination address already filled in.
+ *
+ * This function might send several messages of both types,
+ * PSP_SPAWN_ARG and PSP_SPAWN_ARGCNTD, depending on the size of @a
+ * argv as a whole and the single arguments.
+ *
+ * @param msg Message template prepared to send the argument-vector.
+ *
+ * @param argv The argument-vector to send
+ *
+ * @return If an error occurred, -1 is return. On success this
+ * function returns 0.
+ */
+static int sendArgv(DDTypedBufferMsg_t *msg, char **argv)
+{
+    char *off = NULL;
+    int num = 0, len;
+
+    if (!argv) return 0;
+
+    msg->header.len = sizeof(msg->header) + sizeof(msg->type);
+
+    while (num != -1) {
+	msg->type = (off) ? PSP_SPAWN_ARGCNTD : PSP_SPAWN_ARG;
+
+	len = PStask_encodeArgv(msg->buf, sizeof(msg->buf), argv, &num, &off);
+
+	msg->header.len += len;
+	if (PSI_sendMsg(msg)<0) {
+	    PSI_warn(-1, errno, "%s: PSI_sendMsg", __func__);
+	    return -1;
+	}
+	msg->header.len -= len;
+    }
+
+    return 0;
+}
+
 /** Function called to create per rank environment */
 char **(*extraEnvFunc)(int) = NULL;
 
@@ -175,9 +326,12 @@ void PSI_registerRankEnvFunc(char **(*func)(int))
 /**
  * @brief Send environment
  *
- * Send the environment stored within @a env using the message
- * template @a msg. Within @a msg the destination address is already
- * filled in.
+ * Send the environment @a env using the message template @a msg. @a
+ * msg has to have the destination address already filled in.
+ *
+ * This function might send several messages of both types,
+ * PSP_SPAWN_ENV and PSP_SPAWN_ENVCNTD, depending on the size of @a
+ * env as a whole and the single key-value pairs of the environment.
  *
  * @param msg Message template prepared to send the environment
  *
@@ -207,7 +361,8 @@ static int sendEnv(DDTypedBufferMsg_t *msg, char **env, size_t *len)
 	*len = PStask_encodeEnv(msg->buf, sizeof(msg->buf), env, &num, &off);
 	msg->header.len += *len;
 
-	if (!env[num]) {
+	if (num == -1) {
+	    /* last entry done */
 	    if (msg->type == PSP_SPAWN_ENVCNTD) {
 		if (PSI_sendMsg(msg)<0) {
 		    PSI_warn(-1, errno, "%s: PSI_sendMsg(CNTD)", __func__);
@@ -404,6 +559,8 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
     int fd = 0;
     PStask_t* task; /* structure to store the information of the new process */
     unsigned int firstRank = rank;
+    char *offset = NULL;
+    int hugeTask = 0, hugeArgv = 0;
 
     if ((taskGroup == TG_SERVICE || taskGroup == TG_SERVICE_SIG)
 	&& count != 1) {
@@ -486,7 +643,7 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
 	task->argv[i]=strdup(argv[i]);
 	if (!task->argv[i]) goto error;
     }
-    task->argv[task->argc]=0;
+    task->argv[task->argc] = NULL;
 
     task->environ = dumpPSIEnv();
     if (!task->environ) {
@@ -495,114 +652,114 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
     }
 
     /* test if task can be send */
-    if (PStask_encodeTask(msg.buf, sizeof(msg.buf), task) > sizeof(msg.buf)) {
-	PSI_log(-1, "%s: size of task too large.", __func__);
-	PSI_log(-1, " Working directory '%s' too long?\n", task->workingdir);
-	goto error;
-    }
-    if (PStask_encodeArgs(msg.buf, sizeof(msg.buf), task) > sizeof(msg.buf)) {
-	PSI_log(-1, "%s: size of task too large.", __func__);
-	PSI_log(-1, " Too many/too long arguments?\n");
-	goto error;
-    }
+    PStask_encodeTask(msg.buf, sizeof(msg.buf), task, &offset);
+    if (offset) hugeTask = 1;
 
-    /* send actual requests */
-    outstanding_answers=0;
+    i = 0;
+    PStask_encodeArgv(msg.buf, sizeof(msg.buf), task->argv, &i, &offset);
+    if (i != -1) hugeArgv = 1;
+
     for (i=0; i<count && !error; i++) {
 	/* check if dstnode is ok */
 	if (dstnodes[i] < 0 || dstnodes[i] >= PSC_getNrOfNodes()) {
 	    errors[i] = ENETUNREACH;
 	    if (tids) tids[i] = -1;
-	    error = 1; /* don't continue spawning processes */
-	} else {
-	    size_t len;
+	    goto error;
+	}
+	if (hugeTask || hugeArgv) {
+	    int proto = getProtoVersion(dstnodes[i]);
 
-	    msg.header.type = PSP_CD_SPAWNREQ;
-	    msg.header.dest = PSC_getTID(dstnodes[i],0);
-	    msg.header.sender = PSC_getMyTID();
-	    msg.header.len = sizeof(msg.header) + sizeof(msg.type);
-	    msg.type = PSP_SPAWN_TASK;
+	    if (proto > 339) continue;
 
-	    /* set correct rank */
-	    task->rank = rank;
-	    if (taskGroup == TG_SERVICE || taskGroup == TG_SERVICE_SIG) {
-		task->rank = -2;
-	    }
-
-	    /* pack the task information in the msg */
-	    len = PStask_encodeTask(msg.buf, sizeof(msg.buf), task);
-	    msg.header.len += len;
-	    if (PSI_sendMsg(&msg)<0) {
-		PSI_warn(-1, errno, "%s: PSI_sendMsg", __func__);
+	    if (hugeTask) {
+		PSI_log(-1, "%s: size of task too large.", __func__);
+		PSI_log(-1, " Working directory '%s' too long?\n",
+			task->workingdir);
 		goto error;
 	    }
-	    msg.header.len -= len;
-
-	    msg.type = PSP_SPAWN_ARG;
-	    len = PStask_encodeArgs(msg.buf, sizeof(msg.buf), task);
-	    if (len > sizeof(msg.buf)) {
-		PSI_log(-1, "%s: PStask_encodeArgs: msg too small", __func__);
+	    if (hugeArgv) {
+		PSI_log(-1, "%s: size of task too large.", __func__);
+		PSI_log(-1, " Too many/too long arguments?\n");
 		goto error;
 	    }
+	}
+    }
 
-	    msg.header.len += len;
-	    if (PSI_sendMsg(&msg)<0) {
-		PSI_warn(-1, errno, "%s: PSI_sendMsg", __func__);
-		goto error;
-	    }
-	    msg.header.len -= len;
+    /* send actual requests */
+    outstanding_answers=0;
+    for (i=0; i<count && !error; i++) {
+	size_t len;
 
-	    msg.type = PSP_SPAWN_ENV;
+	msg.header.type = PSP_CD_SPAWNREQ;
+	msg.header.dest = PSC_getTID(dstnodes[i],0);
+	msg.header.sender = PSC_getMyTID();
+	msg.header.len = sizeof(msg.header) + sizeof(msg.type);
+	msg.type = PSP_SPAWN_TASK;
 
-	    /* Send the static part of the environment */
-	    if (sendEnv(&msg, task->environ, &len) < 0) goto error;
+	/* set correct rank */
+	task->rank = rank;
+	if (taskGroup == TG_SERVICE || taskGroup == TG_SERVICE_SIG) {
+	    task->rank = -2;
+	}
 
-	    /* Maybe some variable stuff shall also be sent */
-	    if (extraEnvFunc) {
-		char **extraEnv = extraEnvFunc(rank);
+	/* send actual task */
+	if (sendTask(&msg, task) < 0) goto error;
 
-		if (extraEnv) {
-		    if (len) {
-			if (PSI_sendMsg(&msg)<0) {
-			    PSI_warn(-1, errno, "%s: PSI_sendMsg", __func__);
-			    goto error;
-			}
-			msg.header.len -= len;
+	msg.type = PSP_SPAWN_ARG;
+
+	/* send argv stuff */
+	if (sendArgv(&msg, task->argv) < 0) goto error;
+
+	msg.type = PSP_SPAWN_ENV;
+
+	/* Send the static part of the environment */
+	if (sendEnv(&msg, task->environ, &len) < 0) goto error;
+
+	/* Maybe some variable stuff shall also be sent */
+	if (extraEnvFunc) {
+	    char **extraEnv = extraEnvFunc(rank);
+
+	    if (extraEnv) {
+		if (len) {
+		    if (PSI_sendMsg(&msg)<0) {
+			PSI_warn(-1, errno, "%s: PSI_sendMsg", __func__);
+			goto error;
 		    }
-
-		    if (sendEnv(&msg, extraEnv, &len) < 0) goto error;
+		    msg.header.len -= len;
 		}
-	    }
 
-	    msg.type = PSP_SPAWN_END;
-	    if (PSI_sendMsg(&msg)<0) {
-		PSI_warn(-1, errno, "%s: PSI_sendMsg", __func__);
+		if (sendEnv(&msg, extraEnv, &len) < 0) goto error;
+	    }
+	}
+
+	msg.type = PSP_SPAWN_END;
+	if (PSI_sendMsg(&msg)<0) {
+	    PSI_warn(-1, errno, "%s: PSI_sendMsg", __func__);
+	    goto error;
+	}
+	msg.header.len -= len;
+
+	rank++;
+	outstanding_answers++;
+
+	while ((PSI_availMsg() > 0) && outstanding_answers) {
+	    int r = handleAnswer(firstRank, count, dstnodes, errors, tids);
+	    switch (r) {
+	    case -1:
 		goto error;
-	    }
-	    msg.header.len -= len;
-
-	    rank++;
-	    outstanding_answers++;
-
-	    while ((PSI_availMsg() > 0) && outstanding_answers) {
-		int r = handleAnswer(firstRank, count, dstnodes, errors, tids);
-		switch (r) {
-		case -1:
-		    goto error;
-		    break;
-		case 0:
-		    error = 1;
-		case 1:
-		    outstanding_answers--;
-		    ret++;
-		    break;
-		case 2:
-		    /* just ignore */
-		    break;
-		default:
-		    PSI_log(-1, "%s: unknown return %d, from handleAnswer()\n",
-			    __func__, r);
-		}
+		break;
+	    case 0:
+		error = 1;
+	    case 1:
+		outstanding_answers--;
+		ret++;
+		break;
+	    case 2:
+		/* just ignore */
+		break;
+	    default:
+		PSI_log(-1, "%s: unknown return %d, from handleAnswer()\n",
+			__func__, r);
 	    }
 	}
     }/* for all new processes */

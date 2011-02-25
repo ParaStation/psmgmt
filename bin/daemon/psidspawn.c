@@ -2131,13 +2131,41 @@ static void msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
 	}
 	break;
     }
+    case PSP_SPAWN_WDIRCNTD:
+	if (!task) {
+	    PSID_log(-1, "%s: PSP_SPAWN_WDIRCNTD from %s: task not found\n",
+		     __func__, PSC_printTID(msg->header.sender));
+	    return;
+	}
+	{
+	    size_t newLen = task->workingdir ? strlen(task->workingdir) : 0;
+	    newLen += strlen(msg->buf) + 1;
+
+	    task->workingdir = realloc(task->workingdir, newLen);
+	    if (!task->workingdir) {
+		PSID_warn(-1, errno, "%s: realloc(task->workingdir)", __func__);
+		return;
+	    }
+	    strcpy(task->workingdir + strlen(task->workingdir), msg->buf);
+
+	    usedBytes = strlen(msg->buf) + 1;
+	}
+	break;
     case PSP_SPAWN_ARG:
 	if (!task) {
 	    PSID_log(-1, "%s: PSP_SPAWN_ARG from %s: task not found\n",
 		     __func__, PSC_printTID(msg->header.sender));
 	    return;
 	}
-	usedBytes = PStask_decodeArgs(msg->buf, task);
+	usedBytes = PStask_decodeArgv(msg->buf, task);
+	break;
+    case PSP_SPAWN_ARGCNTD:
+	if (!task) {
+	    PSID_log(-1, "%s: PSP_SPAWN_ARGCTND from %s: task not found\n",
+		     __func__, PSC_printTID(msg->header.sender));
+	    return;
+	}
+	usedBytes = PStask_decodeArgvAppend(msg->buf, task);
 	break;
     case PSP_SPAWN_ENV:
     case PSP_SPAWN_END:
