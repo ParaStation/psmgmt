@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2010 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2011 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -371,7 +371,17 @@ int PSI_sendMsg(void *amsg)
     DDMsg_t *msg = (DDMsg_t *)amsg;
     int ret = 0;
 
+    if (!msg) {
+	PSI_log(-1, "%s: no message\n", __func__);
+	errno = EFAULT;
+	return -1;
+    }
+
+    PSI_log(PSI_LOG_COMM, "%s: type %s (len=%d) to %s\n", __func__,
+	    PSP_printMsg(msg->type), msg->len, PSC_printTID(msg->dest));
+
     if (daemonSock == -1) {
+	PSI_log(-1, "%s: Not connected to ParaStation daemon", __func__);
 	errno = ENOTCONN;
 	return -1;
     }
@@ -392,9 +402,6 @@ int PSI_sendMsg(void *amsg)
 
 	return -1;
     }
-
-    PSI_log(PSI_LOG_COMM, "%s: type %s (len=%d) to %s\n", __func__,
-	    PSP_printMsg(msg->type), msg->len, PSC_printTID(msg->dest));
 
     return ret;
 }
