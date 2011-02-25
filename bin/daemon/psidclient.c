@@ -299,7 +299,7 @@ int recvInitialMsg(int fd, DDInitMsg_t *msg, size_t size)
     return 0;
 }
 
-/* @todo we need to timeout if message to small */
+/* @todo we need to timeout if message is too small */
 int recvClient(int fd, DDMsg_t *msg, size_t size)
 {
     int n;
@@ -343,6 +343,16 @@ int recvClient(int fd, DDMsg_t *msg, size_t size)
 	    n = read(fd, &((char*) msg)[count], msg->len-count);
 	}
 	if (n>0) {
+	    if (!count) {
+		/* Just received first chunk of data */
+		if (msg->len > size) {
+		    /* message will not fit into msg */
+		    errno = EMSGSIZE;
+		    n = -1;
+		    /* @todo we should remove message from fd (with timeout!) */
+		    break;
+		}
+	    }
 	    count+=n;
 	} else if (n<0 && (errno==EINTR)) {
 	    continue;
