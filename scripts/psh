@@ -15,8 +15,8 @@
 
 D_CONFIG_D="${HOME}/.psh.d"
 D_CONFIG="${D_CONFIG_D}/default"
-D_RCMD="ssh -x -oConnectTimeout=10"
-D_MAXRCMD=128
+D_RCMD="${RCMD-ssh -x -oConnectTimeout=10}"
+D_MAXRCMD="${MAXRCMD-128}"
 D_AUTOCD="cd ${PWD/#${HOME}/~} &&"
 TMPTEMPLATE="/tmp/pshout.XXXXXX"
 
@@ -103,6 +103,11 @@ Options:
    -h|-help               : help
 EOF
 }
+
+
+unset RCMD
+unset AUTOCD
+unset MAXRCMD
 
 function parse()
 {
