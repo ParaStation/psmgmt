@@ -355,7 +355,7 @@ typedef enum {
 /** Message primitive. This is also the header of more complex messages. */
 typedef struct {
     int16_t type;          /**< msg type */
-    int16_t len;           /**< total length of the message */
+    int16_t len;          /**< total length of the message */
     PStask_ID_t sender;    /**< sender of the message */
     PStask_ID_t dest;      /**< final destination of the message */
 } DDMsg_t;
@@ -385,10 +385,10 @@ typedef struct {
 } DDHugeMsg_t;
 
 /**
- * Buffer size (and thus maximum message size). 1472 is derived
- * from 1500 (MTU) - 20 (IP header) - 8 (UDP header)
+ * Buffer size (and thus maximum message size). 1456 is derived
+ * from 1500 (MTU) - 20 (IP header) - 8 (UDP header) - 16 (RDP header)
  */
-#define BufMsgSize (1472-sizeof(DDMsg_t))
+#define BufMsgSize (1456-sizeof(DDMsg_t))
 
 /**
  * Untyped buffer message. This is the largest message
