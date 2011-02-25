@@ -1,7 +1,7 @@
 /*
  *               ParaStation
  *
- * Copyright (C) 2007-2010 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2007-2011 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -410,7 +410,8 @@ static void createSpawner(int argc, char *argv[], int np, int admin)
 
     if (rank==-1) {
 	PSnodes_ID_t *nds;
-	int error, spawnedProc;
+	int error, spawnedProc, ret;
+	ssize_t cnt;
 
 	nds = umalloc(np*sizeof(nds), __func__);
 
@@ -427,10 +428,15 @@ static void createSpawner(int argc, char *argv[], int np, int admin)
 	setupGlobalEnv(admin, np);
 
 	/* get absolute path to myself */
-	if ((readlink("/proc/self/exe", tmp, sizeof(tmp))) == -1) {
+	cnt = readlink("/proc/self/exe", tmp, sizeof(tmp));
+	if (cnt == -1) {
 	    fprintf(stderr, "%s: failed reading my absolute path\n", __func__);
+	} else if (cnt == sizeof(tmp)) {
+	    fprintf(stderr, "%s: buffer to read my absolute path too small\n",
+		    __func__);
 	} else {
 	    /* change argv[0] relative path to absolute path */
+	    tmp[cnt] = '\0';
 	    argv[0] = strdup(tmp);
 	}
 
@@ -440,14 +446,19 @@ static void createSpawner(int argc, char *argv[], int np, int admin)
 	    setPSIEnv("PWD", pwd, 1);
 	}
 
-	PSI_spawnService(nds[0], pwd, argc, argv, 0, &error, &spawnedProc);
+	ret=PSI_spawnService(nds[0], pwd, argc, argv, 0, &error, &spawnedProc);
 
 	free(nds);
 
-	if (error) {
-	    errno=error;
-	    fprintf(stderr, "Could not spawn master process (%s)",argv[0]);
-	    perror("");
+	if (ret < 0 || error) {
+	    fprintf(stderr, "Could not spawn master process (%s)", argv[0]);
+	    if (error) {
+		fprintf(stderr, ": ");
+		errno = error;
+		perror("");
+	    } else {
+		fprintf(stderr, "\n");
+	    }
 	    exit(EXIT_FAILURE);
 	}
 
