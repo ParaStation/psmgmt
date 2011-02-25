@@ -355,7 +355,7 @@ typedef enum {
 /** Message primitive. This is also the header of more complex messages. */
 typedef struct {
     int16_t type;          /**< msg type */
-    int16_t len;          /**< total length of the message */
+    uint16_t len;          /**< total length of the message */
     PStask_ID_t sender;    /**< sender of the message */
     PStask_ID_t dest;      /**< final destination of the message */
 } DDMsg_t;
