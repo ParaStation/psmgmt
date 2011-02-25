@@ -2093,6 +2093,9 @@ static void msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
 	task = PStask_new();
 	PStask_decodeTask(msg->buf, task);
 	task->tid = msg->header.sender;
+	if (PSIDnodes_getProtoV(PSC_getID(msg->header.sender)) > 339) {
+	    task->argc = 0;           /* determine from argv later */
+	}
 
 	PStask_snprintf(tasktxt, sizeof(tasktxt), task);
 	PSID_log(PSID_LOG_SPAWN, "%s: create %s\n", __func__, tasktxt);
@@ -2157,7 +2160,11 @@ static void msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
 		     __func__, PSC_printTID(msg->header.sender));
 	    return;
 	}
-	usedBytes = PStask_decodeArgv(msg->buf, task);
+	if (PSIDnodes_getProtoV(PSC_getID(msg->header.sender)) < 340) {
+	    usedBytes = PStask_decodeArgs(msg->buf, task);
+	} else {
+	    usedBytes = PStask_decodeArgv(msg->buf, task);
+	}
 	break;
     case PSP_SPAWN_ARGCNTD:
 	if (!task) {
