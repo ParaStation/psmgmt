@@ -2005,6 +2005,7 @@ static void msg_CREATEPART(DDBufferMsg_t *inmsg)
 	errno = EINVAL;
 	goto error;
     }
+    task->request->tid = task->tid;
 
     if (task->request->num) {
 	task->request->nodes =
@@ -2154,6 +2155,21 @@ static void appendToNodelist(char *buf, PSpart_request_t *request)
     int chunk = *(int16_t *)buf;
     buf += sizeof(int16_t);
 
+    if (!request) {
+	PSID_log(-1, "%s: No request given\n", __func__);
+	return;
+    }
+    if (request->numGot < 0) {
+	PSID_log(-1, "%s: request %s not prepared\n", __func__,
+		 PSC_printTID(request->tid));
+	return;
+    }
+    if (!request->nodes) {
+	PSID_log(-1, "%s: request %s no space for nodes available\n", __func__,
+		 PSC_printTID(request->tid));
+	return;
+    }
+
     memcpy(request->nodes + request->numGot, buf,
 	   chunk * sizeof(*request->nodes));
     request->numGot += chunk;
@@ -2188,6 +2204,12 @@ static void msg_CREATEPARTNL(DDBufferMsg_t *inmsg)
     }
     if (!task->request) {
 	PSID_log(-1, "%s: No pending request on task %s\n",
+		 __func__, PSC_printTID(inmsg->header.sender));
+	errno = EACCES;
+	goto error;
+    }
+    if (task->request->numGot < 0) {
+	PSID_log(-1, "%s: request for task %s not prepared\n",
 		 __func__, PSC_printTID(inmsg->header.sender));
 	errno = EACCES;
 	goto error;
