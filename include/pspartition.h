@@ -20,6 +20,8 @@
 #ifndef __PSPARTITION_H
 #define __PSPARTITION_H
 
+#include "list_t.h"
+
 #include "pstask.h"
 #include "pscpu.h"
 
@@ -82,8 +84,8 @@ typedef enum {
  * Members marked with C are (un)packed by
  * PSpart_encodeReq()/PSpart_decodeReq()
  */
-typedef struct request{
-    struct request *next;          /**< Pointer to the next request */
+typedef struct {
+    list_t next;                   /**< used to put into some request-lists. */
     PStask_ID_t tid;               /**< TaskID of the requesting process */
     /*C*/ uint32_t size;           /**< Requested size of the partition */
     /*C*/ uint32_t hwType;         /**< Hardware type of the requested nodes */

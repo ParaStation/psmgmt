@@ -17,6 +17,7 @@ static char vcid[] __attribute__((used)) =
 #include <string.h>
 
 #include "pscommon.h"
+#include "list.h"
 
 #include "pspartition.h"
 
@@ -31,25 +32,29 @@ PSpart_request_t* PSpart_newReq()
 
 void PSpart_initReq(PSpart_request_t* request)
 {
-    if (request) *request = (PSpart_request_t) {
-	.next = NULL,
-	.tid = 0,
-	.size = 0,
-	.hwType = 0,
-	.uid = -1,
-	.gid = -1,
-	.sort = PART_SORT_UNKNOWN,
-	.options = 0,
-	.priority = 0,
-	.num = -1,
-	.tpp = 1,
-	.numGot = -1,
-	.sizeGot = 0,
-	.nodes = NULL,
-	.slots = NULL,
-	.deleted = 0,
-	.suspended = 0,
-	.freed = 0, };
+    if (!request) {
+	PSC_log(-1, "%s: request is NULL\n", __func__);
+	return;
+    }
+
+    INIT_LIST_HEAD(&request->next);
+    request->tid = 0;
+    request->size = 0;
+    request->hwType = 0;
+    request->uid = -1;
+    request->gid = -1;
+    request->sort = PART_SORT_UNKNOWN;
+    request->options = 0;
+    request->priority = 0;
+    request->num = -1;
+    request->tpp = 1;
+    request->numGot = -1;
+    request->sizeGot = 0;
+    request->nodes = NULL;
+    request->slots = NULL;
+    request->deleted = 0;
+    request->suspended = 0;
+    request->freed = 0;
 }
 
 void PSpart_reinitReq(PSpart_request_t* request)
