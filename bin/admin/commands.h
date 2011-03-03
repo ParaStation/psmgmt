@@ -223,6 +223,21 @@ void PSIADM_SomeStat(char *nl, char mode);
 void PSIADM_RDPStat(char *nl);
 
 /**
+ * @brief Show RDP connection status.
+ *
+ * Show the status of RDP connections on the nodes marked within the
+ * nodelist @a nl. Therefore the corresponding list containing the
+ * information is requested from the local daemon and printed to
+ * stdout.
+ *
+ * @param nl The nodelist describing the nodes from which the
+ * information should requested and put out.
+ *
+ * @return No return value.
+ */
+void PSIADM_RDPConnStat(char *nl);
+
+/**
  * @brief Show MCast status.
  *
  * Show the MCast status on the nodes marked within the nodelist @a

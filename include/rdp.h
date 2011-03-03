@@ -439,6 +439,28 @@ int Rrecvfrom(int* node, void* buf, size_t len);
 void getStateInfoRDP(int node, char* string, size_t len);
 
 /**
+ * @brief Get connection info.
+ *
+ * Get connection information from the RDP module concerning the
+ * connection to node @a node. The result is returned in @a string and
+ * can be directly put out via printf() and friends.
+ *
+ *
+ * @param node The node, which is joined via the connection, the status
+ * information is retrieved from.
+ *
+ * @param string The string to which the status information is written.
+ *
+ * @param len The length of @a string.
+ *
+ *
+ * @return No return value.
+ *
+ * @see printf(3)
+ */
+void getConnInfoRDP(int node, char* string, size_t len);
+
+/**
  * @brief Shutdown connection.
  *
  * Shutdown the connection to node @a node. This will remove all

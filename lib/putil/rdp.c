@@ -396,6 +396,7 @@ typedef struct {
 	Smsg_t *small;              /**< Pointer to a small msg */
 	Lmsg_t *large;              /**< Pointer to a large msg */
     } msg;                          /**< The actual message */
+    struct timeval sentTime;        /**< Time message is sent initially */
     char deleted;                   /**< Flag message as gone. Cleanup
 				     * during next timeout */
 } msgbuf_t;
@@ -477,6 +478,7 @@ static void putMsg(msgbuf_t *mp)
     mp->msg.small = NULL;                   /* invalidate message buffer */
     mp->node = -1;
     mp->deleted = 0;
+    timerclear(&mp->sentTime);
     list_del(&mp->nxtACK);                  /* remove msgbuf from ACK-list */
     INIT_LIST_HEAD(&mp->nxtACK);
     list_del(&mp->next);                    /* remove msgbuf from list */
@@ -503,8 +505,10 @@ typedef struct {
     list_t pendList;         /**< List of pending message buffers */
     struct timeval tmout;    /**< Timer for resend timeout */
     struct timeval closed;   /**< Timer for closed connection timeout */
+    struct timeval TTA;      /**< Total amount of time waiting for ACK */
     int retrans;             /**< Number of retransmissions */
     unsigned int totRetrans; /**< Total number of retransmissions */
+    unsigned int totSent;    /**< Number of messages sent successfully */
 } Rconninfo_t;
 
 /**
@@ -561,12 +565,12 @@ static void initConntable(int nodes, unsigned int host[], unsigned short port)
 		__func__, i, conntable[i].frameExpected);
 	conntable[i].ConnID_out = random();
 	conntable[i].state = CLOSED;
-	conntable[i].tmout.tv_sec = 0;
-	conntable[i].tmout.tv_usec = 0;
-	conntable[i].closed.tv_sec = 0;
-	conntable[i].closed.tv_usec = 0;
+	timerclear(&conntable[i].tmout);
+	timerclear(&conntable[i].closed);
+	timerclear(&conntable[i].TTA);
 	conntable[i].retrans = 0;
 	conntable[i].totRetrans = 0;
+	conntable[i].totSent = 0;
     }
 }
 
@@ -1025,8 +1029,9 @@ static void closeConnection(int node, int callback, int silent)
     conntable[node].ConnID_out = random();
     conntable[node].retrans = 0;
     conntable[node].totRetrans = 0;
-    conntable[node].tmout.tv_sec = 0;
-    conntable[node].tmout.tv_usec = 0;
+    conntable[node].totSent = 0;
+    timerclear(&conntable[node].tmout);
+    timerclear(&conntable[node].TTA);
 
     /* Restore blocked timer */
     Timer_block(timerID, blocked);
@@ -1416,6 +1421,7 @@ static void doACK(rdphdr_t *hdr, int fromnode)
     Rconninfo_t *cp;
     list_t *m, *tmp;
     int blocked, callback = 0;
+    struct timeval now;
 
     if ((hdr->type == RDP_SYN) || (hdr->type == RDP_SYNACK)) return;
     /* these packets are used for initialization only */
@@ -1444,6 +1450,8 @@ static void doACK(rdphdr_t *hdr, int fromnode)
 	}
     }
 
+    gettimeofday(&now, NULL);
+
     blocked = Timer_block(timerID, 1);
 
     list_for_each_safe(m, tmp, &cp->pendList) {
@@ -1460,6 +1468,7 @@ static void doACK(rdphdr_t *hdr, int fromnode)
 	RDP_log(RDP_LOG_ACKS, "%s: compare seqno %d with %d\n", __func__,
 		seqno, hdr->ackno);
 	if (RSEQCMP((int)seqno, hdr->ackno) <= 0) {
+	    struct timeval flightTime;
 	    /* ACK this buffer */
 	    if ((int)seqno != cp->ackExpected) {
 		RDP_log(-1, "%s: strange things happen: msg.seqno = %x,"
@@ -1471,6 +1480,9 @@ static void doACK(rdphdr_t *hdr, int fromnode)
 		    __func__, seqno, fromnode);
 
 	    if (!callback) callback = !cp->window;
+	    timersub(&now, &mp->sentTime, &flightTime);
+	    timeradd(&flightTime, &cp->TTA, &cp->TTA);
+	    cp->totSent++;
 	    putMsg(mp);
 	    cp->window++;
 	    cp->ackExpected++;             /* inc ack count */
@@ -1781,7 +1793,7 @@ static int handleRDP(int fd, void *info)
 	return -1;
     }
 
-    if (conntable[fromnode].closed.tv_sec) {
+    if (timerisset(&conntable[fromnode].closed)) {
 	/* Test, if connection was closed recently */
 	struct timeval tv;
 	gettimeofday(&tv, NULL);
@@ -1799,8 +1811,7 @@ static int handleRDP(int fd, void *info)
 	    return 0;
 	} else {
 	    /* Clear timer */
-	    conntable[fromnode].closed.tv_sec = 0;
-	    conntable[fromnode].closed.tv_usec = 0;
+	    timerclear(&conntable[fromnode].closed);
 	}
     }
 
@@ -2025,7 +2036,6 @@ void setMaxAckPendRDP(int limit)
 int Rsendto(int node, void *buf, size_t len)
 {
     msgbuf_t *mp;
-    struct timeval tv;
     int retval = 0, blocked;
 
     if (((node < 0) || (node >= nrOfNodes))) {
@@ -2056,7 +2066,8 @@ int Rsendto(int node, void *buf, size_t len)
 	return -1;
     }
 
-    if (conntable[node].state == CLOSED && conntable[node].closed.tv_sec) {
+    if (conntable[node].state == CLOSED
+	&& timerisset(&conntable[node].closed)) {
 	/* Test, if connection was closed recently */
 	struct timeval tv;
 	gettimeofday(&tv, NULL);
@@ -2068,8 +2079,7 @@ int Rsendto(int node, void *buf, size_t len)
 	    return -1;
 	} else {
 	    /* Clear timer */
-	    conntable[node].closed.tv_sec = 0;
-	    conntable[node].closed.tv_usec = 0;
+	    timerclear(&conntable[node].closed);
 	}
     }
 
@@ -2098,9 +2108,9 @@ int Rsendto(int node, void *buf, size_t len)
 	return -1;
     }
 
+    gettimeofday(&mp->sentTime, NULL);
     if (list_empty(&conntable[node].pendList) && conntable[node].state == ACTIVE) {
-	gettimeofday(&tv, NULL);
-	timeradd(&tv, &RESEND_TIMEOUT, &conntable[node].tmout);
+	timeradd(&mp->sentTime, &RESEND_TIMEOUT, &conntable[node].tmout);
 	conntable[node].retrans = 0;
     }
     list_add_tail(&mp->next, &conntable[node].pendList);
@@ -2294,17 +2304,30 @@ int Rrecvfrom(int *node, void *msg, size_t len)
     return retval;
 }
 
-void getStateInfoRDP(int node, char *s, size_t len)
+void getConnInfoRDP(int node, char *s, size_t len)
 {
     snprintf(s, len, "%3d [%s]: IP=%10s ID[%08x|%08x] FTS=%08x AE=%08x"
-	     " FE=%08x AP=%2d MP=%2d RTR=%2d TOTRET=%4d",
+	     " FE=%08x AP=%2d MP=%2d",
 	     node, stateStringRDP(conntable[node].state),
 	     inet_ntoa(conntable[node].sin.sin_addr),
 	     conntable[node].ConnID_in,     conntable[node].ConnID_out,
 	     conntable[node].frameToSend,   conntable[node].ackExpected,
 	     conntable[node].frameExpected, conntable[node].ackPending,
-	     conntable[node].msgPending,    conntable[node].retrans,
-	     conntable[node].totRetrans);
+	     conntable[node].msgPending);
+}
+
+void getStateInfoRDP(int node, char *s, size_t len)
+{
+    double tta = conntable[node].TTA.tv_sec * 1000
+	+ 1.0E-3 * conntable[node].TTA.tv_usec;
+
+    snprintf(s, len, "%3d [%s]: IP=%10s AP=%2d MP=%2d RTR=%2d TOTRET=%4d"
+	     " MTTA=%.4f",
+	     node, stateStringRDP(conntable[node].state),
+	     inet_ntoa(conntable[node].sin.sin_addr),
+	     conntable[node].ackPending, conntable[node].msgPending,
+	     conntable[node].retrans, conntable[node].totRetrans,
+	     conntable[node].totSent ? tta/conntable[node].totSent : 0.0);
 }
 
 void closeConnRDP(int node)

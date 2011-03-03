@@ -569,6 +569,28 @@ void PSIADM_RDPStat(char *nl)
     }
 }
 
+void PSIADM_RDPConnStat(char *nl)
+{
+    PSnodes_ID_t node, partner;
+
+    if (! getHostStatus()) return;
+
+    for (node=0; node<PSC_getNrOfNodes(); node++) {
+	if (nl && !nl[node]) continue;
+	printf("%4d:\n", node);
+	if (hostStatus.list[node]) {
+	    for (partner=0; partner<PSC_getNrOfNodes(); partner++) {
+		int err = PSI_infoString(node, PSP_INFO_RDPCONNSTATUS, &partner,
+					 line, sizeof(line), 1);
+		if (!err) printf("%s\n", line);
+	    }
+	    printf("\n");
+	} else {
+	    printf("\tdown\n\n");
+	}
+    }
+}
+
 void PSIADM_MCastStat(char *nl)
 {
     PSnodes_ID_t node;

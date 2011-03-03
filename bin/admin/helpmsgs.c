@@ -551,7 +551,7 @@ static info_t listInfo = {
 	.cmd = "list",
 	.arg = "{{[node] | count [hw <hw>] | {p|processes} [cnt <cnt>]"
 	" | {aproc|allprocesses} [cnt <cnt>] | environment [key <key>]"
-	" | {hardware|hw} | down | up | load | rdp | mcast | plugins"
+	" | {hardware|hw} | down | up | load | rdp | rdpconn | mcast | plugins"
 	" | summary [max <max>] | starttime | startupscript | nodeupscript"
 	" | nodedownscript | versions} <nodes> |"
 	" jobs [state {r[unning] | p[ending] | s[uspended]}] [slots] [<tid>]}"
@@ -592,6 +592,8 @@ static info_t listInfo = {
 	{ .tag = "list rdp",
 	  .descr = "Show the status of the RDP protocol on the selected"
 	  " nodes." },
+	{ .tag = "list rdpconn",
+	  .descr = "Show info on RDP connections on the selected nodes." },
 	{ .tag = "list mcast",
 	  .descr = "Show the status of the MCast facility on the selected"
 	  " nodes." },

@@ -245,6 +245,7 @@ typedef enum {
     PSP_INFO_NODEDOWNSCRIPT,      /**< Node's script called upon lost partner */
 
     PSP_INFO_QUEUE_ENVS,          /**< Queue of environment entries */
+    PSP_INFO_RDPCONNSTATUS,       /**< Info on RDP connections */
 } PSP_Info_t;
 
 /** Messages concerning spawning of tasks. */

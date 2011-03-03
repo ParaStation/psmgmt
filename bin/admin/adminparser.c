@@ -534,6 +534,26 @@ static int listRDPCommand(char *token)
     return -1;
 }
 
+static int listRDPConnCommand(char *token)
+{
+    char *nl_descr = parser_getString();
+    char *nl = defaultNL;
+
+    if (parser_getString()) goto error;
+
+    if (nl_descr) {
+	nl = getNodeList(nl_descr);
+	if (!nl) return -1;
+    }
+
+    PSIADM_RDPConnStat(nl);
+    return 0;
+
+ error:
+    printError(&listInfo);
+    return -1;
+}
+
 static int listMCastCommand(char *token)
 {
     char *nl_descr = parser_getString();
@@ -717,7 +737,9 @@ static keylist_t listList[] = {
     {"p", listProcCommand},
     {"plugins", listPluginCommand},
     {"environment", listEnvCommand},
+    {"r", listRDPCommand},
     {"rdp", listRDPCommand},
+    {"rdpconn", listRDPConnCommand},
     {"summary", listSummaryCommand},
     {"s", listSummaryCommand},
     {"starttime", listStarttimeCommand},

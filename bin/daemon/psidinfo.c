@@ -240,6 +240,11 @@ static void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 			    msg.buf, sizeof(msg.buf));
 	    msg.header.len += strlen(msg.buf)+1;
 	    break;
+	case PSP_INFO_RDPCONNSTATUS:
+	    getConnInfoRDP(*(PSnodes_ID_t *) inmsg->buf,
+			   msg.buf, sizeof(msg.buf));
+	    msg.header.len += strlen(msg.buf)+1;
+	    break;
 	case PSP_INFO_MCASTSTATUS:
 	    getStateInfoMCast(*(PSnodes_ID_t *) inmsg->buf,
 			      msg.buf, sizeof(msg.buf));

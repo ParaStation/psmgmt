@@ -80,6 +80,7 @@ static PSP_Info_t receiveInfo(void *buf, size_t *size, int verbose)
 	case PSP_INFO_HOST:
 	case PSP_INFO_NODE:
 	case PSP_INFO_RDPSTATUS:
+	case PSP_INFO_RDPCONNSTATUS:
 	case PSP_INFO_MCASTSTATUS:
 	case PSP_INFO_COUNTHEADER:
 	case PSP_INFO_COUNTSTATUS:
@@ -319,6 +320,7 @@ int PSI_infoString(PSnodes_ID_t node, PSP_Info_t what, const void *param,
 	}
 	break;
     case PSP_INFO_RDPSTATUS:
+    case PSP_INFO_RDPCONNSTATUS:
     case PSP_INFO_MCASTSTATUS:
 	if (param) {
 	    *(PSnodes_ID_t*)msg.buf = *(const PSnodes_ID_t*)param;

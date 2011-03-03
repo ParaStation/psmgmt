@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2009 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2011 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -178,6 +178,11 @@ int PSI_infoUInt(PSnodes_ID_t node, PSP_Info_t what, const void *param,
  * *int32_t datum.
  *
  * - PSP_INFO_RDPSTATUS request the status of the RDP connection from
+ * node @a node to the one designated within the extra parameter. Thus
+ * @a param has to point to a datum of type @c PSnodes_ID_t holding
+ * this connected node.
+ *
+ * - PSP_INFO_RDPCONNSTATUS request the info on RDP connection from
  * node @a node to the one designated within the extra parameter. Thus
  * @a param has to point to a datum of type @c PSnodes_ID_t holding
  * this connected node.
