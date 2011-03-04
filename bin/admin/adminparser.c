@@ -739,7 +739,7 @@ static keylist_t listList[] = {
     {"environment", listEnvCommand},
     {"r", listRDPCommand},
     {"rdp", listRDPCommand},
-    {"rdpconn", listRDPConnCommand},
+    {"rdpconnection", listRDPConnCommand},
     {"summary", listSummaryCommand},
     {"s", listSummaryCommand},
     {"starttime", listStarttimeCommand},
@@ -909,6 +909,12 @@ static int setShowRDPClsdTmOut(char *token)
 static int setShowRDPRetrans(char *token)
 {
     setShowOpt = PSP_OP_RDPRETRANS;
+    return 0;
+}
+
+static int setShowRDPStatistics(char *token)
+{
+    setShowOpt = PSP_OP_RDPSTATISTICS;
     return 0;
 }
 
@@ -1110,6 +1116,7 @@ static keylist_t setShowList[] = {
     {"rdpresendtimeout", setShowRDPRsndTmOut},
     {"rdpclosedtimeout", setShowRDPClsdTmOut},
     {"rdpretrans", setShowRDPRetrans},
+    {"rdpstatistics", setShowRDPStatistics},
     {"master", setShowMaster},
     {"mcastdebug", setShowMCastDebug},
     {"freeonsuspend", setShowFOS},
@@ -1339,6 +1346,7 @@ static int setCommand(char *token)
     case PSP_OP_PINPROCS:
     case PSP_OP_BINDMEM:
     case PSP_OP_SUPPL_GRPS:
+    case PSP_OP_RDPSTATISTICS:
     {
 	int tmp, ret = parser_getBool(value, &tmp, NULL);
 	if (ret==-1) {
@@ -1401,6 +1409,7 @@ static int setCommand(char *token)
     case PSP_OP_RDPRSNDTMOUT:
     case PSP_OP_RDPCLSDTMOUT:
     case PSP_OP_RDPRETRANS:
+    case PSP_OP_RDPSTATISTICS:
     case PSP_OP_MCASTDEBUG:
     case PSP_OP_OVERBOOK:
     case PSP_OP_FREEONSUSP:
@@ -1467,6 +1476,7 @@ static int showCommand(char *token)
     case PSP_OP_RDPRSNDTMOUT:
     case PSP_OP_RDPCLSDTMOUT:
     case PSP_OP_RDPRETRANS:
+    case PSP_OP_RDPSTATISTICS:
     case PSP_OP_MCASTDEBUG:
     case PSP_OP_MASTER:
     case PSP_OP_FREEONSUSP:

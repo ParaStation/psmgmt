@@ -159,6 +159,9 @@ typedef struct {
  */
 static int RDPMaxAckPending = 4;
 
+/** Flag RDP-statistics including number of message an mean time to ACK */
+static int RDPStatistics = 0;
+
 /** Timeout for retransmission = 300msec */
 struct timeval RESEND_TIMEOUT = {0, 300000}; /* sec, usec */
 
@@ -486,6 +489,12 @@ static void putMsg(msgbuf_t *mp)
 }
 
 /* ---------------------------------------------------------------------- */
+
+/**
+ * Number of packets not to take into account for MTTA during
+ * connection startup
+ */
+#define NUM_WARMUP 15
 
 /**
  * Connection info for each node expected to receive data from or send data
@@ -1450,7 +1459,7 @@ static void doACK(rdphdr_t *hdr, int fromnode)
 	}
     }
 
-    gettimeofday(&now, NULL);
+    if (RDPStatistics) gettimeofday(&now, NULL);
 
     blocked = Timer_block(timerID, 1);
 
@@ -1468,7 +1477,6 @@ static void doACK(rdphdr_t *hdr, int fromnode)
 	RDP_log(RDP_LOG_ACKS, "%s: compare seqno %d with %d\n", __func__,
 		seqno, hdr->ackno);
 	if (RSEQCMP((int)seqno, hdr->ackno) <= 0) {
-	    struct timeval flightTime;
 	    /* ACK this buffer */
 	    if ((int)seqno != cp->ackExpected) {
 		RDP_log(-1, "%s: strange things happen: msg.seqno = %x,"
@@ -1480,9 +1488,14 @@ static void doACK(rdphdr_t *hdr, int fromnode)
 		    __func__, seqno, fromnode);
 
 	    if (!callback) callback = !cp->window;
-	    timersub(&now, &mp->sentTime, &flightTime);
-	    timeradd(&flightTime, &cp->TTA, &cp->TTA);
 	    cp->totSent++;
+	    if (RDPStatistics) {
+		if (cp->totSent > NUM_WARMUP) {
+		    struct timeval flightTime;
+		    timersub(&now, &mp->sentTime, &flightTime);
+		    timeradd(&flightTime, &cp->TTA, &cp->TTA);
+		}
+	    }
 	    putMsg(mp);
 	    cp->window++;
 	    cp->ackExpected++;             /* inc ack count */
@@ -2033,6 +2046,25 @@ void setMaxAckPendRDP(int limit)
     RDPMaxAckPending = limit;
 }
 
+int RDP_getStatistics(void)
+{
+    return RDPStatistics;
+}
+
+void RDP_setStatistics(int state)
+{
+    RDPStatistics = state;
+
+    if (RDPStatistics) {
+	int n;
+	for (n = 0; n < nrOfNodes; n++) {
+	    timerclear(&conntable[n].TTA);
+	    conntable[n].totRetrans = 0;
+	    conntable[n].totSent = 0;
+	}
+    }
+}
+
 int Rsendto(int node, void *buf, size_t len)
 {
     msgbuf_t *mp;
@@ -2306,7 +2338,7 @@ int Rrecvfrom(int *node, void *msg, size_t len)
 
 void getConnInfoRDP(int node, char *s, size_t len)
 {
-    snprintf(s, len, "%3d [%s]: IP=%10s ID[%08x|%08x] FTS=%08x AE=%08x"
+    snprintf(s, len, "%3d [%s]: IP=%-15s ID[%08x|%08x] FTS=%08x AE=%08x"
 	     " FE=%08x AP=%2d MP=%2d",
 	     node, stateStringRDP(conntable[node].state),
 	     inet_ntoa(conntable[node].sin.sin_addr),
@@ -2318,16 +2350,25 @@ void getConnInfoRDP(int node, char *s, size_t len)
 
 void getStateInfoRDP(int node, char *s, size_t len)
 {
-    double tta = conntable[node].TTA.tv_sec * 1000
-	+ 1.0E-3 * conntable[node].TTA.tv_usec;
-
-    snprintf(s, len, "%3d [%s]: IP=%10s AP=%2d MP=%2d RTR=%2d TOTRET=%4d"
-	     " MTTA=%.4f",
-	     node, stateStringRDP(conntable[node].state),
-	     inet_ntoa(conntable[node].sin.sin_addr),
+    snprintf(s, len, "%3d [%s]: IP=%-15s TOT=%6d AP=%2d MP=%2d RTR=%2d"
+	     " TOTRET=%4d", node, stateStringRDP(conntable[node].state),
+	     inet_ntoa(conntable[node].sin.sin_addr), conntable[node].totSent,
 	     conntable[node].ackPending, conntable[node].msgPending,
-	     conntable[node].retrans, conntable[node].totRetrans,
-	     conntable[node].totSent ? tta/conntable[node].totSent : 0.0);
+	     conntable[node].retrans, conntable[node].totRetrans);
+
+    if (RDPStatistics) {
+	double tta = conntable[node].TTA.tv_sec * 1000
+	    + 1.0E-3 * conntable[node].TTA.tv_usec;
+	unsigned int totSent = conntable[node].totSent;
+
+	if (totSent > NUM_WARMUP) {
+	    totSent -= NUM_WARMUP;
+	} else {
+	    totSent = 0;
+	}
+	snprintf(s+strlen(s), len-strlen(s)," MTTA=%7.4f",
+		 totSent ? tta/totSent : 0.0);
+    }
 }
 
 void closeConnRDP(int node)

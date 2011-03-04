@@ -253,11 +253,11 @@ static info_t setInfo = {
 	" | statusbroadcasts <limit> | deadlimit <limit>"
 	" | rdpdebug <level> | rdptimeout <timeout> | rdppktloss <rate>"
 	" | rdpmaxretrans <val> | rdpresendtimeout <val>| rdpretrans <val> "
-	" | rdpclosedtimeout <val> | rdpmaxackpend <val> | mcastdebug <level>"
-	" | {freeonsuspend|fos} <bool> | {handleoldbins|hob} <bool>"
-	" | starter <bool> | runjobs <bool> | overbook {<bool>|auto}"
-	" | exclusive <bool> | pinprocs <bool> | bindmem <bool> "
-	" | supplementaryGroups <bool> | maxStatTry <num>"
+	" | rdpclosedtimeout <val> | rdpmaxackpend <val> | rdpstatistics <bool>"
+	" | mcastdebug <level> | {freeonsuspend|fos} <bool>"
+	" | {handleoldbins|hob} <bool> | starter <bool> | runjobs <bool>"
+	" | overbook {<bool>|auto} | exclusive <bool> | pinprocs <bool>"
+	" | bindmem <bool> | supplementaryGroups <bool> | maxStatTry <num>"
 	" | cpumap <map> | nodessort <mode> | adminuser [+|-]{<user>|any}"
 	" | admingroup [+|-]{<group>|any} | accountpoll <interval>} <nodes>"
     }},
@@ -325,6 +325,9 @@ static info_t setInfo = {
 	  .descr = "Set RDP protocol's closed timeout in milli-seconds." },
 	{ .tag = "set rdpmaxackpend <val>",
 	  .descr = "Set RDP protocol's maximum pending ACK count." },
+	{ .tag = "set rdpstatistics <bool>",
+	  .descr = "Flag RDP statistics. This includes total number of packets"
+	  " sent and mean time to ACK." },
 	{ .tag = "set mcastdebug <level>",
 	  .descr = "Set MCast facility's debugging level to <level> on the"
 	  " seleceted nodes. Depending on <level> the daemon might log a huge"
@@ -418,10 +421,10 @@ static info_t showInfo = {
 	.arg = "{maxproc | user | group | psiddebug | selecttime"
 	" | statustimeout | statusbroadcasts | deadlimit | rdpdebug"
 	" | rdptimeout | rdppktloss | rdpmaxretrans | rdpresendtimeout"
-	" | rdpretrans | rdpclosedtimeout | rdpmaxackpend | mcastdebug | master"
-	" | {freeonsuspend|fos} | {handleoldbins|hob} | starter | runjobs"
-	" | overbook | exclusive | pinprocs | bindmem | cpumap | nodessort"
-	" | supplementaryGroups | maxStatTry"
+	" | rdpretrans | rdpclosedtimeout | rdpmaxackpend | rdpstatistics"
+	" | mcastdebug | master | {freeonsuspend|fos} | {handleoldbins|hob}"
+	" | starter | runjobs | overbook | exclusive | pinprocs | bindmem"
+	" | cpumap | nodessort | supplementaryGroups | maxStatTry"
 	" | adminuser | admingroup | accounters | accountpoll"
 	" | rl_{addressspace|as} | rl_core | rl_cpu | rl_data | rl_fsize"
 	" | rl_locks | rl_memlock | rl_msgqueue | rl_nofile | rl_nproc"
@@ -463,6 +466,8 @@ static info_t showInfo = {
 	  .descr = "Show RDP protocol's closed timeout in milli-seconds." },
 	{ .tag = "show rdpmaxackpend",
 	  .descr = "Show RDP protocol's maximum pending ACK count." },
+	{ .tag = "show rdpstatistics",
+	  .descr = "Show if RDP statistics are taken." },
 	{ .tag = "show mcastdebug",
 	  .descr = "Show MCast facility's verbosity level." },
 	{ .tag = "show master",
@@ -551,9 +556,9 @@ static info_t listInfo = {
 	.cmd = "list",
 	.arg = "{{[node] | count [hw <hw>] | {p|processes} [cnt <cnt>]"
 	" | {aproc|allprocesses} [cnt <cnt>] | environment [key <key>]"
-	" | {hardware|hw} | down | up | load | rdp | rdpconn | mcast | plugins"
-	" | summary [max <max>] | starttime | startupscript | nodeupscript"
-	" | nodedownscript | versions} <nodes> |"
+	" | {hardware|hw} | down | up | load | rdp | rdpconnection | mcast"
+	" | plugins | summary [max <max>] | starttime | startupscript"
+	" | nodeupscript | nodedownscript | versions} <nodes> |"
 	" jobs [state {r[unning] | p[ending] | s[uspended]}] [slots] [<tid>]}"
     }},
     .nodes = 1,
@@ -592,7 +597,7 @@ static info_t listInfo = {
 	{ .tag = "list rdp",
 	  .descr = "Show the status of the RDP protocol on the selected"
 	  " nodes." },
-	{ .tag = "list rdpconn",
+	{ .tag = "list rdpconnection",
 	  .descr = "Show info on RDP connections on the selected nodes." },
 	{ .tag = "list mcast",
 	  .descr = "Show the status of the MCast facility on the selected"

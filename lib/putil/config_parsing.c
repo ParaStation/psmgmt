@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2010 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2011 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -347,6 +347,19 @@ static int getRDPMaxACKPend(char *token)
     if (ret) return ret;
 
     setMaxAckPendRDP(tmp);
+
+    return ret;
+}
+
+static int getRDPStatistics(char *token)
+{
+    int ret, tmp;
+
+    ret = parser_getBool(parser_getString(), &tmp, "RDP statistics");
+
+    if (ret) return ret;
+
+    RDP_setStatistics(tmp);
 
     return ret;
 }
@@ -2698,6 +2711,7 @@ static keylist_t config_list[] = {
     {"rdpresendtimeout", getRDPResendTimeout},
     {"rdpclosedtimeout", getRDPClosedTimeout},
     {"rdpmaxackpending", getRDPMaxACKPend},
+    {"rdpstatistics", getRDPStatistics},
     {"selecttime", getSelectTime},
     {"deadinterval", getDeadInterval},
     {"statustimeout", getStatTmout},

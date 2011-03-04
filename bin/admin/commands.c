@@ -1424,6 +1424,7 @@ void PSIADM_SetParam(PSP_Option_t type, PSP_Optval_t value, char *nl)
     case PSP_OP_PINPROCS:
     case PSP_OP_BINDMEM:
     case PSP_OP_SUPPL_GRPS:
+    case PSP_OP_RDPSTATISTICS:
 	break;
     default:
 	printf("%s: cannot handle option type %d.\n", __func__, type);

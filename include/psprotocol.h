@@ -106,6 +106,7 @@ typedef enum {
     PSP_OP_RDPRETRANS,            /**< RDP's total number of retransmissions */
 
     PSP_OP_MCASTDEBUG = 0x0028,   /**< MCast's debug level */
+    PSP_OP_RDPSTATISTICS,         /**< Status of RDP statistics */
 
     PSP_OP_PSM_SPS = 0x0030,      /**< @deprecated */
     PSP_OP_PSM_RTO,               /**< @deprecated */
