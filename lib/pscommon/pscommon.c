@@ -31,9 +31,7 @@ static char vcid[] __attribute__((used)) =
 logger_t* PSC_logger = NULL;
 
 static PSnodes_ID_t nrOfNodes = -1;
-/* @todo HACK HACK HACK needed for special debug in rdp */
-//static PSnodes_ID_t myID = -1;
-PSnodes_ID_t myID = -1;
+static PSnodes_ID_t myID = -1;
 
 static PStask_ID_t myTID = -1;
 
@@ -310,6 +308,12 @@ static int parseRange(char* list, char* range)
 	    fprintf(stderr, "node %ld out of range\n", -last);
 	    return 0;
 	}
+    }
+
+    if (first > last) {
+	long tmp = last;
+	last = first;
+	first = tmp;
     }
 
     for (i=first; i<=last; i++) list[i] = 1;
