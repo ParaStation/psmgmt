@@ -155,7 +155,9 @@ void logger_setTimeFlag(logger_t* logger, char flag);
  * be used.
  *
  *
- * @return No return value.
+ * @return On success, a handle of the created logger is
+ * returned. This handle has to be passed to any further function
+ * using this logger. In case of an error NULL is returned.
  *
  * @see logger_print(), logger_vprint(), logger_warn(), logger_exit()
  */
@@ -224,6 +226,8 @@ __attribute__((format(printf,3,4)));
  * format.
  *
  *
+ * @return No return value.
+ *
  * @see logger_print()
  */
 void logger_vprint(logger_t* logger, int32_t key,
@@ -246,6 +250,9 @@ __attribute__((format(printf,3,0)));
  * the message.
  *
  * @param format The format to be used in order to produce output.
+ *
+ *
+ * @return No return value.
  *
  * @see logger_print(), strerror()
  */
