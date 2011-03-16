@@ -17,6 +17,7 @@ static char vcid[] __attribute__((used)) =
 #include <unistd.h>
 #include <string.h>
 #include <errno.h>
+#include <syslog.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/socket.h>
@@ -39,6 +40,14 @@ static PStask_ID_t myTID = -1;
 void PSC_initLog(FILE* logfile)
 {
     PSC_logger = logger_init("PSC", logfile);
+    if (!PSC_logger) {
+	if (logfile) {
+	    fprintf(logfile, "%s: failed to initialize logger\n", __func__);
+	} else {
+	    syslog(LOG_CRIT, "%s: failed to initialize logger", __func__);
+	}
+	exit(1);
+    }
 }
 
 int PSC_logInitialized(void)

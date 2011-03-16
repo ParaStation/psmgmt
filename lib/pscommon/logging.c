@@ -23,21 +23,29 @@ static char vcid[] __attribute__((used)) =
 
 int32_t logger_getMask(logger_t* logger)
 {
+    if (!logger) return 0;
+
     return logger->mask;
 }
 
 void logger_setMask(logger_t* logger, int32_t mask)
 {
+    if (!logger) return;
+
     logger->mask = mask;
 }
 
 char* logger_getTag(logger_t* logger)
 {
+    if (!logger) return NULL;
+
     return logger->tag;
 }
 
 void logger_setTag(logger_t* logger, char* tag)
 {
+    if (!logger) return;
+
     if (logger->tag) free(logger->tag);
 
     if (tag) {
@@ -49,11 +57,15 @@ void logger_setTag(logger_t* logger, char* tag)
 
 char logger_getTimeFlag(logger_t* logger)
 {
+    if (!logger) return -1;
+
     return logger->timeFlag;
 }
 
 void logger_setTimeFlag(logger_t* logger, char flag)
 {
+    if (!logger) return;
+
     logger->timeFlag = flag;
 }
 
@@ -131,7 +143,7 @@ static inline char *getTimeStr(logger_t *logger)
  */
 static void do_panic(logger_t* l, const char *f, const char *c1, const char *c2)
 {
-    if (l->logfile) {
+    if (!l || l->logfile) {
 	fprintf(l->logfile, f, c1, c2);
     } else {
 	syslog(LOG_ERR,  f, c1, c2);

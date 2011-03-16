@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2010 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2011 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -17,6 +17,7 @@ static char vcid[] __attribute__((used)) =
 #include <unistd.h>
 #include <string.h>
 #include <errno.h>
+#include <syslog.h>
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <signal.h>
@@ -47,6 +48,14 @@ logger_t *PSID_logger;
 void PSID_initLog(FILE *logfile)
 {
     PSID_logger = logger_init(logfile ? "PSID" : NULL, logfile);
+    if (!PSID_logger) {
+	if (logfile) {
+	    fprintf(logfile, "%s: failed to initialize logger\n", __func__);
+	} else {
+	    syslog(LOG_CRIT, "%s: failed to initialize logger", __func__);
+	}
+	exit(1);
+    }
 }
 
 int32_t PSID_getDebugMask(void)

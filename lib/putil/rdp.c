@@ -1912,6 +1912,14 @@ int initRDP(int nodes, unsigned short portno, FILE* logfile,
 	    unsigned int hosts[], void (*callback)(int, void*))
 {
     logger = logger_init("RDP", logfile);
+    if (!logger) {
+	if (logfile) {
+	    fprintf(logfile, "%s: failed to initialize logger\n", __func__);
+	} else {
+	    syslog(LOG_CRIT, "%s: failed to initialize logger", __func__);
+	}
+	exit(1);
+    }
 
     RDPCallback = callback;
     nrOfNodes = nodes;

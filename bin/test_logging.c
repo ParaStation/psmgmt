@@ -1,3 +1,10 @@
+/*
+ *               ParaStation
+ *
+ * Copyright (C) 2005-2011 ParTec Cluster Competence Center GmbH, Munich
+ *
+ * $Id$
+ */
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -58,7 +65,15 @@ int main(void)
     logger_t *my, *my2;
 
     my = logger_init("TEST", stderr);
+    if (!my) {
+	fprintf(stderr, "Failed to initialize logger 'my'\n");
+	exit(1);
+    }
     my2 = logger_init("TEST2", stderr);
+    if (!my) {
+	fprintf(stderr, "Failed to initialize logger 'my2'\n");
+	exit(1);
+    }
 
     log_it(my);
     log_it(my2);

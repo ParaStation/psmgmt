@@ -126,8 +126,22 @@ logger_t *PSIlog_logger = NULL;
 void PSIlog_initLog(FILE *logfile)
 {
     PSIlog_logger = logger_init("PSIlogger", logfile ? logfile : stderr);
+    if (!PSIlog_logger) {
+	fprintf(logfile ? logfile : stderr, "Failed to initialize logger\n");
+	exit(1);
+    }
+
     PSIlog_stdoutLogger = logger_init(NULL, stdout);
+    if (!PSIlog_stdoutLogger) {
+	fprintf(logfile ? logfile : stderr, "Failed to initialize stdout\n");
+	exit(1);
+    }
+
     PSIlog_stderrLogger = logger_init(NULL, stderr);
+    if (!PSIlog_stderrLogger) {
+	fprintf(logfile ? logfile : stderr, "Failed to initialize stderr\n");
+	exit(1);
+    }
 }
 
 int32_t PSIlog_getDebugMask(void)

@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2010 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2011 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -23,6 +23,7 @@ static char vcid[] __attribute__((used)) =
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <popt.h>
 
 #include "logging.h"
@@ -86,6 +87,10 @@ int main(int argc, const char *argv[])
     }
 
     PSID_logger = logger_init(NULL, stderr);
+    if (!PSID_logger) {
+	fprintf(stderr, "Failed to initialize logger\n");
+	exit(1);
+    }
     config = parseConfig(stderr, debugmask, file);
     if (!config) return 1;
 

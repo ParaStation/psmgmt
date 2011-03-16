@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2002-2003 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2009 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2011 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -23,6 +23,7 @@ static char vcid[] __attribute__((used)) =
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <syslog.h>
 
 #include "logging.h"
 
@@ -77,6 +78,14 @@ static char *nextline(void)
 void parser_init(FILE* logfile, FILE *input)
 {
     logger = logger_init("Parser", logfile);
+    if (!logger) {
+	if (logfile) {
+	    fprintf(logfile, "%s: failed to initialize logger\n", __func__);
+	} else {
+	    syslog(LOG_CRIT, "%s: failed to initialize logger", __func__);
+	}
+	exit(1);
+    }
 
     parsefile = input;
 

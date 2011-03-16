@@ -16,6 +16,7 @@ static char vcid[] __attribute__((used)) =
 #include <stdlib.h>
 #include <errno.h>
 #include <string.h>
+#include <syslog.h>
 #include <sys/select.h>
 
 #include "list.h"
@@ -96,6 +97,14 @@ void Selector_init(FILE* logfile)
     list_t *s, *tmp;
 
     logger = logger_init("Selector", logfile);
+    if (!logger) {
+	if (logfile) {
+	    fprintf(logfile, "%s: failed to initialize logger\n", __func__);
+	} else {
+	    syslog(LOG_CRIT, "%s: failed to initialize logger", __func__);
+	}
+	exit(1);
+    }
 
     /* Free all old selectors, if any */
     list_for_each_safe(s, tmp, &selectorList) {
@@ -381,7 +390,7 @@ int Sselect(int n, fd_set  *readfds,  fd_set  *writefds, fd_set *exceptfds,
     if (readfds)   memcpy(readfds, &rfds, sizeof(rfds));
     if (writefds)  memcpy(writefds, &wfds, sizeof(wfds));
     if (exceptfds) memcpy(exceptfds, &efds, sizeof(efds));
-    
+
     /* restore errno */
     errno = eno;
 

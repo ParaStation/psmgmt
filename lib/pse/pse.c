@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 1999-2003 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2009 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2011 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -69,6 +69,10 @@ void PSE_initialize(void)
     char *envStr;
 
     logger = logger_init("PSE", stderr);
+    if (!logger) {
+	fprintf(stderr, "%s: failed to initialize logger\n", __func__);
+	exit(1);
+    }
 
     envStr = getenv("PSI_DEBUGMASK");
     if (!envStr) envStr = getenv("PSI_DEBUGLEVEL"); /* Backward compat. */

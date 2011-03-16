@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2009 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2011 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -691,6 +691,14 @@ int initMCast(int nodes, int mcastgroup, unsigned short portno, FILE* logfile,
 	      unsigned int hosts[], int id, void (*callback)(int, void*))
 {
     logger = logger_init("MCast", logfile);
+    if (!logger) {
+	if (logfile) {
+	    fprintf(logfile, "%s: failed to initialize logger\n", __func__);
+	} else {
+	    syslog(LOG_CRIT, "%s: failed to initialize logger", __func__);
+	}
+	exit(1);
+    }
 
     if (nodes<=0) {
 	MCast_log(-1, "%s: nodes = %d out of range\n", __func__, nodes);
