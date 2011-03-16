@@ -4,6 +4,32 @@ Copyright (C) 2010-2011 ParTec Cluster Competence Center GmbH, Munich
 
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
+Version 5.0.31:
+===============
+Bugfixes:
+ - Remove limitations on length of arguments when spawning processes (#740).
+ - psiadmin now accept range of the form last-first, too (#1014).
+ - Include RDP-header in maximum message size for protocols (#459).
+ - Fix crippled output of very long lines since 5.0.30.
+ - Fix memory leak in partition handling (#794).
+ - Catch possible segfaults within psid's logging.
+ - Prevent psid from segfaulting, if PSI_TPP erroneously set to 0.
+ - Don't crash psid, if client<->daemon protocol is messed up.
+
+Enhancements:
+ - Unload plugins before daemon shuts down (#562).
+ - RDP statistics (mean-time to ACK, etc.).
+ - psh: fix precedence of $RCMD, $AUTOCD and $MAXRCMD.
+ - Nicer output of long lines with and without prefixes.
+ - Better error-message from mpiexec, if spawning of service-process failed.
+ - More detailed messages on late receives in psilogger.
+ - Improve testing on failed initialization of loggers.
+ - Initialize timer facility explicitely (#799).
+
+Additional changes:
+ - Remove extra debug in context of #442.
+
+
 Version 5.0.30:
 ===============
 Bugfixes:
@@ -13,7 +39,7 @@ Bugfixes:
  - Improve logging with timestamps (#719).
 
 Enhancements:
- - New psiadmin directive: echo (#632)
+ - New psiadmin directive: echo (#632).
  - RLIMIT_NOFILE now configurable & propagated to remote processes
    (#792/jt:#2691).
  - Better handling of hanging file-systems while spawning processes (#879).

@@ -1,3 +1,157 @@
+Version psmgmt-5.0.31:
+======================
+------------------------------------------------------------------------
+r8411 | eicker | 2011-03-16 16:55:03 +0100 (Wed, 16 Mar 2011) | 2 lines
+
+Distribute NEWS-file within RPM.
+
+------------------------------------------------------------------------
+r8410 | eicker | 2011-03-16 13:47:21 +0100 (Wed, 16 Mar 2011) | 2 lines
+
+Improve testing on failed initialization of loggers.
+
+------------------------------------------------------------------------
+r8409 | eicker | 2011-03-16 12:48:23 +0100 (Wed, 16 Mar 2011) | 3 lines
+
+Enhancement: Unload plugins explicitely before daemon finally shuts
+    down. This should finally implement #562.
+
+------------------------------------------------------------------------
+r8408 | eicker | 2011-03-16 12:44:37 +0100 (Wed, 16 Mar 2011) | 2 lines
+
+Some more plugins for psid-plugin debugging.
+
+------------------------------------------------------------------------
+r8407 | eicker | 2011-03-14 20:03:35 +0100 (Mon, 14 Mar 2011) | 4 lines
+
+Bugfix: Catch some possible segmentation-faults, if realloc during
+    logging fails.
+Enhance documentation for logging-facility.
+
+------------------------------------------------------------------------
+r8406 | eicker | 2011-03-04 17:28:59 +0100 (Fri, 04 Mar 2011) | 4 lines
+
+Enhancement: Make RDP-statistics persistantly configurable.
+Enhancement: Make RDP-statistics switchable during runtime.
+Enhancement: Nicer output if psiadmin's 'list rdp' and 'list rdpconn'.
+
+------------------------------------------------------------------------
+r8405 | eicker | 2011-03-04 16:00:26 +0100 (Fri, 04 Mar 2011) | 2 lines
+
+Enhancement: Let psiadmin accept range of the form last-first, too (#1014).
+
+------------------------------------------------------------------------
+r8404 | eicker | 2011-03-03 23:17:55 +0100 (Thu, 03 Mar 2011) | 5 lines
+
+Enhancement: RDP now reports on MTTA (mean time to ACK) in msec.
+    For this, psiadmin 'list rdp' was splitted into 'list rdp' reporting
+    the current status of the connection and 'list rdpconn' giving
+    additional info concerning the connections.
+
+------------------------------------------------------------------------
+r8403 | eicker | 2011-03-03 09:07:46 +0100 (Thu, 03 Mar 2011) | 2 lines
+
+White-space cleanup.
+
+------------------------------------------------------------------------
+r8402 | eicker | 2011-03-03 09:00:58 +0100 (Thu, 03 Mar 2011) | 3 lines
+
+Enhancement: Get rid of DIY list in partition handling (#449)
+Bugfix: Close memory leak in partition handling (#794)
+
+------------------------------------------------------------------------
+r8401 | eicker | 2011-03-02 11:03:17 +0100 (Wed, 02 Mar 2011) | 2 lines
+
+Bugfix: Prevent psid from segfaulting, if PSI_TPP erroneously set to 0.
+
+------------------------------------------------------------------------
+r8400 | eicker | 2011-02-25 20:37:15 +0100 (Fri, 25 Feb 2011) | 3 lines
+
+Improve compatibility with older protocol-versions. This fixes minor
+    flaws introduced with r8397.
+
+------------------------------------------------------------------------
+r8399 | eicker | 2011-02-25 19:34:08 +0100 (Fri, 25 Feb 2011) | 3 lines
+
+Fix one compiler-warning. It makes sense to have unsigned
+    message-lengths.
+
+------------------------------------------------------------------------
+r8398 | eicker | 2011-02-25 19:30:39 +0100 (Fri, 25 Feb 2011) | 3 lines
+
+Bugfix: Take RDP-header into account when calculating maximum message
+    size for protocols. This should fix #459.
+
+------------------------------------------------------------------------
+r8397 | eicker | 2011-02-25 19:17:11 +0100 (Fri, 25 Feb 2011) | 3 lines
+
+Bugfix: Allow for long working-directories, arguments and
+    argument-vectors when spawning processes. This should fix #740.
+
+------------------------------------------------------------------------
+r8396 | eicker | 2011-02-25 19:14:49 +0100 (Fri, 25 Feb 2011) | 2 lines
+
+Enhance error messages within PSI_sendMsg().
+
+------------------------------------------------------------------------
+r8395 | eicker | 2011-02-25 19:01:41 +0100 (Fri, 25 Feb 2011) | 2 lines
+
+Bugfix: Don't crash psid, if client<->daemon protocol is messed up.
+
+------------------------------------------------------------------------
+r8394 | eicker | 2011-02-25 18:40:14 +0100 (Fri, 25 Feb 2011) | 4 lines
+
+Bugfix: Fix mpiexec'a determination of own executable (missing \0 in
+     buffer).
+Enhance mpiexec's error-message if spawning of service-process failed.
+
+------------------------------------------------------------------------
+r8393 | hauke | 2011-02-25 10:05:27 +0100 (Fri, 25 Feb 2011) | 8 lines
+
+psh: fix precedence of $RCMD, $AUTOCD and $MAXRCMD
+
+Fix the precedence of settings for rcmd, autocd and maxrcmd to
+ * command line
+ * configfile ~/psh.d/*
+ * environment variable
+
+See Ticket #994.
+------------------------------------------------------------------------
+r8392 | eicker | 2011-02-23 10:39:12 +0100 (Wed, 23 Feb 2011) | 4 lines
+
+Bugfix: Output of very long lines might get crippled. Fix bug introduced
+    with r8365.
+Enhancement: Nicer output of long line with and without prefixes.
+
+------------------------------------------------------------------------
+r8391 | eicker | 2011-02-18 18:37:35 +0100 (Fri, 18 Feb 2011) | 2 lines
+
+More detailed messages on late receives in psilogger.
+
+------------------------------------------------------------------------
+r8390 | eicker | 2011-02-16 22:40:46 +0100 (Wed, 16 Feb 2011) | 3 lines
+
+Remove extra debug in context of #442. Root cause was fixed in r8131.
+Fix some comiler-warning in rdp.c
+
+------------------------------------------------------------------------
+r8389 | eicker | 2011-02-16 18:58:15 +0100 (Wed, 16 Feb 2011) | 3 lines
+
+Collected statistics on JuRoPA for some month. Lock seems to be
+    unnecessary. This answers #820.
+
+------------------------------------------------------------------------
+r8388 | eicker | 2011-02-16 18:23:35 +0100 (Wed, 16 Feb 2011) | 2 lines
+
+Initialize timer facility explicitely. This helps with #799.
+
+------------------------------------------------------------------------
+r8384 | eicker | 2011-02-16 15:17:32 +0100 (Wed, 16 Feb 2011) | 2 lines
+
+New version (psmgmt-5.0.30)
+
+------------------------------------------------------------------------
+
 Version psmgmt-5.0.30:
 ======================
 ------------------------------------------------------------------------
