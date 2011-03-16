@@ -470,6 +470,20 @@ void PSIDplugin_setUnloadTmout(int tmout)
     }
 }
 
+int PSIDplugin_getNum(void)
+{
+    list_t *p;
+    int num = 0;
+
+    list_for_each(p, &pluginList) {
+	plugin_t *plugin = list_entry(p, plugin_t, next);
+
+	if (!plugin->unload) num++;
+    }
+
+    return num;
+}
+
 /**
  * @brief Load plugin
  *
@@ -985,6 +999,8 @@ static plugin_t *findMaxDistPlugin(void)
  * into one plugin or extract parts depending on each other into an
  * extra plugin.
  *
+ * @param name Name of the plugin to unload
+ *
  * @return If the plugin is not found, -1 is returned. Otherwise 0 is
  * returned.
  */
@@ -1042,6 +1058,19 @@ int PSIDplugin_unload(char *name)
     if (!plugin) return -1;
 
     return unloadPlugin(plugin);
+}
+
+void PSIDplugin_forceUnloadAll(void)
+{
+    list_t *p;
+
+    list_for_each(p, &pluginList) {
+	plugin_t *plugin = list_entry(p, plugin_t, next);
+
+	if (timerisset(&plugin->grace) || plugin->unload) continue;
+
+	forceUnloadPlugin(plugin->name);
+    }
 }
 
 /**

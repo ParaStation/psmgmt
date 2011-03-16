@@ -69,6 +69,17 @@ int PSIDplugin_getUnloadTmout(void);
 void PSIDplugin_setUnloadTmout(int tmout);
 
 /**
+ * @brief Get number of plugin
+ *
+ * Get the number of plugins currently loaded. This does not include
+ * plugins that have already called PSIDplugin_unload(), i.e. plugins
+ * that have have stopped all operations.
+ *
+ * @return The number of currently loaded plugins is returned.
+ */
+int PSIDplugin_getNum(void);
+
+/**
  * @brief Send list of plugins.
  *
  * Send a list of information on the plugins currently loaded in the
@@ -87,7 +98,7 @@ void PSIDplugin_sendList(PStask_ID_t dest);
  *
  * Get a handle on the plugin loaded via @a name. The handle was
  * returned by dlopen() while the plugin was loaded. It might be used
- * in order to resolve addtional symbols exposed by the plugin.
+ * in order to resolve additional symbols exposed by the plugin.
  *
  * @param name The name used to load the plugin. Each plugin can be
  * uniquely identified by its name.
@@ -158,6 +169,19 @@ int PSIDplugin_finalize(char *name);
  * returned.
  */
 int PSIDplugin_unload(char *name);
+
+/**
+ * @brief Unload all plugins
+ *
+ * Get all plugins forcefully unloaded.
+ *
+ * This function triggers to all plugins to get unloaded. Even if the
+ * plugin ignores this demand, it will get unloaded forcefully once
+ * the unload-timeout is elapsed.
+ *
+ * @return No return value.
+ */
+void PSIDplugin_forceUnloadAll(void);
 
 #ifdef __cplusplus
 }/* extern "C" */

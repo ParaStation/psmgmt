@@ -1,7 +1,7 @@
 /*
  *               ParaStation
  *
- * Copyright (C) 2008-2010 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2008-2011 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -33,6 +33,7 @@ static char vcid[] __attribute__((used)) =
 #include "psidhw.h"
 #include "psidnodes.h"
 #include "psidtask.h"
+#include "psidplugin.h"
 
 #include "psidstate.h"
 
@@ -53,7 +54,7 @@ PSID_DaemonState_t PSID_getDaemonState(void)
 
 void PSID_shutdown(void)
 {
-    static int phase = 0;
+    static int phase = 0, numPlugins;
     static struct timeval shutdownTimer, now;
 
     if (!phase) timerclear(&shutdownTimer);
@@ -89,12 +90,27 @@ void PSID_shutdown(void)
 	break;
     case 3:
 	killAllClients(SIGTERM, 1);
-	if (!config->useMCast) releaseStatusTimer();
 	break;
     case 4:
 	killAllClients(SIGKILL, 1);
-
-	if (config->useMCast) exitMCast();
+	break;
+    case 5:
+	PSIDplugin_setUnloadTmout(2);
+	PSIDplugin_forceUnloadAll();
+	break;
+    case 6:
+	numPlugins = PSIDplugin_getNum();
+	if (numPlugins) {
+	    PSID_log(-1, "    Still %d plugins\n", numPlugins);
+	    /* Stay in this phase */
+	    phase--;
+	    break;
+	}
+	if (!config->useMCast) {
+	    releaseStatusTimer();
+	} else {
+	    exitMCast();
+	}
 	send_DAEMONSHUTDOWN();
 	exitRDP();
 	PSID_stopAllHW();
