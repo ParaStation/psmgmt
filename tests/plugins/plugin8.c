@@ -36,13 +36,12 @@ int requiredAPI = 101;
 int requiredAPI = 100;
 #endif
 
-char name[] = "plugin4";
+char name[] = "plugin8";
 
 int version = 100;
 
 plugin_dep_t dependencies[] = {
-    { "plugin2", 0 },
-    { "plugin8", 0 },
+    { "plugin9", 0 },
     { NULL, 0 } };
 
 /* Flag suppressing some messages */
@@ -52,60 +51,18 @@ char *silent = NULL;
 char *quiet = NULL;
 
 #ifdef EXTENDED_API
-static void handleMsg(DDBufferMsg_t *msg)
-{
-    PSID_log(-1, "%s: %s()\n", name, __func__);
-}
-
 void initialize(void)
 {
     if (!silent && !quiet) PSID_log(-1, "%s: %s()\n", name, __func__);
-    PSID_registerMsg(0x00FE, handleMsg);
-}
-
-int myTimer = -1;
-
-void unload(void)
-{
-    if (!silent && !quiet) PSID_log(-1, "%s: %s()\n", name, __func__);
-    PSIDplugin_unload(name);
 }
 
 void finalize(void)
 {
-    struct timeval timeout = {7, 0};
-
     if (!silent && !quiet) PSID_log(-1, "%s: %s()\n", name, __func__);
-
-    myTimer = Timer_register(&timeout, unload);
-    if (!silent||!quiet) PSID_log(-1, "%s: timer %d\n", name, myTimer);
-
-    PSID_clearMsg(0x00FE);
 }
 
 void cleanup(void)
 {
     if (!silent && !quiet) PSID_log(-1, "%s: %s()\n", name, __func__);
-
-    if (myTimer > -1) {
-	Timer_remove(myTimer);
-	if (!silent||!quiet) PSID_log(-1, "%s: timer %d del\n", name, myTimer);
-	myTimer = -1;
-    }
 }
 #endif
-
-__attribute__((constructor))
-void plugin_init(void)
-{
-    silent = getenv("PLUGIN_SILENT");
-    quiet = getenv("PLUGIN_QUIET");
-
-    if (!quiet) PSID_log(-1, "%s: %s()\n", name, __func__);
-}
-
-__attribute__((destructor))
-void plugin_fini(void)
-{
-    if (!quiet) PSID_log(-1, "%s: %s()\n", name, __func__);
-}
