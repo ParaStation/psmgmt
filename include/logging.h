@@ -34,17 +34,18 @@ extern "C" {
  * Container for all the internal information of a logger facility.
  */
 typedef struct {
-    FILE* logfile; /**< The logfile to use. If NULL, use syslog. Set
-		      via logger_init(). */
-    int32_t mask;  /**< Mask used to determine wich messages to print.
-		      Set/get thru logger_setMask()/logger_getMask().*/
-    char* tag;     /**< Actual tag prepended each log-message. Set/get thru
-		      logger_setTag()/logger_getTag() or logger_init(). */
-    char* trail;   /**< Remnants from the last messages that did not
-		      had a closing '\n' character. */
+    FILE* logfile;    /**< The logfile to use. If NULL, use syslog. Set
+			 via logger_init(). */
+    int32_t mask;     /**< Mask used to determine wich messages to print.
+			 Set/get thru logger_setMask()/logger_getMask().*/
+    char* tag;        /**< Actual tag prepended each log-message. Set/get thru
+			 logger_setTag()/logger_getTag() or logger_init(). */
+    char* trail;      /**< Remnants from the last messages that did not
+			 had a closing '\n' character. */
     size_t trailSize; /**< Maximum size to be currently stored in trail */
     size_t trailUsed; /**< Number of character currently stored in trail */
-    char timeFlag; /**< Flag if current time shall be given within tag */
+    int timeFlag;     /**< Flag if current time shall be given within tag */
+    int waitNLFlag;   /**< Flag if actual output waits for next newline */
 } logger_t;
 
 /**
@@ -114,11 +115,12 @@ void logger_setTag(logger_t* logger, char* tag);
  *
  * @param logger The logger to ask.
  *
- * @return The current time-flag is returned.
+ * @return The current time-flag is returned. Or -1, if the
+ * logger-handle is invalid.
  *
  * @see logger_setTimeFlag()
  */
-char logger_getTimeFlag(logger_t* logger);
+int logger_getTimeFlag(logger_t* logger);
 
 /**
  * @brief Set the time-flag.
@@ -127,6 +129,8 @@ char logger_getTimeFlag(logger_t* logger);
  * is set, a time-stamp is appended to the tag of each message put out
  * via @ref logger_print(), @ref logger_vprint(), @ref logger_warn()
  * or @ref logger_exit().
+ *
+ * The logger's default behavior is to not print time-flags.
  *
  * @param logger The logger to manipulate.
  *
@@ -137,7 +141,45 @@ char logger_getTimeFlag(logger_t* logger);
  * @see logger_getTimeFlag(), logger_print(), logger_vprint(),
  * logger_warn(), logger_exit()
  */
-void logger_setTimeFlag(logger_t* logger, char flag);
+void logger_setTimeFlag(logger_t* logger, int flag);
+
+/**
+ * @brief Query the waitNL-flag.
+ *
+ * Get the current waitNL-flag of the logger module @a logger.
+ *
+ * @param logger The logger to ask.
+ *
+ * @return The current waitNL-flag is returned. Or -1, if the
+ * logger-handle is invalid.
+ *
+ * @see logger_setWaitNLFlag()
+ */
+int logger_getWaitNLFlag(logger_t* logger);
+
+/**
+ * @brief Set the waitNL-flag.
+ *
+ * Set the waitNL-flag of the logger module @a logger. If the
+ * waitNL-flag is set, output sent to @a logger is not printed out
+ * unless a trailing new-line was sent to the logger. Instead, such
+ * output is collected within the logger module and printed as a whole
+ * as soon as the newline is received.
+ *
+ * This might introduced unexpected behavior within interactive
+ * applications that use a logger-facility to create output.
+ *
+ * The logger's default behavior is to wait for trailing newlines.
+ *
+ * @param logger The logger to manipulate.
+ *
+ * @param flag The flag's value to be set.
+ *
+ * @return No return value.
+ *
+ * @see logger_getWaitNLFlag()
+ */
+void logger_setWaitNLFlag(logger_t* logger, int flag);
 
 
 /**

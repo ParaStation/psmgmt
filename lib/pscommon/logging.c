@@ -55,19 +55,34 @@ void logger_setTag(logger_t* logger, char* tag)
     }
 }
 
-char logger_getTimeFlag(logger_t* logger)
+int logger_getTimeFlag(logger_t* logger)
 {
     if (!logger) return -1;
 
     return logger->timeFlag;
 }
 
-void logger_setTimeFlag(logger_t* logger, char flag)
+void logger_setTimeFlag(logger_t* logger, int flag)
 {
     if (!logger) return;
 
     logger->timeFlag = flag;
 }
+
+int logger_getWaitNLFlag(logger_t* logger)
+{
+    if (!logger) return -1;
+
+    return logger->waitNLFlag;
+}
+
+void logger_setWaitNLFlag(logger_t* logger, int flag)
+{
+    if (!logger) return;
+
+    logger->waitNLFlag = flag;
+}
+
 
 logger_t* logger_init(char* tag, FILE* logfile)
 {
@@ -82,6 +97,7 @@ logger_t* logger_init(char* tag, FILE* logfile)
 	logger->trailSize = 0;
 	logger->trailUsed = 0;
 	logger->timeFlag = 0;
+	logger->waitNLFlag = 1;
     }
 
     return logger;
@@ -228,12 +244,21 @@ static void do_print(logger_t* logger, const char* format, va_list ap)
     while (c && *c) {
 	char *r = strchr(c, '\n');
 
-	if (r) {
+	if (r && logger->waitNLFlag) {
 	    *r = '\0';
 	    r++;
 	}
 
-	if (r) {
+	if (!logger->waitNLFlag) {
+	    char *s = logger->trailUsed ? logger->trail : prefix;
+	    if (logger->logfile) {
+		fprintf(logger->logfile, "%s%s", s, c);
+	    } else {
+		syslog(LOG_ERR, "%s%s", s, c);
+	    }
+	    logger->trailUsed = 0;
+	    break;
+	} else if (r) {
 	    /* got newline, lets do the output */
 	    char *s = logger->trailUsed ? logger->trail : prefix;
 	    if (logger->logfile) {

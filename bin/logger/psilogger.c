@@ -1428,6 +1428,8 @@ int main( int argc, char**argv)
 
     if (getenv("PSI_LOGGER_RAW_MODE") && isatty(STDIN_FILENO)) {
 	enterRawMode();
+	if (PSIlog_stdoutLogger) logger_setWaitNLFlag(PSIlog_stdoutLogger, 0);
+	if (PSIlog_stderrLogger) logger_setWaitNLFlag(PSIlog_stderrLogger, 0);
     }
 
     /* enable kvs and pmi */
