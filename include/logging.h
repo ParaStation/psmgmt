@@ -46,6 +46,13 @@ typedef struct {
     size_t trailUsed; /**< Number of character currently stored in trail */
     int timeFlag;     /**< Flag if current time shall be given within tag */
     int waitNLFlag;   /**< Flag if actual output waits for next newline */
+
+    char* fmt;        /**< Internal buffer used to store formats */
+    size_t fmtSize;   /**< Actual size of @a fmt */
+    char* prfx;       /**< Internal buffer used to store prefix */
+    size_t prfxSize;  /**< Actual size of @a prfx */
+    char* txt;        /**< Internal buffer used to store actual output text */
+    size_t txtSize;   /**< Actual size of @a txt */
 } logger_t;
 
 /**
@@ -167,9 +174,13 @@ int logger_getWaitNLFlag(logger_t* logger);
  * as soon as the newline is received.
  *
  * This might introduced unexpected behavior within interactive
- * applications that use a logger-facility to create output.
+ * applications that use a logger-facility to create output like
+ * psiadmin.
  *
  * The logger's default behavior is to wait for trailing newlines.
+ *
+ * In order to flush a logger's trailing output upon a program's
+ * finalization @ref plugin_finalize() shall be called.
  *
  * @param logger The logger to manipulate.
  *
@@ -177,7 +188,7 @@ int logger_getWaitNLFlag(logger_t* logger);
  *
  * @return No return value.
  *
- * @see logger_getWaitNLFlag()
+ * @see logger_getWaitNLFlag(), logger_finalize()
  */
 void logger_setWaitNLFlag(logger_t* logger, int flag);
 
@@ -201,9 +212,27 @@ void logger_setWaitNLFlag(logger_t* logger, int flag);
  * returned. This handle has to be passed to any further function
  * using this logger. In case of an error NULL is returned.
  *
- * @see logger_print(), logger_vprint(), logger_warn(), logger_exit()
+ * @see logger_print(), logger_vprint(), logger_warn(), logger_exit(),
+ * logger_finalize()
  */
 logger_t* logger_init(char* tag, FILE *logfile);
+
+/**
+ * @brief Finalize logger facility
+ *
+ * Finalize the logger facility @a logger. This will flush trailing
+ * output stored within the logger while waiting for a trailing
+ * newline. For this, a newline is appended to the existing trail.
+ *
+ * If @a logger is NULL, nothing will happen.
+ *
+ * @param logger Handle of the logger facility to finalize
+ *
+ * @return No return value.
+ *
+ * @see logger_init()
+ */
+void logger_finalize(logger_t* logger);
 
 /**
  * @brief Print a log message.

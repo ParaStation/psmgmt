@@ -83,7 +83,6 @@ void logger_setWaitNLFlag(logger_t* logger, int flag)
     logger->waitNLFlag = flag;
 }
 
-
 logger_t* logger_init(char* tag, FILE* logfile)
 {
     logger_t* logger = malloc(sizeof(*logger));
@@ -98,9 +97,31 @@ logger_t* logger_init(char* tag, FILE* logfile)
 	logger->trailUsed = 0;
 	logger->timeFlag = 0;
 	logger->waitNLFlag = 1;
+
+	logger->fmt = NULL;
+	logger->fmtSize = 0;
+	logger->prfx = NULL;
+	logger->prfxSize = 0;
+	logger->txt = NULL;
+	logger->txtSize = 0;
     }
 
     return logger;
+}
+
+void logger_finalize(logger_t* logger)
+{
+    if (!logger) return;
+
+    if (logger->trailUsed) logger_print(logger, -1, "\n");
+
+    if (logger->tag) free(logger->tag);
+    if (logger->trail) free(logger->trail);
+    if (logger->fmt) free(logger->fmt);
+    if (logger->prfx) free(logger->prfx);
+    if (logger->txt) free(logger->txt);
+
+    free(logger);
 }
 
 /**
@@ -187,7 +208,7 @@ static void do_panic(logger_t* l, const char *f, const char *c1, const char *c2)
  * done within the wrapper functions.
  *
  *
- * @param logger The logger facility to use.
+ * @param l The logger facility to use.
  *
  * @param format The format to be used in order to produce output. The
  * syntax of this parameter is according to the one defined for the
@@ -202,95 +223,92 @@ static void do_panic(logger_t* l, const char *f, const char *c1, const char *c2)
  *
  * @see logger_print(), logger_vprint(), logger_warn(), logger_exit()
  */
-static void do_print(logger_t* logger, const char* format, va_list ap)
+static void do_print(logger_t* l, const char* format, va_list ap)
 {
-    static char *prefix = NULL, *text = NULL;
-    static size_t prfxlen = 0, txtlen = 0, len;
+    size_t len;
     va_list aq;
     char *tag, *timeStr, *c;
 
-    if (!logger) return;
-    tag = logger->tag;
+    if (!l) return;
+    tag = l->tag;
 
     /* Prepare prefix string */
-    timeStr = getTimeStr(logger);
-    len = snprintf(prefix, prfxlen, "%s%s%s", tag ? tag : "", timeStr,
-		   (tag || logger->timeFlag) ? ": " : "");
-    if (len >= prfxlen) {
-	prfxlen = len + 80; /* Some extra space */
-	prefix = (char*)realloc(prefix, prfxlen);
-	if (!prefix) {
-	    do_panic(logger, "%s: no mem for prefix: '%s'\n", __func__, format);
+    timeStr = getTimeStr(l);
+    len = snprintf(l->prfx, l->prfxSize, "%s%s%s", tag ? tag : "", timeStr,
+		   (tag || l->timeFlag) ? ": " : "");
+    if (len >= l->prfxSize) {
+	l->prfxSize = len + 80; /* Some extra space */
+	l->prfx = (char*)realloc(l->prfx, l->prfxSize);
+	if (!l->prfx) {
+	    do_panic(l, "%s: no mem for prefix: '%s'\n", __func__, format);
 	}
-	sprintf(prefix, "%s%s%s", tag ? tag : "", timeStr,
-		(tag || logger->timeFlag) ? ": " : "");
+	sprintf(l->prfx, "%s%s%s", tag ? tag : "", timeStr,
+		(tag || l->timeFlag) ? ": " : "");
     }
 
     /* Create actual output */
     va_copy(aq, ap);
-    len = vsnprintf(text, txtlen, format, ap);
-    if (len >= txtlen) {
-	txtlen = len + 80; /* Some extra space */
-	text = (char*)realloc(text, txtlen);
-	if (!text) {
-	    do_panic(logger, "%s: no mem for text: '%s'\n", __func__, format);
+    len = vsnprintf(l->txt, l->txtSize, format, ap);
+    if (len >= l->txtSize) {
+	l->txtSize = len + 80; /* Some extra space */
+	l->txt = (char*)realloc(l->txt, l->txtSize);
+	if (!l->txt) {
+	    do_panic(l, "%s: no mem for text: '%s'\n", __func__, format);
 	}
-	vsprintf(text, format, aq);
+	vsprintf(l->txt, format, aq);
     }
     va_end(aq);
 
-    c = text;
+    c = l->txt;
 
     while (c && *c) {
 	char *r = strchr(c, '\n');
 
-	if (r && logger->waitNLFlag) {
+	if (r && l->waitNLFlag) {
 	    *r = '\0';
 	    r++;
 	}
 
-	if (!logger->waitNLFlag) {
-	    char *s = logger->trailUsed ? logger->trail : prefix;
-	    if (logger->logfile) {
-		fprintf(logger->logfile, "%s%s", s, c);
+	if (!l->waitNLFlag) {
+	    char *s = l->trailUsed ? l->trail : l->prfx;
+	    if (l->logfile) {
+		fprintf(l->logfile, "%s%s", s, c);
 	    } else {
 		syslog(LOG_ERR, "%s%s", s, c);
 	    }
-	    logger->trailUsed = 0;
+	    l->trailUsed = 0;
 	    break;
 	} else if (r) {
 	    /* got newline, lets do the output */
-	    char *s = logger->trailUsed ? logger->trail : prefix;
-	    if (logger->logfile) {
-		fprintf(logger->logfile, "%s%s\n", s, c);
+	    char *s = l->trailUsed ? l->trail : l->prfx;
+	    if (l->logfile) {
+		fprintf(l->logfile, "%s%s\n", s, c);
 	    } else {
 		syslog(LOG_ERR, "%s%s", s, c);
 	    }
-	    logger->trailUsed = 0;
+	    l->trailUsed = 0;
 	} else {
 	    /* no newline, append to trail */
-	    len = (!logger->trailUsed && prefix) ? strlen(prefix) : 0;
+	    len = (!l->trailUsed && l->prfx) ? strlen(l->prfx) : 0;
 	    len += strlen(c);
-	    if (logger->trailUsed + len >= logger->trailSize) {
-		logger->trailSize =
-		    logger->trailUsed + len + 80; /* Some extra space */
-		logger->trail = realloc(logger->trail, logger->trailSize);
-		if (!logger->trail) {
-		    do_panic(logger, "%s: no mem for trail%s\n", __func__, "");
+	    if (l->trailUsed + len >= l->trailSize) {
+		l->trailSize = l->trailUsed + len + 80; /* Some extra space */
+		l->trail = realloc(l->trail, l->trailSize);
+		if (!l->trail) {
+		    do_panic(l, "%s: no mem for trail%s\n", __func__, "");
 		}
 	    }
-	    if (!logger->trailUsed && prefix) {
+	    if (!l->trailUsed && l->prfx) {
 		/* some prefix to be put into trail */
-		logger->trailUsed = sprintf(logger->trail, "%s", prefix);
+		l->trailUsed = sprintf(l->trail, "%s", l->prfx);
 	    }
-	    logger->trailUsed +=
-		sprintf(logger->trail + logger->trailUsed, "%s", c);
+	    l->trailUsed += sprintf(l->trail + l->trailUsed, "%s", c);
 	}
 
 	c = r;
     }
 
-    if (logger->logfile) fflush(logger->logfile);
+    if (l->logfile) fflush(l->logfile);
 }
 
 void logger_print(logger_t* logger, int32_t key, const char* format, ...)
@@ -315,54 +333,52 @@ void logger_vprint(logger_t* logger, int32_t key,
 void logger_warn(logger_t* logger, int32_t key, int eno,
 		 const char* format, ...)
 {
-    static char* fmt = NULL;
-    static int fmtlen = 0;
     char* errstr = strerror(eno);
     va_list ap;
-    int len;
+    size_t len;
 
     if (!logger || ((key != -1) && !(logger->mask & key))) return;
 
-    len = snprintf(fmt, fmtlen,
+    len = snprintf(logger->fmt, logger->fmtSize,
 		   "%s: %s\n", format, errstr ? errstr : "UNKNOWN");
-    if (len >= fmtlen) {
-	fmtlen = len + 80; /* Some extra space */
-	fmt = (char*)realloc(fmt, fmtlen);
-	if (!fmt) {
+    if (len >= logger->fmtSize) {
+	logger->fmtSize = len + 80; /* Some extra space */
+	logger->fmt = (char*)realloc(logger->fmt, logger->fmtSize);
+	if (!logger->fmt) {
 	    do_panic(logger, "%s: no mem for '%s'\n", __func__, format);
 	}
-	sprintf(fmt, "%s: %s\n", format, errstr ? errstr : "UNKNOWN");
+	sprintf(logger->fmt, "%s: %s\n", format, errstr ? errstr : "UNKNOWN");
     }
 
     va_start(ap, format);
-    do_print(logger, fmt, ap);
+    do_print(logger, logger->fmt, ap);
     va_end(ap);
 }
 
 void logger_exit(logger_t* logger, int eno, const char* format, ...)
 {
-    static char* fmt = NULL;
-    static int fmtlen = 0;
     char* errstr = strerror(eno);
     va_list ap;
-    int len;
+    size_t len;
 
     if (!logger) return;
 
-    len = snprintf(fmt, fmtlen,
+    len = snprintf(logger->fmt, logger->fmtSize,
 		   "%s: %s\n", format, errstr ? errstr : "UNKNOWN");
-    if (len >= fmtlen) {
-	fmtlen = len + 80; /* Some extra space */
-	fmt = realloc(fmt, fmtlen);
-	if (!fmt) {
+    if (len >= logger->fmtSize) {
+	logger->fmtSize = len + 80; /* Some extra space */
+	logger->fmt = realloc(logger->fmt, logger->fmtSize);
+	if (!logger->fmt) {
 	    do_panic(logger, "%s: no mem for '%s'\n", __func__, format);
 	}
-	sprintf(fmt, "%s: %s\n", format, errstr ? errstr : "UNKNOWN");
+	sprintf(logger->fmt, "%s: %s\n", format, errstr ? errstr : "UNKNOWN");
     }
 
     va_start(ap, format);
-    do_print(logger, fmt, ap);
+    do_print(logger, logger->fmt, ap);
     va_end(ap);
+
+    logger_finalize(logger);
 
     exit(-1);
 }
