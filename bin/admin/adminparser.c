@@ -49,6 +49,12 @@ static int setupDefaultNL(void)
     return 1;
 }
 
+static void releaseDefaultNL(void)
+{
+    if (defaultNL) free(defaultNL);
+    defaultNL = NULL;
+}
+
 static char *getNodeList(char *nl_descr)
 {
     static char *nl = NULL;
@@ -1940,7 +1946,7 @@ static int versionCommand(char *token)
 
     printf("PSIADMIN: ParaStation administration tool\n");
     printf("Copyright (C) 1996-2004 ParTec AG Karlsruhe\n");
-    printf("Copyright (C) 2005-2010 ParTec Cluster Competence Center GmbH, Munich\n");
+    printf("Copyright (C) 2005-2011 ParTec Cluster Competence Center GmbH, Munich\n");
     printf("\n");
     printf("PSIADMIN:   %s\b/ %s\b/ %s\b \b\b\n", psiadmversion+11,
 	   commandsversion+11, parserversion+11);
@@ -2081,20 +2087,24 @@ int parseLine(char *line)
 {
     char *token;
 
-    static int firstCall = 1;
-
-    if (firstCall) {
-	parser_init(0, NULL);
-	parser_setDebugMask(0);
-	setupDefaultNL();
-	firstCall = 0;
-    }
-
     /* Put line into strtok() */
     token = parser_registerString(line, &lineParser);
 
     /* Do the parsing */
     return (parser_parseString(token, &lineParser) == quitMagic);
+}
+
+void parserPrepare(void)
+{
+    parser_init(0, NULL);
+    parser_setDebugMask(0);
+    setupDefaultNL();
+}
+
+void parserRelease(void)
+{
+    releaseDefaultNL();
+    parser_finalize();
 }
 
 #include <readline/readline.h>

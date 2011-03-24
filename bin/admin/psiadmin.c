@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2009 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2011 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -297,47 +297,39 @@ int main(int argc, const char **argv)
 
     signal(SIGTERM, PSIADM_sighandler);
 
-    /*
-     * Start the whole cluster if demanded
-     */
+    /* Start the whole cluster if demanded */
     if (start_all) PSIADM_AddNode(NULL);
 
-    /*
-     * Single command processing
-     */
+    parserPrepare();
+
+    /* Single command processing */
     if (copt) {
 	parseLine(copt);
+	parserRelease();
 	return 0;
     }
 
-    /* Initialize the parser */
-    parseLine("");
-
-    /*
-     * Read the startup file
-     */
+    /* Read the startup file */
     if (!noinit) {
 	int ret = handleRCfile(argv[0]);
+	parserRelease();
 	if (ret) return ret;
     }
 
-    /*
-     * Program-file processing
-     */
     if (progfile) {
+	/* Program-file processing */
 	rl_instream = fopen(progfile, "r");
 
 	if (!rl_instream) {
 	    char *errstr = strerror(errno);
 	    fprintf(stderr, "%s: %s: %s\n",
 		    argv[0], progfile, errstr ? errstr : "UNKNOWN");
+	    parserRelease();
 	    return -1;
 	}
 	quiet = 1;
     } else {
-	/*
-	 * Interactive mode
-	 */
+	/* Interactive mode */
 	using_history();
 	handleHistFile(argv[0]);
 
@@ -371,6 +363,8 @@ int main(int argc, const char **argv)
     if (!quiet) printf("PSIadmin: Goodbye\n");
 
     if (!progfile) saveHistFile(argv[0]);
+
+    parserRelease();
 
     return 0;
 }

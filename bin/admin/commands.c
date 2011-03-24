@@ -410,8 +410,7 @@ void PSIADM_SummaryStat(char *nl, int max)
     if (!nlDown) {
 	nlDown = malloc(PSC_getNrOfNodes());
 	if (!nlDown) {
-	    printf("%s: No memory\n", __func__);
-	    exit(1);
+	    parser_exit(errno, "%s: unable to initialize nlDown", __func__);
 	}
     }
     memset(nlDown, 0, PSC_getNrOfNodes());

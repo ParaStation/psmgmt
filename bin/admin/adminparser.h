@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005 Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2011 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -26,6 +26,25 @@ extern "C" {
 } /* <- just for emacs indentation */
 #endif
 #endif
+
+/**
+ * @brief Prepare parser
+ *
+ * Initialize parser. This has to be called before @ref parseLine().
+ *
+ * @return No return value.
+ */
+void parserPrepare(void);
+
+/**
+ * @brief Release parser
+ *
+ * Cleanup the parser. The behavior is undefined, if @ref parseLine()
+ * is called afterwards.
+ *
+ * @return No return value.
+ */
+void parserRelease(void);
 
 /**
  * @brief Parse admins input line.
