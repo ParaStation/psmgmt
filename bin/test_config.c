@@ -94,6 +94,8 @@ int main(int argc, const char *argv[])
     config = parseConfig(stderr, debugmask, file);
     if (!config) return 1;
 
+    logger_finalize(PSID_logger);
+
     printf("configuration file '%s' seems to be correct.\n", file);
 
     return 0;

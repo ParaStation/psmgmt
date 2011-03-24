@@ -70,8 +70,9 @@ int main(void)
 	exit(1);
     }
     my2 = logger_init("TEST2", stderr);
-    if (!my) {
+    if (!my2) {
 	fprintf(stderr, "Failed to initialize logger 'my2'\n");
+	logger_finalize(my);
 	exit(1);
     }
 
@@ -89,6 +90,9 @@ int main(void)
 
     logger_print(my, -1, "\n");
     logger_exit(my, 0, "final %s", "bla");
+
+    logger_finalize(my2);
+    logger_finalize(my);
 
     return 0;
 }
