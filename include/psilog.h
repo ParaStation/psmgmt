@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 1999-2002 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2008 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2011 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -55,7 +55,7 @@ void PSI_initLog(FILE* logfile);
  * @brief Test initialization of PSI logging facility.
  *
  * Test, if the PSI logging facility was initialized by calling @ref
- * PSI_initLog(). 
+ * PSI_initLog().
  *
  * @return If PSI_initLog() was called before, 1 is
  * returned. Otherwise 0 is returned.
@@ -119,6 +119,18 @@ void PSI_setDebugMask(int32_t mask);
  * @see logger_exit()
  */
 #define PSI_exit(...) logger_exit(PSI_logger, __VA_ARGS__)
+
+/**
+ * @brief Finalize PSI's logging facility.
+ *
+ * Finalize PSI's logging facility. This is mainly a wrapper to
+ * @ref logger_finalize().
+ *
+ * @return No return value.
+ *
+ * @see PSI_initLog(), logger_finalize()
+ */
+void PSI_finalizeLog(void);
 
 /**
  * Various message classes for logging. These define the different

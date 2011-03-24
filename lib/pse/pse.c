@@ -58,8 +58,8 @@ static void exitAll(char *reason, int code)
 	logger_print(logger, -1, "\n");
     }
 
-    fflush(stderr);
-    fflush(stdout);
+    PSI_finalizeLog();
+    logger_finalize(logger);
 
     exit(code);
 }
@@ -142,6 +142,7 @@ int PSE_getRank(void)
 {
     if (worldRank == -42) {
 	logger_print(logger, -1, "%s: not initialized\n", __func__);
+	logger_finalize(logger);
 
 	exit(1);
     }
@@ -371,8 +372,12 @@ void PSE_finalize(void)
     /* Don't kill parent/logger on exit */
     PSI_release(PSC_getMyTID());
 
+    PSI_exitClient();
+
     logger_print(logger, PSE_LOG_VERB, "[%d] Quitting program, good bye\n",
 		 PSE_getRank());
+    logger_finalize(logger);
+    logger = NULL;
 
     fflush(stdout);
     fflush(stderr);

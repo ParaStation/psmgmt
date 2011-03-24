@@ -35,9 +35,7 @@ void PSI_initLog(FILE* logfile)
 
 int PSI_logInitialized(void)
 {
-    if (PSI_logger) return 1;
-
-    return 0;
+    return !!PSI_logger;
 }
 
 int32_t PSI_getDebugMask(void)
@@ -48,4 +46,11 @@ int32_t PSI_getDebugMask(void)
 void PSI_setDebugMask(int32_t mask)
 {
     logger_setMask(PSI_logger, mask);
+}
+
+void PSI_finalizeLog(void)
+{
+    if (PSC_logInitialized()) PSC_finalizeLog();
+    if (PSI_logger) logger_finalize(PSI_logger);
+    PSI_logger = NULL;
 }

@@ -348,6 +348,8 @@ int PSI_exitClient(void)
     close(daemonSock);
     daemonSock = -1;
 
+    PSI_finalizeLog();
+
     return 1;
 }
 
