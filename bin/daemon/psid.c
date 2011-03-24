@@ -222,6 +222,7 @@ static void sighandler(int sig)
     case SIGSEGV:
 	PSID_log(-1, "Received signal %s. Shut down hardly.\n",
 		 sys_siglist[sig] ? sys_siglist[sig] : sigStr);
+	PSID_finalizeLogs();
 	exit(-1);
 	break;
     case SIGTERM:
@@ -521,10 +522,9 @@ int main(int argc, const char *argv[])
     }
 
     if (!logfile) {
-	openlog("psid",LOG_PID|LOG_CONS,LOG_DAEMON);
+	openlog("psid", LOG_PID|LOG_CONS, LOG_DAEMON);
     }
-    PSID_initLog(logfile);
-    PSC_initLog(logfile);
+    PSID_initLogs(logfile);
 
     printWelcome();
 
@@ -649,7 +649,7 @@ int main(int argc, const char *argv[])
 	if (ret > 1) {
 	    PSID_log(-1, "startup script '%s' failed. Exiting...\n",
 		     config->startupScript);
-
+	    PSID_finalizeLogs();
 	    exit(1);
 	}
     }
@@ -716,8 +716,7 @@ int main(int argc, const char *argv[])
 
 	hostlist = malloc(PSC_getNrOfNodes() * sizeof(unsigned int));
 	if (!hostlist) {
-	    PSID_log(-1, "Not enough memory for hostlist\n");
-	    exit(1);
+	    PSID_exit(errno, "Failed to get memory for hostlist");
 	}
 
 	for (i=0; i<PSC_getNrOfNodes(); i++) {

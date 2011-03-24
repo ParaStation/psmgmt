@@ -1,7 +1,7 @@
 /*
  *               ParaStation
  *
- * Copyright (C) 2006-2010 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2006-2011 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -50,6 +50,7 @@ long PSID_getVirtCPUs(void)
 	if (retry > MAX_RETRY) {
 	    PSID_log(-1 ,"%s: Found no CPU for %d sec. This most probably is"
 		     " not true. Exiting\n", __func__, RETRY_SLEEP * MAX_RETRY);
+	    PSID_finalizeLogs();
 	    exit(1);
 	}
 	PSID_log(-1, "%s: found no CPU. sleep(%d)...\n", __func__, RETRY_SLEEP);
@@ -83,6 +84,7 @@ long PSID_getPhysCPUs(void)
 	if (retry > MAX_RETRY) {
 	    PSID_log(-1 ,"%s: Found no CPU for %d sec. This most probably is"
 		     " not true. Exiting\n", __func__, RETRY_SLEEP * MAX_RETRY);
+	    PSID_finalizeLogs();
 	    exit(1);
 	}
 	PSID_log(-1, "%s: found no CPU. sleep(%d)...\n", __func__, RETRY_SLEEP);

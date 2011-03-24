@@ -45,7 +45,7 @@ config_t *config = NULL;
 logger_t *PSID_logger;
 
 /* Wrapper functions for logging */
-void PSID_initLog(FILE *logfile)
+void PSID_initLogs(FILE *logfile)
 {
     PSID_logger = logger_init(logfile ? "PSID" : NULL, logfile);
     if (!PSID_logger) {
@@ -56,6 +56,7 @@ void PSID_initLog(FILE *logfile)
 	}
 	exit(1);
     }
+    PSC_initLog(logfile);
 }
 
 int32_t PSID_getDebugMask(void)
@@ -66,6 +67,13 @@ int32_t PSID_getDebugMask(void)
 void PSID_setDebugMask(int32_t mask)
 {
     logger_setMask(PSID_logger, mask);
+}
+
+void PSID_finalizeLogs(void)
+{
+    PSC_finalizeLog();
+    logger_finalize(PSID_logger);
+    PSID_logger = NULL;
 }
 
 int PSID_blockSig(int block, int sig)
@@ -126,6 +134,7 @@ void PSID_readConfigFile(FILE* logfile, char *configfile)
     config = parseConfig(logfile, PSID_getDebugMask(), configfile);
     if (! config) {
 	PSID_log(-1, "%s: parsing of <%s> failed\n", __func__, configfile);
+	PSID_finalizeLogs();
 	exit(1);
     }
     config->logfile = logfile;
@@ -139,6 +148,7 @@ void PSID_readConfigFile(FILE* logfile, char *configfile)
     /* Try to find out if node is configured */
     if (PSC_getMyID() == -1) {
 	PSID_log(-1, "%s: Node not configured\n", __func__);
+	PSID_finalizeLogs();
 	exit(1);
     }
 
@@ -198,19 +208,15 @@ void PSID_getLock(void)
 {
     PSID_lockFD = open(LOCKFILENAME, O_CREAT, 0600);
     if (PSID_lockFD<0) {
-	PSID_warn(-1, errno, "%s: Unable to open lockfile '%s'",
-		  __func__, LOCKFILENAME);
-	exit (1);
+	PSID_exit(errno, "%s: open('%s')", __func__, LOCKFILENAME);
     }
 
     if (chmod(LOCKFILENAME, S_IRWXU | S_IRGRP | S_IROTH)) {
-	PSID_warn(-1, errno, "%s: chmod()", __func__);
-	exit (1);
+	PSID_exit(errno, "%s: chmod()", __func__);
     }
 
     if (flock(PSID_lockFD, LOCK_EX | LOCK_NB)) {
-	PSID_warn(-1, errno, "%s: Unable to get lock", __func__);
-	exit (1);
+	PSID_exit(errno, "%s: flock()", __func__);
     }
 }
 
@@ -326,6 +332,7 @@ void PSID_enableMasterSock(void)
     if (!Selector_isInitialized()) {
 	PSID_log(-1, "%s: Local Service Port needs running Selector\n",
 		 __func__);
+	PSID_finalizeLogs();
 	exit(-1);
     }
     Selector_register(masterSock, handleMasterSock, NULL);

@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2010 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2011 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -21,7 +21,7 @@ static char vcid[] __attribute__((used)) =
 
 #include "psidmsgbuf.h"
 
-/** Amount of payload data available within a small msgbuf */ 
+/** Amount of payload data available within a small msgbuf */
 #define MSGBUF_SMALLSIZE 64
 
 /**
@@ -289,10 +289,7 @@ void PSIDMsgbuf_printStat(void)
 
 void PSIDMsgbuf_init(void)
 {
-    if (!incFreeList()) {
-	PSID_log(-1, "%s: no memory\n", __func__);
-	exit(0);
-    }
+    if (!incFreeList()) PSID_exit(ENOMEM, "%s", __func__);
 
     PSID_registerLoopAct(PSIDMsgbuf_gc);
 

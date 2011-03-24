@@ -26,6 +26,7 @@
 #include "psprotocol.h"
 #include "logging.h"
 #include "config_parsing.h"
+#include "pscommon.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -41,16 +42,17 @@ extern logger_t *PSID_logger;
  * @brief Initialize the PSID logging facility.
  *
  * Initialize the PSID logging facility. This is mainly a wrapper to
- * @ref initErrLog().
+ * @ref logger_init(). Additionally, PSC's logging facility is
+ * initialized, too.
  *
  * @param logfile File to use for logging. If NULL, use syslog(3) for
  * any output.
  *
  * @return No return value.
  *
- * @see initErrLog(), syslog(3)
+ * @see logger_init(), syslog(3), PSID_finalizeLogs()
  */
-void PSID_initLog(FILE *logfile);
+void PSID_initLogs(FILE *logfile);
 
 /**
  * @brief Get the log-mask of the PSID logging facility.
@@ -98,7 +100,7 @@ void PSID_setDebugMask(int32_t mask);
  *
  * @see logger_warn()
  */
-#define PSID_warn(...) if (PSID_logger) logger_warn(PSID_logger, __VA_ARGS__)
+#define PSID_warn(...) if (PSID_logger)	logger_warn(PSID_logger, __VA_ARGS__)
 
 /**
  * Print a warn messages via PSID's logging facility @a PSID_logger
@@ -108,7 +110,23 @@ void PSID_setDebugMask(int32_t mask);
  *
  * @see logger_exit()
  */
-#define PSID_exit(...) if (PSID_logger) logger_exit(PSID_logger, __VA_ARGS__)
+#define PSID_exit(...) if (PSID_logger) {	\
+	PSC_finalizeLog();			\
+	logger_exit(PSID_logger, __VA_ARGS__);	\
+    }
+
+/**
+ * @brief Finalize PSID's logging facility.
+ *
+ * Finalize PSID's logging facility. This is mainly a wrapper to
+ * @ref logger_finalize(). Additionally, PSC's logging facility is
+ * finalized, too.
+ *
+ * @return No return value.
+ *
+ * @see PSID_initLogs(), logger_finalize()
+ */
+void PSID_finalizeLogs(void);
 
 /**
  * Various message classes for logging. These define the different
@@ -321,7 +339,7 @@ void PSID_shutdownMasterSock(void);
  * @brief Set daemon's start-time
  *
  * Upon first call to this function the current time will be fixed as
- * the daemon's start-time. I.e. thes function shall be called as soon
+ * the daemon's start-time. I.e. these function shall be called as soon
  * as possible during the daemon's startup.
  *
  * @return No return value
@@ -357,7 +375,7 @@ void PSID_dumpMsg(DDMsg_t *msg);
 /**
  * @brief Main-loop action
  *
- * A loop-action funtion called repeatedly from within the daemon's
+ * A loop-action function called repeatedly from within the daemon's
  * main-loop.
  */
 typedef void PSID_loopAction_t(void);

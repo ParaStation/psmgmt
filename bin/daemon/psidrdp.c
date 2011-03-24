@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2010 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2011 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -44,10 +44,7 @@ void initRDPMsgs(void)
     int i;
 
     node_bufs = malloc(sizeof(*node_bufs) * PSC_getNrOfNodes());
-    if (!node_bufs) {
-	PSID_log(-1, "%s: no memory\n", __func__);
-	exit(0);
-    }
+    if (!node_bufs) PSID_exit(errno, "%s", __func__);
 
     for (i=0; i<PSC_getNrOfNodes(); i++) {
 	INIT_LIST_HEAD(&node_bufs[i].list);

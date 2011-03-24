@@ -116,6 +116,7 @@ void PSID_shutdown(void)
 	PSID_stopAllHW();
 	PSID_unregisterLoopAct(PSID_shutdown);
 	PSID_log(-1, "%s: good bye\n", __func__);
+	PSID_finalizeLogs();
 	exit(0);
     default:
 	PSID_log(-1, "%s: unknown phase %d\n", __func__, phase);

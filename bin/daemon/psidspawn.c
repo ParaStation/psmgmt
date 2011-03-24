@@ -271,10 +271,7 @@ static void pty_setowner(uid_t uid, gid_t gid, const char *tty)
      * Warn but continue if filesystem is read-only and the uids match/
      * tty is owned by root.
      */
-    if (stat(tty, &st)) {
-	PSID_exit(errno, "%s: stat(%s)", __func__, tty);
-	exit(1);
-    }
+    if (stat(tty, &st)) PSID_exit(errno, "%s: stat(%s)", __func__, tty);
 
     if (st.st_uid != uid || st.st_gid != gid) {
 	if (chown(tty, uid, gid) < 0) {
@@ -1286,9 +1283,8 @@ static void execForwarder(PStask_t *task, int daemonfd)
 	/* redirect stdin/stdout/stderr */
 	if (dup2(task->stderr_fd, STDERR_FILENO) < 0) {
 	    eno = errno;
-	    PSID_warn(-1, eno, "%s: dup2(stderr)", __func__);
 	    ret = write(task->fd, &eno, sizeof(eno));
-	    exit(1);
+	    PSID_exit(eno, "%s: dup2(stderr)", __func__);
 	}
 
 	/* From now on, all logging is done via the forwarder thru stderr */
