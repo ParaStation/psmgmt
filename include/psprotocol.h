@@ -108,11 +108,6 @@ typedef enum {
     PSP_OP_MCASTDEBUG = 0x0028,   /**< MCast's debug level */
     PSP_OP_RDPSTATISTICS,         /**< Status of RDP statistics */
 
-    PSP_OP_PSM_SPS = 0x0030,      /**< @deprecated */
-    PSP_OP_PSM_RTO,               /**< @deprecated */
-    PSP_OP_PSM_HNPEND,            /**< @deprecated */
-    PSP_OP_PSM_ACKPEND,           /**< @deprecated */
-
     PSP_OP_FREEONSUSP = 0x0038,   /**< Free suspended job's resources? */
     PSP_OP_HANDLEOLD,             /**< Notice old binaries? */
     PSP_OP_NODESSORT,             /**< Sorting strategy for nodes */

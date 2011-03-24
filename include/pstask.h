@@ -249,40 +249,10 @@ PStask_t *PStask_clone(PStask_t *task);
 void PStask_snprintf(char *txt, size_t size, PStask_t *task);
 
 /**
- * @brief Encode a task structure.
- * @deprecated
- *
- * Encode the task structure @a task into the the buffer @a buffer of
- * size @a size. This enables the task to be sent to a remote node
- * where it can be decoded using the @ref PStask_decodeFull() function.
- *
- * This function encodes the full task structure, i.e. including the
- * argv part and the whole environment. This might lead to huge
- * packets sent to remote nodes on the hand and disables some task
- * structures to be sent at all.
- *
- * In order to circumvent such problems, a new family of encoding
- * functions (@ref PStask_encodeTask(), @ref PStask_encodeArgv(), @ref
- * PStask_encodeEnv()) was introduced.
- *
- * @param buffer The buffer used to encode the task structure.
- *
- * @param size The size of the buffer.
- *
- * @param task The task structure to encode.
- *
- * @return On success, the number of bytes written to the buffer are
- * returned. If the return value is larger than @a size, the buffer is
- * to small in order to encode the whole task. If this is the case the
- * new family of encoding functions might help.
- *
- * @see PStask_decodeFull(), PStask_encodeTask(), PStask_encodeArgv(),
- * PStask_encodeEnv()
- */
-size_t PStask_encodeFull(char *buffer, size_t size, PStask_t *task);
-
-/**
  * @brief Decode a task structure.
+ *
+ * Deprecated function. This is just included for
+ * backward-compatibility of the daemon.
  *
  * Decode a task structure encoded by @ref PStask_encodeFull() and
  * stored within @a buffer and write it to the task structure @a task
@@ -294,6 +264,8 @@ size_t PStask_encodeFull(char *buffer, size_t size, PStask_t *task);
  *
  * @return The number of characters within @a buffer used in order to
  * decode the task structure.
+ *
+ * @deprecated Included for backward-compatibility. To be removed soon.
  *
  * @see PStask_encodeFull()
  */

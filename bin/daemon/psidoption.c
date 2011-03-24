@@ -264,23 +264,6 @@ static void msg_SETOPTION(DDOptionMsg_t *msg)
 		     __func__, msg->opt[i].option, msg->opt[i].value);
 
 	    switch (msg->opt[i].option) {
-	    case PSP_OP_PSM_SPS:
-	    case PSP_OP_PSM_RTO:
-	    case PSP_OP_PSM_HNPEND:
-	    case PSP_OP_PSM_ACKPEND:
-	    {
-		static int MYRINETindex = -1;
-
-		if (MYRINETindex == -1) {
-		    MYRINETindex = HW_index("myrinet");
-		}
-
-		if (MYRINETindex != -1) {
-		    PSID_setParam(MYRINETindex,
-				  msg->opt[i].option, msg->opt[i].value);
-		}
-		break;
-	    }
 	    case PSP_OP_PSIDSELECTTIME:
 		if (msg->opt[i].value > 0) {
 		    selectTime.tv_sec = msg->opt[i].value;
@@ -814,25 +797,6 @@ static void msg_GETOPTION(DDOptionMsg_t *msg)
 	    msg->opt[out].option = msg->opt[in].option;
 
 	    switch (msg->opt[in].option) {
-	    case PSP_OP_PSM_SPS:
-	    case PSP_OP_PSM_RTO:
-	    case PSP_OP_PSM_HNPEND:
-	    case PSP_OP_PSM_ACKPEND:
-	    {
-		static int MYRINETindex = -1;
-
-		if (MYRINETindex == -1) {
-		    MYRINETindex = HW_index("myrinet");
-		}
-
-		if (MYRINETindex != -1) {
-		    msg->opt[out].value = PSID_getParam(MYRINETindex,
-							msg->opt[in].option);
-		} else {
-		    msg->opt[out].value = -1;
-		}
-		break;
-	    }
 	    case PSP_OP_PROTOCOLVERSION:
 		msg->opt[out].value = PSIDnodes_getProtoV(PSC_getMyID());
 		break;

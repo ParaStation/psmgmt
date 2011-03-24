@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2008 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2011 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -168,30 +168,30 @@ int main(int argc, const char *argv[])
     poptContext optCon;   /* context for parsing command-line options */
 
     struct poptOption optionsTable[] = {
-        { "nodes", 'n', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH,
+	{ "nodes", 'n', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH,
 	  &nodelist, 0, "list of nodes to use", "nodelist"},
-        { "hosts", 'h', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH,
+	{ "hosts", 'h', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH,
 	  &hostlist, 0, "list of hosts to use", "hostlist"},
-        { "hostfile", '\0', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH,
+	{ "hostfile", '\0', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH,
 	  &hostfile, 0, "hostfile to use", "hostfile"},
-        { "sort", '\0', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH,
+	{ "sort", '\0', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH,
 	  &sort, 0, "sorting criterium to use", "{proc|load|proc+load|none}"},
-        { "inputdest", '\0', POPT_ARG_INT | POPT_ARGFLAG_ONEDASH,
+	{ "inputdest", '\0', POPT_ARG_INT | POPT_ARGFLAG_ONEDASH,
 	  &dest, 0, "direction to forward input", "dest"},
-        { "rusage", '\0', POPT_ARG_NONE | POPT_ARGFLAG_ONEDASH,
+	{ "rusage", '\0', POPT_ARG_NONE | POPT_ARGFLAG_ONEDASH,
 	  &rusage, 0, "print consumed sys/user time", NULL},
-        { "exports", '\0', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH,
+	{ "exports", '\0', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH,
 	  &envlist, 0, "environment to export to foreign nodes", "envlist"},
-        { "login", 'l', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH,
+	{ "login", 'l', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH,
 	  &login, 0, "remote user used to execute command", "login_name"},
-        { "np", '\0', POPT_ARG_INT | POPT_ARGFLAG_ONEDASH,
+	{ "np", '\0', POPT_ARG_INT | POPT_ARGFLAG_ONEDASH,
 	  &partitionsize, 0, "Size of partition", "count"},
 	{ "verbose", 'v', POPT_ARG_NONE,
 	  &verbose, 0, "verbose mode", NULL},
-        { "version", 'V', POPT_ARG_NONE,
+	{ "version", 'V', POPT_ARG_NONE,
 	  &version, -1, "output version information and exit", NULL},
-        POPT_AUTOHELP
-        { NULL, '\0', 0, NULL, 0, NULL, NULL}
+	POPT_AUTOHELP
+	{ NULL, '\0', 0, NULL, 0, NULL, NULL}
     };
 
     /* The duplicated argv will contain the apps commandline */
@@ -227,7 +227,7 @@ int main(int argc, const char *argv[])
 		if (strcmp(dup_argv[i], unknownArg)==0) {
 		    dup_argc = i;
 		    dup_argv[dup_argc] = NULL;
-		    poptFreeContext(optCon);	
+		    poptFreeContext(optCon);
 		    optCon = poptGetContext(NULL,
 					    dup_argc, (const char **)dup_argv,
 					    optionsTable, 0);
@@ -246,21 +246,21 @@ int main(int argc, const char *argv[])
     }
 
     if (rc < -1) {
-        /* an error occurred during option processing */
-        poptPrintUsage(optCon, stderr, 0);
-        fprintf(stderr, "%s: %s\n",
-                poptBadOption(optCon, POPT_BADOPTION_NOALIAS),
-                poptStrerror(rc));
-        exit(1);
+	/* an error occurred during option processing */
+	poptPrintUsage(optCon, stderr, 0);
+	fprintf(stderr, "%s: %s\n",
+		poptBadOption(optCon, POPT_BADOPTION_NOALIAS),
+		poptStrerror(rc));
+	exit(1);
     }
 
     if (version) {
-        printVersion();
-        return 0;
+	printVersion();
+	return 0;
     }
 
     if (!argv[dup_argc]) {
-        poptPrintUsage(optCon, stderr, 0);
+	poptPrintUsage(optCon, stderr, 0);
 	fprintf(stderr, "No <command> specified.\n");
 	exit(1);
     }
@@ -361,8 +361,6 @@ int main(int argc, const char *argv[])
 	/* Never be here ! */
 	exit(1);
     }
-
-    PSE_registerToParent();
 
     for (i=dup_argc; i<argc; i++) {
 	totlen += strlen(argv[i])+1;

@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2009 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2011 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -130,7 +130,8 @@ int PSE_getRank(void);
  *
  * @see PSE_initialize(), PSE_getRank()
  * */
-void PSE_init(int NP, int *rank);
+void PSE_init(int NP, int *rank)
+    __attribute__((deprecated));
 
 /**
  * @brief Register to the parents task. Deprecated!
@@ -152,7 +153,8 @@ void PSE_init(int NP, int *rank);
  * the daemon processes now. Thus calling this function is not
  * necessary any longer.
  */
-void PSE_registerToParent(void);
+void PSE_registerToParent(void)
+    __attribute__((deprecated));
 
 /**
  * @brief Set UID for spawns
@@ -473,20 +475,6 @@ void PSE_finalize(void);
  * @see PSE_finalize(), exit(2)
  * */
 void PSE_abort(int code);
-
-/* For compatibility with old versions, to be removed soon */
-/** Compatibility define @deprecated To be removed soon*/
-#define PSEinit      PSE_init
-/** Compatibility define @deprecated To be removed soon*/
-#define PSEspawn     PSE_spawn
-/** Compatibility define @deprecated To be removed soon*/
-#define PSEfinalize  PSE_finalize
-/** Compatibility define @deprecated To be removed soon*/
-#define PSEabort     PSE_abort
-/** Compatibility define @deprecated To be removed soon*/
-#define PSEgetmyrank PSE_getRank
-/** Compatibility define @deprecated To be removed soon*/
-#define PSEgetsize   PSE_getSize
 
 #ifdef __cplusplus
 }/* extern "C" */

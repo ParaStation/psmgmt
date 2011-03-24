@@ -1,7 +1,7 @@
 /*
  *               ParaStation
  *
- * Copyright (C) 2006-2010 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2006-2011 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -107,7 +107,8 @@ void PSID_getCounter(DDTypedBufferMsg_t *inmsg);
  *
  * @return No return value.
  */
-void PSID_setParam(int hw, PSP_Option_t option, PSP_Optval_t value);
+void PSID_setParam(int hw, PSP_Option_t option, PSP_Optval_t value)
+    __attribute__((deprecated));
 
 /**
  * @brief Get hardware parameter.
@@ -119,7 +120,8 @@ void PSID_setParam(int hw, PSP_Option_t option, PSP_Optval_t value);
  *
  * @return Will always return -1.
  */
-PSP_Optval_t PSID_getParam(int hw, PSP_Option_t option);
+PSP_Optval_t PSID_getParam(int hw, PSP_Option_t option)
+    __attribute__((deprecated));
 
 /**
  * @brief Get number of virtual CPUs.
