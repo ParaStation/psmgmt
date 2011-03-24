@@ -793,7 +793,7 @@ static int setHWType(int hw)
 		       HW_printType(hw));
     } else {
 	node_hwtype = hw;
-	parser_commentCont(PARSER_LOG_NODE, " HW '%s'", HW_printType(hw));
+	parser_comment(PARSER_LOG_NODE, " HW '%s'", HW_printType(hw));
     }
     return 0;
 }
@@ -880,8 +880,8 @@ static int getCS(char *token)
 		       cs ? "TRUE" : "FALSE");
     } else {
 	node_canstart = cs;
-	parser_commentCont(PARSER_LOG_NODE, " starting%s allowed",
-			   cs ? "":" not");
+	parser_comment(PARSER_LOG_NODE, " starting%s allowed",
+		       cs ? "":" not");
     }
     return 0;
 }
@@ -901,7 +901,7 @@ static int getRJ(char *token)
 		       rj ? "TRUE" : "FALSE");
     } else {
 	node_runjobs = rj;
-	parser_commentCont(PARSER_LOG_NODE, " jobs%s allowed", rj ? "":" not");
+	parser_comment(PARSER_LOG_NODE, " jobs%s allowed", rj ? "":" not");
     }
     return 0;
 }
@@ -1211,7 +1211,7 @@ static int getSingleUser(char *user)
 		       "setting default 'User' to '%s%s'\n", actStr, uStr);
 	GUIDaction(&defaultUID, uid);
     } else {
-	parser_commentCont(PARSER_LOG_NODE, " user '%s%s'", actStr, uStr);
+	parser_comment(PARSER_LOG_NODE, " user '%s%s'", actStr, uStr);
 	GUIDaction(&nodeUID, uid);
     }
     free(uStr);
@@ -1277,7 +1277,7 @@ static int getSingleGroup(char *group)
 		       "setting default 'Group' to '%s%s'\n", actStr, gStr);
 	GUIDaction(&defaultGID, gid);
     } else {
-	parser_commentCont(PARSER_LOG_NODE, " group '%s%s'", actStr, gStr);
+	parser_comment(PARSER_LOG_NODE, " group '%s%s'", actStr, gStr);
 	GUIDaction(&nodeGID, gid);
     }
     free(gStr);
@@ -1343,7 +1343,7 @@ static int getSingleAdminUser(char *user)
 		       "setting default 'AdminUser' to '%s%s'\n", actStr, uStr);
 	GUIDaction(&defaultAdmUID, uid);
     } else {
-	parser_commentCont(PARSER_LOG_NODE, " adminuser '%s%s'", actStr, uStr);
+	parser_comment(PARSER_LOG_NODE, " adminuser '%s%s'", actStr, uStr);
 	GUIDaction(&nodeAdmUID, uid);
     }
     free(uStr);
@@ -1409,7 +1409,7 @@ static int getSingleAdminGroup(char *group)
 		       "setting default 'AdminGroup' to '%s%s'\n", actStr,gStr);
 	GUIDaction(&defaultAdmGID, gid);
     } else {
-	parser_commentCont(PARSER_LOG_NODE, " admingroup '%s%s'", actStr, gStr);
+	parser_comment(PARSER_LOG_NODE, " admingroup '%s%s'", actStr, gStr);
 	GUIDaction(&nodeAdmGID, gid);
     }
     free(gStr);
@@ -1467,19 +1467,19 @@ static int getProcs(char *token)
 	default_procs = procs;
 	parser_comment(PARSER_LOG_NODE, "setting default 'Processes' to '");
 	if (procs == -1) {
-	    parser_commentCont(PARSER_LOG_NODE, "ANY");
+	    parser_comment(PARSER_LOG_NODE, "ANY");
 	} else {
-	    parser_commentCont(PARSER_LOG_NODE, "%ld", procs);
+	    parser_comment(PARSER_LOG_NODE, "%ld", procs);
 	}
-	parser_commentCont(PARSER_LOG_NODE, "'\n");
+	parser_comment(PARSER_LOG_NODE, "'\n");
     } else {
 	node_procs = procs;
 	if (procs == -1) {
-	    parser_commentCont(PARSER_LOG_NODE, " any");
+	    parser_comment(PARSER_LOG_NODE, " any");
 	} else {
-	    parser_commentCont(PARSER_LOG_NODE, " %ld", procs);
+	    parser_comment(PARSER_LOG_NODE, " %ld", procs);
 	}
-	parser_commentCont(PARSER_LOG_NODE, " procs");
+	parser_comment(PARSER_LOG_NODE, " procs");
     }
     return 0;
 }
@@ -1510,8 +1510,8 @@ static int getOB(char *token)
 		       (ob==OVERBOOK_AUTO) ? "auto" : ob ? "TRUE" : "FALSE");
     } else {
 	node_overbook = ob;
-	parser_commentCont(PARSER_LOG_NODE, " overbooking is '%s'",
-			   ob==OVERBOOK_AUTO ? "auto" : ob ? "TRUE" : "FALSE");
+	parser_comment(PARSER_LOG_NODE, " overbooking is '%s'",
+		       ob==OVERBOOK_AUTO ? "auto" : ob ? "TRUE" : "FALSE");
     }
     return 0;
 }
@@ -1531,8 +1531,8 @@ static int getExcl(char *token)
 		       excl ? "TRUE" : "FALSE");
     } else {
 	node_exclusive = excl;
-	parser_commentCont(PARSER_LOG_NODE, " exclusive assign%s allowed",
-			   excl ? "":" not");
+	parser_comment(PARSER_LOG_NODE, " exclusive assign%s allowed",
+		       excl ? "":" not");
     }
     return 0;
 }
@@ -1552,8 +1552,8 @@ static int getPinProcs(char *token)
 		       pinProcs ? "TRUE" : "FALSE");
     } else {
 	node_pinProcs = pinProcs;
-	parser_commentCont(PARSER_LOG_NODE, " processes are%s pinned",
-			   pinProcs ? "":" not");
+	parser_comment(PARSER_LOG_NODE, " processes are%s pinned",
+		       pinProcs ? "":" not");
     }
     return 0;
 }
@@ -1573,8 +1573,8 @@ static int getBindMem(char *token)
 		       bindMem ? "TRUE" : "FALSE");
     } else {
 	node_bindMem = bindMem;
-	parser_commentCont(PARSER_LOG_NODE, " memory is%s bound",
-			   bindMem ? "":" not");
+	parser_comment(PARSER_LOG_NODE, " memory is%s bound",
+		       bindMem ? "":" not");
     }
     return 0;
 }
@@ -1594,8 +1594,8 @@ static int getSupplGrps(char *token)
 		       supplGrps ? "TRUE" : "FALSE");
     } else {
 	node_supplGrps = supplGrps;
-	parser_commentCont(PARSER_LOG_NODE, " supplementary groups are%s set",
-			   supplGrps ? "":" not");
+	parser_comment(PARSER_LOG_NODE, " supplementary groups are%s set",
+		       supplGrps ? "":" not");
     }
     return 0;
 }
@@ -1615,7 +1615,7 @@ static int getMaxStatTry(char *token)
 		       "setting default 'maxStatTry' to %d\n", try);
     } else {
 	node_maxStatTry = try;
-	parser_commentCont(PARSER_LOG_NODE, " maxStatTry are '%d'", try);
+	parser_comment(PARSER_LOG_NODE, " maxStatTry are '%d'", try);
     }
     return 0;
 }
@@ -1665,7 +1665,7 @@ static int getCPUmapEnt(char *token)
 	node_cpumap[node_cpumap_size] = val;
 	node_cpumap_size++;
     }
-    parser_commentCont(PARSER_LOG_NODE, " %ld", val);
+    parser_comment(PARSER_LOG_NODE, " %ld", val);
     return 0;
 }
 
@@ -1702,15 +1702,15 @@ static int getCPUmap(char *token)
 	parser_comment(PARSER_LOG_NODE, "default CPUmap {");
     } else {
 	node_cpumap_size = 0;
-	parser_commentCont(PARSER_LOG_NODE, " CPUMap {");
+	parser_comment(PARSER_LOG_NODE, " CPUMap {");
     }
 
     ret = parser_parseToken(parser_getString(), &cpumap_parser);
     if (ret == ENV_END) ret = 0;
 
     if (!ret) {
-	parser_commentCont(PARSER_LOG_NODE, " }");
-	if (currentID == DEFAULT_ID) parser_commentCont(PARSER_LOG_NODE, "\n");
+	parser_comment(PARSER_LOG_NODE, " }");
+	if (currentID == DEFAULT_ID) parser_comment(PARSER_LOG_NODE, "\n");
     }
 
     return ret;
@@ -1762,7 +1762,7 @@ static int getEnvLine(char *token)
 	parser_comment(PARSER_LOG_RES, "got environment: %s='%s'\n",
 		       token, value);
     } else {
-	parser_commentCont(PARSER_LOG_NODE, " env %s='%s'", token, value);
+	parser_comment(PARSER_LOG_NODE, " env %s='%s'", token, value);
     }
 
     return envActive ? 0 : ENV_END;
@@ -1948,8 +1948,8 @@ static int newHost(int id, in_addr_t addr)
 	in_addr_t other = PSIDnodes_getAddr(id);
 	parser_comment(-1, "duplicated ID <%d> for hosts <%s>",
 		       id, inet_ntoa(* (struct in_addr *) &addr));
-	parser_commentCont(-1, " and <%s>\n",
-			   inet_ntoa(* (struct in_addr *) &other));
+	parser_comment(-1, " and <%s>\n",
+		       inet_ntoa(* (struct in_addr *) &other));
 	return -1;
     }
 
@@ -2033,25 +2033,25 @@ static int newHost(int id, in_addr_t addr)
     }
 
     if (pushGUID(id, PSIDNODES_USER, &nodeUID)) {
-	parser_comment(-1, "pushGUID(%d, PSIDNODES_USER, %p) failed",
+	parser_comment(-1, "pushGUID(%d, PSIDNODES_USER, %p) failed\n",
 		       id, &nodeUID);
 	return -1;
     }
 
     if (pushGUID(id, PSIDNODES_GROUP, &nodeGID)) {
-	parser_comment(-1, "pushGUID(%d, PSIDNODES_GROUP, %p) failed",
+	parser_comment(-1, "pushGUID(%d, PSIDNODES_GROUP, %p) failed\n",
 		       id, &nodeGID);
 	return -1;
     }
 
     if (pushGUID(id, PSIDNODES_ADMUSER, &nodeAdmUID)) {
-	parser_comment(-1, "pushGUID(%d, PSIDNODES_ADMUSER, %p) failed",
+	parser_comment(-1, "pushGUID(%d, PSIDNODES_ADMUSER, %p) failed\n",
 		       id, &nodeAdmUID);
 	return -1;
     }
 
     if (pushGUID(id, PSIDNODES_ADMGROUP, &nodeAdmGID)) {
-	parser_comment(-1, "pushGUID(%d, PSIDNODES_ADMGROUP, %p) failed",
+	parser_comment(-1, "pushGUID(%d, PSIDNODES_ADMGROUP, %p) failed\n",
 		       id, &nodeAdmGID);
 	return -1;
     }
@@ -2118,7 +2118,7 @@ static int getNodeLine(char *token)
     currentID = nodenum;
 
     ret = parser_parseString(parser_getString(), &nodeline_parser);
-    parser_commentCont(PARSER_LOG_NODE, "\n");
+    parser_comment(PARSER_LOG_NODE, "\n");
     if (ret) return ret;
 
     currentID = DEFAULT_ID;
@@ -2296,7 +2296,8 @@ static int getMultiNodes(char *token)
 {
     int ret;
     long n, first, last, step;
-    char *rangeStr, *hostStr, *idStr;
+    char *rangeStr, *hostStr, *idStr, *realHost = NULL, *realID = NULL;
+    size_t realHostSize = 0, realIDSize = 0;
 
     rangeStr = parser_getString();
     if (!rangeStr) {
@@ -2321,15 +2322,13 @@ static int getMultiNodes(char *token)
     currentID = GENERATE_ID;
 
     ret = parser_parseString(parser_getString(), &nodeline_parser);
-    parser_commentCont(PARSER_LOG_NODE, "\n");
+    parser_comment(PARSER_LOG_NODE, "\n");
     if (ret) return ret;
 
     currentID = DEFAULT_ID;
 
     for (n=first; n<=last; n+=step) {
 	in_addr_t ipaddr;
-	static char *realHost = NULL, *realID = NULL;
-	static size_t realHostSize = 0, realIDSize = 0;
 	int nodenum;
 
 	ret = handleGenStr(n, hostStr, &realHost, &realHostSize);
@@ -2349,6 +2348,9 @@ static int getMultiNodes(char *token)
 	    PSC_setMyID(nodenum);
 	}
     }
+
+    if (realHost) free(realHost);
+    if (realID) free(realID);
 
     clearEnv();
 
@@ -2789,6 +2791,17 @@ config_t *parseConfig(FILE* logfile, int logmask, char *configfile)
 	/* hosts missing in hostlist */
 	parser_comment(-1, "WARNING: # to few hosts in hostlist\n");
     }
+
+    if (default_cpumap != std_cpumap) {
+	free(default_cpumap);
+	default_cpumap = std_cpumap;
+    }
+    if (node_cpumap) {
+	node_cpumap = NULL;
+	node_cpumap_maxsize = 0;
+    }
+
+    parser_finalize();
 
     return &config;
 }

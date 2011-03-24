@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2002-2003 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2009 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2011 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -65,7 +65,7 @@ typedef struct parser_T {
  * @return No return value.
  *
  * @see parser_setFile()
- * */
+ */
 void parser_init(FILE* logfile, FILE* input);
 
 /**
@@ -265,14 +265,14 @@ void parser_setDebugMask(int32_t mask);
  *
  * The message is only put out if either:
  *
- * - the key @a key bitwise or'ed with @a parser's current debug-mask
+ * - the key @a key bitwise or'ed with the parser's current debug-mask
  * set via @ref setDebugMask() is different form zero, or
  *
  * - the key @a key is -1.
  *
  * Thus all messages with @a key set to -1 are put out always,
  * independently of the choice of @a parser's mask. Therefor critical
- * messages of general interest should be but out with @a key st to
+ * messages of general interest should be but out with @a key set to
  * this value.
  *
  * @param key The key to use in order to decide if anything is put out.
@@ -292,6 +292,12 @@ __attribute__((format(printf,2,3)));
 
 /**
  * @brief Continue a comment.
+ *
+ * Deprecated function. This is just included for
+ * backward-compatibility. Since pre-pending of the line-info is now
+ * done via tags it is save to continue comments via @ref
+ * parser_comment() without spoiling the output with additional
+ * line-information.
  *
  * Print out a comment concerning actual parsing. The @a comment will
  * *not* be prepended by any information, thus this function may act
@@ -320,11 +326,13 @@ __attribute__((format(printf,2,3)));
  *
  * @return No return value.
  *
+ * @deprecated Included for backward-compatibility. To be removed soon.
+ *
  * @see logger_print(), parser_getDebugLevel(),
  * parser_setDebugLevel(), parser_comment()
  */
 void parser_commentCont(parser_log_key_t key, char* format, ...)
-__attribute__((format(printf,2,3)));
+    __attribute__((format(printf,2,3),deprecated));
 
 /**
  * @brief Print a warn-messages and exit.
@@ -509,6 +517,18 @@ int parser_getBool(char* token, int* value, char* valname);
  * returns 0.
  */
 int parser_parseOn(char* line, parser_t* parser);
+
+/**
+ * @brief Shutdown the parser module.
+ *
+ * Shutdown the parser module and release all ressources occupied.
+ *
+ * Once the module is shut down all further calls to functions of the
+ * parser module gives unspecifie results.
+ *
+ * @return No return value.
+ */
+void parser_finalize(void);
 
 #ifdef __cplusplus
 }/* extern "C" */

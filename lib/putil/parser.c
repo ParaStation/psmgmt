@@ -29,21 +29,43 @@ static char vcid[] __attribute__((used)) =
 
 #include "parser.h"
 
-static logger_t *logger;
+/** logger used for error- and progress-messages */
+static logger_t *logger = NULL;
 
+/** The file to parse, if any */
 static FILE *parsefile;
 
+/** strtok_r()'s workspace */
 static char *strtok_work;
 
+/** Number of the current line to parse */
 static int parseline;
 
+/**
+ * @brief Get next line
+ *
+ * Get the next line from the file to parse. This function already
+ * handles the continuation of lines via '\', i.e. it might fetch more
+ * than one line of the actual file as long as they belong together in
+ * a logical way.
+ *
+ * The line is stored into a static buffer and a pointer to this
+ * buffer is returned. Therefore the length of (logical) lines is
+ * currently limited to 512 characters.
+ *
+ * @return Pointer to the line fetched, or NULL, if an error occurred.
+ */
 static char *nextline(void)
 {
     static char line[512];
+    char tag[32];
     int length=0;
 
  continuation:
     parseline++;
+
+    snprintf(tag, sizeof(tag), "Parser in line %d", parseline);
+    logger_setTag(logger, tag);
 
     if (!fgets(line+length, sizeof(line)-length, parsefile)) {
 	parser_comment(PARSER_LOG_FILE, "Got EOF\n");
@@ -89,6 +111,15 @@ void parser_init(FILE* logfile, FILE *input)
 
     parsefile = input;
 
+    parseline = 0;
+}
+
+void parser_finalize(void)
+{
+    logger_finalize(logger);
+    logger = NULL;
+
+    parsefile = NULL;
     parseline = 0;
 }
 
@@ -250,20 +281,10 @@ int parser_error(char *token)
 
 void parser_comment(parser_log_key_t key, char *format, ...)
 {
-    static char *fmt = NULL;
-    static int fmtlen = 0;
     va_list ap;
-    int len;
-
-    len = snprintf(fmt, fmtlen, "in line %d: %s", parseline, format);
-    if (len >= fmtlen) {
-	fmtlen = len + 80; /* Some extra space */
-	fmt = (char *)realloc(fmt, fmtlen);
-	sprintf(fmt, "in line %d: %s\n", parseline, format);
-    }
 
     va_start(ap, format);
-    logger_vprint(logger, key, fmt, ap);
+    logger_vprint(logger, key, format, ap);
     va_end(ap);
 }
 
@@ -278,24 +299,25 @@ void parser_commentCont(parser_log_key_t key, char *format, ...)
 
 void parser_exit(int eno, char *format, ...)
 {
-    static char* fmt = NULL;
-    static int fmtlen = 0;
-    char* errstr = strerror(eno);
+    char *fmt = NULL, *errstr = strerror(eno);
     va_list ap;
-    int len;
 
     if (eno) {
-	len = snprintf(fmt, fmtlen,
-		       "%s: %s\n", format, errstr ? errstr : "UNKNOWN");
-	fmt = malloc(len+80);
+	size_t len = snprintf(NULL, 0, "%s: %s\n", format,
+			      errstr ? errstr : "UNKNOWN");
+	fmt = malloc(len+1);
+    }
+    if (fmt) {
 	sprintf(fmt, "%s: %s\n", format, errstr ? errstr : "UNKNOWN");
     } else {
 	fmt = format;
     }
 
     va_start(ap, format);
-    logger_vprint(logger, -1, format, ap);
+    logger_vprint(logger, -1, fmt, ap);
     va_end(ap);
+
+    if (fmt != format) free(fmt);
 
     exit(-1);
 }
