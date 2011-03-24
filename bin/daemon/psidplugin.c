@@ -613,7 +613,7 @@ static plugin_t * loadPlugin(char *name, int minVer, plugin_t * trigger)
 	     *plugin_version);
 
     if (minVer && *plugin_version < minVer) {
-	PSID_log(-1, "%s: 'version %d or above of '%s'required. This is %d\n",
+	PSID_log(-1, "%s: 'version %d or above of '%s' required. This is %d\n",
 		 __func__, minVer, name, *plugin_version);
 	dlclose(handle);
 	return NULL;
