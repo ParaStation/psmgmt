@@ -1,7 +1,7 @@
 /*
  *               ParaStation
  *
- * Copyright (C) 2009-2010 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2009-2011 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -95,6 +95,7 @@ int getClientRank(PStask_ID_t tid)
 
     if (!clients) {
 	PSIlog_log(-1, "%s: Not initialized", __func__);
+	PSIlog_finalizeLogs();
 	exit(1);
     }
 
@@ -107,6 +108,7 @@ PStask_ID_t getClientTID(int rank)
 {
     if (!clients) {
 	PSIlog_log(-1, "%s: Not initialized", __func__);
+	PSIlog_finalizeLogs();
 	exit(1);
     }
 
@@ -147,6 +149,7 @@ int clientIsActive(int rank)
 {
     if (!clients) {
 	PSIlog_log(-1, "%s: Not initialized", __func__);
+	PSIlog_finalizeLogs();
 	exit(1);
     }
 
@@ -159,6 +162,7 @@ int clientIsGone(int rank)
 {
     if (!clients) {
 	PSIlog_log(-1, "%s: Not initialized", __func__);
+	PSIlog_finalizeLogs();
 	exit(1);
     }
 
@@ -183,6 +187,7 @@ static int clientIsStopped(int rank)
 {
     if (!clients) {
 	PSIlog_log(-1, "%s: Not initialized", __func__);
+	PSIlog_finalizeLogs();
 	exit(1);
     }
 
@@ -223,6 +228,7 @@ static void growClients(int newMin, int newMax)
 
     if (newMin > minRank || newMax < maxClient) {
 	PSIlog_log(-1, "%s: Do not shrink clients.\n", __func__);
+	PSIlog_finalizeLogs();
 	exit(1);
     }
 
@@ -281,6 +287,7 @@ int registerClient(int rank, PStask_ID_t tid)
 
     if (!clients) {
 	PSIlog_log(-1, "%s: Not initialized", __func__);
+	PSIlog_finalizeLogs();
 	exit(1);
     }
 
@@ -335,6 +342,7 @@ void deregisterClient(int rank)
 {
     if (!clients) {
 	PSIlog_log(-1, "%s: Not initialized", __func__);
+	PSIlog_finalizeLogs();
 	exit(1);
     }
 
@@ -438,6 +446,7 @@ void setupDestList(char *input)
 
     if (!destStr) {
 	PSIlog_log(-1, "%s: no destination definition\n", __func__);
+	PSIlog_finalizeLogs();
 	exit(1);
     }
 

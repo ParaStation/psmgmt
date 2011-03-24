@@ -1,7 +1,7 @@
 /*
  *               ParaStation
  *
- * Copyright (C) 2007-2010 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2007-2011 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -54,19 +54,20 @@ extern char GDBprompt[128];
 extern int GDBcmdEcho;
 
 /**
- * @brief Initialize the psilogger logging facility.
+ * @brief Initialize the psilogger logging facilities.
  *
- * Initialize the psilogger logging facility. This is mainly a wrapper
- * to @ref initErrLog().
+ * Initialize the psilogger logging facilities. This is mainly a
+ * wrapper to @ref logger_init() but additionally also initializes the
+ * facilities handling output to stdout and stderr.
  *
  * @param logfile File to use for logging. If NULL, use stderr for
  * any output.
  *
  * @return No return value.
  *
- * @see initErrLog(), syslog(3)
+ * @see logger_init(), PSIlog_finalizeLogs()
  */
-void PSIlog_initLog(FILE *logfile);
+void PSIlog_initLogs(FILE *logfile);
 
 /**
  * @brief Get the log-mask of the psilogger logging facility.
@@ -125,6 +126,18 @@ char PSIlog_getTimeFlag(void);
 void PSIlog_setTimeFlag(char flag);
 
 /**
+ * @brief Finalize psiloggers's logging facility.
+ *
+ * Finalize psilogger's logging facility. This is mainly a wrapper to
+ * @ref logger_finalize().
+ *
+ * @return No return value.
+ *
+ * @see PSIlog_initLogs(), logger_finalize()
+ */
+void PSIlog_finalizeLogs(void);
+
+/**
  * Print a log messages via psiloggers's logging facility @a
  * PSIlog_stdoutLogger .
  *
@@ -174,8 +187,11 @@ void PSIlog_setTimeFlag(char flag);
  *
  * @see logger_exit()
  */
-#define PSIlog_exit(...) if (PSIlog_logger)	\
-	logger_exit(PSIlog_logger, __VA_ARGS__)
+#define PSIlog_exit(...) if (PSIlog_logger) {		\
+	logger_finalize(PSIlog_stdoutLogger);		\
+	logger_finalize(PSIlog_stderrLogger);		\
+	logger_exit(PSIlog_logger, __VA_ARGS__);	\
+    }
 
 /**
  * Various message classes for logging. These define the different

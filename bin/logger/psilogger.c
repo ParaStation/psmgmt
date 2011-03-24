@@ -123,7 +123,7 @@ logger_t *PSIlog_stderrLogger = NULL;
 logger_t *PSIlog_logger = NULL;
 
 /* Wrapper functions for logging */
-void PSIlog_initLog(FILE *logfile)
+void PSIlog_initLogs(FILE *logfile)
 {
     PSIlog_logger = logger_init("PSIlogger", logfile ? logfile : stderr);
     if (!PSIlog_logger) {
@@ -133,14 +133,12 @@ void PSIlog_initLog(FILE *logfile)
 
     PSIlog_stdoutLogger = logger_init(NULL, stdout);
     if (!PSIlog_stdoutLogger) {
-	fprintf(logfile ? logfile : stderr, "Failed to initialize stdout\n");
-	exit(1);
+	PSIlog_exit(errno, "%s: Failed to initialize stdout", __func__);
     }
 
     PSIlog_stderrLogger = logger_init(NULL, stderr);
     if (!PSIlog_stderrLogger) {
-	fprintf(logfile ? logfile : stderr, "Failed to initialize stderr\n");
-	exit(1);
+	PSIlog_exit(errno, "%s: Failed to initialize stderr", __func__);
     }
 }
 
@@ -164,6 +162,16 @@ void PSIlog_setTimeFlag(char flag)
     logger_setTimeFlag(PSIlog_logger, flag);
     logger_setTimeFlag(PSIlog_stdoutLogger, flag);
     logger_setTimeFlag(PSIlog_stderrLogger, flag);
+}
+
+void PSIlog_finalizeLogs(void)
+{
+    logger_finalize(PSIlog_logger);
+    PSIlog_logger = NULL;
+    logger_finalize(PSIlog_stdoutLogger);
+    PSIlog_stdoutLogger = NULL;
+    logger_finalize(PSIlog_stderrLogger);
+    PSIlog_stderrLogger = NULL;
 }
 
 /**
@@ -413,6 +421,7 @@ static int sendDaemonMsg(DDMsg_t *msg)
 	PSIlog_exit(errno, "%s: send()", __func__);
     } else if (!n) {
 	PSIlog_log(-1, "%s(): Daemon connection lost\n", __func__);
+	PSIlog_finalizeLogs();
 	exit(1);
     }
 
@@ -1194,6 +1203,7 @@ static void loop(void)
 	    if (ret < 0) continue;
 	    if (!ret) {
 		PSIlog_log(-1, "daemon died. Exiting\n");
+		PSIlog_finalizeLogs();
 		exit(1);
 	    }
 
@@ -1295,7 +1305,7 @@ int main( int argc, char**argv)
 
     sigset_t set;
 
-    PSIlog_initLog(NULL);
+    PSIlog_initLogs(NULL);
 
     /* block SIGTTIN so logger works also in background */
     sigemptyset(&set);
@@ -1322,7 +1332,7 @@ int main( int argc, char**argv)
 	for (i=0; i<argc; i++)
 	    PSIlog_log(-1, " '%s'", argv[i]);
 	PSIlog_log(-1, "\n");
-
+	PSIlog_finalizeLogs();
 	exit(1);
     }
 
@@ -1332,11 +1342,12 @@ int main( int argc, char**argv)
 	PSIlog_log(-1, "Sorry, program must be called correctly"
 		   " inside an application.\n");
 	PSIlog_log(-1, "'%s' is not a socket number.\n", argv[1]);
-
+	PSIlog_finalizeLogs();
 	exit(1);
     }
     if (daemonSock < 0) {
 	PSIlog_log(-1, "Not connected to local daemon. Exiting.\n");
+	PSIlog_finalizeLogs();
 	exit(1);
     }
 
@@ -1346,7 +1357,7 @@ int main( int argc, char**argv)
 	PSIlog_log(-1, "Sorry, program must be called correctly"
 		   " inside an application.\n");
 	PSIlog_log(-1, "'%s' is not a ParaStation ID.\n", argv[2]);
-
+	PSIlog_finalizeLogs();
 	exit(1);
     }
     PSC_setMyID(i);
@@ -1476,6 +1487,8 @@ int main( int argc, char**argv)
 	PSIlog_log(PSILOG_LOG_VERB, "Execute '%s'\n", argv[i]);
 	ret = system(argv[i]);
     }
+
+    PSIlog_finalizeLogs();
 
     return retVal ? retVal : (signaled ? -1 : 0);
 }
