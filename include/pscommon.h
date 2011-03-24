@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2009 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2011 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -289,6 +289,18 @@ void PSC_setDebugMask(int32_t mask);
  * @see logger_exit()
  */
 #define PSC_exit(...) logger_exit(PSC_logger, __VA_ARGS__)
+
+/**
+ * @brief Finalize PSC's logging facility.
+ *
+ * Finalize PSC's logging facility. This is mainly a wrapper to
+ * @ref logger_finalize().
+ *
+ * @return No return value.
+ *
+ * @see PSC_initLog(), logger_finalize()
+ */
+void PSC_finalizeLog(void);
 
 /**
  * Various message classes for logging. These define the different

@@ -52,9 +52,13 @@ void PSC_initLog(FILE* logfile)
 
 int PSC_logInitialized(void)
 {
-    if (PSC_logger) return 1;
+    return !!PSC_logger;
+}
 
-    return 0;
+void PSC_finalizeLog(void)
+{
+    logger_finalize(PSC_logger);
+    PSC_logger = NULL;
 }
 
 int32_t PSC_getDebugMask(void)
@@ -194,10 +198,8 @@ void PSC_startDaemon(in_addr_t hostaddr)
 
     switch (fork()) {
     case -1:
-    {
 	PSC_warn(-1, errno, "%s: unable to fork server process", __func__);
 	break;
-    }
     case 0: /* I'm the child (and running further) */
 	break;
     default: /* I'm the parent (and returning) */
