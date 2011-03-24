@@ -748,6 +748,8 @@ void exitMCast(void)
 	Selector_remove(mcastsock);    /* deregister selector */
 	Timer_remove(timerID);         /* stop interval timer */
 	close(mcastsock);              /* close Multicast socket */
+	logger_finalize(logger);
+	logger = NULL;
     }
 }
 

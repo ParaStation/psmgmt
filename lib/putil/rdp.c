@@ -1948,6 +1948,8 @@ void exitRDP(void)
     Selector_remove(rdpsock);      /* deregister selector */
     Timer_remove(timerID);         /* stop interval timer */
     close(rdpsock);                /* close RDP socket */
+    logger_finalize(logger);
+    logger = NULL;
 }
 
 int32_t getDebugMaskRDP(void)
