@@ -1267,13 +1267,15 @@ void initPlugins(void)
 
     /* Handle list of plugins found in the configuration file */
     if (!list_empty(&config->plugins)) {
-	list_t *p;
+	list_t *p, *tmp;
 
-	list_for_each(p, &config->plugins) {
+	list_for_each_safe(p, tmp, &config->plugins) {
 	    nameList_t *ent = list_entry(p, nameList_t, next);
 
+	    list_del(&ent->next);
 	    if (!ent->name || ! *ent->name) {
 		PSID_log(-1, "%s: No name given\n", __func__);
+		free(ent);
 		continue;
 	    }
 
@@ -1281,6 +1283,8 @@ void initPlugins(void)
 	    if (!loadPlugin(ent->name, 0, NULL)) {
 		PSID_log(-1, "%s: loading '%s' failed.\n", __func__, ent->name);
 	    }
+	    if (ent->name) free(ent->name);
+	    free(ent);
 	}
     }
 }

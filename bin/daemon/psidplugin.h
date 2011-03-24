@@ -31,8 +31,10 @@ extern "C" {
 /**
  * @brief Initialize plugin stuff
  *
- * Initialize the plugin handling framework. This also registers
- * the necessary message handlers.
+ * Initialize the plugin handling framework. This also registers the
+ * necessary message handlers and loads the plugins as defined in the
+ * configuration. Once the plugins are loaded the structures
+ * describing the plugins to load is cleared.
  *
  * @return No return value.
  */
