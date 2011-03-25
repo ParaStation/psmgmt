@@ -715,13 +715,16 @@ static int testExecutable(PStask_t *task, char **executable)
     /* Try to read first 64 bytes; on Lustre this might hang */
     if ((fd = open(task->argv[0],O_RDONLY)) < 0) {
 	int eno = errno;
-	fprintf(stderr, "%s: open(): %s\n", __func__, get_strerror(eno));
-	return eno;
-    }
-    if ((ret = read(fd, buf, sizeof(buf))) < 0) {
+	if (eno != EACCES) { /* Might not have to permission to read (#1058) */
+	    fprintf(stderr, "%s: open(): %s\n", __func__, get_strerror(eno));
+	    return eno;
+	}
+    } else if ((ret = read(fd, buf, sizeof(buf))) < 0) {
 	int eno = errno;
 	fprintf(stderr, "%s: read(): %s\n", __func__, get_strerror(eno));
 	return eno;
+    } else {
+	close(fd);
     }
 
     *executable = task->argv[0];
