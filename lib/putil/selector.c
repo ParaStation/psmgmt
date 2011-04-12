@@ -317,18 +317,17 @@ int Sselect(int n, fd_set  *readfds,  fd_set  *writefds, fd_set *exceptfds,
 	Timer_handleSignals();                     /* Handle pending timers */
 	retval = select(n, &rfds, &wfds, &efds, (timeout)?(&stv):NULL);
 	if (retval == -1) {
-	    logger_warn(logger, (errno == EINTR) ? SELECTOR_LOG_VERB : -1,
-			errno, "%s: select returns %d\n", __func__, retval);
-	    if (errno == EINTR) {
+	    eno = errno;
+	    logger_warn(logger, (eno == EINTR) ? SELECTOR_LOG_VERB : -1,
+			eno, "%s: select returns %d\n", __func__, retval);
+	    if (eno == EINTR && timeout) {
 		/* Interrupted syscall, just start again */
-		if (timeout) {
-		    /* assure next round */
-		    const struct timeval delta = { .tv_sec = 0, .tv_usec = 10 };
-		    timersub(&end, &delta, &start);
-		}
+		/* assure next round */
+		const struct timeval delta = { .tv_sec = 0, .tv_usec = 10 };
+		timersub(&end, &delta, &start);
+		eno = 0;
 		continue;
 	    } else {
-		eno = errno;
 		break;
 	    }
 	}
