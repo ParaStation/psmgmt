@@ -153,6 +153,7 @@ static int do_send(int fd, DDMsg_t *msg, int offset)
     int n, i, eno;
 
     for (n=offset, i=1; (n<msg->len) && (i>0);) {
+	errno = 0;
 	i = send(fd, &(((char*)msg)[n]), msg->len-n, MSG_DONTWAIT);
 	if (i<=0) {
 	    switch (errno) {
