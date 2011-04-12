@@ -2135,6 +2135,7 @@ int Rsendto(int node, void *buf, size_t len)
     mp = getMsg();
     if (!mp) {
 	RDP_log(-1, "%s: Unable to get msg buffer\n", __func__);
+	Timer_block(timerID, blocked);
 	errno = EAGAIN;
 	return -1;
     }
@@ -2147,6 +2148,7 @@ int Rsendto(int node, void *buf, size_t len)
 
     if (!mp->msg.small) {
 	RDP_warn(-1, errno, "%s", __func__);
+	Timer_block(timerID, blocked);
 	return -1;
     }
 
