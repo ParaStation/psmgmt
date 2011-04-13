@@ -49,6 +49,7 @@ static char vcid[] __attribute__((used)) =
 #include "psidstate.h"
 #include "psidspawn.h"
 #include "psidscripts.h"
+#include "psidhook.h"
 
 #include "psidstatus.h"
 
@@ -660,6 +661,8 @@ void declareNodeDead(PSnodes_ID_t id, int sendDeadnode, int silent)
     PSID_log(silent ? PSID_LOG_STATUS : -1, "%s: connection lost to node %d\n",
 	     __func__, id);
 
+    PSIDhook_call(PSIDHOOK_NODE_DOWN, &id);
+
     if (id == getMasterID()) {
 	/* Dead node was master, find new one */
 	PSnodes_ID_t node = id;
@@ -687,9 +690,7 @@ void declareNodeDead(PSnodes_ID_t id, int sendDeadnode, int silent)
 	}
     }
 
-    if (config->useMCast) return;
-
-    if (getMasterID() == PSC_getMyID() && sendDeadnode) {
+    if (!config->useMCast && getMasterID() == PSC_getMyID() && sendDeadnode) {
 	send_DEADNODE(id);
     }
 }
@@ -715,6 +716,8 @@ void declareNodeAlive(PSnodes_ID_t id, int physCPUs, int virtCPUs)
     PSIDnodes_setPhysCPUs(id, physCPUs);
     PSIDnodes_setVirtCPUs(id, virtCPUs);
 
+    if (!wasUp) PSIDhook_call(PSIDHOOK_NODE_UP, &id);
+
     if (!knowMaster()) {
 	if (id < PSC_getMyID()) {
 	    PSID_log(PSID_LOG_STATUS, "%s: master %d\n", __func__, id);
@@ -737,6 +740,9 @@ void declareNodeAlive(PSnodes_ID_t id, int physCPUs, int virtCPUs)
 
     if (!config->useMCast && getMasterID() == PSC_getMyID() && !wasUp) {
 	send_ACTIVENODES(id);
+    }
+
+    if (getMasterID() == PSC_getMyID() && !wasUp) {
 	if (config->nodeUpScript && *config->nodeUpScript) {
 	    stateChangeInfo_t *info = malloc(sizeof(*info));
 	    if (!info) {
@@ -748,9 +754,7 @@ void declareNodeAlive(PSnodes_ID_t id, int physCPUs, int virtCPUs)
 	    PSID_execScript(config->nodeUpScript, stateChangeEnv,
 			    stateChangeCB, info);
 	}
-    }
 
-    if (getMasterID() == PSC_getMyID() && !wasUp) {
 	send_GETTASKS(id);
     }
 }

@@ -45,6 +45,8 @@ bin/daemon/psidenv.c \
 bin/daemon/psidenv.h \
 bin/daemon/psidforwarder.c \
 bin/daemon/psidforwarder.h \
+bin/daemon/psidhook.c \
+bin/daemon/psidhook.h \
 bin/daemon/psidhw.c \
 bin/daemon/psidhw.h \
 bin/daemon/psidinfo.c \

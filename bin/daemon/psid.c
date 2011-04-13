@@ -69,6 +69,7 @@ static char vcid[] __attribute__((used)) =
 #include "psidscripts.h"
 #include "psidmsgbuf.h"
 #include "psidenv.h"
+#include "psidhook.h"
 
 struct timeval selectTime;
 
@@ -701,6 +702,7 @@ int main(int argc, const char *argv[])
     initAccount();
     initInfo();
     initPlugins();
+    initHooks();
     initEnvironment();
 
     /* Now we start all the hardware -- this might include the accounter */
