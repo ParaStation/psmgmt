@@ -23,6 +23,8 @@
 
 #include "psidutil.h"
 #include "psidplugin.h"
+#include "psidhook.h"
+
 #include "timer.h"
 
 #include "plugin.h"
@@ -49,10 +51,24 @@ char *silent = NULL;
 /* Flag suppressing all messages */
 char *quiet = NULL;
 
+int nodeUp(void *arg)
+{
+    PSID_log(-1, "%s/%s: ID %d\n", name, __func__, *(PSnodes_ID_t *)arg);
+    return 0;
+}
+
+int nodeDown(void *arg)
+{
+    PSID_log(-1, "%s/%s: ID %d\n", name, __func__, *(PSnodes_ID_t *)arg);
+    return 0;
+}
+
 #ifdef EXTENDED_API
 void initialize(void)
 {
     if (!silent && !quiet) PSID_log(-1, "%s: %s()\n", name, __func__);
+    PSIDhook_add(PSIDHOOK_NODE_UP, nodeUp);
+    PSIDhook_add(PSIDHOOK_NODE_DOWN, nodeDown);
 }
 
 int myTimer = -1;
@@ -82,6 +98,8 @@ void cleanup(void)
 	if (!silent||!quiet) PSID_log(-1, "%s: timer %d del\n", name, myTimer);
 	myTimer = -1;
     }
+    PSIDhook_del(PSIDHOOK_NODE_UP, nodeUp);
+    PSIDhook_del(PSIDHOOK_NODE_DOWN, nodeDown);
 }
 #endif
 
