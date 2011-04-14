@@ -33,8 +33,9 @@ char name[] = "plugin3";
 
 
 plugin_dep_t dependencies[] = {
-    { "plugin2", 0 },
-    { "plugin7", 0 },
+/*     { "plugin2", 0 }, */
+/*     { "plugin7", 0 }, */
+    { "plugin4", 0 },
     { NULL, 0 } };
 
 /* Flag suppressing of all messages */

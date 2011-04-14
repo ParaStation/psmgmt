@@ -41,8 +41,8 @@ char name[] = "plugin4";
 int version = 100;
 
 plugin_dep_t dependencies[] = {
-    { "plugin2", 0 },
-    { "plugin8", 0 },
+/*     { "plugin2", 0 }, */
+/*     { "plugin8", 0 }, */
     { NULL, 0 } };
 
 /* Flag suppressing some messages */
@@ -57,10 +57,12 @@ static void handleMsg(DDBufferMsg_t *msg)
     PSID_log(-1, "%s: %s()\n", name, __func__);
 }
 
-void initialize(void)
+int initialize(void)
 {
     if (!silent && !quiet) PSID_log(-1, "%s: %s()\n", name, __func__);
+
     PSID_registerMsg(0x00FE, handleMsg);
+    return 0;
 }
 
 int myTimer = -1;

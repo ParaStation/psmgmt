@@ -64,11 +64,12 @@ int nodeDown(void *arg)
 }
 
 #ifdef EXTENDED_API
-void initialize(void)
+int initialize(void)
 {
     if (!silent && !quiet) PSID_log(-1, "%s: %s()\n", name, __func__);
     PSIDhook_add(PSIDHOOK_NODE_UP, nodeUp);
     PSIDhook_add(PSIDHOOK_NODE_DOWN, nodeDown);
+    return 0;
 }
 
 int myTimer = -1;

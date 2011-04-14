@@ -47,9 +47,10 @@ char *silent = NULL;
 char *quiet = NULL;
 
 #ifdef EXTENDED_API
-void initialize(void)
+int initialize(void)
 {
     if (!silent && !quiet) PSID_log(-1, "%s: %s()\n", name, __func__);
+    return 0;
 }
 
 void finalize(void)
