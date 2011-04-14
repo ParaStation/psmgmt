@@ -8,7 +8,7 @@
  */
 /**
  * @file ParaStation plugin template. Each plugin should implement the
- * symbols defined es 'extern' below. The symbols @ref name and @ref
+ * symbols defined as 'extern' below. The symbols @ref name and @ref
  * version are required. Plugins not defining these symbols will be
  * unloaded immediately. All other symbols are optional.
  *
@@ -73,14 +73,21 @@ extern plugin_dep_t dependencies[];
  * functions provided by the plugins marked to be dependants are
  * accessible when this function is called.
  *
- * If initialization of the plugin fails, the plugin shall call
- * PSIDplugin_unload() in order to unload itself as soon as possible.
- * At the same time all plugins just loaded to resolve dependencies of
- * the original plugin will be marked for unloading, too.
+ * If initialization of the plugin fails, this shall be signaled to
+ * the ParaStation daemon by a return value different from 0. In this
+ * case resolving dependencies and initialization of triggering
+ * plugins is stopped immediately.
  *
- * @return No return value.
+ * @attention Un-initialized plugins will not be finalized. Thus, if
+ * an plugin was not (or not successfully) initialized, its
+ * cleanup-method might be called without calling the finalize-method
+ * beforehand.
+ *
+ * @return If initialization was successful, 0 shall be
+ * returned. Thus, a value different from 0 flags some problem during
+ * initialization.
  */
-void initialize(void);
+int initialize(void);
 
 /**
  * @brief Stop plugin
@@ -94,6 +101,9 @@ void initialize(void);
  * expect to get unloaded soon. Before actually unloading the plugin
  * @ref cleanup() will be called, if the plugin exposes such symbol.
  *
+ * If initialization of the plugin failed (as signaled by a
+ * return-value different from 0), this function will not be called.
+ *
  * @return No return value.
  */
 void finalize(void);
@@ -105,6 +115,9 @@ void finalize(void);
  * the plugin using dlclose(). Thus, the plugin shall release all
  * resources currently allocated including memory, selectors, timers,
  * etc. immediately.
+ *
+ * This function will be called for each plugin independently from the
+ * result of the initialization of the plugin.
  *
  * @return No return value.
  */

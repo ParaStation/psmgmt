@@ -75,7 +75,7 @@ void PSIDplugin_setUnloadTmout(int tmout);
  *
  * Get the number of plugins currently loaded. This does not include
  * plugins that have already called PSIDplugin_unload(), i.e. plugins
- * that have have stopped all operations.
+ * that have stopped all operations.
  *
  * @return The number of currently loaded plugins is returned.
  */

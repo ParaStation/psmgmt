@@ -31,7 +31,9 @@ static char vcid[] __attribute__((used)) =
 
 #include "psidplugin.h"
 
-typedef int voidFunc_t(void);
+typedef int intFunc_t(void);
+
+typedef void voidFunc_t(void);
 
 /** Structure holding all information concerning a plugin */
 typedef struct {
@@ -40,7 +42,7 @@ typedef struct {
     list_t depends;          /**< List of plugins this one depends on */
     void *handle;            /**< Handle created by dlopen() */
     char *name;              /**< Actual name */
-    voidFunc_t *initialize;  /**< Initializer (after dependencies resolved) */
+    intFunc_t *initialize;   /**< Initializer (after dependencies resolved) */
     voidFunc_t *finalize;    /**< Finalize (trigger plugin's stop) */
     voidFunc_t *cleanup;     /**< Cleanup (immediately before unload) */
     int version;             /**< Actual version */
@@ -400,7 +402,7 @@ static plugin_t * newPlugin(void *handle, char *name, int version)
  *
  * @param plugin The plugin to be deleted
  *
- * @return No return valie.
+ * @return No return value.
  */
 static void delPlugin(plugin_t *plugin)
 {
@@ -640,14 +642,22 @@ static plugin_t * loadPlugin(char *name, int minVer, plugin_t * trigger)
 	}
     }
 
+    if (plugin->initialize) {
+	int ret = plugin->initialize();
+
+	if (ret) {
+	    plugin->finalized = 1;
+	    unloadPlugin(plugin);
+	    return NULL;
+	}
+    }
+
     if (addRef(&plugin->triggers, trigger ? trigger : plugin) < 0)  {
 	PSID_log(-1, "%s: addTrigger() failed\n", __func__);
-	plugin->finalized = 1;
+	finalizePlugin(plugin);
 	unloadPlugin(plugin);
 	return NULL;
     }
-
-    if (plugin->initialize) plugin->initialize();
 
     return plugin;
 }
@@ -716,7 +726,7 @@ void *PSIDplugin_getHandle(char *name)
  * @brief Unload plugin
  *
  * Unload the plugin @a plugin. For this the plugin's cleanup-method
- * ist called, if available. This prompts the plugin to do all cleanup
+ * is called, if available. This prompts the plugin to do all cleanup
  * necessary before actually evicting the plugin from address-space
  * via dlclose(). This includes free()ing memory segments allocated by
  * the plugin via malloc(), unregistering of timer, message-handler
@@ -824,7 +834,7 @@ static int finalizePlugin(plugin_t *plugin)
 static int depLoopDetect = 0;
 
 /**
- * @brief Walk dependeny graph
+ * @brief Walk dependency graph
  *
  * Walk the graph of dependencies for the plugin @a plugin to unload
  * it forcefully. This function will be called recursively to fully
@@ -836,7 +846,7 @@ static int depLoopDetect = 0;
  * At the same time this function implements a modification of the
  * Dijkstra algorithm determining the distance of each plugin to the
  * original plugin. For this, @a distance is increased for each level
- * of recursion. This distance might be used to identifiy the plugin
+ * of recursion. This distance might be used to identify the plugin
  * to forcefully unload, i.e. to unload while ignoring existing
  * dependencies, in the case of a loop in the dependency-graph.
  *
@@ -977,7 +987,7 @@ static plugin_t *findMaxDistPlugin(void)
  *
  * Forcefully unload the plugin @a name. For this, the plugin's
  * dependency-graph is walked in order to evict all plugins it depends
- * on in a direct or indirect way. Walking the dependcy-graph is done
+ * on in a direct or indirect way. Walking the dependency-graph is done
  * by calling @ref walkDepGraph().
  *
  * If a dependency-loop is flagged via @ref depLoopDetect, a victim is
@@ -1168,7 +1178,7 @@ end:
  * @brief Unload plugin
  *
  * Unload the plugin @a plugin. Unloading a plugin might fail due to
- * still existent dependcies from other plugins. This functions is
+ * still existent dependencies from other plugins. This functions is
  * unable to force unloading a specific plugin.
  *
  * @param plugin The plugin to be unloaded
@@ -1226,7 +1236,7 @@ static int doUnload(plugin_t *plugin)
 /**
  * @brief Handle plugins in main loop
  *
- * This function collects all actions to be exectued asynchronously in
+ * This function collects all actions to be executed asynchronously in
  * the daemon's main loop. Currently this includes
  *
  *   - Unloading plugins via dlclose() when flagged
