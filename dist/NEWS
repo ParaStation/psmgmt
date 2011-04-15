@@ -4,6 +4,26 @@ Copyright (C) 2010-2011 ParTec Cluster Competence Center GmbH, Munich
 
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
+Version 5.0.32:
+===============
+Bugfixes:
+ - Fix pssh's behavior for interactive sessions
+ - Fix race-conditions that might lock RDP's timer forever (#1077)
+ - Don't try to read the executable, if there's no permission (#1058)
+ - Allow plugin's initialize() method to fail (#1096)
+ - Fix some minor memory-leaks (#1009, )
+
+Enhancements:
+ - Allow users to influence pinning via __PSI_CPUMAP (#1086)
+ - Dynamical dropping of message within psid (#992)
+ - psid now has a hook-facility; currently it support PSIDHOOK_NODE_UP
+   and PSIDHOOK_NODE_DOWN
+ - Implement logger_finalize() in order to allow dynamical loggers (#1010)
+
+Additional changes:
+ - Version of the plugin API pushed to 102.
+
+
 Version 5.0.31:
 ===============
 Bugfixes:

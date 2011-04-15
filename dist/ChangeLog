@@ -1,3 +1,168 @@
+Version psmgmt-5.0.32:
+======================
+------------------------------------------------------------------------
+r8441 | eicker | 2011-04-15 18:26:26 +0200 (Fri, 15 Apr 2011) | 5 lines
+
+Push version of plugin API. This reflect the various changes since
+    psmgmt-5.0.31 like fixing the behavior of initialize(),
+    implementation if logging_finalize() to allow dynamical loggers, the
+    new framework for hooks and dynamical drop-handlers.
+
+------------------------------------------------------------------------
+r8440 | eicker | 2011-04-15 18:18:02 +0200 (Fri, 15 Apr 2011) | 4 lines
+
+Enhancement: Implement dynamic handling of dropping messages via
+    handler-functions that might be registered dynamically. This should
+    implement #992.
+
+------------------------------------------------------------------------
+r8439 | eicker | 2011-04-15 16:53:01 +0200 (Fri, 15 Apr 2011) | 6 lines
+
+Enhancement: Make user's allowance to influence to mapping of processes
+    onto physical cores configurable. Both ways are implemented, persistent
+    configuration via /etc/parastation.conf and live-configuration via
+    psiadmin.
+Fix typos.
+
+------------------------------------------------------------------------
+r8438 | eicker | 2011-04-15 15:52:31 +0200 (Fri, 15 Apr 2011) | 2 lines
+
+Implement CPU-mapping to be steered by users via __PSI_CPUMAP.
+
+------------------------------------------------------------------------
+r8437 | eicker | 2011-04-15 13:56:53 +0200 (Fri, 15 Apr 2011) | 3 lines
+
+Add some comments concerning blocking of timer.
+Fix typos.
+
+------------------------------------------------------------------------
+r8436 | eicker | 2011-04-14 12:02:00 +0200 (Thu, 14 Apr 2011) | 2 lines
+
+Adapt test-plugins to fixes of the plugin API.
+
+------------------------------------------------------------------------
+r8435 | eicker | 2011-04-14 11:53:06 +0200 (Thu, 14 Apr 2011) | 4 lines
+
+Bugfix: Change behavior of plugin's initialize() method as described in
+    the Wiki. I.e. initialize() now returns an int signaling the success
+    of initialization. This should fix #1096.
+
+------------------------------------------------------------------------
+r8434 | eicker | 2011-04-13 17:47:07 +0200 (Wed, 13 Apr 2011) | 2 lines
+
+Let some test-plugins make use of the hooks.
+
+------------------------------------------------------------------------
+r8433 | eicker | 2011-04-13 17:46:12 +0200 (Wed, 13 Apr 2011) | 4 lines
+
+Enhancement: Implement daemon's hook-framework. Currently there exists
+    just two hooks: PSIDHOOK_NODE_UP and PSIDHOOK_NODE_DOWN. This is
+    required by the psmom plugin.
+
+------------------------------------------------------------------------
+r8432 | eicker | 2011-04-12 19:39:19 +0200 (Tue, 12 Apr 2011) | 2 lines
+
+Ensure errno is valid after send() returns while sending to client.
+
+------------------------------------------------------------------------
+r8431 | eicker | 2011-04-12 19:28:28 +0200 (Tue, 12 Apr 2011) | 3 lines
+
+Bugfix: Unblock timer in RDP, if Rsendto() fails due to shortness in
+    message buffers. This should fix #1077.
+
+------------------------------------------------------------------------
+r8430 | eicker | 2011-04-12 13:38:00 +0200 (Tue, 12 Apr 2011) | 3 lines
+
+Let Sselect() report on interrupts due to signals, if no timeout is
+    given. This is required for psmom's forwarder process.
+
+------------------------------------------------------------------------
+r8429 | eicker | 2011-03-25 19:06:30 +0100 (Fri, 25 Mar 2011) | 3 lines
+
+Bugfix: Don't try to read executable, if reading is not allowed. This
+    should fix #1058.
+
+------------------------------------------------------------------------
+r8428 | eicker | 2011-03-24 16:08:56 +0100 (Thu, 24 Mar 2011) | 3 lines
+
+Bugfix: Free the list of plugins to load as definied in
+    parastation.conf. This should fix #1009.
+
+------------------------------------------------------------------------
+r8427 | eicker | 2011-03-24 11:21:08 +0100 (Thu, 24 Mar 2011) | 4 lines
+
+Mark some functions explicitely as deprecated via __attribute__.
+Remove support for Myrinet in ParaStation4 marked as deprecated long
+    before.
+
+------------------------------------------------------------------------
+r8426 | eicker | 2011-03-24 10:44:01 +0100 (Thu, 24 Mar 2011) | 3 lines
+
+Implement and enable PSI_finalizeLog().
+Make use of logger_finalize() functionality.
+
+------------------------------------------------------------------------
+r8425 | eicker | 2011-03-24 10:43:02 +0100 (Thu, 24 Mar 2011) | 2 lines
+
+Make use of logger_finalize() functionality.
+
+------------------------------------------------------------------------
+r8424 | eicker | 2011-03-24 10:42:24 +0100 (Thu, 24 Mar 2011) | 2 lines
+
+Make use of logger_finalize() functionality.
+
+------------------------------------------------------------------------
+r8423 | eicker | 2011-03-24 10:34:26 +0100 (Thu, 24 Mar 2011) | 2 lines
+
+Rework psid's logging. This enables logger_finalize() functionality.
+
+------------------------------------------------------------------------
+r8422 | eicker | 2011-03-24 10:30:21 +0100 (Thu, 24 Mar 2011) | 3 lines
+
+Rework psilogger's output creation. This enables logger_finalize()
+    functionality
+
+------------------------------------------------------------------------
+r8421 | eicker | 2011-03-24 10:28:06 +0100 (Thu, 24 Mar 2011) | 2 lines
+
+Implement PSC_finalizeLog(). This enables logger_finalize() functionality.
+
+------------------------------------------------------------------------
+r8420 | eicker | 2011-03-24 10:25:53 +0100 (Thu, 24 Mar 2011) | 2 lines
+
+Fix type in error message.
+
+------------------------------------------------------------------------
+r8419 | eicker | 2011-03-24 10:24:55 +0100 (Thu, 24 Mar 2011) | 3 lines
+
+Make use of parser_finalize() functionality.
+Fix minor memory-leaks in psiadmin.
+
+------------------------------------------------------------------------
+r8418 | eicker | 2011-03-24 10:12:26 +0100 (Thu, 24 Mar 2011) | 4 lines
+
+Implement parser_finalize(). This should help with #1010.
+Rework parser's comment-system. parser_commentCont() now deprecated.
+Fix minor memory-leaks in parser-system.
+
+------------------------------------------------------------------------
+r8417 | eicker | 2011-03-22 21:02:23 +0100 (Tue, 22 Mar 2011) | 3 lines
+
+Implement logging_finalize() to free all resources used by a logger.
+    This should help with #1010.
+
+------------------------------------------------------------------------
+r8416 | eicker | 2011-03-18 14:27:21 +0100 (Fri, 18 Mar 2011) | 2 lines
+
+Bugfix: Fix pssh's behavior for interactive sessions.
+
+------------------------------------------------------------------------
+r8412 | eicker | 2011-03-16 16:58:39 +0100 (Wed, 16 Mar 2011) | 2 lines
+
+New version (psmgmt-5.0.31)
+
+------------------------------------------------------------------------
+
 Version psmgmt-5.0.31:
 ======================
 ------------------------------------------------------------------------
