@@ -9,7 +9,7 @@
  */
 /**
  * \file
- * Help messages of the ParaStation Adminstration Tool
+ * Help messages of the ParaStation Administration Tool
  *
  * $Id$
  *
@@ -137,7 +137,7 @@ static info_t nodeInfo = {
     .tags = (taggedInfo_t[]) {
 	{ .tag = "<nodes> ",
 	  .descr = "selects one or more ranges of nodes. <nodes> is either of"
-	  " the form s1[-e1]{,si[-ei]}*, where the s and e are positiv numbers"
+	  " the form s1[-e1]{,si[-ei]}*, where the s and e are positive numbers"
 	  " representing ParaStation IDs, or 'all'. Each comma-separated part"
 	  " of <nodes> denotes a range of nodes. If a range's '-e' part is"
 	  " missing, it represents a single node. In principle <nodes> might"
@@ -164,7 +164,7 @@ static info_t rangeInfo = {
     " the commands of the ParaStation admin. If <nodes> is given, the default"
     " range of nodes is set. Otherwise the actual default range of nodes is"
     " displayed. <nodes> is of the form s1[-e1]{,si[-ei]}*, where the s and e"
-    " are positiv numbers representing ParaStation IDs. Each comma-separated"
+    " are positive numbers representing ParaStation IDs. Each comma-separated"
     " part of <nodes> denotes a range of nodes. If a range's '-e' part is"
     " missing, it represents a single node. In principle <nodes> might contain"
     " an unlimited number of ranges.",
@@ -193,7 +193,7 @@ static info_t shutdownInfo = {
     }},
     .nodes = 1,
     .descr = "Shutdown the ParaStation daemon on all selected nodes. As a"
-    " consequence ALL processes using the selected nodess are terminated"
+    " consequence ALL processes using the selected nodes are terminated"
     " (killed)!",
     .tags = NULL,
     .comment = NULL
@@ -224,7 +224,7 @@ static info_t hwstartInfo = {
     " specific hardware will be tried on the selected nodes regardless if"
     " this hardware is specified for this nodes within the 'parastation.conf'"
     " file. On the other hand, if 'hw all' is specified or the 'hw' option is"
-    " missing at all, all the specified hardwaretypes are started.",
+    " missing at all, all the specified hardware-types are started.",
     .tags = NULL,
     .comment = NULL
 };
@@ -258,8 +258,9 @@ static info_t setInfo = {
 	" | {handleoldbins|hob} <bool> | starter <bool> | runjobs <bool>"
 	" | overbook {<bool>|auto} | exclusive <bool> | pinprocs <bool>"
 	" | bindmem <bool> | supplementaryGroups <bool> | maxStatTry <num>"
-	" | cpumap <map> | nodessort <mode> | adminuser [+|-]{<user>|any}"
-	" | admingroup [+|-]{<group>|any} | accountpoll <interval>} <nodes>"
+	" | cpumap <map> | allowUserMap <bool> | nodessort <mode>"
+	" | adminuser [+|-]{<user>|any} | admingroup [+|-]{<group>|any}"
+	" | accountpoll <interval>} <nodes>"
     }},
     .nodes = 1,
     .descr = "Set one of various parameters of the ParaStation system:",
@@ -310,7 +311,7 @@ static info_t setInfo = {
 	  " on the selected nodes. This will modify the actual timer registered"
 	  " by RDP. This should be smaller than RDP's resend-timeout." },
 	{ .tag = "set rdppktloss <rate>",
-	  .descr = "Set RDP protocol's paket loss to <rate> on the seleceted"
+	  .descr = "Set RDP protocol's packet loss to <rate> on the selected"
 	  " nodes. <rate> is given in percent and therefore in between 0 and"
 	  " 100. This options is for debugging purposes only and may break"
 	  " connections between ParaStation daemons" },
@@ -330,20 +331,20 @@ static info_t setInfo = {
 	  " sent and mean time to ACK." },
 	{ .tag = "set mcastdebug <level>",
 	  .descr = "Set MCast facility's debugging level to <level> on the"
-	  " seleceted nodes. Depending on <level> the daemon might log a huge"
+	  " selected nodes. Depending on <level> the daemon might log a huge"
 	  " amount of messages to the syslog. Thus do not use large values"
 	  " for <level> for a long time." },
 	{ .tag = "set {freeonsuspend|fos} <bool>",
 	  .descr = "Set flag marking if resources of suspended jobs are freed"
 	  " temporarily to <bool>. Relevant values are 'false', 'true', 'no',"
 	  " 'yes', 0 or different from 0."
-	  " Only the value on the master node really steers the behaviour!" },
+	  " Only the value on the master node really steers the behavior!" },
 	{ .tag = "set {handleoldbins|hob} <bool>",
 	  .descr = "Set flag marking if old binaries resources are handled"
 	  " correctly to <bool>. Relevant values are 'false', 'true', 'no',"
 	  " 'yes', 0 or different from 0."
 	  " Unfortunately this will break 'freeOnSuspend'. Only the value on"
-	  " the master node really steers the behaviour!" },
+	  " the master node really steers the behavior!" },
 	{ .tag = "set starter <bool>",
 	  .descr = "Set flag marking if starting is allowed from this nodes"
 	  " to <bool>. Relevant values are 'false', 'true', 'no',"
@@ -384,6 +385,10 @@ static info_t setInfo = {
 	  " cores within a distinct node may be determined via 'list hw'."
 	  " The first number in <map> is the number of the physical core the"
 	  " first CPU-slot will be mapped to, and so on." },
+	{ .tag = "set allowUserMap <bool>",
+	  .descr = "Set flag marking if this nodes will allow user to influence"
+	  " the mapping of processes to physical core. Relevant values are"
+	  " 'false', 'true', 'no', 'yes', 0 or different from 0." },
 	{ .tag = "set nodessort <mode>",
 	  .descr = "Define the default sorting strategy for nodes when"
 	  " attaching them to a partition. Valid values for <mode> are"
@@ -424,8 +429,8 @@ static info_t showInfo = {
 	" | rdpretrans | rdpclosedtimeout | rdpmaxackpend | rdpstatistics"
 	" | mcastdebug | master | {freeonsuspend|fos} | {handleoldbins|hob}"
 	" | starter | runjobs | overbook | exclusive | pinprocs | bindmem"
-	" | cpumap | nodessort | supplementaryGroups | maxStatTry"
-	" | adminuser | admingroup | accounters | accountpoll"
+	" | cpumap | allowUserMap | nodessort | supplementaryGroups"
+	" | maxStatTry | adminuser | admingroup | accounters | accountpoll"
 	" | rl_{addressspace|as} | rl_core | rl_cpu | rl_data | rl_fsize"
 	" | rl_locks | rl_memlock | rl_msgqueue | rl_nofile | rl_nproc"
 	" | rl_rss | rl_sigpending | rl_stack}"
@@ -453,7 +458,7 @@ static info_t showInfo = {
 	{ .tag = "show rdpdebug",
 	  .descr = "Show RDP protocol's verbosity level." },
 	{ .tag = "show rdptimeout",
-	  .descr = "Show RDP protocol's registered timer's timout." },
+	  .descr = "Show RDP protocol's registered timer's timeout." },
 	{ .tag = "show rdppktloss",
 	  .descr = "Show RDP protocol's packet-loss rate." },
 	{ .tag = "show rdpmaxretrans",
@@ -479,7 +484,7 @@ static info_t showInfo = {
 	{ .tag = "show {handleoldbins|hob}",
 	  .descr = "Show flag marking if old binaries resources are handled"
 	  " correctly. Unfortunately this will break 'freeOnSuspend'. Only"
-	  " the value on the master node really steers the behaviour!" },
+	  " the value on the master node really steers the behavior!" },
 	{ .tag = "show starter",
 	  .descr = "Show flag marking if starting is allowed." },
 	{ .tag = "show runjobs",
@@ -504,6 +509,9 @@ static info_t showInfo = {
 	{ .tag = "show cpumap",
 	  .descr = "Show the map assigning CPU-slots to physical cores on"
 	  " this node." },
+	{ .tag = "show allowUserMap",
+	  .descr = "Show flag marking if this nodes will allow user to"
+	  " influence the mapping of processes to physical core." },
 	{ .tag = "show nodessort",
 	  .descr = "Show the default sorting strategy used when attaching"
 	  " nodes to partitions." },
@@ -586,7 +594,7 @@ static info_t listInfo = {
 	  " is given, only the environment variable <key> and its value is"
 	  " displayed." },
 	{ .tag = "list {hardware|hw}",
-	  .descr = "Show the available communcation hardware on the selected"
+	  .descr = "Show the available communication hardware on the selected"
 	  " nodes." },
 	{ .tag = "list down",
 	  .descr = "List hostnames of down nodes within the selected ones." },
@@ -668,7 +676,7 @@ static info_t sleepInfo = {
 	.arg = "<sec>"
     }},
     .nodes = 0,
-    .descr = "Sleep for <sec> seconds before continuing to parse intput.",
+    .descr = "Sleep for <sec> seconds before continuing to parse input.",
     .tags = NULL,
     .comment = NULL
 };
@@ -709,7 +717,7 @@ static info_t pluginInfo = {
     .tags = (taggedInfo_t[]) {
 	{ .tag = "plugin list",
 	  .descr = "Show the currently loaded plugins on the selected nodes."
-	  " The info displayed includes name and verion of the plugin plus a"
+	  " The info displayed includes name and version of the plugin plus a"
 	  " list of plugins requiring the plugin to be loaded." },
 	{ .tag = "plugin {add|load} <plugin>",
 	  .descr = "Load plugin named <plugin> on the selected nodes. This"
@@ -834,7 +842,7 @@ static const char space[] = "                                                "
  * the command part of the syntax are expected to be (much) smaller
  * than the length of the actual line.
  *
- * Suitable positions for a line wrap are withspace (' ') characters
+ * Suitable positions for a line wrap are whitespace (' ') characters
  * which are not preceeded by pipe ('|') characters, or the
  * corresponding pipe character. Leading whitespace at the beginning
  * of a wrapped line - apart from the indentation - will be skipped.
@@ -886,7 +894,7 @@ static void printSyntax(const char *tag, syntax_t *syntax)
  * tag is expected to be (much) smaller than the length of the actual
  * line.
  *
- * Suitable positions for a line wrap are withspace (' ') characters.
+ * Suitable positions for a line wrap are whitespace (' ') characters.
  * Leading whitespace at the beginning of a wrapped line - apart from
  * the indentation - will be skipped.
  *

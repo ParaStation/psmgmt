@@ -714,6 +714,37 @@ short PSIDnodes_mapCPU(PSnodes_ID_t id, short cpu);
 void send_CPUMap_OPTIONS(PStask_ID_t dest);
 
 /**
+ * @brief Set the allowUserMap flag of a node.
+ *
+ * Set the allowUserMap flag of the node with ParaStation ID @a id to
+ * @a allowMap. If this flag is different from 0, users are allowed to
+ * influence the local mapping of their processes by providing the
+ * environment __PSI_CPUMAP.
+ *
+ * @param id ParaStation ID of the node to be modified.
+ *
+ * @param allowMap The allowUserMap flag to be set to this node.
+ *
+ * @return On success, 0 is returned or -1, if an error occured.
+ */
+int PSIDnodes_setAllowUserMap(PSnodes_ID_t id, int allowMap);
+
+/**
+ * @brief Get the allowUserMap flag of a node.
+ *
+ * Get the allowUserMap flag of the node with ParaStation ID @a id. If
+ * this flag is different from 0, users are allowed to influence the
+ * local mapping of their processes by providing the environment
+ * __PSI_CPUMAP.
+ *
+ * @param id ParaStation ID of the node to look up.
+ *
+ * @return If the node was found, the allowUserMap flag is returned. Or
+ * -1, if an error occured.
+ */
+int PSIDnodes_allowUserMap(PSnodes_ID_t id);
+
+/**
  * @brief Set node's accounter poll interval
  *
  * Set the accounter poll interval of node @a id to @a interval. If

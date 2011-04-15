@@ -1579,6 +1579,27 @@ static int getBindMem(char *token)
     return 0;
 }
 
+static int default_allowUserMap = 0, node_allowUserMap;
+
+static int getAllowUserMap(char *token)
+{
+    int allowMap, ret;
+
+    ret = parser_getBool(parser_getString(), &allowMap, "allowUserMap");
+    if (ret) return ret;
+
+    if (currentID == DEFAULT_ID) {
+	default_allowUserMap = allowMap;
+	parser_comment(PARSER_LOG_NODE, "setting default 'AllowUserMap' to"
+		       " '%s'\n", allowMap ? "TRUE" : "FALSE");
+    } else {
+	node_allowUserMap = allowMap;
+	parser_comment(PARSER_LOG_NODE, " user's CPU-mapping is%s allowed",
+		       allowMap ? "":" not");
+    }
+    return 0;
+}
+
 static int default_supplGrps = 0, node_supplGrps;
 
 static int getSupplGrps(char *token)
@@ -1877,6 +1898,7 @@ int setupNodeFromDefault(void)
     node_exclusive = default_exclusive;
     node_pinProcs = default_pinProcs;
     node_bindMem = default_bindMem;
+    node_allowUserMap = default_allowUserMap;
     node_supplGrps = default_supplGrps;
     node_maxStatTry = default_maxStatTry;
 
@@ -2009,6 +2031,12 @@ static int newHost(int id, in_addr_t addr)
 	return -1;
     }
 
+    if (PSIDnodes_setAllowUserMap(id, node_allowUserMap)) {
+	parser_comment(-1, "PSIDnodes_setAllowUserMap(%d, %d) failed\n",
+		       id, node_allowUserMap);
+	return -1;
+    }
+
     if (PSIDnodes_setSupplGrps(id, node_supplGrps)) {
 	parser_comment(-1, "PSIDnodes_setSupplGrps(%d, %d) failed\n",
 		       id, node_supplGrps);
@@ -2086,6 +2114,7 @@ static keylist_t nodeline_list[] = {
     {"exclusive", getExcl},
     {"pinprocs", getPinProcs},
     {"bindmem", getBindMem},
+    {"allowusermap", getAllowUserMap},
     {"supplGrps", getSupplGrps},
     {"maxStatTry", getMaxStatTry},
     {"cpumap", getCPUmap},
@@ -2696,6 +2725,7 @@ static keylist_t config_list[] = {
     {"exclusive", getExcl},
     {"pinprocs", getPinProcs},
     {"bindmem", getBindMem},
+    {"allowusermap", getAllowUserMap},
     {"supplGrps", getSupplGrps},
     {"maxStatTry", getMaxStatTry},
     {"cpumap", getCPUmap},

@@ -126,6 +126,7 @@ typedef enum {
     PSP_OP_CLR_CPUMAP,            /**< clear CPU-map */
     PSP_OP_APP_CPUMAP,            /**< append an element to CPU-map */
     PSP_OP_CPUMAP,                /**< request full CPU-map (returns list)*/
+    PSP_OP_ALLOWUSERMAP,          /**< allow user to influence CPU-mapping */
 
     PSP_OP_SET_UID = 0x0050,      /**< set an exclusive user
 				     (obsoletes PSP_OP_UIDLIMIT) */

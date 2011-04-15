@@ -626,7 +626,7 @@ static cpu_set_t *mapCPUs(PSCPU_set_t set)
     int localMapSize = 0;
     char *envStr = getenv("__PSI_CPUMAP");
 
-    if (envStr) {
+    if (envStr && PSIDnodes_allowUserMap(PSC_getMyID())) {
 	localMapSize = getMap(envStr, &localMap);
 	if (localMapSize < 0) {
 	    fprintf(stderr, "%s: falling back to system default\n", __func__);

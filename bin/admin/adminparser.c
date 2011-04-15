@@ -996,6 +996,12 @@ static int setShowCPUMap(char *token)
     return 0;
 }
 
+static int setShowAllowUserMap(char *token)
+{
+    setShowOpt = PSP_OP_ALLOWUSERMAP;
+    return 0;
+}
+
 static int setShowAccounter(char *token)
 {
     setShowOpt = PSP_OP_ACCT;
@@ -1137,6 +1143,7 @@ static keylist_t setShowList[] = {
     {"pinprocs", setShowPinProcs},
     {"bindmem", setShowBindMem},
     {"cpumap", setShowCPUMap},
+    {"allowusermap", setShowAllowUserMap},
     {"accounters", setShowAccounter},
     {"accountpoll", setShowAcctPoll},
     {"supplementarygroups", setShowSupplGrps},
@@ -1351,6 +1358,7 @@ static int setCommand(char *token)
     case PSP_OP_STARTER:
     case PSP_OP_PINPROCS:
     case PSP_OP_BINDMEM:
+    case PSP_OP_ALLOWUSERMAP:
     case PSP_OP_SUPPL_GRPS:
     case PSP_OP_RDPSTATISTICS:
     {
@@ -1425,6 +1433,7 @@ static int setCommand(char *token)
     case PSP_OP_STARTER:
     case PSP_OP_PINPROCS:
     case PSP_OP_BINDMEM:
+    case PSP_OP_ALLOWUSERMAP:
     case PSP_OP_NODESSORT:
     case PSP_OP_ACCTPOLL:
     case PSP_OP_SUPPL_GRPS:
@@ -1494,6 +1503,7 @@ static int showCommand(char *token)
     case PSP_OP_RUNJOBS:
     case PSP_OP_PINPROCS:
     case PSP_OP_BINDMEM:
+    case PSP_OP_ALLOWUSERMAP:
     case PSP_OP_ACCTPOLL:
     case PSP_OP_SUPPL_GRPS:
     case PSP_OP_MAXSTATTRY:

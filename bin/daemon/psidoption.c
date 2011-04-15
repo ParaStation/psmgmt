@@ -612,6 +612,9 @@ static void msg_SETOPTION(DDOptionMsg_t *msg)
 	    case PSP_OP_APP_CPUMAP:
 		PSIDnodes_appendCPUMap(PSC_getMyID(), msg->opt[i].value);
 		break;
+	    case PSP_OP_ALLOWUSERMAP:
+		PSIDnodes_setAllowUserMap(PSC_getMyID(), msg->opt[i].value);
+		break;
 	    case PSP_OP_HWSTATUS:
 		PSIDnodes_setHWStatus(PSC_getID(msg->header.sender),
 				      msg->opt[i].value);
@@ -872,6 +875,9 @@ static void msg_GETOPTION(DDOptionMsg_t *msg)
 		send_CPUMap_OPTIONS(msg->header.sender);
 		/* Do not send option again */
 		out--;
+		break;
+	    case PSP_OP_ALLOWUSERMAP:
+		msg->opt[out].value = PSIDnodes_allowUserMap(PSC_getMyID());
 		break;
 	    case PSP_OP_RDPDEBUG:
 		msg->opt[out].value = getDebugMaskRDP();

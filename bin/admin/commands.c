@@ -1422,6 +1422,7 @@ void PSIADM_SetParam(PSP_Option_t type, PSP_Optval_t value, char *nl)
     case PSP_OP_EXCLUSIVE:
     case PSP_OP_PINPROCS:
     case PSP_OP_BINDMEM:
+    case PSP_OP_ALLOWUSERMAP:
     case PSP_OP_SUPPL_GRPS:
     case PSP_OP_RDPSTATISTICS:
 	break;
@@ -1561,6 +1562,7 @@ void PSIADM_ShowParam(PSP_Option_t type, char *nl)
 		case PSP_OP_STARTER:
 		case PSP_OP_PINPROCS:
 		case PSP_OP_BINDMEM:
+		case PSP_OP_ALLOWUSERMAP:
 		case PSP_OP_SUPPL_GRPS:
 		    printf("%s\n", value ? "TRUE" : "FALSE");
 		    break;

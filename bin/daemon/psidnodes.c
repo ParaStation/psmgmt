@@ -65,6 +65,7 @@ typedef struct {
     short *CPUmap;         /**< Map to match virt. CPU slots to phys. cores */
     size_t CPUmapSize;     /**< Current size of @ref CPUmap */
     size_t CPUmapMaxSize;  /**< Allocated size of @ref CPUmap */
+    char allowUserMap;     /**< Flag to allow users to influence mapping */
     list_t uid_list;       /**< Users this node is reserved to */
     list_t gid_list;       /**< Groups this node is reserved to */
     list_t admuid_list;    /**< AdminUser on this node */
@@ -106,6 +107,7 @@ static void nodeInit(node_t *node)
     node->CPUmap = NULL;
     node->CPUmapSize = 0;
     node->CPUmapMaxSize = 0;
+    node->allowUserMap = 0;
     node->uid_list = LIST_HEAD_INIT(node->uid_list);
     node->gid_list = LIST_HEAD_INIT(node->gid_list);
     node->admuid_list = LIST_HEAD_INIT(node->admuid_list);
@@ -627,6 +629,25 @@ void send_CPUMap_OPTIONS(PStask_ID_t dest)
     msg.count++;
     if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
 	PSID_warn(-1, errno, "%s: sendMsg()", __func__);
+    }
+}
+
+int PSIDnodes_setAllowUserMap(PSnodes_ID_t id, int allowMap)
+{
+    if (PSIDnodes_validID(id)) {
+	nodes[id].allowUserMap = allowMap;
+	return 0;
+    } else {
+	return -1;
+    }
+}
+
+int PSIDnodes_allowUserMap(PSnodes_ID_t id)
+{
+    if (PSIDnodes_validID(id)) {
+	return nodes[id].allowUserMap;
+    } else {
+	return -1;
     }
 }
 
