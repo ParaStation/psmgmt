@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2002-2003 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2009 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2011 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -146,12 +146,28 @@ int Timer_remove(int id);
  * Block or unblock a registered timer. The timer will be identified by its
  * corresponding unique ID @a id.
  *
+ * @attention Calling this function from within the timer-handler does
+ * not work as expected. This is due to the fact that the specific
+ * timer handled at that time is blocked in order to prevent more than
+ * one active handler at a time. This block is released upon return
+ * from the handler. Instead of blocking the timer from within the
+ * handler it is safe to remove this timer and register a new timer as
+ * soon as this is required.
  *
- * @param id The unique ID useed to identify the timer.
+ * @attention Be aware of the fact that even a blocked timer consumes
+ * resources. This is due to the fact that even if all timers are
+ * blocked, the system's interval timer is still active calling the
+ * facility's signal-handler. Here still all registered timers are
+ * controlled for expiry and correspondingly marked, even if not
+ * called immediately. The actual call will be carried out as soon as
+ * the signal is unblocked. Thus, removing a timer via @ref
+ * Timer_remove() usually saves resources compared to blocking a timer
+ * for an undefined period.
+ *
+ * @param id The unique ID used to identify the timer.
  *
  * @param block On 0, the timer will be unblocked. On other values, it will
  *        be blocked.
- *
  *
  * @return If the timer was blocked before, 1 will be returned. If the timer
  * was not blocked, 0 will be returned. If an error occurred, -1 will be
@@ -171,16 +187,18 @@ int Timer_block(int id, int block);
  * such a timer is found, the corresponding @a timeoutHandler as
  * registered within @ref Timer_register() is called.
  *
- * Since the actual work is done within this function, it is crutial
+ * Since the actual work is done within this function, it is crucial
  * to call it on a regular basis in order to guarantee the handling of
- * the timers. Ideal points are immediately arround central select()
+ * the timers. Ideal points are immediately around central select()
  * calls or somewhere within a main loop of a program.
  *
  * As an example, the Selector facility uses Timers in order to
  * provide certain functionality. Here @ref Timer_handleSignals() is
  * called every time before going into the central select(). Be aware
  * of the fact that this select() is interrupted on a regular basis
- * due to signals sent to the process because of ellapsed timers.
+ * due to signals sent to the process because of elapsed timers.
+ *
+ * @return No return value.
  */
 void Timer_handleSignals(void);
 
