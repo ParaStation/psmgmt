@@ -461,6 +461,151 @@ static void pinToCPUs(cpu_set_t *physSet)
     sched_setaffinity(0, sizeof(*physSet), physSet);
 }
 
+typedef struct{
+    size_t maxSize;
+    size_t size;
+    short *map;
+} CPUmap_t;
+
+/**
+ * @brief Append CPU to CPU-map
+ *
+ * Append the core-number @a cpu to the CPU-map @a map. If required,
+ * the map's maxSize and the actual map are increased in order to make
+ * to new core-number to fit into the map.
+ *
+ * @param cpu The core-number of the CPU to append to the map
+ *
+ * @param map The map to modify
+ *
+ * @return No return value.
+ */
+static void appendToMap(short cpu, CPUmap_t *map)
+{
+    if (map->size == map->maxSize) {
+	if (map->maxSize) {
+	    map->maxSize *= 2;
+	} else {
+	    map->maxSize = PSIDnodes_getVirtCPUs(PSC_getMyID());
+	}
+	map->map = realloc(map->map, map->maxSize * sizeof(*map->map));
+	if (!map->map) PSID_exit(ENOMEM, "%s", __func__);
+    }
+    map->map[map->size] = cpu;
+    map->size++;
+}
+
+/**
+ * @brief Append range of CPUs to CPU-map
+ *
+ * Append a range of core-numbers described by the character-string @a
+ * range to the CPU-map @a map.
+ *
+ * Range is of the form 'first[-last]' where 'first' and 'last' are
+ * valid core-numbers on the local node. Be aware of the fact that the
+ * result depends on the ordering of first and last. I.e. 0-3 will
+ * result in 0,1,2,3 while 3-0 gives 3,2,1,0.
+ *
+ * @param map The map to modify
+ *
+ * @param range Character-string describing the range
+ *
+ * @return On success, 1 is returned, or 0, if an error occurred.
+ */
+static int appendRange(CPUmap_t *map, char *range)
+{
+    long first, last, i;
+    char *start = strsep(&range, "-"), *end;
+
+    if (*start == '\0') {
+	fprintf(stderr, "core -%s out of range\n", range);
+	return 0;
+    }
+
+    first = strtol(start, &end, 0);
+    if (*end != '\0') return 0;
+    if (first < 0 || first >= PSIDnodes_getVirtCPUs(PSC_getMyID())) {
+	fprintf(stderr, "core %ld out of range\n", first);
+	return 0;
+    }
+
+    if (range) {
+	if (*range == '\0') return 0;
+	last = strtol(range, &end, 0);
+	if (*end != '\0') return 0;
+	if (last < 0 || last >= PSIDnodes_getVirtCPUs(PSC_getMyID())) {
+	    fprintf(stderr, "core %ld out of range\n", last);
+	    return 0;
+	}
+    } else {
+	last = first;
+    }
+
+    if (first > last) {
+	for (i=first; i>=last; i--) appendToMap(i, map);
+    } else {
+	for (i=first; i<=last; i++) appendToMap(i, map);
+    }
+
+    return 1;
+}
+
+/**
+ * @brief Get CPU-map from string
+ *
+ * Create a user-defined CPU-map @a map from the character-string @a
+ * envStr. @a envStr is expected to contain a comma-separated list of
+ * ranges. Each range has to be of the form 'first[,last]', where
+ * 'first' and 'last' are valid (logical) core-numbers on the local
+ * node.
+ *
+ * The array @a map is pointing to upon successful return is a static
+ * member of this function. Thus, consecutive calls of this function
+ * will invalidate older results.
+ *
+ * @param envStr The character string to parse the CPU-map from.
+ *
+ * @param map The parsed CPU-map.
+ *
+ * @return On success, the length of the parsed CPU-map is
+ * returned. If an error occurred, -1 is returned.
+ */
+static int getMap(char *envStr, short **map)
+{
+    static CPUmap_t myMap = { .maxSize = 0, .size = 0, .map = NULL };
+    char *range, *work = NULL, *myEnv;
+
+    myMap.size = 0;
+    *map = NULL;
+
+    if (!envStr) {
+	fprintf(stderr, "%s: missing environment\n", __func__);
+	return -1;
+    }
+
+    myEnv = strdup(envStr);
+    if (!myEnv) {
+	fprintf(stderr, "%s: failed to handle environment\n", __func__);
+	return -1;
+    }
+
+    range = strtok_r(myEnv, ",", &work);
+    while (range) {
+	if (!appendRange(&myMap, range)) {
+	    fprintf(stderr, "%s: broken CPU-map '%s'\n", __func__, envStr);
+	    free(myEnv);
+	    return -1;
+	}
+	range = strtok_r(NULL, ",", &work);
+    }
+
+    *map = myMap.map;
+
+    free(myEnv);
+
+    return myMap.size;
+}
+
 /**
  * @brief Map CPUs
  *
@@ -471,19 +616,34 @@ static void pinToCPUs(cpu_set_t *physSet)
  * @param set The set of CPUs to map.
  *
  * @return A set of physical CPUs is returned as a static set of type
- * cpu_set_t. Subsequent callls to @ref mapCPUs will modify this set.
+ * cpu_set_t. Subsequent calls to @ref mapCPUs will modify this set.
  */
 static cpu_set_t *mapCPUs(PSCPU_set_t set)
 {
     short cpu, maxCPU = PSIDnodes_getVirtCPUs(PSC_getMyID());
     static cpu_set_t physSet;
+    short *localMap;
+    int localMapSize = 0;
+    char *envStr = getenv("__PSI_CPUMAP");
+
+    if (envStr) {
+	localMapSize = getMap(envStr, &localMap);
+	if (localMapSize < 0) {
+	    fprintf(stderr, "%s: falling back to system default\n", __func__);
+	    localMapSize = 0;
+	}
+    }
 
     CPU_ZERO(&physSet);
     for (cpu=0; cpu<maxCPU; cpu++) {
 	if (PSCPU_isSet(set, cpu)) {
-
-	    short physCPU = PSIDnodes_mapCPU(PSC_getMyID(), cpu);
-	    if (physCPU<0 || physCPU >= PSIDnodes_getVirtCPUs(PSC_getMyID())) {
+	    short physCPU = -1;
+	    if (localMapSize) {
+		if (cpu < localMapSize) physCPU = localMap[cpu];
+	    } else {
+		physCPU = PSIDnodes_mapCPU(PSC_getMyID(), cpu);
+	    }
+	    if (physCPU<0 || physCPU >= maxCPU) {
 		fprintf(stderr,
 			"Mapping CPU %d->%d out of range. No pinning\n",
 			cpu, physCPU);
