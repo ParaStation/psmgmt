@@ -83,7 +83,7 @@ char psid_cvsid[] = "$Revision$";
  * related to the callback. Currently two types of callback are
  * handled:
  *
- * - MCAST_NEW_CONNECTION: a new partner unaccessible before was detected.
+ * - MCAST_NEW_CONNECTION: a new partner inaccessible before was detected.
  *
  * - MCAST_LOST_CONNECTION: a partner that was recently accessible
  *   disappeared.
@@ -136,7 +136,7 @@ static void MCastCallBack(int msgid, void *buf)
  * related to the callback. Currently four types of callback are
  * handled:
  *
- * - RDP_NEW_CONNECTION: a new partner unaccessible before was detected.
+ * - RDP_NEW_CONNECTION: a new partner inaccessible before was detected.
  *
  * - RDP_LOST_CONNECTION: a partner that was recently accessible
  *   disappeared.
@@ -173,13 +173,13 @@ static void RDPCallBack(int msgid, void *buf)
 	break;
     case RDP_PKT_UNDELIVERABLE:
     {
-	DDMsg_t *msg = (DDMsg_t*)((RDPDeadbuf*)buf)->buf;
+	DDBufferMsg_t *msg = (DDBufferMsg_t*)((RDPDeadbuf*)buf)->buf;
 	PSID_log(PSID_LOG_RDP,
 		 "%s(RDP_PKT_UNDELIVERABLE, dest %x source %x type %s)\n",
-		 __func__, msg->dest, msg->sender,
-		 PSDaemonP_printMsg(msg->type));
+		 __func__, msg->header.dest, msg->header.sender,
+		 PSDaemonP_printMsg(msg->header.type));
 
-	handleDroppedMsg(msg);
+	PSID_dropMsg(msg);
 	break;
     }
     case RDP_LOST_CONNECTION:
@@ -204,11 +204,11 @@ static void RDPCallBack(int msgid, void *buf)
 /**
  * @brief Signal handler
  *
- * Handle signals catched by the local daemon. Most prominent all
+ * Handle signals caught by the local daemon. Most prominent all
  * SIGCHLD signals originating from processes fork()ed from the local
  * daemon are handled here.
  *
- * @param sig Signale to handle.
+ * @param sig Signal to handle.
  *
  * @return No return value.
  */
@@ -306,7 +306,7 @@ static void sighandler(int sig)
     case  SIGINFO:   /* (+) information request */
 #endif
 #ifdef SIGURG
-    case  SIGURG:    /* (+) urgent contition on I/O channel */
+    case  SIGURG:    /* (+) urgent condition on I/O channel */
 #endif
 #ifdef SIGIO
     case  SIGIO:     /* (+) I/O possible, or completed */
@@ -371,7 +371,7 @@ static void initSigHandlers(void)
 }
 
 /**
- * @brief Handle signals from childs
+ * @brief Handle signals from children
  *
  * Handling of SIGCHILD is suppressed most of the time in order to
  * prevent various race-conditions. Thus, periodically this has to be
@@ -464,7 +464,7 @@ static void checkFileTable(fd_set *controlfds)
 /**
  * @brief Print version info.
  *
- * Print version infos of the current psid.c CVS revision number to stderr.
+ * Print version info of the current psid.c CVS revision number to stderr.
  *
  * @return No return value.
  */
@@ -602,7 +602,7 @@ int main(int argc, const char *argv[])
     FD_ZERO(&PSID_readfds);
     FD_ZERO(&PSID_writefds);
 
-    /* Try to get a lock. This will guarantee exlusiveness */
+    /* Try to get a lock. This will guarantee exclusiveness */
     PSID_getLock();
 
     /*

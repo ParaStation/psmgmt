@@ -77,7 +77,7 @@ static char *get_strerror(int eno)
     return ret ? ret : "UNKNOWN";
 }
 
-/** File-descriptort used by the alarm-handler to write its errno */
+/** File-descriptor used by the alarm-handler to write its errno */
 static int alarmFD = -1;
 
 /** Function interrupted. This will be reported by the alarm-handler */
@@ -149,7 +149,7 @@ static int myexecv(const char *path, char *const argv[])
  * Setup and start to listen to a TCP socket that clients can connect
  * to for PMI requests.
  *
- * @return Upon success the fd of the initalized socket is
+ * @return Upon success the fd of the initialized socket is
  * returned. In case of an error, -1 is returned and errno is set
  * appropriately.
  */
@@ -750,7 +750,7 @@ static int changeToWorkDir(PStask_t *task)
  * node. Therefore @ref pinToCPU() and @ref bindToNode() are called
  * respectively.
  *
- * Befor doing the actual pinning and binding the logical CPUs are
+ * Before doing the actual pinning and binding the logical CPUs are
  * mapped to physical ones via mapCPUs().
  *
  * @param set The logical CPUs to pin and bind to.
@@ -919,10 +919,10 @@ static int testExecutable(PStask_t *task, char **executable)
  * UID, GID and the current working directory are set up correctly. If
  * no working directory is provided within @a task, the corresponding
  * user's home directory is used. After some tests on the existence
- * and accessability of the executable to call the forwarder is
+ * and accessibility of the executable to call the forwarder is
  * signaled via the control-channel passwd withing task->fd to
  * register the child process within the local daemon. As soon as the
- * forwarder acknowleges the registration finally the executable is
+ * forwarder acknowledges the registration finally the executable is
  * called via @ref myexecv().
  *
  * Error-messages are sent to stderr. It is the task of the calling
@@ -1099,7 +1099,7 @@ static void execClient(PStask_t *task)
  * fileNo is either STDOUT_FILENO or STDERR_FILENO and steers creation
  * of the corresponding channels.
  *
- * If any error occurres during this process, the corresponding errno
+ * If any error occurs during this process, the corresponding errno
  * is returned.
  *
  * @param task Task structure determining the use of either openpty()
@@ -1191,14 +1191,14 @@ static void verifyElanHost(void)
  * @brief Prepare PMI
  *
  * Prepare PMI environment presented to the client process that will
- * be handeled by the forwarder. For further use within the calling
+ * be handled by the forwarder. For further use within the calling
  * function, @a forwarderSock will hold the file-descriptor of this
  * socket upon return.
  *
  * This function will evaluate various environment variables in order
  * to determine which type of socket to open:
  *
- * - PMI_ENABLE_TCP will trigger an TCP socekt.
+ * - PMI_ENABLE_TCP will trigger an TCP socket.
  *
  * - PMI_ENABLE_SOCKP will trigger an AF_UNIX socketpair.
  *
@@ -1681,7 +1681,7 @@ static void sendAcctChild(PStask_t *task)
  * that sets up a sandbox for the client process to run in. The the
  * actual client process is started within this sandbox.
  *
- * All necessary information determined during startup of the
+ * All necessary information determined during start up of the
  * forwarder and client process is stored within the corresponding
  * task structures. For the forwarder this includes the task ID and
  * the file descriptor connecting the local daemon to the
@@ -1837,7 +1837,7 @@ static void sendAcctStart(PStask_ID_t sender, PStask_t *task)
     ptr += sizeof(gid_t);
     msg.header.len += sizeof(gid_t);
 
-    /* total number of childs */
+    /* total number of children */
     *(int32_t *)ptr = task->partitionSize;
     ptr += sizeof(int32_t);
     msg.header.len += sizeof(int32_t);
@@ -1877,8 +1877,9 @@ static void sendAcctStart(PStask_ID_t sender, PStask_t *task)
 /**
  * @brief Check spawn request
  *
- * Check if the spawnrequest as decoded in @a task is correct, i.e. if
- * it does not violate some security measures or node configurations.
+ * Check if the request to spawn as decoded in @a task is correct,
+ * i.e. if it does not violate some security measures or node
+ * configurations.
  *
  * While checking the request it is assumed that its origin is the
  * task @a sender.
@@ -1968,7 +1969,7 @@ static int checkRequest(PStask_ID_t sender, PStask_t *task)
  * that sets up a sandbox for the client process to run in. The the
  * actual client process is started within this sandbox.
  *
- * All necessary information determined during startup of the
+ * All necessary information determined during start up of the
  * forwarder and client process is stored within the corresponding
  * task structures. For the forwarder this includes the task ID and
  * the file descriptor connecting the local daemon to the
@@ -2245,7 +2246,7 @@ static void msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
     case PSP_SPAWN_TASK:
 	if (task) {
 	    PStask_snprintf(tasktxt, sizeof(tasktxt), task);
-	    PSID_log(-1, "%s: from %s task %s allready there\n",
+	    PSID_log(-1, "%s: from %s task %s already there\n",
 		     __func__, PSC_printTID(msg->header.sender), tasktxt);
 	    return;
 	}
@@ -2385,6 +2386,34 @@ static void msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
 	    sendMsg(&answer);
 	}
     }
+}
+
+/**
+ * @brief Drop a PSP_CD_SPAWNREQ[UEST] message.
+ *
+ * Drop the message @a msg of type PSP_CD_SPAWNREQ[UEST].
+ *
+ * Since the spawning process waits for a reaction to its request a
+ * corresponding answer is created. This work for both generations of
+ * spawn-requests.
+ *
+ * @param msg Pointer to the message to drop.
+ *
+ * @return No return value.
+ */
+static void drop_SPAWNREQ(DDBufferMsg_t *msg)
+{
+    DDErrorMsg_t errmsg;
+
+    errmsg.header.type = PSP_CD_SPAWNFAILED;
+    errmsg.header.dest = msg->header.sender;
+    errmsg.header.sender = msg->header.dest;
+    errmsg.header.len = sizeof(errmsg);
+
+    errmsg.error = EHOSTDOWN;
+    errmsg.request = 0;
+
+    sendMsg(&errmsg);
 }
 
 void deleteSpawnTasks(PSnodes_ID_t node)
@@ -2676,7 +2705,7 @@ static void msg_CHILDBORN(DDErrorMsg_t *msg)
  *
  * This type of message is created by the forwarder process to inform
  * the local daemon on the dead of the controlled client process. This
- * might result in sending pending signals, deregistering the task,
+ * might result in sending pending signals, un-registering the task,
  * etc. Additionally the message will be forwarded to the daemon
  * controlling the parent task in order to take according measures.
  *
@@ -2809,7 +2838,7 @@ static void msg_CHILDDEAD(DDErrorMsg_t *msg)
  * @brief Check for obstinate tasks
  *
  * The purpose of this function is twice; one the one hand it checks
- * for obstinate tasks and sends SIGKILL signales until the task
+ * for obstinate tasks and sends SIGKILL signals until the task
  * disappears. On the other hand it garbage-collects all deleted task
  * structures within the list of managed tasks and frees them.
  *
@@ -2862,6 +2891,9 @@ void initSpawn(void)
     PSID_registerMsg(PSP_DD_CHILDDEAD, (handlerFunc_t) msg_CHILDDEAD);
     PSID_registerMsg(PSP_DD_CHILDBORN, (handlerFunc_t) msg_CHILDBORN);
     PSID_registerMsg(PSP_DD_CHILDACK, (handlerFunc_t) sendClient);
+
+    PSID_registerDropper(PSP_CD_SPAWNREQUEST, drop_SPAWNREQ);
+    PSID_registerDropper(PSP_CD_SPAWNREQ, drop_SPAWNREQ);
 
     PSID_registerLoopAct(checkObstinateTasks);
     PSID_registerLoopAct(cleanupSpawnTasks);

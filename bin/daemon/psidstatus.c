@@ -111,7 +111,7 @@ static PSID_Mem_t getMem(void)
 
 /** Structure used to hold status information of all nodes on the master */
 typedef struct {
-    struct timeval lastPing;  /**< Timestamp of last received ping */
+    struct timeval lastPing;  /**< Time-stamp of last received ping */
     PSID_Jobs_t jobs;   /**< Number of jobs on the node */
     PSID_Load_t load;   /**< Load parameters of node */
     PSID_Mem_t mem;     /**< Memory parameters of node */
@@ -164,7 +164,7 @@ static void allocMasterSpace(void)
 /**
  * @brief Free master space.
  *
- * Free space needed by master when master burdon is passed to next
+ * Free space needed by master when master burden is passed to next
  * node. The space has to be allocated using @ref allocMasterSpace().
  *
  * @return No return value.
@@ -262,7 +262,7 @@ static void handleMasterTasks(void)
 	    }
 	    if (clientStat[node].missCounter > DeadLimit) {
 		PSID_log(PSID_LOG_STATUS,
-			 "%s: misscount exceeded to node %d\n",
+			 "%s: miss-count exceeded to node %d\n",
 			 __func__, node);
 		send_DAEMONCONNECT(node);
 	    }
@@ -832,6 +832,36 @@ static void msg_DAEMONCONNECT(DDBufferMsg_t *msg)
 }
 
 /**
+ * @brief Drop a PSP_DD_DAEMONCONNECT message.
+ *
+ * Drop the message @a msg of type PSP_DD_DAEMONCONNECT.
+ *
+ * Since the connecting daemon waits for a reaction to its request a
+ * corresponding answer is created.
+ *
+ * @param msg Pointer to the message to drop.
+ *
+ * @return No return value.
+ */
+static void drop_DAEMONCONNECT(DDBufferMsg_t *msg)
+{
+    static int block = 0;
+
+    if (!block && !config->useMCast && !knowMaster()
+	&& ! (PSID_getDaemonState() & PSID_STATE_SHUTDOWN)) {
+	PSnodes_ID_t next = PSC_getID(msg->header.dest) + 1;
+
+	block = 1;
+	while (next < PSC_getMyID() && send_DAEMONCONNECT(next) < 0
+	       && (errno == EHOSTUNREACH || errno == ECONNREFUSED)) {
+	    next++;
+	}
+	block = 0;
+	if (next == PSC_getMyID()) declareMaster(next);
+    }
+}
+
+/**
  * @brief Handle a PSP_DD_DAEMONESTABLISHED message.
  *
  * Handle the message @a msg of type PSP_DD_DAEMONESTABLISHED.
@@ -971,7 +1001,7 @@ static void msg_MASTERIS(DDBufferMsg_t *msg)
  * @param dest ParaStation ID of the node to send the message to.
  *
  * @return On success, the number of bytes sent within the
- * PSP_DD_ACTIVE_NODES message is returned. If an error occured, -1 is
+ * PSP_DD_ACTIVE_NODES message is returned. If an error occurred, -1 is
  * returned and errno is set appropriately.
  */
 static int send_ACTIVENODES(PSnodes_ID_t dest)
@@ -1073,7 +1103,7 @@ static void msg_ACTIVENODES(DDBufferMsg_t *msg)
  *
  * @return On success, the number of nodes the PSP_DD_DEAD_NODE
  * message is sent to is returned, i.e. the value returned by the @ref
- * broadcastMsg() call. If an error occured, -1 is returned and errno
+ * broadcastMsg() call. If an error occurred, -1 is returned and errno
  * is set appropriately.
  */
 static int send_DEADNODE(PSnodes_ID_t deadnode)
@@ -1207,4 +1237,6 @@ void initStatus(void)
     PSID_registerMsg(PSP_DD_ACTIVE_NODES, msg_ACTIVENODES);
     PSID_registerMsg(PSP_DD_DEAD_NODE, msg_DEADNODE);
     PSID_registerMsg(PSP_DD_LOAD, msg_LOAD);
+
+    PSID_registerDropper(PSP_DD_DAEMONCONNECT, drop_DAEMONCONNECT);
 }

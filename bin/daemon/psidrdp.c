@@ -65,7 +65,7 @@ void clearRDPMsgs(int node)
 	msgbuf_t *mp = list_entry(m, msgbuf_t, next);
 
 	list_del(&mp->next);
-	handleDroppedMsg((DDMsg_t *)mp->msg);
+	PSID_dropMsg((DDBufferMsg_t *)mp->msg);
 	PSIDMsgbuf_put(mp);
     }
 
@@ -74,7 +74,7 @@ void clearRDPMsgs(int node)
 }
 
 /**
- * @brief Store RDP message to bufferes.
+ * @brief Store RDP message to buffers.
  *
  * Store the RDP messages @a msg that could not yet be delivered to
  * node @a node to the corresponding buffer within @ref node_bufs. The

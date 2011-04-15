@@ -750,7 +750,7 @@ static void msg_SETOPTION(DDOptionMsg_t *msg)
  *
  * If the final destination of @a msg is the local daemon, the
  * requested options within this message are determined and send
- * within a PSP_CD_SETOPTION to the requestor. Otherwise this message
+ * within a PSP_CD_SETOPTION to the requester. Otherwise this message
  * es forwarded to the corresponding remote daemon.
  *
  * @param inmsg Pointer to the message to handle.
@@ -972,10 +972,39 @@ static void msg_GETOPTION(DDOptionMsg_t *msg)
     }
 }
 
+/**
+ * @brief Drop a PSP_CD_GETOPTION message.
+ *
+ * Drop the message @a msg of type PSP_CD_GETOPTION.
+ *
+ * Since the requesting process waits for a reaction to its request a
+ * corresponding answer is created.
+ *
+ * @param msg Pointer to the message to drop.
+ *
+ * @return No return value.
+ */
+static void drop_GETOPTION(DDBufferMsg_t *msg)
+{
+    DDErrorMsg_t errmsg;
+
+    errmsg.header.type = PSP_CD_ERROR;
+    errmsg.header.dest = msg->header.sender;
+    errmsg.header.sender = PSC_getMyTID();
+    errmsg.header.len = sizeof(errmsg);
+
+    errmsg.error = EHOSTUNREACH;
+    errmsg.request = msg->header.type;
+
+    sendMsg(&errmsg);
+}
+
 void initOptions(void)
 {
     PSID_log(PSID_LOG_VERB, "%s()\n", __func__);
 
     PSID_registerMsg(PSP_CD_SETOPTION, (handlerFunc_t) msg_SETOPTION);
     PSID_registerMsg(PSP_CD_GETOPTION, (handlerFunc_t) msg_GETOPTION);
+
+    PSID_registerDropper(PSP_CD_GETOPTION, drop_GETOPTION);
 }

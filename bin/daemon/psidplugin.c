@@ -254,7 +254,7 @@ static plugin_t * remTrigger(plugin_t *plugin, plugin_t *trigger)
 }
 
 /**
- * @brief Remove dependeny
+ * @brief Remove dependency
  *
  * Remove the depending plugin @a depend from the list of depending
  * plugins of the plugin @a plugin.
@@ -263,8 +263,8 @@ static plugin_t * remTrigger(plugin_t *plugin, plugin_t *trigger)
  *
  * @param depend The depending plugin to remove
  *
- * @return On success, the removed dependeny is returned. Or NULL, if
- * the deending plugin was not found in the list.
+ * @return On success, the removed dependency is returned. Or NULL, if
+ * the depending plugin was not found in the list.
  */
 static plugin_t * remDepend(plugin_t *plugin, plugin_t *depend)
 {
@@ -503,7 +503,7 @@ int PSIDplugin_getNum(void)
  * requirements set by @a minVer. If any version of a plugin is okay,
  * @a minVer might be set to 0.
  *
- * Loading a plugin might also fail due to loading dependant plugins
+ * Loading a plugin might also fail due to loading dependent plugins
  * without success.
  *
  * If @a trigger is different from NULL, the corresponding plugin will
@@ -515,7 +515,7 @@ int PSIDplugin_getNum(void)
  *
  * @param trigger Plugin triggering the current plugin to be loaded.
  *
- * @return Upon success, i.e. if the plugin is loaded afterwards, the
+ * @return Upon success, i.e. if the plugin is loaded afterward, the
  * structure describing the plugin is given back. Or NULL, if the
  * plugin could not be loaded.
  */
@@ -729,7 +729,7 @@ void *PSIDplugin_getHandle(char *name)
  * is called, if available. This prompts the plugin to do all cleanup
  * necessary before actually evicting the plugin from address-space
  * via dlclose(). This includes free()ing memory segments allocated by
- * the plugin via malloc(), unregistering of timer, message-handler
+ * the plugin via malloc(), un-registering of timer, message-handler
  * and selectors, etc.
  *
  * Afterwards or if the plugin does not expose a cleanup-method the
@@ -772,7 +772,7 @@ static int unloadPlugin(plugin_t *plugin)
  * not be affected, if the plugin is still triggered by another plugin
  * depending on it. Basically, this function just removes the
  * self-trigger of the plugin, i.e. a trigger of the plugin pointing
- * to itself, if the plugin was loaded explicitely. If this was the
+ * to itself, if the plugin was loaded explicitly. If this was the
  * plugin's last trigger, further measures will be taken in order to
  * actually unload the plugin @a name.
  *
@@ -830,7 +830,7 @@ static int finalizePlugin(plugin_t *plugin)
     return 0;
 }
 
-/** Flag detection of loops in the dependecy-graph of the plugins */
+/** Flag detection of loops in the dependency-graph of the plugins */
 static int depLoopDetect = 0;
 
 /**
@@ -840,7 +840,7 @@ static int depLoopDetect = 0;
  * it forcefully. This function will be called recursively to fully
  * walk the dependency-graph. Once a root of the graph is reached,
  * i.e. a plugin is handled that has no triggers besides being loaded
- * explicitely, this plugin is finalized and a timeout for unloading
+ * explicitly, this plugin is finalized and a timeout for unloading
  * as defined by @ref unloadTimeout is set.
  *
  * At the same time this function implements a modification of the
@@ -857,7 +857,7 @@ static int depLoopDetect = 0;
  *
  * If the algorithm detects a loop in the dependency-graph, the global
  * flag @ref depLoopDetect is raised. This function cannot resolve
- * such loops. They have to be broken up explicitely outside this
+ * such loops. They have to be broken up explicitly outside this
  * function.
  *
  * @attention Breaking up loops might crash the daemon. In general,
@@ -955,7 +955,7 @@ static int walkDepGraph(plugin_t *plugin, int distance)
  *
  * After running @ref walkDepGraph() this function might be used to
  * identify the optimal candidate to forcefully unload for breaking up
- * a dependency-loop explicitely. For that the plugin with maximum
+ * a dependency-loop explicitly. For that the plugin with maximum
  * distance to the original plugin not yet "cleared" is
  * identified. For a detailed discussion of "cleared" plugins refer to
  * @ref walkDepGraph().
@@ -1175,6 +1175,31 @@ end:
 }
 
 /**
+ * @brief Drop a PSP_CD_PLUGIN message.
+ *
+ * Drop the message @a msg of type PSP_CD_PLUGIN.
+ *
+ * Since the requesting process waits for a reaction to its request a
+ * corresponding answer is created.
+ *
+ * @param msg Pointer to the message to drop.
+ *
+ * @return No return value.
+ */
+static void drop_PLUGIN(DDBufferMsg_t *msg)
+{
+    DDTypedMsg_t typmsg;
+
+    typmsg.header.type = PSP_CD_PLUGINRES;
+    typmsg.header.dest = msg->header.sender;
+    typmsg.header.sender = PSC_getMyTID();
+    typmsg.header.len = sizeof(typmsg);
+    typmsg.type = -1;
+
+    sendMsg(&typmsg);
+}
+
+/**
  * @brief Unload plugin
  *
  * Unload the plugin @a plugin. Unloading a plugin might fail due to
@@ -1272,6 +1297,8 @@ void initPlugins(void)
     /* Register msg-handlers for plugin load/unload */
     PSID_registerMsg(PSP_CD_PLUGIN, (handlerFunc_t)msg_PLUGIN);
     PSID_registerMsg(PSP_CD_PLUGINRES, (handlerFunc_t)sendMsg);
+
+    PSID_registerDropper(PSP_CD_PLUGIN, drop_PLUGIN);
 
     PSID_registerLoopAct(handlePlugins);
 

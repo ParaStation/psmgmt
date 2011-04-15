@@ -414,6 +414,35 @@ static void msg_SIGNAL(DDSignalMsg_t *msg)
 }
 
 /**
+ * @brief Drop a PSP_CD_SIGNAL message.
+ *
+ * Drop the message @a msg of type PSP_CD_SIGNAL.
+ *
+ * Since the sending process waits for a reaction to its request a
+ * corresponding answer is created.
+ *
+ * @param msg Pointer to the message to drop.
+ *
+ * @return No return value.
+ */
+static void drop_SIGNAL(DDBufferMsg_t *msg)
+{
+    DDErrorMsg_t errmsg;
+
+    if (!((DDSignalMsg_t *)msg)->answer) return;
+
+    errmsg.header.type = PSP_CD_SIGRES;
+    errmsg.header.dest = msg->header.sender;
+    errmsg.header.sender = PSC_getMyTID();
+    errmsg.header.len = sizeof(errmsg);
+
+    errmsg.error = ESRCH;
+    errmsg.request = msg->header.dest;
+
+    sendMsg(&errmsg);
+}
+
+/**
  * @brief Handle a PSP_CD_NOTIFYDEAD message.
  *
  * Handle the message @a msg of type PSP_CD_NOTIFYDEAD.
@@ -539,7 +568,7 @@ static void msg_NOTIFYDEADRES(DDSignalMsg_t *msg)
 		 __func__, msg->param, PSC_printTID(registrarTid));
     } else {
 	/* No error, signal was registered on remote node */
-	/* include into assigned Sigs */
+	/* include into assignedSigs */
 	PStask_t *task;
 
 	PSID_log(PSID_LOG_SIGNAL, "%s: sending msg to local parent %s\n",
@@ -689,6 +718,34 @@ static void msg_NEWPARENT(DDErrorMsg_t *msg)
     msg_RELEASERES(&answer);
 }
 
+/**
+ * @brief Drop a PSP_DD_NEWCHILD or PSP_DD_NEWPARENT message.
+ *
+ * Drop the message @a msg of type PSP_DD_NEWCHILD or PSP_DD_NEWPARENT.
+ *
+ * Since the requesting daemon waits for a reaction to its request a
+ * corresponding answer is created.
+ *
+ * @param msg Pointer to the message to drop.
+ *
+ * @return No return value.
+ */
+static void drop_NEWRELATIVE(DDBufferMsg_t *msg)
+{
+    DDSignalMsg_t sigmsg;
+
+    sigmsg.header.type = PSP_CD_RELEASERES;
+    sigmsg.header.dest = msg->header.sender;
+    sigmsg.header.sender = PSC_getMyTID();
+    sigmsg.header.len = msg->header.len;
+
+    sigmsg.signal = -1;
+    sigmsg.param = EHOSTUNREACH;
+    sigmsg.pervasive = 0;
+
+    sendMsg(&sigmsg);
+}
+
 static void msg_RELEASE(DDSignalMsg_t *msg);
 
 /**
@@ -789,9 +846,9 @@ static int releaseSignal(PStask_ID_t sender, PStask_ID_t receiver, int sig,
  *
  * Nevertheless explicitly registered signal will be sent.
  *
- * Usually this results in deregeristing from the parent and
- * inheriting all the childs to the parent. This is done by sending an
- * amount of PSP_CD_RELEASE, PSP_CD_NEWPARENT and PSP_CD_NEWCHILD
+ * Usually this results in un-registering from the parent and
+ * inheriting all the children to the parent. This is done by sending
+ * an amount of PSP_CD_RELEASE, PSP_CD_NEWPARENT and PSP_CD_NEWCHILD
  * messages and expecting the corresponding answers. However, if the
  * @ref releaseAnswer flag within the task-structure @a task is not
  * set, no answers are expected.
@@ -851,7 +908,7 @@ static int releaseTask(PStask_t *task)
 		task->pendingReleaseRes += task->releaseAnswer;
 	    }
 
-	    /* Reorganize childs. They are inherited by the parent task */
+	    /* Reorganize children. They are inherited by the parent task */
 	    sig = -1;
 	    while ((child = PSID_getSignal(&task->childs, &sig))) {
 		PSID_log(PSID_LOG_TASK|PSID_LOG_SIGNAL,
@@ -933,7 +990,7 @@ static int releaseTask(PStask_t *task)
  * - The task to release is identical to the releasing tasks. This
  * special case tells the local daemon to expect the corresponding
  * process to disappear, i.e. not to signal the parent task upon exit
- * as long as no error occured. The corresponding action are
+ * as long as no error occurred. The corresponding action are
  * undertaken within the @ref releaseTask() function called.
  *
  * In all cases adequate PSP_CD_RELEASERES message are send to the
@@ -1122,6 +1179,38 @@ static void msg_WHODIED(DDSignalMsg_t *msg)
     sendMsg(msg);
 }
 
+/**
+ * @brief Drop a PSP_CD_RELEASE or PSP_CD_NOTIFYDEAD message.
+ *
+ * Drop the message @a msg of type PSP_CD_RELEASE or PSP_CD_NOTIFYDEAD.
+ *
+ * Since the requesting process waits for a reaction to its request a
+ * corresponding answer is created.
+ *
+ * @param msg Pointer to the message to drop.
+ *
+ * @return No return value.
+ */
+static void drop_RELEASE(DDBufferMsg_t *msg)
+{
+    DDSignalMsg_t sigmsg;
+    int PSPver = PSIDnodes_getProtoV(PSC_getID(msg->header.sender));
+
+    sigmsg.header.type = (msg->header.type==PSP_CD_RELEASE) ?
+	PSP_CD_RELEASERES : PSP_CD_NOTIFYDEADRES;
+    sigmsg.header.dest = msg->header.sender;
+    sigmsg.header.sender = PSC_getMyTID();
+    sigmsg.header.len = msg->header.len;
+
+    sigmsg.signal = ((DDSignalMsg_t *)msg)->signal;
+    sigmsg.param = EHOSTUNREACH;
+    sigmsg.pervasive = 0;
+
+    if (msg->header.type == PSP_CD_NOTIFYDEAD
+	|| PSPver < 338 || ((DDSignalMsg_t *)msg)->answer)
+	sendMsg(&sigmsg);
+}
+
 void initSignal(void)
 {
     PSID_log(PSID_LOG_VERB, "%s()\n", __func__);
@@ -1134,4 +1223,10 @@ void initSignal(void)
     PSID_registerMsg(PSP_CD_WHODIED, (handlerFunc_t) msg_WHODIED);
     PSID_registerMsg(PSP_DD_NEWCHILD, (handlerFunc_t) msg_NEWCHILD);
     PSID_registerMsg(PSP_DD_NEWPARENT, (handlerFunc_t) msg_NEWPARENT);
+
+    PSID_registerDropper(PSP_CD_SIGNAL, drop_SIGNAL);
+    PSID_registerDropper(PSP_DD_NEWCHILD, drop_NEWRELATIVE);
+    PSID_registerDropper(PSP_DD_NEWPARENT, drop_NEWRELATIVE);
+    PSID_registerDropper(PSP_CD_NOTIFYDEAD, drop_RELEASE);
+    PSID_registerDropper(PSP_CD_RELEASE, drop_RELEASE);
 }

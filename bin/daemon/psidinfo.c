@@ -744,9 +744,38 @@ static void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
     }
 }
 
+/**
+ * @brief Drop a PSP_CD_INFOREQUEST message.
+ *
+ * Drop the message @a msg of type PSP_CD_INFOREQUEST.
+ *
+ * Since the requesting process waits for a reaction to its request a
+ * corresponding answer is created.
+ *
+ * @param msg Pointer to the message to drop.
+ *
+ * @return No return value.
+ */
+static void drop_INFOREQUEST(DDBufferMsg_t *msg)
+{
+    DDErrorMsg_t errmsg;
+
+    errmsg.header.type = PSP_CD_ERROR;
+    errmsg.header.dest = msg->header.sender;
+    errmsg.header.sender = PSC_getMyTID();
+    errmsg.header.len = sizeof(errmsg);
+
+    errmsg.error = EHOSTUNREACH;
+    errmsg.request = msg->header.type;
+
+    sendMsg(&errmsg);
+}
+
 void initInfo(void)
 {
     PSID_log(PSID_LOG_VERB, "%s()\n", __func__);
 
     PSID_registerMsg(PSP_CD_INFOREQUEST, (handlerFunc_t) msg_INFOREQUEST);
+
+    PSID_registerDropper(PSP_CD_INFOREQUEST, drop_INFOREQUEST);
 }

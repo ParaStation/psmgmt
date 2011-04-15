@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2010 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2011 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -62,7 +62,7 @@ void initComm(void);
  *
  *
  * @return On success, the number of bytes sent is returned. If an error
- * occured, -1 is returned and errno is set appropriately.
+ * occurred, -1 is returned and errno is set appropriately.
  *
  * @see sendRDP(), sendClient()
  */
@@ -87,7 +87,7 @@ int sendMsg(void *msg);
  *
  *
  * @return On success, the number of bytes received is returned, or -1 if
- * an error occured. In the latter case errno will be set appropiately.
+ * an error occured. In the latter case errno will be set appropriately.
  *
  * @see recvRDP(), recvClient()
  */
@@ -167,19 +167,62 @@ handlerFunc_t PSID_clearMsg(int msgType);
 int PSID_handleMsg(DDBufferMsg_t *msg);
 
 /**
- * @brief Handle dropped message
+ * @brief Register message dropper function
+ *
+ * Register the function @a dropper to handle dropping of messages of
+ * type @a msgType in the local daemon. If @a dropper is NULL, all
+ * messages of type @a msgType will be silently dropped in the future.
+ *
+ * @param msgType The message-type to handle.
+ *
+ * @param dropper The function to call whenever a message of type @a
+ * msgType has to be dropped.
+ *
+ * @return If a dropper for this message-type was registered before,
+ * the corresponding function pointer is returned. If this is the
+ * first dropper registered for this message-type, NULL is returned.
+ *
+ * @see PSID_clearDropper(), PSID_dropMsg()
+ */
+handlerFunc_t PSID_registerDropper(int msgType, handlerFunc_t dropper);
+
+/**
+ * @brief Unregister message dropper function
+ *
+ * Un-register the message-type @a msgType such that dropping this type
+ * of message with be done silently in the future. This is identical
+ * in registering the NULL dropper to this message-type.
+ *
+ * @param msgType The message-type not to give any special treatment
+ * in the future.
+ *
+ * @return If a dropper for this message-type was registered before,
+ * the corresponding function pointer is returned. If no dropper was
+ * registered or the message-type was unknown before, NULL is
+ * returned.
+ *
+ * @see PSID_registerDropper(), PSID_dropMsg()
+ */
+handlerFunc_t PSID_clearDropper(int msgType);
+
+/**
+ * @brief Drop a message
  *
  * Handle the dropped message @a msg. This is a service function for
  * the various transport layers each of which might be forced to drop
  * messages. Depending on the type of message dropped additional
- * answer messages might be created to satisfy the sender of the
- * original message waiting for an answer.
+ * answer messages might be required to be created to satisfy the
+ * sender of the original message waiting for an answer.
  *
  * @param msg Dropped message to handle
  *
- * @return No return value.
+ * @return After normal execution, 0 is returned. If an error
+ * occurred, -1 is returned and errno is set appropriately. Silently
+ * dropping messages is *not* assumed to be an error.
+ *
+ * @see PSID_registerDropper(), PSID_clearDropper()
  */
-void handleDroppedMsg(DDMsg_t *msg);
+int PSID_dropMsg(DDBufferMsg_t *msg);
 
 #ifdef __cplusplus
 }/* extern "C" */

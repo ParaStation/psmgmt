@@ -377,7 +377,7 @@ int recvClient(int fd, DDMsg_t *msg, size_t size)
  *
  * Close the connection to the client connected via the file
  * descriptor @a fd. Afterwards the relevant part of the client table
- * is reseted.
+ * is reset.
  *
  * @param fd The file descriptor the client is connected through.
  *
@@ -399,18 +399,18 @@ static void closeConnection(int fd)
 
     list_for_each_safe(m, tmp, &clients[fd].msgs) {
 	msgbuf_t *mp = list_entry(m, msgbuf_t, next);
-	DDMsg_t *msg = (DDMsg_t *)mp->msg;
+	DDBufferMsg_t *msg = (DDBufferMsg_t *)mp->msg;
 
 	list_del(&mp->next);
 
-	if (PSC_getPID(msg->sender)) {
+	if (PSC_getPID(msg->header.sender)) {
 	    DDMsg_t contmsg = { .type = PSP_DD_SENDCONT,
-				.sender = msg->dest,
-				.dest = msg->sender,
+				.sender = msg->header.dest,
+				.dest = msg->header.sender,
 				.len = sizeof(DDMsg_t) };
 	    if (contmsg.dest != tid) sendMsg(&contmsg);
 	}
-	handleDroppedMsg(msg);
+	PSID_dropMsg(msg);
 	PSIDMsgbuf_put(mp);
     }
 
@@ -625,7 +625,7 @@ pid_t getpgid(pid_t); /* @todo HACK HACK HACK */
  *
  * Handle the message @a bufmsg of type PSP_CD_CLIENTCONNECT. For
  * compatibility the file-descriptor @a fd the message was received
- * from is not passed explicitely. Instead this file-descriptor has to
+ * from is not passed explicitly. Instead this file-descriptor has to
  * be appended to the actual message by the calling function.
  *
  * This kind of message is send by a client message in order to
@@ -916,17 +916,35 @@ static void msg_CC_MSG(DDBufferMsg_t *msg)
 
     /* Forward this message. If this fails, send an error message. */
     if (sendMsg(msg) == -1 && errno != EWOULDBLOCK) {
-	PStask_ID_t temp = msg->header.dest;
 	PSID_log(PSID_LOG_CLIENT, "failed");
-
-	msg->header.type = PSP_CC_ERROR;
-	msg->header.dest = msg->header.sender;
-	msg->header.sender = temp;
-	msg->header.len = sizeof(msg->header);
-
-	sendMsg(msg);
+	PSID_dropMsg(msg);
     }
     PSID_log(PSID_LOG_CLIENT, "\n");
+}
+
+/**
+ * @brief Drop a PSP_CC_MSG message.
+ *
+ * Drop the message @a msg of type PSP_CC_MSG.
+ *
+ * Since the sender might wait for an answer within a higher-level
+ * protocol a corresponding answer is created on this lower level to
+ * send a hint that the original messages is dropped.
+ *
+ * @param msg Pointer to the message to drop.
+ *
+ * @return No return value.
+ */
+static void drop_CC_MSG(DDBufferMsg_t *msg)
+{
+    DDMsg_t errmsg;
+
+    errmsg.type = PSP_CC_ERROR;
+    errmsg.dest = msg->header.sender;
+    errmsg.sender = msg->header.dest;
+    errmsg.len = sizeof(errmsg);
+
+    sendMsg(&errmsg);
 }
 
 void initClients(void)
@@ -941,4 +959,6 @@ void initClients(void)
     }
 
     PSID_registerMsg(PSP_CC_MSG, msg_CC_MSG);
+
+    PSID_registerDropper(PSP_CC_MSG, drop_CC_MSG);
 }
