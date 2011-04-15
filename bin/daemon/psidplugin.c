@@ -66,7 +66,7 @@ typedef struct {
 static LIST_HEAD(pluginList);
 
 /** API version currently implemented */
-static int pluginAPIVersion = 101;
+static int pluginAPIVersion = 102;
 
 /** Grace period between finalize and unload on forcefully unloads */
 static int unloadTimeout = 4;
