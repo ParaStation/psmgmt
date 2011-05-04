@@ -312,8 +312,10 @@ int main(int argc, const char **argv)
     /* Read the startup file */
     if (!noinit) {
 	int ret = handleRCfile(argv[0]);
-	parserRelease();
-	if (ret) return ret;
+	if (ret) {
+	    parserRelease();
+	    return ret;
+	}
     }
 
     if (progfile) {
