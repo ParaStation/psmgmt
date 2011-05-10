@@ -701,9 +701,10 @@ int main(int argc, const char *argv[])
     initHW();
     initAccount();
     initInfo();
-    initPlugins();
     initHooks();
     initEnvironment();
+    /* Plugins shall be last since they use most of the ones before */
+    initPlugins();
 
     /* Now we start all the hardware -- this might include the accounter */
     PSID_startAllHW();

@@ -125,6 +125,11 @@ int PSIDhook_add(PSIDhook_t hook, PSIDhook_func_t func)
 {
     hook_ref_t *ref;
 
+    if (!hookTable) {
+	PSID_log(-1, "%s: hook facility uninitialized\n", __func__);
+	return 0;
+    }
+
     if (!checkHook(hook)) {
 	PSID_log(-1, "%s: unkown hook %d\n", __func__, hook);
 	return 0;
@@ -152,6 +157,11 @@ int PSIDhook_del(PSIDhook_t hook, PSIDhook_func_t func)
 {
     hook_ref_t *ref;
 
+    if (!hookTable) {
+	PSID_log(-1, "%s: hook facility uninitialized\n", __func__);
+	return 0;
+    }
+
     if (!checkHook(hook)) {
 	PSID_log(-1, "%s: unkown hook %d\n", __func__, hook);
 	return 0;
@@ -177,8 +187,6 @@ int PSIDhook_call(PSIDhook_t hook, void *arg)
     int ret = 1;
 
     if (!hookTable) return 0;
-
-    //PSID_log(-1, "%s: hook %d arg is %p\n", __func__, hook, arg);
 
     if (!checkHook(hook)) {
 	PSID_log(-1, "%s: unkown hook %d\n", __func__, hook);
