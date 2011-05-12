@@ -31,6 +31,7 @@ static char vcid[] __attribute__((used)) =
 #include "psidnodes.h"
 #include "psidtask.h"
 #include "psidstatus.h"
+#include "psidhook.h"
 
 #include "psidpartition.h"
 
@@ -2035,6 +2036,8 @@ static void msg_CREATEPART(DDBufferMsg_t *inmsg)
 
     /* Create accounting message */
     sendAcctQueueMsg(task);
+
+    if ((PSIDhook_call(PSIDHOOK_CREATEPART, inmsg)) == 1) return;
 
     if (!knowMaster()) return; /* Automatic pull in initPartHandler() */
 

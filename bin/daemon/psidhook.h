@@ -54,6 +54,7 @@ typedef int PSIDhook_func_t(void *);
 typedef enum {
     PSIDHOOK_NODE_UP,        /**< Node appeared, arg is PSnodes_ID_t ID */
     PSIDHOOK_NODE_DOWN,      /**< Node disappeared, arg is PSnodes_ID_t ID */
+    PSIDHOOK_CREATEPART,     /**< Handle a partition request, arg is DDBufferMsg_t*  */
 
     /*
      * The following hooks are place-holders for future extension and

@@ -184,7 +184,7 @@ int PSIDhook_del(PSIDhook_t hook, PSIDhook_func_t func)
 int PSIDhook_call(PSIDhook_t hook, void *arg)
 {
     list_t *h, *tmp;
-    int ret = 1;
+    int ret = PSIDHOOK_NOFUNC;
 
     if (!hookTable) return 0;
 
