@@ -2009,6 +2009,11 @@ static void msg_CREATEPART(DDBufferMsg_t *inmsg)
 
     /* Add UID/GID/starttime to request */
     task->request = PSpart_newReq();
+    if (!task->request) {
+	errno = ENOMEM;
+	PSID_warn(-1, errno, "%s: PSpart_newReq()", __func__);
+	goto error;
+    }
     PSpart_decodeReq(inmsg->buf, task->request, PSDaemonProtocolVersion);
     task->request->uid = task->uid;
     task->request->gid = task->gid;
@@ -2019,7 +2024,7 @@ static void msg_CREATEPART(DDBufferMsg_t *inmsg)
     if (task->request->tpp < 1) {
 	PSID_log(-1, "%s: Invalid TPP %d\n", __func__, task->request->tpp);
 	errno = EINVAL;
-	goto error;
+	goto cleanup;
     }
     task->request->tid = task->tid;
 
@@ -2027,9 +2032,9 @@ static void msg_CREATEPART(DDBufferMsg_t *inmsg)
 	task->request->nodes =
 	    malloc(task->request->num * sizeof(*task->request->nodes));
 	if (!task->request->nodes) {
-	    PSID_log(-1, "%s: No memory\n", __func__);
 	    errno = ENOMEM;
-	    goto error;
+	    PSID_warn(-1, errno, "%s: malloc() nodes", __func__);
+	    goto cleanup;
 	}
     }
     task->request->numGot = 0;
@@ -2037,7 +2042,7 @@ static void msg_CREATEPART(DDBufferMsg_t *inmsg)
     /* Create accounting message */
     sendAcctQueueMsg(task);
 
-    if ((PSIDhook_call(PSIDHOOK_CREATEPART, inmsg)) == 1) return;
+    if ((PSIDhook_call(PSIDHOOK_CREATEPART, inmsg)) != PSIDHOOK_NOFUNC) return;
 
     if (!knowMaster()) return; /* Automatic pull in initPartHandler() */
 
@@ -2049,10 +2054,17 @@ static void msg_CREATEPART(DDBufferMsg_t *inmsg)
     inmsg->header.dest = PSC_getTID(getMasterID(), 0);
     if (sendMsg(inmsg) == -1 && errno != EWOULDBLOCK) {
 	PSID_warn(-1, errno, "%s: sendMsg()", __func__);
-	goto error;
+	goto cleanup;
     }
     return;
- error:
+
+cleanup:
+    if (task->request) {
+	PSpart_delReq(task->request);
+	task->request = NULL;
+    }
+
+error:
     {
 	DDTypedMsg_t msg = (DDTypedMsg_t) {
 	    .header = (DDMsg_t) {
