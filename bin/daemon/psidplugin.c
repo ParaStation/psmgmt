@@ -66,7 +66,15 @@ typedef struct {
 static LIST_HEAD(pluginList);
 
 /** API version currently implemented */
-static int pluginAPIVersion = 102;
+static int pluginAPIVersion = 103;
+
+/** Plugin API changes
+ *
+ * 103: added PSIDHOOK_CREATEPART
+ * 102: added PSIDHOOK_NODE_UP, PSIDHOOK_NODE_DOWN,
+ *	PSID_registerDropper
+ * 101: first API implementation
+ */
 
 /** Grace period between finalize and unload on forcefully unloads */
 static int unloadTimeout = 4;
