@@ -54,9 +54,12 @@ typedef int PSIDhook_func_t(void *);
 typedef enum {
     PSIDHOOK_NODE_UP,        /**< Node appeared, arg is PSnodes_ID_t ID */
     PSIDHOOK_NODE_DOWN,      /**< Node disappeared, arg is PSnodes_ID_t ID */
-    PSIDHOOK_CREATEPART,     /**< Handle a partition request, arg is (DDBufferMsg_t *),
-				return code is 0 if the message was handled from inside
-				the hook and 1 if the message must be handled afterwards. */
+    PSIDHOOK_CREATEPART,     /**< Handle a partition request, arg is
+				pointer to DDBufferMsg_t holding the ;
+				return code is 0, if a message was
+				sent from within the hook. Otherwise 1
+				is returned and further measure might
+				have to be taken afterwards. */
 
     /*
      * The following hooks are place-holders for future extension and
@@ -72,7 +75,7 @@ typedef enum {
     PSIDHOOK_FRWRD_KVS,        /**< Handle KVS messages. arg points to msg */
     PSIDHOOK_FRWRD_RESCLIENT,  /**< executed at forwarder's child release */
 
-    PSIDHOOK_FRWRD_CLIENT_STAT,/**< ??? ask all plugins if we they realease the child */
+    PSIDHOOK_FRWRD_CLIENT_STAT,/**< ??? ask all plugins if we they release the child */
 
     PSIDHOOK_LAST,             /**< This has to be the last one */
 } PSIDhook_t;

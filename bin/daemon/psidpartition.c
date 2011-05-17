@@ -2042,10 +2042,11 @@ static void msg_CREATEPART(DDBufferMsg_t *inmsg)
     /* Create accounting message */
     sendAcctQueueMsg(task);
 
-    /* This hook is used by plugins like the psmom to overwrite the nodelist. If
-     * the plugin has handled the message itself it will return 0. If it don't
-     * want to handle the message it will return 1 and the message will be handled here.
-     * If no plugin is registered the return code will be PSIDHOOK_NOFUNC.
+    /* This hook is used by plugins like the psmom to overwrite the
+     * nodelist. If the plugin has sent an message by itself, it will
+     * return 0. If the incoming message has to be handl further, it
+     * will return 1. If no plugin is registered, the return code will
+     * be PSIDHOOK_NOFUNC and, thus, inmsg will be handled here.
      */
     if ((PSIDhook_call(PSIDHOOK_CREATEPART, inmsg)) == 0) return;
 
