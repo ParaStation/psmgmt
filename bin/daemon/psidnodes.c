@@ -869,7 +869,7 @@ int PSIDnodes_addGUID(PSnodes_ID_t id,
 	    return -1;
 	}
 	if (!cmp_GUID(what, guent->id, guid)) {
-	    PSID_log(PSID_LOG_NODES, "%s(%d, %d, %d): allready there\n",
+	    PSID_log(PSID_LOG_NODES, "%s(%d, %d, %d): already there\n",
 		     __func__, id, what, guid.u);
 	    return -1;
 	}

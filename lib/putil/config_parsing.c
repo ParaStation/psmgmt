@@ -1088,7 +1088,7 @@ static int addID(list_t *list, unsigned int id)
 	    return -1;
 	}
 	if (guent->id == id) {
-	    parser_comment(-1, "%s(%p, %d): allready there\n",
+	    parser_comment(-1, "%s(%p, %d): already there\n",
 			   __func__, list, id);
 	    return -1;
 	}
@@ -1179,7 +1179,7 @@ static void setAction(char **token, char **actionStr)
 	(*token)++;
 	break;
     default:
-	GUIDaction = setID;
+	GUIDaction = addID;
 	*actionStr = "";
 	break;
     }

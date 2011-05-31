@@ -1281,7 +1281,7 @@ static void loop(void)
  * global variables @ref forw_verbose, @ref prependSource @ref
  * InputDest and @ref usage are set from environment. After setting up
  * logging finally @ref loop() is called. Upon return from this
- * central loop, all further arguments to the two allready evaluated
+ * central loop, all further arguments to the two already evaluated
  * above are executed via system() calls.
  *
  * @param argc The number of arguments in @a argv.

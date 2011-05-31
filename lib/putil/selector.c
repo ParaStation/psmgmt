@@ -147,7 +147,7 @@ int Selector_register(int fd, Selector_CB_t selectHandler, void *info)
 {
     Selector_t *selector = findSelector(fd);
 
-    /* Test if a selector is allready registered on fd */
+    /* Test if a selector is already registered on fd */
     if (selector && !selector->deleted) {
 	logger_print(logger, -1,
 		     "%s: found selector for fd %d\n", __func__, fd);

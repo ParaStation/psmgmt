@@ -53,7 +53,7 @@ typedef struct {
  * @brief Extend an array.
  *
  * Extend the array @a list to provide at least @a size bytes of
- * content. If @list is allready larger than @a size, do nothing.
+ * content. If @list is already larger than @a size, do nothing.
  *
  * @param list The array to enlarge.
  *

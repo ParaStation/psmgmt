@@ -33,7 +33,7 @@ static char vcid[] __attribute__((used)) =
  */
 typedef struct {
     list_t next;                   /**< Use to put into msgbufFreeList, etc. */
-    int offset;                    /**< Number of bytes allready sent */
+    int offset;                    /**< Number of bytes already sent */
     char msg[MSGBUF_SMALLSIZE];    /**< The actual message to store */
 } msgbuf_small_t;
 

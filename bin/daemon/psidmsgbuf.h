@@ -39,7 +39,7 @@ extern "C" {
  */
 typedef struct {
     list_t next;           /**< Pointer to the next message buffer */
-    int offset;            /**< Number of bytes allready sent */
+    int offset;            /**< Number of bytes already sent */
     char msg[0];           /**< The actual message to store */
 } msgbuf_t;
 
