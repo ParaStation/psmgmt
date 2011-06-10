@@ -179,6 +179,13 @@ static void RDPCallBack(int msgid, void *buf)
 		 __func__, msg->header.dest, msg->header.sender,
 		 PSDaemonP_printMsg(msg->header.type));
 
+	if (PSC_getPID(msg->header.sender)) {
+	    DDMsg_t contmsg = { .type = PSP_DD_SENDCONT,
+				.sender = msg->header.dest,
+				.dest = msg->header.sender,
+				.len = sizeof(DDMsg_t) };
+	    sendMsg(&contmsg);
+	}
 	PSID_dropMsg(msg);
 	break;
     }

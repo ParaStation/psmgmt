@@ -63,9 +63,17 @@ void clearRDPMsgs(int node)
 
     list_for_each_safe(m, tmp, &node_bufs[node].list) {
 	msgbuf_t *mp = list_entry(m, msgbuf_t, next);
+	DDBufferMsg_t *msg = (DDBufferMsg_t *)mp->msg;
 
 	list_del(&mp->next);
-	PSID_dropMsg((DDBufferMsg_t *)mp->msg);
+	if (PSC_getPID(msg->header.sender)) {
+	    DDMsg_t contmsg = { .type = PSP_DD_SENDCONT,
+				.sender = msg->header.dest,
+				.dest = msg->header.sender,
+				.len = sizeof(DDMsg_t) };
+	    if (PSC_getID(contmsg.dest) != node) sendMsg(&contmsg);
+	}
+	PSID_dropMsg(msg);
 	PSIDMsgbuf_put(mp);
     }
 
