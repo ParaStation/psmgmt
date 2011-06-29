@@ -14,7 +14,7 @@
 export TOP_SRCDIR = $(shell cd @srcdir@;pwd)
 export TARGETARGS := --target @target_cpu@-@target_vendor@-@target_os@
 
-SUBDIRS := lib bin include scripts doc tests/plugins
+SUBDIRS := lib bin include scripts doc tests/plugins plugins
 
 .PHONY: all install clean distclean
 all install clean distclean: $(SUBDIRS)

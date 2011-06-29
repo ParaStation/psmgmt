@@ -1,0 +1,35 @@
+###################################################### -*- Makefile -*- #####
+#                  ParaStation
+#        Copyright (c) 2002-2003 ParTec AG, Karlsruhe
+#        Copyright (c) 2005-2011 Cluster Competence Center GmbH, Munich
+#############################################################################
+#
+# $Id$
+#
+# @author
+#         Jens Hauke <hauke@par-tec.de>
+#         Norbert Eicker <eicker@par-tec.de>
+#############################################################################
+
+CFLAGS += -O3 -fPIC @CFLAG_WALL@ @CFLAG_G@ @CFLAG_COMPAT@
+CPPFLAGS += $(LIBINC) @CPPFLAG_MMD@
+RANLIB := @RANLIB@
+
+_LIBDEPS := $(LIBOBJS:.o=@DEPEXTENSION@)
+
+VPATH += $(LIBVPATH)
+
+all: $(LIBDSTDIR)/$(LIBNAME).a
+
+$(LIBDSTDIR)/$(LIBNAME).a: $(LIBOBJS)
+	$(AR) rcv $@ $(LIBOBJS)
+	$(RANLIB) $@
+
+clean:
+	$(RM) $(_LIBDEPS) $(LIBOBJS) 
+
+distclean: clean
+	$(RM) $(LIBDSTDIR)/$(LIBNAME).a
+
+
+-include $(_LIBDEPS)

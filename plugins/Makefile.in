@@ -1,0 +1,35 @@
+###################################################### -*- Makefile -*- #####
+#                  ParaStation
+#        Copyright (c) 2011 Cluster Competence Center GmbH, Munich
+#############################################################################
+#
+# $Id$
+#
+# @author
+#         Michael Rauh <rauh@par-tec.com>
+#############################################################################
+
+SUBDIRS := psaccount
+
+.PHONY: all clean distclean
+all clean distclean: $(SUBDIRS)
+
+.PHONY: $(SUBDIRS)
+$(SUBDIRS): 
+	$(MAKE) -C $@ $(TARGET)
+
+#
+# install plugins 
+#
+INSTALL = @INSTALL@
+INSTFLAGS_NOEXEC = -m 644
+
+DISTDIR := $(DESTDIR)$(DISTPATH)
+PLUGINDIR := $(DISTDIR)/plugins
+DIST_plugin := psaccount.so
+
+$(PLUGINDIR)/%.so: %.so
+	$(INSTALL) -D $< $@
+
+.PHONY: install
+install: $(patsubst %,$(PLUGINDIR)/%,$(DIST_plugin))

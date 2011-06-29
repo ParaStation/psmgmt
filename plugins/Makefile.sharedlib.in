@@ -1,0 +1,42 @@
+###################################################### -*- Makefile -*- #####
+#                  ParaStation
+#        Copyright (c) 2002-2003 ParTec AG, Karlsruhe
+#        Copyright (c) 2005-2011 Cluster Competence Center GmbH, Munich
+#############################################################################
+#
+# $Id$
+#
+# @author
+#         Jens Hauke <hauke@par-tec.de>
+#         Norbert Eicker <eicker@par-tec.de>
+#############################################################################
+
+TARGET_LIBC_PROVIDES_SSP=@TARGET_LIBC_PROVIDES_SSP@
+
+CFLAGS += -O3 @CFLAG_WALL@ @CFLAG_G@ @CFLAG_COMPAT@
+CPPFLAGS += $(LIBINC) @CPPFLAG_MMD@
+
+_LIBDEPS := $(LIBOBJS:.o=@DEPEXTENSION@)
+
+VPATH += $(LIBVPATH)
+
+all: $(LIBDSTDIR)/$(LIBNAME).so
+
+COMPILE.c-shared = $(CC) $(CFLAGS) $(CPPFLAGS) $(TARGET_ARCH) -fPIC -DPIC
+ifeq ($(TARGET_LIBC_PROVIDES_SSP),yes)
+COMPILE.c-shared += -fno-stack-protector
+endif
+COMPILE.c-shared += -c
+%.o: %.c
+	$(COMPILE.c-shared) $(OUTPUT_OPTION) $<
+
+$(LIBDSTDIR)/$(LIBNAME).so: $(LIBOBJS)
+	$(CC) -shared $(LDFLAGS) $(LIBOBJS) -o $@ $(LIBEXTERNAL_SHARED) $(_LIBSONAME)
+
+clean:
+	$(RM) $(_LIBDEPS) $(LIBOBJS) 
+
+distclean: clean
+	$(RM) $(LIBDSTDIR)/$(LIBNAME).so
+
+-include $(_LIBDEPS)
