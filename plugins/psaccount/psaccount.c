@@ -97,9 +97,9 @@ void periodicMain(void)
 
 void accountStart()
 {
-    /* we depend have no dependencies */
-    dependencies[1].name = NULL;
-    dependencies[1].version = 0;
+    /* we have no dependencies */
+    dependencies[0].name = NULL;
+    dependencies[0].version = 0;
 }
 
 void accountStop()

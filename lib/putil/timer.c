@@ -127,7 +127,7 @@ static void sigHandler(int sig)
     list_for_each(t, &timerList) {
 	Timer_t *timer = list_entry(t, Timer_t, next);
 	if (timer->deleted) continue;
-	timer->calls = ++timer->calls % timer->period;
+	timer->calls = (timer->calls + 1) % timer->period;
 	if (!timer->calls) {
 	    timer->sigPending = 1;
 	}
