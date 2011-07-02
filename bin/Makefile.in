@@ -49,6 +49,8 @@ TARGETS = $(TOOLS) test_logging testacct
 
 LDFLAGS+=-L../lib -Wl,-rpath,/opt/parastation/$(LIB_DIRNAME)
 
+CFLAGS += -fno-strict-aliasing
+
 .PHONY: all bin
 all bin: $(TOOLS)
 

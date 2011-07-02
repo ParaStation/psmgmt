@@ -1,7 +1,7 @@
 ###################################################### -*- Makefile -*- #####
 #                  ParaStation
 #        Copyright (c) 2002-2003 ParTec AG, Karlsruhe
-#        Copyright (c) 2005-2008 ParTec Cluster Competence Center GmbH, Munich
+#        Copyright (c) 2005-2011 ParTec Cluster Competence Center GmbH, Munich
 #############################################################################
 #
 # $Id$
@@ -19,6 +19,8 @@ _LIBDEPS := $(LIBOBJS:.o=@DEPEXTENSION@)
 
 VPATH += $(LIBVPATH)
 
+CFLAGS += -fno-strict-aliasing
+
 all: $(LIBDSTDIR)/lib$(LIBNAME).a
 
 $(LIBDSTDIR)/lib$(LIBNAME).a: $(LIBOBJS)
@@ -26,7 +28,7 @@ $(LIBDSTDIR)/lib$(LIBNAME).a: $(LIBOBJS)
 	$(RANLIB) $@
 
 clean:
-	$(RM) $(_LIBDEPS) $(LIBOBJS) 
+	$(RM) $(_LIBDEPS) $(LIBOBJS)
 
 distclean: clean
 	$(RM) $(LIBDSTDIR)/lib$(LIBNAME).a

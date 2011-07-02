@@ -1141,8 +1141,9 @@ static int pushGUID(PSnodes_ID_t id, PSIDnodes_gu_t what, list_t *list)
     PSIDnodes_remGUID(id, what, any);
 
     list_for_each(pos, list) {
-	PSIDnodes_guid_t val;
+	PSIDnodes_guid_t val = { .u = 0 };
 	GUent_t *guent = list_entry(pos, GUent_t, next);
+
 	switch (what) {
 	case PSIDNODES_USER:
 	case PSIDNODES_ADMUSER:

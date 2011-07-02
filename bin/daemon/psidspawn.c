@@ -622,7 +622,7 @@ static cpu_set_t *mapCPUs(PSCPU_set_t set)
 {
     short cpu, maxCPU = PSIDnodes_getVirtCPUs(PSC_getMyID());
     static cpu_set_t physSet;
-    short *localMap;
+    short *localMap = NULL;
     int localMapSize = 0;
     char *envStr = getenv("__PSI_CPUMAP");
 
