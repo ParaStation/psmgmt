@@ -774,6 +774,12 @@ void PSI_propEnv(void)
     if ((envStr = getenv("LD_PRELOAD"))) {
 	setPSIEnv("LD_PRELOAD", envStr, 1);
     }
+    if ((envStr = getenv("LIBRARY_PATH"))) {
+	setPSIEnv("LIBRARY_PATH", envStr, 1);
+    }
+    if ((envStr = getenv("PATH"))) {
+	setPSIEnv("PATH", envStr, 1);
+    }
     if ((envStr = getenv("MPID_PSP_MAXSMALLMSG"))) {
 	setPSIEnv("MPID_PSP_MAXSMALLMSG", envStr, 1);
     }

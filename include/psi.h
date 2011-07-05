@@ -247,9 +247,9 @@ void PSI_execLogger(const char *command);
  *
  * At the time the following variables are propagated:
  *
- * HOME, USER, SHELL, TERM, LD_LIBRARY_PATH, LD_PRELOAD,
- * MPID_PSP_MAXSMALLMSG, PSP_NETWORK, PSP_P4SOCK, PSP_SHAREDMEM,
- * PSP_GM, PSP_MVAPI, PSP_LIB and PSP_DEBUG.
+ * HOME, USER, SHELL, TERM, LD_LIBRARY_PATH, LD_PRELOAD, LIBRARY_PATH,
+ * PATH and all variable holding the regular expressions PSP_*,
+ * __PSI_* or OMP_*.
  *
  * @return No return value.
  */
