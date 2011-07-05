@@ -398,15 +398,10 @@ void setupGlobalEnv(int admin, int np)
  */
 static void createSpawner(int argc, char *argv[], int np, int admin)
 {
-    char *ldpath = getenv("LD_LIBRARY_PATH");
     int rank = PSE_getRank();
     char tmp[1024];
     PSnodes_ID_t nodeID;
     char *pwd = NULL;
-
-    if (ldpath != NULL) {
-	setPSIEnv("LD_LIBRARY_PATH", ldpath, 1);
-    }
 
     if (rank==-1) {
 	PSnodes_ID_t *nds;
