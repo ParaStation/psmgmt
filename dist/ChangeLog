@@ -1,3 +1,96 @@
+Version psmgmt-5.0.33:
+======================
+------------------------------------------------------------------------
+r8463 | eicker | 2011-07-05 13:59:06 +0200 (Tue, 05 Jul 2011) | 3 lines
+
+Enhancement: Propagate user's PATH and LIBRARY_PATH environment to
+    spawned processes. This should implement #1173.
+
+------------------------------------------------------------------------
+r8462 | eicker | 2011-07-05 13:49:39 +0200 (Tue, 05 Jul 2011) | 3 lines
+
+Don't propagate LD_LIBRARY_PATH explicitly in mpiexec. This is done
+    implicitly within PSE which is used by mpiexec.
+
+------------------------------------------------------------------------
+r8461 | eicker | 2011-07-02 02:28:23 +0200 (Sat, 02 Jul 2011) | 3 lines
+
+Suppress various warning while building RPM. This includes forcing the
+    -fno-strict-aliasing option to allow explicit mapping of pointers.
+
+------------------------------------------------------------------------
+r8460 | eicker | 2011-07-02 01:45:55 +0200 (Sat, 02 Jul 2011) | 3 lines
+
+Bugfix: Accounter will violate array boundary during construction.
+Suppress one new warning seen with gcc 4.5.1 on openSUSE 11.4.
+
+------------------------------------------------------------------------
+r8459 | rauh | 2011-06-29 14:10:13 +0200 (Wed, 29 Jun 2011) | 3 lines
+
+added psaccount plugin which provides advanced accounting
+functionality
+
+------------------------------------------------------------------------
+r8458 | eicker | 2011-06-10 23:51:40 +0200 (Fri, 10 Jun 2011) | 4 lines
+
+Bugfix: Create SENDCONT messages, if packet is dropped on
+    RDP-connection. This should fix problems with flow-control to the
+    psaccounter daemon.
+
+------------------------------------------------------------------------
+r8457 | eicker | 2011-05-31 08:20:43 +0200 (Tue, 31 May 2011) | 3 lines
+
+Add user instead of set user in configuration file.
+Fix typos.
+
+------------------------------------------------------------------------
+r8456 | eicker | 2011-05-17 13:18:54 +0200 (Tue, 17 May 2011) | 2 lines
+
+Beautify comments.
+
+------------------------------------------------------------------------
+r8455 | rauh | 2011-05-16 15:54:22 +0200 (Mon, 16 May 2011) | 2 lines
+
+Pushed plugin API version to 103.
+
+------------------------------------------------------------------------
+r8454 | rauh | 2011-05-13 10:31:00 +0200 (Fri, 13 May 2011) | 2 lines
+
+Added more detailed description for CreatePart hook
+
+------------------------------------------------------------------------
+r8453 | eicker | 2011-05-12 16:02:56 +0200 (Thu, 12 May 2011) | 2 lines
+
+Bugfix: Suppress unnecessary warning, if allocation of partition fails.
+
+------------------------------------------------------------------------
+r8452 | rauh | 2011-05-12 14:40:15 +0200 (Thu, 12 May 2011) | 3 lines
+
+Enhancement: added new hook for psmom to change partition requests
+Bugfix: let PSIDhook_call() return PSIDHOOK_NOFUNC if no hook is registered
+
+------------------------------------------------------------------------
+r8448 | eicker | 2011-05-11 20:01:12 +0200 (Wed, 11 May 2011) | 2 lines
+
+New release (psmgmt-5.0.32-1)
+
+------------------------------------------------------------------------
+r8447 | eicker | 2011-05-10 11:49:34 +0200 (Tue, 10 May 2011) | 2 lines
+
+Bugfix: Fix minor race between hooks and plugins in psid during startup
+
+------------------------------------------------------------------------
+r8446 | eicker | 2011-05-04 09:34:40 +0200 (Wed, 04 May 2011) | 2 lines
+
+Bugfix: Releasing the psiadmin's parser too early breaks range command.
+
+------------------------------------------------------------------------
+r8442 | eicker | 2011-04-15 18:54:15 +0200 (Fri, 15 Apr 2011) | 2 lines
+
+New version (psmgmt-5.0.32)
+
+------------------------------------------------------------------------
+
 Version psmgmt-5.0.32:
 ======================
 ------------------------------------------------------------------------
@@ -85,7 +178,7 @@ Bugfix: Don't try to read executable, if reading is not allowed. This
 ------------------------------------------------------------------------
 r8428 | eicker | 2011-03-24 16:08:56 +0100 (Thu, 24 Mar 2011) | 3 lines
 
-Bugfix: Free the list of plugins to load as definied in
+Bugfix: Free the list of plugins to load as defined in
     parastation.conf. This should fix #1009.
 
 ------------------------------------------------------------------------
@@ -178,7 +271,7 @@ Improve testing on failed initialization of loggers.
 ------------------------------------------------------------------------
 r8409 | eicker | 2011-03-16 12:48:23 +0100 (Wed, 16 Mar 2011) | 3 lines
 
-Enhancement: Unload plugins explicitely before daemon finally shuts
+Enhancement: Unload plugins explicitly before daemon finally shuts
     down. This should finally implement #562.
 
 ------------------------------------------------------------------------
@@ -196,7 +289,7 @@ Enhance documentation for logging-facility.
 ------------------------------------------------------------------------
 r8406 | eicker | 2011-03-04 17:28:59 +0100 (Fri, 04 Mar 2011) | 4 lines
 
-Enhancement: Make RDP-statistics persistantly configurable.
+Enhancement: Make RDP-statistics persistently configurable.
 Enhancement: Make RDP-statistics switchable during runtime.
 Enhancement: Nicer output if psiadmin's 'list rdp' and 'list rdpconn'.
 

@@ -4,6 +4,24 @@ Copyright (C) 2010-2011 ParTec Cluster Competence Center GmbH, Munich
 
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
+Version 5.0.33:
+===============
+Bugfixes:
+ - Fix problem in flow-control disturbing the psaccounter daemon
+ - Suppress unnecessary warning, if allocation of partition fails
+ - Improved plugin handling
+ - Fix psiadmin's 'range' command broken in last version
+
+Enhancements:
+ - Propagate PATH and LIBRARY_PATH environment automatically (#1173)
+ - Add psaccount plugin providing advanced accounting functionality
+ - More intuitive user-handling in configuration-file
+
+Additional changes:
+ - Version of the plugin API pushed to 103
+ - Adapt for gcc 4.5.1 coming with OpenSUSE 11.4
+
+
 Version 5.0.32:
 ===============
 Bugfixes:
