@@ -2054,7 +2054,7 @@ static void msg_CREATEPART(DDBufferMsg_t *inmsg)
 
     inmsg->header.len = sizeof(inmsg->header)
 	+ PSpart_encodeReq(inmsg->buf, sizeof(inmsg->buf), task->request,
-			   PSIDnodes_getDmnProtoV(PSC_getID(getMasterID())));
+			   PSIDnodes_getDmnProtoV(getMasterID()));
 
     inmsg->header.type = PSP_DD_GETPART;
     inmsg->header.dest = PSC_getTID(getMasterID(), 0);
@@ -2935,7 +2935,7 @@ int send_GETTASKS(PSnodes_ID_t node)
 static void sendRequests(void)
 {
     list_t *t;
-    int dmnPSPver = PSIDnodes_getDmnProtoV(PSC_getID(getMasterID()));
+    int dmnPSPver = PSIDnodes_getDmnProtoV(getMasterID());
 
     list_for_each(t, &managedTasks) {
 	PStask_t *task = list_entry(t, PStask_t, next);

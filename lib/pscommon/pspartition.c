@@ -175,8 +175,8 @@ size_t PSpart_encodeReq(char* buffer, size_t size, PSpart_request_t* request,
     }
 
     PSpart_snprintf(partString, sizeof(partString), request);
-    PSC_log(PSC_LOG_PART, "%s(%p, %ld, request(%s))\n",
-	    __func__, buffer, (long)size, partString);
+    PSC_log(PSC_LOG_PART, "%s(%p, %ld, request (%s), %d)\n",
+	    __func__, buffer, (long)size, partString, daemonProtoVersion);
 
     if (size >= sizeof(tmpRequest)) {
 	tmpRequest.size = request->size;
@@ -215,7 +215,8 @@ size_t PSpart_decodeReq(char* buffer, PSpart_request_t* request,
 	return 0;
     }
 
-    PSC_log(PSC_LOG_PART, "%s(%p)", __func__, buffer);
+    PSC_log(PSC_LOG_PART, "%s(%p, %p, %d)", __func__, buffer, request,
+	    daemonProtoVersion);
 
     PSpart_reinitReq(request);
 

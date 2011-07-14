@@ -916,10 +916,12 @@ int PSI_createPartition(unsigned int size, uint32_t hwType)
 
     if (request->sort == PART_SORT_UNKNOWN) goto end;
 
+    request->tpp = getTPPEnv();
+
     PSI_log(PSI_LOG_PART,
-	    "%s: size %d hwType %x sort %x options %x priority %d\n",
-	    __func__, request->size, request->hwType, request->sort,
-	    request->options, request->priority);
+	    "%s: size %d tpp %d hwType %x sort %x options %x priority %d\n",
+	    __func__, request->size, request->tpp, request->hwType,
+	    request->sort, request->options, request->priority);
 
     nodelist = getNodelist();
     if (nodelist) {
@@ -935,8 +937,6 @@ int PSI_createPartition(unsigned int size, uint32_t hwType)
 		" and environment (%x)\n", __func__, hwType, hwEnv);
 	goto end;
     }
-
-    request->tpp = getTPPEnv();
 
     len = PSpart_encodeReq(msg.buf, sizeof(msg.buf), request, daemonProtoVer);
     if (len > sizeof(msg.buf)) {
