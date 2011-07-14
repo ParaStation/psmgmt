@@ -25,6 +25,7 @@ static char vcid[] __attribute__((used)) =
 #include <grp.h>
 #include <netdb.h>
 #include <sys/socket.h>
+#include <arpa/inet.h>
 
 #include "pscommon.h"
 #include "parser.h"
@@ -1831,7 +1832,7 @@ void PSIADM_Resolve(char *nl)
     PSnodes_ID_t node;
 
     for (node=0; node<PSC_getNrOfNodes(); node++) {
-	u_int32_t hostaddr;
+	struct  in_addr hostaddr;
 	struct hostent *hp;
 	char *ptr;
 	int err;
@@ -1839,20 +1840,20 @@ void PSIADM_Resolve(char *nl)
 	if ((nl && !nl[node])) continue;
 
 	printf("%4d\t", node);
-	err = PSI_infoUInt(-1, PSP_INFO_NODE, &node, &hostaddr, 0);
-	if (err || (hostaddr == INADDR_ANY)) {
+	err = PSI_infoUInt(-1, PSP_INFO_NODE, &node, &hostaddr.s_addr, 0);
+	if (err || (hostaddr.s_addr == INADDR_ANY)) {
 	    printf("<unknown>\n");
 	    continue;
 	}
 
-	hp = gethostbyaddr(&hostaddr, sizeof(hostaddr), AF_INET);
-	if (!hp) {
-	    printf("<unknown>\n");
-	    continue;
+	hp = gethostbyaddr(&hostaddr.s_addr, sizeof(hostaddr.s_addr), AF_INET);
+	if (hp) {
+	    if ((ptr = strchr (hp->h_name, '.'))) *ptr = '\0';
+	    printf("%s\n", hp->h_name);
+	} else {
+	    printf("%s\n", inet_ntoa(hostaddr));
 	}
 
-	if ((ptr = strchr (hp->h_name, '.'))) *ptr = '\0';
-	printf("%s\n", hp->h_name);
     }
 }
 
