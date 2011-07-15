@@ -100,6 +100,8 @@ char *nodelist = NULL;
 char *hostlist = NULL;
 char *hostfile = NULL;
 char *envlist = NULL;
+/** Accumulated list of envirenments to get exported */
+char *accenvlist = NULL;
 char *envopt = NULL;
 char *envval = NULL;
 char *path = NULL;
@@ -170,6 +172,8 @@ static char versionstring[] = "$Revision$";
  *
  * @param size Size in bytes to allocate.
  *
+ * @param func Name of the calling function. Used for error-reporting.
+ *
  * @return Returned is a pointer to the allocated memory.
  */
 static void *umalloc(size_t size, const char *func)
@@ -178,6 +182,26 @@ static void *umalloc(size_t size, const char *func)
 
     if (!(ptr = malloc(size))) {
 	fprintf(stderr, "%s: memory allocation failed\n", func);
+	exit(EXIT_FAILURE);
+    }
+    return ptr;
+}
+
+/**
+ * @brief Realloc with error handling.
+ *
+ * @param ptr Pointer to re-allocate
+ *
+ * @param size Size in bytes to allocate.
+ *
+ * @param func Name of the calling function. Used for error-reporting.
+ *
+ * @return Returned is a pointer to the re-allocated memory.
+ */
+static void *urealloc(void *ptr, size_t size, const char *func)
+{
+    if (!(ptr = realloc(ptr, size))) {
+	fprintf(stderr, "%s: memory reallocation failed\n", func);
 	exit(EXIT_FAILURE);
     }
     return ptr;
@@ -1006,15 +1030,16 @@ static void setupPSIDEnv(int verbose)
 	    "debug mode on.\n");
     }
 
-    if (envlist && isRoot) {
+    if (accenvlist && isRoot) {
 	char *val = NULL;
 
 	envstr = getenv("PSI_EXPORTS");
 	if (envstr) {
-	    val = umalloc(strlen(envstr) + strlen(envlist) + 2, __func__);
-	    sprintf(val, "%s,%s", envstr, envlist);
+	    val = umalloc(strlen(envstr) + strlen(accenvlist) + 2, __func__);
+	    sprintf(val, "%s,%s", envstr, accenvlist);
+	    free(accenvlist);
 	} else {
-	    val = strdup(envlist);
+	    val = accenvlist;
 	}
 	setenv("PSI_EXPORTS", val, 1);
 	if (verbose) printf("Environment variables to be exported: %s\n", val);
@@ -1635,97 +1660,145 @@ static void checkSanity(char *argv[])
 
 /* Set up the popt help tables */
 struct poptOption poptMpiexecComp[] = {
-    { "bnr", '\0', POPT_ARG_NONE | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+    { "bnr", '\0',
+      POPT_ARG_NONE | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
       &mpichcom, 0, "Enable ParaStation4 compatibility mode", NULL},
-    { "machinefile", 'f', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+    { "machinefile", 'f',
+      POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
       &hostfile, 0, "machinefile to use, equal to hostfile", "<file>"},
-    { "1", '\0', POPT_ARG_NONE | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+    { "1", '\0',
+      POPT_ARG_NONE | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
       &none, 0, "override default of trying first (ignored)", NULL},
-    { "ifhn", '\0', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+    { "ifhn", '\0',
+      POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
       &network, 0, "set a space separeted list of networks enabled", NULL},
-    { "file", '\0', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+    { "file", '\0',
+      POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
       &none, 0, "file with additional information (ignored)", NULL},
-    { "tv", '\0', POPT_ARG_NONE | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+    { "tv", '\0',
+      POPT_ARG_NONE | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
       &totalview, 0, "run procs under totalview (ignored)", NULL},
-    { "tvsu", '\0', POPT_ARG_NONE | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+    { "tvsu", '\0',
+      POPT_ARG_NONE | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
       &totalview, 0, "totalview startup only (ignored)", NULL},
-    { "gdb", '\0', POPT_ARG_NONE | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+    { "gdb", '\0',
+      POPT_ARG_NONE | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
       &gdb, 0, "debug processes with gdb", NULL},
-    { "gdba", '\0', POPT_ARG_NONE | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+    { "gdba", '\0',
+      POPT_ARG_NONE | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
       &gdba, 0, "attach to debug processes with gdb (ignored)", NULL},
-    { "ecfn", '\0', POPT_ARG_NONE | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+    { "ecfn", '\0',
+      POPT_ARG_NONE | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
       &ecfn, 0, "ouput xml exit codes filename (ignored)", NULL},
-    { "wdir", '\0', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+    { "wdir", '\0',
+      POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
       &wdir, 0, "working directory for remote process(es)", "<directory>"},
-    { "dir", '\0', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+    { "dir", '\0',
+      POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
       &wdir, 0, "working directory for remote process(es)", "<directory>"},
-    { "umask", '\0', POPT_ARG_INT | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+    { "umask", '\0',
+      POPT_ARG_INT | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
       &u_mask, 0, "umask for remote process", NULL},
-    { "path", 'p', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+    { "path", 'p',
+      POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
       &path, 0, "place to look for executables", "<directory>"},
-    { "host", '\0', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+    { "host", '\0',
+      POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
       &hostlist, 0, "host to start on", NULL},
-    { "soft", '\0', POPT_ARG_INT | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
-      &none, 0, "giving hints instead of a precise number for the number of processes (ignored)", NULL},
-    { "arch", '\0', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+    { "soft", '\0',
+      POPT_ARG_INT | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+      &none, 0, "giving hints instead of a precise number for the number"
+      " of processes (ignored)", NULL},
+    { "arch", '\0',
+      POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
       &none, 0, "arch type to start on (ignored)", NULL},
-    { "envall", 'x', POPT_ARG_NONE | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+    { "envall", 'x',
+      POPT_ARG_NONE | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
       &envall, 0, "export all environment variables to foreign nodes", NULL},
-    { "envnone", '\0', POPT_ARG_NONE | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+    { "envnone", '\0',
+      POPT_ARG_NONE | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
       &none, 0, "export no env vars", NULL},
-    { "envlist", '\0', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
-      &envlist, 0, "export a list of env vars", NULL},
-    { "usize", 'u', POPT_ARG_INT | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+    { "envlist", '\0',
+      POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+      &envlist, 'l', "export a list of env vars", NULL},
+    { "usize", 'u',
+      POPT_ARG_INT | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
       &usize, 0, "set the universe size", NULL},
-    { "env", 'E', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+    { "env", 'E',
+      POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
       &envopt, 'E', "export this value of this env var", "<name> <value>"},
-    { "maxtime", '\0', POPT_ARG_INT | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
-      &maxtime, 0, "maximum number of seconds the job is permitted to run", "INT"},
-    { "timeout", '\0', POPT_ARG_INT | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
-      &maxtime, 0, "maximum number of seconds the job is permitted to run", "INT"},
-    { "noprompt", '\0', POPT_ARG_NONE | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+    { "maxtime", '\0',
+      POPT_ARG_INT | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+      &maxtime, 0, "maximum number of seconds the job is permitted to run",
+      "INT"},
+    { "timeout", '\0',
+      POPT_ARG_INT | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+      &maxtime, 0, "maximum number of seconds the job is permitted to run",
+      "INT"},
+    { "noprompt", '\0',
+      POPT_ARG_NONE | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
       &noprompt, 0, "not supported, will be ignored", NULL},
-    { "localroot", '\0', POPT_ARG_NONE | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+    { "localroot", '\0',
+      POPT_ARG_NONE | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
       &localroot, 0, "not supported, will be ignored", NULL},
-    { "exitinfo", '\0', POPT_ARG_NONE | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+    { "exitinfo", '\0',
+      POPT_ARG_NONE | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
       &exitinfo, 0, "not supported, will be ignored", NULL},
-    { "exitcode", '\0', POPT_ARG_NONE | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+    { "exitcode", '\0',
+      POPT_ARG_NONE | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
       &exitcode, 0, "not supported, will be ignored", NULL},
-    { "port", '\0', POPT_ARG_INT | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+    { "port", '\0',
+      POPT_ARG_INT | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
       &port, 0, "not supported, will be ignored", NULL},
-    { "phrase", '\0', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+    { "phrase", '\0',
+      POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
       &phrase, 0, "not supported, will be ignored", NULL},
-    { "smpdfile", '\0', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+    { "smpdfile", '\0',
+      POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
       &smpdfile, 0, "not supported, will be ignored", NULL},
     POPT_TABLEEND
 };
 
 struct poptOption poptMpiexecCompGlobal[] = {
-    { "gnp", '\0', POPT_ARG_INT | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+    { "gnp", '\0',
+      POPT_ARG_INT | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
       &np, 0, "number of processes to start", "num"},
-    { "gn", '\0', POPT_ARG_INT | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+    { "gn", '\0',
+      POPT_ARG_INT | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
       &np, 0, "equal to np: number of processes to start", "num"},
-    { "gwdir", '\0', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+    { "gwdir", '\0',
+      POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
       &wdir, 0, "working directory for remote process(es)", "<directory>"},
-    { "gdir", '\0', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+    { "gdir", '\0',
+      POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
       &wdir, 0, "working directory for remote process(es)", "<directory>"},
-    { "gumask", '\0', POPT_ARG_INT | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+    { "gumask", '\0',
+      POPT_ARG_INT | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
       &u_mask, 0, "umask for remote process", NULL},
-    { "gpath", 'p', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+    { "gpath", 'p',
+      POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
       &path, 0, "place to look for executables", "<directory>"},
-    { "ghost", '\0', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+    { "ghost", '\0',
+      POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
       &hostlist, 0, "host to start on", NULL},
-    { "gsoft", '\0', POPT_ARG_INT | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
-      &none, 0, "giving hints instead of a precise number for the number of processes (ignored)", NULL},
-    { "garch", '\0', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+    { "gsoft", '\0',
+      POPT_ARG_INT | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+      &none, 0, "giving hints instead of a precise number for the number"
+      " of processes (ignored)", NULL},
+    { "garch", '\0',
+      POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
       &none, 0, "arch type to start on (ignored)", NULL},
-    { "genvall", 'x', POPT_ARG_NONE | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+    { "genvall", 'x',
+      POPT_ARG_NONE | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
       &envall, 0, "export all environment variables to foreign nodes", NULL},
-    { "genvnone", '\0', POPT_ARG_NONE | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+    { "genvnone", '\0',
+      POPT_ARG_NONE | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
       &none, 0, "export no env vars", NULL},
-    { "genvlist", '\0', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
-      &envlist, 0, "export a list of env vars", NULL},
-    { "genv", 'E', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+    { "genvlist", '\0',
+      POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+      &envlist, 'l', "export a list of env vars", NULL},
+    { "genv", 'E',
+      POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
       &envopt, 'E', "export this value of this env var", "<name> <value>"},
     POPT_TABLEEND
 };
@@ -1736,12 +1809,12 @@ struct poptOption poptCommonOptions[] = {
     { "n", '\0', POPT_ARG_INT | POPT_ARGFLAG_ONEDASH,
       &np, 0, "equal to np: number of processes to start", "num"},
     { "exports", 'e', POPT_ARG_STRING,
-      &envlist, 0, "environment to export to foreign nodes", "envlist"},
+      &envlist, 'l', "environment to export to foreign nodes", "envlist"},
     { "envall", 'x', POPT_ARG_NONE,
       &envall, 0, "export all environment variables to all processes", NULL},
     { "env", 'E', POPT_ARG_STRING,
       &envopt, 'E', "export this value of this env var", "<name> <value>"},
-    { "envval", 0, POPT_ARG_STRING | POPT_ARGFLAG_DOC_HIDDEN,
+    { "envval", '\0', POPT_ARG_STRING | POPT_ARGFLAG_DOC_HIDDEN,
       &envval, 'e', "", ""},
     { "bnr", 'b', POPT_ARG_NONE,
       &mpichcom, 0, "Enable ParaStation4 compatibility mode", NULL},
@@ -1852,7 +1925,8 @@ struct poptOption poptExecutionOptions[] = {
     { "path", 'p', POPT_ARG_STRING,
       &path, 0, "the path to search for executables", "<directory>"},
     { "maxtime", '\0', POPT_ARG_INT,
-      &maxtime, 0, "maximum number of seconds the job is permitted to run", "INT"},
+      &maxtime, 0, "maximum number of seconds the job is permitted to run",
+      "INT"},
     POPT_TABLEEND
 };
 
@@ -1936,7 +2010,7 @@ struct poptOption optionsTable[] = {
 /**
  * @brief Parse and check the command line options.
  *
- * @argc The number of arguments.
+ * @param argc The number of arguments.
  *
  * @param argv Pointer to the arguments to parse.
  *
@@ -1968,12 +2042,22 @@ static void parseCmdOptions(int argc, char *argv[])
 
 	/* handle special env option */
 	switch (rc) {
-	    case 'E':
-		poptStuffArgs(optCon, av);
-		break;
-	    case 'e':
-		setPSIEnv(envopt, envval, 1);
-		break;
+	case 'E':
+	    poptStuffArgs(optCon, av);
+	    break;
+	case 'e':
+	    setPSIEnv(envopt, envval, 1);
+	    break;
+	case 'l':
+	    if (accenvlist) {
+		accenvlist = urealloc(accenvlist,
+				      strlen(accenvlist) + strlen(envlist) + 2,
+				      __func__);
+		sprintf(accenvlist+strlen(accenvlist), ",%s", envlist);
+	    } else {
+		accenvlist = strdup(envlist);
+	    }
+	    break;
 	}
     }
 
