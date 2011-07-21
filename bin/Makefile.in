@@ -118,7 +118,6 @@ psilogger: LOADLIBES:=$(LOADLIBES) -lputil -lpslog -lm @LIBS@
 # accounter
 VPATH += $(SRCDIR)/accounter
 
-
 #
 # install binaries
 #
@@ -131,9 +130,19 @@ DIST_bin := $(TOOLS)
 $(BINDIR)/%: %
 	$(INSTALL) -D $< $@
 
-.PHONY: install
-install: bin $(patsubst %,$(BINDIR)/%,$(DIST_bin))
+#
+# install headers for devel package
+#
+INCDIR := $(DISTDIR)/include
+DIST_includes := psidcomm.h psidhook.h psidnodes.h psidplugin.h psidscripts.h
+DIST_includes += psidstatus.h psidtask.h psidutil.h
 
+$(INCDIR)/%: %
+	$(INSTALL) $(INSTFLAGS_NOEXEC) -D $< $@
+
+.PHONY: install
+install: bin $(patsubst %,$(BINDIR)/%,$(DIST_bin)) \
+		$(patsubst %,$(INCDIR)/%,$(DIST_includes))
 
 # WARNING!!! if DEPEXTENSION from configure is empty, make clean remove all files!!
 DEPFILES := $(wildcard *@DEPEXTENSION@) dummy.d

@@ -1,7 +1,7 @@
 # -*- rpm-spec -*-
 %{expand:%define buildForSuSE %(if [ -e /etc/SuSE-release ]; then echo 1; else echo 0; fi)}
 
-Summary:   ParaStation Cluster Management
+Summary:   ParaStation Process Management
 Vendor:    ParTec Cluster Competence Center GmbH, Munich, Germany
 Name:      psmgmt
 Version:   @VERSION_psmgmt@
@@ -11,15 +11,29 @@ Group:     Productivity/Clustering/Computing
 Packager:  support@par-tec.de
 Source0:   %{name}-%{version}-%{release}.tar.gz
 Requires:  psmgmt
-BuildRequires:	ncurses-devel, readline-devel 
+BuildRequires:	ncurses-devel, readline-devel
 %if %buildForSuSE
 BuildRequires:  popt-devel
 %endif
 
-BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n) 
+BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
 %description
-The ParaStation Management Layer.
+The ParaStation Process Management Layer.
+
+%package devel
+# License:   Proprietary
+Summary:   Development files for ParaStation process management
+Group:     Productivity/Clustering/Computing
+Requires:  psmgmt = %{version}
+
+%description devel
+The psmgmt-devel package includes additional header files necessary
+for developing plugins of the ParaStation Process Management daemon.
+
+
+
+# It contains the API documentation of the popt library, too.
 
 %if %buildForSuSE
 %debug_package
@@ -80,7 +94,30 @@ exit 0
 
 %files
 %defattr(-,root,root)
-/opt/parastation
+%dir /opt/parastation
+/opt/parastation/ChangeLog.psmgmt
+/opt/parastation/LICENSE
+/opt/parastation/NEWS.psmgmt
+/opt/parastation/VERSION.psmgmt
+/opt/parastation/bin
+/opt/parastation/config
+%dir /opt/parastation/include
+/opt/parastation/include/list_t.h
+/opt/parastation/include/logging.h
+/opt/parastation/include/pscommon.h
+/opt/parastation/include/pscpu.h
+/opt/parastation/include/pse.h
+/opt/parastation/include/psi.h
+/opt/parastation/include/psienv.h
+/opt/parastation/include/psiinfo.h
+/opt/parastation/include/psispawn.h
+/opt/parastation/include/psnodes.h
+/opt/parastation/include/pspartition.h
+/opt/parastation/include/psprotocol.h
+/opt/parastation/include/pstask.h
+/opt/parastation/%{_lib}
+/opt/parastation/plugins
+/opt/parastation/scripts
 /etc/profile.d/psmgmt.sh
 /etc/profile.d/psmgmt.csh
 /etc/init.d/parastation
@@ -88,3 +125,22 @@ exit 0
 %config(noreplace) /etc/parastation.conf
 %attr(770,root,nobody) /var/account
 
+%files devel
+%defattr(-,root,root)
+%dir /opt/parastation
+%dir /opt/parastation/include
+/opt/parastation/include/config_parsing.h
+/opt/parastation/include/list.h
+/opt/parastation/include/plugin.h
+/opt/parastation/include/psdaemonprotocol.h
+/opt/parastation/include/pstask.h
+/opt/parastation/include/selector.h
+/opt/parastation/include/timer.h
+/opt/parastation/include/psidcomm.h
+/opt/parastation/include/psidhook.h
+/opt/parastation/include/psidnodes.h
+/opt/parastation/include/psidplugin.h
+/opt/parastation/include/psidscripts.h
+/opt/parastation/include/psidstatus.h
+/opt/parastation/include/psidtask.h
+/opt/parastation/include/psidutil.h
