@@ -1,6 +1,47 @@
 Version psmgmt-5.0.33:
 ======================
 ------------------------------------------------------------------------
+r8476 | eicker | 2011-07-21 16:15:18 +0200 (Thu, 21 Jul 2011) | 2 lines
+
+Improve documentation of hooks.
+
+------------------------------------------------------------------------
+r8475 | eicker | 2011-07-21 11:30:49 +0200 (Thu, 21 Jul 2011) | 2 lines
+
+Enhancement: create psmgmt-devel RPM. This implements #1100.
+
+------------------------------------------------------------------------
+r8474 | eicker | 2011-07-15 17:55:30 +0200 (Fri, 15 Jul 2011) | 3 lines
+
+Enhancement: Make multiple occurrences of mpiexec -e option behave as naively
+    expected. This should implement jt:#4515
+
+------------------------------------------------------------------------
+r8470 | eicker | 2011-07-14 20:04:05 +0200 (Thu, 14 Jul 2011) | 2 lines
+
+New release (psmgmt-5.0.33-2)
+
+------------------------------------------------------------------------
+r8469 | eicker | 2011-07-14 20:00:16 +0200 (Thu, 14 Jul 2011) | 3 lines
+
+Bugfix: Print out numerical IP address, if psiadmin's 'resolve' directive
+    cannot resolve hostname.
+
+------------------------------------------------------------------------
+r8468 | eicker | 2011-07-14 19:27:39 +0200 (Thu, 14 Jul 2011) | 2 lines
+
+Bugfix: Use correct protocol-version to encode partition requests.
+
+------------------------------------------------------------------------
+r8464 | eicker | 2011-07-13 18:18:05 +0200 (Wed, 13 Jul 2011) | 2 lines
+
+New version (psmgmt-5.0.33)
+
+------------------------------------------------------------------------
+
+Version psmgmt-5.0.33:
+======================
+------------------------------------------------------------------------
 r8463 | eicker | 2011-07-05 13:59:06 +0200 (Tue, 05 Jul 2011) | 3 lines
 
 Enhancement: Propagate user's PATH and LIBRARY_PATH environment to
