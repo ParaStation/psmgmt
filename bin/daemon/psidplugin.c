@@ -76,8 +76,10 @@ static LIST_HEAD(pluginList);
  *      PSID_registerDropper, and dynamical loggers.
  *
  * 103: added PSIDHOOK_CREATEPART
+ *
+ * 104: added PSIDHOOK_SHUTDOWN
  */
-static int pluginAPIVersion = 103;
+static int pluginAPIVersion = 104;
 
 
 /** Grace period between finalize and unload on forcefully unloads */
