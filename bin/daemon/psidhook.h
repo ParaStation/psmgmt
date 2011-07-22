@@ -62,6 +62,7 @@ typedef enum {
 				nothing else is done. Otherwise
 				further measure might be taken
 				afterwards. */
+    PSIDHOOK_SHUTDOWN,       /**< Daemon got signaled to shutdown, no arg */
 
     /*
      * The following hooks are place-holders for future extension and

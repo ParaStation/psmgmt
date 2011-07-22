@@ -34,6 +34,7 @@ static char vcid[] __attribute__((used)) =
 #include "psidnodes.h"
 #include "psidtask.h"
 #include "psidplugin.h"
+#include "psidhook.h"
 
 #include "psidstate.h"
 
@@ -81,6 +82,7 @@ void PSID_shutdown(void)
     case 0:
 	daemonState |= PSID_STATE_SHUTDOWN;
 	PSID_registerLoopAct(PSID_shutdown);
+	PSIDhook_call(PSIDHOOK_SHUTDOWN, NULL);
 	PSID_shutdownMasterSock();
     case 1:
 	killAllClients(SIGTERM, 0);
