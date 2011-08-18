@@ -44,6 +44,9 @@ config_t *config = NULL;
 
 logger_t *PSID_logger;
 
+int PSID_argc;
+const char **PSID_argv;
+
 /* Wrapper functions for logging */
 void PSID_initLogs(FILE *logfile)
 {

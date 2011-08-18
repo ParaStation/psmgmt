@@ -508,6 +508,10 @@ int main(int argc, const char *argv[])
     optCon = poptGetContext(NULL, argc, argv, optionsTable, 0);
     rc = poptGetNextOpt(optCon);
 
+    /* Store arguments for later modification in forwarders, etc. */
+    PSID_argc = argc;
+    PSID_argv = argv;
+
     if (version) {
 	printVersion();
 	return 0;

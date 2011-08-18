@@ -38,6 +38,12 @@ extern "C" {
 /** The logger we use inside PSID */
 extern logger_t *PSID_logger;
 
+/** Number of arguments to be modified by forwarders, etc. */
+extern int PSID_argc;
+
+/** Arguments to be modified by forwarders, etc. */
+extern const char **PSID_argv;
+
 /**
  * @brief Initialize the PSID logging facility.
  *
