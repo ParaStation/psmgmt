@@ -363,14 +363,14 @@ int PSC_getServicePort(char* name , int def);
  * The nodelist is returned in a statically allocated buffer, which
  * subsequent calls will overwrite.
  *
- * @param descr The string desribing a list of nodes. The string is of
+ * @param descr The string describing a list of nodes. The string is of
  * the form n[-m]{,o[-p]}*, where n, m, o and p are numbers. Each
- * numer might be in decimal, octal or hexadecimal notation. Oktal
+ * number might be in decimal, octal or hexadecimal notation. Octal
  * notation is marked by a leading 0, hexadecimal notation by a
  * leading 0x.
  *
  * @return On success, a char array as described above is returned. Or
- * NULL, if an (parsing-) error occured.
+ * NULL, if an (parsing-) error occurred.
  */
 char *PSC_parseNodelist(char* descr);
 
@@ -409,15 +409,18 @@ char * PSC_concat(const char *str, ...);
 /**
  * @brief Set the process title.
  *
- * Set the process title that appears on the ps(1) command. This will overwrite
- * the process memory which is used by arguments (argv) and the process
- * environment. Therefore this function has to be called after processing the
- * argv parameters. The process environment can be saved using the saveEnv flag.
+ * Set the process title that appears on the ps(1) command. This will
+ * overwrite the process memory which is used by arguments (argv) and
+ * the process environment. Therefore this function has to be called
+ * after processing the argv parameters. The process environment can
+ * be saved using the saveEnv flag.
  *
- * If the environment is not saved, the functions getenv(3)/setenv(3) should not
- * be used any more.
+ * If the environment is not saved, the functions getenv(3)/setenv(3)
+ * must not be used afterwards.
  *
- * @param argv The arguments to be modified.
+ * @param argv The arguments to be modified. This has to be the
+ * original argument vector passed to the applications main()
+ * function.
  *
  * @param argc The number of arguments to be modified.
  *
@@ -426,7 +429,7 @@ char * PSC_concat(const char *str, ...);
  * @param saveEnv If set to true then the process environment will be saved.
  * If set to false the environment will be overwritten.
  *
- * @return Upon success true is return, on error false is returned.
+ * @return Upon success 1 is returned. Or 0, if an error occurred.
  */
 int PSC_setProcTitle(char **argv, int argc, char *title, int saveEnv);
 

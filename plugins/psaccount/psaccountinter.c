@@ -1,7 +1,7 @@
 /*
  *               ParaStation
  *
- * Copyright (C) 2010 - 2011 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2011 ParTec Cluster Competence Center GmbH, Munich
  *
  * \author
  * Michael Rauh <rauh@par-tec.com>
@@ -50,7 +50,7 @@ int psAccountGetJobInfo(pid_t jobscript, psaccAccountInfo_t *accData)
 }
 
 /**
- * @brief Handle an account udpate message.
+ * @brief Handle an account update message.
  *
  * @param msg The message to handle.
  *

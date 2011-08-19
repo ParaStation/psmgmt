@@ -457,7 +457,7 @@ int PSC_setProcTitle(char **argv, int argc, char *title, int saveEnv)
 
     /* save environment */
     if (environ && saveEnv) {
-        if (!(newEnv = malloc((countEnv +1) * sizeof(char *)))) {
+	if (!(newEnv = malloc((countEnv +1) * sizeof(char *)))) {
 	    return 0;
 	}
 
