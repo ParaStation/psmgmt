@@ -78,8 +78,10 @@ static LIST_HEAD(pluginList);
  * 103: added PSIDHOOK_CREATEPART
  *
  * 104: added PSIDHOOK_SHUTDOWN
+ *
+ * 105: added PSC_setProcTitle
  */
-static int pluginAPIVersion = 104;
+static int pluginAPIVersion = 105;
 
 
 /** Grace period between finalize and unload on forcefully unloads */

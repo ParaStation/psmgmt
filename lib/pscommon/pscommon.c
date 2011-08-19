@@ -36,6 +36,9 @@ static PSnodes_ID_t myID = -1;
 
 static PStask_ID_t myTID = -1;
 
+/** pointer to the environment */
+extern char **environ;
+
 /* Wrapper functions for logging */
 void PSC_initLog(FILE* logfile)
 {
@@ -427,4 +430,48 @@ char * PSC_concat(const char *str, ...)
     }
 
     return result;
+}
+
+int PSC_setProcTitle(char **argv, int argc, char *title, int saveEnv)
+{
+    int size = -1, countEnv = -1, i;
+    char **newEnv;
+    char *argvP = NULL, *lastArg = NULL;
+
+    if (argv == NULL || argc == 0) {
+	return 0;
+    }
+
+    /* find last element in argv/env */
+    for (i=0; i<argc; i++) {
+	if (lastArg == NULL || lastArg + 1 == argv[i])
+	    lastArg = argv[i] + strlen(argv[i]);
+    }
+    for (i=0; environ[i] != NULL; i++) {
+	if (lastArg + 1 == environ[i])
+	    lastArg = environ[i] + strlen(environ[i]);
+    }
+    countEnv = i;
+
+    if (((size = lastArg - argv[0] - 1) < 0)) return 0;
+
+    /* save environment */
+    if (environ && saveEnv) {
+        if (!(newEnv = malloc((countEnv +1) * sizeof(char *)))) {
+	    return 0;
+	}
+
+	for (i=0; environ[i] != NULL; i++) {
+	    newEnv[i] = strdup(environ[i]);
+	}
+	newEnv[i] = NULL;
+	environ = newEnv;
+    }
+
+    /* write the new process title */
+    argvP = argv[0];
+    memset(argvP, '\0', size);
+    snprintf(argvP, size - 1, "%s", title);
+
+    return 1;
 }

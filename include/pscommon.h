@@ -406,6 +406,30 @@ void PSC_printNodelist(char* nl);
  */
 char * PSC_concat(const char *str, ...);
 
+/**
+ * @brief Set the process title.
+ *
+ * Set the process title that appears on the ps(1) command. This will overwrite
+ * the process memory which is used by arguments (argv) and the process
+ * environment. Therefore this function has to be called after processing the
+ * argv parameters. The process environment can be saved using the saveEnv flag.
+ *
+ * If the environment is not saved, the functions getenv(3)/setenv(3) should not
+ * be used any more.
+ *
+ * @param argv The arguments to be modified.
+ *
+ * @param argc The number of arguments to be modified.
+ *
+ * @param title The new process title.
+ *
+ * @param saveEnv If set to true then the process environment will be saved.
+ * If set to false the environment will be overwritten.
+ *
+ * @return Upon success true is return, on error false is returned.
+ */
+int PSC_setProcTitle(char **argv, int argc, char *title, int saveEnv);
+
 #ifdef __cplusplus
 }/* extern "C" */
 #endif

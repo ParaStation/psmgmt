@@ -1635,6 +1635,7 @@ static void waitForChildsDead(void)
 void PSID_forwarder(PStask_t *task, int daemonfd, int eno, int PMISocket,
 		    PMItype_t PMItype)
 {
+    char pTitle[50];
     char *envStr, *timeoutStr;
     long flags, val;
 
@@ -1710,6 +1711,12 @@ void PSID_forwarder(PStask_t *task, int daemonfd, int eno, int PMISocket,
 	/* init the pmi interface */
 	pmi_init(PMIClientSock, childTask->loggertid, childTask->rank);
     }
+
+    /* set the process title */
+    snprintf(pTitle, sizeof(pTitle), "psidforwarder TID[%d:%d] R%d",
+		PSC_getID(childTask->loggertid),
+		PSC_getPID(childTask->loggertid), childTask->rank);
+    PSC_setProcTitle((char **)PSID_argv, PSID_argc, pTitle, 0);
 
     /* call the loop which does all the work */
     loop();
