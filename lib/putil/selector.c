@@ -351,7 +351,7 @@ int Sselect(int n, fd_set  *readfds,  fd_set  *writefds, fd_set *exceptfds,
 		    break;
 		default:
 		    logger_print(logger, -1,
-				 "%s: selectHander for fd=%d returns %d\n",
+				 "%s: selectHandler for fd=%d returns %d\n",
 				 __func__, selector->fd, ret);
 		}
 	    }

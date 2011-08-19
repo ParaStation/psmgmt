@@ -50,7 +50,7 @@ int psAccountGetJobInfo(pid_t jobscript, psaccAccountInfo_t *accData)
 }
 
 /**
- * @brief Hanle a account udpate message.
+ * @brief Handle an account udpate message.
  *
  * @param msg The message to handle.
  *
