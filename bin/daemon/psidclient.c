@@ -684,10 +684,19 @@ static void msg_CLIENTCONNECT(int fd, DDBufferMsg_t *bufmsg)
 
 	task = PStasklist_find(&managedTasks, pgtid);
 
+	if (msg->group == TG_ADMIN) {
+	    /*
+	     * psiadmin never forks. This is another psiadmin started
+	     * from within a shell script. Forget about this task.
+	     */
+	    task = NULL;
+	}
+
 	if (task && (task->group == TG_LOGGER || task->group == TG_ADMIN)) {
 	    /*
-	     * Logger never fork. This is another executable started from
-	     * within a shell script. Forget about this task.
+	     * Logger and psiadmin never fork. This is another
+	     * executable started from within a shell script. Forget
+	     * about this task.
 	     */
 	    task = NULL;
 	}

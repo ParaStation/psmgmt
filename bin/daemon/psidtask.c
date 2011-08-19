@@ -212,8 +212,25 @@ int PSID_getSignalByTID(list_t *sigList, PStask_ID_t tid)
 
 int PStasklist_enqueue(list_t *list, PStask_t *task)
 {
+    PStask_t *old;
+
+    if (!task) {
+	PSID_log(-1, "%s: no task given\n", __func__);
+	return -1;
+    }
+
     PSID_log(PSID_LOG_TASK, "%s(%p,%s(%p))\n", __func__,
 	     list, PSC_printTID(task->tid), task);
+
+    old = PStasklist_find(list, task->tid);
+    if (old) {
+	char taskStr[128];
+	PStask_snprintf(taskStr, sizeof(taskStr), old);
+
+	PSID_log(-1, "%s: old task found: %s\n", __func__, taskStr);
+	PStasklist_dequeue(old);
+	PStask_delete(task);
+    }
 
     list_add_tail(&task->next, list);
 
