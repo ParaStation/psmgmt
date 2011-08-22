@@ -7,7 +7,7 @@
  *
  */
 /**
- * @file mpiexec.c Replacement for the standard mpiexec command provided by
+ * @file mpiexec.c Replacement of the standard mpiexec command provided by
  * MPIch in order to start such applications within a ParaStation
  * cluster.
  *
@@ -68,7 +68,7 @@ int dup_argc;
 
 /** start admin task which are not accounted */
 int admin = 0;
-/** set debugging mode and np * gdb to controll child processes */
+/** set debugging mode and np * gdb to control child processes */
 int gdb = 0;
 /** don't call gdb with --args option */
 int gdb_noargs = 0;
@@ -76,7 +76,7 @@ int gdb_noargs = 0;
 int show = 0;
 /** flag to set verbose mode */
 int verbose = 0;
-/** flag to determine if we are using quadrics lib elan */
+/** flag to determine if we are using Quadrics' lib elan */
 bool useElan = 1;
 /* set mpich 1 compatible mode */
 int mpichcom = 0;
@@ -337,7 +337,7 @@ static void disableElan(void)
 
 /**
  * @brief Check if we were compiled with elan support,
- * and try to load and init libelan.
+ * and try to load and initialize libelan.
  *
  * @return No return value.
  */
@@ -370,7 +370,7 @@ static void checkForELAN(void)
  * Setup global environment also shared with the logger -- i.e. the
  * PMI master. The @a admin flag marks admin processes disabling most
  * of the environment. It is assumed that the PMI-part of the logger
- * has to expoect @a np clients.
+ * has to expect @a np clients.
  *
  * @param admin Flag for admin processes
  *
@@ -506,7 +506,7 @@ static void createSpawner(int argc, char *argv[], int np, int admin)
  * @brief Handle signals.
  *
  * Handle the signal @a sig sent to the spawner. For the time being
- * only SIGTERM ist handled.
+ * only SIGTERM is handled.
  *
  * @param sig Signal to handle.
  *
@@ -677,7 +677,7 @@ static char ** setupNodeEnv(int rank)
  *
  * @param argv Pointer to the arguments of the new process to spawn.
  *
- * @param verbose Set verbose mode, ouput whats going on.
+ * @param verbose Set verbose mode, output whats going on.
  *
  * @return Returns 0 on success, or errorcode on error.
  */
@@ -725,7 +725,7 @@ static int startProcs(int np, char *wd, int argc, char *argv[], int verbose)
 /**
  * @brief Set pscom/mpi environment.
  *
- * Set up the environment to control diffrent options of the pscom/mpi
+ * Set up the environment to control different options of the pscom/mpi
  * library.
  *
  * @param verbose Set verbose mode (effects only, if called within
@@ -799,7 +799,7 @@ static void setupPSCOMEnv(int verbose)
 
     if (sigquit) {
 	setPSIEnv("PSP_SIGQUIT", "1", 1);
-	if (verbose) printf("PSP_SIGQUIT=1 : Switching pscom sigquit on.\n");
+	if (verbose) printf("PSP_SIGQUIT=1 : Switching pscom SIGQUIT on.\n");
     }
 
     if (pscomdb) {
@@ -810,7 +810,7 @@ static void setupPSCOMEnv(int verbose)
     if (retry) {
 	snprintf(tmp, sizeof(tmp), "%d", retry);
 	setPSIEnv("PSP_RETRY", tmp, 1);
-	if (verbose) printf("PSP_RETRY=%d : Number of connection retrys set "
+	if (verbose) printf("PSP_RETRY=%d : Number of connection retries set "
 	    "to %d.\n", retry, retry);
     }
 
@@ -859,7 +859,7 @@ static void setupPSCOMEnv(int verbose)
 
     if (nodelay) {
 	setPSIEnv("PSP_TCP_NODELAY", "0", 1);
-	if (verbose) printf("PSP_TCP_NODELAY=0 : Switching TCP nodelay off.\n");
+	if (verbose) printf("PSP_TCP_NODELAY=0 : Switching TCP_NODELAY off.\n");
     }
 }
 
@@ -878,7 +878,7 @@ static void cleanEnv(char *var)
 }
 
 /**
- * @brief Set up the environment to control diffrent options of
+ * @brief Set up the environment to control different options of
  * the psid/logger.
  *
  * @param verbose Set verbose mode (effects only, if called within
@@ -895,7 +895,7 @@ static void setupPSIDEnv(int verbose)
 
     verbose = verbose && isRoot;
 
-    /* clean the environment from dispensable empty vars */
+    /* clean the environment from dispensable empty variables */
     cleanEnv("PSI_HOSTS");
     cleanEnv("PSI_NODES");
     cleanEnv("PSI_HOSTFILE");
@@ -1116,7 +1116,7 @@ static void setupPSIDEnv(int verbose)
  * @brief Set up the environment to control different options of
  * parastation.
  *
- * @param verbose Set verbose mode, ouput whats going on.
+ * @param verbose Set verbose mode, output whats going on.
  *
  * @return No return value.
  */
@@ -1180,7 +1180,7 @@ static void setupEnvironment(int verbose)
 }
 
 /**
- * @brief Ouput the usage which is normally hidden from the user like
+ * @brief Output the usage which is normally hidden from the user like
  * debug options.
  *
  * @param opt Table which holds all hidden options.
@@ -1208,7 +1208,7 @@ static void printHiddenUsage(poptOption opt, int argc, char *argv[],
 }
 
 /**
- * @brief Ouput the help which is normally hidden from the user like
+ * @brief Output the help which is normally hidden from the user like
  * debug options.
  *
  * @param opt Table which holds all hidden options.
@@ -1237,7 +1237,7 @@ static void printHiddenHelp(poptOption opt, int argc, char *argv[],
 
 /**
  * @brief Parse a given hostfile and return the
- * found hosts.
+ * hosts found.
  *
  * @filename Name of the file to parse.
  *
@@ -1394,9 +1394,9 @@ static void setupUID(char *argv[])
 }
 
 /**
- * @brief Spwan admin task.
+ * @brief Spawn admin task.
  *
- * Do the actuall spawing and handling of errors.
+ * Do the actual spawning and handling of errors.
  *
  * @param nodeID The node to spawn to task to.
  *
@@ -1404,9 +1404,9 @@ static void setupUID(char *argv[])
  *
  * @param argv Pointer to the arguments of the new process to spawn.
  *
- * @param verbose Set verbose mode, ouput whats going on.
+ * @param verbose Set verbose mode, output whats going on.
  *
- * @param show Only show ouput, but don't spawn anything.
+ * @param show Only show output, but don't spawn anything.
 */
 static void doAdminSpawn(PSnodes_ID_t nodeID, int argc, char *argv[],
 						    int verbose, int show)
@@ -1442,9 +1442,9 @@ static void doAdminSpawn(PSnodes_ID_t nodeID, int argc, char *argv[],
  *
  * @param login The user name to start the admin processes.
  *
- * @param verbose Set verbose mode, ouput whats going on.
+ * @param verbose Set verbose mode, output whats going on.
  *
- * @param show Only show ouput, but don't spawn anything.
+ * @param show Only show output, but don't spawn anything.
  *
  * @return Returns 0 on success, or errorcode on error.
  */
@@ -1523,7 +1523,7 @@ static void createAdminTasks(int argc, char *argv[], char *login, int verbose,
 /**
  * @brief Check Sanity.
  *
- * Perform some santiy checks to handle common
+ * Perform some sanity checks to handle common
  * mistakes.
  *
  * @param dup_argc The number of arguments for the new process to spawn.
@@ -1584,7 +1584,7 @@ static void checkSanity(char *argv[])
     }
 
     if (login && !admin) {
-	fprintf(stderr, "the '--login' option is usefull with '--admin' only, "
+	fprintf(stderr, "the '--login' option is useful with '--admin' only, "
 			"ignoring it.\n");
     }
 
@@ -1671,13 +1671,13 @@ struct poptOption poptMpiexecComp[] = {
       &none, 0, "override default of trying first (ignored)", NULL},
     { "ifhn", '\0',
       POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
-      &network, 0, "set a space separeted list of networks enabled", NULL},
+      &network, 0, "set a space separated list of networks enabled", NULL},
     { "file", '\0',
       POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
       &none, 0, "file with additional information (ignored)", NULL},
     { "tv", '\0',
       POPT_ARG_NONE | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
-      &totalview, 0, "run procs under totalview (ignored)", NULL},
+      &totalview, 0, "run processes under totalview (ignored)", NULL},
     { "tvsu", '\0',
       POPT_ARG_NONE | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
       &totalview, 0, "totalview startup only (ignored)", NULL},
@@ -1689,7 +1689,7 @@ struct poptOption poptMpiexecComp[] = {
       &gdba, 0, "attach to debug processes with gdb (ignored)", NULL},
     { "ecfn", '\0',
       POPT_ARG_NONE | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
-      &ecfn, 0, "ouput xml exit codes filename (ignored)", NULL},
+      &ecfn, 0, "output xml exit codes filename (ignored)", NULL},
     { "wdir", '\0',
       POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
       &wdir, 0, "working directory for remote process(es)", "<directory>"},
@@ -1717,16 +1717,17 @@ struct poptOption poptMpiexecComp[] = {
       &envall, 0, "export all environment variables to foreign nodes", NULL},
     { "envnone", '\0',
       POPT_ARG_NONE | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
-      &none, 0, "export no env vars", NULL},
+      &none, 0, "export no environment variables", NULL},
     { "envlist", '\0',
       POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
-      &envlist, 'l', "export a list of env vars", NULL},
+      &envlist, 'l', "export a list of environment variables", NULL},
     { "usize", 'u',
       POPT_ARG_INT | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
       &usize, 0, "set the universe size", NULL},
     { "env", 'E',
       POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
-      &envopt, 'E', "export this value of this env var", "<name> <value>"},
+      &envopt, 'E', "export this value of this environment variable",
+      "<name> <value>"},
     { "maxtime", '\0',
       POPT_ARG_INT | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
       &maxtime, 0, "maximum number of seconds the job is permitted to run",
@@ -1793,13 +1794,14 @@ struct poptOption poptMpiexecCompGlobal[] = {
       &envall, 0, "export all environment variables to foreign nodes", NULL},
     { "genvnone", '\0',
       POPT_ARG_NONE | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
-      &none, 0, "export no env vars", NULL},
+      &none, 0, "export no environment variables", NULL},
     { "genvlist", '\0',
       POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
-      &envlist, 'l', "export a list of env vars", NULL},
+      &envlist, 'l', "export a list of environment variables", NULL},
     { "genv", 'E',
       POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
-      &envopt, 'E', "export this value of this env var", "<name> <value>"},
+      &envopt, 'E', "export this value of this environment variable",
+      "<name> <value>"},
     POPT_TABLEEND
 };
 
@@ -1813,7 +1815,8 @@ struct poptOption poptCommonOptions[] = {
     { "envall", 'x', POPT_ARG_NONE,
       &envall, 0, "export all environment variables to all processes", NULL},
     { "env", 'E', POPT_ARG_STRING,
-      &envopt, 'E', "export this value of this env var", "<name> <value>"},
+      &envopt, 'E', "export this value of this environment variable",
+      "<name> <value>"},
     { "envval", '\0', POPT_ARG_STRING | POPT_ARGFLAG_DOC_HIDDEN,
       &envval, 'e', "", ""},
     { "bnr", 'b', POPT_ARG_NONE,
@@ -1850,7 +1853,7 @@ struct poptOption poptDebugOptions[] = {
     { "loggerrawmode", '\0', POPT_ARG_NONE | POPT_ARGFLAG_DOC_HIDDEN,
       &loggerrawmode, 0, "set raw mode of the logger", "num"},
     { "sigquit", '\0', POPT_ARG_NONE | POPT_ARGFLAG_DOC_HIDDEN,
-      &sigquit, 0, "pscom: ouput debug information on signal sigquit", NULL},
+      &sigquit, 0, "pscom: output debug information on signal SIGQUIT", NULL},
     { "show", '\0', POPT_ARG_NONE | POPT_ARGFLAG_DOC_HIDDEN,
       &show, 0, "show command for remote execution but don`t run it", NULL},
     POPT_TABLEEND
@@ -1917,7 +1920,7 @@ struct poptOption poptExecutionOptions[] = {
     { "exclusive", 'X', POPT_ARG_NONE,
       &exclusive, 0, "do not allow any other processes on used node(s)", NULL},
     { "sort", 'S', POPT_ARG_STRING,
-      &sort, 0, "sorting criterium to use: {proc|load|proc+load|none}", NULL},
+      &sort, 0, "sorting criterion to use: {proc|load|proc+load|none}", NULL},
     { "wdir", 'd', POPT_ARG_STRING,
       &wdir, 0, "working directory for remote process(es)", "<directory>"},
     { "umask", '\0', POPT_ARG_INT,
@@ -1935,7 +1938,7 @@ struct poptOption poptCommunicationOptions[] = {
       &discom, 0, "disable an communication architecture: {SHM,TCP,P4SOCK,"
       "GM,MVAPI,OPENIB,DAPL}", NULL},
     { "network", 't', POPT_ARG_STRING,
-      &network, 0, "set a space separeted list of networks enabled", NULL},
+      &network, 0, "set a space separated list of networks enabled", NULL},
     { "schedyield", 'y', POPT_ARG_NONE,
       &schedyield, 0, "use sched yield system call", NULL},
     { "retry", 'r', POPT_ARG_INT,
@@ -2022,7 +2025,7 @@ static void parseCmdOptions(int argc, char *argv[])
     int rc = 0;
     const char *nextArg;
 
-    /* The duplicated argv will contain the apps commandline */
+    /* The duplicated argv will contain the apps command-line */
 
     poptDupArgv(argc, (const char **)argv,
 		&dup_argc, (const char ***)&dup_argv);
@@ -2068,7 +2071,7 @@ static void parseCmdOptions(int argc, char *argv[])
     }
     dup_argv[dup_argc] = NULL;
 
-    /* restore original contex for further usage messages */
+    /* restore original context for further usage messages */
     poptFreeContext(optCon);
     optCon = poptGetContext(NULL, argc, (const char **)argv,
 			    optionsTable, POPT_CONTEXT_POSIXMEHARDER);
@@ -2199,8 +2202,8 @@ static void setupComp()
 /**
 * @brief signal handling
 *
-* Install singal handlers for various signals.
-*
+* Install signal handlers for various signals.
+*n
 * @return No return value.
 */
 static void setSigHandlers()
@@ -2222,7 +2225,7 @@ int main(int argc, char *argv[])
     /* some sanity checks */
     checkSanity(argv);
 
-    /* set default pmi connection methode to unix socket */
+    /* set default pmi connection method to unix socket */
     if (!pmienabletcp && !pmienablesockp) {
 	pmienablesockp = 1;
     }
