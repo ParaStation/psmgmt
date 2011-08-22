@@ -689,15 +689,20 @@ static void msg_CLIENTCONNECT(int fd, DDBufferMsg_t *bufmsg)
 	     * psiadmin never forks. This is another psiadmin started
 	     * from within a shell script. Forget about this task.
 	     */
+	    PSID_log(PSID_LOG_CLIENT, "%s: no reconnection since task is %s\n",
+		     __func__, PStask_printGrp(msg->group));
 	    task = NULL;
 	}
 
-	if (task && (task->group == TG_LOGGER || task->group == TG_ADMIN)) {
+	if (task && (task->group == TG_LOGGER || task->group == TG_ADMIN
+		     || task->group == TG_ADMINTASK) ) {
 	    /*
-	     * Logger and psiadmin never fork. This is another
-	     * executable started from within a shell script. Forget
-	     * about this task.
+	     * Logger, psiadmin and admin-tasks never fork. This is
+	     * another executable started from within a shell
+	     * script. Forget about this task.
 	     */
+	    PSID_log(PSID_LOG_CLIENT, "%s: no reconnection since parent-task"
+		     " is %s\n", __func__, PStask_printGrp(task->group));
 	    task = NULL;
 	}
 
@@ -705,6 +710,9 @@ static void msg_CLIENTCONNECT(int fd, DDBufferMsg_t *bufmsg)
 	    /* Spawned process has changed pid */
 	    /* This might happen due to stuff in PSI_RARG_PRE_0 */
 	    PStask_t *child = PStask_clone(task);
+
+	    PSID_log(PSID_LOG_CLIENT, "%s: reconnection with changed PID"
+		     "%d -> %d\n", __func__, PSC_getPID(task->tid), pid);
 
 	    if (child) {
 		child->tid = tid;
@@ -734,8 +742,8 @@ static void msg_CLIENTCONNECT(int fd, DDBufferMsg_t *bufmsg)
     if (task) {
 	/* reconnection */
 	/* use the old task struct but close the old fd */
-	PSID_log(PSID_LOG_CLIENT, "%s: reconnection, old/new fd = %d/%d\n",
-		 __func__, task->fd, fd);
+	PSID_log(PSID_LOG_CLIENT, "%s: reconnecting task %s, old/new fd ="
+		 " %d/%d\n", __func__, PSC_printTID(task->tid), task->fd, fd);
 
 	/* close the previous socket */
 	if (task->fd > 0) {
