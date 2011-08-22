@@ -551,6 +551,8 @@ void resetTracking(void)
  */
 static void handleKvsBarrierIn(PSLog_Msg_t *msg)
 {
+    static struct timeval barrierStart;
+
     char reply[PMIU_MAXLINE];
 
     /* check if last barrier ended successfully */
@@ -573,6 +575,7 @@ static void handleKvsBarrierIn(PSLog_Msg_t *msg)
     /* Set timeout waiting for all clients to join barrier */
     if (kvsBarrierInCount == 0) {
 	setBarrierTimeout();
+	gettimeofday(&barrierStart, NULL);
     }
 
     /* save sender to array */
@@ -587,6 +590,16 @@ static void handleKvsBarrierIn(PSLog_Msg_t *msg)
     if (kvsBarrierInCount == noKvsClients) {
 	/* all clients joined barrier */
 	resetTracking();
+	if (barrierCount != barrierRounds) {
+	    struct timeval now, stv;
+	    double time;
+	    gettimeofday(&now, NULL);
+	    timersub(&now, &barrierStart, &stv);
+
+	    time = stv.tv_sec + 1e-6 * stv.tv_usec;
+
+	    PSIlog_log(-1, "All clients joined after %.2f sec seconds\n", time);
+	}
 
 	kvsBarrierInCount = 0;
 
