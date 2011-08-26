@@ -717,24 +717,39 @@ static void adaptPriority(void)
  */
 static int changeToWorkDir(PStask_t *task)
 {
+    char *rawIO = getenv("__PSI_RAW_IO");
     alarmFunc = __func__;
+
     if (chdir(task->workingdir)<0) {
 	struct passwd *passwd;
-	fprintf(stderr, "%s: chdir(%s): %s\n", __func__,
-		task->workingdir ? task->workingdir : "", get_strerror(errno));
-	fprintf(stderr, "Will use user's home directory\n");
+
+	if (!rawIO) {
+	    fprintf(stderr, "%s: chdir(%s): %s\n", __func__,
+		    task->workingdir ? task->workingdir : "",
+		    get_strerror(errno));
+	    fprintf(stderr, "Will use user's home directory\n");
+	}
 
 	passwd = getpwuid(getuid());
 	if (passwd) {
 	    if (chdir(passwd->pw_dir)<0) {
 		int eno = errno;
-		fprintf(stderr, "%s: chdir(%s): %s\n", __func__,
-			passwd->pw_dir ? passwd->pw_dir : "",
-			get_strerror(eno));
+		if (rawIO) {
+		    PSID_warn(-1, eno, "%s: chdir(%s)", __func__,
+			      passwd->pw_dir ? passwd->pw_dir : "");
+		} else {
+		    fprintf(stderr, "%s: chdir(%s): %s\n", __func__,
+			    passwd->pw_dir ? passwd->pw_dir : "",
+			    get_strerror(eno));
+		}
 		return eno;
 	    }
 	} else {
-	    fprintf(stderr, "Cannot determine home directory\n");
+	    if (rawIO) {
+		PSID_log(-1, "Cannot determine home directory\n");
+	    } else {
+		fprintf(stderr, "Cannot determine home directory\n");
+	    }
 	    return ENOENT;
 	}
     }

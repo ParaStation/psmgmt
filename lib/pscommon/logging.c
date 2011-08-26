@@ -14,7 +14,9 @@ static char vcid[] __attribute__((used)) =
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
+#include <unistd.h>
 #include <string.h>
+#include <errno.h>
 #include <syslog.h>
 #include <time.h>
 #include <sys/time.h>
@@ -353,6 +355,31 @@ void logger_warn(logger_t* logger, int32_t key, int eno,
     va_start(ap, format);
     do_print(logger, logger->fmt, ap);
     va_end(ap);
+}
+
+void logger_write(logger_t* logger, int32_t key, const char *buf, size_t count)
+{
+    if (!logger || ((key != -1) && !(logger->mask & key))) return;
+
+    if (logger->logfile) {
+	size_t n;
+	ssize_t i;
+
+	for (n=0, i=1; (n<count) && (i>0);) {
+	    i = write(fileno(logger->logfile), &buf[n], count-n);
+	    if (i<=0) {
+		switch (errno) {
+		case EINTR:
+		case EAGAIN:
+		    break;
+		default:
+		    do_panic(logger, "%s: %s", __func__, strerror(errno));
+		}
+	    } else {
+		n+=i;
+	    }
+	}
+    }
 }
 
 void logger_exit(logger_t* logger, int eno, const char* format, ...)

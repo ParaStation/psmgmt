@@ -148,6 +148,9 @@ void PSIlog_finalizeLogs(void);
 #define PSIlog_stdout(...) if (PSIlog_stdoutLogger)	\
 	logger_print(PSIlog_stdoutLogger, __VA_ARGS__)
 
+#define PSIlog_writeout(buf, count) if (PSIlog_stdoutLogger)	\
+	logger_write(PSIlog_stdoutLogger, -1, buf, count)
+
 /**
  * Print a log messages via psiloggers's logging facility @a
  * PSIlog_stderrLogger .

@@ -49,7 +49,7 @@ static void printVersion(void)
 int main(int argc, const char *argv[])
 {
     PSnodes_ID_t nodeID;
-    int interactive, node, version, verbose, rusage;
+    int interactive, node, version, verbose, rusage, rawIO;
     const char *host, *envlist, *login;
     char *cmdLine = NULL, *shell, hostStr[30];
 
@@ -65,10 +65,10 @@ int main(int argc, const char *argv[])
 	  &node, 0, "node to access", "node"},
 	{ "host", 'h', POPT_ARG_STRING,
 	  &host, 0, "host to access", "host"},
-	{ "host", 'h', POPT_ARG_STRING,
-	  &host, 0, "host to access", "host"},
 	{ NULL, 't', POPT_ARG_NONE,
 	  &interactive, 0, "force pseudo-tty allocation like in ssh", NULL},
+	{ "raw", 'r', POPT_ARG_NONE,
+	  &rawIO, 0, "raw I/O operations", NULL},
 	{ "exports", 'e', POPT_ARG_STRING,
 	  &envlist, 0, "environment to export to foreign node", "envlist"},
 	{ "login", 'l', POPT_ARG_STRING,
@@ -303,6 +303,10 @@ int main(int argc, const char *argv[])
 	nodeID = node;
 
 	snprintf(hostStr, sizeof(hostStr), "node %d", node);
+    }
+
+    if (rawIO) {
+	setenv("__PSI_RAW_IO", "", 1);
     }
 
     /* Don't irritate the user with logger messages */

@@ -63,6 +63,8 @@ static int prependSource = 0;
  */
 static int mergeOutput = 0;
 
+static int rawIO = 0;
+
 /**
  * Parse STDIN for special commands changing the input destination.
  *
@@ -943,6 +945,11 @@ static void handleOutMsg(PSLog_Msg_t *msg, int outfd)
     } else {
 	switch (outfd) {
 	case STDOUT_FILENO:
+	    if (rawIO) {
+		PSIlog_writeout(msg->buf, msg->header.len-PSLog_headerSize);
+		break;
+	    }
+
 	    if (msg->sender != lastSender && !nlAtEnd) {
 		PSIlog_stdout(-1, "\n");
 	    }
@@ -1428,6 +1435,25 @@ int main( int argc, char**argv)
     if (getenv("PSI_RUSAGE")) {
 	showUsage=1;
 	PSIlog_log(PSILOG_LOG_VERB, "Going to show resource usage.\n");
+    }
+
+    if (getenv("__PSI_RAW_IO")) {
+	PSIlog_log(PSILOG_LOG_VERB, "Using raw IO\n");
+	rawIO = 1;
+
+	if (prependSource) {
+	    PSIlog_log(-1, "Option clash between 'prepend source' and"
+		       " 'raw IO'\n");
+	    exit(1);
+	}
+	if (mergeOutput) {
+	    PSIlog_log(-1, "Option clash between 'merging' and 'raw IO'\n");
+	    exit(1);
+	}
+	if (enableGDB) {
+	    PSIlog_log(-1, "Option clash between 'remote GDB' and 'raw IO'\n");
+	    exit(1);
+	}
     }
 
     PSLog_init(daemonSock, -1, 2);

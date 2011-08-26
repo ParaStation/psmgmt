@@ -235,6 +235,40 @@ logger_t* logger_init(char* tag, FILE *logfile);
 void logger_finalize(logger_t* logger);
 
 /**
+ * @brief Write a log message.
+ *
+ * Write the raw message of length @a count stored in @a buf to the
+ * logger facility @a logger.
+ *
+ * The message is only put out if either:
+ *
+ * - the key @a key bitwise or'ed with @a logger's current mask is
+ * different form zero, or
+ *
+ * - the key @a key is -1.
+ *
+ * Thus, all messages with @a key set to -1 are put out always,
+ * independently of the choice of @a logger's mask.
+ *
+ * All messages are put out instantly without any beautifications like
+ * prefixes, source-ranks or time-stamps. This functions is mainly
+ * useful for raw communication as it used by psiloggers in raw-mode.
+ *
+ * @param logger The logger facility to use.
+ *
+ * @param key The key to use in order to decide if anything is put out.
+ *
+ * @param buf Buffer holding the message to write via the logger.
+ *
+ * @param count Length of the message to write.
+ *
+ * @return No return value.
+ *
+ * @see write(2), logger_exit()
+ */
+void logger_write(logger_t* logger, int32_t key, const char *buf, size_t count);
+
+/**
  * @brief Print a log message.
  *
  * Print a message defined via @a format and the remaining arguments
