@@ -1225,10 +1225,13 @@ static void loop(void)
 			   msg.sender);
 	    } else if (getClientTID(msg.sender) != msg.header.sender) {
 		int rank = msg.sender;
-		PSIlog_log(-1, "%s: %s sends as rank %d ", __func__,
+		int key = ((msg.type == FINALIZE) && clientIsGone(rank)) ?
+		    PSILOG_LOG_VERB : -1;
+
+		PSIlog_log(key, "%s: %s sends as rank %d ", __func__,
 			   PSC_printTID(msg.header.sender), rank);
-		PSIlog_log(-1, "(%s) type %d", PSC_printTID(getClientTID(rank)),
-			   msg.type);
+		PSIlog_log(key, "(%s) type %d\n",
+			   PSC_printTID(getClientTID(rank)), msg.type);
 	    } else switch(msg.type) {
 	    case STDERR:
 		outfd = STDERR_FILENO;

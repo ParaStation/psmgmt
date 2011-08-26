@@ -349,7 +349,8 @@ void deregisterClient(int rank)
     if (rank < minRank || rank > maxRank) PSIlog_exit(EINVAL, "%s", __func__);
 
     if (getClientTID(rank) == -1) {
-	PSIlog_log(-1, "%s: rank %d not registered.\n", __func__, rank);
+	int key = clientIsGone(rank) ? PSILOG_LOG_VERB : -1;
+	PSIlog_log(key, "%s: rank %d not registered.\n", __func__, rank);
 	return;
     }
 

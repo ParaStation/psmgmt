@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2010 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2011 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -543,15 +543,13 @@ again:
 static void releaseLogger(int status)
 {
     PSLog_Msg_t msg;
-    struct timeval timeout;
+    struct timeval timeout = {loggerTimeout, 0};
     int ret;
 
     if (loggerTID < 0) return;
 
  send_again:
     sendMsg(FINALIZE, (char *)&status, sizeof(status));
-
-    timeout = (struct timeval) {10, 0};
 
  again:
     ret = recvMsg(&msg, &timeout);
