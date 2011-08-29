@@ -83,38 +83,43 @@ static void doKill(pid_t child, pid_t pgroup, int sig)
  *
  * @return No return value.
  */
-static void sendSignal2AllChildren(pid_t mypid, pid_t child, pid_t pgroup, int sig)
+static int sendSignal2AllChildren(pid_t mypid, pid_t child, pid_t pgroup, int sig)
 {
     struct list_head *pos;
     Proc_Snapshot_t *Childproc;
+    int sendCount = 0;
 
     /* never send signal to myself */
-    if (child == mypid) return;
+    if (child == mypid) return 0;
 
     if (list_empty(&ProcList.list)) {
 	doKill(child, pgroup, sig);
-        return;
+        return 1;
     }
 
     list_for_each(pos, &ProcList.list) {
         if ((Childproc = list_entry(pos, Proc_Snapshot_t, list)) == NULL) break;
 
         if (Childproc->ppid == child) {
-            sendSignal2AllChildren(mypid, Childproc->pid, Childproc->pgroup, sig);
+            sendCount += sendSignal2AllChildren(mypid, Childproc->pid, Childproc->pgroup, sig);
         }
     }
     doKill(child, pgroup, sig);
+    sendCount++;
+
+    return sendCount;
 }
 
-void sendSignal2Session(pid_t session, int sig)
+int sendSignal2Session(pid_t session, int sig)
 {
     struct list_head *pos;
     Proc_Snapshot_t *Childproc;
     pid_t mypid = getpid();
     pid_t child;
+    int sendCount = 0;
 
     /* don't kill zombies */
-    if (session < 1) return;
+    if (session < 1) return 0;
 
     /* we need up2date information */
     updateProcSnapshot(0);
@@ -122,7 +127,7 @@ void sendSignal2Session(pid_t session, int sig)
     if (!list_empty(&ProcList.list)) {
 	list_for_each(pos, &ProcList.list) {
 	    if ((Childproc = list_entry(pos, Proc_Snapshot_t, list)) == NULL) {
-		return;
+		return 0;
 	    }
 
 	    child = Childproc->pid;
@@ -132,12 +137,13 @@ void sendSignal2Session(pid_t session, int sig)
 			"sid '%i' and all its children\n",
 			__func__, sig, child, Childproc->pgroup,
 			Childproc->session);
-
-		    sendSignal2AllChildren(mypid, child, Childproc->pgroup, sig);
+		    sendCount += sendSignal2AllChildren(mypid, child, Childproc->pgroup, sig);
 		}
 	    }
 	}
     }
+
+    return sendCount;
 }
 
 void findDaemonProcesses(uid_t userId, int kill, int warn)

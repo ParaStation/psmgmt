@@ -7,8 +7,8 @@
  * Michael Rauh <rauh@par-tec.com>
  */
 
-#ifndef __PS_MOM_LOG
-#define __PS_MOM_LOG
+#ifndef __PS_ACCOUNT_LOG
+#define __PS_ACCOUNT_LOG
 
 #include "logging.h"
 

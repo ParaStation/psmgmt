@@ -120,9 +120,10 @@ void getSessionInformation(int *count, char *buf, size_t bufsize, int *userCount
  *
  * @param sig The signal to send.
  *
- * @return No return value.
+ * @return Returns the number of children which the signal
+ * was sent to.
  */
-void sendSignal2Session(pid_t session, int sig);
+int sendSignal2Session(pid_t session, int sig);
 
 /**
  * @brief Find all daemon processes for the specified user.

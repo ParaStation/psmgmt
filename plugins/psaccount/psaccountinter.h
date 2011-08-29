@@ -112,7 +112,7 @@ void psAccountGetSessionInfos(int *count, char *buf, size_t bufsize, int *userCo
 /**
  * @brief Wrapper for the sendSignal2Session() function.
  */
-void psAccountsendSignal2Session(pid_t session, int sig);
+int psAccountsendSignal2Session(pid_t session, int sig);
 
 /**
  * @brief Wrapper for the isChildofParent() function.
