@@ -1,4 +1,108 @@
-Version psmgmt-5.0.33:
+Version psmgmt-5.0.35:
+======================
+------------------------------------------------------------------------
+r8509 | rauh | 2011-08-29 15:42:49 +0200 (Mon, 29 Aug 2011) | 3 lines
+
+Enhancement: sendSignal2Session() returns now the number of children the
+signal was sent to
+
+------------------------------------------------------------------------
+r8508 | eicker | 2011-08-26 14:12:19 +0200 (Fri, 26 Aug 2011) | 3 lines
+
+Enhancement: Suppress unnecessary warning messages when psilogger
+    receives duplicate FINALIZE message (#1304).
+
+------------------------------------------------------------------------
+r8507 | eicker | 2011-08-26 13:26:38 +0200 (Fri, 26 Aug 2011) | 3 lines
+
+Enhancement: Implement raw-mode in psilogger. This is used by 'pssh -r'
+    in order to enable pssh to be used as transport for rsync (#504).
+
+------------------------------------------------------------------------
+r8506 | eicker | 2011-08-22 13:35:32 +0200 (Mon, 22 Aug 2011) | 3 lines
+
+Enhancement: Cancel PMI-barrier warning after all clients joined. This
+    implements #1172.
+
+------------------------------------------------------------------------
+r8502 | eicker | 2011-08-22 09:20:00 +0200 (Mon, 22 Aug 2011) | 4 lines
+
+Bugfix: Enhanced implementation of #1280. This should allow mpiexec from
+    within script started via pssh, too. This is used whenever
+    pshealthcheck's stress-test is invoked via pssh.
+
+------------------------------------------------------------------------
+r8501 | eicker | 2011-08-22 09:12:21 +0200 (Mon, 22 Aug 2011) | 2 lines
+
+Fix many typos.
+
+------------------------------------------------------------------------
+r8497 | eicker | 2011-08-19 18:22:24 +0200 (Fri, 19 Aug 2011) | 2 lines
+
+New release (psmgmt-5.0.34-4)
+
+------------------------------------------------------------------------
+r8493 | eicker | 2011-08-19 18:11:18 +0200 (Fri, 19 Aug 2011) | 2 lines
+
+New release (psmgmt-5.0.34-3)
+
+------------------------------------------------------------------------
+r8492 | eicker | 2011-08-19 18:06:42 +0200 (Fri, 19 Aug 2011) | 4 lines
+
+Bugfix: Correct detection of psiadmin connecting from within script
+    started via pssh. This should fix #1280.
+Enhancement: Find and destroy left-over task structures.
+
+------------------------------------------------------------------------
+r8491 | eicker | 2011-08-19 17:39:24 +0200 (Fri, 19 Aug 2011) | 2 lines
+
+Add sample .gdbinit with some usefull functions for debugging psid.
+
+------------------------------------------------------------------------
+r8490 | eicker | 2011-08-19 17:38:05 +0200 (Fri, 19 Aug 2011) | 3 lines
+
+Improve comments
+Fix some more typos, whitespace, etc.
+
+------------------------------------------------------------------------
+r8489 | rauh | 2011-08-19 16:48:25 +0200 (Fri, 19 Aug 2011) | 2 lines
+
+fixed some typos
+
+------------------------------------------------------------------------
+r8488 | rauh | 2011-08-19 16:40:57 +0200 (Fri, 19 Aug 2011) | 2 lines
+
+Enhancement: let the forwarders set there process title
+
+------------------------------------------------------------------------
+r8484 | eicker | 2011-08-18 14:45:32 +0200 (Thu, 18 Aug 2011) | 2 lines
+
+New release (psmgmt-5.0.34-2)
+
+------------------------------------------------------------------------
+r8483 | eicker | 2011-08-18 14:42:44 +0200 (Thu, 18 Aug 2011) | 3 lines
+
+Make psid's argv accessible in order to enable forwarders to change
+    their argv[0] (nice for clearer output of ps(1)).
+
+------------------------------------------------------------------------
+r8482 | eicker | 2011-07-22 19:50:59 +0200 (Fri, 22 Jul 2011) | 2 lines
+
+Adapt version of plugin API due to last change.
+
+------------------------------------------------------------------------
+r8481 | eicker | 2011-07-22 19:48:53 +0200 (Fri, 22 Jul 2011) | 2 lines
+
+Enhancement: PSIDHOOK_SHUTDOWN realized. This implements #1215.
+
+------------------------------------------------------------------------
+r8477 | eicker | 2011-07-21 16:29:56 +0200 (Thu, 21 Jul 2011) | 2 lines
+
+New version (psmgmt-5.0.34)
+
+------------------------------------------------------------------------
+
+Version psmgmt-5.0.34:
 ======================
 ------------------------------------------------------------------------
 r8476 | eicker | 2011-07-21 16:15:18 +0200 (Thu, 21 Jul 2011) | 2 lines

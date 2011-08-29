@@ -4,6 +4,23 @@ Copyright (C) 2010-2011 ParTec Cluster Competence Center GmbH, Munich
 
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
+Version 5.0.35:
+===============
+Bugfixes:
+ - Correct detection of psiadmin and mpiexec started from within scripts
+   run via pssh (#1280)
+ - psilogger suppresses unnecessary warning on duplicate FINALIZE (#1304)
+
+Enhancements:
+ - 'pssh -r' enables pssh to be used as transport for rsync (#504)
+ - Cancel PMI-barrier warning after all clients joined (#1172)
+ - Let the forwarders set there process title
+ - PSIDHOOK_SHUTDOWN realized (#1215)
+
+Additional changes:
+ - Add sample .gdbinit with some usefull functions for debugging psid.
+
+
 Version 5.0.34:
 ===============
 Bugfixes:
