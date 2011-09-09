@@ -110,7 +110,7 @@ void PSE_initialize(void)
     } else {
 	masterNode = atoi(envStr);
 
-	/* propagate to childs */
+	/* propagate to children */
 	setPSIEnv("__PSI_MASTERNODE", envStr, 1);
     }
 
@@ -122,7 +122,7 @@ void PSE_initialize(void)
     } else {
 	masterPort = atoi(envStr);
 
-	/* propagate to childs */
+	/* propagate to children */
 	setPSIEnv("__PSI_MASTERPORT", envStr, 1);
     }
 }
@@ -263,7 +263,7 @@ void PSE_spawnTasks(int num, int node, int port, int argc, char *argv[])
     /* Check for LSF-Parallel */
     PSI_RemoteArgs(argc, argv, &argc, &argv);
 
-    /* pass masterNode and masterPort to childs */
+    /* pass masterNode and masterPort to child */
     masterNode = node;
     snprintf(envstr, sizeof(envstr), "__PSI_MASTERNODE=%d", masterNode);
     putPSIEnv(envstr);
@@ -360,7 +360,7 @@ void PSE_finalize(void)
     } else if (PSE_getRank()==0) {
 	if (PSI_recvFinish(myWorldSize)) {
 	    logger_print(logger, -1,
-			 "Failed to receive SPAWNFINISH from childs\n");
+			 "Failed to receive SPAWNFINISH from children\n");
 	    exitAll("Finalize error", 10);
 	}
     } else {

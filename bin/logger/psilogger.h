@@ -206,7 +206,7 @@ void PSIlog_finalizeLogs(void);
  */
 typedef enum {
     PSILOG_LOG_VERB = 0x000001,       /**< All verbose messages */
-    PSILOG_LOG_TERM = 0x000002,       /**< Report terminated childs */
+    PSILOG_LOG_TERM = 0x000002,       /**< Report on terminated children */
     PSILOG_LOG_KVS =  0x000004,       /**< KVS debug messages */
 } PSIlog_log_key_t;
 

@@ -1,7 +1,7 @@
 /*
  *               ParaStation
  *
- * Copyright (C) 2007-2010 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2007-2011 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -467,7 +467,7 @@ static void handleBarrierTimeout(void)
 	}
     }
 
-    /* kill all childs */
+    /* kill all children */
     terminateJob();
 }
 

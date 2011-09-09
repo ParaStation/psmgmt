@@ -2493,7 +2493,7 @@ static void msg_SPAWNSUCCESS(DDErrorMsg_t *msg)
     task = PStasklist_find(&managedTasks, ptid);
     if (task && task->fd > -1) {
 	/* register the child */
-	PSID_setSignal(&task->childs, tid, -1);
+	PSID_setSignal(&task->childList, tid, -1);
 
 	/* child will send a signal on exit, thus include into assignedSigs */
 	PSID_setSignal(&task->assignedSigs, tid, -1);
@@ -2679,7 +2679,7 @@ static void msg_CHILDBORN(DDErrorMsg_t *msg)
     incJobs(1, (child->group==TG_ANY));
 
     /* Spawned task will get signal if the forwarder dies unexpectedly. */
-    PSID_setSignal(&forwarder->childs, child->tid, -1);
+    PSID_setSignal(&forwarder->childList, child->tid, -1);
 
     /*
      * The answer will be sent directly to the initiator if he is on
@@ -2692,7 +2692,7 @@ static void msg_CHILDBORN(DDErrorMsg_t *msg)
 	    PSID_log(-1, "%s: parent task %s not found\n", __func__,
 		     PSC_printTID(child->ptid));
 	} else {
-	    PSID_setSignal(&parent->childs, child->tid, -1);
+	    PSID_setSignal(&parent->childList, child->tid, -1);
 	    PSID_setSignal(&parent->assignedSigs, child->tid, -1);
 	}
     }
@@ -2755,7 +2755,7 @@ static void msg_CHILDDEAD(DDErrorMsg_t *msg)
 		     PSC_printTID(msg->request));
 	    PSID_sendSignal(task->tid, task->uid, msg->request, -1, 0, 0);
 	}
-	if (!PSID_removeSignal(&task->childs, msg->request, -1)) {
+	if (!PSID_removeSignal(&task->childList, msg->request, -1)) {
 	    /* No child found. Might already be inherited by parent */
 	    if (task->ptid) {
 		msg->header.dest = task->ptid;
@@ -2777,7 +2777,7 @@ static void msg_CHILDDEAD(DDErrorMsg_t *msg)
 	    PSID_setSignal(&task->deadBefore, msg->request, -1);
 	}
 
-	if (task->removeIt && list_empty(&task->childs)) {
+	if (task->removeIt && list_empty(&task->childList)) {
 	    PSID_log(PSID_LOG_TASK, "%s: PStask_cleanup()\n", __func__);
 	    PStask_cleanup(task->tid);
 	    return;
@@ -2799,7 +2799,7 @@ static void msg_CHILDDEAD(DDErrorMsg_t *msg)
 	case TG_SERVICE_SIG:
 	    /* service task requested signal */
 	    if (!WIFEXITED(msg->error) || WIFSIGNALED(msg->error)
-		|| list_empty(&task->childs)) {
+		|| list_empty(&task->childList)) {
 		PSID_sendSignal(task->tid, task->uid, msg->request, -1, 0, 0);
 	    }
 	    break;
@@ -2814,7 +2814,7 @@ static void msg_CHILDDEAD(DDErrorMsg_t *msg)
     forwarder = PStasklist_find(&managedTasks, msg->header.sender);
     if (forwarder) {
 	forwarder->released = 1;
-	PSID_removeSignal(&forwarder->childs, msg->request, -1);
+	PSID_removeSignal(&forwarder->childList, msg->request, -1);
     } else {
 	/* Forwarder not found */
 	PSID_log(-1, "%s: forwarder task %s not found\n",
@@ -2863,6 +2863,9 @@ static void checkObstinateTasks(void)
 {
     time_t now = time(NULL);
     list_t *t, *tmp;
+    int blocked;
+
+    blocked = PSID_blockSig(1, SIGCHLD);
 
     list_for_each_safe(t, tmp, &managedTasks) {
 	PStask_t *task = list_entry(t, PStask_t, next);
@@ -2891,6 +2894,8 @@ static void checkObstinateTasks(void)
 	    }
 	}
     }
+
+    PSID_blockSig(blocked, SIGCHLD);
 }
 
 

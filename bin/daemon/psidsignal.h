@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2008 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2011 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -128,7 +128,7 @@ void PSID_sendSignal(PStask_ID_t tid, uid_t uid, PStask_ID_t senderTid,
 void PSID_sendAllSignals(PStask_t *task);
 
 /**
- * @brief Send signals to parent and childs.
+ * @brief Send signals to parent and children.
  *
  * Send signals to parent process and all child processes of the task
  * described by @a task. If a parent process is existing, the signal
@@ -137,9 +137,9 @@ void PSID_sendAllSignals(PStask_t *task);
  * signal.
  *
  * The parent task is determined via the @a ptid member of @a task,
- * the children will be taken from the @a childs signal list within @a
- * task. This signal list will be destroyed during execution of this
- * function.
+ * the children will be taken from the @a childList signal list within
+ * @a task. This signal list will be destroyed during execution of
+ * this function.
  *
  * @param task The task structure describing the task to be handled.
  *

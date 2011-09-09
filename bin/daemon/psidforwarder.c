@@ -95,7 +95,7 @@ LIST_HEAD(oldMsgs);
 
 /**
  * Timeout for connecting to logger. This will be set according to the
- * number of childs the logger has to handle within @ref
+ * number of children the logger has to handle within @ref
  * PSID_forwarder(). Might be overruled via __PSI_LOGGER_TIMEOUT
  * environment
  */
@@ -220,7 +220,7 @@ int PSIDfwd_printMsgf(PSLog_msg_t type, const char *format, ...)
  * @a dest gets the signal.
  *
  * @param dest Process ID of the process to send signal to. Not used
- * for interactive childs.
+ * for interactive children.
  *
  * @param signal The signal to send.
  *
@@ -1199,9 +1199,7 @@ static void sighandler(int sig)
 	    sendDaemonMsg((DDMsg_t *)&msg);
 	}
 
-	/*
-	 * Send a SIGKILL to the process group in order to stop fork()ed childs
-	 */
+	/* Send SIGKILL to process group in order to stop fork()ed children */
 	sendSignal(-PSC_getPID(childTask->tid), SIGKILL);
 
 	/* Release the pmi client */

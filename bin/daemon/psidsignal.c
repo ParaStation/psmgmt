@@ -207,14 +207,17 @@ void PSID_sendSignal(PStask_ID_t tid, uid_t uid, PStask_ID_t sender,
 	    PSID_log(-1, "%s: Do not send signal to daemon\n", __func__);
 	} else if (pervasive) {
 	    list_t *s, *tmp;
+	    int blocked;
 
 	    answer = 0;
 
-	    list_for_each_safe(s, tmp, &dest->childs) {
+	    blocked = PSID_blockSig(1, SIGCHLD);
+	    list_for_each_safe(s, tmp, &dest->childList) {
 		PStask_sig_t *sig = list_entry(s, PStask_sig_t, next);
 
 		PSID_sendSignal(sig->tid, uid, sender, signal, 1, answer);
 	    }
+	    PSID_blockSig(blocked, SIGCHLD);
 
 	    /* Deliver signal, if tid not the original sender */
 	    if (tid != sender) {
@@ -297,6 +300,7 @@ void PSID_sendAllSignals(PStask_t *task)
 void PSID_sendSignalsToRelatives(PStask_t *task)
 {
     list_t *s;
+    int blocked;
 
     if (task->ptid) {
 	PSID_sendSignal(task->ptid, task->uid, task->tid, -1, 0, 0);
@@ -305,7 +309,8 @@ void PSID_sendSignalsToRelatives(PStask_t *task)
 		 PSC_printTID(task->ptid));
     }
 
-    list_for_each(s, &task->childs) {
+    blocked = PSID_blockSig(1, SIGCHLD);
+    list_for_each(s, &task->childList) {
 	PStask_sig_t *sig = list_entry(s, PStask_sig_t, next);
 
 	PSID_sendSignal(sig->tid, task->uid, task->tid, -1, 0, 0);
@@ -313,6 +318,7 @@ void PSID_sendSignalsToRelatives(PStask_t *task)
 	PSID_log(PSID_LOG_SIGNAL, " sent signal -1 to %s\n",
 		 PSC_printTID(sig->tid));
     }
+    PSID_blockSig(blocked, SIGCHLD);
 }
 
 /**
@@ -640,7 +646,7 @@ static void msg_NEWCHILD(DDErrorMsg_t *msg)
 	    PSID_log(PSID_LOG_SIGNAL, "%s: inherit dead child %s\n",
 		     __func__, PSC_printTID(msg->request));
 	} else {
-	    PSID_setSignal(&task->childs, msg->request, -1);
+	    PSID_setSignal(&task->childList, msg->request, -1);
 	}
 
 	answer.param = 0;
@@ -797,7 +803,7 @@ static int releaseSignal(PStask_ID_t sender, PStask_ID_t receiver, int sig,
     if (sig==-1) {
 	/* Release a child */
 	PSID_removeSignal(&task->assignedSigs, receiver, sig);
-	if (!PSID_findSignal(&task->childs, receiver, sig)) {
+	if (!PSID_findSignal(&task->childList, receiver, sig)) {
 	    /* No child found. Might already be inherited by parent */
 	    if (task->ptid) {
 		DDSignalMsg_t msg;
@@ -870,7 +876,7 @@ static int releaseTask(PStask_t *task)
     } else {
 	PStask_ID_t child, sender;
 	DDSignalMsg_t sigMsg;
-	int sig;
+	int blocked, sig;
 
 	sigMsg.header.type = PSP_CD_RELEASE;
 	sigMsg.header.sender = task->tid;
@@ -910,7 +916,10 @@ static int releaseTask(PStask_t *task)
 
 	    /* Reorganize children. They are inherited by the parent task */
 	    sig = -1;
-	    while ((child = PSID_getSignal(&task->childs, &sig))) {
+
+	    blocked = PSID_blockSig(1, SIGCHLD);
+
+	    while ((child = PSID_getSignal(&task->childList, &sig))) {
 		PSID_log(PSID_LOG_TASK|PSID_LOG_SIGNAL,
 			 "%s: notify child %s\n",
 			 __func__, PSC_printTID(child));
@@ -939,6 +948,9 @@ static int releaseTask(PStask_t *task)
 		PSID_removeSignal(&task->assignedSigs, child, sig);
 		sig = -1;
 	    }
+
+	    PSID_blockSig(blocked, SIGCHLD);
+
 	}
 
 	/* Don't send any signals to me after release */

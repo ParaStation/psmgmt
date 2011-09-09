@@ -93,7 +93,7 @@ int PStask_init(PStask_t* task)
     gettimeofday(&task->started, NULL);
     task->protocolVersion = -1;
 
-    INIT_LIST_HEAD(&task->childs);
+    INIT_LIST_HEAD(&task->childList);
     INIT_LIST_HEAD(&task->releasedBefore);
     INIT_LIST_HEAD(&task->deadBefore);
 
@@ -152,7 +152,7 @@ int PStask_reinit(PStask_t* task)
 	task->environ = NULL;
     }
 
-    delSigList(&task->childs);
+    delSigList(&task->childList);
     delSigList(&task->releasedBefore);
     delSigList(&task->deadBefore);
 
@@ -304,7 +304,7 @@ PStask_t* PStask_clone(PStask_t* task)
     gettimeofday(&clone->started, NULL);
     clone->protocolVersion = task->protocolVersion;
 
-    cloneSigList(&clone->childs, &task->childs);
+    cloneSigList(&clone->childList, &task->childList);
     cloneSigList(&clone->releasedBefore, &task->releasedBefore);
     cloneSigList(&clone->deadBefore, &task->deadBefore);
 

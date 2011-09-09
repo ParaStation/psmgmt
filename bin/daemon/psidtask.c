@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2010 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2011 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -48,6 +48,7 @@ static void printList(list_t *sigList)
 void PSID_setSignal(list_t *sigList, PStask_ID_t tid, int signal)
 {
     PStask_sig_t *thissig = malloc(sizeof(PStask_sig_t));
+    int blocked;
 
     if (!thissig) {
 	PSID_warn(-1, errno, "%s(%s,%d)", __func__, PSC_printTID(tid), signal);
@@ -56,6 +57,8 @@ void PSID_setSignal(list_t *sigList, PStask_ID_t tid, int signal)
 
     PSID_log(PSID_LOG_SIGNAL, "%s(%s, %d)\n",
 	     __func__, PSC_printTID(tid), signal);
+
+    blocked = PSID_blockSig(1, SIGCHLD);
 
     if (PSID_getDebugMask() & PSID_LOG_SIGDBG) {
 	PSID_log(PSID_LOG_SIGDBG, "%s: signals before (in %p):",
@@ -75,11 +78,16 @@ void PSID_setSignal(list_t *sigList, PStask_ID_t tid, int signal)
 	printList(sigList);
 	PSID_log(PSID_LOG_SIGDBG, "\n");
     }
+
+    PSID_blockSig(blocked, SIGCHLD);
 }
 
 PStask_sig_t *PSID_findSignal(list_t *sigList, PStask_ID_t tid, int signal)
 {
     list_t *s;
+    int blocked;
+
+    blocked = PSID_blockSig(1, SIGCHLD);
 
     PSID_log(PSID_LOG_SIGNAL, "%s(%s, %d)\n",
 	     __func__, PSC_printTID(tid), signal);
@@ -87,16 +95,24 @@ PStask_sig_t *PSID_findSignal(list_t *sigList, PStask_ID_t tid, int signal)
     list_for_each(s, sigList) {
 	PStask_sig_t *sig = list_entry(s, PStask_sig_t, next);
 	if (sig->tid == tid && sig->signal == signal) {
+	    PSID_blockSig(blocked, SIGCHLD);
 	    return sig;
 	}
     }
+
+    PSID_blockSig(blocked, SIGCHLD);
 
     return NULL;
 }
 
 int PSID_removeSignal(list_t *sigList, PStask_ID_t tid, int signal)
 {
-    PStask_sig_t *sig = PSID_findSignal(sigList, tid, signal);
+    PStask_sig_t *sig;
+    int blocked, ret = 0;
+
+    blocked = PSID_blockSig(1, SIGCHLD);
+
+    sig = PSID_findSignal(sigList, tid, signal);
 
     if (PSID_getDebugMask() & PSID_LOG_SIGDBG) {
 	PSID_log(PSID_LOG_SIGDBG, "%s: signals before (in %p):",
@@ -121,12 +137,14 @@ int PSID_removeSignal(list_t *sigList, PStask_ID_t tid, int signal)
 	    PSID_log(PSID_LOG_SIGDBG, "\n");
 	}
 
-	return 1;
+	ret = 1;
     } else {
 	PSID_log(PSID_LOG_SIGNAL, ": Not found\n");
     }
 
-    return 0;
+    PSID_blockSig(blocked, SIGCHLD);
+
+    return ret;
 }
 
 PStask_ID_t PSID_getSignal(list_t *sigList, int *signal)
@@ -134,6 +152,9 @@ PStask_ID_t PSID_getSignal(list_t *sigList, int *signal)
     list_t *s;
     PStask_ID_t tid = 0;
     PStask_sig_t *thissig = NULL;
+    int blocked;
+
+    blocked = PSID_blockSig(1, SIGCHLD);
 
     /* Search signal or take any signal if *signal==-1, i.e. first entry */
     list_for_each(s, sigList) {
@@ -153,6 +174,8 @@ PStask_ID_t PSID_getSignal(list_t *sigList, int *signal)
 	free(thissig);
     }
 
+    PSID_blockSig(blocked, SIGCHLD);
+
     return tid;
 }
 
@@ -162,6 +185,9 @@ PStask_ID_t PSID_getSignalByID(list_t *sigList,
     list_t *s;
     PStask_ID_t tid = 0;
     PStask_sig_t *thissig = NULL;
+    int blocked;
+
+    blocked = PSID_blockSig(1, SIGCHLD);
 
     list_for_each(s, sigList) {
 	PStask_sig_t *sig = list_entry(s, PStask_sig_t, next);
@@ -180,14 +206,18 @@ PStask_ID_t PSID_getSignalByID(list_t *sigList,
 	free(thissig);
     }
 
+    PSID_blockSig(blocked, SIGCHLD);
+
     return tid;
 }
 
 int PSID_getSignalByTID(list_t *sigList, PStask_ID_t tid)
 {
     list_t *s;
-    int signal = 0;
     PStask_sig_t *thissig = NULL;
+    int blocked, signal = 0;
+
+    blocked = PSID_blockSig(1, SIGCHLD);
 
     list_for_each(s, sigList) {
 	PStask_sig_t *sig = list_entry(s, PStask_sig_t, next);
@@ -204,6 +234,8 @@ int PSID_getSignalByTID(list_t *sigList, PStask_ID_t tid)
 	list_del(&thissig->next);
 	free(thissig);
     }
+
+    PSID_blockSig(blocked, SIGCHLD);
 
     return signal;
 }
@@ -312,10 +344,13 @@ void PStask_cleanup(PStask_ID_t tid)
 	if (task->partition && task->partitionSize) send_TASKDEAD(tid);
 
 	if (task->group==TG_FORWARDER && !task->released) {
-	    /* cleanup childs */
+	    /* cleanup children */
 	    list_t *s, *tmp;
+	    int blocked;
 
-	    list_for_each_safe(s, tmp, &task->childs) {
+	    blocked = PSID_blockSig(1, SIGCHLD);
+
+	    list_for_each_safe(s, tmp, &task->childList) {
 		PStask_sig_t *sig = list_entry(s, PStask_sig_t, next);
 		PStask_t *child = PStasklist_find(&managedTasks, sig->tid);
 		DDErrorMsg_t msg;
@@ -353,13 +388,16 @@ void PStask_cleanup(PStask_ID_t tid)
 		    PStask_cleanup(child->tid);
 		}
 	    }
+
+	    PSID_blockSig(blocked, SIGCHLD);
+
 	}
     }
 
     /* Make sure we get all pending messages */
     if (task->fd != -1) Selector_enable(task->fd);
 
-    if (list_empty(&task->childs)) {
+    if (list_empty(&task->childList)) {
 	/* Mark task as deleted; will be actually removed in main loop */
 	task->deleted = 1;
     }

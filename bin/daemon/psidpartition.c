@@ -1959,7 +1959,7 @@ static void sendAcctQueueMsg(PStask_t *task)
     ptr += sizeof(gid_t);
     msg.header.len += sizeof(gid_t);
 
-    /* total number of childs */
+    /* total number of children */
     *(int32_t *)ptr = task->request->size;
     ptr += sizeof(int32_t);
     msg.header.len += sizeof(int32_t);

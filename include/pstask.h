@@ -55,7 +55,7 @@ typedef enum {
     TG_SERVICE,     /**< service task, e.g. used by mpiexec to spawn procs */
     TG_ACCOUNT,     /**< accounter, will receive and log accounting info */
     TG_SERVICE_SIG, /**< service task, used by mpirun_openib to spawn
-		     * procs; will receive SIGTERM on childs termination */
+		     * procs; will receive SIGTERM on child's termination */
 } PStask_group_t;
 
 /** Type to store unique task IDs in */
@@ -77,7 +77,7 @@ char *PStask_printGrp(PStask_group_t taskgroup);
 typedef struct {
     list_t next;              /**< used to put into signal-lists */
     PStask_ID_t tid;          /**< unique task identifier */
-    int32_t signal;           /**< signal to send, or -1 for childsignal */
+    int32_t signal;           /**< signal to send, or -1 for child-signal */
 } PStask_sig_t;
 
 #include "pspartition.h"
@@ -121,7 +121,7 @@ typedef struct {
 				      tasks that are fork()ed by a client */
     char suspended;                /**< flag to mark suspended tasks. */
     char removeIt;                 /**< flag to mark task to be removed (as
-				      soon as all childs are released). */
+				      soon as all children are released). */
     char deleted;                  /**< flag to mark deleted tasks. It
 				      will be removed from the list of
 				      managed tasks in the next round
@@ -130,9 +130,9 @@ typedef struct {
 				      the task should really go away. */
     struct timeval started;        /**< Time the task structure was created. */
     uint16_t protocolVersion;      /**< Protocol version the task speaks. */
-    list_t childs;                 /**< Childs of the task. Signal not used. */
-    list_t releasedBefore;         /**< released childs to be inherited */
-    list_t deadBefore;             /**< dead childs to be inherited */
+    list_t childList;              /**< Task's children. Signal not used. */
+    list_t releasedBefore;         /**< released children to be inherited */
+    list_t deadBefore;             /**< dead children to be inherited */
     PSpart_request_t *request;     /**< Pointer to temp. partition request */
     uint32_t partitionSize;        /**< Size of the partition. */
     PSpart_option_t options;       /**< The partition's options. */

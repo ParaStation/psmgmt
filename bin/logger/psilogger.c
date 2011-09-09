@@ -1124,7 +1124,7 @@ static void sendAcctData(void)
     ptr += sizeof(gid_t);
     msg.header.len += sizeof(gid_t);
 
-    /* maximum number of connected childs */
+    /* maximum number of connected children */
     *(int32_t *)ptr = maxConnected;
     ptr += sizeof(int32_t);
     msg.header.len += sizeof(int32_t);

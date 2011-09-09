@@ -442,7 +442,7 @@ void deleteClient(int fd)
     if (task->group == TG_FORWARDER && !task->released) {
 	DDErrorMsg_t msg;
 	PStask_ID_t child;
-	int sig = -1;
+	int blocked, sig = -1;
 
 	PSID_log(-1, "%s: Unreleased forwarder %s\n",
 		 __func__, PSC_printTID(task->tid));
@@ -454,7 +454,9 @@ void deleteClient(int fd)
 	msg.header.len = sizeof(msg.header);
 	sendMsg(&msg);
 
-	while ((child = PSID_getSignal(&task->childs, &sig))) {
+	blocked = PSID_blockSig(1, SIGCHLD);
+
+	while ((child = PSID_getSignal(&task->childList, &sig))) {
 	    PStask_t *childTask = PStasklist_find(&managedTasks, child);
 	    PSID_log(-1, "%s: kill child %s\n", __func__, PSC_printTID(child));
 
@@ -479,6 +481,8 @@ void deleteClient(int fd)
 	    sig = -1;
 	};
 
+	PSID_blockSig(blocked, SIGCHLD);
+
 	task->released = 1;
     }
 
@@ -487,10 +491,10 @@ void deleteClient(int fd)
 	PStask_t *parent = PStasklist_find(&managedTasks, task->ptid);
 
 	if (parent) {
-	    /* Remove dead spawner from list of childs */
-	    PSID_removeSignal(&parent->childs, task->tid, -1);
+	    /* Remove dead spawner from list of children */
+	    PSID_removeSignal(&parent->childList, task->tid, -1);
 
-	    if (parent->removeIt && list_empty(&parent->childs)) {
+	    if (parent->removeIt && list_empty(&parent->childList)) {
 		PSID_log(PSID_LOG_TASK,
 			 "%s: PStask_cleanup(parent)\n", __func__);
 		PStask_cleanup(parent->tid);
@@ -554,7 +558,7 @@ void deleteClient(int fd)
 	if (task->nextRank > 0) {
 	    struct timeval now, walltime;
 
-	    /* total number of childs */
+	    /* total number of children */
 	    *(int32_t *)ptr = task->nextRank;
 	    ptr += sizeof(int32_t);
 	    msg.header.len += sizeof(int32_t);
@@ -724,7 +728,7 @@ static void msg_CLIENTCONNECT(int fd, DDBufferMsg_t *bufmsg)
 							  task->forwardertid);
 		    if (forwarder) {
 			/* Register new child to its forwarder */
-			PSID_setSignal(&forwarder->childs, child->tid, -1);
+			PSID_setSignal(&forwarder->childList, child->tid, -1);
 		    } else {
 			PSID_log(-1, "%s: forwarder %s not found\n",
 				 __func__, PSC_printTID(task->forwardertid));
@@ -788,7 +792,7 @@ static void msg_CLIENTCONNECT(int fd, DDBufferMsg_t *bufmsg)
 
 	    if (parent) {
 		/* register the child */
-		PSID_setSignal(&parent->childs, task->tid, -1);
+		PSID_setSignal(&parent->childList, task->tid, -1);
 
 		task->ptid = ptid;
 

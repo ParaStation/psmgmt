@@ -1,7 +1,7 @@
 /*
  *               ParaStation
  *
- * Copyright (C) 2006-2009 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2006-2011 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -1291,7 +1291,7 @@ static void handleAccLogMsg(char *msgptr)
     /* handle default header */
     job = handleComHeader(&ptr, __func__, &rank);
 
-    /* total number of childs connected to logger */
+    /* total number of children connected to logger */
     job->loggerChildren = *(int32_t *)ptr;
     ptr += sizeof(int32_t);
 

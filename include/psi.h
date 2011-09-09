@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 1999-2003 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2009 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2011 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -198,7 +198,7 @@ PStask_ID_t PSI_whodied(int sig);
  * kind of messages within PSI_recvFinish().
  *
  * This might be used in order to inform the parent process about the
- * successful finalization of a childs process as it might needed
+ * successful finalization of a child's process as it might needed
  * within e.g. a MPI_Finalize().
  *
  * @param parenttid The task ID of the process sending to.

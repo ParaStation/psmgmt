@@ -1,7 +1,7 @@
 /*
  *               ParaStation
  *
- * Copyright (C) 2006-2008 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2006-2011 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -117,16 +117,16 @@ char *handleEndMsg(DDTypedBufferMsg_t *msg)
 
     if (msg->header.sender == *(PStask_ID_t *)msg->buf) {
 	/* end message from logger process */
-	int numChilds;
+	int numChild;
 
-	/* total number of childs. Only the logger knows this */
-	numChilds = *(int32_t *)ptr;
+	/* total number of children. Only the logger knows this */
+	numChild = *(int32_t *)ptr;
 	ptr += sizeof(int32_t);
 	/* walltime used by logger */
 	memcpy(&walltime, ptr, sizeof(walltime));
 	ptr += sizeof(walltime);
 
-	printf(" num childs %d", numChilds);
+	printf(" num children %d", numChild);
 	printf(" wall %.6f", walltime.tv_sec + 1.0e-6*walltime.tv_usec);
     } else {
 	struct rusage rusage;
@@ -180,13 +180,13 @@ char *handleDeleteMsg(DDTypedBufferMsg_t *msg)
 void handleStartMsg(DDTypedBufferMsg_t *msg)
 {
     char *ptr = handleCommonMsg(msg);
-    int possChilds;
+    int possChild;
 
-    /* total number of possible childs */
-    possChilds = *(int32_t *)ptr;
+    /* total number of possible children */
+    possChild = *(int32_t *)ptr;
     ptr += sizeof(int32_t);
 
-    printf(" poss childs %d", possChilds);
+    printf(" poss children %d", possChild);
 }
 
 void handleChildMsg(DDTypedBufferMsg_t *msg)
@@ -206,10 +206,10 @@ void handleLogMsg(DDTypedBufferMsg_t *msg)
     int maxConnected;
     char *jobID;
 
-    /* total number of childs connected to logger */
+    /* total number of children connected to logger */
     maxConnected = *(int32_t *)ptr;
     ptr += sizeof(int32_t);
-    printf(" logger conn childs %d", maxConnected);
+    printf(" logger conn children %d", maxConnected);
 
     /* job ID (if available) */
     jobID = ptr;

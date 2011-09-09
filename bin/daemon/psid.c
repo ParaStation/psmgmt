@@ -378,23 +378,6 @@ static void initSigHandlers(void)
 }
 
 /**
- * @brief Handle signals from children
- *
- * Handling of SIGCHILD is suppressed most of the time in order to
- * prevent various race-conditions. Thus, periodically this has to be
- * released in order to actually handle the signals send by the
- * deceased child processes.
- *
- * This should happen within the main-loop. Thus, this function should
- * be registered via @ref PSID_registerLoopAct().
- */
-static void handleChilds(void)
-{
-    PSID_blockSig(0, SIGCHLD);
-    PSID_blockSig(1, SIGCHLD);
-}
-
-/**
  * @brief Print welcome
  *
  * Print a welcome message to the current log destination.
@@ -568,9 +551,7 @@ int main(int argc, const char *argv[])
        }
     }
 
-    PSID_blockSig(1,SIGCHLD);
     initSigHandlers();
-    PSID_registerLoopAct(handleChilds);
 
 #define _PATH_TTY "/dev/tty"
     /* First disconnect from the old controlling tty. */
