@@ -32,6 +32,11 @@ static char vcid[] __attribute__((used)) =
  */
 static int nextID = -1;
 
+typedef union {
+    void (*stdHandler)(void);
+    void (*enhHandler)(int, void *);
+} handler_t;
+
 /**
  * Structure to hold all info about each timer
  */
@@ -42,7 +47,9 @@ typedef struct {
     int calls;                     /**< Counter for timeouts. */
     int period;                    /**< When do we have to call the
 				      timeoutHandler()? */
-    void (*timeoutHandler)(void);  /**< Handler called, if signal received. */
+    int enhanced;                  /**< Enhanced handler expecting the ID */
+    handler_t timeoutHandler;      /**< Handler called, if signal received. */
+    void *info;                    /**< Pointer to be passed to enh. handler */
     int sigBlocked;                /**< Flag to block this timer.
 				      Set by blockTimer(). */
     int sigPending;                /**< A blocked signal is pending. */
@@ -213,9 +220,13 @@ void Timer_handleSignals(void)
     list_for_each_safe(t, tmp, &timerList) {
 	Timer_t *timer = list_entry(t, Timer_t, next);
 	if (timer->sigPending && !timer->deleted
-	    && !timer->sigBlocked && timer->timeoutHandler) {
+	    && !timer->sigBlocked && timer->timeoutHandler.stdHandler) {
 	    timer->sigBlocked = 1;
-	    timer->timeoutHandler();
+	    if (timer->enhanced) {
+		timer->timeoutHandler.enhHandler(timer->id, timer->info);
+	    } else {
+		timer->timeoutHandler.stdHandler();
+	    }
 	    timer->sigBlocked = 0;
 	    timer->sigPending = 0;
 	    timer->calls = 0;
@@ -280,7 +291,8 @@ int Timer_isInitialized(void)
     return (nextID > 0);
 }
 
-int Timer_register(struct timeval *timeout, void (*timeoutHandler)(void))
+static int Timer_doRegister(struct timeval *timeout, handler_t handler,
+			    int enhanced, void *info)
 {
     sigset_t sigset;
     Timer_t *new;
@@ -303,7 +315,9 @@ int Timer_register(struct timeval *timeout, void (*timeoutHandler)(void))
 	.timeout = *timeout,
 	.calls = 0,
 	.period = 1,
-	.timeoutHandler = timeoutHandler,
+	.enhanced = enhanced,
+	.timeoutHandler = handler,
+	.info = info,
 	.sigBlocked = 0,
 	.sigPending = 0 };
 
@@ -346,6 +360,25 @@ int Timer_register(struct timeval *timeout, void (*timeoutHandler)(void))
     sigprocmask(SIG_UNBLOCK, &sigset, NULL);
 
     return new->id;
+}
+
+int Timer_register(struct timeval *timeout, void (*timeoutHandler)(void))
+{
+    handler_t handler;
+
+    handler.stdHandler = timeoutHandler;
+
+    return Timer_doRegister(timeout, handler, 0, NULL);
+}
+
+int Timer_registerEnhanced(struct timeval* timeout,
+			   void (*timeoutHandler)(int, void *), void *info)
+{
+    handler_t handler;
+
+    handler.enhHandler = timeoutHandler;
+
+    return Timer_doRegister(timeout, handler, 1, info);
 }
 
 /**
@@ -402,7 +435,13 @@ int Timer_block(int id, int block)
     wasBlocked = timer->sigBlocked;
 
     if (!block && timer->sigPending) {
-	if (timer->timeoutHandler) timer->timeoutHandler();
+	if (timer->timeoutHandler.stdHandler) {
+	    if (timer->enhanced) {
+		timer->timeoutHandler.enhHandler(timer->id, timer->info);
+	    } else {
+		timer->timeoutHandler.stdHandler();
+	    }
+	}
 	timer->sigPending = 0;
     }
     timer->sigBlocked = block;

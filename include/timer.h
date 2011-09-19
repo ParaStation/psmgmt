@@ -11,7 +11,9 @@
  * @file
  * ParaStation Timer facility. This is a simple timer multiplexer for
  * applications that need to use independent timers in a transparent
- * way. Within ParaStation this is used by the MCast and RDP modules.
+ * way. Within ParaStation this is used by the MCast and RDP
+ * modules. Additionally, various plugins make use of this.
+ *
  *
  * $Id$
  *
@@ -127,6 +129,35 @@ void Timer_setDebugMask(int32_t mask);
  * error, -1 is returned.
  */
 int Timer_register(struct timeval* timeout, void (*timeoutHandler)(void));
+
+/**
+ * @brief Register a new enhanced timer
+ *
+ * Registration of a new enhanced timer. The @a timeoutHandler will be
+ * called after @a timeout has elapsed. Afterward, e.g. for removing
+ * using @ref Timer_remove(), the timer will be identified by its
+ * unique ID which is returned by this function.
+ *
+ * In contrast to Timer_register() the @a timeoutHandler registered
+ * with this function gets the unique ID used to identify the timer
+ * and @a info passed when the timer is elapsed.
+ *
+ *
+ * @param timeout The amount of time, after which the @a timeoutHandler is
+ * called again.
+ *
+ * @param timeoutHandler If @a timeout has elapsed, this handler is called.
+ *
+ * @param info Pointer to additional information passed to @a
+ * timeoutHandler in case of an elapsed timer.
+ *
+ *
+ * @return On success, the unique ID of the newly registered timer is
+ * returned. This Id is a positive number i.e. not including 0. On
+ * error, -1 is returned.
+ */
+int Timer_registerEnhanced(struct timeval* timeout,
+			   void (*timeoutHandler)(int, void *), void *info);
 
 /**
  * @brief Remove a timer
