@@ -73,15 +73,17 @@ static LIST_HEAD(pluginList);
  * 101: first API implementation
  *
  * 102: added PSIDHOOK_NODE_UP, PSIDHOOK_NODE_DOWN,
- *      PSID_registerDropper, and dynamical loggers.
+ *      PSID_registerDropper(), and dynamical loggers.
  *
  * 103: added PSIDHOOK_CREATEPART
  *
  * 104: added PSIDHOOK_SHUTDOWN
  *
- * 105: added PSC_setProcTitle
+ * 105: added PSC_setProcTitle()
+ *
+ * 106: added Timer_registerEnhanced()
  */
-static int pluginAPIVersion = 105;
+static int pluginAPIVersion = 106;
 
 
 /** Grace period between finalize and unload on forcefully unloads */
@@ -748,7 +750,7 @@ void *PSIDplugin_getHandle(char *name)
  * the plugin via malloc(), un-registering of timer, message-handler
  * and selectors, etc.
  *
- * Afterwards or if the plugin does not expose a cleanup-method the
+ * Afterward or if the plugin does not expose a cleanup-method the
  * plugin is marked to get evicted from address-space via
  * dlclose(). The actual action will be performed from within the
  * main-loop.
@@ -1017,7 +1019,7 @@ static plugin_t *findMaxDistPlugin(void)
  * Actually the plugins will not be unloaded immediately but just
  * prepared to become unloaded. As soon as all finalization of the
  * triggers have timed-out and became in fact unloaded the plugin
- * itself will be finalized and unloaded afterwards.
+ * itself will be finalized and unloaded afterward.
  *
  * @attention Breaking up dependency-loops might crash the daemon. In
  * general, dependency-loops a unnecessary and shall be
