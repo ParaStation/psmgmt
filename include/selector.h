@@ -11,7 +11,8 @@
  * @file ParaStation Selector facility. This is a simple select
  * multiplexer for applications that need to handle special message
  * without disturbing a select() call in a transparent way. Within
- * ParaStation this is used by the MCast, RDP and PSIDstatus modules.
+ * ParaStation this is used by the MCast, RDP and PSIDstatus
+ * modules. Additionally, various plugins make use of this.
  *
  * $Id$
  *
@@ -120,7 +121,7 @@ typedef int Selector_CB_t (int, void *);
  *
  * Registration of a new selector. The selector will be identified by
  * its corresponding file-descriptor @a fd. Only one selector per
- * file-descriptor can be registered. The @a selecHandler will be
+ * file-descriptor can be registered. The @a selectHandler will be
  * called, if data on @a fd is pending during a call to @ref
  * Sselect(). Additional information might be passed to @a
  * selectHandler via the pointer @a info.
@@ -131,15 +132,15 @@ typedef int Selector_CB_t (int, void *);
  * Sselect(), this functions is called. @a fd is passed as an
  * argument. Sselect() expects the return values as follows:
  *
- *  - -1 An error occured and Sselect() is expected to stop. Passing
+ *  - -1 An error occurred and Sselect() is expected to stop. Passing
  *       this value to Sselect() lets the current call to it return
  *       with -1. Thus, errno should be set appropriately before
  *       returning it. This return-value is intended for fatal
- *       situations where continueing within Sselect() makes no sense
+ *       situations where continuing within Sselect() makes no sense
  *       at all like running out of memory, etc.  For isolated
  *       problems like the file-descriptor handled was detected to be
  *       closed and cleaned-up subsequently a return-value of 0 is
- *       more apropriately.
+ *       more appropriately.
  *
  *  - 0  If no pending data on @a fd remained. Sselect() will continue watching
  *       its descriptor-set then.
@@ -148,7 +149,7 @@ typedef int Selector_CB_t (int, void *);
  *       pass @a fd to its own caller.
  *
  * @param info Pointer to additional information passed to @a
- * selectHandler in cae of pending data on the file-descriptor.
+ * selectHandler in case of pending data on the file-descriptor.
  *
  * @return On success, 0 is returned. On error, e.g. if a selector on
  * @a fd is already registered, -1 is returned.
@@ -186,7 +187,7 @@ int Selector_isRegistered(int fd);
  * its corresponding file-descriptor @a fd. As long as the selector is
  * disabled, it will not be monitored within @ref Sselect() and the
  * corresponding handler will not be called, even if the
- * file-descriptor @a fd is explicitely monitored with the
+ * file-descriptor @a fd is explicitly monitored with the
  * file-descriptor set passed to @ref Sselect()
  *
  * @param fd The file-descriptor to identify the selector.
@@ -227,8 +228,9 @@ int Selector_enable(int fd);
  * @param exceptfds The set of descriptors to be watched for exceptions.
  *
  * @param timeval The upper bound on the amount of time elapsed before
- * Sselect() returns. It may be zero causing Sselect() to return immediatly.
- * If @a timeout is NULL, Sselect() can block indefinitely.
+ * Sselect() returns. It may be zero causing Sselect() to return
+ * immediately.  If @a timeout is NULL, Sselect() can block
+ * indefinitely.
  *
  *
  * @return On success, the number of descriptors contained in the
