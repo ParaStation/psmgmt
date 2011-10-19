@@ -14,6 +14,8 @@ static char vcid[] __attribute__((used)) =
 
 #include <stdio.h>
 
+#include "pscommon.h"
+
 #include "psprotocol.h"
 
 /*
@@ -179,4 +181,52 @@ char *PSP_printInfo(PSP_Info_t infotype)
 	snprintf(txt, sizeof(txt), "infotype 0x%x UNKNOWN", infotype);
 	return txt;
     }
+}
+
+size_t PSP_strLen(char *str)
+{
+    return str ? strlen(str) + 1 : 0;
+}
+
+int PSP_putMsgBuf(DDBufferMsg_t *msg, char *dataName, void *data, size_t size)
+{
+    size_t off = msg->header.len - sizeof(msg->header);
+    size_t used;
+
+    if (data) {
+	used = (sizeof(msg->buf) - off >= size) ? size : 0;
+	if (used) memcpy(msg->buf+off, data, size);
+    } else {
+	used = 1;
+	msg->buf[off] = '\0';
+    }
+    if (!used) {
+	PSC_log(-1, "%s: data '%s' too large for buffer\n", __func__, dataName);
+	return 0;
+    }
+    msg->header.len += used;
+
+    return 1;
+}
+
+int PSP_putTypedMsgBuf(DDTypedBufferMsg_t *msg, char *dataName, void *data,
+		       size_t size)
+{
+    size_t off = msg->header.len - sizeof(msg->header) - sizeof(msg->type);
+    size_t used;
+
+    if (data) {
+	used = (sizeof(msg->buf) - off >= size) ? size : 0;
+	if (used) memcpy(msg->buf+off, data, size);
+    } else {
+	used = 1;
+	msg->buf[off] = '\0';
+    }
+    if (!used) {
+	PSC_log(-1, "%s: data '%s' too large for buffer\n", __func__, dataName);
+	return 0;
+    }
+    msg->header.len += used;
+
+    return 1;
 }

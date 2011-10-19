@@ -84,6 +84,7 @@ typedef enum {
 				     @deprecated */
     PSP_OP_MASTER = 0x0008,       /**< current master of the cluster */
     PSP_OP_DAEMONPROTOVERSION,    /**< Node's PSDaemonProtocol version */
+    PSP_OP_PLUGINAPIVERSION,      /**< Node's version of the plugin API */
 
     PSP_OP_LISTEND = 0x000f,      /**< no further opts; UID,GID,ACCT,etc. */
 
@@ -284,10 +285,10 @@ typedef enum {
 #define PSP_CD_NOTIFYDEAD        0x0040  /**< Register to get a signal */
 #define PSP_CD_NOTIFYDEADRES     0x0041  /**< Reply registration's success */
 #define PSP_CD_RELEASE           0x0042  /**< Cancel the signal */
-#define PSP_CD_RELEASERES        0x0043  /**< Reply cancelation's success */
+#define PSP_CD_RELEASERES        0x0043  /**< Reply cancellation's success */
 #define PSP_CD_SIGNAL            0x0044  /**< Send a signal */
 #define PSP_CD_WHODIED           0x0045  /**< Find out who sent a signal */
-#define PSP_CD_SIGRES            0x0046  /**< Any error occured during sending signal? */
+#define PSP_CD_SIGRES            0x0046  /**< Any error occurred during sending signal? */
 
 /** Messages to steer the daemons. */
 #define PSP_CD_DAEMONSTART       0x0050  /**< Request to start remote daemon */
@@ -300,11 +301,17 @@ typedef enum {
 #define PSP_CD_ENV               0x0057  /**< Request (un-)set an environment */
 #define PSP_CD_ENVRES            0x0058  /**< Result of an environment msg */
 
-/** Kind of action within #PSP_CD_PLUGIN message */
+/** Kind of action/information within #PSP_CD_PLUGIN/#PSP_PLUGIN_RES message */
 typedef enum {
     PSP_PLUGIN_LOAD = 0x0000,     /**< Load a new plugin */
     PSP_PLUGIN_REMOVE,            /**< Unload plugin */
     PSP_PLUGIN_FORCEREMOVE,       /**< Unload plugin forcefully */
+    PSP_PLUGIN_AVAIL,             /**< Report available plugins */
+    PSP_PLUGIN_HELP,              /**< Show plugin's help message */
+    PSP_PLUGIN_SET,               /**< Modify plugin's internal state */
+    PSP_PLUGIN_UNSET,             /**< Modify plugin's internal state */
+    PSP_PLUGIN_SHOW,              /**< Report on plugin's internal state */
+    PSP_PLUGIN_LOADTIME,          /**< Report plugin's load-time */
 } PSP_Plugin_t;
 
 /** Kind of action within #PSP_CD_ENV message */
@@ -352,7 +359,7 @@ typedef enum {
 
 /** Message primitive. This is also the header of more complex messages. */
 typedef struct {
-    int16_t type;          /**< msg type */
+    int16_t type;          /**< message type */
     uint16_t len;          /**< total length of the message */
     PStask_ID_t sender;    /**< sender of the message */
     PStask_ID_t dest;      /**< final destination of the message */
@@ -533,6 +540,80 @@ char *PSP_printMsg(int msgtype);
  */
 char *PSP_printInfo(PSP_Info_t infotype);
 
+/**
+ * @brief Determine string length
+ *
+ * Determine the length of the character string @a str in a way
+ * compatible with the needs of @ref PSP_putMsgBuf and @ref
+ * PSP_putTypedMsgBuf. I.e. the terminating '\0'-character counts and
+ * at the same time @a str might be NULL.
+ *
+ * @param str Pointer to '\0'-terminated character-string to analyze.
+ *
+ * @return The length of the string including the terminating '\0'
+ * character is returned. Or 0, if @a str is NULL.
+ */
+size_t PSP_strLen(char *str);
+
+/**
+ * @brief Put data into message buffer
+ *
+ * Put some data referenced by @a data of size @a size into the buffer
+ * @ref buf of the message @a msg of type @ref DDBufferMsg_t. The data
+ * are placed with an offset defined by the @ref len member of @a
+ * msg's header. Upon success, i.e. if the data fitted into the
+ * remainder of @a msg's buffer, the @ref len entry of @a msg's header
+ * is updated. In that case 1 is returned. Otherwise, an error-message
+ * is put out and 0 is returned. In the latter case the len member of
+ * @a msg is not updated.
+ *
+ * @a dataName is used in order the create the error-message. It shall
+ * describe the type of content to be added to @a msg's buffer.
+ *
+ * @param msg Message to be modified
+ *
+ * @param dataName Description of the data @a data to be added to @a
+ * msg.
+ *
+ * @param data Pointer to the data to put into the message @a msg.
+ *
+ * @param size Amount of data to be put into the message @a msg.
+ *
+ * @return Upon success, 1 is returned. Or 0, if an error
+ * occurred. This is mainly due to insufficient space within @a msg.
+ */
+int PSP_putMsgBuf(DDBufferMsg_t *msg, char *strName, void *data, size_t size);
+
+
+/**
+ * @brief Put data into message buffer
+ *
+ * Put some data referenced by @a data of size @a size into the buffer
+ * @ref buf of the message @a msg of type @ref DDTypedBufferMsg_t. The
+ * data are placed with an offset defined by the @ref len member of @a
+ * msg's header. Upon success, i.e. if the data fitted into the
+ * remainder of @a msg's buffer, the @ref len entry of @a msg's header
+ * is updated. In that case 1 is returned. Otherwise, an error-message
+ * is put out and 0 is returned. In the latter case the len member of
+ * @a msg is not updated.
+ *
+ * @a dataName is used in order the create the error-message. It shall
+ * describe the type of content to be added to @a msg's buffer.
+ *
+ * @param msg Message to be modified
+ *
+ * @param dataName Description of the data @a data to be added to @a
+ * msg.
+ *
+ * @param data Pointer to the data to put into the message @a msg.
+ *
+ * @param size Amount of data to be put into the message @a msg.
+ *
+ * @return Upon success, 1 is returned. Or 0, if an error
+ * occurred. This is mainly due to insufficient space within @a msg.
+ */
+int PSP_putTypedMsgBuf(DDTypedBufferMsg_t *msg, char *strName, void *data,
+		       size_t size);
 
 #ifdef __cplusplus
 }/* extern "C" */
