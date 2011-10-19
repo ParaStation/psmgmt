@@ -123,6 +123,88 @@ void finalize(void);
  */
 void cleanup(void);
 
+/**
+ * @brief Get plugin's help-text
+ *
+ * This function is called in order to receive the plugin's
+ * help-text. The text will be sent to the requesting psiadmin in
+ * order to get displayed to the user.
+ *
+ * The plugin is expected to create the text in dynamic memory
+ * allocated by malloc() or strdup() as a null-terminated
+ * character-string. After the text was sent to the requestor in one
+ * or more messages the memory is given back by calling free().
+ *
+ * @return Pointer to dynamic memory holding the help-text or NULL, if
+ * no such text exists.
+ */
+char * help(void);
+
+/**
+ * @brief Set plugin's key-value pair
+ *
+ * This function is called in order to set the plugin's key-value pair
+ * indexed by @a key to @a val.
+ *
+ * As a result, the plugin might create some answer-text to be sent to
+ * the requestor. This text is used to signal success or failure of
+ * the modification of the plugin's key-value space. If no such
+ * message shall be sent, NULL is returned in order signal success.
+ *
+ * The text to be returned by the plugin is created in dynamic memory
+ * allocated by malloc() or strdup() as a null-terminated
+ * character-string. After this text was sent to the requestor in one
+ * or more messages the memory is given back by calling free().
+ *
+ * @return Pointer to dynamic memory holding a message-text or NULL, if
+ * no such text exists.
+ */
+char * set(char *key, char *val);
+
+/**
+ * @brief Unset plugin's key-value pair
+ *
+ * This function is called in order to unset the plugin's key-value
+ * pair indexed by @a key.
+ *
+ * As a result, the plugin might create some answer-text to be sent to
+ * the requestor. This text is used to signal success or failure of
+ * the modification of the plugin's key-value space. If no such
+ * message shall be sent, NULL is returned in order signal success.
+ *
+ * The text to be returned by the plugin is created in dynamic memory
+ * allocated by malloc() or strdup() as a null-terminated
+ * character-string. After this text was sent to the requestor in one
+ * or more message the memory is given back by calling free().
+ *
+ * @return Pointer to dynamic memory holding a message-text or NULL, if
+ * no such text exists.
+ */
+char * unset(char *key);
+
+/**
+ * @brief Show plugin's key-value pair
+ *
+ * This function is called in order to show the value of the plugin's
+ * key-value pair indexed by @a key.
+ *
+ * @a key might be NULL in order to request all known key-value pairs.
+ *
+ * As a result, the plugin shall create some answer-text holding the
+ * value to be sent to the requestor. This text is used to signal
+ * success or failure of the search within the plugin's key-value
+ * space. If no such message shall be sent, NULL is returned.
+ *
+ * The text to be returned by the plugin is created in dynamic memory
+ * allocated by malloc() or strdup() as a null-terminated
+ * character-string. After this text was sent to the requestor in one
+ * or more message the memory is given back by calling free().
+ *
+ * @return Pointer to dynamic memory holding a message-text or NULL, if
+ * no such text exists.
+ */
+char * show(char *key);
+
 #ifdef __cplusplus
 }/* extern "C" */
 #endif
