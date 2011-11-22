@@ -251,7 +251,7 @@ void PSIADM_AddNode(char *nl)
 	    .type = PSP_CD_DAEMONSTART,
 	    .sender = PSC_getMyTID(),
 	    .dest = PSC_getTID(-1, 0),
-	    .len = sizeof(msg.header) + sizeof(PSnodes_ID_t) },
+	    .len = sizeof(msg.header) },
 	.buf = { 0 } };
     PSnodes_ID_t node;
 
@@ -269,7 +269,8 @@ void PSIADM_AddNode(char *nl)
 	    /* printf("%d already up.\n", node); */
 	} else {
 	    printf("starting node %d\n", node);
-	    *(PSnodes_ID_t *)msg.buf = node;
+	    msg.header.len = sizeof(msg.header);
+	    PSP_putMsgBuf(&msg, "node ID", &node, sizeof(node));
 	    PSI_sendMsg(&msg);
 	    usleep(delay * 1000);
 	}
@@ -320,10 +321,10 @@ void PSIADM_HWStart(int hw, char *nl)
 	    .type = PSP_CD_HWSTART,
 	    .sender = PSC_getMyTID(),
 	    .dest = 0,
-	    .len = sizeof(msg.header) + sizeof(int32_t) },
-	.buf = { 0 } };
+	    .len = sizeof(msg.header) } };
     PSnodes_ID_t node;
     int hwnum, err;
+    int32_t hw32 = hw;
 
     if (geteuid()) {
 	printf("Insufficient priviledge\n");
@@ -333,7 +334,7 @@ void PSIADM_HWStart(int hw, char *nl)
     err = PSI_infoInt(-1, PSP_INFO_HWNUM, NULL, &hwnum, 1);
     if (err || hw < -1 || hw >= hwnum) return;
 
-    *(int32_t *)msg.buf = hw;
+    PSP_putMsgBuf(&msg, "hardware type", &hw32, sizeof(hw32));
 
     if (! getHostStatus()) return;
 
@@ -356,10 +357,10 @@ void PSIADM_HWStop(int hw, char *nl)
 	    .type = PSP_CD_HWSTOP,
 	    .sender = PSC_getMyTID(),
 	    .dest = 0,
-	    .len = sizeof(msg.header) + sizeof(int32_t) },
-	.buf = { 0 } };
+	    .len = sizeof(msg.header) } };
     PSnodes_ID_t node;
     int hwnum, err;
+    int32_t hw32 = hw;
 
     if (geteuid()) {
 	printf("Insufficient priviledge\n");
@@ -369,7 +370,7 @@ void PSIADM_HWStop(int hw, char *nl)
     err = PSI_infoInt(-1, PSP_INFO_HWNUM, NULL, &hwnum, 1);
     if (err || hw < -1 || hw >= hwnum) return;
 
-    *(int32_t *)msg.buf = hw;
+    PSP_putMsgBuf(&msg, "hardware type", &hw32, sizeof(hw32));
 
     if (! getHostStatus()) return;
 
@@ -1387,6 +1388,7 @@ void PSIADM_SetParam(PSP_Option_t type, PSP_Optval_t value, char *nl)
     case PSP_OP_STATUS_DEADLMT:
     case PSP_OP_RDPRSNDTMOUT:
     case PSP_OP_MAXSTATTRY:
+    case PSP_OP_PLUGINUNLOADTMOUT:
 	if (value<1) {
 	    printf(" value must be > 0.\n");
 	    return;
@@ -1875,14 +1877,8 @@ void PSIADM_Plugin(char *nl, char *name, PSP_Plugin_t action)
     }
 
     msg.type = action;
-    if (name) {
-	size_t strLen = snprintf(msg.buf, sizeof(msg.buf), "%s", name) + 1;
-	if (strLen > sizeof(msg.buf)) {
-	    printf("plugin name '%s' too long\n", name);
-	    return;
-	}
-	msg.header.len += strLen;
-    }
+
+    if (!PSP_putTypedMsgBuf(&msg, "plugin", name, PSP_strLen(name))) return;
 
     if (! getHostStatus()) return;
 
@@ -1909,6 +1905,99 @@ void PSIADM_Plugin(char *nl, char *name, PSP_Plugin_t action)
     }
 }
 
+static int recvPluginKeyAnswers(PStask_ID_t src, PSP_Plugin_t action)
+{
+    DDTypedBufferMsg_t answer;
+    int width = getWidth(), first = 1;
+
+    while (1) {
+	if (PSI_recvMsg((DDMsg_t *)&answer, sizeof(answer)) < 0) {
+	    int eno = errno;
+	    char *errStr = strerror(eno);
+	    printf("%s: failed to receive answer from %s: %s\n", __func__,
+		   PSC_printTID(src), errStr ? errStr : "Unknown");
+	    break;
+	}
+	if (answer.header.sender != src) {
+	    printf("%s: wrong partner: %s", __func__,
+		   PSC_printTID(answer.header.sender));
+	    printf(" expected %s\n", PSC_printTID(src));
+	    break;
+	}
+
+	if ((PSP_Plugin_t)answer.type == action && !strlen(answer.buf)) break;
+
+	if (first) {
+	    printf("%.*s\n", (width) > 0 ? width : 0,
+		   "---------------------------------------------------------"
+		   "---------------------------------------------------------");
+	    printf("%4d  ", PSC_getID(src));
+	}
+
+	if (answer.type == -1) {
+	    printf("Unknown action\n");
+	    break;
+	} else if ((PSP_Plugin_t)answer.type != action) {
+	    printf("wrong action: %d expected %d\n", answer.type, action);
+	    break;
+	}
+
+	printf("\t%s", answer.buf);
+	first = 0;
+    }
+
+    return 0;
+}
+
+
+void PSIADM_PluginKey(char *nl, char *name, char *key, char *value,
+		      PSP_Plugin_t action)
+{
+    DDTypedBufferMsg_t msg = {
+	.header = {
+	    .type = PSP_CD_PLUGIN,
+	    .sender = PSC_getMyTID(),
+	    .dest = 0,
+	    .len = sizeof(msg.header) + sizeof(msg.type) } };
+    PSnodes_ID_t node;
+
+    if (geteuid() || ! action==PSP_PLUGIN_SHOW) {
+	printf("Insufficient priviledge\n");
+	return;
+    }
+
+    msg.type = action;
+
+    if (!PSP_putTypedMsgBuf(&msg, "plugin", name, PSP_strLen(name))) return;
+    if (!PSP_putTypedMsgBuf(&msg, "key", key, PSP_strLen(key))) return;
+    if (!PSP_putTypedMsgBuf(&msg, "value", value, PSP_strLen(value))) return;
+
+    if (! getHostStatus()) return;
+
+    for (node=0; node<PSC_getNrOfNodes(); node++) {
+	if (nl && !nl[node]) continue;
+
+	if (hostStatus.list[node]) {
+	    msg.header.dest = PSC_getTID(node, 0);
+	    PSI_sendMsg(&msg);
+
+	    recvPluginKeyAnswers(msg.header.dest, action);
+	} else {
+	    printf("%4d\tdown\n", node);
+	}
+    }
+}
+
+static int putEnv(DDTypedBufferMsg_t *msg, char *key, char *value)
+{
+    char env[sizeof(msg->buf)+2];
+
+    snprintf(env, sizeof(env), "%s=%s", key, value);
+
+    return PSP_putTypedMsgBuf(msg, "environment", env, PSP_strLen(env));
+}
+
+
 void PSIADM_Environment(char *nl, char *key, char *value, PSP_Env_t action)
 {
     DDTypedBufferMsg_t msg = {
@@ -1919,7 +2008,6 @@ void PSIADM_Environment(char *nl, char *key, char *value, PSP_Env_t action)
 	    .len = sizeof(msg.header) + sizeof(msg.type) },
 	.buf = { 0 } };
     DDTypedMsg_t answer;
-    size_t cnt;
     PSnodes_ID_t node;
 
     if (geteuid()) {
@@ -1930,20 +2018,10 @@ void PSIADM_Environment(char *nl, char *key, char *value, PSP_Env_t action)
     msg.type = action;
     switch (action) {
     case PSP_ENV_SET:
-	cnt = snprintf(msg.buf, sizeof(msg.buf), "%s=%s", key, value);
-	if (cnt >= sizeof(msg.buf)) {
-	    printf("environment too long\n");
-	    return;
-	}
-	msg.header.len += cnt + 1;
+	if (!putEnv(&msg, key, value)) return;
 	break;
     case PSP_ENV_UNSET:
-	cnt = snprintf(msg.buf, sizeof(msg.buf), "%s", key);
-	if (cnt >= sizeof(msg.buf)) {
-	    printf("name too long\n");
-	    return;
-	}
-	msg.header.len += cnt + 1;
+	if (!PSP_putTypedMsgBuf(&msg, "key", key, PSP_strLen(key))) return;
 	break;
     default:
 	printf("Unknown action %d\n", action);

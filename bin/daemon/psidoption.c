@@ -34,6 +34,7 @@ static char vcid[] __attribute__((used)) =
 #include "psidstatus.h"
 #include "psidhw.h"
 #include "psidaccount.h"
+#include "psidplugin.h"
 
 #include "psidoption.h"
 
@@ -728,6 +729,9 @@ static void msg_SETOPTION(DDOptionMsg_t *msg)
 	    case PSP_OP_MAXSTATTRY:
 		PSIDnodes_setMaxStatTry(PSC_getMyID(), msg->opt[i].value);
 		break;
+	    case PSP_OP_PLUGINUNLOADTMOUT:
+		PSIDplugin_setUnloadTmout(msg->opt[i].value);
+		break;
 	    case PSP_OP_LISTEND:
 		/* Ignore */
 		break;
@@ -951,6 +955,12 @@ static void msg_GETOPTION(DDOptionMsg_t *msg)
 		send_rlimit_OPTIONS(msg->header.sender, msg->opt[in].option);
 		/* Do not send option again */
 		out--;
+		break;
+	    case PSP_OP_PLUGINAPIVERSION:
+		msg->opt[out].value = PSIDplugin_getAPIversion();
+		break;
+	    case PSP_OP_PLUGINUNLOADTMOUT:
+		msg->opt[out].value = PSIDplugin_getUnloadTmout();
 		break;
 	    default:
 		PSID_log(-1, "%s: unknown option %d\n", __func__,

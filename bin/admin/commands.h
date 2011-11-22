@@ -569,7 +569,7 @@ void PSIADM_Resolve(char *nl);
  * @a nl. Depending on the @a action, the plugin is loaded
  * (PSP_PLUGIN_LOAD) or unloaded (PSP_PLUGIN_REMOVE).
  *
- * @param nl The nodelist describing the node on which the action
+ * @param nl The nodelist describing the nodes on which the action
  * should take effect.
  *
  * @param name Name of the plugin to handle
@@ -579,6 +579,34 @@ void PSIADM_Resolve(char *nl);
  * @return No return value.
  */
 void PSIADM_Plugin(char *nl, char *name, PSP_Plugin_t action);
+
+/**
+ * @brief Handle plugin settings.
+ *
+ * Handle the settings of the plugin @a name on the nodes selected
+ * within the nodelist @a nl. Depending on the @a action, the setting
+ * indexed by @a key might be set to @a value (PSP_PLUGIN_SET), unset
+ * (PSP_PLUGIN_UNSET) or displayed to stdout (PSP_PLUGIN_SHOW).
+ *
+ * If actions is PSP_PLUGIN_SHOW, @a key might be NULL in order to
+ * display all settings of the given plugin.
+ *
+ * @param nl The nodelist describing the nodes on which the action
+ * should take effect.
+ *
+ * @param name Name of the plugin to handle
+ *
+ * @param key Index used to identify the setting to handle
+ *
+ * @param value Strings holding the actual data to be set (in case of
+ * PSP_PLUGIN_SET)
+ *
+ * @param action The action to apply on the requested plugin
+ *
+ * @return No return value.
+ */
+void PSIADM_PluginKey(char *nl, char *name, char *key, char *value,
+		      PSP_Plugin_t action);
 
 /**
  * @brief Modify environment.

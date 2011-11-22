@@ -1104,6 +1104,18 @@ static int setShowRL_Stack(char *token)
     return 0;
 }
 
+static int setShowPluginAPIver(char *token)
+{
+    setShowOpt = PSP_OP_PLUGINAPIVERSION;
+    return 0;
+}
+
+static int setShowPluginUnloadTmout(char *token)
+{
+    setShowOpt = PSP_OP_PLUGINUNLOADTMOUT;
+    return 0;
+}
+
 static int setShowError(char *token)
 {
     return -1;
@@ -1162,6 +1174,8 @@ static keylist_t setShowList[] = {
     {"rl_rss", setShowRL_RSS},
     {"rl_sigpending", setShowRL_SigPending},
     {"rl_stack", setShowRL_Stack},
+    {"pluginapiversion", setShowPluginAPIver},
+    {"pluginunloadtmout", setShowPluginUnloadTmout},
     {NULL, setShowError}
 };
 static parser_t setShowParser = {" \t\n", setShowList};
@@ -1334,6 +1348,7 @@ static int setCommand(char *token)
     case PSP_OP_ACCTPOLL:
     case PSP_OP_MASTER:
     case PSP_OP_MAXSTATTRY:
+    case PSP_OP_PLUGINUNLOADTMOUT:
 	if (parser_getNumber(value, &val)) {
 	    printf("Illegal value '%s'\n", value);
 	    goto error;
@@ -1385,6 +1400,8 @@ static int setCommand(char *token)
 	    goto error;
 	}
 	break;
+    case PSP_OP_PLUGINAPIVERSION:
+	printf("%s: pluginAPI is read only.\n", __func__);
     default:
 	goto error;
     }
@@ -1439,6 +1456,7 @@ static int setCommand(char *token)
     case PSP_OP_SUPPL_GRPS:
     case PSP_OP_MAXSTATTRY:
     case PSP_OP_MASTER:
+    case PSP_OP_PLUGINUNLOADTMOUT:
 	PSIADM_SetParam(setShowOpt, val, nl);
 	break;
     case PSP_OP_CPUMAP:
@@ -1507,6 +1525,8 @@ static int showCommand(char *token)
     case PSP_OP_ACCTPOLL:
     case PSP_OP_SUPPL_GRPS:
     case PSP_OP_MAXSTATTRY:
+    case PSP_OP_PLUGINAPIVERSION:
+    case PSP_OP_PLUGINUNLOADTMOUT:
 	PSIADM_ShowParam(setShowOpt, nl);
 	break;
     case PSP_OP_ACCT:
@@ -1592,7 +1612,7 @@ static int testCommand(char *token)
 
 /************************* plugin commands ******************************/
 
-static int pluginAddCommand(char *token)
+static int pluginLoadCmd(char *token)
 {
     char *plugin = parser_getString();
     char *nl_descr = parser_getString();
@@ -1615,7 +1635,7 @@ static int pluginAddCommand(char *token)
     return -1;
 }
 
-static int pluginRmCommand(char *token)
+static int pluginRmCmd(char *token)
 {
     char *plugin = parser_getString();
     char *nl_descr = parser_getString();
@@ -1638,7 +1658,7 @@ static int pluginRmCommand(char *token)
     return -1;
 }
 
-static int pluginFRmCommand(char *token)
+static int pluginFRmCmd(char *token)
 {
     char *plugin = parser_getString();
     char *nl_descr = parser_getString();
@@ -1661,6 +1681,148 @@ static int pluginFRmCommand(char *token)
     return -1;
 }
 
+static int pluginAvailCmd(char *token)
+{
+    char *nl_descr = parser_getString();
+    char *nl = defaultNL;
+
+    if (parser_getString()) goto error;
+
+    if (nl_descr) {
+	nl = getNodeList(nl_descr);
+
+	if (!nl) return -1;
+    }
+
+    PSIADM_PluginKey(nl, NULL, NULL, NULL, PSP_PLUGIN_AVAIL);
+
+    return 0;
+
+ error:
+    printError(&pluginInfo);
+    return -1;
+}
+
+static int pluginHelpCmd(char *token)
+{
+    char *plugin = parser_getString();
+    char *nl_descr = parser_getString();
+    char *nl = defaultNL;
+
+    if (parser_getString() || !plugin) goto error;
+
+    if (nl_descr) {
+	nl = getNodeList(nl_descr);
+
+	if (!nl) return -1;
+    }
+
+    PSIADM_PluginKey(nl, plugin, NULL, NULL, PSP_PLUGIN_HELP);
+
+    return 0;
+
+ error:
+    printError(&pluginInfo);
+    return -1;
+}
+
+static int pluginLoadTmCmd(char *token)
+{
+    char *nl_descr = parser_getString();
+    char *nl = defaultNL, *plugin = NULL;
+
+    if (nl_descr && !strcasecmp(nl_descr, "plugin")) {
+	plugin = parser_getString();
+	nl_descr = parser_getString();
+    }
+
+    if (parser_getString()) goto error;
+
+    if (nl_descr) {
+	nl = getNodeList(nl_descr);
+	if (!nl) return -1;
+    }
+
+    PSIADM_PluginKey(nl, plugin, NULL, NULL, PSP_PLUGIN_LOADTIME);
+    return 0;
+
+ error:
+    printError(&pluginInfo);
+    return -1;
+}
+
+static int pluginShowCmd(char *token)
+{
+    char *plugin = parser_getString();
+    char *nl_descr = parser_getString();
+    char *nl = defaultNL, *key = NULL;
+
+    if (nl_descr && !strcasecmp(nl_descr, "key")) {
+	key = parser_getString();
+	nl_descr = parser_getString();
+    }
+
+    if (parser_getString() || !plugin) goto error;
+
+    if (nl_descr) {
+	nl = getNodeList(nl_descr);
+	if (!nl) return -1;
+    }
+
+    PSIADM_PluginKey(nl, plugin, key, NULL, PSP_PLUGIN_SHOW);
+    return 0;
+
+ error:
+    printError(&pluginInfo);
+    return -1;
+}
+
+static int pluginSetCmd(char *token)
+{
+    char *plugin = parser_getString();
+    char *key = parser_getString();
+    char *value = parser_getQuotedString();
+    char *nl_descr = parser_getString();
+    char *nl = defaultNL;
+
+    if (parser_getString() || !plugin || !key || !value) goto error;
+
+    if (nl_descr) {
+	nl = getNodeList(nl_descr);
+	if (!nl) return -1;
+    }
+
+    PSIADM_PluginKey(nl, plugin, key, value, PSP_PLUGIN_SET);
+    return 0;
+
+ error:
+    printError(&pluginInfo);
+    return -1;
+}
+
+static int pluginUnsetCmd(char *token)
+{
+    char *plugin = parser_getString();
+    char *key = parser_getString();
+    char *nl_descr = parser_getString();
+    char *nl = defaultNL;
+
+    if (parser_getString() || !plugin || !key) goto error;
+
+    if (nl_descr) {
+	nl = getNodeList(nl_descr);
+	if (!nl) return -1;
+    }
+
+    PSIADM_PluginKey(nl, plugin, key, NULL, PSP_PLUGIN_UNSET);
+    return 0;
+
+ error:
+    printError(&pluginInfo);
+    return -1;
+}
+
+
 int pluginError(char *token)
 {
     printError(&pluginInfo);
@@ -1669,14 +1831,20 @@ int pluginError(char *token)
 
 static keylist_t pluginList[] = {
     {"list", listPluginCommand},
-    {"load", pluginAddCommand},
-    {"add", pluginAddCommand},
-    {"unload", pluginRmCommand},
-    {"delete", pluginRmCommand},
-    {"remove", pluginRmCommand},
-    {"rm", pluginRmCommand},
-    {"forceremove", pluginFRmCommand},
-    {"forceunload", pluginFRmCommand},
+    {"load", pluginLoadCmd},
+    {"add", pluginLoadCmd},
+    {"unload", pluginRmCmd},
+    {"delete", pluginRmCmd},
+    {"remove", pluginRmCmd},
+    {"rm", pluginRmCmd},
+    {"forceremove", pluginFRmCmd},
+    {"forceunload", pluginFRmCmd},
+    {"avail", pluginAvailCmd},
+    {"help", pluginHelpCmd},
+    {"show", pluginShowCmd},
+    {"set", pluginSetCmd},
+    {"unset", pluginUnsetCmd},
+    {"loadtime", pluginLoadTmCmd},
     {NULL, pluginError}
 };
 static parser_t pluginParser = {" \t\n", pluginList};

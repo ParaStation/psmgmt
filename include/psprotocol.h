@@ -86,6 +86,8 @@ typedef enum {
     PSP_OP_DAEMONPROTOVERSION,    /**< Node's PSDaemonProtocol version */
     PSP_OP_PLUGINAPIVERSION,      /**< Node's version of the plugin API */
 
+    PSP_OP_PLUGINUNLOADTMOUT=0x000c, /**< Timeout before evicting plugins */
+
     PSP_OP_LISTEND = 0x000f,      /**< no further opts; UID,GID,ACCT,etc. */
 
     PSP_OP_ADD_ACCT = 0x0010,     /**< add a new accounting process */

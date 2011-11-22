@@ -18,6 +18,8 @@ static char vcid[] __attribute__((used)) =
 #include <limits.h>
 #include <errno.h>
 #include <dlfcn.h>
+#include <dirent.h>
+#include <sys/types.h>
 
 #include "list.h"
 #include "plugin.h"
@@ -35,6 +37,12 @@ typedef int intFunc_t(void);
 
 typedef void voidFunc_t(void);
 
+typedef char *helpFunc_t(void);
+
+typedef char *setFunc_t(char *key, char *value);
+
+typedef char *keyFunc_t(char *key);
+
 /** Structure holding all information concerning a plugin */
 typedef struct {
     list_t next;             /**< Used to put into @ref pluginList */
@@ -45,11 +53,16 @@ typedef struct {
     intFunc_t *initialize;   /**< Initializer (after dependencies resolved) */
     voidFunc_t *finalize;    /**< Finalize (trigger plugin's stop) */
     voidFunc_t *cleanup;     /**< Cleanup (immediately before unload) */
+    helpFunc_t *help;        /**< Some help message from the plugin */
+    setFunc_t *set;          /**< Modify plugin's internal state */
+    keyFunc_t *unset;        /**< Unset plugin's internal state */
+    keyFunc_t *show;         /**< Show plugin's internal state */
     int version;             /**< Actual version */
     int distance;            /**< Distance from origin on force */
     int cleared;             /**< Flag plugin ready to finalize on force */
     int finalized;           /**< Flag call of plugin's finalize() method */
     int unload;              /**< Flag plugin to become unloaded */
+    struct timeval load;     /**< Time when plugin was loaded */
     struct timeval grace;    /**< Grace period before forcefully unload */
 } plugin_t;
 
@@ -82,8 +95,10 @@ static LIST_HEAD(pluginList);
  * 105: added PSC_setProcTitle()
  *
  * 106: added Timer_registerEnhanced()
+ *
+ * 107: next gen API supports set()/unset()/show()/help() methods
  */
-static int pluginAPIVersion = 106;
+static int pluginAPIVersion = 107;
 
 
 /** Grace period between finalize and unload on forcefully unloads */
@@ -398,6 +413,10 @@ static plugin_t * newPlugin(void *handle, char *name, int version)
 	plugin->initialize = dlsym(handle, "initialize");
 	plugin->finalize = dlsym(handle, "finalize");
 	plugin->cleanup = dlsym(handle, "cleanup");
+	plugin->help = dlsym(handle, "help");
+	plugin->set = dlsym(handle, "set");
+	plugin->unset = dlsym(handle, "unset");
+	plugin->show = dlsym(handle, "show");
     }
 
     plugin->distance = 0;
@@ -669,6 +688,7 @@ static plugin_t * loadPlugin(char *name, int minVer, plugin_t * trigger)
 	    return NULL;
 	}
     }
+    gettimeofday(&plugin->load, NULL);
 
     if (addRef(&plugin->triggers, trigger ? trigger : plugin) < 0)  {
 	PSID_log(-1, "%s: addTrigger() failed\n", __func__);
@@ -1101,6 +1121,289 @@ void PSIDplugin_forceUnloadAll(void)
     }
 }
 
+static void sendStr(DDTypedBufferMsg_t *msg, char *str, const char *caller)
+{
+    int first = 1;
+
+    if (!str) return;
+
+    while (*str || first) {
+	size_t len = strlen(str);
+	size_t num = (len >= sizeof(msg->buf)) ? sizeof(msg->buf)-1 : len;
+
+	first = 0;
+	strncpy(msg->buf, str, num);
+	msg->buf[num] = '\0';
+
+	msg->header.len += num+1;
+	if (sendMsg(msg) == -1 && errno != EWOULDBLOCK) {
+	    PSID_warn(-1, errno, "%s: %s: sendMsg()", caller ? caller : "<?>",
+		      __func__);
+	    break;
+	}
+	msg->header.len -= num+1;
+
+	str += num;
+    }
+}
+
+static void sendAvail(PStask_ID_t dest)
+{
+    DDTypedBufferMsg_t msg = (DDTypedBufferMsg_t) {
+	    .header = (DDMsg_t) {
+		.type = PSP_CD_PLUGINRES,
+		.dest = dest,
+		.sender = PSC_getMyTID(),
+		.len = sizeof(msg.header) + sizeof(msg.type) },
+	    .type = PSP_PLUGIN_AVAIL};
+    char dirName[PATH_MAX], *instDir, res[256] = { '\0' };
+    DIR *dir;
+    struct dirent *dent;
+
+    instDir = getenv("PSID_PLUGIN_PATH");
+    if (!instDir) instDir = PSC_lookupInstalldir(NULL);
+    if (!instDir) {
+	PSID_log(-1, "%s: installation directory not found\n", __func__);
+	snprintf(res, sizeof(res), "installation directory not found\n");
+	goto end;
+    }
+    snprintf(dirName, sizeof(dirName), "%s/plugins", instDir);
+
+    if (!(dir = opendir(dirName))) {
+	int eno = errno;
+	PSID_warn(-1, eno, "%s: opendir(%s) failed", __func__, dirName);
+	snprintf(res, sizeof(res), "opendir(%s) failed: %s\n", dirName,
+		 strerror(eno));
+	goto end;
+    }
+
+    rewinddir(dir);
+    while ((dent = readdir(dir))) {
+	char *nameStr = dent->d_name;
+	size_t nameLen = PSP_strLen(nameStr);
+
+	if (nameLen && !strcmp(&nameStr[nameLen - 4], ".so")) {
+	    nameStr[nameLen - 4] = '\n';
+	    nameStr[nameLen - 3] = '\0';
+
+	    sendStr(&msg, nameStr, __func__);
+	}
+    }
+    closedir(dir);
+
+end:
+    if (*res) sendStr(&msg, res, __func__);
+
+    /* Create stop message */
+    sendStr(&msg, "", __func__);
+}
+
+static void sendHelp(PStask_ID_t dest, char *name)
+{
+    DDTypedBufferMsg_t msg = (DDTypedBufferMsg_t) {
+	    .header = (DDMsg_t) {
+		.type = PSP_CD_PLUGINRES,
+		.dest = dest,
+		.sender = PSC_getMyTID(),
+		.len = sizeof(msg.header) + sizeof(msg.type) },
+	    .type = PSP_PLUGIN_HELP};
+    plugin_t *plugin = findPlugin(name);
+
+    if (!plugin) {
+	char buf[sizeof(msg.buf)];
+	snprintf(buf, sizeof(buf), "psid: %s: unknown plugin '%s'\n", __func__,
+		 name);
+	sendStr(&msg, buf, __func__);
+    } else if (!plugin->help) {
+	char buf[sizeof(msg.buf)];
+	snprintf(buf, sizeof(buf), "psid: %s: no help-method for '%s' \n",
+		 __func__, name);
+	sendStr(&msg, buf, __func__);
+    } else {
+	char *res = plugin->help();
+
+	if (res) {
+	    sendStr(&msg, res, __func__);
+	    free(res);
+	}
+    }
+
+    /* Create stop message */
+    sendStr(&msg, "", __func__);
+}
+
+static void handleSetKey(PStask_ID_t dest, char *buf)
+{
+    char *name = buf, *key = name + PSP_strLen(name);
+    char *val = key + PSP_strLen(key);
+    plugin_t *plugin = findPlugin(name);
+    DDTypedBufferMsg_t msg = (DDTypedBufferMsg_t) {
+	    .header = (DDMsg_t) {
+		.type = PSP_CD_PLUGINRES,
+		.dest = dest,
+		.sender = PSC_getMyTID(),
+		.len = sizeof(msg.header) + sizeof(msg.type) },
+	    .type = PSP_PLUGIN_SET};
+
+
+    if (!plugin) {
+	char buf[sizeof(msg.buf)];
+	snprintf(buf, sizeof(buf), "psid: %s: unknown plugin '%s'\n", __func__,
+		 name);
+	sendStr(&msg, buf, __func__);
+    } else if (!plugin->set) {
+	char buf[sizeof(msg.buf)];
+	snprintf(buf, sizeof(buf), "psid: %s: no set-method for '%s' \n",
+		 __func__, name);
+	sendStr(&msg, buf, __func__);
+    } else {
+	char *res = plugin->set(key, val);
+
+	if (res) {
+	    sendStr(&msg, res, __func__);
+	    free(res);
+	}
+    }
+
+    /* Create stop message */
+    sendStr(&msg, "", __func__);
+}
+
+static void handleUnsetKey(PStask_ID_t dest, char *buf)
+{
+    char *name = buf, *key = buf + PSP_strLen(name);
+    plugin_t *plugin = findPlugin(name);
+    DDTypedBufferMsg_t msg = (DDTypedBufferMsg_t) {
+	    .header = (DDMsg_t) {
+		.type = PSP_CD_PLUGINRES,
+		.dest = dest,
+		.sender = PSC_getMyTID(),
+		.len = sizeof(msg.header) + sizeof(msg.type) },
+	    .type = PSP_PLUGIN_UNSET};
+
+    if (!plugin) {
+	char buf[sizeof(msg.buf)];
+	snprintf(buf, sizeof(buf), "psid: %s: unknown plugin '%s'\n", __func__,
+		 name);
+	sendStr(&msg, buf, __func__);
+    } else if (!plugin->unset) {
+	char buf[sizeof(msg.buf)];
+	snprintf(buf, sizeof(buf), "psid: %s: no unset-method for '%s' \n",
+		 __func__, name);
+	sendStr(&msg, buf, __func__);
+    } else {
+	char *res = plugin->unset(key);
+
+	if (res) {
+	    sendStr(&msg, res, __func__);
+	    free(res);
+	}
+    }
+
+    /* Create stop message */
+    sendStr(&msg, "", __func__);
+}
+
+static void handleShowKey(PStask_ID_t dest, char *buf)
+{
+    char *name = buf, *key = buf + PSP_strLen(name);
+    plugin_t *plugin = findPlugin(name);
+    DDTypedBufferMsg_t msg = (DDTypedBufferMsg_t) {
+	    .header = (DDMsg_t) {
+		.type = PSP_CD_PLUGINRES,
+		.dest = dest,
+		.sender = PSC_getMyTID(),
+		.len = sizeof(msg.header) + sizeof(msg.type) },
+	    .type = PSP_PLUGIN_SHOW};
+
+    if (! *key) key=NULL;
+
+    if (!plugin) {
+	char buf[sizeof(msg.buf)];
+	snprintf(buf, sizeof(buf), "psid: %s: unknown plugin '%s'\n", __func__,
+		 name);
+	sendStr(&msg, buf, __func__);
+    } else if (!plugin->show) {
+	char buf[sizeof(msg.buf)];
+	snprintf(buf, sizeof(buf), "psid: %s: no show-method for '%s' \n",
+		 __func__, name);
+	sendStr(&msg, buf, __func__);
+    } else {
+	char *res = plugin->show(key);
+
+	if (res) {
+	    sendStr(&msg, res, __func__);
+	    free(res);
+	}
+    }
+
+    /* Create stop message */
+    sendStr(&msg, "", __func__);
+}
+
+static void sendLoadTime(PStask_ID_t dest, plugin_t *plugin)
+{
+    DDTypedBufferMsg_t msg = (DDTypedBufferMsg_t) {
+	    .header = (DDMsg_t) {
+		.type = PSP_CD_PLUGINRES,
+		.dest = dest,
+		.sender = PSC_getMyTID(),
+		.len = sizeof(msg.header) + sizeof(msg.type) },
+	    .type = PSP_PLUGIN_LOADTIME};
+    char buf[sizeof(msg.buf)];
+
+    if (!plugin) return;
+
+    snprintf(buf, sizeof(buf), "%10s %4d %s", plugin->name, plugin->version,
+	     ctime(&plugin->load.tv_sec));
+    sendStr(&msg, buf, __func__);
+}
+
+static void handleLoadTime(PStask_ID_t dest, char *name)
+{
+    DDTypedBufferMsg_t msg = (DDTypedBufferMsg_t) {
+	    .header = (DDMsg_t) {
+		.type = PSP_CD_PLUGINRES,
+		.dest = dest,
+		.sender = PSC_getMyTID(),
+		.len = sizeof(msg.header) + sizeof(msg.type) },
+	    .type = PSP_PLUGIN_LOADTIME};
+
+    if (!name) return;
+
+    if (*name) {
+	plugin_t *plugin = findPlugin(name);
+
+	if (!plugin) {
+	    char buf[sizeof(msg.buf)];
+	    snprintf(buf, sizeof(buf), "psid: %s: plugin '%s' not found\n",
+		     __func__, name);
+	    sendStr(&msg, buf, __func__);
+	    msg.header.len = sizeof(msg.header) + sizeof(msg.type);
+	} else {
+	    sendLoadTime(dest, plugin);
+	}
+    } else {
+	list_t *p;
+
+	list_for_each(p, &pluginList) {
+	    plugin_t *plugin = list_entry(p, plugin_t, next);
+
+	    sendLoadTime(dest, plugin);
+	}
+    }
+
+    /* Create stop message */
+    sendStr(&msg, "", __func__);
+
+    return;
+}
+
+int PSIDplugin_getAPIversion(void)
+{
+    return pluginAPIVersion;
+}
+
 /**
  * @brief Handle a PSP_CD_PLUGIN message.
  *
@@ -1152,22 +1455,37 @@ static void msg_PLUGIN(DDTypedBufferMsg_t *inmsg)
     } else {
 	switch (inmsg->type) {
 	case PSP_PLUGIN_LOAD:
-	    if (!loadPlugin(inmsg->buf, 0, NULL)) {
-		ret = -1;
-		goto end;
-	    }
+	    if (!loadPlugin(inmsg->buf, 0, NULL)) ret = -1;
 	    break;
 	case PSP_PLUGIN_REMOVE:
-	    if (PSIDplugin_finalize(inmsg->buf) < 0) {
-		ret = ENODEV;
-		goto end;
-	    }
+	    if (PSIDplugin_finalize(inmsg->buf) < 0) ret = ENODEV;
 	    break;
 	case PSP_PLUGIN_FORCEREMOVE:
-	    if (forceUnloadPlugin(inmsg->buf) < 0) {
-		ret = ENODEV;
-		goto end;
-	    }
+	    if (forceUnloadPlugin(inmsg->buf) < 0) ret = ENODEV;
+	    break;
+	case PSP_PLUGIN_AVAIL:
+	    sendAvail(inmsg->header.sender);
+	    return;
+	    break;
+	case PSP_PLUGIN_HELP:
+	    sendHelp(inmsg->header.sender, inmsg->buf);
+	    return;
+	    break;
+	case PSP_PLUGIN_SET:
+	    handleSetKey(inmsg->header.sender, inmsg->buf);
+	    return;
+	    break;
+	case PSP_PLUGIN_UNSET:
+	    handleUnsetKey(inmsg->header.sender, inmsg->buf);
+	    return;
+	    break;
+	case PSP_PLUGIN_SHOW:
+	    handleShowKey(inmsg->header.sender, inmsg->buf);
+	    return;
+	    break;
+	case PSP_PLUGIN_LOADTIME:
+	    handleLoadTime(inmsg->header.sender, inmsg->buf);
+	    return;
 	    break;
 	default:
 	    PSID_log(-1, "%s: Unknown message type %d\n", __func__,

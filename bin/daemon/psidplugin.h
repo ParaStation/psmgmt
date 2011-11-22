@@ -185,6 +185,16 @@ int PSIDplugin_unload(char *name);
  */
 void PSIDplugin_forceUnloadAll(void);
 
+/**
+ * @brief Get API version
+ *
+ * Get the current version number of the daemon's plugin interface
+ * API.
+ *
+ * @return The version number of the plugin API.
+ */
+int PSIDplugin_getAPIversion(void);
+
 #ifdef __cplusplus
 }/* extern "C" */
 #endif

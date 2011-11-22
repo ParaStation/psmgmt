@@ -260,7 +260,7 @@ static info_t setInfo = {
 	" | bindmem <bool> | supplementaryGroups <bool> | maxStatTry <num>"
 	" | cpumap <map> | allowUserMap <bool> | nodessort <mode>"
 	" | adminuser [+|-]{<user>|any} | admingroup [+|-]{<group>|any}"
-	" | accountpoll <interval>} <nodes>"
+	" | accountpoll <interval> | pluginUnloadTmout <timeout>} <nodes>"
     }},
     .nodes = 1,
     .descr = "Set one of various parameters of the ParaStation system:",
@@ -414,6 +414,9 @@ static info_t setInfo = {
 	  " the forwarders might poll on /proc. This sets the poll interval on"
 	  " the selected nodes to <interval> seconds. If Set to 0, no polling"
 	  " at all will take place." },
+	{ .tag = "set pluginUnloadTmout <timeout>",
+	  .descr = "Set the timeout until plugins are evicted after a"
+	  " 'plugin forceunload' to <timeout> seconds." },
 	{ NULL, NULL }
     },
     .comment = "For more information reffer to 'help set <subcommand>'"
@@ -431,6 +434,7 @@ static info_t showInfo = {
 	" | starter | runjobs | overbook | exclusive | pinprocs | bindmem"
 	" | cpumap | allowUserMap | nodessort | supplementaryGroups"
 	" | maxStatTry | adminuser | admingroup | accounters | accountpoll"
+	" | pluginAPIversion | pluginUnloadTmout"
 	" | rl_{addressspace|as} | rl_core | rl_cpu | rl_data | rl_fsize"
 	" | rl_locks | rl_memlock | rl_msgqueue | rl_nofile | rl_nproc"
 	" | rl_rss | rl_sigpending | rl_stack}"
@@ -527,6 +531,11 @@ static info_t showInfo = {
 	{ .tag = "show accountpoll",
 	  .descr = "Show polling interval in seconds of accounter to retrieve"
 	  " more detailed information." },
+	{ .tag = "show pluginAPIversion",
+	  .descr = "Show the version number of the plugin API." },
+	{ .tag = "show pluginUnloadTmout",
+	  .descr = "Show the timeout until plugins are evicted after a"
+	  " 'plugin forceunload'." },
 	{ .tag = "show rl_{addressspace|as}",
 	  .descr = "Show RLIMIT_AS on this node." },
 	{ .tag = "show rl_core",
@@ -709,12 +718,18 @@ static info_t pluginInfo = {
     .head = "Plugin command (privileged):",
     .syntax = (syntax_t[]) {{
 	.cmd = "plugin",
-	.arg = "{ list | {add|load | delete|remove|rm|unload"
-	" | forceunload|forceremove} <plugin> } <nodes>"
+	.arg = "{ avail | list | {add|load | delete|remove|rm|unload"
+	" | forceunload|forceremove | help } <plugin>"
+	" | show <plugin> [key <key>] | set <plugin> <key> <value>"
+	" | unset <plugin> <key> | loadtime [plugin <plugin>] } <nodes>"
     }},
     .nodes = 1,
     .descr = "Handle plugins on the selected nodes.",
     .tags = (taggedInfo_t[]) {
+	{ .tag = "plugin avail",
+	  .descr = "Show the available plugins on the selected nodes."
+	  " The info displayed includes all plugins available in the daemon's "
+	  " search path for plugins." },
 	{ .tag = "plugin list",
 	  .descr = "Show the currently loaded plugins on the selected nodes."
 	  " The info displayed includes name and version of the plugin plus a"
@@ -731,6 +746,21 @@ static info_t pluginInfo = {
 	  " nodes. The plugin might still be loaded for some time afterwards"
 	  " until all depending plugin are unloaded and all timeouts are"
 	  " expunged." },
+	{ .tag = "plugin help <plugin>",
+	  .descr = "Request some help-message from the plugin <plugin>." },
+	{ .tag = "plugin show <plugin> [key <key>]",
+	  .descr = "Show key-value pair indexed by <key> for the given plugin"
+	  " <plugin>. If no key is given explicitely, all pairs are"
+	  " displayed." },
+	{ .tag = "plugin set <plugin> <key> <value>",
+	  .descr = "Set key-value pair indexed by <key> to <value> for the"
+	  " given plugin <plugin>." },
+	{ .tag = "plugin unset <plugin> <key>",
+	  .descr = "Unset key-value pair indexed by <key> for the given plugin"
+	  " <plugin>." },
+	{ .tag = "plugin loadtime [plugin <plugin>]",
+	  .descr = "Display the load-time of the plugin <plugin>. If no plugin"
+	  " is given explicitely, the load-time of all plugins is displayed." },
 	{ NULL, NULL}
     },
     .comment = NULL
