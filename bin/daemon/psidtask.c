@@ -261,7 +261,7 @@ int PStasklist_enqueue(list_t *list, PStask_t *task)
 
 	PSID_log(-1, "%s: old task found: %s\n", __func__, taskStr);
 	PStasklist_dequeue(old);
-	PStask_delete(task);
+	PStask_delete(old);
     }
 
     list_add_tail(&task->next, list);
