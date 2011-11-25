@@ -1459,6 +1459,12 @@ int main( int argc, char**argv)
 	}
     }
 
+    if (getenv("PSI_LOG_SILENT")) {
+	PSIlog_log(PSILOG_LOG_VERB, "Silent operation.\n");
+	logger_finalize(PSIlog_logger);
+	PSIlog_logger = NULL;
+    }
+
     PSLog_init(daemonSock, -1, 2);
 
     /* init the timer structure */
