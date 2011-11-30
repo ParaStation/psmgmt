@@ -16,6 +16,9 @@ static char vcid[] __attribute__((used)) =
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netdb.h>
 #include <netinet/in.h>
 
 #include "pscommon.h"
@@ -757,4 +760,60 @@ char *PSI_printHWType(unsigned int hwType)
     txt[strlen(txt)-1] = '\0';
 
     return txt;
+}
+
+PSnodes_ID_t PSI_resolveNodeID(const char *host)
+{
+    PSnodes_ID_t nodeID = -1;
+    struct addrinfo hints;
+    struct addrinfo *result, *rp;
+    int rc;
+
+    memset(&hints, 0, sizeof(struct addrinfo));
+    hints.ai_family = AF_UNSPEC;    /* Allow IPv4 or IPv6 */
+    hints.ai_socktype = SOCK_DGRAM; /* Datagram socket */
+    hints.ai_flags = 0;
+    hints.ai_protocol = 0;          /* Any protocol */
+    hints.ai_canonname = NULL;
+    hints.ai_addr = NULL;
+    hints.ai_next = NULL;
+
+    rc = getaddrinfo(host, NULL, &hints, &result);
+    if (rc != 0) {
+	PSI_log(-1, "Unknown host '%s': %s\n", host, gai_strerror(rc));
+	return -1;
+    }
+
+    /*
+     * getaddrinfo() returns a list of address structures.
+     * Try each address until we successfully resolve to ParaStation ID.
+     */
+
+    for (rp = result; rp != NULL; rp = rp->ai_next) {
+	switch (rp->ai_family) {
+	case AF_INET:
+	    rc=PSI_infoNodeID(-1, PSP_INFO_HOST,
+			      &((struct sockaddr_in *)rp->ai_addr)->sin_addr.s_addr,
+			      &nodeID, 0);
+	    break;
+	case AF_INET6:
+	    /* ignore -- don't handle IPv6 yet */
+	    rc = -1;
+	    break;
+	}
+
+	if (!rc && nodeID >= 0 && nodeID < PSC_getNrOfNodes()) break;
+    }
+
+    freeaddrinfo(result);           /* No longer needed */
+
+    if (nodeID < 0) {
+	PSI_log(-1, "Cannot get PS_ID for host '%s'\n", host);
+	return -1;
+    } else if (nodeID >= PSC_getNrOfNodes()) {
+	PSI_log(-1, "PS_ID %d for node '%s' out of range\n", nodeID, host);
+	return -1;
+    }
+
+    return nodeID;
 }

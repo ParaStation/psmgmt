@@ -714,7 +714,20 @@ int PSI_infoOptionListNext(DDOption_t opts[], int num, int verbose);
  */
 char *PSI_printHWType(unsigned int hwType);
 
-
+/**
+ * @brief Retrieve the ParaStation ID for a given host.
+ *
+ * Resolve the ParaStation ID of a given node via its hostname @a
+ * host. For this, the node's IP-address is resolved via the DNS and
+ * matched to the corresponding ParaStation ID by asking the local
+ * daemon.
+ *
+ * @param host The name of the host to retrieve the ParaStation ID for.
+ *
+ * @return If resolving was successful, the corresponding ID is
+ * returned. Or -1, if an error occurred.
+ */
+PSnodes_ID_t PSI_resolveNodeID(const char *host);
 
 #ifdef __cplusplus
 }/* extern "C" */

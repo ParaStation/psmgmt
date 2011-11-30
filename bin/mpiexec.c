@@ -29,13 +29,11 @@ static char vcid[] __attribute__((used)) =
 #include <signal.h>
 #include <errno.h>
 #include <string.h>
+#include <ctype.h>
 #include <sys/types.h>
-#include <netdb.h>
-#include <netinet/in.h>
+#include <sys/stat.h>
 #include <pwd.h>
 #include <popt.h>
-#include <ctype.h>
-#include <sys/stat.h>
 
 #include <pse.h>
 #include <psi.h>
@@ -242,27 +240,9 @@ static void errExit(char *msg)
  */
 static void getNodeIDbyHost(char *host, PSnodes_ID_t *nodeID)
 {
-    struct hostent *hp;
-    struct in_addr sin_addr;
-    int err;
+    *nodeID = PSI_resolveNodeID(host);
 
-    hp = gethostbyname(host);
-    if (!hp) {
-	fprintf(stderr, "Unknown host '%s'\n", host);
-	exit(EXIT_FAILURE);
-    }
-
-    memcpy(&sin_addr, hp->h_addr_list[0], hp->h_length);
-    err = PSI_infoNodeID(-1, PSP_INFO_HOST, &sin_addr.s_addr, nodeID, 0);
-
-    if (err || *nodeID < 0) {
-	fprintf(stderr, "Cannot get PS_ID for host '%s'\n", host);
-	exit(EXIT_FAILURE);
-    } else if (*nodeID >= PSC_getNrOfNodes()) {
-	fprintf(stderr, "PS_ID %d for node '%s' out of range\n",
-		*nodeID, host);
-	exit(EXIT_FAILURE);
-    }
+    if (*nodeID < 0) exit(EXIT_FAILURE);
 }
 
 /**

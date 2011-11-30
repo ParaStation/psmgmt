@@ -16,8 +16,6 @@ static char vcid[] __attribute__((used)) =
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
-#include <netdb.h>
-#include <netinet/in.h>
 #include <pwd.h>
 #include <grp.h>
 #include <sys/types.h>
@@ -79,16 +77,9 @@ static char *getNodeList(char *nl_descr)
 
     host = strtok_r(nl_descr, ",", &work);
     while (host) {
-	PSnodes_ID_t node;
-	struct hostent *hp = gethostbyname(host);
-	struct sockaddr_in sa;
-	int err;
+	PSnodes_ID_t node = PSI_resolveNodeID(host);
 
-	if (!hp) goto error;
-
-	memcpy(&sa.sin_addr, *hp->h_addr_list, sizeof(sa.sin_addr));
-	err = PSI_infoNodeID(-1, PSP_INFO_HOST, &sa.sin_addr.s_addr, &node, 1);
-	if (err || node==-1) goto error;
+	if (node < 0) goto error;
 
 	nl[node] = 1;
 	host = strtok_r(NULL, ",", &work);

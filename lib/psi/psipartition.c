@@ -19,11 +19,6 @@ static char vcid[] __attribute__((used)) =
 #include <signal.h>
 #include <time.h>
 #include <errno.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <netdb.h>
-#include <sys/types.h>
-#include <sys/socket.h>
 
 #include "pscommon.h"
 #include "psprotocol.h"
@@ -392,29 +387,11 @@ static int nodelistFromNodeStr(char *nodeStr, nodelist_t *nodelist)
  */
 static int nodelistFromHost(char *host, nodelist_t *nodelist)
 {
-    struct hostent *hp;
-    struct in_addr sin_addr;
     PSnodes_ID_t node;
-    int err;
 
-    hp = gethostbyname(host);
-    if (!hp) {
-	PSI_log(-1, "%s: unknown node '%s'\n", __func__, host);
-	return 0;
-    }
+    node = PSI_resolveNodeID(host);
 
-    memcpy(&sin_addr, hp->h_addr_list[0], hp->h_length);
-    err = PSI_infoNodeID(-1, PSP_INFO_HOST, &sin_addr.s_addr, &node, 0);
-
-    if (err || node < 0) {
-	PSI_log(-1, "%s: cannot get ParaStation ID for node '%s'\n",
-		__func__, host);
-	return 0;
-    } else if (node >= PSC_getNrOfNodes()) {
-	PSI_log(-1, "%s: ParaStation ID %d for node '%s' out of range\n",
-		__func__, node, host);
-	return 0;
-    }
+    if (node < 0) return 0;
 
     return addNode(node, nodelist);
 }
@@ -569,7 +546,6 @@ static nodelist_t *getNodelist(void)
     } else if (hostfileStr) {
 	if (!nodelistFromHostFile(hostfileStr, nodelist)) goto error;
     }
-    endhostent();
     return nodelist;
 
  error:

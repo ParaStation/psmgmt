@@ -1,7 +1,7 @@
 /*
  *               ParaStation
  *
- * Copyright (C) 2006-2010 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2006-2011 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -22,11 +22,10 @@ static char vcid[] __attribute__((used)) =
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <string.h>
+#include <unistd.h>
+#include <sys/types.h>
 #include <pwd.h>
-#include <netdb.h>
-#include <netinet/in.h>
 
 #include <popt.h>
 
@@ -274,27 +273,9 @@ int main(int argc, const char *argv[])
     }
 
     if (host) {
-	struct hostent *hp;
-	struct in_addr sin_addr;
-	int err;
+	nodeID = PSI_resolveNodeID(host);
 
-	hp = gethostbyname(host);
-	if (!hp) {
-	    fprintf(stderr, "Unknown host '%s'\n", host);
-	    exit(1);
-	}
-
-	memcpy(&sin_addr, hp->h_addr_list[0], hp->h_length);
-	err = PSI_infoNodeID(-1, PSP_INFO_HOST, &sin_addr.s_addr, &nodeID, 0);
-
-	if (err || nodeID < 0) {
-	    fprintf(stderr, "Cannot get PS_ID for host '%s'\n", host);
-	    exit(1);
-	} else if (nodeID >= PSC_getNrOfNodes()) {
-	    fprintf(stderr, "PS_ID %d for node '%s' out of range\n",
-		    nodeID, host);
-	    exit(1);
-	}
+	if (nodeID < 0) exit(EXIT_FAILURE);
     } else {
 	if (node < 0 || node >= PSC_getNrOfNodes()) {
 	    fprintf(stderr, "Node %d out of range\n", node);

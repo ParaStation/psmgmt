@@ -451,8 +451,7 @@ char* parser_getFilename(char* token, char* prefix, char* extradir);
  * @param token The character array that contains the hostname.
  *
  * @return On success, the resolved IP address of the hostname is
- * returned. On error, 0 is given back and the @a h_errno variable
- * holds an error number.
+ * returned. Or 0, if an error occurred.
  */
 in_addr_t parser_getHostname(char* token);
 

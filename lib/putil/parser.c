@@ -19,11 +19,10 @@ static char vcid[] __attribute__((used)) =
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
-#include <netdb.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
 #include <syslog.h>
+#include <sys/socket.h>
+#include <netdb.h>
+#include <arpa/inet.h>
 
 #include "logging.h"
 
@@ -424,9 +423,11 @@ char *parser_getFilename(char *token, char *prefix, char *extradir)
 in_addr_t parser_getHostname(char *token)
 {
     char *hname;
-    struct in_addr in_addr;
-
-    struct hostent *hostinfo;
+    struct addrinfo hints;
+    struct addrinfo *result, *rp;
+    int rc;
+    struct in_addr *in_addr = NULL;
+    in_addr_t addr;
 
     if (!token) {
 	parser_comment(-1, "%s: token is NULL\n", __func__);
@@ -435,27 +436,52 @@ in_addr_t parser_getHostname(char *token)
 
     hname = token;
 
-    hostinfo = gethostbyname(hname);
+    memset(&hints, 0, sizeof(struct addrinfo));
+    hints.ai_family = AF_UNSPEC;    /* Allow IPv4 or IPv6 */
+    hints.ai_socktype = SOCK_DGRAM; /* Datagram socket */
+    hints.ai_flags = 0;
+    hints.ai_protocol = 0;          /* Any protocol */
+    hints.ai_canonname = NULL;
+    hints.ai_addr = NULL;
+    hints.ai_next = NULL;
 
-    if (!hostinfo) {
-	parser_comment(-1, "%s: %s\n", hname, hstrerror(h_errno));
+    rc = getaddrinfo(hname, NULL, &hints, &result);
+    if (rc != 0) {
+	parser_comment(-1, "Unknown host '%s': %s\n", hname, gai_strerror(rc));
+	return -1;
+    }
+
+    /*
+     * getaddrinfo() returns a list of address structures.
+     * Try each address until we successfully resolve to ParaStation ID.
+     */
+
+    for (rp = result; rp && !in_addr; rp = rp->ai_next) {
+	char addrStr[INET_ADDRSTRLEN] = {'\0'};
+	switch (rp->ai_family) {
+	case AF_INET:
+	    in_addr = &((struct sockaddr_in *)rp->ai_addr)->sin_addr;
+	    inet_ntop(rp->ai_family, in_addr,addrStr, sizeof(addrStr));
+	    parser_comment(PARSER_LOG_RES,
+			   "Found host '%s' to have address %s\n",
+			   hname, addrStr);
+	    break;
+	case AF_INET6:
+	    /* ignore -- don't handle IPv6 yet */
+	    break;
+	}
+    }
+
+    if (!in_addr) {
+	parser_comment(-1, "%s: No entry for '%s'\n", __func__, hname);
 	return 0;
     }
 
-    if (hostinfo->h_length != sizeof(in_addr.s_addr)) {
-	parser_comment(-1, "%s: Wrong size of address\n", hname);
+    addr = in_addr->s_addr;
 
-	h_errno = NO_ADDRESS;
+    freeaddrinfo(result);           /* No longer needed */
 
-	return 0;
-    }
-
-    memcpy(&in_addr.s_addr, hostinfo->h_addr_list[0], sizeof(in_addr.s_addr));
-
-    parser_comment(PARSER_LOG_RES, "Found host '%s' to have address %s\n",
-		   hname, inet_ntoa(in_addr));
-
-    return in_addr.s_addr;
+    return addr;
 }
 
 int parser_getNumValue(char *token, int *value, char *valname)
