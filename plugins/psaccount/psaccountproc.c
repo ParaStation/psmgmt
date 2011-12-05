@@ -133,10 +133,12 @@ int sendSignal2Session(pid_t session, int sig)
 	    child = Childproc->pid;
 	    if (Childproc->session == session) {
 		if (child != mypid && child > 0) {
+		    /*
 		    mlog("%s: send signal '%i' to pid '%i' pgroup '%i' "
 			"sid '%i' and all its children\n",
 			__func__, sig, child, Childproc->pgroup,
 			Childproc->session);
+		    */
 		    sendCount += sendSignal2AllChildren(mypid, child, Childproc->pgroup, sig);
 		}
 	    }
