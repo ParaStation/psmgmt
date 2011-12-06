@@ -1,3 +1,93 @@
+Version psmgmt-5.0.36:
+======================
+------------------------------------------------------------------------
+r8529 | eicker | 2011-12-06 17:40:38 +0100 (Tue, 06 Dec 2011) | 2 lines
+
+Bugfix: Beautify psiadmin's 'plugin help/show/...' output (#1481)
+
+------------------------------------------------------------------------
+r8528 | rauh | 2011-12-05 17:40:01 +0100 (Mon, 05 Dec 2011) | 3 lines
+
+Bugfix: (quick fix) psaccount logging via mlog in the psmom forwarder can let it
+exit unexpectedly.
+
+------------------------------------------------------------------------
+r8527 | eicker | 2011-11-30 17:15:28 +0100 (Wed, 30 Nov 2011) | 2 lines
+
+Enhancement: Replace gethostbyname() with getaddrinfo() (#654).
+
+------------------------------------------------------------------------
+r8526 | eicker | 2011-11-25 17:59:03 +0100 (Fri, 25 Nov 2011) | 3 lines
+
+Enhancement: If PSI_LOG_SILENT is set, logger will suppress all output
+    besides client-messages.
+
+------------------------------------------------------------------------
+r8525 | eicker | 2011-11-24 13:41:15 +0100 (Thu, 24 Nov 2011) | 2 lines
+
+Bugfix: If old task-structure found during enqueue delete the right one.
+
+------------------------------------------------------------------------
+r8524 | eicker | 2011-11-22 18:24:51 +0100 (Tue, 22 Nov 2011) | 9 lines
+
+Next generation plugin API:
+- support set(), unset(), show(), help() methods
+- new admin-directives: 'plugin set', 'plugin unset', 'plugin show',
+- new admin-directives: 'plugin help'
+- new admin-directives: 'plugin avail'
+- new admin-directives: 'show/set pluginUnloadTmout'
+- new admin-directives: 'show pluginAPIver'
+- new admin-directives: 'plugin loadtime'
+
+------------------------------------------------------------------------
+r8520 | eicker | 2011-10-20 13:49:05 +0200 (Thu, 20 Oct 2011) | 2 lines
+
+Extend plugin1 by tests of new plugin API
+
+------------------------------------------------------------------------
+r8519 | eicker | 2011-10-19 18:09:36 +0200 (Wed, 19 Oct 2011) | 5 lines
+
+Add definitions for new plugin actions (help, set, unset, show)
+New helpers to add data to messages (PSP_strLen(), PSP_putMsgBuf(),
+   PSP_putTypedMsgBuf())
+Fix typos
+
+------------------------------------------------------------------------
+r8518 | eicker | 2011-10-19 18:00:55 +0200 (Wed, 19 Oct 2011) | 2 lines
+
+Add definition of next-generation plugin interface.
+
+------------------------------------------------------------------------
+r8517 | eicker | 2011-09-19 13:49:58 +0200 (Mon, 19 Sep 2011) | 2 lines
+
+Push plugn-API to reflect Timer_registerEnhanced()
+
+------------------------------------------------------------------------
+r8516 | eicker | 2011-09-19 13:42:54 +0200 (Mon, 19 Sep 2011) | 3 lines
+
+Enhancement: Create new type of timeout-handlers receiving the timer ID
+    and additional information upon elapse. This implements #1361.
+
+------------------------------------------------------------------------
+r8515 | eicker | 2011-09-19 13:24:52 +0200 (Mon, 19 Sep 2011) | 2 lines
+
+Fix typos.
+
+------------------------------------------------------------------------
+r8514 | eicker | 2011-09-09 20:06:19 +0200 (Fri, 09 Sep 2011) | 5 lines
+
+Enhancement: psid shall not block SIGCHLD most of the time. Instead,
+    only critical code-regions are fenced by blocked SIGCHLD. This
+    should help with #1333
+Fix many typos (childs -> children)
+
+------------------------------------------------------------------------
+r8510 | eicker | 2011-08-29 16:04:27 +0200 (Mon, 29 Aug 2011) | 2 lines
+
+New version (psmgmt-5.0.35)
+
+------------------------------------------------------------------------
+
 Version psmgmt-5.0.35:
 ======================
 ------------------------------------------------------------------------

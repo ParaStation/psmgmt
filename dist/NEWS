@@ -4,6 +4,25 @@ Copyright (C) 2010-2011 ParTec Cluster Competence Center GmbH, Munich
 
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
+Version 5.0.36:
+===============
+
+Bugfixes:
+ - Beautify psiadmin's 'plugin help/show/...' output (#1481)
+ - (quick fix) psaccount logging via mlog in the psmom forwarder can let
+   it exit unexpectedly.
+ - If old task-structure found during enqueue delete the right one.
+
+Enhancements:
+ - Replace gethostbyname() with getaddrinfo() (#654)
+ - If PSI_LOG_SILENT is set, logger will suppress all output.
+ - Next generation plugin API (#973)
+ - New type of timeout-handlers receiving the timer ID and additional
+   information upon elapse (#1361)
+ - sendSignal2Session() returns number of children signal was sent to
+ - psid shall not block SIGCHLD most of the time. Instead, only critical
+   code-regions are fenced by blocked SIGCHLD (#1333)
+
 Version 5.0.35:
 ===============
 Bugfixes:
