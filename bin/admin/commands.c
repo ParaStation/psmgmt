@@ -1908,7 +1908,7 @@ void PSIADM_Plugin(char *nl, char *name, PSP_Plugin_t action)
 static int recvPluginKeyAnswers(PStask_ID_t src, PSP_Plugin_t action)
 {
     DDTypedBufferMsg_t answer;
-    int width = getWidth(), first = 1;
+    int first = 1;
 
     while (1) {
 	if (PSI_recvMsg((DDMsg_t *)&answer, sizeof(answer)) < 0) {
@@ -1925,13 +1925,12 @@ static int recvPluginKeyAnswers(PStask_ID_t src, PSP_Plugin_t action)
 	    break;
 	}
 
-	if ((PSP_Plugin_t)answer.type == action && !strlen(answer.buf)) break;
+	if ((PSP_Plugin_t)answer.type == action && !strlen(answer.buf))
+	    return !first;
 
 	if (first) {
-	    printf("%.*s\n", (width) > 0 ? width : 0,
-		   "---------------------------------------------------------"
-		   "---------------------------------------------------------");
 	    printf("%4d  ", PSC_getID(src));
+	    first = 0;
 	}
 
 	if (answer.type == -1) {
@@ -1942,11 +1941,20 @@ static int recvPluginKeyAnswers(PStask_ID_t src, PSP_Plugin_t action)
 	    break;
 	}
 
-	printf("\t%s", answer.buf);
-	first = 0;
+	switch ((PSP_Plugin_t)answer.type) {
+	case PSP_PLUGIN_AVAIL:
+	case PSP_PLUGIN_HELP:
+	case PSP_PLUGIN_SHOW:
+	    printf("\t");
+	    break;
+	default:
+	    break;
+	}
+
+	printf("%s", answer.buf);
     }
 
-    return 0;
+    return 1;
 }
 
 
@@ -1960,6 +1968,7 @@ void PSIADM_PluginKey(char *nl, char *name, char *key, char *value,
 	    .dest = 0,
 	    .len = sizeof(msg.header) + sizeof(msg.type) } };
     PSnodes_ID_t node;
+    int width = getWidth(), separator = 0;
 
     if (geteuid() || ! action==PSP_PLUGIN_SHOW) {
 	printf("Insufficient priviledge\n");
@@ -1977,13 +1986,20 @@ void PSIADM_PluginKey(char *nl, char *name, char *key, char *value,
     for (node=0; node<PSC_getNrOfNodes(); node++) {
 	if (nl && !nl[node]) continue;
 
+	if (separator) {
+	    printf("%.*s\n", (width) > 0 ? width : 0,
+		   "---------------------------------------------------------"
+		   "---------------------------------------------------------");
+	}
+
 	if (hostStatus.list[node]) {
 	    msg.header.dest = PSC_getTID(node, 0);
 	    PSI_sendMsg(&msg);
 
-	    recvPluginKeyAnswers(msg.header.dest, action);
+	    separator = recvPluginKeyAnswers(msg.header.dest, action);
 	} else {
 	    printf("%4d\tdown\n", node);
+	    separator = 1;
 	}
     }
 }
