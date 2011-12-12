@@ -42,6 +42,7 @@ static char vcid[] __attribute__((used)) =
 #include "psprotocol.h"
 #include "psdaemonprotocol.h"
 #include "pscpu.h"
+#include "selector.h"
 
 #include "psidutil.h"
 #include "psidforwarder.h"
@@ -1763,6 +1764,8 @@ static int buildSandboxAndStart(PStask_t *task)
 		close(i);
 	    }
 	}
+	/* Get rid of now useless selectors */
+	Selector_init(NULL);
 
 	/* Reopen the syslog and rename the tag */
 	openlog("psidforwarder", LOG_PID|LOG_CONS, config->logDest);

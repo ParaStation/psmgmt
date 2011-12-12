@@ -1,7 +1,7 @@
 /*
  *               ParaStation
  *
- * Copyright (C) 2009-2010 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2009-2011 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -81,6 +81,8 @@ static int doExec(char *script, PSID_scriptFunc_t func, PSID_scriptPrep_t prep,
 	for (fd=0; fd<getdtablesize(); fd++) {
 	    if (fd != controlfds[1] && fd != iofds[1]) close(fd);
 	}
+	/* Get rid of now useless selectors */
+	Selector_init(NULL);
 
 	/* setup the environment */
 	if (prep) prep(info);
