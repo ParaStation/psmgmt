@@ -1943,8 +1943,6 @@ static int recvPluginKeyAnswers(PStask_ID_t src, PSP_Plugin_t action)
 
 	switch ((PSP_Plugin_t)answer.type) {
 	case PSP_PLUGIN_AVAIL:
-	case PSP_PLUGIN_HELP:
-	case PSP_PLUGIN_SHOW:
 	    printf("\t");
 	    break;
 	default:

@@ -44,7 +44,7 @@ char name[] = "plugin1";
 int version = 100;
 
 plugin_dep_t dependencies[] = {
-    { "plugin2", 0 },
+    // { "plugin2", 0 },
     { NULL, 0 } };
 
 /* Flag suppressing some messages */
@@ -108,11 +108,11 @@ void cleanup(void)
 
 char * help(void)
 {
-    char *helpText = "This is the help-text for this plugin. For test-usage\n"
+    char *helpText = "\tThis is the help-text for this plugin. For test-usage\n"
 	"\tthis one includes more that one line. In fact, it even contains a\n"
 	"\tthird line.\n";
 
-    /* char *helpText = */
+    /* char *helpText = "\t" */
     /* 	"aaaaaaaaaa" "aaaaaaaaaa" "aaaaaaaaaa" "aaaaaaaaaa" "aaaaaaaaaa" */
     /* 	"aaaaaaaaaa" "aaaaaaaaaa" "aaaaaaaaaa" "aaaaaaaaaa" "aaaaaaaaaa" */
     /* 	"aaaaaaaaaa" "aaaaaaaaaa" "aaaaaaaaaa" "aaaaaaaaaa" "aaaaaaaaaa" */
@@ -200,8 +200,8 @@ char * set(char *key, char *val)
 	kv->val = strdup(val);
 	list_add_tail(&kv->next, &keyValList);
     }
-    if (!kv || !kv->key || !kv->val) return strdup("Not enough memory\n");
-    if (!strcmp(key, "magic")) return strdup("Magic value triggered\n");
+    if (!kv || !kv->key || !kv->val) return strdup("\tNot enough memory\n");
+    if (!strcmp(key, "magic")) return strdup("\tMagic value triggered\n");
 
     return NULL;
 }
@@ -212,7 +212,7 @@ char * unset(char *key)
     char retStr[128];
 
     if (!kv) {
-	snprintf(retStr, sizeof(retStr), "%s: key '%s' not found\n", __func__,
+	snprintf(retStr, sizeof(retStr), "\t%s: key '%s' not found\n", __func__,
 		 key);
 	return strdup(retStr);
     } else {
@@ -234,21 +234,19 @@ char * show(char *key)
 	keyVal_t *kv = findEnt(key);
 	filled = 1;
 	if (!kv) {
-	    snprintf(retStr, sizeof(retStr), "%s: key '%s' not found\n",
+	    snprintf(retStr, sizeof(retStr), "\t%s: key '%s' not found\n",
 		     __func__, key);
 	} else {
-	    snprintf(retStr, sizeof(retStr), "%s=%s\n", kv->key, kv->val);
+	    snprintf(retStr, sizeof(retStr), "\t%s=%s\n", kv->key, kv->val);
 	}
     } else {
 	list_t *t;
-	int first=1;
 	list_for_each(t, &keyValList) {
 	    keyVal_t *kv = list_entry(t, keyVal_t, next);
 
 	    filled = 1;
 	    snprintf(retStr+strlen(retStr), sizeof(retStr)-strlen(retStr),
-		     "%s%s=%s\n", first ? "" : "\t", kv->key, kv->val);
-	    first = 0;
+		     "\t%s=%s\n", kv->key, kv->val);
 	}
     }
 
