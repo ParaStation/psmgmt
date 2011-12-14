@@ -767,7 +767,6 @@ static void CheckFileTable(fd_set* openfds)
     fd_set rfds;
     int fd;
     struct timeval tv;
-    char* errstr;
 
     for (fd=0;fd<FD_SETSIZE;) {
 	if (FD_ISSET(fd,openfds)) {
@@ -800,7 +799,6 @@ static void CheckFileTable(fd_set* openfds)
 		    FD_CLR(fd,openfds);
 		    break;
 		default:
-		    errstr=strerror(errno);
 		    PSIlog_warn(-1, errno, "unrecognized error");
 		    fd ++;
 		    break;
@@ -1521,6 +1519,9 @@ int main( int argc, char**argv)
 	int ret;
 	PSIlog_log(PSILOG_LOG_VERB, "Execute '%s'\n", argv[i]);
 	ret = system(argv[i]);
+	if (ret < 0) {
+	    PSIlog_log(-1, "Failed to execute '%s' via system()\n", argv[i]);
+	}
     }
 
     PSIlog_finalizeLogs();

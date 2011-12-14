@@ -96,14 +96,21 @@ static const char *alarmFunc = NULL;
  */
 static void alarmHandler(int sig)
 {
-    int ret, eno = ETIME;
+    int eno = ETIME;
 
     if (!alarmFunc) alarmFunc = "UNKNOWN";
 
     PSID_warn(-1, eno, "%s: %s()", __func__, alarmFunc);
     fprintf(stderr, "%s: %s(): %s\n", __func__, alarmFunc, get_strerror(eno));
 
-    if (alarmFD >= 0) ret = write(alarmFD, &eno, sizeof(eno));
+    if (alarmFD >= 0) {
+	int ret = write(alarmFD, &eno, sizeof(eno));
+	if (ret < 0) {
+	    eno = errno;
+	    PSID_warn(-1, eno, "%s: write()", __func__);
+	    fprintf(stderr, "%s: write(): %s\n", __func__, get_strerror(eno));
+	}
+    }
 
     exit(1);
 }
@@ -961,8 +968,13 @@ static void execClient(PStask_t *task)
     /* change the gid */
     if (setgid(task->gid)<0) {
 	eno = errno;
-	ret = write(task->fd, &eno, sizeof(eno));
 	fprintf(stderr, "%s: setgid: %s\n", __func__, get_strerror(eno));
+	ret = write(task->fd, &eno, sizeof(eno));
+	if (ret < 0) {
+	    eno = errno;
+	    fprintf(stderr, "%s: setgid: write(): %s\n", __func__,
+		    get_strerror(eno));
+	}
 	exit(1);
     }
 
@@ -987,8 +999,13 @@ static void execClient(PStask_t *task)
     /* change the uid */
     if (setuid(task->uid)<0) {
 	eno = errno;
-	ret = write(task->fd, &eno, sizeof(eno));
 	fprintf(stderr, "%s: setuid: %s\n", __func__, get_strerror(eno));
+	ret = write(task->fd, &eno, sizeof(eno));
+	if (ret < 0) {
+	    eno = errno;
+	    fprintf(stderr, "%s: setuid: write(): %s\n", __func__,
+		    get_strerror(eno));
+	}
 	exit(1);
     }
 

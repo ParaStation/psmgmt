@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2009 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2011 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -271,13 +271,20 @@ static void *listenToClients(void *val)
 	sock = accept(args.sock, NULL, 0);
 
 	count = recv(sock, buf, sizeof(buf), 0);
+	if (count < 0) {
+	    int eno = errno;
+	    fprintf(stderr, "%s: recv(): %s\n keep listening...\n", __func__,
+		    strerror(eno));
+	    close(sock);
+	    continue;
+	}
 
 	ret = sscanf(buf, "<<<ABORT_%d_ABORT>>>", &thismagic);
 
 	if (ret != 1) {
 	    fprintf(stderr,
 		    "Received spurious abort message, keep listening...\n");
-	    close (sock);
+	    close(sock);
 	    continue;
 	}
 

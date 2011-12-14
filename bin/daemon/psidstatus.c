@@ -565,7 +565,7 @@ static int stateChangeEnv(void *info)
 
 static int stateChangeCB(int fd, PSID_scriptCBInfo_t *cbInfo)
 {
-    int nID = -1, result = -13, iofd = -1;
+    int result = -13, iofd = -1;
     char *sName = "<unknown>";
 
     if (!cbInfo) {
@@ -573,7 +573,6 @@ static int stateChangeCB(int fd, PSID_scriptCBInfo_t *cbInfo)
     } else {
 	if (cbInfo->info) {
 	    stateChangeInfo_t *i = cbInfo->info;
-	    nID = i->id;
 	    sName = i->script;
 	    free(i);
 	}

@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2009 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2011 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -46,14 +46,12 @@ int main(int argc, char *argv[])
 {
     int rank = -1, i;
 
-    char *host;
-
     if (argc < 6) {
 	fprintf(stderr, "You need to give at least five argument\n");
 	exit(1);
     }
 
-    host = argv[1]; // @todo test if valid
+    /** @todo test validity of argv[1] (hostname) */
 
     if (strstr(argv[2], "-l") != argv[2]) {
 	usage(argv[0]);
