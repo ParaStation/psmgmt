@@ -440,7 +440,7 @@ int PSI_recvMsg(DDMsg_t *msg, size_t size)
     }
 
     do {
-	n = read(daemonSock, &((char*)msg)[count], expected-count);
+	n = read(daemonSock, &buf[count], expected-count);
 	if (n>0) {
 	    count+=n;
 	} else if (n == -1 && errno == EINTR) {
