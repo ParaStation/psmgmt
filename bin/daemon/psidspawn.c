@@ -43,6 +43,7 @@ static char vcid[] __attribute__((used)) =
 #include "psdaemonprotocol.h"
 #include "pscpu.h"
 #include "selector.h"
+#include "timer.h"
 
 #include "psidutil.h"
 #include "psidforwarder.h"
