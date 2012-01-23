@@ -1,7 +1,7 @@
 /*
  *               ParaStation
  *
- * Copyright (C) 2009-2011 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2009-2012 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -15,6 +15,7 @@ static char vcid[] __attribute__((used)) =
 #include <unistd.h>
 #include <string.h>
 #include <errno.h>
+#include <syslog.h>
 #include <sys/stat.h>
 #include <sys/wait.h>
 
@@ -78,11 +79,19 @@ static int doExec(char *script, PSID_scriptFunc_t func, PSID_scriptPrep_t prep,
 	signal(SIGCHLD, SIG_DFL);
 	PSID_blockSig(0, SIGCHLD);
 
+	/* close all fds except control channel and connecting socket */
+	/* Start with connection to syslog */
+	closelog();
 	for (fd=0; fd<getdtablesize(); fd++) {
 	    if (fd != controlfds[1] && fd != iofds[1]) close(fd);
 	}
+	/* Reopen the syslog and rename the tag */
+	openlog("psid -- script", LOG_PID|LOG_CONS, config->logDest);
+
 	/* Get rid of now useless selectors */
 	Selector_init(NULL);
+	/* Get rid of obsolete timers */
+	Timer_init(NULL);
 
 	/* setup the environment */
 	if (prep) prep(info);

@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2011 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2012 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -1781,11 +1781,13 @@ static int buildSandboxAndStart(PStask_t *task)
 		close(i);
 	    }
 	}
-	/* Get rid of now useless selectors */
-	Selector_init(NULL);
-
 	/* Reopen the syslog and rename the tag */
 	openlog("psidforwarder", LOG_PID|LOG_CONS, config->logDest);
+
+	/* Get rid of now useless selectors */
+	Selector_init(NULL);
+	/* Get rid of obsolete timers */
+	Timer_init(NULL);
 
 	PSC_setDaemonFlag(0);
 	PSC_resetMyTID();
