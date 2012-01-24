@@ -19,8 +19,9 @@ static char vcid[] __attribute__((used)) =
 #include <sys/stat.h>
 #include <sys/wait.h>
 
-#include "selector.h"
 #include "pscommon.h"
+#include "selector.h"
+#include "timer.h"
 
 #include "psidutil.h"
 

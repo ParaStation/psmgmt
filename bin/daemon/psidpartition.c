@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2011 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2012 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -508,6 +508,23 @@ int send_TASKDEAD(PStask_ID_t tid)
     }
 
     return sendMsg(&msg);
+}
+
+/**
+ * @brief Drop a PSP_DD_TASKDEAD message.
+ *
+ * Drop the message @a msg of type PSP_DD_TASKDEAD.
+ *
+ * If this type of message is dropped, most probably the master-daemon
+ * has changed. Thus, inform the new master about the dead task, too.
+ *
+ * @param msg Pointer to the message to drop.
+ *
+ * @return No return value.
+ */
+static void drop_TASKDEAD(DDBufferMsg_t *msg)
+{
+    send_TASKDEAD(msg->header.sender);
 }
 
 /**
@@ -2044,7 +2061,7 @@ static void msg_CREATEPART(DDBufferMsg_t *inmsg)
 
     /* This hook is used by plugins like the psmom to overwrite the
      * nodelist. If the plugin has sent an message by itself, it will
-     * return 0. If the incoming message has to be handl further, it
+     * return 0. If the incoming message has to be handled further, it
      * will return 1. If no plugin is registered, the return code will
      * be PSIDHOOK_NOFUNC and, thus, inmsg will be handled here.
      */
@@ -2982,7 +2999,7 @@ static void sendExistingPartitions(PStask_ID_t dest)
     list_for_each(t, &managedTasks) {
 	PStask_t *task = list_entry(t, PStask_t, next);
 	if (task->deleted) continue;
-	if (task->partition && task->partitionSize) {
+	if (task->partition && task->partitionSize && !task->removeIt) {
 	    char *ptr = msg.buf;
 
 	    msg.header.type = PSP_DD_PROVIDETASK;
@@ -3362,6 +3379,8 @@ void initPartition(void)
     PSID_registerMsg(PSP_DD_TASKDEAD, (handlerFunc_t) msg_TASKDEAD);
     PSID_registerMsg(PSP_DD_TASKSUSPEND, (handlerFunc_t) msg_TASKSUSPEND);
     PSID_registerMsg(PSP_DD_TASKRESUME, (handlerFunc_t) msg_TASKRESUME);
+
+    PSID_registerDropper(PSP_DD_TASKDEAD, drop_TASKDEAD);
 
     PSID_registerLoopAct(handlePartRequests);
 }

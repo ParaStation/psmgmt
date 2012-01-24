@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2011 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2012 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -622,8 +622,6 @@ void declareNodeDead(PSnodes_ID_t id, int sendDeadnode, int silent)
     PSIDnodes_setPhysCPUs(id, 0);
     PSIDnodes_setVirtCPUs(id, 0);
 
-    clearRDPMsgs(id);
-
     if (config->useMCast) declareNodeDeadMCast(id);
 
     /* Send signals to all processes that controlled task on the dead node */
@@ -688,6 +686,9 @@ void declareNodeDead(PSnodes_ID_t id, int sendDeadnode, int silent)
 			    stateChangeCB, info);
 	}
     }
+
+    /* Drop messages not before new master is found */
+    clearRDPMsgs(id);
 
     if (!config->useMCast && getMasterID() == PSC_getMyID() && sendDeadnode) {
 	send_DEADNODE(id);
