@@ -239,6 +239,34 @@ int getWidth(void)
     return width;
 }
 
+static char * nodeString(PSnodes_ID_t node)
+{
+    static char nodeStr[128];
+
+    if (getenv("__DUMM_DUMM__")) {
+	struct in_addr hostaddr;
+	struct hostent *hp;
+	char *ptr;
+	int err = PSI_infoUInt(-1, PSP_INFO_NODE, &node, &hostaddr.s_addr, 0);
+	if (err || (hostaddr.s_addr == INADDR_ANY)) {
+	    snprintf(nodeStr, sizeof(nodeStr), "<unknown>(%d)", node);
+	    return nodeStr;
+	}
+
+	hp = gethostbyaddr(&hostaddr.s_addr, sizeof(hostaddr.s_addr), AF_INET);
+	if (hp) {
+	    if ((ptr = strchr(hp->h_name, '.'))) *ptr = '\0';
+	    return hp->h_name;
+	} else {
+	    snprintf(nodeStr, sizeof(nodeStr), "%s", inet_ntoa(hostaddr));
+	}
+    } else {
+	snprintf(nodeStr, sizeof(nodeStr), "%4d", node);
+    }
+
+    return nodeStr;
+}
+
 /* ---------------------------------------------------------------------- */
 
 /** Delay between starting nodes in msec. @todo Make this configurable. */
@@ -268,7 +296,7 @@ void PSIADM_AddNode(char *nl)
 	if (hostStatus.list[node]) {
 	    /* printf("%d already up.\n", node); */
 	} else {
-	    printf("starting node %d\n", node);
+	    printf("starting node %s\n", nodeString(node));
 	    msg.header.len = sizeof(msg.header);
 	    PSP_putMsgBuf(&msg, "node ID", &node, sizeof(node));
 	    PSI_sendMsg(&msg);
@@ -345,7 +373,7 @@ void PSIADM_HWStart(int hw, char *nl)
 	    msg.header.dest = PSC_getTID(node, 0);
 	    PSI_sendMsg(&msg);
 	} else {
-	    printf("%4d\tdown\n", node);
+	    printf("%s\tdown\n", nodeString(node));
 	}
     }
 }
@@ -381,7 +409,7 @@ void PSIADM_HWStop(int hw, char *nl)
 	    msg.header.dest = PSC_getTID(node, 0);
 	    PSI_sendMsg(&msg);
 	} else {
-	    printf("%4d\tdown\n", node);
+	    printf("%s\tdown\n", nodeString(node));
 	}
     }
 }
@@ -395,10 +423,11 @@ void PSIADM_NodeStat(char *nl)
     for (node=0; node<PSC_getNrOfNodes(); node++) {
 	if (nl && !nl[node]) continue;
 
+	printf("%s\t", nodeString(node));
 	if (hostStatus.list[node]) {
-	    printf("%4d\tup\n", node);
+	    printf("up\n");
 	} else {
-	    printf("%4d\tdown\n", node);
+	    printf("down\n");
 	}
     }
 }
@@ -450,18 +479,18 @@ void PSIADM_StarttimeStat(char *nl)
     for (node=0; node<PSC_getNrOfNodes(); node++) {
 	if (nl && !nl[node]) continue;
 
+	printf("%s\t", nodeString(node));
 	if (hostStatus.list[node]) {
 	    int64_t secs;
 	    int err;
 
-	    printf("%4d\t", node);
 	    err = PSI_infoInt64(node, PSP_INFO_STARTTIME, NULL, &secs, 0);
 	    if (!err) {
 		time_t startTime = (time_t) secs;
 		printf(" %s", ctime(&startTime));
 	    }
 	} else {
-	    printf("%4d\tdown\n", node);
+	    printf("down\n");
 	}
     }
 }
@@ -477,7 +506,7 @@ void PSIADM_ScriptStat(PSP_Info_t type, char *nl)
     printf("%4s\t%s\n", "Node", "Script");
     for (node=0; node<PSC_getNrOfNodes(); node++) {
 	if (nl && !nl[node]) continue;
-	printf("%4d\t", node);
+	printf("%s\t", nodeString(node));
 	if (hostStatus.list[node]) {
 	    int err = PSI_infoString(node, type, NULL, scriptName,
 				     sizeof(scriptName), 1);
@@ -556,7 +585,7 @@ void PSIADM_RDPStat(char *nl)
 
     for (node=0; node<PSC_getNrOfNodes(); node++) {
 	if (nl && !nl[node]) continue;
-	printf("%4d:\n", node);
+	printf("%s:\n", nodeString(node));
 	if (hostStatus.list[node]) {
 	    for (partner=0; partner<PSC_getNrOfNodes(); partner++) {
 		int err = PSI_infoString(node, PSP_INFO_RDPSTATUS, &partner,
@@ -578,7 +607,7 @@ void PSIADM_RDPConnStat(char *nl)
 
     for (node=0; node<PSC_getNrOfNodes(); node++) {
 	if (nl && !nl[node]) continue;
-	printf("%4d:\n", node);
+	printf("%s:\n", nodeString(node));
 	if (hostStatus.list[node]) {
 	    for (partner=0; partner<PSC_getNrOfNodes(); partner++) {
 		int err = PSI_infoString(node, PSP_INFO_RDPCONNSTATUS, &partner,
@@ -665,7 +694,7 @@ void PSIADM_CountStat(int hw, char *nl)
 	for (node=0; node<PSC_getNrOfNodes(); node++) {
 	    if (nl && !nl[node]) continue;
 
-	    printf("%4d\t", node);
+	    printf("%s\t", nodeString(node));
 	    if (hostStatus.list[node]) {
 		if (hwStatus[node] & 1<<hw) {
 		    int err = PSI_infoString(node, PSP_INFO_COUNTSTATUS, &hw,
@@ -708,7 +737,7 @@ void PSIADM_ProcStat(int count, int full, char *nl)
 		    __func__)) return;
     taskInfo = (PSP_taskInfo_t *)tiList.list;
 
-    usedWidth = printf("%4s %22s %22s %3s %5s %5s %3s ", "Node", "TaskId",
+    usedWidth = printf("%s\t%22s %22s %3s %5s %5s %3s ", "Node", "TaskId",
 		       "ParentTaskId", "Con", "UID", "rank", "Cls");
     printf("%.*s\n", (width-usedWidth) > 0 ? width-usedWidth : 0, "Cmd");
     for (node=0; node<PSC_getNrOfNodes(); node++) {
@@ -720,7 +749,7 @@ void PSIADM_ProcStat(int count, int full, char *nl)
 	       "---------------------------------------------------------"
 	       "---------------------------------------------------------");
 	if (!hostStatus.list[node]) {
-	    printf("%4d\tdown\n", node);
+	    printf("%s\tdown\n", nodeString(node));
 	    continue;
 	}
 
@@ -754,7 +783,7 @@ void PSIADM_ProcStat(int count, int full, char *nl)
 	/* Now do the output */
 	displdTasks = (count<0) ? numTasks : (numTasks<count) ? numTasks:count;
 	for (task=0; task < displdTasks; task++) {
-	    usedWidth = printf("%4d ", node);
+	    usedWidth = printf("%s\t", nodeString(node));
 	    usedWidth += printf("%22s ", PSC_printTID(taskInfo[task].tid));
 	    usedWidth += printf("%22s ", PSC_printTID(taskInfo[task].ptid));
 	    usedWidth += printf("%2d  ", taskInfo[task].connected);
@@ -814,13 +843,14 @@ void PSIADM_LoadStat(char *nl)
 
     for (node=0; node<PSC_getNrOfNodes(); node++) {
 	if (nl && !nl[node]) continue;
+	printf("%s\t", nodeString(node));
 	if (hostStatus.list[node]) {
-	    printf("%4d\t%2.4f\t%2.4f\t%2.4f\t%4d\t%4d\t%4d\t%5d\n", node,
+	    printf("%2.4f\t%2.4f\t%2.4f\t%4d\t%4d\t%4d\t%5d\n",
 		   loads[3*node+0], loads[3*node+1], loads[3*node+2],
 		   taskNumFull[node], taskNumNorm[node], taskNumAlloc[node],
 		   exclusiveFlag[node]);
 	} else {
-	    printf("%4d\tdown\n", node);
+	    printf("down\n");
 	}
     }
 }
@@ -839,12 +869,13 @@ void PSIADM_MemStat(char *nl)
 
     for (node=0; node<PSC_getNrOfNodes(); node++) {
 	if (nl && !nl[node]) continue;
+	printf("%s\t", nodeString(node));
 	if (hostStatus.list[node]) {
-	    printf("%4d\t%15llu\t%15llu\n",
-		   node, (long long unsigned int) memory[2*node+0],
+	    printf("%15llu\t%15llu\n",
+		   (long long unsigned int) memory[2*node+0],
 		   (long long unsigned int) memory[2*node+1]);
 	} else {
-	    printf("%4d\tdown\n", node);
+	    printf("down\n");
 	}
     }
 }
@@ -867,12 +898,12 @@ void PSIADM_HWStat(char *nl)
     for (node=0; node<PSC_getNrOfNodes(); node++) {
 	if (nl && !nl[node]) continue;
 
+	printf("%s\t", nodeString(node));
 	if (hostStatus.list[node]) {
-	    printf("%4d\t %2d/%2d\t %s\n", node,
-		   virtCPUs[node], physCPUs[node],
+	    printf("%2d/%2d\t %s\n", virtCPUs[node], physCPUs[node],
 		   PSI_printHWType(hwStatus[node]));
 	} else {
-	    printf("%4d\tdown\n", node);
+	    printf("down\n");
 	}
     }
 }
@@ -882,7 +913,7 @@ void PSIADM_PluginStat(char *nl)
     PSnodes_ID_t node;
     PSP_Info_t what = PSP_INFO_QUEUE_PLUGINS;
     int width = getWidth(), usedWidth;
-    char line[512];
+    char line[512], *nodeStr;
 
     if (! getHostStatus()) return;
     if (width < 20) {
@@ -890,7 +921,7 @@ void PSIADM_PluginStat(char *nl)
 	return;
     }
 
-    usedWidth = printf("%4s %16s   %3s   ", "Node", "Plugin", "Ver");
+    usedWidth = printf(" %s\t%16s   %3s   ", "Node", "Plugin", "Ver");
     printf("%.*s\n", (width-usedWidth) > 0 ? width-usedWidth : 0, "Used by");
     for (node=0; node<PSC_getNrOfNodes(); node++) {
 	int firstline = 1;
@@ -900,8 +931,10 @@ void PSIADM_PluginStat(char *nl)
 	printf("%.*s\n", (width) > 0 ? width : 0,
 	       "---------------------------------------------------------"
 	       "---------------------------------------------------------");
+	nodeStr = nodeString(node);
+
 	if (!hostStatus.list[node]) {
-	    printf("%4d\tdown\n", node);
+	    printf("%s\tdown\n", nodeStr);
 	    continue;
 	}
 
@@ -911,12 +944,12 @@ void PSIADM_PluginStat(char *nl)
 
 	while (PSI_infoQueueNext(what, line, sizeof(line), 1) > 0) {
 	    if (firstline) {
-		usedWidth = printf("%4d ", node);
+		usedWidth = printf("%s", nodeStr);
 		firstline = 0;
 	    } else {
 		usedWidth = printf("%*s", usedWidth, "");
 	    }
-	    printf("%.*s\n", width-usedWidth, line);
+	    printf("\t%.*s\n", width-usedWidth, line);
 	}
     }
 }
@@ -926,7 +959,7 @@ void PSIADM_EnvStat(char *key, char *nl)
     PSnodes_ID_t node;
     PSP_Info_t what = PSP_INFO_QUEUE_ENVS;
     int width = getWidth(), usedWidth;
-    char line[BufTypedMsgSize];
+    char line[BufTypedMsgSize], *nodeStr;
 
     if (! getHostStatus()) return;
     if (width < 20) {
@@ -943,8 +976,10 @@ void PSIADM_EnvStat(char *key, char *nl)
 	printf("%.*s\n", (width) > 0 ? width : 0,
 	       "---------------------------------------------------------"
 	       "---------------------------------------------------------");
+	nodeStr = nodeString(node);
+
 	if (!hostStatus.list[node]) {
-	    printf("%4d\tdown\n", node);
+	    printf("%s\tdown\n", nodeStr);
 	    continue;
 	}
 
@@ -954,12 +989,12 @@ void PSIADM_EnvStat(char *key, char *nl)
 
 	while (PSI_infoQueueNext(what, line, sizeof(line), 1) > 0) {
 	    if (firstline) {
-		usedWidth = printf("%4d  ", node);
+		usedWidth = printf("%s", nodeStr);
 		firstline = 0;
 	    } else {
 		usedWidth = printf("%*s", usedWidth, "");
 	    }
-	    printf("%s\n", line);
+	    printf("\t%s\n", line);
 	}
     }
 }
@@ -1297,6 +1332,7 @@ void PSIADM_VersionStat(char *nl)
     for (node=0; node<PSC_getNrOfNodes(); node++) {
 	if (nl && !nl[node]) continue;
 
+	printf("%s\t", nodeString(node));
 	if (hostStatus.list[node]) {
 	    char psidver[100], rpmrev[100];
 	    PSP_Optval_t optVal[2];
@@ -1312,7 +1348,7 @@ void PSIADM_VersionStat(char *nl)
 				 rpmrev, sizeof(rpmrev), 0);
 	    if (err) strcpy(rpmrev, "unknown");
 
-	    printf("%4d\t%8s\b  %16s ", node, psidver+11, rpmrev);
+	    printf("%8s\b  %16s ", psidver+11, rpmrev);
 
 	    err = PSI_infoOption(node, 2, optType, optVal, 1);
 	    if (err != -1) {
@@ -1332,7 +1368,7 @@ void PSIADM_VersionStat(char *nl)
 		printf(" error getting info\n");
 	    }
 	} else {
-	    printf("%4d\tdown\n", node);
+	    printf("down\n");
 	}
     }
 }
@@ -1528,7 +1564,7 @@ void PSIADM_ShowParam(PSP_Option_t type, char *nl)
     for (node=0; node<PSC_getNrOfNodes(); node++) {
 	if (nl && !nl[node]) continue;
 
-	printf("%4d\t", node);
+	printf("%s\t", nodeString(node));
 	if (hostStatus.list[node]) {
 	    PSP_Option_t t = type;
 	    ret = PSI_infoOption(node, 1, &t, &value, 1);
@@ -1596,7 +1632,7 @@ void PSIADM_ShowParamList(PSP_Option_t type, char *nl)
 	int total=0;
 	if (nl && !nl[node]) continue;
 
-	printf("%4d\t", node);
+	printf("%s\t", nodeString(node));
 	if (!hostStatus.list[node]) {
 	    printf("down\n");
 	    continue;
@@ -1834,7 +1870,7 @@ void PSIADM_Resolve(char *nl)
     PSnodes_ID_t node;
 
     for (node=0; node<PSC_getNrOfNodes(); node++) {
-	struct  in_addr hostaddr;
+	struct in_addr hostaddr;
 	struct hostent *hp;
 	char *ptr;
 	int err;
@@ -1889,18 +1925,19 @@ void PSIADM_Plugin(char *nl, char *name, PSP_Plugin_t action)
 	    msg.header.dest = PSC_getTID(node, 0);
 	    PSI_sendMsg(&msg);
 	    if (PSI_recvMsg((DDMsg_t *)&answer, sizeof(answer)) < 0) {
-		printf("%soading plugin '%s' on node %d failed\n",
-		       action ? "Unl" : "L", name, node);
+		printf("%soading plugin '%s' on node %s failed\n",
+		       action ? "Unl" : "L", name, nodeString(node));
 	    }
 	    if (answer.type == -1) {
-		printf("Cannot %sload plugin '%s' on node %d\n",
-		       action ? "un" : "", name, node);
+		printf("Cannot %sload plugin '%s' on node %s\n",
+		       action ? "un" : "", name, nodeString(node));
 	    } else if (answer.type) {
-		printf("Cannot %sload plugin '%s' on node %d: %s\n",
-		       action ? "un" : "", name, node, strerror(answer.type));
+		printf("Cannot %sload plugin '%s' on node %s: %s\n",
+		       action ? "un" : "", name, nodeString(node),
+		       strerror(answer.type));
 	    }
 	} else {
-	    printf("%4d\tdown\n", node);
+	    printf("%s\tdown\n", nodeString(node));
 	}
     }
 }
@@ -1929,7 +1966,7 @@ static int recvPluginKeyAnswers(PStask_ID_t src, PSP_Plugin_t action)
 	    return !first;
 
 	if (first) {
-	    printf("%4d  ", PSC_getID(src));
+	    printf("%s", nodeString(PSC_getID(src)));
 	    first = 0;
 	}
 
@@ -1996,7 +2033,7 @@ void PSIADM_PluginKey(char *nl, char *name, char *key, char *value,
 
 	    separator = recvPluginKeyAnswers(msg.header.dest, action);
 	} else {
-	    printf("%4d\tdown\n", node);
+	    printf("%s\tdown\n", nodeString(node));
 	    separator = 1;
 	}
     }
@@ -2051,15 +2088,16 @@ void PSIADM_Environment(char *nl, char *key, char *value, PSP_Env_t action)
 	    msg.header.dest = PSC_getTID(node, 0);
 	    PSI_sendMsg(&msg);
 	    if (PSI_recvMsg((DDMsg_t *)&answer, sizeof(answer)) < 0) {
-		printf("%ssetting '%s' on node %d failed\n",
-		       action ? "Uns" : "S", key, node);
+		printf("%ssetting '%s' on node %s failed\n",
+		       action ? "Uns" : "S", key, nodeString(node));
 	    }
 	    if (answer.type == -1) {
-		printf("Cannot %sset '%s' on node %d\n",
-		       action ? "un" : "", key, node);
+		printf("Cannot %sset '%s' on node %s\n",
+		       action ? "un" : "", key, nodeString(node));
 	    } else if (answer.type) {
-		printf("Cannot %sset '%s' on node %d: %s\n",
-		       action ? "un" : "", key, node, strerror(answer.type));
+		printf("Cannot %sset '%s' on node %s: %s\n",
+		       action ? "un" : "", key, nodeString(node),
+		       strerror(answer.type));
 	    }
 	}
     }
