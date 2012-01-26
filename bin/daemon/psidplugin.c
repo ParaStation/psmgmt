@@ -719,11 +719,11 @@ void PSIDplugin_sendList(PStask_ID_t dest)
 	if (plugin->unload) continue;
 
 	if (plugin->finalized) {
-	    snprintf(msg.buf, sizeof(msg.buf), "%16s D %3d  ",
+	    snprintf(msg.buf, sizeof(msg.buf), "\t%16s D %3d  ",
 		     plugin->name, plugin->version);
 	} else {
 	    plugin_ref_t *explicit = findRef(&plugin->triggers, plugin);
-	    snprintf(msg.buf, sizeof(msg.buf), "%16s %1s %3d  ",
+	    snprintf(msg.buf, sizeof(msg.buf), "\t%16s %1s %3d  ",
 		     plugin->name, explicit ? "*" : " ", plugin->version);
 	}
 	if (!list_empty(&plugin->triggers)) {
@@ -1211,12 +1211,12 @@ static void sendHelp(PStask_ID_t dest, char *name)
 
     if (!plugin) {
 	char buf[sizeof(msg.buf)];
-	snprintf(buf, sizeof(buf), "psid: %s: unknown plugin '%s'\n", __func__,
-		 name);
+	snprintf(buf, sizeof(buf), "\tpsid: %s: unknown plugin '%s'\n",
+		 __func__, name);
 	sendStr(&msg, buf, __func__);
     } else if (!plugin->help) {
 	char buf[sizeof(msg.buf)];
-	snprintf(buf, sizeof(buf), "psid: %s: no help-method for '%s' \n",
+	snprintf(buf, sizeof(buf), "\tpsid: %s: no help-method for '%s' \n",
 		 __func__, name);
 	sendStr(&msg, buf, __func__);
     } else {
@@ -1248,12 +1248,12 @@ static void handleSetKey(PStask_ID_t dest, char *buf)
 
     if (!plugin) {
 	char buf[sizeof(msg.buf)];
-	snprintf(buf, sizeof(buf), "psid: %s: unknown plugin '%s'\n", __func__,
-		 name);
+	snprintf(buf, sizeof(buf), "\tpsid: %s: unknown plugin '%s'\n",
+		 __func__, name);
 	sendStr(&msg, buf, __func__);
     } else if (!plugin->set) {
 	char buf[sizeof(msg.buf)];
-	snprintf(buf, sizeof(buf), "psid: %s: no set-method for '%s' \n",
+	snprintf(buf, sizeof(buf), "\tpsid: %s: no set-method for '%s' \n",
 		 __func__, name);
 	sendStr(&msg, buf, __func__);
     } else {
@@ -1283,12 +1283,12 @@ static void handleUnsetKey(PStask_ID_t dest, char *buf)
 
     if (!plugin) {
 	char buf[sizeof(msg.buf)];
-	snprintf(buf, sizeof(buf), "psid: %s: unknown plugin '%s'\n", __func__,
-		 name);
+	snprintf(buf, sizeof(buf), "\tpsid: %s: unknown plugin '%s'\n",
+		 __func__, name);
 	sendStr(&msg, buf, __func__);
     } else if (!plugin->unset) {
 	char buf[sizeof(msg.buf)];
-	snprintf(buf, sizeof(buf), "psid: %s: no unset-method for '%s' \n",
+	snprintf(buf, sizeof(buf), "\tpsid: %s: no unset-method for '%s' \n",
 		 __func__, name);
 	sendStr(&msg, buf, __func__);
     } else {
@@ -1320,12 +1320,12 @@ static void handleShowKey(PStask_ID_t dest, char *buf)
 
     if (!plugin) {
 	char buf[sizeof(msg.buf)];
-	snprintf(buf, sizeof(buf), "psid: %s: unknown plugin '%s'\n", __func__,
-		 name);
+	snprintf(buf, sizeof(buf), "\tpsid: %s: unknown plugin '%s'\n",
+		 __func__, name);
 	sendStr(&msg, buf, __func__);
     } else if (!plugin->show) {
 	char buf[sizeof(msg.buf)];
-	snprintf(buf, sizeof(buf), "psid: %s: no show-method for '%s' \n",
+	snprintf(buf, sizeof(buf), "\tpsid: %s: no show-method for '%s' \n",
 		 __func__, name);
 	sendStr(&msg, buf, __func__);
     } else {
@@ -1354,7 +1354,7 @@ static void sendLoadTime(PStask_ID_t dest, plugin_t *plugin)
 
     if (!plugin) return;
 
-    snprintf(buf, sizeof(buf), "%10s %4d %s", plugin->name, plugin->version,
+    snprintf(buf, sizeof(buf), "\t%10s %4d %s", plugin->name, plugin->version,
 	     ctime(&plugin->load.tv_sec));
     sendStr(&msg, buf, __func__);
 }
@@ -1376,7 +1376,7 @@ static void handleLoadTime(PStask_ID_t dest, char *name)
 
 	if (!plugin) {
 	    char buf[sizeof(msg.buf)];
-	    snprintf(buf, sizeof(buf), "psid: %s: plugin '%s' not found\n",
+	    snprintf(buf, sizeof(buf), "\tpsid: %s: plugin '%s' not found\n",
 		     __func__, name);
 	    sendStr(&msg, buf, __func__);
 	    msg.header.len = sizeof(msg.header) + sizeof(msg.type);
