@@ -17,7 +17,7 @@ VPATH += $(SRCDIR)
 
 
 TARGETS= plugin1.so plugin2.so plugin3.so plugin4.so plugin5.so plugin6.so \
-	plugin7.so plugin8.so plugin9.so
+	plugin7.so plugin8.so plugin9.so no_flowcontroll.so
 
 .PHONY: all install plugins
 all:
