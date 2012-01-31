@@ -1,3 +1,75 @@
+Version psmgmt-5.0.37:
+======================
+------------------------------------------------------------------------
+r8551 | eicker | 2012-01-26 19:04:21 +0100 (Thu, 26 Jan 2012) | 3 lines
+
+Enhancement: Prepare psiadmin to print-out hostnames instead of node IDs
+    sometime (#490).
+
+------------------------------------------------------------------------
+r8550 | eicker | 2012-01-26 19:03:01 +0100 (Thu, 26 Jan 2012) | 2 lines
+
+Improve messages from psid's plugin-handling to psiadmin.
+
+------------------------------------------------------------------------
+r8549 | eicker | 2012-01-24 18:20:52 +0100 (Tue, 24 Jan 2012) | 4 lines
+
+Bugfix: Ensure, that all TASKDEAD-messages are delivered to new
+    master-psid after failover. Additionally, don't tell new master
+    about jobs currently shutting down.
+
+------------------------------------------------------------------------
+r8548 | eicker | 2012-01-23 14:49:59 +0100 (Mon, 23 Jan 2012) | 3 lines
+
+Bugfix: Block SIGCHLD while doing syslog() in order to prevent psid from
+    deadlocks. syslog() is not re-entrand! (JUDGE-TRAC #141)
+
+------------------------------------------------------------------------
+r8547 | eicker | 2012-01-23 13:54:00 +0100 (Mon, 23 Jan 2012) | 2 lines
+
+Add missing timer.h include.
+
+------------------------------------------------------------------------
+r8546 | eicker | 2012-01-23 12:46:01 +0100 (Mon, 23 Jan 2012) | 4 lines
+
+Bugfix: connection to syslog has to be re-opened after cleanup for fork()
+Bugfix: Get rid of obsolete timer-entries after fork(). Might lead to
+    strange behavior, if timer is pending during fork()
+
+------------------------------------------------------------------------
+r8545 | eicker | 2011-12-14 14:37:13 +0100 (Wed, 14 Dec 2011) | 2 lines
+
+Bugfix: Remove spurious TAB in output when talking to plugins (#1481).
+
+------------------------------------------------------------------------
+r8544 | eicker | 2011-12-14 14:21:37 +0100 (Wed, 14 Dec 2011) | 2 lines
+
+Enhancement: Suppress some warning introduced with gcc 4.6.
+
+------------------------------------------------------------------------
+r8543 | eicker | 2011-12-14 13:58:54 +0100 (Wed, 14 Dec 2011) | 3 lines
+
+Bugfix: Actually enable dumping of too-long messages tail. This
+    completes the changes done in r8132.
+
+------------------------------------------------------------------------
+r8542 | eicker | 2011-12-14 13:53:10 +0100 (Wed, 14 Dec 2011) | 2 lines
+
+Include stub into test-plugin for extraordinary long help-messages.
+
+------------------------------------------------------------------------
+r8541 | eicker | 2011-12-12 17:57:43 +0100 (Mon, 12 Dec 2011) | 3 lines
+
+Bugfix: Selectors shall be removed when corresponding file-descriptor is
+    closed.
+
+------------------------------------------------------------------------
+r8530 | eicker | 2011-12-06 17:48:57 +0100 (Tue, 06 Dec 2011) | 2 lines
+
+New version (psmgmt-5.0.36)
+
+------------------------------------------------------------------------
+
 Version psmgmt-5.0.36:
 ======================
 ------------------------------------------------------------------------

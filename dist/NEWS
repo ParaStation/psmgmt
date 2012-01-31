@@ -1,12 +1,34 @@
 psmgmt NEWS -- history of user-visible changes.
 
-Copyright (C) 2010-2011 ParTec Cluster Competence Center GmbH, Munich
+Copyright (C) 2010-2012 ParTec Cluster Competence Center GmbH, Munich
 
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
+Version 5.0.37:
+===============
+Bugfixes:
+ - Block SIGCHLD while doing syslog() in order to prevent psid from deadlocks.
+   syslog() is not re-entrand! (JUDGE-TRAC #141)
+ - Ensure, that all TASKDEAD-messages are delivered to new master-psid after
+   failover. Additionally, don't tell new master about jobs currently shutting
+   down.
+ - Actually enable dumping of too-long messages tail. This completes the
+   changes done in r8132.
+ - Get rid of obsolete timer-entries after fork(). Might lead to strange
+   behavior, if timer is pending during fork()
+ - Connection to syslog has to be re-opened after cleanup for fork()
+ - Selectors shall be removed when corresponding file-descriptor is closed.
+ - Remove spurious TAB in output when talking to plugins (#1481).
+
+Enhancements:
+ - Prepare psiadmin to print-out hostnames instead of node IDs sometime (#490)
+
+Additional changes:
+ - Improve messages from psid's plugin-handling to psiadmin.
+ - Include stub into test-plugin for extraordinary long help-messages.
+
 Version 5.0.36:
 ===============
-
 Bugfixes:
  - Beautify psiadmin's 'plugin help/show/...' output (#1481)
  - (quick fix) psaccount logging via mlog in the psmom forwarder can let
