@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2011 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2012 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -68,20 +68,26 @@ void PSIADM_AddNode(char *nl);
  * @brief Shutdown nodes.
  *
  * Remove the nodes marked within the nodelist @a nl from the
- * cluster. Therefore the local ParaStation daemon is requested to
- * shutdown the corresponding daemons on the remote nodes, if this did
+ * cluster. Therefore, the local ParaStation daemon is requested to
+ * shutdown the corresponding daemon on the remote nodes, if this did
  * not already happen. Only the daemons (and processes controlled by
  * them) are stoped, not the whole machine.
  *
- * If also the local daemon is instructed to shutdown, the requesting
+ * If the local daemon is instructed to shutdown, too, the requesting
  * process will also be killed.
+ *
+ * If the @a silent flag is 0, a warning is printed for each node
+ * marked in @a nl that is already down. Otherwise, such messages will
+ * be suppressed.
+ *
+ * @param silent Suppress messages on nodes already down.
  *
  * @param nl The nodelist describing the nodes on which the action
  * should take effect.
  *
  * @return No return value.
  */
-void PSIADM_ShutdownNode(char *nl);
+void PSIADM_ShutdownNode(int silent, char *nl);
 
 /**
  * @brief Start communication hardware.

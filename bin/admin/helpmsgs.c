@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2011 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2012 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -189,12 +189,13 @@ static info_t shutdownInfo = {
     .head = "Shutdown command (privileged):",
     .syntax = (syntax_t[]) {{
 	.cmd = "shutdown",
-	.arg = "<nodes>"
+	.arg = "[silent] <nodes>"
     }},
     .nodes = 1,
     .descr = "Shutdown the ParaStation daemon on all selected nodes. As a"
     " consequence ALL processes using the selected nodes are terminated"
-    " (killed)!",
+    " (killed)! If the 'silent' flag is given, no warning concerning nodes"
+    " already down is printed.",
     .tags = NULL,
     .comment = NULL
 };

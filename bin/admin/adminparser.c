@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2011 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2012 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -116,6 +116,12 @@ static int shutdownCommand(char *token)
 {
     char *nl_descr = parser_getString();
     char *nl = defaultNL;
+    int silent = 0;
+
+    if (nl_descr && !strcasecmp(nl_descr, "silent")) {
+	silent = 1;
+	nl_descr = parser_getString();
+    }
 
     if (parser_getString()) goto error;
 
@@ -125,7 +131,7 @@ static int shutdownCommand(char *token)
 	if (!nl) return -1;
     }
 
-    PSIADM_ShutdownNode(nl);
+    PSIADM_ShutdownNode(silent, nl);
     return 0;
 
  error:
@@ -2115,7 +2121,7 @@ static int versionCommand(char *token)
 
     printf("PSIADMIN: ParaStation administration tool\n");
     printf("Copyright (C) 1996-2004 ParTec AG Karlsruhe\n");
-    printf("Copyright (C) 2005-2011 ParTec Cluster Competence Center GmbH, Munich\n");
+    printf("Copyright (C) 2005-2012 ParTec Cluster Competence Center GmbH, Munich\n");
     printf("\n");
     printf("PSIADMIN:   %s\b/ %s\b/ %s\b \b\b\n", psiadmversion+11,
 	   commandsversion+11, parserversion+11);

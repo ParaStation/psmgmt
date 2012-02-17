@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2011 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2012 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -306,7 +306,7 @@ void PSIADM_AddNode(char *nl)
     /* @todo check the success and repeat the startup */
 }
 
-void PSIADM_ShutdownNode(char *nl)
+void PSIADM_ShutdownNode(int silent, char *nl)
 {
     DDMsg_t msg = {
 	.type = PSP_CD_DAEMONSTOP,
@@ -326,7 +326,9 @@ void PSIADM_ShutdownNode(char *nl)
     for (node=0; node<PSC_getNrOfNodes(); node++) {
 	if (nl && !nl[node]) continue;
 
-	if (hostStatus.list[node]) {
+	if (!hostStatus.list[node]) {
+	    if (!silent) printf("%s\talready down\n", nodeString(node));
+	} else {
 	    if (node == PSC_getMyID()) {
 		send_local = 1;
 	    } else {
