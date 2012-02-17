@@ -31,9 +31,16 @@ Requires:  psmgmt = %{version}
 The psmgmt-devel package includes additional header files necessary
 for developing plugins of the ParaStation Process Management daemon.
 
+%package mpilegacy
+# License:   Proprietary
+Summary:   Legacy MPI-starters for ParaStation process management
+Group:     Productivity/Clustering/Computing
+Requires:  psmgmt = %{version}
 
+%description mpilegacy
+The psmgmt-mpilegacy package includes additional MPI starters for
+legacy implementations of the MPI version 1 standard.
 
-# It contains the API documentation of the popt library, too.
 
 %if %buildForSuSE
 %debug_package
@@ -99,7 +106,18 @@ exit 0
 /opt/parastation/LICENSE
 /opt/parastation/NEWS.psmgmt
 /opt/parastation/VERSION.psmgmt
-/opt/parastation/bin
+%dir /opt/parastation/bin
+/opt/parastation/bin/mlisten
+/opt/parastation/bin/mpiexec
+/opt/parastation/bin/psaccounter
+/opt/parastation/bin/psaccview
+/opt/parastation/bin/psh
+/opt/parastation/bin/psiadmin
+/opt/parastation/bin/psid
+/opt/parastation/bin/psilogger
+/opt/parastation/bin/pssh
+/opt/parastation/bin/test_config
+/opt/parastation/bin/test_pse
 /opt/parastation/config
 %dir /opt/parastation/include
 /opt/parastation/include/list_t.h
@@ -144,3 +162,14 @@ exit 0
 /opt/parastation/include/psidstatus.h
 /opt/parastation/include/psidtask.h
 /opt/parastation/include/psidutil.h
+
+%files mpilegacy
+%defattr(-,root,root)
+%dir /opt/parastation
+%dir /opt/parastation/bin
+/opt/parastation/bin/mpirun_chgm
+/opt/parastation/bin/gmspawner
+/opt/parastation/bin/mpirun_chp4
+/opt/parastation/bin/psispawn
+/opt/parastation/bin/mpirun_openib
+/opt/parastation/bin/psmstart
