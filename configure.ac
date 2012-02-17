@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.59)
-AC_INIT(["psmgmt"],[""],["eicker@par-tec.com"])
+AC_INIT([psmgmt],[5],[support@par-tec.com])
 AC_CONFIG_AUX_DIR(["scripts"])
 
 AC_CANONICAL_TARGET([])
@@ -47,8 +47,6 @@ fi
 AC_SEARCH_LIBS([numa_available], [numa], [HAVE_LIBNUMA=yes;
 					 AC_DEFINE([HAVE_LIBNUMA],[1])])
 AC_CHECK_FUNCS_ONCE([numa_allocate_nodemask])
-AC_SEARCH_LIBS([elan_nullcap], [elanctrl], [HAVE_ELANCTRL=yes;
-					   AC_DEFINE([HAVE_ELANCTRL][1])])
 AC_SEARCH_LIBS([initscr], [ncurses curses], [],
 			    [ echo "Please install a curses package";
 			      exit 1 ])
@@ -73,7 +71,6 @@ AC_SUBST([TRU64FILEADD])
 AC_SUBST([TARGET_LIBC_PROVIDES_SSP])
 AC_SUBST([HAVE_LIBNUMA])
 AC_SUBST([HAVE_NUMA_ALLOCATE_NODEMASK])
-AC_SUBST([HAVE_ELANCTRL])
 
 case $target_os in
 linux|linux-gnu)

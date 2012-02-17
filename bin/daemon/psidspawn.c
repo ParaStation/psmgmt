@@ -1170,57 +1170,6 @@ static int openChannel(PStask_t *task, int *fds, int fileNo)
     return 0;
 }
 
-#define IDMAPFILE "/etc/elanidmap"
-
-/**
- * @brief Verify ELAN Host
- *
- * Verify that the host we are starting on is listed in the ELAN
- * configuration file. If not, ELAN will be disabled in order to
- * prevent libelan from terminating us.
- *
- * @return No return value.
- */
-static void verifyElanHost(void)
-{
-    FILE *elanIDfile;
-    char line[256];
-    char localhost[HOST_NAME_MAX];
-
-    if ((gethostname(localhost, HOST_NAME_MAX)) == -1) {
-	int eno = errno;
-	fprintf(stderr, "%s: gethostname(): %s\n", __func__, get_strerror(eno));
-	setenv("PSP_ELAN", "0", 1);
-	return;
-    }
-
-    elanIDfile = fopen(IDMAPFILE, "r");
-    if (!elanIDfile) {
-	int eno = errno;
-	fprintf(stderr, "%s: fopen(): %s\n", __func__, get_strerror(eno));
-	setenv("PSP_ELAN", "0", 1);
-	return;
-    }
-
-    while (fgets(line, sizeof(line), elanIDfile)) {
-	char *elanhost = strtok(line, " \t\n");
-
-	if (!elanhost || *elanhost == '#') continue;
-
-	if (!strcmp(elanhost, localhost)) {
-	    fclose(elanIDfile);
-	    return;
-	}
-
-    }
-    fclose(elanIDfile);
-
-    fprintf(stderr, "%s: local hostname '%s' not found\n", __func__, localhost);
-    setenv("PSP_ELAN", "0", 1);
-
-    return;
-}
-
 /**
  * @brief Prepare PMI
  *
@@ -1430,8 +1379,6 @@ static void execForwarder(PStask_t *task, int daemonfd)
     /* fork the client */
     if (!(pid = fork())) {
 	/* this is the client process */
-	char *envstr;
-
 	/* no direct connection to the daemon */
 	close(daemonfd);
 
@@ -1510,9 +1457,6 @@ static void execForwarder(PStask_t *task, int daemonfd)
 
 	/* close forwarder socket */
 	if (pmiType == PMI_OVER_UNIX) close(PMIforwarderSock);
-
-	/* check if this node really supports elan */
-	if ((envstr = getenv("PSP_ELAN")) && atoi(envstr)) verifyElanHost();
 
 	/* try to start the client */
 	execClient(task);

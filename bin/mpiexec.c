@@ -1,7 +1,7 @@
 /*
  *               ParaStation
  *
- * Copyright (C) 2007-2011 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2007-2012 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -42,12 +42,6 @@ static char vcid[] __attribute__((used)) =
 #include <psispawn.h>
 #include <pscommon.h>
 
-/* libelan support */
-#include "config.h"
-#ifdef HAVE_ELANCTRL
-#include "mpiexec_elan.h"
-#endif
-
 #define GDB_COMMAND_EXE "gdb"
 #define GDB_COMMAND_FILE "/opt/parastation/config/mpiexec.gdb"
 #define GDB_COMMAND_OPT "-x"
@@ -74,8 +68,6 @@ int gdb_noargs = 0;
 int show = 0;
 /** flag to set verbose mode */
 int verbose = 0;
-/** flag to determine if we are using Quadrics' lib elan */
-bool useElan = 1;
 /* set mpich 1 compatible mode */
 int mpichcom = 0;
 
@@ -301,47 +293,6 @@ static void getFirstNodeID(PSnodes_ID_t *nodeID)
 	*nodeID = node;
     }
     free(parse);
-}
-
-/**
- * @brief Disable elan support in pscom library
- *
- * @return No return value.
- * */
-static void disableElan(void)
-{
-    setPSIEnv("PSP_ELAN", "0", 1);
-    setenv("PSP_ELAN", "0", 1);
-    useElan = 0;
-}
-
-/**
- * @brief Check if we were compiled with elan support,
- * and try to load and initialize libelan.
- *
- * @return No return value.
- */
-static void checkForELAN(void)
-{
-    char *envstr = getenv("PSP_ELAN");
-
-    if (envstr && !strcmp(envstr,"0")) {
-	disableElan();
-	return;
-    }
-
-#ifdef HAVE_ELANCTRL
-    if (initELAN()) {
-	if(verbose) printf("successfully loaded libelan\n");
-	setPSIEnv("PSP_ELAN", "1", 1);
-    } else {
-	if(verbose) printf("failed loading libelan\n");
-	disableElan();
-    }
-#else
-    disableElan();
-#endif
-
 }
 
 /**
@@ -592,11 +543,6 @@ static void setupCommonEnv(int np)
 	setPSIEnv("PMI_KVS_TMP", env, 1);
     }
 
-#ifdef HAVE_ELANCTRL
-    /* setup elan environment */
-    if (useElan && !setupELANEnv(np, verbose)) disableElan();
-#endif
-
     /* set the size of the job */
     env = getenv("PSI_NP_INFO");
     if (!env) errExit("No PSI_NP_INFO given.");
@@ -626,10 +572,6 @@ static char ** setupNodeEnv(int rank)
 	env[cur++] = setupPMINodeEnv(rank);
     }
 
-#ifdef HAVE_ELANCTRL
-    if (useElan) env[cur++] = setupELANNodeEnv(rank);
-#endif
-
     env[cur++] = NULL;
 
     if (verboseRankMsg) printf("spawn rank %d\n", rank);
@@ -647,7 +589,7 @@ static char ** setupNodeEnv(int rank)
  * additional messages describing what is done will be created.
  *
  * Before processes are actually spawned, the environment including
- * pmi and elan stuff is set up.
+ * pmi stuff is set up.
  *
  * @param np Size of the job.
  *
@@ -756,10 +698,6 @@ static void setupPSCOMEnv(int verbose)
 		unsetenv("PSP_TCP");
 		setPSIEnv("PSP_TCP", "0", 1);
 		if (verbose) printf("PSP_TCP=0\n");
-	    } else if (!strcmp(env,"ELAN") || !strcmp(env,"elan")) {
-		unsetenv("PSP_ELAN");
-		disableElan();
-		if (verbose) printf("PSP_ELAN=0\n");
 	    } else if (!strcmp(env,"DAPL") || !strcmp(env,"dapl")) {
 		unsetenv("PSP_DAPL");
 		setPSIEnv("PSP_DAPL", "0", 1);
@@ -2222,9 +2160,6 @@ int main(int argc, char *argv[])
     /* setup the environment for admin tasks */
     if (admin) setupAdminEnv();
 
-    /* load libelan if available */
-    checkForELAN();
-
     /* Propagate PSI_RARG_PRE_* / check for LSF-Parallel */
 /*     PSI_RemoteArgs(filter_argc-dup_argc, &filter_argv[dup_argc], &dup_argc, */
 /*	   &dup_argv); */
@@ -2255,10 +2190,6 @@ int main(int argc, char *argv[])
     }
 
     poptFreeContext(optCon);
-
-#ifdef HAVE_ELANCTRL
-    closeELAN();
-#endif
 
     /* release service process */
     ret = PSI_release(PSC_getMyTID());
