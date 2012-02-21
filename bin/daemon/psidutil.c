@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2011 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2012 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -203,26 +203,6 @@ int PSID_readall(int fd, void *buf, size_t count)
     return count;
 }
 
-#define LOCKFILENAME "/var/lock/subsys/parastation"
-
-int PSID_lockFD = -1;
-
-void PSID_getLock(void)
-{
-    PSID_lockFD = open(LOCKFILENAME, O_CREAT, 0600);
-    if (PSID_lockFD<0) {
-	PSID_exit(errno, "%s: open('%s')", __func__, LOCKFILENAME);
-    }
-
-    if (chmod(LOCKFILENAME, S_IRWXU | S_IRGRP | S_IROTH)) {
-	PSID_exit(errno, "%s: chmod()", __func__);
-    }
-
-    if (flock(PSID_lockFD, LOCK_EX | LOCK_NB)) {
-	PSID_exit(errno, "%s: flock()", __func__);
-    }
-}
-
 /**
  * Master socket (type UNIX) for clients to connect. Set up within @ref
  * setupMasterSock().
@@ -310,14 +290,10 @@ void PSID_createMasterSock(void)
     sa.sun_family = AF_UNIX;
     strncpy(sa.sun_path, PSmasterSocketName, sizeof(sa.sun_path));
 
-    /*
-     * bind the socket to the right address
-     */
-    unlink(PSmasterSocketName);
+    /* bind the socket to the right address */
     if (bind(masterSock, (struct sockaddr *)&sa, sizeof(sa)) < 0) {
 	PSID_exit(errno, "Daemon already running?");
     }
-    chmod(sa.sun_path, S_IRWXU | S_IRWXG | S_IRWXO);
 
     if (listen(masterSock, 20) < 0) {
 	PSID_exit(errno, "Error while trying to listen");
@@ -343,27 +319,30 @@ void PSID_enableMasterSock(void)
     PSID_log(-1, "Local Service Port (%d) enabled.\n", masterSock);
 }
 
-void PSID_shutdownMasterSock(void)
+void PSID_disableMasterSock(void)
 {
-    char *action = NULL;
-
     if (masterSock == -1) {
 	PSID_log(-1, "%s: master sock already down\n", __func__);
 	return;
     }
 
     Selector_remove(masterSock);
+}
+
+void PSID_shutdownMasterSock(void)
+{
+    if (masterSock == -1) {
+	PSID_log(-1, "%s: master sock already down\n", __func__);
+	return;
+    }
+
+    /* Just in case, this has not yet happened */
+    Selector_remove(masterSock);
 
     if (close(masterSock)) {
-	action = "close()";
-	goto exit;
+	PSID_warn(-1, errno, "%s: close()", __func__);
     }
 
-exit:
-    if (unlink(PSmasterSocketName)) {
-	action = "unlink()";
-    }
-    if (action) PSID_warn(-1, errno, "%s: %s", __func__, action);
     masterSock = -1;
 }
 

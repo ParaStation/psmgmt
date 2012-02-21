@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2011 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2012 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -256,59 +256,29 @@ int PSID_blockSig(int block, int sig);
 void PSID_resetSigs(void);
 
 /**
- * @brief File-descriptor holding lock
- *
- * This is the file-descriptor holding the daemon's lock in order to
- * have exclusive access to a node. This is set within @ref
- * PSID_getLock() to the correct value.
-
- * Never ever close this socket since it will introduce big trouble.
- *
- * @see PSID_getLock()
- */
-extern int PSID_lockFD;
-
-/**
- * @brief Try to get an exclusive lock
- *
- * Try to get an exclusive lock in order to guarantee exclusiveness on
- * the according node. Thus the file @a /var/run/parastation.lock is
- * created first and afterwards @ref flock() is used in order to get a
- * lock on this file. If it is impossible to get a lock, i.e. another
- * instance of the daemon is already running and holding the lock,
- * this function will @b not return and call @ref exit() instead.
- *
- * Once the lock is created, it will never be released and thus it
- * guarantees exclusiveness on the node as long as the calling process
- * exists.
- *
- * Never ever close the file-descriptor associated with the lock
- * created. In order to get information on the associated
- * file-descriptor have a look at the @ref PSID_lockFD variable.
- *
- * @return No return value.
- *
- * @see PSID_lockFD
- */
-void PSID_getLock(void);
-
-/**
  * @brief Setup master socket.
  *
  * Create and initialize the daemon's master socket. The daemon will
  * listen on this UNIX-socket for new clients trying to connect.
  *
  * Also clients spawned by the local daemon will use this channel in
- * order to connect their local daemon instead of being directly
+ * order to re-connect their local daemon instead of being directly
  * connected during spawn.
  *
  * Be aware of the fact that this function does not initialize any
  * actual handling of the master socket. In order to really enable
  * this use @ref PSID_enableMasterSock().
  *
+ * The UNIX-socket used is an abstract socket (as defined by the
+ * non-portable Linux extension on abstract socket namespaces) and
+ * holds at the same time the lock of the running daemon. I.e., as
+ * long as the daemon holds this socket no other daemon is able to
+ * create its master socket.
+ *
  * @return No return value.
  *
- * @see PSID_enableMasterSock(), PSID_shutdownMasterSock()
+ * @see PSID_enableMasterSock(), PSID_disableMasterSock(),
+ * PSID_shutdownMasterSock()
  */
 void PSID_createMasterSock(void);
 
@@ -323,21 +293,38 @@ void PSID_createMasterSock(void);
  *
  * @return No return value.
  *
- * @see PSID_createMasterSock, PSID_shutdownMasterSock()
+ * @see PSID_createMasterSock, PSID_disableMasterSock(),
+ * PSID_shutdownMasterSock()
  */
 void PSID_enableMasterSock(void);
 
 /**
- * @brief Shutdown master socket.
+ * @brief Disable master socket.
  *
- * Shutdown the daemon's master socket. The daemon will no longer
- * listen on this UNIX-socket for new clients trying to connect. The
- * includes de-registration of the master-socket from the selector
- * facility.
+ * Unregister the master socket from the selector facility in order to
+ * stop handling connection requests.
+ *
+ * The master socket shall be destroyed later via @ref
+ * PSID_shutdownMasterSock() in order to free the corresponding lock.
  *
  * @return No return value.
  *
- * @see PSID_createMasterSock(), PSID_enableMasterSock()
+ * @see PSID_createMasterSock, PSID_enableMasterSock(),
+ * PSID_shutdownMasterSock()
+ */
+void PSID_disableMasterSock(void);
+
+/**
+ * @brief Shutdown master socket.
+ *
+ * Shutdown the daemon's master socket. Basically, this just frees the
+ * lock held via the master socket. The master socket shall have been
+ * disabled before via PSID_disableMasterSock().
+ *
+ * @return No return value.
+ *
+ * @see PSID_createMasterSock(), PSID_enableMasterSock(),
+ * PSID_disableMasterSock()
  */
 void PSID_shutdownMasterSock(void);
 

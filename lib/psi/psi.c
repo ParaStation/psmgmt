@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2011 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2012 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -38,29 +38,33 @@ static char vcid[] __attribute__((used)) =
 static int daemonSock = -1;
 
 /**
- * @brief Open socket to daemon.
+ * @brief Open socket to local daemon.
  *
- * Open a UNIX sockets and connect it to a corresponding socket of the
- * local ParaStation daemon.
+ * Open a UNIX sockets and connect it to a corresponding socket the
+ * local ParaStation daemon is listening on. The address of psid's
+ * socket is given in @a sockname.
  *
- * @return On success, the newly opened socket is returned. Otherwise
- * -1 is returned.
+ * @param sockname Address of the UNIX socket where the local
+ * ParaStation daemon is connectable.
+ *
+ * @return On success, the file-descriptor of the connected socket is
+ * returned. Otherwise -1 is returned and errno is left appropriately.
  */
-static int daemonSocket(void)
+static int daemonSocket(char *sockname)
 {
     int sock;
     struct sockaddr_un sa;
 
-    PSI_log(PSI_LOG_VERB, "%s()\n", __func__);
+    PSI_log(PSI_LOG_VERB, "%s(%s)\n", __func__, sockname);
 
     sock = socket(PF_UNIX, SOCK_STREAM, 0);
-    if (sock <0) {
+    if (sock < 0) {
 	return -1;
     }
 
     memset(&sa, 0, sizeof(sa));
     sa.sun_family = AF_UNIX;
-    strncpy(sa.sun_path, PSmasterSocketName, sizeof(sa.sun_path));
+    strncpy(sa.sun_path, sockname, sizeof(sa.sun_path));
 
     if (connect(sock, (struct sockaddr*) &sa, sizeof(sa)) < 0) {
 	close(sock);
@@ -96,17 +100,11 @@ static int connectDaemon(PStask_group_t taskGroup, int tryStart)
     DDInitMsg_t msg;
     DDTypedBufferMsg_t answer;
 
-    int connectfailes;
-    int retry_count =0;
+    int connectfailes = 0;
+    int retry_count = 0;
     int ret;
 
     PSI_log(PSI_LOG_VERB, "%s(%s)\n", __func__, PStask_printGrp(taskGroup));
-
-    /*
-     * connect to the PSI Daemon service port
-     */
-    connectfailes = 0;
-    retry_count = 0;
 
  RETRY_CONNECT:
 
@@ -115,22 +113,26 @@ static int connectDaemon(PStask_group_t taskGroup, int tryStart)
 	daemonSock = -1;
     }
 
-    daemonSock=daemonSocket();
+    daemonSock = daemonSocket(PSmasterSocketName);
 
-    if (daemonSock==-1 && (taskGroup != TG_ADMIN || !tryStart)) return 0;
+    if (daemonSock==-1 && taskGroup != TG_ADMIN) return 0;
 
-    while (daemonSock==-1) {
-	/*
-	 * start the local ParaStation daemon via inetd
-	 */
-	if (connectfailes++ < 5) {
-	    PSC_startDaemon(INADDR_ANY);
-	    usleep(100000);
-	    daemonSock=daemonSocket();
-	} else {
-	    PSI_warn(-1, errno, "%s: failed finally", __func__);
-	    return 0;
-	}
+    while (daemonSock==-1 && tryStart && connectfailes++ < 5) {
+	/* try to start local ParaStation daemon via inetd */
+	PSC_startDaemon(INADDR_ANY);
+	usleep(100000);
+	daemonSock = daemonSocket(PSmasterSocketName);
+    }
+
+    if (daemonSock==-1) {
+	/* See, if daemon listens on the old socket */
+	PSI_log(-1, "%s: try on old socket\n", __func__);
+	daemonSock = daemonSocket("/var/run/parastation.sock");
+    }
+
+    if (daemonSock==-1) {
+	PSI_warn(-1, errno, "%s: failed finally", __func__);
+	return 0;
     }
 
     /* local connect */

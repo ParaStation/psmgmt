@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2011 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2012 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -36,7 +36,11 @@ extern "C" {
 #define PSProtocolVersion 340
 
 /** The location of the UNIX socket used to contact the daemon. */
-#define PSmasterSocketName "/var/run/parastation.sock"
+#ifdef __linux__
+#define PSmasterSocketName "\0parastation.sock"
+#else
+#error WRONG OS Type
+#endif
 
 /** Environment used to pass number of service processes to logger */
 #define ENV_NUM_SERVICE_PROCS    "__PSI_SERVICE_PROCS"

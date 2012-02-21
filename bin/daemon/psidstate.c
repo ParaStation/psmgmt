@@ -1,7 +1,7 @@
 /*
  *               ParaStation
  *
- * Copyright (C) 2008-2011 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2008-2012 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -83,7 +83,7 @@ void PSID_shutdown(void)
 	daemonState |= PSID_STATE_SHUTDOWN;
 	PSID_registerLoopAct(PSID_shutdown);
 	PSIDhook_call(PSIDHOOK_SHUTDOWN, NULL);
-	PSID_shutdownMasterSock();
+	PSID_disableMasterSock();
     case 1:
 	killAllClients(SIGTERM, 0);
 	break;
@@ -117,6 +117,7 @@ void PSID_shutdown(void)
 	exitRDP();
 	PSID_stopAllHW();
 	PSID_unregisterLoopAct(PSID_shutdown);
+	PSID_shutdownMasterSock(); /* used for locking => ALAP */
 	PSID_log(-1, "%s: good bye\n", __func__);
 	PSID_finalizeLogs();
 	exit(0);

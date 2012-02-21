@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2011 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2012 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -594,13 +594,10 @@ int main(int argc, const char *argv[])
     FD_ZERO(&PSID_readfds);
     FD_ZERO(&PSID_writefds);
 
-    /* Try to get a lock. This will guarantee exclusiveness */
-    PSID_getLock();
-
     /*
      * Create the Local Service Port as early as possible. Actual
      * handling is enabled later. This gives psiadmin the chance to
-     * connect.
+     * connect. Additionally, this will guarantee exclusiveness
      */
     PSID_createMasterSock();
 
