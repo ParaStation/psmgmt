@@ -1679,7 +1679,7 @@ static int buildSandboxAndStart(PStask_t *task)
 {
     int socketfds[2];     /* sockets for communication with forwarder */
     pid_t pid;            /* forwarder's pid */
-    int i, ret = 0;
+    int i, eno, blocked;
 
     if (PSID_getDebugMask() & PSID_LOG_SPAWN) {
 	char tasktxt[128];
@@ -1689,7 +1689,7 @@ static int buildSandboxAndStart(PStask_t *task)
 
     /* create a socketpair for communication between daemon and forwarder */
     if (socketpair(PF_UNIX, SOCK_STREAM, 0, socketfds)<0) {
-	int eno = errno;
+	eno = errno;
 	PSID_warn(-1, eno, "%s: socketpair()", __func__);
 	return eno;
     }
@@ -1703,10 +1703,16 @@ static int buildSandboxAndStart(PStask_t *task)
     }
 
     /* fork the forwarder */
-    if (!(pid = fork())) {
+    blocked = PSID_blockSig(1, SIGCHLD);
+    pid = fork();
+    /* save errno in case of error */
+    eno = errno;
+
+    if (!pid) {
 	/* this is the forwarder process */
 
 	PSID_resetSigs();
+	/* keep SIGCHLD blocked */
 
 	/*
 	 * Create a new process group. This is needed since the daemon
@@ -1739,11 +1745,9 @@ static int buildSandboxAndStart(PStask_t *task)
 
 	execForwarder(task, socketfds[1]);
     }
+    PSID_blockSig(blocked, SIGCHLD);
 
     /* this is the parent process */
-
-    /* save errno in case of error */
-    ret = errno;
 
     /* close forwarders end of the socketpair */
     close(socketfds[1]);
@@ -1752,9 +1756,9 @@ static int buildSandboxAndStart(PStask_t *task)
     if (pid == -1) {
 	close(socketfds[0]);
 
-	PSID_warn(-1, errno, "%s: fork()", __func__);
+	PSID_warn(-1, eno, "%s: fork()", __func__);
 
-	return ret;
+	return eno;
     }
 
     task->tid = PSC_getTID(-1, pid);

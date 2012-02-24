@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2011 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2012 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -41,7 +41,7 @@ int PSID_kill(pid_t pid, int sig, uid_t uid)
     PStask_ID_t childTID = PSC_getTID(-1, pid < 0 ? -pid : pid);
     PStask_t *child = PStasklist_find(&managedTasks, childTID);
     int cntrlfds[2];  /* pipe fds to control the actuall kill(2) */
-    int ret, myErrno;
+    int ret, eno, blocked;
     pid_t forkPid;
 
     PSID_log(PSID_LOG_SIGNAL, "%s(%d, %d, %d)\n", __func__, pid, sig, uid);
@@ -103,11 +103,18 @@ int PSID_kill(pid_t pid, int sig, uid_t uid)
      * fork to a new process to change the userid
      * and get the right errors
      */
-    if (!(forkPid = fork())) {
+    blocked = PSID_blockSig(1, SIGCHLD);
+    forkPid = fork();
+    /* save errno in case of error */
+    eno = errno;
+
+    if (!forkPid) {
 	/* the killing process */
 	int error, fd;
 
 	PSID_resetSigs();
+	signal(SIGCHLD, SIG_DFL);
+	PSID_blockSig(0, SIGCHLD);
 
 	/* close all fds except the control channel and stdin/stdout/stderr */
 	for (fd=0; fd<getdtablesize(); fd++) {
@@ -120,19 +127,19 @@ int PSID_kill(pid_t pid, int sig, uid_t uid)
 	errno = 0;
 	/* change user id to appropriate user */
 	if (setuid(uid)<0) {
-	    myErrno = errno;
-	    ret = write(cntrlfds[1], &myErrno, sizeof(myErrno));
-	    PSID_exit(myErrno, "%s: setuid(%d)", __func__, uid);
+	    eno = errno;
+	    ret = write(cntrlfds[1], &eno, sizeof(eno));
+	    PSID_exit(eno, "%s: setuid(%d)", __func__, uid);
 	}
 
 	/* Send signal */
 	if (sig == SIGKILL) kill(pid, SIGCONT);
 	error = kill(pid, sig);
-	myErrno = errno;
-	ret = write(cntrlfds[1], &myErrno, sizeof(myErrno));
+	eno = errno;
+	ret = write(cntrlfds[1], &eno, sizeof(eno));
 
 	if (error) {
-	    PSID_warn((myErrno==ESRCH) ? PSID_LOG_SIGNAL : -1, myErrno,
+	    PSID_warn((eno==ESRCH) ? PSID_LOG_SIGNAL : -1, eno,
 		      "%s: kill(%d, %d)", __func__, pid, sig);
 	} else {
 	    PSID_log(PSID_LOG_SIGNAL,
@@ -141,6 +148,7 @@ int PSID_kill(pid_t pid, int sig, uid_t uid)
 
 	exit(0);
     }
+    PSID_blockSig(blocked, SIGCHLD);
 
     /* close the writing pipe */
     close(cntrlfds[1]);
@@ -148,27 +156,28 @@ int PSID_kill(pid_t pid, int sig, uid_t uid)
     /* check if fork() was successful */
     if (forkPid == -1) {
 	close(cntrlfds[0]);
-	PSID_warn(-1, errno, "%s: fork()", __func__);
+	PSID_warn(-1, eno, "%s: fork()", __func__);
 
 	return -1;
     }
 
  restart:
-    if ((ret=read(cntrlfds[0], &myErrno, sizeof(myErrno))) < 0) {
+    if ((ret=read(cntrlfds[0], &eno, sizeof(eno))) < 0) {
 	if (errno == EINTR) {
 	    goto restart;
 	}
-	PSID_warn(-1, errno, "%s: read() failed", __func__);
+	eno = errno;
+	PSID_warn(-1, eno, "%s: read()", __func__);
     }
 
     if (!ret) {
-	PSID_warn(-1, errno, "%s: read() failed", __func__);
 	/* assume everything worked well */
+	PSID_log(-1, "%s: read() got no data\n", __func__);
 	ret = 0;
     } else {
-	ret = myErrno ? -1 : 0;
-	errno = myErrno;
 	close(cntrlfds[0]);
+	ret = eno ? -1 : 0;
+	errno = eno;
     }
 
     return ret;

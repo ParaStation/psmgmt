@@ -34,7 +34,7 @@ static int doExec(char *script, PSID_scriptFunc_t func, PSID_scriptPrep_t prep,
 		  PSID_scriptCB_t cb, void *info, const char *caller)
 {
     PSID_scriptCBInfo_t *cbInfo = NULL;
-    int controlfds[2], iofds[2], eno, ret = 0;
+    int controlfds[2], iofds[2], eno, ret = 0, blocked;
     pid_t pid;
 
     if (!script && !func) {
@@ -71,7 +71,11 @@ static int doExec(char *script, PSID_scriptFunc_t func, PSID_scriptPrep_t prep,
 	return -1;
     }
 
+    blocked = PSID_blockSig(1, SIGCHLD);
     pid = fork();
+    /* save errno in case of error */
+    eno = errno;
+
     if (!pid) {
 	/* This part calls the script/func and returns results to the parent */
 	int fd, ret = 0;
@@ -137,9 +141,7 @@ static int doExec(char *script, PSID_scriptFunc_t func, PSID_scriptPrep_t prep,
 
 	exit(0);
     }
-
-    /* save errno in case of error */
-    eno = errno;
+    PSID_blockSig(blocked, SIGCHLD);
 
     close(controlfds[1]);
     close(iofds[1]);
