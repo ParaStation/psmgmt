@@ -53,10 +53,10 @@ void PSE_initialize(void);
  *
  * Any process spawned by a process of the parallel task will reside
  * within the partition bound to this task. Therefore this function
- * has to be called befor any of @ref PSE_spawnMaster() or @ref
+ * has to be called before any of @ref PSE_spawnMaster() or @ref
  * PSE_spawnTasks().
  *
- * @param num The number of nodes to be resevered for the partition.
+ * @param num The number of nodes to be reserved for the partition.
  *
  * @return On success, the number of nodes in the partition is
  * returned or -1 if an error occurred.
@@ -94,7 +94,7 @@ int PSE_getSize(void);
  * The rank will never change during a process's lifetime.
  *
  * As long as processes are spawned via PSE_spawnTasks() which
- * acutally calls PSI_spawn(), the uniqueness of process ranks is
+ * actually calls PSI_spawn(), the uniqueness of process ranks is
  * secured. If processes are spawned via PSI_spawnRank(), the user
  * itself is responsible for the uniqueness of process ranks within a
  * parallel task.
@@ -218,7 +218,7 @@ void PSE_setHWType(uint32_t hwType);
  *
  * If one ore more of the hardware-types passed to this function are
  * unknown, the default hardware-type is set to the remaining ones
- * anyhow. The occurence of unknown hardware types is displayed by a
+ * anyhow. The occurrence of unknown hardware types is displayed by a
  * return value of -1.
  *
  * @param hwList A NULL terminated list of hardware names nodes have
@@ -331,15 +331,15 @@ char * PSE_checkSortEnv(char *sort, char *argPrefix, int verbose);
  * than the the pool contains nodes, the nodes are reused in a round
  * robin fashion.
  *
- * The spawning strategie can be influenced by using various
+ * The spawning strategy can be influenced by using various
  * environment variables. These will steer on the one hand which nodes
  * will build the pool of nodes and on the other hand the ordering of
  * the nodes within this pool.
  *
  * Let's start with the ones that choose the nodes that form the
- * pool. There are three enviroment variable that control the pool,
- * PSI_NODES, PSI_HOSTS and PSI_HOSTFILE. The pool is build using the
- * following strategy
+ * pool. There are four environment variable that control the pool,
+ * PSI_NODES, PSI_HOSTS, PSI_HOSTFILE and PSI_PEFILE. The pool is
+ * build using the following strategy
  *
  * - If PSI_NODES is present, use it to get the pool. PSI_NODES has to
  * contain a comma-separated list of node-number, i.e. positiv numbers
@@ -350,10 +350,19 @@ char * PSE_checkSortEnv(char *sort, char *argPrefix, int verbose);
  * contain a comma-separated list of hostnames. Each of them has to be
  * present in the parastation.conf configuration file.
  *
- * - If the pool is not build yet, use PSI_HOSTFILE. If PSI_HOSTFILE
- * is set, it has to contain a filename. The according file consists
- * of whitespace separated hostnames. Each of them has to be present
- * in the parastation.conf configuration file.
+ * - Still no pool and PSI_HOSTFILE is given? Use this. If
+ * PSI_HOSTFILE is set, it has to contain a filename. The according
+ * file consists of whitespace separated hostnames. Each of them has
+ * to be present in the parastation.conf configuration file.
+ *
+ * - If the pool is not build yet, use PSI_PEFILE. If PSI_PEFILE is
+ * set, it has to contain a filename. The according file consists of
+ * lines with whitespace separated fields: hostname, number of
+ * processes on this node, a queue name and identifiers for the CPUs
+ * on the node to use. The two latter will be ignored. Each of the
+ * hostnames has to be present in the parastation.conf configuration
+ * file. These type of files typically will be created by the
+ * GridEngine family of batch-systems.
  *
  * - If none of the three addressed environment variables is present,
  * take all nodes managed by ParaStation to build the pool.
@@ -364,12 +373,12 @@ char * PSE_checkSortEnv(char *sort, char *argPrefix, int verbose);
  *
  * Be aware of the fact, that setting any of the environment variables
  * is kind of setting a static nodelist. This means, if any of the
- * nodes within the pool is not available, the utilisation of the
+ * nodes within the pool is not available, the utilization of the
  * cluster may be suboptimal. On the other hand, this mechanism can be
  * used to implement a dynamical partitioning of the cluster. To
  * realize a more evolved distribution strategy, the initialization of
  * the environment variables may be done using an external batch
- * system like LSF, PBSpro or OpenPBS,
+ * system like LSF, PBSpro, OpenPBS, Torque or GridEngine.
  *
  * When the pool is build, it may have to be sorted. The sorting is
  * steered using the environment variable PSI_NODES_SORT. Depending on
