@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2011 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2012 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -234,6 +234,87 @@ void PSE_setHWType(uint32_t hwType);
  * @see PSE_getPartition() PSE_setHWType()
  */
 int PSE_setHWList(char **hwList);
+
+/**
+ * @brief Check arguments and environment on nodes for consistency
+ *
+ * Check, if there are inconsistencies between arguments passed to a
+ * programm for @a nodelist, @a hostlist, @a hostfile and @a pefile
+ * via the corresponding command-line options and the environment
+ * found. @a argPrefix holds a string to be put out in front of the
+ * actual argument, i.e. this should be either "-" or "--" depending
+ * on what the actual program expects. The result is given back as a
+ * message string that shall be put out in a suitable way. If NULL is
+ * returned, no clash is detected and everything shall be fine.
+ *
+ * Besides doing the actual check, the environment might be modified
+ * according to the values of @a nodelist, @a hostlist, @a hostfile
+ * and @a pefile.
+ *
+ * If @a verbose is different from 0, some more additional message might
+ * be created directly to stderr.
+ *
+ * Basically, this function tests, if command-line arguments were
+ * given that clash with environment setting leading to some
+ * unexpected behavior.
+ *
+ * @param nodelist List of nodes to be used.
+ *
+ * @param hostlist List of hosts to be used.
+ *
+ * @param hostfile File with list of hosts to be used.
+ *
+ * @param pefile File with list of hosts (as created by GridEngine) to
+ * be used.
+ *
+ * @param argPrefix Argument prefix expected by the program
+ *
+ * @param verbose Flag to create more verbose messages
+ *
+ * @return On success, NULL is given back. Otherwise a pointer to a
+ * message is given back. This message shall be printed using
+ * according measures. The message is stored in a static array which
+ * might be modified to further calls to this function or to
+ * PSE_checkSortEnv().
+ */
+char * PSE_checkNodeEnv(char *nodelist, char *hostlist, char *hostfile,
+			char *pefile, char *argPrefix, int verbose);
+
+/**
+ * @brief Check arguments and environment on sorting for consistency
+ *
+ * Check, if there are inconsistencies between arguments passed to a
+ * programm for @a sort via the corresponding command-line option and
+ * the environment found. @a argPrefix holds a string to be put out in
+ * front of the actual argument, i.e. this should be either "-" or
+ * "--" depending on what the actual program expects. The result is
+ * given back as a message string that shall be put out in a suitable
+ * way. If NULL is returned, no clash is detected and everything shall
+ * be fine.
+ *
+ * Besides doing the actual check, the environment might be modified
+ * according to the value of @a sort.
+ *
+ * If @a verbose is different from 0, some more additional message might
+ * be created directly to stderr.
+ *
+ * Basically, this function tests, if command-line arguments were
+ * given that clash with environment setting leading to some
+ * unexpected behavior.
+ *
+ * @param sort Sorting strategy to use.
+ *
+ * @param argPrefix Argument prefix expected by the program
+ *
+ * @param verbose Flag to create more verbose messages
+ *
+ * @return On success, NULL is given back. Otherwise a pointer to a
+ * message is given back. This message shall be printed using
+ * according measures. The message is stored in a static array which
+ * might be modified to further calls to this function or to
+ * PSE_checkNodeEnv().
+ */
+char * PSE_checkSortEnv(char *sort, char *argPrefix, int verbose);
 
 /**
  * @page spawn_strategy Spawning strategy

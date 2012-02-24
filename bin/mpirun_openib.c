@@ -1,7 +1,7 @@
 /*
  *               ParaStation
  *
- * Copyright (C) 2007-2010 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2007-2012 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -886,68 +886,11 @@ int main(int argc, char *argv[])
 	if (verbose) printf("Environment variables to be exported: %s\n", val);
     }
 
-    envstr = getenv("PSI_NODES");
-    if (!envstr) envstr = getenv("PSI_HOSTS");
-    if (!envstr) envstr = getenv("PSI_HOSTFILE");
-    /* envstr marks if any of PSI_NODES, PSI_HOSTS or PSI_HOSTFILE is set */
-    if (nodelist) {
-	if (hostlist) {
-	    msg = "Don't use -nodes and -hosts simultatniously.";
-	    goto errexit;
-	} else if (hostfile) {
-	    msg = "Don't use -nodes and -hostfile simultatniously.";
-	    goto errexit;
-	} else if (envstr) {
-	    msg = "Don't use -nodes with any of"
-		" PSI_NODES, PSI_HOSTS or PSI_HOSTFILE set.";
-	    goto errexit;
-	}
-	setenv("PSI_NODES", nodelist, 1);
-	if (verbose) printf("PSI_NODES set to '%s'\n", nodelist);
-    } else if (hostlist) {
-	if (hostfile) {
-	    msg = "Don't use -hosts and -hostfile simultatniously.";
-	    goto errexit;
-	} else if (envstr) {
-	    msg = "Don't use -hosts with any of"
-		" PSI_NODES, PSI_HOSTS or PSI_HOSTFILE set.";
-	    goto errexit;
-	}
-	setenv("PSI_HOSTS", hostlist, 1);
-	if (verbose) printf("PSI_HOSTS set to '%s'\n", hostlist);
-    } else if (hostfile) {
-	if (envstr) {
-	    msg = "Don't use -hostfile with any of"
-		" PSI_NODES, PSI_HOSTS or PSI_HOSTFILE set.";
-	    goto errexit;
-	}
-	setenv("PSI_HOSTFILE", hostfile, 1);
-	if (verbose) printf("PSI_HOSTFILE set to '%s'\n", hostfile);
-    }
+    msg = PSE_checkNodeEnv(nodelist, hostlist, hostfile, NULL, "-", verbose);
+    if (msg) goto errexit;
 
-    envstr = getenv("PSI_NODES_SORT");
-    if (sort) {
-	char *val;
-	if (envstr) {
-	    msg = "Don't use -sort with PSI_NODES_SORT set.";
-	    goto errexit;
-	}
-	if (!strcmp(sort, "proc")) {
-	    val = "PROC";
-	} else if (!strcmp(sort, "load")) {
-	    val = "LOAD_1";
-	} else if (!strcmp(sort, "proc+load")) {
-	    val = "PROC+LOAD";
-	} else if (!strcmp(sort, "none")) {
-	    val = "NONE";
-	} else {
-	    snprintf(msgstr, sizeof(msgstr), "Unknown -sort value: %s", sort);
-	    msg = msgstr;
-	    goto errexit;
-	}
-	setenv("PSI_NODES_SORT", val, 1);
-	if (verbose) printf("PSI_NODES_SORT set to '%s'\n", val);
-    }
+    msg = PSE_checkSortEnv(sort, "-", verbose);
+    if (msg) goto errexit;
 
     /* Propagate PSI_RARG_PRE_* / check for LSF-Parallel */
     PSI_RemoteArgs(argc-dup_argc, &argv[dup_argc], &dup_argc, &dup_argv);

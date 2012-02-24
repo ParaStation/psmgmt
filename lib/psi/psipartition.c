@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2011 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2012 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -38,46 +38,6 @@ static int batchPartition = 0;
 static int waitForPartition = 0;
 
 /**
- * The name of the environment variable defining a nodelist from a
- * nodestring, i.e. a string containing a comma separated list of node
- * ranges.
- */
-#define ENV_NODE_NODES     "PSI_NODES"
-
-/**
- * The name of the environment variable defining a nodelist from a
- * hoststring, i.e. a string containing a whitespace separated list of
- * resolvable hostnames.
- */
-#define ENV_NODE_HOSTS     "PSI_HOSTS"
-
-/**
- * The name of the environment variable defining a nodelist from a
- * hostfile, i.e. a file containing a list of resolvable hostnames.
- */
-#define ENV_NODE_HOSTFILE  "PSI_HOSTFILE"
-
-/**
- * Name of the environment variable steering the sorting of nodes
- * within building the partition. Possible values are:
- *
- * - LOAD, LOAD_1: Use the 1 minute load average for sorting.
- *
- * - LOAD_5: Use the 5 minute load average for sorting.
- *
- * - LOAD_15: Use the 15 minute load average for sorting.
- *
- * - PROC: Use the number of processes controlled by ParaStation.
- *
- * - PROC+LOAD: Use PROC + LOAD for sorting.
- *
- * - NONE: No sorting at all.
- *
- * The value is considered case-insensitive.
- */
-#define ENV_NODE_SORT      "PSI_NODES_SORT"
-
-/**
  * Name of the evironment variable used in order to enable a
  * partitions PART_OPT_NODEFIRST option.
  */
@@ -108,6 +68,31 @@ static int waitForPartition = 0;
  */
 #define ENV_HOSTS_UNIQUE    "PSI_HOSTS_UNIQUE"
 
+/**
+ * @param Warn on ignored setting
+ *
+ * This one creates some warnings on ignored settings via command-line
+ * or environment, if a batch-systems of flavor @a batchType was
+ * detected.
+ *
+ * @param batchType Type of batch-sytem that was detected to be
+ * printed out in the warning.
+ *
+ * @return No return value.
+ */
+static void checkOtherSettings(char *batchType)
+{
+    char *envStr = getenv(ENV_NODE_NODES);
+    if (!envStr) envStr = getenv(ENV_NODE_HOSTS);
+    if (!envStr) envStr = getenv(ENV_NODE_HOSTFILE);
+    if (!envStr) envStr = getenv(ENV_NODE_PEFILE);
+
+    if (envStr) {
+	PSI_log(-1, "Found batch system of %s flavour."
+		" Ignoring any choices of nodes or hosts.\n",
+		batchType ? batchType : "some");
+    }
+}
 
 /**
  * Name of the environment variable used by LSF in order to keep the
@@ -132,6 +117,7 @@ void PSI_LSF(void)
     lsf_hosts = getenv(ENV_NODE_HOSTS_LSF);
     lsf_hostfile = getenv(ENV_NODE_HOSTFILE_LSF);
     if (lsf_hosts || lsf_hostfile) {
+	checkOtherSettings("LSF");
 	setenv(ENV_NODE_SORT, "none", 1);
 	unsetenv(ENV_NODE_NODES);
 	if (lsf_hostfile) {
@@ -141,6 +127,7 @@ void PSI_LSF(void)
 	    setenv(ENV_NODE_HOSTS, lsf_hosts, 1);
 	    unsetenv(ENV_NODE_HOSTFILE);
 	}
+	unsetenv(ENV_NODE_PEFILE);
 	setenv(ENV_PART_LOOPNODES, "1", 1);
 	batchPartition = 1;
     }
@@ -161,10 +148,12 @@ void PSI_PBS(void)
 
     pbs_hostfile = getenv(ENV_NODE_HOSTFILE_PBS);
     if (pbs_hostfile) {
+	checkOtherSettings("PBS");
 	setenv(ENV_NODE_SORT, "none", 1);
 	unsetenv(ENV_NODE_NODES);
 	unsetenv(ENV_NODE_HOSTS);
 	setenv(ENV_NODE_HOSTFILE, pbs_hostfile, 1);
+	unsetenv(ENV_NODE_PEFILE);
 	setenv(ENV_PART_LOOPNODES, "1", 1);
 	batchPartition = 1;
     }
@@ -184,12 +173,41 @@ void PSI_LL(void)
 
     ll_hosts = getenv(ENV_NODE_HOSTS_LL);
     if (ll_hosts) {
+	checkOtherSettings("LoadLeveler");
 	setenv(ENV_NODE_SORT, "none", 1);
 	unsetenv(ENV_NODE_NODES);
 	setenv(ENV_NODE_HOSTS, ll_hosts, 1);
 	unsetenv(ENV_NODE_HOSTFILE);
+	unsetenv(ENV_NODE_PEFILE);
 	setenv(ENV_PART_LOOPNODES, "1", 1);
 	batchPartition = 1;
+    }
+}
+
+/**
+ * Name of the environment variable used by SUN/Oracle/Univa
+ * GridEngine in order to keep the hostnames of the nodes reserved for
+ * the batch job.
+*/
+#define ENV_NODE_PEFILE_SGE "PE_HOSTFILE"
+
+void PSI_SGE(void)
+{
+    char *sge_pefile=NULL;
+
+    PSI_log(PSI_LOG_VERB, "%s()\n", __func__);
+
+    sge_pefile = getenv(ENV_NODE_PEFILE_SGE);
+    if (sge_pefile) {
+	checkOtherSettings("GridEngine");
+	setenv(ENV_NODE_SORT, "none", 1);
+	unsetenv(ENV_NODE_NODES);
+	unsetenv(ENV_NODE_HOSTS);
+	unsetenv(ENV_NODE_HOSTFILE);
+	setenv(ENV_NODE_PEFILE, sge_pefile, 1);
+	setenv(ENV_PART_LOOPNODES, "1", 1);
+	batchPartition = 1;
+	PSI_exit(ENOSYS, "%s()", __func__);
     }
 }
 

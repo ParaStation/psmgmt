@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2011 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2012 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -42,108 +42,6 @@ static void printVersion(void)
 
 #define OTHER_OPTIONS_STR "<command> [options]"
 
-static void handleNodes(poptContext *optCon, int verbose,
-			char *nodelist, char *hostlist, char *hostfile)
-{
-    char *envstr;
-
-    envstr = getenv("PSI_NODES");
-    if (!envstr) envstr = getenv("PSI_HOSTS");
-    if (!envstr) envstr = getenv("PSI_HOSTFILE");
-    /* envstr marks any of PSI_NODES, PSI_HOSTS or PSI_HOSTFILE set */
-    if (nodelist) {
-	if (hostlist) {
-	    poptPrintUsage(*optCon, stderr, 0);
-	    fprintf(stderr,
-		    "Do not use --nodes and --hosts simultaneously.\n");
-	    exit(1);
-	}
-	if (hostfile) {
-	    poptPrintUsage(*optCon, stderr, 0);
-	    fprintf(stderr,
-		    "Do not use --nodes and --hosts simultaneously.\n");
-	    exit(1);
-	}
-	if (envstr) {
-	    poptPrintUsage(*optCon, stderr, 0);
-	    fprintf(stderr, "Do not use --nodes when any of"
-		    " PSI_NODES, PSI_HOSTS or PSI_HOSTFILE is set.\n");
-	    exit(1);
-	}
-	setenv("PSI_NODES", nodelist, 1);
-	if (verbose) {
-	    printf("PSI_NODES set to '%s'\n", nodelist);
-	}
-    } else if (hostlist) {
-	if (hostfile) {
-	    poptPrintUsage(*optCon, stderr, 0);
-	    fprintf(stderr,
-		    "Do not use --hosts and --hostfile simultaneously.\n");
-	    exit(1);
-	}
-	if (envstr) {
-	    poptPrintUsage(*optCon, stderr, 0);
-	    fprintf(stderr, "Do not use --hosts when any of"
-		    " PSI_NODES, PSI_HOSTS or PSI_HOSTFILE is set.\n");
-	    exit(1);
-	}
-	setenv("PSI_HOSTS", hostlist, 1);
-	if (verbose) {
-	    printf("PSI_HOSTS set to '%s'\n", hostlist);
-	}
-    } else if (hostfile) {
-	if (envstr) {
-	    poptPrintUsage(*optCon, stderr, 0);
-	    fprintf(stderr, "Do not use --hostfile when any of"
-		    " PSI_NODES, PSI_HOSTS or PSI_HOSTFILE is set.\n");
-	    exit(1);
-	}
-	setenv("PSI_HOSTFILE", hostfile, 1);
-	if (verbose) {
-	    printf("PSI_HOSTFILE set to '%s'\n", hostfile);
-	}
-    }
-}
-
-static void handleSort(poptContext *optCon, int verbose, char *sort)
-{
-    char *envstr;
-
-    envstr = getenv("PSI_NODES_SORT");
-    if (sort) {
-	if (envstr) {
-	    poptPrintUsage(*optCon, stderr, 0);
-	    fprintf(stderr, "Do not use --sort when PSI_NODES_SORT is set.\n");
-	    exit(1);
-	}
-	if (!strcmp(sort, "proc")) {
-	    setenv("PSI_NODES_SORT", "PROC", 1);
-	    if (verbose) {
-		printf("PSI_NODES_SORT set to 'PROC'\n");
-	    }
-	} else if (!strcmp(sort, "load")) {
-	    setenv("PSI_NODES_SORT", "LOAD_1", 1);
-	    if (verbose) {
-		printf("PSI_NODES_SORT set to 'LOAD'\n");
-	    }
-	} else if (!strcmp(sort, "proc+load")) {
-	    setenv("PSI_NODES_SORT", "PROC+LOAD", 1);
-	    if (verbose) {
-		printf("PSI_NODES_SORT set to 'PROC+LOAD'\n");
-	    }
-	} else if (!strcmp(sort, "none")) {
-	    setenv("PSI_NODES_SORT", "NONE", 1);
-	    if (verbose) {
-		printf("PSI_NODES_SORT set to 'NONE'\n");
-	    }
-	} else {
-	    poptPrintUsage(*optCon, stderr, 0);
-	    fprintf(stderr, "Unknown value for -sort option: %s\n", sort);
-	    exit(1);
-	}
-    }
-}
-
 int main(int argc, const char *argv[])
 {
     int rank, i, totlen = 0;
@@ -152,7 +50,7 @@ int main(int argc, const char *argv[])
 
     int dest, version, verbose, rusage;
     int rc;
-    char *nodelist, *hostlist, *hostfile, *sort, *envlist, *login;
+    char *nodelist, *hostlist, *hostfile, *sort, *envlist, *login, *msg;
     char *envstr;
     int dup_argc;
     int partitionsize=1;
@@ -321,9 +219,20 @@ int main(int argc, const char *argv[])
 	    }
 	}
 
-	handleNodes(&optCon, verbose, nodelist, hostlist, hostfile);
+	msg = PSE_checkNodeEnv(nodelist, hostlist, hostfile, NULL, "-",
+			       verbose);
+	if (msg) {
+	    poptPrintUsage(optCon, stderr, 0);
+	    fprintf(stderr, "%s\n", msg);
+	    exit(1);
+	}
 
-	handleSort(&optCon, verbose, sort);
+	msg = PSE_checkSortEnv(sort, "-", verbose);
+	if (msg) {
+	    poptPrintUsage(optCon, stderr, 0);
+	    fprintf(stderr, "%s\n", msg);
+	    exit(1);
+	}
 
 	/* optCon no longer needed. Do not free() dup_argv before! */
 	optCon = NULL;

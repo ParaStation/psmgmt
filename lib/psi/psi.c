@@ -115,7 +115,7 @@ static int connectDaemon(PStask_group_t taskGroup, int tryStart)
 
     daemonSock = daemonSocket(PSmasterSocketName);
 
-    if (daemonSock==-1 && taskGroup != TG_ADMIN) return 0;
+    tryStart &= (taskGroup == TG_ADMIN);
 
     while (daemonSock==-1 && tryStart && connectfailes++ < 5) {
 	/* try to start local ParaStation daemon via inetd */

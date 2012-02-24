@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2010 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2012 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -30,6 +30,53 @@ extern "C" {
 #endif
 
 /**
+ * The name of the environment variable defining a nodelist from a
+ * nodestring, i.e. a string containing a comma separated list of node
+ * ranges.
+ */
+#define ENV_NODE_NODES     "PSI_NODES"
+
+/**
+ * The name of the environment variable defining a nodelist from a
+ * hoststring, i.e. a string containing a whitespace separated list of
+ * resolvable hostnames.
+ */
+#define ENV_NODE_HOSTS     "PSI_HOSTS"
+
+/**
+ * The name of the environment variable defining a nodelist from a
+ * hostfile, i.e. a file containing a list of resolvable hostnames.
+ */
+#define ENV_NODE_HOSTFILE  "PSI_HOSTFILE"
+
+/**
+ * The name of the environment variable defining a nodelist from a
+ * pefile, i.e. a file containing a list of resolvable hostnames and
+ * number of processes to be placed on this nodes.
+ */
+#define ENV_NODE_PEFILE    "PSI_PEFILE"
+
+/**
+ * Name of the environment variable steering the sorting of nodes
+ * within building the partition. Possible values are:
+ *
+ * - LOAD, LOAD_1: Use the 1 minute load average for sorting.
+ *
+ * - LOAD_5: Use the 5 minute load average for sorting.
+ *
+ * - LOAD_15: Use the 15 minute load average for sorting.
+ *
+ * - PROC: Use the number of processes controlled by ParaStation.
+ *
+ * - PROC+LOAD: Use PROC + LOAD for sorting.
+ *
+ * - NONE: No sorting at all.
+ *
+ * The value is considered case-insensitive.
+ */
+#define ENV_NODE_SORT      "PSI_NODES_SORT"
+
+/**
  * @brief Handle LSF environment variables.
  *
  * Handle LSF environment variables. Thus, @a ENV_NODES_HOSTFILE is
@@ -44,7 +91,7 @@ extern "C" {
 void PSI_LSF(void);
 
 /**
- * @brief Handle OpenPBS/PBSPro environment variables.
+ * @brief Handle OpenPBS/PBSPro/Torque environment variables.
  *
  * Handle OpenPBS/PBSPro/Torque environment variables. Thus @a
  * ENV_NODE_HOSTFILE is set to the value of the PBS_NODEFILE
@@ -68,6 +115,19 @@ void PSI_PBS(void);
  * @return No return value.
  */
 void PSI_LL(void);
+
+/**
+ * @brief Handle SUN/Oracle/Univa GridEngine environment variables.
+ *
+ * Handle SUN/Oracle/Univa GridEngine environment variables. Thus @a
+ * ENV_NODES_PEFILE is set to the value of the PE_HOSTFILE environment
+ * variable, if available. Furthermore all other environment variables
+ * steering the partition are cleared and any sorting of nodes is
+ * switched off.
+ *
+ * @return No return value.
+ */
+void PSI_SGE(void);
 
 /**
  * @brief Create a partition.

@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 1999-2003 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2011 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2012 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -16,6 +16,7 @@ static char vcid[] __attribute__((used)) =
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <ctype.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 
@@ -155,8 +156,10 @@ int PSE_getPartition(unsigned int num)
     PSI_LL();
     /* Check for LSF-Parallel */
     PSI_LSF();
-    /* Check for PBSPro/OpenPBS */
+    /* Check for PBSPro/OpenPBS/Torque */
     PSI_PBS();
+    /* Check for SUN/Oracle/Univa GridEngine */
+    PSI_SGE();
     return PSI_createPartition(num, defaultHWType);
 }
 
@@ -344,6 +347,132 @@ int PSE_getMasterNode(void)
 int PSE_getMasterPort(void)
 {
     return masterPort;
+}
+
+static char msgStr[512];
+
+char * PSE_checkNodeEnv(char *nodelist, char *hostlist, char *hostfile,
+			char *pefile, char *argPrefix, int verbose)
+{
+    char *envStr = getenv(ENV_NODE_NODES);
+    if (!envStr) envStr = getenv(ENV_NODE_HOSTS);
+    if (!envStr) envStr = getenv(ENV_NODE_HOSTFILE);
+    if (!envStr) envStr = getenv(ENV_NODE_PEFILE);
+    /* envStr marks if any of PSI_NODES, PSI_HOSTS or PSI_HOSTFILE is set */
+    if (nodelist) {
+	size_t len, i;
+	if (hostlist) {
+	    snprintf(msgStr, sizeof(msgStr),
+		     "Don't use %snodes and %shosts simultaneously.",
+		     argPrefix, argPrefix);
+	    return msgStr;
+	} else if (hostfile) {
+	    snprintf(msgStr, sizeof(msgStr),
+		     "Don't use %snodes and %shostfile simultaneously.",
+		     argPrefix, argPrefix);
+	    return msgStr;
+	} else if (pefile) {
+	    snprintf(msgStr, sizeof(msgStr),
+		     "Don't use %snodes and %spefile simultaneously.",
+		     argPrefix, argPrefix);
+	    return msgStr;
+	} else if (envStr) {
+	    snprintf(msgStr, sizeof(msgStr),
+		     "Don't use %snodes with any of %s, %s, %s or %s set.",
+		     argPrefix, ENV_NODE_NODES,ENV_NODE_HOSTS,
+		     ENV_NODE_HOSTFILE, ENV_NODE_PEFILE);
+	    return msgStr;
+	}
+	envStr = nodelist;
+	len = strlen(envStr);
+	for (i=0; i<len; i++) {
+	    if (isalpha(envStr[i])) {
+		snprintf(msgStr, sizeof(msgStr),
+			 "%snodes got list of numeric node IDs,"
+			 " did you mean %shosts?\n", argPrefix, argPrefix);
+		return msgStr;
+	    }
+	}
+	setenv(ENV_NODE_NODES, nodelist, 1);
+	if (verbose) PSI_log(-1, "%s='%s'\n", ENV_NODE_NODES, nodelist);
+    } else if (hostlist) {
+	if (hostfile) {
+	    snprintf(msgStr, sizeof(msgStr),
+		     "Don't use %shosts and %shostfile simultaneously.",
+		     argPrefix, argPrefix);
+	    return msgStr;
+	} else if (pefile) {
+	    snprintf(msgStr, sizeof(msgStr),
+		     "Don't use %shosts and %spefile simultaneously.",
+		     argPrefix, argPrefix);
+	    return msgStr;
+	} else if (envStr) {
+	    snprintf(msgStr, sizeof(msgStr),
+		     "Don't use %shosts with any of %s, %s, %s or %s set.",
+		     argPrefix, ENV_NODE_NODES,ENV_NODE_HOSTS,
+		     ENV_NODE_HOSTFILE, ENV_NODE_PEFILE);
+	    return msgStr;
+	}
+	setenv(ENV_NODE_HOSTS, hostlist, 1);
+	if (verbose) PSI_log(-1, "%s='%s'\n", ENV_NODE_HOSTS, hostlist);
+    } else if (hostfile) {
+	if (pefile) {
+	    snprintf(msgStr, sizeof(msgStr),
+		     "Don't use %shostfile and %spefile simultaneously.",
+		     argPrefix, argPrefix);
+	    return msgStr;
+	} else if (envStr) {
+	    snprintf(msgStr, sizeof(msgStr),
+		     "Don't use %shostfile with any of %s, %s, %s or %s set.",
+		     argPrefix, ENV_NODE_NODES,ENV_NODE_HOSTS,
+		     ENV_NODE_HOSTFILE, ENV_NODE_PEFILE);
+	    return msgStr;
+	}
+	setenv(ENV_NODE_HOSTFILE, hostfile, 1);
+	if (verbose) PSI_log(-1, "%s='%s'\n", ENV_NODE_HOSTFILE, hostfile);
+    } else if (pefile) {
+	if (envStr) {
+	    snprintf(msgStr, sizeof(msgStr),
+		     "Don't use %spefile with any of %s, %s, %s or %s set.",
+		     argPrefix, ENV_NODE_NODES,ENV_NODE_HOSTS,
+		     ENV_NODE_HOSTFILE, ENV_NODE_PEFILE);
+	    return msgStr;
+	}
+	setenv(ENV_NODE_HOSTFILE, hostfile, 1);
+	if (verbose) PSI_log(-1, "%s='%s'\n", ENV_NODE_HOSTFILE, hostfile);
+    }
+
+    return NULL;
+}
+
+char * PSE_checkSortEnv(char *sort, char *argPrefix, int verbose)
+{
+    char *envStr = getenv(ENV_NODE_SORT);
+    if (sort) {
+	char *val;
+	if (envStr) {
+	    snprintf(msgStr, sizeof(msgStr),
+		     "Don't use %ssort with %s set.", argPrefix, ENV_NODE_SORT);
+	    return msgStr;
+	}
+	if (!strcmp(sort, "proc")) {
+	    val = "PROC";
+	} else if (!strcmp(sort, "load")) {
+	    val = "LOAD_1";
+	} else if (!strcmp(sort, "proc+load")) {
+	    val = "PROC+LOAD";
+	} else if (!strcmp(sort, "none")) {
+	    val = "NONE";
+	} else {
+	    snprintf(msgStr, sizeof(msgStr),
+		     "Unknown value for %ssort option: %s", argPrefix, sort);
+	    return msgStr;
+	}
+	setenv(ENV_NODE_SORT, val, 1);
+	if (verbose) PSI_log(-1, "%s set to '%s'\n", ENV_NODE_SORT, val);
+    }
+
+    return NULL;
 }
 
 void PSE_finalize(void)

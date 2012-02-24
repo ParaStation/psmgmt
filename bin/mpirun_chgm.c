@@ -2,7 +2,7 @@
  *               ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2009 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2012 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -83,7 +83,7 @@ int main(int argc, const char *argv[])
 {
     int np, dest, version, verbose, local, source, rusage;
     int rank, i, arg, rc;
-    char *nodelist, *hostlist, *hostfile, *sort, *envlist;
+    char *nodelist, *hostlist, *hostfile, *sort, *envlist, *msg;
     char *envstr;
     int dup_argc;
     char **dup_argv;
@@ -288,94 +288,18 @@ int main(int argc, const char *argv[])
 	}
     }
 
-    envstr = getenv("PSI_NODES");
-    if (!envstr) envstr = getenv("PSI_HOSTS");
-    if (!envstr) envstr = getenv("PSI_HOSTFILE");
-    /* envstr marks if any of PSI_NODES, PSI_HOSTS or PSI_HOSTFILE is set */
-    if (nodelist) {
-	if (hostlist) {
-	    poptPrintUsage(optCon, stderr, 0);
-	    fprintf(stderr, "Do not use -nodes and -hosts simultatniously.\n");
-	    exit(1);
-	}
-	if (hostfile) {
-	    poptPrintUsage(optCon, stderr, 0);
-	    fprintf(stderr,
-		    "Do not use -nodes and -hostfile simultatniously.\n");
-	    exit(1);
-	}
-	if (envstr) {
-	    poptPrintUsage(optCon, stderr, 0);
-	    fprintf(stderr, "Do not use -nodes when any of"
-		    " PSI_NODES, PSI_HOSTS or PSI_HOSTFILE is set.\n");
-	    exit(1);
-	}
-	setenv("PSI_NODES", nodelist, 1);
-	if (verbose) {
-	    printf("PSI_NODES set to '%s'\n", nodelist);
-	}
-    } else if (hostlist) {
-	if (hostfile) {
-	    poptPrintUsage(optCon, stderr, 0);
-	    fprintf(stderr,
-		    "Do not use -hosts and -hostfile simultatniously.\n");
-	    exit(1);
-	}
-	if (envstr) {
-	    poptPrintUsage(optCon, stderr, 0);
-	    fprintf(stderr, "Do not use -hosts when any of"
-		    " PSI_NODES, PSI_HOSTS or PSI_HOSTFILE is set.\n");
-	    exit(1);
-	}
-	setenv("PSI_HOSTS", hostlist, 1);
-	if (verbose) {
-	    printf("PSI_HOSTS set to '%s'\n", hostlist);
-	}
-    } else if (hostfile) {
-	if (envstr) {
-	    poptPrintUsage(optCon, stderr, 0);
-	    fprintf(stderr, "Do not use -hostfile when any of"
-		    " PSI_NODES, PSI_HOSTS or PSI_HOSTFILE is set.\n");
-	    exit(1);
-	}
-	setenv("PSI_HOSTFILE", hostfile, 1);
-	if (verbose) {
-	    printf("PSI_HOSTFILE set to '%s'\n", hostfile);
-	}
+    msg = PSE_checkNodeEnv(nodelist, hostlist, hostfile, NULL, "-", verbose);
+    if (msg) {
+	poptPrintUsage(optCon, stderr, 0);
+	fprintf(stderr, "%s\n", msg);
+	exit(1);
     }
 
-    envstr = getenv("PSI_NODES_SORT");
-    if (sort) {
-	if (envstr) {
-	    poptPrintUsage(optCon, stderr, 0);
-	    fprintf(stderr, "Do not use -sort when PSI_NODES_SORT is set.\n");
-	    exit(1);
-	}
-	if (!strcmp(sort, "proc")) {
-	    setenv("PSI_NODES_SORT", "PROC", 1);
-	    if (verbose) {
-		printf("PSI_NODES_SORT set to 'PROC'\n");
-	    }
-	} else if (!strcmp(sort, "load")) {
-	    setenv("PSI_NODES_SORT", "LOAD_1", 1);
-	    if (verbose) {
-		printf("PSI_NODES_SORT set to 'LOAD'\n");
-	    }
-	} else if (!strcmp(sort, "proc+load")) {
-	    setenv("PSI_NODES_SORT", "PROC+LOAD", 1);
-	    if (verbose) {
-		printf("PSI_NODES_SORT set to 'PROC+LOAD'\n");
-	    }
-	} else if (!strcmp(sort, "none")) {
-	    setenv("PSI_NODES_SORT", "NONE", 1);
-	    if (verbose) {
-		printf("PSI_NODES_SORT set to 'NONE'\n");
-	    }
-	} else {
-	    poptPrintUsage(optCon, stderr, 0);
-	    fprintf(stderr, "Unknown value for -sort option: %s\n", sort);
-	    exit(1);
-	}
+    msg = PSE_checkSortEnv(sort, "-", verbose);
+    if (msg) {
+	poptPrintUsage(optCon, stderr, 0);
+	fprintf(stderr, "%s\n", msg);
+	exit(1);
     }
 
     /* Don't irritate the user with logger messages */

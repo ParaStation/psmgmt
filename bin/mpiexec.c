@@ -29,7 +29,6 @@ static char vcid[] __attribute__((used)) =
 #include <signal.h>
 #include <errno.h>
 #include <string.h>
-#include <ctype.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <pwd.h>
@@ -40,6 +39,7 @@ static char vcid[] __attribute__((used)) =
 #include <psienv.h>
 #include <psiinfo.h>
 #include <psispawn.h>
+#include <psipartition.h>
 #include <pscommon.h>
 
 #define GDB_COMMAND_EXE "gdb"
@@ -257,8 +257,8 @@ static void getFirstNodeID(PSnodes_ID_t *nodeID)
 
     *nodeID = -1;
 
-    envnodes = getenv("PSI_NODES");
-    envhosts = getenv("PSI_HOSTS");
+    envnodes = getenv(ENV_NODE_NODES);
+    envhosts = getenv(ENV_NODE_HOSTS);
 
     if (envnodes) nodelist = envnodes;
     if (envhosts) hostlist = envhosts;
@@ -806,7 +806,7 @@ static void cleanEnv(char *var)
  */
 static void setupPSIDEnv(int verbose)
 {
-    char *envstr, *envstr2;
+    char *envstr, *envstr2, *msg;
     char tmp[1024];
     /* HACK: this determines, if we are the root-process */
     int isRoot = !getenv("__PSI_CORESIZE");
@@ -814,9 +814,9 @@ static void setupPSIDEnv(int verbose)
     verbose = verbose && isRoot;
 
     /* clean the environment from dispensable empty variables */
-    cleanEnv("PSI_HOSTS");
-    cleanEnv("PSI_NODES");
-    cleanEnv("PSI_HOSTFILE");
+    cleanEnv(ENV_NODE_HOSTS);
+    cleanEnv(ENV_NODE_NODES);
+    cleanEnv(ENV_NODE_HOSTFILE);
 
     envstr = getenv("MPIEXEC_TIMEOUT");
     envstr2 = getenv("PSI_MAXTIME");
@@ -964,70 +964,11 @@ static void setupPSIDEnv(int verbose)
 	free(val);
     }
 
-    envstr = getenv("PSI_NODES");
-    if (!envstr) envstr = getenv("PSI_HOSTS");
-    if (!envstr) envstr = getenv("PSI_HOSTFILE");
+    msg = PSE_checkNodeEnv(nodelist, hostlist, hostfile, NULL, "--", verbose);
+    if (msg) errExit(msg);
 
-    /* envstr marks if any of PSI_NODES, PSI_HOSTS or PSI_HOSTFILE is set */
-    if (nodelist) {
-	int len=0,i;
-	if (hostlist) {
-	    errExit("Don't use --nodes and --hosts simultaneously.");
-	} else if (hostfile) {
-	    errExit("Don't use --nodes and --hostfile simultaneously.");
-	} else if (envstr) {
-	    errExit("Don't use --nodes with any of"
-		    " PSI_NODES, PSI_HOSTS or PSI_HOSTFILE set.");
-	}
-	envstr = nodelist;
-	len = strlen(envstr);
-	for (i=0; i<len; i++) {
-	    if (isalpha(envstr[i])) {
-		fprintf(stderr, "--nodes is a list of numeric node id`s,"
-			" did you mean --hosts?\n");
-		exit(EXIT_FAILURE);
-	    }
-	}
-	setenv("PSI_NODES", nodelist, 1);
-	if (verbose) printf("PSI_NODES='%s'\n", nodelist);
-    } else if (hostlist) {
-	if (hostfile) {
-	    errExit("Don't use --hosts and --hostfile simultaneously.");
-	} else if (envstr) {
-	    errExit("Don't use --hosts with any of"
-		    " PSI_NODES, PSI_HOSTS or PSI_HOSTFILE set.");
-	}
-
-	setenv("PSI_HOSTS", hostlist, 1);
-	if (verbose) printf("PSI_HOSTS='%s'\n", hostlist);
-    } else if (hostfile) {
-	if (envstr) errExit("Don't use --hostfile with any of"
-			    " PSI_NODES, PSI_HOSTS or PSI_HOSTFILE set.");
-
-	setenv("PSI_HOSTFILE", hostfile, 1);
-	if (verbose) printf("PSI_HOSTFILE='%s'\n", hostfile);
-    }
-
-    envstr = getenv("PSI_NODES_SORT");
-    if (sort) {
-	char *val = NULL;
-	if (envstr) errExit("Don't use --sort with PSI_NODES_SORT set.");
-
-	if (!strcmp(sort, "proc")) {
-	    val = "PROC";
-	} else if (!strcmp(sort, "load")) {
-	    val = "LOAD_1";
-	} else if (!strcmp(sort, "proc+load")) {
-	    val = "PROC+LOAD";
-	} else if (!strcmp(sort, "none")) {
-	    val = "NONE";
-	} else {
-	    snprintf(msgstr, sizeof(msgstr), "Unknown --sort value: %s", sort);
-	    errExit(msgstr);
-	}
-	setenv("PSI_NODES_SORT", val, 1);
-	if (verbose) printf("PSI_NODES_SORT='%s'\n", val);
-    }
+    msg = PSE_checkSortEnv(sort, "--", verbose);
+    if (msg) errExit(msg);
 }
 
 /**
@@ -1213,18 +1154,18 @@ static void setupAdminEnv(void)
     int first, last, i;
 
     hosts[0] = '\0';
-    envnodes = getenv("PSI_NODES");
-    envhosts = getenv("PSI_HOSTS");
-    envhostsfile = getenv("PSI_HOSTFILE");
+    envnodes = getenv(ENV_NODE_NODES);
+    envhosts = getenv(ENV_NODE_HOSTS);
+    envhostsfile = getenv(ENV_NODE_HOSTFILE);
     envadminhosts = getenv("PSI_ADMIN_HOSTS");
 
     if (envnodes) {
 	parse = strdup(envnodes);
-	setPSIEnv("PSI_NODES", parse, 1);
+	setPSIEnv(ENV_NODE_NODES, parse, 1);
     }
     if (envhosts) {
 	parse = strdup(envhosts);
-	setPSIEnv("PSI_HOSTS", parse, 1);
+	setPSIEnv(ENV_NODE_HOSTS, parse, 1);
     }
     if (envadminhosts) {
 	parse = strdup(envadminhosts);
@@ -1238,8 +1179,8 @@ static void setupAdminEnv(void)
 	if (envhostsfile) {
 	    parseHostfile(envhostsfile, hosts, sizeof(hosts));
 	    hostlist = hosts;
-	    unsetPSIEnv("PSI_HOSTFILE");
-	    unsetenv("PSI_HOSTFILE");
+	    unsetPSIEnv(ENV_NODE_HOSTFILE);
+	    unsetenv(ENV_NODE_HOSTFILE);
 	    setPSIEnv("PSI_ADMIN_HOSTS", hosts, 1);
 	} else if (hostfile) {
 	    parseHostfile(hostfile, hosts, sizeof(hosts));
@@ -1377,8 +1318,8 @@ static void createAdminTasks(int argc, char *argv[], char *login, int verbose,
 
     if (login) setupUID(argv);
 
-    envnodes = getenv("PSI_NODES");
-    envhosts = getenv("PSI_HOSTS");
+    envnodes = getenv(ENV_NODE_NODES);
+    envhosts = getenv(ENV_NODE_HOSTS);
 
     if (envnodes) nodelist = envnodes;
     if (envhosts) hostlist = envhosts;
