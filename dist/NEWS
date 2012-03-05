@@ -4,6 +4,24 @@ Copyright (C) 2010-2012 ParTec Cluster Competence Center GmbH, Munich
 
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
+Version 5.0.38:
+===============
+Bugfixes:
+ - syslog() might deadlock. Related to r8548 (#5285)
+
+Enhancements:
+ - Add support for GridEngine PE-files. (#932)
+ - Improved clash-detection on resources between CLI, environment and
+   batch-system
+ - Add 'silent' option to psiadmin's shutdown directive and be more verbose
+   during shutdown (#1572)
+ - Master socket now uses Linux's abstract address. (#1573)
+ - Get rid of explicit lock-file.
+
+Additional changes:
+ - Move legacy MPI starters into separate sub-package (#1584)
+ - Get rid of ELAN-support, since Quadrics QsNet seems to be dead (#1591)
+
 Version 5.0.37:
 ===============
 Bugfixes:

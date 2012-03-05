@@ -1,3 +1,61 @@
+Version psmgmt-5.0.38:
+======================
+------------------------------------------------------------------------
+r8564 | eicker | 2012-02-24 19:42:47 +0100 (Fri, 24 Feb 2012) | 3 lines
+
+Enhancement: Add support for GridEngine PE-files. (#932)
+Fix some typos.
+
+------------------------------------------------------------------------
+r8563 | eicker | 2012-02-24 18:43:15 +0100 (Fri, 24 Feb 2012) | 7 lines
+
+Enhancement: Rework the clash detection when defining nodes to run on or
+    sorting via command-line argument and environment at the same time.
+Enhancement: Detect clashes between batch-system and manual requirements
+    on resource
+Enhancement: Prepare for SGE support. Actual support not yet
+    implemented.
+
+------------------------------------------------------------------------
+r8562 | eicker | 2012-02-24 17:30:15 +0100 (Fri, 24 Feb 2012) | 3 lines
+
+Bugfix: syslog() might deadlock when called from within fork() (via some
+    signal-handler after receiving a SIGCHLD). Related to r8548 (#5285)
+
+------------------------------------------------------------------------
+r8561 | eicker | 2012-02-21 15:23:24 +0100 (Tue, 21 Feb 2012) | 3 lines
+
+Enhancement: Master socket now uses Linux's abstract address. (#1573)
+Enhancement: Get rid of explicit lock-file.
+
+------------------------------------------------------------------------
+r8559 | eicker | 2012-02-17 16:25:56 +0100 (Fri, 17 Feb 2012) | 3 lines
+
+Enhancement: Add 'silent' option to psiadmin's shutdown directive and be
+    more verbose during shutdown (#1572)
+
+------------------------------------------------------------------------
+r8558 | eicker | 2012-02-17 09:50:32 +0100 (Fri, 17 Feb 2012) | 2 lines
+
+Move legacy MPI starters into separate sub-package (#1584)
+
+------------------------------------------------------------------------
+r8557 | eicker | 2012-02-17 09:15:46 +0100 (Fri, 17 Feb 2012) | 2 lines
+
+Get rid of ELAN-support, since Quadrics QsNet seems to be dead (#1591)
+
+------------------------------------------------------------------------
+r8556 | eicker | 2012-01-31 17:41:15 +0100 (Tue, 31 Jan 2012) | 2 lines
+
+Add test/debug plugin to suppress flow-controll on a local daemon.
+
+------------------------------------------------------------------------
+r8552 | eicker | 2012-01-31 16:45:48 +0100 (Tue, 31 Jan 2012) | 2 lines
+
+New version (psmgmt-5.0.37)
+
+------------------------------------------------------------------------
+
 Version psmgmt-5.0.37:
 ======================
 ------------------------------------------------------------------------
