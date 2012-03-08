@@ -44,7 +44,7 @@ static void printVersion(void)
 
 int main(int argc, const char *argv[])
 {
-    int rank, i, totlen = 0;
+    int i, totlen = 0;
     char *command;
     char *newargv[4];
 
@@ -163,113 +163,102 @@ int main(int argc, const char *argv[])
 	exit(1);
     }
 
-    PSE_initialize();
+    if (verbose) {
+	printf("The 'psmstart' command-line is:\n");
+	for (i=0; i<dup_argc; i++) {
+	    printf("%s ", argv[i]);
+	}
+	printf("\b\n\n");
 
-    rank = PSE_getRank();
+	printf("The applications command-line is:\n");
+	for (i=dup_argc; i<argc; i++) {
+	    printf("%s ", argv[i]);
+	}
+	printf("\b\n\n");
+    }
 
-    if (rank == -1){
-	/* I am the logger */
+    /* Setup various environment variables depending on passed arguments */
+    if (dest >= 0) {
+	char val[6];
 
+	snprintf(val, sizeof(val), "%d", dest);
+	setenv("PSI_INPUTDEST", val, 1);
 	if (verbose) {
-	    printf("The 'psmstart' command-line is:\n");
-	    for (i=0; i<dup_argc; i++) {
-		printf("%s ", argv[i]);
-	    }
-	    printf("\b\n\n");
-
-	    printf("The applications command-line is:\n");
-	    for (i=dup_argc; i<argc; i++) {
-		printf("%s ", argv[i]);
-	    }
-	    printf("\b\n\n");
+	    printf("Send all input to node with rank %d.\n", dest);
 	}
+    }
 
-	/* Setup various environment variables depending on passed arguments */
-	if (dest >= 0) {
-	    char val[6];
-
-	    snprintf(val, sizeof(val), "%d", dest);
-	    setenv("PSI_INPUTDEST", val, 1);
-	    if (verbose) {
-		printf("Send all input to node with rank %d.\n", dest);
-	    }
+    if (rusage) {
+	setenv("PSI_RUSAGE", "", 1);
+	if (verbose) {
+	    printf("Will print info about consumed sys/user time.\n");
 	}
+    }
 
-	if (rusage) {
-	    setenv("PSI_RUSAGE", "", 1);
-	    if (verbose) {
-		printf("Will print info about consumed sys/user time.\n");
-	    }
+    if (envlist) {
+	char *val;
+
+	envstr = getenv("PSI_EXPORTS");
+	if (envstr) {
+	    val = malloc(strlen(envstr) + strlen(envlist) + 2);
+	    sprintf(val, "%s,%s", envstr, envlist);
+	} else {
+	    val = strdup(envlist);
 	}
-
-	if (envlist) {
-	    char *val;
-
-	    envstr = getenv("PSI_EXPORTS");
-	    if (envstr) {
-		val = malloc(strlen(envstr) + strlen(envlist) + 2);
-		sprintf(val, "%s,%s", envstr, envlist);
-	    } else {
-		val = strdup(envlist);
-	    }
-	    setenv("PSI_EXPORTS", val, 1);
-	    free(val);
-	    if (verbose) {
-		printf("Environment variables to be exported: %s\n", val);
-	    }
+	setenv("PSI_EXPORTS", val, 1);
+	if (verbose) {
+	    printf("Environment variables to be exported: %s\n", val);
 	}
+	free(val);
+    }
 
-	msg = PSE_checkNodeEnv(nodelist, hostlist, hostfile, NULL, "-",
+    msg = PSE_checkNodeEnv(nodelist, hostlist, hostfile, NULL, "-",
 			       verbose);
-	if (msg) {
-	    poptPrintUsage(optCon, stderr, 0);
-	    fprintf(stderr, "%s\n", msg);
-	    exit(1);
-	}
-
-	msg = PSE_checkSortEnv(sort, "-", verbose);
-	if (msg) {
-	    poptPrintUsage(optCon, stderr, 0);
-	    fprintf(stderr, "%s\n", msg);
-	    exit(1);
-	}
-
-	/* optCon no longer needed. Do not free() dup_argv before! */
-	optCon = NULL;
-	free(dup_argv);
-
-	if (login) {
-	    struct passwd *passwd;
-	    uid_t myUid = getuid();
-
-	    passwd = getpwnam(login);
-
-	    if (!passwd) {
-		fprintf(stderr, "Unknown user '%s'\n", login);
-	    } else if (myUid && passwd->pw_uid != myUid) {
-		fprintf(stderr, "Can't start '%s' as %s\n",
-			argv[dup_argc], login);
-
-		exit(1);
-	    } else {
-		PSE_setUID(passwd->pw_uid);
-		if (verbose) printf("Run as user '%s' UID %d\n",
-				    passwd->pw_name, passwd->pw_uid);
-	    }
-	}
-
-	/* Don't irritate the user with logger messages */
-	setenv("PSI_NOMSGLOGGERDONE", "", 1);
-
-	/* Set default HW to none: */
-	PSE_setHWType(0);
-	if (PSE_getPartition(partitionsize)<0) exit(1);
-
-	PSE_spawnMaster(argc, (char **) argv);
-
-	/* Never be here ! */
+    if (msg) {
+	poptPrintUsage(optCon, stderr, 0);
+	fprintf(stderr, "%s\n", msg);
 	exit(1);
     }
+
+    msg = PSE_checkSortEnv(sort, "-", verbose);
+    if (msg) {
+	poptPrintUsage(optCon, stderr, 0);
+	fprintf(stderr, "%s\n", msg);
+	exit(1);
+    }
+
+    /* optCon no longer needed. Do not free() dup_argv before! */
+    optCon = NULL;
+    free(dup_argv);
+
+    /* at least handling of envlist has to be done before PSE_initialize() */
+    PSE_initialize();
+
+    if (login) {
+	struct passwd *passwd;
+	uid_t myUid = getuid();
+
+	passwd = getpwnam(login);
+
+	if (!passwd) {
+	    fprintf(stderr, "Unknown user '%s'\n", login);
+	} else if (myUid && passwd->pw_uid != myUid) {
+	    fprintf(stderr, "Can't start '%s' as %s\n", argv[dup_argc], login);
+
+	    exit(1);
+	} else {
+	    PSE_setUID(passwd->pw_uid);
+	    if (verbose) printf("Run as user '%s' UID %d\n", passwd->pw_name,
+				passwd->pw_uid);
+	}
+    }
+
+    /* Don't irritate the user with logger messages */
+    setenv("PSI_NOMSGLOGGERDONE", "", 1);
+
+    /* Set default HW to none: */
+    PSE_setHWType(0);
+    if (PSE_getPartition(partitionsize)<0) exit(1);
 
     for (i=dup_argc; i<argc; i++) {
 	totlen += strlen(argv[i])+1;
@@ -285,7 +274,10 @@ int main(int argc, const char *argv[])
     newargv[2] = command;
     newargv[3] = NULL;
 
-    execv("/bin/sh", newargv);
+    PSE_spawnMaster(3, newargv);
+
+    /* Never be here ! */
+    exit(1);
 
     return 0;
 }

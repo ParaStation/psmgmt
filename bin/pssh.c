@@ -1,7 +1,7 @@
 /*
  *               ParaStation
  *
- * Copyright (C) 2006-2011 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2006-2012 ParTec Cluster Competence Center GmbH, Munich
  *
  * $Id$
  *
@@ -194,11 +194,6 @@ int main(int argc, const char *argv[])
     }
     poptFreeContext(optCon);
 
-    PSE_initialize();
-
-    if (PSE_getRank() != -1)
-	fprintf(stderr, "Wrong rank! Spawned by another process?\n");
-
     {
 	struct passwd *passwd = getpwuid(getuid());
 	if (!passwd) {
@@ -246,11 +241,17 @@ int main(int argc, const char *argv[])
 	    val = strdup(envlist);
 	}
 	setenv("PSI_EXPORTS", val, 1);
-	free(val);
 	if (verbose) {
 	    printf("Environment variables to be exported: %s\n", val);
 	}
+	free(val);
     }
+
+    /* at least handling of envlist has to be done before PSE_initialize() */
+    PSE_initialize();
+
+    if (PSE_getRank() != -1)
+	fprintf(stderr, "Wrong rank! Spawned by another process?\n");
 
     if (login) {
 	struct passwd *passwd;
