@@ -12,6 +12,7 @@
 
 #include "psidcomm.h"
 #include "psaccountclient.h"
+#include "psaccountproc.h"
 
 #define PSP_CC_PLUGIN_ACCOUNT      0x0201  /**< psaccount plugin message */
 
@@ -56,7 +57,7 @@ void forwardAccountMsg(DDTypedBufferMsg_t *msg, int type, PStask_ID_t logger);
 void sendAccountUpdate(Client_t *client);
 
 /**
- * @brief Register a torque jobscript via its pid.
+ * @brief Register a PBS jobscript via its pid.
  *
  * This function is called by the psmom, because only
  * the psmom knows the pid of the jobscript. The psaccount
@@ -73,7 +74,7 @@ void sendAccountUpdate(Client_t *client);
 void psAccountRegisterJobscript(pid_t jsPid);
 
 /**
- * @brief Unregister a torque jobscript.
+ * @brief Unregister a PBS jobscript.
  *
  * The job has finished and the psmom is telling us to stop
  * accounting for this jobscript.
@@ -101,7 +102,14 @@ void psAccountSetGlobalCollect(int active);
 
 /**
  * @brief Get account info for a jobscript.
- * */
+ *
+ * @param jobscript The jobscript to get the info for.
+ *
+ * @param accData A pointer to an accountInfo structure which will receive the
+ * requested information.
+ *
+ * @return Returns 1 on success and 0 on error.
+ */
 int psAccountGetJobInfo(pid_t jobscript, psaccAccountInfo_t *accData);
 
 /**
@@ -123,5 +131,19 @@ void psAccountisChildofParent(pid_t parent, pid_t child);
  * @brief Wrapper for the findDaemonProcesses() function.
  */
 void psAccountFindDaemonProcs(uid_t uid, int kill, int warn);
+
+/**
+ * @brief Find a account client by its pid and return the corresponding logger.
+ *
+ * @param pid The pid of the client to find.
+ *
+ * @return Returns the pid of the clients logger or -1 on error.
+ */
+PStask_ID_t psAccountgetLoggerByClientPID(pid_t pid);
+
+/**
+ * @brief Wrapper for the readProcStatInfo() function.
+ */
+int psAccountreadProcStatInfo(pid_t pid, ProcStat_t *pS);
 
 #endif

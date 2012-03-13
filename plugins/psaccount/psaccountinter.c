@@ -213,7 +213,8 @@ void psAccountisChildofParent(pid_t parent, pid_t child)
     isChildofParent(parent, child);
 }
 
-void psAccountGetSessionInfos(int *count, char *buf, size_t bufsize, int *userCount)
+void psAccountGetSessionInfos(int *count, char *buf, size_t bufsize,
+				int *userCount)
 {
     getSessionInformation(count, buf, bufsize, userCount);
 }
@@ -221,6 +222,11 @@ void psAccountGetSessionInfos(int *count, char *buf, size_t bufsize, int *userCo
 void psAccountFindDaemonProcs(uid_t uid, int kill, int warn)
 {
    findDaemonProcesses(uid, kill, warn);
+}
+
+int psAccountreadProcStatInfo(pid_t pid, ProcStat_t *pS)
+{
+   return readProcStatInfo(pid, pS);
 }
 
 void psAccountRegisterJobscript(pid_t jsPid)
@@ -255,7 +261,8 @@ void psAccountUnregisterJobscript(pid_t jsPid)
 
     /* find the jobscript */
     if (!(client = findAccClientByClientTID(taskID))) {
-	mlog("%s: jobscript to unregister with pid '%i' not found\n", __func__, jsPid);
+	mlog("%s: jobscript to unregister with pid '%i' not found\n",
+		__func__, jsPid);
 	return;
     }
 
@@ -266,4 +273,51 @@ void psAccountUnregisterJobscript(pid_t jsPid)
 void psAccountSetGlobalCollect(int active)
 {
     globalCollectMode = active;
+}
+
+PStask_ID_t psAccountgetLoggerByClientPID(pid_t pid)
+{
+    struct list_head *pos;
+    Client_t *client;
+    ProcStat_t pS;
+    int psOK = 0;
+
+    if (list_empty(&AccClientList.list)) return -1;
+
+    if ((readProcStatInfo(pid, &pS))) {
+	psOK = 1;
+    }
+
+    /* try to find the pid in the acc children */
+    list_for_each(pos, &AccClientList.list) {
+	if ((client = list_entry(pos, Client_t, list)) == NULL) break;
+
+	/* try pid */
+	if (client->pid == pid) {
+	    return client->logger;
+	}
+
+	if (!psOK) continue;
+
+	/* try sid */
+	if (client->data.session && client->data.session == pS.session) {
+	    return client->logger;
+	}
+
+	/* try pgroup */
+	if (client->data.pgroup && client->data.pgroup == pS.pgroup) {
+	    return client->logger;
+	}
+    }
+
+    /* try all grand-children now */
+    list_for_each(pos, &AccClientList.list) {
+	if ((client = list_entry(pos, Client_t, list)) == NULL) break;
+
+	if (isChildofParent(client->pid, pid)) {
+	    return client->logger;
+	}
+    }
+
+    return -1;
 }

@@ -29,7 +29,7 @@
 
 /** psid plugin requirements */
 char name[] = "psaccount";
-int version = 016;
+int version = 17;
 int requiredAPI = 101;
 plugin_dep_t dependencies[1];
 
@@ -47,14 +47,6 @@ static int mainTimerID = -1;
 
 /** the main timer which calls periodicMain() to do all the work */
 struct timeval mainTimer = {30,0};
-
-
-/**
- * remarks TODO:
- *
- * -> psaccount fragt alle psaccount skripte nach fehlenden infos
- * -> psmom muss warten bis psaccount alle Info hat.
- */
 
 /**
  * @brief Update the main timer configuration.

@@ -19,6 +19,21 @@ typedef struct {
 } Session_Info_t;
 
 typedef struct {
+    pid_t ppid;
+    pid_t pgroup;
+    pid_t session;
+    char state[1];
+    uint64_t ctime;
+    uint64_t stime;
+    uint64_t cutime;
+    uint64_t cstime;
+    uint64_t threads;
+    uint64_t vmem;
+    uint64_t mem;
+    uid_t uid;
+} ProcStat_t;
+
+typedef struct {
     uid_t uid;
     pid_t pid;
     pid_t ppid;
@@ -137,5 +152,16 @@ int sendSignal2Session(pid_t session, int sig);
  * @return No return value.
  */
 void findDaemonProcesses(uid_t userId, int kill, int warn);
+
+/**
+ * @brief Read selected informations from /proc/pid/stat.
+ *
+ * @param pid The pid to read the info for.
+ *
+ * @param pS A pointer to a ProcStat_t structure to save the result in.
+ *
+ * @return Returns 1 on success and 0 on error.
+ */
+int readProcStatInfo(pid_t pid, ProcStat_t *pS);
 
 #endif

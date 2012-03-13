@@ -31,7 +31,8 @@ void initAccClientList()
  * @return Return the found client, or NULL on error and if no client
  * was found.
  */
-static Client_t *findAccClient(PStask_ID_t clientTID, PStask_ID_t loggerTID)
+static Client_t *findAccClient(PStask_ID_t clientTID, PStask_ID_t loggerTID,
+				pid_t clientPID)
 {
     struct list_head *pos;
     Client_t *client;
@@ -48,18 +49,26 @@ static Client_t *findAccClient(PStask_ID_t clientTID, PStask_ID_t loggerTID)
 	if (loggerTID != -1) {
 	    if (client->logger == loggerTID) return client;
 	}
+	if (clientPID != -1) {
+	    if (client->pid == clientPID) return client;
+	}
     }
     return NULL;
 }
 
 Client_t *findAccClientByClientTID(PStask_ID_t clientTID)
 {
-    return findAccClient(clientTID, -1);
+    return findAccClient(clientTID, -1, -1);
 }
 
 Client_t *findAccClientByLogger(PStask_ID_t loggerTID)
 {
-    return findAccClient(-1, loggerTID);
+    return findAccClient(-1, loggerTID, -1);
+}
+
+Client_t *findAccClientByClientPID(pid_t clientPID)
+{
+    return findAccClient(-1, -1, clientPID);
 }
 
 /**

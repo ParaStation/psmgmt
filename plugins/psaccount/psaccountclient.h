@@ -103,6 +103,16 @@ Client_t *findAccClientByClientTID(PStask_ID_t clientTID);
 Client_t *findAccClientByLogger(PStask_ID_t loggerTID);
 
 /**
+ * @brief Find an account client by its pid.
+ *
+ * @param clientPID The pid of the client to find.
+ *
+ * @return Returns the found client or NULL on error and if no client
+ * was found.
+ */
+Client_t *findAccClientByClientPID(pid_t clientPID);
+
+/**
  * @brief Find the jobscript for a specific job.
  *
  * Try to identify the jobscript which belongs to the specified job.

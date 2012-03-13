@@ -101,7 +101,8 @@ static int sendSignal2AllChildren(pid_t mypid, pid_t child, pid_t pgroup, int si
         if ((Childproc = list_entry(pos, Proc_Snapshot_t, list)) == NULL) break;
 
         if (Childproc->ppid == child) {
-            sendCount += sendSignal2AllChildren(mypid, Childproc->pid, Childproc->pgroup, sig);
+            sendCount += sendSignal2AllChildren(mypid, Childproc->pid,
+							Childproc->pgroup, sig);
         }
     }
     doKill(child, pgroup, sig);
@@ -139,7 +140,8 @@ int sendSignal2Session(pid_t session, int sig)
 			__func__, sig, child, Childproc->pgroup,
 			Childproc->session);
 		    */
-		    sendCount += sendSignal2AllChildren(mypid, child, Childproc->pgroup, sig);
+		    sendCount += sendSignal2AllChildren(mypid, child,
+							Childproc->pgroup, sig);
 		}
 	    }
 	}
@@ -178,7 +180,7 @@ void findDaemonProcesses(uid_t userId, int kill, int warn)
     }
 }
 
-int isChildofParent(pid_t parent, pid_t child)
+static int isChildofParentSnap(pid_t parent, pid_t child)
 {
     Proc_Snapshot_t *procChild;
 
@@ -197,28 +199,127 @@ int isChildofParent(pid_t parent, pid_t child)
     return isChildofParent(parent, procChild->ppid);
 }
 
+int readProcStatInfo(pid_t pid, ProcStat_t *pS)
+{
+    // 14175 (vi) T 25119 14175 25119 34816 15418
+    /** Format string of /proc/pid/stat */
+    static char stat_format[] =
+		    "%*d "	    /* pid */
+		    "(%*[^)]) "	    /* comm */
+		    "%c "	    /* state */
+		    "%u "	    /* ppid */
+		    "%u "	    /* pgrp */
+		    "%u "	    /* session */
+		    "%*d "	    /* tty_nr */
+		    "%*d "	    /* tpgid */
+		    "%*u "	    /* flags */
+		    "%*lu %*lu "    /* minflt cminflt */
+		    "%*lu %*lu "    /* majflt cmajflt */
+		    "%lu %lu "      /* utime stime */
+		    "%lu %lu "      /* cutime cstime */
+		    "%*d "	    /* priority */
+		    "%*d "	    /* nice */
+		    "%lu "	    /* num_threads */
+		    "%*u "	    /* itrealvalue */
+		    "%*u "	    /* starttime */
+		    "%lu %lu "	    /* vsize rss*/
+		    "%*u "	    /* rlim */
+		    "%*u %*u "	    /* startcode endcode startstack */
+		    "%*u "	    /* startstack */
+		    "%*u %*u "	    /* kstkesp kstkeip */
+		    "%*u %*u "	    /* signal blocked */
+		    "%*u %*u "	    /* sigignore sigcatch */
+		    "%*u "	    /* wchan */
+		    "%*u %*u "	    /* nswap cnswap */
+		    "%*d "	    /* exit_signal (kernel 2.1.22) */
+		    "%*d "	    /* processor  (kernel 2.2.8) */
+		    "%*lu "	    /* rt_priority (kernel 2.5.19) */
+		    "%*lu "	    /* policy (kernel 2.5.19) */
+		    "%*llu";	    /* delayacct_blkio_ticks (kernel 2.6.18) */
+
+    FILE *fd;
+    char buf[200];
+    struct stat sbuf;
+    int res;
+
+    snprintf(buf, sizeof(buf), "/proc/%i/stat", pid);
+
+    if ((stat(buf, &sbuf)) == -1) {
+	return 0;
+    }
+    pS->uid = sbuf.st_uid;
+
+    if ((fd = fopen(buf,"r")) == NULL) {
+	mlog("%s: open '%s' failed\n", __func__, buf);
+	return 0;
+    }
+
+    pS->state[0] = '\0';
+    if ((res = fscanf(fd, stat_format, pS->state, &pS->ppid, &pS->pgroup,
+			&pS->session, &pS->ctime, &pS->stime, &pS->cutime,
+			&pS->cstime, &pS->threads, &pS->vmem, &pS->mem)) != 11) {
+	fclose(fd);
+	return 0;
+    }
+    fclose(fd);
+
+    return 1;
+}
+
+/**
+ * @brief Check if a child pid belongs to a parent pid.
+ *
+ * @param parent The parent pid.
+ *
+ * @param child The child pid.
+ *
+ * @return Returns 1 if the second pid is a child of the first pid or 0
+ * otherwise.
+ */
+static int isChildofParentProc(pid_t parent, pid_t child)
+{
+    ProcStat_t pS;
+
+    if (child <= 1) return 0;
+
+    if (!(readProcStatInfo(child, &pS))) {
+	return 0;
+    }
+
+    if (pS.ppid == parent) return 1;
+
+    return isChildofParentProc(parent, pS.ppid);
+}
+
+int isChildofParent(pid_t parent, pid_t child)
+{
+    if (!list_empty(&ProcList.list)) {
+	return isChildofParentSnap(parent, child);
+    }
+
+    return isChildofParentProc(parent,child);
+}
+
 /**
  * @brief Add a new proc snapshot.
  *
  * @return Returns the created proc snapshot.
  */
-static Proc_Snapshot_t *addProc(pid_t pid, pid_t ppid, pid_t pgroup,
-    pid_t session, uint64_t cutime, uint64_t cstime, uint64_t threads,
-    uint64_t mem, uint64_t vmem, char *cmdline, uid_t uid)
+static Proc_Snapshot_t *addProc(pid_t pid, ProcStat_t *pS, char *cmdline)
 {
     Proc_Snapshot_t *proc;
 
     proc = (Proc_Snapshot_t *) umalloc(sizeof(Proc_Snapshot_t), __func__);
-    proc->uid = uid;
+    proc->uid = pS->uid;
     proc->pid = pid;
-    proc->ppid = ppid;
-    proc->pgroup = pgroup;
-    proc->session = session;
-    proc->cutime = cutime;
-    proc->cstime = cstime;
-    proc->threads = threads;
-    proc->mem = mem;
-    proc->vmem = vmem;
+    proc->ppid = pS->ppid;
+    proc->pgroup = pS->pgroup;
+    proc->session = pS->session;
+    proc->cutime = pS->cutime;
+    proc->cstime = pS->cstime;
+    proc->threads = pS->threads;
+    proc->mem = pS->mem;
+    proc->vmem = pS->vmem;
     if (cmdline)  {
 	proc->cmdline = strdup(cmdline);
     } else {
@@ -418,53 +519,12 @@ Proc_Snapshot_t *getAllClientChildsMem(pid_t pid)
 
 void updateProcSnapshot(int extended)
 {
-    // 14175 (vi) T 25119 14175 25119 34816 15418
-    /** Format string of /proc/pid/stat */
-    static char stat_format[] =
-		    "%*d "	    /* pid */
-		    "(%*[^)]) "	    /* comm */
-		    "%c "	    /* state */
-		    "%u "	    /* ppid */
-		    "%u "	    /* pgrp */
-		    "%u "	    /* session */
-		    "%*d "	    /* tty_nr */
-		    "%*d "	    /* tpgid */
-		    "%*u "	    /* flags */
-		    "%*lu %*lu "    /* minflt cminflt */
-		    "%*lu %*lu "    /* majflt cmajflt */
-		    "%lu %lu "      /* utime stime */
-		    "%lu %lu "      /* cutime cstime */
-		    "%*d "	    /* priority */
-		    "%*d "	    /* nice */
-		    "%lu "	    /* num_threads */
-		    "%*u "	    /* itrealvalue */
-		    "%*u "	    /* starttime */
-		    "%lu %lu "	    /* vsize rss*/
-		    "%*u "	    /* rlim */
-		    "%*u %*u "	    /* startcode endcode startstack */
-		    "%*u "	    /* startstack */
-		    "%*u %*u "	    /* kstkesp kstkeip */
-		    "%*u %*u "	    /* signal blocked */
-		    "%*u %*u "	    /* sigignore sigcatch */
-		    "%*u "	    /* wchan */
-		    "%*u %*u "	    /* nswap cnswap */
-		    "%*d "	    /* exit_signal (kernel 2.1.22) */
-		    "%*d "	    /* processor  (kernel 2.2.8) */
-		    "%*lu "	    /* rt_priority (kernel 2.5.19) */
-		    "%*lu "	    /* policy (kernel 2.5.19) */
-		    "%*llu";	    /* delayacct_blkio_ticks (kernel 2.6.18) */
-
     FILE *fd;
     DIR *dir;
     struct dirent *dent;
     pid_t pid = -1;
-    pid_t ppid = 0, pgroup = 0, session = 0;
-    uint64_t cutime = 0, cstime = 0, mem = 0, vmem = 0;
-    uint64_t ctime = 0, stime = 0, threads = 0;
-    struct stat sbuf;
-    int res;
     char buf[200];
-    char state[1];
+    ProcStat_t pS;
 
     /* clear all previous proc entrys */
     clearAllProcSnapshots();
@@ -482,30 +542,12 @@ void updateProcSnapshot(int extended)
 	    continue;
 	}
 
-	snprintf(buf, sizeof(buf), "/proc/%i/stat", pid);
-
-	if ((stat(buf, &sbuf)) == -1) {
-	    /*
-	    mlog("%s: stat on '%s' failed\n", __func__, buf);
-	    */
+	if (!(readProcStatInfo(pid, &pS))) {
 	    continue;
 	}
 
-	if ((fd = fopen(buf,"r")) == NULL) {
-	    mlog("%s: open '%s' failed\n", __func__, buf);
-	    continue;
-	}
-
-	state[0] = '\0';
-	if ((res = fscanf(fd, stat_format, state, &ppid, &pgroup, &session,
-	    &ctime, &stime, &cutime, &cstime, &threads, &vmem, &mem)) != 11) {
-	    fclose(fd);
-	    //mlog("%s: fscanf '%s' failed '%i'\n", __func__, buf, res);
-	    continue;
-	}
-	cutime += ctime;
-	cstime += stime;
-	fclose(fd);
+	pS.cutime += pS.ctime;
+	pS.cstime += pS.stime;
 
 	/*
 	mlog("pid '%i' state:%s ppid '%i' pgroup: %i session '%i' cutime: '%lu'"
@@ -523,17 +565,15 @@ void updateProcSnapshot(int extended)
 		snprintf(buf, sizeof(buf), "cmd not available");
 	    }
 	    fclose(fd);
-	    addProc(pid, ppid, pgroup, session, cutime, cstime, threads, mem,
-		    vmem, buf, sbuf.st_uid);
-	    addSession(session, sbuf.st_uid);
+	    addProc(pid, &pS, buf);
+	    addSession(pS.session, pS.uid);
 	    mdbg(LOG_PROC_DEBUG, "%s: pid:%i ppid:%i session:%i, threads:%lu "
-		"mem:%lu vmem:%lu cmd:%s\n", __func__, pid, ppid, session,
-		threads, mem, vmem, buf);
+		"mem:%lu vmem:%lu cmd:%s\n", __func__, pid, pS.ppid, pS.session,
+		pS.threads, pS.mem, pS.vmem, buf);
 	    continue;
 	}
-	addProc(pid, ppid, pgroup, session, cutime, cstime, threads, mem, vmem,
-		    NULL, sbuf.st_uid);
-	addSession(session, sbuf.st_uid);
+	addProc(pid, &pS, NULL);
+	addSession(pS.session, pS.uid);
     }
     closedir(dir);
 }
