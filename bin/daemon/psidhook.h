@@ -52,9 +52,9 @@ typedef int PSIDhook_func_t(void *);
  * pointer to an argument that might be used by the function
  */
 typedef enum {
-    PSIDHOOK_NODE_UP,        /**< Node appeared, arg is PSnodes_ID_t ID */
-    PSIDHOOK_NODE_DOWN,      /**< Node disappeared, arg is PSnodes_ID_t ID */
-    PSIDHOOK_CREATEPART,     /**< Handle a partition request, arg is
+    PSIDHOOK_NODE_UP,         /**< Node appeared, arg is PSnodes_ID_t ID */
+    PSIDHOOK_NODE_DOWN,       /**< Node disappeared, arg is PSnodes_ID_t ID */
+    PSIDHOOK_CREATEPART,      /**< Handle a partition request, arg is
 				pointer to DDBufferMsg_t holding the
 				original message received from the
 				client. If return code is 0, a message
@@ -62,8 +62,21 @@ typedef enum {
 				nothing else is done. Otherwise
 				further measure might be taken
 				afterwards. */
-    PSIDHOOK_SHUTDOWN,       /**< Daemon got signaled to shutdown, no arg */
-
+    PSIDHOOK_SHUTDOWN,        /**< Daemon got signaled to shutdown, no arg */
+    PSIDHOOK_MASTER_GETPART,  /**< Master is creating a new partition, the arg
+				is a pointer to PSpart_request_t holding the new
+				created request. */
+    PSIDHOOK_MASTER_FINJOB,   /**< A job has finished and the master will
+				free the corresponding request. The arg
+				is a pointer to PSpart_request_t holding
+				the request to free. */
+    PSIDHOOK_MASTER_RECPART,  /**< Recovery reserved ports on the new master
+				from existing partitions. The arg is a pointer
+				to PSpart_request_t holding the corresponding
+				request. */
+    PSIDHOOK_MASTER_EXITPART, /**< The local node is discharged from the
+				burden of acting as a master, so all relevant
+				resources should be freed. No argument. */
     /*
      * The following hooks are place-holders for future extension and
      * not yet called by the daemon.

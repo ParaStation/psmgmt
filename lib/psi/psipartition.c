@@ -62,6 +62,12 @@ static int waitForPartition = 0;
 #define ENV_PART_WAIT      "PSI_WAIT"
 
 /**
+ * Name of the evironment variable used in order to enable a
+ * partitions PART_OPT_RESPORTS option.
+ */
+#define ENV_PART_OMPI	   "PSI_OPENMPI"
+
+/**
  * Name of the evironment variable used in order to enable a special
  * mode removing all multiple consecutive entry from within a
  * hostfile.
@@ -253,8 +259,8 @@ static PSpart_sort_t getSortMode(void)
  * @brief Get options.
  *
  * Get the partition's options from the environment variables @ref
- * ENV_PART_LOOPNODES, @ref ENV_PART_EXCLUSIVE, @ref ENV_PART_OVERBOOK
- * and ENV_PART_WAIT.
+ * ENV_PART_LOOPNODES, @ref ENV_PART_EXCLUSIVE, @ref ENV_PART_OVERBOOK,
+ * @ref ENV_PART_WAIT and @ref ENV_PART_OMPI.
  *
  * @return The bitwise OR'ed combination of the detected options.
  */
@@ -267,6 +273,7 @@ static PSpart_option_t getPartitionOptions(void)
     if (getenv(ENV_PART_OVERBOOK)) options |= PART_OPT_OVERBOOK;
     if (getenv(ENV_PART_WAIT)) options |= PART_OPT_WAIT;
     if (batchPartition) options |= PART_OPT_EXACT;
+    if (getenv(ENV_PART_OMPI)) options |= PART_OPT_RESPORTS;
 
     return options;
 }

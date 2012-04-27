@@ -105,6 +105,7 @@ int PStask_init(PStask_t* task)
     task->spawnNodes = NULL;
     task->spawnNodesSize = 0;
     task->spawnNum = 0;
+    task->resPorts = NULL;
 
     INIT_LIST_HEAD(&task->signalSender);
     INIT_LIST_HEAD(&task->signalReceiver);
@@ -159,6 +160,7 @@ int PStask_reinit(PStask_t* task)
     if (task->request) PSpart_delReq(task->request);
     if (task->partition) free(task->partition);
     if (task->spawnNodes) free(task->spawnNodes);
+    if (task->resPorts) free(task->resPorts);
 
     delSigList(&task->signalSender);
     delSigList(&task->signalReceiver);

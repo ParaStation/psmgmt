@@ -120,6 +120,7 @@ AC_CONFIG_FILES([plugins/Makefile])
 AC_CONFIG_FILES([plugins/Makefile.sharedlib])
 AC_CONFIG_FILES([plugins/Makefile.staticlib])
 AC_CONFIG_FILES([plugins/psaccount/Makefile])
+AC_CONFIG_FILES([plugins/psresport/Makefile])
 
 AC_CONFIG_HEADER(bin/config.h)
 

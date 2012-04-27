@@ -3404,6 +3404,8 @@ ac_config_files="$ac_config_files plugins/Makefile.staticlib"
 
 ac_config_files="$ac_config_files plugins/psaccount/Makefile"
 
+ac_config_files="$ac_config_files plugins/psresport/Makefile"
+
 
 ac_config_headers="$ac_config_headers bin/config.h"
 
@@ -4128,6 +4130,7 @@ do
     "plugins/Makefile.sharedlib") CONFIG_FILES="$CONFIG_FILES plugins/Makefile.sharedlib" ;;
     "plugins/Makefile.staticlib") CONFIG_FILES="$CONFIG_FILES plugins/Makefile.staticlib" ;;
     "plugins/psaccount/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/psaccount/Makefile" ;;
+    "plugins/psresport/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/psresport/Makefile" ;;
     "bin/config.h") CONFIG_HEADERS="$CONFIG_HEADERS bin/config.h" ;;
 
   *) as_fn_error $? "invalid argument: \`$ac_config_target'" "$LINENO" 5;;

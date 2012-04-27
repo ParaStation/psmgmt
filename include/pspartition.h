@@ -67,6 +67,8 @@ typedef enum {
     PART_OPT_WAIT      = 0x0008, /**< If not enough nodes are available, wait
 				    for them (batch mode). */
     PART_OPT_EXACT     = 0x0010, /**< Nodelist is from a batch-system */
+    PART_OPT_RESPORTS  = 0x0020, /**< Request reserved ports for OpenMPI
+				    startup. */
 } PSpart_option_t;
 
 /** Options possible for PSP_INFO_QUEUE_PARTITION requests */
@@ -104,6 +106,7 @@ typedef struct {
     char deleted;                  /**< Flag to mark request for deletion */
     char suspended;                /**< Corresponding task is suspended */
     char freed;                    /**< Resources are freed temporarily */
+    uint16_t *resPorts;		   /**< Reserved ports for OpenMPI startup */
 } PSpart_request_t;
 
 /**

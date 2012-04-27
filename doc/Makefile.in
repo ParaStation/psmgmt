@@ -61,6 +61,10 @@ DIST_all += $(DESTDIR)/var/account
 $(DESTDIR)/var/account:
 	$(INSTALL) -d $@
 
+DIST_all += $(DESTDIR)/opt/parastation/plugins/psresport.conf
+$(DESTDIR)/opt/parastation/plugins/psresport.conf: psresport.conf
+	$(INSTALL) $(INSTFLAGS_NOEXEC) -D $< $@
+
 .PHONY: install
 install: $(DIST_all)
 

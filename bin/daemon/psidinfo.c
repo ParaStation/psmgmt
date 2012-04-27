@@ -623,6 +623,66 @@ static void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 	    }
 	    break;
 	}
+	case PSP_INFO_LIST_RESPORTS:
+	{
+	    uint16_t count=0, i=0;
+	    size_t len;
+	    char *mPtr = msg.buf;
+
+	    PStask_ID_t target = PSC_getPID(inmsg->header.dest) ?
+		inmsg->header.dest : inmsg->header.sender;
+	    PStask_t *task = PStasklist_find(&managedTasks, target);
+
+	    if (!task) {
+		PSID_log(-1, "%s: task %s not found\n",
+			 funcStr, PSC_printTID(target));
+		err = 1;
+		break;
+	    }
+
+	    if (task->ptid) {
+		PSID_log(PSID_LOG_INFO, "%s: forward to root process %s\n",
+			 funcStr, PSC_printTID(task->ptid));
+		msg.header.type = inmsg->header.type;
+		msg.header.sender = inmsg->header.sender;
+		msg.header.dest = task->ptid;
+		msg_INFOREQUEST(&msg);
+		return;
+	    }
+
+	    len = msg.header.len;
+
+	    /* we don't have any reserved ports */
+	    if (task->resPorts == NULL) {
+
+		*(uint16_t *) mPtr = 0;
+		mPtr += sizeof(uint16_t);
+		msg.header.len += sizeof(uint16_t);
+		sendMsg(&msg);
+
+		msg.header.len = len;
+		msg.type = PSP_INFO_LIST_END;
+
+		break;
+	    }
+
+	    /* add number of reserved ports */
+	    while (task->resPorts[count] != 0) count++;
+	    *(uint16_t *) mPtr = count;
+	    mPtr += sizeof(uint16_t);
+	    msg.header.len += sizeof(uint16_t);
+
+	    /* add the reserved ports */
+	    for (i=0; i<count; i++) {
+		*(uint16_t *) mPtr = task->resPorts[i];
+		mPtr += sizeof(uint16_t);
+		msg.header.len += sizeof(uint16_t);
+	    }
+	    sendMsg(&msg);
+
+	    msg.header.len = len;
+	    msg.type = PSP_INFO_LIST_END;
+	}
 	case PSP_INFO_CMDLINE:
 	{
 	    PStask_t *task = PStasklist_find(&managedTasks, inmsg->header.dest);

@@ -259,6 +259,7 @@ void exitPartHandler(void)
     tmpStat = NULL;
     if (tmpSets) free(tmpSets);
     tmpSets = NULL;
+    PSIDhook_call(PSIDHOOK_MASTER_EXITPART, NULL);
 }
 
 
@@ -372,6 +373,9 @@ static void jobFinished(PSpart_request_t *req)
     if (!req) return;
 
     PSID_log(PSID_LOG_PART, "%s(%s)\n", __func__, PSC_printTID(req->tid));
+
+    PSIDhook_call(PSIDHOOK_MASTER_FINJOB, req);
+    if (req->resPorts) free(req->resPorts);
 
     if (!req->freed) deregisterReq(req);
 
@@ -1747,6 +1751,51 @@ static int sendSlotlist(PSpart_slot_t *slots, int num, DDBufferMsg_t *msg)
 }
 
 /**
+ * @brief Send reserved ports.
+ *
+ * Send the reserved ports used by the OpenMPI startup mechanism. This function
+ * is used to send new created reservations and to restore the reservation
+ * bitfield when the master changed. The @a resPorts list must be terminated by
+ * an entry which is set to 0.
+ *
+ * @param resPorts The reserved ports to send.
+ *
+ * @param msg Pointer to the message to use.
+ *
+ * @return Returns 1 on success and 0 on error.
+ */
+static int sendResPorts(uint16_t *resPorts, DDBufferMsg_t *msg)
+{
+    char *ptr = msg->buf;
+    int i=0;
+    uint16_t count = 0;
+
+    /* add number of reserved ports */
+    while (resPorts[count] != 0) count++;
+
+    *(uint16_t *)ptr = count;
+    ptr += sizeof(uint16_t);
+    msg->header.len += sizeof(uint16_t);
+
+    /* add the ports */
+    while (resPorts[i] != 0) {
+
+	*(uint16_t *)ptr = resPorts[i];
+	ptr += sizeof(uint16_t);
+	msg->header.len += sizeof(uint16_t);
+
+	i++;
+    }
+
+    if (sendMsg(msg) == -1 && errno != EWOULDBLOCK) {
+	PSID_warn(-1, errno, "%s: sendMsg()", __func__);
+	return 0;
+    }
+
+    return 1;
+}
+
+/**
  * @brief Send partition.
  *
  * Send the newly created partition @a part conforming to the request
@@ -1784,6 +1833,18 @@ static int sendPartition(PSpart_request_t *req)
     if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
 	PSID_warn(-1, errno, "%s: sendMsg()", __func__);
 	return 0;
+    }
+
+    /* send OpenMPI reserved ports */
+    if (req->resPorts) {
+
+	msg.header.type = PSP_DD_PROVIDEPARTRP;
+	msg.header.len = sizeof(msg.header);
+
+	if ((sendResPorts(req->resPorts, &msg)) <0) {
+	    PSID_warn(-1, errno, "%s: sendResPorts()", __func__);
+	    return 0;
+	}
     }
 
     msg.header.type = PSP_DD_PROVIDEPARTSL;
@@ -1860,6 +1921,11 @@ static int getPartition(PSpart_request_t *request)
 	PSID_log(PSID_LOG_PART, "%s: No partition\n", __func__);
 	errno = EAGAIN;
 	goto error;
+    }
+
+    request->resPorts = NULL;
+    if (request->options & PART_OPT_RESPORTS) {
+	PSIDhook_call(PSIDHOOK_MASTER_GETPART, request);
     }
 
     if (!dequeueRequest(&pendReq, request)) {
@@ -2594,6 +2660,115 @@ static void msg_PROVIDEPARTSL(DDBufferMsg_t *inmsg)
 }
 
 /**
+ * @brief Handle a PSP_DD_PROVIDERESPORTS message.
+ *
+ * Handle the message @a inmsg of type PSP_DD_PROVIDERESPORTS.
+ *
+ * @param inmsg Pointer to the message to handle.
+ *
+ * @return No return value.
+ */
+static void msg_PROVIDETASKRP(DDBufferMsg_t *inmsg)
+{
+    PSpart_request_t *req;
+    uint16_t count, i;
+    char *ptr = inmsg->buf;
+
+    /* Handle running and suspended request only. Pending requests will get a
+     * new reservation in @ref getPartition(). */
+    if (!(req = findRequest(&runReq, inmsg->header.sender))) {
+	req = findRequest(&suspReq, inmsg->header.sender);
+    }
+
+    if (!req) {
+	PSID_log(-1, "%s: Unable to find request '%s'\n",
+		 __func__, PSC_printTID(inmsg->header.sender));
+	return;
+    }
+
+    if (req->resPorts) {
+	PSID_log(-1, "%s: reserved ports already saved in request '%s'\n",
+		 __func__, PSC_printTID(inmsg->header.sender));
+	return;
+    }
+
+    /* get number of ports */
+    count = *(uint16_t *) ptr;
+    ptr += sizeof(uint16_t);
+
+    if (!(req->resPorts = malloc((count +1) * sizeof(uint16_t *)))) {
+	PSID_log(-1, "%s: out of memory\n", __func__);
+	exit(1);
+    }
+
+    /* get the actual ports */
+    for (i=0; i<count; i++) {
+	req->resPorts[i] = *(uint16_t *) ptr;
+	ptr += sizeof(uint16_t);
+    }
+
+    req->resPorts[count] = 0;
+
+    /* restore the port reservation if I am the new master */
+    if (!nodeStat) {
+	PSID_log(-1, "%s: tried to recover reserved ports for '%s', but "
+		    "I am not the master!\n", __func__,
+		    PSC_printTID(inmsg->header.sender));
+	return;
+    }
+
+    if ((PSIDhook_call(PSIDHOOK_MASTER_RECPART, req)) < 0) {
+	PSID_log(-1, "%s: re-constructing reserved ports for '%s' failed\n",
+		__func__, PSC_printTID(inmsg->header.sender));
+    }
+}
+
+/**
+ * @brief Handle a PSP_DD_PROVIDERESPORTS message.
+ *
+ * Handle the message @a inmsg of type PSP_DD_PROVIDERESPORTS.
+ *
+ * @param inmsg Pointer to the message to handle.
+ *
+ * @return No return value.
+ */
+static void msg_PROVIDEPARTRP(DDBufferMsg_t *inmsg)
+{
+    PStask_t *task = PStasklist_find(&managedTasks, inmsg->header.dest);
+    PStask_ID_t tid = inmsg->header.dest;
+    uint16_t count, i;
+    char *ptr = inmsg->buf;
+
+    PSID_log(PSID_LOG_PART, "%s(%s)\n", __func__,
+	     PSC_printTID(inmsg->header.dest));
+
+    if (!task) {
+	PSID_log(-1, "%s: task '%s' to restore reserved ports not found\n",
+		    __func__, PSC_printTID(tid));
+	return;
+    }
+
+    if (task->resPorts) return;
+
+    /* get number of ports */
+    count = *(uint16_t *) ptr;
+    ptr += sizeof(uint16_t);
+
+    if (!(task->resPorts = malloc((count +1) * sizeof(uint16_t *)))) {
+	PSID_log(-1, "%s: out of memory\n", __func__);
+	exit(1);
+    }
+
+    /* get the reserved ports */
+    for (i=0; i<count; i++) {
+	task->resPorts[i] = *(uint16_t *) ptr;
+	ptr += sizeof(uint16_t);
+    }
+
+    task->resPorts[count] = 0;
+}
+
+/**
  * @brief Handle a PSP_CD_GETNODES/PSP_DD_GETNODES message.
  *
  * Handle the message @a inmsg of type PSP_CD_GETNODES or
@@ -3036,10 +3211,24 @@ static void sendExistingPartitions(PStask_ID_t dest)
 
 	    sendMsg(&msg);
 
+	    /* if portage in task struct != 0-> send message */
+
 	    msg.header.type = PSP_DD_PROVIDETASKSL;
 	    msg.header.len = sizeof(msg.header);
+
 	    if (sendSlotlist(task->partition, task->partitionSize, &msg)<0) {
 		PSID_warn(-1, errno, "%s: sendSlotlist()", __func__);
+	    }
+
+	    /* send OpenMPI reserved ports */
+	    if (task->resPorts) {
+
+		msg.header.type = PSP_DD_PROVIDETASKRP;
+		msg.header.len = sizeof(msg.header);
+
+		if ((sendResPorts(task->resPorts, &msg)) <0) {
+		    PSID_warn(-1, errno, "%s: sendResPorts()", __func__);
+		}
 	    }
 	}
     }
@@ -3169,6 +3358,7 @@ static void msg_PROVIDETASK(DDBufferMsg_t *inmsg)
 	return;
     }
     req->sizeGot = 0;
+    req->resPorts = NULL;
     enqueueRequest(&pendReq, req);
 }
 
@@ -3366,6 +3556,7 @@ void initPartition(void)
     PSID_registerMsg(PSP_DD_GETPARTNL, msg_GETPARTNL);
     PSID_registerMsg(PSP_DD_PROVIDEPART, msg_PROVIDEPART);
     PSID_registerMsg(PSP_DD_PROVIDEPARTSL, msg_PROVIDEPARTSL);
+    PSID_registerMsg(PSP_DD_PROVIDEPARTRP, msg_PROVIDEPARTRP);
     PSID_registerMsg(PSP_CD_GETNODES, msg_GETNODES);
     PSID_registerMsg(PSP_DD_GETNODES, msg_GETNODES);
     PSID_registerMsg(PSP_CD_GETRANKNODE, msg_GETRANKNODE);
@@ -3375,6 +3566,7 @@ void initPartition(void)
     PSID_registerMsg(PSP_DD_GETTASKS, msg_GETTASKS);
     PSID_registerMsg(PSP_DD_PROVIDETASK, msg_PROVIDETASK);
     PSID_registerMsg(PSP_DD_PROVIDETASKSL, msg_PROVIDETASKSL);
+    PSID_registerMsg(PSP_DD_PROVIDETASKRP, msg_PROVIDETASKRP);
     PSID_registerMsg(PSP_DD_CANCELPART, msg_CANCELPART);
     PSID_registerMsg(PSP_DD_TASKDEAD, (handlerFunc_t) msg_TASKDEAD);
     PSID_registerMsg(PSP_DD_TASKSUSPEND, (handlerFunc_t) msg_TASKSUSPEND);

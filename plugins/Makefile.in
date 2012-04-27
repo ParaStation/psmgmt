@@ -9,7 +9,7 @@
 #         Michael Rauh <rauh@par-tec.com>
 #############################################################################
 
-SUBDIRS := psaccount
+SUBDIRS := psaccount psresport
 
 .PHONY: all clean distclean
 all clean distclean: $(SUBDIRS)
@@ -26,7 +26,7 @@ INSTFLAGS_NOEXEC = -m 644
 
 DISTDIR := $(DESTDIR)$(DISTPATH)
 PLUGINDIR := $(DISTDIR)/plugins
-DIST_plugin := psaccount.so
+DIST_plugin := psaccount.so psresport.so
 
 $(PLUGINDIR)/%.so: %.so
 	$(INSTALL) -D $< $@

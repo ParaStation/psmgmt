@@ -113,6 +113,7 @@ dist/NEWS \
 dist/psmgmt.spec.templ \
 doc/Makefile.in \
 doc/parastation.conf \
+doc/psresport.conf \
 include/Makefile.in \
 include/config_parsing.h \
 include/env.h \
@@ -201,6 +202,15 @@ plugins/psaccount/psaccountlog.c \
 plugins/psaccount/psaccountlog.h \
 plugins/psaccount/psaccountproc.c \
 plugins/psaccount/psaccountproc.h \
+plugins/psresport/helper.c \
+plugins/psresport/helper.h \
+plugins/psresport/Makefile.in \
+plugins/psresport/psresport.c \
+plugins/psresport/psresportconfig.c \
+plugins/psresport/psresportconfig.h \
+plugins/psresport/psresport.h \
+plugins/psresport/psresportlog.c \
+plugins/psresport/psresportlog.h \
 scripts/Makefile.in \
 scripts/lsf/README \
 scripts/parastation.xinetd \
