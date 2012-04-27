@@ -30,7 +30,7 @@ static char vcid[] __attribute__((used)) =
 #include "config_parsing.h"
 
 /* stub required for logging in psidnodes.c */
-logger_t *PSID_logger = NULL;
+extern logger_t *PSID_logger;
 /* stub required to link against psidnodes.o */
 int sendMsg(void *amsg) {return 0;}
 /* stub required to link against psidutil.o */
