@@ -134,24 +134,22 @@ static unsigned int corePerPhysical(void)
     if (!HWD_MTSupported()) return 1;
 
     asm (
-	"xorl %eax, %eax\n\t"
+	"xorl %%eax, %%eax\n\t"
 	"cpuid\n\t"
-	"cmpl $4, %eax\n\t"	/* check if cpuid supports leaf 4 */
-	"jl .single_core\n\t"	/* Single core */
-	"movl $4, %eax\n\t"
-	"movl $0, %ecx\n\t"	/* start with index = 0; Leaf 4 reports */
-	);			/* at least one valid cache level */
-    asm (
-	"cpuid"
+	"cmpl $4, %%eax\n\t"	/* check if cpuid supports leaf 4 */
+	"jl 1f\n\t"		/* Single core */
+	"movl $4, %%eax\n\t"
+	"movl $0, %%ecx\n\t"	/* start with index = 0; Leaf 4
+				   reports at least one valid cache
+				   level */
+	"cpuid\n\t"
+	"jmp 2f\n"		/* Multi core */
+	"1:\n\t"
+	"xor %%eax, %%eax\n"
+	"2:"
 	: "=a" (Regeax)
 	:
 	: "%ebx", "%ecx", "%edx"
-	);
-    asm (
-	"jmp .multi_core\n"
-	".single_core:\n\t"
-	"xor %eax, %eax\n"
-	".multi_core:"
 	);
 
     return ((Regeax & NUM_CORE_BITS) >> 26)+1;
