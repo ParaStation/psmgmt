@@ -31,7 +31,7 @@
 /** psid plugin requirements */
 char name[] = "psresport";
 int version = 1;
-int requiredAPI = 101;
+int requiredAPI = 108;
 plugin_dep_t dependencies[1];
 
 /** the start of the reserved port range */

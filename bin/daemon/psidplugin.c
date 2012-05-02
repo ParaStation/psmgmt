@@ -97,8 +97,11 @@ static LIST_HEAD(pluginList);
  * 106: added Timer_registerEnhanced()
  *
  * 107: next gen API supports set()/unset()/show()/help() methods
+ *
+ * 108: added PSIDHOOK_MASTER_GETPART, PSIDHOOK_MASTER_FINJOB,
+ *	PSIDHOOK_MASTER_RECPART, PSIDHOOK_MASTER_EXITPART
  */
-static int pluginAPIVersion = 107;
+static int pluginAPIVersion = 108;
 
 
 /** Grace period between finalize and unload on forcefully unloads */
