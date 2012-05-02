@@ -1,10 +1,11 @@
 /*
- *               ParaStation
+ * ParaStation
  *
  * Copyright (C) 2006-2012 ParTec Cluster Competence Center GmbH, Munich
  *
- * $Id$
- *
+ * This file may be distributed under the terms of the Q Public License
+ * as defined in the file LICENSE.QPL included in the packaging of this
+ * file.
  */
 /**
  * @file Simple wrapper to allow non ParaStation aware programs to be

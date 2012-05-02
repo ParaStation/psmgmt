@@ -1,12 +1,15 @@
-###################################################### -*- Makefile -*- #####
-#                  ParaStation
-#        Copyright (c) 2003 ParTec AG, Karlsruhe
-#        Copyright (c) 2005-2008 ParTec Cluster Competence Center GmbH, Munich
-#############################################################################
+#                                                       -*- Makefile -*-
+# ParaStation
 #
-# @author
-#         Jens Hauke <hauke@par-tec.de>
-#############################################################################
+# Copyright (C) 2003 ParTec AG, Karlsruhe
+# Copyright (C) 2005-2008 ParTec Cluster Competence Center GmbH, Munich
+#
+# This file may be distributed under the terms of the Q Public License
+# as defined in the file LICENSE.QPL included in the packaging of this
+# file.
+#
+# Authors:      Jens Hauke <hauke@par-tec.com>
+#
 
 TOP_SRCDIR?= ..
 CONFIGARGS?=

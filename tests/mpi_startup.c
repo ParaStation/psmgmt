@@ -1,9 +1,13 @@
 /*
- *               ParaStation
+ * ParaStation
  *
  * Copyright (C) 2008 ParTec Cluster Competence Center GmbH, Munich
  *
- * $Id$
+ * This file may be distributed under the terms of the Q Public License
+ * as defined in the file LICENSE.QPL included in the packaging of this
+ * file.
+ *
+ * Authors:     Norbert Eicker <eicker@par-tec.com>
  *
  */
 /**

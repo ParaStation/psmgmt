@@ -1,11 +1,12 @@
 /*
- *               ParaStation
+ * ParaStation
  *
  * Copyright (C) 2002 ParTec AG, Karlsruhe
  * Copyright (C) 2005 Cluster Competence Center GmbH, Munich
  *
- * $Id$
- *
+ * This file may be distributed under the terms of the Q Public License
+ * as defined in the file LICENSE.QPL included in the packaging of this
+ * file.
  */
 /**
  * @file
@@ -14,7 +15,7 @@
  * $Id$
  *
  * @author
- * Jens Hauke <hauke@par-tec.de>
+ * Jens Hauke <hauke@par-tec.com>
  *
  */
 

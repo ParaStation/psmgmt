@@ -1,11 +1,12 @@
 /*
- *               ParaStation
+ * ParaStation
  *
  * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
  * Copyright (C) 2005-2011 ParTec Cluster Competence Center GmbH, Munich
  *
- * $Id$
- *
+ * This file may be distributed under the terms of the Q Public License
+ * as defined in the file LICENSE.QPL included in the packaging of this
+ * file.
  */
 /**
  * \file

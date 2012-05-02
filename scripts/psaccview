@@ -1,21 +1,17 @@
 #!/usr/bin/perl -w
 #
-#               ParaStation
+# ParaStation
 #
 # Copyright (C) 1999-2004 ParTec AG, Karlsruhe
 # Copyright (C) 2005-2010 ParTec Cluster Competence Center GmbH, Munich
 #
+# This file may be distributed under the terms of the Q Public License
+# as defined in the file LICENSE.QPL included in the packaging of this
+# file.
+#
+# Authors:      Michael Rauh <rauh@par-tec.com>
+#
 # $Id$
-#
-#
-# \file
-# psaccview: ParaStation accounting log viewer
-#
-# $Id$
-#
-# \author
-# Michael Rauh <rauh@par-tec.com>
-#
 #
 
 use strict;

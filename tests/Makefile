@@ -1,13 +1,14 @@
-###################################################### -*- Makefile -*- #####
-#                  ParaStation
-#        Copyright (c) 2008 ParTec Cluster Competence Center GmbH, Munich
-#############################################################################
+#                                                       -*- Makefile -*-
+# ParaStation
 #
-# $Id$
+# Copyright (C) 2008 ParTec Cluster Competence Center GmbH, Munich
 #
-# @author
-#         Norbert Eicker <eicker@par-tec.de>
-#############################################################################
+# This file may be distributed under the terms of the Q Public License
+# as defined in the file LICENSE.QPL included in the packaging of this
+# file.
+#
+# Authors:      Norbert Eicker <eicker@par-tec.com>
+#
 
 MPICC1 = /opt/parastation/mpich/bin/mpicc
 MPICC2 = /opt/parastation/mpi2/bin/mpicc

@@ -1,10 +1,11 @@
 /*
- *               ParaStation
+ * ParaStation
  *
  * Copyright (C) 2009-2011 ParTec Cluster Competence Center GmbH, Munich
  *
- * $Id$
- *
+ * This file may be distributed under the terms of the Q Public License
+ * as defined in the file LICENSE.QPL included in the packaging of this
+ * file.
  */
 /**
  * @file ParaStation plugin template. Each plugin should implement the

@@ -1,13 +1,14 @@
-###################################################### -*- Makefile -*- #####
-#                  ParaStation
-#        Copyright (c) 2008-2009 ParTec Cluster Competence Center GmbH, Munich
-#############################################################################
+#                                                       -*- Makefile -*-
+# ParaStation
 #
-# $Id$
+# Copyright (C) 2008-2009 ParTec Cluster Competence Center GmbH, Munich
 #
-# @author
-#         Norbert Eicker <eicker@par-tec.de>
-#############################################################################
+# This file may be distributed under the terms of the Q Public License
+# as defined in the file LICENSE.QPL included in the packaging of this
+# file.
+#
+# Authors:      Norbert Eicker <eicker@par-tec.com>
+#
 
 .PHONY: all
 all:
@@ -53,8 +54,8 @@ DIST_all += $(DISTDIR)/NEWS.$(PKG_NAME)
 $(DISTDIR)/NEWS.$(PKG_NAME): $(TOP_SRCDIR)/dist/NEWS
 	$(INSTALL) $(INSTFLAGS_NOEXEC) -D $< $@
 
-DIST_all += $(DISTDIR)/LICENSE
-$(DISTDIR)/LICENSE: $(TOP_SRCDIR)/LICENSE
+DIST_all += $(DISTDIR)/LICENSE.QPL
+$(DISTDIR)/LICENSE.QPL: $(TOP_SRCDIR)/LICENSE.QPL
 	$(INSTALL) $(INSTFLAGS_NOEXEC) -D $< $@
 
 DIST_all += $(DESTDIR)/var/account

@@ -1,14 +1,16 @@
 /*
- *               ParaStation
+ * ParaStation
  *
  * Copyright (C) 2008-2010 ParTec Cluster Competence Center GmbH, Munich
+ *
+ * This file may be distributed under the terms of the Q Public License
+ * as defined in the file LICENSE.QPL included in the packaging of this
+ * file.
  *
  * Part of this code is based on examples with:
  * Copyright (c) 2005 Intel Corporation
  * All Rights Reserved
- *
- * $Id$
- *
+ * 
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 static char vcid[] __attribute__((used)) =

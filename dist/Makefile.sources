@@ -22,7 +22,7 @@ scripts/psmgmt.sh
 SOURCE_FILES= \
 Makefile.in \
 Makefile.version \
-LICENSE \
+LICENSE.QPL \
 bin/Makefile.in \
 bin/accounter/psaccounter.c \
 bin/admin/adminparser.c \
