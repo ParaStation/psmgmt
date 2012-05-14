@@ -1,0 +1,14 @@
+# default: on
+# description: ParaStation management daemon.
+service psid
+{
+	socket_type	= stream
+	protocol	= tcp
+	type		= UNLISTED
+	port		= 888
+	wait		= no
+	user		= root
+	server		= /opt/parastation/bin/psid
+	log_on_failure	+= USERID
+	disable		= no
+}

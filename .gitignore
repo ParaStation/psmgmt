@@ -1,0 +1,7 @@
+*.d
+*.o
+*~
+.svn
+/autom4te.cache
+build*/*
+dist/pscollect-*

@@ -1,0 +1,48 @@
+#                                                       -*- Makefile -*-
+# ParaStation
+#
+# Copyright (C) 2011 ParTec Cluster Competence Center GmbH, Munich
+#
+# This file may be distributed under the terms of the Q Public License
+# as defined in the file LICENSE.QPL included in the packaging of this
+# file.
+#
+# Authors:      Norbert Eicker <eicker@par-tec.com>
+#
+
+CFLAGS += @CFLAG_WALL@ @CFLAG_G@ @CFLAG_COMPAT@ @CFLAG_SSP@
+CPPFLAGS += -I@top_srcdir@/include -I@top_srcdir@/bin/daemon -I. @CPPFLAG_MMD@
+SRCDIR = @srcdir@
+
+VPATH += $(SRCDIR)
+
+
+TARGETS= plugin1.so plugin2.so plugin3.so plugin4.so plugin5.so plugin6.so \
+	plugin7.so plugin8.so plugin9.so no_flowcontroll.so
+
+.PHONY: all install plugins
+all:
+
+install:
+
+plugins: $(TARGETS)
+
+
+$(TARGETS): CFLAGS+=-fPIC
+
+$(TARGETS): %.so: %.o
+	$(CC) -shared $< -o $@
+
+
+# WARNING!!! if DEPEXTENSION from configure is empty, make clean remove all files!!
+DEPFILES := $(wildcard *@DEPEXTENSION@) dummy.d
+
+.PHONY: clean distclean
+
+clean:
+	$(RM) $(DEPFILES) $(EXTRACLEAN) *.o
+
+distclean: clean
+	$(RM) $(TARGETS)
+
+-include $(DEPFILES)

@@ -1,0 +1,66 @@
+#!/bin/bash
+#
+# ParaStation
+#
+# Copyright (C) 2008 ParTec Cluster Competence Center GmbH, Munich
+#
+# This file may be distributed under the terms of the Q Public License
+# as defined in the file LICENSE.QPL included in the packaging of this
+# file.
+#
+# Authors:      Norbert Eicker <eicker@par-tec.com>
+#
+# This script starts some test programs as fast as possible
+#
+# $Id$
+#
+
+if [ -z "${NUM}" ]; then
+    echo Usage: Set the NUM environment to give number of MPI-processes
+    exit 1
+fi
+
+np=${NUM}
+
+export PSP_DEBUG=0
+unset PSI_LOOP_NODES_FIRST
+export PSI_WAIT=1
+
+log=log.`hostname`
+exec 8> $log 
+echo "log to $log"
+
+printenv USE_MPI1 > /dev/null 2>&1
+if [ ${?} != 1 ]; then
+    mpi_starter=/opt/parastation/mpich/bin/mpirun
+    mpi_hello=mpi_hello.1
+else
+    mpi_starter=mpiexec
+    mpi_hello=mpi_hello.2
+fi
+
+i=0
+while true; do
+
+    if [ -f stopIt ]; then
+	echo `date` Stopping after $i >&8
+	exit 0
+    fi
+
+    ${mpi_starter} -np ${np} ${mpi_hello} ${SLEEP} 2>&1 | \
+	grep -E -v '(Hello World from )|(Hi from rank)' | \
+	grep -E -v '(PSIlogger: done)|(^$)' >&8 &
+
+    if [ -n "${SLEEP}" ]; then
+	sleep $((SLEEP / 2))
+	kill -${SIGNAL:-9} %1 > /dev/null 2>&1
+    fi
+    wait %1 > /dev/null 2>&1
+
+    if ((i%1000==0)); then
+	echo `date`  $i >&8
+    fi
+
+    ((i++));
+done
+

@@ -1,0 +1,147 @@
+#                                                       -*- Makefile -*-
+# ParaStation
+#
+# Copyright (C) 2002-2003 ParTec AG, Karlsruhe
+# Copyright (C) 2005-2012 ParTec Cluster Competence Center GmbH, Munich
+#
+# This file may be distributed under the terms of the Q Public License
+# as defined in the file LICENSE.QPL included in the packaging of this
+# file.
+#
+# Authors:      Jens Hauke <hauke@par-tec.com>
+#               Norbert Eicker <eicker@par-tec.com>
+#
+
+HAVE_LIBNUMA=@HAVE_LIBNUMA@
+
+LDFLAGS += $(CFLAGS)
+CFLAGS += @CFLAG_WALL@ @CFLAG_G@ @CFLAG_COMPAT@ @CFLAG_SSP@
+CPPFLAGS += -I@top_srcdir@/include -I. @CPPFLAG_MMD@
+LIB_DIRNAME:=@LIB_DIRNAME@
+SRCDIR = @srcdir@
+TOP_SRCDIR = @top_srcdir@
+TARGET_OS := @target_os@
+
+VPATH += $(SRCDIR)
+
+LIBDIR := ../lib
+
+# Makefile.sources have to define $(PKG_NAME) and $(SOURCE_FILES)
+include $(TOP_SRCDIR)/dist/Makefile.sources
+include $(TOP_SRCDIR)/Makefile.version
+######################################################
+
+ifeq ("$(TARGET_OS)","linux")
+.LIBPATTERNS+= $(LIBDIR)/lib%.a
+else
+.LIBPATTERNS:=  /usr/shlib/lib%.so $(.LIBPATTERNS) $(LIBDIR)/lib%.a
+endif
+
+TOOLS:= psiadmin psid psilogger mlisten
+TOOLS += psmstart mpirun_chp4 psispawn mpirun_chgm gmspawner
+TOOLS += mpirun_openib test_pse test_config pssh
+TOOLS += psaccounter mpiexec
+
+TARGETS = $(TOOLS) test_logging testacct
+
+LDFLAGS+=-L../lib -Wl,-rpath,/opt/parastation/$(LIB_DIRNAME)
+
+CFLAGS += -fno-strict-aliasing
+
+.PHONY: all bin
+all bin: $(TOOLS)
+
+$(TOOLS): %: %.o
+
+psiadmin psid mlisten test_pse psmstart mpirun_chp4 mpirun_chgm gmspawner \
+	mpirun_openib test_config pssh psaccounter testacct mpiexec: \
+		LOADLIBES:=$(LOADLIBES) -lpopt
+
+test_pse psmstart mpirun_chp4 mpirun_chgm mpirun_openib pssh psaccounter \
+	testacct mpiexec: \
+		LOADLIBES:=$(LOADLIBES) -lpse -lpsi
+
+psiadmin psid test_config: LOADLIBES:=$(LOADLIBES) -lputil
+
+psid psilogger test_config test_logging: LOADLIBES:=$(LOADLIBES) -lpscommon
+
+psiadmin psispawn gmspawner: LOADLIBES:=$(LOADLIBES) -lpsi
+
+gmspawner: LOADLIBES:=$(LOADLIBES) -lpthread
+
+# Version info within
+adminparser.o psidinfo.o mpirun_openib.o psid.o: \
+	CPPFLAGS += -DVERSION_$(PKG_NAME)='"$(VERSION_$(PKG_NAME))"' \
+		-DRELEASE_$(PKG_NAME)='"$(RELEASE_$(PKG_NAME))"'
+adminparser.o psidinfo.o mpirun_openib.o psid.o: \
+	$(TOP_SRCDIR)/Makefile.version
+
+# psiadmin
+VPATH += $(SRCDIR)/admin
+psiadmin: commands.o adminparser.o
+psiadmin: LOADLIBES:=$(LOADLIBES) @LIBS@
+
+# psid
+VPATH += $(SRCDIR)/daemon
+psidintel.o: CFLAGS+=-O0
+
+psid: psidutil.o psidtask.o psidspawn.o psidforwarder.o psidpmiprotocol.o
+psid: psidsignal.o psidmsgbuf.o psidrdp.o psidclient.o psidcomm.o
+psid: psidinfo.o psidoption.o psidpartition.o psidstatus.o psidhw.o
+psid: psidaccount.o psidnodes.o psidintel.o psidamd.o psidppc.o psidstate.o
+psid: psidplugin.o psidscripts.o psidenv.o psidhook.o
+psid: LOADLIBES:=$(LOADLIBES) -lm -lutil -lpslog -ldl
+ifeq ($(HAVE_LIBNUMA),yes)
+psid: LOADLIBES:=$(LOADLIBES) -lnuma
+endif
+psid: LDFLAGS+=-rdynamic
+
+test_config: LOADLIBES:=$(LOADLIBES) -lm
+test_config: psidnodes.o psidscripts.o psidutil.o
+
+# logger
+VPATH += $(SRCDIR)/logger
+psilogger: psiloggerkvs.o psiloggermerge.o psiloggerclient.o
+psilogger: LOADLIBES:=$(LOADLIBES) -lputil -lpslog -lm @LIBS@
+
+# accounter
+VPATH += $(SRCDIR)/accounter
+
+#
+# install binaries
+#
+INSTALL = @INSTALL@
+
+DISTDIR := $(DESTDIR)$(DISTPATH)
+BINDIR := $(DISTDIR)/bin
+DIST_bin := $(TOOLS)
+
+$(BINDIR)/%: %
+	$(INSTALL) -D $< $@
+
+#
+# install headers for devel package
+#
+INCDIR := $(DISTDIR)/include
+DIST_includes := psidcomm.h psidhook.h psidnodes.h psidplugin.h psidscripts.h
+DIST_includes += psidstatus.h psidtask.h psidutil.h
+
+$(INCDIR)/%: %
+	$(INSTALL) $(INSTFLAGS_NOEXEC) -D $< $@
+
+.PHONY: install
+install: bin $(patsubst %,$(BINDIR)/%,$(DIST_bin)) \
+		$(patsubst %,$(INCDIR)/%,$(DIST_includes))
+
+# WARNING!!! if DEPEXTENSION from configure is empty, make clean remove all files!!
+DEPFILES := $(wildcard *@DEPEXTENSION@) dummy.d
+
+.PHONY: clean distclean
+
+clean:
+	$(RM) $(DEPFILES) $(EXTRACLEAN) *.o
+
+distclean: clean
+	$(RM) $(TARGETS)
+
+-include $(DEPFILES)

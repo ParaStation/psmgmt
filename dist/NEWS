@@ -1,0 +1,226 @@
+psmgmt NEWS -- history of user-visible changes.
+
+Copyright (C) 2010-2012 ParTec Cluster Competence Center GmbH, Munich
+
+Please send bug reports, questions and suggestions to <support@par-tec.com>
+
+Version 5.0.38:
+===============
+Bugfixes:
+ - syslog() might deadlock. Related to r8548 (#5285)
+
+Enhancements:
+ - Add support for GridEngine PE-files. (#932)
+ - Improved clash-detection on resources between CLI, environment and
+   batch-system
+ - Add 'silent' option to psiadmin's shutdown directive and be more verbose
+   during shutdown (#1572)
+ - Master socket now uses Linux's abstract address. (#1573)
+ - Get rid of explicit lock-file.
+
+Additional changes:
+ - Move legacy MPI starters into separate sub-package (#1584)
+ - Get rid of ELAN-support, since Quadrics QsNet seems to be dead (#1591)
+
+Version 5.0.37:
+===============
+Bugfixes:
+ - Block SIGCHLD while doing syslog() in order to prevent psid from deadlocks.
+   syslog() is not re-entrand! (JUDGE-TRAC #141)
+ - Ensure, that all TASKDEAD-messages are delivered to new master-psid after
+   failover. Additionally, don't tell new master about jobs currently shutting
+   down.
+ - Actually enable dumping of too-long messages tail. This completes the
+   changes done in r8132.
+ - Get rid of obsolete timer-entries after fork(). Might lead to strange
+   behavior, if timer is pending during fork()
+ - Connection to syslog has to be re-opened after cleanup for fork()
+ - Selectors shall be removed when corresponding file-descriptor is closed.
+ - Remove spurious TAB in output when talking to plugins (#1481).
+
+Enhancements:
+ - Prepare psiadmin to print-out hostnames instead of node IDs sometime (#490)
+
+Additional changes:
+ - Improve messages from psid's plugin-handling to psiadmin.
+ - Include stub into test-plugin for extraordinary long help-messages.
+
+Version 5.0.36:
+===============
+Bugfixes:
+ - Beautify psiadmin's 'plugin help/show/...' output (#1481)
+ - (quick fix) psaccount logging via mlog in the psmom forwarder can let
+   it exit unexpectedly.
+ - If old task-structure found during enqueue delete the right one.
+
+Enhancements:
+ - Replace gethostbyname() with getaddrinfo() (#654)
+ - If PSI_LOG_SILENT is set, logger will suppress all output.
+ - Next generation plugin API (#973)
+ - New type of timeout-handlers receiving the timer ID and additional
+   information upon elapse (#1361)
+ - sendSignal2Session() returns number of children signal was sent to
+ - psid shall not block SIGCHLD most of the time. Instead, only critical
+   code-regions are fenced by blocked SIGCHLD (#1333)
+
+Version 5.0.35:
+===============
+Bugfixes:
+ - Correct detection of psiadmin and mpiexec started from within scripts
+   run via pssh (#1280)
+ - psilogger suppresses unnecessary warning on duplicate FINALIZE (#1304)
+
+Enhancements:
+ - 'pssh -r' enables pssh to be used as transport for rsync (#504)
+ - Cancel PMI-barrier warning after all clients joined (#1172)
+ - Let the forwarders set there process title
+ - PSIDHOOK_SHUTDOWN realized (#1215)
+
+Additional changes:
+ - Add sample .gdbinit with some usefull functions for debugging psid.
+
+
+Version 5.0.34:
+===============
+Bugfixes:
+ - psiadmin prints out numerical IP address, if 'resolve' cannot get hostname
+ - Fix pinning, if node 0 was not yet involved. Before wrong partition
+   request was encoded with false protocol-version.
+
+Enhancements:
+ - New psmgmt-devel RPM holds additional headers for plugin development (#1100)
+ - mpiexec accepts multiple occurrences of -e option (jt:#4515)
+
+
+Version 5.0.33:
+===============
+Bugfixes:
+ - Fix problem in flow-control disturbing the psaccounter daemon
+ - Suppress unnecessary warning, if allocation of partition fails
+ - Improved plugin handling
+ - Fix psiadmin's 'range' command broken in last version
+
+Enhancements:
+ - Propagate PATH and LIBRARY_PATH environment automatically (#1173)
+ - Add psaccount plugin providing advanced accounting functionality
+ - More intuitive user-handling in configuration-file
+
+Additional changes:
+ - Version of the plugin API pushed to 103
+ - Adapt for gcc 4.5.1 coming with OpenSUSE 11.4
+
+
+Version 5.0.32:
+===============
+Bugfixes:
+ - Fix pssh's behavior for interactive sessions
+ - Fix race-conditions that might lock RDP's timer forever (#1077)
+ - Don't try to read the executable, if there's no permission (#1058)
+ - Allow plugin's initialize() method to fail (#1096)
+ - Fix some minor memory-leaks (#1009, )
+
+Enhancements:
+ - Allow users to influence pinning via __PSI_CPUMAP (#1086)
+ - Dynamical dropping of message within psid (#992)
+ - psid now has a hook-facility; currently it support PSIDHOOK_NODE_UP
+   and PSIDHOOK_NODE_DOWN
+ - Implement logger_finalize() in order to allow dynamical loggers (#1010)
+
+Additional changes:
+ - Version of the plugin API pushed to 102.
+
+
+Version 5.0.31:
+===============
+Bugfixes:
+ - Remove limitations on length of arguments when spawning processes (#740).
+ - psiadmin now accept range of the form last-first, too (#1014).
+ - Include RDP-header in maximum message size for protocols (#459).
+ - Fix crippled output of very long lines since 5.0.30.
+ - Fix memory leak in partition handling (#794).
+ - Catch possible segfaults within psid's logging.
+ - Prevent psid from segfaulting, if PSI_TPP erroneously set to 0.
+ - Don't crash psid, if client<->daemon protocol is messed up.
+
+Enhancements:
+ - Unload plugins before daemon shuts down (#562).
+ - RDP statistics (mean-time to ACK, etc.).
+ - psh: fix precedence of $RCMD, $AUTOCD and $MAXRCMD.
+ - Nicer output of long lines with and without prefixes.
+ - Better error-message from mpiexec, if spawning of service-process failed.
+ - More detailed messages on late receives in psilogger.
+ - Improve testing on failed initialization of loggers.
+ - Initialize timer facility explicitely (#799).
+
+Additional changes:
+ - Remove extra debug in context of #442.
+
+
+Version 5.0.30:
+===============
+Bugfixes:
+ - Improve memory-handling when temporarily buffering messages (#689/jt:#2686).
+ - Mark psiadmin's hex-output to be in hex (#612).
+ - Improved error-messages, if PMI barrier timeout strikes (#827).
+ - Improve logging with timestamps (#719).
+
+Enhancements:
+ - New psiadmin directive: echo (#632).
+ - RLIMIT_NOFILE now configurable & propagated to remote processes
+   (#792/jt:#2691).
+ - Better handling of hanging file-systems while spawning processes (#879).
+ - psid's environment might be changed during runtime (#815).
+ - Enhanced plugin-interface within psid (#562). This is a pre-requisit for
+   psmom and psaccount plugins.
+ - Job's starttime is listed in psiadmin's 'list jobs' directive.
+
+Additional changes:
+ - Improved logging on flaws in psid's configuration file.
+ - Add /opt/parastation/sbin to root's PATH (#893).
+
+
+Version 5.0.29:
+===============
+
+Bugfixes:
+ - psh name merging will not merge (#317).
+ - psh's NameCompress create empty result (#318).
+ - Performance enhancement in RDP: msgbufs put back into pool
+      earlier (jt:#3239).
+ - Performance enhancement in flow-control: Don't always wait
+      for Sselect to time-out (jt:#3239).
+
+Enhancements:
+ - use selectors to handle clients' file-descriptors in psid.
+ - allow to trigger Sselect() to start-over. Useful to enable modified
+      fd-sets more quickly. Might help with jt:#3239.
+ - allow to disable registered selectors temporarily.
+ - enable stack protector, if supported (#796).
+
+Additional changes:
+ - less important RDP-messages suppressed per default. These might
+      lead to bandwidth-problems on huge clusters due to created load.
+ - psh now uses psnameexpand and psnamecompress from pscluster/bin/pstool
+ - Obsolete NrofNodes removed from default configuration
+
+
+Version 5.0.28:
+===============
+
+Bugfixes:
+ - Various improvements in RDP protocol (#386).
+ - Fix possible race-condition when resequencing RDP messages (#327).
+    this might lead to the behavior described in #327.
+ - Improved startup of psid on huge cluster with few active nodes.
+ - psaccview: option --norcfile doesn't need a parameter
+ - psaccview: don't display empty lines when using option --nospace
+
+Enhancements:
+ - Improved logging from RDP's state-machine.
+ - psaccview: new option --last_days to show the last x days of accounting data.
+ - psaccview: new option --timeout will stop parsing if the timeout is reached.
+ - Allow service-tasks to explicitely request signals on children's end (#554).
+
+Additional changes:
+ - If core-dumps are enabled, psid does not catch SIGBUS any longer.
+ - Extended accounting functionality moved into plugin.

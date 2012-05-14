@@ -1,0 +1,42 @@
+#                                                       -*- Makefile -*-
+# ParaStation
+#
+# Copyright (C) 2002-2004 ParTec AG, Karlsruhe
+# Copyright (C) 2005-2008 ParTec Cluster Competence Center GmbH, Munich
+#
+# This file may be distributed under the terms of the Q Public License
+# as defined in the file LICENSE.QPL included in the packaging of this
+# file.
+#
+# Authors:      Jens Hauke <hauke@par-tec.com>
+#               Norbert Eicker <eicker@par-tec.com>
+#
+
+SUBDIRS := pse pscommon psi putil pslog
+
+.PHONY: all clean distclean
+all clean distclean: $(SUBDIRS)
+
+.PHONY: $(SUBDIRS)
+$(SUBDIRS): 
+	$(MAKE) -C $@ $(TARGET)
+
+#
+# install libraries
+#
+LIB_DIRNAME:=@LIB_DIRNAME@
+INSTALL = @INSTALL@
+INSTFLAGS_NOEXEC = -m 644
+
+DISTDIR := $(DESTDIR)$(DISTPATH)
+LIBDIR := $(DISTDIR)/$(LIB_DIRNAME)
+DIST_lib := libpse.a libpse.so libpsi.a libpsi.so
+
+$(LIBDIR)/%.so: %.so
+	$(INSTALL) -D $< $@
+
+$(LIBDIR)/%.a: %.a
+	$(INSTALL) $(INSTFLAGS_NOEXEC) -D $< $@
+
+.PHONY: install
+install: $(patsubst %,$(LIBDIR)/%,$(DIST_lib))

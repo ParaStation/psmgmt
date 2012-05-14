@@ -1,0 +1,78 @@
+#                                                       -*- Makefile -*-
+# ParaStation
+#
+# Copyright (C) 2008-2009 ParTec Cluster Competence Center GmbH, Munich
+#
+# This file may be distributed under the terms of the Q Public License
+# as defined in the file LICENSE.QPL included in the packaging of this
+# file.
+#
+# Authors:      Norbert Eicker <eicker@par-tec.com>
+#
+
+.PHONY: all
+all:
+
+SRCDIR = @srcdir@
+VPATH += $(SRCDIR)
+TOP_SRCDIR = @top_srcdir@
+
+# Makefile.sources have to define $(PKG_NAME) and $(SOURCE_FILES)
+include $(TOP_SRCDIR)/dist/Makefile.sources
+include $(TOP_SRCDIR)/Makefile.version
+######################################################
+
+#
+# install binaries
+#
+INSTALL = @INSTALL@
+INSTFLAGS_NOEXEC = -m 644
+
+DISTDIR := $(DESTDIR)$(DISTPATH)
+
+DIST_all := $(DESTDIR)/etc/parastation.conf
+$(DESTDIR)/etc/parastation.conf: parastation.conf
+	$(INSTALL) $(INSTFLAGS_NOEXEC) -D $< $@
+
+DIST_all += $(DISTDIR)/config/parastation.conf.tmpl
+$(DISTDIR)/config/parastation.conf.tmpl: parastation.conf
+	$(INSTALL) $(INSTFLAGS_NOEXEC) -D $< $@
+
+#
+# extra stuff
+#
+DIST_all += $(DISTDIR)/VERSION.$(PKG_NAME)
+.PHONY: $(DISTDIR)/VERSION.$(PKG_NAME)
+$(DISTDIR)/VERSION.$(PKG_NAME):
+	@echo "ParaStation Management $(VERSION_$(PKG_NAME))-$(RELEASE_$(PKG_NAME)) ($(shell date)) $(PKG_NAME)" > $@
+
+DIST_all += $(DISTDIR)/ChangeLog.$(PKG_NAME)
+$(DISTDIR)/ChangeLog.$(PKG_NAME): $(TOP_SRCDIR)/dist/ChangeLog
+	$(INSTALL) $(INSTFLAGS_NOEXEC) -D $< $@
+
+DIST_all += $(DISTDIR)/NEWS.$(PKG_NAME)
+$(DISTDIR)/NEWS.$(PKG_NAME): $(TOP_SRCDIR)/dist/NEWS
+	$(INSTALL) $(INSTFLAGS_NOEXEC) -D $< $@
+
+DIST_all += $(DISTDIR)/LICENSE.QPL
+$(DISTDIR)/LICENSE.QPL: $(TOP_SRCDIR)/LICENSE.QPL
+	$(INSTALL) $(INSTFLAGS_NOEXEC) -D $< $@
+
+DIST_all += $(DESTDIR)/var/account
+$(DESTDIR)/var/account:
+	$(INSTALL) -d $@
+
+DIST_all += $(DESTDIR)/opt/parastation/plugins/psresport.conf
+$(DESTDIR)/opt/parastation/plugins/psresport.conf: psresport.conf
+	$(INSTALL) $(INSTFLAGS_NOEXEC) -D $< $@
+
+.PHONY: install
+install: $(DIST_all)
+
+
+.PHONY: clean distclean
+clean:
+	$(RM) $(EXTRACLEAN) *.o
+
+distclean: clean
+	$(RM) $(TARGETS)
