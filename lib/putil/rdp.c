@@ -996,7 +996,6 @@ static void clearMsgQ(int node)
     }
 
     cp->ackExpected = cp->frameToSend;          /* restore initial setting */
-    cp->window = MAX_WINDOW_SIZE;               /* restore window size */
 
     Timer_block(timerID, blocked);
 }
