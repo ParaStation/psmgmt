@@ -612,7 +612,11 @@ void declareNodeDead(PSnodes_ID_t id, int sendDeadnode, int silent)
 {
     list_t *t;
 
-    if (!PSIDnodes_isUp(id)) return;
+    if (!PSIDnodes_isUp(id)) {
+	/* Drop messages not yet in the sending window */
+	clearRDPMsgs(id);
+	return;
+    }
 
     PSID_log(PSID_LOG_STATUS,
 	     "%s: node %d goes down. Will %ssend PSP_DD_DEAD_NODE messages\n",

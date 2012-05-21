@@ -4,6 +4,22 @@ Copyright (C) 2010-2012 ParTec Cluster Competence Center GmbH, Munich
 
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
+Version 5.0.39:
+===============
+Bugfixes:
+ - Make pssh's -e and psmstart's --exports options working.
+ - Fix problem in RDP with window-size
+ - Ensure message-buffers get free()ed when RDP fails to establish connection
+
+Enhancements:
+ - Startup support for OpenMPI executables (version 1.5 and higher) (#580)
+ - Add new features required by psmom to solve #1477
+ - Prevent forwarder from excessive logging.
+ - More robust inline assembly in corePerPhysical()
+
+Additional changes:
+ - Move license to QPL
+
 Version 5.0.38:
 ===============
 Bugfixes:

@@ -1,3 +1,92 @@
+Version psmgmt-5.0.39:
+======================
+------------------------------------------------------------------------
+r8605 | eicker | 2012-05-18 22:26:05 +0200 (Fri, 18 May 2012) | 2 lines
+
+Enhancement: Prevent forwarder from excessive logging.
+
+------------------------------------------------------------------------
+r8604 | eicker | 2012-05-18 22:25:10 +0200 (Fri, 18 May 2012) | 3 lines
+
+Bugfix: Node might be declared dead while RDP tries to connect. In that
+    case messages stored within the daemon have to be cleared.
+
+------------------------------------------------------------------------
+r8603 | eicker | 2012-05-18 22:18:44 +0200 (Fri, 18 May 2012) | 2 lines
+
+Bugfix: Don't increase window-size beyond MAX_WINDOW_SIZE.
+
+------------------------------------------------------------------------
+r8599 | moschny | 2012-05-02 13:18:59 +0200 (Wed, 02 May 2012) | 3 lines
+
+Removed merge tracking for "svnmerge" for
+https://svn.ipd.kit.edu/repos/ParaStation/branches/thomas/psmgmt-qpl
+
+------------------------------------------------------------------------
+r8598 | moschny | 2012-05-02 13:12:04 +0200 (Wed, 02 May 2012) | 13 lines
+
+Merged revisions 8587,8591 via svnmerge from
+https://svn.ipd.kit.edu/repos/ParaStation/branches/thomas/psmgmt-qpl
+
+........
+  r8587 | moschny | 2012-04-26 20:24:50 +0200 (Do, 26 Apr 2012) | 1 line
+
+  Update all headers to QPL.
+........
+  r8591 | moschny | 2012-04-27 17:54:28 +0200 (Fr, 27 Apr 2012) | 1 line
+
+  Update headers to QPL.
+........
+
+------------------------------------------------------------------------
+r8597 | moschny | 2012-05-02 13:07:58 +0200 (Wed, 02 May 2012) | 3 lines
+
+Initialized merge tracking via "svnmerge" with revisions "1-8586" from
+https://svn.ipd.kit.edu/repos/ParaStation/branches/thomas/psmgmt-qpl
+
+------------------------------------------------------------------------
+r8595 | rauh | 2012-05-02 10:58:23 +0200 (Wed, 02 May 2012) | 2 lines
+
+Pushed plugin API version to 108.
+
+------------------------------------------------------------------------
+r8593 | moschny | 2012-04-27 19:29:06 +0200 (Fri, 27 Apr 2012) | 7 lines
+
+Make the assembler code in corePerPhysical() more robust against
+compiler optimizations by combining the three existing blocks into a
+single block, with a single in/out/clobber annotation.
+
+Also use local jump labels instead of global labels to prevent name
+clashes.
+
+------------------------------------------------------------------------
+r8592 | moschny | 2012-04-27 18:17:00 +0200 (Fri, 27 Apr 2012) | 2 lines
+
+Fix to avoid linker warnings, caused by defining PSID_logger twice.
+------------------------------------------------------------------------
+r8588 | rauh | 2012-04-27 16:54:01 +0200 (Fri, 27 Apr 2012) | 3 lines
+
+Enhancement: Added startup support for OpenMPI (#580).
+An OpenMPI version 1.5 or greater is required.
+
+------------------------------------------------------------------------
+r8570 | rauh | 2012-03-13 17:08:47 +0100 (Tue, 13 Mar 2012) | 3 lines
+
+Enhancement: added new features needed by psmom to solve #1477
+    (let the healthchecker discover invalid processes)
+
+------------------------------------------------------------------------
+r8569 | eicker | 2012-03-08 23:27:46 +0100 (Thu, 08 Mar 2012) | 2 lines
+
+Bugfix: Make pssh's -e and psmstart's --exports options working.
+
+------------------------------------------------------------------------
+r8565 | eicker | 2012-03-05 09:09:09 +0100 (Mon, 05 Mar 2012) | 2 lines
+
+New version (psmgmt-5.0.38)
+
+------------------------------------------------------------------------
+
 Version psmgmt-5.0.38:
 ======================
 ------------------------------------------------------------------------

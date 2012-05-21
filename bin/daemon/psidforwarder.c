@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2011 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2012 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -172,9 +172,13 @@ static void closePMIAcceptSocket(void)
 static int sendMsg(PSLog_msg_t type, char *buf, size_t len)
 {
     int ret = 0;
+    static int first = 1;
 
     if (loggerTID < 0) {
-	PSID_log(-1, "%s(%d):  not connected\n", __func__, type);
+	if (first) {
+	    PSID_log(-1, "%s(%d):  not connected\n", __func__, type);
+	    first = 0;
+	}
 	errno = EPIPE;
 
 	return -1;
