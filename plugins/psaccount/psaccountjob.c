@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2011 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2012 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -73,7 +73,7 @@ Job_t *addJob(PStask_ID_t loggerTID)
 {
     Job_t *job;
 
-    job = (Job_t *) umalloc(sizeof(Job_t), __func__);
+    job = (Job_t *) umalloc(sizeof(Job_t));
     job->jobscript = 0;
     job->logger = loggerTID;
     job->childsExit = 0;

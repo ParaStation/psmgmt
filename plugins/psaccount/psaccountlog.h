@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2011 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2012 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -26,6 +26,8 @@ logger_t *psaccountlogger;
 typedef enum {
     LOG_VERBOSE		= 0x000010, /**< Be verbose */
     LOG_PROC_DEBUG	= 0x000020, /**< proc collection debug messages */
+    LOG_ACC_MSG		= 0x000040, /**< received accounting messages */
+    LOG_UPDATE_MSG	= 0x000080, /**< periodic update messages */
 } PSAccount_log_types_t;
 
 /**

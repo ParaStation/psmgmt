@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2011 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2012 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -16,6 +16,10 @@
 
 #include <stdint.h>
 
+#define umalloc(size) __umalloc(size, __func__, __LINE__)
+#define urealloc(old, size) __urealloc(old, size, __func__, __LINE__)
+
+
 /**
  * @brief Malloc with error handling.
  *
@@ -27,7 +31,7 @@
  *
  * @return Returned is a pointer to the allocated memory.
  */
-void *umalloc(size_t size, const char *func);
+void *__umalloc(size_t size, const char *func, const int line);
 
 /**
  * @brief Realloc with error handling.
@@ -40,6 +44,6 @@ void *umalloc(size_t size, const char *func);
  *
  * @return Returned is a pointer to the allocated memory.
  */
-void *urealloc(void *old ,size_t size, const char *func);
+void *__urealloc(void *old ,size_t size, const char *func, const int line);
 
 #endif

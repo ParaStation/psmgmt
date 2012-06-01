@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2011 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2012 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -43,6 +43,8 @@ void updateAccountData(Client_t *client)
     uint64_t cutime, cstime;
     AccountData_t *accData;
     Proc_Snapshot_t *proc, *procChilds;
+
+    if (client->doAccounting == 0) return;
 
     if (!(proc = findProcSnapshot(client->pid))) {
 	/*
@@ -89,11 +91,9 @@ void updateAccountData(Client_t *client)
     if (cutime > accData->cutime) accData->cutime = cutime;
     if (cstime > accData->cstime) accData->cstime = cstime;
 
-    /*
     if (globalCollectMode && PSC_getID(client->logger) != PSC_getMyID()) {
 	sendAccountUpdate(client);
     }
-    */
 
     /*
     mlog("%s: pid:%i cutime: '%lu' cstime: '%lu' session '%i' mem '%lu' vmem '%lu'"

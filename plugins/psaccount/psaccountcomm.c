@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2011 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2012 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -131,7 +131,7 @@ void handleAccountEnd(DDTypedBufferMsg_t *msg, int remote)
     ptr += sizeof(client->rusage);
 
     /* pagesize */
-    client->pagesize = *(uint64_t *) ptr;
+    client->pageSize = *(uint64_t *) ptr;
     ptr += sizeof(uint64_t);
 
     /* walltime used by child */
@@ -300,6 +300,7 @@ static void monitorJobStarted(void)
 
 		/* try to find the missing jobscript */
 		if (!job->jobscript) {
+
 		    if ((js = findJobscriptInClients(job))) {
 			mdbg(LOG_VERBOSE, "%s: found jobscript pid '%i'\n",
 			    __func__, js->pid);
@@ -323,6 +324,7 @@ void handleAccountChild(DDTypedBufferMsg_t *msg, int remote)
     PStask_ID_t logger, childTID;
     uid_t uid;
     gid_t gid;
+    int32_t rank;
 
     ptr = msg->buf;
 
@@ -336,6 +338,7 @@ void handleAccountChild(DDTypedBufferMsg_t *msg, int remote)
     }
 
     /* skip rank */
+    rank = *(int32_t *) ptr;
     ptr += sizeof(int32_t);
 
     /* uid */
@@ -386,12 +389,44 @@ void handleAccountChild(DDTypedBufferMsg_t *msg, int remote)
     client->uid = uid;
     client->gid = gid;
     client->job = job;
+    client->rank = rank;
+}
+
+/**
+ * @brief Convert an account message type to string.
+ *
+ * @param type The type to convert.
+ *
+ * @return Returns the requested string.
+ */
+static const char *accMsgType2String(int type)
+{
+    switch(type) {
+	case PSP_ACCOUNT_QUEUE:
+	    return "QUEUE";
+	case PSP_ACCOUNT_DELETE:
+	    return "DELETE";
+	case PSP_ACCOUNT_SLOTS:
+	    return "SLOTS";
+	case PSP_ACCOUNT_START:
+	    return "START";
+	case PSP_ACCOUNT_LOG:
+	    return "LOG";
+	case PSP_ACCOUNT_CHILD:
+	    return "CHILD";
+	case PSP_ACCOUNT_END:
+	    return "END";
+    }
+    return "UNKNOWN";
 }
 
 void handlePSMsg(DDTypedBufferMsg_t *msg)
 {
     if (msg->header.dest == PSC_getMyTID()) {
         /* message for me, let's get infos and forward to all accounters */
+
+	mdbg(LOG_ACC_MSG, "%s: got msg '%s'\n", __func__,
+		accMsgType2String(msg->type));
 
 	switch (msg->type) {
 	    case PSP_ACCOUNT_QUEUE:

@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2011 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2012 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -33,7 +33,7 @@
 
 /** psid plugin requirements */
 char name[] = "psaccount";
-int version = 17;
+int version = 18;
 int requiredAPI = 101;
 plugin_dep_t dependencies[1];
 
@@ -163,7 +163,8 @@ int initialize(void)
     }
 
     /* register account msg */
-    oldAccountHanlder = PSID_registerMsg(PSP_CD_ACCOUNT, (handlerFunc_t) handlePSMsg);
+    oldAccountHanlder = PSID_registerMsg(PSP_CD_ACCOUNT,
+					    (handlerFunc_t) handlePSMsg);
     PSID_registerMsg(PSP_CC_PLUGIN_ACCOUNT, (handlerFunc_t) handleInterAccount);
 
     /* update proc snapshot */

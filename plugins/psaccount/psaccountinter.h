@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2011 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2012 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -119,7 +119,8 @@ int psAccountGetJobInfo(pid_t jobscript, psaccAccountInfo_t *accData);
 /**
  * @brief Wrapper for the getSessionInformation() function.
  */
-void psAccountGetSessionInfos(int *count, char *buf, size_t bufsize, int *userCount);
+void psAccountGetSessionInfos(int *count, char *buf, size_t bufsize,
+				int *userCount);
 
 /**
  * @brief Wrapper for the sendSignal2Session() function.

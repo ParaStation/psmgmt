@@ -198,6 +198,8 @@ plugins/psaccount/psaccountinter.c \
 plugins/psaccount/psaccountinter.h \
 plugins/psaccount/psaccountjob.c \
 plugins/psaccount/psaccountjob.h \
+plugins/psaccount/psaccountkvs.c \
+plugins/psaccount/psaccountkvs.h \
 plugins/psaccount/psaccountlog.c \
 plugins/psaccount/psaccountlog.h \
 plugins/psaccount/psaccountproc.c \

@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2011 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2012 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -42,7 +42,7 @@ typedef enum {
 typedef struct {
     pid_t session;
     pid_t pgroup;
-    unsigned long maxThreads;
+    uint64_t maxThreads;
     uint64_t maxVsize;
     uint64_t maxRss;
     uint64_t avgThreads;
@@ -53,6 +53,7 @@ typedef struct {
     uint64_t avgRssCount;
     uint64_t cutime;
     uint64_t cstime;
+    uint64_t cputime;
 } AccountData_t;
 
 typedef struct {
@@ -66,7 +67,7 @@ typedef struct {
     gid_t gid;
     int rank;
     int status;
-    uint64_t pagesize;
+    uint64_t pageSize;
     AccountData_t data;
     struct timeval walltime;
     struct rusage rusage;
@@ -84,6 +85,15 @@ Client_t AccClientList;
  * @return No return value.
  */
 void initAccClientList();
+
+/**
+ * @brief Convert a client type to string.
+ *
+ * @param type The type of the client to convert.
+ *
+ * @return Returns the requested string.
+ */
+const char* clientType2Str(int type);
 
 /**
  * @brief Find an account client by the client TID.
@@ -134,16 +144,28 @@ Client_t *findJobscriptInClients(Job_t *job);
  * Collect all known accounting information for a job. The job is identified
  * by the uniq TaskID of the logger. All collected information is combined into
  * a psaccAccountInfo_t structure. This function is used by the psmom at the end
- * of a job to return the accouting information to the pbs_server.
+ * of a job to return the accouting information to the pbs_server. The jobscript
+ * will not be added since it can start multiple jobs.
  *
  * @param The logger TaskID to identifiy the job.
  *
- * @param accData The data structure which will hold all the collected accounting
- * information.
+ * @param accData The data structure which will hold all the collected
+ * accounting information.
  *
  * @return Returns 1 on success and 0 on error.
  */
 int getAccountInfoByLogger(PStask_ID_t logger, psaccAccountInfo_t *accData);
+
+/**
+ * @brief Add accounting data from client.
+ *
+ * @param client The client the calculate the data to add.
+ *
+ * @param accData Pointer to an accounting data structure.
+ *
+ * @return No return value.
+ */
+void addAccInfoForClient(Client_t *client, psaccAccountInfo_t *accData);
 
 /**
  * @brief Add a new account client.

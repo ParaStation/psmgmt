@@ -19,9 +19,9 @@ INSTALL = @INSTALL@
 ################################
 
 export LIBNAME := psaccount
-export LIBOBJS := psaccount.o psaccountlog.o psaccountcollect.o psaccountclient.o \
-		helper.o psaccountproc.o psaccountcomm.o psaccountjob.o \
-		psaccountinter.o
+export LIBOBJS := psaccount.o psaccountlog.o psaccountcollect.o \
+		psaccountclient.o helper.o psaccountproc.o psaccountcomm.o \
+		psaccountjob.o psaccountinter.o psaccountkvs.o
 export LIBVPATH := $(SRCDIR)
 export LIBINC = -I$(TOPSRCDIR)/include
 export LIBINC += -I$(TOPSRCDIR)/bin/daemon

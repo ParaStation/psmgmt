@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2011 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2012 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -313,7 +313,7 @@ static Proc_Snapshot_t *addProc(pid_t pid, ProcStat_t *pS, char *cmdline)
 {
     Proc_Snapshot_t *proc;
 
-    proc = (Proc_Snapshot_t *) umalloc(sizeof(Proc_Snapshot_t), __func__);
+    proc = (Proc_Snapshot_t *) umalloc(sizeof(Proc_Snapshot_t));
     proc->uid = pS->uid;
     proc->pid = pid;
     proc->ppid = pS->ppid;
@@ -377,7 +377,7 @@ static void addSession(pid_t session, uid_t uid)
 	return;
     }
 
-    info = (Session_Info_t *) umalloc(sizeof(Session_Info_t), __func__);
+    info = (Session_Info_t *) umalloc(sizeof(Session_Info_t));
     info->session = session;
     info->uid = uid;
 
@@ -509,7 +509,7 @@ Proc_Snapshot_t *getAllClientChildsMem(pid_t pid)
 {
     Proc_Snapshot_t *proc;
 
-    proc = (Proc_Snapshot_t *) umalloc(sizeof(Proc_Snapshot_t), __func__);
+    proc = (Proc_Snapshot_t *) umalloc(sizeof(Proc_Snapshot_t));
     proc->pid = pid;
     proc->ppid = 0;
     proc->session = 0;
