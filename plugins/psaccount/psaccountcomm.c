@@ -281,22 +281,27 @@ static void handleAccountLog(DDTypedBufferMsg_t *msg)
  */
 static void monitorJobStarted(void)
 {
-    struct list_head *pos;
+    list_t *pos, *tmp;
     Job_t *job;
-    int starting = 0;
+    int starting = 0, update = 0;
     Client_t *js;
 
     if (list_empty(&JobList.list)) return;
 
-    list_for_each(pos, &JobList.list) {
-	if ((job = list_entry(pos, Job_t, list)) == NULL) {
-	    return;
-	}
+    list_for_each_safe(pos, tmp, &JobList.list) {
+	if ((job = list_entry(pos, Job_t, list)) == NULL) break;
+
 	if (job->lastChildStart > 0) {
 	    starting++;
 	    if (time(NULL) >= job->lastChildStart + 1) {
 		job->lastChildStart = 0;
-		periodicMain();
+
+		/* update all accounting data */
+		if (!update) {
+		    updateProcSnapshot(0);
+		    update = 1;
+		}
+		updateAllAccClients(job);
 
 		/* try to find the missing jobscript */
 		if (!job->jobscript) {
@@ -310,6 +315,7 @@ static void monitorJobStarted(void)
 	    }
 	}
     }
+
     if (!starting && jobTimerID > 0) {
 	Timer_remove(jobTimerID);
 	jobTimerID = -1;

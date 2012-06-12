@@ -62,7 +62,7 @@ static char *str2Buf(char *strSave, char *buffer, size_t *bufSize)
 
 static char *showJobs(char *buf, size_t *bufSize)
 {
-    struct list_head *pos;
+    list_t *pos, *tmp;
     Job_t *job;
 
     if (list_empty(&JobList.list)) {
@@ -71,7 +71,7 @@ static char *showJobs(char *buf, size_t *bufSize)
 
     buf = str2Buf("\njobs:\n", buf, bufSize);
 
-    list_for_each(pos, &JobList.list) {
+    list_for_each_safe(pos, tmp, &JobList.list) {
 	if ((job = list_entry(pos, Job_t, list)) == NULL) break;
 
 	snprintf(line, sizeof(line), "nr Of Children '%i'\n", job->nrOfChilds);
@@ -209,22 +209,21 @@ char *show(char *key)
     size_t bufSize = 0;
 
     if (!key) {
-        /* show all virtual keys */
 	buf = str2Buf("use key [clients|dclients|jobs]\n", buf, &bufSize);
         return buf;
     }
 
-    /* show current remote jobs */
+    /* show current clients */
     if (!(strcmp(key, "clients"))) {
         return showClient(buf, &bufSize, 0);
     }
 
-    /* show current remote jobs */
+    /* show current clients in detail */
     if (!(strcmp(key, "dclients"))) {
         return showClient(buf, &bufSize, 1);
     }
 
-    /* show current remote jobs */
+    /* show current jobs */
     if (!(strcmp(key, "jobs"))) {
         return showJobs(buf, &bufSize);
     }

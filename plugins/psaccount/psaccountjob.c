@@ -31,12 +31,12 @@ void initJobList()
 
 Job_t *findJobByLogger(PStask_ID_t loggerTID)
 {
-    struct list_head *pos;
+    list_t *pos, *tmp;
     Job_t *job;
 
     if (list_empty(&JobList.list)) return NULL;
 
-    list_for_each(pos, &JobList.list) {
+    list_for_each_safe(pos, tmp, &JobList.list) {
 	if ((job = list_entry(pos, Job_t, list)) == NULL) {
 	    return NULL;
 	}
@@ -49,12 +49,12 @@ Job_t *findJobByLogger(PStask_ID_t loggerTID)
 
 Job_t *findJobByJobscript(pid_t js)
 {
-    struct list_head *pos;
+    list_t *pos, *tmp;
     Job_t *job;
 
     if (list_empty(&JobList.list)) return NULL;
 
-    list_for_each(pos, &JobList.list) {
+    list_for_each_safe(pos, tmp, &JobList.list) {
 	if ((job = list_entry(pos, Job_t, list)) == NULL) {
 	    return NULL;
 	}
@@ -143,6 +143,7 @@ void cleanupJobs()
 	if ((job = list_entry(pos, Job_t, list)) == NULL) {
 	    return;
 	}
+
 	if (job->complete) {
 	    time_t timeout;
 

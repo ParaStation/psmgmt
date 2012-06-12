@@ -33,7 +33,7 @@
 
 /** psid plugin requirements */
 char name[] = "psaccount";
-int version = 18;
+int version = 19;
 int requiredAPI = 101;
 plugin_dep_t dependencies[1];
 
@@ -176,10 +176,6 @@ int initialize(void)
 
 void cleanup(void)
 {
-    /* TODO: do we need to forward all known information to psmom
-     * before we are forced to exit?
-     */
-
     /* remove all timer */
     Timer_remove(mainTimerID);
     if (jobTimerID != -1) Timer_remove(jobTimerID);

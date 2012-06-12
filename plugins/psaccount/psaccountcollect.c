@@ -91,7 +91,8 @@ void updateAccountData(Client_t *client)
     if (cutime > accData->cutime) accData->cutime = cutime;
     if (cstime > accData->cstime) accData->cstime = cstime;
 
-    if (globalCollectMode && PSC_getID(client->logger) != PSC_getMyID()) {
+    if (globalCollectMode && client->logger != -1 &&
+	    PSC_getID(client->logger) != PSC_getMyID()) {
 	sendAccountUpdate(client);
     }
 

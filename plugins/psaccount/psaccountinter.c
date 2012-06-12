@@ -50,11 +50,11 @@ int psAccountGetJobInfo(pid_t jobscript, psaccAccountInfo_t *accData)
 	addAccInfoForClient(client, accData);
     } else {
 	/* search all parallel jobs and calc data */
-	struct list_head *pos;
+	list_t *pos, *tmp;
 
 	if (list_empty(&JobList.list)) return false;
 
-	list_for_each(pos, &JobList.list) {
+	list_for_each_safe(pos, tmp, &JobList.list) {
 	    if ((job = list_entry(pos, Job_t, list)) == NULL) break;
 
 	    if (job->jobscript == jobscript) {
