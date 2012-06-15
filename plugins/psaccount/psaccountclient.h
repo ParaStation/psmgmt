@@ -62,9 +62,12 @@ typedef struct {
     PStask_ID_t logger;
     PStask_ID_t taskid;
     Job_t *job;
+    char *jobid;
     pid_t pid;
     uid_t uid;
     gid_t gid;
+    time_t startTime;
+    time_t endTime;
     int rank;
     int status;
     uint64_t pageSize;
@@ -213,5 +216,26 @@ void clearAllAccClients();
  * @return No return value.
  */
 void updateAllAccClients(Job_t *job);
+
+/**
+ * @brief Clean leftover account clients.
+ *
+ * Cleanup accounting clients which disappeared without an ACCOUNT_END msg or
+ * jobscripts which were un-registered.
+ *
+ * @return No return value.
+ */
+void cleanupClients();
+
+/**
+ * @brief Delete an account client.
+ *
+ * Delete an account client identified by its TaskID.
+ *
+ * @param tid The taskID of the client to delete.
+ *
+ * @return Returns 1 on success and 0 on error.
+ */
+int deleteAccClient(PStask_ID_t tid);
 
 #endif

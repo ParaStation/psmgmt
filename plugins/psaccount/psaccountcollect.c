@@ -31,6 +31,7 @@
 #include "psaccountlog.h"
 #include "psaccountproc.h"
 #include "psaccount.h"
+#include "psaccountconfig.h"
 
 #include "pscommon.h"
 
@@ -43,6 +44,7 @@ void updateAccountData(Client_t *client)
     uint64_t cutime, cstime;
     AccountData_t *accData;
     Proc_Snapshot_t *proc, *procChilds;
+    int sendUpdate = 0;
 
     if (client->doAccounting == 0) return;
 
@@ -52,6 +54,7 @@ void updateAccountData(Client_t *client)
 	    __func__, client->pid);
 	*/
 	client->doAccounting = 0;
+	client->endTime = time(NULL);
 	return;
     }
 
@@ -91,9 +94,12 @@ void updateAccountData(Client_t *client)
     if (cutime > accData->cutime) accData->cutime = cutime;
     if (cstime > accData->cstime) accData->cstime = cstime;
 
-    if (globalCollectMode && client->logger != -1 &&
-	    PSC_getID(client->logger) != PSC_getMyID()) {
-	sendAccountUpdate(client);
+    getConfParamI("SAVE_ACC_UPDATES", &sendUpdate);
+    if (sendUpdate) {
+	if (globalCollectMode && client->logger != -1 &&
+		PSC_getID(client->logger) != PSC_getMyID()) {
+	    sendAccountUpdate(client);
+	}
     }
 
     /*

@@ -39,3 +39,27 @@ void *__urealloc(void *old ,size_t size, const char *func, const int line)
     }
     return ptr;
 }
+
+char *__ustrdup(const char *s1, const char *func, const int line)
+{
+    size_t len;
+    char *copy;
+
+    if (s1 == NULL) return NULL;
+
+    len = strlen(s1) + 1;
+    copy = __umalloc(len, func, line);
+    strcpy(copy, s1);
+
+    return copy;
+}
+
+void __ufree(void *ptr, const char *func, const int line)
+{
+    char tmp[11];
+
+    snprintf(tmp, sizeof(tmp), "%i", line);
+    mdbg(LOG_MALLOC, "ufree\t%15s\t%s\t%p\n", func, tmp, ptr);
+
+    free(ptr);
+}

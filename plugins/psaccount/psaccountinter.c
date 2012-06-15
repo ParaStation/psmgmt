@@ -17,9 +17,9 @@
 #include "psaccount.h"
 #include "psaccountcomm.h"
 #include "psaccountclient.h"
-#include "psaccountjob.h"
 #include "psaccountlog.h"
 #include "psaccountproc.h"
+#include "psaccountclient.h"
 #include "helper.h"
 
 #include "psaccountinter.h"
@@ -298,46 +298,36 @@ int psAccountreadProcStatInfo(pid_t pid, ProcStat_t *pS)
    return readProcStatInfo(pid, pS);
 }
 
-void psAccountRegisterJobscript(pid_t jsPid)
+void psAccountRegisterMOMJob(pid_t jsPid, char *jobid)
 {
     PStask_ID_t taskID;
-    Job_t *job;
     Client_t *client;
 
     /* monitor the JS */
     taskID = PSC_getTID(PSC_getMyID(), jsPid);
     client = addAccClient(taskID, ACC_CHILD_JOBSCRIPT);
-
-    /* find Job */
-    if ((job = findJobByJobscript(jsPid))) {
-	job->jobscript = jsPid;
-	client->logger = job->logger;
-	client->job = job;
-	/*
-	 mlog("%s: found logger: %i to jobscript:%i\n", __func__,
-	    job->logger, jsPid);
-	*/
-    } else {
-	//mlog("%s: logger for jobscript %i not found\n", __func__, jsPid);
-    }
+    client->jobid = strdup(jobid);
 }
 
-void psAccountUnregisterJobscript(pid_t jsPid)
+void psAccountUnregisterMOMJob(pid_t jsPid)
 {
+    list_t *pos, *tmp;
     PStask_ID_t taskID;
-    Client_t *client;
-
-    taskID = PSC_getTID(PSC_getMyID(), jsPid);
-
-    /* find the jobscript */
-    if (!(client = findAccClientByClientTID(taskID))) {
-	mlog("%s: jobscript to unregister with pid '%i' not found\n",
-		__func__, jsPid);
-	return;
-    }
+    Job_t *job;
 
     /* stop accounting of dead jobscript */
-    client->doAccounting = false;
+    taskID = PSC_getTID(PSC_getMyID(), jsPid);
+    deleteAccClient(taskID);
+
+    if (!list_empty(&JobList.list)) {
+	list_for_each_safe(pos, tmp, &JobList.list) {
+	    if ((job = list_entry(pos, Job_t, list)) == NULL) break;
+
+	    if (job->jobscript == jsPid) {
+		deleteJob(job->logger);
+	    }
+	}
+    }
 }
 
 void psAccountSetGlobalCollect(int active)

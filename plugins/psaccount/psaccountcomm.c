@@ -21,6 +21,7 @@
 #include "psaccount.h"
 #include "psaccountinter.h"
 #include "psaccountproc.h"
+#include "psaccountconfig.h"
 
 #include "timer.h"
 #include "pscommon.h"
@@ -87,13 +88,19 @@ void handleAccountEnd(DDTypedBufferMsg_t *msg, int remote)
 	if (!(job = findJobByLogger(logger))) {
 	    mlog("%s: job for logger '%i' not found\n", __func__, logger);
 	} else {
-	    if (!job->complete) {
+	    job->endTime = time(NULL);
+	    job->complete = 1;
+
+	    if (job->childsExit < job->nrOfChilds) {
 		mlog("%s: logger '%i' exited, but '%i' children are still "
 		    "alive\n", __func__, logger, (job->nrOfChilds -
 		    job->childsExit));
-		job->complete = 1;
 		job->grace = 1;
-		job->endTime = time(NULL);
+	    } else {
+		/* psmom does not need the job, we can delete it */
+		if (!job->jobscript) {
+		    deleteJob(job->logger);
+		}
 	    }
 	}
 	return;
@@ -125,6 +132,7 @@ void handleAccountEnd(DDTypedBufferMsg_t *msg, int remote)
 
     /* stop accounting of dead child */
     client->doAccounting = false;
+    client->endTime = time(NULL);
 
     /* actual rusage structure */
     memcpy(&client->rusage, ptr, sizeof(client->rusage));
@@ -211,6 +219,11 @@ void handleAccountEnd(DDTypedBufferMsg_t *msg, int remote)
 	    job->endTime = time(NULL);
 	    mdbg(LOG_VERBOSE, "%s: job complete [%i:%i]\n", __func__,
 		job->childsExit, job->nrOfChilds);
+
+	    if (PSC_getID(job->logger) != PSC_getMyID()) {
+		mlog("%s: logger not on my node -> deleting job\n", __func__);
+		deleteJob(job->logger);
+	    }
 	}
     }
 
@@ -283,17 +296,19 @@ static void monitorJobStarted(void)
 {
     list_t *pos, *tmp;
     Job_t *job;
-    int starting = 0, update = 0;
+    int starting = 0, update = 0, grace = 0;
     Client_t *js;
 
     if (list_empty(&JobList.list)) return;
+
+    getConfParamI("TIME_JOBSTART_WAIT", &grace);
 
     list_for_each_safe(pos, tmp, &JobList.list) {
 	if ((job = list_entry(pos, Job_t, list)) == NULL) break;
 
 	if (job->lastChildStart > 0) {
 	    starting++;
-	    if (time(NULL) >= job->lastChildStart + 1) {
+	    if (time(NULL) >= job->lastChildStart + grace) {
 		job->lastChildStart = 0;
 
 		/* update all accounting data */
@@ -310,6 +325,9 @@ static void monitorJobStarted(void)
 			mdbg(LOG_VERBOSE, "%s: found jobscript pid '%i'\n",
 			    __func__, js->pid);
 			job->jobscript = js->pid;
+			if (!job->jobid && js->jobid) {
+			    job->jobid = strdup(js->jobid);
+			}
 		    }
 		}
 	    }
@@ -366,6 +384,7 @@ void handleAccountChild(DDTypedBufferMsg_t *msg, int remote)
 
 	/* save start time to trigger next update */
 	if (job->lastChildStart < 1 && jobTimerID == -1) {
+	    getConfParamL("TIME_JOBSTART_POLL", &jobTimer.tv_usec);
 	    jobTimerID = Timer_register(&jobTimer, monitorJobStarted);
 	}
 	job->lastChildStart = time(NULL);

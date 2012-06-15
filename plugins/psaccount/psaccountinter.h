@@ -73,9 +73,11 @@ void sendAccountUpdate(Client_t *client);
  *
  * @param jsPid The pid of the jobscript to register.
  *
+ * @param jobid The torque jobid.
+ *
  * @return No return value.
  */
-void psAccountRegisterJobscript(pid_t jsPid);
+void psAccountRegisterMOMJob(pid_t jsPid, char *jobid);
 
 /**
  * @brief Unregister a PBS jobscript.
@@ -87,7 +89,7 @@ void psAccountRegisterJobscript(pid_t jsPid);
  *
  * @return No return value.
  */
-void psAccountUnregisterJobscript(pid_t jsPid);
+void psAccountUnregisterMOMJob(pid_t jsPid);
 
 /**
  * @brief Enable the global collection of accounting data.

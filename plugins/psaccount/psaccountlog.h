@@ -28,6 +28,7 @@ typedef enum {
     LOG_PROC_DEBUG	= 0x000020, /**< proc collection debug messages */
     LOG_ACC_MSG		= 0x000040, /**< received accounting messages */
     LOG_UPDATE_MSG	= 0x000080, /**< periodic update messages */
+    LOG_MALLOC		= 0x000100, /**< memory allocation */
 } PSAccount_log_types_t;
 
 /**

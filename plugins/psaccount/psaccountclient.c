@@ -19,6 +19,7 @@
 #include "psaccountproc.h"
 #include "helper.h"
 #include "psaccount.h"
+#include "psaccountconfig.h"
 
 #include "psaccountclient.h"
 
@@ -197,10 +198,13 @@ Client_t *addAccClient(PStask_ID_t taskid, PS_Acct_job_types_t type)
     client->doAccounting = 1;
     client->type = type;
     client->job = NULL;
+    client->jobid = NULL;
     client->rank = 0;
     client->uid = 0;
     client->gid = 0;
     client->pageSize = 0;
+    client->startTime = time(NULL);
+    client->endTime = 0;
 
     client->rusage.ru_utime.tv_sec = 0;
     client->rusage.ru_utime.tv_usec = 0;
@@ -227,22 +231,15 @@ Client_t *addAccClient(PStask_ID_t taskid, PS_Acct_job_types_t type)
     return client;
 }
 
-/**
- * @brief Delete an account client.
- *
- * Delete an account client identified by its TaskID.
- *
- * @param tid The taskID of the client to delete.
- *
- * @return Returns 1 on success and 0 on error.
- */
-static int deleteAccClient(PStask_ID_t tid)
+int deleteAccClient(PStask_ID_t tid)
 {
     Client_t *client;
 
     if ((client = findAccClientByClientTID(tid)) == NULL) {
 	return 0;
     }
+
+    if (client->jobid) free(client->jobid);
 
     list_del(&client->list);
     free(client);
@@ -290,6 +287,33 @@ void clearAllAccClients()
 	if (!(deleteAccClient(client->taskid))) {
 	    mlog("%s: deleting acc client '%i' failed\n", __func__,
 		client->pid);
+	}
+    }
+    return;
+}
+
+void cleanupClients()
+{
+    list_t *pos, *tmp;
+    Client_t *client;
+    time_t now = time(NULL);
+    long grace = 0;
+
+    if (list_empty(&AccClientList.list)) return;
+
+    getConfParamL("TIME_CLIENT_GRACE", &grace);
+
+    list_for_each_safe(pos, tmp, &AccClientList.list) {
+	if ((client = list_entry(pos, Client_t, list)) == NULL) break;
+
+	if (client->doAccounting || !client->endTime) continue;
+	if (findJobByLogger(client->logger)) continue;
+
+	/* check timeout */
+	if (client->endTime + grace * 60 <= now) {
+	    mdbg(LOG_VERBOSE, "%s: cleanup client '%i'\n", __func__,
+		    client->pid);
+	    deleteAccClient(client->taskid);
 	}
     }
     return;

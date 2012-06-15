@@ -18,6 +18,7 @@
 #include "psaccount.h"
 #include "psaccountinter.h"
 #include "psaccountclient.h"
+#include "psaccountconfig.h"
 #include "helper.h"
 
 #include "psaccountkvs.h"
@@ -60,6 +61,15 @@ static char *str2Buf(char *strSave, char *buffer, size_t *bufSize)
     return buffer;
 }
 
+/**
+ * @brief Show current jobs.
+ *
+ * @param buf The buffer to write the information to.
+ *
+ * @param bufSize The size of the buffer.
+ *
+ * @return Returns the buffer with the updated job information.
+ */
 static char *showJobs(char *buf, size_t *bufSize)
 {
     list_t *pos, *tmp;
@@ -84,6 +94,9 @@ static char *showJobs(char *buf, size_t *bufSize)
 	buf = str2Buf(line, buf, bufSize);
 
 	snprintf(line, sizeof(line), "complete '%i'\n", job->complete);
+	buf = str2Buf(line, buf, bufSize);
+
+	snprintf(line, sizeof(line), "grace '%i'\n", job->grace);
 	buf = str2Buf(line, buf, bufSize);
 
 	snprintf(line, sizeof(line), "id '%s'\n", job->jobid);
@@ -121,6 +134,15 @@ static char *showJobs(char *buf, size_t *bufSize)
     return buf;
 }
 
+/**
+ * @brief Show current clients.
+ *
+ * @param buf The buffer to write the information to.
+ *
+ * @param bufSize The size of the buffer.
+ *
+ * @return Returns the buffer with the updated client information.
+ */
 static char *showClient(char *buf, size_t *bufSize, int detailed)
 {
     struct list_head *pos;
@@ -163,6 +185,14 @@ static char *showClient(char *buf, size_t *bufSize, int detailed)
 	snprintf(line, sizeof(line), "page size '%zu'\n", client->pageSize);
 	buf = str2Buf(line, buf, bufSize);
 
+	snprintf(line, sizeof(line), "start time %s",
+		    ctime(&client->startTime));
+	buf = str2Buf(line, buf, bufSize);
+
+	snprintf(line, sizeof(line), "end time %s",
+		    client->endTime ? ctime(&client->endTime) : "-\n");
+	buf = str2Buf(line, buf, bufSize);
+
 	if (detailed) {
 
 	    snprintf(line, sizeof(line), "max mem '%zu'\n",
@@ -194,12 +224,128 @@ static char *showClient(char *buf, size_t *bufSize, int detailed)
     return buf;
 }
 
+/**
+ * @brief Show current configuration.
+ *
+ * @param buf The buffer to write the information to.
+ *
+ * @param bufSize The size of the buffer.
+ *
+ * @return Returns the buffer with the updated configuration information.
+ */
+static char *showConfig(char *buf, size_t *bufSize)
+{
+    char empty[] = "";
+    int i;
+
+    buf = str2Buf("\n", buf, bufSize);
+
+    for (i=0; i<configValueCount; i++) {
+        char *name, *val;
+
+        name = CONFIG_VALUES[i].name;
+        if (!(val = getConfParamC(name))) {
+            val = empty;
+        }
+        snprintf(line, sizeof(line), "%21s = %s\n", name, val);
+        buf = str2Buf(line, buf, bufSize);
+    }
+
+    return buf;
+}
+
+char *set(char *key, char *value)
+{
+    char *buf = NULL;
+    size_t bufSize = 0;
+    int ret;
+    Config_t *conf;
+
+    /* search in config for given key */
+    if ((findConfigDef(key))) {
+
+        if ((ret = verfiyConfOption(key, value)) != 0) {
+            if (ret == 1) {
+                buf = str2Buf("\nInvalid key '", buf, &bufSize);
+                buf = str2Buf(key, buf, &bufSize);
+                buf = str2Buf("' for cmd set : use 'plugin help psaccount' "
+                                "for help.\n", buf, &bufSize);
+            } else if (ret == 2) {
+                buf = str2Buf("\nThe key '", buf, &bufSize);
+                buf = str2Buf(key, buf, &bufSize);
+                buf = str2Buf("' for cmd set has to be numeric.\n", buf,
+                                &bufSize);
+            }
+            return buf;
+        }
+
+        /* save new config value */
+        if ((conf = getConfObject(key))) {
+            if (conf->value) ufree(conf->value);
+            conf->value = ustrdup(value);
+        } else {
+            addConfig(key, value);
+        }
+
+	snprintf(line, sizeof(line), "\nsaved '%s = %s'\n", key, value);
+        buf = str2Buf(line, buf, &bufSize);
+        return buf;
+    }
+
+    buf = str2Buf("\nInvalid key '", buf, &bufSize);
+    buf = str2Buf(key, buf, &bufSize);
+    buf = str2Buf("' for cmd set : use 'plugin help psaccount' for help.\n",
+		    buf, &bufSize);
+
+    return buf;
+}
+
+char *unset(char *key)
+{
+    char *buf = NULL;
+    size_t bufSize = 0;
+    const ConfDef_t *confDef;
+    Config_t *conf;
+
+    /* search in config for given key */
+    if ((conf = getConfObject(key))) {
+
+	if ((confDef = findConfigDef(key)) && confDef->def) {
+	    /* reset the config object to its default value */
+	    if (conf->value) ufree(conf->value);
+	    conf->value = ustrdup(confDef->def);
+	} else {
+	    /* delete the config object */
+	    delConfig(conf);
+	}
+	return buf;
+    }
+
+    buf = str2Buf("\nInvalid key '", buf, &bufSize);
+    buf = str2Buf(key, buf, &bufSize);
+    buf = str2Buf("' for cmd unset : use 'plugin help psaccount' for help.\n",
+	    buf, &bufSize);
+
+    return buf;
+}
+
 char *help(void)
 {
     char *buf = NULL;
     size_t bufSize = 0;
+    int i;
+    char type[10];
 
-    buf = str2Buf("use show [clients|dclients|jobs]\n", buf, &bufSize);
+    buf = str2Buf("\n# configuration options #\n\n", buf, &bufSize);
+    for (i=0; i<configValueCount; i++) {
+	snprintf(type, sizeof(type), "<%s>", CONFIG_VALUES[i].type);
+	snprintf(line, sizeof(line), "%21s\t%8s    %s\n", CONFIG_VALUES[i].name,
+		type, CONFIG_VALUES[i].desc);
+	buf = str2Buf(line, buf, &bufSize);
+    }
+
+    buf = str2Buf("\nuse show [clients|dclients|jobs|config]\n", buf, &bufSize);
+
     return buf;
 }
 
@@ -209,7 +355,8 @@ char *show(char *key)
     size_t bufSize = 0;
 
     if (!key) {
-	buf = str2Buf("use key [clients|dclients|jobs]\n", buf, &bufSize);
+	buf = str2Buf("use key [clients|dclients|jobs|config]\n",
+			buf, &bufSize);
         return buf;
     }
 
@@ -228,6 +375,12 @@ char *show(char *key)
         return showJobs(buf, &bufSize);
     }
 
-    buf = str2Buf("invalid key, use [clients|dclients|jobs]\n", buf, &bufSize);
+    /* show current config */
+    if (!(strcmp(key, "config"))) {
+        return showConfig(buf, &bufSize);
+    }
+
+    buf = str2Buf("invalid key, use [clients|dclients|jobs|config]\n",
+		    buf, &bufSize);
     return buf;
 }

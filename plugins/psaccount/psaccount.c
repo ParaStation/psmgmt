@@ -24,6 +24,8 @@
 #include "psaccountcomm.h"
 #include "psaccountjob.h"
 #include "psaccountinter.h"
+#include "psaccountclient.h"
+#include "psaccountconfig.h"
 
 #include "timer.h"
 #include "plugin.h"
@@ -31,9 +33,11 @@
 
 #include "psaccount.h"
 
+#define PSACCOUNT_CONFIG "/opt/parastation/plugins/psaccount.conf"
+
 /** psid plugin requirements */
 char name[] = "psaccount";
-int version = 19;
+int version = 20;
 int requiredAPI = 101;
 plugin_dep_t dependencies[1];
 
@@ -70,10 +74,15 @@ static void setMainTimer(int sec)
 
 void periodicMain(void)
 {
+    static int cleanup = 0;
     int poll;
 
     /* cleanup old jobs */
-    cleanupJobs();
+    if (cleanup++ == 4) {
+	cleanupJobs();
+	cleanupClients();
+	cleanup = 0;
+    }
 
     /* update proc snapshot */
     if ((haveActiveAccClients())) {
@@ -105,7 +114,7 @@ void accountStop()
 
 int initialize(void)
 {
-    int poll;
+    int poll, debugMask;
     struct utsname uts;
 
     /* init all lists */
@@ -115,7 +124,13 @@ int initialize(void)
 
     /* init logging facility */
     initLogger(false);
-    maskLogger(0x00000);
+
+    /* init the config facility */
+    if (!(initConfig(PSACCOUNT_CONFIG))) return 1;
+
+    /* init logging facility */
+    getConfParamI("DEBUG_MASK", &debugMask);
+    maskLogger(debugMask);
 
     /* read plattform version */
     if (uname(&uts)) {
