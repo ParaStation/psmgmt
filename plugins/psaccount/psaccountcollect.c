@@ -39,8 +39,7 @@
 
 void updateAccountData(Client_t *client)
 {
-    unsigned long rssnew;
-    unsigned long vsizenew = 0;
+    unsigned long rssnew, vsizenew = 0;
     uint64_t cutime, cstime;
     AccountData_t *accData;
     Proc_Snapshot_t *proc, *procChilds;

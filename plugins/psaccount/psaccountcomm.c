@@ -208,6 +208,11 @@ void handleAccountEnd(DDTypedBufferMsg_t *msg, int remote)
 	"uid:%i gid:%i\n", __func__, getAccountMsgType(msg->type), child,
 	client->logger, client->uid, client->gid);
 
+    /* forwarder to psaccount plugin with logger */
+    if (!remote && globalCollectMode && PSC_getID(logger) != PSC_getMyID()) {
+	forwardAccountMsg(msg, PSP_ACCOUNT_FORWARD_END, client->logger);
+    }
+
     /* find the job */
     if (!(job = findJobByLogger(client->logger))) {
 	mlog("%s: job for child '%i' not found\n", __func__, child);
@@ -221,15 +226,9 @@ void handleAccountEnd(DDTypedBufferMsg_t *msg, int remote)
 		job->childsExit, job->nrOfChilds);
 
 	    if (PSC_getID(job->logger) != PSC_getMyID()) {
-		mlog("%s: logger not on my node -> deleting job\n", __func__);
 		deleteJob(job->logger);
 	    }
 	}
-    }
-
-    /* forwarder to psaccount plugin with logger */
-    if (!remote && globalCollectMode && PSC_getID(logger) != PSC_getMyID()) {
-	forwardAccountMsg(msg, PSP_ACCOUNT_FORWARD_END, client->logger);
     }
 }
 
