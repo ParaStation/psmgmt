@@ -133,6 +133,21 @@ void clearAllProcSnapshots();
 void getSessionInformation(int *count, char *buf, size_t bufsize, int *userCount);
 
 /**
+ * @brief Send a signal to a pid and all its children.
+ *
+ * @param mypid The pid of myself.
+ *
+ * @param child The pid of the child to send the signal to.
+ *
+ * @param pgroup The pgroup of the child to send the signal to.
+ *
+ * @param sig The signal to send.
+ *
+ * @return No return value.
+ */
+int sendSignal2AllChildren(pid_t mypid, pid_t child, pid_t pgroup, int sig);
+
+/**
  * @brief Send a signal to a session.
  *
  * @param session The session ID to send the signal to.

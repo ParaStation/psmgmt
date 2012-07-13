@@ -269,6 +269,11 @@ void forwardAccountMsg(DDTypedBufferMsg_t *msg, int type, PStask_ID_t logger)
     free(fmsg);
 }
 
+int psAccountSignalAllChildren(pid_t mypid, pid_t child, pid_t pgroup, int sig)
+{
+    return sendSignal2AllChildren(mypid, child, pgroup, sig);
+}
+
 int psAccountsendSignal2Session(pid_t session, int sig)
 {
     return sendSignal2Session(session, sig);

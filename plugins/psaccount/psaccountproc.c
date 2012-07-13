@@ -75,24 +75,11 @@ static void doKill(pid_t child, pid_t pgroup, int sig)
     mlog("%s: killing child '%i' pgroup '%i' sig '%i'\n", __func__, child,
 	    pgroup, sig);
     */
-    killpg(pgroup, sig);
+    if (pgroup > 0) killpg(pgroup, sig);
     kill(child, sig);
 }
 
-/**
- * @brief Send a signal to a pid and all its children.
- *
- * @param mypid The pid of myself.
- *
- * @param child The pid of the child to send the signal to.
- *
- * @param pgroup The pgroup of the child to send the signal to.
- *
- * @param sig The signal to send.
- *
- * @return No return value.
- */
-static int sendSignal2AllChildren(pid_t mypid, pid_t child, pid_t pgroup, int sig)
+int sendSignal2AllChildren(pid_t mypid, pid_t child, pid_t pgroup, int sig)
 {
     struct list_head *pos;
     Proc_Snapshot_t *Childproc;
@@ -109,10 +96,17 @@ static int sendSignal2AllChildren(pid_t mypid, pid_t child, pid_t pgroup, int si
     list_for_each(pos, &ProcList.list) {
         if ((Childproc = list_entry(pos, Proc_Snapshot_t, list)) == NULL) break;
 
-        if (Childproc->ppid == child) {
-            sendCount += sendSignal2AllChildren(mypid, Childproc->pid,
+	if (pgroup > 0) {
+	    if (Childproc->ppid == child) {
+		sendCount += sendSignal2AllChildren(mypid, Childproc->pid,
 							Childproc->pgroup, sig);
-        }
+	    }
+	} else {
+	    if (Childproc->ppid == child) {
+		sendCount += sendSignal2AllChildren(mypid, Childproc->pid,
+							pgroup, sig);
+	    }
+	}
     }
     doKill(child, pgroup, sig);
     sendCount++;

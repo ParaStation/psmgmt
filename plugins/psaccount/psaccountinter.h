@@ -130,6 +130,11 @@ void psAccountGetSessionInfos(int *count, char *buf, size_t bufsize,
 int psAccountsendSignal2Session(pid_t session, int sig);
 
 /**
+ * @brief Wrapper for the sendSignal2AllChildren() function.
+ */
+int psAccountSignalAllChildren(pid_t mypid, pid_t child, pid_t pgroup, int sig);
+
+/**
  * @brief Wrapper for the isChildofParent() function.
  */
 void psAccountisChildofParent(pid_t parent, pid_t child);

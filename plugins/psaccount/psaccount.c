@@ -37,7 +37,7 @@
 
 /** psid plugin requirements */
 char name[] = "psaccount";
-int version = 20;
+int version = 21;
 int requiredAPI = 101;
 plugin_dep_t dependencies[1];
 
@@ -185,7 +185,7 @@ int initialize(void)
     /* update proc snapshot */
     updateProcSnapshot(0);
 
-    mlog("plugin started successfully\n");
+    mlog("(%i) successfully started\n", version);
     return 0;
 }
 
