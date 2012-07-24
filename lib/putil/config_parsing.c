@@ -1560,7 +1560,7 @@ static int getPinProcs(char *token)
     return 0;
 }
 
-static int default_bindMem = 0, node_bindMem;
+static int default_bindMem = 1, node_bindMem;
 
 static int getBindMem(char *token)
 {
