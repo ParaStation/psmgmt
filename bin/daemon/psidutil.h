@@ -270,18 +270,24 @@ void PSID_resetSigs(void);
  * actual handling of the master socket. In order to really enable
  * this use @ref PSID_enableMasterSock().
  *
- * The UNIX-socket used is an abstract socket (as defined by the
+ * The UNIX-socket used shall be an abstract socket (as defined by the
  * non-portable Linux extension on abstract socket namespaces) and
  * holds at the same time the lock of the running daemon. I.e., as
  * long as the daemon holds this socket no other daemon is able to
- * create its master socket.
+ * create its master socket. Therefore, some restriction arises on its
+ * address @a sockname, i.e. it has to start with '\0'.
+ *
+ * @param sockname Address of the UNIX socket where the local
+ * ParaStation daemon is connectable. Since an abstract socket must be
+ * used in order to have some locking mechanism, this name has to
+ * begin with '\0'.
  *
  * @return No return value.
  *
  * @see PSID_enableMasterSock(), PSID_disableMasterSock(),
  * PSID_shutdownMasterSock()
  */
-void PSID_createMasterSock(void);
+void PSID_createMasterSock(char *sockname);
 
 /**
  * @brief Enable master socket.

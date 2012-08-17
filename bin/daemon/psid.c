@@ -600,7 +600,7 @@ int main(int argc, const char *argv[])
      * handling is enabled later. This gives psiadmin the chance to
      * connect. Additionally, this will guarantee exclusiveness
      */
-    PSID_createMasterSock();
+    PSID_createMasterSock(PSmasterSocketName);
 
     /* read the config file */
     PSID_readConfigFile(logfile, configfile);
