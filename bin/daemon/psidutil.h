@@ -336,6 +336,23 @@ void PSID_disableMasterSock(void);
 void PSID_shutdownMasterSock(void);
 
 /**
+ * @brief Check for the system's maximum PID
+ *
+ * Try to determine the system's maximum PID from
+ * /proc/sys/kernel/pid_max. If the maximum PID is too large
+ * (i.e. uses more than 16 bit) this function will give some warning and
+ * exit.
+ *
+ * Too large PIDs might create major problems for the ParaStation
+ * daemon. Due to the definition of the ParaStation protocol PIDs with
+ * more than 16 bits cannot be mapped to correct task IDs and therefor
+ * not handled by ParaStation's process management.
+ *
+ * @return No return value
+ */
+void PSID_checkMaxPID(void);
+
+/**
  * @brief Set daemon's start-time
  *
  * Upon first call to this function the current time will be fixed as

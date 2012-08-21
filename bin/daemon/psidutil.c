@@ -355,6 +355,34 @@ void PSID_shutdownMasterSock(void)
     masterSock = -1;
 }
 
+#define PID_FILE "/proc/sys/kernel/pid_max"
+
+void PSID_checkMaxPID(void)
+{
+    FILE *maxPIDFile = fopen(PID_FILE,"r");
+    unsigned int maxPID;
+    int ret;
+
+    if (!maxPIDFile) {
+	PSID_warn(-1, errno, "%s: cannot open file '%s'", __func__, PID_FILE);
+	return;
+    }
+
+    ret = fscanf(maxPIDFile, "%u", &maxPID);
+
+    if (ret == EOF || ret < 1) {
+	PSID_log(-1, "%s: unable to determine maximum PID\n", __func__);
+	return;
+    }
+
+    PSID_log(PSID_LOG_VERB, "%s: pid_max is %d\n", __func__, maxPID);
+
+    if (maxPID > 65536) {
+	PSID_exit(EINVAL, "%s: cannot handle PIDs larger than 16 bit."
+		  " Please fix setting in '%s'", __func__, PID_FILE);
+    }
+}
+
 static time_t startTime = -1;
 
 void PSID_initStarttime(void)

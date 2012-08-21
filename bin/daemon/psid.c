@@ -602,6 +602,8 @@ int main(int argc, const char *argv[])
      */
     PSID_createMasterSock(PSmasterSocketName);
 
+    PSID_checkMaxPID();
+
     /* read the config file */
     PSID_readConfigFile(logfile, configfile);
     /* Now we can rely on the config structure */
