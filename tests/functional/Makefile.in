@@ -1,0 +1,57 @@
+#                                                       -*- Makefile -*-
+# ParaStation
+#
+# Copyright (C) 2012 ParTec Cluster Competence Center GmbH, Munich
+#
+# This file may be distributed under the terms of the Q Public License
+# as defined in the file LICENSE.QPL included in the packaging of this
+# file.
+#
+# Authors:      Norbert Eicker <eicker@par-tec.com>
+#
+
+LDFLAGS += $(CFLAGS)
+CFLAGS += @CFLAG_WALL@ @CFLAG_G@ @CFLAG_COMPAT@ @CFLAG_SSP@
+CPPFLAGS += -I@top_srcdir@/include -I. @CPPFLAG_MMD@
+LIB_DIRNAME:=@LIB_DIRNAME@
+SRCDIR = @srcdir@
+
+VPATH += $(SRCDIR)
+
+######################################################
+
+TESTS:= test_logging test_paramspace
+
+TARGETS = $(TESTS)
+
+LDFLAGS+=-L../../lib -Wl,-rpath,/opt/parastation/$(LIB_DIRNAME)
+
+CFLAGS += -fno-strict-aliasing
+
+.PHONY: all install test
+all:
+
+install:
+
+test: $(TESTS)
+
+$(TESTS): %: %.o
+
+test_logging test_paramspace: LOADLIBES:=$(LOADLIBES) -lpscommon
+
+
+.PHONY: install
+install:
+
+# WARNING!!! if DEPEXTENSION from configure is empty, make clean remove all files!!
+DEPFILES := $(wildcard *@DEPEXTENSION@) dummy.d
+
+.PHONY: clean distclean
+
+clean:
+	$(RM) $(DEPFILES) $(EXTRACLEAN) *.o
+
+distclean: clean
+	$(RM) $(TARGETS)
+
+-include $(DEPFILES)

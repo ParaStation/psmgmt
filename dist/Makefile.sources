@@ -103,7 +103,6 @@ bin/psispawn.c \
 bin/psmstart.c \
 bin/pssh.c \
 bin/test_config.c \
-bin/test_logging.c \
 bin/test_pse.c \
 configure.ac \
 dist/ChangeLog \
@@ -138,6 +137,7 @@ include/psipartition.h \
 include/psispawn.h \
 include/pslog.h \
 include/psnodes.h \
+include/psparamspace.h \
 include/pspartition.h \
 include/psprotocol.h \
 include/psstrings.h \
@@ -154,6 +154,7 @@ lib/pscommon/Makefile.in \
 lib/pscommon/logging.c \
 lib/pscommon/pscommon.c \
 lib/pscommon/pscpu.c \
+lib/pscommon/psparamspace.c \
 lib/pscommon/pspartition.c \
 lib/pscommon/psprotocol.c \
 lib/pscommon/pstask.c \
@@ -220,4 +221,7 @@ scripts/Makefile.in \
 scripts/lsf/README \
 scripts/parastation.xinetd \
 scripts/mpiexec.gdb \
+tests/functional/Makefile.in \
+tests/functional/test_logging.c \
+tests/functional/test_paramspace.c \
 tests/plugins/Makefile.in

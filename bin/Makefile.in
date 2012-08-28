@@ -42,7 +42,7 @@ TOOLS += psmstart mpirun_chp4 psispawn mpirun_chgm gmspawner
 TOOLS += mpirun_openib test_pse test_config pssh
 TOOLS += psaccounter mpiexec
 
-TARGETS = $(TOOLS) test_logging testacct
+TARGETS = $(TOOLS) testacct
 
 LDFLAGS+=-L../lib -Wl,-rpath,/opt/parastation/$(LIB_DIRNAME)
 
