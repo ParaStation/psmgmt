@@ -636,31 +636,6 @@ void PSIADM_PluginKey(char *nl, char *name, char *key, char *value,
  */
 void PSIADM_Environment(char *nl, char *key, char *value, PSP_Env_t action);
 
-/**
- * @brief Get screen width.
- *
- * Get the screen width of the terminal stdout is connected to.
- *
- * If the TIOCGWINSZ @ref ioctl() is available, it is used to
- * determine the width. Otherwise the COLUMNS environment variable is
- * used to identify the size.
- *
- * If the determined width is smaller than 60, it is set to this
- * minimum value.
- *
- * If both methods cited above failed, the width is set to the default
- * size of 80.
- *
- *
- * @return On success, the actual screen size is returned. If the
- * determination of the current screen size failed, the default width
- * 80 is passed to the calling function. If the determined width is
- * too small, the minimal width 60 is returned.
- *
- * @see ioctl()
- */
-int getWidth(void);
-
 #ifdef __cplusplus
 }/* extern "C" */
 #endif

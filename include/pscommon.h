@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2011 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2012 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -433,6 +433,31 @@ char * PSC_concat(const char *str, ...);
  * @return Upon success 1 is returned. Or 0, if an error occurred.
  */
 int PSC_setProcTitle(char **argv, int argc, char *title, int saveEnv);
+
+/**
+ * @brief Get screen width.
+ *
+ * Get the screen width of the terminal stdout is connected to.
+ *
+ * If the TIOCGWINSZ @ref ioctl() is available, it is used to
+ * determine the width. Otherwise the COLUMNS environment variable is
+ * used to identify the size.
+ *
+ * If the determined width is smaller than 60, it is set to this
+ * minimum value.
+ *
+ * If both methods cited above failed, the width is set to the default
+ * size of 80.
+ *
+ *
+ * @return On success, the actual screen size is returned. If the
+ * determination of the current screen size failed, the default width
+ * 80 is passed to the calling function. If the determined width is
+ * too small, the minimal width 60 is returned.
+ *
+ * @see ioctl()
+ */
+int PSC_getWidth(void);
 
 #ifdef __cplusplus
 }/* extern "C" */

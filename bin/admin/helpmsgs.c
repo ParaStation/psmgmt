@@ -27,6 +27,8 @@ static char hlpid[] __attribute__((used)) =
 #include <stdlib.h>
 #include <unistd.h>
 
+#include "pscommon.h"
+
 /**
  * Structure holding a syntax information. The content is intended to
  * be put out via @ref printSyntax(). Refer to @ref printSyntax() for
@@ -853,10 +855,6 @@ static info_t testInfo = {
 static const char sep[] =   "================================================"
 "============================================================================";
 
-/** A long string of whitespace characters */
-static const char space[] = "                                                "
-"                                                                            ";
-
 /**
  * @brief Print syntax information.
  *
@@ -887,7 +885,7 @@ static const char space[] = "                                                "
  */
 static void printSyntax(const char *tag, syntax_t *syntax)
 {
-    int lwidth = getWidth() - strlen(tag);
+    int lwidth = PSC_getWidth() - strlen(tag);
 
     if (syntax->cmd) {
 	lwidth -= strlen(syntax->cmd) + 1;
@@ -902,7 +900,7 @@ static void printSyntax(const char *tag, syntax_t *syntax)
 	    while (*end != ' ') end--;
 	    if (*(end-1) == '|') end --; /* Don't end with '|' */
 	    printf("%.*s\n", (int)(end-pos), pos);
-	    printf("%.*s", getWidth()-lwidth, space);
+	    printf("%*s", PSC_getWidth()-lwidth, "");
 	    pos = end;
 	    while (*pos == ' ') pos++; /* skip leading whitespace */
 	    len = strlen(pos);
@@ -938,7 +936,7 @@ static void printSyntax(const char *tag, syntax_t *syntax)
  */
 static void printDescr(const char *tag, char *descr)
 {
-    int lwidth = getWidth() - strlen(tag);
+    int lwidth = PSC_getWidth() - strlen(tag);
 
     if (descr) {
 	char *pos = descr;
@@ -949,7 +947,7 @@ static void printDescr(const char *tag, char *descr)
 	    char *end = pos + lwidth - 1;
 	    while (*end != ' ') end--;
 	    printf("%.*s\n", (int)(end-pos), pos);
-	    printf("%.*s", getWidth()-lwidth, space);
+	    printf("%*s", PSC_getWidth()-lwidth, "");
 	    pos = end+1;             /* Ignore the separating space */
 	    len = strlen(pos);
 	}
@@ -1054,7 +1052,7 @@ static void printInfo(info_t *info)
 
 	if (len) {
 	    printf("\n%s\n", info->head);
-	    if (len < getWidth()) printf("%.*s\n", len, sep);
+	    if (len < PSC_getWidth()) printf("%.*s\n", len, sep);
 	    printf("\n");
 	}
     }

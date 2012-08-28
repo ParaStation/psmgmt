@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2011 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2012 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -475,4 +475,28 @@ int PSC_setProcTitle(char **argv, int argc, char *title, int saveEnv)
     snprintf(argvP, size - 1, "%s", title);
 
     return 1;
+}
+
+int PSC_getWidth(void)
+{
+    int width = 0;
+#if defined (TIOCGWINSZ)
+    struct winsize window_size;
+
+    if (ioctl (STDOUT_FILENO, TIOCGWINSZ, &window_size) == 0) {
+	width = (int) window_size.ws_col;
+    }
+#endif /* TIOCGWINSZ */
+
+    if (width <= 0) {
+	char *colstr = getenv("COLUMNS");
+	if (colstr) width = atoi(colstr);
+    }
+
+    /* Everything failed. Use standard width */
+    if (width < 1) width = 80;
+    /* Extend to minimum width */
+    if (width < 60) width = 60;
+
+    return width;
 }
