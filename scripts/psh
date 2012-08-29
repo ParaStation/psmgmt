@@ -422,8 +422,9 @@ if [ "${SYNC}" = 1 ]; then
     TMPFILES="$TMPFILES $TARFILE"
     echo "Prepare files for distribution:"
     tar cvPf "${TARFILE}" ${FILELIST}
-    echo "Continue(y/n)?[n]"
-    read c
+
+    read -n 1 -p "Continue(y/n)?[n]" c
+    echo
     case "$c" in
 	y|Y)
 	;;
