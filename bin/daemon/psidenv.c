@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2011 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2011-2012 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -110,7 +110,7 @@ void PSID_sendEnvList(PStask_ID_t dest, char *key)
  *
  * Handle the message @a inmsg of type PSP_CD_ENV.
  *
- * @todo With this kind of message a administrator will request to
+ * With this kind of message a administrator will request to
  * modify or unset an environment variable. The action is encrypted in
  * the type-part of @a inmsg. The buf-part will hold the name of the
  * variable (PSP_ENV_UNSET) or a string of the form name=value
