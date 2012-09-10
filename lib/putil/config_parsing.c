@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2011 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2012 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -2564,17 +2564,9 @@ static int getHandleOldBins(char *token)
     return 0;
 }
 
-/** @todo remove Or-functions. @see adminparser.c */
-static char* origToken;
-
-/** @todo remove Or-functions. @see adminparser.c */
-static int sortLoad1or15(char *token)
+static int sortLoad1(char *token)
 {
     config.nodesSort = PART_SORT_LOAD_1;
-    if ((strcasecmp(origToken, "load15")==0)
-	|| (strcasecmp(origToken, "load_15")==0)) {
-	config.nodesSort = PART_SORT_LOAD_15;
-    }
     return 0;
 }
 
@@ -2584,14 +2576,21 @@ static int sortLoad5(char *token)
     return 0;
 }
 
-/** @todo remove Or-functions. @see adminparser.c */
-static int sortProcOrProcLoad(char *token)
+static int sortLoad15(char *token)
 {
-    const char discr[]="proc+";
+    config.nodesSort = PART_SORT_LOAD_15;
+    return 0;
+}
+
+static int sortProc(char *token)
+{
     config.nodesSort = PART_SORT_PROC;
-    if (strncasecmp(origToken, discr, strlen(discr))==0) {
-	config.nodesSort = PART_SORT_PROCLOAD;
-    }
+    return 0;
+}
+
+static int sortProcLoad(char *token)
+{
+    config.nodesSort = PART_SORT_PROCLOAD;
     return 0;
 }
 
@@ -2602,11 +2601,14 @@ static int sortNone(char *token)
 }
 
 static keylist_t sort_list[] = {
-    {"load15", sortLoad1or15, NULL},
-    {"load_15", sortLoad1or15, NULL},
+    {"load1", sortLoad1, NULL},
+    {"load_1", sortLoad1, NULL},
     {"load5", sortLoad5, NULL},
     {"load_5", sortLoad5, NULL},
-    {"proc+load", sortProcOrProcLoad, NULL},
+    {"load15", sortLoad15, NULL},
+    {"load_15", sortLoad15, NULL},
+    {"proc", sortProc, NULL},
+    {"proc+load", sortProcLoad, NULL},
     {"none", sortNone, NULL},
     {NULL, parser_error, NULL}
 };
@@ -2617,15 +2619,14 @@ static int getPSINodesSort(char *token)
 {
     int ret;
 
-    origToken = parser_getString();
-    ret = parser_parseString(origToken, &sort_parser);
+    ret = parser_parseString(parser_getString(), &sort_parser);
     if (!ret) {
 	parser_comment(-1, "default sorting strategy for nodes is '%s'\n",
 		       (config.nodesSort == PART_SORT_PROC) ? "PROC" :
 		       (config.nodesSort == PART_SORT_LOAD_1) ? "LOAD_1" :
 		       (config.nodesSort == PART_SORT_LOAD_5) ? "LOAD_5" :
 		       (config.nodesSort == PART_SORT_LOAD_15) ? "LOAD_15" :
-		       (config.nodesSort == PART_SORT_PROCLOAD) ? "PROCLOAD" :
+		       (config.nodesSort == PART_SORT_PROCLOAD) ? "PROC+LOAD" :
 		       (config.nodesSort == PART_SORT_NONE) ? "NONE" :
 		       "UNKNOWN");
     }
