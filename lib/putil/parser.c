@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2002-2003 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2011 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2012 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -187,50 +187,73 @@ void parser_removeComment(char *line)
     }
 }
 
-int parser_parseToken(char *token, parser_t *parser)
+
+static keylist_t * matchToken(char *token, keylist_t *keylist)
 {
     unsigned int i;
     int mismatch = 0;
     keylist_t *candidate = NULL;
     size_t tokLen;
 
-    if (!token) return 0; /* end of string */
-    /* fprintf(stderr, "Token: %s\n", token); */
+    if (!token) return NULL; /* no token */
 
     tokLen = strlen(token);
-    if (!tokLen) return 0; /* empty token */
+    if (!tokLen) return NULL; /* empty token */
 
-    for (i=0; parser->keylist[i].key; i++) {
-	if (strncasecmp(token, parser->keylist[i].key, tokLen)==0) {
-	    if (strlen(parser->keylist[i].key) == tokLen) {
+    for (i=0; keylist[i].key; i++) {
+	if (strncasecmp(token, keylist[i].key, tokLen)==0) {
+	    if (strlen(keylist[i].key) == tokLen) {
 		/* exact match */
-		candidate = &parser->keylist[i];
+		candidate = &keylist[i];
 		mismatch = 0;
 		break;
 	    }
 	    if (!candidate) {
-		candidate = &parser->keylist[i];
-	    } else if (parser->keylist[i].action != candidate->action) {
+		candidate = &keylist[i];
+	    } else if (keylist[i].action != candidate->action) {
 		mismatch = 1; /* found more than 1 matching key */
 	    }
 	}
     }
 
-    if (candidate && !mismatch) {
-	if (candidate->action) {
-	    return candidate->action(candidate->key);
-	}
-	return 0;
-    }
+    if (candidate && !mismatch) return candidate;
 
     /* Default action */
-    if (!parser->keylist[i].key) {
-	if (parser->keylist[i].action) {
-	    return parser->keylist[i].action(token);
+    if (!keylist[i].key) return &keylist[i];
+
+    return NULL;
+}
+
+int parser_parseToken(char *token, parser_t *parser)
+{
+    keylist_t *matchedKey = matchToken(token, parser->keylist);
+
+    if (!matchedKey) return 0; /* something went horribly wrong */
+
+    if (matchedKey->key) {
+	/* not the default action */
+	if (matchedKey->action) return matchedKey->action(matchedKey->key);
+    } else {
+	if (matchedKey->action) {
+	    return matchedKey->action(token);
 	}
     }
 
     return 0;
+}
+
+keylist_t * parser_nextKeylist(char *token, keylist_t *keylist, char **matched)
+{
+    keylist_t *matchedKey = matchToken(token, keylist);
+
+    *matched = NULL;
+
+    if (matchedKey) {
+	*matched = matchedKey->key;
+	return matchedKey->next;
+    }
+
+    return NULL;
 }
 
 char *parser_registerString(char *string, parser_t *parser)

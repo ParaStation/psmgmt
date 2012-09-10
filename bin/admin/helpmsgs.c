@@ -65,8 +65,8 @@ static info_t helpInfo = {
     .syntax = (syntax_t[]) {{
 	.cmd = "help",
 	.arg = "{ add | echo | environment | help | hwstart | hwstop | kill"
-	" | list | plugin | range | reset | resolve | restart | set | show"
-	" | shutdown | sleep | test | version | quit }"
+	" | list | parameter | plugin | range | reset | resolve | restart"
+	" | set | show | shutdown | sleep | test | version | quit }"
     }},
     .nodes = 0,
     .descr = NULL,
@@ -80,12 +80,14 @@ static info_t helpInfo = {
 	},
 	{ .tag = "list",
 	  .descr = "List information." },
+	{ .tag = "parameter",
+	  .descr = "Hande psiadmin's control parameters." },
 	{ .tag = "range",
 	  .descr = "Set or show the default node-range." },
 	{ .tag = "resolve",
 	  .descr = "Resolve hostname to nodeID mapping." },
 	{ .tag = "show",
-	  .descr = "Show control parameters." },
+	  .descr = "Show the daemon's control parameters." },
 	{ .tag = "sleep",
 	  .descr = "Sleep for a given period." },
 	{ .tag = "version",
@@ -121,7 +123,7 @@ static info_t privilegedInfo = {
 	{ .tag = "restart",
 	  .descr = "Restart ParaStation nodes." },
 	{ .tag = "set",
-	  .descr = "Alter control parameters." },
+	  .descr = "Alter the daemon's control parameters." },
 	{ .tag = "shutdown",
 	  .descr = "Shutdown the ParaStation daemon process on some or all"
 	  " nodes." },
@@ -790,6 +792,29 @@ static info_t envInfo = {
 	{ .tag = "environment {delete|unset} <key>",
 	  .descr = "Unset the environment variable <key> on the selected"
 	  " nodes." },
+	{ NULL, NULL}
+    },
+    .comment = NULL
+};
+
+static info_t paramInfo = {
+    .head = "Parameter command:",
+    .syntax = (syntax_t[]) {{
+	.cmd = "parameter",
+	.arg = "{ show [<key>] | set <key> <value> | help [<key>] }"
+    }},
+    .nodes = 0,
+    .descr = "Handle parameters of the local psiadmin.",
+    .tags = (taggedInfo_t[]) {
+	{ .tag = "parameter show [<key>]",
+	  .descr = "Show the parameters of the local psiadmin. If 'key <key>'"
+	  " is given, only the parameter <key> and its value is displayed." },
+	{ .tag = "parameter set <key> <value>",
+	  .descr = "Set the local psiadmin's parameter <key> to the value"
+	  " <value>." },
+	{ .tag = "parameter help [<key>]",
+	  .descr = "Show some help concerning the parameter <key>. If <key> is"
+	  "not given, help on all keys defined is given." },
 	{ NULL, NULL}
     },
     .comment = NULL

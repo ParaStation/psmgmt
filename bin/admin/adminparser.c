@@ -27,7 +27,7 @@ static char vcid[] __attribute__((used)) =
 #include "psi.h"
 #include "psiinfo.h"
 #include "parser.h"
-
+#include "psparamspace.h"
 
 #include "commands.h"
 
@@ -91,6 +91,8 @@ error:
     printf("Illegal nodename '%s'\n", host);
     return NULL;
 }
+
+/*************************** simple commands ****************************/
 
 static int addCommand(char *token)
 {
@@ -223,6 +225,13 @@ static int restartCommand(char *token)
     return -1;
 }
 
+static char * printRange(void *data)
+{
+    PSC_printNodelist(defaultNL);
+
+    return strdup("");
+}
+
 static int rangeCommand(char *token)
 {
     char *nl_descr = parser_getString();
@@ -236,7 +245,7 @@ static int rangeCommand(char *token)
 	memcpy(defaultNL, nl, PSC_getNrOfNodes());
     } else {
 	printf(" ");
-	PSC_printNodelist(defaultNL);
+	printRange(NULL);
 	printf("\n");
     }
 
@@ -726,33 +735,33 @@ static int listSpecialCommand(char *token)
 }
 
 static keylist_t listList[] = {
-    {"aproc", listProcCommand},
-    {"allprocesses", listProcCommand},
-    {"count", listCountCommand},
-    {"down", listSomeCommand},
-    {"hardware", listHWCommand},
-    {"hw", listHWCommand},
-    {"jobs", listJobsCommand},
-    {"load", listLoadCommand},
-    {"mcast", listMCastCommand},
-    {"memory", listMemoryCommand},
-    {"node", listNodeCommand},
-    {"processes", listProcCommand},
-    {"p", listProcCommand},
-    {"plugins", listPluginCommand},
-    {"environment", listEnvCommand},
-    {"r", listRDPCommand},
-    {"rdp", listRDPCommand},
-    {"rdpconnection", listRDPConnCommand},
-    {"summary", listSummaryCommand},
-    {"s", listSummaryCommand},
-    {"starttime", listStarttimeCommand},
-    {"startupscript", listScriptCommand},
-    {"nodeupscript", listScriptCommand},
-    {"nodedownscript", listScriptCommand},
-    {"up", listSomeCommand},
-    {"versions", listVersionCommand},
-    {NULL, listSpecialCommand}
+    {"aproc", listProcCommand, NULL},
+    {"allprocesses", listProcCommand, NULL},
+    {"count", listCountCommand, NULL},
+    {"down", listSomeCommand, NULL},
+    {"hardware", listHWCommand, NULL},
+    {"hw", listHWCommand, NULL},
+    {"jobs", listJobsCommand, NULL},
+    {"load", listLoadCommand, NULL},
+    {"mcast", listMCastCommand, NULL},
+    {"memory", listMemoryCommand, NULL},
+    {"node", listNodeCommand, NULL},
+    {"processes", listProcCommand, NULL},
+    {"p", listProcCommand, NULL},
+    {"plugins", listPluginCommand, NULL},
+    {"environment", listEnvCommand, NULL},
+    {"r", listRDPCommand, NULL},
+    {"rdp", listRDPCommand, NULL},
+    {"rdpconnection", listRDPConnCommand, NULL},
+    {"summary", listSummaryCommand, NULL},
+    {"s", listSummaryCommand, NULL},
+    {"starttime", listStarttimeCommand, NULL},
+    {"startupscript", listScriptCommand, NULL},
+    {"nodeupscript", listScriptCommand, NULL},
+    {"nodedownscript", listScriptCommand, NULL},
+    {"up", listSomeCommand, NULL},
+    {"versions", listVersionCommand, NULL},
+    {NULL, listSpecialCommand, NULL}
 };
 static parser_t listParser = {" \t\n", listList};
 
@@ -805,6 +814,67 @@ static gid_t gidFromString(char *group)
     printf("Unknown group '%s'\n", group);
     return -2;
 }
+
+static long sortMode;
+
+static int sortLoad1(char *token)
+{
+    sortMode = PART_SORT_LOAD_1;
+    return 0;
+}
+
+static int sortLoad5(char *token)
+{
+    sortMode = PART_SORT_LOAD_5;
+    return 0;
+}
+
+static int sortLoad15(char *token)
+{
+    sortMode = PART_SORT_LOAD_15;
+    return 0;
+}
+
+static int sortProc(char *token)
+{
+    sortMode = PART_SORT_PROC;
+    return 0;
+}
+
+static int sortProcLoad(char *token)
+{
+    sortMode = PART_SORT_PROCLOAD;
+    return 0;
+}
+
+static int sortNone(char *token)
+{
+    sortMode = PART_SORT_NONE;
+    return 0;
+}
+
+static keylist_t boolList[] = {
+    {"yes", NULL, NULL},
+    {"no", NULL, NULL},
+    {"true", NULL, NULL},
+    {"false", NULL, NULL},
+    {NULL, NULL, NULL}
+};
+
+static keylist_t sortList[] = {
+    {"load1", sortLoad1, NULL},
+    {"load_1", sortLoad1, NULL},
+    {"load5", sortLoad5, NULL},
+    {"load_5", sortLoad5, NULL},
+    {"load15", sortLoad15, NULL},
+    {"load_15", sortLoad15, NULL},
+    {"proc", sortProc, NULL},
+    {"proc+load", sortProcLoad, NULL},
+    {"none", sortNone, NULL},
+    {NULL, parser_error, NULL}
+};
+
+static parser_t sortParser = {" \t\n", sortList};
 
 static PSP_Option_t setShowOpt = PSP_OP_UNKNOWN;
 
@@ -1120,112 +1190,63 @@ static int setShowError(char *token)
 }
 
 static keylist_t setShowList[] = {
-    {"maxproc", setShowMaxProc},
-    {"user", setShowUser},
-    {"group", setShowGroup},
-    {"adminuser", setShowAdminUser},
-    {"admingroup", setShowAdminGroup},
-    {"psiddebug", setShowPSIDDebug},
-    {"selecttime", setShowSelectTime},
-    {"statustimeout", setShowStatusTimeout},
-    {"statusbroadcasts", setShowStatBCast},
-    {"deadlimit", setShowDeadLimit},
-    {"rdpdebug", setShowRDPDebug},
-    {"rdptimeout", setShowRDPTmOut},
-    {"rdppktloss", setShowRDPPktLoss},
-    {"rdpmaxretrans", setShowRDPMaxRetrans},
-    {"rdpmaxackpend", setShowRDPMaxACKPend},
-    {"rdpresendtimeout", setShowRDPRsndTmOut},
-    {"rdpclosedtimeout", setShowRDPClsdTmOut},
-    {"rdpretrans", setShowRDPRetrans},
-    {"rdpstatistics", setShowRDPStatistics},
-    {"master", setShowMaster},
-    {"mcastdebug", setShowMCastDebug},
-    {"freeonsuspend", setShowFOS},
-    {"fos", setShowFOS},
-    {"handleoldbins", setShowHOB},
-    {"hob", setShowHOB},
-    {"nodessort", setShowNodesSort},
-    {"overbook", setShowOverbook},
-    {"exclusive", setShowExclusive},
-    {"runjobs", setShowRunJobs},
-    {"starter", setShowStarter},
-    {"pinprocs", setShowPinProcs},
-    {"bindmem", setShowBindMem},
-    {"cpumap", setShowCPUMap},
-    {"allowusermap", setShowAllowUserMap},
-    {"accounters", setShowAccounter},
-    {"accountpoll", setShowAcctPoll},
-    {"supplementarygroups", setShowSupplGrps},
-    {"maxstattry", setShowMaxStatTry},
-    {"rl_as", setShowRL_AS},
-    {"rl_addressspace", setShowRL_AS},
-    {"rl_core", setShowRL_Core},
-    {"rl_cpu", setShowRL_CPU},
-    {"rl_data", setShowRL_Data},
-    {"rl_fsize", setShowRL_FSize},
-    {"rl_locks", setShowRL_Locks},
-    {"rl_memlock", setShowRL_MemLock},
-    {"rl_msgqueue", setShowRL_MsgQueue},
-    {"rl_nofile", setShowRL_NoFile},
-    {"rl_nproc", setShowRL_NProc},
-    {"rl_rss", setShowRL_RSS},
-    {"rl_sigpending", setShowRL_SigPending},
-    {"rl_stack", setShowRL_Stack},
-    {"pluginapiversion", setShowPluginAPIver},
-    {"pluginunloadtmout", setShowPluginUnloadTmout},
-    {NULL, setShowError}
+    {"maxproc", setShowMaxProc, NULL},
+    {"user", setShowUser, NULL},
+    {"group", setShowGroup, NULL},
+    {"adminuser", setShowAdminUser, NULL},
+    {"admingroup", setShowAdminGroup, NULL},
+    {"psiddebug", setShowPSIDDebug, NULL},
+    {"selecttime", setShowSelectTime, NULL},
+    {"statustimeout", setShowStatusTimeout, NULL},
+    {"statusbroadcasts", setShowStatBCast, NULL},
+    {"deadlimit", setShowDeadLimit, NULL},
+    {"rdpdebug", setShowRDPDebug, NULL},
+    {"rdptimeout", setShowRDPTmOut, NULL},
+    {"rdppktloss", setShowRDPPktLoss, NULL},
+    {"rdpmaxretrans", setShowRDPMaxRetrans, NULL},
+    {"rdpmaxackpend", setShowRDPMaxACKPend, NULL},
+    {"rdpresendtimeout", setShowRDPRsndTmOut, NULL},
+    {"rdpclosedtimeout", setShowRDPClsdTmOut, NULL},
+    {"rdpretrans", setShowRDPRetrans, NULL},
+    {"rdpstatistics", setShowRDPStatistics, boolList},
+    {"master", setShowMaster, NULL},
+    {"mcastdebug", setShowMCastDebug, NULL},
+    {"freeonsuspend", setShowFOS, boolList},
+    {"fos", setShowFOS, boolList},
+    {"handleoldbins", setShowHOB, boolList},
+    {"hob", setShowHOB, boolList},
+    {"nodessort", setShowNodesSort, sortList},
+    {"overbook", setShowOverbook, NULL},
+    {"exclusive", setShowExclusive, boolList},
+    {"runjobs", setShowRunJobs, boolList},
+    {"starter", setShowStarter, boolList},
+    {"pinprocs", setShowPinProcs, boolList},
+    {"bindmem", setShowBindMem, boolList},
+    {"cpumap", setShowCPUMap, NULL},
+    {"allowusermap", setShowAllowUserMap, boolList},
+    {"accounters", setShowAccounter, NULL},
+    {"accountpoll", setShowAcctPoll, NULL},
+    {"supplementarygroups", setShowSupplGrps, boolList},
+    {"maxstattry", setShowMaxStatTry, NULL},
+    {"rl_as", setShowRL_AS, NULL},
+    {"rl_addressspace", setShowRL_AS, NULL},
+    {"rl_core", setShowRL_Core, NULL},
+    {"rl_cpu", setShowRL_CPU, NULL},
+    {"rl_data", setShowRL_Data, NULL},
+    {"rl_fsize", setShowRL_FSize, NULL},
+    {"rl_locks", setShowRL_Locks, NULL},
+    {"rl_memlock", setShowRL_MemLock, NULL},
+    {"rl_msgqueue", setShowRL_MsgQueue, NULL},
+    {"rl_nofile", setShowRL_NoFile, NULL},
+    {"rl_nproc", setShowRL_NProc, NULL},
+    {"rl_rss", setShowRL_RSS, NULL},
+    {"rl_sigpending", setShowRL_SigPending, NULL},
+    {"rl_stack", setShowRL_Stack, NULL},
+    {"pluginapiversion", setShowPluginAPIver, NULL},
+    {"pluginunloadtmout", setShowPluginUnloadTmout, NULL},
+    {NULL, setShowError, NULL}
 };
 static parser_t setShowParser = {" \t\n", setShowList};
-
-
-
-static char* origToken;
-static long sortMode;
-
-static int sortLoad1or15(char *token)
-{
-    sortMode = PART_SORT_LOAD_1;
-    if ((strcasecmp(origToken, "load15")==0)
-	|| (strcasecmp(origToken, "load_15")==0)) {
-	sortMode = PART_SORT_LOAD_15;
-    }
-    return 0;
-}
-
-static int sortLoad5(char *token)
-{
-    sortMode = PART_SORT_LOAD_5;
-    return 0;
-}
-
-static int sortProcOrProcLoad(char *token)
-{
-    const char discr[]="proc+";
-    sortMode = PART_SORT_PROC;
-    if (strncasecmp(origToken, discr, strlen(discr))==0) {
-	sortMode = PART_SORT_PROCLOAD;
-    }
-    return 0;
-}
-
-static int sortNone(char *token)
-{
-    sortMode = PART_SORT_NONE;
-    return 0;
-}
-
-static keylist_t sort_list[] = {
-    {"load15", sortLoad1or15},
-    {"load_15", sortLoad1or15},
-    {"load5", sortLoad5},
-    {"load_5", sortLoad5},
-    {"proc+load", sortProcOrProcLoad},
-    {"none", sortNone},
-    {NULL, parser_error}
-};
-
-static parser_t sort_parser = {" \t\n", sort_list};
 
 
 static PSIADM_valList_t *cpusFromString(char *valStr)
@@ -1384,8 +1405,7 @@ static int setCommand(char *token)
 	break;
     }
     case PSP_OP_NODESSORT:
-	origToken = value;
-	if (parser_parseString(origToken, &sort_parser)) {
+	if (parser_parseString(value, &sortParser)) {
 	    printf("Illegal value '%s'\n", value);
 	    goto error;
 	}
@@ -1828,22 +1848,22 @@ int pluginError(char *token)
 }
 
 static keylist_t pluginList[] = {
-    {"list", listPluginCommand},
-    {"load", pluginLoadCmd},
-    {"add", pluginLoadCmd},
-    {"unload", pluginRmCmd},
-    {"delete", pluginRmCmd},
-    {"remove", pluginRmCmd},
-    {"rm", pluginRmCmd},
-    {"forceremove", pluginFRmCmd},
-    {"forceunload", pluginFRmCmd},
-    {"avail", pluginAvailCmd},
-    {"help", pluginHelpCmd},
-    {"show", pluginShowCmd},
-    {"set", pluginSetCmd},
-    {"unset", pluginUnsetCmd},
-    {"loadtime", pluginLoadTmCmd},
-    {NULL, pluginError}
+    {"list", listPluginCommand, NULL},
+    {"load", pluginLoadCmd, NULL},
+    {"add", pluginLoadCmd, NULL},
+    {"unload", pluginRmCmd, NULL},
+    {"delete", pluginRmCmd, NULL},
+    {"remove", pluginRmCmd, NULL},
+    {"rm", pluginRmCmd, NULL},
+    {"forceremove", pluginFRmCmd, NULL},
+    {"forceunload", pluginFRmCmd, NULL},
+    {"avail", pluginAvailCmd, NULL},
+    {"help", pluginHelpCmd, NULL},
+    {"show", pluginShowCmd, NULL},
+    {"set", pluginSetCmd, NULL},
+    {"unset", pluginUnsetCmd, NULL},
+    {"loadtime", pluginLoadTmCmd, NULL},
+    {NULL, pluginError, NULL}
 };
 static parser_t pluginParser = {" \t\n", pluginList};
 
@@ -1913,11 +1933,11 @@ int envError(char *token)
 }
 
 static keylist_t envList[] = {
-    {"list", listEnvCommand},
-    {"set", envSetCommand},
-    {"unset", envUnsetCommand},
-    {"delete", envUnsetCommand},
-    {NULL, envError}
+    {"list", listEnvCommand, NULL},
+    {"set", envSetCommand, NULL},
+    {"unset", envUnsetCommand, NULL},
+    {"delete", envUnsetCommand, NULL},
+    {NULL, envError, NULL}
 };
 static parser_t envParser = {" \t\n", envList};
 
@@ -1959,6 +1979,12 @@ static int helpHWStop(char *token)
 static int helpListCmd(char *token)
 {
     printInfo(&listInfo);
+    return 0;
+}
+
+static int helpParam(char *token)
+{
+    printInfo(&paramInfo);
     return 0;
 }
 
@@ -2065,30 +2091,31 @@ static int helpNotFound(char *token)
 }
 
 static keylist_t helpList[] = {
-    {"add", helpAdd},
-    {"shutdown", helpShutdown},
-    {"hwstart", helpHWStart},
-    {"hwstop", helpHWStop},
-    {"list", helpListCmd},
-    {"status", helpListCmd},
-    {"range", helpRange},
-    {"reset", helpReset},
-    {"restart", helpRestart},
-    {"version", helpVersion},
-    {"exit", helpExit},
-    {"quit", helpExit},
-    {"set", helpSet},
-    {"show", helpShow},
-    {"kill", helpKill},
-    {"test", helpTest},
-    {"resolve", helpResolve},
-    {"plugin", helpPlugin},
-    {"environment", helpEnv},
-    {"echo", helpEcho},
-    {"sleep", helpSleep},
-    {"nodes", helpNodes},
-    {"help", helpHelp},
-    {NULL, helpNotFound}
+    {"add", helpAdd, NULL},
+    {"shutdown", helpShutdown, NULL},
+    {"hwstart", helpHWStart, NULL},
+    {"hwstop", helpHWStop, NULL},
+    {"list", helpListCmd, NULL},
+    {"status", helpListCmd, NULL},
+    {"parameter", helpParam, NULL},
+    {"range", helpRange, NULL},
+    {"reset", helpReset, NULL},
+    {"restart", helpRestart, NULL},
+    {"version", helpVersion, NULL},
+    {"exit", helpExit, NULL},
+    {"quit", helpExit, NULL},
+    {"set", helpSet, NULL},
+    {"show", helpShow, NULL},
+    {"kill", helpKill, NULL},
+    {"test", helpTest, NULL},
+    {"resolve", helpResolve, NULL},
+    {"plugin", helpPlugin, NULL},
+    {"environment", helpEnv, NULL},
+    {"echo", helpEcho, NULL},
+    {"sleep", helpSleep, NULL},
+    {"nodes", helpNodes, NULL},
+    {"help", helpHelp, NULL},
+    {NULL, helpNotFound, NULL}
 };
 static parser_t helpParser = {" \t\n", helpList};
 
@@ -2111,6 +2138,147 @@ static int helpCommand(char *token)
 
     return 0;
 }
+
+/************************** param commands ******************************/
+
+static int paramSetCommand(char *token)
+{
+    char *key = parser_getString();
+    char *value = parser_getQuotedString();
+
+    if (parser_getString() || !key || !value) goto error;
+
+    PSPARM_set(key, value);
+
+    return 0;
+
+ error:
+    printError(&paramInfo);
+    return -1;
+}
+
+static int paramShowCommand(char *token)
+{
+    char *key = parser_getString();
+
+    if (parser_getString()) goto error;
+
+    PSPARM_print(NULL, key);
+
+    return 0;
+
+ error:
+    printError(&paramInfo);
+    return -1;
+}
+
+static int paramHelpCommand(char *token)
+{
+    char *key = parser_getString();
+
+    if (parser_getString()) goto error;
+
+    PSPARM_printHelp(key);
+
+    return 0;
+
+ error:
+    printError(&paramInfo);
+    return -1;
+}
+
+
+int paramError(char *token)
+{
+    printError(&paramInfo);
+    return -1;
+}
+
+static keylist_t paramList[] = {
+    {"set", paramSetCommand, NULL},
+    {"show", paramShowCommand, NULL},
+    {"help", paramHelpCommand, NULL},
+    {NULL, paramError, NULL}
+};
+static parser_t paramParser = {" \t\n", paramList};
+
+static int paramCommand(char *token)
+{
+    char *what = parser_getString();
+
+    return parser_parseString(what, &paramParser);
+}
+
+/** Flag to print hostnames instead of PS IDs */
+int paramHostname = 0;
+
+static char * paramHostnamesHelp(void *data)
+{
+    return strdup("Flag to print hostnames instead of ParaStation IDs");
+}
+
+
+/** Flag to print hexadecimal values on some resource limits */
+int paramHexFormat = 1;
+
+static char * paramHexFormatHelp(void *data)
+{
+    return strdup("Flag to print hexadecimal values on some resource limits");
+}
+
+static char * setRange(void *data, char *nl_descr)
+{
+    char *nl;
+
+    if (!nl_descr) return strdup("value missing");
+
+    nl = getNodeList(nl_descr);
+
+    if (nl) memcpy(defaultNL, nl, PSC_getNrOfNodes());
+
+    return NULL;
+}
+
+static char * paramRangeHelp(void *data)
+{
+    return strdup("The default range of nodes to act on");
+}
+
+static keylist_t *parametersList = NULL;
+
+static void setupParameters(void)
+{
+    int i;
+
+    PSPARM_init();
+
+    PSPARM_register("range", NULL,
+		    &setRange, &printRange, paramRangeHelp, NULL);
+    PSPARM_register("hostnames", &paramHostname,
+		    PSPARM_boolSet, PSPARM_boolPrint, paramHostnamesHelp,
+		    PSPARM_boolKeys);
+    PSPARM_register("hexformat", &paramHexFormat,
+		    PSPARM_boolSet, PSPARM_boolPrint, paramHexFormatHelp,
+		    PSPARM_boolKeys);
+
+    parametersList = PSPARM_getKeylist();
+    for (i=0; paramList[i].key; i++) paramList[i].next = parametersList;
+}
+
+static void cleanupParameters(void)
+{
+    int i;
+
+    if (parametersList) PSPARM_freeKeylist(parametersList);
+    parametersList = NULL;
+
+    for (i=0; paramList[i].key; i++) paramList[i].next = NULL;
+
+    PSPARM_finalize();
+}
+
+
+/************************************************************************/
 
 static int versionCommand(char *token)
 {
@@ -2211,30 +2379,31 @@ static int error(char *token)
 }
 
 static keylist_t commandList[] = {
-    {"add", addCommand},
-    {"shutdown", shutdownCommand},
-    {"hwstart", hwstartCommand},
-    {"hwstop", hwstopCommand},
-    {"range", rangeCommand},
-    {"restart", restartCommand},
-    {"reset", resetCommand},
-    {"list", listCommand},
-    {"status", listCommand},
-    {"show", showCommand},
-    {"set", setCommand},
-    {"kill", killCommand},
-    {"test", testCommand},
-    {"?", helpCommand},
-    {"help", helpCommand},
-    {"version", versionCommand},
-    {"sleep", sleepCommand},
-    {"echo", echoCommand},
-    {"resolve", resolveCommand},
-    {"plugin", pluginCommand},
-    {"environment", envCommand},
-    {"exit", quitCommand},
-    {"quit", quitCommand},
-    {NULL, error}
+    {"add", addCommand, NULL},
+    {"shutdown", shutdownCommand, NULL},
+    {"hwstart", hwstartCommand, NULL},
+    {"hwstop", hwstopCommand, NULL},
+    {"range", rangeCommand, NULL},
+    {"restart", restartCommand, NULL},
+    {"reset", resetCommand, NULL},
+    {"list", listCommand, listList},
+    {"status", listCommand, listList},
+    {"show", showCommand, setShowList},
+    {"set", setCommand, setShowList},
+    {"kill", killCommand, NULL},
+    {"test", testCommand, NULL},
+    {"?", helpCommand, NULL},
+    {"help", helpCommand, helpList},
+    {"version", versionCommand, NULL},
+    {"sleep", sleepCommand, NULL},
+    {"echo", echoCommand, NULL},
+    {"resolve", resolveCommand, NULL},
+    {"plugin", pluginCommand, pluginList},
+    {"environment", envCommand, envList},
+    {"parameter", paramCommand, paramList},
+    {"exit", quitCommand, NULL},
+    {"quit", quitCommand, NULL},
+    {NULL, error, NULL}
 };
 static parser_t commandParser = {" \t\n", commandList};
 
@@ -2255,7 +2424,7 @@ static int parseCommand(char *command)
 }
 
 static keylist_t lineList[] = {
-    {NULL, parseCommand}
+    {NULL, parseCommand, NULL}
 };
 static parser_t lineParser = {";\n", lineList};
 
@@ -2275,10 +2444,12 @@ void parserPrepare(void)
     parser_init(0, NULL);
     parser_setDebugMask(0);
     setupDefaultNL();
+    setupParameters();
 }
 
 void parserRelease(void)
 {
+    cleanupParameters();
     releaseDefaultNL();
     parser_finalize();
 }
@@ -2315,7 +2486,7 @@ static char *generator(const char *text, int state)
 
 char **completeLine(const char *text, int start, int end)
 {
-    int tokStart = 0, tokEnd = start-1;
+    int tokStart = 0, tokEnd;
     char **matches = NULL;
 
     genList = NULL;
@@ -2327,26 +2498,33 @@ char **completeLine(const char *text, int start, int end)
     if (tokStart == start) {
 	genList = commandList;
     } else {
-	char *token = &rl_line_buffer[tokStart];
+	int paramOpts = 1;
+	genList = commandList;
+	while (tokStart != start) {
+	    char *token, *matchedToken;
 
-	while (isspace(rl_line_buffer[tokEnd])) tokEnd--;
+	    tokEnd = tokStart;
+	    while (!isspace(rl_line_buffer[tokEnd])) tokEnd++;
 
-	if (!strncmp(token, "help", tokEnd-tokStart+1)
-	    || !strncmp(token, "?", tokEnd-tokStart+1)) {
-	    genList = helpList;
-	} else if (!strncmp(token, "set", tokEnd-tokStart+1)) {
-	    genList = setShowList;
-	} else if (!strncmp(token, "show", tokEnd-tokStart+1)) {
-	    genList = setShowList;
-	} else if (!strncmp(token, "status", tokEnd-tokStart+1)) {
-	    genList = listList;
-	} else if (!strncmp(token, "list", tokEnd-tokStart+1)) {
-	    genList = listList;
-	} else if (!strncmp(token, "plugin", tokEnd-tokStart+1)) {
-	    genList = pluginList;
-	} else if (!strncmp(token, "environment", tokEnd-tokStart+1)) {
-	    genList = envList;
+	    token = strndup(&rl_line_buffer[tokStart], tokEnd-tokStart);
+
+	    genList = parser_nextKeylist(token, genList, &matchedToken);
+	    if (genList == setShowList && !strcmp(matchedToken, "show"))
+		paramOpts = 0;
+	    if (genList == parametersList) {
+		paramOpts = 0;
+		if (!strcmp(matchedToken, "set")) paramOpts = 1;
+	    }
+
+	    tokStart = tokEnd+1;
+	    while (isspace(rl_line_buffer[tokStart])) tokStart++;
 	}
+	if (!paramOpts &&
+	    (genList == PSPARM_boolKeys || genList == boolList
+	     || genList == sortList )) {
+	    genList = NULL;
+	}
+
     }
     matches = rl_completion_matches(text, generator);
 

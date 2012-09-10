@@ -154,7 +154,6 @@ lib/pscommon/Makefile.in \
 lib/pscommon/logging.c \
 lib/pscommon/pscommon.c \
 lib/pscommon/pscpu.c \
-lib/pscommon/psparamspace.c \
 lib/pscommon/pspartition.c \
 lib/pscommon/psprotocol.c \
 lib/pscommon/pstask.c \
@@ -178,6 +177,7 @@ lib/putil/hardware.c \
 lib/putil/mcast.c \
 lib/putil/parser.c \
 lib/putil/psdaemonprotocol.c \
+lib/putil/psparamspace.c \
 lib/putil/psstrings.c \
 lib/putil/rdp.c \
 lib/putil/selector.c \

@@ -516,17 +516,17 @@ static int endList(char *token)
 }
 
 static keylist_t dest_list[] = {
-    {"daemon", destDaemon},
-    {"kernel", destKern},
-    {"local0", destLocal0},
-    {"local1", destLocal1},
-    {"local2", destLocal2},
-    {"local3", destLocal3},
-    {"local4", destLocal4},
-    {"local5", destLocal5},
-    {"local6", destLocal6},
-    {"local7", destLocal7},
-    {NULL, endList}
+    {"daemon", destDaemon, NULL},
+    {"kernel", destKern, NULL},
+    {"local0", destLocal0, NULL},
+    {"local1", destLocal1, NULL},
+    {"local2", destLocal2, NULL},
+    {"local3", destLocal3, NULL},
+    {"local4", destLocal4, NULL},
+    {"local5", destLocal5, NULL},
+    {"local6", destLocal6, NULL},
+    {"local7", destLocal7, NULL},
+    {NULL, endList, NULL}
 };
 
 static parser_t dest_parser = {" \t\n", dest_list};
@@ -704,15 +704,15 @@ static int endRLimitEnv(char *token)
 }
 
 static keylist_t rlimitenv_list[] = {
-    {"cputime", getRLimitCPU},
-    {"datasize", getRLimitData},
-    {"stacksize", getRLimitStack},
-    {"rssize", getRLimitRSS},
-    {"memlock", getRLimitMemLock},
-    {"core", getRLimitCore},
-    {"nofile", getRLimitNoFile},
-    {"}", endRLimitEnv},
-    {NULL, parser_error}
+    {"cputime", getRLimitCPU, NULL},
+    {"datasize", getRLimitData, NULL},
+    {"stacksize", getRLimitStack, NULL},
+    {"rssize", getRLimitRSS, NULL},
+    {"memlock", getRLimitMemLock, NULL},
+    {"core", getRLimitCore, NULL},
+    {"nofile", getRLimitNoFile, NULL},
+    {"}", endRLimitEnv, NULL},
+    {NULL, parser_error, NULL}
 };
 
 static parser_t rlimitenv_parser = {" \t\n", rlimitenv_list};
@@ -723,15 +723,15 @@ static int getRLimitEnv(char *token)
 }
 
 static keylist_t rlimit_list[] = {
-    {"{", getRLimitEnv},
-    {"cputime", getRLimitCPU},
-    {"datasize", getRLimitData},
-    {"stacksize", getRLimitStack},
-    {"rssize", getRLimitRSS},
-    {"memlock", getRLimitMemLock},
-    {"core", getRLimitCore},
-    {"nofile", getRLimitNoFile},
-    {NULL, parser_error}
+    {"{", getRLimitEnv, NULL},
+    {"cputime", getRLimitCPU, NULL},
+    {"datasize", getRLimitData, NULL},
+    {"stacksize", getRLimitStack, NULL},
+    {"rssize", getRLimitRSS, NULL},
+    {"memlock", getRLimitMemLock, NULL},
+    {"core", getRLimitCore, NULL},
+    {"nofile", getRLimitNoFile, NULL},
+    {NULL, parser_error, NULL}
 };
 
 static parser_t rlimit_parser = {" \t\n", rlimit_list};
@@ -836,9 +836,9 @@ static int endHWEnv(char *token)
 }
 
 static keylist_t hwenv_list[] = {
-    {"none", getHWnone},
-    {"}", endHWEnv},
-    {NULL, getHWent}
+    {"none", getHWnone, NULL},
+    {"}", endHWEnv, NULL},
+    {NULL, getHWent, NULL}
 };
 
 static parser_t hwenv_parser = {" \t\n", hwenv_list};
@@ -850,9 +850,9 @@ static int getHWEnv(char *token)
 }
 
 static keylist_t hw_list[] = {
-    {"{", getHWEnv},
-    {"none", getHWnone},
-    {NULL, getHWsingle}
+    {"{", getHWEnv, NULL},
+    {"none", getHWnone, NULL},
+    {NULL, getHWsingle, NULL}
 };
 
 static parser_t hw_parser = {" \t\n", hw_list};
@@ -1226,8 +1226,8 @@ static int endUserEnv(char *token)
 }
 
 static keylist_t userenv_list[] = {
-    {"}", endUserEnv},
-    {NULL, getSingleUser}
+    {"}", endUserEnv, NULL},
+    {NULL, getSingleUser, NULL}
 };
 
 static parser_t userenv_parser = {" \t\n", userenv_list};
@@ -1238,8 +1238,8 @@ static int getUserEnv(char *token)
 }
 
 static keylist_t user_list[] = {
-    {"{", getUserEnv},
-    {NULL, getSingleUser}
+    {"{", getUserEnv, NULL},
+    {NULL, getSingleUser, NULL}
 };
 
 static parser_t user_parser = {" \t\n", user_list};
@@ -1292,8 +1292,8 @@ static int endGroupEnv(char *token)
 }
 
 static keylist_t groupenv_list[] = {
-    {"}", endGroupEnv},
-    {NULL, getSingleGroup}
+    {"}", endGroupEnv, NULL},
+    {NULL, getSingleGroup, NULL}
 };
 
 static parser_t groupenv_parser = {" \t\n", groupenv_list};
@@ -1304,8 +1304,8 @@ static int getGroupEnv(char *token)
 }
 
 static keylist_t group_list[] = {
-    {"{", getGroupEnv},
-    {NULL, getSingleGroup}
+    {"{", getGroupEnv, NULL},
+    {NULL, getSingleGroup, NULL}
 };
 
 static parser_t group_parser = {" \t\n", group_list};
@@ -1358,8 +1358,8 @@ static int endAdminUserEnv(char *token)
 }
 
 static keylist_t admuserenv_list[] = {
-    {"}", endAdminUserEnv},
-    {NULL, getSingleAdminUser}
+    {"}", endAdminUserEnv, NULL},
+    {NULL, getSingleAdminUser, NULL}
 };
 
 static parser_t admuserenv_parser = {" \t\n", admuserenv_list};
@@ -1370,8 +1370,8 @@ static int getAdminUserEnv(char *token)
 }
 
 static keylist_t admuser_list[] = {
-    {"{", getAdminUserEnv},
-    {NULL, getSingleAdminUser}
+    {"{", getAdminUserEnv, NULL},
+    {NULL, getSingleAdminUser, NULL}
 };
 
 static parser_t admuser_parser = {" \t\n", admuser_list};
@@ -1424,8 +1424,8 @@ static int endAdminGroupEnv(char *token)
 }
 
 static keylist_t admgroupenv_list[] = {
-    {"}", endAdminGroupEnv},
-    {NULL, getSingleAdminGroup}
+    {"}", endAdminGroupEnv, NULL},
+    {NULL, getSingleAdminGroup, NULL}
 };
 
 static parser_t admgroupenv_parser = {" \t\n", admgroupenv_list};
@@ -1436,8 +1436,8 @@ static int getAdminGroupEnv(char *token)
 }
 
 static keylist_t admgroup_list[] = {
-    {"{", getAdminGroupEnv},
-    {NULL, getSingleAdminGroup}
+    {"{", getAdminGroupEnv, NULL},
+    {NULL, getSingleAdminGroup, NULL}
 };
 
 static parser_t admgroup_parser = {" \t\n", admgroup_list};
@@ -1698,8 +1698,8 @@ static int endCPUmapEnv(char *token)
 }
 
 static keylist_t cpumapenv_list[] = {
-    {"}", endCPUmapEnv},
-    {NULL, getCPUmapEnt}
+    {"}", endCPUmapEnv, NULL},
+    {NULL, getCPUmapEnt, NULL}
 };
 
 static parser_t cpumapenv_parser = {" \t\n", cpumapenv_list};
@@ -1710,8 +1710,8 @@ static int getCPUmapEnv(char *token)
 }
 
 static keylist_t cpumap_list[] = {
-    {"{", getCPUmapEnv},
-    {NULL, getCPUmapEnt}
+    {"{", getCPUmapEnv, NULL},
+    {NULL, getCPUmapEnt, NULL}
 };
 
 static parser_t cpumap_parser = {" \t\n", cpumap_list};
@@ -1798,8 +1798,8 @@ static int endEnvEnv(char *token)
 }
 
 static keylist_t envenv_list[] = {
-    {"}", endEnvEnv},
-    {NULL, getEnvLine}
+    {"}", endEnvEnv, NULL},
+    {NULL, getEnvLine, NULL}
 };
 
 static parser_t envenv_parser = {" \t\n", envenv_list};
@@ -1811,8 +1811,8 @@ static int getEnvEnv(char *token)
 }
 
 static keylist_t env_list[] = {
-    {"{", getEnvEnv},
-    {NULL, getEnvLine}
+    {"{", getEnvEnv, NULL},
+    {NULL, getEnvLine, NULL}
 };
 
 static parser_t env_parser = {" \t\n", env_list};
@@ -2104,24 +2104,24 @@ static int newHost(int id, in_addr_t addr)
 /* ---------------------------------------------------------------------- */
 
 static keylist_t nodeline_list[] = {
-    {"hwtype", getHW},
-    {"runjobs", getRJ},
-    {"starter", getCS},
-    {"user", getUser},
-    {"group", getGroup},
-    {"adminuser", getAdminUser},
-    {"admingroup", getAdminGroup},
-    {"processes", getProcs},
-    {"overbook", getOB},
-    {"exclusive", getExcl},
-    {"pinprocs", getPinProcs},
-    {"bindmem", getBindMem},
-    {"allowusermap", getAllowUserMap},
-    {"supplGrps", getSupplGrps},
-    {"maxStatTry", getMaxStatTry},
-    {"cpumap", getCPUmap},
-    {"environment", getEnv},
-    {NULL, parser_error}
+    {"hwtype", getHW, NULL},
+    {"runjobs", getRJ, NULL},
+    {"starter", getCS, NULL},
+    {"user", getUser, NULL},
+    {"group", getGroup, NULL},
+    {"adminuser", getAdminUser, NULL},
+    {"admingroup", getAdminGroup, NULL},
+    {"processes", getProcs, NULL},
+    {"overbook", getOB, NULL},
+    {"exclusive", getExcl, NULL},
+    {"pinprocs", getPinProcs, NULL},
+    {"bindmem", getBindMem, NULL},
+    {"allowusermap", getAllowUserMap, NULL},
+    {"supplGrps", getSupplGrps, NULL},
+    {"maxStatTry", getMaxStatTry, NULL},
+    {"cpumap", getCPUmap, NULL},
+    {"environment", getEnv, NULL},
+    {NULL, parser_error, NULL}
 };
 
 static parser_t nodeline_parser = {" \t\n", nodeline_list};
@@ -2394,9 +2394,9 @@ static int endNodeEnv(char *token)
 }
 
 static keylist_t nodeenv_list[] = {
-    {"$generate", getMultiNodes},
-    {"}", endNodeEnv},
-    {NULL, getNodeLine}
+    {"$generate", getMultiNodes, NULL},
+    {"}", endNodeEnv, NULL},
+    {NULL, getNodeLine, NULL}
 };
 
 static parser_t nodeenv_parser = {" \t\n", nodeenv_list};
@@ -2408,8 +2408,8 @@ static int getNodeEnv(char *token)
 
 
 static keylist_t node_list[] = {
-    {"{", getNodeEnv},
-    {NULL, getNodeLine}
+    {"{", getNodeEnv, NULL},
+    {NULL, getNodeLine, NULL}
 };
 
 static parser_t node_parser = {" \t\n", node_list};
@@ -2505,13 +2505,13 @@ static int endHardwareEnv(char *token)
 }
 
 static keylist_t hardwareenv_list[] = {
-    {"}", endHardwareEnv},
-    {"startscript", getHardwareScript},
-    {"stopscript", getHardwareScript},
-    {"setupscript", getHardwareScript},
-    {"headerscript", getHardwareScript},
-    {"statusscript", getHardwareScript},
-    {NULL, getHardwareEnvLine}
+    {"}", endHardwareEnv, NULL},
+    {"startscript", getHardwareScript, NULL},
+    {"stopscript", getHardwareScript, NULL},
+    {"setupscript", getHardwareScript, NULL},
+    {"headerscript", getHardwareScript, NULL},
+    {"statusscript", getHardwareScript, NULL},
+    {NULL, getHardwareEnvLine, NULL}
 };
 
 static parser_t hardwareenv_parser = {" \t\n", hardwareenv_list};
@@ -2564,8 +2564,10 @@ static int getHandleOldBins(char *token)
     return 0;
 }
 
+/** @todo remove Or-functions. @see adminparser.c */
 static char* origToken;
 
+/** @todo remove Or-functions. @see adminparser.c */
 static int sortLoad1or15(char *token)
 {
     config.nodesSort = PART_SORT_LOAD_1;
@@ -2582,6 +2584,7 @@ static int sortLoad5(char *token)
     return 0;
 }
 
+/** @todo remove Or-functions. @see adminparser.c */
 static int sortProcOrProcLoad(char *token)
 {
     const char discr[]="proc+";
@@ -2599,13 +2602,13 @@ static int sortNone(char *token)
 }
 
 static keylist_t sort_list[] = {
-    {"load15", sortLoad1or15},
-    {"load_15", sortLoad1or15},
-    {"load5", sortLoad5},
-    {"load_5", sortLoad5},
-    {"proc+load", sortProcOrProcLoad},
-    {"none", sortNone},
-    {NULL, parser_error}
+    {"load15", sortLoad1or15, NULL},
+    {"load_15", sortLoad1or15, NULL},
+    {"load5", sortLoad5, NULL},
+    {"load_5", sortLoad5, NULL},
+    {"proc+load", sortProcOrProcLoad, NULL},
+    {"none", sortNone, NULL},
+    {NULL, parser_error, NULL}
 };
 
 static parser_t sort_parser = {" \t\n", sort_list};
@@ -2659,8 +2662,8 @@ static int endPluginEnv(char *token)
 }
 
 static keylist_t pluginenv_list[] = {
-    {"}", endPluginEnv},
-    {NULL, getPluginEnt}
+    {"}", endPluginEnv, NULL},
+    {NULL, getPluginEnt, NULL}
 };
 
 static parser_t pluginenv_parser = {" \t\n", pluginenv_list};
@@ -2671,8 +2674,8 @@ static int getPluginEnv(char *token)
 }
 
 static keylist_t plugin_list[] = {
-    {"{", getPluginEnv},
-    {NULL, getPluginSingle}
+    {"{", getPluginEnv, NULL},
+    {NULL, getPluginSingle, NULL}
 };
 
 static parser_t plugin_parser = {" \t\n", plugin_list};
@@ -2710,61 +2713,61 @@ static int getDaemonScript(char *token)
 /* ---------------------------------------------------------------------- */
 
 static keylist_t config_list[] = {
-    {"installationdirectory", getInstDir},
-    {"installdirectory", getInstDir},
-    {"coredirectory", getCoreDir},
-    {"hardware", getHardware},
-    {"nrofnodes", getNumNodes},
-    {"hwtype", getHW},
-    {"runjobs", getRJ},
-    {"starter", getCS},
-    {"user", getUser},
-    {"group", getGroup},
-    {"adminuser", getAdminUser},
-    {"admingroup", getAdminGroup},
-    {"processes", getProcs},
-    {"overbook", getOB},
-    {"exclusive", getExcl},
-    {"pinprocs", getPinProcs},
-    {"bindmem", getBindMem},
-    {"allowusermap", getAllowUserMap},
-    {"supplGrps", getSupplGrps},
-    {"maxStatTry", getMaxStatTry},
-    {"cpumap", getCPUmap},
-    {"nodes", getNodes},
-    {"licenseserver", getLicServer},
-    {"licserver", getLicServer},
-    {"licensefile", getLicFile},
-    {"licfile", getLicFile},
-    {"usemcast", getMCastUse},
-    {"mcastgroup", getMCastGroup},
-    {"mcastport", getMCastPort},
-    {"rdpport", getRDPPort},
-    {"rdptimeout", getRDPTimeout},
-    {"rdpmaxretrans", getRDPMaxRetrans},
-    {"rdpresendtimeout", getRDPResendTimeout},
-    {"rdpclosedtimeout", getRDPClosedTimeout},
-    {"rdpmaxackpending", getRDPMaxACKPend},
-    {"rdpstatistics", getRDPStatistics},
-    {"selecttime", getSelectTime},
-    {"deadinterval", getDeadInterval},
-    {"statustimeout", getStatTmout},
-    {"statusbroadcasts", getStatBcast},
-    {"deadlimit", getDeadLmt},
-    {"accountpoll", getAcctPollInterval},
-    {"rlimit", getRLimit},
-    {"loglevel", getLogMask},
-    {"logmask", getLogMask},
-    {"logdestination", getLogDest},
-    {"environment", getEnv},
-    {"freeOnSuspend", getFreeOnSusp},
-    {"handleOldBins", getHandleOldBins},
-    {"psiNodesSort", getPSINodesSort},
-    {"plugins", getPlugins},
-    {"startupScript", getDaemonScript},
-    {"nodeUpScript", getDaemonScript},
-    {"nodeDownScript", getDaemonScript},
-    {NULL, parser_error}
+    {"installationdirectory", getInstDir, NULL},
+    {"installdirectory", getInstDir, NULL},
+    {"coredirectory", getCoreDir, NULL},
+    {"hardware", getHardware, NULL},
+    {"nrofnodes", getNumNodes, NULL},
+    {"hwtype", getHW, NULL},
+    {"runjobs", getRJ, NULL},
+    {"starter", getCS, NULL},
+    {"user", getUser, NULL},
+    {"group", getGroup, NULL},
+    {"adminuser", getAdminUser, NULL},
+    {"admingroup", getAdminGroup, NULL},
+    {"processes", getProcs, NULL},
+    {"overbook", getOB, NULL},
+    {"exclusive", getExcl, NULL},
+    {"pinprocs", getPinProcs, NULL},
+    {"bindmem", getBindMem, NULL},
+    {"allowusermap", getAllowUserMap, NULL},
+    {"supplGrps", getSupplGrps, NULL},
+    {"maxStatTry", getMaxStatTry, NULL},
+    {"cpumap", getCPUmap, NULL},
+    {"nodes", getNodes, NULL},
+    {"licenseserver", getLicServer, NULL},
+    {"licserver", getLicServer, NULL},
+    {"licensefile", getLicFile, NULL},
+    {"licfile", getLicFile, NULL},
+    {"usemcast", getMCastUse, NULL},
+    {"mcastgroup", getMCastGroup, NULL},
+    {"mcastport", getMCastPort, NULL},
+    {"rdpport", getRDPPort, NULL},
+    {"rdptimeout", getRDPTimeout, NULL},
+    {"rdpmaxretrans", getRDPMaxRetrans, NULL},
+    {"rdpresendtimeout", getRDPResendTimeout, NULL},
+    {"rdpclosedtimeout", getRDPClosedTimeout, NULL},
+    {"rdpmaxackpending", getRDPMaxACKPend, NULL},
+    {"rdpstatistics", getRDPStatistics, NULL},
+    {"selecttime", getSelectTime, NULL},
+    {"deadinterval", getDeadInterval, NULL},
+    {"statustimeout", getStatTmout, NULL},
+    {"statusbroadcasts", getStatBcast, NULL},
+    {"deadlimit", getDeadLmt, NULL},
+    {"accountpoll", getAcctPollInterval, NULL},
+    {"rlimit", getRLimit, NULL},
+    {"loglevel", getLogMask, NULL},
+    {"logmask", getLogMask, NULL},
+    {"logdestination", getLogDest, NULL},
+    {"environment", getEnv, NULL},
+    {"freeOnSuspend", getFreeOnSusp, NULL},
+    {"handleOldBins", getHandleOldBins, NULL},
+    {"psiNodesSort", getPSINodesSort, NULL},
+    {"plugins", getPlugins, NULL},
+    {"startupScript", getDaemonScript, NULL},
+    {"nodeUpScript", getDaemonScript, NULL},
+    {"nodeDownScript", getDaemonScript, NULL},
+    {NULL, parser_error, NULL}
 };
 
 static parser_t config_parser = {" \t\n", config_list};

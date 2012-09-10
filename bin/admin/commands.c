@@ -38,6 +38,8 @@ static char vcid[] __attribute__((used)) =
 #include "psiinfo.h"
 #include "psispawn.h"
 
+#include "adminparser.h"
+
 #include "commands.h"
 
 char commandsversion[] = "$Revision$";
@@ -220,7 +222,7 @@ static char * nodeString(PSnodes_ID_t node)
 {
     static char nodeStr[128];
 
-    if (getenv("__DUMM_DUMM__")) {
+    if (paramHostname) {
 	struct in_addr hostaddr;
 	struct hostent *hp;
 	char *ptr;
@@ -1682,7 +1684,8 @@ void PSIADM_ShowParamList(PSP_Option_t type, char *nl)
 		    if (options[i].value == -1) {
 			printf("unlimited");
 		    } else {
-			printf("0x%x", options[i].value);
+			printf(paramHexFormat ? "0x%x" : "%d",
+			       options[i].value);
 		    }
 		    break;
 		case PSP_OP_CPUMAP:

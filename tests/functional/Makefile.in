@@ -39,6 +39,8 @@ $(TESTS): %: %.o
 
 test_logging test_paramspace: LOADLIBES:=$(LOADLIBES) -lpscommon
 
+test_paramspace: LOADLIBES:=$(LOADLIBES) -lputil
+
 
 .PHONY: install
 install:
