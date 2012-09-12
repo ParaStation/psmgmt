@@ -336,6 +336,10 @@ typedef enum {
 #define PSP_CD_NODESRES          0x0064  /**< Get nodes from a partition */
 #define PSP_CD_GETRANKNODE       0x0065  /**< Req node of rank from partition */
 
+/** Flow-control to loggers and forwarders. */
+#define PSP_CD_SENDSTOP          0x0070  /**< Stop sending further packets */
+#define PSP_CD_SENDCONT          0x0071  /**< Continue sending packets */
+
 /** Client-client messages. These are fully transparent for the daemons. */
 #define PSP_CC_MSG               0x0080  /**< Message between clients. */
 #define PSP_CC_ERROR             0x0081  /**< Error in client communication. */

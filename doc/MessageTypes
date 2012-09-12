@@ -155,6 +155,9 @@ PSP_CD_GETNODES			DDBufferMsg_t		4
 PSP_CD_NODESRES			DDBufferMsg_t		4 + NODES_CHUNK*2 (= 516)
 PSP_CD_GETRANKNODE		DDBufferMsg_t		4
 
+PSP_CD_SENDSTOP			DDMsg_t			0
+PSP_CD_SENDCONT			DDMsg_t			0
+
 PSP_CC_MSG			PSLog_Msg_T		1060 (maximum)
 PSP_CC_ERROR			DDMsg_t			0
 

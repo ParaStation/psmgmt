@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2011 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2012 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -414,7 +414,10 @@ static void msg_SENDSTOP(DDMsg_t *msg)
     PSID_log(PSID_LOG_COMM, "%s: from %s\n",
 	     __func__, PSC_printTID(msg->sender));
 
-    if (task->fd != -1) {
+    if (task->group == TG_LOGGER) {
+	msg->type = PSP_CD_SENDSTOP;
+	sendMsg(msg);
+    } else if (task->fd != -1) {
 	PSID_log(PSID_LOG_COMM,
 		 "%s: client %s at %d temporarily disabled\n", __func__,
 		 PSC_printTID(msg->dest), task->fd);
@@ -445,8 +448,10 @@ static void msg_SENDCONT(DDMsg_t *msg)
     PSID_log(PSID_LOG_COMM, "%s: from %s\n",
 	     __func__, PSC_printTID(msg->sender));
 
-
-    if (task->fd != -1) {
+    if (task->group == TG_LOGGER) {
+	msg->type = PSP_CD_SENDCONT;
+	sendMsg(msg);
+    } else if (task->fd != -1) {
 	PSID_log(PSID_LOG_COMM,
 		 "%s: client %s at %d re-enabled\n", __func__,
 		 PSC_printTID(msg->dest), task->fd);

@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2011 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2012 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -43,6 +43,7 @@ static char vcid[] __attribute__((used)) =
 #include "pstask.h"
 #include "psprotocol.h"
 #include "pslog.h"
+#include "selector.h"
 #include "psiloggerkvs.h"
 #include "psiloggermerge.h"
 #include "psiloggerclient.h"
@@ -99,9 +100,6 @@ static int showUsage = 0;
 
 /** Number of maximum connected forwarders during runtime */
 int maxConnected = 0;
-
-/** Set of fds, the logger listens to. This is mainly STDIN and daemonSock */
-static fd_set myfds;
 
 /** The socket connecting to the local ParaStation daemon */
 static int daemonSock;
@@ -183,17 +181,6 @@ void PSIlog_finalizeLogs(void)
  */
 static int unavailSTDIN = -1;
 
-void addToFDSet(int fd)
-{
-    if (fd == unavailSTDIN) return;
-    FD_SET(fd, &myfds);
-}
-
-void remFromFDSet(int fd)
-{
-    FD_CLR(fd, &myfds);
-}
-
 /**
  * @brief Close socket to daemon.
  *
@@ -208,7 +195,6 @@ static void closeDaemonSock(void)
     if (daemonSock < 0) return;
 
     daemonSock=-1;
-    remFromFDSet(tmp);
     PSLog_close();
     close(tmp);
 }
@@ -369,6 +355,8 @@ static int recvMsg(PSLog_Msg_t *msg)
     }
     case PSP_CC_MSG:
     case PSP_CD_ERROR:
+    case PSP_CD_SENDSTOP:
+    case PSP_CD_SENDCONT:
 	/* Ignore */
 	break;
     default:
@@ -757,61 +745,6 @@ static int newrequest(PSLog_Msg_t *msg)
 }
 
 /**
- * @brief Checks file table after select has failed.
- *
- * @param openfds Set of file descriptors that have to be checked.
- *
- * @return No return value.
- */
-static void CheckFileTable(fd_set* openfds)
-{
-    fd_set rfds;
-    int fd;
-    struct timeval tv;
-
-    for (fd=0;fd<FD_SETSIZE;) {
-	if (FD_ISSET(fd,openfds)) {
-	    memset(&rfds, 0, sizeof(rfds));
-	    FD_SET(fd,&rfds);
-
-	    tv.tv_sec=0;
-	    tv.tv_usec=0;
-	    if (select(FD_SETSIZE, &rfds, (fd_set *)0, (fd_set *)0, &tv) < 0) {
-		/* error : check if it is a wrong fd in the table */
-		PSIlog_log(-1, "%s(%d): ", __func__, fd);
-		switch(errno) {
-		case EBADF :
-		    PSIlog_log(-1, "EBADF -> close socket\n");
-		    close(fd);
-		    FD_CLR(fd,openfds);
-		    fd++;
-		    break;
-		case EINTR:
-		    PSIlog_log(-1, "EINTR -> trying again\n");
-		    break;
-		case EINVAL:
-		    PSIlog_log(-1, "EINVAL -> close socket\n");
-		    close(fd);
-		    FD_CLR(fd,openfds);
-		    break;
-		case ENOMEM:
-		    PSIlog_log(-1, "ENOMEM -> close socket\n");
-		    close(fd);
-		    FD_CLR(fd,openfds);
-		    break;
-		default:
-		    PSIlog_warn(-1, errno, "unrecognized error");
-		    fd ++;
-		    break;
-		}
-	    }else
-		fd ++;
-	}else
-	    fd ++;
-    }
-}
-
-/**
  * @brief Forward input to client.
  *
  * Read input data from the file descriptor @a std_in and forward it
@@ -831,17 +764,17 @@ static void forwardInput(int std_in)
     switch (len) {
     case -1:
 	if (errno == EBADF) {
-	    remFromFDSet(std_in);
+	    Selector_remove(std_in);
 	} else if (errno != EIO) {
 	    PSIlog_warn(-1, errno, "%s: read()", __func__);
-	    remFromFDSet(std_in);
+	    Selector_remove(std_in);
 	    close(std_in);
 	} else {
 	    /* ignore */
 	}
 	break;
     case 0:
-	remFromFDSet(std_in);
+	Selector_remove(std_in);
 	close(std_in);
 	unavailSTDIN = std_in;
     default:
@@ -1152,8 +1085,74 @@ static void sendAcctData(void)
     sendDaemonMsg((DDMsg_t *)&msg);
 }
 
+static int readFromStdin(int fd, void *data)
+{
+    /* if we debug with gdb, use readline callback for stdin */
+    if (enableGDB) {
+	rl_callback_read_char();
+    } else {
+	forwardInput(fd);
+    }
+    return 0;
+}
+
 /** Minimum amount of time (in seconds) to wait for clients */
 #define MIN_WAIT 5
+
+static int timeoutval = 0;
+
+static void handleCCMsg(PSLog_Msg_t *msg)
+{
+    int outfd = STDOUT_FILENO;
+
+    if (msg->type == INITIALIZE) {
+	if (newrequest(msg) && maxConnected >= np + numService) {
+	    timeoutval = MIN_WAIT;
+	    if (allActiveThere()) {
+		Selector_register(STDIN_FILENO, readFromStdin, NULL);
+	    }
+	}
+    } else if (msg->sender > getMaxRank()) {
+	PSIlog_log(-1, "%s: sender %s (rank %d) out of range.\n",
+		   __func__, PSC_printTID(msg->header.sender),
+		   msg->sender);
+    } else if (getClientTID(msg->sender) != msg->header.sender) {
+	int rank = msg->sender;
+	int key = ((msg->type == FINALIZE) && clientIsGone(rank)) ?
+	    PSILOG_LOG_VERB : -1;
+
+	PSIlog_log(key, "%s: %s sends as rank %d ", __func__,
+		   PSC_printTID(msg->header.sender), rank);
+	PSIlog_log(key, "(%s) type %d\n",
+		   PSC_printTID(getClientTID(rank)), msg->type);
+    } else {
+	switch(msg->type) {
+	case STDERR:
+	    outfd = STDERR_FILENO;
+	case STDOUT:
+	    handleOutMsg(msg, outfd);
+	    break;
+	case USAGE:
+	    handleUSAGEMsg(msg);
+	    break;
+	case FINALIZE:
+	    if (handleFINALIZEMsg(msg)) timeoutval = MIN_WAIT;
+	    break;
+	case STOP:
+	    handleSTOPMsg(msg);
+	    break;
+	case CONT:
+	    handleCONTMsg(msg);
+	    break;
+	case KVS:
+	    handleKVSMsg(msg);
+	    break;
+	default:
+	    PSIlog_log(-1, "%s: Unknown message type %d\n",
+		       __func__, msg->type);
+	}
+    }
+}
 
 /**
  * @brief The main loop
@@ -1163,19 +1162,12 @@ static void sendAcctData(void)
  * STDERR messages. Furthermore USAGE and FINALIZE messages from the
  * forwarders are handled.
  *
- * @param daemonSock Socket connected to the local ParaStation daemon
- * to read from.
- *
  * @return No return value.
  */
 static void loop(void)
 {
     struct timeval mytv={1,0}, atv;
     PSLog_Msg_t msg;
-    int timeoutval;
-
-    FD_ZERO(&myfds);
-    addToFDSet(daemonSock);
 
     timeoutval = 0;
 
@@ -1185,23 +1177,24 @@ static void loop(void)
      */
     while (getNoClients() > 0 || timeoutval < MIN_WAIT) {
 	fd_set afds;
-	memcpy(&afds, &myfds, sizeof(afds));
+
+	FD_ZERO(&afds);
+	if (daemonSock != -1) FD_SET(daemonSock, &afds);
 	atv = mytv;
-	Timer_handleSignals();
+
 	if (mergeOutput && np >1) displayCachedOutput(0);
-	if (select(daemonSock + 1, &afds, NULL,NULL,&atv) < 0) {
+
+	if (Sselect(daemonSock + 1, &afds, NULL, NULL, &atv) < 0) {
 	    if (errno == EINTR) {
 		/* Interrupted syscall, just start again */
 		continue;
 	    }
 	    PSIlog_warn(-1, errno, "select()");
-	    CheckFileTable(&myfds);
 	    continue;
 	}
 	if (FD_ISSET(daemonSock, &afds)) {
 	    /* message from the daemon */
 	    int ret;
-	    int outfd = STDOUT_FILENO;
 
 	    ret = recvMsg(&msg);
 
@@ -1213,58 +1206,26 @@ static void loop(void)
 		exit(1);
 	    }
 
-	    if (msg.type == INITIALIZE) {
-		if (newrequest(&msg) && maxConnected >= np + numService) {
-		    timeoutval = MIN_WAIT;
-		    if (allActiveThere()) addToFDSet(STDIN_FILENO);
-		}
-	    } else if (msg.sender > getMaxRank()) {
-		PSIlog_log(-1, "%s: sender %s (rank %d) out of range.\n",
-			   __func__, PSC_printTID(msg.header.sender),
-			   msg.sender);
-	    } else if (getClientTID(msg.sender) != msg.header.sender) {
-		int rank = msg.sender;
-		int key = ((msg.type == FINALIZE) && clientIsGone(rank)) ?
-		    PSILOG_LOG_VERB : -1;
-
-		PSIlog_log(key, "%s: %s sends as rank %d ", __func__,
-			   PSC_printTID(msg.header.sender), rank);
-		PSIlog_log(key, "(%s) type %d\n",
-			   PSC_printTID(getClientTID(rank)), msg.type);
-	    } else switch(msg.type) {
-	    case STDERR:
-		outfd = STDERR_FILENO;
-	    case STDOUT:
-		handleOutMsg(&msg, outfd);
+	    switch(msg.header.type) {
+	    case PSP_CC_MSG:
+		handleCCMsg(&msg);
 		break;
-	    case USAGE:
-		handleUSAGEMsg(&msg);
+	    case PSP_CD_ERROR:
+		/* Ignore */
 		break;
-	    case FINALIZE:
-		if (handleFINALIZEMsg(&msg)) timeoutval = MIN_WAIT;
+	    case PSP_CD_SENDSTOP:
+		handleSENDSTOP((DDMsg_t *)&msg);
 		break;
-	    case STOP:
-		handleSTOPMsg(&msg);
-		continue; /* Don't handle STDIN now */
-		break;
-	    case CONT:
-		handleCONTMsg(&msg);
-		break;
-	    case KVS:
-		handleKVSMsg(&msg);
+	    case PSP_CD_SENDCONT:
+		handleSENDCONT((DDMsg_t *)&msg);
 		break;
 	    default:
-		PSIlog_log(-1, "%s: Unknown message type %d!\n", __func__,
-			   msg.type);
+		PSIlog_log(-1, "%s: Unknown message type %s from %s.\n",
+			   __func__, PSP_printMsg(msg.header.type),
+			   PSC_printTID(msg.header.sender));
+		ret = -1;
 	    }
-	}
-	if (FD_ISSET(STDIN_FILENO, &afds)) {
-	    /* if we debug with gdb, use readline callback for stdin */
-	    if (enableGDB) {
-		rl_callback_read_char();
-	    } else {
-		forwardInput(STDIN_FILENO);
-	    }
+
 	}
 	if (!getNoClients()) timeoutval++;
     }

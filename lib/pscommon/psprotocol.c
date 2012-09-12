@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2011 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2012 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -68,6 +68,9 @@ static struct {
     { PSP_CD_GETNODES         , "PSP_CD_GETNODES"         },
     { PSP_CD_NODESRES         , "PSP_CD_NODESRES"         },
     { PSP_CD_GETRANKNODE      , "PSP_CD_GETRANKNODE"      },
+
+    { PSP_CD_SENDSTOP         , "PSP_CD_SENDSTOP"         },
+    { PSP_CD_SENDCONT         , "PSP_CD_SENDCONT"         },
 
     { PSP_CC_MSG              , "PSP_CC_MSG"              },
     { PSP_CC_ERROR            , "PSP_CC_ERROR"            },

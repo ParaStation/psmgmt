@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2009-2010 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2009-2012 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -206,6 +206,30 @@ void handleSTOPMsg(PSLog_Msg_t *msg);
  * @return No return value.
  */
 void handleCONTMsg(PSLog_Msg_t *msg);
+
+/**
+ * @brief Handle SENDSTOP message
+ *
+ * Handle the SENDSTOP messages @a msg. This will generically stop any
+ * input-forwarding, etc.
+ *
+ * @param msg The SENDSTOP message to handle.
+ *
+ * @return No return value.
+ */
+void handleSENDSTOP(DDMsg_t *msg);
+
+/**
+ * @brief Handle SENDCONT message
+ *
+ * Handle the SENDCONT messages @a msg. This will generically continue any
+ * input-forwarding, etc.
+ *
+ * @param msg The SENDCONT message to handle.
+ *
+ * @return No return value.
+ */
+void handleSENDCONT(DDMsg_t *msg);
 
 /**
  * @brief Create list of destinations
