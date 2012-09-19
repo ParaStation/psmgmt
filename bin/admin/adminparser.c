@@ -2298,7 +2298,7 @@ static int versionCommand(char *token)
     printf("RPM:        %s-%s\n", VERSION_psmgmt, RELEASE_psmgmt);
 
     err = PSI_infoString(-1, PSP_INFO_DAEMONVER, NULL, tmp, sizeof(tmp), 0);
-    if (err) strcpy(tmp, "$Revision: unknown$");
+    if (err) strcpy(tmp, "$Revision$");
     printf("PSID:       %s\b \n", tmp+11);
 
     err = PSI_infoString(-1, PSP_INFO_RPMREV, NULL, tmp, sizeof(tmp), 0);
