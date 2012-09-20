@@ -62,20 +62,20 @@ int main(void)
     PSC_initLog(stderr);
 
     PSPARM_register("test", &test,
-		    PSPARM_stringSet, PSPARM_stringPrint, test_help);
+		    PSPARM_stringSet, PSPARM_stringPrint, test_help, NULL);
     PSPARM_register("bla", &bla,
-		    PSPARM_stringSet, PSPARM_stringPrint, bla_help);
-    PSPARM_register("blub", &blub, blub_set, PSPARM_stringPrint, blub_help);
-    PSPARM_register("zero", NULL, NULL, NULL, NULL);
-    PSPARM_register("zero", NULL, NULL, NULL, NULL);
-    PSPARM_register("test2", NULL, NULL, NULL, NULL);
-    PSPARM_register("dummy", NULL, NULL, NULL, NULL);
+		    PSPARM_stringSet, PSPARM_stringPrint, bla_help, NULL);
+    PSPARM_register("blub", &blub, blub_set, PSPARM_stringPrint, blub_help, NULL);
+    PSPARM_register("zero", NULL, NULL, NULL, NULL, NULL);
+    PSPARM_register("zero", NULL, NULL, NULL, NULL, NULL);
+    PSPARM_register("test2", NULL, NULL, NULL, NULL, NULL);
+    PSPARM_register("dummy", NULL, NULL, NULL, NULL, NULL);
     PSPARM_register("some_parameter_with_an_long_name", NULL,
-		    PSPARM_stringSet, PSPARM_stringPrint, test_help);
-    PSPARM_register("int1", &int1, PSPARM_intSet, PSPARM_intPrint, NULL);
-    PSPARM_register("int3", &int3, PSPARM_intSet, PSPARM_intPrint, NULL);
-    PSPARM_register("int2", &int2, PSPARM_intSet, PSPARM_intPrint, NULL);
-    PSPARM_register("int4", NULL, PSPARM_intSet, PSPARM_intPrint, NULL);
+		    PSPARM_stringSet, PSPARM_stringPrint, test_help, NULL);
+    PSPARM_register("int1", &int1, PSPARM_intSet, PSPARM_intPrint, NULL, NULL);
+    PSPARM_register("int3", &int3, PSPARM_intSet, PSPARM_intPrint, NULL, NULL);
+    PSPARM_register("int2", &int2, PSPARM_intSet, PSPARM_intPrint, NULL, NULL);
+    PSPARM_register("int4", NULL, PSPARM_intSet, PSPARM_intPrint, NULL, NULL);
 
     printf("set blub\n");
     PSPARM_set("blub", "dummdidumm");
