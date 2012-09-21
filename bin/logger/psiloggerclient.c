@@ -524,7 +524,7 @@ void setupDestList(char *input)
 		    break;
 		}
 		if (r < getMinRank() || r > getMaxRank()) {
-		    PSIlog_log(-1, "%s: invalid destination '%i'"\n, __func__,
+		    PSIlog_log(-1, "%s: invalid destination '%i'\n", __func__,
 			       r);
 		} else {
 		    addClnt(r);
