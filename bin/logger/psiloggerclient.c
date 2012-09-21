@@ -502,13 +502,13 @@ void setupDestList(char *input)
 	while (rankStr) {
 	    if (strchr(rankStr, '-')) {
 		if ((sscanf(rankStr, "%d-%d", &first, &last)) != 2) {
-		    PSIlog_log(-1, "%s: invalid range '%s'", __func__,
+		    PSIlog_log(-1, "%s: invalid range '%s'\n", __func__,
 			       rankStr);
 		    destListError();
 		    break;
 		}
 		if (first<getMinRank() || last>getMaxRank() || last<first) {
-		    PSIlog_log(-1, "%s: invalid range [%i-%i]", __func__,
+		    PSIlog_log(-1, "%s: invalid range [%i-%i]\n", __func__,
 			       first, last);
 		    destListError();
 		    break;
@@ -518,13 +518,14 @@ void setupDestList(char *input)
 		char *end;
 		r = strtol(rankStr, &end, 10);
 		if (rankStr == end || *end) {
-		    PSIlog_log(-1, "%s: invalid destination '%s'", __func__,
+		    PSIlog_log(-1, "%s: invalid destination '%s'\n", __func__,
 			       rankStr);
 		    destListError();
 		    break;
 		}
 		if (r < getMinRank() || r > getMaxRank()) {
-		    PSIlog_log(-1, "%s: invalid destination '%i'", __func__,r);
+		    PSIlog_log(-1, "%s: invalid destination '%i'"\n, __func__,
+			       r);
 		} else {
 		    addClnt(r);
 		}
