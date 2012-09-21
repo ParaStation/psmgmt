@@ -79,13 +79,16 @@ int stdoutSock = -1;
 int stderrSock = -1;
 
 /** Set of fds the forwarder writes to (this is stdinSock) */
-fd_set writefds;
+static fd_set writefds;
 
 /** Number of open file descriptors to wait for */
-int openfds = 0;
+static int openfds = 0;
 
 /** Flag for real SIGCHLD received */
-int gotSIGCHLD = 0;
+static int gotSIGCHLD = 0;
+
+/** socketpair to recognize SIGCHLD while sleeping in select() */
+static int signalFD[2] = {-1, -1};
 
 static enum {
     IDLE,
@@ -305,7 +308,7 @@ static void handleSignalMsg(PSLog_Msg_t *msg)
  */
 static int recvMsg(PSLog_Msg_t *msg, struct timeval *timeout)
 {
-    int ret, blocked;
+    int ret;
 
     if (daemonSock < 0) {
 	PSID_log(-1, "%s: not connected\n", __func__);
@@ -317,15 +320,10 @@ static int recvMsg(PSLog_Msg_t *msg, struct timeval *timeout)
 again:
     ret = PSLog_read(msg, timeout);
 
-    blocked = PSID_blockSig(1, SIGCHLD);
-
     if (ret < 0) {
 	switch (errno) {
 	case EOPNOTSUPP:
-	    if (timeout) {
-		PSID_blockSig(blocked, SIGCHLD);
-		goto again;
-	    }
+	    if (timeout) goto again;
 	    break;
 	default:
 	    PSID_warn(-1, errno, "%s: PSLog_read()", __func__);
@@ -355,10 +353,7 @@ again:
 	    switch (msg->type) {
 	    case SIGNAL:
 		handleSignalMsg(msg);
-		if (timeout) {
-		    PSID_blockSig(blocked, SIGCHLD);
-		    goto again;
-		}
+		if (timeout) goto again;
 		errno = EINTR;
 		ret = -1;
 		break;
@@ -386,7 +381,6 @@ again:
 	}
     }
 
-    PSID_blockSig(blocked, SIGCHLD);
     return ret;
 }
 
@@ -460,9 +454,7 @@ static int connectLogger(PStask_ID_t tid)
     sendMsg(INITIALIZE, NULL, 0);
 
 again:
-    PSID_blockSig(0, SIGCHLD);
     ret = recvMsg(&msg, &timeout);
-    PSID_blockSig(1, SIGCHLD);
 
     if (ret <= 0) {
 	PSID_log(-1, "%s(%s): Connection refused\n",
@@ -609,18 +601,22 @@ static int do_write(PSLog_Msg_t *msg, int offset)
 
     for (n=offset, i=1; (n<count) && (i>0);) {
 	char *errstr;
+	errno = 0;
 	i = write(stdinSock, &msg->buf[n], count-n);
 	if (i<=0) {
-	    switch (errno) {
+	    int eno = errno;
+	    switch (eno) {
 	    case EINTR:
+		i=1;
+		continue;
 		break;
 	    case EAGAIN:
 		return n;
 		break;
 	    default:
-		errstr = strerror(errno);
+		errstr = strerror(eno);
 		PSIDfwd_printMsgf(STDERR, "%s: got error %d on stdinSock: %s",
-				  __func__, errno, errstr ? errstr : "UNKNOWN");
+				  __func__, eno, errstr ? errstr : "UNKNOWN");
 		return i;
 	    }
 	} else
@@ -1136,6 +1132,10 @@ static void sighandler(int sig)
 	if (WIFSTOPPED(childStatus) || WIFCONTINUED(childStatus)) break;
 
 	gotSIGCHLD = 1;
+	if (signalFD[1] > -1) {
+	    close(signalFD[1]);
+	    signalFD[1] = -1;
+	}
     }
 
     signal(sig, sighandler);
@@ -1380,8 +1380,39 @@ again:
     return 0;
 }
 
-static void registerSelectHandlers(void)
+/**
+ * @brief Handle signalFD
+ *
+ * This selector handles the signalFD file-descriptor. It mainly
+ * closes and de-registers it. Its main function is to escape from
+ * the Sselect() the function @ref loop() is sleeping in.
+ *
+ * @param fd The file-descriptor to handle
+ *
+ * @param info Additional information. Unused.
+ *
+ * @return Always returns 0.
+ */
+static int handleSignalFD(int fd, void *info)
 {
+    /* Get rid of now useless selector */
+    Selector_remove(fd);
+    close(fd);
+    /* Escape from Sselect() */
+    Selector_startOver();
+
+    return 0;
+}
+
+static int registerSelectHandlers(void)
+{
+    /* open signal control fds */
+    if (socketpair(PF_UNIX, SOCK_STREAM, 0, signalFD) < 0) {
+	PSID_log(-1, "%s: open control socket failed\n", __func__);
+        return 0;
+    }
+    Selector_register(signalFD[0], handleSignalFD, NULL);
+
     if (stdoutSock != -1) {
 	Selector_register(stdoutSock, readFromChild, NULL);
 	openfds++;
@@ -1399,6 +1430,8 @@ static void registerSelectHandlers(void)
 	Selector_register(PMIClientSock, readFromPMIClient, NULL);
 
     FD_ZERO(&writefds);
+
+    return 1;
 }
 
 /**
@@ -1424,8 +1457,6 @@ static void loop(void)
     }
 
     /* Loop forever. We exit on SIGCHLD. */
-    PSID_blockSig(0, SIGCHLD);
-	
     while (openfds || !gotSIGCHLD) {
 	memcpy(&wfds, &writefds, sizeof(wfds));
 
@@ -1437,9 +1468,8 @@ static void loop(void)
 	    continue;
 	}
 
-	/* check the remaining sockets for any outputs */
-	PSID_blockSig(1, SIGCHLD);
-	for (sock=0; sock<FD_SETSIZE; sock++) {
+	/* check the remaining sockets to accept more input */
+	for (sock=0; sock<=stdinSock; sock++) {
 	    if (FD_ISSET(sock, &wfds)) { /* socket ready */
 		if (sock == stdinSock) {
 		    flushMsgs();
@@ -1448,7 +1478,6 @@ static void loop(void)
 		}
 	    }
 	}
-	PSID_blockSig(0, SIGCHLD);
     }
 
     /* send usage message */
@@ -1459,26 +1488,21 @@ static void loop(void)
 
 static void waitForChildsDead(void)
 {
-    PSID_blockSig(0, SIGCHLD);
-    PSID_log(-1, "%s: start\n", __func__);
     while (!gotSIGCHLD) {
 	PSLog_Msg_t msg;
 	struct timeval timeout = {10, 0};
 	int ret;
 
-	PSID_log(-1, "%s: recvMsg()\n", __func__);
 	ret = recvMsg(&msg, &timeout); /* sleep in recvMsg */
-	PSID_blockSig(1, SIGCHLD);
+
 	if (ret > 0) {
 	    PSID_log(-1, "%s: recvMsg type %s from %s len %d\n", __func__,
 		     PSDaemonP_printMsg(msg.header.type),
 		     PSC_printTID(msg.header.sender), msg.header.len);
 	}
 	sendSignal(PSC_getPID(childTask->tid), SIGKILL);
-	PSID_blockSig(0, SIGCHLD);
     }
  
-    PSID_log(-1, "%s: done\n", __func__);
     finalizeForwarder();
 }
 
@@ -1497,11 +1521,12 @@ void PSID_forwarder(PStask_t *task, int daemonfd, int eno, int PMISocket,
     stdoutSock = task->stdout_fd;
     stderrSock = task->stderr_fd;
 
-    /* catch SIGCHLD from client */
+    /* catch client's SIGCHLD */
     PSID_blockSig(1, SIGCHLD);
     signal(SIGCHLD, sighandler);
     signal(SIGUSR1, sighandler);
     signal(SIGTTIN, sighandler);
+    PSID_blockSig(0, SIGCHLD);
 
     PSLog_init(daemonSock, childTask->rank, 2);
 
@@ -1547,7 +1572,7 @@ void PSID_forwarder(PStask_t *task, int daemonfd, int eno, int PMISocket,
 	pmiType = PMI_DISABLED;
     }
 
-    registerSelectHandlers();
+    if (!registerSelectHandlers()) waitForChildsDead();
 
     if (connectLogger(childTask->loggertid) != 0) waitForChildsDead();
 
