@@ -216,7 +216,7 @@ int Selector_isRegistered(int fd)
 {
     Selector_t *selector = findSelector(fd);
 
-    if (selector) return 1;
+    if (selector && !selector->deleted) return 1;
 
     return 0;
 }
