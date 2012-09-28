@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2011 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2012 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -170,7 +170,7 @@ int sendRDP(DDMsg_t *msg)
     int ret = 0;
 
     if (node<0 || node >= PSC_getNrOfNodes()) {
-	errno = EINVAL;
+	errno = EHOSTUNREACH;
 	return -1;
     }
 

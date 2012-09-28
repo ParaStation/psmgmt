@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2011 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2012 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -2083,14 +2083,14 @@ int Rsendto(int node, void *buf, size_t len)
     if (((node < 0) || (node >= nrOfNodes))) {
 	/* illegal node number */
 	RDP_log(-1, "%s: illegal node number %d\n", __func__, node);
-	errno = EINVAL;
+	errno = EHOSTUNREACH;
 	return -1;
     }
 
     if (conntable[node].sin.sin_addr.s_addr == INADDR_ANY) {
 	/* no IP configured */
 	RDP_log(RDP_LOG_CONN, "%s: node %d not configured\n", __func__, node);
-	errno = EINVAL;
+	errno = EHOSTUNREACH;
 	return -1;
     }
 

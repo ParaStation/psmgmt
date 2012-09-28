@@ -195,31 +195,34 @@ int sendMsg(void *amsg)
 	sender="sendRDP";
 	ret = sendRDP(msg);
     } else {
-	PSID_log(-1, "%s(type %s (len=%d) to %s error: dest not found\n",
-		 __func__, PSDaemonP_printMsg(msg->type),
-		 msg->len, PSC_printTID(msg->dest));
-
-	PSID_dropMsg((DDBufferMsg_t *)msg);
-
+	sender="undetermined sender";
 	errno = EHOSTUNREACH;
-	return -1;
+	ret = -1;
     }
 
     if (ret==-1) {
 	int32_t key = -1;
+	int eno = errno;
 
-	if (errno==EWOULDBLOCK
-	    || ((errno == EHOSTUNREACH || errno == EPIPE )
-		&& (msg->type == PSP_CC_MSG || msg->type == PSP_CC_ERROR))) {
+	if (eno == EHOSTUNREACH || eno == EPIPE ) {
+	    PSID_dropMsg((DDBufferMsg_t *)msg);
+	    if (msg->type == PSP_CD_SENDSTOP || msg->type == PSP_CD_SENDCONT
+		|| msg->type == PSP_CC_MSG || msg->type == PSP_CC_ERROR) {
+		/* suppress message unless explicitely requested */
+		key = PSID_LOG_COMM;
+	    }
+	}
+
+	if (eno == EWOULDBLOCK) {
 	    /* suppress message unless explicitely requested */
 	    key = PSID_LOG_COMM;
 	}
 
-	PSID_warn(key, errno, "%s(type=%s, len=%d) to %s in %s",
+	PSID_warn(key, eno, "%s(type=%s, len=%d) to %s in %s",
 		  __func__, PSDaemonP_printMsg(msg->type), msg->len,
 		  PSC_printTID(msg->dest), sender);
 
-	if (errno==EWOULDBLOCK && PSC_getPID(msg->sender)
+	if (eno == EWOULDBLOCK && PSC_getPID(msg->sender)
 	    && msg->type != PSP_CD_ACCOUNT
 	    && msg->type != PSP_DD_SENDSTOP) {
 	    DDMsg_t stopmsg = { .type = PSP_DD_SENDSTOP,

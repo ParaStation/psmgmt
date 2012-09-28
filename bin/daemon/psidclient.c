@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2011 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2012 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -208,6 +208,7 @@ static int storeMsgClient(int fd, DDMsg_t *msg, int offset)
 int flushClientMsgs(int fd)
 {
     list_t *m, *tmp;
+    PStask_ID_t last = 0;
 
     if (fd<0 || fd >= FD_SETSIZE) {
 	errno = EINVAL;
@@ -226,12 +227,13 @@ int flushClientMsgs(int fd)
 	    break;
 	}
 
-	if (PSC_getPID(sender)) {
+	if (PSC_getPID(sender) && PSIDnodes_isUp(PSC_getID(sender))) {
 	    DDMsg_t contmsg = { .type = PSP_DD_SENDCONT,
 				.sender = dest,
 				.dest = sender,
 				.len = sizeof(DDMsg_t) };
-	    sendMsg(&contmsg);
+	    if (contmsg.dest != last) sendMsg(&contmsg);
+	    last = contmsg.dest;
 	}
 
 	list_del(&msgbuf->next);
@@ -387,7 +389,7 @@ int recvClient(int fd, DDMsg_t *msg, size_t size)
 static void closeConnection(int fd)
 {
     list_t *m, *tmp;
-    PStask_ID_t tid = getClientTID(fd);
+    PStask_ID_t tid = getClientTID(fd), last = 0;
 
     if (fd<0) {
 	PSID_log(-1, "%s(%d): fd < 0\n", __func__, fd);
@@ -401,15 +403,17 @@ static void closeConnection(int fd)
     list_for_each_safe(m, tmp, &clients[fd].msgs) {
 	msgbuf_t *mp = list_entry(m, msgbuf_t, next);
 	DDBufferMsg_t *msg = (DDBufferMsg_t *)mp->msg;
+	PStask_ID_t sender = msg->header.sender, dest = msg->header.dest;
 
 	list_del(&mp->next);
 
-	if (PSC_getPID(msg->header.sender)) {
+	if (PSC_getPID(sender) && PSIDnodes_isUp(PSC_getID(sender))) {
 	    DDMsg_t contmsg = { .type = PSP_DD_SENDCONT,
-				.sender = msg->header.dest,
-				.dest = msg->header.sender,
+				.sender = dest,
+				.dest = sender,
 				.len = sizeof(DDMsg_t) };
-	    if (contmsg.dest != tid) sendMsg(&contmsg);
+	    if (contmsg.dest != tid && contmsg.dest != last) sendMsg(&contmsg);
+	    last = contmsg.dest;
 	}
 	PSID_dropMsg(msg);
 	PSIDMsgbuf_put(mp);
@@ -433,7 +437,7 @@ void deleteClient(int fd)
     task = getClientTask(fd);
     closeConnection(fd);
 
-    if (!task) task = PStasklist_find(&managedTasks,  getClientTID(fd));
+    if (!task) task = PStasklist_find(&managedTasks, getClientTID(fd));
     if (!task) {
 	PSID_log(-1, "%s: Task %s not found\n", __func__,
 		 PSC_printTID(getClientTID(fd)));
@@ -850,13 +854,13 @@ static void msg_CLIENTCONNECT(int fd, DDBufferMsg_t *bufmsg)
 	outmsg.header.len += sizeof(uint32_t);
     } else if (!task) {
 	outmsg.type = PSP_CONN_ERR_NOSPACE;
-    } else if (uid && !PSIDnodes_testGUID(PSC_getMyID(),PSIDNODES_USER,
+    } else if (uid && !PSIDnodes_testGUID(PSC_getMyID(), PSIDNODES_USER,
 					  (PSIDnodes_guid_t){.u=uid})) {
 	outmsg.type = PSP_CONN_ERR_UIDLIMIT;
     } else if (gid && !PSIDnodes_testGUID(PSC_getMyID(), PSIDNODES_GROUP,
 					  (PSIDnodes_guid_t) {.g=gid})) {
 	outmsg.type = PSP_CONN_ERR_GIDLIMIT;
-    } else if (PSIDnodes_getProcs(PSC_getMyID()) !=  PSNODES_ANYPROC
+    } else if (PSIDnodes_getProcs(PSC_getMyID()) != PSNODES_ANYPROC
 	       && status.jobs.normal > PSIDnodes_getProcs(PSC_getMyID())) {
 	outmsg.type = PSP_CONN_ERR_PROCLIMIT;
 	*(int *)outmsg.buf = PSIDnodes_getProcs(PSC_getMyID());
