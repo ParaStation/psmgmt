@@ -243,7 +243,7 @@ void PSC_startDaemon(in_addr_t hostaddr)
     exit(0);
 }
 
-#define DEFAULT_INSTDIR "/opt/parastation"
+#define DEFAULT_INSTDIR PREFIX
 #define LOGGER "/bin/psilogger"
 
 char* PSC_lookupInstalldir(char *hint)

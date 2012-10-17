@@ -319,7 +319,7 @@ typedef enum {
  * Get the ParaStation installation directory, i.e. the directory
  * containing all the ParaStation stuff. This function might try to
  * lookup the installation directory by itself -- in which case it
- * tests '/opt/parastation' -- or it might get a @a hint. In the
+ * tests $(prefix) -- or it might get a @a hint. In the
  * latter case any previous installation directory is discarded.
  *
  * In any case it tries to find the 'bin/psilogger' which is used as a

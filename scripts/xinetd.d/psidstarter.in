@@ -8,7 +8,7 @@ service psid
 	port		= 888
 	wait		= no
 	user		= root
-	server		= /opt/parastation/bin/psid
+	server		= @bindir@/psid
 	log_on_failure	+= USERID
 	disable		= no
 }

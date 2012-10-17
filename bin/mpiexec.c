@@ -46,7 +46,7 @@ static char vcid[] __attribute__((used)) =
 #include <pscommon.h>
 
 #define GDB_COMMAND_EXE "gdb"
-#define GDB_COMMAND_FILE "/opt/parastation/config/mpiexec.gdb"
+#define GDB_COMMAND_FILE CONFIGDIR "/mpiexec.gdb"
 #define GDB_COMMAND_OPT "-x"
 #define GDB_COMMAND_SILENT "-q"
 #define GDB_COMMAND_ARGS "--args"

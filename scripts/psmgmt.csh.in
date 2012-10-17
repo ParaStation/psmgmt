@@ -1,7 +1,7 @@
 #
 # ParaStation
 #
-# Copyright (C) 2005-2011 ParTec Cluster Competence Center GmbH, Munich
+# Copyright (C) 2005-2012 ParTec Cluster Competence Center GmbH, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -19,25 +19,29 @@
 # $Id$
 #
 
-set _psdir="/opt/parastation"
+set _psbindir="@bindir@"
+set _pssbindir="@sbindir@"
+set _psmandir="@mandir@"
 
-if ( -d "${_psdir}/bin" ) then
+if ( -d "${_psbindir}" ) then
 
-    set path = ( ${path} "${_psdir}/bin" )
+    set path = ( ${path} "${_psbindir}" )
     if ( `id -ur` == 0 ) then
-	set path = ( ${path} "${_psdir}/sbin" )
+	set path = ( ${path} "${_pssbindir}" )
     endif
 
-    if ( -d "${_psdir}/man" ) then
+    if ( -d "${_psmandir}" ) then
 	if ( ! ${?MANPATH} ) then
 	    setenv MANPATH "`(test -x /usr/bin/manpath && ( /usr/bin/manpath > /dev/tty ) >& /dev/null)`"
 	endif
 	if ( ${?MANPATH} ) then
-	    setenv MANPATH "${MANPATH}:${_psdir}/man"
+	    setenv MANPATH "${MANPATH}:${_psmandir}"
 	else
-	    setenv MANPATH "${_psdir}/man"
+	    setenv MANPATH "${_psmandir}"
 	endif
     endif
 endif
 
-unset _psdir
+unset _psbindir
+unset _pssbindir
+unset _psmandir

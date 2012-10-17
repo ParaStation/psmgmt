@@ -124,7 +124,7 @@ foreach my $arg (0 .. $#ARGV) {
 if(!$norcfile) {
     ## Include rcfile .psaccviewrc to set global defaults
     ## which can be overriden by the user.
-    require("/opt/parastation/config/psaccviewrc") if (-r "/opt/parastation/config/psaccviewrc");
+    require("@configdir@/psaccviewrc") if (-r "@configdir@/psaccviewrc");
 
     ## Include the rcfile .psaccviewrc in the users home directory,
     ## in this file any option can be set to the users needs

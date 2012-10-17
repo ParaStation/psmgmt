@@ -1,134 +1,102 @@
-#                                               -*- Autoconf -*-
-# Process this file with autoconf to produce a configure script.
+#
+# ParaStation
+#
+# Copyright (C) 2012 ParTec Cluster Competence Center GmbH, Munich
+#
+# This file may be distributed under the terms of the Q Public License
+# as defined in the file LICENSE.QPL included in the packaging of this
+# file.
+#
+# Author:	Thomas Moschny <moschny@par-tec.com>
+#
 
-AC_PREREQ(2.59)
-AC_INIT([psmgmt],[5],[support@par-tec.com])
-AC_CONFIG_AUX_DIR(["scripts"])
+AC_PREREQ([2.68])
 
-AC_CANONICAL_TARGET([])
+AC_INIT([ParaStation Management], [5],
+  [support@par-tec.com], [psmgmt], [http://par-tec.com/])
+AC_CONFIG_SRCDIR([configure.ac])
+AC_CONFIG_AUX_DIR([scripts])
+AC_CONFIG_MACRO_DIR([m4])
+AC_PREFIX_DEFAULT([/opt/parastation])
 
-AC_PROG_INSTALL
-AC_PROG_RANLIB
+AC_CANONICAL_TARGET
 
-# Test for stack protector support in target C library.
-case "$target" in
-     *-*-linux*)
-	AC_CACHE_CHECK(__stack_chk_fail in target GNU C library,
-	gcc_cv_libc_provides_ssp,
-	[gcc_cv_libc_provides_ssp=no
+AM_INIT_AUTOMAKE([foreign -Wall -Wno-portability silent-rules subdir-objects no-define])
+AM_MAINTAINER_MODE
+AM_SILENT_RULES([yes])
 
-	glibc_header_dir=/usr/include
-	# glibc 2.4 and later provides __stack_chk_fail and
-	# either __stack_chk_guard, or TLS access to stack guard canary.
-	if test -f $glibc_header_dir/features.h \
-	   && egrep '^@<:@ 	@:>@*#[ 	]*define[ 	]+__GNU_LIBRARY__[ 	]+([1-9][0-9]|[6-9])' \
-	   $glibc_header_dir/features.h > /dev/null; then
-	   if egrep '^@<:@ 	@:>@*#[ 	]*define[ 	]+__GLIBC__[ 	]+([1-9][0-9]|[3-9])' \
-	      $glibc_header_dir/features.h > /dev/null; then
-	      gcc_cv_libc_provides_ssp=yes
-	   elif egrep '^@<:@ 	@:>@*#[ 	]*define[ 	]+__GLIBC__[ 	]+2' \
-	      $glibc_header_dir/features.h > /dev/null \
-	      && egrep '^@<:@ 	@:>@*#[ 	]*define[ 	]+__GLIBC_MINOR__[ 	]+([1-9][0-9]|[4-9])' \
-		 $glibc_header_dir/features.h > /dev/null; then
-		 gcc_cv_libc_provides_ssp=yes
-	fi
-      fi]) ;;
-     *) gcc_cv_libc_provides_ssp=no ;;
-esac
+# enable runpath. this has to be set before LT_INIT.
+LDFLAGS="$LDFLAGS -Wl,--enable-new-dtags"
 
-if test x$gcc_cv_libc_provides_ssp = xyes; then
-   TARGET_LIBC_PROVIDES_SSP=yes
-   CFLAG_SSP="-fstack-protector-all"
-else
-   TARGET_LIBC_PROVIDES_SSP=no
-   CFLAG_SSP=
-fi
+# autoconf's CFLAGS default is "-O2 -g", this would override -O3 from
+# AM_CFLAGS (see below), so change the default to "-g" only
+CFLAGS="${CFLAGS-"-g"}"
 
-AC_SEARCH_LIBS([numa_available], [numa], [HAVE_LIBNUMA=yes;
-					 AC_DEFINE([HAVE_LIBNUMA],[1])])
-AC_CHECK_FUNCS_ONCE([numa_allocate_nodemask])
-AC_SEARCH_LIBS([initscr], [ncurses curses], [],
-			    [ echo "Please install a curses package";
-			      exit 1 ])
-AC_SEARCH_LIBS([poptGetContext], [popt], [],
-			    [ echo "Please install 'popt-devel' package";
-			      exit 1 ])
-AC_SEARCH_LIBS([readline], [readline], [],
-			    [ echo "Please install 'readline-devel' package";
-			      exit 1 ])
-AC_SEARCH_LIBS([using_history], [history], [],
-			    [ echo "Please install 'readline-devel' package";
-			      exit 1 ])
+AC_PROG_CC
+AM_PROG_CC_C_O
 
-AC_SUBST([CFLAG_WALL])
-AC_SUBST([CFLAG_G])
-AC_SUBST([CFLAG_COMPAT])
-AC_SUBST([CFLAG_SSP])
-AC_SUBST([CPPFLAG_MMD])
-AC_SUBST([DEPEXTENSION])
-AC_SUBST([LIBS])
-AC_SUBST([TRU64FILEADD])
-AC_SUBST([TARGET_LIBC_PROVIDES_SSP])
-AC_SUBST([HAVE_LIBNUMA])
-AC_SUBST([HAVE_NUMA_ALLOCATE_NODEMASK])
+LT_INIT([dlopen disable-static])
 
-case $target_os in
-linux|linux-gnu)
-	CFLAG_WALL="-W -Wall -Wno-unused-parameter"
-	CFLAG_G=-g
-	CFLAG_COMPAT=
-	CPPFLAG_MMD=-MMD
-	DEPEXTENSION=.d
-	TRU64FILEADD=
-	;;
-*)
-	echo "Unknown os ($target_os)"
-	exit 1
-	;;
-esac
+AC_CHECK_LIB([numa], [numa_available],
+  [AC_SUBST([NUMA_LIBS], [-lnuma])
+   AC_DEFINE([HAVE_LIBNUMA])]
+   AC_CHECK_LIB([numa], [numa_allocate_nodemask],
+     [AC_DEFINE([HAVE_NUMA_ALLOCATE_NODEMASK])]))
 
-# Test for lib or lib64
-AC_SUBST([LIB_DIRNAME])
-case $target_cpu in
-x86_64)
-	LIB_DIRNAME=lib64
-	;;
-powerpc64)
-	LIB_DIRNAME=lib64
-	target_cpu=ppc64
-	;;
-*)
-	LIB_DIRNAME=lib
-	;;
-esac
+AC_CHECK_LIB([popt], [poptGetContext],
+  [AC_SUBST([POPT_LIBS], [-lpopt])],
+  [AC_MSG_ERROR([please install the popt devel package])])
 
-AC_CONFIG_FILES([Makefile])
-AC_CONFIG_FILES([bin/Makefile])
-AC_CONFIG_FILES([doc/Makefile])
-AC_CONFIG_FILES([include/Makefile])
-AC_CONFIG_FILES([lib/Makefile])
-AC_CONFIG_FILES([lib/Makefile.sharedlib])
-AC_CONFIG_FILES([lib/Makefile.staticlib])
-AC_CONFIG_FILES([lib/pse/Makefile])
-AC_CONFIG_FILES([lib/psi/Makefile])
-AC_CONFIG_FILES([lib/pscommon/Makefile])
-AC_CONFIG_FILES([lib/pslog/Makefile])
-AC_CONFIG_FILES([lib/putil/Makefile])
-AC_CONFIG_FILES([scripts/Makefile])
-AC_CONFIG_FILES([tests/functional/Makefile])
-AC_CONFIG_FILES([tests/plugins/Makefile])
-AC_CONFIG_FILES([plugins/Makefile])
-AC_CONFIG_FILES([plugins/Makefile.sharedlib])
-AC_CONFIG_FILES([plugins/Makefile.staticlib])
-AC_CONFIG_FILES([plugins/psaccount/Makefile])
-AC_CONFIG_FILES([plugins/psresport/Makefile])
+PS_SEARCH_LIBS([initscr], [ncurses curses], [RL_LIBS], [],
+  [AC_MSG_ERROR([please install the (n)curses devel package])])
 
-AC_CONFIG_HEADER(bin/config.h)
+PS_SEARCH_LIBS([readline], [readline], [RL_LIBS], [],
+  [AC_MSG_ERROR([please install the readline devel package])])
+
+PS_SEARCH_LIBS([using_history], [history], [RL_LIBS], [],
+  [AC_MSG_ERROR([please install the readline devel package])])
+
+AX_CHECK_COMPILE_FLAG([-O3],
+  [AM_CFLAGS="$AM_CFLAGS -O3"])
+
+AX_CHECK_COMPILE_FLAG([-Wall -Wextra -Wno-unused],
+  [AM_CFLAGS="$AM_CFLAGS -Wall -Wextra -Wno-unused"])
+
+AX_CHECK_COMPILE_FLAG([-fstack-protector-all],
+  [AM_CFLAGS="$AM_CFLAGS -fstack-protector-all"])
+
+AX_CHECK_COMPILE_FLAG([-fno-strict-aliasing],
+  [AM_CFLAGS="$AM_CFLAGS -fno-strict-aliasing"])
+
+AC_SUBST([AM_CFLAGS])
+AC_SUBST([AM_LDFLAGS])
+
+AC_ARG_ENABLE([testplugins], [AS_HELP_STRING([--enable-testplugins],
+  [build test plugins])])
+AM_CONDITIONAL([TESTPLUGINS_ENABLED], [test "x$enable_testplugins" = xyes])
+
+PS_FIX_LIBDIR
+
+AC_CONFIG_FILES(Makefile)
+AC_CONFIG_FILES(bin/Makefile)
+AC_CONFIG_FILES(doc/Makefile)
+AC_CONFIG_FILES(include/Makefile)
+AC_CONFIG_FILES(lib/Makefile)
+AC_CONFIG_FILES(lib/pscommon/Makefile)
+AC_CONFIG_FILES(lib/pse/Makefile)
+AC_CONFIG_FILES(lib/psi/Makefile)
+AC_CONFIG_FILES(lib/pslog/Makefile)
+AC_CONFIG_FILES(lib/putil/Makefile)
+AC_CONFIG_FILES(plugins/Makefile)
+AC_CONFIG_FILES(plugins/psaccount/Makefile)
+AC_CONFIG_FILES(plugins/psresport/Makefile)
+AC_CONFIG_FILES(scripts/Makefile)
+AC_CONFIG_FILES(tests/plugins/Makefile)
+AC_CONFIG_FILES(tests/functional/Makefile)
 
 AC_OUTPUT
 
-#
-# Local Variables:
-#  compile-command: "autoconf"
-# End:
-#
+# copy hand written Makefiles
+if test ! ${srcdir}/dist/Makefile -ef dist/Makefile ; then
+   install -D -p ${srcdir}/dist/Makefile dist/Makefile
+fi

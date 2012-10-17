@@ -1,0 +1,104 @@
+#
+# ParaStation
+#
+# Copyright (C) 2012 ParTec Cluster Competence Center GmbH, Munich
+#
+# This file may be distributed under the terms of the Q Public License
+# as defined in the file LICENSE.QPL included in the packaging of this
+# file.
+#
+# Author:	Thomas Moschny <moschny@par-tec.com>
+#
+
+include $(top_srcdir)/common.am
+
+PKG_VER := $(shell ${top_srcdir}/scripts/vcversion -r $(top_srcdir) --fmt version -n)
+PKG_REL := $(shell ${top_srcdir}/scripts/vcversion -r $(top_srcdir) --fmt release -n)
+
+AM_CPPFLAGS += -DVERSION_psmgmt=\"$(PKG_VER)\"
+AM_CPPFLAGS += -DRELEASE_psmgmt=\"$(PKG_REL)\"
+
+bin_PROGRAMS = psiadmin psid psilogger mlisten psmstart mpirun_chp4	\
+	psispawn mpirun_chgm gmspawner mpirun_openib test_pse		\
+	test_config pssh psaccounter mpiexec
+
+noinst_PROGRAMS = testacct
+
+noinst_HEADERS = admin/helpmsgs.c
+
+include_HEADERS = daemon/psidcomm.h daemon/psidhook.h			\
+	daemon/psidnodes.h daemon/psidplugin.h daemon/psidscripts.h	\
+	daemon/psidstatus.h daemon/psidtask.h daemon/psidutil.h
+
+libpse = $(top_builddir)/lib/pse/libpse.la
+libpsi = $(top_builddir)/lib/psi/libpsi.la
+libputil = $(top_builddir)/lib/putil/libputil.la
+libpscommon = $(top_builddir)/lib/pscommon/libpscommon.la
+libpslog = $(top_builddir)/lib/pslog/libpslog.la
+
+psiadmin_SOURCES = admin/psiadmin.c admin/commands.c admin/commands.h	\
+	admin/adminparser.c admin/adminparser.h
+psiadmin_LDADD = $(libputil) $(libpse) $(POPT_LIBS) $(RL_LIBS)
+
+psid_SOURCES = daemon/psidaccount.c daemon/psidaccount.h		\
+	daemon/psidamd.c daemon/psidamd.h daemon/psid.c			\
+	daemon/psidclient.c daemon/psidclient.h daemon/psidcomm.c	\
+	daemon/psidcomm.h daemon/psidenv.c daemon/psidenv.h		\
+	daemon/psidforwarder.c daemon/psidforwarder.h			\
+	daemon/psidhook.c daemon/psidhook.h daemon/psidhw.c		\
+	daemon/psidhw.h daemon/psidinfo.c daemon/psidinfo.h		\
+	daemon/psidmsgbuf.c daemon/psidmsgbuf.h daemon/psidnodes.c	\
+	daemon/psidnodes.h daemon/psidoption.c daemon/psidoption.h	\
+	daemon/psidpartition.c daemon/psidpartition.h			\
+	daemon/psidplugin.c daemon/psidplugin.h				\
+	daemon/psidpmiprotocol.c daemon/psidpmiprotocol.h		\
+	daemon/psidppc.c daemon/psidppc.h daemon/psidrdp.c		\
+	daemon/psidrdp.h daemon/psidscripts.c daemon/psidscripts.h	\
+	daemon/psidsignal.c daemon/psidsignal.h daemon/psidspawn.c	\
+	daemon/psidspawn.h daemon/psidstate.c daemon/psidstate.h	\
+	daemon/psidstatus.c daemon/psidstatus.h daemon/psidtask.c	\
+	daemon/psidtask.h daemon/psidtimer.h daemon/psidutil.c		\
+	daemon/psidutil.h daemon/psidintel.c daemon/psidintel.h
+psid_LDFLAGS = $(AM_LDFLAGS) -export-dynamic
+psid_LDADD = $(libputil) $(libpscommon) $(libpslog) $(libpse) -lutil	\
+	-ldl -lm $(POPT_LIBS) $(NUMA_LIBS)
+
+psilogger_SOURCES = logger/psilogger.c logger/psilogger.h	\
+	logger/psiloggerkvs.c logger/psiloggerkvs.h		\
+	logger/psiloggermerge.c logger/psiloggermerge.h		\
+	logger/psiloggerclient.c logger/psiloggerclient.h
+psilogger_LDADD = $(libputil) $(libpscommon) $(libpslog) $(RL_LIBS)	\
+	-lm
+
+mlisten_LDADD = $(POPT_LIBS)
+
+psmstart_LDADD = $(libpse) $(POPT_LIBS)
+
+mpirun_chp4_LDADD = $(libpse) $(POPT_LIBS)
+
+psispawn_LDADD = $(libpsi)
+
+mpirun_chgm_LDADD = $(libpse) $(POPT_LIBS)
+
+gmspawner_CPPFLAGS = $(AM_CPPFLAGS) -pthread
+gmspawner_LDFLAGS = $(AM_LDFLAGS) -pthread
+gmspawner_LDADD = $(libpsi) $(POPT_LIBS)
+
+mpirun_openib_LDADD = $(libpse) $(POPT_LIBS)
+
+test_pse_LDADD = $(libpse) $(POPT_LIBS)
+
+test_config_SOURCES = test_config.c daemon/psidnodes.c			\
+	daemon/psidnodes.h daemon/psidscripts.c daemon/psidscripts.h	\
+	daemon/psidutil.c daemon/psidutil.h
+test_config_LDADD = $(libputil) $(libpse) $(POPT_LIBS) -lm
+
+pssh_LDADD = $(libpse) $(POPT_LIBS)
+
+psaccounter_SOURCES = accounter/psaccounter.c
+psaccounter_LDADD = $(libpse) $(POPT_LIBS)
+
+mpiexec_CPPFLAGS = $(AM_CPPFLAGS) -DCONFIGDIR=\"$(configdir)\"
+mpiexec_LDADD = $(libpse) $(POPT_LIBS)
+
+testacct_LDADD = $(libpse) $(POPT_LIBS)

@@ -22,12 +22,11 @@
 test ${PS_ID?"missing env PS_ID"}
 
 #defaults
-PS_INSTALLDIR=${PS_INSTALLDIR-"/opt/parastation"}
 PS_IPENABLED=${PS_IPENABLED-"0"}
 PS_IPPREFIX=${PS_IPPREFIX-"192.168.48"}
 PS_IPPREFIXLEN=${PS_IPPREFIXLEN-"20"}
 
-PS_GMCOUNTERS=${PS_INSTALLDIR}/scripts/ps_gmcounters
+PS_GMCOUNTERS=@scriptsdir@/ps_gmcounters
 
 GM_INSTALLDIR=${GM_INSTALLDIR-"/opt/gm"}
 case "$1" in

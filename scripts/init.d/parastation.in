@@ -31,7 +31,7 @@
 #	starts and monitors processes.
 ### END INIT INFO
 
-PSID="/opt/parastation/bin/psid"
+PSID="@bindir@/psid"
 PSIDNAME=`basename $PSID`
 DESC="psid for ParaStation"
 RETVAL=0

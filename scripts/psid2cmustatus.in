@@ -15,14 +15,14 @@
 # 
 # This script could be triggerd by psid:
 #
-# /etc/parastation.conf:
-# nodeUpScript  "/opt/parastation/scripts/psid2cmustatus"
-# nodeDownScript "/opt/parastation/scripts/psid2cmustatus"
+# @sysconfdir@/parastation.conf:
+# nodeUpScript  "@scriptsdir@/psid2cmustatus"
+# nodeDownScript "@scriptsdir@/psid2cmustatus"
 #
 
 cmu_statfile="${1-/opt/cmu/log/cmustatus.log}"
 
-/opt/parastation/bin/psiadmin -c "resolve;status" | gawk '
+@bindir@/psiadmin -c "resolve;status" | gawk '
 $1==0	{ sec++ }
 
 sec==1	{ nname[$1] = $2 }

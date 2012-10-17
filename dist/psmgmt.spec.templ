@@ -10,7 +10,6 @@ License:   QPL
 Group:     Productivity/Clustering/Computing
 Packager:  support@par-tec.de
 Source0:   %{name}-%{version}-%{release}.tar.gz
-Requires:  psmgmt
 BuildRequires:	ncurses-devel, readline-devel
 %if %buildForSuSE
 BuildRequires:  popt-devel
@@ -18,11 +17,16 @@ BuildRequires:  popt-devel
 
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
+# for now
+%global _prefix /opt/parastation
+%global _plugindir %{_prefix}/plugins
+%global _configdir %{_prefix}/config
+%global _scriptsdir %{_prefix}/scripts
+
 %description
 The ParaStation Process Management Layer.
 
 %package devel
-# License:   Proprietary
 Summary:   Development files for ParaStation process management
 Group:     Productivity/Clustering/Computing
 Requires:  psmgmt = %{version}
@@ -32,7 +36,6 @@ The psmgmt-devel package includes additional header files necessary
 for developing plugins of the ParaStation Process Management daemon.
 
 %package mpilegacy
-# License:   Proprietary
 Summary:   Legacy MPI-starters for ParaStation process management
 Group:     Productivity/Clustering/Computing
 Requires:  psmgmt = %{version}
@@ -48,21 +51,18 @@ legacy implementations of the MPI version 1 standard.
 
 %prep
 %setup -q -n %{name}-%{version}-%{release}
-#%setup -q
-# %patch0 -p1
 
 %build
-
+export CFLAGS="%(echo %{optflags}|sed -e 's,-O.,,' -e 's,-Wall,,' -e 's,-Wextra,,')"
 %configure
-
-%{__make}
+make %{?_smp_mflags}
 
 %install
-%{__rm} -rf %{buildroot}
+rm -rf %{buildroot}
 make DESTDIR=%{buildroot} install
 
 %clean
-%{__rm} -rf %{buildroot}
+rm -rf %{buildroot}
 
 %pre
 if [ "$1" -gt 1 ]; then  # Thats an update
@@ -101,76 +101,78 @@ exit 0
 
 %files
 %defattr(-,root,root)
-%dir /opt/parastation
-/opt/parastation/ChangeLog.psmgmt
-/opt/parastation/LICENSE.QPL
-/opt/parastation/NEWS.psmgmt
-/opt/parastation/VERSION.psmgmt
-%dir /opt/parastation/bin
-/opt/parastation/bin/mlisten
-/opt/parastation/bin/mpiexec
-/opt/parastation/bin/psaccounter
-/opt/parastation/bin/psaccview
-/opt/parastation/bin/psh
-/opt/parastation/bin/psiadmin
-/opt/parastation/bin/psid
-/opt/parastation/bin/psilogger
-/opt/parastation/bin/pssh
-/opt/parastation/bin/test_config
-/opt/parastation/bin/test_pse
-/opt/parastation/config
-%dir /opt/parastation/include
-/opt/parastation/include/list_t.h
-/opt/parastation/include/logging.h
-/opt/parastation/include/pscommon.h
-/opt/parastation/include/pscpu.h
-/opt/parastation/include/pse.h
-/opt/parastation/include/psi.h
-/opt/parastation/include/psienv.h
-/opt/parastation/include/psiinfo.h
-/opt/parastation/include/psispawn.h
-/opt/parastation/include/psnodes.h
-/opt/parastation/include/pspartition.h
-/opt/parastation/include/psprotocol.h
-/opt/parastation/include/pstask.h
-/opt/parastation/%{_lib}
-/opt/parastation/plugins
-/opt/parastation/scripts
-/etc/profile.d/psmgmt.sh
-/etc/profile.d/psmgmt.csh
-/etc/init.d/parastation
+%doc %dir %{_datadir}/doc/psmgmt
+%doc %{_datadir}/doc/psmgmt/ChangeLog
+%doc %{_datadir}/doc/psmgmt/LICENSE.QPL
+%doc %{_datadir}/doc/psmgmt/NEWS
+%doc %{_datadir}/doc/psmgmt/VERSION.psmgmt
+%doc %{_datadir}/doc/psmgmt/parastation.conf.tmpl
+%{_bindir}/mlisten
+%{_bindir}/mpiexec
+%{_bindir}/psaccounter
+%{_bindir}/psh
+%{_bindir}/psiadmin
+%{_bindir}/psid
+%{_bindir}/psilogger
+%{_bindir}/pssh
+%{_bindir}/test_config
+%{_bindir}/test_pse
+%{_configdir}
+%{_scriptsdir}
+%{_includedir}/list_t.h
+%{_includedir}/logging.h
+%{_includedir}/pscommon.h
+%{_includedir}/pscpu.h
+%{_includedir}/pse.h
+%{_includedir}/psi.h
+%{_includedir}/psienv.h
+%{_includedir}/psiinfo.h
+%{_includedir}/psispawn.h
+%{_includedir}/psnodes.h
+%{_includedir}/pspartition.h
+%{_includedir}/psprotocol.h
+%{_includedir}/pstask.h
+%{_libdir}/libpse.so*
+%exclude %{_libdir}/libpse.la
+%{_libdir}/libpsi.so*
+%exclude %{_libdir}/libpsi.la
+%dir %{_plugindir}
+%{_plugindir}/psaccount.so
+%exclude %{_plugindir}/psaccount.la
+%config(noreplace) %{_plugindir}/psaccount.conf
+%{_plugindir}/psresport.so
+%exclude %{_plugindir}/psresport.la
+%config(noreplace) %{_plugindir}/psresport.conf
+%{_sysconfdir}/profile.d/psmgmt.sh
+%{_sysconfdir}/profile.d/psmgmt.csh
+%{_sysconfdir}/init.d/parastation
 %config(noreplace) /etc/xinetd.d/psidstarter
 %config(noreplace) /etc/parastation.conf
-%config(noreplace) /opt/parastation/plugins/psresport.conf
 %attr(770,root,nobody) /var/account
 
 %files devel
-%defattr(-,root,root)
-%dir /opt/parastation
-%dir /opt/parastation/include
-/opt/parastation/include/config_parsing.h
-/opt/parastation/include/list.h
-/opt/parastation/include/plugin.h
-/opt/parastation/include/psdaemonprotocol.h
-/opt/parastation/include/pstask.h
-/opt/parastation/include/selector.h
-/opt/parastation/include/timer.h
-/opt/parastation/include/psidcomm.h
-/opt/parastation/include/psidhook.h
-/opt/parastation/include/psidnodes.h
-/opt/parastation/include/psidplugin.h
-/opt/parastation/include/psidscripts.h
-/opt/parastation/include/psidstatus.h
-/opt/parastation/include/psidtask.h
-/opt/parastation/include/psidutil.h
+%defattr(-,root,root,-)
+%{_includedir}/config_parsing.h
+%{_includedir}/list.h
+%{_includedir}/plugin.h
+%{_includedir}/psdaemonprotocol.h
+%{_includedir}/pstask.h
+%{_includedir}/selector.h
+%{_includedir}/timer.h
+%{_includedir}/psidcomm.h
+%{_includedir}/psidhook.h
+%{_includedir}/psidnodes.h
+%{_includedir}/psidplugin.h
+%{_includedir}/psidscripts.h
+%{_includedir}/psidstatus.h
+%{_includedir}/psidtask.h
+%{_includedir}/psidutil.h
 
 %files mpilegacy
-%defattr(-,root,root)
-%dir /opt/parastation
-%dir /opt/parastation/bin
-/opt/parastation/bin/mpirun_chgm
-/opt/parastation/bin/gmspawner
-/opt/parastation/bin/mpirun_chp4
-/opt/parastation/bin/psispawn
-/opt/parastation/bin/mpirun_openib
-/opt/parastation/bin/psmstart
+%defattr(-,root,root,-)
+%{_bindir}/mpirun_chgm
+%{_bindir}/gmspawner
+%{_bindir}/mpirun_chp4
+%{_bindir}/psispawn
+%{_bindir}/mpirun_openib
+%{_bindir}/psmstart

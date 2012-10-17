@@ -30,7 +30,7 @@
 
 #define MALLOC_SIZE 512
 
-#define RESPORT_CONFIG "/opt/parastation/plugins/psresport.conf"
+#define RESPORT_CONFIG "psresport.conf"
 
 /** psid plugin requirements */
 char name[] = "psresport";
@@ -594,11 +594,14 @@ int initialize(void)
 {
     int debugMask;
     char *ports;
+    char configfn[200];
 
     initLogger(0);
 
     /* init the config facility */
-    if (!(initConfig(RESPORT_CONFIG))) return 1;
+    if (!(snprintf(configfn, sizeof(configfn), "%s/%s", PLUGINDIR,
+		   RESPORT_CONFIG) == sizeof(configfn))) return 1;
+    if (!(initConfig(configfn))) return 1;
 
     /* init logging facility */
     getConfParamI("DEBUG_MASK", &debugMask);

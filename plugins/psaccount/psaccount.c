@@ -33,7 +33,7 @@
 
 #include "psaccount.h"
 
-#define PSACCOUNT_CONFIG "/opt/parastation/plugins/psaccount.conf"
+#define PSACCOUNT_CONFIG "psaccount.conf"
 
 /** psid plugin requirements */
 char name[] = "psaccount";
@@ -116,6 +116,7 @@ int initialize(void)
 {
     int poll, debugMask;
     struct utsname uts;
+    char configfn[200];
 
     /* init all lists */
     initAccClientList();
@@ -126,7 +127,9 @@ int initialize(void)
     initLogger(false);
 
     /* init the config facility */
-    if (!(initConfig(PSACCOUNT_CONFIG))) return 1;
+    if (!(snprintf(configfn, sizeof(configfn), "%s/%s", PLUGINDIR,
+		   PSACCOUNT_CONFIG) == sizeof(configfn))) return 1;
+    if (!(initConfig(configfn))) return 1;
 
     /* init logging facility */
     getConfParamI("DEBUG_MASK", &debugMask);
