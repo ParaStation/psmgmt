@@ -54,7 +54,7 @@ legacy implementations of the MPI version 1 standard.
 
 %build
 export CFLAGS="%(echo %{optflags}|sed -e 's,-O.,,' -e 's,-Wall,,' -e 's,-Wextra,,')"
-%configure
+%configure --datarootdir=%{_datadir}
 make %{?_smp_mflags}
 
 %install
@@ -148,7 +148,7 @@ exit 0
 %{_sysconfdir}/init.d/parastation
 %config(noreplace) /etc/xinetd.d/psidstarter
 %config(noreplace) /etc/parastation.conf
-%attr(770,root,nobody) /var/account
+%attr(770,root,nobody) %{_localstatedir}/account
 
 %files devel
 %defattr(-,root,root,-)

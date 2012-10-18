@@ -31,7 +31,7 @@ our %conf;
 ####################################################
 
 # dir to read the accouting files
-$conf{'all'}{'account_dir'} = "/var/account";
+$conf{'all'}{'account_dir'} = "@localstatedir@/account";
 
 # check if the log entry are complete
 $conf{'all'}{'pedantic'} = "no";

@@ -96,6 +96,7 @@ test_config_LDADD = $(libputil) $(libpse) $(POPT_LIBS) -lm
 pssh_LDADD = $(libpse) $(POPT_LIBS)
 
 psaccounter_SOURCES = accounter/psaccounter.c
+psaccounter_CPPFLAGS = $(AM_CPPFLAGS) -DLOCALSTATEDIR=\"$(localstatedir)\"
 psaccounter_LDADD = $(libpse) $(POPT_LIBS)
 
 mpiexec_CPPFLAGS = $(AM_CPPFLAGS) -DCONFIGDIR=\"$(configdir)\"

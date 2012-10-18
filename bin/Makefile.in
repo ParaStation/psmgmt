@@ -93,6 +93,7 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/ax_check_compile_flag.m4 \
 	$(top_srcdir)/m4/ltsugar.m4 $(top_srcdir)/m4/ltversion.m4 \
 	$(top_srcdir)/m4/lt~obsolete.m4 \
 	$(top_srcdir)/m4/ps_fix_libdir.m4 \
+	$(top_srcdir)/m4/ps_fix_misc_dirs.m4 \
 	$(top_srcdir)/m4/ps_search_libs.m4 $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
@@ -127,7 +128,7 @@ mpirun_openib_SOURCES = mpirun_openib.c
 mpirun_openib_OBJECTS = mpirun_openib.$(OBJEXT)
 mpirun_openib_DEPENDENCIES = $(libpse) $(am__DEPENDENCIES_1)
 am__dirstamp = $(am__leading_dot)dirstamp
-am_psaccounter_OBJECTS = accounter/psaccounter.$(OBJEXT)
+am_psaccounter_OBJECTS = accounter/psaccounter-psaccounter.$(OBJEXT)
 psaccounter_OBJECTS = $(am_psaccounter_OBJECTS)
 psaccounter_DEPENDENCIES = $(libpse) $(am__DEPENDENCIES_1)
 am_psiadmin_OBJECTS = admin/psiadmin.$(OBJEXT) \
@@ -399,7 +400,8 @@ do_subst = sed \
 	-e 's,[@]pkgdatadir[@],$(pkgdatadir),g' \
 	-e 's,[@]sbindir[@],$(sbindir),g' \
 	-e 's,[@]scriptsdir[@],$(scriptsdir),g' \
-	-e 's,[@]sysconfdir[@],$(sysconfdir),g'
+	-e 's,[@]sysconfdir[@],$(sysconfdir),g' \
+	-e 's,[@]localstatedir[@],$(localstatedir),g'
 
 
 # should be $(libdir)/psmgmt-plugins or similar
@@ -475,6 +477,7 @@ test_config_SOURCES = test_config.c daemon/psidnodes.c			\
 test_config_LDADD = $(libputil) $(libpse) $(POPT_LIBS) -lm
 pssh_LDADD = $(libpse) $(POPT_LIBS)
 psaccounter_SOURCES = accounter/psaccounter.c
+psaccounter_CPPFLAGS = $(AM_CPPFLAGS) -DLOCALSTATEDIR=\"$(localstatedir)\"
 psaccounter_LDADD = $(libpse) $(POPT_LIBS)
 mpiexec_CPPFLAGS = $(AM_CPPFLAGS) -DCONFIGDIR=\"$(configdir)\"
 mpiexec_LDADD = $(libpse) $(POPT_LIBS)
@@ -593,8 +596,8 @@ accounter/$(am__dirstamp):
 accounter/$(DEPDIR)/$(am__dirstamp):
 	@$(MKDIR_P) accounter/$(DEPDIR)
 	@: > accounter/$(DEPDIR)/$(am__dirstamp)
-accounter/psaccounter.$(OBJEXT): accounter/$(am__dirstamp) \
-	accounter/$(DEPDIR)/$(am__dirstamp)
+accounter/psaccounter-psaccounter.$(OBJEXT):  \
+	accounter/$(am__dirstamp) accounter/$(DEPDIR)/$(am__dirstamp)
 psaccounter$(EXEEXT): $(psaccounter_OBJECTS) $(psaccounter_DEPENDENCIES) $(EXTRA_psaccounter_DEPENDENCIES) 
 	@rm -f psaccounter$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(psaccounter_OBJECTS) $(psaccounter_LDADD) $(LIBS)
@@ -712,7 +715,7 @@ testacct$(EXEEXT): $(testacct_OBJECTS) $(testacct_DEPENDENCIES) $(EXTRA_testacct
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
-	-rm -f accounter/psaccounter.$(OBJEXT)
+	-rm -f accounter/psaccounter-psaccounter.$(OBJEXT)
 	-rm -f admin/adminparser.$(OBJEXT)
 	-rm -f admin/commands.$(OBJEXT)
 	-rm -f admin/psiadmin.$(OBJEXT)
@@ -762,7 +765,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_config.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_pse.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/testacct.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@accounter/$(DEPDIR)/psaccounter.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@accounter/$(DEPDIR)/psaccounter-psaccounter.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@admin/$(DEPDIR)/adminparser.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@admin/$(DEPDIR)/commands.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@admin/$(DEPDIR)/psiadmin.Po@am__quote@
@@ -848,6 +851,20 @@ mpiexec-mpiexec.obj: mpiexec.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='mpiexec.c' object='mpiexec-mpiexec.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(mpiexec_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o mpiexec-mpiexec.obj `if test -f 'mpiexec.c'; then $(CYGPATH_W) 'mpiexec.c'; else $(CYGPATH_W) '$(srcdir)/mpiexec.c'; fi`
+
+accounter/psaccounter-psaccounter.o: accounter/psaccounter.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(psaccounter_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT accounter/psaccounter-psaccounter.o -MD -MP -MF accounter/$(DEPDIR)/psaccounter-psaccounter.Tpo -c -o accounter/psaccounter-psaccounter.o `test -f 'accounter/psaccounter.c' || echo '$(srcdir)/'`accounter/psaccounter.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) accounter/$(DEPDIR)/psaccounter-psaccounter.Tpo accounter/$(DEPDIR)/psaccounter-psaccounter.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='accounter/psaccounter.c' object='accounter/psaccounter-psaccounter.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(psaccounter_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o accounter/psaccounter-psaccounter.o `test -f 'accounter/psaccounter.c' || echo '$(srcdir)/'`accounter/psaccounter.c
+
+accounter/psaccounter-psaccounter.obj: accounter/psaccounter.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(psaccounter_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT accounter/psaccounter-psaccounter.obj -MD -MP -MF accounter/$(DEPDIR)/psaccounter-psaccounter.Tpo -c -o accounter/psaccounter-psaccounter.obj `if test -f 'accounter/psaccounter.c'; then $(CYGPATH_W) 'accounter/psaccounter.c'; else $(CYGPATH_W) '$(srcdir)/accounter/psaccounter.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) accounter/$(DEPDIR)/psaccounter-psaccounter.Tpo accounter/$(DEPDIR)/psaccounter-psaccounter.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='accounter/psaccounter.c' object='accounter/psaccounter-psaccounter.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(psaccounter_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o accounter/psaccounter-psaccounter.obj `if test -f 'accounter/psaccounter.c'; then $(CYGPATH_W) 'accounter/psaccounter.c'; else $(CYGPATH_W) '$(srcdir)/accounter/psaccounter.c'; fi`
 
 mostlyclean-libtool:
 	-rm -f *.lo

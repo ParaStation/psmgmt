@@ -76,6 +76,7 @@ AC_ARG_ENABLE([testplugins], [AS_HELP_STRING([--enable-testplugins],
 AM_CONDITIONAL([TESTPLUGINS_ENABLED], [test "x$enable_testplugins" = xyes])
 
 PS_FIX_LIBDIR
+PS_FIX_MISC_DIRS
 
 AC_CONFIG_FILES(Makefile)
 AC_CONFIG_FILES(bin/Makefile)

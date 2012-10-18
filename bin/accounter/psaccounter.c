@@ -61,7 +61,7 @@ static char vcid[] __attribute__ ((used)) =
 #define MAX_USERNAME_LEN 64
 #define MAX_GROUPNAME_LEN 64
 #define EXEC_HOST_SIZE 1024
-#define DEFAULT_LOG_DIR "/var/account"
+#define DEFAULT_LOG_DIR LOCALSTATEDIR "/account"
 #define ERROR_WAIT_TIME	60
 
 /* children struct */

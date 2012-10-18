@@ -11958,6 +11958,12 @@ if test "$libdir" = '${exec_prefix}/lib'; then
   esac
   libdir='${exec_prefix}/'$libdir
 fi
+if test "$sysconfdir" = '${prefix}/etc'; then
+  sysconfdir='/etc'
+fi
+if test "$localstatedir" = '${prefix}/var'; then
+  localstatedir='/var'
+fi
 
 ac_config_files="$ac_config_files Makefile"
 

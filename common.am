@@ -35,7 +35,8 @@ do_subst =sed \
 	-e 's,[@]pkgdatadir[@],$(pkgdatadir),g' \
 	-e 's,[@]sbindir[@],$(sbindir),g' \
 	-e 's,[@]scriptsdir[@],$(scriptsdir),g' \
-	-e 's,[@]sysconfdir[@],$(sysconfdir),g'
+	-e 's,[@]sysconfdir[@],$(sysconfdir),g' \
+	-e 's,[@]localstatedir[@],$(localstatedir),g'
 
 %: %.in
 	$(mkdir_verbose)mkdir -p $(@D)
