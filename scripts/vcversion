@@ -9,6 +9,7 @@
 # file.
 #
 # Author:	Jens Hauke <hauke@par-tec.com>
+# 		Thomas Moschny <moschny@par-tec.com>
 #
 
 function error() {
