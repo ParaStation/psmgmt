@@ -165,7 +165,10 @@ case "$arg_vc" in
 	vecho "url:     $url"
 	vecho "tag url: $tagurl"
 
-	copyfrom=$(LC_ALL=C svn log --verbose --limit 1 --xml "$tagurl"| xsltproc <(echo "$svn_xslt") -)
+	tmpfile=$(mktemp) || error "cannot create tmpfile"
+	echo "$svn_xslt" > "$tmpfile"
+	copyfrom=$(LC_ALL=C svn log --verbose --limit 1 --xml "$tagurl" | xsltproc "$tmpfile" -)
+	rm "$tmpfile"
 
 	prefix="/tags/$project/$project-"
 	version="${copyfrom#$prefix}"
