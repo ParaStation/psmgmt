@@ -127,8 +127,8 @@ int initialize(void)
     initLogger(false);
 
     /* init the config facility */
-    if (!(snprintf(configfn, sizeof(configfn), "%s/%s", PLUGINDIR,
-		   PSACCOUNT_CONFIG) == sizeof(configfn))) return 1;
+    snprintf(configfn, sizeof(configfn), "%s/%s", PLUGINDIR, PSACCOUNT_CONFIG);
+
     if (!(initConfig(configfn))) return 1;
 
     /* init logging facility */
