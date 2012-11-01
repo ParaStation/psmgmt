@@ -294,12 +294,18 @@ static void handleSignalMsg(PSLog_Msg_t *msg)
  * elapsed without receiving a complete message, a error is
  * returned.
  *
+ * If a message was received during the period to wait, upon return @a
+ * timeout will get updated and hold the remaining time of the
+ * original timeout.
+ *
  * This is done via the PSLog facility.
  *
  * @param msg Buffer to store the message to.
  *
  * @param timout The timeout after which the function returns. If this
- * is NULL, this function will block indefinitely.
+ * is NULL, this function will block indefinitely. Upon return this
+ * value will get updated and hold the remnant of the original
+ * timeout.
  *
  * @return On success, the number of bytes read are returned. On
  * error, -1 is returned, and errno is set appropriately.
@@ -525,7 +531,7 @@ again:
 static void releaseLogger(int status)
 {
     PSLog_Msg_t msg;
-    struct timeval timeout = {loggerTimeout, 0};
+    struct timeval timeout;
     int ret;
 
     if (loggerTID < 0) return;
@@ -533,6 +539,7 @@ static void releaseLogger(int status)
  send_again:
     sendMsg(FINALIZE, (char *)&status, sizeof(status));
 
+    timeout = (struct timeval) {loggerTimeout, 0};
  again:
     ret = recvMsg(&msg, &timeout);
 

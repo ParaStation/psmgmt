@@ -132,12 +132,11 @@ int PSLog_read(PSLog_Msg_t *msg, struct timeval *timeout)
 
     if (timeout) {
 	fd_set rfds;
-	struct timeval tmout = *timeout;
 
     restart:
 	FD_ZERO(&rfds);
 	FD_SET(daemonsock, &rfds);
-	n = select(daemonsock+1, &rfds, NULL, NULL, &tmout);
+	n = select(daemonsock+1, &rfds, NULL, NULL, timeout);
 	if (n < 0) {
 	    switch (errno) {
 	    case EINTR:
