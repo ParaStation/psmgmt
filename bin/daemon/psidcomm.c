@@ -204,7 +204,7 @@ int sendMsg(void *amsg)
 	int32_t key = -1;
 	int eno = errno;
 
-	if (eno == EHOSTUNREACH || eno == EPIPE ) {
+	if (eno == EHOSTUNREACH || eno == EPIPE || eno == ENOBUFS) {
 	    PSID_dropMsg((DDBufferMsg_t *)msg);
 	    if (msg->type == PSP_CD_SENDSTOP || msg->type == PSP_CD_SENDCONT
 		|| msg->type == PSP_CC_MSG || msg->type == PSP_CC_ERROR) {
