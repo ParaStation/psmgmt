@@ -196,7 +196,7 @@ int sendRDP(DDMsg_t *msg)
     }
 
     if (!list_empty(&node_bufs[node].list)
-	|| (ret==-1 && (errno==EAGAIN || errno==ONOBUFS))) {
+	|| (ret==-1 && (errno==EAGAIN || errno==ENOBUFS))) {
 	if (storeMsgRDP(node, msg)) {
 	    PSID_warn(-1, errno, "%s: Failed to store message", __func__);
 	    errno = ENOBUFS;
