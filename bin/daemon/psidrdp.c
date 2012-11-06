@@ -195,7 +195,8 @@ int sendRDP(DDMsg_t *msg)
 	ret = Rsendto(node, msg, msg->len);
     }
 
-    if (!list_empty(&node_bufs[node].list) || (ret==-1 && errno==EAGAIN)) {
+    if (!list_empty(&node_bufs[node].list)
+	|| (ret==-1 && (errno==EAGAIN || errno==ONOBUFS))) {
 	if (storeMsgRDP(node, msg)) {
 	    PSID_warn(-1, errno, "%s: Failed to store message", __func__);
 	    errno = ENOBUFS;
