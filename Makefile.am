@@ -49,4 +49,4 @@ dist-hook:
 tar rpm srpm tag version:
 	TOP_SRCDIR=$(abs_top_srcdir) $(MAKE) -C dist $@
 
-CLEANFILES += dist/Makefile
+DISTCLEANFILES = dist/Makefile
