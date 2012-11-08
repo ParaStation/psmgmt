@@ -59,7 +59,7 @@ $(RPMBUILDLOG): $(DISTNAME)/$(DISTNAME).spec $(DISTNAME).tar.gz
 		-bb --define="_sourcedir $$PWD" --define "_rpmdir $$PWD" \
 		--define="_rpmfilename %%{NAME}-%%{VERSION}-%%{RELEASE}.%%{ARCH}.rpm" \
 		--define="_builddir $(RPMBUILDDIR)" $(CONFIGARGS) \
-		$< |& tee $(RPMBUILDLOG)_ 2>&1 }
+		$< 2>&1 | tee $(RPMBUILDLOG)_
 	mv $(RPMBUILDLOG)_ $(RPMBUILDLOG)
 	# @grep -B4 -E "warn|error|Wrote:" $(RPMBUILDLOG) || :
 	-rmdir $(RPMBUILDDIR)
