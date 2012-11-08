@@ -75,8 +75,17 @@ AC_ARG_ENABLE([testplugins], [AS_HELP_STRING([--enable-testplugins],
   [build test plugins])])
 AM_CONDITIONAL([TESTPLUGINS_ENABLED], [test "x$enable_testplugins" = xyes])
 
+# lib -> lib64
 PS_FIX_LIBDIR
-PS_FIX_MISC_DIRS
+
+# we want to use /etc and /var instead of $prefix/etc and $prefix/var,
+# unless overridden explicitly. this breaks "make distcheck", so it
+# can be disabled
+AC_ARG_ENABLE([fixmiscdirs],[AS_HELP_STRING([--disable-fixmiscdirs],
+  [do not change defaults for sysconfdir and localstatedir])])
+AS_IF([test "x$enable_fixmiscdirs" != xno],[PS_FIX_MISC_DIRS])
+AM_DISTCHECK_CONFIGURE_FLAGS="--disable-fixmiscdirs"
+AC_SUBST([AM_DISTCHECK_CONFIGURE_FLAGS])
 
 AC_CONFIG_FILES(Makefile)
 AC_CONFIG_FILES(bin/Makefile)
