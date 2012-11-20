@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2011 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2012 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -224,7 +224,7 @@ void PSIDMsgbuf_gc(void)
     list_t *c, *tmp;
     unsigned int i;
 
-    if (usedSmallBufs > smallBufs/2 - MSGBUF_SCHUNK) return;
+    if ((int)usedSmallBufs > (int)smallBufs/2 - MSGBUF_SCHUNK) return;
 
     /* get list's first usable element */
     list_for_each_safe(c, tmp, &chunkList) {
