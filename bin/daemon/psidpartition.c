@@ -168,22 +168,22 @@ static void clearQueue(list_t *queue)
 
 /* ---------------------------------------------------------------------- */
 
-/** Structure used to hold node stati needed to handle partition requests */
+/** Structure used to hold node statuses needed to handle partition requests */
 typedef struct {
-    short assignedProcs;  /**< Number of processes assinged to this node */
-    char exclusive;       /**< Flag marking node to be used exclusivly */
+    short assignedProcs;  /**< Number of processes assigned to this node */
+    char exclusive;       /**< Flag marking node to be used exclusively */
     char taskReqPending;  /**< Number of pending PSP_DD_GETTASKS messages */
     PSCPU_set_t CPUset;   /**< Bit-field for used/free CPUs */
 } nodeStat_t;
 
 /**
- * Array holding info on node stati needed for partition
+ * Array holding info on node statuses needed for partition
  * requests. Only on master nodes.
  */
 static nodeStat_t *nodeStat = NULL;
 
 /**
- * Array holding pointer to temporary stati while actually creating
+ * Array holding pointer to temporary statuses while actually creating
  * the partitions within @ref getCandidateList(), @ref getNormalPart()
  * and @ref getOverbookPart().
  *
@@ -193,7 +193,7 @@ static nodeStat_t *nodeStat = NULL;
 static PSCPU_set_t **tmpStat = NULL;
 
 /**
- * Array holding temporary stati while actually creating the
+ * Array holding temporary statuses while actually creating the
  * partitions within @ref getCandidateList(), @ref getNormalPart() and
  * @ref getOverbookPart().
  *
@@ -320,16 +320,16 @@ static void registerReq(PSpart_request_t *req)
 }
 
 /**
- * @brief Deregister a request.
+ * @brief Unregister a request.
  *
- * Deregister the running request @a req, i.e. free the resources used
+ * Unregister the running request @a req, i.e. free the resources used
  * by the corresponding task from the @ref nodeStat structure.
  *
  * @param req The partition request to free.
  *
  * @return No return value.
  */
-static void deregisterReq(PSpart_request_t *req)
+static void unregisterReq(PSpart_request_t *req)
 {
     unsigned int i;
 
@@ -362,7 +362,7 @@ static void deregisterReq(PSpart_request_t *req)
  *
  * Mark the job connected to the partition request @a req as
  * finished. This means the resources noted in @a req will be freed
- * via @ref deregisterReq() and the request itself will be dequeued
+ * via @ref unregisterReq() and the request itself will be dequeued
  * from the list of running partition requests @ref runReq.
  *
  * @param req The partition request to mark as finished.
@@ -378,7 +378,7 @@ static void jobFinished(PSpart_request_t *req)
     PSIDhook_call(PSIDHOOK_MASTER_FINJOB, req);
     if (req->resPorts) free(req->resPorts);
 
-    if (!req->freed) deregisterReq(req);
+    if (!req->freed) unregisterReq(req);
 
     if (!dequeueRequest(&runReq, req) && !dequeueRequest(&suspReq, req)) {
 	PSID_log(-1, "%s: Unable to dequeue request %s\n",
@@ -400,7 +400,7 @@ static void jobSuspended(PSpart_request_t *req)
 		 __func__, PSC_printTID(req->tid));
     }
     if (config->freeOnSuspend) {
-	deregisterReq(req);
+	unregisterReq(req);
 	req->freed = 1;
     }
     enqueueRequest(&suspReq, req);
@@ -464,7 +464,7 @@ void cleanupRequests(PSnodes_ID_t node)
  * searched for requests marked for deletion. Whenever such an request
  * is found, it will be dequeued and deleted. If the requests was
  * found within @ref runReq, furthermore the resources allocated by
- * this requests will be freed via @ref deregisterReq().
+ * this requests will be freed via @ref unregisterReq().
  *
  * Requests may be marked for deletion from within @ref
  * cleanupRequests(). This marking / action mechanism is used, since
@@ -879,7 +879,7 @@ typedef struct {
     int cpus;           /**< Number of cpus available for the job */
     int jobs;           /**< Number of normal jobs running on this node */
     PSCPU_set_t CPUset; /**< Entry's CPU-set used in PART_OPT_EXACT requests */
-    double rating;      /**< The sorting criterium */
+    double rating;      /**< The sorting criterion */
     char canPin;        /**< Flag enabled process pinning */
 } sortentry_t;
 
@@ -892,7 +892,7 @@ typedef struct {
 } sortlist_t;
 
 /**
- * @brief Create list of candiadates
+ * @brief Create list of candidates
  *
  * Create a list of candidates, i.e. nodes that might be used for the
  * processes of the task described by @a request. Within this function
@@ -901,8 +901,8 @@ typedef struct {
  *
  * @param request This one describes the partition request.
  *
- * @return On success, a sortable list of nodes is returned. This list
- * is prepared to get sorted by sortCandidates(). If an error occured,
+ * @return On success, a sort-able list of nodes is returned. This list
+ * is prepared to get sorted by sortCandidates(). If an error occurred,
  * NULL is returned and errno is set appropriately.
  */
 static sortlist_t *getCandidateList(PSpart_request_t *request)
@@ -1060,7 +1060,7 @@ static sortlist_t *getCandidateList(PSpart_request_t *request)
  * two different candidates and decides which candidate has a higher
  * rank.
  *
- * The following sorting criterium is implemented:
+ * The following sorting criterion is implemented:
  *
  * - At the first place sort conforming to increasing rating, i.e. the
  *   node with the smallest rating at first rank.
@@ -1096,7 +1096,7 @@ static int compareNodes(const void *entry1, const void *entry2)
 }
 
 /**
- * @brief Sort list of candiadates
+ * @brief Sort list of candidates
  *
  * Sort the list of candidates described by @a list. @a list has to be
  * created using @ref getCandidateList(). Within the process of
@@ -1119,13 +1119,13 @@ static void sortCandidates(sortlist_t *list)
  * Get a normal partition, i.e. a partition, with either the @ref
  * PART_OPT_OVERBOOK option set in the request or with all nodes
  * within the list of candidates allow processor-pinning and
- * overbooking is explicitely requested.
+ * overbooking is explicitly requested.
  *
  * The partition will be created conforming to the request @a request
  * from the nodes described by the sorted list @a candidates. The
  * actual slots of the created partition are stored within @a slots.
  *
- * Befor calling this function it has to be assured that either the
+ * Before calling this function it has to be assured that either the
  * list of candidates contains enough CPUs to allocate all the slots
  * requested or all the candidates allow overbooking and can do
  * process-pinning. Neither of these requirement will be tested within
@@ -1663,7 +1663,7 @@ static int sendNodelist(PSpart_request_t *request, DDBufferMsg_t *msg)
 }
 
 /**
- * Chunksize for PSP_DD_PROVIDEPARTSL and PSP_DD_PROVIDETASKSL
+ * Chunk-size for PSP_DD_PROVIDEPARTSL and PSP_DD_PROVIDETASKSL
  * messages
  */
 #define SLOTS_CHUNK 128
@@ -1754,10 +1754,10 @@ static int sendSlotlist(PSpart_slot_t *slots, int num, DDBufferMsg_t *msg)
 /**
  * @brief Send reserved ports.
  *
- * Send the reserved ports used by the OpenMPI startup mechanism. This function
- * is used to send new created reservations and to restore the reservation
- * bitfield when the master changed. The @a resPorts list must be terminated by
- * an entry which is set to 0.
+ * Send the reserved ports used by the OpenMPI startup mechanism. This
+ * function is used to send new created reservations and to restore
+ * the reservation bit-field when the master changed. The @a resPorts
+ * list must be terminated by an entry which is set to 0.
  *
  * @param resPorts The reserved ports to send.
  *
@@ -1872,7 +1872,7 @@ static int sendPartition(PSpart_request_t *req)
  * be queued within @ref pendReq. So after actually allocating
  * the partition and before sending it to the requesting process, @a
  * request will be dequeued from this queue and - with the allocated
- * partition included - requeued to the @ref runReq queue of
+ * partition included - re-enqueued to the @ref runReq queue of
  * requests.
  *
  * If the partition allocation failed, @a request will remain in the
@@ -2059,9 +2059,9 @@ static void sendAcctQueueMsg(PStask_t *task)
  * With this kind of message a client will request for a partition of
  * nodes. Besides forwarding this kind of message to the master node
  * as a PSP_DD_GETPART message it will be stored locally in order to
- * allow resending it, if the master changes.
+ * allow re-sending it, if the master changes.
  *
- * Depending on the acutal request, a PSP_CD_CREATEPART message might
+ * Depending on the actual request, a PSP_CD_CREATEPART message might
  * be followed by one or more PSP_CD_CREATEPARTNL messages.
  *
  * @param inmsg Pointer to the message to handle.
@@ -2429,8 +2429,8 @@ static void msg_GETPARTNL(DDBufferMsg_t *inmsg)
  * Append the slots within the message @a inmsg to the slotlist contained
  * in the partition request @a request.
  *
- * @a insmg has a buffer contains the a list of slots stored as
- * PSpart_slot_t data preceeded by the number of slots within this
+ * @a insmg has a buffer containing the a list of slots stored as
+ * PSpart_slot_t data preceded by the number of slots within this
  * chunk. The size of the chunk, i.e. the number of slots, is stored
  * as a int16_t at the beginning of the buffer.
  *
@@ -2899,7 +2899,7 @@ static void msg_GETNODES(DDBufferMsg_t *inmsg)
  * PSP_DD_GETRANKNODE.
  *
  * This kind of message is used by clients in order to actually get
- * the node of the process which shall act as a destinct rank within
+ * the node of the process which shall act as a distinct rank within
  * the job from the pool of nodes stored within the partition
  * requested from the master node.
  *
@@ -3418,7 +3418,7 @@ static void msg_PROVIDETASKSL(DDBufferMsg_t *inmsg)
  * @a opt, each message is followed by one or more messages containing
  * the list of processor slots allocated to the request.
  *
- * @param dest The task ID of the process the answeres are sent to.
+ * @param dest The task ID of the process the answers are sent to.
  *
  * @param queue List of requests to be sent.
  *

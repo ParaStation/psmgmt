@@ -60,7 +60,7 @@ PStask_t *childTask = NULL;
 /** The socket connecting to the local ParaStation daemon */
 int daemonSock = -1;
 
-/** The socket listening for connection from the pmi client (tcp/ip only) */
+/** The socket listening for connection from the pmi client (TCP/IP only) */
 int PMISock = -1;
 
 /** The type of the connection between forwarder and client */
@@ -209,9 +209,9 @@ int PSIDfwd_printMsgf(PSLog_msg_t type, const char *format, ...)
  * @brief Deliver signal.
  *
  * Deliver signal @a signal to controlled process. If the child is
- * interactive, the signal is send to the forground process group of
+ * interactive, the signal is send to the foreground process group of
  * the controlling tty. Otherwise it's first tried to delivered to the
- * process-group with ID @a dest. If this failes, the process with ID
+ * process-group with ID @a dest. If this fails, the process with ID
  * @a dest gets the signal.
  *
  * @param dest Process ID of the process to send signal to. Not used
@@ -302,7 +302,7 @@ static void handleSignalMsg(PSLog_Msg_t *msg)
  *
  * @param msg Buffer to store the message to.
  *
- * @param timout The timeout after which the function returns. If this
+ * @param timeout The timeout after which the function returns. If this
  * is NULL, this function will block indefinitely. Upon return this
  * value will get updated and hold the remnant of the original
  * timeout.
@@ -579,7 +579,7 @@ static void releaseLogger(int status)
  *
  * Write the message @a msg to the @ref stdinSock file-descriptor,
  * starting at by @a offset of the message. It is expected that the
- * previos parts of the message were sent in earlier calls to this
+ * previous parts of the message were sent in earlier calls to this
  * function.
  *
  * @param msg The message to transmit.
@@ -743,7 +743,7 @@ static void handleWINCH(PSLog_Msg_t *msg)
  *
  * @param data Some additional data. Currently not in use.
  *
- * @return If a fatal error occured, -1 is returned and errno is set
+ * @return If a fatal error occurred, -1 is returned and errno is set
  * appropriately. Otherwise 0 is returned.
  */
 static int readFromLogger(int fd, void *data)
@@ -816,7 +816,7 @@ static int readFromLogger(int fd, void *data)
  *
  * @param data Some additional data. Currently not in use.
  *
- * @return If a fatal error occured, -1 is returned and errno is set
+ * @return If a fatal error occurred, -1 is returned and errno is set
  * appropriately. Otherwise 0 is returned.
  */
 static int readFromPMIClient(int fd, void *data)
@@ -876,7 +876,7 @@ static int readFromPMIClient(int fd, void *data)
  *
  * This is a replacement for the read(2) function call. read(2) is
  * called repeatedly until an EOL ('\n') is received as the last
- * character or a timeout occured.
+ * character or a timeout occurred.
  *
  * @param sock Socket to read(2) from.
  *
@@ -888,8 +888,8 @@ static int readFromPMIClient(int fd, void *data)
  *
  *
  * @return The number of bytes received within the last round. 0
- * denotes an EOF. If an error occured, -1 is returned and errno is
- * set approriately. If the last round timed out, -1 is returned and
+ * denotes an EOF. If an error occurred, -1 is returned and errno is
+ * set appropriately. If the last round timed out, -1 is returned and
  * errno is set to ETIME.
  */
 static size_t collectRead(int sock, char *buf, size_t count, size_t *total)
@@ -934,7 +934,7 @@ static size_t collectRead(int sock, char *buf, size_t count, size_t *total)
  *
  * @param data Some additional data. Currently not in use.
  *
- * @return If a fatal error occured, -1 is returned and errno is set
+ * @return If a fatal error occurred, -1 is returned and errno is set
  * appropriately. Otherwise 0 is returned.
  */
 static int readFromChild(int fd, void *data)
@@ -996,7 +996,7 @@ static int readFromChild(int fd, void *data)
 /**
  * @brief Send accounting information.
  *
- * Send the collected accouting information to the corresponding
+ * Send the collected accounting information to the corresponding
  * accounting daemons.
  *
  * @param rusage The rusage information received from the child.
@@ -1085,7 +1085,7 @@ static pid_t childPID = 0;
 /** Contains child's exit-status after SIGCHLD received */
 static int childStatus;
 
-/** Contains child's ressource usage after SIGCHLD received */
+/** Contains child's resource-usage after SIGCHLD received */
 static struct rusage childRUsage;
 
 /**
@@ -1391,7 +1391,7 @@ again:
  * @brief Handle signalFD
  *
  * This selector handles the signalFD file-descriptor. It mainly
- * closes and de-registers it. Its main function is to escape from
+ * closes and unregisters it. Its main function is to escape from
  * the Sselect() the function @ref loop() is sleeping in.
  *
  * @param fd The file-descriptor to handle
@@ -1445,7 +1445,7 @@ static int registerSelectHandlers(void)
  * @brief The main loop
  *
  * Does all the forwarding work. A tasks is connected and output forwarded
- * to the logger. I/O data is expected on stdoutport and stderrport.
+ * to the logger. I/O data is expected on stdout-port and stderr-port.
  * It is send via #STDOUT and #STDERR messages respectively.
  *
  * @return No return value.
@@ -1513,7 +1513,7 @@ static void waitForChildsDead(void)
     finalizeForwarder();
 }
 
-/* see header file for docu */
+/* see header file for documentation */
 void PSID_forwarder(PStask_t *task, int daemonfd, int eno, int PMISocket,
 		    PMItype_t PMItype)
 {

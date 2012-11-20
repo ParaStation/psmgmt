@@ -85,10 +85,10 @@ typedef enum {
 
 /** The possible RDP message types */
 #define RDP_DATA     0x1  /**< regular data message */
-#define RDP_SYN      0x2  /**< synchronozation message */
-#define RDP_ACK      0x3  /**< explicit acknowledgement */
-#define RDP_SYNACK   0x4  /**< first acknowledgement */
-#define RDP_NACK     0x5  /**< negative acknowledgement */
+#define RDP_SYN      0x2  /**< synchronization message */
+#define RDP_ACK      0x3  /**< explicit acknowledgment */
+#define RDP_SYNACK   0x4  /**< first acknowledgment */
+#define RDP_NACK     0x5  /**< negative acknowledgment */
 #define RDP_SYNNACK  0x6  /**< NACK to reestablish broken connection */
 
 static struct {
@@ -179,12 +179,12 @@ static int RDPPktLoss = 0;
 static int cleanupReq = 0;
 
 /**
- * The actual maximum retransmission count. Get/set by
+ * The actual maximum re-transmission count. Get/set by
  * getMaxRetransRDP()/setMaxRetransRDP()
  */
 static int RDPMaxRetransCount = 32;
 
-/** Actual number of retransmissions done */
+/** Actual number of re-transmissions done */
 static unsigned int retransCount = 0;
 
 /**
@@ -307,7 +307,7 @@ static LIST_HEAD(AckList);     /**< List of pending ACKs */
  */
 typedef struct Smsg_ {
     rdphdr_t header;                /**< Message header */
-    char data[RDP_SMALL_DATA_SIZE]; /**< Body for small pakets */
+    char data[RDP_SMALL_DATA_SIZE]; /**< Body for small packets */
     struct Smsg_ *next;             /**< Pointer to next Smsg buffer */
 } Smsg_t;
 
@@ -385,7 +385,7 @@ static void putSMsg(Smsg_t *mp)
  */
 typedef struct {
     rdphdr_t header;                /**< Message header */
-    char data[RDP_MAX_DATA_SIZE];   /**< Body for large pakets */
+    char data[RDP_MAX_DATA_SIZE];   /**< Body for large packets */
 } Lmsg_t;
 
 /**
@@ -595,7 +595,7 @@ static int handleErr(void);
  * stores it to @a buf. The sender-address is stored in @a from.
  *
  * On platforms supporting extended reliable error messages, these
- * type of messages are handled upon occurence. This may result in a
+ * type of messages are handled upon occurrence. This may result in a
  * return value of 0 in the special case, where only such an extended
  * message is pending without any other "normal" message.
  *
@@ -612,7 +612,7 @@ static int handleErr(void);
  * @param fromlen Length of @a from.
  *
  * @return On success, the number of bytes received is returned, or -1
- * if an error occured. Be aware of return values of 0 triggered by
+ * if an error occurred. Be aware of return values of 0 triggered by
  * the special situation, where only a extended error message is
  * pending on the socket.
  *
@@ -699,10 +699,10 @@ static int MYrecvfrom(int sock, void *buf, size_t len, int flags,
  * mostly caused by the interval timer. Send a message of length @a
  * len stored in @a buf via @a sock to node @a node. If the flag @a
  * hton is set, the message's header is converted to ParaStation's
- * network-byteorder beforehand.
+ * network byte-order beforehand.
  *
  * On platforms supporting extended reliable error messages, these
- * type of messages are handled upon occurence. This should not touch
+ * type of messages are handled upon occurrence. This should not touch
  * the sending of a message since automatic retries a triggered.
  *
  *
@@ -719,7 +719,7 @@ static int MYrecvfrom(int sock, void *buf, size_t len, int flags,
  * @param hton
  *
  * @return On success, the number of bytes sent is returned, or -1 if an error
- * occured.
+ * occurred.
  *
  * @see sendto(2)
  */
@@ -1056,7 +1056,7 @@ static void closeConnection(int node, int callback, int silent)
  * Resend the first pending message to node @a node. Pending messages
  * will be resent, if the @ref RESEND_TIMEOUT since the last (re-)send
  * has elapsed without receiving the corresponding ACK. If more than
- * @ref RDPMaxRetransCount unsuccessful resends have been made, the
+ * @ref RDPMaxRetransCount unsuccessful re-sends have been made, the
  * corresponding packet will be discarded and the connection to node
  * @a node will be declared dead.
  *
@@ -1146,12 +1146,12 @@ static void resendMsgs(int node)
  * Basically a connection undergoes one of two standard status
  * histories: Either CLOSED -> SYN_SENT -> ACTIVE or CLOSED ->
  * SYN_RECVD -> ACTIVE. But obviously depending on special incidents
- * further status histories are possible, espacially if unexpected
+ * further status histories are possible, especially if unexpected
  * events happen.
  *
  * Furthermore depending on the old state of the connection and the
  * type of packet received various actions like sending packets to the
- * communication parnter might be attempted.
+ * communication partner might be attempted.
  *
  * @param hdr Packet header according to which the state is updated.
  *
@@ -1415,7 +1415,7 @@ static void handleTimeoutRDP(void)
  * includes freeing the packets buffers of the messages which ACK was
  * pending and is now received.
  *
- * Furthermore retransmissions on the communication partner node @a
+ * Furthermore re-transmissions on the communication partner node @a
  * fromnode might be initiated by sending a NACK message.
  *
  * @param hdr The packet header with the ACK in
@@ -1511,9 +1511,9 @@ static void doACK(rdphdr_t *hdr, int fromnode)
 }
 
 /**
- * @brief Resequence message queue of a connection.
+ * @brief Re-sequence message queue of a connection.
  *
- * Resequence the message queue of the connection to node @a node,
+ * Re-sequence the message queue of the connection to node @a node,
  * i.e. ACK all messages received on the other side and set msgPending
  * for this connection accordingly.
  *
@@ -1524,7 +1524,7 @@ static void doACK(rdphdr_t *hdr, int fromnode)
  * @param fromnode The node @a hdr was received from and whose ACK
  * and msgPending information has to be updated.
  *
- * @return The number of resequenced pakets.
+ * @return The number of re-sequenced packets.
  */
 static int resequenceMsgQ(rdphdr_t *hdr, int fromnode)
 {
@@ -1726,13 +1726,13 @@ static int handleErr(void)
 /**
  * @brief Handle RDP message.
  *
- * Peek into a RDP message pending on @a fd. Depening on the type of
+ * Peek into a RDP message pending on @a fd. Depending on the type of
  * the message it is either fully handled within this function or a
  * return value of 1 signals the calling function, that a RDP_DATA
  * message is now pending on the RDP socket.
  *
  * Handling of the packet includes -- besides consistency checks --
- * processing of the acknowledgment information comming within the
+ * processing of the acknowledgment information coming within the
  * packet header.
  *
  * If the @ref RDPPktLoss parameter of the RDP protocol is different
@@ -1845,7 +1845,7 @@ static int handleRDP(int fd, void *info)
 	return 0;
     }
 
-    /* Check DATA_MSG for Retransmissions */
+    /* Check DATA_MSG for re-transmissions */
     if (RSEQCMP(msg.header.seqno, conntable[fromnode].frameExpected)
 	|| conntable[fromnode].state != ACTIVE) {
 	/* Wrong seq */
@@ -1945,7 +1945,7 @@ int initRDP(int nodes, unsigned short portno, FILE* logfile,
 
 void exitRDP(void)
 {
-    Selector_remove(rdpsock);      /* deregister selector */
+    Selector_remove(rdpsock);      /* unregister selector */
     Timer_remove(timerID);         /* stop interval timer */
     close(rdpsock);                /* close RDP socket */
     logger_finalize(logger);
@@ -2164,7 +2164,7 @@ int Rsendto(int node, void *buf, size_t len)
     mp->len = len;
 
     /*
-     * setup msg header -- we use network-byteorder since this goes
+     * setup msg header -- we use network byte-order since this goes
      * into the list of pending messages
      */
     mp->msg.small->header.type = pshton16(RDP_DATA);

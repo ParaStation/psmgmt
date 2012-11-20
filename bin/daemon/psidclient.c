@@ -491,7 +491,7 @@ void deleteClient(int fd)
 	task->released = 1;
     }
 
-    /* Deregister TG_(PSC)SPAWNER from parent process */
+    /* Unregister TG_(PSC)SPAWNER from parent process */
     if (task->group == TG_SPAWNER || task->group == TG_PSCSPAWNER) {
 	PStask_t *parent = PStasklist_find(&managedTasks, task->ptid);
 
@@ -507,7 +507,7 @@ void deleteClient(int fd)
 	}
     }
 
-    /* Deregister TG_ACCOUNT */
+    /* Unregister TG_ACCOUNT */
     if (task->group == TG_ACCOUNT) {
 	DDOptionMsg_t acctmsg = {
 	    .header = {
@@ -754,7 +754,7 @@ static void msg_CLIENTCONNECT(int fd, DDBufferMsg_t *bufmsg)
 	}
     }
     if (task) {
-	/* reconnection */
+	/* re-connection */
 	/* use the old task struct but close the old fd */
 	PSID_log(PSID_LOG_CLIENT, "%s: reconnecting task %s, old/new fd ="
 		 " %d/%d\n", __func__, PSC_printTID(task->tid), task->fd, fd);

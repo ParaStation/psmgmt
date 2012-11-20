@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2011 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2012 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -55,7 +55,7 @@ typedef struct {
     short virtCPU;         /**< Number of virtual CPUs in that node */
     char isUp;             /**< Actual status of that node */
     unsigned int hwType;   /**< Communication hardware on that node */
-    unsigned int hwStatus; /**< Corresponding stati of the hardware */
+    unsigned int hwStatus; /**< Corresponding statuses of the hardware */
     in_addr_t extraIP;     /**< Additional IP address of that node */
     char runJobs;          /**< Flag to mark that node to run jobs */
     char isStarter;        /**< Flag to allow to start jobs from that node */

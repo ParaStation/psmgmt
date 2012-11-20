@@ -128,7 +128,7 @@ static int getFullList(sizedList_t *list, PSP_Info_t what, size_t itemSize)
 /** List used for storing of host stati. */
 static sizedList_t hostStatus = { .actSize = 0, .list = NULL };
 
-/** Simple wrapper for retrieval of host stati */
+/** Simple wrapper for retrieval of host status */
 static inline int getHostStatus(void)
 {
     return getFullList(&hostStatus, PSP_INFO_LIST_HOSTSTATUS, sizeof(char));
@@ -137,7 +137,7 @@ static inline int getHostStatus(void)
 /** List used for storing of hardware stati. */
 static sizedList_t hwList = { .actSize = 0, .list = NULL };
 
-/** Simple wrapper for retrieval of hardware stati */
+/** Simple wrapper for retrieval of hardware statuses */
 static inline int getHWStat(void)
 {
     return getFullList(&hwList, PSP_INFO_LIST_HWSTATUS, sizeof(uint32_t));
@@ -701,7 +701,7 @@ void PSIADM_CountStat(int hw, char *nl)
     }
 }
 
-/** List used for storing of task informations. */
+/** List used for storing of task information. */
 static sizedList_t tiList = { .actSize = 0, .list = NULL };
 
 void PSIADM_ProcStat(int count, int full, char *nl)

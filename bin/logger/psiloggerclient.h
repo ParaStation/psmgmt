@@ -35,7 +35,7 @@ extern "C" {
 /**
  * @brief Initialize client management
  *
- * Initialized the client managment. Afterwards to client management
+ * Initialized the client management. Afterwards to client management
  * expects rank between a minimum of @a minClientRank and a maximum of
  * @a maxClientRank. Subsequent calls to @ref registerClient() might
  * extend this range dynamically.
@@ -47,7 +47,7 @@ extern "C" {
  *
  * @param minClientRank The minimum rank for clients expected.
  *
- * @param maxClientRank The maxmum rank for clients expected.
+ * @param maxClientRank The maximum rank for clients expected.
  *
  * @return No return value.
  */
@@ -58,7 +58,7 @@ void initClients(int minClientRank, int maxClientRank);
  *
  * Register the client working on rank @a rank with task-ID @a tid. If
  * rank is larger than the current maximum or smaller than the current
- * minimum, internal structure are correspondingly extened.
+ * minimum, internal structure are correspondingly extended.
  *
  * @param rank Rank of the client to register.
  *
@@ -71,13 +71,13 @@ void initClients(int minClientRank, int maxClientRank);
 int registerClient(int rank, PStask_ID_t tid);
 
 /**
- * @brief Deregister client
+ * @brief Unregister client
  *
- * Deregister the client working on rank @a rank. If rank is out of
+ * Unregister the client working on rank @a rank. If rank is out of
  * range, i.e. smaller than the minimum rank or larger than the
  * maximum rank, the function will exit() the calling program.
  *
- * @param rank Rank of the client to deregister.
+ * @param rank Rank of the client to unregister.
  *
  * @return No return value
  */
@@ -173,8 +173,8 @@ int allActiveThere(void);
  * @brief Test, if client is gone
  *
  * Test, if the client with rank @a rank is gone. A client is marked
- * es gone, if it was registered in the past but in the meantime
- * de-registered.
+ * as gone, if it was registered in the past but in the meantime
+ * unregistered.
  *
  * @param rank Rank of the client to be tested.
  *

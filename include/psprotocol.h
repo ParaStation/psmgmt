@@ -105,8 +105,8 @@ typedef enum {
     PSP_OP_STATUS_BCASTS,         /**< status-broadcast limit */
 
     PSP_OP_RDPDEBUG = 0x0020,     /**< RDP's debug level */
-    PSP_OP_RDPPKTLOSS,            /**< Paket loss within RDP (debugging) */
-    PSP_OP_RDPMAXRETRANS,         /**< Max. retransmissions in RDP */
+    PSP_OP_RDPPKTLOSS,            /**< Packet loss within RDP (debugging) */
+    PSP_OP_RDPMAXRETRANS,         /**< Max. re-transmissions in RDP */
     PSP_OP_RDPMAXACKPEND,         /**< Max. pending ACKs in RDP */
     PSP_OP_RDPRSNDTMOUT,          /**< RDP's resend-timeout */
     PSP_OP_RDPCLSDTMOUT,          /**< RDP's closed-timeout */
@@ -221,7 +221,7 @@ typedef enum {
 
     PSP_INFO_LIST_VIRTCPUS,       /**< List of virtual CPU numbers */
     PSP_INFO_LIST_PHYSCPUS,       /**< List of physical CPU numbers */
-    PSP_INFO_LIST_HWSTATUS,       /**< List of hardware stati */
+    PSP_INFO_LIST_HWSTATUS,       /**< List of hardware statuses */
     PSP_INFO_LIST_LOAD,           /**< List of load average values */
     PSP_INFO_LIST_ALLJOBS,        /**< List of job numbers (all jobs) */
     PSP_INFO_LIST_NORMJOBS,       /**< List of job numbers (normal jobs) */
@@ -472,7 +472,7 @@ typedef struct {
     DDOption_t opt[DDOptionMsgMax]; /**< array of option-value pairs */
 } DDOptionMsg_t;
 
-/** Signal message used to (de)register and send signals. */
+/** Signal message used to (un)register and send signals. */
 typedef struct {
     DDMsg_t header;        /**< message header */
     int32_t signal;        /**< signal to be set or sent */

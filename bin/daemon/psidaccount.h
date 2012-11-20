@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2006-2008 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2006-2012 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -53,9 +53,9 @@ void initAccount(void);
 void PSID_addAcct(PStask_ID_t acctr);
 
 /**
- * @brief De-register accounter.
+ * @brief Unregister accounter.
  *
- * De-register the accounter task with task ID @a acctr.
+ * Unregister the accounter task with task ID @a acctr.
  *
  * @param acctr Task ID of the new accounter to register.
  *

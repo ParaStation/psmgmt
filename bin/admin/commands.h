@@ -10,7 +10,7 @@
  */
 /**
  * \file
- * Commands of the ParaStation Adminstration Tool
+ * Commands of the ParaStation Administration Tool
  *
  * $Id$
  *
@@ -72,7 +72,7 @@ void PSIADM_AddNode(char *nl);
  * cluster. Therefore, the local ParaStation daemon is requested to
  * shutdown the corresponding daemon on the remote nodes, if this did
  * not already happen. Only the daemons (and processes controlled by
- * them) are stoped, not the whole machine.
+ * them) are stopped, not the whole machine.
  *
  * If the local daemon is instructed to shutdown, too, the requesting
  * process will also be killed.
@@ -184,7 +184,7 @@ void PSIADM_StarttimeStat(char *nl);
  * daemons within a cluster.
  *
  * - PSP_INFO_NODEDOWNSCRIPT request the name of the script called by
- * the master daemon whenever a node disappeares from the concert of
+ * the master daemon whenever a node disappears from the concert of
  * daemons within a cluster.
  *
  * @param type The type of scripts to display.
@@ -209,7 +209,7 @@ void PSIADM_ScriptStat(PSP_Info_t type, char *nl);
  *
  * @param mode If 'u', up nodes are printed. If 'd', down node are
  * printed. Otherwise some error message is generated and no further
- * actions applys.
+ * actions applies.
  *
  * @return No return value.
  */
@@ -259,10 +259,10 @@ void PSIADM_RDPConnStat(char *nl);
 void PSIADM_MCastStat(char *nl);
 
 /**
- * @brief Show Counter stati.
+ * @brief Show Counter statuses.
  *
- * Show the counter stati connected to the communication hardware @a
- * hw of the nodes marked within the nodelist @a nl. Therefore the
+ * Show the counter statuses connected to the communication hardware
+ * @a hw of the nodes marked within the nodelist @a nl. Therefore the
  * corresponding list containing the information is requested from the
  * local daemon and printed to stdout.
  *
@@ -362,7 +362,7 @@ void PSIADM_HWStat(char *nl);
  * Via the @a opt parameter the kind of information to be presented
  * might be restricted.
  *
- * Only informations concerning a special jobs might be requested by
+ * Only information concerning a special jobs might be requested by
  * setting the @a task parameter to a valid task ID. Then the
  * corresponding job is determined and the requested information is
  * requested and displayed.
@@ -372,7 +372,7 @@ void PSIADM_HWStat(char *nl);
  * information on all task (as defined via @a opt) is provided.
  *
  * @param opt Set of flags describing the kind of information to be
- * retrived.
+ * retrieved.
  *
  * @return No return value.
  */
