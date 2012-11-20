@@ -718,7 +718,12 @@ static void msg_CLIENTCONNECT(int fd, DDBufferMsg_t *bufmsg)
 	if (task) {
 	    /* Spawned process has changed pid */
 	    /* This might happen due to stuff in PSI_RARG_PRE_0 */
-	    PStask_t *child = PStask_clone(task);
+	    PStask_t *child;
+	    int blocked;
+
+	    blocked = PSID_blockSig(1, SIGCHLD);
+	    child = PStask_clone(task);
+	    PSID_blockSig(blocked, SIGCHLD);
 
 	    PSID_log(PSID_LOG_CLIENT, "%s: reconnection with changed PID"
 		     "%d -> %d\n", __func__, PSC_getPID(task->tid), pid);

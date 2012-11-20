@@ -2561,6 +2561,7 @@ static void msg_CHILDBORN(DDErrorMsg_t *msg)
 {
     PStask_t *forwarder = PStasklist_find(&managedTasks, msg->header.sender);
     PStask_t *child = PStasklist_find(&managedTasks, msg->request);
+    int blocked;
 
     PSID_log(PSID_LOG_SPAWN, "%s: from %s\n", __func__,
 	     PSC_printTID(msg->header.sender));
@@ -2583,7 +2584,9 @@ static void msg_CHILDBORN(DDErrorMsg_t *msg)
     }
 
     /* prepare child task */
+    blocked = PSID_blockSig(1, SIGCHLD);
     child = PStask_clone(forwarder);
+    PSID_blockSig(blocked, SIGCHLD);
     if (!child) {
 	PSID_warn(-1, errno, "%s: PStask_clone()", __func__);
 
