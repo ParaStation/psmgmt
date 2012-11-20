@@ -224,6 +224,7 @@ void PSID_sendSignal(PStask_ID_t tid, uid_t uid, PStask_ID_t sender,
 	    blocked = PSID_blockSig(1, SIGCHLD);
 	    list_for_each_safe(s, tmp, &dest->childList) {
 		PStask_sig_t *sig = list_entry(s, PStask_sig_t, next);
+		if (sig->deleted) continue;
 
 		PSID_sendSignal(sig->tid, uid, sender, signal, 1, answer);
 	    }
@@ -322,6 +323,7 @@ void PSID_sendSignalsToRelatives(PStask_t *task)
     blocked = PSID_blockSig(1, SIGCHLD);
     list_for_each(s, &task->childList) {
 	PStask_sig_t *sig = list_entry(s, PStask_sig_t, next);
+	if (sig->deleted) continue;
 
 	PSID_sendSignal(sig->tid, task->uid, task->tid, -1, 0, 0);
 	PSID_log(PSID_LOG_SIGNAL, "%s(%s)", __func__, PSC_printTID(task->tid));
@@ -1233,6 +1235,13 @@ static void drop_RELEASE(DDBufferMsg_t *msg)
 	sendMsg(&sigmsg);
 }
 
+static void signalGC(void)
+{
+    int blocked = PSID_blockSig(1, SIGCHLD);
+    PStask_gcSig();
+    PSID_blockSig(blocked, SIGCHLD);
+}
+
 void initSignal(void)
 {
     PSID_log(PSID_LOG_VERB, "%s()\n", __func__);
@@ -1251,4 +1260,6 @@ void initSignal(void)
     PSID_registerDropper(PSP_DD_NEWPARENT, drop_NEWRELATIVE);
     PSID_registerDropper(PSP_CD_NOTIFYDEAD, drop_RELEASE);
     PSID_registerDropper(PSP_CD_RELEASE, drop_RELEASE);
+
+    PSID_registerLoopAct(signalGC);
 }

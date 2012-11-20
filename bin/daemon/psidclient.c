@@ -499,7 +499,7 @@ void deleteClient(int fd)
 	    /* Remove dead spawner from list of children */
 	    PSID_removeSignal(&parent->childList, task->tid, -1);
 
-	    if (parent->removeIt && list_empty(&parent->childList)) {
+	    if (parent->removeIt && PSID_emptySigList(&parent->childList)) {
 		PSID_log(PSID_LOG_TASK,
 			 "%s: PStask_cleanup(parent)\n", __func__);
 		PStask_cleanup(parent->tid);

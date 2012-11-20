@@ -140,6 +140,30 @@ PStask_ID_t PSID_getSignalByID(list_t *sigList,
  * returned. Or 0, if no signal was found.
  */
 int PSID_getSignalByTID(list_t *sigList, PStask_ID_t tid);
+
+/**
+ * @brief Get number of signals in signal list
+ *
+ * Determine the number of signals stored in the signal list @a sigList.
+ *
+ * @param sigList Signal list to investigate
+ *
+ * @return Number of signals stored in the signal list @a sigList
+ */
+int PSID_numSignals(list_t *sigList);
+
+/**
+ * @brief Check if signal list is empty
+ *
+ * Check, if the signal list @a sigList contains any signals.
+ *
+ * @param sigList Signal list to investigate
+ *
+ * @return If any signal is stored in the signal list @a sigList, 0 is
+ * returned. Or 1, if the list is empty.
+ */
+int PSID_emptySigList(list_t *sigList);
+
 /*\@}*/
 
 /** @defgroup taskliststuff Tasklist routines */

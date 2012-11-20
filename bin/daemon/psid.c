@@ -298,6 +298,7 @@ static void sighandler(int sig)
 	break;
     case  SIGUSR1:   /* user defined signal 1 */
 	PSIDMsgbuf_printStat();
+	PStask_printStat();
 	RDP_printStat();
 	break;
     case  SIGUSR2:   /* user defined signal 2 */

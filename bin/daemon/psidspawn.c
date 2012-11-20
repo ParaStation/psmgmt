@@ -2751,7 +2751,7 @@ static void msg_CHILDDEAD(DDErrorMsg_t *msg)
 	    PSID_setSignal(&task->deadBefore, msg->request, -1);
 	}
 
-	if (task->removeIt && list_empty(&task->childList)) {
+	if (task->removeIt && PSID_emptySigList(&task->childList)) {
 	    PSID_log(PSID_LOG_TASK, "%s: PStask_cleanup()\n", __func__);
 	    PStask_cleanup(task->tid);
 	    return;
@@ -2773,7 +2773,7 @@ static void msg_CHILDDEAD(DDErrorMsg_t *msg)
 	case TG_SERVICE_SIG:
 	    /* service task requested signal */
 	    if (!WIFEXITED(msg->error) || WIFSIGNALED(msg->error)
-		|| list_empty(&task->childList)) {
+		|| PSID_emptySigList(&task->childList)) {
 		PSID_sendSignal(task->tid, task->uid, msg->request, -1, 0, 0);
 	    }
 	    break;

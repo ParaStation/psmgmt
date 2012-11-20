@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2011 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2012 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -41,6 +41,7 @@ static void printList(list_t *sigList)
 
     list_for_each(s, sigList) {
 	PStask_sig_t *sig = list_entry(s, PStask_sig_t, next);
+	if (sig->deleted) continue;
 	PSID_log(PSID_LOG_SIGDBG, " %s/%d",
 		 PSC_printTID(sig->tid), sig->signal);
     }
@@ -48,7 +49,7 @@ static void printList(list_t *sigList)
 
 void PSID_setSignal(list_t *sigList, PStask_ID_t tid, int signal)
 {
-    PStask_sig_t *thissig = malloc(sizeof(PStask_sig_t));
+    PStask_sig_t *thissig = PStask_getSig();
     int blocked;
 
     if (!thissig) {
@@ -88,13 +89,14 @@ PStask_sig_t *PSID_findSignal(list_t *sigList, PStask_ID_t tid, int signal)
     list_t *s;
     int blocked;
 
-    blocked = PSID_blockSig(1, SIGCHLD);
-
     PSID_log(PSID_LOG_SIGNAL, "%s(%s, %d)\n",
 	     __func__, PSC_printTID(tid), signal);
 
+    blocked = PSID_blockSig(1, SIGCHLD);
+
     list_for_each(s, sigList) {
 	PStask_sig_t *sig = list_entry(s, PStask_sig_t, next);
+	if (sig->deleted) continue;
 	if (sig->tid == tid && sig->signal == signal) {
 	    PSID_blockSig(blocked, SIGCHLD);
 	    return sig;
@@ -128,7 +130,7 @@ int PSID_removeSignal(list_t *sigList, PStask_ID_t tid, int signal)
     if (sig) {
 	/* Signal found */
 	list_del(&sig->next);
-	free(sig);
+	PStask_putSig(sig);
 
 	PSID_log(PSID_LOG_SIGNAL, "\n");
 	if (PSID_getDebugMask() & PSID_LOG_SIGDBG) {
@@ -160,6 +162,7 @@ PStask_ID_t PSID_getSignal(list_t *sigList, int *signal)
     /* Search signal or take any signal if *signal==-1, i.e. first entry */
     list_for_each(s, sigList) {
 	PStask_sig_t *sig = list_entry(s, PStask_sig_t, next);
+	if (sig->deleted) continue;
 	if (*signal == -1 || sig->signal == *signal) {
 	    thissig = sig;
 	    break;
@@ -172,7 +175,7 @@ PStask_ID_t PSID_getSignal(list_t *sigList, int *signal)
 	tid = thissig->tid;
 
 	list_del(&thissig->next);
-	free(thissig);
+	PStask_putSig(thissig);
     }
 
     PSID_blockSig(blocked, SIGCHLD);
@@ -192,6 +195,7 @@ PStask_ID_t PSID_getSignalByID(list_t *sigList,
 
     list_for_each(s, sigList) {
 	PStask_sig_t *sig = list_entry(s, PStask_sig_t, next);
+	if (sig->deleted) continue;
 	if (PSC_getID(sig->tid) == id) {
 	    thissig = sig;
 	    break;
@@ -204,7 +208,7 @@ PStask_ID_t PSID_getSignalByID(list_t *sigList,
 	tid = thissig->tid;
 
 	list_del(&thissig->next);
-	free(thissig);
+	PStask_putSig(thissig);
     }
 
     PSID_blockSig(blocked, SIGCHLD);
@@ -222,6 +226,7 @@ int PSID_getSignalByTID(list_t *sigList, PStask_ID_t tid)
 
     list_for_each(s, sigList) {
 	PStask_sig_t *sig = list_entry(s, PStask_sig_t, next);
+	if (sig->deleted) continue;
 	if (sig->tid == tid) {
 	    thissig = sig;
 	    break;
@@ -233,12 +238,35 @@ int PSID_getSignalByTID(list_t *sigList, PStask_ID_t tid)
 	signal = thissig->signal;
 
 	list_del(&thissig->next);
-	free(thissig);
+	PStask_putSig(thissig);
     }
 
     PSID_blockSig(blocked, SIGCHLD);
 
     return signal;
+}
+
+int PSID_numSignals(list_t *sigList)
+{
+    list_t *s;
+    int blocked, num = 0;
+
+    if (!sigList) return 0;
+
+    blocked = PSID_blockSig(1, SIGCHLD);
+    list_for_each(s, sigList) {
+	PStask_sig_t *sig = list_entry(s, PStask_sig_t, next);
+	if (sig->deleted) continue;
+	num++;
+    }
+    PSID_blockSig(blocked, SIGCHLD);
+
+    return num;
+}
+
+int PSID_emptySigList(list_t *sigList)
+{
+    return !PSID_numSignals(sigList);
 }
 
 /****************** TAKSLIST MANIPULATING ROUTINES **********************/
@@ -356,6 +384,8 @@ void PStask_cleanup(PStask_ID_t tid)
 		PStask_t *child = PStasklist_find(&managedTasks, sig->tid);
 		DDErrorMsg_t msg;
 
+		if (sig->deleted) continue;
+
 		/* somehow we must have missed the CHILDDEAD message */
 		/* how are we called here ? */
 		PSID_log(child ? -1 : PSID_LOG_TASK,
@@ -379,7 +409,7 @@ void PStask_cleanup(PStask_ID_t tid)
 		 * msg_CLIENTCONNECT() concerning re-connected
 		 * processes and duplicate tasks */
 		list_del(&sig->next);
-		free(sig);
+		PStask_putSig(sig);
 
 		if (child && child->fd == -1) {
 		    PSID_log(-1, "%s: forwarder kills child %s\n",
@@ -398,7 +428,7 @@ void PStask_cleanup(PStask_ID_t tid)
     /* Make sure we get all pending messages */
     if (task->fd != -1) Selector_enable(task->fd);
 
-    if (list_empty(&task->childList)) {
+    if (PSID_emptySigList(&task->childList)) {
 	/* Mark task as deleted; will be actually removed in main loop */
 	task->deleted = 1;
     }
