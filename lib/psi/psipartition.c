@@ -826,7 +826,7 @@ static int getFullList(void *list, PSP_Info_t what, size_t itemSize)
     hosts = recv/itemSize;
 
     if (hosts != PSC_getNrOfNodes()) {
-	printf("%s(%s): failed\n", __func__, PSP_printInfo(what));
+	PSI_log(-1, "%s(%s): failed\n", __func__, PSP_printInfo(what));
 	return 0;
     }
 
@@ -943,13 +943,13 @@ static int getDaemonProtocolVersion(void)
 	    protoVersion = val;
 	    break;
 	case PSP_OP_UNKNOWN:
-	    printf(" PSP_OP_DAEMONPROTOVERSION unknown\n");
+	    PSI_log(-1, "%s: PSP_OP_DAEMONPROTOVERSION unknown\n", __func__);
 	    break;
 	default:
-	    printf(" got option type %d\n", opt);
+	    PSI_log(-1, "%s: got option type %d\n", __func__, opt);
 	}
     } else {
-	printf(" error getting info\n");
+	PSI_warn(-1, errno, "%s: error getting info\n", __func__);
     }
 
     return protoVersion;
