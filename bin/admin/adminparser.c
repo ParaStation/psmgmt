@@ -861,6 +861,15 @@ static keylist_t boolList[] = {
     {NULL, NULL, NULL}
 };
 
+static keylist_t boolAutoList[] = {
+    {"auto", NULL, NULL},
+    {"yes", NULL, NULL},
+    {"no", NULL, NULL},
+    {"true", NULL, NULL},
+    {"false", NULL, NULL},
+    {NULL, NULL, NULL}
+};
+
 static keylist_t sortList[] = {
     {"load1", sortLoad1, NULL},
     {"load_1", sortLoad1, NULL},
@@ -1216,7 +1225,7 @@ static keylist_t setShowList[] = {
     {"handleoldbins", setShowHOB, boolList},
     {"hob", setShowHOB, boolList},
     {"nodessort", setShowNodesSort, sortList},
-    {"overbook", setShowOverbook, NULL},
+    {"overbook", setShowOverbook, boolAutoList},
     {"exclusive", setShowExclusive, boolList},
     {"runjobs", setShowRunJobs, boolList},
     {"starter", setShowStarter, boolList},
