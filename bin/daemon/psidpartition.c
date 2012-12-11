@@ -1547,6 +1547,8 @@ static unsigned int getOverbookPart(PSpart_request_t *request,
 		    node++;
 		    candSlots[cid]--;
 		}
+		/* Prepare for next round */
+		getFreeCPUs(cid, *tmpStat[cid], tpp);
 	    }
 	    cand = (cand + 1) % candidates->size;
 	}
