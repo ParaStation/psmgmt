@@ -558,6 +558,17 @@ static int p_Get(char *msgBuffer)
 
     /* get value from kvs */
     if (!(value = kvs_get(kvsname, key))) {
+	char *env;
+
+	/* check for mvapich process mapping */
+	env = getenv("__PMI_PROCESS_MAPPING");
+	if (env && !(strcmp(key, "PMI_process_mapping"))) {
+	    snprintf(reply, sizeof(reply), "cmd=get_result rc=%i value=%s\n",
+		    PMI_SUCCESS, env);
+	    PMI_send(reply);
+	    return 0;
+	}
+
 	if (debug_kvs) {
 	    PSIDfwd_printMsgf(STDERR,
 			      "%s: rank %i: get on non exsisting kvs key:%s\n",

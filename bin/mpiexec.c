@@ -44,6 +44,7 @@ static char vcid[] __attribute__((used)) =
 #include <psispawn.h>
 #include <psipartition.h>
 #include <pscommon.h>
+#include "kvscommon.h"
 
 #define GDB_COMMAND_EXE "gdb"
 #define GDB_COMMAND_FILE CONFIGDIR "/mpiexec.gdb"
@@ -75,8 +76,6 @@ int verbose = 0;
 int mpichcom = 0;
 /** list of all nodes */
 PSnodes_ID_t *nodeList = NULL;
-/** list of unique nodes */
-PSnodes_ID_t *uniqNodes = NULL;
 /** number of unique nodes */
 int numUniqNodes = 0;
 /** number of unique hosts */
@@ -286,7 +285,7 @@ static char *getHostbyNodeID(PSnodes_ID_t *nodeID)
     /* get ip-address of node */
     ret = PSI_infoUInt(-1, PSP_INFO_NODE, nodeID, &hostaddr, 0);
     if (ret || (hostaddr == INADDR_ANY)) {
-	fprintf(stderr, "%s: getting node info for '%i' failed, "
+	fprintf(stderr, "%s: getting node info for nodeID '%i' failed, "
 		"errno:%i ret:%i\n", __func__, *nodeID, errno, ret);
 	exit(EXIT_FAILURE);
     }
@@ -694,6 +693,53 @@ static char *opmiGetReservedPorts()
     return buf;
 }
 
+/*
+ * @brief Build a MVAPICH process mapping vector.
+ *
+ * Build a process mapping vector which is needed by the MVAPICH MPI when
+ * communicating over more than one node. The mapping will be requested in the
+ * PMI layer via a PMI_get() call to the key 'PMI_process_mapping'. The process
+ * map must not be longer than a valid PMI key.
+ *
+ * @return On success a buffer with the requested process mapping is
+ * returned. On error NULL is returned.
+ */
+char *getProcessMap()
+{
+    int i, sid = 0, nodeCount = 0, procCount = 0;
+    int oldProcCount = 0;
+    char pMap[VALLEN_MAX], buf[20];
+
+    snprintf(pMap, sizeof(pMap), "(vector");
+
+    for (i=0; i<numUniqNodes; i++) {
+       procCount = numProcPerNode[i];
+
+       if (!i || oldProcCount == procCount) {
+	   if (i != numUniqNodes -1) nodeCount++;
+       } else {
+           snprintf(buf, sizeof(buf), ",(%i,%i,%i)", sid,
+                       nodeCount, oldProcCount);
+           if ((int)(sizeof(pMap) - strlen(pMap) - 1 - strlen(buf)) < 0) {
+               return NULL;
+           }
+           strcat(pMap, buf);
+           sid += nodeCount;
+	   nodeCount = (i != numUniqNodes -1) ? 1 : 0;
+       }
+       oldProcCount = procCount;
+    }
+
+    nodeCount++;
+    snprintf(buf, sizeof(buf), ",(%i,%i,%i))", sid, nodeCount, procCount);
+    if ((int)(sizeof(pMap) - strlen(pMap) - 1 - strlen(buf)) < 0) {
+	return NULL;
+    }
+    strcat(pMap, buf);
+
+    return strdup(pMap);
+}
+
 /**
  * @brief Setup common environment
  *
@@ -759,11 +805,13 @@ static void setupCommonEnv(int np)
 	    setPSIEnv("SLURM_DISTRIBUTION", "block", 1);
 	}
     }
+
     /* unset PSI_LOOP_NODES_FIRST in PSI env which is only needed for OpenMPI */
     unsetPSIEnv("PSI_LOOP_NODES_FIRST");
     unsetPSIEnv("PSI_OPENMPI");
 
     if (pmienabletcp || pmienablesockp ) {
+	char *mapping;
 
 	/* propagate pmi auth token */
 	env = getenv("PMI_ID");
@@ -814,6 +862,14 @@ static void setupCommonEnv(int np)
 	env = getenv("PMI_KVS_TMP");
 	if (!env) errExit("No PMI_KVS_TMP given.");
 	setPSIEnv("PMI_KVS_TMP", env, 1);
+
+	/* setup process mapping needed for MVAPICH */
+	if ((mapping = getProcessMap())) {
+	    setPSIEnv("__PMI_PROCESS_MAPPING", mapping, 1);
+	    free(mapping);
+	} else {
+	    fprintf(stderr, "failed building MVAPICH process mapping\n");
+	}
     }
 
     /* set the size of the job */
@@ -938,7 +994,7 @@ static void setRankInfos(int np, PSnodes_ID_t node, PSnodes_ID_t *uniqNodeIDs,
 {
     int i;
 
-    for (i=0; i< np; i++) {
+    for (i=0; i<np; i++) {
 
 	/* already known node */
 	if (uniqNodeIDs[i] == node) {
@@ -993,9 +1049,6 @@ static void extractNodeInformation(PSnodes_ID_t *nodeList, int np)
 
     /* list of node local processIDs (rank) */
     nodeLocalProcIDs = umalloc(sizeof(int) * np, __func__);
-
-    /* list of unique nodes */
-    uniqNodes = umalloc(sizeof(nodeList[0]) * np, __func__);
 
     /* save the information */
     for (i=0; i< np; i++) {
