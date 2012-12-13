@@ -606,16 +606,25 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
 	ioctl(fd, TIOCGWINSZ, &task->winsize);
     }
     task->group = taskGroup;
-    PSI_infoTaskID(-1, PSP_INFO_LOGGERTID, NULL, &(task->loggertid), 0);
+    if (PSI_infoTaskID(-1, PSP_INFO_LOGGERTID, NULL, &(task->loggertid), 0)) {
+	PSI_warn(-1, errno, "%s: unable to determine logger's TID", __func__);
+	goto error;
+    }
 
     mywd = mygetwd(workingdir);
 
-    if (!mywd) goto error;
+    if (!mywd) {
+	PSI_warn(-1, errno, "%s: unable to get working directory", __func__);
+	goto error;
+    }
 
     task->workingdir = mywd;
     task->argc = argc;
     task->argv = (char**)malloc(sizeof(char*)*(task->argc+1));
-    if (!task->argv) goto error;
+    if (!task->argv) {
+	PSI_warn(-1, errno, "%s: unable to store argument vector", __func__);
+	goto error;
+    }
     {
 	struct stat statbuf;
 
