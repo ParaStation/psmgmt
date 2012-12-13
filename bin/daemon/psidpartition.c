@@ -2336,6 +2336,15 @@ static void msg_CREATEPARTNL(DDBufferMsg_t *inmsg)
 	errno = EACCES;
 	goto error;
     }
+
+    /* This hook is used by plugins like the psmom to overwrite the
+     * nodelist. If the plugin has sent an message by itself, it will
+     * return 0. If the incoming message has to be handled further, it
+     * will return 1. If no plugin is registered, the return code will
+     * be PSIDHOOK_NOFUNC and, thus, inmsg will be handled here.
+     */
+    if ((PSIDhook_call(PSIDHOOK_CREATEPARTNL, inmsg)) == 0) return;
+
     appendToNodelist(inmsg->buf, task->request);
 
     if (!knowMaster()) return; /* Automatic send/handle from declareMaster() */

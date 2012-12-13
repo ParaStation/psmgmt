@@ -419,6 +419,7 @@ int handleAnswer(unsigned int firstRank, int count, PSnodes_ID_t *dstnodes,
     DDSignalMsg_t *sigMsg = (DDSignalMsg_t *)&answer;
     int rank, fallback = 0;
 
+recv_retry:
     if (PSI_recvMsg((DDMsg_t *)&answer, sizeof(answer))<0) {
 	PSI_warn(-1, errno, "%s: PSI_recvMsg", __func__);
 	return -1;
@@ -488,6 +489,11 @@ int handleAnswer(unsigned int firstRank, int count, PSnodes_ID_t *dstnodes,
 	PSI_log(-1, "Got signal %d from %s\n", sigMsg->signal,
 		PSC_printTID(sigMsg->header.sender));
 	return 2; /* Ignore answer */
+	break;
+    case PSP_CD_SENDSTOP:
+    case PSP_CD_SENDCONT:
+	/* Wait for answer */
+	goto recv_retry;
 	break;
     default:
 	PSI_log(-1, "%s: unexpected answer %s\n", __func__,

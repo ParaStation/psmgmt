@@ -63,6 +63,14 @@ typedef enum {
 				nothing else is done. Otherwise
 				further measure might be taken
 				afterwards. */
+    PSIDHOOK_CREATEPARTNL,      /**< Handle a partition nodelist request,
+				arg is pointer to DDBufferMsg_t holding
+				the original message received from the
+				client. If return code is 0, a message
+				was sent from within the hook and
+				nothing else is done. Otherwise
+				further measure might be taken
+				afterwards. */
     PSIDHOOK_SHUTDOWN,        /**< Daemon got signaled to shutdown, no arg */
     PSIDHOOK_MASTER_GETPART,  /**< Master is creating a new partition, the arg
 				is a pointer to PSpart_request_t holding the new

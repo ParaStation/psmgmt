@@ -101,8 +101,10 @@ static LIST_HEAD(pluginList);
  *
  * 108: added PSIDHOOK_MASTER_GETPART, PSIDHOOK_MASTER_FINJOB,
  *	PSIDHOOK_MASTER_RECPART, PSIDHOOK_MASTER_EXITPART
+ *
+ * 109: added PSIDHOOK_CREATEPARTNL
  */
-static int pluginAPIVersion = 108;
+static int pluginAPIVersion = 109;
 
 
 /** Grace period between finalize and unload on forcefully unloads */

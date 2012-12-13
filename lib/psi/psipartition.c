@@ -1038,6 +1038,7 @@ int PSI_createPartition(unsigned int size, uint32_t hwType)
 	alarm(60);
     }
     signal(SIGALRM, alarmHandler);
+recv_retry:
     if (PSI_recvMsg((DDMsg_t *)&msg, sizeof(msg))<0) {
 	PSI_warn(-1, errno, "%s: PSI_recvMsg", __func__);
 	goto end;
@@ -1051,6 +1052,10 @@ int PSI_createPartition(unsigned int size, uint32_t hwType)
 	    if (batchPartition) analyzeError(request, nodelist);
 	    goto end;
 	}
+	break;
+    case PSP_CD_SENDSTOP:
+    case PSP_CD_SENDCONT:
+	goto recv_retry;
 	break;
     case PSP_CD_ERROR:
 	PSI_warn(-1, ((DDErrorMsg_t*)&msg)->error, "%s: error in command %s",
