@@ -1,3 +1,319 @@
+Version psmgmt-5.0.40:
+======================
+------------------------------------------------------------------------
+r8687 | eicker | 2012-12-17 14:32:56 +0100 (Mon, 17 Dec 2012) | 2 lines
+
+Bugfix: Be more careful when asynchronously modifying daemon's signal-lists.
+
+------------------------------------------------------------------------
+r8686 | rauh | 2012-12-13 11:20:13 +0100 (Thu, 13 Dec 2012) | 3 lines
+
+Enhancement: Added PSIDHOOK_CREATEPARTNL and pushed the plugin API to 109.
+Enhancement: Don't let send stop/cont messages disturb the partition request process.
+
+------------------------------------------------------------------------
+r8685 | eicker | 2012-12-13 09:17:51 +0100 (Thu, 13 Dec 2012) | 3 lines
+
+Bugfix: Don't spawn broken tasks, if unable to determine logger's TID
+    (#1844).
+
+------------------------------------------------------------------------
+r8684 | eicker | 2012-12-11 18:59:27 +0100 (Tue, 11 Dec 2012) | 2 lines
+
+Bugfix: Allow to overbook nodes without pinning (#1877).
+
+------------------------------------------------------------------------
+r8683 | eicker | 2012-12-11 18:57:07 +0100 (Tue, 11 Dec 2012) | 2 lines
+
+Enhancement: Add next-keylist for psiadmin's 'set overbook' directive.
+
+------------------------------------------------------------------------
+r8682 | rauh | 2012-12-11 10:41:20 +0100 (Tue, 11 Dec 2012) | 2 lines
+
+Added support for the MVAPICH PMI process map extension.
+
+------------------------------------------------------------------------
+r8679 | eicker | 2012-11-30 15:17:07 +0100 (Fri, 30 Nov 2012) | 3 lines
+
+Enhancement: Replace some printf() in libpsi by PSI_log() for more
+    consistent output.
+
+------------------------------------------------------------------------
+r8674 | eicker | 2012-11-20 19:53:56 +0100 (Tue, 20 Nov 2012) | 2 lines
+
+Fix tons of typos.
+
+------------------------------------------------------------------------
+r8673 | eicker | 2012-11-20 18:39:50 +0100 (Tue, 20 Nov 2012) | 3 lines
+
+Enhancement: Allocate/free psid's signal structures in large chunks.
+Enhancement: Prepare for signal structures marked as deleted.
+
+------------------------------------------------------------------------
+r8672 | eicker | 2012-11-20 13:25:23 +0100 (Tue, 20 Nov 2012) | 2 lines
+
+Bugfix: Guard PStask_clone() from rare races on list iterations.
+
+------------------------------------------------------------------------
+r8671 | eicker | 2012-11-20 13:20:11 +0100 (Tue, 20 Nov 2012) | 2 lines
+
+Bugfix: Ensure keeping the last chunk of msgbufs.
+
+------------------------------------------------------------------------
+r8667 | moschny | 2012-11-09 00:29:30 +0100 (Fri, 09 Nov 2012) | 1 line
+
+Fix "make distcheck".
+------------------------------------------------------------------------
+r8666 | moschny | 2012-11-09 00:15:26 +0100 (Fri, 09 Nov 2012) | 1 line
+
+Bugfix: "make rpm" failed after "make clean".
+------------------------------------------------------------------------
+r8665 | eicker | 2012-11-09 00:13:28 +0100 (Fri, 09 Nov 2012) | 2 lines
+
+Make r8664 also working with the old bash of the buildbot
+
+------------------------------------------------------------------------
+r8664 | eicker | 2012-11-08 23:35:01 +0100 (Thu, 08 Nov 2012) | 2 lines
+
+Bring "make rpm"'s output into more convenient shape.
+
+------------------------------------------------------------------------
+r8663 | rauh | 2012-11-06 16:33:14 +0100 (Tue, 06 Nov 2012) | 2 lines
+
+Added support for MPI_LOCALNRANKS and MPI_LOCALRANKID needed by libpsm
+
+------------------------------------------------------------------------
+r8662 | eicker | 2012-11-06 13:56:31 +0100 (Tue, 06 Nov 2012) | 2 lines
+
+Bugfix: Fix typo introduced in r8660.
+
+------------------------------------------------------------------------
+r8661 | eicker | 2012-11-06 13:46:24 +0100 (Tue, 06 Nov 2012) | 3 lines
+
+Bugfix: Don't drop message, if buffers are temporarily unavailable in
+    the IP stack. Instead try to re-send.
+
+------------------------------------------------------------------------
+r8660 | eicker | 2012-11-02 15:35:51 +0100 (Fri, 02 Nov 2012) | 3 lines
+
+Bugfix: Drop message in psid in a controlled way, if sending failed due
+    to ENOBUFS.
+
+------------------------------------------------------------------------
+r8659 | eicker | 2012-11-02 00:57:28 +0100 (Fri, 02 Nov 2012) | 3 lines
+
+Bugfix: Prevent hanging forwarders due to missed timeout in
+    connectLogger(). This was introduced in r8644.
+
+------------------------------------------------------------------------
+r8655 | rauh | 2012-10-23 13:17:37 +0200 (Tue, 23 Oct 2012) | 2 lines
+
+Bugfix: fixed psaccount and psresport plugin broken by introduction of autotools
+
+------------------------------------------------------------------------
+r8654 | moschny | 2012-10-18 17:05:51 +0200 (Thu, 18 Oct 2012) | 3 lines
+
+- Fix for #1838: pass --datarootdir to configure.
+- Use $localstatedir instead of /var.
+- Change defaults of $sysconfigdir and $localstatedir to /etc and /var, respectively.
+------------------------------------------------------------------------
+r8653 | moschny | 2012-10-18 16:53:18 +0200 (Thu, 18 Oct 2012) | 1 line
+
+Older xsltproc cannot read from a FIFO.
+------------------------------------------------------------------------
+r8652 | moschny | 2012-10-18 15:38:33 +0200 (Thu, 18 Oct 2012) | 1 line
+
+Update authores.
+------------------------------------------------------------------------
+r8651 | moschny | 2012-10-18 15:37:24 +0200 (Thu, 18 Oct 2012) | 2 lines
+
+- Use xsltproc instead of xmlstarlet.
+- Call svn in C locale.
+------------------------------------------------------------------------
+r8650 | moschny | 2012-10-17 21:02:37 +0200 (Wed, 17 Oct 2012) | 1 line
+
+Remove VERSION, this confuses the buildsystem.
+------------------------------------------------------------------------
+r8649 | moschny | 2012-10-17 19:37:16 +0200 (Wed, 17 Oct 2012) | 1 line
+
+Merge autotools branch.
+------------------------------------------------------------------------
+r8646 | eicker | 2012-10-05 17:24:49 +0200 (Fri, 05 Oct 2012) | 2 lines
+
+Fix build of testacct again.
+
+------------------------------------------------------------------------
+r8644 | eicker | 2012-09-28 18:55:29 +0200 (Fri, 28 Sep 2012) | 2 lines
+
+Bugfix: Ensure that timeout might expire several times in PSLog_read().
+
+------------------------------------------------------------------------
+r8642 | eicker | 2012-09-28 17:28:09 +0200 (Fri, 28 Sep 2012) | 2 lines
+
+Enhancement: Trigger a 1k malloc()/free() cycle via SIGUSR2 to psid.
+
+------------------------------------------------------------------------
+r8641 | eicker | 2012-09-28 17:19:53 +0200 (Fri, 28 Sep 2012) | 2 lines
+
+Bugfix: Prevent futile daemon message on selector during shutdown
+
+------------------------------------------------------------------------
+r8640 | eicker | 2012-09-28 17:03:10 +0200 (Fri, 28 Sep 2012) | 3 lines
+
+Enhancement: Reduce number of flow-control messages
+Enhancement: Don't report on dropped flow-control messages
+
+------------------------------------------------------------------------
+r8639 | eicker | 2012-09-21 18:27:35 +0200 (Fri, 21 Sep 2012) | 2 lines
+
+Fix misplaced double-quote introduced in r8636.
+
+------------------------------------------------------------------------
+r8638 | eicker | 2012-09-21 18:24:08 +0200 (Fri, 21 Sep 2012) | 2 lines
+
+Revert r8633. Actually the string 'unknown' shall be printed.
+
+------------------------------------------------------------------------
+r8637 | eicker | 2012-09-21 18:19:10 +0200 (Fri, 21 Sep 2012) | 5 lines
+
+Bugfix: Catch one corner-case when SIGCHLD is delivered during some
+    dead-time of the main-loop (while entering the select() in
+    Sselect()). This was introduced in r8632.
+Enhancement: Reduce amount of blocking of SIGCHLD in forwarder.
+
+------------------------------------------------------------------------
+r8636 | eicker | 2012-09-21 18:11:41 +0200 (Fri, 21 Sep 2012) | 2 lines
+
+Bugfix: Add some missing newlines in psilogger's error-messages.
+
+------------------------------------------------------------------------
+r8635 | eicker | 2012-09-21 18:10:20 +0200 (Fri, 21 Sep 2012) | 2 lines
+
+Enhancement: Make pslog more robust against stray signals.
+
+------------------------------------------------------------------------
+r8634 | moschny | 2012-09-20 15:13:11 +0200 (Thu, 20 Sep 2012) | 1 line
+
+Fix test_paramspace.c so it compiles at least. Probably needs more fixes.
+------------------------------------------------------------------------
+r8633 | moschny | 2012-09-19 20:55:16 +0200 (Wed, 19 Sep 2012) | 1 line
+
+Fix SVN keywords. Current SVN versions will only recognize a keyword if it either has no content at all or its content ends with a blank.
+------------------------------------------------------------------------
+r8632 | eicker | 2012-09-12 11:43:29 +0200 (Wed, 12 Sep 2012) | 3 lines
+
+Enhancement: Use Selector facility within psidforwarder (#1648)
+Bugfix: Fix possible deadlock in psidforwarder's signal handler (#1708)
+
+------------------------------------------------------------------------
+r8631 | eicker | 2012-09-12 11:37:53 +0200 (Wed, 12 Sep 2012) | 4 lines
+
+Bugfix: Fix one possible deadlock in flow-control between forwarder and
+    logger on heavy traffic from both sides. For this, new messages
+    types PSP_CD_SENDSTOP and PSP_CD_SENDCONT were introduced.
+
+------------------------------------------------------------------------
+r8630 | eicker | 2012-09-10 11:43:57 +0200 (Mon, 10 Sep 2012) | 2 lines
+
+Remove some hacks from config_parsing no longer necessary.
+
+------------------------------------------------------------------------
+r8629 | eicker | 2012-09-10 09:13:54 +0200 (Mon, 10 Sep 2012) | 10 lines
+
+Enhancement: Extend parser with next-keylist functionality.
+Move PSparamspace into libputil.
+Enhancement: PSparamspace auto-generates keylists for auto-completion.
+Enhancement: PSparamspace now uses parser's next-keylist functionality.
+Enhancement: Implement generic handling of boolean ints in PSparamspace.
+Enhancement: Implement 'parameter' directive in psiadmin to allow
+    modification of local parameters within the admin (#633).
+Enhancement: Allow psiadmin's 'list' directive to show hostnames (#490).
+Enhancement: Allow psiadmin's 'show' directive to print hex-numbers (#612).
+
+------------------------------------------------------------------------
+r8628 | eicker | 2012-09-10 08:46:44 +0200 (Mon, 10 Sep 2012) | 2 lines
+
+Fix documentation comment.
+
+------------------------------------------------------------------------
+r8626 | hauke | 2012-08-29 17:16:23 +0200 (Wed, 29 Aug 2012) | 3 lines
+
+psh: omit newline after prompt when using "-s"
+
+This fix ticket #1797.
+------------------------------------------------------------------------
+r8625 | eicker | 2012-08-28 18:02:34 +0200 (Tue, 28 Aug 2012) | 3 lines
+
+Collect functional tests in directory tests/functional
+Add new test for testing the parameter-space manager.
+
+------------------------------------------------------------------------
+r8624 | eicker | 2012-08-28 17:59:35 +0200 (Tue, 28 Aug 2012) | 2 lines
+
+Enhancement: Add parameter-space manager to pscommon.
+
+------------------------------------------------------------------------
+r8623 | eicker | 2012-08-28 16:12:45 +0200 (Tue, 28 Aug 2012) | 2 lines
+
+Move getWidth() to PSC_getWidth() as part of libpscommon.
+
+------------------------------------------------------------------------
+r8622 | eicker | 2012-08-21 20:16:16 +0200 (Tue, 21 Aug 2012) | 3 lines
+
+Enahncement: Check kernel.pid_max for compatibility with PStask_ID_t
+    (#1767).
+
+------------------------------------------------------------------------
+r8621 | eicker | 2012-08-17 17:43:38 +0200 (Fri, 17 Aug 2012) | 4 lines
+
+Bugfix: Ensure to really use the correct abstract UNIX socket as the
+    local service port
+Enhancement: Suppress some warning during daemon's shutdown.
+
+------------------------------------------------------------------------
+r8620 | eicker | 2012-07-25 00:39:08 +0200 (Wed, 25 Jul 2012) | 2 lines
+
+Enhancement: Enable binding to memory-nodes as default (#1747).
+
+------------------------------------------------------------------------
+r8619 | rauh | 2012-07-13 15:49:35 +0200 (Fri, 13 Jul 2012) | 2 lines
+
+Enhancement: export psaccount sendSignal2AllChildren() for psmom
+
+------------------------------------------------------------------------
+r8618 | rauh | 2012-06-22 15:46:19 +0200 (Fri, 22 Jun 2012) | 2 lines
+
+Bugfix: forward client data before cleanup up jobs
+
+------------------------------------------------------------------------
+r8616 | rauh | 2012-06-15 13:48:22 +0200 (Fri, 15 Jun 2012) | 5 lines
+
+Enhancement: added configuration file
+Enhancement: implemented plugin set/unset commands
+Enhancement: instantly cleanup jobs on psmom request
+Enhancement: better cleanup of leftover jobs/clients
+
+------------------------------------------------------------------------
+r8615 | rauh | 2012-06-12 11:44:09 +0200 (Tue, 12 Jun 2012) | 2 lines
+
+Bugfix: fixed segfault/list corruption in psaccount plugin (#1711)
+
+------------------------------------------------------------------------
+r8611 | rauh | 2012-06-01 17:28:07 +0200 (Fri, 01 Jun 2012) | 6 lines
+
+Bugfix: account jobscripts and children from serial jobs
+Bugfix: correct accounting of mutlipe mpiexec calls in a parallel job
+Enhancement: continously forward accounting information to logger node
+Enhancement: implemented show and help calls of plugin API
+Enhancement: more debug output
+
+------------------------------------------------------------------------
+r8606 | eicker | 2012-05-18 22:40:04 +0200 (Fri, 18 May 2012) | 2 lines
+
+New version (psmgmt-5.0.39)
+
+------------------------------------------------------------------------
+
 Version psmgmt-5.0.39:
 ======================
 ------------------------------------------------------------------------

@@ -4,6 +4,55 @@ Copyright (C) 2010-2012 ParTec Cluster Competence Center GmbH, Munich
 
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
+Version 5.0.40:
+===============
+Bugfixes:
+ - Allow to overbook nodes without pinning (#1877).
+ - Don't spawn broken tasks, if unable to determine logger's TID (#1844).
+ - Fix possible deadlock in psidforwarder's signal handler (#1708)
+ - Be more careful when asynchronously modifying daemon's signal-lists.
+ - Don't let send stop/cont messages disturb the partition request process.
+ - Guard PStask_clone() from rare races on list iterations.
+ - Ensure keeping the last chunk of msgbufs.
+ - Don't drop message, if buffers are temporarily unavailable in
+   the IP stack. Instead try to re-send.
+ - Ensure that timeout might expire several times in PSLog_read().
+ - Prevent futile daemon message on selector during shutdown
+ - Fix one possible deadlock in flow-control between forwarder and
+    logger on heavy traffic from both sides. For this, new messages
+    types PSP_CD_SENDSTOP and PSP_CD_SENDCONT were introduced.
+ - psh: omit newline after prompt when using "-s" (#1797)
+ - Ensure to really use the correct abstract UNIX socket as the local
+   service port
+ - forward client data before cleanup up jobs
+ - fixed segfault/list corruption in psaccount plugin (#1711)
+ - account jobscripts and children from serial jobs
+ - correct accounting of multiple mpiexec calls in a parallel job
+
+Enhancements:
+ - Enable binding to memory-nodes as default (#1747).
+ - Added support for the MVAPICH PMI process map extension.
+ - Added support for MPI_LOCALNRANKS and MPI_LOCALRANKID needed by libpsm
+ - Use Selector facility within psidforwarder (#1648)
+ - Implement 'parameter' directive in psiadmin to allow modification of
+   local parameters within the admin (#633).
+ - Allow psiadmin's 'list' directive to show hostnames (#490).
+ - Allow psiadmin's 'show' directive to print hex-numbers (#612).
+ - Check kernel.pid_max for compatibility with PStask_ID_t (#1767)
+ - implemented psaccount plugin's set/unset commands
+ - instantly cleanup jobs on psmom request
+ - better cleanup of leftover jobs/clients
+ - continously forward accounting information to logger node
+ - implemented psaccount plugin's show and help calls of plugin API
+
+Additional changes:
+ - Use $localstatedir instead of /var.
+ - Change defaults of $sysconfigdir and $localstatedir to /etc and /var,
+   respectively. 
+ - Added PSIDHOOK_CREATEPARTNL and pushed the plugin API to 109.
+ - Trigger a 1k malloc()/free() cycle via SIGUSR2 to psid.
+ - added configuration file for psaccount plugin
+
 Version 5.0.39:
 ===============
 Bugfixes:
