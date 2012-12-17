@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2009 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2012 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -70,8 +70,8 @@ PStask_sig_t *PSID_findSignal(list_t *sigList, PStask_ID_t tid, int signal);
 /**
  * @brief Unregister signal.
  *
- * Unregister the signal @a signal associated with the task @a tid from
- * another task's signal list @a sigList.
+ * Unregister the signal @a signal associated with the task @a tid
+ * from another task's signal list @a sigList.
  *
  * @param sigList The signal list the signal was stored to.
  *
@@ -83,6 +83,26 @@ PStask_sig_t *PSID_findSignal(list_t *sigList, PStask_ID_t tid, int signal);
  * within the signal list, 1 is returned, otherwise 0 is given back.
  */
 int PSID_removeSignal(list_t *sigList, PStask_ID_t tid, int signal);
+
+/**
+ * @brief Mark signal as deleted.
+ *
+ * Mark the signal @a signal associated with the task @a tid from
+ * another task's signal list @a sigList as deleted. In essence the
+ * effect of this function is the same as calling @ref
+ * PSID_removeSignal(). Nevertheless, this function will just mark the
+ * signal as deleted leaving the signal list untouched.
+ *
+ * @param sigList The signal list the signal was stored to.
+ *
+ * @param tid The unique task ID the signal is associated with.
+ *
+ * @param signal The signal to be marked as deleted.
+ *
+ * @return On success, i.e. if the corresponding signal was found
+ * within the signal list, 1 is returned, otherwise 0 is given back.
+ */
+int PSID_deleteSignal(list_t *sigList, PStask_ID_t tid, int signal);
 
 /**
  * @brief Get a signal from signal list.
@@ -111,7 +131,9 @@ PStask_ID_t PSID_getSignal(list_t *sigList, int *signal);
  * node ID @a id from the signal list @a sigList. If a signal is found
  * the associated unique task ID is returned and @a signal will be set
  * appropriately. The signal found will be removed from the signal
- * list @a sigList.
+ * list @a sigList. Depending on the value of @a remove the signal
+ * will be actually removed form the list (@a remove is 1) or just
+ * marked as deleted (@a remove is 0).
  *
  * @param sigList The signal list to search for the signal.
  *
@@ -119,11 +141,13 @@ PStask_ID_t PSID_getSignal(list_t *sigList, int *signal);
  *
  * @param signal The signal found.
  *
+ * @param remove Flag actual remove from the list or mark as deleted.
+ *
  * @return If a signal was found, the unique task ID of the associated
  * task will be returned. Or 0, if no signal was found.
  */
 PStask_ID_t PSID_getSignalByID(list_t *sigList,
-			       PSnodes_ID_t id, int *signal);
+			       PSnodes_ID_t id, int *signal, int remove);
 
 /**
  * @brief Get a signal by task ID from signal list.
@@ -221,7 +245,7 @@ PStask_t *PStasklist_find(list_t *list, PStask_ID_t tid);
  * - First of all the task will be dequeued from @ref managedTasks
  * tasklist.
  *
- * - If the task was found, all signal requested explicitely by other
+ * - If the task was found, all signal requested explicitly by other
  * tasks will be send, then all relatives will be signaled.
  *
  * - The status facility will be informed on removing the task.

@@ -23,6 +23,7 @@ static char vcid[] __attribute__((used)) =
 #include <sys/types.h>
 
 #include "selector.h"
+#include "rdp.h"
 
 #include "pscommon.h"
 #include "psprotocol.h"
@@ -217,17 +218,21 @@ void PSID_sendSignal(PStask_ID_t tid, uid_t uid, PStask_ID_t sender,
 	    PSID_log(-1, "%s: Do not send signal to daemon\n", __func__);
 	} else if (pervasive) {
 	    list_t *s, *tmp;
-	    int blocked;
+	    int blocked, blockedRDP;
 
 	    answer = 0;
 
 	    blocked = PSID_blockSig(1, SIGCHLD);
-	    list_for_each_safe(s, tmp, &dest->childList) {
+	    blockedRDP = RDP_blockTimer(1);
+
+	    list_for_each_safe(s, tmp, &dest->childList) { /* @todo safe req? */
 		PStask_sig_t *sig = list_entry(s, PStask_sig_t, next);
 		if (sig->deleted) continue;
 
 		PSID_sendSignal(sig->tid, uid, sender, signal, 1, answer);
 	    }
+
+	    RDP_blockTimer(blockedRDP);
 	    PSID_blockSig(blocked, SIGCHLD);
 
 	    /* Deliver signal, if tid not the original sender */
@@ -311,7 +316,7 @@ void PSID_sendAllSignals(PStask_t *task)
 void PSID_sendSignalsToRelatives(PStask_t *task)
 {
     list_t *s;
-    int blocked;
+    int blocked, blockedRDP;
 
     if (task->ptid) {
 	PSID_sendSignal(task->ptid, task->uid, task->tid, -1, 0, 0);
@@ -321,6 +326,8 @@ void PSID_sendSignalsToRelatives(PStask_t *task)
     }
 
     blocked = PSID_blockSig(1, SIGCHLD);
+    blockedRDP = RDP_blockTimer(1);
+
     list_for_each(s, &task->childList) {
 	PStask_sig_t *sig = list_entry(s, PStask_sig_t, next);
 	if (sig->deleted) continue;
@@ -330,6 +337,8 @@ void PSID_sendSignalsToRelatives(PStask_t *task)
 	PSID_log(PSID_LOG_SIGNAL, " sent signal -1 to %s\n",
 		 PSC_printTID(sig->tid));
     }
+
+    RDP_blockTimer(blockedRDP);
     PSID_blockSig(blocked, SIGCHLD);
 }
 
@@ -1237,8 +1246,12 @@ static void drop_RELEASE(DDBufferMsg_t *msg)
 
 static void signalGC(void)
 {
-    int blocked = PSID_blockSig(1, SIGCHLD);
+    int blocked, blockedRDP;
+
+    blocked = PSID_blockSig(1, SIGCHLD);
+    blockedRDP = RDP_blockTimer(1);
     PStask_gcSig();
+    RDP_blockTimer(blockedRDP);
     PSID_blockSig(blocked, SIGCHLD);
 }
 

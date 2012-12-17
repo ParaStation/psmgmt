@@ -20,6 +20,7 @@ static char vcid[] __attribute__((used)) =
 #include <signal.h>
 
 #include "selector.h"
+#include "rdp.h"
 
 #include "pstask.h"
 #include "pscommon.h"
@@ -50,7 +51,7 @@ static void printList(list_t *sigList)
 void PSID_setSignal(list_t *sigList, PStask_ID_t tid, int signal)
 {
     PStask_sig_t *thissig = PStask_getSig();
-    int blocked;
+    int blocked, blockedRDP;
 
     if (!thissig) {
 	PSID_warn(-1, errno, "%s(%s,%d)", __func__, PSC_printTID(tid), signal);
@@ -61,6 +62,7 @@ void PSID_setSignal(list_t *sigList, PStask_ID_t tid, int signal)
 	     __func__, PSC_printTID(tid), signal);
 
     blocked = PSID_blockSig(1, SIGCHLD);
+    blockedRDP = RDP_blockTimer(1);
 
     if (PSID_getDebugMask() & PSID_LOG_SIGDBG) {
 	PSID_log(PSID_LOG_SIGDBG, "%s: signals before (in %p):",
@@ -81,61 +83,70 @@ void PSID_setSignal(list_t *sigList, PStask_ID_t tid, int signal)
 	PSID_log(PSID_LOG_SIGDBG, "\n");
     }
 
+    RDP_blockTimer(blockedRDP);
     PSID_blockSig(blocked, SIGCHLD);
 }
 
 PStask_sig_t *PSID_findSignal(list_t *sigList, PStask_ID_t tid, int signal)
 {
     list_t *s;
-    int blocked;
+    int blocked, blockedRDP;
 
     PSID_log(PSID_LOG_SIGNAL, "%s(%s, %d)\n",
 	     __func__, PSC_printTID(tid), signal);
 
     blocked = PSID_blockSig(1, SIGCHLD);
+    blockedRDP = RDP_blockTimer(1);
 
     list_for_each(s, sigList) {
 	PStask_sig_t *sig = list_entry(s, PStask_sig_t, next);
 	if (sig->deleted) continue;
 	if (sig->tid == tid && sig->signal == signal) {
+	    RDP_blockTimer(blockedRDP);
 	    PSID_blockSig(blocked, SIGCHLD);
 	    return sig;
 	}
     }
 
+    RDP_blockTimer(blockedRDP);
     PSID_blockSig(blocked, SIGCHLD);
 
     return NULL;
 }
 
-int PSID_removeSignal(list_t *sigList, PStask_ID_t tid, int signal)
+static int remSig(const char *fname, list_t *sigList, PStask_ID_t tid,
+		  int signal, int remove)
 {
     PStask_sig_t *sig;
-    int blocked, ret = 0;
+    int blocked, blockedRDP, ret = 0;
 
     blocked = PSID_blockSig(1, SIGCHLD);
+    blockedRDP = RDP_blockTimer(1);
 
     sig = PSID_findSignal(sigList, tid, signal);
 
     if (PSID_getDebugMask() & PSID_LOG_SIGDBG) {
 	PSID_log(PSID_LOG_SIGDBG, "%s: signals before (in %p):",
-		 __func__, sigList);
+		 fname, sigList);
 	printList(sigList);
 	PSID_log(PSID_LOG_SIGDBG, "\n");
     }
 
-    PSID_log(PSID_LOG_SIGNAL, "%s(%s, %d)",
-	     __func__, PSC_printTID(tid), signal);
+    PSID_log(PSID_LOG_SIGNAL, "%s(%s, %d)", fname, PSC_printTID(tid), signal);
 
     if (sig) {
 	/* Signal found */
-	list_del(&sig->next);
-	PStask_putSig(sig);
+	if (remove) {
+	    list_del(&sig->next);
+	    PStask_putSig(sig);
+	} else {
+	    sig->deleted = 1;
+	}
 
 	PSID_log(PSID_LOG_SIGNAL, "\n");
 	if (PSID_getDebugMask() & PSID_LOG_SIGDBG) {
 	    PSID_log(PSID_LOG_SIGDBG, "%s: signals after (in %p):",
-		     __func__, sigList);
+		     fname, sigList);
 	    printList(sigList);
 	    PSID_log(PSID_LOG_SIGDBG, "\n");
 	}
@@ -145,24 +156,40 @@ int PSID_removeSignal(list_t *sigList, PStask_ID_t tid, int signal)
 	PSID_log(PSID_LOG_SIGNAL, ": Not found\n");
     }
 
+    RDP_blockTimer(blockedRDP);
     PSID_blockSig(blocked, SIGCHLD);
 
     return ret;
 }
 
+int PSID_removeSignal(list_t *sigList, PStask_ID_t tid, int signal)
+{
+    return remSig(__func__, sigList, tid, signal, 1);
+}
+
+int PSID_deleteSignal(list_t *sigList, PStask_ID_t tid, int signal)
+{
+    return remSig(__func__, sigList, tid, signal, 0);
+}
+
 PStask_ID_t PSID_getSignal(list_t *sigList, int *signal)
 {
-    list_t *s;
+    list_t *s, *tmp;
     PStask_ID_t tid = 0;
     PStask_sig_t *thissig = NULL;
-    int blocked;
+    int blocked, blockedRDP;
 
     blocked = PSID_blockSig(1, SIGCHLD);
+    blockedRDP = RDP_blockTimer(1);
 
     /* Search signal or take any signal if *signal==-1, i.e. first entry */
-    list_for_each(s, sigList) {
+    list_for_each_safe(s, tmp, sigList) {
 	PStask_sig_t *sig = list_entry(s, PStask_sig_t, next);
-	if (sig->deleted) continue;
+	if (sig->deleted) {
+	    list_del(&sig->next);
+	    PStask_putSig(sig);
+	    continue;
+	}
 	if (*signal == -1 || sig->signal == *signal) {
 	    thissig = sig;
 	    break;
@@ -178,20 +205,22 @@ PStask_ID_t PSID_getSignal(list_t *sigList, int *signal)
 	PStask_putSig(thissig);
     }
 
+    RDP_blockTimer(blockedRDP);
     PSID_blockSig(blocked, SIGCHLD);
 
     return tid;
 }
 
 PStask_ID_t PSID_getSignalByID(list_t *sigList,
-			       PSnodes_ID_t id, int *signal)
+			       PSnodes_ID_t id, int *signal, int remove)
 {
     list_t *s;
     PStask_ID_t tid = 0;
     PStask_sig_t *thissig = NULL;
-    int blocked;
+    int blocked, blockedRDP;
 
     blocked = PSID_blockSig(1, SIGCHLD);
+    blockedRDP = RDP_blockTimer(1);
 
     list_for_each(s, sigList) {
 	PStask_sig_t *sig = list_entry(s, PStask_sig_t, next);
@@ -207,10 +236,15 @@ PStask_ID_t PSID_getSignalByID(list_t *sigList,
 	*signal = thissig->signal;
 	tid = thissig->tid;
 
-	list_del(&thissig->next);
-	PStask_putSig(thissig);
+	if (remove) {
+	    list_del(&thissig->next);
+	    PStask_putSig(thissig);
+	} else {
+	    thissig->deleted = 1;
+	}
     }
 
+    RDP_blockTimer(blockedRDP);
     PSID_blockSig(blocked, SIGCHLD);
 
     return tid;
@@ -218,15 +252,20 @@ PStask_ID_t PSID_getSignalByID(list_t *sigList,
 
 int PSID_getSignalByTID(list_t *sigList, PStask_ID_t tid)
 {
-    list_t *s;
+    list_t *s, *tmp;
     PStask_sig_t *thissig = NULL;
-    int blocked, signal = 0;
+    int blocked, blockedRDP, signal = 0;
 
     blocked = PSID_blockSig(1, SIGCHLD);
+    blockedRDP = RDP_blockTimer(1);
 
-    list_for_each(s, sigList) {
+    list_for_each_safe(s, tmp, sigList) {
 	PStask_sig_t *sig = list_entry(s, PStask_sig_t, next);
-	if (sig->deleted) continue;
+	if (sig->deleted) {
+	    list_del(&sig->next);
+	    PStask_putSig(sig);
+	    continue;
+	}
 	if (sig->tid == tid) {
 	    thissig = sig;
 	    break;
@@ -241,6 +280,7 @@ int PSID_getSignalByTID(list_t *sigList, PStask_ID_t tid)
 	PStask_putSig(thissig);
     }
 
+    RDP_blockTimer(blockedRDP);
     PSID_blockSig(blocked, SIGCHLD);
 
     return signal;
@@ -249,16 +289,20 @@ int PSID_getSignalByTID(list_t *sigList, PStask_ID_t tid)
 int PSID_numSignals(list_t *sigList)
 {
     list_t *s;
-    int blocked, num = 0;
+    int blocked, blockedRDP, num = 0;
 
     if (!sigList) return 0;
 
     blocked = PSID_blockSig(1, SIGCHLD);
+    blockedRDP = RDP_blockTimer(1);
+
     list_for_each(s, sigList) {
 	PStask_sig_t *sig = list_entry(s, PStask_sig_t, next);
 	if (sig->deleted) continue;
 	num++;
     }
+
+    RDP_blockTimer(blockedRDP);
     PSID_blockSig(blocked, SIGCHLD);
 
     return num;
@@ -266,7 +310,25 @@ int PSID_numSignals(list_t *sigList)
 
 int PSID_emptySigList(list_t *sigList)
 {
-    return !PSID_numSignals(sigList);
+    list_t *s;
+    int blocked, blockedRDP, empty = 1;
+
+    if (!sigList) return 1;
+
+    blocked = PSID_blockSig(1, SIGCHLD);
+    blockedRDP = RDP_blockTimer(1);
+
+    list_for_each(s, sigList) {
+	PStask_sig_t *sig = list_entry(s, PStask_sig_t, next);
+	if (sig->deleted) continue;
+	empty = 0;
+	break;
+    }
+
+    RDP_blockTimer(blockedRDP);
+    PSID_blockSig(blocked, SIGCHLD);
+
+    return empty;
 }
 
 /****************** TAKSLIST MANIPULATING ROUTINES **********************/
@@ -375,11 +437,12 @@ void PStask_cleanup(PStask_ID_t tid)
 	if (task->group==TG_FORWARDER && !task->released) {
 	    /* cleanup children */
 	    list_t *s, *tmp;
-	    int blocked;
+	    int blocked, blockedRDP;
 
 	    blocked = PSID_blockSig(1, SIGCHLD);
+	    blockedRDP = RDP_blockTimer(1);
 
-	    list_for_each_safe(s, tmp, &task->childList) {
+	    list_for_each_safe(s, tmp, &task->childList) { /* @todo safe req? */
 		PStask_sig_t *sig = list_entry(s, PStask_sig_t, next);
 		PStask_t *child = PStasklist_find(&managedTasks, sig->tid);
 		DDErrorMsg_t msg;
@@ -408,8 +471,7 @@ void PStask_cleanup(PStask_ID_t tid)
 		/* @todo This is not true. See code in
 		 * msg_CLIENTCONNECT() concerning re-connected
 		 * processes and duplicate tasks */
-		list_del(&sig->next);
-		PStask_putSig(sig);
+		sig->deleted = 1;
 
 		if (child && child->fd == -1) {
 		    PSID_log(-1, "%s: forwarder kills child %s\n",
@@ -420,6 +482,7 @@ void PStask_cleanup(PStask_ID_t tid)
 		}
 	    }
 
+	    RDP_blockTimer(blockedRDP);
 	    PSID_blockSig(blocked, SIGCHLD);
 
 	}
