@@ -4,6 +4,12 @@ Copyright (C) 2010-2012 ParTec Cluster Competence Center GmbH, Munich
 
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
+Version 5.0.40-1:
+=================
+Bugfixes:
+ - Fix cpuinfo calls on Intel platforms (#1896)
+
+
 Version 5.0.40:
 ===============
 Bugfixes:
@@ -53,6 +59,7 @@ Additional changes:
  - Trigger a 1k malloc()/free() cycle via SIGUSR2 to psid.
  - added configuration file for psaccount plugin
 
+
 Version 5.0.39:
 ===============
 Bugfixes:
@@ -68,6 +75,7 @@ Enhancements:
 
 Additional changes:
  - Move license to QPL
+
 
 Version 5.0.38:
 ===============
@@ -86,6 +94,7 @@ Enhancements:
 Additional changes:
  - Move legacy MPI starters into separate sub-package (#1584)
  - Get rid of ELAN-support, since Quadrics QsNet seems to be dead (#1591)
+
 
 Version 5.0.37:
 ===============
@@ -110,6 +119,7 @@ Additional changes:
  - Improve messages from psid's plugin-handling to psiadmin.
  - Include stub into test-plugin for extraordinary long help-messages.
 
+
 Version 5.0.36:
 ===============
 Bugfixes:
@@ -127,6 +137,7 @@ Enhancements:
  - sendSignal2Session() returns number of children signal was sent to
  - psid shall not block SIGCHLD most of the time. Instead, only critical
    code-regions are fenced by blocked SIGCHLD (#1333)
+
 
 Version 5.0.35:
 ===============

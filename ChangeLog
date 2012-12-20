@@ -1,3 +1,40 @@
+Version psmgmt-5.0.40-1:
+========================
+------------------------------------------------------------------------
+r8695 | moschny | 2012-12-20 16:37:18 +0100 (Thu, 20 Dec 2012) | 1 line
+
+Cosmetics.
+------------------------------------------------------------------------
+r8694 | moschny | 2012-12-20 16:37:01 +0100 (Thu, 20 Dec 2012) | 1 line
+
+Do not pack pstask.h twice.
+------------------------------------------------------------------------
+r8693 | moschny | 2012-12-20 14:31:41 +0100 (Thu, 20 Dec 2012) | 11 lines
+
+Fix cpuinfo calls, trying to fix #1896.
+
+The compiler assumes that the output of an inline assembler block with
+no input is constant. With -03 it thus starts optimizing away multiple
+executions of such a block. This can be avoided by marking the
+assembler block as 'volatile'.
+
+At least for getAPIC_ID() the expected result is obviously not a
+constant. It doesn't hurt though to also mark all other similar inline
+assembler blocks as volatile.
+
+------------------------------------------------------------------------
+r8692 | eicker | 2012-12-17 15:11:50 +0100 (Mon, 17 Dec 2012) | 3 lines
+
+Update information on how to release a new version
+svninfo.xsl has to be included again to create a tag
+
+------------------------------------------------------------------------
+r8688 | eicker | 2012-12-17 14:53:48 +0100 (Mon, 17 Dec 2012) | 2 lines
+
+New version (psmgmt-5.0.40)
+
+------------------------------------------------------------------------
+
 Version psmgmt-5.0.40:
 ======================
 ------------------------------------------------------------------------
