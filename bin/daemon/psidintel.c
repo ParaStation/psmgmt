@@ -35,7 +35,7 @@ int PSID_GenuineIntel(void)
     unsigned int Regebx = 0, Regedx = 0, Regecx = 0;
     char* IntelID = "GenuineIntel";
 
-    asm (
+    asm volatile (
 	"xorl %%eax, %%eax\n\t"
 	"cpuid\n\t"
 	:       "=b" (Regebx),
@@ -67,7 +67,7 @@ static unsigned int CpuIDSupported(void)
 {
     unsigned int maxInputValue = 0;
 
-    asm (
+    asm volatile (
 	"xorl %%eax,%%eax\n\t"
 	"cpuid\n\t"
 	: "=a" (maxInputValue)
@@ -100,7 +100,7 @@ static unsigned int HWD_MTSupported(void)
 
     if (!CpuIDSupported() || ! PSID_GenuineIntel()) return 0;
 
-    asm (
+    asm volatile (
 	"movl $1,%%eax\n\t"
 	"cpuid"
 	: "=d" (Regedx)
@@ -135,7 +135,7 @@ static unsigned int corePerPhysical(void)
 
     if (!HWD_MTSupported()) return 1;
 
-    asm (
+    asm volatile (
 	"xorl %%eax, %%eax\n\t"
 	"cpuid\n\t"
 	"cmpl $4, %%eax\n\t"	/* check if cpuid supports leaf 4 */
@@ -182,7 +182,7 @@ static unsigned int logicalPerPhysical(void)
 
     if (!HWD_MTSupported()) return 1;
 
-    asm (
+    asm volatile (
 	"movl $1,%%eax\n\t"
 	"cpuid"
 	: "=b" (Regebx)
@@ -212,7 +212,7 @@ static unsigned char getAPIC_ID(void)
 {
     unsigned int Regebx = 0;
 
-    asm (
+    asm volatile (
 	"movl $1, %%eax\n\t"
 	"cpuid"
 	: "=b" (Regebx)
