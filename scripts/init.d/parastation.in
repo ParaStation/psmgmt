@@ -9,6 +9,7 @@
 # file.
 #
 # Authors:      Norbert Eicker <eicker@par-tec.com>
+#		Michael Rauh <rauh@par-tec.com>
 #
 # parastation:       Starts the ParaStation Daemon.
 #
@@ -74,11 +75,14 @@ p_success() {
 }
 
 is_running() {
-    PID=`pidof $PSID`
-    if [ -z "$PID" ]; then
-	return 1;
-    else
-	return 0;
+    ps aux|grep -P "( |/)psid$" &>/dev/null && return 0;
+    return 1;
+}
+
+get_psid_pid() {
+    PSID_PID=`ps aux|grep -P "( |/)psid$" | awk {' print $2 '}`
+    if [ $? -ne 0 ]; then
+        PSID_PID="-1"
     fi
 }
 
@@ -152,9 +156,9 @@ restart() {
 }
 
 status() {
-    PID=`pidof $PSID`
+    get_psid_pid
     if is_running; then
-	p_success "$PSIDNAME (pid ${PID}) is running."
+	p_success "$PSIDNAME (pid ${PSID_PID}) is running."
     else
 	p_success "$PSIDNAME is stopped."
     fi
