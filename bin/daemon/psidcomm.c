@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2012 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2013 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -224,6 +224,9 @@ int sendMsg(void *amsg)
 
 	if (eno == EWOULDBLOCK && PSC_getPID(msg->sender)
 	    && msg->type != PSP_CD_ACCOUNT
+	    && msg->type != PSP_CD_SENDCONT
+	    && msg->type != PSP_CD_SENDSTOP
+	    && msg->type != PSP_DD_SENDCONT
 	    && msg->type != PSP_DD_SENDSTOP) {
 	    DDMsg_t stopmsg = { .type = PSP_DD_SENDSTOP,
 				.sender = msg->dest,
