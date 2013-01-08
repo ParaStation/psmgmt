@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2012 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2013 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -130,8 +130,23 @@ void PStask_putSig(PStask_sig_t *sp);
  * free() signal structures no longer required.
  *
  * @return No return value.
+ *
+ * @see PStask_gcSigRequired()
  */
 void PStask_gcSig(void);
+
+/**
+ * @brief Garbage collection required?
+ *
+ * Find out, if a call to PStask_gcSig() will have any effect, i.e. if
+ * sufficiently many unused signal structures are available to free().
+ *
+ * @return If enough signal structure to free() are available, 1 is
+ * returned. Otherwise 0 is given back.
+ *
+ * @see PStask_gcSig()
+ */
+int PStask_gcSigRequired(void);
 
 /**
  * @brief Print statistics
@@ -371,7 +386,7 @@ int PStask_decodeFull(char *buffer, PStask_t *task);
  * structure will *not* be encoded, i.e. the buffer remains empty.
  *
  * A value of @a offset different from NULL upon return flags that the
- * task's working-directory was not completely encoded. Addtional
+ * task's working-directory was not completely encoded. Additional
  * messages containing the trailing part have to be sent.
  *
  * @see PStask_decodeTask(), PStask_encodeArgv(), PStask_encodeEnv()

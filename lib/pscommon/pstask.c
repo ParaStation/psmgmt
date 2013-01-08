@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2012 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2013 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -203,7 +203,6 @@ void PStask_gcSig(void)
 
     if ((int)usedSigs > (int)availSigs/2 - SIGNAL_CHUNK) return;
 
-    /* get list's first usable element */
     list_for_each_safe(c, tmp, &chunkList) {
 	sig_chunk_t *chunk = list_entry(c, sig_chunk_t, next);
 	int unused = 0;
@@ -216,6 +215,15 @@ void PStask_gcSig(void)
 
 	if (availSigs == SIGNAL_CHUNK) break; /* keep the last one */
     }
+}
+
+int PStask_gcSigRequired(void)
+{
+    PSC_log(PSC_LOG_TASK, "%s()\n", __func__);
+
+    if ((int)usedSigs > (int)availSigs/2 - SIGNAL_CHUNK) return 0;
+
+    return 1;
 }
 
 void PStask_printStat(void)
