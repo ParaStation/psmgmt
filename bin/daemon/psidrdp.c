@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2012 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2013 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -148,6 +148,10 @@ int flushRDPMsgs(int node)
 	    goto end;
 	}
 
+	/* Remove msgbuf before 'cont' (sendMsg might trigger y.a. flush) */
+	list_del(&msgbuf->next);
+	PSIDMsgbuf_put(msgbuf);
+
 	if (PSC_getPID(sender)) {
 	    DDMsg_t contmsg = { .type = PSP_DD_SENDCONT,
 				.sender = dest,
@@ -155,9 +159,6 @@ int flushRDPMsgs(int node)
 				.len = sizeof(DDMsg_t) };
 	    sendMsg(&contmsg);
 	}
-
-	list_del(&msgbuf->next);
-	PSIDMsgbuf_put(msgbuf);
     }
  end:
     RDP_blockTimer(blocked);
