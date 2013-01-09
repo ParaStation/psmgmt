@@ -30,10 +30,10 @@ Syntax: print_array ARRAY [NUM] [FIELD]
 
 Print array's content.
 
-ARRAY is the array itself. If the optional argument NUM
-is given, the first NUM entries will be displayed. If
-addionally FIELD is given, only this field of the arrays
-structure is printed.
+ARRAY is the array itself. If the optional argument NUM is given, the
+first NUM entries will be displayed. Otherwise the first five entries
+will be printed. If addionally FIELD is given, only this field of the
+arrays structure is printed.
 end
 
 define print_list
@@ -116,6 +116,47 @@ Print length of list defined with the help of the Linux kernel's list.h.
 
 LISTHEAD is the corresponding anchor of the list.
 end
+
+define array_list_len
+
+  if $argc < 1
+    echo array_list_len ARRAY [FIELD] [NUM]\n
+  else
+    set $array = $arg0
+    if $argc < 3
+      set $num = 5
+    else
+      set $num = $arg2
+    end
+
+    set $j = 0
+
+    while $j < $num
+      output $j
+      echo \ :\ \
+      if $argc < 2
+        list_len $array[$j].list
+      else
+        list_len $array[$j].$arg1
+      end
+      set $j = $j + 1
+    end
+  end
+end
+
+document array_list_len
+Syntax: array_list_len ARRAY [FIELD] [NUM]
+
+Print length of lists that are arranged as array-members.
+
+ARRAY is the name of the array to look at. Each array entry holds a
+least within the member FIELD. If FIELD is not given explicitely,
+'list' is the assumed member-name. If the optional argument NUM is given, the
+first NUM entries will be displayed. Otherwise only the first five entries
+will be printed.
+end
+
+
 
 ### Local Variables:
 ### mode: gdb-script
