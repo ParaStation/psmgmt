@@ -4,6 +4,22 @@ Copyright (C) 2010-2012 ParTec Cluster Competence Center GmbH, Munich
 
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
+Version 5.0.40-2:
+=================
+Bugfixes:
+ - Prevent from message floods due to flow-control. (#1907)
+ - Block any asynchronous action while doing garbage collection on
+   message buffers. (#1904 / #1907)
+ - Prevent race-condition that might lead to double free() of msgbufs
+   (#1904 / #1907)
+ - Don't let the init script confuse psidforwarder with the main psid
+   process (#1907)
+
+Enhancements:
+ - Only do PStask_gcSig() with expensive blocking of signals, if
+   required.
+
+
 Version 5.0.40-1:
 =================
 Bugfixes:

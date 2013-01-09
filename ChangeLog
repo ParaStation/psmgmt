@@ -1,3 +1,56 @@
+Version psmgmt-5.0.40-2:
+========================
+------------------------------------------------------------------------
+r8707 | eicker | 2013-01-09 19:08:27 +0100 (Wed, 09 Jan 2013) | 2 lines
+
+New helper function for use within gdb on bug analysis.
+
+------------------------------------------------------------------------
+r8706 | eicker | 2013-01-08 22:31:54 +0100 (Tue, 08 Jan 2013) | 2 lines
+
+Bugfix: Prevent from message floods due to flow-control. (#1907)
+
+------------------------------------------------------------------------
+r8705 | eicker | 2013-01-08 22:30:07 +0100 (Tue, 08 Jan 2013) | 3 lines
+
+Bugfix: Block any asynchronous action while doing garbage collection on
+    message buffers. (#1904 / #1907)
+
+------------------------------------------------------------------------
+r8704 | eicker | 2013-01-08 22:27:34 +0100 (Tue, 08 Jan 2013) | 3 lines
+
+Bugfix: Prevent race-condition that might lead to double free() of
+    msgbufs (#1904 / #1907)
+
+------------------------------------------------------------------------
+r8703 | eicker | 2013-01-08 22:22:45 +0100 (Tue, 08 Jan 2013) | 3 lines
+
+Enhancement: Only do PStask_gcSig() with expensive blocking of signals,
+    if required.
+
+------------------------------------------------------------------------
+r8702 | eicker | 2013-01-08 22:21:39 +0100 (Tue, 08 Jan 2013) | 3 lines
+
+Enhancement: Allow to check via PStask_gcSigRequired(), if garbage
+    collection of signal structures is required.
+
+------------------------------------------------------------------------
+r8701 | eicker | 2013-01-08 22:19:01 +0100 (Tue, 08 Jan 2013) | 2 lines
+
+Fix whitespace and copyright.
+
+------------------------------------------------------------------------
+r8700 | rauh | 2013-01-07 12:43:05 +0100 (Mon, 07 Jan 2013) | 2 lines
+
+Bugfix: don't let the init script confuse psidforwarder with the main psid process
+
+------------------------------------------------------------------------
+r8696 | eicker | 2012-12-20 17:05:49 +0100 (Thu, 20 Dec 2012) | 2 lines
+
+New release (psmgmt-5.0.40-1)
+
+------------------------------------------------------------------------
+
 Version psmgmt-5.0.40-1:
 ========================
 ------------------------------------------------------------------------
