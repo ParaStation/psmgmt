@@ -25,6 +25,7 @@ static char vcid[] __attribute__((used)) =
 #include <sys/stat.h>
 #include <sys/socket.h>
 #include <sys/time.h>
+#include <sys/resource.h>
 #include <sys/wait.h>
 #include <pty.h>
 #include <signal.h>
