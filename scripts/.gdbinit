@@ -1,7 +1,7 @@
 define print_array
 
   if $argc < 1
-    echo print_array ARRAY [NUM] [FIELD]\n
+    echo print_array ARRAY [NUM [FIELD]]\n
   else
     set $array = $arg0
     if $argc < 2 
@@ -26,14 +26,13 @@ end
 
 
 document print_array
-Syntax: print_array ARRAY [NUM] [FIELD]
+Syntax: print_array ARRAY [NUM [FIELD]]
 
 Print array's content.
 
 ARRAY is the array itself. If the optional argument NUM is given, the
-first NUM entries will be displayed. Otherwise the first five entries
-will be printed. If addionally FIELD is given, only this field of the
-arrays structure is printed.
+first NUM entries will be displayed. If furthermore FIELD is given, only
+this field of the arrays structure is printed.
 end
 
 define print_list
@@ -128,12 +127,17 @@ define array_list_len
     else
       set $num = $arg2
     end
+    if $argc < 4
+      set $first = 0
+    else
+      set $first = $arg3
+    end
 
-    set $j = 0
+    set $j = $first
 
     while $j < $num
       output $j
-      echo \ :\ \
+      echo \ :\ \ 
       if $argc < 2
         list_len $array[$j].list
       else
@@ -145,15 +149,16 @@ define array_list_len
 end
 
 document array_list_len
-Syntax: array_list_len ARRAY [FIELD] [NUM]
+Syntax: array_list_len ARRAY [FIELD [NUM [FIRST]]]
 
 Print length of lists that are arranged as array-members.
 
-ARRAY is the name of the array to look at. Each array entry holds a
-least within the member FIELD. If FIELD is not given explicitely,
-'list' is the assumed member-name. If the optional argument NUM is given, the
-first NUM entries will be displayed. Otherwise only the first five entries
-will be printed.
+ARRAY is the name of the array to look at. Each array entry is assumed
+to hold a list within the member FIELD. If FIELD is not given explicitely,
+'list' is the assumed member-name. If the optional argument NUM is given,
+the first NUM entries will be displayed. Otherwise only the first five
+entries will be printed. If furthermore FIRST is given, handling ARRAY
+will not start at the first element but at the number given.
 end
 
 
