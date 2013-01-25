@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2012 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2013 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -2585,9 +2585,9 @@ static void msg_CHILDBORN(DDErrorMsg_t *msg)
     }
 
     /* prepare child task */
-    blocked = PSID_blockSig(1, SIGCHLD);
+    blocked = PSID_blockSIGCHLD(1);
     child = PStask_clone(forwarder);
-    PSID_blockSig(blocked, SIGCHLD);
+    PSID_blockSIGCHLD(blocked);
     if (!child) {
 	PSID_warn(-1, errno, "%s: PStask_clone()", __func__);
 
@@ -2840,7 +2840,7 @@ static void checkObstinateTasks(void)
     list_t *t, *tmp;
     int blocked;
 
-    blocked = PSID_blockSig(1, SIGCHLD);
+    blocked = PSID_blockSIGCHLD(1);
 
     list_for_each_safe(t, tmp, &managedTasks) {
 	PStask_t *task = list_entry(t, PStask_t, next);
@@ -2870,7 +2870,7 @@ static void checkObstinateTasks(void)
 	}
     }
 
-    PSID_blockSig(blocked, SIGCHLD);
+    PSID_blockSIGCHLD(blocked);
 }
 
 

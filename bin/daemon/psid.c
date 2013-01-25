@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2012 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2013 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -209,6 +209,81 @@ static void RDPCallBack(int msgid, void *buf)
     }
 }
 
+static int blockSIGCHLD = 0;
+static int SIGCHLDpending = 0;
+
+void PSID_handleSIGCHLD(int sig)
+{
+    pid_t pid;         /* pid of the child process */
+    PStask_ID_t tid;   /* tid of the child process */
+    int estatus;       /* termination status of the child process */
+    static int handlingActive = 0;
+
+    if (handlingActive) {
+	SIGCHLDpending = 1;
+	return;
+    }
+
+    handlingActive = 1;
+
+    while ((pid = waitpid(-1, &estatus, WNOHANG)) > 0){
+	/*
+	 * Delete the task now. These should mainly be forwarders.
+	 */
+	PStask_t *task;
+	int logClass = (WEXITSTATUS(estatus)||WIFSIGNALED(estatus)) ?
+	    -1 : PSID_LOG_CLIENT;
+
+	/* I'll just report it to the logfile */
+	PSID_log(logClass,
+		 "Received SIGCHLD for pid %d (0x%06x) with status %d",
+		 pid, pid, WEXITSTATUS(estatus));
+	if (WIFSIGNALED(estatus)) {
+	    PSID_log(logClass, " after signal %d", WTERMSIG(estatus));
+	}
+	PSID_log(logClass, "\n");
+
+	tid = PSC_getTID(-1, pid);
+
+	task = PStasklist_find(&managedTasks, tid);
+	if (task) {
+	    if (!task->killat) {
+		task->killat = time(NULL) + 10;
+	    }
+	    if (task->fd != -1) {
+		/* Make sure we get all pending messages */
+		Selector_enable(task->fd);
+	    } else {
+		/* task not connected, remove from tasklist */
+		PStask_cleanup(tid);
+	    }
+	}
+	SIGCHLDpending = 0;
+    }
+
+    handlingActive = 0;
+}
+
+int PSID_blockSIGCHLD(int block)
+{
+    int wasBlocked = blockSIGCHLD;
+
+    blockSIGCHLD = block;
+
+    if (!block && SIGCHLDpending) {
+	PSID_handleSIGCHLD(SIGCHLD);
+
+	if (SIGCHLDpending) {
+	    int blocked = PSID_blockSig(1, SIGCHLD);
+	    PSID_log(-1, "%s: still a pending signal.\n", __func__);
+	    PSID_handleSIGCHLD(SIGCHLD);
+	    PSID_blockSig(blocked, SIGCHLD);
+	}
+    }
+
+    return wasBlocked;
+}
+
 /**
  * @brief Signal handler
  *
@@ -240,47 +315,12 @@ static void sighandler(int sig)
 	PSID_shutdown();
 	break;
     case SIGCHLD:
-    {
-	pid_t pid;         /* pid of the child process */
-	PStask_ID_t tid;   /* tid of the child process */
-	int estatus;       /* termination status of the child process */
-
-	while ((pid = waitpid(-1, &estatus, WNOHANG)) > 0){
-	    /*
-	     * Delete the task now. These should mainly be forwarders.
-	     */
-	    PStask_t *task;
-	    int logClass = (WEXITSTATUS(estatus)||WIFSIGNALED(estatus)) ?
-		-1 : PSID_LOG_CLIENT;
-
-	    /* I'll just report it to the logfile */
-	    PSID_log(logClass,
-		     "Received SIGCHLD for pid %d (0x%06x) with status %d",
-		     pid, pid, WEXITSTATUS(estatus));
-	    if (WIFSIGNALED(estatus)) {
-		PSID_log(logClass, " after signal %d", WTERMSIG(estatus));
-	    }
-	    PSID_log(logClass, "\n");
-
-	    tid = PSC_getTID(-1, pid);
-
-	    task = PStasklist_find(&managedTasks, tid);
-	    if (task) {
-		if (!task->killat) {
-		    task->killat = time(NULL) + 10;
-		}
-		if (task->fd != -1) {
-		    /* Make sure we get all pending messages */
-		    Selector_enable(task->fd);
-		} else {
-		    /* task not connected, remove from tasklist */
-		    PStask_cleanup(tid);
-		}
-	    }
+	if (blockSIGCHLD) {
+	    SIGCHLDpending = 1;
+	} else {
+	    PSID_handleSIGCHLD(sig);
 	}
-    }
-    break;
-
+	break;
     case  SIGPIPE:   /* write on a pipe with no one to read it */
 	/* Ignore silently */
 	break;

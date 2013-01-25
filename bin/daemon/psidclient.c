@@ -460,7 +460,7 @@ void deleteClient(int fd)
 	msg.header.len = sizeof(msg.header);
 	sendMsg(&msg);
 
-	blocked = PSID_blockSig(1, SIGCHLD);
+	blocked = PSID_blockSIGCHLD(1);
 
 	while ((child = PSID_getSignal(&task->childList, &sig))) {
 	    PStask_t *childTask = PStasklist_find(&managedTasks, child);
@@ -487,7 +487,7 @@ void deleteClient(int fd)
 	    sig = -1;
 	};
 
-	PSID_blockSig(blocked, SIGCHLD);
+	PSID_blockSIGCHLD(blocked);
 
 	task->released = 1;
     }
@@ -722,9 +722,9 @@ static void msg_CLIENTCONNECT(int fd, DDBufferMsg_t *bufmsg)
 	    PStask_t *child;
 	    int blocked;
 
-	    blocked = PSID_blockSig(1, SIGCHLD);
+	    blocked = PSID_blockSIGCHLD(1);
 	    child = PStask_clone(task);
-	    PSID_blockSig(blocked, SIGCHLD);
+	    PSID_blockSIGCHLD(blocked);
 
 	    PSID_log(PSID_LOG_CLIENT, "%s: reconnection with changed PID"
 		     "%d -> %d\n", __func__, PSC_getPID(task->tid), pid);

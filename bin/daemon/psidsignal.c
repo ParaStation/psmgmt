@@ -222,7 +222,7 @@ void PSID_sendSignal(PStask_ID_t tid, uid_t uid, PStask_ID_t sender,
 
 	    answer = 0;
 
-	    blocked = PSID_blockSig(1, SIGCHLD);
+	    blocked = PSID_blockSIGCHLD(1);
 	    blockedRDP = RDP_blockTimer(1);
 
 	    list_for_each_safe(s, tmp, &dest->childList) { /* @todo safe req? */
@@ -233,7 +233,7 @@ void PSID_sendSignal(PStask_ID_t tid, uid_t uid, PStask_ID_t sender,
 	    }
 
 	    RDP_blockTimer(blockedRDP);
-	    PSID_blockSig(blocked, SIGCHLD);
+	    PSID_blockSIGCHLD(blocked);
 
 	    /* Deliver signal, if tid not the original sender */
 	    if (tid != sender) {
@@ -316,7 +316,7 @@ void PSID_sendAllSignals(PStask_t *task)
 void PSID_sendSignalsToRelatives(PStask_t *task)
 {
     list_t *s;
-    int blocked, blockedRDP;
+    int blockedCHLD, blockedRDP;
 
     if (task->ptid) {
 	PSID_sendSignal(task->ptid, task->uid, task->tid, -1, 0, 0);
@@ -325,7 +325,7 @@ void PSID_sendSignalsToRelatives(PStask_t *task)
 		 PSC_printTID(task->ptid));
     }
 
-    blocked = PSID_blockSig(1, SIGCHLD);
+    blockedCHLD = PSID_blockSIGCHLD(1);
     blockedRDP = RDP_blockTimer(1);
 
     list_for_each(s, &task->childList) {
@@ -339,7 +339,7 @@ void PSID_sendSignalsToRelatives(PStask_t *task)
     }
 
     RDP_blockTimer(blockedRDP);
-    PSID_blockSig(blocked, SIGCHLD);
+    PSID_blockSIGCHLD(blockedCHLD);
 }
 
 /**
@@ -938,7 +938,7 @@ static int releaseTask(PStask_t *task)
 	    /* Reorganize children. They are inherited by the parent task */
 	    sig = -1;
 
-	    blocked = PSID_blockSig(1, SIGCHLD);
+	    blocked = PSID_blockSIGCHLD(1);
 
 	    while ((child = PSID_getSignal(&task->childList, &sig))) {
 		PSID_log(PSID_LOG_TASK|PSID_LOG_SIGNAL,
@@ -970,7 +970,7 @@ static int releaseTask(PStask_t *task)
 		sig = -1;
 	    }
 
-	    PSID_blockSig(blocked, SIGCHLD);
+	    PSID_blockSIGCHLD(blocked);
 
 	}
 
@@ -1246,15 +1246,15 @@ static void drop_RELEASE(DDBufferMsg_t *msg)
 
 static void signalGC(void)
 {
-    int blocked, blockedRDP;
+    int blockedCHLD, blockedRDP;
 
     if (!PStask_gcSigRequired()) return;
 
-    blocked = PSID_blockSig(1, SIGCHLD);
+    blockedCHLD = PSID_blockSIGCHLD(1);
     blockedRDP = RDP_blockTimer(1);
     PStask_gcSig();
     RDP_blockTimer(blockedRDP);
-    PSID_blockSig(blocked, SIGCHLD);
+    PSID_blockSIGCHLD(blockedCHLD);
 }
 
 void initSignal(void)

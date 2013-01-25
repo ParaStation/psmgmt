@@ -230,7 +230,7 @@ void PSIDMsgbuf_gc(void)
 
     if ((int)usedSmallBufs > (int)smallBufs/2 - MSGBUF_SCHUNK) return;
 
-    blocked = PSID_blockSig(1, SIGCHLD);
+    blocked = PSID_blockSIGCHLD(1);
     blockedRDP = RDP_blockTimer(1);
 
     list_for_each_safe(c, tmp, &chunkList) {
@@ -247,7 +247,7 @@ void PSIDMsgbuf_gc(void)
     }
 
     RDP_blockTimer(blockedRDP);
-    PSID_blockSig(blocked, SIGCHLD);
+    PSID_blockSIGCHLD(blocked);
 }
 
 msgbuf_t *PSIDMsgbuf_get(size_t len)
