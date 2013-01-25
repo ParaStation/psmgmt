@@ -141,6 +141,9 @@ static PSIDnodes_guid_t getGUID(PSIDnodes_gu_t type, PSP_Optval_t val)
     case PSIDNODES_ADMGROUP:
 	guid.g=val;
 	break;
+    default:
+	PSID_log(-1, "%s: invalid type %d\n", __func__, type);
+	guid.u = 0;
     }
 
     return guid;
