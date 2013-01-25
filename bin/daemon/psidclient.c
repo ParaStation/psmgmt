@@ -25,6 +25,7 @@ static char vcid[] __attribute__((used)) =
 #undef __USE_GNU
 
 #include "selector.h"
+#include "rdp.h"
 
 #include "pscommon.h"
 #include "psprotocol.h"
@@ -190,6 +191,7 @@ static int do_send(int fd, DDMsg_t *msg, int offset)
 
 static int storeMsgClient(int fd, DDMsg_t *msg, int offset)
 {
+    int blockedCHLD, blockedRDP;
     msgbuf_t *msgbuf = PSIDMsgbuf_get(msg->len);
 
     if (!msgbuf) {
@@ -200,7 +202,13 @@ static int storeMsgClient(int fd, DDMsg_t *msg, int offset)
     memcpy(msgbuf->msg, msg, msg->len);
     msgbuf->offset = offset;
 
+    blockedCHLD = PSID_blockSIGCHLD(1);
+    blockedRDP = RDP_blockTimer(1);
+
     list_add_tail(&msgbuf->next, &clients[fd].msgs);
+
+    RDP_blockTimer(blockedRDP);
+    PSID_blockSIGCHLD(blockedCHLD);
 
     return 0;
 }
@@ -209,11 +217,15 @@ int flushClientMsgs(int fd)
 {
     list_t *m, *tmp;
     PStask_ID_t last = 0;
+    int blockedCHLD, blockedRDP, ret = 0;
 
     if (fd<0 || fd >= FD_SETSIZE) {
 	errno = EINVAL;
 	return -1;
     }
+
+    blockedCHLD = PSID_blockSIGCHLD(1);
+    blockedRDP = RDP_blockTimer(1);
 
     list_for_each_safe(m, tmp, &clients[fd].msgs) {
 	msgbuf_t *msgbuf = list_entry(m, msgbuf_t, next);
@@ -221,7 +233,10 @@ int flushClientMsgs(int fd)
 	PStask_ID_t sender = msg->sender, dest = msg->dest;
 	int sent = do_send(fd, msg, msgbuf->offset);
 
-	if (sent<0 || list_empty(&clients[fd].msgs)) return sent;
+	if (sent<0 || list_empty(&clients[fd].msgs)) {
+	    ret = sent;
+	    break;
+	}
 	if (sent != msg->len) {
 	    msgbuf->offset = sent;
 	    break;
@@ -241,12 +256,15 @@ int flushClientMsgs(int fd)
 	}
     }
 
-    if (!list_empty(&clients[fd].msgs)) {
+    RDP_blockTimer(blockedRDP);
+    PSID_blockSIGCHLD(blockedCHLD);
+
+    if (!ret && !list_empty(&clients[fd].msgs)) {
 	errno = EWOULDBLOCK;
-	return -1;
+	ret = -1;
     }
 
-    return 0;
+    return ret;
 }
 
 int sendClient(DDMsg_t *msg)
@@ -391,6 +409,7 @@ static void closeConnection(int fd)
 {
     list_t *m, *tmp;
     PStask_ID_t tid = getClientTID(fd), last = 0;
+    int blockedCHLD, blockedRDP;
 
     if (fd<0) {
 	PSID_log(-1, "%s(%d): fd < 0\n", __func__, fd);
@@ -400,6 +419,9 @@ static void closeConnection(int fd)
     clients[fd].tid = -1;
     if (clients[fd].task) clients[fd].task->fd = -1;
     clients[fd].task = NULL;
+
+    blockedCHLD = PSID_blockSIGCHLD(1);
+    blockedRDP = RDP_blockTimer(1);
 
     list_for_each_safe(m, tmp, &clients[fd].msgs) {
 	msgbuf_t *mp = list_entry(m, msgbuf_t, next);
@@ -419,6 +441,9 @@ static void closeConnection(int fd)
 	PSID_dropMsg(msg);
 	PSIDMsgbuf_put(mp);
     }
+
+    RDP_blockTimer(blockedRDP);
+    PSID_blockSIGCHLD(blockedCHLD);
 
     shutdown(fd, SHUT_RDWR);
     close(fd);

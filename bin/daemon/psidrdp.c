@@ -55,12 +55,15 @@ void initRDPMsgs(void)
 
 void clearRDPMsgs(int node)
 {
-    int blocked = RDP_blockTimer(1);
+    int blockedCHLD, blockedRDP;
     list_t *m, *tmp;
 
     /* prevent recursive clearing of node_bufs[node].list */
     if (node_bufs[node].clearing) return;
     node_bufs[node].clearing = 1;
+
+    blockedCHLD = PSID_blockSIGCHLD(1);
+    blockedRDP = RDP_blockTimer(1);
 
     list_for_each_safe(m, tmp, &node_bufs[node].list) {
 	msgbuf_t *mp = list_entry(m, msgbuf_t, next);
@@ -78,8 +81,10 @@ void clearRDPMsgs(int node)
 	PSIDMsgbuf_put(mp);
     }
 
+    RDP_blockTimer(blockedRDP);
+    PSID_blockSIGCHLD(blockedCHLD);
+
     node_bufs[node].clearing = 0;
-    RDP_blockTimer(blocked);
 }
 
 /**
@@ -97,28 +102,31 @@ void clearRDPMsgs(int node)
  */
 static int storeMsgRDP(int node, DDMsg_t *msg)
 {
-    int blocked = RDP_blockTimer(1), ret = 0;
+    int blockedCHLD, blockedRDP, ret = 0;
     msgbuf_t *msgbuf = PSIDMsgbuf_get(msg->len);
 
     if (!msgbuf) {
 	errno = ENOMEM;
-	ret = -1;
-	goto end;
+	return -1;
     }
 
     memcpy(msgbuf->msg, msg, msg->len);
     msgbuf->offset = 0;
 
+    blockedCHLD = PSID_blockSIGCHLD(1);
+    blockedRDP = RDP_blockTimer(1);
+
     list_add_tail(&msgbuf->next, &node_bufs[node].list);
 
- end:
-    RDP_blockTimer(blocked);
+    RDP_blockTimer(blockedRDP);
+    PSID_blockSIGCHLD(blockedCHLD);
+
     return ret;
 }
 
 int flushRDPMsgs(int node)
 {
-    int blocked, ret = 0;
+    int blockedCHLD, blockedRDP, ret = 0;
     list_t *m, *tmp;
 
     if (node<0 || node >= PSC_getNrOfNodes()) {
@@ -126,7 +134,8 @@ int flushRDPMsgs(int node)
 	return -1;
     }
 
-    blocked = RDP_blockTimer(1);
+    blockedCHLD = PSID_blockSIGCHLD(1);
+    blockedRDP = RDP_blockTimer(1);
 
     list_for_each_safe(m, tmp, &node_bufs[node].list) {
 	msgbuf_t *msgbuf = list_entry(m, msgbuf_t, next);
@@ -161,7 +170,8 @@ int flushRDPMsgs(int node)
 	}
     }
  end:
-    RDP_blockTimer(blocked);
+    RDP_blockTimer(blockedRDP);
+    PSID_blockSIGCHLD(blockedCHLD);
     return ret;
 }
 

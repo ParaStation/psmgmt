@@ -218,11 +218,11 @@ void PSID_sendSignal(PStask_ID_t tid, uid_t uid, PStask_ID_t sender,
 	    PSID_log(-1, "%s: Do not send signal to daemon\n", __func__);
 	} else if (pervasive) {
 	    list_t *s, *tmp;
-	    int blocked, blockedRDP;
+	    int blockedCHLD, blockedRDP;
 
 	    answer = 0;
 
-	    blocked = PSID_blockSIGCHLD(1);
+	    blockedCHLD = PSID_blockSIGCHLD(1);
 	    blockedRDP = RDP_blockTimer(1);
 
 	    list_for_each_safe(s, tmp, &dest->childList) { /* @todo safe req? */
@@ -233,7 +233,7 @@ void PSID_sendSignal(PStask_ID_t tid, uid_t uid, PStask_ID_t sender,
 	    }
 
 	    RDP_blockTimer(blockedRDP);
-	    PSID_blockSIGCHLD(blocked);
+	    PSID_blockSIGCHLD(blockedCHLD);
 
 	    /* Deliver signal, if tid not the original sender */
 	    if (tid != sender) {
