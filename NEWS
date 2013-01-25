@@ -1,8 +1,20 @@
 psmgmt NEWS -- history of user-visible changes.
 
-Copyright (C) 2010-2012 ParTec Cluster Competence Center GmbH, Munich
+Copyright (C) 2010-2013 ParTec Cluster Competence Center GmbH, Munich
 
 Please send bug reports, questions and suggestions to <support@par-tec.com>
+
+Version 5.0.41:
+===============
+Bugfixes:
+ - Prevent lists of messages-buffers from corruption due to
+   asynchronous operations. (JUDGE #412)
+ - Add missing header include for setrlimit().
+
+Enhancements:
+ - Speedup (un-)blocking of SIGCHLD by preventing actual syscalls.
+ - Speedup (un-)blocking of timers by cashing the latest search-result.
+
 
 Version 5.0.40-2:
 =================

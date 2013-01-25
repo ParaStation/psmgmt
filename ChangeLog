@@ -1,3 +1,49 @@
+Version psmgmt-5.0.41:
+======================
+------------------------------------------------------------------------
+r8718 | eicker | 2013-01-25 18:44:01 +0100 (Fri, 25 Jan 2013) | 3 lines
+
+Bugfix: Prevent lists of messages-buffers from corruption due to
+    asynchronous operations.
+
+------------------------------------------------------------------------
+r8717 | eicker | 2013-01-25 18:31:13 +0100 (Fri, 25 Jan 2013) | 2 lines
+
+Prevent warning during compile
+
+------------------------------------------------------------------------
+r8716 | eicker | 2013-01-25 16:31:51 +0100 (Fri, 25 Jan 2013) | 3 lines
+
+Enancement: Try to speedup (un-)blocking of SIGCHLD handling by preventing
+    actual syscalls. Instead, internal flags are raised.
+
+------------------------------------------------------------------------
+r8715 | eicker | 2013-01-25 16:28:34 +0100 (Fri, 25 Jan 2013) | 4 lines
+
+Enancement: Try to speedup (un-)blocking of timers by cashing the latest
+    search-result. This should prevent from iterations through the list of
+    timers.
+
+------------------------------------------------------------------------
+r8714 | eicker | 2013-01-23 21:53:32 +0100 (Wed, 23 Jan 2013) | 2 lines
+
+Minor adaptions and enhancements of gdb functions.
+
+------------------------------------------------------------------------
+r8713 | moschny | 2013-01-16 11:32:55 +0100 (Wed, 16 Jan 2013) | 1 line
+
+Run autoreconf.
+------------------------------------------------------------------------
+r8712 | moschny | 2013-01-16 11:24:43 +0100 (Wed, 16 Jan 2013) | 1 line
+
+Add missing header include for setrlimit().
+------------------------------------------------------------------------
+r8708 | eicker | 2013-01-10 00:32:49 +0100 (Thu, 10 Jan 2013) | 2 lines
+
+New release (psmgmt-5.0.40-2)
+
+------------------------------------------------------------------------
+
 Version psmgmt-5.0.40-2:
 ========================
 ------------------------------------------------------------------------
