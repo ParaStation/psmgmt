@@ -31,13 +31,17 @@ static char vcid[] __attribute__((used)) =
 
 int RDPSocket = -1;
 
+/* possible values of node_bufs.flags */
+#define FLUSH           0x00000001   /* Flush is under way */
+#define CLOSE           0x00000002   /* About to close the connection */
+
 /**
  * Array used to temporarily hold message that could not yet be
  * delivered to their final destination.
  */
 static struct {
-    list_t list;
-    int clearing;
+    list_t list;         /**< Chain of undelivered messages */
+    unsigned int flags;  /**< Special flags (FLUSH, CLOSE) */
 } *node_bufs;
 
 void initRDPMsgs(void)
@@ -49,7 +53,7 @@ void initRDPMsgs(void)
 
     for (i=0; i<PSC_getNrOfNodes(); i++) {
 	INIT_LIST_HEAD(&node_bufs[i].list);
-	node_bufs[i].clearing = 0;
+	node_bufs[i].flags = 0;
     }
 }
 
@@ -59,11 +63,12 @@ void clearRDPMsgs(int node)
     list_t *m, *tmp;
 
     /* prevent recursive clearing of node_bufs[node].list */
-    if (node_bufs[node].clearing) return;
-    node_bufs[node].clearing = 1;
+    if (node_bufs[node].flags & CLOSE) return;
 
     blockedCHLD = PSID_blockSIGCHLD(1);
     blockedRDP = RDP_blockTimer(1);
+
+    node_bufs[node].flags |= CLOSE;
 
     list_for_each_safe(m, tmp, &node_bufs[node].list) {
 	msgbuf_t *mp = list_entry(m, msgbuf_t, next);
@@ -81,10 +86,10 @@ void clearRDPMsgs(int node)
 	PSIDMsgbuf_put(mp);
     }
 
+    node_bufs[node].flags &= ~CLOSE;
+
     RDP_blockTimer(blockedRDP);
     PSID_blockSIGCHLD(blockedCHLD);
-
-    node_bufs[node].clearing = 0;
 }
 
 /**
@@ -134,8 +139,12 @@ int flushRDPMsgs(int node)
 	return -1;
     }
 
+    if (node_bufs[node].flags & (FLUSH | CLOSE)) return -1;
+
     blockedCHLD = PSID_blockSIGCHLD(1);
     blockedRDP = RDP_blockTimer(1);
+
+    node_bufs[node].flags |= FLUSH;
 
     list_for_each_safe(m, tmp, &node_bufs[node].list) {
 	msgbuf_t *msgbuf = list_entry(m, msgbuf_t, next);
@@ -170,6 +179,8 @@ int flushRDPMsgs(int node)
 	}
     }
  end:
+    node_bufs[node].flags &= ~FLUSH;
+
     RDP_blockTimer(blockedRDP);
     PSID_blockSIGCHLD(blockedCHLD);
     return ret;
@@ -199,7 +210,11 @@ int sendRDP(DDMsg_t *msg)
 	PSID_setDebugMask(mask);
     }
 
-    if (node_bufs[node].clearing) return 0; /* No Rsendto during cleanup */
+    if (node_bufs[node].flags & CLOSE) {
+	/* No Rsendto during cleanup */
+	errno = EHOSTUNREACH;
+	return -1;
+    }
 
     if (!list_empty(&node_bufs[node].list)) flushRDPMsgs(node);
     if (list_empty(&node_bufs[node].list)) {

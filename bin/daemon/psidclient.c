@@ -47,11 +47,13 @@ static char vcid[] __attribute__((used)) =
 
 /* possible values of clients.flags */
 #define INITIALCONTACT  0x00000001   /* No message yet (only accept()ed) */
+#define FLUSH           0x00000002   /* Flush is under way */
+#define CLOSE           0x00000004   /* About to close the connection */
 
 static struct {
     PStask_ID_t tid;     /**< Clients task ID */
     PStask_t *task;      /**< Clients task structure */
-    unsigned int flags;  /**< Special flags. Up to now only INITIALCONTACT */
+    unsigned int flags;  /**< Special flags (INITIALCONTACT, FLUSH, CLOSE) */
     list_t msgs;         /**< Chain of undelivered messages */
 } clients[FD_SETSIZE];
 
@@ -224,8 +226,12 @@ int flushClientMsgs(int fd)
 	return -1;
     }
 
+    if (clients[fd].flags & (FLUSH | CLOSE)) return -1;
+
     blockedCHLD = PSID_blockSIGCHLD(1);
     blockedRDP = RDP_blockTimer(1);
+
+    clients[fd].flags |= FLUSH;
 
     list_for_each_safe(m, tmp, &clients[fd].msgs) {
 	msgbuf_t *msgbuf = list_entry(m, msgbuf_t, next);
@@ -255,6 +261,8 @@ int flushClientMsgs(int fd)
 	    last = contmsg.dest;
 	}
     }
+
+    clients[fd].flags &= ~FLUSH;
 
     RDP_blockTimer(blockedRDP);
     PSID_blockSIGCHLD(blockedCHLD);
@@ -420,8 +428,12 @@ static void closeConnection(int fd)
     if (clients[fd].task) clients[fd].task->fd = -1;
     clients[fd].task = NULL;
 
+    if (clients[fd].flags & CLOSE) return;
+
     blockedCHLD = PSID_blockSIGCHLD(1);
     blockedRDP = RDP_blockTimer(1);
+
+    clients[fd].flags |= CLOSE;
 
     list_for_each_safe(m, tmp, &clients[fd].msgs) {
 	msgbuf_t *mp = list_entry(m, msgbuf_t, next);
@@ -441,6 +453,8 @@ static void closeConnection(int fd)
 	PSID_dropMsg(msg);
 	PSIDMsgbuf_put(mp);
     }
+
+    clients[fd].flags &= ~CLOSE;
 
     RDP_blockTimer(blockedRDP);
     PSID_blockSIGCHLD(blockedCHLD);
