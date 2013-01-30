@@ -4,6 +4,14 @@ Copyright (C) 2010-2013 ParTec Cluster Competence Center GmbH, Munich
 
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
+
+Version 5.0.41:
+===============
+Bugfixes:
+ - Prevent call of iterations over message-buffers recursively. This
+    should fix new problems reported on JUDGE (JUDGE-TRAC #412)
+
+
 Version 5.0.41:
 ===============
 Bugfixes:
