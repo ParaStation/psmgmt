@@ -59,8 +59,8 @@ PS_SEARCH_LIBS([using_history], [history], [RL_LIBS], [],
 AX_CHECK_COMPILE_FLAG([-O3],
   [AM_CFLAGS="$AM_CFLAGS -O3"])
 
-AX_CHECK_COMPILE_FLAG([-Wall -Wextra -Wno-unused],
-  [AM_CFLAGS="$AM_CFLAGS -Wall -Wextra -Wno-unused"])
+AX_CHECK_COMPILE_FLAG([-Wall -Wextra -Wno-unused-parameter],
+  [AM_CFLAGS="$AM_CFLAGS -Wall -Wextra -Wno-unused-parameter"])
 
 AX_CHECK_COMPILE_FLAG([-fstack-protector-all],
   [AM_CFLAGS="$AM_CFLAGS -fstack-protector-all"])
