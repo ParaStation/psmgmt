@@ -134,6 +134,8 @@ include/pscpu.h \
 include/psdaemonprotocol.h \
 include/pse.h \
 include/psi.h \
+include/psicomm.h \
+include/psicomm_proto.h \
 include/psienv.h \
 include/psiinfo.h \
 include/psilog.h \
@@ -165,6 +167,7 @@ lib/pse/pse.c \
 lib/psi/Makefile.am \
 lib/psi/Makefile.in \
 lib/psi/psi.c \
+lib/psi/psicomm.c \
 lib/psi/psienv.c \
 lib/psi/psiinfo.c \
 lib/psi/psilog.c \
@@ -262,6 +265,7 @@ scripts/xinetd.d/psidstarter.in \
 tests/functional/Makefile.in \
 tests/functional/test_logging.c \
 tests/functional/test_paramspace.c \
+tests/functional/test_psicomm.c \
 tests/plugins/Makefile.am \
 tests/plugins/Makefile.in \
 tests/plugins/plugin1.c \

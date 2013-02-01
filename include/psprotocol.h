@@ -343,6 +343,8 @@ typedef enum {
 /** Client-client messages. These are fully transparent for the daemons. */
 #define PSP_CC_MSG               0x0080  /**< Message between clients. */
 #define PSP_CC_ERROR             0x0081  /**< Error in client communication. */
+#define PSP_CC_PSI_MSG           0x0082  /**< Rank-routed message. */
+#define PSP_CC_PSI_ERROR         0x0083  /**< Error in rank-routed comm. */
 
 /** Error messages. */
 #define PSP_CD_ERROR             0x00FF  /**< General error message */

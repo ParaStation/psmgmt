@@ -17,5 +17,5 @@ AM_LDFLAGS += -avoid-version
 lib_LTLIBRARIES = libpsi.la
 
 libpsi_la_SOURCES = psi.c psilog.c psienv.c psispawn.c psipartition.c	\
-	psiinfo.c
+	psiinfo.c psicomm.c
 libpsi_la_LIBADD = $(top_builddir)/lib/pscommon/libpscommon.la
