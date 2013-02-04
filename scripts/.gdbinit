@@ -119,7 +119,7 @@ end
 define array_list_len
 
   if $argc < 1
-    echo array_list_len ARRAY [FIELD] [NUM]\n
+    echo array_list_len ARRAY [FIELD [NUM [FIRST]]]\n
   else
     set $array = $arg0
     if $argc < 3
