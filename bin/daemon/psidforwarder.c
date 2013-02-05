@@ -1143,6 +1143,11 @@ static void sighandler(int sig)
 	    close(signalFD[1]);
 	    signalFD[1] = -1;
 	}
+	break;
+    case SIGPIPE:
+	PSIDfwd_printMsgf(STDERR, "%s: Got SIGPIPE\n", tag);
+	sprintf(NULL, " "); /* force segmentation fault to dump core */
+	break;
     }
 
     signal(sig, sighandler);
@@ -1533,6 +1538,9 @@ void PSID_forwarder(PStask_t *task, int daemonfd, int eno, int PMISocket,
     signal(SIGCHLD, sighandler);
     signal(SIGUSR1, sighandler);
     signal(SIGTTIN, sighandler);
+    if (getenv("PSIDFORWARDER_DUMP_CORE_ON_SIGPIPE")) {
+	signal(SIGPIPE, sighandler);
+    }
     PSID_blockSig(0, SIGCHLD);
 
     PSLog_init(daemonSock, childTask->rank, 2);
