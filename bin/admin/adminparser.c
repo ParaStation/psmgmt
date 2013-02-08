@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2012 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2013 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -2525,6 +2525,7 @@ char **completeLine(const char *text, int start, int end)
 		if (!strcmp(matchedToken, "set")) paramOpts = 1;
 	    }
 
+	    free(token);
 	    tokStart = tokEnd+1;
 	    while (isspace(rl_line_buffer[tokStart])) tokStart++;
 	}
