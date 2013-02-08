@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2002-2003 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2012 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2013 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -196,6 +196,7 @@ static keylist_t * matchToken(char *token, keylist_t *keylist)
     size_t tokLen;
 
     if (!token) return NULL; /* no token */
+    if (!keylist) return NULL; /* no keys to match */
 
     tokLen = strlen(token);
     if (!tokLen) return NULL; /* empty token */
