@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2009 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2013 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -31,14 +31,6 @@ extern "C" {
 #endif
 #endif
 
-/** Connection Type of PMI */
-typedef enum {
-    PMI_DISABLED = 0,
-    PMI_OVER_TCP,
-    PMI_OVER_UNIX,
-    PMI_FAILED,
-} PMItype_t;
-
 /**
  * @brief The forwarder process.
  *
@@ -66,15 +58,9 @@ typedef enum {
  * @param eno Error-number (i.e. errno) describing the problem
  * preventing the child-process from being spawned.
  *
- * @param PMISocket Socket connecting the forwarder to the pmi client.
- *
- * @param PMItype Defines if the pmi client is connected over tcp/ip or
- * over an unix domain socket which is the default.
- *
  * @return No return value.
  */
-void PSID_forwarder(PStask_t *task, int daemonfd, int eno, int PMISocket,
-		    PMItype_t PMItype);
+void PSID_forwarder(PStask_t *task, int daemonfd, int eno);
 
 /**
  * @brief Send a message to the local daemon.

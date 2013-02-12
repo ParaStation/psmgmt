@@ -144,6 +144,8 @@ exit 0
 %{_plugindir}/psresport.so
 %exclude %{_plugindir}/psresport.la
 %config(noreplace) %{_plugindir}/psresport.conf
+%{_plugindir}/pspmi.so
+%exclude %{_plugindir}/pspmi.la
 %{_sysconfdir}/profile.d/psmgmt.sh
 %{_sysconfdir}/profile.d/psmgmt.csh
 %{_sysconfdir}/init.d/parastation

@@ -1,7 +1,7 @@
 #
 # ParaStation
 #
-# Copyright (C) 2012 ParTec Cluster Competence Center GmbH, Munich
+# Copyright (C) 2013 ParTec Cluster Competence Center GmbH, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -35,6 +35,7 @@ libpsi = $(top_builddir)/lib/psi/libpsi.la
 libputil = $(top_builddir)/lib/putil/libputil.la
 libpscommon = $(top_builddir)/lib/pscommon/libpscommon.la
 libpslog = $(top_builddir)/lib/pslog/libpslog.la
+libpskvs = $(top_builddir)/lib/pskvs/libpskvs.la
 
 psiadmin_SOURCES = admin/psiadmin.c admin/commands.c admin/commands.h	\
 	admin/adminparser.c admin/adminparser.h
@@ -51,7 +52,6 @@ psid_SOURCES = daemon/psidaccount.c daemon/psidaccount.h		\
 	daemon/psidnodes.h daemon/psidoption.c daemon/psidoption.h	\
 	daemon/psidpartition.c daemon/psidpartition.h			\
 	daemon/psidplugin.c daemon/psidplugin.h				\
-	daemon/psidpmiprotocol.c daemon/psidpmiprotocol.h		\
 	daemon/psidppc.c daemon/psidppc.h daemon/psidrdp.c		\
 	daemon/psidrdp.h daemon/psidscripts.c daemon/psidscripts.h	\
 	daemon/psidsignal.c daemon/psidsignal.h daemon/psidspawn.c	\
@@ -67,8 +67,8 @@ psilogger_SOURCES = logger/psilogger.c logger/psilogger.h	\
 	logger/psiloggerkvs.c logger/psiloggerkvs.h		\
 	logger/psiloggermerge.c logger/psiloggermerge.h		\
 	logger/psiloggerclient.c logger/psiloggerclient.h
-psilogger_LDADD = $(libputil) $(libpscommon) $(libpslog) $(RL_LIBS)	\
-	-lm
+psilogger_LDADD = $(libpskvs) $(libputil) $(libpscommon) 	\
+	$(libpslog) $(RL_LIBS) -lm
 
 mlisten_LDADD = $(POPT_LIBS)
 

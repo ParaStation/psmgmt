@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2012 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2013 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -666,18 +666,22 @@ static void trySendInitAnswer(int rank)
     task = getClientTID(rank);
     succ = (rank == getNumKvsClients()-1) ? PSC_getMyTID():getClientTID(rank+1);
 
+    if (clientIsGone(rank-1)) pred = -2;
+    if (clientIsGone(rank+1)) succ = -2;
+
     /* Check, if current request can be answered */
     if (task != -1
-	&& (pred != -1 || clientIsGone(rank-1))
-	&& (succ != -1 || clientIsGone(rank+1))) {
-	char buf[sizeof(forw_verbose) + 2*sizeof(PStask_ID_t)], *ptr = buf;
+	&& (pred != -1) && (succ != -1)) {
+	char buf[2*sizeof(int) + 2*sizeof(PStask_ID_t)], *ptr = buf;
 
 	*(int *)ptr = forw_verbose;
 	ptr += sizeof(int);
-	*(PStask_ID_t *)ptr = pred;
+	*(PStask_ID_t *)ptr = getPMIPred(rank, pred);
 	ptr += sizeof(PStask_ID_t);
-	*(PStask_ID_t *)ptr = succ;
+	*(PStask_ID_t *)ptr = getPMISucc(rank, succ);
 	ptr += sizeof(PStask_ID_t);
+	*(int *)ptr = getPMIRank(rank);
+	ptr += sizeof(int);
 
 	sendMsg(task, INITIALIZE, buf, sizeof(buf));
 	PSIlog_log(PSILOG_LOG_VERB, "%s: send answer to %s (%d)\n", __func__,
@@ -700,7 +704,6 @@ static void trySendInitAnswer(int rank)
 static int newrequest(PSLog_Msg_t *msg)
 {
     int rank = msg->sender;
-    static int triggerOld = 0, kvsConnected = 0;
 
     if (!registerClient(rank, msg->header.sender)) return 0;
 
@@ -713,32 +716,21 @@ static int newrequest(PSLog_Msg_t *msg)
     PSIlog_log(PSILOG_LOG_VERB, "%s: new connection from %s (%d)\n", __func__,
 	       PSC_printTID(msg->header.sender), rank);
 
-    if (msg->version < 2) triggerOld = 1;
+    if (msg->version < 3) {
+	PSIlog_log(PSILOG_LOG_VERB, "%s: unsupported PSLog msg version '%i' "
+		    "from %s (%d)\n", __func__, msg->version,
+		    PSC_printTID(msg->header.sender), rank);
+	terminateJob();
+    }
 
     if (rank < 0 || !enable_kvs) {
 	/* not part of kvs, answer immediately */
 	sendMsg(msg->header.sender, INITIALIZE,
 		(char *) &forw_verbose, sizeof(forw_verbose));
     } else {
-
-	if (rank-1 > 0) trySendInitAnswer(rank - 1);
-	if (rank > 0) trySendInitAnswer(rank);
+	if (rank-1 >= 0) trySendInitAnswer(rank - 1);
+	if (rank >= 0) trySendInitAnswer(rank);
 	trySendInitAnswer(rank + 1);
-
-	kvsConnected++;
-    }
-
-    if (enable_kvs && kvsConnected == getNumKvsClients()) {
-	/* All clients there, answer to rank 0 */
-	if (triggerOld) {
-	    PSIlog_log(PSILOG_LOG_VERB, "%s: old triggered at %s\n", __func__,
-		       PSC_printTID(getClientTID(0)));
-	    sendMsg(getClientTID(0), INITIALIZE,
-		    (char *) &forw_verbose, sizeof(forw_verbose));
-	} else {
-	    trySendInitAnswer(0);
-	    switchDaisyChain(1);
-	}
     }
 
     return 1;
@@ -1148,8 +1140,9 @@ static void handleCCMsg(PSLog_Msg_t *msg)
 	    handleKVSMsg(msg);
 	    break;
 	default:
-	    PSIlog_log(-1, "%s: Unknown message type %d\n",
-		       __func__, msg->type);
+	    PSIlog_log(-1, "%s: Unknown message type %d from %s\n",
+		       __func__, msg->type,
+		       PSC_printTID(msg->header.sender));
 	}
     }
 }

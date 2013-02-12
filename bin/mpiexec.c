@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2007-2012 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2007-2013 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -124,7 +124,7 @@ char *envopt = NULL;
 char *envval = NULL;
 char *path = NULL;
 
-/* compability options from other mpiexec commands*/
+/* compability options from other mpiexec commands */
 int totalview = 0;
 int ecfn = 0;
 int gdba = 0;
@@ -433,15 +433,16 @@ static void createSpawner(int argc, char *argv[], int np, int admin)
     char *pwd = NULL;
 
     if (rank==-1) {
-	int error, spawnedProc, ret;
+	int error, spawnedProc, ret, pSize;
 	ssize_t cnt;
 
-	nodeList = umalloc(np*sizeof(nodeList), __func__);
+	pSize = usize > np ? usize : np;
+	nodeList = umalloc(pSize*sizeof(nodeList), __func__);
 
 	if (!admin) {
-	    if (PSE_getPartition(np)<0) exit(EXIT_FAILURE);
+	    if (PSE_getPartition(pSize)<0) exit(EXIT_FAILURE);
 	    PSI_infoList(-1, PSP_INFO_LIST_PARTITION, NULL,
-			 nodeList, np*sizeof(*nodeList), 0);
+			 nodeList, pSize*sizeof(*nodeList), 0);
 	} else {
 	    getFirstNodeID(&nodeID);
 	    nodeList[0] = nodeID;
@@ -854,9 +855,10 @@ static void setupCommonEnv(int np)
 	/* set the mpi universe size */
 	if (usize) {
 	    snprintf(tmp, sizeof(tmp), "%d", usize);
-	    env = tmp;
+	} else {
+	    snprintf(tmp, sizeof(tmp), "%d", np);
 	}
-	setPSIEnv("PMI_UNIVERSE_SIZE", env, 1);
+	setPSIEnv("PMI_UNIVERSE_SIZE", tmp, 1);
 
 	/* set the template for the kvs name */
 	env = getenv("PMI_KVS_TMP");

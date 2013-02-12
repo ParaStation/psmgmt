@@ -1,7 +1,7 @@
 #                                                       -*- Makefile -*-
 # ParaStation
 #
-# Copyright (C) 2012 ParTec Cluster Competence Center GmbH, Munich
+# Copyright (C) 2012 - 2013 ParTec Cluster Competence Center GmbH, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -61,8 +61,6 @@ bin/daemon/psidpartition.c \
 bin/daemon/psidpartition.h \
 bin/daemon/psidplugin.c \
 bin/daemon/psidplugin.h \
-bin/daemon/psidpmiprotocol.c \
-bin/daemon/psidpmiprotocol.h \
 bin/daemon/psidppc.c \
 bin/daemon/psidppc.h \
 bin/daemon/psidrdp.c \
@@ -173,6 +171,12 @@ lib/psi/psiinfo.c \
 lib/psi/psilog.c \
 lib/psi/psipartition.c \
 lib/psi/psispawn.c \
+lib/pskvs/Makefile.am \
+lib/pskvs/Makefile.in \
+lib/pskvs/kvs.c \
+lib/pskvs/kvscommon.c \
+lib/pskvs/kvslog.c \
+lib/pskvs/kvslog.h \
 lib/pslog/Makefile.am \
 lib/pslog/Makefile.in \
 lib/pslog/pslog.c \
@@ -181,8 +185,6 @@ lib/putil/Makefile.in \
 lib/putil/config_parsing.c \
 lib/putil/env.c \
 lib/putil/hardware.c \
-lib/putil/kvs.c \
-lib/putil/kvscommon.c \
 lib/putil/mcast.c \
 lib/putil/parser.c \
 lib/putil/psdaemonprotocol.c \
@@ -225,6 +227,18 @@ plugins/psaccount/psaccountlog.c \
 plugins/psaccount/psaccountlog.h \
 plugins/psaccount/psaccountproc.c \
 plugins/psaccount/psaccountproc.h \
+plugins/pspmi/Makefile.am \
+plugins/pspmi/Makefile.in \
+plugins/pspmi/pmiclient.c \
+plugins/pspmi/pmiclient.h \
+plugins/pspmi/pmiforwarder.c \
+plugins/pspmi/pmiforwarder.h \
+plugins/pspmi/pmilog.c \
+plugins/pspmi/pmilog.h \
+plugins/pspmi/pmimain.c \
+plugins/pspmi/pmimain.h \
+plugins/pspmi/pmispawn.c \
+plugins/pspmi/pmispawn.h \
 plugins/psresport/Makefile.am \
 plugins/psresport/Makefile.in \
 plugins/psresport/helper.c \

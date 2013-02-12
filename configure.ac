@@ -1,7 +1,7 @@
 #
 # ParaStation
 #
-# Copyright (C) 2012 ParTec Cluster Competence Center GmbH, Munich
+# Copyright (C) 2013 ParTec Cluster Competence Center GmbH, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -95,11 +95,13 @@ AC_CONFIG_FILES(lib/Makefile)
 AC_CONFIG_FILES(lib/pscommon/Makefile)
 AC_CONFIG_FILES(lib/pse/Makefile)
 AC_CONFIG_FILES(lib/psi/Makefile)
+AC_CONFIG_FILES(lib/pskvs/Makefile)
 AC_CONFIG_FILES(lib/pslog/Makefile)
 AC_CONFIG_FILES(lib/putil/Makefile)
 AC_CONFIG_FILES(plugins/Makefile)
 AC_CONFIG_FILES(plugins/psaccount/Makefile)
 AC_CONFIG_FILES(plugins/psresport/Makefile)
+AC_CONFIG_FILES(plugins/pspmi/Makefile)
 AC_CONFIG_FILES(scripts/Makefile)
 AC_CONFIG_FILES(tests/plugins/Makefile)
 AC_CONFIG_FILES(tests/functional/Makefile)

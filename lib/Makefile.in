@@ -281,7 +281,7 @@ configdir = $(prefix)/config
 
 # dito
 scriptsdir = $(prefix)/scripts
-SUBDIRS = pscommon putil pslog psi pse
+SUBDIRS = pscommon putil pslog psi pse pskvs
 all: all-recursive
 
 .SUFFIXES:

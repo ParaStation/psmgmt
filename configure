@@ -11882,6 +11882,8 @@ ac_config_files="$ac_config_files lib/pse/Makefile"
 
 ac_config_files="$ac_config_files lib/psi/Makefile"
 
+ac_config_files="$ac_config_files lib/pskvs/Makefile"
+
 ac_config_files="$ac_config_files lib/pslog/Makefile"
 
 ac_config_files="$ac_config_files lib/putil/Makefile"
@@ -11891,6 +11893,8 @@ ac_config_files="$ac_config_files plugins/Makefile"
 ac_config_files="$ac_config_files plugins/psaccount/Makefile"
 
 ac_config_files="$ac_config_files plugins/psresport/Makefile"
+
+ac_config_files="$ac_config_files plugins/pspmi/Makefile"
 
 ac_config_files="$ac_config_files scripts/Makefile"
 
@@ -12940,11 +12944,13 @@ do
     "lib/pscommon/Makefile") CONFIG_FILES="$CONFIG_FILES lib/pscommon/Makefile" ;;
     "lib/pse/Makefile") CONFIG_FILES="$CONFIG_FILES lib/pse/Makefile" ;;
     "lib/psi/Makefile") CONFIG_FILES="$CONFIG_FILES lib/psi/Makefile" ;;
+    "lib/pskvs/Makefile") CONFIG_FILES="$CONFIG_FILES lib/pskvs/Makefile" ;;
     "lib/pslog/Makefile") CONFIG_FILES="$CONFIG_FILES lib/pslog/Makefile" ;;
     "lib/putil/Makefile") CONFIG_FILES="$CONFIG_FILES lib/putil/Makefile" ;;
     "plugins/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/Makefile" ;;
     "plugins/psaccount/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/psaccount/Makefile" ;;
     "plugins/psresport/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/psresport/Makefile" ;;
+    "plugins/pspmi/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/pspmi/Makefile" ;;
     "scripts/Makefile") CONFIG_FILES="$CONFIG_FILES scripts/Makefile" ;;
     "tests/plugins/Makefile") CONFIG_FILES="$CONFIG_FILES tests/plugins/Makefile" ;;
     "tests/functional/Makefile") CONFIG_FILES="$CONFIG_FILES tests/functional/Makefile" ;;

@@ -39,7 +39,7 @@ static char vcid[] __attribute__((used)) =
 #include "pslog.h"
 #include "psidmsgbuf.h"
 #include "psidnodes.h"
-#include "psidpmiprotocol.h"
+#include "psidhook.h"
 
 #include "psidforwarder.h"
 
@@ -59,15 +59,6 @@ PStask_t *childTask = NULL;
 
 /** The socket connecting to the local ParaStation daemon */
 int daemonSock = -1;
-
-/** The socket listening for connection from the pmi client (TCP/IP only) */
-int PMISock = -1;
-
-/** The type of the connection between forwarder and client */
-PMItype_t pmiType = -1;
-
-/** The socket connected to the pmi client */
-int PMIClientSock = -1;
 
 /** The socket connected to the stdin port of the client */
 int stdinSock = -1;
@@ -89,12 +80,6 @@ static int gotSIGCHLD = 0;
 
 /** socketpair to recognize SIGCHLD while sleeping in select() */
 static int signalFD[2] = {-1, -1};
-
-static enum {
-    IDLE,
-    CONNECTED,
-    CLOSED,
-} pmiStatus = IDLE;
 
 /** List of messages waiting to be sent */
 LIST_HEAD(oldMsgs);
@@ -124,20 +109,6 @@ static void closeDaemonSock(void)
     close(daemonSock);
     Selector_remove(daemonSock);
     daemonSock = -1;
-}
-
-/**
- * @brief Close socket which is connected to the pmi client.
- *
- * @return No return value.
- */
-static void closePMIClientSocket(void)
-{
-    if (PMIClientSock < 0) return;
-
-    close(PMIClientSock);
-    Selector_remove(PMIClientSock);
-    PMIClientSock = -1;
 }
 
 /**
@@ -314,7 +285,7 @@ static void handleSignalMsg(PSLog_Msg_t *msg)
  */
 static int recvMsg(PSLog_Msg_t *msg, struct timeval *timeout)
 {
-    int ret;
+    int ret, res;
 
     if (daemonSock < 0) {
 	PSID_log(-1, "%s: not connected\n", __func__);
@@ -368,14 +339,9 @@ again:
 	    }
 	    break;
 	case PSP_CD_RELEASERES:
-	    /* finaly release the pmi client */
-	    if (pmiType != PMI_DISABLED) {
-		/* release the pmi client */
-		pmi_finalize();
-
-		/*close connection */
-		closePMIClientSocket();
-	    }
+	    /* release the client */
+	    res = 1;
+	    PSIDhook_call(PSIDHOOK_FRWRD_RESCLIENT, &res);
 	    break;
 	case PSP_DD_CHILDACK:
 	case PSP_DD_CHILDDEAD:
@@ -471,8 +437,8 @@ again:
     }
 
     if (msg.header.len < PSLog_headerSize + (int) sizeof(int)) {
-	PSID_log(-1, "%s(%s): Message too short\n", __func__,
-		 PSC_printTID(tid));
+	PSID_log(-1, "%s(%s): rank %i : Message too short\n", __func__,
+		 PSC_printTID(tid), childTask->rank);
 	loggerTID = -1;
 	errno = ECONNREFUSED;
 	return -1;
@@ -501,15 +467,10 @@ again:
 		 PSC_printTID(tid));
 
 	if (msg.header.len >=
-	    PSLog_headerSize + (int)(sizeof(int)+2*sizeof(PStask_ID_t))) {
-	    PStask_ID_t pred, succ;
-	    pred = *(PStask_ID_t *) ptr;
-	    ptr += sizeof(PStask_ID_t);
-	    succ = *(PStask_ID_t *) ptr;
-	    ptr += sizeof(PStask_ID_t);
+	    PSLog_headerSize + (int)(2*sizeof(int)+2*sizeof(PStask_ID_t))) {
 
-	    pmi_set_pred(pred);
-	    pmi_set_succ(succ);
+	    /* set info about our pred/suc ranks */
+	    PSIDhook_call(PSIDHOOK_FRWRD_CINFO, ptr);
 	}
     }
 
@@ -749,7 +710,7 @@ static void handleWINCH(PSLog_Msg_t *msg)
 static int readFromLogger(int fd, void *data)
 {
     PSLog_Msg_t msg;
-    int ret;
+    int ret, res;
 
     ret = recvMsg(&msg, NULL);
 
@@ -779,8 +740,9 @@ static int readFromLogger(int fd, void *data)
 	    break;
 	case EXIT:
 	    /* Logger is going to die */
-	    /* Release the pmi client */
-	    closePMIClientSocket();
+	    /* Release the client */
+	    res = 0;
+	    PSIDhook_call(PSIDHOOK_FRWRD_RESCLIENT, &res);
 	    /* Release the daemon */
 	    closeDaemonSock();
 	    /* Cleanup child */
@@ -788,7 +750,7 @@ static int readFromLogger(int fd, void *data)
 	    exit(0);
 	    break;
 	case KVS:
-	    pmi_handleKvsRet(&msg);
+            PSIDhook_call(PSIDHOOK_FRWRD_KVS, &msg);
 	    break;
 	case WINCH:
 	    /* Logger detected change in window-size */
@@ -807,67 +769,6 @@ static int readFromLogger(int fd, void *data)
 			  PSP_printMsg(msg.header.type));
     }
 
-    return 0;
-}
-
-/* @brief  Read pmi message from the client.
- *
- * @param fd The file-descriptor to read from
- *
- * @param data Some additional data. Currently not in use.
- *
- * @return If a fatal error occurred, -1 is returned and errno is set
- * appropriately. Otherwise 0 is returned.
- */
-static int readFromPMIClient(int fd, void *data)
-{
-    char msgBuf[PMIU_MAXLINE];
-    ssize_t len;
-    int ret;
-
-    len = recv(fd, msgBuf, sizeof(msgBuf), 0);
-
-    /* no data received from client */
-    if (!len) {
-	PSIDfwd_printMsgf(STDERR, "%s: lost connection to the pmi client\n",
-			  __func__);
-
-	/*close connection */
-	closePMIClientSocket();
-	return 0;
-    }
-
-    /* socket error occured */
-    if (len < 0) {
-	PSIDfwd_printMsgf(STDERR,"%s: error on pmi socket occured\n", __func__);
-	return 0;
-    }
-
-    /* truncate msg to received bytes */
-    msgBuf[len] = '\0';
-
-    pmiStatus = CONNECTED;
-
-    /* parse and handle the pmi msg */
-    ret = pmi_parse_msg(msgBuf);
-
-    /* pmi communication finished */
-    if (ret == PMI_FINALIZED) {
-
-	/* release the child */
-	DDSignalMsg_t msg;
-
-	msg.header.type = PSP_CD_RELEASE;
-	msg.header.sender = PSC_getMyTID();
-	msg.header.dest = childTask->tid;
-	msg.header.len = sizeof(msg);
-	msg.signal = -1;
-	msg.answer = 1;
-
-	sendDaemonMsg((DDMsg_t *)&msg);
-
-	pmiStatus = CLOSED;
-    }
     return 0;
 }
 
@@ -1155,6 +1056,8 @@ static void sighandler(int sig)
 
 void finalizeForwarder(void)
 {
+    int res, clientStat;
+
     if (openfds) {
 	PSIDfwd_printMsgf(STDERR,
 			  "%s: %s: %d open file-descriptors remaining\n",
@@ -1168,8 +1071,10 @@ void finalizeForwarder(void)
 
     sendMsg(USAGE, (char *) &childRUsage, sizeof(childRUsage));
 
+    clientStat = PSIDhook_call(PSIDHOOK_FRWRD_CLIENT_STAT, NULL);
+
     /* Release, if no error occurred and not already done */
-    if (pmiStatus == IDLE
+    if ((!clientStat || clientStat == PSIDHOOK_NOFUNC)
 	&& (WIFEXITED(childStatus) && !WEXITSTATUS(childStatus))
 	&& !WIFSIGNALED(childStatus)) {
 	/* release the child */
@@ -1211,55 +1116,14 @@ void finalizeForwarder(void)
     /* Send SIGKILL to process group in order to stop fork()ed children */
     sendSignal(-PSC_getPID(childTask->tid), SIGKILL);
 
-    /* Release the pmi client */
-    closePMIClientSocket();
+    /* Release the client */
+    res = 0;
+    PSIDhook_call(PSIDHOOK_FRWRD_RESCLIENT, &res);
 
     /* Release the daemon */
     closeDaemonSock();
 
     exit(0);
-}
-
-
-/**
- * @brief  Accept a new pmi client connection.
- *
- * @param fd The file-descriptor to accept from
- *
- * @param data Some additional data. Currently not in use.
- *
- * @return No return value.
- */
-static int acceptPMIClient(int fd, void *data)
-{
-    unsigned int clientlen;
-    struct sockaddr_in SAddr;
-
-    /* check if a client is already connected */
-    if (PMIClientSock != -1) {
-	PSIDfwd_printMsgf(STDERR, "%s: only one pmi connection allowed\n",
-			  __func__);
-	return -1;
-    }
-
-    /* accept new pmi connection */
-    clientlen = sizeof(SAddr);
-    if ((PMIClientSock = accept(fd, (void *)&SAddr, &clientlen)) == -1) {
-	PSIDfwd_printMsgf(STDERR, "%s: error on accepting new pmi connection\n",
-			  __func__);
-	return -1;
-    }
-
-    /* init the pmi interface */
-    pmi_init(PMIClientSock, childTask->loggertid, childTask->rank);
-
-    Selector_register(PMIClientSock, readFromPMIClient, NULL);
-
-    /* close the socket which waits for new connections */
-    close(fd);
-    Selector_remove(fd);
-
-    return 0;
 }
 
 /**
@@ -1436,11 +1300,6 @@ static int registerSelectHandlers(void)
 
     Selector_register(daemonSock, readFromLogger, NULL);
 
-    if (PMISock != -1) Selector_register(PMISock, acceptPMIClient, NULL);
-
-    if (PMIClientSock != -1)
-	Selector_register(PMIClientSock, readFromPMIClient, NULL);
-
     FD_ZERO(&writefds);
 
     return 1;
@@ -1514,13 +1373,12 @@ static void waitForChildsDead(void)
 	}
 	sendSignal(PSC_getPID(childTask->tid), SIGKILL);
     }
- 
+
     finalizeForwarder();
 }
 
 /* see header file for documentation */
-void PSID_forwarder(PStask_t *task, int daemonfd, int eno, int PMISocket,
-		    PMItype_t PMItype)
+void PSID_forwarder(PStask_t *task, int daemonfd, int eno)
 {
     char pTitle[50];
     char *envStr, *timeoutStr;
@@ -1543,7 +1401,7 @@ void PSID_forwarder(PStask_t *task, int daemonfd, int eno, int PMISocket,
     }
     PSID_blockSig(0, SIGCHLD);
 
-    PSLog_init(daemonSock, childTask->rank, 2);
+    PSLog_init(daemonSock, childTask->rank, 3);
 
     /* scale logger's timeout according to number of clients */
     if ((envStr = getenv("PSI_NP_INFO"))) {
@@ -1571,22 +1429,6 @@ void PSID_forwarder(PStask_t *task, int daemonfd, int eno, int PMISocket,
     flags |= O_NONBLOCK;
     fcntl(stdinSock, F_SETFL, flags);
 
-    /* Set up pmi connection */
-    pmiType = PMItype;
-    switch (pmiType) {
-    case PMI_OVER_UNIX:
-	PMIClientSock = PMISocket;
-	break;
-    case PMI_OVER_TCP:
-	PMISock = PMISocket;
-	break;
-    case PMI_DISABLED:
-	break;
-    default:
-	PSID_log(-1, "%s: wrong pmi type: %i\n", __func__, pmiType);
-	pmiType = PMI_DISABLED;
-    }
-
     if (!registerSelectHandlers()) waitForChildsDead();
 
     if (connectLogger(childTask->loggertid) != 0) waitForChildsDead();
@@ -1597,12 +1439,8 @@ void PSID_forwarder(PStask_t *task, int daemonfd, int eno, int PMISocket,
 			  "%s: Illegal value '%s' for __PSI_LOGGER_TIMEOUT\n",
 			  tag, timeoutStr);
 
-    /* Set up pmi connection */
-    pmiType = PMItype;
-    if (pmiType == PMI_OVER_UNIX) {
-	/* init the pmi interface */
-	pmi_init(PMIClientSock, childTask->loggertid, childTask->rank);
-    }
+    /* init plugin client functions */
+    PSIDhook_call(PSIDHOOK_FRWRD_INIT, childTask);
 
     /* set the process title */
     snprintf(pTitle, sizeof(pTitle), "psidforwarder TID[%d:%d] R%d",

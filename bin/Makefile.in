@@ -127,12 +127,11 @@ am_psid_OBJECTS = daemon/psidaccount.$(OBJEXT) \
 	daemon/psidinfo.$(OBJEXT) daemon/psidmsgbuf.$(OBJEXT) \
 	daemon/psidnodes.$(OBJEXT) daemon/psidoption.$(OBJEXT) \
 	daemon/psidpartition.$(OBJEXT) daemon/psidplugin.$(OBJEXT) \
-	daemon/psidpmiprotocol.$(OBJEXT) daemon/psidppc.$(OBJEXT) \
-	daemon/psidrdp.$(OBJEXT) daemon/psidscripts.$(OBJEXT) \
-	daemon/psidsignal.$(OBJEXT) daemon/psidspawn.$(OBJEXT) \
-	daemon/psidstate.$(OBJEXT) daemon/psidstatus.$(OBJEXT) \
-	daemon/psidtask.$(OBJEXT) daemon/psidutil.$(OBJEXT) \
-	daemon/psidintel.$(OBJEXT)
+	daemon/psidppc.$(OBJEXT) daemon/psidrdp.$(OBJEXT) \
+	daemon/psidscripts.$(OBJEXT) daemon/psidsignal.$(OBJEXT) \
+	daemon/psidspawn.$(OBJEXT) daemon/psidstate.$(OBJEXT) \
+	daemon/psidstatus.$(OBJEXT) daemon/psidtask.$(OBJEXT) \
+	daemon/psidutil.$(OBJEXT) daemon/psidintel.$(OBJEXT)
 psid_OBJECTS = $(am_psid_OBJECTS)
 psid_DEPENDENCIES = $(libputil) $(libpscommon) $(libpslog) $(libpse) \
 	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1)
@@ -143,8 +142,8 @@ am_psilogger_OBJECTS = logger/psilogger.$(OBJEXT) \
 	logger/psiloggerkvs.$(OBJEXT) logger/psiloggermerge.$(OBJEXT) \
 	logger/psiloggerclient.$(OBJEXT)
 psilogger_OBJECTS = $(am_psilogger_OBJECTS)
-psilogger_DEPENDENCIES = $(libputil) $(libpscommon) $(libpslog) \
-	$(am__DEPENDENCIES_1)
+psilogger_DEPENDENCIES = $(libpskvs) $(libputil) $(libpscommon) \
+	$(libpslog) $(am__DEPENDENCIES_1)
 psispawn_SOURCES = psispawn.c
 psispawn_OBJECTS = psispawn.$(OBJEXT)
 psispawn_DEPENDENCIES = $(libpsi)
@@ -397,6 +396,7 @@ libpsi = $(top_builddir)/lib/psi/libpsi.la
 libputil = $(top_builddir)/lib/putil/libputil.la
 libpscommon = $(top_builddir)/lib/pscommon/libpscommon.la
 libpslog = $(top_builddir)/lib/pslog/libpslog.la
+libpskvs = $(top_builddir)/lib/pskvs/libpskvs.la
 psiadmin_SOURCES = admin/psiadmin.c admin/commands.c admin/commands.h	\
 	admin/adminparser.c admin/adminparser.h
 
@@ -412,7 +412,6 @@ psid_SOURCES = daemon/psidaccount.c daemon/psidaccount.h		\
 	daemon/psidnodes.h daemon/psidoption.c daemon/psidoption.h	\
 	daemon/psidpartition.c daemon/psidpartition.h			\
 	daemon/psidplugin.c daemon/psidplugin.h				\
-	daemon/psidpmiprotocol.c daemon/psidpmiprotocol.h		\
 	daemon/psidppc.c daemon/psidppc.h daemon/psidrdp.c		\
 	daemon/psidrdp.h daemon/psidscripts.c daemon/psidscripts.h	\
 	daemon/psidsignal.c daemon/psidsignal.h daemon/psidspawn.c	\
@@ -430,8 +429,8 @@ psilogger_SOURCES = logger/psilogger.c logger/psilogger.h	\
 	logger/psiloggermerge.c logger/psiloggermerge.h		\
 	logger/psiloggerclient.c logger/psiloggerclient.h
 
-psilogger_LDADD = $(libputil) $(libpscommon) $(libpslog) $(RL_LIBS)	\
-	-lm
+psilogger_LDADD = $(libpskvs) $(libputil) $(libpscommon) 	\
+	$(libpslog) $(RL_LIBS) -lm
 
 mlisten_LDADD = $(POPT_LIBS)
 psmstart_LDADD = $(libpse) $(POPT_LIBS)
@@ -621,8 +620,6 @@ daemon/psidpartition.$(OBJEXT): daemon/$(am__dirstamp) \
 	daemon/$(DEPDIR)/$(am__dirstamp)
 daemon/psidplugin.$(OBJEXT): daemon/$(am__dirstamp) \
 	daemon/$(DEPDIR)/$(am__dirstamp)
-daemon/psidpmiprotocol.$(OBJEXT): daemon/$(am__dirstamp) \
-	daemon/$(DEPDIR)/$(am__dirstamp)
 daemon/psidppc.$(OBJEXT): daemon/$(am__dirstamp) \
 	daemon/$(DEPDIR)/$(am__dirstamp)
 daemon/psidrdp.$(OBJEXT): daemon/$(am__dirstamp) \
@@ -754,7 +751,6 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@daemon/$(DEPDIR)/psidoption.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@daemon/$(DEPDIR)/psidpartition.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@daemon/$(DEPDIR)/psidplugin.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@daemon/$(DEPDIR)/psidpmiprotocol.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@daemon/$(DEPDIR)/psidppc.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@daemon/$(DEPDIR)/psidrdp.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@daemon/$(DEPDIR)/psidscripts.Po@am__quote@

@@ -55,6 +55,7 @@ static char vcid[] __attribute__((used)) =
 #include "psidstatus.h"
 #include "psidsignal.h"
 #include "psidaccount.h"
+#include "psidhook.h"
 
 #include "psidspawn.h"
 
@@ -151,83 +152,6 @@ static int myexecv(const char *path, char *const argv[])
     }
 
     return ret;
-}
-
-/**
- * @brief Set up a new PMI TCP socket and start listening.
- *
- * Setup and start to listen to a TCP socket that clients can connect
- * to for PMI requests.
- *
- * @return Upon success the fd of the initialized socket is
- * returned. In case of an error, -1 is returned and errno is set
- * appropriately.
- */
-static int init_PMISocket(void)
-{
-    int res, sock;
-    struct sockaddr_in saClient;
-
-    sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-    if (sock < 0) {
-	int eno = errno;
-	PSID_warn(-1, eno, "%s: create PMIsock failed", __func__);
-	errno = eno;
-	return -1;
-    }
-
-    /* set up the sockaddr structure */
-    saClient.sin_family = AF_INET;
-    saClient.sin_addr.s_addr = INADDR_ANY;
-    saClient.sin_port = htons(0);
-    bzero(&(saClient.sin_zero), 8);
-
-    /* bind the socket */
-    res = bind(sock, (struct sockaddr *)&saClient, sizeof(saClient));
-    if (res == -1) {
-	int eno = errno;
-	PSID_warn(-1, errno, "%s: binding PMIsock failed", __func__);
-	errno = eno;
-	return -1;
-    }
-
-    /* set socket to listen state */
-    res = listen(sock, 5);
-    if (res == -1) {
-	int eno = errno;
-	PSID_warn(-1, eno, "%s: listen on PMIsock failed", __func__);
-	errno = eno;
-	return -1;
-    }
-
-    return sock;
-}
-
-/**
- * @brief Set up the PMI_PORT variable.
- *
- * @param PMISock The PMI socket to get the information from.
- *
- * @param cPMI_PORT The buffer which receives the result.
- *
- * @param size The size of the cPMI_PORT buffer.
- *
- * @return No return value
- */
-static void get_PMI_PORT(int PMISock, char *cPMI_PORT, int size )
-{
-    struct sockaddr_in addr;
-    socklen_t len;
-
-    /* get pmi port */
-    len = sizeof(addr);
-    bzero(&(addr), 8);
-    if (getsockname(PMISock,(struct sockaddr*)&addr,&len) == -1) {
-	PSID_warn(-1, errno, "%s: getsockname(pmisock)", __func__);
-	exit(1);
-    }
-
-    snprintf(cPMI_PORT,size,"127.0.0.1:%i", ntohs(addr.sin_port));
 }
 
 /**
@@ -1172,83 +1096,6 @@ static int openChannel(PStask_t *task, int *fds, int fileNo)
 }
 
 /**
- * @brief Prepare PMI
- *
- * Prepare PMI environment presented to the client process that will
- * be handled by the forwarder. For further use within the calling
- * function, @a forwarderSock will hold the file-descriptor of this
- * socket upon return.
- *
- * This function will evaluate various environment variables in order
- * to determine which type of socket to open:
- *
- * - PMI_ENABLE_TCP will trigger an TCP socket.
- *
- * - PMI_ENABLE_SOCKP will trigger an AF_UNIX socketpair.
- *
- * @return Depending on the socket-type created PMI_OVER_TCP or
- * PMI_OVER_UNIX will be returned. If both environment variables
- * discussed above are set or an error occurred PMI_FAILED will be
- * returned. If no socket is created due to missing environment
- * variables PMI_DISABLED is returned.
- */
-PMItype_t preparePMI(int *forwarderSock)
-{
-    PMItype_t pmiType = PMI_DISABLED;
-    int pmiEnableTcp = 0;
-    int pmiEnableSockp = 0;
-    char *envstr;
-
-    /* check if pmi should be started */
-    if ((envstr = getenv("PMI_ENABLE_TCP"))) {
-	pmiEnableTcp = atoi(envstr);
-    }
-
-    if ((envstr = getenv("PMI_ENABLE_SOCKP"))) {
-	pmiEnableSockp = atoi(envstr);
-    }
-
-    /* only one option is allowed */
-    if (pmiEnableSockp && pmiEnableTcp) {
-	PSID_warn(-1, EINVAL,
-		  "%s: only one type of pmi connection allowed", __func__);
-	return PMI_FAILED;
-    }
-
-    /* open pmi socket for comm. between the pmi client and forwarder */
-    if (pmiEnableTcp) {
-	char cPMI_PORT[50];
-
-	if ((*forwarderSock = init_PMISocket()) < 0) {
-	    PSID_warn(-1, errno, "%s: create PMI/TCP socket failed", __func__);
-	    return PMI_FAILED;
-	}
-	pmiType = PMI_OVER_TCP;
-
-	get_PMI_PORT(*forwarderSock, cPMI_PORT, sizeof(cPMI_PORT));
-	setenv("PMI_PORT", cPMI_PORT, 1);
-    }
-
-    /* create a socketpair for comm. between the pmi client and forwarder */
-    if (pmiEnableSockp) {
-	int socketfds[2];
-	char cPMI_FD[50];
-
-	if (socketpair(PF_UNIX, SOCK_STREAM, 0, socketfds)<0) {
-	    PSID_warn(-1, errno, "%s: socketpair()", __func__);
-	    return PMI_FAILED;
-	}
-	*forwarderSock = socketfds[1];
-	pmiType = PMI_OVER_UNIX;
-
-	snprintf(cPMI_FD, sizeof(cPMI_FD), "%d", socketfds[0]);
-	setenv("PMI_FD", cPMI_FD, 1);
-    }
-
-    return pmiType;
-}
-
-/**
  * @brief Create forwarder sandbox
  *
  * This function sets up a forwarder sandbox. Afterwards @ref
@@ -1295,8 +1142,6 @@ static void execForwarder(PStask_t *task, int daemonfd)
     pid_t pid;
     int stdinfds[2], stdoutfds[2], stderrfds[2] = {-1, -1}, controlfds[2];
     int ret, eno = 0;
-    int PMIforwarderSock = -1;
-    PMItype_t pmiType = PMI_DISABLED;
     char *envStr;
     struct timeval start, end = { .tv_sec = 0, .tv_usec = 0 }, stv;
     struct timeval timeout = { .tv_sec = 30, .tv_usec = 0};
@@ -1371,8 +1216,8 @@ static void execForwarder(PStask_t *task, int daemonfd)
 	}
     }
 
-    pmiType = preparePMI(&PMIforwarderSock);
-    if (pmiType == PMI_FAILED) {
+    /* init the process manager sockets */
+    if ((PSIDhook_call(PSIDHOOK_EXEC_FORWARDER, &daemonfd)) == -1) {
 	eno = EINVAL;
 	goto error;
     }
@@ -1457,7 +1302,7 @@ static void execForwarder(PStask_t *task, int daemonfd)
 	}
 
 	/* close forwarder socket */
-	if (pmiType == PMI_OVER_UNIX) close(PMIforwarderSock);
+	PSIDhook_call(PSIDHOOK_EXEC_CLIENT, task);
 
 	/* try to start the client */
 	execClient(task);
@@ -1577,7 +1422,7 @@ restart:
 
 error:
     /* Release the waiting daemon and exec forwarder */
-    PSID_forwarder(task, daemonfd, eno, PMIforwarderSock, pmiType);
+    PSID_forwarder(task, daemonfd, eno);
 
     /* never reached */
     exit(0);

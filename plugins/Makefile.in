@@ -281,7 +281,7 @@ configdir = $(prefix)/config
 
 # dito
 scriptsdir = $(prefix)/scripts
-SUBDIRS = psaccount psresport
+SUBDIRS = psaccount psresport pspmi
 all: all-recursive
 
 .SUFFIXES:

@@ -7,9 +7,11 @@
 # as defined in the file LICENSE.QPL included in the packaging of this
 # file.
 #
-# Author:	Thomas Moschny <moschny@par-tec.com>
+# Author:	Michael Rauh <rauh@par-tec.com>
 #
 
 include $(top_srcdir)/common.am
 
-SUBDIRS = psaccount psresport pspmi
+noinst_LTLIBRARIES = libpskvs.la
+
+libpskvs_la_SOURCES = kvs.c kvscommon.c kvslog.c
