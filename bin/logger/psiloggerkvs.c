@@ -407,8 +407,6 @@ static void sendKvsUpdateToClients(PMI_Group_t *gptr, int finish)
 	addKVSString(&bufPtr, &bufLen, kvsmsg);
 	sendMsgToKvsSucc(gptr, buffer, bufLen);
 
-	elog("%s: 4 : len:%zu bufLen:%zu cmd:%s toAdd:%zu\n", __func__,
-		strlen(kvsmsg), bufLen, PSKVScmdToString(pmiCmd), toAdd);
 	gptr->updateMsgCount++;
 	if (!finish) break;
 
@@ -653,7 +651,6 @@ static void handleKVS_Init(PSLog_Msg_t *msg, PMI_Group_t *gptr)
     if (gptr->initCount == gptr->maxClients) {
 	Timer_remove(gptr->timerid);
 	gptr->timerid = -1;
-	elog("%s: all clients did the init in time\n", __func__);
     }
 }
 
