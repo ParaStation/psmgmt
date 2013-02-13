@@ -878,6 +878,10 @@ static void setupCommonEnv(int np)
     env = getenv("PSI_NP_INFO");
     if (!env) errExit("No PSI_NP_INFO given.");
     setPSIEnv("PSI_NP_INFO", env, 1);
+
+    /* *hack* let MPI processes fail if no pspmi plugin is loaded */
+    setPSIEnv("PMI_FD", "10000", 1);
+    setPSIEnv("PMI_PORT", "10000", 1);
 }
 
 static char * setupPMINodeEnv(int rank)

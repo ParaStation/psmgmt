@@ -154,6 +154,10 @@ static PMItype_t preparePMI(int *forwarderSock)
 	return PMI_FAILED;
     }
 
+    /* unset bogus PMI settings */
+    unsetenv("PMI_PORT");
+    unsetenv("PMI_FD");
+
     /* open pmi socket for comm. between the pmi client and forwarder */
     if (pmiEnableTcp) {
 	char cPMI_PORT[50];
