@@ -31,6 +31,7 @@ static char vcid[] __attribute__((used)) =
 #include <signal.h>
 #include <syslog.h>
 #include <fcntl.h>
+#include <malloc.h>
 #include <sys/time.h>
 #include <sys/resource.h>
 #include <sys/wait.h>
@@ -284,6 +285,21 @@ int PSID_blockSIGCHLD(int block)
     return wasBlocked;
 }
 
+static void printMallocInfo(void)
+{
+    struct mallinfo mi;
+
+    mi = mallinfo();
+
+    PSID_log(-1, "%s: arena    %d\n", __func__, mi.arena);
+    PSID_log(-1, "%s: ordblks  %d\n", __func__, mi.ordblks);
+    PSID_log(-1, "%s: hblks    %d\n", __func__, mi.hblks);
+    PSID_log(-1, "%s: hblkhd   %d\n", __func__, mi.hblkhd);
+    PSID_log(-1, "%s: uordblks %d\n", __func__, mi.uordblks);
+    PSID_log(-1, "%s: fordblks %d\n", __func__, mi.fordblks);
+    PSID_log(-1, "%s: keepcost %d\n\n", __func__, mi.keepcost);
+}
+
 /**
  * @brief Signal handler
  *
@@ -342,11 +358,13 @@ static void sighandler(int sig)
 	RDP_printStat();
 	break;
     case  SIGUSR2:   /* user defined signal 2 */
-    {
-	char *ptr = malloc(1024);
-	if (ptr) free(ptr);
+	printMallocInfo();
+	{
+	    void *ptr = malloc(1024);
+	    if (ptr) free(ptr);
+	}
+	printMallocInfo();
 	break;
-    }
     case  SIGILL:    /* (*) illegal instruction (not reset when caught)*/
     case  SIGTRAP:   /* (*) trace trap (not reset when caught) */
     case  SIGFPE:    /* (*) floating point exception */
