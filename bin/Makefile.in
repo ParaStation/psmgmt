@@ -18,7 +18,7 @@
 #
 # ParaStation
 #
-# Copyright (C) 2012 ParTec Cluster Competence Center GmbH, Munich
+# Copyright (C) 2013 ParTec Cluster Competence Center GmbH, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -701,7 +701,6 @@ mostlyclean-compile:
 	-rm -f daemon/psidoption.$(OBJEXT)
 	-rm -f daemon/psidpartition.$(OBJEXT)
 	-rm -f daemon/psidplugin.$(OBJEXT)
-	-rm -f daemon/psidpmiprotocol.$(OBJEXT)
 	-rm -f daemon/psidppc.$(OBJEXT)
 	-rm -f daemon/psidrdp.$(OBJEXT)
 	-rm -f daemon/psidscripts.$(OBJEXT)

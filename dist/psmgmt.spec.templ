@@ -151,7 +151,7 @@ exit 0
 %{_sysconfdir}/init.d/parastation
 %config(noreplace) /etc/xinetd.d/psidstarter
 %config(noreplace) /etc/parastation.conf
-%attr(770,root,nobody) %{_localstatedir}/account
+%attr(770,root,root) %{_localstatedir}/log/psaccounter
 
 %files devel
 %defattr(-,root,root,-)

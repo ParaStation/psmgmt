@@ -17,7 +17,7 @@
 
 case "$1" in
     start)
-        su -s "/bin/sh" -c "@bindir@/psaccounter -p gzip -e" nobody
+	@bindir@/psaccounter -p gzip -e
 	;;
 
     stop)

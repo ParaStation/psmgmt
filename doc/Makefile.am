@@ -24,6 +24,6 @@ parastation.conf.tmpl: $(srcdir)/parastation.conf
 CLEANFILES = parastation.conf.tmpl
 
 install-exec-local:
-	$(INSTALL) -d $(DESTDIR)$(localstatedir)/account
+	$(INSTALL) -d $(DESTDIR)$(localstatedir)/log/psaccounter
 
 EXTRA_DIST = MessageTypes

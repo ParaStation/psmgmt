@@ -22,6 +22,8 @@ static char vcid[] __attribute__((used)) =
 #include "psidcomm.h"
 #include "psidutil.h"
 #include "psidoption.h"
+#include "psidtask.h"
+#include "psidnodes.h"
 
 #include "psidaccount.h"
 
@@ -53,7 +55,7 @@ void PSID_addAcct(PStask_ID_t acctr)
     acct = malloc(sizeof(*acct));
     acct->acct = acctr;
     list_add_tail(&acct->next, &PSID_accounters);
-};
+}
 
 void PSID_remAcct(PStask_ID_t acctr)
 {
@@ -133,10 +135,51 @@ void PSID_msgACCOUNT(DDBufferMsg_t *msg)
 	     PSC_printTID(msg->header.sender));
 
     if (msg->header.dest == PSC_getMyTID()) {
-	/* message for me, let's forward to all known accounters */
+	DDTypedBufferMsg_t *tmsg = (DDTypedBufferMsg_t *) msg;
 	list_t *pos, *tmp;
+	PStask_t *task;
+	char *ptr = tmsg->buf;
+	uid_t uid;
+	static int lastStartUID = -1;
+
+	/* skip logger TID and rank to get to UID */
+	ptr += sizeof(PStask_ID_t);
+	ptr += sizeof(int32_t);
+	uid = *(uid_t *)ptr;
+
+	/* save uid for next incoming slot msg */
+	if (tmsg->type == PSP_ACCOUNT_START) {
+	    lastStartUID = uid;
+	}
+
+	/* no uid in msg, used saved one */
+	if (tmsg->type == PSP_ACCOUNT_SLOTS) {
+	    uid = lastStartUID;
+	}
+
+	/* message for me, let's forward to all authorized accounters */
+
 	list_for_each_safe(pos, tmp, &PSID_accounters) {
 	    PSID_acct_t *acct = list_entry(pos, PSID_acct_t, next);
+
+	    if (!(task = PStasklist_find(&managedTasks, acct->acct))) {
+		PSID_log(PSID_LOG_VERB, "%s: task for accounter '%s' not"
+			    " found\n", __func__, PSC_printTID(acct->acct));
+		continue;
+	    }
+
+	    /* Let accounter running as adminuser receive all accounting
+	     * messages. Unprivileged users may only see their own
+	     * accounting data.
+	     */
+	    if (task->uid != 0 && task->uid != uid &&
+		!PSIDnodes_testGUID(PSC_getMyID(), PSIDNODES_ADMUSER,
+			       (PSIDnodes_guid_t){.u=task->uid}) &&
+		!PSIDnodes_testGUID(PSC_getMyID(), PSIDNODES_ADMGROUP,
+			       (PSIDnodes_guid_t){.g=task->gid})) {
+		continue;
+	    }
+
 	    msg->header.dest = acct->acct;
 	    if (sendMsg(msg) == -1 && errno != EWOULDBLOCK) {
 		PSID_warn(-1, errno, "%s: sendMsg()", __func__);

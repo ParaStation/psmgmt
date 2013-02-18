@@ -536,7 +536,7 @@ parastation.conf.tmpl: $(srcdir)/parastation.conf
 	$(INSTALL) $^ $@
 
 install-exec-local:
-	$(INSTALL) -d $(DESTDIR)$(localstatedir)/account
+	$(INSTALL) -d $(DESTDIR)$(localstatedir)/log/psaccounter
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.
