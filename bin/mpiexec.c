@@ -1580,8 +1580,8 @@ static void printHiddenUsage(poptOption opt, int argc, char *argv[],
 
     poptFreeContext(optCon);
     optCon = poptGetContext(NULL, argc, (const char **)argv, opt2, 0);
-    printf("\n%s\n", headline);
-    poptPrintUsage(optCon, stderr, 0);
+    fprintf(stdout, "\n%s\n", headline);
+    poptPrintUsage(optCon, stdout, 0);
 }
 
 /**
@@ -1608,8 +1608,8 @@ static void printHiddenHelp(poptOption opt, int argc, char *argv[],
 
     poptFreeContext(optCon);
     optCon = poptGetContext(NULL, argc, (const char **)argv, opt2, 0);
-    printf("\n%s\n", headline);
-    poptPrintHelp(optCon, stderr, 0);
+    fprintf(stdout, "\n%s\n", headline);
+    poptPrintHelp(optCon, stdout, 0);
 }
 
 /**
