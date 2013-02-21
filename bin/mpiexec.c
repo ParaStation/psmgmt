@@ -2202,6 +2202,9 @@ struct poptOption poptCommonOptions[] = {
       &usize, 0, "set the universe size", NULL},
     { "openmpi", 0, POPT_ARG_NONE,
       &OpenMPI, 0, "enable OpenMPI support", NULL},
+    { "timeout", 0, POPT_ARG_INT,
+      &maxtime, 0, "maximum number of seconds the job is permitted to run",
+      NULL},
     POPT_TABLEEND
 };
 
