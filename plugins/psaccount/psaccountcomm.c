@@ -22,6 +22,7 @@
 #include "psaccountinter.h"
 #include "psaccountproc.h"
 #include "psaccountconfig.h"
+#include "psaccounthistory.h"
 
 #include "timer.h"
 #include "pscommon.h"
@@ -125,8 +126,10 @@ void handleAccountEnd(DDTypedBufferMsg_t *msg, int remote)
 
     /* find the child exiting */
     if (!(client = findAccClientByClientTID(childID))) {
-	mlog("%s: end msg for unknown client '%s' from '%s'\n", __func__,
-	    PSC_printTID(childID), PSC_printTID(msg->header.sender));
+	if (!(findHist(logger))) {
+	    mlog("%s: end msg for unknown client '%s' from '%s'\n", __func__,
+		PSC_printTID(childID), PSC_printTID(msg->header.sender));
+	}
 	return;
     }
 
@@ -351,7 +354,7 @@ void handleAccountChild(DDTypedBufferMsg_t *msg, int remote)
 
     ptr = msg->buf;
 
-    /* Task(logger) Id */
+    /* get TaskID of the logger */
     logger = *(PStask_ID_t *) ptr;
     ptr += sizeof(PStask_ID_t);
 
@@ -410,6 +413,7 @@ void handleAccountChild(DDTypedBufferMsg_t *msg, int remote)
 
     job->nrOfChilds++;
     client->logger = logger;
+    if (!(findHist(logger))) saveHist(logger);
     client->uid = uid;
     client->gid = gid;
     client->job = job;

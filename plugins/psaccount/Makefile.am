@@ -23,6 +23,7 @@ psaccount_la_SOURCES = helper.c helper.h psaccount.c			\
 	 psaccount.h psaccountinter.c psaccountinter.h psaccountjob.c	\
 	 psaccountjob.h psaccountkvs.c psaccountkvs.h psaccountlog.c	\
 	 psaccountlog.h psaccountproc.c psaccountproc.h			\
-	 psaccountconfig.c psaccountconfig.h
+	 psaccountconfig.c psaccountconfig.h psaccounthistory.h 	\
+	 psaccounthistory.c
 
 psaccount_la_CPPFLAGS = $(AM_CPPFLAGS) -DPLUGINDIR=\"$(plugindir)\"

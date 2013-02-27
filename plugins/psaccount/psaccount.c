@@ -26,6 +26,7 @@
 #include "psaccountinter.h"
 #include "psaccountclient.h"
 #include "psaccountconfig.h"
+#include "psaccounthistory.h"
 
 #include "timer.h"
 #include "plugin.h"
@@ -37,7 +38,7 @@
 
 /** psid plugin requirements */
 char name[] = "psaccount";
-int version = 21;
+int version = 22;
 int requiredAPI = 101;
 plugin_dep_t dependencies[1];
 
@@ -122,6 +123,7 @@ int initialize(void)
     initAccClientList();
     initProcList();
     initJobList();
+    initHist();
 
     /* init logging facility */
     initLogger(false);
@@ -209,4 +211,5 @@ void cleanup(void)
     clearAllJobs();
     clearAllAccClients();
     clearAllProcSnapshots();
+    clearHist();
 }

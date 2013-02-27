@@ -217,6 +217,8 @@ plugins/psaccount/psaccountcomm.c \
 plugins/psaccount/psaccountcomm.h \
 plugins/psaccount/psaccountconfig.c \
 plugins/psaccount/psaccountconfig.h \
+plugins/psaccount/psaccounthistory.c \
+plugins/psaccount/psaccounthistory.h \
 plugins/psaccount/psaccountinter.c \
 plugins/psaccount/psaccountinter.h \
 plugins/psaccount/psaccountjob.c \

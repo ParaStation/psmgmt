@@ -20,6 +20,7 @@
 #include "psaccountlog.h"
 #include "psaccountproc.h"
 #include "psaccountclient.h"
+#include "psaccounthistory.h"
 #include "helper.h"
 
 #include "psaccountinter.h"
@@ -98,19 +99,25 @@ static void handleAccountUpdate(DDTypedBufferMsg_t *msg)
 {
     uint64_t rssnew, vsizenew, cutime, cstime, threads;
     Client_t *client;
-    PStask_ID_t tid;
+    PStask_ID_t tid, logger;
     AccountData_t *accData;
     char *ptr;
 
     ptr = msg->buf;
 
-    /* extract taskid of remote child */
+    /* extract TaskID of logger */
+    logger = *(PStask_ID_t *) ptr;
+    ptr += sizeof(PStask_ID_t);
+
+    /* extract TaskID of remote child */
     tid = *(PStask_ID_t *) ptr;
     ptr += sizeof(PStask_ID_t);
 
     if (!(client = findAccClientByClientTID(tid))) {
-	mlog("%s: data update for unknown client '%s'\n", __func__,
-	    PSC_printTID(tid));
+	if (!(findHist(logger))) {
+	    mlog("%s: data update for unknown client '%s'\n", __func__,
+		PSC_printTID(tid));
+	}
 	return;
     }
     accData = &client->data;
@@ -192,7 +199,12 @@ void sendAccountUpdate(Client_t *client)
 
     ptr = msg.buf;
 
-    /* add taskid */
+    /* add logger TaskID */
+    *(PStask_ID_t *) ptr = client->logger;
+    ptr += sizeof(PStask_ID_t);
+    msg.header.len += sizeof(PStask_ID_t);
+
+    /* add client TaskID */
     *(PStask_ID_t *) ptr = client->taskid;
     ptr += sizeof(PStask_ID_t);
     msg.header.len += sizeof(PStask_ID_t);
