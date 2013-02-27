@@ -103,8 +103,13 @@ static LIST_HEAD(pluginList);
  *	PSIDHOOK_MASTER_RECPART, PSIDHOOK_MASTER_EXITPART
  *
  * 109: added PSIDHOOK_CREATEPARTNL
+ *
+ * 110: added PSIDHOOK_EXEC_FORWARDER, PSIDHOOK_EXEC_CLIENT,
+ *	PSIDHOOK_FRWRD_INIT, PSIDHOOK_FRWRD_CINFO,
+ *	PSIDHOOK_FRWRD_KVS, PSIDHOOK_FRWRD_RESCLIENT,
+ *	PSIDHOOK_FRWRD_CLIENT_STAT
  */
-static int pluginAPIVersion = 109;
+static int pluginAPIVersion = 110;
 
 
 /** Grace period between finalize and unload on forcefully unloads */

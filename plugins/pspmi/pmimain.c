@@ -34,8 +34,8 @@ static int debugMask = 0;
 
 /** psid plugin requirements */
 char name[] = "pspmi";
-int version = 1;
-int requiredAPI = 0;
+int version = 2;
+int requiredAPI = 110;
 plugin_dep_t dependencies[1];
 
 /* pmi init */

@@ -86,22 +86,29 @@ typedef enum {
     PSIDHOOK_MASTER_EXITPART, /**< The local node is discharged from the
 				burden of acting as a master, so all relevant
 				resources should be freed. No argument. */
-    /*
-     * The following hooks are place-holders for future extension and
-     * not yet called by the daemon.
-     */
-    PSIDHOOK_EXEC_FORWARDER,   /**< Right before starting forwarder. Might
-				  be used to prepare the forwarder's env */
-    PSIDHOOK_EXEC_CLIENT,      /**< Right before exec()ing the child. Might
-				  be used to prepare the child's env */
-    PSIDHOOK_FRWRD_INIT,       /**< In forwarder's init() function */
-    PSIDHOOK_FRWRD_CINFO,      /**< ??? executed to get info about pre/succ
-				  ranks */
-    PSIDHOOK_FRWRD_KVS,        /**< Handle KVS messages. arg points to msg */
-    PSIDHOOK_FRWRD_RESCLIENT,  /**< executed at forwarder's child release */
-
-    PSIDHOOK_FRWRD_CLIENT_STAT,/**< ??? ask all plugins if we they release the child */
-
+    PSIDHOOK_EXEC_FORWARDER,  /**< Right before forking the forwarder's child.
+				Arg is a pointer to a unix socketpair which is
+				used as a connection between the forwarder and
+				the daemon. The hook might be used to prepare
+				the child's and forwarder's environment */
+    PSIDHOOK_EXEC_CLIENT,     /**< Right before exec()ing the child, arg is a
+				pointer to the child's task structure. This
+				hook might be used to prepare the child's env */
+    PSIDHOOK_FRWRD_INIT,       /**< In forwarder's init() function, arg is a
+				pointer to the child's task structure. Might be
+				used to register additional sockets. */
+    PSIDHOOK_FRWRD_CINFO,      /**< When the forwarder is connecting to
+				the logger, arg is a pointer to the loggers
+				response msg buffer. Might be used to get info
+				about pre/succ ranks */
+    PSIDHOOK_FRWRD_KVS,        /**< Handle a KVS messages, arg points to msg */
+    PSIDHOOK_FRWRD_RESCLIENT,  /**< Executed at forwarder's child release. Used
+				to release the PMI client. The arg is a pointer
+				to an int when set to 1 a PMI release msg will
+				be send, otherwise only the connection will
+				be closed. */
+    PSIDHOOK_FRWRD_CLIENT_STAT,/**< Ask all plugins if we are ready to release
+				the child. */
     PSIDHOOK_LAST,             /**< This has to be the last one */
 } PSIDhook_t;
 
