@@ -225,7 +225,7 @@ static void freeChunk(msgbuf_schunk_t *chunk)
 void PSIDMsgbuf_gc(void)
 {
     list_t *c, *tmp;
-    int blockedCHLD, blockedRDP;
+    int blockedCHLD, blockedRDP, first = 1;
     unsigned int i;
 
     if ((int)usedSmallBufs > (int)smallBufs/2 - MSGBUF_SCHUNK) return;
@@ -236,6 +236,11 @@ void PSIDMsgbuf_gc(void)
     list_for_each_safe(c, tmp, &chunkList) {
 	msgbuf_schunk_t *chunk = list_entry(c, msgbuf_schunk_t, next);
 	int unused = 0;
+
+	if (first) {
+	    first = 0;
+	    continue;
+	}
 
 	for (i=0; i<MSGBUF_SCHUNK; i++) {
 	    if (chunk->bufs[i].offset == UNUSED) unused++;
