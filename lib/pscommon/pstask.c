@@ -198,6 +198,7 @@ void PStask_gcSig(void)
 {
     list_t *c, *tmp;
     unsigned int i;
+    int first = 1;
 
     PSC_log(PSC_LOG_TASK, "%s()\n", __func__);
 
@@ -206,6 +207,11 @@ void PStask_gcSig(void)
     list_for_each_safe(c, tmp, &chunkList) {
 	sig_chunk_t *chunk = list_entry(c, sig_chunk_t, next);
 	int unused = 0;
+
+	if (first) {
+	    first = 0;
+	    continue;
+	}
 
 	for (i=0; i<SIGNAL_CHUNK; i++) {
 	    if (chunk->sigs[i].state != USED) unused++;
