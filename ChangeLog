@@ -1,3 +1,118 @@
+Version psmgmt-5.0.42:
+======================
+------------------------------------------------------------------------
+r8754 | eicker | 2013-03-04 15:18:09 +0100 (Mon, 04 Mar 2013) | 2 lines
+
+Enhancement: pre-allocate some txt for logger. This should help with #1087.
+
+------------------------------------------------------------------------
+r8753 | eicker | 2013-02-28 19:04:53 +0100 (Thu, 28 Feb 2013) | 3 lines
+
+Enhancement: Prevent first chunk of signal structures from free(). This
+    should help with #1087.
+
+------------------------------------------------------------------------
+r8752 | eicker | 2013-02-28 19:04:02 +0100 (Thu, 28 Feb 2013) | 3 lines
+
+Enhancement: Prevent first chunk of message buffers from free(). This
+should help with #1087.
+
+------------------------------------------------------------------------
+r8751 | eicker | 2013-02-28 19:02:49 +0100 (Thu, 28 Feb 2013) | 3 lines
+
+Enhancement: pre-allocate some trail for logger. This should help with
+    #1087.
+
+------------------------------------------------------------------------
+r8750 | rauh | 2013-02-27 13:37:10 +0100 (Wed, 27 Feb 2013) | 3 lines
+
+Enhancement: keep a history of the last accounted jobs to
+    suppress confusing error messages
+
+------------------------------------------------------------------------
+r8749 | rauh | 2013-02-27 11:37:27 +0100 (Wed, 27 Feb 2013) | 2 lines
+
+Enhancement: make hooks used by pspmi plugin official. Pushed plugin API to 110.
+
+------------------------------------------------------------------------
+r8748 | rauh | 2013-02-21 11:46:07 +0100 (Thu, 21 Feb 2013) | 2 lines
+
+Bugfix: print all help messages of mpiexec to stdout (#1926)
+
+------------------------------------------------------------------------
+r8747 | rauh | 2013-02-21 11:38:07 +0100 (Thu, 21 Feb 2013) | 2 lines
+
+Enhancement: show timeout option of mpiexec in help output
+
+------------------------------------------------------------------------
+r8746 | rauh | 2013-02-18 16:43:06 +0100 (Mon, 18 Feb 2013) | 6 lines
+
+Enhancement: Avoid directory clash of /var/account (#1930).
+Enhancement: Let the psaccounter started by psid run as root.
+Enhancement: Let ordinary users only get their own accounting
+    records using psaccounter. Adminusers may receive accounting
+    data from everyone..
+
+------------------------------------------------------------------------
+r8745 | eicker | 2013-02-15 19:09:00 +0100 (Fri, 15 Feb 2013) | 2 lines
+
+Let psid print some info from malloc on SIGUSR2.
+
+------------------------------------------------------------------------
+r8744 | rauh | 2013-02-13 08:59:33 +0100 (Wed, 13 Feb 2013) | 2 lines
+
+Enhancement: let MPI processes fail if no pspmi plugin is loaded.
+
+------------------------------------------------------------------------
+r8743 | rauh | 2013-02-12 12:28:39 +0100 (Tue, 12 Feb 2013) | 2 lines
+
+Removed leftover debug output.
+
+------------------------------------------------------------------------
+r8742 | rauh | 2013-02-12 11:46:31 +0100 (Tue, 12 Feb 2013) | 2 lines
+
+Removed obsolete files.
+
+------------------------------------------------------------------------
+r8741 | rauh | 2013-02-12 11:45:42 +0100 (Tue, 12 Feb 2013) | 11 lines
+
+Remark: The pspmi plugin is now mandatory for the MPI2 startup and should
+be added as default to the parastation configuration.
+Remark: Pushed pslog to version 3. This new version is *NOT* compatible
+with older parastation versions.
+Enhancement: The PMI layer moved from the psidforwarder into the pspmi plugin.
+Enhancement: Use dynamic structures for the KVS implementation.
+Enhancement: Optimized distribution of PMI values and keys over daisy chain.
+Enhancement: #1539 prepared support for PMI spawn (actual spawning still missing).
+Enhancement: Removed old compability code to support PMI without a daisy chain.
+
+------------------------------------------------------------------------
+r8740 | moschny | 2013-02-08 18:47:00 +0100 (Fri, 08 Feb 2013) | 1 line
+
+Update dist/Makefile from git.ccc:psbuild.
+------------------------------------------------------------------------
+r8739 | eicker | 2013-02-08 13:55:16 +0100 (Fri, 08 Feb 2013) | 2 lines
+
+Simplify creation of coredumps in forwarder
+
+------------------------------------------------------------------------
+r8738 | eicker | 2013-02-08 13:53:29 +0100 (Fri, 08 Feb 2013) | 2 lines
+
+Bugfix: Fix possible segmentation-fault in psiadmin's auto-completion.
+
+------------------------------------------------------------------------
+r8737 | eicker | 2013-02-08 13:51:33 +0100 (Fri, 08 Feb 2013) | 2 lines
+
+Bugfix: Fix memory-leak in psiadmin's parser.
+
+------------------------------------------------------------------------
+r8733 | eicker | 2013-02-05 20:15:29 +0100 (Tue, 05 Feb 2013) | 2 lines
+
+New release (psmgmt-5.0.41-2)
+
+------------------------------------------------------------------------
+
+
 Version psmgmt-5.0.41-2:
 ========================
 ------------------------------------------------------------------------

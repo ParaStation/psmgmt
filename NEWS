@@ -5,6 +5,35 @@ Copyright (C) 2010-2013 ParTec Cluster Competence Center GmbH, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 5.0.42:
+===============
+
+Remark: The pspmi plugin is now mandatory for the MPI2 startup and should
+be added as default to the parastation configuration.
+
+Remark: Pushed pslog to version 3. This new version is *NOT* compatible
+with older parastation versions.
+
+Bugfixes:
+ - Various changes to prevent psid from bloating (#1087)
+ - print all help messages of mpiexec to stdout (#1926)
+ - Avoid directory clash of /var/account (#1930)
+ - Fix possible segmentation-fault in psiadmin's auto-completion
+ - Fix memory-leak in psiadmin's parser.
+
+Enhancements:
+ - Keep a history of last accounted jobs to suppress confusing error messages
+ - Make hooks used by pspmi plugin official. Pushed plugin API to 110
+ - Let the psaccounter started by psid run as root
+ - Ordinary users only get their own accounting records using psaccounter
+ - PMI layer moved from the psidforwarder into the pspmi plugin
+ - Optimized distribution of PMI values and keys over daisy chain
+
+Additional changes:
+ - Let MPI processes fail if no pspmi plugin is loaded.
+ - Support for PMI spawn prepared (actual spawning still missing) (#1539)
+
+
 Version 5.0.41-2:
 =================
 Additional changes:
