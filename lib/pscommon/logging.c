@@ -107,10 +107,11 @@ logger_t* logger_init(char* tag, FILE* logfile)
 	logger->fmtSize = 0;
 	logger->prfx = NULL;
 	logger->prfxSize = 0;
-	logger->txt = NULL;
-	logger->txtSize = 0;
+	/* pre-allocate txt to prevent psid from bloating */
+	logger->txtSize = 256;
+	logger->txt = malloc(logger->txtSize);
 
-	if (!logger->trail) {
+	if (!logger->trail || !logger->txt) {
 	    logger_finalize(logger);
 	    free(logger);
 	    logger = NULL;
