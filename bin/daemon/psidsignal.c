@@ -588,7 +588,10 @@ static void msg_NOTIFYDEADRES(DDSignalMsg_t *msg)
     PStask_ID_t controlledTid = msg->header.sender;
     PStask_ID_t registrarTid = msg->header.dest;
 
-    if (PSC_getID(registrarTid) != PSC_getMyID()) sendMsg(msg);
+    if (PSC_getID(registrarTid) != PSC_getMyID()) {
+	sendMsg(msg);
+	return;
+    }
 
     if (msg->param) {
 	PSID_log(-1, "%s: sending error = %d msg to local parent %s\n",
@@ -1240,8 +1243,13 @@ static void drop_RELEASE(DDBufferMsg_t *msg)
     sigmsg.pervasive = 0;
 
     if (msg->header.type == PSP_CD_NOTIFYDEAD
-	|| PSPver < 338 || ((DDSignalMsg_t *)msg)->answer)
-	sendMsg(&sigmsg);
+	|| PSPver < 338 || ((DDSignalMsg_t *)msg)->answer) {
+	if (msg->header.type == PSP_CD_RELEASE) {
+	    msg_RELEASERES(&sigmsg);
+	} else {
+	    msg_NOTIFYDEADRES(&sigmsg);
+	}
+    }
 }
 
 static void signalGC(void)
