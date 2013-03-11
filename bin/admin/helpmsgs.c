@@ -27,6 +27,8 @@ static char hlpid[] __attribute__((used)) =
 #include <stdlib.h>
 #include <unistd.h>
 
+#include "pscommon.h"
+
 /**
  * Structure holding a syntax information. The content is intended to
  * be put out via @ref printSyntax(). Refer to @ref printSyntax() for
@@ -63,8 +65,8 @@ static info_t helpInfo = {
     .syntax = (syntax_t[]) {{
 	.cmd = "help",
 	.arg = "{ add | echo | environment | help | hwstart | hwstop | kill"
-	" | list | plugin | range | reset | resolve | restart | set | show"
-	" | shutdown | sleep | test | version | quit }"
+	" | list | parameter | plugin | range | reset | resolve | restart"
+	" | set | show | shutdown | sleep | test | version | quit }"
     }},
     .nodes = 0,
     .descr = NULL,
@@ -78,12 +80,14 @@ static info_t helpInfo = {
 	},
 	{ .tag = "list",
 	  .descr = "List information." },
+	{ .tag = "parameter",
+	  .descr = "Hande psiadmin's control parameters." },
 	{ .tag = "range",
 	  .descr = "Set or show the default node-range." },
 	{ .tag = "resolve",
 	  .descr = "Resolve hostname to nodeID mapping." },
 	{ .tag = "show",
-	  .descr = "Show control parameters." },
+	  .descr = "Show the daemon's control parameters." },
 	{ .tag = "sleep",
 	  .descr = "Sleep for a given period." },
 	{ .tag = "version",
@@ -119,7 +123,7 @@ static info_t privilegedInfo = {
 	{ .tag = "restart",
 	  .descr = "Restart ParaStation nodes." },
 	{ .tag = "set",
-	  .descr = "Alter control parameters." },
+	  .descr = "Alter the daemon's control parameters." },
 	{ .tag = "shutdown",
 	  .descr = "Shutdown the ParaStation daemon process on some or all"
 	  " nodes." },
@@ -793,6 +797,29 @@ static info_t envInfo = {
     .comment = NULL
 };
 
+static info_t paramInfo = {
+    .head = "Parameter command:",
+    .syntax = (syntax_t[]) {{
+	.cmd = "parameter",
+	.arg = "{ show [<key>] | set <key> <value> | help [<key>] }"
+    }},
+    .nodes = 0,
+    .descr = "Handle parameters of the local psiadmin.",
+    .tags = (taggedInfo_t[]) {
+	{ .tag = "parameter show [<key>]",
+	  .descr = "Show the parameters of the local psiadmin. If 'key <key>'"
+	  " is given, only the parameter <key> and its value is displayed." },
+	{ .tag = "parameter set <key> <value>",
+	  .descr = "Set the local psiadmin's parameter <key> to the value"
+	  " <value>." },
+	{ .tag = "parameter help [<key>]",
+	  .descr = "Show some help concerning the parameter <key>. If <key> is"
+	  "not given, help on all keys defined is given." },
+	{ NULL, NULL}
+    },
+    .comment = NULL
+};
+
 static info_t resetInfo = {
     .head = "Reset command (privileged):",
     .syntax = (syntax_t[]) {{
@@ -853,10 +880,6 @@ static info_t testInfo = {
 static const char sep[] =   "================================================"
 "============================================================================";
 
-/** A long string of whitespace characters */
-static const char space[] = "                                                "
-"                                                                            ";
-
 /**
  * @brief Print syntax information.
  *
@@ -887,7 +910,7 @@ static const char space[] = "                                                "
  */
 static void printSyntax(const char *tag, syntax_t *syntax)
 {
-    int lwidth = getWidth() - strlen(tag);
+    int lwidth = PSC_getWidth() - strlen(tag);
 
     if (syntax->cmd) {
 	lwidth -= strlen(syntax->cmd) + 1;
@@ -902,7 +925,7 @@ static void printSyntax(const char *tag, syntax_t *syntax)
 	    while (*end != ' ') end--;
 	    if (*(end-1) == '|') end --; /* Don't end with '|' */
 	    printf("%.*s\n", (int)(end-pos), pos);
-	    printf("%.*s", getWidth()-lwidth, space);
+	    printf("%*s", PSC_getWidth()-lwidth, "");
 	    pos = end;
 	    while (*pos == ' ') pos++; /* skip leading whitespace */
 	    len = strlen(pos);
@@ -938,7 +961,7 @@ static void printSyntax(const char *tag, syntax_t *syntax)
  */
 static void printDescr(const char *tag, char *descr)
 {
-    int lwidth = getWidth() - strlen(tag);
+    int lwidth = PSC_getWidth() - strlen(tag);
 
     if (descr) {
 	char *pos = descr;
@@ -949,7 +972,7 @@ static void printDescr(const char *tag, char *descr)
 	    char *end = pos + lwidth - 1;
 	    while (*end != ' ') end--;
 	    printf("%.*s\n", (int)(end-pos), pos);
-	    printf("%.*s", getWidth()-lwidth, space);
+	    printf("%*s", PSC_getWidth()-lwidth, "");
 	    pos = end+1;             /* Ignore the separating space */
 	    len = strlen(pos);
 	}
@@ -1054,7 +1077,7 @@ static void printInfo(info_t *info)
 
 	if (len) {
 	    printf("\n%s\n", info->head);
-	    if (len < getWidth()) printf("%.*s\n", len, sep);
+	    if (len < PSC_getWidth()) printf("%.*s\n", len, sep);
 	    printf("\n");
 	}
     }

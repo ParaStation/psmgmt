@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2011 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2013 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -31,13 +31,17 @@ static char vcid[] __attribute__((used)) =
 
 int RDPSocket = -1;
 
+/* possible values of node_bufs.flags */
+#define FLUSH           0x00000001   /* Flush is under way */
+#define CLOSE           0x00000002   /* About to close the connection */
+
 /**
  * Array used to temporarily hold message that could not yet be
  * delivered to their final destination.
  */
 static struct {
-    list_t list;
-    int clearing;
+    list_t list;         /**< Chain of undelivered messages */
+    unsigned int flags;  /**< Special flags (FLUSH, CLOSE) */
 } *node_bufs;
 
 void initRDPMsgs(void)
@@ -49,18 +53,22 @@ void initRDPMsgs(void)
 
     for (i=0; i<PSC_getNrOfNodes(); i++) {
 	INIT_LIST_HEAD(&node_bufs[i].list);
-	node_bufs[i].clearing = 0;
+	node_bufs[i].flags = 0;
     }
 }
 
 void clearRDPMsgs(int node)
 {
-    int blocked = RDP_blockTimer(1);
+    int blockedCHLD, blockedRDP;
     list_t *m, *tmp;
 
     /* prevent recursive clearing of node_bufs[node].list */
-    if (node_bufs[node].clearing) return;
-    node_bufs[node].clearing = 1;
+    if (node_bufs[node].flags & CLOSE) return;
+
+    blockedCHLD = PSID_blockSIGCHLD(1);
+    blockedRDP = RDP_blockTimer(1);
+
+    node_bufs[node].flags |= CLOSE;
 
     list_for_each_safe(m, tmp, &node_bufs[node].list) {
 	msgbuf_t *mp = list_entry(m, msgbuf_t, next);
@@ -78,8 +86,10 @@ void clearRDPMsgs(int node)
 	PSIDMsgbuf_put(mp);
     }
 
-    node_bufs[node].clearing = 0;
-    RDP_blockTimer(blocked);
+    node_bufs[node].flags &= ~CLOSE;
+
+    RDP_blockTimer(blockedRDP);
+    PSID_blockSIGCHLD(blockedCHLD);
 }
 
 /**
@@ -97,28 +107,31 @@ void clearRDPMsgs(int node)
  */
 static int storeMsgRDP(int node, DDMsg_t *msg)
 {
-    int blocked = RDP_blockTimer(1), ret = 0;
+    int blockedCHLD, blockedRDP, ret = 0;
     msgbuf_t *msgbuf = PSIDMsgbuf_get(msg->len);
 
     if (!msgbuf) {
 	errno = ENOMEM;
-	ret = -1;
-	goto end;
+	return -1;
     }
 
     memcpy(msgbuf->msg, msg, msg->len);
     msgbuf->offset = 0;
 
+    blockedCHLD = PSID_blockSIGCHLD(1);
+    blockedRDP = RDP_blockTimer(1);
+
     list_add_tail(&msgbuf->next, &node_bufs[node].list);
 
- end:
-    RDP_blockTimer(blocked);
+    RDP_blockTimer(blockedRDP);
+    PSID_blockSIGCHLD(blockedCHLD);
+
     return ret;
 }
 
 int flushRDPMsgs(int node)
 {
-    int blocked, ret = 0;
+    int blockedCHLD, blockedRDP, ret = 0;
     list_t *m, *tmp;
 
     if (node<0 || node >= PSC_getNrOfNodes()) {
@@ -126,7 +139,12 @@ int flushRDPMsgs(int node)
 	return -1;
     }
 
-    blocked = RDP_blockTimer(1);
+    if (node_bufs[node].flags & (FLUSH | CLOSE)) return -1;
+
+    blockedCHLD = PSID_blockSIGCHLD(1);
+    blockedRDP = RDP_blockTimer(1);
+
+    node_bufs[node].flags |= FLUSH;
 
     list_for_each_safe(m, tmp, &node_bufs[node].list) {
 	msgbuf_t *msgbuf = list_entry(m, msgbuf_t, next);
@@ -148,6 +166,10 @@ int flushRDPMsgs(int node)
 	    goto end;
 	}
 
+	/* Remove msgbuf before 'cont' (sendMsg might trigger y.a. flush) */
+	list_del(&msgbuf->next);
+	PSIDMsgbuf_put(msgbuf);
+
 	if (PSC_getPID(sender)) {
 	    DDMsg_t contmsg = { .type = PSP_DD_SENDCONT,
 				.sender = dest,
@@ -155,12 +177,12 @@ int flushRDPMsgs(int node)
 				.len = sizeof(DDMsg_t) };
 	    sendMsg(&contmsg);
 	}
-
-	list_del(&msgbuf->next);
-	PSIDMsgbuf_put(msgbuf);
     }
  end:
-    RDP_blockTimer(blocked);
+    node_bufs[node].flags &= ~FLUSH;
+
+    RDP_blockTimer(blockedRDP);
+    PSID_blockSIGCHLD(blockedCHLD);
     return ret;
 }
 
@@ -170,7 +192,7 @@ int sendRDP(DDMsg_t *msg)
     int ret = 0;
 
     if (node<0 || node >= PSC_getNrOfNodes()) {
-	errno = EINVAL;
+	errno = EHOSTUNREACH;
 	return -1;
     }
 
@@ -188,14 +210,19 @@ int sendRDP(DDMsg_t *msg)
 	PSID_setDebugMask(mask);
     }
 
-    if (node_bufs[node].clearing) return 0; /* No Rsendto during cleanup */
+    if (node_bufs[node].flags & CLOSE) {
+	/* No Rsendto during cleanup */
+	errno = EHOSTUNREACH;
+	return -1;
+    }
 
     if (!list_empty(&node_bufs[node].list)) flushRDPMsgs(node);
     if (list_empty(&node_bufs[node].list)) {
 	ret = Rsendto(node, msg, msg->len);
     }
 
-    if (!list_empty(&node_bufs[node].list) || (ret==-1 && errno==EAGAIN)) {
+    if (!list_empty(&node_bufs[node].list)
+	|| (ret==-1 && (errno==EAGAIN || errno==ENOBUFS))) {
 	if (storeMsgRDP(node, msg)) {
 	    PSID_warn(-1, errno, "%s: Failed to store message", __func__);
 	    errno = ENOBUFS;

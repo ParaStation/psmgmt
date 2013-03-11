@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2012 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2013 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -31,6 +31,7 @@ static char vcid[] __attribute__((used)) =
 #include <signal.h>
 #include <syslog.h>
 #include <fcntl.h>
+#include <malloc.h>
 #include <sys/time.h>
 #include <sys/resource.h>
 #include <sys/wait.h>
@@ -209,6 +210,96 @@ static void RDPCallBack(int msgid, void *buf)
     }
 }
 
+static int blockSIGCHLD = 0;
+static int SIGCHLDpending = 0;
+
+void PSID_handleSIGCHLD(int sig)
+{
+    pid_t pid;         /* pid of the child process */
+    PStask_ID_t tid;   /* tid of the child process */
+    int estatus;       /* termination status of the child process */
+    static int handlingActive = 0;
+
+    if (handlingActive) {
+	SIGCHLDpending = 1;
+	return;
+    }
+
+    handlingActive = 1;
+
+    while ((pid = waitpid(-1, &estatus, WNOHANG)) > 0){
+	/*
+	 * Delete the task now. These should mainly be forwarders.
+	 */
+	PStask_t *task;
+	int logClass = (WEXITSTATUS(estatus)||WIFSIGNALED(estatus)) ?
+	    -1 : PSID_LOG_CLIENT;
+
+	/* I'll just report it to the logfile */
+	PSID_log(logClass,
+		 "Received SIGCHLD for pid %d (0x%06x) with status %d",
+		 pid, pid, WEXITSTATUS(estatus));
+	if (WIFSIGNALED(estatus)) {
+	    PSID_log(logClass, " after signal %d", WTERMSIG(estatus));
+	}
+	PSID_log(logClass, "\n");
+
+	tid = PSC_getTID(-1, pid);
+
+	task = PStasklist_find(&managedTasks, tid);
+	if (task) {
+	    if (!task->killat) {
+		task->killat = time(NULL) + 10;
+	    }
+	    if (task->fd != -1) {
+		/* Make sure we get all pending messages */
+		Selector_enable(task->fd);
+	    } else {
+		/* task not connected, remove from tasklist */
+		PStask_cleanup(tid);
+	    }
+	}
+	SIGCHLDpending = 0;
+    }
+
+    handlingActive = 0;
+}
+
+int PSID_blockSIGCHLD(int block)
+{
+    int wasBlocked = blockSIGCHLD;
+
+    blockSIGCHLD = block;
+
+    if (!block && SIGCHLDpending) {
+	PSID_handleSIGCHLD(SIGCHLD);
+
+	if (SIGCHLDpending) {
+	    int blocked = PSID_blockSig(1, SIGCHLD);
+	    PSID_log(-1, "%s: still a pending signal.\n", __func__);
+	    PSID_handleSIGCHLD(SIGCHLD);
+	    PSID_blockSig(blocked, SIGCHLD);
+	}
+    }
+
+    return wasBlocked;
+}
+
+static void printMallocInfo(void)
+{
+    struct mallinfo mi;
+
+    mi = mallinfo();
+
+    PSID_log(-1, "%s: arena    %d\n", __func__, mi.arena);
+    PSID_log(-1, "%s: ordblks  %d\n", __func__, mi.ordblks);
+    PSID_log(-1, "%s: hblks    %d\n", __func__, mi.hblks);
+    PSID_log(-1, "%s: hblkhd   %d\n", __func__, mi.hblkhd);
+    PSID_log(-1, "%s: uordblks %d\n", __func__, mi.uordblks);
+    PSID_log(-1, "%s: fordblks %d\n", __func__, mi.fordblks);
+    PSID_log(-1, "%s: keepcost %d\n\n", __func__, mi.keepcost);
+}
+
 /**
  * @brief Signal handler
  *
@@ -240,47 +331,12 @@ static void sighandler(int sig)
 	PSID_shutdown();
 	break;
     case SIGCHLD:
-    {
-	pid_t pid;         /* pid of the child process */
-	PStask_ID_t tid;   /* tid of the child process */
-	int estatus;       /* termination status of the child process */
-
-	while ((pid = waitpid(-1, &estatus, WNOHANG)) > 0){
-	    /*
-	     * Delete the task now. These should mainly be forwarders.
-	     */
-	    PStask_t *task;
-	    int logClass = (WEXITSTATUS(estatus)||WIFSIGNALED(estatus)) ?
-		-1 : PSID_LOG_CLIENT;
-
-	    /* I'll just report it to the logfile */
-	    PSID_log(logClass,
-		     "Received SIGCHLD for pid %d (0x%06x) with status %d",
-		     pid, pid, WEXITSTATUS(estatus));
-	    if (WIFSIGNALED(estatus)) {
-		PSID_log(logClass, " after signal %d", WTERMSIG(estatus));
-	    }
-	    PSID_log(logClass, "\n");
-
-	    tid = PSC_getTID(-1, pid);
-
-	    task = PStasklist_find(&managedTasks, tid);
-	    if (task) {
-		if (!task->killat) {
-		    task->killat = time(NULL) + 10;
-		}
-		if (task->fd != -1) {
-		    /* Make sure we get all pending messages */
-		    Selector_enable(task->fd);
-		} else {
-		    /* task not connected, remove from tasklist */
-		    PStask_cleanup(tid);
-		}
-	    }
+	if (blockSIGCHLD) {
+	    SIGCHLDpending = 1;
+	} else {
+	    PSID_handleSIGCHLD(sig);
 	}
-    }
-    break;
-
+	break;
     case  SIGPIPE:   /* write on a pipe with no one to read it */
 	/* Ignore silently */
 	break;
@@ -298,7 +354,16 @@ static void sighandler(int sig)
 	break;
     case  SIGUSR1:   /* user defined signal 1 */
 	PSIDMsgbuf_printStat();
+	PStask_printStat();
 	RDP_printStat();
+	break;
+    case  SIGUSR2:   /* user defined signal 2 */
+	printMallocInfo();
+	{
+	    void *ptr = malloc(1024);
+	    if (ptr) free(ptr);
+	}
+	printMallocInfo();
 	break;
     case  SIGILL:    /* (*) illegal instruction (not reset when caught)*/
     case  SIGTRAP:   /* (*) trace trap (not reset when caught) */
@@ -323,7 +388,6 @@ static void sighandler(int sig)
     case  SIGTTOU:   /* (@) background write attempted to control terminal */
     case  SIGXCPU:   /* cpu time limit exceeded (see setrlimit()) */
     case  SIGXFSZ:   /* file size limit exceeded (see setrlimit()) */
-    case  SIGUSR2:   /* user defined signal 2 */
     default:
 	PSID_log(-1, "Received signal %s. Shut down\n",
 		 sys_siglist[sig] ? sys_siglist[sig] : sigStr);
@@ -600,7 +664,9 @@ int main(int argc, const char *argv[])
      * handling is enabled later. This gives psiadmin the chance to
      * connect. Additionally, this will guarantee exclusiveness
      */
-    PSID_createMasterSock();
+    PSID_createMasterSock(PSmasterSocketName);
+
+    PSID_checkMaxPID();
 
     /* read the config file */
     PSID_readConfigFile(logfile, configfile);

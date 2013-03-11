@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2011 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2012 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -136,7 +136,7 @@ static MCastJobs_t jobsMCast = {0, 0};
  *
  *
  * @return On success, the number of bytes received is returned, or -1 if
- * an error occured.
+ * an error occurred.
  *
  * @see recvfrom(2)
  */
@@ -178,7 +178,7 @@ static int MYrecvfrom(int sock, void *buf, size_t len, int flags,
  *
  *
  * @return On success, the number of bytes sent is returned, or -1 if an error
- * occured.
+ * occurred.
  *
  * @see sendto(2)
  */
@@ -239,7 +239,7 @@ static void initIPTable(void)
  * Register another node in @ref iptable.
  *
  *
- * @param ip_addr The IP address in network byteorder of the node to
+ * @param ip_addr The IP address in network byte-order of the node to
  * register.
  *
  * @param node The corresponding node number.
@@ -276,10 +276,10 @@ static void insertIPTable(unsigned int ip_addr, int node)
 /**
  * @brief Get node number from IP number.
  *
- * Get the node number from given IP address in network byteorder for
+ * Get the node number from given IP address in network byte-order for
  * a node registered via insertIPTable().
  *
- * @param ip_addr The IP address in network byteorder of the node to
+ * @param ip_addr The IP address in network byte-order of the node to
  * find.
  *
  * @return On success, the node number corresponding to @a ip_addr is
@@ -308,7 +308,7 @@ static int lookupIPTable(unsigned int ip_addr)
  * Connection info for each node pings are expected from.
  */
 typedef struct {
-    struct timeval lastping; /**< Timestamp of last received ping */
+    struct timeval lastping; /**< Time-stamp of last received ping */
     int misscounter;         /**< Number of pings missing */
     MCastLoad_t load;        /**< Load parameters of node */
     MCastJobs_t jobs;        /**< Number of jobs on the node */
@@ -746,7 +746,7 @@ void exitMCast(void)
 {
     if (nrOfNodes) {
 	pingMCast(DOWN);               /* send shutdown msg */
-	Selector_remove(mcastsock);    /* deregister selector */
+	Selector_remove(mcastsock);    /* unregister selector */
 	Timer_remove(timerID);         /* stop interval timer */
 	close(mcastsock);              /* close Multicast socket */
 	logger_finalize(logger);

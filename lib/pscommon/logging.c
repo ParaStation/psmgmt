@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2005-2012 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2013 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -96,8 +96,9 @@ logger_t* logger_init(char* tag, FILE* logfile)
 	logger_setMask(logger, 0);
 	logger->tag = NULL;
 	logger_setTag(logger, tag);
-	logger->trail = NULL;
-	logger->trailSize = 0;
+	/* pre-allocate trail to prevent psid from bloating */
+	logger->trailSize = 256;
+	logger->trail = malloc(logger->trailSize);
 	logger->trailUsed = 0;
 	logger->timeFlag = 0;
 	logger->waitNLFlag = 1;
@@ -106,8 +107,15 @@ logger_t* logger_init(char* tag, FILE* logfile)
 	logger->fmtSize = 0;
 	logger->prfx = NULL;
 	logger->prfxSize = 0;
-	logger->txt = NULL;
-	logger->txtSize = 0;
+	/* pre-allocate txt to prevent psid from bloating */
+	logger->txtSize = 256;
+	logger->txt = malloc(logger->txtSize);
+
+	if (!logger->trail || !logger->txt) {
+	    logger_finalize(logger);
+	    free(logger);
+	    logger = NULL;
+	}
     }
 
     return logger;

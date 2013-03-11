@@ -1,0 +1,188 @@
+#!/bin/sh
+#
+# ParaStation
+#
+# Copyright (C) 2005-2013 ParTec Cluster Competence Center GmbH, Munich
+#
+# This file may be distributed under the terms of the Q Public License
+# as defined in the file LICENSE.QPL included in the packaging of this
+# file.
+#
+# Authors:      Norbert Eicker <eicker@par-tec.com>
+#		Michael Rauh <rauh@par-tec.com>
+#
+# parastation:       Starts the ParaStation Daemon.
+#
+# Version:           $Id$
+#
+# chkconfig: 35 15 72
+# description: The ParaStation management daemon
+# processname: psid
+# config: /etc/parastation.conf
+### BEGIN INIT INFO
+# Provides:          parastation
+# Required-Start:    $syslog $network $named
+# Should-Start: $time nscd
+# Required-Stop:     $syslog
+# Should-Stop: $time
+# Default-Start:     3 5
+# Default-Stop:      0 1 2 6
+# Short-Description: Start psid (ParaStation)
+# Description:       The ParaStation management daemon. Monitors nodes,
+#	starts and monitors processes.
+### END INIT INFO
+
+PSID="@bindir@/psid"
+PSIDNAME=`basename $PSID`
+DESC="psid for ParaStation"
+RETVAL=0
+
+[ -x $PSID ] || { echo "$PSID not installed";
+    if [ "$1" = "stop" ]; then exit 0;
+    else exit 5; fi; }
+
+# Source lsb functions
+if [ -f /lib/lsb/init-functions ]
+then
+    . /lib/lsb/init-functions
+    IS_LSB=yes
+fi
+
+umask 077
+
+p_warn() {
+    if [ "$IS_LSB" = "yes" ]; then
+	log_warning_msg "$@"
+    else
+	echo "$@"
+    fi
+}
+
+p_error() {
+    if [ "$IS_LSB" = "yes" ]; then
+	log_failure_msg "$@"
+    else
+	echo "$@"
+    fi
+}
+
+p_success() {
+    if [ "$IS_LSB" = "yes" ]; then
+	log_success_msg "$@"
+    else
+	echo "$@"
+    fi
+}
+
+is_running() {
+    ps aux|grep -P "( |/)psid$" &>/dev/null && return 0;
+    return 1;
+}
+
+get_psid_pid() {
+    PSID_PID=`ps aux|grep -P "( |/)psid$" | awk {' print $2 '}`
+    if [ $? -ne 0 ]; then
+	PSID_PID="-1"
+    fi
+}
+
+stop_daemon() {
+    killall $PSID 2>/dev/null
+    RETVAL=$?
+    if [ $RETVAL -eq 0 ]; then
+	PID=`pidof $PSID`
+	cnt=0
+	while [ ! -z "$PID" ]; do
+	    cnt=$(expr $cnt + 1)
+	    if [ $cnt -gt 30 ]; then
+		killall -9 $PSID 2>/dev/null
+		sleep 1
+		PID=`pidof $PSID`
+		if [ ! -z "$PID" ]; then
+		    return 0
+		else
+		    return 1
+		fi
+	    fi
+	    echo -n "."
+	    sleep 1
+	    PID=`pidof $PSID`
+	done
+	return 1
+    else
+	return 0
+    fi
+}
+
+start() {
+    is_running && {
+	p_warn "$PSIDNAME already running."
+	exit 0
+    }
+
+    echo -n "Starting ${DESC}: "
+    $PSID
+    RETVAL=$?
+    if [ $RETVAL -eq 0 ]; then
+	p_success "started."
+    else
+	echo
+    fi
+    return $RETVAL
+}
+
+stop() {
+    is_running || {
+	p_warn "$PSIDNAME already stopped."
+	exit 0
+    }
+
+    echo -n "Stopping ${DESC}: "
+    if stop_daemon; then
+	p_error " failed."
+	exit 1
+    else
+	p_success " stopped."
+    fi
+}
+
+restart() {
+    if is_running; then
+	stop
+    else
+	p_warn "$PSIDNAME not running."
+    fi
+    start
+}
+
+status() {
+    get_psid_pid
+    if is_running; then
+	p_success "$PSIDNAME (pid ${PSID_PID}) is running."
+    else
+	p_success "$PSIDNAME is stopped."
+    fi
+}
+
+case "$1" in
+    start)
+	start
+	;;
+    stop)
+	stop
+	;;
+    status)
+	status
+	;;
+    restart|reload|force-reload)
+	restart
+	;;
+    condrestart)
+	is_running && restart || :
+	;;
+    *)
+	echo $"Usage: $0 {start|stop|restart|status|condrestart|force-reload}"
+	exit 1
+esac
+
+exit $?

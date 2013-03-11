@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2011 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2012 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -28,6 +28,11 @@
 #include "psaccountclient.h"
 
 #include "psaccountproc.h"
+
+typedef enum {
+    INFO_MEM,
+    INFO_VMEM,
+} ProcInfoTypes;
 
 void initProcList()
 {
@@ -70,24 +75,11 @@ static void doKill(pid_t child, pid_t pgroup, int sig)
     mlog("%s: killing child '%i' pgroup '%i' sig '%i'\n", __func__, child,
 	    pgroup, sig);
     */
-    killpg(pgroup, sig);
+    if (pgroup > 0) killpg(pgroup, sig);
     kill(child, sig);
 }
 
-/**
- * @brief Send a signal to a pid and all its children.
- *
- * @param mypid The pid of myself.
- *
- * @param child The pid of the child to send the signal to.
- *
- * @param pgroup The pgroup of the child to send the signal to.
- *
- * @param sig The signal to send.
- *
- * @return No return value.
- */
-static int sendSignal2AllChildren(pid_t mypid, pid_t child, pid_t pgroup, int sig)
+int sendSignal2AllChildren(pid_t mypid, pid_t child, pid_t pgroup, int sig)
 {
     struct list_head *pos;
     Proc_Snapshot_t *Childproc;
@@ -104,10 +96,17 @@ static int sendSignal2AllChildren(pid_t mypid, pid_t child, pid_t pgroup, int si
     list_for_each(pos, &ProcList.list) {
         if ((Childproc = list_entry(pos, Proc_Snapshot_t, list)) == NULL) break;
 
-        if (Childproc->ppid == child) {
-            sendCount += sendSignal2AllChildren(mypid, Childproc->pid,
+	if (pgroup > 0) {
+	    if (Childproc->ppid == child) {
+		sendCount += sendSignal2AllChildren(mypid, Childproc->pid,
 							Childproc->pgroup, sig);
-        }
+	    }
+	} else {
+	    if (Childproc->ppid == child) {
+		sendCount += sendSignal2AllChildren(mypid, Childproc->pid,
+							pgroup, sig);
+	    }
+	}
     }
     doKill(child, pgroup, sig);
     sendCount++;
@@ -313,7 +312,7 @@ static Proc_Snapshot_t *addProc(pid_t pid, ProcStat_t *pS, char *cmdline)
 {
     Proc_Snapshot_t *proc;
 
-    proc = (Proc_Snapshot_t *) umalloc(sizeof(Proc_Snapshot_t), __func__);
+    proc = (Proc_Snapshot_t *) umalloc(sizeof(Proc_Snapshot_t));
     proc->uid = pS->uid;
     proc->pid = pid;
     proc->ppid = pS->ppid;
@@ -377,7 +376,7 @@ static void addSession(pid_t session, uid_t uid)
 	return;
     }
 
-    info = (Session_Info_t *) umalloc(sizeof(Session_Info_t), __func__);
+    info = (Session_Info_t *) umalloc(sizeof(Session_Info_t));
     info->session = session;
     info->uid = uid;
 
@@ -477,11 +476,11 @@ void getSessionInformation(int *count, char *buf, size_t bufsize, int *userCount
  *
  * @return Returns the calculated memory information.
  */
-static unsigned long getAllMem(Proc_Snapshot_t *proc, bool flag_vmem)
+static unsigned long getAllClientInfo(Proc_Snapshot_t *proc, int infoType)
 {
     struct list_head *pos;
     Proc_Snapshot_t *Childproc;
-    unsigned long mem = 0;
+    unsigned long info = 0;
 
     if (list_empty(&ProcList.list)) return 0;
 
@@ -491,30 +490,33 @@ static unsigned long getAllMem(Proc_Snapshot_t *proc, bool flag_vmem)
 	}
 
 	if (Childproc->ppid == proc->pid) {
-	    if (!flag_vmem) {
-		mem += Childproc->mem;
-	    } else {
-		mem += Childproc->vmem;
+	    switch (infoType) {
+		case INFO_MEM:
+		    info += Childproc->mem;
+		    break;
+		case INFO_VMEM:
+		    info += Childproc->vmem;
+		    break;
 	    }
-	    mdbg(LOG_PROC_DEBUG, "%s: cmd:%s pid:%i ppid:%i %s:%lu\n", __func__,
+	    mdbg(LOG_PROC_DEBUG, "%s: cmd:%s pid:%i ppid:%i %i:%lu\n", __func__,
 		Childproc->cmdline, Childproc->pid, Childproc->ppid,
-		(flag_vmem ? "vmem" : "mem"), mem);
-	    mem += getAllMem(Childproc, flag_vmem);
+		infoType, info);
+	    info += getAllClientInfo(Childproc, infoType);
 	}
     }
-    return mem;
+    return info;
 }
 
 Proc_Snapshot_t *getAllClientChildsMem(pid_t pid)
 {
     Proc_Snapshot_t *proc;
 
-    proc = (Proc_Snapshot_t *) umalloc(sizeof(Proc_Snapshot_t), __func__);
+    proc = (Proc_Snapshot_t *) umalloc(sizeof(Proc_Snapshot_t));
     proc->pid = pid;
     proc->ppid = 0;
     proc->session = 0;
-    proc->mem = getAllMem(proc, 0);
-    proc->vmem = getAllMem(proc, 1);
+    proc->mem = getAllClientInfo(proc, INFO_MEM);
+    proc->vmem = getAllClientInfo(proc, INFO_VMEM);
 
     mdbg(LOG_PROC_DEBUG, "%s: pid:%i  mem:%lu vmem:%lu \n", __func__, pid,
 	proc->mem, proc->vmem);

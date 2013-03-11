@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2011 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2012 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -193,7 +193,7 @@ static int getProtoVersion(PSnodes_ID_t node)
     lastNode = node;
     err = PSI_infoOption(node, 1, &opt, &val, 0);
     if (err == -1) {
-	printf(" error getting info\n");
+	PSI_log(-1, "%s: error getting info\n", __func__);
 	lastNode = -2;
     }
 
@@ -203,10 +203,10 @@ static int getProtoVersion(PSnodes_ID_t node)
 	return lastProtoVersion;
 	break;
     case PSP_OP_UNKNOWN:
-	printf(" PSP_OP_PROTOCOLVERSION unknown\n");
+	PSI_log(-1, "%s: PSP_OP_PROTOCOLVERSION unknown\n", __func__);
 	break;
     default:
-	printf(" got option type %d\n", opt);
+	PSI_log(-1, "%s: got option type %d\n", __func__, opt);
     }
 
     lastNode = -2;
@@ -419,6 +419,7 @@ int handleAnswer(unsigned int firstRank, int count, PSnodes_ID_t *dstnodes,
     DDSignalMsg_t *sigMsg = (DDSignalMsg_t *)&answer;
     int rank, fallback = 0;
 
+recv_retry:
     if (PSI_recvMsg((DDMsg_t *)&answer, sizeof(answer))<0) {
 	PSI_warn(-1, errno, "%s: PSI_recvMsg", __func__);
 	return -1;
@@ -488,6 +489,11 @@ int handleAnswer(unsigned int firstRank, int count, PSnodes_ID_t *dstnodes,
 	PSI_log(-1, "Got signal %d from %s\n", sigMsg->signal,
 		PSC_printTID(sigMsg->header.sender));
 	return 2; /* Ignore answer */
+	break;
+    case PSP_CD_SENDSTOP:
+    case PSP_CD_SENDCONT:
+	/* Wait for answer */
+	goto recv_retry;
 	break;
     default:
 	PSI_log(-1, "%s: unexpected answer %s\n", __func__,
@@ -606,16 +612,25 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
 	ioctl(fd, TIOCGWINSZ, &task->winsize);
     }
     task->group = taskGroup;
-    PSI_infoTaskID(-1, PSP_INFO_LOGGERTID, NULL, &(task->loggertid), 0);
+    if (PSI_infoTaskID(-1, PSP_INFO_LOGGERTID, NULL, &(task->loggertid), 0)) {
+	PSI_warn(-1, errno, "%s: unable to determine logger's TID", __func__);
+	goto error;
+    }
 
     mywd = mygetwd(workingdir);
 
-    if (!mywd) goto error;
+    if (!mywd) {
+	PSI_warn(-1, errno, "%s: unable to get working directory", __func__);
+	goto error;
+    }
 
     task->workingdir = mywd;
     task->argc = argc;
     task->argv = (char**)malloc(sizeof(char*)*(task->argc+1));
-    if (!task->argv) goto error;
+    if (!task->argv) {
+	PSI_warn(-1, errno, "%s: unable to store argument vector", __func__);
+	goto error;
+    }
     {
 	struct stat statbuf;
 

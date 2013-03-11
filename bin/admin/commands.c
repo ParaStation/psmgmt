@@ -38,6 +38,8 @@ static char vcid[] __attribute__((used)) =
 #include "psiinfo.h"
 #include "psispawn.h"
 
+#include "adminparser.h"
+
 #include "commands.h"
 
 char commandsversion[] = "$Revision$";
@@ -126,7 +128,7 @@ static int getFullList(sizedList_t *list, PSP_Info_t what, size_t itemSize)
 /** List used for storing of host stati. */
 static sizedList_t hostStatus = { .actSize = 0, .list = NULL };
 
-/** Simple wrapper for retrieval of host stati */
+/** Simple wrapper for retrieval of host status */
 static inline int getHostStatus(void)
 {
     return getFullList(&hostStatus, PSP_INFO_LIST_HOSTSTATUS, sizeof(char));
@@ -135,7 +137,7 @@ static inline int getHostStatus(void)
 /** List used for storing of hardware stati. */
 static sizedList_t hwList = { .actSize = 0, .list = NULL };
 
-/** Simple wrapper for retrieval of hardware stati */
+/** Simple wrapper for retrieval of hardware statuses */
 static inline int getHWStat(void)
 {
     return getFullList(&hwList, PSP_INFO_LIST_HWSTATUS, sizeof(uint32_t));
@@ -216,35 +218,11 @@ static inline int getExclusiveFlags(void)
     return getFullList(&exclList, PSP_INFO_LIST_EXCLUSIVE, sizeof(int8_t));
 }
 
-int getWidth(void)
-{
-    int width = 0;
-#if defined (TIOCGWINSZ)
-    struct winsize window_size;
-
-    if (ioctl (STDOUT_FILENO, TIOCGWINSZ, &window_size) == 0) {
-	width = (int) window_size.ws_col;
-    }
-#endif /* TIOCGWINSZ */
-
-    if (width <= 0) {
-	char *colstr = getenv("COLUMNS");
-	if (colstr) width = atoi(colstr);
-    }
-
-    /* Everything failed. Use standard width */
-    if (width < 1) width = 80;
-    /* Extend to minimum width */
-    if (width < 60) width = 60;
-
-    return width;
-}
-
 static char * nodeString(PSnodes_ID_t node)
 {
     static char nodeStr[128];
 
-    if (getenv("__DUMM_DUMM__")) {
+    if (paramHostname) {
 	struct in_addr hostaddr;
 	struct hostent *hp;
 	char *ptr;
@@ -502,7 +480,7 @@ void PSIADM_ScriptStat(PSP_Info_t type, char *nl)
 {
     PSnodes_ID_t node;
     char scriptName[1500];
-    size_t scriptWidth = getWidth()-8;
+    size_t scriptWidth = PSC_getWidth()-8;
 
     if (! getHostStatus()) return;
 
@@ -723,7 +701,7 @@ void PSIADM_CountStat(int hw, char *nl)
     }
 }
 
-/** List used for storing of task informations. */
+/** List used for storing of task information. */
 static sizedList_t tiList = { .actSize = 0, .list = NULL };
 
 void PSIADM_ProcStat(int count, int full, char *nl)
@@ -731,7 +709,7 @@ void PSIADM_ProcStat(int count, int full, char *nl)
     PSnodes_ID_t node;
     PSP_Info_t what = full ? PSP_INFO_QUEUE_ALLTASK : PSP_INFO_QUEUE_NORMTASK;
     PSP_taskInfo_t *taskInfo;
-    int width = getWidth(), usedWidth;
+    int width = PSC_getWidth(), usedWidth;
 
     if (! getHostStatus()) return;
 
@@ -915,7 +893,7 @@ void PSIADM_PluginStat(char *nl)
 {
     PSnodes_ID_t node;
     PSP_Info_t what = PSP_INFO_QUEUE_PLUGINS;
-    int width = getWidth(), usedWidth;
+    int width = PSC_getWidth(), usedWidth;
     char line[512], *nodeStr;
 
     if (! getHostStatus()) return;
@@ -961,7 +939,7 @@ void PSIADM_EnvStat(char *key, char *nl)
 {
     PSnodes_ID_t node;
     PSP_Info_t what = PSP_INFO_QUEUE_ENVS;
-    int width = getWidth(), usedWidth;
+    int width = PSC_getWidth(), usedWidth;
     char line[BufTypedMsgSize], *nodeStr;
 
     if (! getHostStatus()) return;
@@ -1212,7 +1190,7 @@ void PSIADM_JobStat(PStask_ID_t task, PSpart_list_t opt)
     PStask_ID_t rootTID, parentTID;
     PSpart_request_t *req;
 
-    int width = getWidth();
+    int width = PSC_getWidth();
 
     /* Determine root process of given task */
     rootTID=parentTID=task;
@@ -1706,7 +1684,8 @@ void PSIADM_ShowParamList(PSP_Option_t type, char *nl)
 		    if (options[i].value == -1) {
 			printf("unlimited");
 		    } else {
-			printf("0x%x", options[i].value);
+			printf(paramHexFormat ? "0x%x" : "%d",
+			       options[i].value);
 		    }
 		    break;
 		case PSP_OP_CPUMAP:
@@ -2006,7 +1985,7 @@ void PSIADM_PluginKey(char *nl, char *name, char *key, char *value,
 	    .dest = 0,
 	    .len = sizeof(msg.header) + sizeof(msg.type) } };
     PSnodes_ID_t node;
-    int width = getWidth(), separator = 0;
+    int width = PSC_getWidth(), separator = 0;
 
     if (geteuid() || ! action==PSP_PLUGIN_SHOW) {
 	printf("Insufficient priviledge\n");

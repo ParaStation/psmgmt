@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2011 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2013 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -73,13 +73,89 @@ typedef int32_t PStask_ID_t;
  */
 char *PStask_printGrp(PStask_group_t taskgroup);
 
+/** Internal state of PStask_sig_t structure */
+typedef enum {
+    USED,           /**< In use */
+    UNUSED,         /**< Unused and ready for re-use */
+    DRAINED,        /**< Unused and ready for discard */
+} PStask_sig_state_t;
 
 /** Signal structure */
 typedef struct {
     list_t next;              /**< used to put into signal-lists */
     PStask_ID_t tid;          /**< unique task identifier */
     int32_t signal;           /**< signal to send, or -1 for child-signal */
+    char deleted;             /**< flag to mark deleted signal structs.
+				 Will be removed later when save. */
+    PStask_sig_state_t state; /**< flag internal state of structure */
 } PStask_sig_t;
+
+/**
+ * @brief Get signal structure from pool
+ *
+ * Get a signal structure from the pool of free signal structures. If
+ * there is no structure left in the pool, this will be extended by
+ * @ref SIGNAL_CHUNK structures via calling @ref incFreeList().
+ *
+ * The signal structure returned will be prepared, i.e. the
+ * list-handle @a next is initialized, the deleted flag is cleared, it
+ * is marked as USED, etc.
+ *
+ * @return On success, a pointer to the new signal structure is
+ * returned. Or NULL, if an error occurred.
+ */
+PStask_sig_t *PStask_getSig(void);
+
+/**
+ * @brief Put signal structure back into pool
+ *
+ * Put the signal structure @a sp back into the pool of free signal
+ * structures. The signal structure might get reused and handed back
+ * to the application by calling @ref PStask_getSig().
+ *
+ * @param sp Pointer to the signal structure to be put back into the
+ * pool.
+ *
+ * @return No return value
+ */
+void PStask_putSig(PStask_sig_t *sp);
+
+/**
+ * @brief Garbage collection
+ *
+ * Do garbage collection on unused signal structures. Since this
+ * module will keep pre-allocated buffers for signal structures its
+ * memory-footprint might have grown after phases of heavy
+ * usage. Thus, this function shall be called regularly in order to
+ * free() signal structures no longer required.
+ *
+ * @return No return value.
+ *
+ * @see PStask_gcSigRequired()
+ */
+void PStask_gcSig(void);
+
+/**
+ * @brief Garbage collection required?
+ *
+ * Find out, if a call to PStask_gcSig() will have any effect, i.e. if
+ * sufficiently many unused signal structures are available to free().
+ *
+ * @return If enough signal structure to free() are available, 1 is
+ * returned. Otherwise 0 is given back.
+ *
+ * @see PStask_gcSig()
+ */
+int PStask_gcSigRequired(void);
+
+/**
+ * @brief Print statistics
+ *
+ * Print statistics concerning the usage of signal structures.
+ *
+ * @return No return value.
+ */
+void PStask_printStat(void);
 
 #include "pspartition.h"
 
@@ -211,8 +287,8 @@ int PStask_delete(PStask_t *task);
  *
  * @return On success, a pointer to the first element of the cloned
  * signal list is returned, or NULL otherwise. Beware of the fact that
- * the return value might also be NULL if the original @a siglist was
- * also NULl.
+ * the return value might also be NULL, if the original @a siglist was
+ * also NULL.
  */
 PStask_sig_t *PStask_cloneSigList(PStask_sig_t *siglist);
 
@@ -310,7 +386,7 @@ int PStask_decodeFull(char *buffer, PStask_t *task);
  * structure will *not* be encoded, i.e. the buffer remains empty.
  *
  * A value of @a offset different from NULL upon return flags that the
- * task's working-directory was not completely encoded. Addtional
+ * task's working-directory was not completely encoded. Additional
  * messages containing the trailing part have to be sent.
  *
  * @see PStask_decodeTask(), PStask_encodeArgv(), PStask_encodeEnv()

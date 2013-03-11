@@ -281,19 +281,27 @@ static int handleMasterSock(int fd, void *info)
     return 1; /* return 1 to allow main-loop updating PSID_readfds */
 }
 
-void PSID_createMasterSock(void)
+void PSID_createMasterSock(char *sockname)
 {
     struct sockaddr_un sa;
 
     masterSock = socket(PF_UNIX, SOCK_STREAM, 0);
+    if (masterSock < 0) {
+	PSID_exit(errno, "Unable to create socket for Local Service Port");
+    }
 
     memset(&sa, 0, sizeof(sa));
     sa.sun_family = AF_UNIX;
-    strncpy(sa.sun_path, PSmasterSocketName, sizeof(sa.sun_path));
+    if (sockname[0] == '\0') {
+	sa.sun_path[0] = '\0';
+	strncpy(sa.sun_path+1, sockname+1, sizeof(sa.sun_path)-1);
+    } else {
+	strncpy(sa.sun_path, sockname, sizeof(sa.sun_path));
+    }
 
     /* bind the socket to the right address */
     if (bind(masterSock, (struct sockaddr *)&sa, sizeof(sa)) < 0) {
-	PSID_exit(errno, "Daemon already running?");
+	PSID_exit(errno, "Daemon already running? ");
     }
 
     if (listen(masterSock, 20) < 0) {
@@ -307,7 +315,7 @@ void PSID_enableMasterSock(void)
 {
     if (masterSock < 0) {
 	PSID_log(-1, "%s: Local Service Port not yet opened\n", __func__);
-	PSID_createMasterSock();
+	PSID_createMasterSock(PSmasterSocketName);
     }
     if (!Selector_isInitialized()) {
 	PSID_log(-1, "%s: Local Service Port needs running Selector\n",
@@ -338,13 +346,41 @@ void PSID_shutdownMasterSock(void)
     }
 
     /* Just in case, this has not yet happened */
-    Selector_remove(masterSock);
+    if (Selector_isRegistered(masterSock)) Selector_remove(masterSock);
 
     if (close(masterSock)) {
 	PSID_warn(-1, errno, "%s: close()", __func__);
     }
 
     masterSock = -1;
+}
+
+#define PID_FILE "/proc/sys/kernel/pid_max"
+
+void PSID_checkMaxPID(void)
+{
+    FILE *maxPIDFile = fopen(PID_FILE,"r");
+    unsigned int maxPID;
+    int ret;
+
+    if (!maxPIDFile) {
+	PSID_warn(-1, errno, "%s: cannot open file '%s'", __func__, PID_FILE);
+	return;
+    }
+
+    ret = fscanf(maxPIDFile, "%u", &maxPID);
+
+    if (ret == EOF || ret < 1) {
+	PSID_log(-1, "%s: unable to determine maximum PID\n", __func__);
+	return;
+    }
+
+    PSID_log(PSID_LOG_VERB, "%s: pid_max is %d\n", __func__, maxPID);
+
+    if (maxPID > 65536) {
+	PSID_exit(EINVAL, "%s: cannot handle PIDs larger than 16 bit."
+		  " Please fix setting in '%s'", __func__, PID_FILE);
+    }
 }
 
 static time_t startTime = -1;

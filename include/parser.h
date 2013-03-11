@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2002-2003 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2011 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2012 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -36,17 +36,17 @@ extern "C" {
  * If the token @a key is found @action will be called with argument @a key.
  */
 typedef struct keylist_T {
-    char *key;
-    int (*action)(char*);
-
+    char *key;                /**< The key to be matched by a given token */
+    int (*action)(char*);     /**< Action to trigger by a matching token */
+    struct keylist_T *next;   /**< Keylist to be used on the next
+			       * token. This will be used in order to
+			       * setup correct autocompletion */
 } keylist_t;
 
-/**
- * Information container for parser calls.
- */
-typedef struct parser_T {
-    char* delim;
-    keylist_t* keylist;
+/** Information container for parser calls. */
+typedef struct {
+    char* delim;              /**< Delimiters used to split into tokens*/
+    keylist_t* keylist;       /**< Keylist to match the given token */
 } parser_t;
 
 /**
@@ -103,6 +103,27 @@ void parser_setFile(FILE* input);
  * corresponding action is returned. Otherwise 0 is returned.
  */
 int parser_parseToken(char* token, parser_t* parser);
+
+/**
+ * @brief Get the next keylist
+ *
+ * According to a given @a keylist a match of the token @a token might
+ * define additional keylist used in order to auto-complete some given line.
+ *
+ * The keylist to use for future auto-completion is defined within the
+ * @a next member of the entry in the @keylist which matches the
+ * given @a token. Upon return @a matched will point to the
+ * corresponding key uniquely matching the @a token under investigation.
+ *
+ * @param token The token to search in the keylist
+ *
+ * @param keylist The keylist to match the given token
+ *
+ * @param matched Upon return this points to the matched key, if found any
+ *
+ * @return Return the next keylist as defined by the matched token.
+ */
+keylist_t * parser_nextKeylist(char *token, keylist_t *keylist, char **matched);
 
 /**
  * @brief Register a string to parse.

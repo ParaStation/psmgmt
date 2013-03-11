@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2009-2011 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2009-2012 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -19,6 +19,7 @@ static char vcid[] __attribute__((used)) =
 
 #include "list.h"
 #include "pscommon.h"
+#include "selector.h"
 #include "psilogger.h"
 
 #include "psiloggerclient.h"
@@ -380,7 +381,7 @@ void handleSTOPMsg(PSLog_Msg_t *msg)
 
     if (clientIsActive(rank) && !clientIsStopped(rank)) {
 	if (!nActvSTOPs) {
-	    remFromFDSet(STDIN_FILENO);
+	    Selector_disable(STDIN_FILENO);
 	    PSIlog_log(PSILOG_LOG_VERB, "forward input is paused\n");
 	}
 	nActvSTOPs++;
@@ -401,11 +402,39 @@ void handleCONTMsg(PSLog_Msg_t *msg)
     if (clientIsActive(rank) && clientIsStopped(rank)) {
 	nActvSTOPs--;
 	if (!nActvSTOPs && allActiveThere()) {
-	    addToFDSet(STDIN_FILENO);
+	    Selector_enable(STDIN_FILENO);
 	    PSIlog_log(PSILOG_LOG_VERB, "forward input continues\n");
 	}
     }
     clients[rank].flags &= ~CLIENT_STOPPED;
+}
+
+static int daemonCommStopped = 0;
+
+void handleSENDSTOP(DDMsg_t *msg)
+{
+    /* some daemon wants pause */
+    if (!daemonCommStopped) {
+	if (!nActvSTOPs) {
+	    Selector_disable(STDIN_FILENO);
+	    PSIlog_log(PSILOG_LOG_VERB, "forward input is paused\n");
+	}
+	nActvSTOPs++;
+    }
+    daemonCommStopped = 1;
+}
+
+void handleSENDCONT(DDMsg_t *msg)
+{
+    /* some daemon wants continue */
+    if (daemonCommStopped) {
+	nActvSTOPs--;
+	if (!nActvSTOPs && allActiveThere()) {
+	    Selector_enable(STDIN_FILENO);
+	    PSIlog_log(PSILOG_LOG_VERB, "forward input continues\n");
+	}
+    }
+    daemonCommStopped = 0;
 }
 
 /**
@@ -473,13 +502,13 @@ void setupDestList(char *input)
 	while (rankStr) {
 	    if (strchr(rankStr, '-')) {
 		if ((sscanf(rankStr, "%d-%d", &first, &last)) != 2) {
-		    PSIlog_log(-1, "%s: invalid range '%s'", __func__,
+		    PSIlog_log(-1, "%s: invalid range '%s'\n", __func__,
 			       rankStr);
 		    destListError();
 		    break;
 		}
 		if (first<getMinRank() || last>getMaxRank() || last<first) {
-		    PSIlog_log(-1, "%s: invalid range [%i-%i]", __func__,
+		    PSIlog_log(-1, "%s: invalid range [%i-%i]\n", __func__,
 			       first, last);
 		    destListError();
 		    break;
@@ -489,13 +518,14 @@ void setupDestList(char *input)
 		char *end;
 		r = strtol(rankStr, &end, 10);
 		if (rankStr == end || *end) {
-		    PSIlog_log(-1, "%s: invalid destination '%s'", __func__,
+		    PSIlog_log(-1, "%s: invalid destination '%s'\n", __func__,
 			       rankStr);
 		    destListError();
 		    break;
 		}
 		if (r < getMinRank() || r > getMaxRank()) {
-		    PSIlog_log(-1, "%s: invalid destination '%i'", __func__,r);
+		    PSIlog_log(-1, "%s: invalid destination '%i'\n", __func__,
+			       r);
 		} else {
 		    addClnt(r);
 		}
@@ -527,10 +557,10 @@ void setupDestList(char *input)
     }
 
     if (nActvSTOPs) {
-	remFromFDSet(STDIN_FILENO);
+	Selector_disable(STDIN_FILENO);
 	if (!oldSTOPs) PSIlog_log(PSILOG_LOG_VERB, "input-forward paused\n");
     } else if (oldSTOPs && allActiveThere()) {
-	addToFDSet(STDIN_FILENO);
+	Selector_enable(STDIN_FILENO);
 	PSIlog_log(PSILOG_LOG_VERB, "input-forward continues\n");
     }
 }

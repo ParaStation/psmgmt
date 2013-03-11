@@ -87,6 +87,15 @@ int parseLine(char *line);
  */
 char **completeLine(const char *text, int start, int end);
 
+/* ******************* psiadmin's parameter-space **********************/
+
+/** Flag to print hostnames instead of ParaStation IDs */
+extern int paramHostname;
+
+/** Flag to print hexadecimal values on some resource limits */
+extern int paramHexFormat;
+
+
 #ifdef __cplusplus
 }/* extern "C" */
 #endif

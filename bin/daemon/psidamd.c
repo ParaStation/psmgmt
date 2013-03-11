@@ -22,7 +22,7 @@ int PSID_AuthenticAMD(void)
     unsigned int Regebx = 0, Regedx = 0, Regecx = 0;
     char* AMDID = "AuthenticAMD";
 
-    asm (
+    asm volatile (
 	"xorl %%eax, %%eax\n\t"
 	"cpuid\n\t"
 	:       "=b" (Regebx),

@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2007-2012 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2007-2013 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -44,9 +44,10 @@ static char vcid[] __attribute__((used)) =
 #include <psispawn.h>
 #include <psipartition.h>
 #include <pscommon.h>
+#include "kvscommon.h"
 
 #define GDB_COMMAND_EXE "gdb"
-#define GDB_COMMAND_FILE "/opt/parastation/config/mpiexec.gdb"
+#define GDB_COMMAND_FILE CONFIGDIR "/mpiexec.gdb"
 #define GDB_COMMAND_OPT "-x"
 #define GDB_COMMAND_SILENT "-q"
 #define GDB_COMMAND_ARGS "--args"
@@ -75,8 +76,6 @@ int verbose = 0;
 int mpichcom = 0;
 /** list of all nodes */
 PSnodes_ID_t *nodeList = NULL;
-/** list of unique nodes */
-PSnodes_ID_t *uniqNodes = NULL;
 /** number of unique nodes */
 int numUniqNodes = 0;
 /** number of unique hosts */
@@ -95,18 +94,19 @@ int pmidis = 0;
 
 /** flag to activate OpenMPI support */
 int OpenMPI = 0;
-/** openmpi list of job local uniq node IDs */
-PSnodes_ID_t *ompiUniqNodeIDs = NULL;
-/** openmpi list of all processes per node */
-int *ompiListProcIDs = NULL;
-/** openmpi job local node IDs starting by 0 */
-int *ompiNodeIDs = NULL;
-/** openmpi node local process IDs (rank) */
-int *ompiProcIDs = NULL;
-/** openmpi list of reserved port */
-uint16_t *resPorts = NULL;
 /** flag to enable openmpi debug output */
 int ompidebug = 0;
+/** openmpi list of reserved port */
+uint16_t *resPorts = NULL;
+
+/** list of job local uniq nodeIDs */
+PSnodes_ID_t *jobLocalUniqNodeIDs = NULL;
+/** list of number of processes per node */
+int *numProcPerNode = NULL;
+/** list of job local nodeIDs starting by 0 */
+int *jobLocalNodeIDs = NULL;
+/** list of node local processIDs (rank) */
+int *nodeLocalProcIDs = NULL;
 
 /* process options */
 int np = -1;
@@ -124,7 +124,7 @@ char *envopt = NULL;
 char *envval = NULL;
 char *path = NULL;
 
-/* compability options from other mpiexec commands*/
+/* compability options from other mpiexec commands */
 int totalview = 0;
 int ecfn = 0;
 int gdba = 0;
@@ -285,7 +285,7 @@ static char *getHostbyNodeID(PSnodes_ID_t *nodeID)
     /* get ip-address of node */
     ret = PSI_infoUInt(-1, PSP_INFO_NODE, nodeID, &hostaddr, 0);
     if (ret || (hostaddr == INADDR_ANY)) {
-	fprintf(stderr, "%s: getting node info for '%i' failed, "
+	fprintf(stderr, "%s: getting node info for nodeID '%i' failed, "
 		"errno:%i ret:%i\n", __func__, *nodeID, errno, ret);
 	exit(EXIT_FAILURE);
     }
@@ -433,15 +433,16 @@ static void createSpawner(int argc, char *argv[], int np, int admin)
     char *pwd = NULL;
 
     if (rank==-1) {
-	int error, spawnedProc, ret;
+	int error, spawnedProc, ret, pSize;
 	ssize_t cnt;
 
-	nodeList = umalloc(np*sizeof(nodeList), __func__);
+	pSize = usize > np ? usize : np;
+	nodeList = umalloc(pSize*sizeof(nodeList), __func__);
 
 	if (!admin) {
-	    if (PSE_getPartition(np)<0) exit(EXIT_FAILURE);
+	    if (PSE_getPartition(pSize)<0) exit(EXIT_FAILURE);
 	    PSI_infoList(-1, PSP_INFO_LIST_PARTITION, NULL,
-			 nodeList, np*sizeof(*nodeList), 0);
+			 nodeList, pSize*sizeof(*nodeList), 0);
 	} else {
 	    getFirstNodeID(&nodeID);
 	    nodeList[0] = nodeID;
@@ -622,7 +623,7 @@ static char *ompiGetTasksPerNode()
     size_t bufSize = 0;
 
     for (i=0; i<numUniqHosts; i++) {
-	snprintf(tmp, sizeof(tmp), "%i", ompiListProcIDs[i]);
+	snprintf(tmp, sizeof(tmp), "%i", numProcPerNode[i]);
 	buf = str2Buf(tmp, buf, &bufSize);
 	if (i +1 < numUniqHosts) {
 	    buf = str2Buf(",", buf, &bufSize);
@@ -693,6 +694,53 @@ static char *opmiGetReservedPorts()
     return buf;
 }
 
+/*
+ * @brief Build a MVAPICH process mapping vector.
+ *
+ * Build a process mapping vector which is needed by the MVAPICH MPI when
+ * communicating over more than one node. The mapping will be requested in the
+ * PMI layer via a PMI_get() call to the key 'PMI_process_mapping'. The process
+ * map must not be longer than a valid PMI key.
+ *
+ * @return On success a buffer with the requested process mapping is
+ * returned. On error NULL is returned.
+ */
+char *getProcessMap()
+{
+    int i, sid = 0, nodeCount = 0, procCount = 0;
+    int oldProcCount = 0;
+    char pMap[VALLEN_MAX], buf[20];
+
+    snprintf(pMap, sizeof(pMap), "(vector");
+
+    for (i=0; i<numUniqNodes; i++) {
+       procCount = numProcPerNode[i];
+
+       if (!i || oldProcCount == procCount) {
+	   if (i != numUniqNodes -1) nodeCount++;
+       } else {
+           snprintf(buf, sizeof(buf), ",(%i,%i,%i)", sid,
+                       nodeCount, oldProcCount);
+           if ((int)(sizeof(pMap) - strlen(pMap) - 1 - strlen(buf)) < 0) {
+               return NULL;
+           }
+           strcat(pMap, buf);
+           sid += nodeCount;
+	   nodeCount = (i != numUniqNodes -1) ? 1 : 0;
+       }
+       oldProcCount = procCount;
+    }
+
+    nodeCount++;
+    snprintf(buf, sizeof(buf), ",(%i,%i,%i))", sid, nodeCount, procCount);
+    if ((int)(sizeof(pMap) - strlen(pMap) - 1 - strlen(buf)) < 0) {
+	return NULL;
+    }
+    strcat(pMap, buf);
+
+    return strdup(pMap);
+}
+
 /**
  * @brief Setup common environment
  *
@@ -758,11 +806,13 @@ static void setupCommonEnv(int np)
 	    setPSIEnv("SLURM_DISTRIBUTION", "block", 1);
 	}
     }
+
     /* unset PSI_LOOP_NODES_FIRST in PSI env which is only needed for OpenMPI */
     unsetPSIEnv("PSI_LOOP_NODES_FIRST");
     unsetPSIEnv("PSI_OPENMPI");
 
     if (pmienabletcp || pmienablesockp ) {
+	char *mapping;
 
 	/* propagate pmi auth token */
 	env = getenv("PMI_ID");
@@ -805,20 +855,33 @@ static void setupCommonEnv(int np)
 	/* set the mpi universe size */
 	if (usize) {
 	    snprintf(tmp, sizeof(tmp), "%d", usize);
-	    env = tmp;
+	} else {
+	    snprintf(tmp, sizeof(tmp), "%d", np);
 	}
-	setPSIEnv("PMI_UNIVERSE_SIZE", env, 1);
+	setPSIEnv("PMI_UNIVERSE_SIZE", tmp, 1);
 
 	/* set the template for the kvs name */
 	env = getenv("PMI_KVS_TMP");
 	if (!env) errExit("No PMI_KVS_TMP given.");
 	setPSIEnv("PMI_KVS_TMP", env, 1);
+
+	/* setup process mapping needed for MVAPICH */
+	if ((mapping = getProcessMap())) {
+	    setPSIEnv("__PMI_PROCESS_MAPPING", mapping, 1);
+	    free(mapping);
+	} else {
+	    fprintf(stderr, "failed building MVAPICH process mapping\n");
+	}
     }
 
     /* set the size of the job */
     env = getenv("PSI_NP_INFO");
     if (!env) errExit("No PSI_NP_INFO given.");
     setPSIEnv("PSI_NP_INFO", env, 1);
+
+    /* *hack* let MPI processes fail if no pspmi plugin is loaded */
+    setPSIEnv("PMI_FD", "10000", 1);
+    setPSIEnv("PMI_PORT", "10000", 1);
 }
 
 static char * setupPMINodeEnv(int rank)
@@ -845,16 +908,25 @@ static char ** setupNodeEnv(int rank)
 	env[cur++] = setupPMINodeEnv(rank);
     }
 
+    if (!jobLocalNodeIDs || !nodeLocalProcIDs || !numProcPerNode) {
+	fprintf(stderr, "invalid nodeIDs or procIDs\n");
+	exit(1);
+    }
+
+    /* set additional process placement information for PSM */
+    snprintf(buf, sizeof(buf), "MPI_LOCALRANKID=%i", nodeLocalProcIDs[rank]);
+    env[cur++] = strdup(buf);
+    snprintf(buf, sizeof(buf), "MPI_LOCALNRANKS=%i",
+	    numProcPerNode[jobLocalNodeIDs[rank]]);
+    env[cur++] = strdup(buf);
+
+
     /* setup OpenMPI support */
     if (OpenMPI) {
-	if (!ompiNodeIDs || !ompiProcIDs) {
-	    fprintf(stderr, "invalid OpenMPI nodeIDs or procIDs\n");
-	    exit(1);
-	}
 
 	/* Node ID relative to other  nodes  in  the  job  step.
 	 * Counting begins at zero. */
-	snprintf(buf, sizeof(buf), "SLURM_NODEID=%i", ompiNodeIDs[rank]);
+	snprintf(buf, sizeof(buf), "SLURM_NODEID=%i", jobLocalNodeIDs[rank]);
 	env[cur++] = strdup(buf);
 
 	/* Task ID  relative to the other tasks in the job step.
@@ -865,9 +937,10 @@ static char ** setupNodeEnv(int rank)
 	/* Task ID relative to the other tasks on the same node which
 	 * belong to the same job step. Counting begins at zero.
 	 * */
-	snprintf(buf, sizeof(buf), "SLURM_LOCALID=%i", ompiProcIDs[rank]);
+	snprintf(buf, sizeof(buf), "SLURM_LOCALID=%i", nodeLocalProcIDs[rank]);
 	env[cur++] = strdup(buf);
     }
+
 
     env[cur++] = NULL;
 
@@ -905,7 +978,7 @@ static void getUniqHosts(PSnodes_ID_t *uniqNodes, int numUniqNodes)
 
 /**
  * @brief Build up various lists holding all informations needed by
- * OpenMPI startup mechanism.
+ * OpenMPI/PSM.
  *
  * @param np The number of processes.
  *
@@ -922,13 +995,12 @@ static void getUniqHosts(PSnodes_ID_t *uniqNodes, int numUniqNodes)
  *
  * @return No return value.
  */
-static void ompiSetRankInfos(int np, PSnodes_ID_t node,
-				PSnodes_ID_t *uniqNodeIDs, int *listProcIDs,
-				int *nodeid, int *procid)
+static void setRankInfos(int np, PSnodes_ID_t node, PSnodes_ID_t *uniqNodeIDs,
+			    int *listProcIDs, int *nodeid, int *procid)
 {
     int i;
 
-    for (i=0; i< np; i++) {
+    for (i=0; i<np; i++) {
 
 	/* already known node */
 	if (uniqNodeIDs[i] == node) {
@@ -952,7 +1024,7 @@ static void ompiSetRankInfos(int np, PSnodes_ID_t node,
 }
 
 /**
- * @brief Extract information from nodelist.
+ * @brief Extract information from the nodelist.
  *
  * @param nodeList The node list to extract the information from.
  *
@@ -960,7 +1032,7 @@ static void ompiSetRankInfos(int np, PSnodes_ID_t node,
  *
  * @return No return value.
  */
-static void ompiExtractNodeInformation(PSnodes_ID_t *nodeList, int np)
+static void extractNodeInformation(PSnodes_ID_t *nodeList, int np)
 {
     int i;
 
@@ -969,28 +1041,25 @@ static void ompiExtractNodeInformation(PSnodes_ID_t *nodeList, int np)
         exit(1);
     }
 
-    /* job local nodeIDs starting by 0 */
-    ompiNodeIDs = umalloc(sizeof(int) * np, __func__);
-    for (i=0; i<np; i++) ompiNodeIDs[i] = -1;
+    /* list of job local nodeIDs starting by 0 */
+    jobLocalNodeIDs = umalloc(sizeof(int) * np, __func__);
+    for (i=0; i<np; i++) jobLocalNodeIDs[i] = -1;
 
     /* list of job local uniq node IDs */
-    ompiUniqNodeIDs = umalloc(sizeof(int) * np, __func__);
-    for (i=0; i<np; i++) ompiUniqNodeIDs[i] = -1;
+    jobLocalUniqNodeIDs = umalloc(sizeof(int) * np, __func__);
+    for (i=0; i<np; i++) jobLocalUniqNodeIDs[i] = -1;
 
     /* list of all tasks (processes) per node */
-    ompiListProcIDs = umalloc(sizeof(int) * np, __func__);
-    for (i=0; i<np; i++) ompiListProcIDs[i] = 0;
+    numProcPerNode = umalloc(sizeof(int) * np, __func__);
+    for (i=0; i<np; i++) numProcPerNode[i] = 0;
 
-    /* node local process ID (rank) */
-    ompiProcIDs = umalloc(sizeof(int) * np, __func__);
+    /* list of node local processIDs (rank) */
+    nodeLocalProcIDs = umalloc(sizeof(int) * np, __func__);
 
-    /* list of unique nodes */
-    uniqNodes = umalloc(sizeof(nodeList[0]) * np, __func__);
-
-    /* extract informations */
+    /* save the information */
     for (i=0; i< np; i++) {
-	ompiSetRankInfos(np, nodeList[i], ompiUniqNodeIDs, ompiListProcIDs,
-			    &ompiNodeIDs[i], &ompiProcIDs[i]);
+	setRankInfos(np, nodeList[i], jobLocalUniqNodeIDs, numProcPerNode,
+			&jobLocalNodeIDs[i], &nodeLocalProcIDs[i]);
     }
 }
 
@@ -1022,31 +1091,29 @@ static int startProcs(int np, char *wd, int argc, char *argv[], int verbose)
 {
     int i, ret, *errors = NULL;
 
-    if (OpenMPI) {
+    /* request the complete nodelist from master */
+    if (!nodeList) {
+	nodeList = umalloc(np*sizeof(nodeList), __func__);
 
-	/* request the complete nodelist */
-	if (!nodeList) {
-	    nodeList = umalloc(np*sizeof(nodeList), __func__);
-
-	    PSI_infoList(-1, PSP_INFO_LIST_PARTITION, NULL,
-		    nodeList, np*sizeof(*nodeList), 0);
-	}
-
-	/* extract additional node informations (e.g. uniq nodes) */
-	ompiExtractNodeInformation(nodeList, np);
-
-	/* get the hostnames for the uniq nodes */
-	getUniqHosts(ompiUniqNodeIDs, numUniqNodes);
-
-	if (ompidebug) {
-	    for (i=0; i< np; i++) {
-		fprintf(stderr, "%s: rank '%i' opmi-nodeID '%i' ps-nodeID '%i' node '%s'\n",
-			    __func__, i, ompiNodeIDs[i], nodeList[i],
-			    getHostbyNodeID(&nodeList[i]));
-	    }
-	}
-	free(nodeList);
+	PSI_infoList(-1, PSP_INFO_LIST_PARTITION, NULL,
+		nodeList, np*sizeof(*nodeList), 0);
     }
+
+    /* extract additional node informations (e.g. uniq nodes) */
+    extractNodeInformation(nodeList, np);
+
+    /* get the hostnames for the uniq nodes */
+    getUniqHosts(jobLocalUniqNodeIDs, numUniqNodes);
+
+    if (ompidebug) {
+	for (i=0; i< np; i++) {
+	    fprintf(stderr, "%s: rank '%i' opmi-nodeID '%i' ps-nodeID '%i' node '%s'\n",
+		    __func__, i, jobLocalNodeIDs[i], nodeList[i],
+		    getHostbyNodeID(&nodeList[i]));
+	}
+    }
+    free(nodeList);
+
 
     setupCommonEnv(np);
 
@@ -1513,8 +1580,8 @@ static void printHiddenUsage(poptOption opt, int argc, char *argv[],
 
     poptFreeContext(optCon);
     optCon = poptGetContext(NULL, argc, (const char **)argv, opt2, 0);
-    printf("\n%s\n", headline);
-    poptPrintUsage(optCon, stderr, 0);
+    fprintf(stdout, "\n%s\n", headline);
+    poptPrintUsage(optCon, stdout, 0);
 }
 
 /**
@@ -1541,8 +1608,8 @@ static void printHiddenHelp(poptOption opt, int argc, char *argv[],
 
     poptFreeContext(optCon);
     optCon = poptGetContext(NULL, argc, (const char **)argv, opt2, 0);
-    printf("\n%s\n", headline);
-    poptPrintHelp(optCon, stderr, 0);
+    fprintf(stdout, "\n%s\n", headline);
+    poptPrintHelp(optCon, stdout, 0);
 }
 
 /**
@@ -2135,6 +2202,9 @@ struct poptOption poptCommonOptions[] = {
       &usize, 0, "set the universe size", NULL},
     { "openmpi", 0, POPT_ARG_NONE,
       &OpenMPI, 0, "enable OpenMPI support", NULL},
+    { "timeout", 0, POPT_ARG_INT,
+      &maxtime, 0, "maximum number of seconds the job is permitted to run",
+      NULL},
     POPT_TABLEEND
 };
 

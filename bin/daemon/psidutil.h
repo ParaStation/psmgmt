@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2012 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2013 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -244,6 +244,25 @@ int PSID_readall(int fd, void *buf, size_t count);
 int PSID_blockSig(int block, int sig);
 
 /**
+ * @brief (Un-)Block signal SIGCHLD
+ *
+ * Block or unblock the signal SIGCHLD depending on the value of @a
+ * block. If block is 0, the signal will be blocked. Otherwise it will
+ * be unblocked.
+ *
+ * This mechnism is a more lightweight one compared to @ref
+ * PSID_blockSig() since no syscall is executed. Instead, flags are
+ * raised in order to delay the execution of the actual signal-handler
+ * until the signal is unblocked.
+ *
+ * @param block Flag steering the (un-)blocking of the signal.
+ *
+ * @return Flag, if signal was blocked before. I.e. return 1, if
+ * signal was blocked or 0 otherwise.
+ */
+int PSID_blockSIGCHLD(int block);
+
+/**
  * @brief Reset signal handlers.
  *
  * Reset all the signal handlers distorted by the daemon to
@@ -270,18 +289,24 @@ void PSID_resetSigs(void);
  * actual handling of the master socket. In order to really enable
  * this use @ref PSID_enableMasterSock().
  *
- * The UNIX-socket used is an abstract socket (as defined by the
+ * The UNIX-socket used shall be an abstract socket (as defined by the
  * non-portable Linux extension on abstract socket namespaces) and
  * holds at the same time the lock of the running daemon. I.e., as
  * long as the daemon holds this socket no other daemon is able to
- * create its master socket.
+ * create its master socket. Therefore, some restriction arises on its
+ * address @a sockname, i.e. it has to start with '\0'.
+ *
+ * @param sockname Address of the UNIX socket where the local
+ * ParaStation daemon is connectable. Since an abstract socket must be
+ * used in order to have some locking mechanism, this name has to
+ * begin with '\0'.
  *
  * @return No return value.
  *
  * @see PSID_enableMasterSock(), PSID_disableMasterSock(),
  * PSID_shutdownMasterSock()
  */
-void PSID_createMasterSock(void);
+void PSID_createMasterSock(char *sockname);
 
 /**
  * @brief Enable master socket.
@@ -328,6 +353,23 @@ void PSID_disableMasterSock(void);
  * PSID_disableMasterSock()
  */
 void PSID_shutdownMasterSock(void);
+
+/**
+ * @brief Check for the system's maximum PID
+ *
+ * Try to determine the system's maximum PID from
+ * /proc/sys/kernel/pid_max. If the maximum PID is too large
+ * (i.e. uses more than 16 bit) this function will give some warning and
+ * exit.
+ *
+ * Too large PIDs might create major problems for the ParaStation
+ * daemon. Due to the definition of the ParaStation protocol PIDs with
+ * more than 16 bits cannot be mapped to correct task IDs and therefor
+ * not handled by ParaStation's process management.
+ *
+ * @return No return value
+ */
+void PSID_checkMaxPID(void);
 
 /**
  * @brief Set daemon's start-time

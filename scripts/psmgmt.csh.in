@@ -1,0 +1,47 @@
+#
+# ParaStation
+#
+# Copyright (C) 2005-2012 ParTec Cluster Competence Center GmbH, Munich
+#
+# This file may be distributed under the terms of the Q Public License
+# as defined in the file LICENSE.QPL included in the packaging of this
+# file.
+#
+# Authors:      Thomas Moschny <moschny@ipd.uni-karlsruhe.de>
+#               Norbert Eicker <n.eicker@fz-juelich.de>
+#
+# Script to set paths for ParaStation for each user at login time, to
+# be put in /etc/profile.d/.
+#
+# Note: Changes made here should be made analogously in
+# psmgmt.sh.
+#
+# $Id$
+#
+
+set _psbindir="@bindir@"
+set _pssbindir="@sbindir@"
+set _psmandir="@mandir@"
+
+if ( -d "${_psbindir}" ) then
+
+    set path = ( ${path} "${_psbindir}" )
+    if ( `id -ur` == 0 ) then
+	set path = ( ${path} "${_pssbindir}" )
+    endif
+
+    if ( -d "${_psmandir}" ) then
+	if ( ! ${?MANPATH} ) then
+	    setenv MANPATH "`(test -x /usr/bin/manpath && ( /usr/bin/manpath > /dev/tty ) >& /dev/null)`"
+	endif
+	if ( ${?MANPATH} ) then
+	    setenv MANPATH "${MANPATH}:${_psmandir}"
+	else
+	    setenv MANPATH "${_psmandir}"
+	endif
+    endif
+endif
+
+unset _psbindir
+unset _pssbindir
+unset _psmandir

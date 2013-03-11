@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2011 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2012 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -73,9 +73,11 @@ void sendAccountUpdate(Client_t *client);
  *
  * @param jsPid The pid of the jobscript to register.
  *
+ * @param jobid The torque jobid.
+ *
  * @return No return value.
  */
-void psAccountRegisterJobscript(pid_t jsPid);
+void psAccountRegisterMOMJob(pid_t jsPid, char *jobid);
 
 /**
  * @brief Unregister a PBS jobscript.
@@ -87,7 +89,7 @@ void psAccountRegisterJobscript(pid_t jsPid);
  *
  * @return No return value.
  */
-void psAccountUnregisterJobscript(pid_t jsPid);
+void psAccountUnregisterMOMJob(pid_t jsPid);
 
 /**
  * @brief Enable the global collection of accounting data.
@@ -119,12 +121,18 @@ int psAccountGetJobInfo(pid_t jobscript, psaccAccountInfo_t *accData);
 /**
  * @brief Wrapper for the getSessionInformation() function.
  */
-void psAccountGetSessionInfos(int *count, char *buf, size_t bufsize, int *userCount);
+void psAccountGetSessionInfos(int *count, char *buf, size_t bufsize,
+				int *userCount);
 
 /**
  * @brief Wrapper for the sendSignal2Session() function.
  */
 int psAccountsendSignal2Session(pid_t session, int sig);
+
+/**
+ * @brief Wrapper for the sendSignal2AllChildren() function.
+ */
+int psAccountSignalAllChildren(pid_t mypid, pid_t child, pid_t pgroup, int sig);
 
 /**
  * @brief Wrapper for the isChildofParent() function.

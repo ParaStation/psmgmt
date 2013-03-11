@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003 ParTec AG, Karlsruhe
- * Copyright (C) 2005 Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2012 Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -150,12 +150,15 @@ int PSLog_print(PStask_ID_t destTID, PSLog_msg_t type, char *buf);
  * given, this operation returns when timeout has elapsed. Otherwise
  * this function will block until a message is available.
  *
+ * Upon return @a timeout will get updated and hold the remaining time
+ * of the original timeout.
  *
  * @param msg Address of a buffer the received message is stored to.
  *
  * @param timeout Time after which this functions returns. If @a
- * timeout is NULL, this function will block indefinitely.
- *
+ * timeout is NULL, this function will block indefinitely. Upon return
+ * this value will get updated and hold the remnant of the original
+ * timeout.
  *
  * @return On success, the number of bytes read are returned. On error,
  * -1 is returned, and errno is set appropriately.

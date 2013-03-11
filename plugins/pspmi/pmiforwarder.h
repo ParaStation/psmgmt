@@ -1,0 +1,70 @@
+/*
+ * ParaStation
+ *
+ * Copyright (C) 2013 ParTec Cluster Competence Center GmbH, Munich
+ *
+ * This file may be distributed under the terms of the Q Public License
+ * as defined in the file LICENSE.QPL included in the packaging of this
+ * file.
+ */
+/**
+ * $Id$
+ *
+ * \author
+ * Michael Rauh <rauh@par-tec.com>
+ *
+ */
+
+#ifndef __PS_PMI_FORWARDER
+#define __PS_PMI_FORWARDER
+
+/** Connection type of pmi */
+typedef enum {
+    PMI_DISABLED = 0,
+    PMI_OVER_TCP,
+    PMI_OVER_UNIX,
+    PMI_FAILED,
+} PMItype_t;
+
+/**
+ * @brief Set the pmi connection information.
+ *
+ * @param type The pmi connection type.
+ *
+ * @param sock The socket to use for pmi communication.
+ *
+ * @return No return value.
+ */
+void setConnectionInfo(PMItype_t type, int sock);
+
+/**
+ * @brief Init the pmi interface.
+ *
+ * Init the pmi interface and start listening for new connection from
+ * the mpi client.
+ *
+ * @param data Pointer to the task structure of the child.
+ *
+ * @return Returns 0 on success and -1 on error.
+ */
+int setupPMIsockets(void *data);
+
+/**
+ * @brief Release the mpi client.
+ *
+ * @param data When this flag is set to 1 pmi_finalize() will be called.
+ *
+ * @return Always returns 0.
+ */
+int releasePMIClient(void *data);
+
+/**
+ * @brief Get the pmi status.
+ *
+ * @param data Unsed parameter.
+ *
+ * @return Returns the status of the pmi connection.
+ */
+int getClientStatus(void *data);
+
+#endif

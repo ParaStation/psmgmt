@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2007-2010 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2007-2013 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -42,19 +42,6 @@ void initLoggerKvs(void);
 void handleKvsMsg(PSLog_Msg_t *msg);
 
 /**
- * @brief Switch daisy-chain mode.
- *
- * Set the broadcast messages within kvs to daisy-chain mode, if @a
- * val is different from 0.
- *
- * @param val If 1, daisy-chain mode will be switched on. Otherwise it
- * will be left off.
- *
- * @return No return value.
- */
-void switchDaisyChain(int val);
-
-/**
  * @brief Number of kvs clients.
  *
  * Get the number of kvs-clients currently expected.
@@ -62,5 +49,9 @@ void switchDaisyChain(int val);
  * @return The number of kvs-clients to be expected.
  */
 int getNumKvsClients(void);
+
+int getPMIRank(int rank);
+PStask_ID_t getPMIPred(int rank, PStask_ID_t pred);
+PStask_ID_t getPMISucc(int rank, PStask_ID_t succ);
 
 #endif

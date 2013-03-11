@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2011 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2013 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -382,6 +382,9 @@ int Timer_registerEnhanced(struct timeval* timeout,
     return Timer_doRegister(timeout, handler, 1, info);
 }
 
+/** Cache the latest searched timer */
+static Timer_t *timerCache = NULL;
+
 /**
  * @brief Find timer
  *
@@ -396,10 +399,16 @@ static Timer_t * findTimer(int id)
 {
     list_t *t;
 
+    if (timerCache && timerCache->id == id && !timerCache->deleted)
+	return timerCache;
+
     list_for_each(t, &timerList) {
 	Timer_t *timer = list_entry(t, Timer_t, next);
 	if (timer->deleted) continue;
-	if (timer->id == id) return timer;
+	if (timer->id == id) {
+	    timerCache = timer;
+	    return timer;
+	}
     }
 
     return NULL;
@@ -415,6 +424,7 @@ int Timer_remove(int id)
 	return -1;
     }
 
+    if (timer == timerCache) timerCache = NULL;
     timer->deleted = 1;
 
     if (!inTimerHandling) return deleteTimer(timer);

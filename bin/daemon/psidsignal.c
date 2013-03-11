@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2012 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2013 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -23,6 +23,7 @@ static char vcid[] __attribute__((used)) =
 #include <sys/types.h>
 
 #include "selector.h"
+#include "rdp.h"
 
 #include "pscommon.h"
 #include "psprotocol.h"
@@ -217,17 +218,22 @@ void PSID_sendSignal(PStask_ID_t tid, uid_t uid, PStask_ID_t sender,
 	    PSID_log(-1, "%s: Do not send signal to daemon\n", __func__);
 	} else if (pervasive) {
 	    list_t *s, *tmp;
-	    int blocked;
+	    int blockedCHLD, blockedRDP;
 
 	    answer = 0;
 
-	    blocked = PSID_blockSig(1, SIGCHLD);
-	    list_for_each_safe(s, tmp, &dest->childList) {
+	    blockedCHLD = PSID_blockSIGCHLD(1);
+	    blockedRDP = RDP_blockTimer(1);
+
+	    list_for_each_safe(s, tmp, &dest->childList) { /* @todo safe req? */
 		PStask_sig_t *sig = list_entry(s, PStask_sig_t, next);
+		if (sig->deleted) continue;
 
 		PSID_sendSignal(sig->tid, uid, sender, signal, 1, answer);
 	    }
-	    PSID_blockSig(blocked, SIGCHLD);
+
+	    RDP_blockTimer(blockedRDP);
+	    PSID_blockSIGCHLD(blockedCHLD);
 
 	    /* Deliver signal, if tid not the original sender */
 	    if (tid != sender) {
@@ -310,7 +316,7 @@ void PSID_sendAllSignals(PStask_t *task)
 void PSID_sendSignalsToRelatives(PStask_t *task)
 {
     list_t *s;
-    int blocked;
+    int blockedCHLD, blockedRDP;
 
     if (task->ptid) {
 	PSID_sendSignal(task->ptid, task->uid, task->tid, -1, 0, 0);
@@ -319,16 +325,21 @@ void PSID_sendSignalsToRelatives(PStask_t *task)
 		 PSC_printTID(task->ptid));
     }
 
-    blocked = PSID_blockSig(1, SIGCHLD);
+    blockedCHLD = PSID_blockSIGCHLD(1);
+    blockedRDP = RDP_blockTimer(1);
+
     list_for_each(s, &task->childList) {
 	PStask_sig_t *sig = list_entry(s, PStask_sig_t, next);
+	if (sig->deleted) continue;
 
 	PSID_sendSignal(sig->tid, task->uid, task->tid, -1, 0, 0);
 	PSID_log(PSID_LOG_SIGNAL, "%s(%s)", __func__, PSC_printTID(task->tid));
 	PSID_log(PSID_LOG_SIGNAL, " sent signal -1 to %s\n",
 		 PSC_printTID(sig->tid));
     }
-    PSID_blockSig(blocked, SIGCHLD);
+
+    RDP_blockTimer(blockedRDP);
+    PSID_blockSIGCHLD(blockedCHLD);
 }
 
 /**
@@ -927,7 +938,7 @@ static int releaseTask(PStask_t *task)
 	    /* Reorganize children. They are inherited by the parent task */
 	    sig = -1;
 
-	    blocked = PSID_blockSig(1, SIGCHLD);
+	    blocked = PSID_blockSIGCHLD(1);
 
 	    while ((child = PSID_getSignal(&task->childList, &sig))) {
 		PSID_log(PSID_LOG_TASK|PSID_LOG_SIGNAL,
@@ -959,7 +970,7 @@ static int releaseTask(PStask_t *task)
 		sig = -1;
 	    }
 
-	    PSID_blockSig(blocked, SIGCHLD);
+	    PSID_blockSIGCHLD(blocked);
 
 	}
 
@@ -1233,6 +1244,19 @@ static void drop_RELEASE(DDBufferMsg_t *msg)
 	sendMsg(&sigmsg);
 }
 
+static void signalGC(void)
+{
+    int blockedCHLD, blockedRDP;
+
+    if (!PStask_gcSigRequired()) return;
+
+    blockedCHLD = PSID_blockSIGCHLD(1);
+    blockedRDP = RDP_blockTimer(1);
+    PStask_gcSig();
+    RDP_blockTimer(blockedRDP);
+    PSID_blockSIGCHLD(blockedCHLD);
+}
+
 void initSignal(void)
 {
     PSID_log(PSID_LOG_VERB, "%s()\n", __func__);
@@ -1251,4 +1275,6 @@ void initSignal(void)
     PSID_registerDropper(PSP_DD_NEWPARENT, drop_NEWRELATIVE);
     PSID_registerDropper(PSP_CD_NOTIFYDEAD, drop_RELEASE);
     PSID_registerDropper(PSP_CD_RELEASE, drop_RELEASE);
+
+    PSID_registerLoopAct(signalGC);
 }

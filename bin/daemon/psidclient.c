@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2011 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2013 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -25,6 +25,7 @@ static char vcid[] __attribute__((used)) =
 #undef __USE_GNU
 
 #include "selector.h"
+#include "rdp.h"
 
 #include "pscommon.h"
 #include "psprotocol.h"
@@ -46,11 +47,13 @@ static char vcid[] __attribute__((used)) =
 
 /* possible values of clients.flags */
 #define INITIALCONTACT  0x00000001   /* No message yet (only accept()ed) */
+#define FLUSH           0x00000002   /* Flush is under way */
+#define CLOSE           0x00000004   /* About to close the connection */
 
 static struct {
     PStask_ID_t tid;     /**< Clients task ID */
     PStask_t *task;      /**< Clients task structure */
-    unsigned int flags;  /**< Special flags. Up to now only INITIALCONTACT */
+    unsigned int flags;  /**< Special flags (INITIALCONTACT, FLUSH, CLOSE) */
     list_t msgs;         /**< Chain of undelivered messages */
 } clients[FD_SETSIZE];
 
@@ -190,6 +193,7 @@ static int do_send(int fd, DDMsg_t *msg, int offset)
 
 static int storeMsgClient(int fd, DDMsg_t *msg, int offset)
 {
+    int blockedCHLD, blockedRDP;
     msgbuf_t *msgbuf = PSIDMsgbuf_get(msg->len);
 
     if (!msgbuf) {
@@ -200,7 +204,13 @@ static int storeMsgClient(int fd, DDMsg_t *msg, int offset)
     memcpy(msgbuf->msg, msg, msg->len);
     msgbuf->offset = offset;
 
+    blockedCHLD = PSID_blockSIGCHLD(1);
+    blockedRDP = RDP_blockTimer(1);
+
     list_add_tail(&msgbuf->next, &clients[fd].msgs);
+
+    RDP_blockTimer(blockedRDP);
+    PSID_blockSIGCHLD(blockedCHLD);
 
     return 0;
 }
@@ -208,11 +218,20 @@ static int storeMsgClient(int fd, DDMsg_t *msg, int offset)
 int flushClientMsgs(int fd)
 {
     list_t *m, *tmp;
+    PStask_ID_t last = 0;
+    int blockedCHLD, blockedRDP, ret = 0;
 
     if (fd<0 || fd >= FD_SETSIZE) {
 	errno = EINVAL;
 	return -1;
     }
+
+    if (clients[fd].flags & (FLUSH | CLOSE)) return -1;
+
+    blockedCHLD = PSID_blockSIGCHLD(1);
+    blockedRDP = RDP_blockTimer(1);
+
+    clients[fd].flags |= FLUSH;
 
     list_for_each_safe(m, tmp, &clients[fd].msgs) {
 	msgbuf_t *msgbuf = list_entry(m, msgbuf_t, next);
@@ -220,30 +239,40 @@ int flushClientMsgs(int fd)
 	PStask_ID_t sender = msg->sender, dest = msg->dest;
 	int sent = do_send(fd, msg, msgbuf->offset);
 
-	if (sent<0 || list_empty(&clients[fd].msgs)) return sent;
+	if (sent<0 || list_empty(&clients[fd].msgs)) {
+	    ret = sent;
+	    break;
+	}
 	if (sent != msg->len) {
 	    msgbuf->offset = sent;
 	    break;
 	}
 
-	if (PSC_getPID(sender)) {
+	/* Remove msgbuf before 'cont' (sendMsg might trigger y.a. flush) */
+	list_del(&msgbuf->next);
+	PSIDMsgbuf_put(msgbuf);
+
+	if (PSC_getPID(sender) && PSIDnodes_isUp(PSC_getID(sender))) {
 	    DDMsg_t contmsg = { .type = PSP_DD_SENDCONT,
 				.sender = dest,
 				.dest = sender,
 				.len = sizeof(DDMsg_t) };
-	    sendMsg(&contmsg);
+	    if (contmsg.dest != last) sendMsg(&contmsg);
+	    last = contmsg.dest;
 	}
-
-	list_del(&msgbuf->next);
-	PSIDMsgbuf_put(msgbuf);
     }
 
-    if (!list_empty(&clients[fd].msgs)) {
+    clients[fd].flags &= ~FLUSH;
+
+    RDP_blockTimer(blockedRDP);
+    PSID_blockSIGCHLD(blockedCHLD);
+
+    if (!ret && !list_empty(&clients[fd].msgs)) {
 	errno = EWOULDBLOCK;
-	return -1;
+	ret = -1;
     }
 
-    return 0;
+    return ret;
 }
 
 int sendClient(DDMsg_t *msg)
@@ -387,7 +416,8 @@ int recvClient(int fd, DDMsg_t *msg, size_t size)
 static void closeConnection(int fd)
 {
     list_t *m, *tmp;
-    PStask_ID_t tid = getClientTID(fd);
+    PStask_ID_t tid = getClientTID(fd), last = 0;
+    int blockedCHLD, blockedRDP;
 
     if (fd<0) {
 	PSID_log(-1, "%s(%d): fd < 0\n", __func__, fd);
@@ -398,22 +428,36 @@ static void closeConnection(int fd)
     if (clients[fd].task) clients[fd].task->fd = -1;
     clients[fd].task = NULL;
 
+    if (clients[fd].flags & CLOSE) return;
+
+    blockedCHLD = PSID_blockSIGCHLD(1);
+    blockedRDP = RDP_blockTimer(1);
+
+    clients[fd].flags |= CLOSE;
+
     list_for_each_safe(m, tmp, &clients[fd].msgs) {
 	msgbuf_t *mp = list_entry(m, msgbuf_t, next);
 	DDBufferMsg_t *msg = (DDBufferMsg_t *)mp->msg;
+	PStask_ID_t sender = msg->header.sender, dest = msg->header.dest;
 
 	list_del(&mp->next);
 
-	if (PSC_getPID(msg->header.sender)) {
+	if (PSC_getPID(sender) && PSIDnodes_isUp(PSC_getID(sender))) {
 	    DDMsg_t contmsg = { .type = PSP_DD_SENDCONT,
-				.sender = msg->header.dest,
-				.dest = msg->header.sender,
+				.sender = dest,
+				.dest = sender,
 				.len = sizeof(DDMsg_t) };
-	    if (contmsg.dest != tid) sendMsg(&contmsg);
+	    if (contmsg.dest != tid && contmsg.dest != last) sendMsg(&contmsg);
+	    last = contmsg.dest;
 	}
 	PSID_dropMsg(msg);
 	PSIDMsgbuf_put(mp);
     }
+
+    clients[fd].flags &= ~CLOSE;
+
+    RDP_blockTimer(blockedRDP);
+    PSID_blockSIGCHLD(blockedCHLD);
 
     shutdown(fd, SHUT_RDWR);
     close(fd);
@@ -433,7 +477,7 @@ void deleteClient(int fd)
     task = getClientTask(fd);
     closeConnection(fd);
 
-    if (!task) task = PStasklist_find(&managedTasks,  getClientTID(fd));
+    if (!task) task = PStasklist_find(&managedTasks, getClientTID(fd));
     if (!task) {
 	PSID_log(-1, "%s: Task %s not found\n", __func__,
 		 PSC_printTID(getClientTID(fd)));
@@ -455,7 +499,7 @@ void deleteClient(int fd)
 	msg.header.len = sizeof(msg.header);
 	sendMsg(&msg);
 
-	blocked = PSID_blockSig(1, SIGCHLD);
+	blocked = PSID_blockSIGCHLD(1);
 
 	while ((child = PSID_getSignal(&task->childList, &sig))) {
 	    PStask_t *childTask = PStasklist_find(&managedTasks, child);
@@ -482,12 +526,12 @@ void deleteClient(int fd)
 	    sig = -1;
 	};
 
-	PSID_blockSig(blocked, SIGCHLD);
+	PSID_blockSIGCHLD(blocked);
 
 	task->released = 1;
     }
 
-    /* Deregister TG_(PSC)SPAWNER from parent process */
+    /* Unregister TG_(PSC)SPAWNER from parent process */
     if (task->group == TG_SPAWNER || task->group == TG_PSCSPAWNER) {
 	PStask_t *parent = PStasklist_find(&managedTasks, task->ptid);
 
@@ -495,7 +539,7 @@ void deleteClient(int fd)
 	    /* Remove dead spawner from list of children */
 	    PSID_removeSignal(&parent->childList, task->tid, -1);
 
-	    if (parent->removeIt && list_empty(&parent->childList)) {
+	    if (parent->removeIt && PSID_emptySigList(&parent->childList)) {
 		PSID_log(PSID_LOG_TASK,
 			 "%s: PStask_cleanup(parent)\n", __func__);
 		PStask_cleanup(parent->tid);
@@ -503,7 +547,7 @@ void deleteClient(int fd)
 	}
     }
 
-    /* Deregister TG_ACCOUNT */
+    /* Unregister TG_ACCOUNT */
     if (task->group == TG_ACCOUNT) {
 	DDOptionMsg_t acctmsg = {
 	    .header = {
@@ -714,7 +758,12 @@ static void msg_CLIENTCONNECT(int fd, DDBufferMsg_t *bufmsg)
 	if (task) {
 	    /* Spawned process has changed pid */
 	    /* This might happen due to stuff in PSI_RARG_PRE_0 */
-	    PStask_t *child = PStask_clone(task);
+	    PStask_t *child;
+	    int blocked;
+
+	    blocked = PSID_blockSIGCHLD(1);
+	    child = PStask_clone(task);
+	    PSID_blockSIGCHLD(blocked);
 
 	    PSID_log(PSID_LOG_CLIENT, "%s: reconnection with changed PID"
 		     "%d -> %d\n", __func__, PSC_getPID(task->tid), pid);
@@ -745,7 +794,7 @@ static void msg_CLIENTCONNECT(int fd, DDBufferMsg_t *bufmsg)
 	}
     }
     if (task) {
-	/* reconnection */
+	/* re-connection */
 	/* use the old task struct but close the old fd */
 	PSID_log(PSID_LOG_CLIENT, "%s: reconnecting task %s, old/new fd ="
 		 " %d/%d\n", __func__, PSC_printTID(task->tid), task->fd, fd);
@@ -850,13 +899,13 @@ static void msg_CLIENTCONNECT(int fd, DDBufferMsg_t *bufmsg)
 	outmsg.header.len += sizeof(uint32_t);
     } else if (!task) {
 	outmsg.type = PSP_CONN_ERR_NOSPACE;
-    } else if (uid && !PSIDnodes_testGUID(PSC_getMyID(),PSIDNODES_USER,
+    } else if (uid && !PSIDnodes_testGUID(PSC_getMyID(), PSIDNODES_USER,
 					  (PSIDnodes_guid_t){.u=uid})) {
 	outmsg.type = PSP_CONN_ERR_UIDLIMIT;
     } else if (gid && !PSIDnodes_testGUID(PSC_getMyID(), PSIDNODES_GROUP,
 					  (PSIDnodes_guid_t) {.g=gid})) {
 	outmsg.type = PSP_CONN_ERR_GIDLIMIT;
-    } else if (PSIDnodes_getProcs(PSC_getMyID()) !=  PSNODES_ANYPROC
+    } else if (PSIDnodes_getProcs(PSC_getMyID()) != PSNODES_ANYPROC
 	       && status.jobs.normal > PSIDnodes_getProcs(PSC_getMyID())) {
 	outmsg.type = PSP_CONN_ERR_PROCLIMIT;
 	*(int *)outmsg.buf = PSIDnodes_getProcs(PSC_getMyID());

@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2011 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2012 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -18,11 +18,9 @@
 #include "psaccountlog.h"
 #include "psaccountproc.h"
 #include "psaccountclient.h"
+#include "psaccountconfig.h"
 
 #include "psaccountjob.h"
-
-#define JOB_CLEANUP_TIMEOUT 60 * 10	/* 10 minutes */
-#define JOB_GRACE_TIMEOUT   60 * 60	/* 1  hour */
 
 void initJobList()
 {
@@ -31,12 +29,12 @@ void initJobList()
 
 Job_t *findJobByLogger(PStask_ID_t loggerTID)
 {
-    struct list_head *pos;
+    list_t *pos, *tmp;
     Job_t *job;
 
     if (list_empty(&JobList.list)) return NULL;
 
-    list_for_each(pos, &JobList.list) {
+    list_for_each_safe(pos, tmp, &JobList.list) {
 	if ((job = list_entry(pos, Job_t, list)) == NULL) {
 	    return NULL;
 	}
@@ -49,12 +47,12 @@ Job_t *findJobByLogger(PStask_ID_t loggerTID)
 
 Job_t *findJobByJobscript(pid_t js)
 {
-    struct list_head *pos;
+    list_t *pos, *tmp;
     Job_t *job;
 
     if (list_empty(&JobList.list)) return NULL;
 
-    list_for_each(pos, &JobList.list) {
+    list_for_each_safe(pos, tmp, &JobList.list) {
 	if ((job = list_entry(pos, Job_t, list)) == NULL) {
 	    return NULL;
 	}
@@ -73,7 +71,7 @@ Job_t *addJob(PStask_ID_t loggerTID)
 {
     Job_t *job;
 
-    job = (Job_t *) umalloc(sizeof(Job_t), __func__);
+    job = (Job_t *) umalloc(sizeof(Job_t));
     job->jobscript = 0;
     job->logger = loggerTID;
     job->childsExit = 0;
@@ -90,14 +88,7 @@ Job_t *addJob(PStask_ID_t loggerTID)
     return job;
 }
 
-/**
- * @brief Delete a job.
- *
- * @param loggerTID The taskID of the job to delete.
- *
- * @return Returns 1 on success and 0 on error.
- */
-static int deleteJob(PStask_ID_t loggerTID)
+int deleteJob(PStask_ID_t loggerTID)
 {
     Job_t *job;
 
@@ -136,24 +127,24 @@ void cleanupJobs()
 {
     list_t *pos, *tmp;
     Job_t *job;
+    time_t now = time(NULL);
+    long grace = 0;
 
     if (list_empty(&JobList.list)) return;
+
+    getConfParamL("TIME_JOB_GRACE", &grace);
 
     list_for_each_safe(pos, tmp, &JobList.list) {
 	if ((job = list_entry(pos, Job_t, list)) == NULL) {
 	    return;
 	}
+
+	/* will be cleanup by psmom */
+	if (job->jobscript) continue;
+
 	if (job->complete) {
-	    time_t timeout;
-
-	    if (!job->grace) {
-		timeout = JOB_CLEANUP_TIMEOUT;
-	    } else {
-		timeout = JOB_GRACE_TIMEOUT;
-	    }
-
 	    /* check timeout */
-	    if (job->endTime + timeout <= time(NULL)) {
+	    if (job->endTime + 60 * grace <= now) {
 		mdbg(LOG_VERBOSE, "%s: clean job '%i'\n", __func__,
 		job->logger);
 		deleteJob(job->logger);

@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2011 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2013 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -16,6 +16,9 @@ static char vcid[] __attribute__((used)) =
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
+#include <signal.h>
+
+#include "rdp.h"
 
 #include "psidutil.h"
 #include "psidtimer.h"
@@ -222,14 +225,22 @@ static void freeChunk(msgbuf_schunk_t *chunk)
 void PSIDMsgbuf_gc(void)
 {
     list_t *c, *tmp;
+    int blockedCHLD, blockedRDP, first = 1;
     unsigned int i;
 
-    if (usedSmallBufs > smallBufs/2 - MSGBUF_SCHUNK) return;
+    if ((int)usedSmallBufs > (int)smallBufs/2 - MSGBUF_SCHUNK) return;
 
-    /* get list's first usable element */
+    blockedCHLD = PSID_blockSIGCHLD(1);
+    blockedRDP = RDP_blockTimer(1);
+
     list_for_each_safe(c, tmp, &chunkList) {
 	msgbuf_schunk_t *chunk = list_entry(c, msgbuf_schunk_t, next);
 	int unused = 0;
+
+	if (first) {
+	    first = 0;
+	    continue;
+	}
 
 	for (i=0; i<MSGBUF_SCHUNK; i++) {
 	    if (chunk->bufs[i].offset == UNUSED) unused++;
@@ -239,6 +250,9 @@ void PSIDMsgbuf_gc(void)
 
 	if (smallBufs == MSGBUF_SCHUNK) break; /* keep the last one */
     }
+
+    RDP_blockTimer(blockedRDP);
+    PSID_blockSIGCHLD(blockedCHLD);
 }
 
 msgbuf_t *PSIDMsgbuf_get(size_t len)
@@ -247,7 +261,13 @@ msgbuf_t *PSIDMsgbuf_get(size_t len)
     DDMsg_t *msg;
 
     if (len <= MSGBUF_SMALLSIZE) {
+	int blockedCHLD = PSID_blockSIGCHLD(1);
+	int blockedRDP = RDP_blockTimer(1);
+
 	mp = getSmallMsgbuf();
+
+	RDP_blockTimer(blockedRDP);
+	PSID_blockSIGCHLD(blockedCHLD);
     } else {
 	mp = malloc(sizeof(*mp) + len);
     }

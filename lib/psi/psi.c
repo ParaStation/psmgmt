@@ -65,7 +65,12 @@ static int daemonSocket(char *sockname)
 
     memset(&sa, 0, sizeof(sa));
     sa.sun_family = AF_UNIX;
-    strncpy(sa.sun_path, sockname, sizeof(sa.sun_path));
+    if (sockname[0] == '\0') {
+	sa.sun_path[0] = '\0';
+	strncpy(sa.sun_path+1, sockname+1, sizeof(sa.sun_path)-1);
+    } else {
+	strncpy(sa.sun_path, sockname, sizeof(sa.sun_path));
+    }
 
     if (connect(sock, (struct sockaddr*) &sa, sizeof(sa)) < 0) {
 	close(sock);
@@ -128,6 +133,12 @@ static int connectDaemon(PStask_group_t taskGroup, int tryStart)
     if (daemonSock==-1) {
 	/* See, if daemon listens on the old socket */
 	PSI_log(-1, "%s: try on old socket\n", __func__);
+	daemonSock = daemonSocket("\0\0");
+    }
+
+    if (daemonSock==-1) {
+	/* See, if daemon listens on the old socket */
+	PSI_log(-1, "%s: try on even older socket\n", __func__);
 	daemonSock = daemonSocket("/var/run/parastation.sock");
     }
 

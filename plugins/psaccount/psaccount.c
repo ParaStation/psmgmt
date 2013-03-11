@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2011 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2012 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -24,6 +24,9 @@
 #include "psaccountcomm.h"
 #include "psaccountjob.h"
 #include "psaccountinter.h"
+#include "psaccountclient.h"
+#include "psaccountconfig.h"
+#include "psaccounthistory.h"
 
 #include "timer.h"
 #include "plugin.h"
@@ -31,9 +34,11 @@
 
 #include "psaccount.h"
 
+#define PSACCOUNT_CONFIG "psaccount.conf"
+
 /** psid plugin requirements */
 char name[] = "psaccount";
-int version = 17;
+int version = 22;
 int requiredAPI = 101;
 plugin_dep_t dependencies[1];
 
@@ -70,10 +75,15 @@ static void setMainTimer(int sec)
 
 void periodicMain(void)
 {
+    static int cleanup = 0;
     int poll;
 
     /* cleanup old jobs */
-    cleanupJobs();
+    if (cleanup++ == 4) {
+	cleanupJobs();
+	cleanupClients();
+	cleanup = 0;
+    }
 
     /* update proc snapshot */
     if ((haveActiveAccClients())) {
@@ -105,17 +115,27 @@ void accountStop()
 
 int initialize(void)
 {
-    int poll;
+    int poll, debugMask;
     struct utsname uts;
+    char configfn[200];
 
     /* init all lists */
     initAccClientList();
     initProcList();
     initJobList();
+    initHist();
 
     /* init logging facility */
     initLogger(false);
-    maskLogger(0x00000);
+
+    /* init the config facility */
+    snprintf(configfn, sizeof(configfn), "%s/%s", PLUGINDIR, PSACCOUNT_CONFIG);
+
+    if (!(initConfig(configfn))) return 1;
+
+    /* init logging facility */
+    getConfParamI("DEBUG_MASK", &debugMask);
+    maskLogger(debugMask);
 
     /* read plattform version */
     if (uname(&uts)) {
@@ -163,22 +183,19 @@ int initialize(void)
     }
 
     /* register account msg */
-    oldAccountHanlder = PSID_registerMsg(PSP_CD_ACCOUNT, (handlerFunc_t) handlePSMsg);
+    oldAccountHanlder = PSID_registerMsg(PSP_CD_ACCOUNT,
+					    (handlerFunc_t) handlePSMsg);
     PSID_registerMsg(PSP_CC_PLUGIN_ACCOUNT, (handlerFunc_t) handleInterAccount);
 
     /* update proc snapshot */
     updateProcSnapshot(0);
 
-    mlog("plugin started successfully\n");
+    mlog("(%i) successfully started\n", version);
     return 0;
 }
 
 void cleanup(void)
 {
-    /* TODO: do we need to forward all known information to psmom
-     * before we are forced to exit?
-     */
-
     /* remove all timer */
     Timer_remove(mainTimerID);
     if (jobTimerID != -1) Timer_remove(jobTimerID);
@@ -194,4 +211,5 @@ void cleanup(void)
     clearAllJobs();
     clearAllAccClients();
     clearAllProcSnapshots();
+    clearHist();
 }

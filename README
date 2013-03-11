@@ -1,0 +1,8 @@
+How to prepare a new release:
+
+1. Check in all changes.
+2. Update the ChangeLog. Use 'svn log -r HEAD:lastHead' in order to
+   create the list of changes.
+3. Condense ChangeLog's changes into NEWS file.
+5. Check these changes in using the message "New version (psmgmt-5.0.z)".
+6. Tag the new release using 'make -C dist VERSION=5.0.z RELEASE=y tag'.

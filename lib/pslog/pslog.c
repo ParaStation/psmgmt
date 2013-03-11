@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2009 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2012 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -68,9 +68,12 @@ int PSLog_write(PStask_ID_t destTID, PSLog_msg_t type, char *buf, size_t count)
 	msg.header.len = PSLog_headerSize + n;
 	n = send(daemonsock, &msg, msg.header.len, 0);
 	if (n < 0) {
-	    if (errno == EAGAIN) {
+	    switch(errno) {
+	    case EAGAIN:
+	    case EINTR:
 		continue;
-	    } else {
+		break;
+	    default:
 		return n;             /* error, return < 0 */
 	    }
 	}
@@ -98,6 +101,7 @@ static int dorecv(char *buf, size_t count)
 	n = recv(daemonsock, buf, count, 0);
 	if (n < 0) {
 	    switch (errno) {
+	    case EINTR:
 	    case EAGAIN:
 		continue;
 		break;

@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2011 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2012 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -19,12 +19,26 @@
 #include "psaccountproc.h"
 #include "helper.h"
 #include "psaccount.h"
+#include "psaccountconfig.h"
 
 #include "psaccountclient.h"
 
 void initAccClientList()
 {
     INIT_LIST_HEAD(&AccClientList.list);
+}
+
+const char* clientType2Str(int type)
+{
+    switch(type) {
+	case ACC_CHILD_JOBSCRIPT:
+	    return "JOBSCRIPT";
+	case ACC_CHILD_PSIDCHILD:
+	    return "PSIDCHILD";
+	case ACC_CHILD_REMOTE:
+	    return "REMOTE";
+    }
+    return "UNKOWN";
 }
 
 /**
@@ -99,8 +113,7 @@ static Client_t *findJobscriptByLogger(PStask_ID_t logger)
 	if ((jobscript = list_entry(pos, Client_t, list)) == NULL) {
 	    return NULL;
 	}
-	if (jobscript->type == ACC_CHILD_JOBSCRIPT &&
-	    jobscript->logger == -1) {
+	if (jobscript->type == ACC_CHILD_JOBSCRIPT) {
 	    /* check if the jobscript is a parent of logger */
 	    if ((isChildofParent(jobscript->pid, PSC_getPID(logger)))) {
 		jobscript->logger = logger;
@@ -134,6 +147,28 @@ Client_t *findJobscriptInClients(Job_t *job)
     return NULL;
 }
 
+void addAccInfoForClient(Client_t *client, psaccAccountInfo_t *accData)
+{
+    uint64_t cputime = 0;
+
+    cputime = client->rusage.ru_utime.tv_sec +
+	1.0e-6 * client->rusage.ru_utime.tv_usec +
+	client->rusage.ru_stime.tv_sec +
+	1.0e-6 * client->rusage.ru_stime.tv_usec;
+
+    client->data.cputime = cputime;
+    accData->cputime += cputime;
+    if (client->pageSize) {
+	accData->mem += client->data.maxRss * client->pageSize;
+    } else {
+	accData->mem += client->data.maxRss * pageSize;
+    }
+    accData->vmem += client->data.maxVsize;
+    accData->utime += client->data.cutime;
+    accData->stime += client->data.cstime;
+    accData->count++;
+}
+
 int getAccountInfoByLogger(PStask_ID_t logger, psaccAccountInfo_t *accData)
 {
     struct list_head *pos;
@@ -142,21 +177,10 @@ int getAccountInfoByLogger(PStask_ID_t logger, psaccAccountInfo_t *accData)
     if (list_empty(&AccClientList.list)) return false;
 
     list_for_each(pos, &AccClientList.list) {
-	if ((client = list_entry(pos, Client_t, list)) == NULL) {
-	    return true;
-	}
-	if (client->logger == logger) {
-	    /* calculate used cputime */
-	    accData->cputime +=
-		client->rusage.ru_utime.tv_sec +
-		1.0e-6 * client->rusage.ru_utime.tv_usec +
-		client->rusage.ru_stime.tv_sec +
-		1.0e-6 * client->rusage.ru_stime.tv_usec;
-	    accData->mem += client->data.maxRss * pageSize;
-	    accData->vmem += client->data.maxVsize;
-	    accData->utime += client->data.cutime;
-	    accData->stime += client->data.cstime;
-	    accData->count++;
+	if ((client = list_entry(pos, Client_t, list)) == NULL) break;
+
+	if (client->logger == logger && client->type != ACC_CHILD_JOBSCRIPT) {
+	    addAccInfoForClient(client, accData);
 	}
     }
     return true;
@@ -166,7 +190,7 @@ Client_t *addAccClient(PStask_ID_t taskid, PS_Acct_job_types_t type)
 {
     Client_t *client;
 
-    client = (Client_t *) umalloc(sizeof(Client_t), __func__);
+    client = (Client_t *) umalloc(sizeof(Client_t));
     client->taskid = taskid;
     client->pid = PSC_getPID(taskid);
     client->status = -1;
@@ -174,6 +198,13 @@ Client_t *addAccClient(PStask_ID_t taskid, PS_Acct_job_types_t type)
     client->doAccounting = 1;
     client->type = type;
     client->job = NULL;
+    client->jobid = NULL;
+    client->rank = 0;
+    client->uid = 0;
+    client->gid = 0;
+    client->pageSize = 0;
+    client->startTime = time(NULL);
+    client->endTime = 0;
 
     client->rusage.ru_utime.tv_sec = 0;
     client->rusage.ru_utime.tv_usec = 0;
@@ -193,27 +224,22 @@ Client_t *addAccClient(PStask_ID_t taskid, PS_Acct_job_types_t type)
     client->data.avgRssCount = 0;
     client->data.cutime = 0;
     client->data.cstime = 0;
+    client->data.cputime = 0;
 
     list_add_tail(&(client->list), &AccClientList.list);
+
     return client;
 }
 
-/**
- * @brief Delete an account client.
- *
- * Delete an account client identified by its TaskID.
- *
- * @param tid The taskID of the client to delete.
- *
- * @return Returns 1 on success and 0 on error.
- */
-static int deleteAccClient(PStask_ID_t tid)
+int deleteAccClient(PStask_ID_t tid)
 {
     Client_t *client;
 
     if ((client = findAccClientByClientTID(tid)) == NULL) {
 	return 0;
     }
+
+    if (client->jobid) free(client->jobid);
 
     list_del(&client->list);
     free(client);
@@ -261,6 +287,33 @@ void clearAllAccClients()
 	if (!(deleteAccClient(client->taskid))) {
 	    mlog("%s: deleting acc client '%i' failed\n", __func__,
 		client->pid);
+	}
+    }
+    return;
+}
+
+void cleanupClients()
+{
+    list_t *pos, *tmp;
+    Client_t *client;
+    time_t now = time(NULL);
+    long grace = 0;
+
+    if (list_empty(&AccClientList.list)) return;
+
+    getConfParamL("TIME_CLIENT_GRACE", &grace);
+
+    list_for_each_safe(pos, tmp, &AccClientList.list) {
+	if ((client = list_entry(pos, Client_t, list)) == NULL) break;
+
+	if (client->doAccounting || !client->endTime) continue;
+	if (findJobByLogger(client->logger)) continue;
+
+	/* check timeout */
+	if (client->endTime + grace * 60 <= now) {
+	    mdbg(LOG_VERBOSE, "%s: cleanup client '%i'\n", __func__,
+		    client->pid);
+	    deleteAccClient(client->taskid);
 	}
     }
     return;
