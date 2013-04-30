@@ -5,6 +5,29 @@ Copyright (C) 2010-2013 ParTec Cluster Competence Center GmbH, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+*************************************************************************
+*************************************************************************
+**                                                                     **
+**  Remark: Starting with psmgmt 5.0.42 the pspmi plugin is mandatory  **
+**  for the MPI2 startup. Therefore, it has to be added to the         **
+**  parastation configuration.                                         **
+**                                                                     **
+*************************************************************************
+*************************************************************************
+
+
+*************************************************************************
+*************************************************************************
+**                                                                     **
+**  Remark: psmgmt 5.0.42 pushed pslog to version 3. This new version  **
+**  is *NOT* compatible with older parastation versions. Therefore, a  **
+**  setup of current versiond mixed with ones prior to 5.0.42 will     **
+**  *NOT* work                                                         **
+**                                                                     **
+*************************************************************************
+*************************************************************************
+
+
 Version 5.0.42:
 ===============
 
