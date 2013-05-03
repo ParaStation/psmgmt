@@ -921,23 +921,6 @@ static int releaseTask(PStask_t *task)
 	    inheritMsg.header.sender = task->tid;
 	    inheritMsg.header.len = sizeof(inheritMsg);
 
-	    /* notify parent to release task there, too */
-	    if (PSC_getID(task->ptid) == PSC_getMyID()) {
-		/* parent task is local */
-		ret = releaseSignal(task->ptid, task->tid, -1, sigMsg.answer);
-		if (ret > 0) task->pendingReleaseErr = ret;
-	    } else {
-		/* parent task is remote, send a message */
-		PSID_log(PSID_LOG_TASK|PSID_LOG_SIGNAL,
-			 "%s: notify parent %s\n",
-			 __func__, PSC_printTID(task->ptid));
-
-		sigMsg.header.dest = task->ptid;
-		sendMsg(&sigMsg);
-
-		task->pendingReleaseRes += task->releaseAnswer;
-	    }
-
 	    /* Reorganize children. They are inherited by the parent task */
 	    sig = -1;
 
@@ -975,6 +958,23 @@ static int releaseTask(PStask_t *task)
 
 	    PSID_blockSIGCHLD(blocked);
 
+	    /* notify parent to release task there, too */
+	    /* this has to be done *after* the children are inherited */
+	    if (PSC_getID(task->ptid) == PSC_getMyID()) {
+		/* parent task is local */
+		ret = releaseSignal(task->ptid, task->tid, -1, sigMsg.answer);
+		if (ret > 0) task->pendingReleaseErr = ret;
+	    } else {
+		/* parent task is remote, send a message */
+		PSID_log(PSID_LOG_TASK|PSID_LOG_SIGNAL,
+			 "%s: notify parent %s\n",
+			 __func__, PSC_printTID(task->ptid));
+
+		sigMsg.header.dest = task->ptid;
+		sendMsg(&sigMsg);
+
+		task->pendingReleaseRes += task->releaseAnswer;
+	    }
 	}
 
 	/* Don't send any signals to me after release */
