@@ -70,7 +70,7 @@ typedef struct {
 } DDMsg_t;
 + payload
 
-Overhead: 16 Byte
+Overhead: 12 Byte
 
 
    Message ID			Type			Size (- header length)
