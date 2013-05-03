@@ -470,24 +470,30 @@ static void closeConnection(int fd)
 void deleteClient(int fd)
 {
     PStask_t *task;
+    int blocked;
 
     PSID_log(fd<0 ? -1 : PSID_LOG_CLIENT, "%s(%d)\n", __func__, fd);
     if (fd<0) return;
 
     task = getClientTask(fd);
+
+    PSID_log(PSID_LOG_CLIENT, "%s: closing connection to %s\n",
+	     __func__, PSC_printTID(task->tid));
+
+    blocked = PSID_blockSIGCHLD(1); /* prevent SIGCHLD from cleaning tasks */
     closeConnection(fd);
 
-    if (!task) task = PStasklist_find(&managedTasks, getClientTID(fd));
     if (!task) {
 	PSID_log(-1, "%s: Task %s not found\n", __func__,
 		 PSC_printTID(getClientTID(fd)));
+	PSID_blockSIGCHLD(blocked);
 	return;
     }
 
     if (task->group == TG_FORWARDER && !task->released) {
 	DDErrorMsg_t msg;
 	PStask_ID_t child;
-	int blocked, sig = -1;
+	int sig = -1;
 
 	PSID_log(-1, "%s: Unreleased forwarder %s\n",
 		 __func__, PSC_printTID(task->tid));
@@ -498,8 +504,6 @@ void deleteClient(int fd)
 	msg.header.sender = task->tid;
 	msg.header.len = sizeof(msg.header);
 	sendMsg(&msg);
-
-	blocked = PSID_blockSIGCHLD(1);
 
 	while ((child = PSID_getSignal(&task->childList, &sig))) {
 	    PStask_t *childTask = PStasklist_find(&managedTasks, child);
@@ -525,8 +529,6 @@ void deleteClient(int fd)
 
 	    sig = -1;
 	};
-
-	PSID_blockSIGCHLD(blocked);
 
 	task->released = 1;
     }
@@ -619,14 +621,13 @@ void deleteClient(int fd)
 	sendMsg((DDMsg_t *)&msg);
     }
 
-    PSID_log(PSID_LOG_CLIENT, "%s: closing connection to %s\n",
-	     __func__, PSC_printTID(task->tid));
-
     /* Cleanup, if no forwarder available; otherwise wait for CHILDDEAD */
     if (!task->forwardertid) {
 	PSID_log(PSID_LOG_TASK, "%s: PStask_cleanup()\n", __func__);
 	PStask_cleanup(task->tid);
     }
+
+    PSID_blockSIGCHLD(blocked);
 
     return;
 }
