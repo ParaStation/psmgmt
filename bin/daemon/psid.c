@@ -291,13 +291,15 @@ static void printMallocInfo(void)
 
     mi = mallinfo();
 
-    PSID_log(-1, "%s: arena    %d\n", __func__, mi.arena);
-    PSID_log(-1, "%s: ordblks  %d\n", __func__, mi.ordblks);
-    PSID_log(-1, "%s: hblks    %d\n", __func__, mi.hblks);
-    PSID_log(-1, "%s: hblkhd   %d\n", __func__, mi.hblkhd);
-    PSID_log(-1, "%s: uordblks %d\n", __func__, mi.uordblks);
-    PSID_log(-1, "%s: fordblks %d\n", __func__, mi.fordblks);
-    PSID_log(-1, "%s: keepcost %d\n\n", __func__, mi.keepcost);
+    PSID_log(-1, "%s:\n", __func__);
+    PSID_log(-1, "arena    %d\n", mi.arena);
+    PSID_log(-1, "ordblks  %d\n", mi.ordblks);
+    PSID_log(-1, "hblks    %d\n", mi.hblks);
+    PSID_log(-1, "hblkhd   %d\n", mi.hblkhd);
+    PSID_log(-1, "uordblks %d\n", mi.uordblks);
+    PSID_log(-1, "fordblks %d\n", mi.fordblks);
+    PSID_log(-1, "keepcost %d\n", mi.keepcost);
+    PSID_log(-1, "====================\n", __func__);
 }
 
 /**
@@ -359,10 +361,7 @@ static void sighandler(int sig)
 	break;
     case  SIGUSR2:   /* user defined signal 2 */
 	printMallocInfo();
-	{
-	    void *ptr = malloc(1024);
-	    if (ptr) free(ptr);
-	}
+	malloc_trim(0);
 	printMallocInfo();
 	break;
     case  SIGILL:    /* (*) illegal instruction (not reset when caught)*/
