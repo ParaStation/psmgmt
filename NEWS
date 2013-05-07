@@ -27,6 +27,27 @@ Please send bug reports, questions and suggestions to <support@par-tec.com>
 *************************************************************************
 *************************************************************************
 
+Version 5.0.43:
+===============
+
+Bugfixes:
+ - Fix segmentation fault when growing client structures for negative 
+   ranks in the logger
+ - Prevent PSP_DD_SENDCONT-storms possibly initiated by forwarded
+   PSP_CD_RELEASE messages
+ - Prevent false RELEASERES messages when child is inherited several times
+ - Fix possible race whithin deleteClient(): SIGCHLD might lead to premature
+   invalidation of task structure.
+ - Don't release parent before all children are inherited. This should fix
+   a possible race unveiled by the new kvs-provider.
+ - Pre-allocate some fmt for logger (#1087)
+ - Drop PSP_CD_RELEASE correctly to prevent hanging processes
+ - Drop PSP_CD_NOTIFYDEAD correctly and don't send PSP_NOTIFYDEADRES twice
+
+Enhancements:
+ - Support for MPI_Comm_spawn
+ - KVS code moved from logger into service process (kvs-provider)
+
 
 Version 5.0.42:
 ===============
