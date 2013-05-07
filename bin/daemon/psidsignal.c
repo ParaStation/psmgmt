@@ -788,10 +788,10 @@ static void msg_RELEASE(DDSignalMsg_t *msg);
  * Each signal can be identified uniquely via giving the unique task
  * IDs of the sending and receiving process plus the signal to send.
  *
- * @param sender The task ID of the task which should send the signal
+ * @param sigSndr The task ID of the task which should send the signal
  * in case of an exit.
  *
- * @param receiver The task ID of the task which should have received
+ * @param sigRcvr The task ID of the task which should have received
  * the signal to remove.
  *
  * @param sig The signal to be removed.
@@ -805,48 +805,48 @@ static void msg_RELEASE(DDSignalMsg_t *msg);
  *
  * @see errno(3)
  */
-static int releaseSignal(PStask_ID_t sender, PStask_ID_t receiver, int sig,
+static int releaseSignal(PStask_ID_t sigSndr, PStask_ID_t sigRcvr, int sig,
 			 int answer)
 {
     PStask_t *task;
 
-    task = PStasklist_find(&managedTasks, sender);
+    task = PStasklist_find(&managedTasks, sigSndr);
 
     if (!task) {
 	PSID_log(-1, "%s: signal %d to %s",
-		 __func__, sig, PSC_printTID(receiver));
-	PSID_log(-1, " from %s: task not found\n", PSC_printTID(sender));
+		 __func__, sig, PSC_printTID(sigRcvr));
+	PSID_log(-1, " from %s: task not found\n", PSC_printTID(sigSndr));
 	return ESRCH;
     }
 
     PSID_log(PSID_LOG_SIGNAL, "%s: sig %d to %s", __func__,
-	     sig, PSC_printTID(receiver));
-    PSID_log(PSID_LOG_SIGNAL, " from %s: release\n", PSC_printTID(sender));
+	     sig, PSC_printTID(sigRcvr));
+    PSID_log(PSID_LOG_SIGNAL, " from %s: release\n", PSC_printTID(sigSndr));
 
     /* Remove signal from list */
     if (sig==-1) {
 	/* Release a child */
-	PSID_removeSignal(&task->assignedSigs, receiver, sig);
-	if (!PSID_findSignal(&task->childList, receiver, sig)) {
+	PSID_removeSignal(&task->assignedSigs, sigRcvr, sig);
+	if (!PSID_findSignal(&task->childList, sigRcvr, sig)) {
 	    /* No child found. Might already be inherited by parent */
 	    if (task->ptid) {
 		DDSignalMsg_t msg;
 
 		msg.header.type = PSP_CD_RELEASE;
 		msg.header.dest = task->ptid;
-		msg.header.sender = receiver;
+		msg.header.sender = sigRcvr;
 		msg.header.len = sizeof(msg);
 		msg.signal = -1;
 		msg.pervasive = 0;
 		msg.answer = !!answer;
 
 		PSID_log(PSID_LOG_SIGNAL, "%s: forward PSP_CD_RELEASE from %s",
-			 __func__, PSC_printTID(receiver));
+			 __func__, PSC_printTID(sigRcvr));
 		PSID_log(PSID_LOG_SIGNAL, " dest %s", PSC_printTID(task->tid));
 		PSID_log(PSID_LOG_SIGNAL, "->%s\n", PSC_printTID(task->ptid));
 
-		if (PSC_getID(receiver) == PSC_getMyID()) {
-		    PStask_t *rtask = PStasklist_find(&managedTasks, receiver);
+		if (PSC_getID(sigRcvr) == PSC_getMyID()) {
+		    PStask_t *rtask = PStasklist_find(&managedTasks, sigRcvr);
 		    if (!rtask->parentReleased) {
 			rtask->pendingReleaseRes += !!answer;
 			rtask->parentReleased = 1;
@@ -858,12 +858,12 @@ static int releaseSignal(PStask_ID_t sender, PStask_ID_t receiver, int sig,
 	    }
 	    /* To be sure, mark child as released */
 	    PSID_log(PSID_LOG_SIGNAL, "%s: %s not (yet?) child of",
-		     __func__, PSC_printTID(receiver));
-	    PSID_log(PSID_LOG_SIGNAL, " %s\n", PSC_printTID(sender));
-	    PSID_setSignal(&task->releasedBefore, receiver, -1);
+		     __func__, PSC_printTID(sigRcvr));
+	    PSID_log(PSID_LOG_SIGNAL, " %s\n", PSC_printTID(sigSndr));
+	    PSID_setSignal(&task->releasedBefore, sigRcvr, -1);
 	}
     } else {
-	PSID_removeSignal(&task->signalReceiver, receiver, sig);
+	PSID_removeSignal(&task->signalReceiver, sigRcvr, sig);
     }
 
     return 0;
