@@ -299,7 +299,7 @@ static void printMallocInfo(void)
     PSID_log(-1, "uordblks %d\n", mi.uordblks);
     PSID_log(-1, "fordblks %d\n", mi.fordblks);
     PSID_log(-1, "keepcost %d\n", mi.keepcost);
-    PSID_log(-1, "====================\n", __func__);
+    PSID_log(-1, "====================\n");
 }
 
 /**
