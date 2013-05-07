@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2012 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2013 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -750,6 +750,7 @@ void PSIADM_ProcStat(int count, int full, char *nl)
 	    if (taskInfo[numTasks].group==TG_MONITOR && !full) continue;
 	    if (taskInfo[numTasks].group==TG_SERVICE && !full) continue;
 	    if (taskInfo[numTasks].group==TG_SERVICE_SIG && !full) continue;
+	    if (taskInfo[numTasks].group==TG_KVS && !full) continue;
 	    if (taskInfo[numTasks].group==TG_ACCOUNT && !full) continue;
 	    numTasks++;
 	    if (numTasks*sizeof(*taskInfo) >= tiList.actSize) {

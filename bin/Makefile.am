@@ -64,11 +64,9 @@ psid_LDADD = $(libputil) $(libpscommon) $(libpslog) $(libpse) -lutil	\
 	-ldl -lm $(POPT_LIBS) $(NUMA_LIBS)
 
 psilogger_SOURCES = logger/psilogger.c logger/psilogger.h	\
-	logger/psiloggerkvs.c logger/psiloggerkvs.h		\
 	logger/psiloggermerge.c logger/psiloggermerge.h		\
 	logger/psiloggerclient.c logger/psiloggerclient.h
-psilogger_LDADD = $(libpskvs) $(libputil) $(libpscommon) 	\
-	$(libpslog) $(RL_LIBS) -lm
+psilogger_LDADD = $(libputil) $(libpscommon) $(libpslog) $(RL_LIBS) -lm
 
 mlisten_LDADD = $(POPT_LIBS)
 
@@ -100,6 +98,5 @@ psaccounter_CPPFLAGS = $(AM_CPPFLAGS) -DLOCALSTATEDIR=\"$(localstatedir)\"
 psaccounter_LDADD = $(libpse) $(POPT_LIBS)
 
 mpiexec_CPPFLAGS = $(AM_CPPFLAGS) -DCONFIGDIR=\"$(configdir)\"
-mpiexec_LDADD = $(libpse) $(POPT_LIBS)
-
+mpiexec_LDADD = $(libpse) $(libpskvs) $(POPT_LIBS)
 testacct_LDADD = $(libpse) $(POPT_LIBS)

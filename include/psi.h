@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 1999-2003 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2011 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2013 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -255,6 +255,13 @@ void PSI_execLogger(const char *command);
  * @return No return value.
  */
 void PSI_propEnv(void);
+
+/**
+ * @brief Get the fd which is connected to the local daemon.
+ *
+ * @return Returns the requested file descriptor or -1 on error.
+ */
+int PSI_getDaemonFD(void);
 
 #ifdef __cplusplus
 }/* extern "C" */

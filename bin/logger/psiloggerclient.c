@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2009-2012 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2009-2013 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -29,12 +29,14 @@ typedef enum {
     CLIENT_ACTIVE  = 0x001, /**< Client is active input destination */
     CLIENT_STOPPED = 0x002, /**< Client sent STOP msg, waiting for CONT */
     CLIENT_GONE =    0x004, /**< Client was there but went away */
+    CLIENT_REL =     0x008, /**< KVS client release send */
 } client_flags_t;
 
 /** Structure holding all available information about clients */
 typedef struct {
     PStask_ID_t tid;         /**< Forwarder's task ID */
     client_flags_t flags;    /**< Client's mask of internal states */
+    PStask_group_t group;
     list_t next;             /**< Puts client into activeClients list */
 } client_t;
 
@@ -70,6 +72,8 @@ static int maxRank = -1;
  * determined by the actual size of @ref clients.
  */
 static int maxClient = -1;
+
+static int nTaskClnts = -1;
 
 /** The current value of the string describing the input destinations */
 static char *destStr = NULL;
@@ -245,9 +249,9 @@ static void growClients(int newMin, int newMax)
 	free(clients + minRank);
 
 	for (i = 0; i < minRank-newMin; i++) {
-	    clients[i].tid = -1;
-	    clients[i].flags = 0;
-	    INIT_LIST_HEAD(&clients[i].next);
+	    tmp[i].tid = -1;
+	    tmp[i].flags = 0;
+	    INIT_LIST_HEAD(&tmp[i].next);
 	}
     } else {
 	tmp = clients ? clients + minRank : NULL;
@@ -280,9 +284,10 @@ void initClients(int minClientRank, int maxClientRank)
     growClients(minClientRank, maxClientRank);
 
     nClnts = 0;
+    nTaskClnts = 0;
 }
 
-int registerClient(int rank, PStask_ID_t tid)
+int registerClient(int rank, PStask_ID_t tid, PStask_group_t group)
 {
     int oldMaxRank = maxRank;
 
@@ -326,7 +331,9 @@ int registerClient(int rank, PStask_ID_t tid)
     }
 
     clients[rank].tid = tid;
+    clients[rank].group = group;
     nClnts++;
+    if (rank > -1) nTaskClnts++;
 
     if (clientIsActive(rank)) {
 	list_add_tail(&clients[rank].next, &activeClients);
@@ -341,6 +348,8 @@ int registerClient(int rank, PStask_ID_t tid)
 
 void deregisterClient(int rank)
 {
+    int i;
+
     if (!clients) {
 	PSIlog_log(-1, "%s: Not initialized", __func__);
 	PSIlog_finalizeLogs();
@@ -358,6 +367,20 @@ void deregisterClient(int rank)
     clients[rank].tid = -1;
     nClnts--;
     clients[rank].flags |= CLIENT_GONE;
+
+    if (rank > -1) {
+	if ((--nTaskClnts) == 0) {
+	    /* the last regular child left us,
+	     * tell all service processes to exit */
+	    for (i=minRank; i<0; i++) {
+		if (clients[i].tid != -1 && clients[i].group == TG_KVS
+		    && !(clients[i].flags & CLIENT_REL)) {
+		    PSLog_write(clients[i].tid, SERV_EXT, NULL, 0);
+		    clients[i].flags |= CLIENT_REL;
+		}
+	    }
+	}
+    }
 
     if (clientIsActive(rank)) {
 	if (clientIsStopped(rank)) nActvSTOPs--;

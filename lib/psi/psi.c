@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2012 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2013 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -600,6 +600,9 @@ restart:
 		PSC_printTID(msg.header.sender));
 	goto restart;
 	break;
+    case PSP_CC_ERROR:
+	goto restart;
+	break;
     default:
 	PSI_log(-1, "%s: wrong message type %d (%s)\n",
 		__func__, msg.header.type, PSP_printMsg(msg.header.type));
@@ -847,4 +850,9 @@ void PSI_propEnv(void)
     for (i=0; environ[i]; i++) {
 	if (!(strncmp(environ[i], "OMP_", 4))) putPSIEnv(environ[i]);
     }
+}
+
+int PSI_getDaemonFD(void)
+{
+    return daemonSock;
 }

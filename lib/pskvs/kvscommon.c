@@ -40,14 +40,12 @@ const char *PSKVScmdToString(PSKVS_cmd_t cmd)
 	    return "UPDATE_CACHE_FINISH";
 	case INIT:
 	    return "INIT";
-	case SPAWN:
-	    return "SPAWN";
-	case SPAWN_RESULT:
-	    return "SPAWN_RESULT";
 	case JOIN:
 	    return "JOIN";
 	case LEAVE:
 	    return "LEAVE";
+	case CHILD_SPAWN_RES:
+	    return "CHILD_SPAWN_RES";
 	case NOT_AVAILABLE:
 	    return "NOT_AVAILABLE";
     }

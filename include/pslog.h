@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2012 Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2013 Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -45,7 +45,9 @@ typedef enum {
     CONT,       /**< fw -> lg (and lg -> fw) flow control: continue send */
     WINCH,      /**< lg -> fw  Changed window-size. */
     X11,        /**< fw -> lg (and lg -> fw) X11 forwarding */
-    KVS,        /**< fw -> lg (and lg -> fw) Manipulates the loggers kvs */
+    KVS,        /**< fw -> kvs (and kvs -> fw) Manipulates the kvs */
+    SERV_TID,	/**< fw -> lg (and lg -> fw) Get min service rank */
+    SERV_EXT,   /**< lg -> fw Forward service exit msg to client of fw */
     SIGNAL,     /**< lg -> fw Forward signal to client of forwarder */
 } PSLog_msg_t;
 
@@ -164,6 +166,19 @@ int PSLog_print(PStask_ID_t destTID, PSLog_msg_t type, char *buf);
  * -1 is returned, and errno is set appropriately.
  */
 int PSLog_read(PSLog_Msg_t *msg, struct timeval *timeout);
+
+/**
+ * @brief Print a PSLog message type.
+ *
+ * Convert a PSLog message type into a printable string.
+ *
+ * @param type The message type to print.
+ *
+ * @return Returns the message type as string representation or "UNKNOWN" on
+ * error.
+ */
+const char *PSLog_printMsgType(PSLog_msg_t type);
+
 
 #ifdef __cplusplus
 }/* extern "C" */

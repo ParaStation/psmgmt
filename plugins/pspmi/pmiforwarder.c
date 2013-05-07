@@ -61,20 +61,27 @@ static void closePMIclientSocket(void)
 {
     /* close MPI client socket */
     if (pmiClientSock > 0) {
-	if (Selector_isRegistered(pmiClientSock)) Selector_remove(pmiClientSock);
+	if (Selector_isRegistered(pmiClientSock)) {
+	    Selector_remove(pmiClientSock);
+	}
 	close(pmiClientSock);
 	pmiClientSock = -1;
     }
 }
 
+PStask_t *getChildTask()
+{
+    return childTask;
+}
+
 /**
- * @brief Close the socket which listens for new pmi TCP/IP connections.
+ * @brief Close the socket which listens for new PMI TCP/IP connections.
  *
  * @return No return value.
  */
 static void closePMIlistenSocket(void)
 {
-    /* close pmi accept socket */
+    /* close PMI accept socket */
     if (pmiTCPSocket > 0) {
 	Selector_remove(pmiTCPSocket);
 	close(pmiTCPSocket);
@@ -83,7 +90,7 @@ static void closePMIlistenSocket(void)
 }
 
 /**
- * @brief Read a pmi message from the client.
+ * @brief Read a PMI message from the client.
  *
  * @param fd Unused parameter.
  *
@@ -98,13 +105,13 @@ static int readFromPMIClient(int fd, void *data)
     int ret;
 
     if (pmiClientSock < 0) {
-	elog("%s: invalid pmi client socket %i\n", __func__, pmiClientSock);
+	elog("%s: invalid PMI client socket %i\n", __func__, pmiClientSock);
 	return 0;
     }
 
     if (!(len = recv(pmiClientSock, msgBuf, sizeof(msgBuf), 0))) {
 	/* no data received from client */
-	elog("%s: lost connection to the pmi client\n", __func__);
+	elog("%s: lost connection to the PMI client\n", __func__);
 
 	/* close connection */
 	closePMIclientSocket();
@@ -113,7 +120,7 @@ static int readFromPMIClient(int fd, void *data)
 
     /* socket error occured */
     if (len < 0) {
-	elog( "%s: error on pmi socket occured\n", __func__);
+	elog( "%s: error on PMI socket occured\n", __func__);
 	return 0;
     }
 
@@ -122,10 +129,10 @@ static int readFromPMIClient(int fd, void *data)
 
     pmiStatus = CONNECTED;
 
-    /* parse and handle the pmi msg */
+    /* parse and handle the PMI msg */
     ret = handlePMIclientMsg(msgBuf);
 
-    /* pmi communication finished */
+    /* PMI communication finished */
     if (ret == PMI_FINALIZED) {
 
 	/* release the child */
@@ -147,7 +154,7 @@ static int readFromPMIClient(int fd, void *data)
 }
 
 /**
- * @brief Accept a new pmi connection.
+ * @brief Accept a new PMI connection.
  *
  * @param fd Unused parameter.
  *
@@ -162,24 +169,27 @@ static int acceptPMIClient(int fd, void *data)
 
     /* check if a client is already connected */
     if (pmiClientSock != -1) {
-	elog( "%s: error only one pmi connection is allowed\n", __func__);
+	elog( "%s: error only one PMI connection is allowed\n", __func__);
 	return 0;
     }
 
-    /* accept a new pmi connection */
+    /* accept a new PMI connection */
     clientlen = sizeof(SAddr);
     if ((pmiClientSock = accept(pmiTCPSocket, (void *)&SAddr, &clientlen)) == -1) {
 	elog( "%s: error on accepting new pmi connection\n", __func__);
 	return 0;
     }
 
-    /* init the pmi interface */
-    pmi_init(pmiClientSock, childTask->loggertid, childTask->rank);
-
     /* close the socket which waits for new connections */
     closePMIlistenSocket();
 
-    /* register the new pmi socket */
+    /* init the PMI interface */
+    if ((pmi_init(pmiClientSock, childTask->rank, childTask->loggertid))) {
+	pmiType = PMI_DISABLED;
+	return 0;
+    }
+
+    /* register the new PMI socket */
     Selector_register(pmiClientSock, readFromPMIClient, NULL);
 
     return 0;
@@ -208,18 +218,41 @@ void setConnectionInfo(PMItype_t type, int sock)
 
 int setupPMIsockets(void *data)
 {
+    PStask_ID_t providertid = -1;
     childTask = data;
+
+    if (childTask->group != TG_ANY) return 0;
+
+    if (pmiType == PMI_OVER_TCP || pmiType == PMI_OVER_UNIX) {
+	char *env;
+
+	/* save infos from KVS provider */
+	if (!(env = getenv("__KVS_PROVIDER_TID"))) {
+	    elog("%s: KVS provider TID not available\n", __func__);
+	    pmiType = PMI_DISABLED;
+	    return -1;
+	}
+	if ((sscanf(env, "%i", &providertid)) != 1) {
+	    elog("%s: invalid KVS provider TID\n", __func__);
+	    pmiType = PMI_DISABLED;
+	    return -1;
+	}
+	setKVSProviderTID(providertid);
+    }
 
     switch (pmiType) {
 	case PMI_OVER_UNIX:
-	    /* register pmi client socket */
-	    Selector_register(pmiClientSock, readFromPMIClient, NULL);
+	    /* init the PMI interface */
+	    if ((pmi_init(pmiClientSock, childTask->rank, childTask->loggertid))) {
+		pmiType = PMI_DISABLED;
+		return -1;
+	    }
 
-	    /* init the pmi interface */
-	    pmi_init(pmiClientSock, childTask->loggertid, childTask->rank);
+	    /* register PMI client socket */
+	    Selector_register(pmiClientSock, readFromPMIClient, NULL);
 	    break;
 	case PMI_OVER_TCP:
-	    /* register the pmi TCP socket for accepting new clients */
+	    /* register the PMI TCP socket for accepting new clients */
 	    Selector_register(pmiTCPSocket, acceptPMIClient, NULL);
 	    break;
 	case PMI_DISABLED:
@@ -227,7 +260,7 @@ int setupPMIsockets(void *data)
 	    pmiType = PMI_DISABLED;
 	    break;
 	default:
-	    elog("%s: invalid pmi type: %i\n", __func__, pmiType);
+	    elog("%s: invalid PMI type: %i\n", __func__, pmiType);
 	    pmiType = PMI_DISABLED;
 	    return -1;
     }

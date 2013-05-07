@@ -321,6 +321,13 @@ again:
 		errno = EPIPE;
 		ret = -1;
 	    } else {
+		/* the psmpi plugin can spawn children and therefore
+		 * we need to handle PSP_CC_ERROR for them  */
+		if ((PSIDhook_call(PSIDHOOK_FRWRD_CC_ERROR, msg)) == 1) {
+		    ret = 1;
+		    break;
+		}
+
 		PSID_log(-1, "%s: CC_ERROR from %s\n",
 			 __func__, PSC_printTID(msg->header.sender));
 		ret = 0;
@@ -345,6 +352,13 @@ again:
 	    break;
 	case PSP_DD_CHILDACK:
 	case PSP_DD_CHILDDEAD:
+	    break;
+	case PSP_CD_SPAWNFAILED:
+	case PSP_CD_SPAWNSUCCESS:
+	case PSP_CD_SENDSTOP:
+	case PSP_CD_SENDCONT:
+	case PSP_CD_WHODIED:
+	    /* ignore */
 	    break;
 	default:
 	    PSID_log(-1, "%s: Unknown message type %s\n",
@@ -423,7 +437,7 @@ static int connectLogger(PStask_ID_t tid)
 
     loggerTID = tid; /* Only set for the first sendMsg()/recvMsg() pair */
 
-    sendMsg(INITIALIZE, NULL, 0);
+    sendMsg(INITIALIZE, (char *) &childTask->group, sizeof(childTask->group));
 
 again:
     ret = recvMsg(&msg, &timeout);
@@ -519,13 +533,17 @@ static void releaseLogger(int status)
     } else if (!ret) {
 	PSID_log(-1, "%s: receive timed out. Send again\n", __func__);
 	goto send_again;
+    } else if (msg.header.type == PSP_CC_ERROR) {
+	/* Ignore late spawned child gone messages */
+	goto again;
     } else if (msg.header.type != PSP_CC_MSG) {
 	PSID_log(-1 ,"%s: Protocol messed up, got %s message\n", __func__,
 		 PSDaemonP_printMsg(msg.header.type));
 	goto again;
     } else if (msg.type != EXIT) {
-	if (msg.type == INITIALIZE || msg.type == STDIN || msg.type == KVS) {
-	     /* Ignore late STDIN / KVS messages */
+	if (msg.type == INITIALIZE || msg.type == STDIN || msg.type == KVS
+	    || msg.type == SERV_EXT) {
+	     /* Ignore late STDIN / KVS / SERVICE EXIT messages */
 	    goto again;
 	}
 	PSID_log(-1, "%s: Protocol messed up (type %d) from %s\n",
@@ -722,6 +740,16 @@ static int readFromLogger(int fd, void *data)
     }
 
     switch (msg.header.type) {
+    case PSP_CD_SPAWNFAILED:
+    case PSP_CD_SPAWNSUCCESS:
+	PSIDhook_call(PSIDHOOK_FRWRD_SPAWNRES, &msg);
+	break;
+    case PSP_CD_SENDSTOP:
+    case PSP_CD_SENDCONT:
+    case PSP_CD_WHODIED:
+    case PSP_CC_ERROR:
+	/* ignore */
+	break;
     case PSP_CD_RELEASERES:
 	break;
     case PSP_CC_MSG:
@@ -750,6 +778,8 @@ static int readFromLogger(int fd, void *data)
 	    exit(0);
 	    break;
 	case KVS:
+	case SERV_TID:
+	case SERV_EXT:
             PSIDhook_call(PSIDHOOK_FRWRD_KVS, &msg);
 	    break;
 	case WINCH:
@@ -1091,7 +1121,8 @@ void finalizeForwarder(void)
     /* Send ACCOUNT message to daemon; will forward to accounters */
     if (childTask->group != TG_ADMINTASK
 	&& childTask->group != TG_SERVICE
-	&& childTask->group != TG_SERVICE_SIG) {
+	&& childTask->group != TG_SERVICE_SIG
+	&& childTask->group != TG_KVS) {
 	sendAcctData(childRUsage, childStatus);
     }
 

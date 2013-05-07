@@ -83,7 +83,7 @@ static KVS_t *getKvsByname(char *name)
 {
     int i;
 
-    if (!name || strlen(name) > KVSNAME_MAX ) {
+    if (!name || strlen(name) > PMI_KVSNAME_MAX ) {
 	mlog("%s: invalid kvs name '%s'\n", __func__, name);
 	return NULL;
     }
@@ -104,11 +104,17 @@ static KVS_t *getKvsByname(char *name)
  */
 static void initKVS()
 {
-    /* init the logger */
-    initKVSLogger(NULL);
+    char tmp[100];
 
-    /* set debug mask */
-    maskKVSLogger(0);
+    /* init the logger */
+    if (!(isKVSLoggerInitialized())) {
+
+	snprintf(tmp, sizeof(tmp), "kvs[%i]", getpid());
+	initKVSLogger(tmp, NULL);
+
+	/* set debug mask */
+	maskKVSLogger(0);
+    }
 }
 
 int kvs_create(char *name)
@@ -120,7 +126,7 @@ int kvs_create(char *name)
 	isInit = 1;
     }
 
-    if (!name || strlen(name) < 1 || strlen(name) > KVSNAME_MAX) {
+    if (!name || strlen(name) < 1 || strlen(name) > PMI_KVSNAME_MAX) {
 	mlog("%s: invalid kvs name '%s'\n", __func__, name);
 	return 1;
     }
@@ -183,8 +189,8 @@ int kvs_putIdx(char *kvsname, char *name, char *value, int *index)
     KVS_t *lkvs;
 
     *index = -1;
-    if (!kvsname || !name || !value || strlen(kvsname) > KVSNAME_MAX
-	|| strlen(name) > KEYLEN_MAX || strlen(value) > VALLEN_MAX ) {
+    if (!kvsname || !name || !value || strlen(kvsname) > PMI_KVSNAME_MAX
+	|| strlen(name) > PMI_KEYLEN_MAX || strlen(value) > PMI_VALLEN_MAX ) {
 	mlog("%s: invalid kvsname '%s', valuename '%s' or value '%s'\n",
 		__func__, kvsname, name, value);
 	return 1;

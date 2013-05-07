@@ -57,6 +57,7 @@ typedef enum {
     TG_ACCOUNT,     /**< accounter, will receive and log accounting info */
     TG_SERVICE_SIG, /**< service task, used by mpirun_openib to spawn
 		     * procs; will receive SIGTERM on child's termination */
+    TG_KVS,	    /**< special task, the KVS used by the PMI interface */
 } PStask_group_t;
 
 /** Type to store unique task IDs in */

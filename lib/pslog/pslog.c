@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2012 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2013 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -119,7 +119,6 @@ static int dorecv(char *buf, size_t count)
     return total;
 }
 
-
 int PSLog_read(PSLog_Msg_t *msg, struct timeval *timeout)
 {
     int total, n;
@@ -167,4 +166,42 @@ int PSLog_read(PSLog_Msg_t *msg, struct timeval *timeout)
     }
 
     return total;
+}
+
+const char *PSLog_printMsgType(PSLog_msg_t type)
+{
+    switch(type) {
+	case INITIALIZE:
+	    return "INITIALIZE";
+	case STDIN:
+	    return "STDIN:";
+	case STDOUT:
+	    return "STDOUT";
+	case STDERR:
+	    return "STDERR";
+	case USAGE:
+	    return "USAGE";
+	case FINALIZE:
+	    return "FINALIZE";
+	case EXIT:
+	    return "EXIT";
+	case STOP:
+	    return "STOP";
+	case CONT:
+	    return "CONT";
+	case WINCH:
+	    return "WINCH";
+	case X11:
+	    return "X11";
+	case KVS:
+	    return "KVS";
+	case SERV_TID:
+	    return "SERV_TID";
+	case SERV_EXT:
+	    return "SERV_EXT";
+	case SIGNAL:
+	    return "SIGNAL";
+	}
+
+    return "UNKNOWN";
 }

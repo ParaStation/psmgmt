@@ -17,12 +17,28 @@
 
 #include "kvslog.h"
 
-void initKVSLogger(FILE *logfile)
+int isKVSLoggerInitialized()
 {
-    kvslogger = logger_init("kvs", logfile);
+    if (!kvslogger) return 0;
+    return 1;
+}
+
+void initKVSLogger(char *name, FILE *logfile)
+{
+    kvslogger = logger_init(name, logfile);
 }
 
 void maskKVSLogger(int32_t mask)
 {
     logger_setMask(kvslogger, mask);
+}
+
+int32_t getKVSLoggerMask()
+{
+    return logger_getMask(kvslogger);
+}
+
+void finalizeKVSLogger()
+{
+    logger_finalize(kvslogger);
 }

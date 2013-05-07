@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2001-2003 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2008 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2013 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -44,6 +44,8 @@ int setPSIEnv(const char *name, const char *value, int overwrite)
 {
     int ret;
     char *envstr;
+
+    if (!name || !value) return -1;
 
     if (getPSIEnv(name)) {
 	if (!overwrite) {
@@ -94,8 +96,8 @@ int putPSIEnv(const char *string)
     int len;
     int i;
 
-    /* 
-     * search for the name in string 
+    /*
+     * search for the name in string
      */
     beg = strchr(string,'=');
     if (beg==NULL) {
@@ -154,8 +156,8 @@ char* getPSIEnv(const char* name)
     int len;
     int i;
 
-    /* 
-     * search for the name in string 
+    /*
+     * search for the name in string
      */
     if (!name) return NULL;
     len = strlen(name);

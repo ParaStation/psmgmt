@@ -23,60 +23,81 @@
 #include "pslog.h"
 
 /**
- * @brief Handle a new pmi message from the local mpi client.
+ * @brief Handle a new PMI message from the local MPI client.
  *
- * Handle a pmi message and call the appropriate protocol handler
+ * Handle a PMI message and call the appropriate protocol handler
  * function.
  *
- * @param msg The pmi message to handle.
+ * @param msg The PMI message to handle.
  *
  * @return Returns 0 for success, 1 on error.
  */
 int handlePMIclientMsg(char *msg);
 
 /**
- * @brief Init the pmi interface.
+ * @brief Init the PMI interface.
  *
- * This must be the first call before calling any other pmi functions.
+ * This must be the first call before calling any other PMI functions.
  *
- * @param pmisocket The socket witch is connect to the local mpi client.
+ * @param pmisocket The socket witch is connect to the local MPI client.
  *
- * @param loggertaskid The task id of the logger.
- *
- * @param pRank The parastation rank of the mpi client.
+ * @param pRank The parastation rank of the MPI client.
  *
  * @return Returns 0 on success and 1 on errors.
  */
-int pmi_init(int pmisocket, PStask_ID_t loggertaskid, int pRank);
+int pmi_init(int pmisocket, int pRank, PStask_ID_t logger);
 
 /**
- * @brief Set basic pmi informations.
+ * @brief Set the KVS provider task ID.
  *
- * Set needed pmi informations including predecessor, successor and
- * the pmi rank. This is information only the logger knows.
+ * @param ptid The task ID to set.
  *
- * @param data Pointer holding the neccessary information to set.
+ * @return No return value.
+ */
+void setKVSProviderTID(PStask_ID_t ptid);
+
+/**
+ * @brief Handle a KVS message from logger.
+ *
+ * @param vmsg The pslog KVS message to handle.
  *
  * @return Always returns 0.
  */
-int setPMIclientInfo(void *data);
+int handlePSlogMessage(void *vmsg);
 
 /**
- * @brief Handle a kvs message from logger.
+ * @brief Send finalize_ack to the MPI client.
  *
- * @param vmsg The pslog kvs message to handle.
- *
- * @return Always returns 0.
- */
-int handleKVSMessage(void *vmsg);
-
-/**
- * @brief Send finalize ack to the mpi client.
  * Finalize is called by the forwarder if the deamon has released
- * the mpi client. This message allows the mpi client to exit.
+ * the MPI client. This message allows the MPI client to exit.
  *
  * @return No return value.
  */
 void pmi_finalize(void);
+
+/**
+ * @brief Handle a spawn result message.
+ *
+ * Used to handle the result message when a new service process is spawned. This
+ * is the case when a PMI spawn call is handled.
+ *
+ * @param vmsg The message to handle.
+ *
+ * @return Always returns 0.
+ */
+int handleSpawnRes(void *vmsg);
+
+/**
+ * @brief Handle a CC_ERROR message.
+ *
+ * The KVS now lives in a separate service process. When sending to this service
+ * process failes a CC_ERROR message is generated and must be handled by the
+ * plugin.
+ *
+ * @param data The message to handle.
+ *
+ * @return Always returns 0.
+ */
+int handleCCError(void *data);
 
 #endif

@@ -18,6 +18,8 @@
 #ifndef __PS_PMI_FORWARDER
 #define __PS_PMI_FORWARDER
 
+#include "pstask.h"
+
 /** Connection type of pmi */
 typedef enum {
     PMI_DISABLED = 0,
@@ -66,5 +68,13 @@ int releasePMIClient(void *data);
  * @return Returns the status of the pmi connection.
  */
 int getClientStatus(void *data);
+
+/**
+ * @brief Get the task structure of the PMI client.
+ *
+ * @return Returns a pointer to the requested task structure
+ * or NULL on error.
+ */
+PStask_t *getChildTask();
 
 #endif
