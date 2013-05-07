@@ -298,6 +298,7 @@ int PStask_init(PStask_t* task)
     task->pendingReleaseErr = 0;
     task->releaseAnswer = 1;
     task->released = 0;
+    task->parentReleased = 0;
     task->duplicate = 0;
     task->suspended = 0;
     task->removeIt = 0;
@@ -515,6 +516,7 @@ PStask_t* PStask_clone(PStask_t* task)
     clone->pendingReleaseErr = task->pendingReleaseErr;
     clone->releaseAnswer = task->releaseAnswer;
     clone->released = task->released;
+    clone->parentReleased = task->parentReleased;
     clone->duplicate = task->duplicate;
     clone->suspended = task->suspended;
     clone->removeIt = task->removeIt;

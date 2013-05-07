@@ -194,6 +194,7 @@ typedef struct {
     char releaseAnswer;            /**< flag final RELEASERES to initiator */
     char released;                 /**< flag to mark released task, i.e. don't
 				      send signal to parent on exit */
+    char parentReleased;           /**< flag RELEASE msg sent to parent */
     char duplicate;                /**< flag to mark duplicate task, i.e. a
 				      tasks that are fork()ed by a client */
     char suspended;                /**< flag to mark suspended tasks. */

@@ -845,10 +845,12 @@ static int releaseSignal(PStask_ID_t sender, PStask_ID_t receiver, int sig,
 		PSID_log(PSID_LOG_SIGNAL, " dest %s", PSC_printTID(task->tid));
 		PSID_log(PSID_LOG_SIGNAL, "->%s\n", PSC_printTID(task->ptid));
 
-		if (PSC_getID(receiver) == PSC_getMyID()
-		    && PSC_getID(task->ptid) != PSC_getMyID()) {
+		if (PSC_getID(receiver) == PSC_getMyID()) {
 		    PStask_t *rtask = PStasklist_find(&managedTasks, receiver);
-		    rtask->pendingReleaseRes += !!answer;
+		    if (!rtask->parentReleased) {
+			rtask->pendingReleaseRes += !!answer;
+			rtask->parentReleased = 1;
+		    }
 		}
 		msg_RELEASE(&msg);
 
@@ -973,8 +975,14 @@ static int releaseTask(PStask_t *task)
 		sigMsg.header.dest = task->ptid;
 		sendMsg(&sigMsg);
 
-		task->pendingReleaseRes += task->releaseAnswer;
+		if (!task->parentReleased) {
+		    task->pendingReleaseRes += task->releaseAnswer;
+		    task->parentReleased = 1;
+		}
 	    }
+	    /* Also remove parent's assigned signal */
+	    PSID_removeSignal(&task->assignedSigs, task->ptid, -1);
+	    sig = -1;
 	}
 
 	/* Don't send any signals to me after release */
@@ -1091,6 +1099,9 @@ static void msg_RELEASE(DDSignalMsg_t *msg)
 		 * parent. RELEASERES message will be created there */
 		return;
 	    }
+	    if (msg->answer) msg_RELEASERES(msg);
+
+	    return;
 	}
 	if (!task || !msg->answer) return;
     }
