@@ -103,16 +103,15 @@ logger_t* logger_init(char* tag, FILE* logfile)
 	logger->timeFlag = 0;
 	logger->waitNLFlag = 1;
 
-	/* pre-allocate fmt to prevent psid from bloating */
+	/* pre-allocate fmt, prfx and txt to prevent psid from bloating */
 	logger->fmtSize = 256;
 	logger->fmt = malloc(logger->fmtSize);
-	logger->prfxSize = 0;
-	logger->prfx = NULL;
-	/* pre-allocate txt to prevent psid from bloating */
+	logger->prfxSize = 256;
+	logger->prfx = malloc(logger->prfxSize);
 	logger->txtSize = 256;
 	logger->txt = malloc(logger->txtSize);
 
-	if (!logger->trail || !logger->fmt || !logger->txt) {
+	if (!logger->trail || !logger->fmt || !logger->prfx || !logger->txt) {
 	    logger_finalize(logger);
 	    free(logger);
 	    logger = NULL;
