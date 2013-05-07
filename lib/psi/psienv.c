@@ -96,9 +96,7 @@ int putPSIEnv(const char *string)
     int len;
     int i;
 
-    /*
-     * search for the name in string
-     */
+    /* search for the name in string */
     beg = strchr(string,'=');
     if (beg==NULL) {
 	return -1;
@@ -156,9 +154,7 @@ char* getPSIEnv(const char* name)
     int len;
     int i;
 
-    /*
-     * search for the name in string
-     */
+    /* search for the name in string */
     if (!name) return NULL;
     len = strlen(name);
 

@@ -64,6 +64,8 @@ void initClients(int minClientRank, int maxClientRank);
  *
  * @param tid Task-ID of the client to register.
  *
+ * @param group @doctodo
+ *
  * @return If the client was registered successfully, 1 is returned. 0
  * is returned, if some problem occurred, e.g. a client with the same
  * rank was already registered.

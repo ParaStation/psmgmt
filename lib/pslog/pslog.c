@@ -195,12 +195,12 @@ const char *PSLog_printMsgType(PSLog_msg_t type)
 	    return "X11";
 	case KVS:
 	    return "KVS";
+	case SIGNAL:
+	    return "SIGNAL";
 	case SERV_TID:
 	    return "SERV_TID";
 	case SERV_EXT:
 	    return "SERV_EXT";
-	case SIGNAL:
-	    return "SIGNAL";
 	}
 
     return "UNKNOWN";

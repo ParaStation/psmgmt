@@ -26,7 +26,7 @@ static char vcid[] __attribute__((used)) =
 
 /** Internal state-masks of clients */
 typedef enum {
-    CLIENT_ACTIVE  = 0x001, /**< Client is active input destination */
+    CLIENT_ACTIVE =  0x001, /**< Client is active input destination */
     CLIENT_STOPPED = 0x002, /**< Client sent STOP msg, waiting for CONT */
     CLIENT_GONE =    0x004, /**< Client was there but went away */
     CLIENT_REL =     0x008, /**< KVS client release send */
