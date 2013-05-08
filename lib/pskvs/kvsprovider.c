@@ -437,6 +437,7 @@ static void sendKvsUpdateToClients(int finish)
     kvsvalcount = kvs_count_values(kvsname);
     valup = 0;
     while (kvsvalcount > valup) {
+	kvsmsg[0] = '\0';
 
 	/* add the values to the msg */
 	while (kvsvalcount > valup) {
@@ -497,8 +498,7 @@ static void sendKvsUpdateToClients(int finish)
 		nextUpdateField++;
 	    }
 	}
-	if (!finish) break;
-
+	if (!finish || valup >= kvsIndexSize) break;
     }
 
     /* we are up to date now */
