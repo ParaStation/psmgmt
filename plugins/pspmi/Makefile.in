@@ -121,7 +121,7 @@ am__uninstall_files_from_dir = { \
   }
 am__installdirs = "$(DESTDIR)$(plugindir)"
 LTLIBRARIES = $(plugin_LTLIBRARIES)
-pspmi_la_LIBADD =
+pspmi_la_DEPENDENCIES = $(libpskvs) $(libpsi)
 am_pspmi_la_OBJECTS = pspmi_la-pmiclient.lo pspmi_la-pmiforwarder.lo \
 	pspmi_la-pmilog.lo pspmi_la-pmimain.lo pspmi_la-pmispawn.lo \
 	pspmi_la-pmiservice.lo pspmi_la-pmiprovider.lo
@@ -170,8 +170,7 @@ AMTAR = @AMTAR@
 AM_CFLAGS = @AM_CFLAGS@
 AM_DEFAULT_VERBOSITY = @AM_DEFAULT_VERBOSITY@
 AM_DISTCHECK_CONFIGURE_FLAGS = @AM_DISTCHECK_CONFIGURE_FLAGS@
-AM_LDFLAGS = @AM_LDFLAGS@ -avoid-version -module -Wl,--whole-archive \
-	$(libpskvs) -Wl,--no-whole-archive $(libpsi)
+AM_LDFLAGS = @AM_LDFLAGS@ -avoid-version -module
 AR = @AR@
 AUTOCONF = @AUTOCONF@
 AUTOHEADER = @AUTOHEADER@
@@ -334,6 +333,7 @@ pspmi_la_SOURCES = pmiclient.c pmiclient.h pmiforwarder.c \
 	pmiprovider.c pmiprovider.h
 
 pspmi_la_CPPFLAGS = $(AM_CPPFLAGS) -DPLUGINDIR=\"$(plugindir)\"
+pspmi_la_LIBADD = $(libpskvs) $(libpsi)
 all: all-am
 
 .SUFFIXES:
