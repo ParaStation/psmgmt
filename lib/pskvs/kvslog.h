@@ -21,7 +21,7 @@
 #include "logging.h"
 
 /** structure for syslog */
-logger_t *kvslogger;
+extern logger_t *kvslogger;
 
 #define mlog(...) if (kvslogger) logger_print(kvslogger, -1, __VA_ARGS__)
 #define mwarn(...) if (kvslogger) logger_warn(kvslogger, -1, __VA_ARGS__)
