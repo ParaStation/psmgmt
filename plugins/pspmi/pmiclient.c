@@ -17,7 +17,7 @@
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 static char vcid[] __attribute__((used)) =
-    "$Id: psidpmiprotocol.c 8598 2012-05-02 11:12:04Z moschny $";
+    "$Id$";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
