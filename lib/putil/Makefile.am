@@ -19,3 +19,4 @@ noinst_LTLIBRARIES = libputil.la
 libputil_la_SOURCES = config_parsing.c env.c hardware.c mcast.c \
 	parser.c psdaemonprotocol.c psstrings.c rdp.c selector.c \
 	timer.c psparamspace.c
+libputil_la_LIBADD = -lm

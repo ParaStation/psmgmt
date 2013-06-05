@@ -61,12 +61,12 @@ psid_SOURCES = daemon/psidaccount.c daemon/psidaccount.h		\
 	daemon/psidutil.h daemon/psidintel.c daemon/psidintel.h
 psid_LDFLAGS = $(AM_LDFLAGS) -export-dynamic
 psid_LDADD = $(libputil) $(libpscommon) $(libpslog) $(libpse) -lutil	\
-	-ldl -lm $(POPT_LIBS) $(NUMA_LIBS)
+	-ldl $(POPT_LIBS) $(NUMA_LIBS)
 
 psilogger_SOURCES = logger/psilogger.c logger/psilogger.h	\
 	logger/psiloggermerge.c logger/psiloggermerge.h		\
 	logger/psiloggerclient.c logger/psiloggerclient.h
-psilogger_LDADD = $(libputil) $(libpscommon) $(libpslog) $(RL_LIBS) -lm
+psilogger_LDADD = $(libputil) $(libpscommon) $(libpslog) $(RL_LIBS)
 
 mlisten_LDADD = $(POPT_LIBS)
 
@@ -89,7 +89,7 @@ test_pse_LDADD = $(libpse) $(POPT_LIBS)
 test_config_SOURCES = test_config.c daemon/psidnodes.c			\
 	daemon/psidnodes.h daemon/psidscripts.c daemon/psidscripts.h	\
 	daemon/psidutil.c daemon/psidutil.h
-test_config_LDADD = $(libputil) $(libpse) $(POPT_LIBS) -lm
+test_config_LDADD = $(libputil) $(libpse) $(POPT_LIBS)
 
 pssh_LDADD = $(libpse) $(POPT_LIBS)
 
