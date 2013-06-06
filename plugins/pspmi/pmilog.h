@@ -21,8 +21,7 @@
 #include "logging.h"
 #include "psidforwarder.h"
 
-/** structure for syslog */
-logger_t *pmilogger;
+extern logger_t *pmilogger;
 
 #define mlog(...) if (pmilogger) logger_print(pmilogger, -1, __VA_ARGS__)
 #define mwarn(...) if (pmilogger) logger_warn(pmilogger, -1, __VA_ARGS__)
