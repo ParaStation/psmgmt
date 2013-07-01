@@ -414,6 +414,8 @@ void setupGlobalEnv(int admin, int np)
 	    if (verbose)
 		printf("Setting timeout of PMI barrier to %i\n", pmitmout);
 	}
+	setPSIEnv("PMI_BARRIER_TMOUT", getenv("PMI_BARRIER_TMOUT"), 1);
+	setPSIEnv("PMI_BARRIER_ROUNDS", getenv("PMI_BARRIER_ROUNDS"), 1);
 	setPSIEnv("MEASURE_KVS_PROVIDER", getenv("MEASURE_KVS_PROVIDER"), 1);
     }
 
@@ -963,6 +965,8 @@ static void setupCommonEnv(int np)
 	setPSIEnv("__PMI_SPAWN_PARENT", getenv("__PMI_SPAWN_PARENT"), 1);
 	setPSIEnv("__KVS_PROVIDER_TID", getenv("__KVS_PROVIDER_TID"), 1);
 	setPSIEnv("PMI_SPAWNED", getenv("PMI_SPAWNED"), 1);
+	setPSIEnv("PMI_BARRIER_TMOUT", getenv("PMI_BARRIER_TMOUT"), 1);
+	setPSIEnv("PMI_BARRIER_ROUNDS", getenv("PMI_BARRIER_ROUNDS"), 1);
     }
 
     /* set the size of the job */
