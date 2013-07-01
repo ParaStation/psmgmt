@@ -427,10 +427,10 @@ void setupGlobalEnv(int admin, int np)
 
 static void startKVSProvider(int argc, char *argv[], char **envp)
 {
-    char tmp[1024];
+    char tmp[1024], pTitle[50];
     int error, ret, sRank = -3;
     char *pwd, *ptr, **env;
-    PStask_ID_t spawnedProc;
+    PStask_ID_t spawnedProc, loggertid;
 
     if ((ptr = getenv("__PMI_SPAWN_SERVICE_RANK"))) {
 	sRank = atoi(ptr);
@@ -467,6 +467,14 @@ static void startKVSProvider(int argc, char *argv[], char **envp)
 	    fprintf(stderr, "\n");
 	}
 	exit(EXIT_FAILURE);
+    }
+
+    /* set the process title */
+    if ((ptr = getenv("__PSI_LOGGER_TID"))) {
+	loggertid = atoi(ptr);
+	snprintf(pTitle, sizeof(pTitle), "kvsprovider LTID[%d] %s",
+		    PSC_getPID(loggertid), getenv("PMI_KVS_TMP"));
+	PSC_setProcTitle(argv, argc, pTitle, 1);
     }
 
     /* start the KVS provider */
