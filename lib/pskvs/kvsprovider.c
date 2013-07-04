@@ -271,7 +271,8 @@ static void initKVS()
  * @return Returns a pointer to the requested client or terminates
  * the Job on error.
  */
-static PMI_Clients_t *findClient(PSLog_Msg_t *msg, const char *func)
+#define findClient(msg, term) __findClient(msg, term, __func__)
+static PMI_Clients_t *__findClient(PSLog_Msg_t *msg, int term, const char *func)
 {
     int i, tid = msg->header.sender;
 
@@ -280,12 +281,13 @@ static PMI_Clients_t *findClient(PSLog_Msg_t *msg, const char *func)
 	if (clients[i].tid == tid) return &clients[i];
     }
 
-    mlog("%s(%s): invalid client with rank '%i' tid '%s' connected to me\n",
-	    __func__, func, msg->sender, PSC_printTID(msg->header.sender));
+    if (term) {
+	mlog("%s(%s): invalid client with rank '%i' tid '%s' connected to me\n",
+		__func__, func, msg->sender, PSC_printTID(msg->header.sender));
 
-    terminateJob(__func__);
+	terminateJob(__func__);
+    }
 
-    /* never reached */
     return NULL;
 }
 
@@ -306,7 +308,7 @@ static void testMsg(const char fName[], PSLog_Msg_t *msg)
 {
     PMI_Clients_t *client;
 
-    client = findClient(msg, __func__);
+    client = findClient(msg, 1);
 
     /* check for invalid ranks */
     if (client->pmiRank < 0 || client->pmiRank > maxClients -1) {
@@ -570,7 +572,7 @@ static void handleKVS_Daisy_Barrier_In(PSLog_Msg_t *msg, char *ptr)
     PMI_Clients_t *client;
     int32_t barrierCount = 0, globalPutCount = 0;
 
-    client = findClient(msg, __func__);
+    client = findClient(msg, 1);
 
     testMsg(__func__, msg);
 
@@ -633,7 +635,7 @@ static void handleKVS_Update_Cache_Finish(PSLog_Msg_t *msg, char *ptr)
     PMI_Clients_t *client;
     int32_t mc, updateIndex;
 
-    client = findClient(msg, __func__);
+    client = findClient(msg, 1);
 
     testMsg(__func__, msg);
 
@@ -770,7 +772,7 @@ static void handleKVS_Init(PSLog_Msg_t *msg)
 {
     PMI_Clients_t *client;
 
-    client = findClient(msg, __func__);
+    client = findClient(msg, 1);
 
     testMsg(__func__, msg);
 
@@ -896,7 +898,7 @@ static void handleKVS_Leave(PSLog_Msg_t *msg)
 {
     PMI_Clients_t *client;
 
-    client = findClient(msg, __func__);
+    client = findClient(msg, 1);
 
     if (client->flags & PMI_CLIENT_GONE) {
 	mlog("%s: rank '%i' pmiRank '%i' already left\n", __func__,
@@ -1060,8 +1062,13 @@ static int handlePSIMessage(int fd, void *data)
 		/* logger died, nothing left for me to do here */
 		exit(0);
 	    }
-	    if (verbose) {
-		mlog("%s: got CC_ERROR from '%s'\n", __func__,
+	    if ((findClient(&msg, 0))) {
+		if (verbose) {
+		    mlog("%s: client '%s' already gone\n", __func__,
+			PSC_printTID(msg.header.sender));
+		}
+	    } else {
+		mlog("%s: got CC_ERROR from unknown source '%s'\n", __func__,
 			PSC_printTID(msg.header.sender));
 	    }
 	    break;
