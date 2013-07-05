@@ -847,7 +847,7 @@ static int releaseSignal(PStask_ID_t sigSndr, PStask_ID_t sigRcvr, int sig,
 
 		if (PSC_getID(sigRcvr) == PSC_getMyID()) {
 		    PStask_t *rtask = PStasklist_find(&managedTasks, sigRcvr);
-		    if (!rtask->parentReleased) {
+		    if (rtask && !rtask->parentReleased) {
 			rtask->pendingReleaseRes += !!answer;
 			rtask->parentReleased = 1;
 		    }
