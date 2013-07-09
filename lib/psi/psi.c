@@ -596,7 +596,7 @@ restart:
 	}
 	break;
     case PSP_CD_WHODIED:
-	PSI_log(-1, "Got signal %d from %s\n", msg.signal,
+	PSI_log(-1, "%s: got signal %d from %s\n", __func__, msg.signal,
 		PSC_printTID(msg.header.sender));
 	goto restart;
 	break;
