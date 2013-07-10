@@ -194,7 +194,10 @@ again:
 		answer.header.type, PSP_printMsg(answer.header.type));
     }
 
-    if (verbose) printf("KVS process finished, pid:%i\n", getpid());
+    if (verbose) {
+	printf("KVS process finished, TID '%i:%i'\n", PSC_getMyID(),
+			getpid());
+    }
 }
 
 /**
