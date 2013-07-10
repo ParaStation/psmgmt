@@ -1207,7 +1207,7 @@ static void initKvsProvider(void)
 		    "pspmi plugin loaded?\n", __func__);
 	}
 	releaseMySelf();
-	return;
+	exit(0);
     }
     forwarderFD = atoi(envstr);
     Selector_register(forwarderFD, handleFWMessage, NULL);
