@@ -544,6 +544,7 @@ static void createSpawner(int argc, char *argv[], int np, int admin)
     char cwd[1024], tmp[100];
     char *pwd = NULL;
     PSnodes_ID_t startNode;
+    PStask_ID_t myTID = PSC_getMyTID();
 
     if (rank==-1) {
 	int error, spawnedProc, ret, pSize;
@@ -588,7 +589,7 @@ static void createSpawner(int argc, char *argv[], int np, int admin)
 	/* add an additional service count for the KVS process */
 	if ((getenv("SERVICE_KVS_PROVIDER"))) {
 	    setenv(ENV_NUM_SERVICE_PROCS, "1", 1);
-	    snprintf(tmp, sizeof(tmp), "%i", PSC_getMyTID());
+	    snprintf(tmp, sizeof(tmp), "%i", myTID);
 	    setPSIEnv("__PSI_LOGGER_TID", tmp, 1);
 	}
 
@@ -616,8 +617,7 @@ static void createSpawner(int argc, char *argv[], int np, int admin)
 
 	/* Switch to psilogger */
 	if (verbose) {
-	    printf("starting logger process, TID '%i:%i'\n", PSC_getMyID(),
-		    getpid());
+	    printf("starting logger process %s\n", PSC_printTID(myTID));
 	}
 	PSI_execLogger(NULL);
 
@@ -627,11 +627,9 @@ static void createSpawner(int argc, char *argv[], int np, int admin)
 
     if (verbose) {
 	if ((getenv("SERVICE_KVS_PROVIDER"))) {
-	    printf("KVS process started, TID '%i:%i'\n", PSC_getMyID(),
-		    getpid());
+	    printf("KVS process %s started\n", PSC_printTID(myTID));
 	} else {
-	    printf("service process started, TID '%i:%i'\n", PSC_getMyID(),
-		    getpid());
+	    printf("service process %s started\n",  PSC_printTID(myTID));
 	}
     }
     return;
@@ -2866,13 +2864,12 @@ int main(int argc, char *argv[], char** envp)
     /* release service process */
     ret = PSI_release(PSC_getMyTID());
     if (ret == -1 && errno != ESRCH) {
-	fprintf(stderr, "Error releasing service process, TID '%i:%i'\n",
-		PSC_getMyID(), getpid());
+	fprintf(stderr, "Error releasing service process %s\n",
+		PSC_printTID(PSC_getMyTID()));
     }
 
     if (verbose) {
-	printf("service process finished, TID '%i:%i'\n",
-		PSC_getMyID(), getpid());
+	printf("service process %s finished\n", PSC_printTID(PSC_getMyTID()));
     }
     return 0;
 }

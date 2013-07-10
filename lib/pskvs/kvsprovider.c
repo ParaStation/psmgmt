@@ -146,14 +146,15 @@ static void releaseMySelf()
 {
     PSLog_Msg_t answer;
     DDSignalMsg_t msg;
+    PStask_ID_t myTID = PSC_getMyTID();
     int ret;
 
     if ((Selector_isRegistered(daemonFD))) Selector_remove(daemonFD);
     if ((Selector_isRegistered(forwarderFD))) Selector_remove(forwarderFD);
 
     msg.header.type = PSP_CD_RELEASE;
-    msg.header.sender = PSC_getMyTID();
-    msg.header.dest = PSC_getMyTID();
+    msg.header.sender = myTID;
+    msg.header.dest = myTID;
     msg.header.len = sizeof(msg);
     msg.signal = -1;
     msg.answer = 1;
@@ -194,10 +195,7 @@ again:
 		answer.header.type, PSP_printMsg(answer.header.type));
     }
 
-    if (verbose) {
-	printf("KVS process finished, TID '%i:%i'\n", PSC_getMyID(),
-			getpid());
-    }
+    if (verbose) printf("KVS process %s finished\n", PSC_printTID(myTID));
 }
 
 /**
