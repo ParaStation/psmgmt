@@ -60,7 +60,7 @@ psid_SOURCES = daemon/psidaccount.c daemon/psidaccount.h		\
 	daemon/psidtask.h daemon/psidtimer.h daemon/psidutil.c		\
 	daemon/psidutil.h daemon/psidintel.c daemon/psidintel.h
 psid_LDFLAGS = $(AM_LDFLAGS) -export-dynamic
-psid_LDADD = $(libputil) $(libpscommon) $(libpslog) $(libpse) -lutil	\
+psid_LDADD = $(libputil) $(libpscommon) $(libpslog) -lutil	\
 	-ldl $(POPT_LIBS) $(NUMA_LIBS)
 
 psilogger_SOURCES = logger/psilogger.c logger/psilogger.h	\

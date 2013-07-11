@@ -133,7 +133,7 @@ am_psid_OBJECTS = daemon/psidaccount.$(OBJEXT) \
 	daemon/psidstatus.$(OBJEXT) daemon/psidtask.$(OBJEXT) \
 	daemon/psidutil.$(OBJEXT) daemon/psidintel.$(OBJEXT)
 psid_OBJECTS = $(am_psid_OBJECTS)
-psid_DEPENDENCIES = $(libputil) $(libpscommon) $(libpslog) $(libpse) \
+psid_DEPENDENCIES = $(libputil) $(libpscommon) $(libpslog) \
 	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1)
 psid_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
@@ -421,7 +421,7 @@ psid_SOURCES = daemon/psidaccount.c daemon/psidaccount.h		\
 	daemon/psidutil.h daemon/psidintel.c daemon/psidintel.h
 
 psid_LDFLAGS = $(AM_LDFLAGS) -export-dynamic
-psid_LDADD = $(libputil) $(libpscommon) $(libpslog) $(libpse) -lutil	\
+psid_LDADD = $(libputil) $(libpscommon) $(libpslog) -lutil	\
 	-ldl $(POPT_LIBS) $(NUMA_LIBS)
 
 psilogger_SOURCES = logger/psilogger.c logger/psilogger.h	\
