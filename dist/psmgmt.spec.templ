@@ -22,6 +22,7 @@ BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 %global _plugindir %{_prefix}/plugins
 %global _configdir %{_prefix}/config
 %global _scriptsdir %{_prefix}/scripts
+%global _spooldir %{_localstatedir}/spool/parastation
 
 %description
 The ParaStation Process Management Layer.
@@ -43,6 +44,16 @@ Requires:  psmgmt = %{version}
 %description mpilegacy
 The psmgmt-mpilegacy package includes additional MPI starters for
 legacy implementations of the MPI version 1 standard.
+
+%package psmom
+Summary:   The MOM Plugin for the ParaStation process management
+Group:     Productivity/Clustering/Computing
+Requires:  psmgmt = %{version}
+Obsoletes: psmom <= 5.2.10-20
+
+%description psmom
+The ParaStation MOM is a complete replacement of the pbs_mom.  No other
+daemon is neccessary to integrate compute nodes into a Torque batch system.
 
 
 %if %buildForSuSE
@@ -179,3 +190,27 @@ exit 0
 %{_bindir}/psispawn
 %{_bindir}/mpirun_openib
 %{_bindir}/psmstart
+
+%files psmom
+%defattr(-,root,root,-)
+%doc %dir %{_datadir}/doc/psmgmt
+%doc %{_datadir}/doc/psmgmt/psmom-prologue-example
+%doc %{_datadir}/doc/psmgmt/psmom-epilogue-example
+%doc %{_datadir}/doc/psmgmt/psmom-timeout-example
+%doc %{_datadir}/doc/psmgmt/psmom-ChangeLog-History
+%doc %{_datadir}/doc/psmgmt/psmom-LICENSE.OpenPBS
+%doc %{_datadir}/doc/psmgmt/psmom-README
+/lib[64]*/security/pam_psmom.so
+%exclude /lib[64]*/security/pam_psmom.la
+%config(noreplace) /etc/pam.d/psmom
+%{_plugindir}/psmom.so
+%exclude %{_plugindir}/psmom.la
+%config(noreplace) %{_plugindir}/psmom.conf
+%dir %{_spooldir}
+%dir %{_spooldir}/jobs
+%dir %{_spooldir}/nodefiles
+%attr(1777,root,root) %{_spooldir}/temp
+%attr(1777,root,root) %{_spooldir}/undelivered
+%attr(750,root,root) %{_spooldir}/account
+%attr(750,root,root) %{_spooldir}/backup
+%attr(751,root,root) %{_spooldir}/scripts

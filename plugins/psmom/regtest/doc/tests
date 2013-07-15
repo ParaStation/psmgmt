@@ -1,0 +1,143 @@
+
+tests for all qsub options:
+===========================
+
+-a date_time		:   (no test   only relevant for the pbs_server/scheduler)
+-A account_string	:   (no test   only relevant for the pbs_server)
+-b seconds		:   (no test   only relevant for qsub)
+-c checkpoint_options	:   (no test   not yet supported by psmom (#1344))
+-C directive_prefix	:   (no test   only relevant for qsub)
+-d path			: test = 'cwd_abs' and 'cwd_rel'
+-D root_path		:   (no test   probably dangerous, feature should be disabled)
+-e error path		: test = 'redirect_output'
+-f fail-tolerance	:   (no test   hard to auto test, needs killing of sister node)
+-h job hold		:   (no test   only relevant for the pbs_server)
+-I interactive		: test = 'interactive'
+-j join			: test = 'join_output'
+-k keep			: test = 'keep'
+-l resource_list	: test = 'limits'
+-m mail_options		:   (no test   manual test)
+-M user_list		:   (no test   manual test)
+-n exclusive		:   (no test   only relevant for the scheduler)
+-N jobname		: test = 'jobname'
+-o output path		: test = 'redirect_output'
+-p priority		:   (no test   only relevant for the scheduler)
+-P proxy_user[:group]	:   (no test   only relevant for qsub/pbs_server)
+-q destination		:   (no test   only relevant for qsub/pbs_server)
+-r re-runable (y|n)	:   (no test   hard to test, but basically the same as a failed prologue)
+-S shell		: test = 'shell'
+-t array_request	: test = 'array'    only available for pbs version 3(+)
+-T script (pelogue)	:   (no test   needs compute node modification, hard to auto test)
+-u user_list		:   (no test   only relevant for qsub/pbs_server)
+-v variable_list	: test = 'user_vars'
+-V all_vars		: test = 'all_vars'
+-w workdir		: test = 'work_dir'
+-W add attributes	: test = 'attr_umask'
+-x interactive cmd	: test = 'inter_cmd'
+-X x11 forward		: test = 'x11'
+-z no jobid to stdout	:   (no test   only relevant for qsub)
+
+
+tests for the pbs environment:
+==============================
+
+implemented in the test 'pbs_env'
+
+# test pbs variables
+ PBS_JOBID
+ PBS_JOBNAME
+ PBS_NODENUM
+ PBS_TASKNUM
+ PBS_NUM_NODES
+ PBS_QUEUE
+ PBS_SERVER
+
+# test PBS_O_ variables
+ PBS_O_WORKDIR
+ PBS_O_HOME
+ PBS_O_QUEUE
+ PBS_O_LANG
+ PBS_O_LOGNAME
+ PBS_O_SHELL
+ PBS_O_HOST
+ PBS_O_PATH
+
+# test normal environment
+ USER
+
+# test if env vars exists
+ PBS_VERSION
+ PBS_ENVIRONMENT
+ PBS_JOBCOOKIE
+ PBS_NODEFILE
+ PBS_VNODENUM
+
+
+tests for all msub options:
+===========================
+
+-a Eligible Date	:   (no test   only relevant for the pbs_server/scheduler)
+-A Account		:   (no test   only relevant for the pbs_server)
+-c checkpoint_options	:   (no test   not yet supported by psmom (#1344))
+-C directive_prefix	:   (no test   only relevant for qsub)
+-d path			: test = 'cwd_abs'
+-e error path		: test = 'redirect_output'
+-E moab env		: test = 'moab_env'
+-h job hold		:   (no test   only relevant for the pbs_server)
+-I interactive		: test = 'interactive'
+-j join			: test = 'join_output'
+-k keep			: test = 'keep'
+-K continue running	:   (no test   only relevant for moab)
+-l resource_list	: test = 'limits'
+-m mail_options		:   (no test   manual test)
+-M user_list		:   (no test   manual test)
+-N jobname		: test = 'jobname'
+-o output path		: test = 'redirect_output'
+-p priority		:   (no test   only relevant for the scheduler)
+-q destination		:   (no test   only relevant for qsub/pbs_server)
+-r re-runable (y|n)	:   (no test   hard to test, but basically the same as a failed prologue)
+-S shell		: test = 'shell'
+-u user_list		:   (no test   only relevant for qsub/pbs_server)
+-v variable_list	: test = 'msub_user_vars'
+-V all_vars		: test = 'all_vars'
+-W add attributes	: test = 'attr_umask'
+-z no jobid to stdout	:   (no test   only relevant for qsub)
+
+
+tests which are unsupported by msub:
+====================================
+
+ * 'array'             unsupported by msub (no -t option)
+ * 'work_dir'          unsupported by msub (no -w option)
+ * 'inter_cmd'	       unsupported by msub (no -x option)
+ * 'x11'	       unsupported by msub (no -X option)
+ * 'large_jobscript'   jobscript to big for msub (max 524288 bytes)
+ * 'cwd_rel'           msub can not handle relative paths with the -d option
+ * 'user_vars'	       msub -v ("name" + value from env) and qsub -v ("name=value") using different syntax
+
+
+tests for the moab environment:
+===============================
+
+implemented in the test 'moab_env'
+
+MOAB_JOBNAME
+MOAB_USER
+MOAB_TASKMAP
+MOAB_CLASS
+MOAB_PROCCOUNT
+MOAB_GROUP
+MOAB_NODELIST
+MOAB_MACHINE
+MOAB_NODECOUNT
+MOAB_JOBID
+MOAB_PARTITION
+
+
+other tests:
+============
+
+ * test for very large jobscripts = 'large_jobscript'
+ * test for large jobscripts for msub (max 524288 bytes) = 'msub_large_jobscript'
+ * scaling test with all available nodes = 'scaling'
+ * test for job dependencies = 'dependencies'

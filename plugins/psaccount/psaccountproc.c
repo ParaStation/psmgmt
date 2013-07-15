@@ -22,7 +22,7 @@
 #include <signal.h>
 #include <unistd.h>
 
-#include "helper.h"
+#include "pluginmalloc.h"
 #include "psaccountlog.h"
 #include "psaccountlog.h"
 #include "psaccountclient.h"
@@ -324,7 +324,7 @@ static Proc_Snapshot_t *addProc(pid_t pid, ProcStat_t *pS, char *cmdline)
     proc->mem = pS->mem;
     proc->vmem = pS->vmem;
     if (cmdline)  {
-	proc->cmdline = strdup(cmdline);
+	proc->cmdline = ustrdup(cmdline);
     } else {
 	proc->cmdline = NULL;
     }
@@ -400,7 +400,7 @@ static void clearSessions()
 	    return;
 	}
 	list_del(&info->list);
-	free(info);
+	ufree(info);
     }
 }
 
@@ -417,11 +417,11 @@ void clearAllProcSnapshots()
 	    return;
 	}
 	if (proc->cmdline) {
-	    free(proc->cmdline);
+	    ufree(proc->cmdline);
 	}
 
 	list_del(&proc->list);
-	free(proc);
+	ufree(proc);
     }
 }
 

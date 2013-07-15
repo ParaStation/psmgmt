@@ -19,6 +19,7 @@
 #include <stdlib.h>
 
 #include "pscommon.h"
+#include "pluginmalloc.h"
 #include "psprotocol.h"
 #include "psidtask.h"
 #include "psidforwarder.h"
@@ -247,7 +248,7 @@ int spawnService(char *np, char **c_argv, int c_argc, char **c_env, int c_envc,
     /* TODO: how to specify the nodeType in spawn message? */
 
     if (!(myTask = getChildTask())) {
-	elog("%s: cannot find my own task structure\n", __func__);
+	elog("%s: cannot find my child's task structure\n", __func__);
 	return 0;
     }
 
@@ -261,7 +262,7 @@ int spawnService(char *np, char **c_argv, int c_argc, char **c_env, int c_envc,
     task->gid = myTask->gid;
     task->aretty = myTask->aretty;
     task->loggertid = myTask->loggertid;
-    task->ptid = PSC_getMyTID();
+    task->ptid = myTask->tid;
     task->group = TG_KVS;
     task->rank = serviceRank -1;
     task->winsize = myTask->winsize;
@@ -271,7 +272,7 @@ int spawnService(char *np, char **c_argv, int c_argc, char **c_env, int c_envc,
     if (wdir) {
 	task->workingdir = wdir;
     } else if (myTask->workingdir) {
-	task->workingdir = strdup(myTask->workingdir);
+	task->workingdir = ustrdup(myTask->workingdir);
     } else {
 	task->workingdir = NULL;
     }
@@ -280,13 +281,13 @@ int spawnService(char *np, char **c_argv, int c_argc, char **c_env, int c_envc,
     snprintf(buffer, sizeof(buffer), "%d", usize);
 
     task->argc = c_argc + 5;
-    task->argv = malloc((task->argc + 1) * sizeof(char *));
+    task->argv = umalloc((task->argc + 1) * sizeof(char *));
 
-    task->argv[argc++] = strdup("/opt/parastation/bin/mpiexec");
-    task->argv[argc++] = strdup("-np");
-    task->argv[argc++] = strdup(np);
-    task->argv[argc++] = strdup("-u");
-    task->argv[argc++] = strdup(buffer);
+    task->argv[argc++] = ustrdup("/opt/parastation/bin/mpiexec");
+    task->argv[argc++] = ustrdup("-np");
+    task->argv[argc++] = ustrdup(np);
+    task->argv[argc++] = ustrdup("-u");
+    task->argv[argc++] = ustrdup(buffer);
 
     for (i=0; i<c_argc; i++) {
 	task->argv[argc++] = c_argv[i];
@@ -296,7 +297,7 @@ int spawnService(char *np, char **c_argv, int c_argc, char **c_env, int c_envc,
     /* build environment */
     for (envc=0; myTask->environ[envc]; envc++);
 
-    task->environ = malloc((envc + c_envc + 8  + 1) * sizeof(char *));
+    task->environ = umalloc((envc + c_envc + 8  + 1) * sizeof(char *));
     i=0;
     for (envc=0; myTask->environ[envc]; envc++) {
 	next = myTask->environ[envc];
@@ -309,36 +310,36 @@ int spawnService(char *np, char **c_argv, int c_argc, char **c_env, int c_envc,
 	if (!(strncmp(next, "PMI_FD=", 7))) continue;
 	if (!(strncmp(next, "PMI_KVS_TMP=", 12))) continue;
 
-	task->environ[i] = strdup(myTask->environ[envc]);
+	task->environ[i] = ustrdup(myTask->environ[envc]);
 	if (!myTask->environ[envc +1]) break;
 	i++;
     }
     envc = i;
 
     for (i=0; i<c_envc; i++) {
-	task->environ[envc++] = strdup(c_env[i]);
+	task->environ[envc++] = ustrdup(c_env[i]);
     }
 
     /* add additional env vars */
-    task->environ[envc++] = strdup(kvsTmp);
+    task->environ[envc++] = ustrdup(kvsTmp);
     snprintf(buffer, sizeof(buffer), "__PMI_SPAWN_SERVICE_RANK=%i",
 		serviceRank -2);
-    task->environ[envc++] = strdup(buffer);
+    task->environ[envc++] = ustrdup(buffer);
     snprintf(buffer, sizeof(buffer), "__PMI_SPAWN_PARENT=%i", PSC_getMyTID());
-    task->environ[envc++] = strdup(buffer);
-    task->environ[envc++] = strdup("SERVICE_KVS_PROVIDER=1");
-    task->environ[envc++] = strdup("PMI_SPAWNED=1");
+    task->environ[envc++] = ustrdup(buffer);
+    task->environ[envc++] = ustrdup("SERVICE_KVS_PROVIDER=1");
+    task->environ[envc++] = ustrdup("PMI_SPAWNED=1");
     snprintf(buffer, sizeof(buffer), "PMI_SIZE=%s", np);
-    task->environ[envc++] = strdup(buffer);
+    task->environ[envc++] = ustrdup(buffer);
     if (hosts) {
 	snprintf(buffer, sizeof(buffer), "%s=%s", ENV_NODE_HOSTS, hosts);
-	task->environ[envc++] = strdup(buffer);
-	free(hosts);
+	task->environ[envc++] = ustrdup(buffer);
+	ufree(hosts);
     }
     if (hostfile) {
 	snprintf(buffer, sizeof(buffer), "%s=%s", ENV_NODE_HOSTFILE, hostfile);
-	task->environ[envc++] = strdup(buffer);
-	free(hostfile);
+	task->environ[envc++] = ustrdup(buffer);
+	ufree(hostfile);
     }
 
     task->environ[envc] = NULL;

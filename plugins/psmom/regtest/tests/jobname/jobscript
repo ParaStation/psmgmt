@@ -1,0 +1,8 @@
+#!/bin/bash
+#
+#PBS -N psmomRT-jobname1! 
+#PBS -l walltime=60
+
+echo "PBS_JOBNAME=$PBS_JOBNAME"
+
+exit 0

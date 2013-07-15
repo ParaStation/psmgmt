@@ -21,7 +21,7 @@
 #include "psaccountproc.h"
 #include "psaccountclient.h"
 #include "psaccounthistory.h"
-#include "helper.h"
+#include "pluginmalloc.h"
 
 #include "psaccountinter.h"
 
@@ -278,7 +278,7 @@ void forwardAccountMsg(DDTypedBufferMsg_t *msg, int type, PStask_ID_t logger)
     }
 
     sendMsg(fmsg);
-    free(fmsg);
+    ufree(fmsg);
 }
 
 int psAccountSignalAllChildren(pid_t mypid, pid_t child, pid_t pgroup, int sig)
@@ -323,7 +323,7 @@ void psAccountRegisterMOMJob(pid_t jsPid, char *jobid)
     /* monitor the JS */
     taskID = PSC_getTID(PSC_getMyID(), jsPid);
     client = addAccClient(taskID, ACC_CHILD_JOBSCRIPT);
-    client->jobid = strdup(jobid);
+    client->jobid = ustrdup(jobid);
 }
 
 void psAccountUnregisterMOMJob(pid_t jsPid)

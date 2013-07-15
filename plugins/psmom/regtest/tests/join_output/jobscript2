@@ -1,0 +1,10 @@
+#!/bin/bash
+#
+#PBS -j eo 
+#PBS -l walltime=60
+#PBS -N psmomRT-join_output2
+
+echo "output"
+echo "error" >&2
+
+exit 0

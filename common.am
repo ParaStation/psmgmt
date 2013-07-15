@@ -43,6 +43,11 @@ do_subst =sed \
 	$(sed_verbose)$(do_subst) < $^ > $@
 	$(chmod_verbose)chmod --reference $^ $@
 
+syslibdir := $(shell echo $(libdir) | sed -e 's,$(prefix),/,g')
+pamdir = $(syslibdir)/security
+
+pamconfdir = $(sysconfdir)/pam.d
+
 # should be $(libdir)/psmgmt-plugins or similar
 plugindir = $(prefix)/plugins
 

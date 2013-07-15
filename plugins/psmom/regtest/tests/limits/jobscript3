@@ -1,0 +1,15 @@
+#!/bin/bash
+#
+#PBS -l cput=2000,file=2000mb,mem=300mb,vmem=300mb,nice=20
+#PBS -l walltime=60
+#PBS -N psmomRT-limits3
+
+echo RLIMIT_CPU=$(ulimit -t)
+echo RLIMIT_FSIZE=$(ulimit -f)
+echo RLIMIT_DATA=$(ulimit -d)
+echo RLIMIT_PMEM=$(ulimit -m)
+echo RLIMIT_VMEM=$(ulimit -v)
+
+echo NICE=$(nice)
+
+exit 0

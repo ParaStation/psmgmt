@@ -1,0 +1,7 @@
+#!/bin/bash
+#
+#PBS -N psmomRT-exit1
+#PBS -l walltime=60
+#PBS -v PSMOM_LOG_ACCOUNT
+
+exit 0

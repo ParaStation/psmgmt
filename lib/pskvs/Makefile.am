@@ -17,5 +17,5 @@ libpslog = $(top_builddir)/lib/pslog/libpslog.la
 
 noinst_LTLIBRARIES = libpskvs.la
 
-libpskvs_la_SOURCES = kvs.c kvscommon.c kvslog.c kvsprovider.c
+libpskvs_la_SOURCES = kvs.c kvscommon.c kvslog.c kvsprovider.c kvslog.h
 libpskvs_la_LIBADD = $(libputil) $(libpslog)

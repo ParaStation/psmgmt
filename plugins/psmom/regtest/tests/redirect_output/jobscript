@@ -1,0 +1,11 @@
+#!/bin/bash
+#
+#PBS -o ./${PBS_JOBID}-${PBS_O_HOST}-out
+#PBS -e ./${PBS_JOBNAME}-${PBS_QUEUE}-err
+#PBS -l walltime=60
+#PBS -N psmomRT-redirect_output
+
+echo "output"
+echo "error" >&2
+
+exit 0

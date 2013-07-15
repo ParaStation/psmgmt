@@ -1,42 +1,64 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2012 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2012 - 2013 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
+ */
+/**
+ * $Id$
  *
- * Authors:     Michael Rauh <rauh@par-tec.com>
+ * \author
+ * Michael Rauh <rauh@par-tec.com>
  *
  */
 
-#include <stdio.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
 
-#include "psaccountlog.h"
-#include "helper.h"
+#include "pluginlog.h"
+#include "pluginmalloc.h"
+
+#define MIN_MALLOC_SIZE 64
 
 void *__umalloc(size_t size, const char *func, const int line)
 {
+    char tmp[11];
     void *ptr;
 
+    if (size < MIN_MALLOC_SIZE) size = MIN_MALLOC_SIZE;
+
     if (!(ptr = malloc(size))) {
-        fprintf(stderr, "%s: memory allocation failed\n", func);
+        mlog("%s: memory allocation failed\n", func);
         exit(EXIT_FAILURE);
     }
+
+    snprintf(tmp, sizeof(tmp), "%i", line);
+    mdbg(PLUGIN_LOG_MALLOC, "umalloc\t%15s\t%s\t%p (%zu)\n", func, tmp,
+	    ptr, size);
+
     return ptr;
 }
 
 void *__urealloc(void *old ,size_t size, const char *func, const int line)
 {
     void *ptr;
+    char tmp[11];
+
+    if (size < MIN_MALLOC_SIZE) size = MIN_MALLOC_SIZE;
 
     if (!(ptr = realloc(old, size))) {
-        fprintf(stderr, "%s: realloc failed.\n", func);
+        mlog("%s: realloc failed.\n", func);
         exit(EXIT_FAILURE);
     }
+
+    snprintf(tmp, sizeof(tmp), "%i", line);
+    mdbg(PLUGIN_LOG_MALLOC, "urealloc\t%15s\t%s\t%p (%zu)\t%p\n", func, tmp,
+	    ptr, size, old);
+
     return ptr;
 }
 
@@ -59,7 +81,7 @@ void __ufree(void *ptr, const char *func, const int line)
     char tmp[11];
 
     snprintf(tmp, sizeof(tmp), "%i", line);
-    mdbg(LOG_MALLOC, "ufree\t%15s\t%s\t%p\n", func, tmp, ptr);
+    mdbg(PLUGIN_LOG_MALLOC, "ufree\t%15s\t%s\t%p\n", func, tmp, ptr);
 
     free(ptr);
 }

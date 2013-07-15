@@ -1,0 +1,12 @@
+#!/bin/bash
+#
+#PBS -l walltime=60
+#PBS -N psmomRT-simple_job
+#PBS -v PSMOM_DIS_ACCOUNT
+
+echo "stdout test"
+echo "stderr test" >&2
+
+sleep 1
+
+exit 0

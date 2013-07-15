@@ -33,7 +33,9 @@
 #include "psaccount.h"
 #include "psaccountconfig.h"
 
+#include "pluginmalloc.h"
 #include "pscommon.h"
+
 
 #include "psaccountcollect.h"
 
@@ -69,7 +71,7 @@ void updateAccountData(Client_t *client)
     procChilds = getAllClientChildsMem(client->pid);
     rssnew = proc->mem + procChilds->mem;
     vsizenew = proc->vmem + procChilds->vmem;
-    free(procChilds);
+    ufree(procChilds);
 
     /* set rss (resident set size) */
     if (rssnew > accData->maxRss) accData->maxRss = rssnew;

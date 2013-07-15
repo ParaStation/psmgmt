@@ -20,6 +20,8 @@ AM_CPPFLAGS += -I$(top_srcdir)/bin/daemon
 
 plugin_LTLIBRARIES = pspmi.la
 
+libplugincommon = $(top_builddir)/lib/plugincommon/libplugincommon.la
+
 pspmi_la_SOURCES = pmiclient.c pmiclient.h pmiforwarder.c \
 	pmiforwarder.h pmilog.c pmilog.h pmimain.c pmimain.h \
 	pmispawn.c pmispawn.h pmiservice.c pmiservice.h \
@@ -27,4 +29,4 @@ pspmi_la_SOURCES = pmiclient.c pmiclient.h pmiforwarder.c \
 
 pspmi_la_CPPFLAGS = $(AM_CPPFLAGS) -DPLUGINDIR=\"$(plugindir)\"
 
-pspmi_la_LIBADD = $(libpskvs) $(libpsi)
+pspmi_la_LIBADD = $(libpskvs) $(libpsi) $(libplugincommon)

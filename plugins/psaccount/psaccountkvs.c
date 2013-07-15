@@ -19,7 +19,7 @@
 #include "psaccountinter.h"
 #include "psaccountclient.h"
 #include "psaccountconfig.h"
-#include "helper.h"
+#include "pluginmalloc.h"
 
 #include "psaccountkvs.h"
 

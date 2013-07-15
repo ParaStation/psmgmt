@@ -12,4 +12,4 @@
 
 include $(top_srcdir)/common.am
 
-SUBDIRS = psaccount psresport pspmi
+SUBDIRS = psaccount psresport pspmi psmom

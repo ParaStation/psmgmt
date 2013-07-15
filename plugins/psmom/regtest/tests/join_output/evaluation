@@ -1,0 +1,25 @@
+#!/usr/bin/env python
+#
+#               ParaStation psmom test suite
+#
+# Copyright (C) 2011 ParTec Cluster Competence Center GmbH, Munich
+#
+# author
+# Michael Rauh (rauh@par-tec.com)
+#
+
+import os
+
+outfile = os.getenv("OUTPUT_FILE")
+
+fp = open(outfile,'r')
+
+line = fp.readline()
+if line != "output\n":
+    print ("invalid job output message: '" + line + "'")
+    exit(1)
+
+line = fp.readline()
+if line != "error\n":
+    print ("invalid job error message: '" + line + "'")
+    exit(1)

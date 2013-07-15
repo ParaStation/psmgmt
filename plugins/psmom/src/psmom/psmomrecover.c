@@ -1,0 +1,173 @@
+/*
+ * ParaStation
+ *
+ * Copyright (C) 2010-2013 ParTec Cluster Competence Center GmbH, Munich
+ *
+ * This file may be distributed under the terms of the Q Public License
+ * as defined in the file LICENSE.QPL included in the packaging of this
+ * file.
+ */
+/**
+ * $Id$
+ *
+ * \author
+ * Michael Rauh <rauh@par-tec.com>
+ *
+ */
+
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#include <dirent.h>
+#include <errno.h>
+
+#include "psmomlog.h"
+#include "psmomjob.h"
+#include "psmomconfig.h"
+#include "psmomproto.h"
+#include "psmom.h"
+
+#include "pluginmalloc.h"
+
+#include "psmomrecover.h"
+
+void recoverJobInfo()
+{
+    FILE *fp;
+    struct dirent *d;
+    DIR *dir;
+    char accFile[400], value[100] = {'\0'}, buf[100] = {'\0'};
+    char *accPath = NULL, *jobid, *servername, *tmp;
+    int ret;
+    Job_t *job;
+    struct passwd *result;
+
+    accPath = getConfParamC("DIR_JOB_ACCOUNT");
+
+    if (!(dir = opendir(accPath))) {
+	mlog("%s: opening accounting dir '%s' failed\n", __func__, accPath);
+	return;
+    }
+
+    while ((d = readdir(dir))) {
+	if ((!strcmp(d->d_name, ".") || !(strcmp(d->d_name, "..")))) continue;
+
+	mlog("recovering job '%s'\n", d->d_name);
+	snprintf(accFile, sizeof(accFile), "%s/%s", accPath, d->d_name);
+
+	if (!(fp = fopen(accFile, "r"))) {
+	    mlog("%s: open job account file '%s' for reading failed\n",
+		    __func__, accFile);
+	    continue;
+	}
+
+	/* read job id */
+	if ((fscanf(fp, "%100s\n", buf)) != 1) {
+	    mlog("%s: invalid job name for job '%s'\n", __func__, d->d_name);
+	    continue;
+	}
+	jobid = ustrdup(buf);
+
+	/* read server name */
+	if ((fscanf(fp, "%100s\n", buf)) != 1) {
+	    mlog("%s: invalid server name for job '%s'\n", __func__, d->d_name);
+	    continue;
+	}
+	servername = ustrdup(buf);
+
+	/* re-add the job */
+	job = addJob(jobid, servername);
+
+	/* read job hashname */
+	if ((fscanf(fp, "%100s\n", buf)) != 1) {
+	    mlog("%s: invalid hash name for job '%s'\n", __func__, d->d_name);
+	    continue;
+	}
+	job->hashname = ustrdup(buf);
+
+	/* read job username */
+	if ((fscanf(fp, "%100s\n", buf)) != 1) {
+	    mlog("%s: invalid user name for job '%s'\n", __func__, d->d_name);
+	    continue;
+	}
+	job->user = ustrdup(buf);
+
+	/* read saved accounting data */
+	while ((ret = fscanf(fp, "%100s\n", buf)) == 1) {
+	    if (!(tmp = strchr(buf, '='))) {
+		mlog("%s: ignore invalid account entry '%s'\n", __func__,
+			buf);
+		continue;
+	    }
+	    snprintf(value, sizeof(value), "%s", tmp + 1);
+	    tmp[0] = '\0';
+
+	    //mlog("%s: read: '%s' '%s'\n", __func__, buf, value);
+	    setEntry(&job->status.list, "resources_used", buf, value);
+	}
+
+	/* save users passwd information (needed for copyout phase) */
+	job->pwbuf = umalloc(pwBufferSize);
+	while ((getpwnam_r(job->user, &job->passwd, job->pwbuf, pwBufferSize,
+			&result)) != 0) {
+	    if (errno == EINTR) continue;
+	    mlog("%s: getpwnam(%s) failed : %s\n", __func__, job->user,
+		    strerror(errno));
+	    break;
+	}
+
+	job->state = JOB_EXIT;
+	job->jobscriptExit = -1;
+	job->recovered = 1;
+
+	/* release the job if connected to server */
+	setJobObitTimer(job);
+
+	fclose(fp);
+    }
+    closedir(dir);
+}
+
+void saveJobInfo(Job_t *job)
+{
+    struct list_head *pos;
+    Data_Entry_t *next;
+    FILE *fp;
+    char accFile[400], *accPath = NULL;
+
+    if (!job) {
+	mlog("%s: got invalid job object\n", __func__);
+	return;
+    }
+
+    if (job->state == JOB_WAIT_OBIT) return;
+
+    accPath = getConfParamC("DIR_JOB_ACCOUNT");
+    snprintf(accFile, sizeof(accFile), "%s/%s", accPath, job->hashname);
+
+    if (!(fp = fopen(accFile, "w"))) {
+	mlog("%s: open job account file '%s' for writing failed\n", __func__,
+	    accFile);
+	return;
+    }
+
+    /* save job information needed for recover */
+    fprintf(fp, "%s\n", job->id);
+    fprintf(fp, "%s\n", job->server);
+    fprintf(fp, "%s\n", job->hashname);
+    fprintf(fp, "%s\n", job->user);
+
+    /* save job account information */
+    list_for_each(pos, &job->status.list) {
+	if ((next = list_entry(pos, Data_Entry_t, list)) == NULL) {
+	    break;
+	}
+	if (!next->name || next->name == '\0') {
+	    break;
+	}
+	if (!(strcmp(next->name, "resources_used"))) {
+	    fprintf(fp, "%s=%s\n", next->resource, next->value);
+	}
+    }
+    fclose(fp);
+}

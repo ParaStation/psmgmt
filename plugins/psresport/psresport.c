@@ -21,7 +21,7 @@
 #include "plugin.h"
 #include "pscommon.h"
 
-#include "helper.h"
+#include "pluginmalloc.h"
 
 #include "psresportlog.h"
 #include "psresportconfig.h"
@@ -138,7 +138,7 @@ static char *str2Buf(char *strSave, char *buffer, size_t *bufSize)
  */
 static void freeUniqNodes()
 {
-    free(uniqNodeList);
+    ufree(uniqNodeList);
     uniqNodeList = NULL;
     uniqNodeCount = 0;
 }
@@ -168,7 +168,7 @@ static int extractPortInfos(char *ports)
  *
  * This function will extract the number of needed ports and build up a uniq
  * node array. The space for the node list will be dynamically allocated and
- * must be freed using free().
+ * must be freed using ufree().
  *
  * @param request The request to parse.
  *
@@ -217,7 +217,7 @@ static int parseSlots(uint32_t size, PSpart_slot_t *slots)
 	}
     }
 
-    free(slotsPerNode);
+    ufree(slotsPerNode);
 
     return maxPorts + 1;
 }
@@ -469,7 +469,7 @@ static int addNewReservation(void *req)
     } else {
 	mdbg(RP_LOG_DEBUG, "%s: port reservation failed\n", __func__);
 	request->resPorts = NULL;
-	free(resPorts);
+	ufree(resPorts);
     }
 
     /* free uniq node list reserved by parseSlots() */
@@ -535,7 +535,7 @@ static void freeEmptyNodeBitmasks(int *uNodeList, uint32_t uNodeCount)
 	if (isEmpty) {
 	    mdbg(RP_LOG_DEBUG, "%s: bitfield for node '%i' is empty, "
 		    "freeing it\n", __func__, node);
-	    free(nodeBitField[node]);
+	    ufree(nodeBitField[node]);
 	    nodeBitField[node] = NULL;
 	}
     }
@@ -551,7 +551,7 @@ static void freeEmptyNodeBitmasks(int *uNodeList, uint32_t uNodeCount)
  */
 static int clearAllReservations()
 {
-    free(nodeBitField);
+    ufree(nodeBitField);
     nodeBitField = NULL;
 
     reservationCount = 0;
@@ -584,7 +584,7 @@ static int releaseReservation(void *req)
     freeUniqNodes();
 
     /* free reservation */
-    free(request->resPorts);
+    ufree(request->resPorts);
     request->resPorts = NULL;
 
     return 0;
@@ -642,7 +642,7 @@ int initialize(void)
 
 void cleanup(void)
 {
-    free(nodeBitField);
+    ufree(nodeBitField);
 
     if (!(PSIDhook_del(PSIDHOOK_MASTER_GETPART, addNewReservation))) {
 	mlog("%s: removing PSIDHOOK_MASTER_GETPART failed\n", __func__);

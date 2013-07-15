@@ -1,0 +1,23 @@
+#!/usr/bin/env python
+#
+#               ParaStation psmom test suite
+#
+# Copyright (C) 2011 ParTec Cluster Competence Center GmbH, Munich
+#
+# author
+# Michael Rauh (rauh@par-tec.com)
+#
+
+import sys
+import os
+
+sys.path.append(os.getenv("RTH"))
+from rth import *
+
+r = rth()
+ofile = os.getenv("OUTPUT_FILE")
+
+rth.parseOutput(r, ofile)
+
+out = os.popen("nice").readline()
+rth.testEnv(r, "NICE", out[:out.find("\n")])

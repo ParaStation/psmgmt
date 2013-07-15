@@ -28,6 +28,7 @@ static char vcid[] __attribute__((used)) =
 #include <errno.h>
 
 #include "pscommon.h"
+#include "pluginmalloc.h"
 #include "kvs.h"
 #include "kvscommon.h"
 #include "pslog.h"
@@ -368,9 +369,9 @@ int handleSpawnRes(void *vmsg)
  */
 static void deluBufferEntry(Update_Buffer_t *uBuf)
 {
-    free(uBuf->msg);
+    ufree(uBuf->msg);
     list_del(&uBuf->list);
-    free(uBuf);
+    ufree(uBuf);
 }
 
 /**
@@ -985,15 +986,13 @@ static char **getSpawnArgs(char *msgBuffer, int *argc)
     }
 
     maxargc += addArgs;
-    if (!(argv = malloc((maxargc) * sizeof(char *)))) {
-	elog("%s(r%i): out of memory\n", __func__, rank);
-	exit(1);
-    }
+    argv = umalloc((maxargc) * sizeof(char *));
+
     for (i=0; i<maxargc; i++) argv[i] = NULL;
 
     /* add the executalbe as argv[0] */
     if (!(execname = getpmivm("execname", msgBuffer))) {
-	free(argv);
+	ufree(argv);
 	elog("%s(r%i): invalid executable name\n", __func__, rank);
 	return NULL;
     }
@@ -1005,8 +1004,8 @@ static char **getSpawnArgs(char *msgBuffer, int *argc)
 	if ((nextval = getpmivm(buffer, msgBuffer))) {
 	    argv[(*argc)++] = nextval;
 	} else {
-	    for (i=0; i<*argc; i++) free(argv[i]);
-	    free(argv);
+	    for (i=0; i<*argc; i++) ufree(argv[i]);
+	    ufree(argv);
 	    *argc = 0;
 	    elog("%s(r%i): extracting arguments failed\n", __func__, rank);
 	    return NULL;
@@ -1041,7 +1040,7 @@ static int p_Spawn(char *msgBuffer)
     }
 
     /* save spawn buffer for later */
-    if (!(spawnBuffer = strdup(msgBuffer))) {
+    if (!(spawnBuffer = ustrdup(msgBuffer))) {
 	elog("%s(r%i): out of memory\n", __func__, rank);
 	critErr();
 	PMI_send("cmd=spawn_result rc=-1\n");
@@ -1144,10 +1143,10 @@ static int tryPMISpawn(char *spawnBuffer, int serviceRank)
 
     count = 0;
     envc = atoi(numPreput);
-    envv = malloc(sizeof(char *) * ( envc + 2));
+    envv = umalloc(sizeof(char *) * ( envc + 2));
 
     snprintf(buffer, sizeof(buffer), "__PMI_preput_num=%i", envc);
-    envv[count++] = strdup(buffer);
+    envv[count++] = ustrdup(buffer);
 
     for (i=0; i< envc; i++) {
 	int esize;
@@ -1158,7 +1157,7 @@ static int tryPMISpawn(char *spawnBuffer, int serviceRank)
 	    goto spawn_error;
 	}
 	esize = 6 + strlen(buffer) + 1 + strlen(nextkey) + 1;
-	envv[count] = malloc(esize);
+	envv[count] = umalloc(esize);
 	snprintf(envv[count++], esize, "__PMI_%s=%s", buffer, nextkey);
 
 	snprintf(buffer, sizeof(buffer), "preput_val_%i", i);
@@ -1168,7 +1167,7 @@ static int tryPMISpawn(char *spawnBuffer, int serviceRank)
 	    goto spawn_error;
 	}
 	esize = 6 + strlen(buffer) + 1 + strlen(nextvalue) + 1;
-	envv[count] = malloc(esize);
+	envv[count] = umalloc(esize);
 	snprintf(envv[count++], esize, "__PMI_%s=%s", buffer, nextvalue);
     }
     envc = count;
@@ -1241,7 +1240,7 @@ static int tryPMISpawn(char *spawnBuffer, int serviceRank)
 	    soft = getpmivm(buffer, spawnBuffer);
 	    sList = getSoftArgList(soft, &count);
 
-	    free(soft);
+	    ufree(soft);
 	}
 	*/
     }
@@ -1273,14 +1272,14 @@ static int tryPMISpawn(char *spawnBuffer, int serviceRank)
 spawn_error:
 
     for (i=0; i<argc; i++) {
-	if (argv && argv[i]) free(argv[i]);
+	if (argv && argv[i]) ufree(argv[i]);
     }
-    free(argv);
+    ufree(argv);
 
-    free(hosts);
-    free(machinefile);
-    free(nodeType);
-    free(pmiWdir);
+    ufree(hosts);
+    ufree(machinefile);
+    ufree(nodeType);
+    ufree(pmiWdir);
 
     PMI_send("cmd=spawn_result rc=-1\n");
     return 1;
@@ -1720,26 +1719,26 @@ static int extractPMIcmd(char *msg, char *cmdbuf, int bufsize)
 	return !critErr();
     }
 
-    msgCopy = strdup(msg);
+    msgCopy = ustrdup(msg);
     cmd = strtok_r(msgCopy, delimiters, &saveptr);
 
     while ( cmd != NULL ) {
 	if (!strncmp(cmd,"cmd=", 4)) {
 	    cmd += 4;
 	    strncpy(cmdbuf, cmd, bufsize);
-	    free(msgCopy);
+	    ufree(msgCopy);
 	    return 1;
 	}
 	if (!strncmp(cmd,"mcmd=", 5)) {
 	    cmd += 5;
 	    strncpy(cmdbuf, cmd, bufsize);
-	    free(msgCopy);
+	    ufree(msgCopy);
 	    return 1;
 	}
 	cmd = strtok_r(NULL, delimiters, &saveptr);
     }
 
-    free(msgCopy);
+    ufree(msgCopy);
     return 0;
 }
 
@@ -1841,15 +1840,8 @@ static void bufferCacheUpdate(char *msg, size_t msgLen, int isSuccReady,
 {
     Update_Buffer_t *uBuf;
 
-    if (!(uBuf = (Update_Buffer_t *) malloc(sizeof(Update_Buffer_t)))) {
-	elog("%s(r%i): out of memory\n", __func__, rank);
-	exit(1);
-    }
-
-    if (!(uBuf->msg = malloc(msgLen))) {
-	elog("%s(r%i): out of memory\n", __func__, rank);
-	exit(1);
-    }
+    uBuf = (Update_Buffer_t *) umalloc(sizeof(Update_Buffer_t));
+    uBuf->msg = umalloc(msgLen);
 
     memcpy(uBuf->msg, msg, msgLen);
     uBuf->len = msgLen;
@@ -2095,7 +2087,7 @@ static void handleServiceInfo(PSLog_Msg_t *msg)
     tryPMISpawn(spawnBuffer, serviceRank);
 
     /* cleanup */
-    free(spawnBuffer);
+    ufree(spawnBuffer);
     spawnBuffer = NULL;
 }
 

@@ -1,0 +1,10 @@
+#!/bin/bash
+#
+#PBS -W umask=0033
+#PBS -l walltime=60
+#PBS -N psmomRT-attr_umask2
+
+echo "UMASK=27"
+sleep 1
+
+exit 0

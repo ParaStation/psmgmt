@@ -27,6 +27,7 @@
 #include "timer.h"
 #include "pscommon.h"
 #include "psidaccount.h"
+#include "pluginmalloc.h"
 
 #include "psaccountcomm.h"
 
@@ -280,7 +281,7 @@ static void handleAccountLog(DDTypedBufferMsg_t *msg)
 
     /* set up job id */
     if (!job->jobid) {
-	job->jobid = strdup(ptr);
+	job->jobid = ustrdup(ptr);
     }
 }
 
@@ -328,7 +329,7 @@ static void monitorJobStarted(void)
 			    __func__, js->pid);
 			job->jobscript = js->pid;
 			if (!job->jobid && js->jobid) {
-			    job->jobid = strdup(js->jobid);
+			    job->jobid = ustrdup(js->jobid);
 			}
 		    }
 		}

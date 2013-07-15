@@ -18,7 +18,7 @@
 #include <unistd.h>
 
 #include "psresportlog.h"
-#include "helper.h"
+#include "pluginmalloc.h"
 
 #include "psresportconfig.h"
 

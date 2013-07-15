@@ -1,0 +1,18 @@
+#!/bin/bash
+#
+#MSUB -N psmomRT-moab_signal 
+#MSUB -l walltime=00:00:40
+#MSUB -l signal=28@20
+
+function handler
+{
+  echo "SIGNAL$1=$1"
+}
+
+
+for signum in 2 10 12 15 28
+do
+  trap "handler $signum" $signum
+done
+
+sleep 300

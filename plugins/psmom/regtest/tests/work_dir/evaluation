@@ -1,0 +1,33 @@
+#!/usr/bin/env python
+#
+#               ParaStation psmom test suite
+#
+# Copyright (C) 2011 ParTec Cluster Competence Center GmbH, Munich
+#
+# author
+# Michael Rauh (rauh@par-tec.com)
+#
+
+import sys
+import os
+
+sys.path.append(os.getenv("RTH"))
+from rth import *
+
+r = rth()
+ofile = os.getenv("OUTPUT_FILE")
+efile = os.getenv("ERROR_FILE")
+
+jout = os.getenv("RTH_TESTDIR") + "wdir/" + ofile[ofile.rfind("/")+1:]
+jerr = os.getenv("RTH_TESTDIR") + "wdir/" + efile[efile.rfind("/")+1:]
+
+rth.parseOutput(r, jout)
+
+rth.testEnv(r,"PWD1", os.path.abspath(os.getenv("RTH_TESTDIR") + "ddir"))
+rth.testEnv(r,"PWD2", os.path.abspath(os.getenv("RTH_TESTDIR") + "ddir"))
+rth.testEnv(r,"PBS_O_INITDIR", os.getenv("PBS_O_INITDIR"))
+rth.testEnv(r,"PBS_O_WORKDIR", os.getenv("PBS_O_WORKDIR"))
+
+if os.getenv("RTH_CLEANUP") == "1":
+    os.unlink(jout)
+    os.unlink(jerr)

@@ -1,0 +1,17 @@
+#!/usr/bin/env python
+#
+#               ParaStation psmom test suite
+#
+# Copyright (C) 2011 ParTec Cluster Competence Center GmbH, Munich
+#
+# author
+# Michael Rauh (rauh@par-tec.com)
+#
+
+import sys, os
+
+walltime = os.getenv("RTH_RUNTIME")
+
+if int(walltime) > 50:
+    print("walltime limit not working (" + walltime + ")")
+    exit(1)

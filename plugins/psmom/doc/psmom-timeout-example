@@ -1,0 +1,14 @@
+#!/bin/bash
+
+# note: stdout and stderror are discarded
+
+# available environment variables:
+#
+# PBS_JOBID
+# PBS_USER
+# PBS_GROUP
+# PBS_JOBNAME
+# PELOGUE_SCRIPT
+
+echo $PELOGUE_SCRIPT timed out > /tmp/pelogue-timeout
+pstree >> tmp/pelogue-timeout

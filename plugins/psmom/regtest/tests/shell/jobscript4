@@ -1,0 +1,9 @@
+#!/bin/bash
+#
+#PBS -S /bin/ksh 
+#PBS -l walltime=60
+#PBS -N psmomRT-shell4
+
+echo "SHELL=$SHELL"
+
+exit 0
