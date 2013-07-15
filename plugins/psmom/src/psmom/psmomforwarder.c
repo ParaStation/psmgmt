@@ -30,6 +30,7 @@
 #include <pwd.h>
 #include <wordexp.h>
 #include <syslog.h>
+#include <sys/resource.h>
 
 #include "psmom.h"
 #include "psmomspawn.h"
