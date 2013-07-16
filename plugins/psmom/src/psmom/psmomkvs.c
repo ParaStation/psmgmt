@@ -598,9 +598,33 @@ static char *showAllowedPid(char *key, char *buf, size_t *bufSize)
     JobInfo_t *jInfo;
     PStask_ID_t psAccLogger;
     PStask_t *task;
+    Child_t *child;
 
     if ((sscanf(key, "allowed_%i", &pid)) != 1) {
 	return str2Buf("\nInvalid pid: not a number\n", buf, bufSize);
+    }
+
+    sid = getSIDforPID(pid);
+
+    list_for_each_safe(pos, tmp, &ChildList.list) {
+	if ((child = list_entry(pos, Child_t, list)) == NULL) continue;
+	if (child->pid == pid) {
+	    found = 1;
+	    reason = "LOCAL_FORWARDER";
+	    goto FINISH;
+	}
+
+	if (child->c_pid == pid) {
+	    found = 1;
+	    reason = "LOCAL_CHILD_PID";
+	    goto FINISH;
+	}
+
+	if (child->c_sid == sid) {
+	    found = 1;
+	    reason = "LOCAL_CHILD_SID";
+	    goto FINISH;
+	}
     }
 
     /* try to find the logger using the account client list */
@@ -610,8 +634,6 @@ static char *showAllowedPid(char *key, char *buf, size_t *bufSize)
 	psAccLogger = task->loggertid;
     }
 
-    sid = getSIDforPID(pid);
-
     /* check for local job */
     if (!list_empty(&JobList.list)) {
 
@@ -619,7 +641,11 @@ static char *showAllowedPid(char *key, char *buf, size_t *bufSize)
 	    if ((job = list_entry(pos, Job_t, list)) == NULL) continue;
 
 	    /* skip jobs in wrong jobstate */
-	    if (job->state != JOB_RUNNING) continue;
+	    if (job->state == JOB_CANCEL_PROLOGUE ||
+		job->state == JOB_CANCEL_EPILOGUE ||
+		job->state == JOB_CANCEL_INTERACTIVE ||
+		job->state == JOB_WAIT_OBIT ||
+		job->state == JOB_QUEUED) continue;
 
 	    /* is a child of the jobscript? */
 	    if (job->pid == pid) {
