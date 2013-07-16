@@ -46,6 +46,7 @@ typedef enum {
     PSMOM_LOG_LOCAL   = 0x020000, /**< Local communication */
     PSMOM_LOG_MALLOC  = 0x040000, /**< Memory Allocation */
     PSMOM_LOG_ACC     = 0x080000, /**< Accounting Infos */
+    PSMOM_LOG_OBIT    = 0x100000, /**< Detailed job obit log */
 } PSMOM_log_types_t;
 
 
