@@ -528,6 +528,45 @@ static int setRootHome()
     return 1;
 }
 
+/**
+ * @brief Unregister all hooks and message handler.
+ *
+ * @param verbose If set to true an error message will be displayed
+ * when unregistering a hook or a message handle fails.
+ *
+ * @return No return value.
+ */
+static void unregisterHooks(int verbose)
+{
+    /* unregister psmom msg */
+    PSID_clearMsg(PSP_CC_PSMOM);
+
+    /* unregister msg drop handler */
+    PSID_clearDropper(PSP_CC_PSMOM);
+
+    /* restore old SPAWNREQ handler */
+    if (oldSpawnReqHandler) {
+	PSID_registerMsg(PSP_CD_SPAWNREQ, (handlerFunc_t) oldSpawnReqHandler);
+    }
+
+    /* unregister hooks */
+    if (!(PSIDhook_del(PSIDHOOK_NODE_DOWN, handleNodeDown))) {
+	if (verbose) mlog("unregister 'PSIDHOOK_NODE_DOWN' failed\n");
+    }
+
+    if (!(PSIDhook_del(PSIDHOOK_CREATEPART, handleCreatePart))) {
+	if (verbose) mlog("unregister 'PSIDHOOK_CREATEPART' failed\n");
+    }
+
+    if (!(PSIDhook_del(PSIDHOOK_CREATEPARTNL, handleCreatePartNL))) {
+	if (verbose) mlog("unregister 'PSIDHOOK_CREATEPARTNL' failed\n");
+    }
+
+    if (!(PSIDhook_del(PSIDHOOK_SHUTDOWN, handleShutdown))) {
+	if (verbose) mlog("unregister 'PSIDHOOK_SHUTDOWN' failed\n");
+    }
+}
+
 int initialize(void)
 {
     static struct timeval time_now;
@@ -637,22 +676,22 @@ int initialize(void)
     /* register needed hooks */
     if (!(PSIDhook_add(PSIDHOOK_NODE_DOWN, handleNodeDown))) {
 	mlog("register 'PSIDHOOK_NODE_DOWN' failed\n");
-	return 1;
+	goto INIT_ERROR;
     }
 
     if (!(PSIDhook_add(PSIDHOOK_CREATEPART, handleCreatePart))) {
 	mlog("register 'PSIDHOOK_CREATEPART' failed\n");
-	return 1;
+	goto INIT_ERROR;
     }
 
     if (!(PSIDhook_add(PSIDHOOK_CREATEPARTNL, handleCreatePartNL))) {
 	mlog("register 'PSIDHOOK_CREATEPARTNL' failed\n");
-	return 1;
+	goto INIT_ERROR;
     }
 
     if (!(PSIDhook_add(PSIDHOOK_SHUTDOWN, handleShutdown))) {
 	mlog("register 'PSIDHOOK_SHUTDOWN' failed\n");
-	return 1;
+	goto INIT_ERROR;
     }
 
     /* make sure timer facility is ready */
@@ -664,7 +703,7 @@ int initialize(void)
 
     /* connect to the pbs server(s) */
     if ((openServerConnections())) {
-	return 1;
+	goto INIT_ERROR;
     }
 
     /* recover lost jobs */
@@ -676,6 +715,11 @@ int initialize(void)
 
     mlog("(%i) successfully started\n", version);
     return 0;
+
+
+INIT_ERROR:
+    unregisterHooks(0);
+    return 1;
 }
 
 void finalize(void)
@@ -726,31 +770,8 @@ void cleanup(void)
 
     mlog("shutdown communication\n");
 
-    /* unregister psmom msg */
-    PSID_clearMsg(PSP_CC_PSMOM);
-
-    /* unregister msg drop handler */
-    PSID_clearDropper(PSP_CC_PSMOM);
-
-    /* restore old SPAWNREQ handler */
-    PSID_registerMsg(PSP_CD_SPAWNREQ, (handlerFunc_t) oldSpawnReqHandler);
-
-    /* unregister hooks */
-    if (!(PSIDhook_del(PSIDHOOK_NODE_DOWN, handleNodeDown))) {
-	mlog("unregister 'PSIDHOOK_NODE_DOWN' failed\n");
-    }
-
-    if (!(PSIDhook_del(PSIDHOOK_CREATEPART, handleCreatePart))) {
-	mlog("unregister 'PSIDHOOK_CREATEPART' failed\n");
-    }
-
-    if (!(PSIDhook_del(PSIDHOOK_CREATEPARTNL, handleCreatePartNL))) {
-	mlog("unregister 'PSIDHOOK_CREATEPARTNL' failed\n");
-    }
-
-    if (!(PSIDhook_del(PSIDHOOK_SHUTDOWN, handleShutdown))) {
-	mlog("unregister 'PSIDHOOK_SHUTDOWN' failed\n");
-    }
+    /* remove all registered hooks and msg handler */
+    unregisterHooks(1);
 
     /* close local comm socket */
     closeMasterSock();
