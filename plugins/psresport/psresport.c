@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2012 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2012-2013 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -468,7 +468,6 @@ static int addNewReservation(void *req)
 	pRangeLast = getNextPort(pRangeLast);
     } else {
 	mdbg(RP_LOG_DEBUG, "%s: port reservation failed\n", __func__);
-	request->resPorts = NULL;
 	ufree(resPorts);
     }
 

@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2012 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2013 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -376,7 +376,6 @@ static void jobFinished(PSpart_request_t *req)
     PSID_log(PSID_LOG_PART, "%s(%s)\n", __func__, PSC_printTID(req->tid));
 
     PSIDhook_call(PSIDHOOK_MASTER_FINJOB, req);
-    if (req->resPorts) free(req->resPorts);
 
     if (!req->freed) unregisterReq(req);
 
@@ -1926,7 +1925,6 @@ static int getPartition(PSpart_request_t *request)
 	goto error;
     }
 
-    request->resPorts = NULL;
     if (request->options & PART_OPT_RESPORTS) {
 	PSIDhook_call(PSIDHOOK_MASTER_GETPART, request);
     }
@@ -2708,7 +2706,7 @@ static void msg_PROVIDETASKRP(DDBufferMsg_t *inmsg)
     count = *(uint16_t *) ptr;
     ptr += sizeof(uint16_t);
 
-    if (!(req->resPorts = malloc((count +1) * sizeof(uint16_t *)))) {
+    if (!(req->resPorts = malloc((count + 1) * sizeof(uint16_t)))) {
 	PSID_log(-1, "%s: out of memory\n", __func__);
 	exit(1);
     }
@@ -2766,7 +2764,7 @@ static void msg_PROVIDEPARTRP(DDBufferMsg_t *inmsg)
     count = *(uint16_t *) ptr;
     ptr += sizeof(uint16_t);
 
-    if (!(task->resPorts = malloc((count +1) * sizeof(uint16_t *)))) {
+    if (!(task->resPorts = malloc((count +1 ) * sizeof(uint16_t)))) {
 	PSID_log(-1, "%s: out of memory\n", __func__);
 	exit(1);
     }
@@ -3370,7 +3368,6 @@ static void msg_PROVIDETASK(DDBufferMsg_t *inmsg)
 	return;
     }
     req->sizeGot = 0;
-    req->resPorts = NULL;
     enqueueRequest(&pendReq, req);
 }
 

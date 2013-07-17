@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2011 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2013 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -56,6 +56,7 @@ void PSpart_initReq(PSpart_request_t* request)
     request->deleted = 0;
     request->suspended = 0;
     request->freed = 0;
+    request->resPorts = NULL;
 }
 
 void PSpart_reinitReq(PSpart_request_t* request)
@@ -67,6 +68,7 @@ void PSpart_reinitReq(PSpart_request_t* request)
 
     if (request->nodes) free(request->nodes);
     if (request->slots) free(request->slots);
+    if (request->resPorts) free(request->resPorts);
 
     PSpart_initReq(request);
 }
