@@ -34,7 +34,7 @@
 
 /** psid plugin requirements */
 char name[] = "psresport";
-int version = 1;
+int version = 2;
 int requiredAPI = 108;
 plugin_dep_t dependencies[1];
 
@@ -589,6 +589,34 @@ static int releaseReservation(void *req)
     return 0;
 }
 
+
+/**
+ * @brief Unregister all hooks and message handler.
+ *
+ * @param verbose If set to true an error message will be displayed
+ * when unregistering a hook or a message handle fails.
+ *
+ * @return No return value.
+ */
+static void unregisterHooks(int verbose)
+{
+    if (!(PSIDhook_del(PSIDHOOK_MASTER_GETPART, addNewReservation))) {
+	if (verbose) mlog("removing PSIDHOOK_MASTER_GETPART failed\n");
+    }
+
+    if (!(PSIDhook_del(PSIDHOOK_MASTER_FINJOB, releaseReservation))) {
+	if (verbose) mlog("removing PSIDHOOK_MASTER_FINJOB failed\n");
+    }
+
+    if (!(PSIDhook_del(PSIDHOOK_MASTER_RECPART, recoverReservedPorts))) {
+	if (verbose) mlog("removing PSIDHOOK_MASTER_RECPART failed\n");
+    }
+
+    if (!(PSIDhook_del(PSIDHOOK_MASTER_EXITPART, clearAllReservations))) {
+	if (verbose) mlog("removing PSIDHOOK_MASTER_EXITPART failed\n");
+    }
+}
+
 int initialize(void)
 {
     int debugMask;
@@ -608,22 +636,22 @@ int initialize(void)
 
     if (!(PSIDhook_add(PSIDHOOK_MASTER_GETPART, addNewReservation))) {
 	mlog("%s: register PSIDHOOK_MASTER_GETPART failed\n", __func__);
-	return 1;
+	goto INIT_ERROR;
     }
 
     if (!(PSIDhook_add(PSIDHOOK_MASTER_FINJOB, releaseReservation))) {
 	mlog("%s: register PSIDHOOK_MASTER_FINJOB failed\n", __func__);
-	return 1;
+	goto INIT_ERROR;
     }
 
     if (!(PSIDhook_add(PSIDHOOK_MASTER_RECPART, recoverReservedPorts))) {
 	mlog("%s: register PSIDHOOK_MASTER_RECPART failed\n", __func__);
-	return 1;
+	goto INIT_ERROR;
     }
 
     if (!(PSIDhook_add(PSIDHOOK_MASTER_EXITPART, clearAllReservations))) {
 	mlog("%s: register PSIDHOOK_MASTER_EXITPART failed\n", __func__);
-	return 1;
+	goto INIT_ERROR;
     }
 
     /* get reserved ports from config */
@@ -631,33 +659,23 @@ int initialize(void)
 
     if (!(extractPortInfos(ports))) {
 	mlog("%s: invalid port range '%s'\n", __func__, ports);
-	return 1;
+	goto INIT_ERROR;
     }
 
     mlog("(%i) successfully started\n", version);
 
     return 0;
+
+
+INIT_ERROR:
+    unregisterHooks(0);
+    return 1;
 }
 
 void cleanup(void)
 {
     ufree(nodeBitField);
-
-    if (!(PSIDhook_del(PSIDHOOK_MASTER_GETPART, addNewReservation))) {
-	mlog("%s: removing PSIDHOOK_MASTER_GETPART failed\n", __func__);
-    }
-
-    if (!(PSIDhook_del(PSIDHOOK_MASTER_FINJOB, releaseReservation))) {
-	mlog("%s: removing PSIDHOOK_MASTER_FINJOB failed\n", __func__);
-    }
-
-    if (!(PSIDhook_del(PSIDHOOK_MASTER_RECPART, recoverReservedPorts))) {
-	mlog("%s: removing PSIDHOOK_MASTER_RECPART failed\n", __func__);
-    }
-
-    if (!(PSIDhook_add(PSIDHOOK_MASTER_EXITPART, clearAllReservations))) {
-	mlog("%s: removing PSIDHOOK_MASTER_EXITPART failed\n", __func__);
-    }
+    unregisterHooks(1);
 }
 
 /**
