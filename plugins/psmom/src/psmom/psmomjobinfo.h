@@ -89,6 +89,15 @@ JobInfo_t *findJobInfoById(char *id);
 JobInfo_t *findJobInfoByUser(char *user);
 
 /**
+ * @brief Find a job info by the TID of the logger.
+ *
+ * @param logger The TID of the logger.
+ *
+ * @return Returns a pointer to the requested job info or NULL on error.
+ */
+JobInfo_t *findJobInfoByLogger(PStask_ID_t logger);
+
+/**
  * @brief Delete a job info.
  *
  * @param id The jobid of the job info to delete.

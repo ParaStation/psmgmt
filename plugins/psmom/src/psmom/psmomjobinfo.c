@@ -88,7 +88,7 @@ JobInfo_t *addJobInfo(char *id, char *user, PStask_ID_t tid, char *timeout,
  *
  * @return Returns a pointer to the requested job info or NULL on error.
  */
-static JobInfo_t *findJobInfo(char *id, char *user)
+static JobInfo_t *findJobInfo(char *id, char *user, PStask_ID_t logger)
 {
     struct list_head *pos;
     JobInfo_t *job;
@@ -101,15 +101,15 @@ static JobInfo_t *findJobInfo(char *id, char *user)
 	}
 
 	if (id) {
-	    if (!strcmp(job->id, id)) {
-		return job;
-	    }
+	    if (!strcmp(job->id, id)) return job;
 	}
 
 	if (user) {
-	    if (!strcmp(job->user, user)) {
-		return job;
-	    }
+	    if (!strcmp(job->user, user)) return job;
+	}
+
+	if (logger > 0) {
+	    if (job->logger == logger) return job;
 	}
     }
     return NULL;
@@ -117,12 +117,17 @@ static JobInfo_t *findJobInfo(char *id, char *user)
 
 JobInfo_t *findJobInfoById(char *id)
 {
-    return findJobInfo(id, NULL);
+    return findJobInfo(id, NULL, 0);
 }
 
 JobInfo_t *findJobInfoByUser(char *user)
 {
-    return findJobInfo(NULL, user);
+    return findJobInfo(NULL, user, 0);
+}
+
+JobInfo_t *findJobInfoByLogger(PStask_ID_t logger)
+{
+    return findJobInfo(NULL, NULL, logger);
 }
 
 int delJobInfo(char *id)
@@ -135,6 +140,7 @@ int delJobInfo(char *id)
 
     ufree(job->id);
     ufree(job->user);
+    ufree(job->cookie);
 
     list_del(&job->list);
     ufree(job);

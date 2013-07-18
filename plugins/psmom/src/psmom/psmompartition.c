@@ -31,6 +31,7 @@
 #include "psidnodes.h"
 #include "psdaemonprotocol.h"
 #include "psmompsaccfunc.h"
+#include "psmomjobinfo.h"
 
 #include "psmompscomm.h"
 #include "psmomconfig.h"
@@ -219,8 +220,10 @@ void handlePSSpawnReq(DDTypedBufferMsg_t *msg)
     static int injectedEnv = 0;
     PStask_t *task;
     Job_t *job;
-    char *next;
+    JobInfo_t *jinfo;
+    char *next, *jobid = NULL, *jobcookie = NULL;
     size_t left, len = 0;
+    pid_t logger;
 
     /* don't mess with messages from other nodes */
     if (PSC_getID(msg->header.sender) != PSC_getMyID()) {
@@ -241,15 +244,29 @@ void handlePSSpawnReq(DDTypedBufferMsg_t *msg)
 		return;
 	    }
 
-	    if (!(job = findJobByLogger(PSC_getPID(task->loggertid)))) {
-		if (!(job = findJobforPID(task->loggertid))) {
-		    mdbg(PSMOM_LOG_WARN, "%s: job for logger '%s' not found\n",
-			    __func__, PSC_printTID(task->loggertid));
-		    return;
-		} else if (job->mpiexec == -1) {
+	    logger = PSC_getPID(task->loggertid);
+
+	    /* the logger can be located on our node or on a different node
+	     * if the spawner was shifted.
+	     */
+	    if ((job = findJobByLogger(logger))) {
+		jobid = job->id;
+		jobcookie = job->cookie;
+	    } else if ((job = findJobforPID(logger))) {
+		if (job->mpiexec == -1) {
 		    job->mpiexec = task->loggertid;
+
+		    /* forward info to all nodes */
+		    sendJobUpdate(job);
 		}
+		jobid = job->id;
+		jobcookie = job->cookie;
+	    } else if ((jinfo = findJobInfoByLogger(task->loggertid))) {
+		jobid = jinfo->id;
+		jobcookie = jinfo->cookie;
 	    }
+
+	    if (!jobid || !jobcookie) return;
 
 	    /* send additional environment variables */
 	    msg->type = PSP_SPAWN_ENV;
@@ -257,12 +274,12 @@ void handlePSSpawnReq(DDTypedBufferMsg_t *msg)
 	    memset(msg->buf, 0, BufTypedMsgSize);
 	    left = BufTypedMsgSize;
 
-	    len = snprintf(msg->buf, left, "PBS_JOBCOOKIE=%s", job->cookie);
+	    len = snprintf(msg->buf, left, "PBS_JOBCOOKIE=%s", jobcookie);
 	    next = msg->buf + len + 1;
 	    msg->header.len += len +1;
 	    left -= len +1;
 
-	    len = snprintf(next, left, "PBS_JOBID=%s", job->id);
+	    len = snprintf(next, left, "PBS_JOBID=%s", jobid);
 	    next += len + 1;
 	    msg->header.len += len +1;
 	    left -= len +1;
@@ -270,6 +287,7 @@ void handlePSSpawnReq(DDTypedBufferMsg_t *msg)
 	    /* end of encoding */
 	    msg->header.len++;
 
+	    /* send altered message */
 	    oldSpawnReqHandler((DDBufferMsg_t *) msg);
 	    injectedEnv = 1;
 	    return;
