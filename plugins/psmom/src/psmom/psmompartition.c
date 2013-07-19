@@ -421,7 +421,7 @@ int handleCreatePart(void *msg)
 	    ufree(nodelist->nodes);
 	    ufree(nodelist);
 	}
-	if (task->request) {
+	if (task && task->request) {
 	    PSpart_delReq(task->request);
 	    task->request = NULL;
 	}
@@ -467,7 +467,7 @@ int handleCreatePartNL(void *msg)
 
     error:
     {
-	if (task->request) {
+	if (task && task->request) {
 	    PSpart_delReq(task->request);
 	    task->request = NULL;
 	}

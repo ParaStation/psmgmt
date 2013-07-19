@@ -190,8 +190,8 @@ static void handle_Local_Child_Start(ComHandle_t *com)
     }
 
     /* register jobscript in the accounting plugin */
-    if (forwarder_type == FORWARDER_JOBSCRIPT ||
-	forwarder_type == FORWARDER_INTER) {
+    if ((forwarder_type == FORWARDER_JOBSCRIPT ||
+	forwarder_type == FORWARDER_INTER ) && job) {
 	psAccountRegisterMOMJob(childpid, job->id);
     }
 

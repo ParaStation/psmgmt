@@ -370,7 +370,7 @@ void setResourceLimits(Job_t *job)
     data = &job->data;
 
     /* loop through all limits in the job */
-    if (data && !list_empty(&data->list)) {
+    if ((data && !list_empty(&data->list))) {
 	list_for_each(pos, &data->list) {
 
 	    if ((next = list_entry(pos, Data_Entry_t, list)) == NULL) continue;
@@ -585,16 +585,16 @@ static int callbackCopyScript(int fd, PSID_scriptCBInfo_t *info)
 	ufree(data->execuser);
 	ufree(data->execgroup);
 	ufree(data);
+
+	/* reset process information */
+	job->pid = -1;
+	job->sid = -1;
     } else {
 	mlog("%s: finding job '%s' for copy data failed\n", __func__,
 		data->jobid);
     }
     /* malloced by psid */
     ufree(info);
-
-    /* reset process information */
-    job->pid = -1;
-    job->sid = -1;
 
     if (!exitCode) {
 	/* copy ok */
