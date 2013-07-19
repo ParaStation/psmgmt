@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2011 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2013 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -125,14 +125,15 @@ static int handleRCfile(const char *progname)
 
 	rcname = PSC_concat(home, "/", RCNAME, NULL);
 	rcfile = fopen(rcname, "r");
-	free(rcname);
 
 	if (!rcfile && errno != ENOENT) {
 	    char *errstr = strerror(errno);
 	    fprintf(stderr, "%s: %s: %s\n",
 		    progname, rcname, errstr ? errstr : "UNKNOWN");
+	    free(rcname);
 	    return -1;
 	}
+	free(rcname);
     }
 
     if (rcfile) {

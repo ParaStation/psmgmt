@@ -1306,6 +1306,7 @@ static int distributeSlots(PSpart_request_t *request, sortlist_t* candidates,
 		PSID_log(-1,
 			 "%s: Not enough slots for %d threads on node %d\n",
 			 __func__, tpp, cid);
+		free(allowedSlots);
 		return 0;
 	    };
 	    allowedSlots[ce->id]++;
@@ -1369,6 +1370,7 @@ static int distributeSlots(PSpart_request_t *request, sortlist_t* candidates,
 			PSID_log(-1, "%s:"
 				 " Unknown value for PSIDnodes_overbook(%d)\n",
 				 __func__, cid);
+			free(allowedSlots);
 			return 0;
 		    }
 		}
@@ -1378,8 +1380,10 @@ static int distributeSlots(PSpart_request_t *request, sortlist_t* candidates,
 	    if (neededSlots) {
 		PSID_log(PSID_LOG_PART, "%s: No more CPUs. still need %d\n",
 			 __func__, neededSlots);
+		free(allowedSlots);
 		return 0;
 	    } else {
+		free(allowedSlots);
 		return 1;
 	    }
 	}
@@ -1434,6 +1438,7 @@ static int distributeSlots(PSpart_request_t *request, sortlist_t* candidates,
 	}
 	free(lateProcs);
     }
+    free(allowedSlots);
 
     return 1;
 }
@@ -3097,7 +3102,6 @@ static void msg_NODESRES(DDBufferMsg_t *inmsg)
 	    inmsg->header.len = sizeof(inmsg->header) + sizeof(int32_t);
 
 	    for (n=0; n<requested; n++) nodeBuf[n] = slots[n].node;
-	    ptr = (char *)&nodeBuf[num];
 	    inmsg->header.len += requested * sizeof(*nodeBuf);
 	} else {
 	    return;

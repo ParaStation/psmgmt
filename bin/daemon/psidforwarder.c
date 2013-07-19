@@ -1205,7 +1205,6 @@ static void sendSpawnFailed(PStask_t *task, int eno)
 	answer.buf[sizeof(answer.buf) - 1] = '\0';
     }
     sendDaemonMsg((DDMsg_t *)&answer);
-    bufUsed = answer.header.len - sizeof(answer.header);
 
     exit(0);
 }

@@ -174,14 +174,15 @@ static int myexecv(const char *path, char *const argv[])
  */
 static int mystat(char *file_name, struct stat *buf)
 {
-    int cnt, ret = 0;
+    int cnt = PSIDnodes_maxStatTry(PSC_getMyID()), ret;
 
-    /* Try 5 times with delay 400ms = 2 sec overall */
-    for (cnt=0; cnt<PSIDnodes_maxStatTry(PSC_getMyID()); cnt++){
+    /* Try several times with delay 400ms */
+    do {
 	ret = stat(file_name, buf);
 	if (!ret) return 0; /* No error */
 	usleep(1000 * 400);
-    }
+    } while (--cnt > 0);
+
     return ret; /* return last error */
 }
 
@@ -1012,12 +1013,12 @@ static void execClient(PStask_t *task)
     }
     alarm(timeout);
     if ((eno = changeToWorkDir(task))) {
-	ret = write(task->fd, &eno, sizeof(eno));
+	write(task->fd, &eno, sizeof(eno));
 	exit(1);
     }
 
     if ((eno = testExecutable(task, &executable))) {
-	ret = write(task->fd, &eno, sizeof(eno));
+	write(task->fd, &eno, sizeof(eno));
 	exit(1);
     }
     alarm(0);
@@ -1273,7 +1274,7 @@ static void execForwarder(PStask_t *task, int daemonfd)
 	/* redirect stdin/stdout/stderr */
 	if (dup2(task->stderr_fd, STDERR_FILENO) < 0) {
 	    eno = errno;
-	    ret = write(task->fd, &eno, sizeof(eno));
+	    write(task->fd, &eno, sizeof(eno));
 	    PSID_exit(eno, "%s: dup2(stderr)", __func__);
 	}
 
@@ -1283,14 +1284,14 @@ static void execForwarder(PStask_t *task, int daemonfd)
 	    eno = errno;
 	    fprintf(stderr, "%s: dup2(stdin): [%d] %s\n", __func__,
 		    eno, get_strerror(eno));
-	    ret = write(task->fd, &eno, sizeof(eno));
+	    write(task->fd, &eno, sizeof(eno));
 	    exit(1);
 	}
 	if (dup2(task->stdout_fd, STDOUT_FILENO) < 0) {
 	    eno = errno;
 	    fprintf(stderr, "%s: dup2(stdout): [%d] %s\n", __func__,
 		    eno, get_strerror(eno));
-	    ret = write(task->fd, &eno, sizeof(eno));
+	    write(task->fd, &eno, sizeof(eno));
 	    exit(1);
 	}
 

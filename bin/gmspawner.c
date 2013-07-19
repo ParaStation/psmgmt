@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2011 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2013 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -199,27 +199,27 @@ static void distributeInfo(unsigned int np, int verbose)
 
 	/* Global mapping */
 	token = "[[[";
-	ret = write(sock, token, strlen(token));
+	write(sock, token, strlen(token));
 	for (i=0; i<np; i++) {
 	    char entry[80];
 	    snprintf(entry, sizeof(entry), "<%u:%u:%u:%u>",
 		     clients[i].port, clients[i].board, clients[i].node,
 		     clients[i].numanode);
-	    ret = write(sock, entry, strlen(entry));
+	    write(sock, entry, strlen(entry));
 	}
 	token="|||";
-	ret = write(sock, token, strlen(token));
+	write(sock, token, strlen(token));
 	/* Local mapping */
 	for (i=0; i<np; i++) {
 	    if (clients[index].slave_host==clients[i].slave_host
 		&& clients[index].numanode==clients[i].numanode) {
 		char entry[80];
 		snprintf(entry, sizeof(entry), "<%u>", i);
-		ret = write(sock, entry, strlen(entry));
+		write(sock, entry, strlen(entry));
 	    }
 	}
 	token="]]]";
-	ret = write(sock, token, strlen(token));
+	write(sock, token, strlen(token));
 
 	close (sock);
 

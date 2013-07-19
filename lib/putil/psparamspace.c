@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2012 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2012-2013 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -326,7 +326,11 @@ keylist_t * PSPARM_getKeylist(void)
 	param_t *param = list_entry(p, param_t, next);
 
 	keyList[idx].key = strdup(param->name);
-	if (!keyList[idx].key) return NULL;
+	if (!keyList[idx].key) {
+	    while (--idx >= 0) free(keyList[idx].key);
+	    free(keyList);
+	    return NULL;
+	}
 	keyList[idx].action = NULL;
 	keyList[idx].next = param->keys;
 

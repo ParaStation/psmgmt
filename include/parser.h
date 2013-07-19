@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2002-2003 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2012 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2013 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -375,7 +375,7 @@ void parser_commentCont(parser_log_key_t key, char* format, ...)
  * @see logger_exit(), exit()
  */
 void parser_exit(int errorno, char* format, ...)
-__attribute__((format(printf,2,3)));
+    __attribute__((format(printf,2,3),noreturn));
 
 /*
  * Basic routines to get defined fields

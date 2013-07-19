@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2005-2011 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2013 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -386,7 +386,7 @@ __attribute__((format(printf,4,5)));
  * @see logger_warn(), exit()
  */
 void logger_exit(logger_t* logger, int errorno, const char* format, ...)
-__attribute__((format(printf,3,4)));
+    __attribute__((format(printf,3,4),noreturn));
 
 
 #ifdef __cplusplus

@@ -1133,9 +1133,7 @@ static void loop(void)
 	}
 	if (FD_ISSET(daemonSock, &afds)) {
 	    /* message from the daemon */
-	    int ret;
-
-	    ret = recvMsg(&msg);
+	    int ret = recvMsg(&msg);
 
 	    /* Ignore all errors */
 	    if (ret < 0) continue;
@@ -1162,7 +1160,6 @@ static void loop(void)
 		PSIlog_log(-1, "%s: Unknown message type %s from %s.\n",
 			   __func__, PSP_printMsg(msg.header.type),
 			   PSC_printTID(msg.header.sender));
-		ret = -1;
 	    }
 
 	}

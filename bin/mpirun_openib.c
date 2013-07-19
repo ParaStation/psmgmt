@@ -634,7 +634,6 @@ static void exchangeInfo(int sock, int nprocs)
 	}
 
 	if(pidlen != 0) {
-	    nwritten = 0;
 	    nwritten = write(plist[i].control_socket, allpids, nprocs*pidlen);
 	    if (nwritten != nprocs*pidlen) {
 		msg = "write";
