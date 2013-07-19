@@ -658,7 +658,7 @@ static void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 	    if (!task->resPorts) {
 
 		*(uint16_t *) mPtr = 0;
-		mPtr += sizeof(uint16_t);
+		//mPtr += sizeof(uint16_t);
 		msg.header.len += sizeof(uint16_t);
 		sendMsg(&msg);
 

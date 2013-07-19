@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2012 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2013 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -337,7 +337,7 @@ static void sendRDPPing(void)
 	msg.header.len += sizeof(int);
 
 	*(PSID_Mem_t *)ptr = getMem();
-	ptr += sizeof(PSID_Mem_t);
+	//ptr += sizeof(PSID_Mem_t);
 	msg.header.len += sizeof(PSID_Mem_t);
     } else {
 	*(PSID_Jobs_t *)ptr = myJobs;
@@ -356,7 +356,7 @@ static void sendRDPPing(void)
 	/* Load_t contains uint64_t -> still on 64-bit */
 
 	*(int *)ptr = totalNodes;
-	ptr += sizeof(int);
+	//ptr += sizeof(int);
 	msg.header.len += sizeof(int);
     }
 
@@ -1198,7 +1198,7 @@ static void msg_LOAD(DDBufferMsg_t *msg)
 
 	    if (((void *)ptr - (void *)msg) < msg->header.len) {
 		clientStat[client].mem = *(PSID_Mem_t *)ptr;
-		ptr += sizeof(PSID_Mem_t);
+		//ptr += sizeof(PSID_Mem_t);
 	    }
 	} else {
 	    clientStat[client].jobs = *(PSID_Jobs_t *)ptr;
@@ -1211,7 +1211,7 @@ static void msg_LOAD(DDBufferMsg_t *msg)
 	    ptr += sizeof(PSID_Mem_t);
 
 	    clientNodes = *(int *)ptr;
-	    ptr += sizeof(int);
+	    //ptr += sizeof(int);
 	}
 
 	gettimeofday(&clientStat[client].lastPing, NULL);

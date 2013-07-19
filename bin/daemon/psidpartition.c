@@ -1743,7 +1743,7 @@ static int sendSlotlist(PSpart_slot_t *slots, int num, DDBufferMsg_t *msg)
 	    msg->header.len += chunk * sizeof(*oldSlots);
 	} else {
 	    memcpy(ptr, mySlots, chunk * sizeof(*slots));
-	    ptr += chunk * sizeof(*slots);
+	    //ptr += chunk * sizeof(*slots);
 	    msg->header.len += chunk * sizeof(*slots);
 	}
 	offset += chunk;
@@ -1834,7 +1834,7 @@ static int sendPartition(PSpart_request_t *req)
     msg.header.len += sizeof(req->size);
 
     *(PSpart_option_t *)ptr = req->options;
-    ptr += sizeof(req->options);
+    //ptr += sizeof(req->options);
     msg.header.len += sizeof(req->options);
 
     if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
@@ -2050,7 +2050,7 @@ static void sendAcctQueueMsg(PStask_t *task)
 
     /* total number of children */
     *(int32_t *)ptr = task->request->size;
-    ptr += sizeof(int32_t);
+    //ptr += sizeof(int32_t);
     msg.header.len += sizeof(int32_t);
 
     sendMsg((DDMsg_t *)&msg);
@@ -2558,7 +2558,7 @@ static void msg_PROVIDEPART(DDBufferMsg_t *inmsg)
 	errno = EBADMSG;
 	goto error;
     }
-    ptr += sizeof(PSpart_option_t);
+    //ptr += sizeof(PSpart_option_t);
 
     req->slots = malloc(req->size * sizeof(*req->slots));
     if (!req->slots) {
@@ -2834,7 +2834,7 @@ static void msg_GETNODES(DDBufferMsg_t *inmsg)
     }
 
     num = *(uint32_t *)ptr;
-    ptr += sizeof(uint32_t);
+    //ptr += sizeof(uint32_t);
 
     PSID_log(PSID_LOG_PART, "%s(%d)\n", __func__, num);
 
@@ -2862,7 +2862,7 @@ static void msg_GETNODES(DDBufferMsg_t *inmsg)
 	    PSnodes_ID_t *nodeBuf = (PSnodes_ID_t *)ptr;
 	    unsigned int n;
 	    for (n=0; n<num; n++) nodeBuf[n] = slots[n].node;
-	    ptr = (char *)&nodeBuf[num];
+	    //ptr = (char *)&nodeBuf[num];
 	    msg.header.len += num * sizeof(*nodeBuf);
 	} else if (dmnPSPver < 401) {
 	    PSpart_oldSlot_t *oldSlots = (PSpart_oldSlot_t *)ptr;
@@ -2872,16 +2872,16 @@ static void msg_GETNODES(DDBufferMsg_t *inmsg)
 		oldSlots[n].cpu = PSCPU_first(slots[n].CPUset,
 					      PSIDnodes_getPhysCPUs(node));
 	    }
-	    ptr = (char *)&oldSlots[num];
+	    //ptr = (char *)&oldSlots[num];
 	    msg.header.len += num * sizeof(*oldSlots);
 	} else if (dmnPSPver < 402) {
 	    if (num > SLOTS_CHUNK) goto error;
 	    memcpy(ptr, slots, num * sizeof(*slots));
-	    ptr += num * sizeof(*slots);
+	    //ptr += num * sizeof(*slots);
 	    msg.header.len += num * sizeof(*slots);
 	} else {
 	    *(int16_t *)ptr = num;
-	    ptr += sizeof(int16_t);
+	    //ptr += sizeof(int16_t);
 	    msg.header.len += sizeof(int16_t);
 
 	    sendSlotlist(slots, num, &msg);
@@ -2958,7 +2958,7 @@ static void msg_GETRANKNODE(DDBufferMsg_t *inmsg)
     }
 
     rank = *(int32_t *)ptr;
-    ptr += sizeof(int32_t);
+    //ptr += sizeof(int32_t);
 
     PSID_log(PSID_LOG_PART, "%s(%d)\n", __func__, rank);
 
@@ -2989,7 +2989,7 @@ static void msg_GETRANKNODE(DDBufferMsg_t *inmsg)
 	}
 
 	memcpy(ptr, slot, sizeof(*slot));
-	ptr += sizeof(*slot);
+	//ptr += sizeof(*slot);
 	msg.header.len += sizeof(*slot);
 
 	sendMsg(&msg);
@@ -3219,7 +3219,7 @@ static void sendExistingPartitions(PStask_ID_t dest)
 
 	    if (PSIDnodes_getDmnProtoV(PSC_getID(dest)) > 406) {
 		*(int64_t *)ptr = task->started.tv_sec;
-		ptr += sizeof(int64_t);
+		//ptr += sizeof(int64_t);
 		msg.header.len += sizeof(uint64_t);
 	    }
 
@@ -3360,7 +3360,7 @@ static void msg_PROVIDETASK(DDBufferMsg_t *inmsg)
 
     if (PSIDnodes_getDmnProtoV(PSC_getID(req->tid)) > 406) {
 	req->start = *(int64_t *)ptr;
-	ptr += sizeof(int64_t);
+	//ptr += sizeof(int64_t);
     } else {
 	req->start = 0;
     }

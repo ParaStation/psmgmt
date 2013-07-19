@@ -656,7 +656,7 @@ static int newrequest(PSLog_Msg_t *msg)
     PStask_group_t group;
 
     group = *(PStask_group_t *) ptr;
-    ptr += sizeof(PStask_group_t);
+    //ptr += sizeof(PStask_group_t);
 
     if (!registerClient(rank, msg->header.sender, group)) return 0;
 

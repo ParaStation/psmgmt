@@ -87,7 +87,7 @@ int PSID_kill(pid_t pid, int sig, uid_t uid)
 		msg.header.len += sizeof(int32_t);
 
 		*(int32_t *)ptr = sig;
-		ptr += sizeof(int32_t);
+		//ptr += sizeof(int32_t);
 		msg.header.len += sizeof(int32_t);
 
 		if (sendMsg(&msg) == msg.header.len) return 0;

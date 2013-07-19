@@ -179,23 +179,15 @@ char *handleDeleteMsg(DDTypedBufferMsg_t *msg)
 
 void handleStartMsg(DDTypedBufferMsg_t *msg)
 {
-    char *ptr = handleCommonMsg(msg);
-    int possChild;
-
     /* total number of possible children */
-    possChild = *(int32_t *)ptr;
-    ptr += sizeof(int32_t);
+    int possChild = *(int32_t *)handleCommonMsg(msg);
 
     printf(" poss children %d", possChild);
 }
 
 void handleChildMsg(DDTypedBufferMsg_t *msg)
 {
-    char *ptr = handleCommonMsg(msg);
-    char *progname;
-
-    progname = ptr;
-    ptr += strlen(ptr)+1;
+    char *progname = handleCommonMsg(msg);
 
     printf(" prog '%s'", progname);
 }
@@ -213,7 +205,7 @@ void handleLogMsg(DDTypedBufferMsg_t *msg)
 
     /* job ID (if available) */
     jobID = ptr;
-    ptr += strlen(ptr)+1;
+    //ptr += strlen(ptr)+1;
 
     if (*jobID) {
 	printf(" jobID '%s'", jobID);

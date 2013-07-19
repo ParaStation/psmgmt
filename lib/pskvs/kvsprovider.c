@@ -251,7 +251,7 @@ static void initKVS()
 
     kvsIndexSize = maxClients + 10;
 
-    if (!(kvsUpdateIndex = malloc(sizeof(int *) * kvsIndexSize))) {
+    if (!(kvsUpdateIndex = malloc(sizeof(*kvsUpdateIndex) * kvsIndexSize))) {
 	mwarn(errno, "%s", __func__);
 	terminateJob(__func__);
 	exit(0);
@@ -409,7 +409,7 @@ static void growKvsUpdateIdx(int minNewSize, const char *caller)
     if (measure) mlog("%s: grow update Index\n", __func__);
 
     if (newSize < minNewSize) newSize = minNewSize;
-    kvsUpdateIndex = realloc(kvsUpdateIndex, sizeof(int *) * newSize);
+    kvsUpdateIndex = realloc(kvsUpdateIndex, sizeof(*kvsUpdateIndex) * newSize);
 
     if (!kvsUpdateIndex) {
 	mwarn(errno, "%s: realloc()", __func__);

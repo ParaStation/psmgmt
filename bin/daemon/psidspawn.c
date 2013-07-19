@@ -1026,7 +1026,7 @@ static void execClient(PStask_t *task)
     doClamps(task);
 
     /* Signal forwarder we're ready for execve() */
-    ret = write(task->fd, &eno, sizeof(eno));
+    write(task->fd, &eno, sizeof(eno));
 
     if (read(task->fd, &eno, sizeof(eno)) < 0) {
 	eno = errno;
@@ -2002,6 +2002,10 @@ static void msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
 
 	/* Since checkRequest() did not fail, we will find ptask */
 	ptask = PStasklist_find(&managedTasks, msg->header.sender);
+	if (!ptask) {
+	    PSID_log(-1, "%s: no parent task?!\n", __func__);
+	    return;
+	}
     }
 
 
@@ -2051,12 +2055,12 @@ static void msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
 			PSCPU_first(ptask->spawnNodes[rank].CPUset,
 				    PSIDnodes_getPhysCPUs(
 					PSC_getID(locMsg.header.dest)));
-		    ptr += sizeof(int16_t);
+		    //ptr += sizeof(int16_t);
 		    locMsg.header.len += sizeof(int16_t);
 		} else {
 		    memcpy(ptr, ptask->spawnNodes[rank].CPUset,
 			   sizeof(PSCPU_set_t));
-		    ptr += sizeof(PSCPU_set_t);
+		    //ptr += sizeof(PSCPU_set_t);
 		    locMsg.header.len += sizeof(PSCPU_set_t);
 		}
 

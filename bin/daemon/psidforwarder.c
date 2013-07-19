@@ -248,7 +248,7 @@ static void handleSignalMsg(PSLog_Msg_t *msg)
 
     /* Get signal to send */
     signal = *(int32_t *)ptr;
-    ptr += sizeof(int32_t);
+    //ptr += sizeof(int32_t);
 
     sendSignal(pid, signal);
 }
@@ -884,7 +884,7 @@ static int readFromChild(int fd, void *data)
 			  " (neither stdout (%d) nor stderr (%d))\n",
 			  tag, __func__, fd, stdoutSock, stderrSock);
 	/* At least, read this stuff and throw it away */
-	n = read(fd, buf, sizeof(buf));
+	read(fd, buf, sizeof(buf));
 	close(fd);
 	Selector_remove(fd);
 	return 0;
@@ -1004,7 +1004,7 @@ static void sendAcctData(struct rusage rusage, int status)
     /* extended msg flag, will be overwritten
      * by accounting plugin */
     *(int32_t *)ptr = 0;
-    ptr += sizeof(int32_t);
+    //ptr += sizeof(int32_t);
     msg.header.len += sizeof(int32_t);
 
     sendDaemonMsg((DDMsg_t *)&msg);
