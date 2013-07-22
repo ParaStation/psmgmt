@@ -1368,7 +1368,6 @@ int execInterForwarder(void *info)
 	dup2(stderrfds[1], STDOUT_FILENO);
 	dup2(stderrfds[1], STDERR_FILENO);
 
-	fflush(stdin);
 	close(stderrfds[1]);
 
 	/* start a PAM session */

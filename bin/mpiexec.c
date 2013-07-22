@@ -1246,6 +1246,7 @@ static void extractNodeInformation(PSnodes_ID_t *nodeList, int np)
 static int startProcs(int np, char *wd, int argc, char *argv[], int verbose)
 {
     int i, ret, *errors = NULL, pSize;
+    char *hostname = NULL;
     PStask_ID_t *tids;
 
     /* request the complete nodelist from master */
@@ -1265,9 +1266,11 @@ static int startProcs(int np, char *wd, int argc, char *argv[], int verbose)
 
     if (ompidebug) {
 	for (i=0; i< np; i++) {
+	    hostname = getHostbyNodeID(&nodeList[i]);
 	    fprintf(stderr, "%s: rank '%i' opmi-nodeID '%i' ps-nodeID '%i'"
 		    " node '%s'\n", __func__, i, jobLocalNodeIDs[i],
-		    nodeList[i], getHostbyNodeID(&nodeList[i]));
+		    nodeList[i], hostname);
+	    free(hostname);
 	}
     }
     free(nodeList);
@@ -1846,6 +1849,7 @@ static void  parseHostfile(char *filename, char *hosts, int size)
 	    host = strtok_r(NULL, delimiters, &work);
 	}
     }
+    fclose(fp);
 }
 
 /**

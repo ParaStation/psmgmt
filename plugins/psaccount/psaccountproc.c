@@ -529,7 +529,7 @@ void updateProcSnapshot(int extended)
     DIR *dir;
     struct dirent *dent;
     pid_t pid = -1;
-    char buf[200];
+    char buf[201];
     ProcStat_t pS;
 
     /* clear all previous proc entrys */

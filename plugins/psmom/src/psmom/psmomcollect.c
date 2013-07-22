@@ -177,7 +177,7 @@ static void setMemory()
 {
     FILE *fp;
     char *line = NULL;
-    char unity[30], next[30];
+    char unity[31], next[31];
     long long memTotal, memFree, swapFree, swapTotal;
     size_t len = 0;
     int res = 0;

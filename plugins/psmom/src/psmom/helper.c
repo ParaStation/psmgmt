@@ -69,7 +69,7 @@ int strToInt(char *string)
 unsigned long sizeToBytes(char *string)
 {
     unsigned long size;
-    char suf[10];
+    char suf[11];
     int s_word = sizeof(int);
 
     struct convTable conf_table[] =

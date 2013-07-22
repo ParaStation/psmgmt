@@ -36,7 +36,7 @@ void recoverJobInfo()
     FILE *fp;
     struct dirent *d;
     DIR *dir;
-    char accFile[400], value[100] = {'\0'}, buf[100] = {'\0'};
+    char accFile[400], value[100] = {'\0'}, buf[101] = {'\0'};
     char *accPath = NULL, *jobid, *servername, *tmp;
     int ret;
     Job_t *job;

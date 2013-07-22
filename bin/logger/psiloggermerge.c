@@ -723,7 +723,6 @@ static void insertOutputBuffer(int sender, char *buf, size_t len, int outfd)
     if (!tmpLine) {
 	savep = strndup(buf, len);
     } else {
-	savep = strndup(buf, len);
 	int leninc = strlen(tmpLine);
 	savep = umalloc((len + leninc + 1), __func__);
 	strncpy(savep, tmpLine, leninc);
