@@ -449,7 +449,7 @@ int WriteDataStruct(ComHandle_t *com, Data_Entry_t *data)
 
 int __ReadString(ComHandle_t *com, char *buf, size_t len, const char *caller)
 {
-    unsigned long size;
+    unsigned long size = 0;
     int ret;
 
     if ((ret = ReadDigitUL(com, &size)) < 0) {
@@ -485,6 +485,7 @@ char *__ReadStringEx(ComHandle_t *com, size_t *len, const char *func)
     ssize_t read;
     char *buf = NULL;
 
+    *len = 0;
     if ((ret = ReadDigitUL(com, (unsigned long *) len)) < 0) {
 	mlog("%s: reading string len for '%s' failed\n", __func__, func);
 	return NULL;

@@ -46,8 +46,9 @@ void *__umalloc(size_t size, const char *func, const int line)
 void *__urealloc(void *old ,size_t size, const char *func, const int line)
 {
     void *ptr;
-    char tmp[11];
+    char tmp[11], save[20];
 
+    snprintf(save, sizeof(save), "%p", old);
     if (size < MIN_MALLOC_SIZE) size = MIN_MALLOC_SIZE;
 
     if (!(ptr = realloc(old, size))) {
@@ -56,8 +57,8 @@ void *__urealloc(void *old ,size_t size, const char *func, const int line)
     }
 
     snprintf(tmp, sizeof(tmp), "%i", line);
-    mdbg(PLUGIN_LOG_MALLOC, "urealloc\t%15s\t%s\t%p (%zu)\t%p\n", func, tmp,
-	    ptr, size, old);
+    mdbg(PLUGIN_LOG_MALLOC, "urealloc\t%15s\t%s\t%p (%zu)\t%s\n", func, tmp,
+	    ptr, size, save);
 
     return ptr;
 }

@@ -228,7 +228,7 @@ void handle_Local_Qsub_Out(ComHandle_t *com)
     char buf[FORWARD_BUFFER_SIZE];
     size_t len, toread;
 
-    len = ReadDigitL(com, (signed long *) &toread);
+    ReadDigitL(com, (signed long *) &toread);
 
     if (toread > (ssize_t) sizeof(buf)) {
 	mlog("%s: buffer to small!\n", __func__);

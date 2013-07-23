@@ -219,8 +219,8 @@ void outputMergeInit(void)
 	maxMergeDepth = atoi(envstr);
     }
 
-    clientOutBuf = umalloc ((sizeof(*clientOutBuf) * np), __func__);
-    clientTmpBuf = umalloc ((sizeof(*clientTmpBuf) * np), __func__);
+    clientOutBuf = umalloc((sizeof(*clientOutBuf) * np), __func__);
+    clientTmpBuf = umalloc((sizeof(*clientTmpBuf) * np), __func__);
 
     snprintf(npsize, sizeof(npsize), "[0-%i]", np-1);
     prelen = strlen(npsize);
@@ -498,12 +498,12 @@ static void outputSingleCMsg(int client, struct list_head *pos,
 			     struct list_head *saveBuf[np],
 			     int saveBufInd[np], int mcount)
 {
-    struct list_head *tmppos, *tmpother;
+    list_t *tmppos, *tmpother, *savepos, *saveother;
     OutputBuffers *nval, *oval;
     int i, lcount;
-    int savelocInd[mcount];
+    int savelocInd[mcount+1];
 
-    list_for_each(tmppos, &clientOutBuf[client].list) {
+    list_for_each_safe(tmppos, savepos, &clientOutBuf[client].list) {
 	lcount = 0;
 	if (tmppos == pos) break;
 
@@ -512,7 +512,7 @@ static void outputSingleCMsg(int client, struct list_head *pos,
 
 	for (i=0; i<=mcount; i++) {
 	    if (i == client) continue;
-	    list_for_each(tmpother, &clientOutBuf[i].list) {
+	    list_for_each_safe(tmpother, saveother, &clientOutBuf[i].list) {
 		if (tmpother == saveBuf[i]) break;
 
 		oval = list_entry(tmpother, OutputBuffers, list);
@@ -864,7 +864,7 @@ void cacheOutput(PSLog_Msg_t *msg, int outfd)
 
 void displayCachedOutput(int flush)
 {
-    struct list_head *pos;
+    list_t *pos, *tmp;
     OutputBuffers *val, *nval;
     int i, z, mcount = 0;
     struct list_head *saveBuf[np];
@@ -883,7 +883,7 @@ void displayCachedOutput(int flush)
     for (i=0; i<np; i++) {
 	if (list_empty(&clientOutBuf[i].list)) continue;
 
-	list_for_each(pos, &clientOutBuf[i].list) {
+	list_for_each_safe(pos, tmp, &clientOutBuf[i].list) {
 	    /* get element to compare */
 	    val = list_entry(pos, OutputBuffers, list);
 
@@ -916,7 +916,7 @@ void displayCachedOutput(int flush)
 
 		    /* remove already displayed msg from all other ranks */
 		    nval = list_entry(saveBuf[z], OutputBuffers, list);
-		    delCachedMsg(nval,saveBuf[z]);
+		    delCachedMsg(nval, saveBuf[z]);
 		}
 
 		if (mcount != np-1) {

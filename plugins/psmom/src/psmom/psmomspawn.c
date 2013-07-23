@@ -372,8 +372,7 @@ void setResourceLimits(Job_t *job)
     /* loop through all limits in the job */
     if ((data && !list_empty(&data->list))) {
 	list_for_each(pos, &data->list) {
-
-	    if ((next = list_entry(pos, Data_Entry_t, list)) == NULL) continue;
+	    if (!(next = list_entry(pos, Data_Entry_t, list))) break;
 
 	    if (!(strcmp(next->name, "Resource_List"))) {
 

@@ -418,9 +418,7 @@ void setupPBSEnv(Job_t *job, int interactive)
 	Config_t *config;
 
 	list_for_each(pos, &ConfigList.list) {
-	    if ((config = list_entry(pos, Config_t, list)) == NULL) {
-		continue;
-	    }
+	    if (!(config = list_entry(pos, Config_t, list))) break;
 
 	    if (!(strcmp(config->key, "JOB_ENV"))) {
 		addEnv(config->value);

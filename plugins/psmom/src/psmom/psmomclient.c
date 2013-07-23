@@ -64,7 +64,7 @@ void updateClient(unsigned long ipaddr)
     Client_t *client;
 
     if (!(client = findClient(ipaddr))) {
-	client = addClient(ipaddr);
+	addClient(ipaddr);
     } else {
 	client->last_contact = time(NULL);
     }

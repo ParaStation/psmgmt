@@ -359,6 +359,7 @@ static void getFirstNodeID(PSnodes_ID_t *nodeID)
     } else {
 	node = strtol(nodeparse, &end, 10);
 	if (nodeparse == end || *end) {
+	    free(parse);
 	    return;
 	}
 	if (node < 0 || node >= PSC_getNrOfNodes()) {

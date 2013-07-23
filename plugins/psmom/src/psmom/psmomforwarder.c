@@ -728,9 +728,7 @@ static char *rewriteCopyDest(char *dest)
 	Config_t *config;
 
 	list_for_each(pos, &ConfigList.list) {
-	    if ((config = list_entry(pos, Config_t, list)) == NULL) {
-		continue;
-	    }
+	    if (!(config = list_entry(pos, Config_t, list))) break;
 
 	    if (!(strcmp(config->key, "COPY_REWRITE"))) {
 		if (!(reEnd = strchr(config->value, ' '))) {

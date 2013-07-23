@@ -599,10 +599,10 @@ int setPBSNodeState(char *server, char *note, char *state, const char *host)
  */
 int sendTMJobTermination(Job_t *job)
 {
+    struct list_head *pos;
     ComHandle_t *com;
     int serverPort, obitSuccess = 0;
     Server_t *serv;
-    list_t *pos;
 
     /* update used resources for job */
     if (job->state != JOB_WAIT_OBIT) {
@@ -612,7 +612,7 @@ int sendTMJobTermination(Job_t *job)
     getConfParamI("PORT_SERVER", &serverPort);
 
     list_for_each(pos, &ServerList.list) {
-	if ((serv = list_entry(pos, Server_t, list)) == NULL) continue;
+	if (!(serv = list_entry(pos, Server_t, list))) break;
 
 	/* we cannot obit a job if the rpp connection to the server is broken */
 	if (!serv->lastContact) continue;
