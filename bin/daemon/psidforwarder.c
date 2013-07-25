@@ -884,7 +884,7 @@ static int readFromChild(int fd, void *data)
 			  " (neither stdout (%d) nor stderr (%d))\n",
 			  tag, __func__, fd, stdoutSock, stderrSock);
 	/* At least, read this stuff and throw it away */
-	read(fd, buf, sizeof(buf));
+	if (read(fd, buf, sizeof(buf))) {};
 	close(fd);
 	Selector_remove(fd);
 	return 0;

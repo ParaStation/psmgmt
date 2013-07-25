@@ -130,7 +130,7 @@ int PSID_kill(pid_t pid, int sig, uid_t uid)
 	/* change user id to appropriate user */
 	if (setuid(uid)<0) {
 	    eno = errno;
-	    write(cntrlfds[1], &eno, sizeof(eno));
+	    if (write(cntrlfds[1], &eno, sizeof(eno))) {};
 	    PSID_exit(eno, "%s: setuid(%d)", __func__, uid);
 	}
 
@@ -138,7 +138,7 @@ int PSID_kill(pid_t pid, int sig, uid_t uid)
 	if (sig == SIGKILL) kill(pid, SIGCONT);
 	error = kill(pid, sig);
 	eno = errno;
-	write(cntrlfds[1], &eno, sizeof(eno));
+	if (write(cntrlfds[1], &eno, sizeof(eno))) {};
 
 	if (error) {
 	    PSID_warn((eno==ESRCH) ? PSID_LOG_SIGNAL : -1, eno,

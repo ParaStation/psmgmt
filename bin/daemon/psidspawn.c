@@ -1013,12 +1013,12 @@ static void execClient(PStask_t *task)
     }
     alarm(timeout);
     if ((eno = changeToWorkDir(task))) {
-	write(task->fd, &eno, sizeof(eno));
+	if (write(task->fd, &eno, sizeof(eno))) {};
 	exit(1);
     }
 
     if ((eno = testExecutable(task, &executable))) {
-	write(task->fd, &eno, sizeof(eno));
+	if (write(task->fd, &eno, sizeof(eno))) {};
 	exit(1);
     }
     alarm(0);
@@ -1026,7 +1026,11 @@ static void execClient(PStask_t *task)
     doClamps(task);
 
     /* Signal forwarder we're ready for execve() */
-    write(task->fd, &eno, sizeof(eno));
+    if (write(task->fd, &eno, sizeof(eno)) <0) {
+	eno = errno;
+	PSID_warn(-1, eno, "%s: write() failed. eno is %d", __func__, eno);
+	exit(1);
+    }
 
     if (read(task->fd, &eno, sizeof(eno)) < 0) {
 	eno = errno;
@@ -1274,7 +1278,7 @@ static void execForwarder(PStask_t *task, int daemonfd)
 	/* redirect stdin/stdout/stderr */
 	if (dup2(task->stderr_fd, STDERR_FILENO) < 0) {
 	    eno = errno;
-	    write(task->fd, &eno, sizeof(eno));
+	    if (write(task->fd, &eno, sizeof(eno))) {};
 	    PSID_exit(eno, "%s: dup2(stderr)", __func__);
 	}
 
@@ -1284,14 +1288,14 @@ static void execForwarder(PStask_t *task, int daemonfd)
 	    eno = errno;
 	    fprintf(stderr, "%s: dup2(stdin): [%d] %s\n", __func__,
 		    eno, get_strerror(eno));
-	    write(task->fd, &eno, sizeof(eno));
+	    if (write(task->fd, &eno, sizeof(eno))) {};
 	    exit(1);
 	}
 	if (dup2(task->stdout_fd, STDOUT_FILENO) < 0) {
 	    eno = errno;
 	    fprintf(stderr, "%s: dup2(stdout): [%d] %s\n", __func__,
 		    eno, get_strerror(eno));
-	    write(task->fd, &eno, sizeof(eno));
+	    if (write(task->fd, &eno, sizeof(eno))) {};
 	    exit(1);
 	}
 
