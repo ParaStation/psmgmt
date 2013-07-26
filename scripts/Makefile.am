@@ -11,7 +11,7 @@
 #
 include $(top_srcdir)/common.am
 
-dist_bin_SCRIPTS = psh 
+dist_bin_SCRIPTS = psh
 
 profile_ddir = $(sysconfdir)/profile.d
 dist_profile_d_DATA = psmgmt.csh psmgmt.sh
@@ -28,6 +28,7 @@ dist_config_SCRIPTS = ps_gm ps_acc
 dist_scripts_SCRIPTS = ps_gmcounters
 
 noinst_SCRIPTS = psid2cmustatus
+noinst_SCRIPTS = memtest.py
 
 EXTRA_DIST = vcversion
 EXTRA_DIST += .gdbinit mpirun_java parastation_tru64

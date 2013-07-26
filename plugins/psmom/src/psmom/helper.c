@@ -27,31 +27,6 @@
 
 #include "helper.h"
 
-#define MALLOC_SIZE 512
-
-char *str2Buf(char *strSave, char *buffer, size_t *bufSize)
-{
-    size_t lenSave, lenBuf;
-
-    if (!buffer) {
-	buffer = umalloc(MALLOC_SIZE);
-	*bufSize = MALLOC_SIZE;
-	buffer[0] = '\0';
-    }
-
-    lenSave = strlen(strSave);
-    lenBuf = strlen(buffer);
-
-    while (lenBuf + lenSave + 1 > *bufSize) {
-	buffer = urealloc(buffer, *bufSize + MALLOC_SIZE);
-	*bufSize += MALLOC_SIZE;
-    }
-
-    strcat(buffer, strSave);
-
-    return buffer;
-}
-
 int strToInt(char *string)
 {
     int num;
@@ -62,10 +37,6 @@ int strToInt(char *string)
     return num;
 }
 
-/**
- * @brief Convert a size string to bytes.
- *
- */
 unsigned long sizeToBytes(char *string)
 {
     unsigned long size;

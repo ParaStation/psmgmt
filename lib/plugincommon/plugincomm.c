@@ -56,7 +56,7 @@ int __addStringToMsg(const char *string, PS_DataBuffer_t *data,
     char *ptr;
 
     if (!data) {
-	mlog("%s: invalid data from '%s'\n", __func__, caller);
+	pluginlog("%s: invalid data from '%s'\n", __func__, caller);
 	return 0;
     }
 
@@ -91,12 +91,12 @@ int __addInt32ToMsg(const int32_t *val, PS_DataBuffer_t *data,
     char *ptr;
 
     if (!val) {
-	mlog("%s: invalid value from '%s'\n", __func__, caller);
+	pluginlog("%s: invalid value from '%s'\n", __func__, caller);
 	return 0;
     }
 
     if (!data) {
-	mlog("%s: invalid data from '%s'\n", __func__, caller);
+	pluginlog("%s: invalid data from '%s'\n", __func__, caller);
 	return 0;
     }
 
@@ -122,12 +122,12 @@ int __addTimeToMsg(const time_t *time, PS_DataBuffer_t *data,
     char *ptr;
 
     if (!time) {
-	mlog("%s: invalid time from '%s'\n", __func__, caller);
+	pluginlog("%s: invalid time from '%s'\n", __func__, caller);
 	return 0;
     }
 
     if (!data) {
-	mlog("%s: invalid data from '%s'\n", __func__, caller);
+	pluginlog("%s: invalid data from '%s'\n", __func__, caller);
 	return 0;
     }
 
@@ -151,12 +151,12 @@ int __addPidToMsg(const pid_t *pid, PS_DataBuffer_t *data, const char *caller)
     char *ptr;
 
     if (!pid) {
-	mlog("%s: invalid pid from '%s'\n", __func__, caller);
+	pluginlog("%s: invalid pid from '%s'\n", __func__, caller);
 	return 0;
     }
 
     if (!data) {
-	mlog("%s: invalid data from '%s'\n", __func__, caller);
+	pluginlog("%s: invalid data from '%s'\n", __func__, caller);
 	return 0;
     }
 
@@ -181,7 +181,7 @@ int __addStringToMsgBuf(DDTypedBufferMsg_t *msg, char **ptr,
     size_t len;
 
     if (!*ptr) {
-	mlog("%s: invalid ptr from '%s'\n", __func__, caller);
+	pluginlog("%s: invalid ptr from '%s'\n", __func__, caller);
 	return 0;
     }
 
@@ -202,7 +202,7 @@ int __addStringToMsgBuf(DDTypedBufferMsg_t *msg, char **ptr,
     msg->header.len += sizeof(int32_t);
 
     if (msg->header.len > BufTypedMsgSize) {
-	mlog("%s: message buffer to small from '%s'!\n", __func__, caller);
+	pluginlog("%s: message buffer to small from '%s'!\n", __func__, caller);
 	return 0;
     }
 
@@ -214,7 +214,7 @@ int __addStringToMsgBuf(DDTypedBufferMsg_t *msg, char **ptr,
     }
 
     /*
-    mlog("adding buffer '%s' len '%zu'\n", string, len);
+    pluginlog("adding buffer '%s' len '%zu'\n", string, len);
     */
 
     return 1;
@@ -228,7 +228,7 @@ char *__getStringFromMsgBufM(char **ptr, const char *caller)
 
     if (!*ptr) {
 	if (debug) {
-	    mlog("%s: invalid ptr from '%s'\n", __func__, caller);
+	    pluginlog("%s: invalid ptr from '%s'\n", __func__, caller);
 	}
 	return NULL;
     }
@@ -239,8 +239,8 @@ char *__getStringFromMsgBufM(char **ptr, const char *caller)
 
     if (type != PSDATA_STRING) {
 	if (debug) {
-	    mlog("%s: protocol error got type '%i' should be '%i' from '%s'\n",
-		    __func__, type, PSDATA_STRING, caller);
+	    pluginlog("%s: protocol error got type '%i' should be '%i' from "
+			"'%s'\n", __func__, type, PSDATA_STRING, caller);
 	}
 	return NULL;
     }
@@ -270,14 +270,14 @@ char *__getStringFromMsgBuf(char **ptr, char *buf, size_t buflen,
     size_t len;
 
     if (!buf) {
-	mlog("%s: invalid buffer from '%s'\n", __func__, caller);
+	pluginlog("%s: invalid buffer from '%s'\n", __func__, caller);
 	return NULL;
     }
     buf[0] = '\0';
 
     if (!*ptr) {
 	if (debug) {
-	    mlog("%s: invalid ptr from '%s'\n", __func__, caller);
+	    pluginlog("%s: invalid ptr from '%s'\n", __func__, caller);
 	}
 	return NULL;
     }
@@ -288,8 +288,8 @@ char *__getStringFromMsgBuf(char **ptr, char *buf, size_t buflen,
 
     if (type != PSDATA_STRING) {
 	if (debug) {
-	    mlog("%s: protocol error got type '%i' should be '%i' from '%s'\n",
-		    __func__, type, PSDATA_STRING, caller);
+	    pluginlog("%s: protocol error got type '%i' should be '%i' from "
+			"'%s'\n", __func__, type, PSDATA_STRING, caller);
 	}
 	return NULL;
     }
@@ -298,11 +298,11 @@ char *__getStringFromMsgBuf(char **ptr, char *buf, size_t buflen,
     len = *(int32_t *) *ptr;
     *ptr += sizeof(int32_t);
 
-    //mlog("reading buffer len '%i'\n", len);
+    //pluginlog("reading buffer len '%i'\n", len);
 
     /* buffer to small */
     if (len +1 > buflen) {
-	mlog("%s: buffer (%zu) to small for message (%zu) from '%s'\n",
+	pluginlog("%s: buffer (%zu) to small for message (%zu) from '%s'\n",
 		__func__, buflen, len+1, caller);
 	return NULL;
     }
@@ -323,17 +323,17 @@ int __addTimeToMsgBuf(DDTypedBufferMsg_t *msg, char **ptr,
 				time_t *time, const char *caller)
 {
     if (!time) {
-	mlog("%s: invalid time from '%s'\n", __func__, caller);
+	pluginlog("%s: invalid time from '%s'\n", __func__, caller);
 	return 0;
     }
 
     if (!*ptr) {
-	mlog("%s: invalid ptr from '%s'\n", __func__, caller);
+	pluginlog("%s: invalid ptr from '%s'\n", __func__, caller);
 	return 0;
     }
 
     if ((msg->header.len + sizeof(uint64_t)) > BufTypedMsgSize) {
-	mlog("%s: message buffer to small from '%s'\n", __func__, caller);
+	pluginlog("%s: message buffer to small from '%s'\n", __func__, caller);
 	return 0;
     }
 
@@ -354,12 +354,12 @@ int __getTimeFromMsgBuf(char **ptr, time_t *time, const char *caller)
     uint8_t type;
 
     if (!*ptr) {
-	mlog("%s: invalid ptr from '%s'\n", __func__, caller);
+	pluginlog("%s: invalid ptr from '%s'\n", __func__, caller);
 	return 0;
     }
 
     if (!time) {
-	mlog("%s: invalid time from '%s'\n", __func__, caller);
+	pluginlog("%s: invalid time from '%s'\n", __func__, caller);
 	return 0;
     }
 
@@ -368,7 +368,7 @@ int __getTimeFromMsgBuf(char **ptr, time_t *time, const char *caller)
     *ptr += sizeof(uint8_t);
 
     if (type != PSDATA_TIME) {
-	mlog("%s: protocol error got type '%i' should be '%i'\n", __func__,
+	pluginlog("%s: protocol error got type '%i' should be '%i'\n", __func__,
 		type, PSDATA_TIME);
 	return 0;
     }
@@ -384,12 +384,12 @@ int __getPidFromMsgBuf(char **ptr, pid_t *pid, const char *caller)
     uint8_t type;
 
     if (!*ptr) {
-	mlog("%s: invalid ptr from '%s'\n", __func__, caller);
+	pluginlog("%s: invalid ptr from '%s'\n", __func__, caller);
 	return 0;
     }
 
     if (!pid) {
-	mlog("%s: invalid pid from '%s'\n", __func__, caller);
+	pluginlog("%s: invalid pid from '%s'\n", __func__, caller);
 	return 0;
     }
 
@@ -398,7 +398,7 @@ int __getPidFromMsgBuf(char **ptr, pid_t *pid, const char *caller)
     *ptr += sizeof(uint8_t);
 
     if (type != PSDATA_PID) {
-	mlog("%s: protocol error got type '%i' should be '%i'\n", __func__,
+	pluginlog("%s: protocol error got type '%i' should be '%i'\n", __func__,
 		type, PSDATA_PID);
 	return 0;
     }
@@ -413,12 +413,12 @@ int __addInt32ToMsgBuf(DDTypedBufferMsg_t *msg, char **ptr,
 			int32_t val, const char *caller)
 {
     if (!msg) {
-	mlog("%s: invalid msg from '%s'\n", __func__, caller);
+	pluginlog("%s: invalid msg from '%s'\n", __func__, caller);
 	return 0;
     }
 
     if (!*ptr) {
-	mlog("%s: invalid ptr from '%s'\n", __func__, caller);
+	pluginlog("%s: invalid ptr from '%s'\n", __func__, caller);
 	return 0;
     }
 
@@ -440,12 +440,12 @@ int __getInt32FromMsgBuf(char **ptr, int32_t *val, const char *caller)
     uint8_t type;
 
     if (!*ptr) {
-	mlog("%s: invalid ptr from '%s'\n", __func__, caller);
+	pluginlog("%s: invalid ptr from '%s'\n", __func__, caller);
 	return 0;
     }
 
     if (!val) {
-	mlog("%s: invalid value from '%s'\n", __func__, caller);
+	pluginlog("%s: invalid value from '%s'\n", __func__, caller);
 	return 0;
     }
 
@@ -454,8 +454,8 @@ int __getInt32FromMsgBuf(char **ptr, int32_t *val, const char *caller)
     *ptr += sizeof(uint8_t);
 
     if (type != PSDATA_INT32) {
-	mlog("%s: protocol error got type '%i' should be '%i'\n", __func__,
-		type, PSDATA_STRING);
+	pluginlog("%s: protocol error got type '%i' should be '%i'\n",
+		    __func__, type, PSDATA_STRING);
 	return 0;
     }
 

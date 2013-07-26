@@ -396,9 +396,7 @@ static void clearSessions()
     if (list_empty(&SessionList.list)) return;
 
     list_for_each_safe(pos, tmp, &SessionList.list) {
-	if ((info = list_entry(pos, Session_Info_t, list)) == NULL) {
-	    return;
-	}
+	if ((info = list_entry(pos, Session_Info_t, list)) == NULL) continue;
 	list_del(&info->list);
 	ufree(info);
     }
@@ -413,9 +411,7 @@ void clearAllProcSnapshots()
     if (list_empty(&ProcList.list)) return;
 
     list_for_each_safe(pos, tmp, &ProcList.list) {
-	if ((proc = list_entry(pos, Proc_Snapshot_t, list)) == NULL) {
-	    return;
-	}
+	if ((proc = list_entry(pos, Proc_Snapshot_t, list)) == NULL) continue;
 	if (proc->cmdline) {
 	    ufree(proc->cmdline);
 	}

@@ -70,4 +70,17 @@ void __ufree(void *ptr, const char *func, const int line);
 #define ustrdup(s1) __ustrdup(s1, __func__, __LINE__)
 char *__ustrdup(const char *s1, const char *func, const int line);
 
+/**
+ * @brief Save a string into a buffer and let it dynamically grow if needed.
+ *
+ * @param strSave The string to write to the buffer.
+ *
+ * @param buffer The buffer to write the string to.
+ *
+ * @param bufSize The current size of the buffer.
+ *
+ * @return Returns a pointer to the buffer.
+ */
+char *str2Buf(char *strSave, char *buffer, size_t *bufSize);
+
 #endif

@@ -25,9 +25,9 @@ int isPluginLoggerInitialized()
     return 1;
 }
 
-void initPluginLogger(char *name, FILE *logfile)
+void initPluginLogger(FILE *logfile)
 {
-    pluginlogger = logger_init(name, logfile);
+    pluginlogger = logger_init("plcom", logfile);
 }
 
 void maskPluginLogger(int32_t mask)

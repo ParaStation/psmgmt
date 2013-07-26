@@ -15,14 +15,19 @@
  *
  */
 
+#include "pluginlog.h"
+
 #include "pmilog.h"
 
 
 logger_t *pmilogger = NULL;
+FILE *pmilogfile = NULL;
 
 void initLogger(FILE *logfile)
 {
     pmilogger = logger_init("pspmi", logfile);
+    initPluginLogger(logfile);
+    pmilogfile = logfile;
 }
 
 void maskLogger(int32_t mask)

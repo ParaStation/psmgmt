@@ -23,6 +23,7 @@
 #include "pluginmalloc.h"
 
 #define MIN_MALLOC_SIZE 64
+#define STR_MALLOC_SIZE 512
 
 void *__umalloc(size_t size, const char *func, const int line)
 {
@@ -32,12 +33,12 @@ void *__umalloc(size_t size, const char *func, const int line)
     if (size < MIN_MALLOC_SIZE) size = MIN_MALLOC_SIZE;
 
     if (!(ptr = malloc(size))) {
-        mlog("%s: memory allocation failed\n", func);
+        pluginlog("%s: memory allocation failed\n", func);
         exit(EXIT_FAILURE);
     }
 
     snprintf(tmp, sizeof(tmp), "%i", line);
-    mdbg(PLUGIN_LOG_MALLOC, "umalloc\t%15s\t%s\t%p (%zu)\n", func, tmp,
+    plugindbg(PLUGIN_LOG_MALLOC, "umalloc\t%15s\t%s\t%p (%zu)\n", func, tmp,
 	    ptr, size);
 
     return ptr;
@@ -52,13 +53,13 @@ void *__urealloc(void *old ,size_t size, const char *func, const int line)
     if (size < MIN_MALLOC_SIZE) size = MIN_MALLOC_SIZE;
 
     if (!(ptr = realloc(old, size))) {
-        mlog("%s: realloc failed.\n", func);
+        pluginlog("%s: realloc failed.\n", func);
         exit(EXIT_FAILURE);
     }
 
     snprintf(tmp, sizeof(tmp), "%i", line);
-    mdbg(PLUGIN_LOG_MALLOC, "urealloc\t%15s\t%s\t%p (%zu)\t%s\n", func, tmp,
-	    ptr, size, save);
+    plugindbg(PLUGIN_LOG_MALLOC, "urealloc\t%15s\t%s\t%p (%zu)\t%s\n", func,
+		tmp, ptr, size, save);
 
     return ptr;
 }
@@ -82,7 +83,30 @@ void __ufree(void *ptr, const char *func, const int line)
     char tmp[11];
 
     snprintf(tmp, sizeof(tmp), "%i", line);
-    mdbg(PLUGIN_LOG_MALLOC, "ufree\t%15s\t%s\t%p\n", func, tmp, ptr);
+    plugindbg(PLUGIN_LOG_MALLOC, "ufree\t%15s\t%s\t%p\n", func, tmp, ptr);
 
     free(ptr);
+}
+
+char *str2Buf(char *strSave, char *buffer, size_t *bufSize)
+{
+    size_t lenSave, lenBuf;
+
+    if (!buffer) {
+	buffer = umalloc(STR_MALLOC_SIZE);
+	*bufSize = STR_MALLOC_SIZE;
+	buffer[0] = '\0';
+    }
+
+    lenSave = strlen(strSave);
+    lenBuf = strlen(buffer);
+
+    while (lenBuf + lenSave + 1 > *bufSize) {
+	buffer = urealloc(buffer, *bufSize + STR_MALLOC_SIZE);
+	*bufSize += STR_MALLOC_SIZE;
+    }
+
+    strcat(buffer, strSave);
+
+    return buffer;
 }

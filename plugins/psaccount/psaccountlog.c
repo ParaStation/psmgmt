@@ -15,16 +15,19 @@
 #include <stdio.h>
 
 #include "logging.h"
+#include "pluginlog.h"
 
 #include "psaccountlog.h"
 
 
 logger_t *psaccountlogger = NULL;
-
+FILE *psaccountlogfile = NULL;
 
 void initLogger(FILE *logfile)
 {
     psaccountlogger = logger_init("psaccount", logfile);
+    initPluginLogger(logfile);
+    psaccountlogfile = logfile;
 }
 
 void maskLogger(int32_t mask)

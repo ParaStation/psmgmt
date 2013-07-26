@@ -19,14 +19,18 @@
 #include <stdio.h>
 
 #include "logging.h"
+#include "pluginlog.h"
 
 #include "psmomlog.h"
 
 logger_t *psmomlogger = NULL;
+FILE *psmomlogfile = NULL;
 
 void initLogger(char *name, FILE *logfile)
 {
     psmomlogger = logger_init(name, logfile);
+    initPluginLogger(logfile);
+    psmomlogfile = logfile;
 }
 
 void maskLogger(int32_t mask)

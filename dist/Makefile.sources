@@ -127,6 +127,7 @@ include/parser.h \
 include/plugin.h \
 include/plugincomm.h \
 include/pluginfrag.h \
+include/pluginlog.h \
 include/pluginmalloc.h \
 include/psbyteorder.h \
 include/pscommon.h \
@@ -158,7 +159,6 @@ lib/plugincommon/Makefile.in \
 lib/plugincommon/plugincomm.c \
 lib/plugincommon/pluginfrag.c \
 lib/plugincommon/pluginlog.c \
-lib/plugincommon/pluginlog.h \
 lib/plugincommon/pluginmalloc.c \
 lib/pscommon/Makefile.am \
 lib/pscommon/Makefile.in \
@@ -328,6 +328,8 @@ plugins/pspmi/pmiclient.c \
 plugins/pspmi/pmiclient.h \
 plugins/pspmi/pmiforwarder.c \
 plugins/pspmi/pmiforwarder.h \
+plugins/pspmi/pmikvs.c \
+plugins/pspmi/pmikvs.h \
 plugins/pspmi/pmilog.c \
 plugins/pspmi/pmilog.h \
 plugins/pspmi/pmimain.c \

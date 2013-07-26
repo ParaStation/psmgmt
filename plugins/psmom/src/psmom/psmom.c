@@ -791,6 +791,7 @@ void cleanup(void)
     /*
     clearClientList();
     */
+    if (memoryDebug) fclose(memoryDebug);
 
     mlog("...Bye.\n");
 }

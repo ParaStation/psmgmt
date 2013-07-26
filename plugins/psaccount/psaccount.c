@@ -27,6 +27,7 @@
 #include "psaccountclient.h"
 #include "psaccountconfig.h"
 #include "psaccounthistory.h"
+#include "psaccountkvs.h"
 
 #include "timer.h"
 #include "plugin.h"
@@ -206,6 +207,8 @@ void cleanup(void)
     if (oldAccountHanlder) {
 	PSID_registerMsg(PSP_CD_ACCOUNT, oldAccountHanlder);
     }
+
+    if (memoryDebug) fclose(memoryDebug);
 
     /* cleanup allocated lists/memory */
     clearAllJobs();

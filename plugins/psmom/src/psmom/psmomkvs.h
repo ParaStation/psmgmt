@@ -63,6 +63,9 @@ extern uint64_t stat_numProcs;
 /* record psmom start time */
 extern time_t stat_startTime;
 
+/* file handle for memory debug output */
+extern FILE *memoryDebug;
+
 /**
  * @brief Show a key value pair.
  *

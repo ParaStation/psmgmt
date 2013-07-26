@@ -157,9 +157,8 @@ char *getJobString()
     if (list_empty(&JobList.list)) return NULL;
 
     list_for_each_safe(pos, tmp, &JobList.list) {
-	if ((job = list_entry(pos, Job_t, list)) == NULL) {
-	    continue;
-	}
+	if (!(job = list_entry(pos, Job_t, list))) break;
+
 	if (job) {
 	    if (!jobstring) {
 		if (!(jobstring = ustrdup(job->id))) {
@@ -192,9 +191,7 @@ static Job_t *findJob(char *id, char *user, pid_t pid, JobState_t state,
     if (list_empty(&JobList.list)) return NULL;
 
     list_for_each(pos, &JobList.list) {
-	if ((job = list_entry(pos, Job_t, list)) == NULL) {
-	    return NULL;
-	}
+	if (!(job = list_entry(pos, Job_t, list))) return NULL;
 
 	if (id) {
 	    if (!strcmp(job->id, id)) {

@@ -219,9 +219,7 @@ void clearConfig()
     if (list_empty(&ConfigList.list)) return;
 
     list_for_each_safe(pos, tmp, &ConfigList.list) {
-	if ((config = list_entry(pos, Config_t, list)) == NULL) {
-	    return;
-	}
+	if ((config = list_entry(pos, Config_t, list)) == NULL) continue;
 	delConfig(config);
     }
     isInit = 0;

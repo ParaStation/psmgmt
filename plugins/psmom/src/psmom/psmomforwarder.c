@@ -47,6 +47,7 @@
 #include "pluginmalloc.h"
 #include "helper.h"
 #include "psmomenv.h"
+#include "pluginlog.h"
 
 #include "psidutil.h"
 #include "pscommon.h"
