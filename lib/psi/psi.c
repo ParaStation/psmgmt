@@ -36,6 +36,8 @@ static char vcid[] __attribute__((used)) =
 
 #include "psi.h"
 
+#define RUN_DIR LOCALSTATEDIR "/run"
+
 static int daemonSock = -1;
 
 /**
@@ -139,7 +141,7 @@ static int connectDaemon(PStask_group_t taskGroup, int tryStart)
     if (daemonSock==-1) {
 	/* See, if daemon listens on the old socket */
 	PSI_log(-1, "%s: try on even older socket\n", __func__);
-	daemonSock = daemonSocket("/var/run/parastation.sock");
+	daemonSock = daemonSocket(RUN_DIR "/parastation.sock");
     }
 
     if (daemonSock==-1) {

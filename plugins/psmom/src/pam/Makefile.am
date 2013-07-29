@@ -24,4 +24,6 @@ libpscommon = $(top_builddir)/lib/pscommon/libpscommon.la
 
 pam_psmom_la_SOURCES = pam_psmom.c
 
+pam_psmom_la_CPPFLAGS = $(AM_CPPFLAGS) -DLOCALSTATEDIR=\"$(localstatedir)\"
+
 pam_psmom_la_LIBADD = $(libpscommon) $(plugincommon_objs) -lpam

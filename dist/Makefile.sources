@@ -361,6 +361,7 @@ scripts/lsf/README \
 scripts/lsf/esub \
 scripts/lsf/psm_lsf_wrapper \
 scripts/ltmain.sh \
+scripts/memtest.py \
 scripts/missing \
 scripts/mpiexec.gdb \
 scripts/mpirun_java \

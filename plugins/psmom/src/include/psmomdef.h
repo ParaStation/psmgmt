@@ -2,6 +2,6 @@
 #define __PS_MOM_DEF
 
 #define UNIX_RESEND  5
-#define masterSocketName "/var/run/psmom.sock"
+#define masterSocketName LOCALSTATEDIR "/run/psmom.sock"
 
 #endif
