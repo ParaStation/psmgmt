@@ -237,7 +237,7 @@ char ** dumpPSIEnv(void)
 
     if (j > count) {
 	/* Cleanup */
-	for (i=0; i<count+1; i++) free(env_copy[j]);
+	for (i=0; i<count+1; i++) free(env_copy[i]);
 	free(env_copy);
 
 	return NULL;

@@ -21,7 +21,7 @@
 #include "list.h"
 #include "psmomlist.h"
 
-#define SPOOL_DIR LOCALSTATEDIR "spool/parastation"
+#define SPOOL_DIR LOCALSTATEDIR "/spool/parastation"
 #define DEFAULT_DIR_JOB_UNDELIVERED SPOOL_DIR "/undelivered"
 
 typedef struct {
