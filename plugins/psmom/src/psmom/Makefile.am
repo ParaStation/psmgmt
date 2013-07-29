@@ -35,7 +35,9 @@ psmom_la_SOURCES = config.h.in helper.c helper.h Makefile.am psmomacc.c \
 	psmomscript.c psmomscript.h psmomsignal.c psmomsignal.h psmomspawn.c \
 	psmomspawn.h psmomssh.c psmomssh.h psmomtcp.c psmomtcp.h
 
-psmom_la_CPPFLAGS = $(AM_CPPFLAGS) -DPLUGINDIR=\"$(plugindir)\"
+psmom_la_CPPFLAGS = $(AM_CPPFLAGS) -DPLUGINDIR=\"$(plugindir)\" \
+	-DLOCALSTATEDIR=\"$(localstatedir)\"
+
 psmom_la_LIBADD = $(libpsi) $(libpbs) $(libplugincommon)
 
 if PAM_ENABLED
@@ -50,4 +52,3 @@ install-exec-local:
 	$(INSTALL) -d $(DESTDIR)$(localstatedir)/spool/parastation/account
 	$(INSTALL) -d $(DESTDIR)$(localstatedir)/spool/parastation/backup
 	$(INSTALL) -d $(DESTDIR)$(localstatedir)/spool/parastation/scripts
-

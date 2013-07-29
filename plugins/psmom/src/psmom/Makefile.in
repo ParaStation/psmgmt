@@ -361,7 +361,9 @@ psmom_la_SOURCES = config.h.in helper.c helper.h Makefile.am psmomacc.c \
 	psmomscript.c psmomscript.h psmomsignal.c psmomsignal.h psmomspawn.c \
 	psmomspawn.h psmomssh.c psmomssh.h psmomtcp.c psmomtcp.h
 
-psmom_la_CPPFLAGS = $(AM_CPPFLAGS) -DPLUGINDIR=\"$(plugindir)\"
+psmom_la_CPPFLAGS = $(AM_CPPFLAGS) -DPLUGINDIR=\"$(plugindir)\" \
+	-DLOCALSTATEDIR=\"$(localstatedir)\"
+
 psmom_la_LIBADD = $(libpsi) $(libpbs) $(libplugincommon) \
 	$(am__append_1)
 all: all-am

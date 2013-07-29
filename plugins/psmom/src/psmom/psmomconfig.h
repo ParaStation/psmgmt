@@ -21,7 +21,8 @@
 #include "list.h"
 #include "psmomlist.h"
 
-#define DEFAULT_DIR_JOB_UNDELIVERED "/var/spool/parastation/undelivered"
+#define SPOOL_DIR LOCALSTATEDIR "spool/parastation"
+#define DEFAULT_DIR_JOB_UNDELIVERED SPOOL_DIR "/undelivered"
 
 typedef struct {
     char *key;

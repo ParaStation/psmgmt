@@ -30,6 +30,8 @@
 
 #include "pmiservice.h"
 
+#define MPIEXEC_BINARY BINDIR "/mpiexec"
+
 /**
  * @brief Send environment
  *
@@ -283,7 +285,7 @@ int spawnService(char *np, char **c_argv, int c_argc, char **c_env, int c_envc,
     task->argc = c_argc + 5;
     task->argv = umalloc((task->argc + 1) * sizeof(char *));
 
-    task->argv[argc++] = ustrdup("/opt/parastation/bin/mpiexec");
+    task->argv[argc++] = ustrdup(MPIEXEC_BINARY);
     task->argv[argc++] = ustrdup("-np");
     task->argv[argc++] = ustrdup(np);
     task->argv[argc++] = ustrdup("-u");

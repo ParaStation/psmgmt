@@ -64,7 +64,7 @@
 
 #include "psmom.h"
 
-#define DEFAULT_PSMOM_CONFIG_FILE   "/opt/parastation/plugins/psmom.conf"
+#define PSMOM_CONFIG_FILE  PLUGINDIR "/psmom.conf"
 
 /** default torque server port (udp/tcp) */
 int serverPort;
@@ -586,7 +586,7 @@ int initialize(void)
     }
 
     /* init the configuration */
-    if (!(initConfig(DEFAULT_PSMOM_CONFIG_FILE))) {
+    if (!(initConfig(PSMOM_CONFIG_FILE))) {
 	fprintf(stderr, "%s: init of the configuration failed\n", __func__);
 	return 1;
     }
