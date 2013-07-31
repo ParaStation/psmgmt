@@ -1262,19 +1262,21 @@ static int startProcs(int np, char *wd, int argc, char *argv[], int verbose)
     /* extract additional node informations (e.g. uniq nodes) */
     extractNodeInformation(nodeList, np);
 
-    /* get the hostnames for the uniq nodes */
-    getUniqHosts(jobLocalUniqNodeIDs, numUniqNodes);
+    if (OpenMPI) {
+	/* get uniq hostnames from the uniq nodes list */
+	getUniqHosts(jobLocalUniqNodeIDs, numUniqNodes);
 
-    if (ompidebug) {
-	for (i=0; i< np; i++) {
-	    hostname = getHostbyNodeID(&nodeList[i]);
-	    fprintf(stderr, "%s: rank '%i' opmi-nodeID '%i' ps-nodeID '%i'"
-		    " node '%s'\n", __func__, i, jobLocalNodeIDs[i],
-		    nodeList[i], hostname);
-	    free(hostname);
+	if (ompidebug) {
+	    for (i=0; i< np; i++) {
+		hostname = getHostbyNodeID(&nodeList[i]);
+		fprintf(stderr, "%s: rank '%i' opmi-nodeID '%i' ps-nodeID '%i'"
+			" node '%s'\n", __func__, i, jobLocalNodeIDs[i],
+			nodeList[i], hostname);
+		free(hostname);
+	    }
 	}
+	free(nodeList);
     }
-    free(nodeList);
 
     setupCommonEnv(np);
 
