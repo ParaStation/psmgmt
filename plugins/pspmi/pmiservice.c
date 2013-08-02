@@ -264,7 +264,7 @@ int spawnService(char *np, char **c_argv, int c_argc, char **c_env, int c_envc,
     task->gid = myTask->gid;
     task->aretty = myTask->aretty;
     task->loggertid = myTask->loggertid;
-    task->ptid = PSC_getMyTID();
+    task->ptid = myTask->tid;
     task->group = TG_KVS;
     task->rank = serviceRank -1;
     task->winsize = myTask->winsize;

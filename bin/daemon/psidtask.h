@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2012 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2013 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -235,7 +235,20 @@ void PStasklist_dequeue(PStask_t *task);
  * NULL if no task with TID @a tid was found within @a list.
  * */
 PStask_t *PStasklist_find(list_t *list, PStask_ID_t tid);
-/*\@}*/
+
+/**
+ * @brief Find a task within a tasklist by the forwarder TID.
+ *
+ * Find the task with forwarder TID @a fwtid within the tasklist @a list.
+ *
+ * @param list The tasklist to find the task in.
+ *
+ * @param fwtid The TID of the tasks forwarder to find.
+ *
+ * @return On success, a pointer to the found task is returned, or
+ * NULL if no task with TID @a tid was found within @a list.
+ * */
+PStask_t *PStasklist_findByFWTID(list_t *list, PStask_ID_t fwtid);
 
 /**
  * @brief Cleanup task.

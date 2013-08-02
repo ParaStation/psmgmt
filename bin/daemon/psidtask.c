@@ -369,7 +369,8 @@ void PStasklist_dequeue(PStask_t *task)
     list_del_init(&task->next);
 }
 
-PStask_t *PStasklist_find(list_t *list, PStask_ID_t tid)
+static PStask_t *PStasklist_doFind(list_t *list, PStask_ID_t tid,
+				    PStask_ID_t fwtid)
 {
     list_t *t;
     PStask_t *task = NULL;
@@ -379,7 +380,7 @@ PStask_t *PStasklist_find(list_t *list, PStask_ID_t tid)
 
     list_for_each(t, list) {
 	PStask_t *tt = list_entry(t, PStask_t, next);
-	if (tt->tid == tid) {
+	if ((tid && tt->tid == tid) || (fwtid && tt->forwardertid == fwtid)) {
 	    if (tt->deleted) {
 		/* continue to search since we migth have duplicates
 		 * of PID due to some problems in flow-control */
@@ -398,6 +399,16 @@ PStask_t *PStasklist_find(list_t *list, PStask_ID_t tid)
 				       __func__, list, PSC_printTID(tid));
 
     return task;
+}
+
+PStask_t *PStasklist_find(list_t *list, PStask_ID_t tid)
+{
+    return PStasklist_doFind(list, tid, 0);
+}
+
+PStask_t *PStasklist_findByFWTID(list_t *list, PStask_ID_t fwtid)
+{
+    return PStasklist_doFind(list, 0, fwtid);
 }
 
 void PStask_cleanup(PStask_ID_t tid)

@@ -1733,12 +1733,16 @@ static void sendAcctStart(PStask_ID_t sender, PStask_t *task)
  */
 static int checkRequest(PStask_ID_t sender, PStask_t *task)
 {
-    PStask_t *ptask;
+    PStask_t *ptask, *stask;
 
-    if (sender != task->ptid) {
-	/* Sender has to be parent */
-	PSID_log(-1, "%s: spawner tries to cheat\n", __func__);
-	return EACCES;
+    stask = PStasklist_find(&managedTasks, sender);
+
+    if (!stask || (stask && stask->group != TG_FORWARDER)) {
+	/* Sender has to be parent or a trusted forwarder */
+	if (sender != task->ptid) {
+	    PSID_log(-1, "%s: spawner tries to cheat\n", __func__);
+	    return EACCES;
+	}
     }
 
     ptask = PStasklist_find(&managedTasks, task->ptid);
@@ -2417,6 +2421,8 @@ static void msg_CHILDBORN(DDErrorMsg_t *msg)
 {
     PStask_t *forwarder = PStasklist_find(&managedTasks, msg->header.sender);
     PStask_t *child = PStasklist_find(&managedTasks, msg->request);
+    PStask_t *parent = NULL;
+    PStask_ID_t succMsgDest;
     int blocked;
 
     PSID_log(PSID_LOG_SPAWN, "%s: from %s\n", __func__,
@@ -2501,6 +2507,13 @@ static void msg_CHILDBORN(DDErrorMsg_t *msg)
 	child->argc = 1;
     }
 
+    /* If the parent is a normal task, it will not be able to handle the spawn
+     * message. Therefore we need to send it to its forwarder */
+    parent = PStasklist_find(&managedTasks, child->ptid);
+
+    succMsgDest = (parent && parent->group == TG_ANY) ?
+				parent->forwardertid : child->ptid;
+
     /* Child will get signal from parent. Thus add ptid to assignedSigs */
     PSID_setSignal(&child->assignedSigs, child->ptid, -1);
     /* Enqueue the task right in front of the forwarder */
@@ -2516,8 +2529,6 @@ static void msg_CHILDBORN(DDErrorMsg_t *msg)
      * the same node. Thus register directly as his child.
      */
     if (PSC_getID(child->ptid) == PSC_getMyID()) {
-	PStask_t *parent = PStasklist_find(&managedTasks, child->ptid);
-
 	if (!parent) {
 	    PSID_log(-1, "%s: parent task %s not found\n", __func__,
 		     PSC_printTID(child->ptid));
@@ -2536,7 +2547,7 @@ static void msg_CHILDBORN(DDErrorMsg_t *msg)
     /* Tell parent about success */
     msg->header.type = PSP_CD_SPAWNSUCCESS;
     msg->header.sender = child->tid;
-    msg->header.dest = child->ptid;
+    msg->header.dest = succMsgDest;
     msg->request = child->rank;
     msg->error = 0;
 
