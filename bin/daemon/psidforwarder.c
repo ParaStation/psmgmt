@@ -884,7 +884,10 @@ static int readFromChild(int fd, void *data)
 			  " (neither stdout (%d) nor stderr (%d))\n",
 			  tag, __func__, fd, stdoutSock, stderrSock);
 	/* At least, read this stuff and throw it away */
-	if (read(fd, buf, sizeof(buf))) {};
+	if (read(fd, buf, sizeof(buf)) < 0) {
+	    PSIDfwd_printMsgf(STDERR, "%s: %s: read(%d) failed: %s",
+			      tag, __func__, fd,  strerror(errno));
+	}
 	close(fd);
 	Selector_remove(fd);
 	return 0;

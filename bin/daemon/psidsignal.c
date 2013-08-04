@@ -130,7 +130,10 @@ int PSID_kill(pid_t pid, int sig, uid_t uid)
 	/* change user id to appropriate user */
 	if (setuid(uid)<0) {
 	    eno = errno;
-	    if (write(cntrlfds[1], &eno, sizeof(eno))) {};
+	    if (write(cntrlfds[1], &eno, sizeof(eno)) < 0) {
+		PSID_warn(-1, errno,
+			  "%s: write to control channel failed", __func__);
+	    }
 	    PSID_exit(eno, "%s: setuid(%d)", __func__, uid);
 	}
 
@@ -138,7 +141,10 @@ int PSID_kill(pid_t pid, int sig, uid_t uid)
 	if (sig == SIGKILL) kill(pid, SIGCONT);
 	error = kill(pid, sig);
 	eno = errno;
-	if (write(cntrlfds[1], &eno, sizeof(eno))) {};
+	if (write(cntrlfds[1], &eno, sizeof(eno)) < 0) {
+	    PSID_warn(-1, errno,
+		      "%s: write to control channel failed", __func__);
+	}
 
 	if (error) {
 	    PSID_warn((eno==ESRCH) ? PSID_LOG_SIGNAL : -1, eno,

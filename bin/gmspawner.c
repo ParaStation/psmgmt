@@ -177,7 +177,7 @@ static void distributeInfo(unsigned int np, int verbose)
 	if (ret<0) {
 	    char *errstr = strerror(errno);
 	    fprintf(stderr, "Error setting second socket option: %s\n",
-		    errstr ? errstr:"UNKNOWN");
+		    errstr ? errstr : "UNKNOWN");
 	}
 
 	addr.sin_family = AF_INET;
@@ -200,8 +200,9 @@ static void distributeInfo(unsigned int np, int verbose)
 	/* Global mapping */
 	token = "[[[";
 	if (write(sock, token, strlen(token)) < 0) {
-	    fprintf(stderr, "%s: write() failed: %s\n", __func__,
-		    strerror(errno));
+	    char *errstr = strerror(errno);
+	    fprintf(stderr, "%s: write('%s') failed: %s\n", __func__, token,
+		    errstr ? errstr : "UNKNOWN");
 	    exit(1);
 	}
 	for (i=0; i<np; i++) {
@@ -209,16 +210,18 @@ static void distributeInfo(unsigned int np, int verbose)
 	    snprintf(entry, sizeof(entry), "<%u:%u:%u:%u>",
 		     clients[i].port, clients[i].board, clients[i].node,
 		     clients[i].numanode);
-	    if (write(sock, entry, strlen(entry)) <0) {
-		fprintf(stderr, "%s: write() failed: %s\n", __func__,
-			strerror(errno));
+	    if (write(sock, entry, strlen(entry)) < 0) {
+		char *errstr = strerror(errno);
+		fprintf(stderr, "%s: write('%s') failed: %s\n", __func__,
+			entry, errstr ? errstr : "UNKNOWN");
 		exit(1);
 	    }
 	}
 	token="|||";
-	if (write(sock, token, strlen(token)) <0) {
-	    fprintf(stderr, "%s: write() failed: %s\n", __func__,
-		    strerror(errno));
+	if (write(sock, token, strlen(token)) < 0) {
+	    char *errstr = strerror(errno);
+	    fprintf(stderr, "%s: write('%s') failed: %s\n", __func__, token,
+		    errstr ? errstr : "UNKNOWN");
 	    exit(1);
 	}
 	/* Local mapping */
@@ -227,17 +230,19 @@ static void distributeInfo(unsigned int np, int verbose)
 		&& clients[index].numanode==clients[i].numanode) {
 		char entry[80];
 		snprintf(entry, sizeof(entry), "<%u>", i);
-		if (write(sock, entry, strlen(entry)) <0) {
-		    fprintf(stderr, "%s: write() failed: %s\n", __func__,
-			    strerror(errno));
+		if (write(sock, entry, strlen(entry)) < 0) {
+		    char *errstr = strerror(errno);
+		    fprintf(stderr, "%s: write('%s') failed: %s\n", __func__,
+			    entry, errstr ? errstr : "UNKNOWN");
 		    exit(1);
 		}
 	    }
 	}
 	token="]]]";
-	if (write(sock, token, strlen(token)) <0) {
-	    fprintf(stderr, "%s: write() failed: %s\n", __func__,
-		    strerror(errno));
+	if (write(sock, token, strlen(token)) < 0) {
+	    char *errstr = strerror(errno);
+	    fprintf(stderr, "%s: write('%s') failed: %s\n", __func__, token,
+		    errstr ? errstr : "UNKNOWN");
 	    exit(1);
 	}
 

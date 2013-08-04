@@ -927,8 +927,7 @@ static void execClient(PStask_t *task)
     if (setuid(task->uid)<0) {
 	eno = errno;
 	fprintf(stderr, "%s: setuid: %s\n", __func__, get_strerror(eno));
-	ret = write(task->fd, &eno, sizeof(eno));
-	if (ret < 0) {
+	if (write(task->fd, &eno, sizeof(eno)) < 0) {
 	    eno = errno;
 	    fprintf(stderr, "%s: setuid: write(): %s\n", __func__,
 		    get_strerror(eno));
@@ -1013,12 +1012,20 @@ static void execClient(PStask_t *task)
     }
     alarm(timeout);
     if ((eno = changeToWorkDir(task))) {
-	if (write(task->fd, &eno, sizeof(eno))) {};
+	if (write(task->fd, &eno, sizeof(eno)) < 0) {
+	    eno = errno;
+	    fprintf(stderr, "%s: changeToWorkDir: write(): %s\n", __func__,
+		    get_strerror(eno));
+	}
 	exit(1);
     }
 
     if ((eno = testExecutable(task, &executable))) {
-	if (write(task->fd, &eno, sizeof(eno))) {};
+	if (write(task->fd, &eno, sizeof(eno)) < 0) {
+	    eno = errno;
+	    fprintf(stderr, "%s: testExecutable: write(): %s\n", __func__,
+		    get_strerror(eno));
+	}
 	exit(1);
     }
     alarm(0);
@@ -1026,27 +1033,27 @@ static void execClient(PStask_t *task)
     doClamps(task);
 
     /* Signal forwarder we're ready for execve() */
-    if (write(task->fd, &eno, sizeof(eno)) <0) {
+    if (write(task->fd, &eno, sizeof(eno)) < 0) {
 	eno = errno;
-	PSID_warn(-1, eno, "%s: write() failed. eno is %d", __func__, eno);
-	exit(1);
+	fprintf(stderr, "%s: write(): %s\n", __func__, get_strerror(eno));
+	PSID_exit(eno, "%s: write()", __func__);
     }
 
     if (read(task->fd, &eno, sizeof(eno)) < 0) {
 	eno = errno;
-	PSID_warn(-1, eno, "%s: read() failed. eno is %d", __func__, eno);
-	exit(1);
+	fprintf(stderr, "%s: read(): %s\n", __func__, get_strerror(eno));
+	PSID_exit(eno, "%s: read()", __func__);
     }
 
     if (eno) {
+	fprintf(stderr, "%s: DD_CHILDBORN failed\n", __func__);
 	PSID_log(-1, "%s: DD_CHILDBORN failed\n", __func__);
 	exit(1);
     }
 
     /* execute the image */
-    if (myexecv(executable, task->argv)<0) {
-	PSID_warn(-1, errno, "%s: execv(%s)", __func__, executable);
-	exit(1);
+    if (myexecv(executable, task->argv) < 0) {
+	PSID_exit(errno, "%s: execv(%s)", __func__, executable);
     }
 
     /* never reached, if execv succesful */
@@ -1278,7 +1285,9 @@ static void execForwarder(PStask_t *task, int daemonfd)
 	/* redirect stdin/stdout/stderr */
 	if (dup2(task->stderr_fd, STDERR_FILENO) < 0) {
 	    eno = errno;
-	    if (write(task->fd, &eno, sizeof(eno))) {};
+	    if (write(task->fd, &eno, sizeof(eno)) < 0) {
+		PSID_warn(-1, errno, "%s: dup2(stderr): write()", __func__);
+	    }
 	    PSID_exit(eno, "%s: dup2(stderr)", __func__);
 	}
 
@@ -1288,15 +1297,19 @@ static void execForwarder(PStask_t *task, int daemonfd)
 	    eno = errno;
 	    fprintf(stderr, "%s: dup2(stdin): [%d] %s\n", __func__,
 		    eno, get_strerror(eno));
-	    if (write(task->fd, &eno, sizeof(eno))) {};
-	    exit(1);
+	    if (write(task->fd, &eno, sizeof(eno)) < 0) {
+		PSID_warn(-1, errno, "%s: dup2(stdin): write()", __func__);
+	    }
+	    PSID_exit(eno, "%s: dup2(stdin)", __func__);
 	}
 	if (dup2(task->stdout_fd, STDOUT_FILENO) < 0) {
 	    eno = errno;
 	    fprintf(stderr, "%s: dup2(stdout): [%d] %s\n", __func__,
 		    eno, get_strerror(eno));
-	    if (write(task->fd, &eno, sizeof(eno))) {};
-	    exit(1);
+	    if (write(task->fd, &eno, sizeof(eno)) < 0) {
+		PSID_warn(-1, errno, "%s: dup2(stdout): write()", __func__);
+	    }
+	    PSID_exit(eno, "%s: dup2(stdout)", __func__);
 	}
 
 	/* close the now useless slave ttys / sockets */
