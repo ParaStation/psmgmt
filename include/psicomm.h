@@ -37,6 +37,8 @@ extern "C" {
 /** Maximum size of PSIcomm message payload */
 #define PSICOMM_MAX_SIZE 1024
 
+#define PSICOMM_ERROR -1
+
 /**
  * @brief Setup the PSIcomm facility.
  *
