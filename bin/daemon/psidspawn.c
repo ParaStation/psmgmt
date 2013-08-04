@@ -1749,17 +1749,18 @@ static int checkRequest(PStask_ID_t sender, PStask_t *task)
     PStask_t *ptask, *stask;
 
     stask = PStasklist_find(&managedTasks, sender);
+    if (!stask) {
+	PSID_log(-1, "%s: sending task not found\n", __func__);
+	return EACCES;
+    }
 
-    if (!stask || (stask && stask->group != TG_FORWARDER)) {
+    if (sender != task->ptid && stask->group != TG_FORWARDER) {
 	/* Sender has to be parent or a trusted forwarder */
-	if (sender != task->ptid) {
-	    PSID_log(-1, "%s: spawner tries to cheat\n", __func__);
-	    return EACCES;
-	}
+	PSID_log(-1, "%s: spawner tries to cheat\n", __func__);
+	return EACCES;
     }
 
     ptask = PStasklist_find(&managedTasks, task->ptid);
-
     if (!ptask) {
 	/* Parent not found */
 	PSID_log(-1, "%s: parent task not found\n", __func__);
@@ -2434,7 +2435,7 @@ static void msg_CHILDBORN(DDErrorMsg_t *msg)
 {
     PStask_t *forwarder = PStasklist_find(&managedTasks, msg->header.sender);
     PStask_t *child = PStasklist_find(&managedTasks, msg->request);
-    PStask_t *parent = NULL;
+    PStask_t *parent;
     PStask_ID_t succMsgDest;
     int blocked;
 
