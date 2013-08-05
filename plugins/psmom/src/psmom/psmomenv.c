@@ -403,13 +403,10 @@ void setupPBSEnv(Job_t *job, int interactive)
     /* setup tmp dir */
     if ((confTmpDir = getConfParam("DIR_TEMP"))) {
 	char tmpDir[400];
-	struct stat st;
 
 	snprintf(tmpDir, sizeof(tmpDir), "%s/%s", confTmpDir, job->hashname);
-	if (!stat(tmpDir, &st)) {
-	    snprintf(name, sizeof(name), "TMPDIR=%s", tmpDir);
-	    addEnv(name);
-	}
+	snprintf(name, sizeof(name), "TMPDIR=%s", tmpDir);
+	addEnv(name);
     }
 
     /* set additional env vars from config */

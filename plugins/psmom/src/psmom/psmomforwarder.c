@@ -215,6 +215,18 @@ static void doForwarderChildStart()
     wDoSend(com);
 }
 
+static void verifyTempDir()
+{
+    struct stat st;
+    char *dir;
+
+    if ((dir = getConfParam("DIR_TEMP"))) {
+	if (stat(dir, &st) != 0) {
+	    mwarn(errno, "%s: stat for TEMP DIR '%s' failed : ", __func__, dir);
+	}
+    }
+}
+
 /**
  * @brief Initialize a child process.
  *
@@ -1384,6 +1396,8 @@ int execInterForwarder(void *info)
 	    if (dis[0] != '\0') addEnv(dis);
 	}
 
+	verifyTempDir();
+
 	/* do the actual spawn */
 	doSpawn(job, argv, argc);
     }
@@ -2088,6 +2102,8 @@ int execJobscriptForwarder(void *info)
 
 	/* switch back to users default umask */
 	umask(old_mask);
+
+	verifyTempDir();
 
 	/* do the actual spawn */
 	doSpawn(job, argv, argc);
