@@ -1275,8 +1275,8 @@ static int startProcs(int np, char *wd, int argc, char *argv[], int verbose)
 		free(hostname);
 	    }
 	}
-	free(nodeList);
     }
+    free(nodeList);
 
     setupCommonEnv(np);
 

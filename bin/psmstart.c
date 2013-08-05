@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2012 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2013 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -264,7 +264,7 @@ int main(int argc, const char *argv[])
     for (i=dup_argc; i<argc; i++) {
 	totlen += strlen(argv[i])+1;
     }
-    command = (char *) malloc(totlen*sizeof(char));
+    command = (char *) malloc(totlen*sizeof(char) +1);
     sprintf(command, "%s", argv[dup_argc]);
     for (i=dup_argc+1; i<argc; i++) {
 	sprintf(command+strlen(command), " %s", argv[i]);

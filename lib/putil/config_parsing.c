@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2012 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2013 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -1080,18 +1080,22 @@ static int addID(list_t *list, unsigned int id)
     if (!list) return -1;
 
     if (list==&defaultGID || list==&defaultAdmGID) any = PSNODES_ANYGROUP;
-    if (id == any) clear_GUIDlist(list);
 
-    list_for_each_safe(pos, tmp, list) {
-	guent = list_entry(pos, GUent_t, next);
-	if (guent->id == any) {
-	    parser_comment(-1, "%s(%p, %d): ANY found\n", __func__, list, id);
-	    return -1;
-	}
-	if (guent->id == id) {
-	    parser_comment(-1, "%s(%p, %d): already there\n",
-			   __func__, list, id);
-	    return -1;
+    if (id == any) {
+	clear_GUIDlist(list);
+    } else {
+	list_for_each_safe(pos, tmp, list) {
+	    guent = list_entry(pos, GUent_t, next);
+	    if (guent->id == any) {
+		parser_comment(-1, "%s(%p, %d): ANY found\n", __func__, list,
+			id);
+		return -1;
+	    }
+	    if (guent->id == id) {
+		parser_comment(-1, "%s(%p, %d): already there\n",
+			__func__, list, id);
+		return -1;
+	    }
 	}
     }
 
@@ -2138,10 +2142,15 @@ static int getNodeLine(char *token)
     hostname = strdup(token);
 
     ret = parser_getNumValue(parser_getString(), &nodenum, "node number");
-    if (ret) return ret;
+    if (ret) {
+	free(hostname);
+	return ret;
+    }
 
-    ret = setupNodeFromDefault();
-    if (ret) return ret;
+    if ((ret = setupNodeFromDefault())) {
+	free(hostname);
+	return ret;
+    }
 
     parser_comment(PARSER_LOG_NODE, "Register '%s' as %d", hostname, nodenum);
     free(hostname);

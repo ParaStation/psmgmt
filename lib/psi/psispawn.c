@@ -118,7 +118,7 @@ void PSI_RemoteArgs(int Argc, char **Argv, int *RArgc, char ***RArgv)
  */
 static char *mygetwd(const char *ext)
 {
-    char *dir;
+    char *dir, *olddir = NULL;
 
     if (!ext || (ext[0]!='/')) {
 	char *temp = getenv("PWD");
@@ -135,8 +135,12 @@ static char *mygetwd(const char *ext)
 	if (!dir) goto error;
 
 	/* Enlarge the string */
+	olddir = dir;
 	dir = realloc(dir, strlen(dir) + (ext ? strlen(ext) : 0) + 2);
-	if (!dir) goto error;
+	if (!dir) {
+	    free(olddir);
+	    goto error;
+	}
 
 	strcat(dir, "/");
 	strcat(dir, ext ? ext : "");
@@ -1018,6 +1022,7 @@ char *PSI_createPGfile(int num, const char *prog, int local)
 	if (!PIfile) {
 	    PSI_warn(-1, errno, "%s: fopen", __func__);
 	    free(PIfilename);
+	    free(myprog);
 	    return NULL;
 	}
     }
@@ -1031,6 +1036,7 @@ char *PSI_createPGfile(int num, const char *prog, int local)
 	    if (ret || (node < 0)) {
 		fclose(PIfile);
 		free(PIfilename);
+		free(myprog);
 		return NULL;
 	    }
 	    PSI_infoUInt(-1, PSP_INFO_NODE, &node, &hostaddr.s_addr, 0);
@@ -1038,6 +1044,7 @@ char *PSI_createPGfile(int num, const char *prog, int local)
 	fprintf(PIfile, "%s %d %s\n", inet_ntoa(hostaddr), (i != 0), myprog);
     }
     fclose(PIfile);
+    free(myprog);
 
     return PIfilename;
 }

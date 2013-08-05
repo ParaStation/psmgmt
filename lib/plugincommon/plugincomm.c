@@ -78,7 +78,7 @@ int __addStringToMsg(const char *string, PS_DataBuffer_t *data,
     /* add string itself */
     if (len > 0) {
 	memcpy(ptr, string, len);
-	ptr += len;
+	//ptr += len;
 	data->bufUsed += len;
     }
 
@@ -110,7 +110,7 @@ int __addInt32ToMsg(const int32_t *val, PS_DataBuffer_t *data,
 
     /* add result */
     *(int32_t *) ptr = *(int32_t *) val;
-    ptr += sizeof(int32_t);
+    //ptr += sizeof(int32_t);
     data->bufUsed += sizeof(int32_t);
 
     return 1;
@@ -140,7 +140,7 @@ int __addTimeToMsg(const time_t *time, PS_DataBuffer_t *data,
     data->bufUsed += sizeof(uint8_t);
 
     *(uint64_t *) ptr = *(time_t *) time;
-    ptr += sizeof(uint64_t);
+    //ptr += sizeof(uint64_t);
     data->bufUsed += sizeof(uint64_t);
 
     return 1;
@@ -169,7 +169,7 @@ int __addPidToMsg(const pid_t *pid, PS_DataBuffer_t *data, const char *caller)
     data->bufUsed += sizeof(uint8_t);
 
     *(pid_t *) ptr = *(pid_t *) pid;
-    ptr += sizeof(pid_t);
+    //ptr += sizeof(pid_t);
     data->bufUsed += sizeof(pid_t);
 
     return 1;

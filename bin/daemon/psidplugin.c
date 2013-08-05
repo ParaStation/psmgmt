@@ -348,11 +348,12 @@ static plugin_t * remDepend(plugin_t *plugin, plugin_t *depend)
 static void printRefList(char *buf, size_t size, list_t *refList)
 {
     list_t *p;
+    plugin_ref_t *ref;
 
     list_for_each(p, refList) {
-	plugin_ref_t *ref = list_entry(p, plugin_ref_t, next);
+	if (!(ref = list_entry(p, plugin_ref_t, next))) break;
 
-	if (ref && ref->plugin && ref->plugin->name
+	if (ref->plugin && ref->plugin->name
 	    && &ref->plugin->triggers != refList)
 	    snprintf(buf+strlen(buf), size-strlen(buf),
 		     " %s", ref->plugin->name);

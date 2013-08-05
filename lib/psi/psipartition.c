@@ -308,8 +308,8 @@ static int addNode(PSnodes_ID_t node, nodelist_t *nl)
 	nl->maxsize += 128;
 	nl->nodes = realloc(nl->nodes, nl->maxsize * sizeof(*nl->nodes));
 	if (!nl->nodes) {
-	    PSI_log(-1, "%s: no memory\n", __func__);
-	    return 0;
+	    PSI_log(-1, "%s: out of memory\n", __func__);
+	    exit(1);
 	}
     }
 

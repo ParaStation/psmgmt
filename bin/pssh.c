@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2006-2012 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2006-2013 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -138,8 +138,12 @@ int main(int argc, const char *argv[])
 	for (i=0; i<=argc; i++) {
 	    if (unknownArg == argv[i]) {
 		int j, totLen = 2;
+
 		for (j=i; j<argc; j++) totLen += strlen(argv[j]) + 1;
-		cmdLine = malloc(totLen);
+		if (!(cmdLine = realloc(cmdLine, totLen))) {
+		    fprintf(stderr, "out of memory\n");
+		    exit(1);
+		}
 		cmdLine[0] = '\0';
 		for (j=i; j<argc; j++)
 		    snprintf(cmdLine + strlen(cmdLine), totLen-strlen(cmdLine),
@@ -179,6 +183,7 @@ int main(int argc, const char *argv[])
 
     if (version) {
 	printVersion();
+	free(cmdLine);
 	return 0;
     }
 
@@ -236,7 +241,10 @@ int main(int argc, const char *argv[])
 
 	char *envstr = getenv("PSI_EXPORTS");
 	if (envstr) {
-	    val = malloc(strlen(envstr) + strlen(envlist) + 2);
+	    if (!(val = malloc(strlen(envstr) + strlen(envlist) + 2))) {
+		fprintf(stderr, "out of memory\n");
+		exit(1);
+	    }
 	    sprintf(val, "%s,%s", envstr, envlist);
 	} else {
 	    val = strdup(envlist);

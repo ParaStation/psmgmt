@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2012 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2013 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -860,19 +860,21 @@ int PSIDnodes_addGUID(PSnodes_ID_t id,
 	break;
     }
 
-    if (!cmp_GUID(what, guid, any)) clear_GUID_list(list);
-
-    list_for_each_safe(pos, tmp, list) {
-	guent = list_entry(pos, PSIDnodes_GUent_t, next);
-	if (!cmp_GUID(what, guent->id, any)) {
-	    PSID_log(PSID_LOG_NODES, "%s(%d, %d, %d): ANY found\n",
-		     __func__, id, what, guid.u);
-	    return -1;
-	}
-	if (!cmp_GUID(what, guent->id, guid)) {
-	    PSID_log(PSID_LOG_NODES, "%s(%d, %d, %d): already there\n",
-		     __func__, id, what, guid.u);
-	    return -1;
+    if (!cmp_GUID(what, guid, any)) {
+	clear_GUID_list(list);
+    } else {
+	list_for_each_safe(pos, tmp, list) {
+	    guent = list_entry(pos, PSIDnodes_GUent_t, next);
+	    if (!cmp_GUID(what, guent->id, any)) {
+		PSID_log(PSID_LOG_NODES, "%s(%d, %d, %d): ANY found\n",
+			 __func__, id, what, guid.u);
+		return -1;
+	    }
+	    if (!cmp_GUID(what, guent->id, guid)) {
+		PSID_log(PSID_LOG_NODES, "%s(%d, %d, %d): already there\n",
+			 __func__, id, what, guid.u);
+		return -1;
+	    }
 	}
     }
 

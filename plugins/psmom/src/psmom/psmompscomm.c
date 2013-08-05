@@ -97,7 +97,7 @@ void sendPSmomVersion(Job_t *job)
 
     /* stay on the basics */
     *(int32_t *) ptr = PSMOM_PSCOMM_VERSION;
-    ptr += sizeof(int32_t);
+    //ptr += sizeof(int32_t);
     msg.header.len += sizeof(int32_t);
 
     sendPSMsgToHostList(job, &msg, 0);
@@ -187,7 +187,7 @@ static void handleVersion(DDTypedBufferMsg_t *msg)
 
     /* get version information */
     version = *(int32_t *) ptr;
-    ptr += sizeof(int32_t);
+    //ptr += sizeof(int32_t);
 
     if (version != PSMOM_PSCOMM_VERSION) {
 	mlog("%s: incompatible psmom version '%i - %i' on mother superior '%i'"

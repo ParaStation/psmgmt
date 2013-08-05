@@ -2075,7 +2075,7 @@ static void handleServiceInfo(PSLog_Msg_t *msg)
     int serviceRank;
 
     serviceRank = *(int32_t *) ptr;
-    ptr += sizeof(int32_t);
+    //ptr += sizeof(int32_t);
 
     if (!spawnBuffer) {
 	elog("%s(%i): spawning failed, no spawn buffer set\n", __func__, rank);
