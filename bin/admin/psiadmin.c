@@ -73,7 +73,7 @@ static void doReset(void)
 /* Get line from stdin. Read on, if line ends with '\\' */
 static char *nextline(int silent)
 {
-    char *line = NULL, *oldLine;
+    char *line = NULL;
     do {
 	char *tmp = readline(silent ? NULL : (line ? ">" : "PSIadmin>"));
 
@@ -82,12 +82,8 @@ static char *nextline(int silent)
 	    line = tmp;
 	    tmp = NULL;
 	} else {
-	    oldLine = line;
 	    line = realloc(line, strlen(line) + strlen(tmp));
-	    if (!line) {
-		free(oldLine);
-		break;
-	    }
+	    if (!line) break;
 	    strcpy(line + strlen(line)-1, tmp);
 	}
 	if (tmp) free(tmp);

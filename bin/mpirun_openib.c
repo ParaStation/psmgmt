@@ -440,7 +440,6 @@ static void exchangeHostIDs(int sock, int nprocs)
 
     /* close all open sockets */
     for (i = 0; i < nprocs; i++) close(plist[i].control_socket);
-    free(hostids);
 
     return;
 
@@ -462,7 +461,7 @@ static void exchangeInfo(int sock, int nprocs)
     int pidlen, global_pidlen = 0;
     char *allpids=NULL;
     int out_addrs_len;
-    int *out_addrs = NULL;
+    int *out_addrs;
     char * msg;
 
     /* accept incoming connections, read port numbers */
@@ -644,8 +643,6 @@ static void exchangeInfo(int sock, int nprocs)
 
 	plist[i].state = P_RUNNING;
     }
-
-    free(out_addrs);
 
     return;
 

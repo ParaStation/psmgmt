@@ -111,7 +111,7 @@ static void collectInfo(int listensock, unsigned int np, unsigned int magic,
 	    continue;
 	}
 
-	if (rank >= np) {
+	if (rank > np) {
 	    fprintf(stderr, "MPI Id received is out of range (%u over %u)\n",
 		    rank, np);
 	    exit(1);

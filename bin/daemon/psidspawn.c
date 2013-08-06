@@ -2059,7 +2059,6 @@ static void msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
 	    && msg->type == PSP_SPAWN_TASK && group != TG_SERVICE
 	    && group != TG_SERVICE_SIG && group != TG_ADMINTASK
 	    && group != TG_KVS) {
-
 	    if (!ptask->spawnNodes || rank >= ptask->spawnNum) {
 		PSID_log(-1, "%s: rank %d out of range\n", __func__, rank);
 	    } else {
@@ -2506,17 +2505,15 @@ static void msg_CHILDBORN(DDErrorMsg_t *msg)
     }
 
     /* Fix interactive shell's argv[0] */
-    if (child->argc == 2 && child->argv[0]
-		         && (!strcmp(child->argv[0], "/bin/bash")
-			 && !strcmp(child->argv[1], "-i"))) {
+    if (child->argc == 2 && (!strcmp(child->argv[0], "/bin/bash")
+			     && !strcmp(child->argv[1], "-i"))) {
 	free(child->argv[0]);
 	child->argv[0] = strdup("-bash");
 	free(child->argv[1]);
 	child->argv[1] = NULL;
 	child->argc = 1;
-    } else if (child->argc == 2 && child->argv[0]
-			        && (!strcmp(child->argv[0], "/bin/tcsh")
-				&& !strcmp(child->argv[1], "-i"))) {
+    } else if (child->argc == 2 && (!strcmp(child->argv[0], "/bin/tcsh")
+				     && !strcmp(child->argv[1], "-i"))) {
 	free(child->argv[0]);
 	child->argv[0] = strdup("-tcsh");
 	free(child->argv[1]);

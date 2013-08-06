@@ -244,10 +244,8 @@ static int rangeCommand(char *token)
 
 	memcpy(defaultNL, nl, PSC_getNrOfNodes());
     } else {
-	char *tmp;
 	printf(" ");
-	tmp = printRange(NULL);
-	free(tmp);
+	printRange(NULL);
 	printf("\n");
     }
 
@@ -1439,11 +1437,6 @@ static int setCommand(char *token)
 
     if (nl_descr) {
 	nl = getNodeList(nl_descr);
-	if (valList) {
-	    if (valList->value) free(valList->value);
-	    free(valList);
-	    valList = NULL;
-	}
 	if (!nl) return -1;
     }
 
@@ -1509,11 +1502,6 @@ static int setCommand(char *token)
 
  error:
     printError(&setInfo);
-    if (valList) {
-	if (valList->value) free(valList->value);
-	free(valList);
-	valList = NULL;
-    }
     return -1;
 }
 
