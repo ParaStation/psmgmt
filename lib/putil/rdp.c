@@ -1429,7 +1429,7 @@ static void doACK(rdphdr_t *hdr, int fromnode)
     Rconninfo_t *cp;
     list_t *m, *tmp;
     int blocked, callback = 0;
-    struct timeval now = {0,0};
+    struct timeval now;
 
     if ((hdr->type == RDP_SYN) || (hdr->type == RDP_SYNACK)) return;
     /* these packets are used for initialization only */
@@ -1488,7 +1488,7 @@ static void doACK(rdphdr_t *hdr, int fromnode)
 
 	    if (!callback) callback = !cp->window;
 	    cp->totSent++;
-	    if (RDPStatistics && (now.tv_sec != 0 || now.tv_usec != 0)) {
+	    if (RDPStatistics) {
 		if (cp->totSent > NUM_WARMUP) {
 		    struct timeval flightTime;
 		    timersub(&now, &mp->sentTime, &flightTime);
