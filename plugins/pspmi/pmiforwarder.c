@@ -243,7 +243,8 @@ int setupPMIsockets(void *data)
     switch (pmiType) {
 	case PMI_OVER_UNIX:
 	    /* init the PMI interface */
-	    if ((pmi_init(pmiClientSock, childTask->rank, childTask->loggertid))) {
+	    if ((pmi_init(pmiClientSock, childTask->rank,
+				    childTask->loggertid))) {
 		pmiType = PMI_DISABLED;
 		return -1;
 	    }
@@ -272,10 +273,12 @@ int releasePMIClient(void *data)
 {
     int *res;
 
-    /* release the mpi client */
+    /* release the MPI client */
     res = data;
     if (*res == 1 && pmiType != PMI_DISABLED) {
 	pmi_finalize();
+    } else {
+	leaveKVS();
     }
 
     /*close connection */

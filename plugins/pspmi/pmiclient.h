@@ -100,4 +100,11 @@ int handleSpawnRes(void *vmsg);
  */
 int handleCCError(void *data);
 
+/**
+ * @brief Tell the kvsprovider we are leaving.
+ *
+ * @return No return value.
+ */
+void leaveKVS();
+
 #endif
