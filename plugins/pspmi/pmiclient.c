@@ -584,14 +584,16 @@ static int p_Barrier_In(char *msgBuffer)
     return 0;
 }
 
-void leaveKVS()
+void leaveKVS(int used)
 {
     char *ptr = buffer;
     size_t len = 0;
 
-    /* inform the provider we are leaving the KVS space */
-    setKVSCmd(&ptr, &len, LEAVE);
-    sendKvstoProvider(buffer, len);
+    if (!used || (used && !isSuccReady)) {
+	/* inform the provider we are leaving the KVS space */
+	setKVSCmd(&ptr, &len, LEAVE);
+	sendKvstoProvider(buffer, len);
+    }
 }
 
 /**
@@ -605,7 +607,7 @@ void leaveKVS()
  * */
 static int p_Finalize()
 {
-    leaveKVS();
+    leaveKVS(0);
 
     return PMI_FINALIZED;
 }

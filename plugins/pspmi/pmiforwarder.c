@@ -275,10 +275,12 @@ int releasePMIClient(void *data)
 
     /* release the MPI client */
     res = data;
-    if (*res == 1 && pmiType != PMI_DISABLED) {
-	pmi_finalize();
-    } else {
-	leaveKVS();
+    if (pmiType != PMI_DISABLED) {
+	if (*res == 1) {
+	    pmi_finalize();
+	} else {
+	    leaveKVS(1);
+	}
     }
 
     /*close connection */

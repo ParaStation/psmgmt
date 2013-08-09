@@ -105,6 +105,6 @@ int handleCCError(void *data);
  *
  * @return No return value.
  */
-void leaveKVS();
+void leaveKVS(int used);
 
 #endif
