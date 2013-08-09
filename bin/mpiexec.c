@@ -1027,6 +1027,7 @@ static void setupCommonEnv(int np)
 	setPSIEnv("PMI_SPAWNED", getenv("PMI_SPAWNED"), 1);
 	setPSIEnv("PMI_BARRIER_TMOUT", getenv("PMI_BARRIER_TMOUT"), 1);
 	setPSIEnv("PMI_BARRIER_ROUNDS", getenv("PMI_BARRIER_ROUNDS"), 1);
+	setPSIEnv("__MPIEXEC_DIST_START", getenv("__MPIEXEC_DIST_START"), 1);
     }
 
     /* set the size of the job */
