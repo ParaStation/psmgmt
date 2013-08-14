@@ -1003,6 +1003,11 @@ static void setupCommonEnv(int np)
 	    fprintf(stderr, "failed building MVAPICH process mapping\n");
 	}
 
+	/* MPI processes should use PMI version 1 as long as we don't have
+	 * support for PMI version 2 */
+	setPSIEnv("PMI_VERSION", "1", 1);
+	setPSIEnv("PMI_SUBVERSION", "1", 1);
+
 	/* propagate neccessary infos for PMI spawn */
 	if ((env = getenv("__PMI_preput_num"))) {
 	    int i, prenum;
