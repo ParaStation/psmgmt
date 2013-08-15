@@ -1672,7 +1672,7 @@ static int sendNodelist(PSpart_request_t *request, DDBufferMsg_t *msg)
  * Chunk-size for PSP_DD_PROVIDEPARTSL and PSP_DD_PROVIDETASKSL
  * messages
  */
-#define SLOTS_CHUNK 128
+#define SLOTS_CHUNK (1024 / sizeof(PSpart_slot_t))
 
 /**
  * @brief Send a list of slots.

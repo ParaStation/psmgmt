@@ -1634,7 +1634,7 @@ static int buildSandboxAndStart(PStask_t *task)
 }
 
 /** Chunksize for PSP_ACCOUNT_SLOTS messages */
-#define ACCT_SLOTS_CHUNK 128
+#define ACCT_SLOTS_CHUNK (1024 / (sizeof(PSnodes_ID_t) + sizeof(PSCPU_set_t)))
 
 /**
  * @brief Send accounting info on start of job
