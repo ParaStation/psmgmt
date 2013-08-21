@@ -30,9 +30,6 @@ static char vcid[] __attribute__((used)) =
 #include <pty.h>
 #include <signal.h>
 #include <syslog.h>
-#define __USE_GNU
-#include <sched.h>
-#undef __USE_GNU
 #ifdef HAVE_LIBNUMA
 #include <numa.h>
 #endif
@@ -292,18 +289,7 @@ static void pty_make_controlling_tty(int *ttyfd, const char *tty)
 }
 
 #ifdef CPU_ZERO
-/**
- * @brief Bind process to node
- *
- * Bind the current process to all the NUMA nodes which contain cores
- * from within the set @a physSet.
- *
- * @param physSet A set of physical cores. The process is bound to the
- * NUMA nodes containing some of this cores.
- *
- * @return No return value.
- */
-static void bindToNodes(cpu_set_t *physSet)
+void PSID_bindToNodes(cpu_set_t *physSet)
 {
 #ifdef HAVE_LIBNUMA
     int node, ret = 1;
@@ -382,16 +368,7 @@ end:
 #endif
 }
 
-/**
- * @brief Pin process to cores
- *
- * Pin the process to the set of physical CPUs @a physSet.
- *
- * @param physSet The physical cores the process is pinned to.
- *
- * @return No return value.
- */
-static void pinToCPUs(cpu_set_t *physSet)
+void PSID_pinToCPUs(cpu_set_t *physSet)
 {
     sched_setaffinity(0, sizeof(*physSet), physSet);
 }
@@ -541,19 +518,7 @@ static int getMap(char *envStr, short **map)
     return myMap.size;
 }
 
-/**
- * @brief Map CPUs
- *
- * Map the logical CPUs of the CPU-set @a set to physical CPUs and
- * store them into the returned cpu_set_t as used by @ref
- * sched_setaffinity(), etc.
- *
- * @param set The set of CPUs to map.
- *
- * @return A set of physical CPUs is returned as a static set of type
- * cpu_set_t. Subsequent calls to @ref mapCPUs will modify this set.
- */
-static cpu_set_t *mapCPUs(PSCPU_set_t set)
+cpu_set_t *PSID_mapCPUs(PSCPU_set_t set)
 {
     short cpu, maxCPU = PSIDnodes_getVirtCPUs(PSC_getMyID());
     static cpu_set_t physSet;
@@ -697,17 +662,17 @@ static int changeToWorkDir(PStask_t *task)
  *
  * Pin process to the logical CPU-set @a set and bind it to the NUMA
  * nodes serving these logical CPUs if demanded on the local
- * node. Therefore @ref pinToCPU() and @ref bindToNode() are called
- * respectively.
+ * node. Therefore @ref PSID_pinToCPU() and @ref PSID_bindToNode() are
+ * called respectively.
  *
  * Before doing the actual pinning and binding the logical CPUs are
- * mapped to physical ones via mapCPUs().
+ * mapped to physical ones via PSID_mapCPUs().
  *
  * @param set The logical CPUs to pin and bind to.
  *
  * @return No return value.
  *
- * @see bindToNode(), pinToCPU(), mapCPUs()
+ * @see PSID_bindToNode(), PSID_pinToCPU(), PSID_mapCPUs()
  */
 static void doClamps(PStask_t *task)
 {
@@ -723,20 +688,20 @@ static void doClamps(PStask_t *task)
     } else if (PSIDnodes_pinProcs(PSC_getMyID())
 	       || PSIDnodes_bindMem(PSC_getMyID())) {
 #ifdef CPU_ZERO
-	cpu_set_t *physSet = mapCPUs(task->CPUset);
+	cpu_set_t *physSet = PSID_mapCPUs(task->CPUset);
 
 	if (PSIDnodes_pinProcs(PSC_getMyID())) {
 	    if (getenv("__PSI_NO_PINPROC")) {
 		fprintf(stderr, "Pinning suppressed for rank %d\n", task->rank);
 	    } else {
-		pinToCPUs(physSet);
+		PSID_pinToCPUs(physSet);
 	    }
 	}
 	if (PSIDnodes_bindMem(PSC_getMyID())) {
 	    if (getenv("__PSI_NO_MEMBIND")) {
 		fprintf(stderr, "Binding suppressed for rank %d\n", task->rank);
 	    } else {
-		bindToNodes(physSet);
+		PSID_bindToNodes(physSet);
 	    }
 	}
 #else
