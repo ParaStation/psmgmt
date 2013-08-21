@@ -1,7 +1,7 @@
 #
 # ParaStation
 #
-# Copyright (C) 2012 ParTec Cluster Competence Center GmbH, Munich
+# Copyright (C) 2012-2013 ParTec Cluster Competence Center GmbH, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -11,7 +11,7 @@
 #
 include $(top_srcdir)/common.am
 
-dist_bin_SCRIPTS = psh
+dist_bin_SCRIPTS = psh psaccview
 
 profile_ddir = $(sysconfdir)/profile.d
 dist_profile_d_DATA = psmgmt.csh psmgmt.sh
@@ -41,7 +41,7 @@ EXTRA_DIST += ps_gm.in ps_acc.in
 EXTRA_DIST += init.d/parastation.in xinetd.d/psidstarter.in
 EXTRA_DIST += psid2cmustatus.in
 
-# clea up genaretd files
+# clean up generated files
 CLEANFILES = psaccview
 CLEANFILES += psmgmt.csh psmgmt.sh
 CLEANFILES += ps_gm ps_acc
