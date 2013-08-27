@@ -63,7 +63,7 @@ static char *getAccountMsgType(int type)
 	case PSP_ACCOUNT_END:
 	    return "END";
     }
-    return NULL;
+    return "UNKNOWN";
 }
 
 void handleAccountEnd(DDTypedBufferMsg_t *msg, int remote)
@@ -421,41 +421,13 @@ void handleAccountChild(DDTypedBufferMsg_t *msg, int remote)
     client->rank = rank;
 }
 
-/**
- * @brief Convert an account message type to string.
- *
- * @param type The type to convert.
- *
- * @return Returns the requested string.
- */
-static const char *accMsgType2String(int type)
-{
-    switch(type) {
-	case PSP_ACCOUNT_QUEUE:
-	    return "QUEUE";
-	case PSP_ACCOUNT_DELETE:
-	    return "DELETE";
-	case PSP_ACCOUNT_SLOTS:
-	    return "SLOTS";
-	case PSP_ACCOUNT_START:
-	    return "START";
-	case PSP_ACCOUNT_LOG:
-	    return "LOG";
-	case PSP_ACCOUNT_CHILD:
-	    return "CHILD";
-	case PSP_ACCOUNT_END:
-	    return "END";
-    }
-    return "UNKNOWN";
-}
-
 void handlePSMsg(DDTypedBufferMsg_t *msg)
 {
     if (msg->header.dest == PSC_getMyTID()) {
         /* message for me, let's get infos and forward to all accounters */
 
 	mdbg(LOG_ACC_MSG, "%s: got msg '%s'\n", __func__,
-		accMsgType2String(msg->type));
+	     getAccountMsgType(msg->type));
 
 	switch (msg->type) {
 	    case PSP_ACCOUNT_QUEUE:
@@ -483,5 +455,5 @@ void handlePSMsg(DDTypedBufferMsg_t *msg)
     }
 
     /* forward msg to accounting daemons */
-    oldAccountHanlder((DDBufferMsg_t *) msg);
+    oldAccountHandler((DDBufferMsg_t *) msg);
 }
