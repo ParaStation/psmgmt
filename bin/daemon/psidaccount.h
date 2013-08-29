@@ -104,21 +104,6 @@ void send_acct_OPTIONS(PStask_ID_t dest, int all);
  */
 int PSID_getNumAcct(void);
 
-/**
- * @brief Handle PSP_CD_ACCOUNT message.
- *
- * Handle the message @a msg of type PSP_CD_ACCOUNT. If the message is
- * destined to the local daemon it will be forwarded to all registered
- * accounter tasks. I.e. the message will be multiplexed if more than
- * one accounter is registered through the corresponding @ref
- * PSID_addAcct() calls.
- *
- * @param msg Pointer to the message to handle.
- *
- * @return No return value.
- */
-void PSID_msgACCOUNT(DDBufferMsg_t *msg);
-
 #ifdef __cplusplus
 }/* extern "C" */
 #endif

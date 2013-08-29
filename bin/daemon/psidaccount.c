@@ -129,69 +129,98 @@ void send_acct_OPTIONS(PStask_ID_t dest, int all)
     }
 }
 
-void PSID_msgACCOUNT(DDBufferMsg_t *msg)
+/**
+ * @brief Forward PSP_CD_ACCOUNT message locally.
+ *
+ * Forward the message @a msg of type PSP_CD_ACCOUNT to a local
+ * accounter. Beforehand permissions of the accounter to receive this
+ * specific accounting message will be double-checked. I.e. only
+ * accounters owned by root, an admin user or a member of the admin
+ * group are allowed receive all accounting message. All other users
+ * will only receive messages concerning their own jobs.
+ *
+ * @param msg Pointer to the message to forward.
+ *
+ * @return No return value.
+ */
+static void localForward_ACCOUNT(DDTypedBufferMsg_t *msg)
+{
+    PStask_t *task = PStasklist_find(&managedTasks, msg->header.dest);
+    char *ptr = msg->buf;
+    uid_t uid;
+
+    /* skip logger TID */
+    ptr += sizeof(PStask_ID_t);
+
+    if (msg->type != PSP_ACCOUNT_SLOTS) {
+	/* skip rank to get to UID */
+	ptr += sizeof(int32_t);
+    }
+    uid = *(uid_t *)ptr;
+
+    if (!task) {
+	PSID_log(-1, "%s: '%s' not found\n", __func__,
+		 PSC_printTID(msg->header.dest));
+	return;
+    }
+
+    /* Unprivileged users may only see their own accounting data. */
+    if (task->uid != 0 && task->uid != uid &&
+	!PSIDnodes_testGUID(PSC_getMyID(), PSIDNODES_ADMUSER,
+			    (PSIDnodes_guid_t){.u=task->uid}) &&
+	!PSIDnodes_testGUID(PSC_getMyID(), PSIDNODES_ADMGROUP,
+			    (PSIDnodes_guid_t){.g=task->gid})) {
+	return;
+    }
+
+    if (sendMsg(msg) == -1 && errno != EWOULDBLOCK) {
+	PSID_warn(-1, errno, "%s: sendMsg()", __func__);
+    }
+}
+
+/**
+ * @brief Handle PSP_CD_ACCOUNT message.
+ *
+ * Handle the message @a msg of type PSP_CD_ACCOUNT. If the message is
+ * destined to the local daemon, it will be forwarded to all registered
+ * accounter tasks. I.e. the message will be multiplexed if more than
+ * one accounter is registered through the corresponding @ref
+ * PSID_addAcct() calls.
+ *
+ * Delivery of messages to local accounters will be filtered by @ref
+ * localForward_ACCOUNT().
+ *
+ * @param msg Pointer to the message to handle.
+ *
+ * @return No return value.
+ */
+static void msg_ACCOUNT(DDTypedBufferMsg_t *msg)
 {
     PSID_log(PSID_LOG_VERB, "%s: from %s\n", __func__,
 	     PSC_printTID(msg->header.sender));
 
     if (msg->header.dest == PSC_getMyTID()) {
-	DDTypedBufferMsg_t *tmsg = (DDTypedBufferMsg_t *) msg;
-	list_t *pos, *tmp;
-	PStask_t *task;
-	char *ptr = tmsg->buf;
-	uid_t uid;
-	static int lastStartUID = -1;
-
-	/* skip logger TID and rank to get to UID */
-	ptr += sizeof(PStask_ID_t);
-	ptr += sizeof(int32_t);
-	uid = *(uid_t *)ptr;
-
-	/* save uid for next incoming slot msg */
-	if (tmsg->type == PSP_ACCOUNT_START) {
-	    lastStartUID = uid;
-	}
-
-	/* no uid in msg, used saved one */
-	if (tmsg->type == PSP_ACCOUNT_SLOTS) {
-	    uid = lastStartUID;
-	}
-
 	/* message for me, let's forward to all authorized accounters */
+	list_t *pos, *tmp;
 
 	list_for_each_safe(pos, tmp, &PSID_accounters) {
 	    PSID_acct_t *acct = list_entry(pos, PSID_acct_t, next);
-
-	    if (!(task = PStasklist_find(&managedTasks, acct->acct))) {
-		PSID_log(PSID_LOG_VERB, "%s: task for accounter '%s' not"
-			    " found\n", __func__, PSC_printTID(acct->acct));
-		continue;
-	    }
-
-	    /* Let accounter running as adminuser receive all accounting
-	     * messages. Unprivileged users may only see their own
-	     * accounting data.
-	     */
-	    if (task->uid != 0 && task->uid != uid &&
-		!PSIDnodes_testGUID(PSC_getMyID(), PSIDNODES_ADMUSER,
-			       (PSIDnodes_guid_t){.u=task->uid}) &&
-		!PSIDnodes_testGUID(PSC_getMyID(), PSIDNODES_ADMGROUP,
-			       (PSIDnodes_guid_t){.g=task->gid})) {
-		continue;
-	    }
-
 	    msg->header.dest = acct->acct;
-	    if (sendMsg(msg) == -1 && errno != EWOULDBLOCK) {
-		PSID_warn(-1, errno, "%s: sendMsg()", __func__);
+
+	    if (PSC_getID(acct->acct) == PSC_getMyID()) {
+		/* local accounter */
+		localForward_ACCOUNT(msg);
+	    } else {
+		if (sendMsg(msg) == -1 && errno != EWOULDBLOCK) {
+		    PSID_warn(-1, errno, "%s: sendMsg()", __func__);
+		}
 	    }
 	}
 	/* Restore original dest to allow re-use of msg */
 	msg->header.dest = PSC_getMyTID();
     } else if (PSC_getPID(msg->header.dest)) {
 	/* forward to accounter */
-	if (sendMsg(msg) == -1 && errno != EWOULDBLOCK) {
-	    PSID_warn(-1, errno, "%s: sendMsg()", __func__);
-	}
+	localForward_ACCOUNT(msg);
     }
 }
 
@@ -209,5 +238,5 @@ void initAccount(void)
 {
     PSID_log(PSID_LOG_VERB, "%s()\n", __func__);
 
-    PSID_registerMsg(PSP_CD_ACCOUNT, PSID_msgACCOUNT);
+    PSID_registerMsg(PSP_CD_ACCOUNT, (handlerFunc_t) msg_ACCOUNT);
 }
