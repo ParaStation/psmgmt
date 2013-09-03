@@ -1598,9 +1598,6 @@ static int buildSandboxAndStart(PStask_t *task)
     return 0;
 }
 
-/** Chunksize for PSP_ACCOUNT_SLOTS messages */
-#define ACCT_SLOTS_CHUNK (1024 / (sizeof(PSnodes_ID_t) + sizeof(PSCPU_set_t)))
-
 /**
  * @brief Send accounting info on start of job
  *
@@ -1622,7 +1619,9 @@ static void sendAcctStart(PStask_ID_t sender, PStask_t *task)
 {
     DDTypedBufferMsg_t msg;
     char *ptr = msg.buf;
-    unsigned int slot;
+    unsigned short maxCPUs = 0;
+    int slotsChunk, slot, num = task->partitionSize;
+    size_t nBytes;
 
     msg.header.type = PSP_CD_ACCOUNT;
     msg.header.dest = PSC_getMyTID();
@@ -1653,7 +1652,7 @@ static void sendAcctStart(PStask_ID_t sender, PStask_t *task)
     msg.header.len += sizeof(gid_t);
 
     /* total number of children */
-    *(int32_t *)ptr = task->partitionSize;
+    *(int32_t *)ptr = num;
     ptr += sizeof(int32_t);
     msg.header.len += sizeof(int32_t);
 
@@ -1661,28 +1660,52 @@ static void sendAcctStart(PStask_ID_t sender, PStask_t *task)
 
     msg.type = PSP_ACCOUNT_SLOTS;
 
-    for (slot = 0; slot < task->partitionSize; slot++) {
-	if (! (slot%ACCT_SLOTS_CHUNK)) {
+    for (slot = 0; slot < num; slot++) {
+	unsigned short cpus = PSIDnodes_getVirtCPUs(task->partition[slot].node);
+	if (cpus > maxCPUs) maxCPUs = cpus;
+    }
+
+    if (!num || !maxCPUs) {
+	PSID_log(-1, "%s: No CPUs\n", __func__);
+	return;
+    }
+
+    nBytes = PSCPU_bytesForCPUs(maxCPUs);
+    slotsChunk = 1024 / (sizeof(PSnodes_ID_t) + nBytes);
+
+    for (slot = 0; slot < num; slot++) {
+	if (! (slot%slotsChunk)) {
 	    if (slot) sendMsg((DDMsg_t *)&msg);
 
 	    msg.header.len = sizeof(msg.header) + sizeof(msg.type);
 
+	    /* skip logger's TID */
 	    ptr = msg.buf + sizeof(PStask_ID_t);
 	    msg.header.len += sizeof(PStask_ID_t);
 
-	    *(uint32_t *)ptr =
-		(task->partitionSize - slot < ACCT_SLOTS_CHUNK) ?
-		task->partitionSize - slot : ACCT_SLOTS_CHUNK;
-	    ptr += sizeof(uint32_t);
-	    msg.header.len += sizeof(uint32_t);
+	    /* child's uid */
+	    *(uid_t *)ptr = task->uid;
+	    ptr += sizeof(uid_t);
+	    msg.header.len += sizeof(uid_t);
+
+	    /* number of slots to add now */
+	    *(uint16_t *)ptr = (num-slot < slotsChunk) ? num-slot : slotsChunk;
+	    ptr += sizeof(uint16_t);
+	    msg.header.len += sizeof(uint16_t);
+
+	    /* size of CPUset part */
+	    *(uint16_t *)ptr = nBytes;
+	    ptr += sizeof(uint16_t);
+	    msg.header.len += sizeof(uint16_t);
 	}
 
-	memcpy(ptr, &task->partition[slot].node, sizeof(PSnodes_ID_t));
+	*(PSnodes_ID_t *)ptr = task->partition[slot].node;
 	ptr += sizeof(PSnodes_ID_t);
 	msg.header.len += sizeof(PSnodes_ID_t);
-	memcpy(ptr, task->partition[slot].CPUset, sizeof(PSCPU_set_t));
-	ptr += sizeof(PSCPU_set_t);
-	msg.header.len += sizeof(PSCPU_set_t);
+
+	PSCPU_extract(ptr, task->partition[slot].CPUset, nBytes);
+	ptr += nBytes;
+	msg.header.len += nBytes;
     }
 
     sendMsg((DDMsg_t *)&msg);
@@ -2044,11 +2067,22 @@ static void msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
 					PSC_getID(locMsg.header.dest)));
 		    //ptr += sizeof(int16_t);
 		    locMsg.header.len += sizeof(int16_t);
+		} else if (destDmnPSPver < 408) {
+		    size_t nBytes = PSCPU_bytesForCPUs(32);
+		    PSCPU_extract(ptr, ptask->spawnNodes[rank].CPUset, nBytes);
+		    //ptr += nBytes;
+		    locMsg.header.len += nBytes;
 		} else {
-		    memcpy(ptr, ptask->spawnNodes[rank].CPUset,
-			   sizeof(PSCPU_set_t));
-		    //ptr += sizeof(PSCPU_set_t);
-		    locMsg.header.len += sizeof(PSCPU_set_t);
+		    unsigned short nBytes = PSCPU_bytesForCPUs(
+			PSIDnodes_getVirtCPUs(PSC_getID(locMsg.header.dest)));
+
+		    *(uint16_t *)ptr = nBytes;
+		    ptr += sizeof(int16_t);
+		    locMsg.header.len += sizeof(int16_t);
+
+		    PSCPU_extract(ptr, ptask->spawnNodes[rank].CPUset, nBytes);
+		    //ptr += nBytes;
+		    locMsg.header.len += nBytes;
 		}
 
 		PSID_log(PSID_LOG_SPAWN, "%s: send PSP_SPAWN_LOC to node %d\n",
@@ -2114,8 +2148,27 @@ static void msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
 	    PSCPU_setCPU(task->CPUset, *(int16_t *)msg->buf);
 	    usedBytes = sizeof(int16_t);
 	} else {
-	    memcpy(task->CPUset, msg->buf, sizeof(task->CPUset));
-	    usedBytes = sizeof(task->CPUset);
+	    size_t nBytes, myBytes = PSCPU_bytesForCPUs(PSCPU_MAX);
+	    char *ptr = msg->buf;
+
+	    if (srcDmnPSPver < 408) {
+		nBytes = PSCPU_bytesForCPUs(32);
+		usedBytes = 0;
+	    } else {
+		nBytes = *(uint16_t *)ptr;
+		ptr += sizeof(uint16_t);
+		usedBytes = sizeof(uint16_t);
+	    } 
+
+	    if (nBytes > myBytes) {
+		PSID_log(-1,  "%s: PSP_SPAWN_LOC from %s: expecting %zd CPUs\n",
+			 __func__, PSC_printTID(msg->header.sender), nBytes*8);
+	    }
+
+	    PSCPU_clrAll(task->CPUset);
+	    PSCPU_inject(task->CPUset, ptr, nBytes);
+	    // ptr += nBytes;
+	    usedBytes += nBytes;
 	}
 	break;
     }

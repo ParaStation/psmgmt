@@ -1670,9 +1670,11 @@ static int sendNodelist(PSpart_request_t *request, DDBufferMsg_t *msg)
 
 /**
  * Chunk-size for PSP_DD_PROVIDEPARTSL and PSP_DD_PROVIDETASKSL
- * messages
+ * messages.
+ *
+ * This definition is only for compatibility with older version.
  */
-#define SLOTS_CHUNK (int)(1024 / sizeof(PSpart_slot_t))
+#define SLOTS_CHUNK 128
 
 /**
  * @brief Send a list of slots.
@@ -1685,9 +1687,9 @@ static int sendNodelist(PSpart_request_t *request, DDBufferMsg_t *msg)
  * length (in the .len field) has to correctly represent the messages
  * preset content.
  *
- * In order to send the list of slots, it is split into chunks of @ref
- * SLOTS_CHUNK entries. Each chunk is copied into the message and send
- * separately to its destination.
+ * In order to send the list of slots, it is split into chunks. Each
+ * chunk is copied into the message and send separately to its
+ * destination.
  *
  * @param slots The list of slots to send.
  *
@@ -1706,6 +1708,8 @@ static int sendSlotlist(PSpart_slot_t *slots, int num, DDBufferMsg_t *msg)
     int destPSPver = PSIDnodes_getProtoV(PSC_getID(msg->header.dest));
     int destDmnPSPver = PSIDnodes_getDmnProtoV(PSC_getID(msg->header.dest));
     int bufOffset = msg->header.len - sizeof(msg->header);
+    unsigned short maxCPUs = 0;
+    int slotsChunk, n;
 
     PSID_log(PSID_LOG_PART, "%s(%s)\n", __func__,
 	     PSC_printTID(msg->header.dest));
@@ -1715,9 +1719,27 @@ static int sendSlotlist(PSpart_slot_t *slots, int num, DDBufferMsg_t *msg)
 	return -1;
     }
 
+    /* Determine maximum number of CPUs */
+    for (n = 0; n < num; n++) {
+	unsigned short cpus = PSIDnodes_getVirtCPUs(slots[n].node);
+	if (cpus > maxCPUs) maxCPUs = cpus;
+    }
+    if (!maxCPUs) {
+	PSID_log(-1, "%s: No remote CPUs\n", __func__);
+	return -1;
+    }
+
+    if (destPSPver < 334) {
+	slotsChunk = SLOTS_CHUNK;
+    } else if (destDmnPSPver < 408) {
+	slotsChunk = SLOTS_CHUNK;
+    } else {
+	slotsChunk = 1024/(sizeof(PSnodes_ID_t)+PSCPU_bytesForCPUs(maxCPUs));
+    }
+
     while (offset < num && PSIDnodes_isUp(PSC_getID(msg->header.dest))) {
 	PSpart_slot_t *mySlots = slots+offset;
-	int chunk = (num-offset > SLOTS_CHUNK) ? SLOTS_CHUNK : num-offset;
+	int chunk = (num-offset > slotsChunk) ? slotsChunk : num-offset;
 	char *ptr = msg->buf + bufOffset;
 	msg->header.len = sizeof(msg->header) + bufOffset;
 
@@ -1728,24 +1750,40 @@ static int sendSlotlist(PSpart_slot_t *slots, int num, DDBufferMsg_t *msg)
 	if (destPSPver < 334) {
 	    /* Map to nodelist for compatibility reasons */
 	    PSnodes_ID_t *nodeBuf = (PSnodes_ID_t *)ptr;
-	    int n;
-	    for (n=0; n<chunk; n++) nodeBuf[n] = mySlots[n].node;
+	    for (n = 0; n < chunk; n++) nodeBuf[n] = mySlots[n].node;
 	    msg->header.len += chunk * sizeof(*nodeBuf);
 	} else if (destDmnPSPver < 401) {
 	    /* Map to old slotlist for compatibility reasons */
 	    PSpart_oldSlot_t *oldSlots = (PSpart_oldSlot_t *)ptr;
-	    int n;
-	    for (n=0; n<chunk; n++) {
+	    for (n = 0; n < chunk; n++) {
 		PSnodes_ID_t node = oldSlots[n].node = mySlots[n].node;
 		oldSlots[n].cpu = PSCPU_first(mySlots[n].CPUset,
 					      PSIDnodes_getPhysCPUs(node));
 	    }
 	    msg->header.len += chunk * sizeof(*oldSlots);
 	} else {
-	    memcpy(ptr, mySlots, chunk * sizeof(*slots));
-	    //ptr += chunk * sizeof(*slots);
-	    msg->header.len += chunk * sizeof(*slots);
+	    size_t nBytes;
+
+	    if (destDmnPSPver < 408) {
+		nBytes = PSCPU_bytesForCPUs(32);
+	    } else {
+		nBytes = PSCPU_bytesForCPUs(maxCPUs);
+		*(uint16_t *)ptr = nBytes;
+		ptr += sizeof(uint16_t);
+		msg->header.len += sizeof(uint16_t);
+	    }
+
+	    for (n = 0; n < chunk; n++) {
+		*(PSnodes_ID_t *)ptr = mySlots[n].node;
+		ptr += sizeof(PSnodes_ID_t);
+		msg->header.len += sizeof(PSnodes_ID_t);
+
+		PSCPU_extract(ptr, mySlots[n].CPUset, nBytes);
+		ptr += nBytes;
+		msg->header.len += nBytes;
+	    }
 	}
+
 	offset += chunk;
 	PSID_log(PSID_LOG_PART, "%s: send chunk of %d (size %d)\n", __func__,
 		 chunk, msg->header.len);
@@ -2467,20 +2505,20 @@ static void appendToSlotlist(DDBufferMsg_t *inmsg, PSpart_request_t *request)
     int dmnPSPver = PSIDnodes_getDmnProtoV(PSC_getID(inmsg->header.sender));
     PSpart_slot_t *slots = request->slots + request->sizeGot;
     char *ptr = inmsg->buf;
-    int chunk = *(int16_t *)ptr;
+    int chunk = *(int16_t *)ptr, n;
     ptr += sizeof(int16_t);
+
+    PSID_log(PSID_LOG_PART, "%s(%s)\n", __func__, PSC_printTID(request->tid));
 
     if (PSPver < 334) {
 	PSnodes_ID_t *nodeBuf = (PSnodes_ID_t *)ptr;
-	int n;
-	for (n=0; n<chunk; n++) {
+	for (n = 0; n < chunk; n++) {
 	    slots[n].node = nodeBuf[n];
 	    PSCPU_setAll(slots[n].CPUset);
 	}
     } else if (dmnPSPver < 401) {
 	PSpart_oldSlot_t *oldSlots = (PSpart_oldSlot_t *)ptr;
-	int n;
-	for (n=0; n<chunk; n++) {
+	for (n = 0; n < chunk; n++) {
 	    slots[n].node = oldSlots[n].node;
 	    if (oldSlots[n].cpu == -1) {
 		PSCPU_setAll(slots[n].CPUset);
@@ -2489,7 +2527,28 @@ static void appendToSlotlist(DDBufferMsg_t *inmsg, PSpart_request_t *request)
 	    }
 	}
     } else {
-	memcpy(slots, ptr, chunk * sizeof(*slots));
+	size_t nBytes, myBytes = PSCPU_bytesForCPUs(PSCPU_MAX);
+	if (dmnPSPver < 408) {
+	    nBytes = PSCPU_bytesForCPUs(32);
+	} else {
+	    nBytes = *(uint16_t *)ptr;
+	    ptr += sizeof(uint16_t);
+	}
+
+	if (nBytes > myBytes) {
+	    PSID_log(-1, "%s(%s): too many CPUs: %zd > %zd\n", __func__,
+		     PSC_printTID(request->tid), nBytes*8, myBytes*8);
+	}
+	PSID_log(PSID_LOG_PART, "%s: Using %zd bytes\n", __func__, nBytes);
+
+	for (n = 0; n < chunk; n++) {
+	    slots[n].node = *(PSnodes_ID_t *)ptr;
+	    ptr += sizeof(PSnodes_ID_t);
+
+	    PSCPU_clrAll(slots[n].CPUset);
+	    PSCPU_inject(slots[n].CPUset, ptr, nBytes);
+	    ptr += nBytes;
+	}
     }
     request->sizeGot += chunk;
 }
@@ -2875,10 +2934,20 @@ static void msg_GETNODES(DDBufferMsg_t *inmsg)
 	    //ptr = (char *)&oldSlots[num];
 	    msg.header.len += num * sizeof(*oldSlots);
 	} else if (dmnPSPver < 402) {
+	    unsigned int n;
+	    size_t nBytes = PSCPU_bytesForCPUs(32);
+
 	    if (num > SLOTS_CHUNK) goto error;
-	    memcpy(ptr, slots, num * sizeof(*slots));
-	    //ptr += num * sizeof(*slots);
-	    msg.header.len += num * sizeof(*slots);
+
+	    for (n = 0; n < num; n++) {
+		*(PSnodes_ID_t *)ptr = slots[n].node;
+		ptr += sizeof(PSnodes_ID_t);
+		msg.header.len += sizeof(PSnodes_ID_t);
+
+		PSCPU_extract(ptr, slots[n].CPUset, nBytes);
+		ptr += nBytes;
+		msg.header.len += nBytes;
+	    }
 	} else {
 	    *(int16_t *)ptr = num;
 	    //ptr += sizeof(int16_t);
@@ -2979,20 +3048,25 @@ static void msg_GETRANKNODE(DDBufferMsg_t *inmsg)
 	ptr += sizeof(int32_t);
 	msg.header.len += sizeof(int32_t);
 
-	if (dmnPSPver >= 402) {
+	if (dmnPSPver < 402) {
+	    size_t nBytes = PSCPU_bytesForCPUs(32);
+
+	    *(PSnodes_ID_t *)ptr = slot->node;
+	    ptr += sizeof(PSnodes_ID_t);
+	    msg.header.len += sizeof(PSnodes_ID_t);
+
+	    PSCPU_extract(ptr, slot->CPUset, nBytes);
+	    //ptr += nBytes;
+	    msg.header.len += nBytes;
+
+	    sendMsg(&msg);
+	} else {
 	    *(int16_t *)ptr = 1; /* requested */
-	    ptr += sizeof(int16_t);
+	    //ptr += sizeof(int16_t);
 	    msg.header.len += sizeof(int16_t);
-	    *(int16_t *)ptr = 1; /* num */
-	    ptr += sizeof(int16_t);
-	    msg.header.len += sizeof(int16_t);
+
+	    sendSlotlist(slot, 1, &msg);
 	}
-
-	memcpy(ptr, slot, sizeof(*slot));
-	//ptr += sizeof(*slot);
-	msg.header.len += sizeof(*slot);
-
-	sendMsg(&msg);
 
 	return;
     }
@@ -3033,8 +3107,10 @@ static void msg_NODESRES(DDBufferMsg_t *inmsg)
 	PStask_t *task = PStasklist_find(&managedTasks, inmsg->header.dest);
 	char *ptr = inmsg->buf;
 	int num = inmsg->header.len - sizeof(inmsg->header) - sizeof(int32_t);
-	int nextRank = *(int32_t *)ptr, requested = 0;
+	int nextRank, requested = 0, n;
 	PSpart_slot_t *slots;
+
+	nextRank = *(int32_t *)ptr;
 	ptr += sizeof(int32_t);
 
 	PSID_log(PSID_LOG_PART, "%s(%s)\n", __func__,
@@ -3049,7 +3125,7 @@ static void msg_NODESRES(DDBufferMsg_t *inmsg)
 	if (dmnPSPver < 401) {
 	    num /= sizeof(PSpart_oldSlot_t);
 	} else if (dmnPSPver < 402) {
-	    num /= sizeof(PSpart_slot_t);
+	    num /= PSCPU_bytesForCPUs(32);
 	} else {
 	    requested = *(int16_t *)ptr;
 	    ptr += sizeof(int16_t);
@@ -3075,8 +3151,7 @@ static void msg_NODESRES(DDBufferMsg_t *inmsg)
 
 	if (dmnPSPver < 401) {
 	    PSpart_oldSlot_t *oldSlots = (PSpart_oldSlot_t *)ptr;
-	    int n;
-	    for (n=0; n<num; n++) {
+	    for (n = 0; n < num; n++) {
 		slots[n].node = oldSlots[n].node;
 		if (oldSlots[n].cpu == -1) {
 		    PSCPU_setAll(slots[n].CPUset);
@@ -3084,10 +3159,28 @@ static void msg_NODESRES(DDBufferMsg_t *inmsg)
 		    PSCPU_setCPU(slots[n].CPUset, oldSlots[n].cpu);
 		}
 	    }
-	} else if (dmnPSPver < 402) {
-	    memcpy(slots, ptr, num * sizeof(*slots));
 	} else {
-	    memcpy(slots, ptr, num * sizeof(*slots));
+	    size_t nBytes, myBytes = PSCPU_bytesForCPUs(PSCPU_MAX);
+	    if (dmnPSPver < 408) {
+		nBytes = PSCPU_bytesForCPUs(32);
+	    } else {
+		nBytes = *(uint16_t *)ptr;
+		ptr += sizeof(uint16_t);
+	    }
+
+	    if (nBytes > myBytes) {
+		PSID_log(-1, "%s(%s): too many CPUs: %zd > %zd\n", __func__,
+			 PSC_printTID(inmsg->header.dest), nBytes*8, myBytes*8);
+	    }
+
+	    for (n = 0; n < num; n++) {
+		slots[n].node = *(PSnodes_ID_t *)ptr;
+		ptr += sizeof(PSnodes_ID_t);
+
+		PSCPU_clrAll(slots[n].CPUset);
+		PSCPU_inject(slots[n].CPUset, ptr, nBytes);
+		ptr += nBytes;
+	    }
 	}
 	task->spawnNum += num;
 
@@ -3096,12 +3189,11 @@ static void msg_NODESRES(DDBufferMsg_t *inmsg)
 	    PSpart_slot_t *slots = task->spawnNodes + nextRank;
 	    PSnodes_ID_t *nodeBuf = (PSnodes_ID_t *)(inmsg->buf
 						     + sizeof(int32_t));
-	    int n;
 
 	    inmsg->header.type = PSP_CD_NODESRES;
 	    inmsg->header.len = sizeof(inmsg->header) + sizeof(int32_t);
 
-	    for (n=0; n<requested; n++) nodeBuf[n] = slots[n].node;
+	    for (n = 0; n < requested; n++) nodeBuf[n] = slots[n].node;
 	    inmsg->header.len += requested * sizeof(*nodeBuf);
 	} else {
 	    return;
@@ -3486,7 +3578,14 @@ static void sendReqList(PStask_ID_t dest, list_t *queue, PSpart_list_t opt)
 	msg.header.len -= len;
 
 	if (num) {
-	    int offset = 0;
+	    int offset = 0, n;
+	    unsigned short maxCPUs = 0;
+
+	    /* Determine maximum number of CPUs */
+	    for (n = 0; n < num; n++) {
+		unsigned short cpus = PSIDnodes_getVirtCPUs(req->slots[n].node);
+		if (cpus > maxCPUs) maxCPUs = cpus;
+	    }
 
 	    msg.type = PSP_INFO_QUEUE_SEP;
 	    if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
@@ -3498,27 +3597,49 @@ static void sendReqList(PStask_ID_t dest, list_t *queue, PSpart_list_t opt)
 	    while (offset < num) {
 		int chunk =
 		    (num-offset > SLOTS_CHUNK) ? SLOTS_CHUNK : num-offset;
+		int n;
 		PSpart_slot_t *slots = req->slots+offset;
+
 		ptr = msg.buf;
 
 		if (PSPver < 334) {
 		    PSnodes_ID_t *nodeBuf = (PSnodes_ID_t *)ptr;
-		    int n;
-		    for (n=0; n<chunk; n++) nodeBuf[n] = slots[n].node;
+		    for (n = 0; n < chunk; n++) nodeBuf[n] = slots[n].node;
 		    len = chunk * sizeof(*nodeBuf);
 		} else if (dmnPSPver < 401) {
 		    PSpart_oldSlot_t *oldSlots = (PSpart_oldSlot_t *)ptr;
-		    int n;
-		    for (n=0; n<chunk; n++) {
+		    for (n = 0; n < chunk; n++) {
 			PSnodes_ID_t node = oldSlots[n].node = slots[n].node;
 			oldSlots[n].cpu = PSCPU_first(slots[n].CPUset,
 						PSIDnodes_getPhysCPUs(node));
 		    }
 		    len = chunk * sizeof(*oldSlots);
 		} else {
-		    memcpy(ptr, slots, chunk * sizeof(*slots));
-		    len = chunk * sizeof(*slots);
+		    size_t nBytes;
+		    len = 0;
+
+		    if (dmnPSPver < 408) {
+			nBytes = PSCPU_bytesForCPUs(32);
+		    } else {
+			nBytes = PSCPU_bytesForCPUs(maxCPUs);
+			if (!offset) {
+			    *(uint16_t *)ptr = nBytes;
+			    ptr += sizeof(uint16_t);
+			    len += sizeof(uint16_t);
+			}
+		    }
+
+		    for (n = 0; n < chunk; n++) {
+			*(PSnodes_ID_t *)ptr = slots[n].node;
+			ptr += sizeof(PSnodes_ID_t);
+			len += sizeof(PSnodes_ID_t);
+
+			PSCPU_extract(ptr, slots[n].CPUset, nBytes);
+			ptr += nBytes;
+			len += nBytes;
+		    }
 		}
+
 		offset += chunk;
 
 		msg.header.len += len;

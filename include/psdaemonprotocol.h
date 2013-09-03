@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2011 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2013 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -31,7 +31,7 @@ extern "C" {
 #endif
 
 /** Unique version number of the high-level protocol */
-#define PSDaemonProtocolVersion  407
+#define PSDaemonProtocolVersion  408
 
 /** IDs of the various message types */
 

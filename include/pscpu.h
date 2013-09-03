@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2007 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2007-2013 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -31,7 +31,7 @@ extern "C" {
 #endif
 
 /** Maximum number of CPUs per node. This has to be a multipe of 8 */
-#define PSCPU_MAX 32
+#define PSCPU_MAX 1024
 
 /** Mask used to encode  */
 typedef uint16_t PSCPU_mask_t;
@@ -299,6 +299,85 @@ char *PSCPU_print(PSCPU_set_t set);
 static inline void PSCPU_copy(PSCPU_set_t dest, PSCPU_set_t src)
 {
     if (src && dest) memcpy(dest, src, sizeof(PSCPU_set_t));
+}
+
+/**
+ * @brief Determine number of bytes to be copied for part of CPU-set
+ *
+ * Determine the number of bytes to be copied out of a CPU-set in
+ * order to get to information for @a num CPUs.
+ *
+ * If more than @ref PSCPU_MAX CPUs are requested, 0 is returned and
+ * thus, the request is marked to be invalid.
+ *
+ * This function might be used to determine the last parameter of @ref
+ * PSCPU_extract() and PSCPU_inject().
+ *
+ * @param num Number of CPUs to be copied
+ *
+ * @return The number of bytes required unless too many CPUs are
+ * requested. In this case, 0 is returned.
+ *
+ * @see PSCPU_extract(), PSCPU_inject()
+ */
+static inline size_t PSCPU_bytesForCPUs(unsigned short num)
+{
+    size_t bytes = num ? (num-1)/8 + 1 : 0;
+
+    if (num > PSCPU_MAX) bytes = 0;
+
+    return bytes;
+}
+
+/**
+ * @brief Extract parts of CPU-set
+ *
+ * Extract @a num bytes of CPU-set @a src into the buffer @a
+ * dest. Extraction is done for full bytes only, i.e. always chunks of
+ * 8 CPUs are copied.
+ *
+ * @ref PSCPU_bytesForCPUs() might be used in order to determine the
+ * number of bytes required to extract a given number of CPUs.
+ *
+ * @param dest The destination buffer
+ *
+ * @param src The CPU-set to extract from
+ *
+ * @param num The number bytes to extract
+ *
+ * @return No return value
+ *
+ * @see PSCPU_bytesForCPUs()
+ */
+static inline void PSCPU_extract(void *dest, PSCPU_set_t src, size_t num)
+{
+    if (num && src && dest) memcpy(dest, src, num);
+}
+
+/**
+ * @brief Inject parts of CPU-set
+ *
+ * Inject @a num bytes stored in buffer @a src into the CPU-set @a
+ * dest. Injection is done for full bytes only, i.e. always chunks of
+ * 8 CPUs are copied.
+ *
+ * @ref PSCPU_bytesForCPUs() might be used in order to determine the
+ * number of bytes required to inject a given number of CPUs.
+ *
+ * @param dest The destination CPU-set
+ *
+ * @param src The source buffer to inject
+ *
+ * @param num The number of bytes to inject
+ *
+ * @return No return value
+ *
+ * @see PSCPU_bytesForCPUs()
+ */
+static inline void PSCPU_inject(PSCPU_set_t dest, void *src, size_t num)
+{
+    if (num && src && dest) memcpy(dest, src,
+				   (num > PSCPU_MAX/8) ? PSCPU_MAX/8 : num);
 }
 
 

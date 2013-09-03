@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2006-2011 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2006-2013 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -64,13 +64,6 @@ static char vcid[] __attribute__ ((used)) =
 #define DEFAULT_LOG_DIR LOCALSTATEDIR "/log/psaccounter"
 #define ERROR_WAIT_TIME	60
 
-/* children struct */
-typedef struct {
-    PStask_ID_t pid;
-    PStask_ID_t forwarderpid;
-    char *cmd;
-} Children_t;
-
 /* job structure */
 typedef struct {
     char *jobname;
@@ -79,7 +72,7 @@ typedef struct {
     char user[MAX_USERNAME_LEN];
     char group[MAX_GROUPNAME_LEN];
     PStask_ID_t logger;
-    PStask_ID_t submitHostID;
+    PSnodes_ID_t submitHostID;
     size_t exec_hosts_size;
     size_t countSlotMsg;
     size_t taskSize;
@@ -101,7 +94,6 @@ typedef struct {
     float cput;
     struct rusage rusage;
     struct timeval walltime;
-    struct Children_t *children;
     uint64_t maxrss;
     uint64_t maxvsize;
     uint64_t avgrss;
@@ -380,9 +372,10 @@ static void dumpJobs(struct t_node *leaf)
     if (leaf) {
 	if (leaf->job) {
 	    job = leaf->job;
-	    alog("job logger:%i child_started:%zi partition_size:%i user:%s "
-		 "group:%s cmd=%s exec_hosts=%s submitHost:%s\n", job->logger,
-		 job->procStartCount, job->partitionSize, job->user,
+	    alog("job logger: %s child_started:%zi partition_size:%i user:%s "
+		 "group:%s cmd=%s exec_hosts=%s submitHost:%s\n",
+		 PSC_printTID(job->logger), job->procStartCount,
+		 job->partitionSize, job->user,
 		 job->group, job->jobname, job->exec_hosts,
 		 accNodes[job->submitHostID].hostname);
 	}
@@ -516,8 +509,8 @@ static Job_t *handleComHeader(char **newptr, const char *func, int *rank)
 	    exit(EXIT_FAILURE);
 	}
 	if (debug & 0x020) {
-	    alog("%s (%s): got new job, logger pid:%i from function: %s\n",
-		 __func__, func, PSC_getPID(job->logger), func);
+	    alog("%s (%s): got new job, logger: %s from function: %s\n",
+		 __func__, func, PSC_printTID(job->logger), func);
 	}
     }
 
@@ -610,7 +603,7 @@ static void printAccEndMsg(char *chead, PStask_ID_t key)
     int procs;
 
     if (!job) {
-	alog("%s: couldn`t find job:%i\n", __func__, key);
+	alog("%s: couldn`t find job: %s\n", __func__, PSC_printTID(key));
 	return;
     }
 
@@ -749,7 +742,7 @@ static void printAccEndMsg(char *chead, PStask_ID_t key)
 	    whour, wmin, wsec, procs);
 
     if (!deleteJob(key)) {
-	alog("%s: error deleting job:%i\n", __func__, key);
+	alog("%s: error deleting job: %s\n", __func__, PSC_printTID(key));
     }
 }
 
@@ -771,7 +764,7 @@ static void timer_handler()
     }
 
     if (!(job = findJob(tid))) {
-	alog("%s: couldn't find job:%i\n", __func__, tid);
+	alog("%s: couldn't find job: %s\n", __func__, PSC_printTID(tid));
     } else {
 	time_t atime;
 	struct tm *ptm;
@@ -815,11 +808,9 @@ static void timer_handler()
  *
  * Handle the message @a msg of type PSP_ACCOUNT_QUEUE.
  *
+ * @param msgptr Pointer to the message to handle.
+ *
  * @param chead Header of the log entry.
- *
- * @param ptr Pointer to the message to handle.
- *
- * @param key The job id (equals the taskID of the logger).
  *
  * @return No return value.
  */
@@ -908,7 +899,7 @@ static void handleAccDeleteMsg(char *chead, PStask_ID_t logger)
     Job_t *job = findJob(logger);
 
     if (!job) {
-	alog("%s: couldn`t find job:%i\n", __func__, logger);
+	alog("%s: couldn`t find job: %s\n", __func__, PSC_printTID(logger));
 	return;
     }
 
@@ -919,7 +910,7 @@ static void handleAccDeleteMsg(char *chead, PStask_ID_t logger)
 
     /* delete job structure */
     if (!deleteJob(logger)) {
-	alog("%s: couldn`t delete job:%i\n", __func__, logger);
+	alog("%s: couldn`t delete job: %s\n", __func__, PSC_printTID(logger));
 	return;
     }
 }
@@ -1000,8 +991,8 @@ static void handleAccEndMsg(char *msgptr, char *chead, PStask_ID_t sender)
 	    if (!finddJob(job->logger)) {
 		insertdJob(job->logger);
 		if(debug & 0x010) {
-		    alog("%s: waiting for all children to exit, job:%i\n",
-			 __func__, job->logger);
+		    alog("%s: waiting for all children to exit, job: %s\n",
+			 __func__, PSC_printTID(job->logger));
 		}
 	    }
 	} else {
@@ -1183,7 +1174,7 @@ static void handleAccSlotsMsg(char *chead, DDTypedBufferMsg_t * msg)
 
     PStask_ID_t logger;
     unsigned int numSlots, slot;
-    size_t slotSize;
+    size_t nBytes, myBytes = PSCPU_bytesForCPUs(PSCPU_MAX);
     char sep[2] = "";
     Job_t *job;
 
@@ -1194,19 +1185,25 @@ static void handleAccSlotsMsg(char *chead, DDTypedBufferMsg_t * msg)
     job = findJob(logger);
 
     if (!job) {
-	alog("%s: couldn't find job:%i\n", __func__, logger);
+	alog("%s: couldn't find job: %s\n", __func__, PSC_printTID(logger));
 	return;
     }
 
-    /* number of Slots */
-    numSlots = *(uint32_t *) ptr;
-    ptr += sizeof(uint32_t);
+    /* skip child's uid */
+    ptr += sizeof(uid_t);
 
-    slotSize = (msg->header.len - sizeof(msg->header) - sizeof(msg->type)
-		- sizeof(PStask_ID_t) - sizeof(uint32_t)) / numSlots;
+    /* number of slots */
+    numSlots = *(uint16_t *)ptr;
+    ptr += sizeof(uint16_t);
 
-    /* - nodeID */
-    slotSize -= sizeof(PSnodes_ID_t);
+    /* size of CPUset part */
+    nBytes = *(uint16_t *)ptr;
+    ptr += sizeof(uint16_t);
+
+    if (nBytes > myBytes) {
+	alog("%s got too many CPUs: %zd > %zd for %s\n", __func__,
+	     nBytes*8, myBytes*8, PSC_printTID(logger));
+    }
 
     for (slot = 0; slot < numSlots; slot++) {
 	int bufleft;
@@ -1216,23 +1213,18 @@ static void handleAccSlotsMsg(char *chead, DDTypedBufferMsg_t * msg)
 	int16_t cpuID;
 
 	/* node_id */
-	if ((nodeID = *(PSnodes_ID_t *) ptr) >= nrOfNodes) {
-	    alog("%s got invalid nodeID:%i nrOfNodes:%i logger:%i\n", __func__,
-		 nodeID, nrOfNodes, logger);
+	nodeID = *(PSnodes_ID_t *)ptr;
+	ptr += sizeof(PSnodes_ID_t);
+	if (nodeID >= nrOfNodes) {
+	    alog("%s got invalid nodeID:%i nrOfNodes:%i logger: %s\n", __func__,
+		 nodeID, nrOfNodes, PSC_printTID(logger));
 	    return;
 	}
 	ptr += sizeof(PSnodes_ID_t);
 
-
-	switch (slotSize) {
-	case sizeof(PSCPU_set_t):
-	    /* cpuset of node */
-	    memcpy(CPUset, ptr, sizeof(PSCPU_set_t));
-	    ptr += sizeof(PSCPU_set_t);
-	    break;
-	default:
-	    protocolError("unknown slotSize", __func__);
-	}
+	PSCPU_clrAll(CPUset);
+	PSCPU_inject(CPUset, ptr, nBytes);
+	ptr += nBytes;
 
 	/* find cpu we are running on */
 	cpuID = PSCPU_first(CPUset, PSCPU_MAX);
@@ -1339,7 +1331,7 @@ static void handleAcctMsg(DDTypedBufferMsg_t * msg)
 	     PSC_getPID(logger));
 
     if (debug & 0x040) {
-	alog("%s: received new acc msg: type:%s, sender:%d, logger:%d\n",
+	alog("%s: received new acc msg: type:%s, sender: %s, logger:%s\n",
 	     __func__,
 	     msg->type == PSP_ACCOUNT_QUEUE ? "Queue" :
 	     msg->type == PSP_ACCOUNT_START ? "Start" :
@@ -1348,7 +1340,7 @@ static void handleAcctMsg(DDTypedBufferMsg_t * msg)
 	     msg->type == PSP_ACCOUNT_CHILD ? "Child" :
 	     msg->type == PSP_ACCOUNT_LOG ? "Log" :
 	     msg->type == PSP_ACCOUNT_END ? "End" : "?",
-	     PSC_getPID(sender), PSC_getPID(logger));
+	     PSC_printTID(sender), PSC_printTID(logger));
     }
 
     switch (msg->type) {

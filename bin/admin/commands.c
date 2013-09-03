@@ -1215,8 +1215,9 @@ void PSIADM_JobStat(PStask_ID_t task, PSpart_list_t opt)
     req = PSpart_newReq();
 
     while ((recvd=PSI_infoQueueNext(what, buf, sizeof(buf), 1)) > 0) {
-	static PSpart_slot_t *slotBuf = NULL;
-	static size_t slotBufSize = 0;
+	static PSpart_slot_t *slots = NULL;
+	static char *slotBuf = NULL;
+	static size_t slotsSize = 0, slotBufSize = 0;
 
 	PStask_ID_t tid;
 	PSpart_list_t flags;
@@ -1239,28 +1240,37 @@ void PSIADM_JobStat(PStask_ID_t task, PSpart_list_t opt)
 
 	if (req->num) {
 	    size_t itemSize;
-	    if (masterPSPversion < 334) {
-		itemSize = sizeof(PSnodes_ID_t);
-	    } else if (masterDaemonPSPversion < 401) {
-		itemSize = sizeof(PSpart_oldSlot_t);
-	    } else {
-		itemSize = sizeof(PSpart_slot_t);
-	    }
 
-	    if (req->num * sizeof(*slotBuf) > slotBufSize) {
-		slotBufSize = 2 * req->num * sizeof(*slotBuf);
+	    if (req->num * sizeof(PSpart_slot_t) > slotBufSize) {
+		slotBufSize = 2 * req->num * sizeof(PSpart_slot_t);
 		slotBuf = realloc(slotBuf, slotBufSize);
 	    }
+	    if (req->num * sizeof(*slots) > slotsSize) {
+		slotsSize = 2 * req->num * sizeof(*slots);
+		slots = realloc(slots, slotsSize);
+	    }
 
-	    if (!slotBuf) {
+	    if (!slotBuf || !slots) {
 		printf("No memory\n");
 		break;
 	    }
 
 	    recvd=PSI_infoQueueNext(what, slotBuf, slotBufSize, 1);
 
+	    if (masterPSPversion < 334) {
+		itemSize = sizeof(PSnodes_ID_t);
+	    } else if (masterDaemonPSPversion < 401) {
+		itemSize = sizeof(PSpart_oldSlot_t);
+	    } else if (masterPSPversion < 408) {
+		itemSize = PSCPU_bytesForCPUs(32);
+	    } else {
+		itemSize = *(uint16_t *)slotBuf;
+		recvd -= sizeof(uint16_t);
+	    }
+
 	    if ((unsigned int)recvd != req->num * itemSize) {
-		printf("Message lost\n");
+		printf("Message lost. Suppress node-list\n");
+		req->num = 0;
 	    }
 	}
 
@@ -1285,7 +1295,28 @@ void PSIADM_JobStat(PStask_ID_t task, PSpart_list_t opt)
 		    printOldSlots(req->num, (PSpart_oldSlot_t *) slotBuf,
 				  width-47, 47);
 		} else {
-		    printSlots(req->num, slotBuf, width-47, 47);
+		    size_t nBytes, myBytes = PSCPU_bytesForCPUs(PSCPU_MAX);
+		    char *ptr = slotBuf;
+		    int n;
+		    if (masterPSPversion < 408) {
+			nBytes = PSCPU_bytesForCPUs(32);
+		    } else {
+			nBytes = *(uint16_t *)ptr;
+			ptr +=  sizeof(uint16_t);
+		    }
+		    if (nBytes > myBytes) {
+			printf("warning: slots might be truncated");
+		    }
+		    if (getenv("PSIADMIN_DEBUG")) printf("[%zd]", nBytes);
+		    for (n = 0; n < req->num; n++) {
+			slots[n].node = *(PSnodes_ID_t *)ptr;
+			ptr += sizeof(PSnodes_ID_t);
+
+			PSCPU_clrAll(slots[n].CPUset);
+			PSCPU_inject(slots[n].CPUset, ptr, nBytes);
+			ptr += nBytes;
+		    }
+		    printSlots(req->num, slots, width-47, 47);
 		}
 		printf("\n");
 	    } else if (masterDaemonPSPversion < 407) {
