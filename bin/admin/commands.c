@@ -1261,11 +1261,14 @@ void PSIADM_JobStat(PStask_ID_t task, PSpart_list_t opt)
 		itemSize = sizeof(PSnodes_ID_t);
 	    } else if (masterDaemonPSPversion < 401) {
 		itemSize = sizeof(PSpart_oldSlot_t);
-	    } else if (masterPSPversion < 408) {
-		itemSize = PSCPU_bytesForCPUs(32);
 	    } else {
-		itemSize = *(uint16_t *)slotBuf;
-		recvd -= sizeof(uint16_t);
+		itemSize = sizeof(PSnodes_ID_t);
+		if (masterDaemonPSPversion < 408) {
+		    itemSize += PSCPU_bytesForCPUs(32);
+		} else {
+		    itemSize += *(uint16_t *)slotBuf;
+		    recvd -= sizeof(uint16_t);
+		}
 	    }
 
 	    if ((unsigned int)recvd != req->num * itemSize) {
@@ -1277,7 +1280,7 @@ void PSIADM_JobStat(PStask_ID_t task, PSpart_list_t opt)
 	if (!task || rootTID == tid) {
 	    if (!found) {
 		printf("%22s %5s %5s %5s %5s %-*s\n",
-		       "RootTaskId", "State", "Size", "UID ", "GID ",
+		       "RootTaskId", "State", "Size", " UID", " GID",
 		       width-47, req->num ? "Target Slots" : "Starttime");
 	    }
 
@@ -1298,7 +1301,7 @@ void PSIADM_JobStat(PStask_ID_t task, PSpart_list_t opt)
 		    size_t nBytes, myBytes = PSCPU_bytesForCPUs(PSCPU_MAX);
 		    char *ptr = slotBuf;
 		    int n;
-		    if (masterPSPversion < 408) {
+		    if (masterDaemonPSPversion < 408) {
 			nBytes = PSCPU_bytesForCPUs(32);
 		    } else {
 			nBytes = *(uint16_t *)ptr;
@@ -1307,7 +1310,6 @@ void PSIADM_JobStat(PStask_ID_t task, PSpart_list_t opt)
 		    if (nBytes > myBytes) {
 			printf("warning: slots might be truncated");
 		    }
-		    if (getenv("PSIADMIN_DEBUG")) printf("[%zd]", nBytes);
 		    for (n = 0; n < req->num; n++) {
 			slots[n].node = *(PSnodes_ID_t *)ptr;
 			ptr += sizeof(PSnodes_ID_t);

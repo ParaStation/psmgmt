@@ -1220,7 +1220,6 @@ static void handleAccSlotsMsg(char *chead, DDTypedBufferMsg_t * msg)
 		 nodeID, nrOfNodes, PSC_printTID(logger));
 	    return;
 	}
-	ptr += sizeof(PSnodes_ID_t);
 
 	PSCPU_clrAll(CPUset);
 	PSCPU_inject(CPUset, ptr, nBytes);

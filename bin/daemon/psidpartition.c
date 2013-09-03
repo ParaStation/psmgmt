@@ -2539,7 +2539,6 @@ static void appendToSlotlist(DDBufferMsg_t *inmsg, PSpart_request_t *request)
 	    PSID_log(-1, "%s(%s): too many CPUs: %zd > %zd\n", __func__,
 		     PSC_printTID(request->tid), nBytes*8, myBytes*8);
 	}
-	PSID_log(PSID_LOG_PART, "%s: Using %zd bytes\n", __func__, nBytes);
 
 	for (n = 0; n < chunk; n++) {
 	    slots[n].node = *(PSnodes_ID_t *)ptr;
