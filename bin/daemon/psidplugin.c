@@ -730,11 +730,11 @@ void PSIDplugin_sendList(PStask_ID_t dest)
 	if (plugin->unload) continue;
 
 	if (plugin->finalized) {
-	    snprintf(msg.buf, sizeof(msg.buf), "\t%16s D %3d  ",
+	    snprintf(msg.buf, sizeof(msg.buf), "%16s D %3d  ",
 		     plugin->name, plugin->version);
 	} else {
 	    plugin_ref_t *explicit = findRef(&plugin->triggers, plugin);
-	    snprintf(msg.buf, sizeof(msg.buf), "\t%16s %1s %3d  ",
+	    snprintf(msg.buf, sizeof(msg.buf), "%16s %1s %3d  ",
 		     plugin->name, explicit ? "*" : " ", plugin->version);
 	}
 	if (!list_empty(&plugin->triggers)) {
