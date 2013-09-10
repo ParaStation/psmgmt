@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2012 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2013 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -581,7 +581,7 @@ static info_t listInfo = {
 	" | {aproc|allprocesses} [cnt <cnt>] | environment [key <key>]"
 	" | {hardware|hw} | down | up | load | rdp | rdpconnection | mcast"
 	" | plugins | summary [max <max>] | starttime | startupscript"
-	" | nodeupscript | nodedownscript | versions} <nodes> |"
+	" | nodeupscript | nodedownscript | instdir | versions} <nodes> |"
 	" jobs [state {r[unning] | p[ending] | s[uspended]}] [slots] [<tid>]}"
     }},
     .nodes = 1,
@@ -644,6 +644,9 @@ static info_t listInfo = {
 	{ .tag = "list nodedownscript",
 	  .descr = "Show the daemon's script called on the master node whenever"
 	  " a daemon disconnects on the selected nodes." },
+	{ .tag = "list instdir",
+	  .descr = "Show the daemon's installation directory on the selected"
+	  " nodes." },
 	{ .tag = "list versions",
 	  .descr = "Show the daemon's version and the revision of the"
 	  " corresponding RPM on the selected nodes." },

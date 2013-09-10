@@ -1180,6 +1180,41 @@ static int getMasterProtocolVersion(int daemonProto)
     return protoVersion;
 }
 
+void PSIADM_InstdirStat(char *nl)
+{
+    PSnodes_ID_t node;
+    char instDir[1500];
+    size_t instDirWidth = PSC_getWidth()-8;
+
+    if (! getHostStatus()) return;
+
+    printf("%4s\t%s\n", "Node", "Installation directory");
+    for (node=0; node<PSC_getNrOfNodes(); node++) {
+	if (nl && !nl[node]) continue;
+	printf("%s\t", nodeString(node));
+	if (hostStatus.list[node]) {
+	    int err = PSI_infoString(node, PSP_INFO_INSTDIR, NULL, instDir,
+				     sizeof(instDir), 1);
+	    if (!err) {
+		size_t len = strlen(instDir);
+		if (len) {
+		    if (len <= instDirWidth) {
+			printf("%s\n", instDir);
+		    } else {
+			printf("...%s\n", instDir+len-(instDirWidth-3));
+		    }
+		} else {
+		    printf("<none>\n");
+		}
+	    } else {
+		printf("\n");
+	    }
+	} else {
+	    printf("down\n");
+	}
+    }
+}
+
 void PSIADM_JobStat(PStask_ID_t task, PSpart_list_t opt)
 {
     PSP_Info_t what = PSP_INFO_QUEUE_PARTITION;
