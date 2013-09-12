@@ -1584,6 +1584,7 @@ static void setupPSIDEnv(int verbose)
 
     if (overbook) {
 	setenv("PSI_OVERBOOK", "1", 1);
+	setenv("PSP_SCHED_YIELD", "1", 1);
 	if (verbose) printf("PSI_OVERBOOK=1 : Allowing overbooking.\n");
     }
 
