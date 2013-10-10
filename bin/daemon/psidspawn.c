@@ -2354,7 +2354,7 @@ static void msg_SPAWNSUCCESS(DDErrorMsg_t *msg)
 	     __func__, PSC_printTID(tid), parent);
 
     task = PStasklist_find(&managedTasks, ptid);
-    if (task && task->fd > -1) {
+    if (task && (task->fd > -1 || task->group == TG_ANY)) {
 	/* register the child */
 	PSID_setSignal(&task->childList, tid, -1);
 
@@ -2367,7 +2367,10 @@ static void msg_SPAWNSUCCESS(DDErrorMsg_t *msg)
 	PSID_sendSignal(tid, 0, ptid, -1, 0, 0);
     }
 
-    /* send the initiator the success msg */
+    /* Send the initiator the success message. If the initiator is a normal
+     * task, it will not be able to handle the message. Therefore we need to
+     * send it to its forwarder */
+    if (task && task->group == TG_ANY) msg->header.dest = task->forwardertid;
     sendMsg(msg);
     free(parent);
 }
