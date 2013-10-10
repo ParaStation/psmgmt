@@ -439,24 +439,27 @@ int PSC_setProcTitle(char **argv, int argc, char *title, int saveEnv)
     char **newEnv;
     char *argvP = NULL, *lastArg = NULL;
 
-    if (argv == NULL || argc == 0) {
-	return 0;
-    }
+    if (argv == NULL || !argc || title == NULL) return 0;
 
     /* find last element in argv/env */
     for (i=0; i<argc; i++) {
-	if (lastArg == NULL || lastArg + 1 == argv[i])
+	if (lastArg == NULL || lastArg + 1 == argv[i]) {
 	    lastArg = argv[i] + strlen(argv[i]);
+	}
     }
     for (i=0; environ[i] != NULL; i++) {
-	if (lastArg + 1 == environ[i])
+	if (lastArg + 1 == environ[i]) {
 	    lastArg = environ[i] + strlen(environ[i]);
+	}
     }
     countEnv = i;
 
+    /* test for enough space for new title */
     if (((size = lastArg - argv[0] - 1) < 0)) return 0;
+    if ((int) strlen(title) > size - 1) return 0;
 
     /* save environment */
+    if (saveEnv && !environ) return 0;
     if (environ && saveEnv) {
 	if (!(newEnv = malloc((countEnv +1) * sizeof(char *)))) {
 	    return 0;
@@ -472,7 +475,8 @@ int PSC_setProcTitle(char **argv, int argc, char *title, int saveEnv)
     /* write the new process title */
     argvP = argv[0];
     memset(argvP, '\0', size);
-    snprintf(argvP, size - 1, "%s", title);
+    snprintf(argvP, size, "%s", title);
+    argvP[size-1] = '\0';
 
     return 1;
 }
