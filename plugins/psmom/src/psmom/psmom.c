@@ -125,7 +125,7 @@ handlerFunc_t oldSpawnReqHandler = NULL;
 
 /** psid plugin requirements */
 char name[] = "psmom";
-int version = 57;
+int version = 58;
 int requiredAPI = 109;
 plugin_dep_t dependencies[2];
 
