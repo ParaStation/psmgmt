@@ -37,6 +37,7 @@
 #include "psmomcomm.h"
 #include "psmomproto.h"
 #include "psmomconfig.h"
+#include "psmomauth.h"
 
 #include "selector.h"
 
@@ -135,42 +136,42 @@ static int tcpAcceptClient(int asocket, void *data)
 {
     unsigned int clientlen;
     struct sockaddr_in SAddr;
-    int socket = -1, rPort, lPort, rmPort;
+    int socket = -1, rPort, lPort;
     char rAddr[MAX_ADDR_SIZE], lAddr[MAX_ADDR_SIZE];
+    unsigned long ip;
 
-    /* accept new tcp connection */
+    /* accept new TCP connection */
     clientlen = sizeof(SAddr);
 
     if ((socket = accept(asocket, (void *)&SAddr, &clientlen)) == -1) {
-	mlog("%s error accepting new tcp connection\n", __func__);
+	mwarn(errno, "%s error accepting new tcp connection ", __func__);
 	return 1;
     }
 
     /* get connection infos */
-    getRemoteAddrInfo(TCP_PROTOCOL, socket, rAddr, sizeof(rAddr), &rPort);
+    getRemoteAddrInfo(TCP_PROTOCOL, socket, rAddr, sizeof(rAddr), &rPort, &ip);
     getLocalAddrInfo(socket, lAddr, sizeof(lAddr), &lPort);
 
-    /* check if the remote port can only be used by root.
-     * the only exception is the special rm port.
-     * */
-    getConfParamI("PORT_RM", &rmPort);
-    if (lPort != rmPort && rPort > IPPORT_RESERVED) {
+    /* check if the remote port can only be used by root. */
+    if (rPort > IPPORT_RESERVED) {
 	mlog("%s: refused connection from non privileged port:%i\n",
 	    __func__, rPort);
 	close(socket);
 	return 1;
     }
 
-    /* TODO: check if client is allowed to connect */
-
-
+    /* check if client is allowed to connect */
+    if (!(isAuthIP(ip))) {
+	mlog("%s: refused connection from non authorized addr:%s\n",
+	    __func__, rAddr);
+	close(socket);
+	return 1;
+    }
 
     /* TODO: check if a client is already connected */
-
     mdbg(PSMOM_LOG_TCP,"%s: from %s socket:%i lPort:%i rPort:%i\n", __func__,
 	inet_ntoa(SAddr.sin_addr), socket, lPort, rPort);
 
-    //mlog("%s: register fd:%i\n", __func__, socket);
     Selector_register(socket, handleTCPData, NULL);
     return 0;
 }

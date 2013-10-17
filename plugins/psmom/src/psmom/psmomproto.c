@@ -41,7 +41,7 @@
 #include "psmomacc.h"
 #include "psmomlog.h"
 #include "psmomsignal.h"
-#include "psmomclient.h"
+#include "psmomauth.h"
 #include "psmom.h"
 #include "pluginmalloc.h"
 #include "psmomconfig.h"
@@ -139,6 +139,12 @@ static int handle_IS_CLUSTER_ADDRS(ComHandle_t *com)
     Server_t *serv;
     unsigned long addr;
 
+    if (!(serv = findServer(com))) {
+	mlog("%s: server for com handle '%i' not found\n", __func__,
+	    com->socket);
+	return 0;
+    }
+
     while(ReadDigitUL(com, &addr) == 0) {
 	mdbg(PSMOM_LOG_PIS, "%s: received adress:%ld.%ld.%ld.%ld %lu\n",
 	    __func__,
@@ -148,14 +154,8 @@ static int handle_IS_CLUSTER_ADDRS(ComHandle_t *com)
 	    (addr & 0x000000ff), addr);
     }
 
-    /* TODO: insert into authorized server list */
-    //updateClient(addr);
-
-    if (!(serv = findServer(com))) {
-	mlog("%s: server for com handle '%i' not found\n", __func__,
-	    com->socket);
-	return 0;
-    }
+    /* insert into authorized server list */
+    addAuthIP(addr);
 
     if (serv->haveConnection != 1) {
 	serv->haveConnection = 1;
@@ -375,7 +375,7 @@ static int handle_RM_message(ComHandle_t *com)
 	 return -1;
     }
 
-    if ((ReadDigitUI(com, &cmd)) < 0){
+    if ((ReadDigitUI(com, &cmd)) < 0) {
 	 mlog("%s: invalid command:%i\n", __func__, cmd);
 	 return -1;
     }
@@ -2037,9 +2037,12 @@ static int handle_TM_message(ComHandle_t *com)
 	return -1;
     }
 
-    /* if we use the special tm interface */
+    /* special tm interface */
     getConfParamI("PORT_RM", &rmPort);
     if (com->type == TCP_PROTOCOL && com->localPort == rmPort) {
+	/* currently disabled */
+	wClose(com);
+	return 0;
 	return handle_TM_Request(com);
     }
 
@@ -2136,7 +2139,7 @@ int handleNewData(ComHandle_t *com)
     unsigned int proto = 0;
     int ret = -1;
 
-    if ((ret = ReadDigitUI(com, &proto)) < 0){
+    if ((ret = ReadDigitUI(com, &proto)) < 0) {
 
 	/* connection closed */
 	if (ret == -2) {
@@ -2156,7 +2159,7 @@ int handleNewData(ComHandle_t *com)
 
     ret = -1;
 
-    switch(proto) {
+    switch (proto) {
 	case RM_PROTOCOL: /* resource manager request */
 	    ret = handle_RM_message(com);
 	    break;
@@ -2166,7 +2169,8 @@ int handleNewData(ComHandle_t *com)
 	case IM_PROTOCOL: /* inter MOM request(s) are not supported by psmom */
 	    mlog("%s: unsupported InterMom request from '%s:%i'. I am not a "
 		    "pbs mom!\n", __func__, com->remoteAddr, com->remotePort);
-	    break;
+	    wClose(com);
+	    return 0;
 	case IS_PROTOCOL: /* inter server request */
 	    ret = handle_IS_message(com);
 	    break;

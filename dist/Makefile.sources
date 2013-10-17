@@ -270,8 +270,8 @@ plugins/psmom/src/psmom/psmomacc.h \
 plugins/psmom/src/psmom/psmom.c \
 plugins/psmom/src/psmom/psmomchild.c \
 plugins/psmom/src/psmom/psmomchild.h \
-plugins/psmom/src/psmom/psmomclient.c \
-plugins/psmom/src/psmom/psmomclient.h \
+plugins/psmom/src/psmom/psmomauth.c \
+plugins/psmom/src/psmom/psmomauth.h \
 plugins/psmom/src/psmom/psmomcollect.c \
 plugins/psmom/src/psmom/psmomcollect.h \
 plugins/psmom/src/psmom/psmomcomm.c \

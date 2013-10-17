@@ -73,7 +73,7 @@ int getLocalAddrInfo(int socket, char *Iaddr, size_t addrSize, int *Iport)
 }
 
 int getRemoteAddrInfo(Protocol_t type, int socket, char *Iaddr,
-			size_t addrSize, int *Iport)
+			size_t addrSize, int *Iport, unsigned long *lAddr)
 {
     struct sockaddr_in addr;
     struct sockaddr_in *addr_ptr;
@@ -96,6 +96,7 @@ int getRemoteAddrInfo(Protocol_t type, int socket, char *Iaddr,
 	    return 1;
     }
 
+    if (lAddr) *lAddr = addr.sin_addr.s_addr;
     *Iport = ntohs(addr.sin_port);
     inet_ntop(AF_INET, &addr.sin_addr, Iaddr, addrSize);
 
@@ -166,7 +167,8 @@ ComHandle_t *findComHandle(int socket, Protocol_t type)
     char remoteAddr[MAX_ADDR_SIZE], localAddr[MAX_ADDR_SIZE];
     int remotePort = -1, localPort = -1;
 
-    getRemoteAddrInfo(type, socket, remoteAddr, sizeof(remoteAddr), &remotePort);
+    getRemoteAddrInfo(type, socket, remoteAddr, sizeof(remoteAddr),
+			&remotePort, NULL);
     getLocalAddrInfo(socket, localAddr, sizeof(localAddr), &localPort);
 
     if (list_empty(&ComList.list)) return NULL;
@@ -265,15 +267,17 @@ void initComHandle(ComHandle_t *com, Protocol_t type, int socket)
     com->HandleFunc = NULL;
     com->jobid = NULL;
     com->info = NULL;
+    com->isAuth = 0;
 
     if ((getLocalAddrInfo(socket, com->addr, sizeof(com->addr),
-							&com->localPort))) {
+			    &com->localPort))) {
 	com->addr[0] = '\0';
 	com->localPort = -1;
     }
 
     if ((getRemoteAddrInfo(type, socket, com->remoteAddr,
-			    sizeof(com->remoteAddr), &com->remotePort))) {
+			    sizeof(com->remoteAddr), &com->remotePort,
+			    &com->lremoteAddr))) {
 	com->remoteAddr[0] = '\0';
 	com->remotePort = -1;
     }

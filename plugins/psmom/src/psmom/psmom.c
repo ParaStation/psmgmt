@@ -45,7 +45,7 @@
 #include "psmomcomm.h"
 #include "psmomjob.h"
 #include "psmomproto.h"
-#include "psmomclient.h"
+#include "psmomauth.h"
 #include "psmomsignal.h"
 #include "psmomlog.h"
 #include "psmomcollect.h"
@@ -611,7 +611,7 @@ int initialize(void)
     /* init all data lists */
     initComList();
     initJobList();
-    initClientList();
+    initAuthList();
     initInfoList();
     initChildList();
     initServerList();
@@ -647,11 +647,6 @@ int initialize(void)
     /* init the tcp communication layer */
     if ((wBind(momPort, TCP_PROTOCOL)) < 0) {
 	mlog("Listen on tcp port %d failed\n", momPort);
-	return 1;
-    }
-
-    if ((wBind(rmPort, TCP_PROTOCOL)) < 0) {
-	mlog("Listen on tcp port %d failed\n", rmPort);
 	return 1;
     }
 
@@ -788,9 +783,7 @@ void cleanup(void)
     clearDataList(&staticInfoData.list);
     clearJobInfoList();
     clearSSHList();
-    /*
-    clearClientList();
-    */
+    clearAuthList();
     if (memoryDebug) fclose(memoryDebug);
 
     mlog("...Bye.\n");

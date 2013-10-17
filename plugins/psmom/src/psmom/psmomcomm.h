@@ -39,6 +39,8 @@ typedef struct {
     char *inBuf;
     char addr[MAX_ADDR_SIZE];
     char remoteAddr[MAX_ADDR_SIZE];
+    unsigned long lremoteAddr;
+    int isAuth;
     char *jobid;
     char *info;
     int (*Write) (int, void*, size_t, const char *);
@@ -319,10 +321,13 @@ ComHandle_t *wConnect(int port, char *addr, Protocol_t type);
  * @param Iport A pointer to an integer where the port information will be
  * saved.
  *
+ * @param lAddr Pointer which will receive the resolved address in binary form.
+ * Can be ignored by passing NULL.
+ *
  * @return Returns 0 on success and 1 on error.
  */
 int getRemoteAddrInfo(Protocol_t type, int socket, char *Iaddr,
-			size_t addrSize, int *Iport);
+			size_t addrSize, int *Iport, unsigned long *lAddr);
 
 /**
  * @brief Get the local ip-address and port for a socket.
