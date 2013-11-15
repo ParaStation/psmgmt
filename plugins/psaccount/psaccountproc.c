@@ -472,38 +472,34 @@ void getSessionInformation(int *count, char *buf, size_t bufsize, int *userCount
  *
  * @return Returns the calculated memory information.
  */
-static unsigned long getAllClientInfo(Proc_Snapshot_t *proc, int infoType)
+static void getAllClientInfo(Proc_Snapshot_t *res, pid_t pid)
 {
     struct list_head *pos;
     Proc_Snapshot_t *Childproc;
     unsigned long info = 0;
 
-    if (list_empty(&ProcList.list)) return 0;
+    if (list_empty(&ProcList.list)) return;
 
     list_for_each(pos, &ProcList.list) {
-	if ((Childproc = list_entry(pos, Proc_Snapshot_t, list)) == NULL) {
-	    return 0;
-	}
+	if (!(Childproc = list_entry(pos, Proc_Snapshot_t, list))) return;
 
-	if (Childproc->ppid == proc->pid) {
-	    switch (infoType) {
-		case INFO_MEM:
-		    info += Childproc->mem;
-		    break;
-		case INFO_VMEM:
-		    info += Childproc->vmem;
-		    break;
-	    }
-	    mdbg(LOG_PROC_DEBUG, "%s: cmd:%s pid:%i ppid:%i %i:%lu\n", __func__,
-		Childproc->cmdline, Childproc->pid, Childproc->ppid,
-		infoType, info);
-	    info += getAllClientInfo(Childproc, infoType);
+	if (Childproc->ppid == pid) {
+	    res->mem += Childproc->mem;
+	    res->vmem += Childproc->vmem;
+	    res->cutime += Childproc->cutime;
+	    res->cstime += Childproc->cstime;
+
+	    mdbg(LOG_PROC_DEBUG, "%s: cmd:%s pid:%i ppid:%i cutime:%lu "
+		 "cstime:%lu mem:%lu vmem:%lu\n", __func__, Childproc->cmdline,
+		 Childproc->pid, Childproc->ppid,
+		 Childproc->cutime, Childproc->cstime,
+		 Childproc->mem, Childproc->vmem);
+	    getAllClientInfo(res, Childproc->pid);
 	}
     }
-    return info;
 }
 
-Proc_Snapshot_t *getAllClientChildsMem(pid_t pid)
+Proc_Snapshot_t *getAllChildrenData(pid_t pid)
 {
     Proc_Snapshot_t *proc;
 
@@ -511,11 +507,15 @@ Proc_Snapshot_t *getAllClientChildsMem(pid_t pid)
     proc->pid = pid;
     proc->ppid = 0;
     proc->session = 0;
-    proc->mem = getAllClientInfo(proc, INFO_MEM);
-    proc->vmem = getAllClientInfo(proc, INFO_VMEM);
+    proc->mem = 0;
+    proc->vmem = 0;
+    proc->cutime = 0;
+    proc->cstime = 0;
 
-    mdbg(LOG_PROC_DEBUG, "%s: pid:%i  mem:%lu vmem:%lu \n", __func__, pid,
-	proc->mem, proc->vmem);
+    getAllClientInfo(proc, pid);
+
+    mdbg(LOG_PROC_DEBUG, "%s: pid:%i mem:%lu vmem:%lu cutime:%lu cstime:%lu\n",
+	    __func__, pid, proc->mem, proc->vmem, proc->cutime, proc->cstime);
     return proc;
 }
 

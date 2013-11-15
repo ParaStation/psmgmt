@@ -64,18 +64,19 @@ Session_Info_t SessionList;
 void initProcList();
 
 /**
- * @brief Collect all mem/vmem from every related child process.
+ * @brief Collect all data from every related child process.
  *
- * Collect all mem/vmem from every related child process. It will
+ * Collect all data from every related child process. It will
  * use the /proc snapshot which should be updated before calling
  * this function.
  *
- * @param pid The pid of the child to get the memory for.
+ * @param pid The pid of the child to get the data for.
  *
  * @return Returns a proc snapshot structure which contains the
- * accounting data for the requested pid.
+ * accounting data for the requested pid. The snapshot will be
+ * allocated using malloc() and should be freed after usage.
  */
-Proc_Snapshot_t *getAllClientChildsMem(pid_t pid);
+Proc_Snapshot_t *getAllChildrenData(pid_t pid);
 
 /**
  * @brief Create a snapshot of the /proc filesystem.
