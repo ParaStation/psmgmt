@@ -559,7 +559,7 @@ static void createSpawner(int argc, char *argv[], int np, int admin)
 	    PSI_infoList(-1, PSP_INFO_LIST_PARTITION, NULL,
 			 nodeList, pSize*sizeof(*nodeList), 0);
 	    startNode = (getenv("__MPIEXEC_DIST_START") ?
-			    getNodeIDbyIndex(np, 1) : nodeList[0]);
+			    getNodeIDbyIndex(np, 1) :  PSC_getMyID());
 	    setPSIEnv("__MPIEXEC_DIST_START", getenv("__MPIEXEC_DIST_START"), 1);
 	} else {
 	    getFirstNodeID(&startNode);
