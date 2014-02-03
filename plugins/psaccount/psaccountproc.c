@@ -476,7 +476,6 @@ static void getAllClientInfo(Proc_Snapshot_t *res, pid_t pid)
 {
     struct list_head *pos;
     Proc_Snapshot_t *Childproc;
-    unsigned long info = 0;
 
     if (list_empty(&ProcList.list)) return;
 
