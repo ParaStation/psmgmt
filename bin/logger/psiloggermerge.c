@@ -21,6 +21,7 @@ static char vcid[] __attribute__((used)) =
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <errno.h>
 #include <sys/time.h>
 #include <readline/readline.h>
 
@@ -521,6 +522,7 @@ static void outputSingleCMsg(int client, struct list_head *pos,
 		    savelocInd[lcount] = i;
 		    lcount++;
 		    delCachedMsg(oval, tmpother);
+		    break;
 		}
 	    }
 	}
@@ -737,6 +739,29 @@ static void insertOutputBuffer(int sender, char *buf, size_t len, int outfd)
 	PSIlog_log(-1, "%s: invalid message to save\n", __func__);
 	return;
     }
+
+
+    /* Shall output lines be scanned for Valgrind PID patterns? */
+    if(useValgrind)
+    {
+	 /* Yes: replace every first occurrence of '==12345==' by '=========' */
+	 char *ptr1, *ptr2, *ptr3;
+
+	 ptr1 = strstr(savep, "==");
+	 if(ptr1) { 
+	      ptr2 = strstr(ptr1+2, "==");
+	      if(ptr2) {
+		   errno = 0;
+		   if( (strtol(ptr1+2, &ptr3, 10) != 0) && (ptr3 == ptr2) && (errno == 0) ) {		   
+			while(ptr1 != ptr2) {
+			     (*ptr1) = '=';
+			     ptr1++;
+			}
+		   }
+	      }
+	 }
+    }
+
 
     if (db)
 	PSIlog_log(-1, "string to global sender:%i outfd:%i savep:' %s'\n",

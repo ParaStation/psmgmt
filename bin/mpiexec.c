@@ -52,6 +52,10 @@ static char vcid[] __attribute__((used)) =
 #define GDB_COMMAND_OPT "-x"
 #define GDB_COMMAND_SILENT "-q"
 #define GDB_COMMAND_ARGS "--args"
+#define VALGRIND_COMMAND_EXE "valgrind"
+#define VALGRIND_COMMAND_SILENT "--quiet"
+#define VALGRIND_COMMAND_MEMCHECK "--leak-check=full"
+#define VALGRIND_COMMAND_CALLGRIND "--tool=callgrind"
 #define MPI1_NP_OPT "-np"
 
 /** Space for error messages */
@@ -69,6 +73,10 @@ int admin = 0;
 int gdb = 0;
 /** don't call gdb with --args option */
 int gdb_noargs = 0;
+/** run child processes on synthetic CPUs provided by the Valgrind core (memcheck tool) */
+int valgrind = 0;
+/** profile child processes on synthetic CPUs provided by the Valgrind core (callgrind tool) */
+int callgrind = 0;
 /** just print output, don't run anything */
 int show = 0;
 /** flag to set verbose mode */
@@ -1553,6 +1561,15 @@ static void setupPSIDEnv(int verbose)
 	    "the processes\n");
     }
 
+    if (valgrind) {
+	setenv("PSI_USE_VALGRIND", "1", 1);
+	if (verbose) {
+	     printf("PSI_USE_VALGRIND=1 : Running on Valgrind core(s)\n");
+	     if (!mergeout && !callgrind)
+		  printf("(You can use '-merge' for merging output of all Valgrind cores)\n");	  
+	}
+    }
+
     if (timestamp) {
 	setenv("PSI_TIMESTAMPS", "1", 1);
 	if (verbose) printf("PSI_TIMESTAMPS=1 : Printing detailed "
@@ -2150,6 +2167,14 @@ static void checkSanity(char *argv[])
 	}
     }
 
+    if (callgrind) {
+	 valgrind = 1;
+    }
+
+    if (gdb && valgrind) {
+	    errExit("Don't use GDB and Valgrind together");
+    }
+
     if (getenv("MPIEXEC_BNR")) {
 	mpichcom = 1;
     }
@@ -2267,6 +2292,15 @@ struct poptOption poptMpiexecComp[] = {
     { "gdb", '\0',
       POPT_ARG_NONE | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
       &gdb, 0, "debug processes with gdb", NULL},
+    { "valgrind", '\0',
+      POPT_ARG_NONE | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+      &valgrind, 0, "debug processes with Valgrind (memcheck tool)", NULL},
+    { "memcheck", '\0',
+      POPT_ARG_NONE | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+      &valgrind, 0, "debug processes with Valgrind (memcheck tool)", NULL},
+    { "callgrind", '\0',
+      POPT_ARG_NONE | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+      &callgrind, 0, "profile processes with Valgrind (callgrind tool)", NULL},
     { "gdba", '\0',
       POPT_ARG_NONE | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
       &gdba, 0, "attach to debug processes with gdb (ignored)", NULL},
@@ -2545,6 +2579,12 @@ struct poptOption poptCommunicationOptions[] = {
 struct poptOption poptOtherOptions[] = {
     { "gdb", '\0', POPT_ARG_NONE,
       &gdb, 0, "debug processes with gdb", NULL},
+    { "valgrind", '\0', POPT_ARG_NONE,
+      &valgrind, 0, "debug processes with Valgrind (memcheck tool)", NULL},
+    { "memcheck", '\0', POPT_ARG_NONE,
+      &valgrind, 0, "debug processes with Valgrind (memcheck tool)", NULL},
+    { "callgrind", '\0', POPT_ARG_NONE,
+      &callgrind, 0, "profile processes with Valgrind (callgrind tool)", NULL},
     { "noargs", '\0', POPT_ARG_NONE,
       &gdb_noargs, 0, "don't call gdb with --args", NULL},
     { "verbose", 'v', POPT_ARG_NONE,
@@ -2764,6 +2804,40 @@ static void setupGDB()
 }
 
 /**
+ * @brief Start the Valgrind cores in front of the computing processes.
+ *
+ * @return No return value.
+ */
+static void setupVALGRIND()
+{
+    int i, new_argc = 0;
+    char **new_argv;
+
+    new_argv = umalloc((dup_argc + 3 + 1) * sizeof(char *), __func__);
+    
+    new_argv[new_argc++] = VALGRIND_COMMAND_EXE;
+    new_argv[new_argc++] = VALGRIND_COMMAND_SILENT;
+
+    if(callgrind) {
+	 /* Use Callgrind Tool */
+	 new_argv[new_argc++] = VALGRIND_COMMAND_CALLGRIND;
+
+    } else {
+	 /* Default: Memcheck Tool */
+	 new_argv[new_argc++] = VALGRIND_COMMAND_MEMCHECK;
+    }
+
+    for (i=0; i<dup_argc; i++) {
+	 new_argv[new_argc++] = dup_argv[i];
+    }
+
+    new_argv[new_argc] = NULL;
+    dup_argv = new_argv;
+    dup_argc = new_argc;
+}
+
+
+/**
  * @brief Add the -np (number of processes) argument
  * from mpiexec to the argument list of the mpi-1
  * application.
@@ -2849,6 +2923,9 @@ int main(int argc, char *argv[], char** envp)
 
     /* add command args for controlling gdb */
     if (gdb) setupGDB();
+
+    /* add command args for controlling Valgrind */
+    if (valgrind) setupVALGRIND();
 
     /* add command args for MPI1 mode */
     if (mpichcom) setupComp();

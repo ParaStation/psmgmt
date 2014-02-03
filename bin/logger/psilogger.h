@@ -53,6 +53,9 @@ extern char GDBprompt[128];
  */
 extern int GDBcmdEcho;
 
+/* Shall output lines be scanned for Valgrind PID patterns? */
+extern int useValgrind;
+
 /**
  * @brief Initialize the psilogger logging facilities.
  *
