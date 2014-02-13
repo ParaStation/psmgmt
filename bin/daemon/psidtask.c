@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2013 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2014 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -369,8 +369,7 @@ void PStasklist_dequeue(PStask_t *task)
     list_del_init(&task->next);
 }
 
-static PStask_t *PStasklist_doFind(list_t *list, PStask_ID_t tid,
-				    PStask_ID_t fwtid)
+PStask_t *PStasklist_find(list_t *list, PStask_ID_t tid)
 {
     list_t *t;
     PStask_t *task = NULL;
@@ -380,7 +379,7 @@ static PStask_t *PStasklist_doFind(list_t *list, PStask_ID_t tid,
 
     list_for_each(t, list) {
 	PStask_t *tt = list_entry(t, PStask_t, next);
-	if ((tid && tt->tid == tid) || (fwtid && tt->forwardertid == fwtid)) {
+	if (tt->tid == tid) {
 	    if (tt->deleted) {
 		/* continue to search since we migth have duplicates
 		 * of PID due to some problems in flow-control */
@@ -399,16 +398,6 @@ static PStask_t *PStasklist_doFind(list_t *list, PStask_ID_t tid,
 				       __func__, list, PSC_printTID(tid));
 
     return task;
-}
-
-PStask_t *PStasklist_find(list_t *list, PStask_ID_t tid)
-{
-    return PStasklist_doFind(list, tid, 0);
-}
-
-PStask_t *PStasklist_findByFWTID(list_t *list, PStask_ID_t fwtid)
-{
-    return PStasklist_doFind(list, 0, fwtid);
 }
 
 void PStask_cleanup(PStask_ID_t tid)
