@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2013 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2014 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -2367,10 +2367,16 @@ static void msg_SPAWNSUCCESS(DDErrorMsg_t *msg)
 	PSID_sendSignal(tid, 0, ptid, -1, 0, 0);
     }
 
-    /* Send the initiator the success message. If the initiator is a normal
-     * task, it will not be able to handle the message. Therefore we need to
-     * send it to its forwarder */
-    if (task && task->group == TG_ANY) msg->header.dest = task->forwardertid;
+    /*
+     * Send the initiator the success message.
+     *
+     * If the initiator is a normal but unconnected task, it has used
+     * to its forwarder as a proxy via PMI. Thus, send SPAWNSUCCESS to
+     * the proxy.
+     */
+    if (task && task->group == TG_ANY && task->fd == -1) {
+	msg->header.dest = task->forwardertid;
+    }
     sendMsg(msg);
     free(parent);
 }
@@ -2456,8 +2462,7 @@ static void msg_CHILDBORN(DDErrorMsg_t *msg)
 {
     PStask_t *forwarder = PStasklist_find(&managedTasks, msg->header.sender);
     PStask_t *child = PStasklist_find(&managedTasks, msg->request);
-    PStask_t *parent;
-    PStask_ID_t succMsgDest;
+    PStask_ID_t succMsgDest = 0;
     int blocked;
 
     PSID_log(PSID_LOG_SPAWN, "%s: from %s\n", __func__,
@@ -2542,13 +2547,6 @@ static void msg_CHILDBORN(DDErrorMsg_t *msg)
 	child->argc = 1;
     }
 
-    /* If the parent is a normal task, it will not be able to handle the spawn
-     * message. Therefore we need to send it to its forwarder */
-    parent = PStasklist_find(&managedTasks, child->ptid);
-
-    succMsgDest = (parent && parent->group == TG_ANY) ?
-				parent->forwardertid : child->ptid;
-
     /* Child will get signal from parent. Thus add ptid to assignedSigs */
     PSID_setSignal(&child->assignedSigs, child->ptid, -1);
     /* Enqueue the task right in front of the forwarder */
@@ -2564,12 +2562,23 @@ static void msg_CHILDBORN(DDErrorMsg_t *msg)
      * the same node. Thus register directly as his child.
      */
     if (PSC_getID(child->ptid) == PSC_getMyID()) {
+	PStask_t *parent = PStasklist_find(&managedTasks, child->ptid);
+
 	if (!parent) {
 	    PSID_log(-1, "%s: parent task %s not found\n", __func__,
 		     PSC_printTID(child->ptid));
 	} else {
 	    PSID_setSignal(&parent->childList, child->tid, -1);
 	    PSID_setSignal(&parent->assignedSigs, child->tid, -1);
+
+	    /*
+	     * If the parent is a normal but unconnected task, it was
+	     * not the origin of the spawn but used the forwarder as a
+	     * proxy via PMI. Thus, send SPAWNSUCCESS to the proxy.
+	     */
+	    if (parent->group == TG_ANY && parent->fd == -1) {
+		succMsgDest = parent->forwardertid;
+	    }
 	}
     }
 
@@ -2582,7 +2591,7 @@ static void msg_CHILDBORN(DDErrorMsg_t *msg)
     /* Tell parent about success */
     msg->header.type = PSP_CD_SPAWNSUCCESS;
     msg->header.sender = child->tid;
-    msg->header.dest = succMsgDest;
+    msg->header.dest = succMsgDest ? succMsgDest : child->ptid;
     msg->request = child->rank;
     msg->error = 0;
 
