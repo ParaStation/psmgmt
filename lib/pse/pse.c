@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 1999-2003 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2013 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2014 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -18,6 +18,7 @@ static char vcid[] __attribute__((used)) =
 #include <string.h>
 #include <unistd.h>
 #include <ctype.h>
+#include <errno.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 
@@ -242,7 +243,11 @@ void PSE_spawnMaster(int argc, char *argv[])
     logger_print(logger, PSE_LOG_SPAWN,
 		 "[%d] Spawned master process\n", PSE_getRank());
 
-    if (defaultUID) setuid(defaultUID);
+    if (defaultUID && setuid(defaultUID) < 0) {
+	logger_warn(logger, -1, errno, "%s: setuid() for logger failed",
+		    __func__);
+	exitAll(NULL, 10);
+    }
 
     /* Switch to psilogger */
     PSI_execLogger(NULL);
@@ -331,7 +336,11 @@ int PSE_spawnAdmin(PSnodes_ID_t node, unsigned int rank,
 		 "[%d] Spawned admin process\n", PSE_getRank());
 
     if (PSE_getRank() == -1) {
-	if (defaultUID) setuid(defaultUID);
+	if (defaultUID && setuid(defaultUID) < 0) {
+	    logger_warn(logger, -1, errno, "%s: setuid() for logger failed",
+			__func__);
+	    exitAll(NULL, 10);
+	}
 
 	/* Switch to psilogger */
 	PSI_execLogger(NULL);
