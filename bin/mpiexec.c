@@ -127,6 +127,7 @@ char *nodelist = NULL;
 char *hostlist = NULL;
 char *hostfile = NULL;
 char *envlist = NULL;
+char *nodetype = NULL;
 /** Accumulated list of envirenments to get exported */
 char *accenvlist = NULL;
 char *envopt = NULL;
@@ -539,6 +540,34 @@ static void startKVSProvider(int argc, char *argv[], char **envp)
 
     /* never be here  */
     exit(0);
+}
+
+static uint32_t getNodeType(char *hardwareList)
+{
+    char *next, *toksave, **hwList = NULL;
+    const char delimiters[] =", \n";
+    int count = 0;
+    uint32_t hwType = 0;
+
+    if (verbose) {
+	printf("setting node type to '%s'\n", hardwareList);
+    }
+    next = strtok_r(hardwareList, delimiters, &toksave);
+
+    while (next) {
+	count++;
+	hwList = urealloc(hwList, (count +1) * sizeof(hwList), __func__);
+	hwList[count -1] = strdup(next);
+	next = strtok_r(NULL, delimiters, &toksave);
+    }
+    hwList[count] = NULL;
+
+    if ((PSI_resolveHWList(hwList, &hwType) == -1)) {
+	fprintf(stderr, "getting hardware type '%s' failed.\n", hardwareList);
+	exit(1);
+    }
+
+    return hwType;
 }
 
 /**
@@ -1264,6 +1293,7 @@ static int startProcs(int np, char *wd, int argc, char *argv[], int verbose)
     int i, ret, *errors = NULL, pSize;
     char *hostname = NULL;
     PStask_ID_t *tids;
+    uint32_t nodeType = 0;
 
     /* request the complete nodelist from master */
     if (!nodeList) {
@@ -1302,10 +1332,12 @@ static int startProcs(int np, char *wd, int argc, char *argv[], int verbose)
     if (mpichcom) np = 1;
 
     errors = umalloc(sizeof(int) * np, __func__);
+    for (i=0; i<np; i++) errors[i] = 0;
     tids = umalloc(sizeof(PStask_ID_t) * np, __func__);
 
     /* spawn client processes */
-    ret = PSI_spawnStrict(np, wd, argc, argv, 1, errors, tids);
+    if (nodetype) nodeType = getNodeType(nodetype);
+    ret = PSI_spawnStrictHW(np, nodeType, wd, argc, argv, 1, errors, tids);
 
     /* Analyze result, if necessary */
     if (ret<0) {
@@ -1721,6 +1753,11 @@ static void setupPSIDEnv(int verbose)
     /* forward verbosity */
     if ((envstr = getenv("MPIEXEC_VERBOSE")) || verbose) {
 	setPSIEnv("MPIEXEC_VERBOSE", "1", 1);
+    }
+
+    if ((envstr = getenv("PSI_NODE_TYPE"))) {
+	nodetype = strdup(envstr);
+	setPSIEnv("PSI_NODE_TYPE", envstr, 1);
     }
 }
 
@@ -2555,6 +2592,8 @@ struct poptOption poptExecutionOptions[] = {
     { "maxtime", '\0', POPT_ARG_INT,
       &maxtime, 0, "maximum number of seconds the job is permitted to run",
       "INT"},
+    { "nodetype", '\0', POPT_ARG_STRING,
+      &nodetype, 0, "comma separated list of node types", NULL},
     POPT_TABLEEND
 };
 
