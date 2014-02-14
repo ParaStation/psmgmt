@@ -247,8 +247,6 @@ int spawnService(char *np, char **c_argv, int c_argc, char **c_env, int c_envc,
     int envc = 0, argc = 0, i;
     char *next, buffer[1024];
 
-    /* TODO: how to specify the nodeType in spawn message? */
-
     if (!(myTask = getChildTask())) {
 	elog("%s: cannot find my child's task structure\n", __func__);
 	return 0;
@@ -342,6 +340,11 @@ int spawnService(char *np, char **c_argv, int c_argc, char **c_env, int c_envc,
 	snprintf(buffer, sizeof(buffer), "%s=%s", ENV_NODE_HOSTFILE, hostfile);
 	task->environ[envc++] = ustrdup(buffer);
 	ufree(hostfile);
+    }
+    if (nType) {
+	snprintf(buffer, sizeof(buffer), "PSI_NODE_TYPE=%s", nType);
+	task->environ[envc++] = ustrdup(buffer);
+	ufree(nType);
     }
 
     task->environ[envc] = NULL;

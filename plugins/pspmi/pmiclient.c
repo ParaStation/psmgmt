@@ -1191,10 +1191,10 @@ static int tryPMISpawn(char *spawnBuffer, int serviceRank)
      *  - hosts: A list of hosts to use
      *  - hostfile: A hostfile to use
      *  - machinefile: equals hostfile
+     *  - nodetype: The type of nodes requested
      *
      * TODO:
      *
-     *  - nodetype: The type of nodes requested
      *  - soft:
      *	    - if not all processes could be started the spawn is still
      *		considered successful
