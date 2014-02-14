@@ -96,19 +96,67 @@ void PSI_registerRankEnvFunc(char **(*func)(int));
 /**
  * @brief Spawn one or more tasks within the cluster.
  *
- * Spawn @a count tasks described by the @a argc arguments within @a
- * argv. The nodes and ranks used will be determined via the
- * PSI_getNodes() function. The present working directory of the
- * spawned tasks will be @a workingdir.
+ * Spawn @a count tasks described by the @a argc number of arguments
+ * within @a argv. The nodes and ranks used will be determined via the
+ * PSI_getNodes() function. In order to restrict the nodes to be used
+ * @a hwType might be set accordingly. The present working directory
+ * of the spawned tasks will be @a workingdir.
  *
  * The unique task IDs of the spawned tasks will be returned within
  * the @a tids array. If an error occurred, @a errors will contain an
  * errno describing the error on the position corresponding to the
  * relative rank of the spawned process.
  *
- * Befor using this function, PSI_createPartition() has to be called
- * from within any process of the parallel task (which is naturally
- * the root process).
+ * Before using this function, PSI_createPartition() has to be called
+ * from within any process of the parallel task (which is usually the
+ * root process).
+ *
+ * @param count Number of tasks to spawn.
+ *
+ * @param hwType Hardware-types to be supported by the nodes to use.
+ * This bit-field shall be prepared using PSI_resolveHWList(). If it
+ * is set to 0, any node will be accepted from the hardware-type point
+ * of view.
+ *
+ * @param workingdir Present working directory of the spawned tasks on
+ * startup. This might be an absolute or relative path. If @a
+ * workingdir is a relative path, the content of the PWD environment
+ * variable is prepended. If @a workingdir is NULL, the content of the
+ * PWD environment variable is taken.
+ *
+ * @param argc Number of arguments within @a argv used within the
+ * resulting execve() call in order to really spawn the tasks.
+ *
+ * @param argv Array of argument strings passed to the resulting
+ * execve() call in order to finally spawn the task.
+ *
+ * @param strictArgv Flag to disable pseudo-intelligent determination
+ * of the executable. If set, argv[0] will be passed to the final
+ * exec() call as is.
+ *
+ * @param errors Error-codes displaying if an error occurred within
+ * PSI_spawn() while spawning the corresponding task.
+ *
+ * @param tids The task IDs of the spawned processes.
+ *
+ *
+ * @return On success, the number of tasks spawned is returned, or -1
+ * if an error occurred. Then errors is set appropriately.
+ *
+ * @see PSI_createPartition() PSI_getNodes()
+ */
+int PSI_spawnStrictHW(int count, uint32_t hwType, char *workdir,
+		      int argc, char **argv, int strictArgv, int *errors,
+		      PStask_ID_t *tids);
+
+/**
+ * @brief Spawn one or more tasks within the cluster.
+ *
+ * This is a wrapper of @ref PSI_spawnStrictHW() held for compatibility
+ * reasons.
+ *
+ * It is identical to calling @ref PSI_spawnStrictHW() with all the
+ * arguments plus @a hwType set to 0.
  *
  * @param count Number of tasks to spawn.
  *
@@ -125,8 +173,7 @@ void PSI_registerRankEnvFunc(char **(*func)(int));
  * execve() call in order to finally spawn the task.
  *
  * @param strictArgv Flag to disable pseudo-intelligent determination
- * of the executable. If set argv[0] will be passed to the final
- * exec() call as is.
+ * of the executable.
  *
  * @param errors Error-codes displaying if an error occurred within
  * PSI_spawn() while spawning the corresponding task.
@@ -137,10 +184,11 @@ void PSI_registerRankEnvFunc(char **(*func)(int));
  * @return On success, the number of tasks spawned is returned, or -1
  * if an error occurred. Then errors is set appropriately.
  *
- * @see PSI_createPartition() PSI_getNodes()
+ * @see PSI_spawnStrict()
  */
 int PSI_spawnStrict(int count, char *workdir, int argc, char **argv,
 		    int strictArgv, int *errors, PStask_ID_t *tids);
+
 
 /**
  * @brief Spawn one or more tasks within the cluster.
@@ -148,7 +196,7 @@ int PSI_spawnStrict(int count, char *workdir, int argc, char **argv,
  * This is a wrapper of @ref PSI_spawnStrict() held for compatibility
  * reasons.
  *
- * It is identical with calling @ref PSI_spawnStrict() with all the
+ * It is identical to calling @ref PSI_spawnStrict() with all the
  * arguments plus @a strictArgv set to 0.
  *
  * @param count Number of tasks to spawn.

@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2013 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2014 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -819,6 +819,14 @@ int PSI_spawn(int count, char *workdir, int argc, char **argv,
 int PSI_spawnStrict(int count, char *workdir, int argc, char **argv,
 		    int strictArgv, int *errors, PStask_ID_t *tids)
 {
+    return PSI_spawnStrictHW(count, 0, workdir, argc, argv, strictArgv,
+			     errors, tids);
+}
+
+int PSI_spawnStrictHW(int count, uint32_t hwType, char *workdir,
+		      int argc, char **argv, int strictArgv, int *errors,
+		      PStask_ID_t *tids)
+{
     int total = 0;
     PSnodes_ID_t *nodes;
 
@@ -834,7 +842,7 @@ int PSI_spawnStrict(int count, char *workdir, int argc, char **argv,
 
     while (count>0) {
 	int chunk = (count>NODES_CHUNK) ? NODES_CHUNK : count;
-	int rank = PSI_getNodes(chunk, nodes);
+	int rank = PSI_getNodes(chunk, hwType, nodes);
 	int i, ret;
 
 	if (rank < 0) {
@@ -872,7 +880,7 @@ int PSI_spawnSingle(char *workdir, int argc, char **argv,
      * is corret */
     int ret;
     PSnodes_ID_t node;
-    int rank = PSI_getNodes(1, &node);
+    int rank = PSI_getNodes(1, 0, &node);
 
     PSI_log(PSI_LOG_VERB, "%s()\n", __func__);
 

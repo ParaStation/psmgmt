@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2012 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2014 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -131,6 +131,38 @@ void PSI_LL(void);
 void PSI_SGE(void);
 
 /**
+ * @brief Resolve hardware-type for PSI_spawnStrictHW(),
+ * PSI_getNodes(), PSI_createPartition(), PSE_setHWType(), etc.
+ *
+ * Resolve the the hardware-types provided within @a hwList and create
+ * the corresponding hardware-type @a hwType to be used within
+ * e.g. PSE_setHWType() in order to influence creating of partitions
+ * via PSE_getPartition(), PSI_getNodes(), PSI_createPartition() or
+ * PSI_spawnStrictHW(). @a hwType is a bit-field using
+ * INFO_request_hwindex() as the index.
+ *
+ * If one ore more of the hardware-types passed to this function are
+ * unknown, the default hardware-type is set to the remaining ones
+ * anyhow. The occurrence of unknown hardware types is displayed by a
+ * return value of -1.
+ *
+ * @param hwList A NULL terminated list of hardware names. These will
+ * be resolved using the parastation.conf configuration file,
+ * i.e. each hardware name has to be defined there.
+ *
+ * @param hwType A bit-field of the resolved list of
+ * hardware-types. @a hwType is a bitwise OR of the hardware-types
+ * requested via 1<<INFO_request_hwindex() or 0.
+ *
+ * @return If one or more hardware-types are unknown, -1 is
+ * returned. Or 0, if all hardware-types are known. The returned 
+ * hardware-type @a hwType is set to the known ones in any case.
+ *
+ * @see PSE_setHWType() PSI_getNodes(), PSI_spawnStrictHW()
+ */
+int PSI_resolveHWList(char **hwList, uint32_t *hwType);
+
+/**
  * @brief Create a partition.
  *
  * Create a partition of size @a num according to various environment
@@ -142,7 +174,7 @@ void PSI_SGE(void);
  * - If PSI_NODES is present, use it to get the pool. PSI_NODES has to
  * contain a comma-separated list of node-ranges, where each
  * node-ranges is of the form 'first[-last]'. Here first and last are
- * node numbers, i.e. positiv numbers smaller than @a NrOfNodes from
+ * node numbers, i.e. positive numbers smaller than @a NrOfNodes from
  * the parastation.conf configuration file.
  *
  * - Otherwise if PSI_HOSTS is present, use this. PSI_HOSTS has to
@@ -158,8 +190,10 @@ void PSI_SGE(void);
  * - If none of the three addressed environment variables is present,
  * take all nodes managed by ParaStation to build the pool.
  *
- * To get into the pool, each node is tested, if it is available and if
- * it supports the requested hardware-type @a hwType.
+ * To get into the pool, each node is tested, if it is available and
+ * if it supports at least one of the hardware-types requested in @a
+ * hwType. If @a hwType is 0, each node will be accepted to get into
+ * the pool.
  *
  * When the pool is build, it may have to be sorted. The sorting is
  * steered via the environment variable PSI_NODES_SORT. Depending on
@@ -168,7 +202,7 @@ void PSI_SGE(void);
  *
  * - PROC: Sort the pool depending on the number of processes managed
  * by ParaStation residing on the nodes. This is also the default if
- * PSI_NODES_SORT is not set and no other default behaviour is
+ * PSI_NODES_SORT is not set and no other default behavior is
  * configured within the daemon's configuration file.
  *
  * - LOAD or LOAD_1: Sort the pool depending on the load average
@@ -194,7 +228,7 @@ void PSI_SGE(void);
  * processes are allowed on that node.
  *
  * - PSI_OVERBOOK: Allow more than one process per node.  This
- * induces PSI_EXCLUSIVE implicitely.
+ * induces PSI_EXCLUSIVE implicitly.
  *
  * - PSI_LOOP_NODES_FIRST: Place consecutive processes on different
  * nodes, if possible. Usually consecutive processes are placed on the
@@ -205,16 +239,17 @@ void PSI_SGE(void);
  * the task will stop immediately if it cannot get the requested
  * resources.
  *
- * The so build nodelist is propagated unmodified to all child
- * processes.
+ * The nodelist build by this means is propagated unmodified to all
+ * child processes.
  *
  *
- * @param num The number of nodes to be resevered for the parallel
+ * @param num The number of nodes to be reserved for the parallel
  * task.
  *
- * @param hwType Type of communication hardware each requested node
- * has to have. This is a 0 bitwise ORed with one or more of the
- * hardware types defined in the ParaStation configuration file.
+ * @param hwType Hardware-types to be supported by the selected
+ * nodes. This bit-field shall be prepared using
+ * PSI_resolveHWList(). If this is 0, any node will be accepted from
+ * the hardware-type point of view.
  *
  * @return On success, the number of nodes in the partition is
  * returned or -1 if an error occurred.
@@ -224,13 +259,19 @@ int PSI_createPartition(unsigned int num, uint32_t hwType);
 /**
  * @brief Get nodes to spawn processes to.
  *
- * Get @a num nodes in order to spawn processes to this nodes and
- * store their ParaStation IDs to @a nodes. Nodes may only be
- * requested in chunks of @ref NODES_CHUNK each. If more nodes are
- * requested, an error is returned. Furthermore the rank of the first
- * process to spawn is returned.
+ * Get @a num nodes supporting the hardware-types @a hwType in order
+ * to spawn processes to these nodes and store their ParaStation IDs to
+ * @a nodes. Nodes may only be requested in chunks of @ref NODES_CHUNK
+ * each. If more nodes are requested, an error is
+ * returned. Furthermore the rank of the first process to spawn is
+ * returned.
  *
  * @param num The number of nodes requested.
+ *
+ * @param hwType Hardware-types to be supported by the selected
+ * nodes. This bit-field shall be prepared using
+ * PSI_resolveHWList(). If this is 0, any node will be accepted from
+ * the hardware-type point of view.
  *
  * @param nodes An array sufficiently large to store the ParaStation
  * IDs of the requested nodes to.
@@ -239,7 +280,7 @@ int PSI_createPartition(unsigned int num, uint32_t hwType);
  * returned. All following processes will have consecutive ranks. In
  * case of an error -1 is returned.
  */
-int PSI_getNodes(unsigned int num, PSnodes_ID_t *nodes);
+int PSI_getNodes(unsigned int num, uint32_t hwType, PSnodes_ID_t *nodes);
 
 /**
  * @brief Get node to spawn process to.
