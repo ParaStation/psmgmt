@@ -1,3 +1,332 @@
+Version psmgmt-5.0.45:
+======================
+------------------------------------------------------------------------
+r8904 | eicker | 2014-02-14 17:38:55 +0100 (Fri, 14 Feb 2014) | 2 lines
+
+mpiexec changes of Michael's branch.
+
+------------------------------------------------------------------------
+r8903 | eicker | 2014-02-14 17:33:12 +0100 (Fri, 14 Feb 2014) | 2 lines
+
+Next part of the merge: changes to the PMI-plugin.
+
+------------------------------------------------------------------------
+r8902 | eicker | 2014-02-14 17:28:37 +0100 (Fri, 14 Feb 2014) | 8 lines
+
+Start to merge Michael's branch to support hwTypes during spawn:
+ - This one is restricted to changes within libpsi and libpse
+ - Basic changes against Michael's branch:
+   - Move PSE_getHWType() to PSI_resolveHWList() in psipartition
+   - Fix broken for MPICH1 via mpirun_chgm and mpirun_chopenib
+   - Re-order arguments of PSI_getNodes() and PSI_spawnStrictHW()
+   - Add docu for new functionality and fix many typos in docu
+
+------------------------------------------------------------------------
+r8901 | eicker | 2014-02-13 21:36:22 +0100 (Thu, 13 Feb 2014) | 2 lines
+
+Improve documentation comments.
+
+------------------------------------------------------------------------
+r8900 | eicker | 2014-02-13 21:30:23 +0100 (Thu, 13 Feb 2014) | 2 lines
+
+Fix whitespace formatting.
+
+------------------------------------------------------------------------
+r8899 | eicker | 2014-02-13 21:04:06 +0100 (Thu, 13 Feb 2014) | 2 lines
+
+Bugfix: Ensure backward compatibility with mpirun for MPICH1.
+
+------------------------------------------------------------------------
+r8898 | eicker | 2014-02-13 20:34:30 +0100 (Thu, 13 Feb 2014) | 3 lines
+
+Remove obsolete PStasklist_findByFWTID() introduced in r8848 but never
+    used.
+
+------------------------------------------------------------------------
+r8897 | eicker | 2014-02-13 18:55:24 +0100 (Thu, 13 Feb 2014) | 2 lines
+
+Fix Copyright date and some file-properties.
+
+------------------------------------------------------------------------
+r8896 | eicker | 2014-02-13 16:52:31 +0100 (Thu, 13 Feb 2014) | 2 lines
+
+Fix warning on setuid()'s unused return from newer gcc/glibc.
+
+------------------------------------------------------------------------
+r8894 | eicker | 2014-02-03 01:12:58 +0100 (Mon, 03 Feb 2014) | 2 lines
+
+Apply Carsten's patch on valgrind support for mpiexec.
+
+------------------------------------------------------------------------
+r8893 | eicker | 2014-02-03 01:11:02 +0100 (Mon, 03 Feb 2014) | 2 lines
+
+Remove unused variable info to suppress compiler warning
+
+------------------------------------------------------------------------
+r8890 | rauh | 2013-11-20 14:39:06 +0100 (Wed, 20 Nov 2013) | 2 lines
+
+Enhancement: start KVS service process on starter node.
+
+------------------------------------------------------------------------
+r8889 | rauh | 2013-11-15 11:49:23 +0100 (Fri, 15 Nov 2013) | 2 lines
+
+Enhancement: psaccount: update used cpu time periodically (#2147).
+
+------------------------------------------------------------------------
+r8888 | rauh | 2013-10-17 15:02:30 +0200 (Thu, 17 Oct 2013) | 1 line
+
+Cleanup obsolete files.
+------------------------------------------------------------------------
+r8887 | rauh | 2013-10-17 15:00:17 +0200 (Thu, 17 Oct 2013) | 1 line
+
+Pushed internal psmom version.
+------------------------------------------------------------------------
+r8886 | rauh | 2013-10-17 15:00:12 +0200 (Thu, 17 Oct 2013) | 2 lines
+
+Enhancement: psmom: prevent protocol deadlocks from third party
+programs (jt:#6971).
+------------------------------------------------------------------------
+r8885 | rauh | 2013-10-10 15:45:32 +0200 (Thu, 10 Oct 2013) | 3 lines
+
+Bugfix: make sure we have enough space when overwriting the proc title.
+Enhancement: shorten proc title of psidforwarder to psidfw since space
+can be very limited in the process.
+------------------------------------------------------------------------
+r8884 | rauh | 2013-10-10 15:45:29 +0200 (Thu, 10 Oct 2013) | 2 lines
+
+Enhancement: psmom: Only root needs to use the master unix socket of
+psmom for local communication.
+------------------------------------------------------------------------
+r8883 | rauh | 2013-10-10 15:45:26 +0200 (Thu, 10 Oct 2013) | 2 lines
+
+Enhancement: preparation to move the kvsprovider of process groups spawned
+with pmi_spawn to abitrary nodes.
+------------------------------------------------------------------------
+r8882 | rauh | 2013-10-10 15:45:24 +0200 (Thu, 10 Oct 2013) | 1 line
+
+Bugfix: psmom: Don't remove jobinfo for jobs with no walltime limit.
+------------------------------------------------------------------------
+r8881 | eicker | 2013-09-12 13:02:23 +0200 (Thu, 12 Sep 2013) | 3 lines
+
+Enhancement: Enable PSP_SCHED_YIELD in mpiexec, if overbooking is
+    requested (#151).
+
+------------------------------------------------------------------------
+r8880 | eicker | 2013-09-10 17:39:02 +0200 (Tue, 10 Sep 2013) | 2 lines
+
+Enhancement: New psiadmin directive 'list installdir'.
+
+------------------------------------------------------------------------
+r8879 | eicker | 2013-09-03 21:16:30 +0200 (Tue, 03 Sep 2013) | 3 lines
+
+Bugfix: Fix problems introduced in r8878
+Bugfix: Fix psiadmin's output for 'list jobs'
+
+------------------------------------------------------------------------
+r8878 | eicker | 2013-09-03 19:27:22 +0200 (Tue, 03 Sep 2013) | 3 lines
+
+Enhancement: Allow more than 32 cores per CPU. The new limit is 1024,
+    nevertheless the protocoll foresees future extensions.
+
+------------------------------------------------------------------------
+r8877 | eicker | 2013-09-03 19:23:50 +0200 (Tue, 03 Sep 2013) | 2 lines
+
+Fix copyright.
+
+------------------------------------------------------------------------
+r8876 | eicker | 2013-09-03 18:28:17 +0200 (Tue, 03 Sep 2013) | 2 lines
+
+Bugfix: Fix psiadmin's output for 'list plugins'
+
+------------------------------------------------------------------------
+r8875 | eicker | 2013-08-29 21:30:20 +0200 (Thu, 29 Aug 2013) | 4 lines
+
+Bugfix: Fix accounting again. This was broken by r8746.
+    In fact this breaks ACCOUNTING_SLOTS messages, too. Will be fixed
+    within one of the next commits.
+
+------------------------------------------------------------------------
+r8874 | eicker | 2013-08-29 19:37:57 +0200 (Thu, 29 Aug 2013) | 2 lines
+
+Fix even one more copyright statement
+
+------------------------------------------------------------------------
+r8873 | eicker | 2013-08-29 19:28:17 +0200 (Thu, 29 Aug 2013) | 2 lines
+
+Still some more copyright statements to fix.
+
+------------------------------------------------------------------------
+r8872 | eicker | 2013-08-29 19:21:13 +0200 (Thu, 29 Aug 2013) | 2 lines
+
+Fix one more copyright statement
+
+------------------------------------------------------------------------
+r8871 | eicker | 2013-08-28 18:03:05 +0200 (Wed, 28 Aug 2013) | 2 lines
+
+Beautify doxygen comments.
+
+------------------------------------------------------------------------
+r8870 | eicker | 2013-08-27 20:23:14 +0200 (Tue, 27 Aug 2013) | 3 lines
+
+Remove duplicate function
+Fix typo
+
+------------------------------------------------------------------------
+r8869 | eicker | 2013-08-21 18:00:05 +0200 (Wed, 21 Aug 2013) | 3 lines
+
+Enhancement: Make PSID_pinToCPUs(), PSID_bindToNodes() and
+    PSID_mapCPUs() public.
+
+------------------------------------------------------------------------
+r8868 | moschny | 2013-08-21 14:53:02 +0200 (Wed, 21 Aug 2013) | 1 line
+
+Re-add psaccview.
+------------------------------------------------------------------------
+r8867 | eicker | 2013-08-21 14:13:47 +0200 (Wed, 21 Aug 2013) | 2 lines
+
+Fix one compiler warning introduced in r8866.
+
+------------------------------------------------------------------------
+r8866 | eicker | 2013-08-15 19:28:08 +0200 (Thu, 15 Aug 2013) | 2 lines
+
+Enhancement: Prepare code for deviating PSCPU_set_t sizes.
+
+------------------------------------------------------------------------
+r8865 | eicker | 2013-08-15 19:05:46 +0200 (Thu, 15 Aug 2013) | 2 lines
+
+Update (soon obsoleted) message sizes.
+
+------------------------------------------------------------------------
+r8864 | rauh | 2013-08-14 14:01:11 +0200 (Wed, 14 Aug 2013) | 1 line
+
+Enhancement: tell MPI processes to use PMI version 1.
+------------------------------------------------------------------------
+r8863 | rauh | 2013-08-09 15:35:34 +0200 (Fri, 09 Aug 2013) | 2 lines
+
+Enhancement: also move the spawner process from PMI_spawn() calls when
+__MPIEXEC_DIST_START is set.
+------------------------------------------------------------------------
+r8862 | rauh | 2013-08-09 13:31:43 +0200 (Fri, 09 Aug 2013) | 1 line
+
+Enhanced changes from r8861.
+------------------------------------------------------------------------
+r8861 | rauh | 2013-08-07 15:43:42 +0200 (Wed, 07 Aug 2013) | 2 lines
+
+Enhancement: better handling of CC_ERROR msg in the kvsprovider.
+
+------------------------------------------------------------------------
+r8858 | rauh | 2013-08-06 10:05:54 +0200 (Tue, 06 Aug 2013) | 2 lines
+
+Undo changes done in r8853.
+
+------------------------------------------------------------------------
+r8857 | rauh | 2013-08-06 09:57:54 +0200 (Tue, 06 Aug 2013) | 2 lines
+
+Undo changes done in r8854.
+
+------------------------------------------------------------------------
+r8856 | rauh | 2013-08-05 16:43:43 +0200 (Mon, 05 Aug 2013) | 3 lines
+
+Bugfix: psmom: fixed race condition when verfiying
+the scratch directory (DIR_TEMP).
+
+------------------------------------------------------------------------
+r8855 | rauh | 2013-08-05 14:14:06 +0200 (Mon, 05 Aug 2013) | 2 lines
+
+Enhancement: removed unnecessary prototyps.
+
+------------------------------------------------------------------------
+r8854 | rauh | 2013-08-05 14:06:44 +0200 (Mon, 05 Aug 2013) | 2 lines
+
+Bugfix: fixed bug detected by LLVM's scan-build.
+
+------------------------------------------------------------------------
+r8853 | rauh | 2013-08-05 13:13:10 +0200 (Mon, 05 Aug 2013) | 2 lines
+
+Bugfix: fixed some bugs detected by LLVM's scan-build.
+
+------------------------------------------------------------------------
+r8852 | eicker | 2013-08-04 15:40:18 +0200 (Sun, 04 Aug 2013) | 2 lines
+
+Some re-organization of r8848 changes.
+
+------------------------------------------------------------------------
+r8851 | eicker | 2013-08-04 14:43:50 +0200 (Sun, 04 Aug 2013) | 2 lines
+
+Fix various copyright entries.
+
+------------------------------------------------------------------------
+r8850 | eicker | 2013-08-04 14:13:55 +0200 (Sun, 04 Aug 2013) | 2 lines
+
+Improve the changes done in r8841.
+
+------------------------------------------------------------------------
+r8849 | eicker | 2013-08-04 14:10:48 +0200 (Sun, 04 Aug 2013) | 2 lines
+
+Start to prepare psicomm for errors on receiving messages.
+
+------------------------------------------------------------------------
+r8848 | rauh | 2013-08-02 12:06:30 +0200 (Fri, 02 Aug 2013) | 2 lines
+
+Bugfix: correct cleanup of processes spawned using PMI_spawn.
+
+------------------------------------------------------------------------
+r8847 | rauh | 2013-07-31 11:50:36 +0200 (Wed, 31 Jul 2013) | 3 lines
+
+Enhancement: resolving the ip adresses in the nodelist is only needed
+when OpenMPI is used.
+
+------------------------------------------------------------------------
+r8846 | rauh | 2013-07-29 12:35:28 +0200 (Mon, 29 Jul 2013) | 2 lines
+
+Bugfix: fixed possible double free() detected by LLVM's scan-build. 
+
+------------------------------------------------------------------------
+r8845 | rauh | 2013-07-29 12:07:49 +0200 (Mon, 29 Jul 2013) | 4 lines
+
+Removed missed hardcoded path to "/var/run".
+Added memtest.py to rpm sources.
+
+
+------------------------------------------------------------------------
+r8844 | rauh | 2013-07-29 10:46:23 +0200 (Mon, 29 Jul 2013) | 2 lines
+
+Enhancement: removed remaining hardcoded paths in pspmi and psmom (#2074).
+
+------------------------------------------------------------------------
+r8843 | rauh | 2013-07-26 16:54:26 +0200 (Fri, 26 Jul 2013) | 2 lines
+
+Bugfix: fixed PMI spawn which was broken by r8822.
+
+------------------------------------------------------------------------
+r8842 | rauh | 2013-07-26 15:37:49 +0200 (Fri, 26 Jul 2013) | 2 lines
+
+Enhancement: added easy memory debugging for psaccount, pspmi and psmom.
+
+------------------------------------------------------------------------
+r8841 | rauh | 2013-07-25 12:07:38 +0200 (Thu, 25 Jul 2013) | 2 lines
+
+Cleanup warnings warn_unused_result with new gcc 4.8.1.
+
+------------------------------------------------------------------------
+r8840 | rauh | 2013-07-23 12:34:25 +0200 (Tue, 23 Jul 2013) | 3 lines
+
+Bugfix: fixed possible segfault in output merging (mpiexec -m).
+Bugfix: fixed minor bugs and warnings detected by LLVM's scan-build.
+
+------------------------------------------------------------------------
+r8839 | rauh | 2013-07-22 16:56:36 +0200 (Mon, 22 Jul 2013) | 2 lines
+
+Bugfix: fixed some memory corruptions
+
+------------------------------------------------------------------------
+r8835 | eicker | 2013-07-19 16:39:07 +0200 (Fri, 19 Jul 2013) | 2 lines
+
+New version (psmgmt-5.0.44)
+
+------------------------------------------------------------------------
+
+
 Version psmgmt-5.0.44:
 ======================
 ------------------------------------------------------------------------
