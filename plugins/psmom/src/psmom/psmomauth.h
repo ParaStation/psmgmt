@@ -15,22 +15,22 @@
  *
  */
 
-#include "pluginlog.h"
+#ifndef __PS_MOM_AUTH
+#define __PS_MOM_AUTH
 
-#include "pmilog.h"
+#include "list.h"
 
+typedef struct {
+    unsigned long ipaddr;
+    struct list_head list;
+} Auth_t;
 
-logger_t *pmilogger = NULL;
-FILE *pmilogfile = NULL;
+/** the list head of the auth list */
+Auth_t AuthList;
 
-void initLogger(FILE *logfile)
-{
-    pmilogger = logger_init("pspmi", logfile);
-    initPluginLogger(logfile);
-    pmilogfile = logfile;
-}
+void initAuthList();
+int isAuthIP(unsigned long ipaddr);
+void addAuthIP(unsigned long ipaddr);
+void clearAuthList();
 
-void maskLogger(int32_t mask)
-{
-    logger_setMask(pmilogger, mask);
-}
+#endif

@@ -1,7 +1,7 @@
 #                                                       -*- Makefile -*-
 # ParaStation
 #
-# Copyright (C) 2012 - 2013 ParTec Cluster Competence Center GmbH, Munich
+# Copyright (C) 2012-2013 ParTec Cluster Competence Center GmbH, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -127,6 +127,7 @@ include/parser.h \
 include/plugin.h \
 include/plugincomm.h \
 include/pluginfrag.h \
+include/pluginlog.h \
 include/pluginmalloc.h \
 include/psbyteorder.h \
 include/pscommon.h \
@@ -158,7 +159,6 @@ lib/plugincommon/Makefile.in \
 lib/plugincommon/plugincomm.c \
 lib/plugincommon/pluginfrag.c \
 lib/plugincommon/pluginlog.c \
-lib/plugincommon/pluginlog.h \
 lib/plugincommon/pluginmalloc.c \
 lib/pscommon/Makefile.am \
 lib/pscommon/Makefile.in \
@@ -270,8 +270,8 @@ plugins/psmom/src/psmom/psmomacc.h \
 plugins/psmom/src/psmom/psmom.c \
 plugins/psmom/src/psmom/psmomchild.c \
 plugins/psmom/src/psmom/psmomchild.h \
-plugins/psmom/src/psmom/psmomclient.c \
-plugins/psmom/src/psmom/psmomclient.h \
+plugins/psmom/src/psmom/psmomauth.c \
+plugins/psmom/src/psmom/psmomauth.h \
 plugins/psmom/src/psmom/psmomcollect.c \
 plugins/psmom/src/psmom/psmomcollect.h \
 plugins/psmom/src/psmom/psmomcomm.c \
@@ -328,6 +328,8 @@ plugins/pspmi/pmiclient.c \
 plugins/pspmi/pmiclient.h \
 plugins/pspmi/pmiforwarder.c \
 plugins/pspmi/pmiforwarder.h \
+plugins/pspmi/pmikvs.c \
+plugins/pspmi/pmikvs.h \
 plugins/pspmi/pmilog.c \
 plugins/pspmi/pmilog.h \
 plugins/pspmi/pmimain.c \
@@ -359,6 +361,7 @@ scripts/lsf/README \
 scripts/lsf/esub \
 scripts/lsf/psm_lsf_wrapper \
 scripts/ltmain.sh \
+scripts/memtest.py \
 scripts/missing \
 scripts/mpiexec.gdb \
 scripts/mpirun_java \

@@ -122,7 +122,7 @@ am__uninstall_files_from_dir = { \
 am__installdirs = "$(DESTDIR)$(pamdir)"
 LTLIBRARIES = $(pam_LTLIBRARIES)
 pam_psmom_la_DEPENDENCIES = $(libpscommon) $(plugincommon_objs)
-am_pam_psmom_la_OBJECTS = pam_psmom.lo
+am_pam_psmom_la_OBJECTS = pam_psmom_la-pam_psmom.lo
 pam_psmom_la_OBJECTS = $(am_pam_psmom_la_OBJECTS)
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
@@ -332,6 +332,7 @@ plugincommon_objs = $(top_builddir)/lib/plugincommon/plugincomm.lo \
 	$(top_builddir)/lib/plugincommon/pluginlog.lo
 libpscommon = $(top_builddir)/lib/pscommon/libpscommon.la
 pam_psmom_la_SOURCES = pam_psmom.c
+pam_psmom_la_CPPFLAGS = $(AM_CPPFLAGS) -DLOCALSTATEDIR=\"$(localstatedir)\"
 pam_psmom_la_LIBADD = $(libpscommon) $(plugincommon_objs) -lpam
 all: all-am
 
@@ -409,7 +410,7 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pam_psmom.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pam_psmom_la-pam_psmom.Plo@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	$(AM_V_CC)depbase=`echo $@ | sed 's|[^/]*$$|$(DEPDIR)/&|;s|\.o$$||'`;\
@@ -434,6 +435,13 @@ distclean-compile:
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='$<' object='$@' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LTCOMPILE) -c -o $@ $<
+
+pam_psmom_la-pam_psmom.lo: pam_psmom.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(pam_psmom_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT pam_psmom_la-pam_psmom.lo -MD -MP -MF $(DEPDIR)/pam_psmom_la-pam_psmom.Tpo -c -o pam_psmom_la-pam_psmom.lo `test -f 'pam_psmom.c' || echo '$(srcdir)/'`pam_psmom.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/pam_psmom_la-pam_psmom.Tpo $(DEPDIR)/pam_psmom_la-pam_psmom.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='pam_psmom.c' object='pam_psmom_la-pam_psmom.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(pam_psmom_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o pam_psmom_la-pam_psmom.lo `test -f 'pam_psmom.c' || echo '$(srcdir)/'`pam_psmom.c
 
 mostlyclean-libtool:
 	-rm -f *.lo

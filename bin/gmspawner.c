@@ -177,7 +177,7 @@ static void distributeInfo(unsigned int np, int verbose)
 	if (ret<0) {
 	    char *errstr = strerror(errno);
 	    fprintf(stderr, "Error setting second socket option: %s\n",
-		    errstr ? errstr:"UNKNOWN");
+		    errstr ? errstr : "UNKNOWN");
 	}
 
 	addr.sin_family = AF_INET;
@@ -199,27 +199,52 @@ static void distributeInfo(unsigned int np, int verbose)
 
 	/* Global mapping */
 	token = "[[[";
-	write(sock, token, strlen(token));
+	if (write(sock, token, strlen(token)) < 0) {
+	    char *errstr = strerror(errno);
+	    fprintf(stderr, "%s: write('%s') failed: %s\n", __func__, token,
+		    errstr ? errstr : "UNKNOWN");
+	    exit(1);
+	}
 	for (i=0; i<np; i++) {
 	    char entry[80];
 	    snprintf(entry, sizeof(entry), "<%u:%u:%u:%u>",
 		     clients[i].port, clients[i].board, clients[i].node,
 		     clients[i].numanode);
-	    write(sock, entry, strlen(entry));
+	    if (write(sock, entry, strlen(entry)) < 0) {
+		char *errstr = strerror(errno);
+		fprintf(stderr, "%s: write('%s') failed: %s\n", __func__,
+			entry, errstr ? errstr : "UNKNOWN");
+		exit(1);
+	    }
 	}
 	token="|||";
-	write(sock, token, strlen(token));
+	if (write(sock, token, strlen(token)) < 0) {
+	    char *errstr = strerror(errno);
+	    fprintf(stderr, "%s: write('%s') failed: %s\n", __func__, token,
+		    errstr ? errstr : "UNKNOWN");
+	    exit(1);
+	}
 	/* Local mapping */
 	for (i=0; i<np; i++) {
 	    if (clients[index].slave_host==clients[i].slave_host
 		&& clients[index].numanode==clients[i].numanode) {
 		char entry[80];
 		snprintf(entry, sizeof(entry), "<%u>", i);
-		write(sock, entry, strlen(entry));
+		if (write(sock, entry, strlen(entry)) < 0) {
+		    char *errstr = strerror(errno);
+		    fprintf(stderr, "%s: write('%s') failed: %s\n", __func__,
+			    entry, errstr ? errstr : "UNKNOWN");
+		    exit(1);
+		}
 	    }
 	}
 	token="]]]";
-	write(sock, token, strlen(token));
+	if (write(sock, token, strlen(token)) < 0) {
+	    char *errstr = strerror(errno);
+	    fprintf(stderr, "%s: write('%s') failed: %s\n", __func__, token,
+		    errstr ? errstr : "UNKNOWN");
+	    exit(1);
+	}
 
 	close (sock);
 

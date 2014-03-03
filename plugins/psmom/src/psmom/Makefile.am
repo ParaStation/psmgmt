@@ -22,8 +22,8 @@ libpsi = $(top_builddir)/lib/psi/libpsi.la
 libplugincommon = $(top_builddir)/lib/plugincommon/libplugincommon.la
 
 psmom_la_SOURCES = config.h.in helper.c helper.h Makefile.am psmomacc.c \
-	psmomacc.h psmom.c psmomchild.c psmomchild.h psmomclient.c \
-	psmomclient.h psmomcollect.c psmomcollect.h psmomcomm.c psmomcomm.h \
+	psmomacc.h psmom.c psmomchild.c psmomchild.h psmomauth.c \
+	psmomauth.h psmomcollect.c psmomcollect.h psmomcomm.c psmomcomm.h \
 	psmomconfig.c psmomconfig.h psmomconv.c psmomconv.h \
 	psmomenv.c psmomenv.h psmomforwarder.c psmomforwarder.h psmom.h \
 	psmominteractive.c psmominteractive.h psmomjob.c psmomjob.h \
@@ -35,7 +35,9 @@ psmom_la_SOURCES = config.h.in helper.c helper.h Makefile.am psmomacc.c \
 	psmomscript.c psmomscript.h psmomsignal.c psmomsignal.h psmomspawn.c \
 	psmomspawn.h psmomssh.c psmomssh.h psmomtcp.c psmomtcp.h
 
-psmom_la_CPPFLAGS = $(AM_CPPFLAGS) -DPLUGINDIR=\"$(plugindir)\"
+psmom_la_CPPFLAGS = $(AM_CPPFLAGS) -DPLUGINDIR=\"$(plugindir)\" \
+	-DLOCALSTATEDIR=\"$(localstatedir)\"
+
 psmom_la_LIBADD = $(libpsi) $(libpbs) $(libplugincommon)
 
 if PAM_ENABLED
@@ -50,4 +52,3 @@ install-exec-local:
 	$(INSTALL) -d $(DESTDIR)$(localstatedir)/spool/parastation/account
 	$(INSTALL) -d $(DESTDIR)$(localstatedir)/spool/parastation/backup
 	$(INSTALL) -d $(DESTDIR)$(localstatedir)/spool/parastation/scripts
-

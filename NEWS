@@ -1,6 +1,6 @@
 psmgmt NEWS -- history of user-visible changes.
 
-Copyright (C) 2010-2013 ParTec Cluster Competence Center GmbH, Munich
+Copyright (C) 2010-2014 ParTec Cluster Competence Center GmbH, Munich
 
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
@@ -26,6 +26,36 @@ Please send bug reports, questions and suggestions to <support@par-tec.com>
 **                                                                     **
 *************************************************************************
 *************************************************************************
+
+Version 5.0.45:
+===============
+
+Bugfixes:
+- psaccount: update used cpu time periodically (#2147)
+- psmom: prevent protocol deadlocks from third party programs (jt:#6971)
+- psmom: Don't remove jobinfo for jobs with no walltime limit.
+- Fix psiadmin's output for 'list jobs' and 'list plugins'
+- Fix accounting again. This was broken by r8746.
+- Re-add psaccview.
+- psmom: fixed race condition when verfiying the scratch directory (DIR_TEMP).
+- Fix many bugs detected by LLVM's scan-build.
+- Correct cleanup of processes spawned via PMI_spawn()
+- Fix possible segfault in mpiexec's output merging (mpiexec -m)
+
+Enhancement:
+- Allow more than 32 cores per node
+- Add valgrind support to mpiexec
+- Enable PSP_SCHED_YIELD in mpiexec, if overbooking is requested (#151)
+- Remove hardcoded paths in pspmi and psmom (#2074)
+- Short proc title of psidfw to give more info on the actual process
+- psmom: Only root uses the master UNIX socket for local communication
+- New psiadmin directive 'list installdir'
+- Tell MPI processes to use PMI version 1
+- Start KVS service process on starter node
+- Move also spawner process of PMI_spawn() when __MPIEXEC_DIST_START is set
+- Resolving nodelist's hostnames only required for OpenMPI
+- Add lightweight memory debugging for psaccount, pspmi and psmom
+
 
 Version 5.0.44:
 ===============

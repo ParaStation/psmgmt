@@ -64,6 +64,13 @@ static int prependSource = 0;
  */
 static int mergeOutput = 0;
 
+/**
+ * Shall output lines be scanned for Valgrind PID patterns?  (1=Yes, 0=No)
+ *
+ * Set in main() to 1 if environment variable PSI_USE_VALGRIND is defined.
+ */
+int useValgrind = 0;
+
 static int rawIO = 0;
 
 /**
@@ -1329,6 +1336,11 @@ int main( int argc, char**argv)
 	mergeOutput = 1;
 	PSIlog_log(PSILOG_LOG_VERB, "Will merge the output of all ranks.\n");
 	outputMergeInit();
+    }
+
+    if (getenv("PSI_USE_VALGRIND")) {
+	useValgrind = 1;
+	PSIlog_log(PSILOG_LOG_VERB, "Running on Valgrind cores.\n");
     }
 
     if (getenv("PSI_RUSAGE")) {

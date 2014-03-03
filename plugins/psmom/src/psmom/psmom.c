@@ -45,7 +45,7 @@
 #include "psmomcomm.h"
 #include "psmomjob.h"
 #include "psmomproto.h"
-#include "psmomclient.h"
+#include "psmomauth.h"
 #include "psmomsignal.h"
 #include "psmomlog.h"
 #include "psmomcollect.h"
@@ -64,7 +64,7 @@
 
 #include "psmom.h"
 
-#define DEFAULT_PSMOM_CONFIG_FILE   "/opt/parastation/plugins/psmom.conf"
+#define PSMOM_CONFIG_FILE  PLUGINDIR "/psmom.conf"
 
 /** default torque server port (udp/tcp) */
 int serverPort;
@@ -125,7 +125,7 @@ handlerFunc_t oldSpawnReqHandler = NULL;
 
 /** psid plugin requirements */
 char name[] = "psmom";
-int version = 57;
+int version = 58;
 int requiredAPI = 109;
 plugin_dep_t dependencies[2];
 
@@ -586,7 +586,7 @@ int initialize(void)
     }
 
     /* init the configuration */
-    if (!(initConfig(DEFAULT_PSMOM_CONFIG_FILE))) {
+    if (!(initConfig(PSMOM_CONFIG_FILE))) {
 	fprintf(stderr, "%s: init of the configuration failed\n", __func__);
 	return 1;
     }
@@ -611,7 +611,7 @@ int initialize(void)
     /* init all data lists */
     initComList();
     initJobList();
-    initClientList();
+    initAuthList();
     initInfoList();
     initChildList();
     initServerList();
@@ -647,11 +647,6 @@ int initialize(void)
     /* init the tcp communication layer */
     if ((wBind(momPort, TCP_PROTOCOL)) < 0) {
 	mlog("Listen on tcp port %d failed\n", momPort);
-	return 1;
-    }
-
-    if ((wBind(rmPort, TCP_PROTOCOL)) < 0) {
-	mlog("Listen on tcp port %d failed\n", rmPort);
 	return 1;
     }
 
@@ -788,9 +783,8 @@ void cleanup(void)
     clearDataList(&staticInfoData.list);
     clearJobInfoList();
     clearSSHList();
-    /*
-    clearClientList();
-    */
+    clearAuthList();
+    if (memoryDebug) fclose(memoryDebug);
 
     mlog("...Bye.\n");
 }

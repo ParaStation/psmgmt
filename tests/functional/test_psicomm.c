@@ -63,7 +63,7 @@ int main(int argc, char *argv[])
 	PSIcomm_recv(&rank, &type, buf, &len);
 
 	switch (type) {
-	case -1:
+	case PSICOMM_ERROR:
 	    eno = *(int *)buf;
 	    printf("Received error %d from %d: %s\n",
 		   eno, rank, strerror(eno)); 

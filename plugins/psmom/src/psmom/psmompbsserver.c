@@ -23,6 +23,7 @@
 #include "psmomlog.h"
 #include "psmomproto.h"
 #include "psmomrpp.h"
+#include "psmomauth.h"
 
 #include "timer.h"
 #include "pluginmalloc.h"
@@ -204,6 +205,7 @@ int openServerConnections()
     struct timeval Timer = {0,0};
     ComHandle_t *com;
     Server_t *serv;
+    struct sockaddr_in* lAddr;
 
     if (!(allServers = getConfParam("PBS_SERVER"))) {
 	mlog("%s: PBS server not configured, cannot continue\n", __func__);
@@ -224,6 +226,15 @@ int openServerConnections()
 	    mdbg(PSMOM_LOG_VERBOSE, "%s: connecting to server '%s:%i'\n",
 		__func__, next, serverPort);
 	    com->info = ustrdup("PBS server");
+
+	    if (!(lAddr = rppGetAddr(com->socket))) {
+		mlog("%s: resolving addr for PBS server '%s:%i' failed\n",
+		    __func__, next, serverPort);
+	    } else {
+		/* insert into authorized server list */
+		addAuthIP(lAddr->sin_addr.s_addr);
+	    }
+
 	    wEOM(com);
 	    InitIS(com);
 	}

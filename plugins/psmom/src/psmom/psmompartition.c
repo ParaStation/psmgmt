@@ -280,9 +280,9 @@ void handlePSSpawnReq(DDTypedBufferMsg_t *msg)
 	    left -= len +1;
 
 	    len = snprintf(next, left, "PBS_JOBID=%s", jobid);
-	    next += len + 1;
+	    //next += len + 1;
 	    msg->header.len += len +1;
-	    left -= len +1;
+	    //left -= len +1;
 
 	    /* end of encoding */
 	    msg->header.len++;

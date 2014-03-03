@@ -42,7 +42,7 @@ void checkJobInfoTimeouts()
     list_for_each_safe(pos, tmp, &JobInfoList.list) {
 	if ((job = list_entry(pos, JobInfo_t, list)) == NULL) return;
 
-	if (job->start_time + job->timeout < time(NULL)) {
+	if (job->timeout > 0 && job->start_time + job->timeout < time(NULL)) {
 	    mlog("%s: removing JobInfo '%s', reason: timeout\n", __func__,
 		    job->id);
 
@@ -67,7 +67,11 @@ JobInfo_t *addJobInfo(char *id, char *user, PStask_ID_t tid, char *timeout,
     job->id = ustrdup(id);
     job->user = ustrdup(user);
     job->tid = tid;
-    job->timeout = stringTimeToSec(timeout);
+    if (timeout && strlen(timeout) > 0) {
+	job->timeout = stringTimeToSec(timeout);
+    } else {
+	job->timeout = -1;
+    }
     job->start_time = time(NULL);
     job->logger = 0;
     job->cookie = ustrdup(cookie);

@@ -584,6 +584,18 @@ static int p_Barrier_In(char *msgBuffer)
     return 0;
 }
 
+void leaveKVS(int used)
+{
+    char *ptr = buffer;
+    size_t len = 0;
+
+    if (!used || (used && !isSuccReady)) {
+	/* inform the provider we are leaving the KVS space */
+	setKVSCmd(&ptr, &len, LEAVE);
+	sendKvstoProvider(buffer, len);
+    }
+}
+
 /**
  * @brief Finalize the PMI.
  *
@@ -595,12 +607,7 @@ static int p_Barrier_In(char *msgBuffer)
  * */
 static int p_Finalize()
 {
-    char *ptr = buffer;
-    size_t len = 0;
-
-    /* inform the provider we are leaving the KVS space */
-    setKVSCmd(&ptr, &len, LEAVE);
-    sendKvstoProvider(buffer, len);
+    leaveKVS(0);
 
     return PMI_FINALIZED;
 }
@@ -1184,10 +1191,10 @@ static int tryPMISpawn(char *spawnBuffer, int serviceRank)
      *  - hosts: A list of hosts to use
      *  - hostfile: A hostfile to use
      *  - machinefile: equals hostfile
+     *  - nodetype: The type of nodes requested
      *
      * TODO:
      *
-     *  - nodetype: The type of nodes requested
      *  - soft:
      *	    - if not all processes could be started the spawn is still
      *		considered successful
@@ -2075,7 +2082,7 @@ static void handleServiceInfo(PSLog_Msg_t *msg)
     int serviceRank;
 
     serviceRank = *(int32_t *) ptr;
-    ptr += sizeof(int32_t);
+    //ptr += sizeof(int32_t);
 
     if (!spawnBuffer) {
 	elog("%s(%i): spawning failed, no spawn buffer set\n", __func__, rank);

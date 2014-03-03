@@ -471,7 +471,7 @@ void openMasterSock()
     if (bind(masterSocket, (struct sockaddr *)&sa, sizeof(sa)) < 0) {
 	mwarn(errno, "psmom already running?");
     }
-    chmod(sa.sun_path, S_IRWXU | S_IRWXG | S_IRWXO);
+    chmod(sa.sun_path, S_IRWXU);
 
     if (listen(masterSocket, 20) < 0) {
 	mwarn(errno, "Error while trying to listen");

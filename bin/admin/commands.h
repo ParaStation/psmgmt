@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2012 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2013 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -348,6 +348,21 @@ void PSIADM_MemStat(char *nl);
  * @return No return value.
  */
 void PSIADM_HWStat(char *nl);
+
+/**
+ * @brief Get install dir.
+ *
+ * Show the installation directory of the nodes marked within the
+ * nodelist @a nl. Therefore the corresponding list containing the
+ * information is requested from the corresponding daemon and printed
+ * to stdout.
+ *
+ * @param nl The nodelist describing the nodes from which the
+ * information should requested and put out.
+ *
+ * @return No return value.
+ */
+void PSIADM_InstdirStat(char *nl);
 
 /**
  * @brief Show jobs.

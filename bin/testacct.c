@@ -48,10 +48,23 @@ static char vcid[] __attribute__((used)) =
 
 void handleSlotsMsg(DDTypedBufferMsg_t *msg)
 {
-    char *ptr = msg->buf + sizeof(PStask_ID_t);
-    unsigned int numSlots = *(uint32_t *)ptr, slot;
+    char *ptr = msg->buf;
+    int numSlots, slot;
+    size_t nBytes;
 
-    ptr += sizeof(uint32_t);
+    /* logger's TID, this identifies a task uniquely */
+    ptr += sizeof(PStask_ID_t);
+
+    /* child's uid */
+    ptr += sizeof(uid_t);
+
+    /* number of slots */
+    numSlots = *(uint16_t *)ptr;
+    ptr += sizeof(uint16_t);
+
+    /* size of CPUset part */
+    nBytes = *(uint16_t *)ptr;
+    ptr += sizeof(uint16_t);
 
     for (slot = 0; slot < numSlots; slot++) {
 	PSnodes_ID_t node;
@@ -59,10 +72,12 @@ void handleSlotsMsg(DDTypedBufferMsg_t *msg)
 
 	if (!slot) printf(": "); else printf(", ");
 
-	memcpy(&node,  ptr, sizeof(PSnodes_ID_t));
+	node = *(PSnodes_ID_t *)ptr;
 	ptr += sizeof(PSnodes_ID_t);
-	memcpy(cpus,  ptr, sizeof(PSCPU_set_t));
-	ptr += sizeof(PSCPU_set_t);
+
+	PSCPU_clrAll(cpus);
+	PSCPU_inject(cpus, ptr, nBytes);
+	ptr += nBytes;
 
 	printf("%d/%s", node, PSCPU_print(cpus));
     }

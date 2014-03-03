@@ -164,7 +164,7 @@ static int ReadDigit(ComHandle_t *com, char *digit, size_t digitSize)
 	    break;
 	}
 
-	if (buf[0] >= 0 || buf[0] <= 9) {
+	if (buf[0] >= 48 && buf[0] <= 57) {
 	    if ((sscanf(buf, "%zu", &len)) != 1) {
 		if (buf[0] != '\0') {
 		    //mlog("%s: scanf for digit '%s'\n", __func__, buf);
@@ -180,7 +180,7 @@ static int ReadDigit(ComHandle_t *com, char *digit, size_t digitSize)
 	    if (n == '+' || n == '-') {
 		buf[0] = n;
 		buf[1] = '\0';
-	    } else if (n >= 0 || n <= 9) {
+	    } else if (n >= 48 && n <= 57) {
 		if ((ret = wReadT(com, digit, digitSize, len -1))<0) {
 		    return ret;
 		}
@@ -191,7 +191,10 @@ static int ReadDigit(ComHandle_t *com, char *digit, size_t digitSize)
 		return -1;
 	    }
 	} else {
-	    mlog("%s: invalid number '%c'\n", __func__, buf[0]);
+	    /* skip empty buffers */
+	    if (buf[0] == '\0' || buf[0] == '\n') return -1;
+
+	    mlog("%s: invalid number '%s' '%c'\n", __func__, buf, buf[0]);
 	    return -1;
 	}
     }
@@ -446,7 +449,7 @@ int WriteDataStruct(ComHandle_t *com, Data_Entry_t *data)
 
 int __ReadString(ComHandle_t *com, char *buf, size_t len, const char *caller)
 {
-    unsigned long size;
+    unsigned long size = 0;
     int ret;
 
     if ((ret = ReadDigitUL(com, &size)) < 0) {
@@ -482,6 +485,7 @@ char *__ReadStringEx(ComHandle_t *com, size_t *len, const char *func)
     ssize_t read;
     char *buf = NULL;
 
+    *len = 0;
     if ((ret = ReadDigitUL(com, (unsigned long *) len)) < 0) {
 	mlog("%s: reading string len for '%s' failed\n", __func__, func);
 	return NULL;

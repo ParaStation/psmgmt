@@ -21,6 +21,7 @@ static char vcid[] __attribute__((used)) =
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <errno.h>
 #include <sys/time.h>
 #include <readline/readline.h>
 
@@ -219,8 +220,8 @@ void outputMergeInit(void)
 	maxMergeDepth = atoi(envstr);
     }
 
-    clientOutBuf = umalloc ((sizeof(*clientOutBuf) * np), __func__);
-    clientTmpBuf = umalloc ((sizeof(*clientTmpBuf) * np), __func__);
+    clientOutBuf = umalloc((sizeof(*clientOutBuf) * np), __func__);
+    clientTmpBuf = umalloc((sizeof(*clientTmpBuf) * np), __func__);
 
     snprintf(npsize, sizeof(npsize), "[0-%i]", np-1);
     prelen = strlen(npsize);
@@ -498,12 +499,12 @@ static void outputSingleCMsg(int client, struct list_head *pos,
 			     struct list_head *saveBuf[np],
 			     int saveBufInd[np], int mcount)
 {
-    struct list_head *tmppos, *tmpother;
+    list_t *tmppos, *tmpother, *savepos, *saveother;
     OutputBuffers *nval, *oval;
     int i, lcount;
-    int savelocInd[mcount];
+    int savelocInd[mcount+1];
 
-    list_for_each(tmppos, &clientOutBuf[client].list) {
+    list_for_each_safe(tmppos, savepos, &clientOutBuf[client].list) {
 	lcount = 0;
 	if (tmppos == pos) break;
 
@@ -512,7 +513,7 @@ static void outputSingleCMsg(int client, struct list_head *pos,
 
 	for (i=0; i<=mcount; i++) {
 	    if (i == client) continue;
-	    list_for_each(tmpother, &clientOutBuf[i].list) {
+	    list_for_each_safe(tmpother, saveother, &clientOutBuf[i].list) {
 		if (tmpother == saveBuf[i]) break;
 
 		oval = list_entry(tmpother, OutputBuffers, list);
@@ -521,6 +522,7 @@ static void outputSingleCMsg(int client, struct list_head *pos,
 		    savelocInd[lcount] = i;
 		    lcount++;
 		    delCachedMsg(oval, tmpother);
+		    break;
 		}
 	    }
 	}
@@ -723,7 +725,6 @@ static void insertOutputBuffer(int sender, char *buf, size_t len, int outfd)
     if (!tmpLine) {
 	savep = strndup(buf, len);
     } else {
-	savep = strndup(buf, len);
 	int leninc = strlen(tmpLine);
 	savep = umalloc((len + leninc + 1), __func__);
 	strncpy(savep, tmpLine, leninc);
@@ -738,6 +739,29 @@ static void insertOutputBuffer(int sender, char *buf, size_t len, int outfd)
 	PSIlog_log(-1, "%s: invalid message to save\n", __func__);
 	return;
     }
+
+
+    /* Shall output lines be scanned for Valgrind PID patterns? */
+    if(useValgrind)
+    {
+	 /* Yes: replace every first occurrence of '==12345==' by '=========' */
+	 char *ptr1, *ptr2, *ptr3;
+
+	 ptr1 = strstr(savep, "==");
+	 if(ptr1) { 
+	      ptr2 = strstr(ptr1+2, "==");
+	      if(ptr2) {
+		   errno = 0;
+		   if( (strtol(ptr1+2, &ptr3, 10) != 0) && (ptr3 == ptr2) && (errno == 0) ) {		   
+			while(ptr1 != ptr2) {
+			     (*ptr1) = '=';
+			     ptr1++;
+			}
+		   }
+	      }
+	 }
+    }
+
 
     if (db)
 	PSIlog_log(-1, "string to global sender:%i outfd:%i savep:' %s'\n",
@@ -865,7 +889,7 @@ void cacheOutput(PSLog_Msg_t *msg, int outfd)
 
 void displayCachedOutput(int flush)
 {
-    struct list_head *pos;
+    list_t *pos, *tmp;
     OutputBuffers *val, *nval;
     int i, z, mcount = 0;
     struct list_head *saveBuf[np];
@@ -884,7 +908,7 @@ void displayCachedOutput(int flush)
     for (i=0; i<np; i++) {
 	if (list_empty(&clientOutBuf[i].list)) continue;
 
-	list_for_each(pos, &clientOutBuf[i].list) {
+	list_for_each_safe(pos, tmp, &clientOutBuf[i].list) {
 	    /* get element to compare */
 	    val = list_entry(pos, OutputBuffers, list);
 
@@ -917,7 +941,7 @@ void displayCachedOutput(int flush)
 
 		    /* remove already displayed msg from all other ranks */
 		    nval = list_entry(saveBuf[z], OutputBuffers, list);
-		    delCachedMsg(nval,saveBuf[z]);
+		    delCachedMsg(nval, saveBuf[z]);
 		}
 
 		if (mcount != np-1) {

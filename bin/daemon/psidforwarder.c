@@ -884,7 +884,10 @@ static int readFromChild(int fd, void *data)
 			  " (neither stdout (%d) nor stderr (%d))\n",
 			  tag, __func__, fd, stdoutSock, stderrSock);
 	/* At least, read this stuff and throw it away */
-	read(fd, buf, sizeof(buf));
+	if (read(fd, buf, sizeof(buf)) < 0) {
+	    PSIDfwd_printMsgf(STDERR, "%s: %s: read(%d) failed: %s",
+			      tag, __func__, fd,  strerror(errno));
+	}
 	close(fd);
 	Selector_remove(fd);
 	return 0;
@@ -1473,10 +1476,10 @@ void PSID_forwarder(PStask_t *task, int daemonfd, int eno)
     PSIDhook_call(PSIDHOOK_FRWRD_INIT, childTask);
 
     /* set the process title */
-    snprintf(pTitle, sizeof(pTitle), "psidforwarder TID[%d:%d] R%d",
+    snprintf(pTitle, sizeof(pTitle), "psidfw TID[%d:%d] R%d",
 		PSC_getID(childTask->loggertid),
 		PSC_getPID(childTask->loggertid), childTask->rank);
-    PSC_setProcTitle((char **)PSID_argv, PSID_argc, pTitle, 0);
+    PSC_setProcTitle((char **)PSID_argv, PSID_argc, pTitle, 1);
 
     /* call the loop which does all the work */
     loop();

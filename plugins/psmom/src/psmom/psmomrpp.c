@@ -28,6 +28,7 @@
 #include "psmomproto.h"
 #include "psmompbsserver.h"
 #include "psmom.h"
+#include "psmomauth.h"
 
 #include "pbsdef.h"
 #include "selector.h"
@@ -51,7 +52,15 @@ int rppPoll()
 	    mlog("%s: com handle not found for stream '%i'\n", __func__,
 		    stream);
 	} else {
-	    handleNewData(com);
+	    if (com->isAuth) {
+		handleNewData(com);
+	    } else if (!(isAuthIP(com->lremoteAddr))
+			    || com->remotePort > IPPORT_RESERVED) {
+		mlog("%s: not authorized remote addr or port for stream '%i'\n",
+		    __func__, stream);
+	    } else {
+		handleNewData(com);
+	    }
 	}
     }
 
@@ -157,6 +166,7 @@ int rppOpen(int port, char *host)
 {
     int stream = -1;
     char buf[1024];
+    ComHandle_t *com;
 
     if (!port || !host) return -1;
 
@@ -169,6 +179,7 @@ int rppOpen(int port, char *host)
     if (!Selector_isRegistered(rpp_getfd(stream))) {
 	Selector_register(rpp_getfd(stream), rppPoll, NULL);
     }
+    if ((com = getComHandle(stream, RPP_PROTOCOL))) com->isAuth = 1;
 
     mdbg(PSMOM_LOG_RPP, "%s: Connected to %s, port:%i\n", __func__, host, port);
 

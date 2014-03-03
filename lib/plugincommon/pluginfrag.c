@@ -45,12 +45,12 @@ int __recvFragMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_func_t *func,
     int cleanup = 0;
 
     if (!msg) {
-	mlog("%s(%s): invalid msg\n", __func__, caller);
+	pluginlog("%s(%s): invalid msg\n", __func__, caller);
 	return 0;
     }
 
     if (!func) {
-	mlog("%s(%s): invalid callback function\n", __func__, caller);
+	pluginlog("%s(%s): invalid callback function\n", __func__, caller);
 	return 0;
     }
 
@@ -62,20 +62,20 @@ int __recvFragMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_func_t *func,
 
     /* do some sanity checks */
     if (msgCount != rhead->msgNum) {
-	mlog("%s(%s): mismatching msg count, last '%i' new '%i'\n", __func__,
-		caller, msgCount, rhead->msgNum);
+	pluginlog("%s(%s): mismatching msg count, last '%i' new '%i'\n",
+		    __func__, caller, msgCount, rhead->msgNum);
 	cleanup = 1;
     }
     msgCount++;
 
     if (fhead) {
 	if (fhead->uID != rhead->uID) {
-	    mlog("%s(%s): mismatching uniq ID, last '%i' new '%i'\n", __func__,
-		    caller, fhead->uID, rhead->uID);
+	    pluginlog("%s(%s): mismatching uniq ID, last '%i' new '%i'\n",
+			__func__, caller, fhead->uID, rhead->uID);
 	    cleanup = 1;
 	}
 	if (fhead->totalSize != rhead->totalSize) {
-	    mlog("%s(%s): mismatching data size, last '%i' new '%i' \n",
+	    pluginlog("%s(%s): mismatching data size, last '%i' new '%i' \n",
 		    __func__, caller, fhead->totalSize, rhead->totalSize);
 	    cleanup = 1;
 	}
@@ -92,7 +92,7 @@ int __recvFragMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_func_t *func,
     }
 
     if (!data && rhead->msgNum != 0) {
-	mlog("%s(%s): invalid msg number '%i', dropping msg\n", __func__,
+	pluginlog("%s(%s): invalid msg number '%i', dropping msg\n", __func__,
 		caller, rhead->msgNum);
 	return 0;
     }
@@ -108,13 +108,13 @@ int __recvFragMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_func_t *func,
 		sizeof(PS_Frag_Msg_Header_t) - 1;
 
     if (toCopy > dataLeft) {
-	mlog("%s(%s): buffer too small, toCopy '%i' dataLeft '%i'\n",
+	pluginlog("%s(%s): buffer too small, toCopy '%i' dataLeft '%i'\n",
 		__func__, caller, toCopy, dataLeft);
 	return 0;
     }
 
     /*
-    mlog("%s: toCopy:%i dataLeft:%i rhead->msgNum:%i\n", __func__, toCopy,
+    pluginlog("%s: toCopy:%i dataLeft:%i rhead->msgNum:%i\n", __func__, toCopy,
     	    dataLeft, rhead->msgNum);
     */
     memcpy(dataPtr, ptr, toCopy);
@@ -159,7 +159,7 @@ void __sendFragMsg(PS_DataBuffer_t *data, PStask_ID_t dest, int16_t headType,
     struct timespec tp;
 
     if (!data) {
-	mlog("%s(%s): invalid data buffer\n", __func__, caller);
+	pluginlog("%s(%s): invalid data buffer\n", __func__, caller);
 	return;
     }
 
@@ -207,7 +207,7 @@ void __sendFragMsg(PS_DataBuffer_t *data, PStask_ID_t dest, int16_t headType,
 	dataLeft -= toCopy;
 
 	/*
-	mlog("%s: sending message: bufSize:%i origBufSize:%lu dataLen: %i "
+	pluginlog("%s: sending message: bufSize:%i origBufSize:%lu dataLen: %i "
 		"dataLeft: %i\n", __func__, bufSize, BufTypedMsgSize, toCopy,
 		dataLeft);
 	*/

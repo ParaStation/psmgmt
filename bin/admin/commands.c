@@ -1180,6 +1180,41 @@ static int getMasterProtocolVersion(int daemonProto)
     return protoVersion;
 }
 
+void PSIADM_InstdirStat(char *nl)
+{
+    PSnodes_ID_t node;
+    char instDir[1500];
+    size_t instDirWidth = PSC_getWidth()-8;
+
+    if (! getHostStatus()) return;
+
+    printf("%4s\t%s\n", "Node", "Installation directory");
+    for (node=0; node<PSC_getNrOfNodes(); node++) {
+	if (nl && !nl[node]) continue;
+	printf("%s\t", nodeString(node));
+	if (hostStatus.list[node]) {
+	    int err = PSI_infoString(node, PSP_INFO_INSTDIR, NULL, instDir,
+				     sizeof(instDir), 1);
+	    if (!err) {
+		size_t len = strlen(instDir);
+		if (len) {
+		    if (len <= instDirWidth) {
+			printf("%s\n", instDir);
+		    } else {
+			printf("...%s\n", instDir+len-(instDirWidth-3));
+		    }
+		} else {
+		    printf("<none>\n");
+		}
+	    } else {
+		printf("\n");
+	    }
+	} else {
+	    printf("down\n");
+	}
+    }
+}
+
 void PSIADM_JobStat(PStask_ID_t task, PSpart_list_t opt)
 {
     PSP_Info_t what = PSP_INFO_QUEUE_PARTITION;
@@ -1215,8 +1250,9 @@ void PSIADM_JobStat(PStask_ID_t task, PSpart_list_t opt)
     req = PSpart_newReq();
 
     while ((recvd=PSI_infoQueueNext(what, buf, sizeof(buf), 1)) > 0) {
-	static PSpart_slot_t *slotBuf = NULL;
-	static size_t slotBufSize = 0;
+	static PSpart_slot_t *slots = NULL;
+	static char *slotBuf = NULL;
+	static size_t slotsSize = 0, slotBufSize = 0;
 
 	PStask_ID_t tid;
 	PSpart_list_t flags;
@@ -1239,35 +1275,47 @@ void PSIADM_JobStat(PStask_ID_t task, PSpart_list_t opt)
 
 	if (req->num) {
 	    size_t itemSize;
-	    if (masterPSPversion < 334) {
-		itemSize = sizeof(PSnodes_ID_t);
-	    } else if (masterDaemonPSPversion < 401) {
-		itemSize = sizeof(PSpart_oldSlot_t);
-	    } else {
-		itemSize = sizeof(PSpart_slot_t);
-	    }
 
-	    if (req->num * sizeof(*slotBuf) > slotBufSize) {
-		slotBufSize = 2 * req->num * sizeof(*slotBuf);
+	    if (req->num * sizeof(PSpart_slot_t) > slotBufSize) {
+		slotBufSize = 2 * req->num * sizeof(PSpart_slot_t);
 		slotBuf = realloc(slotBuf, slotBufSize);
 	    }
+	    if (req->num * sizeof(*slots) > slotsSize) {
+		slotsSize = 2 * req->num * sizeof(*slots);
+		slots = realloc(slots, slotsSize);
+	    }
 
-	    if (!slotBuf) {
+	    if (!slotBuf || !slots) {
 		printf("No memory\n");
 		break;
 	    }
 
 	    recvd=PSI_infoQueueNext(what, slotBuf, slotBufSize, 1);
 
+	    if (masterPSPversion < 334) {
+		itemSize = sizeof(PSnodes_ID_t);
+	    } else if (masterDaemonPSPversion < 401) {
+		itemSize = sizeof(PSpart_oldSlot_t);
+	    } else {
+		itemSize = sizeof(PSnodes_ID_t);
+		if (masterDaemonPSPversion < 408) {
+		    itemSize += PSCPU_bytesForCPUs(32);
+		} else {
+		    itemSize += *(uint16_t *)slotBuf;
+		    recvd -= sizeof(uint16_t);
+		}
+	    }
+
 	    if ((unsigned int)recvd != req->num * itemSize) {
-		printf("Message lost\n");
+		printf("Message lost. Suppress node-list\n");
+		req->num = 0;
 	    }
 	}
 
 	if (!task || rootTID == tid) {
 	    if (!found) {
 		printf("%22s %5s %5s %5s %5s %-*s\n",
-		       "RootTaskId", "State", "Size", "UID ", "GID ",
+		       "RootTaskId", "State", "Size", " UID", " GID",
 		       width-47, req->num ? "Target Slots" : "Starttime");
 	    }
 
@@ -1285,7 +1333,27 @@ void PSIADM_JobStat(PStask_ID_t task, PSpart_list_t opt)
 		    printOldSlots(req->num, (PSpart_oldSlot_t *) slotBuf,
 				  width-47, 47);
 		} else {
-		    printSlots(req->num, slotBuf, width-47, 47);
+		    size_t nBytes, myBytes = PSCPU_bytesForCPUs(PSCPU_MAX);
+		    char *ptr = slotBuf;
+		    int n;
+		    if (masterDaemonPSPversion < 408) {
+			nBytes = PSCPU_bytesForCPUs(32);
+		    } else {
+			nBytes = *(uint16_t *)ptr;
+			ptr +=  sizeof(uint16_t);
+		    }
+		    if (nBytes > myBytes) {
+			printf("warning: slots might be truncated");
+		    }
+		    for (n = 0; n < req->num; n++) {
+			slots[n].node = *(PSnodes_ID_t *)ptr;
+			ptr += sizeof(PSnodes_ID_t);
+
+			PSCPU_clrAll(slots[n].CPUset);
+			PSCPU_inject(slots[n].CPUset, ptr, nBytes);
+			ptr += nBytes;
+		    }
+		    printSlots(req->num, slots, width-47, 47);
 		}
 		printf("\n");
 	    } else if (masterDaemonPSPversion < 407) {

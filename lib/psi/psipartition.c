@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2013 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2014 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -955,6 +955,26 @@ static int getDaemonProtocolVersion(void)
     return protoVersion;
 }
 
+int PSI_resolveHWList(char **hwList, uint32_t *hwType)
+{
+    int ret = 0;
+
+    *hwType = 0;
+
+    while (hwList && *hwList) {
+	int err, idx;
+	err = PSI_infoInt(-1, PSP_INFO_HWINDEX, *hwList, &idx, 0);
+	if (!err && (idx >= 0) && (idx < ((int)sizeof(*hwType) * 8))) {
+	    *hwType |= 1 << idx;
+	} else {
+	    ret = -1;
+	}
+	hwList++;
+    }
+
+    return ret;
+}
+
 int PSI_createPartition(unsigned int size, uint32_t hwType)
 {
     DDBufferMsg_t msg = (DDBufferMsg_t) {
@@ -1084,7 +1104,7 @@ end:
     return ret;
 }
 
-int PSI_getNodes(unsigned int num, PSnodes_ID_t *nodes)
+int PSI_getNodes(unsigned int num, uint32_t hwType, PSnodes_ID_t *nodes)
 {
     DDBufferMsg_t msg = (DDBufferMsg_t) {
 	.header = (DDMsg_t) {
@@ -1103,7 +1123,14 @@ int PSI_getNodes(unsigned int num, PSnodes_ID_t *nodes)
     }
 
     *(uint32_t*)ptr = num;
+    // ptr += sizeof(uint32_t); @todo
     msg.header.len += sizeof(uint32_t);
+
+    // ignore this for the time being @todo
+    /* /\* hwtype *\/ */
+    /* *(uint32_t*)ptr = hwType; */
+    /* //ptr += sizeof(int32_t); */
+    /* msg.header.len += sizeof(uint32_t); */
 
     if (PSI_sendMsg(&msg)<0) {
 	PSI_warn(-1, errno, "%s: PSI_sendMsg", __func__);

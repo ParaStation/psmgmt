@@ -25,10 +25,9 @@
 
 #include "psresportlog.h"
 #include "psresportconfig.h"
+#include "pluginlog.h"
 
 #include "psresport.h"
-
-#define MALLOC_SIZE 512
 
 #define RESPORT_CONFIG "psresport.conf"
 
@@ -95,40 +94,6 @@ static void initNodeBitField()
 	    nodeBitField[i] = NULL;
 	}
     }
-}
-
-/**
- * @brief Save a string into a buffer and let it dynamically grow if needed.
- *
- * @param strSave The string to write to the buffer.
- *
- * @param buffer The buffer to write the string to.
- *
- * @param bufSize The current size of the buffer.
- *
- * @return Returns a pointer to the buffer.
- */
-static char *str2Buf(char *strSave, char *buffer, size_t *bufSize)
-{
-    size_t lenSave, lenBuf;
-
-    if (!buffer) {
-        buffer = umalloc(MALLOC_SIZE);
-        *bufSize = MALLOC_SIZE;
-        buffer[0] = '\0';
-    }
-
-    lenSave = strlen(strSave);
-    lenBuf = strlen(buffer);
-
-    while (lenBuf + lenSave + 1 > *bufSize) {
-        buffer = urealloc(buffer, *bufSize + MALLOC_SIZE);
-        *bufSize += MALLOC_SIZE;
-    }
-
-    strcat(buffer, strSave);
-
-    return buffer;
 }
 
 /**
@@ -623,7 +588,8 @@ int initialize(void)
     char *ports;
     char configfn[200];
 
-    initLogger(0);
+    initLogger(NULL);
+    initPluginLogger(NULL);
 
     /* init the config facility */
     snprintf(configfn, sizeof(configfn), "%s/%s", PLUGINDIR, RESPORT_CONFIG);

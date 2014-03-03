@@ -27,6 +27,7 @@
 #include "pmispawn.h"
 #include "pmiclient.h"
 #include "pmiservice.h"
+#include "pmikvs.h"
 
 #include "pmimain.h"
 
@@ -78,4 +79,6 @@ void stopPMI()
     PSIDhook_del(PSIDHOOK_FRWRD_SPAWNRES, handleSpawnRes);
     PSIDhook_del(PSIDHOOK_FRWRD_CLIENT_STAT, getClientStatus);
     PSIDhook_del(PSIDHOOK_FRWRD_CC_ERROR, handleCCError);
+
+    if (memoryDebug) fclose(memoryDebug);
 }

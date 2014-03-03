@@ -23,11 +23,14 @@
 /** structure for syslog */
 extern logger_t *pluginlogger;
 
-#define mlog(...) if (pluginlogger) logger_print(pluginlogger, -1, __VA_ARGS__)
-#define mwarn(...) if (pluginlogger) logger_warn(pluginlogger, -1, __VA_ARGS__)
-#define mdbg(...) if (pluginlogger) logger_print(pluginlogger, __VA_ARGS__)
+#define pluginlog(...) if (pluginlogger) \
+	    logger_print(pluginlogger, -1, __VA_ARGS__)
+#define pluginwarn(...) if (pluginlogger) \
+	    logger_warn(pluginlogger, -1, __VA_ARGS__)
+#define plugindbg(...) if (pluginlogger) \
+	    logger_print(pluginlogger, __VA_ARGS__)
 
-void initPluginLogger(char *name, FILE *logfile);
+void initPluginLogger(FILE *logfile);
 int isPluginLoggerInitialized();
 void maskPluginLogger(int32_t mask);
 int32_t getPluginLoggerMask();

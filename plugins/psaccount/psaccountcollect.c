@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2012 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2013 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -67,10 +67,16 @@ void updateAccountData(Client_t *client)
 	accData->pgroup = proc->pgroup;
     }
 
-    /* get mem and vmem for all children  */
-    procChilds = getAllClientChildsMem(client->pid);
+    /* get infos for all children  */
+    procChilds = getAllChildrenData(client->pid);
+
     rssnew = proc->mem + procChilds->mem;
     vsizenew = proc->vmem + procChilds->vmem;
+
+    /* save cutime and cstime in seconds */
+    cutime = (proc->cutime + procChilds->cutime) / clockTicks;
+    cstime = (proc->cstime + procChilds->cstime) / clockTicks;
+
     ufree(procChilds);
 
     /* set rss (resident set size) */
@@ -84,14 +90,13 @@ void updateAccountData(Client_t *client)
     accData->avgVsizeCount++;
 
     /* set max threads */
-    if (proc->threads > accData->maxThreads) accData->maxThreads = proc->threads;
+    if (proc->threads > accData->maxThreads) {
+	accData->maxThreads = proc->threads;
+    }
     accData->avgThreads += proc->threads;
     accData->avgThreadsCount++;
 
-    /* set cutime and cstime in seconds */
-    cutime = proc->cutime / clockTicks;
-    cstime = proc->cstime / clockTicks;
-
+    /* set cutime and cstime */
     if (cutime > accData->cutime) accData->cutime = cutime;
     if (cstime > accData->cstime) accData->cstime = cstime;
 

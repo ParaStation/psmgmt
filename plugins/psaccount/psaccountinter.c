@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2012 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2013 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -152,7 +152,7 @@ static void handleAccountUpdate(DDTypedBufferMsg_t *msg)
 
     /* threads */
     threads = *(uint64_t *) ptr;
-    ptr += sizeof(uint64_t);
+    //ptr += sizeof(uint64_t);
     if (threads > accData->maxThreads) accData->maxThreads = threads;
     accData->avgThreads += threads;
     accData->avgThreadsCount++;
@@ -236,7 +236,7 @@ void sendAccountUpdate(Client_t *client)
 
     /* threads */
     *(uint64_t *) ptr = client->data.maxThreads;
-    ptr += sizeof(uint64_t);
+    // ptr += sizeof(uint64_t);
     msg.header.len += sizeof(uint64_t);
 
     mdbg(LOG_UPDATE_MSG, "%s: sending account update for '%s' maxRss '%zu'"
@@ -273,7 +273,7 @@ void forwardAccountMsg(DDTypedBufferMsg_t *msg, int type, PStask_ID_t logger)
 	ptr += sizeof(gid_t);
 
 	*( PStask_ID_t *)ptr = msg->header.sender;
-	ptr += sizeof(PStask_ID_t);
+	//ptr += sizeof(PStask_ID_t);
 	fmsg->header.len += sizeof(PStask_ID_t);
     }
 

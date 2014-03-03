@@ -647,6 +647,26 @@ static int listHWCommand(char *token)
     return -1;
 }
 
+static int listInstdirCommand(char *token)
+{
+    char *nl_descr = parser_getString();
+    char *nl = defaultNL;
+
+    if (parser_getString()) goto error;
+
+    if (nl_descr) {
+	nl = getNodeList(nl_descr);
+	if (!nl) return -1;
+    }
+
+    PSIADM_InstdirStat(nl);
+    return 0;
+
+ error:
+    printError(&listInfo);
+    return -1;
+}
+
 static int listJobsCommand(char *token)
 {
     char *tid_descr = parser_getString();
@@ -741,6 +761,7 @@ static keylist_t listList[] = {
     {"down", listSomeCommand, NULL},
     {"hardware", listHWCommand, NULL},
     {"hw", listHWCommand, NULL},
+    {"installdir", listInstdirCommand, NULL},
     {"jobs", listJobsCommand, NULL},
     {"load", listLoadCommand, NULL},
     {"mcast", listMCastCommand, NULL},

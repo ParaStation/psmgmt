@@ -122,13 +122,13 @@ int setEntry(struct list_head *list, char *name, char *resource, char *value)
     } else {
 	if (value && dat->value && !(strcmp(value, dat->value))) return 1;
 
-	if ((strlen(value)) == 0) {
+	if (!value || (strlen(value)) == 0) {
 	    ufree(dat->value);
 	    dat->value = NULL;
 	    return 1;
 	}
 
-	if (dat->value == NULL) {
+	if (!dat->value) {
 	    dat->value = ustrdup(value);
 	    return 1;
 	}

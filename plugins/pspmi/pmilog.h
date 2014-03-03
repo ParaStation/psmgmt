@@ -22,6 +22,7 @@
 #include "psidforwarder.h"
 
 extern logger_t *pmilogger;
+extern FILE *pmilogfile;
 
 #define mlog(...) if (pmilogger) logger_print(pmilogger, -1, __VA_ARGS__)
 #define mwarn(...) if (pmilogger) logger_warn(pmilogger, -1, __VA_ARGS__)

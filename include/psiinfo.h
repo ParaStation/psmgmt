@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2011 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2013 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -465,27 +465,27 @@ int PSI_infoList(PSnodes_ID_t node, PSP_Info_t what, const void *param,
  * PSP_taskInfo_t structures. No further parameters needed.
  *
  * - PSP_INFO_QUEUE_PARTITION requests a list of all partitions
- *   (associated to actual jobs). The request will be automatically
- *   forwarded to the current master daemon, the @a node parameter will
- *   be ignored. As an answer for each partition a message containing
- *   the following information is provided:
+ * (associated to actual jobs). The request will be automatically
+ * forwarded to the current master daemon, the @a node parameter will
+ * be ignored. As an answer for each partition a message containing
+ * the following information is provided:
  *   - The task ID of the partition's root process.
  *   - A flag field of type @ref PSpart_list_t marking the partition as
  *     pending, running or suspended.
  *   - The encoded request to be decoded vi @ref PSpart_decodeReq().
- *   .
- *   This one is followed by one or more messages providing the actual
- *   nodes building the partition if requested. The parameter is of
- *   type @ref PSpart_list_t. Here only special types of partitions
- *   (pending, running or suspended) might requested. Furthermore it
- *   can be flaged of the list of scheduled nodes should be provided.
+ * This one is followed by one or more messages providing the actual
+ * nodes building the partition if requested.
+ * The parameter is of type @ref PSpart_list_t. Here only special
+ * types of partitions (pending, running or suspended) might
+ * requested. Furthermore it can be flaged of the list of scheduled
+ * nodes should be provided.
  *
  * - PSP_INFO_QUEUE_PLUGINS requests a list of all plugins currently
- *   loaded on the designated node @a node. All information about a
- *   single plugin (i.e. name, version, and triggering plugins) is
- *   given back in a character string. The size is limited by the
- *   underlying communication protocol, i.e. the size of
- *   PSP_BufferMsg_t's buffer. No further parameters needed.
+ * loaded on the designated node @a node. All information about a
+ * single plugin (i.e. name, version, and triggering plugins) is given
+ * back in a character string. The size is limited by the underlying
+ * communication protocol, i.e. the size of PSP_BufferMsg_t's
+ * buffer. No further parameters needed.
  *
  * @param node The ParaStation ID of the node to ask.
  *
@@ -525,21 +525,23 @@ int PSI_infoQueueReq(PSnodes_ID_t node, PSP_Info_t what, const void *param);
  * logger, forwared etc. processes.
  *
  * - PSP_INFO_QUEUE_PARTITION requests a list of all partitions
- *   (associated to actual jobs). The request will be automatically
- *   forwarded to the current master daemon, the @a node parameter will
- *   be ignored. As an answer for each partition a message containing
- *   the following information is provided:
+ * (associated to actual jobs). The request will be automatically
+ * forwarded to the current master daemon, the @a node parameter will
+ * be ignored. As an answer for each partition a message containing
+ * the following information is provided:
  *   - The task ID of the partition's root process.
  *   - A flag field of type @ref PSpart_list_t marking the partition as
  *     pending, running or suspended.
  *   - The encoded request to be decoded vi @ref PSpart_decodeReq().
- *   .
- *   This one is followed by one or more messages providing the actual
- *   nodes building the partition if requested. The parameter is of
- *   type @ref PSpart_list_t. Here only special types of partitions
- *   (pending, running or suspended) might requested. Furthermore it
- *   can be flaged of the list of scheduled nodes should be provided.
+ * This one is followed by one or more messages providing the actual
+ * nodes building the partition if requested.
  *
+ * - PSP_INFO_QUEUE_PLUGINS requests a list of all plugins currently
+ * loaded on the designated node @a node. All information about a
+ * single plugin (i.e. name, version, and triggering plugins) is given
+ * back in a character string. The size is limited by the underlying
+ * communication protocol, i.e. the size of PSP_BufferMsg_t's
+ * buffer.
  *
  * @param what The type of information to request as described above.
  *

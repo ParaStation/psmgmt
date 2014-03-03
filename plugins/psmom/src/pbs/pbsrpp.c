@@ -1187,7 +1187,9 @@ rpp_create_sp(void)
     }
   else
     {
-    memset((void *)sp, '\0', sizeof(struct stream));
+      if ((void*) sp) {
+        memset((void *)sp, '\0', sizeof(struct stream));
+      }
     }
 
   LOCAL_DBPRT((DBTO, "rpp_create_sp: new index %d\n",

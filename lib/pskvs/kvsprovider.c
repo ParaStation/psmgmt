@@ -1028,6 +1028,7 @@ static int handlePSIMessage(int fd, void *data)
     PSLog_Msg_t msg;
     DDSignalMsg_t *sigMsg = (DDSignalMsg_t *)&msg;
     int ret;
+    PMI_Clients_t *client;
 
     ret = PSI_recvMsg((DDMsg_t *)&msg, sizeof(msg));
 
@@ -1063,10 +1064,10 @@ static int handlePSIMessage(int fd, void *data)
 		/* logger died, nothing left for me to do here */
 		exit(0);
 	    }
-	    if ((findClient(&msg, 0))) {
-		if (verbose) {
-		    mlog("%s: client '%s' already gone\n", __func__,
-			PSC_printTID(msg.header.sender));
+	    if ((client = findClient(&msg, 0))) {
+		if (!(client->flags & PMI_CLIENT_GONE)) {
+		    mdbg(KVS_LOG_VERBOSE, "%s: client '%s' already gone\n",
+			    __func__, PSC_printTID(msg.header.sender));
 		}
 	    } else {
 		mlog("%s: got CC_ERROR from unknown source '%s'\n", __func__,

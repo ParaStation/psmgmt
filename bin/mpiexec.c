@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2007-2013 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2007-2014 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -52,6 +52,10 @@ static char vcid[] __attribute__((used)) =
 #define GDB_COMMAND_OPT "-x"
 #define GDB_COMMAND_SILENT "-q"
 #define GDB_COMMAND_ARGS "--args"
+#define VALGRIND_COMMAND_EXE "valgrind"
+#define VALGRIND_COMMAND_SILENT "--quiet"
+#define VALGRIND_COMMAND_MEMCHECK "--leak-check=full"
+#define VALGRIND_COMMAND_CALLGRIND "--tool=callgrind"
 #define MPI1_NP_OPT "-np"
 
 /** Space for error messages */
@@ -69,6 +73,10 @@ int admin = 0;
 int gdb = 0;
 /** don't call gdb with --args option */
 int gdb_noargs = 0;
+/** run child processes on synthetic CPUs provided by the Valgrind core (memcheck tool) */
+int valgrind = 0;
+/** profile child processes on synthetic CPUs provided by the Valgrind core (callgrind tool) */
+int callgrind = 0;
 /** just print output, don't run anything */
 int show = 0;
 /** flag to set verbose mode */
@@ -119,6 +127,7 @@ char *nodelist = NULL;
 char *hostlist = NULL;
 char *hostfile = NULL;
 char *envlist = NULL;
+char *nodetype = NULL;
 /** Accumulated list of envirenments to get exported */
 char *accenvlist = NULL;
 char *envopt = NULL;
@@ -359,6 +368,7 @@ static void getFirstNodeID(PSnodes_ID_t *nodeID)
     } else {
 	node = strtol(nodeparse, &end, 10);
 	if (nodeparse == end || *end) {
+	    free(parse);
 	    return;
 	}
 	if (node < 0 || node >= PSC_getNrOfNodes()) {
@@ -532,6 +542,34 @@ static void startKVSProvider(int argc, char *argv[], char **envp)
     exit(0);
 }
 
+static uint32_t getNodeType(char *hardwareList)
+{
+    char *next, *toksave, **hwList = NULL;
+    const char delimiters[] =", \n";
+    int count = 0;
+    uint32_t hwType = 0;
+
+    if (verbose) {
+	printf("setting node type to '%s'\n", hardwareList);
+    }
+    next = strtok_r(hardwareList, delimiters, &toksave);
+
+    while (next) {
+	count++;
+	hwList = urealloc(hwList, (count +1) * sizeof(hwList), __func__);
+	hwList[count -1] = strdup(next);
+	next = strtok_r(NULL, delimiters, &toksave);
+    }
+    hwList[count] = NULL;
+
+    if ((PSI_resolveHWList(hwList, &hwType) == -1)) {
+	fprintf(stderr, "getting hardware type '%s' failed.\n", hardwareList);
+	exit(1);
+    }
+
+    return hwType;
+}
+
 /**
  * @brief Create service process that spawns all other processes and
  * switch to logger.
@@ -558,8 +596,9 @@ static void createSpawner(int argc, char *argv[], int np, int admin)
 	    PSI_infoList(-1, PSP_INFO_LIST_PARTITION, NULL,
 			 nodeList, pSize*sizeof(*nodeList), 0);
 	    startNode = (getenv("__MPIEXEC_DIST_START") ?
-			    getNodeIDbyIndex(np, 1) : nodeList[0]);
-	    setPSIEnv("__MPIEXEC_DIST_START", getenv("__MPIEXEC_DIST_START"), 1);
+			    getNodeIDbyIndex(np, 1) : PSC_getMyID());
+	    setPSIEnv("__MPIEXEC_DIST_START",
+		      getenv("__MPIEXEC_DIST_START"), 1);
 	} else {
 	    getFirstNodeID(&startNode);
 	}
@@ -1002,6 +1041,11 @@ static void setupCommonEnv(int np)
 	    fprintf(stderr, "failed building MVAPICH process mapping\n");
 	}
 
+	/* MPI processes should use PMI version 1 as long as we don't have
+	 * support for PMI version 2 */
+	setPSIEnv("PMI_VERSION", "1", 1);
+	setPSIEnv("PMI_SUBVERSION", "1", 1);
+
 	/* propagate neccessary infos for PMI spawn */
 	if ((env = getenv("__PMI_preput_num"))) {
 	    int i, prenum;
@@ -1026,6 +1070,7 @@ static void setupCommonEnv(int np)
 	setPSIEnv("PMI_SPAWNED", getenv("PMI_SPAWNED"), 1);
 	setPSIEnv("PMI_BARRIER_TMOUT", getenv("PMI_BARRIER_TMOUT"), 1);
 	setPSIEnv("PMI_BARRIER_ROUNDS", getenv("PMI_BARRIER_ROUNDS"), 1);
+	setPSIEnv("__MPIEXEC_DIST_START", getenv("__MPIEXEC_DIST_START"), 1);
     }
 
     /* set the size of the job */
@@ -1246,7 +1291,9 @@ static void extractNodeInformation(PSnodes_ID_t *nodeList, int np)
 static int startProcs(int np, char *wd, int argc, char *argv[], int verbose)
 {
     int i, ret, *errors = NULL, pSize;
+    char *hostname = NULL;
     PStask_ID_t *tids;
+    uint32_t nodeType = 0;
 
     /* request the complete nodelist from master */
     if (!nodeList) {
@@ -1260,14 +1307,18 @@ static int startProcs(int np, char *wd, int argc, char *argv[], int verbose)
     /* extract additional node informations (e.g. uniq nodes) */
     extractNodeInformation(nodeList, np);
 
-    /* get the hostnames for the uniq nodes */
-    getUniqHosts(jobLocalUniqNodeIDs, numUniqNodes);
+    if (OpenMPI) {
+	/* get uniq hostnames from the uniq nodes list */
+	getUniqHosts(jobLocalUniqNodeIDs, numUniqNodes);
 
-    if (ompidebug) {
-	for (i=0; i< np; i++) {
-	    fprintf(stderr, "%s: rank '%i' opmi-nodeID '%i' ps-nodeID '%i'"
-		    " node '%s'\n", __func__, i, jobLocalNodeIDs[i],
-		    nodeList[i], getHostbyNodeID(&nodeList[i]));
+	if (ompidebug) {
+	    for (i=0; i< np; i++) {
+		hostname = getHostbyNodeID(&nodeList[i]);
+		fprintf(stderr, "%s: rank '%i' opmi-nodeID '%i' ps-nodeID '%i'"
+			" node '%s'\n", __func__, i, jobLocalNodeIDs[i],
+			nodeList[i], hostname);
+		free(hostname);
+	    }
 	}
     }
     free(nodeList);
@@ -1281,10 +1332,12 @@ static int startProcs(int np, char *wd, int argc, char *argv[], int verbose)
     if (mpichcom) np = 1;
 
     errors = umalloc(sizeof(int) * np, __func__);
+    for (i=0; i<np; i++) errors[i] = 0;
     tids = umalloc(sizeof(PStask_ID_t) * np, __func__);
 
     /* spawn client processes */
-    ret = PSI_spawnStrict(np, wd, argc, argv, 1, errors, tids);
+    if (nodetype) nodeType = getNodeType(nodetype);
+    ret = PSI_spawnStrictHW(np, nodeType, wd, argc, argv, 1, errors, tids);
 
     /* Analyze result, if necessary */
     if (ret<0) {
@@ -1541,6 +1594,15 @@ static void setupPSIDEnv(int verbose)
 	    "the processes\n");
     }
 
+    if (valgrind) {
+	setenv("PSI_USE_VALGRIND", "1", 1);
+	if (verbose) {
+	     printf("PSI_USE_VALGRIND=1 : Running on Valgrind core(s)\n");
+	     if (!mergeout && !callgrind)
+		  printf("(You can use '-merge' for merging output of all Valgrind cores)\n");	  
+	}
+    }
+
     if (timestamp) {
 	setenv("PSI_TIMESTAMPS", "1", 1);
 	if (verbose) printf("PSI_TIMESTAMPS=1 : Printing detailed "
@@ -1572,6 +1634,7 @@ static void setupPSIDEnv(int verbose)
 
     if (overbook) {
 	setenv("PSI_OVERBOOK", "1", 1);
+	setenv("PSP_SCHED_YIELD", "1", 1);
 	if (verbose) printf("PSI_OVERBOOK=1 : Allowing overbooking.\n");
     }
 
@@ -1690,6 +1753,11 @@ static void setupPSIDEnv(int verbose)
     /* forward verbosity */
     if ((envstr = getenv("MPIEXEC_VERBOSE")) || verbose) {
 	setPSIEnv("MPIEXEC_VERBOSE", "1", 1);
+    }
+
+    if ((envstr = getenv("PSI_NODE_TYPE"))) {
+	nodetype = strdup(envstr);
+	setPSIEnv("PSI_NODE_TYPE", envstr, 1);
     }
 }
 
@@ -1846,6 +1914,7 @@ static void  parseHostfile(char *filename, char *hosts, int size)
 	    host = strtok_r(NULL, delimiters, &work);
 	}
     }
+    fclose(fp);
 }
 
 /**
@@ -2136,6 +2205,14 @@ static void checkSanity(char *argv[])
 	}
     }
 
+    if (callgrind) {
+	 valgrind = 1;
+    }
+
+    if (gdb && valgrind) {
+	    errExit("Don't use GDB and Valgrind together");
+    }
+
     if (getenv("MPIEXEC_BNR")) {
 	mpichcom = 1;
     }
@@ -2253,6 +2330,15 @@ struct poptOption poptMpiexecComp[] = {
     { "gdb", '\0',
       POPT_ARG_NONE | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
       &gdb, 0, "debug processes with gdb", NULL},
+    { "valgrind", '\0',
+      POPT_ARG_NONE | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+      &valgrind, 0, "debug processes with Valgrind (memcheck tool)", NULL},
+    { "memcheck", '\0',
+      POPT_ARG_NONE | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+      &valgrind, 0, "debug processes with Valgrind (memcheck tool)", NULL},
+    { "callgrind", '\0',
+      POPT_ARG_NONE | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
+      &callgrind, 0, "profile processes with Valgrind (callgrind tool)", NULL},
     { "gdba", '\0',
       POPT_ARG_NONE | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
       &gdba, 0, "attach to debug processes with gdb (ignored)", NULL},
@@ -2506,6 +2592,8 @@ struct poptOption poptExecutionOptions[] = {
     { "maxtime", '\0', POPT_ARG_INT,
       &maxtime, 0, "maximum number of seconds the job is permitted to run",
       "INT"},
+    { "nodetype", '\0', POPT_ARG_STRING,
+      &nodetype, 0, "comma separated list of node types", NULL},
     POPT_TABLEEND
 };
 
@@ -2531,6 +2619,12 @@ struct poptOption poptCommunicationOptions[] = {
 struct poptOption poptOtherOptions[] = {
     { "gdb", '\0', POPT_ARG_NONE,
       &gdb, 0, "debug processes with gdb", NULL},
+    { "valgrind", '\0', POPT_ARG_NONE,
+      &valgrind, 0, "debug processes with Valgrind (memcheck tool)", NULL},
+    { "memcheck", '\0', POPT_ARG_NONE,
+      &valgrind, 0, "debug processes with Valgrind (memcheck tool)", NULL},
+    { "callgrind", '\0', POPT_ARG_NONE,
+      &callgrind, 0, "profile processes with Valgrind (callgrind tool)", NULL},
     { "noargs", '\0', POPT_ARG_NONE,
       &gdb_noargs, 0, "don't call gdb with --args", NULL},
     { "verbose", 'v', POPT_ARG_NONE,
@@ -2750,6 +2844,40 @@ static void setupGDB()
 }
 
 /**
+ * @brief Start the Valgrind cores in front of the computing processes.
+ *
+ * @return No return value.
+ */
+static void setupVALGRIND()
+{
+    int i, new_argc = 0;
+    char **new_argv;
+
+    new_argv = umalloc((dup_argc + 3 + 1) * sizeof(char *), __func__);
+    
+    new_argv[new_argc++] = VALGRIND_COMMAND_EXE;
+    new_argv[new_argc++] = VALGRIND_COMMAND_SILENT;
+
+    if(callgrind) {
+	 /* Use Callgrind Tool */
+	 new_argv[new_argc++] = VALGRIND_COMMAND_CALLGRIND;
+
+    } else {
+	 /* Default: Memcheck Tool */
+	 new_argv[new_argc++] = VALGRIND_COMMAND_MEMCHECK;
+    }
+
+    for (i=0; i<dup_argc; i++) {
+	 new_argv[new_argc++] = dup_argv[i];
+    }
+
+    new_argv[new_argc] = NULL;
+    dup_argv = new_argv;
+    dup_argc = new_argc;
+}
+
+
+/**
  * @brief Add the -np (number of processes) argument
  * from mpiexec to the argument list of the mpi-1
  * application.
@@ -2835,6 +2963,9 @@ int main(int argc, char *argv[], char** envp)
 
     /* add command args for controlling gdb */
     if (gdb) setupGDB();
+
+    /* add command args for controlling Valgrind */
+    if (valgrind) setupVALGRIND();
 
     /* add command args for MPI1 mode */
     if (mpichcom) setupComp();

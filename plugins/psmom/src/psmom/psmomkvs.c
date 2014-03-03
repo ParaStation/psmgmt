@@ -31,6 +31,7 @@
 #include "psmomjobinfo.h"
 #include "pluginmalloc.h"
 #include "psidtask.h"
+#include "pluginlog.h"
 
 #include "pscommon.h"
 #include "psmompsaccfunc.h"
@@ -54,6 +55,8 @@ uint32_t stat_failedlPrologue = 0;
 uint64_t stat_numNodes = 0;
 uint64_t stat_numProcs = 0;
 time_t stat_startTime = 0;
+
+FILE *memoryDebug = NULL;
 
 /* line buffer */
 static char line[1024];
@@ -550,9 +553,9 @@ static char *showForwarder(char *buf, size_t *bufSize)
  */
 static pid_t getSIDforPID(pid_t pid)
 {
+    FILE *fd;
     char buf[200];
     pid_t session;
-    FILE *fd;
     static char stat_format[] =
 	"%*d "          /* pid */
 	"(%*[^)]) "     /* comm */
@@ -975,6 +978,25 @@ char *set(char *key, char *value)
 	return str2Buf("\nInvalid statistic command\n", buf, &bufSize);
     }
 
+    if (!(strcmp(key, "memdebug"))) {
+	if (memoryDebug) fclose(memoryDebug);
+
+	if ((memoryDebug = fopen(value, "w+"))) {
+	    finalizePluginLogger();
+	    initPluginLogger(memoryDebug);
+	    maskPluginLogger(PLUGIN_LOG_MALLOC);
+	    buf = str2Buf("\nmemory logging to '", buf, &bufSize);
+	    buf = str2Buf(value, buf, &bufSize);
+	    buf = str2Buf("'\n", buf, &bufSize);
+	    return buf;
+	} else {
+	    buf = str2Buf("\nopening file '", buf, &bufSize);
+	    buf = str2Buf(value, buf, &bufSize);
+	    buf = str2Buf("' for writing failed\n", buf, &bufSize);
+	    return buf;
+	}
+    }
+
     buf = str2Buf("\nInvalid key '", buf, &bufSize);
     buf = str2Buf(key, buf, &bufSize);
     buf = str2Buf("' for cmd set : use 'plugin help psmom' for help.\n", buf,
@@ -1002,6 +1024,16 @@ char *unset(char *key)
 	    delConfig(conf);
 	}
 	return buf;
+    }
+
+    if (!(strcmp(key, "memdebug"))) {
+	if (memoryDebug) {
+	    finalizePluginLogger();
+	    fclose(memoryDebug);
+	    memoryDebug = NULL;
+	    initPluginLogger(psmomlogfile);
+	}
+	return str2Buf("Stopped memory debugging\n", buf, &bufSize);
     }
 
     buf = str2Buf("\nInvalid key '", buf, &bufSize);
@@ -1041,7 +1073,7 @@ char *help(void)
 		    "To unset a configuration value use 'plugin unset psmom"
 		    " <name>'.\n"
 		    "To reset the statistic use 'plugin set psmom statistic 0'"
-		    "\n", buf, &bufSize);
+		    ".\n", buf, &bufSize);
 
     return buf;
 }

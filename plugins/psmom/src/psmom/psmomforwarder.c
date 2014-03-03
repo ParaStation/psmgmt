@@ -47,6 +47,7 @@
 #include "pluginmalloc.h"
 #include "helper.h"
 #include "psmomenv.h"
+#include "pluginlog.h"
 
 #include "psidutil.h"
 #include "pscommon.h"
@@ -212,6 +213,18 @@ static void doForwarderChildStart()
     WriteDigit(com, timeout);
 
     wDoSend(com);
+}
+
+static void verifyTempDir()
+{
+    struct stat st;
+    char *dir;
+
+    if ((dir = getConfParam("DIR_TEMP"))) {
+	if (stat(dir, &st) != 0) {
+	    mwarn(errno, "%s: stat for TEMP DIR '%s' failed : ", __func__, dir);
+	}
+    }
 }
 
 /**
@@ -728,9 +741,7 @@ static char *rewriteCopyDest(char *dest)
 	Config_t *config;
 
 	list_for_each(pos, &ConfigList.list) {
-	    if ((config = list_entry(pos, Config_t, list)) == NULL) {
-		continue;
-	    }
+	    if (!(config = list_entry(pos, Config_t, list))) break;
 
 	    if (!(strcmp(config->key, "COPY_REWRITE"))) {
 		if (!(reEnd = strchr(config->value, ' '))) {
@@ -1368,7 +1379,6 @@ int execInterForwarder(void *info)
 	dup2(stderrfds[1], STDOUT_FILENO);
 	dup2(stderrfds[1], STDERR_FILENO);
 
-	fflush(stdin);
 	close(stderrfds[1]);
 
 	/* start a PAM session */
@@ -1385,6 +1395,8 @@ int execInterForwarder(void *info)
 	    initX11Forwarding2(job, x11Cookie, x11Port, dis, sizeof(dis));
 	    if (dis[0] != '\0') addEnv(dis);
 	}
+
+	verifyTempDir();
 
 	/* do the actual spawn */
 	doSpawn(job, argv, argc);
@@ -2090,6 +2102,8 @@ int execJobscriptForwarder(void *info)
 
 	/* switch back to users default umask */
 	umask(old_mask);
+
+	verifyTempDir();
 
 	/* do the actual spawn */
 	doSpawn(job, argv, argc);

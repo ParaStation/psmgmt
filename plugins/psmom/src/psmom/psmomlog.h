@@ -21,6 +21,7 @@
 #include "logging.h"
 
 extern logger_t *psmomlogger;
+extern FILE *psmomlogfile;
 
 #define mlog(...) if (psmomlogger) logger_print(psmomlogger, -1, __VA_ARGS__)
 #define mwarn(...) if (psmomlogger) logger_warn(psmomlogger, -1, __VA_ARGS__)

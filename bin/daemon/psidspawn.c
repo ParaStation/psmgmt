@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2013 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2014 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -30,9 +30,6 @@ static char vcid[] __attribute__((used)) =
 #include <pty.h>
 #include <signal.h>
 #include <syslog.h>
-#define __USE_GNU
-#include <sched.h>
-#undef __USE_GNU
 #ifdef HAVE_LIBNUMA
 #include <numa.h>
 #endif
@@ -292,18 +289,7 @@ static void pty_make_controlling_tty(int *ttyfd, const char *tty)
 }
 
 #ifdef CPU_ZERO
-/**
- * @brief Bind process to node
- *
- * Bind the current process to all the NUMA nodes which contain cores
- * from within the set @a physSet.
- *
- * @param physSet A set of physical cores. The process is bound to the
- * NUMA nodes containing some of this cores.
- *
- * @return No return value.
- */
-static void bindToNodes(cpu_set_t *physSet)
+void PSID_bindToNodes(cpu_set_t *physSet)
 {
 #ifdef HAVE_LIBNUMA
     int node, ret = 1;
@@ -382,16 +368,7 @@ end:
 #endif
 }
 
-/**
- * @brief Pin process to cores
- *
- * Pin the process to the set of physical CPUs @a physSet.
- *
- * @param physSet The physical cores the process is pinned to.
- *
- * @return No return value.
- */
-static void pinToCPUs(cpu_set_t *physSet)
+void PSID_pinToCPUs(cpu_set_t *physSet)
 {
     sched_setaffinity(0, sizeof(*physSet), physSet);
 }
@@ -541,19 +518,7 @@ static int getMap(char *envStr, short **map)
     return myMap.size;
 }
 
-/**
- * @brief Map CPUs
- *
- * Map the logical CPUs of the CPU-set @a set to physical CPUs and
- * store them into the returned cpu_set_t as used by @ref
- * sched_setaffinity(), etc.
- *
- * @param set The set of CPUs to map.
- *
- * @return A set of physical CPUs is returned as a static set of type
- * cpu_set_t. Subsequent calls to @ref mapCPUs will modify this set.
- */
-static cpu_set_t *mapCPUs(PSCPU_set_t set)
+cpu_set_t *PSID_mapCPUs(PSCPU_set_t set)
 {
     short cpu, maxCPU = PSIDnodes_getVirtCPUs(PSC_getMyID());
     static cpu_set_t physSet;
@@ -697,17 +662,17 @@ static int changeToWorkDir(PStask_t *task)
  *
  * Pin process to the logical CPU-set @a set and bind it to the NUMA
  * nodes serving these logical CPUs if demanded on the local
- * node. Therefore @ref pinToCPU() and @ref bindToNode() are called
- * respectively.
+ * node. Therefore @ref PSID_pinToCPU() and @ref PSID_bindToNode() are
+ * called respectively.
  *
  * Before doing the actual pinning and binding the logical CPUs are
- * mapped to physical ones via mapCPUs().
+ * mapped to physical ones via PSID_mapCPUs().
  *
  * @param set The logical CPUs to pin and bind to.
  *
  * @return No return value.
  *
- * @see bindToNode(), pinToCPU(), mapCPUs()
+ * @see PSID_bindToNode(), PSID_pinToCPU(), PSID_mapCPUs()
  */
 static void doClamps(PStask_t *task)
 {
@@ -723,20 +688,20 @@ static void doClamps(PStask_t *task)
     } else if (PSIDnodes_pinProcs(PSC_getMyID())
 	       || PSIDnodes_bindMem(PSC_getMyID())) {
 #ifdef CPU_ZERO
-	cpu_set_t *physSet = mapCPUs(task->CPUset);
+	cpu_set_t *physSet = PSID_mapCPUs(task->CPUset);
 
 	if (PSIDnodes_pinProcs(PSC_getMyID())) {
 	    if (getenv("__PSI_NO_PINPROC")) {
 		fprintf(stderr, "Pinning suppressed for rank %d\n", task->rank);
 	    } else {
-		pinToCPUs(physSet);
+		PSID_pinToCPUs(physSet);
 	    }
 	}
 	if (PSIDnodes_bindMem(PSC_getMyID())) {
 	    if (getenv("__PSI_NO_MEMBIND")) {
 		fprintf(stderr, "Binding suppressed for rank %d\n", task->rank);
 	    } else {
-		bindToNodes(physSet);
+		PSID_bindToNodes(physSet);
 	    }
 	}
 #else
@@ -927,8 +892,7 @@ static void execClient(PStask_t *task)
     if (setuid(task->uid)<0) {
 	eno = errno;
 	fprintf(stderr, "%s: setuid: %s\n", __func__, get_strerror(eno));
-	ret = write(task->fd, &eno, sizeof(eno));
-	if (ret < 0) {
+	if (write(task->fd, &eno, sizeof(eno)) < 0) {
 	    eno = errno;
 	    fprintf(stderr, "%s: setuid: write(): %s\n", __func__,
 		    get_strerror(eno));
@@ -1013,12 +977,20 @@ static void execClient(PStask_t *task)
     }
     alarm(timeout);
     if ((eno = changeToWorkDir(task))) {
-	write(task->fd, &eno, sizeof(eno));
+	if (write(task->fd, &eno, sizeof(eno)) < 0) {
+	    eno = errno;
+	    fprintf(stderr, "%s: changeToWorkDir: write(): %s\n", __func__,
+		    get_strerror(eno));
+	}
 	exit(1);
     }
 
     if ((eno = testExecutable(task, &executable))) {
-	write(task->fd, &eno, sizeof(eno));
+	if (write(task->fd, &eno, sizeof(eno)) < 0) {
+	    eno = errno;
+	    fprintf(stderr, "%s: testExecutable: write(): %s\n", __func__,
+		    get_strerror(eno));
+	}
 	exit(1);
     }
     alarm(0);
@@ -1026,23 +998,27 @@ static void execClient(PStask_t *task)
     doClamps(task);
 
     /* Signal forwarder we're ready for execve() */
-    write(task->fd, &eno, sizeof(eno));
+    if (write(task->fd, &eno, sizeof(eno)) < 0) {
+	eno = errno;
+	fprintf(stderr, "%s: write(): %s\n", __func__, get_strerror(eno));
+	PSID_exit(eno, "%s: write()", __func__);
+    }
 
     if (read(task->fd, &eno, sizeof(eno)) < 0) {
 	eno = errno;
-	PSID_warn(-1, eno, "%s: read() failed. eno is %d", __func__, eno);
-	exit(1);
+	fprintf(stderr, "%s: read(): %s\n", __func__, get_strerror(eno));
+	PSID_exit(eno, "%s: read()", __func__);
     }
 
     if (eno) {
+	fprintf(stderr, "%s: DD_CHILDBORN failed\n", __func__);
 	PSID_log(-1, "%s: DD_CHILDBORN failed\n", __func__);
 	exit(1);
     }
 
     /* execute the image */
-    if (myexecv(executable, task->argv)<0) {
-	PSID_warn(-1, errno, "%s: execv(%s)", __func__, executable);
-	exit(1);
+    if (myexecv(executable, task->argv) < 0) {
+	PSID_exit(errno, "%s: execv(%s)", __func__, executable);
     }
 
     /* never reached, if execv succesful */
@@ -1274,7 +1250,9 @@ static void execForwarder(PStask_t *task, int daemonfd)
 	/* redirect stdin/stdout/stderr */
 	if (dup2(task->stderr_fd, STDERR_FILENO) < 0) {
 	    eno = errno;
-	    write(task->fd, &eno, sizeof(eno));
+	    if (write(task->fd, &eno, sizeof(eno)) < 0) {
+		PSID_warn(-1, errno, "%s: dup2(stderr): write()", __func__);
+	    }
 	    PSID_exit(eno, "%s: dup2(stderr)", __func__);
 	}
 
@@ -1284,15 +1262,19 @@ static void execForwarder(PStask_t *task, int daemonfd)
 	    eno = errno;
 	    fprintf(stderr, "%s: dup2(stdin): [%d] %s\n", __func__,
 		    eno, get_strerror(eno));
-	    write(task->fd, &eno, sizeof(eno));
-	    exit(1);
+	    if (write(task->fd, &eno, sizeof(eno)) < 0) {
+		PSID_warn(-1, errno, "%s: dup2(stdin): write()", __func__);
+	    }
+	    PSID_exit(eno, "%s: dup2(stdin)", __func__);
 	}
 	if (dup2(task->stdout_fd, STDOUT_FILENO) < 0) {
 	    eno = errno;
 	    fprintf(stderr, "%s: dup2(stdout): [%d] %s\n", __func__,
 		    eno, get_strerror(eno));
-	    write(task->fd, &eno, sizeof(eno));
-	    exit(1);
+	    if (write(task->fd, &eno, sizeof(eno)) < 0) {
+		PSID_warn(-1, errno, "%s: dup2(stdout): write()", __func__);
+	    }
+	    PSID_exit(eno, "%s: dup2(stdout)", __func__);
 	}
 
 	/* close the now useless slave ttys / sockets */
@@ -1616,9 +1598,6 @@ static int buildSandboxAndStart(PStask_t *task)
     return 0;
 }
 
-/** Chunksize for PSP_ACCOUNT_SLOTS messages */
-#define ACCT_SLOTS_CHUNK 128
-
 /**
  * @brief Send accounting info on start of job
  *
@@ -1640,7 +1619,9 @@ static void sendAcctStart(PStask_ID_t sender, PStask_t *task)
 {
     DDTypedBufferMsg_t msg;
     char *ptr = msg.buf;
-    unsigned int slot;
+    unsigned short maxCPUs = 0;
+    int slotsChunk, slot, num = task->partitionSize;
+    size_t nBytes;
 
     msg.header.type = PSP_CD_ACCOUNT;
     msg.header.dest = PSC_getMyTID();
@@ -1671,7 +1652,7 @@ static void sendAcctStart(PStask_ID_t sender, PStask_t *task)
     msg.header.len += sizeof(gid_t);
 
     /* total number of children */
-    *(int32_t *)ptr = task->partitionSize;
+    *(int32_t *)ptr = num;
     ptr += sizeof(int32_t);
     msg.header.len += sizeof(int32_t);
 
@@ -1679,28 +1660,52 @@ static void sendAcctStart(PStask_ID_t sender, PStask_t *task)
 
     msg.type = PSP_ACCOUNT_SLOTS;
 
-    for (slot = 0; slot < task->partitionSize; slot++) {
-	if (! (slot%ACCT_SLOTS_CHUNK)) {
+    for (slot = 0; slot < num; slot++) {
+	unsigned short cpus = PSIDnodes_getVirtCPUs(task->partition[slot].node);
+	if (cpus > maxCPUs) maxCPUs = cpus;
+    }
+
+    if (!num || !maxCPUs) {
+	PSID_log(-1, "%s: No CPUs\n", __func__);
+	return;
+    }
+
+    nBytes = PSCPU_bytesForCPUs(maxCPUs);
+    slotsChunk = 1024 / (sizeof(PSnodes_ID_t) + nBytes);
+
+    for (slot = 0; slot < num; slot++) {
+	if (! (slot%slotsChunk)) {
 	    if (slot) sendMsg((DDMsg_t *)&msg);
 
 	    msg.header.len = sizeof(msg.header) + sizeof(msg.type);
 
+	    /* skip logger's TID */
 	    ptr = msg.buf + sizeof(PStask_ID_t);
 	    msg.header.len += sizeof(PStask_ID_t);
 
-	    *(uint32_t *)ptr =
-		(task->partitionSize - slot < ACCT_SLOTS_CHUNK) ?
-		task->partitionSize - slot : ACCT_SLOTS_CHUNK;
-	    ptr += sizeof(uint32_t);
-	    msg.header.len += sizeof(uint32_t);
+	    /* child's uid */
+	    *(uid_t *)ptr = task->uid;
+	    ptr += sizeof(uid_t);
+	    msg.header.len += sizeof(uid_t);
+
+	    /* number of slots to add now */
+	    *(uint16_t *)ptr = (num-slot < slotsChunk) ? num-slot : slotsChunk;
+	    ptr += sizeof(uint16_t);
+	    msg.header.len += sizeof(uint16_t);
+
+	    /* size of CPUset part */
+	    *(uint16_t *)ptr = nBytes;
+	    ptr += sizeof(uint16_t);
+	    msg.header.len += sizeof(uint16_t);
 	}
 
-	memcpy(ptr, &task->partition[slot].node, sizeof(PSnodes_ID_t));
+	*(PSnodes_ID_t *)ptr = task->partition[slot].node;
 	ptr += sizeof(PSnodes_ID_t);
 	msg.header.len += sizeof(PSnodes_ID_t);
-	memcpy(ptr, task->partition[slot].CPUset, sizeof(PSCPU_set_t));
-	ptr += sizeof(PSCPU_set_t);
-	msg.header.len += sizeof(PSCPU_set_t);
+
+	PSCPU_extract(ptr, task->partition[slot].CPUset, nBytes);
+	ptr += nBytes;
+	msg.header.len += nBytes;
     }
 
     sendMsg((DDMsg_t *)&msg);
@@ -1729,16 +1734,21 @@ static void sendAcctStart(PStask_ID_t sender, PStask_t *task)
  */
 static int checkRequest(PStask_ID_t sender, PStask_t *task)
 {
-    PStask_t *ptask;
+    PStask_t *ptask, *stask;
 
-    if (sender != task->ptid) {
-	/* Sender has to be parent */
+    stask = PStasklist_find(&managedTasks, sender);
+    if (!stask) {
+	PSID_log(-1, "%s: sending task not found\n", __func__);
+	return EACCES;
+    }
+
+    if (sender != task->ptid && stask->group != TG_FORWARDER) {
+	/* Sender has to be parent or a trusted forwarder */
 	PSID_log(-1, "%s: spawner tries to cheat\n", __func__);
 	return EACCES;
     }
 
     ptask = PStasklist_find(&managedTasks, task->ptid);
-
     if (!ptask) {
 	/* Parent not found */
 	PSID_log(-1, "%s: parent task not found\n", __func__);
@@ -2057,11 +2067,22 @@ static void msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
 					PSC_getID(locMsg.header.dest)));
 		    //ptr += sizeof(int16_t);
 		    locMsg.header.len += sizeof(int16_t);
+		} else if (destDmnPSPver < 408) {
+		    size_t nBytes = PSCPU_bytesForCPUs(32);
+		    PSCPU_extract(ptr, ptask->spawnNodes[rank].CPUset, nBytes);
+		    //ptr += nBytes;
+		    locMsg.header.len += nBytes;
 		} else {
-		    memcpy(ptr, ptask->spawnNodes[rank].CPUset,
-			   sizeof(PSCPU_set_t));
-		    //ptr += sizeof(PSCPU_set_t);
-		    locMsg.header.len += sizeof(PSCPU_set_t);
+		    unsigned short nBytes = PSCPU_bytesForCPUs(
+			PSIDnodes_getVirtCPUs(PSC_getID(locMsg.header.dest)));
+
+		    *(uint16_t *)ptr = nBytes;
+		    ptr += sizeof(int16_t);
+		    locMsg.header.len += sizeof(int16_t);
+
+		    PSCPU_extract(ptr, ptask->spawnNodes[rank].CPUset, nBytes);
+		    //ptr += nBytes;
+		    locMsg.header.len += nBytes;
 		}
 
 		PSID_log(PSID_LOG_SPAWN, "%s: send PSP_SPAWN_LOC to node %d\n",
@@ -2127,8 +2148,27 @@ static void msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
 	    PSCPU_setCPU(task->CPUset, *(int16_t *)msg->buf);
 	    usedBytes = sizeof(int16_t);
 	} else {
-	    memcpy(task->CPUset, msg->buf, sizeof(task->CPUset));
-	    usedBytes = sizeof(task->CPUset);
+	    size_t nBytes, myBytes = PSCPU_bytesForCPUs(PSCPU_MAX);
+	    char *ptr = msg->buf;
+
+	    if (srcDmnPSPver < 408) {
+		nBytes = PSCPU_bytesForCPUs(32);
+		usedBytes = 0;
+	    } else {
+		nBytes = *(uint16_t *)ptr;
+		ptr += sizeof(uint16_t);
+		usedBytes = sizeof(uint16_t);
+	    } 
+
+	    if (nBytes > myBytes) {
+		PSID_log(-1,  "%s: PSP_SPAWN_LOC from %s: expecting %zd CPUs\n",
+			 __func__, PSC_printTID(msg->header.sender), nBytes*8);
+	    }
+
+	    PSCPU_clrAll(task->CPUset);
+	    PSCPU_inject(task->CPUset, ptr, nBytes);
+	    // ptr += nBytes;
+	    usedBytes += nBytes;
 	}
 	break;
     }
@@ -2314,7 +2354,7 @@ static void msg_SPAWNSUCCESS(DDErrorMsg_t *msg)
 	     __func__, PSC_printTID(tid), parent);
 
     task = PStasklist_find(&managedTasks, ptid);
-    if (task && task->fd > -1) {
+    if (task && (task->fd > -1 || task->group == TG_ANY)) {
 	/* register the child */
 	PSID_setSignal(&task->childList, tid, -1);
 
@@ -2327,7 +2367,16 @@ static void msg_SPAWNSUCCESS(DDErrorMsg_t *msg)
 	PSID_sendSignal(tid, 0, ptid, -1, 0, 0);
     }
 
-    /* send the initiator the success msg */
+    /*
+     * Send the initiator the success message.
+     *
+     * If the initiator is a normal but unconnected task, it has used
+     * to its forwarder as a proxy via PMI. Thus, send SPAWNSUCCESS to
+     * the proxy.
+     */
+    if (task && task->group == TG_ANY && task->fd == -1) {
+	msg->header.dest = task->forwardertid;
+    }
     sendMsg(msg);
     free(parent);
 }
@@ -2413,6 +2462,7 @@ static void msg_CHILDBORN(DDErrorMsg_t *msg)
 {
     PStask_t *forwarder = PStasklist_find(&managedTasks, msg->header.sender);
     PStask_t *child = PStasklist_find(&managedTasks, msg->request);
+    PStask_ID_t succMsgDest = 0;
     int blocked;
 
     PSID_log(PSID_LOG_SPAWN, "%s: from %s\n", __func__,
@@ -2520,6 +2570,15 @@ static void msg_CHILDBORN(DDErrorMsg_t *msg)
 	} else {
 	    PSID_setSignal(&parent->childList, child->tid, -1);
 	    PSID_setSignal(&parent->assignedSigs, child->tid, -1);
+
+	    /*
+	     * If the parent is a normal but unconnected task, it was
+	     * not the origin of the spawn but used the forwarder as a
+	     * proxy via PMI. Thus, send SPAWNSUCCESS to the proxy.
+	     */
+	    if (parent->group == TG_ANY && parent->fd == -1) {
+		succMsgDest = parent->forwardertid;
+	    }
 	}
     }
 
@@ -2532,7 +2591,7 @@ static void msg_CHILDBORN(DDErrorMsg_t *msg)
     /* Tell parent about success */
     msg->header.type = PSP_CD_SPAWNSUCCESS;
     msg->header.sender = child->tid;
-    msg->header.dest = child->ptid;
+    msg->header.dest = succMsgDest ? succMsgDest : child->ptid;
     msg->request = child->rank;
     msg->error = 0;
 

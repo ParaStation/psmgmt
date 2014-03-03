@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2012 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2013 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -63,7 +63,7 @@ static char *getAccountMsgType(int type)
 	case PSP_ACCOUNT_END:
 	    return "END";
     }
-    return NULL;
+    return "UNKNOWN";
 }
 
 void handleAccountEnd(DDTypedBufferMsg_t *msg, int remote)
@@ -205,7 +205,7 @@ void handleAccountEnd(DDTypedBufferMsg_t *msg, int remote)
 	avgThreads = (client->data.avgThreads / client->data.avgThreadsCount);
     }
     *(uint64_t *)ptr = (uint64_t) avgThreads;
-    ptr += sizeof(uint64_t);
+    //ptr += sizeof(uint64_t);
     msg->header.len += sizeof(uint64_t);
 
     mdbg(LOG_VERBOSE, "%s: exit child (%s): pid '%i' logger:%i "
@@ -399,7 +399,7 @@ void handleAccountChild(DDTypedBufferMsg_t *msg, int remote)
     } else {
 	/* extract taskid of remote child */
 	childTID = *(PStask_ID_t *) ptr;
-	ptr += sizeof(PStask_ID_t);
+	//ptr += sizeof(PStask_ID_t);
 
 	client = addAccClient(childTID, ACC_CHILD_REMOTE);
 	/* no accounting here for remote children */
@@ -421,41 +421,13 @@ void handleAccountChild(DDTypedBufferMsg_t *msg, int remote)
     client->rank = rank;
 }
 
-/**
- * @brief Convert an account message type to string.
- *
- * @param type The type to convert.
- *
- * @return Returns the requested string.
- */
-static const char *accMsgType2String(int type)
-{
-    switch(type) {
-	case PSP_ACCOUNT_QUEUE:
-	    return "QUEUE";
-	case PSP_ACCOUNT_DELETE:
-	    return "DELETE";
-	case PSP_ACCOUNT_SLOTS:
-	    return "SLOTS";
-	case PSP_ACCOUNT_START:
-	    return "START";
-	case PSP_ACCOUNT_LOG:
-	    return "LOG";
-	case PSP_ACCOUNT_CHILD:
-	    return "CHILD";
-	case PSP_ACCOUNT_END:
-	    return "END";
-    }
-    return "UNKNOWN";
-}
-
 void handlePSMsg(DDTypedBufferMsg_t *msg)
 {
     if (msg->header.dest == PSC_getMyTID()) {
         /* message for me, let's get infos and forward to all accounters */
 
 	mdbg(LOG_ACC_MSG, "%s: got msg '%s'\n", __func__,
-		accMsgType2String(msg->type));
+	     getAccountMsgType(msg->type));
 
 	switch (msg->type) {
 	    case PSP_ACCOUNT_QUEUE:
@@ -483,5 +455,5 @@ void handlePSMsg(DDTypedBufferMsg_t *msg)
     }
 
     /* forward msg to accounting daemons */
-    oldAccountHanlder((DDBufferMsg_t *) msg);
+    oldAccountHandler((DDBufferMsg_t *) msg);
 }

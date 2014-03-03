@@ -52,7 +52,7 @@ int initialize(void);
 void cleanup(void);
 
 /** save default handler for accouting msgs */
-extern handlerFunc_t oldAccountHanlder;
+extern handlerFunc_t oldAccountHandler;
 
 /** the linux system clock ticks */
 extern int clockTicks;

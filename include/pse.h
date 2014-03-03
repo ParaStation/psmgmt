@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2012 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2014 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -81,7 +81,7 @@ int PSE_getSize(void);
  * @brief Get the rank of the process.
  *
  * Get the rank of the actual process within the process group. The
- * rank of a process is positiv number smaller than the result of @ref
+ * rank of a process is positive number smaller than the result of @ref
  * PSE_getSize() \b or \b -1. The rank is unique within the process
  * group.
  *
@@ -179,7 +179,7 @@ void PSE_setUID(uid_t uid);
  * Set the hardware-type for @ref PSE_getPartition().
  *
  * If @ref PSE_getPartition() is called, the partition is constituted
- * from nodes which suppport all the hardware-types requested in @a
+ * from nodes which support all the hardware-types requested in @a
  * hwType. Subsequent calls to @ref PSE_spawnMaster() and @ref
  * PSE_spawnTasks() will only spawn processes within this
  * partition. For details on the spawning strategy look @ref
@@ -190,7 +190,7 @@ void PSE_setUID(uid_t uid);
  * used. This means, any node is accepted.
  *
  * @param hwType The hardware-type nodes have to support to get a
- * process spawned on. @a hwType is a bitwise or of the hardware-types
+ * process spawned on. @a hwType is a bitwise OR of the hardware-types
  * requested via 1<<INFO_request_hwindex() or 0. If @a hwType is 0, any
  * node is taken to spawn tasks on.
  *
@@ -200,14 +200,13 @@ void PSE_setUID(uid_t uid);
  * */
 void PSE_setHWType(uint32_t hwType);
 
-
 /**
  * @brief Set hardware-type for PSE_getPartition().
  *
  * Alternative form to set the hardware-type for @ref PSE_getPartition().
  *
  * If @ref PSE_getPartition() is called, the partition is constituted
- * from nodes which suppport all the hardware-types requested in @a
+ * from nodes which support all the hardware-types requested in @a
  * hwList.  Subsequent calls to @ref PSE_spawnMaster() and @ref
  * PSE_spawnTasks() will only spawn processes within this
  * partition. For details on the spawning strategy look @ref
@@ -222,6 +221,10 @@ void PSE_setHWType(uint32_t hwType);
  * anyhow. The occurrence of unknown hardware types is displayed by a
  * return value of -1.
  *
+ * This function basically resolves the @a hwList using @ref
+ * PSI_resolveHWList() and then set the corresponding hardware-type
+ * via @ref PSE_setHWType().
+ *
  * @param hwList A NULL terminated list of hardware names nodes have
  * to support to get a process spawned on. These will be resolved
  * using the parastation.conf configuration file, i.e. each hardware
@@ -232,7 +235,7 @@ void PSE_setHWType(uint32_t hwType);
  * returned. Or 0, if all hardware-types are known. The default
  * hardware-type is set to the known ones in any case.
  *
- * @see PSE_getPartition() PSE_setHWType()
+ * @see PSE_getPartition() PSE_setHWType() PSI_resolveHWList()
  */
 int PSE_setHWList(char **hwList);
 
@@ -285,7 +288,7 @@ char * PSE_checkNodeEnv(char *nodelist, char *hostlist, char *hostfile,
  * @brief Check arguments and environment on sorting for consistency
  *
  * Check, if there are inconsistencies between arguments passed to a
- * programm for @a sort via the corresponding command-line option and
+ * program for @a sort via the corresponding command-line option and
  * the environment found. @a argPrefix holds a string to be put out in
  * front of the actual argument, i.e. this should be either "-" or
  * "--" depending on what the actual program expects. The result is
@@ -329,8 +332,8 @@ char * PSE_checkSortEnv(char *sort, char *argPrefix, int verbose);
  * Depending on its rank, a process will reside on a defined node
  * within the pool. Assume for example its rank is @a i, it will
  * reside on node number @a i of the pool. If more tasks are spawned
- * than the the pool contains nodes, the nodes are reused in a round
- * robin fashion.
+ * than nodes available in the pool, nodes are reused in a round robin
+ * fashion.
  *
  * The spawning strategy can be influenced by using various
  * environment variables. These will steer on the one hand which nodes
@@ -412,7 +415,7 @@ char * PSE_checkSortEnv(char *sort, char *argPrefix, int verbose);
  *
  * Read more about spawning strategies @ref spawn_strategy "here".
  *
- * If an error occures, an error message is generated and the process
+ * If an error occurs, an error message is generated and the process
  * exits.
  *
  * @param argc The size of @a argv. This is usually equal to the argc
@@ -445,7 +448,7 @@ void PSE_spawnMaster(int argc, char *argv[]);
  * will only spawn within this node pool. For details on the spawning
  * strategy look @ref spawn_strategy "here".
  *
- * If an error occures, an error message is generated and the process
+ * If an error occurs, an error message is generated and the process
  * exits.
  *
  * @param num The number of tasks to spawn.
@@ -479,7 +482,7 @@ void PSE_spawnTasks(int num, int node, int port, int argc, char *argv[]);
  *
  * Get the ID of the node, where the master process resides. It is
  * passed from the spawning process as the @a node parameter to
- * PSE_spawnTasks() to spawned tasks. This is ususally the node ID
+ * PSE_spawnTasks() to spawned tasks. This is usually the node ID
  * returned by the PSPort library using @ref PSP_GetNodeID().
  *
  * @return The node ID passed from the parent task as the @a node
@@ -494,7 +497,7 @@ int PSE_getMasterNode();
  *
  * Get the port number of the master process. It is passed from the
  * spawning process as the @a port parameter to PSE_spawnTasks() to
- * spawned tasks. This is ususally the port number returned by the PSPort
+ * spawned tasks. This is usually the port number returned by the PSPort
  * library using @ref PSP_GetPortNo().
  *
  * @return The port number passed from the parent task as the @a port
@@ -516,7 +519,7 @@ int PSE_getMasterPort();
  * Spawning is done without allocating a partition. Only selected
  * users are allowed to spawn admin processes.
  *
- * If an error occures, an error message is generated.
+ * If an error occurs, an error message is generated.
  *
  * @param node ID of the node to spawn to.
  *

@@ -19,47 +19,15 @@
 #include "psaccountinter.h"
 #include "psaccountclient.h"
 #include "psaccountconfig.h"
+#include "psaccountlog.h"
 #include "pluginmalloc.h"
+#include "pluginlog.h"
 
 #include "psaccountkvs.h"
 
-#define MALLOC_SIZE 512
-
 char line[100];
 
-/**
- * @brief Save a string into a buffer and let it dynamically grow if needed.
- *
- * @param strSave The string to write to the buffer.
- *
- * @param buffer The buffer to write the string to.
- *
- * @param bufSize The current size of the buffer.
- *
- * @return Returns a pointer to the buffer.
- */
-static char *str2Buf(char *strSave, char *buffer, size_t *bufSize)
-{
-    size_t lenSave, lenBuf;
-
-    if (!buffer) {
-        buffer = umalloc(MALLOC_SIZE);
-        *bufSize = MALLOC_SIZE;
-        buffer[0] = '\0';
-    }
-
-    lenSave = strlen(strSave);
-    lenBuf = strlen(buffer);
-
-    while (lenBuf + lenSave + 1 > *bufSize) {
-        buffer = urealloc(buffer, *bufSize + MALLOC_SIZE);
-        *bufSize += MALLOC_SIZE;
-    }
-
-    strcat(buffer, strSave);
-
-    return buffer;
-}
+FILE *memoryDebug = NULL;
 
 /**
  * @brief Show current jobs.
@@ -292,6 +260,25 @@ char *set(char *key, char *value)
         return buf;
     }
 
+    if (!(strcmp(key, "memdebug"))) {
+	if (memoryDebug) fclose(memoryDebug);
+
+	if ((memoryDebug = fopen(value, "w+"))) {
+	    finalizePluginLogger();
+	    initPluginLogger(memoryDebug);
+	    maskPluginLogger(PLUGIN_LOG_MALLOC);
+	    buf = str2Buf("\nmemory logging to '", buf, &bufSize);
+	    buf = str2Buf(value, buf, &bufSize);
+	    buf = str2Buf("'\n", buf, &bufSize);
+	    return buf;
+	} else {
+	    buf = str2Buf("\nopening file '", buf, &bufSize);
+	    buf = str2Buf(value, buf, &bufSize);
+	    buf = str2Buf("' for writing failed\n", buf, &bufSize);
+	    return buf;
+	}
+    }
+
     buf = str2Buf("\nInvalid key '", buf, &bufSize);
     buf = str2Buf(key, buf, &bufSize);
     buf = str2Buf("' for cmd set : use 'plugin help psaccount' for help.\n",
@@ -319,6 +306,16 @@ char *unset(char *key)
 	    delConfig(conf);
 	}
 	return buf;
+    }
+
+    if (!(strcmp(key, "memdebug"))) {
+	if (memoryDebug) {
+	    finalizePluginLogger();
+	    fclose(memoryDebug);
+	    memoryDebug = NULL;
+	    initPluginLogger(psaccountlogfile);
+	}
+	return str2Buf("Stopped memory debugging\n", buf, &bufSize);
     }
 
     buf = str2Buf("\nInvalid key '", buf, &bufSize);

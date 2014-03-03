@@ -27,6 +27,7 @@
 #include "psaccountclient.h"
 #include "psaccountconfig.h"
 #include "psaccounthistory.h"
+#include "psaccountkvs.h"
 
 #include "timer.h"
 #include "plugin.h"
@@ -49,7 +50,7 @@ int clockTicks = -1;
 int pageSize = -1;
 
 /** save default handler for accouting msgs */
-handlerFunc_t oldAccountHanlder = NULL;
+handlerFunc_t oldAccountHandler = NULL;
 
 /** the ID of the main timer */
 static int mainTimerID = -1;
@@ -183,7 +184,7 @@ int initialize(void)
     }
 
     /* register account msg */
-    oldAccountHanlder = PSID_registerMsg(PSP_CD_ACCOUNT,
+    oldAccountHandler = PSID_registerMsg(PSP_CD_ACCOUNT,
 					    (handlerFunc_t) handlePSMsg);
     PSID_registerMsg(PSP_CC_PLUGIN_ACCOUNT, (handlerFunc_t) handleInterAccount);
 
@@ -203,9 +204,11 @@ void cleanup(void)
     /* unregister account msg */
     PSID_clearMsg(PSP_CC_PLUGIN_ACCOUNT);
     PSID_clearMsg(PSP_CD_ACCOUNT);
-    if (oldAccountHanlder) {
-	PSID_registerMsg(PSP_CD_ACCOUNT, oldAccountHanlder);
+    if (oldAccountHandler) {
+	PSID_registerMsg(PSP_CD_ACCOUNT, oldAccountHandler);
     }
+
+    if (memoryDebug) fclose(memoryDebug);
 
     /* cleanup allocated lists/memory */
     clearAllJobs();
