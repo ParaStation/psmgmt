@@ -33,13 +33,13 @@ extern "C" {
 #define PMIU_MAXLINE 1024
 
 /** maximal size of a kvs name */
-#define KVSNAME_MAX 256
+#define PMI_KVSNAME_MAX 256
 
 /** maximal size of a kvs key */
-#define KEYLEN_MAX  32
+#define PMI_KEYLEN_MAX  32
 
 /** maximal size of a kvs value */
-#define VALLEN_MAX 1024
+#define PMI_VALLEN_MAX 1024
 
 /** maximal number of arguments for pmi spawn */
 #define PMI_SPAWN_MAX_ARGUMENTS	256
@@ -57,11 +57,10 @@ typedef enum {
     UPDATE_CACHE_FINISH,    /** the end of the global kvs cache distribution */
     JOIN,		    /** forwarder joined to the global kvs */
     INIT,		    /** mpi client joined to the global kvs */
-    SPAWN,		    /** spawn request send to the logger */
-    SPAWN_RESULT,	    /** the result of a spawn request */
     LEAVE,		    /** a mpi client finished and leaves the
 				global kvs */
     NOT_AVAILABLE,	    /** global kvs is not available */
+    CHILD_SPAWN_RES,	    /** spawned child tells parent its alive */
 } PSKVS_cmd_t;
 
 const char *PSKVScmdToString(PSKVS_cmd_t cmd);

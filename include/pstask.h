@@ -57,6 +57,7 @@ typedef enum {
     TG_ACCOUNT,     /**< accounter, will receive and log accounting info */
     TG_SERVICE_SIG, /**< service task, used by mpirun_openib to spawn
 		     * procs; will receive SIGTERM on child's termination */
+    TG_KVS,         /**< special task, the KVS used by the PMI interface */
 } PStask_group_t;
 
 /** Type to store unique task IDs in */
@@ -194,6 +195,7 @@ typedef struct {
     char releaseAnswer;            /**< flag final RELEASERES to initiator */
     char released;                 /**< flag to mark released task, i.e. don't
 				      send signal to parent on exit */
+    char parentReleased;           /**< flag RELEASE msg sent to parent */
     char duplicate;                /**< flag to mark duplicate task, i.e. a
 				      tasks that are fork()ed by a client */
     char suspended;                /**< flag to mark suspended tasks. */

@@ -44,7 +44,6 @@ static char vcid[] __attribute__((used)) =
 #include "psprotocol.h"
 #include "pslog.h"
 #include "selector.h"
-#include "psiloggerkvs.h"
 #include "psiloggermerge.h"
 #include "psiloggerclient.h"
 
@@ -115,9 +114,6 @@ int retVal = 0;
 
 /** Flag marking a client got signaled */
 int signaled = 0;
-
-/** Enables kvs support in logger */
-int enable_kvs = 0;
 
 logger_t *PSIlog_stdoutLogger = NULL;
 logger_t *PSIlog_stderrLogger = NULL;
@@ -642,54 +638,6 @@ static void enterRawMode(void)
 }
 
 /**
- * @brief Try to send answer to INITIALIZE message
- *
- * Try to send an answer to an INITIALIZE message to rank @a
- * rank. This type of send is used in order to enable the daisy-chain
- * broadcasts. Therefore, it is tested, if the both, predecessing and
- * successing rank are already known. If one neighbor is still
- * unknown, no message is send. Otherwise, an extended INITIALIZE
- * answer is delivered containing information on the neighboring
- * processes.
- *
- * @param rank Rank of the client the response is send to
- *
- * @return No return value.
- */
-static void trySendInitAnswer(int rank)
-{
-    PStask_ID_t task, pred, succ;
-
-    if (rank < 0 || rank >= getNumKvsClients()) return;
-
-    pred = (rank) ? getClientTID(rank-1) : PSC_getMyTID();
-    task = getClientTID(rank);
-    succ = (rank == getNumKvsClients()-1) ? PSC_getMyTID():getClientTID(rank+1);
-
-    if (clientIsGone(rank-1)) pred = -2;
-    if (clientIsGone(rank+1)) succ = -2;
-
-    /* Check, if current request can be answered */
-    if (task != -1
-	&& (pred != -1) && (succ != -1)) {
-	char buf[2*sizeof(int) + 2*sizeof(PStask_ID_t)], *ptr = buf;
-
-	*(int *)ptr = forw_verbose;
-	ptr += sizeof(int);
-	*(PStask_ID_t *)ptr = getPMIPred(rank, pred);
-	ptr += sizeof(PStask_ID_t);
-	*(PStask_ID_t *)ptr = getPMISucc(rank, succ);
-	ptr += sizeof(PStask_ID_t);
-	*(int *)ptr = getPMIRank(rank);
-	ptr += sizeof(int);
-
-	sendMsg(task, INITIALIZE, buf, sizeof(buf));
-	PSIlog_log(PSILOG_LOG_VERB, "%s: send answer to %s (%d)\n", __func__,
-		   PSC_printTID(task), rank);
-    }
-}
-
-/**
  * @brief Handle connection requests from new forwarders.
  *
  * Handles connection requests from new forwarder. In order to
@@ -704,8 +652,13 @@ static void trySendInitAnswer(int rank)
 static int newrequest(PSLog_Msg_t *msg)
 {
     int rank = msg->sender;
+    char *ptr = msg->buf;
+    PStask_group_t group;
 
-    if (!registerClient(rank, msg->header.sender)) return 0;
+    group = *(PStask_group_t *) ptr;
+    ptr += sizeof(PStask_group_t);
+
+    if (!registerClient(rank, msg->header.sender, group)) return 0;
 
     if (enableGDB) {
 	snprintf(GDBprompt, sizeof(GDBprompt), "[%s]: (gdb) ", getDestStr(128));
@@ -723,15 +676,9 @@ static int newrequest(PSLog_Msg_t *msg)
 	terminateJob();
     }
 
-    if (rank < 0 || !enable_kvs) {
-	/* not part of kvs, answer immediately */
-	sendMsg(msg->header.sender, INITIALIZE,
-		(char *) &forw_verbose, sizeof(forw_verbose));
-    } else {
-	if (rank-1 >= 0) trySendInitAnswer(rank - 1);
-	if (rank >= 0) trySendInitAnswer(rank);
-	trySendInitAnswer(rank + 1);
-    }
+    /* send init answer */
+    sendMsg(msg->header.sender, INITIALIZE,
+	    (char *) &forw_verbose, sizeof(forw_verbose));
 
     return 1;
 }
@@ -774,6 +721,23 @@ static void forwardInput(int std_in)
 
 	PSIlog_log(PSILOG_LOG_VERB, "%s: %zd bytes\n", __func__, len);
     }
+}
+
+/**
+ * @brief Handle SERVICE msg from forwarder.
+ *
+ * @param msg Return the mininum service rank.
+ *
+ * @return No return value.
+ */
+static void handleServiceMsg(PSLog_Msg_t *msg)
+{
+    int32_t minRank;
+
+    minRank = getMinRank();
+
+    sendMsg(msg->header.sender, SERV_TID,
+	    (char *) &minRank, sizeof(minRank));
 }
 
 /**
@@ -967,24 +931,6 @@ static int handleFINALIZEMsg(PSLog_Msg_t *msg)
 }
 
 /**
- * @brief Handle KVS msg from forwarder.
- *
- * @param msg The received msg to handle.
- *
- * @return No return value.
- */
-static void handleKVSMsg(PSLog_Msg_t *msg)
-{
-    if (enable_kvs) {
-	handleKvsMsg(msg);
-    } else {
-	/* return kvs disabled msg */
-	sendMsg(msg->header.sender, KVS, "cmd=kvs_not_available\n",
-	    strlen("cmd=kvs_not_available\n"));
-    }
-}
-
-/**
  * @brief Determine job-ID
  *
  * Determine if the current job is started within a batch
@@ -1136,8 +1082,8 @@ static void handleCCMsg(PSLog_Msg_t *msg)
 	case CONT:
 	    handleCONTMsg(msg);
 	    break;
-	case KVS:
-	    handleKVSMsg(msg);
+	case SERV_TID:
+	    handleServiceMsg(msg);
 	    break;
 	default:
 	    PSIlog_log(-1, "%s: Unknown message type %d from %s\n",
@@ -1429,12 +1375,6 @@ int main( int argc, char**argv)
 	enterRawMode();
 	if (PSIlog_stdoutLogger) logger_setWaitNLFlag(PSIlog_stdoutLogger, 0);
 	if (PSIlog_stderrLogger) logger_setWaitNLFlag(PSIlog_stderrLogger, 0);
-    }
-
-    /* enable kvs and pmi */
-    if (getenv("KVS_ENABLE")) {
-	enable_kvs = 1;
-	initLoggerKvs();
     }
 
     if ((envstr = getenv("PSI_MAXTIME"))) {

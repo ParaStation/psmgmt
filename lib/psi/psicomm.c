@@ -44,7 +44,7 @@ int PSIcomm_init(void)
 	return -1;
     }
     PSIcomm_myRank = atoi(envStr);
-    
+
     /* @todo create connection to local forwarder */
     return -1;
 }
@@ -121,7 +121,7 @@ int PSIcomm_send(int dest_rank, int type, void *payload, size_t len)
 
     msg.type = type;
     msg.header.len += sizeof(msg.type);
-    
+
     PSP_putMsgBuf((DDBufferMsg_t*)&msg, "payload", len ? payload : NULL, len);
 
     return do_send((char*)&msg, msg.header.len);

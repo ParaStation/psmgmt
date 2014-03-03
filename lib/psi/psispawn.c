@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2012 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2013 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -569,8 +569,8 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
     char *offset = NULL;
     int hugeTask = 0, hugeArgv = 0;
 
-    if ((taskGroup == TG_SERVICE || taskGroup == TG_SERVICE_SIG)
-	&& count != 1) {
+    if ((taskGroup == TG_SERVICE || taskGroup == TG_SERVICE_SIG
+	|| taskGroup == TG_KVS) && count != 1) {
 	PSI_log(-1, "%s: spawn %d SERVICE tasks not allowed\n",
 		__func__, count);
 	return -1;
@@ -714,9 +714,6 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
 
 	/* set correct rank */
 	task->rank = rank;
-	if (taskGroup == TG_SERVICE || taskGroup == TG_SERVICE_SIG) {
-	    task->rank = -2;
-	}
 
 	/* send actual task */
 	if (sendTask(&msg, task) < 0) goto error;
@@ -911,10 +908,11 @@ int PSI_spawnAdmin(PSnodes_ID_t node, char *workdir, int argc, char **argv,
 }
 
 int PSI_spawnService(PSnodes_ID_t node, char *workdir, int argc, char **argv,
-		     int getSignals, int *error, PStask_ID_t *tid)
+		     int getSignals, int *error, PStask_ID_t *tid, int rank)
 {
     int ret;
     char *envStr = getenv(ENV_NUM_SERVICE_PROCS);
+    PStask_group_t group;
 
     PSI_log(PSI_LOG_VERB, "%s(%d)\n", __func__, node);
 
@@ -937,8 +935,12 @@ int PSI_spawnService(PSnodes_ID_t node, char *workdir, int argc, char **argv,
 
     if (node == -1) node = PSC_getMyID();
 
-    ret = dospawn(1, &node, workdir, argc, argv, 0,
-		  getSignals ? TG_SERVICE_SIG : TG_SERVICE, 0, error, tid);
+    if (rank >= -1) rank = -2;
+
+    group = getSignals ? TG_SERVICE_SIG : TG_SERVICE;
+    if ((getenv("SERVICE_KVS_PROVIDER"))) group = TG_KVS;
+
+    ret = dospawn(1, &node, workdir, argc, argv, 0, group, rank, error, tid);
     if (ret != 1) return -1;
 
     return 1;

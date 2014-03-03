@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2009-2012 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2009-2013 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -64,11 +64,13 @@ void initClients(int minClientRank, int maxClientRank);
  *
  * @param tid Task-ID of the client to register.
  *
+ * @param group @doctodo
+ *
  * @return If the client was registered successfully, 1 is returned. 0
  * is returned, if some problem occurred, e.g. a client with the same
  * rank was already registered.
  */
-int registerClient(int rank, PStask_ID_t tid);
+int registerClient(int rank, PStask_ID_t tid, PStask_group_t group);
 
 /**
  * @brief Unregister client

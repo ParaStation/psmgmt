@@ -19,14 +19,16 @@
 #define __PS_PMI_SPAWN
 
 /**
- * @brief Prepare the pmi environment.
+ * @brief Prepare the PMI environment.
+ *
+ * @param data Pointer to the PStask structure of the client.
  *
  * @return Always returns 0.
  */
-int handleForwarderSpawn();
+int handleForwarderSpawn(void *data);
 
 /**
- * @brief Close the pmi forwarder socket in the client process.
+ * @brief Close the PMI forwarder socket in the client process.
  *
  * @return Always returns 0.
  */

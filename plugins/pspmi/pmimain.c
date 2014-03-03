@@ -26,6 +26,7 @@
 #include "pmiforwarder.h"
 #include "pmispawn.h"
 #include "pmiclient.h"
+#include "pmiservice.h"
 
 #include "pmimain.h"
 
@@ -34,7 +35,7 @@ static int debugMask = 0;
 
 /** psid plugin requirements */
 char name[] = "pspmi";
-int version = 2;
+int version = 3;
 int requiredAPI = 110;
 plugin_dep_t dependencies[1];
 
@@ -57,9 +58,10 @@ void startPMI()
 
     PSIDhook_add(PSIDHOOK_FRWRD_INIT, setupPMIsockets);
     PSIDhook_add(PSIDHOOK_FRWRD_RESCLIENT, releasePMIClient);
-    PSIDhook_add(PSIDHOOK_FRWRD_KVS, handleKVSMessage);
-    PSIDhook_add(PSIDHOOK_FRWRD_CINFO, setPMIclientInfo);
+    PSIDhook_add(PSIDHOOK_FRWRD_KVS, handlePSlogMessage);
+    PSIDhook_add(PSIDHOOK_FRWRD_SPAWNRES, handleSpawnRes);
     PSIDhook_add(PSIDHOOK_FRWRD_CLIENT_STAT, getClientStatus);
+    PSIDhook_add(PSIDHOOK_FRWRD_CC_ERROR, handleCCError);
 
     mlog("(%i) successfully started\n", version);
 }
@@ -72,7 +74,8 @@ void stopPMI()
 
     PSIDhook_del(PSIDHOOK_FRWRD_INIT, setupPMIsockets);
     PSIDhook_del(PSIDHOOK_FRWRD_RESCLIENT, releasePMIClient);
-    PSIDhook_del(PSIDHOOK_FRWRD_KVS, handleKVSMessage);
-    PSIDhook_del(PSIDHOOK_FRWRD_CINFO, setPMIclientInfo);
+    PSIDhook_del(PSIDHOOK_FRWRD_KVS, handlePSlogMessage);
+    PSIDhook_del(PSIDHOOK_FRWRD_SPAWNRES, handleSpawnRes);
     PSIDhook_del(PSIDHOOK_FRWRD_CLIENT_STAT, getClientStatus);
+    PSIDhook_del(PSIDHOOK_FRWRD_CC_ERROR, handleCCError);
 }

@@ -85,8 +85,6 @@ bin/logger/psilogger.c \
 bin/logger/psilogger.h \
 bin/logger/psiloggerclient.c \
 bin/logger/psiloggerclient.h \
-bin/logger/psiloggerkvs.c \
-bin/logger/psiloggerkvs.h \
 bin/logger/psiloggermerge.c \
 bin/logger/psiloggermerge.h \
 bin/mlisten.c \
@@ -120,6 +118,7 @@ include/env.h \
 include/hardware.h \
 include/kvs.h \
 include/kvscommon.h \
+include/kvsprovider.h \
 include/list.h \
 include/list_t.h \
 include/logging.h \
@@ -177,6 +176,7 @@ lib/pskvs/kvs.c \
 lib/pskvs/kvscommon.c \
 lib/pskvs/kvslog.c \
 lib/pskvs/kvslog.h \
+lib/pskvs/kvsprovider.c \
 lib/pslog/Makefile.am \
 lib/pslog/Makefile.in \
 lib/pslog/pslog.c \
@@ -239,6 +239,10 @@ plugins/pspmi/pmilog.c \
 plugins/pspmi/pmilog.h \
 plugins/pspmi/pmimain.c \
 plugins/pspmi/pmimain.h \
+plugins/pspmi/pmiprovider.c \
+plugins/pspmi/pmiprovider.h \
+plugins/pspmi/pmiservice.c \
+plugins/pspmi/pmiservice.h \
 plugins/pspmi/pmispawn.c \
 plugins/pspmi/pmispawn.h \
 plugins/psresport/Makefile.am \

@@ -175,7 +175,7 @@ int flushRDPMsgs(int node)
 				.sender = dest,
 				.dest = sender,
 				.len = sizeof(DDMsg_t) };
-	    sendMsg(&contmsg);
+	    if (PSC_getID(contmsg.dest) != node) sendMsg(&contmsg);
 	}
     }
  end:

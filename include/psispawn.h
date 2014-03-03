@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 1999-2003 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2010 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2013 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -404,12 +404,13 @@ int PSI_spawnAdmin(PSnodes_ID_t node, char *workdir, int argc, char **argv,
  *
  * @param tid The task ID of the spawned process.
  *
+ * @param rank The rank of the spawned process.
  *
  * @return On success, 1 is returned, or -1 if an error occurred. Then
  * @a error is set appropriately.
  */
 int PSI_spawnService(PSnodes_ID_t node, char *workdir, int argc, char **argv,
-		     int getSignals, int *error, PStask_ID_t *tid);
+		     int getSignals, int *error, PStask_ID_t *tid, int rank);
 
 /**
  * @brief Create a pg (process group) file for MPIch/P4

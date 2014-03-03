@@ -1,3 +1,79 @@
+Version psmgmt-5.0.43:
+======================
+------------------------------------------------------------------------
+r8771 | eicker | 2013-05-07 14:08:38 +0200 (Tue, 07 May 2013) | 2 lines
+
+Try to keep some compatibility and cosmetical changes.
+
+------------------------------------------------------------------------
+r8770 | rauh | 2013-05-07 13:21:26 +0200 (Tue, 07 May 2013) | 6 lines
+
+Enhancement: Added support for MPI_COMM_SPAWN.
+Enhancement: Moved KVS code from logger into its own
+    service process aka the kvs-provider.
+Bugfix: Segfault when growing client structures for
+    negative ranks in the logger.
+
+------------------------------------------------------------------------
+r8769 | eicker | 2013-05-07 12:44:57 +0200 (Tue, 07 May 2013) | 3 lines
+
+Bugfix: Prevent PSP_DD_SENDCONT-storms possibly initiated by forwarded
+    PSP_CD_RELEASE messages.
+
+------------------------------------------------------------------------
+r8768 | eicker | 2013-05-07 10:14:38 +0200 (Tue, 07 May 2013) | 2 lines
+
+Rename some parameters in releaseSignal() for more readable code.
+
+------------------------------------------------------------------------
+r8767 | eicker | 2013-05-07 10:11:24 +0200 (Tue, 07 May 2013) | 3 lines
+
+Bugfix: Prevent false RELEASERES messages when child is inherited
+    several times.
+
+------------------------------------------------------------------------
+r8766 | eicker | 2013-05-03 17:35:10 +0200 (Fri, 03 May 2013) | 2 lines
+
+Fix message documentation
+
+------------------------------------------------------------------------
+r8763 | eicker | 2013-05-03 13:56:06 +0200 (Fri, 03 May 2013) | 3 lines
+
+Bugfix: Fix possible race whithin deletingClient(). SIGCHLD might
+    lead to premature invalidation of task structure.
+
+------------------------------------------------------------------------
+r8762 | eicker | 2013-05-03 11:57:20 +0200 (Fri, 03 May 2013) | 3 lines
+
+Bugfix: Don't release parent before all children are inherited. This
+    should fix a possible race unveiled by the new kvs-provider.
+
+------------------------------------------------------------------------
+r8761 | eicker | 2013-04-30 18:39:56 +0200 (Tue, 30 Apr 2013) | 2 lines
+
+Enhancement: pre-allocate some fmt for logger. This should help with #1087.
+
+------------------------------------------------------------------------
+r8760 | eicker | 2013-04-30 18:38:44 +0200 (Tue, 30 Apr 2013) | 2 lines
+
+More visible warnings on incompatibilities in NEWS.
+
+------------------------------------------------------------------------
+r8759 | eicker | 2013-03-08 18:59:04 +0100 (Fri, 08 Mar 2013) | 5 lines
+
+Bugfix: Ensure, PSP_CD_RELEASE message is correctly dropped to prevent
+    hanging processes.
+Bugfix: Correctly drop PSP_CD_NOTIFYDEAD messages. At the same time
+    don't send remote PSP_NOTIFYDEADRES messages twice.
+
+------------------------------------------------------------------------
+r8755 | eicker | 2013-03-04 18:22:02 +0100 (Mon, 04 Mar 2013) | 2 lines
+
+New version (psmgmt-5.0.42)
+
+------------------------------------------------------------------------
+
+
 Version psmgmt-5.0.42:
 ======================
 ------------------------------------------------------------------------

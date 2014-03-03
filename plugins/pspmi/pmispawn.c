@@ -26,17 +26,18 @@
 
 #include "pmiforwarder.h"
 #include "pmilog.h"
+#include "pmiprovider.h"
 
 #include "pmispawn.h"
 
-/** the socket connecting the pmi client with the forwarder */
+/** the socket connecting the PMI client with the forwarder */
 static int forwarderSock = -1;
 
-/** the type of the pmi connection */
+/** the type of the PMI connection */
 static PMItype_t pmiType;
 
 /**
- * @brief Set up a new pmi TCP socket and start listening for new connections.
+ * @brief Set up a new PMI TCP socket and start listening for new connections.
  *
  * Setup and start to listen to a TCP socket that clients can connect
  * to for PMI requests.
@@ -52,7 +53,7 @@ static int init_PMISocket(void)
 
     if ((sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)) <0) {
 	int eno = errno;
-	mwarn(eno, "%s: create pmi socket failed", __func__);
+	mwarn(eno, "%s: create PMI socket failed", __func__);
 	errno = eno;
 	return -1;
     }
@@ -99,7 +100,7 @@ static void get_PMI_PORT(int PMISock, char *cPMI_PORT, int size )
     struct sockaddr_in addr;
     socklen_t len;
 
-    /* get the pmi port */
+    /* get the PMI port */
     len = sizeof(addr);
     bzero(&(addr), 8);
     if (getsockname(PMISock,(struct sockaddr*)&addr,&len) == -1) {
@@ -138,7 +139,7 @@ static PMItype_t preparePMI(int *forwarderSock)
     int pmiEnableSockp = 0;
     char *envstr;
 
-    /* check if pmi should be started */
+    /* check if PMI should be started */
     if ((envstr = getenv("PMI_ENABLE_TCP"))) {
 	pmiEnableTcp = atoi(envstr);
     }
@@ -150,7 +151,7 @@ static PMItype_t preparePMI(int *forwarderSock)
     /* only one option is allowed */
     if (pmiEnableSockp && pmiEnableTcp) {
 	mwarn(EINVAL,
-		  "%s: only one type of pmi connection allowed", __func__);
+		  "%s: only one type of PMI connection allowed", __func__);
 	return PMI_FAILED;
     }
 
@@ -158,7 +159,7 @@ static PMItype_t preparePMI(int *forwarderSock)
     unsetenv("PMI_PORT");
     unsetenv("PMI_FD");
 
-    /* open pmi socket for comm. between the pmi client and forwarder */
+    /* open PMI socket for comm. between the PMI client and forwarder */
     if (pmiEnableTcp) {
 	char cPMI_PORT[50];
 
@@ -172,7 +173,7 @@ static PMItype_t preparePMI(int *forwarderSock)
 	setenv("PMI_PORT", cPMI_PORT, 1);
     }
 
-    /* create a socketpair for comm. between the pmi client and forwarder */
+    /* create a socketpair for comm. between the PMI client and forwarder */
     if (pmiEnableSockp) {
 	int socketfds[2];
 	char cPMI_FD[50];
@@ -191,21 +192,54 @@ static PMItype_t preparePMI(int *forwarderSock)
     return pmiType;
 }
 
-int handleClientSpawn()
+int handleClientSpawn(void *data)
 {
-    /* close the forwarder socket in the client process */
-    if (pmiType == PMI_OVER_UNIX) close(forwarderSock);
+    PStask_t *task = data;
+    char *env;
+
+    /* cleanup child environment */
+    if (task->group == TG_ANY) {
+
+	/* close the forwarder socket in the client process */
+	if (pmiType == PMI_OVER_UNIX) close(forwarderSock);
+
+	unsetenv("__KVS_PROVIDER_TID");
+	unsetenv("__PMI_PROCESS_MAPPING");
+	unsetenv("PMI_KVS_TMP");
+	unsetenv("__PMI_SPAWN_PARENT");
+
+	if ((env = getenv("__PMI_preput_num"))) {
+	    int i, num = atoi(env);
+	    char buf[100];
+
+	    for (i=0; i<num; i++) {
+		snprintf(buf, sizeof(buf), "__PMI_preput_key_%i", i);
+		unsetenv(buf);
+		snprintf(buf, sizeof(buf), "__PMI_preput_val_%i", i);
+		unsetenv(buf);
+	    }
+	    unsetenv("__PMI_preput_num");
+	}
+    } else if (task->group == TG_KVS) {
+	closeKVSForwarderSock();
+    }
 
     return 0;
 }
 
-int handleForwarderSpawn()
+int handleForwarderSpawn(void *data)
 {
-    if ((pmiType = preparePMI(&forwarderSock)) == PMI_FAILED) {
-	return -1;
-    }
+    PStask_t *task = data;
 
-    setConnectionInfo(pmiType, forwarderSock);
+    if (task->group == TG_ANY) {
+	if ((pmiType = preparePMI(&forwarderSock)) == PMI_FAILED) {
+	    return -1;
+	}
+
+	setConnectionInfo(pmiType, forwarderSock);
+    } else if (task->group == TG_KVS) {
+	setupKVSProviderComm();
+    }
 
     return 0;
 }

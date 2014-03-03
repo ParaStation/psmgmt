@@ -24,12 +24,18 @@
 logger_t *kvslogger;
 
 #define mlog(...) if (kvslogger) logger_print(kvslogger, -1, __VA_ARGS__)
+#define mwarn(...) if (kvslogger) logger_warn(kvslogger, -1, __VA_ARGS__)
+#define mdbg(...) if (kvslogger) logger_print(kvslogger, __VA_ARGS__)
 
-void initKVSLogger(FILE *logfile);
+void initKVSLogger(char *name, FILE *logfile);
+int isKVSLoggerInitialized();
 void maskKVSLogger(int32_t mask);
+int32_t getKVSLoggerMask();
+void finalizeKVSLogger();
 
 typedef enum {
-    KVS_LOG_VERBOSE = 0x000010, /**< Other verbose stuff */
+    KVS_LOG_VERBOSE	= 0x000010, /**< Other verbose stuff */
+    KVS_LOG_PROVIDER	= 0x000020, /**< Log kvs provider stuff */
 } PSKVS_log_types_t;
 
 #endif

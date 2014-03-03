@@ -45,6 +45,7 @@ static char vcid[] __attribute__((used)) =
 #include <psipartition.h>
 #include <pscommon.h>
 #include "kvscommon.h"
+#include "kvsprovider.h"
 
 #define GDB_COMMAND_EXE "gdb"
 #define GDB_COMMAND_FILE CONFIGDIR "/mpiexec.gdb"
@@ -83,7 +84,7 @@ int numUniqHosts = 0;
 /** list of uniq hsots */
 char **uniqHosts = NULL;
 
-/* pmi options */
+/* PMI options */
 int pmienabletcp = 0;
 int pmienablesockp = 0;
 int pmitmout = 0;
@@ -387,8 +388,8 @@ void setupGlobalEnv(int admin, int np)
 {
     char tmp[32];
 
-    if (!admin && (pmienabletcp || pmienablesockp) ) {
-	/* generate pmi auth token */
+    if (!admin && (pmienabletcp || pmienablesockp)) {
+	/* generate PMI auth token */
 	snprintf(tmp, sizeof(tmp), "%i", PSC_getMyTID());
 	setPSIEnv("PMI_ID", tmp, 1);
 	setenv("PMI_ID", tmp, 1);
@@ -398,25 +399,79 @@ void setupGlobalEnv(int admin, int np)
 	setPSIEnv("PMI_SIZE", tmp, 1);
 	setenv("PMI_SIZE", tmp, 1);
 
-	/* set the template for the kvs name */
-	setPSIEnv("PMI_KVS_TMP", "pshost", 1);
-	setenv("PMI_KVS_TMP", "pshost", 1);
+	/* set the template for the KVS name */
+	snprintf(tmp, sizeof(tmp), "pshost_%i_0", PSC_getMyTID());
+	setPSIEnv("PMI_KVS_TMP", tmp, 1);
+	setenv("PMI_KVS_TMP", tmp, 1);
 
-	/* enable kvs support (within logger) */
-	setenv("KVS_ENABLE", "true", 1);
+	/* enable the KVS provider */
+	setenv("SERVICE_KVS_PROVIDER", "true", 1);
+	setPSIEnv("SERVICE_KVS_PROVIDER", "pshost", 1);
 
 	if (pmitmout) {
 	    snprintf(tmp, sizeof(tmp), "%d", pmitmout);
 	    setenv("PMI_BARRIER_TMOUT", tmp, 1);
 	    if (verbose)
-		printf("Setting timeout of pmi barrier to %i\n", pmitmout);
+		printf("Setting timeout of PMI barrier to %i\n", pmitmout);
 	}
+	setPSIEnv("MEASURE_KVS_PROVIDER", getenv("MEASURE_KVS_PROVIDER"), 1);
     }
 
     /* set the size of the job */
     snprintf(tmp, sizeof(tmp), "%d", np);
     setPSIEnv("PSI_NP_INFO", tmp, 1);
     setenv("PSI_NP_INFO", tmp, 1);
+}
+
+static void startKVSProvider(int argc, char *argv[], char **envp)
+{
+    char tmp[1024];
+    int error, ret, sRank = -3;
+    char *pwd, *ptr, **env;
+    PStask_ID_t spawnedProc;
+
+    if ((ptr = getenv("__PMI_SPAWN_SERVICE_RANK"))) {
+	sRank = atoi(ptr);
+    }
+    unsetenv("__PMI_SPAWN_SERVICE_RANK");
+    unsetenv("SERVICE_KVS_PROVIDER");
+
+    /* forward needed env vars */
+    for (env = envp; *env != 0; env++) {
+	ptr = *env;
+	putPSIEnv(ptr);
+    }
+
+    setPSIEnv("PMI_SPAWNED", getenv("PMI_SPAWNED"), 1);
+    snprintf(tmp, sizeof(tmp), "%i", PSC_getMyTID());
+    setPSIEnv("__KVS_PROVIDER_TID", tmp, 1);
+
+    /* start the spawn service process */
+    unsetPSIEnv("SERVICE_KVS_PROVIDER");
+    unsetPSIEnv("__PMI_SPAWN_SERVICE_RANK");
+    unsetPSIEnv("MEASURE_KVS_PROVIDER");
+
+    pwd = getcwd(tmp, sizeof(tmp));
+    ret = PSI_spawnService(PSC_getMyID(), pwd, argc, argv, 0, &error,
+	    &spawnedProc, sRank);
+
+    if (ret < 0 || error) {
+	fprintf(stderr, "Could not start spawner process (%s)", argv[0]);
+	if (error) {
+	    fprintf(stderr, ": ");
+	    errno = error;
+	    perror("");
+	} else {
+	    fprintf(stderr, "\n");
+	}
+	exit(EXIT_FAILURE);
+    }
+
+    /* start the KVS provider */
+    kvsProviderLoop(verbose);
+
+    /* never be here  */
+    exit(0);
 }
 
 /**
@@ -428,7 +483,7 @@ void setupGlobalEnv(int admin, int np)
 static void createSpawner(int argc, char *argv[], int np, int admin)
 {
     int rank = PSE_getRank();
-    char tmp[1024];
+    char cwd[1024], tmp[100];
     PSnodes_ID_t nodeID;
     char *pwd = NULL;
 
@@ -452,26 +507,33 @@ static void createSpawner(int argc, char *argv[], int np, int admin)
 	setupGlobalEnv(admin, np);
 
 	/* get absolute path to myself */
-	cnt = readlink("/proc/self/exe", tmp, sizeof(tmp));
+	cnt = readlink("/proc/self/exe", cwd, sizeof(cwd));
 	if (cnt == -1) {
 	    fprintf(stderr, "%s: failed reading my absolute path\n", __func__);
-	} else if (cnt == sizeof(tmp)) {
+	} else if (cnt == sizeof(cwd)) {
 	    fprintf(stderr, "%s: buffer to read my absolute path too small\n",
 		    __func__);
 	} else {
 	    /* change argv[0] relative path to absolute path */
-	    tmp[cnt] = '\0';
-	    argv[0] = strdup(tmp);
+	    cwd[cnt] = '\0';
+	    argv[0] = strdup(cwd);
 	}
 
 	/* get current working directory */
 	/* NULL is ok for pwd */
-	if ((pwd = getcwd(tmp, sizeof(tmp))) != NULL) {
+	if ((pwd = getcwd(cwd, sizeof(cwd))) != NULL) {
 	    setPSIEnv("PWD", pwd, 1);
 	}
 
+	/* add an additional service count for the KVS process */
+	if ((getenv("SERVICE_KVS_PROVIDER"))) {
+	    setenv(ENV_NUM_SERVICE_PROCS, "1", 1);
+	    snprintf(tmp, sizeof(tmp), "%i", PSC_getMyTID());
+	    setPSIEnv("__PSI_LOGGER_TID", tmp, 1);
+	}
+
 	ret=PSI_spawnService(nodeList[0], pwd, argc, argv, 0, &error,
-				&spawnedProc);
+				&spawnedProc, 0);
 
 	free(nodeList);
 
@@ -494,7 +556,7 @@ static void createSpawner(int argc, char *argv[], int np, int admin)
 
 	/* Switch to psilogger */
 	if (verbose) {
-	    printf("starting logger process, pid:%i\n", getpid());
+	    printf("starting logger process, pid '%i'\n", getpid());
 	}
 	PSI_execLogger(NULL);
 
@@ -503,7 +565,11 @@ static void createSpawner(int argc, char *argv[], int np, int admin)
     }
 
     if (verbose) {
-	printf("service process started, pid:%i\n", getpid());
+	if ((getenv("SERVICE_KVS_PROVIDER"))) {
+	    printf("KVS process started, pid '%i'\n", getpid());
+	} else {
+	    printf("service process started, pid '%i'\n", getpid());
+	}
     }
     return;
 }
@@ -705,11 +771,16 @@ static char *opmiGetReservedPorts()
  * @return On success a buffer with the requested process mapping is
  * returned. On error NULL is returned.
  */
-char *getProcessMap()
+char *getProcessMap(int np)
 {
     int i, sid = 0, nodeCount = 0, procCount = 0;
     int oldProcCount = 0;
-    char pMap[VALLEN_MAX], buf[20];
+    char pMap[PMI_VALLEN_MAX], buf[20];
+
+    if ((getenv("PMI_SPAWNED"))) {
+	snprintf(pMap, sizeof(pMap), "(vector,(0,%i,1))", np);
+	return strdup(pMap);
+    }
 
     snprintf(pMap, sizeof(pMap), "(vector");
 
@@ -814,40 +885,37 @@ static void setupCommonEnv(int np)
     if (pmienabletcp || pmienablesockp ) {
 	char *mapping;
 
-	/* propagate pmi auth token */
+	/* propagate PMI auth token */
 	env = getenv("PMI_ID");
 	if (!env) errExit("No PMI_ID given.");
 	setPSIEnv("PMI_ID", env, 1);
 
-	/* enable pmi tcp port */
+	/* enable PMI tcp port */
 	if (pmienabletcp) {
 	    setPSIEnv("PMI_ENABLE_TCP", "1", 1);
 	}
 
-	/* enable pmi sockpair */
+	/* enable PMI sockpair */
 	if (pmienablesockp) {
 	    setPSIEnv("PMI_ENABLE_SOCKP", "1", 1);
 	}
 
-	/* set the pmi debug mode */
-	if (pmidebug) {
-	    snprintf(tmp, sizeof(tmp), "%d", pmidebug);
-	    setPSIEnv("PMI_DEBUG", tmp, 1);
+	/* set the PMI debug mode */
+	if (pmidebug || getenv("PMI_DEBUG")) {
+	    setPSIEnv("PMI_DEBUG", "1", 1);
 	}
 
-	/* set the pmi debug kvs mode */
-	if (pmidebug_kvs) {
-	    snprintf(tmp, sizeof(tmp), "%d", pmidebug_kvs);
-	    setPSIEnv("PMI_DEBUG_KVS", tmp, 1);
+	/* set the PMI debug KVS mode */
+	if (pmidebug_kvs || getenv("PMI_DEBUG_KVS")) {
+	    setPSIEnv("PMI_DEBUG_KVS", "1", 1);
 	}
 
-	/* set the pmi debug client mode */
-	if (pmidebug_client) {
-	    snprintf(tmp, sizeof(tmp), "%d", pmidebug_client);
-	    setPSIEnv("PMI_DEBUG_CLIENT", tmp, 1);
+	/* set the PMI debug client mode */
+	if (pmidebug_client || getenv("PMI_DEBUG_CLIENT")) {
+	    setPSIEnv("PMI_DEBUG_CLIENT", "1", 1);
 	}
 
-	/* set the init size of the pmi job */
+	/* set the init size of the PMI job */
 	env = getenv("PMI_SIZE");
 	if (!env) errExit("No PMI_SIZE given.");
 	setPSIEnv("PMI_SIZE", env, 1);
@@ -860,18 +928,41 @@ static void setupCommonEnv(int np)
 	}
 	setPSIEnv("PMI_UNIVERSE_SIZE", tmp, 1);
 
-	/* set the template for the kvs name */
+	/* set the template for the KVS name */
 	env = getenv("PMI_KVS_TMP");
 	if (!env) errExit("No PMI_KVS_TMP given.");
 	setPSIEnv("PMI_KVS_TMP", env, 1);
 
 	/* setup process mapping needed for MVAPICH */
-	if ((mapping = getProcessMap())) {
+	if ((mapping = getProcessMap(np))) {
 	    setPSIEnv("__PMI_PROCESS_MAPPING", mapping, 1);
 	    free(mapping);
 	} else {
 	    fprintf(stderr, "failed building MVAPICH process mapping\n");
 	}
+
+	/* propagate neccessary infos for PMI spawn */
+	if ((env = getenv("__PMI_preput_num"))) {
+	    int i, prenum;
+	    char *key, *value, keybuf[100], valbuf[100];
+
+	    setPSIEnv("__PMI_preput_num", env, 1);
+
+	    prenum = atoi(env);
+	    for (i=0; i<prenum; i++) {
+		snprintf(keybuf, sizeof(keybuf), "__PMI_preput_key_%i", i);
+		key = getenv(keybuf);
+		snprintf(valbuf, sizeof(valbuf), "__PMI_preput_val_%i", i);
+		value = getenv(valbuf);
+		if (key && value) {
+		    setPSIEnv(keybuf, key, 1);
+		    setPSIEnv(valbuf, value, 1);
+		}
+	    }
+	}
+	setPSIEnv("__PMI_SPAWN_PARENT", getenv("__PMI_SPAWN_PARENT"), 1);
+	setPSIEnv("__KVS_PROVIDER_TID", getenv("__KVS_PROVIDER_TID"), 1);
+	setPSIEnv("PMI_SPAWNED", getenv("PMI_SPAWNED"), 1);
     }
 
     /* set the size of the job */
@@ -897,14 +988,15 @@ static char * setupPMINodeEnv(int rank)
 /* Flag, if verbose-option is set */
 static int verboseRankMsg = 0;
 
-static char ** setupNodeEnv(int rank)
+static char ** setupNodeEnv(int psRank)
 {
     static char *env[7];
     char buf[200];
     int cur = 0;
+    static int rank = 0;
 
     /* setup PMI env */
-    if (pmienabletcp || pmienablesockp ) {
+    if (pmienabletcp || pmienablesockp) {
 	env[cur++] = setupPMINodeEnv(rank);
     }
 
@@ -946,6 +1038,7 @@ static char ** setupNodeEnv(int rank)
 
     if (verboseRankMsg) printf("spawn rank %d\n", rank);
 
+    rank++;
     return env;
 }
 
@@ -1073,7 +1166,7 @@ static void extractNodeInformation(PSnodes_ID_t *nodeList, int np)
  * additional messages describing what is done will be created.
  *
  * Before processes are actually spawned, the environment including
- * pmi stuff is set up.
+ * PMI stuff is set up.
  *
  * @param np Size of the job.
  *
@@ -1089,14 +1182,16 @@ static void extractNodeInformation(PSnodes_ID_t *nodeList, int np)
  */
 static int startProcs(int np, char *wd, int argc, char *argv[], int verbose)
 {
-    int i, ret, *errors = NULL;
+    int i, ret, *errors = NULL, pSize;
+    PStask_ID_t *tids;
 
     /* request the complete nodelist from master */
     if (!nodeList) {
-	nodeList = umalloc(np*sizeof(nodeList), __func__);
+	pSize = usize > np ? usize : np;
+	nodeList = umalloc(pSize*sizeof(nodeList), __func__);
 
 	PSI_infoList(-1, PSP_INFO_LIST_PARTITION, NULL,
-		nodeList, np*sizeof(*nodeList), 0);
+		nodeList, pSize*sizeof(*nodeList), 0);
     }
 
     /* extract additional node informations (e.g. uniq nodes) */
@@ -1107,29 +1202,30 @@ static int startProcs(int np, char *wd, int argc, char *argv[], int verbose)
 
     if (ompidebug) {
 	for (i=0; i< np; i++) {
-	    fprintf(stderr, "%s: rank '%i' opmi-nodeID '%i' ps-nodeID '%i' node '%s'\n",
-		    __func__, i, jobLocalNodeIDs[i], nodeList[i],
-		    getHostbyNodeID(&nodeList[i]));
+	    fprintf(stderr, "%s: rank '%i' opmi-nodeID '%i' ps-nodeID '%i'"
+		    " node '%s'\n", __func__, i, jobLocalNodeIDs[i],
+		    nodeList[i], getHostbyNodeID(&nodeList[i]));
 	}
     }
     free(nodeList);
-
 
     setupCommonEnv(np);
 
     verboseRankMsg = verbose;
     PSI_registerRankEnvFunc(setupNodeEnv);
 
-    /* only start the first process for mpi1 jobs */
+    /* only start the first process for MPI1 jobs */
     if (mpichcom) np = 1;
 
     errors = umalloc(sizeof(int) * np, __func__);
+    tids = umalloc(sizeof(PStask_ID_t) * np, __func__);
 
     /* spawn client processes */
-    ret = PSI_spawnStrict(np, wd, argc, argv, 1, errors, NULL);
+    ret = PSI_spawnStrict(np, wd, argc, argv, 1, errors, tids);
 
     /* Analyze result, if necessary */
     if (ret<0) {
+
 	for (i=0; i<np; i++) {
 	    if (verbose || errors[i]) {
 		fprintf(stderr, "Could%s spawn '%s' process %d",
@@ -1142,10 +1238,37 @@ static int startProcs(int np, char *wd, int argc, char *argv[], int verbose)
 	    }
 	}
 	fprintf(stderr, "%s: PSI_spawn() failed.\n", __func__);
+
+	if ((getenv("PMI_SPAWNED"))) {
+	    PSLog_Msg_t lmsg;
+	    char *env, *lptr;
+	    size_t len = 0;
+	    int32_t res = 0;
+
+	    /* tell parent the spawn has failed */
+	    if (!(env = getenv("__PMI_SPAWN_PARENT"))) {
+		fprintf(stderr, "%s: don't know the spawn parent!\n",
+			__func__);
+		exit(1);
+	    }
+
+	    lmsg.header.type = PSP_CC_MSG;
+	    lmsg.header.sender = PSC_getMyTID();
+	    lmsg.header.dest = atoi(env);
+	    lmsg.version = 2;
+	    lmsg.type = KVS;
+	    lmsg.sender = -1;
+
+	    lptr = lmsg.buf;
+	    setKVSCmd(&lptr, &len, CHILD_SPAWN_RES);
+	    addKVSInt32(&lptr, &len, &res);
+	    lmsg.header.len = (sizeof(lmsg) - sizeof(lmsg.buf)) + len;
+
+	    PSI_sendMsg((DDMsg_t *)&lmsg);
+	}
     }
 
     free(errors);
-
     return ret;
 }
 
@@ -1311,7 +1434,7 @@ static void cleanEnv(char *var)
  */
 static void setupPSIDEnv(int verbose)
 {
-    char *envstr, *envstr2, *msg;
+    char *envstr, *envstr2, *msg, *envusize = NULL;
     char tmp[1024];
     /* HACK: this determines, if we are the root-process */
     int isRoot = !getenv("__PSI_CORESIZE");
@@ -1487,6 +1610,24 @@ static void setupPSIDEnv(int verbose)
 	setenv("PSI_OPENMPI", "1", 1);
 	setPSIEnv("PSI_OPENMPI", "1", 1);
     }
+
+    /* set the universe size */
+    if ((envusize = getenv("MPIEXEC_UNIVERSE_SIZE"))) {
+	setPSIEnv("MPIEXEC_UNIVERSE_SIZE", envusize, 1);
+    }
+    if (usize < 1 && envusize) {
+	usize = atoi(envusize);
+    }
+    if (usize < np) usize = np;
+
+    if (verbose) {
+	printf("Setting universe size to '%i'\n", usize);
+    }
+
+    /* forward verbosity */
+    if ((envstr = getenv("MPIEXEC_VERBOSE")) || verbose) {
+	setPSIEnv("MPIEXEC_VERBOSE", "1", 1);
+    }
 }
 
 /**
@@ -1499,7 +1640,6 @@ static void setupPSIDEnv(int verbose)
  */
 static void setupEnvironment(int verbose)
 {
-    char *envstr;
     int rank;
 
     /* setup environment depending on psid/logger */
@@ -1542,17 +1682,6 @@ static void setupEnvironment(int verbose)
     if (path) {
 	setenv("PATH", path, 1);
 	setPSIEnv("PATH", path, 1);
-    }
-
-    /* set the universe size */
-    envstr = getenv("MPIEXEC_UNIVERSE_SIZE");
-    if (envstr || usize) {
-	if (!usize) {
-	    usize = atoi(envstr);
-	}
-	if (verbose) {
-	    printf("Setting universe size to '%i'\n", usize);
-	}
     }
 }
 
@@ -1966,7 +2095,7 @@ static void checkSanity(char *argv[])
     }
 
     if (pmienabletcp && pmienablesockp) {
-	errExit("Only one pmi connection type allowed (tcp or unix)");
+	errExit("Only one PMI connection type allowed (tcp or unix)");
     }
 
     if (ondemand && no_ondemand) {
@@ -2227,11 +2356,11 @@ struct poptOption poptDebugOptions[] = {
     { "psidb", '\0', POPT_ARG_NONE | POPT_ARGFLAG_DOC_HIDDEN,
       &psidb, 0, "set debug mode of the pse/psi lib", "num"},
     { "pmidb", '\0', POPT_ARG_NONE | POPT_ARGFLAG_DOC_HIDDEN,
-      &pmidebug, 0, "set debug mode of pmi", "num"},
+      &pmidebug, 0, "set debug mode of PMI", "num"},
     { "pmidbclient", '\0', POPT_ARG_NONE | POPT_ARGFLAG_DOC_HIDDEN,
-      &pmidebug_client, 0, "set debug mode of pmi client only", "num"},
+      &pmidebug_client, 0, "set debug mode of PMI client only", "num"},
     { "pmidbkvs", '\0', POPT_ARG_NONE | POPT_ARGFLAG_DOC_HIDDEN,
-      &pmidebug_kvs, 0, "set debug mode of pmi kvs only", "num"},
+      &pmidebug_kvs, 0, "set debug mode of PMI KVS only", "num"},
     { "loggerrawmode", '\0', POPT_ARG_NONE | POPT_ARGFLAG_DOC_HIDDEN,
       &loggerrawmode, 0, "set raw mode of the logger", "num"},
     { "sigquit", '\0', POPT_ARG_NONE | POPT_ARGFLAG_DOC_HIDDEN,
@@ -2276,12 +2405,12 @@ struct poptOption poptAdvancedOptions[] = {
       &pmitmout, 0, "set a timeout till all clients have to join the first "
       "barrier (disabled=-1) (default=60sec + np*0,1sec)", "num"},
     { "pmiovertcp", '\0', POPT_ARG_NONE | POPT_ARGFLAG_DOC_HIDDEN,
-      &pmienabletcp, 0, "connect to the pmi client over tcp/ip", "num"},
+      &pmienabletcp, 0, "connect to the PMI client over tcp/ip", "num"},
     { "pmioverunix", '\0', POPT_ARG_NONE | POPT_ARGFLAG_DOC_HIDDEN,
-      &pmienablesockp, 0, "connect to the pmi client over unix domain "
+      &pmienablesockp, 0, "connect to the PMI client over unix domain "
       "socket (default)", "num"},
     { "pmidisable", '\0', POPT_ARG_NONE | POPT_ARGFLAG_DOC_HIDDEN,
-      &pmidis, 0, "disable pmi interface", "num"},
+      &pmidis, 0, "disable PMI interface", "num"},
     POPT_TABLEEND
 };
 
@@ -2596,8 +2725,9 @@ static void setSigHandlers()
     signal(SIGTERM, sighandler);
 }
 
-int main(int argc, char *argv[])
+int main(int argc, char *argv[], char** envp)
 {
+    char *envstr;
     int ret;
 
     /* set sighandlers */
@@ -2609,15 +2739,21 @@ int main(int argc, char *argv[])
     /* some sanity checks */
     checkSanity(argv);
 
-    /* set default pmi connection method to unix socket */
+    /* set default PMI connection method to unix socket */
     if (!pmienabletcp && !pmienablesockp) {
 	pmienablesockp = 1;
     }
 
-    /* disable pmi interface */
+    /* disable PMI interface */
     if (pmidis || mpichcom) {
 	pmienabletcp = 0;
 	pmienablesockp = 0;
+    }
+
+    /* forward verbosity */
+    if ((envstr = getenv("MPIEXEC_VERBOSE")) || verbose) {
+	setPSIEnv("MPIEXEC_VERBOSE", "1", 1);
+	verbose = 1;
     }
 
     /* setup the parastation environment */
@@ -2637,7 +2773,7 @@ int main(int argc, char *argv[])
     /* add command args for controlling gdb */
     if (gdb) setupGDB();
 
-    /* add command args for mpi1 mode */
+    /* add command args for MPI1 mode */
     if (mpichcom) setupComp();
 
     if (admin) {
@@ -2648,10 +2784,15 @@ int main(int argc, char *argv[])
 	usleep(200);
 	createAdminTasks(dup_argc, dup_argv, login, verbose, show);
     } else {
-	/* start all processes */
-	if (startProcs(np, wdir, dup_argc, dup_argv, verbose) < 0) {
-	    fprintf(stderr, "Unable to start all processes. Aborting.\n");
-	    exit(EXIT_FAILURE);
+	/* start the KVS provider */
+	if ((getenv("SERVICE_KVS_PROVIDER"))) {
+	    startKVSProvider(argc, argv, envp);
+	} else {
+	    /* start all processes */
+	    if (startProcs(np, wdir, dup_argc, dup_argv, verbose) < 0) {
+		fprintf(stderr, "Unable to start all processes. Aborting.\n");
+		exit(EXIT_FAILURE);
+	    }
 	}
     }
 
@@ -2660,11 +2801,11 @@ int main(int argc, char *argv[])
     /* release service process */
     ret = PSI_release(PSC_getMyTID());
     if (ret == -1 && errno != ESRCH) {
-	fprintf(stderr, "Error releasing service process\n");
+	fprintf(stderr, "Error releasing service process pid '%i'\n", getpid());
     }
 
     if (verbose) {
-	printf("service process finished, pid:%i\n", getpid());
+	printf("service process finished pid '%i'\n", getpid());
     }
     return 0;
 }

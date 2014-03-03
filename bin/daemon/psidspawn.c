@@ -1217,7 +1217,7 @@ static void execForwarder(PStask_t *task, int daemonfd)
     }
 
     /* init the process manager sockets */
-    if ((PSIDhook_call(PSIDHOOK_EXEC_FORWARDER, &daemonfd)) == -1) {
+    if ((PSIDhook_call(PSIDHOOK_EXEC_FORWARDER, task)) == -1) {
 	eno = EINVAL;
 	goto error;
     }
@@ -1776,8 +1776,8 @@ static int checkRequest(PStask_ID_t sender, PStask_t *task)
 	return EACCES;
     }
 
-    if ((task->group == TG_SERVICE || task->group == TG_SERVICE_SIG)
-	&& task->rank != -2) {
+    if ((task->group == TG_SERVICE || task->group == TG_SERVICE_SIG
+	|| task->group == TG_KVS) && task->rank >= -1) {
 	/* wrong rank for service task */
 	PSID_log(-1, "%s: rank %d for service task\n", __func__, task->rank);
 	return EINVAL;
@@ -2030,7 +2030,8 @@ static void msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
 
 	if (PSC_getID(msg->header.sender)==PSC_getMyID()
 	    && msg->type == PSP_SPAWN_TASK && group != TG_SERVICE
-	    && group != TG_SERVICE_SIG && group != TG_ADMINTASK) {
+	    && group != TG_SERVICE_SIG && group != TG_ADMINTASK
+	    && group != TG_KVS) {
 	    if (!ptask->spawnNodes || rank >= ptask->spawnNum) {
 		PSID_log(-1, "%s: rank %d out of range\n", __func__, rank);
 	    } else {
@@ -2095,7 +2096,7 @@ static void msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
 	PStasklist_enqueue(&spawnTasks, task);
 
 	if (task->group == TG_SERVICE || task->group == TG_SERVICE_SIG
-	    || task->group == TG_ADMINTASK) {
+	    || task->group == TG_ADMINTASK || task->group == TG_KVS) {
 	    PSCPU_setAll(task->CPUset);
 	} else if (PSC_getID(msg->header.sender)==PSC_getMyID()) {
 	    if (!ptask->spawnNodes || rank >= ptask->spawnNum) {
@@ -2470,7 +2471,7 @@ static void msg_CHILDBORN(DDErrorMsg_t *msg)
 
     /* Accounting info */
     if (child->group != TG_ADMINTASK && child->group != TG_SERVICE
-	&& child->group != TG_SERVICE_SIG) {
+	&& child->group != TG_SERVICE_SIG && child->group != TG_KVS) {
 	sendAcctChild(child);
     }
 

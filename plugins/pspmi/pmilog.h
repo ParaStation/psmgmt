@@ -19,6 +19,7 @@
 #define __PS_PMI_LOG
 
 #include "logging.h"
+#include "psidforwarder.h"
 
 /** structure for syslog */
 logger_t *pmilogger;
