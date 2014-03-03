@@ -414,6 +414,8 @@ void setupGlobalEnv(int admin, int np)
 	    if (verbose)
 		printf("Setting timeout of PMI barrier to %i\n", pmitmout);
 	}
+	setPSIEnv("PMI_BARRIER_TMOUT", getenv("PMI_BARRIER_TMOUT"), 1);
+	setPSIEnv("PMI_BARRIER_ROUNDS", getenv("PMI_BARRIER_ROUNDS"), 1);
 	setPSIEnv("MEASURE_KVS_PROVIDER", getenv("MEASURE_KVS_PROVIDER"), 1);
     }
 
@@ -423,12 +425,56 @@ void setupGlobalEnv(int admin, int np)
     setenv("PSI_NP_INFO", tmp, 1);
 }
 
+/**
+ * @brief Searches the nodelist by an index.
+ *
+ * Searches the nodelist and returns a nodeID indicated by
+ * an index. Identical nodeID will be skipped if the nodelist
+ * is sorted.
+ *
+ * @param np The maximal number of process.
+ *
+ * @param index The index to find in the nodelist.
+ *
+ * @return Returns the requested nodeID or the last nodeID
+ * in the nodelist for invalid indexes.
+ */
+static PSnodes_ID_t getNodeIDbyIndex(int np, int index)
+{
+    PSnodes_ID_t lastID;
+    int i, count = 1, pSize;
+
+    /* request the complete nodelist */
+    if (!nodeList) {
+       pSize = usize > np ? usize : np;
+       nodeList = umalloc(pSize*sizeof(nodeList), __func__);
+
+       PSI_infoList(-1, PSP_INFO_LIST_PARTITION, NULL,
+               nodeList, pSize*sizeof(*nodeList), 0);
+    }
+
+    lastID = nodeList[0];
+
+    for (i=0; i<np; i++) {
+       if (lastID != nodeList[i]) {
+           if (count >= index) {
+               return nodeList[i];
+           }
+           count++;
+           lastID = nodeList[i];
+       }
+    }
+
+    return nodeList[np -1];
+}
+
 static void startKVSProvider(int argc, char *argv[], char **envp)
 {
-    char tmp[1024];
+    char tmp[1024], pTitle[50];
     int error, ret, sRank = -3;
     char *pwd, *ptr, **env;
-    PStask_ID_t spawnedProc;
+    PStask_ID_t spawnedProc, loggertid;
+    PSnodes_ID_t startNode;
 
     if ((ptr = getenv("__PMI_SPAWN_SERVICE_RANK"))) {
 	sRank = atoi(ptr);
@@ -452,7 +498,11 @@ static void startKVSProvider(int argc, char *argv[], char **envp)
     unsetPSIEnv("MEASURE_KVS_PROVIDER");
 
     pwd = getcwd(tmp, sizeof(tmp));
-    ret = PSI_spawnService(PSC_getMyID(), pwd, argc, argv, 0, &error,
+
+    startNode = (getenv("__MPIEXEC_DIST_START") ?
+			getNodeIDbyIndex(np, 2) : PSC_getMyID());
+
+    ret = PSI_spawnService(startNode, pwd, argc, argv, 0, &error,
 	    &spawnedProc, sRank);
 
     if (ret < 0 || error) {
@@ -465,6 +515,14 @@ static void startKVSProvider(int argc, char *argv[], char **envp)
 	    fprintf(stderr, "\n");
 	}
 	exit(EXIT_FAILURE);
+    }
+
+    /* set the process title */
+    if ((ptr = getenv("__PSI_LOGGER_TID"))) {
+	loggertid = atoi(ptr);
+	snprintf(pTitle, sizeof(pTitle), "kvsprovider LTID[%d] %s",
+		    PSC_getPID(loggertid), getenv("PMI_KVS_TMP"));
+	PSC_setProcTitle(argv, argc, pTitle, 1);
     }
 
     /* start the KVS provider */
@@ -484,8 +542,9 @@ static void createSpawner(int argc, char *argv[], int np, int admin)
 {
     int rank = PSE_getRank();
     char cwd[1024], tmp[100];
-    PSnodes_ID_t nodeID;
     char *pwd = NULL;
+    PSnodes_ID_t startNode;
+    PStask_ID_t myTID = PSC_getMyTID();
 
     if (rank==-1) {
 	int error, spawnedProc, ret, pSize;
@@ -498,9 +557,11 @@ static void createSpawner(int argc, char *argv[], int np, int admin)
 	    if (PSE_getPartition(pSize)<0) exit(EXIT_FAILURE);
 	    PSI_infoList(-1, PSP_INFO_LIST_PARTITION, NULL,
 			 nodeList, pSize*sizeof(*nodeList), 0);
+	    startNode = (getenv("__MPIEXEC_DIST_START") ?
+			    getNodeIDbyIndex(np, 1) : nodeList[0]);
+	    setPSIEnv("__MPIEXEC_DIST_START", getenv("__MPIEXEC_DIST_START"), 1);
 	} else {
-	    getFirstNodeID(&nodeID);
-	    nodeList[0] = nodeID;
+	    getFirstNodeID(&startNode);
 	}
 
 	/* setup the global environment also shared by logger for PMI */
@@ -528,11 +589,11 @@ static void createSpawner(int argc, char *argv[], int np, int admin)
 	/* add an additional service count for the KVS process */
 	if ((getenv("SERVICE_KVS_PROVIDER"))) {
 	    setenv(ENV_NUM_SERVICE_PROCS, "1", 1);
-	    snprintf(tmp, sizeof(tmp), "%i", PSC_getMyTID());
+	    snprintf(tmp, sizeof(tmp), "%i", myTID);
 	    setPSIEnv("__PSI_LOGGER_TID", tmp, 1);
 	}
 
-	ret=PSI_spawnService(nodeList[0], pwd, argc, argv, 0, &error,
+	ret=PSI_spawnService(startNode, pwd, argc, argv, 0, &error,
 				&spawnedProc, 0);
 
 	free(nodeList);
@@ -556,7 +617,7 @@ static void createSpawner(int argc, char *argv[], int np, int admin)
 
 	/* Switch to psilogger */
 	if (verbose) {
-	    printf("starting logger process, pid '%i'\n", getpid());
+	    printf("starting logger process %s\n", PSC_printTID(myTID));
 	}
 	PSI_execLogger(NULL);
 
@@ -566,9 +627,9 @@ static void createSpawner(int argc, char *argv[], int np, int admin)
 
     if (verbose) {
 	if ((getenv("SERVICE_KVS_PROVIDER"))) {
-	    printf("KVS process started, pid '%i'\n", getpid());
+	    printf("KVS process %s started\n", PSC_printTID(myTID));
 	} else {
-	    printf("service process started, pid '%i'\n", getpid());
+	    printf("service process %s started\n",  PSC_printTID(myTID));
 	}
     }
     return;
@@ -963,6 +1024,8 @@ static void setupCommonEnv(int np)
 	setPSIEnv("__PMI_SPAWN_PARENT", getenv("__PMI_SPAWN_PARENT"), 1);
 	setPSIEnv("__KVS_PROVIDER_TID", getenv("__KVS_PROVIDER_TID"), 1);
 	setPSIEnv("PMI_SPAWNED", getenv("PMI_SPAWNED"), 1);
+	setPSIEnv("PMI_BARRIER_TMOUT", getenv("PMI_BARRIER_TMOUT"), 1);
+	setPSIEnv("PMI_BARRIER_ROUNDS", getenv("PMI_BARRIER_ROUNDS"), 1);
     }
 
     /* set the size of the job */
@@ -2801,11 +2864,12 @@ int main(int argc, char *argv[], char** envp)
     /* release service process */
     ret = PSI_release(PSC_getMyTID());
     if (ret == -1 && errno != ESRCH) {
-	fprintf(stderr, "Error releasing service process pid '%i'\n", getpid());
+	fprintf(stderr, "Error releasing service process %s\n",
+		PSC_printTID(PSC_getMyTID()));
     }
 
     if (verbose) {
-	printf("service process finished pid '%i'\n", getpid());
+	printf("service process %s finished\n", PSC_printTID(PSC_getMyTID()));
     }
     return 0;
 }

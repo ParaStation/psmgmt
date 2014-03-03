@@ -643,6 +643,9 @@ TESTPLUGINS_ENABLED_TRUE
 AM_LDFLAGS
 AM_CFLAGS
 RL_LIBS
+PAM_ENABLED_FALSE
+PAM_ENABLED_TRUE
+PAM_LIBS
 POPT_LIBS
 NUMA_LIBS
 CPP
@@ -10228,7 +10231,14 @@ freebsd* | dragonfly*)
     *) objformat=elf ;;
     esac
   fi
-  version_type=freebsd-$objformat
+  # Handle Gentoo/FreeBSD as it was Linux
+  case $host_vendor in
+    gentoo)
+      version_type=linux ;;
+    *)
+      version_type=freebsd-$objformat ;;
+  esac
+
   case $version_type in
     freebsd-elf*)
       library_names_spec='${libname}${release}${shared_ext}$versuffix ${libname}${release}${shared_ext} $libname${shared_ext}'
@@ -10238,6 +10248,12 @@ freebsd* | dragonfly*)
     freebsd-*)
       library_names_spec='${libname}${release}${shared_ext}$versuffix $libname${shared_ext}$versuffix'
       need_version=yes
+      ;;
+    linux)
+      library_names_spec='${libname}${release}${shared_ext}$versuffix ${libname}${release}${shared_ext}$major ${libname}${shared_ext}'
+      soname_spec='${libname}${release}${shared_ext}$major'
+      need_lib_prefix=no
+      need_version=no
       ;;
   esac
   shlibpath_var=LD_LIBRARY_PATH
@@ -11549,6 +11565,59 @@ else
 fi
 
 
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for pam_open_session in -lpam" >&5
+$as_echo_n "checking for pam_open_session in -lpam... " >&6; }
+if ${ac_cv_lib_pam_pam_open_session+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lpam  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char pam_open_session ();
+int
+main ()
+{
+return pam_open_session ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_pam_pam_open_session=yes
+else
+  ac_cv_lib_pam_pam_open_session=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_pam_pam_open_session" >&5
+$as_echo "$ac_cv_lib_pam_pam_open_session" >&6; }
+if test "x$ac_cv_lib_pam_pam_open_session" = xyes; then :
+  PAM_LIBS=-lpam
+
+   $as_echo "#define HAVE_PAM_DEVEL 1" >>confdefs.h
+
+    pam_enabled=true
+fi
+
+ if test "x$pam_enabled" = xtrue; then
+  PAM_ENABLED_TRUE=
+  PAM_ENABLED_FALSE='#'
+else
+  PAM_ENABLED_TRUE='#'
+  PAM_ENABLED_FALSE=
+fi
+
+
   ps_search_libs_save_LIBS="$LIBS"
   LIBS="${RL_LIBS}"
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for library containing initscr" >&5
@@ -11952,6 +12021,8 @@ ac_config_files="$ac_config_files include/Makefile"
 
 ac_config_files="$ac_config_files lib/Makefile"
 
+ac_config_files="$ac_config_files lib/plugincommon/Makefile"
+
 ac_config_files="$ac_config_files lib/pscommon/Makefile"
 
 ac_config_files="$ac_config_files lib/pse/Makefile"
@@ -11971,6 +12042,18 @@ ac_config_files="$ac_config_files plugins/psaccount/Makefile"
 ac_config_files="$ac_config_files plugins/psresport/Makefile"
 
 ac_config_files="$ac_config_files plugins/pspmi/Makefile"
+
+ac_config_files="$ac_config_files plugins/psmom/Makefile"
+
+ac_config_files="$ac_config_files plugins/psmom/doc/Makefile"
+
+ac_config_files="$ac_config_files plugins/psmom/src/include/Makefile"
+
+ac_config_files="$ac_config_files plugins/psmom/src/pam/Makefile"
+
+ac_config_files="$ac_config_files plugins/psmom/src/pbs/Makefile"
+
+ac_config_files="$ac_config_files plugins/psmom/src/psmom/Makefile"
 
 ac_config_files="$ac_config_files scripts/Makefile"
 
@@ -12142,6 +12225,10 @@ Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${am__fastdepCC_TRUE}" && test -z "${am__fastdepCC_FALSE}"; then
   as_fn_error $? "conditional \"am__fastdepCC\" was never defined.
+Usually this means the macro was only invoked conditionally." "$LINENO" 5
+fi
+if test -z "${PAM_ENABLED_TRUE}" && test -z "${PAM_ENABLED_FALSE}"; then
+  as_fn_error $? "conditional \"PAM_ENABLED\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${TESTPLUGINS_ENABLED_TRUE}" && test -z "${TESTPLUGINS_ENABLED_FALSE}"; then
@@ -13005,6 +13092,7 @@ do
     "doc/Makefile") CONFIG_FILES="$CONFIG_FILES doc/Makefile" ;;
     "include/Makefile") CONFIG_FILES="$CONFIG_FILES include/Makefile" ;;
     "lib/Makefile") CONFIG_FILES="$CONFIG_FILES lib/Makefile" ;;
+    "lib/plugincommon/Makefile") CONFIG_FILES="$CONFIG_FILES lib/plugincommon/Makefile" ;;
     "lib/pscommon/Makefile") CONFIG_FILES="$CONFIG_FILES lib/pscommon/Makefile" ;;
     "lib/pse/Makefile") CONFIG_FILES="$CONFIG_FILES lib/pse/Makefile" ;;
     "lib/psi/Makefile") CONFIG_FILES="$CONFIG_FILES lib/psi/Makefile" ;;
@@ -13015,6 +13103,12 @@ do
     "plugins/psaccount/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/psaccount/Makefile" ;;
     "plugins/psresport/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/psresport/Makefile" ;;
     "plugins/pspmi/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/pspmi/Makefile" ;;
+    "plugins/psmom/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/psmom/Makefile" ;;
+    "plugins/psmom/doc/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/psmom/doc/Makefile" ;;
+    "plugins/psmom/src/include/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/psmom/src/include/Makefile" ;;
+    "plugins/psmom/src/pam/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/psmom/src/pam/Makefile" ;;
+    "plugins/psmom/src/pbs/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/psmom/src/pbs/Makefile" ;;
+    "plugins/psmom/src/psmom/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/psmom/src/psmom/Makefile" ;;
     "scripts/Makefile") CONFIG_FILES="$CONFIG_FILES scripts/Makefile" ;;
     "tests/plugins/Makefile") CONFIG_FILES="$CONFIG_FILES tests/plugins/Makefile" ;;
     "tests/functional/Makefile") CONFIG_FILES="$CONFIG_FILES tests/functional/Makefile" ;;

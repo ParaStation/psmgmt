@@ -15,7 +15,7 @@
 #include <stdlib.h>
 
 #include "psaccountlog.h"
-#include "helper.h"
+#include "pluginmalloc.h"
 
 #include "psaccounthistory.h"
 
@@ -56,5 +56,5 @@ int findHist(PStask_ID_t tid)
 
 void clearHist()
 {
-    free(savedJobs);
+    ufree(savedJobs);
 }

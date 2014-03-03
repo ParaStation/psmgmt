@@ -1,0 +1,29 @@
+#!/bin/bash
+#
+#               ParaStation psmom test suite
+#
+# Copyright (C) 2011 ParTec Cluster Competence Center GmbH, Munich
+#
+# author
+# Michael Rauh (rauh@par-tec.com)
+#
+
+SIZE=50
+COUNT=100
+
+if [ -f "jobscript" ]; then
+    exit 0;
+fi
+
+echo "#!/bin/bash" > jobscript
+echo "#" >> jobscript
+echo "#PBS -l walltime=60" >> jobscript
+echo "#PBS -N psmomRT-large_job" >> jobscript
+echo "" >> jobscript
+echo "echo COUNT=$COUNT" >> jobscript
+echo "echo SIZE=$SIZE" >> jobscript
+
+for o in $(seq 1 $SIZE); do
+    x="/bin"
+    for i in $(seq 1 $COUNT); do echo "$x/echo $i"; x="$x/../bin"; done >> jobscript
+done

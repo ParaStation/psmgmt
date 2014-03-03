@@ -21,11 +21,38 @@ Please send bug reports, questions and suggestions to <support@par-tec.com>
 **                                                                     **
 **  Remark: psmgmt 5.0.42 pushed pslog to version 3. This new version  **
 **  is *NOT* compatible with older parastation versions. Therefore, a  **
-**  setup of current versiond mixed with ones prior to 5.0.42 will     **
+**  setup of current version mixed with ones prior to 5.0.42 will      **
 **  *NOT* work                                                         **
 **                                                                     **
 *************************************************************************
 *************************************************************************
+
+Version 5.0.44:
+===============
+
+Bugfixes:
+- Prevent segfault due to access of outdated task-structure (#2060)
+- kvsprovider should report to stderr not syslog (#2040)
+- kvsprovider has to exit on itself if pspmi plugin is absent
+- Propagate PMI_BARRIER_TMOUT and PMI_BARRIER_ROUNDS to all kvsproviders
+- psmom: Flag copy forwarder and its children always valid
+- psaccount: Free all config objects when the plugin gets unloaded 
+- psresport: Unregister hooks and message handler if initialisation fails
+- psmom: Unregister hooks and message handler if initialisation fails
+- More minor bugs and warnings detected by LLVM's scan-build fixed
+
+Enhancements:
+- psmom version 5.2.10-20 merged into psmgmt
+- Place spawner/kvsprovider on own nodes when __MPIEXEC_DIST_START is set
+- Let mpiexec output the TID of service processes in verbose mode
+- psmom: Moving the psid spawner process is now save (#2071)
+- psmom: Try every known pbs server on job obit for failover
+- Meaningful process title for the kvsprovider
+- More self-explanatory CC_ERROR log messages
+
+Additional changes:
+- Omit psid's dependency on libpsi and libpse.
+
 
 Version 5.0.43-1:
 =================

@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2012 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2013 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -1157,7 +1157,7 @@ int PSI_getRankNode(int rank, PSnodes_ID_t *node)
     }
 
     *(int32_t*)ptr = rank;
-    ptr += sizeof(int32_t);
+    //ptr += sizeof(int32_t);
     msg.header.len += sizeof(int32_t);
 
     if (PSI_sendMsg(&msg)<0) {

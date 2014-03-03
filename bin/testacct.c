@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2006-2011 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2006-2013 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -179,23 +179,15 @@ char *handleDeleteMsg(DDTypedBufferMsg_t *msg)
 
 void handleStartMsg(DDTypedBufferMsg_t *msg)
 {
-    char *ptr = handleCommonMsg(msg);
-    int possChild;
-
     /* total number of possible children */
-    possChild = *(int32_t *)ptr;
-    ptr += sizeof(int32_t);
+    int possChild = *(int32_t *)handleCommonMsg(msg);
 
     printf(" poss children %d", possChild);
 }
 
 void handleChildMsg(DDTypedBufferMsg_t *msg)
 {
-    char *ptr = handleCommonMsg(msg);
-    char *progname;
-
-    progname = ptr;
-    ptr += strlen(ptr)+1;
+    char *progname = handleCommonMsg(msg);
 
     printf(" prog '%s'", progname);
 }
@@ -213,7 +205,7 @@ void handleLogMsg(DDTypedBufferMsg_t *msg)
 
     /* job ID (if available) */
     jobID = ptr;
-    ptr += strlen(ptr)+1;
+    //ptr += strlen(ptr)+1;
 
     if (*jobID) {
 	printf(" jobID '%s'", jobID);
@@ -224,12 +216,10 @@ void handleLogMsg(DDTypedBufferMsg_t *msg)
 
 void handleAcctMsg(DDTypedBufferMsg_t *msg)
 {
-    char *ptr = msg->buf;
     PStask_ID_t sender = msg->header.sender, logger;
 
     /* logger's TID, this identifies a task uniquely */
-    logger = *(PStask_ID_t *)ptr;
-    ptr += sizeof(PStask_ID_t);
+    logger = *(PStask_ID_t *)msg->buf;
 
     {
 	int ret = PSI_kill(logger, 0, 1); /* ping the sender */
@@ -267,7 +257,7 @@ void handleAcctMsg(DDTypedBufferMsg_t *msg)
 	break;
     case PSP_ACCOUNT_END:
 	printf("E");
-	ptr = handleEndMsg(msg);
+	handleEndMsg(msg);
 	break;
     default:
 	printf("?");

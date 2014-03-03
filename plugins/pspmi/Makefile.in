@@ -121,7 +121,7 @@ am__uninstall_files_from_dir = { \
   }
 am__installdirs = "$(DESTDIR)$(plugindir)"
 LTLIBRARIES = $(plugin_LTLIBRARIES)
-pspmi_la_LIBADD =
+pspmi_la_DEPENDENCIES = $(libpskvs) $(libpsi) $(libplugincommon)
 am_pspmi_la_OBJECTS = pspmi_la-pmiclient.lo pspmi_la-pmiforwarder.lo \
 	pspmi_la-pmilog.lo pspmi_la-pmimain.lo pspmi_la-pmispawn.lo \
 	pspmi_la-pmiservice.lo pspmi_la-pmiprovider.lo
@@ -170,8 +170,7 @@ AMTAR = @AMTAR@
 AM_CFLAGS = @AM_CFLAGS@
 AM_DEFAULT_VERBOSITY = @AM_DEFAULT_VERBOSITY@
 AM_DISTCHECK_CONFIGURE_FLAGS = @AM_DISTCHECK_CONFIGURE_FLAGS@
-AM_LDFLAGS = @AM_LDFLAGS@ -avoid-version -module -Wl,--whole-archive \
-	$(libpskvs) -Wl,--no-whole-archive $(libpsi)
+AM_LDFLAGS = @AM_LDFLAGS@ -avoid-version -module
 AR = @AR@
 AUTOCONF = @AUTOCONF@
 AUTOHEADER = @AUTOHEADER@
@@ -226,6 +225,7 @@ PACKAGE_STRING = @PACKAGE_STRING@
 PACKAGE_TARNAME = @PACKAGE_TARNAME@
 PACKAGE_URL = @PACKAGE_URL@
 PACKAGE_VERSION = @PACKAGE_VERSION@
+PAM_LIBS = @PAM_LIBS@
 PATH_SEPARATOR = @PATH_SEPARATOR@
 POPT_LIBS = @POPT_LIBS@
 RANLIB = @RANLIB@
@@ -316,6 +316,9 @@ do_subst = sed \
 	-e 's,[@]sysconfdir[@],$(sysconfdir),g' \
 	-e 's,[@]localstatedir[@],$(localstatedir),g'
 
+syslibdir := $(shell echo $(libdir) | sed -e 's,$(prefix),/,g')
+pamdir = $(syslibdir)/security
+pamconfdir = $(sysconfdir)/pam.d
 
 # should be $(libdir)/psmgmt-plugins or similar
 plugindir = $(prefix)/plugins
@@ -328,12 +331,14 @@ scriptsdir = $(prefix)/scripts
 libpskvs = $(top_builddir)/lib/pskvs/libpskvs.la
 libpsi = $(top_builddir)/lib/psi/libpsi.la
 plugin_LTLIBRARIES = pspmi.la
+libplugincommon = $(top_builddir)/lib/plugincommon/libplugincommon.la
 pspmi_la_SOURCES = pmiclient.c pmiclient.h pmiforwarder.c \
 	pmiforwarder.h pmilog.c pmilog.h pmimain.c pmimain.h \
 	pmispawn.c pmispawn.h pmiservice.c pmiservice.h \
 	pmiprovider.c pmiprovider.h
 
 pspmi_la_CPPFLAGS = $(AM_CPPFLAGS) -DPLUGINDIR=\"$(plugindir)\"
+pspmi_la_LIBADD = $(libpskvs) $(libpsi) $(libplugincommon)
 all: all-am
 
 .SUFFIXES:

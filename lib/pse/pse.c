@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 1999-2003 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2012 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2013 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -439,8 +439,8 @@ char * PSE_checkNodeEnv(char *nodelist, char *hostlist, char *hostfile,
 		     ENV_NODE_HOSTFILE, ENV_NODE_PEFILE);
 	    return msgStr;
 	}
-	setenv(ENV_NODE_HOSTFILE, hostfile, 1);
-	if (verbose) PSI_log(-1, "%s='%s'\n", ENV_NODE_HOSTFILE, hostfile);
+	setenv(ENV_NODE_PEFILE, pefile, 1);
+	if (verbose) PSI_log(-1, "%s='%s'\n", ENV_NODE_PEFILE, pefile);
     }
 
     return NULL;

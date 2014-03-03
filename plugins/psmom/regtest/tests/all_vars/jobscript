@@ -1,0 +1,10 @@
+#!/bin/bash
+#
+#PBS -V
+#PBS -l walltime=60
+#PBS -N psmomRT-all_vars
+#PBS -v PSMOM_DIS_ACCOUNT
+
+echo "JOB=$JOB"
+
+exit 0

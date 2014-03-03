@@ -1,0 +1,27 @@
+#!/usr/bin/env python
+#
+#               ParaStation psmom test suite
+#
+# Copyright (C) 2011 ParTec Cluster Competence Center GmbH, Munich
+#
+# author
+# Michael Rauh (rauh@par-tec.com)
+#
+
+import sys
+import os
+
+sys.path.append(os.getenv("RTH"))
+from rth import *
+
+r = rth()
+ofile = os.getenv("OUTPUT_FILE")
+
+rth.parseOutput(r, ofile)
+
+rth.testEnv(r, "NICE", "19")
+rth.testEnv(r, "RLIMIT_CPU", "2000")
+rth.testEnv(r, "RLIMIT_FSIZE", "2048000")
+rth.testEnv(r, "RLIMIT_DATA", "307200")
+rth.testEnv(r, "RLIMIT_PMEM", "307200")
+rth.testEnv(r, "RLIMIT_VMEM", "307200")

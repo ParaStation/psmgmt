@@ -1,0 +1,57 @@
+#!/usr/bin/env python
+#
+#               ParaStation psmom test suite
+#
+# Copyright (C) 2011 ParTec Cluster Competence Center GmbH, Munich
+#
+# author
+# Michael Rauh (rauh@par-tec.com)
+#
+
+import sys
+import os
+
+sys.path.append(os.getenv("RTH"))
+from rth import *
+
+r = rth()
+rth.parseOutput(r, os.getenv("OUTPUT_FILE"))
+
+# test pbs variables
+nodes = os.getenv("NODES")
+if nodes.find(":") != -1:
+    nodes = nodes[:nodes.find(":")]
+#rth.testEnv(r,"PBS_NUM_NODES", nodes)
+
+rth.testEnv(r,"PBS_JOBID", os.getenv("JOBID"))
+rth.testEnv(r,"PBS_JOBNAME", os.getenv("JOBNAME"))
+rth.testEnv(r,"PBS_TASKNUM", "1")
+rth.testEnv(r,"PBS_QUEUE", os.getenv("QUEUE"))
+rth.testEnv(r,"PBS_SERVER", os.getenv("PBS_SERVER"))
+
+# test PBS_O_ variables
+rth.testEnv(r,"PBS_O_WORKDIR", os.getenv("PBS_O_WORKDIR"))
+rth.testEnv(r,"PBS_O_HOME", os.getenv("PBS_O_HOME"))
+rth.testEnv(r,"PBS_O_QUEUE", os.getenv("PBS_O_QUEUE"))
+rth.testEnv(r,"PBS_O_LANG", os.getenv("PBS_O_LANG"))
+rth.testEnv(r,"PBS_O_LOGNAME", os.getenv("PBS_O_LOGNAME"))
+rth.testEnv(r,"PBS_O_SHELL", os.getenv("PBS_O_SHELL"))
+rth.testEnv(r,"PBS_O_HOST", os.getenv("PBS_O_HOST"))
+rth.testEnv(r,"PBS_O_PATH", os.getenv("PBS_O_PATH"))
+
+# test normal environment
+rth.testEnv(r,"USER_HOME", os.getenv("PBS_O_HOME"))
+
+# test if vars exists
+rth.testEnv(r,"PBS_NODENUM", "", 1)
+rth.testEnv(r,"PBS_VERSION", "", 1)
+rth.testEnv(r,"PBS_ENVIRONMENT", "", 1)
+rth.testEnv(r,"PBS_JOBCOOKIE", "", 1)
+rth.testEnv(r,"PBS_NODEFILE", "", 1)
+rth.testEnv(r,"PBS_VNODENUM", "", 1)
+
+# untested
+# PBS_GPUFILE=/var/spool/torque/aux//5064.michi-ng.localdomaingpu
+# PBS_O_MAIL=/var/mail/rauh
+# PBS_NP=1
+# PBS_NUM_PPN=1

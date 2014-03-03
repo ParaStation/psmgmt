@@ -1,0 +1,24 @@
+#!/bin/bash
+#
+#               ParaStation psmom test suite
+#
+# Copyright (C) 2011 ParTec Cluster Competence Center GmbH, Munich
+#
+# author
+# Michael Rauh (rauh@par-tec.com)
+#
+
+OUT_DATA=$(cat $OUTPUT_FILE 2>&1)
+ERR_DATA=$(cat $ERROR_FILE 2>&1)
+
+if [ "$OUT_DATA" != "stdout test" ]; then
+    echo "invalid output data"
+    exit 1
+fi
+
+if [ "$ERR_DATA" != "stderr test" ]; then
+    echo "invalid error data"
+    exit 1
+fi
+
+exit 0

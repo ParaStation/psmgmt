@@ -1,0 +1,45 @@
+#!/usr/bin/env python
+#
+#               ParaStation psmom test suite
+#
+# Copyright (C) 2011 ParTec Cluster Competence Center GmbH, Munich
+#
+# author
+# Michael Rauh (rauh@par-tec.com)
+#
+
+import os, shutil
+
+jobid = os.getenv("JOBID")
+if jobid.find(".") != -1:
+    jobid = jobid[:jobid.find(".")]
+destdir = os.getenv("RTH_OUT")
+
+if os.path.isdir(destdir) == False:
+    print("invalid test output path '" + destdir + "'")
+    exit(1)
+
+def valOutput(extension, expected):
+
+    # find job output in users home
+    outfile = os.getenv("HOME") + "/" + os.getenv("JOBNAME") + extension + jobid
+
+    if os.path.isfile(outfile) == False:
+        print("invalid output file: '" + outfile + "'")
+        exit(1)
+
+
+    # move output from users home to output dir
+    destfile = destdir + jobid + extension
+    shutil.move(outfile, destfile)
+
+    fp = open(destfile,'r')
+    line = fp.readline()
+
+    # test if it holds the correct information
+    if line != expected:
+        print ("invalid job output message: '" + line + "' expected:'" + expected + "'")
+        exit(1)
+
+valOutput(".o", "output\n")
+valOutput(".e", "error\n")

@@ -614,7 +614,7 @@ void deleteClient(int fd)
 	    gettimeofday(&now, NULL);
 	    timersub(&now, &task->started, &walltime);
 	    memcpy(ptr, &walltime, sizeof(walltime));
-	    ptr += sizeof(walltime);
+	    //ptr += sizeof(walltime);
 	    msg.header.len += sizeof(walltime);
 	}
 

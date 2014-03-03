@@ -212,4 +212,5 @@ void cleanup(void)
     clearAllAccClients();
     clearAllProcSnapshots();
     clearHist();
+    clearConfig();
 }

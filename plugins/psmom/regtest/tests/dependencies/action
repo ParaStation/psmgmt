@@ -1,0 +1,106 @@
+#!/bin/bash
+#
+#               ParaStation psmom test suite
+#
+# Copyright (C) 2011 ParTec Cluster Competence Center GmbH, Munich
+#
+# author
+# Michael Rauh (rauh@par-tec.com)
+#
+
+# timeout
+MAX_ROUNDS=200
+SLEEP_TIME=2
+COUNT=0
+
+cd output || { echo "chdir to output failed"; exit 1; }
+
+jobid1=$($RTH_SUBMIT_CMD $RTH_SUBMIT_ARGS ../chain_success|grep -v -e "^$"|sed -e 's/\W*//')
+if [ $? != 0 ]; then
+    echo "submitting job(1) chain_success failed";
+    exit 1;
+fi
+
+jobid2=$($RTH_SUBMIT_CMD $RTH_SUBMIT_ARGS -W depend=afterok:$jobid1 ../chain_fail \
+							| grep -v -e "^$"|sed -e 's/\W*//')
+if [ $? != 0 ]; then
+    echo "submitting job(2) chain_fail failed";
+    exit 1;
+fi
+
+jobid3=$($RTH_SUBMIT_CMD $RTH_SUBMIT_ARGS -W depend=afterok:$jobid2 ../chain_success \
+							| grep -v -e "^$"|sed -e 's/\W*//')
+if [ $? != 0 ]; then
+    echo "submitting job(3) chain_success failed";
+    exit 1;
+fi
+
+# wait for jobs to finish
+while true; do
+
+    let COUNT=COUNT+1
+    if [ $COUNT -gt $MAX_ROUNDS ]; then
+	echo "timeout waiting for jobs";
+	qdel $jobid1 $jobid2 $jobid3;
+	exit 1;
+    fi
+
+    sleep $SLEEP_TIME
+    out=$(qstat $jobid1 1>/dev/null 2>&1)
+    if [ "$?" == 0 ]; then continue; fi
+    out=$(qstat $jobid2 1>/dev/null 2>&1)
+    if [ "$?" == 0 ]; then continue; fi
+    out=$(qstat $jobid3 1>/dev/null 2>&1)
+    if [ "$?" == 0 ]; then continue; fi
+    break;
+done
+
+# check output of jobs
+
+jobid1=${jobid1%%.*}
+jobid2=${jobid2%%.*}
+jobid3=${jobid3%%.*}
+
+# job1 should have run
+if [ ! -f "chain_success.o$jobid1" ]; then
+    echo "output file chain_success.o$jobid1 not found";
+    exit 1;
+fi
+
+if [ ! -f "chain_success.e$jobid1" ]; then
+    echo "error file chain_success.e$jobid1 not found";
+    exit 1;
+fi
+
+# job2 should have run
+if [ ! -f "chain_fail.o$jobid2" ]; then
+    echo "output file chain_fail.o$jobid2 not found";
+    exit 1;
+fi
+
+if [ ! -f "chain_fail.e$jobid2" ]; then
+    echo "error file chain_fail.e$jobid2 not found";
+    exit 1;
+fi
+
+# job3 should be deleted
+if [ -f "chain_success.o$jobid3" ]; then
+    echo "found output file chain_success.o$jobid3";
+    exit 1;
+fi
+
+if [ -f "chain_success.e$jobid3" ]; then
+    echo "found error file chain_success.e$jobid3";
+    exit 1;
+fi
+
+
+# cleanup output
+rm *.o$jobid1 2>/dev/null
+rm *.e$jobid1 2>/dev/null
+rm *.o$jobid2 2>/dev/null
+rm *.e$jobid2 2>/dev/null
+rm *.o$jobid3 2>/dev/null
+rm *.e$jobid3 2>/dev/null
+
+exit 0

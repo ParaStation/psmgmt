@@ -17,6 +17,8 @@
 
 #include "kvslog.h"
 
+logger_t *kvslogger = NULL;
+
 int isKVSLoggerInitialized()
 {
     if (!kvslogger) return 0;

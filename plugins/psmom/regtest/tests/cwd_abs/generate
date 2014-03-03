@@ -1,0 +1,38 @@
+#!/usr/bin/env python
+#
+#               ParaStation psmom test suite
+#
+# Copyright (C) 2011 ParTec Cluster Competence Center GmbH, Munich
+#
+# author
+# Michael Rauh (rauh@par-tec.com)
+#
+
+import os, stat
+
+dirTest = os.getenv("RTH_TESTDIR")
+js = dirTest + "/jobscript"
+
+# remove former job/evalution scripts
+if os.path.isfile(js):
+    os.unlink(js)
+
+# generate new job/evalution scripts
+
+# write job script
+jfile = open(js, "w+")
+jfile.write("#!/bin/bash\n#\n")
+jfile.write("#PBS -d " + dirTest + "/new_work\n")
+jfile.write("#PBS -o " + dirTest + "/output\n")
+jfile.write("#PBS -e " + dirTest + "/output\n")
+jfile.write("#PBS -l walltime=60\n")
+jfile.write("#PBS -N psmom-RTS-cwd_abs\n")
+jfile.write("#\n")
+jfile.write("echo PWD1=$(pwd)\n")
+jfile.write("echo PWD2=$PWD\n")
+jfile.write("echo PBS_O_INITDIR=$PBS_O_INITDIR\n")
+jfile.write("echo PBS_O_WORKDIR=$PBS_O_WORKDIR\n")
+jfile.write("exit 0\n")
+jfile.close()
+
+exit(0)

@@ -1,0 +1,38 @@
+#!/usr/bin/env python
+#
+#               ParaStation psmom test suite
+#
+# Copyright (C) 2011 ParTec Cluster Competence Center GmbH, Munich
+#
+# author
+# Michael Rauh (rauh@par-tec.com)
+#
+
+
+import sys,os
+
+sys.path.append(os.getenv("RTH"))
+from rth import *
+
+# read all lines from error file
+errfile = os.getenv("ERROR_FILE")
+
+EXPECTED_EXIT="1"
+
+found=0
+for line in open(errfile,'r').readlines():
+    if line.find("exit_code") == -1:
+        continue
+    res = (line.split(" ", 1))
+    ecode = res[1][1:res[1].find("\n")]
+    if ecode != EXPECTED_EXIT:
+        print ("invalid exit code '" + str(ecode) + "' should be '" + \
+            EXPECTED_EXIT + "'")
+        exit(1)
+    else:
+        found=1
+        break
+
+if found != 1:
+    print ("exit code not found")
+    exit(1)

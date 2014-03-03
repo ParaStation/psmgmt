@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2012 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2013 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -16,12 +16,14 @@
 
 #include "logging.h"
 
-/** structure for syslog */
-logger_t *psaccountlogger;
+extern logger_t *psaccountlogger;
 
-#define mlog(...)  if (psaccountlogger) logger_print(psaccountlogger, -1, __VA_ARGS__)
-#define mwarn(...) if (psaccountlogger) logger_warn(psaccountlogger, -1, __VA_ARGS__)
-#define mdbg(...)  if (psaccountlogger) logger_print(psaccountlogger, __VA_ARGS__)
+#define mlog(...)  if (psaccountlogger) \
+			    logger_print(psaccountlogger, -1, __VA_ARGS__)
+#define mwarn(...) if (psaccountlogger) \
+			    logger_warn(psaccountlogger, -1, __VA_ARGS__)
+#define mdbg(...)  if (psaccountlogger) \
+			    logger_print(psaccountlogger, __VA_ARGS__)
 
 typedef enum {
     LOG_VERBOSE		= 0x000010, /**< Be verbose */

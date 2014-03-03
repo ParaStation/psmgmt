@@ -1,0 +1,10 @@
+#!/bin/bash
+#
+#PBS -k e
+#PBS -N psmomRT-keep2
+#PBS -l walltime=60
+
+echo "output"
+echo "error" >&2
+
+exit 0

@@ -1,3 +1,173 @@
+Version psmgmt-5.0.44:
+======================
+------------------------------------------------------------------------
+r8834 | eicker | 2013-07-19 16:25:37 +0200 (Fri, 19 Jul 2013) | 2 lines
+
+Bugfix: More minor bugs and warnings detected by LLVM's scan-build fixed.
+
+------------------------------------------------------------------------
+r8833 | eicker | 2013-07-19 15:18:54 +0200 (Fri, 19 Jul 2013) | 2 lines
+
+Bugfix: Many minor bugs fixed detected by LLVM's scan-build.
+
+------------------------------------------------------------------------
+r8832 | rauh | 2013-07-19 11:23:14 +0200 (Fri, 19 Jul 2013) | 2 lines
+
+Bugfix: dereference of null pointer
+
+------------------------------------------------------------------------
+r8831 | rauh | 2013-07-18 16:29:13 +0200 (Thu, 18 Jul 2013) | 2 lines
+
+Bugfix: psaccount: free all config objects when the plugin gets unloaded 
+
+------------------------------------------------------------------------
+r8830 | rauh | 2013-07-18 16:19:07 +0200 (Thu, 18 Jul 2013) | 3 lines
+
+Enhancement: psmom: moving the psid spawner process is now save when
+using the psmom PBS_JOBCOOKIE injection feature (#2071).
+
+------------------------------------------------------------------------
+r8829 | rauh | 2013-07-17 11:25:10 +0200 (Wed, 17 Jul 2013) | 3 lines
+
+Bugfix: psresport: unregister hooks and message handler if the initialisation
+of the plugin fails.
+
+------------------------------------------------------------------------
+r8828 | eicker | 2013-07-17 11:13:33 +0200 (Wed, 17 Jul 2013) | 2 lines
+
+Cleanup resPort handling.
+
+------------------------------------------------------------------------
+r8827 | rauh | 2013-07-16 16:36:10 +0200 (Tue, 16 Jul 2013) | 2 lines
+
+pushed psmom version
+
+------------------------------------------------------------------------
+r8826 | rauh | 2013-07-16 16:34:50 +0200 (Tue, 16 Jul 2013) | 3 lines
+
+Enhancement: psmom: try every known pbs server on job obit.
+Especially useful for failover configurations.
+
+------------------------------------------------------------------------
+r8825 | rauh | 2013-07-16 11:52:35 +0200 (Tue, 16 Jul 2013) | 3 lines
+
+Bugfix: psmom: unregister hooks and message handler if the initialisation
+of the plugins fails.
+
+------------------------------------------------------------------------
+r8824 | rauh | 2013-07-16 10:18:06 +0200 (Tue, 16 Jul 2013) | 3 lines
+
+Bugfix: psmom: flag the copy forwarder and its children always valid
+when asked by allowed_pid
+
+------------------------------------------------------------------------
+r8823 | moschny | 2013-07-15 19:41:05 +0200 (Mon, 15 Jul 2013) | 1 line
+
+Reapply r8803: Missing include.
+------------------------------------------------------------------------
+r8822 | rauh | 2013-07-15 14:58:04 +0200 (Mon, 15 Jul 2013) | 2 lines
+
+Enhancement: merged psmom version 5.2.10-20 into psmgmt
+
+------------------------------------------------------------------------
+r8821 | eicker | 2013-07-11 09:16:38 +0200 (Thu, 11 Jul 2013) | 2 lines
+
+Omit psid's dependency on libpsi and libpse.
+
+------------------------------------------------------------------------
+r8820 | eicker | 2013-07-10 18:22:27 +0200 (Wed, 10 Jul 2013) | 3 lines
+
+Enhancement: Use PSC_printTID() in order to print out task-ID. This
+     enhances the changes in r8818.
+
+------------------------------------------------------------------------
+r8819 | rauh | 2013-07-10 17:26:19 +0200 (Wed, 10 Jul 2013) | 3 lines
+
+Bugfix: the kvsprovider has to exit on itself if no pspmi
+plugin is loaded
+
+------------------------------------------------------------------------
+r8818 | rauh | 2013-07-10 16:32:07 +0200 (Wed, 10 Jul 2013) | 4 lines
+
+Enhancement: try to place the spawner/kvsprovider on own nodes
+for performance reasons when __MPIEXEC_DIST_START is set
+Enhancement: let mpiexec output the TID of service processes in verbose mode
+
+------------------------------------------------------------------------
+r8817 | rauh | 2013-07-09 13:33:52 +0200 (Tue, 09 Jul 2013) | 2 lines
+
+Enhancement: show source function of received signals in libpsi
+
+------------------------------------------------------------------------
+r8816 | eicker | 2013-07-05 18:27:12 +0200 (Fri, 05 Jul 2013) | 2 lines
+
+Bugfix: Prevent segfault due to access of outdated task-structure (#2060)
+
+------------------------------------------------------------------------
+r8815 | rauh | 2013-07-04 10:47:34 +0200 (Thu, 04 Jul 2013) | 2 lines
+
+Enhancement: more self-explanatory CC_ERROR log messages
+
+------------------------------------------------------------------------
+r8814 | moschny | 2013-07-03 19:42:23 +0200 (Wed, 03 Jul 2013) | 5 lines
+
+Fix wrong count argument in memcpy call.
+
+'dest' is an array argument in this function, thus its size always
+equals the size of a pointer, which is not what we want here.
+
+------------------------------------------------------------------------
+r8802 | rauh | 2013-07-01 12:41:10 +0200 (Mon, 01 Jul 2013) | 2 lines
+
+Enhancement: set meaningful process title for the kvsprovider
+
+------------------------------------------------------------------------
+r8801 | rauh | 2013-07-01 12:13:36 +0200 (Mon, 01 Jul 2013) | 2 lines
+
+Bugfix: propagate PMI_BARRIER_TMOUT and PMI_BARRIER_ROUNDS to all kvsproviders
+
+------------------------------------------------------------------------
+r8791 | rauh | 2013-06-06 09:48:33 +0200 (Thu, 06 Jun 2013) | 3 lines
+
+Cleanup definitions of different plugin loggers.
+Cleanup kvsprovider logging.
+
+------------------------------------------------------------------------
+r8790 | eicker | 2013-06-05 18:36:33 +0200 (Wed, 05 Jun 2013) | 2 lines
+
+Reorganize inter-library dependencies.
+
+------------------------------------------------------------------------
+r8789 | eicker | 2013-06-05 18:33:37 +0200 (Wed, 05 Jun 2013) | 2 lines
+
+Cleanup definition of the kvslogger.
+
+------------------------------------------------------------------------
+r8788 | moschny | 2013-06-05 16:45:43 +0200 (Wed, 05 Jun 2013) | 1 line
+
+Fix eol-style and keywords for some more files.
+------------------------------------------------------------------------
+r8787 | moschny | 2013-06-05 16:22:57 +0200 (Wed, 05 Jun 2013) | 1 line
+
+Fix eol-style and keywords for all .c and .h files.
+------------------------------------------------------------------------
+r8786 | rauh | 2013-06-05 15:56:11 +0200 (Wed, 05 Jun 2013) | 2 lines
+
+Bugfix: the kvs-provider should report to stderr not syslog (#2040)
+
+------------------------------------------------------------------------
+r8785 | rauh | 2013-05-08 12:04:36 +0200 (Wed, 08 May 2013) | 2 lines
+
+Activate makefile changes from r8780.
+
+------------------------------------------------------------------------
+r8781 | eicker | 2013-05-08 10:13:38 +0200 (Wed, 08 May 2013) | 2 lines
+
+New release (psmgmt-5.0.43-1)
+
+------------------------------------------------------------------------
+
+
 Version psmgmt-5.0.43-1:
 ========================
 ------------------------------------------------------------------------

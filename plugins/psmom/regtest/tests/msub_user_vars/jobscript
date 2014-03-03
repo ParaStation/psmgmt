@@ -1,0 +1,13 @@
+#!/bin/bash
+#PBS -v msub_test1,msub_test2,msub_test3,msub_test4,msub_test5 
+#PBS -N psmomRT-user_vars
+#PBS -l walltime=60
+
+# user variables
+echo "test1=$msub_test1"
+echo "test2=$msub_test2"
+echo "test3=$msub_test3"
+echo "test4=$msub_test4"
+echo "test5=$msub_test5"
+
+exit 0

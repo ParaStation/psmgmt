@@ -1,0 +1,83 @@
+#!/usr/bin/env python
+#
+#               ParaStation psmom test suite
+#
+# Copyright (C) 2011 ParTec Cluster Competence Center GmbH, Munich
+#
+# author
+# Michael Rauh (rauh@par-tec.com)
+#
+
+import os, stat
+
+nodeSteps = [1, 50, 100, 250, 500, 1000, 2000, 3000, 4000]
+
+dirTests = os.getenv("RTH_TESTDIR")
+
+def writeScripts(dirTests, counter, nodeCount, nodePPN):
+    if counter > 1:
+        js = dirTests + "/jobscript" + str(counter)
+        es = dirTests + "/evaluation" + str(counter)
+    else:
+        js = dirTests + "/jobscript"
+        es = dirTests + "/evaluation"
+
+    # write job script
+    jfile = open(js, "w+")
+    jfile.write("#!/bin/bash\n#\n")
+    jfile.write("#PBS -l nodes=" + str(nodeCount) + ":ppn=" + str(nodePPN) + "\n\n")
+    jfile.write("#PBS -l walltime=60\n")
+    jfile.write("#PBS -N psmomRT-scaling\n")
+    jfile.write("echo PBS_NUM_NODES=$PBS_NUM_NODES\n")
+    jfile.write("exit 0\n")
+    jfile.close()
+
+    # write evalution script
+    efile = open(es, "w+")
+    efile.write("#!/bin/bash\n#\n")
+    efile.write('data=$(cat $OUTPUT_FILE 2>&1)\n')
+    efile.write('if [ "$data" != "PBS_NUM_NODES=' + str(nodeCount) + '" ]; then\n');
+    efile.write('\techo "Invalid node count(' + str(nodeCount) + '): $data"\n\texit 1\nfi\n');
+    efile.write('exit 0\n')
+    efile.close()
+
+    # set execute permission
+    os.chmod(es, stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
+
+# remove former job/evalution scripts
+js = dirTests + "/jobscript"
+es = dirTests + "/evaluation"
+if os.path.isfile(js):
+    os.unlink(js)
+    os.unlink(es)
+
+    counter = 2
+    while True:
+        js = dirTests + "/jobscript" + str(counter)
+        es = dirTests + "/evaluation" + str(counter)
+        if os.path.isfile(js) == False:
+            break
+        os.unlink(js)
+
+        if os.path.isfile(es) == True:
+            os.unlink(es)
+        counter += 1
+
+# generate jobscripts to using all free nodes
+nodeMax = int(os.getenv("RTH_NODE_COUNT"))
+nodePPN = int(os.getenv("RTH_NODE_PPN"))
+counter = 1
+
+for nodeCount in nodeSteps:
+    if nodeCount > nodeMax:
+        nodeCount = nodeMax
+
+    # generate scripts
+    writeScripts(dirTests, counter, nodeCount, nodePPN)
+
+    if nodeCount >= nodeMax:
+        break
+
+    counter += 1
+
+exit(0)

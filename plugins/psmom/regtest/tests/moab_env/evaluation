@@ -1,0 +1,32 @@
+#!/usr/bin/env python
+#
+#               ParaStation psmom test suite
+#
+# Copyright (C) 2011 ParTec Cluster Competence Center GmbH, Munich
+#
+# author
+# Michael Rauh (rauh@par-tec.com)
+#
+
+import sys
+import os
+
+sys.path.append(os.getenv("RTH"))
+from rth import *
+
+r = rth()
+rth.parseOutput(r, os.getenv("OUTPUT_FILE"))
+
+# test moab variables
+rth.testEnv(r,"MOAB_JOBID", os.getenv("MOAB_JOBID"))
+rth.testEnv(r,"MOAB_JOBNAME", os.getenv("MOAB_JOBNAME"))
+rth.testEnv(r,"MOAB_CLASS", os.getenv("MOAB_CLASS"))
+rth.testEnv(r,"MOAB_GROUP", os.getenv("MOAB_GROUP"))
+rth.testEnv(r,"MOAB_GROUP", os.getenv("MOAB_GROUP"))
+rth.testEnv(r,"MOAB_USER", os.getenv("MOAB_USER"))
+rth.testEnv(r,"MOAB_TASKMAP", os.getenv("MOAB_TASKMAP"))
+rth.testEnv(r,"MOAB_PROCCOUNT", os.getenv("MOAB_PROCCOUNT"))
+rth.testEnv(r,"MOAB_MACHINE", os.getenv("MOAB_MACHINE"))
+rth.testEnv(r,"MOAB_NODECOUNT", os.getenv("MOAB_NODECOUNT"))
+rth.testEnv(r,"MOAB_NODELIST", os.getenv("MOAB_NODELIST"))
+rth.testEnv(r,"MOAB_PARTITION", os.getenv("MOAB_PARTITION"))

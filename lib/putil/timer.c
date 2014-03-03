@@ -438,8 +438,7 @@ int Timer_block(int id, int block)
     int wasBlocked;
 
     if (!timer) {
-	logger_print(logger, -1, "%s: no timer found id=%d\n",
-		     __func__, timer->id);
+	logger_print(logger, -1, "%s: no timer found id=%d\n", __func__, id);
 	return -1;
     }
 

@@ -1,0 +1,8 @@
+#!/bin/bash
+#
+#PBS -N chain_success
+
+sleep 5 
+echo "chain_success"
+
+exit 0

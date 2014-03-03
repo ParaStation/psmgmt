@@ -87,7 +87,7 @@ int PSID_kill(pid_t pid, int sig, uid_t uid)
 		msg.header.len += sizeof(int32_t);
 
 		*(int32_t *)ptr = sig;
-		ptr += sizeof(int32_t);
+		//ptr += sizeof(int32_t);
 		msg.header.len += sizeof(int32_t);
 
 		if (sendMsg(&msg) == msg.header.len) return 0;
@@ -130,7 +130,7 @@ int PSID_kill(pid_t pid, int sig, uid_t uid)
 	/* change user id to appropriate user */
 	if (setuid(uid)<0) {
 	    eno = errno;
-	    ret = write(cntrlfds[1], &eno, sizeof(eno));
+	    write(cntrlfds[1], &eno, sizeof(eno));
 	    PSID_exit(eno, "%s: setuid(%d)", __func__, uid);
 	}
 
@@ -138,7 +138,7 @@ int PSID_kill(pid_t pid, int sig, uid_t uid)
 	if (sig == SIGKILL) kill(pid, SIGCONT);
 	error = kill(pid, sig);
 	eno = errno;
-	ret = write(cntrlfds[1], &eno, sizeof(eno));
+	write(cntrlfds[1], &eno, sizeof(eno));
 
 	if (error) {
 	    PSID_warn((eno==ESRCH) ? PSID_LOG_SIGNAL : -1, eno,
@@ -847,7 +847,7 @@ static int releaseSignal(PStask_ID_t sigSndr, PStask_ID_t sigRcvr, int sig,
 
 		if (PSC_getID(sigRcvr) == PSC_getMyID()) {
 		    PStask_t *rtask = PStasklist_find(&managedTasks, sigRcvr);
-		    if (!rtask->parentReleased) {
+		    if (rtask && !rtask->parentReleased) {
 			rtask->pendingReleaseRes += !!answer;
 			rtask->parentReleased = 1;
 		    }
@@ -1169,7 +1169,6 @@ static void msg_RELEASERES(DDSignalMsg_t *msg)
 	return;
     } else if (task->pendingReleaseErr) {
 	msg->param = task->pendingReleaseErr;
-	dbgMask = (msg->param == ESRCH) ? PSID_LOG_SIGNAL : -1;
 	PSID_log(-1, "%s: sig %d: error = %d from %s", __func__,
 		 msg->signal, msg->param, PSC_printTID(msg->header.sender));
 	PSID_log(-1, " forward to local %s\n", PSC_printTID(tid));

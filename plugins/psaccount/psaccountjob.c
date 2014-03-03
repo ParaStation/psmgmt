@@ -14,7 +14,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#include "helper.h"
+#include "pluginmalloc.h"
 #include "psaccountlog.h"
 #include "psaccountproc.h"
 #include "psaccountclient.h"
@@ -100,10 +100,10 @@ int deleteJob(PStask_ID_t loggerTID)
     }
 
     if (job->jobid) {
-	free (job->jobid);
+	ufree (job->jobid);
     }
     list_del(&job->list);
-    free(job);
+    ufree(job);
     return 1;
 }
 

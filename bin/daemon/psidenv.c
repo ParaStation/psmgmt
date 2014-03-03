@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2011-2012 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2011-2013 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -168,6 +168,7 @@ static void msg_ENV(DDTypedBufferMsg_t *inmsg)
 	    if (!*key) {
 		PSID_warn(-1, errno, "%s: No key given to set", __func__);
 		ret = EINVAL;
+		goto end;
 	    }
 
 	    ret = setenv(key, val, 1);
@@ -183,6 +184,7 @@ static void msg_ENV(DDTypedBufferMsg_t *inmsg)
 	    if (!*inmsg->buf) {
 		PSID_warn(-1, errno, "%s: No key given to unset", __func__);
 		ret = EINVAL;
+		goto end;
 	    }
 
 	    ret = unsetenv(inmsg->buf);

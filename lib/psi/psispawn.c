@@ -486,7 +486,7 @@ recv_retry:
 	}
 	break;
     case PSP_CD_WHODIED:
-	PSI_log(-1, "Got signal %d from %s\n", sigMsg->signal,
+	PSI_log(-1, "%s: got signal %d from %s\n", __func__, sigMsg->signal,
 		PSC_printTID(sigMsg->header.sender));
 	return 2; /* Ignore answer */
 	break;

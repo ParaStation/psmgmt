@@ -1,0 +1,13 @@
+#!/bin/bash
+#
+#PBS -d ../ddir 
+#PBS -w ../wdir
+#PBS -l walltime=60
+#PBS -N psmomRT-work_dir
+
+echo PWD1=$(pwd)
+echo "PWD2=$PWD"
+echo "PBS_O_INITDIR=$PBS_O_INITDIR"
+echo "PBS_O_WORKDIR=$PBS_O_WORKDIR"
+
+exit 0

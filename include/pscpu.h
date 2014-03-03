@@ -298,7 +298,7 @@ char *PSCPU_print(PSCPU_set_t set);
  */
 static inline void PSCPU_copy(PSCPU_set_t dest, PSCPU_set_t src)
 {
-    if (src && dest) memcpy(dest, src, sizeof(dest));
+    if (src && dest) memcpy(dest, src, sizeof(PSCPU_set_t));
 }
 
 

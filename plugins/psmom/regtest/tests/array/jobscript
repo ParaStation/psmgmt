@@ -1,0 +1,13 @@
+#!/bin/bash
+#
+#PBS -t 1-3 
+#PBS -l walltime=60
+#PBS -N psmomRT-array
+#PBS -v PSMOM_DIS_ACCOUNT
+
+echo "PBS_JOBID=$PBS_JOBID"
+echo "PBS_ARRAYID=$PBS_ARRAYID"
+
+sleep 2
+
+exit 0

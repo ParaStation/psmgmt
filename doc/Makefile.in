@@ -197,6 +197,7 @@ PACKAGE_STRING = @PACKAGE_STRING@
 PACKAGE_TARNAME = @PACKAGE_TARNAME@
 PACKAGE_URL = @PACKAGE_URL@
 PACKAGE_VERSION = @PACKAGE_VERSION@
+PAM_LIBS = @PAM_LIBS@
 PATH_SEPARATOR = @PATH_SEPARATOR@
 POPT_LIBS = @POPT_LIBS@
 RANLIB = @RANLIB@
@@ -286,6 +287,9 @@ do_subst = sed \
 	-e 's,[@]sysconfdir[@],$(sysconfdir),g' \
 	-e 's,[@]localstatedir[@],$(localstatedir),g'
 
+syslibdir := $(shell echo $(libdir) | sed -e 's,$(prefix),/,g')
+pamdir = $(syslibdir)/security
+pamconfdir = $(sysconfdir)/pam.d
 
 # should be $(libdir)/psmgmt-plugins or similar
 plugindir = $(prefix)/plugins

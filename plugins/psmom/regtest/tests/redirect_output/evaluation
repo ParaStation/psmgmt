@@ -1,0 +1,29 @@
+#!/usr/bin/env python
+#
+#               ParaStation psmom test suite
+#
+# Copyright (C) 2011 ParTec Cluster Competence Center GmbH, Munich
+#
+# author
+# Michael Rauh (rauh@par-tec.com)
+#
+
+import os
+
+# read all lines from output file
+outfile = os.getenv("PBS_O_WORKDIR") + "/" + os.getenv("JOBID") + "-" + \
+            os.getenv("PBS_O_HOST") + "-out"
+
+line = open(outfile,'r').readline()
+if line != "output\n":
+    print ("invalid job output message")
+    exit(1)
+
+# read all lines from error file
+errfile = os.getenv("PBS_O_WORKDIR") + "/" + os.getenv("JOBNAME") + "-" + \
+                os.getenv("QUEUE") + "-err"
+
+line = open(errfile,'r').readline()
+if line != "error\n":
+    print ("invalid job error message")
+    exit(1)

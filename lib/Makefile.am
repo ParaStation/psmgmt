@@ -12,4 +12,4 @@
 
 include $(top_srcdir)/common.am
 
-SUBDIRS = pscommon putil pslog psi pse pskvs
+SUBDIRS = pscommon putil pslog psi pse pskvs plugincommon

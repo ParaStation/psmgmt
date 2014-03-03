@@ -16,8 +16,7 @@
 
 #include "logging.h"
 
-/** structure for syslog */
-logger_t *psresportlogger;
+extern logger_t *psresportlogger;
 
 #define mlog(...)  if (psresportlogger) \
 			    logger_print(psresportlogger, -1, __VA_ARGS__)

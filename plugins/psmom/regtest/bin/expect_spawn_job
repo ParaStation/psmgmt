@@ -1,0 +1,395 @@
+#!/usr/bin/expect
+#
+#               ParaStation psmom test suite
+#
+# Copyright (C) 2011 ParTec Cluster Competence Center GmbH, Munich
+#
+# author
+# Michael Rauh (rauh@par-tec.com)
+#
+
+# spawn interactive job
+spawn $qsubCommand {*}$qsubArgs
+
+# find job ready message
+expect {
+	-re {^qsub: waiting for job (.*)\nqsub: job (.*) ready} {
+	    if {$debugLevel >= 1} {
+		send_user "\ninteractive job is ready\n"
+	    }
+	} timeout {
+	    send_error "\ntimeout waiting for job to become ready\n"
+	    exit 1
+	}
+}
+
+# set runtime timeout
+set timeout [ expr $rthRTimeout ]
+
+# find shell prompt
+expect {
+	-re {(\$|#|>) } {
+	    if {$debugLevel >= 1} {
+		send_user "\nshell prompt ok\n"
+	    }
+	} timeout {
+	    send_error "\ntimeout waiting for shell prompt\n"
+	    exit 1
+	}
+}
+
+# reset timeout to 10 sec
+set timeout 10
+
+# read PBS_JOBID
+send "echo PBS_JOBID=\$PBS_JOBID\r"
+expect {
+	-re {\nPBS_JOBID=([0-9]+)([a-zA-Z\.\-]+)} {
+	    if {$debugLevel >= 1} {
+		send_user "\nPBS_JOBID: "
+		send_user $expect_out(1,string)
+		send_user $expect_out(2,string)
+		send_user "\n"
+	    }
+	    set PBS_JOBID $expect_out(1,string)$expect_out(2,string)
+	} timeout {
+	    send_error "\ntimeout waiting for PBS_JOBID\n"
+	    exit 1
+	}
+}
+
+# read PBS_NODEFILE
+send "echo PBS_NODEFILE=\$PBS_NODEFILE\r"
+expect {
+	-re {\nPBS_NODEFILE=([0-9a-zA-Z\.\-\/]+)} {
+	    if {$debugLevel >= 1} {
+		send_user "\nPBS_NODEFILE: "
+		send_user $expect_out(1,string)
+		send_user "\n"
+	    }
+	    set PBS_NODEFILE $expect_out(1,string)
+	} timeout {
+	    send_error "\ntimeout waiting for PBS_NODEFILE\n"
+	    exit 1
+	}
+}
+
+# read PBS_JOBCOOKIE
+send "echo PBS_JOBCOOKIE=\$PBS_JOBCOOKIE\r"
+expect {
+	-re {\nPBS_JOBCOOKIE=([0-9a-zA-Z\.\-\/]+)} {
+	    if {$debugLevel >= 1} {
+		send_user "\nPBS_JOBCOOKIE: "
+		send_user $expect_out(1,string)
+		send_user "\n"
+	    }
+	    set PBS_JOBCOOKIE $expect_out(1,string)
+	} timeout {
+	    send_error "\ntimeout waiting for PBS_JOBCOOKIE\n"
+	    exit 1
+	}
+}
+
+# read PBS_ENVIRONMENT
+send "echo PBS_ENVIRONMENT=\$PBS_ENVIRONMENT\r"
+expect {
+	-re {\nPBS_ENVIRONMENT=([0-9a-zA-Z\.\-\/]+)} {
+	    if {$debugLevel >= 1} {
+		send_user "\nPBS_ENVIRONMENT: "
+		send_user $expect_out(1,string)
+		send_user "\n"
+	    }
+	    set PBS_ENVIRONMENT $expect_out(1,string)
+	} timeout {
+	    send_error "\ntimeout waiting for PBS_ENVIRONMENT\n"
+	    exit 1
+	}
+}
+
+# read PBS_VERSION
+send "echo PBS_VERSION=\$PBS_VERSION\r"
+expect {
+	-re {\nPBS_VERSION=([0-9a-zA-Z\.\-\/]+)} {
+	    if {$debugLevel >= 1} {
+		send_user "\nPBS_VERSION: "
+		send_user $expect_out(1,string)
+		send_user "\n"
+	    }
+	    set PBS_VERSION $expect_out(1,string)
+	} timeout {
+	    send_error "\ntimeout waiting for PBS_VERSION\n"
+	    exit 1
+	}
+}
+
+# read PBS_JOBNAME
+send "echo PBS_JOBNAME=\$PBS_JOBNAME\r"
+expect {
+	-re {\nPBS_JOBNAME=([0-9a-zA-Z\.\-\/]+)} {
+	    if {$debugLevel >= 1} {
+		send_user "\nPBS_JOBNAME: "
+		send_user $expect_out(1,string)
+		send_user "\n"
+	    }
+	    set PBS_JOBNAME $expect_out(1,string)
+	} timeout {
+	    send_error "\ntimeout waiting for PBS_JOBNAME\n"
+	    exit 1
+	}
+}
+
+# read PBS_QUEUE
+send "echo PBS_QUEUE=\$PBS_QUEUE\r"
+expect {
+	-re {\nPBS_QUEUE=([0-9a-zA-Z\.\-\/]+)} {
+	    if {$debugLevel >= 1} {
+		send_user "\nPBS_QUEUE: "
+		send_user $expect_out(1,string)
+		send_user "\n"
+	    }
+	    set PBS_QUEUE $expect_out(1,string)
+	} timeout {
+	    send_error "\ntimeout waiting for PBS_QUEUE\n"
+	    exit 1
+	}
+}
+
+# read PBS_SERVER
+send "echo PBS_SERVER=\$PBS_SERVER\r"
+expect {
+	-re {\nPBS_SERVER=([0-9a-zA-Z\.\-\/]+)} {
+	    if {$debugLevel >= 1} {
+		send_user "\nPBS_SERVER: "
+		send_user $expect_out(1,string)
+		send_user "\n"
+	    }
+	    set PBS_SERVER $expect_out(1,string)
+	} timeout {
+	    send_error "\ntimeout waiting for PBS_SERVER\n"
+	    exit 1
+	}
+}
+
+# read PBS_NUM_NODES
+send "echo PBS_NUM_NODES=\$PBS_NUM_NODES\r"
+expect {
+	-re {\nPBS_NUM_NODES=([0-9]+)} {
+	    if {$debugLevel >= 1} {
+		send_user "\nPBS_NUM_NODES: "
+		send_user $expect_out(1,string)
+		send_user "\n"
+	    }
+	    set PBS_NUM_NODES $expect_out(1,string)
+	} timeout {
+	    send_error "\ntimeout waiting for PBS_NUM_NODES\n"
+	    exit 1
+	}
+}
+
+# read PBS_NODENUM
+send "echo PBS_NODENUM=\$PBS_NODENUM\r"
+expect {
+	-re {\nPBS_NODENUM=([0-9]+)} {
+	    if {$debugLevel >= 1} {
+		send_user "\nPBS_NODENUM: "
+		send_user $expect_out(1,string)
+		send_user "\n"
+	    }
+	    set PBS_NODENUM $expect_out(1,string)
+	} timeout {
+	    send_error "\ntimeout waiting for PBS_NODENUM\n"
+	    exit 1
+	}
+}
+
+# read PBS_VNODENUM
+send "echo PBS_VNODENUM=\$PBS_VNODENUM\r"
+expect {
+	-re {\nPBS_VNODENUM=([0-9]+)} {
+	    if {$debugLevel >= 1} {
+		send_user "\nPBS_VNODENUM: "
+		send_user $expect_out(1,string)
+		send_user "\n"
+	    }
+	    set PBS_VNODENUM $expect_out(1,string)
+	} timeout {
+	    send_error "\ntimeout waiting for PBS_VNODENUM\n"
+	    exit 1
+	}
+}
+
+# read PBS_NUM_PPN
+send "echo PBS_NUM_PPN=\$PBS_NUM_PPN\r"
+expect {
+	-re {\nPBS_NUM_PPN=([0-9]*)} {
+	    if {$debugLevel >= 1} {
+		send_user "\nPBS_NUM_PPN: "
+		send_user $expect_out(1,string)
+		send_user "\n"
+	    }
+	    set PBS_NUM_PPN $expect_out(1,string)
+	} timeout {
+	    send_error "\ntimeout waiting for PBS_NUM_PPN\n"
+	    exit 1
+	}
+}
+
+# read PBS_MOMPORT
+send "echo PBS_MOMPORT=\$PBS_MOMPORT\r"
+expect {
+	-re {\nPBS_MOMPORT=([0-9]+)} {
+	    if {$debugLevel >= 1} {
+		send_user "\nPBS_MOMPORT: "
+		send_user $expect_out(1,string)
+		send_user "\n"
+	    }
+	    set PBS_MOMPORT $expect_out(1,string)
+	} timeout {
+	    send_error "\ntimeout waiting for PBS_MOMPORT\n"
+	    exit 1
+	}
+}
+
+# read PBS_TASKNUM
+send "echo PBS_TASKNUM=\$PBS_TASKNUM\r"
+expect {
+	-re {\nPBS_TASKNUM=([0-9]+)} {
+	    if {$debugLevel >= 1} {
+		send_user "\nPBS_TASKNUM: "
+		send_user $expect_out(1,string)
+		send_user "\n"
+	    }
+	    set PBS_TASKNUM $expect_out(1,string)
+	} timeout {
+	    send_error "\ntimeout waiting for PBS_TASKNUM\n"
+	    exit 1
+	}
+}
+
+# read PBS_O_WORKDIR
+send "echo PBS_O_WORKDIR=\$PBS_O_WORKDIR\r"
+expect {
+	-re {\nPBS_O_WORKDIR=([0-9a-zA-Z\.\-\/]+)} {
+	    if {$debugLevel >= 1} {
+		send_user "\nPBS_O_WORKDIR: "
+		send_user $expect_out(1,string)
+		send_user "\n"
+	    }
+	    set PBS_O_WORKDIR $expect_out(1,string)
+	} timeout {
+	    send_error "\ntimeout waiting for PBS_O_WORKDIR\n"
+	    exit 1
+	}
+}
+
+# read PBS_O_HOME
+send "echo PBS_O_HOME=\$PBS_O_HOME\r"
+expect {
+	-re {\nPBS_O_HOME=([0-9a-zA-Z\.\-\/]+)} {
+	    if {$debugLevel >= 1} {
+		send_user "\nPBS_O_HOME: "
+		send_user $expect_out(1,string)
+		send_user "\n"
+	    }
+	    set PBS_O_HOME $expect_out(1,string)
+	} timeout {
+	    send_error "\ntimeout waiting for PBS_O_HOME\n"
+	    exit 1
+	}
+}
+
+# read PBS_O_QUEUE
+send "echo PBS_O_QUEUE=\$PBS_O_QUEUE\r"
+expect {
+	-re {\nPBS_O_QUEUE=([0-9a-zA-Z\.\-\/]+)} {
+	    if {$debugLevel >= 1} {
+		send_user "\nPBS_O_QUEUE: "
+		send_user $expect_out(1,string)
+		send_user "\n"
+	    }
+	    set PBS_O_QUEUE $expect_out(1,string)
+	} timeout {
+	    send_error "\ntimeout waiting for PBS_O_QUEUE\n"
+	    exit 1
+	}
+}
+
+# read PBS_O_LANG
+send "echo PBS_O_LANG=\$PBS_O_LANG\r"
+expect {
+	-re {\nPBS_O_LANG=([0-9a-zA-Z\.\-\/]+)} {
+	    if {$debugLevel >= 1} {
+		send_user "\nPBS_O_LANG: "
+		send_user $expect_out(1,string)
+		send_user "\n"
+	    }
+	    set PBS_O_LANG $expect_out(1,string)
+	} timeout {
+	    send_error "\ntimeout waiting for PBS_O_LANG\n"
+	    exit 1
+	}
+}
+
+# read PBS_O_LOGNAME
+send "echo PBS_O_LOGNAME=\$PBS_O_LOGNAME\r"
+expect {
+	-re {\nPBS_O_LOGNAME=([0-9a-zA-Z\.\-\/]+)} {
+	    if {$debugLevel >= 1} {
+		send_user "\nPBS_O_LOGNAME: "
+		send_user $expect_out(1,string)
+		send_user "\n"
+	    }
+	    set PBS_O_LOGNAME $expect_out(1,string)
+	} timeout {
+	    send_error "\ntimeout waiting for PBS_O_LOGNAME\n"
+	    exit 1
+	}
+}
+
+# read PBS_O_SHELL
+send "echo PBS_O_SHELL=\$PBS_O_SHELL\r"
+expect {
+	-re {\nPBS_O_SHELL=([0-9a-zA-Z\.\-\/]+)} {
+	    if {$debugLevel >= 1} {
+		send_user "\nPBS_O_SHELL: "
+		send_user $expect_out(1,string)
+		send_user "\n"
+	    }
+	    set PBS_O_SHELL $expect_out(1,string)
+	} timeout {
+	    send_error "\ntimeout waiting for PBS_O_SHELL\n"
+	    exit 1
+	}
+}
+
+# read PBS_O_HOST
+send "echo PBS_O_HOST=\$PBS_O_HOST\r"
+expect {
+	-re {\nPBS_O_HOST=([0-9a-zA-Z\.\-\/]+)} {
+	    if {$debugLevel >= 1} {
+		send_user "\nPBS_O_HOST: "
+		send_user $expect_out(1,string)
+		send_user "\n"
+	    }
+	    set PBS_O_HOST $expect_out(1,string)
+	} timeout {
+	    send_error "\ntimeout waiting for PBS_O_HOST\n"
+	    exit 1
+	}
+}
+
+# read PBS_O_PATH
+send "echo PBS_O_PATH=\$PBS_O_PATH\r"
+expect {
+	-re {\nPBS_O_PATH=([0-9a-zA-Z\.\-\/:]+)} {
+	    if {$debugLevel >= 1} {
+		send_user "\nPBS_O_PATH: "
+		send_user $expect_out(1,string)
+		send_user "\n"
+	    }
+	    set PBS_O_PATH $expect_out(1,string)
+	} timeout {
+	    send_error "\ntimeout waiting for PBS_O_PATH\n"
+	    exit 1
+	}
+}

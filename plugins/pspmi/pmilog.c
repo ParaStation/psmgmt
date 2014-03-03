@@ -17,6 +17,9 @@
 
 #include "pmilog.h"
 
+
+logger_t *pmilogger = NULL;
+
 void initLogger(FILE *logfile)
 {
     pmilogger = logger_init("pspmi", logfile);

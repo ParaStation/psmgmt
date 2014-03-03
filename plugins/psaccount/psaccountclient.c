@@ -17,7 +17,7 @@
 #include "psaccountcollect.h"
 #include "psaccountlog.h"
 #include "psaccountproc.h"
-#include "helper.h"
+#include "pluginmalloc.h"
 #include "psaccount.h"
 #include "psaccountconfig.h"
 
@@ -239,10 +239,10 @@ int deleteAccClient(PStask_ID_t tid)
 	return 0;
     }
 
-    if (client->jobid) free(client->jobid);
+    if (client->jobid) ufree(client->jobid);
 
     list_del(&client->list);
-    free(client);
+    ufree(client);
     return 1;
 }
 

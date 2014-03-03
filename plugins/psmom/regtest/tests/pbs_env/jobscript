@@ -1,0 +1,34 @@
+#!/bin/bash
+#PBS -N psmomRT-pbs_env
+#PBS -l walltime=60
+
+# pbs variables
+echo "PBS_JOBID=$PBS_JOBID"
+echo "PBS_JOBNAME=$PBS_JOBNAME"
+echo "PBS_NODENUM=$PBS_NODENUM"
+echo "PBS_TASKNUM=$PBS_TASKNUM"
+echo "PBS_NUM_NODES=$PBS_NUM_NODES"
+echo "PBS_QUEUE=$PBS_QUEUE"
+echo "PBS_SERVER=$PBS_SERVER"
+
+# PBS_O variables
+echo "PBS_O_WORKDIR=$PBS_O_WORKDIR"
+echo "PBS_O_HOME=$PBS_O_HOME"
+echo "PBS_O_QUEUE=$PBS_O_QUEUE"
+echo "PBS_O_LANG=$PBS_O_LANG"
+echo "PBS_O_LOGNAME=$PBS_O_LOGNAME"
+echo "PBS_O_SHELL=$PBS_O_SHELL"
+echo "PBS_O_HOST=$PBS_O_HOST"
+echo "PBS_O_PATH=$PBS_O_PATH"
+
+# normal environment
+echo "USER_HOME=$HOME"
+
+# chaning variables
+echo "PBS_VERSION=$PBS_VERSION"
+echo "PBS_ENVIRONMENT=$PBS_ENVIRONMENT"
+echo "PBS_JOBCOOKIE=$PBS_JOBCOOKIE"
+echo "PBS_NODEFILE=$PBS_NODEFILE"
+echo "PBS_VNODENUM=$PBS_VNODENUM"
+
+exit 0

@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2009-2011 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2009-2013 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -1079,6 +1079,11 @@ static int forceUnloadPlugin(char *name)
 	    plugin_t *victim = findMaxDistPlugin();
 	    list_t *t, *tmp;
 
+	    if (!victim) {
+		PSID_log(-1, "%s: no victim found despite of loop\n", __func__);
+		return -1;
+	    }
+		
 	    PSID_log(-1, "%s: kick out victim '%s' (distance %d) forcefully\n",
 		     __func__, victim->name, victim->distance);
 

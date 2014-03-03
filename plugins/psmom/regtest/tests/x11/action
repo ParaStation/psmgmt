@@ -1,0 +1,35 @@
+#!/bin/bash
+#
+#               ParaStation psmom test suite
+#
+# Copyright (C) 2011 ParTec Cluster Competence Center GmbH, Munich
+#
+# author
+# Michael Rauh (rauh@par-tec.com)
+#
+
+XAUTH=/usr/bin/xauth
+XVNC=/usr/bin/Xvnc
+
+export DISPLAY=:202
+
+# qsub needs xauth for X11 forwarding
+$XAUTH add $DISPLAY MIT-MAGIC-COOKIE-1 66666666666666666666666666666666
+
+# start X11 server
+$XVNC -localhost $DISPLAY >/dev/null 2>&1 &
+XVNC_PID=$!
+
+# start interactive job using expect
+expect ./expect_script 1>/dev/null
+INTER_EXIT=$?
+
+# stop the X11 server
+kill -15 $XVNC_PID >/dev/null 2>&1
+sleep 1
+kill -9 $XVNC_PID >/dev/null 2>&1
+
+# remove xauth again
+$XAUTH remove $DISPLAY
+
+exit $INTER_EXIT

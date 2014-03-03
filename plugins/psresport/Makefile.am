@@ -17,8 +17,10 @@ AM_CPPFLAGS += -I$(top_srcdir)/bin/daemon
 
 plugin_LTLIBRARIES = psresport.la
 
+libplugincommon = $(top_builddir)/lib/plugincommon/libplugincommon.la
+
 psresport_la_SOURCES = psresport.c psresport.h psresportlog.c		\
-	psresportlog.h psresportconfig.c psresportconfig.h helper.c	\
-	helper.h
+	psresportlog.h psresportconfig.c psresportconfig.h
 
 psresport_la_CPPFLAGS = $(AM_CPPFLAGS) -DPLUGINDIR=\"$(plugindir)\"
+psresport_la_LIBADD = $(libplugincommon)

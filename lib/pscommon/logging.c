@@ -113,7 +113,6 @@ logger_t* logger_init(char* tag, FILE* logfile)
 
 	if (!logger->trail || !logger->fmt || !logger->prfx || !logger->txt) {
 	    logger_finalize(logger);
-	    free(logger);
 	    logger = NULL;
 	}
     }
@@ -434,7 +433,7 @@ void logger_exit(logger_t* logger, int eno, const char* format, ...)
     va_list ap;
     size_t len;
 
-    if (!logger) return;
+    if (!logger) exit(-1);
 
     len = snprintf(logger->fmt, logger->fmtSize,
 		   "%s: %s\n", format, errstr ? errstr : "UNKNOWN");

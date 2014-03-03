@@ -47,6 +47,12 @@ AC_CHECK_LIB([popt], [poptGetContext],
   [AC_SUBST([POPT_LIBS], [-lpopt])],
   [AC_MSG_ERROR([please install the popt devel package])])
 
+AC_CHECK_LIB([pam], [pam_open_session],
+  [AC_SUBST([PAM_LIBS], [-lpam])
+   AC_DEFINE([HAVE_PAM_DEVEL])
+   [ pam_enabled=true ] ])
+AM_CONDITIONAL([PAM_ENABLED], [test "x$pam_enabled" = xtrue])
+
 PS_SEARCH_LIBS([initscr], [ncurses curses], [RL_LIBS], [],
   [AC_MSG_ERROR([please install the (n)curses devel package])])
 
@@ -92,6 +98,7 @@ AC_CONFIG_FILES(bin/Makefile)
 AC_CONFIG_FILES(doc/Makefile)
 AC_CONFIG_FILES(include/Makefile)
 AC_CONFIG_FILES(lib/Makefile)
+AC_CONFIG_FILES(lib/plugincommon/Makefile)
 AC_CONFIG_FILES(lib/pscommon/Makefile)
 AC_CONFIG_FILES(lib/pse/Makefile)
 AC_CONFIG_FILES(lib/psi/Makefile)
@@ -102,6 +109,12 @@ AC_CONFIG_FILES(plugins/Makefile)
 AC_CONFIG_FILES(plugins/psaccount/Makefile)
 AC_CONFIG_FILES(plugins/psresport/Makefile)
 AC_CONFIG_FILES(plugins/pspmi/Makefile)
+AC_CONFIG_FILES(plugins/psmom/Makefile)
+AC_CONFIG_FILES(plugins/psmom/doc/Makefile)
+AC_CONFIG_FILES(plugins/psmom/src/include/Makefile)
+AC_CONFIG_FILES(plugins/psmom/src/pam/Makefile)
+AC_CONFIG_FILES(plugins/psmom/src/pbs/Makefile)
+AC_CONFIG_FILES(plugins/psmom/src/psmom/Makefile)
 AC_CONFIG_FILES(scripts/Makefile)
 AC_CONFIG_FILES(tests/plugins/Makefile)
 AC_CONFIG_FILES(tests/functional/Makefile)

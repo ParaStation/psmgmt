@@ -1,25 +1,22 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2012 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2012 - 2013 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
+ */
+/**
+ * $Id$
  *
- * Authors:     Michael Rauh <rauh@par-tec.com>
+ * \author
+ * Michael Rauh <rauh@par-tec.com>
  *
  */
 
-#ifndef __PS_MOM_HELPER
-#define __PS_MOM_HELPER
-
-#include <stdint.h>
-
-#define urealloc(old, size) __urealloc(old, size, __func__, __LINE__)
-#define umalloc(size) __umalloc(size, __func__, __LINE__)
-#define ustrdup(s1) __ustrdup(s1, __func__, __LINE__)
-#define ufree(ptr) __ufree(ptr, __func__, __LINE__)
+#ifndef __PLUGIN_MALLOC_HELPER
+#define __PLUGIN_MALLOC_HELPER
 
 /**
  * @brief Malloc() with error handling and logging.
@@ -32,6 +29,7 @@
  *
  * @return Returned is a pointer to the allocated memory.
  */
+#define umalloc(size) __umalloc(size, __func__, __LINE__)
 void *__umalloc(size_t size, const char *func, const int line);
 
 /**
@@ -45,6 +43,7 @@ void *__umalloc(size_t size, const char *func, const int line);
  *
  * @return Returned is a pointer to the allocated memory.
  */
+#define urealloc(old, size) __urealloc(old, size, __func__, __LINE__)
 void *__urealloc(void *old ,size_t size, const char *func, const int line);
 
 /**
@@ -56,6 +55,7 @@ void *__urealloc(void *old ,size_t size, const char *func, const int line);
  *
  * @return No return value.
  */
+#define ufree(ptr) __ufree(ptr, __func__, __LINE__)
 void __ufree(void *ptr, const char *func, const int line);
 
 /**
@@ -67,6 +67,7 @@ void __ufree(void *ptr, const char *func, const int line);
  *
  * @return No return value.
  */
+#define ustrdup(s1) __ustrdup(s1, __func__, __LINE__)
 char *__ustrdup(const char *s1, const char *func, const int line);
 
 #endif

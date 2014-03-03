@@ -364,7 +364,7 @@ static int listPluginCommand(char *token)
     return 0;
 
 error:
-    if (strcasecmp(token, "plugin")) {
+    if (token && !strcasecmp(token, "plugin")) {
 	printError(&pluginInfo);
     } else {
 	printError(&listInfo);
@@ -396,7 +396,7 @@ static int listEnvCommand(char *token)
     return 0;
 
  error:
-    if (!strcasecmp(token, "environment")) {
+    if (token && !strcasecmp(token, "environment")) {
 	printError(&envInfo);
     } else {
 	printError(&listInfo);
@@ -780,7 +780,7 @@ static long procsFromString(char *procStr)
 {
     long procs;
 
-    if (strcasecmp(procStr, "any") == 0) return -1;
+    if (!strcasecmp(procStr, "any")) return -1;
     if (!parser_getNumber(procStr, &procs) && procs > -1) return procs;
 
     printf("Unknown value '%s'\n", procStr);
@@ -793,7 +793,7 @@ static uid_t uidFromString(char *user)
     struct passwd *passwd = getpwnam(user);
 
     if (!user) return -2;
-    if (strcasecmp(user, "any") == 0) return -1;
+    if (!strcasecmp(user, "any")) return -1;
     if (!parser_getNumber(user, &uid) && uid > -1) return uid;
     if (passwd) return passwd->pw_uid;
 
@@ -807,7 +807,7 @@ static gid_t gidFromString(char *group)
     struct group *grp = getgrnam(group);
 
     if (!group) return -2;
-    if (strcasecmp(group, "any") == 0) return -1;
+    if (!strcasecmp(group, "any")) return -1;
     if (!parser_getNumber(group, &gid) && gid > -1) return gid;
     if (grp) return grp->gr_gid;
 
@@ -1383,7 +1383,7 @@ static int setCommand(char *token)
 	}
 	break;
     case PSP_OP_OVERBOOK:
-	if (strcasecmp(value, "auto") == 0) {
+	if (!strcasecmp(value, "auto")) {
 	    val = OVERBOOK_AUTO;
 	} else {
 	    int tmp, ret = parser_getBool(value, &tmp, NULL);

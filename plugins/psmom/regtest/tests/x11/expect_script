@@ -1,0 +1,40 @@
+#!/usr/bin/expect
+#
+#               ParaStation psmom test suite
+#
+# Copyright (C) 2011 ParTec Cluster Competence Center GmbH, Munich
+#
+# author
+# Michael Rauh (rauh@par-tec.com)
+#
+
+set debugLevel 0
+set qsubCommand $env(RTH_SUBMIT_CMD)
+set qsubSubmitA $env(RTH_SUBMIT_ARGS)
+set rthPath	$env(RTH)
+set testPath	$env(RTH_TESTDIR)
+set rthQTimeout $env(RTH_MAX_QUEUE_TIME)
+set rthRTimeout $env(RTH_MAX_RUN_TIME)
+
+# set queue timeout
+set timeout [ expr $rthQTimeout ]
+
+# spawn interactive job
+spawn $qsubCommand "-I" "-X" "-x" "xterm" "/bin/true" {*}$qsubSubmitA
+
+# find job ready message
+expect {
+	-re {^qsub: waiting for job (.*)\nqsub: job (.*) ready} {
+	    if {$debugLevel >= 1} {
+		send_user "\ninteractive job is ready\n"
+	    }
+	} timeout {
+	    send_error "\ntimeout waiting for job to become ready\n"
+	    exit 1
+	}
+}
+
+# wait till xterm is finished
+expect eof
+
+exit 0

@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2012 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2012-2013 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -21,7 +21,7 @@
 #include "plugin.h"
 #include "pscommon.h"
 
-#include "helper.h"
+#include "pluginmalloc.h"
 
 #include "psresportlog.h"
 #include "psresportconfig.h"
@@ -34,7 +34,7 @@
 
 /** psid plugin requirements */
 char name[] = "psresport";
-int version = 1;
+int version = 2;
 int requiredAPI = 108;
 plugin_dep_t dependencies[1];
 
@@ -138,7 +138,7 @@ static char *str2Buf(char *strSave, char *buffer, size_t *bufSize)
  */
 static void freeUniqNodes()
 {
-    free(uniqNodeList);
+    ufree(uniqNodeList);
     uniqNodeList = NULL;
     uniqNodeCount = 0;
 }
@@ -168,7 +168,7 @@ static int extractPortInfos(char *ports)
  *
  * This function will extract the number of needed ports and build up a uniq
  * node array. The space for the node list will be dynamically allocated and
- * must be freed using free().
+ * must be freed using ufree().
  *
  * @param request The request to parse.
  *
@@ -217,7 +217,7 @@ static int parseSlots(uint32_t size, PSpart_slot_t *slots)
 	}
     }
 
-    free(slotsPerNode);
+    ufree(slotsPerNode);
 
     return maxPorts + 1;
 }
@@ -468,8 +468,7 @@ static int addNewReservation(void *req)
 	pRangeLast = getNextPort(pRangeLast);
     } else {
 	mdbg(RP_LOG_DEBUG, "%s: port reservation failed\n", __func__);
-	request->resPorts = NULL;
-	free(resPorts);
+	ufree(resPorts);
     }
 
     /* free uniq node list reserved by parseSlots() */
@@ -535,7 +534,7 @@ static void freeEmptyNodeBitmasks(int *uNodeList, uint32_t uNodeCount)
 	if (isEmpty) {
 	    mdbg(RP_LOG_DEBUG, "%s: bitfield for node '%i' is empty, "
 		    "freeing it\n", __func__, node);
-	    free(nodeBitField[node]);
+	    ufree(nodeBitField[node]);
 	    nodeBitField[node] = NULL;
 	}
     }
@@ -551,7 +550,7 @@ static void freeEmptyNodeBitmasks(int *uNodeList, uint32_t uNodeCount)
  */
 static int clearAllReservations()
 {
-    free(nodeBitField);
+    ufree(nodeBitField);
     nodeBitField = NULL;
 
     reservationCount = 0;
@@ -584,10 +583,38 @@ static int releaseReservation(void *req)
     freeUniqNodes();
 
     /* free reservation */
-    free(request->resPorts);
+    ufree(request->resPorts);
     request->resPorts = NULL;
 
     return 0;
+}
+
+
+/**
+ * @brief Unregister all hooks and message handler.
+ *
+ * @param verbose If set to true an error message will be displayed
+ * when unregistering a hook or a message handle fails.
+ *
+ * @return No return value.
+ */
+static void unregisterHooks(int verbose)
+{
+    if (!(PSIDhook_del(PSIDHOOK_MASTER_GETPART, addNewReservation))) {
+	if (verbose) mlog("removing PSIDHOOK_MASTER_GETPART failed\n");
+    }
+
+    if (!(PSIDhook_del(PSIDHOOK_MASTER_FINJOB, releaseReservation))) {
+	if (verbose) mlog("removing PSIDHOOK_MASTER_FINJOB failed\n");
+    }
+
+    if (!(PSIDhook_del(PSIDHOOK_MASTER_RECPART, recoverReservedPorts))) {
+	if (verbose) mlog("removing PSIDHOOK_MASTER_RECPART failed\n");
+    }
+
+    if (!(PSIDhook_del(PSIDHOOK_MASTER_EXITPART, clearAllReservations))) {
+	if (verbose) mlog("removing PSIDHOOK_MASTER_EXITPART failed\n");
+    }
 }
 
 int initialize(void)
@@ -609,22 +636,22 @@ int initialize(void)
 
     if (!(PSIDhook_add(PSIDHOOK_MASTER_GETPART, addNewReservation))) {
 	mlog("%s: register PSIDHOOK_MASTER_GETPART failed\n", __func__);
-	return 1;
+	goto INIT_ERROR;
     }
 
     if (!(PSIDhook_add(PSIDHOOK_MASTER_FINJOB, releaseReservation))) {
 	mlog("%s: register PSIDHOOK_MASTER_FINJOB failed\n", __func__);
-	return 1;
+	goto INIT_ERROR;
     }
 
     if (!(PSIDhook_add(PSIDHOOK_MASTER_RECPART, recoverReservedPorts))) {
 	mlog("%s: register PSIDHOOK_MASTER_RECPART failed\n", __func__);
-	return 1;
+	goto INIT_ERROR;
     }
 
     if (!(PSIDhook_add(PSIDHOOK_MASTER_EXITPART, clearAllReservations))) {
 	mlog("%s: register PSIDHOOK_MASTER_EXITPART failed\n", __func__);
-	return 1;
+	goto INIT_ERROR;
     }
 
     /* get reserved ports from config */
@@ -632,33 +659,23 @@ int initialize(void)
 
     if (!(extractPortInfos(ports))) {
 	mlog("%s: invalid port range '%s'\n", __func__, ports);
-	return 1;
+	goto INIT_ERROR;
     }
 
     mlog("(%i) successfully started\n", version);
 
     return 0;
+
+
+INIT_ERROR:
+    unregisterHooks(0);
+    return 1;
 }
 
 void cleanup(void)
 {
-    free(nodeBitField);
-
-    if (!(PSIDhook_del(PSIDHOOK_MASTER_GETPART, addNewReservation))) {
-	mlog("%s: removing PSIDHOOK_MASTER_GETPART failed\n", __func__);
-    }
-
-    if (!(PSIDhook_del(PSIDHOOK_MASTER_FINJOB, releaseReservation))) {
-	mlog("%s: removing PSIDHOOK_MASTER_FINJOB failed\n", __func__);
-    }
-
-    if (!(PSIDhook_del(PSIDHOOK_MASTER_RECPART, recoverReservedPorts))) {
-	mlog("%s: removing PSIDHOOK_MASTER_RECPART failed\n", __func__);
-    }
-
-    if (!(PSIDhook_add(PSIDHOOK_MASTER_EXITPART, clearAllReservations))) {
-	mlog("%s: removing PSIDHOOK_MASTER_EXITPART failed\n", __func__);
-    }
+    ufree(nodeBitField);
+    unregisterHooks(1);
 }
 
 /**

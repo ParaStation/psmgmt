@@ -1,0 +1,552 @@
+psmom version 5.2.10-20:
+=======================
+
+    Enhancements:
+     * propagate PBS_JOBCOOKIE and PBS_JOBID to psid spawned compute processes
+	and the kvs-provider
+
+    Bugfixes:
+     * initialize random number generator correctly
+
+psmom version 5.2.10-19:
+=======================
+
+    Bugfixes:
+     * fixed segfault in plugin command allowed_pid
+
+psmom version 5.2.10-18:
+=======================
+
+    Enhancements:
+     * set myself offline if spawning new processes fails
+     * suppress error messages intelligent.
+
+psmom version 5.2.10-17:
+=======================
+
+    Bugfixes:
+     * to many rpp reconnects in a short period of time may lead to
+	broken connections
+     * only request additional informations on obit for jobs which
+	were recovered
+     * avoid reoccuring interrupts when connecting a TCP socket
+     * fixed some compiler warnings on Centos
+
+psmom version 5.2.10-16:
+=======================
+
+    Bugfixes:
+     * removed unexpected additional '\0' from batch jobs stdout output
+     * don't unregister PSP_CD_CREATEPARTNL when it was not registered
+	before (introduced while switch to PSIDhook_add())
+
+psmom version 5.2.10-15:
+=======================
+
+    Enhancements:
+     * make sure we get a valid nodelist from PBS server
+
+    Bugfixes:
+     * urealloc must always make sure to allocate memory
+     * fixed memory leak when building a partition request failed
+     * set received node chunks in ps partition request
+     * detect psidforwarder and processes started by the
+	jobscript correctly
+
+psmom version 5.2.10-14:
+=======================
+
+    Remarks:
+     * needs plugin api version >= 109 (>=psmgmt-5.0.40)
+
+    Enhancements:
+     * moved fragmentation layer to libplugcommon
+     * test if the queue which is used in the regression tests is
+	enabled and started (#1713)
+     * added prologue/epilogue timeout example script
+     * added support to execute a script when a prologue/epilogue
+	timed out (#1821)
+     * reset signal mask before spawning child processes
+
+    Bugfixes:
+     * fixed race condition between handling partition and nodes
+	requests
+     * never change parition options for admin users
+
+psmom version 5.2.10-13:
+=======================
+
+    Remarks:
+     * The configuration option "NODE_DOWN_SCRIPT" was removed.
+
+    Enhancements:
+     * reset errno after EINTR in tcp connect
+     * get rid of the nodeDownScript, psmom doesn't need pbsnodes any more
+     * some minor cleanup
+
+psmom version 5.2.10-12:
+=======================
+
+    Enhancements:
+     * moved malloc and fragmentation layer to plugcommon library
+     * cleanup interface to fragmentation layer
+     * when sending a signal the log message now shows the reason
+     * support "/dev/null" as output/error-file destination
+	(no copy necessary)
+     * better error logging
+
+    Bugfixes:
+     * fixed psmom_pam module (broken in 5.2.10-11, see #1802)
+     * ssh fix for Redhat (#1730) is not always working under Suse,
+    	another solution is needed for Redhat.
+     * fixed missing symbols in pam_psmom.so
+     * use correct data type for sending signals to pro/epilogue scripts
+
+psmom version 5.2.10-11:
+=======================
+
+    Remarks:
+     * the new psmom version 5.2.10-11 is not compatible with older
+	psmom versions.
+
+    Enhancements:
+     * Added a fragmentation layer for PS messages (#1764)
+     * reworked mechanism to auto shutdown when incompatible
+     	psmom versions are detected
+     * get rid of compiler warning
+     * set environment variables "HOME" and "USER" for
+     	prologue/epilogue scripts
+     * added missing newline to psmom help messages
+
+psmom version 5.2.10-10:
+=======================
+
+    Enhancements:
+     * more detailed logging if the forwarders are sending signals
+     * added jobid to "setNodeOffline" log message
+     * init accounting values "mem" and "vmem"
+
+    Bugfixes:
+     * dirty fix to prevent a segfault when using many gpus (#1764)
+     * don't send SIGTERM multiple times to prologue/epilogue scripts
+
+psmom version 5.2.10-9:
+=======================
+
+    Remarks:
+     * need psaccount plugin version >= 21 (>=psmgmt-5.0.39-4)
+
+    Enhancements:
+     * use standard definitions for static buffers
+     * validate pelogue scripts permissions on startup
+     * set default debug mask to log warning and job messages
+     * added support for job-files backup script (#1577)
+     * added regression test for verifying the correct exit status
+
+    Bugfixes:
+     * don't save job session id, since we can calcute it from the jobid.
+     * check pelogue permissions in forwarder correctly
+     * get rid of some unessary static buffers which will become to small over time
+     * don't kill ssh process using the session or pgroup (#1730)
+     * delete scratch dir if prologue failed
+
+psmom version 5.2.10-8:
+=======================
+
+    Enhancements:
+     * added option LOG_ACCOUNT_RECORDS to write accounting
+	records of a batch job into the stderr file. The user can also
+	enable/disable this feature by setting PSMOM_LOG_ACCOUNT or
+	PSMOM_DIS_ACCOUNT via qsub/msub -v option.
+     * better debug output of unsupported functions
+     * added option to set nodes offline by psmom if a prologue/epilogue
+	timeout occured (default active)
+     * suppress unlogical "child not found" error messages
+     * better monitoring of the pelogue phase
+     * more detailed error message of pelogue failures
+     * change default rounds for dependency regression test
+
+    Bugfixes:
+     * handle missing interactive forwarder connections correct
+
+psmom version 5.2.10-7:
+=======================
+
+    Enhancements:
+     * better job log messages
+
+    Bugfixes:
+     * removed non working malloc check option
+
+psmom version 5.2.10-6:
+=======================
+
+    Remarks:
+     * need psaccount plugin version >= 20 (>=psmgmt-5.0.39-2)
+
+    Enhancements:
+     * use new psaccount job register function
+     * correct handling of extended signal job requests
+     * added option to enable memory error checking
+
+    Bugfixes:
+     * fixed bug in plugin set command config verification
+
+psmom version 5.2.10-5:
+=======================
+
+    Enhancements:
+     * reworked accouting functions
+
+    Bugfixes:
+     * don't null accounting records at the end of a job
+
+psmom version 5.2.10-4:
+=======================
+
+    Enhancements:
+     * added node info to pelogue error message
+     * don't warn about invalid resource limit 'depend'
+     * added PBS_GPUS variable to pelogue environment
+     * added statistic cmd to help of the show command
+     * added more sourcecode documentation and removed some obsolete code
+     * log port in inter mom error message
+     * when a job gets re-executed, suppress the warning about
+	the existing scratch directory
+
+    Bugfixes:
+     * use integer format when forwarding a signal to a forwarder
+     * fixed bug in saving output files to undelivered directory if the
+	copy process has failed
+     * make use of scratch directory optional
+
+psmom version 5.2.10-3:
+=======================
+
+    Remarks:
+     * changed CLEAN_TEMP_DIR default to 1
+
+    Enhancements:
+     * added statistic information to plugin show command
+     * more intelligent function to signal child processes
+     * some code cleanup
+     * use normal free() for memory we did not malloc ourself
+
+    Bugfixes:
+     * correct exit code if a copy or pelogue process gets killed by a signal
+     * clean temporary files from scratch directory on epilogue start
+
+psmom version 5.2.10-2:
+=======================
+
+    Bugfixes:
+     * fixed memory leaks
+
+psmom version 5.2.10-1:
+=======================
+
+    Bugfixes:
+     * fixed some typos in new plugin commands
+     * use remote rpp address for reconnecting to the PBS server
+
+psmom version 5.2.10-0:
+=======================
+
+    Enhancements:
+     * beautified show() command output
+     * added forwarder walltime monitoring as a additional security net
+     * added support for new plugin api features (show, set, unset, help)
+     * removed some uncessary warnings
+     * code cleanup use of jobid and jobname
+
+    Bugfixes:
+     * fixed bug on unload() introduced in version 5.2.9.51
+     * suppress warning about resource limit 'signal'
+     * set hard ulimits before soft limits
+
+psmom version 5.2.9-51:
+=======================
+
+    Remarks:
+     * changed default for TIMEOUT_COPY to 3600 (= 1 hour)
+
+    Enhancements:
+     * added feature to execute a script if the mother superior
+    	detects a node went down
+     * use a global timeout for all prologue/epilogue scripts in a job
+     * instantly free all dynamic status data to prevent psid memory hording
+     * added line number to debug message of the dynamic memory allocation
+     * better memory allocation of tcp and unix communication layer
+     * easy and changeable dynamic memory allocation using
+    	function wrapper for malloc,realloc,free and strdup
+
+    Bugfixes:
+     * shut down an interactive job in the correct order if the connection
+    	to qsub failed
+     * clean shut down prologue/epilogue scripts if a node in the job dies
+     * suppress warning message
+
+psmom version 5.2.9-50:
+=======================
+
+    Bugfixes:
+     * remove all old timer hanlder in timer facility
+
+psmom version 5.2.9-49:
+=======================
+
+    Enhancements:
+     * better error output
+
+    Bugfixes:
+     * use syslog for all loging in the psmom forwarder, this will
+	prevent corrupt connections
+
+psmom version 5.2.9-48:
+=======================
+
+    Enhancements:
+     * better error output
+     * some minor bugfixes
+
+psmom version 5.2.9-47:
+=======================
+
+    Enhancements:
+     * detect and recover broken connetions between a forwarder
+        and the main psmom process
+     * more detailed error reporting
+     * use an additional way of sending signals to a job, which should
+	even work if the communication channel to the forwarder is broken
+
+    Bugfixes:
+     * use separate message channels between the main psmom, a forwarder
+	and the forwarders child
+
+psmom version 5.2.9-46:
+=======================
+
+    Remarks:
+     * the configuration option 'RLIMITS' was splitted into 'RLIMITS_SOFT' and
+        'RLIMITS_HARD'
+
+    Enhancements:
+     * beatified error output
+     * return PBS error code when fork of copy forwarder fails
+     * added support to change the batchjob environment using PAM
+     * support moab signaling (msub -l signal) feature, see jt:5088
+     * added regression test for msub -l signal
+     * set hard and soft limits separatly via the configuration
+
+    Bugfixes:
+     * job cleanup will not be triggered by the PBS server if an
+	error in the copy phase occured
+     * display jobid separated by spaces
+     * send correct job-id if fork of PElogue script fails
+     * fixed minor memory leak on psmom load/unload
+
+psmom version 5.2.9-45:
+=======================
+
+    Enhancements:
+     * new config option to set various resource limits
+
+    Bugfixes:
+     * suppress selector warnings
+     * suppress warn message about unknown "session_id"
+
+psmom version 5.2.9-44:
+=======================
+
+    Enhancements:
+     * set node state 'down' when shutdown is started
+
+    Bugfixes:
+     * set session id for job so the PBS server will send a job-start e-mail
+     * set torque defined exit codes for job timeouts and forced job termination
+     * when recovering a job, we need to request lost job information
+	from the PBS server
+     * don't let epilogue scripts be killed by multiple calls to qdel
+     * Some minor cleanup
+
+psmom version 5.2.9-43:
+=======================
+
+    Remarks:
+     * changed default for TIMEOUT_COPY to 0 (= no timeout)
+
+    Enhancements:
+     * added regression test suite
+     * no timeout for copy process (#1340)
+
+psmom version 5.2.9-42:
+=======================
+
+    Remarks:
+     * the polling strategy is now the default
+
+    Enhancements:
+     * implemented polling strategy to behave more like the
+	    original pbs_mom
+
+    Bugfixes:
+     * (jt:#4709) better detection of corrupt rpp connections
+
+psmom version 5.2.9-41:
+=======================
+
+    Enhancements:
+     * added config option to rewrite the copy destination
+
+psmom version 5.2.9-40:
+=======================
+
+    Enhancements:
+     * reduce errors when using the rpp layer to fast
+     * get rid of select timeout to speedup forwarders
+     * use bindresvport to find a privileged port
+     * kill non fault tolerant jobs if sister node went down
+     * support chroot for user jobs (qsub -D)
+
+    Bugfixes:
+     * the use of bindresvport() will lead to massiv problems on some
+	    system, so we need to fall back there to the old method
+     * don't reuse the sockets for priviled communication since this
+	    will lead to authentification errors
+     * terminate interactive job correctly if connection to qsub
+	    has gone bad
+     * Always un-register PSP_CD_CREATEPARTNL handler
+     * release PSIDHOOK_SHUTDOWN on unload
+     * return more pbs specific error codes
+     * set default umask to "0077"
+     * set correct working dir for copyout (qsub -w)
+     * fixed keep files (qsub -k)
+     * code cleanup: don't mix jobid and jobname
+     * set correct SHELL env var when using qsub -S
+     * don't use stdin/stdout/stderr fileno for message forwarding
+
+psmom version 5.2.9-39:
+=======================
+
+    Bugfixes:
+     * fixed bug introduced in psmom 5.2.9-37 (broken qsub -d)
+
+psmom version 5.2.9-38:
+=======================
+
+    Enhancements:
+     * more informative error messages
+
+psmom version 5.2.9-37:
+=======================
+
+    Enhancements:
+     * Ignore torque 3.0.2 job attributes "init_work_dir" and
+	    "submit_host"
+     * More beautiful job debug output
+     * Validate all needed directories on startup
+     * Added word expansion of job output files (qsub -e/-o)
+     * Save files in undelivered folder if copy out failed
+     * Set correct PBS_VERSION and PBS_NODENUM in job environment
+     * Support unlimited number of user environment variables
+
+    Bugfixes:
+     * If children can't be killed, stop trying after first SIGKILL
+     * Show an error message if copy of an output file failed
+     * Return correct error codes to PBS server
+     * Handle quoting of the PBS environment correct
+
+psmom version 5.2.9-36:
+=======================
+
+    Bugfixes:
+     * Always reply ok to a delete job message, even if it is already
+	gone
+
+psmom version 5.2.9-35:
+=======================
+
+    Bugfixes:
+     * Correct handling of space characters supplied by qsub -v.
+     * Fixed sporadic overwriting of passwd buffer.
+     * Don't kill all children if the jobscript exits. Let all
+	    children use the grace time for cleanup.
+     * Correct handling of big (>4k) jobscripts.
+
+psmom version 5.2.9-34:
+=======================
+
+    Enhancements:
+     * Igonore uninteresting moab data fields "depend" and
+        "exit_status"
+
+    Bugfixes:
+     * Correct handling of EINTR in function tcpRead()
+
+
+psmom version 5.2.9-33:
+=======================
+
+    Bugfixes:
+     * Prevent killing the psilogger to early (dirty fix)
+     * Close control channel in jobscript forwarder to prevent
+	SIGPIPE warning message
+     * Use obit timeout also in psmom forwarders
+
+
+psmom version 5.2.9-32:
+=======================
+
+    Remarks:
+     * Needs psmgmt version 5.0.34-5 or higher
+
+    Enhancements:
+     * Moved setProcTitle() function to pscommon so every psmgmt forwarder
+	can use it
+
+psmom version 5.2.9-31:
+=======================
+
+    Enhancements:
+     * Let the psmom forwarders change the proc (ps) title
+
+    Bugfixes:
+     * Fixed possible memory corruption while using lists
+     * Fixed psid "selectHandler" warning message
+
+psmom version 5.2.9-30:
+=======================
+
+    Enhancements:
+     * don't run epilogue scripts when psid is shutting down
+     * removed invalid protocol '0' warnings
+     * added timeout for remote jobs as second safety measure
+     * save unknown jobs by the pbs server to undelivered
+     * better output of TM error messages
+     * don't warn from unknown 'nodect' limit
+
+    Bugfixes:
+     * switch off incorrect "job cookie invalid" message
+     * don't try to resend jobs if we are shutting down
+     * don't try to reconnect to server if we are shutting down
+     * always shutdown rpp layer on psmom exit
+     * fixed x11 starting bug introduced last version
+
+psmom version 5.2.9-29:
+=======================
+
+    Remarks:
+     * needs psmgmt version 5.0.34-1 or higher
+
+    Enhancements:
+     * earlier job shutdown if psid is exiting
+     * more restrictive file permissions to protect users privacy
+     * less spasswd() calls
+     * ignore moab specific data fields 'x'
+
+    Bugfixes:
+     * set default obit time to 10 not 3
+     * don't use exit() in the forwarders or the error message(s) will be lost
+     * show correct error message when sending data fails
+     * correct cleanup if the start of an interactive job failed
+     * don't confuse prologue and epilogue finish messages

@@ -93,7 +93,7 @@ mkinstalldirs = $(install_sh) -d
 CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
 LTLIBRARIES = $(noinst_LTLIBRARIES)
-libputil_la_LIBADD =
+libputil_la_DEPENDENCIES =
 am_libputil_la_OBJECTS = config_parsing.lo env.lo hardware.lo mcast.lo \
 	parser.lo psdaemonprotocol.lo psstrings.lo rdp.lo selector.lo \
 	timer.lo psparamspace.lo
@@ -197,6 +197,7 @@ PACKAGE_STRING = @PACKAGE_STRING@
 PACKAGE_TARNAME = @PACKAGE_TARNAME@
 PACKAGE_URL = @PACKAGE_URL@
 PACKAGE_VERSION = @PACKAGE_VERSION@
+PAM_LIBS = @PAM_LIBS@
 PATH_SEPARATOR = @PATH_SEPARATOR@
 POPT_LIBS = @POPT_LIBS@
 RANLIB = @RANLIB@
@@ -287,6 +288,9 @@ do_subst = sed \
 	-e 's,[@]sysconfdir[@],$(sysconfdir),g' \
 	-e 's,[@]localstatedir[@],$(localstatedir),g'
 
+syslibdir := $(shell echo $(libdir) | sed -e 's,$(prefix),/,g')
+pamdir = $(syslibdir)/security
+pamconfdir = $(sysconfdir)/pam.d
 
 # should be $(libdir)/psmgmt-plugins or similar
 plugindir = $(prefix)/plugins
@@ -301,6 +305,7 @@ libputil_la_SOURCES = config_parsing.c env.c hardware.c mcast.c \
 	parser.c psdaemonprotocol.c psstrings.c rdp.c selector.c \
 	timer.c psparamspace.c
 
+libputil_la_LIBADD = -lm
 all: all-am
 
 .SUFFIXES:

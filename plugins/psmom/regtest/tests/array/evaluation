@@ -1,0 +1,29 @@
+#!/usr/bin/env python
+#
+#               ParaStation psmom test suite
+#
+# Copyright (C) 2011 ParTec Cluster Competence Center GmbH, Munich
+#
+# author
+# Michael Rauh (rauh@par-tec.com)
+#
+
+import os, sys
+
+sys.path.append(os.getenv("RTH"))
+from rth import *
+
+r = rth()
+
+def testJobArray(count):
+    rth.parseOutput(r, os.getenv("OUTPUT_FILE") + "-" + str(count))
+
+    jobid = os.getenv("JOBID")
+    id_start = jobid[:jobid.find("]")]
+    id_end = jobid[jobid.find("[") + 1:]
+
+    rth.testEnv(r, "PBS_JOBID", id_start + str(count) + id_end)
+    rth.testEnv(r, "PBS_ARRAYID", str(count))
+
+for i in range(3):
+    testJobArray(i+1)
