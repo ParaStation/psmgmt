@@ -27,6 +27,17 @@ Please send bug reports, questions and suggestions to <support@par-tec.com>
 *************************************************************************
 *************************************************************************
 
+Version 5.0.43-1:
+=================
+
+Bugfixes:
+ - prevent kvs-provider getting stuck in loop
+
+Enhancements:
+ - Finally, handle logger's prfx, too. This should help with #1087
+ - Use malloc_trim() instead of malloc()/free() on  SIGUSR2
+
+
 Version 5.0.43:
 ===============
 

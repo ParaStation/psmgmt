@@ -1,3 +1,40 @@
+Version psmgmt-5.0.43-1:
+========================
+------------------------------------------------------------------------
+r8780 | rauh | 2013-05-08 09:50:23 +0200 (Wed, 08 May 2013) | 2 lines
+
+Enhancement: Use LIBADD instead of -whole-archive for the pspmi plugin
+
+------------------------------------------------------------------------
+r8779 | rauh | 2013-05-08 09:43:18 +0200 (Wed, 08 May 2013) | 2 lines
+
+Bugfix: prevent kvs-provider get stuck in loop.
+
+------------------------------------------------------------------------
+r8778 | eicker | 2013-05-07 18:43:15 +0200 (Tue, 07 May 2013) | 2 lines
+
+Bugfix: Adapt output to PSID_log()'s format string.
+
+------------------------------------------------------------------------
+r8777 | eicker | 2013-05-07 18:41:30 +0200 (Tue, 07 May 2013) | 2 lines
+
+Enhancement: Finally, handle logger's prfx, too. This should help with #1087
+
+------------------------------------------------------------------------
+r8776 | eicker | 2013-05-07 18:39:58 +0200 (Tue, 07 May 2013) | 4 lines
+
+Enhancement: Use malloc_trim() instead of malloc()/free() to free
+    unsued memory on SIGUSR2
+Enhancement: Beautify printMallocInfo()'s output
+
+------------------------------------------------------------------------
+r8772 | eicker | 2013-05-07 15:08:22 +0200 (Tue, 07 May 2013) | 2 lines
+
+New version (psmgmt-5.0.43)
+
+------------------------------------------------------------------------
+
+
 Version psmgmt-5.0.43:
 ======================
 ------------------------------------------------------------------------
