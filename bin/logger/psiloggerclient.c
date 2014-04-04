@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2009-2013 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2009-2014 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -297,25 +297,28 @@ int registerClient(int rank, PStask_ID_t tid, PStask_group_t group)
 	exit(1);
     }
 
-    if (rank < minRank) growClients(rank, maxRank);
+    if (rank < minRank) growClients(rank, maxClient);
 
-    if (rank > maxRank) maxRank = rank;
     if (rank > maxClient) {
 	growClients(minRank, 2*rank);
-    } else if (destStr) {
-	const char delimiters[] ="[], \n";
-	char *saveptr, *parseStr = strdup(destStr);
-	char *rankStr = strtok_r(destStr, delimiters, &saveptr);
+    }
+    if (rank > maxRank) {
+	maxRank = rank;
+	if (destStr) {
+	    const char delimiters[] ="[], \n";
+	    char *saveptr, *parseStr = strdup(destStr);
+	    char *rankStr = strtok_r(destStr, delimiters, &saveptr);
 
-	if (!strncasecmp(rankStr, "all", 3)) {
-	    int r;
-	    for (r=oldMaxRank+1; r<=getMaxRank(); r++) {
-		addClnt(r);
-		nActvClnts++;
+	    if (!strncasecmp(rankStr, "all", 3)) {
+		int r;
+		for (r=oldMaxRank+1; r<=getMaxRank(); r++) {
+		    addClnt(r);
+		    nActvClnts++;
+		}
 	    }
-	}
 
-	free(parseStr);
+	    free(parseStr);
+	}
     }
 
     if (clients[rank].tid != -1) {
