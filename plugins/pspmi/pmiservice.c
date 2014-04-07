@@ -268,6 +268,19 @@ int spawnService(char *np, char **c_argv, int c_argc, char **c_env, int c_envc,
     task->winsize = myTask->winsize;
     task->termios = myTask->termios;
 
+    /* use parent working dir for executables specified with relative path */
+    if (c_argv[0][0] != '/' && c_argv[0][0] != '.') {
+	char *execname = c_argv[0];
+	char *tmp;
+	int len;
+
+	len = strlen(execname) + strlen(myTask->workingdir) + 2;
+	tmp = umalloc(len);
+	snprintf(tmp, len, "%s/%s", myTask->workingdir, execname);
+	ufree(execname);
+	c_argv[0] = tmp;
+    }
+
     /* set work dir */
     if (wdir) {
 	task->workingdir = wdir;
