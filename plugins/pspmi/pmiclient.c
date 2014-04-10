@@ -1121,7 +1121,9 @@ static int tryPMISpawn(char *spawnBuffer, int serviceRank)
     char *pmiWdir = NULL, *nodeType = NULL, *machinefile = NULL, *hosts = NULL;
     char **argv = NULL, **envv = NULL;
     int argc = 0, envc = 0, i, infos, count;
+    const char delm[] = "\n";
 
+    setPMIDelim(delm);
     //mlog("%s: dump: %s\n", __func__, spawnBuffer);
 
     /* check for correct arguments */
@@ -1274,6 +1276,7 @@ static int tryPMISpawn(char *spawnBuffer, int serviceRank)
 	goto spawn_error;
     }
 
+    setPMIDelim(NULL);
     return 0;
 
 spawn_error:
@@ -1288,6 +1291,7 @@ spawn_error:
     ufree(nodeType);
     ufree(pmiWdir);
 
+    setPMIDelim(NULL);
     PMI_send("cmd=spawn_result rc=-1\n");
     return 1;
 }

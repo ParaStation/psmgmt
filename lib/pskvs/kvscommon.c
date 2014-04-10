@@ -23,6 +23,9 @@
 
 #include "kvscommon.h"
 
+const char delimiters[] =" \n";
+const char *uDelim = NULL;
+
 const char *PSKVScmdToString(PSKVS_cmd_t cmd)
 {
     switch(cmd) {
@@ -52,9 +55,14 @@ const char *PSKVScmdToString(PSKVS_cmd_t cmd)
     return NULL;
 }
 
+void setPMIDelim(const char *newDelim)
+{
+    uDelim  = newDelim;
+}
+
 char *getpmivm(char *name, char *vbuffer)
 {
-    const char delimiters[] =" \n";
+    const char *delim = delimiters;
     char *cmd, *toksave, *res, *bufcpy, *ret = NULL;
     int nlen;
 
@@ -64,7 +72,9 @@ char *getpmivm(char *name, char *vbuffer)
 	fprintf(stderr, "%s: out of memory\n", __func__);
 	exit(0);
     }
-    cmd = strtok_r(bufcpy,delimiters,&toksave);
+
+    if (uDelim) delim = uDelim;
+    cmd = strtok_r(bufcpy, delim, &toksave);
     nlen = strlen(name);
 
     while (cmd != NULL) {
@@ -76,7 +86,7 @@ char *getpmivm(char *name, char *vbuffer)
 	    }
 	    break;
 	}
-	cmd = strtok_r(NULL, delimiters, &toksave);
+	cmd = strtok_r(NULL, delim, &toksave);
     }
 
     free(bufcpy);
@@ -85,7 +95,7 @@ char *getpmivm(char *name, char *vbuffer)
 
 int getpmiv(char *name, char *vbuffer, char *pmivalue, size_t vallen)
 {
-    const char delimiters[] =" \n";
+    const char *delim = delimiters;
     char *cmd, *toksave, *res, *bufcpy;
     int nlen, ret=0;
 
@@ -97,7 +107,9 @@ int getpmiv(char *name, char *vbuffer, char *pmivalue, size_t vallen)
 	fprintf(stderr, "%s: out of memory\n", __func__);
 	exit(0);
     }
-    cmd = strtok_r(bufcpy,delimiters,&toksave);
+
+    if (uDelim) delim = uDelim;
+    cmd = strtok_r(bufcpy, delim, &toksave);
     nlen = strlen(name);
     pmivalue[0]='\0';
 
@@ -113,7 +125,7 @@ int getpmiv(char *name, char *vbuffer, char *pmivalue, size_t vallen)
 	    }
 	    break;
 	}
-	cmd = strtok_r( NULL, delimiters, &toksave);
+	cmd = strtok_r( NULL, delim, &toksave);
     }
     free(bufcpy);
     return ret;
