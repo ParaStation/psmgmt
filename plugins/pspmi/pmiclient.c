@@ -1118,7 +1118,7 @@ static int tryPMISpawn(char *spawnBuffer, int serviceRank)
 {
     char nextkey[PMI_KEYLEN_MAX], nextvalue[PMI_VALLEN_MAX];
     char numPreput[50], numInfo[50], np[50];
-    char *wdir = NULL, *nodeType = NULL;
+    char *wdir = NULL, *path = NULL, *nodeType = NULL;
     char **argv = NULL, **envv = NULL;
     int argc = 0, envc = 0, i, infos, count;
     const char delm[] = "\n";
@@ -1190,6 +1190,7 @@ static int tryPMISpawn(char *spawnBuffer, int serviceRank)
      *
      *  - wdir:	The working directory of the new spawned processes
      *  - arch/nodetype: The type of nodes requested
+     *  - path: The directory were the executable should be searched.
      *
      * TODO:
      *
@@ -1224,6 +1225,9 @@ static int tryPMISpawn(char *spawnBuffer, int serviceRank)
 	if (!strcmp(nextkey, "nodetype") || !strcmp(nextkey, "arch")) {
 	    if (!nodeType) nodeType = getpmivm(buffer, spawnBuffer);
 	}
+	if (!strcmp(nextkey, "path")) {
+	    path = getpmivm(buffer, spawnBuffer);
+	}
 
 	/* TODO soft spawn
 	if (!strcmp(nextkey, "soft")) {
@@ -1248,7 +1252,7 @@ static int tryPMISpawn(char *spawnBuffer, int serviceRank)
 
     /* spawn a service process which spawns the KVS provider and the new
      * children */
-    if (!(spawnService(np, argv, argc, envv, envc, wdir, nodeType,
+    if (!(spawnService(np, argv, argc, envv, envc, wdir, nodeType, path,
 			universe_size, serviceRank, buffer))) {
 	goto spawn_error;
     }

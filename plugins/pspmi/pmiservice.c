@@ -239,9 +239,34 @@ static int sendSpawnMessage(PStask_t *task)
 
 }
 
+/* Add a additional search path.
+ *
+ * @param oldPath Pointer to the original PATH variable.
+ *
+ * @param addPath Pointer to the path to add.
+ *
+ * @param env Pointer to the environment pointer.
+ *
+ * @return No return value.
+ */
+static void setPath(char *oldPath, char *addPath, char **env)
+{
+    size_t len;
+
+    if (!oldPath || !addPath) {
+	elog("%s: invalid path\n", __func__);
+	return;
+    }
+
+    len = strlen(oldPath) + strlen(addPath) +2;
+    *env = umalloc(len);
+
+    snprintf(*env, len, "%s:%s", oldPath, addPath);
+}
+
 int spawnService(char *np, char **c_argv, int c_argc, char **c_env, int c_envc,
-		    char *wdir, char *nType, int usize, int serviceRank,
-		    char *kvsTmp)
+		    char *wdir, char *nType, char *path, int usize,
+		    int serviceRank, char *kvsTmp)
 {
     PStask_t *myTask, *task;
     int envc = 0, argc = 0, i;
@@ -267,19 +292,6 @@ int spawnService(char *np, char **c_argv, int c_argc, char **c_env, int c_envc,
     task->rank = serviceRank -1;
     task->winsize = myTask->winsize;
     task->termios = myTask->termios;
-
-    /* use parent working dir for executables specified with relative path */
-    if (c_argv[0][0] != '/' && c_argv[0][0] != '.') {
-	char *execname = c_argv[0];
-	char *tmp;
-	int len;
-
-	len = strlen(execname) + strlen(myTask->workingdir) + 2;
-	tmp = umalloc(len);
-	snprintf(tmp, len, "%s/%s", myTask->workingdir, execname);
-	ufree(execname);
-	c_argv[0] = tmp;
-    }
 
     /* set work dir */
     if (wdir) {
@@ -322,12 +334,17 @@ int spawnService(char *np, char **c_argv, int c_argc, char **c_env, int c_envc,
 	if (!(strncmp(next, "PMI_PORT=", 9))) continue;
 	if (!(strncmp(next, "PMI_FD=", 7))) continue;
 	if (!(strncmp(next, "PMI_KVS_TMP=", 12))) continue;
+	if (path && !(strncmp(next, "PATH", 4))) {
+	    setPath(next, path, &task->environ[i++]);
+	    continue;
+	}
 
 	task->environ[i] = ustrdup(myTask->environ[envc]);
 	if (!myTask->environ[envc +1]) break;
 	i++;
     }
     envc = i;
+    ufree(path);
 
     for (i=0; i<c_envc; i++) {
 	task->environ[envc++] = ustrdup(c_env[i]);

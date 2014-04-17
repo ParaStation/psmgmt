@@ -37,6 +37,8 @@
  *
  * @param nType The type of node to execute the new processes on.
  *
+ * @param path The directory were the executable should be searched.
+ *
  * @param usize The universe size of the current job.
  *
  * @param serviceRank The rank of the spawned service process to use. This
@@ -47,7 +49,7 @@
  * @return Returns 1 on success or 0 on error.
  */
 int spawnService(char *np, char **c_argv, int c_argc, char **c_env, int c_envc,
-		    char *wdir, char *nType, int usize, int serviceRank,
-		    char *kvsTmp);
+		    char *wdir, char *nType, char *path, int usize,
+		    int serviceRank, char *kvsTmp);
 
 #endif
