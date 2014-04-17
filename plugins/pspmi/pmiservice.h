@@ -39,10 +39,6 @@
  *
  * @param usize The universe size of the current job.
  *
- * @param hostfile A hostfile to use.
- *
- * @param hosts A list of hosts to use.
- *
  * @param serviceRank The rank of the spawned service process to use. This
  * information should be requested from the logger.
  *
@@ -51,7 +47,7 @@
  * @return Returns 1 on success or 0 on error.
  */
 int spawnService(char *np, char **c_argv, int c_argc, char **c_env, int c_envc,
-		    char *wdir, char *nType, int usize, char *hostfile,
-		    char *hosts, int serviceRank, char *kvsTmp);
+		    char *wdir, char *nType, int usize, int serviceRank,
+		    char *kvsTmp);
 
 #endif

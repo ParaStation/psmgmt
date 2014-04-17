@@ -240,8 +240,8 @@ static int sendSpawnMessage(PStask_t *task)
 }
 
 int spawnService(char *np, char **c_argv, int c_argc, char **c_env, int c_envc,
-		    char *wdir, char *nType, int usize, char *hostfile,
-		    char *hosts, int serviceRank, char *kvsTmp)
+		    char *wdir, char *nType, int usize, int serviceRank,
+		    char *kvsTmp)
 {
     PStask_t *myTask, *task;
     int envc = 0, argc = 0, i;
@@ -344,16 +344,6 @@ int spawnService(char *np, char **c_argv, int c_argc, char **c_env, int c_envc,
     task->environ[envc++] = ustrdup("PMI_SPAWNED=1");
     snprintf(buffer, sizeof(buffer), "PMI_SIZE=%s", np);
     task->environ[envc++] = ustrdup(buffer);
-    if (hosts) {
-	snprintf(buffer, sizeof(buffer), "%s=%s", ENV_NODE_HOSTS, hosts);
-	task->environ[envc++] = ustrdup(buffer);
-	ufree(hosts);
-    }
-    if (hostfile) {
-	snprintf(buffer, sizeof(buffer), "%s=%s", ENV_NODE_HOSTFILE, hostfile);
-	task->environ[envc++] = ustrdup(buffer);
-	ufree(hostfile);
-    }
     if (nType) {
 	snprintf(buffer, sizeof(buffer), "PSI_NODE_TYPE=%s", nType);
 	task->environ[envc++] = ustrdup(buffer);

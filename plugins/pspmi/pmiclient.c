@@ -1118,7 +1118,7 @@ static int tryPMISpawn(char *spawnBuffer, int serviceRank)
 {
     char nextkey[PMI_KEYLEN_MAX], nextvalue[PMI_VALLEN_MAX];
     char numPreput[50], numInfo[50], np[50];
-    char *pmiWdir = NULL, *nodeType = NULL, *machinefile = NULL, *hosts = NULL;
+    char *wdir = NULL, *nodeType = NULL;
     char **argv = NULL, **envv = NULL;
     int argc = 0, envc = 0, i, infos, count;
     const char delm[] = "\n";
@@ -1189,11 +1189,7 @@ static int tryPMISpawn(char *spawnBuffer, int serviceRank)
      * ParaStation will support:
      *
      *  - wdir:	The working directory of the new spawned processes
-     *  - host: A single host to use
-     *  - hosts: A list of hosts to use
-     *  - hostfile: A hostfile to use
-     *  - machinefile: equals hostfile
-     *  - nodetype: The type of nodes requested
+     *  - arch/nodetype: The type of nodes requested
      *
      * TODO:
      *
@@ -1223,22 +1219,10 @@ static int tryPMISpawn(char *spawnBuffer, int serviceRank)
 
 	snprintf(buffer, sizeof(buffer), "info_val_%i", i);
 	if (!strcmp(nextkey, "wdir")) {
-	    pmiWdir = getpmivm(buffer, spawnBuffer);
+	    wdir = getpmivm(buffer, spawnBuffer);
 	}
-	if (!strcmp(nextkey, "nodetype")) {
-	    nodeType = getpmivm(buffer, spawnBuffer);
-	}
-	if (!hosts && !strcmp(nextkey, "host")) {
-	    hosts = getpmivm(buffer, spawnBuffer);
-	}
-	if (!hosts && !strcmp(nextkey, "hosts")) {
-	    hosts = getpmivm(buffer, spawnBuffer);
-	}
-	if (!machinefile && !strcmp(nextkey, "machinefile")) {
-	    machinefile = getpmivm(buffer, spawnBuffer);
-	}
-	if (!machinefile && !strcmp(nextkey, "hostfile")) {
-	    machinefile = getpmivm(buffer, spawnBuffer);
+	if (!strcmp(nextkey, "nodetype") || !strcmp(nextkey, "arch")) {
+	    if (!nodeType) nodeType = getpmivm(buffer, spawnBuffer);
 	}
 
 	/* TODO soft spawn
@@ -1254,12 +1238,6 @@ static int tryPMISpawn(char *spawnBuffer, int serviceRank)
 	*/
     }
 
-    if (hosts && machinefile) {
-	elog("%s(r%i): host(s) and machinefile are mutal exclusive\n",
-		__func__, rank);
-	goto spawn_error;
-    }
-
     /* reset tracking */
     spawnChildSuccess = 0;
     spawnChildCount = atoi(np);
@@ -1270,9 +1248,8 @@ static int tryPMISpawn(char *spawnBuffer, int serviceRank)
 
     /* spawn a service process which spawns the KVS provider and the new
      * children */
-    if (!(spawnService(np, argv, argc, envv, envc, pmiWdir, nodeType,
-			universe_size, machinefile, hosts, serviceRank,
-			buffer))) {
+    if (!(spawnService(np, argv, argc, envv, envc, wdir, nodeType,
+			universe_size, serviceRank, buffer))) {
 	goto spawn_error;
     }
 
@@ -1286,10 +1263,8 @@ spawn_error:
     }
     ufree(argv);
 
-    ufree(hosts);
-    ufree(machinefile);
     ufree(nodeType);
-    ufree(pmiWdir);
+    ufree(wdir);
 
     setPMIDelim(NULL);
     PMI_send("cmd=spawn_result rc=-1\n");
