@@ -57,15 +57,22 @@ static char vcid[] __attribute__((used)) =
 #define VALGRIND_COMMAND_MEMCHECK "--leak-check=full"
 #define VALGRIND_COMMAND_CALLGRIND "--tool=callgrind"
 #define MPI1_NP_OPT "-np"
+#define MAX_BINARIES 100
+
+typedef struct {
+    int np;
+    int argc;
+    char **argv;
+    char *nodetype;
+} Executable_t;
+
+int execCount = 0;
+Executable_t *exec[MAX_BINARIES];
 
 /** Space for error messages */
 char msgstr[512];
 /** context for parsing command-line options */
 poptContext optCon;
-/** duplicated argv for parsing command-line options */
-char **dup_argv;
-/** duplicated argc for parsing command-line options */
-int dup_argc;
 
 /** start admin task which are not accounted */
 int admin = 0;
@@ -73,9 +80,11 @@ int admin = 0;
 int gdb = 0;
 /** don't call gdb with --args option */
 int gdb_noargs = 0;
-/** run child processes on synthetic CPUs provided by the Valgrind core (memcheck tool) */
+/** run child processes on synthetic CPUs provided by the
+ * Valgrind core (memcheck tool) */
 int valgrind = 0;
-/** profile child processes on synthetic CPUs provided by the Valgrind core (callgrind tool) */
+/** profile child processes on synthetic CPUs provided by the
+ * Valgrind core (callgrind tool) */
 int callgrind = 0;
 /** just print output, don't run anything */
 int show = 0;
@@ -119,6 +128,7 @@ int *nodeLocalProcIDs = NULL;
 
 /* process options */
 int np = -1;
+int gnp = -1;
 int envall = 0;
 int usize = 0;
 mode_t u_mask;
@@ -128,6 +138,7 @@ char *hostlist = NULL;
 char *hostfile = NULL;
 char *envlist = NULL;
 char *nodetype = NULL;
+char *gnodetype = NULL;
 /** Accumulated list of envirenments to get exported */
 char *accenvlist = NULL;
 char *envopt = NULL;
@@ -1264,6 +1275,43 @@ static void extractNodeInformation(PSnodes_ID_t *nodeList, int np)
     }
 }
 
+static int spawnSingleExecutable(int np, int argc, char **argv, char *wd,
+				    char *cNodeType, int verbose)
+{
+    int i, ret, *errors = NULL;
+    PStask_ID_t *tids;
+    uint32_t nodeType = 0;
+
+    errors = umalloc(sizeof(int) * np, __func__);
+    for (i=0; i<np; i++) errors[i] = 0;
+    tids = umalloc(sizeof(PStask_ID_t) * np, __func__);
+
+    /* spawn client processes */
+    if (nodetype) nodeType = getNodeType(cNodeType);
+    ret = PSI_spawnStrictHW(np, nodeType, wd, argc, argv, 1, errors, tids);
+
+    /* Analyze result, if necessary */
+    if (ret<0) {
+
+	for (i=0; i<np; i++) {
+	    if (verbose || errors[i]) {
+		fprintf(stderr, "Could%s spawn '%s' process %d",
+			errors[i] ? " not" : "", argv[0], i);
+		if (errors[i]) {
+		    char* errstr = strerror(errors[i]);
+		    fprintf(stderr, ": %s", errstr ? errstr : "UNKNOWN");
+		}
+		fprintf(stderr, "\n");
+	    }
+	}
+	fprintf(stderr, "%s: PSI_spawn() failed.\n", __func__);
+
+    }
+
+    free(errors);
+    return ret;
+}
+
 /**
  * @brief Spawn compute processes.
  *
@@ -1280,20 +1328,14 @@ static void extractNodeInformation(PSnodes_ID_t *nodeList, int np)
  *
  * @param wd The working directory of the spawned processes.
  *
- * @param argc The number of arguments for the new process to spawn.
- *
- * @param argv Pointer to the arguments of the new process to spawn.
- *
  * @param verbose Set verbose mode, output whats going on.
  *
  * @return Returns 0 on success, or errorcode on error.
  */
-static int startProcs(int np, char *wd, int argc, char *argv[], int verbose)
+static int startProcs(int np, char *wd, int verbose)
 {
-    int i, ret, *errors = NULL, pSize;
+    int i, ret = 0, pSize;
     char *hostname = NULL;
-    PStask_ID_t *tids;
-    uint32_t nodeType = 0;
 
     /* request the complete nodelist from master */
     if (!nodeList) {
@@ -1331,60 +1373,41 @@ static int startProcs(int np, char *wd, int argc, char *argv[], int verbose)
     /* only start the first process for MPI1 jobs */
     if (mpichcom) np = 1;
 
-    errors = umalloc(sizeof(int) * np, __func__);
-    for (i=0; i<np; i++) errors[i] = 0;
-    tids = umalloc(sizeof(PStask_ID_t) * np, __func__);
+    for (i=0; i< execCount; i++) {
+	if ((ret = spawnSingleExecutable(exec[i]->np, exec[i]->argc,
+			exec[i]->argv, wd, exec[i]->nodetype, verbose))< 0) {
 
-    /* spawn client processes */
-    if (nodetype) nodeType = getNodeType(nodetype);
-    ret = PSI_spawnStrictHW(np, nodeType, wd, argc, argv, 1, errors, tids);
+	    if ((getenv("PMI_SPAWNED"))) {
+		PSLog_Msg_t lmsg;
+		char *env, *lptr;
+		size_t len = 0;
+		int32_t res = 0;
 
-    /* Analyze result, if necessary */
-    if (ret<0) {
-
-	for (i=0; i<np; i++) {
-	    if (verbose || errors[i]) {
-		fprintf(stderr, "Could%s spawn '%s' process %d",
-			errors[i] ? " not" : "", argv[0], i);
-		if (errors[i]) {
-		    char* errstr = strerror(errors[i]);
-		    fprintf(stderr, ": %s", errstr ? errstr : "UNKNOWN");
+		/* tell parent the spawn has failed */
+		if (!(env = getenv("__PMI_SPAWN_PARENT"))) {
+		    fprintf(stderr, "%s: don't know the spawn parent!\n",
+			    __func__);
+		    exit(1);
 		}
-		fprintf(stderr, "\n");
+
+		lmsg.header.type = PSP_CC_MSG;
+		lmsg.header.sender = PSC_getMyTID();
+		lmsg.header.dest = atoi(env);
+		lmsg.version = 2;
+		lmsg.type = KVS;
+		lmsg.sender = -1;
+
+		lptr = lmsg.buf;
+		setKVSCmd(&lptr, &len, CHILD_SPAWN_RES);
+		addKVSInt32(&lptr, &len, &res);
+		lmsg.header.len = (sizeof(lmsg) - sizeof(lmsg.buf)) + len;
+
+		PSI_sendMsg((DDMsg_t *)&lmsg);
 	    }
-	}
-	fprintf(stderr, "%s: PSI_spawn() failed.\n", __func__);
-
-	if ((getenv("PMI_SPAWNED"))) {
-	    PSLog_Msg_t lmsg;
-	    char *env, *lptr;
-	    size_t len = 0;
-	    int32_t res = 0;
-
-	    /* tell parent the spawn has failed */
-	    if (!(env = getenv("__PMI_SPAWN_PARENT"))) {
-		fprintf(stderr, "%s: don't know the spawn parent!\n",
-			__func__);
-		exit(1);
-	    }
-
-	    lmsg.header.type = PSP_CC_MSG;
-	    lmsg.header.sender = PSC_getMyTID();
-	    lmsg.header.dest = atoi(env);
-	    lmsg.version = 2;
-	    lmsg.type = KVS;
-	    lmsg.sender = -1;
-
-	    lptr = lmsg.buf;
-	    setKVSCmd(&lptr, &len, CHILD_SPAWN_RES);
-	    addKVSInt32(&lptr, &len, &res);
-	    lmsg.header.len = (sizeof(lmsg) - sizeof(lmsg.buf)) + len;
-
-	    PSI_sendMsg((DDMsg_t *)&lmsg);
+	    break;
 	}
     }
 
-    free(errors);
     return ret;
 }
 
@@ -1599,7 +1622,8 @@ static void setupPSIDEnv(int verbose)
 	if (verbose) {
 	     printf("PSI_USE_VALGRIND=1 : Running on Valgrind core(s)\n");
 	     if (!mergeout && !callgrind)
-		  printf("(You can use '-merge' for merging output of all Valgrind cores)\n");	  
+		  printf("(You can use '-merge' for merging output of all "
+			    "Valgrind cores)\n");
 	}
     }
 
@@ -2074,10 +2098,6 @@ static void doAdminSpawn(PSnodes_ID_t nodeID, int argc, char *argv[],
  * Creates tasks which are not accounted and can only be
  * run as privileged user.
  *
- * @param argc The number of arguments for the new process to spawn.
- *
- * @param argv Pointer to the arguments of the new process to spawn.
- *
  * @param login The user name to start the admin processes.
  *
  * @param verbose Set verbose mode, output whats going on.
@@ -2086,14 +2106,16 @@ static void doAdminSpawn(PSnodes_ID_t nodeID, int argc, char *argv[],
  *
  * @return Returns 0 on success, or errorcode on error.
  */
-static void createAdminTasks(int argc, char *argv[], char *login, int verbose,
-			     int show)
+static void createAdminTasks(char *login, int verbose, int show)
 {
     PSnodes_ID_t nodeID;
     char *nodeparse, *toksave, *parse = NULL;
     const char delimiters[] =", \n";
-    char *envnodes, *envhosts;
-    int numNodes = PSC_getNrOfNodes();
+    char *envnodes, *envhosts, **argv;
+    int argc, numNodes = PSC_getNrOfNodes();
+
+    argc = exec[0]->argc;
+    argv = exec[0]->argv;
 
     if (login) setupUID(argv);
 
@@ -2164,8 +2186,6 @@ static void createAdminTasks(int argc, char *argv[], char *login, int verbose,
  * Perform some sanity checks to handle common
  * mistakes.
  *
- * @param dup_argc The number of arguments for the new process to spawn.
- *
  * @param argv Pointer to the arguments of the new process to spawn.
  *
  * @return No return value.
@@ -2181,7 +2201,8 @@ static void checkSanity(char *argv[])
 	errExit(msgstr);
     }
 
-    if (!dup_argc) {
+    if (!execCount || !exec[0]->argc) {
+	printf("%s: execCount:%i\n", __func__, execCount);
 	errExit("No <command> specified.");
     }
 
@@ -2223,9 +2244,14 @@ static void checkSanity(char *argv[])
 	exit(EXIT_FAILURE);
     }
 
+    if (mpichcom && execCount >1) {
+	errExit("colon syntax is only supported with mpi2\n");
+    }
+
     if (admin) {
-	if (np != -1) {
-	    errExit("Don't use '-np' and '--admin' together");
+	if (np != -1) errExit("Don't use '-np' and '--admin' together");
+	if (execCount >1) {
+	    errExit("colon syntax is not supported with admin tasks\n");
 	}
     }
 
@@ -2366,7 +2392,7 @@ struct poptOption poptMpiexecComp[] = {
       " of processes (ignored)", NULL},
     { "arch", '\0',
       POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
-      &none, 0, "arch type to start on (ignored)", NULL},
+      &nodetype, 0, "equal to nodetype", NULL},
     { "envall", 'x',
       POPT_ARG_NONE | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
       &envall, 0, "export all environment variables to foreign nodes", NULL},
@@ -2416,12 +2442,9 @@ struct poptOption poptMpiexecComp[] = {
 };
 
 struct poptOption poptMpiexecCompGlobal[] = {
-    { "gnp", '\0',
-      POPT_ARG_INT | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
-      &np, 0, "number of processes to start", "num"},
     { "gn", '\0',
       POPT_ARG_INT | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
-      &np, 0, "equal to np: number of processes to start", "num"},
+      &gnp, 0, "equal to gnp: global number of processes to start", "num"},
     { "gwdir", '\0',
       POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
       &wdir, 0, "working directory for remote process(es)", "<directory>"},
@@ -2443,7 +2466,7 @@ struct poptOption poptMpiexecCompGlobal[] = {
       " of processes (ignored)", NULL},
     { "garch", '\0',
       POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
-      &none, 0, "arch type to start on (ignored)", NULL},
+      &gnodetype, 0, "equal to gnodetype", NULL},
     { "genvall", 'x',
       POPT_ARG_NONE | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
       &envall, 0, "export all environment variables to foreign nodes", NULL},
@@ -2463,6 +2486,8 @@ struct poptOption poptMpiexecCompGlobal[] = {
 struct poptOption poptCommonOptions[] = {
     { "np", '\0', POPT_ARG_INT | POPT_ARGFLAG_ONEDASH,
       &np, 0, "number of processes to start", "num"},
+    { "gnp", '\0', POPT_ARG_INT | POPT_ARGFLAG_ONEDASH,
+      &gnp, 0, "global number of processes to start", "num"},
     { "n", '\0', POPT_ARG_INT | POPT_ARGFLAG_ONEDASH,
       &np, 0, "equal to np: number of processes to start", "num"},
     { "exports", 'e', POPT_ARG_STRING,
@@ -2549,7 +2574,8 @@ struct poptOption poptAdvancedOptions[] = {
     { "mergedepth", '\0', POPT_ARG_INT | POPT_ARGFLAG_DOC_HIDDEN,
       &mergedepth, 0, "set over how many lines should be searched", NULL},
     { "mergetimeout", '\0', POPT_ARG_INT | POPT_ARGFLAG_DOC_HIDDEN,
-      &mergetmout, 0, "set the time how long an output is maximal delayed", NULL},
+      &mergetmout, 0, "set the time how long an output is maximal delayed",
+      NULL},
     { "pmitimeout", '\0', POPT_ARG_INT | POPT_ARGFLAG_DOC_HIDDEN,
       &pmitmout, 0, "set a timeout till all clients have to join the first "
       "barrier (disabled=-1) (default=60sec + np*0,1sec)", "num"},
@@ -2593,7 +2619,10 @@ struct poptOption poptExecutionOptions[] = {
       &maxtime, 0, "maximum number of seconds the job is permitted to run",
       "INT"},
     { "nodetype", '\0', POPT_ARG_STRING,
-      &nodetype, 0, "comma separated list of node types", NULL},
+      &nodetype, 0, "comma separated list of local node types", NULL},
+    { "gnodetype", '\0', POPT_ARG_STRING,
+      &gnodetype, 0, "comma separated list of global node types",
+      NULL},
     POPT_TABLEEND
 };
 
@@ -2681,6 +2710,59 @@ struct poptOption optionsTable[] = {
 };
 
 /**
+ * @brief Save executable specific options.
+ *
+ * These options include arguments, np and the nodetype.
+ *
+ * @param argc The number of arguments.
+ *
+ * @param argv Pointer to the arguments.
+ *
+ * @return No return value.
+ */
+static void saveNextExecutable(int *sum_np, int argc, const char **argv)
+{
+    int i;
+
+    if (execCount+1 >= MAX_BINARIES) {
+	fprintf(stderr, "maximum supported different executables %i\n",
+		    MAX_BINARIES);
+	exit(1);
+    }
+
+    if (argc <= 0 || !argv || !argv[0]) errExit("invalid colon syntax\n");
+
+    exec[execCount] = umalloc(sizeof(exec), __func__);
+    if (np > 0) {
+	*sum_np += np;
+	exec[execCount]->np = np;
+	np = -1;
+    } else if (gnp > 0) {
+	*sum_np += gnp;
+	exec[execCount]->np = gnp;
+    } else if (!admin) {
+	fprintf(stderr, "no -np argument for binary(%i) '%s'\n", execCount+1,
+		argv[0]);
+	exit(1);
+    }
+    if (nodetype) {
+	exec[execCount]->nodetype = nodetype;
+	nodetype = NULL;
+    } else if (gnodetype) {
+	exec[execCount]->nodetype = gnodetype;
+    } else {
+	exec[execCount]->nodetype = NULL;
+    }
+    exec[execCount]->argc = argc;
+    exec[execCount]->argv = umalloc(sizeof(char *) * (argc +1), __func__);
+    for (i=0; i<argc; i++) {
+	exec[execCount]->argv[i] = strdup(argv[i]);
+    }
+    exec[execCount]->argv[argc] = NULL;
+    execCount++;
+}
+
+/**
  * @brief Parse and check the command line options.
  *
  * @param argc The number of arguments.
@@ -2692,11 +2774,11 @@ struct poptOption optionsTable[] = {
 static void parseCmdOptions(int argc, char *argv[])
 {
     #define OTHER_OPTIONS_STR "[OPTION...] <command> [cmd_options]"
-    int rc = 0;
-    const char *nextArg;
+    const char *nextArg, **leftArgv;
+    char **dup_argv;
+    int leftArgc, sum_np = 0, dup_argc, rc = 0;
 
-    /* The duplicated argv will contain the apps command-line */
-
+    /* create context for parsing */
     poptDupArgv(argc, (const char **)argv,
 		&dup_argc, (const char ***)&dup_argv);
 
@@ -2704,12 +2786,9 @@ static void parseCmdOptions(int argc, char *argv[])
 			    optionsTable, POPT_CONTEXT_POSIXMEHARDER);
     poptSetOtherOptionHelp(optCon, OTHER_OPTIONS_STR);
 
-    /*
-     * Split the argv into two parts:
-     *  - first one containing the mpiexec options
-     *  - second one containing the apps argv
-     * The first one is already parsed while splitting
-     */
+PARSE_MPIEXEC_OPT:
+
+    /* parse mpiexec options */
     while ((rc = poptGetNextOpt(optCon)) >= 0) {
 	const char *av[] = { "--envval", NULL };
 
@@ -2734,12 +2813,39 @@ static void parseCmdOptions(int argc, char *argv[])
 	}
     }
 
-    dup_argc = 0;
+    leftArgv = poptGetArgs(optCon);
+    leftArgc = 0;
 
-    while ((nextArg = poptGetArg(optCon)) != NULL) {
-	dup_argv[dup_argc++] = strdup(nextArg);
+    /* parse leftover arguments */
+    while (leftArgv && (nextArg = leftArgv[leftArgc])) {
+	leftArgc++;
+
+	if (!(strcmp(nextArg, ":"))) {
+
+	    /* save current executable and arguments */
+	    saveNextExecutable(&sum_np, leftArgc-1, leftArgv);
+
+	    /* create new context with leftover args */
+	    dup_argc = 0;
+	    dup_argv[dup_argc++] = strdup("mpiexec");
+
+	    while ((nextArg = leftArgv[leftArgc])) {
+		dup_argv[dup_argc++] = strdup(nextArg);
+		leftArgc++;
+	    }
+
+	    poptFreeContext(optCon);
+	    optCon = poptGetContext(NULL, dup_argc, (const char **)dup_argv,
+		    optionsTable, POPT_CONTEXT_POSIXMEHARDER);
+	    poptSetOtherOptionHelp(optCon, OTHER_OPTIONS_STR);
+
+	    /* continue parsing of sub mpiexec options */
+	    goto PARSE_MPIEXEC_OPT;
+	}
     }
-    dup_argv[dup_argc] = NULL;
+
+    if (leftArgv) saveNextExecutable(&sum_np, leftArgc, leftArgv);
+    if (sum_np >0) np = sum_np;
 
     /* restore original context for further usage messages */
     poptFreeContext(optCon);
@@ -2754,7 +2860,19 @@ static void parseCmdOptions(int argc, char *argv[])
 		 poptStrerror(rc));
 	errExit(msgstr);
     }
+}
 
+/**
+ * Print help and usage messages.
+ *
+ * @param argc The number of arguments.
+ *
+ * @param argv Pointer to the arguments to parse.
+ *
+ * @return No return value.
+ */
+static void printHelp(int argc, char *argv[])
+{
     /* output help */
     if (help) {
 	poptPrintHelp(optCon, stdout, 0);
@@ -2821,26 +2939,29 @@ static void parseCmdOptions(int argc, char *argv[])
  */
 static void setupGDB()
 {
-    int i, new_argc = 0;
+    int i, x, new_argc;
     char **new_argv;
 
-    new_argv = umalloc((dup_argc + 5 + 1) * sizeof(char *), __func__);
+    for (x=0; x<execCount; x++) {
+	new_argc = 0;
+	new_argv = umalloc((exec[x]->argc + 5 + 1) * sizeof(char *), __func__);
 
-    new_argv[new_argc++] = GDB_COMMAND_EXE;
-    new_argv[new_argc++] = GDB_COMMAND_SILENT;
-    new_argv[new_argc++] = GDB_COMMAND_OPT;
-    new_argv[new_argc++] = GDB_COMMAND_FILE;
-    if (!gdb_noargs) {
-	new_argv[new_argc++] = GDB_COMMAND_ARGS;
+	new_argv[new_argc++] = GDB_COMMAND_EXE;
+	new_argv[new_argc++] = GDB_COMMAND_SILENT;
+	new_argv[new_argc++] = GDB_COMMAND_OPT;
+	new_argv[new_argc++] = GDB_COMMAND_FILE;
+	if (!gdb_noargs) {
+	    new_argv[new_argc++] = GDB_COMMAND_ARGS;
+	}
+
+	for (i=0; i<exec[x]->argc; i++) {
+	    new_argv[new_argc++] = exec[x]->argv[i];
+	}
+
+	new_argv[new_argc] = NULL;
+	exec[x]->argv = new_argv;
+	exec[x]->argc = new_argc;
     }
-
-    for (i=0; i<dup_argc; i++) {
-	new_argv[new_argc++] = dup_argv[i];
-    }
-
-    new_argv[new_argc] = NULL;
-    dup_argv = new_argv;
-    dup_argc = new_argc;
 }
 
 /**
@@ -2850,32 +2971,34 @@ static void setupGDB()
  */
 static void setupVALGRIND()
 {
-    int i, new_argc = 0;
+    int i, x, new_argc;
     char **new_argv;
 
-    new_argv = umalloc((dup_argc + 3 + 1) * sizeof(char *), __func__);
-    
-    new_argv[new_argc++] = VALGRIND_COMMAND_EXE;
-    new_argv[new_argc++] = VALGRIND_COMMAND_SILENT;
+    for (x=0; x<execCount; x++) {
+	new_argc = 0;
+	new_argv = umalloc((exec[x]->argc + 3 + 1) * sizeof(char *), __func__);
 
-    if(callgrind) {
-	 /* Use Callgrind Tool */
-	 new_argv[new_argc++] = VALGRIND_COMMAND_CALLGRIND;
+	new_argv[new_argc++] = VALGRIND_COMMAND_EXE;
+	new_argv[new_argc++] = VALGRIND_COMMAND_SILENT;
 
-    } else {
-	 /* Default: Memcheck Tool */
-	 new_argv[new_argc++] = VALGRIND_COMMAND_MEMCHECK;
+	if(callgrind) {
+	     /* Use Callgrind Tool */
+	     new_argv[new_argc++] = VALGRIND_COMMAND_CALLGRIND;
+
+	} else {
+	     /* Default: Memcheck Tool */
+	     new_argv[new_argc++] = VALGRIND_COMMAND_MEMCHECK;
+	}
+
+	for (i=0; i<exec[x]->argc; i++) {
+	     new_argv[new_argc++] = exec[x]->argv[i];
+	}
+
+	new_argv[new_argc] = NULL;
+	exec[x]->argv = new_argv;
+	exec[x]->argc = new_argc;
     }
-
-    for (i=0; i<dup_argc; i++) {
-	 new_argv[new_argc++] = dup_argv[i];
-    }
-
-    new_argv[new_argc] = NULL;
-    dup_argv = new_argv;
-    dup_argc = new_argc;
 }
-
 
 /**
  * @brief Add the -np (number of processes) argument
@@ -2887,20 +3010,22 @@ static void setupVALGRIND()
 static void setupComp()
 {
     char *cnp, **tmp;
-    int len = 10,i;
+    int len = 10, i, argc;
 
+    argc = exec[0]->argc;
     cnp = umalloc(len, __func__);
     snprintf(cnp, len, "%d", np);
-    tmp = umalloc((dup_argc + 2 + 1) * sizeof(char *), __func__ );
+    tmp = umalloc((argc + 2 + 1) * sizeof(char *), __func__ );
 
-    for (i=0; i<dup_argc; i++) {
-	tmp[i] = dup_argv[i];
+    for (i=0; i<argc; i++) {
+	tmp[i] = exec[0]->argv[i];
     }
-    dup_argv = tmp;
 
-    dup_argv[dup_argc++] = MPI1_NP_OPT;
-    dup_argv[dup_argc++] = cnp;
-    dup_argv[dup_argc] = NULL;
+    exec[0]->argv = tmp;
+    exec[0]->argv[argc++] = MPI1_NP_OPT;
+    exec[0]->argv[argc++] = cnp;
+    exec[0]->argv[argc] = NULL;
+    exec[0]->argc = argc;
 }
 
 /**
@@ -2926,6 +3051,8 @@ int main(int argc, char *argv[], char** envp)
 
     /* parse command line options */
     parseCmdOptions(argc, argv);
+
+    printHelp(argc, argv);
 
     /* some sanity checks */
     checkSanity(argv);
@@ -2954,8 +3081,8 @@ int main(int argc, char *argv[], char** envp)
     if (admin) setupAdminEnv();
 
     /* Propagate PSI_RARG_PRE_* / check for LSF-Parallel */
-/*     PSI_RemoteArgs(filter_argc-dup_argc, &filter_argv[dup_argc], &dup_argc, */
-/*	   &dup_argv); */
+/*     PSI_RemoteArgs(filter_argc-dup_argc, &filter_argv[dup_argc],
+ *     &dup_argc, &dup_argv); */
 /*     @todo Enable PSI_RARG_PRE correctly !! */
 
     /* create spawner process and switch to logger */
@@ -2976,14 +3103,14 @@ int main(int argc, char *argv[], char** envp)
 	    printf("Starting admin task(s)\n");
 	}
 	usleep(200);
-	createAdminTasks(dup_argc, dup_argv, login, verbose, show);
+	createAdminTasks(login, verbose, show);
     } else {
 	/* start the KVS provider */
 	if ((getenv("SERVICE_KVS_PROVIDER"))) {
 	    startKVSProvider(argc, argv, envp);
 	} else {
 	    /* start all processes */
-	    if (startProcs(np, wdir, dup_argc, dup_argv, verbose) < 0) {
+	    if (startProcs(np, wdir, verbose) < 0) {
 		fprintf(stderr, "Unable to start all processes. Aborting.\n");
 		exit(EXIT_FAILURE);
 	    }
