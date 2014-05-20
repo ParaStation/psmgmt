@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2005-2013 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2014 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -89,7 +89,7 @@ void logger_setWaitNLFlag(logger_t* logger, int flag)
 
 logger_t* logger_init(char* tag, FILE* logfile)
 {
-    logger_t* logger = malloc(sizeof(*logger));
+    logger_t* logger = (logger_t*)malloc(sizeof(*logger));
 
     if (logger) {
 	logger->logfile = logfile;
@@ -98,18 +98,18 @@ logger_t* logger_init(char* tag, FILE* logfile)
 	logger_setTag(logger, tag);
 	/* pre-allocate trail to prevent psid from bloating */
 	logger->trailSize = 256;
-	logger->trail = malloc(logger->trailSize);
+	logger->trail = (char*)malloc(logger->trailSize);
 	logger->trailUsed = 0;
 	logger->timeFlag = 0;
 	logger->waitNLFlag = 1;
 
 	/* pre-allocate fmt, prfx and txt to prevent psid from bloating */
 	logger->fmtSize = 256;
-	logger->fmt = malloc(logger->fmtSize);
+	logger->fmt = (char*)malloc(logger->fmtSize);
 	logger->prfxSize = 256;
-	logger->prfx = malloc(logger->prfxSize);
+	logger->prfx = (char*)malloc(logger->prfxSize);
 	logger->txtSize = 256;
-	logger->txt = malloc(logger->txtSize);
+	logger->txt = (char*)malloc(logger->txtSize);
 
 	if (!logger->trail || !logger->fmt || !logger->prfx || !logger->txt) {
 	    logger_finalize(logger);
@@ -338,7 +338,7 @@ static void do_print(logger_t* l, const char* format, va_list ap)
 	    len += strlen(c);
 	    if (l->trailUsed + len >= l->trailSize) {
 		l->trailSize = l->trailUsed + len + 80; /* Some extra space */
-		l->trail = realloc(l->trail, l->trailSize);
+		l->trail = (char*)realloc(l->trail, l->trailSize);
 		if (!l->trail) {
 		    do_panic(l, "%s: no mem for trail%s\n", __func__, "");
 		}
@@ -439,7 +439,7 @@ void logger_exit(logger_t* logger, int eno, const char* format, ...)
 		   "%s: %s\n", format, errstr ? errstr : "UNKNOWN");
     if (len >= logger->fmtSize) {
 	logger->fmtSize = len + 80; /* Some extra space */
-	logger->fmt = realloc(logger->fmt, logger->fmtSize);
+	logger->fmt = (char*)realloc(logger->fmt, logger->fmtSize);
 	if (!logger->fmt) {
 	    do_panic(logger, "%s: no mem for '%s'\n", __func__, format);
 	}
