@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2013 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2014 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -59,7 +59,7 @@ static void printVersion(void)
 static void doReset(void)
 {
     if (geteuid()) {
-	printf("Insufficient priviledge for resetting\n");
+	printf("Insufficient privilege for resetting\n");
 	exit(-1);
     }
     printf("Initiating RESET.\n");
