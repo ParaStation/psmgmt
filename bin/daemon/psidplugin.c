@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2009-2013 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2009-2014 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -1437,21 +1437,21 @@ int PSIDplugin_getAPIversion(void)
  */
 static void msg_PLUGIN(DDTypedBufferMsg_t *inmsg)
 {
-    PStask_t *task = PStasklist_find(&managedTasks, inmsg->header.sender);
     int destID = PSC_getID(inmsg->header.dest), ret = 0;
 
     PSID_log(PSID_LOG_PLUGIN, "%s(%s, %s)\n", __func__,
 	     PSC_printTID(inmsg->header.sender), inmsg->buf);
 
-    if (PSC_getID(inmsg->header.sender) == PSC_getMyID()) {
-	if (!task) {
-	    PSID_log(-1, "%s: task %s not found\n",
+    if (!PSID_checkPrivilege(inmsg->header.sender)) {
+	switch (inmsg->type) {
+	case PSP_PLUGIN_AVAIL:
+	case PSP_PLUGIN_HELP:
+	case PSP_PLUGIN_SHOW:
+	case PSP_PLUGIN_LOADTIME:
+	    break;
+	default:
+	    PSID_log(-1, "%s: task %s not allowed to touch plugins\n",
 		     __func__, PSC_printTID(inmsg->header.sender));
-	    ret = EACCES;
-	    goto end;
-	} else if (task->uid) {
-	    PSID_log(-1, "%s: Only root is allowed to load plugins\n",
-		     __func__);
 	    ret = EACCES;
 	    goto end;
 	}
