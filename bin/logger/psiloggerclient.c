@@ -309,7 +309,7 @@ int registerClient(int rank, PStask_ID_t tid, PStask_group_t group)
 	    char *saveptr, *parseStr = strdup(destStr);
 	    char *rankStr = strtok_r(destStr, delimiters, &saveptr);
 
-	    if (!strncasecmp(rankStr, "all", 3)) {
+	    if (rankStr && !strncasecmp(rankStr, "all", 3)) {
 		int r;
 		for (r=oldMaxRank+1; r<=getMaxRank(); r++) {
 		    addClnt(r);
