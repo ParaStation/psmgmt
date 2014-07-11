@@ -352,7 +352,7 @@ def perform_test(testdir):
 	test["name"] = os.path.basename(testdir)
 	test["root"] = testdir
 
-	check_test(test)
+	check_test_description(test)
 
 	create_output_dir(testdir)
 	os.chdir(testdir)
