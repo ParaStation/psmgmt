@@ -239,7 +239,6 @@ def export_fproc_variables_to_env(stats, part, env):
 	prefix = "PSTEST_FPROC_" + part.upper() + "_"
 	export_dictionary_to_env(stats, prefix, env)
 
-
 #
 # Execute an evaluation command. The scontrol information about the job are
 # passed via the environment. Specifically, for the job submitted to the partition
@@ -323,6 +322,16 @@ def create_output_dir(testdir):
 		os.mkdir(outdir)
 
 #
+# Check that the test description is okay.
+def check_test_description(test):
+	KEYS = ["type", "partitions", "submit", "eval", "fproc", "monitor_hz"]
+
+	for k in KEYS:
+		if k not in test.keys():
+			raise Exception("Missing key '%s' in input file. Try adding" \
+			                "\"%s\": null to the description." % (k, k))
+
+#
 # Run a single test. For each specified partition the function will submit one
 # job, potentially spawn an accompanying frontend process that can interact with
 # the batch system (e.g., to test job canceling) and then runs the evaluation.
@@ -331,6 +340,8 @@ def perform_test(testdir):
 
 	test["name"] = os.path.basename(testdir)
 	test["root"] = testdir
+
+	check_test(test)
 
 	create_output_dir(testdir)
 	os.chdir(testdir)
