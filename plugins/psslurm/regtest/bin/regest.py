@@ -319,23 +319,32 @@ def main(argv):
 	parser.add_option("-p", "--maxpar", action = "store", type = "int", \
 	                  dest = "maxpar", default = 16, \
 	                  help = "Maximal number of tests processed in parallel.")
+	parser.add_option("-l", "--list", action = "store_true", \
+	                  dest = "do_list", \
+	                  help = "Print tests that would be run but do not actually run them.")
 
 	(opts, args) = parser.parse_args()
 
 	if not os.path.isdir(opts.testsdir):
 		parser.error("Invalid tests directory '%s'." % opts.testsdir)
 
-	testthr = []
-	for testdir in os.listdir(opts.testsdir):
-		testthr.append(WorkerThread(perform_test, [opts.testsdir + "/" + testdir]))
-		testthr[-1].start()
+	tests = os.listdir(opts.testsdir)
 
-		testthr = [x for x in testthr if x.is_alive()]
+	if opts.do_list:
+		for testdir in tests:
+			print(" " + testdir + "\t\t(%s)" % (opts.testsdir + "/" + testdir))
+	else:
+		testthr = []
+		for testdir in tests:
+			testthr.append(WorkerThread(perform_test, [opts.testsdir + "/" + testdir]))
+			testthr[-1].start()
 
-		# Block until there is room for more threads.
-		while len(testthr) >= opts.maxpar:
-			time.sleep(0)
 			testthr = [x for x in testthr if x.is_alive()]
+
+			# Block until there is room for more threads.
+			while len(testthr) >= opts.maxpar:
+				time.sleep(0)
+				testthr = [x for x in testthr if x.is_alive()]
 
 # The big lock
 BL = threading.Lock()
