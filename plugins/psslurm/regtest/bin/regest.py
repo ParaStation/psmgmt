@@ -7,6 +7,10 @@ import json
 import re
 import time
 import threading
+# To guarantee that we can run on systems
+# with an older software stack we use optparse
+# rather than the newer argparse module.
+import optparse
 
 
 #
@@ -277,8 +281,7 @@ def create_output_dir(testdir):
 # job, potentially spawn an accompanying frontend process that can interact with
 # the batch system (e.g., to test job canceling) and then runs the evaluation.
 def perform_test(testdir):
-	testdir = os.environ["PSTESTS"] + "/" + testdir
-	test    = json.loads(open(testdir + "/descr.json", "r").read())
+	test = json.loads(open(testdir + "/descr.json", "r").read())
 
 	test["name"] = os.path.basename(testdir)
 	test["root"] = testdir
@@ -302,6 +305,20 @@ def perform_test(testdir):
 
 	eval_test_outcome(test, stats)
 
-for i in sys.argv[1:]:
-	perform_test(i)
+def main(argv):
+	parser = optparse.OptionParser(usage = "usage: %prog [options]")
+	parser.add_option("-d", "--testsdir", action = "store", type = "string", \
+	                  dest = "testsdir", \
+	                  default = "/".join(os.path.abspath(sys.argv[0]).split("/")[:-2]) + "/tests", \
+	                  help = "Path to the tests directory.")
+
+	(opts, args) = parser.parse_args()
+
+	if not os.path.isdir(opts.testsdir):
+		parser.error("Invalid tests directory '%s'." % opts.testsdir)
+
+	for testdir in os.listdir(opts.testsdir):
+		perform_test(opts.testsdir + "/" + testdir)
+
+main(sys.argv)
 
