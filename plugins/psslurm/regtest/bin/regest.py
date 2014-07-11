@@ -322,13 +322,20 @@ def main(argv):
 	parser.add_option("-l", "--list", action = "store_true", \
 	                  dest = "do_list", \
 	                  help = "Print tests that would be run but do not actually run them.")
+	parser.add_option("-t", "--tests", action = "store", type = "string", \
+	                  dest = "tests", default = "", \
+	                  help = "Comma-separated list of tests that should be executed.")
 
 	(opts, args) = parser.parse_args()
 
 	if not os.path.isdir(opts.testsdir):
 		parser.error("Invalid tests directory '%s'." % opts.testsdir)
 
-	tests = os.listdir(opts.testsdir)
+	tests = []
+	if "" != opts.tests:
+		tests = [x.strip() for x in opts.tests.split(",")]
+	else:
+		tests = os.listdir(opts.testsdir)
 
 	if opts.do_list:
 		for testdir in tests:
