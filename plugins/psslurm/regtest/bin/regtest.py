@@ -79,17 +79,11 @@ def query_scontrol(jobid):
 	return stats
 
 #
-# Submit a job to partition part and return the jobid.
-#
-# The current version of the code cannot handle srun since srun blocks.
-# Moreover, when using srun we want to check that Ctrl-C and friends are
-# properly handled.
-def submit(part, cmd):
-	if "sbatch" != cmd[0].strip():
-		raise Exception("The code currently only supports " \
-		                "sbatch (not '%s')" % cmd[0])
-
-	cmd = [cmd[0], "-p", part, "-D", "output" ] + cmd[1:]
+# Submit a job to partition part and return the jobid using sbatch. 
+# We know that sbatch is non-blocking so we can directly wait here 
+# for the process to finish.
+def submit_via_sbatch(part, cmd):
+	cmd = [cmd[0], "-p", part, "-D", "output"] + cmd[1:]
 
 	p = subprocess.Popen(cmd, \
 	                     stdout = subprocess.PIPE, \
@@ -101,7 +95,34 @@ def submit(part, cmd):
 	if 0 != ret:
 		raise Exception("Submission failed with error code %d: %s" % (ret, err))
 
-	return re.search(r'Submitted batch job ([0-9]+)', out).group(1)
+	return None, re.search(r'Submitted batch job ([0-9]+)', out).group(1)
+
+#
+# Submit a job to partition part and return the jobid using srun.
+def submit_via_srun(part, cmd):
+	cmd = [cmd[0], "-p", part, "-D", "output", "-o", "slurm-%J.out"] + cmd[1:]
+
+	p = subprocess.Popen(cmd, \
+	                     stdout = subprocess.PIPE, \
+	                     stderr = subprocess.PIPE)
+
+        out, err = p.communicate()
+
+	# srun (in contrast to sbatch) writes the status information
+	# to stderr.
+
+	return p, re.search('srun: job ([0-9]+) queued and waiting for resources', err).group(1)
+
+#
+# Submit a job to partition part and return the jobid.
+#
+# The current version of the code cannot handle srun since srun blocks.
+# Moreover, when using srun we want to check that Ctrl-C and friends are
+# properly handled.
+def submit(part, cmd):
+	return {"sbatch": submit_via_sbatch, \
+	        "srun"  : submit_via_srun}[cmd[0].strip()](part, cmd)
+
 
 #
 # Interpret state as either done or not-done.
@@ -129,12 +150,13 @@ def job_is_done(stats):
 def exec_test_batch(test, part):
 	assert("batch" == test["type"])	
 
+	q     = None
 	jobid = None
 	# "submit" can be null in the input JSON file. In this case
 	# we only run the frontend process which interacts with the
 	# batch system directly.
 	if test["submit"]:
-		jobid = submit(part, test["submit"])
+		q, jobid = submit(part, test["submit"])
 
 	fproc_out = test["root"] + "/output/fproc-%s.out" % jobid
 	fproc_err = test["root"] + "/output/fproc-%s.err" % jobid
@@ -151,7 +173,19 @@ def exec_test_batch(test, part):
 	while 1:
 		done = 1
 
+		if q:
+			ret = q.poll()
+			if None != ret:
+				if 0 != ret:
+					raise Exception("Submission failed with error code %d." % ret)
+				q = None
+			else:
+				done = 0
+
 		if p:
+			# FIXME Do we need to make sure that the stderr pipe is not filling up
+			#       and blocks?
+
 			ret = p.poll()
 			if None != ret:
 				# Use CamelCase for the keys here to so that we can handle
