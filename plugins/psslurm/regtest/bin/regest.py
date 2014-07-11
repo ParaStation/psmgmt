@@ -1,0 +1,305 @@
+#!/usr/bin/env python
+
+import sys
+import os
+import subprocess
+import json
+import re
+import time
+import threading
+
+
+#
+# Get the version of the slurm installation as a string.
+def query_slurm_version():
+	p       = subprocess.Popen(["squeue", "-V"], stdout = subprocess.PIPE)
+	version = p.communicate()[0].split()[1]
+	if 1 != p.wait():
+		raise Exception("Failed to retrieve version")
+
+	return version
+
+#
+# Generic worker thread class that executes a specified function
+# with some arguments.
+# Might look strange given that the thread module underlying threading
+# provides exactly this functionality but threading also gives us
+# a join function! 
+class WorkerThread(threading.Thread):
+	def __init__(self, fct, args):
+		threading.Thread.__init__(self)
+
+		self.fct  = fct
+		self.args = args
+		self.ret  = None
+
+	def run(self):
+		self.ret = self.fct(*self.args)
+
+#
+# Parse the output of "scontrol -o show job". The function
+# returns a dictionary that contains the key-value pairs.
+def parse_scontrol_output(text):
+	stats = {}
+
+	tmp   = text
+	while len(tmp) > 0:
+		x = re.search(r'([^ ]+)=(.*?)( ([^ ]+)=|$)', tmp)
+		stats[x.group(1)] = x.group(2)
+		
+		tmp = tmp.replace(x.group(1) + "=" + x.group(2), "").strip()
+
+	return stats
+
+#
+# Query the status of a job using scontrol. The argument jobid must
+# be a string.
+def query_scontrol(jobid):
+	p = subprocess.Popen(["scontrol", "-o", "show", "job", jobid], \
+	                     stdout = subprocess.PIPE, \
+	                     stderr = subprocess.PIPE)
+	
+	out, err = p.communicate()
+	ret = p.wait()
+
+	stats = None
+	if 0 == ret:
+		stats = parse_scontrol_output(out)
+
+	return stats
+
+#
+# Submit a job to partition part and return the jobid.
+#
+# The current version of the code cannot handle srun since srun blocks.
+# Moreover, when using srun we want to check that Ctrl-C and friends are
+# properly handled.
+def submit(part, cmd):
+	if 'sbatch' != cmd[0].strip():
+		raise Exception("The code currently only supports " \
+		                "sbatch (not '%s')" % cmd[0])
+
+	cmd = [cmd[0], "-p", part, "-D", "output" ] + cmd[1:]
+
+	p = subprocess.Popen(cmd, \
+	                     stdout = subprocess.PIPE, \
+	                     stderr = subprocess.PIPE)
+
+	out, err = p.communicate()
+	ret = p.wait()
+
+	if 0 != ret:
+		raise Exception("Submission failed with error code %d: %s" % (ret, err))
+
+	return re.search(r'Submitted batch job ([0-9]+)', out).group(1)
+
+#
+# Execute a batch job. The function waits until the job and the accompanying
+# frontend process (if one) are terminated.
+#
+# TODO Implement a timeout mechanism.
+#
+def exec_test_batch(test, part):
+	assert("batch" == test["type"])	
+
+	jobid = None
+	# "submit" can be null in the input JSON file. In this case
+	# we only run the frontend process which interacts with the
+	# batch system directly.
+	if test["submit"]:
+		jobid = submit(part, test["submit"])
+
+	fproc_out = test["root"] + "/output/fproc-%s.out" % jobid
+	fproc_err = test["root"] + "/output/fproc-%s.err" % jobid
+
+	p = None
+	if "fproc" in test.keys() and test["fproc"]:
+		p = subprocess.Popen([test['root'] + "/" + test["fproc"], jobid], \
+		                     stdout = open(fproc_out, "w"), \
+		                     stderr = open(fproc_err, "w"))
+
+	delay = 1.0/test["monitor_hz"]
+
+	stats = {"scontrol": None, "fproc": None}
+	while 1:
+		done = 1
+
+		if p:
+			ret = p.poll()
+			if None != ret:
+				# Use CamelCase for the keys here to so that we can handle
+				# the scontrol and fproc stats in the same fasion.
+				stats["fproc"] = {"StdOut": fproc_out, \
+				                  "StdErr": fproc_err, \
+				                  "ExitCode": ret}
+				p = None
+			else:
+				done = 0
+
+		if jobid:
+			tmp = query_scontrol(jobid)
+		
+			if tmp:
+				stats["scontrol"] = tmp
+			
+			# Job state codes (from the squeue man page):
+			# PENDING, RUNNING, SUSPENDED, CANCELLED, 
+			# COMPLETING, COMPLETED, CONFIGURING, FAILED, TIMEOUT,
+			# PREEMPTED, NODE_FAIL and SPECIAL_EXIT
+			if tmp and not tmp["JobState"] in ["COMPLETED", \
+			                   "FAILED", "TIMEOUT", "CANCELLED"]:
+				done = 0
+
+		if done:
+			break
+	
+		# TODO Actually we should measure the time of the previous
+		#      code and subtract it from delay. If the result is negative
+		#      we need to add the smallest multiple of delay such that
+		#      the sum is positive. In this way we guarantee that 
+		#      loop time is a multiple of the requested period.
+		time.sleep(delay)
+
+	# Return the latest captured stats
+	return stats
+
+#
+# Execute an interactive job.
+def exec_test_interactive(test, part):
+	assert("interactive" == test["type"])
+	assert(1 == 0)	# Not implemented
+	pass
+
+#
+# Convert a CamelCase string to a CAMEL_CASE type string
+def camel_to_upper(string):
+	LOWERCASE = 'abcdefghijklmnopqrstuvwxyz'
+	UPPERCASE = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+	new = string[0]
+	for i in range(1, len(string)):
+		if string[i] in UPPERCASE and string[i-1] in LOWERCASE:
+			new = new + "_" + string[i]
+		else:
+			new = new       + string[i]
+
+	return new.upper()
+
+#
+# Sanitize a string such that it can be used as the name of
+# an environment variable.
+def sanitize(string):
+	string = string.replace('/', '_SLASH_')
+	string = string.replace(':', '_COLON_')
+
+	return string
+
+#
+# Execute an evaluation command. The scontrol information about the job are
+# passed via the environment. Specifically, for the job submitted to the partition
+# "batch", several environment variables with the prefix PSTEST_SCONTROL_SBATCH_ are
+# available corresponding to the scontrol output.
+def exec_eval_command(test, stats):
+	env = os.environ.copy()
+
+	env["PSTEST_PARTITIONS"] = " ".join(test["partitions"])
+	
+	for i, part in enumerate(test["partitions"]):
+		if stats[i]["scontrol"]:
+			prefix = "PSTEST_SCONTROL_" + part.upper() + "_"
+			for k, v in stats[i]["scontrol"].iteritems():
+				env[prefix + sanitize(camel_to_upper(k))] = v
+
+		if stats[i]["fproc"]:
+			prefix = "PSTEST_FPROC_" + part.upper() + "_"
+			for k, v in stats[i]["scontrol"].iteritems():
+				env[prefix + sanitize(camel_to_upper(k))] = v
+
+	cmd = test["eval"]
+	cmd[0] = test["root"] + "/" + cmd[0]
+
+	p = subprocess.Popen(cmd, \
+		             stdout = open("output/eval.out", "w"), \
+		             stderr = open("output/eval.err", "w"), \
+	                     env = env)
+
+	ret = p.wait()
+
+	return ret
+
+#
+# Execute the evaluation processes. Usually this is done using a
+# user-specified application that checks the output. If no evaluation
+# program is specified in test description all we can do is check
+# the exit code of the submissions.
+def eval_test_outcome(test, stats):
+	fail = 0
+
+	for x in stats:
+		if not x:
+			fail = 1
+
+	if not fail:
+		if "eval" in test.keys() and test["eval"]:
+			fail = exec_eval_command(test, stats)
+		else:
+			tmp = [x["ExitCode"] for x in stats]
+			if min(tmp) != max(tmp):
+				fail = 1
+
+	# TODO The placing of the [OK]/[FAIL] text should depend on the terminal width
+	#      and should not depend on the length of the test name string.
+	if fail:
+		print(" %s\t\t\t\t\t\t\t\t[\033[0;31mFAIL\033[0m] " % test["name"])
+	else:
+		print(" %s\t\t\t\t\t\t\t\t[\033[0;32mOK\033[0m] "   % test["name"])
+
+#
+# Create an empty output folder for the test. Existing folders will be moved.
+def create_output_dir(testdir):
+	outdir = testdir + "/output"
+
+	if os.path.isdir(outdir):
+		i = 1
+		while 1:
+			tmp = outdir + "-%04d" % i
+			if not os.path.isdir(tmp):
+				os.rename(outdir, tmp)
+				break
+			
+			i = i+1
+
+	os.mkdir(outdir)
+
+#
+# Run a single test. For each specified partition the function will submit one
+# job, potentially spawn an accompanying frontend process that can interact with
+# the batch system (e.g., to test job canceling) and then runs the evaluation.
+def perform_test(testdir):
+	testdir = os.environ["PSTESTS"] + "/" + testdir
+	test    = json.loads(open(testdir + "/descr.json", "r").read())
+
+	test["name"] = os.path.basename(testdir)
+	test["root"] = testdir
+
+	create_output_dir(testdir)
+	os.chdir(testdir)
+
+	if not test["type"] in ["batch", "interactive"]:
+		raise Exception("Unknown test type '%s'" % test["type"])
+
+	thr = []
+	for part in test["partitions"]:
+		fct = {"batch"      : exec_test_batch, \
+		       "interactive": exec_test_interactive}[test["type"]]
+		thr.append(WorkerThread(fct, [test, part]))
+
+	[x.start() for x in thr]
+	[x.join()  for x in thr]
+	
+	stats = [x.ret for x in thr]
+
+	eval_test_outcome(test, stats)
+
+for i in sys.argv[1:]:
+	perform_test(i)
+
