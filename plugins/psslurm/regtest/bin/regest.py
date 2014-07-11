@@ -331,6 +331,12 @@ def check_test_description(test):
 			raise Exception("Missing key '%s' in input file. Try adding" \
 			                "\"%s\": null to the description." % (k, k))
 
+	if not test["type"] in ["batch", "interactive"]:
+		raise Exception("Invalid test type '%s'" % test["type"])
+
+	if "interactive" == test["type"] and test["submit"][0] not in ["srun", "salloc"]:
+		raise Exception("Interactive jobs need to be submitted via 'srun' or 'salloc'.")
+
 #
 # Run a single test. For each specified partition the function will submit one
 # job, potentially spawn an accompanying frontend process that can interact with
