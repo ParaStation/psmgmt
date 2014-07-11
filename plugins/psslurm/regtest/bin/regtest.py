@@ -100,7 +100,7 @@ def submit_via_sbatch(part, cmd):
 #
 # Submit a job to partition part and return the jobid using srun.
 def submit_via_srun(part, cmd):
-	cmd = [cmd[0], "-p", part, "-D", "output", "-o", "slurm-%J.out"] + cmd[1:]
+	cmd = [cmd[0], "-p", part, "-D", "output", "-o", "output/slurm-%J.out"] + cmd[1:]
 
 	p = subprocess.Popen(cmd, \
 	                     stdout = subprocess.PIPE, \
