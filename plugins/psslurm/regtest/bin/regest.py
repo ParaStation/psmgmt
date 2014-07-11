@@ -79,7 +79,7 @@ def query_scontrol(jobid):
 # Moreover, when using srun we want to check that Ctrl-C and friends are
 # properly handled.
 def submit(part, cmd):
-	if 'sbatch' != cmd[0].strip():
+	if "sbatch" != cmd[0].strip():
 		raise Exception("The code currently only supports " \
 		                "sbatch (not '%s')" % cmd[0])
 
@@ -118,7 +118,7 @@ def exec_test_batch(test, part):
 
 	p = None
 	if "fproc" in test.keys() and test["fproc"]:
-		p = subprocess.Popen([test['root'] + "/" + test["fproc"], jobid], \
+		p = subprocess.Popen([test["root"] + "/" + test["fproc"], jobid], \
 		                     stdout = open(fproc_out, "w"), \
 		                     stderr = open(fproc_err, "w"))
 
@@ -177,8 +177,8 @@ def exec_test_interactive(test, part):
 #
 # Convert a CamelCase string to a CAMEL_CASE type string
 def camel_to_upper(string):
-	LOWERCASE = 'abcdefghijklmnopqrstuvwxyz'
-	UPPERCASE = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+	LOWERCASE = "abcdefghijklmnopqrstuvwxyz"
+	UPPERCASE = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 	new = string[0]
 	for i in range(1, len(string)):
 		if string[i] in UPPERCASE and string[i-1] in LOWERCASE:
@@ -192,8 +192,8 @@ def camel_to_upper(string):
 # Sanitize a string such that it can be used as the name of
 # an environment variable.
 def sanitize(string):
-	string = string.replace('/', '_SLASH_')
-	string = string.replace(':', '_COLON_')
+	string = string.replace("/", "_SLASH_")
+	string = string.replace(":", "_COLON_")
 
 	return string
 
