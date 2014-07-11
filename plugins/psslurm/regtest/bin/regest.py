@@ -325,6 +325,9 @@ def main(argv):
 	parser.add_option("-t", "--tests", action = "store", type = "string", \
 	                  dest = "tests", default = "", \
 	                  help = "Comma-separated list of tests that should be executed.")
+	parser.add_option("-x", "--excludes", action = "store", type = "string", \
+	                  dest = "excludes", default = "", \
+	                  help = "Comma-separated list of excluded tests that should not be executed.")
 
 	(opts, args) = parser.parse_args()
 
@@ -336,6 +339,17 @@ def main(argv):
 		tests = [x.strip() for x in opts.tests.split(",")]
 	else:
 		tests = os.listdir(opts.testsdir)
+
+	if "" != opts.excludes:
+		tmp = [x.strip() for x in opts.excludes.split(",")]
+		done = 0
+		while not done:
+			done = 1
+			for i in range(len(tests)):
+				if tests[i] in tmp:
+					del tests[i]
+					done = 0
+					break
 
 	if opts.do_list:
 		for testdir in tests:
