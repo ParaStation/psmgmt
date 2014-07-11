@@ -254,11 +254,12 @@ def eval_test_outcome(test, stats):
 		print(" %s\t\t\t\t\t\t\t\t[\033[0;32mOK\033[0m] "   % test["name"])
 
 #
-# Create an empty output folder for the test. Existing folders will be moved.
+# Create an empty output folder for the test. Existing folders will be moved
+# if they are non-empty.
 def create_output_dir(testdir):
 	outdir = testdir + "/output"
 
-	if os.path.isdir(outdir):
+	if os.path.isdir(outdir) and len(os.listdir(outdir)) > 0:
 		i = 1
 		while 1:
 			tmp = outdir + "-%04d" % i
@@ -268,7 +269,8 @@ def create_output_dir(testdir):
 			
 			i = i+1
 
-	os.mkdir(outdir)
+	if not os.path.isdir(outdir):
+		os.mkdir(outdir)
 
 #
 # Run a single test. For each specified partition the function will submit one
