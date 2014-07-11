@@ -320,7 +320,12 @@ def eval_test_outcome(test, stats):
 		if "eval" in test.keys() and test["eval"]:
 			fail = exec_eval_command(test, stats)
 		else:
-			tmp = [x["ExitCode"] for x in stats]
+			tmp = []
+			for x in stats:
+				for z in x["scontrol"]:
+					tmp.append(z["ExitCode"])
+			# FIXME What happens if all tests across all partitions
+			#       fail? 
 			if min(tmp) != max(tmp):
 				fail = 1
 
