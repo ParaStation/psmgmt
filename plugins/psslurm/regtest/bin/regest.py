@@ -334,8 +334,13 @@ def check_test_description(test):
 	if not test["type"] in ["batch", "interactive"]:
 		raise Exception("Invalid test type '%s'" % test["type"])
 
-	if "interactive" == test["type"] and test["submit"][0] not in ["srun", "salloc"]:
-		raise Exception("Interactive jobs need to be submitted via 'srun' or 'salloc'.")
+	if "interactive" == test["type"]:
+		if not test["submit"][0] in ["srun", "salloc"]:
+			raise Exception("Interactive jobs need to be submitted " \
+			                "via 'srun' or 'salloc'.")
+		if not test["fproc"]:
+			raise Exception("Interactive jobs need a frontend process " \
+			                "that handles the interaction.")
 
 #
 # Run a single test. For each specified partition the function will submit one
