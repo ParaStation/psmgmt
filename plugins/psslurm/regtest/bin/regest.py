@@ -41,19 +41,25 @@ class WorkerThread(threading.Thread):
 		self.ret = self.fct(*self.args)
 
 #
-# Parse the output of "scontrol -o show job". The function
-# returns a dictionary that contains the key-value pairs.
-def parse_scontrol_output(text):
+# Parse a single line of "scontrol -o show job" output.
+def parse_scontrol_output_line(line):
 	stats = {}
 
-	tmp   = text
-	while len(tmp) > 0:
-		x = re.search(r'([^ ]+)=(.*?)( ([^ ]+)=|$)', tmp)
+	while len(line) > 0:
+		x = re.search(r'([^ ]+)=(.*?)( ([^ ]+)=|$)', line)
 		stats[x.group(1)] = x.group(2)
-		
-		tmp = tmp.replace(x.group(1) + "=" + x.group(2), "").strip()
+
+		line = line.replace(x.group(1) + "=" + x.group(2), "", 1).strip()
 
 	return stats
+
+#
+# Parse the output of "scontrol -o show job". The function
+# returns an array of dictionaries of key-value pairs. For
+# normal jobs the array will have length one. For job arrays
+# there will be one dictionary per array task.
+def parse_scontrol_output(text):
+	return [parse_scontrol_output_line(x) for x in text.split("\n") if len(x) > 0]
 
 #
 # Query the status of a job using scontrol. The argument jobid must
@@ -96,6 +102,23 @@ def submit(part, cmd):
 		raise Exception("Submission failed with error code %d: %s" % (ret, err))
 
 	return re.search(r'Submitted batch job ([0-9]+)', out).group(1)
+
+#
+# Interpret state as either done or not-done.
+def state_means_done(state):
+	# Job state codes (from the squeue man page):
+	# PENDING, RUNNING, SUSPENDED, CANCELLED,
+	# COMPLETING, COMPLETED, CONFIGURING, FAILED, TIMEOUT,
+	# PREEMPTED, NODE_FAIL and SPECIAL_EXIT
+	return state in ["COMPLETED", \
+	                 "FAILED", "TIMEOUT", "CANCELLED"]
+
+#
+# Check if a job is done. An array of jobs is only considered to be
+# completely done when all array tasks have finished.
+def job_is_done(stats):
+	tmp = [state_means_done(x["JobState"]) for x in stats]
+	return (len(stats) == len([x for x in tmp if x]))
 
 #
 # Execute a batch job. The function waits until the job and the accompanying
@@ -142,17 +165,12 @@ def exec_test_batch(test, part):
 
 		if jobid:
 			tmp = query_scontrol(jobid)
-		
-			if tmp:
+
+			if tmp and len(tmp) > 0:
 				stats["scontrol"] = tmp
-			
-			# Job state codes (from the squeue man page):
-			# PENDING, RUNNING, SUSPENDED, CANCELLED, 
-			# COMPLETING, COMPLETED, CONFIGURING, FAILED, TIMEOUT,
-			# PREEMPTED, NODE_FAIL and SPECIAL_EXIT
-			if tmp and not tmp["JobState"] in ["COMPLETED", \
-			                   "FAILED", "TIMEOUT", "CANCELLED"]:
-				done = 0
+
+				if not job_is_done(tmp):
+					done = 0
 
 		if done:
 			break
@@ -198,6 +216,31 @@ def sanitize(string):
 	return string
 
 #
+# Export the key-value pairs from a dictionary to the environment.
+def export_dictionary_to_env(dictionary, prefix, env):
+	for k, v in dictionary.iteritems():
+		env[prefix + sanitize(camel_to_upper(k))] = str(v)
+
+#
+# Export the information gathered via scontrol to the environment.
+def export_scontrol_output_to_env(stats, part, env):
+	if 1 == len(stats):
+		prefix = "PSTEST_SCONTROL_" + part.upper() + "_"
+		export_dictionary_to_env(stats[0], prefix, env)
+	else:
+		for i, x in enumerate(stats):
+			prefix = "PSTEST_SCONTROL_" + part.upper() + "_%d_" % i
+			export_dictionary_to_env(x, prefix, env)
+
+#
+# Export the variables related to the frontend process to
+# the environment.
+def export_fproc_variables_to_env(stats, part, env):
+	prefix = "PSTEST_FPROC_" + part.upper() + "_"
+	export_dictionary_to_env(stats, prefix, env)
+
+
+#
 # Execute an evaluation command. The scontrol information about the job are
 # passed via the environment. Specifically, for the job submitted to the partition
 # "batch", several environment variables with the prefix PSTEST_SCONTROL_SBATCH_ are
@@ -209,14 +252,12 @@ def exec_eval_command(test, stats):
 	
 	for i, part in enumerate(test["partitions"]):
 		if stats[i]["scontrol"]:
-			prefix = "PSTEST_SCONTROL_" + part.upper() + "_"
-			for k, v in stats[i]["scontrol"].iteritems():
-				env[prefix + sanitize(camel_to_upper(k))] = v
+			export_scontrol_output_to_env(stats[i]["scontrol"], \
+			                              part, env)
 
 		if stats[i]["fproc"]:
-			prefix = "PSTEST_FPROC_" + part.upper() + "_"
-			for k, v in stats[i]["scontrol"].iteritems():
-				env[prefix + sanitize(camel_to_upper(k))] = v
+			export_fproc_variables_to_env(stats[i]["fproc"], \
+			                              part, env)
 
 	cmd = test["eval"]
 	cmd[0] = test["root"] + "/" + cmd[0]
@@ -372,7 +413,7 @@ def main(argv):
 
 			# Block until there is room for more threads.
 			while len(testthr) >= opts.maxpar:
-				time.sleep(0)
+				time.sleep(0.1)
 				testthr = [x for x in testthr if x.is_alive()]
 
 # The big lock
