@@ -250,12 +250,17 @@ def eval_test_outcome(test, stats):
 			if min(tmp) != max(tmp):
 				fail = 1
 
+	global BL
+	BL.acquire()
+
 	# TODO The placing of the [OK]/[FAIL] text should depend on the terminal width
 	#      and should not depend on the length of the test name string.
 	if fail:
 		print(" %s\t\t\t\t\t\t\t\t[\033[0;31mFAIL\033[0m] " % test["name"])
 	else:
 		print(" %s\t\t\t\t\t\t\t\t[\033[0;32mOK\033[0m] "   % test["name"])
+
+	BL.release()
 
 #
 # Create an empty output folder for the test. Existing folders will be moved
@@ -311,14 +316,29 @@ def main(argv):
 	                  dest = "testsdir", \
 	                  default = "/".join(os.path.abspath(sys.argv[0]).split("/")[:-2]) + "/tests", \
 	                  help = "Path to the tests directory.")
+	parser.add_option("-p", "--maxpar", action = "store", type = "int", \
+	                  dest = "maxpar", default = 16, \
+	                  help = "Maximal number of tests processed in parallel.")
 
 	(opts, args) = parser.parse_args()
 
 	if not os.path.isdir(opts.testsdir):
 		parser.error("Invalid tests directory '%s'." % opts.testsdir)
 
+	testthr = []
 	for testdir in os.listdir(opts.testsdir):
-		perform_test(opts.testsdir + "/" + testdir)
+		testthr.append(WorkerThread(perform_test, [opts.testsdir + "/" + testdir]))
+		testthr[-1].start()
+
+		testthr = [x for x in testthr if x.is_alive()]
+
+		# Block until there is room for more threads.
+		while len(testthr) >= opts.maxpar:
+			time.sleep(0)
+			testthr = [x for x in testthr if x.is_alive()]
+
+# The big lock
+BL = threading.Lock()
 
 main(sys.argv)
 
