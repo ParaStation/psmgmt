@@ -310,6 +310,29 @@ def perform_test(testdir):
 
 	eval_test_outcome(test, stats)
 
+#
+# Construct the list of tests to be performed taking into account exclude/include
+# lists.
+def get_test_list(argv, opts):
+	tests = []
+	if "" != opts.tests:
+		tests = [x.strip() for x in opts.tests.split(",")]
+	else:
+		tests = os.listdir(opts.testsdir)
+
+	if "" != opts.excludes:
+		tmp = [x.strip() for x in opts.excludes.split(",")]
+		done = 0
+		while not done:
+			done = 1
+			for i in range(len(tests)):
+				if tests[i] in tmp:
+					del tests[i]
+					done = 0
+					break
+
+	return tests
+
 def main(argv):
 	parser = optparse.OptionParser(usage = "usage: %prog [options]")
 	parser.add_option("-d", "--testsdir", action = "store", type = "string", \
@@ -334,22 +357,7 @@ def main(argv):
 	if not os.path.isdir(opts.testsdir):
 		parser.error("Invalid tests directory '%s'." % opts.testsdir)
 
-	tests = []
-	if "" != opts.tests:
-		tests = [x.strip() for x in opts.tests.split(",")]
-	else:
-		tests = os.listdir(opts.testsdir)
-
-	if "" != opts.excludes:
-		tmp = [x.strip() for x in opts.excludes.split(",")]
-		done = 0
-		while not done:
-			done = 1
-			for i in range(len(tests)):
-				if tests[i] in tmp:
-					del tests[i]
-					done = 0
-					break
+	tests = get_test_list(argv, opts)
 
 	if opts.do_list:
 		for testdir in tests:
