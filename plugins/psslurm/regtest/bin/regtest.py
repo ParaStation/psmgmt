@@ -89,6 +89,7 @@ def submit_via_sbatch(part, cmd):
 	                     stdout = subprocess.PIPE, \
 	                     stderr = subprocess.PIPE)
 
+	# communicate() waits for the process to terminate.
 	out, err = p.communicate()
 	ret = p.wait()
 
@@ -106,7 +107,7 @@ def submit_via_srun(part, cmd):
 	                     stdout = subprocess.PIPE, \
 	                     stderr = subprocess.PIPE)
 
-        out, err = p.communicate()
+	err = p.stderr.readline()
 
 	# srun (in contrast to sbatch) writes the status information
 	# to stderr.
@@ -174,6 +175,9 @@ def exec_test_batch(test, part):
 		done = 1
 
 		if q:
+			# FIXME Do we need to make sure that the stderr pipe is not filling up
+			#       and blocks?
+
 			ret = q.poll()
 			if None != ret:
 				if 0 != ret:
@@ -183,9 +187,6 @@ def exec_test_batch(test, part):
 				done = 0
 
 		if p:
-			# FIXME Do we need to make sure that the stderr pipe is not filling up
-			#       and blocks?
-
 			ret = p.poll()
 			if None != ret:
 				# Use CamelCase for the keys here to so that we can handle
