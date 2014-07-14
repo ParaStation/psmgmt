@@ -11,6 +11,7 @@ import threading
 # with an older software stack we use optparse
 # rather than the newer argparse module.
 import optparse
+import select
 
 
 #
@@ -175,8 +176,12 @@ def exec_test_batch(test, part):
 		done = 1
 
 		if q:
-			# FIXME Do we need to make sure that the stderr pipe is not filling up
-			#       and blocks?
+			ready, _, _ = select.select([q.stdout, q.stderr], [], [], 0)
+			# Drop the stdout and stderr received from srun. Usually this should only be
+			# the "srun: job ([0-9]+) has been allocated resources" line.
+			if len(ready) > 0:
+				for x in ready:
+					_ = x.read()
 
 			ret = q.poll()
 			if None != ret:
