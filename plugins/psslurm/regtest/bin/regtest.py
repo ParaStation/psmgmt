@@ -150,7 +150,7 @@ def job_is_done(stats):
 # TODO Implement a timeout mechanism.
 #
 def exec_test_batch(test, part):
-	assert("batch" == test["type"])	
+	assert("batch" == test["type"])
 
 	q     = None
 	jobid = None
@@ -214,7 +214,7 @@ def exec_test_batch(test, part):
 
 		if done:
 			break
-	
+
 		# TODO Actually we should measure the time of the previous
 		#      code and subtract it from delay. If the result is negative
 		#      we need to add the smallest multiple of delay such that
