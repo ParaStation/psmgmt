@@ -29,7 +29,7 @@ def query_slurm_version():
 # with some arguments.
 # Might look strange given that the thread module underlying threading
 # provides exactly this functionality but threading also gives us
-# a join function! 
+# a join function!
 class WorkerThread(threading.Thread):
 	def __init__(self, fct, args):
 		threading.Thread.__init__(self)
@@ -69,7 +69,7 @@ def query_scontrol(jobid):
 	p = subprocess.Popen(["scontrol", "-o", "show", "job", jobid], \
 	                     stdout = subprocess.PIPE, \
 	                     stderr = subprocess.PIPE)
-	
+
 	out, err = p.communicate()
 	ret = p.wait()
 
@@ -80,8 +80,8 @@ def query_scontrol(jobid):
 	return stats
 
 #
-# Submit a job to partition part and return the jobid using sbatch. 
-# We know that sbatch is non-blocking so we can directly wait here 
+# Submit a job to partition part and return the jobid using sbatch.
+# We know that sbatch is non-blocking so we can directly wait here
 # for the process to finish.
 def submit_via_sbatch(part, cmd):
 	cmd = [cmd[0], "-p", part, "-D", "output"] + cmd[1:]
@@ -218,8 +218,8 @@ def exec_test_batch(test, part):
 		# TODO Actually we should measure the time of the previous
 		#      code and subtract it from delay. If the result is negative
 		#      we need to add the smallest multiple of delay such that
-		#      the sum is positive. In this way we guarantee that 
-		#      loop time is a multiple of the requested period.
+		#      the sum is positive. In this way we guarantee that
+		#      loop time is a multiple of the requested period
 		time.sleep(delay)
 
 	# Return the latest captured stats
@@ -288,7 +288,7 @@ def exec_eval_command(test, stats):
 	env = os.environ.copy()
 
 	env["PSTEST_PARTITIONS"] = " ".join(test["partitions"])
-	
+
 	for i, part in enumerate(test["partitions"]):
 		if stats[i]["scontrol"]:
 			export_scontrol_output_to_env(stats[i]["scontrol"], \
@@ -331,7 +331,7 @@ def eval_test_outcome(test, stats):
 				for z in x["scontrol"]:
 					tmp.append(z["ExitCode"])
 			# FIXME What happens if all tests across all partitions
-			#       fail? 
+			#       fail?
 			if min(tmp) != max(tmp):
 				fail = 1
 
@@ -360,7 +360,7 @@ def create_output_dir(testdir):
 			if not os.path.isdir(tmp):
 				os.rename(outdir, tmp)
 				break
-			
+
 			i = i+1
 
 	if not os.path.isdir(outdir):
@@ -423,7 +423,7 @@ def perform_test(testdir):
 
 	[x.start() for x in thr]
 	[x.join()  for x in thr]
-	
+
 	stats = [x.ret for x in thr]
 
 	eval_test_outcome(test, stats)
