@@ -392,7 +392,15 @@ def check_test_description(test):
 # job, potentially spawn an accompanying frontend process that can interact with
 # the batch system (e.g., to test job canceling) and then runs the evaluation.
 def perform_test(testdir):
-	test = json.loads(open(testdir + "/descr.json", "r").read())
+
+	# For convenience we allow Python-style comments in the JSON files. These
+	# are removed before presenting the string to the json.loads function.
+	descr = " ".join(map(lambda x: re.sub(r'#.*$', r'', x), open(testdir + "/descr.json", "r").readlines())) 
+	try:
+		test = json.loads(descr)
+	except ValueError as e:
+		sys.stderr.write(" Error: exception thrown while parsing descr.json: '%s'\n" % str(e))
+		exit(1)
 
 	test["name"] = os.path.basename(testdir)
 	test["root"] = testdir
