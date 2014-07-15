@@ -12,6 +12,7 @@ import threading
 # rather than the newer argparse module.
 import optparse
 import select
+import termios
 
 
 #
@@ -229,8 +230,141 @@ def exec_test_batch(test, part):
 # Execute an interactive job.
 def exec_test_interactive(test, part):
 	assert("interactive" == test["type"])
-	assert(1 == 0)	# Not implemented
-	pass
+
+	output = ""
+
+	q      = None
+	jobid  = None
+	if test["submit"]:
+		master, slave = os.openpty()
+
+		# Disable the echo. Note that we still get an echo from srun as demonstrated
+		# by the following trace of a bash session where I disabled the echo, executed
+		# srun -N 1 --pty /bin/bash and typed hostname and exit afterwards:
+		#
+		# > -bash-4.1$ stty -echo
+		# > -bash-4.1$ srun: job 4881 queued and waiting for resources
+		# > srun: job 4881 has been allocated resources
+		# > hostname
+		# > exit
+		# > bash-4.1$ hostname
+		# > j3c004
+		# > bash-4.1$ exit
+		# > exit
+		#
+		attr = termios.tcgetattr(master)
+		attr[3] = attr[3] & (~termios.ECHO)
+		termios.tcsetattr(master, termios.TCSADRAIN, attr)
+
+		cmd = test["submit"]
+		cmd = [cmd[0], "-p", part, "-D", "output" ] + cmd[1:]
+
+		q = subprocess.Popen(cmd, \
+		                     stdin  = slave, \
+		                     stdout = slave, \
+		                     stderr = slave)
+
+		# In contrast to batch jobs we do not start the frontend process before we
+		# have been allocated resources. This still does not guarantee that the
+		# remote side is ready to receive input, though.
+
+		jobid  = None
+		while 1:
+			ret = q.poll()
+			if None != ret:
+				raise Exception("Submission failed with error code %d." % ret)
+
+			# Add a timeout here to make sure we do not wait indefinitely
+			# if the job dies for some reason.
+			ready, _, _ = select.select([master], [], [], 1)
+
+			if 0 == len(ready):
+				continue
+
+			for x in ready:
+				output += os.read(master, 1028)
+
+			done = 0
+
+			for line in output.split("\n"):
+				if not jobid:
+					x = re.search(r'srun: job ([0-9]+) queued and waiting for resources', line)
+					if x:
+						jobid = x.group(1)
+				else:
+					if re.match(r'.* job %s .* allocated .*' % jobid, line):
+						done = 1
+						break
+
+			if done:
+				break
+
+		if not jobid:
+			raise Exception("Submission failure.")
+
+	# For an interactive job we need someone to interact with the spawned processes
+	# so we are sure that "fproc" in test.keys() - This is checked elsewhere.
+
+	p = subprocess.Popen([test["root"] + "/" + test["fproc"], jobid], \
+	                     stdin  = subprocess.PIPE,
+	                     stdout = subprocess.PIPE)
+
+
+	delay = 1.0/test["monitor_hz"]
+
+	stats = {"scontrol": None, "fproc": None}
+	while 1:
+		done = 1
+
+		if q:
+			ready, _, _ = select.select([master], [], [], 0)
+
+			if len(ready) > 0:
+				for x in ready:
+					output += os.read(master, 1028)
+
+			ret = q.poll()
+			if None != ret:
+				if 0 != ret:
+					raise Exception("Submission failed with error code %d." % ret)
+				q = None
+			else:
+				done = 0
+
+		if p:
+			ready, _, _ = select.select([p.stdout], [], [], 0)
+			if len(ready) > 0:
+				os.write(master, p.stdout.read())
+
+			ret = p.poll()
+			if None != ret:
+				stats["fproc"] = {"ExitCode": ret}
+				p = None
+			else:
+				done = 0
+
+		if jobid:
+			tmp = query_scontrol(jobid)
+
+			if tmp and len(tmp) > 0:
+				stats["scontrol"] = tmp
+
+				if not job_is_done(tmp):
+					done = 0
+
+			if done:
+				break
+
+		# TODO Actually we should measure the time of the previous
+		#      code and subtract it from delay. If the result is negative
+		#      we need to add the smallest multiple of delay such that
+		#      the sum is positive. In this way we guarantee that
+		#      loop time is a multiple of the requested period.
+		time.sleep(delay)
+
+	open("output/slurm-%s.out" % jobid, "w").write(output)
+
+	return stats
 
 #
 # Convert a CamelCase string to a CAMEL_CASE type string
