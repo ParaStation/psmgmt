@@ -395,11 +395,13 @@ def perform_test(testdir):
 
 	# For convenience we allow Python-style comments in the JSON files. These
 	# are removed before presenting the string to the json.loads function.
-	descr = " ".join(map(lambda x: re.sub(r'#.*$', r'', x), open(testdir + "/descr.json", "r").readlines())) 
+	descr = " ".join(map(lambda x: re.sub(r'#.*$', r'', x), \
+	                     open(testdir + "/descr.json", "r").readlines()))
 	try:
 		test = json.loads(descr)
 	except ValueError as e:
-		sys.stderr.write(" Error: exception thrown while parsing descr.json: '%s'\n" % str(e))
+		sys.stderr.write(" Error: exception thrown while parsing "
+		                  "descr.json: '%s'\n" % str(e))
 		exit(1)
 
 	test["name"] = os.path.basename(testdir)
