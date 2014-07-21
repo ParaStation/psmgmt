@@ -84,8 +84,11 @@ def query_scontrol(jobid):
 # Submit a job to partition part and return the jobid using sbatch.
 # We know that sbatch is non-blocking so we can directly wait here
 # for the process to finish.
-def submit_via_sbatch(part, cmd):
-	cmd = [cmd[0], "-p", part, "-D", "output"] + cmd[1:]
+def submit_via_sbatch(part, reserv, cmd):
+	tmp = [cmd[0], "-p", part]
+	if len(reserv) > 0:
+		tmp += ["--reservation", reserv]
+	cmd = tmp + ["-D", "output"] + cmd[1:]
 
 	p = subprocess.Popen(cmd, \
 	                     stdout = subprocess.PIPE, \
@@ -102,8 +105,13 @@ def submit_via_sbatch(part, cmd):
 
 #
 # Submit a job to partition part and return the jobid using srun.
-def submit_via_srun(part, cmd):
-	cmd = [cmd[0], "-p", part, "-D", "output", "-o", "output/slurm-%J.out"] + cmd[1:]
+def submit_via_srun(part, reserv, cmd):
+	tmp = [cmd[0], "-p", part]
+	if len(reserv) > 0:
+		tmp += ["--reservation", reserv]
+	cmd = tmp + ["-D", "output", "-o", "output/slurm-%J.out"] + cmd[1:]
+
+	print(cmd)
 
 	p = subprocess.Popen(cmd, \
 	                     stdout = subprocess.PIPE, \
@@ -114,6 +122,9 @@ def submit_via_srun(part, cmd):
 	# srun (in contrast to sbatch) writes the status information
 	# to stderr.
 
+	#
+	# TODO Handle messages like "srun: Required node not available (down or drained)"
+	#
 	return p, re.search('srun: job ([0-9]+) queued and waiting for resources', err).group(1)
 
 #
@@ -122,9 +133,9 @@ def submit_via_srun(part, cmd):
 # The current version of the code cannot handle srun since srun blocks.
 # Moreover, when using srun we want to check that Ctrl-C and friends are
 # properly handled.
-def submit(part, cmd):
+def submit(part, reserv, cmd):
 	return {"sbatch": submit_via_sbatch, \
-	        "srun"  : submit_via_srun}[cmd[0].strip()](part, cmd)
+	        "srun"  : submit_via_srun}[cmd[0].strip()](part, reserv, cmd)
 
 
 #
@@ -150,8 +161,11 @@ def job_is_done(stats):
 #
 # TODO Implement a timeout mechanism.
 #
-def exec_test_batch(test, part):
+def exec_test_batch(test, idx):
 	assert("batch" == test["type"])
+
+	part   = test["partitions"][idx]
+	reserv = test["reservations"][idx]
 
 	q     = None
 	jobid = None
@@ -159,7 +173,7 @@ def exec_test_batch(test, part):
 	# we only run the frontend process which interacts with the
 	# batch system directly.
 	if test["submit"]:
-		q, jobid = submit(part, test["submit"])
+		q, jobid = submit(part, reserv, test["submit"])
 
 	fproc_out = test["root"] + "/output/fproc-%s.out" % jobid
 	fproc_err = test["root"] + "/output/fproc-%s.err" % jobid
@@ -231,6 +245,9 @@ def exec_test_batch(test, part):
 def exec_test_interactive(test, part):
 	assert("interactive" == test["type"])
 
+	part   = test["partitions"][idx]
+	reserv = test["reservations"][idx]
+
 	output = ""
 
 	q      = None
@@ -257,7 +274,10 @@ def exec_test_interactive(test, part):
 		termios.tcsetattr(master, termios.TCSADRAIN, attr)
 
 		cmd = test["submit"]
-		cmd = [cmd[0], "-p", part, "-D", "output" ] + cmd[1:]
+		tmp = [cmd[0], "-p", part]
+		if len(reserv) > 0:
+			tmp += ["--reservation", reserv]
+		cmd = tmp + ["-D", "output"] + cmd[1:]
 
 		q = subprocess.Popen(cmd, \
 		                     stdin  = slave, \
@@ -549,11 +569,17 @@ def perform_test(testdir):
 	if not test["type"] in ["batch", "interactive"]:
 		raise Exception("Unknown test type '%s'" % test["type"])
 
+	n = len(test["partitions"])
+
+	if n != len(test["reservations"]):
+		raise Exception("The \"partitions\" and \"reservations\" list must "
+		                "be of equal size.")
+
 	thr = []
-	for part in test["partitions"]:
+	for i in range(n):
 		fct = {"batch"      : exec_test_batch, \
 		       "interactive": exec_test_interactive}[test["type"]]
-		thr.append(WorkerThread(fct, [test, part]))
+		thr.append(WorkerThread(fct, [test, i]))
 
 	[x.start() for x in thr]
 	[x.join()  for x in thr]
