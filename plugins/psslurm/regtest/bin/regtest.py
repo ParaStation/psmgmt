@@ -247,7 +247,7 @@ def exec_test_batch(test, idx):
 
 #
 # Execute an interactive job.
-def exec_test_interactive(test, part):
+def exec_test_interactive(test, idx):
 	assert("interactive" == test["type"])
 
 	part   = test["partitions"][idx]
@@ -351,8 +351,8 @@ def exec_test_interactive(test, part):
 
 			ret = q.poll()
 			if None != ret:
-				if 0 != ret:
-					raise Exception("Submission failed with error code %d." % ret)
+				# The return value should be recorded in the ExitCode
+				# field of the scontrol output.
 				q = None
 			else:
 				done = 0
