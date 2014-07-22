@@ -1,0 +1,9 @@
+{
+	"type": "batch",
+	"partitions": [ "batch", "psslurm" ],
+	"reservations": [ "", "psslurm" ],
+	"submit": "srun -n 1 --task-prolog=@D/prolog.sh --task-epilog=@D/epilog.sh hostname",
+	"eval": ["eval.py"],
+	"fproc": null,
+	"monitor_hz": 10
+}
