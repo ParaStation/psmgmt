@@ -527,6 +527,14 @@ def create_output_dir(testdir):
 		os.mkdir(outdir)
 
 #
+# Pre-processing of the test description.
+def fixup_test_description(test):
+	if isinstance(test["submit"], basestring):
+		test["submit"] = test["submit"].split()
+	if isinstance(test["eval"], basestring)
+		test["eval"] = test["eval"]
+
+#
 # Check that the test description is okay.
 def check_test_description(test):
 	KEYS = ["type", "partitions", "submit", "eval", "fproc", "monitor_hz"]
@@ -567,6 +575,7 @@ def perform_test(testdir):
 	test["name"] = os.path.basename(testdir)
 	test["root"] = testdir
 
+	fixup_test_description(test)
 	check_test_description(test)
 
 	create_output_dir(testdir)
