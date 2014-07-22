@@ -14,6 +14,11 @@ import optparse
 import select
 import termios
 
+#
+# Pad a string with whitespaces
+def whitespace_pad(x, n):
+	return x + " " * (n - len(x))
+
 
 #
 # Get the version of the slurm installation as a string.
@@ -496,9 +501,9 @@ def eval_test_outcome(test, stats):
 	# TODO The placing of the [OK]/[FAIL] text should depend on the terminal width
 	#      and should not depend on the length of the test name string.
 	if fail:
-		print(" %s\t\t\t\t\t\t\t\t[\033[0;31mFAIL\033[0m] " % test["name"])
+		print(" %s [\033[0;31mFAIL\033[0m] " % whitespace_pad(test["name"],69))
 	else:
-		print(" %s\t\t\t\t\t\t\t\t[\033[0;32mOK\033[0m] "   % test["name"])
+		print(" %s [\033[0;32mOK\033[0m] "   % whitespace_pad(test["name"],69))
 
 	BL.release()
 
@@ -639,7 +644,8 @@ def main(argv):
 
 	if opts.do_list:
 		for testdir in tests:
-			print(" " + testdir + "\t\t(%s)" % (opts.testsdir + "/" + testdir))
+			print(" " + whitespace_pad(testdir, 29) + \
+			      " (%s)" % (opts.testsdir + "/" + testdir))
 	else:
 		testthr = []
 		for testdir in tests:
