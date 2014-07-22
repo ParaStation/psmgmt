@@ -146,7 +146,7 @@ def state_means_done(state):
 	# COMPLETING, COMPLETED, CONFIGURING, FAILED, TIMEOUT,
 	# PREEMPTED, NODE_FAIL and SPECIAL_EXIT
 	return state in ["COMPLETED", \
-	                 "FAILED", "TIMEOUT", "CANCELLED"]
+	                 "FAILED", "TIMEOUT", "CANCELLED", "NODE_FAIL"]
 
 #
 # Check if a job is done. An array of jobs is only considered to be
