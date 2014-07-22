@@ -84,7 +84,7 @@ def query_scontrol(jobid):
 # Submit a job to partition part and return the jobid using sbatch.
 # We know that sbatch is non-blocking so we can directly wait here
 # for the process to finish.
-def submit_via_sbatch(part, reserv, cmd):
+def submit_via_sbatch(part, reserv, cmd, wdir):
 	tmp = [cmd[0], "-p", part]
 	if len(reserv) > 0:
 		tmp += ["--reservation", reserv]
@@ -92,7 +92,8 @@ def submit_via_sbatch(part, reserv, cmd):
 
 	p = subprocess.Popen(cmd, \
 	                     stdout = subprocess.PIPE, \
-	                     stderr = subprocess.PIPE)
+	                     stderr = subprocess.PIPE, \
+	                     cwd = wdir)
 
 	# communicate() waits for the process to terminate.
 	out, err = p.communicate()
@@ -105,17 +106,16 @@ def submit_via_sbatch(part, reserv, cmd):
 
 #
 # Submit a job to partition part and return the jobid using srun.
-def submit_via_srun(part, reserv, cmd):
+def submit_via_srun(part, reserv, cmd, wdir):
 	tmp = [cmd[0], "-p", part]
 	if len(reserv) > 0:
 		tmp += ["--reservation", reserv]
-	cmd = tmp + ["-D", "output", "-o", "output/slurm-%J.out"] + cmd[1:]
-
-	print(cmd)
+	cmd = tmp + ["-D", "output", "-o", "output/slurm-%j.out"] + cmd[1:]
 
 	p = subprocess.Popen(cmd, \
 	                     stdout = subprocess.PIPE, \
-	                     stderr = subprocess.PIPE)
+	                     stderr = subprocess.PIPE, \
+	                     cwd = wdir)
 
 	err = p.stderr.readline()
 
@@ -133,9 +133,9 @@ def submit_via_srun(part, reserv, cmd):
 # The current version of the code cannot handle srun since srun blocks.
 # Moreover, when using srun we want to check that Ctrl-C and friends are
 # properly handled.
-def submit(part, reserv, cmd):
+def submit(part, reserv, cmd, wdir):
 	return {"sbatch": submit_via_sbatch, \
-	        "srun"  : submit_via_srun}[cmd[0].strip()](part, reserv, cmd)
+	        "srun"  : submit_via_srun}[cmd[0].strip()](part, reserv, cmd, wdir)
 
 
 #
@@ -173,7 +173,7 @@ def exec_test_batch(test, idx):
 	# we only run the frontend process which interacts with the
 	# batch system directly.
 	if test["submit"]:
-		q, jobid = submit(part, reserv, test["submit"])
+		q, jobid = submit(part, reserv, test["submit"], test["root"])
 
 	fproc_out = test["root"] + "/output/fproc-%s.out" % jobid
 	fproc_err = test["root"] + "/output/fproc-%s.err" % jobid
@@ -282,7 +282,8 @@ def exec_test_interactive(test, part):
 		q = subprocess.Popen(cmd, \
 		                     stdin  = slave, \
 		                     stdout = slave, \
-		                     stderr = slave)
+		                     stderr = slave, \
+		                     cwd = test["root"])
 
 		# In contrast to batch jobs we do not start the frontend process before we
 		# have been allocated resources. This still does not guarantee that the
@@ -456,8 +457,8 @@ def exec_eval_command(test, stats):
 	cmd[0] = test["root"] + "/" + cmd[0]
 
 	p = subprocess.Popen(cmd, \
-		             stdout = open("output/eval.out", "w"), \
-		             stderr = open("output/eval.err", "w"), \
+		             stdout = open(test["root"] + "/" + "output/eval.out", "w"), \
+		             stderr = open(test["root"] + "/" + "output/eval.err", "w"), \
 	                     env = env)
 
 	ret = p.wait()
@@ -564,7 +565,6 @@ def perform_test(testdir):
 	check_test_description(test)
 
 	create_output_dir(testdir)
-	os.chdir(testdir)
 
 	if not test["type"] in ["batch", "interactive"]:
 		raise Exception("Unknown test type '%s'" % test["type"])
