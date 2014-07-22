@@ -1,7 +1,7 @@
 {
 	"type": "batch",
-	"partitions": [ "batch", "psslurm" ],
-	"reservations": [ "", "psslurm" ],
+	"partitions": ["batch", "psslurm"],
+	"reservations": ["", "psslurm"],
 	"submit": "sbatch -N 1 -t 1 pipes.sh",
 	"eval": ["eval.py"],
 	"fproc": null,
