@@ -93,7 +93,7 @@ def submit_via_sbatch(part, reserv, cmd, wdir):
 	tmp = [cmd[0], "-p", part]
 	if len(reserv) > 0:
 		tmp += ["--reservation", reserv]
-	cmd = tmp + ["-D", "output"] + cmd[1:]
+	cmd = tmp + ["-o", wdir + "/output/slurm-%j.out"] + cmd[1:]
 
 	p = subprocess.Popen(cmd, \
 	                     stdout = subprocess.PIPE, \
@@ -115,7 +115,7 @@ def submit_via_srun(part, reserv, cmd, wdir):
 	tmp = [cmd[0], "-p", part]
 	if len(reserv) > 0:
 		tmp += ["--reservation", reserv]
-	cmd = tmp + ["-D", "output", "-o", "output/slurm-%j.out"] + cmd[1:]
+	cmd = tmp + ["-o", wdir + "/output/slurm-%j.out"] + cmd[1:]
 
 	p = subprocess.Popen(cmd, \
 	                     stdout = subprocess.PIPE, \
@@ -282,7 +282,7 @@ def exec_test_interactive(test, idx):
 		tmp = [cmd[0], "-p", part]
 		if len(reserv) > 0:
 			tmp += ["--reservation", reserv]
-		cmd = tmp + ["-D", "output"] + cmd[1:]
+		cmd = tmp + cmd[1:]
 
 		q = subprocess.Popen(cmd, \
 		                     stdin  = slave, \
@@ -388,7 +388,7 @@ def exec_test_interactive(test, idx):
 		#      loop time is a multiple of the requested period.
 		time.sleep(delay)
 
-	open("output/slurm-%s.out" % jobid, "w").write(output)
+	open(test["root"] + "/output/slurm-%s.out" % jobid, "w").write(output)
 
 	return stats
 
