@@ -1,0 +1,9 @@
+{
+	"type": "batch",
+	"partitions": ["batch", "psslurm"],
+	"reservations": ["", "psslurm"],
+	"submit": ["srun", "-N", "1", "-n", "1", "-t", "1", "slurm-env.sh"],
+	"eval": ["eval.py"],
+	"fproc": null,
+	"monitor_hz": 10
+}
