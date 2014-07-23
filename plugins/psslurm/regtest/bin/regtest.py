@@ -409,10 +409,6 @@ def exec_test_interactive(test, idx):
 
 			ret = q.poll()
 			if None != ret:
-				for x in [q.stdout, q.stderr]:
-					# FIXME 1024 may not be enough
-					output += os.read(master, 1024)
-
 				# The return value should be recorded in the ExitCode
 				# field of the scontrol output.
 				q = None
@@ -440,8 +436,8 @@ def exec_test_interactive(test, idx):
 				if not job_is_done(tmp):
 					done = 0
 
-			if done:
-				break
+		if done:
+			break
 
 		# TODO Actually we should measure the time of the previous
 		#      code and subtract it from delay. If the result is negative
@@ -450,6 +446,7 @@ def exec_test_interactive(test, idx):
 		#      loop time is a multiple of the requested period.
 		time.sleep(delay)
 
+	stats["scontrol"][0]["StdOut"] = test["root"] + "/output/slurm-%s.out" % jobid
 	open(test["root"] + "/output/slurm-%s.out" % jobid, "w").write(output)
 
 	return stats
@@ -756,6 +753,8 @@ def main(argv):
 			while len(testthr) >= opts.maxpar:
 				time.sleep(0.1)
 				testthr = [x for x in testthr if x.is_alive()]
+
+		[x.join() for x in testthr]
 
 # The big lock
 BL = threading.Lock()
