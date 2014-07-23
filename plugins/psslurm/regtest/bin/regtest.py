@@ -93,7 +93,12 @@ def submit_via_sbatch(part, reserv, cmd, wdir):
 	tmp = [cmd[0], "-p", part]
 	if len(reserv) > 0:
 		tmp += ["--reservation", reserv]
-	cmd = tmp + ["-o", wdir + "/output/slurm-%j.out"] + cmd[1:]
+
+	# Make sure we do not overwrite any -o flag on the command line
+	if len([x for x in cmd[1:] if "-o" == x]) < 1:
+		tmp += ["-o", wdir + "/output/slurm-%j.out"]
+
+	cmd = tmp + cmd[1:]
 
 	p = subprocess.Popen(cmd, \
 	                     stdout = subprocess.PIPE, \
@@ -115,7 +120,12 @@ def submit_via_srun(part, reserv, cmd, wdir):
 	tmp = [cmd[0], "-p", part]
 	if len(reserv) > 0:
 		tmp += ["--reservation", reserv]
-	cmd = tmp + ["-o", wdir + "/output/slurm-%j.out"] + cmd[1:]
+
+	# Make sure we do not overwrite any -o flag on the command line
+	if len([x for x in cmd[1:] if "-o" == x]) < 1:
+		tmp += ["-o", wdir + "/output/slurm-%j.out"]
+
+	cmd = tmp + cmd[1:]
 
 	p = subprocess.Popen(cmd, \
 	                     stdout = subprocess.PIPE, \
