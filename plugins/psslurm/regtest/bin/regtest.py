@@ -508,14 +508,14 @@ def eval_test_outcome(test, stats):
 	global BL
 	BL.acquire()
 
-	# TODO The placing of the [OK]/[FAIL] text should depend on the terminal width
-	#      and should not depend on the length of the test name string.
-	if fail:
-		print(" %s [\033[0;31mFAIL\033[0m] " % whitespace_pad(test["name"],69))
-	else:
-		print(" %s [\033[0;32mOK\033[0m] "   % whitespace_pad(test["name"],69))
-
-	BL.release()
+	try:
+		# TODO Take terminal width into account?
+		if fail:
+			print(" %s [\033[0;31mFAIL\033[0m] " % whitespace_pad(test["name"],69))
+		else:
+			print(" %s [\033[0;32mOK\033[0m] "   % whitespace_pad(test["name"],69))
+	finally:
+		BL.release()
 
 #
 # Create an empty output folder for the test. Existing folders will be moved
