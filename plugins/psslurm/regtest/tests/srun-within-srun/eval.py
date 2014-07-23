@@ -26,11 +26,9 @@ for p in [x.strip() for x in os.environ["PSTEST_PARTITIONS"].split()]:
 	Assert("COMPLETED" == os.environ["PSTEST_SCONTROL_%s_JOB_STATE" % P])
 
 	try:
-		out = open(os.environ["PSTEST_SCONTROL_%s_WORK_DIR" % P] + \
-		           "/slurm-" + \
-		           os.environ["PSTEST_SCONTROL_%s_JOB_ID" % P] + ".out").read()
+		out = open(os.environ["PSTEST_SCONTROL_%s_STD_OUT" % P]).read()
 	except Exception as e:
-		Assert(not str(e), str(e))
+		Assert(1 == 0, p + ": " + str(e))
 
 sys.exit(RETVAL)
 
