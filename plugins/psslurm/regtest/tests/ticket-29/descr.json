@@ -1,0 +1,9 @@
+{
+	"type": "batch",
+	"partitions": ["batch", "psslurm"],
+	"reservations": ["", "psslurm"],
+	"submit": "sbatch -N 1 -t 1 wrapper.sh",
+	"eval": ["eval.py"],
+	"fproc": null,
+	"monitor_hz": 10
+}
