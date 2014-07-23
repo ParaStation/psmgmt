@@ -538,11 +538,22 @@ def create_output_dir(testdir):
 
 #
 # Pre-processing of the test description.
+# Replace @D in strings by the root directory of the test.
+# We use @ here instead of the more common %D in order to ensure
+# that Slurm format strings are not altered.
 def fixup_test_description(test):
-	if isinstance(test["submit"], basestring):
-		test["submit"] = test["submit"].split()
-	if isinstance(test["eval"], basestring)
-		test["eval"] = test["eval"]
+	if test["submit"]:
+		if isinstance(test["submit"], basestring):
+			test["submit"] = test["submit"].split()
+		test["submit"] = [re.sub(r'@D', test["root"], x) for x in test["submit"]]
+	if test["eval"]:
+		if isinstance(test["eval"], basestring):
+			test["eval"] = test["eval"].split()
+		test["eval"]   = [re.sub(r'@D', test["root"], x) for x in test["eval"]]
+	if test["fproc"]:
+		if isinstance(test["fproc"], basestring):
+			test["fproc"] = test["fproc"].split()
+		test["fproc"]   = [re.sub(r'@D', test["root"], x) for x in test["fproc"]]
 
 #
 # Check that the test description is okay.
