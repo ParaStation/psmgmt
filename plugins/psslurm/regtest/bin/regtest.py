@@ -559,11 +559,13 @@ def eval_test_outcome(test, stats):
 	BL.acquire()
 
 	try:
+		sys.stdout.flush()
 		# TODO Take terminal width into account?
 		if fail:
 			print(" %s [\033[0;31mFAIL\033[0m] " % whitespace_pad(test["name"],69))
 		else:
 			print(" %s [\033[0;32mOK\033[0m] "   % whitespace_pad(test["name"],69))
+		sys.stdout.flush()
 	finally:
 		BL.release()
 
