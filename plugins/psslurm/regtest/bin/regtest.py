@@ -37,12 +37,13 @@ def query_slurm_version():
 # provides exactly this functionality but threading also gives us
 # a join function!
 class WorkerThread(threading.Thread):
-	def __init__(self, fct, args):
+	def __init__(self, fct, args, name = None):
 		threading.Thread.__init__(self)
 
 		self.fct  = fct
 		self.args = args
 		self.ret  = None
+		self.name = name
 
 	def run(self):
 		self.ret = self.fct(*self.args)
@@ -593,7 +594,7 @@ def create_output_dir(testdir):
 # Replace @D in strings by the root directory of the test.
 # We use @ here instead of the more common %D in order to ensure
 # that Slurm format strings are not altered.
-def fixup_test_description(test):
+def fixup_test_description(test, opts):
 	if test["submit"]:
 		if isinstance(test["submit"], basestring):
 			test["submit"] = test["submit"].split()
@@ -606,6 +607,13 @@ def fixup_test_description(test):
 		if isinstance(test["fproc"], basestring):
 			test["fproc"] = test["fproc"].split()
 		test["fproc"]   = [re.sub(r'@D', test["root"], x) for x in test["fproc"]]
+
+	for x in opts.ignorep:
+		for i, z in enumerate(test["partitions"]):
+			if x == z:
+				del test["partitions"][i]
+				del test["reservations"][i]
+				break
 
 #
 # Check that the test description is okay.
@@ -632,7 +640,7 @@ def check_test_description(test):
 # Run a single test. For each specified partition the function will submit one
 # job, potentially spawn an accompanying frontend process that can interact with
 # the batch system (e.g., to test job canceling) and then runs the evaluation.
-def perform_test(testdir):
+def perform_test(testdir, opts):
 
 	# For convenience we allow Python-style comments in the JSON files. These
 	# are removed before presenting the string to the json.loads function.
@@ -648,7 +656,7 @@ def perform_test(testdir):
 	test["name"] = os.path.basename(testdir)
 	test["root"] = testdir
 
-	fixup_test_description(test)
+	fixup_test_description(test, opts)
 	check_test_description(test)
 
 	create_output_dir(testdir)
@@ -674,6 +682,8 @@ def perform_test(testdir):
 	stats = [x.ret for x in thr]
 
 	eval_test_outcome(test, stats)
+
+	return
 
 #
 # Construct the list of tests to be performed taking into account exclude/include
@@ -716,11 +726,16 @@ def main(argv):
 	parser.add_option("-x", "--excludes", action = "store", type = "string", \
 	                  dest = "excludes", default = "", \
 	                  help = "Comma-separated list of excluded tests that should not be executed.")
+	parser.add_option("-i", "--ignorep", action = "store", type = "string", \
+	                  dest = "ignorep", default = "", \
+	                  help = "Comma-separated list of partitions that should be ignored.")
 
 	(opts, args) = parser.parse_args()
 
 	if not os.path.isdir(opts.testsdir):
 		parser.error("Invalid tests directory '%s'." % opts.testsdir)
+
+	opts.ignorep = [x.strip() for x in opts.ignorep.split(",")]
 
 	tests = get_test_list(argv, opts)
 
@@ -731,7 +746,8 @@ def main(argv):
 	else:
 		testthr = []
 		for testdir in tests:
-			testthr.append(WorkerThread(perform_test, [opts.testsdir + "/" + testdir]))
+			testthr.append(WorkerThread(perform_test, \
+			               [opts.testsdir + "/" + testdir, opts], testdir))
 			testthr[-1].start()
 
 			testthr = [x for x in testthr if x.is_alive()]
