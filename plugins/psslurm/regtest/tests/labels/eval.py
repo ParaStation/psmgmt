@@ -30,7 +30,7 @@ for p in [x.strip() for x in os.environ["PSTEST_PARTITIONS"].split()]:
 	try:
 		out = open(os.environ["PSTEST_SCONTROL_%s_STD_OUT" % P]).read()
 	except Exception as e:
-		Assert(not str(e))
+		Assert(1 == 0, p + ": " + str(e))
 
 	tmp = []
 	for line in out.split("\n"):
