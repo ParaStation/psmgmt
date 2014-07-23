@@ -190,14 +190,30 @@ def exec_test_batch(test, idx):
 	if test["submit"]:
 		q, jobid = submit(part, reserv, test["submit"], test["root"])
 
-	fproc_out = test["root"] + "/output/fproc-%s.out" % jobid
-	fproc_err = test["root"] + "/output/fproc-%s.err" % jobid
+	# Use partition instead of jobid here since jobid may be None!
+	fproc_out = test["root"] + "/output/fproc-%s.out" % part
+	fproc_err = test["root"] + "/output/fproc-%s.err" % part
 
 	p = None
 	if "fproc" in test.keys() and test["fproc"]:
-		p = subprocess.Popen([test["root"] + "/" + test["fproc"], jobid], \
+		# Prepare the environment for the front-end process
+		env = os.environ.copy()
+		env["PSTEST_PARTITION"]   = "%s" % part
+		env["PSTEST_RESERVATION"] = "%s" % reserv
+		if jobid:
+			env["PSTEST_JOB_ID"] = jobid
+
+		cmd = test["fproc"]
+		cmd = [test["root"] + "/" + cmd[0]] + cmd[1:]
+
+		p = subprocess.Popen(cmd, \
 		                     stdout = open(fproc_out, "w"), \
-		                     stderr = open(fproc_err, "w"))
+		                     stderr = open(fproc_err, "w"), \
+		                     env = env, \
+		                     cwd = test["root"])
+
+	stdout = ""
+	stderr = ""
 
 	delay = 1.0/test["monitor_hz"]
 
@@ -207,16 +223,20 @@ def exec_test_batch(test, idx):
 
 		if q:
 			ready, _, _ = select.select([q.stdout, q.stderr], [], [], 0)
-			# Drop the stdout and stderr received from srun. Usually this should only be
-			# the "srun: job ([0-9]+) has been allocated resources" line.
 			if len(ready) > 0:
 				for x in ready:
-					_ = x.read()
+					if q.stdout == x:
+						stdout += x.read()
+					if q.stderr == x:
+						stderr += x.read()
 
 			ret = q.poll()
 			if None != ret:
-				if 0 != ret:
-					raise Exception("Submission failed with error code %d." % ret)
+				stdout += q.stdout.read()
+				stderr += q.stderr.read()
+
+				# The return value should be recorded in the ExitCode
+				# field of the scontrol output.
 				q = None
 			else:
 				done = 0
@@ -251,6 +271,28 @@ def exec_test_batch(test, idx):
 		#      the sum is positive. In this way we guarantee that
 		#      loop time is a multiple of the requested period
 		time.sleep(delay)
+
+	# Special cases for srun.
+	# srun does not support job arrays and sbatch requires the output to be
+	# written to a file.
+	if stats["scontrol"] and 1 == len(stats["scontrol"]):
+		tmp = stats["scontrol"]
+
+		# To simplify writing evaluation scripts we always add StdOut and StdErr
+		# to the scontrol output.
+		# FIXME That would be incorrect if the user specifies some -o options?
+		if not "StdOut" in tmp[0].keys():
+			tmp[0]["StdOut"] = test["root"] + "/output/slurm-%s.out" % jobid
+		if not "StdErr" in tmp[0].keys():
+			tmp[0]["StdErr"] = test["root"] + "/output/slurm-%s.err" % jobid
+
+		# If output file is not existing we assume that all output went to stdout
+		# and stderr.
+		# stderr will be truncated since we already read one line!
+		if not os.path.isfile(tmp[0]["StdOut"]):
+			open(tmp[0]["StdOut"], "w").write(stdout)
+		if not os.path.isfile(tmp[0]["StdErr"]):
+			open(tmp[0]["StdErr"], "w").write(stderr)
 
 	# Return the latest captured stats
 	return stats
@@ -341,9 +383,14 @@ def exec_test_interactive(test, idx):
 	# For an interactive job we need someone to interact with the spawned processes
 	# so we are sure that "fproc" in test.keys() - This is checked elsewhere.
 
-	p = subprocess.Popen([test["root"] + "/" + test["fproc"], jobid], \
-	                     stdin  = subprocess.PIPE,
-	                     stdout = subprocess.PIPE)
+	# FIXME Environment
+
+	cmd = test["fproc"]
+	cmd = [test["root"] + "/" + cmd[0]] + cmd[1:]
+	p = subprocess.Popen(cmd, \
+	                     stdin  = subprocess.PIPE, \
+	                     stdout = subprocess.PIPE, \
+	                     cwd = test["root"])
 
 
 	delay = 1.0/test["monitor_hz"]
@@ -357,10 +404,14 @@ def exec_test_interactive(test, idx):
 
 			if len(ready) > 0:
 				for x in ready:
-					output += os.read(master, 1028)
+					output += os.read(master, 1024)
 
 			ret = q.poll()
 			if None != ret:
+				for x in [q.stdout, q.stderr]:
+					# FIXME 1024 may not be enough
+					output += os.read(master, 1024)
+
 				# The return value should be recorded in the ExitCode
 				# field of the scontrol output.
 				q = None
@@ -469,12 +520,13 @@ def exec_eval_command(test, stats):
 			                              part, env)
 
 	cmd = test["eval"]
-	cmd[0] = test["root"] + "/" + cmd[0]
+	cmd = [test["root"] + "/" + cmd[0]] + cmd[1:]
 
 	p = subprocess.Popen(cmd, \
 		             stdout = open(test["root"] + "/" + "output/eval.out", "w"), \
 		             stderr = open(test["root"] + "/" + "output/eval.err", "w"), \
-	                     env = env)
+	                     env = env, \
+	                     cwd = test["root"])
 
 	ret = p.wait()
 
