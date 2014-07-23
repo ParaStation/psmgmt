@@ -1,0 +1,9 @@
+{
+	"type": "batch",
+	"partitions": ["batch", "psslurm"],
+	"reservations": ["", "psslurm"],
+	"submit": "srun -n 1 -t 2 /not-existing-exe",
+	"eval": ["eval.py"],
+	"fproc": null,
+	"monitor_hz": 10
+}
