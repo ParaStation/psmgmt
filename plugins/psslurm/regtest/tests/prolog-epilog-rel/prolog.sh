@@ -1,4 +1,4 @@
 #!/bin/bash
 
-echo "OK" > output/prolog-${SLURM_JOBID}.txt
+echo "OK" > output-${SLURM_JOB_NAME}/prolog-${SLURM_JOBID}.txt
 

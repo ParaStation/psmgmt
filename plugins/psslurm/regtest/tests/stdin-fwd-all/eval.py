@@ -24,8 +24,10 @@ pprint.pprint(os.environ, indent = 1)
 env = {}
 
 for p in [x.strip() for x in os.environ["PSTEST_PARTITIONS"].split()]:
+	P = p.upper()
+
 	try:
-		out = open("output/fproc-%s.out" % p).read()
+		out = open(os.environ["PSTEST_FPROC_%s_STD_OUT" % P]).read()
 	except Exception as e:
 		Assert(1 == 0, p + ": " + str(e))
 

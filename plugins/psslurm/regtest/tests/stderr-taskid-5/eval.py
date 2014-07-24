@@ -19,8 +19,6 @@ def Assert(x, msg = None):
 		map(lambda x: sys.stderr.write("\t" + x.strip() + "\n"), traceback.format_stack())
 		RETVAL = 1
 
-stdout = {}
-
 for p in [x.strip() for x in os.environ["PSTEST_PARTITIONS"].split()]:
 	P = p.upper()
 
@@ -32,7 +30,10 @@ for p in [x.strip() for x in os.environ["PSTEST_PARTITIONS"].split()]:
 	except Exception as e:
 		Assert(1 == 0, p + ": " + str(e))
 
-	Assert("Hello from 5\n" == out, p)
+	lines = [x for x in map(lambda z: z.strip(), out.split("\n")) if len(x) > 0]
+	for line in lines:
+		if not re.match(r'.*allocated.*', line):
+			Assert("Hello from 5" == line, p)
 
 sys.exit(RETVAL)
 
