@@ -106,14 +106,9 @@ def submit_via_sbatch(part, reserv, cmd, wdir):
 	                     stderr = subprocess.PIPE, \
 	                     cwd = wdir)
 
-	# communicate() waits for the process to terminate.
-	out, err = p.communicate()
-	ret = p.wait()
+	out = p.stdout.readline()
 
-	if 0 != ret:
-		raise Exception("Submission failed with error code %d: %s" % (ret, err))
-
-	return None, re.search(r'Submitted batch job ([0-9]+)', out).group(1)
+	return p, re.search(r'Submitted batch job ([0-9]+)', out).group(1)
 
 #
 # Submit a job to partition part and return the jobid using srun.
@@ -218,7 +213,9 @@ def exec_test_batch(test, idx):
 
 	delay = 1.0/test["monitor_hz"]
 
-	stats = {"scontrol": None, "fproc": None}
+	stats = {"scontrol": None, \
+	         "fproc"   : None, \
+	         "submit"  : None}
 	while 1:
 		done = 1
 
@@ -236,8 +233,7 @@ def exec_test_batch(test, idx):
 				stdout += q.stdout.read()
 				stderr += q.stderr.read()
 
-				# The return value should be recorded in the ExitCode
-				# field of the scontrol output.
+				stats["submit"] = { "ExitCode": ret}
 				q = None
 			else:
 				done = 0
@@ -396,7 +392,9 @@ def exec_test_interactive(test, idx):
 
 	delay = 1.0/test["monitor_hz"]
 
-	stats = {"scontrol": None, "fproc": None}
+	stats = {"scontrol": None, \
+	         "fproc"   : None, \
+	         "submit"  : None}
 	while 1:
 		done = 1
 
@@ -409,8 +407,7 @@ def exec_test_interactive(test, idx):
 
 			ret = q.poll()
 			if None != ret:
-				# The return value should be recorded in the ExitCode
-				# field of the scontrol output.
+				stats["submit"] = { "ExitCode": ret}
 				q = None
 			else:
 				done = 0
@@ -499,6 +496,13 @@ def export_fproc_variables_to_env(stats, part, env):
 	export_dictionary_to_env(stats, prefix, env)
 
 #
+# Export the variables related to the srun/batch process to
+# the environment.
+def export_submit_variables_to_env(stats, part, env):
+	prefix = "PSTEST_SUBMIT_" + part.upper() + "_"
+	export_dictionary_to_env(stats, prefix, env)
+
+#
 # Execute an evaluation command. The scontrol information about the job are
 # passed via the environment. Specifically, for the job submitted to the partition
 # "batch", several environment variables with the prefix PSTEST_SCONTROL_SBATCH_ are
@@ -516,6 +520,10 @@ def exec_eval_command(test, stats):
 		if stats[i]["fproc"]:
 			export_fproc_variables_to_env(stats[i]["fproc"], \
 			                              part, env)
+
+		if stats[i]["submit"]:
+			export_submit_variables_to_env(stats[i]["submit"], \
+			                               part, env)
 
 	cmd = test["eval"]
 	cmd = [test["root"] + "/" + cmd[0]] + cmd[1:]
