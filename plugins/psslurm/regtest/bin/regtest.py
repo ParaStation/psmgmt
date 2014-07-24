@@ -591,23 +591,31 @@ def create_output_dir(test):
 	os.mkdir(test["outdir"])
 
 #
+# Replace matches to regexp by repl in all entries of array
+# and return the new array
+def fixup_test_description_placeholder(array, regexp, repl):
+	return [re.sub(regexp, repl, x) for x in array]
+
+#
 # Pre-processing of the test description.
-# Replace @D in strings by the root directory of the test.
+# Replaces @D in strings by the root directory of the test.
 # We use @ here instead of the more common %D in order to ensure
 # that Slurm format strings are not altered.
+# Replaces @O in strings by the output directory of the test.
 def fixup_test_description(test, opts):
-	if test["submit"]:
-		if isinstance(test["submit"], basestring):
-			test["submit"] = test["submit"].split()
-		test["submit"] = [re.sub(r'@D', test["root"], x) for x in test["submit"]]
-	if test["eval"]:
-		if isinstance(test["eval"], basestring):
-			test["eval"] = test["eval"].split()
-		test["eval"]   = [re.sub(r'@D', test["root"], x) for x in test["eval"]]
-	if test["fproc"]:
-		if isinstance(test["fproc"], basestring):
-			test["fproc"] = test["fproc"].split()
-		test["fproc"]   = [re.sub(r'@D', test["root"], x) for x in test["fproc"]]
+	for z in ["submit", "eval", "fproc"]:
+		if not test[z]:
+			continue
+		x = test[z]
+
+		if isinstance(x, basestring):
+			x = x.split()
+
+		x = fixup_test_description_placeholder(x, r'@D', test["root"])
+		x = fixup_test_description_placeholder(x, r'@O', test["outdir"])
+
+		test[z] = x
+
 
 	for x in opts.ignorep:
 		for i, z in enumerate(test["partitions"]):
