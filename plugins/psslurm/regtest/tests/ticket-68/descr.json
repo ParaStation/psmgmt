@@ -2,7 +2,7 @@
 	"type": "batch",
 	"partitions": ["batch", "psslurm"],
 	"reservations": ["", "psslurm"],
-	"submit": "sbatch -n 1 -t 1 -o output/slurm-%j.out hostname.sh",
+	"submit": "sbatch -n 1 -t 1 -o @O/slurm-%j.out hostname.sh",
 	"eval": ["eval.py"],
 	"fproc": null,
 	"monitor_hz": 10

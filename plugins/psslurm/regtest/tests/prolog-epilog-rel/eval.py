@@ -27,19 +27,19 @@ for p in [x.strip() for x in os.environ["PSTEST_PARTITIONS"].split()]:
 
 	jobid = os.environ["PSTEST_SCONTROL_%s_JOB_ID" % P]
 
-	print(jobid)
-	print("output/prolog-%s.txt" % jobid)
+	prologf = "%s/prolog-%s.txt" % (os.environ["PSTEST_OUTDIR"], jobid)
+	epilogf = "%s/epilog-%s.txt" % (os.environ["PSTEST_OUTDIR"], jobid)
 
 	out = ""
 	try:
-		out = open("output/prolog-%s.txt" % jobid).read()
+		out = open(prologf).read()
 	except Exception as e:
 		Assert(1 == 0, p + ": " + str(e))
 	Assert("OK\n" == out, p)
 
 	out = ""
 	try:
-		out = open("output/epilog-%s.txt" % jobid).read()
+		out = open(epilogf).read()
 	except Exception as e:
 		Assert(1 == 0, p + ": " + str(e))
 	Assert("OK\n" == out, p)

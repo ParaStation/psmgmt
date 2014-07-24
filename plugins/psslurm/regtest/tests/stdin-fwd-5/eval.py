@@ -25,7 +25,7 @@ env = {}
 
 for p in [x.strip() for x in os.environ["PSTEST_PARTITIONS"].split()]:
 	try:
-		out = open("output/fproc-%s.out" % p).read()
+		out = open("%s/fproc-%s.out" % (os.environ["PSTEST_OUTDIR"], p)).read()
 	except Exception as e:
 		Assert(1 == 0, p + ": " + str(e))
 

@@ -27,8 +27,9 @@ for p in [x.strip() for x in os.environ["PSTEST_PARTITIONS"].split()]:
 	Assert("0:0" == os.environ["PSTEST_SCONTROL_%s_EXIT_CODE" % P], p)
 	Assert("COMPLETED" == os.environ["PSTEST_SCONTROL_%s_JOB_STATE" % P], p)
 
-	Assert(os.path.isfile("output/slurm-%s.out" % os.environ["PSTEST_SCONTROL_%s_JOB_ID" % P]), p)
-	Assert(not os.path.isfile("slurm-%s.out" % os.environ["PSTEST_SCONTROL_%s_JOB_ID" % P]), p)
+        Assert(os.path.isfile("%s/slurm-%s.out" % (os.environ["PSTEST_OUTDIR"], \
+                                                   os.environ["PSTEST_SCONTROL_%s_JOB_ID" % P])), p)
+        Assert(not os.path.isfile("slurm-%s.out" % os.environ["PSTEST_SCONTROL_%s_JOB_ID" % P]), p)
 
 	try:
 		out = open(os.environ["PSTEST_SCONTROL_%s_STD_OUT" % P]).read()
