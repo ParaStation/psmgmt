@@ -13,6 +13,8 @@ import threading
 import optparse
 import select
 import termios
+import hashlib
+
 
 #
 # Pad a string with whitespaces
@@ -90,14 +92,14 @@ def query_scontrol(jobid):
 # Submit a job to partition part and return the jobid using sbatch.
 # We know that sbatch is non-blocking so we can directly wait here
 # for the process to finish.
-def submit_via_sbatch(part, reserv, cmd, wdir):
+def submit_via_sbatch(part, reserv, cmd, wdir, odir):
 	tmp = [cmd[0], "-p", part]
 	if len(reserv) > 0:
 		tmp += ["--reservation", reserv]
 
 	# Make sure we do not overwrite any -o flag on the command line
 	if len([x for x in cmd[1:] if "-o" == x]) < 1:
-		tmp += ["-o", wdir + "/output/slurm-%j.out"]
+		tmp += ["-o", odir + "/slurm-%j.out"]
 
 	cmd = tmp + cmd[1:]
 
@@ -112,14 +114,14 @@ def submit_via_sbatch(part, reserv, cmd, wdir):
 
 #
 # Submit a job to partition part and return the jobid using srun.
-def submit_via_srun(part, reserv, cmd, wdir):
+def submit_via_srun(part, reserv, cmd, wdir, odir):
 	tmp = [cmd[0], "-p", part]
 	if len(reserv) > 0:
 		tmp += ["--reservation", reserv]
 
 	# Make sure we do not overwrite any -o flag on the command line
 	if len([x for x in cmd[1:] if "-o" == x]) < 1:
-		tmp += ["-o", wdir + "/output/slurm-%j.out"]
+		tmp += ["-o", odir + "/slurm-%j.out"]
 
 	cmd = tmp + cmd[1:]
 
@@ -144,9 +146,9 @@ def submit_via_srun(part, reserv, cmd, wdir):
 # The current version of the code cannot handle srun since srun blocks.
 # Moreover, when using srun we want to check that Ctrl-C and friends are
 # properly handled.
-def submit(part, reserv, cmd, wdir):
+def submit(part, reserv, cmd, wdir, odir):
 	return {"sbatch": submit_via_sbatch, \
-	        "srun"  : submit_via_srun}[cmd[0].strip()](part, reserv, cmd, wdir)
+	        "srun"  : submit_via_srun}[cmd[0].strip()](part, reserv, cmd, wdir, odir)
 
 
 #
@@ -184,11 +186,12 @@ def exec_test_batch(test, idx):
 	# we only run the frontend process which interacts with the
 	# batch system directly.
 	if test["submit"]:
-		q, jobid = submit(part, reserv, test["submit"], test["root"])
+		q, jobid = submit(part, reserv, test["submit"], \
+		                  test["root"], test["outdir"])
 
 	# Use partition instead of jobid here since jobid may be None!
-	fproc_out = test["root"] + "/output/fproc-%s.out" % part
-	fproc_err = test["root"] + "/output/fproc-%s.err" % part
+	fproc_out = test["outdir"] + "/fproc-%s.out" % part
+	fproc_err = test["outdir"] + "/fproc-%s.err" % part
 
 	p = None
 	if "fproc" in test.keys() and test["fproc"]:
@@ -279,9 +282,9 @@ def exec_test_batch(test, idx):
 		# to the scontrol output.
 		# FIXME That would be incorrect if the user specifies some -o options?
 		if not "StdOut" in tmp[0].keys():
-			tmp[0]["StdOut"] = test["root"] + "/output/slurm-%s.out" % jobid
+			tmp[0]["StdOut"] = test["outdir"] + "/slurm-%s.out" % jobid
 		if not "StdErr" in tmp[0].keys():
-			tmp[0]["StdErr"] = test["root"] + "/output/slurm-%s.err" % jobid
+			tmp[0]["StdErr"] = test["outdir"] + "/slurm-%s.err" % jobid
 
 		# If output file is not existing we assume that all output went to stdout
 		# and stderr.
@@ -443,8 +446,8 @@ def exec_test_interactive(test, idx):
 		#      loop time is a multiple of the requested period.
 		time.sleep(delay)
 
-	stats["scontrol"][0]["StdOut"] = test["root"] + "/output/slurm-%s.out" % jobid
-	open(test["root"] + "/output/slurm-%s.out" % jobid, "w").write(output)
+	stats["scontrol"][0]["StdOut"] = test["outdir"] + "/slurm-%s.out" % jobid
+	open(stats["scontrol"][0]["StdOut"], "w").write(output)
 
 	return stats
 
@@ -511,6 +514,8 @@ def exec_eval_command(test, stats):
 	env = os.environ.copy()
 
 	env["PSTEST_PARTITIONS"] = " ".join(test["partitions"])
+	env["PSTEST_TESTKEY"] = test["key"]
+	env["PSTEST_OUTDIR"]  = test["outdir"]
 
 	for i, part in enumerate(test["partitions"]):
 		if stats[i]["scontrol"]:
@@ -567,34 +572,23 @@ def eval_test_outcome(test, stats):
 	BL.acquire()
 
 	try:
+		tmp1 = whitespace_pad(test["name"],30)
+		tmp2 = whitespace_pad(test["key"], 49)
+
 		sys.stdout.flush()
 		# TODO Take terminal width into account?
 		if fail:
-			print(" %s [\033[0;31mFAIL\033[0m] " % whitespace_pad(test["name"],69))
+			print(" %s%s [\033[0;31mFAIL\033[0m] " % (tmp1, tmp2))
 		else:
-			print(" %s [\033[0;32mOK\033[0m] "   % whitespace_pad(test["name"],69))
+			print(" %s%s [\033[0;32mOK\033[0m] "   % (tmp1, tmp2))
 		sys.stdout.flush()
 	finally:
 		BL.release()
 
 #
-# Create an empty output folder for the test. Existing folders will be moved
-# if they are non-empty.
-def create_output_dir(testdir):
-	outdir = testdir + "/output"
-
-	if os.path.isdir(outdir) and len(os.listdir(outdir)) > 0:
-		i = 1
-		while 1:
-			tmp = outdir + "-%04d" % i
-			if not os.path.isdir(tmp):
-				os.rename(outdir, tmp)
-				break
-
-			i = i+1
-
-	if not os.path.isdir(outdir):
-		os.mkdir(outdir)
+# Create an empty output folder for the test. 
+def create_output_dir(test):
+	os.mkdir(test["outdir"])
 
 #
 # Pre-processing of the test description.
@@ -647,7 +641,7 @@ def check_test_description(test):
 # Run a single test. For each specified partition the function will submit one
 # job, potentially spawn an accompanying frontend process that can interact with
 # the batch system (e.g., to test job canceling) and then runs the evaluation.
-def perform_test(testdir, opts):
+def perform_test(testdir, testkey, opts):
 
 	# For convenience we allow Python-style comments in the JSON files. These
 	# are removed before presenting the string to the json.loads function.
@@ -660,13 +654,15 @@ def perform_test(testdir, opts):
 		                  "descr.json: '%s'\n" % str(e))
 		exit(1)
 
-	test["name"] = os.path.basename(testdir)
-	test["root"] = testdir
+	test["name"]   = os.path.basename(testdir)
+	test["root"]   = testdir
+	test["key"]    = testkey
+	test["outdir"] = test["root"] + "/output-%s" % testkey
 
 	fixup_test_description(test, opts)
 	check_test_description(test)
 
-	create_output_dir(testdir)
+	create_output_dir(test)
 
 	if not test["type"] in ["batch", "interactive"]:
 		raise Exception("Unknown test type '%s'" % test["type"])
@@ -715,6 +711,13 @@ def get_test_list(argv, opts):
 
 	return tests
 
+#
+# Create a unique key for the test based on name, number and date
+def test_key(test, testnum):
+	tmp = hashlib.md5()
+	tmp.update(test + "-%08d-%d" % (testnum, time.time()))
+	return tmp.hexdigest()
+
 def main(argv):
 	parser = optparse.OptionParser(usage = "usage: %prog [options]")
 	parser.add_option("-d", "--testsdir", action = "store", type = "string", \
@@ -736,6 +739,9 @@ def main(argv):
 	parser.add_option("-i", "--ignorep", action = "store", type = "string", \
 	                  dest = "ignorep", default = "", \
 	                  help = "Comma-separated list of partitions that should be ignored.")
+	parser.add_option("-r", "--repetitions", action = "store", type = "int", \
+	                  dest = "repetitions", default = 1, \
+	                  help = "Number of repetitions for each test.")
 
 	(opts, args) = parser.parse_args()
 
@@ -751,10 +757,19 @@ def main(argv):
 			print(" " + whitespace_pad(testdir, 29) + \
 			      " (%s)" % (opts.testsdir + "/" + testdir))
 	else:
+		if opts.repetitions > 1:
+			tests = [x for z in tests for x in [z]*opts.repetitions]
+
+		testnum = 0
+
 		testthr = []
 		for testdir in tests:
+			testkey = test_key(testdir, testnum)
+			testnum += 1
+
 			testthr.append(WorkerThread(perform_test, \
-			               [opts.testsdir + "/" + testdir, opts], testdir))
+			               [opts.testsdir + "/" + testdir, \
+			               testkey, opts]))
 			testthr[-1].start()
 
 			testthr = [x for x in testthr if x.is_alive()]
