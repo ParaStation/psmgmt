@@ -1,0 +1,9 @@
+{
+	"type": "interactive",
+	"partitions": ["batch", "psslurm"],
+	"reservations": ["", "psslurm"],
+	"submit": "srun -N 2 -t 2 --pty /bin/bash",
+	"eval": ["eval.py"],
+	"fproc": "slave.py",
+	"monitor_hz": 10
+}
