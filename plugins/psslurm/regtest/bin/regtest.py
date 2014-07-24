@@ -292,6 +292,11 @@ def exec_test_batch(test, idx):
 		if not "StdErr" in tmp[0].keys():
 			tmp[0]["StdErr"] = test["outdir"] + "/slurm-%s.err" % jobid
 
+		# Slurm seems to have a bug in that it does not properly resolve format
+		# string for StdErr (even though it writes to the correct file. This is
+		# a workaround for this bug
+		tmp[0]["StdErr"] = re.sub(r'%j', jobid, tmp[0]["StdErr"])
+
 		# If output file is not existing we assume that all output went to stdout
 		# and stderr.
 		# stderr will be truncated since we already read one line!
