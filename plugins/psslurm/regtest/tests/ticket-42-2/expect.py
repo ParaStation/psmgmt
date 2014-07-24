@@ -10,21 +10,14 @@ if "" != os.environ["PSTEST_RESERVATION"]:
 cmd += "--pty /bin/bash"
 
 stdin = """
+set timeout -1
+
 spawn %s
-expect {
-        -re "queued and waiting for resources" {
-                exp_continue
-        }
-        -re "has been allocated resources" {
-                sleep 1
-                send "exit\n"
-                exp_continue
-        }
-        timeout {
-                exp_continue
-        }
-        eof
-}
+
+expect -re "queued and waiting for resources"
+expect -re "has been allocated resources"
+expect -re "bash" { send "exit\n" }
+expect eof
 
 catch wait result
 exit [lindex $result 3]
