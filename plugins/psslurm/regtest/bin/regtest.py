@@ -316,7 +316,8 @@ def exec_test_interactive(test, idx):
 	part   = test["partitions"][idx]
 	reserv = test["reservations"][idx]
 
-	output = ""
+	stdout = ""
+	stderr = ""
 
 	q      = None
 	jobid  = None
@@ -371,11 +372,11 @@ def exec_test_interactive(test, idx):
 				continue
 
 			for x in ready:
-				output += os.read(master, 1028)
+				stdout += os.read(master, 1028)
 
 			done = 0
 
-			for line in output.split("\n"):
+			for line in stdout.split("\n"):
 				if not jobid:
 					x = re.search(r'srun: job ([0-9]+) queued and waiting for resources', line)
 					if x:
@@ -417,7 +418,7 @@ def exec_test_interactive(test, idx):
 
 			if len(ready) > 0:
 				for x in ready:
-					output += os.read(master, 1024)
+					stdout += os.read(master, 1024)
 
 			ret = q.poll()
 			if None != ret:
@@ -458,7 +459,7 @@ def exec_test_interactive(test, idx):
 		time.sleep(delay)
 
 	stats["scontrol"][0]["StdOut"] = test["outdir"] + "/slurm-%s.out" % jobid
-	open(stats["scontrol"][0]["StdOut"], "w").write(output)
+	open(stats["scontrol"][0]["StdOut"], "w").write(stdout)
 
 	return stats
 
