@@ -534,8 +534,8 @@ def exec_eval_command(test, stats):
 	cmd = [test["root"] + "/" + cmd[0]] + cmd[1:]
 
 	p = subprocess.Popen(cmd, \
-		             stdout = open(test["root"] + "/" + "output/eval.out", "w"), \
-		             stderr = open(test["root"] + "/" + "output/eval.err", "w"), \
+		             stdout = open(test["outdir"] + "/eval.out", "w"), \
+		             stderr = open(test["outdir"] + "/eval.err", "w"), \
 	                     env = env, \
 	                     cwd = test["root"])
 
