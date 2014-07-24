@@ -26,6 +26,9 @@ env = {}
 for p in [x.strip() for x in os.environ["PSTEST_PARTITIONS"].split()]:
 	P = p.upper()
 
+	Assert("0:0" == os.environ["PSTEST_SCONTROL_%s_EXIT_CODE" % P], p)
+	Assert("COMPLETED" == os.environ["PSTEST_SCONTROL_%s_JOB_STATE" % P], p)
+
 	try:
 		out = open(os.environ["PSTEST_SCONTROL_%s_STD_OUT" % P]).read()
 	except Exception as e:
