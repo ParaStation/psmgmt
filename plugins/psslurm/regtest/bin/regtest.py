@@ -363,6 +363,7 @@ def exec_test_interactive(test, idx):
 			ret = q.poll()
 			if None != ret:
 				sys.stderr.write("Submission failed with exit code %d.\n" % ret)
+				return None
 
 			# Add a timeout here to make sure we do not wait indefinitely
 			# if the job dies for some reason.
