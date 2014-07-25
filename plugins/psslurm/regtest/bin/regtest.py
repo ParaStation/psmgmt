@@ -204,6 +204,8 @@ def exec_test_batch(test, idx):
 		env = os.environ.copy()
 		env["PSTEST_PARTITION"]   = "%s" % part
 		env["PSTEST_RESERVATION"] = "%s" % reserv
+		env["PSTEST_TESTKEY"]     = "%s" % test["key"]
+		env["PSTEST_OUTDIR"]      = "%s" % test["outdir"]
 		if jobid:
 			env["PSTEST_JOB_ID"] = jobid
 
