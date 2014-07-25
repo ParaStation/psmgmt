@@ -109,8 +109,6 @@ def prepare_submit_cmd(part, reserv, cmd, key, wdir, odir, flags):
 
 #
 # Submit a job to partition part and return the jobid using sbatch.
-# We know that sbatch is non-blocking so we can directly wait here
-# for the process to finish.
 def submit_via_sbatch(part, reserv, cmd, key, wdir, odir, flags):
 	cmd = prepare_submit_cmd(part, reserv, cmd, key, wdir, odir, flags)
 
@@ -144,6 +142,23 @@ def submit_via_srun(part, reserv, cmd, key, wdir, odir, flags):
 	return p, re.search('srun: job ([0-9]+) queued and waiting for resources', err).group(1)
 
 #
+# Submit a job to partition part and return the jobid using salloc.
+def submit_via_salloc(part, reserv, cmd, key, wdir, odir, flags):
+	# salloc does not understand these options. Just pretend the flags
+	# dissallow adding them.
+	tmp = flags + ["SUBMIT_NO_O_OPTION", "SUBMIT_NO_E_OPTION"]
+	cmd = prepare_submit_cmd(part, reserv, cmd, key, wdir, odir, tmp)
+
+	p = subprocess.Popen(cmd, \
+	                     stdout = subprocess.PIPE, \
+	                     stderr = subprocess.PIPE, \
+	                     cwd = wdir)
+
+	out = p.stderr.readline()
+
+	return p, re.search(r'salloc: Pending job allocation ([0-9]+)', out).group(1)
+
+#
 # Submit a job to partition part and return the jobid.
 #
 # The current version of the code cannot handle srun since srun blocks.
@@ -151,8 +166,9 @@ def submit_via_srun(part, reserv, cmd, key, wdir, odir, flags):
 # properly handled.
 def submit(part, reserv, cmd, key, wdir, odir, flags):
 	return {"sbatch": submit_via_sbatch, \
-	        "srun"  : submit_via_srun}[cmd[0].strip()](part, reserv, cmd, key, \
-	                                                   wdir, odir, flags)
+	        "srun"  : submit_via_srun, \
+	        "salloc": submit_via_salloc}[cmd[0].strip()](part, reserv, cmd, key, \
+	                                                     wdir, odir, flags)
 
 
 #
