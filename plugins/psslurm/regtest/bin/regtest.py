@@ -91,21 +91,18 @@ def query_scontrol(jobid):
 #
 # Prepare the submission command. This function can be used for
 # both sbatch and srun.
-def prepare_submit_cmd(part, reserv, cmd, key, wdir, odir):
+def prepare_submit_cmd(part, reserv, cmd, key, wdir, odir, flags):
 	tmp = [cmd[0], "-J", key, "-p", part]
 	if len(reserv) > 0:
 		tmp += ["--reservation", reserv]
 
-	# Make sure we do not overwrite any -o flag on the command line
-	if len([x for x in cmd[1:] if "-o" == x]) < 1:
-		tmp += ["-o", odir + "/slurm-%j.out"]
+	if len([x for x in flags if "SUBMIT_NO_O_OPTION" == x]) < 1 and \
+	   len([x for x in cmd[1:] if "-o" == x]) < 1:
+			tmp += ["-o", odir + "/slurm-%j.out"]
 
-	# Redirecting the stderr to a file leads to problems with test ticket-69.
-	# Disabling it for now since there is no real added value by this for the
-	# current set of tests.
-#	# Make sure we do not overwrite any -e flag on the command line
-#	if len([x for x in cmd[1:] if "-e" == x]) < 1:
-#		tmp += ["-e", odir + "/slurm-%j.err"]
+	if len([x for x in flags if "SUBMIT_NO_E_OPTION" == x]) < 1 and \
+	   len([x for x in cmd[1:] if "-e" == x]) < 1:
+			tmp += ["-e", odir + "/slurm-%j.err"]
 
 	return tmp + cmd[1:]
 
@@ -114,8 +111,8 @@ def prepare_submit_cmd(part, reserv, cmd, key, wdir, odir):
 # Submit a job to partition part and return the jobid using sbatch.
 # We know that sbatch is non-blocking so we can directly wait here
 # for the process to finish.
-def submit_via_sbatch(part, reserv, cmd, key, wdir, odir):
-	cmd = prepare_submit_cmd(part, reserv, cmd, key, wdir, odir)
+def submit_via_sbatch(part, reserv, cmd, key, wdir, odir, flags):
+	cmd = prepare_submit_cmd(part, reserv, cmd, key, wdir, odir, flags)
 
 	p = subprocess.Popen(cmd, \
 	                     stdout = subprocess.PIPE, \
@@ -128,8 +125,8 @@ def submit_via_sbatch(part, reserv, cmd, key, wdir, odir):
 
 #
 # Submit a job to partition part and return the jobid using srun.
-def submit_via_srun(part, reserv, cmd, key, wdir, odir):
-	cmd = prepare_submit_cmd(part, reserv, cmd, key, wdir, odir)
+def submit_via_srun(part, reserv, cmd, key, wdir, odir, flags):
+	cmd = prepare_submit_cmd(part, reserv, cmd, key, wdir, odir, flags)
 
 	p = subprocess.Popen(cmd, \
 	                     stdout = subprocess.PIPE, \
@@ -152,9 +149,10 @@ def submit_via_srun(part, reserv, cmd, key, wdir, odir):
 # The current version of the code cannot handle srun since srun blocks.
 # Moreover, when using srun we want to check that Ctrl-C and friends are
 # properly handled.
-def submit(part, reserv, cmd, key, wdir, odir):
+def submit(part, reserv, cmd, key, wdir, odir, flags):
 	return {"sbatch": submit_via_sbatch, \
-	        "srun"  : submit_via_srun}[cmd[0].strip()](part, reserv, cmd, key, wdir, odir)
+	        "srun"  : submit_via_srun}[cmd[0].strip()](part, reserv, cmd, key, \
+	                                                   wdir, odir, flags)
 
 
 #
@@ -193,7 +191,8 @@ def exec_test_batch(test, idx):
 	# batch system directly.
 	if test["submit"]:
 		q, jobid = submit(part, reserv, test["submit"], \
-		                  test["key"], test["root"], test["outdir"])
+		                  test["key"], test["root"], \
+		                  test["outdir"], test["flags"])
 
 	# Use partition instead of jobid here since jobid may be None!
 	fproc_out = test["outdir"] + "/fproc-%s.out" % part
@@ -636,6 +635,10 @@ def fixup_test_description(test, opts):
 				del test["partitions"][i]
 				del test["reservations"][i]
 				break
+
+	# Specifying flags is optional
+	if not "flags" in test.keys():
+		test["flags"] = []
 
 #
 # Check that the test description is okay.
