@@ -14,7 +14,7 @@ echo $?
 
 sgather ${RFILE} ${LFILE}
 
-srun -n 1 /bin/bash -c "stat ${LFILE}" >/dev/null 2>/dev/null
+srun -n 1 /bin/bash -c "stat ${RFILE}" >/dev/null 2>/dev/null
 echo $?
 
 exit 0
