@@ -39,13 +39,13 @@ for p in [x.strip() for x in os.environ["PSTEST_PARTITIONS"].split()]:
 		lines = [x for x in map(lambda z: z.strip(), outA.split("\n")) if len(x) > 0]
 		Assert(len(lines) == 2, p)
 
-		Assert("1" == lines[0])
-		Assert("2" == lines[1])
+		Assert("1" == lines[0], p)
+		Assert("2" == lines[1], p)
 
 		lines = [x for x in map(lambda z: z.strip(), outB.split("\n")) if len(x) > 0]
 		Assert(len(lines) == 1, p)
 
-		Assert("2" == lines[0])
+		Assert("2" == lines[0], p)
 	except Exception as e:
 		Assert(1 == 0, p + ": " + str(e))
 
