@@ -19,6 +19,8 @@ def Assert(x, msg = None):
 		map(lambda x: sys.stderr.write("\t" + x.strip() + "\n"), traceback.format_stack())
 		RETVAL = 1
 
+pprint.pprint(os.environ, indent = 1)
+
 env = {}
 
 for p in [x.strip() for x in os.environ["PSTEST_PARTITIONS"].split()]:
