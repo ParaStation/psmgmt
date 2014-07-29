@@ -236,6 +236,6 @@ for p in [x.strip() for x in os.environ["PSTEST_PARTITIONS"].split()]:
 sys.exit(RETVAL)
 """
 
-	open("%s/eval.py" % k, "w").write(eval)
+	open("%s/eval.py" % k, "w").write(evl)
 	os.chmod("%s/eval.py" % k, stat.S_IRWXU)
 
