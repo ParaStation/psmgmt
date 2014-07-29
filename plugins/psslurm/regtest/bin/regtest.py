@@ -310,7 +310,7 @@ def exec_test_batch(test, idx):
 			tmp[0]["StdErr"] = test["outdir"] + "/slurm-%s.err" % jobid
 
 		# Slurm seems to have a bug in that it does not properly resolve format
-		# string for StdErr (even though it writes to the correct file. This is
+		# string for StdErr (even though it writes to the correct file). This is
 		# a workaround for this bug
 		tmp[0]["StdErr"] = re.sub(r'%j', jobid, tmp[0]["StdErr"])
 
@@ -413,15 +413,23 @@ def exec_test_interactive(test, idx):
 	# For an interactive job we need someone to interact with the spawned processes
 	# so we are sure that "fproc" in test.keys() - This is checked elsewhere.
 
-	# FIXME Environment
+	# Prepare the environment for the front-end process
+	env = os.environ.copy()
+	env["PSTEST_PARTITION"]   = "%s" % part
+	env["PSTEST_RESERVATION"] = "%s" % reserv
+	env["PSTEST_TESTKEY"]     = "%s" % test["key"]
+	env["PSTEST_OUTDIR"]      = "%s" % test["outdir"]
+	if jobid:
+		env["PSTEST_JOB_ID"] = jobid
 
 	cmd = test["fproc"]
 	cmd = [test["root"] + "/" + cmd[0]] + cmd[1:]
+
 	p = subprocess.Popen(cmd, \
 	                     stdin  = subprocess.PIPE, \
 	                     stdout = subprocess.PIPE, \
+	                     env = env, \
 	                     cwd = test["root"])
-
 
 	delay = 1.0/test["monitor_hz"]
 
