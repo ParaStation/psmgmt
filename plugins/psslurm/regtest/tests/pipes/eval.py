@@ -29,13 +29,16 @@ for p in [x.strip() for x in os.environ["PSTEST_PARTITIONS"].split()]:
 
 	try:
 		out = open(os.environ["PSTEST_SCONTROL_%s_STD_OUT" % P]).read()
+
+		lines = [x for x in map(lambda z: z.split(), out.split("\n")) if len(x) > 0]
+
+		Assert(4 == len(lines))
+		Assert("OK"  == lines[0], p)
+		Assert("NOK" == lines[1], p)
+		Assert("OK"  == lines[2], p)
+		Assert("NOK" == lines[3], p)
 	except Exception as e:
 		Assert(1 == 0, p + ": " + str(e))
-
-	out = out.split("\n")
-
-	Assert("OK"  == out[0])
-	Assert("NOK" == out[1])
 
 sys.exit(RETVAL)
 
