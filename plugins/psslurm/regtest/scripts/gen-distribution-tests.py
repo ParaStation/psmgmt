@@ -158,7 +158,7 @@ srun -n %d %s output-${JOB_NAME}/prog.exe
 """ % (v[1], v[2]))
 	os.chmod("%s/test.sh" % k, stat.S_IRWXU)
 
-	eval = """#!/usr/bin/env python
+	evl = """#!/usr/bin/env python
 
 import sys
 import os
@@ -224,12 +224,12 @@ for p in [x.strip() for x in os.environ["PSTEST_PARTITIONS"].split()]:
 """ % len(v[3])
 
 	for i, x in enumerate(v[3]):
-		eval += """
+		evl += """
 		Assert(%d == result[%d][0], p)
 		Assert(%d == result[%d][1], p)
 """ % (x[0], i, x[1], i)
 
-	eval += """
+	evl += """
 	except Exception as e:
 		Assert(1 == 0, p + ": " + str(e))
 
