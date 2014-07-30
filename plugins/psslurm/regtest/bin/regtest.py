@@ -131,15 +131,21 @@ def submit_via_srun(part, reserv, cmd, key, wdir, odir, flags):
 	                     stderr = subprocess.PIPE, \
 	                     cwd = wdir)
 
-	err = p.stderr.readline()
-
 	# srun (in contrast to sbatch) writes the status information
 	# to stderr.
+	err = p.stderr.readline()
 
-	#
-	# TODO Handle messages like "srun: Required node not available (down or drained)"
-	#
-	return p, re.search('srun: job ([0-9]+) queued and waiting for resources', err).group(1)
+	# Handle "srun: Required node not available (down or drained)". Note that this
+	# message will be dropped from stderr and not show up in the output file.
+	for i in [0, 1]:
+		tmp = re.search('srun: job ([0-9]+) queued and waiting for resources', err)
+		if tmp:
+			return p, tmp.group(1)
+
+		err = p.stderr.readline()
+
+	sys.stderr.write("Failed to catch jobid.\n")
+	return p, None
 
 #
 # Submit a job to partition part and return the jobid using salloc.
