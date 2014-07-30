@@ -91,8 +91,11 @@ def query_scontrol(jobid):
 #
 # Prepare the submission command. This function can be used for
 # both sbatch and srun.
-def prepare_submit_cmd(part, reserv, cmd, key, wdir, odir, flags):
-	tmp = [cmd[0], "-J", key, "-p", part]
+# -v: Verbose output is needed by the logic used to figure out the jobid
+# -J: Set the job name to the key such that scripts can figure out the
+#     output directory by themselves.
+def prepare_submit_cmd(part, reserv, cmd, key, odir, flags):
+	tmp = [cmd[0], "-v", "-J", key, "-p", part]
 	if len(reserv) > 0:
 		tmp += ["--reservation", reserv]
 
@@ -110,42 +113,26 @@ def prepare_submit_cmd(part, reserv, cmd, key, wdir, odir, flags):
 #
 # Submit a job to partition part and return the jobid using sbatch.
 def submit_via_sbatch(part, reserv, cmd, key, wdir, odir, flags):
-	cmd = prepare_submit_cmd(part, reserv, cmd, key, wdir, odir, flags)
+	cmd = prepare_submit_cmd(part, reserv, cmd, key, odir, flags)
 
-	p = subprocess.Popen(cmd, \
-	                     stdout = subprocess.PIPE, \
-	                     stderr = subprocess.PIPE, \
-	                     cwd = wdir)
+	return subprocess.Popen(cmd, \
+	                        stdout = subprocess.PIPE, \
+	                        stderr = subprocess.PIPE, \
+	                        cwd = wdir)
 
-	out = p.stdout.readline()
-
-	return p, re.search(r'Submitted batch job ([0-9]+)', out).group(1)
+	return p
 
 #
 # Submit a job to partition part and return the jobid using srun.
 def submit_via_srun(part, reserv, cmd, key, wdir, odir, flags):
-	cmd = prepare_submit_cmd(part, reserv, cmd, key, wdir, odir, flags)
+	cmd = prepare_submit_cmd(part, reserv, cmd, key, odir, flags)
 
 	p = subprocess.Popen(cmd, \
 	                     stdout = subprocess.PIPE, \
 	                     stderr = subprocess.PIPE, \
 	                     cwd = wdir)
 
-	# srun (in contrast to sbatch) writes the status information
-	# to stderr.
-	err = p.stderr.readline()
-
-	# Handle "srun: Required node not available (down or drained)". Note that this
-	# message will be dropped from stderr and not show up in the output file.
-	for i in [0, 1]:
-		tmp = re.search('srun: job ([0-9]+) queued and waiting for resources', err)
-		if tmp:
-			return p, tmp.group(1)
-
-		err = p.stderr.readline()
-
-	sys.stderr.write("Failed to catch jobid.\n")
-	return p, None
+	return p
 
 #
 # Submit a job to partition part and return the jobid using salloc.
@@ -153,16 +140,14 @@ def submit_via_salloc(part, reserv, cmd, key, wdir, odir, flags):
 	# salloc does not understand these options. Just pretend the flags
 	# dissallow adding them.
 	tmp = flags + ["SUBMIT_NO_O_OPTION", "SUBMIT_NO_E_OPTION"]
-	cmd = prepare_submit_cmd(part, reserv, cmd, key, wdir, odir, tmp)
+	cmd = prepare_submit_cmd(part, reserv, cmd, key, odir, tmp)
 
 	p = subprocess.Popen(cmd, \
 	                     stdout = subprocess.PIPE, \
 	                     stderr = subprocess.PIPE, \
 	                     cwd = wdir)
 
-	out = p.stderr.readline()
-
-	return p, re.search(r'salloc: Pending job allocation ([0-9]+)', out).group(1)
+	return p
 
 #
 # Submit a job to partition part and return the jobid.
@@ -176,6 +161,20 @@ def submit(part, reserv, cmd, key, wdir, odir, flags):
 	        "salloc": submit_via_salloc}[cmd[0].strip()](part, reserv, cmd, key, \
 	                                                     wdir, odir, flags)
 
+#
+# Try to get the jobid from stdout/stderr. We are passing the "-v" flag to
+# srun/sbatch/salloc so the jobid should be found in the output at some point
+# in time. If we cannot find it we return None.
+def extract_jobid_if_possible(stdout, stderr):
+	tmp = [re.search(r'.*Submitted batch job ([0-9]+).*', stdout),
+	       re.search(r'.*srun: jobid ([0-9]+).*', stderr),
+	       re.search(r'.*salloc: Granted job allocation ([0-9]+).*', stderr)]
+	tmp = [z for z in [x.group(1) for x in tmp if x] if z]
+
+	if len(tmp) > 0:
+		return tmp[0]
+
+	return None
 
 #
 # Interpret state as either done or not-done.
@@ -195,6 +194,28 @@ def job_is_done(stats):
 	return (len(stats) == len([x for x in tmp if x]))
 
 #
+# Spawn a frontend process
+def spawn_frontend_process(test, part, reserv, jobid, fo, fe):
+	# Prepare the environment for the front-end process
+	env = os.environ.copy()
+	env["PSTEST_PARTITION"]   = "%s" % part
+	env["PSTEST_RESERVATION"] = "%s" % reserv
+	env["PSTEST_TESTKEY"]     = "%s" % test["key"]
+	env["PSTEST_OUTDIR"]      = "%s" % test["outdir"]
+	if jobid:
+		env["PSTEST_JOB_ID"] = jobid
+
+	cmd = test["fproc"]
+	cmd = [test["root"] + "/" + cmd[0]] + cmd[1:]
+
+	return subprocess.Popen(cmd, \
+	                        stdout = fo, \
+	                        stderr = fe, \
+	                        env = env, \
+	                        cwd = test["root"])
+
+
+#
 # Execute a batch job. The function waits until the job and the accompanying
 # frontend process (if one) are terminated.
 #
@@ -206,59 +227,52 @@ def exec_test_batch(test, idx):
 	part   = test["partitions"][idx]
 	reserv = test["reservations"][idx]
 
-	q     = None
-	jobid = None
+	q      = None
+	jobid  = None
+	p      = None
+	stdout = ""
+	stderr = ""
+
+	# Process states
+	UNBORN = 1	# needs to be started
+	ALIVE  = 2
+	DEAD   = 3
+
+	state  = [0] * 2
 	# "submit" can be null in the input JSON file. In this case
 	# we only run the frontend process which interacts with the
 	# batch system directly.
 	if test["submit"]:
-		q, jobid = submit(part, reserv, test["submit"], \
-		                  test["key"], test["root"], \
-		                  test["outdir"], test["flags"])
-
-	# Use partition instead of jobid here since jobid may be None!
-	fproc_out = test["outdir"] + "/fproc-%s.out" % part
-	fproc_err = test["outdir"] + "/fproc-%s.err" % part
-
-	p = None
+		state[0] = UNBORN
 	if "fproc" in test.keys() and test["fproc"]:
-		# Prepare the environment for the front-end process
-		env = os.environ.copy()
-		env["PSTEST_PARTITION"]   = "%s" % part
-		env["PSTEST_RESERVATION"] = "%s" % reserv
-		env["PSTEST_TESTKEY"]     = "%s" % test["key"]
-		env["PSTEST_OUTDIR"]      = "%s" % test["outdir"]
-		if jobid:
-			env["PSTEST_JOB_ID"] = jobid
+		state[1] = UNBORN
 
-		cmd = test["fproc"]
-		cmd = [test["root"] + "/" + cmd[0]] + cmd[1:]
+	delay  = 1.0/test["monitor_hz"]
 
-		p = subprocess.Popen(cmd, \
-		                     stdout = open(fproc_out, "w"), \
-		                     stderr = open(fproc_err, "w"), \
-		                     env = env, \
-		                     cwd = test["root"])
-
-	stdout = ""
-	stderr = ""
-
-	delay = 1.0/test["monitor_hz"]
-
-	stats = {"scontrol": None, \
-	         "fproc"   : None, \
-	         "submit"  : None}
+	stats  = {"scontrol": None, \
+	          "fproc"   : None, \
+	          "submit"  : None}
 	while 1:
 		done = 1
 
-		if q:
+		if UNBORN == state[0]:
+			q = submit(part, reserv, test["submit"], \
+			           test["key"], test["root"], \
+			           test["outdir"], test["flags"])
+
+			state[0] = ALIVE
+
+		if ALIVE == state[0]:
 			ready, _, _ = select.select([q.stdout, q.stderr], [], [], 0)
+
+			# We need to use os.read(x.fileno(), .) here instead of x.read()
+			# because the latter one did block in my experiments
 			if len(ready) > 0:
 				for x in ready:
 					if q.stdout == x:
-						stdout += x.read()
+						stdout += os.read(x.fileno(), 512)
 					if q.stderr == x:
-						stderr += x.read()
+						stderr += os.read(x.fileno(), 512)
 
 			ret = q.poll()
 			if None != ret:
@@ -266,21 +280,13 @@ def exec_test_batch(test, idx):
 				stderr += q.stderr.read()
 
 				stats["submit"] = { "ExitCode": ret}
-				q = None
+
+				state[0] = DEAD
 			else:
 				done = 0
 
-		if p:
-			ret = p.poll()
-			if None != ret:
-				# Use CamelCase for the keys here to so that we can handle
-				# the scontrol and fproc stats in the same fasion.
-				stats["fproc"] = {"StdOut": fproc_out, \
-				                  "StdErr": fproc_err, \
-				                  "ExitCode": ret}
-				p = None
-			else:
-				done = 0
+		if state[0] in [ALIVE, DEAD] and not jobid:
+			jobid = extract_jobid_if_possible(stdout, stderr)
 
 		if jobid:
 			tmp = query_scontrol(jobid)
@@ -290,6 +296,29 @@ def exec_test_batch(test, idx):
 
 				if not job_is_done(tmp):
 					done = 0
+
+		if (UNBORN == state[1]) and ((0 == state[0]) or jobid):
+			# Use partition instead of jobid here since jobid may be None!
+			fo = open(test["outdir"] + "/fproc-%s.out" % part, "w")
+			fe = open(test["outdir"] + "/fproc-%s.err" % part, "w")
+
+			p = spawn_frontend_process(test, part, reserv, \
+			                           jobid, fo, fe)
+
+			state[1] = ALIVE
+
+		if ALIVE == state[1]:
+			ret = p.poll()
+			if None != ret:
+				# Use CamelCase for the keys here to so that we can handle
+				# the scontrol and fproc stats in the same fasion.
+				stats["fproc"] = {"StdOut": test["outdir"] + "/fproc-%s.out" % part, \
+				                  "StdErr": test["outdir"] + "/fproc-%s.err" % part, \
+				                  "ExitCode": ret}
+
+				state[1] = DEAD
+			else:
+				done = 0
 
 		if done:
 			break
@@ -301,32 +330,36 @@ def exec_test_batch(test, idx):
 		#      loop time is a multiple of the requested period
 		time.sleep(delay)
 
-	# Special cases for srun.
-	# srun does not support job arrays and sbatch requires the output to be
-	# written to a file.
+	# Fixup some srun problems.
 	if stats["scontrol"] and 1 == len(stats["scontrol"]):
-		tmp = stats["scontrol"]
+		tmp = stats["scontrol"][0]
 
 		# To simplify writing evaluation scripts we always add StdOut and StdErr
 		# to the scontrol output.
 		# FIXME That would be incorrect if the user specifies some -o options?
-		if not "StdOut" in tmp[0].keys():
-			tmp[0]["StdOut"] = test["outdir"] + "/slurm-%s.out" % jobid
-		if not "StdErr" in tmp[0].keys():
-			tmp[0]["StdErr"] = test["outdir"] + "/slurm-%s.err" % jobid
+		if not "StdOut" in tmp.keys():
+			tmp["StdOut"] = test["outdir"] + "/slurm-%s.out" % jobid
+		if not "StdErr" in tmp.keys():
+			tmp["StdErr"] = test["outdir"] + "/slurm-%s.err" % jobid
 
 		# Slurm seems to have a bug in that it does not properly resolve format
 		# string for StdErr (even though it writes to the correct file). This is
 		# a workaround for this bug
-		tmp[0]["StdErr"] = re.sub(r'%j', jobid, tmp[0]["StdErr"])
+		tmp["StdErr"] = re.sub(r'%j', jobid, tmp["StdErr"])
 
-		# If output file is not existing we assume that all output went to stdout
-		# and stderr.
-		# stderr will be truncated since we already read one line!
-		if not os.path.isfile(tmp[0]["StdOut"]):
-			open(tmp[0]["StdOut"], "w").write(stdout)
-		if not os.path.isfile(tmp[0]["StdErr"]):
-			open(tmp[0]["StdErr"], "w").write(stderr)
+		stats["scontrol"][0] = tmp
+
+	if len(stdout) > 0:
+		tmp = stats["scontrol"][0]
+
+		if not os.path.isfile(tmp["StdOut"]):
+			open(tmp["StdOut"], "w").write(stdout)
+#		else:
+#			open(tmp["StdOut"], "a").write(stdout)
+		if not os.path.isfile(tmp["StdErr"]):
+			open(tmp["StdErr"], "w").write(stderr)
+#		else:
+#			open(tmp["StdErr"], "a").write(stderr)
 
 	# Return the latest captured stats
 	return stats
@@ -339,11 +372,12 @@ def exec_test_interactive(test, idx):
 	part   = test["partitions"][idx]
 	reserv = test["reservations"][idx]
 
+	q      = None
+	jobid  = None
+	p      = None
 	stdout = ""
 	stderr = ""
 
-	q      = None
-	jobid  = None
 	if test["submit"]:
 		master, slave = os.openpty()
 
@@ -365,111 +399,59 @@ def exec_test_interactive(test, idx):
 		attr[3] = attr[3] & (~termios.ECHO)
 		termios.tcsetattr(master, termios.TCSADRAIN, attr)
 
-		cmd = test["submit"]
-		tmp = [cmd[0], "-p", part]
-		if len(reserv) > 0:
-			tmp += ["--reservation", reserv]
-		cmd = tmp + cmd[1:]
+	# Process states
+	UNBORN = 1	# needs to be started
+	ALIVE  = 2
+	DEAD   = 3
 
-		q = subprocess.Popen(cmd, \
-		                     stdin  = slave, \
-		                     stdout = slave, \
-		                     stderr = slave, \
-		                     cwd = test["root"])
+	state  = [0, UNBORN]
+	# "submit" can be null in the input JSON file. In this case
+	# we only run the frontend process which interacts with the
+	# batch system directly.
+	if test["submit"]:
+		state[0] = UNBORN
 
-		# In contrast to batch jobs we do not start the frontend process before we
-		# have been allocated resources. This still does not guarantee that the
-		# remote side is ready to receive input, though.
+	delay  = 1.0/test["monitor_hz"]
 
-		jobid  = None
-		while 1:
-			ret = q.poll()
-			if None != ret:
-				sys.stderr.write("Submission failed with exit code %d.\n" % ret)
-				return None
-
-			# Add a timeout here to make sure we do not wait indefinitely
-			# if the job dies for some reason.
-			ready, _, _ = select.select([master], [], [], 1)
-
-			if 0 == len(ready):
-				continue
-
-			for x in ready:
-				stdout += os.read(master, 1028)
-
-			done = 0
-
-			for line in stdout.split("\n"):
-				if not jobid:
-					x = re.search(r'srun: job ([0-9]+) queued and waiting for resources', line)
-					if x:
-						jobid = x.group(1)
-				else:
-					if re.match(r'.* job %s .* allocated .*' % jobid, line):
-						done = 1
-						break
-
-			if done:
-				break
-
-		if not jobid:
-			raise Exception("Submission failure.")
-
-	# For an interactive job we need someone to interact with the spawned processes
-	# so we are sure that "fproc" in test.keys() - This is checked elsewhere.
-
-	# Prepare the environment for the front-end process
-	env = os.environ.copy()
-	env["PSTEST_PARTITION"]   = "%s" % part
-	env["PSTEST_RESERVATION"] = "%s" % reserv
-	env["PSTEST_TESTKEY"]     = "%s" % test["key"]
-	env["PSTEST_OUTDIR"]      = "%s" % test["outdir"]
-	if jobid:
-		env["PSTEST_JOB_ID"] = jobid
-
-	cmd = test["fproc"]
-	cmd = [test["root"] + "/" + cmd[0]] + cmd[1:]
-
-	p = subprocess.Popen(cmd, \
-	                     stdin  = subprocess.PIPE, \
-	                     stdout = subprocess.PIPE, \
-	                     env = env, \
-	                     cwd = test["root"])
-
-	delay = 1.0/test["monitor_hz"]
-
-	stats = {"scontrol": None, \
-	         "fproc"   : None, \
-	         "submit"  : None}
+	stats  = {"scontrol": None, \
+	          "fproc"   : None, \
+	          "submit"  : None}
 	while 1:
 		done = 1
 
-		if q:
+		if UNBORN == state[0]:
+			cmd = test["submit"]
+			tmp = [cmd[0], "-v", "-J", test["key"], "-p", part]
+			if len(reserv) > 0:
+				tmp += ["--reservation", reserv]
+			cmd = tmp + cmd[1:]
+
+			q = subprocess.Popen(cmd, \
+			                     stdin  = slave, \
+			                     stdout = slave, \
+			                     stderr = slave, \
+			                     cwd = test["root"])
+
+			state[0] = ALIVE
+
+		if ALIVE == state[0]:
 			ready, _, _ = select.select([master], [], [], 0)
 
+			# We need to use os.read(x.fileno(), .) here instead of x.read()
+			# because the latter one did block in my experiments
 			if len(ready) > 0:
-				for x in ready:
-					stdout += os.read(master, 1024)
+				stdout += os.read(master, 512)
 
 			ret = q.poll()
 			if None != ret:
 				stats["submit"] = { "ExitCode": ret}
-				q = None
+
+				state[0] = DEAD
 			else:
 				done = 0
 
-		if p:
-			ready, _, _ = select.select([p.stdout], [], [], 0)
-			if len(ready) > 0:
-				os.write(master, p.stdout.read())
-
-			ret = p.poll()
-			if None != ret:
-				stats["fproc"] = {"ExitCode": ret}
-				p = None
-			else:
-				done = 0
+		if state[0] in [ALIVE, DEAD] and not jobid:
+			jobid = extract_jobid_if_possible(stdout, stdout)
 
 		if jobid:
 			tmp = query_scontrol(jobid)
@@ -480,6 +462,27 @@ def exec_test_interactive(test, idx):
 				if not job_is_done(tmp):
 					done = 0
 
+		if (UNBORN == state[1]) and ((0 == state[0]) or jobid):
+			p = spawn_frontend_process(test, part, reserv, \
+			                           jobid, subprocess.PIPE, subprocess.PIPE)
+
+			state[1] = ALIVE
+
+		if ALIVE == state[1]:
+			ready, _, _ = select.select([p.stdout], [], [], 0)
+			if len(ready) > 0:
+				os.write(master, os.read(p.stdout.fileno(), 512))
+
+			ret = p.poll()
+			if None != ret:
+				# Use CamelCase for the keys here to so that we can handle
+				# the scontrol and fproc stats in the same fasion.
+				stats["fproc"] = {"ExitCode": ret}
+
+				state[1] = DEAD
+			else:
+				done = 0
+
 		if done:
 			break
 
@@ -487,7 +490,7 @@ def exec_test_interactive(test, idx):
 		#      code and subtract it from delay. If the result is negative
 		#      we need to add the smallest multiple of delay such that
 		#      the sum is positive. In this way we guarantee that
-		#      loop time is a multiple of the requested period.
+		#      loop time is a multiple of the requested period
 		time.sleep(delay)
 
 	stats["scontrol"][0]["StdOut"] = test["outdir"] + "/slurm-%s.out" % jobid
@@ -630,7 +633,7 @@ def eval_test_outcome(test, stats):
 		BL.release()
 
 #
-# Create an empty output folder for the test. 
+# Create an empty output folder for the test.
 def create_output_dir(test):
 	os.mkdir(test["outdir"])
 
