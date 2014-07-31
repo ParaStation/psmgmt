@@ -162,61 +162,25 @@ srun -n %d %s output-${JOB_NAME}/prog.exe
 
 import sys
 import os
-import traceback
-import re
-import pprint
 
-RETVAL = 0
+sys.path.append("/".join(os.path.abspath(os.path.dirname(sys.argv[0])).split('/')[0:-2] + ["lib"]))
+from testsuite import *
 
-def Assert(x, msg = None):
-	global RETVAL
+helper.pretty_print_env()
 
-	if not x:
-		if msg:
-			sys.stderr.write("Test failure ('%%s'):\\n" %% msg)
-		else:
-			sys.stderr.write("Test failure:\\n")
-		map(lambda x: sys.stderr.write("\\t" + x.strip() + "\\n"), traceback.format_stack())
-		RETVAL = 1
+for p in helper.partitions():
+	helper.check_job_completed_ok(p)
 
-def expand1(matchobj):
-	tmp0, tmp1 = matchobj.group(0).split('-')
+	lines = helper.job_stdout_lines(p)
+	test.check(len(lines) == %d, p)
 
-	assert(len(tmp0) == len(tmp1))
-	fmt = "%%%%0%%dd" %% len(tmp0)
-
-	return ",".join([fmt %% z for z in range(int(tmp0), int(tmp1)+1)])
-
-def expand2(matchobj):
-	tmp0, tmp1 = matchobj.group(0).replace(']', '').split('[')
-	return ",".join([tmp0 + x for x in tmp1.split(',')])
-
-pprint.pprint(os.environ, indent = 1)
-
-for p in [x.strip() for x in os.environ["PSTEST_PARTITIONS"].split()]:
-	P = p.upper()
-
-	Assert("0:0" == os.environ["PSTEST_SCONTROL_%%s_EXIT_CODE" %% P], p)
-	Assert("COMPLETED" == os.environ["PSTEST_SCONTROL_%%s_JOB_STATE" %% P], p)
-
-	try:
-		out = open(os.environ["PSTEST_SCONTROL_%%s_STD_OUT" %% P]).read()
-	except Exception as e:
-		Assert(1 == 0, p + ": " + str(e))
-
-	# FIXME Juropa-3 specific
-	nodes = re.sub(r'j3c([0-9]*\[[0-9,]+\])', expand2, \
-	               re.sub(r'([0-9]+)-([0-9]+)', expand1, \
-	                      os.environ["PSTEST_SCONTROL_%%s_NODE_LIST" %% P])).split(',')
+	nodes = helper.job_node_list(p)
 
 	nodeno = {}
 	for i, n in enumerate(nodes):
 		nodeno[n] = i
 
 	try:
-		lines = [x for x in map(lambda z: z.strip(), out.split("\\n")) if len(x) > 0]
-		Assert(len(lines) == %d, p)
-
 		result = [None] * len(lines)
 		for line in lines:
 			rank, host, mask = line.split()
@@ -225,15 +189,15 @@ for p in [x.strip() for x in os.environ["PSTEST_PARTITIONS"].split()]:
 
 	for i, x in enumerate(v[3]):
 		evl += """
-		Assert(%d == result[%d][0], p)
-		Assert(%d == result[%d][1], p)
+		test.check(%d == result[%d][0], p)
+		test.check(%d == result[%d][1], p)
 """ % (x[0], i, x[1], i)
 
 	evl += """
 	except Exception as e:
-		Assert(1 == 0, p + ": " + str(e))
+		test.check(1 == 0, p + ": " + str(e))
 
-sys.exit(RETVAL)
+test.quit()
 """
 
 	open("%s/eval.py" % k, "w").write(evl)
