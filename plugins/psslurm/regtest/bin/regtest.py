@@ -796,6 +796,16 @@ def get_test_list(argv, opts):
 					done = 0
 					break
 
+	if "" != opts.mregexp:
+		done = 0
+		while not done:
+			done = 1
+			for i in range(len(tests)):
+				if not re.match(r'%s' % opts.mregexp, tests[i]):
+					del tests[i]
+					done = 0
+					break
+
 	return tests
 
 #
@@ -823,6 +833,9 @@ def main(argv):
 	parser.add_option("-x", "--excludes", action = "store", type = "string", \
 	                  dest = "excludes", default = "", \
 	                  help = "Comma-separated list of excluded tests that should not be executed.")
+	parser.add_option("-m", "--match", action = "store", type = "string", \
+	                  dest = "mregexp", default = "", \
+	                  help = "Regular expression. Only matching tests should be executed.")
 	parser.add_option("-i", "--ignorep", action = "store", type = "string", \
 	                  dest = "ignorep", default = "", \
 	                  help = "Comma-separated list of partitions that should be ignored.")
