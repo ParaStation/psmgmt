@@ -2,39 +2,23 @@
 
 import sys
 import os
-import traceback
 import re
-import pprint
 
-RETVAL = 0
+sys.path.append("/".join(os.path.abspath(os.path.dirname(sys.argv[0])).split('/')[0:-2] + ["lib"]))
+from testsuite import *
 
-def Assert(x, msg = None):
-	global RETVAL
+helper.pretty_print_env()
 
-	if not x:
-		if msg:
-			sys.stderr.write("Test failure ('%s'):\n" % msg)
-		else:
-			sys.stderr.write("Test failure:\n")
-		map(lambda x: sys.stderr.write("\t" + x.strip() + "\n"), traceback.format_stack())
-		RETVAL = 1
+for p in helper.partitions():
+	helper.check_job_completed_ok(p)
 
-for p in [x.strip() for x in os.environ["PSTEST_PARTITIONS"].split()]:
-	P = p.upper()
+	lines = [x for x in helper.job_stdout_lines(p) if x != "Submitted batch job %s" % helper.job_id(p) and not re.match(r'.*error.*', x)]
 
-	Assert("0:0" == os.environ["PSTEST_SCONTROL_%s_EXIT_CODE" % P], p)
-	Assert("COMPLETED" == os.environ["PSTEST_SCONTROL_%s_JOB_STATE" % P], p)
-
-	try:
-		out = open(os.environ["PSTEST_SCONTROL_%s_STD_OUT" % P]).read()
-	except Exception as e:
-		Assert(1 == 0, p + ": " + str(e))
-
-	lines = [x for x in map(lambda z: z.strip(), out.split("\n")) if len(x) > 0 and not re.match(r'.*error.*', x)]
-	Assert(1 == len(lines), p)
+	test.check(1 == len(lines), p)
 
 	time = int(lines[0])
-	Assert(time < 120, p + ": time = %d" % time)
+	test.check(time < 120, p + ": time = %d" % time)
 
-sys.exit(RETVAL)
+
+test.quit()
 
