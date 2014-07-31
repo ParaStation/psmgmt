@@ -8,11 +8,20 @@ _RETVAL = 0
 #
 # Mark test as failed.
 def fail():
+	global _RETVAL
+
 	_RETVAL = 1
 
 #
 # End of each test
 def quit():
+	global _RETVAL
+
+	if 0 == _RETVAL:
+		sys.stdout.write(" sys.exit(0)")
+	else:
+		sys.stdout.write(" sys.exit(%d)" % _RETVAL)
+
 	sys.exit(_RETVAL)
 
 #
