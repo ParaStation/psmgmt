@@ -23,12 +23,17 @@ def save_env_access(part, key):
 	return tmp
 
 #
-# Get the job exit code for the specified partition
+# Get the job exit code for the specified partition.
 def job_exit_code(part):
 	return save_env_access(part, "PSTEST_SCONTROL_%s_EXIT_CODE")
 
 #
-# Get the job state for the specified partition
+# Get the exit code of the frontend process.
+def fproc_exit_code(part)
+	return save_env_access(part, "PSTEST_FPROC_%s_EXIT_CODE")
+
+#
+# Get the job state for the specified partition.
 def job_state(part):
 	return save_env_access(part, "PSTEST_SCONTROL_%s_JOB_STATE")
 
