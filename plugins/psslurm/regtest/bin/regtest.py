@@ -361,21 +361,23 @@ def exec_test_batch(test, idx):
 
 		stats["scontrol"][0] = tmp
 
-	if len(stdout) > 0:
+	if stats["scontrol"] and "StdOut" in stats["scontrol"][0].keys():
 		tmp = stats["scontrol"][0]
 
 		if not os.path.isfile(tmp["StdOut"]):
 			open(tmp["StdOut"], "w").write(stdout)
 		else:
-			open(tmp["StdOut"], "a").write(stdout)
+			if len(stdout) > 0:
+				open(tmp["StdOut"], "a").write(stdout)
 
-	if len(stderr) > 0:
+	if stats["scontrol"] and "StdErr" in stats["scontrol"][0].keys():
 		tmp = stats["scontrol"][0]
 
 		if not os.path.isfile(tmp["StdErr"]):
 			open(tmp["StdErr"], "w").write(stderr)
 		else:
-			open(tmp["StdErr"], "a").write(stderr)
+			if len(stderr) > 0:
+				open(tmp["StdErr"], "a").write(stderr)
 
 	# Return the latest captured stats
 	return stats
