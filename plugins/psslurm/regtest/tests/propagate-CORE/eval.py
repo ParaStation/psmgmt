@@ -2,47 +2,27 @@
 
 import sys
 import os
-import traceback
 import re
-import pprint
 
-RETVAL = 0
+sys.path.append("/".join(os.path.abspath(os.path.dirname(sys.argv[0])).split('/')[0:-2] + ["lib"]))
+from testsuite import *
 
-def Assert(x, msg = None):
-	global RETVAL
+helper.pretty_print_env()
 
-	if not x:
-		if msg:
-			sys.stderr.write("Test failure ('%s'):\n" % msg)
-		else:
-			sys.stderr.write("Test failure:\n")
-		map(lambda x: sys.stderr.write("\t" + x.strip() + "\n"), traceback.format_stack())
-		RETVAL = 1
+for p in helper.partitions():
+	helper.check_job_completed_ok(p)
 
-for p in [x.strip() for x in os.environ["PSTEST_PARTITIONS"].split()]:
-	P = p.upper()
+	lines = [x for x in helper.job_stdout_lines(p) if x != "Submitted batch job %s" % helper.job_id(p)]
+	err   = helper.job_stderr(p)
 
-	Assert("0:0" == os.environ["PSTEST_SCONTROL_%s_EXIT_CODE" % P], p)
-	Assert("COMPLETED" == os.environ["PSTEST_SCONTROL_%s_JOB_STATE" % P], p)
+	test.check(6 == len(lines), p)
 
-	try:
-		out = open(os.environ["PSTEST_SCONTROL_%s_STD_OUT" % P]).read()
-		err = open(os.environ["PSTEST_SCONTROL_%s_STD_ERR" % P]).read()
-	except Exception as e:
-		Assert(1 == 0, p + ": " + str(e))
+	test.check(lines[0] == lines[1], p)
+	test.check(lines[0] == lines[2], p)
+	
+	if not re.match(r'.*cannot modify limit.*', err):
+		test.check(lines[3] != lines[0], p)
+		test.check(lines[3] == lines[4], p)
+		test.check(lines[3] == lines[5], p)
 
-	try:
-		lines = [x for x in map(lambda z: z.strip(), out.split("\n")) if len(x) > 0]
-		Assert(6 == len(lines), p)
-
-		Assert(lines[0] == lines[1], p)
-		Assert(lines[0] == lines[2], p)
-		
-		if not re.match(r'.*cannot modify limit.*', err):
-			Assert(lines[3] != lines[0], p)
-			Assert(lines[3] == lines[4], p)
-			Assert(lines[3] == lines[5], p)
-	except Exception as e:
-		Assert(1 == 0, p + ": " + str(e))
-
-sys.exit(RETVAL)
+test.quit()
