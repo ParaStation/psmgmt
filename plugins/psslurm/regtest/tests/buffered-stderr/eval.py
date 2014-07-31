@@ -2,36 +2,14 @@
 
 import sys
 import os
-import traceback
-import re
-import pprint
 
-RETVAL = 0
+sys.path.append("/".join(os.path.abspath(os.path.dirname(sys.argv[0])).split('/')[0:-2] + ["lib"]))
+from testsuite import *
 
-def Assert(x, msg = None):
-	global RETVAL
+helper.pretty_print_env()
 
-	if not x:
-		if msg:
-			sys.stderr.write("Test failure ('%s'):\n" % msg)
-		else:
-			sys.stderr.write("Test failure:\n")
-		map(lambda x: sys.stderr.write("\t" + x.strip() + "\n"), traceback.format_stack())
-		RETVAL = 1
-
-pprint.pprint(os.environ, indent = 1)
-
-env = {}
-
-for p in [x.strip() for x in os.environ["PSTEST_PARTITIONS"].split()]:
-	P = p.upper()
-
-	try:
-		err = open(os.environ["PSTEST_FPROC_%s_STD_ERR" % P]).read()
-	except Exception as e:
-		Assert(1 == 0, p + ": " + str(e))
-
-	lines = [x for x in map(lambda x: x.strip(), err.split("\n")) if len(x) > 0]
+for p in helper.partitions():
+	lines = helper.fproc_stderr_lines(p)
 
 	# Find the beginning of "Hello"
 	i = [x for x in range(len(lines)) if lines[x].split(':')[1].strip() == 'H'][0]
@@ -39,8 +17,8 @@ for p in [x.strip() for x in os.environ["PSTEST_PARTITIONS"].split()]:
 	x = float(lines[ i].split(':')[0])
 	y = float(lines[-1].split(':')[0])
 
-	Assert(y - x < 0.5, p)
+	test.check(y - x < 0.5, p)
 
 
-sys.exit(RETVAL)
+test.quit()
 
