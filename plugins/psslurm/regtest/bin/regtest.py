@@ -366,12 +366,12 @@ def exec_test_batch(test, idx):
 
 		if not os.path.isfile(tmp["StdOut"]):
 			open(tmp["StdOut"], "w").write(stdout)
-#		else:
-#			open(tmp["StdOut"], "a").write(stdout)
+		else:
+			open(tmp["StdOut"], "a").write(stdout)
 		if not os.path.isfile(tmp["StdErr"]):
 			open(tmp["StdErr"], "w").write(stderr)
-#		else:
-#			open(tmp["StdErr"], "a").write(stderr)
+		else:
+			open(tmp["StdErr"], "a").write(stderr)
 
 	# Return the latest captured stats
 	return stats
