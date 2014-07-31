@@ -294,8 +294,15 @@ def exec_test_batch(test, idx):
 			if tmp and len(tmp) > 0:
 				stats["scontrol"] = tmp
 
-				if not job_is_done(tmp):
-					done = 0
+		# We are not allowed to terminate until we can be sure that the
+		# job is done.
+		# This might result in an infinite loop if something weird is going
+		# on and we are not able to retrieve the scontrol output
+		if state[0] in [ALIVE, DEAD] and not stats["scontrol"]:
+			done = 0
+
+		if stats["scontrol"] and not job_is_done(stats["scontrol"]):
+			done = 0
 
 		if (UNBORN == state[1]) and ((0 == state[0]) or jobid):
 			# Use partition instead of jobid here since jobid may be None!
@@ -329,6 +336,11 @@ def exec_test_batch(test, idx):
 		#      the sum is positive. In this way we guarantee that
 		#      loop time is a multiple of the requested period
 		time.sleep(delay)
+
+
+	if 0 != state[0]:
+		assert(stats["scontrol"])
+		assert(job_is_done(stats["scontrol"]))
 
 	# Fixup some srun problems.
 	if stats["scontrol"] and 1 == len(stats["scontrol"]):
@@ -459,8 +471,15 @@ def exec_test_interactive(test, idx):
 			if tmp and len(tmp) > 0:
 				stats["scontrol"] = tmp
 
-				if not job_is_done(tmp):
-					done = 0
+		# We are not allowed to terminate until we can be sure that the
+		# job is done.
+		# This might result in an infinite loop if something weird is going
+		# on and we are not able to retrieve the scontrol output
+		if state[0] in [ALIVE, DEAD] and not stats["scontrol"]:
+			done = 0
+
+		if stats["scontrol"] and not job_is_done(stats["scontrol"]):
+			done = 0
 
 		if (UNBORN == state[1]) and ((0 == state[0]) or jobid):
 			p = spawn_frontend_process(test, part, reserv, \
@@ -492,6 +511,11 @@ def exec_test_interactive(test, idx):
 		#      the sum is positive. In this way we guarantee that
 		#      loop time is a multiple of the requested period
 		time.sleep(delay)
+
+
+	if 0 != state[0]:
+		assert(stats["scontrol"])
+		assert(job_is_done(stats["scontrol"]))
 
 	stats["scontrol"][0]["StdOut"] = test["outdir"] + "/slurm-%s.out" % jobid
 	open(stats["scontrol"][0]["StdOut"], "w").write(stdout)
