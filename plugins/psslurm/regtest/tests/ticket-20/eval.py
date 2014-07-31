@@ -12,7 +12,8 @@ helper.pretty_print_env()
 for p in helper.partitions():
 	helper.check_job_completed_ok(p)
 
-	lines = [x for x in helper.job_stdout_lines(p) if x != "Submitted batch job %s" % helper.job_id(p) and not re.match(r'.*error.*', x)]
+	lines = [x for x in helper.job_stdout_lines(p) if x != "Submitted batch job %s" % helper.job_id(p) and \
+	                                                  not re.match(r'.*error.*', x)]
 
 	test.check(1 == len(lines), p)
 
