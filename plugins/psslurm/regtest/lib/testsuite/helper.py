@@ -1,6 +1,7 @@
 
 import os
 import re
+import subprocess
 
 import testsuite.test as test
 
@@ -93,7 +94,7 @@ def job_output_lines(part, key):
 	return tmp
 
 #
-# Get the standard output of the job
+# Get the standard output of the job.
 def job_stdout(part):
 	return job_output(part, "PSTEST_SCONTROL_%s_STD_OUT")
 
@@ -103,7 +104,17 @@ def job_stdout_lines(part):
 	return job_output_lines(part, "PSTEST_SCONTROL_%s_STD_OUT")
 
 #
-# Get the standard error of the job
+# Get the standard output of the frontend process.
+def fproc_stdout(part):
+	return job_output(part, "PSTEST_FPROC_%s_STD_OUT")
+
+#
+# Get the standard output of the frontend process splitted into lines.
+def fproc_stdout_lines(part):
+	return job_output_lines(part, "PSTEST_FPROC_%s_STD_OUT")
+
+#
+# Get the standard error of the job.
 def job_stderr(part):
 	return job_output(part, "PSTEST_SCONTROL_%s_STD_ERR")
 
@@ -113,8 +124,64 @@ def job_stderr_lines(part):
 	return job_output_lines(part, "PSTEST_SCONTROL_%s_STD_ERR")
 
 #
+# Get the standard error of the frontend process.
+def fproc_stderr(part):
+	return job_output(part, "PSTEST_FPROC_%s_STD_ERR")
+
+#
+# Get the standard error of the frontend process splitted into lines.
+def fproc_stderr_lines(part):
+	return job_output_lines(part, "PSTEST_FPROC_%s_STD_ERR")
+
+#
+# Pretty print a dictionary
+def pretty_print_dict(d):
+	print("{\n " + ",\n ".join(["'%s': '%s'" % (str(k), str(v)) for k, v in d.iteritems()]) + "\n}")
+
+
+#
 # Print the environment to stdout 
 def pretty_print_env():
-	print("{\n " + ",\n ".join(["'%s': '%s'" % (str(k), str(v)) for k, v in os.environ.iteritems()]) + "\n}")
+	pretty_print_dict(os.environ)
 
+#
+# Get the sacct record of the job. The function returns an array of dictionaries
+def job_sacct_record(part):
+	N = 60
+	def split60(line):
+		tmp = []
+
+		n = N + 1
+		while '' != line:
+			tmp.append(line[0:n].strip())
+			line = line[n:]
+
+		return tmp
+
+	try:
+		cmd = ["sacct", "-o", "ALL%%-%d" % N, "-j", os.environ["PSTEST_SCONTROL_%s_JOB_ID" % part.upper()]]
+
+		q = subprocess.Popen(cmd, \
+		                     stdout = subprocess.PIPE, \
+		                     stderr = subprocess.PIPE)
+
+		x, _ = q.communicate()
+		q.wait()
+
+		lines = x.split('\n')   # Important: Do not strip here
+		keys  = split60(lines[0])
+
+		sacct = []
+		for line in [x for x in lines[2:] if len(x.strip()) > 0]:
+			d = {}
+			for i, v in enumerate(split60(line)):
+				d[keys[i]] = v
+
+			sacct.append(d)
+
+		return sacct
+	except Exception as e:
+		test.check(1 == 0, part + ": " + str(e))
+
+	return None
 
