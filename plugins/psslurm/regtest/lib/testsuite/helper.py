@@ -71,20 +71,41 @@ def check_job_completed_ok(part):
  	test.check("0:0"       == job_exit_code(part), part)
 
 #
-# Retrieve the stdout/stderr of a job as an array of stripped lines.
-def job_output_lines(part, key):
+# Retrieve the stdout/stderr of a job
+def job_output(part, key):
 	try:
 		tmp = open(os.environ[key % part.upper()]).read()
 	except Exception as e:
 		test.check(1 == 0, part + ": " + str(e))
+		return None
+
+	return tmp
+
+#
+# Retrieve the stdout/stderr of a job as an array of stripped lines.
+def job_output_lines(part, key):
+	try:
+		tmp = [x for x in map(lambda z: z.strip(), job_output(part, key).split("\n")) if len(x) > 0]
+	except Exception as e:
+		test.check(1 == 0, part + ": " + str(e))
 		return []
 
-	return [x for x in map(lambda z: z.strip(), tmp.split("\n")) if len(x) > 0]
+	return tmp
+
+#
+# Get the standard output of the job
+def job_stdout(part):
+	return job_output(part, "PSTEST_SCONTROL_%s_STD_OUT")
 
 #
 # Get the standard output of the job splitted into lines.
 def job_stdout_lines(part):
 	return job_output_lines(part, "PSTEST_SCONTROL_%s_STD_OUT")
+
+#
+# Get the standard error of the job
+def job_stderr(part):
+	return job_output(part, "PSTEST_SCONTROL_%s_STD_ERR")
 
 #
 # Get the standard error of the job splitted into lines.
