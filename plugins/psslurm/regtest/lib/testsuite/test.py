@@ -3,17 +3,17 @@ import traceback
 import sys
 
 
-RETVAL = 0
+_RETVAL = 0
 
 #
 # Mark test as failed.
 def fail():
-	RETVAL = 1
+	_RETVAL = 1
 
 #
 # End of each test
 def quit():
-	sys.exit(RETVAL)
+	sys.exit(_RETVAL)
 
 #
 # Report the outcome of a check to stdout or stderr (depending on the
