@@ -29,7 +29,7 @@ def job_exit_code(part):
 
 #
 # Get the exit code of the frontend process.
-def fproc_exit_code(part)
+def fproc_exit_code(part):
 	return save_env_access(part, "PSTEST_FPROC_%s_EXIT_CODE")
 
 #
