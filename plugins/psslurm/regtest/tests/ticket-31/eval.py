@@ -2,7 +2,6 @@
 
 import sys
 import os
-import re
 
 sys.path.append("/".join(os.path.abspath(os.path.dirname(sys.argv[0])).split('/')[0:-2] + ["lib"]))
 from testsuite import *
