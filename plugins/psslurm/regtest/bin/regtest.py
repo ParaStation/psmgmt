@@ -812,7 +812,7 @@ def get_test_list(argv, opts):
 # Create a unique key for the test based on name, number and date
 def test_key(test, testnum):
 	tmp = hashlib.md5()
-	tmp.update(test + "-%08d-%d" % (testnum, time.time()))
+	tmp.update(test + "-%0d-%08d-%d" % (os.getpid(), testnum, time.time()))
 	return tmp.hexdigest()
 
 def main(argv):
