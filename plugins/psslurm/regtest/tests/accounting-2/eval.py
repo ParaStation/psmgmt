@@ -2,96 +2,54 @@
 
 import sys
 import os
-import traceback
 import re
-import pprint
-import subprocess
 
-RETVAL = 0
+sys.path.append("/".join(os.path.abspath(os.path.dirname(sys.argv[0])).split('/')[0:-2] + ["lib"]))
+from testsuite import *
 
-def Assert(x, msg = None):
-	global RETVAL
+helper.pretty_print_env()
 
-	if not x:
-		if msg:
-			sys.stderr.write("Test failure ('%s'):\n" % msg)
-		else:
-			sys.stderr.write("Test failure:\n")
-		map(lambda x: sys.stderr.write("\t" + x.strip() + "\n"), traceback.format_stack())
-		RETVAL = 1
+for p in helper.partitions():
+	test.check("TIMEOUT" == helper.job_state(p), p)
+	test.check("0:1"     == helper.job_exit_code(p), p)
 
+	sacct = helper.job_sacct_record(p)
+	test.check(3 == len(sacct), p)
 
-N = 60
-def split60(line):
-	tmp = []
-
-	n = N + 1
-	while '' != line:
-		tmp.append(line[0:n].strip())
-		line = line[n:]	
-
-	return tmp
-
-for p in [x.strip() for x in os.environ["PSTEST_PARTITIONS"].split()]:
-	P = p.upper()
-
-	Assert("0:1" == os.environ["PSTEST_SCONTROL_%s_EXIT_CODE" % P], p)
-	Assert("TIMEOUT" == os.environ["PSTEST_SCONTROL_%s_JOB_STATE" % P], p)
-
-	q = subprocess.Popen(["sacct", "-o", "ALL%%-%d" % N, "-j", os.environ["PSTEST_SCONTROL_%s_JOB_ID" % P]], \
-	                     stdout = subprocess.PIPE,
-	                     stderr = subprocess.PIPE)
-	
-	x, _ = q.communicate()
-	q.wait()
-	
-	lines = x.split('\n')	# Important: Do not strip here
-	keys  = split60(lines[0])
-
-	print(len([x for x in map(lambda z: z.strip(), lines) if len(x) > 0]))
-	Assert(5 == len([x for x in map(lambda z: z.strip(), lines) if len(x) > 0]), p)
-
-	line = lines[2]
-	d = {}
-	for i, v in enumerate(split60(line)):
-		d[keys[i]] = v
+	d = sacct[0]
 	
 	print("%s:" % p)
-	pprint.pprint(d, indent = 1)
+	helper.pretty_print_dict(d)
 
-	Assert("" == d["MaxPagesNode"], p)
-	Assert("" == d["MaxPagesTask"], p)
-	Assert("" == d["MaxRSSNode"], p)
-	Assert("" == d["MaxRSSTask"], p)
-	Assert("" == d["MaxVMSizeNode"], p)
-	Assert("" == d["MaxVMSizeTask"], p)
-	Assert("" == d["MinCPUNode"], p)
-	Assert("" == d["MinCPUTask"], p)
-	Assert("" == d["MaxVMSize"], p)
-	Assert("00:00:00" != d["TotalCPU"], p)
-	Assert("00:00:00" != d["UserCPU"], p)
-	Assert("00:00:00" != d["SystemCPU"], p)
+	test.check("" == d["MaxPagesNode"], p)
+	test.check("" == d["MaxPagesTask"], p)
+	test.check("" == d["MaxRSSNode"], p)
+	test.check("" == d["MaxRSSTask"], p)
+	test.check("" == d["MaxVMSizeNode"], p)
+	test.check("" == d["MaxVMSizeTask"], p)
+	test.check("" == d["MinCPUNode"], p)
+	test.check("" == d["MinCPUTask"], p)
+	test.check("" == d["MaxVMSize"], p)
+	test.check("00:00:00" != d["TotalCPU"], p)
+	test.check("00:00:00" != d["UserCPU"], p)
+	test.check("00:00:00" != d["SystemCPU"], p)
 
-	for line in lines[3:5]:	
-		d = {}
-		for i, v in enumerate(split60(line)):
-			d[keys[i]] = v
-		
+	for d in sacct[1:]:
 		print("%s:" % p)
-		pprint.pprint(d, indent = 1)
+		helper.pretty_print_dict(d)
 
-		Assert(len(d["MaxPagesNode"]) > 0, p)
-		Assert(0 == int(d["MaxPagesTask"]), p)
-		Assert(len(d["MaxRSSNode"]) > 0, p)
-		Assert(0 == int(d["MaxRSSTask"]), p)
-		Assert(len(d["MaxVMSizeNode"]) > 0, p)
-		Assert(0 == int(d["MaxVMSizeTask"]), p)
-		Assert(len(d["MinCPUNode"]) > 0, p)
-		Assert(0 == int(d["MinCPUTask"]), p)
-		Assert(not re.match(r'.*G', d["MaxVMSize"]), p)
-		Assert("00:00:00" != d["TotalCPU"], p)
-		Assert("00:00:00" != d["UserCPU"], p)
-		Assert("00:00:00" != d["SystemCPU"], p)
+		test.check(len(d["MaxPagesNode"]) > 0, p)
+		test.check(0 == int(d["MaxPagesTask"]), p)
+		test.check(len(d["MaxRSSNode"]) > 0, p)
+		test.check(0 == int(d["MaxRSSTask"]), p)
+		test.check(len(d["MaxVMSizeNode"]) > 0, p)
+		test.check(0 == int(d["MaxVMSizeTask"]), p)
+		test.check(len(d["MinCPUNode"]) > 0, p)
+		test.check(0 == int(d["MinCPUTask"]), p)
+		test.check(not re.match(r'.*G', d["MaxVMSize"]), p)
+		test.check("00:00:00" != d["TotalCPU"], p)
+		test.check("00:00:00" != d["UserCPU"], p)
+		test.check("00:00:00" != d["SystemCPU"], p)
 
-sys.exit(RETVAL)
+test.quit()
 
