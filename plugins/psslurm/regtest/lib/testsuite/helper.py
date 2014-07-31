@@ -56,7 +56,7 @@ def job_node_list(part):
 
 	nodelist = save_env_access(part, "PSTEST_SCONTROL_%s_NODE_LIST")
 
-	if not re.match(r'[a-zA-Z][a-zA-Z0-9]*[a-zA-Z][0-9]+.*', nodelist):
+	if not re.match(r'[a-zA-Z][a-zA-Z0-9]*[a-zA-Z][\[0-9]+.*', nodelist):
 		test.check(1 == 0, part + ": Cannot handle node naming scheme")
 		return []
 
