@@ -2,50 +2,32 @@
 
 import sys
 import os
-import traceback
-import re
-import pprint
 
-RETVAL = 0
+sys.path.append("/".join(os.path.abspath(os.path.dirname(sys.argv[0])).split('/')[0:-2] + ["lib"]))
+from testsuite import *
 
-def Assert(x, msg = None):
-	global RETVAL
+helper.pretty_print_env()
 
-	if not x:
-		if msg:
-			sys.stderr.write("Test failure ('%s'):\n" % msg)
-		else:
-			sys.stderr.write("Test failure:\n")
-		map(lambda x: sys.stderr.write("\t" + x.strip() + "\n"), traceback.format_stack())
-		RETVAL = 1
+for p in helper.partitions():
+        helper.check_job_completed_ok(p)
 
-pprint.pprint(os.environ, indent = 1)
-
-for p in [x.strip() for x in os.environ["PSTEST_PARTITIONS"].split()]:
-	P = p.upper()
-
-	Assert("0:0" == os.environ["PSTEST_SCONTROL_%s_EXIT_CODE" % P], p)
-	Assert("COMPLETED" == os.environ["PSTEST_SCONTROL_%s_JOB_STATE" % P], p)
-
-	try:
-		out = open(os.environ["PSTEST_SCONTROL_%s_STD_OUT" % P]).read()
-	except Exception as e:
-		Assert(1 == 0, p + ": " + str(e))
+	lines = helper.job_stdout_lines(p)
 
 	env = {}
 
-	for line in out.split("\n"):
+	for line in lines:
 		x = line.split("=")
 		z = x[0].strip()
 		if len(z) > 0:
 			env[z] = "=".join(x[1:])
 
 	print("%s:" % p)
-	pprint.pprint(env, indent = 1)
+	helper.pretty_print_dict(env)
 
-	Assert("1" == env["SLURM_NNODES"], p)
-	Assert("5" == env["SLURM_NTASKS"], p)
-	Assert(not "SLURM_NPROCS" in env.keys(), p)
+	test.check("1" == env["SLURM_NNODES"], p)
+	test.check("5" == env["SLURM_NTASKS"], p)
+	test.check(not "SLURM_NPROCS" in env.keys(), p)
 
-sys.exit(RETVAL)
+
+test.quit()
 
