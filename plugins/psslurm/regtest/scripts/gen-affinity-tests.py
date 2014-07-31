@@ -147,40 +147,19 @@ srun -n %d %s %soutput-${JOB_NAME}/prog.exe
 
 import sys
 import os
-import traceback
-import re
-import pprint
 
-RETVAL = 0
+sys.path.append("/".join(os.path.abspath(os.path.dirname(sys.argv[0])).split('/')[0:-2] + ["lib"]))
+from testsuite import *
 
-def Assert(x, msg = None):
-	global RETVAL
+helper.pretty_print_env()
 
-	if not x:
-		if msg:
-			sys.stderr.write("Test failure ('%%s'):\\n" %% msg)
-		else:
-			sys.stderr.write("Test failure:\\n")
-		map(lambda x: sys.stderr.write("\\t" + x.strip() + "\\n"), traceback.format_stack())
-		RETVAL = 1
+for p in helper.partitions():
+	helper.check_job_completed_ok(p)
 
-pprint.pprint(os.environ, indent = 1)
-
-for p in [x.strip() for x in os.environ["PSTEST_PARTITIONS"].split()]:
-	P = p.upper()
-
-	Assert("0:0" == os.environ["PSTEST_SCONTROL_%%s_EXIT_CODE" %% P], p)
-	Assert("COMPLETED" == os.environ["PSTEST_SCONTROL_%%s_JOB_STATE" %% P], p)
+	lines = helper.job_stdout_lines(p)
+	test.check(len(lines) == %d, p)
 
 	try:
-		out = open(os.environ["PSTEST_SCONTROL_%%s_STD_OUT" %% P]).read()
-	except Exception as e:
-		Assert(1 == 0, p + ": " + str(e))
-
-	try:
-		lines = [x for x in map(lambda z: z.strip(), out.split("\\n")) if len(x) > 0]
-		Assert(len(lines) == %d, p)
-
 		count = 0
 		for line in lines:
 			tmp = line.split()
@@ -188,15 +167,15 @@ for p in [x.strip() for x in os.environ["PSTEST_PARTITIONS"].split()]:
 
 	for i, x in enumerate(v[2]):
 		evl += """			if %d == int(tmp[0]):
-				Assert(%d == int(tmp[1], base = 16), p)
+				test.check(%d == int(tmp[1], base = 16), p)
 				count += 1
 """ % (i, x)
 
-	evl += """		Assert(len(lines) == count, p)
+	evl += """		test.check(len(lines) == count, p)
 	except Exception as e:
-		Assert(1 == 0, p + ": " + str(e))
+		test.check(1 == 0, p + ": " + str(e))
 
-sys.exit(RETVAL)
+test.quit()
 """
 
 	open("%s/eval.py" % k, "w").write(evl)
