@@ -33,6 +33,11 @@ def fproc_exit_code(part):
 	return save_env_access(part, "PSTEST_FPROC_%s_EXIT_CODE")
 
 #
+# Get the exit code of the submission process.
+def submit_exit_code(part):
+	return save_env_access(part, "PSTEST_SUBMIT_%s_EXIT_CODE")
+
+#
 # Get the job state for the specified partition.
 def job_state(part):
 	return save_env_access(part, "PSTEST_SCONTROL_%s_JOB_STATE")
