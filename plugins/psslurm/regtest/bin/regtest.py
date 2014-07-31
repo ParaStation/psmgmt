@@ -845,6 +845,9 @@ def main(argv):
 
 	(opts, args) = parser.parse_args()
 
+	if len(args) > 0:
+		parser.error("Invalid argument given.")
+
 	if not os.path.isdir(opts.testsdir):
 		parser.error("Invalid tests directory '%s'." % opts.testsdir)
 
