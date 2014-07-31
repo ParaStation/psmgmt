@@ -368,6 +368,10 @@ def exec_test_batch(test, idx):
 			open(tmp["StdOut"], "w").write(stdout)
 		else:
 			open(tmp["StdOut"], "a").write(stdout)
+
+	if len(stderr) > 0:
+		tmp = stats["scontrol"][0]
+
 		if not os.path.isfile(tmp["StdErr"]):
 			open(tmp["StdErr"], "w").write(stderr)
 		else:
