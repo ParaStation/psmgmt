@@ -16,6 +16,7 @@ import termios
 import hashlib
 import datetime
 import copy
+import signal
 
 
 _LOGFILE = None
@@ -263,6 +264,18 @@ def spawn_frontend_process(test, part, reserv, jobid, fo, fe):
 
 	cmd = test["fproc"]
 	cmd = [test["root"] + "/" + cmd[0]] + cmd[1:]
+
+	if subprocess.PIPE == fo:
+		foname = "a pipe"
+	else:
+		foname = "'%s'" % fo.name
+	if subprocess.PIPE == fe:
+		fename = "a pipe"
+	else:
+		fename = "'%s'" % fe.name
+
+	log("%s: frontend process cmd = [%s]. stdout goes to %s. stderr goes to %s\n" % \
+	         (test["logkey"], ", ".join(cmd), foname, fename))
 
 	return subprocess.Popen(cmd, \
 	                        stdout = fo, \
@@ -520,6 +533,8 @@ def exec_test_interactive(test, idx):
 				tmp += ["--reservation", reserv]
 			cmd = tmp + cmd[1:]
 
+			log("%s: submit process cmd = [%s]\n" % (test["logkey"], ", ".join(cmd)))
+
 			q = subprocess.Popen(cmd, \
 			                     stdin  = slave, \
 			                     stdout = slave, \
@@ -543,6 +558,12 @@ def exec_test_interactive(test, idx):
 				stats["submit"] = { "ExitCode": ret}
 
 				log("%s: submit process terminated with ExitCode = %d\n" % (test["logkey"], ret))
+
+				if ALIVE == state[1]:
+					p.send_signal(signal.SIGUSR1)
+					log("%s: sent SIGUSR1 to frontend process\n" % test["logkey"])
+				else:
+					log("%s: BUG: frontend process should have been alive but state[1] = %d\n" % (test["logkey"], state[1]))
 
 				state[0] = DEAD
 			else:
@@ -575,8 +596,10 @@ def exec_test_interactive(test, idx):
 			done = 0
 
 		if (UNBORN == state[1]) and ((0 == state[0]) or jobid):
+			fe = open(test["outdir"] + "/fproc-%s.err" % part, "w")
+
 			p = spawn_frontend_process(test, part, reserv, \
-			                           jobid, subprocess.PIPE, subprocess.PIPE)
+			                           jobid, subprocess.PIPE, fe)
 
 			log("%s: frontend process is alive with pid %d\n" % (test["logkey"], p.pid))
 
