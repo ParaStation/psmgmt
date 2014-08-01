@@ -14,6 +14,37 @@ import optparse
 import select
 import termios
 import hashlib
+import datetime
+
+
+_LOGFILE = None
+
+#
+# Open the logfile
+def start_logging(logf):
+	global _LOGFILE
+	_LOGFILE = open(logf, "w")
+
+#
+# Write a message to the logfile
+def log(msg):
+	global _LOGFILE
+	global BL
+
+	if not _LOGFILE:
+		return
+
+	BL.acquire()
+
+	try:
+		tmp = "\n".join(map(lambda z: datetime.datetime.now().isoformat() + ": " + z, [x for x in msg.split("\n") if len(x.strip()) > 0]))
+		if tmp[-1] != "\n":
+			tmp += "\n"
+
+		_LOGFILE.write(tmp)
+		_LOGFILE.flush()
+	finally:
+		BL.release()
 
 
 #
@@ -89,12 +120,28 @@ def query_scontrol(jobid):
 	return stats
 
 #
+# Report about changes in the scontrol output in the log file.
+def log_scontrol_output_change(logkey, old, new):
+	if not old:
+		log("%s: JobState = [%s]\n" % (logkey, ", ".join([x["JobState"] for x in new])))
+	else:
+		tmp1 = [x["JobState"] for x in old]
+		tmp2 = [x["JobState"] for x in new]
+
+		if tmp1 != tmp2:
+			log("%s: JobState change [%s] -> [%s]\n" % (logkey, ", ".join(tmp1), ", ".join(tmp2)))
+
+#
 # Prepare the submission command. This function can be used for
 # both sbatch and srun.
 # -v: Verbose output is needed by the logic used to figure out the jobid
 # -J: Set the job name to the key such that scripts can figure out the
 #     output directory by themselves.
-def prepare_submit_cmd(part, reserv, cmd, key, odir, flags):
+def prepare_submit_cmd(part, reserv, test, flags):
+	cmd  = test["submit"]
+	key  = test["key"]
+	odir = test["outdir"]
+
 	tmp = [cmd[0], "-v", "-J", key, "-p", part]
 	if len(reserv) > 0:
 		tmp += ["--reservation", reserv]
@@ -107,13 +154,18 @@ def prepare_submit_cmd(part, reserv, cmd, key, odir, flags):
 	   len([x for x in cmd[1:] if "-e" == x]) < 1:
 			tmp += ["-e", odir + "/slurm-%j.err"]
 
-	return tmp + cmd[1:]
+	tmp += cmd[1:]
+
+	log("%s: submit cmd = [%s]\n" % (test["logkey"], ", ".join(tmp)))
+
+	return tmp
 
 
 #
 # Submit a job to partition part and return the jobid using sbatch.
-def submit_via_sbatch(part, reserv, cmd, key, wdir, odir, flags):
-	cmd = prepare_submit_cmd(part, reserv, cmd, key, odir, flags)
+def submit_via_sbatch(part, reserv, test):
+	cmd = prepare_submit_cmd(part, reserv, test, test["flags"])
+	wdir = test["root"]
 
 	return subprocess.Popen(cmd, \
 	                        stdout = subprocess.PIPE, \
@@ -124,8 +176,9 @@ def submit_via_sbatch(part, reserv, cmd, key, wdir, odir, flags):
 
 #
 # Submit a job to partition part and return the jobid using srun.
-def submit_via_srun(part, reserv, cmd, key, wdir, odir, flags):
-	cmd = prepare_submit_cmd(part, reserv, cmd, key, odir, flags)
+def submit_via_srun(part, reserv, test):
+	cmd = prepare_submit_cmd(part, reserv, test, test["flags"])
+	wdir = test["root"]
 
 	p = subprocess.Popen(cmd, \
 	                     stdout = subprocess.PIPE, \
@@ -136,11 +189,12 @@ def submit_via_srun(part, reserv, cmd, key, wdir, odir, flags):
 
 #
 # Submit a job to partition part and return the jobid using salloc.
-def submit_via_salloc(part, reserv, cmd, key, wdir, odir, flags):
+def submit_via_salloc(part, reserv, test):
 	# salloc does not understand these options. Just pretend the flags
 	# dissallow adding them.
-	tmp = flags + ["SUBMIT_NO_O_OPTION", "SUBMIT_NO_E_OPTION"]
-	cmd = prepare_submit_cmd(part, reserv, cmd, key, odir, tmp)
+	cmd = prepare_submit_cmd(part, reserv, test, \
+	                         test["flags"] + ["SUBMIT_NO_O_OPTION", "SUBMIT_NO_E_OPTION"])
+	wdir = test["root"]
 
 	p = subprocess.Popen(cmd, \
 	                     stdout = subprocess.PIPE, \
@@ -155,11 +209,12 @@ def submit_via_salloc(part, reserv, cmd, key, wdir, odir, flags):
 # The current version of the code cannot handle srun since srun blocks.
 # Moreover, when using srun we want to check that Ctrl-C and friends are
 # properly handled.
-def submit(part, reserv, cmd, key, wdir, odir, flags):
+def submit(part, reserv, test):
+	k = test["submit"][0].strip()
+
 	return {"sbatch": submit_via_sbatch, \
 	        "srun"  : submit_via_srun, \
-	        "salloc": submit_via_salloc}[cmd[0].strip()](part, reserv, cmd, key, \
-	                                                     wdir, odir, flags)
+	        "salloc": submit_via_salloc}[k](part, reserv, test)
 
 #
 # Try to get the jobid from stdout/stderr. We are passing the "-v" flag to
@@ -256,9 +311,9 @@ def exec_test_batch(test, idx):
 		done = 1
 
 		if UNBORN == state[0]:
-			q = submit(part, reserv, test["submit"], \
-			           test["key"], test["root"], \
-			           test["outdir"], test["flags"])
+			q = submit(part, reserv, test)
+
+			log("%s: submit process is alive with pid %d\n" % (test["logkey"], q.pid))
 
 			state[0] = ALIVE
 
@@ -281,6 +336,8 @@ def exec_test_batch(test, idx):
 
 				stats["submit"] = { "ExitCode": ret}
 
+				log("%s: submit process terminated with ExitCode = %d\n" % (test["logkey"], ret))
+
 				state[0] = DEAD
 			else:
 				done = 0
@@ -288,11 +345,18 @@ def exec_test_batch(test, idx):
 		if state[0] in [ALIVE, DEAD] and not jobid:
 			jobid = extract_jobid_if_possible(stdout, stderr)
 
+			if jobid:
+				log("%s: job id = %s\n" % (test["logkey"], jobid))
+
 		if jobid:
 			tmp = query_scontrol(jobid)
 
 			if tmp and len(tmp) > 0:
+				log_scontrol_output_change(test["logkey"], stats["scontrol"], tmp)
+
 				stats["scontrol"] = tmp
+			else:
+				log("%s: WARN: query_scontrol returned None or []\n" % test["logkey"])
 
 		# We are not allowed to terminate until we can be sure that the
 		# job is done.
@@ -312,6 +376,8 @@ def exec_test_batch(test, idx):
 			p = spawn_frontend_process(test, part, reserv, \
 			                           jobid, fo, fe)
 
+			log("%s: frontend process is alive with pid %d\n" % (test["logkey"], p.pid))
+
 			state[1] = ALIVE
 
 		if ALIVE == state[1]:
@@ -322,6 +388,8 @@ def exec_test_batch(test, idx):
 				stats["fproc"] = {"StdOut": test["outdir"] + "/fproc-%s.out" % part, \
 				                  "StdErr": test["outdir"] + "/fproc-%s.err" % part, \
 				                  "ExitCode": ret}
+
+				log("%s: frontend process terminated with ExitCode = %d\n" % (test["logkey"], ret))
 
 				state[1] = DEAD
 			else:
@@ -339,8 +407,11 @@ def exec_test_batch(test, idx):
 
 
 	if 0 != state[0]:
-		assert(stats["scontrol"])
-		assert(job_is_done(stats["scontrol"]))
+		if not stats["scontrol"]:
+			log("%s: BUG: state[0] = %d but stats[\"scontrol\"] is None\n" % (test["logkey"], state[0]))
+		if not job_is_done(stats["scontrol"]):
+			log("%s: BUG: Main loop terminated by JobState = [%s]\n" % \
+			         (test["logkey"], ", ".join([x["JobState"] for x in stats["scontrol"]])))
 
 	# Fixup some srun problems.
 	if stats["scontrol"] and 1 == len(stats["scontrol"]):
@@ -366,18 +437,22 @@ def exec_test_batch(test, idx):
 
 		if not os.path.isfile(tmp["StdOut"]):
 			open(tmp["StdOut"], "w").write(stdout)
+			log("%s: stdout written to %s\n" % (test["logkey"], tmp["StdOut"]))
 		else:
 			if len(stdout) > 0:
 				open(tmp["StdOut"], "a").write(stdout)
+				log("%s: stdout appended to %s\n" % (test["logkey"], tmp["StdOut"]))
 
 	if stats["scontrol"] and "StdErr" in stats["scontrol"][0].keys():
 		tmp = stats["scontrol"][0]
 
 		if not os.path.isfile(tmp["StdErr"]):
 			open(tmp["StdErr"], "w").write(stderr)
+			log("%s: stderr written to %s\n" % (test["logkey"], tmp["StdErr"]))
 		else:
 			if len(stderr) > 0:
 				open(tmp["StdErr"], "a").write(stderr)
+				log("%s: stderr appended to %s\n" % (test["logkey"], tmp["StdErr"]))
 
 	# Return the latest captured stats
 	return stats
@@ -450,6 +525,8 @@ def exec_test_interactive(test, idx):
 			                     stderr = slave, \
 			                     cwd = test["root"])
 
+			log("%s: submit process is alive with pid %d\n" % (test["logkey"], q.pid))
+
 			state[0] = ALIVE
 
 		if ALIVE == state[0]:
@@ -464,6 +541,8 @@ def exec_test_interactive(test, idx):
 			if None != ret:
 				stats["submit"] = { "ExitCode": ret}
 
+				log("%s: submit process terminated with ExitCode = %d\n" % (test["logkey"], ret))
+
 				state[0] = DEAD
 			else:
 				done = 0
@@ -471,11 +550,18 @@ def exec_test_interactive(test, idx):
 		if state[0] in [ALIVE, DEAD] and not jobid:
 			jobid = extract_jobid_if_possible(stdout, stdout)
 
+			if jobid:
+				log("%s: job id = %s\n" % (test["logkey"], jobid))
+
 		if jobid:
 			tmp = query_scontrol(jobid)
 
 			if tmp and len(tmp) > 0:
+				log_scontrol_output_change(test["logkey"], stats["scontrol"], tmp)
+
 				stats["scontrol"] = tmp
+			else:
+				log("%s: WARN: query_scontrol returned None or []\n" % test["logkey"])
 
 		# We are not allowed to terminate until we can be sure that the
 		# job is done.
@@ -491,6 +577,8 @@ def exec_test_interactive(test, idx):
 			p = spawn_frontend_process(test, part, reserv, \
 			                           jobid, subprocess.PIPE, subprocess.PIPE)
 
+			log("%s: frontend process is alive with pid %d\n" % (test["logkey"], p.pid))
+
 			state[1] = ALIVE
 
 		if ALIVE == state[1]:
@@ -503,6 +591,8 @@ def exec_test_interactive(test, idx):
 				# Use CamelCase for the keys here to so that we can handle
 				# the scontrol and fproc stats in the same fasion.
 				stats["fproc"] = {"ExitCode": ret}
+
+				log("%s: frontend process terminated with ExitCode = %d\n" % (test["logkey"], ret))
 
 				state[1] = DEAD
 			else:
@@ -520,11 +610,16 @@ def exec_test_interactive(test, idx):
 
 
 	if 0 != state[0]:
-		assert(stats["scontrol"])
-		assert(job_is_done(stats["scontrol"]))
+		if not stats["scontrol"]:
+			log("%s: BUG: state[0] = %d but stats[\"scontrol\"] is None\n" % (test["logkey"], state[0]))
+		if not job_is_done(stats["scontrol"]):
+			log("%s: BUG: Main loop terminated by JobState = [%s]\n" % \
+			         (test["logkey"], ", ".join([x["JobState"] for x in stats["scontrol"]])))
 
 	stats["scontrol"][0]["StdOut"] = test["outdir"] + "/slurm-%s.out" % jobid
 	open(stats["scontrol"][0]["StdOut"], "w").write(stdout)
+
+	log("%s: stdout written to %s\n" % (test["logkey"], stats["scontrol"][0]["StdOut"]))
 
 	return stats
 
@@ -610,13 +705,20 @@ def exec_eval_command(test, stats):
 	cmd = test["eval"]
 	cmd = [test["root"] + "/" + cmd[0]] + cmd[1:]
 
+	log("%s: eval process cmd = [%s]. stdout goes to '%s'. stderr goes to '%s'\n" % \
+	         (test["key"], ", ".join(cmd), test["outdir"] + "/eval.out", test["outdir"] + "/eval.err"))
+
 	p = subprocess.Popen(cmd, \
 		             stdout = open(test["outdir"] + "/eval.out", "w"), \
 		             stderr = open(test["outdir"] + "/eval.err", "w"), \
 	                     env = env, \
 	                     cwd = test["root"])
 
+	log("%s: eval process is alive with pid = %d\n" % (test["key"], p.pid))
+
 	ret = p.wait()
+
+	log("%s: eval process terminated with ExitCode = %d\n" % (test["key"], ret))
 
 	return ret
 
@@ -631,19 +733,20 @@ def eval_test_outcome(test, stats):
 	for x in stats:
 		if not x:
 			fail = 1
+			log("%s: At least one stats entry is None. Failing test\n" % test["key"])
+
+			break
 
 	if not fail:
 		if "eval" in test.keys() and test["eval"]:
 			fail = exec_eval_command(test, stats)
 		else:
-			tmp = []
-			for x in stats:
-				for z in x["scontrol"]:
-					tmp.append(z["ExitCode"])
-			# FIXME What happens if all tests across all partitions
-			#       fail?
-			if min(tmp) != max(tmp):
-				fail = 1
+			# In earlier versions of the code we compared the exit codes. This is however
+			# unsafe since all tests access all partitions could fail. To be safe we force
+			# the tests implementers to specify an eval script.
+			log("%s: No evaluation program specified. Failing test\n" % test["key"])
+
+			fail = 1
 
 	global BL
 	BL.acquire()
@@ -764,9 +867,15 @@ def perform_test(testdir, testkey, opts):
 
 	thr = []
 	for i in range(n):
+		# Assign a unique key for logging
+		tmp = test
+		tmp["logkey"] = test["key"]
+		if n > 1:
+			tmp["logkey"] += "-%s" % test["partitions"][i]
+
 		fct = {"batch"      : exec_test_batch, \
 		       "interactive": exec_test_interactive}[test["type"]]
-		thr.append(WorkerThread(fct, [test, i]))
+		thr.append(WorkerThread(fct, [tmp, i]))
 
 	[x.start() for x in thr]
 	[x.join()  for x in thr]
@@ -844,6 +953,9 @@ def main(argv):
 	parser.add_option("-r", "--repetitions", action = "store", type = "int", \
 	                  dest = "repetitions", default = 1, \
 	                  help = "Number of repetitions for each test.")
+	parser.add_option("-D", "--debug", action = "store", type = "string", \
+	                  dest = "debug", default = "", \
+	                  help = "Logfile for debugging statements.")
 
 	(opts, args) = parser.parse_args()
 
@@ -852,6 +964,9 @@ def main(argv):
 
 	if not os.path.isdir(opts.testsdir):
 		parser.error("Invalid tests directory '%s'." % opts.testsdir)
+
+	if len(opts.debug) > 0:
+		start_logging(opts.debug)
 
 	opts.ignorep = [x.strip() for x in opts.ignorep.split(",")]
 
@@ -865,12 +980,16 @@ def main(argv):
 		if opts.repetitions > 1:
 			tests = [x for z in tests for x in [z]*opts.repetitions]
 
+		log("tests = [%s]\n" % ", ".join([str(z) for z in tests]))
+
 		testnum = 0
 
 		testthr = []
 		for testdir in tests:
 			testkey = test_key(testdir, testnum)
 			testnum += 1
+
+			log("Starting thread for test '%s' with key '%s'\n" % (testdir, testkey))
 
 			testthr.append(WorkerThread(perform_test, \
 			               [opts.testsdir + "/" + testdir, \
@@ -884,7 +1003,10 @@ def main(argv):
 				time.sleep(0.1)
 				testthr = [x for x in testthr if x.is_alive()]
 
+		log("Waiting for all threads to finish\n")
 		[x.join() for x in testthr]
+
+		log("Goodbye\n")
 
 # The big lock
 BL = threading.Lock()
