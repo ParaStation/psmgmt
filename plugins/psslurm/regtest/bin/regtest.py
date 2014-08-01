@@ -15,6 +15,7 @@ import select
 import termios
 import hashlib
 import datetime
+import copy
 
 
 _LOGFILE = None
@@ -868,7 +869,7 @@ def perform_test(testdir, testkey, opts):
 	thr = []
 	for i in range(n):
 		# Assign a unique key for logging
-		tmp = test
+		tmp = copy.deepcopy(test)
 		tmp["logkey"] = test["key"]
 		if n > 1:
 			tmp["logkey"] += "-%s" % test["partitions"][i]
