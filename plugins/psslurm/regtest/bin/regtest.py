@@ -17,6 +17,7 @@ import hashlib
 import datetime
 import copy
 import signal
+import math
 
 
 _LOGFILE = None
@@ -297,11 +298,13 @@ def exec_test_batch(test, idx):
 	part   = test["partitions"][idx]
 	reserv = test["reservations"][idx]
 
-	q      = None
-	jobid  = None
-	p      = None
-	stdout = ""
-	stderr = ""
+	q       = None
+	jobid   = None
+	p       = None
+	stdout  = ""
+	stderr  = ""
+	niters  = 0
+	tooslow = 0
 
 	# Process states
 	UNBORN = 1	# needs to be started
@@ -322,7 +325,10 @@ def exec_test_batch(test, idx):
 	stats  = {"scontrol": None, \
 	          "fproc"   : None, \
 	          "submit"  : None}
+
 	while 1:
+		lstart = time.time()
+
 		done = 1
 
 		if UNBORN == state[0]:
@@ -412,23 +418,45 @@ def exec_test_batch(test, idx):
 			else:
 				done = 0
 
+		# Add a note in the logs if the required nodes for a job are not available.
+		if re.match(r'.*Required node not available (down or drained).*', stdout) or \
+		   (stats["scontrol"] and "ReqNodeNotAvail" == stats["scontrol"][0]["Reason"]):
+			log("%s: required nodes are not available\n" % test["logkey"])
+
 		if done:
 			break
 
-		# TODO Actually we should measure the time of the previous
-		#      code and subtract it from delay. If the result is negative
-		#      we need to add the smallest multiple of delay such that
-		#      the sum is positive. In this way we guarantee that
-		#      loop time is a multiple of the requested period
-		time.sleep(delay)
+		lend  = time.time()
+		ltime =	lend - lstart
+
+		if ltime <= delay:
+			time.sleep(delay - ltime)
+		else:
+			if tooslow < 10:
+				log("%s: loop iteration was too slow (iteration time = %g, delay = %g)\n" % \
+				    (test["logkey"], lend - lstart, delay))
+			tooslow += 1
+			time.sleep(math.ceil(ltime*1.0/delay)*delay - ltime)
+
+		niters += 1
 
 
-	if 0 != state[0]:
-		if not stats["scontrol"]:
-			log("%s: BUG: state[0] = %d but stats[\"scontrol\"] is None\n" % (test["logkey"], state[0]))
-		if not job_is_done(stats["scontrol"]):
-			log("%s: BUG: Main loop terminated by JobState = [%s]\n" % \
+	if tooslow > 0:
+		log("%s: loop iteration was in %.2f%% of iterations too slow\n" % (test["logkey"], tooslow*1.0/niters))
+
+	try:
+		if not stats["submit"]:
+			log("%s: BUG: stats[\"submit\"] is None\n" % test["logkey"])
+
+		if 0 != state[0] and 0 == stats["submit"]["ExitCode"]:
+			if not stats["scontrol"]:
+				log("%s: BUG: state[0] = %d, stats[\"submit\"][\"ExitCode\"] = %d " \
+				    "but stats[\"scontrol\"] is None\n" % (test["logkey"], state[0], stats["submit"]["ExitCode"]))
+			if not job_is_done(stats["scontrol"]):
+				log("%s: BUG: Main loop terminated by JobState = [%s]\n" % \
 			         (test["logkey"], ", ".join([x["JobState"] for x in stats["scontrol"]])))
+	except:
+		pass
 
 	# Fixup some srun problems.
 	if stats["scontrol"] and 1 == len(stats["scontrol"]):
@@ -482,12 +510,14 @@ def exec_test_interactive(test, idx):
 	part   = test["partitions"][idx]
 	reserv = test["reservations"][idx]
 
-	q      = None
-	jobid  = None
-	p      = None
-	fo     = None
-	stdout = ""
-	stderr = ""
+	q       = None
+	jobid   = None
+	p       = None
+	fo      = None
+	stdout  = ""
+	stderr  = ""
+	niters  = 0
+	tooslow = 0
 
 	if test["submit"]:
 		master, slave = os.openpty()
@@ -527,7 +557,10 @@ def exec_test_interactive(test, idx):
 	stats  = {"scontrol": None, \
 	          "fproc"   : None, \
 	          "submit"  : None}
+
 	while 1:
+		lstart = time.time()
+
 		done = 1
 
 		if UNBORN == state[0]:
@@ -635,20 +668,37 @@ def exec_test_interactive(test, idx):
 		if done:
 			break
 
-		# TODO Actually we should measure the time of the previous
-		#      code and subtract it from delay. If the result is negative
-		#      we need to add the smallest multiple of delay such that
-		#      the sum is positive. In this way we guarantee that
-		#      loop time is a multiple of the requested period
-		time.sleep(delay)
+		lend  = time.time()
+		ltime =	lend - lstart
+
+		if ltime <= delay:
+			time.sleep(delay - ltime)
+		else:
+			if tooslow < 10:
+				log("%s: loop iteration was too slow (iteration time = %g, delay = %g)\n" % \
+				    (test["logkey"], lend - lstart, delay))
+			tooslow += 1
+			time.sleep(math.ceil(ltime*1.0/delay)*delay - ltime)
+
+		niters += 1
 
 
-	if 0 != state[0]:
-		if not stats["scontrol"]:
-			log("%s: BUG: state[0] = %d but stats[\"scontrol\"] is None\n" % (test["logkey"], state[0]))
-		if not job_is_done(stats["scontrol"]):
-			log("%s: BUG: Main loop terminated by JobState = [%s]\n" % \
+	if tooslow > 0:
+		log("%s: loop iteration was in %.2f%% of iterations too slow\n" % (test["logkey"], tooslow*1.0/niters))
+
+	try:
+		if not stats["submit"]:
+			log("%s: BUG: stats[\"submit\"] is None\n" % test["logkey"])
+
+		if 0 != state[0] and 0 == stats["submit"]["ExitCode"]:
+			if not stats["scontrol"]:
+				log("%s: BUG: state[0] = %d, stats[\"submit\"][\"ExitCode\"] = %d " \
+				    "but stats[\"scontrol\"] is None\n" % (test["logkey"], state[0], stats["submit"]["ExitCode"]))
+			if not job_is_done(stats["scontrol"]):
+				log("%s: BUG: Main loop terminated by JobState = [%s]\n" % \
 			         (test["logkey"], ", ".join([x["JobState"] for x in stats["scontrol"]])))
+	except:
+		pass
 
 	stats["scontrol"][0]["StdOut"] = test["outdir"] + "/slurm-%s.out" % jobid
 	open(stats["scontrol"][0]["StdOut"], "w").write(stdout)
