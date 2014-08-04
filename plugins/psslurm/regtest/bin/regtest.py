@@ -20,6 +20,23 @@ import signal
 import math
 
 
+# Approximate frequency of main loop updates.
+CONFIG_STANDARD_HZ = 10
+
+
+QUIT = 0
+
+def handlesig(signum, frame):
+	global QUIT
+	print(signum)
+#	log("Received signal %d\n" % signum)
+	QUIT = 1
+
+signal.signal(signal.SIGQUIT, handlesig)
+signal.signal(signal.SIGINT , handlesig)
+signal.signal(signal.SIGTERM, handlesig)
+
+
 _LOGFILE = None
 
 #
@@ -55,11 +72,18 @@ def log(msg):
 def whitespace_pad(x, n):
 	return x + " " * (n - len(x))
 
+#
+# popen is a slim wrapper around subprocess.Popen().
+def popen(cmd, **kargs):
+	# Make sure that signals are not forwarded
+	kargs["preexec_fn"] = os.setpgrp
+
+	return subprocess.Popen(cmd, **kargs)
 
 #
 # Get the version of the slurm installation as a string.
 def query_slurm_version():
-	p       = subprocess.Popen(["squeue", "-V"], stdout = subprocess.PIPE)
+	p       = popen(["squeue", "-V"], stdout = subprocess.PIPE)
 	version = p.communicate()[0].split()[1]
 	if 1 != p.wait():
 		raise Exception("Failed to retrieve version")
@@ -76,10 +100,11 @@ class WorkerThread(threading.Thread):
 	def __init__(self, fct, args, name = None):
 		threading.Thread.__init__(self)
 
-		self.fct  = fct
-		self.args = args
-		self.ret  = None
-		self.name = name
+		self.fct      = fct
+		self.args     = args
+		self.ret      = None
+		self.name     = name
+		self.canceled = 0
 
 	def run(self):
 		self.ret = self.fct(self, *self.args)
@@ -109,9 +134,9 @@ def parse_scontrol_output(text):
 # Query the status of a job using scontrol. The argument jobid must
 # be a string.
 def query_scontrol(jobid):
-	p = subprocess.Popen(["scontrol", "-o", "show", "job", jobid], \
-	                     stdout = subprocess.PIPE, \
-	                     stderr = subprocess.PIPE)
+	p = popen(["scontrol", "-o", "show", "job", jobid], \
+	          stdout = subprocess.PIPE, \
+	          stderr = subprocess.PIPE)
 
 	out, err = p.communicate()
 	ret = p.wait()
@@ -170,10 +195,10 @@ def submit_via_sbatch(part, reserv, test):
 	cmd = prepare_submit_cmd(part, reserv, test, test["flags"])
 	wdir = test["root"]
 
-	return subprocess.Popen(cmd, \
-	                        stdout = subprocess.PIPE, \
-	                        stderr = subprocess.PIPE, \
-	                        cwd = wdir)
+	return popen(cmd, \
+	             stdout = subprocess.PIPE, \
+	             stderr = subprocess.PIPE, \
+	             cwd = wdir)
 
 	return p
 
@@ -183,10 +208,10 @@ def submit_via_srun(part, reserv, test):
 	cmd = prepare_submit_cmd(part, reserv, test, test["flags"])
 	wdir = test["root"]
 
-	p = subprocess.Popen(cmd, \
-	                     stdout = subprocess.PIPE, \
-	                     stderr = subprocess.PIPE, \
-	                     cwd = wdir)
+	p = popen(cmd, \
+	          stdout = subprocess.PIPE, \
+	          stderr = subprocess.PIPE, \
+	          cwd = wdir)
 
 	return p
 
@@ -199,10 +224,10 @@ def submit_via_salloc(part, reserv, test):
 	                         test["flags"] + ["SUBMIT_NO_O_OPTION", "SUBMIT_NO_E_OPTION"])
 	wdir = test["root"]
 
-	p = subprocess.Popen(cmd, \
-	                     stdout = subprocess.PIPE, \
-	                     stderr = subprocess.PIPE, \
-	                     cwd = wdir)
+	p = popen(cmd, \
+	          stdout = subprocess.PIPE, \
+	          stderr = subprocess.PIPE, \
+	          cwd = wdir)
 
 	return p
 
@@ -279,11 +304,11 @@ def spawn_frontend_process(test, part, reserv, jobid, fo, fe):
 	log("%s: frontend process cmd = [%s]. stdout goes to %s. stderr goes to %s\n" % \
 	         (test["logkey"], ", ".join(cmd), foname, fename))
 
-	return subprocess.Popen(cmd, \
-	                        stdout = fo, \
-	                        stderr = fe, \
-	                        env = env, \
-	                        cwd = test["root"])
+	return popen(cmd, \
+	             stdout = fo, \
+	             stderr = fe, \
+	             env = env, \
+	             cwd = test["root"])
 
 
 #
@@ -330,6 +355,21 @@ def exec_test_batch(thread, test, idx):
 		lstart = time.time()
 
 		done = 1
+
+		if thread.canceled:
+			log("%s: Received cancellation request" % test["logkey"])
+
+			if ALIVE == state[0]:
+				q.terminate()
+			if ALIVE == state[1]:
+				p.terminate()
+
+			if jobid:
+				z = popen(["scancel", jobid], stderr = subprocess.PIPE)
+				_, _ = z.communicate()
+				z.wait()
+
+			return None
 
 		if UNBORN == state[0]:
 			q = submit(part, reserv, test)
@@ -563,6 +603,21 @@ def exec_test_interactive(thread, test, idx):
 
 		done = 1
 
+		if thread.canceled:
+			log("%s: Received cancellation request" % test["logkey"])
+
+			if ALIVE == state[0]:
+				q.terminate()
+			if ALIVE == state[1]:
+				p.terminate()
+
+			if jobid:
+				z = popen(["scancel", jobid], stderr = subprocess.PIPE)
+				_, _ = z.communicate()
+				z.wait()
+
+			return None
+
 		if UNBORN == state[0]:
 			cmd = test["submit"]
 			tmp = [cmd[0], "-v", "-J", test["key"], "-p", part]
@@ -572,11 +627,11 @@ def exec_test_interactive(thread, test, idx):
 
 			log("%s: submit process cmd = [%s]\n" % (test["logkey"], ", ".join(cmd)))
 
-			q = subprocess.Popen(cmd, \
-			                     stdin  = slave, \
-			                     stdout = slave, \
-			                     stderr = slave, \
-			                     cwd = test["root"])
+			q = popen(cmd, \
+			          stdin  = slave, \
+			          stdout = slave, \
+			          stderr = slave, \
+			          cwd = test["root"])
 
 			log("%s: submit process is alive with pid %d\n" % (test["logkey"], q.pid))
 
@@ -792,11 +847,11 @@ def exec_eval_command(test, stats):
 	log("%s: eval process cmd = [%s]. stdout goes to '%s'. stderr goes to '%s'\n" % \
 	         (test["key"], ", ".join(cmd), test["outdir"] + "/eval.out", test["outdir"] + "/eval.err"))
 
-	p = subprocess.Popen(cmd, \
-		             stdout = open(test["outdir"] + "/eval.out", "w"), \
-		             stderr = open(test["outdir"] + "/eval.err", "w"), \
-	                     env = env, \
-	                     cwd = test["root"])
+	p = popen(cmd, \
+		  stdout = open(test["outdir"] + "/eval.out", "w"), \
+		  stderr = open(test["outdir"] + "/eval.err", "w"), \
+	          env = env, \
+	          cwd = test["root"])
 
 	log("%s: eval process is alive with pid = %d\n" % (test["key"], p.pid))
 
@@ -811,6 +866,9 @@ def exec_eval_command(test, stats):
 # user-specified application that checks the output. If no evaluation
 # program is specified in test description all we can do is check
 # the exit code of the submissions.
+#
+# In the current implementation, test evaluation cannot be terminated by a signal.
+# This is usually not an issue since the evaulation is rather quick.
 def eval_test_outcome(test, stats):
 	fail = 0
 
@@ -949,7 +1007,7 @@ def perform_test(thread, testdir, testkey, opts):
 
 	create_output_dir(test)
 
-	thr = []
+	threads = []
 	for i in range(n):
 		# Assign a unique key for logging
 		tmp = copy.deepcopy(test)
@@ -959,14 +1017,33 @@ def perform_test(thread, testdir, testkey, opts):
 
 		fct = {"batch"      : exec_test_batch, \
 		       "interactive": exec_test_interactive}[test["type"]]
-		thr.append(WorkerThread(fct, [tmp, i]))
 
-	[x.start() for x in thr]
-	[x.join()  for x in thr]
+		threads.append(WorkerThread(fct, [tmp, i]))
 
-	stats = [x.ret for x in thr]
+	[x.start() for x in threads]
 
-	eval_test_outcome(test, stats)
+	while 1:
+		alive = [x for x in threads if x.is_alive()]
+
+		if 0 == len(alive):
+			break
+
+		# Propagate the canceled state down to the spawned threads
+		if thread.canceled:
+			try:
+				log("%s: Received cancellation requested" % test["key"])
+
+				for x in threads: x.canceled = 1
+				[x.join() for x in threads]
+			finally:
+				break
+
+		time.sleep(1.0/CONFIG_STANDARD_HZ)
+
+	if thread.canceled:
+		return
+
+	eval_test_outcome(test, [x.ret for x in thr])
 
 	return
 
@@ -1066,29 +1143,39 @@ def main(argv):
 
 		log("tests = [%s]\n" % ", ".join([str(z) for z in tests]))
 
-		testnum = 0
+		threads = []
+		i = 0
 
-		testthr = []
-		for testdir in tests:
-			testkey = test_key(testdir, testnum)
-			testnum += 1
+		while 1:
+			# Poll thread list
+			threads = [x for x in threads if x.is_alive()]
 
-			log("Starting thread for test '%s' with key '%s'\n" % (testdir, testkey))
+			if QUIT:
+				try:
+					log("Skipping remaining tests upon user request\n")
+					for x in threads: x.canceled = 1
+					[x.join() for x in threads]	# Wait for all threads to terminate
+				finally:
+					break
 
-			testthr.append(WorkerThread(perform_test, \
-			               [opts.testsdir + "/" + testdir, \
-			               testkey, opts]))
-			testthr[-1].start()
+			if len(tests) == i and 0 == len(threads):
+				log("All tests are done and all worker threads terminated\n")
+				break
 
-			testthr = [x for x in testthr if x.is_alive()]
+			if i < len(tests) and len(threads) < opts.maxpar:
+				try:
+					testdir = tests[i]
+					testkey = test_key(testdir, i)
 
-			# Block until there is room for more threads.
-			while len(testthr) >= opts.maxpar:
-				time.sleep(0.1)
-				testthr = [x for x in testthr if x.is_alive()]
+					log("Starting thread for test '%s' with key '%s'\n" % (testdir, testkey))
 
-		log("Waiting for all threads to finish\n")
-		[x.join() for x in testthr]
+					threads.append(WorkerThread(perform_test, \
+					               [opts.testsdir + "/" + testdir, testkey, opts]))
+					threads[-1].start()
+				finally:
+					i += 1
+
+			time.sleep(1.0/CONFIG_STANDARD_HZ)
 
 		log("Goodbye\n")
 
