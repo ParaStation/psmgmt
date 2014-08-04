@@ -378,7 +378,9 @@ def exec_test_batch(test, idx):
 		# This might result in an infinite loop if something weird is going
 		# on and we are not able to retrieve the scontrol output
 		if state[0] in [ALIVE, DEAD] and not stats["scontrol"]:
-			done = 0
+			# If the submission failed we may quit
+			if not stats["submit"] or 0 == stats["submit"]["ExitCode"]:
+				done = 0
 
 		if stats["scontrol"] and not job_is_done(stats["scontrol"]):
 			done = 0
@@ -592,7 +594,9 @@ def exec_test_interactive(test, idx):
 		# This might result in an infinite loop if something weird is going
 		# on and we are not able to retrieve the scontrol output
 		if state[0] in [ALIVE, DEAD] and not stats["scontrol"]:
-			done = 0
+			# If the submission failed we may quit
+			if not stats["submit"] or 0 == stats["submit"]["ExitCode"]:
+				done = 0
 
 		if stats["scontrol"] and not job_is_done(stats["scontrol"]):
 			done = 0
