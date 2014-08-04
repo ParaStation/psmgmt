@@ -878,8 +878,6 @@ def perform_test(testdir, testkey, opts):
 	fixup_test_description(test, opts)
 	check_test_description(test)
 
-	create_output_dir(test)
-
 	if not test["type"] in ["batch", "interactive"]:
 		raise Exception("Unknown test type '%s'" % test["type"])
 
@@ -888,6 +886,8 @@ def perform_test(testdir, testkey, opts):
 	if n != len(test["reservations"]):
 		raise Exception("The \"partitions\" and \"reservations\" list must "
 		                "be of equal size.")
+
+	create_output_dir(test)
 
 	thr = []
 	for i in range(n):
