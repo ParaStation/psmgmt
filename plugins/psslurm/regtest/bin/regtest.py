@@ -82,7 +82,7 @@ class WorkerThread(threading.Thread):
 		self.name = name
 
 	def run(self):
-		self.ret = self.fct(*self.args)
+		self.ret = self.fct(self, *self.args)
 
 #
 # Parse a single line of "scontrol -o show job" output.
@@ -292,7 +292,7 @@ def spawn_frontend_process(test, part, reserv, jobid, fo, fe):
 #
 # TODO Implement a timeout mechanism.
 #
-def exec_test_batch(test, idx):
+def exec_test_batch(thread, test, idx):
 	assert("batch" == test["type"])
 
 	part   = test["partitions"][idx]
@@ -504,7 +504,7 @@ def exec_test_batch(test, idx):
 
 #
 # Execute an interactive job.
-def exec_test_interactive(test, idx):
+def exec_test_interactive(thread, test, idx):
 	assert("interactive" == test["type"])
 
 	part   = test["partitions"][idx]
@@ -917,7 +917,7 @@ def check_test_description(test):
 # Run a single test. For each specified partition the function will submit one
 # job, potentially spawn an accompanying frontend process that can interact with
 # the batch system (e.g., to test job canceling) and then runs the evaluation.
-def perform_test(testdir, testkey, opts):
+def perform_test(thread, testdir, testkey, opts):
 
 	# For convenience we allow Python-style comments in the JSON files. These
 	# are removed before presenting the string to the json.loads function.
