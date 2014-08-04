@@ -482,6 +482,7 @@ def exec_test_interactive(test, idx):
 	q      = None
 	jobid  = None
 	p      = None
+	fo     = None
 	stdout = ""
 	stderr = ""
 
@@ -596,6 +597,7 @@ def exec_test_interactive(test, idx):
 			done = 0
 
 		if (UNBORN == state[1]) and ((0 == state[0]) or jobid):
+			fo = open(test["outdir"] + "/fproc-%s.out" % part, "w")
 			fe = open(test["outdir"] + "/fproc-%s.err" % part, "w")
 
 			p = spawn_frontend_process(test, part, reserv, \
@@ -608,7 +610,10 @@ def exec_test_interactive(test, idx):
 		if ALIVE == state[1]:
 			ready, _, _ = select.select([p.stdout], [], [], 0)
 			if len(ready) > 0:
-				os.write(master, os.read(p.stdout.fileno(), 512))
+				tmp = os.read(p.stdout.fileno(), 512)
+
+				os.write(master, tmp)
+				fo.write(tmp)
 
 			ret = p.poll()
 			if None != ret:
