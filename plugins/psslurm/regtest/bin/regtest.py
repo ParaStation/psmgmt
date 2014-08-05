@@ -309,6 +309,23 @@ def spawn_frontend_process(test, part, reserv, jobid, fo, fe):
 	             env = env, \
 	             cwd = test["root"])
 
+#
+# Detect issues after the end of the main loop
+def catch_bugs_in_exec_test(tests, stats, state):
+	try:
+		if not stats["submit"]:
+			log("%s: BUG: stats[\"submit\"] is None\n" % test["logkey"])
+
+		if 0 != state[0] and 0 == stats["submit"]["ExitCode"]:
+			if not stats["scontrol"]:
+				log("%s: BUG: state[0] = %d, stats[\"submit\"][\"ExitCode\"] = %d " \
+				    "but stats[\"scontrol\"] is None\n" % (test["logkey"], state[0], stats["submit"]["ExitCode"]))
+			if not job_is_done(stats["scontrol"]):
+				log("%s: BUG: Main loop terminated by JobState = [%s]\n" % \
+			         (test["logkey"], ", ".join([x["JobState"] for x in stats["scontrol"]])))
+	except:
+		pass
+
 
 #
 # Execute a batch job. The function waits until the job and the accompanying
@@ -493,19 +510,7 @@ def exec_test_batch(thread, test, idx):
 	if tooslow > 0:
 		log("%s: loop iteration was in %.2f%% of iterations too slow\n" % (test["logkey"], tooslow*1.0/niters))
 
-	try:
-		if not stats["submit"]:
-			log("%s: BUG: stats[\"submit\"] is None\n" % test["logkey"])
-
-		if 0 != state[0] and 0 == stats["submit"]["ExitCode"]:
-			if not stats["scontrol"]:
-				log("%s: BUG: state[0] = %d, stats[\"submit\"][\"ExitCode\"] = %d " \
-				    "but stats[\"scontrol\"] is None\n" % (test["logkey"], state[0], stats["submit"]["ExitCode"]))
-			if not job_is_done(stats["scontrol"]):
-				log("%s: BUG: Main loop terminated by JobState = [%s]\n" % \
-			         (test["logkey"], ", ".join([x["JobState"] for x in stats["scontrol"]])))
-	except:
-		pass
+	catch_bugs_in_exec_test(test, stats, state)
 
 	# Fixup some srun problems.
 	if stats["scontrol"] and 1 == len(stats["scontrol"]):
@@ -765,19 +770,7 @@ def exec_test_interactive(thread, test, idx):
 	if tooslow > 0:
 		log("%s: loop iteration was in %.2f%% of iterations too slow\n" % (test["logkey"], tooslow*1.0/niters))
 
-	try:
-		if not stats["submit"]:
-			log("%s: BUG: stats[\"submit\"] is None\n" % test["logkey"])
-
-		if 0 != state[0] and 0 == stats["submit"]["ExitCode"]:
-			if not stats["scontrol"]:
-				log("%s: BUG: state[0] = %d, stats[\"submit\"][\"ExitCode\"] = %d " \
-				    "but stats[\"scontrol\"] is None\n" % (test["logkey"], state[0], stats["submit"]["ExitCode"]))
-			if not job_is_done(stats["scontrol"]):
-				log("%s: BUG: Main loop terminated by JobState = [%s]\n" % \
-			         (test["logkey"], ", ".join([x["JobState"] for x in stats["scontrol"]])))
-	except:
-		pass
+	catch_bugs_in_exec_test(test, stats, state)
 
 	stats["scontrol"][0]["StdOut"] = test["outdir"] + "/slurm-%s.out" % jobid
 	open(stats["scontrol"][0]["StdOut"], "w").write(stdout)
