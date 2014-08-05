@@ -330,9 +330,6 @@ def catch_bugs_in_exec_test(tests, stats, state):
 #
 # Execute a batch job. The function waits until the job and the accompanying
 # frontend process (if one) are terminated.
-#
-# TODO Implement a timeout mechanism.
-#
 def exec_test_batch(thread, test, idx):
 	assert("batch" == test["type"])
 
@@ -1044,6 +1041,9 @@ def perform_test(thread, testdir, testkey, opts):
 
 	[x.start() for x in threads]
 
+	start    = time.time()
+	timedout = 0
+
 	while 1:
 		alive = [x for x in threads if x.is_alive()]
 
@@ -1060,7 +1060,21 @@ def perform_test(thread, testdir, testkey, opts):
 			finally:
 				break
 
+		if time.time() - start >= opts.timeout:
+			try:
+				log("%s: test timed out\n" % test["key"])
+				timedout = 1
+
+				for x in threads: x.canceled = 1
+				[x.join() for x in threads]
+			finally:
+				break
+
 		time.sleep(1.0/CONFIG_STANDARD_HZ)
+
+	if timedout:
+		print_test_outcome(test["name"], test["key"], "purple", "TIMEDOUT")
+		return
 
 	if thread.canceled:
 		print_test_outcome(test["name"], test["key"], "purple", "CANCELED")
@@ -1143,6 +1157,9 @@ def main(argv):
 	parser.add_option("-D", "--debug", action = "store", type = "string", \
 	                  dest = "debug", default = "", \
 	                  help = "Logfile for debugging statements.")
+	parser.add_option("-T", "--timeout", action = "store", type = "int", \
+	                  dest = "timeout", default = 3600, \
+	                  help = "Timeout for tests in seconds.")
 
 	(opts, args) = parser.parse_args()
 
