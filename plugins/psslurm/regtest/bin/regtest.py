@@ -346,6 +346,7 @@ def exec_test_batch(thread, test, idx):
 	stderr  = ""
 	niters  = 0
 	tooslow = 0
+	retval  = 1
 
 	# Process states
 	UNBORN = 1	# needs to be started
@@ -376,7 +377,7 @@ def exec_test_batch(thread, test, idx):
 
 		if thread.canceled:
 			log("%s: Received cancellation request\n" % test["logkey"])
-			state[2] = KILL
+			retval, state[2] = 2, KILL
 
 		if KILL == state[2]:
 			if ALIVE == state[0]:
@@ -395,7 +396,7 @@ def exec_test_batch(thread, test, idx):
 				if len(err.strip()) > 0:
 					log("%s: scancel stderr = '%s'\n" % (test["logkey"], err))
 
-			return (1, None)
+			return (retval, None)
 
 		if UNBORN == state[0]:
 			q = submit(part, reserv, test)
@@ -487,7 +488,7 @@ def exec_test_batch(thread, test, idx):
 		if re.match(r'.*Required node not available (down or drained).*', stdout) or \
 		   (stats["scontrol"] and "ReqNodeNotAvail" == stats["scontrol"][0]["Reason"]):
 			log("%s: required nodes are not available\n" % test["logkey"])
-			state[2] = KILL
+			retval, state[2] = 3, KILL
 
 		if done:
 			break
@@ -572,6 +573,7 @@ def exec_test_interactive(thread, test, idx):
 	stderr  = ""
 	niters  = 0
 	tooslow = 0
+	retval  = 1
 
 	if test["submit"]:
 		master, slave = os.openpty()
@@ -621,7 +623,7 @@ def exec_test_interactive(thread, test, idx):
 
 		if thread.canceled:
 			log("%s: Received cancellation request\n" % test["logkey"])
-			state[2] = KILL
+			retval, state[2] = 2, KILL
 
 		if KILL == state[2]:
 			if ALIVE == state[0]:
@@ -640,7 +642,7 @@ def exec_test_interactive(thread, test, idx):
 				if len(err.strip()) > 0:
 					log("%s: scancel stderr = '%s'\n" % (test["logkey"], err))
 
-			return (1, None)
+			return (retval, None)
 
 		if UNBORN == state[0]:
 			cmd = test["submit"]
@@ -747,7 +749,7 @@ def exec_test_interactive(thread, test, idx):
 		if re.match(r'.*Required node not available (down or drained).*', stdout) or \
 		   (stats["scontrol"] and "ReqNodeNotAvail" == stats["scontrol"][0]["Reason"]):
 			log("%s: required nodes are not available\n" % test["logkey"])
-			state[2] = KILL
+			retval, state[2] = 3, KILL
 
 		if done:
 			break
