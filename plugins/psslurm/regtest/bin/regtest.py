@@ -1178,7 +1178,7 @@ def main(argv):
 	tests = get_test_list(argv, opts)
 
 	if opts.do_list:
-		for testdir in tests:
+		for testdir in sorted(tests):
 			print(" " + whitespace_pad(testdir, 29) + \
 			      " (%s)" % (opts.testsdir + "/" + testdir))
 	else:
