@@ -357,7 +357,7 @@ def exec_test_batch(thread, test, idx):
 		done = 1
 
 		if thread.canceled:
-			log("%s: Received cancellation request" % test["logkey"])
+			log("%s: Received cancellation request\n" % test["logkey"])
 
 			if ALIVE == state[0]:
 				q.terminate()
@@ -366,8 +366,11 @@ def exec_test_batch(thread, test, idx):
 
 			if jobid:
 				z = popen(["scancel", jobid], stderr = subprocess.PIPE)
-				_, _ = z.communicate()
+				_, err = z.communicate()
 				z.wait()
+
+				if len(err.strip()) > 0:
+					log("%s: scancel stderr = '%s'\n" % (test["logkey"], err))
 
 			return None
 
@@ -613,8 +616,11 @@ def exec_test_interactive(thread, test, idx):
 
 			if jobid:
 				z = popen(["scancel", jobid], stderr = subprocess.PIPE)
-				_, _ = z.communicate()
+				_, err = z.communicate()
 				z.wait()
+
+				if len(err.strip()) > 0:
+					log("%s: scancel stderr = '%s'\n" % (test["logkey"], err))
 
 			return None
 
