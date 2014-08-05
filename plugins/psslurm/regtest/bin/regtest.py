@@ -28,8 +28,7 @@ QUIT = 0
 
 def handlesig(signum, frame):
 	global QUIT
-	print(signum)
-#	log("Received signal %d\n" % signum)
+	log("Received signal %d\n" % signum)
 	QUIT = 1
 
 signal.signal(signal.SIGQUIT, handlesig)
