@@ -336,7 +336,9 @@ def exec_test_batch(thread, test, idx):
 	ALIVE  = 2
 	DEAD   = 3
 
-	state  = [0] * 2
+	KILL   = 4	# Should be killed (used for state[2])
+
+	state  = [0] * 3
 	# "submit" can be null in the input JSON file. In this case
 	# we only run the frontend process which interacts with the
 	# batch system directly.
@@ -358,13 +360,18 @@ def exec_test_batch(thread, test, idx):
 
 		if thread.canceled:
 			log("%s: Received cancellation request\n" % test["logkey"])
+			state[2] = KILL
 
+		if KILL == state[2]:
 			if ALIVE == state[0]:
+				log("%s: Terminating submit process\n" % test["logkey"])
 				q.terminate()
 			if ALIVE == state[1]:
+				log("%s: Terminating frontend process\n" % test["logkey"])
 				p.terminate()
 
 			if jobid:
+				log("%s: Canceling SLURM job\n" % test["logkey"])
 				z = popen(["scancel", jobid], stderr = subprocess.PIPE)
 				_, err = z.communicate()
 				z.wait()
@@ -461,10 +468,10 @@ def exec_test_batch(thread, test, idx):
 			else:
 				done = 0
 
-		# Add a note in the logs if the required nodes for a job are not available.
 		if re.match(r'.*Required node not available (down or drained).*', stdout) or \
 		   (stats["scontrol"] and "ReqNodeNotAvail" == stats["scontrol"][0]["Reason"]):
 			log("%s: required nodes are not available\n" % test["logkey"])
+			state[2] = KILL
 
 		if done:
 			break
@@ -588,7 +595,9 @@ def exec_test_interactive(thread, test, idx):
 	ALIVE  = 2
 	DEAD   = 3
 
-	state  = [0, UNBORN]
+	KILL   = 4
+
+	state  = [0, UNBORN, 0]
 	# "submit" can be null in the input JSON file. In this case
 	# we only run the frontend process which interacts with the
 	# batch system directly.
@@ -607,14 +616,19 @@ def exec_test_interactive(thread, test, idx):
 		done = 1
 
 		if thread.canceled:
-			log("%s: Received cancellation request" % test["logkey"])
+			log("%s: Received cancellation request\n" % test["logkey"])
+			state[2] = KILL
 
+		if KILL == state[2]:
 			if ALIVE == state[0]:
+				log("%s: Terminating submit process\n" % test["logkey"])
 				q.terminate()
 			if ALIVE == state[1]:
+				log("%s: Terminating frontend process\n" % test["logkey"])
 				p.terminate()
 
 			if jobid:
+				log("%s: Canceling SLURM job\n" % test["logkey"])
 				z = popen(["scancel", jobid], stderr = subprocess.PIPE)
 				_, err = z.communicate()
 				z.wait()
@@ -725,6 +739,11 @@ def exec_test_interactive(thread, test, idx):
 				state[1] = DEAD
 			else:
 				done = 0
+
+		if re.match(r'.*Required node not available (down or drained).*', stdout) or \
+		   (stats["scontrol"] and "ReqNodeNotAvail" == stats["scontrol"][0]["Reason"]):
+			log("%s: required nodes are not available\n" % test["logkey"])
+			state[2] = KILL
 
 		if done:
 			break
