@@ -973,7 +973,6 @@ def check_test_description(test):
 # job, potentially spawn an accompanying frontend process that can interact with
 # the batch system (e.g., to test job canceling) and then runs the evaluation.
 def perform_test(thread, testdir, testkey, opts):
-
 	# For convenience we allow Python-style comments in the JSON files. These
 	# are removed before presenting the string to the json.loads function.
 	descr = " ".join(map(lambda x: re.sub(r'#.*$', r'', x), \
