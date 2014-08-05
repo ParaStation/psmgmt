@@ -886,22 +886,17 @@ def exec_eval_command(test, stats):
 # In the current implementation, test evaluation cannot be terminated by a signal.
 # This is usually not an issue since the evaulation is rather quick.
 def eval_test_outcome(test, stats):
-	for x in stats:
-		if not x:
-			log("%s: At least one stats entry is None. Failing test\n" % test["key"])
-			return 1
+	if len([x for x in stats if not x]) > 0:
+		log("%s: BUG: exec_test returned 0 but stats is None.\n" % test["key"])
+		return 1
 
-	if "eval" in test.keys() and test["eval"]:
-		return exec_eval_command(test, stats)
-	else:
-		# In earlier versions of the code we compared the exit codes. This is however
+	if not "eval" in test.keys() or not test["eval"]:
 		# unsafe since all tests access all partitions could fail. To be safe we force
 		# the tests implementers to specify an eval script.
 		log("%s: No evaluation program specified. Failing test\n" % test["key"])
-
 		return 1
 
-	return 0
+	return exec_eval_command(test, stats)
 
 #
 # Create an empty output folder for the test.
@@ -1080,9 +1075,15 @@ def perform_test(thread, testdir, testkey, opts):
 		print_test_outcome(test["name"], test["key"], "purple", "CANCELED")
 		return
 
-	fail = eval_test_outcome(test, [x.ret[1] for x in threads])
+	if len([x for x in map(lambda z: z.ret[0], threads) if 3 == x]) > 0:
+		print_test_outcome(test["name"], test["key"], "purple", "RESUNAVAIL")
+		return
 
-	if fail:
+	if len([x for x in map(lambda z: z.ret[0], threads) if x > 0]) > 0:
+		print_test_outcome(test["name"], test["key"], "red", "FAIL")
+		return
+
+	if eval_test_outcome(test, [x.ret[1] for x in threads]):
 		print_test_outcome(test["name"], test["key"], "red", "FAIL")
 	else:
 		print_test_outcome(test["name"], test["key"], "green", "OK")
