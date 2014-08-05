@@ -1049,7 +1049,7 @@ def perform_test(thread, testdir, testkey, opts):
 	if thread.canceled:
 		return
 
-	eval_test_outcome(test, [x.ret for x in thr])
+	eval_test_outcome(test, [x.ret for x in threads])
 
 	return
 
