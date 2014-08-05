@@ -966,10 +966,10 @@ def check_test_description(test):
 # Print test output to stdout with color-coded result.
 def print_test_outcome(name, key, color, result):
 	prompt = {
-		"green":	32,
-		"red":		33,
-		"blue":		34,
-		"purple":	35
+		"red":		"1;31",
+		"green":	"0;32",
+		"blue":		"0;34",
+		"purple":	"0;35"
 	}
 
 	# TODO Take terminal width into account?
@@ -981,7 +981,7 @@ def print_test_outcome(name, key, color, result):
 	BL.acquire()
 
 	try:
-		sys.stdout.write(" %s%s [\033[0;%dm%s\033[0m]\n" % (tmp1, tmp2, prompt[color], result))
+		sys.stdout.write(" %s%s [\033[%sm%s\033[0m]\n" % (tmp1, tmp2, prompt[color], result))
 		sys.stdout.flush()
 	finally:
 		BL.release()
