@@ -969,6 +969,30 @@ def check_test_description(test):
 			                "that handles the interaction.")
 
 #
+# Print test output to stdout with color-coded result.
+def print_test_outcome(name, key, color, result):
+	prompt = {
+		"green":	32,
+		"red":		33,
+		"blue":		34,
+		"purple":	35
+	}
+
+	# TODO Take terminal width into account?
+
+	tmp1 = whitespace_pad(name,30)
+	tmp2 = whitespace_pad(key, 49)
+
+	global BL
+	BL.acquire()
+
+	try:
+		sys.stdout.write(" %s%s [\033[0;%dm%s\033[0m]\n" % (tmp1, tmp2, prompt[color], result))
+		sys.stdout.flush()
+	finally:
+		BL.release()
+
+#
 # Run a single test. For each specified partition the function will submit one
 # job, potentially spawn an accompanying frontend process that can interact with
 # the batch system (e.g., to test job canceling) and then runs the evaluation.
@@ -1037,26 +1061,15 @@ def perform_test(thread, testdir, testkey, opts):
 		time.sleep(1.0/CONFIG_STANDARD_HZ)
 
 	if thread.canceled:
+		print_test_outcome(test["name"], test["key"], "purple", "CANCELED")
 		return
 
 	fail = eval_test_outcome(test, [x.ret[1] for x in threads])
 
-	global BL
-	BL.acquire()
-
-	try:
-		tmp1 = whitespace_pad(test["name"],30)
-		tmp2 = whitespace_pad(test["key"], 49)
-
-		sys.stdout.flush()
-		# TODO Take terminal width into account?
-		if fail:
-			print(" %s%s [\033[0;31mFAIL\033[0m] " % (tmp1, tmp2))
-		else:
-			print(" %s%s [\033[0;32mOK\033[0m] "   % (tmp1, tmp2))
-		sys.stdout.flush()
-	finally:
-		BL.release()
+	if fail:
+		print_test_outcome(test["name"], test["key"], "red", "FAIL")
+	else:
+		print_test_outcome(test["name"], test["key"], "green", "OK")
 
 #
 # Construct the list of tests to be performed taking into account exclude/include
