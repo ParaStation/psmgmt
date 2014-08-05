@@ -379,10 +379,10 @@ def exec_test_batch(thread, test, idx):
 		if KILL == state[2]:
 			if ALIVE == state[0]:
 				log("%s: Terminating submit process\n" % test["logkey"])
-				q.terminate()
+				os.killpg(q.pid, signal.SIGTERM)
 			if ALIVE == state[1]:
 				log("%s: Terminating frontend process\n" % test["logkey"])
-				p.terminate()
+				os.killpg(p.pid, signal.SIGTERM)
 
 			if jobid:
 				log("%s: Canceling SLURM job\n" % test["logkey"])
@@ -625,10 +625,10 @@ def exec_test_interactive(thread, test, idx):
 		if KILL == state[2]:
 			if ALIVE == state[0]:
 				log("%s: Terminating submit process\n" % test["logkey"])
-				q.terminate()
+				os.killpg(q.pid, signal.SIGTERM)
 			if ALIVE == state[1]:
 				log("%s: Terminating frontend process\n" % test["logkey"])
-				p.terminate()
+				os.killpg(p.pid, signal.SIGTERM)
 
 			if jobid:
 				log("%s: Canceling SLURM job\n" % test["logkey"])
