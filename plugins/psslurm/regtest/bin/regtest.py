@@ -395,7 +395,7 @@ def exec_test_batch(thread, test, idx):
 				if len(err.strip()) > 0:
 					log("%s: scancel stderr = '%s'\n" % (test["logkey"], err))
 
-			return None
+			return (1, None)
 
 		if UNBORN == state[0]:
 			q = submit(part, reserv, test)
@@ -554,7 +554,7 @@ def exec_test_batch(thread, test, idx):
 				log("%s: stderr appended to %s\n" % (test["logkey"], tmp["StdErr"]))
 
 	# Return the latest captured stats
-	return stats
+	return (0, stats)
 
 #
 # Execute an interactive job.
@@ -640,7 +640,7 @@ def exec_test_interactive(thread, test, idx):
 				if len(err.strip()) > 0:
 					log("%s: scancel stderr = '%s'\n" % (test["logkey"], err))
 
-			return None
+			return (1, None)
 
 		if UNBORN == state[0]:
 			cmd = test["submit"]
@@ -777,7 +777,7 @@ def exec_test_interactive(thread, test, idx):
 
 	log("%s: stdout written to %s\n" % (test["logkey"], stats["scontrol"][0]["StdOut"]))
 
-	return stats
+	return (0, stats)
 
 #
 # Convert a CamelCase string to a CAMEL_CASE type string
@@ -887,42 +887,22 @@ def exec_eval_command(test, stats):
 # In the current implementation, test evaluation cannot be terminated by a signal.
 # This is usually not an issue since the evaulation is rather quick.
 def eval_test_outcome(test, stats):
-	fail = 0
-
 	for x in stats:
 		if not x:
-			fail = 1
 			log("%s: At least one stats entry is None. Failing test\n" % test["key"])
+			return 1
 
-			break
+	if "eval" in test.keys() and test["eval"]:
+		return exec_eval_command(test, stats)
+	else:
+		# In earlier versions of the code we compared the exit codes. This is however
+		# unsafe since all tests access all partitions could fail. To be safe we force
+		# the tests implementers to specify an eval script.
+		log("%s: No evaluation program specified. Failing test\n" % test["key"])
 
-	if not fail:
-		if "eval" in test.keys() and test["eval"]:
-			fail = exec_eval_command(test, stats)
-		else:
-			# In earlier versions of the code we compared the exit codes. This is however
-			# unsafe since all tests access all partitions could fail. To be safe we force
-			# the tests implementers to specify an eval script.
-			log("%s: No evaluation program specified. Failing test\n" % test["key"])
+		return 1
 
-			fail = 1
-
-	global BL
-	BL.acquire()
-
-	try:
-		tmp1 = whitespace_pad(test["name"],30)
-		tmp2 = whitespace_pad(test["key"], 49)
-
-		sys.stdout.flush()
-		# TODO Take terminal width into account?
-		if fail:
-			print(" %s%s [\033[0;31mFAIL\033[0m] " % (tmp1, tmp2))
-		else:
-			print(" %s%s [\033[0;32mOK\033[0m] "   % (tmp1, tmp2))
-		sys.stdout.flush()
-	finally:
-		BL.release()
+	return 0
 
 #
 # Create an empty output folder for the test.
@@ -1060,9 +1040,24 @@ def perform_test(thread, testdir, testkey, opts):
 	if thread.canceled:
 		return
 
-	eval_test_outcome(test, [x.ret for x in threads])
+	fail = eval_test_outcome(test, [x.ret[1] for x in threads])
 
-	return
+	global BL
+	BL.acquire()
+
+	try:
+		tmp1 = whitespace_pad(test["name"],30)
+		tmp2 = whitespace_pad(test["key"], 49)
+
+		sys.stdout.flush()
+		# TODO Take terminal width into account?
+		if fail:
+			print(" %s%s [\033[0;31mFAIL\033[0m] " % (tmp1, tmp2))
+		else:
+			print(" %s%s [\033[0;32mOK\033[0m] "   % (tmp1, tmp2))
+		sys.stdout.flush()
+	finally:
+		BL.release()
 
 #
 # Construct the list of tests to be performed taking into account exclude/include
