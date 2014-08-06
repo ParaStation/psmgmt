@@ -1119,7 +1119,7 @@ def get_test_list(argv, opts):
 					done = 0
 					break
 
-	return tests
+	return sorted(tests)
 
 #
 # Create a unique key for the test based on name, number and date
@@ -1178,7 +1178,7 @@ def main(argv):
 	tests = get_test_list(argv, opts)
 
 	if opts.do_list:
-		for testdir in sorted(tests):
+		for testdir in tests:
 			print(" " + whitespace_pad(testdir, 29) + \
 			      " (%s)" % (opts.testsdir + "/" + testdir))
 	else:
