@@ -1183,7 +1183,7 @@ def main(argv):
 			      " (%s)" % (opts.testsdir + "/" + testdir))
 	else:
 		if opts.repetitions > 1:
-			tests = [x for z in tests for x in [z]*opts.repetitions]
+			tests = tests * opts.repetitions
 
 		log("tests = [%s]\n" % ", ".join([str(z) for z in tests]))
 
