@@ -52,27 +52,28 @@ def job_id(part):
 # nodes must conform to some standards. The name prefix (which is common for all compute
 # nodes) must start and end with a letter and may contain numbers only in the middle part.
 def job_node_list(part):
-	def expand1(matchobj):
-		tmp0, tmp1 = matchobj.group(0).split('-')
-
-		assert(len(tmp0) == len(tmp1))
-		fmt = "%%0%dd" % len(tmp0)
-
-		return ",".join([fmt % z for z in range(int(tmp0), int(tmp1)+1)])
-
-	def expand2(matchobj):
-		tmp0, tmp1 = matchobj.group(0).replace(']', '').split('[')
-		
-		return ",".join([tmp0 + x for x in tmp1.split(',')])
-
 	nodelist = save_env_access(part, "PSTEST_SCONTROL_%s_NODE_LIST")
 
-	if not re.match(r'[a-zA-Z][a-zA-Z0-9]*[a-zA-Z][\[0-9]+.*', nodelist):
-		test.check(1 == 0, part + ": Cannot handle node naming scheme")
-		return []
+	 # Replaces ([0-9]+)-([0-9]+) by a comma separted list
+	def match1(matchobj):
+		tmp0, tmp1 = matchobj.group(0).split('-')
+		tmp2 = range(int(tmp0), int(tmp1) + 1)
+		# slurm completely ignores len(tmp1) and we shall follow
+		# that example.
+		fmt = "%%0%dd" % len(tmp0)
+		return ",".join([fmt % z for z in tmp2])
 
-	return re.sub(r'[a-zA-Z][a-zA-Z0-9]*[a-zA-Z]([0-9]*\[[0-9,]+\])', expand2, \
-	              re.sub(r'([0-9]+)-([0-9]+)', expand1, nodelist)).split(',')
+	def match2(matchobj):
+		tmp = matchobj.group(0)
+		return re.sub(r'([0-9]+)-([0-9]+)', match1, tmp)
+
+	def match3(matchobj):
+		tmp0, tmp1 = matchobj.group(1), matchobj.group(2)
+		return ",".join([tmp0 + z for z in tmp1.split(",")])
+
+	lst = re.sub(r'([^,]*)\[([0-9,]+)\]', match3, \
+	             re.sub(r'\[([0-9,-]+)\]', match2, nodelist)).split(",")
+	return lst
 
 #
 # Check that the job completed with zero exit code. This is a commonly used
