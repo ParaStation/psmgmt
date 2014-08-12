@@ -12,7 +12,7 @@ int main (int argc, char **argv)
 	uint32_t jobid;
 
 	if (slurm_pid2jobid(getpid(), &jobid))
-		slurm_perror("slurm_load_jobs error");
+		slurm_perror("slurm_pid2jobid error");
 	else
 		printf("Slurm job id = %u\n", jobid);
 
