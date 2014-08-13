@@ -1,0 +1,34 @@
+#!/usr/bin/expect
+#
+#               ParaStation psmom test suite
+#
+# Copyright (C) 2011 ParTec Cluster Competence Center GmbH, Munich
+#
+# author
+# Michael Rauh (rauh@par-tec.com)
+#
+
+set debugLevel 0
+
+set qsubCommand $env(RTH_SUBMIT_CMD)
+set qsubSubmitA $env(RTH_SUBMIT_ARGS)
+set rthPath	$env(RTH)
+set rthQTimeout $env(RTH_MAX_QUEUE_TIME)
+set rthRTimeout $env(RTH_MAX_RUN_TIME)
+
+set qsubArgs "-I $qsubSubmitA"
+
+# set queue timeout
+set timeout [ expr $rthQTimeout ]
+
+# start the interactive job
+source $rthPath/expect_spawn_job
+
+send "exit\r"
+expect oef
+
+send_user "\nPBS_NODEFILE=$PBS_NODEFILE\n"
+#send_user "argv0: $argv0 argv-range:[lrange $argv 1 1]\n"
+send_user "\ninteractive job $PBS_JOBID finished\n"
+
+exit 0

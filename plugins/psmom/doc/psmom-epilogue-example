@@ -1,0 +1,16 @@
+#!/bin/bash
+#               ParaStation Healthcheck
+#
+# Copyright (C) 2013 ParTec Cluster Competence Center GmbH, Munich
+#
+
+# Epilogue script arguments:
+export PBS_JOBID=$1
+export PBS_USER=$2
+export PBS_GROUP=$3
+export PBS_JOBNAME=$4
+export PBS_SESSION_ID=$5
+export PBS_LIMITS=$6
+export PBS_RESSOURCES=$7
+export PBS_QUEUE=$8
+export PBS_ACCOUNT=$9

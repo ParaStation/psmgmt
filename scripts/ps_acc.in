@@ -1,0 +1,39 @@
+#!/bin/sh
+#
+# ParaStation
+#
+# Copyright (C) 2007-2008 ParTec Cluster Competence Center GmbH, Munich
+#
+# This file may be distributed under the terms of the Q Public License
+# as defined in the file LICENSE.QPL included in the packaging of this
+# file.
+#
+# Authors:      Michael Rauh <rauh@par-tec.com>
+#
+# Pseudo hardware-type skript to start the psaccounter.
+#
+# $Id$
+#
+
+case "$1" in
+    start)
+	@bindir@/psaccounter -p gzip -e
+	;;
+
+    stop)
+        killall psaccounter 2>&1 1>/dev/null	
+	;;
+
+    statusheader)
+	;;
+
+    status)
+	;;
+
+    *)
+	echo "Usage: $0 {start|stop|statusheader|status}"
+	exit 1
+	;;
+esac
+
+exit 0

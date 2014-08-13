@@ -1,0 +1,13 @@
+#!/bin/bash
+#PBS -v test1=test1,test2='","',test3='"\0"',test4='",\012;.:?\?;"',test5="!lllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooonnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnngggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg!"
+#PBS -N psmomRT-user_vars
+#PBS -l walltime=60
+
+# user variables
+echo "test1=$test1"
+echo "test2=$test2"
+echo "test3=$test3"
+echo "test4=$test4"
+echo "test5=$test5"
+
+exit 0

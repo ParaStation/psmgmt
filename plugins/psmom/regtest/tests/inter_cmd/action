@@ -1,0 +1,18 @@
+#!/bin/bash
+#
+#               ParaStation psmom test suite
+#
+# Copyright (C) 2011 ParTec Cluster Competence Center GmbH, Munich
+#
+# author
+# Michael Rauh (rauh@par-tec.com)
+#
+
+# export RTH=~/psmom/regtest/bin/
+# export RTH_TESTDIR=~psmom/regtest/tests/interactive_cmd
+# export RTH_SUBMIT_CMD=/usr/bin/qsub
+# export RTH_MAX_QUEUE_TIME=20
+# export RTH_MAX_RUN_TIME=100
+
+# start interactive job using expect
+expect ./expect_script 1>/dev/null

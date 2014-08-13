@@ -1,0 +1,84 @@
+/*
+ * ParaStation
+ *
+ * Copyright (C) 2013 ParTec Cluster Competence Center GmbH, Munich
+ *
+ * This file may be distributed under the terms of the Q Public License
+ * as defined in the file LICENSE.QPL included in the packaging of this
+ * file.
+ */
+/**
+ * $Id$
+ *
+ * \author
+ * Michael Rauh <rauh@par-tec.com>
+ *
+ */
+
+
+#include <stdio.h>
+#include <stdlib.h>
+
+#include "peloguejob.h"
+#include "peloguecomm.h"
+#include "peloguelog.h"
+#include "peloguescript.h"
+
+#include "pelogueinter.h"
+
+
+int psPelogueAddPluginConfig(char * name, Config_t *configList)
+{
+    return addPluginConfig(name, configList);
+}
+
+void psPelogueAddJob(const char *plugin, const char *jobid, uid_t uid,
+			gid_t gid, int nrOfNodes, PSnodes_ID_t *nodes,
+			Pelogue_JobCb_Func_t *pluginCallback)
+{
+    addJob(plugin, jobid, uid, gid, nrOfNodes, nodes, pluginCallback);
+}
+
+void psPelogueDeleteJob(const char *plugin, const char *jobid)
+{
+    Job_t *job;
+
+    if (!(job = findJobByJobId(plugin, jobid))) return;
+
+    deleteJob(job);
+}
+
+int psPelogueStartPE(const char *plugin, const char *jobid, bool prologue,
+			env_fields_t *env)
+{
+    Job_t *job;
+
+    if (!(job = findJobByJobId(plugin, jobid))) {
+	mlog("%s: job '%s' for plugin '%s' not found\n", __func__, jobid,
+		plugin);
+	return 0;
+    }
+    job->state = prologue ? JOB_PROLOGUE : JOB_EPILOGUE;
+    if (prologue) {
+	job->prologueTrack = job->nrOfNodes;
+    } else {
+	job->epilogueTrack = job->nrOfNodes;
+    }
+    return sendPElogueStart(job, prologue, env);
+}
+
+int psPelogueSignalPE(const char *plugin, const char *jobid, int signal,
+			char *reason)
+{
+    Job_t *job;
+
+    if (!(job = findJobByJobId(plugin, jobid))) {
+	mlog("%s: job '%s' for plugin '%s' not found\n", __func__, jobid,
+		plugin);
+	return 0;
+    }
+
+    signalPElogue(job, signal, reason);
+
+    return 1;
+}

@@ -1,0 +1,495 @@
+/*
+ * ParaStation
+ *
+ * Copyright (C) 2014 ParTec Cluster Competence Center GmbH, Munich
+ *
+ * This file may be distributed under the terms of the Q Public License
+ * as defined in the file LICENSE.QPL included in the packaging of this
+ * file.
+ */
+/**
+ * $Id$
+ *
+ * \author
+ * Michael Rauh <rauh@par-tec.com>
+ *
+ */
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <errno.h>
+#include <stdbool.h>
+
+#include "psaccfunc.h"
+#include "pspluginprotocol.h"
+#include "pscommon.h"
+#include "psidcomm.h"
+#include "env.h"
+#include "psidtask.h"
+#include "plugincomm.h"
+#include "pluginmalloc.h"
+#include "pluginhelper.h"
+#include "pluginfrag.h"
+#include "pluginpartition.h"
+
+#include "slurmcommon.h"
+#include "psslurmforwarder.h"
+#include "psslurmmsg.h"
+#include "psslurmproto.h"
+#include "psslurmlog.h"
+#include "psslurmjob.h"
+#include "psslurmcomm.h"
+#include "psslurmconfig.h"
+
+#include "psslurmpscomm.h"
+
+int handleCreatePart(void *msg)
+{
+    DDBufferMsg_t *inmsg = (DDBufferMsg_t *) msg;
+    Step_t *step;
+    int ret = 1, enforceBatch;
+
+    /* enforce regulations from the batchsystem */
+    getConfValueI(&Config, "ENFORCE_BATCH_START", &enforceBatch);
+    if (!enforceBatch) return 1;
+
+    if ((step = findStepByPid(PSC_getPID(inmsg->header.sender)))) {
+	PSnodes_ID_t *nl;
+	uint32_t i, x, z, tid, nlSize;
+
+	nlSize = step->np * step->tpp;
+	nl = umalloc(nlSize * sizeof(PSnodes_ID_t));
+
+	for (i=0; i<step->nrOfNodes; i++) {
+	    for (x=0; x<step->globalTaskIdsLen[i]; x++) {
+		tid = step->globalTaskIds[i][x];
+		tid *= step->tpp;
+
+		/* sanity check */
+		if (tid >nlSize) {
+		    mlog("%s: invalid taskids '%s' nlSize '%u'\n", __func__,
+			    PSC_printTID(tid), nlSize);
+		    ufree(nl);
+		    return injectNodelist(inmsg, 0, NULL);
+		}
+		for (z=0; z<step->tpp; z++) {
+		    nl[tid + z] = step->nodes[i];
+		    /*
+		    mlog("%s: set nl[%u] = '%u' tpp '%u'\n", __func__, tid + z,
+			    step->nodes[i], step->tpp);
+		    */
+		}
+	    }
+	}
+
+	ret = injectNodelist(inmsg, nlSize, nl);
+	ufree(nl);
+    } else {
+	mlog("%s: step for sender '%s' not found\n", __func__,
+		PSC_printTID(inmsg->header.sender));
+	ret = injectNodelist(inmsg, 0, NULL);
+    }
+
+    return ret;
+}
+
+int handleCreatePartNL(void *msg)
+{
+    DDBufferMsg_t *inmsg = (DDBufferMsg_t *) msg;
+    int enforceBatch;
+    PStask_t *task;
+
+    mlog("%s: TODO\n", __func__);
+    /* everyone is allowed to start, nothing to do for us here */
+    getConfValueI(&Config, "ENFORCE_BATCH_START", &enforceBatch);
+    if (!enforceBatch) return 1;
+
+    /* find task */
+    if (!(task = PStasklist_find(&managedTasks, inmsg->header.sender))) {
+	mlog("%s: task for msg from '%s' not found\n", __func__,
+	    PSC_printTID(inmsg->header.sender));
+	errno = EACCES;
+	goto error;
+    }
+
+    /* admin user can always pass */
+    if ((isPSAdminUser(task->uid, task->gid))) return 1;
+
+    /* for batch users we send the nodelist before */
+    return 0;
+
+    error:
+    {
+	if (task && task->request) {
+	    PSpart_delReq(task->request);
+	    task->request = NULL;
+	}
+
+	rejectPartitionRequest(inmsg->header.sender);
+	return 0;
+    }
+}
+
+static void handlePELogueStart(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
+{
+    Job_t *job;
+    char *ptr = data->buf, jobid[MAX_JOBID_LEN], *tmp;
+    int prologue = (msg->type == PSP_PROLOGUE_START) ? 1 : 0;
+    int envcount, i;
+    env_fields_t env;
+
+    /* slurm jobid */
+    getString(&ptr, jobid, sizeof(jobid));
+
+    if (!(job = findJobByIdC(jobid))) {
+	mlog("%s: unknown job with id '%s'\n", __func__, jobid);
+	return;
+    }
+
+    if (prologue) {
+	job->state = JOB_PROLOGUE;
+    } else {
+	job->state = JOB_EPILOGUE;
+    }
+
+    /* setup environment */
+    env_init(&env);
+    if (!(getInt32(&ptr, &envcount))) return;
+    for (i=0; i<envcount; i++) {
+	tmp = getStringM(&ptr);
+	if (!(strncmp("SLURM_", tmp, 6))) {
+	    env_put(&env, tmp);
+	} else {
+	    ufree(tmp);
+	}
+    }
+
+    /* use pelogue plugin to start */
+    psPelogueStartPE("psslurm", job->id, prologue, &env);
+    env_destroy(&env);
+}
+
+void callbackPElogue(char *jobid, int exit_status, int timeout)
+{
+    Job_t *job;
+    DDTypedBufferMsg_t msg;
+    char *ptr;
+
+    if (!(job = findJobByIdC(jobid))) {
+	mlog("%s: job '%s' not found\n", __func__, jobid);
+	return;
+    }
+
+    mlog("%s: jobid '%s' state '%s' exit '%i' timeout '%i'\n", __func__, jobid,
+	    jobState2String(job->state), exit_status, timeout);
+
+    msg = (DDTypedBufferMsg_t) {
+	.header = (DDMsg_t) {
+	.type = PSP_CC_MSG,
+	.sender = PSC_getMyTID(),
+	.dest = job->mother,
+	.len = sizeof(msg.header) },
+	.buf = {'\0'} };
+
+    msg.header.type = (job->extended) ? PSP_CC_PLUG_PSSLURM : PSP_CC_MSG;
+    msg.type = (job->state == JOB_PROLOGUE) ?
+			    PSP_PROLOGUE_RES : PSP_EPILOGUE_RES;
+    msg.header.len += sizeof(msg.type);
+
+    ptr = msg.buf;
+
+    addStringToMsgBuf(&msg, &ptr, jobid);
+    addInt32ToMsgBuf(&msg, &ptr, exit_status);
+
+    mlog("%s: sending message to job '%s' dest:%s\n", __func__, jobid,
+	    PSC_printTID(job->mother));
+
+    /*
+    if ((sendMsg(&msg)) == -1) {
+	mwarn(errno, "%s: sending message to '%s' failed: ", __func__,
+		PSC_printTID(job->mother));
+    }
+    */
+
+    /* start main job */
+    if (!exit_status) {
+	if (job->state == JOB_PROLOGUE) {
+	    job->state = JOB_RUNNING;
+	    if (job->extended) execUserJob(job);
+	} else {
+	    /* tell slurmd job has finished */
+	    mlog("%s: TODO let job exit in slurm\n", __func__);
+	    sendJobExit(job, exit_status);
+
+	    /* delete Job */
+	    deleteJob(job->jobid);
+	}
+    } else {
+	job->state = (job->state == JOB_PROLOGUE) ?
+			    JOB_CANCEL_PROLOGUE : JOB_CANCEL_EPILOGUE;
+    }
+}
+
+static void handleQueueReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
+{
+    Job_t *job;
+    char *ptr = data->buf, jobid[MAX_JOBID_LEN];
+    uint32_t tmp, stepid;
+
+    /* slurm jobid */
+    getString(&ptr, jobid, sizeof(jobid));
+
+    mlog("%s: new slurm job '%s' queued %s\n", __func__, jobid,
+	    PSC_printTID(msg->header.dest));
+
+    if ((sscanf(jobid, "%u", &tmp)) != 1) {
+	mlog("%s: invalid jobid '%s'\n", __func__, jobid);
+	return;
+    }
+    job = addJob(tmp);
+
+    /* uid and gid */
+    getUint32(&ptr, &job->uid);
+    getUint32(&ptr, &job->gid);
+
+    /* hostlist */
+    getNodesFromSlurmHL(&ptr, &job->slurmNodes, &job->nrOfNodes, &job->nodes);
+    getUint32(&ptr, &stepid);
+    job->hostname = getStringM(&ptr);
+
+    /* type (batch/interactiv) ?? */
+    job->state = JOB_QUEUED;
+    job->mother = msg->header.sender;
+
+    psPelogueAddJob("psslurm", job->id, job->uid, job->gid,
+		    job->nrOfNodes, job->nodes, callbackPElogue);
+}
+
+static void handleJobInfo(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
+{
+    unsigned int i;
+    env_fields_t env;
+    char *ptr = data->buf, jobid[MAX_JOBID_LEN];
+    Job_t *job;
+
+    getString(&ptr, jobid, sizeof(jobid));
+
+    mlog("%s: new slurm job info for '%s'  %s\n", __func__, jobid,
+	    PSC_printTID(msg->header.dest));
+
+    if (!(job = findJobByIdC(jobid))) {
+	mlog("%s: job '%s' not found\n", __func__, jobid);
+	return;
+    }
+
+    getUint32(&ptr, &job->np);
+    getStringArrayM(&ptr, &job->env, &job->envc);
+    getStringArrayM(&ptr, &job->argv, &job->argc);
+    job->cwd = getStringM(&ptr);
+    job->stdOut = getStringM(&ptr);
+    job->stdIn = getStringM(&ptr);
+    job->stdErr = getStringM(&ptr);
+    getUint16(&ptr, &job->tpp);
+    getUint16(&ptr, &job->interactive);
+    getUint8(&ptr, &job->appendMode);
+    getUint16(&ptr, &job->accType);
+    getUint16(&ptr, &job->accFreq);
+
+    if (job->interactive) {
+	mlog("%s: interactive job: %i\n", __func__, job->interactive);
+
+    } else {
+	char *script;
+
+	mlog("%s: batch job: %i\n", __func__, job->interactive);
+	/* save jobscript */
+	script = getStringM(&ptr);
+
+	if (!(writeJobscript(job, script))) {
+	    /* TODO cancel job */
+	    //JOB_INFO_RES msg to proxy
+	}
+	ufree(script);
+	getUint32(&ptr, &job->arrayJobId);
+    }
+
+    job->extended = 1;
+
+    /* TODO start prologue, now ?? */
+    job->state = JOB_PROLOGUE;
+
+    /* setup environment */
+    env_init(&env);
+    for (i=0; i<job->envc; i++) {
+	if (!(strncmp("SLURM_", job->env[i], 6))) {
+	    env_put(&env, job->env[i]);
+	}
+    }
+
+    /* use pelogue plugin to start */
+    psPelogueStartPE("psslurm", job->id, 1, &env);
+    env_destroy(&env);
+
+    /* return result */
+    //JOB_INFO_RES msg to proxy
+}
+
+static void handleDeleteReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
+{
+    char *ptr = data->buf, jobid[MAX_JOBID_LEN];
+    Job_t *job;
+
+    /* slurm jobid */
+    getString(&ptr, jobid, sizeof(jobid));
+
+    /* make sure job is gone in pelogue */
+    psPelogueDeleteJob("psslurm", jobid);
+
+    if ((job = findJobByIdC(jobid))) {
+	/* check job state, and kill children, then delete job */
+	if (!(deleteJob(job->jobid))) {
+	    mlog("%s: unknown job with id '%s'\n", __func__, jobid);
+	}
+    } else {
+	mlog("%s: job '%s' not found\n", __func__, jobid);
+    }
+}
+
+static void handleTaskIds(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
+{
+    char *ptr = data->buf;
+    int32_t ret;
+    Step_t *step;
+    PStask_t *task;
+
+    /* we don't know the pid, since the message is from the spawner process. But
+     * we know the logger. So we have to find the task structure and look there
+     * for the logger.
+     */
+    if (!(task = PStasklist_find(&managedTasks, msg->header.sender))) {
+	mlog("%s: task for message from '%s' not found\n", __func__,
+	    PSC_printTID(msg->header.sender));
+	return;
+    }
+
+    /* find mpiexec process in steps */
+    if (!(step = findStepByPid(PSC_getPID(task->loggertid)))) {
+	mlog("%s: step for task '%s' not found\n", __func__,
+		PSC_printTID(msg->header.sender));
+	return;
+    }
+
+    /* spawn return code */
+    getInt32(&ptr, &ret);
+
+    if (ret < 0) {
+	mlog("%s: spawn step '%u:%u' failed: ret '%i' state '%i'\n", __func__,
+		step->jobid, step->uid, ret, step->state);
+	if (step->state == JOB_PRESTART) {
+	    /* spawn failed, e.g. executable not found */
+
+	    /* we should say okay to srun and return exit code 2 */
+	    sendSlurmRC(step->srunControlSock, SLURM_SUCCESS, step);
+	    step->tidsLen = step->np;
+	    step->tids = umalloc(sizeof(uint32_t) * step->np);
+	    sendTaskPids(step);
+
+	    step->state = JOB_RUNNING;
+	    step->exitCode = 0x200;
+	} else {
+	    /* spawn failed */
+	    sendSlurmRC(step->srunControlSock, SLURM_ERROR, step);
+	}
+	return;
+    }
+    sendSlurmRC(step->srunControlSock, SLURM_SUCCESS, step);
+    step->state = JOB_RUNNING;
+
+    /* taskIds */
+    getInt32Array(&ptr, &step->tids, &step->tidsLen);
+    mlog("%s: received %u taskids for step %u:%u\n", __func__, step->tidsLen,
+	    step->jobid, step->stepid);
+
+    /* match slurm global task ids and ps task ids */
+
+    // uint16_t *tasksToLaunch;	/* number of tasks to launch (per node) */
+    // uint32_t **globalTaskIds;	/* job global slurm task ids (per node) */
+    // uint32_t globalTaskIdsLen;
+    // uint32_t tidsLen;
+    // PStask_ID_t *tids;
+
+
+    /* forward info to waiting srun */
+    sendTaskPids(step);
+}
+
+static void handleRemoteJob(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
+{
+
+}
+
+void handlePsslurmMsg(DDTypedBufferMsg_t *msg)
+{
+    char sender[100], dest[100];
+
+    strncpy(sender, PSC_printTID(msg->header.sender), sizeof(sender));
+    strncpy(dest, PSC_printTID(msg->header.dest), sizeof(dest));
+
+    mdbg(PSSLURM_LOG_COMM, "%s: new msg type: '%i' [%s->%s]\n", __func__,
+	msg->type, sender, dest);
+
+    switch (msg->type) {
+	case PSP_PROLOGUE_START:
+	case PSP_EPILOGUE_START:
+	    recvFragMsg(msg, handlePELogueStart);
+	    break;
+	case PSP_QUEUE:
+	    recvFragMsg(msg, handleQueueReq);
+	    break;
+	case PSP_JOB_INFO:
+	    recvFragMsg(msg, handleJobInfo);
+	    break;
+	case PSP_DELETE:
+	    recvFragMsg(msg, handleDeleteReq);
+	    break;
+	case PSP_TASK_IDS:
+	    recvFragMsg(msg, handleTaskIds);
+	    break;
+	case PSP_REMOTE_JOB:
+	    recvFragMsg(msg, handleRemoteJob);
+	default:
+	    mlog("%s: received unknown msg type:%i [%s -> %s]\n", __func__,
+		msg->type, sender, dest);
+    }
+}
+
+int handleNodeDown(void *nodeID)
+{
+    return 0;
+}
+
+void handleDroppedMsg(DDTypedBufferMsg_t *msg)
+{
+    char *ptr, jobid[300];
+    const char *hname;
+    PSnodes_ID_t nodeId;
+
+    /* get hostname for message destination */
+    nodeId = PSC_getID(msg->header.dest);
+    hname = getHostnameByNodeId(nodeId);
+
+    mlog("%s: msg type '%s (%i)' to host '%s(%i)' got dropped\n", __func__,
+	    msg2Str(msg->type), msg->type, hname, nodeId);
+    ptr = msg->buf;
+
+    switch (msg->type) {
+	case PSP_PROLOGUE_RES:
+	case PSP_EPILOGUE_RES:
+	    getString(&ptr, jobid, sizeof(jobid));
+
+	    mlog("%s: can't send pelogue result to '%s'\n", __func__, jobid);
+	    break;
+	default:
+	    mlog("%s: unknown msg type '%i'\n", __func__, msg->type);
+    }
+}

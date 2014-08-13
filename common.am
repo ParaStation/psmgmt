@@ -1,0 +1,60 @@
+#
+# ParaStation
+#
+# Copyright (C) 2012 ParTec Cluster Competence Center GmbH, Munich
+#
+# This file may be distributed under the terms of the Q Public License
+# as defined in the file LICENSE.QPL included in the packaging of this
+# file.
+#
+# Author:	Thomas Moschny <moschny@par-tec.com>
+#
+
+AM_CPPFLAGS = -I$(top_srcdir)/include -DNDEBUG
+
+sed_verbose = $(sed_verbose_$(V))
+sed_verbose_ = $(sed_verbose_$(AM_DEFAULT_VERBOSITY))
+sed_verbose_0 = @echo "  SED   " $(@F);
+
+chmod_verbose = $(chmod_verbose_$(V))
+chmod_verbose_ = $(chmod_verbose_$(AM_DEFAULT_VERBOSITY))
+chmod_verbose_0 = @echo "  CHMOD " $(@F);
+
+mkdir_verbose = $(mkdir_verbose_$(V))
+mkdir_verbose_ = $(mkdir_verbose_$(AM_DEFAULT_VERBOSITY))
+mkdir_verbose_0 = @echo "  MKDIR " $(@D);
+
+do_subst =sed \
+	-e 's,[@]bindir[@],$(bindir),g' \
+	-e 's,[@]configdir[@],$(configdir),g' \
+	-e 's,[@]docdir[@],$(docdir),g' \
+	-e 's,[@]includedir[@],$(includedir),g' \
+	-e 's,[@]libdir[@],$(libdir),g' \
+	-e 's,[@]mandir[@],$(mandir),g' \
+	-e 's,[@]prefix[@],$(prefix),g' \
+	-e 's,[@]pkgdatadir[@],$(pkgdatadir),g' \
+	-e 's,[@]sbindir[@],$(sbindir),g' \
+	-e 's,[@]scriptsdir[@],$(scriptsdir),g' \
+	-e 's,[@]sysconfdir[@],$(sysconfdir),g' \
+	-e 's,[@]localstatedir[@],$(localstatedir),g'
+
+%: %.in
+	$(mkdir_verbose)mkdir -p $(@D)
+	$(sed_verbose)$(do_subst) < $^ > $@
+	$(chmod_verbose)chmod --reference $^ $@
+
+syslibdir := $(shell echo $(libdir) | sed -e 's,$(prefix),/,g')
+pamdir = $(syslibdir)/security
+
+pamconfdir = $(sysconfdir)/pam.d
+
+# should be $(libdir)/psmgmt-plugins or similar
+plugindir = $(prefix)/plugins
+
+# also very non-standard
+configdir = $(prefix)/config
+
+# dito
+scriptsdir = $(prefix)/scripts
+
+slurmdir = $(libdir)/slurm

@@ -1,0 +1,225 @@
+# -*- rpm-spec -*-
+%{expand:%define buildForSuSE %(if [ -e /etc/SuSE-release ]; then echo 1; else echo 0; fi)}
+
+Summary:   ParaStation Process Management
+Vendor:    ParTec Cluster Competence Center GmbH, Munich, Germany
+Name:      psmgmt
+Version:   @VERSION_psmgmt@
+Release:   @RELEASE_psmgmt@
+License:   QPL
+Group:     Productivity/Clustering/Computing
+Packager:  support@par-tec.de
+Source0:   %{name}-%{version}-%{release}.tar.gz
+BuildRequires:	ncurses-devel, readline-devel
+%if %buildForSuSE
+BuildRequires:  popt-devel
+%endif
+
+BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
+
+# for now
+%global _prefix /opt/parastation
+%global _plugindir %{_prefix}/plugins
+%global _configdir %{_prefix}/config
+%global _scriptsdir %{_prefix}/scripts
+%global _spooldir %{_localstatedir}/spool/parastation
+
+%description
+The ParaStation Process Management Layer.
+
+%package devel
+Summary:   Development files for ParaStation process management
+Group:     Productivity/Clustering/Computing
+Requires:  psmgmt = %{version}
+
+%description devel
+The psmgmt-devel package includes additional header files necessary
+for developing plugins of the ParaStation Process Management daemon.
+
+%package mpilegacy
+Summary:   Legacy MPI-starters for ParaStation process management
+Group:     Productivity/Clustering/Computing
+Requires:  psmgmt = %{version}
+
+%description mpilegacy
+The psmgmt-mpilegacy package includes additional MPI starters for
+legacy implementations of the MPI version 1 standard.
+
+%package psmom
+Summary:   The MOM Plugin for the ParaStation process management
+Group:     Productivity/Clustering/Computing
+Requires:  psmgmt = %{version}
+Obsoletes: psmom <= 5.2.10-20
+
+%description psmom
+The ParaStation MOM is a complete replacement of the pbs_mom.  No other
+daemon is neccessary to integrate compute nodes into a Torque batch system.
+
+
+%if %buildForSuSE
+%debug_package
+%endif
+
+%prep
+%setup -q -n %{name}-%{version}-%{release}
+
+%build
+export CFLAGS="%(echo %{optflags}|sed -e 's,-O.,,' -e 's,-Wall,,' -e 's,-Wextra,,')"
+%configure --datarootdir=%{_datadir}
+make %{?_smp_mflags}
+
+%install
+rm -rf %{buildroot}
+make DESTDIR=%{buildroot} install
+
+%clean
+rm -rf %{buildroot}
+
+%pre
+if [ "$1" -gt 1 ]; then  # Thats an update
+    if [ -x /opt/parastation/config/PSM_INSTALL ]; then
+	# Upgrade from old version, call the OLD uninstall script.
+	/opt/parastation/config/PSM_INSTALL -U
+	if [ -f /opt/parastation/config/parastation.conf ]; then
+	    cp -a /opt/parastation/config/parastation.conf /etc
+	fi
+    fi
+fi
+exit 0
+
+%post
+if [ "$1" = 1 ]; then
+    # first install
+    /sbin/chkconfig --add parastation
+    /sbin/chkconfig psidstarter on
+    /sbin/service xinetd restart
+    echo "******************************************************"
+    echo "* Please, prepare and mantain the configuration file *"
+    echo "* /etc/parastation.conf                              *"
+    echo "******************************************************"
+fi
+exit 0
+
+%preun
+if [ "$1" = 0 ]; then
+    # final de-install
+    /sbin/service parastation stop
+    /sbin/chkconfig psidstarter off
+    /sbin/chkconfig --del parastation
+    /sbin/service xinetd reload
+fi
+exit 0
+
+%files
+%defattr(-,root,root)
+%doc %dir %{_datadir}/doc/psmgmt
+%doc %{_datadir}/doc/psmgmt/ChangeLog
+%doc %{_datadir}/doc/psmgmt/LICENSE.QPL
+%doc %{_datadir}/doc/psmgmt/NEWS
+%doc %{_datadir}/doc/psmgmt/VERSION.psmgmt
+%doc %{_datadir}/doc/psmgmt/parastation.conf.tmpl
+%{_bindir}/mlisten
+%{_bindir}/mpiexec
+%{_bindir}/psaccounter
+%{_bindir}/psaccview
+%{_bindir}/psh
+%{_bindir}/psiadmin
+%{_bindir}/psid
+%{_bindir}/psilogger
+%{_bindir}/pssh
+%{_bindir}/test_config
+%{_bindir}/test_pse
+%{_configdir}
+%{_scriptsdir}
+%{_includedir}/list_t.h
+%{_includedir}/logging.h
+%{_includedir}/pscommon.h
+%{_includedir}/pscpu.h
+%{_includedir}/pse.h
+%{_includedir}/psi.h
+%{_includedir}/psicomm.h
+%{_includedir}/psienv.h
+%{_includedir}/psiinfo.h
+%{_includedir}/psispawn.h
+%{_includedir}/psnodes.h
+%{_includedir}/pspartition.h
+%{_includedir}/psprotocol.h
+%{_includedir}/pstask.h
+%{_libdir}/libpse.so*
+%exclude %{_libdir}/libpse.la
+%{_libdir}/libpsi.so*
+%exclude %{_libdir}/libpsi.la
+%dir %{_plugindir}
+%{_plugindir}/psaccount.so
+%exclude %{_plugindir}/psaccount.la
+%config(noreplace) %{_plugindir}/psaccount.conf
+%{_plugindir}/psresport.so
+%exclude %{_plugindir}/psresport.la
+%config(noreplace) %{_plugindir}/psresport.conf
+%{_plugindir}/pspmi.so
+%exclude %{_plugindir}/pspmi.la
+%{_plugindir}/pelogue.so
+%exclude %{_plugindir}/pelogue.la
+%{_plugindir}/psmunge.so
+%exclude %{_plugindir}/psmunge.la
+%{_plugindir}/psslurm.so
+%exclude %{_plugindir}/psslurm.la
+%{_libdir}/slurm/psspank.so
+%exclude %{_libdir}/slurm/psspank.la
+%{_sysconfdir}/profile.d/psmgmt.sh
+%{_sysconfdir}/profile.d/psmgmt.csh
+%{_sysconfdir}/init.d/parastation
+%config(noreplace) /etc/xinetd.d/psidstarter
+%config(noreplace) /etc/parastation.conf
+%attr(770,root,root) %{_localstatedir}/log/psaccounter
+%dir %{_spooldir}
+%dir %{_spooldir}/jobs
+%dir %{_spooldir}/nodefiles
+%attr(1777,root,root) %{_spooldir}/temp
+%attr(1777,root,root) %{_spooldir}/undelivered
+%attr(750,root,root) %{_spooldir}/account
+%attr(750,root,root) %{_spooldir}/backup
+%attr(751,root,root) %{_spooldir}/scripts
+
+%files devel
+%defattr(-,root,root,-)
+%{_includedir}/config_parsing.h
+%{_includedir}/list.h
+%{_includedir}/plugin.h
+%{_includedir}/psdaemonprotocol.h
+%{_includedir}/selector.h
+%{_includedir}/timer.h
+%{_includedir}/psicomm_proto.h
+%{_includedir}/psidcomm.h
+%{_includedir}/psidhook.h
+%{_includedir}/psidnodes.h
+%{_includedir}/psidplugin.h
+%{_includedir}/psidscripts.h
+%{_includedir}/psidstatus.h
+%{_includedir}/psidtask.h
+%{_includedir}/psidutil.h
+
+%files mpilegacy
+%defattr(-,root,root,-)
+%{_bindir}/mpirun_chgm
+%{_bindir}/gmspawner
+%{_bindir}/mpirun_chp4
+%{_bindir}/psispawn
+%{_bindir}/mpirun_openib
+%{_bindir}/psmstart
+
+%files psmom
+%defattr(-,root,root,-)
+%doc %dir %{_datadir}/doc/psmgmt
+%doc %{_datadir}/doc/psmgmt/psmom-prologue-example
+%doc %{_datadir}/doc/psmgmt/psmom-epilogue-example
+%doc %{_datadir}/doc/psmgmt/psmom-timeout-example
+%doc %{_datadir}/doc/psmgmt/psmom-ChangeLog-History
+%doc %{_datadir}/doc/psmgmt/psmom-LICENSE.OpenPBS
+%doc %{_datadir}/doc/psmgmt/psmom-README
+/lib[64]*/security/pam_psmom.so
+%exclude /lib[64]*/security/pam_psmom.la
+%config(noreplace) /etc/pam.d/psmom
+%{_plugindir}/psmom.so
+%exclude %{_plugindir}/psmom.la
+%config(noreplace) %{_plugindir}/psmom.conf

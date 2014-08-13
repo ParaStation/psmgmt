@@ -1,0 +1,166 @@
+*
+* ParaStation
+*
+* Copyright (C) 2006-2013 ParTec Cluster Competence Center GmbH, Munich
+*
+* This file may be distributed under the terms of the Q Public License
+* as defined in the file LICENSE.QPL included in the packaging of this
+* file.
+*
+* Authors:      Norbert Eicker <eicker@par-tec.com>
+*
+* ParaStation's types of messages and their maximum size.
+*
+* $Id$
+*
+
+Structure of IP message:
+struct iphdr {
+        __u8    ihl:4,			1/2
+                version:4;		1/2
+        __u8    tos;			1
+        __be16  tot_len;		2
+        __be16  id;			2
+        __be16  frag_off;		2
+        __u8    ttl;			1
+        __u8    protocol;		1
+        __sum16 check;			2
+        __be32  saddr;			4
+        __be32  daddr;			4
+};
++payload
+
+Overhead: 20 Byte
+
+
+Structure of UDP message:
+struct udphdr {
+        __be16  source;			2
+        __be16  dest;			2
+        __be16  len;			2
+        __sum16 check;			2
+};
++payload
+
+Overhead: 8 Byte
+
+
+Overhead (TCP): 20 Byte
+
+
+Structure of RDP message:
+typedef struct {
+    short type;           /**< packet type */			2
+    unsigned short len;   /**< message length */		2
+    int seqno;            /**< Sequence number of packet */	4
+    int ackno;            /**< Sequence number of ack */ 	4
+    int connid;           /**< Connection Identifier */		4
+} rdphdr_t;
++ payload
+
+Overhead: 16 Byte
+
+
+Structure of DDMsg*_t:
+typedef struct {
+    int16_t type;          /**< msg type */				2
+    int16_t len;           /**< total length of the message */		2
+    PStask_ID_t sender;    /**< sender of the message */    		4
+    PStask_ID_t dest;      /**< final destination of the message */	4
+} DDMsg_t;
++ payload
+
+Overhead: 12 Byte
+
+
+   Message ID			Type			Size (- header length)
+
+PSP_DD_DAEMONCONNECT		DDBufferMsg_t		8
+PSP_DD_DAEMONESTABLISHED	DDBufferMsg_t		8
+PSP_DD_DAEMONREFUSED		not used		-
+PSP_DD_DAEMONSHUTDOWN		DDMsg_t			0
+
+PSP_DD_SENDSTOP			DDMsg_t			0
+PSP_DD_SENDCONT			DDMsg_t			0
+
+PSP_DD_CHILDDEAD		DDErrorMsg_t		8
+PSP_DD_GETPART			DDBufferMsg_t		32 (same as PSP_CD_CREATEPART)
+PSP_DD_GETPARTNL		DDBufferMsg_t		1026 (same as PSP_CD_CREATEPARTNL)
+PSP_DD_PROVIDEPART		DDBufferMsg_t		8
+PSP_DD_PROVIDEPARTNL		DDBufferMsg_t		2 + NODES_CHUNK*2 (= 514) (obsolete)
+PSP_DD_PROVIDEPARTSL		DDBufferMsg_t		2 + 1024 (= 1026)
+PSP_DD_GETNODES			DDBufferMsg_t		4 (same as PSP_CD_GETNODES)
+PSP_DD_GETTASKS			DDMsg_t			0
+PSP_DD_PROVIDETASK		DDBufferMsg_t		9 (or 0)
+PSP_DD_PROVIDETASKNL		DDBufferMsg_t		2 + NODES_CHUNK*2 (= 514) (obsolete)
+PSP_DD_PROVIDETASKSL		DDBufferMsg_t		2 + 1024 (= 1026)
+PSP_DD_CANCELPART		DDMsg_t			0
+PSP_DD_TASKDEAD			DDMsg_t			0
+PSP_DD_TASKSUSPEND		DDMsg_t			0
+PSP_DD_TASKRESUME		DDMsg_t			0
+PSP_DD_GETRANKNODE		DDBufferMsg_t		4 (same as PSP_CD_GETRANKNODE)
+
+PSP_DD_LOAD			DDBufferMsg_t		36 (2*2+3*8+2*4)
+PSP_DD_ACTIVE_NODES		DDBufferMsg_t		NODES_CHUNK*2 (= 514)
+PSP_DD_DEAD_NODE		DDBufferMsg_t		2
+PSP_DD_MASTER_IS		DDBufferMsg_t		2
+
+PSP_DD_NODESRES			DDBufferMsg_t		4 + 2 + 2 + 1024 (= 1032)
+
+
+PSP_CD_CLIENTCONNECT		DDInitMsg_t		10 (+12 without PEERCRED)
+PSP_CD_CLIENTESTABLISHED	DDTypedBufferMsg_t	4
+PSP_CD_CLIENTREFUSED		DDTypedBufferMsg_t	4 + 4
+
+PSP_CD_SETOPTION		DDOptionMsg_t		1 + 16*8 (= 129)
+PSP_CD_GETOPTION		DDOptionMsg_t		1 + 16*8 (= 129)
+
+PSP_CD_INFOREQUEST		DDTypedBufferMsg_t	4 + max(4, max. length HW name)
+PSP_CD_INFORESPONSE		DDTypedBufferMsg_t	4 + 8 + 32 (from PSpart_encodeReq)
+							4 + NODES_CHUNK*2 (= 516)
+							4 + (status strings)
+							4 + (length HW name)
+							4 + 1024 (list chunks)
+
+PSP_CD_SPAWNREQUEST		DDBufferMsg_t		PStask_encode()
+							20 + 60 (termios) + 8 (winsizE) + 20
+							+ workingdir
+							+ argv
+							+ environment
+PSP_CD_SPAWNSUCCESS		DDErrorMsg_t		8
+PSP_CD_SPAWNFAILED		DDErrorMsg_t		8
+PSP_CD_SPAWNFINISH		DDErrorMsg_t		8
+PSP_CD_SPAWNREQ			@todo			@todo
+
+PSP_CD_ACCOUNT			@todo			@todo
+
+PSP_CD_NOTIFYDEAD		DDSignalMsg_t		10
+PSP_CD_NOTIFYDEADRES		DDSignalMsg_t		10
+PSP_CD_RELEASE			DDSignalMsg_t		10
+PSP_CD_RELEASERES		DDSignalMsg_t		10
+PSP_CD_SIGNAL			DDSignalMsg_t		10
+PSP_CD_WHODIED			DDSignalMsg_t		10
+PSP_CD_SIGRES			DDErrorMsg_t		8
+
+PSP_CD_DAEMONSTART		DDBufferMsg_t		2
+PSP_CD_DAEMONSTOP		DDMsg_t			0
+PSP_CD_DAEMONRESET		DDBufferMsg_t		4
+PSP_CD_HWSTART			DDBufferMsg_t		4
+PSP_CD_HWSTOP			DDBufferMsg_t		4
+PSP_CD_PLUGIN			DDTypedBufferMsg_t	4 + (pluginname string)
+PSP_CD_PLUGINRES		DDTypedMsg_t		4
+
+PSP_CD_CREATEPART		DDBufferMsg_t		32 (from PSpart_encodeReq)
+PSP_CD_CREATEPARTNL		DDBufferMsg_t		2 + NODES_CHUNK*2 (= 514)
+PSP_CD_PARTITIONRES		DDTypedMsg_t		4		
+PSP_CD_GETNODES			DDBufferMsg_t		4
+PSP_CD_NODESRES			DDBufferMsg_t		4 + NODES_CHUNK*2 (= 516)
+PSP_CD_GETRANKNODE		DDBufferMsg_t		4
+
+PSP_CD_SENDSTOP			DDMsg_t			0
+PSP_CD_SENDCONT			DDMsg_t			0
+
+PSP_CC_MSG			PSLog_Msg_T		1060 (maximum)
+PSP_CC_ERROR			DDMsg_t			0
+
+PSP_CD_ERROR			DDErrorMsg_t		8

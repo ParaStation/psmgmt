@@ -1,0 +1,17 @@
+#!/usr/bin/gnuplot
+
+set term png enhanced font arial 14 size 800,600
+
+set output 'MPI_startup.png'
+
+set title 'MPI startup time on JuRoPA-I'
+set xlabel 'number of processes'
+set ylabel 'time [sec]'
+set key left top
+set style data errorlines
+set yrange [:1.7]
+plot \
+  'results.1' title "MPI-1", \
+  'results.2' title "MPI-2"
+
+

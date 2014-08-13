@@ -1,0 +1,14 @@
+#!/bin/bash
+#               ParaStation Healthcheck
+#
+# Copyright (C) 2013 ParTec Cluster Competence Center GmbH, Munich
+#
+
+# Prologue script arguments:
+export PBS_JOBID=$1
+export PBS_USER=$2
+export PBS_GROUP=$3
+export PBS_JOBNAME=$4
+export PBS_LIMITS=$5
+export PBS_QUEUE=$6
+export PBS_ACCOUNT=$7

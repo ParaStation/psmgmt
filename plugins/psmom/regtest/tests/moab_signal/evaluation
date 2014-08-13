@@ -1,0 +1,21 @@
+#!/usr/bin/env python
+#
+#               ParaStation psmom test suite
+#
+# Copyright (C) 2011 ParTec Cluster Competence Center GmbH, Munich
+#
+# author
+# Michael Rauh (rauh@par-tec.com)
+#
+
+
+import sys
+import os
+
+sys.path.append(os.getenv("RTH"))
+from rth import *
+
+r = rth()
+rth.parseOutput(r, os.getenv("OUTPUT_FILE"))
+rth.testEnv(r, "SIGNAL28", "28")
+rth.testEnv(r, "SIGNAL15", "15")

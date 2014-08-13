@@ -1,0 +1,485 @@
+psmgmt NEWS -- history of user-visible changes.
+
+Copyright (C) 2010-2014 ParTec Cluster Competence Center GmbH, Munich
+
+Please send bug reports, questions and suggestions to <support@par-tec.com>
+
+
+*************************************************************************
+*************************************************************************
+**                                                                     **
+**  Remark: Starting with psmgmt 5.0.42 the pspmi plugin is mandatory  **
+**  for the MPI2 startup. Therefore, it has to be added to the         **
+**  parastation configuration.                                         **
+**                                                                     **
+*************************************************************************
+*************************************************************************
+
+
+*************************************************************************
+*************************************************************************
+**                                                                     **
+**  Remark: psmgmt 5.0.42 pushed pslog to version 3. This new version  **
+**  is *NOT* compatible with older parastation versions. Therefore, a  **
+**  setup of current version mixed with ones prior to 5.0.42 will      **
+**  *NOT* work                                                         **
+**                                                                     **
+*************************************************************************
+*************************************************************************
+
+Version 5.0.45:
+===============
+
+Bugfixes:
+- psaccount: update used cpu time periodically (#2147)
+- psmom: prevent protocol deadlocks from third party programs (jt:#6971)
+- psmom: Don't remove jobinfo for jobs with no walltime limit.
+- Fix psiadmin's output for 'list jobs' and 'list plugins'
+- Fix accounting again. This was broken by r8746.
+- Re-add psaccview.
+- psmom: fixed race condition when verfiying the scratch directory (DIR_TEMP).
+- Fix many bugs detected by LLVM's scan-build.
+- Correct cleanup of processes spawned via PMI_spawn()
+- Fix possible segfault in mpiexec's output merging (mpiexec -m)
+
+Enhancement:
+- Allow more than 32 cores per node
+- Add valgrind support to mpiexec
+- Enable PSP_SCHED_YIELD in mpiexec, if overbooking is requested (#151)
+- Remove hardcoded paths in pspmi and psmom (#2074)
+- Short proc title of psidfw to give more info on the actual process
+- psmom: Only root uses the master UNIX socket for local communication
+- New psiadmin directive 'list installdir'
+- Tell MPI processes to use PMI version 1
+- Start KVS service process on starter node
+- Move also spawner process of PMI_spawn() when __MPIEXEC_DIST_START is set
+- Resolving nodelist's hostnames only required for OpenMPI
+- Add lightweight memory debugging for psaccount, pspmi and psmom
+
+
+Version 5.0.44:
+===============
+
+Bugfixes:
+- Prevent segfault due to access of outdated task-structure (#2060)
+- kvsprovider should report to stderr not syslog (#2040)
+- kvsprovider has to exit on itself if pspmi plugin is absent
+- Propagate PMI_BARRIER_TMOUT and PMI_BARRIER_ROUNDS to all kvsproviders
+- psmom: Flag copy forwarder and its children always valid
+- psaccount: Free all config objects when the plugin gets unloaded 
+- psresport: Unregister hooks and message handler if initialisation fails
+- psmom: Unregister hooks and message handler if initialisation fails
+- More minor bugs and warnings detected by LLVM's scan-build fixed
+
+Enhancements:
+- psmom version 5.2.10-20 merged into psmgmt
+- Place spawner/kvsprovider on own nodes when __MPIEXEC_DIST_START is set
+- Let mpiexec output the TID of service processes in verbose mode
+- psmom: Moving the psid spawner process is now save (#2071)
+- psmom: Try every known pbs server on job obit for failover
+- Meaningful process title for the kvsprovider
+- More self-explanatory CC_ERROR log messages
+
+Additional changes:
+- Omit psid's dependency on libpsi and libpse.
+
+
+Version 5.0.43-1:
+=================
+
+Bugfixes:
+ - prevent kvs-provider getting stuck in loop
+
+Enhancements:
+ - Finally, handle logger's prfx, too. This should help with #1087
+ - Use malloc_trim() instead of malloc()/free() on  SIGUSR2
+
+
+Version 5.0.43:
+===============
+
+Bugfixes:
+ - Fix segmentation fault when growing client structures for negative 
+   ranks in the logger
+ - Prevent PSP_DD_SENDCONT-storms possibly initiated by forwarded
+   PSP_CD_RELEASE messages
+ - Prevent false RELEASERES messages when child is inherited several times
+ - Fix possible race whithin deleteClient(): SIGCHLD might lead to premature
+   invalidation of task structure.
+ - Don't release parent before all children are inherited. This should fix
+   a possible race unveiled by the new kvs-provider.
+ - Pre-allocate some fmt for logger (#1087)
+ - Drop PSP_CD_RELEASE correctly to prevent hanging processes
+ - Drop PSP_CD_NOTIFYDEAD correctly and don't send PSP_NOTIFYDEADRES twice
+
+Enhancements:
+ - Support for MPI_Comm_spawn
+ - KVS code moved from logger into service process (kvs-provider)
+
+
+Version 5.0.42:
+===============
+
+Remark: The pspmi plugin is now mandatory for the MPI2 startup and should
+be added as default to the parastation configuration.
+
+Remark: Pushed pslog to version 3. This new version is *NOT* compatible
+with older parastation versions.
+
+Bugfixes:
+ - Various changes to prevent psid from bloating (#1087)
+ - print all help messages of mpiexec to stdout (#1926)
+ - Avoid directory clash of /var/account (#1930)
+ - Fix possible segmentation-fault in psiadmin's auto-completion
+ - Fix memory-leak in psiadmin's parser.
+
+Enhancements:
+ - Keep a history of last accounted jobs to suppress confusing error messages
+ - Make hooks used by pspmi plugin official. Pushed plugin API to 110
+ - Let the psaccounter started by psid run as root
+ - Ordinary users only get their own accounting records using psaccounter
+ - PMI layer moved from the psidforwarder into the pspmi plugin
+ - Optimized distribution of PMI values and keys over daisy chain
+
+Additional changes:
+ - Let MPI processes fail if no pspmi plugin is loaded.
+ - Support for PMI spawn prepared (actual spawning still missing) (#1539)
+
+
+Version 5.0.41-2:
+=================
+Additional changes:
+ - Enable coredumps of forwarder on SIGPIPE for debugging purposes.
+
+
+Version 5.0.41-1:
+=================
+Bugfixes:
+ - Prevent call of iterations over message-buffers recursively. This
+    should fix new problems reported on JUDGE (JUDGE-TRAC #412)
+
+
+Version 5.0.41:
+===============
+Bugfixes:
+ - Prevent lists of messages-buffers from corruption due to
+   asynchronous operations. (JUDGE #412)
+ - Add missing header include for setrlimit().
+
+Enhancements:
+ - Speedup (un-)blocking of SIGCHLD by preventing actual syscalls.
+ - Speedup (un-)blocking of timers by cashing the latest search-result.
+
+
+Version 5.0.40-2:
+=================
+Bugfixes:
+ - Prevent from message floods due to flow-control. (#1907)
+ - Block any asynchronous action while doing garbage collection on
+   message buffers. (#1904 / #1907)
+ - Prevent race-condition that might lead to double free() of msgbufs
+   (#1904 / #1907)
+ - Don't let the init script confuse psidforwarder with the main psid
+   process (#1907)
+
+Enhancements:
+ - Only do PStask_gcSig() with expensive blocking of signals, if
+   required.
+
+
+Version 5.0.40-1:
+=================
+Bugfixes:
+ - Fix cpuinfo calls on Intel platforms (#1896)
+
+
+Version 5.0.40:
+===============
+Bugfixes:
+ - Allow to overbook nodes without pinning (#1877).
+ - Don't spawn broken tasks, if unable to determine logger's TID (#1844).
+ - Fix possible deadlock in psidforwarder's signal handler (#1708)
+ - Be more careful when asynchronously modifying daemon's signal-lists.
+ - Don't let send stop/cont messages disturb the partition request process.
+ - Guard PStask_clone() from rare races on list iterations.
+ - Ensure keeping the last chunk of msgbufs.
+ - Don't drop message, if buffers are temporarily unavailable in
+   the IP stack. Instead try to re-send.
+ - Ensure that timeout might expire several times in PSLog_read().
+ - Prevent futile daemon message on selector during shutdown
+ - Fix one possible deadlock in flow-control between forwarder and
+    logger on heavy traffic from both sides. For this, new messages
+    types PSP_CD_SENDSTOP and PSP_CD_SENDCONT were introduced.
+ - psh: omit newline after prompt when using "-s" (#1797)
+ - Ensure to really use the correct abstract UNIX socket as the local
+   service port
+ - forward client data before cleanup up jobs
+ - fixed segfault/list corruption in psaccount plugin (#1711)
+ - account jobscripts and children from serial jobs
+ - correct accounting of multiple mpiexec calls in a parallel job
+
+Enhancements:
+ - Enable binding to memory-nodes as default (#1747).
+ - Added support for the MVAPICH PMI process map extension.
+ - Added support for MPI_LOCALNRANKS and MPI_LOCALRANKID needed by libpsm
+ - Use Selector facility within psidforwarder (#1648)
+ - Implement 'parameter' directive in psiadmin to allow modification of
+   local parameters within the admin (#633).
+ - Allow psiadmin's 'list' directive to show hostnames (#490).
+ - Allow psiadmin's 'show' directive to print hex-numbers (#612).
+ - Check kernel.pid_max for compatibility with PStask_ID_t (#1767)
+ - implemented psaccount plugin's set/unset commands
+ - instantly cleanup jobs on psmom request
+ - better cleanup of leftover jobs/clients
+ - continously forward accounting information to logger node
+ - implemented psaccount plugin's show and help calls of plugin API
+
+Additional changes:
+ - Use $localstatedir instead of /var.
+ - Change defaults of $sysconfigdir and $localstatedir to /etc and /var,
+   respectively. 
+ - Added PSIDHOOK_CREATEPARTNL and pushed the plugin API to 109.
+ - Trigger a 1k malloc()/free() cycle via SIGUSR2 to psid.
+ - added configuration file for psaccount plugin
+
+
+Version 5.0.39:
+===============
+Bugfixes:
+ - Make pssh's -e and psmstart's --exports options working.
+ - Fix problem in RDP with window-size
+ - Ensure message-buffers get free()ed when RDP fails to establish connection
+
+Enhancements:
+ - Startup support for OpenMPI executables (version 1.5 and higher) (#580)
+ - Add new features required by psmom to solve #1477
+ - Prevent forwarder from excessive logging.
+ - More robust inline assembly in corePerPhysical()
+
+Additional changes:
+ - Move license to QPL
+
+
+Version 5.0.38:
+===============
+Bugfixes:
+ - syslog() might deadlock. Related to r8548 (#5285)
+
+Enhancements:
+ - Add support for GridEngine PE-files. (#932)
+ - Improved clash-detection on resources between CLI, environment and
+   batch-system
+ - Add 'silent' option to psiadmin's shutdown directive and be more verbose
+   during shutdown (#1572)
+ - Master socket now uses Linux's abstract address. (#1573)
+ - Get rid of explicit lock-file.
+
+Additional changes:
+ - Move legacy MPI starters into separate sub-package (#1584)
+ - Get rid of ELAN-support, since Quadrics QsNet seems to be dead (#1591)
+
+
+Version 5.0.37:
+===============
+Bugfixes:
+ - Block SIGCHLD while doing syslog() in order to prevent psid from deadlocks.
+   syslog() is not re-entrand! (JUDGE-TRAC #141)
+ - Ensure, that all TASKDEAD-messages are delivered to new master-psid after
+   failover. Additionally, don't tell new master about jobs currently shutting
+   down.
+ - Actually enable dumping of too-long messages tail. This completes the
+   changes done in r8132.
+ - Get rid of obsolete timer-entries after fork(). Might lead to strange
+   behavior, if timer is pending during fork()
+ - Connection to syslog has to be re-opened after cleanup for fork()
+ - Selectors shall be removed when corresponding file-descriptor is closed.
+ - Remove spurious TAB in output when talking to plugins (#1481).
+
+Enhancements:
+ - Prepare psiadmin to print-out hostnames instead of node IDs sometime (#490)
+
+Additional changes:
+ - Improve messages from psid's plugin-handling to psiadmin.
+ - Include stub into test-plugin for extraordinary long help-messages.
+
+
+Version 5.0.36:
+===============
+Bugfixes:
+ - Beautify psiadmin's 'plugin help/show/...' output (#1481)
+ - (quick fix) psaccount logging via mlog in the psmom forwarder can let
+   it exit unexpectedly.
+ - If old task-structure found during enqueue delete the right one.
+
+Enhancements:
+ - Replace gethostbyname() with getaddrinfo() (#654)
+ - If PSI_LOG_SILENT is set, logger will suppress all output.
+ - Next generation plugin API (#973)
+ - New type of timeout-handlers receiving the timer ID and additional
+   information upon elapse (#1361)
+ - sendSignal2Session() returns number of children signal was sent to
+ - psid shall not block SIGCHLD most of the time. Instead, only critical
+   code-regions are fenced by blocked SIGCHLD (#1333)
+
+
+Version 5.0.35:
+===============
+Bugfixes:
+ - Correct detection of psiadmin and mpiexec started from within scripts
+   run via pssh (#1280)
+ - psilogger suppresses unnecessary warning on duplicate FINALIZE (#1304)
+
+Enhancements:
+ - 'pssh -r' enables pssh to be used as transport for rsync (#504)
+ - Cancel PMI-barrier warning after all clients joined (#1172)
+ - Let the forwarders set there process title
+ - PSIDHOOK_SHUTDOWN realized (#1215)
+
+Additional changes:
+ - Add sample .gdbinit with some usefull functions for debugging psid.
+
+
+Version 5.0.34:
+===============
+Bugfixes:
+ - psiadmin prints out numerical IP address, if 'resolve' cannot get hostname
+ - Fix pinning, if node 0 was not yet involved. Before wrong partition
+   request was encoded with false protocol-version.
+
+Enhancements:
+ - New psmgmt-devel RPM holds additional headers for plugin development (#1100)
+ - mpiexec accepts multiple occurrences of -e option (jt:#4515)
+
+
+Version 5.0.33:
+===============
+Bugfixes:
+ - Fix problem in flow-control disturbing the psaccounter daemon
+ - Suppress unnecessary warning, if allocation of partition fails
+ - Improved plugin handling
+ - Fix psiadmin's 'range' command broken in last version
+
+Enhancements:
+ - Propagate PATH and LIBRARY_PATH environment automatically (#1173)
+ - Add psaccount plugin providing advanced accounting functionality
+ - More intuitive user-handling in configuration-file
+
+Additional changes:
+ - Version of the plugin API pushed to 103
+ - Adapt for gcc 4.5.1 coming with OpenSUSE 11.4
+
+
+Version 5.0.32:
+===============
+Bugfixes:
+ - Fix pssh's behavior for interactive sessions
+ - Fix race-conditions that might lock RDP's timer forever (#1077)
+ - Don't try to read the executable, if there's no permission (#1058)
+ - Allow plugin's initialize() method to fail (#1096)
+ - Fix some minor memory-leaks (#1009, )
+
+Enhancements:
+ - Allow users to influence pinning via __PSI_CPUMAP (#1086)
+ - Dynamical dropping of message within psid (#992)
+ - psid now has a hook-facility; currently it support PSIDHOOK_NODE_UP
+   and PSIDHOOK_NODE_DOWN
+ - Implement logger_finalize() in order to allow dynamical loggers (#1010)
+
+Additional changes:
+ - Version of the plugin API pushed to 102.
+
+
+Version 5.0.31:
+===============
+Bugfixes:
+ - Remove limitations on length of arguments when spawning processes (#740).
+ - psiadmin now accept range of the form last-first, too (#1014).
+ - Include RDP-header in maximum message size for protocols (#459).
+ - Fix crippled output of very long lines since 5.0.30.
+ - Fix memory leak in partition handling (#794).
+ - Catch possible segfaults within psid's logging.
+ - Prevent psid from segfaulting, if PSI_TPP erroneously set to 0.
+ - Don't crash psid, if client<->daemon protocol is messed up.
+
+Enhancements:
+ - Unload plugins before daemon shuts down (#562).
+ - RDP statistics (mean-time to ACK, etc.).
+ - psh: fix precedence of $RCMD, $AUTOCD and $MAXRCMD.
+ - Nicer output of long lines with and without prefixes.
+ - Better error-message from mpiexec, if spawning of service-process failed.
+ - More detailed messages on late receives in psilogger.
+ - Improve testing on failed initialization of loggers.
+ - Initialize timer facility explicitely (#799).
+
+Additional changes:
+ - Remove extra debug in context of #442.
+
+
+Version 5.0.30:
+===============
+Bugfixes:
+ - Improve memory-handling when temporarily buffering messages (#689/jt:#2686).
+ - Mark psiadmin's hex-output to be in hex (#612).
+ - Improved error-messages, if PMI barrier timeout strikes (#827).
+ - Improve logging with timestamps (#719).
+
+Enhancements:
+ - New psiadmin directive: echo (#632).
+ - RLIMIT_NOFILE now configurable & propagated to remote processes
+   (#792/jt:#2691).
+ - Better handling of hanging file-systems while spawning processes (#879).
+ - psid's environment might be changed during runtime (#815).
+ - Enhanced plugin-interface within psid (#562). This is a pre-requisit for
+   psmom and psaccount plugins.
+ - Job's starttime is listed in psiadmin's 'list jobs' directive.
+
+Additional changes:
+ - Improved logging on flaws in psid's configuration file.
+ - Add /opt/parastation/sbin to root's PATH (#893).
+
+
+Version 5.0.29:
+===============
+
+Bugfixes:
+ - psh name merging will not merge (#317).
+ - psh's NameCompress create empty result (#318).
+ - Performance enhancement in RDP: msgbufs put back into pool
+      earlier (jt:#3239).
+ - Performance enhancement in flow-control: Don't always wait
+      for Sselect to time-out (jt:#3239).
+
+Enhancements:
+ - use selectors to handle clients' file-descriptors in psid.
+ - allow to trigger Sselect() to start-over. Useful to enable modified
+      fd-sets more quickly. Might help with jt:#3239.
+ - allow to disable registered selectors temporarily.
+ - enable stack protector, if supported (#796).
+
+Additional changes:
+ - less important RDP-messages suppressed per default. These might
+      lead to bandwidth-problems on huge clusters due to created load.
+ - psh now uses psnameexpand and psnamecompress from pscluster/bin/pstool
+ - Obsolete NrofNodes removed from default configuration
+
+
+Version 5.0.28:
+===============
+
+Bugfixes:
+ - Various improvements in RDP protocol (#386).
+ - Fix possible race-condition when resequencing RDP messages (#327).
+    this might lead to the behavior described in #327.
+ - Improved startup of psid on huge cluster with few active nodes.
+ - psaccview: option --norcfile doesn't need a parameter
+ - psaccview: don't display empty lines when using option --nospace
+
+Enhancements:
+ - Improved logging from RDP's state-machine.
+ - psaccview: new option --last_days to show the last x days of accounting data.
+ - psaccview: new option --timeout will stop parsing if the timeout is reached.
+ - Allow service-tasks to explicitely request signals on children's end (#554).
+
+Additional changes:
+ - If core-dumps are enabled, psid does not catch SIGBUS any longer.
+ - Extended accounting functionality moved into plugin.
