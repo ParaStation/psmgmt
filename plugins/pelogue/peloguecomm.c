@@ -166,7 +166,9 @@ int fwCallback(int32_t wstat, char *errMsg, size_t errLen, void *data)
     PElogue_Data_t *pedata = fwdata->userData;
     Child_t *child = pedata->child;
     char *ptr, errBuf[50];
-    int exit_status;
+    int ret, exit_status, signalFlag;
+
+    signalFlag = child->signalFlag;
 
     if (wstat == -4) {
 	exit_status = wstat;
@@ -190,7 +192,7 @@ int fwCallback(int32_t wstat, char *errMsg, size_t errLen, void *data)
 
     }
 
-    if (!(deleteChild(child->plugin, child->jobid))) {
+    if (!(deleteChild(pedata->plugin, pedata->jobid))) {
 	mlog("%s: deleting child '%s' failed\n", __func__, fwdata->jobid);
     }
 
@@ -249,7 +251,7 @@ int fwCallback(int32_t wstat, char *errMsg, size_t errLen, void *data)
     addInt32ToMsgBuf(&msgRes, &ptr, exit_status);
 
     /* add signal flag */
-    addInt32ToMsgBuf(&msgRes, &ptr, pedata->child->signalFlag);
+    addInt32ToMsgBuf(&msgRes, &ptr, signalFlag);
 
     /* add error msg */
     if (exit_status != 0) {
@@ -263,9 +265,13 @@ int fwCallback(int32_t wstat, char *errMsg, size_t errLen, void *data)
 	addStringToMsgBuf(&msgRes, &ptr, "");
     }
 
-    mlog("%s: sending pelogue exit %i back to %s\n", __func__, exit_status,
-	    PSC_printTID(pedata->mainPelogue));
-    sendMsg(&msgRes);
+    ret = sendMsg(&msgRes);
+    mlog("%s: send pelogue exit '%i' back to '%s' ret '%i'\n", __func__,
+	    exit_status, PSC_printTID(pedata->mainPelogue), ret);
+
+    if (ret == -1) {
+	mwarn(errno, "%s: sendMsg() failed: ", __func__);
+    }
 
     /* cleanup */
     destroyPElogueData(pedata);

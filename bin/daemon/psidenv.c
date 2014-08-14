@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2011-2013 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2011-2014 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -124,24 +124,16 @@ void PSID_sendEnvList(PStask_ID_t dest, char *key)
  */
 static void msg_ENV(DDTypedBufferMsg_t *inmsg)
 {
-    PStask_t *task = PStasklist_find(&managedTasks, inmsg->header.sender);
     int destID = PSC_getID(inmsg->header.dest), ret = 0;
 
     PSID_log(PSID_LOG_ENV, "%s(%s, %s)\n", __func__,
 	     PSC_printTID(inmsg->header.sender), inmsg->buf);
 
-    if (PSC_getID(inmsg->header.sender) == PSC_getMyID()) {
-	if (!task) {
-	    PSID_log(-1, "%s: task %s not found\n",
-		     __func__, PSC_printTID(inmsg->header.sender));
-	    ret = EACCES;
-	    goto end;
-	} else if (task->uid) {
-	    PSID_log(-1, "%s: Only root is allowed to modify environments\n",
-		     __func__);
-	    ret = EACCES;
-	    goto end;
-	}
+    if (!PSID_checkPrivilege(inmsg->header.sender)) {
+	PSID_log(-1, "%s: task %s not allowed to modify environments\n",
+		 __func__, PSC_printTID(inmsg->header.sender));
+	ret = EACCES;
+	goto end;
     }
 
     if (destID != PSC_getMyID()) {

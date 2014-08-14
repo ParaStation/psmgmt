@@ -22,6 +22,7 @@
 #include <sys/sysinfo.h>
 #include <sys/utsname.h>
 #include <signal.h>
+#include <sys/vfs.h>
 
 #include "slurmcommon.h"
 #include "psslurmjob.h"
@@ -905,12 +906,12 @@ static void handleTerminateJob(int sock, Slurm_msg_header_t *msgHead,
 	    mlog("%s: waiting till job pro/epilogue is complete\n", __func__);
 	    return;
 	case JOB_EXIT:
+	case JOB_INIT:
 	    if (sock > -1) {
 		sendSlurmRC(sock, ESLURMD_KILL_JOB_ALREADY_COMPLETE, NULL);
 	    }
 	    deleteJob(job->jobid);
 	    return;
-
     }
 
     if (sock > -1) sendSlurmRC(sock, SLURM_SUCCESS, NULL);
@@ -939,6 +940,7 @@ static void handleTerminateStep(int sock, Slurm_msg_header_t *msgHead,
 
     switch (step->state) {
 	case JOB_RUNNING:
+	case JOB_PRESTART:
 	    if ((signalStepsByJobid(step->jobid, signal)) > 0) {
 		if (sock > -1) sendSlurmRC(sock, SLURM_SUCCESS, NULL);
 		mlog("%s: waiting till step is complete\n", __func__);
@@ -957,13 +959,17 @@ static void handleTerminateStep(int sock, Slurm_msg_header_t *msgHead,
 	    }
 	    deleteStep(step->jobid, step->stepid);
 	    return;
+	case JOB_INIT:
+	    if (sock > -1) sendSlurmRC(sock, SLURM_SUCCESS, NULL);
+	    deleteStep(step->jobid, step->stepid);
+	    return;
     }
 
     if (sock > -1) sendSlurmRC(sock, SLURM_SUCCESS, NULL);
 
     /* run epilogue */
-    mlog("%s: starting epilogue for step '%u:%u'\n", __func__, step->jobid,
-	    step->stepid);
+    mlog("%s: starting epilogue for step '%u:%u' state '%s'\n", __func__,
+	    step->jobid, step->stepid, jobState2String(step->state));
     step->state = JOB_EPILOGUE;
     startPElogue(step->jobid, step->uid, step->gid, step->nrOfNodes,
 		    step->nodes, step->env, step->envc, 1, 0);
@@ -1100,8 +1106,8 @@ static void handleTerminateReq(char *ptr, int sock, Slurm_msg_header_t *msgHead)
 	return;
     }
 
-    mlog("%s: jobid '%u:%u' slurm_jobstate '%u' uid '%u'\n", __func__,
-	    jobid, stepid, jobstate, uid);
+    mlog("%s: jobid '%u:%u' slurm_jobstate '%u' uid '%u' type '%i'\n", __func__,
+	    jobid, stepid, jobstate, uid, msgHead->type);
 
     /* find the corresponding job/step */
     job = findJobById(jobid);
@@ -1334,6 +1340,29 @@ static uint32_t getNodeMem()
     return (uint32_t)((float) pages * (pageSize / 1024 * 1024));
 }
 
+static uint32_t getTmpDisk()
+{
+    struct statfs sbuf;
+    float pageSize;
+    char tmpDef[] = "/tmp";
+    char *fs;
+
+    if ((pageSize = sysconf(_SC_PAGE_SIZE)) < 0) {
+	mwarn(errno, "%s: getting _SC_PAGE_SIZE failed: ", __func__);
+	return 1;
+    }
+
+    if (!(fs = getConfValueC(&SlurmConfig, "TmpFS"))) {
+	fs = tmpDef;
+    }
+
+    if ((statfs(fs, &sbuf)) == -1) {
+	mwarn(errno, "%s: statfs(%s) failed: ", __func__, fs);
+	return 1;
+    }
+    return (uint32_t)((long)sbuf.f_blocks * (pageSize / 1048576.0));
+}
+
 void sendNodeRegStatus(int sock, uint32_t status, int version)
 {
     PS_DataBuffer_t msg = { .buf = NULL };
@@ -1383,8 +1412,8 @@ void sendNodeRegStatus(int sock, uint32_t status, int version)
     addUint16ToMsg(tmp, &msg);
     /* real mem */
     addUint32ToMsg(getNodeMem(), &msg);
-    /* tmp disk: TODO use real val */
-    addUint32ToMsg(1, &msg);
+    /* tmp disk */
+    addUint32ToMsg(getTmpDisk(), &msg);
     /* uptime */
     if ((haveSysInfo = sysinfo(&info)) < 0) {
 	addUint32ToMsg(0, &msg);

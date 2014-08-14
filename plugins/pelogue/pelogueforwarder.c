@@ -120,7 +120,7 @@ static void startPElogue(int prologue, PElogue_Data_t *data, char *filename,
     /* close argv */
     argv[argc++] = NULL;
 
-    /* switch to user */
+    /* TODO: switch to user */
     /*
     if (!root) {
 	struct passwd *spasswd;
@@ -136,8 +136,13 @@ static void startPElogue(int prologue, PElogue_Data_t *data, char *filename,
 	setenv("USERNAME", "root", 1);
 	setenv("LOGNAME", "root", 1);
 	setenv("HOME", rootHome, 1);
-
     //}
+
+    if (prologue) {
+	setenv("PELOGUE", "prologue", 1);
+    } else {
+	setenv("PELOGUE", "epilogue", 1);
+    }
 
     /* set tmp directory */
     /*
@@ -146,6 +151,7 @@ static void startPElogue(int prologue, PElogue_Data_t *data, char *filename,
     }
     */
 
+    /* pshc will fail with malloc check enabled (pgrep) */
     unsetenv("MALLOC_CHECK_");
 
     /* start prologue script */

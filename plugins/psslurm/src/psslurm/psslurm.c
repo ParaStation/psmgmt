@@ -67,7 +67,7 @@ time_t start_time;
 
 /** psid plugin requirements */
 char name[] = "psslurm";
-int version = 4;
+int version = 7;
 int requiredAPI = 109;
 plugin_dep_t dependencies[4];
 

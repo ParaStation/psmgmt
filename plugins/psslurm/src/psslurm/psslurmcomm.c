@@ -283,7 +283,17 @@ static int connect2Slurmctld(void *data)
     /* need polling or slurmctld can run into problems ??
      * but polling is not good inside a psid plugin ....
      */
-    if ((sock = tcpConnect(addr, port)) < 0) return sock;
+    if ((sock = tcpConnect(addr, port)) < 0) {
+	/* try backup controller */
+	addr = getConfValueC(&SlurmConfig, "BackupController");
+
+	if (addr[0] == '"') addr++;
+	len = strlen(addr);
+	if (addr[len-1] == '"') addr[len-1] = '\0';
+	mlog("%s: connect to %s\n", __func__, addr);
+
+	if ((sock = tcpConnect(addr, port)) < 0) return sock;
+    }
 
     Selector_register(sock, handleSlurmctldReply, data);
     //mlog("%s: connected to slurmctld\n", __func__);
@@ -505,9 +515,11 @@ static int handleSrunMsg(int sock, void *data)
     /* lenght */
     getUint32(&ptr, &lenght);
 
+    /*
     mlog("%s: step '%u:%u' stdin '%u' type '%u' lenght '%u' gtid '%u' "
 	    "ltid '%u' pty:%u\n", __func__, step->jobid, step->stepid, fd,
 	    type, lenght, gtid, ltid, step->pty);
+    */
 
     if (type == SLURM_IO_CONNECTION_TEST) {
 	if (lenght != 0) {

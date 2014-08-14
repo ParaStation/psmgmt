@@ -80,6 +80,10 @@ int stepCallback(int32_t exit_status, char *errMsg, size_t errLen, void *data)
     Forwarder_Data_t *fwdata = data;
     Step_t *step = fwdata->userData;
 
+    if (errLen >0) {
+	mlog("%s: %s", __func__, errMsg);
+    }
+
     mlog("%s: step '%u:%u' state '%u' finished, exit '%u'\n", __func__,
 	step->jobid, step->stepid, step->state, exit_status);
 

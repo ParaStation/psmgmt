@@ -130,6 +130,13 @@ static int handleClientMsg(int fd, void *info)
 	    PSID_warn(-1, errno, "%s(%d): recvMsg()", __func__, fd);
 	}
     } else {
+	if (msg.header.sender != getClientTID(fd)) {
+	    PSID_log(-1, "%s: Got msg from %s on socket %d", __func__,
+		     PSC_printTID(msg.header.sender), fd);
+	    PSID_log(-1, " assigned to %s\n", PSC_printTID(getClientTID(fd)));
+	    /* drop message silently */
+	    return 0;
+	}
 	if (!PSID_handleMsg((DDBufferMsg_t *)&msg)) {
 	    PSID_log(-1, "%s: Problem on socket %d\n", __func__, fd);
 	}

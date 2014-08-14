@@ -78,6 +78,7 @@ Job_t *addJob(uint32_t jobid)
     job->partition = NULL;
     job->overcommit = 0;
     job->terminate = 0;
+    job->state = JOB_INIT;
 
     /* add job to job history */
     strncpy(jobHistory[jobHistIndex++], job->id, sizeof(jobHistory[0]));
@@ -135,6 +136,7 @@ Step_t *addStep(uint32_t jobid, uint32_t stepid)
     step->tidsLen = 0;
     step->terminate = 0;
     step->exitCode = 0;
+    step->state = JOB_INIT;
 
     list_add_tail(&(step->list), &StepList.list);
 

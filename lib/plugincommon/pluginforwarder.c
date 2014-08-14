@@ -112,6 +112,7 @@ static int connect2Mother(char *listenSocketName)
 static void killForwarderChild(int signal, char *reason)
 {
     int grace;
+    char buffer[512];
 
     if (forwarder_child_sid < 1) {
 	fprintf(stderr, "%s: invalid child sid '%i'\n", __func__,
@@ -122,10 +123,14 @@ static void killForwarderChild(int signal, char *reason)
     grace = fwdata->graceTime ? fwdata->graceTime : DEFAULT_GRACE_TIME;
 
     if (reason) {
-	fprintf(stderr, "signal '%u' to sid '%i' %sgrace time '%i'"
-		" sec, reason: %s\n", signal, forwarder_child_sid,
-		jobstring, grace, reason);
+	snprintf(buffer, sizeof(buffer), ", reason: %s", reason);
+    } else {
+	buffer[0] = '\0';
     }
+
+    fprintf(stderr, "signal '%u' to sid '%i' %sgrace time '%i'"
+	    " sec%s\n", signal, forwarder_child_sid,
+	    jobstring, grace, buffer);
 
     if (signal == SIGTERM) {
 	/* let children beeing debugged continue */
@@ -171,9 +176,6 @@ static int handleMessage(int fd, void *info)
 	default:
 	    pluginlog("%s: invalid cmd '%i' from '%i'\n", __func__, cmd, fd);
     }
-
-    pluginlog("%s: fd:%i got message, count %i, '%s'\n", __func__, fd,
-		count, buf);
 
     return 0;
 }
@@ -277,6 +279,11 @@ static int initForwarder()
     Selector_init(NULL);
     Timer_init(NULL);
 
+    signal(SIGALRM, signalHandler);
+    signal(SIGTERM, signalHandler);
+    signal(SIGCHLD, signalHandler);
+    signal(SIGPIPE, signalHandler);
+
     /* overwrite proc title */
     if (fwdata->pTitle) {
 	PSC_setProcTitle((char ** )PSID_argv, PSID_argc, fwdata->pTitle, 0);
@@ -302,11 +309,6 @@ static int initForwarder()
 
     blockSignal(SIGCHLD, 1);
     blockSignal(SIGALRM, 1);
-
-    signal(SIGALRM, signalHandler);
-    signal(SIGTERM, signalHandler);
-    signal(SIGCHLD, signalHandler);
-    signal(SIGPIPE, signalHandler);
 
     /* open control fds */
     if ((socketpair(PF_UNIX, SOCK_STREAM, 0, controlFDs)) <0) {
@@ -601,7 +603,7 @@ int callbackForwarder(int fd, PSID_scriptCBInfo_t *info)
     getScriptCBData(fd, info, &exit, errMsg, sizeof(errMsg), &errLen);
 
     if (!exit && data->forwarderError == 1) {
-	snprintf(errMsg, sizeof(errMsg), "%s", "reading from forwarder failed");
+	snprintf(errMsg, sizeof(errMsg), "%s", "reading from forwarder failed\n");
 	errLen = strlen(errMsg);
 	exit = data->forwarderError;
     }
@@ -889,19 +891,26 @@ static void handleConnectTimeout(int timerId, void *fwdata)
 int signalForwarderChild(Forwarder_Data_t *data, int signal)
 {
     PS_DataBuffer_t buffer = { .buf = NULL};
+    int ret, success = 0;
 
     if (data->controlSocket > -1) {
 	addInt32ToMsg(CMD_LOCAL_SIGNAL_CHILD, &buffer);
 	addInt32ToMsg(signal, &buffer);
-	doWriteP(data->controlSocket, buffer.buf, buffer.bufUsed);
+	ret = doWriteP(data->controlSocket, buffer.buf, buffer.bufUsed);
+	if (ret == buffer.bufUsed) success = 1;
 	ufree(buffer.buf);
-	return 1;
-    } else if (data->childSid > 0) {
+	pluginlog("%s: CMD_LOCAL_SIGNAL_CHILD : success:%i\n", __func__, success);
+    }
+    if (success) return 1;
+
+    if (data->childSid > 0) {
 	data->killSession(data->childSid, signal);
-	return 2;
+	pluginlog("%s: killSession(data->childSid)\n", __func__);
+	return 1;
     } else if (data->forwarderPid > 0) {
 	if (signal == SIGKILL) signal = SIGTERM;
 	kill(data->forwarderPid, signal);
+	pluginlog("%s: kill(data->Pid)\n", __func__);
 	return 2;
     } else {
 	pluginlog("%s: cannot signal forwarder, missing infos\n", __func__);

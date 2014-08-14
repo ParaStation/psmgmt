@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2013 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2014 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -263,7 +263,7 @@ void PSIADM_AddNode(char *nl)
     PSnodes_ID_t node;
 
     if (geteuid()) {
-	printf("Insufficient priviledge\n");
+	printf("Insufficient privilege\n");
 	return;
     }
 
@@ -296,8 +296,8 @@ void PSIADM_ShutdownNode(int silent, char *nl)
     int send_local = 0;
 
     if (geteuid()) {
-	printf("Insufficient priviledge\n");
-	return;
+    	printf("Insufficient privilege\n");
+    	return;
     }
 
     if (! getHostStatus()) return;
@@ -336,7 +336,7 @@ void PSIADM_HWStart(int hw, char *nl)
     int32_t hw32 = hw;
 
     if (geteuid()) {
-	printf("Insufficient priviledge\n");
+	printf("Insufficient privilege\n");
 	return;
     }
 
@@ -372,7 +372,7 @@ void PSIADM_HWStop(int hw, char *nl)
     int32_t hw32 = hw;
 
     if (geteuid()) {
-	printf("Insufficient priviledge\n");
+	printf("Insufficient privilege\n");
 	return;
     }
 
@@ -1435,11 +1435,6 @@ void PSIADM_SetParam(PSP_Option_t type, PSP_Optval_t value, char *nl)
 	.count = 1,
 	.opt = { { .option = 0, .value = 0 } } };
 
-    if (geteuid()) {
-	printf("Insufficient priviledge\n");
-	return;
-    }
-
     switch (type) {
     case PSP_OP_PROCLIMIT:
     case PSP_OP_SET_UID:
@@ -1549,11 +1544,6 @@ void PSIADM_SetParamList(PSP_Option_t type, PSIADM_valList_t *val, char *nl)
 	.count = 0,
 	.opt = { { .option = 0, .value = 0 } } };
     unsigned int i;
-
-    if (geteuid()) {
-	printf("Insufficient priviledge\n");
-	return;
-    }
 
     if (!val) {
 	printf("%s: No value-list given.\n", __func__);
@@ -1822,7 +1812,7 @@ void PSIADM_Reset(int reset_hw, char *nl)
     int send_local = 0;
 
     if (geteuid()) {
-	printf("Insufficient priviledge\n");
+	printf("Insufficient privilege\n");
 	return;
     }
 
@@ -1958,11 +1948,6 @@ void PSIADM_Plugin(char *nl, char *name, PSP_Plugin_t action)
     DDTypedMsg_t answer;
     PSnodes_ID_t node;
 
-    if (geteuid()) {
-	printf("Insufficient priviledge\n");
-	return;
-    }
-
     msg.type = action;
 
     if (!PSP_putTypedMsgBuf(&msg, "plugin", name, PSP_strLen(name))) return;
@@ -1993,7 +1978,8 @@ void PSIADM_Plugin(char *nl, char *name, PSP_Plugin_t action)
     }
 }
 
-static int recvPluginKeyAnswers(PStask_ID_t src, PSP_Plugin_t action)
+static int recvPluginKeyAnswers(PStask_ID_t src, PSP_Plugin_t action,
+				char *nodeStr)
 {
     DDTypedBufferMsg_t answer;
     int first = 1;
@@ -2017,7 +2003,7 @@ static int recvPluginKeyAnswers(PStask_ID_t src, PSP_Plugin_t action)
 	    return !first;
 
 	if (first) {
-	    printf("%s", nodeString(PSC_getID(src)));
+	    printf("%s", nodeStr);
 	    first = 0;
 	}
 
@@ -2056,11 +2042,6 @@ void PSIADM_PluginKey(char *nl, char *name, char *key, char *value,
     PSnodes_ID_t node;
     int width = PSC_getWidth(), separator = 0;
 
-    if (geteuid() || ! action==PSP_PLUGIN_SHOW) {
-	printf("Insufficient priviledge\n");
-	return;
-    }
-
     msg.type = action;
 
     if (!PSP_putTypedMsgBuf(&msg, "plugin", name, PSP_strLen(name))) return;
@@ -2079,10 +2060,11 @@ void PSIADM_PluginKey(char *nl, char *name, char *key, char *value,
 	}
 
 	if (hostStatus.list[node]) {
+	    char *nodeStr = nodeString(node);
 	    msg.header.dest = PSC_getTID(node, 0);
 	    PSI_sendMsg(&msg);
 
-	    separator = recvPluginKeyAnswers(msg.header.dest, action);
+	    separator = recvPluginKeyAnswers(msg.header.dest, action, nodeStr);
 	} else {
 	    printf("%s\tdown\n", nodeString(node));
 	    separator = 1;
@@ -2111,11 +2093,6 @@ void PSIADM_Environment(char *nl, char *key, char *value, PSP_Env_t action)
 	.buf = { 0 } };
     DDTypedMsg_t answer;
     PSnodes_ID_t node;
-
-    if (geteuid()) {
-	printf("Insufficient priviledge\n");
-	return;
-    }
 
     msg.type = action;
     switch (action) {

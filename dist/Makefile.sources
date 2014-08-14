@@ -392,6 +392,10 @@ plugins/psresport/psresportlog.c \
 plugins/psresport/psresportlog.h \
 plugins/psslurm/Makefile.am \
 plugins/psslurm/Makefile.in \
+plugins/psslurm/doc/Makefile.am \
+plugins/psslurm/doc/Makefile.in \
+plugins/psslurm/doc/psslurm-epilogue.example \
+plugins/psslurm/doc/psslurm-prologue.example \
 plugins/psslurm/src/common/Makefile.am \
 plugins/psslurm/src/common/Makefile.in \
 plugins/psslurm/src/common/psslurmmsg.c \
