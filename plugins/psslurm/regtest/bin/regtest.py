@@ -109,7 +109,7 @@ class WorkerThread(threading.Thread):
 		self.ret = self.fct(self, *self.args)
 
 #
-# Parse a single line of "scontrol -o show job" output.
+# Parse a single line of "scontrol --detail -o show job" output.
 def parse_scontrol_output_line(line):
 	stats = {}
 
@@ -133,7 +133,7 @@ def parse_scontrol_output(text):
 # Query the status of a job using scontrol. The argument jobid must
 # be a string.
 def query_scontrol(jobid):
-	p = popen(["scontrol", "-o", "show", "job", jobid], \
+	p = popen(["scontrol", "--detail", "-o", "show", "job", jobid], \
 	          stdout = subprocess.PIPE, \
 	          stderr = subprocess.PIPE)
 
