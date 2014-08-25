@@ -1,0 +1,9 @@
+{
+	"type": "batch",
+	"partitions": ["batch", "psslurm"],
+	"reservations": ["", "psslurm"],
+	"submit": "salloc -N 1 ./test.sh",
+	"eval": "eval.py",
+	"fproc": null,
+	"monitor_hz": 10
+}

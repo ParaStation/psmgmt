@@ -2,37 +2,23 @@
 
 import sys
 import os
-import traceback
-import re
-import pprint
 
-RETVAL = 0
+sys.path.append("/".join(os.path.abspath(os.path.dirname(sys.argv[0])).split('/')[0:-2] + ["lib"]))
+from testsuite import *
 
-def Assert(x, msg = None):
-	global RETVAL
+helper.pretty_print_env()
 
-	if not x:
-		if msg:
-			sys.stderr.write("Test failure ('%s'):\n" % msg)
-		else:
-			sys.stderr.write("Test failure:\n")
-		map(lambda x: sys.stderr.write("\t" + x.strip() + "\n"), traceback.format_stack())
-		RETVAL = 1
-
-pprint.pprint(os.environ, indent = 1)
-
-for p in [x.strip() for x in os.environ["PSTEST_PARTITIONS"].split()]:
-	P = p.upper()
-
-	Assert("0" == os.environ["PSTEST_FPROC_%s_EXIT_CODE" % P], p)
+for p in helper.partitions():
+	test.check("0" == helper.fproc_exit_code(p), p)
 
 	try:
-		out = open("%s/slurm-%s.out" % (os.environ["PSTEST_OUTDIR"], p)).read()
+		out   = open("%s/slurm-%s.out" % (os.environ["PSTEST_OUTDIR"], p)).read()
+		lines = [x for x in map(lambda z: z.strip(), out.split("\n")) if len(x) > 0]
 	except Exception as e:
-		Assert(1 == 0, p + ": " + str(e))
-	
-	lines = [x for x in map(lambda z: z.strip(), out.split("\n")) if len(x) > 0]
-	Assert("SIGINT" == lines[-1])
+		test.check(1 == 0, p + ": " + str(e))
 
-sys.exit(RETVAL)
+	test.check("SIGINT" == lines[-1], p)
+
+
+test.quit()
 

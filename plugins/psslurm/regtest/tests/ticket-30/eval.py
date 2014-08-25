@@ -2,40 +2,21 @@
 
 import sys
 import os
-import traceback
 import re
-import pprint
 
-RETVAL = 0
+sys.path.append("/".join(os.path.abspath(os.path.dirname(sys.argv[0])).split('/')[0:-2] + ["lib"]))
+from testsuite import *
 
-def Assert(x, msg = None):
-	global RETVAL
+helper.pretty_print_env()
 
-	if not x:
-		if msg:
-			sys.stderr.write("Test failure ('%s'):\n" % msg)
-		else:
-			sys.stderr.write("Test failure:\n")
-		map(lambda x: sys.stderr.write("\t" + x.strip() + "\n"), traceback.format_stack())
-		RETVAL = 1
-
-pprint.pprint(os.environ, indent = 1)
-
-for p in [x.strip() for x in os.environ["PSTEST_PARTITIONS"].split()]:
-	P = p.upper()
-
-	Assert("1:0" == os.environ["PSTEST_SCONTROL_%s_EXIT_CODE" % P], p)
-	Assert("FAILED" == os.environ["PSTEST_SCONTROL_%s_JOB_STATE" % P], p)
-
-	for x in ["STD_OUT", "STD_ERR"]:
-		try:
-			out = open(os.environ["PSTEST_SCONTROL_%s_%s" % (P, x)]).read()
-		except Exception as e:
-			Assert(1 == 0, p + ": " + str(e))
-
-		for line in out.split("\n"):
-			Assert(None == re.match(r'.*FAIL.*', line))
+for p in helper.partitions():
+	test.check("FAILED" == helper.job_state(p), p)
+	test.check("1:0"    == helper.job_exit_code(p), p)
+	
+	for lines in [helper.job_stdout_lines(p), helper.job_stderr_lines(p)]:
+		for line in lines:
+			test.check(None == re.match(r'.*FAIL.*', line), p)
 
 
-sys.exit(RETVAL)
+test.quit()
 

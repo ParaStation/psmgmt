@@ -2,40 +2,27 @@
 
 import sys
 import os
-import traceback
 import re
 import pprint
 
-RETVAL = 0
+sys.path.append("/".join(os.path.abspath(os.path.dirname(sys.argv[0])).split('/')[0:-2] + ["lib"]))
+from testsuite import *
 
-def Assert(x, msg = None):
-	global RETVAL
-
-	if not x:
-		if msg:
-			sys.stderr.write("Test failure ('%s'):\n" % msg)
-		else:
-			sys.stderr.write("Test failure:\n")
-		map(lambda x: sys.stderr.write("\t" + x.strip() + "\n"), traceback.format_stack())
-		RETVAL = 1
+helper.pretty_print_env()
 
 stdout = {}
 
-for p in [x.strip() for x in os.environ["PSTEST_PARTITIONS"].split()]:
-	P = p.upper()
+for p in helper.partitions():
+	helper.check_job_completed_ok(p)
 
-	Assert("0:0" == os.environ["PSTEST_SCONTROL_%s_EXIT_CODE" % P], p)
-	Assert("COMPLETED" == os.environ["PSTEST_SCONTROL_%s_JOB_STATE" % P], p)
-
-	try:
-		out = open(os.environ["PSTEST_SCONTROL_%s_STD_OUT" % P]).read()
-	except Exception as e:
-		Assert(1 == 0, p + ": " + str(e))
+	lines = [x for x in helper.job_stdout_lines(p) if x != "Submitted batch job %s" % helper.job_id(p)]
+	nodes = helper.job_node_list(p)
 
 	tmp = []
-	for line in out.split("\n"):
-		# TODO This is Juropa 3 specific
-		tmp.append(re.sub(r'j3c.*$', "", line))
+	for line in lines:
+		for node in nodes:
+			line = re.sub(r'%s$' % node, "", line)
+		tmp.append(line)
 
 	stdout[p] = tmp
 
@@ -48,11 +35,11 @@ for p, e in stdout.iteritems():
 		if p == q:
 			continue
 
-		Assert(len(e) == len(f))
+		test.check(len(e) == len(f))
 
 		for x in e:
-			Assert(1 == len([z for z in f if z.strip() == x.strip()]), \
+			test.check(1 == len([z for z in f if z.strip() == x.strip()]), \
 			       "x = %s, p = %s, q = %s" % (x, p, q))
 
-sys.exit(RETVAL)
+test.quit()
 

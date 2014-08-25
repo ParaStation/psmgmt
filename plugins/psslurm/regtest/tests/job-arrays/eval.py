@@ -2,54 +2,40 @@
 
 import sys
 import os
-import traceback
 import re
-import pprint
 
-RETVAL = 0
+sys.path.append("/".join(os.path.abspath(os.path.dirname(sys.argv[0])).split('/')[0:-2] + ["lib"]))
+from testsuite import *
 
-def Assert(x, msg = None):
-	global RETVAL
+helper.pretty_print_env()
 
-	if not x:
-		if msg:
-			sys.stderr.write("Test failure ('%s'):\n" % msg)
-		else:
-			sys.stderr.write("Test failure:\n")
-		map(lambda x: sys.stderr.write("\t" + x.strip() + "\n"), traceback.format_stack())
-		RETVAL = 1
-
-# env = {}
-print(os.environ)
-
-
-for p in [x.strip() for x in os.environ["PSTEST_PARTITIONS"].split()]:
+for p in helper.partitions():
 	P = p.upper()
 
 	try:
 		for i in range(3):
-			Assert("0:0" == os.environ["PSTEST_SCONTROL_%s_%d_EXIT_CODE" % (P, i)], p)
-			Assert("COMPLETED" == os.environ["PSTEST_SCONTROL_%s_%d_JOB_STATE" % (P, i)], p)
+			test.check("0:0" == os.environ["PSTEST_SCONTROL_%s_%d_EXIT_CODE" % (P, i)], p)
+			test.check("COMPLETED" == os.environ["PSTEST_SCONTROL_%s_%d_JOB_STATE" % (P, i)], p)
 
-			Assert(i == int(os.environ["PSTEST_SCONTROL_%s_%d_ARRAY_TASK_ID" % (P, i)]), p)
+			test.check(i == int(os.environ["PSTEST_SCONTROL_%s_%d_ARRAY_TASK_ID" % (P, i)]), p)
 
-			Assert(os.path.isfile(os.environ["PSTEST_SCONTROL_%s_%d_STD_OUT" % (P, i)]), p)
-			Assert(os.path.isfile(os.environ["PSTEST_SCONTROL_%s_%d_STD_ERR" % (P, i)]), p)
+			test.check(os.path.isfile(os.environ["PSTEST_SCONTROL_%s_%d_STD_OUT" % (P, i)]), p)
+			test.check(os.path.isfile(os.environ["PSTEST_SCONTROL_%s_%d_STD_ERR" % (P, i)]), p)
 
-			Assert(re.match(r'.*slurm-%s_%d.out' % (os.environ["PSTEST_SCONTROL_%s_%d_ARRAY_JOB_ID" % (P, i)], i), \
+			test.check(re.match(r'.*slurm-%s_%d.out' % (os.environ["PSTEST_SCONTROL_%s_%d_ARRAY_JOB_ID" % (P, i)], i), \
 			                                        os.environ["PSTEST_SCONTROL_%s_%d_STD_OUT" % (P, i)]), p)
-			Assert(re.match(r'.*slurm-%s_%d.out' % (os.environ["PSTEST_SCONTROL_%s_%d_ARRAY_JOB_ID" % (P, i)], i), \
+			test.check(re.match(r'.*slurm-%s_%d.out' % (os.environ["PSTEST_SCONTROL_%s_%d_ARRAY_JOB_ID" % (P, i)], i), \
 			                                        os.environ["PSTEST_SCONTROL_%s_%d_STD_ERR" % (P, i)]), p)
 
-		Assert(os.environ["PSTEST_SCONTROL_%s_0_JOB_ID" % P] != \
+		test.check(os.environ["PSTEST_SCONTROL_%s_0_JOB_ID" % P] != \
 		       os.environ["PSTEST_SCONTROL_%s_1_JOB_ID" % P], p)
-		Assert(os.environ["PSTEST_SCONTROL_%s_0_JOB_ID" % P] != \
+		test.check(os.environ["PSTEST_SCONTROL_%s_0_JOB_ID" % P] != \
 		       os.environ["PSTEST_SCONTROL_%s_2_JOB_ID" % P], p)
-		Assert(os.environ["PSTEST_SCONTROL_%s_1_JOB_ID" % P] != \
+		test.check(os.environ["PSTEST_SCONTROL_%s_1_JOB_ID" % P] != \
 		       os.environ["PSTEST_SCONTROL_%s_2_JOB_ID" % P], p)
 
 	except Exception as e:
-		Assert(1 == 0, p + ": " + str(e))
+		test.check(1 == 0, p + ": " + str(e))
 
 # Cleanup
 for p in [x.strip() for x in os.environ["PSTEST_PARTITIONS"].split()]:
@@ -64,5 +50,5 @@ for p in [x.strip() for x in os.environ["PSTEST_PARTITIONS"].split()]:
 			os.rename(fn, os.environ["PSTEST_OUTDIR"] + "/%s" % os.path.basename(fn))
 
 
-sys.exit(RETVAL)
+test.quit()
 
