@@ -588,10 +588,47 @@ int setPBSNodeState(char *server, char *note, char *state, const char *host)
     return 0;
 }
 
+static int doSendObit(Job_t *job, char *addr, int port)
+{
+    ComHandle_t *com;
+
+    /* open a new connection to pbs_server */
+    if (!(com = wConnect(port, addr, TCP_PROTOCOL))) {
+	mdbg(PSMOM_LOG_OBIT, "%s: failed sending job obit(1) for '%s' to "
+		"'%s'\n", __func__, job->id, job->server);
+	return 0;
+    }
+
+    /* send obit of the job */
+    if (!com->jobid) com->jobid = ustrdup(job->id);
+
+    mdbg(PSMOM_LOG_PTM, "%s: sending obit job:%s\n", __func__, job->id);
+    mdbg(PSMOM_LOG_JOB, "%s job '%s' finished with exit code [%i]\n",
+	    (job->qsubPort ? "interactive" : "batch"), job->id,
+	    job->jobscriptExit);
+
+    WriteTM(com, PBS_BATCH_JobObit);
+    WriteString(com, "pbs_mom");
+    WriteString(com, job->id);
+
+    WriteDigit(com, job->jobscriptExit);
+    WriteDataStruct(com,  &job->status);
+    WriteDigit(com, 0);
+
+    /* send exit status */
+    if ((wDoSend(com)) == -1) {
+	mdbg(PSMOM_LOG_OBIT, "%s: failed sending job obit(2) for '%s' to "
+		"'%s'\n", __func__, job->id, job->server);
+	return 0;
+    }
+
+    return 1;
+}
+
 /**
  * @brief Send a TM job termination message.
  *
- * Inform the pbs server about a job terminination.
+ * Inform the PBS server about a job terminination.
  *
  * @param job The job to send the termination message.
  *
@@ -600,7 +637,6 @@ int setPBSNodeState(char *server, char *note, char *state, const char *host)
 int sendTMJobTermination(Job_t *job)
 {
     struct list_head *pos;
-    ComHandle_t *com;
     int serverPort, obitSuccess = 0;
     Server_t *serv;
 
@@ -611,47 +647,28 @@ int sendTMJobTermination(Job_t *job)
 
     getConfParamI("PORT_SERVER", &serverPort);
 
-    list_for_each(pos, &ServerList.list) {
-	if (!(serv = list_entry(pos, Server_t, list))) break;
-
-	/* we cannot obit a job if the rpp connection to the server is broken */
-	if (!serv->lastContact) continue;
-
-	/* open a new connection to pbs_server */
-	if (!(com = wConnect(serverPort, job->server, TCP_PROTOCOL))) {
-	    mdbg(PSMOM_LOG_OBIT, "%s: failed sending job obit(1) for '%s' to "
-		    "'%s'\n", __func__, job->id, job->server);
-	    continue;
-	}
-
-	/* send obit of the job */
-	if (!com->jobid) com->jobid = ustrdup(job->id);
-
-	mdbg(PSMOM_LOG_PTM, "%s: sending obit job:%s\n", __func__, job->id);
-	mdbg(PSMOM_LOG_JOB, "%s job '%s' finished with exit code [%i]\n",
-		(job->qsubPort ? "interactive" : "batch"), job->id,
-		job->jobscriptExit);
-
-	WriteTM(com, PBS_BATCH_JobObit);
-	WriteString(com, "pbs_mom");
-	WriteString(com, job->id);
-
-	WriteDigit(com, job->jobscriptExit);
-	WriteDataStruct(com,  &job->status);
-	WriteDigit(com, 0);
-
-	/* send exit status */
-	if ((wDoSend(com)) == -1) {
-	    mdbg(PSMOM_LOG_OBIT, "%s: failed sending job obit(2) for '%s' to "
-		    "'%s'\n", __func__, job->id, job->server);
-	    continue;
-	}
-
+    if ((doSendObit(job, job->server, serverPort))) {
 	obitSuccess = 1;
-	break;
+    } else {
+	list_for_each(pos, &ServerList.list) {
+	    if (!(serv = list_entry(pos, Server_t, list))) break;
+
+	    /* we cannot obit a job if the rpp connection
+	     * to the PBS server is broken */
+	    if (!serv->lastContact) {
+		mdbg(PSMOM_LOG_OBIT, "%s: jobid '%s', skipping server '%s', "
+			"no rpp connection\n", __func__, job->id, job->server);
+		continue;
+	    }
+
+	    if (!(doSendObit(job, serv->addr, serverPort))) continue;
+
+	    obitSuccess = 1;
+	    break;
+	}
     }
 
-    /* setup timer later later retries */
+    /* setup timer for later retries */
     if (!obitSuccess) {
 	if (job->state != JOB_WAIT_OBIT) {
 	    setJobObitTimer(job);
