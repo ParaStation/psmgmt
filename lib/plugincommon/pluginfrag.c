@@ -89,7 +89,7 @@ int __recvFragMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_func_t *func,
     char *ptr;
     static uint16_t dataLeft = 0;
     static char *dataPtr = NULL;
-    static PS_DataBuffer_t data;
+    static PS_DataBuffer_t data = { .buf = NULL, .bufSize = 0 };
     static PS_Frag_Msg_Header_t *fhead = NULL, *rhead;
     static int msgCount = 0;
     int cleanup = 0;

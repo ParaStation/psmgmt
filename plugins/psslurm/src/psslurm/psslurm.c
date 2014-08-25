@@ -67,7 +67,7 @@ time_t start_time;
 
 /** psid plugin requirements */
 char name[] = "psslurm";
-int version = 7;
+int version = 8;
 int requiredAPI = 109;
 plugin_dep_t dependencies[4];
 
@@ -274,13 +274,18 @@ int initialize(void)
 
     setenv("MALLOC_CHECK_", "2", 1);
 
-    /* init all data lists */
-    initJobList();
-
     /* init the logger (log to syslog) */
     initLogger("psslurm", NULL);
     maskLogger(PSSLURM_LOG_PROTO);
-    initPluginLogger(NULL, NULL);
+
+    /*
+    FILE *lfile = fopen("/tmp/malloc", "w+");
+    initPluginLogger(NULL, lfile);
+    maskPluginLogger(PLUGIN_LOG_MALLOC);
+    */
+
+    /* init all data lists */
+    initJobList();
 
     /* we need to have root privileges, or the pbs_server will refuse our
      * connection attempt.

@@ -171,22 +171,25 @@ int __doRead(int fd, void *buffer, size_t toread, const char *func,
  *
  * @return No return value.
  */
-static void growBuffer(size_t len, PS_DataBuffer_t *data)
+static void growBuffer(size_t len, PS_DataBuffer_t *data, const char *caller,
+			const int line)
 {
     if (data->buf == NULL) {
-	data->buf = umalloc(BufTypedMsgSize);
+	data->buf = __umalloc(BufTypedMsgSize, caller, line);
 	data->bufSize = BufTypedMsgSize;
 	data->bufUsed = 0;
     }
 
     while (data->bufUsed + len > data->bufSize) {
-	data->buf = urealloc(data->buf, data->bufSize + BufTypedMsgSize);
+	data->buf = __urealloc(data->buf, data->bufSize + BufTypedMsgSize,
+				caller, line);
 	data->bufSize += BufTypedMsgSize;
     }
 }
 
 int __addStringArrayToMsg(char **array, const uint32_t len,
-			    PS_DataBuffer_t *data, const char *caller)
+			    PS_DataBuffer_t *data, const char *caller,
+			    const int line)
 {
     uint32_t i;
 
@@ -195,17 +198,17 @@ int __addStringArrayToMsg(char **array, const uint32_t len,
 	return 0;
     }
 
-    if (!( __addUint32ToMsg(len, data, caller))) return 0;
+    if (!( __addUint32ToMsg(len, data, caller, line))) return 0;
 
     for (i=0; i<len; i++) {
-	if (!(__addStringToMsg(array[i], data, caller))) return 0;
+	if (!(__addStringToMsg(array[i], data, caller, line))) return 0;
     }
 
     return 1;
 }
 
 int __addStringToMsg(const char *string, PS_DataBuffer_t *data,
-			const char *caller)
+			const char *caller, const int line)
 {
     size_t len;
     char *ptr;
@@ -217,7 +220,7 @@ int __addStringToMsg(const char *string, PS_DataBuffer_t *data,
 
     len = (!string) ? 0 : strlen(string) +1;
 
-    growBuffer(sizeof(uint8_t) + sizeof(uint32_t) + len, data);
+    growBuffer(sizeof(uint8_t) + sizeof(uint32_t) + len, data, caller, line);
     ptr = data->buf + data->bufUsed;
 
     /* add data type */
@@ -241,7 +244,7 @@ int __addStringToMsg(const char *string, PS_DataBuffer_t *data,
 }
 
 int __addUint8ToMsg(const uint8_t val, PS_DataBuffer_t *data,
-		    const char *caller)
+		    const char *caller, const int line)
 {
     char *ptr;
 
@@ -250,7 +253,7 @@ int __addUint8ToMsg(const uint8_t val, PS_DataBuffer_t *data,
 	return 0;
     }
 
-    growBuffer(sizeof(uint8_t) + sizeof(uint8_t), data);
+    growBuffer(sizeof(uint8_t) + sizeof(uint8_t), data, caller, line);
     ptr = data->buf + data->bufUsed;
 
     /* add data type */
@@ -267,7 +270,7 @@ int __addUint8ToMsg(const uint8_t val, PS_DataBuffer_t *data,
 }
 
 int __addUint16ToMsg(const uint16_t val, PS_DataBuffer_t *data,
-		    const char *caller)
+		    const char *caller, const int line)
 {
     char *ptr;
 
@@ -276,7 +279,7 @@ int __addUint16ToMsg(const uint16_t val, PS_DataBuffer_t *data,
 	return 0;
     }
 
-    growBuffer(sizeof(uint8_t) + sizeof(uint16_t), data);
+    growBuffer(sizeof(uint8_t) + sizeof(uint16_t), data, caller, line);
     ptr = data->buf + data->bufUsed;
 
     /* add data type */
@@ -293,7 +296,7 @@ int __addUint16ToMsg(const uint16_t val, PS_DataBuffer_t *data,
 }
 
 int __addUint32ToMsg(const uint32_t val, PS_DataBuffer_t *data,
-		    const char *caller)
+		    const char *caller, const int line)
 {
     char *ptr;
 
@@ -302,7 +305,7 @@ int __addUint32ToMsg(const uint32_t val, PS_DataBuffer_t *data,
 	return 0;
     }
 
-    growBuffer(sizeof(uint8_t) + sizeof(uint32_t), data);
+    growBuffer(sizeof(uint8_t) + sizeof(uint32_t), data, caller, line);
     ptr = data->buf + data->bufUsed;
 
     /* add data type */
@@ -319,7 +322,7 @@ int __addUint32ToMsg(const uint32_t val, PS_DataBuffer_t *data,
 }
 
 int __addUint64ToMsg(const uint64_t val, PS_DataBuffer_t *data,
-		    const char *caller)
+		    const char *caller, const int line)
 {
     char *ptr;
 
@@ -328,7 +331,7 @@ int __addUint64ToMsg(const uint64_t val, PS_DataBuffer_t *data,
 	return 0;
     }
 
-    growBuffer(sizeof(uint8_t) + sizeof(uint64_t), data);
+    growBuffer(sizeof(uint8_t) + sizeof(uint64_t), data, caller, line);
     ptr = data->buf + data->bufUsed;
 
     /* add data type */
@@ -345,7 +348,7 @@ int __addUint64ToMsg(const uint64_t val, PS_DataBuffer_t *data,
 }
 
 int __addDoubleToMsg(double val, PS_DataBuffer_t *data,
-		    const char *caller)
+		    const char *caller, const int line)
 {
     char *ptr;
 
@@ -361,7 +364,7 @@ int __addDoubleToMsg(double val, PS_DataBuffer_t *data,
 
     uval.d = (val * FLOAT_CONVERT);
 
-    growBuffer(sizeof(uint8_t) + sizeof(uint64_t), data);
+    growBuffer(sizeof(uint8_t) + sizeof(uint64_t), data, caller, line);
     ptr = data->buf + data->bufUsed;
 
     /* add data type */
@@ -378,7 +381,7 @@ int __addDoubleToMsg(double val, PS_DataBuffer_t *data,
 }
 
 int __addInt16ToMsg(const int16_t val, PS_DataBuffer_t *data,
-		    const char *caller)
+		    const char *caller, const int line)
 {
     char *ptr;
 
@@ -387,7 +390,7 @@ int __addInt16ToMsg(const int16_t val, PS_DataBuffer_t *data,
 	return 0;
     }
 
-    growBuffer(sizeof(uint8_t) + sizeof(int16_t), data);
+    growBuffer(sizeof(uint8_t) + sizeof(int16_t), data, caller, line);
     ptr = data->buf + data->bufUsed;
 
     /* add data type */
@@ -404,7 +407,7 @@ int __addInt16ToMsg(const int16_t val, PS_DataBuffer_t *data,
 }
 
 int __addInt32ToMsg(const int32_t val, PS_DataBuffer_t *data,
-		    const char *caller)
+		    const char *caller, const int line)
 {
     char *ptr;
 
@@ -413,7 +416,7 @@ int __addInt32ToMsg(const int32_t val, PS_DataBuffer_t *data,
 	return 0;
     }
 
-    growBuffer(sizeof(uint8_t) + sizeof(int32_t), data);
+    growBuffer(sizeof(uint8_t) + sizeof(int32_t), data, caller, line);
     ptr = data->buf + data->bufUsed;
 
     /* add data type */
@@ -431,7 +434,8 @@ int __addInt32ToMsg(const int32_t val, PS_DataBuffer_t *data,
 }
 
 int __addUint16ArrayToMsg(const uint16_t *val, const uint32_t len,
-			    PS_DataBuffer_t *data, const char *caller)
+			    PS_DataBuffer_t *data, const char *caller,
+			    const int line)
 {
     uint32_t i;
 
@@ -440,17 +444,18 @@ int __addUint16ArrayToMsg(const uint16_t *val, const uint32_t len,
 	return 0;
     }
 
-    if (!( __addUint32ToMsg(len, data, caller))) return 0;
+    if (!( __addUint32ToMsg(len, data, caller, line))) return 0;
 
     for (i=0; i<len; i++) {
-	__addUint16ToMsg(val[i], data, caller);
+	__addUint16ToMsg(val[i], data, caller, line);
     }
 
     return 1;
 }
 
 int __addUint32ArrayToMsg(const uint32_t *val, const uint32_t len,
-			    PS_DataBuffer_t *data, const char *caller)
+			    PS_DataBuffer_t *data, const char *caller,
+			    const int line)
 {
     uint32_t i;
 
@@ -459,17 +464,18 @@ int __addUint32ArrayToMsg(const uint32_t *val, const uint32_t len,
 	return 0;
     }
 
-    if (!( __addUint32ToMsg(len, data, caller))) return 0;
+    if (!( __addUint32ToMsg(len, data, caller, line))) return 0;
 
     for (i=0; i<len; i++) {
-	__addUint32ToMsg(val[i], data, caller);
+	__addUint32ToMsg(val[i], data, caller, line);
     }
 
     return 1;
 }
 
 int __addInt16ArrayToMsg(const int16_t *val, const uint32_t len,
-			    PS_DataBuffer_t *data, const char *caller)
+			    PS_DataBuffer_t *data, const char *caller,
+			    const int line)
 {
     uint32_t i;
 
@@ -478,17 +484,18 @@ int __addInt16ArrayToMsg(const int16_t *val, const uint32_t len,
 	return 0;
     }
 
-    if (!( __addUint32ToMsg(len, data, caller))) return 0;
+    if (!( __addUint32ToMsg(len, data, caller, line))) return 0;
 
     for (i=0; i<len; i++) {
-	__addInt16ToMsg(val[i], data, caller);
+	__addInt16ToMsg(val[i], data, caller, line);
     }
 
     return 1;
 }
 
 int __addInt32ArrayToMsg(const int32_t *val, const uint32_t len,
-			    PS_DataBuffer_t *data, const char *caller)
+			    PS_DataBuffer_t *data, const char *caller,
+			    const int line)
 {
     uint32_t i;
 
@@ -497,17 +504,17 @@ int __addInt32ArrayToMsg(const int32_t *val, const uint32_t len,
 	return 0;
     }
 
-    if (!( __addUint32ToMsg(len, data, caller))) return 0;
+    if (!( __addUint32ToMsg(len, data, caller, line))) return 0;
 
     for (i=0; i<len; i++) {
-	__addInt32ToMsg(val[i], data, caller);
+	__addInt32ToMsg(val[i], data, caller, line);
     }
 
     return 1;
 }
 
 int __addTimeToMsg(const time_t *time, PS_DataBuffer_t *data,
-		    const char *caller)
+		    const char *caller, const int line)
 {
     char *ptr;
     time_t tmp;
@@ -522,7 +529,7 @@ int __addTimeToMsg(const time_t *time, PS_DataBuffer_t *data,
 	return 0;
     }
 
-    growBuffer(sizeof(uint8_t) + sizeof(uint64_t), data);
+    growBuffer(sizeof(uint8_t) + sizeof(uint64_t), data, caller, line);
     ptr = data->buf + data->bufUsed;
 
     /* add data type */
@@ -540,7 +547,7 @@ int __addTimeToMsg(const time_t *time, PS_DataBuffer_t *data,
 }
 
 int __addMemToMsg(void *mem, uint32_t memLen, PS_DataBuffer_t *data,
-		    const char *caller)
+		    const char *caller, const int line)
 {
     void *ptr;
 
@@ -549,7 +556,7 @@ int __addMemToMsg(void *mem, uint32_t memLen, PS_DataBuffer_t *data,
 	return 0;
     }
 
-    growBuffer(sizeof(uint8_t) + sizeof(uint32_t) + memLen, data);
+    growBuffer(sizeof(uint8_t) + sizeof(uint32_t) + memLen, data, caller, line);
     ptr = data->buf + data->bufUsed;
 
     /* add data type */
@@ -565,7 +572,8 @@ int __addMemToMsg(void *mem, uint32_t memLen, PS_DataBuffer_t *data,
     return 1;
 }
 
-int __addPidToMsg(const pid_t pid, PS_DataBuffer_t *data, const char *caller)
+int __addPidToMsg(const pid_t pid, PS_DataBuffer_t *data,
+		    const char *caller, const int line)
 {
     char *ptr;
 
@@ -574,7 +582,7 @@ int __addPidToMsg(const pid_t pid, PS_DataBuffer_t *data, const char *caller)
 	return 0;
     }
 
-    growBuffer(sizeof(uint8_t) + sizeof(pid_t), data);
+    growBuffer(sizeof(uint8_t) + sizeof(pid_t), data, caller, line);
     ptr = data->buf + data->bufUsed;
 
     /* add data type */
@@ -827,7 +835,7 @@ int __getUint16Array(char **ptr, uint16_t **val, uint32_t *len,
     if (!( __getUint32(ptr, len, caller, line))) return 0;
 
     if (*len <= 0) return 1;
-    *val = umalloc(sizeof(uint16_t) * *len);
+    *val = __umalloc(sizeof(uint16_t) * *len, caller, line);
 
     for (i=0; i<*len; i++) {
 	__getUint16(ptr, &(*val)[i], caller, line);
@@ -844,7 +852,7 @@ int __getUint32Array(char **ptr, uint32_t **val, uint32_t *len,
     if (!( __getUint32(ptr, len, caller, line))) return 0;
 
     if (*len <= 0) return 1;
-    *val = umalloc(sizeof(uint32_t) * *len);
+    *val = __umalloc(sizeof(uint32_t) * *len, caller, line);
 
     for (i=0; i<*len; i++) {
 	__getUint32(ptr, &(*val)[i], caller, line);
@@ -861,7 +869,7 @@ int __getInt16Array(char **ptr, int16_t **val, uint32_t *len,
     if (!( __getUint32(ptr, len, caller, line))) return 0;
 
     if (*len <= 0) return 1;
-    *val = umalloc(sizeof(int16_t) * *len);
+    *val = __umalloc(sizeof(int16_t) * *len, caller, line);
 
     for (i=0; i<*len; i++) {
 	__getInt16(ptr, &(*val)[i], caller, line);
@@ -878,7 +886,7 @@ int __getInt32Array(char **ptr, int32_t **val, uint32_t *len,
     if (!( __getUint32(ptr, len, caller, line))) return 0;
 
     if (*len <= 0) return 1;
-    *val = umalloc(sizeof(int32_t) * *len);
+    *val = __umalloc(sizeof(int32_t) * *len, caller, line);
 
     for (i=0; i<*len; i++) {
 	__getInt32(ptr, &(*val)[i], caller, line);
@@ -929,7 +937,7 @@ char *__getStringM(char **ptr, const char *caller, const int line)
     len = byteOrder ? ntohl(len) : len;
     *ptr += sizeof(uint32_t);
 
-    data = umalloc(len);
+    data = __umalloc(len, caller, line);
 
     /* extract the string */
     if (len > 0) {
@@ -953,7 +961,7 @@ int __getStringArrayM(char **ptr, char ***array, uint32_t *len,
 
     if (!*len) return 1;
 
-    *array = umalloc(sizeof(char *) * (*len + 1));
+    *array = __umalloc(sizeof(char *) * (*len + 1), caller, line);
 
     for (i=0; i<*len; i++) {
 	(*array)[i] = __getStringM(ptr, caller, line);

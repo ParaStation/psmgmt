@@ -285,17 +285,23 @@ static int connect2Slurmctld(void *data)
      */
     if ((sock = tcpConnect(addr, port)) < 0) {
 	/* try backup controller */
-	addr = getConfValueC(&SlurmConfig, "BackupController");
+	if ((addr = getConfValueC(&SlurmConfig, "BackupController"))) {
 
-	if (addr[0] == '"') addr++;
-	len = strlen(addr);
-	if (addr[len-1] == '"') addr[len-1] = '\0';
-	mlog("%s: connect to %s\n", __func__, addr);
+	    if (addr[0] == '"') addr++;
+	    len = strlen(addr);
+	    if (addr[len-1] == '"') addr[len-1] = '\0';
+	    mlog("%s: connect to %s\n", __func__, addr);
 
-	if ((sock = tcpConnect(addr, port)) < 0) return sock;
+	    if ((sock = tcpConnect(addr, port)) < 0) return sock;
+	} else {
+	    return sock;
+	}
     }
 
-    Selector_register(sock, handleSlurmctldReply, data);
+    if ((Selector_register(sock, handleSlurmctldReply, data)) == -1) {
+	mlog("%s: Selector_register(%i) failed\n", __func__, sock);
+	exit(1);
+    }
     //mlog("%s: connected to slurmctld\n", __func__);
 
     return sock;
@@ -392,7 +398,10 @@ static int acceptSlurmdClient(int asocket, void *data)
     mdbg(PSSLURM_LOG_COMM, "%s: from %s:%u socket:%i\n", __func__,
 	inet_ntoa(SAddr.sin_addr), ntohs(SAddr.sin_port), socket);
 
-    Selector_register(socket, handleSlurmdMsg, NULL);
+    if ((Selector_register(socket, handleSlurmdMsg, NULL)) == -1) {
+	mlog("%s: Selector_register(%i) failed\n", __func__, socket);
+	exit(1);
+    }
     return 0;
 }
 
@@ -437,7 +446,10 @@ int openSlurmdSocket(int port)
 
     /* add socket to psid selector */
     //mlog("%s: register fd:%i port:%i\n", __func__, sock, port);
-    Selector_register(sock, acceptSlurmdClient, NULL);
+    if ((Selector_register(sock, acceptSlurmdClient, NULL)) == -1) {
+	mlog("%s: Selector_register(%i) failed\n", __func__, sock);
+	exit(1);
+    }
 
     return sock;
 }
@@ -576,7 +588,11 @@ int srunSendMsg(int sock, Step_t *step, slurm_msg_type_t type,
 	if ((sock = srunOpenControlConnection(step)) < 0) return -1;
     }
 
-    Selector_register(sock, handleSrunMsg, step);
+    if ((Selector_register(sock, handleSrunMsg, step)) == -1) {
+	mlog("%s: Selector_register(%i) failed\n", __func__, sock);
+	exit(1);
+    }
+
     mlog("%s: sock %u, len: body.bufUsed %u body.bufSize %u\n", __func__,
 	    sock, body->bufUsed, body->bufSize);
     return sendSlurmMsg(sock, type, body, step);
@@ -601,7 +617,10 @@ int srunOpenPTY(Step_t *step)
 	    inet_ntoa(step->srun.sin_addr), port);
     step->srunPTYSock = sock;
 
-    Selector_register(sock, handleSrunPTYMsg, step);
+    if ((Selector_register(sock, handleSrunPTYMsg, step)) == -1) {
+	mlog("%s: Selector_register(%i) failed\n", __func__, sock);
+	exit(1);
+    }
     return sock;
 }
 
@@ -633,7 +652,10 @@ int srunOpenIOConnection(Step_t *step)
 	    sock);
 
     step->srunIOSock = sock;
-    Selector_register(sock, handleSrunMsg, step);
+    if ((Selector_register(sock, handleSrunMsg, step)) == -1) {
+	mlog("%s: Selector_register(%i) failed\n", __func__, sock);
+	exit(1);
+    }
 
     addUint16ToMsg(IO_PROTOCOL_VERSION, &data);
     /* nodeid */
@@ -729,28 +751,6 @@ SRUN_IO_DEFAULT:
 
     return ret;
 
-}
-
-void srunCloseAllConnections(Step_t *step)
-{
-    if (step->srunIOSock != -1) {
-	if (Selector_isRegistered(step->srunIOSock)) {
-	    Selector_remove(step->srunIOSock);
-	}
-	close(step->srunIOSock);
-    }
-    if (step->srunControlSock != -1) {
-	if (Selector_isRegistered(step->srunControlSock)) {
-	    Selector_remove(step->srunControlSock);
-	}
-	close(step->srunControlSock);
-    }
-    if (step->srunPTYSock != -1) {
-	if (Selector_isRegistered(step->srunPTYSock)) {
-	    Selector_remove(step->srunPTYSock);
-	}
-	close(step->srunPTYSock);
-    }
 }
 
 void getSockInfo(int socket, uint32_t *addr, uint16_t *port)

@@ -25,6 +25,7 @@
 #include "plugincomm.h"
 #include "psslurmlog.h"
 #include "psslurmcomm.h"
+#include "psslurmauth.h"
 #include "psaccfunc.h"
 #include "slurmcommon.h"
 
@@ -128,8 +129,6 @@ Step_t *addStep(uint32_t jobid, uint32_t stepid)
     step->restart = NULL;
     step->checkpoint = NULL;
     step->fwdata = NULL;
-    step->srunIOSock = -1;
-    step->srunPTYSock = -1;
     step->partition = NULL;
     step->username = NULL;
     step->tids = NULL;
@@ -137,6 +136,9 @@ Step_t *addStep(uint32_t jobid, uint32_t stepid)
     step->terminate = 0;
     step->exitCode = 0;
     step->state = JOB_INIT;
+    step->srunIOSock = -1;
+    step->srunControlSock = -1;
+    step->srunPTYSock = -1;
 
     list_add_tail(&(step->list), &StepList.list);
 
@@ -266,9 +268,6 @@ int deleteStep(uint32_t jobid, uint32_t stepid)
 
     if (!(step = findStepById(jobid, stepid))) return 0;
 
-    srunCloseAllConnections(step);
-
-    ufree(step->cred);
     ufree(step->srunPorts);
     ufree(step->tasksToLaunch);
     ufree(step->slurmNodes);
@@ -277,9 +276,6 @@ int deleteStep(uint32_t jobid, uint32_t stepid)
     ufree(step->cpuBind);
     ufree(step->memBind);
     ufree(step->IOPort);
-    ufree(step->argv);
-    ufree(step->env);
-    ufree(step->spankenv);
     ufree(step->cwd);
     ufree(step->taskProlog);
     ufree(step->taskEpilog);
@@ -293,11 +289,31 @@ int deleteStep(uint32_t jobid, uint32_t stepid)
     ufree(step->username);
     ufree(step->tids);
 
+    if (step->fwdata) destroyForwarderData(step->fwdata);
+
+    deleteJobCred(step->cred);
+
     for (i=0; i<step->nrOfNodes; i++) {
 	ufree(step->globalTaskIds[i]);
     }
     ufree(step->globalTaskIds);
     ufree(step->globalTaskIdsLen);
+
+    for (i=0; i<step->argc; i++) {
+	ufree(step->argv[i]);
+    }
+    ufree(step->argv);
+
+    for (i=0; i<step->envc; i++) {
+	ufree(step->env[i]);
+    }
+    ufree(step->env);
+
+    for (i=0; i<step->spankenvc; i++) {
+	ufree(step->spankenv[i]);
+    }
+    ufree(step->spankenv);
+
 
     list_del(&step->list);
     ufree(step);
@@ -329,18 +345,26 @@ int deleteJob(uint32_t jobid)
     ufree(job->checkpoint);
     ufree(job->restart);
     ufree(job->nodeAlias);
-    ufree(job->cred);
     ufree(job->partition);
+
+    if (job->fwdata) destroyForwarderData(job->fwdata);
+
+    deleteJobCred(job->cred);
 
     for (i=0; i<job->argc; i++) {
 	ufree(job->argv[i]);
     }
+    ufree(job->argv);
+
     for (i=0; i<job->envc; i++) {
 	ufree(job->env[i]);
     }
+    ufree(job->env);
+
     for (i=0; i<job->spankenvc; i++) {
 	ufree(job->spankenv[i]);
     }
+    ufree(job->spankenv);
 
     list_del(&job->list);
     ufree(job);
@@ -445,8 +469,8 @@ void addJobInfosToBuffer(PS_DataBuffer_t *buffer)
 	addUint32ToMsg(stepids[count], buffer);
     }
 
-    free(jobids);
-    free(stepids);
+    ufree(jobids);
+    ufree(stepids);
 }
 
 int signalJob(Job_t *job, int signal, char *reason)

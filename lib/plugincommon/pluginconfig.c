@@ -146,7 +146,7 @@ Config_t *addConfigEntry(Config_t *conf, char *key, char *value)
 {
     Config_t *newConf;
 
-    pluginlog("%s: key '%s' value '%s'\n", __func__, key, value);
+    //pluginlog("%s: key '%s' value '%s'\n", __func__, key, value);
 
     if ((newConf = findConfigObj(conf, key))) {
 	ufree(newConf->value);

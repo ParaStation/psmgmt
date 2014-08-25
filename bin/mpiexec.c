@@ -569,6 +569,7 @@ static uint32_t getNodeType(char *hardwareList)
     }
     next = strtok_r(hardwareList, delimiters, &toksave);
 
+    hwList = umalloc(sizeof(hwList), __func__);
     while (next) {
 	count++;
 	hwList = urealloc(hwList, (count +1) * sizeof(hwList), __func__);

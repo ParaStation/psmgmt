@@ -27,6 +27,7 @@
 #include <sys/resource.h>
 #include <sys/wait.h>
 #include <sys/stat.h>
+#include <sys/signalfd.h>
 
 #include "selector.h"
 #include "timer.h"
@@ -51,7 +52,7 @@ static pid_t forwarder_child_pid = -1;
 static pid_t forwarder_child_sid = -1;
 
 /** unix pipe to recognize signals in sleeping in select() */
-static int signalFD[2];
+static int signalFD;
 
 /** control channel between forwarder and child */
 static int controlFDs[2];
@@ -206,26 +207,9 @@ static void sendForwarderHello(int32_t forwarderID)
  */
 static int handleSignalFd(int fd, void *info)
 {
-    int res;
-
-    doReadP(fd, &res, sizeof(res));
+    sigChild = 1;
+    Selector_startOver();
     return 1;
-}
-
-/**
- * @brief Stop sleeping in select().
- *
- * @return No return value.
- */
-static void stopForwarderLoop()
-{
-    int res = 1;
-
-    if ((doWriteP(signalFD[0], &res, sizeof(res))) != sizeof(res)) {
-	fprintf(stderr, "%s: writing to signalFD failed : %s\n", __func__,
-		strerror(errno));
-	exit(1);
-    }
 }
 
 /**
@@ -267,21 +251,21 @@ static void signalHandler(int sig)
 		killForwarderChild(SIGTERM, "timeout");
 	    }
 	    break;
-	case SIGCHLD:
-	    sigChild = 1;
-	    stopForwarderLoop();
-	    break;
+    case SIGPIPE:
+	fprintf(stderr, "got sigpipe\n");
+	break;
     }
 }
 
 static int initForwarder()
 {
+    sigset_t mask;
+
     Selector_init(NULL);
     Timer_init(NULL);
 
     signal(SIGALRM, signalHandler);
     signal(SIGTERM, signalHandler);
-    signal(SIGCHLD, signalHandler);
     signal(SIGPIPE, signalHandler);
 
     /* overwrite proc title */
@@ -307,7 +291,6 @@ static int initForwarder()
 
     sendForwarderHello(fwdata->forwarderID);
 
-    blockSignal(SIGCHLD, 1);
     blockSignal(SIGALRM, 1);
 
     /* open control fds */
@@ -316,13 +299,14 @@ static int initForwarder()
 	return 0;
     }
 
-    /* open signal control fds */
-    if (socketpair(PF_UNIX, SOCK_STREAM, 0, signalFD)<0) {
-	pluginwarn(errno, "%s: open signal socket failed:", __func__);
+    sigemptyset(&mask);
+    sigaddset(&mask, SIGCHLD);
+    blockSignal(SIGCHLD, 1);
+    if ((signalFD = signalfd(-1, &mask, 0)) == -1) {
+	pluginwarn(errno, "%s: signalfd() failed:", __func__);
 	return 0;
     }
-    Selector_register(signalFD[0], handleSignalFd, NULL);
-    Selector_register(signalFD[1], handleSignalFd, NULL);
+    Selector_register(signalFD, handleSignalFd, NULL);
 
     return 1;
 }
@@ -435,7 +419,6 @@ static void forwarderLoop()
     }
 
     /* enable signals again */
-    blockSignal(SIGCHLD, 0);
     blockSignal(SIGALRM, 0);
 
     while (1) {
@@ -475,9 +458,6 @@ static void forwarderExit()
 
     /* make sure all children are dead */
     fwdata->killSession(forwarder_child_sid, SIGKILL);
-
-    /* restore sighandler */
-    resetSignalHandling();
 
     /* request connection close */
     if (motherSock < 0) {
@@ -780,7 +760,7 @@ static int openListenSocket(Forwarder_Data_t *data)
 
     snprintf(buf, sizeof(buf), "%s-XXXXXX", TEMP_SOCKET_NAME);
     if (!(tmpName = mktemp(buf))) {
-	pluginlog("%s: mktemp(%s) failed", __func__, buf);
+	pluginwarn(errno, "%s: mktemp(%s) failed", __func__, buf);
 	return -1;
     }
     data->listenSocketName = strdup(buf);
@@ -880,12 +860,14 @@ static void handleConnectTimeout(int timerId, void *fwdata)
 {
     Forwarder_Data_t *data = fwdata;
 
-    pluginlog("%s: forwarder '%i' did not connect back in '%i' seconds\n",
-		__func__, data->forwarderPid, data->timeoutConnect);
+    if (data->forwarderPid) {
+	pluginlog("%s: forwarder '%i' did not connect back in '%i' seconds\n",
+		    __func__, data->forwarderPid, data->timeoutConnect);
 
-    kill(SIGKILL, data->forwarderPid);
+	kill(SIGKILL, data->forwarderPid);
+	data->timeoutConnectId = -1;
+    }
     Timer_remove(timerId);
-    data->timeoutConnectId = -1;
 }
 
 int signalForwarderChild(Forwarder_Data_t *data, int signal)
@@ -926,7 +908,7 @@ int startForwarder(Forwarder_Data_t *data)
     }
 
     if (!data->callback) {
-	pluginlog("%s: invalid killSessions() function pointer\n", __func__);
+	pluginlog("%s: invalid callback() function pointer\n", __func__);
 	return 1;
     }
 

@@ -29,6 +29,7 @@ static char vcid[] __attribute__((used)) =
 #include <dirent.h>
 #include <ctype.h>
 #include <sys/utsname.h>
+#include <sys/signalfd.h>
 
 #include "psidutil.h"
 #include "pscommon.h"
@@ -79,7 +80,7 @@ static int openfds = 0;
 static int gotSIGCHLD = 0;
 
 /** socketpair to recognize SIGCHLD while sleeping in select() */
-static int signalFD[2] = {-1, -1};
+static int signalFD = -1;
 
 /** List of messages waiting to be sent */
 LIST_HEAD(oldMsgs);
@@ -1074,16 +1075,11 @@ static void sighandler(int sig)
     case SIGCHLD:
 	if (verbose) PSIDfwd_printMsgf(STDERR, "%s: Got SIGCHLD\n", tag);
 
-	/* if child is stopped, return */
 	childPID = wait3(&childStatus, WUNTRACED | WCONTINUED | WNOHANG,
 			 &childRUsage);
 	if (WIFSTOPPED(childStatus) || WIFCONTINUED(childStatus)) break;
 
 	gotSIGCHLD = 1;
-	if (signalFD[1] > -1) {
-	    close(signalFD[1]);
-	    signalFD[1] = -1;
-	}
 	break;
     case SIGPIPE:
 	PSIDfwd_printMsgf(STDERR, "%s: Got SIGPIPE\n", tag);
@@ -1310,6 +1306,13 @@ again:
  */
 static int handleSignalFD(int fd, void *info)
 {
+    if (verbose) PSIDfwd_printMsgf(STDERR, "%s: Got SIGCHLD\n", tag);
+
+    childPID = wait3(&childStatus, WUNTRACED | WCONTINUED | WNOHANG,
+	    &childRUsage);
+    if (WIFSTOPPED(childStatus) || WIFCONTINUED(childStatus)) return 0;
+
+    gotSIGCHLD = 1;
     /* Get rid of now useless selector */
     Selector_remove(fd);
     close(fd);
@@ -1321,12 +1324,17 @@ static int handleSignalFD(int fd, void *info)
 
 static int registerSelectHandlers(void)
 {
-    /* open signal control fds */
-    if (socketpair(PF_UNIX, SOCK_STREAM, 0, signalFD) < 0) {
-	PSID_log(-1, "%s: open control socket failed\n", __func__);
-        return 0;
+    sigset_t mask;
+
+    sigemptyset(&mask);
+    sigaddset(&mask, SIGCHLD);
+    PSID_blockSig(1, SIGCHLD);
+
+    if ((signalFD = signalfd(-1, &mask, 0)) == -1) {
+	PSIDfwd_printMsgf(STDERR, "%s: signalfd() failed", __func__);
+	return 0;
     }
-    Selector_register(signalFD[0], handleSignalFD, NULL);
+    Selector_register(signalFD, handleSignalFD, NULL);
 
     if (stdoutSock != -1) {
 	Selector_register(stdoutSock, readFromChild, NULL);
@@ -1398,6 +1406,14 @@ static void loop(void)
 
 static void waitForChildsDead(void)
 {
+    if (Selector_isRegistered(signalFD)) {
+	Selector_remove(signalFD);
+	close(signalFD);
+    }
+
+    signal(SIGCHLD, sighandler);
+    PSID_blockSig(0, SIGCHLD);
+
     while (!gotSIGCHLD) {
 	PSLog_Msg_t msg;
 	struct timeval timeout = {10, 0};
@@ -1429,13 +1445,10 @@ void PSID_forwarder(PStask_t *task, int daemonfd, int eno)
     stdoutSock = task->stdout_fd;
     stderrSock = task->stderr_fd;
 
-    /* catch client's SIGCHLD */
     PSID_blockSig(1, SIGCHLD);
-    signal(SIGCHLD, sighandler);
     signal(SIGUSR1, sighandler);
     signal(SIGTTIN, sighandler);
     signal(SIGPIPE, sighandler);
-    PSID_blockSig(0, SIGCHLD);
 
     PSLog_init(daemonSock, childTask->rank, 3);
 

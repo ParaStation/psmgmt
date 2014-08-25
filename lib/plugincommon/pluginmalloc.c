@@ -58,8 +58,13 @@ void *__urealloc(void *old ,size_t size, const char *func, const int line)
     }
 
     snprintf(tmp, sizeof(tmp), "%i", line);
-    plugindbg(PLUGIN_LOG_MALLOC, "urealloc\t%15s\t%s\t%p (%zu)\t%s\n", func,
-		tmp, ptr, size, save);
+    if (old) {
+	plugindbg(PLUGIN_LOG_MALLOC, "urealloc\t%15s\t%s\t%p (%zu)\t%s\n", func,
+		    tmp, ptr, size, save);
+    } else {
+	plugindbg(PLUGIN_LOG_MALLOC, "umalloc\t%15s\t%s\t%p (%zu)\n", func, tmp,
+		    ptr, size);
+    }
 
     return ptr;
 }

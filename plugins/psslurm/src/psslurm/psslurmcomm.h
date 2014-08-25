@@ -231,6 +231,4 @@ int srunOpenPTY(Step_t *step);
 int srunSendIO(uint16_t type, Step_t *step, char *buf, uint32_t bufLen);
 int srunSendMsg(int sock, Step_t *step, slurm_msg_type_t type,
 		PS_DataBuffer_t *body);
-void srunCloseAllConnections(Step_t *step);
-
 #endif

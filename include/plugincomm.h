@@ -213,14 +213,16 @@ int __getStringArrayM(char **ptr, char ***array, uint32_t *len,
  *
  * @return Returns 1 on success and 0 on error.
  */
-#define addStringToMsg(string, data) __addStringToMsg(string, data, __func__)
+#define addStringToMsg(string, data) \
+		__addStringToMsg(string, data, __func__, __LINE__)
 int __addStringToMsg(const char *string, PS_DataBuffer_t *data,
-			const char *caller);
+			const char *caller, const int line);
 
 #define addStringArraytoMsg(array, len, data) \
-	__addStringArrayToMsg(array, len, data, __func__)
+	__addStringArrayToMsg(array, len, data, __func__, __LINE__)
 int __addStringArrayToMsg(char **array, const uint32_t len,
-			    PS_DataBuffer_t *data, const char *caller);
+			    PS_DataBuffer_t *data, const char *caller,
+			    const int line);
 
 /**
  * @brief Add a int32 value to a message.
@@ -231,53 +233,62 @@ int __addStringArrayToMsg(char **array, const uint32_t len,
  *
  * @return Returns 1 on success and 0 on error.
  */
-#define addInt32ToMsg(val, data) __addInt32ToMsg(val, data, __func__)
+#define addInt32ToMsg(val, data) __addInt32ToMsg(val, data, __func__, __LINE__)
 int __addInt32ToMsg(const int32_t val, PS_DataBuffer_t *data,
-		    const char *caller);
+		    const char *caller, const int line);
 
-#define addUint32ToMsg(val, data) __addUint32ToMsg(val, data, __func__)
+#define addUint32ToMsg(val, data) \
+	__addUint32ToMsg(val, data, __func__, __LINE__)
 int __addUint32ToMsg(const uint32_t val, PS_DataBuffer_t *data,
-		    const char *caller);
+		    const char *caller, const int line);
 
-#define addUint64ToMsg(val, data) __addUint64ToMsg(val, data, __func__)
+#define addUint64ToMsg(val, data) \
+	__addUint64ToMsg(val, data, __func__, __LINE__)
 int __addUint64ToMsg(const uint64_t val, PS_DataBuffer_t *data,
-		    const char *caller);
+		    const char *caller, const int line);
 
-#define addDoubleToMsg(val, data) __addDoubleToMsg(val, data, __func__)
+#define addDoubleToMsg(val, data) \
+	__addDoubleToMsg(val, data, __func__, __LINE__)
 int __addDoubleToMsg(double val, PS_DataBuffer_t *data,
-		    const char *caller);
+		    const char *caller, const int line);
 
-#define addInt16ToMsg(val, data) __addInt16ToMsg(val, data, __func__)
+#define addInt16ToMsg(val, data) \
+	__addInt16ToMsg(val, data, __func__, __LINE__)
 int __addInt16ToMsg(const int16_t val, PS_DataBuffer_t *data,
-		    const char *caller);
+		    const char *caller, const int line);
 
-#define addUint16ToMsg(val, data) __addUint16ToMsg(val, data, __func__)
+#define addUint16ToMsg(val, data) \
+	__addUint16ToMsg(val, data, __func__, __LINE__)
 int __addUint16ToMsg(const uint16_t val, PS_DataBuffer_t *data,
-		    const char *caller);
+		    const char *caller, const int line);
 
-#define addUint8ToMsg(val, data) __addUint8ToMsg(val, data, __func__)
+#define addUint8ToMsg(val, data) __addUint8ToMsg(val, data, __func__, __LINE__)
 int __addUint8ToMsg(const uint8_t val, PS_DataBuffer_t *data,
-		    const char *caller);
+		    const char *caller, const int line);
 
 #define addUint16ArrayToMsg(val, len, data) \
-	__addUint16ArrayToMsg(val, len, data, __func__)
+	__addUint16ArrayToMsg(val, len, data, __func__, __LINE__)
 int __addUint16ArrayToMsg(const uint16_t *val, const uint32_t len,
-			    PS_DataBuffer_t *data, const char *caller);
+			    PS_DataBuffer_t *data, const char *caller,
+			    const int line);
 
 #define addUint32ArrayToMsg(val, len, data) \
-	__addUint32ArrayToMsg(val, len, data, __func__)
+	__addUint32ArrayToMsg(val, len, data, __func__, __LINE__)
 int __addUint32ArrayToMsg(const uint32_t *val, const uint32_t len,
-			    PS_DataBuffer_t *data, const char *caller);
+			    PS_DataBuffer_t *data, const char *caller,
+			    const int line);
 
 #define addInt16ArrayToMsg(val, len, data) \
-	__addInt16ArrayToMsg(val, len, data, __func__)
+	__addInt16ArrayToMsg(val, len, data, __func__, __LINE__)
 int __addInt16ArrayToMsg(const int16_t *val, const uint32_t len,
-			    PS_DataBuffer_t *data, const char *caller);
+			    PS_DataBuffer_t *data, const char *caller,
+			    const int line);
 
 #define addInt32ArrayToMsg(val, len, data) \
-	__addInt32ArrayToMsg(val, len, data, __func__)
+	__addInt32ArrayToMsg(val, len, data, __func__, __LINE__)
 int __addInt32ArrayToMsg(const int32_t *val, const uint32_t len,
-			    PS_DataBuffer_t *data, const char *caller);
+			    PS_DataBuffer_t *data, const char *caller,
+			    const int line);
 
 /**
  * @brief Add a time structure to a message.
@@ -288,9 +299,9 @@ int __addInt32ArrayToMsg(const int32_t *val, const uint32_t len,
  *
  * @return Returns 1 on success and 0 on error.
  */
-#define addTimeToMsg(time, data) __addTimeToMsg(time, data, __func__)
+#define addTimeToMsg(time, data) __addTimeToMsg(time, data, __func__, __LINE__)
 int __addTimeToMsg(const time_t *time, PS_DataBuffer_t *data,
-		    const char *caller);
+		    const char *caller, const int line);
 
 /**
  * @brief Add a pid to a message.
@@ -301,13 +312,14 @@ int __addTimeToMsg(const time_t *time, PS_DataBuffer_t *data,
  *
  * @return Returns 1 on success and 0 on error.
  */
-#define addPidToMsg(pid, data) __addPidToMsg(pid, data, __func__)
-int __addPidToMsg(const pid_t pid, PS_DataBuffer_t *data, const char *caller);
+#define addPidToMsg(pid, data) __addPidToMsg(pid, data, __func__, __LINE__)
+int __addPidToMsg(const pid_t pid, PS_DataBuffer_t *data, const char *caller,
+		    const int line);
 
-
-#define addMemToMsg(mem, memLen, data) __addMemToMsg(mem, memLen, data, __func__)
+#define addMemToMsg(mem, memLen, data) \
+	__addMemToMsg(mem, memLen, data, __func__, __LINE__)
 int __addMemToMsg(void *mem, uint32_t memLen, PS_DataBuffer_t *data,
-		    const char *caller);
+		    const char *caller, const int line);
 
 int setByteOrder(int val);
 

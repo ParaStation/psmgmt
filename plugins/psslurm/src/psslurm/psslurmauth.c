@@ -47,7 +47,7 @@ void addSlurmAuth(PS_DataBuffer_t *data)
     addUint32ToMsg(AUTH_MUNGE_VERSION, data);
     psMungeEncode(&cred);
     addStringToMsg(cred, data);
-    free(cred);
+    ufree(cred);
 }
 
 int testMungeAuth(char **ptr, Slurm_msg_header_t *msgHead)
@@ -179,6 +179,20 @@ int checkJobCred(Job_t *job)
     mdbg(PSSLURM_LOG_AUTH, "%s: job '%u' success\n", __func__, job->jobid);
     return 1;
 }
+
+void deleteJobCred(JobCred_t *cred)
+{
+    ufree(cred->coresPerSocket);
+    ufree(cred->socketsPerNode);
+    ufree(cred->sockCoreRepCount);
+    ufree(cred->hostlist);
+    ufree(cred->jobCoreBitmap);
+    ufree(cred->stepCoreBitmap);
+    ufree(cred->jobHostlist);
+    ufree(cred->sig);
+    ufree(cred);
+}
+
 
 JobCred_t *getJobCred(char **ptr, uint16_t version)
 {

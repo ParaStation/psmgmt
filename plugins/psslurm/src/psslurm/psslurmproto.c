@@ -121,10 +121,6 @@ static void cbPElogueJob(char *jobid, int exit_status, int timeout)
 	    execUserJob(job);
 	} else {
 	    job->state = JOB_EXIT;
-
-	    /* return proglogue failed */
-	    sendNodeRegStatus(-1, ESLURMD_PROLOG_FAILED,
-				SLURM_14_03_PROTOCOL_VERSION);
 	}
     } else if (job->state == JOB_EPILOGUE) {
 	if (job->terminate) {
@@ -191,6 +187,7 @@ static void sendPing(int sock)
     }
 
     sendSlurmMsg(sock, RESPONSE_PING_SLURMD, &msg, NULL);
+    ufree(msg.buf);
 }
 
 void getNodesFromSlurmHL(char **ptr, char **slurmNodes, uint32_t *nrOfNodes,
@@ -218,7 +215,7 @@ void getNodesFromSlurmHL(char **ptr, char **slurmNodes, uint32_t *nrOfNodes,
 	mlog("%s: next node %u: %s\n", __func__, i, next);
 	next = strtok_r(NULL, delimiters, &saveptr);
     }
-    free(hostlist);
+    ufree(hostlist);
 }
 
 int writeJobscript(Job_t *job, char *script)
@@ -294,21 +291,13 @@ static void handleLauchTasks(char *ptr, int sock, Slurm_msg_header_t *msgHead)
     step->globalTaskIds = umalloc(step->nrOfNodes * sizeof(uint32_t *));
     step->globalTaskIdsLen = umalloc(step->nrOfNodes * sizeof(uint32_t));
 
-    uint32_t x;
     for (i=0; i<step->nrOfNodes; i++) {
 	/* num of tasks per node */
 	getUint16(&ptr, &step->tasksToLaunch[i]);
 
 	/* job global task ids per node */
-	getUint32(&ptr, &step->globalTaskIdsLen[i]);
-	step->globalTaskIds[i] = umalloc(step->globalTaskIdsLen[i] * sizeof(uint32_t));
-	for (x=0; x<step->globalTaskIdsLen[i]; x++) {
-	    getUint32(&ptr, &step->globalTaskIds[i][x]);
-	}
-	/*
-	getUint32Array(&ptr, &step->globalTaskIds[i],
-			    &step->globalTaskIdsLen[i]);
-	*/
+	getUint32Array(&ptr, &(step->globalTaskIds)[i],
+			    &(step->globalTaskIdsLen)[i]);
     }
 
     /* srun ports */
@@ -803,14 +792,17 @@ static void handleBatchJobLaunch(char *ptr, int sock,
 
     getUint32(&ptr, &cpuGroupCount);
     if (cpuGroupCount) {
-	/* cpusPerNode */
+	/* TODO: cpusPerNode */
 	getUint16Array(&ptr, &cpusPerNode, &cpusPerNodeLen);
-	/* cpuCountReps */
+	ufree(cpusPerNode);
+
+	/* TODO: cpuCountReps */
 	getUint32Array(&ptr, &cpuCountReps, &cpuCountRepsLen);
 	if (cpusPerNodeLen != cpuGroupCount ||
 	    cpuCountRepsLen != cpuGroupCount) {
 	    mlog("%s: invalid cpu array\n", __func__);
 	}
+	ufree(cpuCountReps);
     }
 
     /* TODO: node alias ?? */
@@ -862,7 +854,7 @@ static void handleBatchJobLaunch(char *ptr, int sock,
     getUint32(&ptr, &tmp);
 
     job->extended = 1;
-    job->hostname = strdup(getConfValueC(&Config, "SLURM_HOSTNAME"));
+    job->hostname = ustrdup(getConfValueC(&Config, "SLURM_HOSTNAME"));
 
     if ((acctType = getConfValueC(&SlurmConfig, "JobAcctGatherType"))) {
 	job->accType = (!(strcmp(acctType, "jobacct_gather/none"))) ? 0 : 1;
@@ -1472,6 +1464,7 @@ void sendNodeRegStatus(int sock, uint32_t status, int version)
     }
 
     sendSlurmMsg(sock, MESSAGE_NODE_REGISTRATION_STATUS, &msg, NULL);
+    ufree(msg.buf);
 }
 
 int sendSlurmRC(int sock, uint32_t rc, void *data)

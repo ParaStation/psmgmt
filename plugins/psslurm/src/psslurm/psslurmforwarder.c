@@ -167,7 +167,6 @@ static char *replaceStepSymbols(Step_t *step, int rank, char *path)
 	}
     }
 
-    nodeid = 0;
     return replaceSymbols(step->jobid, step->stepid, hostname, nodeid,
 			    step->username, arrayJobId, rank, path);
 }
@@ -354,7 +353,7 @@ static void redirectJobOutput(Job_t *job)
 
     /* stdin */
     if (!(strlen(job->stdIn))) {
-	inFile = strdup("/dev/null");
+	inFile = ustrdup("/dev/null");
     } else {
 	inFile = addCwd(job->cwd, replaceJobSymbols(job, job->stdIn));
     }
