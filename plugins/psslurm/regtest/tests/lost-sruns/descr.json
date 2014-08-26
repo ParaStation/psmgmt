@@ -1,0 +1,9 @@
+{
+	"type": "batch",
+	"partitions": ["batch", "psslurm"],
+	"reservations": ["", "psslurm"],
+	"submit": "sbatch -N 2 -n 4 -t 2 --ntasks-per-node=2 test.sh",
+	"eval": ["eval.py"],
+	"fproc": null,
+	"monitor_hz": 10
+}
