@@ -7,4 +7,7 @@ if test "$sysconfdir" = '${prefix}/etc'; then
 fi
 if test "$localstatedir" = '${prefix}/var'; then
   localstatedir='/var'
+fi
+if test "$pamdir" = '${libdir}/security'; then
+  pamdir="/usr$(echo $libdir | sed s,\${exec_prefix},,)/security"
 fi])

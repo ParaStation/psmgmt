@@ -643,6 +643,7 @@ TESTPLUGINS_ENABLED_TRUE
 AM_LDFLAGS
 AM_CFLAGS
 RL_LIBS
+pamdir
 PAM_ENABLED_FALSE
 PAM_ENABLED_TRUE
 PAM_LIBS
@@ -780,6 +781,7 @@ enable_fast_install
 with_gnu_ld
 with_sysroot
 enable_libtool_lock
+with_pamdir
 enable_testplugins
 enable_fixmiscdirs
 '
@@ -1434,6 +1436,7 @@ Optional Packages:
   --with-gnu-ld           assume the C compiler uses GNU ld [default=no]
   --with-sysroot=DIR Search for dependent libraries within DIR
                         (or the compiler's sysroot if not specified).
+  --with-pamdir=DIR       specify pam plugin dir
 
 Some influential environment variables:
   CC          C compiler command
@@ -11618,6 +11621,20 @@ else
 fi
 
 
+
+# Check whether --with-pamdir was given.
+if test "${with_pamdir+set}" = set; then :
+  withval=$with_pamdir; if test "x$withval" = xyes -o "x$withval" = no; then :
+  as_fn_error $? "missing arg to --with-pamdir" "$LINENO" 5
+else
+  pamdir="$withval"
+fi
+else
+  pamdir='${libdir}/security'
+fi
+
+
+
   ps_search_libs_save_LIBS="$LIBS"
   LIBS="${RL_LIBS}"
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for library containing initscr" >&5
@@ -12006,6 +12023,9 @@ if test "x$enable_fixmiscdirs" != xno; then :
 fi
 if test "$localstatedir" = '${prefix}/var'; then
   localstatedir='/var'
+fi
+if test "$pamdir" = '${libdir}/security'; then
+  pamdir="/usr$(echo $libdir | sed s,\${exec_prefix},,)/security"
 fi
 fi
 AM_DISTCHECK_CONFIGURE_FLAGS="--disable-fixmiscdirs"

@@ -248,6 +248,7 @@ localstatedir = @localstatedir@
 mandir = @mandir@
 mkdir_p = @mkdir_p@
 oldincludedir = @oldincludedir@
+pamdir = @pamdir@
 pdfdir = @pdfdir@
 prefix = @prefix@
 program_transform_name = @program_transform_name@
@@ -288,8 +289,6 @@ do_subst = sed \
 	-e 's,[@]sysconfdir[@],$(sysconfdir),g' \
 	-e 's,[@]localstatedir[@],$(localstatedir),g'
 
-syslibdir := $(shell echo $(libdir) | sed -e 's,$(prefix),/,g')
-pamdir = $(syslibdir)/security
 pamconfdir = $(sysconfdir)/pam.d
 
 # should be $(libdir)/psmgmt-plugins or similar
