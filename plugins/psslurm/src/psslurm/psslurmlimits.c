@@ -30,17 +30,17 @@
 
 Limits_t slurmConfLimits[] =
 {
-    { RLIMIT_CPU,	"CPU",	    0 },
-    { RLIMIT_FSIZE,	"FSIZE",    0 },
-    { RLIMIT_DATA,	"DATA",	    0 },
-    { RLIMIT_STACK,	"STACK",    0 },
-    { RLIMIT_CORE,	"CORE",	    0 },
-    { RLIMIT_RSS,	"RSS",	    0 },
-    { RLIMIT_NPROC,	"NPROC",    0 },
-    { RLIMIT_NOFILE,	"NOFILE",   0 },
-    { RLIMIT_MEMLOCK,	"MEMLOCK",  0 },
-    { RLIMIT_AS,	"AS",	    0 },
-    { 0, NULL, 0 },
+    { RLIMIT_CPU,     "CPU",	 "__PSI_CPU",       0 },
+    { RLIMIT_FSIZE,   "FSIZE",   "__PSI_FSIZE",     0 },
+    { RLIMIT_DATA,    "DATA",	 "__PSI_DATASIZE",  0 },
+    { RLIMIT_STACK,   "STACK",   "__PSI_STACKSIZE", 0 },
+    { RLIMIT_CORE,    "CORE",	 "__PSI_CORESIZE",  0 },
+    { RLIMIT_RSS,     "RSS",	 "__PSI_RSS",       0 },
+    { RLIMIT_NPROC,   "NPROC",   "__PSI_NPROC",     0 },
+    { RLIMIT_NOFILE,  "NOFILE",  "__PSI_NOFILE",    0 },
+    { RLIMIT_MEMLOCK, "MEMLOCK", "__PSI_MEMLOCK",   0 },
+    { RLIMIT_AS,      "AS",	 "__PSI_ASSIZE",    0 },
+    { 0, NULL, NULL, 0 },
 };
 
 void printLimits()
@@ -140,7 +140,7 @@ void setRlimitsFromEnv(char ***origEnv, uint32_t *envc)
     struct rlimit limit;
     unsigned long softLimit;
     env_fields_t env;
-    char *val, climit[128];
+    char *val, climit[128], pslimit[128];
     int i = 0, propagate = 0;
 
     env.vars = *origEnv;
@@ -176,6 +176,12 @@ void setRlimitsFromEnv(char ***origEnv, uint32_t *envc)
 			if ((setrlimit(slurmConfLimits[i].limit, &limit)) !=0) {
 			    mwarn(errno, "%s: setting '%s' to '%lu' failed: ",
 				    __func__, climit, softLimit);
+			}
+			if (softLimit == RLIM_INFINITY) {
+			    env_set(&env, slurmConfLimits[i].psname, "infinity");
+			} else {
+			    snprintf(pslimit, sizeof(pslimit), "%lx", softLimit);
+			    env_set(&env, slurmConfLimits[i].psname, pslimit);
 			}
 		    }
 		}

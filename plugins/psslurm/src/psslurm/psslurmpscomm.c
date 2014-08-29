@@ -40,6 +40,7 @@
 #include "psslurmjob.h"
 #include "psslurmcomm.h"
 #include "psslurmconfig.h"
+#include "psslurm.h"
 
 #include "psslurmpscomm.h"
 
@@ -492,4 +493,56 @@ void handleDroppedMsg(DDTypedBufferMsg_t *msg)
 	default:
 	    mlog("%s: unknown msg type '%i'\n", __func__, msg->type);
     }
+}
+
+void handleChildBornMsg(DDErrorMsg_t *msg)
+{
+    PStask_t *forwarder = PStasklist_find(&managedTasks, msg->header.sender);
+    char *ptr, *sjobid = NULL, *sstepid = NULL;
+    int i=0;
+    uint32_t jobid, stepid;
+    Job_t *job;
+    Step_t *step;
+
+    if (!forwarder) goto FORWARD_CHILD_BORN;
+
+    /*
+    mlog("%s: forwarder '%s'\n", __func__, PSC_printTID(forwarder->tid));
+    mlog("%s: child '%s' group '%i'\n", __func__, PSC_printTID(msg->request),
+	    forwarder->childGroup);
+    */
+
+    ptr = forwarder->environ[i];
+    while (ptr) {
+	if (!(strncmp(ptr, "SLURM_JOBID=", 12))) {
+	    sjobid = ptr+12;
+	}
+	if (!(strncmp(ptr, "SLURM_STEPID=", 13))) {
+	    sstepid = ptr+13;
+	}
+	if (sjobid && sstepid) break;
+	ptr = forwarder->environ[++i];
+    }
+
+    if (!sjobid || !sstepid) goto FORWARD_CHILD_BORN;
+
+    jobid = atoi(sjobid);
+    stepid = atoi(sstepid);
+
+    if (stepid == SLURM_BATCH_SCRIPT) {
+	if (!(job = findJobById(jobid))) {
+	    mlog("%s: job '%u' not found\n", __func__, jobid);
+	    goto FORWARD_CHILD_BORN;
+	}
+	addTask(&job->tasks.list, msg->request, forwarder->tid, forwarder);
+    } else {
+	if (!(step = findStepById(jobid, stepid))) {
+	    mlog("%s: step '%u:%u' not found\n", __func__, jobid, stepid);
+	    goto FORWARD_CHILD_BORN;
+	}
+	addTask(&step->tasks.list, msg->request, forwarder->tid, forwarder);
+    }
+
+FORWARD_CHILD_BORN:
+    if (oldChildBornHandler) oldChildBornHandler((DDBufferMsg_t *) msg);
 }

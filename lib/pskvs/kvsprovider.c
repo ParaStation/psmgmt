@@ -1056,12 +1056,8 @@ static int handlePSIMessage(int fd, void *data)
 			sigMsg->signal, PSC_printTID(msg.header.sender));
 	    }
 
-	    if (sigMsg->signal == SIGTERM) {
-		releaseMySelf(__func__);
-		exit(0);
-	    }
-
 	    terminateJob(__func__);
+	    exit(0);
 	    break;
 	case PSP_CC_ERROR:
 	    if (msg.header.sender == loggertid) {

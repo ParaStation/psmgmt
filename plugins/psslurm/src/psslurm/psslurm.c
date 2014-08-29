@@ -38,6 +38,7 @@
 #include "pluginlog.h"
 
 #include "pspluginprotocol.h"
+#include "psdaemonprotocol.h"
 #include "psidplugin.h"
 #include "psidhook.h"
 #include "plugin.h"
@@ -65,9 +66,11 @@ uid_t slurmUserID = 495;
 
 time_t start_time;
 
+handlerFunc_t oldChildBornHandler = NULL;
+
 /** psid plugin requirements */
 char name[] = "psslurm";
-int version = 8;
+int version = 9;
 int requiredAPI = 109;
 plugin_dep_t dependencies[4];
 
@@ -102,6 +105,10 @@ static void unregisterHooks(int verbose)
     /* unregister psslurm msg */
     PSID_clearMsg(PSP_CC_PLUG_PSSLURM);
 
+    if (oldChildBornHandler) {
+	PSID_registerMsg(PSP_DD_CHILDBORN, (handlerFunc_t) oldChildBornHandler);
+    }
+
     /* unregister msg drop handler */
     PSID_clearDropper(PSP_CC_PLUG_PSSLURM);
 
@@ -131,6 +138,9 @@ static int registerHooks()
 {
     /* register psslurm msg */
     PSID_registerMsg(PSP_CC_PLUG_PSSLURM, (handlerFunc_t) handlePsslurmMsg);
+
+    oldChildBornHandler = PSID_registerMsg(PSP_DD_CHILDBORN,
+					    (handlerFunc_t) handleChildBornMsg);
 
     /* register handler for dropped msgs */
     PSID_registerDropper(PSP_CC_PLUG_PSSLURM, (handlerFunc_t) handleDroppedMsg);

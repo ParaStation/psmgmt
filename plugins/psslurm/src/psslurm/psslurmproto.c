@@ -445,9 +445,6 @@ static void handleLauchTasks(char *ptr, int sock, Slurm_msg_header_t *msgHead)
 	/* say ok to waiting srun */
 	sendSlurmRC(sock, SLURM_SUCCESS, step);
     }
-
-    /* forward step info to other nodes in the job */
-    //sendJobInfo(step->jobid, step->stepid);
 }
 
 static void handleSignalTasks(char *ptr, int sock, Slurm_msg_header_t *msgHead)
@@ -509,10 +506,10 @@ static void handleSignalTasks(char *ptr, int sock, Slurm_msg_header_t *msgHead)
     if ((signal == SIGTERM || signal == SIGKILL) &&
 	step->state == JOB_PROLOGUE) {
 	step->terminate = 1;
-    } else if (step->fwdata) {
-	mlog("%s: send stepid '%u:%u' signal '%u' to '%u'\n", __func__, jobid,
-		stepid, signal, step->fwdata->childSid);
-	psAccountsendSignal2Session(step->fwdata->childSid, signal);
+    } else {
+	mlog("%s: send stepid '%u:%u' signal '%u'\n", __func__, jobid,
+		stepid, signal);
+	signalStep(step, signal);
     }
     sendSlurmRC(sock, SLURM_SUCCESS, step);
 }
@@ -920,6 +917,9 @@ static void handleTerminateStep(int sock, Slurm_msg_header_t *msgHead,
 {
     /* if we are not mother superior just obit the step */
     if (step->nodes[0] != PSC_getMyID() || step->stepid >0) {
+
+	signalTasks(step->uid, &step->tasks, signal);
+
 	if (sock > -1) {
 	    sendSlurmRC(sock, ESLURMD_KILL_JOB_ALREADY_COMPLETE, NULL);
 	}
@@ -1021,12 +1021,12 @@ static void handleKillReq(int sock, Slurm_msg_header_t *msgHead, uint32_t jobid,
 	    return;
 	}
 	if (time) {
-	    snprintf(buf, sizeof(buf), "error: *** step %u:%u timed out ***\n",
-			jobid, stepid);
+	    snprintf(buf, sizeof(buf), "error: *** step %u:%u CANCELLED DUE "
+			"TO TIME LIMIT ***\n", jobid, stepid);
 	    mlog("%s: timeout for step '%u:%u'\n", __func__, jobid, stepid);
 	    printChildMessage(step->fwdata, buf, 1);
 	} else {
-	    snprintf(buf, sizeof(buf), "error: *** preemption for step "
+	    snprintf(buf, sizeof(buf), "error: *** PREEMPTION for step "
 			"%u:%u ***\n", jobid, stepid);
 	    mlog("%s: preemption for step '%u:%u'\n", __func__, jobid, stepid);
 	}
@@ -1045,13 +1045,13 @@ static void handleKillReq(int sock, Slurm_msg_header_t *msgHead, uint32_t jobid,
     if (time) {
 	mlog("%s: timeout for job '%u'\n", __func__, jobid);
 	if (!job && step) {
-	    snprintf(buf, sizeof(buf), "error: *** step %u:%u timed out ***\n",
-			step->jobid, step->stepid);
+	    snprintf(buf, sizeof(buf), "error: *** step %u:%u CANCELLED DUE TO"
+			" TIME LIMIT ***\n", step->jobid, step->stepid);
 	    printChildMessage(step->fwdata, buf, 1);
 	}
     } else {
 	if (!job && step) {
-	    snprintf(buf, sizeof(buf), "error: *** preemption for step "
+	    snprintf(buf, sizeof(buf), "error: *** PREEMPTION for step "
 		    "%u:%u ***\n", jobid, stepid);
 	    printChildMessage(step->fwdata, buf, 1);
 	}
@@ -1338,6 +1338,7 @@ static uint32_t getTmpDisk()
     float pageSize;
     char tmpDef[] = "/tmp";
     char *fs;
+    static int report = 1;
 
     if ((pageSize = sysconf(_SC_PAGE_SIZE)) < 0) {
 	mwarn(errno, "%s: getting _SC_PAGE_SIZE failed: ", __func__);
@@ -1349,7 +1350,10 @@ static uint32_t getTmpDisk()
     }
 
     if ((statfs(fs, &sbuf)) == -1) {
-	mwarn(errno, "%s: statfs(%s) failed: ", __func__, fs);
+	if (report) {
+	    mwarn(errno, "%s: statfs(%s) failed: ", __func__, fs);
+	    report = 0;
+	}
 	return 1;
     }
     return (uint32_t)((long)sbuf.f_blocks * (pageSize / 1048576.0));

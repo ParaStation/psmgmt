@@ -28,6 +28,7 @@
 #include "psslurmauth.h"
 #include "psaccfunc.h"
 #include "slurmcommon.h"
+#include "psidtask.h"
 
 #include "psslurmjob.h"
 
@@ -80,6 +81,7 @@ Job_t *addJob(uint32_t jobid)
     job->overcommit = 0;
     job->terminate = 0;
     job->state = JOB_INIT;
+    INIT_LIST_HEAD(&job->tasks.list);
 
     /* add job to job history */
     strncpy(jobHistory[jobHistIndex++], job->id, sizeof(jobHistory[0]));
@@ -139,10 +141,43 @@ Step_t *addStep(uint32_t jobid, uint32_t stepid)
     step->srunIOSock = -1;
     step->srunControlSock = -1;
     step->srunPTYSock = -1;
+    INIT_LIST_HEAD(&step->tasks.list);
 
     list_add_tail(&(step->list), &StepList.list);
 
     return step;
+}
+
+PS_Tasks_t *addTask(struct list_head *list, PStask_ID_t childTID,
+			PStask_ID_t forwarderTID, PStask_t *forwarder)
+{
+    PS_Tasks_t *task;
+
+    task = (PS_Tasks_t *) umalloc(sizeof(PS_Tasks_t));
+    task->childTID = childTID;
+    task->forwarderTID = forwarderTID;
+    task->forwarder = forwarder;
+
+    list_add_tail(&(task->list), list);
+
+    return task;
+}
+
+void deleteTask(PS_Tasks_t *task)
+{
+    list_del(&task->list);
+    ufree(task);
+}
+
+void clearTasks(struct list_head *taskList)
+{
+    list_t *pos, *tmp;
+    PS_Tasks_t *task;
+
+    list_for_each_safe(pos, tmp, taskList) {
+	if (!(task = list_entry(pos, PS_Tasks_t, list))) return;
+	deleteTask(task);
+    }
 }
 
 Step_t *findStepById(uint32_t jobid, uint32_t stepid)
@@ -288,6 +323,7 @@ int deleteStep(uint32_t jobid, uint32_t stepid)
     ufree(step->partition);
     ufree(step->username);
     ufree(step->tids);
+    clearTasks(&step->tasks.list);
 
     if (step->fwdata) destroyForwarderData(step->fwdata);
 
@@ -346,6 +382,7 @@ int deleteJob(uint32_t jobid)
     ufree(job->restart);
     ufree(job->nodeAlias);
     ufree(job->partition);
+    clearTasks(&job->tasks.list);
 
     if (job->fwdata) destroyForwarderData(job->fwdata);
 
@@ -372,18 +409,42 @@ int deleteJob(uint32_t jobid)
     return 1;
 }
 
+void signalTasks(uid_t uid, PS_Tasks_t *tasks, int signal)
+{
+    list_t *pos, *tmp;
+    PS_Tasks_t *task;
+    PStask_t *child;
+
+    list_for_each_safe(pos, tmp, &tasks->list) {
+	if (!(task = list_entry(pos, PS_Tasks_t, list))) return;
+
+	if ((child = PStasklist_find(&managedTasks, task->childTID))) {
+	    if (child->forwardertid == task->forwarderTID &&
+		child->uid == uid) {
+		mlog("%s: kill(%i) signal '%i'\n", __func__, PSC_getPID(child->tid), signal);
+		kill(PSC_getPID(child->tid), signal);
+	    }
+	}
+    }
+}
+
 int signalStep(Step_t *step, int signal)
 {
-    int ret;
+    int ret = 0;
 
     if (step->fwdata) {
 	ret = signalForwarderChild(step->fwdata, signal);
 	if (ret == 2 && signal == SIGTERM) {
 	    signalForwarderChild(step->fwdata, SIGKILL);
 	}
-	return 1;
+	ret = 1;
     }
-    return 0;
+
+    if (signal == SIGTERM || signal == SIGKILL) {
+	signalTasks(step->uid, &step->tasks, signal);
+    }
+
+    return ret;
 }
 
 int signalStepsByJobid(uint32_t jobid, int signal)

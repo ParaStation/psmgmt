@@ -32,4 +32,6 @@ void handlePsslurmMsg(DDTypedBufferMsg_t *msg);
 
 void callbackPElogue(char *jobid, int exit_status, int timeout);
 
+void handleChildBornMsg(DDErrorMsg_t *msg);
+
 #endif

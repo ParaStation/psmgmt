@@ -23,6 +23,7 @@
 typedef struct {
     rlim_t limit;
     char *name;
+    char *psname;
     int propagate;
 } Limits_t;
 

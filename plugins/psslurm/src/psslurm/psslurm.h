@@ -23,11 +23,11 @@
 /* pelogue version number */
 extern int version;
 
-extern handlerFunc_t oldSpawnReqHandler;
-
 extern time_t start_time;
 
 extern uid_t slurmUserID;
+
+extern handlerFunc_t oldChildBornHandler;
 
 /**
  * @brief Constructor for psmom library.

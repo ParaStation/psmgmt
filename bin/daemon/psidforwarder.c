@@ -1084,6 +1084,9 @@ static void sighandler(int sig)
     case SIGPIPE:
 	PSIDfwd_printMsgf(STDERR, "%s: Got SIGPIPE\n", tag);
 	break;
+    case SIGTERM:
+	sendSignal(PSC_getPID(childTask->tid), SIGTERM);
+	break;
     }
 
     signal(sig, sighandler);
@@ -1449,6 +1452,7 @@ void PSID_forwarder(PStask_t *task, int daemonfd, int eno)
     signal(SIGUSR1, sighandler);
     signal(SIGTTIN, sighandler);
     signal(SIGPIPE, sighandler);
+    signal(SIGTERM, sighandler);
 
     PSLog_init(daemonSock, childTask->rank, 3);
 

@@ -29,6 +29,7 @@
 #include <pty.h>
 #include <fcntl.h>
 #include <syslog.h>
+#include <signal.h>
 
 #include "psslurmlog.h"
 #include "psslurmlimits.h"
@@ -60,6 +61,10 @@ int jobCallback(int32_t exit_status, char *errMsg, size_t errLen, void *data)
 	mlog("%s: job '%u' not found\n", __func__, job->jobid);
 	return 0;
     }
+
+    /* make sure all processes are gone */
+    signalTasks(job->uid, &job->tasks, SIGKILL);
+
     job->state = JOB_COMPLETE;
     sendJobExit(job, exit_status);
     psAccountUnregisterJob(fwdata->childPid);
@@ -92,6 +97,9 @@ int stepCallback(int32_t exit_status, char *errMsg, size_t errLen, void *data)
 		step->stepid);
 	return 0;
     }
+
+    /* make sure all processes are gone */
+    signalTasks(step->uid, &step->tasks, SIGKILL);
 
     if (step->srunIOSock != -1) {
 	if (Selector_isRegistered(step->srunIOSock)) {

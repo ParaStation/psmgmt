@@ -32,6 +32,13 @@
 typedef int32_t bitstr_t;
 
 typedef struct {
+    PStask_ID_t childTID;
+    PStask_ID_t forwarderTID;
+    PStask_t *forwarder;
+    struct list_head list;
+} PS_Tasks_t;
+
+typedef struct {
     uint32_t jobid;
     uint32_t stepid;
     uid_t uid;
@@ -155,6 +162,7 @@ typedef struct {
     char *checkpoint;
     char *restart;
     Forwarder_Data_t *fwdata;
+    PS_Tasks_t tasks;
     struct list_head list;  /* the step list header */
 } Step_t;
 
@@ -204,6 +212,7 @@ typedef struct {
     time_t start_time;	    /* the time were the job started */
     char *nodeAlias;
     struct list_head list;  /* the job list header */
+    PS_Tasks_t tasks;
     Forwarder_Data_t *fwdata;
 } Job_t;
 
@@ -272,5 +281,9 @@ int deleteStep(uint32_t jobid, uint32_t stepid);
 void clearStepList(uint32_t jobid);
 Step_t *addStep(uint32_t jobid, uint32_t stepid);
 Step_t *findStepByJobid(uint32_t jobid);
+
+PS_Tasks_t *addTask(struct list_head *list, PStask_ID_t childTID,
+			PStask_ID_t forwarderTID, PStask_t *forwarder);
+void signalTasks(uid_t uid, PS_Tasks_t *tasks, int signal);
 
 #endif
