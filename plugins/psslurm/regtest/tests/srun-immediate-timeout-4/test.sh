@@ -1,6 +1,6 @@
 #!/bin/bash
 
-for i in {1..32}; do
+for i in $(seq 1 ${PSTEST_PARTITION_CPUS}); do
 	srun --exclusive -n1 sleep 10 &
 done
 

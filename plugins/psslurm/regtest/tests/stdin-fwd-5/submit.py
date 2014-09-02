@@ -7,7 +7,7 @@ import select
 import re
 
 
-cmd = ["srun", "-N", "2", "-n", "64", "-t", "2", "-p", os.environ["PSTEST_PARTITION"]]
+cmd = ["srun", "-N", "2", "-n", "%d" % (2*int(os.eviron["PSTEST_PARTITION_CPUS"])), "-t", "2", "-p", os.environ["PSTEST_PARTITION"]]
 if "" != os.environ["PSTEST_RESERVATION"]:
 	cmd += ["--reservation", os.environ["PSTEST_RESERVATION"]]
 cmd += ["-i", "5", "./read.py"]

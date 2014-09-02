@@ -10,12 +10,14 @@ from testsuite import *
 helper.pretty_print_env()
 
 for p in helper.partitions():
-	test.check("FAILED" == helper.job_state(p), p)
-	test.check("16:0"   == helper.job_exit_code(p), p)
+	n = int(helper.partition_cpus(p))/2
+
+	test.check("FAILED"   == helper.job_state(p), p)
+	test.check("%d:0" % n == helper.job_exit_code(p), p)
 
 	lines = helper.job_stderr_lines(p)
 
-	for i in range(16):
+	for i in range(n):
 		test.check(1 == len([x for x in lines if re.match(r'srun: error:.*Exited with exit code %d$' % (i + 1), x)]), p) 
 
 

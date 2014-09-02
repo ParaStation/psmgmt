@@ -2,7 +2,7 @@
 	"type": "batch",
 	"partitions": ["batch", "psslurm"],
 	"reservations": ["", "psslurm"],
-	"submit": "srun -N 2 -n 64 -t 1 -o 5 shout.py",
+	"submit": "srun -N 2 -n |2*@P| -t 1 -o 5 shout.py",
 	"eval": ["eval.py"],
 	"fproc": null,
 	"monitor_hz": 10

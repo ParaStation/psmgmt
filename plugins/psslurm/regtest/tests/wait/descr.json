@@ -2,7 +2,7 @@
 	"type": "batch",
 	"partitions": ["batch", "psslurm"],
 	"reservations": ["", "psslurm"],
-	"submit": "srun -n 16 -W 30 -t 2 fail.py",
+	"submit": "srun -n |@P/2| -W 30 -t 2 fail.py",
 	"eval": ["eval.py"],
 	"fproc": null,
 	"monitor_hz": 10

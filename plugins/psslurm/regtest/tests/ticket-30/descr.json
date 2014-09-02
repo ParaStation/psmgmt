@@ -2,7 +2,7 @@
 	"type": "batch",
 	"partitions": ["batch", "psslurm"],
 	"reservations": ["", "psslurm"],
-	"submit": "srun -n 16 --kill-on-bad-exit=1 -t 3 fail.py",
+	"submit": "srun -n |@P/2| --kill-on-bad-exit=1 -t 3 fail.py",
 	"eval": ["eval.py"],
 	"fproc": null,
 	"monitor_hz": 10

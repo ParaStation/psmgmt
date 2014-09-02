@@ -12,10 +12,11 @@ helper.pretty_print_env()
 for p in helper.partitions():
 	helper.check_job_completed_ok(p)
 
-	lines = helper.job_stdout_lines(p)
+	n     = 2*int(helper.partition_cpus(p))
+	lines = helper.fproc_stdout_lines(p)
 
-	test.check(64 == len(lines), p)
-	test.check(64 == len([x for x in lines if re.match(r'.*\'\'.*', x)]), p)
+	test.check(n == len(lines), p)
+	test.check(n == len([x for x in lines if re.match(r'.*\'\'.*', x)]), p)
 
 
 test.quit()

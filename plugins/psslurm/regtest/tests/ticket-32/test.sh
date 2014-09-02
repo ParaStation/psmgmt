@@ -1,4 +1,4 @@
 #!/bin/bash
 
-srun -n 16 fail.py
+srun -n $((${PSTEST_PARTITION_CPUS}/2)) fail.py
 
