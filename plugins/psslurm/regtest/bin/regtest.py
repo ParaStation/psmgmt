@@ -39,13 +39,13 @@ signal.signal(signal.SIGTERM, handlesig)
 _LOGFILE = None
 
 #
-# Open the logfile
+# Open the logfile.
 def start_logging(logf):
 	global _LOGFILE
 	_LOGFILE = open(logf, "w")
 
 #
-# Write a message to the logfile
+# Write a message to the logfile.
 def log(msg):
 	global _LOGFILE
 	global BL
@@ -67,7 +67,7 @@ def log(msg):
 
 
 #
-# Pad a string with whitespaces
+# Pad a string with whitespaces.
 def whitespace_pad(x, n):
 	return x + " " * (n - len(x))
 
@@ -88,6 +88,54 @@ def query_slurm_version():
 		raise Exception("Failed to retrieve version")
 
 	return version
+
+#
+# Parse the output lines obtained from sinfo.
+def parse_sinfo_output(lines):
+	keys  = [x.strip() for x in lines[0].split("|")]
+
+	output = {}
+	for line in lines[1:]:
+		d = {}
+		for i, v in enumerate(line.split("|")):
+			d[keys[i]] = v.strip()
+
+		p = d["PARTITION"]
+
+		if p in output.keys():
+			output[p].append(d)
+		else:
+			output[p] = [d]
+
+	return output
+
+#
+# Process the sinfo output as returned by parse_sinfo_output()
+# in order to retrieve the relevant informations.
+def process_sinfo_output(partitions):
+	partinfo = {}
+	for p in partitions.keys():
+		partinfo[p] = {}
+		partinfo[p]["cpus"] = partitions[p][0]["CPUS"]
+
+	return partinfo
+
+#
+# Retrieve informations about partitions using the sinfo command.
+def query_sinfo():
+	p = subprocess.Popen(["sinfo", "-o", "%all"], \
+	                     stdout = subprocess.PIPE, \
+	                     stderr = subprocess.PIPE)
+
+	out, err = p.communicate()
+
+	if p.wait():
+		raise Exception("Failed to retrieve system informations")
+
+	lines = [x for x in map(lambda z: z.strip(), out.split("\n")) if len(x) > 0]
+	tmp   = parse_sinfo_output(lines)
+
+	return process_sinfo_output(tmp)
 
 #
 # Generic worker thread class that executes a specified function
@@ -190,42 +238,66 @@ def prepare_submit_cmd(part, reserv, test, flags):
 
 #
 # Submit a job to partition part and return the jobid using sbatch.
-def submit_via_sbatch(part, reserv, test):
+def submit_via_sbatch(part, partinfo, reserv, test):
 	cmd = prepare_submit_cmd(part, reserv, test, test["flags"])
 	wdir = test["root"]
+
+	env = os.environ.copy()
+	env["PSTEST_PARTITION"]      = "%s" % part
+	env["PSTEST_PARTITION_CPUS"] = "%s" % partinfo["cpus"]
+	env["PSTEST_RESERVATION"]    = "%s" % reserv
+	env["PSTEST_TESTKEY"]        = "%s" % test["key"]
+	env["PSTEST_OUTDIR"]         = "%s" % test["outdir"]
 
 	return popen(cmd, \
 	             stdout = subprocess.PIPE, \
 	             stderr = subprocess.PIPE, \
+	             env = env, \
 	             cwd = wdir)
 
 	return p
 
 #
 # Submit a job to partition part and return the jobid using srun.
-def submit_via_srun(part, reserv, test):
+def submit_via_srun(part, partinfo, reserv, test):
 	cmd = prepare_submit_cmd(part, reserv, test, test["flags"])
 	wdir = test["root"]
+
+	env = os.environ.copy()
+	env["PSTEST_PARTITION"]      = "%s" % part
+	env["PSTEST_PARTITION_CPUS"] = "%s" % partinfo["cpus"]
+	env["PSTEST_RESERVATION"]    = "%s" % reserv
+	env["PSTEST_TESTKEY"]        = "%s" % test["key"]
+	env["PSTEST_OUTDIR"]         = "%s" % test["outdir"]
 
 	p = popen(cmd, \
 	          stdout = subprocess.PIPE, \
 	          stderr = subprocess.PIPE, \
+	          env = env, \
 	          cwd = wdir)
 
 	return p
 
 #
 # Submit a job to partition part and return the jobid using salloc.
-def submit_via_salloc(part, reserv, test):
+def submit_via_salloc(part, partinfo, reserv, test):
 	# salloc does not understand these options. Just pretend the flags
 	# dissallow adding them.
 	cmd = prepare_submit_cmd(part, reserv, test, \
 	                         test["flags"] + ["SUBMIT_NO_O_OPTION", "SUBMIT_NO_E_OPTION"])
 	wdir = test["root"]
 
+	env = os.environ.copy()
+	env["PSTEST_PARTITION"]      = "%s" % part
+	env["PSTEST_PARTITION_CPUS"] = "%s" % partinfo["cpus"]
+	env["PSTEST_RESERVATION"]    = "%s" % reserv
+	env["PSTEST_TESTKEY"]        = "%s" % test["key"]
+	env["PSTEST_OUTDIR"]         = "%s" % test["outdir"]
+
 	p = popen(cmd, \
 	          stdout = subprocess.PIPE, \
 	          stderr = subprocess.PIPE, \
+	          env = env, \
 	          cwd = wdir)
 
 	return p
@@ -236,12 +308,12 @@ def submit_via_salloc(part, reserv, test):
 # The current version of the code cannot handle srun since srun blocks.
 # Moreover, when using srun we want to check that Ctrl-C and friends are
 # properly handled.
-def submit(part, reserv, test):
+def submit(part, partinfo, reserv, test):
 	k = test["submit"][0].strip()
 
 	return {"sbatch": submit_via_sbatch, \
 	        "srun"  : submit_via_srun, \
-	        "salloc": submit_via_salloc}[k](part, reserv, test)
+	        "salloc": submit_via_salloc}[k](part, partinfo, reserv, test)
 
 #
 # Try to get the jobid from stdout/stderr. We are passing the "-v" flag to
@@ -278,13 +350,14 @@ def job_is_done(stats):
 
 #
 # Spawn a frontend process
-def spawn_frontend_process(test, part, reserv, jobid, fo, fe):
+def spawn_frontend_process(test, part, partinfo, reserv, jobid, fo, fe):
 	# Prepare the environment for the front-end process
 	env = os.environ.copy()
-	env["PSTEST_PARTITION"]   = "%s" % part
-	env["PSTEST_RESERVATION"] = "%s" % reserv
-	env["PSTEST_TESTKEY"]     = "%s" % test["key"]
-	env["PSTEST_OUTDIR"]      = "%s" % test["outdir"]
+	env["PSTEST_PARTITION"]      = "%s" % part
+	env["PSTEST_PARTITION_CPUS"] = "%s" % partinfo["cpus"]
+	env["PSTEST_RESERVATION"]    = "%s" % reserv
+	env["PSTEST_TESTKEY"]        = "%s" % test["key"]
+	env["PSTEST_OUTDIR"]         = "%s" % test["outdir"]
 	if jobid:
 		env["PSTEST_JOB_ID"] = jobid
 
@@ -330,7 +403,7 @@ def catch_bugs_in_exec_test(tests, stats, state):
 #
 # Execute a batch job. The function waits until the job and the accompanying
 # frontend process (if one) are terminated.
-def exec_test_batch(thread, test, idx):
+def exec_test_batch(thread, test, idx, partinfo):
 	assert("batch" == test["type"])
 
 	part   = test["partitions"][idx]
@@ -396,7 +469,7 @@ def exec_test_batch(thread, test, idx):
 			return (retval, None)
 
 		if UNBORN == state[0]:
-			q = submit(part, reserv, test)
+			q = submit(part, partinfo, reserv, test)
 
 			log("%s: submit process is alive with pid %d\n" % (test["logkey"], q.pid))
 
@@ -460,7 +533,7 @@ def exec_test_batch(thread, test, idx):
 			fo = open(test["outdir"] + "/fproc-%s.out" % part, "w")
 			fe = open(test["outdir"] + "/fproc-%s.err" % part, "w")
 
-			p = spawn_frontend_process(test, part, reserv, \
+			p = spawn_frontend_process(test, part, partinfo, reserv, \
 			                           jobid, fo, fe)
 
 			log("%s: frontend process is alive with pid %d\n" % (test["logkey"], p.pid))
@@ -556,7 +629,7 @@ def exec_test_batch(thread, test, idx):
 
 #
 # Execute an interactive job.
-def exec_test_interactive(thread, test, idx):
+def exec_test_interactive(thread, test, idx, partinfo):
 	assert("interactive" == test["type"])
 
 	part   = test["partitions"][idx]
@@ -716,7 +789,7 @@ def exec_test_interactive(thread, test, idx):
 			fo = open(test["outdir"] + "/fproc-%s.out" % part, "w")
 			fe = open(test["outdir"] + "/fproc-%s.err" % part, "w")
 
-			p = spawn_frontend_process(test, part, reserv, \
+			p = spawn_frontend_process(test, part, partinfo, reserv, \
 			                           jobid, subprocess.PIPE, fe)
 
 			log("%s: frontend process is alive with pid %d\n" % (test["logkey"], p.pid))
@@ -837,7 +910,7 @@ def export_submit_variables_to_env(stats, part, env):
 # passed via the environment. Specifically, for the job submitted to the partition
 # "batch", several environment variables with the prefix PSTEST_SCONTROL_SBATCH_ are
 # available corresponding to the scontrol output.
-def exec_eval_command(test, stats):
+def exec_eval_command(test, partinfo, stats):
 	env = os.environ.copy()
 
 	env["PSTEST_PARTITIONS"] = " ".join(test["partitions"])
@@ -845,6 +918,8 @@ def exec_eval_command(test, stats):
 	env["PSTEST_OUTDIR"]  = test["outdir"]
 
 	for i, part in enumerate(test["partitions"]):
+		env["PSTEST_" + part.upper() + "_CPUS"] = partinfo[part]["cpus"]
+
 		if stats[i]["scontrol"]:
 			export_scontrol_output_to_env(stats[i]["scontrol"], \
 			                              part, env)
@@ -885,7 +960,7 @@ def exec_eval_command(test, stats):
 #
 # In the current implementation, test evaluation cannot be terminated by a signal.
 # This is usually not an issue since the evaulation is rather quick.
-def eval_test_outcome(test, stats):
+def eval_test_outcome(test, partinfo, stats):
 	if len([x for x in stats if not x]) > 0:
 		log("%s: BUG: exec_test returned 0 but stats is None.\n" % test["key"])
 		return 1
@@ -896,7 +971,7 @@ def eval_test_outcome(test, stats):
 		log("%s: No evaluation program specified. Failing test\n" % test["key"])
 		return 1
 
-	return exec_eval_command(test, stats)
+	return exec_eval_command(test, partinfo, stats)
 
 #
 # Create an empty output folder for the test.
@@ -908,6 +983,14 @@ def create_output_dir(test):
 # and return the new array
 def fixup_test_description_placeholder(array, regexp, repl):
 	return [re.sub(regexp, repl, x) for x in array]
+
+#
+# Evaluate formulas in the submission command.
+def fixup_test_description_eval_formulas(array):
+	def repl(matchobj):
+		return "%s" % eval(matchobj.group(1))
+
+	return [re.sub(r'\|([^\|]+)\|', repl, x) for x in array]
 
 #
 # Pre-processing of the test description.
@@ -929,7 +1012,6 @@ def fixup_test_description(test, opts):
 
 		test[z] = x
 
-
 	for x in opts.ignorep:
 		for i, z in enumerate(test["partitions"]):
 			if x == z:
@@ -940,6 +1022,23 @@ def fixup_test_description(test, opts):
 	# Specifying flags is optional
 	if not "flags" in test.keys():
 		test["flags"] = []
+
+#
+# Pre-processing of the test description. In contrast to fixup_test_description()
+# this function is called on the copy of the test description that is created for
+# each individual partition.
+# Replaces @P in strings by the number of (Slurm) CPUs available on each node.
+def fixup_test_description_given_partition(test, opts, partinfo):
+	for z in ["submit", "eval", "fproc"]:
+		if not test[z]:
+			continue
+		x = test[z]
+
+		x = fixup_test_description_placeholder(x, r'@P', partinfo["cpus"])
+		x = fixup_test_description_eval_formulas(x)
+
+		test[z] = x
+
 
 #
 # Check that the test description is okay.
@@ -990,7 +1089,7 @@ def print_test_outcome(name, key, color, result):
 # Run a single test. For each specified partition the function will submit one
 # job, potentially spawn an accompanying frontend process that can interact with
 # the batch system (e.g., to test job canceling) and then runs the evaluation.
-def perform_test(thread, testdir, testkey, opts):
+def perform_test(thread, testdir, testkey, opts, partinfo):
 	# For convenience we allow Python-style comments in the JSON files. These
 	# are removed before presenting the string to the json.loads function.
 	descr = " ".join(map(lambda x: re.sub(r'#.*$', r'', x), \
@@ -1023,16 +1122,20 @@ def perform_test(thread, testdir, testkey, opts):
 
 	threads = []
 	for i in range(n):
+		tmp2 = partinfo[test["partitions"][i]]
+
 		# Assign a unique key for logging
-		tmp = copy.deepcopy(test)
-		tmp["logkey"] = test["key"]
+		tmp1 = copy.deepcopy(test)
+		tmp1["logkey"] = test["key"]
 		if n > 1:
-			tmp["logkey"] += "-%s" % test["partitions"][i]
+			tmp1["logkey"] += "-%s" % test["partitions"][i]
+
+		fixup_test_description_given_partition(tmp1, opts, tmp2)
 
 		fct = {"batch"      : exec_test_batch, \
 		       "interactive": exec_test_interactive}[test["type"]]
 
-		threads.append(WorkerThread(fct, [tmp, i]))
+		threads.append(WorkerThread(fct, [tmp1, i, tmp2]))
 
 	[x.start() for x in threads]
 
@@ -1083,7 +1186,7 @@ def perform_test(thread, testdir, testkey, opts):
 		print_test_outcome(test["name"], test["key"], "red", "FAIL")
 		return
 
-	if eval_test_outcome(test, [x.ret[1] for x in threads]):
+	if eval_test_outcome(test, partinfo, [x.ret[1] for x in threads]):
 		print_test_outcome(test["name"], test["key"], "red", "FAIL")
 	else:
 		print_test_outcome(test["name"], test["key"], "green", "OK")
@@ -1182,6 +1285,9 @@ def main(argv):
 			print(" " + whitespace_pad(testdir, 29) + \
 			      " (%s)" % (opts.testsdir + "/" + testdir))
 	else:
+		partinfo = query_sinfo()
+		log("partinfo = %s\n" % str(partinfo))
+
 		if opts.repetitions > 1:
 			tests = tests * opts.repetitions
 
@@ -1214,7 +1320,7 @@ def main(argv):
 					log("Starting thread for test '%s' with key '%s'\n" % (testdir, testkey))
 
 					threads.append(WorkerThread(perform_test, \
-					               [opts.testsdir + "/" + testdir, testkey, opts]))
+					               [opts.testsdir + "/" + testdir, testkey, opts, partinfo]))
 					threads[-1].start()
 				finally:
 					i += 1
