@@ -48,6 +48,11 @@ def job_id(part):
 	return save_env_access(part, "PSTEST_SCONTROL_%s_JOB_ID")
 
 #
+# Get the number of CPUs (in Slurm terminology) of nodes in the partition.
+def partition_cpus(part):
+	return save_env_access(part, "PSTEST_%s_CPUS")
+
+#
 # Get the job node list. In order for this to function the host names of the compute
 # nodes must conform to some standards. The name prefix (which is common for all compute
 # nodes) must start and end with a letter and may contain numbers only in the middle part.
