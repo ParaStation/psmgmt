@@ -10,7 +10,7 @@ import signal
 
 start = time.time()
 
-cmd  = ["srun", "-X", "-n", "1", "-t", "2" ]
+cmd  = ["srun", "-v", "-X", "-n", "1", "-t", "2" ]
 cmd += ["-o", "%s/slurm-%s.out" % (os.environ["PSTEST_OUTDIR"], os.environ["PSTEST_PARTITION"])]
 cmd += ["-p", os.environ["PSTEST_PARTITION"]]
 if "" != os.environ["PSTEST_RESERVATION"]:
@@ -30,7 +30,7 @@ while 1:
 	for x in ready:
 		line = x.readline()
 		if "" != line.strip():
-			if re.match(r'.*allocated resources.*', line):
+			if re.match(r'.*tasks started.*', line):
 				time.sleep(30)
 				p.send_signal(signal.SIGINT)
 		

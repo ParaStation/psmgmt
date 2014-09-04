@@ -7,7 +7,7 @@ import select
 import re
 
 
-cmd = ["srun", "-N", "2", "-n", "%d" % (2*int(os.eviron["PSTEST_PARTITION_CPUS"])), "-t", "2", "-p", os.environ["PSTEST_PARTITION"]]
+cmd = ["srun", "-v", "-N", "2", "-n", "%d" % (2*int(os.environ["PSTEST_PARTITION_CPUS"])), "-t", "2", "-p", os.environ["PSTEST_PARTITION"]]
 if "" != os.environ["PSTEST_RESERVATION"]:
 	cmd += ["--reservation", os.environ["PSTEST_RESERVATION"]]
 cmd += ["-i", "5", "./read.py"]
@@ -33,7 +33,7 @@ while 1:
 	for x in ready:
 		line = x.readline()
 		if "" != line.strip():
-			if re.match(r'.*allocated resources.*', line):
+			if re.match(r'.*tasks started.*', line):
 				p.stdin.write("OK\n")
 				interact = 0
 
