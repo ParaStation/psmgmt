@@ -182,6 +182,8 @@ int checkJobCred(Job_t *job)
 
 void deleteJobCred(JobCred_t *cred)
 {
+    if (!cred) return;
+
     ufree(cred->coresPerSocket);
     ufree(cred->socketsPerNode);
     ufree(cred->sockCoreRepCount);

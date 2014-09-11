@@ -87,10 +87,11 @@ static void cbPrologueStep(char *sjobid, int exit_status, int timeout)
 	if (step->terminate) {
 	    step->state = JOB_EXIT;
 
-	    /* send epilogue complete */
+	    send_PS_JobExit(step->jobid, SLURM_BATCH_SCRIPT,
+				step->nrOfNodes, step->nodes);
 	    sendEpilogueComplete(step->jobid, 0);
 
-	    deleteStep(step->jobid, step->stepid);
+	    clearStepList(step->jobid);
 	    psPelogueDeleteJob("psslurm", sjobid);
 	}
     } else {
@@ -253,7 +254,7 @@ static void handleLauchTasks(char *ptr, int sock, Slurm_msg_header_t *msgHead)
     Step_t *step;
     uint32_t jobid, stepid, i, tmp, count, addr;
     uint16_t port, debug;
-    char jobOpt[512];
+    char jobOpt[512], *acctType;
 
     /* jobid/stepid */
     getUint32(&ptr, &jobid);
@@ -423,6 +424,12 @@ static void handleLauchTasks(char *ptr, int sock, Slurm_msg_header_t *msgHead)
     /* TODO return error to slurmctld */
     checkStepCred(step);
 
+    if ((acctType = getConfValueC(&SlurmConfig, "JobAcctGatherType"))) {
+	step->accType = (!(strcmp(acctType, "jobacct_gather/none"))) ? 0 : 1;
+    } else {
+	step->accType = 0;
+    }
+
     /* let prologue run, if there is no job with the jobid there */
     /* fire up the forwarder and let mpiexec run, intercept createPart Call to
      * overwrite the nodelist, when spawner process sends the tids forward them
@@ -481,8 +488,11 @@ static void handleSignalTasks(char *ptr, int sock, Slurm_msg_header_t *msgHead)
 	    sendSlurmRC(sock, SLURM_SUCCESS, step);
 	    return;
 	case SIG_DEBUG_WAKE:
-	    if (!(step->taskFlags & TASK_PARALLEL_DEBUG)) break;
-	    mlog("%s: TODO: send SIGCONT to all processes\n", __func__);
+	    if (!(step->taskFlags & TASK_PARALLEL_DEBUG)) {
+		sendSlurmRC(sock, SLURM_SUCCESS, step);
+		return;
+	    }
+	    signalStep(step, SIGCONT);
 	    sendSlurmRC(sock, SLURM_SUCCESS, step);
 	    return;
 	case SIG_TIME_LIMIT:
@@ -530,28 +540,39 @@ static void handleReattachTasks(char *ptr, int sock)
 static void handleSignalJob(char *ptr, int sock, Slurm_msg_header_t *msgHead)
 {
     Job_t *job;
+    Step_t *step;
     uint32_t jobid;
     uint32_t signal;
+    uid_t uid;
 
     getUint32(&ptr, &jobid);
     getUint32(&ptr, &signal);
 
-    if (!(job = findJobById(jobid))) {
+    job = findJobById(jobid);
+    step = findStepByJobid(jobid);
+    uid = step ? step->uid : 0;
+    uid = job ? job->uid : 0;
+
+    if (!job && !step) {
 	mlog("%s: job '%u' to signal not found\n", __func__, jobid);
 	sendSlurmRC(sock, ESLURM_INVALID_JOB_ID, NULL);
 	return;
     }
 
     /* check permissions */
-    if (!(checkAuthorizedUser(msgHead->uid, job->uid))) {
+    if (!(checkAuthorizedUser(msgHead->uid, uid))) {
 	mlog("%s: request from invalid user '%u' job '%u'\n", __func__,
 		msgHead->uid, jobid);
 	sendSlurmRC(sock, ESLURM_USER_ID_MISSING, NULL);
 	return;
     }
 
-    /* TODO: send the signal */
-    mlog("%s: implement me!\n", __func__);
+    if (job) {
+	signalJob(job, signal, "");
+    } else {
+	signalStepsByJobid(jobid, signal);
+    }
+
     sendSlurmRC(sock, SLURM_SUCCESS, job);
 }
 
@@ -623,10 +644,31 @@ static void handleHealthCheck(char *ptr, int sock)
     sendSlurmRC(sock, ESLURM_NOT_SUPPORTED, NULL);
 }
 
-static void handleAcctGatherUpdate(char *ptr, int sock)
+static void handleAcctGatherUpdate(char *ptr, int sock,
+				    Slurm_msg_header_t *msgHead)
 {
-    mlog("%s: implement me!\n", __func__);
-    sendSlurmRC(sock, ESLURM_NOT_SUPPORTED, NULL);
+    PS_DataBuffer_t msg = { .buf = NULL };
+    time_t now = 0;
+    int i;
+
+    /* check permissions */
+    if (msgHead->uid != 0 && msgHead->uid != slurmUserID) {
+	mlog("%s: request from invalid user '%u'\n", __func__, msgHead->uid);
+	sendSlurmRC(sock, ESLURM_USER_ID_MISSING, NULL);
+	return;
+    }
+
+    /* node name */
+    addStringToMsg(getConfValueC(&Config, "SLURM_HOSTNAME"), &msg);
+
+    /* set dummy energy data */
+    for (i=0; i<5; i++) {
+	addUint32ToMsg(0, &msg);
+    }
+    addTimeToMsg(&now, &msg);
+
+    sendSlurmMsg(sock, RESPONSE_ACCT_GATHER_UPDATE, &msg, NULL);
+    ufree(msg.buf);
 }
 
 static void handleAcctGatherEnergy(char *ptr, int sock)
@@ -637,8 +679,23 @@ static void handleAcctGatherEnergy(char *ptr, int sock)
 
 static void handleJobId(char *ptr, int sock)
 {
-    mlog("%s: implement me!\n", __func__);
-    sendSlurmRC(sock, ESLURM_NOT_SUPPORTED, NULL);
+    PS_DataBuffer_t msg = { .buf = NULL };
+    int found  = 0;
+    uint32_t jobid = 0;
+
+    getUint32(&ptr, &jobid);
+
+    if (findJobById(jobid)) found = 1;
+    if (findStepByJobid(jobid)) found = 1;
+
+    if (found) {
+	addUint32ToMsg(jobid, &msg);
+	addUint32ToMsg(SLURM_SUCCESS, &msg);
+	sendSlurmMsg(sock, RESPONSE_JOB_ID, &msg, NULL);
+	ufree(msg.buf);
+    } else {
+	sendSlurmRC(sock, ESLURM_INVALID_JOB_ID, NULL);
+    }
 }
 
 static void handleFileBCast(char *ptr, int sock)
@@ -683,6 +740,7 @@ static void handleStepPids(char *ptr, int sock, Slurm_msg_header_t *msgHead)
 
     mlog("%s: implement me!\n", __func__);
     sendSlurmRC(sock, ESLURM_NOT_SUPPORTED, NULL);
+    ufree(msg.buf);
 }
 
 static void handleDaemonStatus(char *ptr, int sock)
@@ -895,12 +953,15 @@ static void handleTerminateJob(int sock, Slurm_msg_header_t *msgHead,
 	    mlog("%s: waiting till job pro/epilogue is complete\n", __func__);
 	    return;
 	case JOB_EXIT:
-	case JOB_INIT:
 	    if (sock > -1) {
 		sendSlurmRC(sock, ESLURMD_KILL_JOB_ALREADY_COMPLETE, NULL);
 	    }
 	    deleteJob(job->jobid);
 	    return;
+	case JOB_INIT:
+	case JOB_QUEUED:
+	    if (sock > -1) sendSlurmRC(sock, SLURM_SUCCESS, NULL);
+	    mlog("%s: waiting till job init is complete\n", __func__);
     }
 
     if (sock > -1) sendSlurmRC(sock, SLURM_SUCCESS, NULL);
@@ -915,21 +976,51 @@ static void handleTerminateJob(int sock, Slurm_msg_header_t *msgHead,
 static void handleTerminateStep(int sock, Slurm_msg_header_t *msgHead,
 				Step_t *step, int signal)
 {
-    /* if we are not mother superior just obit the step */
-    if (step->nodes[0] != PSC_getMyID() || step->stepid >0) {
-
-	signalTasks(step->uid, &step->tasks, signal);
-
-	if (sock > -1) {
-	    sendSlurmRC(sock, ESLURMD_KILL_JOB_ALREADY_COMPLETE, NULL);
-	}
-	deleteStep(step->jobid, step->stepid);
-	return;
-    }
-
     /* set terminate flag */
     step->terminate = 1;
 
+    /* if we are not mother superior */
+    if (step->nodes[0] != PSC_getMyID()) {
+	if (step->state == JOB_EXIT) {
+	    if (sock > -1) {
+		sendSlurmRC(sock, ESLURMD_KILL_JOB_ALREADY_COMPLETE, NULL);
+	    }
+	    deleteStep(step->jobid, step->stepid);
+	} else {
+	    signalTasks(step->uid, &step->tasks, signal, -1);
+	    mlog("%s signal tasks for step '%u:%u' state '%u'\n", __func__,
+		    step->jobid, step->stepid, step->state);
+	    if (sock > -1) sendSlurmRC(sock, SLURM_SUCCESS, NULL);
+	}
+	return;
+    }
+
+    /* signal sub-steps */
+    if (step->stepid >0) {
+	switch (step->state) {
+	    case JOB_EXIT:
+		if (sock > -1) {
+		    sendSlurmRC(sock, ESLURMD_KILL_JOB_ALREADY_COMPLETE, NULL);
+		}
+		send_PS_JobExit(step->jobid, step->stepid,
+				    step->nrOfNodes, step->nodes);
+		deleteStep(step->jobid, step->stepid);
+		return;
+	    case JOB_INIT:
+	    case JOB_QUEUED:
+		if (sock > -1) sendSlurmRC(sock, SLURM_SUCCESS, NULL);
+		mlog("%s waiting for sub step '%u:%u' state '%u'\n", __func__,
+			step->jobid, step->stepid, step->state);
+		return;
+	}
+	mlog("%s signal tasks for sub step '%u:%u' state '%u'\n", __func__,
+		step->jobid, step->stepid, step->state);
+	signalStep(step, signal);
+	if (sock > -1) sendSlurmRC(sock, SLURM_SUCCESS, NULL);
+	return;
+    }
+
+    /* for steps which represent jobs */
     switch (step->state) {
 	case JOB_RUNNING:
 	case JOB_PRESTART:
@@ -949,11 +1040,14 @@ static void handleTerminateStep(int sock, Slurm_msg_header_t *msgHead,
 	    if (sock > -1) {
 		sendSlurmRC(sock, ESLURMD_KILL_JOB_ALREADY_COMPLETE, NULL);
 	    }
-	    deleteStep(step->jobid, step->stepid);
+	    send_PS_JobExit(step->jobid, SLURM_BATCH_SCRIPT,
+				step->nrOfNodes, step->nodes);
+	    clearStepList(step->jobid);
 	    return;
 	case JOB_INIT:
+	case JOB_QUEUED:
 	    if (sock > -1) sendSlurmRC(sock, SLURM_SUCCESS, NULL);
-	    deleteStep(step->jobid, step->stepid);
+	    mlog("%s: waiting till step init is complete\n", __func__);
 	    return;
     }
 
@@ -1276,7 +1370,7 @@ int handleSlurmdMsg(int sock, void *data)
 	    handleHealthCheck(ptr, sock);
 	    break;
 	case REQUEST_ACCT_GATHER_UPDATE:
-	    handleAcctGatherUpdate(ptr, sock);
+	    handleAcctGatherUpdate(ptr, sock, &msgHead);
 	    break;
 	case REQUEST_ACCT_GATHER_ENERGY:
 	    handleAcctGatherEnergy(ptr, sock);
@@ -1482,86 +1576,121 @@ int sendSlurmRC(int sock, uint32_t rc, void *data)
     return ret;
 }
 
-static void addSlurmAccData(Job_t * job, PS_DataBuffer_t *data)
+static void addSlurmAccData(pid_t childPid, PS_DataBuffer_t *data)
 {
     AccountDataExt_t accData;
     int i;
 
-    /* add accounting data, this is dependend
-     * of the plugin/account slurm config */
-    if (job->accType) {
+    /* TODO get all real values */
+    addUint8ToMsg(1, data);
 
-	if (!(psAccountGetJobData(job->fwdata->childPid, &accData))) {
-	    mlog("%s: getting account data failed\n", __func__);
-	} else {
-	    mlog("%s: adding account data: maxVsize '%zu' maxRss '%zu' "
-		    "u_sec '%lu' u_usec '%lu' s_sec '%lu' s_usec '%lu'\n",
-		    __func__, accData.maxVsize, accData.maxRss,
-		    accData.rusage.ru_utime.tv_sec,
-		    accData.rusage.ru_utime.tv_usec,
-		    accData.rusage.ru_stime.tv_sec,
-		    accData.rusage.ru_stime.tv_usec);
+    if (!(psAccountGetJobData(childPid, &accData))) {
+	mlog("%s: getting account data failed\n", __func__);
+
+	for (i=0; i<6; i++) {
+	    addUint64ToMsg(0, data);
 	}
-
-	/* TODO get all real values */
-	addUint8ToMsg(1, data);
-
-	/* user cpu sec */
-	addUint32ToMsg(accData.rusage.ru_utime.tv_sec, data);
-	/* user cpu usec */
-	addUint32ToMsg(accData.rusage.ru_utime.tv_usec, data);
-	/* system cpu sec */
-	addUint32ToMsg(accData.rusage.ru_stime.tv_sec, data);
-	/* system cpu usec */
-	addUint32ToMsg(accData.rusage.ru_stime.tv_usec, data);
-
-	/* max vsize */
-	addUint64ToMsg(accData.maxVsize, data);
-	/* tot vsize */
-	addUint64ToMsg(0, data);
-	/* max rss */
-	addUint64ToMsg(accData.maxRss, data);
-	/* tot rss */
-	addUint64ToMsg(0, data);
-	/* max pages */
-	addUint64ToMsg(0, data);
-	/* tot pages */
-	addUint64ToMsg(0, data);
-
-	/* min cpu */
-	addUint32ToMsg(0, data);
-	/* tot cpu */
-	addUint32ToMsg(0, data);
-	/* act cpufreq */
-	addUint32ToMsg(0, data);
-	/* energy consumed */
-	addUint32ToMsg(0, data);
-
-	/*
-	packdouble((double)jobacct->max_disk_read, buffer);
-	packdouble((double)jobacct->tot_disk_read, buffer);
-	packdouble((double)jobacct->max_disk_write, buffer);
-	packdouble((double)jobacct->tot_disk_write, buffer);
-	*/
+	for (i=0; i<8; i++) {
+	    addUint32ToMsg(0, data);
+	}
 	for (i=0; i<4; i++) {
 	    addDoubleToMsg(0, data);
 	}
-
-	/*
-	_pack_jobacct_id(&jobacct->max_vsize_id, rpc_version, buffer);
-	_pack_jobacct_id(&jobacct->max_rss_id, rpc_version, buffer);
-	_pack_jobacct_id(&jobacct->max_pages_id, rpc_version, buffer);
-	_pack_jobacct_id(&jobacct->min_cpu_id, rpc_version, buffer);
-	_pack_jobacct_id(&jobacct->max_disk_read_id, rpc_version,
-		buffer);
-	_pack_jobacct_id(&jobacct->max_disk_write_id, rpc_version,
-		buffer);
-	*/
 	for (i=0; i<6; i++) {
 	    addUint32ToMsg((uint32_t) NO_VAL, data);
 	    addUint16ToMsg((uint16_t) NO_VAL, data);
 	}
+	return;
     }
+
+    mlog("%s: adding account data: maxVsize '%zu' maxRss '%zu' "
+	    "u_sec '%lu' u_usec '%lu' s_sec '%lu' s_usec '%lu'\n",
+	    __func__, accData.maxVsize, accData.maxRss,
+	    accData.rusage.ru_utime.tv_sec,
+	    accData.rusage.ru_utime.tv_usec,
+	    accData.rusage.ru_stime.tv_sec,
+	    accData.rusage.ru_stime.tv_usec);
+
+    /* user cpu sec */
+    addUint32ToMsg(accData.rusage.ru_utime.tv_sec, data);
+    /* user cpu usec */
+    addUint32ToMsg(accData.rusage.ru_utime.tv_usec, data);
+    /* system cpu sec */
+    addUint32ToMsg(accData.rusage.ru_stime.tv_sec, data);
+    /* system cpu usec */
+    addUint32ToMsg(accData.rusage.ru_stime.tv_usec, data);
+
+    /* max vsize */
+    addUint64ToMsg(accData.maxVsize, data);
+    /* tot vsize */
+    addUint64ToMsg(0, data);
+    /* max rss */
+    addUint64ToMsg(accData.maxRss, data);
+    /* tot rss */
+    addUint64ToMsg(0, data);
+    /* max pages */
+    addUint64ToMsg(0, data);
+    /* tot pages */
+    addUint64ToMsg(0, data);
+
+    /* min cpu */
+    addUint32ToMsg(0, data);
+    /* tot cpu */
+    addUint32ToMsg(0, data);
+    /* act cpufreq */
+    addUint32ToMsg(0, data);
+    /* energy consumed */
+    addUint32ToMsg(0, data);
+
+    /*
+    packdouble((double)jobacct->max_disk_read, buffer);
+    packdouble((double)jobacct->tot_disk_read, buffer);
+    packdouble((double)jobacct->max_disk_write, buffer);
+    packdouble((double)jobacct->tot_disk_write, buffer);
+    */
+    for (i=0; i<4; i++) {
+	addDoubleToMsg(0, data);
+    }
+
+    /*
+    _pack_jobacct_id(&jobacct->max_vsize_id, rpc_version, buffer);
+    _pack_jobacct_id(&jobacct->max_rss_id, rpc_version, buffer);
+    _pack_jobacct_id(&jobacct->max_pages_id, rpc_version, buffer);
+    _pack_jobacct_id(&jobacct->min_cpu_id, rpc_version, buffer);
+    _pack_jobacct_id(&jobacct->max_disk_read_id, rpc_version,
+	    buffer);
+    _pack_jobacct_id(&jobacct->max_disk_write_id, rpc_version,
+	    buffer);
+    */
+    for (i=0; i<6; i++) {
+	addUint32ToMsg((uint32_t) NO_VAL, data);
+	addUint16ToMsg((uint16_t) NO_VAL, data);
+    }
+}
+
+void sendStepExit(Step_t *step, int exit_status)
+{
+    PS_DataBuffer_t body = { .buf = NULL };
+
+    addUint32ToMsg(step->jobid, &body);
+    addUint32ToMsg(step->stepid, &body);
+
+    /* node range (first, last) */
+    addUint32ToMsg(0, &body);
+    addUint32ToMsg(step->nrOfNodes -1, &body);
+
+    /* exit status */
+    addUint32ToMsg(exit_status, &body);
+
+    /* account data */
+    if (step->accType) {
+	addSlurmAccData(step->fwdata->childPid, &body);
+    }
+
+    mlog("%s: sending REQUEST_STEP_COMPLETE to slurmctld\n", __func__);
+
+    sendSlurmMsg(-1, REQUEST_STEP_COMPLETE, &body, step);
+    ufree(body.buf);
 }
 
 void sendTaskExit(Step_t *step, int exit_status)
@@ -1657,7 +1786,9 @@ void sendJobExit(Job_t *job, uint32_t status)
     id = atoi(job->id);
 
     /* batch job */
-    addSlurmAccData(job, &body);
+    if (job->accType) {
+	addSlurmAccData(job->fwdata->childPid, &body);
+    }
     /* jobid */
     addUint32ToMsg(id, &body);
     /* jobscript exit code */

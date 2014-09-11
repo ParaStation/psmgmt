@@ -135,7 +135,7 @@ int initLimits()
     return 1;
 }
 
-void setRlimitsFromEnv(char ***origEnv, uint32_t *envc)
+void setRlimitsFromEnv(char ***origEnv, uint32_t *envc, int psi)
 {
     struct rlimit limit;
     unsigned long softLimit;
@@ -177,11 +177,16 @@ void setRlimitsFromEnv(char ***origEnv, uint32_t *envc)
 			    mwarn(errno, "%s: setting '%s' to '%lu' failed: ",
 				    __func__, climit, softLimit);
 			}
-			if (softLimit == RLIM_INFINITY) {
-			    env_set(&env, slurmConfLimits[i].psname, "infinity");
-			} else {
-			    snprintf(pslimit, sizeof(pslimit), "%lx", softLimit);
-			    env_set(&env, slurmConfLimits[i].psname, pslimit);
+			if (psi) {
+			    if (softLimit == RLIM_INFINITY) {
+				env_set(&env, slurmConfLimits[i].psname,
+					    "infinity");
+			    } else {
+				snprintf(pslimit, sizeof(pslimit), "%lx",
+					    softLimit);
+				env_set(&env, slurmConfLimits[i].psname,
+					    pslimit);
+			    }
 			}
 		    }
 		}

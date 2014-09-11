@@ -429,6 +429,145 @@ static void handleRemoteJob(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 
 }
 
+void send_PS_JobExit(uint32_t jobid, uint32_t stepid, uint32_t nrOfNodes,
+			PSnodes_ID_t *nodes)
+{
+    DDTypedBufferMsg_t msg;
+    PS_DataBuffer_t data = { .buf = NULL };
+    PStask_ID_t myID = PSC_getMyID();
+    uint32_t i;
+
+    /* add jobid */
+    addUint32ToMsg(jobid, &data);
+
+    /* add stepid */
+    addUint32ToMsg(stepid, &data);
+
+    /* send the messages */
+    msg = (DDTypedBufferMsg_t) {
+       .header = (DDMsg_t) {
+       .type = PSP_CC_PLUG_PSSLURM,
+       .sender = PSC_getMyTID(),
+       .len = sizeof(msg.header) },
+       .buf = {'\0'} };
+
+    msg.type = PSP_JOB_EXIT;
+    msg.header.len += sizeof(msg.type);
+
+    memcpy(msg.buf, data.buf, data.bufUsed);
+    msg.header.len += data.bufUsed;
+
+    for (i=0; i<nrOfNodes; i++) {
+	if (nodes[i] == myID) continue;
+
+	msg.header.dest = PSC_getTID(nodes[i], 0);
+	sendMsg(&msg);
+    }
+
+    ufree(data.buf);
+}
+
+void send_PS_SignalTasks(Step_t *step, int signal, PStask_group_t group)
+{
+    DDTypedBufferMsg_t msg;
+    PS_DataBuffer_t data = { .buf = NULL };
+    PStask_ID_t myID = PSC_getMyID();
+    uint32_t i;
+
+    /* add jobid */
+    addUint32ToMsg(step->jobid, &data);
+
+    /* add stepid */
+    addUint32ToMsg(step->stepid, &data);
+
+    /* add group */
+    addInt32ToMsg(group, &data);
+
+    /* add signal */
+    addUint32ToMsg(signal, &data);
+
+    /* send the messages */
+    msg = (DDTypedBufferMsg_t) {
+       .header = (DDMsg_t) {
+       .type = PSP_CC_PLUG_PSSLURM,
+       .sender = PSC_getMyTID(),
+       .len = sizeof(msg.header) },
+       .buf = {'\0'} };
+
+    msg.type = PSP_SIGNAL_TASKS;
+    msg.header.len += sizeof(msg.type);
+
+    memcpy(msg.buf, data.buf, data.bufUsed);
+    msg.header.len += data.bufUsed;
+
+    for (i=0; i<step->nrOfNodes; i++) {
+	if (step->nodes[i] == myID) continue;
+
+	msg.header.dest = PSC_getTID(step->nodes[i], 0);
+	sendMsg(&msg);
+    }
+
+    ufree(data.buf);
+}
+
+static void handle_PS_JobExit(DDTypedBufferMsg_t *msg)
+{
+    uint32_t jobid, stepid;
+    Step_t *step;
+    char *ptr = msg->buf;
+
+    /* get jobid */
+    getUint32(&ptr, &jobid);
+
+    /* get stepid */
+    getUint32(&ptr, &stepid);
+
+    mlog("%s: id '%u:%u'\n", __func__, jobid, stepid);
+
+    /* delete all steps */
+    if (stepid == SLURM_BATCH_SCRIPT) {
+	sendEpilogueComplete(jobid, 0);
+	clearStepList(jobid);
+	return;
+    }
+
+    if (!(step = findStepById(jobid, stepid))) {
+      mlog("%s: step '%u:%u' not found\n", __func__, jobid, stepid);
+    } else {
+	step->state = JOB_EXIT;
+    }
+}
+
+static void handle_PS_SignalTasks(DDTypedBufferMsg_t *msg)
+{
+    uint32_t jobid, stepid;
+    uint32_t signal;
+    int32_t group;
+    char *ptr = msg->buf;
+    Step_t *step;
+
+    /* get jobid */
+    getUint32(&ptr, &jobid);
+
+    /* get stepid */
+    getUint32(&ptr, &stepid);
+
+    /* get group */
+    getInt32(&ptr, &group);
+
+    /* get signal */
+    getUint32(&ptr, &signal);
+
+    if (!(step = findStepById(jobid, stepid))) {
+      mlog("%s: step '%u:%u' to signal not found\n", __func__, jobid, stepid);
+      return;
+    }
+
+    /* signal tasks */
+    mlog("%s: id '%u:%u'\n", __func__, jobid, stepid);
+    signalTasks(step->uid, &step->tasks, signal, group);
+}
+
 void handlePsslurmMsg(DDTypedBufferMsg_t *msg)
 {
     char sender[100], dest[100];
@@ -458,6 +597,12 @@ void handlePsslurmMsg(DDTypedBufferMsg_t *msg)
 	    break;
 	case PSP_REMOTE_JOB:
 	    recvFragMsg(msg, handleRemoteJob);
+	case PSP_SIGNAL_TASKS:
+	    handle_PS_SignalTasks(msg);
+	    break;
+	case PSP_JOB_EXIT:
+	    handle_PS_JobExit(msg);
+	    break;
 	default:
 	    mlog("%s: received unknown msg type:%i [%s -> %s]\n", __func__,
 		msg->type, sender, dest);
@@ -534,13 +679,15 @@ void handleChildBornMsg(DDErrorMsg_t *msg)
 	    mlog("%s: job '%u' not found\n", __func__, jobid);
 	    goto FORWARD_CHILD_BORN;
 	}
-	addTask(&job->tasks.list, msg->request, forwarder->tid, forwarder);
+	addTask(&job->tasks.list, msg->request, forwarder->tid,
+		    forwarder, forwarder->childGroup);
     } else {
 	if (!(step = findStepById(jobid, stepid))) {
 	    mlog("%s: step '%u:%u' not found\n", __func__, jobid, stepid);
 	    goto FORWARD_CHILD_BORN;
 	}
-	addTask(&step->tasks.list, msg->request, forwarder->tid, forwarder);
+	addTask(&step->tasks.list, msg->request, forwarder->tid,
+		    forwarder, forwarder->childGroup);
     }
 
 FORWARD_CHILD_BORN:

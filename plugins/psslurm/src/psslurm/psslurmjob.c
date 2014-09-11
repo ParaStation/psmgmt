@@ -20,15 +20,18 @@
 #include <string.h>
 #include <unistd.h>
 #include <signal.h>
+#include <malloc.h>
 
-#include "pluginmalloc.h"
-#include "plugincomm.h"
 #include "psslurmlog.h"
+#include "psslurmpscomm.h"
 #include "psslurmcomm.h"
 #include "psslurmauth.h"
+
 #include "psaccfunc.h"
 #include "slurmcommon.h"
 #include "psidtask.h"
+#include "pluginmalloc.h"
+#include "plugincomm.h"
 
 #include "psslurmjob.h"
 
@@ -149,7 +152,8 @@ Step_t *addStep(uint32_t jobid, uint32_t stepid)
 }
 
 PS_Tasks_t *addTask(struct list_head *list, PStask_ID_t childTID,
-			PStask_ID_t forwarderTID, PStask_t *forwarder)
+			PStask_ID_t forwarderTID, PStask_t *forwarder,
+			PStask_group_t childGroup)
 {
     PS_Tasks_t *task;
 
@@ -157,6 +161,7 @@ PS_Tasks_t *addTask(struct list_head *list, PStask_ID_t childTID,
     task->childTID = childTID;
     task->forwarderTID = forwarderTID;
     task->forwarder = forwarder;
+    task->childGroup = childGroup;
 
     list_add_tail(&(task->list), list);
 
@@ -367,6 +372,8 @@ int deleteJob(uint32_t jobid)
     if (job->jobscript) unlink(job->jobscript);
 
     clearStepList(job->jobid);
+    send_PS_JobExit(job->jobid, SLURM_BATCH_SCRIPT,
+			job->nrOfNodes, job->nodes);
 
     ufree(job->id);
     ufree(job->username);
@@ -406,10 +413,11 @@ int deleteJob(uint32_t jobid)
     list_del(&job->list);
     ufree(job);
 
+    malloc_trim(200);
     return 1;
 }
 
-void signalTasks(uid_t uid, PS_Tasks_t *tasks, int signal)
+void signalTasks(uid_t uid, PS_Tasks_t *tasks, int signal, int32_t group)
 {
     list_t *pos, *tmp;
     PS_Tasks_t *task;
@@ -419,9 +427,11 @@ void signalTasks(uid_t uid, PS_Tasks_t *tasks, int signal)
 	if (!(task = list_entry(pos, PS_Tasks_t, list))) return;
 
 	if ((child = PStasklist_find(&managedTasks, task->childTID))) {
+	    if (group > -1 && child->group != (PStask_group_t) group) continue;
 	    if (child->forwardertid == task->forwarderTID &&
 		child->uid == uid) {
-		mlog("%s: kill(%i) signal '%i'\n", __func__, PSC_getPID(child->tid), signal);
+		mlog("%s: kill(%i) signal '%i' group '%i'\n", __func__,
+			PSC_getPID(child->tid), signal, child->group);
 		kill(PSC_getPID(child->tid), signal);
 	    }
 	}
@@ -431,17 +441,41 @@ void signalTasks(uid_t uid, PS_Tasks_t *tasks, int signal)
 int signalStep(Step_t *step, int signal)
 {
     int ret = 0;
+    PStask_group_t group;
 
-    if (step->fwdata) {
-	ret = signalForwarderChild(step->fwdata, signal);
-	if (ret == 2 && signal == SIGTERM) {
-	    signalForwarderChild(step->fwdata, SIGKILL);
-	}
-	ret = 1;
+    group = (signal == SIGTERM || signal == SIGKILL) ? -1 : TG_ANY;
+
+    /* if we are not the mother superior we just signal all our local tasks */
+    if (step->nodes[0] != PSC_getMyID()) {
+	signalTasks(step->uid, &step->tasks, signal, group);
+	return ret;
     }
 
-    if (signal == SIGTERM || signal == SIGKILL) {
-	signalTasks(step->uid, &step->tasks, signal);
+    switch (signal) {
+	case SIGTERM:
+	case SIGKILL:
+	    if (step->fwdata) {
+		ret = signalForwarderChild(step->fwdata, signal);
+	    }
+	    signalTasks(step->uid, &step->tasks, signal, group);
+	    send_PS_SignalTasks(step, signal, group);
+	    break;
+	case SIGWINCH:
+	case SIGHUP:
+	case SIGTSTP:
+	case SIGCONT:
+	case SIGUSR2:
+	case SIGQUIT:
+	    if (step->fwdata) {
+		ret = signalForwarderChild(step->fwdata, signal);
+	    } else {
+		signalTasks(step->uid, &step->tasks, signal, group);
+		send_PS_SignalTasks(step, signal, group);
+	    }
+	    break;
+	default:
+	    signalTasks(step->uid, &step->tasks, signal, group);
+	    send_PS_SignalTasks(step, signal, group);
     }
 
     return ret;
@@ -510,6 +544,7 @@ void addJobInfosToBuffer(PS_DataBuffer_t *buffer)
 	if (!(job = list_entry(pos, Job_t, list))) break;
 	if (count == max) break;
 
+	if (job->state == JOB_EXIT) continue;
 	jobids[count] = job->jobid;
 	stepids[count] = SLURM_BATCH_SCRIPT;
 	count++;
@@ -519,6 +554,7 @@ void addJobInfosToBuffer(PS_DataBuffer_t *buffer)
 	if (!(step = list_entry(pos, Step_t, list))) break;
 	if (count == max) break;
 
+	if (step->state == JOB_EXIT) continue;
 	jobids[count] = step->jobid;
 	stepids[count] = step->stepid;
 	count++;
@@ -526,8 +562,8 @@ void addJobInfosToBuffer(PS_DataBuffer_t *buffer)
 
     addUint32ToMsg(count, buffer);
     for (i=0; i<count; i++) {
-	addUint32ToMsg(jobids[count], buffer);
-	addUint32ToMsg(stepids[count], buffer);
+	addUint32ToMsg(jobids[i], buffer);
+	addUint32ToMsg(stepids[i], buffer);
     }
 
     ufree(jobids);
@@ -536,25 +572,13 @@ void addJobInfosToBuffer(PS_DataBuffer_t *buffer)
 
 int signalJob(Job_t *job, int signal, char *reason)
 {
-    int count = 0, ret;
+    int count = 0;
 
     count += signalStepsByJobid(job->jobid, signal);
 
     switch (job->state) {
 	case JOB_RUNNING:
-	    ret = signalForwarderChild(job->fwdata, signal);
-	    if (ret == 2 && signal == SIGTERM) {
-		signalForwarderChild(job->fwdata, SIGKILL);
-	    }
-	    count++;
-	    break;
-	case JOB_PROLOGUE:
-	    /* TODO: should we cancel epilogue?
-	     * perhaps with an option or only when we are shuting down???
-	     *
-	     case JOB_EPILOGUE:
-	     */
-	    psPelogueSignalPE("psslurm", job->id, signal, reason);
+	    signalForwarderChild(job->fwdata, signal);
 	    count++;
 	    break;
     }

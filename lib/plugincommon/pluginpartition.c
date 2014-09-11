@@ -157,7 +157,7 @@ int injectNodelist(DDBufferMsg_t *inmsg, int32_t nrOfNodes, PSnodes_ID_t *nodes)
 
     /* realloc space for nodelist */
     task->request->nodes =
-	urealloc(task->request->nodes,
+	realloc(task->request->nodes,
 		sizeof(*task->request->nodes) * nrOfNodes);
 
     /* save nodelist in task struct */

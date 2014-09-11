@@ -29,6 +29,7 @@ int handleSlurmdMsg(int sock, void *data);
 
 void sendTaskPids(Step_t *step);
 void sendTaskExit(Step_t *step, int exit_status);
+void sendStepExit(Step_t *step, int exit_status);
 void sendJobExit(Job_t *job, uint32_t exit);
 void sendEpilogueComplete(uint32_t jobid, uint32_t rc);
 void startPElogue(uint32_t jobid, uid_t uid, gid_t gid, uint32_t nrOfNodes,

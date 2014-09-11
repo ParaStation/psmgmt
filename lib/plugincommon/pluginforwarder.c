@@ -513,6 +513,7 @@ static int execForwarder(void *info)
 	close(controlFDs[0]);
 	close(controlFDs[1]);
 
+	fwdata->childPid = forwarder_child_pid;
 	if (fwdata->hookForwarderLoop) fwdata->hookForwarderLoop(fwdata);
 	forwarderLoop();
 
@@ -873,27 +874,27 @@ static void handleConnectTimeout(int timerId, void *fwdata)
 int signalForwarderChild(Forwarder_Data_t *data, int signal)
 {
     PS_DataBuffer_t buffer = { .buf = NULL};
-    int ret, success = 0;
-
-    if (data->controlSocket > -1) {
-	addInt32ToMsg(CMD_LOCAL_SIGNAL_CHILD, &buffer);
-	addInt32ToMsg(signal, &buffer);
-	ret = doWriteP(data->controlSocket, buffer.buf, buffer.bufUsed);
-	if (ret == buffer.bufUsed) success = 1;
-	ufree(buffer.buf);
-	pluginlog("%s: CMD_LOCAL_SIGNAL_CHILD : success:%i\n", __func__, success);
-    }
-    if (success) return 1;
+    int ret = 0;
 
     if (data->childSid > 0) {
 	data->killSession(data->childSid, signal);
-	pluginlog("%s: killSession(data->childSid)\n", __func__);
+	pluginlog("%s: child session id '%i' signal '%i'\n",
+		    __func__, data->childSid, signal);
 	return 1;
-    } else if (data->forwarderPid > 0) {
+    } else if ((signal == SIGTERM || signal == SIGKILL) &&
+		data->forwarderPid > 0) {
 	if (signal == SIGKILL) signal = SIGTERM;
 	kill(data->forwarderPid, signal);
-	pluginlog("%s: kill(data->Pid)\n", __func__);
-	return 2;
+	pluginlog("%s: forwarder pid '%i' signal '%i')\n", __func__,
+		    data->forwarderPid, signal);
+	return 1;
+    } else if (data->controlSocket > -1) {
+	addInt32ToMsg(CMD_LOCAL_SIGNAL_CHILD, &buffer);
+	addInt32ToMsg(signal, &buffer);
+	ret = doWriteP(data->controlSocket, buffer.buf, buffer.bufUsed);
+	ufree(buffer.buf);
+	pluginlog("%s: CMD_LOCAL_SIGNAL_CHILD ret: %i\n", __func__, ret);
+	return 1;
     } else {
 	pluginlog("%s: cannot signal forwarder, missing infos\n", __func__);
     }

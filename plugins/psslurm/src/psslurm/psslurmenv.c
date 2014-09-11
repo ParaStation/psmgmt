@@ -108,6 +108,17 @@ void setSlurmEnv(Job_t *job)
     job->envc = env.cnt;
 }
 
+void setRankEnv(Step_t *step)
+{
+    char tmp[128];
+
+    setenv("SLURMD_NODENAME", getConfValueC(&Config, "SLURM_HOSTNAME"), 1);
+    snprintf(tmp, sizeof(tmp), "%u", getpid());
+    setenv("SLURM_TASK_PID", tmp, 1);
+    setenv("SLURM_CPUS_ON_NODE", getConfValueC(&Config, "SLURM_CPUS"), 1);
+    // TODO: "SLURM_NODEID"
+}
+
 void setTaskEnv(Step_t *step)
 {
     char *val, tmp[128];
@@ -125,6 +136,7 @@ void setTaskEnv(Step_t *step)
 	env_set(&env, "PSI_TPP", tmp);
     }
 
+    env_set(&env, "SLURM_LAUNCH_NODE_IPADDR", inet_ntoa(step->srun.sin_addr));
     env_set(&env, "SLURM_SRUN_COMM_HOST", inet_ntoa(step->srun.sin_addr));
     //env_set(&env, "PSI_LOGGERDEBUG", "1");
     //env_set(&env, "PSI_FORWARDERDEBUG", "1");
@@ -156,6 +168,11 @@ void setTaskEnv(Step_t *step)
 	env_unset(&env, "SLURM_UMASK");
 	env_set(&env, "__PSI_UMASK", val);
     }
+
+    env_unset(&env, "SLURM_MPI_TYPE");
+    env_set(&env, "SLURM_JOB_USER", step->username);
+    snprintf(tmp, sizeof(tmp), "%u", step->uid);
+    env_set(&env, "SLURM_JOB_UID", tmp);
 
     step->env = env.vars;
     step->envc = env.cnt;

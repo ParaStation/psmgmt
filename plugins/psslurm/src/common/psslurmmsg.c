@@ -51,6 +51,10 @@ char *msg2Str(PSP_PSSLURM_t type)
 	    return "PSP_TASK_IDS";
 	case PSP_REMOTE_JOB:
 	    return "PSP_REMOTE_JOB";
+	case PSP_SIGNAL_TASKS:
+	    return "PSP_SIGNAL_TASKS";
+	case PSP_JOB_EXIT:
+	    return "PSP_JOB_EXIT";
     }
     return NULL;
 }

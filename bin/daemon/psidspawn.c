@@ -920,6 +920,8 @@ static void execClient(PStask_t *task)
 	exit(1);
     }
 
+    PSIDhook_call(PSIDHOOK_EXEC_CLIENT_USER, task);
+
     /* restore resource limit settings */
     restoreRLimit("__PSI_CORESIZE", RLIMIT_CORE);
     restoreRLimit("__PSI_DATASIZE", RLIMIT_DATA);
