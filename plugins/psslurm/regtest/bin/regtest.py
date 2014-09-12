@@ -23,6 +23,13 @@ import math
 # Approximate frequency of main loop updates.
 CONFIG_STANDARD_HZ = 10
 
+# Return values for perform_test
+OK         = 0
+FAIL       = 1
+TIMEDOUT   = 2
+CANCELED   = 3
+RESUNAVAIL = 4
+
 
 QUIT = 0
 
@@ -1172,24 +1179,28 @@ def perform_test(thread, testdir, testkey, opts, partinfo):
 
 	if timedout:
 		print_test_outcome(test["name"], test["key"], "purple", "TIMEDOUT")
-		return
+		return TIMEDOUT
 
 	if thread.canceled:
 		print_test_outcome(test["name"], test["key"], "purple", "CANCELED")
-		return
+		return CANCELED
 
 	if len([x for x in map(lambda z: z.ret[0], threads) if 3 == x]) > 0:
 		print_test_outcome(test["name"], test["key"], "purple", "RESUNAVAIL")
-		return
+		return RESUNAVAIL
 
 	if len([x for x in map(lambda z: z.ret[0], threads) if x > 0]) > 0:
 		print_test_outcome(test["name"], test["key"], "red", "FAIL")
-		return
+		return FAIL
 
 	if eval_test_outcome(test, partinfo, [x.ret[1] for x in threads]):
 		print_test_outcome(test["name"], test["key"], "red", "FAIL")
+		return FAIL
 	else:
 		print_test_outcome(test["name"], test["key"], "green", "OK")
+		return OK
+
+	return None
 
 #
 # Construct the list of tests to be performed taking into account exclude/include
@@ -1230,6 +1241,14 @@ def test_key(test, testnum):
 	tmp = hashlib.md5()
 	tmp.update(test + "-%0d-%08d-%d" % (os.getpid(), testnum, time.time()))
 	return tmp.hexdigest()
+
+#
+# Update the information about tests.
+def update_test_statistics(threads, stats):
+	retvals = [x.ret for x in threads if not x.is_alive()]
+	for x in retvals:
+		stats[0]     += 1
+		stats[1 + x] += 1
 
 def main(argv):
 	parser = optparse.OptionParser(usage = "usage: %prog [options]")
@@ -1296,7 +1315,10 @@ def main(argv):
 		threads = []
 		i = 0
 
+		stats = [0, 0, 0, 0, 0, 0]
+
 		while 1:
+			update_test_statistics(threads, stats)
 			# Poll thread list
 			threads = [x for x in threads if x.is_alive()]
 
@@ -1305,6 +1327,7 @@ def main(argv):
 					log("Skipping remaining tests upon user request\n")
 					for x in threads: x.canceled = 1
 					[x.join() for x in threads]	# Wait for all threads to terminate
+					update_test_statistics(threads, stats)
 				finally:
 					break
 
@@ -1326,6 +1349,20 @@ def main(argv):
 					i += 1
 
 			time.sleep(1.0/CONFIG_STANDARD_HZ)
+
+		if 0 == stats[0]:
+			print("\n SUMMARY\tNo tests run.\n")
+		else:
+			names = ["OK", "FAIL", "TIMEDOUT", "CANCELED", "RESUNAVAIL"]
+			tmp   = []
+
+			for x in [OK, FAIL, TIMEDOUT, CANCELED, RESUNAVAIL]:
+				if 0 == stats[1 + x]:
+					continue
+
+				tmp.append("%d %s (%.2f%%)" % (stats[1 + x], names[x], stats[1 + x]*100.0/stats[0]))
+
+			print("\n SUMMARY\tExecuted %d tests: %s\n" % (stats[0], ", ".join(tmp)))
 
 		log("Goodbye\n")
 
