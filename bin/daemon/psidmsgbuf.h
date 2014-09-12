@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2010 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2014 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -79,19 +79,6 @@ msgbuf_t *PSIDMsgbuf_get(size_t len);
  * @return No return value.
  */
 void PSIDMsgbuf_put(msgbuf_t *mp);
-
-/**
- * @brief Garbage collection
- *
- * Do garbage collection on unused message buffers. Since this module
- * will keep pre-allocated buffers for small messages its
- * memory-footprint might have grown after phases of heavy
- * usage. Thus, this function shall be called regularly in order to
- * free() buffers no longer required.
- *
- * @return No return value.
- */
-void PSIDMsgbuf_gc(void);
 
 /**
  * @brief Memory cleanup
