@@ -375,6 +375,7 @@ scripts/psh \
 scripts/psid2cmustatus.in \
 scripts/psmgmt.csh.in \
 scripts/psmgmt.sh.in \
+scripts/test-driver \
 scripts/vcversion \
 scripts/xinetd.d/psidstarter.in \
 tests/functional/Makefile.in \
