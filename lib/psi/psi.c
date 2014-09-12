@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2013 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2014 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -26,6 +26,9 @@ static char vcid[] __attribute__((used)) =
 #include <netinet/in.h>
 #include <sys/stat.h>
 #include <sys/resource.h>
+
+#include "psprotocol.h"
+#include "psprotocolenv.h"
 
 #include "pscommon.h"
 
@@ -766,10 +769,27 @@ void PSI_execLogger(const char *command)
     exit(1);
 }
 
+static void pushLimits(void)
+{
+    int i;
+
+    for (i=0; PSP_rlimitEnv[i].envName; i++) {
+	struct rlimit rlim;
+	char valStr[64];
+
+	getrlimit(PSP_rlimitEnv[i].resource, &rlim);
+	if (rlim.rlim_cur == RLIM_INFINITY) {
+	    snprintf(valStr, sizeof(valStr), "infinity");
+	} else {
+	    snprintf(valStr, sizeof(valStr), "%lx", rlim.rlim_cur);
+	}
+	setPSIEnv(PSP_rlimitEnv[i].envName, valStr, 1);
+    }
+}
+
 void PSI_propEnv(void)
 {
     extern char **environ;
-    struct rlimit rlim;
     mode_t mask;
     char *envStr, valStr[64];
     int i;
@@ -803,37 +823,7 @@ void PSI_propEnv(void)
 	setPSIEnv("MPID_PSP_MAXSMALLMSG", envStr, 1);
     }
 
-    getrlimit(RLIMIT_CORE, &rlim);
-    if (rlim.rlim_cur == RLIM_INFINITY) {
-	snprintf(valStr, sizeof(valStr), "infinity");
-    } else {
-	snprintf(valStr, sizeof(valStr), "%lx", rlim.rlim_cur);
-    }
-    setPSIEnv("__PSI_CORESIZE", valStr, 1);
-
-    getrlimit(RLIMIT_DATA, &rlim);
-    if (rlim.rlim_cur == RLIM_INFINITY) {
-	snprintf(valStr, sizeof(valStr), "infinity");
-    } else {
-	snprintf(valStr, sizeof(valStr), "%lx", rlim.rlim_cur);
-    }
-    setPSIEnv("__PSI_DATASIZE", valStr, 1);
-
-    getrlimit(RLIMIT_AS, &rlim);
-    if (rlim.rlim_cur == RLIM_INFINITY) {
-	snprintf(valStr, sizeof(valStr), "infinity");
-    } else {
-	snprintf(valStr, sizeof(valStr), "%lx", rlim.rlim_cur);
-    }
-    setPSIEnv("__PSI_ASSIZE", valStr, 1);
-
-    getrlimit(RLIMIT_NOFILE, &rlim);
-    if (rlim.rlim_cur == RLIM_INFINITY) {
-	snprintf(valStr, sizeof(valStr), "infinity");
-    } else {
-	snprintf(valStr, sizeof(valStr), "%lx", rlim.rlim_cur);
-    }
-    setPSIEnv("__PSI_NOFILE", valStr, 1);
+    pushLimits();
 
     mask = umask(0);
     umask(mask);

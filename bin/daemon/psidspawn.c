@@ -38,6 +38,7 @@ static char vcid[] __attribute__((used)) =
 
 #include "pscommon.h"
 #include "psprotocol.h"
+#include "psprotocolenv.h"
 #include "psdaemonprotocol.h"
 #include "pscpu.h"
 #include "selector.h"
@@ -826,6 +827,29 @@ static int testExecutable(PStask_t *task, char **executable)
     return 0;
 }
 
+static void restoreLimits(void)
+{
+    int i;
+
+    for (i=0; PSP_rlimitEnv[i].envName; i++) {
+	struct rlimit rlim;
+	char *envStr = getenv(PSP_rlimitEnv[i].envName);
+
+	if (!envStr) continue;
+
+	getrlimit(PSP_rlimitEnv[i].resource, &rlim);
+	if (!strcmp("infinity", envStr)) {
+	    rlim.rlim_cur = rlim.rlim_max;
+	} else {
+	    int ret = sscanf(envStr, "%lx", &rlim.rlim_cur);
+	    if (ret < 1) rlim.rlim_cur = 0;
+	    rlim.rlim_cur =
+		(rlim.rlim_max > rlim.rlim_cur) ? rlim.rlim_cur : rlim.rlim_max;
+	}
+	setrlimit(PSP_rlimitEnv[i].resource, &rlim);
+    }
+}
+
 /**
  * @brief Actually start the client process.
  *
@@ -900,66 +924,9 @@ static void execClient(PStask_t *task)
 	exit(1);
     }
 
-    /* restore core settings */
-    envStr = getenv("__PSI_CORESIZE");
-    if (envStr) {
-	struct rlimit rlim;
-	getrlimit(RLIMIT_CORE, &rlim);
-	if (!strcmp("infinity", envStr)) {
-	    rlim.rlim_cur = rlim.rlim_max;
-	} else {
-	    int ret = sscanf(envStr, "%lx", &rlim.rlim_cur);
-	    if (ret < 1) rlim.rlim_cur = 0;
-	    rlim.rlim_cur =
-		(rlim.rlim_max > rlim.rlim_cur) ? rlim.rlim_cur : rlim.rlim_max;
-	}
-	setrlimit(RLIMIT_CORE, &rlim);
-    }
-    /* restore data segment settings */
-    envStr = getenv("__PSI_DATASIZE");
-    if (envStr) {
-	struct rlimit rlim;
-	getrlimit(RLIMIT_DATA, &rlim);
-	if (!strcmp("infinity", envStr)) {
-	    rlim.rlim_cur = rlim.rlim_max;
-	} else {
-	    int ret = sscanf(envStr, "%lx", &rlim.rlim_cur);
-	    if (ret < 1) rlim.rlim_cur = 0;
-	    rlim.rlim_cur =
-		(rlim.rlim_max > rlim.rlim_cur) ? rlim.rlim_cur : rlim.rlim_max;
-	}
-	setrlimit(RLIMIT_DATA, &rlim);
-    }
-    /* restore address-space settings */
-    envStr = getenv("__PSI_ASSIZE");
-    if (envStr) {
-	struct rlimit rlim;
-	getrlimit(RLIMIT_AS, &rlim);
-	if (!strcmp("infinity", envStr)) {
-	    rlim.rlim_cur = rlim.rlim_max;
-	} else {
-	    int ret = sscanf(envStr, "%lx", &rlim.rlim_cur);
-	    if (ret < 1) rlim.rlim_cur = 0;
-	    rlim.rlim_cur =
-		(rlim.rlim_max > rlim.rlim_cur) ? rlim.rlim_cur : rlim.rlim_max;
-	}
-	setrlimit(RLIMIT_AS, &rlim);
-    }
-    /* restore number of files settings */
-    envStr = getenv("__PSI_NOFILE");
-    if (envStr) {
-	struct rlimit rlim;
-	getrlimit(RLIMIT_NOFILE, &rlim);
-	if (!strcmp("infinity", envStr)) {
-	    rlim.rlim_cur = rlim.rlim_max;
-	} else {
-	    int ret = sscanf(envStr, "%lx", &rlim.rlim_cur);
-	    if (ret < 1) rlim.rlim_cur = 0;
-	    rlim.rlim_cur =
-		(rlim.rlim_max > rlim.rlim_cur) ? rlim.rlim_cur : rlim.rlim_max;
-	}
-	setrlimit(RLIMIT_NOFILE, &rlim);
-    }
+    /* restore various resource limits */
+    restoreLimits();
+
     /* restore umask settings */
     envStr = getenv("__PSI_UMASK");
     if (envStr) {
