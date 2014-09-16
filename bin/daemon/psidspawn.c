@@ -607,9 +607,9 @@ static void adaptPriority(void)
 /**
  * @brief Change into working directory
  *
- Try to change into the client-task's @a task working directory. If
- this fails, changing into the corresponding user's home-directory is
- attempted.
+ * Try to change into the client-task's @a task working directory. If
+ * this fails, changing into the corresponding user's home-directory
+ * is attempted.
  *
  * @param task Structure describing the client-task.
  *
