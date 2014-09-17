@@ -883,7 +883,7 @@ static int handleFINALIZEMsg(PSLog_Msg_t *msg)
 {
     int ret = 0;
 
-    if (msg->sender >= 0) leaveRawMode();
+    if (msg->sender >= 0 && getNoClients()==1) leaveRawMode();
     if (getenv("PSI_SSH_COMPAT_HOST")) {
 	char *host = getenv("PSI_SSH_COMPAT_HOST");
 	int status = *(int *) msg->buf;
