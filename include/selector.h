@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2011 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2014 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -209,6 +209,21 @@ int Selector_disable(int fd);
  * @return On success, 0 is returned. On error, -1 is returned.
  */
 int Selector_enable(int fd);
+
+/**
+ * @brief Get a selector's activitiy-status
+ *
+ * Get the activity-status of a selector, i.e. give an indication that
+ * the selector is not disabled via @ref Selector_disable(). The
+ * selector will be identified by its corresponding file-descriptor @a
+ * fd.
+ *
+ * @param fd The file-descriptor to identify the selector.
+ *
+ * @return Return 0 if the selector is disabled or 1 if this is not
+ * the case. -1 might be returned if the selector was not found.
+ */
+int Selector_isActive(int fd);
 
 /**
  * @brief select() replacement that handles registered file-descriptors.
