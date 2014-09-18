@@ -1268,11 +1268,13 @@ def test_key(test, testnum):
 # Update the information about tests.
 def update_test_statistics(threads, stats):
 	retvals = [x.ret for x in threads if not x.is_alive()]
-	for x in retvals:
+	for x in [z for z in retvals if None != z]:
 		stats[0]     += 1
 		stats[1 + x] += 1
 
 def main(argv):
+	retval = -1
+
 	parser = optparse.OptionParser(usage = "usage: %prog [options]")
 	parser.add_option("-d", "--testsdir", action = "store", type = "string", \
 	                  dest = "testsdir", \
@@ -1328,6 +1330,8 @@ def main(argv):
 		for testdir in tests:
 			print(" " + whitespace_pad(testdir, 29) + \
 			      " (%s)" % (opts.testsdir + "/" + testdir))
+
+		retval = 0
 	else:
 		partinfo = query_sinfo()
 		log("partinfo = %s\n" % str(partinfo))
@@ -1377,6 +1381,7 @@ def main(argv):
 
 		if 0 == stats[0]:
 			print("\n SUMMARY\tNo tests run.\n")
+			retval = 1
 		else:
 			names = ["OK", "FAIL", "TIMEDOUT", "CANCELED", "RESUNAVAIL"]
 			tmp   = []
@@ -1388,11 +1393,15 @@ def main(argv):
 				tmp.append("%d %s (%.2f%%)" % (stats[1 + x], names[x], stats[1 + x]*100.0/stats[0]))
 
 			print("\n SUMMARY\tExecuted %d tests: %s\n" % (stats[0], ", ".join(tmp)))
+			retval = 0
 
 		log("Goodbye\n")
+
+	return retval
 
 # The big lock
 BL = threading.Lock()
 
-main(sys.argv)
+x = main(sys.argv)
+sys.exit(x)
 
