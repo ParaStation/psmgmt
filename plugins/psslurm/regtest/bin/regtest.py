@@ -23,6 +23,13 @@ import math
 # Approximate frequency of main loop updates.
 CONFIG_STANDARD_HZ = 10
 
+# Return values for perform_test
+OK         = 0
+FAIL       = 1
+TIMEDOUT   = 2
+CANCELED   = 3
+RESUNAVAIL = 4
+
 
 QUIT = 0
 
@@ -1062,14 +1069,24 @@ def check_test_description(test):
 			                "that handles the interaction.")
 
 #
-# Print test output to stdout with color-coded result.
-def print_test_outcome(name, key, color, result):
+# Modify text such that the resulting terminal output is shown in the specified
+# color.
+def colortext(color, text):
 	prompt = {
 		"red":		"1;31",
 		"green":	"0;32",
 		"blue":		"0;34",
 		"purple":	"0;35"
 	}
+
+	if not color:
+		return text
+	else:
+		return "\033[%sm%s\033[0m" % (prompt[color], text)
+
+#
+# Print test output to stdout with color-coded result.
+def print_test_outcome(name, key, color, result):
 
 	# TODO Take terminal width into account?
 
@@ -1080,7 +1097,7 @@ def print_test_outcome(name, key, color, result):
 	BL.acquire()
 
 	try:
-		sys.stdout.write(" %s%s [\033[%sm%s\033[0m]\n" % (tmp1, tmp2, prompt[color], result))
+		sys.stdout.write(" %s%s [%s]\n" % (tmp1, tmp2, colortext(color, result)))
 		sys.stdout.flush()
 	finally:
 		BL.release()
@@ -1170,26 +1187,42 @@ def perform_test(thread, testdir, testkey, opts, partinfo):
 
 		time.sleep(1.0/CONFIG_STANDARD_HZ)
 
+	color = {
+		"TIMEDOUT":	"purple",
+		"CANCELED":	"purple",
+		"RESUNAVAIL":	"purple",
+		"FAIL":		"red",
+		"OK":		"green"
+	}
+
+	if opts.nocolors:
+		for k in color.keys():
+			color[k] = None
+
 	if timedout:
-		print_test_outcome(test["name"], test["key"], "purple", "TIMEDOUT")
-		return
+		print_test_outcome(test["name"], test["key"], color["TIMEDOUT"], "TIMEDOUT")
+		return TIMEDOUT
 
 	if thread.canceled:
-		print_test_outcome(test["name"], test["key"], "purple", "CANCELED")
-		return
+		print_test_outcome(test["name"], test["key"], color["CANCELED"], "CANCELED")
+		return CANCELED
 
 	if len([x for x in map(lambda z: z.ret[0], threads) if 3 == x]) > 0:
-		print_test_outcome(test["name"], test["key"], "purple", "RESUNAVAIL")
-		return
+		print_test_outcome(test["name"], test["key"], color["RESUNAVAIL"], "RESUNAVAIL")
+		return RESUNAVAIL
 
 	if len([x for x in map(lambda z: z.ret[0], threads) if x > 0]) > 0:
-		print_test_outcome(test["name"], test["key"], "red", "FAIL")
-		return
+		print_test_outcome(test["name"], test["key"], color["FAIL"], "FAIL")
+		return FAIL
 
 	if eval_test_outcome(test, partinfo, [x.ret[1] for x in threads]):
-		print_test_outcome(test["name"], test["key"], "red", "FAIL")
+		print_test_outcome(test["name"], test["key"], color["FAIL"], "FAIL")
+		return FAIL
 	else:
-		print_test_outcome(test["name"], test["key"], "green", "OK")
+		print_test_outcome(test["name"], test["key"], color["OK"], "OK")
+		return OK
+
+	return None
 
 #
 # Construct the list of tests to be performed taking into account exclude/include
@@ -1231,7 +1264,17 @@ def test_key(test, testnum):
 	tmp.update(test + "-%0d-%08d-%d" % (os.getpid(), testnum, time.time()))
 	return tmp.hexdigest()
 
+#
+# Update the information about tests.
+def update_test_statistics(threads, stats):
+	retvals = [x.ret for x in threads if not x.is_alive()]
+	for x in [z for z in retvals if None != z]:
+		stats[0]     += 1
+		stats[1 + x] += 1
+
 def main(argv):
+	retval = -1
+
 	parser = optparse.OptionParser(usage = "usage: %prog [options]")
 	parser.add_option("-d", "--testsdir", action = "store", type = "string", \
 	                  dest = "testsdir", \
@@ -1264,6 +1307,9 @@ def main(argv):
 	parser.add_option("-T", "--timeout", action = "store", type = "int", \
 	                  dest = "timeout", default = 3600, \
 	                  help = "Timeout for tests in seconds.")
+	parser.add_option("--nocolors", action = "store_true", \
+	                  dest = "nocolors", \
+	                  help = "Disable colored output.")
 
 	(opts, args) = parser.parse_args()
 
@@ -1284,6 +1330,8 @@ def main(argv):
 		for testdir in tests:
 			print(" " + whitespace_pad(testdir, 29) + \
 			      " (%s)" % (opts.testsdir + "/" + testdir))
+
+		retval = 0
 	else:
 		partinfo = query_sinfo()
 		log("partinfo = %s\n" % str(partinfo))
@@ -1296,7 +1344,10 @@ def main(argv):
 		threads = []
 		i = 0
 
+		stats = [0, 0, 0, 0, 0, 0]
+
 		while 1:
+			update_test_statistics(threads, stats)
 			# Poll thread list
 			threads = [x for x in threads if x.is_alive()]
 
@@ -1305,6 +1356,7 @@ def main(argv):
 					log("Skipping remaining tests upon user request\n")
 					for x in threads: x.canceled = 1
 					[x.join() for x in threads]	# Wait for all threads to terminate
+					update_test_statistics(threads, stats)
 				finally:
 					break
 
@@ -1327,10 +1379,29 @@ def main(argv):
 
 			time.sleep(1.0/CONFIG_STANDARD_HZ)
 
+		if 0 == stats[0]:
+			print("\n SUMMARY\tNo tests run.\n")
+			retval = 1
+		else:
+			names = ["OK", "FAIL", "TIMEDOUT", "CANCELED", "RESUNAVAIL"]
+			tmp   = []
+
+			for x in [OK, FAIL, TIMEDOUT, CANCELED, RESUNAVAIL]:
+				if 0 == stats[1 + x]:
+					continue
+
+				tmp.append("%d %s (%.2f%%)" % (stats[1 + x], names[x], stats[1 + x]*100.0/stats[0]))
+
+			print("\n SUMMARY\tExecuted %d tests: %s\n" % (stats[0], ", ".join(tmp)))
+			retval = 0
+
 		log("Goodbye\n")
+
+	return retval
 
 # The big lock
 BL = threading.Lock()
 
-main(sys.argv)
+x = main(sys.argv)
+sys.exit(x)
 

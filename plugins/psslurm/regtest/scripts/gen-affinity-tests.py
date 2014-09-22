@@ -106,6 +106,7 @@ tests = {
 	"cpu_bind-threads"	: ["--cpu_bind=threads", "", [0x001, 0x100], "-DCPU_MASK=1", ""],
 	"cpu_bind-ldoms"	: ["--cpu_bind=ldoms", "", [0x00ff00ff, 0xff00ff00], "-DCPU_MASK=1", ""],
 	"cpu_bind-boards"	: ["--cpu_bind=boards", "", [0x00ff00ff, 0xff00ff00], "-DCPU_MASK=1", ""],
+	"mem_bind-none"		: ["--mem_bind=none", "", [0x3, 0x3], "-DMEM_MASK=1", "-lnuma"],
 	"mem_bind-rank"		: ["--mem_bind=rank", "", [0x1, 0x2], "-DMEM_MASK=1", "-lnuma"],
 	"mem_bind-local"	: ["--mem_bind=local", "--ntasks-per-socket=1", [0x1, 0x2], "-DMEM_MASK=1", "-lnuma"],
 	"mem_bind-map_mem"	: ["--mem_bind=map_mem:0,1", "", [0x1, 0x2], "-DMEM_MASK=1", "-lnuma"],
