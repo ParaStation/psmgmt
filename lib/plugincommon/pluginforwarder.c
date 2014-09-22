@@ -158,7 +158,7 @@ static int handleMessage(int fd, void *info)
 	Selector_remove(fd);
 	close(fd);
 	motherSock = -1;
-	killForwarderChild(SIGTERM, "lost connection to mother");
+	killForwarderChild(SIGKILL, "lost connection to mother");
 	return 0;
     }
 
@@ -880,13 +880,12 @@ int signalForwarderChild(Forwarder_Data_t *data, int signal)
 	data->killSession(data->childSid, signal);
 	pluginlog("%s: child session id '%i' signal '%i'\n",
 		    __func__, data->childSid, signal);
-	return 1;
-    } else if ((signal == SIGTERM || signal == SIGKILL) &&
+
+	if ((signal == SIGTERM || signal == SIGKILL) &&
 		data->forwarderPid > 0) {
-	if (signal == SIGKILL) signal = SIGTERM;
-	kill(data->forwarderPid, signal);
-	pluginlog("%s: forwarder pid '%i' signal '%i')\n", __func__,
-		    data->forwarderPid, signal);
+	    if (signal == SIGKILL) signal = SIGTERM;
+	    kill(data->forwarderPid, signal);
+	}
 	return 1;
     } else if (data->controlSocket > -1) {
 	addInt32ToMsg(CMD_LOCAL_SIGNAL_CHILD, &buffer);

@@ -24,5 +24,7 @@
 void rejectPartitionRequest(PStask_ID_t dest);
 int isPSAdminUser(uid_t uid, gid_t gid);
 int injectNodelist(DDBufferMsg_t *inmsg, int32_t nrOfNodes, PSnodes_ID_t *nodes);
+void grantPartitionRequest(PSpart_slot_t *slots, uint32_t slotsSize,
+				PStask_ID_t dest, PStask_t *task);
 
 #endif

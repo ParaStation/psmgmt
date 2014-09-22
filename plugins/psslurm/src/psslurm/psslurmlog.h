@@ -38,9 +38,10 @@ typedef enum {
     PSSLURM_LOG_COMM	 =	0x000100, /**< Slurm communication */
     PSSLURM_LOG_PSIDCOM  =	0x000200, /**< Warnings */
     PSSLURM_LOG_JOB	 =	0x000400, /**< Job */
-    PSSLURM_LOG_ENV	 =	0x000800, /**< Job */
+    PSSLURM_LOG_ENV	 =	0x000800, /**< Env */
     PSSLURM_LOG_PROTO	 =	0x001000, /**< Protocol */
-    PSSLURM_LOG_AUTH	 =	0x002000, /**< Job */
+    PSSLURM_LOG_AUTH	 =	0x002000, /**< Auth */
+    PSSLURM_LOG_PART	 =	0x004000, /**< Partition */
 } PSSLURM_log_types_t;
 
 

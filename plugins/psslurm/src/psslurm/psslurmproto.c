@@ -282,23 +282,32 @@ static void handleLauchTasks(char *ptr, int sock, Slurm_msg_header_t *msgHead)
     getUint16(&ptr, &step->taskDist);
     /* node cpus */
     getUint16(&ptr, &step->nodeCpus);
-    /* job core spec */
+    /* count of specialized cores */
     getUint16(&ptr, &step->jobCoreSpec);
     /* job creditials */
     step->cred = getJobCred(&ptr, version);
 
-    /* tasks to launch/ task ids */
+    /* tasks to launch / global task ids */
     step->tasksToLaunch = umalloc(step->nrOfNodes * sizeof(uint16_t));
     step->globalTaskIds = umalloc(step->nrOfNodes * sizeof(uint32_t *));
     step->globalTaskIdsLen = umalloc(step->nrOfNodes * sizeof(uint32_t));
 
     for (i=0; i<step->nrOfNodes; i++) {
+	uint32_t x;
+
 	/* num of tasks per node */
 	getUint16(&ptr, &step->tasksToLaunch[i]);
 
 	/* job global task ids per node */
 	getUint32Array(&ptr, &(step->globalTaskIds)[i],
 			    &(step->globalTaskIdsLen)[i]);
+	mdbg(PSSLURM_LOG_PART, "%s: node '%u' tasksToLaunch '%u' "
+		"globalTaskIds: ", __func__, i, step->tasksToLaunch[i]);
+
+	for (x=0; x<step->globalTaskIdsLen[i]; x++) {
+	    mdbg(PSSLURM_LOG_PART, "%u,", step->globalTaskIds[i][x]);
+	}
+	mdbg(PSSLURM_LOG_PART, "\n");
     }
 
     /* srun ports */
@@ -331,6 +340,12 @@ static void handleLauchTasks(char *ptr, int sock, Slurm_msg_header_t *msgHead)
     /* mem bind */
     getUint16(&ptr, &step->memBindType);
     step->memBind = getStringM(&ptr);
+
+    /*
+    mlog("%s: cpuBind '%u' memBind '%u'\n", __func__, step->cpuBindType,
+	    step->memBindType);
+    */
+
     /* args */
     getStringArrayM(&ptr, &step->argv, &step->argc);
     for (i=0; i<step->argc; i++) {
@@ -348,9 +363,11 @@ static void handleLauchTasks(char *ptr, int sock, Slurm_msg_header_t *msgHead)
 	step->stdErr = getStringM(&ptr);
 	step->stdIn = getStringM(&ptr);
 
+	/*
 	mlog("%s: stdout '%s'\n", __func__, step->stdOut);
 	mlog("%s: stderr '%s'\n", __func__, step->stdErr);
 	mlog("%s: stdin '%s'\n", __func__, step->stdIn);
+	*/
 
 	/* buffered I/O = default (unbufferd = RAW) */
 	getUint8(&ptr, &step->bufferedIO);
@@ -1061,8 +1078,8 @@ static void handleTerminateStep(int sock, Slurm_msg_header_t *msgHead,
 		    step->nodes, step->env, step->envc, 1, 0);
 }
 
-static void handleAbortReq(int sock, Slurm_msg_header_t *msgHead, uint32_t jobid,
-			    uint32_t stepid)
+static void handleAbortReq(int sock, Slurm_msg_header_t *msgHead,
+			    uint32_t jobid, uint32_t stepid)
 {
     Step_t *step;
     Job_t *job;

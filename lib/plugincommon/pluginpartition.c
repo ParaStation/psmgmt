@@ -49,6 +49,32 @@ int isPSAdminUser(uid_t uid, gid_t gid)
     return 1;
 }
 
+void grantPartitionRequest(PSpart_slot_t *slots, uint32_t slotsSize,
+			    PStask_ID_t dest, PStask_t *task)
+{
+    /* save the request in the task structure */
+    task->partitionSize = slotsSize;
+    task->options |= PART_OPT_NODEFIRST;
+    task->options |= PART_OPT_EXACT;
+    task->partition = slots;
+    task->nextRank = 0;
+
+    /* delete the corresponding request */
+    PSpart_delReq(task->request);
+    task->request = NULL;
+
+    /* send OK to waiting mpiexec */
+    DDTypedMsg_t msg = (DDTypedMsg_t) {
+	.header = (DDMsg_t) {
+	    .type = PSP_CD_PARTITIONRES,
+		.dest = dest,
+		.sender = PSC_getMyTID(),
+		.len = sizeof(msg) },
+	    .type = 0};
+
+    sendMsg(&msg);
+}
+
 void rejectPartitionRequest(PStask_ID_t dest)
 {
     DDTypedMsg_t msg = (DDTypedMsg_t) {
@@ -97,6 +123,39 @@ static int sendNodelist(nodelist_t *nodelist, DDBufferMsg_t *msg)
     return 0;
 }
 
+int saveNodelistInTask(PStask_t *task, int32_t nrOfNodes, PSnodes_ID_t *nodes)
+{
+    if (!task->request) {
+	pluginlog("%s: request for task is empty\n", __func__);
+	errno = EACCES;
+	return 0;
+    }
+
+    if (!nrOfNodes || !nodes) {
+	pluginlog("%s: invalid nrOfNodes or nodes\n", __func__);
+	errno = EACCES;
+	return 0;
+    }
+
+    /* change partition options */
+    task->request->num = nrOfNodes;
+    task->request->sort = 0;
+    task->request->options |= PART_OPT_NODEFIRST;
+    task->request->options |= PART_OPT_EXACT;
+    task->request->numGot = nrOfNodes;
+
+    /* realloc space for nodelist */
+    task->request->nodes =
+	realloc(task->request->nodes,
+		sizeof(*task->request->nodes) * nrOfNodes);
+
+    /* save nodelist in task struct */
+    memcpy(task->request->nodes, nodes,
+	    sizeof(*task->request->nodes) * nrOfNodes);
+
+    return 1;
+}
+
 int injectNodelist(DDBufferMsg_t *inmsg, int32_t nrOfNodes, PSnodes_ID_t *nodes)
 {
     PStask_t *task;
@@ -106,8 +165,7 @@ int injectNodelist(DDBufferMsg_t *inmsg, int32_t nrOfNodes, PSnodes_ID_t *nodes)
     if (!(task = PStasklist_find(&managedTasks, inmsg->header.sender))) {
 	pluginlog("%s: task for message sender '%s' not found\n", __func__,
 	    PSC_printTID(inmsg->header.sender));
-	errno = EACCES;
-	goto error;
+	goto NL_ERROR;
     }
 
     /* we don't change the nodelist for admin users */
@@ -118,27 +176,15 @@ int injectNodelist(DDBufferMsg_t *inmsg, int32_t nrOfNodes, PSnodes_ID_t *nodes)
 	pluginlog("%s: denying access to mpiexec for non admin user "
 		    "with uid '%i'\n", __func__, task->uid);
 
-	errno = EACCES;
-	goto error;
+	goto NL_ERROR;
     }
 
-    if (!task->request) {
-	pluginlog("%s: request for task is empty\n", __func__);
-	errno = EACCES;
-	goto error;
-    }
-
-    /* change partition options */
-    task->request->num = nrOfNodes;
-    task->request->sort = 0;
-    task->request->options |= PART_OPT_NODEFIRST;
-    task->request->options |= PART_OPT_EXACT;
+    if (!(saveNodelistInTask(task, nrOfNodes, nodes))) goto NL_ERROR;
 
     if (!knowMaster()) {
 	pluginlog("%s: master is unknown, cannot send partition request\n",
 		__func__);
-	errno = EACCES;
-	goto error;
+	goto NL_ERROR;
     }
 
     /* forward partition request to master */
@@ -150,29 +196,16 @@ int injectNodelist(DDBufferMsg_t *inmsg, int32_t nrOfNodes, PSnodes_ID_t *nodes)
     inmsg->header.dest = PSC_getTID(getMasterID(), 0);
 
     if (sendMsg(inmsg) == -1 && errno != EWOULDBLOCK) {
-	goto error;
+	goto NL_ERROR;
     }
 
-    task->request->numGot = 0;
-
-    /* realloc space for nodelist */
-    task->request->nodes =
-	realloc(task->request->nodes,
-		sizeof(*task->request->nodes) * nrOfNodes);
-
-    /* save nodelist in task struct */
-    memcpy(task->request->nodes, nodes,
-	    sizeof(*task->request->nodes) * nrOfNodes);
-
-    task->request->numGot = nrOfNodes;
-
+    /* send complete node list for partition request to master */
     nodelist = umalloc(sizeof(nodelist_t));
     nodelist->size = nodelist->maxsize = nrOfNodes;
     nodelist->nodes = nodes;
 
-    /* send complete node list for partition request to master */
     if ((sendNodelist(nodelist, inmsg)) == -1) {
-	goto error;
+	goto NL_ERROR;
     }
 
     ufree(nodelist);
@@ -180,7 +213,7 @@ int injectNodelist(DDBufferMsg_t *inmsg, int32_t nrOfNodes, PSnodes_ID_t *nodes)
     return 0;
 
 
-    error:
+NL_ERROR:
     {
 	ufree(nodelist);
 
@@ -188,6 +221,7 @@ int injectNodelist(DDBufferMsg_t *inmsg, int32_t nrOfNodes, PSnodes_ID_t *nodes)
 	    PSpart_delReq(task->request);
 	    task->request = NULL;
 	}
+	errno = EACCES;
 	rejectPartitionRequest(inmsg->header.sender);
 
 	return 0;

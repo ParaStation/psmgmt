@@ -115,7 +115,7 @@ typedef struct {
     uint32_t stepMemLimit;
     uint16_t taskDist;
     uint16_t nodeCpus;
-    uint16_t jobCoreSpec;
+    uint16_t jobCoreSpec;	/* count of specialized cores */
     uint16_t *tasksToLaunch;	/* number of tasks to launch (per node) */
     uint32_t **globalTaskIds;	/* job global slurm task ids (per node) */
     uint32_t *globalTaskIdsLen;
@@ -189,7 +189,7 @@ typedef struct {
     uint32_t spankenvc;
     uint32_t nrOfNodes;
     uint16_t cpuBindType;
-    uint16_t jobCoreSpec;
+    uint16_t jobCoreSpec;   /* count of specilized cores */
     uint8_t overcommit;
     char *cwd;
     char *stdOut;

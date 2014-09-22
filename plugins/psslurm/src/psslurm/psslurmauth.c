@@ -313,22 +313,30 @@ JobCred_t *getJobCred(char **ptr, uint16_t version)
     cred->stepCoreBitmap = getStringM(ptr);
     getUint16(ptr, &cred->coreArraySize);
 
-    mdbg(PSSLURM_LOG_AUTH, "%s: totalCoreCount '%u' coreArraySize '%u'\n",
-	    __func__, cred->totalCoreCount, cred->coreArraySize);
+    mdbg(PSSLURM_LOG_PART, "%s: totalCoreCount '%u' coreArraySize '%u' "
+	    "jobCoreBitmap '%s' stepCoreBitmap '%s'\n",
+	    __func__, cred->totalCoreCount, cred->coreArraySize,
+	    cred->jobCoreBitmap, cred->stepCoreBitmap);
 
     if (cred->coreArraySize) {
 	getUint16Array(ptr, &cred->coresPerSocket, &cred->coresPerSocketLen);
 	getUint16Array(ptr, &cred->socketsPerNode, &cred->socketsPerNodeLen);
 	getUint32Array(ptr, &cred->sockCoreRepCount, &cred->sockCoreRepCountLen);
 
-	/*
-	printArrayInt16("coresPerSocket", cred->coresPerSocket,
-			cred->coresPerSocketLen);
-	printArrayInt16("socketsPerNode", cred->socketsPerNode,
-			cred->socketsPerNodeLen);
-	printArrayInt32("sockCoreRepCount", cred->sockCoreRepCount,
-			cred->sockCoreRepCountLen);
-	*/
+	unsigned int i;
+
+	for (i=0; i<cred->coresPerSocketLen; i++) {
+	    mdbg(PSSLURM_LOG_PART, "%s: coresPerSocket '%u'\n", __func__,
+		    cred->coresPerSocket[i]);
+	}
+	for (i=0; i<cred->socketsPerNodeLen; i++) {
+	    mdbg(PSSLURM_LOG_PART, "%s: socketsPerNode '%u'\n", __func__,
+		    cred->socketsPerNode[i]);
+	}
+	for (i=0; i<cred->sockCoreRepCountLen; i++) {
+	    mdbg(PSSLURM_LOG_PART, "%s: sockCoreRepCount '%u'\n", __func__,
+		    cred->sockCoreRepCount[i]);
+	}
     }
 
     getUint32(ptr, &cred->jobNumHosts);

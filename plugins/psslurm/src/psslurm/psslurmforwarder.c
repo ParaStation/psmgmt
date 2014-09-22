@@ -896,6 +896,7 @@ int handleUserOE(int sock, void *data)
 	Selector_remove(sock);
 	close(sock);
     }
+
     /*
     mlog("%s: sock '%i' forward '%s' size '%u'\n", __func__, sock,
 	    type == SLURM_IO_STDOUT ? "stdout" : "stderr", size);
@@ -904,6 +905,8 @@ int handleUserOE(int sock, void *data)
     /* eof to srun */
     if (size <0) size = 0;
     if (size >0) buf[size] = '\0';
+
+    //if (size>0) mlog("%s: '%s'", __func__, buf);
 
     /* forward data to srun, size of 0 means EOF for stream */
     if ((ret = srunSendIO(type, step, buf, size)) != (size + 10)) {
