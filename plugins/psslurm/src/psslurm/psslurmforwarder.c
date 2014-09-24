@@ -30,6 +30,8 @@
 #include <fcntl.h>
 #include <syslog.h>
 #include <signal.h>
+#include <sys/ptrace.h>
+#include <sys/wait.h>
 
 #include "psslurmlog.h"
 #include "psslurmlimits.h"
@@ -63,7 +65,7 @@ int jobCallback(int32_t exit_status, char *errMsg, size_t errLen, void *data)
     }
 
     /* make sure all processes are gone */
-    signalTasks(job->uid, &job->tasks, SIGKILL);
+    signalTasks(job->uid, &job->tasks, SIGKILL, -1);
 
     job->state = JOB_COMPLETE;
     sendJobExit(job, exit_status);
@@ -99,7 +101,7 @@ int stepCallback(int32_t exit_status, char *errMsg, size_t errLen, void *data)
     }
 
     /* make sure all processes are gone */
-    signalTasks(step->uid, &step->tasks, SIGKILL);
+    signalStep(step, SIGKILL);
 
     if (step->srunIOSock != -1) {
 	if (Selector_isRegistered(step->srunIOSock)) {
@@ -115,8 +117,15 @@ int stepCallback(int32_t exit_status, char *errMsg, size_t errLen, void *data)
     } else {
 	if (step->exitCode != 0) {
 	    sendTaskExit(step, step->exitCode);
+	    sendStepExit(step, step->exitCode);
 	} else {
-	    sendTaskExit(step, exit_status);
+	    if (WIFSIGNALED(exit_status)) {
+		sendTaskExit(step, WTERMSIG(exit_status));
+		sendStepExit(step, WTERMSIG(exit_status));
+	    } else {
+		sendTaskExit(step, exit_status);
+		sendStepExit(step, exit_status);
+	    }
 	}
     }
 
@@ -301,11 +310,11 @@ int getAppendFlags(uint8_t appendMode)
 
     if (!appendMode) {
 	/* TODO: use default of configuration JobFileAppend */
-	flags |= O_CREAT|O_WRONLY|O_TRUNC;
+	flags |= O_CREAT|O_WRONLY|O_TRUNC|O_APPEND;
     } else if (appendMode == OPEN_MODE_APPEND) {
 	flags |= O_CREAT|O_WRONLY|O_APPEND;
     } else {
-	flags |= O_CREAT|O_WRONLY|O_TRUNC;
+	flags |= O_CREAT|O_WRONLY|O_TRUNC|O_APPEND;
     }
 
     return flags;
@@ -370,13 +379,13 @@ static void redirectJobOutput(Job_t *job)
 	exit(1);
     }
     if ((dup2(fd, STDIN_FILENO)) == -1) {
-	mwarn(errno, "%s: duOO '%s' failed :", __func__, inFile);
+	mwarn(errno, "%s: dup2(%i) '%s' failed :", __func__, fd, inFile);
 	exit(1);
     }
     ufree(inFile);
 }
 
-static void switchUser(uid_t uid, gid_t gid, char *cwd)
+static void switchUser(char *username, uid_t uid, gid_t gid, char *cwd)
 {
     /* remove psslurm group memberships */
     if ((setgroups(0, NULL)) == -1) {
@@ -384,13 +393,11 @@ static void switchUser(uid_t uid, gid_t gid, char *cwd)
 	exit(1);
     }
 
-    /* TODO: set supplementary groups */
-    /*
-    if ((initgroups(spasswd->pw_name, spasswd->pw_gid)) < 0) {
-	mlog("%s: init groups failed : %s\n", __func__, strerror(errno));
+    /* set supplementary groups */
+    if ((initgroups(username, gid)) < 0) {
+	mlog("%s: initgroups() failed : %s\n", __func__, strerror(errno));
 	exit(1);
     }
-    */
 
     /* change the gid */
     if ((setgid(gid)) < 0) {
@@ -425,7 +432,7 @@ static void execBatchJob(void *data, int rerun)
     /* TODO pinning, waiting for #2049 */
 
     /* switch user */
-    switchUser(job->uid, job->gid, job->cwd);
+    switchUser(job->username, job->uid, job->gid, job->cwd);
 
     /* redirect output */
     redirectJobOutput(job);
@@ -434,7 +441,7 @@ static void execBatchJob(void *data, int rerun)
     setBatchEnv(job);
 
     /* set rlimits */
-    setRlimitsFromEnv(&job->env, &job->envc);
+    setRlimitsFromEnv(&job->env, &job->envc, 0);
 
     /* do exec */
     closelog();
@@ -447,11 +454,6 @@ static void redirectIORank(Step_t *step, int rank)
     int flags = 0, fd, needReplace = 0;
 
     flags = getAppendFlags(step->appendMode);
-
-    if (seteuid(step->uid) == -1) {
-	mwarn(errno, "%s: seteuid(%i) failed: ", __func__, step->uid);
-	exit(1);
-    }
 
     if (strlen(step->stdOut) > 0) {
 	needReplace = 0;
@@ -533,19 +535,16 @@ static void redirectIORank(Step_t *step, int rank)
 	    }
 	}
     }
-
-    if (seteuid(0) == -1) {
-	mlog("%s: seteuid(0) failed\n", __func__);
-    }
 }
 
 int handleForwarderInit(void * data)
 {
     PStask_t *task = data;
     Step_t *step;
-    int count = 0;
+    int count = 0, status;
     char *ptr, *next;
     uint32_t jobid = 0, stepid = SLURM_BATCH_SCRIPT;
+    pid_t child = PSC_getPID(task->tid);
 
     if (task->rank <0) return 0;
 
@@ -571,6 +570,21 @@ int handleForwarderInit(void * data)
 		    break;
 		}
 		ptr = next+1;
+	    }
+	}
+
+	if (step->taskFlags & TASK_PARALLEL_DEBUG) {
+
+	    waitpid(child, &status, WUNTRACED);
+	    if (!WIFSTOPPED(status)) {
+		mlog("%s: child '%i' not stopped\n", __func__, child);
+	    } else {
+		if ((kill(child, SIGSTOP)) == -1) {
+		    mwarn(errno, "%s: kill(%i) failed: ", __func__, child);
+		}
+		if ((ptrace(PTRACE_DETACH, child, 0, 0)) == -1) {
+		    mwarn(errno, "%s: ptrace(PTRACE_DETACH) failed: ", __func__);
+		}
 	    }
 	}
     }
@@ -611,6 +625,16 @@ int handleExecClient(void * data)
 
     if ((step = findStepById(jobid, stepid))) {
 	redirectIORank(step, task->rank);
+
+	/* stop child after exec */
+	if (step->taskFlags & TASK_PARALLEL_DEBUG) {
+	    if ((ptrace(PTRACE_TRACEME, 0, 0, 0)) == -1) {
+		mwarn(errno, "%s: ptrace() failed: ", __func__);
+		exit(1);
+	    }
+	}
+
+	setRankEnv(step);
     }
 
     return 0;
@@ -697,7 +721,7 @@ static void execInteractiveJob(void *data, int rerun)
     }
 
     /* switch user */
-    switchUser(step->uid, step->gid, step->cwd);
+    switchUser(step->username, step->uid, step->gid, step->cwd);
 
     /* build mpiexec argv */
     argv = umalloc((step->argc + 20 + 1) * sizeof(char *));
@@ -736,7 +760,7 @@ static void execInteractiveJob(void *data, int rerun)
 	    step->stepid, getpid());
 
     /* set rlimits */
-    setRlimitsFromEnv(&step->env, &step->envc);
+    setRlimitsFromEnv(&step->env, &step->envc, 1);
 
     /* start mpiexec to spawn the parallel job */
     closelog();
@@ -857,7 +881,7 @@ int handleUserOE(int sock, void *data)
     static char buf[1024];
     Forwarder_Data_t *fwdata = data;
     Step_t *step = fwdata->userData;
-    int32_t size;
+    int32_t size, ret;
     uint16_t type;
 
     if (step->pty) {
@@ -872,14 +896,23 @@ int handleUserOE(int sock, void *data)
 	Selector_remove(sock);
 	close(sock);
     }
-    //mlog("%s: got size '%u' '%s'\n", __func__, size, buf);
+
+    /*
+    mlog("%s: sock '%i' forward '%s' size '%u'\n", __func__, sock,
+	    type == SLURM_IO_STDOUT ? "stdout" : "stderr", size);
+    */
 
     /* eof to srun */
     if (size <0) size = 0;
     if (size >0) buf[size] = '\0';
 
+    //if (size>0) mlog("%s: '%s'", __func__, buf);
+
     /* forward data to srun, size of 0 means EOF for stream */
-    srunSendIO(type, step, buf, size);
+    if ((ret = srunSendIO(type, step, buf, size)) != (size + 10)) {
+	mwarn(errno, "%s: sending IO failed: size:%i ret:%i ", __func__,
+		(size +10), ret);
+    }
 
     return 0;
 }

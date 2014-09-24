@@ -35,6 +35,7 @@ typedef struct {
     PStask_ID_t childTID;
     PStask_ID_t forwarderTID;
     PStask_t *forwarder;
+    PStask_group_t childGroup;
     struct list_head list;
 } PS_Tasks_t;
 
@@ -114,7 +115,7 @@ typedef struct {
     uint32_t stepMemLimit;
     uint16_t taskDist;
     uint16_t nodeCpus;
-    uint16_t jobCoreSpec;
+    uint16_t jobCoreSpec;	/* count of specialized cores */
     uint16_t *tasksToLaunch;	/* number of tasks to launch (per node) */
     uint32_t **globalTaskIds;	/* job global slurm task ids (per node) */
     uint32_t *globalTaskIdsLen;
@@ -156,6 +157,7 @@ typedef struct {
     uint16_t userManagedIO;
     uint8_t bufferedIO;
     uint8_t labelIO;
+    uint16_t accType;
     char *nodeAlias;
     char *accFreq;
     uint32_t cpuFreq;
@@ -187,7 +189,7 @@ typedef struct {
     uint32_t spankenvc;
     uint32_t nrOfNodes;
     uint16_t cpuBindType;
-    uint16_t jobCoreSpec;
+    uint16_t jobCoreSpec;   /* count of specilized cores */
     uint8_t overcommit;
     char *cwd;
     char *stdOut;
@@ -283,7 +285,8 @@ Step_t *addStep(uint32_t jobid, uint32_t stepid);
 Step_t *findStepByJobid(uint32_t jobid);
 
 PS_Tasks_t *addTask(struct list_head *list, PStask_ID_t childTID,
-			PStask_ID_t forwarderTID, PStask_t *forwarder);
-void signalTasks(uid_t uid, PS_Tasks_t *tasks, int signal);
+			PStask_ID_t forwarderTID, PStask_t *forwarder,
+			PStask_group_t childGroup);
+void signalTasks(uid_t uid, PS_Tasks_t *tasks, int signal, int32_t group);
 
 #endif

@@ -70,7 +70,7 @@ handlerFunc_t oldChildBornHandler = NULL;
 
 /** psid plugin requirements */
 char name[] = "psslurm";
-int version = 9;
+int version = 11;
 int requiredAPI = 109;
 plugin_dep_t dependencies[4];
 
@@ -125,8 +125,8 @@ static void unregisterHooks(int verbose)
 	if (verbose) mlog("unregister 'PSIDHOOK_CREATEPARTNL' failed\n");
     }
 
-    if (!(PSIDhook_del(PSIDHOOK_EXEC_CLIENT, handleExecClient))) {
-	if (verbose) mlog("unregister 'PSIDHOOK_EXEC_CLIENT' failed\n");
+    if (!(PSIDhook_del(PSIDHOOK_EXEC_CLIENT_USER, handleExecClient))) {
+	if (verbose) mlog("unregister 'PSIDHOOK_EXEC_CLIENT_USER' failed\n");
     }
 
     if (!(PSIDhook_del(PSIDHOOK_FRWRD_INIT, handleForwarderInit))) {
@@ -161,8 +161,8 @@ static int registerHooks()
 	return 0;
     }
 
-    if (!(PSIDhook_add(PSIDHOOK_EXEC_CLIENT, handleExecClient))) {
-	mlog("register 'PSIDHOOK_EXEC_CLIENT' failed\n");
+    if (!(PSIDhook_add(PSIDHOOK_EXEC_CLIENT_USER, handleExecClient))) {
+	mlog("register 'PSIDHOOK_EXEC_CLIENT_USER' failed\n");
 	return 0;
     }
 

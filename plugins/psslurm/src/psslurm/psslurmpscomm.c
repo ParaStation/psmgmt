@@ -31,6 +31,7 @@
 #include "pluginhelper.h"
 #include "pluginfrag.h"
 #include "pluginpartition.h"
+#include "psidnodes.h"
 
 #include "slurmcommon.h"
 #include "psslurmforwarder.h"
@@ -44,54 +45,217 @@
 
 #include "psslurmpscomm.h"
 
+
+uint8_t *getCPUsForPartition(PSpart_slot_t *slots, Step_t *step)
+{
+    const char delimiters[] =", \n";
+    uint32_t i, min, max;
+    char *next, *saveptr, *cores, *sep;
+    uint8_t *coreMap;
+
+    coreMap = umalloc(step->cred->totalCoreCount * sizeof(uint8_t));
+    for (i=0; i<step->cred->totalCoreCount; i++) coreMap[i] = 0;
+
+    cores = ustrdup(step->cred->stepCoreBitmap);
+    next = strtok_r(cores, delimiters, &saveptr);
+
+    while (next) {
+	if (!(sep = strchr(next, '-'))) {
+	    /* single digit */
+	    if ((sscanf(next, "%i", &max)) != 1) {
+		mlog("%s: invalid core '%s'\n", __func__, next);
+		ufree(cores);
+		ufree(coreMap);
+		return NULL;
+	    }
+	    if (max >= step->cred->totalCoreCount) {
+		mlog("%s: core '%i' > total core count '%i'\n", __func__, max,
+			step->cred->totalCoreCount);
+		ufree(cores);
+		ufree(coreMap);
+		return NULL;
+	    }
+	    coreMap[max] = 1;
+
+	} else {
+	    /* range */
+	    if ((sscanf(next, "%i-%i", &min, &max)) != 2) {
+		mlog("%s: invalid core range '%s'\n", __func__, next);
+		ufree(cores);
+		ufree(coreMap);
+		return NULL;
+	    }
+	    for (i=min; i<=max; i++) {
+		if (i >= step->cred->totalCoreCount) {
+		    mlog("%s: core '%i' > total core count '%i'\n", __func__, i,
+			    step->cred->totalCoreCount);
+		    ufree(cores);
+		    ufree(coreMap);
+		    return NULL;
+		}
+		coreMap[i] = 1;
+	    }
+	}
+
+	next = strtok_r(NULL, delimiters, &saveptr);
+    }
+
+    mdbg(PSSLURM_LOG_PART, "%s: cores '%s' coreMap '", __func__, cores);
+    for (i=0; i< step->cred->totalCoreCount; i++) {
+	mdbg(PSSLURM_LOG_PART, "%i", coreMap[i]);
+    }
+    mdbg(PSSLURM_LOG_PART, "'\n");
+
+    ufree(cores);
+
+    return coreMap;
+}
+
 int handleCreatePart(void *msg)
 {
     DDBufferMsg_t *inmsg = (DDBufferMsg_t *) msg;
     Step_t *step;
-    int ret = 1, enforceBatch;
+    PStask_t *task;
+    uint32_t i, x, z, u, tid, slotsSize, cpuCount;
+    uint32_t coreMapIndex = 0, coreIndex = 0, coreArrayCount = 0;
+    int32_t lastCpu, localCpuCount;
+    uint8_t *coreMap = NULL;
+    PSpart_slot_t *slots = NULL;
+    JobCred_t *cred = NULL;
+    PSCPU_set_t CPUset;
+    int hwThreads, thread = 0;
 
-    /* enforce regulations from the batchsystem */
-    getConfValueI(&Config, "ENFORCE_BATCH_START", &enforceBatch);
-    if (!enforceBatch) return 1;
-
-    if ((step = findStepByPid(PSC_getPID(inmsg->header.sender)))) {
-	PSnodes_ID_t *nl;
-	uint32_t i, x, z, tid, nlSize;
-
-	nlSize = step->np * step->tpp;
-	nl = umalloc(nlSize * sizeof(PSnodes_ID_t));
-
-	for (i=0; i<step->nrOfNodes; i++) {
-	    for (x=0; x<step->globalTaskIdsLen[i]; x++) {
-		tid = step->globalTaskIds[i][x];
-		tid *= step->tpp;
-
-		/* sanity check */
-		if (tid >nlSize) {
-		    mlog("%s: invalid taskids '%s' nlSize '%u'\n", __func__,
-			    PSC_printTID(tid), nlSize);
-		    ufree(nl);
-		    return injectNodelist(inmsg, 0, NULL);
-		}
-		for (z=0; z<step->tpp; z++) {
-		    nl[tid + z] = step->nodes[i];
-		    /*
-		    mlog("%s: set nl[%u] = '%u' tpp '%u'\n", __func__, tid + z,
-			    step->nodes[i], step->tpp);
-		    */
-		}
-	    }
-	}
-
-	ret = injectNodelist(inmsg, nlSize, nl);
-	ufree(nl);
-    } else {
-	mlog("%s: step for sender '%s' not found\n", __func__,
-		PSC_printTID(inmsg->header.sender));
-	ret = injectNodelist(inmsg, 0, NULL);
+    /* find task */
+    if (!(task = PStasklist_find(&managedTasks, inmsg->header.sender))) {
+	mlog("%s: task for msg from '%s' not found\n", __func__,
+	    PSC_printTID(inmsg->header.sender));
+	errno = EACCES;
+	goto error;
     }
 
-    return ret;
+    /* find step */
+    if (!(step = findStepByPid(PSC_getPID(inmsg->header.sender)))) {
+	mlog("%s: step for sender '%s' not found\n", __func__,
+		PSC_printTID(inmsg->header.sender));
+
+	errno = EACCES;
+	goto error;
+    }
+    cred = step->cred;
+
+    /* generate nodelist */
+    slotsSize = step->np * step->tpp;
+    slots = umalloc(slotsSize * sizeof(PSpart_slot_t));
+
+    /* get cpus from job credential */
+    if (!(coreMap = getCPUsForPartition(slots, step))) {
+	errno = EACCES;
+	goto error;
+    }
+
+    for (i=0; i<step->nrOfNodes; i++) {
+	thread = 0;
+
+	/* get cpu count per node from job credential */
+	if (coreIndex >= cred->coreArraySize) {
+	    mlog("%s: invalid core index '%i', size '%i'\n", __func__,
+		    coreIndex, cred->coreArraySize);
+	    errno = EACCES;
+	    goto error;
+	}
+
+	cpuCount =
+	    cred->coresPerSocket[coreIndex] * cred->socketsPerNode[coreIndex];
+	coreArrayCount++;
+	if (coreArrayCount >= cred->sockCoreRepCount[coreIndex]) {
+	    coreIndex++;
+	    coreArrayCount = 0;
+	}
+	lastCpu = -1;
+
+	hwThreads = PSIDnodes_getVirtCPUs(step->nodes[i]) / cpuCount;
+	if (hwThreads < 1) hwThreads = 1;
+
+	/* set node and cpuset for every task */
+	for (x=0; x<step->globalTaskIdsLen[i]; x++) {
+	    int found;
+
+	    tid = step->globalTaskIds[i][x];
+	    tid *= step->tpp;
+
+	    /* sanity check */
+	    if (tid >slotsSize) {
+		mlog("%s: invalid taskids '%s' slotsSize '%u'\n", __func__,
+			PSC_printTID(tid), slotsSize);
+		errno = EACCES;
+		goto error;
+	    }
+
+	    /* calc CPUset */
+	    if (step->cpuBindType & CPU_BIND_NONE) {
+		PSCPU_setAll(CPUset);
+	    } else {
+		PSCPU_clrAll(CPUset);
+		found = 0;
+
+		while (!found) {
+		    localCpuCount = 0;
+		    for (u=coreMapIndex; u<coreMapIndex + cpuCount; u++) {
+			if ((lastCpu == -1 || lastCpu < localCpuCount) &&
+			    coreMap[u] == 1) {
+			    PSCPU_setCPU(CPUset,
+					localCpuCount + (thread * cpuCount));
+			    mdbg(PSSLURM_LOG_PART, "%s: node '%i' global_cpu "
+				    "'%i' local_cpu '%i' last_cpu '%i'\n",
+				    __func__, i, u,
+				    localCpuCount + (thread * cpuCount),
+				    lastCpu);
+			    lastCpu = localCpuCount;
+			    found = 1;
+			    break;
+			}
+			localCpuCount++;
+		    }
+		    if (!found && lastCpu == -1) break;
+		    if (found) break;
+		    lastCpu = -1;
+		    if (thread < hwThreads) thread++;
+		    if (thread == hwThreads) thread = 0;
+		    PSCPU_clrAll(CPUset);
+		}
+	    }
+
+	    /* set node and cpuset for the corresponding threads */
+	    for (z=0; z<step->tpp; z++) {
+		slots[tid + z].node = step->nodes[i];
+		PSCPU_copy(slots[tid + z].CPUset, CPUset);
+	    }
+	}
+	coreMapIndex += cpuCount;
+    }
+
+    /* slots are hanging on the partition, the psid will free them for us */
+    ufree(coreMap);
+
+    /* answer request */
+    grantPartitionRequest(slots, slotsSize, inmsg->header.sender, task);
+
+    return 0;
+
+    error:
+    {
+	if (task && task->request) {
+	    PSpart_delReq(task->request);
+	    task->request = NULL;
+	}
+	ufree(slots);
+	ufree(coreMap);
+
+	rejectPartitionRequest(inmsg->header.sender);
+	return 0;
+    }
+
+    return 0;
 }
 
 int handleCreatePartNL(void *msg)
@@ -100,7 +264,9 @@ int handleCreatePartNL(void *msg)
     int enforceBatch;
     PStask_t *task;
 
-    mlog("%s: TODO\n", __func__);
+    /* nothing to do here */
+    return 0;
+
     /* everyone is allowed to start, nothing to do for us here */
     getConfValueI(&Config, "ENFORCE_BATCH_START", &enforceBatch);
     if (!enforceBatch) return 1;
@@ -429,6 +595,145 @@ static void handleRemoteJob(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 
 }
 
+void send_PS_JobExit(uint32_t jobid, uint32_t stepid, uint32_t nrOfNodes,
+			PSnodes_ID_t *nodes)
+{
+    DDTypedBufferMsg_t msg;
+    PS_DataBuffer_t data = { .buf = NULL };
+    PStask_ID_t myID = PSC_getMyID();
+    uint32_t i;
+
+    /* add jobid */
+    addUint32ToMsg(jobid, &data);
+
+    /* add stepid */
+    addUint32ToMsg(stepid, &data);
+
+    /* send the messages */
+    msg = (DDTypedBufferMsg_t) {
+       .header = (DDMsg_t) {
+       .type = PSP_CC_PLUG_PSSLURM,
+       .sender = PSC_getMyTID(),
+       .len = sizeof(msg.header) },
+       .buf = {'\0'} };
+
+    msg.type = PSP_JOB_EXIT;
+    msg.header.len += sizeof(msg.type);
+
+    memcpy(msg.buf, data.buf, data.bufUsed);
+    msg.header.len += data.bufUsed;
+
+    for (i=0; i<nrOfNodes; i++) {
+	if (nodes[i] == myID) continue;
+
+	msg.header.dest = PSC_getTID(nodes[i], 0);
+	sendMsg(&msg);
+    }
+
+    ufree(data.buf);
+}
+
+void send_PS_SignalTasks(Step_t *step, int signal, PStask_group_t group)
+{
+    DDTypedBufferMsg_t msg;
+    PS_DataBuffer_t data = { .buf = NULL };
+    PStask_ID_t myID = PSC_getMyID();
+    uint32_t i;
+
+    /* add jobid */
+    addUint32ToMsg(step->jobid, &data);
+
+    /* add stepid */
+    addUint32ToMsg(step->stepid, &data);
+
+    /* add group */
+    addInt32ToMsg(group, &data);
+
+    /* add signal */
+    addUint32ToMsg(signal, &data);
+
+    /* send the messages */
+    msg = (DDTypedBufferMsg_t) {
+       .header = (DDMsg_t) {
+       .type = PSP_CC_PLUG_PSSLURM,
+       .sender = PSC_getMyTID(),
+       .len = sizeof(msg.header) },
+       .buf = {'\0'} };
+
+    msg.type = PSP_SIGNAL_TASKS;
+    msg.header.len += sizeof(msg.type);
+
+    memcpy(msg.buf, data.buf, data.bufUsed);
+    msg.header.len += data.bufUsed;
+
+    for (i=0; i<step->nrOfNodes; i++) {
+	if (step->nodes[i] == myID) continue;
+
+	msg.header.dest = PSC_getTID(step->nodes[i], 0);
+	sendMsg(&msg);
+    }
+
+    ufree(data.buf);
+}
+
+static void handle_PS_JobExit(DDTypedBufferMsg_t *msg)
+{
+    uint32_t jobid, stepid;
+    Step_t *step;
+    char *ptr = msg->buf;
+
+    /* get jobid */
+    getUint32(&ptr, &jobid);
+
+    /* get stepid */
+    getUint32(&ptr, &stepid);
+
+    mlog("%s: id '%u:%u'\n", __func__, jobid, stepid);
+
+    /* delete all steps */
+    if (stepid == SLURM_BATCH_SCRIPT) {
+	sendEpilogueComplete(jobid, 0);
+	clearStepList(jobid);
+	return;
+    }
+
+    if (!(step = findStepById(jobid, stepid))) {
+      mlog("%s: step '%u:%u' not found\n", __func__, jobid, stepid);
+    } else {
+	step->state = JOB_EXIT;
+    }
+}
+
+static void handle_PS_SignalTasks(DDTypedBufferMsg_t *msg)
+{
+    uint32_t jobid, stepid;
+    uint32_t signal;
+    int32_t group;
+    char *ptr = msg->buf;
+    Step_t *step;
+
+    /* get jobid */
+    getUint32(&ptr, &jobid);
+
+    /* get stepid */
+    getUint32(&ptr, &stepid);
+
+    /* get group */
+    getInt32(&ptr, &group);
+
+    /* get signal */
+    getUint32(&ptr, &signal);
+
+    if (!(step = findStepById(jobid, stepid))) {
+      mlog("%s: step '%u:%u' to signal not found\n", __func__, jobid, stepid);
+      return;
+    }
+
+    /* signal tasks */
+    mlog("%s: id '%u:%u'\n", __func__, jobid, stepid);
+    signalTasks(step->uid, &step->tasks, signal, group);
+}
+
 void handlePsslurmMsg(DDTypedBufferMsg_t *msg)
 {
     char sender[100], dest[100];
@@ -458,6 +763,12 @@ void handlePsslurmMsg(DDTypedBufferMsg_t *msg)
 	    break;
 	case PSP_REMOTE_JOB:
 	    recvFragMsg(msg, handleRemoteJob);
+	case PSP_SIGNAL_TASKS:
+	    handle_PS_SignalTasks(msg);
+	    break;
+	case PSP_JOB_EXIT:
+	    handle_PS_JobExit(msg);
+	    break;
 	default:
 	    mlog("%s: received unknown msg type:%i [%s -> %s]\n", __func__,
 		msg->type, sender, dest);
@@ -534,13 +845,15 @@ void handleChildBornMsg(DDErrorMsg_t *msg)
 	    mlog("%s: job '%u' not found\n", __func__, jobid);
 	    goto FORWARD_CHILD_BORN;
 	}
-	addTask(&job->tasks.list, msg->request, forwarder->tid, forwarder);
+	addTask(&job->tasks.list, msg->request, forwarder->tid,
+		    forwarder, forwarder->childGroup);
     } else {
 	if (!(step = findStepById(jobid, stepid))) {
 	    mlog("%s: step '%u:%u' not found\n", __func__, jobid, stepid);
 	    goto FORWARD_CHILD_BORN;
 	}
-	addTask(&step->tasks.list, msg->request, forwarder->tid, forwarder);
+	addTask(&step->tasks.list, msg->request, forwarder->tid,
+		    forwarder, forwarder->childGroup);
     }
 
 FORWARD_CHILD_BORN:

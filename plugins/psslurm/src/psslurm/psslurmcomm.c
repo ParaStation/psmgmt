@@ -495,7 +495,7 @@ static int handleSrunMsg(int sock, void *data)
 {
     Step_t *step = data;
     char *ptr, buffer[1024];
-    int ret, headSize, readnow, fd;
+    int ret, headSize, readnow, fd = -1;
     size_t toread;
     uint16_t type, gtid, ltid;
     uint32_t lenght;
@@ -508,15 +508,16 @@ static int handleSrunMsg(int sock, void *data)
 	return 0;
     }
     ptr = buffer;
+    if (step->nodes[0] == PSC_getMyID()) {
+	if (!step->fwdata) {
+	    mlog("%s: no forwarder running\n", __func__);
+	    Selector_remove(sock);
+	    close(sock);
+	    return 0;
+	}
 
-    if (!step->fwdata) {
-	mlog("%s: no forwarder running\n", __func__);
-	Selector_remove(sock);
-	close(sock);
-	return 0;
+	fd = (step->pty) ? step->fwdata->stdOut[1] : step->fwdata->stdIn[1];
     }
-
-    fd = (step->pty) ? step->fwdata->stdOut[1] : step->fwdata->stdIn[1];
 
     /* type */
     getUint16(&ptr, &type);
@@ -542,7 +543,7 @@ static int handleSrunMsg(int sock, void *data)
 	srunSendIO(SLURM_IO_CONNECTION_TEST, step, NULL, 0);
     } else if (!lenght) {
 	mlog("%s: got eof of stdin '%u'\n", __func__, fd);
-	if (!step->pty) close(fd);
+	if (!step->pty && (step->nodes[0] == PSC_getMyID())) close(fd);
     } else {
 	/* read stdin message from srun and write to child pty */
 	toread = lenght;
@@ -552,7 +553,7 @@ static int handleSrunMsg(int sock, void *data)
 		mlog("%s: reading body failed\n", __func__);
 		break;
 	    }
-	    doWriteP(fd, buffer, ret);
+	    if (step->nodes[0] == PSC_getMyID()) doWriteP(fd, buffer, ret);
 	    toread -= ret;
 	}
     }
@@ -684,6 +685,7 @@ int srunOpenIOConnection(Step_t *step)
     addMemToMsg(step->cred->sig, (uint32_t) SLURM_IO_KEY_SIZE, &data);
 
     ret = doWriteP(sock, data.buf, data.bufUsed);
+    ufree(data.buf);
 
     mlog("%s: ret:%i used:%i\n", __func__, ret, data.bufUsed);
     return 1;
@@ -719,6 +721,7 @@ int srunSendIO(uint16_t type, Step_t *step, char *buf, uint32_t bufLen)
 
 			addMemToMsg(sendBuf, bufLen, &data);
 			ret += doWriteP(step->srunIOSock, data.buf, data.bufUsed);
+			ufree(data.buf);
 			data.buf = NULL;
 		    } else {
 			mlog("%s: empty i/o\n", __func__);
@@ -733,6 +736,7 @@ int srunSendIO(uint16_t type, Step_t *step, char *buf, uint32_t bufLen)
 	    }
 	    next = strtok_r(NULL, delimiters, &saveptr);
 	}
+	ufree(data.buf);
 	return ret;
 
     }
@@ -748,6 +752,7 @@ SRUN_IO_DEFAULT:
 
     if (bufLen >0) addMemToMsg(sendBuf, bufLen, &data);
     ret = doWriteP(step->srunIOSock, data.buf, data.bufUsed);
+    ufree(data.buf);
 
     return ret;
 
