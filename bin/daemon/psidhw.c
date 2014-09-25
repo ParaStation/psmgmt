@@ -138,6 +138,35 @@ static int prepSwitchEnv(void *info)
 }
 
 /**
+ * @brief Inform nodes
+ *
+ * Inform all other nodes on the local status of the communication
+ * hardware. Therefore a messages describing the hardware available on
+ * the local node is broadcasted to all other nodes that are currently
+ * up.
+ *
+ * @return No return value.
+ */
+static void informOtherNodes(void)
+{
+    DDOptionMsg_t msg = (DDOptionMsg_t) {
+	.header = (DDMsg_t) {
+	    .type = PSP_CD_SETOPTION,
+	    .sender = PSC_getMyTID(),
+	    .dest = 0,
+	    .len = sizeof(msg) },
+	.count = 1,
+	.opt = {(DDOption_t) {
+	    .option = PSP_OP_HWSTATUS,
+	    .value = PSIDnodes_getHWStatus(PSC_getMyID()) }
+	}};
+
+    if (broadcastMsg(&msg) == -1 && errno != EWOULDBLOCK) {
+	PSID_warn(-1, errno, "%s: broadcastMsg()", __func__);
+    }
+}
+
+/**
  * @brief Callback for switch-scripts
  *
  * Callback used by switchHW scripts. @a fd is the file-descriptor
@@ -193,13 +222,17 @@ static int switchHWCB(int fd, PSID_scriptCBInfo_t *info)
 	PSID_log(-1, "%s: script(%s, %s) returned %d: '%s'\n", __func__,
 		 hwName, hwScript, result, line);
     } else if (hw > -1) {
-	unsigned int status = PSIDnodes_getHWStatus(PSC_getMyID());
+	int oldState = PSIDnodes_getHWStatus(PSC_getMyID());
+
 	PSID_log(PSID_LOG_HW, "%s: script(%s, %s): success\n", __func__,
 		 hwName, hwScript);
 	if (on) {
-	    PSIDnodes_setHWStatus(PSC_getMyID(), status | (1<<hw));
+	    PSIDnodes_setHWStatus(PSC_getMyID(), oldState | (1<<hw));
 	} else {
-	    PSIDnodes_setHWStatus(PSC_getMyID(), status & ~(1<<hw));
+	    PSIDnodes_setHWStatus(PSC_getMyID(), oldState & ~(1<<hw));
+	}
+	if (oldState != PSIDnodes_getHWStatus(PSC_getMyID())) {
+	    informOtherNodes();
 	}
     }
     if (iofd > -1) close(iofd); /* Discard further output */
@@ -217,6 +250,10 @@ static int switchHWCB(int fd, PSID_scriptCBInfo_t *info)
  * describing the hardware and is defined from the configuration
  * file. If the flag @a on is different from 0, the hardware is
  * switched on. Otherwise it's switched off.
+ *
+ * If switching succeeded and the corresponding hardware changed
+ * state, all other nodes are informed on the changed hardware
+ * situation on the local node.
  *
  * @param hw A unique number of the communication hardware to start.
  *
@@ -248,14 +285,17 @@ static void switchHW(int hw, int on)
 	}
     } else {
 	/* No script, assume HW is switched anyhow */
-	unsigned int status = PSIDnodes_getHWStatus(PSC_getMyID());
+	int oldState = PSIDnodes_getHWStatus(PSC_getMyID());
 
 	PSID_log(PSID_LOG_HW, "%s: assume %s already %s\n",
 		 __func__, HW_name(hw), on ? "up" : "down");
 	if (on) {
-	    PSIDnodes_setHWStatus(PSC_getMyID(), status | (1<<hw));
+	    PSIDnodes_setHWStatus(PSC_getMyID(), oldState | (1<<hw));
 	} else {
-	    PSIDnodes_setHWStatus(PSC_getMyID(), status & ~(1<<hw));
+	    PSIDnodes_setHWStatus(PSC_getMyID(), oldState & ~(1<<hw));
+	}
+	if (oldState != PSIDnodes_getHWStatus(PSC_getMyID())) {
+	    informOtherNodes();
 	}
     }
 }
@@ -469,43 +509,11 @@ PSP_Optval_t PSID_getParam(int hw, PSP_Option_t type)
 }
 
 /**
- * @brief Inform nodes
- *
- * Inform all other nodes on the local situation concerning the
- * communication hardware. Therefor a messages describing the
- * installed on the local node is broadcasted to all other nodes that
- * are currently up.
- *
- * @return No return value.
- */
-static void informOtherNodes(void)
-{
-    DDOptionMsg_t msg = (DDOptionMsg_t) {
-	.header = (DDMsg_t) {
-	    .type = PSP_CD_SETOPTION,
-	    .sender = PSC_getMyTID(),
-	    .dest = 0,
-	    .len = sizeof(msg) },
-	.count = 1,
-	.opt = {(DDOption_t) {
-	    .option =  PSP_OP_HWSTATUS,
-	    .value =  PSIDnodes_getHWStatus(PSC_getMyID()) }
-	}};
-
-    if (broadcastMsg(&msg) == -1 && errno != EWOULDBLOCK) {
-	PSID_warn(-1, errno, "%s: broadcastMsg()", __func__);
-    }
-}
-
-/**
  * @brief Handle PSP_CD_HWSTART message
  *
  * Handle the message @a msg of type PSP_CD_HWSTART.
  *
- * Start the communication hardware as described within @a msg. If
- * starting succeeded and the corresponding hardware was down before,
- * all other nodes are informed on the change hardware situation on
- * the local node.
+ * Start the communication hardware as described within @a msg.
  *
  * @param msg Pointer to message to handle.
  *
@@ -525,15 +533,12 @@ static void msg_HWSTART(DDBufferMsg_t *msg)
 
     if (msg->header.dest == PSC_getMyTID()) {
 	int hw = *(int *)msg->buf;
-	int oldStat = PSIDnodes_getHWStatus(PSC_getMyID());
 
 	if (hw == -1) {
 	    PSID_startAllHW();
 	} else {
 	    switchHW(hw, 1);
 	}
-	if (oldStat != PSIDnodes_getHWStatus(PSC_getMyID()))
-	    informOtherNodes();
     } else {
 	sendMsg(msg);
     }
@@ -567,15 +572,12 @@ static void msg_HWSTOP(DDBufferMsg_t *msg)
 
     if (msg->header.dest == PSC_getMyTID()) {
 	int hw = *(int *)msg->buf;
-	int oldStat = PSIDnodes_getHWStatus(PSC_getMyID());
 
 	if (hw == -1) {
 	    PSID_stopAllHW();
 	} else {
 	    switchHW(hw, 0);
 	}
-	if (oldStat != PSIDnodes_getHWStatus(PSC_getMyID()))
-	    informOtherNodes();
     } else {
 	sendMsg(msg);
     }

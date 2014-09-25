@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2013 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2014 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -724,9 +724,6 @@ int main(int argc, const char *argv[])
 	}
     }
 
-    /* Start up all the hardware */
-    PSID_log(PSID_LOG_HW, "%s: starting up the hardware\n", __func__);
-
     PSIDnodes_setProtoV(PSC_getMyID(), PSProtocolVersion);
     PSIDnodes_setDmnProtoV(PSC_getMyID(), PSDaemonProtocolVersion);
     PSIDnodes_setHWStatus(PSC_getMyID(), 0);
@@ -762,6 +759,7 @@ int main(int argc, const char *argv[])
     initPlugins();
 
     /* Now we start all the hardware -- this might include the accounter */
+    PSID_log(PSID_LOG_HW, "%s: starting up the hardware\n", __func__);
     PSID_startAllHW();
     PSIDnodes_setAcctPollI(PSC_getMyID(), config->acctPollInterval);
 
