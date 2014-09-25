@@ -51,10 +51,10 @@ typedef struct {
     uint32_t pluginId;
     uint32_t gresCountAlloc;
     uint32_t nodeCount;
-    bitstr_t **gres_bit_alloc;
-    bitstr_t **gres_bit_step_alloc;
-    bitstr_t **gres_cnt_step_alloc;
-    bitstr_t *nodeInUse;
+    char **gres_bit_alloc;
+    char **gres_bit_step_alloc;
+    uint32_t *gres_cnt_step_alloc;
+    char *nodeInUse;
     uint32_t totalCoreCount;
     char *jobCoreBitmap;
     char *stepCoreBitmap;

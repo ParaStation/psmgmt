@@ -25,13 +25,13 @@
 #include "pscommon.h"
 #include "psidcomm.h"
 #include "env.h"
+#include "psidnodes.h"
 #include "psidtask.h"
 #include "plugincomm.h"
 #include "pluginmalloc.h"
 #include "pluginhelper.h"
 #include "pluginfrag.h"
 #include "pluginpartition.h"
-#include "psidnodes.h"
 
 #include "slurmcommon.h"
 #include "psslurmforwarder.h"
@@ -111,14 +111,100 @@ uint8_t *getCPUsForPartition(PSpart_slot_t *slots, Step_t *step)
     return coreMap;
 }
 
+void setCPUset(uint16_t cpuBindType, PSCPU_set_t *CPUset, uint32_t coreMapIndex,
+		uint32_t cpuCount, int32_t *lastCpu, uint8_t *coreMap,
+		uint32_t nodeid, int *thread, int hwThreads,
+		uint32_t tasksPerNode)
+{
+    int found;
+    int32_t localCpuCount;
+    uint32_t u;
+
+    if (cpuBindType & CPU_BIND_NONE) {
+	PSCPU_setAll(*CPUset);
+	mdbg(PSSLURM_LOG_PART, "%s: (cpu_bind_none)\n", __func__);
+    } else if (cpuBindType & CPU_BIND_RANK) {
+	PSCPU_clrAll(*CPUset);
+	found = 0;
+
+	while (!found) {
+	    localCpuCount = 0;
+	    for (u=coreMapIndex; u<coreMapIndex + cpuCount; u++) {
+		if ((*lastCpu == -1 || *lastCpu < localCpuCount) &&
+			coreMap[u] == 1) {
+		    PSCPU_setCPU(*CPUset,
+			    localCpuCount + (*thread * cpuCount));
+		    mdbg(PSSLURM_LOG_PART, "%s: (bind_rank) node '%i' "
+			    "global_cpu '%i' local_cpu '%i' last_cpu '%i'\n",
+			    __func__, nodeid, u,
+			    localCpuCount + (*thread * cpuCount),
+			    *lastCpu);
+		    *lastCpu = localCpuCount;
+		    found = 1;
+		    break;
+		}
+		localCpuCount++;
+	    }
+	    if (!found && *lastCpu == -1) break;
+	    if (found) break;
+	    *lastCpu = -1;
+	    if (*thread < hwThreads) (*thread)++;
+	    if (*thread == hwThreads) *thread = 0;
+	}
+    } else if (tasksPerNode > (cpuCount * hwThreads) ||
+	tasksPerNode < cpuCount ||
+	(cpuCount * hwThreads) % tasksPerNode != 0) {
+	PSCPU_setAll(*CPUset);
+	mdbg(PSSLURM_LOG_PART, "%s: (default) tasksPerNode '%i' cpuCount '%i' "
+		"mod '%i'\n", __func__, tasksPerNode, cpuCount,
+		cpuCount % tasksPerNode);
+    } else {
+	PSCPU_setAll(*CPUset);
+	/* TODO bind correctly: each rank can use multiple cpus!
+	uint32_t cpusPerTask;
+	 *
+	PSCPU_clrAll(*CPUset);
+	cpusPerTask = cpuCount / tasksPerNode;
+	*/
+
+	PSCPU_clrAll(*CPUset);
+	found = 0;
+
+	while (!found) {
+	    localCpuCount = 0;
+	    for (u=coreMapIndex; u<coreMapIndex + cpuCount; u++) {
+		if ((*lastCpu == -1 || *lastCpu < localCpuCount) &&
+			coreMap[u] == 1) {
+		    PSCPU_setCPU(*CPUset,
+			    localCpuCount + (*thread * cpuCount));
+		    mdbg(PSSLURM_LOG_PART, "%s: (default) node '%i' "
+			    "global_cpu '%i' local_cpu '%i' last_cpu '%i'\n",
+			    __func__, nodeid, u,
+			    localCpuCount + (*thread * cpuCount),
+			    *lastCpu);
+		    *lastCpu = localCpuCount;
+		    found = 1;
+		    break;
+		}
+		localCpuCount++;
+	    }
+	    if (!found && *lastCpu == -1) break;
+	    if (found) break;
+	    *lastCpu = -1;
+	    if (*thread < hwThreads) (*thread)++;
+	    if (*thread == hwThreads) *thread = 0;
+	}
+    }
+}
+
 int handleCreatePart(void *msg)
 {
     DDBufferMsg_t *inmsg = (DDBufferMsg_t *) msg;
     Step_t *step;
     PStask_t *task;
-    uint32_t i, x, z, u, tid, slotsSize, cpuCount;
+    uint32_t i, x, tid, slotsSize, cpuCount;
     uint32_t coreMapIndex = 0, coreIndex = 0, coreArrayCount = 0;
-    int32_t lastCpu, localCpuCount;
+    int32_t lastCpu;
     uint8_t *coreMap = NULL;
     PSpart_slot_t *slots = NULL;
     JobCred_t *cred = NULL;
@@ -143,8 +229,8 @@ int handleCreatePart(void *msg)
     }
     cred = step->cred;
 
-    /* generate nodelist */
-    slotsSize = step->np * step->tpp;
+    /* generate slotlist */
+    slotsSize = step->np;
     slots = umalloc(slotsSize * sizeof(PSpart_slot_t));
 
     /* get cpus from job credential */
@@ -178,10 +264,8 @@ int handleCreatePart(void *msg)
 
 	/* set node and cpuset for every task */
 	for (x=0; x<step->globalTaskIdsLen[i]; x++) {
-	    int found;
 
 	    tid = step->globalTaskIds[i][x];
-	    tid *= step->tpp;
 
 	    /* sanity check */
 	    if (tid >slotsSize) {
@@ -192,44 +276,13 @@ int handleCreatePart(void *msg)
 	    }
 
 	    /* calc CPUset */
-	    if (step->cpuBindType & CPU_BIND_NONE) {
-		PSCPU_setAll(CPUset);
-	    } else {
-		PSCPU_clrAll(CPUset);
-		found = 0;
+	    setCPUset(step->cpuBindType, &CPUset, coreMapIndex, cpuCount,
+			&lastCpu, coreMap, i, &thread, hwThreads,
+			step->globalTaskIdsLen[i]);
 
-		while (!found) {
-		    localCpuCount = 0;
-		    for (u=coreMapIndex; u<coreMapIndex + cpuCount; u++) {
-			if ((lastCpu == -1 || lastCpu < localCpuCount) &&
-			    coreMap[u] == 1) {
-			    PSCPU_setCPU(CPUset,
-					localCpuCount + (thread * cpuCount));
-			    mdbg(PSSLURM_LOG_PART, "%s: node '%i' global_cpu "
-				    "'%i' local_cpu '%i' last_cpu '%i'\n",
-				    __func__, i, u,
-				    localCpuCount + (thread * cpuCount),
-				    lastCpu);
-			    lastCpu = localCpuCount;
-			    found = 1;
-			    break;
-			}
-			localCpuCount++;
-		    }
-		    if (!found && lastCpu == -1) break;
-		    if (found) break;
-		    lastCpu = -1;
-		    if (thread < hwThreads) thread++;
-		    if (thread == hwThreads) thread = 0;
-		    PSCPU_clrAll(CPUset);
-		}
-	    }
+	    slots[tid].node = step->nodes[i];
+	    PSCPU_copy(slots[tid].CPUset, CPUset);
 
-	    /* set node and cpuset for the corresponding threads */
-	    for (z=0; z<step->tpp; z++) {
-		slots[tid + z].node = step->nodes[i];
-		PSCPU_copy(slots[tid + z].CPUset, CPUset);
-	    }
 	}
 	coreMapIndex += cpuCount;
     }

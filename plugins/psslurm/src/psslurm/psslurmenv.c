@@ -132,9 +132,6 @@ void setTaskEnv(Step_t *step)
 
     snprintf(tmp, sizeof(tmp), "%u", step->tpp);
     env_set(&env, "SLURM_CPUS_PER_TASK", tmp);
-    if (step->tpp > 1) {
-	env_set(&env, "PSI_TPP", tmp);
-    }
 
     env_set(&env, "SLURM_LAUNCH_NODE_IPADDR", inet_ntoa(step->srun.sin_addr));
     env_set(&env, "SLURM_SRUN_COMM_HOST", inet_ntoa(step->srun.sin_addr));
@@ -152,6 +149,7 @@ void setTaskEnv(Step_t *step)
     /* unbuffered (raw I/O) mode */
     if (!step->bufferedIO) {
 	env_set(&env, "__PSI_RAW_IO", "1");
+	env_set(&env, "PSI_LOGGER_UNBUFFER", "1");
     }
 
     /*
@@ -210,12 +208,6 @@ void setBatchEnv(Job_t *job)
 
     if (job->overcommit || (val && !strcmp(val, "1"))) {
 	env_set(&env, "PSI_OVERBOOK", "1");
-    }
-
-    /* forward threads per process */
-    if (job->tpp > 1) {
-	snprintf(tmp, sizeof(tmp), "%u", job->tpp);
-	env_set(&env, "PSI_TPP", tmp);
     }
 
     /* set slurm umask */

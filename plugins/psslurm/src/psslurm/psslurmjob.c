@@ -308,6 +308,9 @@ int deleteStep(uint32_t jobid, uint32_t stepid)
 
     if (!(step = findStepById(jobid, stepid))) return 0;
 
+    /* make sure all connections for the step are closed */
+    closeAllStepConnections(step);
+
     ufree(step->srunPorts);
     ufree(step->tasksToLaunch);
     ufree(step->slurmNodes);
@@ -330,7 +333,11 @@ int deleteStep(uint32_t jobid, uint32_t stepid)
     ufree(step->tids);
     clearTasks(&step->tasks.list);
 
-    if (step->fwdata) destroyForwarderData(step->fwdata);
+    if (step->fwdata) {
+	kill(step->fwdata->childPid, SIGKILL);
+	kill(step->fwdata->forwarderPid, SIGKILL);
+	destroyForwarderData(step->fwdata);
+    }
 
     deleteJobCred(step->cred);
 
@@ -391,7 +398,11 @@ int deleteJob(uint32_t jobid)
     ufree(job->partition);
     clearTasks(&job->tasks.list);
 
-    if (job->fwdata) destroyForwarderData(job->fwdata);
+    if (job->fwdata) {
+	kill(job->fwdata->childPid, SIGKILL);
+	kill(job->fwdata->forwarderPid, SIGKILL);
+	destroyForwarderData(job->fwdata);
+    }
 
     deleteJobCred(job->cred);
 
@@ -544,7 +555,8 @@ void addJobInfosToBuffer(PS_DataBuffer_t *buffer)
 	if (!(job = list_entry(pos, Job_t, list))) break;
 	if (count == max) break;
 
-	if (job->state == JOB_EXIT) continue;
+	if (job->state == JOB_EXIT ||
+	    job->state == JOB_COMPLETE) continue;
 	jobids[count] = job->jobid;
 	stepids[count] = SLURM_BATCH_SCRIPT;
 	count++;
@@ -554,7 +566,8 @@ void addJobInfosToBuffer(PS_DataBuffer_t *buffer)
 	if (!(step = list_entry(pos, Step_t, list))) break;
 	if (count == max) break;
 
-	if (step->state == JOB_EXIT) continue;
+	if (step->state == JOB_EXIT ||
+	    step->state == JOB_COMPLETE) continue;
 	jobids[count] = step->jobid;
 	stepids[count] = step->stepid;
 	count++;
@@ -564,6 +577,7 @@ void addJobInfosToBuffer(PS_DataBuffer_t *buffer)
     for (i=0; i<count; i++) {
 	addUint32ToMsg(jobids[i], buffer);
 	addUint32ToMsg(stepids[i], buffer);
+	mlog("%s: jobinfo '%u:%u'\n", __func__, jobids[i], stepids[i]);
     }
 
     ufree(jobids);

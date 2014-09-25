@@ -70,7 +70,7 @@ handlerFunc_t oldChildBornHandler = NULL;
 
 /** psid plugin requirements */
 char name[] = "psslurm";
-int version = 11;
+int version = 12;
 int requiredAPI = 109;
 plugin_dep_t dependencies[4];
 
@@ -287,6 +287,7 @@ int initialize(void)
     /* init the logger (log to syslog) */
     initLogger("psslurm", NULL);
     maskLogger(PSSLURM_LOG_PROTO);
+    //maskLogger(PSSLURM_LOG_PROTO | PSSLURM_LOG_PART);
 
     /*
     FILE *lfile = fopen("/tmp/malloc", "w+");

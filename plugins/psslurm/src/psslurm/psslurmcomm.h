@@ -220,7 +220,7 @@ int sendSlurmMsg(int sock, slurm_msg_type_t type, PS_DataBuffer_t *body,
 int readSlurmMessage(int sock, char **buffer);
 const char *msgType2String(int type);
 #define getBitString(ptr, bits) __getBitString(ptr, bits, __func__, __LINE__)
-void __getBitString(char **ptr, bitstr_t **bitStr, const char *func,
+void __getBitString(char **ptr, char **bitStr, const char *func,
 				const int line);
 int tcpConnect(char *addr, char *port);
 void getSockInfo(int socket, uint32_t *addr, uint16_t *port);
@@ -231,4 +231,5 @@ int srunOpenPTY(Step_t *step);
 int srunSendIO(uint16_t type, Step_t *step, char *buf, uint32_t bufLen);
 int srunSendMsg(int sock, Step_t *step, slurm_msg_type_t type,
 		PS_DataBuffer_t *body);
+void closeAllStepConnections(Step_t *step);
 #endif

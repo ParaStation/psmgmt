@@ -41,6 +41,7 @@
 
 #include "psslurmcomm.h"
 
+#define MAX_PACK_STR_LEN        (16 * 1024 * 1024)
 
 const char *msgType2String(int type)
 {
@@ -356,13 +357,14 @@ int sendSlurmMsg(int sock, slurm_msg_type_t type, PS_DataBuffer_t *body,
     return 1;
 }
 
-void __getBitString(char **ptr, bitstr_t **bitStr, const char *func,
+void __getBitString(char **ptr, char **bitStr, const char *func,
 				const int line)
 {
     uint32_t len;
-    char *tmp;
+    //char *tmp;
 
     getUint32(ptr, &len);
+    //mlog("%s: len1 '%u'\n", __func__, len);
 
     if (len == NO_VAL) {
 	*bitStr = NULL;
@@ -371,11 +373,23 @@ void __getBitString(char **ptr, bitstr_t **bitStr, const char *func,
 
     getUint32(ptr, &len);
 
-    tmp = umalloc(len);
-    memcpy(tmp, *ptr, len);
-    *ptr += sizeof(len);
+    if (len > MAX_PACK_STR_LEN) {
+	*bitStr = NULL;
+	mlog("%s(%s:%i): invalid str len '%i'\n", __func__, func, line, len);
+	return;
+    }
+    //mlog("%s: len2 '%u'\n", __func__, len);
 
-    *bitStr = (bitstr_t *) tmp;
+    if (len > 0) {
+	*bitStr = umalloc(len);
+	memcpy(*bitStr, *ptr, len);
+	*ptr += len;
+
+	/* TODO convert to bitstr?? */
+	//*bitStr = (bitstr_t *) tmp;
+    } else {
+	*bitStr = NULL;
+    }
 }
 
 static int acceptSlurmdClient(int asocket, void *data)
@@ -700,7 +714,7 @@ int srunSendIO(uint16_t type, Step_t *step, char *buf, uint32_t bufLen)
     const char delimiters[] ="\n";
     char *next, *saveptr;
 
-    if (bufLen > 3 && step->labelIO && buf[0] == '[') {
+    if ((bufLen > 3) && step->labelIO && (buf[0] == '[')) {
 
 	next = strtok_r(buf, delimiters, &saveptr);
 
@@ -766,4 +780,28 @@ void getSockInfo(int socket, uint32_t *addr, uint16_t *port)
     getpeername(socket, (struct sockaddr*)&sock_addr, &len);
     *addr = sock_addr.sin_addr.s_addr;
     *port = sock_addr.sin_port;
+}
+
+void closeAllStepConnections(Step_t *step)
+{
+    if (step->srunIOSock > -1) {
+	if (Selector_isRegistered(step->srunIOSock)) {
+	    Selector_remove(step->srunIOSock);
+	}
+	close(step->srunIOSock);
+    }
+
+    if (step->srunControlSock > -1) {
+	if (Selector_isRegistered(step->srunControlSock)) {
+	Selector_remove(step->srunControlSock);
+	}
+	close(step->srunControlSock);
+    }
+
+    if (step->srunPTYSock > -1) {
+	if (Selector_isRegistered(step->srunPTYSock)) {
+	Selector_remove(step->srunPTYSock);
+	}
+	close(step->srunPTYSock);
+    }
 }

@@ -81,7 +81,7 @@ static void doKill(pid_t child, pid_t pgroup, int sig)
 
 int sendSignal2AllChildren(pid_t mypid, pid_t child, pid_t pgroup, int sig)
 {
-    struct list_head *pos;
+    list_t *pos, *tmp;
     Proc_Snapshot_t *Childproc;
     int sendCount = 0;
 
@@ -93,7 +93,7 @@ int sendSignal2AllChildren(pid_t mypid, pid_t child, pid_t pgroup, int sig)
         return 1;
     }
 
-    list_for_each(pos, &ProcList.list) {
+    list_for_each_safe(pos, tmp, &ProcList.list) {
         if ((Childproc = list_entry(pos, Proc_Snapshot_t, list)) == NULL) break;
 
 	if (pgroup > 0) {

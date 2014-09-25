@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2013 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2014 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -360,7 +360,7 @@ static int recvMsg(PSLog_Msg_t *msg)
     case PSP_CD_ERROR:
     case PSP_CD_SENDSTOP:
     case PSP_CD_SENDCONT:
-	/* Ignore */
+	/* Ignore here and handle outside */
 	break;
     default:
 	PSIlog_log(-1, "%s: Unknown message type %s from %s.\n",
@@ -884,7 +884,7 @@ static int handleFINALIZEMsg(PSLog_Msg_t *msg)
 {
     int ret = 0;
 
-    if (msg->sender >= 0) leaveRawMode();
+    if (msg->sender >= 0 && getNoClients()==1) leaveRawMode();
     if (getenv("PSI_SSH_COMPAT_HOST")) {
 	char *host = getenv("PSI_SSH_COMPAT_HOST");
 	int status = *(int *) msg->buf;
@@ -1383,6 +1383,11 @@ int main( int argc, char**argv)
 
     if (getenv("PSI_LOGGER_RAW_MODE") && isatty(STDIN_FILENO)) {
 	enterRawMode();
+	if (PSIlog_stdoutLogger) logger_setWaitNLFlag(PSIlog_stdoutLogger, 0);
+	if (PSIlog_stderrLogger) logger_setWaitNLFlag(PSIlog_stderrLogger, 0);
+    }
+
+    if (getenv("PSI_LOGGER_UNBUFFER")) {
 	if (PSIlog_stdoutLogger) logger_setWaitNLFlag(PSIlog_stdoutLogger, 0);
 	if (PSIlog_stderrLogger) logger_setWaitNLFlag(PSIlog_stderrLogger, 0);
     }

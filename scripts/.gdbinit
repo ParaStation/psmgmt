@@ -1,3 +1,17 @@
+#
+# ParaStation
+#
+# Copyright (C) 2014 ParTec Cluster Competence Center GmbH, Munich
+#
+# This file may be distributed under the terms of the Q Public License
+# as defined in the file LICENSE.QPL included in the packaging of this
+# file.
+#
+# Author:      Norbert Eicker <eicker@par-tec.com>
+#
+# $Id$
+#
+
 define print_array
 
   if $argc < 1
@@ -161,6 +175,46 @@ entries will be printed. If furthermore FIRST is given, handling ARRAY
 will not start at the first element but at the number given.
 end
 
+
+define print_msg_list
+
+  if $argc < 1
+    echo print_msg_list LISTHEAD [NUM]\n
+  else
+    set $lp = &$arg0
+    if $argc < 2
+      set $num = 1
+    else
+      set $num = $arg1
+    end
+    set $i = $num
+
+    while $i > 0
+      set $lp = $lp->next
+      set $i = $i - 1
+
+      if $lp == &$arg0
+	loop_break
+      end
+
+      output $num - $i
+      echo \ :\ \ 
+      output *(DDMsg_t *)((msgbuf_t *)((char *)($lp)-(unsigned long)(&((msgbuf_t *)0)->next)))->msg
+      echo \n
+    end
+  end
+end
+
+document print_msg_list
+Syntax: print_msg_list LISTHEAD [NUM]
+
+Print list of messages.
+
+LISTHEAD is the corresponding anchor of the list. It is assumed, that
+each entry of the list is of type msgbuf_t. If the optional argument
+NUM is given, the first NUM entries will be displayed. Otherwise only
+the first entry of the list will be printed.
+end
 
 
 ### Local Variables:

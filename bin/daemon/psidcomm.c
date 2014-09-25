@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2013 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2014 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -40,7 +40,7 @@ fd_set PSID_readfds;
 fd_set PSID_writefds;
 
 typedef struct {
-    struct list_head next;
+    list_t next;
     int msgType;
     handlerFunc_t handler;
 } msgHandler_t;
@@ -48,7 +48,7 @@ typedef struct {
 /** The actual size of the @ref msgHash */
 #define HASH_SIZE 32
 
-typedef struct list_head msgHandlerHash_t[HASH_SIZE];
+typedef list_t msgHandlerHash_t[HASH_SIZE];
 
 /** Hash of all known message-types to handle */
 static msgHandlerHash_t msgHash;

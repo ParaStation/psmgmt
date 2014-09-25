@@ -14,6 +14,8 @@ BuildRequires:	ncurses-devel, readline-devel, popt-devel
 
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
+# use "standard" path
+%global _pamdir %{expand:%{_libdir}/security}
 # for now
 %global _prefix /opt/parastation
 %global _plugindir %{_prefix}/plugins
@@ -62,7 +64,7 @@ daemon is neccessary to integrate compute nodes into a Torque batch system.
 
 %build
 export CFLAGS="%(echo %{optflags}|sed -e 's,-O.,,' -e 's,-Wall,,' -e 's,-Wextra,,')"
-%configure --datarootdir=%{_datadir}
+%configure --datarootdir=%{_datadir} --with-pamdir=%{_pamdir}
 make %{?_smp_mflags}
 
 %install
@@ -216,8 +218,8 @@ exit 0
 %doc %{_datadir}/doc/psmgmt/psmom-ChangeLog-History
 %doc %{_datadir}/doc/psmgmt/psmom-LICENSE.OpenPBS
 %doc %{_datadir}/doc/psmgmt/psmom-README
-/lib[64]*/security/pam_psmom.so
-%exclude /lib[64]*/security/pam_psmom.la
+%{_pamdir}/pam_psmom.so
+%exclude %{_pamdir}/pam_psmom.la
 %config(noreplace) /etc/pam.d/psmom
 %{_plugindir}/psmom.so
 %exclude %{_plugindir}/psmom.la
