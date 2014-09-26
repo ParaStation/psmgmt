@@ -16,6 +16,7 @@
  *
  * \author
  * Michael Rauh <rauh@par-tec.com>
+ * Stephan Krempel <krempel@par-tec.com>
  *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
@@ -64,6 +65,7 @@ typedef struct {
     int argc;
     char **argv;
     char *nodetype;
+    char *wdir;
 } Executable_t;
 
 int execCount = 0;
@@ -133,6 +135,7 @@ int envall = 0;
 int usize = 0;
 mode_t u_mask;
 char *wdir = NULL;
+char *gwdir = NULL;
 char *nodelist = NULL;
 char *hostlist = NULL;
 char *hostfile = NULL;
@@ -1375,7 +1378,8 @@ static int startProcs(int np, char *wd, int verbose)
 
     for (i=0; i< execCount; i++) {
 	if ((ret = spawnSingleExecutable(exec[i]->np, exec[i]->argc,
-			exec[i]->argv, wd, exec[i]->nodetype, verbose))< 0) {
+			exec[i]->argv, exec[i]->wdir, exec[i]->nodetype,
+			verbose))< 0) {
 
 	    if ((getenv("PMI_SPAWNED"))) {
 		PSLog_Msg_t lmsg;
@@ -2447,10 +2451,10 @@ struct poptOption poptMpiexecCompGlobal[] = {
       &gnp, 0, "equal to gnp: global number of processes to start", "num"},
     { "gwdir", '\0',
       POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
-      &wdir, 0, "working directory for remote process(es)", "<directory>"},
+      &gwdir, 0, "working directory for remote process(es)", "<directory>"},
     { "gdir", '\0',
       POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
-      &wdir, 0, "working directory for remote process(es)", "<directory>"},
+      &gwdir, 0, "working directory for remote process(es)", "<directory>"},
     { "gumask", '\0',
       POPT_ARG_INT | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
       &u_mask, 0, "umask for remote process", NULL},
@@ -2610,7 +2614,7 @@ struct poptOption poptExecutionOptions[] = {
     { "sort", 'S', POPT_ARG_STRING,
       &sort, 0, "sorting criterion to use: {proc|load|proc+load|none}", NULL},
     { "wdir", 'd', POPT_ARG_STRING,
-      &wdir, 0, "working directory for remote process(es)", "<directory>"},
+      &wdir, 0, "working directory for remote process", "<directory>"},
     { "umask", '\0', POPT_ARG_INT,
       &u_mask, 0, "umask for remote process", NULL},
     { "path", 'p', POPT_ARG_STRING,
@@ -2752,6 +2756,14 @@ static void saveNextExecutable(int *sum_np, int argc, const char **argv)
 	exec[execCount]->nodetype = gnodetype;
     } else {
 	exec[execCount]->nodetype = NULL;
+    }
+    if (wdir) {
+	exec[execCount]->wdir = wdir;
+	wdir = NULL;
+    } else if (gwdir) {
+	exec[execCount]->wdir = gwdir;
+    } else {
+	exec[execCount]->wdir = NULL;
     }
     exec[execCount]->argc = argc;
     exec[execCount]->argv = umalloc(sizeof(char *) * (argc +1), __func__);
