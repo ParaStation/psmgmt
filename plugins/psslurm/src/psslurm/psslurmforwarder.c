@@ -40,6 +40,7 @@
 #include "psslurmenv.h"
 #include "slurmcommon.h"
 #include "pluginpty.h"
+#include "psprotocolenv.h"
 
 #include "pluginmalloc.h"
 #include "pluginforwarder.h"
@@ -596,16 +597,25 @@ int handleExecClient(void * data)
 {
     PStask_t *task = data;
     Step_t *step;
-    int count = 0, fd;
+    int i, count = 0, fd;
     char *ptr;
     uint32_t jobid = 0, stepid = SLURM_BATCH_SCRIPT;
 
     if (task->rank <0) return 0;
 
+    /* clear environment */
+    for (i=0; PSP_rlimitEnv[i].envName; i++) {
+	unsetenv(PSP_rlimitEnv[i].envName);
+    }
+    unsetenv("__PSI_UMASK");
+    unsetenv("__PSI_RAW_IO");
+    unsetenv("PSI_SSH_INTERACTIVE");
+    unsetenv("PSI_LOGGER_RAW_MODE");
+
     /* redirect stdin to /dev/null for all ranks > 0 to /dev/null */
     ptr = task->environ[count++];
     while (ptr) {
-	if (!(strncmp(ptr, "SLURM_PTY", 9))) {
+	if (!(strncmp(ptr, "SLURM_PTY_WIN_ROW", 17))) {
 	    if (task->rank >0) {
 		close(STDIN_FILENO);
 		fd = open("/dev/null", O_RDONLY);
@@ -796,8 +806,10 @@ static void redirectStepIO(Forwarder_Data_t *fwdata, Step_t *step)
 	    mlog("%s: create stdout pipe failed\n", __func__);
 	    return;
 	}
+	/*
 	mlog("%s: stdout pipe '%i:%i'\n", __func__, fwdata->stdOut[0],
 		fwdata->stdOut[1]);
+	*/
     }
 
     /* stderr */
@@ -813,8 +825,10 @@ static void redirectStepIO(Forwarder_Data_t *fwdata, Step_t *step)
 			__func__, errFile);
 	    }
 	}
+	/*
 	mlog("%s: errfile: '%s' fd '%i'\n", __func__, errFile,
 		fwdata->stdErr[1]);
+	*/
     } else if (step->stdOut && strlen(step->stdOut) > 0) {
 	fwdata->stdErr[0] = -1;
 	fwdata->stdErr[1] = fwdata->stdOut[1];
@@ -825,8 +839,10 @@ static void redirectStepIO(Forwarder_Data_t *fwdata, Step_t *step)
 	    mlog("%s: create stderr pipe failed\n", __func__);
 	    return;
 	}
+	/*
 	mlog("%s: stderr pipe '%i:%i'\n", __func__, fwdata->stdErr[0],
 		fwdata->stdErr[1]);
+	*/
     }
 
     /* stdin */
@@ -845,8 +861,10 @@ static void redirectStepIO(Forwarder_Data_t *fwdata, Step_t *step)
 	    mlog("%s: create stdin pipe failed\n", __func__);
 	    return;
 	}
+	/*
 	mlog("%s: stdin pipe '%i:%i'\n", __func__, fwdata->stdIn[0],
 		fwdata->stdIn[1]);
+	*/
     }
 
     if (seteuid(0) == -1) {

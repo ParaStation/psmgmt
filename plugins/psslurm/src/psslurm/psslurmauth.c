@@ -240,31 +240,48 @@ JobCred_t *getJobCred(char **ptr, uint16_t version)
 
 	getUint8(ptr, &more);
 	if (more) {
-	    cred->gres_bit_alloc = umalloc(sizeof(bitstr_t *) * cred->nodeCount);
-	    //mlog("%s: more '%u' count '%u'\n", __func__, more, cred->nodeCount);
+	    //mlog("%s: more '%u'\n", __func__, more);
+	    cred->gres_bit_alloc = umalloc(sizeof(char  *) * cred->nodeCount);
 	    for (i=0; i<cred->nodeCount; i++) {
-		getBitString(ptr, &cred->gres_bit_alloc[i]);
+		getBitString(ptr, &(cred->gres_bit_alloc)[i]);
+		/*
+		mlog("%s: count '%u' bit_alloc '%s'\n", __func__,
+			cred->nodeCount, cred->gres_bit_alloc[i]);
+		*/
+		ufree(cred->gres_bit_alloc[i]);
 	    }
+	    ufree(cred->gres_bit_alloc);
 	}
 
 	getUint8(ptr, &more);
 	if (more) {
+	    //mlog("%s: more '%u'\n", __func__, more);
 	    cred->gres_bit_step_alloc =
-				umalloc(sizeof(bitstr_t *) * cred->nodeCount);
-	    //mlog("%s: more '%u' count '%u'\n", __func__, more, cred->nodeCount);
+				umalloc(sizeof(char *) * cred->nodeCount);
 	    for (i=0; i<cred->nodeCount; i++) {
-		getBitString(ptr, &cred->gres_bit_step_alloc[i]);
+		getBitString(ptr, &(cred->gres_bit_step_alloc)[i]);
+		/*
+		mlog("%s: count '%u' bit_step_alloc '%s'\n", __func__,
+			cred->nodeCount, cred->gres_bit_step_alloc[i]);
+		*/
+		ufree(cred->gres_bit_step_alloc[i]);
 	    }
+	    ufree(cred->gres_bit_step_alloc);
 	}
 
 	getUint8(ptr, &more);
 	if (more) {
+	    //mlog("%s: more '%u'\n", __func__, more);
 	    cred->gres_cnt_step_alloc =
-				umalloc(sizeof(bitstr_t *) * cred->nodeCount);
-	    //mlog("%s: more '%u' count '%u'\n", __func__, more, cred->nodeCount);
+				umalloc(sizeof(uint32_t) * cred->nodeCount);
 	    for (i=0; i<cred->nodeCount; i++) {
-		getBitString(ptr, &cred->gres_cnt_step_alloc[i]);
+		getUint32(ptr, &(cred->gres_cnt_step_alloc)[i]);
+		/*
+		mlog("%s: count '%u' gres_cnt_step_alloc '%u'\n", __func__,
+			cred->nodeCount, cred->gres_cnt_step_alloc[i]);
+		*/
 	    }
+	    ufree(cred->gres_cnt_step_alloc);
 	}
     }
 
@@ -277,6 +294,8 @@ JobCred_t *getJobCred(char **ptr, uint16_t version)
 	getUint32(ptr, &cred->gresCountAlloc);
 	getUint32(ptr, &cred->nodeCount);
 	getBitString(ptr, &cred->nodeInUse);
+	//mlog("%s: nodeInUse '%s'\n", __func__, cred->nodeInUse);
+	ufree(cred->nodeInUse);
 
 	if (magic != GRES_MAGIC) {
 	    mlog("%s: step gres magic error: '%u' : '%u'\n", __func__, magic,
@@ -291,11 +310,16 @@ JobCred_t *getJobCred(char **ptr, uint16_t version)
 	getUint8(ptr, &more);
 	if (more) {
 	    cred->gres_bit_alloc =
-			    umalloc(sizeof(bitstr_t *) * cred->nodeCount);
-	    //mlog("%s: more '%u' count '%u'\n", __func__, more, cred->nodeCount);
+			    umalloc(sizeof(char *) * cred->nodeCount);
 	    for (i=0; i<cred->nodeCount; i++) {
-		getBitString(ptr, &cred->gres_bit_alloc[i]);
+		getBitString(ptr, &(cred->gres_bit_alloc)[i]);
+		/*
+		mlog("%s: count '%u' bit_alloc '%s'\n", __func__,
+			cred->nodeCount, cred->gres_bit_alloc[i]);
+		*/
+		ufree(cred->gres_bit_alloc[i]);
 	    }
+	    ufree(cred->gres_bit_alloc);
 	}
     }
 

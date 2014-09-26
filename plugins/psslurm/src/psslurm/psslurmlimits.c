@@ -135,6 +135,25 @@ int initLimits()
     return 1;
 }
 
+/*
+TODO: set default hard limits from config
+void setHardRlimits()
+{
+    struct rlimit limit;
+
+    if (!getrlimit(RLIMIT_CORE, &limit)) {
+	limit.rlim_max = RLIM_INFINITY;
+	if ((setrlimit(RLIMIT_CORE, &limit)) != 0) {
+	    mlog("%s: setting RLIMIT_CORE failed\n", __func__);
+	    return;
+	}
+	mlog("%s: limit set successful\n", __func__);
+    } else {
+	    mlog("%s: getting RLIMIT_CORE failed\n", __func__);
+    }
+}
+*/
+
 void setRlimitsFromEnv(char ***origEnv, uint32_t *envc, int psi)
 {
     struct rlimit limit;
@@ -166,8 +185,8 @@ void setRlimitsFromEnv(char ***origEnv, uint32_t *envc, int psi)
 		} else {
 		    if (!getrlimit(slurmConfLimits[i].limit, &limit)) {
 			limit.rlim_cur = softLimit;
-			if (limit.rlim_max > softLimit) {
-			    limit.rlim_max = softLimit;
+			if (softLimit > limit.rlim_max) {
+			    softLimit = limit.rlim_max;
     			}
 			/*
 			mlog("%s: %s propagate: '%lu'\n", __func__, climit,

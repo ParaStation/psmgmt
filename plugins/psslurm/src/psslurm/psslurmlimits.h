@@ -30,5 +30,6 @@ typedef struct {
 int initLimits();
 void printLimits();
 void setRlimitsFromEnv(char ***origEnv, uint32_t *envc, int psi);
+void setHardRlimits();
 
 #endif

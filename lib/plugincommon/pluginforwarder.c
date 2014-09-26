@@ -135,14 +135,14 @@ static void killForwarderChild(int signal, char *reason)
 
     if (signal == SIGTERM) {
 	/* let children beeing debugged continue */
-	fwdata->killSession(forwarder_child_sid, SIGCONT);
+	kill(forwarder_child_pid, SIGCONT);
 
-	if ((fwdata->killSession(forwarder_child_sid, signal)) > 0) {
+	if (!(kill(forwarder_child_pid, signal))) {
 	    killAllChildren = 1;
 	    alarm(grace);
 	}
     } else {
-	fwdata->killSession(forwarder_child_sid, signal);
+	kill(forwarder_child_pid, signal);
     }
 }
 
@@ -453,6 +453,9 @@ static void forwarderExit()
 {
     PS_DataBuffer_t data = { .buf = NULL };
 
+    blockSignal(SIGALRM, 1);
+    blockSignal(SIGCHLD, 1);
+
     /* reset possible alarms */
     alarm(0);
 
@@ -584,11 +587,15 @@ int callbackForwarder(int fd, PSID_scriptCBInfo_t *info)
     getScriptCBData(fd, info, &exit, errMsg, sizeof(errMsg), &errLen);
 
     if (!exit && data->forwarderError == 1) {
-	snprintf(errMsg, sizeof(errMsg), "%s", "reading from forwarder failed\n");
+	snprintf(errMsg, sizeof(errMsg),
+		    "%s", "reading from forwarder failed\n");
 	errLen = strlen(errMsg);
 	exit = data->forwarderError;
     }
-    data->callback(exit, errMsg, errLen, info->info);
+
+    if (data && data->callback) {
+	data->callback(exit, errMsg, errLen, info->info);
+    }
 
     ufree(info);
     return 0;
@@ -854,6 +861,7 @@ void destroyForwarderData(Forwarder_Data_t *data)
     ufree(data->syslogID);
     ufree(data->jobid);
     ufree(data->listenSocketName);
+    data->callback = NULL;
     ufree(data);
 }
 

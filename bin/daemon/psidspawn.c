@@ -38,6 +38,7 @@ static char vcid[] __attribute__((used)) =
 
 #include "pscommon.h"
 #include "psprotocol.h"
+#include "psprotocolenv.h"
 #include "psdaemonprotocol.h"
 #include "pscpu.h"
 #include "selector.h"
@@ -606,9 +607,9 @@ static void adaptPriority(void)
 /**
  * @brief Change into working directory
  *
- Try to change into the client-task's @a task working directory. If
- this fails, changing into the corresponding user's home-directory is
- attempted.
+ * Try to change into the client-task's @a task working directory. If
+ * this fails, changing into the corresponding user's home-directory
+ * is attempted.
  *
  * @param task Structure describing the client-task.
  *
@@ -826,14 +827,17 @@ static int testExecutable(PStask_t *task, char **executable)
     return 0;
 }
 
-static void restoreRLimit(char *envVar, int resource)
+static void restoreLimits(void)
 {
-    char *envStr;
+    int i;
 
-    envStr = getenv(envVar);
-    if (envStr) {
+    for (i=0; PSP_rlimitEnv[i].envName; i++) {
 	struct rlimit rlim;
-	getrlimit(resource, &rlim);
+	char *envStr = getenv(PSP_rlimitEnv[i].envName);
+
+	if (!envStr) continue;
+
+	getrlimit(PSP_rlimitEnv[i].resource, &rlim);
 	if (!strcmp("infinity", envStr)) {
 	    rlim.rlim_cur = rlim.rlim_max;
 	} else {
@@ -842,7 +846,7 @@ static void restoreRLimit(char *envVar, int resource)
 	    rlim.rlim_cur =
 		(rlim.rlim_max > rlim.rlim_cur) ? rlim.rlim_cur : rlim.rlim_max;
 	}
-	setrlimit(resource, &rlim);
+	setrlimit(PSP_rlimitEnv[i].resource, &rlim);
     }
 }
 
@@ -920,18 +924,8 @@ static void execClient(PStask_t *task)
 	exit(1);
     }
 
-    PSIDhook_call(PSIDHOOK_EXEC_CLIENT_USER, task);
-
-    /* restore resource limit settings */
-    restoreRLimit("__PSI_CORESIZE", RLIMIT_CORE);
-    restoreRLimit("__PSI_DATASIZE", RLIMIT_DATA);
-    restoreRLimit("__PSI_ASSIZE", RLIMIT_AS);
-    restoreRLimit("__PSI_NOFILE", RLIMIT_NOFILE);
-    restoreRLimit("__PSI_STACKSIZE", RLIMIT_STACK);
-    restoreRLimit("__PSI_FSIZE", RLIMIT_FSIZE);
-    restoreRLimit("__PSI_CPU", RLIMIT_CPU);
-    restoreRLimit("__PSI_NPROC", RLIMIT_NPROC);
-    restoreRLimit("__PSI_RSS", RLIMIT_RSS);
+    /* restore various resource limits */
+    restoreLimits();
 
     /* restore umask settings */
     envStr = getenv("__PSI_UMASK");
@@ -967,6 +961,8 @@ static void execClient(PStask_t *task)
 	exit(1);
     }
     alarm(0);
+
+    PSIDhook_call(PSIDHOOK_EXEC_CLIENT_USER, task);
 
     doClamps(task);
 
