@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2013 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2013-2014 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -12,6 +12,7 @@
  *
  * \author
  * Michael Rauh <rauh@par-tec.com>
+ * Stephan Krempel <krempel@par-tec.com>
  *
  */
 
@@ -21,23 +22,34 @@
 /**
  * @brief Spawn a service process to start further compute processes.
  *
- * @param np The number of compute processes to spawn.
+ * Enable to spawn processes using multiple executables (as defined by
+ * MPI_Comm_spawn_multiple). All arrays passed have to match each other
+ * in a way that the same index in each array belongs to the same executable.
  *
- * @param c_argv Argument vector of the compute processes. The first argument is
- * the executable to start.
+ * @param np The total number of compute processes to spawn.
  *
- * @param c_argc The number of arguments.
+ * @param nps Array of number of compute processes to spawn.
  *
- * @param c_env A pointer to the environment vector to use.
+ * @param c_argvs Array of argument vectors of the compute processes.
+ *               The first argument in each array is the executable for this index.
  *
- * @param c_envc The number of elements in the environment vector.
+ * @param c_argcs Array of the number of arguments.
  *
- * @param wdir The working directory of the new spawned processes. If NULL the
- * working directory of the spawning parent will be used.
+ * @param c_envvs Array of pointers to the environment vectors to use.
+ *              Attention: Due to internal limitations, currently only the
+ *                         first vector (with index 0) is used for all
+ *                         processes to be spawned.
  *
- * @param nType The type of node to execute the new processes on.
+ * @param c_envcs Array of the numbers of elements in the environment vectors.
  *
- * @param path The directory were the executable should be searched.
+ * @param wdirs Array of working directories of the new spawned processes.
+ *             If NULL the working directory of the spawning parent will be used.
+ *
+ * @param nTypes Array of the type of node to execute the new processes on.
+ *
+ * @param paths Array of paths were the executable should be searched.
+ *
+ * @param ts The length of each of the arrays above.
  *
  * @param usize The universe size of the current job.
  *
@@ -48,8 +60,9 @@
  *
  * @return Returns 1 on success or 0 on error.
  */
-int spawnService(char *np, char **c_argv, int c_argc, char **c_env, int c_envc,
-		    char *wdir, char *nType, char *path, int usize,
+int spawnService(int np, char *nps[], char **c_argvs[], int c_argcs[],
+		    char **c_envvs[], int c_envcs[], char *wdirs[],
+		    char *nTypes[], char *paths[], int ts, int usize,
 		    int serviceRank, char *kvsTmp);
 
 #endif

@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2013 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2013-2014 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -12,6 +12,7 @@
  *
  * \author
  * Michael Rauh <rauh@par-tec.com>
+ * Stephan Krempel <krempel@par-tec.com>
  *
  */
 
@@ -30,6 +31,7 @@
 #include "../../bin/daemon/psidforwarder.h"
 #include "pmiclient.h"
 #include "pmilog.h"
+#include "pluginmalloc.h"
 
 #include "pmiforwarder.h"
 
@@ -44,6 +46,15 @@ static int pmiClientSock = -1;
 
 /** The task structure of the MPI client */
 static PStask_t *childTask = NULL;
+
+/** Buffer pointer to concatenate multiple PMI messages */
+static char *mmBuffer = NULL;
+
+/** Size of the buffer to concatenate multiple PMI messages */
+static size_t mmBufferSize = 0;
+
+/** Used part of the buffer to concatenate multiple PMI messages */
+static size_t mmBufferUsed = 0;
 
 static enum {
     IDLE = 0,
@@ -100,16 +111,32 @@ static void closePMIlistenSocket(void)
  */
 static int readFromPMIClient(int fd, void *data)
 {
-    char msgBuf[PMIU_MAXLINE];
+    char stackBuf[PMIU_MAXLINE+1];
+    char *strptr, *recvBuf, *msgBuf;
     ssize_t len;
-    int ret;
+    size_t msgBufUsed;
+    int ret = 0;
 
     if (pmiClientSock < 0) {
 	elog("%s: invalid PMI client socket %i\n", __func__, pmiClientSock);
 	return 0;
     }
 
-    if (!(len = recv(pmiClientSock, msgBuf, sizeof(msgBuf), 0))) {
+    /* if there is a static buffer, append, else use stack buffer */
+    if (mmBuffer) {
+	mmBuffer = urealloc(mmBuffer, mmBufferUsed + PMIU_MAXLINE);
+	mmBufferSize = mmBufferUsed + PMIU_MAXLINE;
+	recvBuf = mmBuffer + mmBufferUsed;
+	msgBuf = mmBuffer;
+	msgBufUsed = mmBufferUsed;
+    }
+    else {
+	recvBuf = stackBuf;
+	msgBuf = stackBuf;
+	msgBufUsed = 0;
+    }
+
+    if (!(len = recv(pmiClientSock, recvBuf, PMIU_MAXLINE, 0))) {
 	/* no data received from client */
 	elog("%s: lost connection to the PMI client\n", __func__);
 
@@ -125,12 +152,74 @@ static int readFromPMIClient(int fd, void *data)
     }
 
     /* truncate msg to received bytes */
-    msgBuf[len] = '\0';
+    recvBuf[len] = '\0';
+
+    /* update buffer usage counters */
+    msgBufUsed += len;
+    if (mmBuffer) mmBufferUsed += len;
 
     pmiStatus = CONNECTED;
 
-    /* parse and handle the PMI msg */
-    ret = handlePMIclientMsg(msgBuf);
+#if 1
+    mlog("%s: PMI message received:\n{%s}\n", __func__, recvBuf);
+#endif
+
+    while(1) {
+#if 1
+	mlog("%s: Current message buffer:\n{%s}\n", __func__, msgBuf);
+#endif
+	if (strncmp("cmd=", msgBuf, 4) == 0) {
+	    strptr = strchr(msgBuf, '\n');
+	}
+	else if (strncmp("mcmd=", msgBuf, 5) == 0) {
+	    strptr = strstr(msgBuf, "\nendcmd\n");
+	    if (strptr) strptr += 7;
+	}
+	else {
+	    elog("%s: Invalid PMI message received:\n{%s}\n",  __func__, msgBuf);
+	    goto readFromPMIClient_error;
+	}
+
+	if (!strptr) {
+	    /* we need another receive to have a complete message */
+
+	    if (mmBuffer) break;
+
+	    mmBuffer = umalloc(msgBufUsed);
+	    memcpy(mmBuffer, msgBuf, msgBufUsed);
+	    mmBufferUsed = msgBufUsed;
+
+	    break;
+	}
+
+	/* we have a complete message to handle */
+	strptr[0] = '\0';
+
+        /* parse and handle the PMI msg */
+#if 1
+        mlog("%s: PMI message complete:\n{%s}\n\n", __func__, msgBuf);
+#endif
+        ret = handlePMIclientMsg(msgBuf);
+
+	if (ret != 0) break;
+
+	strptr++;
+
+	if (strptr >= (msgBuf + msgBufUsed)) {
+	    /* complete message handled */
+	    if (mmBuffer) {
+		ufree(mmBuffer);
+		mmBuffer = NULL;
+		mmBufferSize = 0;
+		mmBufferUsed = 0;
+	    }
+
+	    break;
+	}
+
+	msgBufUsed -= strlen(msgBuf) + 1;
+	msgBuf = strptr;
+    }
 
     /* PMI communication finished */
     if (ret == PMI_FINALIZED) {
@@ -148,6 +237,18 @@ static int readFromPMIClient(int fd, void *data)
 	sendDaemonMsg((DDMsg_t *)&msg);
 
 	pmiStatus = CLOSED;
+    }
+
+    return 0;
+
+
+readFromPMIClient_error:
+
+    if (mmBuffer) {
+	ufree(mmBuffer);
+	mmBuffer = NULL;
+	mmBufferSize = 0;
+	mmBufferUsed = 0;
     }
 
     return 0;
@@ -287,3 +388,4 @@ int releasePMIClient(void *data)
     closePMIclientSocket();
     return 0;
 }
+/* vim: set ts=8 sw=4 tw=0 sts=4 noet :*/
