@@ -1,6 +1,6 @@
 #!/bin/bash
 
-env | grep SBATCH
+env | grep SLURM
 
 # Important: explicit return value
 exit $?
