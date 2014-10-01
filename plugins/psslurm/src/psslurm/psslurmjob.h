@@ -191,6 +191,9 @@ typedef struct {
     uint16_t cpuBindType;
     uint16_t jobCoreSpec;   /* count of specilized cores */
     uint8_t overcommit;
+    uint32_t cpuGroupCount;
+    uint16_t *cpusPerNode;
+    uint32_t *cpuCountReps;
     char *cwd;
     char *stdOut;
     char *stdIn;

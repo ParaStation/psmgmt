@@ -106,8 +106,10 @@ static int addHostOptions(char *options)
 	    addConfigEntry(&Config, "SLURM_PROCS", next+6);
 	} else if (!(strncasecmp(next, "Weight=", 7))) {
 	    addConfigEntry(&Config, "SLURM_WEIGHT", next+7);
+	} else if (!(strncasecmp(next, "RealMemory=", 11))) {
+	    addConfigEntry(&Config, "SLURM_REAL_MEMORY", next+11);
 	} else {
-	    mlog("%s: unknown node option '%s'", __func__, next);
+	    mlog("%s: unknown node option '%s'\n", __func__, next);
 	    return 0;
 	}
 	next = strtok_r(NULL, delimiters, &toksave);
@@ -138,6 +140,10 @@ static int setMyHostDef(char *hn, char *line)
     host = strtok_r(hostlist, delimiters, &toksave);
     while (host) {
 	if ((ptr = strchr(host, '.'))) ptr[0] = '\0';
+	if (!(strcmp(host, "DEFAULT"))) {
+	    mlog("%s: found default host definition\n", __func__);
+	    addHostOptions(hostopt);
+	}
 	if (!(strcmp(host, hn))) {
 	    mlog("%s: found my host: %s args: %s\n", __func__, host, hostopt);
 	    addConfigEntry(&Config, "SLURM_HOSTNAME", host);
