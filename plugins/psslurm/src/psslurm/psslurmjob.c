@@ -84,6 +84,9 @@ Job_t *addJob(uint32_t jobid)
     job->overcommit = 0;
     job->terminate = 0;
     job->state = JOB_INIT;
+    job->cpuGroupCount = 0;
+    job->cpusPerNode = NULL;
+    job->cpuCountReps = NULL;
     INIT_LIST_HEAD(&job->tasks.list);
 
     /* add job to job history */
@@ -396,6 +399,8 @@ int deleteJob(uint32_t jobid)
     ufree(job->restart);
     ufree(job->nodeAlias);
     ufree(job->partition);
+    ufree(job->cpusPerNode);
+    ufree(job->cpuCountReps);
     clearTasks(&job->tasks.list);
 
     if (job->fwdata) {
@@ -576,8 +581,11 @@ void addJobInfosToBuffer(PS_DataBuffer_t *buffer)
     addUint32ToMsg(count, buffer);
     for (i=0; i<count; i++) {
 	addUint32ToMsg(jobids[i], buffer);
+	mlog("%s: jobid '%u'\n", __func__, jobids[i]);
+    }
+    for (i=0; i<count; i++) {
 	addUint32ToMsg(stepids[i], buffer);
-	mlog("%s: jobinfo '%u:%u'\n", __func__, jobids[i], stepids[i]);
+	mlog("%s: stepids '%u'\n", __func__, stepids[i]);
     }
 
     ufree(jobids);

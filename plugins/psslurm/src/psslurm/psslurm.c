@@ -70,7 +70,7 @@ handlerFunc_t oldChildBornHandler = NULL;
 
 /** psid plugin requirements */
 char name[] = "psslurm";
-int version = 12;
+int version = 13;
 int requiredAPI = 109;
 plugin_dep_t dependencies[4];
 
@@ -298,9 +298,7 @@ int initialize(void)
     /* init all data lists */
     initJobList();
 
-    /* we need to have root privileges, or the pbs_server will refuse our
-     * connection attempt.
-     */
+    /* we need to have root privileges */
     if(getuid() != 0) {
 	mlog("%s: psslurm must have root privileges\n", __func__);
 	return 1;
@@ -315,7 +313,6 @@ int initialize(void)
     if (!(registerHooks())) goto INIT_ERROR;
     if (!(initPluginHandles())) goto INIT_ERROR;
     if (!(initLimits())) goto INIT_ERROR;
-    printLimits();
 
     /* set collect mode in psaccount */
     psAccountSetGlobalCollect(1);
