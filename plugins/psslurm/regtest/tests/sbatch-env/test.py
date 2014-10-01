@@ -25,8 +25,7 @@ keys = ["SLURM_CHECKPOINT_IMAGE_DIR", \
         "SLURM_PROCID", \
         "SLURM_SUBMIT_DIR", \
         "SLURM_SUBMIT_HOST", \
-        "SLURM_TASK_PID", \
-        "SLURM_TASKS_PER_NODE"]
+        "SLURM_TASK_PID"]
 
 fail = 0
 
