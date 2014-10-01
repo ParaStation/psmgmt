@@ -59,12 +59,6 @@ static int controlFDs[2];
 
 static int motherSock = -1;
 
-/** read fd set */
-static fd_set readfds;
-
-/** write fd set */
-static fd_set writefds;
-
 static Forwarder_Data_t *fwdata = NULL;
 
 static char *jobstring = NULL;
@@ -279,9 +273,6 @@ static int initForwarder()
 
     //forwarder_type = forwarderType;
 
-    FD_ZERO(&readfds);
-    FD_ZERO(&writefds);
-
     if (!(connect2Mother(fwdata->listenSocketName))) {
 	fprintf(stderr, "%s: open connection to mother psid failed\n",
 		    __func__);
@@ -410,9 +401,6 @@ static void initChild(int fwpid)
  */
 static void forwarderLoop()
 {
-    struct timeval mytv={0,100};
-    fd_set rfds, wfds;
-
     /* set timeout */
     if (fwdata->timeoutChild > 0) {
 	alarm(fwdata->timeoutChild);
@@ -422,13 +410,10 @@ static void forwarderLoop()
     blockSignal(SIGALRM, 0);
 
     while (1) {
-	memcpy(&rfds, &readfds, sizeof(rfds));
-	memcpy(&wfds, &writefds, sizeof(wfds));
-
 	/* check for really short jobs */
 	if (sigChild) break;
 
-	if (Sselect(FD_SETSIZE, &rfds, &wfds, NULL, NULL) < 0) {
+	if (Sselect(FD_SETSIZE, NULL, NULL, NULL, NULL) < 0) {
 	    if (errno != EINTR) {
 		fprintf(stderr, "%s: select error : %s\n", __func__,
 			strerror(errno));
@@ -438,9 +423,6 @@ static void forwarderLoop()
 	    if (sigChild) break;
 	}
     }
-
-    /* make sure we handled all data, after child is gone */
-    Sselect(FD_SETSIZE, &rfds, &wfds, NULL, &mytv);
 }
 
 /**
@@ -478,6 +460,7 @@ static int execForwarder(void *info)
     char tmp[200];
     int status = 0, i, fwpid = getpid();
     struct rusage rusage;
+    struct timeval mytv={0,100};
 
     if (fwdata->jobid) {
 	snprintf(tmp, sizeof(tmp), "job '%s' ", fwdata->jobid);
@@ -527,6 +510,9 @@ static int execForwarder(void *info)
 	}
 
 	alarm(0);
+
+	/* make sure we handled all data, after child is gone */
+	Sselect(FD_SETSIZE, NULL, NULL, NULL, &mytv);
 
 	/* check for timeout */
 	if (job_timeout) {
@@ -708,8 +694,8 @@ static int handleControlSocket(int fd, void *info)
 	    handle_FW_Fork_Failed(data, ptr);
 	    break;
 	default:
-	    pluginlog("%s: invalid local cmd '%i' from '%i', closing connection\n",
-		__func__, cmd, fd);
+	    pluginlog("%s: invalid local cmd '%i' from '%i', closing "
+			"connection\n", __func__, cmd, fd);
 	    closeControlSocket(data);
     }
 

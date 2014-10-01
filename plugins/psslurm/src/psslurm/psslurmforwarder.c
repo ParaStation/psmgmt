@@ -611,6 +611,7 @@ int handleExecClient(void * data)
     unsetenv("__PSI_RAW_IO");
     unsetenv("PSI_SSH_INTERACTIVE");
     unsetenv("PSI_LOGGER_RAW_MODE");
+    unsetenv("PSI_LOGGER_UNBUFFERED");
 
     /* redirect stdin to /dev/null for all ranks > 0 to /dev/null */
     ptr = task->environ[count++];
@@ -644,7 +645,7 @@ int handleExecClient(void * data)
 	    }
 	}
 
-	setRankEnv(step);
+	setRankEnv(task->rank, step);
     }
 
     return 0;

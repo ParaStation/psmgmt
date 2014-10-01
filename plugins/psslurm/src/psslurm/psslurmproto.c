@@ -817,10 +817,8 @@ static void handleBatchJobLaunch(char *ptr, int sock,
 				    Slurm_msg_header_t *msgHead)
 {
     Job_t *job;
-    uint32_t cpuGroupCount, cpusPerNodeLen, *cpuCountReps, cpuCountRepsLen;
     uint32_t tmp, count, i;
     char *script, *acctType, buf[1024];
-    uint16_t *cpusPerNode;
     uint32_t jobid;
 
     /* job / step id */
@@ -860,21 +858,38 @@ static void handleBatchJobLaunch(char *ptr, int sock,
     getUint16(&ptr, &job->tpp);
     /* TODO: restart count */
     getUint16(&ptr, (uint16_t *)&tmp);
+    /* count of specialized cores */
     getUint16(&ptr, &job->jobCoreSpec);
 
-    getUint32(&ptr, &cpuGroupCount);
-    if (cpuGroupCount) {
-	/* TODO: cpusPerNode */
-	getUint16Array(&ptr, &cpusPerNode, &cpusPerNodeLen);
-	ufree(cpusPerNode);
+    /* cpu group count */
+    getUint32(&ptr, &job->cpuGroupCount);
+    if (job->cpuGroupCount) {
+	uint32_t len;
 
-	/* TODO: cpuCountReps */
-	getUint32Array(&ptr, &cpuCountReps, &cpuCountRepsLen);
-	if (cpusPerNodeLen != cpuGroupCount ||
-	    cpuCountRepsLen != cpuGroupCount) {
-	    mlog("%s: invalid cpu array\n", __func__);
+	/* cpusPerNode */
+	getUint16Array(&ptr, &job->cpusPerNode, &len);
+	if (len != job->cpuGroupCount) {
+	    mlog("%s: invalid cpu per node array '%u:%u'\n", __func__,
+		    len, job->cpuGroupCount);
+	    ufree(job->cpusPerNode);
+	    job->cpusPerNode = NULL;
 	}
-	ufree(cpuCountReps);
+
+	/* cpuCountReps */
+	getUint32Array(&ptr, &job->cpuCountReps, &len);
+	if (len != job->cpuGroupCount) {
+	    mlog("%s: invalid cpu count reps array '%u:%u'\n", __func__,
+		    len, job->cpuGroupCount);
+	    ufree(job->cpuCountReps);
+	    job->cpuCountReps = NULL;
+	}
+
+	if (job->cpusPerNode && job->cpuCountReps) {
+	    for (i=0; i<job->cpuGroupCount; i++) {
+		mdbg(PSSLURM_LOG_PART, "cpusPerNode '%u' cpuCountReps '%u'\n",
+			job->cpusPerNode[i], job->cpuCountReps[i]);
+	    }
+	}
     }
 
     /* TODO: node alias ?? */
