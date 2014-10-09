@@ -89,6 +89,22 @@ int getMinRank(void)
     return minRank;
 }
 
+static int offsetServiceRank = 0;
+
+int getNextServiceRank(void)
+{
+     int ret;
+     
+     /* return next free (and unique!) service rank: */
+     ret = minRank - offsetServiceRank;
+
+     /* keep returned/assigned service ranks unique: */
+     offsetServiceRank += 2; /* one for service process plus one for KVS provider */
+
+     return ret;
+}
+
+
 int getMaxRank(void)
 {
     return maxRank;
@@ -297,7 +313,10 @@ int registerClient(int rank, PStask_ID_t tid, PStask_group_t group)
 	exit(1);
     }
 
-    if (rank < minRank) growClients(rank, maxClient);
+    if (rank < minRank) {
+	 offsetServiceRank -= (minRank - rank);
+	 growClients(rank, maxClient);
+    }
 
     if (rank > maxClient) {
 	growClients(minRank, 2*rank);
