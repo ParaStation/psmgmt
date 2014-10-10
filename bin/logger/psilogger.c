@@ -737,7 +737,6 @@ static void forwardInput(int std_in)
  *
  * @return No return value.
  */
-extern int getNextServiceRank(void);
 static void handleServiceMsg(PSLog_Msg_t *msg)
 {
     int32_t minRank;

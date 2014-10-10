@@ -89,6 +89,7 @@ int getMinRank(void)
     return minRank;
 }
 
+/** An offset that helps to makes sure that assigned service ranks are unique */
 static int offsetServiceRank = 0;
 
 int getNextServiceRank(void)
