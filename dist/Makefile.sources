@@ -427,6 +427,8 @@ plugins/psslurm/src/psslurm/psslurmlimits.c \
 plugins/psslurm/src/psslurm/psslurmlimits.h \
 plugins/psslurm/src/psslurm/psslurmlog.c \
 plugins/psslurm/src/psslurm/psslurmlog.h \
+plugins/psslurm/src/psslurm/psslurmmultiprog.c \
+plugins/psslurm/src/psslurm/psslurmmultiprog.h \
 plugins/psslurm/src/psslurm/psslurmproto.c \
 plugins/psslurm/src/psslurm/psslurmproto.h \
 plugins/psslurm/src/psslurm/psslurmpscomm.c \

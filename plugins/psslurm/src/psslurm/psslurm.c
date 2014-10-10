@@ -70,7 +70,7 @@ handlerFunc_t oldChildBornHandler = NULL;
 
 /** psid plugin requirements */
 char name[] = "psslurm";
-int version = 13;
+int version = 14;
 int requiredAPI = 109;
 plugin_dep_t dependencies[4];
 
@@ -288,6 +288,7 @@ int initialize(void)
     initLogger("psslurm", NULL);
     maskLogger(PSSLURM_LOG_PROTO);
     //maskLogger(PSSLURM_LOG_PROTO | PSSLURM_LOG_PART);
+    //maskLogger(PSSLURM_LOG_PROTO | PSSLURM_LOG_GRES);
 
     /*
     FILE *lfile = fopen("/tmp/malloc", "w+");
@@ -418,6 +419,8 @@ void cleanup(void)
     /* free all malloced memory */
     clearJobList();
     freeConfig(&Config);
+    freeConfig(&SlurmConfig);
+    freeConfig(&SlurmGresConfig);
 
     mlog("...Bye.\n");
 }

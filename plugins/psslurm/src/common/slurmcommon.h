@@ -22,9 +22,10 @@
 
 #define SLURM_GLOBAL_AUTH_KEY   0x0001
 
-#define SLURM_14_03_PROTOCOL_VERSION ((27 << 8) | 0)
-#define SLURM_2_6_PROTOCOL_VERSION ((26 << 8) | 0)
-#define SLURM_2_5_PROTOCOL_VERSION ((25 << 8) | 0)
+#define SLURM_14_03_PROTOCOL_VERSION	((27 << 8) | 0)
+#define SLURM_2_6_PROTOCOL_VERSION	((26 << 8) | 0)
+#define SLURM_2_5_PROTOCOL_VERSION	((25 << 8) | 0)
+
 #define SLURM_BATCH_SCRIPT (0xfffffffe) /* stepid of batch jobs */
 
 /* IO */

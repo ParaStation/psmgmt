@@ -43,4 +43,8 @@ const char *getHostnameByNodeId(PSnodes_ID_t id);
  */
 void blockSignal(int signal, int block);
 
+char *trim(char *string);
+char *ltrim(char *string);
+char *rtrim(char *string);
+
 #endif

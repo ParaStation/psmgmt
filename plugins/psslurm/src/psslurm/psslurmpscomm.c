@@ -581,6 +581,7 @@ static void handleTaskIds(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     int32_t ret;
     Step_t *step;
     PStask_t *task;
+    uint32_t i;
 
     /* we don't know the pid, since the message is from the spawner process. But
      * we know the logger. So we have to find the task structure and look there
@@ -612,6 +613,9 @@ static void handleTaskIds(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 	    sendSlurmRC(step->srunControlSock, SLURM_SUCCESS, step);
 	    step->tidsLen = step->np;
 	    step->tids = umalloc(sizeof(uint32_t) * step->np);
+	    for (i=0; i<step->nrOfNodes; i++) {
+		step->tids[i] = PSC_getTID(step->nodes[i], rand()%128);
+	    }
 	    sendTaskPids(step);
 
 	    step->state = JOB_RUNNING;

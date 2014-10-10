@@ -74,14 +74,11 @@ static void cbPrologueStep(char *sjobid, int exit_status, int timeout)
 	    step->state = JOB_PRESTART;
 	    execUserStep(step);
 	} else {
-	    /* TODO: prologue failed to srun */
+	    /* Prologue failed.
+	     * The prologue script will offline the corresponding node itself.
+	     * We only need to inform the waiting srun. */
 	    sendSlurmRC(step->srunControlSock, ESLURMD_PROLOG_FAILED, step);
 	    step->state = JOB_EXIT;
-
-	    /* TODO:  send prologue failed to slurmctld
-	     * if we do that slurm will overwrite the note again,
-	     * maybe only when timeout of prologue occurs? */
-	    //sendNodeRegStatus(-1, ESLURMD_PROLOG_FAILED);
 	}
     } else if (step->state == JOB_EPILOGUE) {
 	if (step->terminate) {
@@ -249,7 +246,7 @@ int writeJobscript(Job_t *job, char *script)
     return 0;
 }
 
-static void handleLauchTasks(char *ptr, int sock, Slurm_msg_header_t *msgHead)
+static void handleLaunchTasks(char *ptr, int sock, Slurm_msg_header_t *msgHead)
 {
     Step_t *step;
     uint32_t jobid, stepid, i, tmp, count, addr;
@@ -348,12 +345,9 @@ static void handleLauchTasks(char *ptr, int sock, Slurm_msg_header_t *msgHead)
 
     /* args */
     getStringArrayM(&ptr, &step->argv, &step->argc);
-    for (i=0; i<step->argc; i++) {
-	mlog("%s: arg%i: '%s'\n", __func__, i, step->argv[i]);
-    }
     /* task flags */
     getUint16(&ptr, &step->taskFlags);
-    /* TODO: multi prog : used to start multiple binaries = : syntax on mpiexec*/
+    /* multi prog */
     getUint16(&ptr, &step->multiProg);
 
     /* I/O */
@@ -410,7 +404,7 @@ static void handleLauchTasks(char *ptr, int sock, Slurm_msg_header_t *msgHead)
 	getString(&ptr, jobOpt, sizeof(jobOpt));
     }
 
-    /* TODO: node alias ?? */
+    /* node alias ?? */
     step->nodeAlias = getStringM(&ptr);
     /* nodelist */
     getNodesFromSlurmHL(&ptr, &step->slurmNodes, &count, &step->nodes);
@@ -892,7 +886,7 @@ static void handleBatchJobLaunch(char *ptr, int sock,
 	}
     }
 
-    /* TODO: node alias ?? */
+    /* node alias */
     job->nodeAlias = getStringM(&ptr);
     /* TODO: cpu bind string */
     getString(&ptr, buf, sizeof(buf));
@@ -1345,7 +1339,7 @@ int handleSlurmdMsg(int sock, void *data)
 	    handleBatchJobLaunch(ptr, sock, &msgHead);
 	    break;
 	case REQUEST_LAUNCH_TASKS:
-	    handleLauchTasks(ptr, sock, &msgHead);
+	    handleLaunchTasks(ptr, sock, &msgHead);
 	    break;
 	case REQUEST_SIGNAL_TASKS:
 	case REQUEST_TERMINATE_TASKS:
@@ -1522,7 +1516,7 @@ void sendNodeRegStatus(int sock, uint32_t status, int version)
     addUint16ToMsg(tmp, &msg);
     /* boards */
     getConfValueI(&Config, "SLURM_BOARDS", &tmp);
-    addUint16ToMsg(1, &msg);
+    addUint16ToMsg(tmp, &msg);
     /* sockets */
     getConfValueI(&Config, "SLURM_SOCKETS", &tmp);
     addUint16ToMsg(tmp, &msg);
@@ -1566,20 +1560,29 @@ void sendNodeRegStatus(int sock, uint32_t status, int version)
     /* TODO switch stuff */
     addUint16ToMsg(0, &msg);
 
-    /* TODO add gres data correct !!!
-    if (msg->gres_info)
-	gres_info_size = get_buf_offset(msg->gres_info);
-    pack32(gres_info_size, buffer);
-    if (gres_info_size) {
-	packmem(get_buf_data(msg->gres_info), gres_info_size,
-		buffer);
-    }
+    /* TODO add gres data correct !!! */
+    /* gres info size */
+    addUint32ToMsg(sizeof(uint16_t) * 2, &msg);
+    /* again gres info size for pack_mem() */
+    addUint32ToMsg(sizeof(uint16_t) * 2, &msg);
+
+    /* slurm version */
+    addUint16ToMsg(version, &msg);
+    /* gres record count */
+    addUint16ToMsg(0, &msg);
+
+    /* single gres record
+    pack32(magic, buffer);
+    pack32(gres_slurmd_conf->count, buffer);
+    pack32(gres_slurmd_conf->cpu_cnt, buffer);
+    pack8(gres_slurmd_conf->has_file, buffer);
+    pack32(gres_slurmd_conf->plugin_id, buffer);
+    packstr(gres_slurmd_conf->cpus, buffer);
+    packstr(gres_slurmd_conf->name, buffer);
+
+    addUint32ToMsg(GRES_MAGIC, &msg);
     */
 
-    addUint32ToMsg(sizeof(uint16_t) * 2, &msg);
-    addUint32ToMsg(sizeof(uint16_t) * 2, &msg);
-    addUint16ToMsg(0, &msg);
-    addUint16ToMsg(0, &msg);
 
     /* TODO: acct_gather_energy_pack(msg->energy, buffer, protocol_version); */
     for (i=0; i<5; i++) {
@@ -1768,43 +1771,66 @@ void sendTaskExit(Step_t *step, int exit_status)
 void sendTaskPids(Step_t *step)
 {
     PS_DataBuffer_t body = { .buf = NULL };
-    uint32_t i, x, count = 0;
-
-    /* return code */
-    addUint32ToMsg(0, &body);
-
-    /* node_name */
-    addStringToMsg(getConfValueC(&Config, "SLURM_HOSTNAME"), &body);
-
-    /* count of pids */
-    addUint32ToMsg(step->tidsLen, &body);
-
-    /* local pids */
-    addUint32ToMsg(step->tidsLen, &body);
-    for (i=0; i<step->tidsLen; i++) {
-	addUint32ToMsg(PSC_getPID(step->tids[i]), &body);
-    }
-
-    /* task ids of processes (array) */
-    addUint32ToMsg(step->np, &body);
-    for (i=0; i<step->nrOfNodes; i++) {
-	for (x=0; x<step->globalTaskIdsLen[i]; x++) {
-	    addUint32ToMsg(step->globalTaskIds[i][x], &body);
-	    //mlog("%s: add globaltid %u: '%u'\n", __func__, count,
-	    //	    step->globalTaskIds[i][x]);
-	    count++;
-	}
-    }
-
-    if (count != step->tidsLen) {
-	mlog("%s: invalid tid count: %u:%u\n", __func__, count, step->tidsLen);
-	ufree(body.buf);
-	return;
-    }
+    uint32_t i, x, z, countPIDS, countGTIDS;
+    char *ptrCount, *ptrPIDS, *ptrGTIDS;
 
     mlog("%s: sending RESPONSE_LAUNCH_TASKS to srun\n", __func__);
 
-    srunSendMsg(-1, step, RESPONSE_LAUNCH_TASKS, &body);
+    for (z=0; z<step->nrOfNodes; z++) {
+	body.bufUsed = 0;
+	countPIDS = countGTIDS = 0;
+
+	/* return code */
+	addUint32ToMsg(0, &body);
+
+	/* node_name */
+	addStringToMsg(getHostnameByNodeId(step->nodes[z]), &body);
+
+	/* count of pids */
+	ptrCount = body.buf + body.bufUsed;
+	addUint32ToMsg(0, &body);
+
+	/* local pids */
+	ptrPIDS = body.buf + body.bufUsed;
+	addUint32ToMsg(0, &body);
+	for (i=0; i<step->tidsLen; i++) {
+	    if (PSC_getID(step->tids[i]) == step->nodes[z]) {
+		addUint32ToMsg(PSC_getPID(step->tids[i]), &body);
+		countPIDS++;
+		/*
+		mlog("%s: add pid %u: '%u'\n", __func__, countPIDS,
+			    PSC_getPID(step->tids[i]));
+		*/
+	    }
+	}
+
+	/* task ids of processes (array) */
+	ptrGTIDS = body.buf + body.bufUsed;
+	addUint32ToMsg(0, &body);
+	for (x=0; x<step->globalTaskIdsLen[z]; x++) {
+	    addUint32ToMsg(step->globalTaskIds[z][x], &body);
+	    /*
+	    mlog("%s: add globaltid %u: '%u'\n", __func__, countGTIDS,
+	    	    step->globalTaskIds[z][x]);
+	    */
+	    countGTIDS++;
+	}
+
+	if (countPIDS != countGTIDS) {
+	    mlog("%s: mismatching PID '%u' and GTID '%u' count\n", __func__,
+		    countPIDS, countGTIDS);
+	    continue;
+	}
+
+	/* correct pid count */
+	*(uint32_t *) ptrCount = htonl(countPIDS);
+	*(uint32_t *) ptrPIDS = htonl(countPIDS);
+	*(uint32_t *) ptrGTIDS = htonl(countPIDS);
+
+	/* send the message to srun */
+	srunSendMsg(-1, step, RESPONSE_LAUNCH_TASKS, &body);
+    }
+
     ufree(body.buf);
 }
 

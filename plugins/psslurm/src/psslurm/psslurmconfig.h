@@ -22,10 +22,15 @@
 
 #define SPOOL_DIR LOCALSTATEDIR "/spool/parastation"
 
-/** The configuration list. */
+/** The plugin configuration list. */
 Config_t Config;
 
+/** The slurm configuration list. */
 Config_t SlurmConfig;
+
+/** The slurm gres configuration list. */
+Config_t SlurmGresTmp;
+Config_t SlurmGresConfig;
 
 extern const ConfDef_t CONFIG_VALUES[];
 

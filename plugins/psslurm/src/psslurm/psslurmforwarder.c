@@ -38,11 +38,13 @@
 #include "psslurmcomm.h"
 #include "psslurmproto.h"
 #include "psslurmenv.h"
+#include "psslurmmultiprog.h"
 #include "slurmcommon.h"
 #include "pluginpty.h"
 #include "psprotocolenv.h"
 
 #include "pluginmalloc.h"
+#include "pluginhelper.h"
 #include "pluginforwarder.h"
 #include "selector.h"
 
@@ -169,12 +171,13 @@ static char *replaceStepSymbols(Step_t *step, int rank, char *path)
 {
     char *hostname;
     Job_t *job;
-    uint32_t i, arrayJobId = 0, nodeid = 0;
+    uint32_t i, arrayJobId = 0, arrayTaskId = 0, nodeid = 0;
     PSnodes_ID_t myID;
 
     hostname = getConfValueC(&Config, "SLURM_HOSTNAME");
     if ((job = findJobById(step->jobid))) {
 	arrayJobId = job->arrayJobId;
+	arrayTaskId = job->arrayTaskId;
     }
 
     myID = PSC_getMyID();
@@ -186,13 +189,15 @@ static char *replaceStepSymbols(Step_t *step, int rank, char *path)
     }
 
     return replaceSymbols(step->jobid, step->stepid, hostname, nodeid,
-			    step->username, arrayJobId, rank, path);
+			    step->username, arrayJobId, arrayTaskId, rank,
+			    path);
 }
 
 static char *replaceJobSymbols(Job_t *job, char *path)
 {
     return replaceSymbols(job->jobid, SLURM_BATCH_SCRIPT, job->hostname,
-			    0, job->username, job->arrayJobId, 0, path);
+			    0, job->username, job->arrayJobId, job->arrayTaskId,
+			    0, path);
 }
 
 /*
@@ -212,11 +217,11 @@ static char *replaceJobSymbols(Job_t *job, char *path)
 */
 char *replaceSymbols(uint32_t jobid, uint32_t stepid, char *hostname,
 			int nodeid, char *username, uint32_t arrayJobId,
-			int rank, char *path)
+			uint32_t arrayTaskId, int rank, char *path)
 {
-    char *next, *ptr, symbol, *buf = NULL;
-    char tmp[1024];
-    size_t len, bufSize = 0;
+    char *next, *ptr, *symbol, *symNum, *buf = NULL;
+    char tmp[1024], symLen[64], symLen2[256];
+    size_t symNumLen, len, bufSize = 0;
     int saved = 0;
 
     ptr = path;
@@ -225,31 +230,47 @@ char *replaceSymbols(uint32_t jobid, uint32_t stepid, char *hostname,
     }
 
     while (next) {
-	symbol = *(next+1);
+	symbol = symNum = next+1;
 	len = next - ptr;
-
 	strn2Buf(ptr, len, &buf, &bufSize);
 
-	switch (symbol) {
+	/* zero padding */
+	symNumLen = 0;
+	snprintf(symLen, sizeof(symLen), "%%u");
+	while (symNum[0] >= 48 && symNum[0] <=57) symNum++;
+	if ((symNumLen = symNum - symbol) >0) {
+	    if (symNumLen <= sizeof(symLen) -3) {
+		strcpy(symLen, "%0");
+		strncat(symLen, symbol, symNumLen);
+		strcat(symLen, "u");
+		symbol += symNumLen;
+	    }
+	}
+
+	switch (symbol[0]) {
 	    case 'A':
-		/* TODO */
+		snprintf(tmp, sizeof(tmp), symLen, arrayJobId);
+		str2Buf(tmp, &buf, &bufSize);
+		saved = 1;
 		break;
 	    case 'a':
-		snprintf(tmp, sizeof(tmp), "%u", arrayJobId);
+		snprintf(tmp, sizeof(tmp), symLen, arrayTaskId);
 		str2Buf(tmp, &buf, &bufSize);
 		saved = 1;
 		break;
 	    case 'J':
-		snprintf(tmp, sizeof(tmp), "%u.%u", jobid, stepid);
+		snprintf(symLen2, sizeof(symLen2), "%s.%s", symLen, symLen);
+		snprintf(tmp, sizeof(tmp), symLen2, jobid, stepid);
+		str2Buf(tmp, &buf, &bufSize);
 		saved = 1;
 		break;
 	    case 'j':
-		snprintf(tmp, sizeof(tmp), "%u", jobid);
+		snprintf(tmp, sizeof(tmp), symLen, jobid);
 		str2Buf(tmp, &buf, &bufSize);
 		saved = 1;
 		break;
 	    case 's':
-		snprintf(tmp, sizeof(tmp), "%u", stepid);
+		snprintf(tmp, sizeof(tmp), symLen, stepid);
 		str2Buf(tmp, &buf, &bufSize);
 		saved = 1;
 		break;
@@ -258,12 +279,12 @@ char *replaceSymbols(uint32_t jobid, uint32_t stepid, char *hostname,
 		saved = 1;
 		break;
 	    case 'n':
-		snprintf(tmp, sizeof(tmp), "%u", nodeid);
+		snprintf(tmp, sizeof(tmp), symLen, nodeid);
 		str2Buf(tmp, &buf, &bufSize);
 		saved = 1;
 		break;
 	    case 't':
-		snprintf(tmp, sizeof(tmp), "%u", rank);
+		snprintf(tmp, sizeof(tmp), symLen, rank);
 		str2Buf(tmp, &buf, &bufSize);
 		saved = 1;
 		break;
@@ -274,11 +295,11 @@ char *replaceSymbols(uint32_t jobid, uint32_t stepid, char *hostname,
 	}
 
 	if (!saved) {
-	    strn2Buf(next, 2, &buf, &bufSize);
+	    strn2Buf(next, 2 + symNumLen, &buf, &bufSize);
 	}
 
 	saved = 0;
-	ptr = next+2;
+	ptr = next + 2 + symNumLen;
 	next = strchr(ptr, '%');
     }
     str2Buf(ptr, &buf, &bufSize);
@@ -323,7 +344,7 @@ int getAppendFlags(uint8_t appendMode)
 
 static void redirectJobOutput(Job_t *job)
 {
-    char *outFile, *errFile, *inFile;
+    char *outFile, *errFile, *inFile, *defOutName;
     int fd, flags = 0;
 
     close(STDOUT_FILENO);
@@ -332,9 +353,15 @@ static void redirectJobOutput(Job_t *job)
 
     flags = getAppendFlags(job->appendMode);
 
+    if (job->arrayTaskId != NO_VAL) {
+	defOutName = "slurm-%A_%a.out";
+    } else {
+	defOutName = "slurm-%j.out";
+    }
+
     /* stdout */
     if (!(strlen(job->stdOut))) {
-	outFile = addCwd(job->cwd, replaceJobSymbols(job, "slurm-%j.out"));
+	outFile = addCwd(job->cwd, replaceJobSymbols(job, defOutName));
     } else {
 	outFile = addCwd(job->cwd, replaceJobSymbols(job, job->stdOut));
     }
@@ -350,7 +377,7 @@ static void redirectJobOutput(Job_t *job)
 
     /* stderr */
     if (!(strlen(job->stdErr))) {
-	errFile = addCwd(job->cwd, replaceJobSymbols(job, "slurm-%j.out"));
+	errFile = addCwd(job->cwd, replaceJobSymbols(job, defOutName));
     } else {
 	errFile = addCwd(job->cwd, replaceJobSymbols(job, job->stdErr));
     }
@@ -425,8 +452,12 @@ static void execBatchJob(void *data, int rerun)
 {
     Forwarder_Data_t *fwdata = data;
     Job_t *job = fwdata->userData;
+    char buf[128];
 
-    mlog("%s: exec job '%s'\n", __func__, job->id);
+    /* reopen syslog */
+    openlog("psid", LOG_PID|LOG_CONS, LOG_DAEMON);
+    snprintf(buf, sizeof(buf), "psslurm-job:%u", job->jobid);
+    initLogger(buf, NULL);
 
     setPermissions(job);
 
@@ -664,6 +695,11 @@ static void execInteractiveJob(void *data, int rerun)
     char *cols = NULL, *rows = NULL;
     struct winsize ws;
 
+    /* reopen syslog */
+    openlog("psid", LOG_PID|LOG_CONS, LOG_DAEMON);
+    snprintf(buf, sizeof(buf), "psslurm-step:%u.%u", step->jobid, step->stepid);
+    initLogger(buf, NULL);
+
     close(STDOUT_FILENO);
     close(STDERR_FILENO);
     close(STDIN_FILENO);
@@ -740,10 +776,7 @@ static void execInteractiveJob(void *data, int rerun)
     if (!SERIAL_MODE) {
 	argv[argc++] = ustrdup(MPIEXEC_BINARY);
 	//argv[argc++] = ustrdup("-v");
-	/* number of processes */
-	argv[argc++] = ustrdup("-np");
-	snprintf(buf, sizeof(buf), "%u", step->np);
-	argv[argc++] = ustrdup(buf);
+
 	/* export all environment variables */
 	argv[argc++] = ustrdup("-x");
 
@@ -758,9 +791,21 @@ static void execInteractiveJob(void *data, int rerun)
     argv[argc++] = ustrdup(buffer);
     */
 
-    /* executable and arguments */
-    for (i=0; i<step->argc; i++) {
-	argv[argc++] = step->argv[i];
+    if (step->multiProg) {
+	argv = urealloc(argv, sizeof(char *) * (5 * step->np));
+	setupArgsFromMultiProg(step, argv, &argc);
+    } else {
+	if (!SERIAL_MODE) {
+	    /* number of processes */
+	    argv[argc++] = ustrdup("-np");
+	    snprintf(buf, sizeof(buf), "%u", step->np);
+	    argv[argc++] = ustrdup(buf);
+	}
+
+	/* executable and arguments */
+	for (i=0; i<step->argc; i++) {
+	    argv[argc++] = step->argv[i];
+	}
     }
     argv[argc] = NULL;
 

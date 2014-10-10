@@ -22,6 +22,7 @@
 #include <unistd.h>
 
 #include "pluginmalloc.h"
+#include "pluginhelper.h"
 #include "pluginlog.h"
 
 #include "pluginconfig.h"
@@ -62,17 +63,7 @@ int parseConfigFile(char *filename, Config_t *conf)
 	    tmp[0] = '\0';
 	}
 
-	/* remove trailing whitespaces */
-	len = strlen(line);
-	while (line[len-1] == ' ' || line[len-1] == '\n') {
-	    line[len-1] = '\0';
-	    len = strlen(line);
-	}
-
-	/* remove proceeding whitespaces */
-	while (line[0] == ' ') {
-	    line++;
-	}
+	line = trim(line);
 
 	/* find the key and the value */
 	if ((value = strchr(line,'=')) && strlen(value) > 1) {
@@ -94,15 +85,10 @@ int parseConfigFile(char *filename, Config_t *conf)
 	pkey = key;
 
 	/* remove trailing whitespaces from key */
-	while (pkey[keylen-1] == ' ') {
-	    pkey[keylen-1] = '\0';
-	    keylen = strlen(key);
-	}
+	rtrim(key);
 
 	/* remove proceeding whitespaces from value */
-	while (value && value[0] == ' ') {
-	    value++;
-	}
+	value = ltrim(value);
 
 	config = (Config_t *) umalloc(sizeof(Config_t));
 	config->key = ustrdup(pkey);

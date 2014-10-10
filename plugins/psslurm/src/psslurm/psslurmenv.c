@@ -225,6 +225,8 @@ void setRankEnv(int32_t rank, Step_t *step)
     uint32_t myNodeId, myLocalId;
 
     setenv("SLURMD_NODENAME", getConfValueC(&Config, "SLURM_HOSTNAME"), 1);
+    gethostname(tmp, sizeof(tmp));
+    setenv("HOSTNAME", tmp, 1);
     snprintf(tmp, sizeof(tmp), "%u", getpid());
     setenv("SLURM_TASK_PID", tmp, 1);
     setenv("SLURM_CPUS_ON_NODE", getConfValueC(&Config, "SLURM_CPUS"), 1);
@@ -322,10 +324,8 @@ void setBatchEnv(Job_t *job)
     env_set(&env, "SLURM_LOCALID", "0");
 
     /* CORRECT ME */
-    /*
     snprintf(tmp, sizeof(tmp), "%u", job->nodeMinMemory);
     env_set(&env, "SLURM_MEM_PER_NODE", tmp);
-    */
 
     snprintf(tmp, sizeof(tmp), "%u", getpid());
     env_set(&env, "SLURM_TASK_PID", tmp);

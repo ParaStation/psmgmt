@@ -104,3 +104,38 @@ void blockSignal(int signal, int block)
     sigaddset(&set, signal);
     sigprocmask(block ? SIG_BLOCK : SIG_UNBLOCK, &set, &oldset);
 }
+
+char *trim(char *string)
+{
+    if (!string) return NULL;
+
+    string = ltrim(string);
+    string = rtrim(string);
+    return string;
+}
+
+char *ltrim(char *string)
+{
+    if (!string) return NULL;
+
+    /* remove proceeding whitespaces */
+    while (string[0] == ' ') {
+	string++;
+    }
+    return string;
+}
+
+char *rtrim(char *string)
+{
+    size_t len;
+
+    if (!string) return NULL;
+
+    /* remove trailing whitespaces */
+    len = strlen(string);
+    while (string[len-1] == ' ' || string[len-1] == '\n') {
+	string[len-1] = '\0';
+	len = strlen(string);
+    }
+    return string;
+}

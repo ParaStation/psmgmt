@@ -1330,16 +1330,6 @@ static void sendSpawnedTIDs(int ret, char *env, PStask_ID_t *tids)
     PS_DataBuffer_t data = { .buf = NULL };
     PStask_ID_t parent;
 
-    /* todo write func to add Int32Array() */
-    /*
-    addUint32ToMsg(np, &data);
-
-    for (i=0; i<np; i++) {
-	printf("%s: add tids[%i]:%i\n", __func__, i, tids[i]);
-	addInt32ToMsg(tids[i], &data);
-    }
-    */
-
     addInt32ToMsg(ret, &data);
     addInt32ArrayToMsg(tids, np, &data);
 
