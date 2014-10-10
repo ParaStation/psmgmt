@@ -1787,6 +1787,11 @@ static void setupPSIDEnv(int verbose)
 	nodetype = strdup(envstr);
 	setPSIEnv("PSI_NODE_TYPE", envstr, 1);
     }
+
+    /* forward the possibly adjusted usize of the job */
+    snprintf(tmp, sizeof(tmp), "%d", usize);
+    setPSIEnv("PSI_USIZE_INFO", tmp, 1);
+    setenv("PSI_USIZE_INFO", tmp, 1);
 }
 
 /**

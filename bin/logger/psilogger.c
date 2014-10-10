@@ -81,8 +81,9 @@ static int rawIO = 0;
 int enableGDB = 0;
 
 /**
- * Maximum number of processes in this job.
+ * Maximum/Current number of processes in this job.
  */
+int usize = 0;
 int np = 0;
 
 /**
@@ -786,7 +787,7 @@ static void handleOutMsg(PSLog_Msg_t *msg, int outfd)
 	       msg->header.len - PSLog_headerSize,
 	       PSC_printTID(msg->header.sender));
 
-    if (mergeOutput && np > 1) {
+    if (mergeOutput && usize > 1) {
 	/* collect all ouput */
 	cacheOutput(msg, outfd);
     } else if (prependSource) {
@@ -1128,7 +1129,7 @@ static void loop(void)
 	if (daemonSock != -1) FD_SET(daemonSock, &afds);
 	atv = mytv;
 
-	if (mergeOutput && np >1) displayCachedOutput(0);
+	if (mergeOutput && usize > 1) displayCachedOutput(0);
 
 	if (Sselect(daemonSock + 1, &afds, NULL, NULL, &atv) < 0) {
 	    if (errno == EINTR) {
@@ -1172,7 +1173,7 @@ static void loop(void)
 	}
 	if (!getNoClients()) timeoutval++;
     }
-    if (mergeOutput && np > 1) {
+    if (mergeOutput && usize > 1) {
 	displayCachedOutput(0);
 	/* flush output */
 	displayCachedOutput(1);
@@ -1304,6 +1305,10 @@ int main( int argc, char**argv)
 
     if ((envstr = getenv("PSI_NP_INFO"))) {
 	np = atoi(envstr);
+    }
+
+    if ((envstr = getenv("PSI_USIZE_INFO"))) {
+	usize = atoi(envstr);
     }
 
     if ((envstr = getenv(ENV_NUM_SERVICE_PROCS))) {
