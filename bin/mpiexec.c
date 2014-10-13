@@ -1623,12 +1623,22 @@ static void setupPSIDEnv(int verbose)
 
     if (valgrind) {
 	setenv("PSI_USE_VALGRIND", "1", 1);
-	if (verbose) {
-	     printf("PSI_USE_VALGRIND=1 : Running on Valgrind core(s)\n");
-	     if (!mergeout && !callgrind)
-		  printf("(You can use '-merge' for merging output of all "
-			    "Valgrind cores)\n");
-	}
+	setPSIEnv("PSI_USE_VALGRIND", "1", 1);
+	if (!callgrind) {
+	     if (verbose) {
+		  printf("PSI_USE_VALGRIND=1 : Running on Valgrind core(s) (memcheck tool)\n");
+		  if (!mergeout) {
+		       printf("(You can use '-merge' for merging output of all "
+			      "Valgrind cores)\n");
+		  }
+	     }
+	} else {
+	     setenv("PSI_USE_CALLGRIND", "1", 1);
+	     setPSIEnv("PSI_USE_CALLGRIND", "1", 1);
+	     if (verbose) {
+		  printf("PSI_USE_CALLGRIND=1 : Running on Valgrind core(s) (callgrind tool)\n");
+	     }	     
+	}	
     }
 
     if (timestamp) {

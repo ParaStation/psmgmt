@@ -18,6 +18,7 @@ static char vcid[] __attribute__((used)) =
 #include <stdlib.h>
 #include <errno.h>
 #include <string.h>
+#include <libgen.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <netdb.h>
@@ -568,6 +569,11 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
     unsigned int firstRank = rank;
     char *offset = NULL;
     int hugeTask = 0, hugeArgv = 0;
+    char *valgrind;
+    char *callgrind;
+
+    valgrind = getenv("PSI_USE_VALGRIND");
+    callgrind = getenv("PSI_USE_CALLGRIND");
 
     if ((taskGroup == TG_SERVICE || taskGroup == TG_SERVICE_SIG
 	|| taskGroup == TG_KVS) && count != 1) {
@@ -626,7 +632,15 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
 
     task->workingdir = mywd;
     task->argc = argc;
-    task->argv = (char**)malloc(sizeof(char*)*(task->argc+1));
+
+    if(!valgrind) {
+	 task->argv = (char**)malloc(sizeof(char*)*(task->argc+1));
+    }
+    else {
+	 /* add 'valgrind' and its parameters before the executable: (see below)*/
+	 task->argv = (char**)malloc(sizeof(char*)*(task->argc+4));
+    }
+
     if (!task->argv) {
 	PSI_warn(-1, errno, "%s: unable to store argument vector", __func__);
 	goto error;
@@ -655,9 +669,32 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
 	    task->argv[0]=strdup(argv[0]);
 	}
     }
-    for (i=1;i<task->argc;i++) {
-	task->argv[i]=strdup(argv[i]);
-	if (!task->argv[i]) goto error;
+    
+    /* check for valgrind support and whether this is the actual executable: */
+    if( valgrind && (strcmp(basename(argv[0]), "mpiexec") !=0 ) && (strcmp(argv[0], "valgrind") !=0 ) ) {
+	 
+	 /* add 'valgrind' and its parameters before the executable name: */
+	 task->argv[3]=strdup(argv[0]);
+	 task->argv[0]=strdup("valgrind");
+	 task->argv[1]=strdup("--quiet");
+
+	 if (!callgrind) {
+	      task->argv[2]=strdup("--leak-check=full");
+	 } else {
+	      task->argv[2]=strdup("--tool=callgrind");
+	 }
+
+	 for (i=1;i<task->argc;i++) {
+	      task->argv[i+3]=strdup(argv[i]);
+	      if (!task->argv[i+3]) goto error;
+	 }
+	 task->argc+=3;
+    } else {
+
+	 for (i=1;i<task->argc;i++) {
+	      task->argv[i]=strdup(argv[i]);
+	      if (!task->argv[i]) goto error;
+	 }
     }
     task->argv[task->argc] = NULL;
 
