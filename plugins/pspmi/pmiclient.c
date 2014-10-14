@@ -98,6 +98,9 @@ static int rank = -1;
 /** The PMI rank of the connected MPI client */
 static int pmiRank = -1;
 
+/** The PMI appnum parameter of the connected MPI client */
+static int appnum = -1;
+
 /** Count update KVS msg from provider to make sure all msg were received */
 static int32_t updateMsgCount;
 
@@ -413,7 +416,7 @@ static int p_Get_Appnum(void)
 {
     char reply[PMIU_MAXLINE];
 
-    snprintf(reply, sizeof(reply), "cmd=appnum appnum=0\n");
+    snprintf(reply, sizeof(reply), "cmd=appnum appnum=%i\n", appnum);
     PMI_send(reply);
 
     return 0;
@@ -1716,6 +1719,16 @@ int pmi_init(int pmisocket, int pRank, PStask_ID_t logger)
     pmiRank = atoi(ptr);
     pmisock = pmisocket;
     loggertid = logger;
+
+    if (!(ptr = getenv("PMI_APPNUM"))) {
+	elog("%s(r%i): invalid PMI APPNUM environment\n", __func__, rank);
+	return 1;
+    }
+    appnum = atoi(ptr);
+    if(appnum < 0) {
+	elog("%s(r%i): invalid PMI APPNUM parameter: %d\n", __func__, rank, appnum);
+	return 1;
+    }
 
     /*
     mlog("%s:(r%i): pmiRank '%i' pmisock '%i' logger '%i' spawned '%s' myTid "

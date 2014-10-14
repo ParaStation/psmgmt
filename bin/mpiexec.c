@@ -874,7 +874,7 @@ static char *opmiGetReservedPorts()
     return buf;
 }
 
-/*
+/**
  * @brief Build a MVAPICH process mapping vector.
  *
  * Build a process mapping vector which is needed by the MVAPICH MPI when
@@ -931,7 +931,7 @@ char *getProcessMap(int np)
  *
  * Setup the general environment needed by the Process Manager
  * Interface (PMI). Additional variables are needed on a per rank
- * basis. These are setup via @ref setupPMINodeEnv().
+ * basis. These are setup via @ref setupNodeEnv().
  *
  * @param np Total number of processes intended to be spawn.
  *
@@ -1097,14 +1097,30 @@ static void setupCommonEnv(int np)
     setPSIEnv("PMI_PORT", "10000", 1);
 }
 
-static char * setupPMINodeEnv(int rank)
+/**
+ * @brief Get the MPI_APPNUM parameter by rank.
+ *
+ * exec[] contains a list of different executables to be started.
+ * By adding the numbers of procs per executable, the respective
+ * APPNUM (= the position in the list) of a certain rank can easily
+ * be determined.
+ *
+ * @param rank The rank to be checked.
+ *
+ * @return On success, the corresponding APPNUM parameter is returned.
+ * On error -1 is returned.
+ */
+static int getAppnumByRank(int rank)
 {
-    static char pmiItem[32];
+    int i, sum = 0;
 
-    /* set the rank of the current client to start */
-    snprintf(pmiItem, sizeof(pmiItem), "PMI_RANK=%d", rank);
-
-    return pmiItem;
+    for(i=0; i<execCount; i++) {
+	sum += exec[i]->np;
+	if(rank < sum) {
+	    return i;
+	}
+    }
+    return -1;
 }
 
 /* Flag, if verbose-option is set */
@@ -1112,14 +1128,19 @@ static int verboseRankMsg = 0;
 
 static char ** setupNodeEnv(int psRank)
 {
-    static char *env[7];
+    static char *env[8];
     char buf[200];
     int cur = 0;
     static int rank = 0;
+    static char pmiRankItem[32];
+    static char pmiAppnumItem[32];
 
     /* setup PMI env */
     if (pmienabletcp || pmienablesockp) {
-	env[cur++] = setupPMINodeEnv(rank);
+	snprintf(pmiRankItem, sizeof(pmiRankItem), "PMI_RANK=%d", rank);
+	env[cur++] = pmiRankItem;
+	snprintf(pmiAppnumItem, sizeof(pmiAppnumItem), "PMI_APPNUM=%d", getAppnumByRank(rank));
+	env[cur++] = pmiAppnumItem;
     }
 
     if (!jobLocalNodeIDs || !nodeLocalProcIDs || !numProcPerNode) {
