@@ -405,12 +405,12 @@ static int p_Get_Universe_Size(char *msgBuffer)
  * @brief Return the application number.
  *
  * Returns the application number which defines the order the
- * application was started. In other implementations the appnum is set by
- * mpiexec. The number is increased when different executables are started by
- * a single call to mpiexec. This is not supported in parastation, yet.
- * Therefore this will always be set to 0.
+ * application was started. This appnum parameter is set by mpiexec
+ * and then forwarded to here via the PMI_APPNUM environment variable.
+ * The appnum number is increased by mpiexec when different executables
+ * are started by a single call to mpiexec (see MPI_APPNUM).
  *
- * @return Always returns 0.
+ * @return Application number (MPI_APPNUM) as set by mpiexec.
  */
 static int p_Get_Appnum(void)
 {
