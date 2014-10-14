@@ -274,7 +274,8 @@ int flushClientMsgs(int fd)
 
     if (list_empty(&clients[fd].msgs) && !clients[fd].pendingACKs) {
 	/* Use the stop-hash to actually send SENDCONT msgs */
-	PSIDFlwCntrl_sendContMsgs(clients[fd].stops, clients[fd].tid);
+	int ret = PSIDFlwCntrl_sendContMsgs(clients[fd].stops, clients[fd].tid);
+	PSID_log(PSID_LOG_FLWCNTRL, "%s: sent %d SENDCONT msgs\n", __func__, ret);
     }
 
     clients[fd].flags &= ~FLUSH;
@@ -709,7 +710,8 @@ void releaseACKClient(int fd)
 
     if (!clients[fd].pendingACKs && list_empty(&clients[fd].msgs)) {
 	/* Use the stop-hash to actually send SENDCONT msgs */
-	PSIDFlwCntrl_sendContMsgs(clients[fd].stops, clients[fd].tid);
+	int ret = PSIDFlwCntrl_sendContMsgs(clients[fd].stops, clients[fd].tid);
+	PSID_log(PSID_LOG_FLWCNTRL, "%s: sent %d SENDCONT msgs\n", __func__, ret);
     }
 }
 
