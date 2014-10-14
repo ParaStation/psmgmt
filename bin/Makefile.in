@@ -176,7 +176,8 @@ am_psid_OBJECTS = daemon/psidaccount.$(OBJEXT) \
 	daemon/psidscripts.$(OBJEXT) daemon/psidsignal.$(OBJEXT) \
 	daemon/psidspawn.$(OBJEXT) daemon/psidstate.$(OBJEXT) \
 	daemon/psidstatus.$(OBJEXT) daemon/psidtask.$(OBJEXT) \
-	daemon/psidutil.$(OBJEXT) daemon/psidintel.$(OBJEXT)
+	daemon/psidutil.$(OBJEXT) daemon/psidintel.$(OBJEXT) \
+	daemon/psidflowcontrol.$(OBJEXT)
 psid_OBJECTS = $(am_psid_OBJECTS)
 psid_DEPENDENCIES = $(libputil) $(libpscommon) $(libpslog) \
 	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1)
@@ -502,7 +503,8 @@ psid_SOURCES = daemon/psidaccount.c daemon/psidaccount.h		\
 	daemon/psidspawn.h daemon/psidstate.c daemon/psidstate.h	\
 	daemon/psidstatus.c daemon/psidstatus.h daemon/psidtask.c	\
 	daemon/psidtask.h daemon/psidtimer.h daemon/psidutil.c		\
-	daemon/psidutil.h daemon/psidintel.c daemon/psidintel.h
+	daemon/psidutil.h daemon/psidintel.c daemon/psidintel.h		\
+	daemon/psidflowcontrol.c daemon/psidflowcontrol.h
 
 psid_LDFLAGS = $(AM_LDFLAGS) -export-dynamic
 psid_LDADD = $(libputil) $(libpscommon) $(libpslog) -lutil	\
@@ -736,6 +738,8 @@ daemon/psidutil.$(OBJEXT): daemon/$(am__dirstamp) \
 	daemon/$(DEPDIR)/$(am__dirstamp)
 daemon/psidintel.$(OBJEXT): daemon/$(am__dirstamp) \
 	daemon/$(DEPDIR)/$(am__dirstamp)
+daemon/psidflowcontrol.$(OBJEXT): daemon/$(am__dirstamp) \
+	daemon/$(DEPDIR)/$(am__dirstamp)
 
 psid$(EXEEXT): $(psid_OBJECTS) $(psid_DEPENDENCIES) $(EXTRA_psid_DEPENDENCIES) 
 	@rm -f psid$(EXEEXT)
@@ -813,6 +817,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@daemon/$(DEPDIR)/psidclient.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@daemon/$(DEPDIR)/psidcomm.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@daemon/$(DEPDIR)/psidenv.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@daemon/$(DEPDIR)/psidflowcontrol.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@daemon/$(DEPDIR)/psidforwarder.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@daemon/$(DEPDIR)/psidhook.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@daemon/$(DEPDIR)/psidhw.Po@am__quote@

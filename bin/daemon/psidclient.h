@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2011 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2014 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -134,6 +134,22 @@ int isEstablishedClient(int fd);
  * @see sendClient()
  */
 int flushClientMsgs(int fd);
+
+/**
+ * @brief Signal a received SENDSTOPACK
+ *
+ * Signal the client connected via the file-descriptor @a fd that a
+ * SENDSTOPACK message was received on his behalf. Depending on the
+ * current status of the client's connection, i.e. regulated by the
+ * existence of pending messages, this might trigger to send pending
+ * SENDCONT messages.
+ *
+ * @param fd The file-descriptor used to identify the receiving
+ * client.
+ *
+ * @return No return value.
+ */
+void releaseACKClient(int fd);
 
 /**
  * @brief Send message to client.

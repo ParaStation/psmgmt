@@ -42,6 +42,7 @@ static char vcid[] __attribute__((used)) =
 #include "psidstatus.h"
 #include "psidsignal.h"
 #include "psidstate.h"
+#include "psidflowcontrol.h"
 
 #include "psidclient.h"
 
@@ -54,7 +55,9 @@ static struct {
     PStask_ID_t tid;     /**< Clients task ID */
     PStask_t *task;      /**< Clients task structure */
     unsigned int flags;  /**< Special flags (INITIALCONTACT, FLUSH, CLOSE) */
+    int pendingACKs;     /**< SENDSTOPACK messages to wait for */
     list_t msgs;         /**< Chain of undelivered messages */
+    PSIDFlwCntrl_hash_t stops;  /**< Hash-table to track SENDSTOPs */
 } clients[FD_SETSIZE];
 
 static void msg_CLIENTCONNECT(int fd, DDBufferMsg_t *bufmsg);
@@ -95,18 +98,30 @@ void registerClient(int fd, PStask_ID_t tid, PStask_t *task)
     clients[fd].tid = tid;
     clients[fd].task = task;
     clients[fd].flags |= INITIALCONTACT;
+    clients[fd].pendingACKs = 0;
     INIT_LIST_HEAD(&clients[fd].msgs);
+    PSIDFlwCntrl_emptyHash(clients[fd].stops);
 
     Selector_register(fd, handleClientConnectMsg, NULL);
 }
 
 PStask_ID_t getClientTID(int fd)
 {
+    if (fd < 0 || fd >= FD_SETSIZE) {
+	PSID_log(-1, "%s(%d): file descriptor out of range\n", __func__, fd);
+	return PSC_getMyTID();
+    }
+
     return clients[fd].tid;
 }
 
 PStask_t *getClientTask(int fd)
 {
+    if (fd < 0 || fd >= FD_SETSIZE) {
+	PSID_log(-1, "%s(%d): file descriptor out of range\n", __func__, fd);
+	return NULL;
+    }
+
     return clients[fd].task;
 }
 
@@ -225,7 +240,6 @@ static int storeMsgClient(int fd, DDMsg_t *msg, int offset)
 int flushClientMsgs(int fd)
 {
     list_t *m, *tmp;
-    PStask_ID_t last = 0;
     int blockedCHLD, blockedRDP, ret = 0;
 
     if (fd<0 || fd >= FD_SETSIZE) {
@@ -243,7 +257,6 @@ int flushClientMsgs(int fd)
     list_for_each_safe(m, tmp, &clients[fd].msgs) {
 	msgbuf_t *msgbuf = list_entry(m, msgbuf_t, next);
 	DDMsg_t *msg = (DDMsg_t *)msgbuf->msg;
-	PStask_ID_t sender = msg->sender, dest = msg->dest;
 	int sent = do_send(fd, msg, msgbuf->offset);
 
 	if (sent<0 || list_empty(&clients[fd].msgs)) {
@@ -255,18 +268,13 @@ int flushClientMsgs(int fd)
 	    break;
 	}
 
-	/* Remove msgbuf before 'cont' (sendMsg might trigger y.a. flush) */
 	list_del(&msgbuf->next);
 	PSIDMsgbuf_put(msgbuf);
+    }
 
-	if (PSC_getPID(sender) && PSIDnodes_isUp(PSC_getID(sender))) {
-	    DDMsg_t contmsg = { .type = PSP_DD_SENDCONT,
-				.sender = dest,
-				.dest = sender,
-				.len = sizeof(DDMsg_t) };
-	    if (contmsg.dest != last) sendMsg(&contmsg);
-	    last = contmsg.dest;
-	}
+    if (list_empty(&clients[fd].msgs) && !clients[fd].pendingACKs) {
+	/* Use the stop-hash to actually send SENDCONT msgs */
+	PSIDFlwCntrl_sendContMsgs(clients[fd].stops, clients[fd].tid);
     }
 
     clients[fd].flags &= ~FLUSH;
@@ -323,6 +331,28 @@ int sendClient(DDMsg_t *msg)
 	} else {
 	    FD_SET(fd, &PSID_writefds);
 	    Selector_startOver();
+
+	    if (PSIDFlwCntrl_applicable(msg)) {
+		int ret = PSIDFlwCntrl_addStop(clients[fd].stops, msg->sender);
+
+		if (ret < 0) {
+		    PSID_warn(-1, errno, "%s: Failed to store stopTID",
+			      __func__);
+		    errno = ENOBUFS;
+		    return -1;
+		}
+
+		if (!ret) {
+		    errno = 0;
+		    return msg->len; /* suppress sending of SENDSTOP */
+		} else {
+		    /* yet another SENDSTOPACK is pending */
+		    if (PSIDnodes_getDmnProtoV(PSC_getID(msg->sender)) > 408) {
+			clients[fd].pendingACKs++;
+		    }
+		}
+
+	    }
 	    errno = EWOULDBLOCK;
 	}
 	return -1;
@@ -423,7 +453,7 @@ int recvClient(int fd, DDMsg_t *msg, size_t size)
 static void closeConnection(int fd)
 {
     list_t *m, *tmp;
-    PStask_ID_t tid = getClientTID(fd), last = 0;
+    PStask_ID_t tid = getClientTID(fd);
     int blockedCHLD, blockedRDP;
 
     if (fd<0) {
@@ -445,21 +475,14 @@ static void closeConnection(int fd)
     list_for_each_safe(m, tmp, &clients[fd].msgs) {
 	msgbuf_t *mp = list_entry(m, msgbuf_t, next);
 	DDBufferMsg_t *msg = (DDBufferMsg_t *)mp->msg;
-	PStask_ID_t sender = msg->header.sender, dest = msg->header.dest;
 
 	list_del(&mp->next);
-
-	if (PSC_getPID(sender) && PSIDnodes_isUp(PSC_getID(sender))) {
-	    DDMsg_t contmsg = { .type = PSP_DD_SENDCONT,
-				.sender = dest,
-				.dest = sender,
-				.len = sizeof(DDMsg_t) };
-	    if (contmsg.dest != tid && contmsg.dest != last) sendMsg(&contmsg);
-	    last = contmsg.dest;
-	}
 	PSID_dropMsg(msg);
 	PSIDMsgbuf_put(mp);
     }
+
+    /* Now use the stop-hash to actually send SENDCONT msgs */
+    PSIDFlwCntrl_sendContMsgs(clients[fd].stops, tid);
 
     clients[fd].flags &= ~CLOSE;
 
@@ -673,6 +696,21 @@ int killAllClients(int sig, int killAdminTasks)
     }
 
     return ret;
+}
+
+void releaseACKClient(int fd)
+{
+    if (fd < 0 || fd >= FD_SETSIZE) {
+	PSID_log(-1, "%s(%d): file descriptor out of range\n", __func__, fd);
+	return;
+    }
+
+    clients[fd].pendingACKs--;
+
+    if (!clients[fd].pendingACKs && list_empty(&clients[fd].msgs)) {
+	/* Use the stop-hash to actually send SENDCONT msgs */
+	PSIDFlwCntrl_sendContMsgs(clients[fd].stops, clients[fd].tid);
+    }
 }
 
 pid_t getpgid(pid_t); /* @todo HACK HACK HACK */
@@ -1030,11 +1068,15 @@ void initClients(void)
 {
     int fd;
 
+    PSIDFlwCntrl_init();
+
     for (fd=0; fd<FD_SETSIZE; fd++) {
 	clients[fd].tid = -1;
 	clients[fd].task = NULL;
 	clients[fd].flags = 0;
+	clients[fd].pendingACKs = 0;
 	INIT_LIST_HEAD(&clients[fd].msgs);
+	PSIDFlwCntrl_initHash(clients[fd].stops);
     }
 
     PSID_registerMsg(PSP_CC_MSG, msg_CC_MSG);

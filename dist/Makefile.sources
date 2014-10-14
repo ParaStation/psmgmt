@@ -41,6 +41,8 @@ bin/daemon/psidcomm.c \
 bin/daemon/psidcomm.h \
 bin/daemon/psidenv.c \
 bin/daemon/psidenv.h \
+bin/daemon/psidflowcontrol.c \
+bin/daemon/psidflowcontrol.h \
 bin/daemon/psidforwarder.c \
 bin/daemon/psidforwarder.h \
 bin/daemon/psidhook.c \

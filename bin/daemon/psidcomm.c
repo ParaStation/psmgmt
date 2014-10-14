@@ -33,6 +33,7 @@ static char vcid[] __attribute__((used)) =
 #include "psidrdp.h"
 #include "psidstatus.h"
 #include "psidstate.h"
+#include "psidflowcontrol.h"
 
 #include "psidcomm.h"
 
@@ -168,7 +169,7 @@ handlerFunc_t PSID_clearDropper(int msgType)
 int sendMsg(void *amsg)
 {
     DDMsg_t *msg = (DDMsg_t *)amsg;
-    int ret;
+    int ret, isRDP = 0;
     char *sender;
 
     if (PSID_getDebugMask() & PSID_LOG_COMM) {
@@ -193,6 +194,7 @@ int sendMsg(void *amsg)
 	}
     } else if (PSC_getID(msg->dest)<PSC_getNrOfNodes()) {
 	sender="sendRDP";
+	isRDP = 1;
 	ret = sendRDP(msg);
     } else {
 	sender="undetermined sender";
@@ -222,19 +224,15 @@ int sendMsg(void *amsg)
 		  __func__, PSDaemonP_printMsg(msg->type), msg->len,
 		  PSC_printTID(msg->dest), sender);
 
-	if (eno == EWOULDBLOCK && PSC_getPID(msg->sender)
-	    && msg->type != PSP_CD_ACCOUNT
-	    && msg->type != PSP_CD_SENDCONT
-	    && msg->type != PSP_CD_SENDSTOP
-	    && msg->type != PSP_DD_SENDCONT
-	    && msg->type != PSP_DD_SENDSTOP) {
-	    DDMsg_t stopmsg = { .type = PSP_DD_SENDSTOP,
-				.sender = msg->dest,
-				.dest = msg->sender,
-				.len = sizeof(DDMsg_t) };
+	if (eno == EWOULDBLOCK && PSIDFlwCntrl_applicable(msg)) {
+	    DDTypedMsg_t stopmsg = { .header = { .type = PSP_DD_SENDSTOP,
+						 .sender = msg->dest,
+						 .dest = msg->sender,
+						 .len = sizeof(DDTypedMsg_t) },
+				     .type = !isRDP };
 
-	    PSID_log(PSID_LOG_COMM, "%s: SENDSTOP for %s triggered\n",
-		     __func__, PSC_printTID(stopmsg.dest));
+	    PSID_log(PSID_LOG_FLWCNTRL, "%s: SENDSTOP for %s triggered\n",
+		     __func__, PSC_printTID(stopmsg.header.dest));
 	    sendMsg(&stopmsg);
 	    ret = 0;
 	}
@@ -397,74 +395,6 @@ int PSID_handleMsg(DDBufferMsg_t *msg)
     return 0;
 }
 
-/**
- * @brief Handle PSP_DD_SENDSTOP message
- *
- * Handle the PSP_DD_SENDSTOP message @a msg.
- *
- * Stop receiving messages from the messages destination process. This
- * is used in order to implement a flow control on the communication
- * path between client processes or a client process and a remote
- * daemon process.
- *
- * @param msg The message to handle.
- *
- * @return No return value.
- */
-static void msg_SENDSTOP(DDMsg_t *msg)
-{
-    PStask_t *task = PStasklist_find(&managedTasks, msg->dest);
-
-    if (!task) return;
-
-    PSID_log(PSID_LOG_COMM, "%s: from %s\n",
-	     __func__, PSC_printTID(msg->sender));
-
-    if (task->group == TG_LOGGER) {
-	msg->type = PSP_CD_SENDSTOP;
-	sendMsg(msg);
-    } else if (task->fd != -1) {
-	PSID_log(PSID_LOG_COMM,
-		 "%s: client %s at %d temporarily disabled\n", __func__,
-		 PSC_printTID(msg->dest), task->fd);
-	Selector_disable(task->fd);
-    }
-}
-
-/**
- * @brief Handle PSP_DD_SENDCONT message
- *
- * Handle the PSP_DD_SENDCONT message @a msg.
- *
- * Continue receiving messages from the messages destination
- * process. This is used in order to implement a flow control on the
- * communication path between client processes or a client process and
- * a remote daemon process.
- *
- * @param msg The message to handle.
- *
- * @return No return value.
- */
-static void msg_SENDCONT(DDMsg_t *msg)
-{
-    PStask_t *task = PStasklist_find(&managedTasks, msg->dest);
-
-    if (!task) return;
-
-    PSID_log(PSID_LOG_COMM, "%s: from %s\n",
-	     __func__, PSC_printTID(msg->sender));
-
-    if (task->group == TG_LOGGER) {
-	msg->type = PSP_CD_SENDCONT;
-	sendMsg(msg);
-    } else if (task->fd != -1) {
-	PSID_log(PSID_LOG_COMM,
-		 "%s: client %s at %d re-enabled\n", __func__,
-		 PSC_printTID(msg->dest), task->fd);
-	Selector_enable(task->fd);
-    }
-}
-
 void initComm(void)
 {
     initMsgHash();
@@ -472,8 +402,6 @@ void initComm(void)
     PSIDMsgbuf_init();
     initRDPMsgs();
 
-    PSID_registerMsg(PSP_DD_SENDSTOP, (handlerFunc_t) msg_SENDSTOP);
-    PSID_registerMsg(PSP_DD_SENDCONT, (handlerFunc_t) msg_SENDCONT);
     PSID_registerMsg(PSP_CD_ERROR, NULL); /* silently ignore message */
     PSID_registerMsg(PSP_CD_INFORESPONSE, condSendMsg);
     PSID_registerMsg(PSP_CD_SIGRES, condSendMsg);

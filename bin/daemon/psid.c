@@ -72,6 +72,7 @@ static char vcid[] __attribute__((used)) =
 #include "psidmsgbuf.h"
 #include "psidenv.h"
 #include "psidhook.h"
+#include "psidflowcontrol.h"
 
 struct timeval selectTime;
 
@@ -358,6 +359,7 @@ static void sighandler(int sig)
 	PSIDMsgbuf_printStat();
 	PStask_printStat();
 	RDP_printStat();
+	PSIDFlwCntrl_printStat();
 	break;
     case  SIGUSR2:   /* user defined signal 2 */
 	printMallocInfo();
@@ -524,8 +526,7 @@ static void checkFileTable(fd_set *controlfds)
  */
 static void printVersion(void)
 {
-    char revision[] = "$Revision$";
-    fprintf(stderr, "psid %s\b \n", revision+11);
+    fprintf(stderr, "psid %s\b \n", psid_cvsid+11);
 }
 
 int main(int argc, const char *argv[])
