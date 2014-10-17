@@ -11,6 +11,7 @@ helper.pretty_print_env()
 
 for p in helper.partitions():
 	helper.check_job_completed_ok(p)
+	test.check("255:126" == os.environ["PSTEST_SCONTROL_%s_DERIVED_EXIT_CODE" % p.upper()], p)
 
 	lines = [x for x in helper.job_stdout_lines(p) if x != "Submitted batch job %s" % helper.job_id(p) and \
 	                                                  not re.match(r'.*error.*', x)]
