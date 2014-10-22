@@ -14,8 +14,8 @@ BuildRequires:	ncurses-devel, readline-devel, popt-devel
 
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
-# use "standard" path
-%global _pamdir %{expand:%{_libdir}/security}
+# fixed path
+%global _pamdir /%{_lib}/security
 # for now
 %global _prefix /opt/parastation
 %global _plugindir %{_prefix}/plugins
