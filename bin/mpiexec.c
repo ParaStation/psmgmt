@@ -1850,11 +1850,11 @@ static void setupEnvironment(int verbose)
     if (rank != -1) verbose = 0;
 
     /* Setup various environment variables depending on passed arguments */
-    if (envall) {
+    if (envall && !getenv("__PSI_EXPORTS")) {
 
 	extern char **environ;
-	char *key, *val;
-	int i, lenval, len;
+	char *key, *val, *xprts = NULL;
+	int i, lenval, len, xprtsLen = 0;
 
 	for (i=0; environ[i] != NULL; i++) {
 	    val = strchr(environ[i], '=');
@@ -1865,10 +1865,25 @@ static void setupEnvironment(int verbose)
 		key = umalloc(len - lenval, __func__);
 		strncpy(key,environ[i], len - lenval -1);
 		key[len - lenval -1] = '\0';
-		setPSIEnv(key, val, 1);
+		if (!getPSIEnv(key)) {
+		    setPSIEnv(key, val, 1);
+
+		    xprtsLen += strlen(key) + 1;
+		    if (!xprts) {
+			xprts = umalloc(xprtsLen, __func__);
+			snprintf(xprts, xprtsLen, "%s", key);
+		    } else {
+			xprts = urealloc(xprts, xprtsLen, __func__);
+			snprintf(xprts + strlen(xprts), xprtsLen, ",%s", key);
+		    }
+		}
+	    
 		free(key);
 	    }
 	}
+	setPSIEnv("__PSI_EXPORTS", xprts, 1);
+	free(xprts);
+	
 	if (verbose) {
 	    printf("Exporting the whole environment to foreign hosts\n");
 	}
