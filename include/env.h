@@ -199,11 +199,6 @@ int env_unset(env_fields_t *env, const char *name);
  */
 char *env_dump(env_fields_t *env, int idx);
 
-
-int env_put(env_fields_t *env, char *envstring);
-
-void env_destroy(env_fields_t *env);
-
 #ifdef __cplusplus
 }/* extern "C" */
 #endif

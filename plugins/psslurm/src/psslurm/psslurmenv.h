@@ -24,7 +24,5 @@ void setBatchEnv(Job_t *job);
 void setTaskEnv(Step_t *step);
 void setSlurmEnv(Job_t *job);
 void setRankEnv(int32_t rank, Step_t *step);
-int getUint32FromEnv(char **origEnv, uint32_t envc, char *name, uint32_t *val);
-char *getValueFromEnv(char **origEnv, uint32_t envc, char *name);
 
 #endif

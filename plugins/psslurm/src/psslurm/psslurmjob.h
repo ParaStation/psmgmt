@@ -23,8 +23,12 @@
 #include "list.h"
 #include "psnodes.h"
 #include "pstask.h"
+
+#include "psslurmgres.h"
+
 #include "pluginforwarder.h"
 #include "plugincomm.h"
+#include "pluginenv.h"
 
 #define MAX_JOBID_LEN 100
 
@@ -48,13 +52,6 @@ typedef struct {
     uint32_t stepMemLimit;
     char *hostlist;
     time_t ctime;
-    uint32_t pluginId;
-    uint32_t gresCountAlloc;
-    uint32_t nodeCount;
-    char **gres_bit_alloc;
-    char **gres_bit_step_alloc;
-    uint32_t *gres_cnt_step_alloc;
-    char *nodeInUse;
     uint32_t totalCoreCount;
     char *jobCoreBitmap;
     char *stepCoreBitmap;
@@ -108,6 +105,7 @@ typedef struct {
     gid_t gid;		    /* group of the step owner */
     char *partition;
     JobCred_t *cred;	    /* job/step creditials */
+    Gres_Cred_t gres;
     PSnodes_ID_t *nodes;    /* all participating nodes in the job */
     uint32_t nrOfNodes;
     char * slurmNodes;	    /* slurm compressed hostlist */
@@ -139,10 +137,8 @@ typedef struct {
     int exitCode;
     char **argv;
     uint32_t argc;
-    char **env;
-    uint32_t envc;
-    char **spankenv;
-    uint32_t spankenvc;
+    env_t env;
+    env_t spankenv;
     char *taskProlog;
     char *taskEpilog;
     char *cwd;
@@ -163,6 +159,7 @@ typedef struct {
     uint32_t cpuFreq;
     char *checkpoint;
     char *restart;
+    uint8_t x11forward;
     Forwarder_Data_t *fwdata;
     PS_Tasks_t tasks;
     struct list_head list;  /* the step list header */
@@ -181,12 +178,11 @@ typedef struct {
     PStask_ID_t mother;
     char *partition;
     JobCred_t *cred;	    /* job/step creditials */
+    Gres_Cred_t gres;
     char **argv;
     uint32_t argc;
-    char **env;
-    uint32_t envc;
-    char **spankenv;
-    uint32_t spankenvc;
+    env_t env;
+    env_t spankenv;
     uint32_t nrOfNodes;
     uint16_t cpuBindType;
     uint16_t jobCoreSpec;   /* count of specilized cores */

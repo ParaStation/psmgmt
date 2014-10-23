@@ -24,8 +24,10 @@
 #include <sys/stat.h>
 
 #include "psidnodes.h"
-#include "env.h"
+#include "pluginenv.h"
+
 #include "pluginmalloc.h"
+#include "pluginhostlist.h"
 
 #include "slurmcommon.h"
 #include "psslurmconfig.h"
@@ -111,11 +113,10 @@ static char *getCPUsPerNode(Job_t *job)
  */
 void setSlurmEnv(Job_t *job)
 {
-    env_fields_t env;
-    char tmp[1024], *cpus = NULL;
-
-    env.vars = job->env;
-    env.cnt = env.size = job->envc;
+    char tmp[1024], *cpus = NULL, *list = NULL;
+    Gres_Cred_t *gres;
+    size_t listSize = 0;
+    uint32_t count = 0;
 
     /* MISSING BATCH VARS:
      *
@@ -127,57 +128,69 @@ void setSlurmEnv(Job_t *job)
 
     if (job->np) {
 	snprintf(tmp, sizeof(tmp), "%u", job->np);
-	env_set(&env, "SLURM_NTASKS", tmp);
-	env_set(&env, "SLURM_NPROCS", tmp);
+	envSet(&job->env, "SLURM_NTASKS", tmp);
+	envSet(&job->env, "SLURM_NPROCS", tmp);
     }
 
-    if (job->partition) env_set(&env, "SLURM_JOB_PARTITION", job->partition);
+    if (job->partition) envSet(&job->env, "SLURM_JOB_PARTITION", job->partition);
 
-    env_set(&env, "SLURMD_NODENAME", getConfValueC(&Config, "SLURM_HOSTNAME"));
+    envSet(&job->env, "SLURMD_NODENAME", getConfValueC(&Config, "SLURM_HOSTNAME"));
 
-    env_set(&env, "SLURM_JOBID", job->id);
-    env_set(&env, "SLURM_JOB_ID", job->id);
+    envSet(&job->env, "SLURM_JOBID", job->id);
+    envSet(&job->env, "SLURM_JOB_ID", job->id);
 
     snprintf(tmp, sizeof(tmp), "%u", job->nrOfNodes);
-    env_set(&env, "SLURM_JOB_NUM_NODES", tmp);
-    env_set(&env, "SLURM_NNODES", tmp);
-    env_set(&env, "SLURM_GTIDS", "0");
-    env_set(&env, "SLURM_JOB_USER", job->username);
+    envSet(&job->env, "SLURM_JOB_NUM_NODES", tmp);
+    envSet(&job->env, "SLURM_NNODES", tmp);
+    envSet(&job->env, "SLURM_GTIDS", "0");
+    envSet(&job->env, "SLURM_JOB_USER", job->username);
     snprintf(tmp, sizeof(tmp), "%u", job->uid);
-    env_set(&env, "SLURM_JOB_UID", tmp);
-    env_set(&env, "SLURM_CPUS_ON_NODE", getConfValueC(&Config, "SLURM_CPUS"));
+    envSet(&job->env, "SLURM_JOB_UID", tmp);
+    envSet(&job->env, "SLURM_CPUS_ON_NODE", getConfValueC(&Config, "SLURM_CPUS"));
 
     cpus = getCPUsPerNode(job);
-    env_set(&env, "SLURM_JOB_CPUS_PER_NODE", cpus);
+    envSet(&job->env, "SLURM_JOB_CPUS_PER_NODE", cpus);
     ufree(cpus);
 
     /* TODO: SLURM_TASKS_PER_NODE */
 
     if (job->arrayTaskId != NO_VAL) {
 	snprintf(tmp, sizeof(tmp), "%u", job->arrayJobId);
-	env_set(&env, "SLURM_ARRAY_JOB_ID", tmp);
+	envSet(&job->env, "SLURM_ARRAY_JOB_ID", tmp);
 
 	snprintf(tmp, sizeof(tmp), "%u", job->arrayTaskId);
-	env_set(&env, "SLURM_ARRAY_TASK_ID", tmp);
+	envSet(&job->env, "SLURM_ARRAY_TASK_ID", tmp);
     }
 
-    env_set(&env, "SLURM_NODELIST", job->slurmNodes);
-    env_set(&env, "SLURM_JOB_NODELIST", job->slurmNodes);
-    env_set(&env, "SLURM_CHECKPOINT_IMAGE_DIR", job->checkpoint);
+    envSet(&job->env, "SLURM_NODELIST", job->slurmNodes);
+    envSet(&job->env, "SLURM_JOB_NODELIST", job->slurmNodes);
+    envSet(&job->env, "SLURM_CHECKPOINT_IMAGE_DIR", job->checkpoint);
 
     if (!job->nodeAlias || !strlen(job->nodeAlias)) {
-	env_set(&env, "SLURM_NODE_ALIASES", "(null)");
+	envSet(&job->env, "SLURM_NODE_ALIASES", "(null)");
     } else {
-	env_set(&env, "SLURM_NODE_ALIASES", job->nodeAlias);
+	envSet(&job->env, "SLURM_NODE_ALIASES", job->nodeAlias);
     }
 
     if (job->hostname) {
 	mlog("%s: set hostname:%s\n", __func__, job->hostname);
-	env_set(&env, "HOSTNAME", job->hostname);
+	envSet(&job->env, "HOSTNAME", job->hostname);
     }
 
-    job->env = env.vars;
-    job->envc = env.cnt;
+    /* gres "gpu" plugin */
+    if ((gres = findGresCred(&job->gres, GRES_PLUGIN_GPU, 1))) {
+	range2List(NULL, gres->bitAlloc[0], &list, &listSize, &count);
+	envSet(&job->env, "CUDA_VISIBLE_DEVICES", list);
+	envSet(&job->env, "GPU_DEVICE_ORDINAL", list);
+	ufree(list);
+    }
+
+    /* gres "mic" plugin */
+    if ((gres = findGresCred(&job->gres, GRES_PLUGIN_MIC, 1))) {
+	range2List(NULL, gres->bitAlloc[0], &list, &listSize, &count);
+	envSet(&job->env, "OFFLOAD_DEVICES", list);
+	ufree(list);
+    }
 }
 
 static char *getMyGTIDsForNode(uint32_t **globalTaskIds,
@@ -221,8 +234,10 @@ static uint32_t getMyLocalId(uint32_t rank, Step_t *step, uint32_t nodeId)
 
 void setRankEnv(int32_t rank, Step_t *step)
 {
-    char tmp[128], *myGTIDs;
-    uint32_t myNodeId, myLocalId;
+    char tmp[128], *myGTIDs, *list = NULL;
+    size_t listSize = 0;
+    uint32_t myNodeId, myLocalId, count = 0;
+    Gres_Cred_t *gres;
 
     setenv("SLURMD_NODENAME", getConfValueC(&Config, "SLURM_HOSTNAME"), 1);
     gethostname(tmp, sizeof(tmp));
@@ -245,6 +260,34 @@ void setRankEnv(int32_t rank, Step_t *step)
     myLocalId = getMyLocalId(rank, step, myNodeId);
     snprintf(tmp, sizeof(tmp), "%u", myLocalId);
     setenv("SLURM_LOCALID", tmp, 1);
+
+    /* gres "gpu" plugin */
+    if ((gres = findGresCred(&step->gres, GRES_PLUGIN_GPU, 0))) {
+	range2List(NULL, gres->bitAlloc[myNodeId], &list, &listSize, &count);
+	setenv("CUDA_VISIBLE_DEVICES", list, 1);
+	setenv("GPU_DEVICE_ORDINAL", list, 1);
+	ufree(list);
+    }
+
+    /* gres "mic" plugin */
+    if ((gres = findGresCred(&step->gres, GRES_PLUGIN_MIC, 0))) {
+	range2List(NULL, gres->bitAlloc[myNodeId], &list, &listSize, &count);
+	setenv("OFFLOAD_DEVICES", list, 1);
+	ufree(list);
+    }
+}
+
+static void removeSpankOptions(env_t *env)
+{
+    uint32_t i;
+
+    /* remove srun/spank options */
+    for (i=0; i<env->cnt; i++) {
+	while (env->vars[i] &&
+		(!(strncmp("_SLURM_SPANK_OPTION", env->vars[i], 19)))) {
+	    envUnsetIndex(env, i);
+	}
+    }
 }
 
 void setTaskEnv(Step_t *step)
@@ -252,57 +295,45 @@ void setTaskEnv(Step_t *step)
     char *val, tmp[128];
     mode_t slurmUmask;
 
-    env_fields_t env;
-    //char tmp[1024];
-
-    env.vars = step->env;
-    env.cnt = env.size = step->envc;
-
     snprintf(tmp, sizeof(tmp), "%u", step->tpp);
-    env_set(&env, "SLURM_CPUS_PER_TASK", tmp);
+    envSet(&step->env, "SLURM_CPUS_PER_TASK", tmp);
 
-    env_set(&env, "SLURM_CHECKPOINT_IMAGE_DIR", step->checkpoint);
-    env_set(&env, "SLURM_LAUNCH_NODE_IPADDR", inet_ntoa(step->srun.sin_addr));
-    env_set(&env, "SLURM_SRUN_COMM_HOST", inet_ntoa(step->srun.sin_addr));
-    //env_set(&env, "PSI_LOGGERDEBUG", "1");
-    //env_set(&env, "PSI_FORWARDERDEBUG", "1");
-    env_set(&env, "__SLURM_INFORM_TIDS", "1");
+    envSet(&step->env, "SLURM_CHECKPOINT_IMAGE_DIR", step->checkpoint);
+    envSet(&step->env, "SLURM_LAUNCH_NODE_IPADDR", inet_ntoa(step->srun.sin_addr));
+    envSet(&step->env, "SLURM_SRUN_COMM_HOST", inet_ntoa(step->srun.sin_addr));
+    //envSet(&step->env, "PSI_LOGGERDEBUG", "1");
+    //envSet(&step->env, "PSI_FORWARDERDEBUG", "1");
+    envSet(&step->env, "__SLURM_INFORM_TIDS", "1");
 
     /* forward overbook mode */
-    if ((val = env_get(&env, "SLURM_OVERCOMMIT"))) {
+    if ((val = envGet(&step->env, "SLURM_OVERCOMMIT"))) {
 	if (!strcmp(val, "1")) {
-	    env_set(&env, "PSI_OVERBOOK", "1");
+	    envSet(&step->env, "PSI_OVERBOOK", "1");
 	}
     }
 
     /* unbuffered (raw I/O) mode */
     if (!step->bufferedIO) {
-	env_set(&env, "__PSI_RAW_IO", "1");
-	env_set(&env, "PSI_LOGGER_UNBUFFERED", "1");
+	envSet(&step->env, "__PSI_RAW_IO", "1");
+	envSet(&step->env, "PSI_LOGGER_UNBUFFERED", "1");
     }
 
-    /*
-    snprintf(tmp, sizeof(tmp), "%u", step->nodes[0]);
-    env_set(&env, "PSI_NODES", tmp);
-    */
-
-    if (!step->pty) env_set(&env, "PSI_INPUTDEST", "all");
+    if (!step->pty) envSet(&step->env, "PSI_INPUTDEST", "all");
 
     /* set slurm umask */
-    if ((val = env_get(&env, "SLURM_UMASK"))) {
+    if ((val = envGet(&step->env, "SLURM_UMASK"))) {
 	slurmUmask = strtol(val, NULL, 8);
 	umask(slurmUmask);
-	env_unset(&env, "SLURM_UMASK");
-	env_set(&env, "__PSI_UMASK", val);
+	envUnset(&step->env, "SLURM_UMASK");
+	envSet(&step->env, "__PSI_UMASK", val);
     }
 
-    env_unset(&env, "SLURM_MPI_TYPE");
-    env_set(&env, "SLURM_JOB_USER", step->username);
+    envUnset(&step->env, "SLURM_MPI_TYPE");
+    envSet(&step->env, "SLURM_JOB_USER", step->username);
     snprintf(tmp, sizeof(tmp), "%u", step->uid);
-    env_set(&env, "SLURM_JOB_UID", tmp);
+    envSet(&step->env, "SLURM_JOB_UID", tmp);
 
-    step->env = env.vars;
-    step->envc = env.cnt;
+    removeSpankOptions(&step->env);
 }
 
 /*
@@ -311,66 +342,34 @@ void setTaskEnv(Step_t *step)
      * which comes from slurmd, or is slurmd doing that for us? */
 void setBatchEnv(Job_t *job)
 {
-    env_fields_t env;
     char tmp[1024], *val = NULL;
     mode_t slurmUmask;
 
-    env.vars = job->env;
-    env.cnt = env.size = job->envc;
-
-    env_set(&env, "ENVIRONMENT", "BATCH");
-    env_set(&env, "SLURM_NODEID", "0");
-    env_set(&env, "SLURM_PROCID", "0");
-    env_set(&env, "SLURM_LOCALID", "0");
+    envSet(&job->env, "ENVIRONMENT", "BATCH");
+    envSet(&job->env, "SLURM_NODEID", "0");
+    envSet(&job->env, "SLURM_PROCID", "0");
+    envSet(&job->env, "SLURM_LOCALID", "0");
 
     /* CORRECT ME */
     snprintf(tmp, sizeof(tmp), "%u", job->nodeMinMemory);
-    env_set(&env, "SLURM_MEM_PER_NODE", tmp);
+    envSet(&job->env, "SLURM_MEM_PER_NODE", tmp);
 
     snprintf(tmp, sizeof(tmp), "%u", getpid());
-    env_set(&env, "SLURM_TASK_PID", tmp);
+    envSet(&job->env, "SLURM_TASK_PID", tmp);
 
     /* forward overbook mode */
-    val = env_get(&env, "SLURM_OVERCOMMIT");
+    val = envGet(&job->env, "SLURM_OVERCOMMIT");
 
     if (job->overcommit || (val && !strcmp(val, "1"))) {
-	env_set(&env, "PSI_OVERBOOK", "1");
+	envSet(&job->env, "PSI_OVERBOOK", "1");
     }
 
     /* set slurm umask */
-    if ((val = env_get(&env, "SLURM_UMASK"))) {
+    if ((val = envGet(&job->env, "SLURM_UMASK"))) {
 	slurmUmask = strtol(val, NULL, 8);
 	umask(slurmUmask);
-	env_unset(&env, "SLURM_UMASK");
+	envUnset(&job->env, "SLURM_UMASK");
     }
 
-    job->env = env.vars;
-    job->envc = env.cnt;
-}
-
-char *getValueFromEnv(char **origEnv, uint32_t envc, char *name)
-{
-    env_fields_t env;
-    char *val;
-
-    env.vars = origEnv;
-    env.cnt = env.size = envc;
-
-    if ((val = env_get(&env, name))) return val;
-    return NULL;
-}
-
-int getUint32FromEnv(char **origEnv, uint32_t envc, char *name, uint32_t *val)
-{
-    env_fields_t env;
-    char *valc;
-
-    env.vars = origEnv;
-    env.cnt = env.size = envc;
-
-    if ((valc = env_get(&env, name))) {
-	if ((sscanf(valc, "%u", val)) == 1) return 1;
-	return 0;
-    }
-    return 0;
+    removeSpankOptions(&job->env);
 }

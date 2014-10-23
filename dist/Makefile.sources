@@ -127,6 +127,7 @@ include/parser.h \
 include/plugin.h \
 include/plugincomm.h \
 include/pluginconfig.h \
+include/pluginenv.h \
 include/pluginforwarder.h \
 include/pluginfrag.h \
 include/pluginhelper.h \
@@ -166,6 +167,7 @@ lib/plugincommon/Makefile.am \
 lib/plugincommon/Makefile.in \
 lib/plugincommon/plugincomm.c \
 lib/plugincommon/pluginconfig.c \
+lib/plugincommon/pluginenv.c \
 lib/plugincommon/pluginforwarder.c \
 lib/plugincommon/pluginfrag.c \
 lib/plugincommon/pluginhelper.c \
@@ -418,6 +420,8 @@ plugins/psslurm/src/psslurm/psslurmenv.c \
 plugins/psslurm/src/psslurm/psslurmenv.h \
 plugins/psslurm/src/psslurm/psslurmforwarder.c \
 plugins/psslurm/src/psslurm/psslurmforwarder.h \
+plugins/psslurm/src/psslurm/psslurmgres.c \
+plugins/psslurm/src/psslurm/psslurmgres.h \
 plugins/psslurm/src/psslurm/psslurm.h \
 plugins/psslurm/src/psslurm/psslurmjob.c \
 plugins/psslurm/src/psslurm/psslurmjob.h \

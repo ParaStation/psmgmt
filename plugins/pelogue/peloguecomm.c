@@ -62,11 +62,11 @@ void sendFragMsgToHostList(Job_t *job, PS_DataBuffer_t *data, int32_t type,
     }
 }
 
-int sendPElogueStart(Job_t *job, bool prologue, env_fields_t *env)
+int sendPElogueStart(Job_t *job, bool prologue, env_t *env)
 {
     PS_DataBuffer_t data = { .buf = NULL};
     int32_t timeout, type;
-    int i, envSize;
+    uint32_t i;
 
     if (prologue) {
 	getConfParamI(job->plugin, "TIMEOUT_PROLOGUE", &timeout);
@@ -103,11 +103,10 @@ int sendPElogueStart(Job_t *job, bool prologue, env_fields_t *env)
     addTimeToMsg(&job->start_time, &data);
 
     /* add environment */
-    envSize = env_size(env);
-    addInt32ToMsg(envSize, &data);
+    addInt32ToMsg(env->cnt, &data);
 
-    for (i=0; i<envSize; i++) {
-	addStringToMsg(env_dump(env, i), &data);
+    for (i=0; i<env->cnt; i++) {
+	addStringToMsg(env->vars[i], &data);
     }
 
     /* start global timeout monitoring */
@@ -151,7 +150,7 @@ void manageTempDir(const char *plugin, const char *jobid, int create,
 
 static void destroyPElogueData(PElogue_Data_t *pedata)
 {
-    env_destroy(&pedata->env);
+    envDestroy(&pedata->env);
     ufree(pedata->jobid);
     ufree(pedata->plugin);
     ufree(pedata->scriptname);
@@ -377,11 +376,11 @@ static void handlePELogueStart(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *recvDat
     dirScripts = getConfParamC(data->plugin, "DIR_SCRIPTS");
 
     /* get environment */
-    env_init(&data->env);
+    envInit(&data->env);
     getInt32(&ptr, &envSize);
     for (i=0; i<envSize; i++) {
 	tmp = getStringM(&ptr);
-	env_put(&data->env, tmp);
+	envPut(&data->env, tmp);
 	ufree(tmp);
     }
 

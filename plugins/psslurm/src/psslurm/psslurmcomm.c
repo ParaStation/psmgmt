@@ -618,8 +618,7 @@ int srunOpenPTY(Step_t *step)
     int sock;
     char *port;
 
-    if (!(port = getValueFromEnv(step->env, step->envc,
-	"SLURM_PTY_PORT"))) {
+    if (!(port = envGet(&step->env, "SLURM_PTY_PORT"))) {
 	mlog("%s: missing SLURM_PTY_PORT variable\n", __func__);
 	return -1;
     }

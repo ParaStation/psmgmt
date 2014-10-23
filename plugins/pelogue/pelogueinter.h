@@ -20,7 +20,7 @@
 
 #include <stdbool.h>
 
-#include "env.h"
+#include "pluginenv.h"
 #include "pelogueconfig.h"
 
 int psPelogueAddPluginConfig(char * name, Config_t *configList);
@@ -30,7 +30,7 @@ void psPelogueAddJob(const char *plugin, const char *jobid, uid_t uid,
 			Pelogue_JobCb_Func_t *pluginCallback);
 
 int psPelogueStartPE(const char *plugin, const char *jobid, bool prologue,
-			env_fields_t *env);
+			env_t *env);
 
 int psPelogueSignalPE(const char *plugin, const char *jobid, int signal,
 			char *reason);

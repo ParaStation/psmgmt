@@ -15,8 +15,8 @@
  *
  */
 
-#ifndef __PLUGIN_CONFIG
-#define __PLUGIN_CONFIG
+#ifndef __PLUGIN_LIB_CONFIG
+#define __PLUGIN_LIB_CONFIG
 
 #include "list.h"
 

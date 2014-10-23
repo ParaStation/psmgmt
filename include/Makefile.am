@@ -22,4 +22,4 @@ noinst_HEADERS = env.h hardware.h kvscommon.h kvs.h mcast.h parser.h	\
 	 rdp.h psipartition.h psparamspace.h kvsprovider.h		\
 	 pluginmalloc.h pluginfrag.h plugincomm.h pluginconfig.h	\
 	 pluginforwarder.h pluginhelper.h pluginhostlist.h pluginlog.h 	\
-	 pluginpartition.h pluginpty.h
+	 pluginpartition.h pluginpty.h pluginenv.h

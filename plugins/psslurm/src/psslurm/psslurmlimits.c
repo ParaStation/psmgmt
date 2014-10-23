@@ -21,7 +21,6 @@
 #include <errno.h>
 #include <sys/resource.h>
 
-#include "env.h"
 #include "psslurmenv.h"
 #include "psslurmconfig.h"
 #include "psslurmlog.h"
@@ -154,22 +153,18 @@ void setHardRlimits()
 }
 */
 
-void setRlimitsFromEnv(char ***origEnv, uint32_t *envc, int psi)
+void setRlimitsFromEnv(env_t *env, int psi)
 {
     struct rlimit limit;
     unsigned long softLimit;
-    env_fields_t env;
     char *val, climit[128], pslimit[128];
     int i = 0, propagate = 0;
-
-    env.vars = *origEnv;
-    env.cnt = env.size = *envc;
 
     while (slurmConfLimits[i].name) {
 
 	snprintf(climit, sizeof(climit), "SLURM_RLIMIT_%s",
 		    slurmConfLimits[i].name);
-	if ((val = env_get(&env, climit))) {
+	if ((val = envGet(env, climit))) {
 	    /* user wants us to propagate value */
 	    if (val[0] == 'U') {
 		val++;
@@ -198,12 +193,12 @@ void setRlimitsFromEnv(char ***origEnv, uint32_t *envc, int psi)
 			}
 			if (psi) {
 			    if (softLimit == RLIM_INFINITY) {
-				env_set(&env, slurmConfLimits[i].psname,
+				envSet(env, slurmConfLimits[i].psname,
 					    "infinity");
 			    } else {
 				snprintf(pslimit, sizeof(pslimit), "%lx",
 					    softLimit);
-				env_set(&env, slurmConfLimits[i].psname,
+				envSet(env, slurmConfLimits[i].psname,
 					    pslimit);
 			    }
 			}
@@ -212,11 +207,8 @@ void setRlimitsFromEnv(char ***origEnv, uint32_t *envc, int psi)
 	    }
 
 	    /* remove from user env */
-	    env_unset(&env, climit);
+	    envUnset(env, climit);
 	}
 	i++;
     }
-
-    *origEnv = env.vars;
-    *envc = env.cnt;
 }

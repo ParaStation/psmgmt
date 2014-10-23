@@ -21,7 +21,7 @@
 #include <stdbool.h>
 
 #include "psprotocol.h"
-#include "env.h"
+#include "pluginenv.h"
 #include "peloguechild.h"
 
 #include "peloguejob.h"
@@ -45,7 +45,7 @@ typedef struct {
     char *jobid;
     int32_t timeout;
     int32_t exit;
-    env_fields_t env;
+    env_t env;
     char *scriptname;
     Child_t *child;
     uid_t uid;
@@ -73,7 +73,7 @@ void handleIntMsg(DDTypedBufferMsg_t *msg);
 
 void handleDroppedMsg(DDTypedBufferMsg_t *msg);
 
-int sendPElogueStart(Job_t *job, bool prologue, env_fields_t *env);
+int sendPElogueStart(Job_t *job, bool prologue, env_t *env);
 
 int fwCallback(int32_t wstat, char *errMsg, size_t errLen, void *data);
 

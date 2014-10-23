@@ -24,16 +24,16 @@
 
 #include "pluginhostlist.h"
 
-static int addHLRange(char *prefix, char *range, char **hostlist, size_t *size,
+int range2List(char *prefix, char *range, char **list, size_t *size,
 			uint32_t *count)
 {
     char *sep, tmp[1024], format[128];
     unsigned int i, min, max, pad;
 
     if (!(sep = strchr(range, '-'))) {
-	if (*size) str2Buf(",", hostlist, size);
-	str2Buf(prefix, hostlist, size);
-	str2Buf(range, hostlist, size);
+	if (*size) str2Buf(",", list, size);
+	if (prefix) str2Buf(prefix, list, size);
+	str2Buf(range, list, size);
 	*count = *count +1;
 	return 1;
     }
@@ -50,10 +50,10 @@ static int addHLRange(char *prefix, char *range, char **hostlist, size_t *size,
     }
 
     for (i=min; i<=max; i++) {
-	if (*size) str2Buf(",", hostlist, size);
-	str2Buf(prefix, hostlist, size);
+	if (*size) str2Buf(",", list, size);
+	if (prefix) str2Buf(prefix, list, size);
 	snprintf(tmp, sizeof(tmp), format, i);
-	str2Buf(tmp, hostlist, size);
+	str2Buf(tmp, list, size);
 	*count = *count +1;
     }
     return 1;
@@ -85,7 +85,7 @@ char *expandHostList(char *hostlist, uint32_t *count)
 	    *openBrk = '\0';
 	    prefix = ustrdup(next);
 
-	    if (!(addHLRange(prefix, range, &expHL, &expHLSize, count))) {
+	    if (!(range2List(prefix, range, &expHL, &expHLSize, count))) {
 		goto expandError;
 	    }
 	    isOpen = 1;
@@ -97,7 +97,7 @@ char *expandHostList(char *hostlist, uint32_t *count)
 
 	    range = openBrk +1;
 	    *closeBrk = *openBrk = '\0';
-	    if (!(addHLRange(next, range, &expHL, &expHLSize, count))) {
+	    if (!(range2List(next, range, &expHL, &expHLSize, count))) {
 		goto expandError;
 	    }
 	} else if (closeBrk) {
@@ -111,7 +111,7 @@ char *expandHostList(char *hostlist, uint32_t *count)
 	    }
 
 	    *closeBrk = '\0';
-	    if (!(addHLRange(prefix, next, &expHL, &expHLSize, count))) {
+	    if (!(range2List(prefix, next, &expHL, &expHLSize, count))) {
 		goto expandError;
 	    }
 
@@ -123,7 +123,7 @@ char *expandHostList(char *hostlist, uint32_t *count)
 		pluginlog("%s: error invalid prefix\n", __func__);
 		goto expandError;
 	    }
-	    if (!(addHLRange(prefix, next, &expHL, &expHLSize, count))) {
+	    if (!(range2List(prefix, next, &expHL, &expHLSize, count))) {
 		goto expandError;
 	    }
 	} else {

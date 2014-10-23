@@ -36,7 +36,9 @@
 #include "plugin.h"
 #include "timer.h"
 #include "psaccfunc.h"
+
 #include "pluginfrag.h"
+#include "pluginlog.h"
 
 #include "pelogue.h"
 
@@ -163,6 +165,12 @@ int initialize(void)
 
     /* init the logger (log to syslog) */
     initLogger("pelogue", NULL);
+
+    /*
+    FILE *lfile = fopen("/tmp/malloc", "w+");
+    initPluginLogger(NULL, lfile);
+    maskPluginLogger(PLUGIN_LOG_MALLOC);
+    */
 
     /* we need to have root privileges */
     if (getuid() != 0) {

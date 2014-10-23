@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2012 - 2013 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2012 - 2014 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -15,8 +15,8 @@
  *
  */
 
-#ifndef __PLUGIN_COMM_FRAG_HELPER
-#define __PLUGIN_COMM_FRAG_HELPER
+#ifndef __PLUGIN_LIB_COMM_FRAG
+#define __PLUGIN_LIB_COMM_FRAG
 
 #include "pscommon.h"
 #include "psprotocol.h"
