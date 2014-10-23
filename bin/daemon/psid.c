@@ -602,6 +602,9 @@ int main(int argc, const char *argv[])
 	return 1;
     }
 
+    /* Save some space in order to modify the cmdline later on */
+    PSC_saveTitleSpace(PSID_argc, (char **)PSID_argv, 1);
+
     if (!debugMask || (logfile!=stderr && logfile!=stdout)) {
 	/* Start as daemon */
 	switch (fork()) {

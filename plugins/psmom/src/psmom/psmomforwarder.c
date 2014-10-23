@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2013 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2014 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -616,7 +616,7 @@ static int initForwarder(int forwarderType, char *jobname)
     /* overwrite proc title */
     snprintf(pTitle, sizeof(pTitle), "psmom-%s-fw: %s",
 		fwType2Str(forwarderType), jobname);
-    PSC_setProcTitle((char ** )PSID_argv, PSID_argc, pTitle, 0);
+    PSC_setProcTitle(PSID_argc, (char ** )PSID_argv, pTitle, 0);
 
     /* Reset connection to syslog */
     closelog();

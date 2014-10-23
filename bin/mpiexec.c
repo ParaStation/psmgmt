@@ -546,7 +546,7 @@ static void startKVSProvider(int argc, char *argv[], char **envp)
 	loggertid = atoi(ptr);
 	snprintf(pTitle, sizeof(pTitle), "kvsprovider LTID[%d] %s",
 		    PSC_getPID(loggertid), getenv("PMI_KVS_TMP"));
-	PSC_setProcTitle(argv, argc, pTitle, 1);
+	PSC_setProcTitle(argc, argv, pTitle, 1);
     }
 
     /* start the KVS provider */

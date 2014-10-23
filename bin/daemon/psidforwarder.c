@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2013 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2014 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -1479,7 +1479,7 @@ void PSID_forwarder(PStask_t *task, int daemonfd, int eno)
     snprintf(pTitle, sizeof(pTitle), "psidfw TID[%d:%d] R%d",
 		PSC_getID(childTask->loggertid),
 		PSC_getPID(childTask->loggertid), childTask->rank);
-    PSC_setProcTitle((char **)PSID_argv, PSID_argc, pTitle, 1);
+    PSC_setProcTitle(PSID_argc, (char **)PSID_argv, pTitle, 1);
 
     /* call the loop which does all the work */
     loop();
