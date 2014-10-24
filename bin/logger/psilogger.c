@@ -180,12 +180,6 @@ void PSIlog_finalizeLogs(void)
 }
 
 /**
- * If STDIN get's closed, don't re-add it to the fd-set. This stores
- * our STDIN-fd.
- */
-static int unavailSTDIN = -1;
-
-/**
  * @brief Close socket to daemon.
  *
  * Close the socket connecting the forwarder with the local daemon.
@@ -723,7 +717,6 @@ static void forwardInput(int std_in)
     case 0:
 	Selector_remove(std_in);
 	close(std_in);
-	unavailSTDIN = std_in;
     default:
 	forwardInputStr(buf, len);
 
@@ -1049,13 +1042,16 @@ static int timeoutval = 0;
 
 static void handleCCMsg(PSLog_Msg_t *msg)
 {
+    static int stdinHandled = 0;
     int outfd = STDOUT_FILENO;
 
     if (msg->type == INITIALIZE) {
 	if (newrequest(msg) && maxConnected >= np + numService) {
 	    timeoutval = MIN_WAIT;
-	    if (allActiveThere()) {
+	    if (allActiveThere() && !stdinHandled) {
 		Selector_register(STDIN_FILENO, readFromStdin, NULL);
+		/* If STDIN get's closed, don't re-add it to the selector */
+		stdinHandled = 1;
 	    }
 	}
     } else if (msg->sender > getMaxRank()) {
