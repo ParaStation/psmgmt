@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2009-2012 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2009-2014 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -28,6 +28,12 @@ static char vcid[] __attribute__((used)) =
 
 #include "psidscripts.h"
 
+/** List of registered callbacks PIDs (indexed by file-descriptor) */
+static pid_t cbList[FD_SETSIZE];
+
+/** Flag validity of @ref cbList */
+static int cbListInitialized = 0;
+
 /*
  * For documentation see PSID_execScript() and PSID_execFunc in psidscripts.h
  */
@@ -44,6 +50,11 @@ static int doExec(char *script, PSID_scriptFunc_t func, PSID_scriptPrep_t prep,
     }
 
     if (cb) {
+	if (!cbListInitialized) {
+	    int i;
+	    for (i=0; i<FD_SETSIZE; i++) cbList[i] = 0;
+	    cbListInitialized = 1;
+	}
 	if (!Selector_isInitialized()) {
 	    PSID_log(-1, "%s(%s): needs running Selector\n", caller,
 		     script ? script : "");
@@ -161,6 +172,7 @@ static int doExec(char *script, PSID_scriptFunc_t func, PSID_scriptPrep_t prep,
 	cbInfo->iofd = iofds[0];
 	cbInfo->info = info;
 	Selector_register(controlfds[0], (Selector_CB_t *) cb, cbInfo);
+	cbList[controlfds[0]] = pid;
 	ret = pid;
     } else {
 	int num;
@@ -257,4 +269,25 @@ int PSID_execFunc(PSID_scriptFunc_t func, PSID_scriptPrep_t prep,
 		  PSID_scriptCB_t cb, void *info)
 {
     return doExec(NULL, func, prep, cb, info, __func__);
+}
+
+int PSID_cancelCB(pid_t pid)
+{
+    int fd;
+
+    if (!cbListInitialized) {
+	PSID_log(-1, "%s: cbList not initialized.\n", __func__);
+	return -1;
+    }
+
+    for (fd=0; fd<FD_SETSIZE; fd++) {
+	if (cbList[fd] == pid) break;
+    }
+
+    if (fd == FD_SETSIZE) {
+	PSID_log(-1, "%s: pid %d not found.\n", __func__, pid);
+	return -1;
+    }
+
+    return Selector_remove(fd);
 }

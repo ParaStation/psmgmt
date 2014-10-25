@@ -108,8 +108,10 @@ static LIST_HEAD(pluginList);
  *	PSIDHOOK_FRWRD_INIT, PSIDHOOK_FRWRD_CINFO,
  *	PSIDHOOK_FRWRD_KVS, PSIDHOOK_FRWRD_RESCLIENT,
  *	PSIDHOOK_FRWRD_CLIENT_STAT
+ *
+ * 111: added PSID_cancelCB()
  */
-static int pluginAPIVersion = 110;
+static int pluginAPIVersion = 111;
 
 
 /** Grace period between finalize and unload on forcefully unloads */
