@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2012 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2014 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -385,24 +385,6 @@ typedef struct {
     int32_t type;          /**< message (sub-)type */
 } DDTypedMsg_t;
 
-/** Buffer size of DDHugeMsg_t */
-#define HugeMsgSize 8000
-
-/**
- * Special message type used for compatibility with older versions. In
- * former days DDBufferMsg_t's buffer had 8000 bytes. This forced the
- * kernel's IP layer to split long UDP-messages into fragments --
- * which is undesirable.
- *
- * This is the largest message ever possible. I.e. receiving a message
- * of this type saves from segmentation faults as long as the protocol
- * is not messed up.
- */
-typedef struct {
-    DDMsg_t header;        /**< message header */
-    char buf[HugeMsgSize]; /**< message buffer */
-} DDHugeMsg_t;
-
 /**
  * Buffer size (and thus maximum message size). 1456 is derived
  * from 1500 (MTU) - 20 (IP header) - 8 (UDP header) - 16 (RDP header)
@@ -413,9 +395,6 @@ typedef struct {
  * Untyped buffer message. This is the largest message
  * possible. I.e. receiving a message of this type saves from
  * segmentation faults as long as the protocol is not messed up.
- *
- * For compatibility with former version actually @ref DDHugeMsg_t
- * should be received.
  */
 typedef struct {
     DDMsg_t header;        /**< message header */

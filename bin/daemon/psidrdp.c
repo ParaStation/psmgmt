@@ -244,7 +244,7 @@ int recvRDP(DDMsg_t *msg, size_t size)
 
 void handleRDPMsg(int fd)
 {
-    DDHugeMsg_t msg;
+    DDBufferMsg_t msg;
 
     int msglen;
 
@@ -262,7 +262,7 @@ void handleRDPMsg(int fd)
 	    PSID_log(-1, "%s: PSP_CD_CLIENTCONNECT on RDP?\n", __func__);
 	}
 
-	if (!PSID_handleMsg((DDBufferMsg_t *)&msg)) {
+	if (!PSID_handleMsg(&msg)) {
 	    PSID_log(-1, "%s: Problem on RDP-socket\n", __func__);
 	}
     }

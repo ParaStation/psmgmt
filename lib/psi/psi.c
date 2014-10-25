@@ -462,7 +462,7 @@ int PSI_availMsg(void)
 
 int PSI_recvMsg(DDMsg_t *msg, size_t size)
 {
-    char *buf = (char*)msg, dump[sizeof(DDHugeMsg_t)];
+    char *buf = (char*)msg, dump[8192];
     int n;
     int count = 0, expected = sizeof(DDMsg_t);
 
@@ -496,7 +496,7 @@ int PSI_recvMsg(DDMsg_t *msg, size_t size)
 	}
 	if (count == sizeof(DDMsg_t)) {
 	    /* initial header received */
-	    if (msg->len > (int16_t)sizeof(DDHugeMsg_t)) {
+	    if (msg->len > (int16_t)sizeof(dump)) {
 		/* even dump is too small */
 		errno = ENOBUFS;
 		PSI_warn(-1, errno, "%s: type %s", __func__,

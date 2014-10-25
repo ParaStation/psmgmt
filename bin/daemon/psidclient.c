@@ -64,7 +64,7 @@ static void msg_CLIENTCONNECT(int fd, DDBufferMsg_t *bufmsg);
 
 static int handleClientConnectMsg(int fd, void *info)
 {
-    DDHugeMsg_t msg;
+    DDBufferMsg_t msg;
 
     int msglen;
 
@@ -87,7 +87,7 @@ static int handleClientConnectMsg(int fd, void *info)
 		     PSP_printMsg(msg.header.type));
 	    return 0;
 	}
-	msg_CLIENTCONNECT(fd, (DDBufferMsg_t *)&msg);
+	msg_CLIENTCONNECT(fd, &msg);
     }
 
     return 0;
@@ -127,7 +127,7 @@ PStask_t *getClientTask(int fd)
 
 static int handleClientMsg(int fd, void *info)
 {
-    DDHugeMsg_t msg;
+    DDBufferMsg_t msg;
 
     int msglen;
 
@@ -152,7 +152,7 @@ static int handleClientMsg(int fd, void *info)
 	    /* drop message silently */
 	    return 0;
 	}
-	if (!PSID_handleMsg((DDBufferMsg_t *)&msg)) {
+	if (!PSID_handleMsg(&msg)) {
 	    PSID_log(-1, "%s: Problem on socket %d\n", __func__, fd);
 	}
     }
