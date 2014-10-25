@@ -140,8 +140,12 @@ typedef struct {
 
 /** Up to this size predefined buffers are use to store the message. */
 #define RDP_SMALL_DATA_SIZE 64
-/** The maximum size of a RDP message. 1500 is Ethernet MTU. */
-#define RDP_MAX_DATA_SIZE (1500-sizeof(rdphdr_t))
+
+/**
+ * The maximum size of a RDP message.
+ * 1472 is derived from 1500 (MTU) - 20 (IP header) - 8 (UDP header)
+ */
+#define RDP_MAX_DATA_SIZE (1472-sizeof(rdphdr_t))
 
 /**
  * The maximum number of pending messages on a connection. If
