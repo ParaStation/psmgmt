@@ -131,33 +131,3 @@ char *env_dump(env_fields_t *env, int idx)
 
     return env->vars[idx];
 }
-
-int env_put(env_fields_t *env, char *envstring)
-{
-    char *value;
-    size_t len;
-    int i, idx;
-
-    if (!envstring) return -1;
-    if (!(value = strchr(envstring, '='))) return -1;
-
-    len = strlen(envstring) - strlen(value);
-    for (i = 0; i < env->cnt; i++) {
-	if (!(strncmp(envstring, env->vars[i], len)) &&
-	     (env->vars[i][len] == '=')) {
-	    env_unset_index(env, i);
-	    break;
-	}
-    }
-
-    return env_do_set(env, strdup(envstring), &idx);
-}
-
-void env_destroy(env_fields_t *env)
-{
-    int i;
-
-    for (i = 0; i < env->cnt; i++) {
-	env_unset_index(env, i);
-    }
-}

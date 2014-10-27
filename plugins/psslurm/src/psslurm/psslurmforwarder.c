@@ -53,7 +53,7 @@
 #include "psslurmforwarder.h"
 
 #define SERIAL_MODE 0
-
+#define X11_AUTH_CMD "/usr/bin/xauth"
 
 int jobCallback(int32_t exit_status, char *errMsg, size_t errLen, void *data)
 {
@@ -79,7 +79,7 @@ int jobCallback(int32_t exit_status, char *errMsg, size_t errLen, void *data)
 	mlog("%s: starting epilogue for job '%u'\n", __func__, job->jobid);
 	job->state = JOB_EPILOGUE;
 	startPElogue(job->jobid, job->uid, job->gid, job->nrOfNodes, job->nodes,
-		    job->env, job->envc, 0, 0);
+		    &job->env, 0, 0);
     }
 
     return 0;
@@ -141,7 +141,7 @@ int stepCallback(int32_t exit_status, char *errMsg, size_t errLen, void *data)
 		step->stepid);
 	step->state = JOB_EPILOGUE;
 	startPElogue(step->jobid, step->uid, step->gid, step->nrOfNodes,
-			step->nodes, step->env, step->envc, 1, 0);
+			step->nodes, &step->env, 1, 0);
     }
 
     return 0;
@@ -473,11 +473,11 @@ static void execBatchJob(void *data, int rerun)
     setBatchEnv(job);
 
     /* set rlimits */
-    setRlimitsFromEnv(&job->env, &job->envc, 0);
+    setRlimitsFromEnv(&job->env, 0);
 
     /* do exec */
     closelog();
-    execve(job->jobscript, job->argv, job->env);
+    execve(job->jobscript, job->argv, job->env.vars);
 }
 
 static void redirectIORank(Step_t *step, int rank)
@@ -682,6 +682,42 @@ int handleExecClient(void * data)
     return 0;
 }
 
+static void initX11Forward(Step_t *step)
+{
+    char *cookie, *proto, *screen, *port, *host, *home;
+    char display[100];
+    char xauthCmd[200], x11Auth[100];
+    FILE *fp;
+    int iport;
+
+    cookie = envGet(&step->spankenv, "X11_COOKIE");
+    proto = envGet(&step->spankenv, "X11_PROTO");
+    screen = envGet(&step->spankenv, "X11_SCREEN");
+    port = envGet(&step->spankenv, "X11_PORT");
+    host = envGet(&step->env, "SLURM_SUBMIT_HOST");
+    home = envGet(&step->env, "HOME");
+    iport = atoi(port);
+    iport -= 6000;
+
+    snprintf(display, sizeof(display), "%s:%i.%s", host, iport, screen);
+    envSet(&step->env, "DISPLAY", display);
+
+    snprintf(x11Auth, sizeof(x11Auth), "%s:%i.%s", host, iport, screen);
+    snprintf(xauthCmd, sizeof(xauthCmd), "%s -q -", X11_AUTH_CMD);
+
+    /* xauth needs the correct HOME */
+    setenv("HOME", home, 1);
+
+    if ((fp = popen(xauthCmd, "w")) != NULL) {
+	fprintf(fp, "remove %s\n", x11Auth);
+	fprintf(fp, "add %s %s %s\n", x11Auth, proto, cookie);
+	pclose(fp);
+    } else {
+	mlog("%s: open xauth '%s' failed\n", __func__, X11_AUTH_CMD);
+	envUnset(&step->env, "DISPLAY");
+    }
+}
+
 static void execInteractiveJob(void *data, int rerun)
 {
     /* TODO use correct path */
@@ -711,8 +747,8 @@ static void execInteractiveJob(void *data, int rerun)
 	pty_setowner(step->uid, step->gid, tty_name);
 	pty_make_controlling_tty(&fwdata->stdOut[0], tty_name);
 
-	cols = getValueFromEnv(step->env, step->envc, "SLURM_PTY_WIN_COL");
-	rows = getValueFromEnv(step->env, step->envc, "SLURM_PTY_WIN_ROW");
+	cols = envGet(&step->env, "SLURM_PTY_WIN_COL");
+	rows = envGet(&step->env, "SLURM_PTY_WIN_ROW");
 
 	if (cols && rows) {
 	    ws.ws_col = atoi(cols);
@@ -812,15 +848,18 @@ static void execInteractiveJob(void *data, int rerun)
     /* setup task specific env */
     setTaskEnv(step);
 
+    /* setup x11 forwarding */
+    if (step->x11forward) initX11Forward(step);
+
     mlog("%s: exec job '%u:%u' mypid '%u'\n", __func__, step->jobid,
 	    step->stepid, getpid());
 
     /* set rlimits */
-    setRlimitsFromEnv(&step->env, &step->envc, 1);
+    setRlimitsFromEnv(&step->env, 1);
 
     /* start mpiexec to spawn the parallel job */
     closelog();
-    execve(argv[0], argv, step->env);
+    execve(argv[0], argv, step->env.vars);
 }
 
 static void redirectStepIO(Forwarder_Data_t *fwdata, Step_t *step)
@@ -1134,7 +1173,6 @@ void execUserJob(Job_t *job)
     fwdata->killSession = psAccountsendSignal2Session;
     fwdata->callback = jobCallback;
     fwdata->childFunc = execBatchJob;
-    //fwdata->hookHandleMsg = handleForwarderMsg;
     fwdata->hookChildStart = handleChildStart;
 
     if ((startForwarder(fwdata)) != 0) {

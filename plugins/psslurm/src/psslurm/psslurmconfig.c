@@ -24,6 +24,7 @@
 #include "pluginhostlist.h"
 
 #include "psslurmlog.h"
+#include "psslurmgres.h"
 
 #include "psslurmconfig.h"
 
@@ -124,27 +125,35 @@ static int addHostOptions(char *options)
     return 1;
 }
 
-static int addGresOptions(char *options)
+static int parseGresOptions(char *options)
 {
     char *toksave, *next;
     const char delimiters[] =" \n";
+    char *name, *count, *file, *cpus;
 
+    name = count = file = cpus = NULL;
     next = strtok_r(options, delimiters, &toksave);
     while (next) {
 	if (!(strncasecmp(next, "Name=", 5))) {
-	    addConfigEntry(&SlurmGresConfig, "NAME", next+5);
+	    name = ustrdup(next+5);
 	} else if (!(strncasecmp(next, "Count=", 6))) {
-	    addConfigEntry(&SlurmGresConfig, "COUNT", next+6);
+	    count = ustrdup(next+6);
 	} else if (!(strncasecmp(next, "File=", 5))) {
-	    addConfigEntry(&SlurmGresConfig, "FILE", next+5);
+	    file = ustrdup(next+5);
 	} else if (!(strncasecmp(next, "CPUs=", 5))) {
-	    addConfigEntry(&SlurmGresConfig, "CPUs", next+5);
+	    cpus = ustrdup(next+5);
 	} else {
 	    mlog("%s: unknown gres option '%s'\n", __func__, next);
 	    return 0;
 	}
 	next = strtok_r(NULL, delimiters, &toksave);
     }
+
+    addGresConf(name, count, file, cpus);
+    ufree(name);
+    ufree(count);
+    ufree(file);
+    ufree(cpus);
     return 1;
 }
 
@@ -171,13 +180,14 @@ static int setMyHostDef(char *hn, char *line, int gres)
     mlog("%s: gres:%i hn:%s  host: %s args: %s\n", __func__, gres, hn,
     	    hostlist, hostopt);
     */
+
     host = strtok_r(hostlist, delimiters, &toksave);
     while (host) {
 	if ((ptr = strchr(host, '.'))) ptr[0] = '\0';
 	if (gres) {
 	    if (!(strcmp(host, hn))) {
 		mlog("%s: found my gres conf\n", __func__);
-		if (!(addGresOptions(hostopt))) return 0;
+		if (!(parseGresOptions(hostopt))) return 0;
 	    }
 	} else {
 	    if (!(strcmp(host, "DEFAULT"))) {
@@ -203,7 +213,7 @@ int parseSlurmConf(char *hn, struct list_head *confList, int gres)
 {
     struct list_head *pos;
     Config_t *config;
-    char *hostline;
+    char *hostline, *tmp;
 
     if (list_empty(confList)) return 0;
 
@@ -218,6 +228,12 @@ int parseSlurmConf(char *hn, struct list_head *confList, int gres)
 		return 0;
 	    }
 	    ufree(hostline);
+	} else if (gres && !(strcmp(config->key, "Name"))) {
+	    tmp = umalloc(strlen(config->value) +6 + 1);
+	    snprintf(tmp, strlen(config->value) +6, "Name=%s", config->value);
+	    //mlog("%s: Gres single name '%s'\n", __func__, tmp);
+	    parseGresOptions(tmp);
+	    ufree(tmp);
 	}
     }
     return 1;
@@ -280,6 +296,7 @@ int initConfig(char *filename)
     if (!(slurmConfFile = getConfValueC(&Config, "SLURM_GRES_CONF"))) return 0;
     if (stat(slurmConfFile, &sbuf) == -1) return 1;
     if (parseConfigFile(slurmConfFile, &SlurmGresTmp) < 0) return 0;
+
     INIT_LIST_HEAD(&SlurmGresConfig.list);
     if (!(parseSlurmConf(hn, &SlurmGresTmp.list, 1))) return 0;
     freeConfig(&SlurmGresTmp);

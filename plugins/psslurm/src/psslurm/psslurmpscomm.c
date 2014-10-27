@@ -19,12 +19,13 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <stdbool.h>
+#include <signal.h>
 
 #include "psaccfunc.h"
 #include "pspluginprotocol.h"
 #include "pscommon.h"
 #include "psidcomm.h"
-#include "env.h"
+#include "pluginenv.h"
 #include "psidnodes.h"
 #include "psidtask.h"
 #include "plugincomm.h"
@@ -231,7 +232,10 @@ int handleCreatePart(void *msg)
 
     /* generate slotlist */
     slotsSize = step->np;
-    slots = umalloc(slotsSize * sizeof(PSpart_slot_t));
+    if (!(slots = malloc(slotsSize * sizeof(PSpart_slot_t)))) {
+	mlog("%s: out of memory\n", __func__);
+	exit(1);
+    }
 
     /* get cpus from job credential */
     if (!(coreMap = getCPUsForPartition(slots, step))) {
@@ -301,7 +305,7 @@ int handleCreatePart(void *msg)
 	    PSpart_delReq(task->request);
 	    task->request = NULL;
 	}
-	ufree(slots);
+	free(slots);
 	ufree(coreMap);
 
 	rejectPartitionRequest(inmsg->header.sender);
@@ -353,10 +357,8 @@ int handleCreatePartNL(void *msg)
 static void handlePELogueStart(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 {
     Job_t *job;
-    char *ptr = data->buf, jobid[MAX_JOBID_LEN], *tmp;
+    char *ptr = data->buf, jobid[MAX_JOBID_LEN];
     int prologue = (msg->type == PSP_PROLOGUE_START) ? 1 : 0;
-    int envcount, i;
-    env_fields_t env;
 
     /* slurm jobid */
     getString(&ptr, jobid, sizeof(jobid));
@@ -372,21 +374,8 @@ static void handlePELogueStart(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 	job->state = JOB_EPILOGUE;
     }
 
-    /* setup environment */
-    env_init(&env);
-    if (!(getInt32(&ptr, &envcount))) return;
-    for (i=0; i<envcount; i++) {
-	tmp = getStringM(&ptr);
-	if (!(strncmp("SLURM_", tmp, 6))) {
-	    env_put(&env, tmp);
-	} else {
-	    ufree(tmp);
-	}
-    }
-
     /* use pelogue plugin to start */
-    psPelogueStartPE("psslurm", job->id, prologue, &env);
-    env_destroy(&env);
+    psPelogueStartPE("psslurm", job->id, prologue, &job->env);
 }
 
 void callbackPElogue(char *jobid, int exit_status, int timeout)
@@ -487,8 +476,6 @@ static void handleQueueReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 
 static void handleJobInfo(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 {
-    unsigned int i;
-    env_fields_t env;
     char *ptr = data->buf, jobid[MAX_JOBID_LEN];
     Job_t *job;
 
@@ -503,7 +490,8 @@ static void handleJobInfo(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     }
 
     getUint32(&ptr, &job->np);
-    getStringArrayM(&ptr, &job->env, &job->envc);
+    getStringArrayM(&ptr, &job->env.vars, &job->env.cnt);
+    job->env.size = job->env.cnt;
     getStringArrayM(&ptr, &job->argv, &job->argc);
     job->cwd = getStringM(&ptr);
     job->stdOut = getStringM(&ptr);
@@ -538,17 +526,8 @@ static void handleJobInfo(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     /* TODO start prologue, now ?? */
     job->state = JOB_PROLOGUE;
 
-    /* setup environment */
-    env_init(&env);
-    for (i=0; i<job->envc; i++) {
-	if (!(strncmp("SLURM_", job->env[i], 6))) {
-	    env_put(&env, job->env[i]);
-	}
-    }
-
     /* use pelogue plugin to start */
-    psPelogueStartPE("psslurm", job->id, 1, &env);
-    env_destroy(&env);
+    psPelogueStartPE("psslurm", job->id, 1, &job->env);
 
     /* return result */
     //JOB_INFO_RES msg to proxy
@@ -834,6 +813,74 @@ void handlePsslurmMsg(DDTypedBufferMsg_t *msg)
 
 int handleNodeDown(void *nodeID)
 {
+    PSnodes_ID_t node;
+    list_t *pos, *tmp;
+    Job_t *job;
+    Step_t *step;
+    uint32_t i;
+
+    node = *((PSnodes_ID_t *) nodeID);
+
+    list_for_each_safe(pos, tmp, &JobList.list) {
+	if (!(job = list_entry(pos, Job_t, list))) break;
+
+	for (i=0; i<job->nrOfNodes; i++) {
+	    if (job->nodes[i] == node) {
+		mlog("%s: node '%i' which is running job '%u' "
+			"state '%u' is down\n", __func__, node,
+			job->jobid, job->state);
+
+		if (job->nodes[0] == PSC_getMyID()) {
+		    /* we are mother superior */
+		    if (job->state != JOB_EPILOGUE &&
+		        job->state != JOB_COMPLETE &&
+			job->state != JOB_EXIT) {
+
+			signalJob(job, SIGKILL, "node failure");
+			job->state = JOB_EPILOGUE;
+			startPElogue(job->jobid, job->uid, job->gid,
+					job->nrOfNodes, job->nodes,
+					&job->env, 0, 0);
+		    }
+		} else {
+		    signalJob(job, SIGKILL, "node failure");
+		    job->state = JOB_EXIT;
+		}
+	    }
+	}
+    }
+
+    list_for_each_safe(pos, tmp, &StepList.list) {
+	if (!(step = list_entry(pos, Step_t, list))) break;
+
+	for (i=0; i<step->nrOfNodes; i++) {
+	    if (step->nodes[i] == node) {
+		mlog("%s: node '%i' which is running step '%u:%u' "
+			"state '%u' is down\n", __func__, node,
+			step->jobid, step->stepid, step->state);
+
+		if (step->nodes[0] == PSC_getMyID()) {
+		    /* we are mother superior */
+		    if ((!(findJobById(step->jobid))) &&
+			step->state != JOB_EPILOGUE &&
+		        step->state != JOB_COMPLETE &&
+			step->state != JOB_EXIT) {
+
+			signalStep(step, SIGKILL);
+			step->state = JOB_EPILOGUE;
+
+			startPElogue(step->jobid, step->uid, step->gid,
+					step->nrOfNodes, step->nodes,
+					&step->env, 1, 0);
+		    }
+		} else {
+		    signalStep(step, SIGKILL);
+		    step->state = JOB_EXIT;
+		}
+	    }
+	}
+    }
+
     return 0;
 }
 

@@ -93,17 +93,19 @@ void __ufree(void *ptr, const char *func, const int line)
     free(ptr);
 }
 
-char *str2Buf(char *strSave, char **buffer, size_t *bufSize)
+char *__str2Buf(char *strSave, char **buffer, size_t *bufSize, const char *func,
+		const int line)
 {
-    return strn2Buf(strSave, strlen(strSave), buffer, bufSize);
+    return __strn2Buf(strSave, strlen(strSave), buffer, bufSize, func, line);
 }
 
-char *strn2Buf(char *strSave, size_t lenSave, char **buffer, size_t *bufSize)
+char *__strn2Buf(char *strSave, size_t lenSave, char **buffer, size_t *bufSize,
+		const char *func, const int line)
 {
     size_t lenBuf;
 
     if (!*buffer) {
-	*buffer = umalloc(STR_MALLOC_SIZE);
+	*buffer = __umalloc(STR_MALLOC_SIZE, func, line);
 	*bufSize = STR_MALLOC_SIZE;
 	*buffer[0] = '\0';
     }
@@ -111,7 +113,7 @@ char *strn2Buf(char *strSave, size_t lenSave, char **buffer, size_t *bufSize)
     lenBuf = strlen(*buffer);
 
     while (lenBuf + lenSave + 1 > *bufSize) {
-	*buffer = urealloc(*buffer, *bufSize + STR_MALLOC_SIZE);
+	*buffer = __urealloc(*buffer, *bufSize + STR_MALLOC_SIZE, func, line);
 	*bufSize += STR_MALLOC_SIZE;
     }
 

@@ -49,7 +49,7 @@ void psPelogueDeleteJob(const char *plugin, const char *jobid)
 }
 
 int psPelogueStartPE(const char *plugin, const char *jobid, bool prologue,
-			env_fields_t *env)
+			env_t *env)
 {
     Job_t *job;
 

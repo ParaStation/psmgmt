@@ -15,8 +15,8 @@
  *
  */
 
-#ifndef __PLUGIN_PARTITION
-#define __PLUGIN_PARTITION
+#ifndef __PLUGIN_LIB_PARTITION
+#define __PLUGIN_LIB_PARTITION
 
 #include "pstask.h"
 #include "psprotocol.h"

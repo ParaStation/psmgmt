@@ -32,6 +32,7 @@
 #include "psslurmforwarder.h"
 #include "psslurmcomm.h"
 #include "psslurmproto.h"
+#include "psslurmgres.h"
 #include "slurmcommon.h"
 
 #include "pluginmalloc.h"
@@ -70,7 +71,7 @@ handlerFunc_t oldChildBornHandler = NULL;
 
 /** psid plugin requirements */
 char name[] = "psslurm";
-int version = 14;
+int version = 15;
 int requiredAPI = 109;
 plugin_dep_t dependencies[4];
 
@@ -288,7 +289,7 @@ int initialize(void)
     initLogger("psslurm", NULL);
     maskLogger(PSSLURM_LOG_PROTO);
     //maskLogger(PSSLURM_LOG_PROTO | PSSLURM_LOG_PART);
-    //maskLogger(PSSLURM_LOG_PROTO | PSSLURM_LOG_GRES);
+    //maskLogger(PSSLURM_LOG_PROTO | PSSLURM_LOG_GRES | PSSLURM_LOG_ENV);
 
     /*
     FILE *lfile = fopen("/tmp/malloc", "w+");
@@ -298,6 +299,7 @@ int initialize(void)
 
     /* init all data lists */
     initJobList();
+    initGresConf();
 
     /* we need to have root privileges */
     if(getuid() != 0) {
@@ -418,6 +420,7 @@ void cleanup(void)
 
     /* free all malloced memory */
     clearJobList();
+    clearGresConf();
     freeConfig(&Config);
     freeConfig(&SlurmConfig);
     freeConfig(&SlurmGresConfig);

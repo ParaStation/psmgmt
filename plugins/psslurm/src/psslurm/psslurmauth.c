@@ -24,6 +24,7 @@
 #include "psslurm.h"
 #include "psslurmlog.h"
 #include "psslurmcomm.h"
+#include "psslurmgres.h"
 #include "slurmcommon.h"
 
 #include "psslurmauth.h"
@@ -92,7 +93,6 @@ int testMungeAuth(char **ptr, Slurm_msg_header_t *msgHead)
 /*
 TODO make cred work for job_t and step_t. First extract cred.
 Then check in separate steps.
-You may need some cred informations when you connect to srun ....
 */
 int checkStepCred(Step_t *step)
 {
@@ -195,133 +195,32 @@ void deleteJobCred(JobCred_t *cred)
     ufree(cred);
 }
 
-JobCred_t *getJobCred(char **ptr, uint16_t version)
+JobCred_t *getJobCred(Gres_Cred_t *gres, char **ptr, uint16_t version)
 {
-    unsigned int i;
-    uint16_t count;
-    uint32_t magic;
-    uint8_t more;
     char *credStart, *sigBuf;
     JobCred_t *cred;
     int sigBufLen, len;
+    unsigned int i;
     uid_t sigUid;
     gid_t sigGid;
 
     credStart = *ptr;
 
     cred = umalloc(sizeof(JobCred_t));
+
     /* jobid / stepid */
     getUint32(ptr, &cred->jobid);
     getUint32(ptr, &cred->stepid);
     /* uid */
     getUint32(ptr, &cred->uid);
-
-    /* gres job */
-    getUint16(ptr, &count);
-    mlog("%s: id '%u:%u' uid '%u' gres count '%u'\n", __func__,
-	    cred->jobid, cred->stepid,  cred->uid, count);
-
-    for (i=0; i<count; i++) {
-	getUint32(ptr, &magic);
-	getUint32(ptr, &cred->pluginId);
-	getUint32(ptr, &cred->gresCountAlloc);
-	getUint32(ptr, &cred->nodeCount);
-
-	if (magic != GRES_MAGIC) {
-	    mlog("%s: job gres magic error '%u' : '%u'\n", __func__, magic,
-		    GRES_MAGIC);
-	    exit(1);
-	}
-
-	mdbg(PSSLURM_LOG_GRES, "%s: count '%i' magic '%u' pluginID '%u' "
-		"gresCountAlloc '%u' nodeCount '%u'\n", __func__, count, magic,
-		cred->pluginId, cred->gresCountAlloc, cred->nodeCount);
-
-	getUint8(ptr, &more);
-	if (more) {
-	    //mlog("%s: more '%u'\n", __func__, more);
-	    cred->gres_bit_alloc = umalloc(sizeof(char  *) * cred->nodeCount);
-	    for (i=0; i<cred->nodeCount; i++) {
-		getBitString(ptr, &(cred->gres_bit_alloc)[i]);
-		mdbg(PSSLURM_LOG_GRES, "%s: count '%u' bit_alloc '%s'\n",
-			__func__, cred->nodeCount, cred->gres_bit_alloc[i]);
-		ufree(cred->gres_bit_alloc[i]);
-	    }
-	    ufree(cred->gres_bit_alloc);
-	}
-
-	getUint8(ptr, &more);
-	if (more) {
-	    //mlog("%s: more '%u'\n", __func__, more);
-	    cred->gres_bit_step_alloc =
-				umalloc(sizeof(char *) * cred->nodeCount);
-	    for (i=0; i<cred->nodeCount; i++) {
-		getBitString(ptr, &(cred->gres_bit_step_alloc)[i]);
-		mdbg(PSSLURM_LOG_GRES, "%s: count '%u' bit_step_alloc '%s'\n",
-			__func__, cred->nodeCount, cred->gres_bit_step_alloc[i]);
-		ufree(cred->gres_bit_step_alloc[i]);
-	    }
-	    ufree(cred->gres_bit_step_alloc);
-	}
-
-	getUint8(ptr, &more);
-	if (more) {
-	    //mlog("%s: more '%u'\n", __func__, more);
-	    cred->gres_cnt_step_alloc =
-				umalloc(sizeof(uint32_t) * cred->nodeCount);
-	    for (i=0; i<cred->nodeCount; i++) {
-		getUint32(ptr, &(cred->gres_cnt_step_alloc)[i]);
-		mdbg(PSSLURM_LOG_GRES, "%s: count '%u' gres_cnt_step_alloc "
-			"'%u'\n", __func__, cred->nodeCount,
-			cred->gres_cnt_step_alloc[i]);
-	    }
-	    ufree(cred->gres_cnt_step_alloc);
-	}
-    }
-
-    /* gres step */
-    getUint16(ptr, &count);
-
-    for (i=0; i<count; i++) {
-	getUint32(ptr, &magic);
-	getUint32(ptr, &cred->pluginId);
-	getUint32(ptr, &cred->gresCountAlloc);
-	getUint32(ptr, &cred->nodeCount);
-	getBitString(ptr, &cred->nodeInUse);
-	mdbg(PSSLURM_LOG_GRES, "%s: gres step: nodeInUse '%s'\n", __func__,
-		cred->nodeInUse);
-	ufree(cred->nodeInUse);
-
-	if (magic != GRES_MAGIC) {
-	    mlog("%s: step gres magic error: '%u' : '%u'\n", __func__, magic,
-		    GRES_MAGIC);
-	    exit(1);
-	}
-
-	mdbg(PSSLURM_LOG_GRES, "%s: gres step: count '%i' magic '%u' "
-		"pluginID '%u' gresCountAlloc '%u' nodeCount '%u'\n", __func__,
-		count, magic, cred->pluginId, cred->gresCountAlloc,
-		cred->nodeCount);
-
-	getUint8(ptr, &more);
-	if (more) {
-	    cred->gres_bit_alloc =
-			    umalloc(sizeof(char *) * cred->nodeCount);
-	    for (i=0; i<cred->nodeCount; i++) {
-		getBitString(ptr, &(cred->gres_bit_alloc)[i]);
-		mdbg(PSSLURM_LOG_GRES, "%s: count '%u' bit_alloc '%s'\n",
-			__func__, cred->nodeCount, cred->gres_bit_alloc[i]);
-		ufree(cred->gres_bit_alloc[i]);
-	    }
-	    ufree(cred->gres_bit_alloc);
-	}
-    }
-
+    /* gres job and gres step allocations */
+    getGresJobCred(gres, ptr, cred->jobid, cred->stepid, cred->uid);
     /* count of specialized cores */
     getUint16(ptr, &cred->jobCoreSpec);
     /* job/step memory limit */
     getUint32(ptr, &cred->jobMemLimit);
     getUint32(ptr, &cred->stepMemLimit);
+
     cred->hostlist = getStringM(ptr);
     getTime(ptr, &cred->ctime);
 
@@ -340,8 +239,6 @@ JobCred_t *getJobCred(char **ptr, uint16_t version)
 	getUint16Array(ptr, &cred->coresPerSocket, &cred->coresPerSocketLen);
 	getUint16Array(ptr, &cred->socketsPerNode, &cred->socketsPerNodeLen);
 	getUint32Array(ptr, &cred->sockCoreRepCount, &cred->sockCoreRepCountLen);
-
-	unsigned int i;
 
 	for (i=0; i<cred->coresPerSocketLen; i++) {
 	    mdbg(PSSLURM_LOG_PART, "%s: coresPerSocket '%u'\n", __func__,
@@ -378,6 +275,7 @@ JobCred_t *getJobCred(char **ptr, uint16_t version)
 	mlog("%s: creditial is invalid\n", __func__);
 	return NULL;
     }
+    free(sigBuf);
 
     mdbg(PSSLURM_LOG_AUTH, "%s: cred len:%u jobMemLimit '%u' stepMemLimit '%u' "
 	    "hostlist '%s' ctime '%lu' " "sig '%s'\n", __func__, len,

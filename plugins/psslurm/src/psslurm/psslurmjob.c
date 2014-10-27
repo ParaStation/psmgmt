@@ -73,8 +73,6 @@ Job_t *addJob(uint32_t jobid)
     job->checkpoint = NULL;
     job->restart = NULL;
     job->argc = 0;
-    job->envc = 0;
-    job->spankenvc = 0;
     job->hostname = NULL;
     job->slurmNodes = NULL;
     job->nodeAlias = NULL;
@@ -88,6 +86,9 @@ Job_t *addJob(uint32_t jobid)
     job->cpusPerNode = NULL;
     job->cpuCountReps = NULL;
     INIT_LIST_HEAD(&job->tasks.list);
+    INIT_LIST_HEAD(&job->gres.list);
+    envInit(&job->env);
+    envInit(&job->spankenv);
 
     /* add job to job history */
     strncpy(jobHistory[jobHistIndex++], job->id, sizeof(jobHistory[0]));
@@ -107,8 +108,6 @@ Step_t *addStep(uint32_t jobid, uint32_t stepid)
     step = (Step_t *) umalloc(sizeof(Step_t));
     step->jobid = jobid;
     step->stepid = stepid;
-    step->envc = 0;
-    step->argv = 0;
     step->numSrunPorts = 0;
     step->bufferedIO = 1;
     step->numIOPort = 0;
@@ -125,8 +124,6 @@ Step_t *addStep(uint32_t jobid, uint32_t stepid)
     step->memBind = NULL;
     step->IOPort = NULL;
     step->argv = NULL;
-    step->env = NULL;
-    step->spankenv = NULL;
     step->cwd = NULL;
     step->taskProlog = NULL;
     step->taskEpilog = NULL;
@@ -147,7 +144,11 @@ Step_t *addStep(uint32_t jobid, uint32_t stepid)
     step->srunIOSock = -1;
     step->srunControlSock = -1;
     step->srunPTYSock = -1;
+    step->x11forward = 0;
     INIT_LIST_HEAD(&step->tasks.list);
+    INIT_LIST_HEAD(&step->gres.list);
+    envInit(&step->env);
+    envInit(&step->spankenv);
 
     list_add_tail(&(step->list), &StepList.list);
 
@@ -335,6 +336,7 @@ int deleteStep(uint32_t jobid, uint32_t stepid)
     ufree(step->username);
     ufree(step->tids);
     clearTasks(&step->tasks.list);
+    clearGresCred(&step->gres);
 
     if (step->fwdata) {
 	kill(step->fwdata->childPid, SIGKILL);
@@ -355,16 +357,8 @@ int deleteStep(uint32_t jobid, uint32_t stepid)
     }
     ufree(step->argv);
 
-    for (i=0; i<step->envc; i++) {
-	ufree(step->env[i]);
-    }
-    ufree(step->env);
-
-    for (i=0; i<step->spankenvc; i++) {
-	ufree(step->spankenv[i]);
-    }
-    ufree(step->spankenv);
-
+    envDestroy(&step->env);
+    envDestroy(&step->spankenv);
 
     list_del(&step->list);
     ufree(step);
@@ -382,6 +376,7 @@ int deleteJob(uint32_t jobid)
     if (job->jobscript) unlink(job->jobscript);
 
     clearStepList(job->jobid);
+    clearGresCred(&job->gres);
     send_PS_JobExit(job->jobid, SLURM_BATCH_SCRIPT,
 			job->nrOfNodes, job->nodes);
 
@@ -416,15 +411,8 @@ int deleteJob(uint32_t jobid)
     }
     ufree(job->argv);
 
-    for (i=0; i<job->envc; i++) {
-	ufree(job->env[i]);
-    }
-    ufree(job->env);
-
-    for (i=0; i<job->spankenvc; i++) {
-	ufree(job->spankenv[i]);
-    }
-    ufree(job->spankenv);
+    envDestroy(&job->env);
+    envDestroy(&job->spankenv);
 
     list_del(&job->list);
     ufree(job);
@@ -597,6 +585,8 @@ int signalJob(Job_t *job, int signal, char *reason)
     int count = 0;
 
     count += signalStepsByJobid(job->jobid, signal);
+
+    if (!job->fwdata) return count;
 
     switch (job->state) {
 	case JOB_RUNNING:

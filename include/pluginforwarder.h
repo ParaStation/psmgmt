@@ -15,8 +15,8 @@
  *
  */
 
-#ifndef __PLUGIN_FORWARDER
-#define __PLUGIN_FORWARDER
+#ifndef __PLUGIN_LIB_FORWARDER
+#define __PLUGIN_LIB_FORWARDER
 
 typedef enum {
     CMD_LOCAL_HELLO = 0,

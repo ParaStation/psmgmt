@@ -14,7 +14,7 @@
 #include <stdint.h>
 #include <sys/resource.h>
 
-#include "env.h"
+#include "pluginenv.h"
 #include "psnodes.h"
 #include "psslurmconfig.h"
 
@@ -122,7 +122,7 @@ void (*psPelogueAddJob)(const char *, const char *, uid_t, gid_t, int,
 			PSnodes_ID_t *,
 			void (*pluginCallback)(char *, int, int));
 
-int (*psPelogueStartPE)(const char *, const char *, bool, env_fields_t *);
+int (*psPelogueStartPE)(const char *, const char *, bool, env_t *);
 
 void (*psPelogueDeleteJob)(const char *, const char *);
 

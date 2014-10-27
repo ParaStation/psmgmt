@@ -26,6 +26,7 @@
 
 #include "slurmcommon.h"
 #include "psslurmjob.h"
+#include "psslurmgres.h"
 #include "psslurmlog.h"
 #include "psslurmcomm.h"
 #include "psslurmauth.h"
@@ -69,7 +70,7 @@ static void cbPrologueStep(char *sjobid, int exit_status, int timeout)
 	    sendSlurmRC(step->srunControlSock, SLURM_ERROR, step);
 	    step->state = JOB_EPILOGUE;
 	    startPElogue(step->jobid, step->uid, step->gid, step->nrOfNodes,
-		    step->nodes, step->env, step->envc, 1, 0);
+		    step->nodes, &step->env, 1, 0);
 	} else if (exit_status == 0) {
 	    step->state = JOB_PRESTART;
 	    execUserStep(step);
@@ -113,7 +114,7 @@ static void cbPElogueJob(char *jobid, int exit_status, int timeout)
 	if (job->terminate) {
 	    job->state = JOB_EPILOGUE;
 	    startPElogue(job->jobid, job->uid, job->gid, job->nrOfNodes,
-		    job->nodes, job->env, job->envc, 0, 0);
+		    job->nodes, &job->env, 0, 0);
 	} else if (exit_status == 0) {
 	    job->state = JOB_PRESTART;
 	    execUserJob(job);
@@ -138,12 +139,9 @@ static void cbPElogueJob(char *jobid, int exit_status, int timeout)
 }
 
 void startPElogue(uint32_t jobid, uid_t uid, gid_t gid, uint32_t nrOfNodes,
-		    PSnodes_ID_t *nodes, char **jobEnv, uint32_t jobEnvc,
-		    int step, int prologue)
+		    PSnodes_ID_t *nodes, env_t *env, int step, int prologue)
 {
-    env_fields_t env;
     char sjobid[256];
-    uint32_t i;
 
     snprintf(sjobid, sizeof(sjobid), "%u", jobid);
 
@@ -158,17 +156,8 @@ void startPElogue(uint32_t jobid, uid_t uid, gid_t gid, uint32_t nrOfNodes,
 	}
     }
 
-    /* export all SLURM env vars to prologue */
-    env_init(&env);
-    for (i=0; i<jobEnvc; i++) {
-	if (!(strncmp("SLURM_", jobEnv[i], 6))) {
-	    env_put(&env, jobEnv[i]);
-	}
-    }
-
     /* use pelogue plugin to start */
-    psPelogueStartPE("psslurm", sjobid, prologue, &env);
-    env_destroy(&env);
+    psPelogueStartPE("psslurm", sjobid, prologue, env);
 }
 
 static void sendPing(int sock)
@@ -209,8 +198,9 @@ void getNodesFromSlurmHL(char **ptr, char **slurmNodes, uint32_t *nrOfNodes,
     next = strtok_r(hostlist, delimiters, &saveptr);
 
     while (next) {
-	(*nodes)[i++] = getNodeIDbyName(next);
-	mlog("%s: next node %u: %s\n", __func__, i, next);
+	(*nodes)[i] = getNodeIDbyName(next);
+	mlog("%s: node%u: %s id(%i)\n", __func__, i, next, (*nodes)[i]);
+	i++;
 	next = strtok_r(NULL, delimiters, &saveptr);
     }
     ufree(hostlist);
@@ -281,8 +271,9 @@ static void handleLaunchTasks(char *ptr, int sock, Slurm_msg_header_t *msgHead)
     getUint16(&ptr, &step->nodeCpus);
     /* count of specialized cores */
     getUint16(&ptr, &step->jobCoreSpec);
+
     /* job creditials */
-    step->cred = getJobCred(&ptr, version);
+    step->cred = getJobCred(&step->gres, &ptr, version);
 
     /* tasks to launch / global task ids */
     step->tasksToLaunch = umalloc(step->nrOfNodes * sizeof(uint16_t));
@@ -323,12 +314,24 @@ static void handleLaunchTasks(char *ptr, int sock, Slurm_msg_header_t *msgHead)
     step->srun.sin_port = msgHead->port;
 
     /* env */
-    getStringArrayM(&ptr, &step->env, &step->envc);
-    for (i=0; i<step->envc; i++) {
-	mdbg(PSSLURM_LOG_ENV, "%s: env%i: '%s'\n", __func__, i, step->env[i]);
+    getStringArrayM(&ptr, &step->env.vars, &step->env.cnt);
+    step->env.size = step->env.cnt;
+    for (i=0; i<step->env.cnt; i++) {
+	mdbg(PSSLURM_LOG_ENV, "%s: env%i: '%s'\n", __func__, i,
+		step->env.vars[i]);
     }
     /* spank env */
-    getStringArrayM(&ptr, &step->spankenv, &step->spankenvc);
+    getStringArrayM(&ptr, &step->spankenv.vars, &step->spankenv.cnt);
+    step->spankenv.size = step->spankenv.cnt;
+    for (i=0; i<step->spankenv.cnt; i++) {
+	if (!(strncmp("_SLURM_SPANK_OPTION_x11spank_forward_x",
+		step->spankenv.vars[i], 38))) {
+	    step->x11forward = 1;
+	}
+	mdbg(PSSLURM_LOG_ENV, "%s: spankenv%i: '%s'\n", __func__, i,
+		step->spankenv.vars[i]);
+    }
+
     /* cwd */
     step->cwd = getStringM(&ptr);
     /* cpu bind */
@@ -450,7 +453,7 @@ static void handleLaunchTasks(char *ptr, int sock, Slurm_msg_header_t *msgHead)
 	if (!stepid && !findJobById(step->jobid)) {
 	    step->state = JOB_PROLOGUE;
 	    startPElogue(step->jobid, step->uid, step->gid, step->nrOfNodes,
-			    step->nodes, step->env, step->envc, 1, 1);
+			    step->nodes, &step->env, 1, 1);
 	} else {
 	    step->state = JOB_PRESTART;
 	    execUserStep(step);
@@ -914,21 +917,29 @@ static void handleBatchJobLaunch(char *ptr, int sock,
 	mlog("%s: mismatching argc %u : %u\n", __func__, count, job->argc);
     }
     /* spank env/envc */
-    getStringArrayM(&ptr, &job->spankenv, &job->spankenvc);
+    getStringArrayM(&ptr, &job->spankenv.vars, &job->spankenv.cnt);
+    job->spankenv.size = job->spankenv.cnt;
+    for (i=0; i<job->spankenv.cnt; i++) {
+	mdbg(PSSLURM_LOG_ENV, "%s: spankenv%i: '%s'\n", __func__, i,
+		job->spankenv.vars[i]);
+    }
+
     /* env/envc */
     getUint32(&ptr, &count);
-    getStringArrayM(&ptr, &job->env, &job->envc);
-    if (count != job->envc) {
-	mlog("%s: mismatching envc %u : %u\n", __func__, count, job->envc);
+    getStringArrayM(&ptr, &job->env.vars, &job->env.cnt);
+    job->env.size = job->env.cnt;
+    if (count != job->env.cnt) {
+	mlog("%s: mismatching envc %u : %u\n", __func__, count, job->env.cnt);
     }
-    for (i=0; i<job->envc; i++) {
-	mdbg(PSSLURM_LOG_ENV, "%s: env%i: '%s'\n", __func__, i, job->env[i]);
+    for (i=0; i<job->env.cnt; i++) {
+	mdbg(PSSLURM_LOG_ENV, "%s: env%i: '%s'\n", __func__, i,
+		job->env.vars[i]);
     }
 
     /* TODO use job mem ?limit? uint32_t */
     getUint32(&ptr, &job->memLimit);
 
-    job->cred = getJobCred(&ptr, msgHead->version);
+    job->cred = getJobCred(&job->gres, &ptr, msgHead->version);
     checkJobCred(job);
 
     /* TODO correct jobinfo plugin Id */
@@ -955,7 +966,7 @@ static void handleBatchJobLaunch(char *ptr, int sock,
     /* start prologue */
     job->state = JOB_PROLOGUE;
     startPElogue(job->jobid, job->uid, job->gid, job->nrOfNodes, job->nodes,
-		    job->env, job->envc, 0, 1);
+		    &job->env, 0, 1);
 }
 
 static void handleTerminateJob(int sock, Slurm_msg_header_t *msgHead,
@@ -996,7 +1007,7 @@ static void handleTerminateJob(int sock, Slurm_msg_header_t *msgHead,
     mlog("%s: starting epilogue for job '%u'\n", __func__, job->jobid);
     job->state = JOB_EPILOGUE;
     startPElogue(job->jobid, job->uid, job->gid, job->nrOfNodes, job->nodes,
-		    job->env, job->envc, 0, 0);
+		    &job->env, 0, 0);
 }
 
 static void handleTerminateStep(int sock, Slurm_msg_header_t *msgHead,
@@ -1014,7 +1025,7 @@ static void handleTerminateStep(int sock, Slurm_msg_header_t *msgHead,
 	    deleteStep(step->jobid, step->stepid);
 	} else {
 	    signalTasks(step->uid, &step->tasks, signal, -1);
-	    mlog("%s signal tasks for step '%u:%u' state '%u'\n", __func__,
+	    mlog("%s: signal tasks for step '%u:%u' state '%u'\n", __func__,
 		    step->jobid, step->stepid, step->state);
 	    if (sock > -1) sendSlurmRC(sock, SLURM_SUCCESS, NULL);
 	}
@@ -1035,11 +1046,11 @@ static void handleTerminateStep(int sock, Slurm_msg_header_t *msgHead,
 	    case JOB_INIT:
 	    case JOB_QUEUED:
 		if (sock > -1) sendSlurmRC(sock, SLURM_SUCCESS, NULL);
-		mlog("%s waiting for sub step '%u:%u' state '%u'\n", __func__,
+		mlog("%s: waiting for sub step '%u:%u' state '%u'\n", __func__,
 			step->jobid, step->stepid, step->state);
 		return;
 	}
-	mlog("%s signal tasks for sub step '%u:%u' state '%u'\n", __func__,
+	mlog("%s: signal tasks for sub step '%u:%u' state '%u'\n", __func__,
 		step->jobid, step->stepid, step->state);
 	signalStep(step, signal);
 	if (sock > -1) sendSlurmRC(sock, SLURM_SUCCESS, NULL);
@@ -1084,7 +1095,7 @@ static void handleTerminateStep(int sock, Slurm_msg_header_t *msgHead,
 	    step->jobid, step->stepid, jobState2String(step->state));
     step->state = JOB_EPILOGUE;
     startPElogue(step->jobid, step->uid, step->gid, step->nrOfNodes,
-		    step->nodes, step->env, step->envc, 1, 0);
+		    step->nodes, &step->env, 1, 0);
 }
 
 static void handleAbortReq(int sock, Slurm_msg_header_t *msgHead,
@@ -1560,29 +1571,8 @@ void sendNodeRegStatus(int sock, uint32_t status, int version)
     /* TODO switch stuff */
     addUint16ToMsg(0, &msg);
 
-    /* TODO add gres data correct !!! */
-    /* gres info size */
-    addUint32ToMsg(sizeof(uint16_t) * 2, &msg);
-    /* again gres info size for pack_mem() */
-    addUint32ToMsg(sizeof(uint16_t) * 2, &msg);
-
-    /* slurm version */
-    addUint16ToMsg(version, &msg);
-    /* gres record count */
-    addUint16ToMsg(0, &msg);
-
-    /* single gres record
-    pack32(magic, buffer);
-    pack32(gres_slurmd_conf->count, buffer);
-    pack32(gres_slurmd_conf->cpu_cnt, buffer);
-    pack8(gres_slurmd_conf->has_file, buffer);
-    pack32(gres_slurmd_conf->plugin_id, buffer);
-    packstr(gres_slurmd_conf->cpus, buffer);
-    packstr(gres_slurmd_conf->name, buffer);
-
-    addUint32ToMsg(GRES_MAGIC, &msg);
-    */
-
+    /* add gres configuration */
+    addGresData(&msg, version);
 
     /* TODO: acct_gather_energy_pack(msg->energy, buffer, protocol_version); */
     for (i=0; i<5; i++) {

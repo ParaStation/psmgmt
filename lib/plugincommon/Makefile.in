@@ -131,7 +131,8 @@ am_libplugincommon_la_OBJECTS = libplugincommon_la-plugincomm.lo \
 	libplugincommon_la-pluginhostlist.lo \
 	libplugincommon_la-pluginconfig.lo \
 	libplugincommon_la-pluginpartition.lo \
-	libplugincommon_la-pluginpty.lo
+	libplugincommon_la-pluginpty.lo \
+	libplugincommon_la-pluginenv.lo
 libplugincommon_la_OBJECTS = $(am_libplugincommon_la_OBJECTS)
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
@@ -367,7 +368,8 @@ noinst_LTLIBRARIES = libplugincommon.la
 libpscommon = $(top_builddir)/lib/pscommon/libpscommon.la
 libplugincommon_la_SOURCES = plugincomm.c pluginfrag.c pluginlog.c \
 	pluginlog.h pluginmalloc.c pluginhelper.c pluginforwarder.c \
-	pluginhostlist.c pluginconfig.c pluginpartition.c pluginpty.c
+	pluginhostlist.c pluginconfig.c pluginpartition.c pluginpty.c \
+	pluginenv.c
 
 libplugincommon_la_CPPFLAGS = $(AM_CPPFLAGS) -DLOCALSTATEDIR=\"$(localstatedir)\"
 libplugincommon_la_LIBADD = $(libpscommon) -lrt -lm
@@ -429,6 +431,7 @@ distclean-compile:
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libplugincommon_la-plugincomm.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libplugincommon_la-pluginconfig.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libplugincommon_la-pluginenv.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libplugincommon_la-pluginforwarder.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libplugincommon_la-pluginfrag.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libplugincommon_la-pluginhelper.Plo@am__quote@
@@ -531,6 +534,13 @@ libplugincommon_la-pluginpty.lo: pluginpty.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='pluginpty.c' object='libplugincommon_la-pluginpty.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libplugincommon_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o libplugincommon_la-pluginpty.lo `test -f 'pluginpty.c' || echo '$(srcdir)/'`pluginpty.c
+
+libplugincommon_la-pluginenv.lo: pluginenv.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libplugincommon_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT libplugincommon_la-pluginenv.lo -MD -MP -MF $(DEPDIR)/libplugincommon_la-pluginenv.Tpo -c -o libplugincommon_la-pluginenv.lo `test -f 'pluginenv.c' || echo '$(srcdir)/'`pluginenv.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libplugincommon_la-pluginenv.Tpo $(DEPDIR)/libplugincommon_la-pluginenv.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='pluginenv.c' object='libplugincommon_la-pluginenv.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libplugincommon_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o libplugincommon_la-pluginenv.lo `test -f 'pluginenv.c' || echo '$(srcdir)/'`pluginenv.c
 
 mostlyclean-libtool:
 	-rm -f *.lo

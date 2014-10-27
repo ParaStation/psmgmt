@@ -33,7 +33,6 @@ void sendStepExit(Step_t *step, int exit_status);
 void sendJobExit(Job_t *job, uint32_t exit);
 void sendEpilogueComplete(uint32_t jobid, uint32_t rc);
 void startPElogue(uint32_t jobid, uid_t uid, gid_t gid, uint32_t nrOfNodes,
-		    PSnodes_ID_t *nodes, char **jobEnv, uint32_t jobEnvc,
-		    int step, int prologue);
+		    PSnodes_ID_t *nodes, env_t *env, int step, int prologue);
 
 #endif

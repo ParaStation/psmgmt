@@ -19,6 +19,7 @@
 #define __PS_PSSLURM_LIMITS
 
 #include <sys/resource.h>
+#include "pluginenv.h"
 
 typedef struct {
     rlim_t limit;
@@ -29,7 +30,7 @@ typedef struct {
 
 int initLimits();
 void printLimits();
-void setRlimitsFromEnv(char ***origEnv, uint32_t *envc, int psi);
+void setRlimitsFromEnv(env_t *env, int psi);
 void setHardRlimits();
 
 #endif

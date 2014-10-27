@@ -252,11 +252,11 @@ void execPElogueScript(void *datap, int rerun)
 {
     Forwarder_Data_t *fwdata = datap;
     PElogue_Data_t *data = fwdata->userData;
-    int i;
-    char name[50], *next_env;
+    uint32_t i;
+    char name[50];
 
-    for (i=0; i<env_size(&data->env); i++) {
-	if ((next_env = env_dump(&data->env, i))) putenv(next_env);
+    for (i=0; i<data->env.cnt; i++) {
+	if ((data->env.vars[i])) putenv(data->env.vars[i]);
     }
 
     if (data->prologue) {
