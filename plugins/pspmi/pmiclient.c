@@ -1730,11 +1730,9 @@ int pmi_init(int pmisocket, int pRank, PStask_ID_t logger)
 	return 1;
     }
 
-    /*
-    mlog("%s:(r%i): pmiRank '%i' pmisock '%i' logger '%i' spawned '%s' myTid "
-	    "'%s'\n", __func__, rank, pmiRank, pmisock, logger,
-	    getenv("PMI_SPAWNED"), PSC_printTID(PSC_getMyTID()));
-    */
+    mdbg(PSPMI_LOG_VERBOSE, "%s:(r%i): pmiRank '%i' pmisock '%i' logger '%i'"
+	 " spawned '%s' myTid '%s'\n", __func__, rank, pmiRank, pmisock, logger,
+	 getenv("PMI_SPAWNED"), PSC_printTID(PSC_getMyTID()));
 
     INIT_LIST_HEAD(&uBufferList.list);
 
