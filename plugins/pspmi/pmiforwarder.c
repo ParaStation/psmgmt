@@ -160,12 +160,12 @@ static int readFromPMIClient(int fd, void *data)
 
     pmiStatus = CONNECTED;
 
-#if 1
+#if 0
     mlog("%s: PMI message received:\n{%s}\n", __func__, recvBuf);
 #endif
 
     while(1) {
-#if 1
+#if 0
 	mlog("%s: Current message buffer:\n{%s}\n", __func__, msgBuf);
 #endif
 	if (strncmp("cmd=", msgBuf, 4) == 0) {
@@ -196,7 +196,7 @@ static int readFromPMIClient(int fd, void *data)
 	strptr[0] = '\0';
 
         /* parse and handle the PMI msg */
-#if 1
+#if 0
         mlog("%s: PMI message complete:\n{%s}\n\n", __func__, msgBuf);
 #endif
         ret = handlePMIclientMsg(msgBuf);
