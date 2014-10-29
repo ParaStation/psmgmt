@@ -280,6 +280,8 @@ static inline int getFreeCPUs(PSnodes_ID_t node, PSCPU_set_t free, int tpp)
     int procs = PSIDnodes_getProcs(node);
 
     if (procs != PSNODES_ANYPROC && procs < checkedCPUs) checkedCPUs = procs;
+    PSID_log(PSID_LOG_PART, "%s: node %d checkedCPUs %d procs %d tpp %d\n" ,
+	     __func__, node, checkedCPUs, procs, tpp);
 
     return PSCPU_getUnset(nodeStat[node].CPUset, checkedCPUs, free, tpp);
 }
@@ -972,7 +974,10 @@ static sortlist_t *getCandidateList(PSpart_request_t *request)
 	    } else {
 		availCPUs = getFreeCPUs(node, NULL, request->tpp);
 	    }
+	    PSID_log(PSID_LOG_PART, "%s: found %d CPUs on node %d\n",
+		     __func__, availCPUs, node);
 	    if (availCPUs && nodeFree(node, request, procs)) {
+		PSID_log(PSID_LOG_PART, "%s: add %d to list\n", __func__, node);
 		list.entry[list.size].id = node;
 		list.entry[list.size].cpus = availCPUs;
 		if (exactPart) {
