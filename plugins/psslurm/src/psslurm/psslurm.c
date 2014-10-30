@@ -33,18 +33,20 @@
 #include "psslurmcomm.h"
 #include "psslurmproto.h"
 #include "psslurmgres.h"
+#include "psslurmenv.h"
 #include "slurmcommon.h"
 
 #include "pluginmalloc.h"
 #include "pluginlog.h"
-
 #include "pspluginprotocol.h"
 #include "psdaemonprotocol.h"
 #include "psidplugin.h"
 #include "psidhook.h"
 #include "plugin.h"
 #include "timer.h"
-#include "psaccfunc.h"
+#include "psaccounthandles.h"
+#include "peloguehandles.h"
+#include "psmungehandles.h"
 
 #include "psslurm.h"
 
@@ -71,7 +73,7 @@ handlerFunc_t oldChildBornHandler = NULL;
 
 /** psid plugin requirements */
 char name[] = "psslurm";
-int version = 15;
+int version = 16;
 int requiredAPI = 109;
 plugin_dep_t dependencies[4];
 
@@ -218,6 +220,21 @@ static int initPluginHandles()
         return 0;
     }
 
+    if (!(psAccountGetDataByLogger = dlsym(pluginHandle,
+	    "psAccountGetDataByLogger"))) {
+        mlog("%s: loading function psAccountGetDataByLogger() failed\n",
+		__func__);
+        return 0;
+    }
+
+    if (!(psAccountGetPidsByLogger = dlsym(pluginHandle,
+	    "psAccountGetPidsByLogger"))) {
+        mlog("%s: loading function psAccountGetPidsByLogger() failed\n",
+		__func__);
+        return 0;
+    }
+
+
     if (!(pluginHandle = PSIDplugin_getHandle("pelogue"))) {
 	mlog("%s: getting pelogue handle failed\n", __func__);
 	return 0;
@@ -288,6 +305,7 @@ int initialize(void)
     /* init the logger (log to syslog) */
     initLogger("psslurm", NULL);
     maskLogger(PSSLURM_LOG_PROTO);
+    //maskLogger(PSSLURM_LOG_PROTO| PSSLURM_LOG_AUTH);
     //maskLogger(PSSLURM_LOG_PROTO | PSSLURM_LOG_PART);
     //maskLogger(PSSLURM_LOG_PROTO | PSSLURM_LOG_GRES | PSSLURM_LOG_ENV);
 
@@ -316,6 +334,7 @@ int initialize(void)
     if (!(registerHooks())) goto INIT_ERROR;
     if (!(initPluginHandles())) goto INIT_ERROR;
     if (!(initLimits())) goto INIT_ERROR;
+    if (!(initEnvFilter())) goto INIT_ERROR;
 
     /* set collect mode in psaccount */
     psAccountSetGlobalCollect(1);
@@ -424,6 +443,7 @@ void cleanup(void)
     freeConfig(&Config);
     freeConfig(&SlurmConfig);
     freeConfig(&SlurmGresConfig);
+    freeEnvFilter();
 
     mlog("...Bye.\n");
 }

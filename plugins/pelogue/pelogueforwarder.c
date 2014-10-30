@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2013 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2013 - 2014 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -30,8 +30,9 @@
 #include "peloguecomm.h"
 #include "peloguelog.h"
 #include "peloguescript.h"
-#include "pluginmalloc.h"
 #include "pelogue.h"
+
+#include "pluginmalloc.h"
 
 #include "pelogueforwarder.h"
 
@@ -49,6 +50,7 @@
 static void startPElogue(int prologue, PElogue_Data_t *data, char *filename,
 			    int root)
 {
+    char hname[1024];
     char *argv[100];
     int argc = 0;
 
@@ -137,6 +139,11 @@ static void startPElogue(int prologue, PElogue_Data_t *data, char *filename,
 	setenv("LOGNAME", "root", 1);
 	setenv("HOME", rootHome, 1);
     //}
+
+    /* set some sane defaults */
+    gethostname(hname, sizeof(hname));
+    setenv("HOSTNAME", hname, 1);
+    setenv("LANG", "C", 1);
 
     if (prologue) {
 	setenv("PELOGUE", "prologue", 1);

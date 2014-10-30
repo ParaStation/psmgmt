@@ -464,9 +464,9 @@ static int execForwarder(void *info)
 
     if (fwdata->jobid) {
 	snprintf(tmp, sizeof(tmp), "job '%s' ", fwdata->jobid);
-	jobstring = strdup(tmp);
+	jobstring = ustrdup(tmp);
     } else {
-	jobstring = strdup("");
+	jobstring = ustrdup("");
     }
 
     if (!initForwarder()) exit(1);
@@ -677,6 +677,8 @@ static int handleControlSocket(int fd, void *info)
 		    __func__, count, getpid());
 	data->forwarderError = 1;
 	closeControlSocket(data);
+	Selector_remove(fd);
+	close(fd);
 	return 0;
     }
 

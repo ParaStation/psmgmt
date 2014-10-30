@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2012 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010 - 2014 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -23,55 +23,13 @@
 #include "list.h"
 #include "pscommon.h"
 #include "psaccountjob.h"
-
-typedef struct {
-    uint64_t cputime;
-    uint64_t utime;
-    uint64_t stime;
-    uint64_t mem;
-    uint64_t vmem;
-    int count;
-} psaccAccountInfo_t;
+#include "psaccounttypes.h"
 
 typedef enum {
     ACC_CHILD_JOBSCRIPT = 0x0000,
     ACC_CHILD_PSIDCHILD,
     ACC_CHILD_REMOTE
 } PS_Acct_job_types_t;
-
-typedef struct {
-    pid_t session;
-    pid_t pgroup;
-    uint64_t maxThreads;
-    uint64_t maxVsize;
-    uint64_t maxRss;
-    uint64_t avgThreads;
-    uint64_t avgThreadsCount;
-    uint64_t avgVsize;
-    uint64_t avgVsizeCount;
-    uint64_t avgRss;
-    uint64_t avgRssCount;
-    uint64_t cutime;
-    uint64_t cstime;
-    uint64_t cputime;
-} AccountData_t;
-
-typedef struct {
-    uint64_t maxThreads;
-    uint64_t maxVsize;
-    uint64_t maxRss;
-    uint64_t avgThreads;
-    uint64_t avgThreadsCount;
-    uint64_t avgVsize;
-    uint64_t avgVsizeCount;
-    uint64_t avgRss;
-    uint64_t avgRssCount;
-    uint64_t cutime;
-    uint64_t cstime;
-    uint64_t cputime;
-    uint64_t pageSize;
-    struct rusage rusage;
-} AccountDataExt_t;
 
 typedef struct {
     bool doAccounting;
@@ -256,6 +214,9 @@ void cleanupClients();
 int deleteAccClient(PStask_ID_t tid);
 
 void addAccDataForClient(Client_t *client, AccountDataExt_t *accData);
+
 int getAccountDataByLogger(PStask_ID_t logger, AccountDataExt_t *accData);
+
+int getPidsByLogger(PStask_ID_t logger, pid_t **pids, uint32_t *count);
 
 #endif

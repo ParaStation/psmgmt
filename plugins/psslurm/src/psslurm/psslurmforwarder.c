@@ -37,18 +37,18 @@
 #include "psslurmlimits.h"
 #include "psslurmcomm.h"
 #include "psslurmproto.h"
+#include "psslurmconfig.h"
 #include "psslurmenv.h"
 #include "psslurmmultiprog.h"
 #include "slurmcommon.h"
-#include "pluginpty.h"
-#include "psprotocolenv.h"
 
+#include "pluginpty.h"
 #include "pluginmalloc.h"
 #include "pluginhelper.h"
 #include "pluginforwarder.h"
 #include "selector.h"
-
-#include "psaccfunc.h"
+#include "psprotocolenv.h"
+#include "psaccounthandles.h"
 
 #include "psslurmforwarder.h"
 
@@ -75,11 +75,11 @@ int jobCallback(int32_t exit_status, char *errMsg, size_t errLen, void *data)
     psAccountUnregisterJob(fwdata->childPid);
 
     /* run epilogue now */
-    if (job->terminate) {
+    if (job->terminate && job->nodes) {
 	mlog("%s: starting epilogue for job '%u'\n", __func__, job->jobid);
 	job->state = JOB_EPILOGUE;
 	startPElogue(job->jobid, job->uid, job->gid, job->nrOfNodes, job->nodes,
-		    &job->env, 0, 0);
+		    &job->env, &job->spankenv, 0, 0);
     }
 
     return 0;
@@ -89,6 +89,7 @@ int stepCallback(int32_t exit_status, char *errMsg, size_t errLen, void *data)
 {
     Forwarder_Data_t *fwdata = data;
     Step_t *step = fwdata->userData;
+    Alloc_t *alloc;
 
     if (errLen >0) {
 	mlog("%s: %s", __func__, errMsg);
@@ -136,12 +137,14 @@ int stepCallback(int32_t exit_status, char *errMsg, size_t errLen, void *data)
     psAccountUnregisterJob(fwdata->childPid);
 
     /* run epilogue now */
-    if (step->terminate) {
+    if ((alloc = findAlloc(step->jobid)) &&
+	alloc->terminate &&
+	alloc->nodes[0] == PSC_getMyID()) {
 	mlog("%s: starting epilogue for step '%u:%u'\n", __func__, step->jobid,
 		step->stepid);
-	step->state = JOB_EPILOGUE;
+	alloc->state = JOB_EPILOGUE;
 	startPElogue(step->jobid, step->uid, step->gid, step->nrOfNodes,
-			step->nodes, &step->env, 1, 0);
+			step->nodes, &step->env, &step->spankenv, 1, 0);
     }
 
     return 0;

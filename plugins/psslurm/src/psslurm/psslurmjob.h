@@ -32,9 +32,6 @@
 
 #define MAX_JOBID_LEN 100
 
-/* TODO: find out when it is int64_t and when int32_t */
-typedef int32_t bitstr_t;
-
 typedef struct {
     PStask_ID_t childTID;
     PStask_ID_t forwarderTID;
@@ -119,6 +116,7 @@ typedef struct {
     uint32_t *globalTaskIdsLen;
     uint32_t tidsLen;
     PStask_ID_t *tids;
+    PStask_ID_t loggerTID;
     uint16_t numSrunPorts;	/* number of srun control ports */
     uint16_t *srunPorts;	/* srun control ports */
     struct sockaddr_in srun;	/* srun tcp/ip addr, port is invalid */
@@ -133,7 +131,6 @@ typedef struct {
     uint32_t profile;
     RLimits_t limit;		/* rlimits extract from slurm env */
     int state;
-    int terminate;
     int exitCode;
     char **argv;
     uint32_t argc;
@@ -199,7 +196,7 @@ typedef struct {
     char *checkpoint;
     char *restart;
     int state;
-    int terminate;
+    uint8_t terminate;
     RLimits_t limit;
     uint16_t interactive;   /* interactive(1) or batch(0) job */
     uint16_t extended;	    /* full integrated mode */
@@ -217,9 +214,23 @@ typedef struct {
     Forwarder_Data_t *fwdata;
 } Job_t;
 
+typedef struct {
+    uint32_t id;
+    uid_t uid;
+    gid_t gid;
+    uint32_t nrOfNodes;
+    PSnodes_ID_t *nodes;
+    env_t env;
+    env_t spankenv;
+    uint8_t terminate;
+    int state;
+    struct list_head list;  /* the job list header */
+} Alloc_t;
+
 /* list which holds all jobs */
 Job_t JobList;
 Step_t StepList;
+Alloc_t AllocList;
 
 void initJobList();
 
@@ -263,7 +274,7 @@ PSnodes_ID_t *findJobNodeEntry(Job_t *job, PSnodes_ID_t id);
 
 int deleteJob(uint32_t jobid);
 
-char *jobState2String(JobState_t state);
+char *strJobState(JobState_t state);
 
 void clearJobList();
 
@@ -282,6 +293,13 @@ int deleteStep(uint32_t jobid, uint32_t stepid);
 void clearStepList(uint32_t jobid);
 Step_t *addStep(uint32_t jobid, uint32_t stepid);
 Step_t *findStepByJobid(uint32_t jobid);
+int haveRunningSteps(uint32_t jobid);
+
+Alloc_t *addAllocation(uint32_t id, uint32_t nrOfNodes, char *slurmNodes,
+			    env_t *env, env_t *spankenv, uid_t uid, gid_t gid);
+Alloc_t *findAlloc(uint32_t id);
+int deleteAlloc(uint32_t id);
+void clearAllocList();
 
 PS_Tasks_t *addTask(struct list_head *list, PStask_ID_t childTID,
 			PStask_ID_t forwarderTID, PStask_t *forwarder,

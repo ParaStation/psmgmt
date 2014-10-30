@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2013 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010 - 2014 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -27,6 +27,18 @@
 
 /* flag to control the global collect mode */
 int globalCollectMode = 0;
+
+int psAccountGetDataByLogger(PStask_ID_t logger, AccountDataExt_t *accData)
+{
+    memset(accData, 0, sizeof(AccountDataExt_t));
+    return getAccountDataByLogger(logger, accData);
+}
+
+int psAccountGetPidsByLogger(PStask_ID_t loggerTID, pid_t **pids,
+				uint32_t *count)
+{
+    return getPidsByLogger(loggerTID, pids, count);
+}
 
 int psAccountGetJobData(pid_t jobscript, AccountDataExt_t *accData)
 {
@@ -71,8 +83,6 @@ int psAccountGetJobData(pid_t jobscript, AccountDataExt_t *accData)
 
     return true;
 }
-
-
 
 int psAccountGetJobInfo(pid_t jobscript, psaccAccountInfo_t *accData)
 {

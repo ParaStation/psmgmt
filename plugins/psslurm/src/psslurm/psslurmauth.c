@@ -18,7 +18,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "psaccfunc.h"
+#include "psmungehandles.h"
 #include "pluginmalloc.h"
 
 #include "psslurm.h"
@@ -121,6 +121,13 @@ int checkStepCred(Step_t *step)
 	return 0;
     }
 
+    if (!!(strcmp(step->slurmNodes, cred->hostlist))) {
+	mlog("%s: mismatching hostlist '%s' - '%s'\n", __func__,
+		step->slurmNodes, cred->hostlist);
+	return 0;
+    }
+
+    /*
     if (step->jobMemLimit != cred->jobMemLimit) {
 	mlog("%s: mismatching job memory limit '%u:%u'\n", __func__,
 		step->jobMemLimit, cred->jobMemLimit);
@@ -132,6 +139,7 @@ int checkStepCred(Step_t *step)
 		step->stepMemLimit, cred->stepMemLimit);
 	return 0;
     }
+    */
 
     mdbg(PSSLURM_LOG_AUTH, "%s: step '%u:%u' success\n", __func__,
 	    step->jobid, step->stepid);
@@ -164,15 +172,23 @@ int checkJobCred(Job_t *job)
 	return 0;
     }
 
+    /*
     if (job->memLimit != cred->jobMemLimit) {
 	mlog("%s: mismatching memory limit '%u:%u'\n", __func__, job->memLimit,
 		cred->jobMemLimit);
 	return 0;
     }
+    */
 
     if (job->nrOfNodes != cred->jobNumHosts) {
 	mlog("%s: mismatching node count '%u:%u'\n", __func__, job->nrOfNodes,
 		cred->jobNumHosts);
+	return 0;
+    }
+
+    if (!!(strcmp(job->slurmNodes, cred->jobHostlist))) {
+	mlog("%s: mismatching hostlist '%s' - '%s'\n", __func__,
+		job->slurmNodes, cred->jobHostlist);
 	return 0;
     }
 
@@ -278,9 +294,9 @@ JobCred_t *getJobCred(Gres_Cred_t *gres, char **ptr, uint16_t version)
     free(sigBuf);
 
     mdbg(PSSLURM_LOG_AUTH, "%s: cred len:%u jobMemLimit '%u' stepMemLimit '%u' "
-	    "hostlist '%s' ctime '%lu' " "sig '%s'\n", __func__, len,
-	    cred->jobMemLimit, cred->stepMemLimit, cred->hostlist, cred->ctime,
-	    cred->sig);
+	    "hostlist '%s' jobhostlist '%s' ctime '%lu' " "sig '%s'\n",
+	    __func__, len, cred->jobMemLimit, cred->stepMemLimit,
+	    cred->hostlist, cred->jobHostlist, cred->ctime, cred->sig);
 
     return cred;
 }

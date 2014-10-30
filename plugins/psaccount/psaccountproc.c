@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2012 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010 - 2014 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -323,6 +323,7 @@ static Proc_Snapshot_t *addProc(pid_t pid, ProcStat_t *pS, char *cmdline)
     proc->threads = pS->threads;
     proc->mem = pS->mem;
     proc->vmem = pS->vmem;
+    proc->numTasks = 1;
     if (cmdline)  {
 	proc->cmdline = ustrdup(cmdline);
     } else {
@@ -487,6 +488,7 @@ static void getAllClientInfo(Proc_Snapshot_t *res, pid_t pid)
 	    res->vmem += Childproc->vmem;
 	    res->cutime += Childproc->cutime;
 	    res->cstime += Childproc->cstime;
+	    res->numTasks++;
 
 	    mdbg(LOG_PROC_DEBUG, "%s: cmd:%s pid:%i ppid:%i cutime:%lu "
 		 "cstime:%lu mem:%lu vmem:%lu\n", __func__, Childproc->cmdline,
@@ -510,6 +512,7 @@ Proc_Snapshot_t *getAllChildrenData(pid_t pid)
     proc->vmem = 0;
     proc->cutime = 0;
     proc->cstime = 0;
+    proc->numTasks = 0;
 
     getAllClientInfo(proc, pid);
 

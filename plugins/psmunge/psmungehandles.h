@@ -15,18 +15,11 @@
  *
  */
 
-#ifndef __PS_SLURM_ENV
-#define __PS_SLURM_ENV
+#ifndef __PSMUNGE__HANDLES
+#define __PSMUNGE__HANDLES
 
-#include "psslurmjob.h"
-
-extern char **envFilter;
-
-int initEnvFilter();
-void freeEnvFilter();
-void setBatchEnv(Job_t *job);
-void setTaskEnv(Step_t *step);
-void setSlurmEnv(Job_t *job);
-void setRankEnv(int32_t rank, Step_t *step);
+int (*psMungeEncode)(char **);
+int (*psMungeDecode)(const char *, uid_t *, gid_t *);
+int (*psMungeDecodeBuf)(const char *, void **, int *, uid_t *, gid_t *);
 
 #endif

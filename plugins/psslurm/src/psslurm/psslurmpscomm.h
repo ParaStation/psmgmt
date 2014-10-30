@@ -41,4 +41,8 @@ void send_PS_SignalTasks(Step_t *step, int signal, PStask_group_t group);
 void send_PS_JobExit(uint32_t jobid, uint32_t stepid, uint32_t nrOfNodes,
 			PSnodes_ID_t *nodes);
 
+void send_PS_JobLaunch(uint32_t jobid, uint32_t nrOfNodes, PSnodes_ID_t *nodes);
+
+void send_PS_JobState(uint32_t jobid, PStask_ID_t dest);
+
 #endif

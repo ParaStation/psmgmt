@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2013 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010 - 2014 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -35,11 +35,11 @@
 #include "timer.h"
 #include "selector.h"
 #include "psidutil.h"
+#include "psaccounthandles.h"
 
 #include "psmom.h"
 #include "psmomconv.h"
 #include "psmomlocalcomm.h"
-#include "psmompsaccfunc.h"
 #include "psmomkvs.h"
 #include "psmomspawn.h"
 #include "psmomlog.h"

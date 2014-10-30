@@ -8,6 +8,7 @@
 # file.
 #
 # Author:       Thomas Moschny <moschny@par-tec.com>
+# 		Michael Rauh <rauh@par-tec.com>
 #
 
 PKG_NAME=psmgmt
@@ -241,6 +242,7 @@ plugins/pelogue/pelogueconfig.h \
 plugins/pelogue/pelogueforwarder.c \
 plugins/pelogue/pelogueforwarder.h \
 plugins/pelogue/pelogue.h \
+plugins/pelogue/peloguehandles.h \
 plugins/pelogue/pelogueinter.c \
 plugins/pelogue/pelogueinter.h \
 plugins/pelogue/peloguejob.c \
@@ -251,7 +253,6 @@ plugins/pelogue/peloguelog.c \
 plugins/pelogue/peloguelog.h \
 plugins/pelogue/peloguescript.c \
 plugins/pelogue/peloguescript.h \
-plugins/pelogue/psaccfunc.h \
 plugins/psaccount/Makefile.am \
 plugins/psaccount/Makefile.in \
 plugins/psaccount/psaccount.c \
@@ -264,6 +265,7 @@ plugins/psaccount/psaccountcomm.c \
 plugins/psaccount/psaccountcomm.h \
 plugins/psaccount/psaccountconfig.c \
 plugins/psaccount/psaccountconfig.h \
+plugins/psaccount/psaccounthandles.h \
 plugins/psaccount/psaccounthistory.c \
 plugins/psaccount/psaccounthistory.h \
 plugins/psaccount/psaccountinter.c \
@@ -276,6 +278,7 @@ plugins/psaccount/psaccountlog.c \
 plugins/psaccount/psaccountlog.h \
 plugins/psaccount/psaccountproc.c \
 plugins/psaccount/psaccountproc.h \
+plugins/psaccount/psaccounttypes.h \
 plugins/psmom/Makefile.am \
 plugins/psmom/Makefile.in \
 plugins/psmom/psmom-ChangeLog-History \
@@ -344,7 +347,6 @@ plugins/psmom/src/psmom/psmompbsserver.c \
 plugins/psmom/src/psmom/psmompbsserver.h \
 plugins/psmom/src/psmom/psmomproto.c \
 plugins/psmom/src/psmom/psmomproto.h \
-plugins/psmom/src/psmom/psmompsaccfunc.h \
 plugins/psmom/src/psmom/psmompscomm.c \
 plugins/psmom/src/psmom/psmompscomm.h \
 plugins/psmom/src/psmom/psmomrecover.c \
@@ -365,6 +367,7 @@ plugins/psmunge/Makefile.am \
 plugins/psmunge/Makefile.in \
 plugins/psmunge/psmunge.c \
 plugins/psmunge/psmunge.h \
+plugins/psmunge/psmungehandles.h \
 plugins/psmunge/psmungelog.c \
 plugins/psmunge/psmungelog.h \
 plugins/pspmi/Makefile.am \
@@ -407,7 +410,6 @@ plugins/psslurm/src/common/slurmcommon.h \
 plugins/psslurm/src/common/slurmerrno.h \
 plugins/psslurm/src/psslurm/Makefile.am \
 plugins/psslurm/src/psslurm/Makefile.in \
-plugins/psslurm/src/psslurm/psaccfunc.h \
 plugins/psslurm/src/psslurm/psslurmaccount.c \
 plugins/psslurm/src/psslurm/psslurmauth.c \
 plugins/psslurm/src/psslurm/psslurmauth.h \

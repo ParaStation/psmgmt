@@ -12,11 +12,17 @@
 
 include $(top_srcdir)/common.am
 
-psslurm_dir := plugins/psslurm/src
+psslurm_dir   := plugins/psslurm/src
+psaccount_dir := plugins/psaccount
+pelogue_dir   := plugins/pelogue
+psmunge_dir   := plugins/psmunge
 
 AM_LDFLAGS += -avoid-version -module
 AM_CPPFLAGS += -I$(top_srcdir)/bin/daemon -I$(srcdir)/../include \
-	       -I$(top_srcdir)/$(psslurm_dir)/common
+	       -I$(top_srcdir)/$(psslurm_dir)/common \
+	       -I$(top_srcdir)/$(psaccount_dir) \
+	       -I$(top_srcdir)/$(pelogue_dir) \
+	       -I$(top_srcdir)/$(psmunge_dir)
 
 plugin_LTLIBRARIES = psslurm.la
 

@@ -36,6 +36,51 @@
 
 #include "psslurmenv.h"
 
+char **envFilter = NULL;
+
+int initEnvFilter()
+{
+    char *conf, *dup, *next, *saveptr;
+    const char delimiters[] =",\n";
+    uint32_t count = 0, index = 0;
+
+    if (!(conf = getConfValueC(&Config, "PELOGUE_ENV_FILTER"))) {
+	mlog("%s: invalid PELOGUE_ENV_FILTER config option", __func__);
+	return 0;
+    }
+
+    dup = ustrdup(conf);
+    next = strtok_r(dup, delimiters, &saveptr);
+    while (next) {
+	count++;
+	next = strtok_r(NULL, delimiters, &saveptr);
+    }
+
+    envFilter = (char **) umalloc(sizeof(char *) * count+1);
+
+    strcpy(dup, conf);
+    next = strtok_r(dup, delimiters, &saveptr);
+    while (next) {
+	envFilter[index++] = ustrdup(next);
+	next = strtok_r(NULL, delimiters, &saveptr);
+    }
+    envFilter[index] = NULL;
+    ufree(dup);
+
+    return 1;
+}
+
+void freeEnvFilter()
+{
+    char *ptr;
+    uint32_t index = 0;
+
+    while ((ptr = envFilter[index])) {
+	ufree(envFilter[index++]);
+    }
+    ufree(envFilter);
+}
+
 /*
 static void addInt2StringList(uint32_t val, char **list, size_t *listSize,
 				int finish)
@@ -132,9 +177,12 @@ void setSlurmEnv(Job_t *job)
 	envSet(&job->env, "SLURM_NPROCS", tmp);
     }
 
-    if (job->partition) envSet(&job->env, "SLURM_JOB_PARTITION", job->partition);
+    if (job->partition) {
+	envSet(&job->env, "SLURM_JOB_PARTITION", job->partition);
+    }
 
-    envSet(&job->env, "SLURMD_NODENAME", getConfValueC(&Config, "SLURM_HOSTNAME"));
+    envSet(&job->env, "SLURMD_NODENAME",
+		getConfValueC(&Config, "SLURM_HOSTNAME"));
 
     envSet(&job->env, "SLURM_JOBID", job->id);
     envSet(&job->env, "SLURM_JOB_ID", job->id);
@@ -146,7 +194,8 @@ void setSlurmEnv(Job_t *job)
     envSet(&job->env, "SLURM_JOB_USER", job->username);
     snprintf(tmp, sizeof(tmp), "%u", job->uid);
     envSet(&job->env, "SLURM_JOB_UID", tmp);
-    envSet(&job->env, "SLURM_CPUS_ON_NODE", getConfValueC(&Config, "SLURM_CPUS"));
+    envSet(&job->env, "SLURM_CPUS_ON_NODE",
+		getConfValueC(&Config, "SLURM_CPUS"));
 
     cpus = getCPUsPerNode(job);
     envSet(&job->env, "SLURM_JOB_CPUS_PER_NODE", cpus);

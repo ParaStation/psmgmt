@@ -20,6 +20,7 @@
 #include <string.h>
 
 #include "pluginmalloc.h"
+#include "pluginlog.h"
 
 #include "pluginenv.h"
 
@@ -35,7 +36,7 @@ void __envDestroy(env_t *env, const char *func, const int line)
 {
     uint32_t i;
 
-    for (i = 0; i < env->cnt; i++) {
+    for (i=0; i<env->cnt; i++) {
 	__ufree(env->vars[i], func, line);
     }
     __ufree(env->vars, func, line);
@@ -49,7 +50,7 @@ static int envIndex(env_t *env, const char *name, uint32_t *idx)
     if (!name || strchr(name,'=')) return -1;
 
     len = strlen(name);
-    for (i = 0; i < env->cnt; i++) {
+    for (i=0; i<env->cnt; i++) {
 	if (!(strncmp(name, env->vars[i], len)) && (env->vars[i][len] == '=')){
 	    *idx = i;
 	    return 1;
@@ -135,7 +136,7 @@ int __envPut(env_t *env, char *envstring, const char *func, const int line)
     if (!(value = strchr(envstring, '='))) return -1;
 
     len = strlen(envstring) - strlen(value);
-    for (i = 0; i < env->cnt; i++) {
+    for (i=0; i<env->cnt; i++) {
 	if (!(strncmp(envstring, env->vars[i], len)) &&
 	     (env->vars[i][len] == '=')) {
 	    ufree(env->vars[i]);
@@ -145,4 +146,58 @@ int __envPut(env_t *env, char *envstring, const char *func, const int line)
     }
 
     return envDoSet(env, __ustrdup(envstring, func, line), func, line);
+}
+
+static void envSetFilter(env_t *env, char *envstring, char **filter, const char *func,
+			    const int line)
+{
+    uint32_t count = 0;
+    char *ptr;
+    size_t len, cmpLen;
+
+    if (filter) {
+	while ((ptr = filter[count++])) {
+	    len = strlen(ptr);
+	    cmpLen = (ptr[len-1] == '*') ? (len-1) : len;
+	    if (!strncmp(ptr, envstring, cmpLen)) {
+		if (envstring[len] == '=' || ptr[len-1] == '*') {
+		    envDoSet(env, __ustrdup(envstring, func, line), func, line);
+		}
+	    }
+	}
+    } else {
+	envDoSet(env, __ustrdup(envstring, func, line), func, line);
+    }
+}
+
+void __envClone(env_t *env, env_t *clone, char **filter, const char *func,
+		    const int line)
+{
+    uint32_t i;
+
+    clone->size = env->size;
+    clone->vars = __umalloc(sizeof(char *) * env->size, func, line);
+    clone->cnt = 0;
+
+    for (i=0; i<env->cnt; i++) {
+	envSetFilter(clone, env->vars[i], filter, func, line);
+    }
+}
+
+void __envCat(env_t *env1, env_t *env2, char **filter, const char *func,
+		const int line)
+{
+    uint32_t i, count;
+
+    count = env1->cnt + env2->cnt + 1;
+
+    if (count > env1->size) {
+	env1->size = count;
+	env1->vars = __urealloc(env1->vars, env1->size * sizeof(char *),
+					func, line);
+    }
+
+    for (i=0; i<env2->cnt; i++) {
+	envSetFilter(env1, env2->vars[i], filter, func, line);
+    }
 }

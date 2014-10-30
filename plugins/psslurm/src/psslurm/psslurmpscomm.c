@@ -21,7 +21,6 @@
 #include <stdbool.h>
 #include <signal.h>
 
-#include "psaccfunc.h"
 #include "pspluginprotocol.h"
 #include "pscommon.h"
 #include "psidcomm.h"
@@ -33,6 +32,8 @@
 #include "pluginhelper.h"
 #include "pluginfrag.h"
 #include "pluginpartition.h"
+#include "peloguehandles.h"
+#include "psaccounthandles.h"
 
 #include "slurmcommon.h"
 #include "psslurmforwarder.h"
@@ -42,6 +43,7 @@
 #include "psslurmjob.h"
 #include "psslurmcomm.h"
 #include "psslurmconfig.h"
+#include "psslurmjob.h"
 #include "psslurm.h"
 
 #include "psslurmpscomm.h"
@@ -390,7 +392,7 @@ void callbackPElogue(char *jobid, int exit_status, int timeout)
     }
 
     mlog("%s: jobid '%s' state '%s' exit '%i' timeout '%i'\n", __func__, jobid,
-	    jobState2String(job->state), exit_status, timeout);
+	    strJobState(job->state), exit_status, timeout);
 
     msg = (DDTypedBufferMsg_t) {
 	.header = (DDMsg_t) {
@@ -462,7 +464,8 @@ static void handleQueueReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     getUint32(&ptr, &job->gid);
 
     /* hostlist */
-    getNodesFromSlurmHL(&ptr, &job->slurmNodes, &job->nrOfNodes, &job->nodes);
+    job->slurmNodes = getStringM(&ptr);
+    getNodesFromSlurmHL(job->slurmNodes, &job->nrOfNodes, &job->nodes);
     getUint32(&ptr, &stepid);
     job->hostname = getStringM(&ptr);
 
@@ -631,6 +634,40 @@ static void handleRemoteJob(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 
 }
 
+void send_PS_JobLaunch(uint32_t jobid, uint32_t nrOfNodes, PSnodes_ID_t *nodes)
+{
+    DDTypedBufferMsg_t msg;
+    PS_DataBuffer_t data = { .buf = NULL };
+    PStask_ID_t myID = PSC_getMyID();
+    uint32_t i;
+
+    /* add jobid */
+    addUint32ToMsg(jobid, &data);
+
+    /* send the messages */
+    msg = (DDTypedBufferMsg_t) {
+       .header = (DDMsg_t) {
+       .type = PSP_CC_PLUG_PSSLURM,
+       .sender = PSC_getMyTID(),
+       .len = sizeof(msg.header) },
+       .buf = {'\0'} };
+
+    msg.type = PSP_JOB_LAUNCH;
+    msg.header.len += sizeof(msg.type);
+
+    memcpy(msg.buf, data.buf, data.bufUsed);
+    msg.header.len += data.bufUsed;
+
+    for (i=0; i<nrOfNodes; i++) {
+	if (nodes[i] == myID) continue;
+
+	msg.header.dest = PSC_getTID(nodes[i], 0);
+	sendMsg(&msg);
+    }
+
+    ufree(data.buf);
+}
+
 void send_PS_JobExit(uint32_t jobid, uint32_t stepid, uint32_t nrOfNodes,
 			PSnodes_ID_t *nodes)
 {
@@ -712,6 +749,36 @@ void send_PS_SignalTasks(Step_t *step, int signal, PStask_group_t group)
     ufree(data.buf);
 }
 
+void send_PS_JobState(uint32_t jobid, PStask_ID_t dest)
+{
+    DDTypedBufferMsg_t msg;
+    PS_DataBuffer_t data = { .buf = NULL };
+
+    mlog("%s: jobid '%u' dest '%s'\n", __func__, jobid, PSC_printTID(dest));
+
+    /* add jobid */
+    addUint32ToMsg(jobid, &data);
+
+    /* send the messages */
+    msg = (DDTypedBufferMsg_t) {
+       .header = (DDMsg_t) {
+       .type = PSP_CC_PLUG_PSSLURM,
+       .sender = PSC_getMyTID(),
+       .len = sizeof(msg.header) },
+       .buf = {'\0'} };
+
+    msg.type = PSP_JOB_STATE_REQ;
+    msg.header.len += sizeof(msg.type);
+
+    memcpy(msg.buf, data.buf, data.bufUsed);
+    msg.header.len += data.bufUsed;
+
+    msg.header.dest = dest;
+    sendMsg(&msg);
+
+    ufree(data.buf);
+}
+
 static void handle_PS_JobExit(DDTypedBufferMsg_t *msg)
 {
     uint32_t jobid, stepid;
@@ -729,7 +796,8 @@ static void handle_PS_JobExit(DDTypedBufferMsg_t *msg)
     /* delete all steps */
     if (stepid == SLURM_BATCH_SCRIPT) {
 	sendEpilogueComplete(jobid, 0);
-	clearStepList(jobid);
+	deleteAlloc(jobid);
+	deleteJob(jobid);
 	return;
     }
 
@@ -738,6 +806,94 @@ static void handle_PS_JobExit(DDTypedBufferMsg_t *msg)
     } else {
 	step->state = JOB_EXIT;
     }
+}
+
+static void handle_PS_JobStateRes(DDTypedBufferMsg_t *msg)
+{
+    Job_t *job;
+    Alloc_t *alloc;
+    uint32_t jobid;
+    uint8_t res = 0, state = 0;
+    char *ptr = msg->buf;
+
+    /* get jobid */
+    getUint32(&ptr, &jobid);
+
+    /* get info */
+    getUint8(&ptr, &res);
+    getUint8(&ptr, &state);
+
+    mlog("%s: jobid '%u' res '%u' state '%u'\n", __func__, jobid, res, state);
+
+    if ((job = findJobById(jobid))) {
+	if (!res) {
+	    sendEpilogueComplete(jobid, 0);
+	    deleteJob(jobid);
+	}
+    } else if ((alloc = findAlloc(jobid))) {
+	if (!res) {
+	    sendEpilogueComplete(jobid, 0);
+	    deleteAlloc(jobid);
+	}
+    }
+}
+
+static void handle_PS_JobStateReq(DDTypedBufferMsg_t *msg)
+{
+    PS_DataBuffer_t data = { .buf = NULL };
+    Job_t *job;
+    Alloc_t *alloc;
+    uint32_t jobid;
+    uint8_t res = 0, state = 0;
+    char *ptr = msg->buf;
+
+    /* get jobid */
+    getUint32(&ptr, &jobid);
+
+    mlog("%s: jobid '%u'\n", __func__, jobid);
+
+    if ((job = findJobById(jobid))) {
+	res = 1;
+	state = job->state;
+    } else if ((alloc = findAlloc(jobid))) {
+	res = 1;
+	state = alloc->state;
+    }
+
+    addUint32ToMsg(jobid, &data);
+    addUint8ToMsg(res, &data);
+    addUint8ToMsg(state, &data);
+
+    /* send the messages */
+    msg->header.dest = msg->header.sender;
+    msg->header.sender = PSC_getMyTID();
+    msg->header.len = sizeof(msg->header);
+
+    msg->type = PSP_JOB_STATE_RES;
+    msg->header.len += sizeof(msg->type);
+
+    memcpy(msg->buf, data.buf, data.bufUsed);
+    msg->header.len += data.bufUsed;
+
+    sendMsg(msg);
+
+    ufree(data.buf);
+}
+
+static void handle_PS_JobLaunch(DDTypedBufferMsg_t *msg)
+{
+    uint32_t jobid;
+    Job_t *job;
+    char *ptr = msg->buf;
+
+    /* get jobid */
+    getUint32(&ptr, &jobid);
+
+    job = addJob(jobid);
+    job->state = JOB_QUEUED;
+    job->mother = msg->header.sender;
+
+    mlog("%s: jobid '%u'\n", __func__, jobid);
 }
 
 static void handle_PS_SignalTasks(DDTypedBufferMsg_t *msg)
@@ -805,6 +961,15 @@ void handlePsslurmMsg(DDTypedBufferMsg_t *msg)
 	case PSP_JOB_EXIT:
 	    handle_PS_JobExit(msg);
 	    break;
+	case PSP_JOB_LAUNCH:
+	    handle_PS_JobLaunch(msg);
+	    break;
+	case PSP_JOB_STATE_REQ:
+	    handle_PS_JobStateReq(msg);
+	    break;
+	case PSP_JOB_STATE_RES:
+	    handle_PS_JobStateRes(msg);
+	    break;
 	default:
 	    mlog("%s: received unknown msg type:%i [%s -> %s]\n", __func__,
 		msg->type, sender, dest);
@@ -840,7 +1005,7 @@ int handleNodeDown(void *nodeID)
 			job->state = JOB_EPILOGUE;
 			startPElogue(job->jobid, job->uid, job->gid,
 					job->nrOfNodes, job->nodes,
-					&job->env, 0, 0);
+					&job->env, &job->spankenv, 0, 0);
 		    }
 		} else {
 		    signalJob(job, SIGKILL, "node failure");
@@ -871,7 +1036,7 @@ int handleNodeDown(void *nodeID)
 
 			startPElogue(step->jobid, step->uid, step->gid,
 					step->nrOfNodes, step->nodes,
-					&step->env, 1, 0);
+					&step->env, &step->spankenv, 1, 0);
 		    }
 		} else {
 		    signalStep(step, SIGKILL);
@@ -886,9 +1051,12 @@ int handleNodeDown(void *nodeID)
 
 void handleDroppedMsg(DDTypedBufferMsg_t *msg)
 {
-    char *ptr, jobid[300];
+    char *ptr, sjobid[300];
     const char *hname;
     PSnodes_ID_t nodeId;
+    uint32_t jobid;
+    Job_t *job;
+    Alloc_t *alloc;
 
     /* get hostname for message destination */
     nodeId = PSC_getID(msg->header.dest);
@@ -901,9 +1069,27 @@ void handleDroppedMsg(DDTypedBufferMsg_t *msg)
     switch (msg->type) {
 	case PSP_PROLOGUE_RES:
 	case PSP_EPILOGUE_RES:
-	    getString(&ptr, jobid, sizeof(jobid));
+	    getString(&ptr, sjobid, sizeof(sjobid));
 
-	    mlog("%s: can't send pelogue result to '%s'\n", __func__, jobid);
+	    mlog("%s: can't send pelogue result to '%s'\n", __func__, sjobid);
+	    break;
+	case PSP_JOB_STATE_REQ:
+	    getUint32(&ptr, &jobid);
+
+	    if ((job = findJobById(jobid))) {
+		mlog("%s: deleting job '%u'\n", __func__, jobid);
+		sendEpilogueComplete(jobid, 0);
+		deleteJob(jobid);
+	    } else if ((alloc = findAlloc(jobid))) {
+		mlog("%s: deleting allocation '%u'\n", __func__, jobid);
+		sendEpilogueComplete(jobid, 0);
+		deleteAlloc(jobid);
+	    }
+	    break;
+	case PSP_JOB_LAUNCH:
+	case PSP_JOB_EXIT:
+	case PSP_JOB_STATE_RES:
+	    /* nothing we can do here */
 	    break;
 	default:
 	    mlog("%s: unknown msg type '%i'\n", __func__, msg->type);
@@ -958,6 +1144,7 @@ void handleChildBornMsg(DDErrorMsg_t *msg)
 	}
 	addTask(&step->tasks.list, msg->request, forwarder->tid,
 		    forwarder, forwarder->childGroup);
+	if (!step->loggerTID) step->loggerTID = forwarder->loggertid;
     }
 
 FORWARD_CHILD_BORN:

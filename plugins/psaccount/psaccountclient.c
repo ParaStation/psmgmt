@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2012 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010 - 2014 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -120,8 +120,8 @@ static Client_t *findJobscriptByLogger(PStask_ID_t logger)
 		return jobscript;
 	    } else {
 		/*
-		mlog("%s: js %i not parent of logger %i\n", __func__, jobscript->pid,
-		    PSC_getPID(logger));
+		mlog("%s: js %i not parent of logger %i\n", __func__,
+			jobscript->pid, PSC_getPID(logger));
 		*/
 	    }
 	}
@@ -168,6 +168,40 @@ void addAccDataForClient(Client_t *client, AccountDataExt_t *accData)
     accData->rusage.ru_utime.tv_usec += client->rusage.ru_utime.tv_usec;
     accData->rusage.ru_stime.tv_sec += client->rusage.ru_stime.tv_sec;
     accData->rusage.ru_stime.tv_usec += client->rusage.ru_stime.tv_usec;
+    accData->numTasks += client->data.numTasks;
+}
+
+
+int getPidsByLogger(PStask_ID_t logger, pid_t **pids, uint32_t *count)
+{
+    struct list_head *pos;
+    Client_t *client;
+    uint32_t index = 0;
+
+    *count = 0;
+    *pids = NULL;
+    if (list_empty(&AccClientList.list)) return 0;
+
+    list_for_each(pos, &AccClientList.list) {
+	if ((client = list_entry(pos, Client_t, list)) == NULL) break;
+
+	if (client->logger == logger && client->type == ACC_CHILD_PSIDCHILD) {
+	    (*count)++;
+	}
+    }
+
+    *pids = (pid_t *) umalloc(sizeof(pid_t) * *count);
+
+    list_for_each(pos, &AccClientList.list) {
+	if ((client = list_entry(pos, Client_t, list)) == NULL) break;
+
+	if (client->logger == logger && client->type == ACC_CHILD_PSIDCHILD) {
+	    if (index == *count) break;
+	    (*pids)[index++] = client->pid;
+	}
+    }
+
+    return 1;
 }
 
 int getAccountDataByLogger(PStask_ID_t logger, AccountDataExt_t *accData)

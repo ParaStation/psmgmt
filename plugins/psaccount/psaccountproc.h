@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2011 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010 - 2014 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -15,27 +15,13 @@
 #define __PS_ACCOUNT_PROC
 
 #include "list.h"
+#include "psaccounttypes.h"
 
 typedef struct {
     pid_t session;
     uid_t uid;
     struct list_head list;
 } Session_Info_t;
-
-typedef struct {
-    pid_t ppid;
-    pid_t pgroup;
-    pid_t session;
-    char state[1];
-    uint64_t ctime;
-    uint64_t stime;
-    uint64_t cutime;
-    uint64_t cstime;
-    uint64_t threads;
-    uint64_t vmem;
-    uint64_t mem;
-    uid_t uid;
-} ProcStat_t;
 
 typedef struct {
     uid_t uid;
@@ -48,6 +34,7 @@ typedef struct {
     unsigned long threads;
     unsigned long vmem;
     unsigned long mem;
+    uint32_t numTasks;
     char *cmdline;
     struct list_head list;
 } Proc_Snapshot_t;
@@ -131,7 +118,8 @@ void clearAllProcSnapshots();
  *
  * @return No return value.
  */
-void getSessionInformation(int *count, char *buf, size_t bufsize, int *userCount);
+void getSessionInformation(int *count, char *buf, size_t bufsize,
+			    int *userCount);
 
 /**
  * @brief Send a signal to a pid and all its children.

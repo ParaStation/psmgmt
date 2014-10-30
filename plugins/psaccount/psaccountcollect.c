@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2013 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010 - 2014 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -44,7 +44,7 @@ void updateAccountData(Client_t *client)
     unsigned long rssnew, vsizenew = 0;
     uint64_t cutime, cstime;
     AccountData_t *accData;
-    Proc_Snapshot_t *proc, *procChilds;
+    Proc_Snapshot_t *proc, *pChildren;
     int sendUpdate = 0;
 
     if (client->doAccounting == 0) return;
@@ -68,16 +68,17 @@ void updateAccountData(Client_t *client)
     }
 
     /* get infos for all children  */
-    procChilds = getAllChildrenData(client->pid);
+    pChildren = getAllChildrenData(client->pid);
 
-    rssnew = proc->mem + procChilds->mem;
-    vsizenew = proc->vmem + procChilds->vmem;
+    rssnew = proc->mem + pChildren->mem;
+    vsizenew = proc->vmem + pChildren->vmem;
+    accData->numTasks = proc->numTasks + pChildren->numTasks;
 
     /* save cutime and cstime in seconds */
-    cutime = (proc->cutime + procChilds->cutime) / clockTicks;
-    cstime = (proc->cstime + procChilds->cstime) / clockTicks;
+    cutime = (proc->cutime + pChildren->cutime) / clockTicks;
+    cstime = (proc->cstime + pChildren->cstime) / clockTicks;
 
-    ufree(procChilds);
+    ufree(pChildren);
 
     /* set rss (resident set size) */
     if (rssnew > accData->maxRss) accData->maxRss = rssnew;
@@ -108,9 +109,8 @@ void updateAccountData(Client_t *client)
 	}
     }
 
-    /*
-    mlog("%s: pid:%i cutime: '%lu' cstime: '%lu' session '%i' mem '%lu' vmem '%lu'"
-	"threads '%lu'\n", __func__, client->pid, accData->cutime, accData->cstime,
-	accData->session, accData->maxRss, accData->maxVsize, accData->maxThreads);
-    */
+    mlog("%s: pid:%i cutime: '%lu' cstime: '%lu' session '%i' mem '%lu' "
+	    "vmem '%lu' threads '%lu' numTasks '%u'\n", __func__, client->pid,
+	    accData->cutime, accData->cstime, accData->session, accData->maxRss,
+	    accData->maxVsize, accData->maxThreads, accData->numTasks);
 }

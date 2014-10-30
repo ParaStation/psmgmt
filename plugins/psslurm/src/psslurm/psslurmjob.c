@@ -26,8 +26,9 @@
 #include "psslurmpscomm.h"
 #include "psslurmcomm.h"
 #include "psslurmauth.h"
+#include "psslurmenv.h"
+#include "psslurmproto.h"
 
-#include "psaccfunc.h"
 #include "slurmcommon.h"
 #include "psidtask.h"
 #include "pluginmalloc.h"
@@ -47,6 +48,7 @@ void initJobList()
 {
     INIT_LIST_HEAD(&JobList.list);
     INIT_LIST_HEAD(&StepList.list);
+    INIT_LIST_HEAD(&AllocList.list);
 }
 
 Job_t *addJob(uint32_t jobid)
@@ -85,6 +87,7 @@ Job_t *addJob(uint32_t jobid)
     job->cpuGroupCount = 0;
     job->cpusPerNode = NULL;
     job->cpuCountReps = NULL;
+    job->mother = 0;
     INIT_LIST_HEAD(&job->tasks.list);
     INIT_LIST_HEAD(&job->gres.list);
     envInit(&job->env);
@@ -97,6 +100,30 @@ Job_t *addJob(uint32_t jobid)
     list_add_tail(&(job->list), &JobList.list);
 
     return job;
+}
+
+Alloc_t *addAllocation(uint32_t id, uint32_t nrOfNodes, char *slurmNodes,
+			    env_t *env, env_t *spankenv, uid_t uid, gid_t gid)
+{
+    Alloc_t *alloc;
+
+    alloc = (Alloc_t *) umalloc(sizeof(Alloc_t));
+    alloc->id = id;
+    alloc->state = JOB_QUEUED;
+    getNodesFromSlurmHL(slurmNodes, &alloc->nrOfNodes, &alloc->nodes);
+    if (alloc->nrOfNodes != nrOfNodes) {
+	mlog("%s: mismatching nrOfNodes '%u:%u'\n", __func__, nrOfNodes,
+		alloc->nrOfNodes);
+    }
+    envClone(env, &alloc->env, envFilter);
+    envClone(spankenv, &alloc->spankenv, envFilter);
+    alloc->uid = uid;
+    alloc->gid = gid;
+    alloc->terminate = 0;
+
+    list_add_tail(&(alloc->list), &AllocList.list);
+
+    return alloc;
 }
 
 Step_t *addStep(uint32_t jobid, uint32_t stepid)
@@ -138,13 +165,13 @@ Step_t *addStep(uint32_t jobid, uint32_t stepid)
     step->username = NULL;
     step->tids = NULL;
     step->tidsLen = 0;
-    step->terminate = 0;
     step->exitCode = 0;
     step->state = JOB_INIT;
     step->srunIOSock = -1;
     step->srunControlSock = -1;
     step->srunPTYSock = -1;
     step->x11forward = 0;
+    step->loggerTID = 0;
     INIT_LIST_HEAD(&step->tasks.list);
     INIT_LIST_HEAD(&step->gres.list);
     envInit(&step->env);
@@ -292,6 +319,20 @@ void clearJobList()
     }
 }
 
+void clearAllocList()
+{
+    list_t *pos, *tmp;
+    Alloc_t *alloc;
+
+    if (list_empty(&AllocList.list)) return;
+
+    list_for_each_safe(pos, tmp, &AllocList.list) {
+	if (!(alloc = list_entry(pos, Alloc_t, list))) return;
+
+	deleteAlloc(alloc->id);
+    }
+}
+
 void clearStepList(uint32_t jobid)
 {
     list_t *pos, *tmp;
@@ -303,6 +344,45 @@ void clearStepList(uint32_t jobid)
 	if (!(step = list_entry(pos, Step_t, list))) return;
 	if (step->jobid == jobid) deleteStep(step->jobid, step->stepid);
     }
+}
+
+Alloc_t *findAlloc(uint32_t id)
+{
+    list_t *pos, *tmp;
+    Alloc_t *alloc;
+
+    if (list_empty(&AllocList.list)) return NULL;
+
+    list_for_each_safe(pos, tmp, &AllocList.list) {
+	if (!(alloc = list_entry(pos, Alloc_t, list))) break;
+	if (alloc->id == id) return alloc;
+    }
+    return NULL;
+}
+
+int deleteAlloc(uint32_t id)
+{
+    Alloc_t *alloc;
+
+    if (!(alloc = findAlloc(id))) return 0;
+
+    /* tell sisters the allocation is revoked */
+    if (alloc->nodes[0] == PSC_getMyID()) {
+	send_PS_JobExit(alloc->id, SLURM_BATCH_SCRIPT,
+		alloc->nrOfNodes, alloc->nodes);
+    }
+
+    /* delete all corresponding steps */
+    clearStepList(id);
+
+    ufree(alloc->nodes);
+    envDestroy(&alloc->env);
+    envDestroy(&alloc->spankenv);
+
+    list_del(&alloc->list);
+    ufree(alloc);
+
+    return 1;
 }
 
 int deleteStep(uint32_t jobid, uint32_t stepid)
@@ -339,8 +419,10 @@ int deleteStep(uint32_t jobid, uint32_t stepid)
     clearGresCred(&step->gres);
 
     if (step->fwdata) {
-	kill(step->fwdata->childPid, SIGKILL);
-	kill(step->fwdata->forwarderPid, SIGKILL);
+	if (step->fwdata->childPid) kill(step->fwdata->childPid, SIGKILL);
+	if (step->fwdata->forwarderPid) {
+	    kill(step->fwdata->forwarderPid, SIGKILL);
+	}
 	destroyForwarderData(step->fwdata);
     }
 
@@ -373,12 +455,23 @@ int deleteJob(uint32_t jobid)
 
     if (!(job = findJobById(jobid))) return 0;
 
+    /* remote job, only delete it */
+    if (job->mother) {
+	list_del(&job->list);
+	ufree(job);
+	return 1;
+    }
+
     if (job->jobscript) unlink(job->jobscript);
 
     clearStepList(job->jobid);
     clearGresCred(&job->gres);
-    send_PS_JobExit(job->jobid, SLURM_BATCH_SCRIPT,
-			job->nrOfNodes, job->nodes);
+
+    /* tell sisters the job is finished */
+    if (job->nodes && job->nodes[0] == PSC_getMyID()) {
+	send_PS_JobExit(job->jobid, SLURM_BATCH_SCRIPT,
+			    job->nrOfNodes, job->nodes);
+    }
 
     ufree(job->id);
     ufree(job->username);
@@ -518,6 +611,22 @@ int countSteps()
     return count;
 }
 
+int haveRunningSteps(uint32_t jobid)
+{
+    list_t *pos, *tmp;
+    Step_t *step;
+
+    list_for_each_safe(pos, tmp, &StepList.list) {
+	if (!(step = list_entry(pos, Step_t, list))) break;
+	if (step->jobid == jobid &&
+	    step->state != JOB_COMPLETE &&
+	    step->state != JOB_EXIT) {
+	    return 1;
+	}
+    }
+    return 0;
+}
+
 int countJobs()
 {
     struct list_head *pos;
@@ -613,7 +722,7 @@ int signalJobs(int signal, char *reason)
     return count;
 }
 
-char *jobState2String(JobState_t state)
+char *strJobState(JobState_t state)
 {
     switch (state) {
 	case JOB_INIT:

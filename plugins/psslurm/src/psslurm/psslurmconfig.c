@@ -84,6 +84,11 @@ const ConfDef_t CONFIG_VALUES[] =
 	"1",
 	"Enforce jobs to use the Batchsystem, only admin user may use mpiexec "
 	    "directly" },
+    { "PELOGUE_ENV_FILTER", 0,
+	"list",
+	"SLURM_*",
+	"Positive filter which will allow forwarding of selected "
+	"environment variables to prologue/epilogue." },
     { NULL, 0, NULL, NULL, NULL },
 };
 

@@ -55,6 +55,12 @@ char *msg2Str(PSP_PSSLURM_t type)
 	    return "PSP_SIGNAL_TASKS";
 	case PSP_JOB_EXIT:
 	    return "PSP_JOB_EXIT";
+	case PSP_JOB_LAUNCH:
+	    return "PSP_JOB_LAUNCH";
+	case PSP_JOB_STATE_REQ:
+	    return "PSP_JOB_STATE_REQ";
+	case PSP_JOB_STATE_RES:
+	    return "PSP_JOB_STATE_RES";
     }
     return NULL;
 }

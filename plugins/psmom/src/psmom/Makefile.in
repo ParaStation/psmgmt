@@ -363,7 +363,8 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 AM_CPPFLAGS = -I$(top_srcdir)/include -DNDEBUG \
-	-I$(top_srcdir)/bin/daemon -I$(srcdir)/../include
+	-I$(top_srcdir)/bin/daemon -I$(srcdir)/../include \
+	-I$(top_srcdir)/$(psaccount_dir)
 sed_verbose = $(sed_verbose_$(V))
 sed_verbose_ = $(sed_verbose_$(AM_DEFAULT_VERBOSITY))
 sed_verbose_0 = @echo "  SED   " $(@F);
@@ -398,6 +399,7 @@ configdir = $(prefix)/config
 # dito
 scriptsdir = $(prefix)/scripts
 slurmdir = $(libdir)/slurm
+psaccount_dir := plugins/psaccount
 plugin_LTLIBRARIES = psmom.la
 libpbs = $(top_builddir)/plugins/psmom/src/pbs/libpbs.la
 libpsi = $(top_builddir)/lib/psi/libpsi.la
@@ -411,10 +413,10 @@ psmom_la_SOURCES = config.h.in helper.c helper.h Makefile.am psmomacc.c \
 	psmomjobinfo.c psmomjobinfo.h psmomkvs.c psmomkvs.h psmomlist.c \
 	psmomlist.h psmomlocalcomm.c psmomlocalcomm.h psmomlog.c psmomlog.h \
 	psmompartition.c psmompartition.h psmompbsserver.c psmompbsserver.h \
-	psmomproto.c psmomproto.h psmompsaccfunc.h psmompscomm.c \
-	psmompscomm.h psmomrecover.c psmomrecover.h psmomrpp.c psmomrpp.h \
-	psmomscript.c psmomscript.h psmomsignal.c psmomsignal.h psmomspawn.c \
-	psmomspawn.h psmomssh.c psmomssh.h psmomtcp.c psmomtcp.h
+	psmomproto.c psmomproto.h psmompscomm.c psmompscomm.h psmomrecover.c \
+	psmomrecover.h psmomrpp.c psmomrpp.h psmomscript.c psmomscript.h \
+	psmomsignal.c psmomsignal.h psmomspawn.c psmomspawn.h psmomssh.c \
+	psmomssh.h psmomtcp.c psmomtcp.h
 
 psmom_la_CPPFLAGS = $(AM_CPPFLAGS) -DPLUGINDIR=\"$(plugindir)\" \
 	-DLOCALSTATEDIR=\"$(localstatedir)\"

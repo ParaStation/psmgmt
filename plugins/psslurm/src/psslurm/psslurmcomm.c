@@ -301,7 +301,7 @@ static int connect2Slurmctld(void *data)
 
     if ((Selector_register(sock, handleSlurmctldReply, data)) == -1) {
 	mlog("%s: Selector_register(%i) failed\n", __func__, sock);
-	exit(1);
+	return -1;
     }
     //mlog("%s: connected to slurmctld\n", __func__);
 
@@ -320,7 +320,6 @@ int sendSlurmMsg(int sock, slurm_msg_type_t type, PS_DataBuffer_t *body,
 	if ((sock = connect2Slurmctld(sockData))<0) {
 	    /* TODO */
 	    mlog("%s: fixme: need to retry later!!!\n", __func__);
-	    //exit(1);
 	    return 0;
 	}
     }
@@ -414,8 +413,9 @@ static int acceptSlurmdClient(int asocket, void *data)
 
     if ((Selector_register(socket, handleSlurmdMsg, NULL)) == -1) {
 	mlog("%s: Selector_register(%i) failed\n", __func__, socket);
-	exit(1);
+	return 0;
     }
+
     return 0;
 }
 
@@ -462,7 +462,7 @@ int openSlurmdSocket(int port)
     //mlog("%s: register fd:%i port:%i\n", __func__, sock, port);
     if ((Selector_register(sock, acceptSlurmdClient, NULL)) == -1) {
 	mlog("%s: Selector_register(%i) failed\n", __func__, sock);
-	exit(1);
+	return -1;
     }
 
     return sock;
@@ -605,7 +605,7 @@ int srunSendMsg(int sock, Step_t *step, slurm_msg_type_t type,
 
     if ((Selector_register(sock, handleSrunMsg, step)) == -1) {
 	mlog("%s: Selector_register(%i) failed\n", __func__, sock);
-	exit(1);
+	return -1;
     }
 
     mlog("%s: sock %u, len: body.bufUsed %u body.bufSize %u\n", __func__,
@@ -633,7 +633,7 @@ int srunOpenPTY(Step_t *step)
 
     if ((Selector_register(sock, handleSrunPTYMsg, step)) == -1) {
 	mlog("%s: Selector_register(%i) failed\n", __func__, sock);
-	exit(1);
+	return -1;
     }
     return sock;
 }
@@ -668,7 +668,7 @@ int srunOpenIOConnection(Step_t *step)
     step->srunIOSock = sock;
     if ((Selector_register(sock, handleSrunMsg, step)) == -1) {
 	mlog("%s: Selector_register(%i) failed\n", __func__, sock);
-	exit(1);
+	return 0;
     }
 
     addUint16ToMsg(IO_PROTOCOL_VERSION, &data);

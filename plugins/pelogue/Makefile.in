@@ -17,7 +17,7 @@
 #
 # ParaStation
 #
-# Copyright (C) 2013 ParTec Cluster Competence Center GmbH, Munich
+# Copyright (C) 2013 - 2014 ParTec Cluster Competence Center GmbH, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -351,7 +351,8 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 AM_CPPFLAGS = -I$(top_srcdir)/include -DNDEBUG \
-	-I$(top_srcdir)/bin/daemon -I$(srcdir)/../include
+	-I$(top_srcdir)/bin/daemon -I$(srcdir)/../include \
+	-I$(top_srcdir)/$(psaccount_dir)
 sed_verbose = $(sed_verbose_$(V))
 sed_verbose_ = $(sed_verbose_$(AM_DEFAULT_VERBOSITY))
 sed_verbose_0 = @echo "  SED   " $(@F);
@@ -386,13 +387,15 @@ configdir = $(prefix)/config
 # dito
 scriptsdir = $(prefix)/scripts
 slurmdir = $(libdir)/slurm
+psaccount_dir := plugins/psaccount
 plugin_LTLIBRARIES = pelogue.la
 libplugincommon = $(top_builddir)/lib/plugincommon/libplugincommon.la
 pelogue_la_SOURCES = pelogue.c pelogue.h peloguelog.c peloguelog.h \
 	peloguecomm.c peloguecomm.h pelogueconfig.c pelogueconfig.h \
 	peloguechild.c peloguechild.h peloguescript.c peloguescript.h \
 	peloguejob.c peloguejob.h pelogueinter.c pelogueinter.h \
-	pelogueforwarder.c pelogueforwarder.h peloguekvs.c peloguekvs.h
+	pelogueforwarder.c pelogueforwarder.h peloguekvs.c peloguekvs.h \
+	peloguehandles.h
 
 pelogue_la_CPPFLAGS = $(AM_CPPFLAGS) -DPLUGINDIR=\"$(plugindir)\" \
 	-DLOCALSTATEDIR=\"$(localstatedir)\"

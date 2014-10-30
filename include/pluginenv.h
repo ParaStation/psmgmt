@@ -49,4 +49,13 @@ int envGetUint32(env_t *env, const char *name, uint32_t *val);
 void __envUnsetIndex(env_t *env, uint32_t idx, const char *func,
 			const int line);
 
+#define envClone(env, clone, filter) __envClone(env, clone, filter, \
+		    __func__, __LINE__)
+void __envClone(env_t *env, env_t *clone, char **filter, const char *func,
+		    const int line);
+
+#define envCat(env1, env2, filter) __envCat(env1, env2, filter, \
+		    __func__, __LINE__)
+void __envCat(env_t *env1, env_t *env2, char **filter, const char *func,
+		const int line);
 #endif

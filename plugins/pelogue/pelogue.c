@@ -35,7 +35,7 @@
 #include "psidhook.h"
 #include "plugin.h"
 #include "timer.h"
-#include "psaccfunc.h"
+#include "psaccounthandles.h"
 
 #include "pluginfrag.h"
 #include "pluginlog.h"
