@@ -2773,7 +2773,7 @@ static keylist_t config_list[] = {
 
 static parser_t config_parser = {" \t\n", config_list};
 
-config_t *parseConfig(FILE* logfile, int logmask, char *configfile)
+config_t *parseOldConfig(FILE* logfile, int logmask, char *configfile)
 {
     FILE *cfd;
     int ret;

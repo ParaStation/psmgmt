@@ -12,7 +12,6 @@
 
 include $(top_srcdir)/common.am
 
-dist_sysconf_DATA = parastation.conf
 dist_plugin_DATA = psresport.conf psaccount.conf
 
 # install, but do not pack, since it is generated

@@ -104,7 +104,7 @@ build_triplet = @build@
 host_triplet = @host@
 target_triplet = @target@
 DIST_COMMON = $(top_srcdir)/common.am $(srcdir)/Makefile.in \
-	$(srcdir)/Makefile.am $(dist_plugin_DATA) $(dist_sysconf_DATA)
+	$(srcdir)/Makefile.am $(dist_plugin_DATA)
 subdir = doc
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/m4/ax_check_compile_flag.m4 \
@@ -165,9 +165,8 @@ am__uninstall_files_from_dir = { \
     || { echo " ( cd '$$dir' && rm -f" $$files ")"; \
          $(am__cd) "$$dir" && rm -f $$files; }; \
   }
-am__installdirs = "$(DESTDIR)$(plugindir)" "$(DESTDIR)$(sysconfdir)" \
-	"$(DESTDIR)$(docdir)"
-DATA = $(dist_plugin_DATA) $(dist_sysconf_DATA) $(nodist_doc_DATA)
+am__installdirs = "$(DESTDIR)$(plugindir)" "$(DESTDIR)$(docdir)"
+DATA = $(dist_plugin_DATA) $(nodist_doc_DATA)
 am__tagged_files = $(HEADERS) $(SOURCES) $(TAGS_FILES) $(LISP)
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 ACLOCAL = @ACLOCAL@
@@ -232,6 +231,9 @@ PACKAGE_URL = @PACKAGE_URL@
 PACKAGE_VERSION = @PACKAGE_VERSION@
 PAM_LIBS = @PAM_LIBS@
 PATH_SEPARATOR = @PATH_SEPARATOR@
+PKG_CONFIG = @PKG_CONFIG@
+PKG_CONFIG_LIBDIR = @PKG_CONFIG_LIBDIR@
+PKG_CONFIG_PATH = @PKG_CONFIG_PATH@
 POPT_LIBS = @POPT_LIBS@
 RANLIB = @RANLIB@
 RL_LIBS = @RL_LIBS@
@@ -264,6 +266,8 @@ datarootdir = @datarootdir@
 docdir = @docdir@
 dvidir = @dvidir@
 exec_prefix = @exec_prefix@
+glib2_CFLAGS = @glib2_CFLAGS@
+glib2_LIBS = @glib2_LIBS@
 host = @host@
 host_alias = @host_alias@
 host_cpu = @host_cpu@
@@ -331,7 +335,6 @@ configdir = $(prefix)/config
 
 # dito
 scriptsdir = $(prefix)/scripts
-dist_sysconf_DATA = parastation.conf
 dist_plugin_DATA = psresport.conf psaccount.conf
 
 # install, but do not pack, since it is generated
@@ -399,27 +402,6 @@ uninstall-dist_pluginDATA:
 	@list='$(dist_plugin_DATA)'; test -n "$(plugindir)" || list=; \
 	files=`for p in $$list; do echo $$p; done | sed -e 's|^.*/||'`; \
 	dir='$(DESTDIR)$(plugindir)'; $(am__uninstall_files_from_dir)
-install-dist_sysconfDATA: $(dist_sysconf_DATA)
-	@$(NORMAL_INSTALL)
-	@list='$(dist_sysconf_DATA)'; test -n "$(sysconfdir)" || list=; \
-	if test -n "$$list"; then \
-	  echo " $(MKDIR_P) '$(DESTDIR)$(sysconfdir)'"; \
-	  $(MKDIR_P) "$(DESTDIR)$(sysconfdir)" || exit 1; \
-	fi; \
-	for p in $$list; do \
-	  if test -f "$$p"; then d=; else d="$(srcdir)/"; fi; \
-	  echo "$$d$$p"; \
-	done | $(am__base_list) | \
-	while read files; do \
-	  echo " $(INSTALL_DATA) $$files '$(DESTDIR)$(sysconfdir)'"; \
-	  $(INSTALL_DATA) $$files "$(DESTDIR)$(sysconfdir)" || exit $$?; \
-	done
-
-uninstall-dist_sysconfDATA:
-	@$(NORMAL_UNINSTALL)
-	@list='$(dist_sysconf_DATA)'; test -n "$(sysconfdir)" || list=; \
-	files=`for p in $$list; do echo $$p; done | sed -e 's|^.*/||'`; \
-	dir='$(DESTDIR)$(sysconfdir)'; $(am__uninstall_files_from_dir)
 install-nodist_docDATA: $(nodist_doc_DATA)
 	@$(NORMAL_INSTALL)
 	@list='$(nodist_doc_DATA)'; test -n "$(docdir)" || list=; \
@@ -482,7 +464,7 @@ check-am: all-am
 check: check-am
 all-am: Makefile $(DATA)
 installdirs:
-	for dir in "$(DESTDIR)$(plugindir)" "$(DESTDIR)$(sysconfdir)" "$(DESTDIR)$(docdir)"; do \
+	for dir in "$(DESTDIR)$(plugindir)" "$(DESTDIR)$(docdir)"; do \
 	  test -z "$$dir" || $(MKDIR_P) "$$dir"; \
 	done
 install: install-am
@@ -542,7 +524,7 @@ install-dvi: install-dvi-am
 
 install-dvi-am:
 
-install-exec-am: install-dist_sysconfDATA install-exec-local
+install-exec-am: install-exec-local
 
 install-html: install-html-am
 
@@ -580,8 +562,7 @@ ps: ps-am
 
 ps-am:
 
-uninstall-am: uninstall-dist_pluginDATA uninstall-dist_sysconfDATA \
-	uninstall-nodist_docDATA
+uninstall-am: uninstall-dist_pluginDATA uninstall-nodist_docDATA
 
 .MAKE: install-am install-strip
 
@@ -589,16 +570,15 @@ uninstall-am: uninstall-dist_pluginDATA uninstall-dist_sysconfDATA \
 	cscopelist-am ctags-am distclean distclean-generic \
 	distclean-libtool distdir dvi dvi-am html html-am info info-am \
 	install install-am install-data install-data-am \
-	install-dist_pluginDATA install-dist_sysconfDATA install-dvi \
-	install-dvi-am install-exec install-exec-am install-exec-local \
-	install-html install-html-am install-info install-info-am \
-	install-man install-nodist_docDATA install-pdf install-pdf-am \
-	install-ps install-ps-am install-strip installcheck \
-	installcheck-am installdirs maintainer-clean \
-	maintainer-clean-generic mostlyclean mostlyclean-generic \
-	mostlyclean-libtool pdf pdf-am ps ps-am tags-am uninstall \
-	uninstall-am uninstall-dist_pluginDATA \
-	uninstall-dist_sysconfDATA uninstall-nodist_docDATA
+	install-dist_pluginDATA install-dvi install-dvi-am \
+	install-exec install-exec-am install-exec-local install-html \
+	install-html-am install-info install-info-am install-man \
+	install-nodist_docDATA install-pdf install-pdf-am install-ps \
+	install-ps-am install-strip installcheck installcheck-am \
+	installdirs maintainer-clean maintainer-clean-generic \
+	mostlyclean mostlyclean-generic mostlyclean-libtool pdf pdf-am \
+	ps ps-am tags-am uninstall uninstall-am \
+	uninstall-dist_pluginDATA uninstall-nodist_docDATA
 
 
 %: %.in

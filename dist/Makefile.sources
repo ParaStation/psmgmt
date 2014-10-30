@@ -199,6 +199,7 @@ lib/putil/config_parsing.c \
 lib/putil/env.c \
 lib/putil/hardware.c \
 lib/putil/mcast.c \
+lib/putil/old_config_parsing.c \
 lib/putil/parser.c \
 lib/putil/psdaemonprotocol.c \
 lib/putil/psparamspace.c \

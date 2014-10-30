@@ -10,7 +10,8 @@ License:   QPL
 Group:     Productivity/Clustering/Computing
 Packager:  support@par-tec.de
 Source0:   %{name}-%{version}-%{release}.tar.gz
-BuildRequires:	ncurses-devel, readline-devel, popt-devel
+Requires:  psconfig >= 1.0, glib2 >= 2.22.5
+BuildRequires:	ncurses-devel, readline-devel, popt-devel, psconfig-dev
 
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
@@ -161,7 +162,6 @@ exit 0
 %{_sysconfdir}/profile.d/psmgmt.csh
 %{_sysconfdir}/init.d/parastation
 %config(noreplace) /etc/xinetd.d/psidstarter
-%config(noreplace) /etc/parastation.conf
 %attr(770,root,root) %{_localstatedir}/log/psaccounter
 
 %files devel

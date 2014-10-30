@@ -70,6 +70,8 @@ PS_SEARCH_LIBS([readline], [readline], [RL_LIBS], [],
 PS_SEARCH_LIBS([using_history], [history], [RL_LIBS], [],
   [AC_MSG_ERROR([please install the readline devel package])])
 
+PKG_CHECK_MODULES([glib2], [glib-2.0 >= 2.22.0])
+
 AX_CHECK_COMPILE_FLAG([-O3],
   [AM_CFLAGS="$AM_CFLAGS -O3"])
 
