@@ -499,7 +499,6 @@ recv_retry:
     default:
 	PSI_log(-1, "%s: unexpected answer %s\n", __func__,
 		PSP_printMsg(answer.header.type));
-	errors[0] = 0;
 	return 2; /* Ignore answer */
     }
     return 1;
@@ -571,6 +570,11 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
     int hugeTask = 0, hugeArgv = 0;
     char *valgrind;
     char *callgrind;
+
+    if (!errors) {
+	PSI_log(-1, "%s: unable to reports errors\n", __func__);
+	return -1;
+    }
 
     valgrind = getenv("PSI_USE_VALGRIND");
     callgrind = getenv("PSI_USE_CALLGRIND");
@@ -869,6 +873,11 @@ int PSI_spawnStrictHW(int count, uint32_t hwType, char *workdir,
 
     PSI_log(PSI_LOG_VERB, "%s(%d)\n", __func__, count);
 
+    if (!errors) {
+	PSI_log(-1, "%s: unable to reports errors\n", __func__);
+	return -1;
+    }
+
     if (count<=0) return 0;
 
     nodes = malloc(sizeof(*nodes) * NODES_CHUNK);
@@ -915,13 +924,17 @@ int PSI_spawnSingle(char *workdir, int argc, char **argv,
 {
     /* @todo Here we should get the node to spawn to and test if this
      * is corret */
-    int ret;
+    int ret, rank;
     PSnodes_ID_t node;
-    int rank = PSI_getNodes(1, 0, &node);
 
     PSI_log(PSI_LOG_VERB, "%s()\n", __func__);
 
+    if (!error) {
+	PSI_log(-1, "%s: unable to reports errors\n", __func__);
+	return -1;
+    }
 
+    rank = PSI_getNodes(1, 0, &node);
     if (rank < 0) {
 	*error = ENXIO;
 	return -1;
@@ -944,6 +957,11 @@ int PSI_spawnAdmin(PSnodes_ID_t node, char *workdir, int argc, char **argv,
 
     PSI_log(PSI_LOG_VERB, "%s(%d)\n", __func__, node);
 
+    if (!error) {
+	PSI_log(-1, "%s: unable to reports errors\n", __func__);
+	return -1;
+    }
+
     if (node == -1) node = PSC_getMyID();
     ret = dospawn(1, &node, workdir, argc, argv, strictArgv,
 		  TG_ADMINTASK, rank, error, tid);
@@ -960,6 +978,11 @@ int PSI_spawnService(PSnodes_ID_t node, char *workdir, int argc, char **argv,
     PStask_group_t group;
 
     PSI_log(PSI_LOG_VERB, "%s(%d)\n", __func__, node);
+
+    if (!error) {
+	PSI_log(-1, "%s: unable to reports errors\n", __func__);
+	return -1;
+    }
 
     /* tell logger about service process */
     if (envStr) {
@@ -1000,6 +1023,11 @@ PStask_ID_t PSI_spawnRank(int rank, char *workdir, int argc, char **argv,
 
     PSI_log(PSI_LOG_VERB, "%s(%d)\n", __func__, rank);
 
+    if (!error) {
+	PSI_log(-1, "%s: unable to reports errors\n", __func__);
+	return -1;
+    }
+
     if (rankGot != rank) {
 	*error = ENXIO;
 	return 0;
@@ -1022,6 +1050,11 @@ PStask_ID_t PSI_spawnGMSpawner(int np, char *workdir, int argc, char **argv,
     PStask_ID_t tid;
 
     PSI_log(PSI_LOG_VERB, "%s(%d)\n", __func__, np);
+
+    if (!error) {
+	PSI_log(-1, "%s: unable to reports errors\n", __func__);
+	return -1;
+    }
 
     if (rankGot) {
 	*error = ENXIO;
