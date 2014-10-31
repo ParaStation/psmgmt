@@ -1,7 +1,7 @@
 #
 # ParaStation
 #
-# Copyright (C) 2012-2013 ParTec Cluster Competence Center GmbH, Munich
+# Copyright (C) 2012-2014 ParTec Cluster Competence Center GmbH, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -32,7 +32,7 @@ noinst_SCRIPTS += memtest.py
 
 EXTRA_DIST = vcversion
 EXTRA_DIST += .gdbinit mpirun_java parastation_tru64
-EXTRA_DIST += lsf
+EXTRA_DIST += lsf memtest.py
 
 # templates for generated files
 EXTRA_DIST += psaccview.in

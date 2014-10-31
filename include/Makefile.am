@@ -1,7 +1,7 @@
 #
 # ParaStation
 #
-# Copyright (C) 2012 ParTec Cluster Competence Center GmbH, Munich
+# Copyright (C) 2012-2014 ParTec Cluster Competence Center GmbH, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -20,4 +20,5 @@ include_HEADERS = pse.h psprotocol.h psnodes.h pstask.h pspartition.h	\
 noinst_HEADERS = env.h hardware.h kvscommon.h kvs.h mcast.h parser.h	\
 	 psbyteorder.h psilog.h pslog.h pspartition.h psstrings.h	\
 	 rdp.h psipartition.h psparamspace.h kvsprovider.h		\
-	 pluginmalloc.h pluginfrag.h plugincomm.h
+	 pluginmalloc.h pluginfrag.h plugincomm.h pluginlog.h 		\
+	 psprotocolenv.h
