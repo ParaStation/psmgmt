@@ -244,9 +244,11 @@ static int rangeCommand(char *token)
 
 	memcpy(defaultNL, nl, PSC_getNrOfNodes());
     } else {
+	char *res;
 	printf(" ");
-	printRange(NULL);
+	res = printRange(NULL);
 	printf("\n");
+	if (res) free(res);
     }
 
     return 0;
