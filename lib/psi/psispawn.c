@@ -905,7 +905,7 @@ int PSI_spawnStrictHW(int count, uint32_t hwType, char *workdir,
 	PSI_log(PSI_LOG_SPAWN, "%s: first rank: %d\n", __func__, rank);
 
 	ret = dospawn(chunk, nodes, workdir, argc, argv, strictArgv,
-		      TG_ANY, rank, errors, tids);
+		      TG_ANY, rank, errors+total, tids ? tids+total : NULL);
 	if (ret != chunk) {
 	    free(nodes);
 	    return -1;
