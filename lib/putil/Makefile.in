@@ -121,21 +121,14 @@ CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
 LTLIBRARIES = $(noinst_LTLIBRARIES)
 libputil_la_DEPENDENCIES =
-am_libputil_la_OBJECTS = libputil_la-config_parsing.lo \
-	libputil_la-old_config_parsing.lo libputil_la-env.lo \
-	libputil_la-hardware.lo libputil_la-mcast.lo \
-	libputil_la-parser.lo libputil_la-psdaemonprotocol.lo \
-	libputil_la-psstrings.lo libputil_la-rdp.lo \
-	libputil_la-selector.lo libputil_la-timer.lo \
-	libputil_la-psparamspace.lo
+am_libputil_la_OBJECTS = config_parsing.lo env.lo hardware.lo mcast.lo \
+	parser.lo psdaemonprotocol.lo psstrings.lo rdp.lo selector.lo \
+	timer.lo psparamspace.lo old_config_parsing.lo
 libputil_la_OBJECTS = $(am_libputil_la_OBJECTS)
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
 am__v_lt_0 = --silent
 am__v_lt_1 = 
-libputil_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
-	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(libputil_la_CFLAGS) \
-	$(CFLAGS) $(libputil_la_LDFLAGS) $(LDFLAGS) -o $@
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
 am__v_P_0 = false
@@ -199,10 +192,10 @@ CTAGS = ctags
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 ACLOCAL = @ACLOCAL@
 AMTAR = @AMTAR@
-AM_CFLAGS = @AM_CFLAGS@
+AM_CFLAGS = @AM_CFLAGS@ $(glib2_CFLAGS)
 AM_DEFAULT_VERBOSITY = @AM_DEFAULT_VERBOSITY@
 AM_DISTCHECK_CONFIGURE_FLAGS = @AM_DISTCHECK_CONFIGURE_FLAGS@
-AM_LDFLAGS = @AM_LDFLAGS@
+AM_LDFLAGS = @AM_LDFLAGS@ $(glib2_LDFLAGS)
 AR = @AR@
 AUTOCONF = @AUTOCONF@
 AUTOHEADER = @AUTOHEADER@
@@ -367,12 +360,10 @@ configdir = $(prefix)/config
 # dito
 scriptsdir = $(prefix)/scripts
 noinst_LTLIBRARIES = libputil.la
-libputil_la_SOURCES = config_parsing.c old_config_parsing.c env.c hardware.c mcast.c \
+libputil_la_SOURCES = config_parsing.c env.c hardware.c mcast.c \
 	parser.c psdaemonprotocol.c psstrings.c rdp.c selector.c \
-	timer.c psparamspace.c
+	timer.c psparamspace.c old_config_parsing.c
 
-libputil_la_CFLAGS = $(glib2_CFLAGS)
-libputil_la_LDFLAGS = $(glib2_LDFLAGS)
 libputil_la_LIBADD = -lm
 all: all-am
 
@@ -422,7 +413,7 @@ clean-noinstLTLIBRARIES:
 	}
 
 libputil.la: $(libputil_la_OBJECTS) $(libputil_la_DEPENDENCIES) $(EXTRA_libputil_la_DEPENDENCIES) 
-	$(AM_V_CCLD)$(libputil_la_LINK)  $(libputil_la_OBJECTS) $(libputil_la_LIBADD) $(LIBS)
+	$(AM_V_CCLD)$(LINK)  $(libputil_la_OBJECTS) $(libputil_la_LIBADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
@@ -430,18 +421,18 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libputil_la-config_parsing.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libputil_la-env.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libputil_la-hardware.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libputil_la-mcast.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libputil_la-old_config_parsing.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libputil_la-parser.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libputil_la-psdaemonprotocol.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libputil_la-psparamspace.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libputil_la-psstrings.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libputil_la-rdp.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libputil_la-selector.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libputil_la-timer.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/config_parsing.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/env.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/hardware.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mcast.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/old_config_parsing.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/parser.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psdaemonprotocol.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psparamspace.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psstrings.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rdp.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/selector.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/timer.Plo@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	$(AM_V_CC)depbase=`echo $@ | sed 's|[^/]*$$|$(DEPDIR)/&|;s|\.o$$||'`;\
@@ -466,90 +457,6 @@ distclean-compile:
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='$<' object='$@' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LTCOMPILE) -c -o $@ $<
-
-libputil_la-config_parsing.lo: config_parsing.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libputil_la_CFLAGS) $(CFLAGS) -MT libputil_la-config_parsing.lo -MD -MP -MF $(DEPDIR)/libputil_la-config_parsing.Tpo -c -o libputil_la-config_parsing.lo `test -f 'config_parsing.c' || echo '$(srcdir)/'`config_parsing.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libputil_la-config_parsing.Tpo $(DEPDIR)/libputil_la-config_parsing.Plo
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='config_parsing.c' object='libputil_la-config_parsing.lo' libtool=yes @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libputil_la_CFLAGS) $(CFLAGS) -c -o libputil_la-config_parsing.lo `test -f 'config_parsing.c' || echo '$(srcdir)/'`config_parsing.c
-
-libputil_la-old_config_parsing.lo: old_config_parsing.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libputil_la_CFLAGS) $(CFLAGS) -MT libputil_la-old_config_parsing.lo -MD -MP -MF $(DEPDIR)/libputil_la-old_config_parsing.Tpo -c -o libputil_la-old_config_parsing.lo `test -f 'old_config_parsing.c' || echo '$(srcdir)/'`old_config_parsing.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libputil_la-old_config_parsing.Tpo $(DEPDIR)/libputil_la-old_config_parsing.Plo
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='old_config_parsing.c' object='libputil_la-old_config_parsing.lo' libtool=yes @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libputil_la_CFLAGS) $(CFLAGS) -c -o libputil_la-old_config_parsing.lo `test -f 'old_config_parsing.c' || echo '$(srcdir)/'`old_config_parsing.c
-
-libputil_la-env.lo: env.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libputil_la_CFLAGS) $(CFLAGS) -MT libputil_la-env.lo -MD -MP -MF $(DEPDIR)/libputil_la-env.Tpo -c -o libputil_la-env.lo `test -f 'env.c' || echo '$(srcdir)/'`env.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libputil_la-env.Tpo $(DEPDIR)/libputil_la-env.Plo
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='env.c' object='libputil_la-env.lo' libtool=yes @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libputil_la_CFLAGS) $(CFLAGS) -c -o libputil_la-env.lo `test -f 'env.c' || echo '$(srcdir)/'`env.c
-
-libputil_la-hardware.lo: hardware.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libputil_la_CFLAGS) $(CFLAGS) -MT libputil_la-hardware.lo -MD -MP -MF $(DEPDIR)/libputil_la-hardware.Tpo -c -o libputil_la-hardware.lo `test -f 'hardware.c' || echo '$(srcdir)/'`hardware.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libputil_la-hardware.Tpo $(DEPDIR)/libputil_la-hardware.Plo
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='hardware.c' object='libputil_la-hardware.lo' libtool=yes @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libputil_la_CFLAGS) $(CFLAGS) -c -o libputil_la-hardware.lo `test -f 'hardware.c' || echo '$(srcdir)/'`hardware.c
-
-libputil_la-mcast.lo: mcast.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libputil_la_CFLAGS) $(CFLAGS) -MT libputil_la-mcast.lo -MD -MP -MF $(DEPDIR)/libputil_la-mcast.Tpo -c -o libputil_la-mcast.lo `test -f 'mcast.c' || echo '$(srcdir)/'`mcast.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libputil_la-mcast.Tpo $(DEPDIR)/libputil_la-mcast.Plo
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='mcast.c' object='libputil_la-mcast.lo' libtool=yes @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libputil_la_CFLAGS) $(CFLAGS) -c -o libputil_la-mcast.lo `test -f 'mcast.c' || echo '$(srcdir)/'`mcast.c
-
-libputil_la-parser.lo: parser.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libputil_la_CFLAGS) $(CFLAGS) -MT libputil_la-parser.lo -MD -MP -MF $(DEPDIR)/libputil_la-parser.Tpo -c -o libputil_la-parser.lo `test -f 'parser.c' || echo '$(srcdir)/'`parser.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libputil_la-parser.Tpo $(DEPDIR)/libputil_la-parser.Plo
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='parser.c' object='libputil_la-parser.lo' libtool=yes @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libputil_la_CFLAGS) $(CFLAGS) -c -o libputil_la-parser.lo `test -f 'parser.c' || echo '$(srcdir)/'`parser.c
-
-libputil_la-psdaemonprotocol.lo: psdaemonprotocol.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libputil_la_CFLAGS) $(CFLAGS) -MT libputil_la-psdaemonprotocol.lo -MD -MP -MF $(DEPDIR)/libputil_la-psdaemonprotocol.Tpo -c -o libputil_la-psdaemonprotocol.lo `test -f 'psdaemonprotocol.c' || echo '$(srcdir)/'`psdaemonprotocol.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libputil_la-psdaemonprotocol.Tpo $(DEPDIR)/libputil_la-psdaemonprotocol.Plo
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='psdaemonprotocol.c' object='libputil_la-psdaemonprotocol.lo' libtool=yes @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libputil_la_CFLAGS) $(CFLAGS) -c -o libputil_la-psdaemonprotocol.lo `test -f 'psdaemonprotocol.c' || echo '$(srcdir)/'`psdaemonprotocol.c
-
-libputil_la-psstrings.lo: psstrings.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libputil_la_CFLAGS) $(CFLAGS) -MT libputil_la-psstrings.lo -MD -MP -MF $(DEPDIR)/libputil_la-psstrings.Tpo -c -o libputil_la-psstrings.lo `test -f 'psstrings.c' || echo '$(srcdir)/'`psstrings.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libputil_la-psstrings.Tpo $(DEPDIR)/libputil_la-psstrings.Plo
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='psstrings.c' object='libputil_la-psstrings.lo' libtool=yes @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libputil_la_CFLAGS) $(CFLAGS) -c -o libputil_la-psstrings.lo `test -f 'psstrings.c' || echo '$(srcdir)/'`psstrings.c
-
-libputil_la-rdp.lo: rdp.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libputil_la_CFLAGS) $(CFLAGS) -MT libputil_la-rdp.lo -MD -MP -MF $(DEPDIR)/libputil_la-rdp.Tpo -c -o libputil_la-rdp.lo `test -f 'rdp.c' || echo '$(srcdir)/'`rdp.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libputil_la-rdp.Tpo $(DEPDIR)/libputil_la-rdp.Plo
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='rdp.c' object='libputil_la-rdp.lo' libtool=yes @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libputil_la_CFLAGS) $(CFLAGS) -c -o libputil_la-rdp.lo `test -f 'rdp.c' || echo '$(srcdir)/'`rdp.c
-
-libputil_la-selector.lo: selector.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libputil_la_CFLAGS) $(CFLAGS) -MT libputil_la-selector.lo -MD -MP -MF $(DEPDIR)/libputil_la-selector.Tpo -c -o libputil_la-selector.lo `test -f 'selector.c' || echo '$(srcdir)/'`selector.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libputil_la-selector.Tpo $(DEPDIR)/libputil_la-selector.Plo
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='selector.c' object='libputil_la-selector.lo' libtool=yes @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libputil_la_CFLAGS) $(CFLAGS) -c -o libputil_la-selector.lo `test -f 'selector.c' || echo '$(srcdir)/'`selector.c
-
-libputil_la-timer.lo: timer.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libputil_la_CFLAGS) $(CFLAGS) -MT libputil_la-timer.lo -MD -MP -MF $(DEPDIR)/libputil_la-timer.Tpo -c -o libputil_la-timer.lo `test -f 'timer.c' || echo '$(srcdir)/'`timer.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libputil_la-timer.Tpo $(DEPDIR)/libputil_la-timer.Plo
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='timer.c' object='libputil_la-timer.lo' libtool=yes @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libputil_la_CFLAGS) $(CFLAGS) -c -o libputil_la-timer.lo `test -f 'timer.c' || echo '$(srcdir)/'`timer.c
-
-libputil_la-psparamspace.lo: psparamspace.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libputil_la_CFLAGS) $(CFLAGS) -MT libputil_la-psparamspace.lo -MD -MP -MF $(DEPDIR)/libputil_la-psparamspace.Tpo -c -o libputil_la-psparamspace.lo `test -f 'psparamspace.c' || echo '$(srcdir)/'`psparamspace.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libputil_la-psparamspace.Tpo $(DEPDIR)/libputil_la-psparamspace.Plo
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='psparamspace.c' object='libputil_la-psparamspace.lo' libtool=yes @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libputil_la_CFLAGS) $(CFLAGS) -c -o libputil_la-psparamspace.lo `test -f 'psparamspace.c' || echo '$(srcdir)/'`psparamspace.c
 
 mostlyclean-libtool:
 	-rm -f *.lo
