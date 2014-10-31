@@ -155,7 +155,6 @@ static nodeconf_t nodeconf = {
 
 static int getString(char *key, gchar **value)
 {
-    int ret;
     GError *err = NULL;
 
     *value = psconfig_get(psconfig, psconfigobj, key, psconfig_flags, &err);
@@ -1027,49 +1026,6 @@ static void clear_GUIDlist(list_t *list)
     }
 }
 
-/**
- * @brief Copy list of GUIDs
- *
- * Create a copy of the list of GUIDs @a src, and store it to the
- * corresponding list @a dest. @a dest will be cleared using @ref
- * clear_GUIDlist() before using it.
- *
- * @param src The list to copy.
- *
- * @param src The destination of the copied list-items.
- *
- * @return On success, 0 is returned. Or -1, if any error occurred.
- */
-static int copy_GUIDlist(list_t *src, list_t *dest)
-{
-    list_t *pos;
-
-    clear_GUIDlist(dest);
-
-    list_for_each(pos, src) {
-	GUent_t *old = list_entry(pos, GUent_t, next);
-	GUent_t *new = malloc(sizeof(*new));
-	if (!new) {
-	    parser_comment(-1, "%s: No memory\n", __func__);
-	    return -1;
-	}
-	new->id = old->id;
-	list_add_tail(&new->next, dest);
-    }
-    return 0;
-}
-
-static int addID(list_t *list, unsigned int id);
-
-static int setID(list_t *list, unsigned int id)
-{
-    if (!list) return -1;
-
-    clear_GUIDlist(list);
-
-    return addID(list, id);
-}
-
 static int addID(list_t *list, unsigned int id)
 {
     GUent_t *guent;
@@ -1103,6 +1059,15 @@ static int addID(list_t *list, unsigned int id)
     list_add_tail(&guent->next, list);
 
     return 0;
+}
+
+static int setID(list_t *list, unsigned int id)
+{
+    if (!list) return -1;
+
+    clear_GUIDlist(list);
+
+    return addID(list, id);
 }
 
 static int remID(list_t *list, unsigned int id)
@@ -1357,7 +1322,7 @@ static int getProcs(char *key)
     if (procs == -1) {
         parser_comment(PARSER_LOG_NODE, " any");
     } else {
-        parser_comment(PARSER_LOG_NODE, " %ld", procs);
+        parser_comment(PARSER_LOG_NODE, " %d", procs);
     }
     parser_comment(PARSER_LOG_NODE, " procs\n");
 
@@ -1499,7 +1464,7 @@ static int getCPUmapEnt(char *token)
     nodeconf.cpumap[nodeconf.cpumap_size] = val;
     nodeconf.cpumap_size++;
 
-    parser_comment(PARSER_LOG_NODE, " %ld", val);
+    parser_comment(PARSER_LOG_NODE, " %d", val);
     return 0;
 }
 
@@ -1555,7 +1520,8 @@ static int getEnv(char *key)
     GPtrArray *env;
     GError *err = NULL;
     gchar *var, *val;
-    int i, ret;
+    unsigned int i;
+    int ret;
 
     env = psconfig_getList(psconfig, psconfigobj, key, psconfig_flags, &err);
     CHECK_PSCONFIG_ERROR_AND_RETURN(env, key, err, -1);
@@ -1738,7 +1704,8 @@ static int getNodes()
 {
     GPtrArray *nodeobjlist;
     GError *err = NULL;
-    int i, ret;
+    unsigned int i;
+    int ret;
 
     gchar *parents[] = { "class:host", NULL };
     GHashTable* keyvals = g_hash_table_new(g_str_hash,g_str_equal);
@@ -1886,8 +1853,6 @@ static int getHardwareOptions(char *name)
 
 static int getHardware(char *name)
 {
-    int ret;
-
     if (!name) {
 	parser_comment(-1, "no hardware name\n");
 	return -1;
@@ -2057,67 +2022,67 @@ static int setupLocalNode()
 
     // setup local node
     if (PSIDnodes_setHWType(nodeconf.id, nodeconf.hwtype)) {
-	parser_comment(-1, "PSIDnodes_setHWType(%d, %d) failed\n",
+	parser_comment(-1, "PSIDnodes_setHWType(%ld, %d) failed\n",
 		       nodeconf.id, nodeconf.hwtype);
 	return -1;
     }
 
     if (PSIDnodes_setIsStarter(nodeconf.id, nodeconf.canstart)) {
-	parser_comment(-1, "PSIDnodes_setIsStarter(%d, %d) failed\n",
+	parser_comment(-1, "PSIDnodes_setIsStarter(%ld, %d) failed\n",
 		       nodeconf.id, nodeconf.canstart);
 	return -1;
     }
 
     if (PSIDnodes_setRunJobs(nodeconf.id, nodeconf.runjobs)) {
-	parser_comment(-1, "PSIDnodes_setRunJobs(%d, %d) failed\n",
+	parser_comment(-1, "PSIDnodes_setRunJobs(%ld, %d) failed\n",
 		       nodeconf.id, nodeconf.runjobs);
 	return -1;
     }
 
     if (PSIDnodes_setProcs(nodeconf.id, nodeconf.procs)) {
-	parser_comment(-1, "PSIDnodes_setProcs(%d, %ld) failed\n",
+	parser_comment(-1, "PSIDnodes_setProcs(%ld, %ld) failed\n",
 		       nodeconf.id, nodeconf.procs);
 	return -1;
     }
 
     if (PSIDnodes_setOverbook(nodeconf.id, nodeconf.overbook)) {
-	parser_comment(-1, "PSIDnodes_setOverbook(%d, %d) failed\n",
+	parser_comment(-1, "PSIDnodes_setOverbook(%ld, %d) failed\n",
 		       nodeconf.id, nodeconf.overbook);
 	return -1;
     }
 
     if (PSIDnodes_setExclusive(nodeconf.id, nodeconf.exclusive)) {
-	parser_comment(-1, "PSIDnodes_setExclusive(%d, %d) failed\n",
+	parser_comment(-1, "PSIDnodes_setExclusive(%ld, %d) failed\n",
 		       nodeconf.id, nodeconf.exclusive);
 	return -1;
     }
 
     if (PSIDnodes_setPinProcs(nodeconf.id, nodeconf.pinProcs)) {
-	parser_comment(-1, "PSIDnodes_setPinProcs(%d, %d) failed\n",
+	parser_comment(-1, "PSIDnodes_setPinProcs(%ld, %d) failed\n",
 		       nodeconf.id, nodeconf.pinProcs);
 	return -1;
     }
 
     if (PSIDnodes_setBindMem(nodeconf.id, nodeconf.bindMem)) {
-	parser_comment(-1, "PSIDnodes_setBindMem(%d, %d) failed\n",
+	parser_comment(-1, "PSIDnodes_setBindMem(%ld, %d) failed\n",
 		       nodeconf.id, nodeconf.bindMem);
 	return -1;
     }
 
     if (PSIDnodes_setAllowUserMap(nodeconf.id, nodeconf.allowUserMap)) {
-	parser_comment(-1, "PSIDnodes_setAllowUserMap(%d, %d) failed\n",
+	parser_comment(-1, "PSIDnodes_setAllowUserMap(%ld, %d) failed\n",
 		       nodeconf.id, nodeconf.allowUserMap);
 	return -1;
     }
 
     if (PSIDnodes_setSupplGrps(nodeconf.id, nodeconf.supplGrps)) {
-	parser_comment(-1, "PSIDnodes_setSupplGrps(%d, %d) failed\n",
+	parser_comment(-1, "PSIDnodes_setSupplGrps(%ld, %d) failed\n",
 		       nodeconf.id, nodeconf.supplGrps);
 	return -1;
     }
 
     if (PSIDnodes_setMaxStatTry(nodeconf.id, nodeconf.maxStatTry)) {
-	parser_comment(-1, "PSIDnodes_setMaxStatTry(%d, %d) failed\n",
+	parser_comment(-1, "PSIDnodes_setMaxStatTry(%ld, %d) failed\n",
 		       nodeconf.id, nodeconf.maxStatTry);
 	return -1;
     }
@@ -2129,7 +2094,7 @@ static int setupLocalNode()
 	size_t i;
 	for (i=0; i<nodeconf.cpumap_size; i++) {
 	    if (PSIDnodes_appendCPUMap(nodeconf.id, nodeconf.cpumap[i])) {
-		parser_comment(-1, "PSIDnodes_appendCPUMap(%d, %d) failed\n",
+		parser_comment(-1, "PSIDnodes_appendCPUMap(%ld, %d) failed\n",
 			       nodeconf.id, nodeconf.cpumap[i]);
 		return -1;
 	    }
@@ -2137,28 +2102,30 @@ static int setupLocalNode()
     }
 
     if (pushGUID(nodeconf.id, PSIDNODES_USER, &nodeUID)) {
-	parser_comment(-1, "pushGUID(%d, PSIDNODES_USER, %p) failed\n",
+	parser_comment(-1, "pushGUID(%ld, PSIDNODES_USER, %p) failed\n",
 		       nodeconf.id, &nodeUID);
 	return -1;
     }
 
     if (pushGUID(nodeconf.id, PSIDNODES_GROUP, &nodeGID)) {
-	parser_comment(-1, "pushGUID(%d, PSIDNODES_GROUP, %p) failed\n",
+	parser_comment(-1, "pushGUID(%ld, PSIDNODES_GROUP, %p) failed\n",
 		       nodeconf.id, &nodeGID);
 	return -1;
     }
 
     if (pushGUID(nodeconf.id, PSIDNODES_ADMUSER, &nodeAdmUID)) {
-	parser_comment(-1, "pushGUID(%d, PSIDNODES_ADMUSER, %p) failed\n",
+	parser_comment(-1, "pushGUID(%ld, PSIDNODES_ADMUSER, %p) failed\n",
 		       nodeconf.id, &nodeAdmUID);
 	return -1;
     }
 
     if (pushGUID(nodeconf.id, PSIDNODES_ADMGROUP, &nodeAdmGID)) {
-	parser_comment(-1, "pushGUID(%d, PSIDNODES_ADMGROUP, %p) failed\n",
+	parser_comment(-1, "pushGUID(%ld, PSIDNODES_ADMGROUP, %p) failed\n",
 		       nodeconf.id, &nodeAdmGID);
 	return -1;
     }
+
+    return 0;
 }
 
 config_t *parseConfig(FILE* logfile, int logmask, char *configfile)
