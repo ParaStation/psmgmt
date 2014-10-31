@@ -596,7 +596,6 @@ PACKAGE_BUGREPORT='support@par-tec.com'
 PACKAGE_URL='http://par-tec.com/'
 
 ac_unique_file="configure.ac"
-ac_default_prefix=/opt/parastation
 # Factoring default headers for most tests.
 ac_includes_default="\
 #include <stdio.h>
@@ -637,7 +636,6 @@ ac_subst_vars='am__EXEEXT_FALSE
 am__EXEEXT_TRUE
 LTLIBOBJS
 LIBOBJS
-AM_DISTCHECK_CONFIGURE_FLAGS
 TESTPLUGINS_ENABLED_FALSE
 TESTPLUGINS_ENABLED_TRUE
 AM_LDFLAGS
@@ -790,7 +788,6 @@ with_sysroot
 enable_libtool_lock
 with_pamdir
 enable_testplugins
-enable_fixmiscdirs
 '
       ac_precious_vars='build_alias
 host_alias
@@ -1442,8 +1439,6 @@ Optional Features:
                           optimize for fast installation [default=yes]
   --disable-libtool-lock  avoid locking (might break parallel builds)
   --enable-testplugins    build test plugins
-  --disable-fixmiscdirs   do not change defaults for sysconfdir and
-                          localstatedir
 
 Optional Packages:
   --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
@@ -2198,7 +2193,6 @@ fi
 ac_config_guess="$SHELL $ac_aux_dir/config.guess"  # Please don't use this var.
 ac_config_sub="$SHELL $ac_aux_dir/config.sub"  # Please don't use this var.
 ac_configure="$SHELL $ac_aux_dir/configure"  # Please don't use this var.
-
 
 
 
@@ -12396,43 +12390,6 @@ else
   TESTPLUGINS_ENABLED_TRUE='#'
   TESTPLUGINS_ENABLED_FALSE=
 fi
-
-
-# lib -> lib64
-if test "$libdir" = '${exec_prefix}/lib'; then
-  if test "$GCC" = yes; then
-    ac_multilibdir=`$CC -print-multi-os-directory $CFLAGS $CPPFLAGS`
-  else
-    ac_multilibdir=.
-  fi
-  case "$ac_multilibdir" in
-    .)      libdir=lib ;;
-    ../*)   libdir=`echo $ac_multilibdir | sed 's/^...//' ` ;;
-    *)      libdir=lib/$ac_multilibdir ;;
-  esac
-  libdir='${exec_prefix}/'$libdir
-fi
-
-# we want to use /etc and /var instead of $prefix/etc and $prefix/var,
-# unless overridden explicitly. this breaks "make distcheck", so it
-# can be disabled
-# Check whether --enable-fixmiscdirs was given.
-if test "${enable_fixmiscdirs+set}" = set; then :
-  enableval=$enable_fixmiscdirs;
-fi
-
-if test "x$enable_fixmiscdirs" != xno; then :
-  if test "$sysconfdir" = '${prefix}/etc'; then
-  sysconfdir='/etc'
-fi
-if test "$localstatedir" = '${prefix}/var'; then
-  localstatedir='/var'
-fi
-if test "$pamdir" = '${libdir}/security'; then
-  pamdir="/usr$(echo $libdir | sed s,\${exec_prefix},,)/security"
-fi
-fi
-AM_DISTCHECK_CONFIGURE_FLAGS="--disable-fixmiscdirs"
 
 
 ac_config_files="$ac_config_files Makefile"

@@ -1,7 +1,7 @@
 #
 # ParaStation
 #
-# Copyright (C) 2012-2013 ParTec Cluster Competence Center GmbH, Munich
+# Copyright (C) 2012-2014 ParTec Cluster Competence Center GmbH, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -17,7 +17,6 @@ AC_INIT([ParaStation Management], [5],
 AC_CONFIG_SRCDIR([configure.ac])
 AC_CONFIG_AUX_DIR([scripts])
 AC_CONFIG_MACRO_DIR([m4])
-AC_PREFIX_DEFAULT([/opt/parastation])
 
 AC_CANONICAL_TARGET
 
@@ -92,18 +91,6 @@ AC_SUBST([AM_LDFLAGS])
 AC_ARG_ENABLE([testplugins], [AS_HELP_STRING([--enable-testplugins],
   [build test plugins])])
 AM_CONDITIONAL([TESTPLUGINS_ENABLED], [test "x$enable_testplugins" = xyes])
-
-# lib -> lib64
-PS_FIX_LIBDIR
-
-# we want to use /etc and /var instead of $prefix/etc and $prefix/var,
-# unless overridden explicitly. this breaks "make distcheck", so it
-# can be disabled
-AC_ARG_ENABLE([fixmiscdirs],[AS_HELP_STRING([--disable-fixmiscdirs],
-  [do not change defaults for sysconfdir and localstatedir])])
-AS_IF([test "x$enable_fixmiscdirs" != xno],[PS_FIX_MISC_DIRS])
-AM_DISTCHECK_CONFIGURE_FLAGS="--disable-fixmiscdirs"
-AC_SUBST([AM_DISTCHECK_CONFIGURE_FLAGS])
 
 AC_CONFIG_FILES(Makefile)
 AC_CONFIG_FILES(bin/Makefile)

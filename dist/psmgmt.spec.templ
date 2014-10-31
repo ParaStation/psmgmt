@@ -24,14 +24,13 @@ BuildRequires:	numactl-devel
 
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
-# fixed path
-%global _pamdir /%{_lib}/security
 # for now
 %global _prefix /opt/parastation
 %global _plugindir %{_prefix}/plugins
 %global _configdir %{_prefix}/config
 %global _scriptsdir %{_prefix}/scripts
 %global _spooldir %{_localstatedir}/spool/parastation
+%global _pamdir /%{_lib}/security
 
 %description
 The ParaStation Process Management Layer.
