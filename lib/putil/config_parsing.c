@@ -402,7 +402,7 @@ static int getRLimit(char *pointer)
 {
     gchar *limit;
     rlim_t value;
-    int i, intval, ret;
+    int i, intval, ret = 0;
 
     for (i=0; supported_rlimits[i].key != NULL; i++) {
         ret = getString(supported_rlimits[i].key, &limit);
@@ -1705,7 +1705,7 @@ static int getNodes()
     GPtrArray *nodeobjlist;
     GError *err = NULL;
     unsigned int i;
-    int ret;
+    int ret = 0;
 
     gchar *parents[] = { "class:host", NULL };
     GHashTable* keyvals = g_hash_table_new(g_str_hash,g_str_equal);

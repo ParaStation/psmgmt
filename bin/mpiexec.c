@@ -1394,9 +1394,6 @@ static int startProcs(int np, char *wd, int verbose)
     verboseRankMsg = verbose;
     PSI_registerRankEnvFunc(setupNodeEnv);
 
-    /* only start the first process for MPI1 jobs */
-    if (mpichcom) np = 1;
-
     for (i=0; i< execCount; i++) {
 	if ((ret = spawnSingleExecutable(exec[i]->np, exec[i]->argc,
 			exec[i]->argv, exec[i]->wdir, exec[i]->nodetype,
@@ -3089,6 +3086,8 @@ static void setupComp()
     exec[0]->argv[argc++] = cnp;
     exec[0]->argv[argc] = NULL;
     exec[0]->argc = argc;
+
+    exec[0]->np = 1;
 }
 
 /**

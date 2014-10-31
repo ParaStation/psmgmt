@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2013 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2014 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -1325,6 +1325,7 @@ static int setCommand(char *token)
     char *value = parser_getQuotedString();
     char *nl_descr = parser_getString();
     char *nl = defaultNL;
+    PSP_Option_t setOpt;
     long val;
     PSIADM_valList_t *valList = NULL;
 
@@ -1332,8 +1333,9 @@ static int setCommand(char *token)
 
     setShowOpt = PSP_OP_UNKNOWN;
     if (parser_parseToken(what, &setShowParser)) goto error;
+    setOpt = setShowOpt;
 
-    switch (setShowOpt) {
+    switch (setOpt) {
     case PSP_OP_PROCLIMIT:
 	val = procsFromString(value);
 	if (val == -2) goto error;
@@ -1341,15 +1343,15 @@ static int setCommand(char *token)
     case PSP_OP_UID:
     case PSP_OP_ADMUID:
     {
-	PSP_Option_t opt = setShowOpt;
+	PSP_Option_t opt = setOpt;
 	if (*value == '+') {
-	    setShowOpt = (opt==PSP_OP_UID) ? PSP_OP_ADD_UID:PSP_OP_ADD_ADMUID;
+	    setOpt = (opt==PSP_OP_UID) ? PSP_OP_ADD_UID:PSP_OP_ADD_ADMUID;
 	    value++;
 	} else if (*value == '-') {
-	    setShowOpt = (opt==PSP_OP_UID) ? PSP_OP_REM_UID:PSP_OP_REM_ADMUID;
+	    setOpt = (opt==PSP_OP_UID) ? PSP_OP_REM_UID:PSP_OP_REM_ADMUID;
 	    value++;
 	} else {
-	    setShowOpt = (opt==PSP_OP_UID) ? PSP_OP_SET_UID:PSP_OP_SET_ADMUID;
+	    setOpt = (opt==PSP_OP_UID) ? PSP_OP_SET_UID:PSP_OP_SET_ADMUID;
 	}
 	if (!*value) {
 	    value = nl_descr;
@@ -1362,15 +1364,15 @@ static int setCommand(char *token)
     case PSP_OP_GID:
     case PSP_OP_ADMGID:
     {
-	PSP_Option_t opt = setShowOpt;
+	PSP_Option_t opt = setOpt;
 	if (*value == '+') {
-	    setShowOpt = (opt==PSP_OP_GID) ? PSP_OP_ADD_GID:PSP_OP_ADD_ADMGID;
+	    setOpt = (opt==PSP_OP_GID) ? PSP_OP_ADD_GID:PSP_OP_ADD_ADMGID;
 	    value++;
 	} else if (*value == '-') {
-	    setShowOpt = (opt==PSP_OP_GID) ? PSP_OP_REM_GID:PSP_OP_REM_ADMGID;
+	    setOpt = (opt==PSP_OP_GID) ? PSP_OP_REM_GID:PSP_OP_REM_ADMGID;
 	    value++;
 	} else {
-	    setShowOpt = (opt==PSP_OP_GID) ? PSP_OP_SET_GID:PSP_OP_SET_ADMGID;
+	    setOpt = (opt==PSP_OP_GID) ? PSP_OP_SET_GID:PSP_OP_SET_ADMGID;
 	}
 	if (!*value) {
 	    value = nl_descr;
@@ -1461,7 +1463,7 @@ static int setCommand(char *token)
 	if (!nl) return -1;
     }
 
-    switch (setShowOpt) {
+    switch (setOpt) {
     case PSP_OP_PROCLIMIT:
     case PSP_OP_ADD_UID:
     case PSP_OP_REM_UID:
@@ -1505,10 +1507,10 @@ static int setCommand(char *token)
     case PSP_OP_MAXSTATTRY:
     case PSP_OP_MASTER:
     case PSP_OP_PLUGINUNLOADTMOUT:
-	PSIADM_SetParam(setShowOpt, val, nl);
+	PSIADM_SetParam(setOpt, val, nl);
 	break;
     case PSP_OP_CPUMAP:
-	PSIADM_SetParamList(setShowOpt, valList, nl);
+	PSIADM_SetParamList(setOpt, valList, nl);
 	break;
     default:
 	goto error;

@@ -152,7 +152,6 @@ static void msg_ENV(DDTypedBufferMsg_t *inmsg)
 	case PSP_ENV_SET:
 	{
 	    char *key = inmsg->buf, *val = strchr(key, '=');
-	    int ret;
 
 	    *val = '\0';
 	    val++;
