@@ -142,7 +142,7 @@ static struct timeval time_diff;
  *
  * @return No return value.
  */
-static void releaseMySelf()
+static void releaseMySelf(const char *func)
 {
     PSLog_Msg_t answer;
     DDSignalMsg_t msg;
@@ -195,7 +195,9 @@ again:
 		answer.header.type, PSP_printMsg(answer.header.type));
     }
 
-    if (verbose) printf("KVS process %s finished\n", PSC_printTID(myTID));
+    if (verbose) {
+	printf("(%s:) KVS process %s finished\n", func, PSC_printTID(myTID));
+    }
 }
 
 /**
@@ -205,7 +207,9 @@ again:
  */
 static void terminateJob(const char *func)
 {
-    mlog("%s: Terminating the job.\n", func);
+    if (verbose) {
+	mlog("%s: Terminating the job.\n", func);
+    }
 
     /* send kill signal to all children */
     {
@@ -223,7 +227,7 @@ static void terminateJob(const char *func)
 	PSI_sendMsg((DDMsg_t *)&msg);
     }
 
-    releaseMySelf();
+    releaseMySelf(__func__);
     exit(1);
 }
 
@@ -915,7 +919,7 @@ static void handleKVS_Leave(PSLog_Msg_t *msg)
 			    __func__, time_now.tv_sec + 1e-6 * time_now.tv_usec,
 			    time_diff.tv_sec + 1e-6 * time_diff.tv_usec);
 	}
-	releaseMySelf();
+	releaseMySelf(__func__);
 	exit(0);
     }
 
@@ -936,7 +940,7 @@ static void handleKVS_Leave(PSLog_Msg_t *msg)
  */
 static int handleFWMessage(int fd, void *data)
 {
-    releaseMySelf();
+    releaseMySelf(__func__);
     exit(0);
 
     return 0;
@@ -1053,7 +1057,7 @@ static int handlePSIMessage(int fd, void *data)
 	    }
 
 	    if (sigMsg->signal == SIGTERM) {
-		releaseMySelf();
+		releaseMySelf(__func__);
 		exit(0);
 	    }
 
@@ -1097,7 +1101,7 @@ static void sighandler(int sig)
 {
     switch(sig) {
 	case SIGTERM:
-	    releaseMySelf();
+	    terminateJob(__func__);
 	    exit(0);
 	    break;
 	default:
@@ -1205,7 +1209,7 @@ static void initKvsProvider(void)
 	    mlog("%s: Failed to init connection to my forwarder, "
 		    "pspmi plugin loaded?\n", __func__);
 	}
-	releaseMySelf();
+	releaseMySelf(__func__);
 	exit(0);
     }
     forwarderFD = atoi(envstr);
@@ -1238,6 +1242,6 @@ void kvsProviderLoop(int kvsverbose)
     }
 
     /* never reached */
-    releaseMySelf();
+    releaseMySelf(__func__);
     exit(0);
 }

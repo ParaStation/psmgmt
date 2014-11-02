@@ -1,3 +1,17 @@
+#
+# ParaStation
+#
+# Copyright (C) 2011-2014 ParTec Cluster Competence Center GmbH, Munich
+#
+# This file may be distributed under the terms of the Q Public License
+# as defined in the file LICENSE.QPL included in the packaging of this
+# file.
+#
+# Author:      Norbert Eicker <eicker@par-tec.com>
+#
+# $Id$
+#
+
 define print_array
 
   if $argc < 1
@@ -24,16 +38,18 @@ define print_array
   end
 end
 
-
 document print_array
-Syntax: print_array ARRAY [NUM [FIELD]]
+Syntax: print_array ARRAY [NUM [ENTRY]]
 
 Print array's content.
 
 ARRAY is the array itself. If the optional argument NUM is given, the
-first NUM entries will be displayed. If furthermore FIELD is given, only
-this field of the arrays structure is printed.
+first NUM elements will be displayed. If furthermore ENTRY is given,
+the array is assumed to have structured elements and only this entry
+of the structure is printed.
+
 end
+
 
 define print_list
 
@@ -74,11 +90,13 @@ Syntax: print_list LISTHEAD [TYPE [NUM]]
 Print list defined with the help of the Linux kernel's list.h.
 
 LISTHEAD is the corresponding anchor of the list. It is assumed, that
-each entry of the list is of type TYPE. If TYPE is not given explicitely,
-PStask_t is the assumed type. If the optional argument NUM is given, the
-first NUM entries will be displayed. Otherwise only the first entry will
-be printed.
+each element of the list is of type TYPE. If TYPE is not given
+explicitely, PStask_t is the assumed type. If the optional argument
+NUM is given, the first NUM elements will be displayed. Otherwise only
+the first element will be printed.
+
 end
+
 
 define list_len
 
@@ -114,7 +132,9 @@ Syntax: list_len LISTHEAD
 Print length of list defined with the help of the Linux kernel's list.h.
 
 LISTHEAD is the corresponding anchor of the list.
+
 end
+
 
 define array_list_len
 
@@ -149,18 +169,105 @@ define array_list_len
 end
 
 document array_list_len
-Syntax: array_list_len ARRAY [FIELD [NUM [FIRST]]]
+Syntax: array_list_len ARRAY [ENTRY [NUM [FIRST]]]
 
-Print length of lists that are arranged as array-members.
+Print length of lists that are arranged as members of structured array
+elements.
 
-ARRAY is the name of the array to look at. Each array entry is assumed
-to hold a list within the member FIELD. If FIELD is not given explicitely,
-'list' is the assumed member-name. If the optional argument NUM is given,
-the first NUM entries will be displayed. Otherwise only the first five
-entries will be printed. If furthermore FIRST is given, handling ARRAY
-will not start at the first element but at the number given.
+ARRAY is the name of the array to look at. Each array element is
+assumed to be structured and to contain a list within the entry named
+ENTRY. If ENTRY is not given explicitely, 'list' is the assumed
+entry-name. If the optional argument NUM is given, the first NUM array
+elements will be displayed. Otherwise only the first five elements
+will be printed. If furthermore FIRST is given, handling ARRAY will
+not start at the first element but at the number given.
+
 end
 
+
+define print_msg_list
+
+  if $argc < 1
+    echo print_msg_list LISTHEAD [NUM]\n
+  else
+    set $lp = &$arg0
+    if $argc < 2
+      set $num = 1
+    else
+      set $num = $arg1
+    end
+    set $i = $num
+
+    while $i > 0
+      set $lp = $lp->next
+      set $i = $i - 1
+
+      if $lp == &$arg0
+	loop_break
+      end
+
+      output $num - $i
+      echo \ :\ \ 
+      output *(DDMsg_t *)((msgbuf_t *)((char *)($lp)-(unsigned long)(&((msgbuf_t *)0)->next)))->msg
+      echo \n
+    end
+  end
+end
+
+document print_msg_list
+Syntax: print_msg_list LISTHEAD [NUM]
+
+Print list of messages.
+
+LISTHEAD is the corresponding anchor of the list. It is assumed, that
+each element of the list is of type msgbuf_t. If the optional argument
+NUM is given, the first NUM elements will be displayed. Otherwise only
+the first element of the list will be printed.
+end
+
+
+define print_list_entry
+  
+  if $argc < 3
+    echo print_list_entry LISTHEAD TYPE ENTRY [NUM]]\n
+  else
+    set $lp = &$arg0
+    if $argc < 4
+      set $num = 1
+    else
+      set $num = $arg3
+    end
+    set $i = $num
+
+    while $i > 0
+      set $lp = $lp->next
+      set $i = $i - 1
+
+      if $lp == &$arg0
+	loop_break
+      end
+
+      output $num - $i
+      echo \ :\ \ 
+      output (($arg1 *)((char *)($lp)-(unsigned long)(&(($arg1 *)0)->next)))->$arg2
+      echo \n
+    end
+  end
+end
+
+
+document print_list_entry
+Syntax: print_list_entry LISTHEAD TYPE ENTRY [NUM]
+
+Print specific entries of each list element.
+
+LISTHEAD is the corresponding anchor of the list. It is assumed, that
+each element of the list is structured and of type TYPE. For each
+list-element the entry named ENTRY will be printed. If the optional
+argument NUM is given, the first NUM entries will be
+displayed. Otherwise only the first entry of the list will be printed.
+
+end
 
 
 ### Local Variables:

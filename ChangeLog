@@ -1,3 +1,421 @@
+Version psmgmt-5.0.46:
+======================
+------------------------------------------------------------------------
+r8983 | eicker | 2014-11-02 20:53:46 +0100 (Sun, 02 Nov 2014) | 2 lines
+
+Remove obsolete version of memtest.py
+
+------------------------------------------------------------------------
+r8982 | eicker | 2014-10-31 18:15:30 +0100 (Fri, 31 Oct 2014) | 2 lines
+
+Bugfix: Fix some more problems notified by clangs build-scan.
+
+------------------------------------------------------------------------
+r8981 | eicker | 2014-10-31 17:54:42 +0100 (Fri, 31 Oct 2014) | 2 lines
+
+Bugfix: Fix some problems notified by clangs build-scan.
+
+------------------------------------------------------------------------
+r8980 | eicker | 2014-10-31 15:56:36 +0100 (Fri, 31 Oct 2014) | 3 lines
+
+Bugfix: Ensure to full and correct information on errors and TIDs is
+    returned by PSI_spawn() and friends. (#2348)
+
+------------------------------------------------------------------------
+r8979 | moschny | 2014-10-31 15:56:28 +0100 (Fri, 31 Oct 2014) | 1 line
+
+Remove all non-GNU paths and corresponding hacks from the build system (see #2302).
+------------------------------------------------------------------------
+r8978 | eicker | 2014-10-31 15:38:22 +0100 (Fri, 31 Oct 2014) | 2 lines
+
+Bugfix: Make spawning somewhat more robust.
+
+------------------------------------------------------------------------
+r8977 | moschny | 2014-10-31 14:47:17 +0100 (Fri, 31 Oct 2014) | 1 line
+
+Fix 'make distcheck'.
+------------------------------------------------------------------------
+r8976 | eicker | 2014-10-31 13:51:18 +0100 (Fri, 31 Oct 2014) | 2 lines
+
+Make layout of lib's Makefile.am more consistent.
+
+------------------------------------------------------------------------
+r8975 | eicker | 2014-10-31 13:25:36 +0100 (Fri, 31 Oct 2014) | 2 lines
+
+Fix various compiler warnings introduced in r8970.
+
+------------------------------------------------------------------------
+r8974 | eicker | 2014-10-31 13:12:54 +0100 (Fri, 31 Oct 2014) | 3 lines
+
+Bugfix: Fix setting of CFLAGS while building rpm distored by r8970.
+Fix copyright statements.
+
+------------------------------------------------------------------------
+r8973 | eicker | 2014-10-31 12:07:03 +0100 (Fri, 31 Oct 2014) | 2 lines
+
+Enhancement: Add dependencies on PAM and NUMActl in spec file. (#2349)
+
+------------------------------------------------------------------------
+r8972 | eicker | 2014-10-31 11:39:32 +0100 (Fri, 31 Oct 2014) | 2 lines
+
+Check in configure for psconfig-dev installed.
+
+------------------------------------------------------------------------
+r8971 | krempel | 2014-10-30 16:35:09 +0100 (Thu, 30 Oct 2014) | 2 lines
+
+Add missing file for psconfig parsing
+
+------------------------------------------------------------------------
+r8970 | krempel | 2014-10-30 16:16:18 +0100 (Thu, 30 Oct 2014) | 5 lines
+
+Add support for psconfig
+
+On startup, psid checks for /etc/parastation.conf. Iff it exists and has not
+zero length, it is used in old fashion, else psconfig is used.
+
+------------------------------------------------------------------------
+r8969 | eicker | 2014-10-29 19:27:19 +0100 (Wed, 29 Oct 2014) | 3 lines
+
+Enhancement: Add some more debugging output while identifying
+    partition candidates.
+
+------------------------------------------------------------------------
+r8968 | eicker | 2014-10-28 23:58:22 +0100 (Tue, 28 Oct 2014) | 2 lines
+
+Enhancement: New function PSCPU_cmp() to compare CPU-sets.
+
+------------------------------------------------------------------------
+r8967 | eicker | 2014-10-28 19:32:53 +0100 (Tue, 28 Oct 2014) | 2 lines
+
+Yet another message of pspmi marked as debug output.
+
+------------------------------------------------------------------------
+r8966 | eicker | 2014-10-28 19:27:53 +0100 (Tue, 28 Oct 2014) | 3 lines
+
+Using mdbg is the cleaner way and messages might be enabled during
+    runtime once modifying the logmask is implemented for pspmi.
+
+------------------------------------------------------------------------
+r8965 | krempel | 2014-10-28 15:02:52 +0100 (Tue, 28 Oct 2014) | 2 lines
+
+Disable debugging output in pmi plugin
+
+------------------------------------------------------------------------
+r8964 | eicker | 2014-10-25 19:16:29 +0200 (Sat, 25 Oct 2014) | 3 lines
+
+Get rid of DDHugeMsg_t which was just held for compatibility with
+    ancient version. 5 years shall be enough.
+
+------------------------------------------------------------------------
+r8963 | eicker | 2014-10-25 18:40:00 +0200 (Sat, 25 Oct 2014) | 2 lines
+
+Bugfix: Forgot to take IP and UDP headers into account.
+
+------------------------------------------------------------------------
+r8962 | eicker | 2014-10-25 18:23:12 +0200 (Sat, 25 Oct 2014) | 3 lines
+
+Bugfix: Adapt RDP_MAX_DATA_SIZE to Ethernet MTU according to size of
+    DDBufferMsg_t. (#458)
+
+------------------------------------------------------------------------
+r8961 | eicker | 2014-10-25 17:50:06 +0200 (Sat, 25 Oct 2014) | 4 lines
+
+Enhancement: PSID_cancelCB() allows cancelation of callbacks for scripts
+    or functions executed asynchronously. (#1503)
+Fix various typos in docu comments.
+
+------------------------------------------------------------------------
+r8960 | eicker | 2014-10-24 17:42:03 +0200 (Fri, 24 Oct 2014) | 3 lines
+
+Enhancement: Switch psmgmt's %postinstall action to
+    '/sbin/service inetd try-restart' (#1932)
+
+------------------------------------------------------------------------
+r8959 | eicker | 2014-10-24 15:16:20 +0200 (Fri, 24 Oct 2014) | 3 lines
+
+Bugfix: Prevent psilogger from re-enabling stdin after all input was
+    read (#2331)
+
+------------------------------------------------------------------------
+r8958 | eicker | 2014-10-23 22:02:03 +0200 (Thu, 23 Oct 2014) | 2 lines
+
+Bugfix: Fix argument manipulation in psid (#2334)
+
+------------------------------------------------------------------------
+r8957 | eicker | 2014-10-22 19:12:34 +0200 (Wed, 22 Oct 2014) | 2 lines
+
+Bugfix: Enable --envall even on further steps of spawning (#2332)
+
+------------------------------------------------------------------------
+r8956 | eicker | 2014-10-22 19:01:48 +0200 (Wed, 22 Oct 2014) | 4 lines
+
+Bugfix: pspmi might segfault on psiadmin's 'plugin set/show/unset'
+    directives.
+Enhancement: Fix typo in pspmi's help message.
+
+------------------------------------------------------------------------
+r8955 | moschny | 2014-10-22 16:54:00 +0200 (Wed, 22 Oct 2014) | 1 line
+
+Follow-up for #2302: Fix pamdir setting.
+------------------------------------------------------------------------
+r8954 | eicker | 2014-10-15 00:25:30 +0200 (Wed, 15 Oct 2014) | 2 lines
+
+Add some debug-output to the new flow-control.
+
+------------------------------------------------------------------------
+r8953 | eicker | 2014-10-14 20:10:34 +0200 (Tue, 14 Oct 2014) | 2 lines
+
+Adapt the no_flowcontrol plugin to the new flow-control.
+
+------------------------------------------------------------------------
+r8952 | eicker | 2014-10-14 20:08:47 +0200 (Tue, 14 Oct 2014) | 3 lines
+
+Enhancement: Improve the flow-control. This hopefully fixes the problem
+    of psid bloats.
+
+------------------------------------------------------------------------
+r8951 | eicker | 2014-10-14 19:11:42 +0200 (Tue, 14 Oct 2014) | 2 lines
+
+Get rid of an useless variable.
+
+------------------------------------------------------------------------
+r8950 | eicker | 2014-10-14 18:58:32 +0200 (Tue, 14 Oct 2014) | 2 lines
+
+Add the new log-category PSID_LOG_FLWCNTRL to psid's logging facility.
+
+------------------------------------------------------------------------
+r8949 | clauss | 2014-10-14 16:11:33 +0200 (Tue, 14 Oct 2014) | 3 lines
+
+Fixed/updated function description of p_Get_Appnum().
+
+
+------------------------------------------------------------------------
+r8948 | clauss | 2014-10-14 12:09:18 +0200 (Tue, 14 Oct 2014) | 3 lines
+
+Forward APPNUM parameter from mpiexec to pmiclient.
+
+
+------------------------------------------------------------------------
+r8947 | clauss | 2014-10-13 14:43:10 +0200 (Mon, 13 Oct 2014) | 5 lines
+
+Fix regarding spawning iteratively: Since once assigned (negative)
+service ranks are not recycled, -42 seems not to be a good indicator for
+uninitialized ones...
+
+------------------------------------------------------------------------
+r8946 | clauss | 2014-10-13 11:25:23 +0200 (Mon, 13 Oct 2014) | 3 lines
+
+Added valgrind support also for spawned processes.
+
+------------------------------------------------------------------------
+r8945 | clauss | 2014-10-10 11:13:12 +0200 (Fri, 10 Oct 2014) | 3 lines
+
+Fixed mpiexec's --merge option for the case of dynamic spawns.
+
+------------------------------------------------------------------------
+r8944 | clauss | 2014-10-10 09:44:26 +0200 (Fri, 10 Oct 2014) | 4 lines
+
+Move prototype of getNextServiceRank() to header file and add function
+description.
+
+------------------------------------------------------------------------
+r8943 | clauss | 2014-10-09 17:30:26 +0200 (Thu, 09 Oct 2014) | 4 lines
+
+Fixed race condition in registerClient() when spawning multiple KVSs concurrently:
+assure to assign unique service ranks when answering SERV_TID inquiries.
+
+------------------------------------------------------------------------
+r8942 | krempel | 2014-09-26 15:18:53 +0200 (Fri, 26 Sep 2014) | 2 lines
+
+Add support for MPI_Comm_spawn_multiple
+
+------------------------------------------------------------------------
+r8941 | krempel | 2014-09-26 15:18:22 +0200 (Fri, 26 Sep 2014) | 7 lines
+
+Slightly change the way mpiexec handles the -d|--wdir parameter:
+ - In the past, this is treated as a global parameter taking effect
+   for all executables given when using ':' syntax.
+ - Now it is treated as local parameter, taking only effect for
+   the corresponding executable.
+ - To set the working directory globally, now use --gwdir.
+
+------------------------------------------------------------------------
+r8940 | eicker | 2014-09-25 17:33:19 +0200 (Thu, 25 Sep 2014) | 3 lines
+
+Bugfix: Ensure that all nodes are updated on changed hardware-status
+    even if a script is called to switch
+
+------------------------------------------------------------------------
+r8939 | eicker | 2014-09-25 14:40:43 +0200 (Thu, 25 Sep 2014) | 3 lines
+
+Add print_list_entry macro to the gdbinit definitions
+Improve documentation of the gdb macros
+
+------------------------------------------------------------------------
+r8938 | eicker | 2014-09-18 20:31:12 +0200 (Thu, 18 Sep 2014) | 2 lines
+
+Add print_msg_list macro to the gdbinit definitions
+
+------------------------------------------------------------------------
+r8937 | eicker | 2014-09-18 20:23:32 +0200 (Thu, 18 Sep 2014) | 3 lines
+
+Enhancement: Add Selector_isActive() in order to find out if a selector
+    is disabled from outside the selector facility.
+
+------------------------------------------------------------------------
+r8936 | eicker | 2014-09-17 18:55:45 +0200 (Wed, 17 Sep 2014) | 3 lines
+
+Enhancement: Be more relaxed to leave the logger's raw-mode. This should
+    help with interactive SLURM sessions.
+
+------------------------------------------------------------------------
+r8935 | eicker | 2014-09-16 21:20:07 +0200 (Tue, 16 Sep 2014) | 2 lines
+
+Fix documentation comment.
+
+------------------------------------------------------------------------
+r8934 | eicker | 2014-09-12 19:46:06 +0200 (Fri, 12 Sep 2014) | 2 lines
+
+Add one more script required by automake.
+
+------------------------------------------------------------------------
+r8933 | eicker | 2014-09-12 19:40:40 +0200 (Fri, 12 Sep 2014) | 2 lines
+
+Also include sources of the newly enabled test-plugins.
+
+------------------------------------------------------------------------
+r8932 | eicker | 2014-09-12 19:38:14 +0200 (Fri, 12 Sep 2014) | 2 lines
+
+Enable build of some more test plugins if --enable-testplugins is given.
+
+------------------------------------------------------------------------
+r8931 | eicker | 2014-09-12 19:34:22 +0200 (Fri, 12 Sep 2014) | 2 lines
+
+Fix typo.
+
+------------------------------------------------------------------------
+r8930 | eicker | 2014-09-12 19:07:34 +0200 (Fri, 12 Sep 2014) | 2 lines
+
+Minor cleanups.
+
+------------------------------------------------------------------------
+r8929 | eicker | 2014-09-12 19:07:09 +0200 (Fri, 12 Sep 2014) | 2 lines
+
+Make PSIDMsgbuf_gc() local. Shall not be used globally.
+
+------------------------------------------------------------------------
+r8928 | eicker | 2014-09-12 18:54:05 +0200 (Fri, 12 Sep 2014) | 2 lines
+
+Enhancement: Streamline propagation of resource-limits.
+
+------------------------------------------------------------------------
+r8927 | moschny | 2014-08-29 21:02:50 +0200 (Fri, 29 Aug 2014) | 1 line
+
+Fix for #2302: Make pamdir (installation destination for the pam plugin) configurable.
+------------------------------------------------------------------------
+r8926 | eicker | 2014-08-29 17:52:16 +0200 (Fri, 29 Aug 2014) | 3 lines
+
+Bugfix: Add some check on node-ID range in order to prevent segfaults
+    triggered by corrupted PSP_DD_GETPARTNL messages (#2288).
+
+------------------------------------------------------------------------
+r8925 | moschny | 2014-08-26 16:14:57 +0200 (Tue, 26 Aug 2014) | 1 line
+
+Fix #2301: Remove hard-coded /etc.
+------------------------------------------------------------------------
+r8924 | rauh | 2014-08-25 11:12:18 +0200 (Mon, 25 Aug 2014) | 2 lines
+
+Enhancement: psmom: more intelligent way of obiting jobs with multiple PBS servers configured.
+
+------------------------------------------------------------------------
+r8923 | rauh | 2014-08-12 16:59:00 +0200 (Tue, 12 Aug 2014) | 2 lines
+
+Enhancement: let the kvsprovider kill all its children if a SIGTERM is
+received (#2201).
+------------------------------------------------------------------------
+r8922 | eicker | 2014-07-15 16:10:50 +0200 (Tue, 15 Jul 2014) | 2 lines
+
+Bugfix: Add popt-devel to general BuildRequires (#2284)
+
+------------------------------------------------------------------------
+r8921 | eicker | 2014-06-26 09:50:49 +0200 (Thu, 26 Jun 2014) | 3 lines
+
+Bugfix: Make logger work, even if no stdin is provided and psid is
+    connected via fd 0 (#2273)
+
+------------------------------------------------------------------------
+r8920 | eicker | 2014-06-12 19:33:29 +0200 (Thu, 12 Jun 2014) | 2 lines
+
+Enhancement: Enforce client messages to have correct sender information.
+
+------------------------------------------------------------------------
+r8919 | eicker | 2014-06-12 19:19:37 +0200 (Thu, 12 Jun 2014) | 3 lines
+
+Enhancement: Rely on the daemon for some privilege checking.
+Fix some typos.
+
+------------------------------------------------------------------------
+r8918 | eicker | 2014-06-12 19:16:17 +0200 (Thu, 12 Jun 2014) | 3 lines
+
+Enhancement: Use PSID_checkPrivilege() to enforce checks on privileged
+    actions inside the daemon.
+
+------------------------------------------------------------------------
+r8917 | eicker | 2014-06-12 19:09:54 +0200 (Thu, 12 Jun 2014) | 2 lines
+
+Enhancement: Add PSID_checkPrivilege() for centralized privilege checks.
+
+------------------------------------------------------------------------
+r8916 | eicker | 2014-05-20 12:22:41 +0200 (Tue, 20 May 2014) | 2 lines
+
+Minor code beautifications.
+
+------------------------------------------------------------------------
+r8915 | eicker | 2014-05-14 10:36:11 +0200 (Wed, 14 May 2014) | 3 lines
+
+Bugfix: Catch the rare case of apps connecting to psid without sending
+    data leading to a segfault in psid (#2252).
+
+------------------------------------------------------------------------
+r8914 | rauh | 2014-05-09 15:27:25 +0200 (Fri, 09 May 2014) | 2 lines
+
+Enhancement: added support to start multiple binaries with mpiexec using the colon syntax (#2154).
+
+------------------------------------------------------------------------
+r8913 | rauh | 2014-04-17 16:38:04 +0200 (Thu, 17 Apr 2014) | 2 lines
+
+Enhancement: added support for the 'path' info key of MPI_Comm_spawn().
+
+------------------------------------------------------------------------
+r8912 | rauh | 2014-04-17 16:05:29 +0200 (Thu, 17 Apr 2014) | 3 lines
+
+Enhancement: support "arch" key of MPI_Comm_spawn().
+Cleanup: removed unsupported "host, machinefile" option form PMI spawn.
+
+------------------------------------------------------------------------
+r8911 | rauh | 2014-04-10 16:13:59 +0200 (Thu, 10 Apr 2014) | 2 lines
+
+Bugfix: allow spaces for argv for the PMI spawn call. Tested by the mpi test suite test spawnargv.
+
+------------------------------------------------------------------------
+r8910 | rauh | 2014-04-07 10:43:30 +0200 (Mon, 07 Apr 2014) | 2 lines
+
+Bugfix: MPI_Comm_spawn() was broken when a relative path to the executable was specified (mpi test spawninfo1).
+
+------------------------------------------------------------------------
+r8909 | eicker | 2014-04-04 19:18:59 +0200 (Fri, 04 Apr 2014) | 3 lines
+
+Bugfix: Ensure to handle sufficient number of service processes (#2230)
+Bugfix: Ensure input forwarding works even if clients join late.
+
+------------------------------------------------------------------------
+r8905 | eicker | 2014-02-18 19:31:06 +0100 (Tue, 18 Feb 2014) | 2 lines
+
+New version (psmgmt-5.0.45)
+
+------------------------------------------------------------------------
+
+
 Version psmgmt-5.0.45:
 ======================
 ------------------------------------------------------------------------

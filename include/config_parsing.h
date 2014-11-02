@@ -122,6 +122,7 @@ typedef struct {
  * @see syslog(3)
  */
 config_t* parseConfig(FILE* logfile, int loglevel, char* configfile);
+config_t* parseOldConfig(FILE* logfile, int loglevel, char* configfile);
 
 #ifdef __cplusplus
 }/* extern "C" */

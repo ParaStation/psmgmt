@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2008-2012 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2008-2014 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -192,7 +192,7 @@ void PSID_reset(void)
 	PSID_log(-1, "%s: done\n", __func__);
     }
 }
-
+    
 /**
  * @brief Handle a PSP_CD_DAEMONSTART message.
  *
@@ -210,11 +210,15 @@ static void msg_DAEMONSTART(DDBufferMsg_t *msg)
     PSnodes_ID_t starter = PSC_getID(msg->header.dest);
     PSnodes_ID_t node = *(PSnodes_ID_t *) msg->buf;
 
-    /*
-     * contact the other node if no connection already exist
-     */
     PSID_log(PSID_LOG_STATUS, "%s: received (starter=%d node=%d)\n",
-		__func__, starter, node);
+	     __func__, starter, node);
+
+    if (!PSID_checkPrivilege(msg->header.sender)) {
+	PSID_log(-1, "%s: task %s not allowed to start daemons\n", __func__,
+		 PSC_printTID(msg->header.sender));
+
+	return;
+    }
 
     if (starter==PSC_getMyID()) {
 	if (node<PSC_getNrOfNodes()) {
@@ -255,18 +259,11 @@ static void msg_DAEMONSTART(DDBufferMsg_t *msg)
  */
 static void msg_DAEMONSTOP(DDMsg_t *msg)
 {
-    PStask_ID_t senderID = msg->sender;
+    if (!PSID_checkPrivilege(msg->sender)) {
+	PSID_log(-1, "%s: task %s not allowed to stop daemons\n", __func__,
+		 PSC_printTID(msg->sender));
 
-    if (PSC_getID(senderID) == PSC_getMyID()) {
-	PStask_t *sender = PStasklist_find(&managedTasks, senderID);
-	if (sender->uid && sender->gid
-	    && !PSIDnodes_testGUID(PSC_getMyID(), PSIDNODES_ADMUSER,
-				   (PSIDnodes_guid_t){.u=sender->uid})
-	    && !PSIDnodes_testGUID(PSC_getMyID(), PSIDNODES_ADMGROUP,
-				   (PSIDnodes_guid_t){.g=sender->gid})) {
-	    PSID_log(-1, "%s: task %s not allowed to stop daemons\n", __func__,
-		     PSC_printTID(senderID));
-	}
+	return;
     }
 
     if (PSC_getID(msg->dest) == PSC_getMyID()) {
@@ -291,6 +288,12 @@ static void msg_DAEMONSTOP(DDMsg_t *msg)
  */
 static void msg_DAEMONRESET(DDBufferMsg_t *msg)
 {
+    if (!PSID_checkPrivilege(msg->header.sender)) {
+	PSID_log(-1, "%s: task %s not allowed to reset daemons\n", __func__,
+		 PSC_printTID(msg->header.sender));
+
+	return;
+    }
 
     if (PSC_getID(msg->header.dest) == PSC_getMyID()) {
 	if (*(int *)msg->buf & PSP_RESET_HW) daemonState |= PSID_STATE_RESET_HW;

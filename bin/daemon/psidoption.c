@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2011 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2014 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -258,6 +258,12 @@ static void msg_SETOPTION(DDOptionMsg_t *msg)
 
     PSID_log(PSID_LOG_OPTION, "%s: from requester %s\n",
 	     __func__, PSC_printTID(msg->header.sender));
+
+    if (!PSID_checkPrivilege(msg->header.sender)) {
+	PSID_log(-1, "%s: task %s not allowed to modify options\n",
+		 __func__, PSC_printTID(msg->header.sender));
+	return;
+    }
 
     if (msg->header.dest == PSC_getMyTID()) {
 	/* Message is for me */

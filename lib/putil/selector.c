@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2011 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2014 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -219,6 +219,19 @@ int Selector_isRegistered(int fd)
     if (selector && !selector->deleted) return 1;
 
     return 0;
+}
+
+int Selector_isActive(int fd)
+{
+    Selector_t *selector = findSelector(fd);
+
+    if (!selector) {
+	logger_print(logger, -1,
+		     "%s: no selector found for fd %d\n", __func__, fd);
+	return -1;
+    }
+
+    return !selector->disabled;
 }
 
 int Selector_disable(int fd)

@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2013 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2014 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -72,6 +72,7 @@ static char vcid[] __attribute__((used)) =
 #include "psidmsgbuf.h"
 #include "psidenv.h"
 #include "psidhook.h"
+#include "psidflowcontrol.h"
 
 struct timeval selectTime;
 
@@ -358,6 +359,7 @@ static void sighandler(int sig)
 	PSIDMsgbuf_printStat();
 	PStask_printStat();
 	RDP_printStat();
+	PSIDFlwCntrl_printStat();
 	break;
     case  SIGUSR2:   /* user defined signal 2 */
 	printMallocInfo();
@@ -524,8 +526,7 @@ static void checkFileTable(fd_set *controlfds)
  */
 static void printVersion(void)
 {
-    char revision[] = "$Revision$";
-    fprintf(stderr, "psid %s\b \n", revision+11);
+    fprintf(stderr, "psid %s\b \n", psid_cvsid+11);
 }
 
 int main(int argc, const char *argv[])
@@ -600,6 +601,9 @@ int main(int argc, const char *argv[])
 
 	return 1;
     }
+
+    /* Save some space in order to modify the cmdline later on */
+    PSC_saveTitleSpace(PSID_argc, (char **)PSID_argv, 1);
 
     if (!debugMask || (logfile!=stderr && logfile!=stdout)) {
 	/* Start as daemon */
@@ -724,9 +728,6 @@ int main(int argc, const char *argv[])
 	}
     }
 
-    /* Start up all the hardware */
-    PSID_log(PSID_LOG_HW, "%s: starting up the hardware\n", __func__);
-
     PSIDnodes_setProtoV(PSC_getMyID(), PSProtocolVersion);
     PSIDnodes_setDmnProtoV(PSC_getMyID(), PSDaemonProtocolVersion);
     PSIDnodes_setHWStatus(PSC_getMyID(), 0);
@@ -762,6 +763,7 @@ int main(int argc, const char *argv[])
     initPlugins();
 
     /* Now we start all the hardware -- this might include the accounter */
+    PSID_log(PSID_LOG_HW, "%s: starting up the hardware\n", __func__);
     PSID_startAllHW();
     PSIDnodes_setAcctPollI(PSC_getMyID(), config->acctPollInterval);
 

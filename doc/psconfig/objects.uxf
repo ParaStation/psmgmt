@@ -1,0 +1,343 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<diagram program="umlet" version="12.2">
+  <zoom_level>7</zoom_level>
+  <element>
+    <type>com.umlet.element.Class</type>
+    <coordinates>
+      <x>322</x>
+      <y>28</y>
+      <w>378</w>
+      <h>518</h>
+    </coordinates>
+    <panel_attributes>defaults:psid
+--
+InstallDirectory = "/opt/parastation"
+AvailableHardwareTypes = [...]
+HardwareTypes = ["ethernet", "p4sock"]
+AllowedUsers = ["any"]
+AllowedGroups = ["any"]
+AdminUsers = ["root"]
+AdminGroups = ["root"]
+IsStarter = "yes"
+RunJobs = "yes"
+AllowOverbooking = "no"
+AllowExclusive = "no"
+MaxNumberOfProcesses = "any"
+SetSupplementaryGroups = "no"
+MaxStatTry = "1"
+PinProcesses = "yes"
+BindMemory = "yes"
+CpuMap = ["0","1","2","3","4","5","6","7","8","9","10","11","12","13","14","15"]
+AllowUserCpuMap = "no"
+LoadPlugins = ["psmpi"]
+SelectTime = "2"
+LogMask = "0"
+LogDestination = "LOG_DAEMON"
+UseMCast = "no"
+MCastGroup = "237"
+MCastPort = "1889"
+MCastDeadInterval = "10"
+RdpPort = "886"
+RdpTimeout = "100"
+RdpMaxRetrans = "32"
+RdpResendTimeout = "300"
+RdpClosedTimeout = "2000"
+RdpMaxAckPending = "4"
+RdpStatusTimeout = "2000"
+RdpStatusBroadcasts = "8"
+RdpStatusDeadLimit = "5"
+EnableRdpStatistics = "0"
+FreeOnSuspend = "no"
+HandleOldBins = "no"
+PsiNodesSortStrategy = "proc"
+AccountPollInterval = "0"
+RessourceLimits. = ptr(["defaults:ressourcelimits"])
+CoreDirectory = "/tmp"
+</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <type>com.umlet.element.Class</type>
+    <coordinates>
+      <x>784</x>
+      <y>434</y>
+      <w>147</w>
+      <h>49</h>
+    </coordinates>
+    <panel_attributes>defaults:ressourcelimits
+--
+Core = "unlimited"</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <type>com.umlet.element.Class</type>
+    <coordinates>
+      <x>763</x>
+      <y>70</y>
+      <w>294</w>
+      <h>133</h>
+    </coordinates>
+    <panel_attributes>psidhwtype:ethernet
+--
+StartScript = "config/ps_ethernet start"
+StopScript = "config/ps_ethernet stop"
+# SetupScript = ""
+HeaderScript = "config/ps_ethernet statusheader"
+StatusScript = "config/ps_ethernet status"
+# Environment = ["A", "a", "B", "b"]</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <type>com.umlet.element.Class</type>
+    <coordinates>
+      <x>245</x>
+      <y>651</y>
+      <w>224</w>
+      <h>42</h>
+    </coordinates>
+    <panel_attributes>nodetype:compute
+--
+Psid. = ptr([psid:compute])</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <type>com.umlet.element.Class</type>
+    <coordinates>
+      <x>497</x>
+      <y>665</y>
+      <w>441</w>
+      <h>133</h>
+    </coordinates>
+    <panel_attributes>psid:compute
+--
+.parents = ["defaults:psid"]
+--
+RessourceLimits. = ptr(["defaults:compute"])
+Environment = ["A", "a", "B", "b"]</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <type>com.umlet.element.Relation</type>
+    <coordinates>
+      <x>448</x>
+      <y>651</y>
+      <w>62</w>
+      <h>34</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;-</panel_attributes>
+    <additional_attributes>49;21;21;21</additional_attributes>
+  </element>
+  <element>
+    <type>com.umlet.element.Relation</type>
+    <coordinates>
+      <x>679</x>
+      <y>56</y>
+      <w>97</w>
+      <h>34</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;-</panel_attributes>
+    <additional_attributes>84;21;21;21</additional_attributes>
+  </element>
+  <element>
+    <type>com.umlet.element.Relation</type>
+    <coordinates>
+      <x>679</x>
+      <y>441</y>
+      <w>118</w>
+      <h>34</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;-</panel_attributes>
+    <additional_attributes>105;21;21;21</additional_attributes>
+  </element>
+  <element>
+    <type>com.umlet.element.Relation</type>
+    <coordinates>
+      <x>623</x>
+      <y>525</y>
+      <w>34</w>
+      <h>55</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;-</panel_attributes>
+    <additional_attributes>21;21;21;42</additional_attributes>
+  </element>
+  <element>
+    <type>com.umlet.element.Class</type>
+    <coordinates>
+      <x>266</x>
+      <y>749</y>
+      <w>189</w>
+      <h>42</h>
+    </coordinates>
+    <panel_attributes>host:node01
+--
+.parents = ["nodetype:compute"]</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <type>com.umlet.element.Relation</type>
+    <coordinates>
+      <x>336</x>
+      <y>672</y>
+      <w>34</w>
+      <h>90</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;-</panel_attributes>
+    <additional_attributes>21;21;21;77</additional_attributes>
+  </element>
+  <element>
+    <type>com.umlet.element.Class</type>
+    <coordinates>
+      <x>525</x>
+      <y>567</y>
+      <w>252</w>
+      <h>70</h>
+    </coordinates>
+    <panel_attributes>class:psid
+--
+.parents = ["defaults:psid"]
+--
+StartupScript = "scripts/psidStartup"
+NodeUpScript = "scripts/psidNodeUp"
+NodeDownScript = "scripts/psidNodeDown"
+</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <type>com.umlet.element.Relation</type>
+    <coordinates>
+      <x>630</x>
+      <y>616</y>
+      <w>34</w>
+      <h>62</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;-</panel_attributes>
+    <additional_attributes>21;21;21;49</additional_attributes>
+  </element>
+  <element>
+    <type>com.umlet.element.Class</type>
+    <coordinates>
+      <x>1085</x>
+      <y>119</y>
+      <w>133</w>
+      <h>49</h>
+    </coordinates>
+    <panel_attributes>class:psidhwtype
+--
+</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <type>com.umlet.element.Relation</type>
+    <coordinates>
+      <x>679</x>
+      <y>56</y>
+      <w>97</w>
+      <h>244</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;-</panel_attributes>
+    <additional_attributes>84;231;21;21</additional_attributes>
+  </element>
+  <element>
+    <type>com.umlet.element.Class</type>
+    <coordinates>
+      <x>868</x>
+      <y>518</y>
+      <w>147</w>
+      <h>49</h>
+    </coordinates>
+    <panel_attributes>class:ressourcelimits
+--
+</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <type>com.umlet.element.Relation</type>
+    <coordinates>
+      <x>875</x>
+      <y>462</y>
+      <w>34</w>
+      <h>69</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;-</panel_attributes>
+    <additional_attributes>21;21;21;56</additional_attributes>
+  </element>
+  <element>
+    <type>com.umlet.element.Class</type>
+    <coordinates>
+      <x>966</x>
+      <y>602</y>
+      <w>147</w>
+      <h>119</h>
+    </coordinates>
+    <panel_attributes>ressourcelimits:compute
+--
+CpuTime = "300"
+DataSize = "50"
+StackSize = "4"
+RsSize = "20"
+MemLock = "5"
+Core = "200"
+NoFile = "1"</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <type>com.umlet.element.Relation</type>
+    <coordinates>
+      <x>973</x>
+      <y>546</y>
+      <w>34</w>
+      <h>69</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;-</panel_attributes>
+    <additional_attributes>21;21;21;56</additional_attributes>
+  </element>
+  <element>
+    <type>com.umlet.element.Class</type>
+    <coordinates>
+      <x>763</x>
+      <y>217</y>
+      <w>294</w>
+      <h>133</h>
+    </coordinates>
+    <panel_attributes>psidhwtype:p4sock
+--
+StartScript = "config/ps_p4sock start"
+StopScript = "config/ps_p4sock stop"
+HeaderScript = "config/ps_p4sock statusheader"
+StatusScript = "config/ps_p4sock status"</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <type>com.umlet.element.Relation</type>
+    <coordinates>
+      <x>1036</x>
+      <y>126</y>
+      <w>62</w>
+      <h>34</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;-</panel_attributes>
+    <additional_attributes>49;21;21;21</additional_attributes>
+  </element>
+  <element>
+    <type>com.umlet.element.Relation</type>
+    <coordinates>
+      <x>1036</x>
+      <y>147</y>
+      <w>97</w>
+      <h>125</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;-</panel_attributes>
+    <additional_attributes>84;21;21;112</additional_attributes>
+  </element>
+  <element>
+    <type>com.umlet.element.Relation</type>
+    <coordinates>
+      <x>917</x>
+      <y>679</y>
+      <w>62</w>
+      <h>34</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;-</panel_attributes>
+    <additional_attributes>49;21;21;21</additional_attributes>
+  </element>
+</diagram>

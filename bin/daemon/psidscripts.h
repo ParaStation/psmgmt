@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2009-2010 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2009-2014 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -71,7 +71,7 @@ typedef int PSID_scriptCB_t(int, PSID_scriptCBInfo_t *);
  * Function used to prepare the environment @ref PSID_execScript() and
  * @ref PSID_execFunc() are running in. The pointer argument might be
  * used to pass extra information to this function. This information
- * has to be provieded to @ref PSID_execScript() or @ref
+ * has to be provided to @ref PSID_execScript() or @ref
  * PSID_execFunc() as the last argument.
  */
 typedef int PSID_scriptPrep_t(void *);
@@ -91,7 +91,7 @@ typedef int PSID_scriptPrep_t(void *);
  * this step will be skipped. @a info might be used to pass extra
  * information to both, the callback-function @a cb within the @a info
  * field of the @ref PSID_scriptCBInfo_t argument and the
- * preparational function @a prep.
+ * preparation-function @a prep.
  *
  * Calling this function without callback lets it act in a blocked
  * fashion. I.e. it will not return until @a script has finished
@@ -125,7 +125,7 @@ int PSID_execScript(char *script, PSID_scriptPrep_t prep, PSID_scriptCB_t cb,
  *
  * - "startupscript" request the name of the script run during startup
  * of the daemon in order to test local features and stati.  This
- * information is used to decide, if the local node is capable to take
+ * information is used to decide if the local node is capable to take
  * part in the cluster-action.
  *
  * - "nodeupscript" request the name of the script called by the
@@ -133,10 +133,10 @@ int PSID_execScript(char *script, PSID_scriptPrep_t prep, PSID_scriptCB_t cb,
  * daemons within a cluster.
  *
  * - "nodedownscript" request the name of the script called by the
- * master daemon whenever a node disappeares from the concert of
+ * master daemon whenever a node disappears from the concert of
  * daemons within a cluster.
  *
- * Before registration @a script will be tested on existance and
+ * Before registration @a script will be tested on existence and
  * x-flag. @a script might be an absolute or relative path. In the
  * latter case the script is searched relative to ParaStation's
  * installation-directory.
@@ -157,7 +157,7 @@ int PSID_registerScript(config_t *config, char *type, char *script);
  *
  * Function to be executed via @ref PSID_execFunc(). The pointer
  * argument might be used to pass extra information to this
- * function. This information has to be provieded to @ref
+ * function. This information has to be provided to @ref
  * PSID_execFunc() as the last argument.
  */
 typedef int PSID_scriptFunc_t(void *);
@@ -176,7 +176,7 @@ typedef int PSID_scriptFunc_t(void *);
  * order to setup some environment. If @a prep is NULL, this step will
  * be skipped. @a info might be used to pass extra information to
  * all, the callback-function @a cb within the @a info field of the
- * @ref PSID_scriptCBInfo_t argument, the preparational function @a
+ * @ref PSID_scriptCBInfo_t argument, the preparation-function @a
  * prep and the actual function @a func.
  *
  * Calling this function without callback lets it act in a blocked
@@ -201,6 +201,25 @@ typedef int PSID_scriptFunc_t(void *);
 int PSID_execFunc(PSID_scriptFunc_t func, PSID_scriptPrep_t prep,
 		  PSID_scriptCB_t cb, void *info);
 
+/**
+ * @brief Cancel a registered callback
+ *
+ * Cancel the callback that was registered via @ref PSID_execScript()
+ * or @ref PSID_execFunc() identified by the process ID @a pid
+ * returned by the corresponding function.
+ *
+ * This might become necessary if the callback is located within a
+ * module to be unloaded. If the callback is not cancelled before
+ * unloading the module, a segmentation fault might be triggered as
+ * soon as input is received on the corresponding file-descriptor and
+ * the callback-function -- now located outside the valid address
+ * range -- is called.
+ *
+ * @param pid The process ID to identify the callback to cancel.
+ *
+ * @return On success 0 is returned. Or -1 if an error occurred.
+ */
+int PSID_cancelCB(pid_t pid);
 
 #ifdef __cplusplus
 }/* extern "C" */

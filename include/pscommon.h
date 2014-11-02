@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2012 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2014 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -371,7 +371,7 @@ int PSC_getServicePort(char* name , int def);
  * leading 0x.
  *
  * @return On success, a char array as described above is returned. Or
- * NULL, if an (parsing-) error occurred.
+ * NULL if an (parsing-) error occurred.
  */
 char *PSC_parseNodelist(char* descr);
 
@@ -408,31 +408,70 @@ void PSC_printNodelist(char* nl);
 char * PSC_concat(const char *str, ...);
 
 /**
- * @brief Set the process title.
+ * @brief Save some space to modify the process title
  *
- * Set the process title that appears on the ps(1) command. This will
- * overwrite the process memory which is used by arguments (argv) and
- * the process environment. Therefore this function has to be called
- * after processing the argv parameters. The process environment can
- * be saved using the saveEnv flag.
+ * Save some save to be able to modify the process title that appears
+ * on the ps(1) command later on via @ref PSC_setProcTitle(). For this
+ * the process memory used for arguments (argv) and the process
+ * environment is analyzed and the information is stored internally
+ * for later use by PSC_setProcTitle(). No actual changes to the
+ * process memory are made, thus, it is save to call this function
+ * before the argument-vector parameters are evaluated.
+ *
+ * In order to do the analysis the program's argument count @a argc
+ * and the actual argument vector @a argv are required. Since the
+ * memory occupied by the environment might be reserved for the
+ * changed process title, too, the flag @a saveEnv will trigger to
+ * copy the original environment to a save place if access to the
+ * environment is required later on.
  *
  * If the environment is not saved, the functions getenv(3)/setenv(3)
  * must not be used afterwards.
  *
- * @param argv The arguments to be modified. This has to be the
- * original argument vector passed to the applications main()
- * function.
+ * @param argc The number of arguments to be used by the modified
+ * process title.
  *
- * @param argc The number of arguments to be modified.
+ * @param argv The arguments to be used. This has to be the original
+ * argument vector passed to the applications main() function.
+ *
+ * @param saveEnv If set to true, the process' environment will be
+ * saved. Otherwise the environment will be overwritten.
+ *
+ * @return No return value.
+ *
+ * @see PSC_setProcTitle()
+ */
+void PSC_saveTitleSpace(int argc, char **argv, int saveEnv);
+
+/**
+ * @brief Set the process title.
+ *
+ * Set the process title that appears on the ps(1) command to @a
+ * title. This will use the process memory as described in @ref
+ * PSC_saveTitleSpace().
+ *
+ *  Actually, this function will be called in order to reserve space
+ * for the modified process title if not done before. Therefore, the
+ * @a argc, @a argv and @a saveEnv parameters are required in order to
+ * be passed to @ref PSC_saveTitleSpace(). Nevertheless, these
+ * parameter are only relevant of @ref PSC_saveTitleSpace() was not
+ * called before.
+ *
+ * @param argc The number of arguments to be modified. Will be passed
+ * to @ref PSC_saveTitleSpace().
+ *
+ * @param argv The arguments to be modified.  Will be passed to @ref
+ * PSC_saveTitleSpace().
  *
  * @param title The new process title.
  *
- * @param saveEnv If set to true then the process environment will be saved.
- * If set to false the environment will be overwritten.
+ * @param saveEnv Flag to be passed to @ref PSC_saveTitleSpace().
  *
- * @return Upon success 1 is returned. Or 0, if an error occurred.
+ * @return Upon success 1 is returned. Or 0 if an error occurred.
+ *
+ * @see PSC_saveTitleSpace()
  */
-int PSC_setProcTitle(char **argv, int argc, char *title, int saveEnv);
+int PSC_setProcTitle(int argc, char **argv, char *title, int saveEnv);
 
 /**
  * @brief Get screen width.

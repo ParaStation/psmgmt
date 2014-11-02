@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2013 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2014 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -280,6 +280,8 @@ static inline int getFreeCPUs(PSnodes_ID_t node, PSCPU_set_t free, int tpp)
     int procs = PSIDnodes_getProcs(node);
 
     if (procs != PSNODES_ANYPROC && procs < checkedCPUs) checkedCPUs = procs;
+    PSID_log(PSID_LOG_PART, "%s: node %d checkedCPUs %d procs %d tpp %d\n" ,
+	     __func__, node, checkedCPUs, procs, tpp);
 
     return PSCPU_getUnset(nodeStat[node].CPUset, checkedCPUs, free, tpp);
 }
@@ -738,6 +740,11 @@ unsigned short getAssignedJobs(PSnodes_ID_t node)
 	return 0;
     }
 
+    if (!PSIDnodes_validID(node)) {
+	PSID_log(-1, "%s: node %d out of range\n", __func__, node);
+	return 0;
+    }
+
     return nodeStat[node].assignedProcs;
 }
 
@@ -745,6 +752,11 @@ int getIsExclusive(PSnodes_ID_t node)
 {
     if (!nodeStat) {
 	PSID_log(-1, "%s: not master\n", __func__);
+	return 0;
+    }
+
+    if (!PSIDnodes_validID(node)) {
+	PSID_log(-1, "%s: node %d out of range\n", __func__, node);
 	return 0;
     }
 
@@ -931,6 +943,14 @@ static sortlist_t *getCandidateList(PSpart_request_t *request)
 
     for (i=0; i<request->num; i++) {
 	PSnodes_ID_t node = request->nodes[i];
+	
+	if (!PSIDnodes_validID(node)) {
+	    PSID_log(-1, "%s: node %d out of range\n", __func__, node);
+	    free(list.entry);
+	    errno = EINVAL;
+	    return NULL;
+	}
+
 	int cpus = PSIDnodes_getVirtCPUs(node);
 	int procs = getAssignedJobs(node);
 	int canPin = PSIDnodes_pinProcs(node);
@@ -954,7 +974,10 @@ static sortlist_t *getCandidateList(PSpart_request_t *request)
 	    } else {
 		availCPUs = getFreeCPUs(node, NULL, request->tpp);
 	    }
+	    PSID_log(PSID_LOG_PART, "%s: found %d CPUs on node %d\n",
+		     __func__, availCPUs, node);
 	    if (availCPUs && nodeFree(node, request, procs)) {
+		PSID_log(PSID_LOG_PART, "%s: add %d to list\n", __func__, node);
 		list.entry[list.size].id = node;
 		list.entry[list.size].cpus = availCPUs;
 		if (exactPart) {

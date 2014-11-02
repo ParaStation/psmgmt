@@ -24,4 +24,4 @@ psmom: $(srcdir)/psmom.pam
 CLEANFILES=psmom.pam
 
 install-exec-local:
-	$(INSTALL) -d $(DESTDIR)/etc/pam.d
+	$(INSTALL) -d $(DESTDIR)$(pamconfdir)

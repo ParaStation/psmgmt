@@ -63,8 +63,9 @@ typedef struct {
 } TempBuffers;
 
 /**
- * Maximum number of processes in this job.
+ * Maximum/Current number of processes in this job.
  */
+extern int usize;
 extern int np;
 
 /**
@@ -220,14 +221,14 @@ void outputMergeInit(void)
 	maxMergeDepth = atoi(envstr);
     }
 
-    clientOutBuf = umalloc((sizeof(*clientOutBuf) * np), __func__);
-    clientTmpBuf = umalloc((sizeof(*clientTmpBuf) * np), __func__);
+    clientOutBuf = umalloc((sizeof(*clientOutBuf) * usize), __func__);
+    clientTmpBuf = umalloc((sizeof(*clientTmpBuf) * usize), __func__);
 
-    snprintf(npsize, sizeof(npsize), "[0-%i]", np-1);
+    snprintf(npsize, sizeof(npsize), "[0-%i]", usize-1);
     prelen = strlen(npsize);
 
     /* Init Output Buffer List */
-    for (i=0; i<np; i++) {
+    for (i=0; i<usize; i++) {
 	clientOutBuf[i].line = NULL;
 	clientTmpBuf[i].line[0] = NULL;
 	clientTmpBuf[i].line[1] = NULL;
@@ -377,6 +378,12 @@ static void generatePrefix(char *prefix, int size, int mcount, int start,
     prefix[0] = '\0';
     firstRank = start;
     nextRank = start;
+
+    if(np==1) {
+	 snprintf(tmp, sizeof(tmp), "0");
+	 strncat(prefix, tmp, size - strlen(prefix) -1);
+	 return;
+    }
 
     for (z=0; z<mcount; z++) {
 	if (saveBufInd[z] == nextRank+1) {
@@ -853,8 +860,8 @@ void cacheOutput(PSLog_Msg_t *msg, int outfd)
     }
 
     if (sender >= np) {
-	PSIlog_log(-1, "%s: msg from unexpected rank:%i\n", __func__, sender);
-	return;
+	 /* extend the number of current processes: */
+	 np = sender + 1;
     }
 
     while (count>0 && strlen(buf) >0) {
@@ -956,10 +963,18 @@ void displayCachedOutput(int flush)
 		    } else {
 			switch (val->outfd) {
 			case STDOUT_FILENO:
-			    PSIlog_stdout(-1, "[0-%i]: %s", np-1, val->line);
+			    if(np==1) {
+				 PSIlog_stdout(-1, "%*s[0]: %s", prelen - 3, "", val->line);
+			    } else {
+				 PSIlog_stdout(-1, "%*s[0-%i]: %s", prelen - 5, "", np-1, val->line);
+			    }
 			    break;
 			case STDERR_FILENO:
-			    PSIlog_stderr(-1, "[0-%i]: %s", np-1, val->line);
+			    if(np==1) {
+				 PSIlog_stderr(-1, "%*s[0]: %s", prelen - 3, "", val->line);
+			    } else {
+				 PSIlog_stderr(-1, "%*s[0-%i]: %s", prelen - 5, "", np-1, val->line);
+			    }
 			    break;
 			default:
 			    PSIlog_log(-1, "%s: unknown outfd %d\n", __func__,

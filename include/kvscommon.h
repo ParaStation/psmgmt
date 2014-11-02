@@ -66,6 +66,16 @@ typedef enum {
 const char *PSKVScmdToString(PSKVS_cmd_t cmd);
 
 /**
+ * @brief Set the delimiters for parsing a pmi buffer.
+ *
+ * @param newDelim The new delimiters to use. Use NULL to reset
+ * to the default.
+ *
+ * @return No return value.
+ */
+void setPMIDelim(const char *newDelim);
+
+/**
  * @brief Extract a single value from a pmi message.
  *
  * @param name Name (key) of the value to extract.

@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2013 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2014 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -140,8 +140,12 @@ typedef struct {
 
 /** Up to this size predefined buffers are use to store the message. */
 #define RDP_SMALL_DATA_SIZE 64
-/** The maximum size of a RDP message. May decrease in future.*/
-#define RDP_MAX_DATA_SIZE 8192
+
+/**
+ * The maximum size of a RDP message.
+ * 1472 is derived from 1500 (MTU) - 20 (IP header) - 8 (UDP header)
+ */
+#define RDP_MAX_DATA_SIZE (1472-sizeof(rdphdr_t))
 
 /**
  * The maximum number of pending messages on a connection. If
@@ -2101,8 +2105,8 @@ int Rsendto(int node, void *buf, size_t len)
     }
     if (len>RDP_MAX_DATA_SIZE) {
 	/* msg too large */
-	RDP_log(-1, "%s: len=%ld > RDP_MAX_DATA_SIZE=%d\n",
-		__func__, (long) len, RDP_MAX_DATA_SIZE);
+	RDP_log(-1, "%s: len=%zd > RDP_MAX_DATA_SIZE=%zd\n",
+		__func__, len, RDP_MAX_DATA_SIZE);
 	errno = EMSGSIZE;
 	return -1;
     }

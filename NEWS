@@ -8,24 +8,74 @@ Please send bug reports, questions and suggestions to <support@par-tec.com>
 *************************************************************************
 *************************************************************************
 **                                                                     **
-**  Remark: Starting with psmgmt 5.0.42 the pspmi plugin is mandatory  **
-**  for the MPI2 startup. Therefore, it has to be added to the         **
-**  parastation configuration.                                         **
+**  Remark: psmgmt 5.0.46 enables configuration via psconfig.          **
+**    Nevertheless, for compatibility reasons psconfig is ignored as   **
+**    long as /etc/parastation.conf exists and has not zero length.    **
+**    Thus, updating to psmgmt-5.0.46 requires to either move the      **
+**    configuration file saved to /etc/parastation.conf.rpmsave back   **
+**    to its  original location /etc/parastation.conf or to update     **
+**    the information in the psconfig database accordingly.            **
 **                                                                     **
 *************************************************************************
 *************************************************************************
 
+Version 5.0.46:
+===============
 
-*************************************************************************
-*************************************************************************
-**                                                                     **
-**  Remark: psmgmt 5.0.42 pushed pslog to version 3. This new version  **
-**  is *NOT* compatible with older parastation versions. Therefore, a  **
-**  setup of current version mixed with ones prior to 5.0.42 will      **
-**  *NOT* work                                                         **
-**                                                                     **
-*************************************************************************
-*************************************************************************
+Bugfixes:
+- Return full info on errors and TIDs from PSI_spawn() et al. (#2348)
+- Prevent re-enabling stdin after all input was read (#2331)
+- Fix relative executable path in MPI_Comm_spawn()
+- Fix argument manipulation in psid (#2334)
+- Enable --envall even on further steps of spawning (#2332)
+- pspmi might segfault on psiadmin's 'plugin set/show/unset' directives
+- Ensure to handle sufficient number of service processes (#2230)
+- Ensure input forwarding works even if clients join late
+- Prevent segfaults by corrupted PSP_DD_GETPARTNL messages (#2288)
+- Catch segfault in the rare case of apps connecting to psid without
+    sending data (#2252)
+- Fix race condition in registerClient() when spawning multiple KVSs
+    concurrently: assure to assign unique service ranks
+- Ensure all nodes are updated on changed hardware-status
+- Fix mpiexec's --merge option for the case of dynamic spawns
+- Make logger work even if no stdin is provided and psid is connected
+    via fd 0 (#2273)
+- Improve robustness of PSI_spawn() et al.
+- Several minor fixes highlighted by clang's scan-build.
+
+Enhancements:
+- Add support for MPI_Comm_spawn_multiple()
+- Start multiple binaries via mpiexec using the colon syntax (#2154)
+- Support of 'path' and 'arch' info keys of MPI_Comm_spawn().
+- Add support for psconfig
+- Improved flow-control which hopefully fixes the problem of psid bloats
+- Let kvsprovider kill all its children on SIGTERM (#2201)
+- Rely on psid's PSID_checkPrivilege() for some privilege checking
+- Make pamdir (installation path of pspam plugin) configurable (#2302)
+- Add valgrind support also for spawned processes
+- More intelligent way of psmom to obtain jobs from multiple PBS servers 
+- Switch %postinstall action to 'service inetd try-restart' (#1932)
+- Be more relaxed to leave the logger's raw-mode. 
+- Enforce client messages to have correct sender information
+- PSID_cancelCB() allows cancellation of callbacks for scripts or
+    functions executed asynchronously (#1503)
+- Streamline propagation of resource-limits.
+- New function PSCPU_cmp() to compare CPU-sets
+- Add Selector_isActive() to check a selector's status from outside
+    the selector facility.
+
+Additional changes:
+- Remove support of mixed operation with ancient versions of psmgmt
+- Remove hard-coded /etc (#2301)
+- Remove all non-GNU paths from the build system (#2302)
+- Add dependencies on PAM and NUMActl in spec file (#2349)
+- Add popt-devel to general BuildRequires (#2284)
+- Improvements in the build system
+- Adapt the no_flowcontrol plugin to the new flow-control
+- Forward APPNUM parameter from mpiexec to pmiclient.
+- Add print_list_entry macro to the gdbinit definitions
+- Add print_msg_list macro to the gdbinit definitions
+
 
 Version 5.0.45:
 ===============
@@ -116,6 +166,28 @@ Enhancements:
  - Support for MPI_Comm_spawn
  - KVS code moved from logger into service process (kvs-provider)
 
+
+*************************************************************************
+*************************************************************************
+**                                                                     **
+**  Remark: Starting with psmgmt 5.0.42 the pspmi plugin is mandatory  **
+**  for the MPI2 startup. Therefore, it has to be added to the         **
+**  parastation configuration.                                         **
+**                                                                     **
+*************************************************************************
+*************************************************************************
+
+
+*************************************************************************
+*************************************************************************
+**                                                                     **
+**  Remark: psmgmt 5.0.42 pushed pslog to version 3. This new version  **
+**  is *NOT* compatible with older parastation versions. Therefore, a  **
+**  setup of current version mixed with ones prior to 5.0.42 will      **
+**  *NOT* work                                                         **
+**                                                                     **
+*************************************************************************
+*************************************************************************
 
 Version 5.0.42:
 ===============

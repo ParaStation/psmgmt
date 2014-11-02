@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2007-2013 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2007-2014 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -378,6 +378,26 @@ static inline void PSCPU_inject(PSCPU_set_t dest, void *src, size_t num)
 {
     if (num && src && dest) memcpy(dest, src,
 				   (num > PSCPU_MAX/8) ? PSCPU_MAX/8 : num);
+}
+
+/**
+ * @brief Compare CPU-sets
+ *
+ * Compare the CPU-sets @a s1 and @a s2.
+ *
+ * @param s1 CPU-set to compare
+ *
+ * @param s2 CPU-set to compare
+ *
+ * @return This functions returns an integer less than, equal to, or
+ * greater than zero depending on in which set the first CPU is found
+ * to be set. I.e. 0 is returned if both CPU-sets found to be equal.
+ */
+static inline int PSCPU_cmp(PSCPU_set_t s1, PSCPU_set_t s2)
+{
+    if (s1 && s2) return memcmp(s1, s2, sizeof(PSCPU_set_t));
+
+    return 0;
 }
 
 

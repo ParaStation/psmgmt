@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2012-2013 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2012-2014 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -423,6 +423,7 @@ static void printParam(FILE *file, param_t *param)
 
     if (res) {
 	fprintf(file, "%s\n", res);
+	free(res);
     } else {
 	fprintf(file, "No data available\n");
     }

@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2012 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2014 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -36,9 +36,6 @@ static PSnodes_ID_t nrOfNodes = -1;
 static PSnodes_ID_t myID = -1;
 
 static PStask_ID_t myTID = -1;
-
-/** pointer to the environment */
-extern char **environ;
 
 /* Wrapper functions for logging */
 void PSC_initLog(FILE* logfile)
@@ -433,50 +430,90 @@ char * PSC_concat(const char *str, ...)
     return result;
 }
 
-int PSC_setProcTitle(char **argv, int argc, char *title, int saveEnv)
-{
-    int size = -1, countEnv = -1, i;
-    char **newEnv;
-    char *argvP = NULL, *lastArg = NULL;
+/** pointer to the environment */
+extern char **environ;
 
-    if (argv == NULL || !argc || title == NULL) return 0;
+/** Space that might be used to store the new title */
+static char *titleSpace = NULL;
+
+/** Available space to store a new title */
+static size_t titleSize = 0;
+
+void PSC_saveTitleSpace(int argc, char **argv, int saveEnv)
+{
+    int numEnv = 0, i;
+    char *nextArg; /* will point *behind* the last arg / env */
+    char **newEnv = NULL;
+
+    if (!argc || !argv) return;
+
+    nextArg = argv[0];
+
+    PSC_log(PSC_LOG_VERB, "%s\n", __func__);
 
     /* find last element in argv/env */
     for (i=0; i<argc; i++) {
-	if (lastArg == NULL || lastArg + 1 == argv[i]) {
-	    lastArg = argv[i] + strlen(argv[i]);
-	}
+	if (argv[i] == nextArg) nextArg += strlen(argv[i]) + 1;
     }
-    for (i=0; environ[i] != NULL; i++) {
-	if (lastArg + 1 == environ[i]) {
-	    lastArg = environ[i] + strlen(environ[i]);
+    if (environ) {
+	for (i=0; environ[i]; i++) {
+	    if (environ[i] == nextArg) nextArg += strlen(environ[i]) + 1;
 	}
+	numEnv = i;
     }
-    countEnv = i;
 
-    /* test for enough space for new title */
-    if (((size = lastArg - argv[0] - 1) < 0)) return 0;
-    if ((int) strlen(title) > size - 1) return 0;
+    titleSize = nextArg - argv[0];
+    titleSpace = argv[0];
+
+    PSC_log(PSC_LOG_VERB, "%s: found %zd bytes\n", __func__, titleSize);
 
     /* save environment */
-    if (saveEnv && !environ) return 0;
     if (environ && saveEnv) {
-	if (!(newEnv = malloc((countEnv +1) * sizeof(char *)))) {
-	    return 0;
-	}
+	newEnv = calloc(numEnv + 1, sizeof(char *));
 
-	for (i=0; environ[i] != NULL; i++) {
+	if (!newEnv) goto noSpace;
+
+	for (i=0; environ[i]; i++) {
 	    newEnv[i] = strdup(environ[i]);
+	    if (!newEnv[i]) goto noSpace;
 	}
-	newEnv[i] = NULL;
 	environ = newEnv;
     }
 
+    return;
+
+noSpace:
+    /* Cleanup the incomplete new environemnt */
+    if (newEnv) {
+	for (i=0; newEnv[i]; i++) free(newEnv[i]);
+	free(newEnv);
+    }
+    /* Re-adjust the size to the available space */
+    titleSize = environ[0] - argv[0];
+
+    PSC_log(-1, "%s: re-adjusted to %zd bytes\n", __func__, titleSize);
+}
+
+int PSC_setProcTitle(int argc, char **argv, char *title, int saveEnv)
+{
+    PSC_log(PSC_LOG_VERB, "%s\n", __func__);
+
+    if (!title) return 0;
+
+    if (!titleSize) PSC_saveTitleSpace(argc, argv, saveEnv);
+
+    /* test for enough space for new title */
+    if (strlen(title) + 1 > titleSize) {
+	PSC_log(-1, "%s: not enough space for title '%s'\n", __func__,
+		title);
+	return 0;
+    }
+
     /* write the new process title */
-    argvP = argv[0];
-    memset(argvP, '\0', size);
-    snprintf(argvP, size, "%s", title);
-    argvP[size-1] = '\0';
+    memset(titleSpace, '\0', titleSize);
+    snprintf(titleSpace, titleSize, "%s", title);
+
+    PSC_log(PSC_LOG_VERB, "%s: title set to '%s'\n", __func__, title);
 
     return 1;
 }

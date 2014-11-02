@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2013 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2014 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -297,6 +297,7 @@ int PStask_init(PStask_t* task)
     task->relativesignal = SIGTERM;
     task->pendingReleaseRes = 0;
     task->pendingReleaseErr = 0;
+    task->activeStops = 0;
     task->releaseAnswer = 1;
     task->released = 0;
     task->parentReleased = 0;
@@ -515,6 +516,7 @@ PStask_t* PStask_clone(PStask_t* task)
     clone->relativesignal = task->relativesignal;
     clone->pendingReleaseRes = task->pendingReleaseRes;
     clone->pendingReleaseErr = task->pendingReleaseErr;
+    clone->activeStops = task->activeStops;
     clone->releaseAnswer = task->releaseAnswer;
     clone->released = task->released;
     clone->parentReleased = task->parentReleased;

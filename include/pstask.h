@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2013 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2014 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -192,6 +192,7 @@ typedef struct {
 				      parent or child) dies */
     int pendingReleaseRes;         /**< num of pending RELEASERES messages */
     int pendingReleaseErr;         /**< set to param!=0 in RELEASERES msg */
+    int activeStops;               /**< Number of active SENDSTOPs */
     char releaseAnswer;            /**< flag final RELEASERES to initiator */
     char released;                 /**< flag to mark released task, i.e. don't
 				      send signal to parent on exit */
