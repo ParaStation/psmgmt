@@ -420,11 +420,11 @@ static int getRLimit(char *pointer)
                            supported_rlimits[i].key);
         } else {
             ret = toNumber(limit, &intval);
-            value = intval;
 	    if (ret) {
                 g_free(limit);
                 break;
             }
+            value = intval;
         }
 
         if (supported_rlimits[i].mult) {

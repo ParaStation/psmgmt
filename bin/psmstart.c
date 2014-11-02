@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2012 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2014 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -158,7 +158,7 @@ int main(int argc, const char *argv[])
 	return 0;
     }
 
-    if (!argv[dup_argc]) {
+    if (dup_argc == argc || !argv[dup_argc]) {
 	poptPrintUsage(optCon, stderr, 0);
 	fprintf(stderr, "No <command> specified.\n");
 	exit(1);
@@ -263,6 +263,10 @@ int main(int argc, const char *argv[])
 
     for (i=dup_argc; i<argc; i++) {
 	totlen += strlen(argv[i])+1;
+    }
+    if (!totlen) {
+	fprintf(stderr, "The specified <command> has length 0.\n");
+	exit(1);
     }
     command = (char *) malloc(totlen*sizeof(char));
     sprintf(command, "%s", argv[dup_argc]);
