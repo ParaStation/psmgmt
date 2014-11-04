@@ -69,9 +69,17 @@ PS_SEARCH_LIBS([readline], [readline], [RL_LIBS], [],
 PS_SEARCH_LIBS([using_history], [history], [RL_LIBS], [],
   [AC_MSG_ERROR([please install the readline devel package])])
 
-PKG_CHECK_MODULES([glib2], [glib-2.0 >= 2.22.0])
+AC_ARG_WITH([psconfig], [AS_HELP_STRING([--without-psconfig],
+  [build without psconfig support])])
+AM_CONDITIONAL([BUILD_WITHOUT_PSCONFIG], [test "x$with_psconfig" = xno])
 
-PKG_CHECK_MODULES([psconfig], [psconfig])
+AM_COND_IF([BUILD_WITHOUT_PSCONFIG], [
+  AC_MSG_NOTICE([Building without psconfig support])
+  AM_CFLAGS="$AM_CFLAGS -DBUILD_WITHOUT_PSCONFIG"
+], [
+  PKG_CHECK_MODULES([glib2], [glib-2.0 >= 2.22.0])
+  PKG_CHECK_MODULES([psconfig], [psconfig])
+])
 
 AX_CHECK_COMPILE_FLAG([-O3],
   [AM_CFLAGS="$AM_CFLAGS -O3"])

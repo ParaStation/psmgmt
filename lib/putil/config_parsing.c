@@ -13,6 +13,16 @@ static char vcid[] __attribute__((used)) =
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 #include <stdio.h>
+
+#ifdef BUILD_WITHOUT_PSCONFIG
+#include "config_parsing.h"
+
+config_t *parseConfig(FILE* logfile, int logmask, char *configfile)
+{
+    return parseOldConfig(logfile, logmask, configfile);
+}
+#else
+
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
@@ -2207,5 +2217,6 @@ config_t *parseConfig(FILE* logfile, int logmask, char *configfile)
 
     return &config;
 }
+#endif /* BUILD_WITHOUT_PSCONFIG */
 
 /* vim: set ts=8 sw=4 tw=0 sts=4 et :*/
