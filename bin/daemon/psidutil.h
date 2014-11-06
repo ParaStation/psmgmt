@@ -144,26 +144,27 @@ void PSID_finalizeLogs(void);
  * The parser's logging facility uses the flags starting with bit 25.
  */
 typedef enum {
-    PSID_LOG_SIGNAL = 0x000010, /**< Signal handling stuff */
-    PSID_LOG_TIMER =  0x000020, /**< Timer stuff */
-    PSID_LOG_HW =     0x000040, /**< Hardware stuff */
-    PSID_LOG_RESET =  0x000080, /**< Messages concerning (partial) resets */
-    PSID_LOG_STATUS = 0x000100, /**< Status determination */
-    PSID_LOG_CLIENT = 0x000200, /**< Client handling */
-    PSID_LOG_SPAWN =  0x000400, /**< Spawning clients */
-    PSID_LOG_TASK =   0x000800, /**< PStask_cleanup() call etc. */
-    PSID_LOG_RDP =    0x001000, /**< RDP messages @see RDP module */
-    PSID_LOG_MCAST =  0x002000, /**< MCast messages @see MCast modules*/
-    PSID_LOG_VERB =   0x004000, /**< Higher verbosity (function call, etc.)  */
-    PSID_LOG_SIGDBG = 0x008000, /**< More verbose signaling stuff */
-    PSID_LOG_COMM =   0x010000, /**< General daemon communication */
-    PSID_LOG_OPTION = 0x020000, /**< Option handling */
-    PSID_LOG_INFO =   0x040000, /**< Handling of info request messages */
-    PSID_LOG_PART =   0x080000, /**< Partition creation and management */
-    PSID_LOG_NODES =  0x100000, /**< Book keeping on nodes */
-    PSID_LOG_PLUGIN = 0x200000, /**< Plugin handling */
-    PSID_LOG_MSGDUMP =0x400000, /**< Dump info on dropped messages */
-    PSID_LOG_ENV =    0x800000, /**< Environment handling */
+    PSID_LOG_SIGNAL =   0x0000010, /**< Signal handling stuff */
+    PSID_LOG_TIMER =    0x0000020, /**< Timer stuff */
+    PSID_LOG_HW =       0x0000040, /**< Hardware stuff */
+    PSID_LOG_RESET =    0x0000080, /**< Messages concerning (partial) resets */
+    PSID_LOG_STATUS =   0x0000100, /**< Status determination */
+    PSID_LOG_CLIENT =   0x0000200, /**< Client handling */
+    PSID_LOG_SPAWN =    0x0000400, /**< Spawning clients */
+    PSID_LOG_TASK =     0x0000800, /**< PStask_cleanup() call etc. */
+    PSID_LOG_RDP =      0x0001000, /**< RDP messages @see RDP module */
+    PSID_LOG_MCAST =    0x0002000, /**< MCast messages @see MCast modules*/
+    PSID_LOG_VERB =     0x0004000, /**< Be more verbose (function call, etc.) */
+    PSID_LOG_SIGDBG =   0x0008000, /**< More verbose signaling stuff */
+    PSID_LOG_COMM =     0x0010000, /**< General daemon communication */
+    PSID_LOG_OPTION =   0x0020000, /**< Option handling */
+    PSID_LOG_INFO =     0x0040000, /**< Handling of info request messages */
+    PSID_LOG_PART =     0x0080000, /**< Partition creation and management */
+    PSID_LOG_NODES =    0x0100000, /**< Book keeping on nodes */
+    PSID_LOG_PLUGIN =   0x0200000, /**< Plugin handling */
+    PSID_LOG_MSGDUMP =  0x0400000, /**< Dump info on dropped messages */
+    PSID_LOG_ENV =      0x0800000, /**< Environment handling */
+    PSID_LOG_FLWCNTRL = 0x1000000, /**< Flow-control */
 } PSID_log_key_t;
 
 

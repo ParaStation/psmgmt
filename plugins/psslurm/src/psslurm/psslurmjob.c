@@ -540,6 +540,7 @@ int signalStep(Step_t *step, int signal)
     int ret = 0;
     PStask_group_t group;
 
+    if (!step) return 0;
     group = (signal == SIGTERM || signal == SIGKILL) ? -1 : TG_ANY;
 
     /* if we are not the mother superior we just signal all our local tasks */

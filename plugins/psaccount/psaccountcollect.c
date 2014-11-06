@@ -109,8 +109,10 @@ void updateAccountData(Client_t *client)
 	}
     }
 
+    /*
     mlog("%s: pid:%i cutime: '%lu' cstime: '%lu' session '%i' mem '%lu' "
 	    "vmem '%lu' threads '%lu' numTasks '%u'\n", __func__, client->pid,
 	    accData->cutime, accData->cstime, accData->session, accData->maxRss,
 	    accData->maxVsize, accData->maxThreads, accData->numTasks);
+    */
 }

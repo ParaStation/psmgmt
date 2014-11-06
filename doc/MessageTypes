@@ -1,7 +1,7 @@
 *
 * ParaStation
 *
-* Copyright (C) 2006-2013 ParTec Cluster Competence Center GmbH, Munich
+* Copyright (C) 2006-2014 ParTec Cluster Competence Center GmbH, Munich
 *
 * This file may be distributed under the terms of the Q Public License
 * as defined in the file LICENSE.QPL included in the packaging of this
@@ -80,8 +80,9 @@ PSP_DD_DAEMONESTABLISHED	DDBufferMsg_t		8
 PSP_DD_DAEMONREFUSED		not used		-
 PSP_DD_DAEMONSHUTDOWN		DDMsg_t			0
 
-PSP_DD_SENDSTOP			DDMsg_t			0
+PSP_DD_SENDSTOP			DDTypedMsg_t		4 (type signals ACK req.)
 PSP_DD_SENDCONT			DDMsg_t			0
+PSP_DD_SENDSTOPACK		DDMsg_t			0
 
 PSP_DD_CHILDDEAD		DDErrorMsg_t		8
 PSP_DD_GETPART			DDBufferMsg_t		32 (same as PSP_CD_CREATEPART)

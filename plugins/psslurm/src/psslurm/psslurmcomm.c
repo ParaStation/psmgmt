@@ -127,8 +127,8 @@ int readSlurmMessage(int sock, char **buffer)
 
     if ((size = doReadP(sock, &msglen, sizeof(msglen))) != sizeof(msglen)) {
 	if (!size) {
-	    mdbg(PSSLURM_LOG_COMM, "%s: closing connection %i\n", __func__,
-		    sock);
+	    mdbg(PSSLURM_LOG_COMM, "%s: closing connection, empty message len "
+		    "on sock '%i'\n", __func__, sock);
 	    goto CLEANUP;
 	}
 	mlog("%s: invalid message len '%u', expect '%zu'\n", __func__, size,
@@ -141,10 +141,14 @@ int readSlurmMessage(int sock, char **buffer)
 	goto CLEANUP;
     }
 
+    mdbg(PSSLURM_LOG_COMM, "%s: reading message with len '%u'\n", __func__,
+	    msglen);
+
     *buffer = umalloc(msglen);
 
     if ((size = doReadP(sock, *buffer, msglen)) < 1) {
-	mdbg(PSSLURM_LOG_COMM, "%s: closing connection : %i\n", __func__, size);
+	mlog("%s: reading message from sock '%u' size '%u' " "failed\n",
+		__func__, sock, size);
 	goto CLEANUP;
     }
 
@@ -516,7 +520,7 @@ static int handleSrunMsg(int sock, void *data)
 
     headSize = sizeof(uint32_t) + 3 * sizeof(uint16_t);
     if ((ret = doReadP(sock, buffer, headSize)) <= 0) {
-	mlog("%s: closing srun connection '%u'\n", __func__, sock);
+	//mlog("%s: closing srun connection '%u'\n", __func__, sock);
 	Selector_remove(sock);
 	close(sock);
 	return 0;
@@ -591,7 +595,7 @@ int srunOpenControlConnection(Step_t *step)
 		inet_ntoa(step->srun.sin_addr), port);
 	return -1;
     }
-    mlog("%s: new srun connection %i\n", __func__, sock);
+    //mlog("%s: new srun connection %i\n", __func__, sock);
 
     return sock;
 }
@@ -608,8 +612,10 @@ int srunSendMsg(int sock, Step_t *step, slurm_msg_type_t type,
 	return -1;
     }
 
+    /*
     mlog("%s: sock %u, len: body.bufUsed %u body.bufSize %u\n", __func__,
 	    sock, body->bufUsed, body->bufSize);
+    */
     return sendSlurmMsg(sock, type, body, step);
 }
 

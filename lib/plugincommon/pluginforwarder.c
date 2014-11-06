@@ -264,7 +264,7 @@ static int initForwarder()
 
     /* overwrite proc title */
     if (fwdata->pTitle) {
-	PSC_setProcTitle((char ** )PSID_argv, PSID_argc, fwdata->pTitle, 0);
+	PSC_setProcTitle(PSID_argc, (char ** )PSID_argv, fwdata->pTitle, 0);
     }
 
     /* Reset connection to syslog */

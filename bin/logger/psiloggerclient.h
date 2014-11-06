@@ -124,6 +124,20 @@ int getMinRank(void);
 int getMaxRank(void);
 
 /**
+ * @brief Get next free service rank
+ *
+ * Request the next free (and unique) service rank.
+ *
+ * The next free service rank is commonly equal to the minimum rank.
+ * However, since the service ranks should be kept unique also in the case
+ * of multiple (external) inquiries for new ranks, an incremental offset
+ * ensures that subsequent calls will not return the same rank value.
+ *
+ * @return Returns the next service rank to be assigned.
+ */
+int getNextServiceRank(void);
+
+/**
  * @brief Get client's rank
  *
  * Determine the rank of the client with task-ID @a tid.

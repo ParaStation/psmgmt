@@ -272,6 +272,10 @@ int handleCreatePart(void *msg)
 	for (x=0; x<step->globalTaskIdsLen[i]; x++) {
 
 	    tid = step->globalTaskIds[i][x];
+	    /*
+	    mlog("%s: node%u nodeid '%u' tid '%u'\n", __func__, i,
+		    step->nodes[i], tid);
+	    */
 
 	    /* sanity check */
 	    if (tid >slotsSize) {
@@ -585,29 +589,8 @@ static void handleTaskIds(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     /* spawn return code */
     getInt32(&ptr, &ret);
 
-    if (ret < 0) {
-	mlog("%s: spawn step '%u:%u' failed: ret '%i' state '%i'\n", __func__,
-		step->jobid, step->uid, ret, step->state);
-	if (step->state == JOB_PRESTART) {
-	    /* spawn failed, e.g. executable not found */
+    if (ret < 0) goto SPAWN_FAILED;
 
-	    /* we should say okay to srun and return exit code 2 */
-	    sendSlurmRC(step->srunControlSock, SLURM_SUCCESS, step);
-	    step->tidsLen = step->np;
-	    step->tids = umalloc(sizeof(uint32_t) * step->np);
-	    for (i=0; i<step->nrOfNodes; i++) {
-		step->tids[i] = PSC_getTID(step->nodes[i], rand()%128);
-	    }
-	    sendTaskPids(step);
-
-	    step->state = JOB_RUNNING;
-	    step->exitCode = 0x200;
-	} else {
-	    /* spawn failed */
-	    sendSlurmRC(step->srunControlSock, SLURM_ERROR, step);
-	}
-	return;
-    }
     sendSlurmRC(step->srunControlSock, SLURM_SUCCESS, step);
     step->state = JOB_RUNNING;
 
@@ -616,17 +599,38 @@ static void handleTaskIds(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     mlog("%s: received %u taskids for step %u:%u\n", __func__, step->tidsLen,
 	    step->jobid, step->stepid);
 
-    /* match slurm global task ids and ps task ids */
-
-    // uint16_t *tasksToLaunch;	/* number of tasks to launch (per node) */
-    // uint32_t **globalTaskIds;	/* job global slurm task ids (per node) */
-    // uint32_t globalTaskIdsLen;
-    // uint32_t tidsLen;
-    // PStask_ID_t *tids;
-
+    /*
+    for (i=0; i<step->tidsLen; i++) {
+	mlog("%s: tid%u: %s\n", __func__, i, PSC_printTID(step->tids[i]));
+    }
+    */
 
     /* forward info to waiting srun */
-    sendTaskPids(step);
+    if (!(sendTaskPids(step))) goto SPAWN_FAILED;
+
+    return;
+
+SPAWN_FAILED:
+    mlog("%s: spawn step '%u:%u' failed: ret '%i' state '%i'\n", __func__,
+	    step->jobid, step->uid, ret, step->state);
+    if (step->state == JOB_PRESTART) {
+	/* spawn failed, e.g. executable not found */
+
+	/* we should say okay to srun and return exit code 2 */
+	sendSlurmRC(step->srunControlSock, SLURM_SUCCESS, step);
+	step->tidsLen = step->np;
+	step->tids = umalloc(sizeof(uint32_t) * step->np);
+	for (i=0; i<step->nrOfNodes; i++) {
+	    step->tids[i] = PSC_getTID(step->nodes[i], rand()%128);
+	}
+	sendTaskPids(step);
+
+	step->state = JOB_RUNNING;
+	step->exitCode = 0x200;
+    } else {
+	/* spawn failed */
+	sendSlurmRC(step->srunControlSock, SLURM_ERROR, step);
+    }
 }
 
 static void handleRemoteJob(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
@@ -710,7 +714,7 @@ void send_PS_SignalTasks(Step_t *step, int signal, PStask_group_t group)
 {
     DDTypedBufferMsg_t msg;
     PS_DataBuffer_t data = { .buf = NULL };
-    PStask_ID_t myID = PSC_getMyID();
+    PSnodes_ID_t myID = PSC_getMyID();
     uint32_t i;
 
     /* add jobid */

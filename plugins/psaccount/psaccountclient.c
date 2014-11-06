@@ -299,6 +299,7 @@ Client_t *addAccClient(PStask_ID_t taskid, PS_Acct_job_types_t type)
     client->data.cutime = 0;
     client->data.cstime = 0;
     client->data.cputime = 0;
+    client->data.numTasks = 0;
 
     list_add_tail(&(client->list), &AccClientList.list);
 

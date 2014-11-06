@@ -134,7 +134,7 @@ static void unrollRanks(Multi_Prog_t *mp, uint32_t np, char *rankList,
 
 static void parseMultiProgConf(char *conf, Multi_Prog_t *mp, uint32_t np)
 {
-    char *line, *saveptr, *tmp, *rank, *executable, *args;
+    char *line, *saveptr, *tmp, *rank, *executable, *args, *sepSpace, *sepTab;
     const char delimiters[] ="\n";
 
     line = strtok_r(conf, delimiters, &saveptr);
@@ -151,10 +151,21 @@ static void parseMultiProgConf(char *conf, Multi_Prog_t *mp, uint32_t np)
 	rank = line;
 
 	/* executable */
-	if (!(tmp = strchr(line, ' '))) {
+	sepSpace = strchr(line, ' ');
+	sepTab = strchr(line, '\t');
+
+	if (!sepSpace && !sepTab) {
 	    mlog("%s: invalid executable for '%s'\n", __func__, line);
 	    exit(1);
 	}
+	if (!sepSpace) {
+	    tmp = sepTab;
+	} else if (!sepTab) {
+	    tmp = sepSpace;
+	} else {
+	    tmp = (sepSpace < sepTab) ? sepSpace : sepTab;
+	}
+
 	executable = tmp+1;
 	tmp[0] = '\0';
 	executable = ltrim(executable);
@@ -181,7 +192,7 @@ static void parseMultiProgConf(char *conf, Multi_Prog_t *mp, uint32_t np)
 void setupArgsFromMultiProg(Step_t *step, char **argv, int *argc)
 {
     Multi_Prog_t *mp;
-    uint32_t i, exeCount = 0;
+    uint32_t i, exeCount = 0, uniqExeCount = 0;
     int startArgc = *argc;
     char *lastExe = NULL, *lastArgs = NULL;
     char np[128];
@@ -220,10 +231,11 @@ void setupArgsFromMultiProg(Step_t *step, char **argv, int *argc)
 	    lastExe = mp[i].exe;
 	    lastArgs = mp[i].args;
 	    exeCount = 1;
+	    uniqExeCount++;
 	}
     }
 
-    argv[(*argc)++] = ustrdup(":");
+    if (uniqExeCount) argv[(*argc)++] = ustrdup(":");
     argv[(*argc)++] = ustrdup("-np");
     snprintf(np, sizeof(np), "%u", exeCount);
     argv[(*argc)++] = ustrdup(np);

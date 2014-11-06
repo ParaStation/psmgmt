@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2013 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2014 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -31,7 +31,7 @@ extern "C" {
 #endif
 
 /** Unique version number of the high-level protocol */
-#define PSDaemonProtocolVersion  408
+#define PSDaemonProtocolVersion  409
 
 /** IDs of the various message types */
 
@@ -48,6 +48,7 @@ extern "C" {
 /** Message implementing flow control between daemons */
 #define PSP_DD_SENDSTOP            0x0108  /**< Stop sending further packets */
 #define PSP_DD_SENDCONT            0x0109  /**< Continue sending packets */
+#define PSP_DD_SENDSTOPACK         0x010A  /**< Ack a SENDSTOP message */
 
 /** Messages between daemon and the daemon forwarder part */
 #define PSP_DD_CHILDDEAD           0x0110  /**< Tell a child has finished */

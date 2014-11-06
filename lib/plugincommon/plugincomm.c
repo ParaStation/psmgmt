@@ -125,7 +125,7 @@ int __doWrite(int fd, void *buffer, size_t towrite, const char *func,
     return ret;
 }
 
-#define MAX_RETRY 10
+#define MAX_RETRY 200
 int __doRead(int fd, void *buffer, size_t toread, const char *func,
 		    int pedantic)
 {

@@ -21,6 +21,7 @@ static char vcid[] __attribute__((used)) =
 #include <errno.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <limits.h>
 
 #include "logging.h"
 
@@ -37,7 +38,7 @@ static char vcid[] __attribute__((used)) =
 #include "pse.h"
 
 static int myWorldSize = -1;
-static int worldRank = -42;
+static int worldRank = INT_MIN;
 static int masterNode = -1;
 static int masterPort = -1;
 static PStask_ID_t parentTID = -1;
@@ -143,7 +144,7 @@ int PSE_getSize(void)
 
 int PSE_getRank(void)
 {
-    if (worldRank == -42) {
+    if (worldRank == INT_MIN) {
 	logger_print(logger, -1, "%s: not initialized\n", __func__);
 	logger_finalize(logger);
 

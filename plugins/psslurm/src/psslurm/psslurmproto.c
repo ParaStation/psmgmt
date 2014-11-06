@@ -94,6 +94,10 @@ static void cbPElogueAlloc(char *sjobid, int exit_status, int timeout)
 	psPelogueDeleteJob("psslurm", sjobid);
 	sendEpilogueComplete(alloc->id, 0);
 
+	if (alloc->nodes[0] == PSC_getMyID()) {
+	    send_PS_JobExit(alloc->id, SLURM_BATCH_SCRIPT,
+		    alloc->nrOfNodes, alloc->nodes);
+	}
 	if (alloc->terminate || !haveRunningSteps(alloc->id)) {
 	    deleteAlloc(alloc->id);
 	}
@@ -130,6 +134,12 @@ static void cbPElogueJob(char *jobid, int exit_status, int timeout)
 	psPelogueDeleteJob("psslurm", job->id);
 	job->state = JOB_EXIT;
 	sendEpilogueComplete(job->jobid, 0);
+
+	/* tell sisters the job is finished */
+	if (job->nodes && job->nodes[0] == PSC_getMyID()) {
+	    send_PS_JobExit(job->jobid, SLURM_BATCH_SCRIPT,
+		    job->nrOfNodes, job->nodes);
+	}
 
 	if (job->terminate) {
 	    /* delete Job */
@@ -216,7 +226,7 @@ void getNodesFromSlurmHL(char *slurmNodes, uint32_t *nrOfNodes,
 
     while (next) {
 	(*nodes)[i] = getNodeIDbyName(next);
-	mlog("%s: node%u: %s id(%i)\n", __func__, i, next, (*nodes)[i]);
+	//mlog("%s: node%u: %s id(%i)\n", __func__, i, next, (*nodes)[i]);
 	i++;
 	next = strtok_r(NULL, delimiters, &saveptr);
     }
@@ -503,24 +513,40 @@ static void handleLaunchTasks(char *ptr, int sock, Slurm_msg_header_t *msgHead)
 
 static void handleSignalTasks(char *ptr, int sock, Slurm_msg_header_t *msgHead)
 {
-    uint32_t jobid, stepid, signal;
-    Step_t *step;
+    uint32_t jobid, stepid, siginfo;
+    int signal;
+    Step_t *step = NULL;
+    Job_t *job = NULL;
+    uid_t uid;
 
     getUint32(&ptr, &jobid);
     getUint32(&ptr, &stepid);
-    getUint32(&ptr, &signal);
-    mlog("%s: stepid '%u:%u' signal '%u'\n", __func__, jobid,
-	    stepid, signal);
+    getUint32(&ptr, &siginfo);
+
+    /* extract flags and signal */
+    //flag = siginfo >> 24;
+    signal = siginfo & 0xfff;
 
     /* find step */
-    if (!(step = findStepById(jobid, stepid))) {
-	mlog("%s: step '%u.%u' to signal not found\n", __func__, jobid, stepid);
-	sendSlurmRC(sock, ESLURM_INVALID_JOB_ID, NULL);
-	return;
+    if (stepid == SLURM_BATCH_SCRIPT) {
+	if (!(job = findJobById(jobid)) && !(step = findStepByJobid(jobid))) {
+	    mlog("%s: steps with jobid '%u' to signal not found\n", __func__,
+		    jobid);
+	    sendSlurmRC(sock, ESLURM_INVALID_JOB_ID, NULL);
+	    return;
+	}
+    } else {
+	if (!(step = findStepById(jobid, stepid))) {
+	    mlog("%s: step '%u.%u' to signal not found\n", __func__, jobid,
+		    stepid);
+	    sendSlurmRC(sock, ESLURM_INVALID_JOB_ID, NULL);
+	    return;
+	}
     }
+    uid = job ? job->uid : step->uid;
 
     /* check permissions */
-    if (!(checkAuthorizedUser(msgHead->uid, step->uid))) {
+    if (!(checkAuthorizedUser(msgHead->uid, uid))) {
 	mlog("%s: request from invalid user '%u'\n", __func__, msgHead->uid);
 	sendSlurmRC(sock, ESLURM_USER_ID_MISSING, NULL);
 	return;
@@ -533,6 +559,7 @@ static void handleSignalTasks(char *ptr, int sock, Slurm_msg_header_t *msgHead)
 	    sendSlurmRC(sock, SLURM_SUCCESS, step);
 	    return;
 	case SIG_DEBUG_WAKE:
+	    if (!step) return;
 	    if (!(step->taskFlags & TASK_PARALLEL_DEBUG)) {
 		sendSlurmRC(sock, SLURM_SUCCESS, step);
 		return;
@@ -558,13 +585,25 @@ static void handleSignalTasks(char *ptr, int sock, Slurm_msg_header_t *msgHead)
 	    return;
     }
 
-    if ((signal == SIGTERM || signal == SIGKILL) &&
-	step->state == JOB_PROLOGUE) {
+    if (stepid == SLURM_BATCH_SCRIPT) {
+	if (job) {
+	    mlog("%s: send jobscript '%u' signal '%u'\n", __func__,
+		    jobid, signal);
+	    /* signal jobscript only, not all corresponding steps */
+	    if (job->state == JOB_RUNNING && job->fwdata) {
+		kill(job->fwdata->forwarderPid, signal);
+	    }
+	} else {
+	    mlog("%s: send steps with jobid '%u' signal '%u'\n", __func__,
+		    jobid, signal);
+	    signalStepsByJobid(jobid, signal);
+	}
     } else {
-	mlog("%s: send stepid '%u:%u' signal '%u'\n", __func__, jobid,
+	mlog("%s: send step '%u:%u' signal '%u'\n", __func__, jobid,
 		stepid, signal);
 	signalStep(step, signal);
     }
+
     sendSlurmRC(sock, SLURM_SUCCESS, step);
 }
 
@@ -613,11 +652,15 @@ static void handleSignalJob(char *ptr, int sock, Slurm_msg_header_t *msgHead)
 {
     Job_t *job;
     Step_t *step;
-    uint32_t jobid, signal;
+    uint32_t jobid, siginfo, flag;
+    int signal;
     uid_t uid;
 
     getUint32(&ptr, &jobid);
-    getUint32(&ptr, &signal);
+    getUint32(&ptr, &siginfo);
+
+    flag = siginfo >> 24;
+    signal = siginfo & 0xfff;
 
     job = findJobById(jobid);
     step = findStepByJobid(jobid);
@@ -638,9 +681,20 @@ static void handleSignalJob(char *ptr, int sock, Slurm_msg_header_t *msgHead)
 	return;
     }
 
-    if (job) {
-	signalJob(job, signal, "");
+    if (job && (flag & KILL_JOB_BATCH)) {
+	mlog("%s: send jobscript '%u' signal '%u'\n", __func__,
+		jobid, signal);
+	/* signal only job, not all corresponding steps */
+	if (job->state == JOB_RUNNING && job->fwdata) {
+	    kill(job->fwdata->forwarderPid, signal);
+	}
+    } else if (job) {
+	mlog("%s: send job '%u' signal '%u'\n", __func__,
+		jobid, signal);
+	signalJob(job, signal, NULL);
     } else {
+	mlog("%s: send steps with jobid '%u' signal '%u'\n", __func__,
+		jobid, signal);
 	signalStepsByJobid(jobid, signal);
     }
 
@@ -1161,38 +1215,15 @@ static void handleTerminateAlloc(Alloc_t *alloc, int sock,
     if (sock > -1) sendSlurmRC(sock, SLURM_SUCCESS, NULL);
 }
 
-static void handleTerminateStep(int sock, Slurm_msg_header_t *msgHead,
-				Step_t *step, int signal)
-{
-    switch (step->state) {
-	case JOB_EXIT:
-	case JOB_COMPLETE:
-	    deleteStep(step->jobid, step->stepid);
-	    if (sock > -1) sendSlurmRC(sock, SLURM_SUCCESS, NULL);
-	    return;
-	case JOB_INIT:
-	case JOB_QUEUED:
-	    mlog("%s: waiting for sub step '%u:%u' state '%u'\n", __func__,
-		    step->jobid, step->stepid, step->state);
-	    if (sock > -1) sendSlurmRC(sock, SLURM_SUCCESS, NULL);
-	    return;
-    }
-    mlog("%s: signal tasks for sub step '%u:%u' state '%u'\n", __func__,
-	    step->jobid, step->stepid, step->state);
-    signalStep(step, signal);
-    if (sock > -1) sendSlurmRC(sock, SLURM_SUCCESS, NULL);
-}
-
 static void handleAbortReq(int sock, Slurm_msg_header_t *msgHead,
 			    uint32_t jobid, uint32_t stepid)
 {
     Step_t *step;
     Job_t *job;
+    Alloc_t *alloc;
 
     /* send success back to slurmctld */
     sendSlurmRC(sock, SLURM_SUCCESS, NULL);
-    Selector_remove(sock);
-    close(sock);
 
     if (stepid != NO_VAL) {
 	if (!(step = findStepById(jobid, stepid))) {
@@ -1200,21 +1231,32 @@ static void handleAbortReq(int sock, Slurm_msg_header_t *msgHead,
 	    return;
 	}
 	signalStep(step, SIGKILL);
+	deleteStep(step->jobid, step->stepid);
 	return;
     }
 
     job = findJobById(jobid);
-    step = findStepByJobid(jobid);
+    alloc = findAlloc(jobid);
 
-    if (!job && !step) {
+    if (!job && !alloc) {
 	mlog("%s: job '%u' not found\n", __func__, jobid);
 	return;
     }
 
     if (job) {
-	handleTerminateJob(-1, msgHead, job, SIGKILL);
-    } else if (step) {
-	handleTerminateStep(-1, msgHead, step, SIGKILL);
+	if (!job->mother) {
+	    signalJob(job, SIGKILL, NULL);
+	    send_PS_JobExit(job->jobid, SLURM_BATCH_SCRIPT,
+		    job->nrOfNodes, job->nodes);
+	}
+	deleteJob(jobid);
+    } else {
+	if (alloc->nodes[0] == PSC_getMyID()) {
+	    signalStepsByJobid(alloc->id, SIGKILL);
+	    send_PS_JobExit(alloc->id, SLURM_BATCH_SCRIPT,
+		    alloc->nrOfNodes, alloc->nodes);
+	}
+	deleteAlloc(jobid);
     }
 }
 
@@ -1223,12 +1265,11 @@ static void handleKillReq(int sock, Slurm_msg_header_t *msgHead, uint32_t jobid,
 {
     Step_t *step;
     Job_t *job;
+    Alloc_t *alloc;
     char buf[512];
 
     /* send success back to slurmctld */
     sendSlurmRC(sock, SLURM_SUCCESS, NULL);
-    Selector_remove(sock);
-    close(sock);
 
     if (stepid != NO_VAL) {
 	if (!(step = findStepById(jobid, stepid))) {
@@ -1250,33 +1291,36 @@ static void handleKillReq(int sock, Slurm_msg_header_t *msgHead, uint32_t jobid,
     }
 
     job = findJobById(jobid);
+    alloc = findAlloc(jobid);
     step = findStepByJobid(jobid);
 
-    if (!job && !step) {
+    if (!job && !alloc) {
 	mlog("%s: job '%u' not found\n", __func__, jobid);
 	return;
     }
 
     if (time) {
-	mlog("%s: timeout for job '%u'\n", __func__, jobid);
 	if (!job && step) {
-	    snprintf(buf, sizeof(buf), "error: *** step %u:%u CANCELLED DUE TO"
-			" TIME LIMIT ***\n", step->jobid, step->stepid);
+	    snprintf(buf, sizeof(buf), "error: *** step %u CANCELLED DUE TO"
+			" TIME LIMIT ***\n", jobid);
 	    printChildMessage(step->fwdata, buf, 1);
+	} else {
+	    mlog("%s: timeout for job '%u'\n", __func__, jobid);
 	}
     } else {
 	if (!job && step) {
 	    snprintf(buf, sizeof(buf), "error: *** PREEMPTION for step "
-		    "%u:%u ***\n", jobid, stepid);
+		    "%u ***\n", jobid);
 	    printChildMessage(step->fwdata, buf, 1);
+	} else {
+	    mlog("%s: preemption for job '%u'\n", __func__, jobid);
 	}
-	mlog("%s: preemption for job '%u'\n", __func__, jobid);
     }
 
     if (job) {
 	handleTerminateJob(-1, msgHead, job, SIGTERM);
-    } else if (step) {
-	handleTerminateStep(-1, msgHead, step, SIGTERM);
+    } else {
+	signalStepsByJobid(jobid, SIGTERM);
     }
 }
 
@@ -1527,8 +1571,6 @@ int handleSlurmdMsg(int sock, void *data)
 
 MSG_ERROR_CLEANUP:
     sendSlurmRC(sock, SLURM_ERROR, NULL);
-    Selector_remove(sock);
-    close(sock);
     ufree(buffer);
     return 0;
 }
@@ -1682,6 +1724,9 @@ int sendSlurmRC(int sock, uint32_t rc, void *data)
     addUint32ToMsg(rc, &body);
     ret = sendSlurmMsg(sock, RESPONSE_SLURM_RC, &body, data);
     ufree(body.buf);
+
+    if (Selector_isRegistered(sock)) Selector_remove(sock);
+    close(sock);
     return ret;
 }
 
@@ -1742,6 +1787,7 @@ int addSlurmAccData(uint8_t accType, pid_t childPid, PStask_ID_t loggerTID,
 	return 0;
     }
 
+    /*
     mlog("%s: adding account data: maxVsize '%zu' maxRss '%zu' "
 	    "u_sec '%lu' u_usec '%lu' s_sec '%lu' s_usec '%lu' "
 	    "num_tasks '%u'\n",
@@ -1751,6 +1797,7 @@ int addSlurmAccData(uint8_t accType, pid_t childPid, PStask_ID_t loggerTID,
 	    accData.rusage.ru_stime.tv_sec,
 	    accData.rusage.ru_stime.tv_usec,
 	    accData.numTasks);
+    */
 
     /* user cpu sec */
     addUint32ToMsg(accData.rusage.ru_utime.tv_sec, data);
@@ -1873,11 +1920,12 @@ void sendTaskExit(Step_t *step, int exit_status)
     ufree(body.buf);
 }
 
-void sendTaskPids(Step_t *step)
+int sendTaskPids(Step_t *step)
 {
     PS_DataBuffer_t body = { .buf = NULL };
     uint32_t i, x, z, countPIDS, countGTIDS;
     char *ptrCount, *ptrPIDS, *ptrGTIDS;
+    int sock;
 
     mlog("%s: sending RESPONSE_LAUNCH_TASKS to srun\n", __func__);
 
@@ -1899,12 +1947,20 @@ void sendTaskPids(Step_t *step)
 	ptrPIDS = body.buf + body.bufUsed;
 	addUint32ToMsg(0, &body);
 	for (i=0; i<step->tidsLen; i++) {
+	    if (step->tids[i] == -1) {
+		mlog("%s: invalid taskid '-1' for step '%u:%u' node%u nodeid "
+			"'%u'\n", __func__, step->jobid, step->stepid, z,
+			step->nodes[z]);
+		ufree(body.buf);
+		return 0;
+	    }
+
 	    if (PSC_getID(step->tids[i]) == step->nodes[z]) {
 		addUint32ToMsg(PSC_getPID(step->tids[i]), &body);
 		countPIDS++;
 		/*
-		mlog("%s: add pid %u: '%u'\n", __func__, countPIDS,
-			    PSC_getPID(step->tids[i]));
+		mlog("%s: add node%u nodeid '%u' pid%u: '%u'\n", __func__, z,
+			step->nodes[z], countPIDS, PSC_getPID(step->tids[i]));
 		*/
 	    }
 	}
@@ -1915,8 +1971,8 @@ void sendTaskPids(Step_t *step)
 	for (x=0; x<step->globalTaskIdsLen[z]; x++) {
 	    addUint32ToMsg(step->globalTaskIds[z][x], &body);
 	    /*
-	    mlog("%s: add globaltid %u: '%u'\n", __func__, countGTIDS,
-	    	    step->globalTaskIds[z][x]);
+	    mlog("%s: add node%u nodeid '%u' globaltid%u: '%u'\n", __func__, z,
+		    step->nodes[z], countGTIDS, step->globalTaskIds[z][x]);
 	    */
 	    countGTIDS++;
 	}
@@ -1924,7 +1980,8 @@ void sendTaskPids(Step_t *step)
 	if (countPIDS != countGTIDS) {
 	    mlog("%s: mismatching PID '%u' and GTID '%u' count\n", __func__,
 		    countPIDS, countGTIDS);
-	    continue;
+	    ufree(body.buf);
+	    return 0;
 	}
 
 	/* correct pid count */
@@ -1933,10 +1990,14 @@ void sendTaskPids(Step_t *step)
 	*(uint32_t *) ptrGTIDS = htonl(countPIDS);
 
 	/* send the message to srun */
-	srunSendMsg(-1, step, RESPONSE_LAUNCH_TASKS, &body);
+	if ((sock = srunOpenControlConnection(step)) != -1) {
+	    sendSlurmMsg(sock, RESPONSE_LAUNCH_TASKS, &body, step);
+	    close(sock);
+	}
     }
 
     ufree(body.buf);
+    return 1;
 }
 
 void sendJobExit(Job_t *job, uint32_t status)

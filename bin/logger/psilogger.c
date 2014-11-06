@@ -81,8 +81,9 @@ static int rawIO = 0;
 int enableGDB = 0;
 
 /**
- * Maximum number of processes in this job.
+ * Maximum/Current number of processes in this job.
  */
+int usize = 0;
 int np = 0;
 
 /**
@@ -177,12 +178,6 @@ void PSIlog_finalizeLogs(void)
     logger_finalize(PSIlog_stderrLogger);
     PSIlog_stderrLogger = NULL;
 }
-
-/**
- * If STDIN get's closed, don't re-add it to the fd-set. This stores
- * our STDIN-fd.
- */
-static int unavailSTDIN = -1;
 
 /**
  * @brief Close socket to daemon.
@@ -722,8 +717,6 @@ static void forwardInput(int std_in)
     case 0:
 	Selector_remove(std_in);
 	close(std_in);
-	unavailSTDIN = std_in;
-	forwardInputStr(buf, len);
     default:
 	forwardInputStr(buf, len);
 
@@ -742,7 +735,7 @@ static void handleServiceMsg(PSLog_Msg_t *msg)
 {
     int32_t minRank;
 
-    minRank = getMinRank();
+    minRank = getNextServiceRank();
 
     sendMsg(msg->header.sender, SERV_TID,
 	    (char *) &minRank, sizeof(minRank));
@@ -787,7 +780,7 @@ static void handleOutMsg(PSLog_Msg_t *msg, int outfd)
 	       msg->header.len - PSLog_headerSize,
 	       PSC_printTID(msg->header.sender));
 
-    if (mergeOutput && np > 1) {
+    if (mergeOutput && usize > 1) {
 	/* collect all ouput */
 	cacheOutput(msg, outfd);
     } else if (prependSource) {
@@ -1049,13 +1042,16 @@ static int timeoutval = 0;
 
 static void handleCCMsg(PSLog_Msg_t *msg)
 {
+    static int stdinHandled = 0;
     int outfd = STDOUT_FILENO;
 
     if (msg->type == INITIALIZE) {
 	if (newrequest(msg) && maxConnected >= np + numService) {
 	    timeoutval = MIN_WAIT;
-	    if (allActiveThere()) {
+	    if (allActiveThere() && !stdinHandled) {
 		Selector_register(STDIN_FILENO, readFromStdin, NULL);
+		/* If STDIN get's closed, don't re-add it to the selector */
+		stdinHandled = 1;
 	    }
 	}
     } else if (msg->sender > getMaxRank()) {
@@ -1129,7 +1125,7 @@ static void loop(void)
 	if (daemonSock != -1) FD_SET(daemonSock, &afds);
 	atv = mytv;
 
-	if (mergeOutput && np >1) displayCachedOutput(0);
+	if (mergeOutput && usize > 1) displayCachedOutput(0);
 
 	if (Sselect(daemonSock + 1, &afds, NULL, NULL, &atv) < 0) {
 	    if (errno == EINTR) {
@@ -1173,7 +1169,7 @@ static void loop(void)
 	}
 	if (!getNoClients()) timeoutval++;
     }
-    if (mergeOutput && np > 1) {
+    if (mergeOutput && usize > 1) {
 	displayCachedOutput(0);
 	/* flush output */
 	displayCachedOutput(1);
@@ -1305,6 +1301,10 @@ int main( int argc, char**argv)
 
     if ((envstr = getenv("PSI_NP_INFO"))) {
 	np = atoi(envstr);
+    }
+
+    if ((envstr = getenv("PSI_USIZE_INFO"))) {
+	usize = atoi(envstr);
     }
 
     if ((envstr = getenv(ENV_NUM_SERVICE_PROCS))) {

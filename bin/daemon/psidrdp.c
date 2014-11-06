@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2013 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2014 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -107,7 +107,7 @@ void clearRDPMsgs(int node)
  */
 static int storeMsgRDP(int node, DDMsg_t *msg)
 {
-    int blockedCHLD, blockedRDP, ret = 0;
+    int blockedCHLD, blockedRDP;
     msgbuf_t *msgbuf = PSIDMsgbuf_get(msg->len);
 
     if (!msgbuf) {
@@ -126,7 +126,7 @@ static int storeMsgRDP(int node, DDMsg_t *msg)
     RDP_blockTimer(blockedRDP);
     PSID_blockSIGCHLD(blockedCHLD);
 
-    return ret;
+    return 0;
 }
 
 int flushRDPMsgs(int node)
@@ -244,7 +244,7 @@ int recvRDP(DDMsg_t *msg, size_t size)
 
 void handleRDPMsg(int fd)
 {
-    DDHugeMsg_t msg;
+    DDBufferMsg_t msg;
 
     int msglen;
 
@@ -262,7 +262,7 @@ void handleRDPMsg(int fd)
 	    PSID_log(-1, "%s: PSP_CD_CLIENTCONNECT on RDP?\n", __func__);
 	}
 
-	if (!PSID_handleMsg((DDBufferMsg_t *)&msg)) {
+	if (!PSID_handleMsg(&msg)) {
 	    PSID_log(-1, "%s: Problem on RDP-socket\n", __func__);
 	}
     }

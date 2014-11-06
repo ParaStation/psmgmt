@@ -27,7 +27,7 @@ int sendSlurmRC(int sock, uint32_t rc, void *data);
 int writeJobscript(Job_t *job, char *script);
 int handleSlurmdMsg(int sock, void *data);
 
-void sendTaskPids(Step_t *step);
+int sendTaskPids(Step_t *step);
 void sendTaskExit(Step_t *step, int exit_status);
 void sendStepExit(Step_t *step, int exit_status);
 void sendJobExit(Job_t *job, uint32_t exit);

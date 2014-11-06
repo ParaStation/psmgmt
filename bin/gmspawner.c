@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2013 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2014 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -111,7 +111,7 @@ static void collectInfo(int listensock, unsigned int np, unsigned int magic,
 	    continue;
 	}
 
-	if (rank > np) {
+	if (rank >= np) {
 	    fprintf(stderr, "MPI Id received is out of range (%u over %u)\n",
 		    rank, np);
 	    exit(1);
@@ -270,6 +270,11 @@ static void *listenToClients(void *val)
     if (args.np <= 0) exit(1);
 
     clients = malloc(args.np * sizeof(*clients));
+
+    if (!clients) {
+	fprintf(stderr, "%s: No memory\n", __func__);
+	exit(1);
+    }
 
     for (i=0; i<args.np; i++) {
 	clients[i].pid = 0;

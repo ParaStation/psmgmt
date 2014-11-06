@@ -42,6 +42,8 @@ bin/daemon/psidcomm.c \
 bin/daemon/psidcomm.h \
 bin/daemon/psidenv.c \
 bin/daemon/psidenv.h \
+bin/daemon/psidflowcontrol.c \
+bin/daemon/psidflowcontrol.h \
 bin/daemon/psidforwarder.c \
 bin/daemon/psidforwarder.h \
 bin/daemon/psidhook.c \
@@ -213,6 +215,7 @@ lib/putil/config_parsing.c \
 lib/putil/env.c \
 lib/putil/hardware.c \
 lib/putil/mcast.c \
+lib/putil/old_config_parsing.c \
 lib/putil/parser.c \
 lib/putil/psdaemonprotocol.c \
 lib/putil/psparamspace.c \

@@ -1,7 +1,7 @@
 #
 # ParaStation
 #
-# Copyright (C) 2012-2013 ParTec Cluster Competence Center GmbH, Munich
+# Copyright (C) 2012-2014 ParTec Cluster Competence Center GmbH, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -62,10 +62,11 @@ psid_SOURCES = daemon/psidaccount.c daemon/psidaccount.h		\
 	daemon/psidspawn.h daemon/psidstate.c daemon/psidstate.h	\
 	daemon/psidstatus.c daemon/psidstatus.h daemon/psidtask.c	\
 	daemon/psidtask.h daemon/psidtimer.h daemon/psidutil.c		\
-	daemon/psidutil.h daemon/psidintel.c daemon/psidintel.h
-psid_LDFLAGS = $(AM_LDFLAGS) -export-dynamic
+	daemon/psidutil.h daemon/psidintel.c daemon/psidintel.h		\
+	daemon/psidflowcontrol.c daemon/psidflowcontrol.h
+psid_LDFLAGS = $(AM_LDFLAGS) $(glib2_LIBS) -export-dynamic
 psid_LDADD = $(libputil) $(libpscommon) $(libpslog) -lutil	\
-	-ldl $(POPT_LIBS) $(NUMA_LIBS)
+	-ldl $(POPT_LIBS) $(NUMA_LIBS) -lpsconfig
 
 psilogger_SOURCES = logger/psilogger.c logger/psilogger.h	\
 	logger/psiloggermerge.c logger/psiloggermerge.h		\
@@ -93,7 +94,7 @@ test_pse_LDADD = $(libpse) $(POPT_LIBS)
 test_config_SOURCES = test_config.c daemon/psidnodes.c			\
 	daemon/psidnodes.h daemon/psidscripts.c daemon/psidscripts.h	\
 	daemon/psidutil.c daemon/psidutil.h
-test_config_LDADD = $(libputil) $(libpse) $(POPT_LIBS)
+test_config_LDADD = $(libputil) $(libpse) $(POPT_LIBS) $(glib2_LIBS) -lpsconfig
 
 pssh_LDADD = $(libpse) $(POPT_LIBS)
 

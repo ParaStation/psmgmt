@@ -10,18 +10,27 @@ License:   QPL
 Group:     Productivity/Clustering/Computing
 Packager:  support@par-tec.de
 Source0:   %{name}-%{version}-%{release}.tar.gz
-BuildRequires:	ncurses-devel, readline-devel, popt-devel
+Requires:  psconfig >= 1.0, glib2 >= 2.22.5
+BuildRequires:	ncurses-devel
+BuildRequires:	readline-devel
+BuildRequires:	popt-devel
+BuildRequires:	psconfig-dev
+BuildRequires:	pam-devel
+%if %buildForSuSE
+BuildRequires:	libnuma-devel
+%else
+BuildRequires:	numactl-devel
+%endif
 
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
-# use "standard" path
-%global _pamdir %{expand:%{_libdir}/security}
 # for now
 %global _prefix /opt/parastation
 %global _plugindir %{_prefix}/plugins
 %global _configdir %{_prefix}/config
 %global _scriptsdir %{_prefix}/scripts
 %global _spooldir %{_localstatedir}/spool/parastation
+%global _pamdir /%{_lib}/security
 
 %description
 The ParaStation Process Management Layer.
@@ -64,7 +73,7 @@ daemon is neccessary to integrate compute nodes into a Torque batch system.
 
 %build
 export CFLAGS="%(echo %{optflags}|sed -e 's,-O.,,' -e 's,-Wall,,' -e 's,-Wextra,,')"
-%configure --datarootdir=%{_datadir} --with-pamdir=%{_pamdir}
+%configure --datarootdir=%{_datadir} --with-pamdir=%{_pamdir} PKG_CONFIG_PATH=/opt/parastation/%{_lib}/psglib/pkgconfig
 make %{?_smp_mflags}
 
 %install
@@ -91,7 +100,7 @@ if [ "$1" = 1 ]; then
     # first install
     /sbin/chkconfig --add parastation
     /sbin/chkconfig psidstarter on
-    /sbin/service xinetd restart
+    /sbin/service xinetd try-restart
     echo "******************************************************"
     echo "* Please, prepare and mantain the configuration file *"
     echo "* /etc/parastation.conf                              *"
@@ -171,7 +180,6 @@ exit 0
 %{_sysconfdir}/profile.d/psmgmt.csh
 %{_sysconfdir}/init.d/parastation
 %config(noreplace) /etc/xinetd.d/psidstarter
-%config(noreplace) /etc/parastation.conf
 %attr(770,root,root) %{_localstatedir}/log/psaccounter
 %dir %{_spooldir}
 %dir %{_spooldir}/jobs

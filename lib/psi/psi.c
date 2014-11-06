@@ -275,6 +275,54 @@ static int connectDaemon(PStask_group_t taskGroup, int tryStart)
     return 0;
 }
 
+/**
+ * @brief Propagate list of environments
+ *
+ * Propagate a list of environment variables to the next level of
+ * spawning. For that, the environment variable @a listName containing
+ * a comma-separated list of environment variable names is
+ * analyzed. Each environment mentioned in this list is put into the
+ * PSI_environment
+ *
+ * @param listName Name of the environment containing a
+ * comma-separated list of environments to be propagated.
+ *
+ * @return No return value.
+ */
+static void propEnvList(char *listName)
+{
+    char *envStr = getenv(listName);
+
+    if (envStr) {
+	char *envStrStart, *thisEnv, *nextEnv;
+
+	/* Propagate the list itself */
+	setPSIEnv(listName, envStr, 1);
+
+	/* Now handle its content */
+	envStrStart = strdup(envStr);
+	if (envStrStart) {
+	    thisEnv = envStrStart;
+	    while ((nextEnv = strchr(thisEnv,','))) {
+		nextEnv[0]=0; /* replace the "," with EOS */
+		nextEnv++;    /* move to the start of the next string */
+		envStr = getenv(thisEnv);
+		if (envStr) {
+		    setPSIEnv(thisEnv, envStr, 1);
+		}
+		thisEnv = nextEnv;
+	    }
+	    /* Handle the last entry in the list */
+	    envStr=getenv(thisEnv);
+	    if (envStr) {
+		setPSIEnv(thisEnv, envStr, 1);
+	    }
+	    free(envStrStart);
+	}
+    }
+
+}
+
 int PSI_initClient(PStask_group_t taskGroup)
 {
     char* envStr;
@@ -316,39 +364,8 @@ int PSI_initClient(PStask_group_t taskGroup)
 	return 0;
     }
 
-    /* check if the environment variable PSI_EXPORTS is set.
-     * If it is set, then take the environment variables
-     * mentioned there into the PSI_environment
-     */
-    envStr = getenv("PSI_EXPORTS");
-
-    if (envStr) {
-	char *envStrStart, *thisEnv, *nextEnv;
-
-	/* Propagate PSI_EXPORTS */
-	setPSIEnv("PSI_EXPORTS", envStr, 1);
-
-	/* Now handle PSI_EXPORTS */
-	envStrStart = strdup(envStr);
-	if (envStrStart) {
-	    thisEnv = envStrStart;
-	    while ((nextEnv = strchr(thisEnv,','))) {
-		nextEnv[0]=0; /* replace the "," with EOS */
-		nextEnv++;    /* move to the start of the next string */
-		envStr = getenv(thisEnv);
-		if (envStr) {
-		    setPSIEnv(thisEnv, envStr, 1);
-		}
-		thisEnv = nextEnv;
-	    }
-	    /* Handle the last entry in PSI_EXPORTS */
-	    envStr=getenv(thisEnv);
-	    if (envStr) {
-		setPSIEnv(thisEnv, envStr, 1);
-	    }
-	    free(envStrStart);
-	}
-    }
+    propEnvList("PSI_EXPORTS");
+    propEnvList("__PSI_EXPORTS");
 
     return 1;
 }
@@ -445,7 +462,7 @@ int PSI_availMsg(void)
 
 int PSI_recvMsg(DDMsg_t *msg, size_t size)
 {
-    char *buf = (char*)msg, dump[sizeof(DDHugeMsg_t)];
+    char *buf = (char*)msg, dump[8192];
     int n;
     int count = 0, expected = sizeof(DDMsg_t);
 
@@ -479,7 +496,7 @@ int PSI_recvMsg(DDMsg_t *msg, size_t size)
 	}
 	if (count == sizeof(DDMsg_t)) {
 	    /* initial header received */
-	    if (msg->len > (int16_t)sizeof(DDHugeMsg_t)) {
+	    if (msg->len > (int16_t)sizeof(dump)) {
 		/* even dump is too small */
 		errno = ENOBUFS;
 		PSI_warn(-1, errno, "%s: type %s", __func__,
