@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2013 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2014 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -419,7 +419,7 @@ static void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 			}
 			msg.header.len += sizeof(PSnodes_ID_t);
 		    } else {
-			*(int *)msg.buf = task->nextRank;
+			*(int *)msg.buf = task->usedSlots;
 			msg.header.len += sizeof(int);
 		    }
 		}

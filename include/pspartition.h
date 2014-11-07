@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2011 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2014 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -33,14 +33,17 @@ extern "C" {
 #endif
 #endif
 
+/** Keeps compatibility information of former versions */
 typedef struct {
     PSnodes_ID_t node;
     int16_t cpu;
 } PSpart_oldSlot_t;
 
+/** Stores information of the partition's resource slots */
 typedef struct {
-    PSnodes_ID_t node;
-    PSCPU_set_t CPUset;
+    PSnodes_ID_t node;        /**< Node the slot belongs to */
+    PSCPU_set_t CPUset;       /**< Set of CPUs the slot occupies */
+    int used;                 /**< Flag the use of this slot */
 } PSpart_slot_t;
 
 /** Various sort modes for partition creation. */

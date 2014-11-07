@@ -2538,6 +2538,7 @@ static void appendToSlotlist(DDBufferMsg_t *inmsg, PSpart_request_t *request)
 	for (n = 0; n < chunk; n++) {
 	    slots[n].node = nodeBuf[n];
 	    PSCPU_setAll(slots[n].CPUset);
+	    slots[n].used = 0;
 	}
     } else if (dmnPSPver < 401) {
 	PSpart_oldSlot_t *oldSlots = (PSpart_oldSlot_t *)ptr;
@@ -2548,6 +2549,7 @@ static void appendToSlotlist(DDBufferMsg_t *inmsg, PSpart_request_t *request)
 	    } else {
 		PSCPU_setCPU(slots[n].CPUset, oldSlots[n].cpu);
 	    }
+	    slots[n].used = 0;
 	}
     } else {
 	size_t nBytes, myBytes = PSCPU_bytesForCPUs(PSCPU_MAX);
@@ -2566,10 +2568,10 @@ static void appendToSlotlist(DDBufferMsg_t *inmsg, PSpart_request_t *request)
 	for (n = 0; n < chunk; n++) {
 	    slots[n].node = *(PSnodes_ID_t *)ptr;
 	    ptr += sizeof(PSnodes_ID_t);
-
 	    PSCPU_clrAll(slots[n].CPUset);
 	    PSCPU_inject(slots[n].CPUset, ptr, nBytes);
 	    ptr += nBytes;
+	    slots[n].used = 0;
 	}
     }
     request->sizeGot += chunk;
@@ -2580,7 +2582,7 @@ static void appendToSlotlist(DDBufferMsg_t *inmsg, PSpart_request_t *request)
  *
  * Handle the message @a inmsg of type PSP_DD_PROVIDEPART.
  *
- * This kind of messages is used by the master process in order to
+ * This kind of messages is used by the master daemon in order to
  * provide actually allocated partitions to the requesting client's
  * local daemon process. This message will be followed by one or more
  * PSP_DD_PROVIDEPARTSL messages containing the partitions actual
@@ -2729,7 +2731,7 @@ static void msg_PROVIDEPARTSL(DDBufferMsg_t *inmsg)
 	task->options = task->request->options;
 	task->partition = task->request->slots;
 	task->request->slots = NULL;
-	task->nextRank = 0;
+	task->usedSlots = 0;
 
 	PSpart_delReq(task->request);
 	task->request = NULL;
@@ -2909,7 +2911,7 @@ static void msg_GETNODES(DDBufferMsg_t *inmsg)
 	goto error;
     }
 
-    if (task->nextRank < 0) {
+    if (task->usedSlots < 0) {
 	PSID_log(-1, "%s: Partition's creation not yet finished\n", __func__);
 	goto error;
     }
@@ -2919,7 +2921,9 @@ static void msg_GETNODES(DDBufferMsg_t *inmsg)
 
     PSID_log(PSID_LOG_PART, "%s(%d)\n", __func__, num);
 
-    if (task->nextRank + num <= task->partitionSize) {
+    if (num > NODES_CHUNK) goto error;
+
+    if (task->usedSlots + num <= task->partitionSize) {
 	int PSPver = PSIDnodes_getProtoV(PSC_getID(inmsg->header.sender));
 	int dmnPSPver = PSIDnodes_getDmnProtoV(PSC_getID(inmsg->header.sender));
 	DDBufferMsg_t msg = (DDBufferMsg_t) {
@@ -2929,15 +2933,44 @@ static void msg_GETNODES(DDBufferMsg_t *inmsg)
 		.sender = PSC_getMyTID(),
 		.len = sizeof(msg.header) },
 	    .buf = { 0 } };
-	PSpart_slot_t *slots = task->partition + task->nextRank;
+	PSpart_slot_t slots[NODES_CHUNK];
+	PSpart_slot_t *cand = task->partition;
+	unsigned int got, n;
+
+	for (n=0, got=0; got<num && n<task->partitionSize; n++) {
+	    if (!cand[n].used) {
+		slots[got].node = cand[n].node;
+		PSCPU_copy(slots[got].CPUset, cand[got].CPUset);
+		cand[n].used = 1;
+		got++;
+	    }
+	}
+
+	if (got < num) {
+	    unsigned int m;
+
+	    PSID_log(-1, "%s: Only %d nodes found even though %d free"
+		     " expected\n", __func__, got,
+		     task->partitionSize - task->usedSlots);
+
+	    /* Release the just allocated slots again */
+	    for (n=0, m=0; n<got && m<task->partitionSize; n++) {
+		while (slots[n].node == cand[m].node
+		       && !PSCPU_cmp(slots[n].CPUset, cand[m].CPUset)) m++;
+		cand[m].used = 0;
+	    }
+	    
+	    goto error;
+	}
 
 	ptr = msg.buf;
 
-	*(int32_t *)ptr = task->nextRank;
+	*(int32_t *)ptr = task->numChild;
 	ptr += sizeof(int32_t);
 	msg.header.len += sizeof(int32_t);
 
-	task->nextRank += num;
+	task->usedSlots += num;
+	task->numChild += num;
 
 	if (PSPver < 335) {
 	    PSnodes_ID_t *nodeBuf = (PSnodes_ID_t *)ptr;
@@ -3043,7 +3076,7 @@ static void msg_GETRANKNODE(DDBufferMsg_t *inmsg)
 	goto error;
     }
 
-    if (task->nextRank < 0) {
+    if (task->usedSlots < 0) {
 	PSID_log(-1, "%s: Partition's creation not yet finished\n", __func__);
 	goto error;
     }
@@ -3053,7 +3086,7 @@ static void msg_GETRANKNODE(DDBufferMsg_t *inmsg)
 
     PSID_log(PSID_LOG_PART, "%s(%d)\n", __func__, rank);
 
-    if (rank >=0 && (unsigned)rank <= task->partitionSize) {
+    if (rank >=0 && (unsigned)rank < task->partitionSize) {
 	DDBufferMsg_t msg = (DDBufferMsg_t) {
 	    .header = (DDMsg_t) {
 		.type = PSP_DD_NODESRES,
@@ -3069,6 +3102,8 @@ static void msg_GETRANKNODE(DDBufferMsg_t *inmsg)
 	*(int32_t *)ptr = rank;
 	ptr += sizeof(int32_t);
 	msg.header.len += sizeof(int32_t);
+
+	slot->used = 1;
 
 	if (dmnPSPver < 402) {
 	    size_t nBytes = PSCPU_bytesForCPUs(32);
@@ -3372,7 +3407,7 @@ static void sendExistingPartitions(PStask_ID_t dest)
  * processes PSP_DD_PROVIDETASK and PSP_DD_PROVIDETASKSL messages are
  * used, the latter reuse the PSP_DD_GETPART and PSP_DD_GETPARTNL
  * messages used to forward the original client request
- * messages. Actually for a new master there is no difference if the
+ * messages. Actually, for a new master there is no difference if the
  * message is directly from the requesting client or if it was
  * buffered within the client's local daemon.
  *
@@ -3408,15 +3443,15 @@ static void msg_GETTASKS(DDBufferMsg_t *inmsg)
  * Handle the message @a inmsg of type PSP_DD_PROVIDETASK.
  *
  * This is part of the answer to a PSP_DD_GETTASKS message. For each
- * running task whose root process is located on the sending node a
- * PSP_DD_PROVIDETASK message is generated and send to the master
- * process. It provides all the information necessary for the master
- * to handle partition requests despite apart from the list of slots
- * building the corresponding partition. This message will be followed
- * by one or more PSP_DD_PROVIDETASKSL messages containing this
- * slotlist.
+ * running job whose root process (i.e. the logger) is located on the
+ * sending node a PSP_DD_PROVIDETASK message is generated and sent to
+ * the master daemon. It provides all the information necessary for
+ * the master daemon to handle partition requests apart from the list
+ * of slots building the corresponding partition. This message will be
+ * followed by one or more PSP_DD_PROVIDETASKSL messages containing
+ * this slotlist.
  *
- * The client's local daemon will store the partition to the
+ * The master daemon will store the partition information to the
  * corresponding partition request structure and wait for following
  * PSP_DD_PROVIDETASKSL messages.
  *

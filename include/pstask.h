@@ -217,7 +217,8 @@ typedef struct {
     uint32_t partitionSize;        /**< Size of the partition. */
     PSpart_option_t options;       /**< The partition's options. */
     PSpart_slot_t *partition;      /**< The actual partition. List of slots. */
-    int32_t nextRank;              /**< Next rank to start within the task. */
+    int32_t usedSlots;             /**< Number of slots currently in use */
+    int32_t numChild;              /**< Total # of children spawned over time */
     PSpart_slot_t *spawnNodes;     /**< Node the task can spawn to */
     int32_t spawnNodesSize;        /**< Current size of @ref spawnNodes */
     int32_t spawnNum;              /**< Amount of content of @ref spawnNodes */

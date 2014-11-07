@@ -317,7 +317,8 @@ int PStask_init(PStask_t* task)
     task->partitionSize = 0;
     task->options = 0;
     task->partition = NULL;
-    task->nextRank = -1;
+    task->usedSlots = -1;
+    task->numChild = 0;
     task->spawnNodes = NULL;
     task->spawnNodesSize = 0;
     task->spawnNum = 0;
@@ -542,7 +543,8 @@ PStask_t* PStask_clone(PStask_t* task)
     }
     memcpy(clone->partition, task->partition,
 	   task->partitionSize * sizeof(*task->partition));
-    clone->nextRank = task->nextRank;
+    clone->usedSlots = task->usedSlots;
+    clone->numChild = task->numChild;
     clone->spawnNodesSize = task->spawnNodesSize;
     clone->spawnNodes = malloc(task->spawnNodesSize*sizeof(*task->spawnNodes));
     if (!clone->spawnNodes) {

@@ -610,7 +610,7 @@ void deleteClient(int fd)
 	msg.header.sender = task->tid;
 	msg.header.len = sizeof(msg.header);
 
-	msg.type = (task->nextRank < 1) ? PSP_ACCOUNT_DELETE : PSP_ACCOUNT_END;
+	msg.type = (task->numChild > 0) ? PSP_ACCOUNT_END : PSP_ACCOUNT_DELETE;
 	msg.header.len += sizeof(msg.type);
 
 	/* logger's TID, this identifies a task uniquely */
@@ -633,11 +633,11 @@ void deleteClient(int fd)
 	ptr += sizeof(gid_t);
 	msg.header.len += sizeof(gid_t);
 
-	if (task->nextRank > 0) {
+	if (task->numChild > 0) {
 	    struct timeval now, walltime;
 
 	    /* total number of children */
-	    *(int32_t *)ptr = task->nextRank;
+	    *(int32_t *)ptr = task->numChild;
 	    ptr += sizeof(int32_t);
 	    msg.header.len += sizeof(int32_t);
 
