@@ -31,7 +31,7 @@ extern "C" {
 #endif
 
 /** Unique version number of the high-level protocol */
-#define PSDaemonProtocolVersion  409
+#define PSDaemonProtocolVersion  410
 
 /** IDs of the various message types */
 
@@ -54,6 +54,7 @@ extern "C" {
 #define PSP_DD_CHILDDEAD           0x0110  /**< Tell a child has finished */
 #define PSP_DD_CHILDBORN           0x0111  /**< Tell child was created */
 #define PSP_DD_CHILDACK            0x0112  /**< Ack the newly created child */
+#define PSP_DD_CHILDRESREL         0x0113  /**< Release a child's resources */
 
 /** Messages used to propagate kinship */
 #define PSP_DD_NEWCHILD            0x0118  /**< Tell task about grandchild

@@ -37,6 +37,7 @@ static struct {
     { PSP_DD_CHILDDEAD        , "PSP_DD_CHILDDEAD"        },
     { PSP_DD_CHILDBORN        , "PSP_DD_CHILDBORN"        },
     { PSP_DD_CHILDACK         , "PSP_DD_CHILDACK"         },
+    { PSP_DD_CHILDRESREL      , "PSP_DD_CHILDRESREL"      },
 
     { PSP_DD_NEWCHILD         , "PSP_DD_NEWCHILD"         },
     { PSP_DD_NEWPARENT        , "PSP_DD_NEWPARENT"        },

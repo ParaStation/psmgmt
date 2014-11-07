@@ -2959,7 +2959,7 @@ static void msg_GETNODES(DDBufferMsg_t *inmsg)
 		       && !PSCPU_cmp(slots[n].CPUset, cand[m].CPUset)) m++;
 		cand[m].used = 0;
 	    }
-	    
+
 	    goto error;
 	}
 
@@ -3028,6 +3028,69 @@ static void msg_GETNODES(DDBufferMsg_t *inmsg)
 	    .type = -1 };
 	sendMsg(&msg);
     }
+}
+
+/**
+ * @brief Handle a PSP_DD_CHILDRESREL message.
+ *
+ * Handle the message @a inmsg of type PSP_DD_CHILDRESREL.
+ *
+ * This message releases resources used by child process which have
+ * done their job finalized their existence. By releasing the
+ * resources they might be reused by further child processes to be
+ * spawned later on.
+ *
+ * @param msg Pointer to the message to handle.
+ *
+ * @return No return value.
+ */
+static void msg_CHILDRESREL(DDBufferMsg_t *msg)
+{
+    PStask_ID_t target = msg->header.dest;
+    PStask_t *task = PStasklist_find(&managedTasks, target);
+    char *ptr = msg->buf;
+    PSCPU_set_t freeSet;
+    size_t nBytes, myBytes = PSCPU_bytesForCPUs(PSCPU_MAX);
+    PSnodes_ID_t senderNode = PSC_getID(msg->header.sender);
+    unsigned int n;
+
+    if (!task) {
+	PSID_log(-1, "%s: Task %s not found\n", __func__, PSC_printTID(target));
+	return;
+    }
+
+    if (!task->partition) {
+	PSID_log(-1, "%s: Task %s has no partition\n", __func__,
+		 PSC_printTID(target));
+	return;
+    }
+
+    nBytes = *(uint16_t *)ptr;
+    ptr += sizeof(uint16_t);
+
+    if (nBytes > myBytes) {
+	PSID_log(-1,  "%s: from %s: expecting %zd CPUs\n",
+		 __func__, PSC_printTID(msg->header.sender), nBytes*8);
+	return;
+    }
+
+    PSCPU_clrAll(freeSet);
+    PSCPU_inject(freeSet, ptr, nBytes);
+    // ptr += nBytes;
+
+    /* Find and release the corresponding slots */
+    for (n = 0; n < task->partitionSize; n++) {
+	if (task->partition[n].node == senderNode
+	    && !PSCPU_cmp(task->partition[n].CPUset, freeSet)) {
+	    task->partition[n].used = 0;
+	    task->usedSlots--;
+	    PSID_log(PSID_LOG_PART, "%s: Allow to re-use slot on node %d."
+		     " %d slots used\n", __func__, senderNode, task->usedSlots);
+	    break;
+	}
+    }
+
+    return;
 }
 
 /**
@@ -3750,6 +3813,7 @@ void initPartition(void)
     PSID_registerMsg(PSP_DD_PROVIDEPARTRP, msg_PROVIDEPARTRP);
     PSID_registerMsg(PSP_CD_GETNODES, msg_GETNODES);
     PSID_registerMsg(PSP_DD_GETNODES, msg_GETNODES);
+    PSID_registerMsg(PSP_DD_CHILDRESREL, msg_CHILDRESREL);
     PSID_registerMsg(PSP_CD_GETRANKNODE, msg_GETRANKNODE);
     PSID_registerMsg(PSP_DD_GETRANKNODE, msg_GETRANKNODE);
     PSID_registerMsg(PSP_DD_NODESRES, msg_NODESRES);

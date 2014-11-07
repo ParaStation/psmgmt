@@ -2125,7 +2125,7 @@ static void msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
 		nBytes = *(uint16_t *)ptr;
 		ptr += sizeof(uint16_t);
 		usedBytes = sizeof(uint16_t);
-	    } 
+	    }
 
 	    if (nBytes > myBytes) {
 		PSID_log(-1,  "%s: PSP_SPAWN_LOC from %s: expecting %zd CPUs\n",
@@ -2682,6 +2682,38 @@ static void msg_CHILDDEAD(DDErrorMsg_t *msg)
 	PSID_log(PSID_LOG_SPAWN, "%s: task %s not found\n", __func__,
 		 PSC_printTID(msg->request));
     } else {
+	int destDmnPSPver = PSIDnodes_getDmnProtoV(PSC_getID(task->loggertid));
+	if (destDmnPSPver > 409) {
+	    /** Create and send PSP_CHILDRESREL message */
+	    DDBufferMsg_t resRelMsg = (DDBufferMsg_t) {
+		.header = (DDMsg_t) {
+		    .type = PSP_DD_CHILDRESREL,
+		    .dest = task->loggertid,
+		    .sender = msg->request,
+		    .len = sizeof(resRelMsg.header)},
+		.buf = {0} };
+	    char *ptr = resRelMsg.buf;
+
+	    unsigned short nBytes = PSCPU_bytesForCPUs(
+		PSIDnodes_getVirtCPUs(PSC_getMyID()));
+	    *(uint16_t *)ptr = nBytes;
+	    ptr += sizeof(int16_t);
+	    resRelMsg.header.len += sizeof(int16_t);
+
+	    PSCPU_extract(ptr, task->CPUset, nBytes);
+	    //ptr += nBytes;
+	    resRelMsg.header.len += nBytes;
+
+	    PSID_log(PSID_LOG_SPAWN, "%s: send PSP_DD_CHILDRESREL to node %d\n",
+		     __func__, PSC_getID(resRelMsg.header.dest));
+
+	    if (sendMsg(&resRelMsg) < 0) {
+		PSID_warn(-1, errno,
+			  "%s: send PSP_DD_CHILDRESREL to node %d failed",
+			  __func__, PSC_getID(resRelMsg.header.dest));
+	    }
+	}
+
 	/* Prepare CHILDDEAD msg here. Task might be removed in next step */
 	msg->header.dest = task->ptid;
 	msg->header.sender = PSC_getMyTID();
