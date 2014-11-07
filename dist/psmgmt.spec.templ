@@ -79,6 +79,7 @@ make %{?_smp_mflags}
 %install
 rm -rf %{buildroot}
 make DESTDIR=%{buildroot} install
+touch %{buildroot}/etc/parastation.conf
 
 %clean
 rm -rf %{buildroot}
@@ -102,7 +103,8 @@ if [ "$1" = 1 ]; then
     /sbin/chkconfig psidstarter on
     /sbin/service xinetd try-restart
     echo "******************************************************"
-    echo "* Please, prepare and mantain the configuration file *"
+    echo "* Please configure parastation using psconfig,       *"
+    echo "* or prepare and mantain the configuration file      *"
     echo "* /etc/parastation.conf                              *"
     echo "******************************************************"
 fi
@@ -170,6 +172,7 @@ exit 0
 %{_sysconfdir}/profile.d/psmgmt.csh
 %{_sysconfdir}/init.d/parastation
 %config(noreplace) /etc/xinetd.d/psidstarter
+%ghost %config(missingok,noreplace) /etc/parastation.conf 
 %attr(770,root,root) %{_localstatedir}/log/psaccounter
 
 %files devel
