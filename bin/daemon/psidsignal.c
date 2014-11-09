@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2013 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2014 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -1077,20 +1077,26 @@ static void msg_RELEASE(DDSignalMsg_t *msg)
 	/* Do not set msg->header.len! Length of DDSignalMsg_t has changed */
 
 	if (!task) {
-	    /* Task not found, maybe was connected and has self released */
+	    /* Task not found, maybe was connected and released itself before */
 	    msg->param = ESRCH;
 	} else if (registrarTid==tid
 		   || (registrarTid==task->forwardertid && task->fd==-1)) {
 	    /* Special case: Whole task wants to get released */
-	    /* Find out, if answer is required */
-	    task->releaseAnswer = msg->answer;
+	    if (task->released) {
+		/* maybe task was connected and released itself before */
+		/* just ignore and ack this message */
+		msg->param = 0;
+	    } else {
+		/* Find out, if answer is required */
+		task->releaseAnswer = msg->answer;
 
-	    msg->param = releaseTask(task);
+		msg->param = releaseTask(task);
 
-	    if (task->pendingReleaseRes) {
-		/* RELEASERES message pending, RELEASERES to initiatior
-		 * will be sent by msg_RELEASERES() */
-		return;
+		if (task->pendingReleaseRes) {
+		    /* RELEASERES message pending, RELEASERES to initiatior
+		     * will be sent by msg_RELEASERES() */
+		    return;
+		}
 	    }
 	} else if (registrarTid==task->forwardertid && task->fd!=-1) {
 	    /* message from forwarder while client is connected */
