@@ -548,6 +548,9 @@ static void releaseLogger(int status)
 	}
 	PSID_log(-1, "%s: Protocol messed up (type %d) from %s\n",
 		 __func__, msg.type, PSC_printTID(msg.header.sender));
+    } else {
+	PSID_log(PSID_LOG_SPAWN, "%s(%d): Released %s\n", __func__, status,
+		 PSC_printTID(loggerTID));
     }
 
     loggerTID = -1;
