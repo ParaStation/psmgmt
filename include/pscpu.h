@@ -402,7 +402,7 @@ static inline int PSCPU_cmp(PSCPU_set_t s1, PSCPU_set_t s2)
 
 
 #undef CPUmask_s
-				 
+
 #ifdef __cplusplus
 }/* extern "C" */
 #endif
