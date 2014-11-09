@@ -780,6 +780,7 @@ void PSIADM_ProcStat(int count, int full, char *nl)
 		   taskInfo[task].group==TG_PSCSPAWNER ? "(S)" :
 		   taskInfo[task].group==TG_MONITOR ? "(M)" :
 		   taskInfo[task].group==TG_ADMINTASK ? "(*)" :
+		   taskInfo[task].group==TG_KVS ? "(K)" :
 		   taskInfo[task].group==TG_SERVICE ? "(S)" :
 		   taskInfo[task].group==TG_SERVICE_SIG ? "(S)" :
 		   taskInfo[task].group==TG_ACCOUNT ? "(C)" :
