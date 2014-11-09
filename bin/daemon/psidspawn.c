@@ -2338,7 +2338,7 @@ static void msg_SPAWNSUCCESS(DDErrorMsg_t *msg)
      * Send the initiator the success message.
      *
      * If the initiator is a normal but unconnected task, it has used
-     * to its forwarder as a proxy via PMI. Thus, send SPAWNSUCCESS to
+     * its forwarder as a proxy via PMI. Thus, send SPAWNSUCCESS to
      * the proxy.
      */
     if (task && task->group == TG_ANY && task->fd == -1) {
@@ -2683,8 +2683,8 @@ static void msg_CHILDDEAD(DDErrorMsg_t *msg)
 		 PSC_printTID(msg->request));
     } else {
 	int destDmnPSPver = PSIDnodes_getDmnProtoV(PSC_getID(task->loggertid));
-	if (destDmnPSPver > 409) {
-	    /** Create and send PSP_CHILDRESREL message */
+	if (destDmnPSPver > 409 && task->group != TG_SERVICE) {
+	    /** Create and send PSP_DD_CHILDRESREL message */
 	    DDBufferMsg_t resRelMsg = (DDBufferMsg_t) {
 		.header = (DDMsg_t) {
 		    .type = PSP_DD_CHILDRESREL,
