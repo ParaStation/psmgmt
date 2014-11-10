@@ -1123,14 +1123,14 @@ int PSI_getNodes(unsigned int num, uint32_t hwType, PSnodes_ID_t *nodes)
     }
 
     *(uint32_t*)ptr = num;
-    // ptr += sizeof(uint32_t); @todo
+    ptr += sizeof(uint32_t);
     msg.header.len += sizeof(uint32_t);
 
-    // ignore this for the time being @todo
-    /* /\* hwtype *\/ */
-    /* *(uint32_t*)ptr = hwType; */
-    /* //ptr += sizeof(int32_t); */
-    /* msg.header.len += sizeof(uint32_t); */
+    *(uint32_t*)ptr = hwType;
+    //ptr += sizeof(int32_t);
+    msg.header.len += sizeof(uint32_t);
+
+    if (hwType) PSI_log(PSI_LOG_VERB, "%s: hwType %d\n", __func__, hwType);
 
     if (PSI_sendMsg(&msg)<0) {
 	PSI_warn(-1, errno, "%s: PSI_sendMsg", __func__);

@@ -2887,6 +2887,7 @@ static void msg_GETNODES(DDBufferMsg_t *inmsg)
     PStask_t *task = PStasklist_find(&managedTasks, target);
     char *ptr = inmsg->buf;
     unsigned int num;
+    int hwType = 0;
 
     if (!task) {
 	PSID_log(-1, "%s: Task %s not found\n", __func__,
@@ -2917,9 +2918,14 @@ static void msg_GETNODES(DDBufferMsg_t *inmsg)
     }
 
     num = *(uint32_t *)ptr;
-    //ptr += sizeof(uint32_t);
+    ptr += sizeof(uint32_t);
 
-    PSID_log(PSID_LOG_PART, "%s(%d)\n", __func__, num);
+    if (inmsg->header.len > sizeof(inmsg->header) + sizeof(uint32_t)) {
+	hwType = *(uint32_t *)ptr;
+	//ptr += sizeof(uint32_t);
+    }
+
+    PSID_log(PSID_LOG_PART, "%s(num %d, hwType %d)\n", __func__, num, hwType);
 
     if (num > NODES_CHUNK) goto error;
 
@@ -2938,9 +2944,10 @@ static void msg_GETNODES(DDBufferMsg_t *inmsg)
 	unsigned int got, n;
 
 	for (n=0, got=0; got<num && n<task->partitionSize; n++) {
-	    if (!cand[n].used) {
+	    if ((!hwType || PSIDnodes_getHWStatus(cand[n].node) & hwType)
+		&& !cand[n].used) {
 		slots[got].node = cand[n].node;
-		PSCPU_copy(slots[got].CPUset, cand[got].CPUset);
+		PSCPU_copy(slots[got].CPUset, cand[n].CPUset);
 		cand[n].used = 1;
 		got++;
 	    }
@@ -3051,7 +3058,7 @@ static void msg_CHILDRESREL(DDBufferMsg_t *msg)
     char *ptr = msg->buf;
     PSCPU_set_t freeSet;
     size_t nBytes, myBytes = PSCPU_bytesForCPUs(PSCPU_MAX);
-    PSnodes_ID_t senderNode = PSC_getID(msg->header.sender);
+    PSnodes_ID_t sNode = PSC_getID(msg->header.sender);
     unsigned int n;
 
     if (!task) {
@@ -3080,12 +3087,12 @@ static void msg_CHILDRESREL(DDBufferMsg_t *msg)
 
     /* Find and release the corresponding slots */
     for (n = 0; n < task->partitionSize; n++) {
-	if (task->partition[n].node == senderNode
+	if (task->partition[n].node == sNode
 	    && !PSCPU_cmp(task->partition[n].CPUset, freeSet)) {
 	    task->partition[n].used = 0;
 	    task->usedSlots--;
-	    PSID_log(PSID_LOG_PART, "%s: Allow to re-use slot on node %d."
-		     " %d slots used\n", __func__, senderNode, task->usedSlots);
+	    PSID_log(PSID_LOG_PART, "%s: Allow to re-use slot %d on node %d."
+		     " %d slots used\n", __func__, n, sNode, task->usedSlots);
 	    break;
 	}
     }
