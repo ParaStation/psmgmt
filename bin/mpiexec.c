@@ -1311,7 +1311,7 @@ static int spawnSingleExecutable(int np, int argc, char **argv, char *wd,
     tids = umalloc(sizeof(PStask_ID_t) * np, __func__);
 
     /* spawn client processes */
-    if (nodetype) nodeType = getNodeType(cNodeType);
+    if (cNodeType) nodeType = getNodeType(cNodeType);
     ret = PSI_spawnStrictHW(np, nodeType, wd, argc, argv, 1, errors, tids);
 
     /* Analyze result, if necessary */
