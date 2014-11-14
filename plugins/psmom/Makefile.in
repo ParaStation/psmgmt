@@ -104,7 +104,7 @@ build_triplet = @build@
 host_triplet = @host@
 target_triplet = @target@
 DIST_COMMON = $(top_srcdir)/common.am $(srcdir)/Makefile.in \
-	$(srcdir)/Makefile.am $(dist_noinst_DATA)
+	$(srcdir)/Makefile.am $(dist_noinst_DATA) README
 @PAM_ENABLED_TRUE@am__append_1 = src/pam
 subdir = plugins/psmom
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
@@ -368,7 +368,7 @@ configdir = $(prefix)/config
 # dito
 scriptsdir = $(prefix)/scripts
 SUBDIRS = doc src/include src/pbs src/psmom $(am__append_1)
-dist_noinst_DATA = psmom-LICENSE.OpenPBS psmom-README psmom-ChangeLog-History
+dist_noinst_DATA = LICENSE.OpenPBS README ChangeLog-History
 all: all-recursive
 
 .SUFFIXES:

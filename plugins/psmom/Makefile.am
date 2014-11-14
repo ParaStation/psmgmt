@@ -18,4 +18,4 @@ if PAM_ENABLED
 SUBDIRS += src/pam
 endif
 
-dist_noinst_DATA = psmom-LICENSE.OpenPBS psmom-README psmom-ChangeLog-History
+dist_noinst_DATA = LICENSE.OpenPBS README ChangeLog-History

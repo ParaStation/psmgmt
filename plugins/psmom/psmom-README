@@ -1,4 +1,0 @@
-The PSMOM plugin is licensed under the QPL license. For communication
-with the Torque batch system server the PSMOM uses the RPP protocol.
-The RPP protocol layer is licensed under the OpenPBS license (see
-psmom-LICENSE.OpenPBS).
