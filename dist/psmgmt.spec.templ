@@ -29,6 +29,7 @@ BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 %global _plugindir %{_prefix}/plugins
 %global _configdir %{_prefix}/config
 %global _scriptsdir %{_prefix}/scripts
+%global _docdir %{_datadir}/doc
 %global _spooldir %{_localstatedir}/spool/parastation
 %global _pamdir /%{_lib}/security
 
@@ -61,7 +62,7 @@ Obsoletes: psmom <= 5.2.10-20
 
 %description psmom
 The ParaStation MOM is a complete replacement of the pbs_mom.  No other
-daemon is neccessary to integrate compute nodes into a Torque batch system.
+daemon is necessary to integrate compute nodes into a Torque batch system.
 
 
 %if %buildForSuSE
@@ -104,7 +105,7 @@ if [ "$1" = 1 ]; then
     /sbin/service xinetd try-restart
     echo "******************************************************"
     echo "* Please configure parastation using psconfig,       *"
-    echo "* or prepare and mantain the configuration file      *"
+    echo "* or prepare and maintain the configuration file      *"
     echo "* /etc/parastation.conf                              *"
     echo "******************************************************"
 fi
@@ -122,12 +123,8 @@ exit 0
 
 %files
 %defattr(-,root,root)
-%doc %dir %{_datadir}/doc/psmgmt
-%doc %{_datadir}/doc/psmgmt/ChangeLog
-%doc %{_datadir}/doc/psmgmt/LICENSE.QPL
-%doc %{_datadir}/doc/psmgmt/NEWS
-%doc %{_datadir}/doc/psmgmt/VERSION.psmgmt
-%doc %{_datadir}/doc/psmgmt/parastation.conf.tmpl
+%doc ChangeLog LICENSE.QPL NEWS VERSION.psmgmt
+%doc %{_docdir}/psmgmt/parastation.conf.tmpl
 %{_bindir}/mlisten
 %{_bindir}/mpiexec
 %{_bindir}/psaccounter
@@ -204,13 +201,12 @@ exit 0
 
 %files psmom
 %defattr(-,root,root,-)
-%doc %dir %{_datadir}/doc/psmgmt
-%doc %{_datadir}/doc/psmgmt/psmom-prologue-example
-%doc %{_datadir}/doc/psmgmt/psmom-epilogue-example
-%doc %{_datadir}/doc/psmgmt/psmom-timeout-example
-%doc %{_datadir}/doc/psmgmt/psmom-ChangeLog-History
-%doc %{_datadir}/doc/psmgmt/psmom-LICENSE.OpenPBS
-%doc %{_datadir}/doc/psmgmt/psmom-README
+%doc plugins/psmom/doc/psmom-prologue-example
+%doc plugins/psmom/doc/psmom-epilogue-example
+%doc plugins/psmom/doc/psmom-timeout-example
+%doc plugins/psmom/psmom-ChangeLog-History
+%doc plugins/psmom/psmom-LICENSE.OpenPBS
+%doc plugins/psmom/psmom-README
 %{_pamdir}/pam_psmom.so
 %exclude %{_pamdir}/pam_psmom.la
 %config(noreplace) /etc/pam.d/psmom

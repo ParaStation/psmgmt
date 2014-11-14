@@ -1,7 +1,7 @@
 #
 # ParaStation
 #
-# Copyright (C) 2012 ParTec Cluster Competence Center GmbH, Munich
+# Copyright (C) 2012-2014 ParTec Cluster Competence Center GmbH, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -24,13 +24,13 @@ EXTRA_DIST = README tests/psid
 EXTRA_DIST += dist/.gitignore dist/Makefile dist/Makefile.sources	\
 	dist/psmgmt.spec.templ
 
-dist_doc_DATA = LICENSE.QPL NEWS ChangeLog
+dist_noinst_DATA = LICENSE.QPL
 
 PKG_VER := $(shell ${top_srcdir}/scripts/vcversion -r $(top_srcdir) -n)
 
 # ---- Version ----
 #
-nodist_doc_DATA = VERSION.psmgmt
+nodist_noinst_DATA = VERSION.psmgmt
 
 .PHONY: VERSION.psmgmt
 VERSION.psmgmt:
