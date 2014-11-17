@@ -17,5 +17,8 @@ sgather ${RFILE} ${LFILE}
 srun -n 1 /bin/bash -c "stat ${RFILE}" >/dev/null 2>/dev/null
 echo $?
 
+stat ${LFILE}.${SLURM_JOB_NODELIST} >/dev/null 2>/dev/null
+echo $?
+
 exit 0
 

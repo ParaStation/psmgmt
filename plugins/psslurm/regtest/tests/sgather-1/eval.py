@@ -24,10 +24,11 @@ for p in helper.partitions():
 
 	lines = helper.job_stdout_lines(p)
 
-	test.check(3 == len(lines), p)
+	test.check(4 == len(lines), p)
 	test.check("0" == lines[0], p)
 	test.check("0" == lines[1], p)
 	test.check("1" == lines[2], p)
+	test.check("0" == lines[3], p)
 
 
 test.quit()
