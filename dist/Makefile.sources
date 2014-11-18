@@ -411,6 +411,7 @@ plugins/psslurm/src/common/psslurmmsg.c \
 plugins/psslurm/src/common/psslurmmsg.h \
 plugins/psslurm/src/common/slurmcommon.h \
 plugins/psslurm/src/common/slurmerrno.h \
+plugins/psslurm/src/common/slurmmsg.h \
 plugins/psslurm/src/psslurm/Makefile.am \
 plugins/psslurm/src/psslurm/Makefile.in \
 plugins/psslurm/src/psslurm/psslurmaccount.c \
@@ -438,6 +439,8 @@ plugins/psslurm/src/psslurm/psslurmlog.c \
 plugins/psslurm/src/psslurm/psslurmlog.h \
 plugins/psslurm/src/psslurm/psslurmmultiprog.c \
 plugins/psslurm/src/psslurm/psslurmmultiprog.h \
+plugins/psslurm/src/psslurm/psslurmpin.c \
+plugins/psslurm/src/psslurm/psslurmpin.h \
 plugins/psslurm/src/psslurm/psslurmproto.c \
 plugins/psslurm/src/psslurm/psslurmproto.h \
 plugins/psslurm/src/psslurm/psslurmpscomm.c \

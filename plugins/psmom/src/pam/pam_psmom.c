@@ -1,7 +1,7 @@
 /*
  *               ParaStation
  *
- * Copyright (C) 2011 - 2012 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2011 - 2014 ParTec Cluster Competence Center GmbH, Munich
  *
  * \author
  * Michael Rauh <rauh@par-tec.com>
@@ -246,7 +246,7 @@ static int hasRunningBatchJob(const char *username, const char *rhost)
     /* add remote host */
     addStringToMsg(rhost, &data);
 
-    if ((writeToPsmom(sock, data.buf, data.bufUsed)) != data.bufUsed) {
+    if ((writeToPsmom(sock, data.buf, data.bufUsed)) != (int) data.bufUsed) {
 	elog("sending psmom auth request failed");
 	return 0;
     }

@@ -14,4 +14,4 @@ include $(top_srcdir)/common.am
 
 noinst_LTLIBRARIES = libslurmcommon.la
 
-libslurmcommon_la_SOURCES = psslurmmsg.c psslurmmsg.h slurmcommon.h slurmerrno.h
+libslurmcommon_la_SOURCES = psslurmmsg.c psslurmmsg.h slurmcommon.h slurmerrno.h slurmmsg.h

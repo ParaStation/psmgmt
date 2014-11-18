@@ -53,7 +53,7 @@ static int obitTime = 10;
 
 /** psid plugin requirements */
 char name[] = "pelogue";
-int version = 4;
+int version = 5;
 int requiredAPI = 109;
 plugin_dep_t dependencies[2];
 
@@ -158,10 +158,8 @@ static int setRootHome()
 
 int initialize(void)
 {
-    void *accHandle = NULL, *mungeHandle;
+    void *accHandle = NULL;
     static struct timeval time_now;
-    Get_Cred_Func_t *getCred = NULL;
-    Test_Cred_Func_t *testCred = NULL;
 
     /* init the logger (log to syslog) */
     initLogger("pelogue", NULL);
@@ -199,19 +197,6 @@ int initialize(void)
 	mlog("%s: loading function psAccountsendSignal2Session() failed\n",
 		__func__);
 	goto INIT_ERROR;
-    }
-
-    if ((mungeHandle = PSIDplugin_getHandle("psmunge"))) {
-	if (!(getCred = dlsym(mungeHandle, "mungeEncode"))) {
-	    mlog("%s: loading function mungeEncode() failed\n", __func__);
-	} else if (!(testCred = dlsym(mungeHandle, "mungeDecode"))) {
-	    mlog("%s: loading function mungeDecode() failed\n", __func__);
-	} else {
-	    /*
-	    setFragCredFunc(getCred, testCred);
-	    mlog("%s: using munge auth\n", __func__);
-	    */
-	}
     }
 
     /* register needed hooks */

@@ -125,15 +125,23 @@ int __doWrite(int fd, void *buffer, size_t towrite, const char *func,
     return ret;
 }
 
-#define MAX_RETRY 200
 int __doRead(int fd, void *buffer, size_t toread, const char *func,
-		    int pedantic)
+		int pedantic)
 {
-    size_t ret = 0;
+    size_t ret;
+
+    return __doReadExt(fd, buffer, toread, &ret, func, pedantic);
+}
+
+#define MAX_RETRY 20
+int __doReadExt(int fd, void *buffer, size_t toread, size_t *ret,
+		    const char *func, int pedantic)
+{
     ssize_t size = 0, left;
     char *ptr;
     int flags, retry = 0;
 
+    *ret = 0;
     if (pedantic) {
 	flags = fcntl(fd, F_GETFL, 0);
 	fcntl(fd, F_SETFL, flags | O_NONBLOCK);
@@ -152,14 +160,14 @@ int __doRead(int fd, void *buffer, size_t toread, const char *func,
 	if (!pedantic) return size;
 
 	ptr += size;
-	ret += size;
+	*ret += size;
 	left -= size;
-	if (ret == toread) break;
-	if (!ret) return ret;
+	if (*ret == toread) break;
+	if (!*ret) return 0;
 	if (retry++ >MAX_RETRY) return -1;
     }
 
-    return ret;
+    return *ret;
 }
 
 /**

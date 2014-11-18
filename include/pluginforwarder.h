@@ -35,7 +35,6 @@ typedef enum {
 
 typedef struct {
     char *pTitle;
-    char *syslogID;
     char *jobid;
     char *listenSocketName;
     char *logName;

@@ -591,7 +591,7 @@ static void handleSignalTasks(char *ptr, int sock, Slurm_msg_header_t *msgHead)
 		    jobid, signal);
 	    /* signal jobscript only, not all corresponding steps */
 	    if (job->state == JOB_RUNNING && job->fwdata) {
-		kill(job->fwdata->forwarderPid, signal);
+		kill(job->fwdata->childPid, signal);
 	    }
 	} else {
 	    mlog("%s: send steps with jobid '%u' signal '%u'\n", __func__,
@@ -713,7 +713,8 @@ static void handleSuspendInt(char *ptr, int sock)
     sendSlurmRC(sock, ESLURM_NOT_SUPPORTED, NULL);
 }
 
-static void handleUpdateJobTime(char *ptr, int sock, Slurm_msg_header_t *msgHead)
+static void handleUpdateJobTime(char *ptr, int sock,
+				    Slurm_msg_header_t *msgHead)
 {
     /* does nothing, since timelimit is not used in slurmd */
 
@@ -1444,16 +1445,14 @@ int testSlurmVersion(uint32_t version, uint32_t cmd)
     return 1;
 }
 
-int handleSlurmdMsg(int sock, void *data)
+int handleSlurmdMsg(int sock, void *data, size_t len, int error)
 {
-    char *buffer;
-    int size;
     char *ptr;
     Slurm_msg_header_t msgHead;
 
-    if (!(size = readSlurmMessage(sock, &buffer))) return 0;
+    if (error) return 0;
 
-    ptr = buffer;
+    ptr = data;
     getSlurmMsgHeader(sock, &ptr, &msgHead);
     mdbg(PSSLURM_LOG_PROTO, "%s: msg(%i): %s, version '%u'\n",
 	    __func__, msgHead.type, msgType2String(msgHead.type),
@@ -1461,7 +1460,6 @@ int handleSlurmdMsg(int sock, void *data)
 
     if (!(testSlurmVersion(msgHead.version, msgHead.type))) {
 	sendSlurmRC(sock, SLURM_PROTOCOL_VERSION_ERROR, NULL);
-	ufree(buffer);
 	return 0;
     }
 
@@ -1566,12 +1564,10 @@ int handleSlurmdMsg(int sock, void *data)
 	    break;
     }
 
-    ufree(buffer);
     return 0;
 
 MSG_ERROR_CLEANUP:
     sendSlurmRC(sock, SLURM_ERROR, NULL);
-    ufree(buffer);
     return 0;
 }
 
@@ -1725,8 +1721,7 @@ int sendSlurmRC(int sock, uint32_t rc, void *data)
     ret = sendSlurmMsg(sock, RESPONSE_SLURM_RC, &body, data);
     ufree(body.buf);
 
-    if (Selector_isRegistered(sock)) Selector_remove(sock);
-    close(sock);
+    closeConnection(sock);
     return ret;
 }
 

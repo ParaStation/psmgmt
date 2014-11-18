@@ -73,7 +73,7 @@ handlerFunc_t oldChildBornHandler = NULL;
 
 /** psid plugin requirements */
 char name[] = "psslurm";
-int version = 17;
+int version = 18;
 int requiredAPI = 112;
 plugin_dep_t dependencies[4];
 
@@ -82,9 +82,9 @@ void startPsslurm()
     dependencies[0].name = "psmunge";
     dependencies[0].version = 1;
     dependencies[1].name = "psaccount";
-    dependencies[1].version = 21;
+    dependencies[1].version = 23;
     dependencies[2].name = "pelogue";
-    dependencies[2].version = 4;
+    dependencies[2].version = 5;
     dependencies[3].name = NULL;
     dependencies[3].version = 0;
 }
@@ -314,10 +314,12 @@ int initialize(void)
     initPluginLogger(NULL, lfile);
     maskPluginLogger(PLUGIN_LOG_MALLOC);
     */
+    initPluginLogger("psslurm", NULL);
 
     /* init all data lists */
     initJobList();
     initGresConf();
+    initConnectionList();
 
     /* we need to have root privileges */
     if(getuid() != 0) {
@@ -440,6 +442,7 @@ void cleanup(void)
     /* free all malloced memory */
     clearJobList();
     clearGresConf();
+    clearConnections();
     freeConfig(&Config);
     freeConfig(&SlurmConfig);
     freeConfig(&SlurmGresConfig);

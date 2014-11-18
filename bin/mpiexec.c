@@ -49,6 +49,7 @@ static char vcid[] __attribute__((used)) =
 #include "kvsprovider.h"
 #include "pspluginprotocol.h"
 #include "plugincomm.h"
+#include "pluginlog.h"
 #include "pluginfrag.h"
 #include "pspluginprotocol.h"
 
@@ -1354,11 +1355,13 @@ static void sendSpawnedTIDs(int ret, char *env, PStask_ID_t *tids)
     PS_DataBuffer_t data = { .buf = NULL };
     PStask_ID_t parent;
 
+    initPluginLogger("mpiexec", NULL);
+
     addInt32ToMsg(ret, &data);
     addInt32ArrayToMsg(tids, np, &data);
 
     parent = atoi(env);
-    if ((sendFragMsg(&data, parent,  PSP_CC_PLUG_PSSLURM,
+    if ((sendFragMsg(&data, parent, PSP_CC_PLUG_PSSLURM,
 			    PSP_TASK_IDS)) == -1) {
 	fprintf(stderr, "%s: sending slurm taskid message failed\n", __func__);
     }

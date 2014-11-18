@@ -24,13 +24,8 @@
 #include "plugincomm.h"
 
 typedef int Send_Msg_Func_t(void *);
-typedef int Get_Cred_Func_t(char **);
-typedef int Test_Cred_Func_t(const char *, uid_t *, gid_t *);
 
 void setFragMsgFunc(Send_Msg_Func_t *func);
-
-void setFragCredFunc(Get_Cred_Func_t *getCredFunc,
-			Test_Cred_Func_t *testCredFunc);
 
 /**
  * @brief Receive a fragmented message.

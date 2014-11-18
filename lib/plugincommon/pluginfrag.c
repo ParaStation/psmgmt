@@ -28,58 +28,16 @@
 
 typedef struct {
     uint8_t uID;
-    uint16_t credLen;
     uint16_t msgNum;
     uint16_t msgCount;
     uint16_t totalSize;
 } PS_Frag_Msg_Header_t;
 
 static Send_Msg_Func_t *sendPSMsg = NULL;
-static Get_Cred_Func_t *getCred = NULL;
-static Test_Cred_Func_t *testCred = NULL;
 
 void setFragMsgFunc(Send_Msg_Func_t *func)
 {
     sendPSMsg = func;
-}
-
-void setFragCredFunc(Get_Cred_Func_t *getCredFunc,
-			Test_Cred_Func_t *testCredFunc)
-{
-    getCred = getCredFunc;
-    testCred = testCredFunc;
-}
-
-static int testCreditials(int credLen, char *ptr)
-{
-    char *cred;
-    uid_t uid;
-    gid_t gid;
-
-    if (!testCred) {
-	pluginlog("%s: testCred() not set, cannot test credentials\n",
-		__func__);
-	return 0;
-    }
-
-    cred = umalloc(credLen);
-    memcpy(cred, ptr, credLen);
-
-    if (!(testCred(cred, &uid, &gid))) {
-	pluginlog("%s: invalid credentials\n", __func__);
-	ufree(cred);
-	return 0;
-    }
-    ufree(cred);
-
-    if (uid != 0 || gid != 0) {
-	pluginlog("%s: message from invalid user '%i' or group '%i'\n",
-		    __func__, uid, gid);
-	return 0;
-    }
-
-    pluginlog("%s: success\n", __func__);
-    return 1;
 }
 
 int __recvFragMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_func_t *func,
@@ -147,12 +105,6 @@ int __recvFragMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_func_t *func,
 	return 0;
     }
 
-    /* strip and test creditials */
-    if (rhead->credLen > 0) {
-	if (!(testCreditials(rhead->credLen, ptr))) return 0;
-	ptr += rhead->credLen;
-    }
-
     /* save the data */
     if (!data.buf) {
 	data.buf = umalloc(rhead->totalSize);
@@ -163,7 +115,7 @@ int __recvFragMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_func_t *func,
     }
 
     toCopy = msg->header.len - sizeof(msg->header) - sizeof(msg->type) -
-		sizeof(PS_Frag_Msg_Header_t) - rhead->credLen - 1;
+		sizeof(PS_Frag_Msg_Header_t) - 1;
 
     if (toCopy > dataLeft) {
 	pluginlog("%s(%s): buffer too small, toCopy '%i' dataLeft '%i'\n",
@@ -211,10 +163,10 @@ int __sendFragMsg(PS_DataBuffer_t *data, PStask_ID_t dest, int16_t headType,
 		    int32_t msgType, const char *caller)
 {
     DDTypedBufferMsg_t msg;
-    PS_Frag_Msg_Header_t fhead = { .credLen = 0 };
-    char *msgPtr, *dataPtr, *cred = NULL;
+    PS_Frag_Msg_Header_t fhead;
+    char *msgPtr, *dataPtr;
     int i, res = 0, count = 0;
-    uint16_t bufSize, toCopy, dataLeft;
+    uint32_t bufSize, toCopy, dataLeft;
     struct timespec tp;
 
     if (!data) {
@@ -231,15 +183,7 @@ int __sendFragMsg(PS_DataBuffer_t *data, PStask_ID_t dest, int16_t headType,
        .type = msgType,
        .buf = {'\0'} };
 
-    if (getCred) {
-	if (!(getCred(&cred))) {
-	    pluginlog("%s: getting creditial failed\n", __func__);
-	} else {
-	    fhead.credLen = strlen(cred);
-	}
-    }
-
-    bufSize = BufTypedMsgSize - sizeof(PS_Frag_Msg_Header_t) - fhead.credLen;
+    bufSize = BufTypedMsgSize - sizeof(PS_Frag_Msg_Header_t) - 1;
     dataPtr = data->buf;
     dataLeft = data->bufUsed;
 
@@ -256,7 +200,7 @@ int __sendFragMsg(PS_DataBuffer_t *data, PStask_ID_t dest, int16_t headType,
 	pluginlog("%s: no messages to send\n", __func__);
     }
 
-    for (i=0; i< fhead.msgCount; i++) {
+    for (i=0; i<fhead.msgCount; i++) {
 
 	msgPtr = msg.buf;
 	msg.header.len = sizeof(msg.header);
@@ -271,30 +215,20 @@ int __sendFragMsg(PS_DataBuffer_t *data, PStask_ID_t dest, int16_t headType,
 	msgPtr += sizeof(PS_Frag_Msg_Header_t);
 	msg.header.len += sizeof(PS_Frag_Msg_Header_t);
 
-	/* add creditial */
-	if (getCred) {
-	    if (!(getCred(&cred))) {
-		pluginlog("%s: getting creditial failed\n", __func__);
-	    } else {
-		memcpy(msgPtr, cred, fhead.credLen);
-	    }
-	}
-	msgPtr += fhead.credLen;
-	msg.header.len += fhead.credLen;
-
 	/* add data */
 	memcpy(msgPtr, dataPtr, toCopy);
 	msg.header.len += toCopy;
 	dataPtr += toCopy;
 	dataLeft -= toCopy;
 
+	/*
+	pluginlog("%s: send(%s) msg(%i): bufSize:%u origBufSize:%lu "
+		"dataLen:%u " "dataLeft:%u header.len:%u\n", __func__, caller,
+		i, bufSize, BufTypedMsgSize, toCopy, dataLeft, msg.header.len);
+	*/
+
 	if (!sendPSMsg) {
 	    res = sendMsg(&msg);
-	    /*
-	    pluginlog("%s: sending message: bufSize:%i origBufSize:%lu "
-			"dataLen: %i " "dataLeft: %i\n", __func__, bufSize,
-			BufTypedMsgSize, toCopy, dataLeft);
-	    */
 	} else {
 	    res = sendPSMsg(&msg);
 	}

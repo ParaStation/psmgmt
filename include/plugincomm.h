@@ -40,12 +40,13 @@ typedef enum {
 
 typedef struct {
     char *buf;
-    uint16_t bufSize;
-    uint16_t bufUsed;
+    uint32_t bufSize;
+    uint32_t bufUsed;
 } PS_DataBuffer_t;
 
 typedef void PS_DataBuffer_func_t(DDTypedBufferMsg_t *msg,
 				    PS_DataBuffer_t *data);
+
 /**
  * @brief Write data to a file descriptor.
  *
@@ -80,6 +81,11 @@ int __doWrite(int fd, void *buffer, size_t towrite, const char *func,
 #define doReadP(fd, buffer, toread) __doRead(fd, buffer, toread, __func__, 1)
 int __doRead(int fd, void *buffer, size_t toread, const char *func,
 		int pedantic);
+
+#define doReadExt(fd, buffer, toread, ret) __doReadExt(fd, buffer, toread, ret, __func__, 0)
+#define doReadExtP(fd, buffer, toread, ret) __doReadExt(fd, buffer, toread, ret, __func__, 1)
+int __doReadExt(int fd, void *buffer, size_t toread, size_t *ret,
+		    const char *func, int pedantic);
 
 /**
  * @brief Add a string to a PS message buffer.

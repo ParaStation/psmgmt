@@ -25,7 +25,7 @@ void getNodesFromSlurmHL(char *slurmNodes, uint32_t *nrOfNodes,
 			    PSnodes_ID_t **nodes);
 int sendSlurmRC(int sock, uint32_t rc, void *data);
 int writeJobscript(Job_t *job, char *script);
-int handleSlurmdMsg(int sock, void *data);
+int handleSlurmdMsg(int sock, void *data, size_t len, int error);
 
 int sendTaskPids(Step_t *step);
 void sendTaskExit(Step_t *step, int exit_status);

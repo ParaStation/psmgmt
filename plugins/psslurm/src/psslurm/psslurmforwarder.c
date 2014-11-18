@@ -95,8 +95,8 @@ int stepCallback(int32_t exit_status, char *errMsg, size_t errLen, void *data)
 	mlog("%s: %s", __func__, errMsg);
     }
 
-    mlog("%s: step '%u:%u' state '%u' finished, exit '%u'\n", __func__,
-	step->jobid, step->stepid, step->state, exit_status);
+    mlog("%s: step '%u:%u' state '%s' finished, exit '%u'\n", __func__,
+	step->jobid, step->stepid, strJobState(step->state), exit_status);
 
     if (!findStepById(step->jobid, step->stepid)) {
 	mlog("%s: step '%u:%u' not found\n", __func__, step->jobid,
@@ -997,8 +997,10 @@ int handleUserOE(int sock, void *data)
     }
 
     if ((size = doRead(sock, buf, sizeof(buf) - 1)) <= 0) {
+	/*
 	mlog("%s: connection(%i) closed: %s\n", __func__, sock,
 		type == SLURM_IO_STDOUT ? "stdout" : "stderr");
+	*/
 	Selector_remove(sock);
 	close(sock);
     }
