@@ -45,6 +45,7 @@
 #include "selector.h"
 #include "psaccounthandles.h"
 #include "peloguehandles.h"
+#include "pspamhandles.h"
 
 #include "psslurmproto.h"
 
@@ -76,12 +77,14 @@ static void cbPElogueAlloc(char *sjobid, int exit_status, int timeout)
 	if (alloc->terminate) {
 	    sendSlurmRC(step->srunControlSock, SLURM_ERROR, step);
 	    alloc->state = JOB_EPILOGUE;
-	    startPElogue(alloc->id, alloc->uid, alloc->gid, alloc->nrOfNodes,
+	    startPElogue(alloc->jobid, alloc->uid, alloc->gid, alloc->nrOfNodes,
 		    alloc->nodes, &alloc->env, &alloc->spankenv, 1, 0);
 	} else if (exit_status == 0) {
 	    alloc->state = JOB_RUNNING;
 	    step->state = JOB_PRESTART;
-	    execUserStep(step);
+	    if (!(execUserStep(step))) {
+		sendSlurmRC(step->srunControlSock, ESLURMD_FORK_FAILED, NULL);
+	    }
 	} else {
 	    /* Prologue failed.
 	     * The prologue script will offline the corresponding node itself.
@@ -92,14 +95,14 @@ static void cbPElogueAlloc(char *sjobid, int exit_status, int timeout)
     } else if (alloc->state == JOB_EPILOGUE) {
 	alloc->state = step->state = JOB_EXIT;
 	psPelogueDeleteJob("psslurm", sjobid);
-	sendEpilogueComplete(alloc->id, 0);
+	sendEpilogueComplete(alloc->jobid, 0);
 
 	if (alloc->nodes[0] == PSC_getMyID()) {
-	    send_PS_JobExit(alloc->id, SLURM_BATCH_SCRIPT,
+	    send_PS_JobExit(alloc->jobid, SLURM_BATCH_SCRIPT,
 		    alloc->nrOfNodes, alloc->nodes);
 	}
-	if (alloc->terminate || !haveRunningSteps(alloc->id)) {
-	    deleteAlloc(alloc->id);
+	if (alloc->terminate || !haveRunningSteps(alloc->jobid)) {
+	    deleteAlloc(alloc->jobid);
 	}
     } else {
 	mlog("%s: allocation in state '%s', not in pelogue\n", __func__,
@@ -447,9 +450,9 @@ static void handleLaunchTasks(char *ptr, int sock, Slurm_msg_header_t *msgHead)
 	step->nrOfNodes = count;
     }
 
-    mlog("%s: launch '%u:%u' user '%s' np '%u' nodes '%s' tpp '%u'\n", __func__,
-	    jobid, stepid, step->username, step->np, step->slurmNodes,
-	    step->tpp);
+    mlog("%s: step '%u:%u' user '%s' np '%u' nodes '%s' tpp '%u' exe '%s'\n",
+	    __func__, jobid, stepid, step->username, step->np, step->slurmNodes,
+	    step->tpp, step->argv[0]);
 
     /* I/O open_mode */
     getUint8(&ptr, &step->appendMode);
@@ -477,7 +480,8 @@ static void handleLaunchTasks(char *ptr, int sock, Slurm_msg_header_t *msgHead)
     if (!stepid && !job) {
 	alloc = addAllocation(step->jobid, step->cred->jobNumHosts,
 		step->cred->jobHostlist, &step->env,
-		&step->spankenv, step->uid, step->gid);
+		&step->spankenv, step->uid, step->gid, step->username);
+
 	alloc->state = JOB_RUNNING;
     }
 
@@ -495,11 +499,13 @@ static void handleLaunchTasks(char *ptr, int sock, Slurm_msg_header_t *msgHead)
 	step->srunControlSock = sock;
 	if (!stepid && !job) {
 	    alloc->state = step->state = JOB_PROLOGUE;
-	    startPElogue(alloc->id, alloc->uid, alloc->gid, alloc->nrOfNodes,
+	    startPElogue(alloc->jobid, alloc->uid, alloc->gid, alloc->nrOfNodes,
 			    alloc->nodes, &alloc->env, &alloc->spankenv, 1, 1);
 	} else {
 	    step->state = JOB_PRESTART;
-	    execUserStep(step);
+	    if (!(execUserStep(step))) {
+		sendSlurmRC(sock, ESLURMD_FORK_FAILED, NULL);
+	    }
 	}
     } else {
 	if (!srunOpenIOConnection(step)) {
@@ -524,7 +530,6 @@ static void handleSignalTasks(char *ptr, int sock, Slurm_msg_header_t *msgHead)
     getUint32(&ptr, &siginfo);
 
     /* extract flags and signal */
-    //flag = siginfo >> 24;
     signal = siginfo & 0xfff;
 
     /* find step */
@@ -797,25 +802,43 @@ static void handleAcctGatherUpdate(char *ptr, int sock,
     ufree(msg.buf);
 }
 
-static void handleAcctGatherEnergy(char *ptr, int sock)
+static void handleAcctGatherEnergy(char *ptr, int sock,
+				    Slurm_msg_header_t *msgHead)
 {
-    mlog("%s: implement me!\n", __func__);
-    sendSlurmRC(sock, ESLURM_NOT_SUPPORTED, NULL);
+    PS_DataBuffer_t msg = { .buf = NULL };
+    time_t now = 0;
+    int i;
+
+    /* check permissions */
+    if (msgHead->uid != 0 && msgHead->uid != slurmUserID) {
+	mlog("%s: request from invalid user '%u'\n", __func__, msgHead->uid);
+	sendSlurmRC(sock, ESLURM_USER_ID_MISSING, NULL);
+	return;
+    }
+
+    /* node name */
+    addStringToMsg(getConfValueC(&Config, "SLURM_HOSTNAME"), &msg);
+
+    /* set dummy energy data */
+    for (i=0; i<5; i++) {
+	addUint32ToMsg(0, &msg);
+    }
+    addTimeToMsg(&now, &msg);
+
+    sendSlurmMsg(sock, RESPONSE_ACCT_GATHER_ENERGY, &msg, NULL);
+    ufree(msg.buf);
 }
 
 static void handleJobId(char *ptr, int sock)
 {
     PS_DataBuffer_t msg = { .buf = NULL };
-    int found  = 0;
-    uint32_t jobid = 0;
+    uint32_t pid = 0;
+    Step_t *step;
 
-    getUint32(&ptr, &jobid);
+    getUint32(&ptr, &pid);
 
-    if (findJobById(jobid)) found = 1;
-    if (findStepByJobid(jobid)) found = 1;
-
-    if (found) {
-	addUint32ToMsg(jobid, &msg);
+    if ((step = findStepByTaskPid(pid))) {
+	addUint32ToMsg(step->jobid, &msg);
 	addUint32ToMsg(SLURM_SUCCESS, &msg);
 	sendSlurmMsg(sock, RESPONSE_JOB_ID, &msg, NULL);
 	ufree(msg.buf);
@@ -824,10 +847,79 @@ static void handleJobId(char *ptr, int sock)
     }
 }
 
-static void handleFileBCast(char *ptr, int sock)
+static void handleFileBCast(char *ptr, int sock, Slurm_msg_header_t *msgHead)
 {
-    mlog("%s: implement me!\n", __func__);
-    sendSlurmRC(sock, ESLURM_NOT_SUPPORTED, NULL);
+    BCast_t *bcast;
+    Job_t *job;
+    Alloc_t *alloc;
+
+    bcast = addBCast(sock);
+
+    getUint16(&ptr, &bcast->blockNumber);
+    getUint16(&ptr, &bcast->lastBlock);
+    getUint16(&ptr, &bcast->force);
+    getUint16(&ptr, &bcast->modes);
+
+    /* not always the owner of the bcast!  */
+    getUint32(&ptr, &bcast->uid);
+    bcast->username = getStringM(&ptr);
+    getUint32(&ptr, &bcast->gid);
+
+    getTime(&ptr, &bcast->atime);
+    getTime(&ptr, &bcast->mtime);
+    bcast->fileName = getStringM(&ptr);
+    getUint32(&ptr, &bcast->blockLen);
+    bcast->block = getStringM(&ptr);
+
+    if (!(checkBCastCred(&ptr, bcast))) {
+	if (!errno) {
+	    sendSlurmRC(sock, ESLURM_AUTH_CRED_INVALID, NULL);
+	} else {
+	    sendSlurmRC(sock, errno, NULL);
+	}
+	goto CLEANUP;
+    }
+
+    if (!(job = findJobById(bcast->jobid))) {
+	if (!(alloc = findAlloc(bcast->jobid))) {
+	    mlog("%s: job '%u' not found\n", __func__, bcast->jobid);
+	    sendSlurmRC(sock, ESLURM_INVALID_JOB_ID, NULL);
+	    goto CLEANUP;
+	} else {
+	    bcast->uid = alloc->uid;
+	    bcast->gid = alloc->gid;
+	    ufree(bcast->username);
+	    bcast->username = ustrdup(alloc->username);
+	}
+    } else {
+	bcast->uid = job->uid;
+	bcast->gid = job->gid;
+	ufree(bcast->username);
+	bcast->username = ustrdup(job->username);
+    }
+
+    /*
+    mlog("%s: jobid '%u' blockNum '%u' lastBlock '%u' force '%u' modes '%u', "
+	    "user '%s' " "uid '%u' gid '%u' fileName '%s' blockLen '%u'\n",
+	    __func__, bcast->jobid, bcast->blockNumber, bcast->lastBlock,
+	    bcast->force, bcast->modes, bcast->username, bcast->uid, bcast->gid,
+	    bcast->fileName, bcast->blockLen);
+    */
+
+    if (bcast->blockNumber == 1) {
+	mlog("%s: jobid '%u' file '%s' user '%s'\n", __func__, bcast->jobid,
+		bcast->fileName, bcast->username);
+    }
+
+    /* start forwarder to write the file */
+    if (!(execUserBCast(bcast))) {
+	sendSlurmRC(sock, ESLURMD_FORK_FAILED, NULL);
+	goto CLEANUP;
+    }
+    return;
+
+CLEANUP:
+    deleteBCast(bcast);
 }
 
 static void handleStepStat(char *ptr, int sock, Slurm_msg_header_t *msgHead)
@@ -974,6 +1066,7 @@ static void handleBatchJobLaunch(char *ptr, int sock,
     job->partition = getStringM(&ptr);
     /* username */
     job->username = getStringM(&ptr);
+    psPamAddUser(job->username, "psslurm");
     /* gid */
     getUint32(&ptr, &job->gid);
     /* ntasks */
@@ -1107,7 +1200,7 @@ static void handleBatchJobLaunch(char *ptr, int sock,
     sendSlurmRC(sock, SLURM_SUCCESS, job);
 
     /* forward job info to other nodes in the job */
-    send_PS_JobLaunch(job->jobid, job->nrOfNodes, job->nodes);
+    send_PS_JobLaunch(job);
 
     /* setup job environment */
     setSlurmEnv(job);
@@ -1178,7 +1271,7 @@ static void handleTerminateAlloc(Alloc_t *alloc, int sock,
     /* wait for mother superior to release the allocation */
     if (alloc->nodes[0] != PSC_getMyID()) {
 	if (alloc->terminate > 3) {
-	    send_PS_JobState(alloc->id, PSC_getTID(alloc->nodes[0], 0));
+	    send_PS_JobState(alloc->jobid, PSC_getTID(alloc->nodes[0], 0));
 	    alloc->terminate = 1;
 	}
 	if (sock > -1) sendSlurmRC(sock, SLURM_SUCCESS, NULL);
@@ -1188,15 +1281,15 @@ static void handleTerminateAlloc(Alloc_t *alloc, int sock,
     switch (alloc->state) {
 	case JOB_RUNNING:
 	    /* check if we still have running steps and kill them */
-	    if ((haveRunningSteps(alloc->id))) {
-		signalStepsByJobid(alloc->id, SIGTERM);
+	    if ((haveRunningSteps(alloc->jobid))) {
+		signalStepsByJobid(alloc->jobid, SIGTERM);
 		mlog("%s: waiting till steps are completed\n", __func__);
 	    } else {
 		/* no running steps left, lets start epilogue */
 		mlog("%s: starting epilogue for allocation '%u' state '%s'\n",
-			__func__, alloc->id, strJobState(alloc->state));
+			__func__, alloc->jobid, strJobState(alloc->state));
 		alloc->state = JOB_EPILOGUE;
-		startPElogue(alloc->id, alloc->uid, alloc->gid,
+		startPElogue(alloc->jobid, alloc->uid, alloc->gid,
 				alloc->nrOfNodes, alloc->nodes, &alloc->env,
 				&alloc->spankenv, 1, 0);
 	    }
@@ -1209,7 +1302,7 @@ static void handleTerminateAlloc(Alloc_t *alloc, int sock,
 	    if (sock > -1) {
 		sendSlurmRC(sock, ESLURMD_KILL_JOB_ALREADY_COMPLETE, NULL);
 	    }
-	    deleteAlloc(alloc->id);
+	    deleteAlloc(alloc->jobid);
 	    return;
     }
 
@@ -1253,8 +1346,8 @@ static void handleAbortReq(int sock, Slurm_msg_header_t *msgHead,
 	deleteJob(jobid);
     } else {
 	if (alloc->nodes[0] == PSC_getMyID()) {
-	    signalStepsByJobid(alloc->id, SIGKILL);
-	    send_PS_JobExit(alloc->id, SLURM_BATCH_SCRIPT,
+	    signalStepsByJobid(alloc->jobid, SIGKILL);
+	    send_PS_JobExit(alloc->jobid, SLURM_BATCH_SCRIPT,
 		    alloc->nrOfNodes, alloc->nodes);
 	}
 	deleteAlloc(jobid);
@@ -1291,8 +1384,8 @@ static void handleKillReq(int sock, Slurm_msg_header_t *msgHead, uint32_t jobid,
 	return;
     }
 
-    job = findJobById(jobid);
-    alloc = findAlloc(jobid);
+    if ((job = findJobById(jobid))) job->terminate++;
+    if ((alloc = findAlloc(jobid))) alloc->terminate++;
     step = findStepByJobid(jobid);
 
     if (!job && !alloc) {
@@ -1536,13 +1629,13 @@ int handleSlurmdMsg(int sock, void *data, size_t len, int error)
 	    handleAcctGatherUpdate(ptr, sock, &msgHead);
 	    break;
 	case REQUEST_ACCT_GATHER_ENERGY:
-	    handleAcctGatherEnergy(ptr, sock);
+	    handleAcctGatherEnergy(ptr, sock, &msgHead);
 	    break;
 	case REQUEST_JOB_ID:
 	    handleJobId(ptr, sock);
 	    break;
 	case REQUEST_FILE_BCAST:
-	    handleFileBCast(ptr, sock);
+	    handleFileBCast(ptr, sock, &msgHead);
 	    break;
 	case REQUEST_DAEMON_STATUS:
 	    handleDaemonStatus(ptr, sock);

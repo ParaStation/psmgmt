@@ -348,7 +348,8 @@ void setTaskEnv(Step_t *step)
     envSet(&step->env, "SLURM_CPUS_PER_TASK", tmp);
 
     envSet(&step->env, "SLURM_CHECKPOINT_IMAGE_DIR", step->checkpoint);
-    envSet(&step->env, "SLURM_LAUNCH_NODE_IPADDR", inet_ntoa(step->srun.sin_addr));
+    envSet(&step->env, "SLURM_LAUNCH_NODE_IPADDR",
+	    inet_ntoa(step->srun.sin_addr));
     envSet(&step->env, "SLURM_SRUN_COMM_HOST", inet_ntoa(step->srun.sin_addr));
     //envSet(&step->env, "PSI_LOGGERDEBUG", "1");
     //envSet(&step->env, "PSI_FORWARDERDEBUG", "1");
@@ -373,8 +374,8 @@ void setTaskEnv(Step_t *step)
     if ((val = envGet(&step->env, "SLURM_UMASK"))) {
 	slurmUmask = strtol(val, NULL, 8);
 	umask(slurmUmask);
-	envUnset(&step->env, "SLURM_UMASK");
 	envSet(&step->env, "__PSI_UMASK", val);
+	envUnset(&step->env, "SLURM_UMASK");
     }
 
     envUnset(&step->env, "SLURM_MPI_TYPE");

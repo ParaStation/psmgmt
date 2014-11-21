@@ -33,6 +33,7 @@
 #include "psidtask.h"
 #include "pluginmalloc.h"
 #include "plugincomm.h"
+#include "pspamhandles.h"
 
 #include "psslurmjob.h"
 
@@ -49,6 +50,7 @@ void initJobList()
     INIT_LIST_HEAD(&JobList.list);
     INIT_LIST_HEAD(&StepList.list);
     INIT_LIST_HEAD(&AllocList.list);
+    INIT_LIST_HEAD(&BCastList.list);
 }
 
 Job_t *addJob(uint32_t jobid)
@@ -102,13 +104,14 @@ Job_t *addJob(uint32_t jobid)
     return job;
 }
 
-Alloc_t *addAllocation(uint32_t id, uint32_t nrOfNodes, char *slurmNodes,
-			    env_t *env, env_t *spankenv, uid_t uid, gid_t gid)
+Alloc_t *addAllocation(uint32_t jobid, uint32_t nrOfNodes, char *slurmNodes,
+			    env_t *env, env_t *spankenv, uid_t uid, gid_t gid,
+			    char *username)
 {
     Alloc_t *alloc;
 
     alloc = (Alloc_t *) umalloc(sizeof(Alloc_t));
-    alloc->id = id;
+    alloc->jobid = jobid;
     alloc->state = JOB_QUEUED;
     getNodesFromSlurmHL(slurmNodes, &alloc->nrOfNodes, &alloc->nodes);
     if (alloc->nrOfNodes != nrOfNodes) {
@@ -120,8 +123,12 @@ Alloc_t *addAllocation(uint32_t id, uint32_t nrOfNodes, char *slurmNodes,
     alloc->uid = uid;
     alloc->gid = gid;
     alloc->terminate = 0;
+    alloc->slurmNodes = ustrdup(slurmNodes);
+    alloc->username = ustrdup(username);
 
     list_add_tail(&(alloc->list), &AllocList.list);
+
+    psPamAddUser(alloc->username, "psslurm");
 
     return alloc;
 }
@@ -199,13 +206,13 @@ PS_Tasks_t *addTask(struct list_head *list, PStask_ID_t childTID,
     return task;
 }
 
-void deleteTask(PS_Tasks_t *task)
+static void deleteTask(PS_Tasks_t *task)
 {
     list_del(&task->list);
     ufree(task);
 }
 
-void clearTasks(struct list_head *taskList)
+static void clearTasks(struct list_head *taskList)
 {
     list_t *pos, *tmp;
     PS_Tasks_t *task;
@@ -214,6 +221,77 @@ void clearTasks(struct list_head *taskList)
 	if (!(task = list_entry(pos, PS_Tasks_t, list))) return;
 	deleteTask(task);
     }
+}
+
+BCast_t *addBCast(int socket)
+{
+    BCast_t *bcast;
+
+    bcast = (BCast_t *) umalloc(sizeof(BCast_t));
+    bcast->sock = socket;
+    bcast->sig = NULL;
+    bcast->username = NULL;
+    bcast->fileName = NULL;
+    bcast->block = NULL;
+    bcast->fwdata = NULL;
+
+    list_add_tail(&(bcast->list), &BCastList.list);
+
+    return bcast;
+}
+
+void deleteBCast(BCast_t *bcast)
+{
+    list_del(&bcast->list);
+    closeConnection(bcast->sock);
+
+    ufree(bcast->username);
+    ufree(bcast->fileName);
+    ufree(bcast->block);
+    ufree(bcast->sig);
+    ufree(bcast);
+}
+
+void clearBCastByJobid(uint32_t jobid)
+{
+    list_t *pos, *tmp;
+    BCast_t *bcast;
+
+    list_for_each_safe(pos, tmp, &BCastList.list) {
+	if (!(bcast = list_entry(pos, BCast_t, list))) return;
+	if (bcast->jobid == jobid) {
+	    if (bcast->fwdata) {
+		kill(bcast->fwdata->forwarderPid, SIGKILL);
+	    } else {
+		deleteBCast(bcast);
+	    }
+	}
+    }
+}
+
+static void clearBCastList()
+{
+    list_t *pos, *tmp;
+    BCast_t *bcast;
+
+    list_for_each_safe(pos, tmp, &BCastList.list) {
+	if (!(bcast = list_entry(pos, BCast_t, list))) return;
+	deleteBCast(bcast);
+    }
+}
+
+BCast_t *findBCast(uint32_t jobid, char *fileName, uint32_t blockNum)
+{
+    list_t *pos, *tmp;
+    BCast_t *bcast;
+
+    list_for_each_safe(pos, tmp, &BCastList.list) {
+	if (!(bcast = list_entry(pos, BCast_t, list))) return NULL;
+	if (blockNum > 0 && blockNum != bcast->blockNumber) continue;
+	if (bcast->jobid == jobid &&
+	    !strcmp(bcast->fileName, fileName)) return bcast;
+    }
+    return NULL;
 }
 
 Step_t *findStepById(uint32_t jobid, uint32_t stepid)
@@ -251,11 +329,24 @@ Step_t *findStepByPid(pid_t pid)
     struct list_head *pos;
     Step_t *step;
 
-    if (list_empty(&StepList.list)) return NULL;
-
     list_for_each(pos, &StepList.list) {
 	if (!(step = list_entry(pos, Step_t, list))) return NULL;
 	if (step->fwdata && step->fwdata->childPid == pid) return step;
+    }
+    return NULL;
+}
+
+Step_t *findStepByTaskPid(pid_t pid)
+{
+    struct list_head *pos;
+    Step_t *step;
+    uint32_t i;
+
+    list_for_each(pos, &StepList.list) {
+	if (!(step = list_entry(pos, Step_t, list))) return NULL;
+	for (i=0; i<step->tidsLen; i++) {
+	    if (PSC_getPID(step->tids[i]) == pid) return step;
+	}
     }
     return NULL;
 }
@@ -272,8 +363,6 @@ Job_t *findJobById(uint32_t jobid)
 {
     struct list_head *pos;
     Job_t *job;
-
-    if (list_empty(&JobList.list)) return NULL;
 
     list_for_each(pos, &JobList.list) {
 	if (!(job = list_entry(pos, Job_t, list))) return NULL;
@@ -310,10 +399,11 @@ void clearJobList()
     list_t *pos, *tmp;
     Job_t *job;
 
-    if (list_empty(&JobList.list)) return;
+    clearAllocList();
+    clearBCastList();
 
     list_for_each_safe(pos, tmp, &JobList.list) {
-	if (!(job = list_entry(pos, Job_t, list))) return;
+	if (!(job = list_entry(pos, Job_t, list))) break;
 
 	deleteJob(job->jobid);
     }
@@ -329,7 +419,7 @@ void clearAllocList()
     list_for_each_safe(pos, tmp, &AllocList.list) {
 	if (!(alloc = list_entry(pos, Alloc_t, list))) return;
 
-	deleteAlloc(alloc->id);
+	deleteAlloc(alloc->jobid);
     }
 }
 
@@ -346,7 +436,7 @@ void clearStepList(uint32_t jobid)
     }
 }
 
-Alloc_t *findAlloc(uint32_t id)
+Alloc_t *findAlloc(uint32_t jobid)
 {
     list_t *pos, *tmp;
     Alloc_t *alloc;
@@ -355,27 +445,32 @@ Alloc_t *findAlloc(uint32_t id)
 
     list_for_each_safe(pos, tmp, &AllocList.list) {
 	if (!(alloc = list_entry(pos, Alloc_t, list))) break;
-	if (alloc->id == id) return alloc;
+	if (alloc->jobid == jobid) return alloc;
     }
     return NULL;
 }
 
-int deleteAlloc(uint32_t id)
+int deleteAlloc(uint32_t jobid)
 {
     Alloc_t *alloc;
 
-    if (!(alloc = findAlloc(id))) return 0;
+    /* delete all corresponding steps */
+    clearStepList(jobid);
+    clearBCastByJobid(jobid);
+
+    if (!(alloc = findAlloc(jobid))) return 0;
 
     /* tell sisters the allocation is revoked */
     if (alloc->nodes[0] == PSC_getMyID()) {
-	send_PS_JobExit(alloc->id, SLURM_BATCH_SCRIPT,
+	send_PS_JobExit(alloc->jobid, SLURM_BATCH_SCRIPT,
 		alloc->nrOfNodes, alloc->nodes);
     }
 
-    /* delete all corresponding steps */
-    clearStepList(id);
+    psPamDeleteUser(alloc->username, "psslurm");
 
     ufree(alloc->nodes);
+    ufree(alloc->slurmNodes);
+    ufree(alloc->username);
     envDestroy(&alloc->env);
     envDestroy(&alloc->spankenv);
 
@@ -394,6 +489,7 @@ int deleteStep(uint32_t jobid, uint32_t stepid)
 
     /* make sure all connections for the step are closed */
     closeAllStepConnections(step);
+    clearBCastByJobid(jobid);
 
     ufree(step->srunPorts);
     ufree(step->tasksToLaunch);
@@ -423,7 +519,6 @@ int deleteStep(uint32_t jobid, uint32_t stepid)
 	if (step->fwdata->forwarderPid) {
 	    kill(step->fwdata->forwarderPid, SIGKILL);
 	}
-	destroyForwarderData(step->fwdata);
     }
 
     deleteJobCred(step->cred);
@@ -455,8 +550,13 @@ int deleteJob(uint32_t jobid)
 
     if (!(job = findJobById(jobid))) return 0;
 
+    clearBCastByJobid(jobid);
+    psPamDeleteUser(job->username, "psslurm");
+
     /* remote job, only delete it */
     if (job->mother) {
+	ufree(job->id);
+	ufree(job->username);
 	list_del(&job->list);
 	ufree(job);
 	return 1;
@@ -464,7 +564,7 @@ int deleteJob(uint32_t jobid)
 
     if (job->jobscript) unlink(job->jobscript);
 
-    clearStepList(job->jobid);
+    deleteAlloc(job->jobid);
     clearGresCred(&job->gres);
 
     /* tell sisters the job is finished */
@@ -494,7 +594,6 @@ int deleteJob(uint32_t jobid)
     if (job->fwdata) {
 	kill(job->fwdata->childPid, SIGKILL);
 	kill(job->fwdata->forwarderPid, SIGKILL);
-	destroyForwarderData(job->fwdata);
     }
 
     deleteJobCred(job->cred);

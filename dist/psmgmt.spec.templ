@@ -172,8 +172,12 @@ exit 0
 %exclude %{_plugindir}/pelogue.la
 %{_plugindir}/psmunge.so
 %exclude %{_plugindir}/psmunge.la
+%{_plugindir}/pspam.so
+%exclude %{_plugindir}/pspam.la
 %{_plugindir}/psslurm.so
 %exclude %{_plugindir}/psslurm.la
+%{_pamdir}/pam_pspam.so
+%exclude %{_pamdir}/pam_pspam.la
 %{_libdir}/slurm/psspank.so
 %exclude %{_libdir}/slurm/psspank.la
 %{_sysconfdir}/profile.d/psmgmt.sh

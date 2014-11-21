@@ -29,7 +29,7 @@
 
 #define MAX_KEY_LEN 1024
 
-int parseConfigFile(char *filename, Config_t *conf)
+int __parseConfigFile(char *filename, Config_t *conf, int trimQuotes)
 {
     FILE *fp;
     char *line = NULL, *linebuf = NULL, *value, *tmp, key[MAX_KEY_LEN], *pkey;
@@ -89,6 +89,9 @@ int parseConfigFile(char *filename, Config_t *conf)
 
 	/* remove proceeding whitespaces from value */
 	value = ltrim(value);
+
+	/* remove quotes from value */
+	if (trimQuotes) value = trim_quotes(value);
 
 	config = (Config_t *) umalloc(sizeof(Config_t));
 	config->key = ustrdup(pkey);

@@ -293,14 +293,14 @@ int initConfig(char *filename)
 
     /* parse slurm config file */
     if (!(slurmConfFile = getConfValueC(&Config, "SLURM_CONF"))) return 0;
-    if (parseConfigFile(slurmConfFile, &SlurmConfig) < 0) return 0;
+    if (parseConfigFileQ(slurmConfFile, &SlurmConfig) < 0) return 0;
     if (!(parseSlurmConf(hn, &SlurmConfig.list, 0))) return 0;
     if (!(verifySlurmConf())) return 0;
 
     /* parse optional slurm gres config file */
     if (!(slurmConfFile = getConfValueC(&Config, "SLURM_GRES_CONF"))) return 0;
     if (stat(slurmConfFile, &sbuf) == -1) return 1;
-    if (parseConfigFile(slurmConfFile, &SlurmGresTmp) < 0) return 0;
+    if (parseConfigFileQ(slurmConfFile, &SlurmGresTmp) < 0) return 0;
 
     INIT_LIST_HEAD(&SlurmGresConfig.list);
     if (!(parseSlurmConf(hn, &SlurmGresTmp.list, 1))) return 0;

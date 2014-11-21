@@ -8,7 +8,7 @@
 # file.
 #
 # Author:	Thomas Moschny <moschny@par-tec.com>
-#
+#		Michael Rauh <rauh@par-tec.com>
 
 AC_PREREQ([2.68])
 
@@ -64,7 +64,7 @@ AX_CHECK_LIBRARY([SLURM], [slurm/spank.h], [slurm],
   [ slurm_enabled=true ], [])
 AM_CONDITIONAL([SLURM_ENABLED], [test "x$slurm_enabled" = xtrue])
 
-AX_CHECK_LIBRARY([SLURM], [munge.h], [munge],
+AX_CHECK_LIBRARY([MUNGE], [munge.h], [munge],
   [ munge_enabled=true ], [])
 AM_CONDITIONAL([MUNGE_ENABLED], [test "x$munge_enabled" = xtrue])
 
@@ -122,6 +122,10 @@ AC_CONFIG_FILES(plugins/psmom/src/pam/Makefile)
 AC_CONFIG_FILES(plugins/psmom/src/pbs/Makefile)
 AC_CONFIG_FILES(plugins/psmom/src/psmom/Makefile)
 AC_CONFIG_FILES(plugins/psmunge/Makefile)
+AC_CONFIG_FILES(plugins/pspam/Makefile)
+AC_CONFIG_FILES(plugins/pspam/doc/Makefile)
+AC_CONFIG_FILES(plugins/pspam/src/module/Makefile)
+AC_CONFIG_FILES(plugins/pspam/src/pspam/Makefile)
 AC_CONFIG_FILES(plugins/pspmi/Makefile)
 AC_CONFIG_FILES(plugins/psresport/Makefile)
 AC_CONFIG_FILES(plugins/psslurm/Makefile)

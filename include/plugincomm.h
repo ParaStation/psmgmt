@@ -87,6 +87,9 @@ int __doRead(int fd, void *buffer, size_t toread, const char *func,
 int __doReadExt(int fd, void *buffer, size_t toread, size_t *ret,
 		    const char *func, int pedantic);
 
+#define listenUnixSocket(sock) __listenUnixSocket(sock,  __func__)
+int __listenUnixSocket(char *socketName, const char *func);
+
 /**
  * @brief Add a string to a PS message buffer.
  *
@@ -199,6 +202,9 @@ int __getPid(char **ptr, pid_t *pid, const char *caller, const int line);
 
 #define getStringM(ptr) __getStringM(ptr, __func__, __LINE__)
 char *__getStringM(char **ptr, const char *caller, const int line);
+
+#define getStringML(ptr, size) __getStringML(ptr, size, __func__, __LINE__)
+char *__getStringML(char **ptr, size_t *len, const char *caller, const int line);
 
 #define getString(ptr, buf, buflen) \
 	    __getString(ptr, buf, buflen, __func__, __LINE__)

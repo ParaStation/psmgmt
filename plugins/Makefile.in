@@ -17,7 +17,7 @@
 #
 # ParaStation
 #
-# Copyright (C) 2012-2013 ParTec Cluster Competence Center GmbH, Munich
+# Copyright (C) 2012-2014 ParTec Cluster Competence Center GmbH, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -172,7 +172,8 @@ am__define_uniq_tagged_files = \
   done | $(am__uniquify_input)`
 ETAGS = etags
 CTAGS = ctags
-DIST_SUBDIRS = pelogue psaccount psresport psslurm pspmi psmom psmunge
+DIST_SUBDIRS = pelogue psaccount psmom pspam pspmi psresport psslurm \
+	psmunge
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 am__relativize = \
   dir0=`pwd`; \
@@ -244,6 +245,8 @@ MAINT = @MAINT@
 MAKEINFO = @MAKEINFO@
 MANIFEST_TOOL = @MANIFEST_TOOL@
 MKDIR_P = @MKDIR_P@
+MUNGE_CPPFLAGS = @MUNGE_CPPFLAGS@
+MUNGE_LDFLAGS = @MUNGE_LDFLAGS@
 NM = @NM@
 NMEDIT = @NMEDIT@
 NUMA_LIBS = @NUMA_LIBS@
@@ -369,7 +372,7 @@ configdir = $(prefix)/config
 # dito
 scriptsdir = $(prefix)/scripts
 slurmdir = $(libdir)/slurm
-SUBDIRS = pelogue psaccount psresport psslurm pspmi psmom \
+SUBDIRS = pelogue psaccount psmom pspam pspmi psresport psslurm \
 	$(am__append_1)
 all: all-recursive
 

@@ -17,6 +17,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <errno.h>
 
 #include "psmungehandles.h"
 #include "pluginmalloc.h"
@@ -25,6 +26,7 @@
 #include "psslurmlog.h"
 #include "psslurmcomm.h"
 #include "psslurmgres.h"
+#include "psslurmproto.h"
 #include "slurmcommon.h"
 
 #include "psslurmauth.h"
@@ -196,6 +198,78 @@ int checkJobCred(Job_t *job)
     return 1;
 }
 
+int checkBCastCred(char **ptr, BCast_t *bcast)
+{
+    time_t ctime, expTime;
+    char *nodes, *credStart, *sigBuf = NULL;
+    int sigBufLen, len;
+    uid_t sigUid;
+    gid_t sigGid;
+    BCast_t *firstBCast = NULL;
+
+    credStart = *ptr;
+    errno = 0;
+
+    getTime(ptr, &ctime);
+    getTime(ptr, &expTime);
+    getUint32(ptr, &bcast->jobid);
+
+    nodes = getStringM(ptr);
+    ufree(nodes);
+
+    len = *ptr - credStart;
+    bcast->sig = getStringML(ptr, &bcast->sigLen);
+
+    if (bcast->blockNumber == 1) {
+	if (!(psMungeDecodeBuf(bcast->sig, (void **) &sigBuf, &sigBufLen,
+		&sigUid, &sigGid))) {
+	    mlog("%s: decoding creditial failed\n", __func__);
+	    goto ERROR;
+	}
+
+	if (len != sigBufLen) {
+	    mlog("%s: mismatching creditial len %u : %u\n", __func__,
+		    len, sigBufLen);
+	    goto ERROR;
+	}
+
+	if (!!(memcmp(sigBuf, credStart, sigBufLen))) {
+	    mlog("%s: manipulated data\n", __func__);
+	    goto ERROR;
+	}
+
+	if (!(checkAuthorizedUser(sigUid, 0))) {
+	    mlog("%s: unauthorized request\n", __func__);
+	    errno = ESLURM_USER_ID_MISSING;
+	    goto ERROR;
+	}
+    } else {
+	if (!(firstBCast = findBCast(bcast->jobid, bcast->fileName, 1))) {
+	    mlog("%s: no matching bcast for jobid '%u' fileName '%s' "
+		    "blockNum '%u'\n", __func__, bcast->jobid, bcast->fileName,
+		    bcast->blockNumber);
+	    goto ERROR;
+	}
+
+	if (!!(memcmp(bcast->sig, firstBCast->sig, firstBCast->sigLen))) {
+	    mlog("%s: manipulated data\n", __func__);
+	    goto ERROR;
+	}
+
+	if (expTime < time(NULL)) {
+	    mlog("%s: credential expired\n", __func__);
+	    goto ERROR;
+	}
+    }
+
+    free(sigBuf);
+    return 1;
+
+ERROR:
+    free(sigBuf);
+    return 0;
+}
+
 void deleteJobCred(JobCred_t *cred)
 {
     if (!cred) return;
@@ -277,19 +351,19 @@ JobCred_t *getJobCred(Gres_Cred_t *gres, char **ptr, uint16_t version)
     cred->sig = getStringM(ptr);
     if (!(psMungeDecodeBuf(cred->sig, (void **) &sigBuf, &sigBufLen,
 	    &sigUid, &sigGid))) {
-	mlog("%s: decoding job creditial failed\n", __func__);
+	mlog("%s: decoding creditial failed\n", __func__);
 	return NULL;
     }
 
     if (len != sigBufLen) {
 	mlog("%s: mismatching creditial len %u : %u\n", __func__,
 		len, sigBufLen);
-	return NULL;
+	goto ERROR;
     }
 
     if (!!(memcmp(sigBuf, credStart, sigBufLen))) {
-	mlog("%s: creditial is invalid\n", __func__);
-	return NULL;
+	mlog("%s: manipulated data\n", __func__);
+	goto ERROR;
     }
     free(sigBuf);
 
@@ -299,4 +373,9 @@ JobCred_t *getJobCred(Gres_Cred_t *gres, char **ptr, uint16_t version)
 	    cred->hostlist, cred->jobHostlist, cred->ctime, cred->sig);
 
     return cred;
+
+
+ERROR:
+    free(sigBuf);
+    return NULL;
 }

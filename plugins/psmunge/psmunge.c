@@ -91,7 +91,7 @@ int mungeDecodeCtx(const char *cred, munge_ctx_t ctx, void **buf,
     munge_err_t err;
 
     if ((err = munge_decode(cred, ctx, buf, len, uid, gid)) != EMUNGE_SUCCESS) {
-	mlog("%s: encode failed: %s\n", __func__, munge_strerror(err));
+	mlog("%s: decode failed: %s\n", __func__, munge_strerror(err));
 	return 0;
     }
 

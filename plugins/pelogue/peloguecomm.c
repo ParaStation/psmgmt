@@ -274,7 +274,6 @@ int fwCallback(int32_t wstat, char *errMsg, size_t errLen, void *data)
 
     /* cleanup */
     destroyPElogueData(pedata);
-    destroyForwarderData(fwdata);
 
     return 0;
 }

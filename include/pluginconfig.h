@@ -34,7 +34,10 @@ typedef struct {
     char *desc;	    /* a short help description */
 } ConfDef_t;
 
-int parseConfigFile(char *filename, Config_t *conf);
+#define parseConfigFile(file, conf) __parseConfigFile(file, conf, 0)
+#define parseConfigFileQ(file, conf) __parseConfigFile(file, conf, 1)
+int __parseConfigFile(char *filename, Config_t *conf, int trimQuotes);
+
 int verifyConfig(Config_t *conf, const ConfDef_t confDef[]);
 const ConfDef_t *getConfigDef(char *name, const ConfDef_t confDef[]);
 Config_t *addConfigEntry(Config_t *conf, char *key, char *value);

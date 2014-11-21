@@ -631,7 +631,9 @@ int callbackForwarder(int fd, PSID_scriptCBInfo_t *info)
 	closeControlSocket(data);
     }
 
+    destroyForwarderData(data);
     ufree(info);
+
     return 0;
 }
 

@@ -16,13 +16,15 @@ psslurm_dir   := plugins/psslurm/src
 psaccount_dir := plugins/psaccount
 pelogue_dir   := plugins/pelogue
 psmunge_dir   := plugins/psmunge
+pspam_dir     := plugins/pspam/src/pspam
 
 AM_LDFLAGS += -avoid-version -module
 AM_CPPFLAGS += -I$(top_srcdir)/bin/daemon -I$(srcdir)/../include \
 	       -I$(top_srcdir)/$(psslurm_dir)/common \
 	       -I$(top_srcdir)/$(psaccount_dir) \
 	       -I$(top_srcdir)/$(pelogue_dir) \
-	       -I$(top_srcdir)/$(psmunge_dir)
+	       -I$(top_srcdir)/$(psmunge_dir) \
+	       -I$(top_srcdir)/$(pspam_dir)
 
 plugin_LTLIBRARIES = psslurm.la
 

@@ -32,6 +32,7 @@
 #include <signal.h>
 #include <sys/ptrace.h>
 #include <sys/wait.h>
+#include <utime.h>
 
 #include "psslurmlog.h"
 #include "psslurmlimits.h"
@@ -82,6 +83,7 @@ int jobCallback(int32_t exit_status, char *errMsg, size_t errLen, void *data)
 		    &job->env, &job->spankenv, 0, 0);
     }
 
+    job->fwdata = NULL;
     return 0;
 }
 
@@ -145,6 +147,22 @@ int stepCallback(int32_t exit_status, char *errMsg, size_t errLen, void *data)
 	alloc->state = JOB_EPILOGUE;
 	startPElogue(step->jobid, step->uid, step->gid, step->nrOfNodes,
 			step->nodes, &step->env, &step->spankenv, 1, 0);
+    }
+
+    step->fwdata = NULL;
+    return 0;
+}
+
+int bcastCallback(int32_t exit_status, char *errMsg, size_t errLen, void *data)
+{
+    Forwarder_Data_t *fwdata = data;
+    BCast_t *bcast = fwdata->userData;
+
+    sendSlurmRC(bcast->sock, WEXITSTATUS(exit_status), NULL);
+
+    bcast->fwdata = NULL;
+    if (bcast->lastBlock) {
+	clearBCastByJobid(bcast->jobid);
     }
 
     return 0;
@@ -445,7 +463,7 @@ static void switchUser(char *username, uid_t uid, gid_t gid, char *cwd)
     }
 
     /* change to job working directory */
-    if ((chdir(cwd)) == -1) {
+    if (cwd && (chdir(cwd)) == -1) {
 	mlog("%s: chdir to '%s' failed : %s\n", __func__, cwd, strerror(errno));
 	exit(1);
     }
@@ -1120,7 +1138,7 @@ static void handleChildStart(void *data, pid_t fw, pid_t childPid,
     psAccountRegisterJob(childPid, NULL);
 }
 
-void execUserStep(Step_t *step)
+int execUserStep(Step_t *step)
 {
     Forwarder_Data_t *fwdata;
     char jobid[100];
@@ -1151,14 +1169,16 @@ void execUserStep(Step_t *step)
     if ((startForwarder(fwdata)) != 0) {
 	mlog("%s: starting forwarder for job '%u' failed\n", __func__,
 		step->stepid);
+	return 0;
     }
     step->fwdata = fwdata;
     if (SERIAL_MODE) {
 	sendSlurmRC(step->srunControlSock, SLURM_SUCCESS, step);
     }
+    return 1;
 }
 
-void execUserJob(Job_t *job)
+int execUserJob(Job_t *job)
 {
     Forwarder_Data_t *fwdata;
     char fname[300];
@@ -1182,8 +1202,110 @@ void execUserJob(Job_t *job)
 
     if ((startForwarder(fwdata)) != 0) {
 	mlog("%s: starting forwarder for job '%s' failed\n", __func__, job->id);
+	return 0;
     }
 
     job->state = JOB_RUNNING;
     job->fwdata = fwdata;
+    return 1;
+}
+
+static void execBCast(void *data, int rerun)
+{
+    Forwarder_Data_t *fwdata = data;
+    BCast_t *bcast = fwdata->userData;
+    int flags = 0, fd, left, ret;
+    struct utimbuf times;
+    char *ptr;
+
+    switchUser(bcast->username, bcast->uid, bcast->gid, NULL);
+    errno = 0;
+
+    /* open the file */
+    flags = O_WRONLY;
+    if (bcast->blockNumber == 1) {
+	flags |= O_CREAT;
+	if (bcast->force) {
+	    flags |= O_TRUNC;
+	} else {
+	    flags |= O_EXCL;
+	}
+    } else {
+	flags |= O_APPEND;
+    }
+
+    if ((fd = open(bcast->fileName, flags, 0700)) == -1) {
+	mwarn(errno, "%s: open '%s' failed :", __func__, bcast->fileName);
+	exit(errno);
+    }
+
+    /* write the file */
+    left = bcast->blockLen;
+    ptr = bcast->block;
+    while (left > 0) {
+	if ((ret = write(fd, ptr, left)) == -1) {
+	    if (errno == EINTR || errno == EAGAIN) continue;
+	    mwarn(errno, "%s: write '%s' failed :", __func__, bcast->fileName);
+	    exit(errno);
+	}
+	left -= ret;
+	ptr += ret;
+    }
+
+    /* set permissions */
+    if (bcast->lastBlock) {
+	if ((fchmod(fd, (bcast->modes & 0700))) == -1) {
+	    mwarn(errno, "%s: chmod '%s' failed :", __func__, bcast->fileName);
+	    exit(errno);
+	}
+	if ((fchown(fd, bcast->uid, bcast->gid)) == -1) {
+	    mwarn(errno, "%s: chown '%s' failed :", __func__, bcast->fileName);
+	    exit(errno);
+	}
+	if (bcast->atime) {
+	    times.actime  = bcast->atime;
+	    times.modtime = bcast->mtime;
+	    if (utime(bcast->fileName, &times)) {
+		mwarn(errno, "%s: utime '%s' failed :", __func__,
+			bcast->fileName);
+		exit(errno);
+	    }
+	}
+    }
+    close(fd);
+
+    exit(0);
+}
+
+int execUserBCast(BCast_t *bcast)
+{
+    Forwarder_Data_t *fwdata;
+    char jobid[100];
+    char fname[300];
+    int grace;
+
+    getConfValueI(&SlurmConfig, "KillWait", &grace);
+    if (grace < 3) grace = 30;
+
+    fwdata = getNewForwarderData();
+
+    snprintf(jobid, sizeof(jobid), "%u", bcast->jobid);
+    snprintf(fname, sizeof(fname), "psslurm-bcast:%s", jobid);
+    fwdata->pTitle = ustrdup(fname);
+
+    fwdata->jobid = ustrdup(jobid);
+    fwdata->userData = bcast;
+    fwdata->graceTime = grace;
+    fwdata->killSession = psAccountsendSignal2Session;
+    fwdata->callback = bcastCallback;
+    fwdata->childFunc = execBCast;
+
+    if ((startForwarder(fwdata)) != 0) {
+	mlog("%s: starting forwarder for bcast '%u' failed\n", __func__,
+		bcast->jobid);
+	return 0;
+    }
+
+    bcast->fwdata = fwdata;
+    return 1;
 }

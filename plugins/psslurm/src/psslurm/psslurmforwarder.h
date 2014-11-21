@@ -20,8 +20,9 @@
 
 #include "psslurmjob.h"
 
-void execUserStep(Step_t *step);
-void execUserJob(Job_t *job);
+int execUserStep(Step_t *step);
+int execUserJob(Job_t *job);
+int execUserBCast(BCast_t *bcast);
 char *replaceSymbols(uint32_t jobid, uint32_t stepid, char *hostname,
 			int nodeid, char *username, uint32_t arrayJobId,
 			uint32_t arrayTaskId, int rank, char *path);

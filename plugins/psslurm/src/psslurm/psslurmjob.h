@@ -93,6 +93,27 @@ typedef struct {
 } RLimits_t;
 
 typedef struct {
+    char *fileName;
+    uint16_t blockNumber;
+    uint16_t lastBlock;
+    uint16_t force;	    /* overwrite dest file */
+    uint16_t modes;	    /* access writes */
+    uint32_t blockLen;
+    uint32_t jobid;
+    time_t atime;
+    time_t mtime;
+    char *block;
+    char *username;
+    int sock;
+    uid_t uid;
+    gid_t gid;
+    Forwarder_Data_t *fwdata;
+    char *sig;
+    size_t sigLen;
+    struct list_head list;
+} BCast_t;
+
+typedef struct {
     uint32_t jobid;
     uint32_t stepid;
     uint32_t np;	    /* number of processes */
@@ -215,15 +236,17 @@ typedef struct {
 } Job_t;
 
 typedef struct {
-    uint32_t id;
+    uint32_t jobid;
     uid_t uid;
     gid_t gid;
     uint32_t nrOfNodes;
     PSnodes_ID_t *nodes;
+    char *slurmNodes;
     env_t env;
     env_t spankenv;
     uint8_t terminate;
     int state;
+    char *username;
     struct list_head list;  /* the job list header */
 } Alloc_t;
 
@@ -231,6 +254,7 @@ typedef struct {
 Job_t JobList;
 Step_t StepList;
 Alloc_t AllocList;
+BCast_t BCastList;
 
 void initJobList();
 
@@ -289,21 +313,29 @@ int signalStep(Step_t *step, int signal);
 
 Step_t *findStepById(uint32_t jobid, uint32_t stepid);
 Step_t *findStepByPid(pid_t pid);
+Step_t *findStepByTaskPid(pid_t pid);
 int deleteStep(uint32_t jobid, uint32_t stepid);
 void clearStepList(uint32_t jobid);
 Step_t *addStep(uint32_t jobid, uint32_t stepid);
 Step_t *findStepByJobid(uint32_t jobid);
 int haveRunningSteps(uint32_t jobid);
 
-Alloc_t *addAllocation(uint32_t id, uint32_t nrOfNodes, char *slurmNodes,
-			    env_t *env, env_t *spankenv, uid_t uid, gid_t gid);
-Alloc_t *findAlloc(uint32_t id);
-int deleteAlloc(uint32_t id);
+Alloc_t *addAllocation(uint32_t jobid, uint32_t nrOfNodes, char *slurmNodes,
+			    env_t *env, env_t *spankenv, uid_t uid, gid_t gid,
+			    char *username);
+Alloc_t *findAlloc(uint32_t jobid);
+int deleteAlloc(uint32_t jobid);
 void clearAllocList();
 
 PS_Tasks_t *addTask(struct list_head *list, PStask_ID_t childTID,
 			PStask_ID_t forwarderTID, PStask_t *forwarder,
 			PStask_group_t childGroup);
 void signalTasks(uid_t uid, PS_Tasks_t *tasks, int signal, int32_t group);
+
+BCast_t *addBCast(int socket);
+BCast_t *findBCast(uint32_t jobid, char *fileName, uint32_t blockNum);
+void deleteBCast(BCast_t *bcast);
+void clearBCastByJobid(uint32_t jobid);
+void clearBCasts();
 
 #endif

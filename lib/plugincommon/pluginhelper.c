@@ -127,15 +127,33 @@ char *ltrim(char *string)
 
 char *rtrim(char *string)
 {
-    size_t len;
+    ssize_t len;
 
     if (!string) return NULL;
 
     /* remove trailing whitespaces */
     len = strlen(string);
-    while (string[len-1] == ' ' || string[len-1] == '\n') {
+    while (len >0 && (string[len-1] == ' ' || string[len-1] == '\n')) {
 	string[len-1] = '\0';
-	len = strlen(string);
+	len--;
     }
+    return string;
+}
+
+char *trim_quotes(char *string)
+{
+    size_t len;
+
+    if (!string) return NULL;
+
+    if (string[0] == '"') {
+	string++;
+
+	len = strlen(string);
+	if ((string[len-1] == '"')) {
+	    string[len-1] = '\0';
+	}
+    }
+
     return string;
 }

@@ -487,7 +487,7 @@ static void handleRemoteJob(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 
 }
 
-void send_PS_JobLaunch(uint32_t jobid, uint32_t nrOfNodes, PSnodes_ID_t *nodes)
+void send_PS_JobLaunch(Job_t *job)
 {
     DDTypedBufferMsg_t msg;
     PS_DataBuffer_t data = { .buf = NULL };
@@ -495,7 +495,12 @@ void send_PS_JobLaunch(uint32_t jobid, uint32_t nrOfNodes, PSnodes_ID_t *nodes)
     uint32_t i;
 
     /* add jobid */
-    addUint32ToMsg(jobid, &data);
+    addUint32ToMsg(job->jobid, &data);
+
+    /* uid/gid */
+    addUint32ToMsg(job->uid, &data);
+    addUint32ToMsg(job->gid, &data);
+    addStringToMsg(job->username, &data);
 
     /* send the messages */
     msg = (DDTypedBufferMsg_t) {
@@ -511,10 +516,10 @@ void send_PS_JobLaunch(uint32_t jobid, uint32_t nrOfNodes, PSnodes_ID_t *nodes)
     memcpy(msg.buf, data.buf, data.bufUsed);
     msg.header.len += data.bufUsed;
 
-    for (i=0; i<nrOfNodes; i++) {
-	if (nodes[i] == myID) continue;
+    for (i=0; i<job->nrOfNodes; i++) {
+	if (job->nodes[i] == myID) continue;
 
-	msg.header.dest = PSC_getTID(nodes[i], 0);
+	msg.header.dest = PSC_getTID(job->nodes[i], 0);
 	sendMsg(&msg);
     }
 
@@ -745,6 +750,11 @@ static void handle_PS_JobLaunch(DDTypedBufferMsg_t *msg)
     job = addJob(jobid);
     job->state = JOB_QUEUED;
     job->mother = msg->header.sender;
+
+    /* get uid/gid */
+    getUint32(&ptr, &job->uid);
+    /* get username */
+    job->username = getStringM(&ptr);
 
     mlog("%s: jobid '%u'\n", __func__, jobid);
 }

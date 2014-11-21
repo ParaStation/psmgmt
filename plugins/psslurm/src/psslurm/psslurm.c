@@ -47,6 +47,7 @@
 #include "psaccounthandles.h"
 #include "peloguehandles.h"
 #include "psmungehandles.h"
+#include "pspamhandles.h"
 
 #include "psslurm.h"
 
@@ -73,9 +74,9 @@ handlerFunc_t oldChildBornHandler = NULL;
 
 /** psid plugin requirements */
 char name[] = "psslurm";
-int version = 18;
+int version = 19;
 int requiredAPI = 112;
-plugin_dep_t dependencies[4];
+plugin_dep_t dependencies[5];
 
 void startPsslurm()
 {
@@ -85,8 +86,10 @@ void startPsslurm()
     dependencies[1].version = 23;
     dependencies[2].name = "pelogue";
     dependencies[2].version = 5;
-    dependencies[3].name = NULL;
-    dependencies[3].version = 0;
+    dependencies[3].name = "pspam";
+    dependencies[3].version = 1;
+    dependencies[4].name = NULL;
+    dependencies[4].version = 0;
 }
 
 void stopPsslurm()
@@ -286,6 +289,22 @@ static int initPluginHandles()
 
     if (!(psMungeDecodeBuf = dlsym(pluginHandle, "mungeDecodeBuf"))) {
 	mlog("%s: loading function mungeDecodeBuf() failed\n", __func__);
+	return 0;
+    }
+
+    /* get pspam function handles */
+    if (!(pluginHandle = PSIDplugin_getHandle("pspam"))) {
+	mlog("%s: getting pspam handle failed\n", __func__);
+	return 0;
+    }
+
+    if (!(psPamAddUser = dlsym(pluginHandle, "psPamAddUser"))) {
+	mlog("%s: loading function psPamAddUser() failed\n", __func__);
+	return 0;
+    }
+
+    if (!(psPamDeleteUser = dlsym(pluginHandle, "psPamDeleteUser"))) {
+	mlog("%s: loading function psPamDeleteUser() failed\n", __func__);
 	return 0;
     }
 

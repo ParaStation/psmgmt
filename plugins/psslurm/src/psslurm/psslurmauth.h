@@ -28,6 +28,7 @@ JobCred_t *getJobCred(Gres_Cred_t *gres, char **ptr, uint16_t version);
 void deleteJobCred(JobCred_t *cred);
 int checkJobCred(Job_t *job);
 int checkStepCred(Step_t *step);
+int checkBCastCred(char **ptr, BCast_t *bcast);
 int checkAuthorizedUser(uid_t user, uid_t test);
 
 #endif

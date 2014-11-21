@@ -650,6 +650,8 @@ PKG_CONFIG
 RL_LIBS
 MUNGE_ENABLED_FALSE
 MUNGE_ENABLED_TRUE
+MUNGE_LDFLAGS
+MUNGE_CPPFLAGS
 SLURM_ENABLED_FALSE
 SLURM_ENABLED_TRUE
 SLURM_LDFLAGS
@@ -806,6 +808,8 @@ CPPFLAGS
 CPP
 SLURM_CPPFLAGS
 SLURM_LDFLAGS
+MUNGE_CPPFLAGS
+MUNGE_LDFLAGS
 PKG_CONFIG
 PKG_CONFIG_PATH
 PKG_CONFIG_LIBDIR
@@ -1471,6 +1475,10 @@ Some influential environment variables:
               C preprocessor flags for SLURM headers
   SLURM_LDFLAGS
               linker flags for SLURM libraries
+  MUNGE_CPPFLAGS
+              C preprocessor flags for MUNGE headers
+  MUNGE_LDFLAGS
+              linker flags for MUNGE libraries
   PKG_CONFIG  path to pkg-config utility
   PKG_CONFIG_PATH
               directories to add to pkg-config's search path
@@ -11921,19 +11929,19 @@ fi
 
 
 
-  if ${ax_cv_have_SLURM+:} false; then :
+  if ${ax_cv_have_MUNGE+:} false; then :
   $as_echo_n "(cached) " >&6
 else
   save_CPPFLAGS="$CPPFLAGS"
      save_LDFLAGS="$LDFLAGS"
      save_LIBS="$LIBS"
 
-     if test "x$SLURM_CPPFLAGS" != "x"; then :
-  CPPFLAGS="$CPPFLAGS $SLURM_CPPFLAGS"
+     if test "x$MUNGE_CPPFLAGS" != "x"; then :
+  CPPFLAGS="$CPPFLAGS $MUNGE_CPPFLAGS"
 fi
 
-     if test "x$SLURM_LDFLAGS" != "x"; then :
-  LDFLAGS="$LDFLAGS $SLURM_LDFLAGS"
+     if test "x$MUNGE_LDFLAGS" != "x"; then :
+  LDFLAGS="$LDFLAGS $MUNGE_LDFLAGS"
 fi
 
      ac_fn_c_check_header_mongrel "$LINENO" "munge.h" "ac_cv_header_munge_h" "$ac_includes_default"
@@ -11970,14 +11978,14 @@ fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_munge_main" >&5
 $as_echo "$ac_cv_lib_munge_main" >&6; }
 if test "x$ac_cv_lib_munge_main" = xyes; then :
-  ax_cv_have_SLURM=yes
+  ax_cv_have_MUNGE=yes
 else
-  ax_cv_have_SLURM=no
+  ax_cv_have_MUNGE=no
 fi
 
 
 else
-  ax_cv_have_SLURM=no
+  ax_cv_have_MUNGE=no
 fi
 
 
@@ -11989,7 +11997,7 @@ fi
 fi
 
 
-  if test "$ax_cv_have_SLURM" = "yes"; then :
+  if test "$ax_cv_have_MUNGE" = "yes"; then :
    munge_enabled=true
 fi
 
@@ -12708,6 +12716,14 @@ ac_config_files="$ac_config_files plugins/psmom/src/pbs/Makefile"
 ac_config_files="$ac_config_files plugins/psmom/src/psmom/Makefile"
 
 ac_config_files="$ac_config_files plugins/psmunge/Makefile"
+
+ac_config_files="$ac_config_files plugins/pspam/Makefile"
+
+ac_config_files="$ac_config_files plugins/pspam/doc/Makefile"
+
+ac_config_files="$ac_config_files plugins/pspam/src/module/Makefile"
+
+ac_config_files="$ac_config_files plugins/pspam/src/pspam/Makefile"
 
 ac_config_files="$ac_config_files plugins/pspmi/Makefile"
 
@@ -13793,6 +13809,10 @@ do
     "plugins/psmom/src/pbs/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/psmom/src/pbs/Makefile" ;;
     "plugins/psmom/src/psmom/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/psmom/src/psmom/Makefile" ;;
     "plugins/psmunge/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/psmunge/Makefile" ;;
+    "plugins/pspam/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/pspam/Makefile" ;;
+    "plugins/pspam/doc/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/pspam/doc/Makefile" ;;
+    "plugins/pspam/src/module/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/pspam/src/module/Makefile" ;;
+    "plugins/pspam/src/pspam/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/pspam/src/pspam/Makefile" ;;
     "plugins/pspmi/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/pspmi/Makefile" ;;
     "plugins/psresport/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/psresport/Makefile" ;;
     "plugins/psslurm/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/psslurm/Makefile" ;;

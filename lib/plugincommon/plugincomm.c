@@ -20,6 +20,8 @@
 #include <unistd.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <sys/un.h>
+#include <sys/stat.h>
 
 #include "pluginmalloc.h"
 #include "pluginlog.h"
@@ -168,6 +170,36 @@ int __doReadExt(int fd, void *buffer, size_t toread, size_t *ret,
     }
 
     return *ret;
+}
+
+int __listenUnixSocket(char *socketName, const char *func)
+{
+    struct sockaddr_un sa;
+    int sock = -1;
+
+    sock = socket(PF_UNIX, SOCK_STREAM, 0);
+
+    memset(&sa, 0, sizeof(sa));
+    sa.sun_family = AF_UNIX;
+    strncpy(sa.sun_path, socketName, sizeof(sa.sun_path));
+
+    /*
+     * bind the socket to the right address
+     */
+    unlink(socketName);
+    if (bind(sock, (struct sockaddr *)&sa, sizeof(sa)) < 0) {
+	pluginwarn(errno, "%s: bind() to '%s' failed: ", func, socketName);
+	return -1;
+    }
+    chmod(sa.sun_path, S_IRWXU);
+
+    if (listen(sock, 20) < 0) {
+	pluginwarn(errno, "%s: listen() on '%s' failed: ", func,
+		    socketName);
+	return -1;
+    }
+
+    return sock;
 }
 
 /**
@@ -928,8 +960,13 @@ int __getPid(char **ptr, pid_t *pid, const char *caller, const int line)
 
 char *__getStringM(char **ptr, const char *caller, const int line)
 {
-    char *data;
     size_t len;
+    return __getStringML(ptr, &len, caller, line);
+}
+
+char *__getStringML(char **ptr, size_t *len, const char *caller, const int line)
+{
+    char *data;
 
     if (!*ptr) {
 	if (debug) {
@@ -941,17 +978,16 @@ char *__getStringM(char **ptr, const char *caller, const int line)
     if (!(verifyTypeInfo(ptr, PSDATA_STRING, caller))) return NULL;
 
     /* string length */
-    len = *(uint32_t *) *ptr;
-    len = byteOrder ? ntohl(len) : len;
+    *len = *(uint32_t *) *ptr;
+    *len = byteOrder ? ntohl(*len) : *len;
     *ptr += sizeof(uint32_t);
 
-    data = __umalloc(len, caller, line);
+    data = __umalloc(*len, caller, line);
 
     /* extract the string */
-    if (len > 0) {
-	memcpy(data, *ptr, len);
-	data[len-1] = '\0';
-	*ptr += len;
+    if (*len > 0) {
+	memcpy(data, *ptr, *len);
+	*ptr += *len;
     } else {
 	data[0] = '\0';
     }

@@ -267,6 +267,8 @@ MAINT = @MAINT@
 MAKEINFO = @MAKEINFO@
 MANIFEST_TOOL = @MANIFEST_TOOL@
 MKDIR_P = @MKDIR_P@
+MUNGE_CPPFLAGS = @MUNGE_CPPFLAGS@
+MUNGE_LDFLAGS = @MUNGE_LDFLAGS@
 NM = @NM@
 NMEDIT = @NMEDIT@
 NUMA_LIBS = @NUMA_LIBS@
@@ -361,7 +363,8 @@ AM_CPPFLAGS = -I$(top_srcdir)/include -DNDEBUG \
 	-I$(top_srcdir)/bin/daemon -I$(srcdir)/../include \
 	-I$(top_srcdir)/$(psslurm_dir)/common \
 	-I$(top_srcdir)/$(psaccount_dir) \
-	-I$(top_srcdir)/$(pelogue_dir) -I$(top_srcdir)/$(psmunge_dir)
+	-I$(top_srcdir)/$(pelogue_dir) -I$(top_srcdir)/$(psmunge_dir) \
+	-I$(top_srcdir)/$(pspam_dir)
 sed_verbose = $(sed_verbose_$(V))
 sed_verbose_ = $(sed_verbose_$(AM_DEFAULT_VERBOSITY))
 sed_verbose_0 = @echo "  SED   " $(@F);
@@ -400,6 +403,7 @@ psslurm_dir := plugins/psslurm/src
 psaccount_dir := plugins/psaccount
 pelogue_dir := plugins/pelogue
 psmunge_dir := plugins/psmunge
+pspam_dir := plugins/pspam/src/pspam
 plugin_LTLIBRARIES = psslurm.la
 libplugincommon = $(top_builddir)/lib/plugincommon/libplugincommon.la
 libslurmcommon = $(top_builddir)/$(psslurm_dir)/common/libslurmcommon.la

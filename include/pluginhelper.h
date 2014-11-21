@@ -46,5 +46,6 @@ void blockSignal(int signal, int block);
 char *trim(char *string);
 char *ltrim(char *string);
 char *rtrim(char *string);
+char *trim_quotes(char *string);
 
 #endif
