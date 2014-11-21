@@ -1,7 +1,5 @@
 {
 	"type": "batch",
-	"partitions": ["batch", "psslurm"],
-	"reservations": ["", "psslurm"],
 	"submit": "srun -n 8 --ntasks-per-node 4 -t 1 hostname",
 	"eval": ["eval.py"],
 	"fproc": null,
