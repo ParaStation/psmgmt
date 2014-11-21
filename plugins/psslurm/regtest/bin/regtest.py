@@ -19,6 +19,7 @@ import copy
 import signal
 import math
 import socket
+import random
 
 
 # Approximate frequency of main loop updates.
@@ -1271,6 +1272,7 @@ def get_test_list(argv, opts):
 
 	return sorted(tests)
 
+
 #
 # Create a unique key for the test based on name, number and date
 def test_key(test, testnum):
@@ -1331,6 +1333,9 @@ def main(argv):
 	parser.add_option("--nocolors", action = "store_true", \
 	                  dest = "nocolors", \
 	                  help = "Disable colored output.")
+	parser.add_option("--randomize", action = "store_true", \
+	                  dest = "randomize", \
+	                  help = "Randomize the test order.")
 
 	(opts, args) = parser.parse_args()
 
@@ -1360,6 +1365,9 @@ def main(argv):
 
 		if opts.repetitions > 1:
 			tests = tests * opts.repetitions
+
+		if opts.randomize:
+			random.shuffle(tests)
 
 		log("tests = [%s]\n" % ", ".join([str(z) for z in tests]))
 
