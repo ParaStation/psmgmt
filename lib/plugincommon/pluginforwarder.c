@@ -75,6 +75,8 @@ static bool sigChild = 0;
 /** timeout flag set to true if the walltime limit is reached */
 static bool job_timeout = 0;
 
+static char logBuf[1024];
+
 static int connect2Mother(char *listenSocketName)
 {
     struct sockaddr_un sa;
@@ -110,8 +112,8 @@ static void killForwarderChild(int signal, char *reason)
     char buffer[512];
 
     if (forwarder_child_sid < 1) {
-	pluginlog("%s: invalid child sid '%i'\n", __func__,
-		    forwarder_child_sid);
+	snprintf(logBuf, sizeof(logBuf), "%s: invalid child sid '%i'\n",
+		    __func__, forwarder_child_sid);
 	sigChild = 1;
 	Selector_startOver();
 	return;
@@ -125,8 +127,9 @@ static void killForwarderChild(int signal, char *reason)
 	buffer[0] = '\0';
     }
 
-    pluginlog("signal '%u' to sid '%i' %sgrace time '%i'" " sec%s\n",
-		signal, forwarder_child_sid, jobstring, grace, buffer);
+    snprintf(logBuf, sizeof(logBuf), "signal '%u' to sid '%i' %sgrace time '%i'"
+		" sec%s\n", signal, forwarder_child_sid, jobstring, grace,
+		buffer);
 
     if (signal == SIGTERM) {
 	/* let children beeing debugged continue */
@@ -229,6 +232,8 @@ static void signalHandler(int sig)
 
     switch (sig) {
 	case SIGTERM:
+	    if (sentHardKill) return;
+
 	    /* kill the child */
 	    killForwarderChild(SIGTERM, "received SIGTERM");
 	    break;
@@ -238,10 +243,9 @@ static void signalHandler(int sig)
 
 	    if (killAllChildren) {
 		/* second kill phase, do it the hard way now */
-		pluginlog("signal 'SIGKILL' to sid '%i'%s\n",
-			forwarder_child_sid, jobstring);
+		snprintf(logBuf, sizeof(logBuf), "signal 'SIGKILL' to sid "
+			    "'%i'%s\n", forwarder_child_sid, jobstring);
 		fwdata->killSession(forwarder_child_sid, SIGKILL);
-		killAllChildren = 0;
 		sentHardKill = 1;
 	    } else {
 		/* TODO */
@@ -257,7 +261,7 @@ static void signalHandler(int sig)
 	    }
 	    break;
     case SIGPIPE:
-	pluginlog("got sigpipe\n");
+	snprintf(logBuf, sizeof(logBuf), "got sigpipe\n");
 	break;
     }
 }
@@ -266,6 +270,7 @@ static int initForwarder()
 {
     sigset_t mask;
 
+    logBuf[0] = '\0';
     Selector_init(NULL);
     Timer_init(NULL);
 
@@ -409,6 +414,14 @@ static void initChild(int fwpid)
     resetSignalHandling();
 }
 
+static void doLog()
+{
+    if (logBuf[0] != '\0') {
+	pluginlog("%s", logBuf);
+	logBuf[0] = '\0';
+    }
+}
+
 /**
  * @brief Main loop for all forwarders.
  *
@@ -434,9 +447,11 @@ static void forwarderLoop()
 		killForwarderChild(SIGKILL, "Sselect error");
 		break;
 	    }
+	    doLog();
 	    if (sigChild) break;
 	}
     }
+    doLog();
 }
 
 /**
@@ -451,6 +466,8 @@ static void forwarderExit()
 
     blockSignal(SIGALRM, 1);
     blockSignal(SIGCHLD, 1);
+    blockSignal(SIGTERM, 1);
+    doLog();
 
     /* reset possible alarms */
     alarm(0);
