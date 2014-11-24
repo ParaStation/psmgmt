@@ -1,7 +1,5 @@
 {
 	"type": "batch",
-	"partitions": ["batch", "psslurm"],
-	"reservations": ["", "psslurm"],
 	"submit": "sbatch -n 1 -t 1 -o @O/slurm-%j.out hostname.sh",
 	"eval": ["eval.py"],
 	"fproc": null,
