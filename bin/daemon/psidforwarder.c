@@ -783,7 +783,7 @@ static int readFromLogger(int fd, void *data)
 	case KVS:
 	case SERV_TID:
 	case SERV_EXT:
-            PSIDhook_call(PSIDHOOK_FRWRD_KVS, &msg);
+	    PSIDhook_call(PSIDHOOK_FRWRD_KVS, &msg);
 	    break;
 	case WINCH:
 	    /* Logger detected change in window-size */
@@ -1321,7 +1321,7 @@ static int registerSelectHandlers(void)
     /* open signal control fds */
     if (socketpair(PF_UNIX, SOCK_STREAM, 0, signalFD) < 0) {
 	PSID_log(-1, "%s: open control socket failed\n", __func__);
-        return 0;
+	return 0;
     }
     Selector_register(signalFD[0], handleSignalFD, NULL);
 
