@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2013 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2014 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -415,7 +415,7 @@ int handleCreatePart(void *msg)
     return 0;
 
 
-    error:
+error:
     {
 	if (nodelist) {
 	    ufree(nodelist->nodes);
@@ -425,14 +425,13 @@ int handleCreatePart(void *msg)
 	    PSpart_delReq(task->request);
 	    task->request = NULL;
 	}
-	mwarn(errno, "%s: sendMsg() : ", __func__);
 	DDTypedMsg_t msg = (DDTypedMsg_t) {
 	    .header = (DDMsg_t) {
 		.type = PSP_CD_PARTITIONRES,
-		    .dest = inmsg->header.sender,
-		    .sender = PSC_getMyTID(),
-		    .len = sizeof(msg) },
-		.type = errno};
+		.dest = inmsg->header.sender,
+		.sender = PSC_getMyTID(),
+		.len = sizeof(msg) },
+	    .type = errno};
 	sendMsg(&msg);
 
 	return 0;
@@ -465,20 +464,15 @@ int handleCreatePartNL(void *msg)
     /* for batch users we send the nodelist before */
     return 0;
 
-    error:
+error:
     {
-	if (task && task->request) {
-	    PSpart_delReq(task->request);
-	    task->request = NULL;
-	}
-	mwarn(errno, "%s: sendMsg() : ", __func__);
 	DDTypedMsg_t msg = (DDTypedMsg_t) {
 	    .header = (DDMsg_t) {
-		    .type = PSP_CD_PARTITIONRES,
-		    .dest = inmsg->header.sender,
-		    .sender = PSC_getMyTID(),
-		    .len = sizeof(msg)},
-		.type = errno};
+		.type = PSP_CD_PARTITIONRES,
+		.dest = inmsg->header.sender,
+		.sender = PSC_getMyTID(),
+		.len = sizeof(msg)},
+	    .type = errno};
 	sendMsg(&msg);
 
 	return 0;
