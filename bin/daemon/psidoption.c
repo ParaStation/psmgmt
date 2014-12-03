@@ -234,6 +234,71 @@ static void send_rlimit_OPTIONS(PStask_ID_t dest, PSP_Option_t option)
     }
 }
 
+static void set_rlimit(PSP_Option_t option, PSP_Optval_t value)
+{
+    int resource;
+    struct rlimit limit;
+
+    switch (option) {
+#ifdef RLIMIT_AS
+    case PSP_OP_RL_AS:
+	resource = RLIMIT_AS;
+	break;
+#endif
+    case PSP_OP_RL_CORE:
+	resource = RLIMIT_CORE;
+	break;
+    case PSP_OP_RL_CPU:
+	resource = RLIMIT_CPU;
+	break;
+    case PSP_OP_RL_DATA:
+	resource = RLIMIT_DATA;
+	break;
+    case PSP_OP_RL_FSIZE:
+	resource = RLIMIT_FSIZE;
+	break;
+    case PSP_OP_RL_LOCKS:
+	resource = RLIMIT_LOCKS;
+	break;
+    case PSP_OP_RL_MEMLOCK:
+	resource = RLIMIT_MEMLOCK;
+	break;
+#ifdef RLIMIT_MSGQUEUE
+    case PSP_OP_RL_MSGQUEUE:
+	resource = RLIMIT_MSGQUEUE;
+	break;
+#endif
+    case PSP_OP_RL_NOFILE:
+	resource = RLIMIT_NOFILE;
+	break;
+    case PSP_OP_RL_NPROC:
+	resource = RLIMIT_NPROC;
+	break;
+    case PSP_OP_RL_RSS:
+	resource = RLIMIT_RSS;
+	break;
+#ifdef RLIMIT_SIGPENDING
+    case PSP_OP_RL_SIGPENDING:
+	resource = RLIMIT_SIGPENDING;
+	break;
+#endif
+    case PSP_OP_RL_STACK:
+	resource = RLIMIT_STACK;
+	break;
+    default:
+	PSID_log(-1, "%s: unknown option %d\n", __func__, option);
+	return;
+    }
+
+    limit.rlim_cur = value;
+    limit.rlim_max = value;
+
+    if (setrlimit(resource, &limit)) {
+	PSID_warn(-1, errno, "%s: setrlimit(%d, %d)", __func__,
+		  resource, value);
+    }
+}
+
 
 /**
  * @brief Handle a PSP_CD_SETOPTION message.
@@ -744,6 +809,21 @@ static void msg_SETOPTION(DDOptionMsg_t *msg)
 		break;
 	    case PSP_OP_LISTEND:
 		/* Ignore */
+		break;
+	    case PSP_OP_RL_AS:
+	    case PSP_OP_RL_CORE:
+	    case PSP_OP_RL_CPU:
+	    case PSP_OP_RL_DATA:
+	    case PSP_OP_RL_FSIZE:
+	    case PSP_OP_RL_LOCKS:
+	    case PSP_OP_RL_MEMLOCK:
+	    case PSP_OP_RL_MSGQUEUE:
+	    case PSP_OP_RL_NOFILE:
+	    case PSP_OP_RL_NPROC:
+	    case PSP_OP_RL_RSS:
+	    case PSP_OP_RL_SIGPENDING:
+	    case PSP_OP_RL_STACK:
+		set_rlimit(msg->opt[i].option, msg->opt[i].value);
 		break;
 	    default:
 		PSID_log(-1, "%s: unknown option %d\n", __func__,

@@ -20,6 +20,7 @@ static char vcid[] __attribute__((used)) =
 #include <pwd.h>
 #include <grp.h>
 #include <sys/types.h>
+#include <sys/resource.h>
 
 #include "pscommon.h"
 #include "pstask.h"
@@ -893,6 +894,24 @@ static keylist_t boolAutoList[] = {
     {NULL, NULL, NULL}
 };
 
+static keylist_t numOrUnlimitedList[] = {
+    {"<num>", NULL, NULL},
+    {"unlimited", NULL, NULL},
+    {NULL, NULL, NULL}
+};
+
+static keylist_t numOrAnyList[] = {
+    {"<num>", NULL, NULL},
+    {"any", NULL, NULL},
+    {NULL, NULL, NULL}
+};
+
+static keylist_t userOrAnyList[] = {
+    {"<user>", NULL, NULL},
+    {"any", NULL, NULL},
+    {NULL, NULL, NULL}
+};
+
 static keylist_t sortList[] = {
     {"load1", sortLoad1, NULL},
     {"load_1", sortLoad1, NULL},
@@ -1222,11 +1241,11 @@ static int setShowError(char *token)
 }
 
 static keylist_t setShowList[] = {
-    {"maxproc", setShowMaxProc, NULL},
-    {"user", setShowUser, NULL},
-    {"group", setShowGroup, NULL},
-    {"adminuser", setShowAdminUser, NULL},
-    {"admingroup", setShowAdminGroup, NULL},
+    {"maxproc", setShowMaxProc, numOrAnyList},
+    {"user", setShowUser, userOrAnyList},
+    {"group", setShowGroup, userOrAnyList},
+    {"adminuser", setShowAdminUser, userOrAnyList},
+    {"admingroup", setShowAdminGroup, userOrAnyList},
     {"psiddebug", setShowPSIDDebug, NULL},
     {"selecttime", setShowSelectTime, NULL},
     {"statustimeout", setShowStatusTimeout, NULL},
@@ -1262,18 +1281,18 @@ static keylist_t setShowList[] = {
     {"maxstattry", setShowMaxStatTry, NULL},
     {"rl_as", setShowRL_AS, NULL},
     {"rl_addressspace", setShowRL_AS, NULL},
-    {"rl_core", setShowRL_Core, NULL},
-    {"rl_cpu", setShowRL_CPU, NULL},
-    {"rl_data", setShowRL_Data, NULL},
-    {"rl_fsize", setShowRL_FSize, NULL},
-    {"rl_locks", setShowRL_Locks, NULL},
-    {"rl_memlock", setShowRL_MemLock, NULL},
-    {"rl_msgqueue", setShowRL_MsgQueue, NULL},
-    {"rl_nofile", setShowRL_NoFile, NULL},
-    {"rl_nproc", setShowRL_NProc, NULL},
-    {"rl_rss", setShowRL_RSS, NULL},
-    {"rl_sigpending", setShowRL_SigPending, NULL},
-    {"rl_stack", setShowRL_Stack, NULL},
+    {"rl_core", setShowRL_Core, numOrUnlimitedList},
+    {"rl_cpu", setShowRL_CPU, numOrUnlimitedList},
+    {"rl_data", setShowRL_Data, numOrUnlimitedList},
+    {"rl_fsize", setShowRL_FSize, numOrUnlimitedList},
+    {"rl_locks", setShowRL_Locks, numOrUnlimitedList},
+    {"rl_memlock", setShowRL_MemLock, numOrUnlimitedList},
+    {"rl_msgqueue", setShowRL_MsgQueue, numOrUnlimitedList},
+    {"rl_nofile", setShowRL_NoFile, numOrUnlimitedList},
+    {"rl_nproc", setShowRL_NProc, numOrUnlimitedList},
+    {"rl_rss", setShowRL_RSS, numOrUnlimitedList},
+    {"rl_sigpending", setShowRL_SigPending, numOrUnlimitedList},
+    {"rl_stack", setShowRL_Stack, numOrUnlimitedList},
     {"pluginapiversion", setShowPluginAPIver, NULL},
     {"pluginunloadtmout", setShowPluginUnloadTmout, NULL},
     {NULL, setShowError, NULL}
@@ -1454,6 +1473,32 @@ static int setCommand(char *token)
 	break;
     case PSP_OP_PLUGINAPIVERSION:
 	printf("%s: pluginAPI is read only.\n", __func__);
+	break;
+    case PSP_OP_RL_AS:
+    case PSP_OP_RL_CORE:
+    case PSP_OP_RL_CPU:
+    case PSP_OP_RL_DATA:
+    case PSP_OP_RL_FSIZE:
+    case PSP_OP_RL_LOCKS:
+    case PSP_OP_RL_MEMLOCK:
+    case PSP_OP_RL_MSGQUEUE:
+    case PSP_OP_RL_NOFILE:
+    case PSP_OP_RL_NPROC:
+    case PSP_OP_RL_RSS:
+    case PSP_OP_RL_SIGPENDING:
+    case PSP_OP_RL_STACK:
+	if (!strcasecmp(value, "unlimited")) {
+	    val = RLIM_INFINITY;
+	} else {
+	    long tmp;
+	    int ret = parser_getNumber(value, &tmp);
+	    if (ret==-1) {
+		printf("Illegal value '%s' is not int or 'unlimited'\n", value);
+		goto error;
+	    }
+	    val = tmp;
+	}
+	break;
     default:
 	goto error;
     }
@@ -1509,6 +1554,19 @@ static int setCommand(char *token)
     case PSP_OP_MAXSTATTRY:
     case PSP_OP_MASTER:
     case PSP_OP_PLUGINUNLOADTMOUT:
+    case PSP_OP_RL_AS:
+    case PSP_OP_RL_CORE:
+    case PSP_OP_RL_CPU:
+    case PSP_OP_RL_DATA:
+    case PSP_OP_RL_FSIZE:
+    case PSP_OP_RL_LOCKS:
+    case PSP_OP_RL_MEMLOCK:
+    case PSP_OP_RL_MSGQUEUE:
+    case PSP_OP_RL_NOFILE:
+    case PSP_OP_RL_NPROC:
+    case PSP_OP_RL_RSS:
+    case PSP_OP_RL_SIGPENDING:
+    case PSP_OP_RL_STACK:
 	PSIADM_SetParam(setOpt, val, nl);
 	break;
     case PSP_OP_CPUMAP:
@@ -2324,7 +2382,8 @@ static int versionCommand(char *token)
 
     printf("PSIADMIN: ParaStation administration tool\n");
     printf("Copyright (C) 1996-2004 ParTec AG, Karlsruhe\n");
-    printf("Copyright (C) 2005-2012 ParTec Cluster Competence Center GmbH, Munich\n");
+    printf("Copyright (C) 2005-2014 ParTec Cluster Competence Center GmbH,"
+	   " Munich\n");
     printf("\n");
     printf("PSIADMIN:   %s\b/ %s\b/ %s\b \b\b\n", psiadmversion+11,
 	   commandsversion+11, parserversion+11);

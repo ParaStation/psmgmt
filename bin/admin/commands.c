@@ -27,6 +27,7 @@ static char vcid[] __attribute__((used)) =
 #include <netdb.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
+#include <sys/resource.h>
 
 #include "pscommon.h"
 #include "parser.h"
@@ -296,8 +297,8 @@ void PSIADM_ShutdownNode(int silent, char *nl)
     int send_local = 0;
 
     if (geteuid()) {
-    	printf("Insufficient privilege\n");
-    	return;
+	printf("Insufficient privilege\n");
+	return;
     }
 
     if (! getHostStatus()) return;
@@ -1495,6 +1496,24 @@ void PSIADM_SetParam(PSP_Option_t type, PSP_Optval_t value, char *nl)
 	    return;
 	}
 	break;
+    case PSP_OP_RL_AS:
+    case PSP_OP_RL_CORE:
+    case PSP_OP_RL_CPU:
+    case PSP_OP_RL_DATA:
+    case PSP_OP_RL_FSIZE:
+    case PSP_OP_RL_LOCKS:
+    case PSP_OP_RL_MEMLOCK:
+    case PSP_OP_RL_MSGQUEUE:
+    case PSP_OP_RL_NOFILE:
+    case PSP_OP_RL_NPROC:
+    case PSP_OP_RL_RSS:
+    case PSP_OP_RL_SIGPENDING:
+    case PSP_OP_RL_STACK:
+	if (value != (PSP_Optval_t)RLIM_INFINITY && value < 0) {
+	    printf(" value must be >= 0 or 'unlimited'.\n");
+	    return;
+	}
+	break;
     case PSP_OP_PSIDDEBUG:
     case PSP_OP_RDPDEBUG:
     case PSP_OP_MCASTDEBUG:
@@ -1741,7 +1760,7 @@ void PSIADM_ShowParamList(PSP_Option_t type, char *nl)
 		case PSP_OP_RL_SIGPENDING:
 		case PSP_OP_RL_STACK:
 		    if (total) printf(" / ");
-		    if (options[i].value == -1) {
+		    if (options[i].value == (PSP_Optval_t)RLIM_INFINITY) {
 			printf("unlimited");
 		    } else {
 			printf(paramHexFormat ? "0x%x" : "%d",

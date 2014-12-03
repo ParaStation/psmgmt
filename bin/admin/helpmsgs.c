@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2013 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2014 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -266,7 +266,10 @@ static info_t setInfo = {
 	" | bindmem <bool> | supplementaryGroups <bool> | maxStatTry <num>"
 	" | cpumap <map> | allowUserMap <bool> | nodessort <mode>"
 	" | adminuser [+|-]{<user>|any} | admingroup [+|-]{<group>|any}"
-	" | accountpoll <interval> | pluginUnloadTmout <timeout>} <nodes>"
+	" | accountpoll <interval> | pluginUnloadTmout <timeout>"
+	" | {rl_{addressspace|as} | rl_core | rl_cpu | rl_data | rl_fsize"
+	"    | rl_locks | rl_memlock | rl_msgqueue | rl_nofile | rl_nproc"
+	"    | rl_rss | rl_sigpending | rl_stack} {<limit>|unlimited}} <nodes>"
     }},
     .nodes = 1,
     .descr = "Set one of various parameters of the ParaStation system:",
@@ -423,6 +426,45 @@ static info_t setInfo = {
 	{ .tag = "set pluginUnloadTmout <timeout>",
 	  .descr = "Set the timeout until plugins are evicted after a"
 	  " 'plugin forceunload' to <timeout> seconds." },
+	{ .tag = "set rl_{addressspace|as} {<limit>|unlimited}",
+	  .descr = "Set RLIMIT_AS to the given <limit> for both,"
+	  " rlim_cur and rlim_max." },
+	{ .tag = "set rl_core {<limit>|unlimited}",
+	  .descr = "Set RLIMIT_CORE to the given <limit> for both,"
+	  " rlim_cur and rlim_max." },
+	{ .tag = "set rl_cpu {<limit>|unlimited}",
+	  .descr = "Set RLIMIT_CPU to the given <limit> for both,"
+	  " rlim_cur and rlim_max." },
+	{ .tag = "set rl_data {<limit>|unlimited}",
+	  .descr = "Set RLIMIT_DATA to the given <limit> for both,"
+	  " rlim_cur and rlim_max." },
+	{ .tag = "set rl_fsize {<limit>|unlimited}",
+	  .descr = "Set RLIMIT_FSIZE to the given <limit> for both,"
+	  " rlim_cur and rlim_max." },
+	{ .tag = "set rl_locks {<limit>|unlimited}",
+	  .descr = "Set RLIMIT_LOCKS to the given <limit> for both,"
+	  "rlim_cur and rlim_max." },
+	{ .tag = "set rl_memlock {<limit>|unlimited}",
+	  .descr = "Set RLIMIT_MEMLOCK to the given <limit> for both,"
+	  " rlim_cur and rlim_max." },
+	{ .tag = "set rl_msgqueue {<limit>|unlimited}",
+	  .descr = "Set RLIMIT_MSGQUEUE to the given <limit> for both,"
+	  " rlim_cur and rlim_max." },
+	{ .tag = "set rl_nofile {<limit>|unlimited}",
+	  .descr = "Set RLIMIT_NOFILE to the given <limit> for both,"
+	  " rlim_cur and rlim_max." },
+	{ .tag = "set rl_nproc {<limit>|unlimited}",
+	  .descr = "Set RLIMIT_NPROC to the given <limit> for both,"
+	  " rlim_cur and rlim_max." },
+	{ .tag = "set rl_rss {<limit>|unlimited}",
+	  .descr = "Set RLIMIT_RSS to the given <limit> for both,"
+	  " rlim_cur and rlim_max." },
+	{ .tag = "set rl_sigpending {<limit>|unlimited}",
+	  .descr = "Set RLIMIT_SIGPENDING to the given <limit> for both,"
+	  " rlim_cur and rlim_max." },
+	{ .tag = "set rl_stack {<limit>|unlimited}",
+	  .descr = "Set RLIMIT_STACK to the given <limit> for both,"
+	  " rlim_cur and rlim_max." },
 	{ NULL, NULL }
     },
     .comment = "For more information reffer to 'help set <subcommand>'"
