@@ -6,3 +6,4 @@
 /autom4te.cache
 build*/*
 dist/pscollect-*
+plugins/psslurm/regtest/tests/*/output-*
