@@ -474,18 +474,18 @@ static PSnodes_ID_t getNodeIDbyIndex(int np, int index)
        nodeList = umalloc(pSize*sizeof(nodeList), __func__);
 
        PSI_infoList(-1, PSP_INFO_LIST_PARTITION, NULL,
-               nodeList, pSize*sizeof(*nodeList), 0);
+		    nodeList, pSize*sizeof(*nodeList), 0);
     }
 
     lastID = nodeList[0];
 
     for (i=0; i<np; i++) {
        if (lastID != nodeList[i]) {
-           if (count >= index) {
-               return nodeList[i];
-           }
-           count++;
-           lastID = nodeList[i];
+	   if (count >= index) {
+	       return nodeList[i];
+	   }
+	   count++;
+	   lastID = nodeList[i];
        }
     }
 
@@ -748,17 +748,17 @@ static char *str2Buf(char *strSave, char *buffer, size_t *bufSize)
     size_t lenSave, lenBuf;
 
     if (!buffer) {
-        buffer = umalloc(MALLOC_SIZE, __func__);
-        *bufSize = MALLOC_SIZE;
-        buffer[0] = '\0';
+	buffer = umalloc(MALLOC_SIZE, __func__);
+	*bufSize = MALLOC_SIZE;
+	buffer[0] = '\0';
     }
 
     lenSave = strlen(strSave);
     lenBuf = strlen(buffer);
 
     while (lenBuf + lenSave + 1 > *bufSize) {
-        buffer = urealloc(buffer, *bufSize + MALLOC_SIZE, __func__);
-        *bufSize += MALLOC_SIZE;
+	buffer = urealloc(buffer, *bufSize + MALLOC_SIZE, __func__);
+	*bufSize += MALLOC_SIZE;
     }
 
     strcat(buffer, strSave);
@@ -1644,7 +1644,8 @@ static void setupPSIDEnv(int verbose)
 	setPSIEnv("PSI_USE_VALGRIND", "1", 1);
 	if (!callgrind) {
 	     if (verbose) {
-		  printf("PSI_USE_VALGRIND=1 : Running on Valgrind core(s) (memcheck tool)\n");
+		 printf("PSI_USE_VALGRIND=1 : Running on Valgrind core(s)"
+			" (memcheck tool)\n");
 		  if (!mergeout) {
 		       printf("(You can use '-merge' for merging output of all "
 			      "Valgrind cores)\n");
@@ -1654,9 +1655,10 @@ static void setupPSIDEnv(int verbose)
 	     setenv("PSI_USE_CALLGRIND", "1", 1);
 	     setPSIEnv("PSI_USE_CALLGRIND", "1", 1);
 	     if (verbose) {
-		  printf("PSI_USE_CALLGRIND=1 : Running on Valgrind core(s) (callgrind tool)\n");
-	     }	     
-	}	
+		 printf("PSI_USE_CALLGRIND=1 : Running on Valgrind core(s)"
+			" (callgrind tool)\n");
+	     }
+	}
     }
 
     if (timestamp) {
@@ -1696,7 +1698,6 @@ static void setupPSIDEnv(int verbose)
 
     if (loopnodesfirst || (getenv("PSI_LOOP_NODES_FIRST"))) {
 	setenv("PSI_LOOP_NODES_FIRST", "1", 1);
-	setPSIEnv("PSI_LOOP_NODES_FIRST", "1", 1);
 	if (verbose) printf("PSI_LOOP_NODES_FIRST=1 : Placing consecutive "
 	    "processes on different nodes.\n");
     }
@@ -1781,7 +1782,7 @@ static void setupPSIDEnv(int verbose)
     msg = PSE_checkSortEnv(sort, "--", verbose);
     if (msg) errExit(msg);
 
-    if ((getenv("PSI_OPENMPI")) || (getPSIEnv("PSI_OPENMPI")) ) {
+    if (getenv("PSI_OPENMPI")) {
 	OpenMPI = 1;
     }
 
@@ -1790,7 +1791,6 @@ static void setupPSIDEnv(int verbose)
 	    errExit("overbooking is unsupported for OpenMPI");
 	}
 	setenv("PSI_OPENMPI", "1", 1);
-	setPSIEnv("PSI_OPENMPI", "1", 1);
     }
 
     /* set the universe size */
