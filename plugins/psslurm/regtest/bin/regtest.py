@@ -392,6 +392,7 @@ def spawn_frontend_process(test, part, partinfo, reserv, qos, jobid, fo, fe):
 	env["PSTEST_PARTITION_CPUS"] = "%s" % partinfo["cpus"]
 	env["PSTEST_RESERVATION"]    = "%s" % reserv
 	env["PSTEST_QOS"]            = "%s" % qos
+	env["PSTEST_ACCOUNT"]        = "%s" % account
 	env["PSTEST_TESTKEY"]        = "%s" % test["key"]
 	env["PSTEST_OUTDIR"]         = "%s" % test["outdir"]
 	if jobid:
