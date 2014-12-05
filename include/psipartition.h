@@ -259,12 +259,13 @@ int PSI_createPartition(unsigned int num, uint32_t hwType);
 /**
  * @brief Get nodes to spawn processes to.
  *
- * Get @a num nodes supporting the hardware-types @a hwType in order
- * to spawn processes to these nodes and store their ParaStation IDs to
- * @a nodes. Nodes may only be requested in chunks of @ref NODES_CHUNK
- * each. If more nodes are requested, an error is
- * returned. Furthermore the rank of the first process to spawn is
- * returned.
+ * Get @a num nodes supporting the hardware-types @a hwType and
+ * providing @a tpp hardware threads under special constraints that
+ * might be given in @a options in order to spawn processes to these
+ * nodes and store their ParaStation IDs to @a nodes. Nodes may only
+ * be requested in chunks of @ref NODES_CHUNK each. If more nodes are
+ * requested, an error is returned. Furthermore the rank of the first
+ * process to spawn is returned.
  *
  * @param num The number of nodes requested.
  *
@@ -273,6 +274,13 @@ int PSI_createPartition(unsigned int num, uint32_t hwType);
  * PSI_resolveHWList(). If this is 0, any node will be accepted from
  * the hardware-type point of view.
  *
+ * @param tpp Number of threads allowed for these processes. This
+ * corresponds to the number of hardware-threads reserved on the
+ * specific node.
+ *
+ * @param options Additional constraints like PART_OPT_NODEFIRST or
+ * PART_OPT_OVERBOOK that will be used to get the nodes.
+ *
  * @param nodes An array sufficiently large to store the ParaStation
  * IDs of the requested nodes to.
  *
@@ -280,7 +288,8 @@ int PSI_createPartition(unsigned int num, uint32_t hwType);
  * returned. All following processes will have consecutive ranks. In
  * case of an error -1 is returned.
  */
-int PSI_getNodes(unsigned int num, uint32_t hwType, PSnodes_ID_t *nodes);
+int PSI_getNodes(unsigned int num, uint32_t hwType, uint16_t tpp,
+		 PSpart_option_t options, PSnodes_ID_t *nodes);
 
 /**
  * @brief Get node to spawn process to.

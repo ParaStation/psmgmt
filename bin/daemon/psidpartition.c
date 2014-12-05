@@ -2886,8 +2886,10 @@ static void msg_GETNODES(DDBufferMsg_t *inmsg)
 	inmsg->header.dest : inmsg->header.sender;
     PStask_t *task = PStasklist_find(&managedTasks, target);
     char *ptr = inmsg->buf;
+    size_t usedBytes = sizeof(inmsg->header);
     unsigned int num;
-    int hwType = 0;
+    int hwType = 0, tpp = 1;
+    PSpart_option_t options = 0;
 
     if (!task) {
 	PSID_log(-1, "%s: Task %s not found\n", __func__,
@@ -2919,13 +2921,28 @@ static void msg_GETNODES(DDBufferMsg_t *inmsg)
 
     num = *(uint32_t *)ptr;
     ptr += sizeof(uint32_t);
+    usedBytes += sizeof(uint32_t);
 
-    if (inmsg->header.len > sizeof(inmsg->header) + sizeof(uint32_t)) {
+    if (inmsg->header.len > usedBytes) {
 	hwType = *(uint32_t *)ptr;
-	//ptr += sizeof(uint32_t);
+	ptr += sizeof(uint32_t);
+	usedBytes += sizeof(uint32_t);
     }
 
-    PSID_log(PSID_LOG_PART, "%s(num %d, hwType %d)\n", __func__, num, hwType);
+    if (inmsg->header.len > usedBytes) {
+	options = *(PSpart_option_t *)ptr;
+	ptr += sizeof(PSpart_option_t);
+	usedBytes += sizeof(PSpart_option_t);
+    }
+
+    if (inmsg->header.len > usedBytes) {
+	tpp = *(uint16_t *)ptr;
+	//ptr += sizeof(uint16_t);
+	//usedBytes += sizeof(uint16_t);
+    }
+
+    PSID_log(PSID_LOG_PART, "%s(num %d, hwType %d, tpp %d, options %xd)\n",
+	     __func__, num, hwType, tpp, options);
 
     if (num > NODES_CHUNK) goto error;
 

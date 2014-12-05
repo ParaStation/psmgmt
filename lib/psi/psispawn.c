@@ -860,13 +860,14 @@ int PSI_spawn(int count, char *workdir, int argc, char **argv,
 int PSI_spawnStrict(int count, char *workdir, int argc, char **argv,
 		    int strictArgv, int *errors, PStask_ID_t *tids)
 {
-    return PSI_spawnStrictHW(count, 0, workdir, argc, argv, strictArgv,
-			     errors, tids);
+    return PSI_spawnStrictHW(count, 0/*hwType*/, 1/*tpp*/, 0/*options*/,
+			     workdir, argc, argv, strictArgv, errors, tids);
 }
 
-int PSI_spawnStrictHW(int count, uint32_t hwType, char *workdir,
-		      int argc, char **argv, int strictArgv, int *errors,
-		      PStask_ID_t *tids)
+int PSI_spawnStrictHW(int count, uint32_t hwType, uint16_t tpp,
+		      PSpart_option_t options, char *workdir,
+		      int argc, char **argv, int strictArgv,
+		      int *errors, PStask_ID_t *tids)
 {
     int total = 0;
     PSnodes_ID_t *nodes;
@@ -888,7 +889,7 @@ int PSI_spawnStrictHW(int count, uint32_t hwType, char *workdir,
 
     while (count>0) {
 	int chunk = (count>NODES_CHUNK) ? NODES_CHUNK : count;
-	int rank = PSI_getNodes(chunk, hwType, nodes);
+	int rank = PSI_getNodes(chunk, hwType, tpp, options, nodes);
 	int i, ret;
 
 	if (rank < 0) {
@@ -934,7 +935,7 @@ int PSI_spawnSingle(char *workdir, int argc, char **argv,
 	return -1;
     }
 
-    rank = PSI_getNodes(1, 0, &node);
+    rank = PSI_getNodes(1, 0 /*hwType*/, 1 /*tpp*/, 0/*options*/, &node);
     if (rank < 0) {
 	*error = ENXIO;
 	return -1;

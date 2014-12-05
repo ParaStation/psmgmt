@@ -102,6 +102,11 @@ void PSI_registerRankEnvFunc(char **(*func)(int));
  * @a hwType might be set accordingly. The present working directory
  * of the spawned tasks will be @a workingdir.
  *
+ * The tasks might occupy a positive number of @a tpp hardware-threads
+ * in order to support multi-threaded applications. Furthermore,
+ * additional constraints like PART_OPT_NODEFIRST or PART_OPT_OVERBOOK
+ * might be raised via the @a options parameter.
+ *
  * The unique task IDs of the spawned tasks will be returned within
  * the @a tids array. If an error occurred, @a errors will contain an
  * errno describing the error on the position corresponding to the
@@ -117,6 +122,10 @@ void PSI_registerRankEnvFunc(char **(*func)(int));
  * This bit-field shall be prepared using PSI_resolveHWList(). If it
  * is set to 0, any node will be accepted from the hardware-type point
  * of view.
+ *
+ * @param tpp Threads per process.
+ *
+ * @param options Options on how to get the nodes.
  *
  * @param workingdir Present working directory of the spawned tasks on
  * startup. This might be an absolute or relative path. If @a
@@ -145,9 +154,10 @@ void PSI_registerRankEnvFunc(char **(*func)(int));
  *
  * @see PSI_createPartition() PSI_getNodes()
  */
-int PSI_spawnStrictHW(int count, uint32_t hwType, char *workdir,
-		      int argc, char **argv, int strictArgv, int *errors,
-		      PStask_ID_t *tids);
+int PSI_spawnStrictHW(int count, uint32_t hwType, uint16_t tpp,
+		      PSpart_option_t options,
+		      char *workdir, int argc, char **argv, int strictArgv,
+		      int *errors, PStask_ID_t *tids);
 
 /**
  * @brief Spawn one or more tasks within the cluster.

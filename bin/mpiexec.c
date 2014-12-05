@@ -1312,7 +1312,8 @@ static int spawnSingleExecutable(int np, int argc, char **argv, char *wd,
 
     /* spawn client processes */
     if (cNodeType) nodeType = getNodeType(cNodeType);
-    ret = PSI_spawnStrictHW(np, nodeType, wd, argc, argv, 1, errors, tids);
+    ret = PSI_spawnStrictHW(np, nodeType, 1 /*tpp*/, 0 /*options*/,
+			    wd, argc, argv, 1, errors, tids);
 
     /* Analyze result, if necessary */
     if (ret<0) {
