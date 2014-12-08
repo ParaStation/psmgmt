@@ -751,6 +751,8 @@ def exec_test_interactive(thread, test, part, reserv, qos, partinfo):
 				tmp += ["--reservation", reserv]
 			if len(qos) > 0:
 				tmp += ["--qos", qos]
+			if len(account) > 0:
+				tmp += ["--account", account]
 			cmd = tmp + cmd[1:]
 
 			log("%s: submit process cmd = [%s]\n" % (test["logkey"], ", ".join(cmd)))

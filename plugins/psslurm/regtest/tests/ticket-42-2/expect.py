@@ -4,10 +4,18 @@ import os
 import sys
 import subprocess
 
-cmd = "srun -N 2 -t 1 -p %s " % os.environ["PSTEST_PARTITION"]
+
+srun = ["srun"]
+if "" != os.environ["PSTEST_PARTITION"]:
+	srun += ["--partition", os.environ["PSTEST_PARTITION"]]
 if "" != os.environ["PSTEST_RESERVATION"]:
-	cmd += "--reservation %s " % os.environ["PSTEST_RESERVATION"]
-cmd += "--pty /bin/bash"
+	srun += ["--reservation", os.environ["PSTEST_RESERVATION"]]
+if "" != os.environ["PSTEST_QOS"]:
+	srun += ["--qos", os.environ["PSTEST_QOS"]]
+if "" != os.environ["PSTEST_ACCOUNT"]:
+	srun += ["--account", os.environ["PSTEST_ACCOUNT"]]
+
+cmd = srun + ["-N", "2", "-t", "1", "--pty", "/bin/bash"]
 
 stdin = """
 set timeout -1
@@ -21,7 +29,7 @@ expect eof
 
 catch wait result
 exit [lindex $result 3]
-""" % cmd
+""" % " ".join(cmd)
 
 p = subprocess.Popen(["/usr/bin/expect", "-"], stdin = subprocess.PIPE)
 p.communicate(stdin)
