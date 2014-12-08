@@ -753,6 +753,8 @@ static void handle_PS_JobLaunch(DDTypedBufferMsg_t *msg)
 
     /* get uid/gid */
     getUint32(&ptr, &job->uid);
+    getUint32(&ptr, &job->gid);
+
     /* get username */
     job->username = getStringM(&ptr);
 
