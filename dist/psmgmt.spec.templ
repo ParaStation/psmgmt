@@ -73,7 +73,7 @@ daemon is neccessary to integrate compute nodes into a Torque batch system.
 
 %build
 export CFLAGS="%(echo %{optflags}|sed -e 's,-O.,,' -e 's,-Wall,,' -e 's,-Wextra,,')"
-%configure --datarootdir=%{_datadir} --with-pamdir=%{_pamdir} PKG_CONFIG_PATH=/opt/parastation/%{_lib}/psglib/pkgconfig
+%configure --datarootdir=%{_datadir} --with-pamdir=%{_pamdir}
 make %{?_smp_mflags}
 
 %install
