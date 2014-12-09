@@ -370,10 +370,10 @@ void PSID_checkMaxPID(void)
     }
 
     ret = fscanf(maxPIDFile, "%u", &maxPID);
-
-    if (ret == EOF || ret < 1) {
-	PSID_log(-1, "%s: unable to determine maximum PID\n", __func__);
-	return;
+    if (ret == EOF) {
+	PSID_warn(-1, ferror(maxPIDFile) ? errno : 0,
+		  "%s: unable to determine maximum PID", __func__);
+	goto end;
     }
 
     PSID_log(PSID_LOG_VERB, "%s: pid_max is %d\n", __func__, maxPID);
@@ -382,6 +382,10 @@ void PSID_checkMaxPID(void)
 	PSID_exit(EINVAL, "%s: cannot handle PIDs larger than 16 bit."
 		  " Please fix setting in '%s'", __func__, PID_FILE);
     }
+
+end:
+    fclose(maxPIDFile);
+    return;
 }
 
 static time_t startTime = -1;
