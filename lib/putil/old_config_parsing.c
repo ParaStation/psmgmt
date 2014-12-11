@@ -2138,10 +2138,16 @@ static int getNodeLine(char *token)
     hostname = strdup(token);
 
     ret = parser_getNumValue(parser_getString(), &nodenum, "node number");
-    if (ret) return ret;
+    if (ret) {
+	if (hostname) free(hostname);
+	return ret;
+    }
 
     ret = setupNodeFromDefault();
-    if (ret) return ret;
+    if (ret) {
+	if (hostname) free(hostname);
+	return ret;
+    }
 
     parser_comment(PARSER_LOG_NODE, "Register '%s' as %d", hostname, nodenum);
     free(hostname);
