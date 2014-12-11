@@ -803,8 +803,9 @@ int main(int argc, const char *argv[])
 	}
 
 	/* Initialize RDP */
-	RDPSocket = initRDP(PSC_getNrOfNodes(), config->RDPPort, logfile,
-			    hostlist, RDPCallBack);
+	RDPSocket = initRDP(PSC_getNrOfNodes(),
+			    PSIDnodes_getAddr(PSC_getMyID()), config->RDPPort,
+			    logfile, hostlist, RDPCallBack);
 	if (RDPSocket<0) {
 	    PSID_exit(errno, "Error while trying initRDP");
 	}

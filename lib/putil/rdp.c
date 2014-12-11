@@ -918,20 +918,21 @@ static void sendNACK(int node)
  *
  * Sets up a socket used for all RDP communications.
  *
+ * @param addr The source IP address to bind to.
  * @param port The UDP port to use.
  * @param qlen No used yet
  *
  * @return -1 is returned if an error occurs; otherwise the return value
  * is a descriptor referencing the socket.
  */
-static int initSockRDP(unsigned short port, int qlen)
+static int initSockRDP(in_addr_t addr, unsigned short port, int qlen)
 {
     struct sockaddr_in sin;  /* an internet endpoint address */
     int s;                   /* socket descriptor */
 
     memset(&sin, 0, sizeof(sin));
     sin.sin_family = AF_INET;
-    sin.sin_addr.s_addr = INADDR_ANY;
+    sin.sin_addr.s_addr = addr;
     sin.sin_port = port;
 
     /*
@@ -1911,7 +1912,7 @@ static char *stateStringRDP(RDPState_t state)
 
 /* ---------------------------------------------------------------------- */
 
-int initRDP(int nodes, unsigned short portno, FILE* logfile,
+int initRDP(int nodes, in_addr_t addr, unsigned short portno, FILE* logfile,
 	    unsigned int hosts[], void (*callback)(int, void*))
 {
     logger = logger_init("RDP", logfile);
@@ -1937,7 +1938,7 @@ int initRDP(int nodes, unsigned short portno, FILE* logfile,
 
     if (!Selector_isInitialized()) Selector_init(logfile);
 
-    rdpsock = initSockRDP(htons(portno), 0);
+    rdpsock = initSockRDP(addr, htons(portno), 0);
     Selector_register(rdpsock, handleRDP, NULL);
 
     if (!Timer_isInitialized()) Timer_init(logfile);
