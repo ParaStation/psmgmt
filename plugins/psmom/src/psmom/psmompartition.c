@@ -461,7 +461,7 @@ int handleCreatePartNL(void *msg)
     /* admin user can always pass */
     if ((isPSAdminUser(task->uid, task->gid))) return 1;
 
-    /* for batch users we send the nodelist before */
+    /* for batch users we sent the nodelist before */
     return 0;
 
 error:
