@@ -64,7 +64,6 @@ static config_t config = (config_t) {
     .logDest = LOG_DAEMON,
     .logfile = NULL,
     .freeOnSuspend = 0,
-    .handleOldBins = 0,
     .nodesSort = PART_SORT_PROC,
     .acctPollInterval = 0,
     .startupScript = NULL,
@@ -2563,13 +2562,6 @@ static int getFreeOnSusp(char *token)
     return 0;
 }
 
-static int getHandleOldBins(char *token)
-{
-    config.handleOldBins = 1;
-    parser_comment(-1, "recognize old binaries within resource management\n");
-    return 0;
-}
-
 static int sortLoad1(char *token)
 {
     config.nodesSort = PART_SORT_LOAD_1;
@@ -2768,7 +2760,6 @@ static keylist_t config_list[] = {
     {"logdestination", getLogDest, NULL},
     {"environment", getEnv, NULL},
     {"freeOnSuspend", getFreeOnSusp, NULL},
-    {"handleOldBins", getHandleOldBins, NULL},
     {"psiNodesSort", getPSINodesSort, NULL},
     {"plugins", getPlugins, NULL},
     {"startupScript", getDaemonScript, NULL},

@@ -1518,7 +1518,6 @@ void PSIADM_SetParam(PSP_Option_t type, PSP_Optval_t value, char *nl)
     case PSP_OP_RDPDEBUG:
     case PSP_OP_MCASTDEBUG:
     case PSP_OP_FREEONSUSP:
-    case PSP_OP_HANDLEOLD:
     case PSP_OP_NODESSORT:
     case PSP_OP_OVERBOOK:
     case PSP_OP_STARTER:
@@ -1655,7 +1654,6 @@ void PSIADM_ShowParam(PSP_Option_t type, char *nl)
 			break;
 		    }
 		case PSP_OP_FREEONSUSP:
-		case PSP_OP_HANDLEOLD:
 		case PSP_OP_EXCLUSIVE:
 		case PSP_OP_RUNJOBS:
 		case PSP_OP_STARTER:

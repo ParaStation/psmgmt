@@ -747,9 +747,6 @@ static void msg_SETOPTION(DDOptionMsg_t *msg)
 	    case PSP_OP_FREEONSUSP:
 		config->freeOnSuspend = msg->opt[i].value;
 		break;
-	    case PSP_OP_HANDLEOLD:
-		config->handleOldBins = msg->opt[i].value;
-		break;
 	    case PSP_OP_NODESSORT:
 		config->nodesSort = msg->opt[i].value;
 		break;
@@ -1008,9 +1005,6 @@ static void msg_GETOPTION(DDOptionMsg_t *msg)
 		break;
 	    case PSP_OP_FREEONSUSP:
 		msg->opt[out].value = config->freeOnSuspend;
-		break;
-	    case PSP_OP_HANDLEOLD:
-		msg->opt[out].value = config->handleOldBins;
 		break;
 	    case PSP_OP_NODESSORT:
 		msg->opt[out].value = config->nodesSort;

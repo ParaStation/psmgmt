@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2009 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2014 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -73,8 +73,6 @@ typedef struct {
 			    commandline. */
     int freeOnSuspend;   /**< Flag if a job's resources are freed on
 			    suspend. */
-    int handleOldBins;   /**< Flag if resources occupied by old binaries
-			    (prior 4.1.0 should be recognized. */
     int nodesSort;       /**< The default sorting strategy; used if the user
 			    does not declare a different one explicitely. */
     int acctPollInterval;/**< Interval of forwarder to poll for accounting

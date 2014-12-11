@@ -261,7 +261,7 @@ static info_t setInfo = {
 	" | rdpmaxretrans <val> | rdpresendtimeout <val>| rdpretrans <val> "
 	" | rdpclosedtimeout <val> | rdpmaxackpend <val> | rdpstatistics <bool>"
 	" | mcastdebug <level> | {freeonsuspend|fos} <bool>"
-	" | {handleoldbins|hob} <bool> | starter <bool> | runjobs <bool>"
+	" | starter <bool> | runjobs <bool>"
 	" | overbook {<bool>|auto} | exclusive <bool> | pinprocs <bool>"
 	" | bindmem <bool> | supplementaryGroups <bool> | maxStatTry <num>"
 	" | cpumap <map> | allowUserMap <bool> | nodessort <mode>"
@@ -348,12 +348,6 @@ static info_t setInfo = {
 	  " temporarily to <bool>. Relevant values are 'false', 'true', 'no',"
 	  " 'yes', 0 or different from 0."
 	  " Only the value on the master node really steers the behavior!" },
-	{ .tag = "set {handleoldbins|hob} <bool>",
-	  .descr = "Set flag marking if old binaries resources are handled"
-	  " correctly to <bool>. Relevant values are 'false', 'true', 'no',"
-	  " 'yes', 0 or different from 0."
-	  " Unfortunately this will break 'freeOnSuspend'. Only the value on"
-	  " the master node really steers the behavior!" },
 	{ .tag = "set starter <bool>",
 	  .descr = "Set flag marking if starting is allowed from this nodes"
 	  " to <bool>. Relevant values are 'false', 'true', 'no',"
@@ -478,7 +472,7 @@ static info_t showInfo = {
 	" | statustimeout | statusbroadcasts | deadlimit | rdpdebug"
 	" | rdptimeout | rdppktloss | rdpmaxretrans | rdpresendtimeout"
 	" | rdpretrans | rdpclosedtimeout | rdpmaxackpend | rdpstatistics"
-	" | mcastdebug | master | {freeonsuspend|fos} | {handleoldbins|hob}"
+	" | mcastdebug | master | {freeonsuspend|fos}"
 	" | starter | runjobs | overbook | exclusive | pinprocs | bindmem"
 	" | cpumap | allowUserMap | nodessort | supplementaryGroups"
 	" | maxStatTry | adminuser | admingroup | accounters | accountpoll"
@@ -533,10 +527,6 @@ static info_t showInfo = {
 	  .descr = "Show flag marking if resources of suspended jobs are freed"
 	  " temporarily. Only the value on the master node really steers the"
 	  " behaviour!" },
-	{ .tag = "show {handleoldbins|hob}",
-	  .descr = "Show flag marking if old binaries resources are handled"
-	  " correctly. Unfortunately this will break 'freeOnSuspend'. Only"
-	  " the value on the master node really steers the behavior!" },
 	{ .tag = "show starter",
 	  .descr = "Show flag marking if starting is allowed." },
 	{ .tag = "show runjobs",

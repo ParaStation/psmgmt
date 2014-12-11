@@ -1061,12 +1061,6 @@ static int setShowFOS(char *token)
     return 0;
 }
 
-static int setShowHOB(char *token)
-{
-    setShowOpt = PSP_OP_HANDLEOLD;
-    return 0;
-}
-
 static int setShowNodesSort(char *token)
 {
     setShowOpt = PSP_OP_NODESSORT;
@@ -1264,8 +1258,6 @@ static keylist_t setShowList[] = {
     {"mcastdebug", setShowMCastDebug, NULL},
     {"freeonsuspend", setShowFOS, boolList},
     {"fos", setShowFOS, boolList},
-    {"handleoldbins", setShowHOB, boolList},
-    {"hob", setShowHOB, boolList},
     {"nodessort", setShowNodesSort, sortList},
     {"overbook", setShowOverbook, boolAutoList},
     {"exclusive", setShowExclusive, boolList},
@@ -1439,7 +1431,6 @@ static int setCommand(char *token)
 	}
 	break;
     case PSP_OP_FREEONSUSP:
-    case PSP_OP_HANDLEOLD:
     case PSP_OP_EXCLUSIVE:
     case PSP_OP_RUNJOBS:
     case PSP_OP_STARTER:
@@ -1541,7 +1532,6 @@ static int setCommand(char *token)
     case PSP_OP_MCASTDEBUG:
     case PSP_OP_OVERBOOK:
     case PSP_OP_FREEONSUSP:
-    case PSP_OP_HANDLEOLD:
     case PSP_OP_EXCLUSIVE:
     case PSP_OP_RUNJOBS:
     case PSP_OP_STARTER:
@@ -1630,7 +1620,6 @@ static int showCommand(char *token)
     case PSP_OP_MCASTDEBUG:
     case PSP_OP_MASTER:
     case PSP_OP_FREEONSUSP:
-    case PSP_OP_HANDLEOLD:
     case PSP_OP_NODESSORT:
     case PSP_OP_OVERBOOK:
     case PSP_OP_EXCLUSIVE:

@@ -76,7 +76,6 @@ static config_t config = (config_t) {
     .logDest = LOG_DAEMON,
     .logfile = NULL,
     .freeOnSuspend = 0,
-    .handleOldBins = 0,
     .nodesSort = PART_SORT_PROC,
     .acctPollInterval = 0,
     .startupScript = NULL,
@@ -95,7 +94,7 @@ static int nodesfound = 0;
 static PSConfig* psconfig = NULL;
 static char* psconfigobj = NULL;
 static guint psconfig_flags = PSCONFIG_FLAG_FOLLOW | PSCONFIG_FLAG_INHERIT
-                              | PSCONFIG_FLAG_ANCESTRAL;
+				| PSCONFIG_FLAG_ANCESTRAL;
 
 typedef struct confkeylist_T {
     char *key;                /**< psconfig key */
@@ -148,18 +147,18 @@ static nodeconf_t nodeconf = {
 
 #define CHECK_PSCONFIG_ERROR_AND_RETURN(val, key, err, ret) { \
     if (val == NULL) { \
-        parser_comment(-1, "PSConfig: %s(%s): %s\n", psconfigobj, key, \
-                           (err)->message); \
-        g_error_free(err); \
-        return ret; \
+	parser_comment(-1, "PSConfig: %s(%s): %s\n", psconfigobj, key,	\
+		       (err)->message);					\
+	g_error_free(err);						\
+	return ret;							\
     } \
 }
 
 #define CHECK_PSCONFIG_EMPTY_STRING_AND_RETURN(val, key, ret) { \
     if (*(val) == '\0') { \
-        parser_comment(-1, "PSConfig: '%s(%s)' does not exist or has empty" \
-                           " value\n", psconfigobj, key); \
-        return ret; \
+	parser_comment(-1, "PSConfig: '%s(%s)' does not exist or has empty" \
+		       " value\n", psconfigobj, key);			\
+	return ret;							\
     } \
 }
 
@@ -191,9 +190,9 @@ static int toBool(char *token, int *value)
     } else if (strcasecmp(token, "0")==0) {
 	*value = 0;
     } else {
-        ret = -1;
+	ret = -1;
     }
-    
+
     return ret;
 }
 
@@ -209,8 +208,8 @@ static int getBool(char *key, int *value)
 
     ret = toBool(token, value);
     if (ret) {
-        parser_comment(-1, "PSConfig: '%s(%s)' cannot convert string '%s' to"
-                           " boolean\n", psconfigobj, key, token);
+	parser_comment(-1, "PSConfig: '%s(%s)' cannot convert string '%s' to"
+		       " boolean\n", psconfigobj, key, token);
     }
     g_free(token);
     return ret;
@@ -244,8 +243,8 @@ static int getNumber(char *key, int *val)
 
     ret = toNumber(token, val);
     if (ret) {
-        parser_comment(-1, "PSConfig: '%s(%s)' cannot convert string '%s' to"
-                           " number\n", psconfigobj, key, token);
+	parser_comment(-1, "PSConfig: '%s(%s)' cannot convert string '%s' to"
+		       " number\n", psconfigobj, key, token);
     }
     g_free(token);
     return ret;
@@ -262,14 +261,14 @@ static int doForList(char *key, int (*action)(char *))
     CHECK_PSCONFIG_ERROR_AND_RETURN(list, key, err, -1);
 
     if (list->len == 0) {
-        parser_comment(-1, "PSConfig: '%s(%s)' does not exist or is empty"
-                           " list\n", psconfigobj, key);
-        return -1;
+	parser_comment(-1, "PSConfig: '%s(%s)' does not exist or is empty"
+		       " list\n", psconfigobj, key);
+	return -1;
     }
 
     for(i = 0; i < list->len; i++) {
-        ret = action((char*)g_ptr_array_index(list,i));
-        if (ret) break;
+	ret = action((char*)g_ptr_array_index(list,i));
+	if (ret) break;
     }
     g_ptr_array_free(list, TRUE);
 
@@ -415,35 +414,35 @@ static int getRLimit(char *pointer)
     int i, intval, ret = 0;
 
     for (i=0; supported_rlimits[i].key != NULL; i++) {
-        ret = getString(supported_rlimits[i].key, &limit);
-        if (ret) continue;
+	ret = getString(supported_rlimits[i].key, &limit);
+	if (ret) continue;
 
-        if (*limit == '\0') {
-            // limit not set
-            return 0;
-        }
+	if (*limit == '\0') {
+	    // limit not set
+	    return 0;
+	}
 
-        if (strcasecmp(limit,"infinity") == 0
-                || strcasecmp(limit, "unlimited") == 0) {
-            value = RLIM_INFINITY;
-            parser_comment(PARSER_LOG_RES, "got 'RLIM_INFINITY' for '%s'\n",
-                           supported_rlimits[i].key);
-        } else {
-            ret = toNumber(limit, &intval);
+	if (strcasecmp(limit,"infinity") == 0
+	    || strcasecmp(limit, "unlimited") == 0) {
+	    value = RLIM_INFINITY;
+	    parser_comment(PARSER_LOG_RES, "got 'RLIM_INFINITY' for '%s'\n",
+			   supported_rlimits[i].key);
+	} else {
+	    ret = toNumber(limit, &intval);
 	    if (ret) {
-                g_free(limit);
-                break;
-            }
-            value = intval;
-        }
+		g_free(limit);
+		break;
+	    }
+	    value = intval;
+	}
 
-        if (supported_rlimits[i].mult) {
-            setLimit(supported_rlimits[i].resource,
-                     (value == RLIM_INFINITY) ? value : value*1024);
-        } else {
-            setLimit(supported_rlimits[i].resource, value);
-        }
-        g_free(limit);
+	if (supported_rlimits[i].mult) {
+	    setLimit(supported_rlimits[i].resource,
+		     (value == RLIM_INFINITY) ? value : value*1024);
+	} else {
+	    setLimit(supported_rlimits[i].resource, value);
+	}
+	g_free(limit);
     }
 
     return ret;
@@ -470,19 +469,19 @@ static int getInstDir(char *key)
 
     if (stat(dname, &fstat)) {
 	parser_comment(-1, "%s: %s\n", dname, strerror(errno));
-        g_free(dname);
+	g_free(dname);
 	return -1;
     }
 
     if (!S_ISDIR(fstat.st_mode)) {
 	parser_comment(-1, "'%s' is not a directory\n", dname);
-        g_free(dname);
+	g_free(dname);
 	return -1;
     }
 
     if (strcmp(dname, PSC_lookupInstalldir(dname))) {
 	parser_comment(-1, "'%s' seems to be no valid installdir\n", dname);
-        g_free(dname);
+	g_free(dname);
 	return -1;
     }
 
@@ -534,8 +533,9 @@ static int getMCastUse(char *key)
     if (ret) return ret;
 
     if (mc) {
-        config.useMCast = 1;
-        parser_comment(-1, "will use MCast. Disable alternative status control\n");
+	config.useMCast = 1;
+	parser_comment(-1,
+		       "will use MCast. Disable alternative status control\n");
     }
 
     return 0;
@@ -739,44 +739,44 @@ static int getLogDest(char *key)
 
     if (*value == '\0') {
 	parser_comment(-1, "empty destination\n");
-        g_free(value);
+	g_free(value);
 	return -1;
     }
 
     ret = 0;
 
     if (!strcasecmp(value, "LOG_DAEMON")) {
-        config.logDest = LOG_DAEMON;
+	config.logDest = LOG_DAEMON;
     }
     else if (strcasecmp(value, "LOG_KERN")) {
-        config.logDest = LOG_KERN;
+	config.logDest = LOG_KERN;
     }
     else if (strcasecmp(value, "LOG_LOCAL0")) {
-        config.logDest = LOG_LOCAL0;
+	config.logDest = LOG_LOCAL0;
     }
     else if (strcasecmp(value, "LOG_LOCAL1")) {
-        config.logDest = LOG_LOCAL1;
+	config.logDest = LOG_LOCAL1;
     }
     else if (strcasecmp(value, "LOG_LOCAL2")) {
-        config.logDest = LOG_LOCAL2;
+	config.logDest = LOG_LOCAL2;
     }
     else if (strcasecmp(value, "LOG_LOCAL3")) {
-        config.logDest = LOG_LOCAL3;
+	config.logDest = LOG_LOCAL3;
     }
     else if (strcasecmp(value, "LOG_LOCAL4")) {
-        config.logDest = LOG_LOCAL4;
+	config.logDest = LOG_LOCAL4;
     }
     else if (strcasecmp(value, "LOG_LOCAL5")) {
-        config.logDest = LOG_LOCAL5;
+	config.logDest = LOG_LOCAL5;
     }
     else if (strcasecmp(value, "LOG_LOCAL6")) {
-        config.logDest = LOG_LOCAL6;
+	config.logDest = LOG_LOCAL6;
     }
     else if (strcasecmp(value, "LOG_LOCAL7")) {
-        config.logDest = LOG_LOCAL7;
+	config.logDest = LOG_LOCAL7;
     }
     else {
-        ret = toNumber(value, &config.logDest);
+	ret = toNumber(value, &config.logDest);
     }
 
     g_free(value);
@@ -790,26 +790,10 @@ static int getFreeOnSusp(char *key)
     ret = getBool(key, &fs);
 
     if (ret) return ret;
- 
+
     if (fs) {
-        config.freeOnSuspend = 1;
-        parser_comment(-1, "suspended jobs will free their resources\n");
-    }
-
-    return 0;
-}
-
-static int getHandleOldBins(char *key)
-{
-    int hob, ret;
-
-    ret = getBool(key, &hob);
-
-    if (ret) return ret;
-
-    if (hob) {
-        config.handleOldBins = 1;
-        parser_comment(-1, "recognize old binaries within resource management\n");
+	config.freeOnSuspend = 1;
+	parser_comment(-1, "suspended jobs will free their resources\n");
     }
 
     return 0;
@@ -826,26 +810,26 @@ static int getPSINodesSort(char *key)
     ret = 0;
 
     if (!strcasecmp(value, "load1") || !strcasecmp(value, "load_1")) {
-        config.nodesSort = PART_SORT_LOAD_1;
+	config.nodesSort = PART_SORT_LOAD_1;
     }
     else if (!strcasecmp(value, "load5") || !strcasecmp(value, "load_5")) {
-        config.nodesSort = PART_SORT_LOAD_5;
+	config.nodesSort = PART_SORT_LOAD_5;
     }
     else if (!strcasecmp(value, "load15") || !strcasecmp(value, "load_15")) {
-        config.nodesSort = PART_SORT_LOAD_15;
+	config.nodesSort = PART_SORT_LOAD_15;
     }
     else if (!strcasecmp(value, "proc")) {
-        config.nodesSort = PART_SORT_PROC;
+	config.nodesSort = PART_SORT_PROC;
     }
     else if (!strcasecmp(value, "proc+load")) {
-        config.nodesSort = PART_SORT_PROCLOAD;
+	config.nodesSort = PART_SORT_PROCLOAD;
     }
     else if (!strcasecmp(value, "none")) {
-        config.nodesSort = PART_SORT_NONE;
+	config.nodesSort = PART_SORT_NONE;
     }
     else {
-        parser_comment(-1, "Unknown sorting strategy: '%s'\n", value);
-        ret = -1;
+	parser_comment(-1, "Unknown sorting strategy: '%s'\n", value);
+	ret = -1;
     }
 
     g_free(value);
@@ -902,17 +886,17 @@ static int getHW(char *key)
     CHECK_PSCONFIG_ERROR_AND_RETURN(list, key, err, -1);
 
     if (list->len == 0) {
-        ret = getHWnone("none");
+	ret = getHWnone("none");
     } else {
-        for(i = 0; i < list->len; i++) {
-            hwtype = 0;
+	for(i = 0; i < list->len; i++) {
+	    hwtype = 0;
 
-            ret = getHWent((char*)g_ptr_array_index(list,i));
-            if (ret) break;
+	    ret = getHWent((char*)g_ptr_array_index(list,i));
+	    if (ret) break;
 
-            ret = setHWType(hwtype);
-            if (ret) break;
-        }
+	    ret = setHWType(hwtype);
+	    if (ret) break;
+	}
     }
     g_ptr_array_free(list, TRUE);
 
@@ -1296,7 +1280,7 @@ static int getCS(char *key)
 
     nodeconf.canstart = cs;
     parser_comment(PARSER_LOG_NODE, " starting%s allowed\n",
-            cs ? "":" not");
+		   cs ? "":" not");
     return 0;
 }
 
@@ -1309,7 +1293,7 @@ static int getRJ(char *key)
 
     nodeconf.runjobs = rj;
     parser_comment(PARSER_LOG_NODE, " jobs%s allowed\n", rj ? "":" not");
-    
+
     return 0;
 }
 
@@ -1323,16 +1307,16 @@ static int getProcs(char *key)
 
     if (toNumber(procStr, &procs) && strcasecmp(procStr, "any")) {
 	parser_comment(-1, "Unknown number of processes '%s'\n", procStr);
-        g_free(procStr);
+	g_free(procStr);
 	return -1;
     }
     g_free(procStr);
 
     nodeconf.procs = procs;
     if (procs == -1) {
-        parser_comment(PARSER_LOG_NODE, " any");
+	parser_comment(PARSER_LOG_NODE, " any");
     } else {
-        parser_comment(PARSER_LOG_NODE, " %d", procs);
+	parser_comment(PARSER_LOG_NODE, " %d", procs);
     }
     parser_comment(PARSER_LOG_NODE, " procs\n");
 
@@ -1352,7 +1336,7 @@ static int getOB(char *key)
 	parser_comment(PARSER_LOG_NODE, "got 'auto' for value 'overbook'\n");
 	ret = 0;
     } else {
-        ret = toBool(obStr, &ob);
+	ret = toBool(obStr, &ob);
     }
     g_free(obStr);
 
@@ -1360,7 +1344,7 @@ static int getOB(char *key)
 
     nodeconf.overbook = ob;
     parser_comment(PARSER_LOG_NODE, " overbooking is '%s'\n",
-                   ob==OVERBOOK_AUTO ? "auto" : ob ? "TRUE" : "FALSE");
+		   ob==OVERBOOK_AUTO ? "auto" : ob ? "TRUE" : "FALSE");
 
     return 0;
 }
@@ -1374,7 +1358,7 @@ static int getExcl(char *key)
 
     nodeconf.exclusive = excl;
     parser_comment(PARSER_LOG_NODE, " exclusive assign%s allowed\n",
-                   excl ? "":" not");
+		   excl ? "":" not");
 
     return 0;
 }
@@ -1388,7 +1372,7 @@ static int getPinProcs(char *key)
 
     nodeconf.pinProcs = pinProcs;
     parser_comment(PARSER_LOG_NODE, " processes are%s pinned\n",
-                   pinProcs ? "":" not");
+		   pinProcs ? "":" not");
 
     return 0;
 }
@@ -1402,7 +1386,7 @@ static int getBindMem(char *key)
 
     nodeconf.bindMem = bindMem;
     parser_comment(PARSER_LOG_NODE, " memory is%s bound\n",
-                   bindMem ? "":" not");
+		   bindMem ? "":" not");
 
     return 0;
 }
@@ -1416,7 +1400,7 @@ static int getAllowUserMap(char *key)
 
     nodeconf.allowUserMap = allowMap;
     parser_comment(PARSER_LOG_NODE, " user's CPU-mapping is%s allowed\n",
-                   allowMap ? "":" not");
+		   allowMap ? "":" not");
 
     return 0;
 }
@@ -1430,7 +1414,7 @@ static int getSupplGrps(char *key)
 
     nodeconf.supplGrps = supplGrps;
     parser_comment(PARSER_LOG_NODE, " supplementary groups are%s set\n",
-                   supplGrps ? "":" not");
+		   supplGrps ? "":" not");
 
     return 0;
 }
@@ -1459,17 +1443,17 @@ static int getCPUmapEnt(char *token)
     if (ret) return ret;
 
     if (nodeconf.cpumap == NULL) {
-        nodeconf.cpumap_maxsize = 16;
-        nodeconf.cpumap = malloc(nodeconf.cpumap_maxsize
-                                 * sizeof(*nodeconf.cpumap));
+	nodeconf.cpumap_maxsize = 16;
+	nodeconf.cpumap = malloc(nodeconf.cpumap_maxsize
+				 * sizeof(*nodeconf.cpumap));
     } else if (nodeconf.cpumap_size == nodeconf.cpumap_maxsize) {
-        nodeconf.cpumap_maxsize *= 2;
-        nodeconf.cpumap = realloc(nodeconf.cpumap, nodeconf.cpumap_maxsize
-                              * sizeof(*nodeconf.cpumap));
+	nodeconf.cpumap_maxsize *= 2;
+	nodeconf.cpumap = realloc(nodeconf.cpumap, nodeconf.cpumap_maxsize
+				  * sizeof(*nodeconf.cpumap));
     }
     if (nodeconf.cpumap == NULL) {
-        parser_comment(-1, "%s: No memory for nodeconf.cpumap\n", __func__);
-        return -1;
+	parser_comment(-1, "%s: No memory for nodeconf.cpumap\n", __func__);
+	return -1;
     }
     nodeconf.cpumap[nodeconf.cpumap_size] = val;
     nodeconf.cpumap_size++;
@@ -1537,18 +1521,18 @@ static int getEnv(char *key)
     CHECK_PSCONFIG_ERROR_AND_RETURN(env, key, err, -1);
 
     if (env->len % 2 != 0) {
-        parser_comment(-1, "Invalid environment setting for hwtype '%s'\n",
-                       key);
-        return -1;
+	parser_comment(-1, "Invalid environment setting for hwtype '%s'\n",
+		       key);
+	return -1;
     }
 
     ret = 0;
     for(i = 0; (i+1) < env->len; i+=2) {
-        var = (gchar*)g_ptr_array_index(env,i);
-        val = (gchar*)g_ptr_array_index(env,i+1);
+	var = (gchar*)g_ptr_array_index(env,i);
+	val = (gchar*)g_ptr_array_index(env,i+1);
 
-        ret = setEnv(var, val);
-        if (ret) break;
+	ret = setEnv(var, val);
+	if (ret) break;
     }
     g_ptr_array_free(env, TRUE);
 
@@ -1701,7 +1685,7 @@ static int insertNode()
     if (ret) return ret;
 
     if (isLocalNode(ipaddr)) {
-        nodeconf.id = nodenum;
+	nodeconf.id = nodenum;
 	PSC_setMyID(nodenum);
     } else {
 	clearEnv();
@@ -1721,19 +1705,19 @@ static int getNodes()
     GHashTable* keyvals = g_hash_table_new(g_str_hash,g_str_equal);
 
     nodeobjlist = psconfig_getObjectList(psconfig, "host:*", parents, keyvals,
-                                         psconfig_flags, &err);
+					 psconfig_flags, &err);
     g_hash_table_unref(keyvals);
     if (nodeobjlist == NULL) {
-        parser_comment(-1, "PSConfig: getObjectList(host:*): %s\n",
-                           (err)->message);
-        g_error_free(err);
-        return -1;
+	parser_comment(-1, "PSConfig: getObjectList(host:*): %s\n",
+		       (err)->message);
+	g_error_free(err);
+	return -1;
     }
 
     for(i = 0; i < nodeobjlist->len; i++) {
-        psconfigobj = (gchar*)g_ptr_array_index(nodeobjlist,i);
-        ret = insertNode();
-        if (ret) break;
+	psconfigobj = (gchar*)g_ptr_array_index(nodeobjlist,i);
+	ret = insertNode();
+	if (ret) break;
     }
     g_ptr_array_free(nodeobjlist, TRUE);
     psconfigobj = NULL;
@@ -1817,26 +1801,26 @@ static int getHardwareOptions(char *name)
     if (ret < 0 || ret >= objlen) return -1;
 
     for (i = 0; hwtype_scripts[i] != NULL; i++) {
-        key = (gchar*)hwtype_scripts[i];
-        val = psconfig_get(psconfig, obj, key, psconfig_flags, &err);
+	key = (gchar*)hwtype_scripts[i];
+	val = psconfig_get(psconfig, obj, key, psconfig_flags, &err);
 
-        if (val == NULL) {
-            if (g_error_matches(err, PSCONFIG_ERROR,
-                                PSCONFIG_ERROR_OBJNOTEXIST)) {
-                // it's perfectly ok to have hwtypes without options
+	if (val == NULL) {
+	    if (g_error_matches(err, PSCONFIG_ERROR,
+				PSCONFIG_ERROR_OBJNOTEXIST)) {
+		// it's perfectly ok to have hwtypes without options
 		g_error_free(err);
-                return 0;
-            } else {
-                parser_comment(-1, "Failed to get %s of hwtype '%s': %s\n", key,
-                               name, err->message);
-                g_error_free(err);
-                return -1;
-            }
-        }
+		return 0;
+	    } else {
+		parser_comment(-1, "Failed to get %s of hwtype '%s': %s\n", key,
+			       name, err->message);
+		g_error_free(err);
+		return -1;
+	    }
+	}
 
-        ret = setHardwareScript(key, val);
-        g_free(val);
-        if (ret) return ret;
+	ret = setHardwareScript(key, val);
+	g_free(val);
+	if (ret) return ret;
     }
 
     env = psconfig_getList(psconfig, obj, "Environment", psconfig_flags, &err);
@@ -1845,16 +1829,16 @@ static int getHardwareOptions(char *name)
     if (env == NULL) return 0;
 
     if (env->len % 2 != 0) {
-        parser_comment(-1, "Invalid environment setting for hwtype '%s'\n",
-                       name);
+	parser_comment(-1, "Invalid environment setting for hwtype '%s'\n",
+		       name);
     }
 
     for(i = 0; (i+1) < env->len; i+=2) {
-        key = (gchar*)g_ptr_array_index(env,i);
-        val = (gchar*)g_ptr_array_index(env,i+1);
+	key = (gchar*)g_ptr_array_index(env,i);
+	val = (gchar*)g_ptr_array_index(env,i+1);
 
-        ret = setHardwareEnv(key, val);
-        if (ret) break;
+	ret = setHardwareEnv(key, val);
+	if (ret) break;
     }
     g_ptr_array_free(env, TRUE);
 
@@ -1916,22 +1900,22 @@ static int getDaemonScript(char *key)
     char *sname;
 
     if (strcmp(key, "Psid.StartupScript") == 0) {
-        sname = "startupScript";
+	sname = "startupScript";
     }
     else if (strcmp(key, "Psid.NodeUpScript") == 0) {
-        sname = "nodeUpScript";
+	sname = "nodeUpScript";
     }
     else if (strcmp(key, "Psid.NodeDownScript") == 0) {
-        sname = "nodeDownScript";
+	sname = "nodeDownScript";
     }
     else {
-        return -1;
+	return -1;
     }
 
     if (getString(key, &value)) return -1;
 
     if (*value == '\0') {
-        // script not set
+	// script not set
 	return 0;
     }
 
@@ -1986,7 +1970,6 @@ static confkeylist_t node_configkey_list[] = {
     {"Psid.LogMask", getLogMask},
     {"Psid.LogDestination", getLogDest},
     {"Psid.FreeOnSuspend", getFreeOnSusp},
-    {"Psid.HandleOldBins", getHandleOldBins},
     {"Psid.PsiNodesSortStrategy", getPSINodesSort},
     {"Psid.LoadPlugins", getPlugins},
     {"Psid.StartupScript", getDaemonScript},
@@ -2025,8 +2008,8 @@ static int setupLocalNode()
     // get parameters for local node
     allret = 0;
     for (i = 0; node_configkey_list[i].key != NULL; i++) {
-        ret = node_configkey_list[i].handler(node_configkey_list[i].key);
-        allret = ret ? 1 : allret;
+	ret = node_configkey_list[i].handler(node_configkey_list[i].key);
+	allret = ret ? 1 : allret;
     }
     if (allret) return -1;
 
@@ -2149,14 +2132,14 @@ config_t *parseConfig(FILE* logfile, int logmask, char *configfile)
 
     if (stat(configfile, &buf)) {
 	parser_comment(1, "%s: %s => using psconfig\n", configfile,
-                           strerror(errno));
+		       strerror(errno));
     }
     else if (buf.st_size == 0) {
 	parser_comment(1, "%s has zero length => using psconfig\n",
-                           configfile);
+		       configfile);
     }
     else {
-        return parseOldConfig(logfile, logmask, configfile);
+	return parseOldConfig(logfile, logmask, configfile);
     }
 
     /*** use psconfig ***/
@@ -2181,7 +2164,7 @@ config_t *parseConfig(FILE* logfile, int logmask, char *configfile)
     strncpy(psconfigobj, "host:", 6);
     gethostname(psconfigobj+5, 65);
     psconfigobj[69] = '\0'; //assure object to be null terminated
-    
+
     // set default UID/GID for local node
     setID(&nodeUID, PSNODES_ANYUSER);
     setID(&nodeGID, PSNODES_ANYGROUP);
@@ -2192,7 +2175,8 @@ config_t *parseConfig(FILE* logfile, int logmask, char *configfile)
     ret = setupLocalNode();
 
     if (ret) {
-	parser_comment(-1, "ERROR: Reading configuration from psconfig failed.\n");
+	parser_comment(-1,
+		       "ERROR: Reading configuration from psconfig failed.\n");
 	return NULL;
     }
 
@@ -2205,7 +2189,7 @@ config_t *parseConfig(FILE* logfile, int logmask, char *configfile)
     }
 
     if (nodeconf.cpumap) {
-        free(nodeconf.cpumap);
+	free(nodeconf.cpumap);
 	nodeconf.cpumap = NULL;
 	nodeconf.cpumap_maxsize = 0;
     }

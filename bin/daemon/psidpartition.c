@@ -956,10 +956,6 @@ static sortlist_t *getCandidateList(PSpart_request_t *request)
 	int canPin = PSIDnodes_pinProcs(node);
 	PSID_NodeStatus_t status = getStatusInfo(node);
 
-	if (config->handleOldBins) {
-	    if (status.jobs.normal > procs) procs = status.jobs.normal;
-	}
-
 	if (nodeOK(node, request)) {
 	    int availCPUs;
 	    if (exactPart) {
