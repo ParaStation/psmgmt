@@ -82,8 +82,12 @@ static char *nextline(int silent)
 	    line = tmp;
 	    tmp = NULL;
 	} else {
+	    char *t = line;
 	    line = realloc(line, strlen(line) + strlen(tmp));
-	    if (!line) break;
+	    if (!line) {
+		if (t) free(t);
+		break;
+	    }
 	    strcpy(line + strlen(line)-1, tmp);
 	}
 	if (tmp) free(tmp);

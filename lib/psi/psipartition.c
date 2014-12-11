@@ -305,9 +305,11 @@ static int addNode(PSnodes_ID_t node, nodelist_t *nl)
     PSI_log(PSI_LOG_VERB, "%s(%d)\n", __func__, node);
 
     if (nl->size == nl->maxsize) {
+	void *tmp = nl->nodes;
 	nl->maxsize += 128;
 	nl->nodes = realloc(nl->nodes, nl->maxsize * sizeof(*nl->nodes));
 	if (!nl->nodes) {
+	    if (tmp) free(tmp);
 	    PSI_log(-1, "%s: no memory\n", __func__);
 	    return 0;
 	}
@@ -344,6 +346,7 @@ static int nodelistFromRange(char *range, nodelist_t *nodelist)
     long first, last, i;
     char *start = strsep(&range, "-"), *end;
 
+    if (!range) return 0;
     first = strtol(start, &end, 0);
     if (*end != '\0') return 0;
     if (first < 0 || first >= PSC_getNrOfNodes()) {
@@ -588,7 +591,12 @@ static int nodelistFromPEFile(char *fileName, nodelist_t *nodelist)
 	    return 0;
 	}
 
-	for (i=0; i<num; i++) addNode(node, nodelist);
+	for (i=0; i<num; i++) {
+	    if (!addNode(node, nodelist)) {
+		fclose(file);
+		return 0;
+	    }
+	}
 	total += num;
     }
 

@@ -1350,16 +1350,16 @@ static int setCommand(char *token)
     long val;
     PSIADM_valList_t *valList = NULL;
 
-    if (!what || !value) goto error;
+    if (!what || !value) goto printError;
 
     setShowOpt = PSP_OP_UNKNOWN;
-    if (parser_parseToken(what, &setShowParser)) goto error;
+    if (parser_parseToken(what, &setShowParser)) goto printError;
     setOpt = setShowOpt;
 
     switch (setOpt) {
     case PSP_OP_PROCLIMIT:
 	val = procsFromString(value);
-	if (val == -2) goto error;
+	if (val == -2) goto printError;
 	break;
     case PSP_OP_UID:
     case PSP_OP_ADMUID:
@@ -1379,7 +1379,7 @@ static int setCommand(char *token)
 	    nl_descr = parser_getString();
 	}
 	val = uidFromString(value);
-	if (val == -2) goto error;
+	if (val == -2) goto printError;
 	break;
     }
     case PSP_OP_GID:
@@ -1400,7 +1400,7 @@ static int setCommand(char *token)
 	    nl_descr = parser_getString();
 	}
 	val = gidFromString(value);
-	if (val == -2) goto error;
+	if (val == -2) goto printError;
 	break;
     }
     case PSP_OP_PSIDDEBUG:
@@ -1423,7 +1423,7 @@ static int setCommand(char *token)
     case PSP_OP_PLUGINUNLOADTMOUT:
 	if (parser_getNumber(value, &val)) {
 	    printf("Illegal value '%s'\n", value);
-	    goto error;
+	    goto printError;
 	}
 	break;
     case PSP_OP_OVERBOOK:
@@ -1433,7 +1433,7 @@ static int setCommand(char *token)
 	    int tmp, ret = parser_getBool(value, &tmp, NULL);
 	    if (ret==-1) {
 		printf("Illegal value '%s' is not 'auto' or boolean\n", value);
-		goto error;
+		goto printError;
 	    }
 	    val = tmp;
 	}
@@ -1452,7 +1452,7 @@ static int setCommand(char *token)
 	int tmp, ret = parser_getBool(value, &tmp, NULL);
 	if (ret==-1) {
 	    printf("Illegal value '%s' is not boolean\n", value);
-	    goto error;
+	    goto printError;
 	}
 	val = tmp;
 	break;
@@ -1460,7 +1460,7 @@ static int setCommand(char *token)
     case PSP_OP_NODESSORT:
 	if (parser_parseString(value, &sortParser)) {
 	    printf("Illegal value '%s'\n", value);
-	    goto error;
+	    goto printError;
 	}
 	val = sortMode;
 	break;
@@ -1468,7 +1468,7 @@ static int setCommand(char *token)
 	valList = cpusFromString(value);
 	if (!valList) {
 	    printf("Illegal value '%s' for CPU-map\n", value);
-	    goto error;
+	    goto printError;
 	}
 	break;
     case PSP_OP_PLUGINAPIVERSION:
@@ -1494,20 +1494,20 @@ static int setCommand(char *token)
 	    int ret = parser_getNumber(value, &tmp);
 	    if (ret==-1) {
 		printf("Illegal value '%s' is not int or 'unlimited'\n", value);
-		goto error;
+		goto printError;
 	    }
 	    val = tmp;
 	}
 	break;
     default:
-	goto error;
+	goto printError;
     }
 
-    if (parser_getString()) goto error;
+    if (parser_getString()) goto printError;
 
     if (nl_descr) {
 	nl = getNodeList(nl_descr);
-	if (!nl) return -1;
+	if (!nl) goto error;
     }
 
     switch (setOpt) {
@@ -1573,7 +1573,7 @@ static int setCommand(char *token)
 	PSIADM_SetParamList(setOpt, valList, nl);
 	break;
     default:
-	goto error;
+	goto printError;
     }
 
     if (valList) {
@@ -1583,8 +1583,15 @@ static int setCommand(char *token)
 
     return 0;
 
- error:
+printError:
     printError(&setInfo);
+
+error:
+    if (valList) {
+	if (valList->value) free(valList->value);
+	free(valList);
+    }
+
     return -1;
 }
 

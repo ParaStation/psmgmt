@@ -122,7 +122,7 @@ static char *mygetwd(const char *ext)
     char *dir;
 
     if (!ext || (ext[0]!='/')) {
-	char *temp = getenv("PWD");
+	char *temp = getenv("PWD"), *tmp;
 
 	if (temp) {
 	    dir = strdup(temp);
@@ -136,8 +136,12 @@ static char *mygetwd(const char *ext)
 	if (!dir) goto error;
 
 	/* Enlarge the string */
+	tmp = dir;
 	dir = realloc(dir, strlen(dir) + (ext ? strlen(ext) : 0) + 2);
-	if (!dir) goto error;
+	if (!dir) {
+	    if (tmp) free(tmp);
+	    goto error;
+	}
 
 	strcat(dir, "/");
 	strcat(dir, ext ? ext : "");
@@ -159,7 +163,7 @@ static char *mygetwd(const char *ext)
 
     return dir;
 
- error:
+error:
     errno = ENOMEM;
     return NULL;
 }
@@ -641,7 +645,7 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
 	 task->argv = (char**)malloc(sizeof(char*)*(task->argc+1));
     }
     else {
-	 /* add 'valgrind' and its parameters before the executable: (see below)*/
+	 /* add 'valgrind' and its parameters before executable: (see below)*/
 	 task->argv = (char**)malloc(sizeof(char*)*(task->argc+4));
     }
 
@@ -673,11 +677,11 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
 	    task->argv[0]=strdup(argv[0]);
 	}
     }
-    
+
     /* check for valgrind support and whether this is the actual executable: */
-    if( valgrind && (strcmp(basename(argv[0]), "mpiexec") !=0 ) && (strcmp(argv[0], "valgrind") !=0 ) ) {
-	 
-	 /* add 'valgrind' and its parameters before the executable name: */
+    if( valgrind && (strcmp(basename(argv[0]), "mpiexec") !=0 )
+	&& (strcmp(argv[0], "valgrind") !=0 ) ) {
+	/* add 'valgrind' and its parameters before the executable name: */
 	 task->argv[3]=strdup(argv[0]);
 	 task->argv[0]=strdup("valgrind");
 	 task->argv[1]=strdup("--quiet");
@@ -1097,6 +1101,7 @@ char *PSI_createPGfile(int num, const char *prog, int local)
 	if (!PIfile) {
 	    PSI_warn(-1, errno, "%s: fopen", __func__);
 	    free(PIfilename);
+	    free(myprog);
 	    return NULL;
 	}
     }
@@ -1110,6 +1115,7 @@ char *PSI_createPGfile(int num, const char *prog, int local)
 	    if (ret || (node < 0)) {
 		fclose(PIfile);
 		free(PIfilename);
+		free(myprog);
 		return NULL;
 	    }
 	    PSI_infoUInt(-1, PSP_INFO_NODE, &node, &hostaddr.s_addr, 0);
@@ -1117,6 +1123,7 @@ char *PSI_createPGfile(int num, const char *prog, int local)
 	fprintf(PIfile, "%s %d %s\n", inet_ntoa(hostaddr), (i != 0), myprog);
     }
     fclose(PIfile);
+    free(myprog);
 
     return PIfilename;
 }
