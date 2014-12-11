@@ -899,21 +899,21 @@ char *getProcessMap(int np)
     snprintf(pMap, sizeof(pMap), "(vector");
 
     for (i=0; i<numUniqNodes; i++) {
-       procCount = numProcPerNode[i];
+	procCount = numProcPerNode[i];
 
-       if (!i || oldProcCount == procCount) {
-	   if (i != numUniqNodes -1) nodeCount++;
-       } else {
-           snprintf(buf, sizeof(buf), ",(%i,%i,%i)", sid,
-                       nodeCount, oldProcCount);
-           if ((int)(sizeof(pMap) - strlen(pMap) - 1 - strlen(buf)) < 0) {
-               return NULL;
-           }
-           strcat(pMap, buf);
-           sid += nodeCount;
-	   nodeCount = (i != numUniqNodes -1) ? 1 : 0;
-       }
-       oldProcCount = procCount;
+	if (!i || oldProcCount == procCount) {
+	    if (i != numUniqNodes -1) nodeCount++;
+	} else {
+	    snprintf(buf, sizeof(buf), ",(%i,%i,%i)", sid,
+		     nodeCount, oldProcCount);
+	    if ((int)(sizeof(pMap) - strlen(pMap) - 1 - strlen(buf)) < 0) {
+		return NULL;
+	    }
+	    strcat(pMap, buf);
+	    sid += nodeCount;
+	    nodeCount = (i != numUniqNodes -1) ? 1 : 0;
+	}
+	oldProcCount = procCount;
     }
 
     nodeCount++;
@@ -1139,7 +1139,8 @@ static char ** setupNodeEnv(int psRank)
     if (pmienabletcp || pmienablesockp) {
 	snprintf(pmiRankItem, sizeof(pmiRankItem), "PMI_RANK=%d", rank);
 	env[cur++] = pmiRankItem;
-	snprintf(pmiAppnumItem, sizeof(pmiAppnumItem), "PMI_APPNUM=%d", getAppnumByRank(rank));
+	snprintf(pmiAppnumItem, sizeof(pmiAppnumItem),
+		 "PMI_APPNUM=%d", getAppnumByRank(rank));
 	env[cur++] = pmiAppnumItem;
     }
 
@@ -1273,8 +1274,8 @@ static void extractNodeInformation(PSnodes_ID_t *nodeList, int np)
     int i;
 
     if (!nodeList) {
-        fprintf(stderr, "%s: invalid nodeList\n", __func__);
-        exit(1);
+	fprintf(stderr, "%s: invalid nodeList\n", __func__);
+	exit(1);
     }
 
     /* list of job local nodeIDs starting by 0 */
@@ -1875,13 +1876,13 @@ static void setupEnvironment(int verbose)
 			snprintf(xprts + strlen(xprts), xprtsLen, ",%s", key);
 		    }
 		}
-	    
+
 		free(key);
 	    }
 	}
 	setPSIEnv("__PSI_EXPORTS", xprts, 1);
 	free(xprts);
-	
+
 	if (verbose) {
 	    printf("Exporting the whole environment to foreign hosts\n");
 	}
@@ -2694,7 +2695,8 @@ struct poptOption poptCommunicationOptions[] = {
     { "ondemand", 'O', POPT_ARG_NONE,
       &ondemand, 0, "use psmpi2 \"on demand/dynamic\" connections", NULL},
     { "no_ondemand", '\0', POPT_ARG_NONE,
-      &no_ondemand, 0, "disable psmpi2 \"on demand/dynamic\" connections", NULL},
+      &no_ondemand, 0, "disable psmpi2 \"on demand/dynamic\" connections",
+      NULL},
     POPT_TABLEEND
 };
 
