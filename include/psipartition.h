@@ -155,7 +155,7 @@ void PSI_SGE(void);
  * requested via 1<<INFO_request_hwindex() or 0.
  *
  * @return If one or more hardware-types are unknown, -1 is
- * returned. Or 0, if all hardware-types are known. The returned 
+ * returned. Or 0, if all hardware-types are known. The returned
  * hardware-type @a hwType is set to the known ones in any case.
  *
  * @see PSE_setHWType() PSI_getNodes(), PSI_spawnStrictHW()

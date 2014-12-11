@@ -444,7 +444,7 @@ int PSID_checkPrivilege(PStask_ID_t sender)
 
     return 1;
 }
-    
+
 /** All main-loop actions registered */
 static LIST_HEAD(loopActions);
 

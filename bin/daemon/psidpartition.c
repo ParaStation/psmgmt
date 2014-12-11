@@ -943,7 +943,7 @@ static sortlist_t *getCandidateList(PSpart_request_t *request)
 
     for (i=0; i<request->num; i++) {
 	PSnodes_ID_t node = request->nodes[i];
-	
+
 	if (!PSIDnodes_validID(node)) {
 	    PSID_log(-1, "%s: node %d out of range\n", __func__, node);
 	    free(list.entry);
