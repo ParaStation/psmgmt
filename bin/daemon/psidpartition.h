@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2013 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2014 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -57,7 +57,7 @@ void initPartition(void);
  * and pending partition requests.
  *
  * @return On success, the number of bytes sent within the
- * PSP_DD_GETTASKS message is returned. If an error occured, -1 is
+ * PSP_DD_GETTASKS message is returned. If an error occurred, -1 is
  * returned and errno is set appropriately.
  */
 int send_GETTASKS(PSnodes_ID_t node);
@@ -73,7 +73,7 @@ int send_GETTASKS(PSnodes_ID_t node);
  * @param tid The task ID of the root process that exited.
  *
  * @return On success, the number of bytes sent within the
- * PSP_DD_TASKDEAD message is returned. If an error occured, -1 is
+ * PSP_DD_TASKDEAD message is returned. If an error occurred, -1 is
  * returned and errno is set appropriately.
  */
 int send_TASKDEAD(PStask_ID_t tid);
@@ -89,7 +89,7 @@ int send_TASKDEAD(PStask_ID_t tid);
  * @param tid The task ID of the root process that was suspended.
  *
  * @return On success, the number of bytes sent within the
- * PSP_DD_TASKSUSPEND message is returned. If an error occured, -1 is
+ * PSP_DD_TASKSUSPEND message is returned. If an error occurred, -1 is
  * returned and errno is set appropriately.
  */
 int send_TASKSUSPEND(PStask_ID_t tid);
@@ -99,13 +99,13 @@ int send_TASKSUSPEND(PStask_ID_t tid);
  *
  * Send a PSP_DD_TASKRESUME message to the current master node. This
  * message informs the master node on the continuation of the root
- * process with task ID @a tid and thus probably to realloc the
+ * process with task ID @a tid and thus probably to reallocate the
  * corresponding temporarily freed partition.
  *
  * @param tid The task ID of the root process that continues to run.
  *
  * @return On success, the number of bytes sent within the
- * PSP_DD_TASKRESUME message is returned. If an error occured, -1 is
+ * PSP_DD_TASKRESUME message is returned. If an error occurred, -1 is
  * returned and errno is set appropriately.
  */
 int send_TASKRESUME(PStask_ID_t tid);
@@ -121,7 +121,7 @@ int send_TASKRESUME(PStask_ID_t tid);
  * @param tid The task ID of the root process that exited.
  *
  * @return On success, the number of bytes sent within the
- * PSP_DD_CANCELPART message is returned. If an error occured, -1 is
+ * PSP_DD_CANCELPART message is returned. If an error occurred, -1 is
  * returned and errno is set appropriately.
  */
 int send_CANCELPART(PStask_ID_t tid);
@@ -148,7 +148,7 @@ void initPartHandler(void);
  *
  * Within this function, the partition requests are actually not
  * removed from the queue, but only marked to get deleted within the
- * next rund of handlePartRequests(). This is necessary to make this
+ * next round of handlePartRequests(). This is necessary to make this
  * function robust enough the get used from within a RDP callback.
  *
  * @param node The node whose request are going to be cleaned up.
@@ -174,17 +174,17 @@ void cleanupRequests(PSnodes_ID_t node);
 void exitPartHandler(void);
 
 /**
- * @brief Number of assigned jobs.
+ * @brief Number of assigned SW-threads.
  *
- * Return the number of job slots assigned to node @a node.
+ * Return the number of SW-threads assigned to node @a node.
  *
  * @param node The node to request.
  *
- * @return On success, the number of jobs slots assigned to the
+ * @return On success, the number of SW-threads assigned to the
  * requested node is returned, or 0, if an error occurred. Be aware of
  * the fact, that an error cannot be distinguished from an empty node.
  */
-unsigned short getAssignedJobs(PSnodes_ID_t node);
+unsigned short getAssignedThreads(PSnodes_ID_t node);
 
 /**
  * @brief The nodes exclusive flag.
@@ -206,7 +206,7 @@ int getIsExclusive(PSnodes_ID_t node);
  * @brief Send list of requests.
  *
  * Send a list of partition-requests registered within the master
- * daemon. Dependings on the flags set within @a opt, only pending,
+ * daemon. Depending on the flags set within @a opt, only pending,
  * running or suspended requests might be send to the @a requester.
  *
  * If @a ref PART_LIST_NODES is set in @a opt, also a list of the

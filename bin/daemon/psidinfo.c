@@ -554,7 +554,7 @@ static void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 			size = sizeof(uint16_t);
 			break;
 		    case PSP_INFO_LIST_ALLOCJOBS:
-			((uint16_t *)msg.buf)[idx] = getAssignedJobs(node);
+			((uint16_t *)msg.buf)[idx] = getAssignedThreads(node);
 			size = sizeof(uint16_t);
 			break;
 		    case PSP_INFO_LIST_EXCLUSIVE:
