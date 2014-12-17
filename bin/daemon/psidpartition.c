@@ -1637,6 +1637,170 @@ static PSpart_slot_t *createPartition(PSpart_request_t *request,
     return slotlist;
 }
 
+
+/**
+ * @brief New method to create partition.
+ *
+ * Create a partition from the sorted @a candidates conforming to @a
+ * request. This version creates a more compact partition without
+ * handling over-booking, node-looping, etc. Actually most of this
+ * logic is now handled on the node hosting the root-process of the
+ * job.
+ *
+ * The newly created partition will be stored within @a request's slot
+ * member. For this an adaquate memory region will be allocated which
+ * shall be free()ed while destructing @a request. Furthermore, the
+ * size member of @a request will be adapted to the actual number of
+ * slots required in order to store the partition.
+ *
+ * The acutal allocation strategy for partitions will consider the
+ * request's tpp (threads per process) while creating the
+ * partition. Thus, on each node the number of allocated HW-threads
+ * will be a multiple of tpp. Furthermore the partition will contain
+ * tpp * size HW-threads unless over-booking is enabled. In the latter
+ * case less HW-threads -- but still a multiple of tpp -- might be
+ * assigned. Nevertheless, this is only the case as long as all nodes
+ * in the list of @a candidates support pinning of processes.
+ *
+ * @param request The request describing the partition to create and
+ * holding the actual parition in the member slot.
+ *
+ * @param candidates The sorted list of candidates used in order to
+ * build the partition
+ *
+ * @return On success, the number of independent processes is
+ * returned. Keep in mind that each process might host up to tpp
+ * SW-threads and that multiple processes might share the same
+ * HW-threads if over-booking is enabled. Otherwise, -1 is returned.
+*/
+static int createNewPartition(PSpart_request_t *request, sortlist_t *candidates)
+{
+    PSpart_slot_t *slots;
+    unsigned int cand=0, curSlot = 0, numProcs=0, numRequested;
+    int overbook;
+    uint16_t tpp;
+
+    PSID_log(PSID_LOG_PART, "%s(request=%p, candidates=%p)\n", __func__,
+	     request, candidates);
+
+    if (!request || !candidates) return -1;
+
+    numRequested = request->size;
+    tpp = request->tpp;
+    overbook = request->options & PART_OPT_OVERBOOK;
+
+    if (overbook && candidates->freeHWTs / tpp >= numRequested) {
+	PSID_log(PSID_LOG_PART, "%s: Over-booking not required.\n", __func__);
+	overbook = 0;
+    }
+
+    if (overbook && !candidates->allPin) {
+	PSID_log(-1, "%s: No over-booking without pinning\n", __func__);
+	return -1;
+    }
+
+    PSID_log(PSID_LOG_PART, "%s: Prepare for up to %d slots\n", __func__,
+	     numRequested);
+    slots = malloc(numRequested * sizeof(*slots));
+    if (!slots) {
+	PSID_log(-1, "%s: No memory\n", __func__);
+	return -1;
+    }
+
+    if (request->options & PART_OPT_EXACT) {
+	/*
+	 * This is an exact partition defined by a batch-system Let's
+	 * keep this for the time being. Most probably this can can be
+	 * removed once exeact partition are not necessary any more
+	 */
+	while (cand < candidates->size && numProcs < numRequested) {
+	    sortentry_t *ce = &candidates->entry[cand];
+	    PSnodes_ID_t cid = ce->id;
+	    int numThrds = 0;
+
+	    if (!numProcs || slots[curSlot].node != cid) {
+		if (numProcs) curSlot++;
+		slots[curSlot].node = cid;
+		PSCPU_clrAll(slots[curSlot].CPUset);
+	    }
+
+	    while (cand < candidates->size && numThrds < tpp && cid == ce->id) {
+		PSCPU_addCPUs(slots[curSlot].CPUset, ce->CPUset);
+		numThrds++;
+		cand++;
+		ce = &candidates->entry[cand];
+	    }
+	    if (numThrds < tpp) break;
+
+	    PSID_log(PSID_LOG_PART, "%s: add processors %s of node %d"
+		     " in slot %d\n", __func__,
+		     PSCPU_print(slots[curSlot].CPUset), cid, curSlot);
+	    numProcs++;
+	}
+	curSlot++;
+    } else {
+	/* Standard partition defined by the user */
+	memset(tmpStat, 0, PSC_getNrOfNodes() * sizeof(*tmpStat));
+
+	while (cand < candidates->size && numProcs < numRequested) {
+	    PSnodes_ID_t cid = candidates->entry[cand].id;
+
+	    if (!tmpStat[cid]) {
+		int numThrds = getFreeCPUs(cid, slots[curSlot].CPUset, tpp);
+		slots[curSlot].node = cid;
+
+		if (!numThrds) {
+		    PSID_log(-1, "%s: No HW-threads on node %d even though in"
+			     " lis of candidates\n", __func__, cid);
+		    overbook = 0; /* let the creation fail */
+		    break;
+		}
+		numProcs += numThrds / tpp;
+		if (numProcs > numRequested) {
+		    /* we over-shot */
+		    numThrds -= (numProcs - numRequested) * tpp;
+		    getFreeCPUs(cid, slots[curSlot].CPUset, numThrds);
+		    numProcs = numRequested;
+		}
+
+		PSID_log(PSID_LOG_PART, "%s: add processors %s of node %d"
+			 " in slot %d\n", __func__,
+			 PSCPU_print(slots[curSlot].CPUset), cid, curSlot);
+
+		/* Use node only once */
+		tmpStat[cid] = (PSCPU_set_t *)-1;
+
+		curSlot++;
+	    }
+
+	    cand++;
+	}
+    }
+
+    if (numProcs < numRequested) {
+	if (overbook) {
+	    numProcs = numRequested;
+	} else {
+	    PSID_log(PSID_LOG_PART, "%s: Not enough HW-threads\n", __func__);
+	    free(slots);
+
+	    return -1;
+	}
+    }
+
+    if (curSlot < numRequested) {
+	request->slots = realloc(slots, curSlot * sizeof(*slots));
+	if (!request->slots) free(slots);
+    } else {
+	request->slots = slots;
+    }
+
+    /* Adapt to the actual partition size */
+    request->size = curSlot;
+
+    return numProcs;
+}
+
 /**
  * @brief Send a list of nodes.
  *
@@ -1935,9 +2099,10 @@ static int sendPartition(PSpart_request_t *req)
  * Create a partition conforming to @a request. Thus first of all a
  * list of candidates is created via @ref getCandidateList(). This
  * list will be sorted by @ref sortCandidates() if necessary. The
- * actual creation of the partition is done within @ref
- * createPartition(). As a last step the newly created partition is
- * send to the requesting instance via @ref sendPartition().
+ * actual creation of the partition is done either within @ref
+ * createPartition() or @ref createNewPartition(). As a last step the
+ * newly created partition is send to the requesting instance via @ref
+ * sendPartition().
  *
  * The @a request describing the partition to allocate is expected to
  * be queued within @ref pendReq. So after actually allocating
@@ -1954,7 +2119,7 @@ static int sendPartition(PSpart_request_t *req)
  * @return On success, 1 is returned, or 0 otherwise.
  *
  * @see getCandidateList(), sortCandidates(), createPartition(),
- * sendPartition()
+ * createNewPartition(), sendPartition()
  */
 static int getPartition(PSpart_request_t *request)
 {
@@ -1997,12 +2162,12 @@ static int getPartition(PSpart_request_t *request)
 	    goto error;
 	}
     } else {
-	/* request->slots = createPartitionNew(request, candidates); */
-	/* if (!request->slots) { */
-	/*     PSID_log(PSID_LOG_PART, "%s: No partition\n", __func__); */
-	/*     errno = EAGAIN; */
-	/*     goto error; */
-	/* } */
+	int numExpected = request->size;
+	if (createNewPartition(request, candidates) < numExpected) {
+	    PSID_log(PSID_LOG_PART, "%s: No new partition\n", __func__);
+	    errno = EAGAIN;
+	    goto error;
+	}
     }
 
     if (request->options & PART_OPT_RESPORTS) {
