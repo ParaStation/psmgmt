@@ -63,6 +63,7 @@ static char vcid[] __attribute__((used)) =
 typedef struct {
     int np;
     int argc;
+    int tpp;
     char **argv;
     char *nodetype;
     char *wdir;
@@ -131,6 +132,8 @@ int *nodeLocalProcIDs = NULL;
 /* process options */
 int np = -1;
 int gnp = -1;
+int tpp = 1;
+int gtpp = 0;
 int envall = 0;
 int usize = 0;
 mode_t u_mask;
@@ -1301,7 +1304,7 @@ static void extractNodeInformation(PSnodes_ID_t *nodeList, int np)
 }
 
 static int spawnSingleExecutable(int np, int argc, char **argv, char *wd,
-				    char *cNodeType, int verbose)
+				 char *cNodeType, int tpp, int verbose)
 {
     int i, ret, *errors = NULL;
     PStask_ID_t *tids;
@@ -1313,7 +1316,9 @@ static int spawnSingleExecutable(int np, int argc, char **argv, char *wd,
 
     /* spawn client processes */
     if (cNodeType) nodeType = getNodeType(cNodeType);
-    ret = PSI_spawnStrictHW(np, nodeType, 1 /*tpp*/, 0 /*options*/,
+    ret = PSI_spawnStrictHW(np, nodeType, tpp,
+			    (overbook ? PART_OPT_OVERBOOK : 0)
+			    | (loopnodesfirst ? PART_OPT_NODEFIRST : 0),
 			    wd, argc, argv, 1, errors, tids);
 
     /* Analyze result, if necessary */
@@ -1397,10 +1402,10 @@ static int startProcs(int np, char *wd, int verbose)
     PSI_registerRankEnvFunc(setupNodeEnv);
 
     for (i=0; i< execCount; i++) {
-	if ((ret = spawnSingleExecutable(exec[i]->np, exec[i]->argc,
-			exec[i]->argv, exec[i]->wdir, exec[i]->nodetype,
-			verbose))< 0) {
-
+	ret = spawnSingleExecutable(exec[i]->np, exec[i]->argc, exec[i]->argv,
+				    exec[i]->wdir, exec[i]->nodetype,
+				    exec[i]->tpp, verbose);
+	if (ret < 0) {
 	    if ((getenv("PMI_SPAWNED"))) {
 		PSLog_Msg_t lmsg;
 		char *env, *lptr;
@@ -1815,7 +1820,10 @@ static void setupPSIDEnv(int verbose)
 
     if ((envstr = getenv("PSI_NODE_TYPE"))) {
 	nodetype = strdup(envstr);
-	setPSIEnv("PSI_NODE_TYPE", envstr, 1);
+    }
+
+    if ((envstr = getenv("PSI_TPP"))) {
+	tpp = strtol(envstr, NULL, 0);
     }
 
     /* forward the possibly adjusted usize of the job */
@@ -2492,7 +2500,9 @@ struct poptOption poptMpiexecComp[] = {
     { "smpdfile", '\0',
       POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
       &smpdfile, 0, "not supported, will be ignored", NULL},
-    POPT_TABLEEND
+    { "tpp", '\0', POPT_ARG_INT | POPT_ARGFLAG_ONEDASH,
+      &tpp, 0, "number of threads per process", "num"},
+     POPT_TABLEEND
 };
 
 struct poptOption poptMpiexecCompGlobal[] = {
@@ -2534,6 +2544,8 @@ struct poptOption poptMpiexecCompGlobal[] = {
       POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
       &envopt, 'E', "export this value of this environment variable",
       "<name> <value>"},
+    { "gtpp", '\0', POPT_ARG_INT | POPT_ARGFLAG_ONEDASH,
+      &gtpp, 0, "global number of threads per process", "num"},
     POPT_TABLEEND
 };
 
@@ -2807,6 +2819,14 @@ static void saveNextExecutable(int *sum_np, int argc, const char **argv)
 	exec[execCount]->nodetype = gnodetype;
     } else {
 	exec[execCount]->nodetype = NULL;
+    }
+    if (tpp > 1) {
+	exec[execCount]->tpp = tpp;
+	tpp = 1;
+    } else if (gtpp) {
+	exec[execCount]->tpp = gtpp;
+    } else {
+	exec[execCount]->tpp = 1;
     }
     if (wdir) {
 	exec[execCount]->wdir = wdir;
