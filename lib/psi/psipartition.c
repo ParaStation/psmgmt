@@ -1171,7 +1171,8 @@ int PSI_getNodes(unsigned int num, uint32_t hwType, uint16_t tpp,
 	ret = *(int32_t*)ptr;
 	ptr += sizeof(int32_t);
 	if (ret<0) {
-	    PSI_log(-1, "%s: Cannot get %d nodes\n", __func__, num);
+	    PSI_log(-1, "%s: Cannot get %d nodes with %d threads\n", __func__,
+		    num, tpp);
 	} else {
 	    memcpy(nodes, ptr, num*sizeof(*nodes));
 	}
