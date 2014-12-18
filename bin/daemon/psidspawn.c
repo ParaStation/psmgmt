@@ -2683,7 +2683,9 @@ static void msg_CHILDDEAD(DDErrorMsg_t *msg)
 		 PSC_printTID(msg->request));
     } else {
 	int destDmnPSPver = PSIDnodes_getDmnProtoV(PSC_getID(task->loggertid));
-	if (destDmnPSPver > 409 && task->group != TG_SERVICE) {
+	if (destDmnPSPver > 409
+	    && !(task->group == TG_SERVICE || task->group == TG_SERVICE_SIG
+		 || task->group == TG_ADMINTASK || task->group == TG_KVS) ) {
 	    /** Create and send PSP_DD_CHILDRESREL message */
 	    DDBufferMsg_t resRelMsg = (DDBufferMsg_t) {
 		.header = (DDMsg_t) {
