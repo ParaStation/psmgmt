@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2014 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2015 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -344,9 +344,13 @@ static void freeNodelist(nodelist_t *nl)
 static int nodelistFromRange(char *range, nodelist_t *nodelist)
 {
     long first, last, i;
-    char *start = strsep(&range, "-"), *end;
+    char *start, *end;
 
     if (!range) return 0;
+
+    start = strsep(&range, "-");
+    if (!start) return 0;
+
     first = strtol(start, &end, 0);
     if (*end != '\0') return 0;
     if (first < 0 || first >= PSC_getNrOfNodes()) {
