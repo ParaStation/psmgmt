@@ -95,8 +95,10 @@ int show = 0;
 int verbose = 0;
 /** set mpich 1 compatible mode */
 int mpichcom = 0;
-/** list of all nodes */
-PSnodes_ID_t *nodeList = NULL;
+/** list of all slots in the partition */
+PSnodes_ID_t *slotList = NULL;
+/** actual size of the slotList */
+size_t slotListSize = 0;
 /** number of unique nodes */
 int numUniqNodes = 0;
 /** number of unique hosts */
@@ -455,46 +457,56 @@ void setupGlobalEnv(int admin, int np)
 }
 
 /**
- * @brief Searches the nodelist by an index.
+ * @brief Searches the slot-list by an index.
  *
- * Searches the nodelist and returns a nodeID indicated by
- * an index. Identical nodeID will be skipped if the nodelist
- * is sorted.
+ * Searches the list of slots and return the nodeID indicated by
+ * index. Successive nodeIDs will be skipped.
  *
- * @param np The maximal number of process.
+ * Be aware of the fact that the list of slots forming the partition
+ * is not identical to the list of nodes in the sense of nodes used by
+ * specific ranks. In fact, the slots are a form of a compactified
+ * list of nodes, i.e. the is just one slot for each physical node.
  *
- * @param index The index to find in the nodelist.
+ * @param index The index to find in the slot-list.
  *
- * @return Returns the requested nodeID or the last nodeID
- * in the nodelist for invalid indexes.
+ * @return Returns the requested nodeID or the last nodeID in the
+ * slot-list for invalid indexes. In case the slot-list is not
+ * available, -1 is returned and thus the local node is adressed.
  */
-static PSnodes_ID_t getNodeIDbyIndex(int np, int index)
+static PSnodes_ID_t getNodeIDbyIndex(int index)
 {
     PSnodes_ID_t lastID;
-    int i, count = 1, pSize;
+    int count = 0;
+    unsigned int i;
 
-    /* request the complete nodelist */
-    if (!nodeList) {
-       pSize = usize > np ? usize : np;
-       nodeList = umalloc(pSize*sizeof(nodeList), __func__);
+    /* request the complete list of slots */
+    if (!slotList) {
+	int numBytes, pSize = usize > np ? usize : np;
 
-       PSI_infoList(-1, PSP_INFO_LIST_PARTITION, NULL,
-		    nodeList, pSize*sizeof(*nodeList), 0);
+	slotList = umalloc(pSize*sizeof(slotList), __func__);
+
+	numBytes = PSI_infoList(-1, PSP_INFO_LIST_PARTITION, NULL,
+				slotList, pSize*sizeof(*slotList), 0);
+	if (numBytes < 0) {
+	    free(slotList);
+	    slotList = NULL;
+	    slotListSize = 0;
+	    return -1;
+	}
+	slotListSize = numBytes / sizeof(*slotList);
     }
 
-    lastID = nodeList[0];
+    lastID = slotList[0];
 
-    for (i=0; i<np; i++) {
-       if (lastID != nodeList[i]) {
-	   if (count >= index) {
-	       return nodeList[i];
-	   }
+    for (i=0; i<slotListSize; i++) {
+	if (lastID != slotList[i]) {
+	   lastID = slotList[i];
 	   count++;
-	   lastID = nodeList[i];
+	   if (count > index) break;
        }
     }
 
-    return nodeList[np -1];
+    return lastID;
 }
 
 static void startKVSProvider(int argc, char *argv[], char **envp)
@@ -529,7 +541,7 @@ static void startKVSProvider(int argc, char *argv[], char **envp)
     pwd = getcwd(tmp, sizeof(tmp));
 
     startNode = (getenv("__MPIEXEC_DIST_START") ?
-		 getNodeIDbyIndex(np, 2) : PSC_getMyID());
+		 getNodeIDbyIndex(0) : PSC_getMyID());
 
     ret = PSI_spawnService(startNode, pwd, argc, argv, 0, &error,
 	    &spawnedProc, sRank);
@@ -607,7 +619,6 @@ static void createSpawner(int argc, char *argv[], int np, int admin)
 	int error, spawnedProc, ret;
 	ssize_t cnt;
 	int pSize = usize > np ? usize : np;
-	nodeList = umalloc(pSize*sizeof(nodeList), __func__);
 
 	if (!admin) {
 	    if (maxtpp > 1 && !envtpp) {
@@ -619,10 +630,8 @@ static void createSpawner(int argc, char *argv[], int np, int admin)
 	    if (!envtpp) {
 		unsetenv("PSI_TPP");
 	    }
-	    PSI_infoList(-1, PSP_INFO_LIST_PARTITION, NULL,
-			 nodeList, pSize*sizeof(*nodeList), 0);
 	    startNode = (getenv("__MPIEXEC_DIST_START") ?
-			    getNodeIDbyIndex(np, 1) : PSC_getMyID());
+			 getNodeIDbyIndex(1) : PSC_getMyID());
 	    setPSIEnv("__MPIEXEC_DIST_START",
 		      getenv("__MPIEXEC_DIST_START"), 1);
 	} else {
@@ -660,8 +669,6 @@ static void createSpawner(int argc, char *argv[], int np, int admin)
 
 	ret=PSI_spawnService(startNode, pwd, argc, argv, 0, &error,
 				&spawnedProc, 0);
-
-	free(nodeList);
 
 	if (ret < 0 || error) {
 	    fprintf(stderr, "Could not spawn master process (%s)", argv[0]);
