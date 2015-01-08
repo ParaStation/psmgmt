@@ -3199,7 +3199,7 @@ int PSIDpart_getNodes(uint32_t np, uint32_t hwType, PSpart_option_t option,
 	    /* increase for the next round */
 	    nextMinUsed++;
 	    if (fullRound) {
-		PSID_log(roundGot ? PSID_LOG_PART : -1,
+		PSID_log((roundGot || overbook) ? PSID_LOG_PART : -1,
 			 "%s: Got %d in last round\n", __func__, roundGot);
 	    }
 	    if (fullRound && !roundGot && !overbook) break;
