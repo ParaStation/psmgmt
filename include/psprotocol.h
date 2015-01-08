@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2014 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2015 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -252,6 +252,7 @@ typedef enum {
     PSP_INFO_QUEUE_ENVS,          /**< Queue of environment entries */
     PSP_INFO_RDPCONNSTATUS,       /**< Info on RDP connections */
     PSP_INFO_LIST_RESPORTS,	  /**< Reserved ports for OpenMPI startup */
+    PSP_INFO_LIST_GETNODES        /**< Get assumption on GET_NODES results */
 } PSP_Info_t;
 
 /** Messages concerning spawning of tasks. */
@@ -575,7 +576,8 @@ size_t PSP_strLen(char *str);
  * @return Upon success, 1 is returned. Or 0, if an error
  * occurred. This is mainly due to insufficient space within @a msg.
  */
-int PSP_putMsgBuf(DDBufferMsg_t *msg, char *strName, void *data, size_t size);
+int PSP_putMsgBuf(DDBufferMsg_t *msg, char *strName, const void *data,
+		  size_t size);
 
 
 /**
@@ -605,7 +607,7 @@ int PSP_putMsgBuf(DDBufferMsg_t *msg, char *strName, void *data, size_t size);
  * @return Upon success, 1 is returned. Or 0, if an error
  * occurred. This is mainly due to insufficient space within @a msg.
  */
-int PSP_putTypedMsgBuf(DDTypedBufferMsg_t *msg, char *strName, void *data,
+int PSP_putTypedMsgBuf(DDTypedBufferMsg_t *msg, char *strName, const void *data,
 		       size_t size);
 
 #ifdef __cplusplus
