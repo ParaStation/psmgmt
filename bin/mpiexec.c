@@ -1368,21 +1368,25 @@ static int spawnSingleExecutable(int np, int argc, char **argv, char *wd,
  */
 static int startProcs(int np, char *wd, int verbose)
 {
-    int i, ret = 0, pSize;
+    int i, ret = 0;
     char *hostname = NULL;
-    PSnodes_ID_t *nodeList = NULL;
+    PSnodes_ID_t *nodeList;
+    int nlSize = np*sizeof(*nodeList);
+    PSI_infoListGetNodes_t param;
 
-    /* request the complete nodelist from master */
-    if (!nodeList) {
-	pSize = usize > np ? usize : np;
-	nodeList = umalloc(pSize*sizeof(nodeList), __func__);
+    param.np = np;
+    param.hwType = (exec[0]->nodetype) ? getNodeType(exec[0]->nodetype) : 0;
+    param.option = (overbook ? PART_OPT_OVERBOOK : 0)
+	| (loopnodesfirst ? PART_OPT_NODEFIRST : 0);
+    param.tpp = exec[0]->tpp;
 
-	PSI_infoList(-1, PSP_INFO_LIST_PARTITION, NULL,
-		nodeList, pSize*sizeof(*nodeList), 0);
-    }
+    /* request an assumption on the GET_NODES results */
+    nodeList = umalloc(nlSize, __func__);
+
+    ret = PSI_infoList(-1, PSP_INFO_LIST_GETNODES, &param, nodeList, nlSize, 0);
 
     /* extract additional node informations (e.g. uniq nodes) */
-    extractNodeInformation(nodeList, np);
+    if (ret == nlSize) extractNodeInformation(nodeList, np);
 
     if (OpenMPI) {
 	/* get uniq hostnames from the uniq nodes list */

@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2014 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2015 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -317,7 +317,10 @@ int PStask_init(PStask_t* task)
     task->partitionSize = 0;
     task->options = 0;
     task->partition = NULL;
-    task->usedSlots = -1;
+    task->partThrds = NULL;
+    task->totalThreads = 0;
+    task->usedThreads = -1;
+    task->activeChild = 0;
     task->numChild = 0;
     task->spawnNodes = NULL;
     task->spawnNodesSize = 0;
@@ -376,6 +379,7 @@ int PStask_reinit(PStask_t* task)
 
     if (task->request) PSpart_delReq(task->request);
     if (task->partition) free(task->partition);
+    if (task->partThrds) free(task->partThrds);
     if (task->spawnNodes) free(task->spawnNodes);
     if (task->resPorts) free(task->resPorts);
 
@@ -543,7 +547,16 @@ PStask_t* PStask_clone(PStask_t* task)
     }
     memcpy(clone->partition, task->partition,
 	   task->partitionSize * sizeof(*task->partition));
-    clone->usedSlots = task->usedSlots;
+    clone->partThrds = malloc(task->totalThreads * sizeof(*task->partThrds));
+    if (!clone->partThrds) {
+	PSC_warn(-1, errno, "%s: malloc(partThrds)", __func__);
+	goto error;
+    }
+    memcpy(clone->partThrds, task->partThrds,
+	   task->totalThreads * sizeof(*task->partThrds));
+    clone->totalThreads = task->totalThreads;
+    clone->usedThreads = task->usedThreads;
+    clone->activeChild = task->activeChild;
     clone->numChild = task->numChild;
     clone->spawnNodesSize = task->spawnNodesSize;
     clone->spawnNodes = malloc(task->spawnNodesSize*sizeof(*task->spawnNodes));
@@ -841,10 +854,10 @@ int PStask_decodeArgs(char *buffer, PStask_t *task)
  *
  * Before calling this function the first time @a cur has to be set to
  * 0 and @a offset to NULL. Both shall not be modified during the
- * course of repeted calls. Once @a cur holds the value -1, all
+ * course of repeated calls. Once @a cur holds the value -1, all
  * strings of @a strV are encoded.
  *
- * If a single string does not fit into @a buffer, i.e. if the lenght
+ * If a single string does not fit into @a buffer, i.e. if the length
  * of this string is larger than @a size, upon return @a offset will
  * point to the trailing part of the string. Further calls to this
  * function will encode the trailing part(s) into @a buffer. Once all
@@ -863,7 +876,7 @@ int PStask_decodeArgs(char *buffer, PStask_t *task)
  * encoded, if any.
  *
  * @return The number of characters put into the buffer. Or 0, if an
- * error occured.
+ * error occurred.
  */
 static size_t encodeStrV(char *buffer, size_t size, char **strV,
 			 int *cur, char **offset)
@@ -877,7 +890,7 @@ static size_t encodeStrV(char *buffer, size_t size, char **strV,
     }
 
     if (*cur == -1) {
-	PSC_log(-1, "%s: encdoding complete\n", __func__);
+	PSC_log(-1, "%s: encoding complete\n", __func__);
 	return 0;
     }
 

@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2014 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2015 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -31,7 +31,7 @@ extern "C" {
 #endif
 
 /** Unique version number of the high-level protocol */
-#define PSDaemonProtocolVersion  410
+#define PSDaemonProtocolVersion  411
 
 /** IDs of the various message types */
 
@@ -64,18 +64,18 @@ extern "C" {
 
 /** Messages between daemon and master */
 #define PSP_DD_GETPART             0x0120  /**< Get partition from master */
-#define PSP_DD_GETPARTNL           0x0121  /**< Partition request nodelist */
+#define PSP_DD_GETPARTNL           0x0121  /**< Partition request node-list */
 #define PSP_DD_PROVIDEPART         0x0122  /**< Reply partition bound */
-#define PSP_DD_PROVIDEPARTSL       0x0123  /**< Partition reply slotlist */
+#define PSP_DD_PROVIDEPARTSL       0x0123  /**< Partition reply slot-list */
 #define PSP_DD_GETNODES            0x0124  /**< Forwarded GETNODES message */
 #define PSP_DD_GETTASKS            0x0125  /**< Get tasks from slaves */
 #define PSP_DD_PROVIDETASK         0x0126  /**< Reply tasks */
-#define PSP_DD_PROVIDETASKSL       0x0127  /**< Task reply slotlist */
+#define PSP_DD_PROVIDETASKSL       0x0127  /**< Task reply slot-list */
 #define PSP_DD_CANCELPART          0x0128  /**< Cancel partition request */
 #define PSP_DD_TASKDEAD            0x0129  /**< Complete task finished */
 #define PSP_DD_TASKSUSPEND         0x012A  /**< Task got SIGTSTP */
 #define PSP_DD_TASKRESUME          0x012B  /**< Task got SIGCONT */
-#define PSP_DD_GETRANKNODE         0x012C  /**< Forwarded GETRANKNODE mesg */
+#define PSP_DD_GETRANKNODE         0x012C  /**< Forwarded GETRANKNODE msg */
 #define PSP_DD_PROVIDETASKRP       0x012D  /**< Task reply reserved ports */
 #define PSP_DD_PROVIDEPARTRP       0x012E  /**< Partition reply reserved
 					      ports */

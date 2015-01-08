@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2014 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2015 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -99,7 +99,7 @@ static PSpart_request_t *findRequest(list_t *queue, PStask_ID_t tid)
 /**
  * @brief Dequeue request.
  *
- * Remove the request @a req from the the queue @a queue. The request
+ * Remove the request @a req from the queue @a queue. The request
  * has to be created using @ref PSpart_newReq() and added to the list of
  * requests via @ref enqueueRequest().
  *
@@ -839,10 +839,10 @@ static int nodeOK(PSnodes_ID_t node, PSpart_request_t *req)
  * - In case of a EXCLUSIVE request, if the node is totally free and
  *   exclusiveness is allowed.
  *
- * - In case of a OVERBOOK request, if overbooking is generally
- * allowed or if overbooking in the classical sense
+ * - In case of a OVERBOOK request, if over-booking is generally
+ * allowed or if over-booking in the classical sense
  * (i.e. OVERBOOK_AUTO) is allowed and the node is free or if
- * overbooking is not allowed and the node has a free CPU.
+ * over-booking is not allowed and the node has a free CPU.
  *
  * @param node The node to evaluate.
  *
@@ -1034,7 +1034,7 @@ static sortlist_t *getCandidateList(PSpart_request_t *request)
 	    /*
 	     * This has to be inside if(nodeOK()) but outside
 	     * if(nodeFree()). This collects information since we
-	     * might want to wait for (overbooking-)resources to
+	     * might want to wait for (over-booking-)resources to
 	     * become available!
 	     */
 	    list.freeHWTs += availHWThreads;
@@ -1648,12 +1648,12 @@ static PSpart_slot_t *createPartition(PSpart_request_t *request,
  * job.
  *
  * The newly created partition will be stored within @a request's slot
- * member. For this an adaquate memory region will be allocated which
+ * member. For this an adequate memory region will be allocated which
  * shall be free()ed while destructing @a request. Furthermore, the
  * size member of @a request will be adapted to the actual number of
  * slots required in order to store the partition.
  *
- * The acutal allocation strategy for partitions will consider the
+ * The actual allocation strategy for partitions will consider the
  * request's tpp (threads per process) while creating the
  * partition. Thus, on each node the number of allocated HW-threads
  * will be a multiple of tpp. Furthermore the partition will contain
@@ -1663,7 +1663,7 @@ static PSpart_slot_t *createPartition(PSpart_request_t *request,
  * in the list of @a candidates support pinning of processes.
  *
  * @param request The request describing the partition to create and
- * holding the actual parition in the member slot.
+ * holding the actual partition in the member slot.
  *
  * @param candidates The sorted list of candidates used in order to
  * build the partition
@@ -1710,8 +1710,8 @@ static int createNewPartition(PSpart_request_t *request, sortlist_t *candidates)
     if (request->options & PART_OPT_EXACT) {
 	/*
 	 * This is an exact partition defined by a batch-system Let's
-	 * keep this for the time being. Most probably this can can be
-	 * removed once exeact partition are not necessary any more
+	 * keep this for the time being. Most probably this can be
+	 * removed once exact partitions are not necessary any more
 	 */
 	while (cand < candidates->size && numProcs < numRequested) {
 	    sortentry_t *ce = &candidates->entry[cand];
@@ -1751,7 +1751,7 @@ static int createNewPartition(PSpart_request_t *request, sortlist_t *candidates)
 
 		if (!numThrds) {
 		    PSID_log(-1, "%s: No HW-threads on node %d even though in"
-			     " lis of candidates\n", __func__, cid);
+			     " list of candidates\n", __func__, cid);
 		    overbook = 0; /* let the creation fail */
 		    break;
 		}
@@ -2059,8 +2059,8 @@ static int sendPartition(PSpart_request_t *req)
     PSID_log(PSID_LOG_PART, "%s(%s)\n", __func__, PSC_printTID(req->tid));
 
     *(uint32_t *)ptr = req->size;
-    ptr += sizeof(req->size);
-    msg.header.len += sizeof(req->size);
+    ptr += sizeof(uint32_t);
+    msg.header.len += sizeof(uint32_t);
 
     *(PSpart_option_t *)ptr = req->options;
     //ptr += sizeof(req->options);
@@ -2717,7 +2717,6 @@ static void appendToSlotlist(DDBufferMsg_t *inmsg, PSpart_request_t *request)
 	for (n = 0; n < chunk; n++) {
 	    slots[n].node = nodeBuf[n];
 	    PSCPU_setAll(slots[n].CPUset);
-	    slots[n].used = 0;
 	}
     } else if (dmnPSPver < 401) {
 	PSpart_oldSlot_t *oldSlots = (PSpart_oldSlot_t *)ptr;
@@ -2728,7 +2727,6 @@ static void appendToSlotlist(DDBufferMsg_t *inmsg, PSpart_request_t *request)
 	    } else {
 		PSCPU_setCPU(slots[n].CPUset, oldSlots[n].cpu);
 	    }
-	    slots[n].used = 0;
 	}
     } else {
 	size_t nBytes, myBytes = PSCPU_bytesForCPUs(PSCPU_MAX);
@@ -2750,7 +2748,6 @@ static void appendToSlotlist(DDBufferMsg_t *inmsg, PSpart_request_t *request)
 	    PSCPU_clrAll(slots[n].CPUset);
 	    PSCPU_inject(slots[n].CPUset, ptr, nBytes);
 	    ptr += nBytes;
-	    slots[n].used = 0;
 	}
     }
     request->sizeGot += chunk;
@@ -2804,13 +2801,8 @@ static void msg_PROVIDEPART(DDBufferMsg_t *inmsg)
 	goto error;
     }
 
-    if (req->size != *(unsigned int *)ptr) {
-	PSID_log(-1, "%s: wrong number of slots (%d/%d) for %s\n", __func__,
-		 req->size, *(unsigned int *)ptr,
-		 PSC_printTID(inmsg->header.dest));
-	errno = EBADMSG;
-	goto error;
-    }
+    /* The size of the partition to be received */
+    req->sizeExpected = *(unsigned int *)ptr;
     ptr += sizeof(unsigned int);
 
     if (req->options != *(PSpart_option_t *)ptr) {
@@ -2822,7 +2814,7 @@ static void msg_PROVIDEPART(DDBufferMsg_t *inmsg)
     }
     //ptr += sizeof(PSpart_option_t);
 
-    req->slots = malloc(req->size * sizeof(*req->slots));
+    req->slots = malloc(req->sizeExpected * sizeof(*req->slots));
     if (!req->slots) {
 	PSID_log(-1, "%s: No memory\n", __func__);
 	errno = ENOMEM;
@@ -2847,6 +2839,43 @@ static void msg_PROVIDEPART(DDBufferMsg_t *inmsg)
 	send_TASKDEAD(inmsg->header.dest);
 	sendMsg(&msg);
     }
+}
+
+static int getHWThreads(PSpart_slot_t *slots, uint32_t num,
+			PSpart_HWThread_t **threads)
+{
+    unsigned int s, t = 0, totThreads = 0;
+    PSpart_HWThread_t *HWThreads;
+
+    for (s=0; s<num; s++) {
+	totThreads += PSCPU_getCPUs(slots[s].CPUset, NULL, PSCPU_MAX);
+    }
+
+    PSID_log(PSID_LOG_PART, "%s: slots %d threads %d\n", __func__, num,
+	     totThreads);
+    HWThreads = malloc(totThreads * sizeof(*HWThreads));
+
+    if (!HWThreads) {
+	PSID_log(-1, "%s: No memory\n", __func__);
+	errno = ENOMEM;
+	return -1;
+    }
+
+    for (s=0; s<num; s++) {
+	unsigned int cpu;
+	for (cpu=0; cpu<PSCPU_MAX; cpu++) {
+	    if (PSCPU_isSet(slots[s].CPUset, cpu)) {
+		HWThreads[t].node = slots[s].node;
+		HWThreads[t].id = cpu;
+		HWThreads[t].timesUsed = 0;
+		t++;
+	    }
+	}
+    }
+
+    *threads = HWThreads;
+
+    return totThreads;
 }
 
 /**
@@ -2896,7 +2925,7 @@ static void msg_PROVIDEPARTSL(DDBufferMsg_t *inmsg)
 
     appendToSlotlist(inmsg, req);
 
-    if (req->sizeGot == req->size) {
+    if (req->sizeGot == req->sizeExpected) {
 	/* partition complete, now delete the corresponding request */
 	DDTypedMsg_t msg = (DDTypedMsg_t) {
 	    .header = (DDMsg_t) {
@@ -2905,12 +2934,17 @@ static void msg_PROVIDEPARTSL(DDBufferMsg_t *inmsg)
 		.sender = PSC_getMyTID(),
 		.len = sizeof(msg) },
 	    .type = 0};
+	int thrds;
 
-	task->partitionSize = task->request->size;
-	task->options = task->request->options;
+	task->partitionSize = task->request->sizeExpected;
 	task->partition = task->request->slots;
 	task->request->slots = NULL;
-	task->usedSlots = 0;
+	thrds = getHWThreads(task->partition, task->partitionSize,
+			     &task->partThrds);
+	if (thrds < 0) goto error;
+	task->totalThreads = thrds;
+	task->usedThreads = 0;
+	task->activeChild = 0;
 
 	PSpart_delReq(task->request);
 	task->request = NULL;
@@ -3046,6 +3080,209 @@ static void msg_PROVIDEPARTRP(DDBufferMsg_t *inmsg)
 }
 
 /**
+ * @brief Release HW-threads
+ *
+ * Release the HW-threads presented within the first @a nSlots entries
+ * of the slot-list @a slots, i.e. mark them as not used any more. For
+ * this the list of HW-threads @a partition acting as a tasks
+ * partition of size @a partSize is manipulated.
+ *
+ * @param slot The list of slots to be released
+ *
+ * @param nSlots Number of slots to be released. Each slot might
+ * contain multiple HW-threads.
+ *
+ * @param partition List of HW-threads to be manipulated
+ *
+ * @param partSize Number of elements within @a partition
+ *
+ * @return Return the total number of HW-threads released.
+ */
+static int releaseThreads(PSpart_slot_t *slot, unsigned int nSlots,
+			  PSpart_HWThread_t *partition, unsigned int partSize)
+{
+    unsigned int t, s, totalRelease = 0, numToRelease;
+
+    if (!slot || !partition) return 0;
+
+    for (s=0; s<nSlots; s++) totalRelease += PSCPU_getCPUs(slot[s].CPUset,
+							   NULL, PSCPU_MAX);
+    numToRelease = totalRelease;
+    PSID_log(PSID_LOG_PART, "%s: total %d %s\n", __func__, numToRelease,
+	     PSCPU_print(slot[0].CPUset));
+
+    for (t=0; t < partSize && numToRelease; t++) {
+	PSnodes_ID_t node = partition[t].node;
+	for (s = 0; s < nSlots; s++) {
+	    if (slot[s].node == node
+		&& PSCPU_isSet(slot[s].CPUset, partition[t].id)) {
+		partition[t].timesUsed--;
+		numToRelease--;
+		break;
+	    }
+	}
+    }
+
+    return (totalRelease - numToRelease);
+}
+
+#define myUseSpaceSize 65536
+static int16_t myUseSpace[myUseSpaceSize];
+
+int PSIDpart_getNodes(uint32_t np, uint32_t hwType, PSpart_option_t option,
+		      uint16_t tpp, PStask_t *task, PSpart_slot_t *slots,
+		      int dryRun)
+{
+    PSpart_HWThread_t *thread;
+    int16_t *myUse;
+    unsigned int got = 0, roundGot = 0, thrdsGot = 0, t, first = 0;
+    int overbook = option & PART_OPT_OVERBOOK;
+    int nodeFirst = option & PART_OPT_NODEFIRST;
+    int nextMinUsed, minUsed, fullRound = 0;
+    int mod = task->totalThreads + ((overbook || nodeFirst) ? 0 : 1);
+    int nodeTPP = 1, maxTPP = 0;
+
+    PSID_log(PSID_LOG_PART, "%s: np %d hwType %x option %x tpp %d dryRun %d\n",
+	     __func__,np, hwType, option, tpp, dryRun);
+
+    if (!task) return 0;
+    thread = task->partThrds;
+    nextMinUsed = thread[0].timesUsed;
+
+    if (np > myUseSpaceSize) {
+	myUse = malloc(np*sizeof(*myUse));
+	if (!myUse) {
+	    PSID_warn(-1, errno, "%s", __func__);
+	    goto exit;
+	}
+    } else {
+	myUse = myUseSpace;
+    }
+
+    for (t = 0; t < task->totalThreads; t++) {
+	PSnodes_ID_t node = thread[t].node;
+	myUse[t] = thread[t].timesUsed;
+	if (hwType && (PSIDnodes_getHWStatus(node) & hwType)) continue;
+	if (t && thread[t-1].node == node) {
+	    nodeTPP ++;
+	} else {
+	    if (nodeTPP > maxTPP) maxTPP = nodeTPP;
+	    nodeTPP = 1;
+	}
+	if (myUse[t] < nextMinUsed) {
+	    first = t;
+	    nextMinUsed = myUse[t];
+	}
+    }
+
+    if (nextMinUsed && !overbook) {
+	PSID_log(-1, "%s: No free slots\n", __func__);
+	goto exit;
+    }
+    minUsed = nextMinUsed;
+    if (!nodeFirst && first) nextMinUsed++;
+
+    if (tpp > maxTPP) {
+	PSID_log(-1, "%s: Invalid tpp (%d/%d)\n", __func__, tpp, maxTPP);
+	goto exit;
+    }
+
+    PSID_log(PSID_LOG_PART, "%s: first %d mod %d threads %d minUsed %d"
+	     " maxTPP %d\n", __func__, first, mod, task->totalThreads, minUsed,
+	     maxTPP);
+
+    for (t=first; t < task->totalThreads && got < np; t = (t+1) % mod) {
+	PSnodes_ID_t node = thread[t].node;
+
+	if (!t) {
+	    minUsed = nextMinUsed;
+	    /* increase for the next round */
+	    nextMinUsed++;
+	    if (fullRound) {
+		PSID_log(roundGot ? PSID_LOG_PART : -1,
+			 "%s: Got %d in last round\n", __func__, roundGot);
+	    }
+	    if (fullRound && !roundGot && !overbook) break;
+	    if (nodeFirst) {
+		if (minUsed && !overbook) break;
+	    }
+	    fullRound = 1;
+	    roundGot = 0;
+	    PSID_log(PSID_LOG_PART, "%s: minUsed %d\n", __func__, minUsed);
+	}
+
+	PSID_log(PSID_LOG_PART, "%s: t %d node %d id %d used %d\n", __func__, t,
+		 node, thread[t].id, myUse[t]);
+	/* test for HW-threads already busy */
+	if (myUse[t] > minUsed) continue;
+
+	/* check for correct capabilities of HW-thread */
+	if (hwType && (PSIDnodes_getHWStatus(node) & hwType)) continue;
+
+	/* ensure we loop over different nodes */
+	if (nodeFirst && roundGot && node == slots[got-1].node) {
+	    /* Skip slot for now but check for usability in next round */
+	    if (myUse[t] < nextMinUsed) nextMinUsed = myUse[t];
+	    continue;
+	}
+
+	if (!thrdsGot) {
+	    slots[got].node = node;
+	    PSCPU_clrAll(slots[got].CPUset);
+	}
+	if (node != slots[got].node) {
+	    /* Next node, restart collection of threads */
+	    int numToRel = PSCPU_getCPUs(slots[got].CPUset, NULL, PSCPU_MAX);
+	    unsigned int tt;
+	    for (tt = 1; tt < task->totalThreads && numToRel; tt++) {
+		int ttt = (t - tt + task->totalThreads) % task->totalThreads;
+		if (slots[got].node == thread[ttt].node
+		    && PSCPU_isSet(slots[got].CPUset, thread[ttt].id)) {
+		    PSID_log(PSID_LOG_PART, "%s: Put node %d thread %d again\n",
+			     __func__, thread[ttt].node, thread[ttt].id);
+		    myUse[ttt]--;
+		    numToRel--;
+		}
+	    }
+	    if (numToRel) {
+		PSID_log(-1, "%s: unable to release all slots\n", __func__);
+		PSID_log(-1, "%s: %d left\n", __func__, numToRel);
+		goto exit;
+	    }
+	    slots[got].node = node;
+	    PSCPU_clrAll(slots[got].CPUset);
+	    thrdsGot = 0;
+	}
+
+	PSID_log(PSID_LOG_PART, "%s: Take node %d thread %d\n", __func__,
+		 node, thread[t].id);
+	PSCPU_setCPU(slots[got].CPUset, thread[t].id);
+	myUse[t]++;
+	thrdsGot++;
+
+	if (thrdsGot == tpp) {
+	    PSID_log(PSID_LOG_PART, "%s: Slot %d on node %d full\n", __func__,
+		     got, node);
+	    got++;
+	    roundGot++;
+	    thrdsGot = 0;
+	}
+    }
+
+    if (!dryRun && got == np) {
+	for (t = 0; t < task->totalThreads; t++) {
+	    task->usedThreads += myUse[t] - thread[t].timesUsed;
+	    thread[t].timesUsed = myUse[t];
+	}
+    }
+
+exit:
+    if (np > myUseSpaceSize && myUse) free(myUse);
+
+    return got;
+}
+
+/**
  * @brief Handle a PSP_CD_GETNODES/PSP_DD_GETNODES message.
  *
  * Handle the message @a inmsg of type PSP_CD_GETNODES or
@@ -3066,9 +3303,9 @@ static void msg_GETNODES(DDBufferMsg_t *inmsg)
     PStask_t *task = PStasklist_find(&managedTasks, target);
     char *ptr = inmsg->buf;
     size_t usedBytes = sizeof(inmsg->header);
-    unsigned int num;
-    int hwType = 0, tpp = 1;
-    PSpart_option_t options = 0;
+    uint32_t num, hwType = 0;
+    PSpart_option_t option = 0;
+    uint16_t tpp = 1;
 
     if (!task) {
 	PSID_log(-1, "%s: Task %s not found\n", __func__,
@@ -3093,7 +3330,7 @@ static void msg_GETNODES(DDBufferMsg_t *inmsg)
 	goto error;
     }
 
-    if (task->usedSlots < 0) {
+    if (task->usedThreads < 0) {
 	PSID_log(-1, "%s: Partition's creation not yet finished\n", __func__);
 	goto error;
     }
@@ -3109,23 +3346,29 @@ static void msg_GETNODES(DDBufferMsg_t *inmsg)
     }
 
     if (inmsg->header.len > usedBytes) {
-	options = *(PSpart_option_t *)ptr;
+	option = *(PSpart_option_t *)ptr;
 	ptr += sizeof(PSpart_option_t);
 	usedBytes += sizeof(PSpart_option_t);
+	PSID_log(PSID_LOG_PART, "%s: Got option %#x\n", __func__, option);
+    } else {
+	option = task->options;
+	PSID_log(PSID_LOG_PART, "%s: Use default option %#x\n", __func__,
+		 option);
     }
 
     if (inmsg->header.len > usedBytes) {
 	tpp = *(uint16_t *)ptr;
 	//ptr += sizeof(uint16_t);
 	//usedBytes += sizeof(uint16_t);
+	PSID_log(PSID_LOG_PART, "%s: Got tpp %d\n", __func__, tpp);
     }
 
-    PSID_log(PSID_LOG_PART, "%s(num %d, hwType %d, tpp %d, options %xd)\n",
-	     __func__, num, hwType, tpp, options);
+    PSID_log(PSID_LOG_PART, "%s(num %d, hwType %d)\n", __func__, num, hwType);
 
     if (num > NODES_CHUNK) goto error;
 
-    if (task->usedSlots + num <= task->partitionSize) {
+    if (task->usedThreads + num * tpp <= task->totalThreads
+	|| option & PART_OPT_OVERBOOK) {
 	int PSPver = PSIDnodes_getProtoV(PSC_getID(inmsg->header.sender));
 	int dmnPSPver = PSIDnodes_getDmnProtoV(PSC_getID(inmsg->header.sender));
 	DDBufferMsg_t msg = (DDBufferMsg_t) {
@@ -3136,32 +3379,13 @@ static void msg_GETNODES(DDBufferMsg_t *inmsg)
 		.len = sizeof(msg.header) },
 	    .buf = { 0 } };
 	PSpart_slot_t slots[NODES_CHUNK];
-	PSpart_slot_t *cand = task->partition;
-	unsigned int got, n;
-
-	for (n=0, got=0; got<num && n<task->partitionSize; n++) {
-	    if ((!hwType || PSIDnodes_getHWStatus(cand[n].node) & hwType)
-		&& !cand[n].used) {
-		slots[got].node = cand[n].node;
-		PSCPU_copy(slots[got].CPUset, cand[n].CPUset);
-		cand[n].used = 1;
-		got++;
-	    }
-	}
+	unsigned int got = PSIDpart_getNodes(num, hwType, option, tpp, task,
+					     slots, 0);
 
 	if (got < num) {
-	    unsigned int m;
-
-	    PSID_log(-1, "%s: Only %d nodes found even though %d free"
-		     " expected\n", __func__, got,
-		     task->partitionSize - task->usedSlots);
-
-	    /* Release the just allocated slots again */
-	    for (n=0, m=0; n<got && m<task->partitionSize; n++) {
-		while (slots[n].node == cand[m].node
-		       && !PSCPU_cmp(slots[n].CPUset, cand[m].CPUset)) m++;
-		cand[m].used = 0;
-	    }
+	    PSID_log(-1, "%s: Only %d HW-threads for %d processes found"
+		     " even though %d free expected\n", __func__, got*tpp, got,
+		     task->totalThreads - task->usedThreads);
 
 	    goto error;
 	}
@@ -3172,8 +3396,8 @@ static void msg_GETNODES(DDBufferMsg_t *inmsg)
 	ptr += sizeof(int32_t);
 	msg.header.len += sizeof(int32_t);
 
-	task->usedSlots += num;
 	task->numChild += num;
+	task->activeChild += num;
 
 	if (PSPver < 335) {
 	    PSnodes_ID_t *nodeBuf = (PSnodes_ID_t *)ptr;
@@ -3252,17 +3476,16 @@ static void msg_CHILDRESREL(DDBufferMsg_t *msg)
     PStask_ID_t target = msg->header.dest;
     PStask_t *task = PStasklist_find(&managedTasks, target);
     char *ptr = msg->buf;
-    PSCPU_set_t freeSet;
     size_t nBytes, myBytes = PSCPU_bytesForCPUs(PSCPU_MAX);
-    PSnodes_ID_t sNode = PSC_getID(msg->header.sender);
-    unsigned int n;
+    PSpart_slot_t slot;
+    unsigned int numToRelease, released;
 
     if (!task) {
 	PSID_log(-1, "%s: Task %s not found\n", __func__, PSC_printTID(target));
 	return;
     }
 
-    if (!task->partition) {
+    if (!task->partition || !task->partThrds) {
 	PSID_log(-1, "%s: Task %s has no partition\n", __func__,
 		 PSC_printTID(target));
 	return;
@@ -3277,21 +3500,28 @@ static void msg_CHILDRESREL(DDBufferMsg_t *msg)
 	return;
     }
 
-    PSCPU_clrAll(freeSet);
-    PSCPU_inject(freeSet, ptr, nBytes);
+    slot.node = PSC_getID(msg->header.sender);
+    PSCPU_clrAll(slot.CPUset);
+    PSCPU_inject(slot.CPUset, ptr, nBytes);
     // ptr += nBytes;
 
+    numToRelease = PSCPU_getCPUs(slot.CPUset, NULL, PSCPU_MAX);
+
     /* Find and release the corresponding slots */
-    for (n = 0; n < task->partitionSize; n++) {
-	if (task->partition[n].node == sNode
-	    && !PSCPU_cmp(task->partition[n].CPUset, freeSet)) {
-	    task->partition[n].used = 0;
-	    task->usedSlots--;
-	    PSID_log(PSID_LOG_PART, "%s: Allow to re-use slot %d on node %d."
-		     " %d slots used\n", __func__, n, sNode, task->usedSlots);
-	    break;
-	}
+    released = releaseThreads(&slot, 1, task->partThrds, task->totalThreads);
+
+    task->usedThreads -= released;
+
+    if (released != numToRelease) {
+	PSID_log(-1, "%s: Only %d of %d HW-threads released.\n", __func__,
+		 released, numToRelease);
+    } else {
+	PSID_log(PSID_LOG_PART, "%s: Allow to re-use threads %s on node %d."
+		 " %d threads used\n", __func__, PSCPU_print(slot.CPUset),
+		 slot.node, task->usedThreads);
     }
+
+    task->activeChild--;
 
     return;
 }
@@ -3317,6 +3547,8 @@ static void msg_GETRANKNODE(DDBufferMsg_t *inmsg)
 	inmsg->header.dest : inmsg->header.sender;
     PStask_t *task = PStasklist_find(&managedTasks, target);
     char *ptr = inmsg->buf;
+    size_t usedBytes = sizeof(inmsg->header);
+    unsigned int tpp = 1;
     int rank;
 
     if (!task) {
@@ -3342,17 +3574,25 @@ static void msg_GETRANKNODE(DDBufferMsg_t *inmsg)
 	goto error;
     }
 
-    if (task->usedSlots < 0) {
+    if (task->usedThreads < 0) {
 	PSID_log(-1, "%s: Partition's creation not yet finished\n", __func__);
 	goto error;
     }
 
     rank = *(int32_t *)ptr;
-    //ptr += sizeof(int32_t);
+    ptr += sizeof(int32_t);
+    usedBytes += sizeof(int32_t);
+
+    if (inmsg->header.len > usedBytes) {
+	tpp = *(uint16_t *)ptr;
+	//ptr += sizeof(uint16_t);
+	//usedBytes += sizeof(uint16_t);
+	PSID_log(PSID_LOG_PART, "%s: Got tpp %d\n", __func__, tpp);
+    }
 
     PSID_log(PSID_LOG_PART, "%s(%d)\n", __func__, rank);
 
-    if (rank >=0 && (unsigned)rank < task->partitionSize) {
+    if (rank >=0 && (unsigned)rank * tpp < task->totalThreads) {
 	DDBufferMsg_t msg = (DDBufferMsg_t) {
 	    .header = (DDMsg_t) {
 		.type = PSP_DD_NODESRES,
@@ -3360,8 +3600,10 @@ static void msg_GETRANKNODE(DDBufferMsg_t *inmsg)
 		.sender = PSC_getMyTID(),
 		.len = sizeof(msg.header) },
 	    .buf = { 0 } };
-	PSpart_slot_t *slot = task->partition + rank;
+	PSpart_HWThread_t *thread = task->partThrds + rank * tpp;
+	PSpart_slot_t slot;
 	int dmnPSPver = PSIDnodes_getDmnProtoV(PSC_getID(inmsg->header.sender));
+	unsigned int t;
 
 	ptr = msg.buf;
 
@@ -3369,16 +3611,28 @@ static void msg_GETRANKNODE(DDBufferMsg_t *inmsg)
 	ptr += sizeof(int32_t);
 	msg.header.len += sizeof(int32_t);
 
-	slot->used = 1;
+	slot.node = thread[0].node;
+	PSCPU_clrAll(slot.CPUset);
+	for (t=0; t < tpp; t++) {
+	    if (thread[t].node != slot.node) {
+		unsigned int tt;
+		PSID_log(-1, "%s: Not %d consecutive HW-threads on the same"
+			 " node for rank %d.\n", __func__, tpp, rank);
+		for (tt=0; tt<t; tt++) thread[tt].timesUsed--;
+		goto error;
+	    }
+	    PSCPU_setCPU(slot.CPUset, thread[t].id);
+	    thread[t].timesUsed++;
+	}
 
 	if (dmnPSPver < 402) {
 	    size_t nBytes = PSCPU_bytesForCPUs(32);
 
-	    *(PSnodes_ID_t *)ptr = slot->node;
+	    *(PSnodes_ID_t *)ptr = slot.node;
 	    ptr += sizeof(PSnodes_ID_t);
 	    msg.header.len += sizeof(PSnodes_ID_t);
 
-	    PSCPU_extract(ptr, slot->CPUset, nBytes);
+	    PSCPU_extract(ptr, slot.CPUset, nBytes);
 	    //ptr += nBytes;
 	    msg.header.len += nBytes;
 
@@ -3388,7 +3642,7 @@ static void msg_GETRANKNODE(DDBufferMsg_t *inmsg)
 	    //ptr += sizeof(int16_t);
 	    msg.header.len += sizeof(int16_t);
 
-	    sendSlotlist(slot, 1, &msg);
+	    sendSlotlist(&slot, 1, &msg);
 	}
 
 	return;
@@ -3715,7 +3969,7 @@ static void msg_GETTASKS(DDBufferMsg_t *inmsg)
  * the master daemon to handle partition requests apart from the list
  * of slots building the corresponding partition. This message will be
  * followed by one or more PSP_DD_PROVIDETASKSL messages containing
- * this slotlist.
+ * this slot-list.
  *
  * The master daemon will store the partition information to the
  * corresponding partition request structure and wait for following

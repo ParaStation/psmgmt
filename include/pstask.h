@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2014 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2015 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -214,12 +214,15 @@ typedef struct {
     list_t releasedBefore;         /**< released children to be inherited */
     list_t deadBefore;             /**< dead children to be inherited */
     PSpart_request_t *request;     /**< Pointer to temp. partition request */
-    uint32_t partitionSize;        /**< Size of the partition. */
     PSpart_option_t options;       /**< The partition's options. */
+    uint32_t partitionSize;        /**< Number of slots in the partition. */
     PSpart_slot_t *partition;      /**< The actual partition. List of slots. */
-    int32_t usedSlots;             /**< Number of slots currently in use */
+    uint32_t totalThreads;         /**< Size of @ref partThreads. */
+    PSpart_HWThread_t *partThrds;  /**< HW-threads forming the partition. */
+    int32_t usedThreads;           /**< Number of HW-threads currently in use */
+    int32_t activeChild;           /**< # of active children right now */
     int32_t numChild;              /**< Total # of children spawned over time */
-    PSpart_slot_t *spawnNodes;     /**< Node the task can spawn to */
+    PSpart_slot_t *spawnNodes;     /**< Nodes the task can spawn to */
     int32_t spawnNodesSize;        /**< Current size of @ref spawnNodes */
     int32_t spawnNum;              /**< Amount of content of @ref spawnNodes */
 
@@ -258,7 +261,7 @@ int PStask_init(PStask_t *task);
  * @brief Reinitialize a task structure.
  *
  * Reinitialize the task structure @a task that was previously
- * used. All allocated strings and signallists shall be removed, all
+ * used. All allocated strings and signal-lists shall be removed, all
  * links are reset to NULL.
  *
  * @param task Pointer to the task structure to be reinitialized.
@@ -272,7 +275,7 @@ int PStask_reinit(PStask_t *task);
  *
  * Delete the task structure @a task created via @ref
  * PStask_new(). First the task is cleaned up by @ref PStask_reinit(),
- * i.e. all allocated strings and signallists are removed. Afterward
+ * i.e. all allocated strings and signal-lists are removed. Afterward
  * the task itself is removed.
  *
  * @param task Pointer to the task structure to be deleted.
@@ -340,7 +343,7 @@ void PStask_snprintf(char *txt, size_t size, PStask_t *task);
  * stored within @a buffer and write it to the task structure @a task
  * is pointing to.
  *
- * @param buffer The buffer the encoded task strucure is stored in.
+ * @param buffer The buffer the encoded task structure is stored in.
  *
  * @param task The task structure to write to.
  *
@@ -356,7 +359,7 @@ int PStask_decodeFull(char *buffer, PStask_t *task);
 /**
  * @brief Encode a task structure.
  *
- * Encode the task structure @a task into the the buffer @a buffer of
+ * Encode the task structure @a task into the buffer @a buffer of
  * size @a size. This enables the task to be sent to a remote node
  * where it can be decoded using the @ref PStask_decodeTask() function.
  *
@@ -405,7 +408,7 @@ size_t PStask_encodeTask(char *buffer, size_t size, PStask_t *task,
  * within @a buffer and write it to the task structure @a task is
  * pointing to.
  *
- * @param buffer The buffer the encoded task strucure is stored in.
+ * @param buffer The buffer the encoded task structure is stored in.
  *
  * @param task The task structure to write to.
  *
@@ -438,7 +441,7 @@ int PStask_decodeArgs(char *buffer, PStask_t *task);
 /**
  * @brief Encode argv part of task structure.
  *
- * Encode the argument-vector @a argv into the the buffer @a buffer of
+ * Encode the argument-vector @a argv into the buffer @a buffer of
  * size @a size. This enables the argument-vector to be sent to a
  * remote node where the argument-vector shall be decoded using the
  * @ref PStask_decodeArgv() and PStask_decodeArgvAppend() functions.
@@ -448,7 +451,7 @@ int PStask_decodeArgs(char *buffer, PStask_t *task);
  *
  * Since both, the argument-vector as whole and single arguments,
  * might be substantially larger than the buffer's size @a size, it
- * might be splitted into more than one messages and, thus, buffer
+ * might be split into more than one messages and, thus, buffer
  * contents. To support this feature, a pointer to an integer within
  * the calling context @a cur has to be provided. The integer @a cur
  * points to has to be set to 0 before calling this function for the
@@ -547,7 +550,7 @@ int PStask_decodeArgvAppend(char *buffer, PStask_t *task);
  *
  * Since both, the environment as whole and single environment's
  * key-value pairs, might be substantially larger than the buffer's
- * size @a size, it might be splitted into more than one messages and,
+ * size @a size, it might be split into more than one messages and,
  * thus, buffer contents. To support this feature, a pointer to an
  * integer within the calling context @a cur has to be provided. The
  * integer @a cur points to has to be set to 0 before calling this
@@ -556,7 +559,7 @@ int PStask_decodeArgvAppend(char *buffer, PStask_t *task);
  * same @a env they have to be left untouched.
  *
  * Since the environment might be substantially larger than the
- * buffer's size @a size, it might be splitted into more than one
+ * buffer's size @a size, it might be split into more than one
  * messages and thus buffer contents. To support this feature, a
  * pointer to an integer within the calling context @a cur has to be
  * provided. The integer @a cur points to has to be set to 0 before

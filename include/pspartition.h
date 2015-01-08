@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2014 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2015 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -39,12 +39,23 @@ typedef struct {
     int16_t cpu;
 } PSpart_oldSlot_t;
 
-/** Stores information of the partition's resource slots */
+/**
+ * Stores information of the partition's resource slots. This is
+ * mainly used on the master and for transport of slots.
+ */
 typedef struct {
     PSnodes_ID_t node;        /**< Node the slot belongs to */
     PSCPU_set_t CPUset;       /**< Set of CPUs the slot occupies */
-    int used;                 /**< Flag the use of this slot */
 } PSpart_slot_t;
+
+/**
+ * Stores information on the actual use of HW-threads within a partition
+ */
+typedef struct {
+    PSnodes_ID_t node;        /**< Node the slot belongs to */
+    int16_t id;               /**< The logical number of this HW-thread */
+    int16_t timesUsed;            /**< The number of SW-threads assigned */
+} PSpart_HWThread_t;
 
 /** Various sort modes for partition creation. */
 typedef enum {
@@ -67,10 +78,10 @@ typedef enum {
 				    processes are allowed on that node. */
     PART_OPT_OVERBOOK  = 0x0004, /**< Allow more than one process per
 				    node. This induces @ref PART_OPT_EXCLUSIVE
-				    implicitely. */
+				    implicitly. */
     PART_OPT_WAIT      = 0x0008, /**< If not enough nodes are available, wait
 				    for them (batch mode). */
-    PART_OPT_EXACT     = 0x0010, /**< Nodelist is from a batch-system */
+    PART_OPT_EXACT     = 0x0010, /**< Node-list comes from a batch-system */
     PART_OPT_RESPORTS  = 0x0020, /**< Request reserved ports for OpenMPI
 				    startup. */
     PART_OPT_UNSET     = 0x0040, /**< No options received within GETNODES */
@@ -81,7 +92,7 @@ typedef enum {
     PART_LIST_PEND  = 0x0001,  /**< Send pending requests */
     PART_LIST_SUSP  = 0x0002,  /**< Send suspended jobs */
     PART_LIST_RUN   = 0x0004,  /**< Send running jobs */
-    PART_LIST_NODES = 0x0008,  /**< Also send attached nodelists */
+    PART_LIST_NODES = 0x0008,  /**< Also send attached node-lists */
 } PSpart_list_t;
 
 /**
@@ -106,6 +117,7 @@ typedef struct {
     /*C*/ time_t start;            /**< starttime in PSP_INFO_QUEUE_PARTITION */
     int numGot;                    /**< Number of nodes currently received */
     unsigned int sizeGot;          /**< Number of slots currently received */
+    unsigned int sizeExpected;     /**< Number of slots expected */
     PSnodes_ID_t *nodes;           /**< List of partition candidates */
     PSpart_slot_t *slots;          /**< Partition (list of slots) associated */
     char deleted;                  /**< Flag to mark request for deletion */
@@ -146,7 +158,7 @@ void PSpart_initReq(PSpart_request_t *request);
  * @brief Reinitialize a partition request structure.
  *
  * Reinitialize the partition request structure @a request that was
- * previously used. All allocated strings and signallists shall be
+ * previously used. All allocated strings and signal-lists shall be
  * removed, all links are reset to NULL.
  *
  * @param request Pointer to the partition request structure to be
@@ -161,7 +173,7 @@ void PSpart_reinitReq(PSpart_request_t *request);
  *
  * Delete the partition request structure @a request created via @ref
  * PSpart_newReq(). First the partition request is cleaned up by @ref
- * PSpart_reinitReq(), i.e. all allocated strings and signallists are
+ * PSpart_reinitReq(), i.e. all allocated strings and signal-lists are
  * removed. Afterward the partition request itself is removed.
  *
  * @param request Pointer to the partition request structure to be deleted.
@@ -173,7 +185,7 @@ int PSpart_delReq(PSpart_request_t *request);
 /**
  * @brief Encode a partition request structure.
  *
- * Encode the partition request structure @a request into the the
+ * Encode the partition request structure @a request into the
  * buffer @a buffer of size @a size. This enables the partition
  * request to be sent to a remote node where it can be decoded using
  * the @ref PSpart_decodeReq() function. Since the encoding-scheme
@@ -209,7 +221,7 @@ size_t PSpart_encodeReq(char *buffer, size_t size, PSpart_request_t *request,
  * remote daemon the corresponding version has to be provided within
  * @a protoVersion.
  *
- * @param buffer The buffer the encoded partition request strucure is
+ * @param buffer The buffer the encoded partition request structure is
  * stored to.
  *
  * @param request The partition request structure to write to.

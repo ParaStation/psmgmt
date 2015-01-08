@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2014 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2015 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -39,6 +39,9 @@ static char vcid[] __attribute__((used)) =
 #include "psidinfo.h"
 
 extern char psid_cvsid[];
+
+#define slotSpaceSize (128*1024/sizeof(PSpart_slot_t))
+static PSpart_slot_t slotSpace[slotSpaceSize];
 
 /**
  * @brief Handle a PSP_CD_INFOREQUEST message.
@@ -419,7 +422,7 @@ static void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 			}
 			msg.header.len += sizeof(PSnodes_ID_t);
 		    } else {
-			*(int *)msg.buf = task->usedSlots;
+			*(int *)msg.buf = task->activeChild;
 			msg.header.len += sizeof(int);
 		    }
 		}
@@ -684,6 +687,94 @@ static void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 
 	    msg.header.len = len;
 	    msg.type = PSP_INFO_LIST_END;
+	}
+	case PSP_INFO_LIST_GETNODES:
+	{
+	    PStask_ID_t target = PSC_getPID(inmsg->header.dest) ?
+		inmsg->header.dest : inmsg->header.sender;
+	    PStask_t *task = PStasklist_find(&managedTasks, target);
+
+	    if (!task) {
+		PSID_log(-1, "%s: task %s not found\n",
+			 funcStr, PSC_printTID(target));
+		err = 1;
+		break;
+	    }
+
+	    if (task->ptid) {
+		PSID_log(PSID_LOG_INFO, "%s: forward to root process %s\n",
+			 funcStr, PSC_printTID(task->ptid));
+		msg.header.type = inmsg->header.type;
+		msg.header.sender = inmsg->header.sender;
+		msg.header.dest = task->ptid;
+		memcpy(msg.buf, inmsg->buf, inmsg->header.len
+		       - sizeof(inmsg->header) - sizeof(inmsg->type));
+		msg.header.len = inmsg->header.len;
+		msg_INFOREQUEST(&msg);
+		return;
+	    } else {
+		char *ptr = inmsg->buf;
+		uint32_t np, hwType;
+		PSpart_option_t options;
+		uint16_t tpp;
+		unsigned int got;
+		PSpart_slot_t *mySlots;
+
+		np = *(uint32_t *)ptr;
+		ptr += sizeof(uint32_t);
+
+		hwType = *(uint32_t *)ptr;
+		ptr += sizeof(uint32_t);
+
+		options = *(PSpart_option_t *)ptr;
+		ptr += sizeof(PSpart_option_t);
+
+		tpp = *(uint16_t *)ptr;
+		//ptr += sizeof(uint16_t);
+
+		if (np > slotSpaceSize) {
+		    mySlots = malloc(np*sizeof(*mySlots));
+		    if (!mySlots) {
+			PSID_warn(-1, errno, "%s: mySlots", __func__);
+			err = 1;
+			break;
+		    }
+		} else {
+		    mySlots = slotSpace;
+		}
+
+		got = PSIDpart_getNodes(np, hwType, options, tpp, task,
+					mySlots, 1);
+		PSID_log(PSID_LOG_INFO, "%s: got %d\n", __func__, got);
+
+		if (got == np) {
+		    const size_t chunkSize = 1024;
+		    unsigned int idx = 0, n;
+		    for (n=0; n<got; n++) {
+			((PSnodes_ID_t *)msg.buf)[idx] = mySlots[n].node;
+			idx++;
+			if (idx >= chunkSize/sizeof(PSnodes_ID_t)) {
+			    msg.header.len += idx * sizeof(PSnodes_ID_t);
+			    sendMsg(&msg);
+			    msg.header.len -= idx * sizeof(PSnodes_ID_t);
+			    idx=0;
+			}
+		    }
+		    if (idx) {
+			msg.header.len += idx * sizeof(PSnodes_ID_t);
+			sendMsg(&msg);
+			msg.header.len -= idx * sizeof(PSnodes_ID_t);
+		    }
+		    msg.type = PSP_INFO_LIST_END;
+		} else {
+		    err = 1;
+		}
+
+		if (np > slotSpaceSize && mySlots) {
+		    free(mySlots);
+		}
+	    }
+	    break;
 	}
 	case PSP_INFO_CMDLINE:
 	{
