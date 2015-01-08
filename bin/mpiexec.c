@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2007-2014 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2007-2015 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -132,8 +132,10 @@ int *nodeLocalProcIDs = NULL;
 /* process options */
 int np = -1;
 int gnp = -1;
-int tpp = 1;
+int tpp = 0;
 int gtpp = 0;
+int envtpp = 0;
+int maxtpp = 1;
 int envall = 0;
 int usize = 0;
 mode_t u_mask;
@@ -609,7 +611,15 @@ static void createSpawner(int argc, char *argv[], int np, int admin)
 	nodeList = umalloc(pSize*sizeof(nodeList), __func__);
 
 	if (!admin) {
+	    if (maxtpp > 1 && !envtpp) {
+		char tmp[32];
+		snprintf(tmp, sizeof(tmp), "%d", maxtpp);
+		setenv("PSI_TPP", tmp, 1);
+	    }
 	    if (PSE_getPartition(pSize)<0) exit(EXIT_FAILURE);
+	    if (!envtpp) {
+		unsetenv("PSI_TPP");
+	    }
 	    PSI_infoList(-1, PSP_INFO_LIST_PARTITION, NULL,
 			 nodeList, pSize*sizeof(*nodeList), 0);
 	    startNode = (getenv("__MPIEXEC_DIST_START") ?
@@ -1822,10 +1832,6 @@ static void setupPSIDEnv(int verbose)
 	nodetype = strdup(envstr);
     }
 
-    if ((envstr = getenv("PSI_TPP"))) {
-	tpp = strtol(envstr, NULL, 0);
-    }
-
     /* forward the possibly adjusted usize of the job */
     snprintf(tmp, sizeof(tmp), "%d", usize);
     setPSIEnv("PSI_USIZE_INFO", tmp, 1);
@@ -2820,11 +2826,16 @@ static void saveNextExecutable(int *sum_np, int argc, const char **argv)
     } else {
 	exec[execCount]->nodetype = NULL;
     }
-    if (tpp > 1) {
+    if (tpp) {
 	exec[execCount]->tpp = tpp;
-	tpp = 1;
+	if (tpp > maxtpp) maxtpp = tpp;
+	tpp = 0;
     } else if (gtpp) {
 	exec[execCount]->tpp = gtpp;
+	if (gtpp > maxtpp) maxtpp = gtpp;
+    } else if (envtpp) {
+	exec[execCount]->tpp = envtpp;
+	if (envtpp > maxtpp) maxtpp = envtpp;
     } else {
 	exec[execCount]->tpp = 1;
     }
@@ -3133,6 +3144,11 @@ int main(int argc, char *argv[], char** envp)
 
     /* set sighandlers */
     setSigHandlers();
+
+    /* This has to be investigated before any command-line parsing */
+    if ((envstr = getenv("PSI_TPP"))) {
+	envtpp = strtol(envstr, NULL, 0);
+    }
 
     /* parse command line options */
     parseCmdOptions(argc, argv);
