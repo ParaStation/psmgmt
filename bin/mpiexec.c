@@ -529,7 +529,7 @@ static void startKVSProvider(int argc, char *argv[], char **envp)
     pwd = getcwd(tmp, sizeof(tmp));
 
     startNode = (getenv("__MPIEXEC_DIST_START") ?
-			getNodeIDbyIndex(np, 2) : PSC_getMyID());
+		 getNodeIDbyIndex(np, 2) : PSC_getMyID());
 
     ret = PSI_spawnService(startNode, pwd, argc, argv, 0, &error,
 	    &spawnedProc, sRank);
@@ -604,10 +604,9 @@ static void createSpawner(int argc, char *argv[], int np, int admin)
     PStask_ID_t myTID = PSC_getMyTID();
 
     if (rank==-1) {
-	int error, spawnedProc, ret, pSize;
+	int error, spawnedProc, ret;
 	ssize_t cnt;
-
-	pSize = usize > np ? usize : np;
+	int pSize = usize > np ? usize : np;
 	nodeList = umalloc(pSize*sizeof(nodeList), __func__);
 
 	if (!admin) {
@@ -942,11 +941,12 @@ char *getProcessMap(int np)
 /**
  * @brief Setup common environment
  *
- * Setup the general environment needed by the Process Manager
- * Interface (PMI). Additional variables are needed on a per rank
- * basis. These are setup via @ref setupNodeEnv().
+ * Setup the common environment as required by the Process Manager
+ * Interface (PMI). Additional variables are set on a per executable
+ * and on a per rank basis. These are set via @ref setupExecEnv() and
+ * @ref setupRankEnv() respectively.
  *
- * @param np Total number of processes intended to be spawn.
+ * @param np Total number of processes intended to be spawned.
  *
  * @return No return value.
  */
@@ -955,15 +955,6 @@ static void setupCommonEnv(int np)
     char *env, tmp[32];
 
     if (OpenMPI) {
-	char *env;
-
-	/* should equal to PSI_TPP (threads per process) */
-	if ((env = getenv("PSI_TPP"))) {
-	    setPSIEnv("SLURM_CPUS_PER_TASK", env, 1);
-	} else {
-	    setPSIEnv("SLURM_CPUS_PER_TASK", "1", 1);
-	}
-
 	/* The ID of the job step within the job allocation.
 	 * Not important for us, can always be 0.
 	 */
@@ -1111,50 +1102,45 @@ static void setupCommonEnv(int np)
 }
 
 /**
- * @brief Get the MPI_APPNUM parameter by rank.
+ * @brief Setup the per executable environment
  *
- * exec[] contains a list of different executables to be started.
- * By adding the numbers of procs per executable, the respective
- * APPNUM (= the position in the list) of a certain rank can easily
- * be determined.
+ * Setup the per executable environment needed by the Process Manager
+ * Interface (PMI). Additional variables are needed on a common and s
+ * per rank basis. These are setup via @ref setupCommonEnv() and @ref
+ * setupRankEnv() respectively.
  *
- * @param rank The rank to be checked.
+ * @param execNum The unique number of the current executable
  *
- * @return On success, the corresponding APPNUM parameter is returned.
- * On error -1 is returned.
+ * @return No return value.
  */
-static int getAppnumByRank(int rank)
+static void setupExecEnv(int execNum)
 {
-    int i, sum = 0;
+    char tmp[32];
 
-    for(i=0; i<execCount; i++) {
-	sum += exec[i]->np;
-	if(rank < sum) {
-	    return i;
-	}
+    if (OpenMPI) {
+	snprintf(tmp, sizeof(tmp), "%d", exec[execNum]->tpp);
+	setPSIEnv("SLURM_CPUS_PER_TASK", tmp, 1);
     }
-    return -1;
+
+    snprintf(tmp, sizeof(tmp), "%d", execNum);
+    setPSIEnv("PMI_APPNUM", tmp, 1);
 }
 
 /* Flag, if verbose-option is set */
 static int verboseRankMsg = 0;
 
-static char ** setupNodeEnv(int psRank)
+static char ** setupRankEnv(int psRank)
 {
     static char *env[8];
     char buf[200];
     int cur = 0;
     static int rank = 0;
     static char pmiRankItem[32];
-    static char pmiAppnumItem[32];
 
     /* setup PMI env */
     if (pmienabletcp || pmienablesockp) {
 	snprintf(pmiRankItem, sizeof(pmiRankItem), "PMI_RANK=%d", rank);
 	env[cur++] = pmiRankItem;
-	snprintf(pmiAppnumItem, sizeof(pmiAppnumItem),
-		 "PMI_APPNUM=%d", getAppnumByRank(rank));
-	env[cur++] = pmiAppnumItem;
     }
 
     if (!jobLocalNodeIDs || !nodeLocalProcIDs || !numProcPerNode) {
@@ -1309,7 +1295,7 @@ static void extractNodeInformation(PSnodes_ID_t *nodeList, int np)
     /* save the information */
     for (i=0; i< np; i++) {
 	setRankInfos(np, nodeList[i], jobLocalUniqNodeIDs, numProcPerNode,
-			&jobLocalNodeIDs[i], &nodeLocalProcIDs[i]);
+		     &jobLocalNodeIDs[i], &nodeLocalProcIDs[i]);
     }
 }
 
@@ -1377,6 +1363,7 @@ static int startProcs(int np, char *wd, int verbose)
 {
     int i, ret = 0, pSize;
     char *hostname = NULL;
+    PSnodes_ID_t *nodeList = NULL;
 
     /* request the complete nodelist from master */
     if (!nodeList) {
@@ -1409,9 +1396,11 @@ static int startProcs(int np, char *wd, int verbose)
     setupCommonEnv(np);
 
     verboseRankMsg = verbose;
-    PSI_registerRankEnvFunc(setupNodeEnv);
+    PSI_registerRankEnvFunc(setupRankEnv);
 
     for (i=0; i< execCount; i++) {
+	setupExecEnv(i);
+
 	ret = spawnSingleExecutable(exec[i]->np, exec[i]->argc, exec[i]->argv,
 				    exec[i]->wdir, exec[i]->nodetype,
 				    exec[i]->tpp, verbose);
