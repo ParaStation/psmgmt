@@ -1,6 +1,4 @@
 # -*- rpm-spec -*-
-%{expand:%define buildForSuSE %(if [ -e /etc/SuSE-release ]; then echo 1; else echo 0; fi)}
-
 Summary:   ParaStation Process Management
 Vendor:    ParTec Cluster Competence Center GmbH, Munich, Germany
 Name:      psmgmt
@@ -16,7 +14,7 @@ BuildRequires:	readline-devel
 BuildRequires:	popt-devel
 BuildRequires:	psconfig-dev
 BuildRequires:	pam-devel
-%if %buildForSuSE
+%if 0%{?suse_version}
 BuildRequires:	libnuma-devel
 %else
 BuildRequires:	numactl-devel
@@ -65,7 +63,7 @@ The ParaStation MOM is a complete replacement of the pbs_mom.  No other
 daemon is necessary to integrate compute nodes into a Torque batch system.
 
 
-%if %buildForSuSE
+%if 0%{?suse_version}
 %debug_package
 %endif
 
