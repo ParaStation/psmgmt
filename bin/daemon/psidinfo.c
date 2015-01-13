@@ -697,7 +697,7 @@ static void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 	    if (!task) {
 		PSID_log(-1, "%s: task %s not found\n",
 			 funcStr, PSC_printTID(target));
-		err = 1;
+		msg.type = PSP_INFO_LIST_END;
 		break;
 	    }
 
@@ -735,8 +735,8 @@ static void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 		if (np > slotSpaceSize) {
 		    mySlots = malloc(np*sizeof(*mySlots));
 		    if (!mySlots) {
-			PSID_warn(-1, errno, "%s: mySlots", __func__);
-			err = 1;
+			PSID_warn(-1, errno, "%s: mySlots", funcStr);
+			msg.type = PSP_INFO_LIST_END;
 			break;
 		    }
 		} else {
@@ -745,7 +745,7 @@ static void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 
 		got = PSIDpart_getNodes(np, hwType, options, tpp, task,
 					mySlots, 1);
-		PSID_log(PSID_LOG_INFO, "%s: got %d\n", __func__, got);
+		PSID_log(PSID_LOG_INFO, "%s: got %d\n", funcStr, got);
 
 		if (got == np) {
 		    const size_t chunkSize = 1024;
@@ -765,10 +765,11 @@ static void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 			sendMsg(&msg);
 			msg.header.len -= idx * sizeof(PSnodes_ID_t);
 		    }
-		    msg.type = PSP_INFO_LIST_END;
 		} else {
-		    err = 1;
+		    PSID_log(-1, "%s: task %s has %d of %d nodes\n",
+			     funcStr, PSC_printTID(target), got, np);
 		}
+		msg.type = PSP_INFO_LIST_END;
 
 		if (np > slotSpaceSize && mySlots) {
 		    free(mySlots);
