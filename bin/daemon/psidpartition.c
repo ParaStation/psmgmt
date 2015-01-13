@@ -3165,7 +3165,7 @@ int PSIDpart_getNodes(uint32_t np, uint32_t hwType, PSpart_option_t option,
     for (t = 0; t < task->totalThreads; t++) {
 	PSnodes_ID_t node = thread[t].node;
 	myUse[t] = thread[t].timesUsed;
-	if (hwType && (PSIDnodes_getHWStatus(node) & hwType)) continue;
+	if (hwType && !(PSIDnodes_getHWStatus(node) & hwType)) continue;
 	if (t && thread[t-1].node == node) {
 	    nodeTPP ++;
 	} else {
@@ -3214,13 +3214,14 @@ int PSIDpart_getNodes(uint32_t np, uint32_t hwType, PSpart_option_t option,
 	    PSID_log(PSID_LOG_PART, "%s: minUsed %d\n", __func__, minUsed);
 	}
 
-	PSID_log(PSID_LOG_PART, "%s: t %d node %d id %d used %d\n", __func__, t,
-		 node, thread[t].id, myUse[t]);
+	PSID_log(PSID_LOG_PART, "%s: t %d node %d id %d used %d hwType %#x\n",
+		 __func__, t, node, thread[t].id, myUse[t],
+		 PSIDnodes_getHWStatus(node));
 	/* test for HW-threads already busy */
 	if (myUse[t] > minUsed) continue;
 
 	/* check for correct capabilities of HW-thread */
-	if (hwType && (PSIDnodes_getHWStatus(node) & hwType)) continue;
+	if (hwType && !(PSIDnodes_getHWStatus(node) & hwType)) continue;
 
 	/* ensure we loop over different nodes */
 	if (nodeFirst && roundGot && node == slots[got-1].node) {
