@@ -1863,8 +1863,8 @@ static int sendNodelist(PSpart_request_t *request, DDBufferMsg_t *msg)
 }
 
 /**
- * Chunk-size for PSP_DD_PROVIDEPARTSL and PSP_DD_PROVIDETASKSL
- * messages.
+ * Chunk-size for PSP_DD_PROVIDEPARTSL, PSP_DD_PROVIDETASKSL and
+ * PSP_DD_REGISTERPARTSL messages.
  *
  * This definition is only for compatibility with older version.
  */
@@ -2681,7 +2681,7 @@ static void msg_GETPARTNL(DDBufferMsg_t *inmsg)
 }
 
 /**
- * @brief Append slots to a slotlist.
+ * @brief Append slots to a slot-list.
  *
  * Append the slots within the message @a inmsg to the slot-list contained
  * in the partition request @a request.
@@ -2691,11 +2691,23 @@ static void msg_GETPARTNL(DDBufferMsg_t *inmsg)
  * chunk. The size of the chunk, i.e. the number of slots, is stored
  * as a int16_t at the beginning of the buffer.
  *
- * If the sender of @a insmg is older than PSPversion 334 the list
- * contained will be a node-list instead of a slot-list.
+ * Each slot contains a nodeID and a CPU-set part. The latter is
+ * expected to have a fixed size throughout the message. In recent
+ * versions of the protocol another int16_t entry will hold this size.
  *
- * The structure of the data in @a buf is identical to the one used
- * within PSP_DD_PROVIDEPARTSL or PSP_DD_PROVIDETASKSL messages.
+ * If sender's daemon is older than PSPdaemonVersion 408 the slot's
+ * CPU-set part will have a fixed size of 32 entries.
+ *
+ * If sender's daemon is older than PSPdaemonVersion 401 the slots
+ * will use an outdated data layout.
+ *
+ * If the sender of @a insmg is older than PSPversion 334 the list
+ * contained will be a node-list instead of a slot-list, i.e. the
+ * CPU-set part is omitted.
+ *
+ * This function is a helper in order to handle data received within
+ * PSP_DD_PROVIDEPARTSL, PSP_DD_PROVIDETASKSL or PSP_DD_REGISTERPARTSL
+ * messages.
  *
  * @param inmsg Message with buffer containing slots to add to the slot-list.
  *
@@ -3847,76 +3859,76 @@ static void sendRequests(void)
     }
 }
 
-static void sendExistingPartitions(PStask_ID_t dest)
+static void sendSinglePart(PStask_ID_t dest, int16_t type, PStask_t *task)
 {
     DDBufferMsg_t msg = {
 	.header = {
-	    .type = PSP_DD_PROVIDETASK,
-	    .sender = 0,
+	    .type = type,
+	    .sender = task->tid,
 	    .dest = dest,
 	    .len = sizeof(msg.header) },
 	.buf = { '\0' }};
+    char *ptr = msg.buf;
+
+    *(PSpart_option_t *)ptr = task->options;
+    ptr += sizeof(task->options);
+    msg.header.len += sizeof(task->options);
+
+    *(uint32_t *)ptr = task->partitionSize;
+    ptr += sizeof(task->partitionSize);
+    msg.header.len += sizeof(task->partitionSize);
+
+    if (PSIDnodes_getDmnProtoV(PSC_getID(dest)) > 402) {
+	*(uint32_t *)ptr = task->uid;
+	ptr += sizeof(uint32_t);
+	msg.header.len += sizeof(uint32_t);
+
+	*(uint32_t *)ptr = task->gid;
+	ptr += sizeof(uint32_t);
+	msg.header.len += sizeof(uint32_t);
+    }
+
+    *(uint8_t *)ptr = task->suspended;
+    ptr += sizeof(uint8_t);
+    msg.header.len += sizeof(uint8_t);
+
+    if (PSIDnodes_getDmnProtoV(PSC_getID(dest)) > 406) {
+	*(int64_t *)ptr = task->started.tv_sec;
+	//ptr += sizeof(int64_t);
+	msg.header.len += sizeof(uint64_t);
+    }
+
+    sendMsg(&msg);
+
+    msg.header.type = (type == PSP_DD_PROVIDETASK) ?
+	PSP_DD_PROVIDETASKSL : PSP_DD_REGISTERPARTSL;
+    msg.header.len = sizeof(msg.header);
+
+    if (sendSlotlist(task->partition, task->partitionSize, &msg)<0) {
+	PSID_warn(-1, errno, "%s: sendSlotlist()", __func__);
+    }
+
+    /* send OpenMPI reserved ports */
+    if (task->resPorts && type == PSP_DD_PROVIDETASK) {
+
+	msg.header.type = PSP_DD_PROVIDETASKRP;
+	msg.header.len = sizeof(msg.header);
+
+	if ((sendResPorts(task->resPorts, &msg)) <0) {
+	    PSID_warn(-1, errno, "%s: sendResPorts()", __func__);
+	}
+    }
+}
+
+static void sendExistingPartitions(PStask_ID_t dest)
+{
     list_t *t;
 
     list_for_each(t, &managedTasks) {
 	PStask_t *task = list_entry(t, PStask_t, next);
 	if (task->deleted) continue;
 	if (task->partition && task->partitionSize && !task->removeIt) {
-	    char *ptr = msg.buf;
-
-	    msg.header.type = PSP_DD_PROVIDETASK;
-	    msg.header.sender = task->tid;
-	    msg.header.len = sizeof(msg.header);
-
-	    *(PSpart_option_t *)ptr = task->options;
-	    ptr += sizeof(task->options);
-	    msg.header.len += sizeof(task->options);
-
-	    *(uint32_t *)ptr = task->partitionSize;
-	    ptr += sizeof(task->partitionSize);
-	    msg.header.len += sizeof(task->partitionSize);
-
-	    if (PSIDnodes_getDmnProtoV(PSC_getID(dest)) > 402) {
-		*(uint32_t *)ptr = task->uid;
-		ptr += sizeof(uint32_t);
-		msg.header.len += sizeof(uint32_t);
-
-		*(uint32_t *)ptr = task->gid;
-		ptr += sizeof(uint32_t);
-		msg.header.len += sizeof(uint32_t);
-	    }
-
-	    *(uint8_t *)ptr = task->suspended;
-	    ptr += sizeof(uint8_t);
-	    msg.header.len += sizeof(uint8_t);
-
-	    if (PSIDnodes_getDmnProtoV(PSC_getID(dest)) > 406) {
-		*(int64_t *)ptr = task->started.tv_sec;
-		//ptr += sizeof(int64_t);
-		msg.header.len += sizeof(uint64_t);
-	    }
-
-	    sendMsg(&msg);
-
-	    /* if portage in task struct != 0-> send message */
-
-	    msg.header.type = PSP_DD_PROVIDETASKSL;
-	    msg.header.len = sizeof(msg.header);
-
-	    if (sendSlotlist(task->partition, task->partitionSize, &msg)<0) {
-		PSID_warn(-1, errno, "%s: sendSlotlist()", __func__);
-	    }
-
-	    /* send OpenMPI reserved ports */
-	    if (task->resPorts) {
-
-		msg.header.type = PSP_DD_PROVIDETASKRP;
-		msg.header.len = sizeof(msg.header);
-
-		if ((sendResPorts(task->resPorts, &msg)) <0) {
-		    PSID_warn(-1, errno, "%s: sendResPorts()", __func__);
-		}
-	    }
+	    sendSinglePart(dest, PSP_DD_PROVIDETASK, task);
 	}
     }
 }
@@ -3962,22 +3974,31 @@ static void msg_GETTASKS(DDBufferMsg_t *inmsg)
 }
 
 /**
- * @brief Handle a PSP_DD_PROVIDETASK message.
+ * @brief Handle a PSP_DD_PROVIDETASK / PSP_DD_REGISTERPART message.
  *
- * Handle the message @a inmsg of type PSP_DD_PROVIDETASK.
+ * Handle the message @a inmsg of type PSP_DD_PROVIDETASK or
+ * PSP_DD_REGISTERPART.
  *
- * This is part of the answer to a PSP_DD_GETTASKS message. For each
- * running job whose root process (i.e. the logger) is located on the
- * sending node a PSP_DD_PROVIDETASK message is generated and sent to
- * the master daemon. It provides all the information necessary for
- * the master daemon to handle partition requests apart from the list
- * of slots building the corresponding partition. This message will be
- * followed by one or more PSP_DD_PROVIDETASKSL messages containing
- * this slot-list.
+ * A PSP_DD_PROVIDETASK message is part of the answer to a
+ * PSP_DD_GETTASKS message. For each running job whose root process
+ * (i.e. the logger) is located on the sending node a
+ * PSP_DD_PROVIDETASK message is generated and sent to the master
+ * daemon. It provides all the information necessary for the master
+ * daemon to handle partition requests apart from the list of slots
+ * building the corresponding partition. This message will be followed
+ * by one or more PSP_DD_PROVIDETASKSL messages containing this
+ * slot-list and possibly a PSP_DD_PROVIDETASKRP message containing
+ * the port-distribution required for OpenMPI.
+ *
+ * A PSP_DD_REGISTERPART message is used to inform the master about the
+ * decisions of an external batch-system. This mechanism might be used
+ * by corresponding plugins like psmom or psslurm. This message will
+ * be followed by one or more PSP_DD_REGISTERPARTSL messages containing
+ * the slot-list.
  *
  * The master daemon will store the partition information to the
  * corresponding partition request structure and wait for following
- * PSP_DD_PROVIDETASKSL messages.
+ * PSP_DD_PROVIDETASKSL or PSP_DD_REGISTERPARTSL messages.
  *
  * @param inmsg Pointer to the message to handle.
  *
@@ -3986,11 +4007,12 @@ static void msg_GETTASKS(DDBufferMsg_t *inmsg)
 static void msg_PROVIDETASK(DDBufferMsg_t *inmsg)
 {
     PSpart_request_t *req;
+    int16_t type = inmsg->header.type;
     char *ptr = inmsg->buf;
 
     if (!knowMaster() || PSC_getMyID() != getMasterID()) return;
 
-    if (!PSC_getPID(inmsg->header.sender)) {
+    if (type == PSP_DD_PROVIDETASK && !PSC_getPID(inmsg->header.sender)) {
 	/* End of tasks */
 	PSnodes_ID_t node = PSC_getID(inmsg->header.sender);
 	pendingTaskReq -= nodeStat[node].taskReqPending;
@@ -4051,11 +4073,12 @@ static void msg_PROVIDETASK(DDBufferMsg_t *inmsg)
 /**
  * @brief Handle a PSP_DD_PROVIDETASKSL message.
  *
- * Handle the message @a inmsg of type PSP_DD_PROVIDETASKSL.
+ * Handle the message @a inmsg of type PSP_DD_PROVIDETASKSL or
+ * PSP_DD_REGISTERPARTSL.
  *
- * Follow up message to a PSP_DD_PROVIDETASK containing the
- * partition's actual slots. These slots will be stored to the
- * client's partition request structure.
+ * Follow up message to a PSP_DD_PROVIDETASK or PSP_DD_REGISTERPART
+ * containing the partition's actual slots. These slots will be stored
+ * to the client's partition request structure.
  *
  * @param inmsg Pointer to the message to handle.
  *
@@ -4068,8 +4091,9 @@ static void msg_PROVIDETASKSL(DDBufferMsg_t *inmsg)
     if (!knowMaster() || PSC_getMyID() != getMasterID()) return;
 
     if (!req) {
-	PSID_log(-1, "%s: Unable to find request %s\n",
-		 __func__, PSC_printTID(inmsg->header.sender));
+	PSID_log(-1, "%s(%s): Unable to find request %s\n", __func__,
+		 PSDaemonP_printMsg(inmsg->header.type),
+		 PSC_printTID(inmsg->header.sender));
 	return;
     }
     appendToSlotlist(inmsg, req);
@@ -4260,6 +4284,72 @@ void sendRequestLists(PStask_ID_t requester, PSpart_list_t opt)
 	sendReqList(requester, &suspReq, PART_LIST_SUSP | nodes);
 }
 
+static int partFromThreads(PStask_t *task)
+{
+    unsigned int t, slot = 0;
+
+    for (t = 0; t < task->totalThreads; t++) {
+	if (!t || task->partThrds[t-1].node != task->partThrds[t].node) slot++;
+    }
+
+    if (!slot) {
+	PSID_log(-1, "%s: No slots in %s\n", __func__, PSC_printTID(task->tid));
+	return 0;
+    }
+
+    task->partition = malloc(slot * sizeof(PSpart_slot_t));
+    if (!task->partition) {
+	PSID_warn(-1, errno, "%s(%s)", __func__, PSC_printTID(task->tid));
+	return 0;
+    }
+    task->partitionSize = slot;
+    slot = 0;
+
+    for (t = 0; t < task->totalThreads; t++) {
+	if (!t || task->partition[slot].node != task->partThrds[t].node) {
+	    if (t) slot++;
+	    task->partition[slot].node = task->partThrds[t].node;
+	    PSCPU_clrAll(task->partition[slot].CPUset);
+	}
+	PSCPU_setCPU(task->partition[slot].CPUset, task->partThrds[t].id);
+    }
+
+    return 1;
+}
+
+void PSIDpart_register(PStask_t *task)
+{
+    if (!task) {
+	PSID_log(-1, "%s: No task", __func__);
+	return;
+    }
+
+    if (!knowMaster()) {
+	PSID_log(-1, "%s: Unknown master", __func__);
+	return;
+    }
+
+    if (!task->totalThreads || !task->partThrds) {
+	PSID_log(-1, "%s: Task %s owns now HW-threads\n", __func__,
+		 PSC_printTID(task->tid));
+	return;
+    }
+
+    if (task->partition) {
+	PSID_log(-1, "%s: Task %s already has a partition\n", __func__,
+		 PSC_printTID(task->tid));
+	return;
+    }
+
+    if (!partFromThreads(task)) {
+	PSID_log(-1, "%s: Failed to create partition for task %s\n", __func__,
+		 PSC_printTID(task->tid));
+	return;
+    }
+
+    sendSinglePart(PSC_getTID(getMasterID(), 0), PSP_DD_REGISTERPART, task);
+}
+
 void initPartition(void)
 {
     PSID_log(PSID_LOG_VERB, "%s()\n", __func__);
@@ -4283,6 +4373,8 @@ void initPartition(void)
     PSID_registerMsg(PSP_DD_PROVIDETASK, msg_PROVIDETASK);
     PSID_registerMsg(PSP_DD_PROVIDETASKSL, msg_PROVIDETASKSL);
     PSID_registerMsg(PSP_DD_PROVIDETASKRP, msg_PROVIDETASKRP);
+    PSID_registerMsg(PSP_DD_REGISTERPART, msg_PROVIDETASK);
+    PSID_registerMsg(PSP_DD_REGISTERPARTSL, msg_PROVIDETASKSL);
     PSID_registerMsg(PSP_DD_CANCELPART, msg_CANCELPART);
     PSID_registerMsg(PSP_DD_TASKDEAD, (handlerFunc_t) msg_TASKDEAD);
     PSID_registerMsg(PSP_DD_TASKSUSPEND, (handlerFunc_t) msg_TASKSUSPEND);

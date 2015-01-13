@@ -261,6 +261,26 @@ int PSIDpart_getNodes(uint32_t np, uint32_t hwType, PSpart_option_t option,
 		      uint16_t tpp, PStask_t *task, PSpart_slot_t *slots,
 		      int dryRun);
 
+/**
+ * @brief Register partition
+ *
+ * Register a partition as given within the @ref partThrds section of
+ * the task-structure @a task. @ref partThrds is expected to hold a
+ * list of HW-threads that the task is allowed to use as its
+ * partition. For that, the @ref partition section will be created out
+ * of the list of HW-threads and registered within the master psid.
+ *
+ * This mechanism shall be used in order to inform the master daemon
+ * on partitioning decisions taken by some external resource
+ * manager. Thus, it will be called primarily from inside psmom and
+ * psslurm.
+ *
+ * @param task The task to register
+ *
+ * @return No return value
+ */
+void PSIDpart_register(PStask_t *task);
+
 #ifdef __cplusplus
 }/* extern "C" */
 #endif

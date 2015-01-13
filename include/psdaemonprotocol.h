@@ -88,6 +88,9 @@ extern "C" {
 
 /** Messages for ressource allocation */
 #define PSP_DD_NODESRES            0x0138  /**< Get nodes from a partition */
+#define PSP_DD_REGISTERPART        0x0139  /**< Register partition at master */
+#define PSP_DD_REGISTERPARTSL      0x013A  /**< Part. registration slot-list */
+#define PSP_DD_REGISTERPARTRP      0x013B  /**< Part. registration ports */
 
 /**
  * @brief Generate a string describing the message type.
