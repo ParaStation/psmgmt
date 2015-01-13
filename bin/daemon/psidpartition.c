@@ -1758,8 +1758,11 @@ static int createNewPartition(PSpart_request_t *request, sortlist_t *candidates)
 		numProcs += numThrds / tpp;
 		if (numProcs > numRequested) {
 		    /* we over-shot */
+		    PSCPU_set_t mine;
 		    numThrds -= (numProcs - numRequested) * tpp;
-		    getFreeCPUs(cid, slots[curSlot].CPUset, numThrds);
+		    PSCPU_clrAll(mine);
+		    PSCPU_getCPUs(slots[curSlot].CPUset, mine, numThrds);
+		    PSCPU_copy(slots[curSlot].CPUset, mine);
 		    numProcs = numRequested;
 		}
 
@@ -3363,7 +3366,7 @@ static void msg_GETNODES(DDBufferMsg_t *inmsg)
 	PSID_log(PSID_LOG_PART, "%s: Got tpp %d\n", __func__, tpp);
     }
 
-    PSID_log(PSID_LOG_PART, "%s(num %d, hwType %d)\n", __func__, num, hwType);
+    PSID_log(PSID_LOG_PART, "%s(num %d, hwType %#x)\n", __func__, num, hwType);
 
     if (num > NODES_CHUNK) goto error;
 
