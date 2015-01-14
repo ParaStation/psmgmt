@@ -3157,8 +3157,8 @@ int PSIDpart_getNodes(uint32_t np, uint32_t hwType, PSpart_option_t option,
     int mod = task->totalThreads + ((overbook || nodeFirst) ? 0 : 1);
     int nodeTPP = 1, maxTPP = 0;
 
-    PSID_log(PSID_LOG_PART, "%s: np %d hwType %x option %x tpp %d dryRun %d\n",
-	     __func__,np, hwType, option, tpp, dryRun);
+    PSID_log(PSID_LOG_PART, "%s: np %d hwType %#x option %#x tpp %d"
+	     " dryRun %d\n", __func__,np, hwType, option, tpp, dryRun);
 
     if (!task) return 0;
     thread = task->partThrds;
@@ -3365,7 +3365,12 @@ static void msg_GETNODES(DDBufferMsg_t *inmsg)
 	option = *(PSpart_option_t *)ptr;
 	ptr += sizeof(PSpart_option_t);
 	usedBytes += sizeof(PSpart_option_t);
-	PSID_log(PSID_LOG_PART, "%s: Got option %#x\n", __func__, option);
+	PSID_log(PSID_LOG_PART, "%s: Got option %#x", __func__, option);
+	if (option & PART_OPT_DEFAULT) {
+	    option = task->options;
+	    PSID_log(PSID_LOG_PART, " => default option is %#x", option);
+	}
+	PSID_log(PSID_LOG_PART, "\n");
     } else {
 	option = task->options;
 	PSID_log(PSID_LOG_PART, "%s: Use default option %#x\n", __func__,

@@ -84,7 +84,7 @@ typedef enum {
     PART_OPT_EXACT     = 0x0010, /**< Node-list comes from a batch-system */
     PART_OPT_RESPORTS  = 0x0020, /**< Request reserved ports for OpenMPI
 				    startup. */
-    PART_OPT_UNSET     = 0x0040, /**< No options received within GETNODES */
+    PART_OPT_DEFAULT   = 0x0040, /**< Use the job's default options */
 } PSpart_option_t;
 
 /** Options possible for PSP_INFO_QUEUE_PARTITION requests */
