@@ -1025,7 +1025,7 @@ int PSI_createPartition(unsigned int size, uint32_t hwType)
     request->tpp = getTPPEnv();
 
     PSI_log(PSI_LOG_PART,
-	    "%s: size %d tpp %d hwType %x sort %x options %x priority %d\n",
+	    "%s: size %d tpp %d hwType %#x sort %#x options %#x priority %d\n",
 	    __func__, request->size, request->tpp, request->hwType,
 	    request->sort, request->options, request->priority);
 
@@ -1039,8 +1039,8 @@ int PSI_createPartition(unsigned int size, uint32_t hwType)
 
     hwEnv = getHWEnv();
     if (hwEnv && !(request->hwType = (hwType ? hwType:0xffffffffU) & hwEnv)) {
-	PSI_log(-1, "%s: no intersection between hwType (%x)"
-		" and environment (%x)\n", __func__, hwType, hwEnv);
+	PSI_log(-1, "%s: no intersection between hwType (%#x)"
+		" and environment (%#x)\n", __func__, hwType, hwEnv);
 	goto end;
     }
 
@@ -1155,7 +1155,7 @@ int PSI_getNodes(unsigned int num, uint32_t hwType, uint16_t tpp,
 	PSI_log(PSI_LOG_VERB, "%s:", __func__);
 	if (hwType) PSI_log(PSI_LOG_VERB, " hwType %d", hwType);
 	if (tpp != 1) PSI_log(PSI_LOG_VERB, " tpp %d", tpp);
-	if (options) PSI_log(PSI_LOG_VERB, " options %xd", options);
+	if (options) PSI_log(PSI_LOG_VERB, " options %#x", options);
 	PSI_log(PSI_LOG_VERB, "\n");
     }
 
