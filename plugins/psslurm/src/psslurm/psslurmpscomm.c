@@ -54,7 +54,7 @@ int handleCreatePart(void *msg)
     DDBufferMsg_t *inmsg = (DDBufferMsg_t *) msg;
     Step_t *step;
     PStask_t *task;
-    uint32_t i, x, tid, slotsSize, cpuCount;
+    uint32_t node, local_tid, tid, slotsSize, cpuCount;
     uint32_t coreMapIndex = 0, coreIndex = 0, coreArrayCount = 0;
     int32_t lastCpu;
     uint8_t *coreMap = NULL;
@@ -94,7 +94,7 @@ int handleCreatePart(void *msg)
 	goto error;
     }
 
-    for (i=0; i<step->nrOfNodes; i++) {
+    for (node=0; node < step->nrOfNodes; node++) {
 	thread = 0;
 
 	/* get cpu count per node from job credential */
@@ -114,20 +114,21 @@ int handleCreatePart(void *msg)
 	}
 	lastCpu = -1;
 
-	hwThreads = PSIDnodes_getVirtCPUs(step->nodes[i]) / cpuCount;
+	hwThreads = PSIDnodes_getVirtCPUs(step->nodes[node]) / cpuCount;
 	if (hwThreads < 1) hwThreads = 1;
 
 	/* set node and cpuset for every task */
-	for (x=0; x<step->globalTaskIdsLen[i]; x++) {
+	for (local_tid=0; local_tid < step->globalTaskIdsLen[node];
+                local_tid++) {
 
-	    tid = step->globalTaskIds[i][x];
-	    /*
-	    mlog("%s: node%u nodeid '%u' tid '%u'\n", __func__, i,
-		    step->nodes[i], tid);
-	    */
+	    tid = step->globalTaskIds[node][local_tid];
+
+	    mdbg(PSSLURM_LOG_PART, "%s: node '%u' nodeid '%u' task '%u' tid"
+                    " '%u'\n", __func__, node, step->nodes[node], local_tid,
+                    tid);
 
 	    /* sanity check */
-	    if (tid >slotsSize) {
+	    if (tid > slotsSize) {
 		mlog("%s: invalid taskids '%s' slotsSize '%u'\n", __func__,
 			PSC_printTID(tid), slotsSize);
 		errno = EACCES;
@@ -135,11 +136,11 @@ int handleCreatePart(void *msg)
 	    }
 
 	    /* calc CPUset */
-	    setCPUset(step->cpuBindType, &CPUset, coreMapIndex, cpuCount,
-			&lastCpu, coreMap, i, &thread, hwThreads,
-			step->globalTaskIdsLen[i]);
+	    setCPUset(&CPUset, step->cpuBindType, step->cpuBind, coreMap,
+                        coreMapIndex, cpuCount, &lastCpu, node, &thread,
+                        hwThreads, step->globalTaskIdsLen[node], local_tid);
 
-	    slots[tid].node = step->nodes[i];
+	    slots[tid].node = step->nodes[node];
 	    PSCPU_copy(slots[tid].CPUset, CPUset);
 
 	}
@@ -1015,3 +1016,5 @@ void handleChildBornMsg(DDErrorMsg_t *msg)
 FORWARD_CHILD_BORN:
     if (oldChildBornHandler) oldChildBornHandler((DDBufferMsg_t *) msg);
 }
+
+/* vim: set ts=8 sw=4 tw=0 sts=4 et :*/

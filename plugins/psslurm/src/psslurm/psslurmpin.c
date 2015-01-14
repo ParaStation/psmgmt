@@ -12,6 +12,7 @@
  *
  * \author
  * Michael Rauh <rauh@par-tec.com>
+ * Stephan Krempel <krempel@par-tec.com>
  *
  */
 
@@ -26,6 +27,24 @@
 
 #include "psslurmpin.h"
 
+/*
+ * Parse the coreBitmap of @a step and generate a coreMap.
+ *
+ * The coreBitmap is a string containing digits or ranges delimited by
+ * ',', ' ', or '\n'.
+ *
+ * The returned coreMap is an array with 1 for all indices contained in
+ * the coreBitmap and 0 for all others.
+ *
+ * The coreMap is related to the over all job partition (might be multiple
+ * nodes), so its indices are the global CPU IDs of the job.
+ *
+ * @param slots   unused
+ * @param step    Step structure of the job step
+ *
+ * @return  coreMap
+ *
+ */
 uint8_t *getCPUsForPartition(PSpart_slot_t *slots, Step_t *step)
 {
     const char delimiters[] =", \n";
@@ -91,10 +110,188 @@ uint8_t *getCPUsForPartition(PSpart_slot_t *slots, Step_t *step)
     return coreMap;
 }
 
-void setCPUset(uint16_t cpuBindType, PSCPU_set_t *CPUset, uint32_t coreMapIndex,
-		uint32_t cpuCount, int32_t *lastCpu, uint8_t *coreMap,
-		uint32_t nodeid, int *thread, int hwThreads,
-		uint32_t tasksPerNode)
+/*
+ * Parse the string @a maskStr containing a hex number (with or without
+ * leading "0x") and set @a CPUset accordingly.
+ *
+ * If the sting is not a valid hex number, each bit in @a CPUset becomes set.
+ */
+static void parseCPUmask(PSCPU_set_t *CPUset, char *maskStr) {
+
+    char *mask, *curchar, *endptr;
+    size_t len;
+    uint32_t curbit;
+    int i, j, digit;
+
+    mask = maskStr;
+
+    if (strncmp(maskStr, "0x", 2) == 0) {
+        /* skip "0x", treat always as hex */
+        mask += 2;
+    }
+
+    mask = ustrdup(mask); /* gets destroyed */
+
+    len = strlen(mask);
+    curchar = mask + (len - 1);
+    curbit = 0;
+    for (i = len; i>0; i--) {
+        digit = strtol(curchar, &endptr, 16);
+        if (*endptr != '\0') {
+	    mlog("%s: invalid digit in cpu mask '%s'\n", __func__, maskStr);
+	    PSCPU_setAll(*CPUset); //XXX other result in error case?
+	    break;
+	}
+
+	for (j = 0; j<4; j++) {
+	    if (digit & (1 << j)) {
+	        PSCPU_setCPU(*CPUset, curbit + j);
+	    }
+        }
+        curbit += 4;
+        *curchar = '\0';
+        curchar--;
+    }
+    ufree(mask);
+}
+
+/*
+ * Sets the @a CPUset according to the string @a cpuBindString
+ *
+ * This function is to be called only if the CPU bind type is MAP or MASK and
+ * so the bind string is formated "m1,m2,m3,..." with mn are CPU IDs or CPU masks.
+ *
+ * @param CPUset        CPU set to be set
+ * @param cpuBindType   bind type to use (CPU_BIND_MASK or CPU_BIND_MAP)
+ * @param cpuBindString comma separated list of maps or masks
+ * @param nodeid        ParaStation node ID of the local node
+ * @param local_tid     node local taskid
+ */
+static void getBindMapFromString(PSCPU_set_t *CPUset, uint16_t cpuBindType,
+                            char *cpuBindString, uint32_t nodeid,
+			    uint32_t local_tid)
+{
+    const char delimiters[] = ",";
+    char *next, *saveptr, *ents, *myent, *endptr;
+    char *entarray[PSCPU_MAX];
+    unsigned int numents;
+    int16_t mycpu;
+
+    ents = ustrdup(cpuBindString);
+    numents = 0;
+    myent = NULL;
+    entarray[0] = NULL;
+
+    next = strtok_r(ents, delimiters, &saveptr);
+    while (next && (numents < PSCPU_MAX)) {
+	entarray[numents++] = next;
+	if (numents == local_tid+1) {
+	    myent = next;
+	    break;
+	}
+	next = strtok_r(NULL, delimiters, &saveptr);
+    }
+
+    if (!myent) {
+	myent = entarray[local_tid % numents];
+    }
+
+    if (!myent) {
+        PSCPU_setAll(*CPUset); //XXX other result in error case?
+	if (cpuBindType & CPU_BIND_MASK) {
+	    mlog("%s: invalid cpu mask string '%s'\n", __func__, ents);
+	}
+	else if (cpuBindType & CPU_BIND_MAP) {
+	    mlog("%s: invalid cpu map string '%s'\n", __func__, ents);
+	}
+	goto cleanup;
+    }
+
+    PSCPU_clrAll(*CPUset);
+
+    if (cpuBindType & CPU_BIND_MASK) {
+	parseCPUmask(CPUset, myent);
+	mdbg(PSSLURM_LOG_PART, "%s: (bind_mask) node '%i' local task '%i' "
+		"maskstr '%s' mask '%s'\n", __func__, nodeid, local_tid,
+		myent, PSCPU_print(*CPUset));
+    }
+    else if (cpuBindType & CPU_BIND_MAP) {
+	mycpu = 0;
+	if (strncmp(myent, "0x", 2) == 0) {
+	    mycpu = strtoul (myent+2, &endptr, 16);
+	} else {
+	    mycpu = strtoul (myent, &endptr, 10);
+	}
+	if (*endptr == '\0') {
+	    PSCPU_setCPU(*CPUset, mycpu);
+	}
+	else {
+	    PSCPU_setAll(*CPUset); //XXX other result in error case?
+	    mlog("%s: invalid cpu map '%s'\n", __func__, myent);
+	}
+	mdbg(PSSLURM_LOG_PART, "%s: (bind_map) node '%i' local task '%i'"
+		" cpustr '%s' cpu '%i'\n", __func__, nodeid, local_tid, myent,
+		mycpu);
+    }
+
+    cleanup:
+
+    ufree(ents);
+    return;
+}
+
+#if 0
+map_cpu:<list>
+Bind by mapping CPU IDs to tasks as specified where <list> is
+<cpuid1>,<cpuid2>,...<cpuidN>.
+CPU IDs are interpreted as decimal values unless they are preceded with '0x'
+in which case they are interpreted as hexadecimal values.
+Not supported unless the entire node is allocated to the job.
+
+mask_cpu:<list>
+Bind by setting CPU masks on tasks as specified where <list> is
+<mask1>,<mask2>,...<maskN>.
+CPU masks are always interpreted as hexadecimal values but can be preceded with
+an optional '0x'. Not supported unless the entire node is allocated to the job.
+
+map_ldom:<list>
+Bind by mapping NUMA locality domain IDs to tasks as specified where <list> is
+<ldom1>,<ldom2>,...<ldomN>.
+The locality domain IDs are interpreted as decimal values unless they are
+preceded with '0x' in which case they are interpreted as hexadecimal values.
+Not supported unless the entire node is allocated to the job.
+
+mask_ldom:<list>
+Bind by setting NUMA locality domain masks on tasks as specified where <list>
+is <mask1>,<mask2>,...<maskN>.
+NUMA locality domain masks are always interpreted as hexadecimal values but can
+be preceded with an optional '0x'.
+Not supported unless the entire node is allocated to the job.
+#endif
+
+/*
+ * Set CPUset according to cpuBindType.
+ *
+ * @param CPUset         <OUT>  Output
+ * @param cpuBindType    <IN>   Type of binding
+ * @param cpuBindString  <IN>   Binding string, needed for map and mask binding
+ * @param coreMap        <IN>   Map of cores to use (whole partition)
+ * @param coreMapIndex   <IN>   Global CPU ID of the first CPU in this node
+ *                              (=> Index of @a coreMap)
+ * @param cpuCount       <IN>   Number of CPUs in this node (in partition)
+ * @param lastCpu        <BOTH> Local CPU ID of the last CPU in this node
+ *                              already assigned to a task
+ * @param nodeid         <IN>   ID of this node
+ * @param thread         <BOTH> current thread at current core (XXX: ???)
+ * @param hwThreads      <IN>   number of threads per core (XXX: ???)
+ * @param tasksPerNode   <IN>   number of tasks per node
+ * @param local_tid      <IN>   local task id (current task on this node)
+ *
+ */
+void setCPUset(PSCPU_set_t *CPUset, uint16_t cpuBindType, char *cpuBindString,
+                uint8_t *coreMap, uint32_t coreMapIndex, uint32_t cpuCount,
+		int32_t *lastCpu, uint32_t nodeid, int *thread, int hwThreads,
+		uint32_t tasksPerNode, uint32_t local_tid)
 {
     int found;
     int32_t localCpuCount;
@@ -109,6 +306,7 @@ void setCPUset(uint16_t cpuBindType, PSCPU_set_t *CPUset, uint32_t coreMapIndex,
 
 	while (!found) {
 	    localCpuCount = 0;
+	    // walk through global CPU IDs of the CPUs to use in the local node
 	    for (u=coreMapIndex; u<coreMapIndex + cpuCount; u++) {
 		if ((*lastCpu == -1 || *lastCpu < localCpuCount) &&
 			coreMap[u] == 1) {
@@ -131,6 +329,13 @@ void setCPUset(uint16_t cpuBindType, PSCPU_set_t *CPUset, uint32_t coreMapIndex,
 	    if (*thread < hwThreads) (*thread)++;
 	    if (*thread == hwThreads) *thread = 0;
 	}
+#if 0
+    } else if (cpuBindType & CPU_BIND_LDRANK) {
+        /* TODO implement */
+#endif
+    } else if (cpuBindType & (CPU_BIND_MAP | CPU_BIND_MASK)) {
+        getBindMapFromString(CPUset, cpuBindType, cpuBindString, nodeid,
+			     local_tid);
     } else if (tasksPerNode > (cpuCount * hwThreads) ||
 	tasksPerNode < cpuCount ||
 	(cpuCount * hwThreads) % tasksPerNode != 0) {
@@ -177,3 +382,4 @@ void setCPUset(uint16_t cpuBindType, PSCPU_set_t *CPUset, uint32_t coreMapIndex,
     }
 }
 
+/* vim: set ts=8 sw=4 tw=0 sts=4 noet :*/

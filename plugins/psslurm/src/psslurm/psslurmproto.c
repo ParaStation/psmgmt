@@ -366,17 +366,18 @@ static void handleLaunchTasks(char *ptr, int sock, Slurm_msg_header_t *msgHead)
 
     /* cwd */
     step->cwd = getStringM(&ptr);
+
     /* cpu bind */
     getUint16(&ptr, &step->cpuBindType);
     step->cpuBind = getStringM(&ptr);
+    mdbg(PSSLURM_LOG_PART, "%s: cpuBindType '0x%hx', cpuBind '%s'\n", __func__,
+            step->cpuBindType, step->cpuBind);
+
     /* mem bind */
     getUint16(&ptr, &step->memBindType);
     step->memBind = getStringM(&ptr);
-
-    /*
-    mlog("%s: cpuBind '%u' memBind '%u'\n", __func__, step->cpuBindType,
-	    step->memBindType);
-    */
+    mdbg(PSSLURM_LOG_PART, "%s: memBindType '0x%hx', memBind '%s'\n", __func__,
+            step->memBindType, step->memBind);
 
     /* args */
     getStringArrayM(&ptr, &step->argv, &step->argc);

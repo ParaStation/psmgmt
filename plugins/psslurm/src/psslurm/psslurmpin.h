@@ -20,8 +20,8 @@
 
 uint8_t *getCPUsForPartition(PSpart_slot_t *slots, Step_t *step);
 
-void setCPUset(uint16_t cpuBindType, PSCPU_set_t *CPUset, uint32_t coreMapIndex,
-		uint32_t cpuCount, int32_t *lastCpu, uint8_t *coreMap,
-		uint32_t nodeid, int *thread, int hwThreads,
-		uint32_t tasksPerNode);
+void setCPUset(PSCPU_set_t *CPUset, uint16_t cpuBindType, char *cpuBindString,
+                uint8_t *coreMap, uint32_t coreMapIndex, uint32_t cpuCount,
+		int32_t *lastCpu, uint32_t nodeid, int *thread, int hwThreads,
+		uint32_t tasksPerNode, uint32_t local_tid);
 #endif
