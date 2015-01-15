@@ -9,10 +9,17 @@ import time
 
 start = time.time()
 
-cmd = ["srun", "-N", "1", "-n", "1", "-t", "3", "-p", os.environ["PSTEST_PARTITION"]]
+srun = ["srun"]
+if "" != os.environ["PSTEST_PARTITION"]:
+	srun += ["--partition", os.environ["PSTEST_PARTITION"]]
 if "" != os.environ["PSTEST_RESERVATION"]:
-	cmd += ["--reservation", os.environ["PSTEST_RESERVATION"]]
-cmd += ["--unbuffered", "./hello.py"]
+	srun += ["--reservation", os.environ["PSTEST_RESERVATION"]]
+if "" != os.environ["PSTEST_QOS"]:
+	srun += ["--qos", os.environ["PSTEST_QOS"]]
+if "" != os.environ["PSTEST_ACCOUNT"]:
+	srun += ["--account", os.environ["PSTEST_ACCOUNT"]]
+
+cmd = srun + ["-N", "1", "-n", "1", "-t", "3", "--unbuffered", "./hello.py"]
 
 p = subprocess.Popen(cmd, \
                      stdout = subprocess.PIPE, \

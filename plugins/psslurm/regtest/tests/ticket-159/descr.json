@@ -1,6 +1,6 @@
 {
 	"type": "batch",
-	"submit": "salloc -N 2 -t 4 python test.py",
+	"submit": "salloc -N 1 -t 2 python submit.py",
 	"eval": "eval.py",
 	"fproc": null,
 	"monitor_hz": 10

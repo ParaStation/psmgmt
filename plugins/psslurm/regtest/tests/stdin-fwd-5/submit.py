@@ -6,11 +6,17 @@ import subprocess
 import select
 import re
 
-
-cmd = ["srun", "-v", "-N", "2", "-n", "%d" % (2*int(os.environ["PSTEST_PARTITION_CPUS"])), "-t", "2", "-p", os.environ["PSTEST_PARTITION"]]
+srun = ["srun"]
+if "" != os.environ["PSTEST_PARTITION"]:
+	srun += ["--partition", os.environ["PSTEST_PARTITION"]]
 if "" != os.environ["PSTEST_RESERVATION"]:
-	cmd += ["--reservation", os.environ["PSTEST_RESERVATION"]]
-cmd += ["-i", "5", "./read.py"]
+	srun += ["--reservation", os.environ["PSTEST_RESERVATION"]]
+if "" != os.environ["PSTEST_QOS"]:
+	srun += ["--qos", os.environ["PSTEST_QOS"]]
+if "" != os.environ["PSTEST_ACCOUNT"]:
+	srun += ["--account", os.environ["PSTEST_ACCOUNT"]]
+
+cmd = srun + ["-v", "-N", "2", "-n", "%d" % (2*int(os.environ["PSTEST_PARTITION_CPUS"])), "-t", "2", "-i", "5", "./read.py"]
 
 p = subprocess.Popen(cmd, \
                      stdout = subprocess.PIPE, \

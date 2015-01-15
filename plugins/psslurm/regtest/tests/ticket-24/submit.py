@@ -10,10 +10,17 @@ import signal
 
 start = time.time()
 
-cmd = ["srun", "-n", "1", "-t", "2", "-p", os.environ["PSTEST_PARTITION"]]
+srun = ["srun"]
+if "" != os.environ["PSTEST_PARTITION"]:
+	srun += ["--partition", os.environ["PSTEST_PARTITION"]]
 if "" != os.environ["PSTEST_RESERVATION"]:
-	cmd += ["--reservation", os.environ["PSTEST_RESERVATION"]]
-cmd += ["./loop.sh"]
+	srun += ["--reservation", os.environ["PSTEST_RESERVATION"]]
+if "" != os.environ["PSTEST_QOS"]:
+	srun += ["--qos", os.environ["PSTEST_QOS"]]
+if "" != os.environ["PSTEST_ACCOUNT"]:
+	srun += ["--account", os.environ["PSTEST_ACCOUNT"]]
+
+cmd = srun + ["-n", "1", "-t", "2", "./loop.sh"]
 
 p = subprocess.Popen(cmd, \
                      stdout = subprocess.PIPE,
