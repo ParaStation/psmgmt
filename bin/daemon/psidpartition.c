@@ -2960,6 +2960,7 @@ static void msg_PROVIDEPARTSL(DDBufferMsg_t *inmsg)
 	task->totalThreads = thrds;
 	task->usedThreads = 0;
 	task->activeChild = 0;
+	task->options = task->request->options;
 
 	PSpart_delReq(task->request);
 	task->request = NULL;
