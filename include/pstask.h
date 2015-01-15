@@ -225,6 +225,8 @@ typedef struct {
     PSpart_slot_t *spawnNodes;     /**< Nodes the task can spawn to */
     int32_t spawnNodesSize;        /**< Current size of @ref spawnNodes */
     int32_t spawnNum;              /**< Amount of content of @ref spawnNodes */
+    int injectedEnv;               /**< Flag an injected environment into the
+				      current spawn. Used by psmom, etc. */
 
     list_t signalSender;           /**< Tasks which sent signals */
     list_t signalReceiver;         /**< Tasks which want to receive signals */

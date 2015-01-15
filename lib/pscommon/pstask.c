@@ -325,6 +325,7 @@ int PStask_init(PStask_t* task)
     task->spawnNodes = NULL;
     task->spawnNodesSize = 0;
     task->spawnNum = 0;
+    task->injectedEnv = 0;
     task->resPorts = NULL;
 
     INIT_LIST_HEAD(&task->signalSender);
@@ -567,6 +568,7 @@ PStask_t* PStask_clone(PStask_t* task)
     memcpy(clone->spawnNodes, task->spawnNodes,
 	   clone->spawnNodesSize * sizeof(*task->spawnNodes));
     clone->spawnNum = task->spawnNum;
+    clone->injectedEnv = task->injectedEnv;
 
     cloneSigList(&clone->signalSender, &task->signalSender);
     cloneSigList(&clone->signalReceiver, &task->signalReceiver);

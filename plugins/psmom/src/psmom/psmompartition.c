@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2014 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2015 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -217,34 +217,31 @@ static Job_t *findJobforPID(pid_t pid)
 
 void handlePSSpawnReq(DDTypedBufferMsg_t *msg)
 {
-    static int injectedEnv = 0;
     PStask_t *task;
-    Job_t *job;
-    JobInfo_t *jinfo;
-    char *next, *jobid = NULL, *jobcookie = NULL;
-    size_t left, len = 0;
-    pid_t logger;
+
+    if (!msg) return;
+
+    /* call old message handler to forward the original message */
+    if (oldSpawnReqHandler) oldSpawnReqHandler((DDBufferMsg_t *)msg);
 
     /* don't mess with messages from other nodes */
-    if (PSC_getID(msg->header.sender) != PSC_getMyID()) {
-	if (oldSpawnReqHandler) oldSpawnReqHandler((DDBufferMsg_t *)msg);
+    if (PSC_getID(msg->header.sender) != PSC_getMyID()) return;
+
+    task = PStasklist_find(&managedTasks, msg->header.sender);
+
+    if (!task) {
+	mlog("%s: task %s not found\n", __func__,
+	     PSC_printTID(msg->header.sender));
 	return;
     }
 
     if (msg->type == PSP_SPAWN_ARG) {
-	if (!injectedEnv) {
-
-	    /* forward original msg */
-	    oldSpawnReqHandler((DDBufferMsg_t *) msg);
-
-	    /* find the job */
-	    if (!(task = PStasklist_find(&managedTasks, msg->header.sender))) {
-		mlog("%s: task '%s' not found\n", __func__,
-		    PSC_printTID(msg->header.sender));
-		return;
-	    }
-
-	    logger = PSC_getPID(task->loggertid);
+	if (!task->injectedEnv) {
+	    Job_t *job;
+	    JobInfo_t *jinfo;
+	    char *next, *jobid = NULL, *jobcookie = NULL;
+	    size_t left, len = 0;
+	    pid_t logger = PSC_getPID(task->loggertid);
 
 	    /* the logger can be located on our node or on a different node
 	     * if the spawner was shifted.
@@ -288,16 +285,12 @@ void handlePSSpawnReq(DDTypedBufferMsg_t *msg)
 	    msg->header.len++;
 
 	    /* send altered message */
-	    oldSpawnReqHandler((DDBufferMsg_t *) msg);
-	    injectedEnv = 1;
-	    return;
+	    if (oldSpawnReqHandler) oldSpawnReqHandler((DDBufferMsg_t *) msg);
+	    task->injectedEnv = 1;
 	}
     } else if (msg->type == PSP_SPAWN_END) {
-	injectedEnv = 0;
+	task->injectedEnv = 0;
     }
-
-    /* call old message handler */
-    if (oldSpawnReqHandler) oldSpawnReqHandler((DDBufferMsg_t *)msg);
 }
 
 int handleCreatePart(void *msg)
