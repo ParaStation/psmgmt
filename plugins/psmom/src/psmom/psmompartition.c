@@ -29,6 +29,7 @@
 #include "psidcomm.h"
 #include "psidstatus.h"
 #include "psidnodes.h"
+#include "psidpartition.h"
 #include "psdaemonprotocol.h"
 #include "psmompsaccfunc.h"
 #include "psmomjobinfo.h"
@@ -42,58 +43,25 @@
 
 #include "psmompartition.h"
 
-/** Structure to hold a nodelist */
-typedef struct {
-    int size;             /**< Actual number of valid entries within nodes[] */
-    int maxsize;          /**< Maximum number of entries within nodes[] */
-    PSnodes_ID_t *nodes;  /**< ParaStation IDs of the requested nodes. */
-} nodelist_t;
-
 /**
- * @brief Extend nodelist by one node.
+ * @brief Get job's HW-threads
  *
- * Extend the nodelist @a nl by one node. If the new node would bust
- * the nodelist's allocated space, it will be extended automatically.
+ * Convert the PBS node-list of the job @a job into a list of
+ * HW-threads that is understood by ParaStation's psid and can be used
+ * as a task's partition.
  *
- * @param node The node to be added to the nodelist.
+ * @param job The job to convert the node-list for.
  *
- * @param nl The nodelist to be extended.
- *
- * @return On success, i.e. if the nodelist's allocated space was
- * large enough or if the extension of this space worked well, 1 is
- * returned. Or 0, if something went wrong.
- */
-static int addNode(PSnodes_ID_t node, nodelist_t *nl)
-{
-    if (nl->size == nl->maxsize) {
-	nl->maxsize += 128;
-	nl->nodes = urealloc(nl->nodes, nl->maxsize * sizeof(*nl->nodes));
-	if (!nl->nodes) {
-	    mlog("%s: no memory\n", __func__);
-	    return 0;
-	}
-    }
-
-    nl->nodes[nl->size] = node;
-    nl->size++;
-    return 1;
-}
-
-/**
- * @brief Convert the PBS nodelist into a ParaStation nodelist.
- *
- * @param job The job to convert the nodelist for.
- *
- * @return Return the generated ParaStation nodelist or NULL on
+ * @return Return the generated ParaStation list of HW-threads or NULL on
  * error.
  */
-static nodelist_t *getNodelist(Job_t *job)
+static PSpart_HWThread_t *getThreads(Job_t *job)
 {
-    PSnodes_ID_t nextNodeID;
     const char delim_host[] ="+\0";
-    char *toksave, *value, *next, *tmp;
     char *exec_hosts;
-    nodelist_t *nodelist;
+    char *tmp, *nodeStr, *toksave;
+    int threads = 0;
+    PSpart_HWThread_t *thrdList;
 
     if (!(exec_hosts = getJobDetail(&job->data, "exec_host", NULL))) {
 	mdbg(PSMOM_LOG_WARN, "%s: getting exec_hosts for job '%s' failed\n",
@@ -101,69 +69,51 @@ static nodelist_t *getNodelist(Job_t *job)
 	return NULL;
     }
 
-    nodelist = umalloc(sizeof(nodelist_t));
-
-    *nodelist = (nodelist_t) {
-	.size = 0,
-	.maxsize = 0,
-	.nodes = NULL
-    };
+    thrdList = umalloc(job->nrOfNodes * sizeof(*thrdList));
+    if (!thrdList) {
+	mwarn(errno, "%s: thrdList", __func__);
+	return NULL;
+    }
 
     tmp = ustrdup(exec_hosts);
-    next = strtok_r(tmp, delim_host, &toksave);
-    while (next) {
-	if ((value = strchr(next,'/'))) {
-	    value[0] = '\0';
-	    if ((nextNodeID = getNodeIDbyName(next)) == -1) {
-		mlog("%s: getting id for node '%s' failed\n", __func__, next);
+    nodeStr = strtok_r(tmp, delim_host, &toksave);
+    while (nodeStr) {
+	char *CPUStr = strchr(nodeStr,'/');
+	if (CPUStr) {
+	    PSnodes_ID_t node;
+	    char *endPtr;
+	    int16_t id;
+
+	    CPUStr[0] = '\0';
+	    CPUStr++;
+	    node = getNodeIDbyName(nodeStr);
+	    if (node == -1) {;
+		mlog("%s: No id for node '%s'\n", __func__, nodeStr);
+		free(thrdList);
 		return NULL;
 	    }
-	    if (!(addNode(nextNodeID, nodelist))) {
-		mlog("%s: addNode() failed\n", __func__);
+	    id = strtol(CPUStr, &endPtr, 0);
+	    if (*endPtr != '\0') {
+		mlog("%s: No id for CPU '%s'\n", __func__, CPUStr);
+		free(thrdList);
 		return NULL;
 	    }
+	    if (threads >= job->nrOfNodes) {
+		mlog("%s: Too many nodes in exec_host list.\n", __func__);
+		free(thrdList);
+		return NULL;
+	    }
+
+	    thrdList[threads].node = node;
+	    thrdList[threads].id = id;
+	    thrdList[threads].timesUsed = 0;
+	    threads++;
 	}
-	next = strtok_r(NULL, delim_host, &toksave);
+	nodeStr = strtok_r(NULL, delim_host, &toksave);
     }
     ufree(tmp);
 
-    return nodelist;
-}
-
-/**
- * @brief Send the ParaStation nodelist to the master psid.
- *
- * @param nodelist The nodelist to send.
- *
- * @param msg The received message to forward.
- *
- * @return Returns 0 on success and -1 on error.
- */
-static int sendNodelist(nodelist_t *nodelist, DDBufferMsg_t *msg)
-{
-    int num = nodelist->size, offset = 0;
-
-    msg->header.type = PSP_DD_GETPARTNL;
-    msg->header.dest = PSC_getTID(getMasterID(), 0);
-
-    while (offset < num) {
-	int chunk = (num-offset > NODES_CHUNK) ?  NODES_CHUNK : num-offset;
-	char *ptr = msg->buf;
-	msg->header.len = sizeof(msg->header);
-
-	*(int16_t*)ptr = chunk;
-	ptr += sizeof(int16_t);
-	msg->header.len += sizeof(int16_t);
-
-	memcpy(ptr, nodelist->nodes+offset, chunk * sizeof(*nodelist->nodes));
-	msg->header.len += chunk * sizeof(*nodelist->nodes);
-	offset += chunk;
-	if (sendMsg(msg) == -1 && errno != EWOULDBLOCK) {
-	    mwarn(errno, "%s: PSI_sendMsg() : ", __func__);
-	    return -1;
-	}
-    }
-    return 0;
+    return thrdList;
 }
 
 int isPSAdminUser(uid_t uid, gid_t gid)
@@ -293,16 +243,35 @@ void handlePSSpawnReq(DDTypedBufferMsg_t *msg)
     }
 }
 
+static void partitionDone(PStask_t *task)
+{
+    if (!task || !task->request) return;
+
+    /* Cleanup the actual request not required any longer */
+    PSpart_delReq(task->request);
+    task->request = NULL;
+
+    /* Now register the partition at the master */
+    PSIDpart_register(task);
+
+    /* */
+    DDTypedMsg_t msg = (DDTypedMsg_t) {
+	.header = (DDMsg_t) {
+	    .type = PSP_CD_PARTITIONRES,
+	    .dest = task->tid,
+	    .sender = PSC_getMyTID(),
+	    .len = sizeof(msg) },
+	.type = 0};
+    sendMsg(&msg);
+}
 int handleCreatePart(void *msg)
 {
-    nodelist_t *nodelist = NULL;
     PStask_t *task;
-    DDBufferMsg_t *inmsg;
+    DDBufferMsg_t *inmsg = msg;
     Job_t *job = NULL;
     pid_t mPid;
     int enforceBatch;
 
-    inmsg = (DDBufferMsg_t *) msg;
     mPid = PSC_getPID(inmsg->header.sender);
 
     /* try to connect the mpiexec process to a job(script) */
@@ -337,95 +306,39 @@ int handleCreatePart(void *msg)
 	goto error;
     }
 
-    /* change partition options */
-    task->request->num = job->nrOfNodes;
-    task->request->sort = 0;
-    task->request->options |= PART_OPT_NODEFIRST;
-    task->request->options |= PART_OPT_EXACT;
-
-    if (!knowMaster()) {
-	mlog("%s: master is unknown, cannot send partition request\n",
-		__func__);
+    task->partThrds = getThreads(job);
+    if (!task->partThrds) {
+	/* we did not find the corresponding batch job */
+	mlog("%s: cannot create list of HW-threads for %s\n", __func__,
+	     PSC_printTID(task->tid));
 	errno = EACCES;
 	goto error;
     }
 
-    /* forward partition request to master */
-    inmsg->header.len = sizeof(inmsg->header)
-	+ PSpart_encodeReq(inmsg->buf, sizeof(inmsg->buf), task->request,
-		PSIDnodes_getDmnProtoV(getMasterID()));
+    task->totalThreads = job->nrOfNodes;
+    task->usedThreads = 0;
+    task->activeChild = 0;
 
-    inmsg->header.type = PSP_DD_GETPART;
-    inmsg->header.dest = PSC_getTID(getMasterID(), 0);
+    task->options = task->request->options & ~PART_OPT_EXACT;
 
-    if (sendMsg(inmsg) == -1 && errno != EWOULDBLOCK) {
-	goto error;
-    }
-
-    task->request->numGot = 0;
-
-    /* we send the complete nodelist once and ignore any further requests */
-    if (!(nodelist = getNodelist(job))) {
-	mlog("%s: generating parastation nodelist failed\n", __func__);
-	errno = EACCES;
-	goto error;
-    }
-
-    /* make sure we got all nodes in nodelist */
-    if (nodelist->size != job->nrOfNodes) {
-	mlog("%s: nodelist '%i' and nrOfNodes '%i' differ!\n", __func__,
-		nodelist->size, job->nrOfNodes);
-	errno = EACCES;
-	goto error;
-    }
-
-    /* realloc space for nodelist */
-    task->request->nodes =
-	urealloc(task->request->nodes,
-		sizeof(*task->request->nodes) * nodelist->size);
-    if (!task->request->nodes) {
-	mlog("%s: No memory\n", __func__);
-	errno = ENOMEM;
-	goto error;
-    }
-
-    /* save nodelist in task struct */
-    memcpy(task->request->nodes, nodelist->nodes,
-	    sizeof(*task->request->nodes) * nodelist->size);
-
-    task->request->numGot = nodelist->size;
-
-    /* send complete node list for partition request to master */
-    if ((sendNodelist(nodelist, inmsg)) == -1) {
-	goto error;
-    }
-
-    if (nodelist) {
-	ufree(nodelist->nodes);
-	ufree(nodelist);
-    }
+    if (!task->request->num) partitionDone(task);
 
     return 0;
 
-
 error:
     {
-	if (nodelist) {
-	    ufree(nodelist->nodes);
-	    ufree(nodelist);
-	}
 	if (task && task->request) {
 	    PSpart_delReq(task->request);
 	    task->request = NULL;
 	}
-	DDTypedMsg_t msg = (DDTypedMsg_t) {
+	DDTypedMsg_t errmsg = (DDTypedMsg_t) {
 	    .header = (DDMsg_t) {
 		.type = PSP_CD_PARTITIONRES,
 		.dest = inmsg->header.sender,
 		.sender = PSC_getMyTID(),
-		.len = sizeof(msg) },
+		.len = sizeof(errmsg) },
 	    .type = errno};
-	sendMsg(&msg);
+	sendMsg(&errmsg);
 
 	return 0;
     }
@@ -435,13 +348,17 @@ int handleCreatePartNL(void *msg)
 {
     int enforceBatch;
     PStask_t *task;
-    DDBufferMsg_t *inmsg;
+    DDBufferMsg_t *inmsg = (DDBufferMsg_t *) msg;
 
-    inmsg = (DDBufferMsg_t *) msg;
     getConfParamI("ENFORCE_BATCH_START", &enforceBatch);
 
     /* everyone is allowed to start, nothing to do for us here */
     if (!enforceBatch) return 1;
+
+    if (!msg) {
+	mlog("%s: no msg\n", __func__);
+	return 1;
+    }
 
     /* find task */
     if (!(task = PStasklist_find(&managedTasks, inmsg->header.sender))) {
@@ -454,7 +371,11 @@ int handleCreatePartNL(void *msg)
     /* admin user can always pass */
     if ((isPSAdminUser(task->uid, task->gid))) return 1;
 
-    /* for batch users we sent the nodelist before */
+    task->request->numGot += *(int16_t *)inmsg->buf;
+
+    if (task->request->numGot == task->request->num) partitionDone(task);
+
+    /* for batch users we don't have to sent the node-list */
     return 0;
 
 error:
