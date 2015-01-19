@@ -135,7 +135,6 @@ void PSI_LSF(void)
 	    unsetenv(ENV_NODE_HOSTFILE);
 	}
 	unsetenv(ENV_NODE_PEFILE);
-	setenv(ENV_PART_LOOPNODES, "1", 1);
 	batchPartition = 1;
     }
 }
@@ -161,7 +160,6 @@ void PSI_PBS(void)
 	unsetenv(ENV_NODE_HOSTS);
 	setenv(ENV_NODE_HOSTFILE, pbs_hostfile, 1);
 	unsetenv(ENV_NODE_PEFILE);
-	setenv(ENV_PART_LOOPNODES, "1", 1);
 	batchPartition = 1;
     }
 }
@@ -186,7 +184,6 @@ void PSI_LL(void)
 	setenv(ENV_NODE_HOSTS, ll_hosts, 1);
 	unsetenv(ENV_NODE_HOSTFILE);
 	unsetenv(ENV_NODE_PEFILE);
-	setenv(ENV_PART_LOOPNODES, "1", 1);
 	batchPartition = 1;
     }
 }
@@ -212,7 +209,6 @@ void PSI_SGE(void)
 	unsetenv(ENV_NODE_HOSTS);
 	unsetenv(ENV_NODE_HOSTFILE);
 	setenv(ENV_NODE_PEFILE, sge_pefile, 1);
-	setenv(ENV_PART_LOOPNODES, "1", 1);
 	batchPartition = 1;
     }
 }
