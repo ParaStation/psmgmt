@@ -317,7 +317,9 @@ static void registerReq(PSpart_request_t *req)
 	PSID_log(PSID_LOG_PART, " %d/%s", node, PSCPU_print(*CPUset));
 	nodeStat[node].assgndThrds += PSCPU_getCPUs(*CPUset, NULL, PSCPU_MAX);
 	allocCPUs(node, *CPUset);
-	if (req->options & PART_OPT_EXCLUSIVE) nodeStat[node].exclusive = 1;
+	if (req->options & PART_OPT_EXCLUSIVE && PSIDnodes_exclusive(node)) {
+	    nodeStat[node].exclusive = 1;
+	}
     }
     PSID_log(PSID_LOG_PART, "\n");
 }
