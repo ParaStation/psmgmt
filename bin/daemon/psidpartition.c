@@ -857,6 +857,8 @@ static int nodeOK(PSnodes_ID_t node, PSpart_request_t *req)
  */
 static int nodeFree(PSnodes_ID_t node, PSpart_request_t *req, int threads)
 {
+    char *reason = NULL;
+
     if (node >= PSC_getNrOfNodes()) {
 	PSID_log(-1, "%s: node %d out of range\n", __func__, node);
 	return 0;
@@ -868,22 +870,34 @@ static int nodeFree(PSnodes_ID_t node, PSpart_request_t *req, int threads)
 	return 0;
     }
 
-    if (!getIsExclusive(node)
-	&& (PSIDnodes_getProcs(node) == PSNODES_ANYPROC
-	    || (PSIDnodes_getProcs(node) > threads))
-	&& (!(req->options & PART_OPT_OVERBOOK)
-	    || (PSIDnodes_overbook(node)==OVERBOOK_FALSE
-		&& PSIDnodes_getVirtCPUs(node) > threads)
-	    || (PSIDnodes_overbook(node)==OVERBOOK_AUTO)
-	    || (PSIDnodes_overbook(node)==OVERBOOK_TRUE))
-	&& (!(req->options & PART_OPT_EXCLUSIVE)
-	    || ( PSIDnodes_exclusive(node) && !threads))) {
-
-	return 1;
+    if (getIsExclusive(node)){
+	reason = "used exclusively";
+	goto used;
+    }
+    if (PSIDnodes_getProcs(node) != PSNODES_ANYPROC
+	&& PSIDnodes_getProcs(node) <= threads) {
+	reason = "available threads";
+	goto used;
+    }
+    if (req->options & PART_OPT_OVERBOOK
+	&& !(PSIDnodes_overbook(node)==OVERBOOK_FALSE
+	     && PSIDnodes_getVirtCPUs(node) > threads)
+	&& !(PSIDnodes_overbook(node)==OVERBOOK_AUTO)
+	&& !(PSIDnodes_overbook(node)==OVERBOOK_TRUE)) {
+	reason = "overbook";
+	goto used;
+    }
+    if ((req->options & PART_OPT_EXCLUSIVE)
+	&& !( PSIDnodes_exclusive(node) && !threads)) {
+	reason = "exclusive";
+	goto used;
     }
 
-    PSID_log(PSID_LOG_PART, "%s: node %d not free, exclude from partition\n",
-	     __func__, node);
+    return 1;
+
+used:
+    PSID_log(PSID_LOG_PART, "%s: node %d not free (reason: %s), exclude it\n",
+	     __func__, node, reason ? reason : "unknown");
     return 0;
 }
 
