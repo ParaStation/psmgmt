@@ -4369,7 +4369,7 @@ void PSIDpart_register(PStask_t *task)
 	return;
     }
 
-    if (knownMaster() && PSIDnodes_getDmnProtoV(getMasterID()) > 410) {
+    if (knowMaster() && PSIDnodes_getDmnProtoV(getMasterID()) > 410) {
 	sendSinglePart(PSC_getTID(getMasterID(), 0), PSP_DD_REGISTERPART, task);
 	/* Otherwise we'll have to wait for a PSP_DD_GETTASKS message */
     }
