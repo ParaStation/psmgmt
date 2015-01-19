@@ -891,7 +891,7 @@ static int nodeFree(PSnodes_ID_t node, PSpart_request_t *req, int threads)
 typedef struct {
     PSnodes_ID_t id;    /**< ParaStation ID */
     int HWThreads;      /**< Number of HW-threads available on this node */
-    int SWThreads;      /**< Number of normal SW-threads running on this node */
+    int assgndThreads;  /**< Number of HW-threads already assigned */
     PSCPU_set_t CPUset; /**< Entry's CPU-set used in PART_OPT_EXACT requests */
     double rating;      /**< The sorting criterion */
     char canPin;        /**< Flag enabled process pinning */
@@ -955,7 +955,7 @@ static sortlist_t *getCandidateList(PSpart_request_t *request)
 	}
 
 	int HWThreads = PSIDnodes_getVirtCPUs(node);
-	int SWThreads = getAssignedThreads(node);
+	int assgndThreads = getAssignedThreads(node);
 	int canPin = PSIDnodes_pinProcs(node);
 	PSID_NodeStatus_t status = getStatusInfo(node);
 
@@ -975,14 +975,14 @@ static sortlist_t *getCandidateList(PSpart_request_t *request)
 	    }
 	    PSID_log(PSID_LOG_PART, "%s: found %d HW-threads on node %d\n",
 		     __func__, availHWThreads, node);
-	    if (availHWThreads && nodeFree(node, request, SWThreads)) {
+	    if (availHWThreads && nodeFree(node, request, assgndThreads)) {
 		PSID_log(PSID_LOG_PART, "%s: add %d to list\n", __func__, node);
 		list.entry[list.size].id = node;
 		list.entry[list.size].HWThreads = availHWThreads;
 		if (exactPart) {
 		    PSCPU_remCPUs(*tmpStat[node],list.entry[list.size].CPUset);
 		}
-		list.entry[list.size].SWThreads = SWThreads;
+		list.entry[list.size].assgndThreads = assgndThreads;
 		if (canPin) {
 		    /* prefer nodes able to pin */
 		    list.entry[list.size].rating = 0.0;
@@ -991,7 +991,7 @@ static sortlist_t *getCandidateList(PSpart_request_t *request)
 		    switch (request->sort) {
 		    case PART_SORT_PROC:
 			list.entry[list.size].rating =
-			    (double)SWThreads / HWThreads;
+			    (double)assgndThreads / HWThreads;
 			break;
 		    case PART_SORT_LOAD_1:
 			list.entry[list.size].rating =
@@ -1007,7 +1007,7 @@ static sortlist_t *getCandidateList(PSpart_request_t *request)
 			break;
 		    case PART_SORT_PROCLOAD:
 			list.entry[list.size].rating =
-			    (SWThreads + status.load.load[0]) / HWThreads;
+			    (assgndThreads + status.load.load[0]) / HWThreads;
 			break;
 		    case PART_SORT_NONE:
 			break;
@@ -1368,7 +1368,7 @@ static int distributeSlots(PSpart_request_t *request, sortlist_t* candidates,
 			}
 			break;
 		    case OVERBOOK_AUTO:
-			if (ce->SWThreads) {
+			if (ce->assgndThreads) {
 			    if (candSlots[cid] < allowedSlots[cid]) {
 				neededSlots -=
 				    allowedSlots[cid]-candSlots[cid];
@@ -1381,16 +1381,16 @@ static int distributeSlots(PSpart_request_t *request, sortlist_t* candidates,
 			    stillAvail += allowedSlots[cid];
 			    neededSlots -= procs - candSlots[cid];
 			    candSlots[cid] = procs;
-			} else if (procs < maxProcs - ce->SWThreads) {
-			    short tmp = maxProcs - ce->SWThreads - procs;
+			} else if (procs < maxProcs - ce->assgndThreads) {
+			    short tmp = maxProcs - ce->assgndThreads - procs;
 			    stillAvail += (tmp > allowedSlots[cid])
 				? allowedSlots[cid] : tmp;
 			    neededSlots -= procs - candSlots[cid];
 			    candSlots[cid] = procs;
 			} else {
 			    neededSlots -=
-				maxProcs - ce->SWThreads - candSlots[cid];
-			    candSlots[cid] = maxProcs - ce->SWThreads;
+				maxProcs - ce->assgndThreads - candSlots[cid];
+			    candSlots[cid] = maxProcs - ce->assgndThreads;
 			}
 			break;
 		    default:
@@ -1432,7 +1432,7 @@ static int distributeSlots(PSpart_request_t *request, sortlist_t* candidates,
 	    } else if ((PSIDnodes_getProcs(cid) == PSNODES_ANYPROC
 			|| candSlots[cid] < PSIDnodes_getProcs(cid))
 		       && ((PSIDnodes_overbook(cid) == OVERBOOK_AUTO
-			    && !ce->SWThreads)
+			    && !ce->assgndThreads)
 			   || PSIDnodes_overbook(cid) == OVERBOOK_TRUE)) {
 		cpus = allowedSlots[cid];
 	    }
@@ -1450,7 +1450,7 @@ static int distributeSlots(PSpart_request_t *request, sortlist_t* candidates,
 		} else if ((PSIDnodes_getProcs(cid) == PSNODES_ANYPROC
 			    || candSlots[cid] < PSIDnodes_getProcs(cid))
 			   && ((PSIDnodes_overbook(cid) == OVERBOOK_AUTO
-				&& !ce->SWThreads)
+				&& !ce->assgndThreads)
 			       || PSIDnodes_overbook(cid) == OVERBOOK_TRUE)) {
 		    cpus = allowedSlots[cid];
 		}
