@@ -242,7 +242,7 @@ def log_scontrol_output_change(logkey, old, new):
 # -v: Verbose output is needed by the logic used to figure out the jobid
 # -J: Set the job name to the key such that scripts can figure out the
 #     output directory by themselves.
-def prepare_submit_cmd(part, reserv, qos, test, flags):
+def prepare_submit_cmd(part, reserv, qos, account, test, flags):
 	cmd  = test["submit"]
 	key  = test["key"]
 	odir = test["outdir"]
@@ -252,6 +252,8 @@ def prepare_submit_cmd(part, reserv, qos, test, flags):
 		tmp += ["--reservation", reserv]
 	if len(qos) > 0:
 		tmp += ["--qos", qos]
+	if len(account) > 0:
+		tmp += ["--account", account]
 
 	if len([x for x in flags if "SUBMIT_NO_O_OPTION" == x]) < 1 and \
 	   len([x for x in cmd[1:] if "-o" == x]) < 1:
@@ -270,8 +272,8 @@ def prepare_submit_cmd(part, reserv, qos, test, flags):
 
 #
 # Submit a job to partition part and return the jobid using sbatch.
-def submit_via_sbatch(part, partinfo, reserv, qos, test):
-	cmd = prepare_submit_cmd(part, reserv, qos, test, test["flags"])
+def submit_via_sbatch(part, partinfo, reserv, qos, account, test):
+	cmd = prepare_submit_cmd(part, reserv, qos, account, test, test["flags"])
 	wdir = test["root"]
 
 	env = os.environ.copy()
@@ -279,6 +281,7 @@ def submit_via_sbatch(part, partinfo, reserv, qos, test):
 	env["PSTEST_PARTITION_CPUS"] = "%s" % partinfo["cpus"]
 	env["PSTEST_RESERVATION"]    = "%s" % reserv
 	env["PSTEST_QOS"]            = "%s" % qos
+	env["PSTEST_ACCOUNT"]        = "%s" % account
 	env["PSTEST_TESTKEY"]        = "%s" % test["key"]
 	env["PSTEST_OUTDIR"]         = "%s" % test["outdir"]
 
@@ -292,8 +295,8 @@ def submit_via_sbatch(part, partinfo, reserv, qos, test):
 
 #
 # Submit a job to partition part and return the jobid using srun.
-def submit_via_srun(part, partinfo, reserv, qos, test):
-	cmd = prepare_submit_cmd(part, reserv, qos, test, test["flags"])
+def submit_via_srun(part, partinfo, reserv, qos, account, test):
+	cmd = prepare_submit_cmd(part, reserv, qos, account, test, test["flags"])
 	wdir = test["root"]
 
 	env = os.environ.copy()
@@ -301,6 +304,7 @@ def submit_via_srun(part, partinfo, reserv, qos, test):
 	env["PSTEST_PARTITION_CPUS"] = "%s" % partinfo["cpus"]
 	env["PSTEST_RESERVATION"]    = "%s" % reserv
 	env["PSTEST_QOS"]            = "%s" % qos
+	env["PSTEST_ACCOUNT"]        = "%s" % account
 	env["PSTEST_TESTKEY"]        = "%s" % test["key"]
 	env["PSTEST_OUTDIR"]         = "%s" % test["outdir"]
 
@@ -314,10 +318,10 @@ def submit_via_srun(part, partinfo, reserv, qos, test):
 
 #
 # Submit a job to partition part and return the jobid using salloc.
-def submit_via_salloc(part, partinfo, reserv, qos, test):
+def submit_via_salloc(part, partinfo, reserv, qos, account, test):
 	# salloc does not understand these options. Just pretend the flags
 	# dissallow adding them.
-	cmd = prepare_submit_cmd(part, reserv, qos, test, \
+	cmd = prepare_submit_cmd(part, reserv, qos, account, test, \
 	                         test["flags"] + ["SUBMIT_NO_O_OPTION", "SUBMIT_NO_E_OPTION"])
 	wdir = test["root"]
 
@@ -326,6 +330,7 @@ def submit_via_salloc(part, partinfo, reserv, qos, test):
 	env["PSTEST_PARTITION_CPUS"] = "%s" % partinfo["cpus"]
 	env["PSTEST_RESERVATION"]    = "%s" % reserv
 	env["PSTEST_QOS"]            = "%s" % qos
+	env["PSTEST_ACCOUNT"]        = "%s" % account
 	env["PSTEST_TESTKEY"]        = "%s" % test["key"]
 	env["PSTEST_OUTDIR"]         = "%s" % test["outdir"]
 
@@ -343,12 +348,12 @@ def submit_via_salloc(part, partinfo, reserv, qos, test):
 # The current version of the code cannot handle srun since srun blocks.
 # Moreover, when using srun we want to check that Ctrl-C and friends are
 # properly handled.
-def submit(part, partinfo, reserv, qos, test):
+def submit(part, partinfo, reserv, qos, account, test):
 	k = test["submit"][0].strip()
 
 	return {"sbatch": submit_via_sbatch, \
 	        "srun"  : submit_via_srun, \
-	        "salloc": submit_via_salloc}[k](part, partinfo, reserv, qos, test)
+	        "salloc": submit_via_salloc}[k](part, partinfo, reserv, qos, account, test)
 
 #
 # Try to get the jobid from stdout/stderr. We are passing the "-v" flag to
@@ -385,13 +390,14 @@ def job_is_done(stats):
 
 #
 # Spawn a frontend process
-def spawn_frontend_process(test, part, partinfo, reserv, qos, jobid, fo, fe):
+def spawn_frontend_process(test, part, partinfo, reserv, qos, account, jobid, fo, fe):
 	# Prepare the environment for the front-end process
 	env = os.environ.copy()
 	env["PSTEST_PARTITION"]      = "%s" % part
 	env["PSTEST_PARTITION_CPUS"] = "%s" % partinfo["cpus"]
 	env["PSTEST_RESERVATION"]    = "%s" % reserv
 	env["PSTEST_QOS"]            = "%s" % qos
+	env["PSTEST_ACCOUNT"]        = "%s" % account
 	env["PSTEST_TESTKEY"]        = "%s" % test["key"]
 	env["PSTEST_OUTDIR"]         = "%s" % test["outdir"]
 	if jobid:
@@ -439,7 +445,7 @@ def catch_bugs_in_exec_test(tests, stats, state):
 #
 # Execute a batch job. The function waits until the job and the accompanying
 # frontend process (if one) are terminated.
-def exec_test_batch(thread, test, part, reserv, qos, partinfo):
+def exec_test_batch(thread, test, part, reserv, qos, account, partinfo):
 	assert("batch" == test["type"])
 
 	q       = None
@@ -502,7 +508,7 @@ def exec_test_batch(thread, test, part, reserv, qos, partinfo):
 			return (retval, None)
 
 		if UNBORN == state[0]:
-			q = submit(part, partinfo, reserv, qos, test)
+			q = submit(part, partinfo, reserv, qos, account, test)
 
 			log("%s: submit process is alive with pid %d\n" % (test["logkey"], q.pid))
 
@@ -566,7 +572,7 @@ def exec_test_batch(thread, test, part, reserv, qos, partinfo):
 			fo = open(test["outdir"] + "/fproc-%s.out" % part, "w")
 			fe = open(test["outdir"] + "/fproc-%s.err" % part, "w")
 
-			p = spawn_frontend_process(test, part, partinfo, reserv, qos, \
+			p = spawn_frontend_process(test, part, partinfo, reserv, qos, account, \
 			                           jobid, fo, fe)
 
 			log("%s: frontend process is alive with pid %d\n" % (test["logkey"], p.pid))
@@ -662,7 +668,7 @@ def exec_test_batch(thread, test, part, reserv, qos, partinfo):
 
 #
 # Execute an interactive job.
-def exec_test_interactive(thread, test, part, reserv, qos, partinfo):
+def exec_test_interactive(thread, test, part, reserv, qos, account, partinfo):
 	assert("interactive" == test["type"])
 
 	q       = None
@@ -823,7 +829,7 @@ def exec_test_interactive(thread, test, part, reserv, qos, partinfo):
 			fo = open(test["outdir"] + "/fproc-%s.out" % part, "w")
 			fe = open(test["outdir"] + "/fproc-%s.err" % part, "w")
 
-			p = spawn_frontend_process(test, part, partinfo, reserv, qos, \
+			p = spawn_frontend_process(test, part, partinfo, reserv, qos, account, \
 			                           jobid, subprocess.PIPE, fe)
 
 			log("%s: frontend process is alive with pid %d\n" % (test["logkey"], p.pid))
@@ -1154,6 +1160,7 @@ def perform_test(thread, testdir, testkey, opts, partinfo):
 	test["partitions"]   = [opts.partition]
 	test["reservations"] = [opts.reservation]
 	test["qos"]          = [opts.qos]
+	test["account"]      = [opts.account]
 
 	create_output_dir(test)
 
@@ -1169,7 +1176,8 @@ def perform_test(thread, testdir, testkey, opts, partinfo):
 	       "interactive": exec_test_interactive}[test["type"]]
 
 	# Legacy: Handle as if there were multiple threads
-	threads = [WorkerThread(fct, [tmp1, opts.partition, opts.reservation, opts.qos, tmp2])]
+	threads = [WorkerThread(fct, [tmp1, opts.partition, opts.reservation, \
+	                              opts.qos, opts.account, tmp2])]
 
 	[x.start() for x in threads]
 
@@ -1332,6 +1340,9 @@ def main(argv):
 	parser.add_option("--qos", action = "store", type = "string", \
 	                  dest = "qos", default = "", \
 	                  help = "QoS to use.")
+	parser.add_option("--account", action = "store", type = "string", \
+	                  dest = "account", default = "", \
+	                  help = "Account to use.")
 	parser.add_option("--nocolors", action = "store_true", \
 	                  dest = "nocolors", \
 	                  help = "Disable colored output.")
