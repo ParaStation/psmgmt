@@ -89,7 +89,7 @@ def popen(cmd, **kargs):
 	p = None
 	try:
 		p = subprocess.Popen(cmd, **kargs)
-	except Exception e:
+	except Exception as e:
 		sys.stderr.write("Failed to execute %s: %s\n" % (str(cmd), str(e)))
 
 	return p
