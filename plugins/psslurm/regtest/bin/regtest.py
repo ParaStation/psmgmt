@@ -132,9 +132,9 @@ def process_sinfo_output(partitions):
 #
 # Retrieve informations about partitions using the sinfo command.
 def query_sinfo():
-	p = subprocess.Popen(["sinfo", "-o", "%all"], \
-	                     stdout = subprocess.PIPE, \
-	                     stderr = subprocess.PIPE)
+	p = popen(["sinfo", "-o", "%all"], \
+	          stdout = subprocess.PIPE, \
+	          stderr = subprocess.PIPE)
 
 	out, err = p.communicate()
 
@@ -149,9 +149,9 @@ def query_sinfo():
 #
 # Retrieve the default partition
 def slurm_default_partition():
-	p = subprocess.Popen(["sinfo", "-o", "%P"], \
-	                     stdout = subprocess.PIPE, \
-	                     stderr = subprocess.PIPE)
+	p = popen(["sinfo", "-o", "%P"], \
+	          stdout = subprocess.PIPE, \
+	          stderr = subprocess.PIPE)
 
 	out, err = p.communicate()
 
