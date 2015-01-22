@@ -107,7 +107,14 @@ PSrsrvtn_t *PSrsrvtn_get(void)
     list_del(&rp->next);
 
     INIT_LIST_HEAD(&rp->next);
+    rp->requester = 0;
+    rp->nMin = 0;
+    rp->nMax = 0;
+    rp->tpp = 0;
+    rp->hwType = 0;
+    rp->options = 0;
     rp->rid = 0;
+    rp->firstRank = 0;
     rp->numSlots = 0;
     rp->slots = NULL;
     rp->nextSlot = 0;
@@ -127,6 +134,7 @@ void PSrsrvtn_put(PSrsrvtn_t *rp)
 	free(rp->slots);
     }
     rp->rid = 0;
+    rp->firstRank = 0;
     rp->numSlots = 0;
     rp->slots = NULL;
     rp->nextSlot = 0;
@@ -178,7 +186,14 @@ static void freeChunk(res_chunk_t *chunk)
 	}
 
 	/* copy reservation struct's content */
+	new->requester = old->requester;
+	new->nMin = old->nMin;
+	new->nMax = old->nMax;
+	new->tpp = old->tpp;
+	new->hwType = old->hwType;
+	new->options = old->options;
 	new->rid = old->rid;
+	new->firstRank = old->firstRank;
 	new->numSlots = old->numSlots;
 	new->slots = old->slots;
 	old->slots = NULL;

@@ -45,7 +45,14 @@ typedef int32_t PSrsrvtn_ID_t;
 /** Reservation structure */
 typedef struct {
     list_t next;              /**< used to put into reservation-lists */
+    PStask_ID_t requester;    /**< The task requesting the registration */
+    uint32_t nMin;            /**< The minimum number of slots requested */
+    uint32_t nMax;            /**< The maximum number of slots requested */
+    uint16_t tpp;             /**< Number of HW-threads per slot */
+    uint32_t hwType;          /**< HW-type to be supported by the HW-threads */
+    PSpart_option_t options;  /**< Options steering reservation creation */
     PSrsrvtn_ID_t rid;        /**< unique reservation identifier */
+    int firstRank;            /**< The first rank foreseen to spawn */
     int numSlots;             /**< Number of slots in @ref slots */
     PSpart_slot_t *slots;     /**< Slots forming the reservation */
     int nextSlot;             /**< Number of next slot to use */
