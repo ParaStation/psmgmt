@@ -3209,7 +3209,7 @@ int PSIDpart_getNodes(uint32_t np, uint32_t hwType, PSpart_option_t option,
     }
 
     if (nextMinUsed && !overbook) {
-	PSID_log(-1, "%s: No free slots\n", __func__);
+	PSID_log(dryRun ? PSID_LOG_PART : -1, "%s: No free slots\n", __func__);
 	goto exit;
     }
     minUsed = nextMinUsed;
@@ -3818,6 +3818,29 @@ static void msg_NODESRES(DDBufferMsg_t *inmsg)
 
     sendMsg(inmsg);
 }
+
+static void msg_GETRESERVATION(DDBufferMsg_t *inmsg)
+{
+    /* Try dryrun to determine available slots */
+    /* slots = malloc(nMax * sizeof(slots)); */
+    /* unsigned int got = PSIDpart_getNodes(num, hwType, option, tpp, task, */
+    /* 					 slots, 1); */
+    /* if (got >= nMin) { */
+    /* 	slots = realloc(got * sizeof(slots)); */
+    /* 	PSIDpart_getNodes(got, hwType, option, tpp, task, slots, 0); */
+    /* } else { */
+    /* 	error; */
+    /* } */
+}
+
+static void msg_RESERVATIONRES(DDBufferMsg_t *inmsg)
+{}
+
+static void msg_GETSLOTS(DDBufferMsg_t *inmsg)
+{}
+
+static void msg_SLOTSRES(DDBufferMsg_t *inmsg)
+{}
 
 int send_GETTASKS(PSnodes_ID_t node)
 {
