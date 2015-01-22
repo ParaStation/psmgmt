@@ -86,7 +86,13 @@ def popen(cmd, **kargs):
 	# Make sure that signals are not forwarded
 	kargs["preexec_fn"] = os.setpgrp
 
-	return subprocess.Popen(cmd, **kargs)
+	p = None
+	try:
+		p = subprocess.Popen(cmd, **kargs)
+	except Exception as e:
+		sys.stderr.write("Failed to execute %s: %s\n" % (str(cmd), str(e)))
+
+	return p
 
 #
 # Get the version of the slurm installation as a string.
@@ -132,9 +138,9 @@ def process_sinfo_output(partitions):
 #
 # Retrieve informations about partitions using the sinfo command.
 def query_sinfo():
-	p = subprocess.Popen(["sinfo", "-o", "%all"], \
-	                     stdout = subprocess.PIPE, \
-	                     stderr = subprocess.PIPE)
+	p = popen(["sinfo", "-o", "%all"], \
+	          stdout = subprocess.PIPE, \
+	          stderr = subprocess.PIPE)
 
 	out, err = p.communicate()
 
@@ -149,9 +155,9 @@ def query_sinfo():
 #
 # Retrieve the default partition
 def slurm_default_partition():
-	p = subprocess.Popen(["sinfo", "-o", "%P"], \
-	                     stdout = subprocess.PIPE, \
-	                     stderr = subprocess.PIPE)
+	p = popen(["sinfo", "-o", "%P"], \
+	          stdout = subprocess.PIPE, \
+	          stderr = subprocess.PIPE)
 
 	out, err = p.communicate()
 
@@ -184,7 +190,11 @@ class WorkerThread(threading.Thread):
 		self.canceled = 0
 
 	def run(self):
-		self.ret = self.fct(self, *self.args)
+		try:
+			self.ret = self.fct(self, *self.args)
+		except:
+			sys.stderr.write("Thread failed to execute properly.\n")
+
 
 #
 # Parse a single line of "scontrol --detail -o show job" output.
@@ -1232,20 +1242,24 @@ def perform_test(thread, testdir, testkey, opts, partinfo):
 		print_test_outcome(test["name"], test["key"], color["CANCELED"], "CANCELED")
 		return CANCELED
 
-	if len([x for x in map(lambda z: z.ret[0], threads) if 3 == x]) > 0:
-		print_test_outcome(test["name"], test["key"], color["RESUNAVAIL"], "RESUNAVAIL")
-		return RESUNAVAIL
+	try:
+		if len([x for x in map(lambda z: z.ret[0], threads) if 3 == x]) > 0:
+			print_test_outcome(test["name"], test["key"], color["RESUNAVAIL"], "RESUNAVAIL")
+			return RESUNAVAIL
 
-	if len([x for x in map(lambda z: z.ret[0], threads) if x > 0]) > 0:
-		print_test_outcome(test["name"], test["key"], color["FAIL"], "FAIL")
-		return FAIL
+		if len([x for x in map(lambda z: z.ret[0], threads) if x > 0]) > 0:
+			print_test_outcome(test["name"], test["key"], color["FAIL"], "FAIL")
+			return FAIL
 
-	if eval_test_outcome(test, partinfo, [x.ret[1] for x in threads]):
-		print_test_outcome(test["name"], test["key"], color["FAIL"], "FAIL")
+		if eval_test_outcome(test, partinfo, [x.ret[1] for x in threads]):
+			print_test_outcome(test["name"], test["key"], color["FAIL"], "FAIL")
+			return FAIL
+		else:
+			print_test_outcome(test["name"], test["key"], color["OK"], "OK")
+			return OK
+	except:
+		print_test_outcome(test["name"], test["key"], "purple", "?")
 		return FAIL
-	else:
-		print_test_outcome(test["name"], test["key"], color["OK"], "OK")
-		return OK
 
 	return None
 
