@@ -288,7 +288,7 @@ int PSI_createPartition(unsigned int num, uint32_t hwType);
  * returned. All following processes will have consecutive ranks. In
  * case of an error -1 is returned.
  */
-int PSI_getNodes(unsigned int num, uint32_t hwType, uint16_t tpp,
+int PSI_getNodes(uint32_t num, uint32_t hwType, uint16_t tpp,
 		 PSpart_option_t options, PSnodes_ID_t *nodes);
 
 /**
@@ -391,7 +391,7 @@ int PSI_getSlots(uint32_t num, PSrsrvtn_ID_t resID, PSnodes_ID_t *nodes);
  * @return On success, the rank of the process (i.e. @a rank) is
  * returned. In case of an error -1 is returned.
  */
-int PSI_getRankNode(int rank, PSnodes_ID_t *node);
+int PSI_getRankNode(int32_t rank, PSnodes_ID_t *node);
 
 #ifdef __cplusplus
 }/* extern "C" */

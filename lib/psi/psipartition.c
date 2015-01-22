@@ -1150,21 +1150,10 @@ int PSI_getNodes(uint32_t num, uint32_t hwType, uint16_t tpp,
 	return -1;
     }
 
-    *(uint32_t*)ptr = num;
-    ptr += sizeof(uint32_t);
-    msg.header.len += sizeof(uint32_t);
-
-    *(uint32_t*)ptr = hwType;
-    ptr += sizeof(uint32_t);
-    msg.header.len += sizeof(uint32_t);
-
-    *(PSpart_option_t*)ptr = options;
-    ptr += sizeof(PSpart_option_t);
-    msg.header.len += sizeof(PSpart_option_t);
-
-    *(uint16_t*)ptr = tpp;
-    //ptr += sizeof(uint16_t);
-    msg.header.len += sizeof(uint16_t);
+    PSP_putMsgBuf(&msg, __func__, "num", &num, sizeof(num));
+    PSP_putMsgBuf(&msg, __func__, "hwType", &hwType, sizeof(hwType));
+    PSP_putMsgBuf(&msg, __func__, "options", &options, sizeof(options));
+    PSP_putMsgBuf(&msg, __func__, "tpp", &tpp, sizeof(tpp));
 
     if (hwType || tpp != 1 || options) {
 	PSI_log(PSI_LOG_VERB, "%s:", __func__);
@@ -1186,7 +1175,6 @@ int PSI_getNodes(uint32_t num, uint32_t hwType, uint16_t tpp,
 
     switch (msg.header.type) {
     case PSP_CD_NODESRES:
-	ptr = msg.buf;
 	ret = *(int32_t*)ptr;
 	ptr += sizeof(int32_t);
 	if (ret<0) {
@@ -1208,7 +1196,7 @@ int PSI_getNodes(uint32_t num, uint32_t hwType, uint16_t tpp,
     return ret;
 }
 
-int PSI_getRankNode(int rank, PSnodes_ID_t *node)
+int PSI_getRankNode(int32_t rank, PSnodes_ID_t *node)
 {
     DDBufferMsg_t msg = (DDBufferMsg_t) {
 	.header = (DDMsg_t) {
@@ -1226,9 +1214,7 @@ int PSI_getRankNode(int rank, PSnodes_ID_t *node)
 	return -1;
     }
 
-    *(int32_t*)ptr = rank;
-    //ptr += sizeof(int32_t);
-    msg.header.len += sizeof(int32_t);
+    PSP_putMsgBuf(&msg, __func__, "rank", &rank, sizeof(int32_t));
 
     if (PSI_sendMsg(&msg)<0) {
 	PSI_warn(-1, errno, "%s: PSI_sendMsg", __func__);
@@ -1242,7 +1228,6 @@ int PSI_getRankNode(int rank, PSnodes_ID_t *node)
 
     switch (msg.header.type) {
     case PSP_CD_NODESRES:
-	ptr = msg.buf;
 	ret = *(int32_t*)ptr;
 	ptr += sizeof(int32_t);
 	if (ret<0) {
