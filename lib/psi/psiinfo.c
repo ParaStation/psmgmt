@@ -498,10 +498,12 @@ int PSI_infoList(PSnodes_ID_t node, PSP_Info_t what, const void *param,
     case PSP_INFO_LIST_GETNODES:
 	if (param) {
 	    const PSI_infoListGetNodes_t *p = param;
-	    PSP_putTypedMsgBuf(&msg, "np", &p->np, sizeof(p->np));
-	    PSP_putTypedMsgBuf(&msg, "hwType", &p->hwType, sizeof(p->hwType));
-	    PSP_putTypedMsgBuf(&msg, "option", &p->option, sizeof(p->option));
-	    PSP_putTypedMsgBuf(&msg, "tpp", &p->tpp, sizeof(p->tpp));
+	    PSP_putTypedMsgBuf(&msg, __func__, "np", &p->np, sizeof(p->np));
+	    PSP_putTypedMsgBuf(&msg,  __func__, "hwType", &p->hwType,
+			       sizeof(p->hwType));
+	    PSP_putTypedMsgBuf(&msg,  __func__, "option", &p->option,
+			       sizeof(p->option));
+	    PSP_putTypedMsgBuf(&msg,  __func__, "tpp", &p->tpp, sizeof(p->tpp));
 	} else {
 	    PSI_log(-1, "%s: %s request needs parameter\n", __func__,
 		    PSP_printInfo(what));

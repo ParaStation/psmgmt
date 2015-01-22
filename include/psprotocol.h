@@ -552,19 +552,22 @@ size_t PSP_strLen(char *str);
 /**
  * @brief Put data into message buffer
  *
- * Put some data referenced by @a data of size @a size into the buffer
- * @ref buf of the message @a msg of type @ref DDBufferMsg_t. The data
- * are placed with an offset defined by the @ref len member of @a
- * msg's header. Upon success, i.e. if the data fitted into the
- * remainder of @a msg's buffer, the @ref len entry of @a msg's header
- * is updated. In that case 1 is returned. Otherwise, an error-message
- * is put out and 0 is returned. In the latter case the len member of
- * @a msg is not updated.
+ * Put some data referenced by @a data of size @a size into the
+ * payload-buffer @ref buf of the message @a msg of type @ref
+ * DDBufferMsg_t. The data are placed with an offset defined by the
+ * @ref len member of @a msg's header. Upon success, i.e. if the data
+ * fitted into the remainder of @a msg's buffer, the @ref len entry of
+ * @a msg's header is updated and 1 is returned. Otherwise, an
+ * error-message is put out and 0 is returned. In the latter case the
+ * len member of @a msg is not updated.
  *
- * @a dataName is used in order the create the error-message. It shall
- * describe the type of content to be added to @a msg's buffer.
+ * @a funcName and @a dataName are used in order the create the
+ * error-message. It shall describe the calling function and the type
+ * of content to be added to @a msg's buffer.
  *
  * @param msg Message to be modified
+ *
+ * @param funcName Name of the calling function
  *
  * @param dataName Description of the data @a data to be added to @a
  * msg.
@@ -573,29 +576,32 @@ size_t PSP_strLen(char *str);
  *
  * @param size Amount of data to be put into the message @a msg.
  *
- * @return Upon success, 1 is returned. Or 0, if an error
+ * @return Upon success, 1 is returned. Or 0 if an error
  * occurred. This is mainly due to insufficient space within @a msg.
  */
-int PSP_putMsgBuf(DDBufferMsg_t *msg, char *strName, const void *data,
-		  size_t size);
+int PSP_putMsgBuf(DDBufferMsg_t *msg, const char *funcName,
+		  const char *strName, const void *data, size_t size);
 
 
 /**
  * @brief Put data into message buffer
  *
- * Put some data referenced by @a data of size @a size into the buffer
- * @ref buf of the message @a msg of type @ref DDTypedBufferMsg_t. The
- * data are placed with an offset defined by the @ref len member of @a
- * msg's header. Upon success, i.e. if the data fitted into the
- * remainder of @a msg's buffer, the @ref len entry of @a msg's header
- * is updated. In that case 1 is returned. Otherwise, an error-message
- * is put out and 0 is returned. In the latter case the len member of
- * @a msg is not updated.
+ * Put some data referenced by @a data of size @a size into the
+ * payload-buffer @ref buf of the message @a msg of type @ref
+ * DDTypedBufferMsg_t. The data are placed with an offset defined by
+ * the @ref len member of @a msg's header. Upon success, i.e. if the
+ * data fitted into the remainder of @a msg's buffer, the @ref len
+ * entry of @a msg's header is updated and 1 is returned. Otherwise,
+ * an error-message is put out and 0 is returned. In the latter case
+ * the len member of @a msg is not updated.
  *
- * @a dataName is used in order the create the error-message. It shall
- * describe the type of content to be added to @a msg's buffer.
+ * @a funcName and @a dataName are used in order the create the
+ * error-message. It shall describe the calling function and the type
+ * of content to be added to @a msg's buffer.
  *
  * @param msg Message to be modified
+ *
+ * @param funcName Name of the calling function
  *
  * @param dataName Description of the data @a data to be added to @a
  * msg.
@@ -604,11 +610,11 @@ int PSP_putMsgBuf(DDBufferMsg_t *msg, char *strName, const void *data,
  *
  * @param size Amount of data to be put into the message @a msg.
  *
- * @return Upon success, 1 is returned. Or 0, if an error
+ * @return Upon success, 1 is returned. Or 0 if an error
  * occurred. This is mainly due to insufficient space within @a msg.
  */
-int PSP_putTypedMsgBuf(DDTypedBufferMsg_t *msg, char *strName, const void *data,
-		       size_t size);
+int PSP_putTypedMsgBuf(DDTypedBufferMsg_t *msg, const char *funcName,
+		       const char *strName, const void *data, size_t size);
 
 #ifdef __cplusplus
 }/* extern "C" */

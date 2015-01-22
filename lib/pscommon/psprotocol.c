@@ -193,8 +193,8 @@ size_t PSP_strLen(char *str)
     return str ? strlen(str) + 1 : 0;
 }
 
-int PSP_putMsgBuf(DDBufferMsg_t *msg, char *dataName, const void *data,
-		  size_t size)
+int PSP_putMsgBuf(DDBufferMsg_t *msg, const char *funcName,
+		  const char *dataName, const void *data, size_t size)
 {
     size_t off = msg->header.len - sizeof(msg->header);
     size_t used;
@@ -207,7 +207,8 @@ int PSP_putMsgBuf(DDBufferMsg_t *msg, char *dataName, const void *data,
 	msg->buf[off] = '\0';
     }
     if (!used) {
-	PSC_log(-1, "%s: data '%s' too large for buffer\n", __func__, dataName);
+	PSC_log(-1, "%s: data '%s' too large in %s()\n", __func__, dataName,
+		funcName);
 	return 0;
     }
     msg->header.len += used;
@@ -215,8 +216,8 @@ int PSP_putMsgBuf(DDBufferMsg_t *msg, char *dataName, const void *data,
     return 1;
 }
 
-int PSP_putTypedMsgBuf(DDTypedBufferMsg_t *msg, char *dataName,
-		       const void *data, size_t size)
+int PSP_putTypedMsgBuf(DDTypedBufferMsg_t *msg, const char *funcName,
+		       const char *dataName, const void *data, size_t size)
 {
     size_t off = msg->header.len - sizeof(msg->header) - sizeof(msg->type);
     size_t used;
@@ -229,7 +230,8 @@ int PSP_putTypedMsgBuf(DDTypedBufferMsg_t *msg, char *dataName,
 	msg->buf[off] = '\0';
     }
     if (!used) {
-	PSC_log(-1, "%s: data '%s' too large for buffer\n", __func__, dataName);
+	PSC_log(-1, "%s: data '%s' too large in %s()\n", __func__, dataName,
+		funcName);
 	return 0;
     }
     msg->header.len += used;

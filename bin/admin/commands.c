@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2014 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2015 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -278,7 +278,7 @@ void PSIADM_AddNode(char *nl)
 	} else {
 	    printf("starting node %s\n", nodeString(node));
 	    msg.header.len = sizeof(msg.header);
-	    PSP_putMsgBuf(&msg, "node ID", &node, sizeof(node));
+	    PSP_putMsgBuf(&msg, __func__, "node ID", &node, sizeof(node));
 	    PSI_sendMsg(&msg);
 	    usleep(delay * 1000);
 	}
@@ -344,7 +344,7 @@ void PSIADM_HWStart(int hw, char *nl)
     err = PSI_infoInt(-1, PSP_INFO_HWNUM, NULL, &hwnum, 1);
     if (err || hw < -1 || hw >= hwnum) return;
 
-    PSP_putMsgBuf(&msg, "hardware type", &hw32, sizeof(hw32));
+    PSP_putMsgBuf(&msg, __func__, "hardware type", &hw32, sizeof(hw32));
 
     if (! getHostStatus()) return;
 
@@ -380,7 +380,7 @@ void PSIADM_HWStop(int hw, char *nl)
     err = PSI_infoInt(-1, PSP_INFO_HWNUM, NULL, &hwnum, 1);
     if (err || hw < -1 || hw >= hwnum) return;
 
-    PSP_putMsgBuf(&msg, "hardware type", &hw32, sizeof(hw32));
+    PSP_putMsgBuf(&msg, __func__, "hardware type", &hw32, sizeof(hw32));
 
     if (! getHostStatus()) return;
 
@@ -1968,7 +1968,8 @@ void PSIADM_Plugin(char *nl, char *name, PSP_Plugin_t action)
 
     msg.type = action;
 
-    if (!PSP_putTypedMsgBuf(&msg, "plugin", name, PSP_strLen(name))) return;
+    if (!PSP_putTypedMsgBuf(&msg, __func__, "plugin", name, PSP_strLen(name)))
+	return;
 
     if (! getHostStatus()) return;
 
@@ -2062,9 +2063,12 @@ void PSIADM_PluginKey(char *nl, char *name, char *key, char *value,
 
     msg.type = action;
 
-    if (!PSP_putTypedMsgBuf(&msg, "plugin", name, PSP_strLen(name))) return;
-    if (!PSP_putTypedMsgBuf(&msg, "key", key, PSP_strLen(key))) return;
-    if (!PSP_putTypedMsgBuf(&msg, "value", value, PSP_strLen(value))) return;
+    if (!PSP_putTypedMsgBuf(&msg, __func__, "plugin", name, PSP_strLen(name)))
+	return;
+    if (!PSP_putTypedMsgBuf(&msg, __func__, "key", key, PSP_strLen(key)))
+	return;
+    if (!PSP_putTypedMsgBuf(&msg, __func__, "value", value, PSP_strLen(value)))
+	return;
 
     if (! getHostStatus()) return;
 
@@ -2096,7 +2100,8 @@ static int putEnv(DDTypedBufferMsg_t *msg, char *key, char *value)
 
     snprintf(env, sizeof(env), "%s=%s", key, value);
 
-    return PSP_putTypedMsgBuf(msg, "environment", env, PSP_strLen(env));
+    return PSP_putTypedMsgBuf(msg, __func__, "environment", env,
+			      PSP_strLen(env));
 }
 
 
@@ -2118,7 +2123,8 @@ void PSIADM_Environment(char *nl, char *key, char *value, PSP_Env_t action)
 	if (!putEnv(&msg, key, value)) return;
 	break;
     case PSP_ENV_UNSET:
-	if (!PSP_putTypedMsgBuf(&msg, "key", key, PSP_strLen(key))) return;
+	if (!PSP_putTypedMsgBuf(&msg, __func__, "key", key, PSP_strLen(key)))
+	    return;
 	break;
     default:
 	printf("Unknown action %d\n", action);
