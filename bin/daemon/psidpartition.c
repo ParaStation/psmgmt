@@ -26,6 +26,7 @@ static char vcid[] __attribute__((used)) =
 #include "psdaemonprotocol.h"
 #include "pspartition.h"
 #include "hardware.h"
+#include "psreservation.h"
 
 #include "psidutil.h"
 #include "psidcomm.h"
@@ -4408,4 +4409,5 @@ void initPartition(void)
     PSID_registerDropper(PSP_DD_TASKDEAD, drop_TASKDEAD);
 
     PSID_registerLoopAct(handlePartRequests);
+    PSID_registerLoopAct(PSrsrvtn_gc);
 }

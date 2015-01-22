@@ -85,6 +85,7 @@ char *PStask_printGrp(PStask_group_t taskgroup);
 void PStask_printStat(void);
 
 #include "pspartition.h"
+#include "psreservation.h"
 
 /** Task structure */
 /* Members marked with C are (un)packed by PStask_encode()/PStask_decode() */
@@ -146,6 +147,9 @@ typedef struct {
     uint32_t totalThreads;         /**< Size of @ref partThreads. */
     PSpart_HWThread_t *partThrds;  /**< HW-threads forming the partition. */
     int32_t usedThreads;           /**< Number of HW-threads currently in use */
+    PSrsrvtn_ID_t nextResID;       /**< ID to be used for next reservation */
+    list_t reservations;           /**< List of active reservations */
+    list_t resRequests;            /**< List of reservation-requestd (FIFO). */
     int32_t activeChild;           /**< # of active children right now */
     int32_t numChild;              /**< Total # of children spawned over time */
     PSpart_slot_t *spawnNodes;     /**< Nodes the task can spawn to */

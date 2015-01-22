@@ -150,6 +150,7 @@ include/psparamspace.h \
 include/pspartition.h \
 include/psprotocol.h \
 include/psprotocolenv.h \
+include/psreservation.h \
 include/pssignal.h \
 include/psstrings.h \
 include/pstask.h \
@@ -171,6 +172,7 @@ lib/pscommon/pscommon.c \
 lib/pscommon/pscpu.c \
 lib/pscommon/pspartition.c \
 lib/pscommon/psprotocol.c \
+lib/pscommon/psreservation.c \
 lib/pscommon/pssignal.c \
 lib/pscommon/pstask.c \
 lib/pse/Makefile.am \

@@ -33,7 +33,7 @@ typedef struct {
 
 /**
  * Pool of signal strucures ready to use. Initialized by @ref
- * initSigList(). To get a buffer from this pool, use @ref
+ * incFreeList(). To get a buffer from this pool, use @ref
  * PSsignal_get(), to put it back into it use @ref PSsignal_put().
  */
 static LIST_HEAD(sigFreeList);

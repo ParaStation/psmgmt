@@ -17,4 +17,4 @@ AM_CPPFLAGS += -DPREFIX=\"$(prefix)\"
 noinst_LTLIBRARIES = libpscommon.la
 
 libpscommon_la_SOURCES = logging.c pscommon.c pscpu.c pspartition.c	\
-	psprotocol.c pstask.c pssignal.c
+	psprotocol.c pstask.c pssignal.c psreservation.c

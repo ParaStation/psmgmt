@@ -120,7 +120,8 @@ CONFIG_CLEAN_VPATH_FILES =
 LTLIBRARIES = $(noinst_LTLIBRARIES)
 libpscommon_la_LIBADD =
 am_libpscommon_la_OBJECTS = logging.lo pscommon.lo pscpu.lo \
-	pspartition.lo psprotocol.lo pstask.lo pssignal.lo
+	pspartition.lo psprotocol.lo pstask.lo pssignal.lo \
+	psreservation.lo
 libpscommon_la_OBJECTS = $(am_libpscommon_la_OBJECTS)
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
@@ -356,7 +357,7 @@ configdir = $(prefix)/config
 scriptsdir = $(prefix)/scripts
 noinst_LTLIBRARIES = libpscommon.la
 libpscommon_la_SOURCES = logging.c pscommon.c pscpu.c pspartition.c	\
-	psprotocol.c pstask.c pssignal.c
+	psprotocol.c pstask.c pssignal.c psreservation.c
 
 all: all-am
 
@@ -419,6 +420,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pscpu.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pspartition.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psprotocol.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psreservation.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pssignal.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pstask.Plo@am__quote@
 

@@ -24,13 +24,14 @@ static char vcid[] __attribute__((used)) =
 #include "pscommon.h"
 #include "list.h"
 #include "pssignal.h"
+#include "psreservation.h"
 
 #include "pstask.h"
 
 void PStask_printStat(void)
 {
     PSsignal_printStat();
-    // PSrsrvtn_printStat(); @todo
+    PSrsrvtn_printStat();
 }
 
 char* PStask_printGrp(PStask_group_t tg)
@@ -115,6 +116,8 @@ int PStask_init(PStask_t* task)
     task->totalThreads = 0;
     task->partThrds = NULL;
     task->usedThreads = -1;
+    INIT_LIST_HEAD(&task->reservations);
+    INIT_LIST_HEAD(&task->resRequests);
     task->activeChild = 0;
     task->numChild = 0;
     task->spawnNodes = NULL;
@@ -138,6 +141,21 @@ static void delSigList(list_t *list)
 	PSsignal_t *signal = list_entry(s, PSsignal_t, next);
 	list_del(&signal->next);
 	PSsignal_put(signal);
+    }
+}
+
+static void delReservationList(list_t *list)
+{
+    list_t *r, *tmp;
+
+    list_for_each_safe(r, tmp, list) {
+	PSrsrvtn_t *reservation = list_entry(r, PSrsrvtn_t, next);
+	list_del(&reservation->next);
+	if (reservation->slots) {
+	    free(reservation->slots);
+	    reservation->slots = NULL;
+	}
+	PSrsrvtn_put(reservation);
     }
 }
 
@@ -176,6 +194,9 @@ int PStask_reinit(PStask_t* task)
     if (task->request) PSpart_delReq(task->request);
     if (task->partition) free(task->partition);
     if (task->partThrds) free(task->partThrds);
+
+    delReservationList(&task->reservations);
+    delReservationList(&task->resRequests);
 
     if (task->spawnNodes) free(task->spawnNodes);
     if (task->resPorts) free(task->resPorts);
@@ -367,6 +388,9 @@ PStask_t* PStask_clone(PStask_t* task)
     memcpy(clone->partThrds, task->partThrds,
 	   task->totalThreads * sizeof(*task->partThrds));
     clone->usedThreads = task->usedThreads;
+
+    /* Do not clone reservations */
+
     clone->activeChild = task->activeChild;
     clone->numChild = task->numChild;
     clone->spawnNodesSize = task->spawnNodesSize;
