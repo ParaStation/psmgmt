@@ -1,7 +1,7 @@
 #
 # ParaStation
 #
-# Copyright (C) 2012-2014 ParTec Cluster Competence Center GmbH, Munich
+# Copyright (C) 2012-2015 ParTec Cluster Competence Center GmbH, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -17,4 +17,4 @@ AM_CPPFLAGS += -DPREFIX=\"$(prefix)\"
 noinst_LTLIBRARIES = libpscommon.la
 
 libpscommon_la_SOURCES = logging.c pscommon.c pscpu.c pspartition.c	\
-	psprotocol.c pstask.c
+	psprotocol.c pstask.c pssignal.c

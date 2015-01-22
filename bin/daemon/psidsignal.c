@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2014 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2015 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -232,7 +232,7 @@ void PSID_sendSignal(PStask_ID_t tid, uid_t uid, PStask_ID_t sender,
 	    blockedRDP = RDP_blockTimer(1);
 
 	    list_for_each_safe(s, tmp, &dest->childList) { /* @todo safe req? */
-		PStask_sig_t *sig = list_entry(s, PStask_sig_t, next);
+		PSsignal_t *sig = list_entry(s, PSsignal_t, next);
 		if (sig->deleted) continue;
 
 		PSID_sendSignal(sig->tid, uid, sender, signal, 1, answer);
@@ -335,7 +335,7 @@ void PSID_sendSignalsToRelatives(PStask_t *task)
     blockedRDP = RDP_blockTimer(1);
 
     list_for_each(s, &task->childList) {
-	PStask_sig_t *sig = list_entry(s, PStask_sig_t, next);
+	PSsignal_t *sig = list_entry(s, PSsignal_t, next);
 	if (sig->deleted) continue;
 
 	PSID_sendSignal(sig->tid, task->uid, task->tid, -1, 0, 0);
@@ -1278,11 +1278,11 @@ static void signalGC(void)
 {
     int blockedCHLD, blockedRDP;
 
-    if (!PStask_gcSigRequired()) return;
+    if (!PSsignal_gcRequired()) return;
 
     blockedCHLD = PSID_blockSIGCHLD(1);
     blockedRDP = RDP_blockTimer(1);
-    PStask_gcSig();
+    PSsignal_gc();
     RDP_blockTimer(blockedRDP);
     PSID_blockSIGCHLD(blockedCHLD);
 }
