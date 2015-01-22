@@ -35,8 +35,11 @@ static char vcid[] __attribute__((used)) =
 /** Flag used to mark environment originating from batch-system */
 static int batchPartition = 0;
 
-/** Flag used to mark ENV_PART_WAIT was set */
+/** Flag used to mark ENV_PART_WAIT was set during PSI_createPartition() */
 static int waitForPartition = 0;
+
+/** Flag used to mark PART_OPT_WAIT was set in PSI_getReservation() */
+static int waitForReservation = 0;
 
 /**
  * Name of the evironment variable used in order to enable a
@@ -918,16 +921,32 @@ end:
 }
 
 static int alarmCalled = 0;
-static void alarmHandler(int sig)
+
+static void alarmHandlerPart(int sig)
 {
     if (waitForPartition) {
 	time_t now = time(NULL);
 	char *timeStr = ctime(&now);
 	alarmCalled = 1;
 	timeStr[strlen(timeStr)-1] = '\0';
-	PSI_log(-1, "%s -- Waiting for ressources\n", timeStr);
+	PSI_log(-1, "%s -- Waiting for partition\n", timeStr);
     } else {
-	PSI_log(-1, "Wait for ressources timed out. Exiting...");
+	PSI_log(-1, "Wait for partition timed out. Exiting...\n");
+	exit(1);
+    }
+}
+
+static void alarmHandlerRes(int sig)
+{
+    if (waitForReservation) {
+	time_t now = time(NULL);
+	char *timeStr = ctime(&now);
+	alarmCalled = 1;
+	timeStr[strlen(timeStr)-1] = '\0';
+	PSI_log(alarmCalled ? PSI_LOG_VERB : -1,
+		"%s -- Waiting for reservation\n", timeStr);
+    } else {
+	PSI_log(-1, "Wait for reservation timed out. Exiting...\n");
 	exit(1);
     }
 }
@@ -1065,7 +1084,7 @@ int PSI_createPartition(unsigned int size, uint32_t hwType)
     } else {
 	alarm(60);
     }
-    signal(SIGALRM, alarmHandler);
+    signal(SIGALRM, alarmHandlerPart);
 recv_retry:
     if (PSI_recvMsg((DDMsg_t *)&msg, sizeof(msg))<0) {
 	PSI_warn(-1, errno, "%s: PSI_recvMsg", __func__);
@@ -1112,7 +1131,7 @@ end:
     return ret;
 }
 
-int PSI_getNodes(unsigned int num, uint32_t hwType, uint16_t tpp,
+int PSI_getNodes(uint32_t num, uint32_t hwType, uint16_t tpp,
 		 PSpart_option_t options, PSnodes_ID_t *nodes)
 {
     DDBufferMsg_t msg = (DDBufferMsg_t) {
@@ -1230,6 +1249,148 @@ int PSI_getRankNode(int rank, PSnodes_ID_t *node)
 	    PSI_log(-1, "%s: Cannot get node for rank %d\n", __func__, rank);
 	} else {
 	    memcpy(node, ptr, sizeof(*node));
+	}
+	break;
+    case PSP_CD_ERROR:
+	PSI_warn(-1, ((DDErrorMsg_t*)&msg)->error, "%s: error in command %s",
+		 __func__, PSP_printMsg(((DDErrorMsg_t*)&msg)->request));
+	break;
+    default:
+	PSI_log(-1, "%s: received unexpected msgtype '%s'\n", __func__,
+		PSP_printMsg(msg.header.type));
+    }
+
+    return ret;
+}
+
+PSrsrvtn_ID_t PSI_getReservation(uint32_t nMin, uint32_t nMax, uint16_t tpp,
+				 uint32_t hwType, PSpart_option_t options,
+				 uint32_t *got)
+{
+    DDBufferMsg_t msg = (DDBufferMsg_t) {
+	.header = (DDMsg_t) {
+	    .type = PSP_CD_GETRESERVATION,
+	    .dest = PSC_getTID(-1, 0),
+	    .sender = PSC_getMyTID(),
+	    .len = sizeof(DDMsg_t) },
+	.buf = { 0 } };
+    PSrsrvtn_ID_t rid = 0;
+    char *ptr = msg.buf;
+
+    PSI_log(PSI_LOG_PART, "%s(min %d max %d", __func__, nMin, nMax);
+    if (tpp != 1) PSI_log(PSI_LOG_PART, " tpp %d", tpp);
+    if (hwType) PSI_log(PSI_LOG_PART, " hwType %#x", hwType);
+    if (options) PSI_log(PSI_LOG_PART, " options %#x", options);
+    PSI_log(PSI_LOG_PART, ")\n");
+
+    if (!tpp) {
+	PSI_log(-1, "%s: Adapt tpp to 1\n", __func__);
+	tpp = 1;
+    }
+
+    PSP_putMsgBuf(&msg, __func__, "nMin", &nMin, sizeof(nMin));
+    PSP_putMsgBuf(&msg, __func__, "nMax", &nMax, sizeof(nMax));
+    PSP_putMsgBuf(&msg, __func__, "tpp", &tpp, sizeof(tpp));
+    PSP_putMsgBuf(&msg, __func__, "hwType", &hwType, sizeof(hwType));
+    PSP_putMsgBuf(&msg, __func__, "options", &options, sizeof(options));
+
+    if (PSI_sendMsg(&msg)<0) {
+	PSI_warn(-1, errno, "%s: PSI_sendMsg", __func__);
+	return 0;
+    }
+
+    if (options & PART_OPT_WAIT) {
+	waitForReservation = 1;
+	alarm(2);
+    } else {
+	alarm(60);
+    }
+    signal(SIGALRM, alarmHandlerRes);
+    alarmCalled = 0;
+
+recv_retry:
+    if (PSI_recvMsg((DDMsg_t *)&msg, sizeof(msg)) < 0) {
+	PSI_warn(-1, errno, "%s: PSI_recvMsg", __func__);
+	return 0;
+    }
+    alarm(0);
+
+    switch (msg.header.type) {
+    case PSP_CD_RESERVATIONRES:
+	rid = *(PSrsrvtn_ID_t *)ptr;
+	ptr += sizeof(PSrsrvtn_ID_t);
+	if (rid && got) {
+	    *got = *(uint32_t *)ptr;
+	    ptr += sizeof(uint32_t);
+	} else {
+	    PSI_warn(-1, *(int*)ptr, "%s", __func__);
+	}
+	break;
+    case PSP_CD_SENDSTOP:
+    case PSP_CD_SENDCONT:
+	goto recv_retry;
+	break;
+    case PSP_CD_ERROR:
+	PSI_warn(-1, ((DDErrorMsg_t*)&msg)->error, "%s: error in command %s",
+		 __func__, PSP_printMsg(((DDErrorMsg_t*)&msg)->request));
+	break;
+    default:
+	PSI_log(-1, "%s: received unexpected msgtype '%s'\n",
+		__func__, PSP_printMsg(msg.header.type));
+    }
+
+    if (rid && alarmCalled) {
+	time_t now = time(NULL);
+	char *timeStr = ctime(&now);
+	timeStr[strlen(timeStr)-1] = '\0';
+	PSI_log(-1, "%s -- Starting now...\n", timeStr);
+    }
+
+    return rid;
+}
+
+int PSI_getSlots(uint32_t num, PSrsrvtn_ID_t resID, PSnodes_ID_t *nodes)
+{
+    DDBufferMsg_t msg = (DDBufferMsg_t) {
+	.header = (DDMsg_t) {
+	    .type = PSP_CD_GETSLOTS,
+	    .dest = PSC_getTID(-1, 0),
+	    .sender = PSC_getMyTID(),
+	    .len = sizeof(DDMsg_t) },
+	.buf = { 0 } };
+    char *ptr = msg.buf;
+    int ret = -1;
+
+    if (num > NODES_CHUNK) {
+	PSI_log(-1, "%s: Do not request more than %d nodes\n", __func__,
+		NODES_CHUNK);
+	return -1;
+    }
+
+    PSP_putMsgBuf(&msg, __func__, "numSlots", &num, sizeof(num));
+    PSP_putMsgBuf(&msg, __func__, "resID", &resID, sizeof(resID));
+
+    PSI_log(PSI_LOG_VERB, "%s(%d, %#x)\n", __func__, num, resID);
+
+    if (PSI_sendMsg(&msg)<0) {
+	PSI_warn(-1, errno, "%s: PSI_sendMsg", __func__);
+	return -1;
+    }
+
+    if (PSI_recvMsg((DDMsg_t *)&msg, sizeof(msg))<0) {
+	PSI_warn(-1, errno, "%s: PSI_recvMsg", __func__);
+	return -1;
+    }
+
+    switch (msg.header.type) {
+    case PSP_CD_SLOTSRES:
+	ret = *(int32_t*)ptr;
+	ptr += sizeof(int32_t);
+	if (ret<0) {
+	    PSI_log(-1, "%s: Cannot get %d nodes from reservation %#x\n",
+		    __func__, num, resID);
+	} else {
+	    memcpy(nodes, ptr, num*sizeof(*nodes));
 	}
 	break;
     case PSP_CD_ERROR:

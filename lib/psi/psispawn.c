@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2014 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2015 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -922,6 +922,59 @@ int PSI_spawnStrictHW(int count, uint32_t hwType, uint16_t tpp,
 
     free(nodes);
     return total;
+}
+
+int PSI_spawnRsrvtn(int count, PSrsrvtn_ID_t resID, char *workdir,
+		    int argc, char **argv, int strictArgv,
+		    int *errors, PStask_ID_t *tids)
+{
+    int total = 0, ret = -1;
+    PSnodes_ID_t *nodes = NULL;
+
+    PSI_log(PSI_LOG_VERB, "%s(%d, %#x)\n", __func__, count, resID);
+
+    if (!errors) {
+	PSI_log(-1, "%s: unable to reports errors\n", __func__);
+	goto exit;
+    }
+
+    if (! count > 0) return 0;
+
+    nodes = malloc(sizeof(*nodes) * NODES_CHUNK);
+    if (!nodes) {
+	*errors = ENOMEM;
+	goto exit;
+    }
+
+    while (count>0) {
+	int chunk = (count>NODES_CHUNK) ? NODES_CHUNK : count;
+	int rank = PSI_getSlots(chunk, resID, nodes);
+	int i, num;
+
+	if (rank < 0) {
+	    errors[total] = ENXIO;
+	    goto exit;
+	}
+
+	PSI_log(PSI_LOG_SPAWN, "%s: will spawn to:", __func__);
+	for (i=0; i<chunk; i++) {
+	    PSI_log(PSI_LOG_SPAWN, " %2d", nodes[i]);
+	}
+	PSI_log(PSI_LOG_SPAWN, ".\n");
+	PSI_log(PSI_LOG_SPAWN, "%s: first rank: %d\n", __func__, rank);
+
+	num = dospawn(chunk, nodes, workdir, argc, argv, strictArgv,
+		      TG_ANY, rank, errors+total, tids ? tids+total : NULL);
+	if (num != chunk) goto exit;
+
+	count -= chunk;
+	total += chunk;
+    }
+    ret = total;
+
+exit:
+    if (nodes) free(nodes);
+    return ret;
 }
 
 int PSI_spawnSingle(char *workdir, int argc, char **argv,

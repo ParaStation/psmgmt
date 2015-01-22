@@ -68,6 +68,10 @@ static struct {
     { PSP_CD_GETNODES         , "PSP_CD_GETNODES"         },
     { PSP_CD_NODESRES         , "PSP_CD_NODESRES"         },
     { PSP_CD_GETRANKNODE      , "PSP_CD_GETRANKNODE"      },
+    { PSP_CD_GETRESERVATION   , "PSP_CD_GETRESERVATION"   },
+    { PSP_CD_RESERVATIONRES   , "PSP_CD_RESERVATIONRES"   },
+    { PSP_CD_GETSLOTS         , "PSP_CD_GETSLOTS"         },
+    { PSP_CD_SLOTSRES         , "PSP_CD_SLOTSRES"         },
 
     { PSP_CD_SENDSTOP         , "PSP_CD_SENDSTOP"         },
     { PSP_CD_SENDCONT         , "PSP_CD_SENDCONT"         },

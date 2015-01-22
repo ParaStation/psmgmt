@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2014 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2015 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -290,6 +290,91 @@ int PSI_createPartition(unsigned int num, uint32_t hwType);
  */
 int PSI_getNodes(unsigned int num, uint32_t hwType, uint16_t tpp,
 		 PSpart_option_t options, PSnodes_ID_t *nodes);
+
+/**
+ * @brief Create reservation
+ *
+ * Create a reservation within the partition attached to the current
+ * job. The reservation is requested to contain at least @a nMin and
+ * at most @a nMax slots. Each slot will contain @a tpp HW-threads and
+ * slots are guaranteed to support @a hwType if given. Furthermore
+ * there are flags influencing the creation of the reservation passed
+ * in @a options:
+ *
+ * - PSI_OVERBOOK: Allow HW-threads to get re-used, i.e. multiple
+ *   threads might be scheduled to the HW-thread concurrently.
+ *
+ * - PSI_LOOP_NODES_FIRST: Place consecutive slots onto different
+ *   nodes, if possible. Usually consecutive processes are placed on
+ *   the same node.
+ *
+ * - PSI_WAIT: If the required resources are unavailable at the time
+ *   the reservation is requested, wait for their availability.
+ *
+ * Upon success, i.e. if the reservation was created, a unique
+ * reservation ID is returned. This reservation ID might be used to
+ * request the actual resources via PSI_getSlots(). The actual amount
+ * of slots contained in the reservation is passed to the calling
+ * process via @a got.
+ *
+ * @param nMin Minimum amount of slots in the reservation
+ *
+ * @param nMax Maximum amount of slots in the reservation
+ *
+ * @param tpp Number of HW-threads contained in each slot.
+ *
+ * @param hwType Hardware-types to be supported by the HW-threads to
+ * be selected. This bit-field shall be prepared using
+ * PSI_resolveHWList(). If this is 0, any HW-thread will be accepted
+ * from the hardware-type point of view.
+ *
+ * @param options Additional constraints like PART_OPT_NODEFIRST or
+ * PART_OPT_OVERBOOK that will be used to get the reservation. If
+ * PART_OPT_WAIT is included, creating the reservation might be
+ * delayed until enough resources are available.
+ *
+ * @param got Upon success this will hold the actual number of slots
+ * reserved.
+ *
+ * @return Upon success the unique ID of the created reservation will
+ * be returned. Or 0 in case of an error.
+ *
+ * @see PSI_getSlots()
+ */
+PSrsrvtn_ID_t PSI_getReservation(uint32_t nMin, uint32_t nMax, uint16_t tpp,
+				 uint32_t hwType, PSpart_option_t options,
+				 uint32_t *got);
+
+/**
+ * @brief Get slots from reservation
+ *
+ * Get @a num slots from the reservation identified by the unique ID
+ * @a resID. The node-part of the slots will be stored to the array @a
+ * nodes. The calling process has to ensure that the array @a nodes is
+ * sufficiently large.
+ *
+ * The reservation has to contain sufficiently many slots for this
+ * function to succeed. Otherwise it will fail an no resources are
+ * used.
+ *
+ * This function will return the rank of the first process to spawn
+ * into the received slots. Further processes will are expected to get
+ * the successing ranks assigned.
+ *
+ * @param num The number of slots to get
+ *
+ * @param resID The unique reservation ID to get the slots from
+ *
+ * @param nodes An array sufficiently large to store the node ID of
+ * the received slots.
+ *
+ * @return On success, the rank of the first process to spawn is
+ * returned. All following processes will have consecutive ranks. In
+ * case of an error -1 is returned.
+ *
+ * @see PSI_getReservation()
+ */
+int PSI_getSlots(uint32_t num, PSrsrvtn_ID_t resID, PSnodes_ID_t *nodes);
 
 /**
  * @brief Get node to spawn process to.
