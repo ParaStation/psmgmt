@@ -68,6 +68,9 @@ static struct {
     { PSP_DD_REGISTERPARTSL   , "PSP_DD_REGISTERPARTSL"   },
     { PSP_DD_REGISTERPARTRP   , "PSP_DD_REGISTERPARTRP"   },
 
+    { PSP_DD_GETRESERVATION   , "PSP_DD_GETRESERVATION"   },
+    { PSP_DD_GETSLOTS         , "PSP_DD_GETSLOTS"         },
+    { PSP_DD_SLOTSRES         , "PSP_DD_SLOTSRES"         },
     {0,NULL}
 };
 

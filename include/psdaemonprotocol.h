@@ -91,6 +91,9 @@ extern "C" {
 #define PSP_DD_REGISTERPART        0x0139  /**< Register partition at master */
 #define PSP_DD_REGISTERPARTSL      0x013A  /**< Part. registration slot-list */
 #define PSP_DD_REGISTERPARTRP      0x013B  /**< Part. registration ports */
+#define PSP_DD_GETRESERVATION      0x013C  /**< Forwarded GETRESERVATION msg */
+#define PSP_DD_GETSLOTS            0x013D  /**< Forwarded GETSLOTS msg */
+#define PSP_DD_SLOTSRES            0x013E  /**< Results of GETSLOTS msg */
 
 /**
  * @brief Generate a string describing the message type.
