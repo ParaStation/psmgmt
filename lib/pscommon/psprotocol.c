@@ -220,6 +220,44 @@ int PSP_putMsgBuf(DDBufferMsg_t *msg, const char *funcName,
     return 1;
 }
 
+static int doGetMsgBuf(DDBufferMsg_t *msg, size_t *used, const char *callName,
+		       const char *funcName, const char *dataName, void *data,
+		       size_t size, int try)
+{
+    size_t avail;
+
+    if (!msg || !used || !data) {
+	PSC_log(-1, "%s: no '%s' provided for '%s' in %s()\n",callName,
+		msg ? (used ? "data" : "used") : "msg", dataName, funcName);
+	return 0;
+    }
+
+    avail = msg->header.len - sizeof(msg->header);
+    if (size > avail - *used) {
+	PSC_log(try ? PSC_LOG_VERB : -1,
+		"%s: insufficient data for '%s' in %s()\n", callName, dataName,
+		funcName);
+	return 0;
+    }
+
+    memcpy(data, msg->buf + *used, size);
+    *used += size;
+
+    return 1;
+}
+
+int PSP_tryGetMsgBuf(DDBufferMsg_t *msg, size_t *used, const char *funcName,
+		     const char *dataName, void *data, size_t size)
+{
+    return doGetMsgBuf(msg, used, __func__, funcName, dataName, data, size, 1);
+}
+
+int PSP_getMsgBuf(DDBufferMsg_t *msg, size_t *used, const char *funcName,
+		  const char *dataName, void *data, size_t size)
+{
+    return doGetMsgBuf(msg, used, __func__, funcName, dataName, data, size, 0);
+}
+
 int PSP_putTypedMsgBuf(DDTypedBufferMsg_t *msg, const char *funcName,
 		       const char *dataName, const void *data, size_t size)
 {

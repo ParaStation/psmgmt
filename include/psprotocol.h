@@ -366,7 +366,7 @@ typedef enum {
 #define PSP_RESET_HW              0x0001
 
 /**
- * Chunksize for PSP_CD_GETNODES, PSP_CD_CREATEPARTNL and
+ * Chunk-size for PSP_CD_GETNODES, PSP_CD_CREATEPARTNL and
  * PSP_DD_GETPARTNL messages
  */
 #define NODES_CHUNK 256
@@ -584,8 +584,73 @@ size_t PSP_strLen(char *str);
  * occurred. This is mainly due to insufficient space within @a msg.
  */
 int PSP_putMsgBuf(DDBufferMsg_t *msg, const char *funcName,
-		  const char *strName, const void *data, size_t size);
+		  const char *dataName, const void *data, size_t size);
 
+/**
+ * @brief Get data from message buffer
+ *
+ * Fetch data from the payload-buffer @ref buf of the message @a msg
+ * of type @ref DDBufferMsg_t. An amount of data is given by @a size
+ * will be stored to @a data. The data is fetched with an offset given
+ * by @a used . At the same time @a used is updated to point right
+ * after the fetched data. Thus, subsequent calls will fetch
+ * successive data from the payload buffer.
+ *
+ * Upon success, i.e. if the data is available in the message
+ * (i.e. its @ref len is large enough) and @a data is different from
+ * NULL, 1 is returned. Otherwise, an error-message is put out and 0
+ * is returned. In the latter case @a used is not updated.
+ *
+ * @a funcName and @a dataName are used in order the create the
+ * error-message. It shall describe the calling function and the type
+ * of content to be fetched from @a msg's buffer.
+ *
+ * @param msg Message to fetch data from
+ *
+ * @param used Counter used to track the data offset
+ *
+ * @param funcName Name of the calling function
+ *
+ * @param dataName Description of @a data to be fetched from to @a
+ * msg.
+ *
+ * @param data Pointer to the data to get from the message @a msg.
+ *
+ * @param size Amount of data to be fetched from the message @a msg.
+ *
+ * @return Upon success, 1 is returned. Or 0 if an error
+ * occurred. This is mainly due to insufficient data available in @a msg.
+ */
+int PSP_getMsgBuf(DDBufferMsg_t *msg, size_t *used, const char *funcName,
+		  const char *dataName, void *data, size_t size);
+
+/**
+ * @brief Try to get data from message buffer
+ *
+ * This function shows basically the same behavior as @ref
+ * PSP_getMsgBuf(). The main difference is an suppressed error message
+ * in case @a msg does not contain sufficient amount of data.
+ *
+ * @param msg Message to fetch data from
+ *
+ * @param used Counter used to track the data offset
+ *
+ * @param funcName Name of the calling function
+ *
+ * @param dataName Description of @a data to be fetched from to @a
+ * msg.
+ *
+ * @param data Pointer to the data to get from the message @a msg.
+ *
+ * @param size Amount of data to be fetched from the message @a msg.
+ *
+ * @return Upon success, 1 is returned. Or 0 if an error
+ * occurred. This is mainly due to insufficient data available in @a msg.
+ *
+ * @see PSP_getMsgBuf()
+ */
+int PSP_tryGetMsgBuf(DDBufferMsg_t *msg, size_t *used, const char *funcName,
+		     const char *dataName, void *data, size_t size);
 
 /**
  * @brief Put data into message buffer
@@ -618,7 +683,7 @@ int PSP_putMsgBuf(DDBufferMsg_t *msg, const char *funcName,
  * occurred. This is mainly due to insufficient space within @a msg.
  */
 int PSP_putTypedMsgBuf(DDTypedBufferMsg_t *msg, const char *funcName,
-		       const char *strName, const void *data, size_t size);
+		       const char *dataName, const void *data, size_t size);
 
 #ifdef __cplusplus
 }/* extern "C" */
