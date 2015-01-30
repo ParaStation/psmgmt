@@ -53,7 +53,7 @@ typedef struct {
     PSpart_option_t options;  /**< Options steering reservation creation */
     PSrsrvtn_ID_t rid;        /**< unique reservation identifier */
     int firstRank;            /**< The first rank foreseen to spawn */
-    int numSlots;             /**< Number of slots in @ref slots */
+    int nSlots;               /**< Number of slots in @ref slots */
     PSpart_slot_t *slots;     /**< Slots forming the reservation */
     int nextSlot;             /**< Number of next slot to use */
     PSrsrvtn_state_t state;   /**< flag internal state of structure */
