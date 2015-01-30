@@ -15,7 +15,7 @@ if "" != os.environ["PSTEST_QOS"]:
 if "" != os.environ["PSTEST_ACCOUNT"]:
 	srun += ["--account", os.environ["PSTEST_ACCOUNT"]]
 
-cmd = srun + ["-N", "2", "-t", "1", "--pty", "/bin/bash"]
+cmd = srun + ["-v", "-N", "2", "-t", "1", "--pty", "/bin/bash"]
 
 stdin = """
 set timeout -1
