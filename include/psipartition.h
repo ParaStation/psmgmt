@@ -374,7 +374,7 @@ PSrsrvtn_ID_t PSI_getReservation(uint32_t nMin, uint32_t nMax, uint16_t tpp,
  *
  * @see PSI_getReservation()
  */
-int PSI_getSlots(uint32_t num, PSrsrvtn_ID_t resID, PSnodes_ID_t *nodes);
+int PSI_getSlots(uint16_t num, PSrsrvtn_ID_t resID, PSnodes_ID_t *nodes);
 
 /**
  * @brief Get node to spawn process to.

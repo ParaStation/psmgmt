@@ -1260,7 +1260,7 @@ PSrsrvtn_ID_t PSI_getReservation(uint32_t nMin, uint32_t nMax, uint16_t tpp,
 	    .len = sizeof(DDMsg_t) },
 	.buf = { 0 } };
     PSrsrvtn_ID_t rid = 0;
-    char *ptr = msg.buf;
+    size_t used = 0;
 
     PSI_log(PSI_LOG_PART, "%s(min %d max %d", __func__, nMin, nMax);
     if (tpp != 1) PSI_log(PSI_LOG_PART, " tpp %d", tpp);
@@ -1302,13 +1302,16 @@ recv_retry:
 
     switch (msg.header.type) {
     case PSP_CD_RESERVATIONRES:
-	rid = *(PSrsrvtn_ID_t *)ptr;
-	ptr += sizeof(PSrsrvtn_ID_t);
+	PSP_getMsgBuf(&msg, &used, __func__, "rid", &rid, sizeof(rid));
 	if (rid && got) {
-	    *got = *(uint32_t *)ptr;
-	    ptr += sizeof(uint32_t);
+	    PSP_getMsgBuf(&msg, &used, __func__, "got", got, sizeof(*got));
 	} else {
-	    PSI_warn(-1, *(int*)ptr, "%s", __func__);
+	    int32_t eno;
+	    if (PSP_getMsgBuf(&msg, &used, __func__, "eno", &eno, sizeof(eno))){
+		PSI_warn(-1, eno, "%s", __func__);
+	    } else {
+		PSI_log(-1, "%s: unknown error\n", __func__);
+	    }
 	}
 	break;
     case PSP_CD_SENDSTOP:
@@ -1334,7 +1337,7 @@ recv_retry:
     return rid;
 }
 
-int PSI_getSlots(uint32_t num, PSrsrvtn_ID_t resID, PSnodes_ID_t *nodes)
+int PSI_getSlots(uint16_t num, PSrsrvtn_ID_t resID, PSnodes_ID_t *nodes)
 {
     DDBufferMsg_t msg = (DDBufferMsg_t) {
 	.header = (DDMsg_t) {
@@ -1343,8 +1346,8 @@ int PSI_getSlots(uint32_t num, PSrsrvtn_ID_t resID, PSnodes_ID_t *nodes)
 	    .sender = PSC_getMyTID(),
 	    .len = sizeof(DDMsg_t) },
 	.buf = { 0 } };
-    char *ptr = msg.buf;
-    int ret = -1;
+    int32_t ret = -1;
+    size_t used = 0;
 
     if (num > NODES_CHUNK) {
 	PSI_log(-1, "%s: Do not request more than %d nodes\n", __func__,
@@ -1352,8 +1355,8 @@ int PSI_getSlots(uint32_t num, PSrsrvtn_ID_t resID, PSnodes_ID_t *nodes)
 	return -1;
     }
 
-    PSP_putMsgBuf(&msg, __func__, "numSlots", &num, sizeof(num));
     PSP_putMsgBuf(&msg, __func__, "resID", &resID, sizeof(resID));
+    PSP_putMsgBuf(&msg, __func__, "num", &num, sizeof(num));
 
     PSI_log(PSI_LOG_VERB, "%s(%d, %#x)\n", __func__, num, resID);
 
@@ -1369,13 +1372,18 @@ int PSI_getSlots(uint32_t num, PSrsrvtn_ID_t resID, PSnodes_ID_t *nodes)
 
     switch (msg.header.type) {
     case PSP_CD_SLOTSRES:
-	ret = *(int32_t*)ptr;
-	ptr += sizeof(int32_t);
+	PSP_getMsgBuf(&msg, &used, __func__, "ret", &ret, sizeof(ret));
 	if (ret<0) {
-	    PSI_log(-1, "%s: Cannot get %d nodes from reservation %#x\n",
-		    __func__, num, resID);
+	    int32_t eno;
+	    if (PSP_getMsgBuf(&msg, &used, __func__, "eno", &eno, sizeof(eno))){
+		PSI_warn(-1, eno, "%s: Cannot get %d slots from %#x",
+			 __func__, num, resID);
+	    } else {
+		PSI_log(-1, "%s: Cannot get %d slots from %#x\n", __func__,
+			num, resID);
+	    }
 	} else {
-	    memcpy(nodes, ptr, num*sizeof(*nodes));
+	    memcpy(nodes, msg.buf + used, num*sizeof(*nodes));
 	}
 	break;
     case PSP_CD_ERROR:
