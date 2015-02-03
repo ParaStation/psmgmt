@@ -85,6 +85,9 @@ typedef enum {
     PART_OPT_RESPORTS  = 0x0020, /**< Request reserved ports for OpenMPI
 				    startup. */
     PART_OPT_DEFAULT   = 0x0040, /**< Use the job's default options */
+    PART_OPT_DYNAMIC   = 0x0080, /**< Include dynamic resources, too. This
+				    will require interaction with an external
+				    resource manager. */
 } PSpart_option_t;
 
 /** Options possible for PSP_INFO_QUEUE_PARTITION requests */
