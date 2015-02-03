@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2014 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2015 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -922,6 +922,9 @@ static void msg_CLIENTCONNECT(int fd, DDBufferMsg_t *bufmsg)
 	/* Remove the old selector created while accept()ing connection */
 	Selector_remove(fd);
     }
+
+    /* Seed the sequence of reservation IDs */
+    task->nextResID = task->tid + 0x042;
 
     registerClient(fd, tid, task);
 
