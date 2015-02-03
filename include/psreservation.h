@@ -45,6 +45,7 @@ typedef int32_t PSrsrvtn_ID_t;
 /** Reservation structure */
 typedef struct {
     list_t next;              /**< used to put into reservation-lists */
+    PStask_ID_t task;         /**< Task holding the associated partition */
     PStask_ID_t requester;    /**< The task requesting the registration */
     uint32_t nMin;            /**< The minimum number of slots requested */
     uint32_t nMax;            /**< The maximum number of slots requested */
@@ -56,6 +57,8 @@ typedef struct {
     int nSlots;               /**< Number of slots in @ref slots */
     PSpart_slot_t *slots;     /**< Slots forming the reservation */
     int nextSlot;             /**< Number of next slot to use */
+    char checked;             /**< Was checked to be completable */
+    char dynSent;             /**< Dynamic request was sent */
     PSrsrvtn_state_t state;   /**< flag internal state of structure */
 } PSrsrvtn_t;
 

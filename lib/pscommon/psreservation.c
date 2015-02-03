@@ -23,7 +23,7 @@ static char vcid[] __attribute__((used)) =
  * Number of reservation structures allocated at once. Ensure this
  * chunk is larger than 128 kB to force it into mmap()ed memory
  */
-#define RESERVATION_CHUNK 4096
+#define RESERVATION_CHUNK (int)((128*1024)/sizeof(PSrsrvtn_t) + 1)
 
 /**
  * Single chunk of reservation structures allocated at once within
@@ -107,6 +107,7 @@ PSrsrvtn_t *PSrsrvtn_get(void)
     list_del(&rp->next);
 
     INIT_LIST_HEAD(&rp->next);
+    rp->task = 0;
     rp->requester = 0;
     rp->nMin = 0;
     rp->nMax = 0;
@@ -118,6 +119,8 @@ PSrsrvtn_t *PSrsrvtn_get(void)
     rp->nSlots = 0;
     rp->slots = NULL;
     rp->nextSlot = 0;
+    rp->checked = 0;
+    rp->dynSent = 0;
     rp->state = RES_USED;
 
     usedRess++;
@@ -133,11 +136,14 @@ void PSrsrvtn_put(PSrsrvtn_t *rp)
 		rp->rid);
 	free(rp->slots);
     }
+    rp->task = 0;
     rp->rid = 0;
     rp->firstRank = 0;
     rp->nSlots = 0;
     rp->slots = NULL;
     rp->nextSlot = 0;
+    rp->checked = 0;
+    rp->dynSent = 0;
     list_add_tail(&rp->next, &resFreeList);
 
     usedRess--;
@@ -186,6 +192,7 @@ static void freeChunk(res_chunk_t *chunk)
 	}
 
 	/* copy reservation struct's content */
+	new->task = old->task;
 	new->requester = old->requester;
 	new->nMin = old->nMin;
 	new->nMax = old->nMax;
@@ -198,6 +205,8 @@ static void freeChunk(res_chunk_t *chunk)
 	new->slots = old->slots;
 	old->slots = NULL;
 	new->nextSlot = old->nextSlot;
+	new->checked = old->checked;
+	new->dynSent = old->dynSent;
 
 	/* tweak the list */
 	__list_add(&new->next, old->next.prev, old->next.next);
