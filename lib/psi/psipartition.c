@@ -1300,6 +1300,7 @@ recv_retry:
     }
     alarm(0);
 
+    if (got) *got = 0;
     switch (msg.header.type) {
     case PSP_CD_RESERVATIONRES:
 	PSP_getMsgBuf(&msg, &used, __func__, "rid", &rid, sizeof(rid));
@@ -1309,6 +1310,7 @@ recv_retry:
 	    int32_t eno;
 	    if (PSP_getMsgBuf(&msg, &used, __func__, "eno", &eno, sizeof(eno))){
 		PSI_warn(-1, eno, "%s", __func__);
+		if (got) *got = eno;
 	    } else {
 		PSI_log(-1, "%s: unknown error\n", __func__);
 	    }

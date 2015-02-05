@@ -334,7 +334,9 @@ int PSI_getNodes(uint32_t num, uint32_t hwType, uint16_t tpp,
  * delayed until enough resources are available.
  *
  * @param got Upon success this will hold the actual number of slots
- * reserved.
+ * reserved. Otherwise it will hold an error-code describing the
+ * reason why reservation-creation failed. In the latter case 0
+ * indicates an unknown reason.
  *
  * @return Upon success the unique ID of the created reservation will
  * be returned. Or 0 in case of an error.
