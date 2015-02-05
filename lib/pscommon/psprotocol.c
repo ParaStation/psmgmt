@@ -153,6 +153,7 @@ static struct {
     { PSP_INFO_LIST_MEMORY,      "PSP_INFO_LIST_MEMORY" },
     { PSP_INFO_LIST_RESPORTS,    "PSP_INFO_LIST_RESPORTS" },
     { PSP_INFO_LIST_GETNODES,    "PSP_INFO_LIST_GETNODES" },
+    { PSP_INFO_LIST_RESNODES,    "PSP_INFO_LIST_RESNODES" },
 
     { PSP_INFO_CMDLINE,          "PSP_INFO_CMDLINE" },
     { PSP_INFO_RPMREV,           "PSP_INFO_RPMREV" },
@@ -222,9 +223,10 @@ int PSP_putMsgBuf(DDBufferMsg_t *msg, const char *funcName,
 
 static int doGetMsgBuf(DDBufferMsg_t *msg, size_t *used, const char *callName,
 		       const char *funcName, const char *dataName, void *data,
-		       size_t size, int try)
+		       size_t size, int typed, int try)
 {
     size_t avail;
+    size_t u;
 
     if (!msg || !used || !data) {
 	PSC_log(-1, "%s: no '%s' provided for '%s' in %s()\n",callName,
@@ -232,15 +234,21 @@ static int doGetMsgBuf(DDBufferMsg_t *msg, size_t *used, const char *callName,
 	return 0;
     }
 
+    u = *used;
+    if (typed) {
+	DDTypedBufferMsg_t *p;
+	u += (void *)&p->buf - (void *)&p->type;
+    }
+
     avail = msg->header.len - sizeof(msg->header);
-    if (size > avail - *used) {
+    if (size > avail - u) {
 	PSC_log(try ? PSC_LOG_VERB : -1,
 		"%s: insufficient data for '%s' in %s()\n", callName, dataName,
 		funcName);
 	return 0;
     }
 
-    memcpy(data, msg->buf + *used, size);
+    memcpy(data, msg->buf + u, size);
     *used += size;
 
     return 1;
@@ -249,13 +257,15 @@ static int doGetMsgBuf(DDBufferMsg_t *msg, size_t *used, const char *callName,
 int PSP_tryGetMsgBuf(DDBufferMsg_t *msg, size_t *used, const char *funcName,
 		     const char *dataName, void *data, size_t size)
 {
-    return doGetMsgBuf(msg, used, __func__, funcName, dataName, data, size, 1);
+    return doGetMsgBuf(msg, used, __func__, funcName,
+		       dataName, data, size, 0, 1);
 }
 
 int PSP_getMsgBuf(DDBufferMsg_t *msg, size_t *used, const char *funcName,
 		  const char *dataName, void *data, size_t size)
 {
-    return doGetMsgBuf(msg, used, __func__, funcName, dataName, data, size, 0);
+    return doGetMsgBuf(msg, used, __func__, funcName,
+		       dataName, data, size, 0, 0);
 }
 
 int PSP_putTypedMsgBuf(DDTypedBufferMsg_t *msg, const char *funcName,
@@ -279,4 +289,12 @@ int PSP_putTypedMsgBuf(DDTypedBufferMsg_t *msg, const char *funcName,
     msg->header.len += used;
 
     return 1;
+}
+
+int PSP_getTypedMsgBuf(DDTypedBufferMsg_t *msg, size_t *used,
+		       const char *funcName, const char *dataName, void *data,
+		       size_t size)
+{
+    return doGetMsgBuf((DDBufferMsg_t *)msg, used, __func__, funcName,
+		       dataName, data, size, 1, 0);
 }

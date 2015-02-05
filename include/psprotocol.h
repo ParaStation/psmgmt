@@ -252,7 +252,8 @@ typedef enum {
     PSP_INFO_QUEUE_ENVS,          /**< Queue of environment entries */
     PSP_INFO_RDPCONNSTATUS,       /**< Info on RDP connections */
     PSP_INFO_LIST_RESPORTS,	  /**< Reserved ports for OpenMPI startup */
-    PSP_INFO_LIST_GETNODES        /**< Get assumption on GET_NODES results */
+    PSP_INFO_LIST_GETNODES,       /**< Get assumption on GET_NODES results */
+    PSP_INFO_LIST_RESNODES,       /**< Get a reservation's node-list */
 } PSP_Info_t;
 
 /** Messages concerning spawning of tasks. */
@@ -684,6 +685,45 @@ int PSP_tryGetMsgBuf(DDBufferMsg_t *msg, size_t *used, const char *funcName,
  */
 int PSP_putTypedMsgBuf(DDTypedBufferMsg_t *msg, const char *funcName,
 		       const char *dataName, const void *data, size_t size);
+
+/**
+ * @brief Get data from message buffer
+ *
+ * Fetch data from the payload-buffer @ref buf of the message @a msg
+ * of type @ref DDTypedBufferMsg_t. An amount of data is given by @a size
+ * will be stored to @a data. The data is fetched with an offset given
+ * by @a used . At the same time @a used is updated to point right
+ * after the fetched data. Thus, subsequent calls will fetch
+ * successive data from the payload buffer.
+ *
+ * Upon success, i.e. if the data is available in the message
+ * (i.e. its @ref len is large enough) and @a data is different from
+ * NULL, 1 is returned. Otherwise, an error-message is put out and 0
+ * is returned. In the latter case @a used is not updated.
+ *
+ * @a funcName and @a dataName are used in order the create the
+ * error-message. It shall describe the calling function and the type
+ * of content to be fetched from @a msg's buffer.
+ *
+ * @param msg Message to fetch data from
+ *
+ * @param used Counter used to track the data offset
+ *
+ * @param funcName Name of the calling function
+ *
+ * @param dataName Description of @a data to be fetched from to @a
+ * msg.
+ *
+ * @param data Pointer to the data to get from the message @a msg.
+ *
+ * @param size Amount of data to be fetched from the message @a msg.
+ *
+ * @return Upon success, 1 is returned. Or 0 if an error
+ * occurred. This is mainly due to insufficient data available in @a msg.
+ */
+int PSP_getTypedMsgBuf(DDTypedBufferMsg_t *msg, size_t *used,
+		       const char *funcName, const char *dataName,
+		       void *data, size_t size);
 
 #ifdef __cplusplus
 }/* extern "C" */
