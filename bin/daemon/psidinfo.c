@@ -777,6 +777,42 @@ static void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 	    }
 	    break;
 	}
+	case PSP_INFO_LIST_RESNODES:
+	{
+	    PStask_ID_t target = PSC_getPID(inmsg->header.dest) ?
+		inmsg->header.dest : inmsg->header.sender;
+	    PStask_t *task = PStasklist_find(&managedTasks, target);
+
+	    if (!task) {
+		PSID_log(-1, "%s: task %s not found\n",
+			 funcStr, PSC_printTID(target));
+		msg.type = PSP_INFO_LIST_END;
+		break;
+	    }
+
+	    if (task->ptid) {
+		PSID_log(PSID_LOG_INFO, "%s: forward to root process %s\n",
+			 funcStr, PSC_printTID(task->ptid));
+		msg.header.type = inmsg->header.type;
+		msg.header.sender = inmsg->header.sender;
+		msg.header.dest = task->ptid;
+		memcpy(msg.buf, inmsg->buf, inmsg->header.len
+		       - sizeof(inmsg->header) - sizeof(inmsg->type));
+		msg.header.len = inmsg->header.len;
+		msg_INFOREQUEST(&msg);
+		return;
+	    } else {
+		PSrsrvtn_ID_t resID;
+		size_t used = 0;
+
+		PSP_getTypedMsgBuf(inmsg, &used, __func__, "resID", &resID,
+				   sizeof(resID));
+
+		PSIDpart_sendResNodes(resID, task, &msg);
+		msg.type = PSP_INFO_LIST_END;
+	    }
+	    break;
+	}
 	case PSP_INFO_CMDLINE:
 	{
 	    PStask_t *task = PStasklist_find(&managedTasks, inmsg->header.dest);
