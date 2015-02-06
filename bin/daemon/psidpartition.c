@@ -37,52 +37,54 @@ static char vcid[] __attribute__((used)) =
 
 #include "psidpartition.h"
 
-/** The list of pending request. Only on master nodes. */
+/** The list of pending partition request. Only on master nodes. */
 static LIST_HEAD(pendReq);
 
-/** The list of running request. Only on master nodes. */
+/** The list of running partition request. Only on master nodes. */
 static LIST_HEAD(runReq);
 
-/** The list of suspended request. Only on master nodes. */
+/** The list of suspended partition request. Only on master nodes. */
 static LIST_HEAD(suspReq);
 
 /**
- * @brief Enqueue request.
+ * @brief Enqueue partition.
  *
- * Enqueue the request @a req to the queue @a queue. The request might
- * be found within this queue via @ref findRequest() and should be
- * removed from it using the @ref dequeueRequest() function.
+ * Enqueue the partition @a part to the queue @a queue. The partition
+ * might be incomplete while appendig and can be found within this
+ * queue later on via @ref findPart(). It shall be removed from it
+ * using the @ref deqPart() function.
  *
- * @param queue The queue the request should be appended to.
+ * @param queue The queue the partition shall be appended to.
  *
- * @param req The request to be appended to the queue.
+ * @param req The partition to be appended to the queue.
  *
  * @return No return value.
  *
- * @see findRequest(), dequeueRequest()
+ * @see findPart(), deqPart()
  */
-static void enqueueRequest(list_t *queue, PSpart_request_t *req)
+static void enqPart(list_t *queue, PSpart_request_t *part)
 {
     PSID_log(PSID_LOG_PART, "%s(%p, %s)\n", __func__, queue,
-	     PSC_printTID(req->tid));
+	     PSC_printTID(part->tid));
 
-    list_add_tail(&req->next, queue);
+    list_add_tail(&part->next, queue);
 }
 
 /**
- * @brief Find a request.
+ * @brief Find partition.
  *
- * Find the request send by the task with taskID @a tid from within
+ * Find the partition associated to the task with taskID @a tid within
  * the queue @a queue.
  *
- * @param queue The queue the request should be searched in.
+ * @param queue The queue the partition is searched in.
  *
- * @param tid The taskID of the task which sent to request to search.
+ * @param tid The taskID of the task assiciated to the partition to
+ * search.
  *
- * @return On success, i.e. if a corresponding request was found, a
- * pointer to this request is returned. Or NULL in case of an error.
+ * @return On success, i.e. if a corresponding partition was found, a
+ * pointer to it is returned. Or NULL in case of an error.
  */
-static PSpart_request_t *findRequest(list_t *queue, PStask_ID_t tid)
+static PSpart_request_t *findPart(list_t *queue, PStask_ID_t tid)
 {
     list_t *r;
 
@@ -98,43 +100,44 @@ static PSpart_request_t *findRequest(list_t *queue, PStask_ID_t tid)
 }
 
 /**
- * @brief Dequeue request.
+ * @brief Dequeue partition.
  *
- * Remove the request @a req from the queue @a queue. The request
- * has to be created using @ref PSpart_newReq() and added to the list of
- * requests via @ref enqueueRequest().
+ * Remove the partition @a part from the queue @a queue. The partition
+ * has to be created using @ref PSpart_newReq() and added to the list
+ * of requests via @ref enqPart().
  *
- * @param queue The queue the request shall be removed from.
+ * @param queue The queue the partition shall be removed from.
  *
- * @param req The request to be removed from the queue.
+ * @param part The partition to be removed from the queue.
  *
- * @return If the request was found within the queue and could be
- * removed, it will be returned. Otherwise NULL will be returned.
+ * @return If the partition was found within the queue and could be
+ * removed, a pointer to it will be returned. Otherwise NULL will be
+ * returned.
  *
- * @see newRequest() enqueueRequest()
+ * @see PSpart_newReq() enqPart()
  */
-static PSpart_request_t *dequeueRequest(list_t *queue, PSpart_request_t *req)
+static PSpart_request_t *deqPart(list_t *queue, PSpart_request_t *part)
 {
     PSpart_request_t *r;
 
-    PSID_log(PSID_LOG_PART, "%s(%p, %s)\n", __func__, queue,
-	     PSC_printTID(req->tid));
-
-    if (!req) {
+    if (!part) {
 	PSID_log(-1, "%s: no request given\n", __func__);
 	return NULL;
     }
 
-    r = findRequest(queue, req->tid);
+    PSID_log(PSID_LOG_PART, "%s(%p, %s)\n", __func__, queue,
+	     PSC_printTID(part->tid));
+
+    r = findPart(queue, part->tid);
 
     if (!r) {
 	PSID_log(PSID_LOG_PART, "%s: no request for %s found\n", __func__,
-		 PSC_printTID(req->tid));
+		 PSC_printTID(part->tid));
 	return NULL;
     }
-    if (r != req) {
+    if (r != part) {
 	PSID_log(PSID_LOG_PART, "%s: found duplicate of %s\n", __func__,
-		 PSC_printTID(req->tid));
+		 PSC_printTID(part->tid));
 	return NULL;
     }
 
@@ -146,14 +149,14 @@ static PSpart_request_t *dequeueRequest(list_t *queue, PSpart_request_t *req)
 /**
  * @brief Clear queue.
  *
- * Remove all requests from the queue @a queue and delete the dequeued
- * requests.
+ * Remove all partitions from the queue @a queue and delete the
+ * dequeued partitions.
  *
  * @param queue The queue to clean up.
  *
  * @return No return value.
  */
-static void clearQueue(list_t *queue)
+static void clrPartQueue(list_t *queue)
 {
     list_t *r, *tmp;
 
@@ -252,9 +255,9 @@ void initPartHandler(void)
 void exitPartHandler(void)
 {
     /* @todo Maybe we have to act asynchronously here, too */
-    clearQueue(&pendReq);
-    clearQueue(&runReq);
-    clearQueue(&suspReq);
+    clrPartQueue(&pendReq);
+    clrPartQueue(&runReq);
+    clrPartQueue(&suspReq);
     if (nodeStat) free(nodeStat);
     nodeStat = NULL;
     if (tmpStat) free(tmpStat);
@@ -387,7 +390,7 @@ static void jobFinished(PSpart_request_t *req)
 
     if (!req->freed) unregisterReq(req);
 
-    if (!dequeueRequest(&runReq, req) && !dequeueRequest(&suspReq, req)) {
+    if (!deqPart(&runReq, req) && !deqPart(&suspReq, req)) {
 	PSID_log(-1, "%s: Unable to dequeue request %s\n",
 		 __func__, PSC_printTID(req->tid));
     }
@@ -402,7 +405,7 @@ static void jobSuspended(PSpart_request_t *req)
 
     PSID_log(PSID_LOG_PART, "%s(%s)\n", __func__, PSC_printTID(req->tid));
 
-    if (!dequeueRequest(&runReq, req)) {
+    if (!deqPart(&runReq, req)) {
 	PSID_log(-1, "%s: Unable to dequeue request %s\n",
 		 __func__, PSC_printTID(req->tid));
     }
@@ -410,7 +413,7 @@ static void jobSuspended(PSpart_request_t *req)
 	unregisterReq(req);
 	req->freed = 1;
     }
-    enqueueRequest(&suspReq, req);
+    enqPart(&suspReq, req);
 
     return;
 }
@@ -421,7 +424,7 @@ static void jobResumed(PSpart_request_t *req)
 
     PSID_log(PSID_LOG_PART, "%s(%s)\n", __func__, PSC_printTID(req->tid));
 
-    if (!dequeueRequest(&suspReq, req)) {
+    if (!deqPart(&suspReq, req)) {
 	PSID_log(-1, "%s: Unable to dequeue request %s\n",
 		 __func__, PSC_printTID(req->tid));
     }
@@ -429,7 +432,7 @@ static void jobResumed(PSpart_request_t *req)
 	registerReq(req);
 	req->freed = 0;
     }
-    enqueueRequest(&runReq, req);
+    enqPart(&runReq, req);
 
     return;
 }
@@ -496,7 +499,7 @@ static void cleanupReqQueues(void)
 	PSpart_request_t *req = list_entry(r, PSpart_request_t, next);
 
 	if (req->deleted) {
-	    if (!dequeueRequest(&pendReq, req)) {
+	    if (!deqPart(&pendReq, req)) {
 		PSID_log(-1, "%s: Unable to dequeue request %s\n",
 			 __func__, PSC_printTID(req->tid));
 	    }
@@ -554,7 +557,7 @@ static void drop_TASKDEAD(DDBufferMsg_t *msg)
  */
 static void msg_TASKDEAD(DDMsg_t *msg)
 {
-    PSpart_request_t *req = findRequest(&runReq, msg->sender);
+    PSpart_request_t *req = findPart(&runReq, msg->sender);
 
     if (!nodeStat) {
 	PSID_log(-1, "%s: not master\n", __func__);
@@ -565,7 +568,7 @@ static void msg_TASKDEAD(DDMsg_t *msg)
 	PSID_log(PSID_LOG_PART, "%s: request %s not runing. Suspended?\n",
 		 __func__, PSC_printTID(msg->sender));
 
-	req = findRequest(&suspReq, msg->sender);
+	req = findPart(&suspReq, msg->sender);
     }
 
     if (!req) {
@@ -616,7 +619,7 @@ int send_TASKSUSPEND(PStask_ID_t tid)
  */
 static void msg_TASKSUSPEND(DDMsg_t *msg)
 {
-    PSpart_request_t *req = findRequest(&runReq, msg->sender);
+    PSpart_request_t *req = findPart(&runReq, msg->sender);
 
     if (!nodeStat) {
 	PSID_log(-1, "%s: not master\n", __func__);
@@ -671,7 +674,7 @@ int send_TASKRESUME(PStask_ID_t tid)
  */
 static void msg_TASKRESUME(DDMsg_t *msg)
 {
-    PSpart_request_t *req = findRequest(&suspReq, msg->sender);
+    PSpart_request_t *req = findPart(&suspReq, msg->sender);
 
     if (!nodeStat) {
 	PSID_log(-1, "%s: not master\n", __func__);
@@ -719,7 +722,7 @@ int send_CANCELPART(PStask_ID_t tid)
  */
 static void msg_CANCELPART(DDBufferMsg_t *inmsg)
 {
-    PSpart_request_t *req = findRequest(&pendReq, inmsg->header.sender);
+    PSpart_request_t *req = findPart(&pendReq, inmsg->header.sender);
 
     if (!nodeStat) {
 	PSID_log(-1, "%s: not master\n", __func__);
@@ -732,7 +735,7 @@ static void msg_CANCELPART(DDBufferMsg_t *inmsg)
 	return;
     }
 
-    if (!dequeueRequest(&pendReq, req)) {
+    if (!deqPart(&pendReq, req)) {
 	PSID_log(-1, "%s: Unable to dequeue request %s\n",
 		 __func__, PSC_printTID(req->tid));
     }
@@ -2194,7 +2197,7 @@ static int getPartition(PSpart_request_t *request)
 	PSIDhook_call(PSIDHOOK_MASTER_GETPART, request);
     }
 
-    if (!dequeueRequest(&pendReq, request)) {
+    if (!deqPart(&pendReq, request)) {
 	PSID_log(-1, "%s: Unable to dequeue request %s\n",
 		 __func__, PSC_printTID(request->tid));
 	errno = EBUSY;
@@ -2206,7 +2209,7 @@ static int getPartition(PSpart_request_t *request)
 	request->nodes = NULL;
     }
 
-    enqueueRequest(&runReq, request);
+    enqPart(&runReq, request);
     registerReq(request);
     ret = sendPartition(request);
 
@@ -2248,7 +2251,7 @@ static void handlePartRequests(void)
 	if ((req->numGot == req->num) && !getPartition(req)) {
 	    DDTypedMsg_t msg;
 	    if ((req->options & PART_OPT_WAIT) && (errno != ENOSPC)) break;
-	    if (!dequeueRequest(&pendReq, req)) {
+	    if (!deqPart(&pendReq, req)) {
 		PSID_log(-1, "%s: Unable to dequeue request %s\n",
 			 __func__, PSC_printTID(req->tid));
 		errno = EBUSY;
@@ -2490,7 +2493,7 @@ static void msg_GETPART(DDBufferMsg_t *inmsg)
 	}
     }
     req->numGot = 0;
-    enqueueRequest(&pendReq, req);
+    enqPart(&pendReq, req);
 
     if (!req->num) {
 	PSID_log(PSID_LOG_PART, "%s: build from default set\n", __func__);
@@ -2500,7 +2503,7 @@ static void msg_GETPART(DDBufferMsg_t *inmsg)
     }
     return;
  error:
-    dequeueRequest(&pendReq, req);
+    deqPart(&pendReq, req);
     PSpart_delReq(req);
     {
 	DDTypedMsg_t msg = (DDTypedMsg_t) {
@@ -2659,7 +2662,7 @@ static void msg_CREATEPARTNL(DDBufferMsg_t *inmsg)
  */
 static void msg_GETPARTNL(DDBufferMsg_t *inmsg)
 {
-    PSpart_request_t *req = findRequest(&pendReq, inmsg->header.sender);
+    PSpart_request_t *req = findPart(&pendReq, inmsg->header.sender);
 
     if (!knowMaster() || PSC_getMyID() != getMasterID()) return;
 
@@ -2678,7 +2681,7 @@ static void msg_GETPARTNL(DDBufferMsg_t *inmsg)
 	if ((req->options & PART_OPT_WAIT) || pendingTaskReq) {
 	    doHandle = 1;
 	} else if (!getPartition(req)) {
-	    dequeueRequest(&pendReq, req);
+	    deqPart(&pendReq, req);
 	    PSpart_delReq(req);
 	    goto error;
 	}
@@ -3020,8 +3023,8 @@ static void msg_PROVIDETASKRP(DDBufferMsg_t *inmsg)
 
     /* Handle running and suspended request only. Pending requests will get a
      * new reservation in @ref getPartition(). */
-    if (!(req = findRequest(&runReq, inmsg->header.sender))) {
-	req = findRequest(&suspReq, inmsg->header.sender);
+    if (!(req = findPart(&runReq, inmsg->header.sender))) {
+	req = findPart(&suspReq, inmsg->header.sender);
     }
 
     if (!req) {
@@ -3197,7 +3200,7 @@ int PSIDpart_getNodes(uint32_t np, uint32_t hwType, PSpart_option_t option,
 	myUse[t] = thread[t].timesUsed;
 	if (hwType && !(PSIDnodes_getHWStatus(node) & hwType)) continue;
 	if (t && thread[t-1].node == node) {
-	    nodeTPP ++;
+	    nodeTPP++;
 	} else {
 	    if (nodeTPP > maxTPP) maxTPP = nodeTPP;
 	    nodeTPP = 1;
@@ -4113,7 +4116,7 @@ static void msg_PROVIDETASK(DDBufferMsg_t *inmsg)
 	return;
     }
     req->sizeGot = 0;
-    enqueueRequest(&pendReq, req);
+    enqPart(&pendReq, req);
 }
 
 /**
@@ -4132,7 +4135,7 @@ static void msg_PROVIDETASK(DDBufferMsg_t *inmsg)
  */
 static void msg_PROVIDETASKSL(DDBufferMsg_t *inmsg)
 {
-    PSpart_request_t *req = findRequest(&pendReq, inmsg->header.sender);
+    PSpart_request_t *req = findPart(&pendReq, inmsg->header.sender);
 
     if (!knowMaster() || PSC_getMyID() != getMasterID()) return;
 
@@ -4145,7 +4148,7 @@ static void msg_PROVIDETASKSL(DDBufferMsg_t *inmsg)
     appendToSlotlist(inmsg, req);
 
     if (req->sizeGot == req->size) {
-	if (!dequeueRequest(&pendReq, req)) {
+	if (!deqPart(&pendReq, req)) {
 	    PSID_log(-1, "%s: Unable to dequeue request %s\n",
 		     __func__, PSC_printTID(req->tid));
 	    PSpart_delReq(req);
@@ -4157,10 +4160,10 @@ static void msg_PROVIDETASKSL(DDBufferMsg_t *inmsg)
 	    } else {
 		registerReq(req);
 	    }
-	    enqueueRequest(&suspReq, req);
+	    enqPart(&suspReq, req);
 	} else {
 	    registerReq(req);
-	    enqueueRequest(&runReq, req);
+	    enqPart(&runReq, req);
 	}
     }
 }
