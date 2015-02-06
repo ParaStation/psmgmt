@@ -143,8 +143,8 @@ int usize = 0;
 mode_t u_mask;
 char *wdir = NULL;
 char *gwdir = NULL;
-char *nodelist = NULL;
-char *hostlist = NULL;
+char *nodelistStr = NULL;
+char *hostlistStr = NULL;
 char *hostfile = NULL;
 char *envlist = NULL;
 char *nodetype = NULL;
@@ -365,13 +365,13 @@ static void getFirstNodeID(PSnodes_ID_t *nodeID)
     envnodes = getenv(ENV_NODE_NODES);
     envhosts = getenv(ENV_NODE_HOSTS);
 
-    if (envnodes) nodelist = envnodes;
-    if (envhosts) hostlist = envhosts;
+    if (envnodes) nodelistStr = envnodes;
+    if (envhosts) hostlistStr = envhosts;
 
-    if (hostlist) {
-	parse = strdup(hostlist);
+    if (hostlistStr) {
+	parse = strdup(hostlistStr);
     } else {
-	parse = strdup(nodelist);
+	parse = strdup(nodelistStr);
     }
 
     if (!parse) {
@@ -384,7 +384,7 @@ static void getFirstNodeID(PSnodes_ID_t *nodeID)
 	return;
     }
 
-    if (hostlist) {
+    if (hostlistStr) {
 	getNodeIDbyHost(nodeparse, nodeID);
     } else {
 	node = strtol(nodeparse, &end, 10);
@@ -1793,7 +1793,8 @@ static void setupPSIDEnv(int verbose)
 	free(val);
     }
 
-    msg = PSE_checkNodeEnv(nodelist, hostlist, hostfile, NULL, "--", verbose);
+    msg = PSE_checkNodeEnv(nodelistStr, hostlistStr, hostfile, NULL, "--",
+			   verbose);
     if (msg) errExit(msg);
 
     msg = PSE_checkSortEnv(sort, "--", verbose);
@@ -2042,29 +2043,29 @@ static void setupAdminEnv(void)
 	parse = strdup(envadminhosts);
 	hostfile = NULL;
 	envhostsfile = NULL;
-	hostlist = strdup(envadminhosts);
+	hostlistStr = strdup(envadminhosts);
 	unsetenv("PSI_ADMIN_HOSTS");
     }
 
     if (PSE_getRank() == -1) {
 	if (envhostsfile) {
 	    parseHostfile(envhostsfile, hosts, sizeof(hosts));
-	    hostlist = hosts;
+	    hostlistStr = hosts;
 	    unsetPSIEnv(ENV_NODE_HOSTFILE);
 	    unsetenv(ENV_NODE_HOSTFILE);
 	    setPSIEnv("PSI_ADMIN_HOSTS", hosts, 1);
 	} else if (hostfile) {
 	    parseHostfile(hostfile, hosts, sizeof(hosts));
-	    hostlist = hosts;
+	    hostlistStr = hosts;
 	    hostfile = NULL;
 	    setPSIEnv("PSI_ADMIN_HOSTS", hosts, 1);
 	}
     }
 
-    if (!parse && hostlist) {
-	parse = strdup(hostlist);
-    } else if (!parse && nodelist) {
-	parse = strdup(nodelist);
+    if (!parse && hostlistStr) {
+	parse = strdup(hostlistStr);
+    } else if (!parse && nodelistStr) {
+	parse = strdup(nodelistStr);
     }
 
     if (!parse) {
@@ -2190,13 +2191,13 @@ static void createAdminTasks(char *login, int verbose, int show)
     envnodes = getenv(ENV_NODE_NODES);
     envhosts = getenv(ENV_NODE_HOSTS);
 
-    if (envnodes) nodelist = envnodes;
-    if (envhosts) hostlist = envhosts;
+    if (envnodes) nodelistStr = envnodes;
+    if (envhosts) hostlistStr = envhosts;
 
-    if (hostlist) {
-	parse = hostlist;
+    if (hostlistStr) {
+	parse = hostlistStr;
     } else {
-	parse = nodelist;
+	parse = nodelistStr;
     }
 
     if (!parse) {
@@ -2207,7 +2208,7 @@ static void createAdminTasks(char *login, int verbose, int show)
     nodeparse = strtok_r(parse, delimiters, &toksave);
 
     while (nodeparse != NULL) {
-	if (hostlist) {
+	if (hostlistStr) {
 	    getNodeIDbyHost(nodeparse, &nodeID);
 	} else {
 	    int node = 0, first, last, i;
@@ -2453,7 +2454,7 @@ struct poptOption poptMpiexecComp[] = {
       &path, 0, "place to look for executables", "<directory>"},
     { "host", '\0',
       POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
-      &hostlist, 0, "host to start on", NULL},
+      &hostlistStr, 0, "host to start on", NULL},
     { "soft", '\0',
       POPT_ARG_INT | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
       &none, 0, "giving hints instead of a precise number for the number"
@@ -2529,7 +2530,7 @@ struct poptOption poptMpiexecCompGlobal[] = {
       &path, 0, "place to look for executables", "<directory>"},
     { "ghost", '\0',
       POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
-      &hostlist, 0, "host to start on", NULL},
+      &hostlistStr, 0, "host to start on", NULL},
     { "gsoft", '\0',
       POPT_ARG_INT | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
       &none, 0, "giving hints instead of a precise number for the number"
@@ -2663,9 +2664,10 @@ struct poptOption poptAdvancedOptions[] = {
 
 struct poptOption poptExecutionOptions[] = {
     { "nodes", 'N', POPT_ARG_STRING,
-      &nodelist, 0, "list of nodes to use: nodelist <3-5,7,11-17>", NULL},
+      &nodelistStr, 0, "list of nodes to use: nodelist <3-5,7,11-17>", NULL},
     { "hosts", 'H', POPT_ARG_STRING,
-      &hostlist, 0, "list of hosts to use: hostlist <node-01 node-04>", NULL},
+      &hostlistStr, 0, "list of hosts to use: hostlist <node-01 node-04>",
+      NULL},
     { "hostfile", 'f', POPT_ARG_STRING,
       &hostfile, 0, "hostfile to use", "<file>"},
     { "machinefile", 'f', POPT_ARG_STRING,
