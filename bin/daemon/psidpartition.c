@@ -3913,25 +3913,510 @@ static PSrsrvtn_t *deqRes(list_t *queue, PSrsrvtn_t *res)
 }
 /* ---------------------------------------------------------------------- */
 
-static void msg_GETRESERVATION(DDBufferMsg_t *inmsg)
+static int PSIDpart_getReservation(PSrsrvtn_t *res)
 {
+    unsigned int got;
+    PSpart_slot_t *s;
+    PStask_t * task;
+
+    if (!res) return -1;
+    task = PStasklist_find(&managedTasks, res->task);
+    if (!task) {
+	PSID_log(-1, "%s: No task associated to %#x\n", __func__, res->rid);
+	return -1;
+    }
+
+    if (!res->slots) res->slots = malloc(res->nMax * sizeof(*res->slots));
+
+    if (!res->slots) {
+	PSID_log(-1, "%s: No memory for slots in %#x\n", __func__, res->rid);
+	return -1;
+    }
+
     /* Try dryrun to determine available slots */
-    /* slots = malloc(nMax * sizeof(slots)); */
-    /* unsigned int got = PSIDpart_getNodes(num, hwType, option, tpp, task, */
-    /* 					 slots, 1); */
-    /* if (got >= nMin) { */
-    /* 	slots = realloc(got * sizeof(slots)); */
-    /* 	PSIDpart_getNodes(got, hwType, option, tpp, task, slots, 0); */
-    /* } else { */
-    /* 	error; */
-    /* } */
+    got = PSIDpart_getNodes(res->nMax, res->hwType, res->options, res->tpp,
+			    task, res->slots, 1);
+
+    if (got < res->nMin) {
+	PSID_log(  (res->options & PART_OPT_WAIT) ?
+		   PSID_LOG_PART : -1,
+		 "%s: Only %d HW-threads for %d processes found"
+		 " even though %d free expected\n", __func__, got*res->tpp,
+		 got, task->totalThreads - task->usedThreads);
+
+	if (!res->checked) {
+	    PSpart_HWThread_t *thread;
+	    unsigned int got = 0, thrdsGot = 0, t;
+
+	    thread = task->partThrds;
+
+	    for (t = 0; t < task->totalThreads; t++) {
+		PSnodes_ID_t node = thread[t].node;
+		uint32_t hwType = res->hwType;
+		if (hwType
+		    && (PSIDnodes_getHWStatus(node)&hwType) != hwType) continue;
+		if (t && thread[t-1].node == node) {
+		    thrdsGot++;
+		} else {
+		    thrdsGot = 1;
+		}
+		if (thrdsGot == res->tpp) {
+		    got++;
+		    thrdsGot = 0;
+		}
+	    }
+	    if (got < res->nMin) {
+		PSID_log(-1, "%s: partition not sufficient\n", __func__);
+		return -1;
+	    }
+	    res->checked = 1;
+	    return 0;
+	} else {
+	     /* checked before */
+	    return 0;
+	}
+    }
+
+    s = realloc(res->slots, got * sizeof(*res->slots));
+    if (!s) {
+	PSID_log(-1, "%s: Failed to realloc()\n", __func__);
+	free(res->slots);
+	res->slots = NULL;
+	return -1;
+    }
+
+    return PSIDpart_getNodes(got, res->hwType, res->options, res->tpp,
+			     task, res->slots, 0);
 }
 
+/**
+ * @brief Handle reservation request
+ *
+ * Handle the reservation request @a r. For this, the amount of
+ * currently available resources is investigated. If enough resources
+ * are available, they will be assigned to the reservation, the
+ * reservation is dequeued from the task's resRequests list, added to
+ * its reservation-list and a PSP_CD_RESERVATIONRES messages is sent
+ * to the reserver. Otherwise it will be investigated if the reserver
+ * is willing to wait (i.e. PART_OPT_WAIT is set
+ * within the reservations options). If this is the case,
+ * the reservation request remains in the
+ * task's resRequests list. Otherwise the request is dequeued, and a
+ * fatal PSP_CD_RESERVATIONRES is sent to the reserver.
+ *
+ * @param r The reservation request to handle.
+ *
+ * @return On success the number of assigned slots is returned. If
+ * handling was not successfull right now but the reservation is a
+ * able to wait for further resources, 0 or 1 will be returned
+ * signaling the ability to handle furster requests (1) or not (0). If
+ * the request failed finally, -1 is returned.
+ */
+static int handleResRequest(PSrsrvtn_t *r)
+{
+    DDBufferMsg_t msg = (DDBufferMsg_t) {
+	.header = (DDMsg_t) {
+	    .type = PSP_CD_RESERVATIONRES,
+	    .dest = r->requester,
+	    .sender = PSC_getMyTID(),
+	    .len = sizeof(msg.header) },
+	.buf = { 0 } };
+    int got = -1, eno = 0;
+    PStask_t *task;
+
+    if (!r) return -1;  // Omit and handle next request
+    task = PStasklist_find(&managedTasks, r->task);
+    if (!task) {
+	PSID_log(-1, "%s: No task associated to %#x\n", __func__, r->rid);
+	eno = EINVAL;
+	goto no_task_error;
+    }
+
+    got = PSIDpart_getReservation(r);
+
+    r->firstRank = task->numChild;
+    r->nSlots = got;
+    r->nextSlot = 0;
+
+    if (!got) {
+	if (r->options & PART_OPT_WAIT) {
+	    PSID_log(PSID_LOG_PART, "%s: %#x must wait", __func__, r->rid);
+	    /* Answer will be sent once reservation is established */
+	    return 0; // Do not handle next request
+	} else {
+	    PSID_log(-1, "%s: Insuffcient resources without PART_OPT_WAIT"
+		     " for %#x\n", __func__, r->rid);
+	    eno = EBUSY;
+	}
+    } else if (got < 0) {
+	PSID_log(-1, "%s: Insuffcient resources\n", __func__);
+	eno = ENOSPC;
+    }
+
+    deqRes(&task->resRequests, r);
+no_task_error:
+    if (!eno) {
+	task->numChild += got;
+
+	enqRes(&task->reservations, r);
+
+	PSP_putMsgBuf(&msg, __func__, "rid", &r->rid, sizeof(r->rid));
+	PSP_putMsgBuf(&msg, __func__, "nSlots", &r->nSlots, sizeof(r->nSlots));
+    } else {
+	uint32_t null = 0;
+	PSP_putMsgBuf(&msg, __func__, "error", &null, sizeof(null));
+	PSP_putMsgBuf(&msg, __func__, "eno", &eno, sizeof(eno));
+
+	/* Reservation no longer used */
+	if (r->slots) {
+	    free(r->slots);
+	    r->slots = NULL;
+	}
+	PSrsrvtn_put(r);
+    }
+
+    sendMsg(&msg);
+
+    return eno ? -1 : got; // Handle next request
+}
+
+/**
+ * @brief Handle a PSP_CD_GETRESERVATION/PSP_DD_GETRESERVATION message.
+ *
+ * Handle the message @a inmsg of type PSP_CD_GETRESERVATION or
+ * PSP_CD_GETRESERVATION.
+ *
+ * This kind of message is used by clients in order to atomically
+ * reserve any number of slots witin a given partition. It is answered
+ * by a PSP_CD_RESERVATIONRES message that contains providing a unique
+ * reservation ID and the number of slots actually reserved. By
+ * sending subsequent PSP_CD_GETSLOTS messages the actual slots can be
+ * retrieved from the reservation.
+ *
+ * @param inmsg Pointer to the message to handle.
+ *
+ * @return No return value.
+ */
+static void msg_GETRESERVATION(DDBufferMsg_t *inmsg)
+{
+    PStask_ID_t target = PSC_getPID(inmsg->header.dest) ?
+	inmsg->header.dest : inmsg->header.sender;
+    PStask_t *task = PStasklist_find(&managedTasks, target);
+    PSrsrvtn_t *r = PSrsrvtn_get();
+    size_t used = 0;
+    int32_t eno = 0;
+    int ret;
+
+    if (!task) {
+	PSID_log(-1, "%s: Task %s not found\n", __func__,
+		 PSC_printTID(target));
+	eno = EACCES;
+	goto error;
+    }
+
+    if (!r) {
+	PSID_log(-1, "%s: Unable to get reservation\n", __func__);
+	eno = ENOMEM;
+	goto error;
+    }
+
+    if (task->ptid) {
+	inmsg->header.type = PSP_DD_GETRESERVATION;
+	inmsg->header.dest = task->ptid;
+	if (PSIDnodes_getDmnProtoV(PSC_getID(inmsg->header.dest)) < 411) {
+	    PSID_log(-1, "%s: parent's node %d does not support reservations\n",
+		     __func__, PSC_getID(inmsg->header.dest));
+	    eno = ENOSYS;
+	    goto error;
+	}
+	PSID_log(PSID_LOG_PART, "%s: forward to parent process %s\n", __func__,
+		 PSC_printTID(task->ptid));
+	if (sendMsg(inmsg) == -1 && errno != EWOULDBLOCK) {
+	    PSID_warn(-1, errno, "%s: sendMsg()", __func__);
+	    eno = errno;
+	    goto error;
+	}
+	return;
+    }
+
+    if (!task->totalThreads || !task->partThrds) {
+	PSID_log(-1, "%s: Create partition first\n", __func__);
+	eno = EBADRQC;
+	goto error;
+    }
+
+    r->task = task->tid;
+    r->requester = inmsg->header.sender;
+    PSP_getMsgBuf(inmsg, &used, __func__, "nMin", &r->nMin,
+		  sizeof(r->nMin));
+    PSP_getMsgBuf(inmsg, &used, __func__, "nMax", &r->nMax,
+		  sizeof(r->nMax));
+    PSP_getMsgBuf(inmsg, &used, __func__, "tpp", &r->tpp, sizeof(r->tpp));
+    PSP_getMsgBuf(inmsg, &used, __func__, "hwType", &r->hwType,
+		  sizeof(r->hwType));
+    ret = PSP_getMsgBuf(inmsg, &used, __func__, "options", &r->options,
+			sizeof(r->options));
+    if (!ret) {
+	PSID_log(-1, "%s: some information is missing\n", __func__);
+	eno = EINVAL;
+	goto error;
+    }
+
+    r->rid = PStask_getNextResID(task);
+
+    if (r->options & PART_OPT_DEFAULT) {
+	r->options = task->options;
+	PSID_log(PSID_LOG_PART, "%s: Use default option\n", __func__);
+    }
+
+    PSID_log(PSID_LOG_PART,
+	     "%s(nMin %d nMax %d tpp %d hwType %#x options %#x)\n", __func__,
+	     r->nMin, r->nMax, r->tpp, r->hwType, r->options);
+
+    if (!list_empty(&task->resRequests)) {
+	if (r->options & PART_OPT_WAIT) {
+	    PSID_log(PSID_LOG_PART, "%s: %#x must wait", __func__, r->rid);
+	    enqRes(&task->resRequests, r);
+
+	    /* Answer will be sent once reservation is established */
+	    return;
+	} else {
+	    PSID_log(-1, "%s: queued reservations without PART_OPT_WAIT"
+		     " for %#x\n", __func__, r->rid);
+	    eno = EBUSY;
+	    goto error;
+	}
+    }
+
+    if (task->usedThreads + r->nMin * r->tpp <= task->totalThreads
+	|| r->options & PART_OPT_OVERBOOK || r->options & PART_OPT_WAIT) {
+
+	enqRes(&task->resRequests, r);
+	handleResRequest(r);
+
+	/* Answer is already sent if possible. Otherwise we'll wait anyhow */
+	return;
+    } else {
+	eno = ENOSPC;
+	goto error;
+    }
+
+error:
+    {
+	DDBufferMsg_t msg = (DDBufferMsg_t) {
+	    .header = (DDMsg_t) {
+		.type = PSP_CD_RESERVATIONRES,
+		.dest = inmsg->header.sender,
+		.sender = PSC_getMyTID(),
+		.len = sizeof(msg.header) },
+	    .buf = { 0 } };
+	uint32_t null = 0;
+	PSP_putMsgBuf(&msg, __func__, "error", &null, sizeof(null));
+	PSP_putMsgBuf(&msg, __func__, "eno", &eno, sizeof(eno));
+
+	if (r) {
+	    if (r->slots) {
+		free(r->slots);
+		r->slots = NULL;
+	    }
+	    PSrsrvtn_put(r);
+	}
+
+	sendMsg(&msg);
+    }
+}
+
+/**
+ * @brief Handle a PSP_CD_GETSLOTS/PSP_DD_GETSLOTS message.
+ *
+ * Handle the message @a inmsg of type PSP_CD_GETSLOTS or
+ * PSP_DD_GETSLOTS.
+ *
+ * This kind of message is used by clients in order to actually get
+ * slots from the pool of slots stored within a reservation. It is
+ * ansered by a PSP_DD_SLOTSRES message containing the slots.
+ *
+ * @param inmsg Pointer to the message to handle.
+ *
+ * @return No return value.
+ */
 static void msg_GETSLOTS(DDBufferMsg_t *inmsg)
-{}
+{
+    DDBufferMsg_t msg = (DDBufferMsg_t) {
+	.header = (DDMsg_t) {
+	    .type = PSP_DD_SLOTSRES,
+	    .dest = inmsg->header.sender,
+	    .sender = PSC_getMyTID(),
+	    .len = sizeof(msg.header) },
+	.buf = { 0 } };
+    PStask_ID_t target = PSC_getPID(inmsg->header.dest) ?
+	inmsg->header.dest : inmsg->header.sender;
+    PStask_t *task = PStasklist_find(&managedTasks, target);
+    PSrsrvtn_t *res;
+    PSrsrvtn_ID_t resID;
+    uint16_t num;
+    int32_t rank;
+    size_t used = 0;
+    int32_t eno = 0;
+    int ret;
+
+    if (!task) {
+	PSID_log(-1, "%s: Task %s not found\n", __func__,
+		 PSC_printTID(target));
+	eno = EACCES;
+	goto error;
+    }
+
+    if (task->ptid) {
+	PSID_log(PSID_LOG_PART, "%s: forward to root process %s\n",
+		 __func__, PSC_printTID(task->ptid));
+	inmsg->header.type = PSP_DD_GETSLOTS;
+	inmsg->header.dest = task->ptid;
+	if (sendMsg(inmsg) == -1 && errno != EWOULDBLOCK) {
+	    PSID_warn(-1, errno, "%s: sendMsg()", __func__);
+	    eno = errno;
+	    goto error;
+	}
+	return;
+    }
+
+    PSP_getMsgBuf(inmsg, &used, __func__, "resID", &resID, sizeof(resID));
+    ret = PSP_getMsgBuf(inmsg, &used, __func__, "num", &num, sizeof(num));
+    if (!ret) {
+	PSID_log(-1, "%s: some information is missing\n", __func__);
+	eno = EINVAL;
+	goto error;
+    }
+    PSID_log(PSID_LOG_PART, "%s(%d, %#x)\n", __func__, num, resID);
+
+    res = findRes(&task->reservations, resID);
+    if (!res || !res->slots) {
+	PSID_log(-1, "%s: %s\n", __func__, res ? "no slots" : "no reservation");
+	eno = EBADRQC;
+	goto error;
+    }
+
+    if (num > NODES_CHUNK) {
+	PSID_log(-1, "%s: too many slots requested\n", __func__);
+	eno = EINVAL;
+	goto error;
+    }
+
+    if (res->nSlots - res->nextSlot < num) {
+	PSID_log(-1, "%s: not enough slots\n", __func__);
+	eno = ENOSPC;
+	goto error;
+    }
+
+    rank = res->firstRank + res->nextSlot;
+    PSP_putMsgBuf(&msg, __func__, "rank", &rank, sizeof(rank));
+    PSP_putMsgBuf(&msg, __func__, "num", &num, sizeof(num));
+
+    sendSlotlist(res->slots, num, &msg);
+
+    task->activeChild += num;
+    res->nextSlot += num;
+
+    if (res->nextSlot == res->nSlots) {
+	PSID_log(PSID_LOG_PART, "%s: reservation %#x done\n", __func__, resID);
+	deqRes(&task->reservations, res);
+	if (res->slots) {
+	    free(res->slots);
+	    res->slots = NULL;
+	}
+	PSrsrvtn_put(res);
+    }
+
+    return;
+
+error:
+    msg.header.type = PSP_CD_SLOTSRES;
+    rank = -1;
+    PSP_putMsgBuf(&msg, __func__, "error", &rank, sizeof(rank));
+    PSP_putMsgBuf(&msg, __func__, "eno", &eno, sizeof(eno));
+
+    sendMsg(&msg);
+}
 
 static void msg_SLOTSRES(DDBufferMsg_t *inmsg)
-{}
+{
+    PStask_t *task = PStasklist_find(&managedTasks, inmsg->header.dest);
+    size_t used = 0;
+    int32_t rank;
+    int16_t requested, num;
+    int n;
+    PSpart_slot_t *slots;
+    uint16_t nBytes, myBytes = PSCPU_bytesForCPUs(PSCPU_MAX);
+
+    PSID_log(PSID_LOG_PART, "%s(%s)\n", __func__,
+	     PSC_printTID(inmsg->header.dest));
+
+    if (PSC_getID(inmsg->header.dest) != PSC_getMyID()) {
+	/* just forward the message */
+	sendMsg(inmsg);
+	return;
+    }
+
+    if (!task) {
+	PSID_log(-1, "%s: Task %s not found\n", __func__,
+		 PSC_printTID(inmsg->header.dest));
+	return;
+    }
+
+    PSP_getMsgBuf(inmsg, &used, __func__, "rank", &rank, sizeof(rank));
+    PSP_getMsgBuf(inmsg, &used, __func__, "requested", &requested,
+		  sizeof(requested));
+    PSP_getMsgBuf(inmsg, &used, __func__, "num", &num, sizeof(num));
+
+    /* Store assigned slots */
+    if (!task->spawnNodes || task->spawnNodesSize < rank + requested) {
+	task->spawnNodes = realloc(task->spawnNodes, (rank + requested)
+				   * sizeof(*task->spawnNodes));
+	task->spawnNodesSize = rank + requested;
+    }
+    if (num == requested) {
+	task->spawnNum = rank;
+    } else {
+	/* slots come in chunks */
+	if (task->spawnNum < rank)
+	    task->spawnNum = rank; /* first chunk */
+    }
+    slots = task->spawnNodes + task->spawnNum;
+
+    PSP_getMsgBuf(inmsg, &used, __func__, "nBytes", &nBytes, sizeof(nBytes));
+    if (nBytes > myBytes) {
+	PSID_log(-1, "%s(%s): too many CPUs: %d > %d\n", __func__,
+		 PSC_printTID(inmsg->header.dest), nBytes*8, myBytes*8);
+    }
+
+    for (n = 0; n < num; n++) {
+	PSCPU_set_t setBuf;
+	PSP_getMsgBuf(inmsg, &used, __func__, "node", &slots[n].node,
+		      sizeof(slots[n].node));
+
+	PSP_getMsgBuf(inmsg, &used, __func__, "CPUset", setBuf, nBytes);
+	PSCPU_clrAll(slots[n].CPUset);
+	PSCPU_inject(slots[n].CPUset, setBuf, nBytes);
+    }
+    task->spawnNum += num;
+
+    /* Morph inmsg to CD_SLOTSRES message */
+    if (task->spawnNum >= rank + requested) {
+	PSpart_slot_t *slots = task->spawnNodes + rank;
+
+	inmsg->header.type = PSP_CD_SLOTSRES;
+	/* Keep the rank */
+	inmsg->header.len = sizeof(inmsg->header) + sizeof(int32_t);
+
+	for (n = 0; n < requested; n++)
+	    PSP_putMsgBuf(inmsg, __func__, "CPUset", &slots[n].node,
+			  sizeof(slots[n].node));
+    } else {
+	return;
+    }
+
+    sendMsg(inmsg);
+}
 
 int send_GETTASKS(PSnodes_ID_t node)
 {
@@ -4563,6 +5048,13 @@ void initPartition(void)
     PSID_registerMsg(PSP_DD_TASKDEAD, (handlerFunc_t) msg_TASKDEAD);
     PSID_registerMsg(PSP_DD_TASKSUSPEND, (handlerFunc_t) msg_TASKSUSPEND);
     PSID_registerMsg(PSP_DD_TASKRESUME, (handlerFunc_t) msg_TASKRESUME);
+    PSID_registerMsg(PSP_CD_GETRESERVATION, msg_GETRESERVATION);
+    PSID_registerMsg(PSP_DD_GETRESERVATION, msg_GETRESERVATION);
+    PSID_registerMsg(PSP_CD_RESERVATIONRES, (handlerFunc_t) sendMsg);
+    PSID_registerMsg(PSP_CD_GETSLOTS, msg_GETSLOTS);
+    PSID_registerMsg(PSP_DD_GETSLOTS, msg_GETSLOTS);
+    PSID_registerMsg(PSP_DD_SLOTSRES, msg_SLOTSRES);
+    PSID_registerMsg(PSP_CD_SLOTSRES, (handlerFunc_t) sendMsg);
 
     PSID_registerDropper(PSP_DD_TASKDEAD, drop_TASKDEAD);
 
