@@ -21,6 +21,9 @@
 #ifndef __PSIDPARTITION_H
 #define __PSIDPARTITION_H
 
+#include "psnodes.h"
+#include "pstask.h"
+
 #ifdef __cplusplus
 extern "C" {
 #if 0
@@ -255,7 +258,9 @@ void sendRequestLists(PStask_ID_t requester, PSpart_list_t opt);
  *
  * @return The number of slots possible to select. If this is less
  * than @a np, no resources are actually allocated and the content of
- * @a slots is undefined.
+ * @a slots is undefined. Nevertheless, calling again with the same
+ * set of parameters and np replaced by the return value will be
+ * successful.
  */
 int PSIDpart_getNodes(uint32_t np, uint32_t hwType, PSpart_option_t option,
 		      uint16_t tpp, PStask_t *task, PSpart_slot_t *slots,
