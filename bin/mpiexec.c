@@ -1344,6 +1344,34 @@ static int spawnSingleExecutable(int np, int argc, char **argv, char *wd,
     return ret;
 }
 
+static void sendPMIFail(void)
+{
+    PSLog_Msg_t lmsg;
+    char *env, *lptr;
+    size_t len = 0;
+    int32_t res = 0;
+
+    /* tell parent the spawn has failed */
+    if (!(env = getenv("__PMI_SPAWN_PARENT"))) {
+	fprintf(stderr, "%s: don't know the spawn parent!\n", __func__);
+	exit(1);
+    }
+
+    lmsg.header.type = PSP_CC_MSG;
+    lmsg.header.sender = PSC_getMyTID();
+    lmsg.header.dest = atoi(env);
+    lmsg.version = 2;
+    lmsg.type = KVS;
+    lmsg.sender = -1;
+
+    lptr = lmsg.buf;
+    setKVSCmd(&lptr, &len, CHILD_SPAWN_RES);
+    addKVSInt32(&lptr, &len, &res);
+    lmsg.header.len = (sizeof(lmsg) - sizeof(lmsg.buf)) + len;
+
+    PSI_sendMsg((DDMsg_t *)&lmsg);
+}
+
 /**
  * @brief Spawn compute processes.
  *
@@ -1414,33 +1442,8 @@ static int startProcs(int np, char *wd, int verbose)
 				    exec[i]->wdir, exec[i]->hwType,
 				    exec[i]->tpp, verbose);
 	if (ret < 0) {
-	    if ((getenv("PMI_SPAWNED"))) {
-		PSLog_Msg_t lmsg;
-		char *env, *lptr;
-		size_t len = 0;
-		int32_t res = 0;
+	    if ((getenv("PMI_SPAWNED"))) sendPMIFail();
 
-		/* tell parent the spawn has failed */
-		if (!(env = getenv("__PMI_SPAWN_PARENT"))) {
-		    fprintf(stderr, "%s: don't know the spawn parent!\n",
-			    __func__);
-		    exit(1);
-		}
-
-		lmsg.header.type = PSP_CC_MSG;
-		lmsg.header.sender = PSC_getMyTID();
-		lmsg.header.dest = atoi(env);
-		lmsg.version = 2;
-		lmsg.type = KVS;
-		lmsg.sender = -1;
-
-		lptr = lmsg.buf;
-		setKVSCmd(&lptr, &len, CHILD_SPAWN_RES);
-		addKVSInt32(&lptr, &len, &res);
-		lmsg.header.len = (sizeof(lmsg) - sizeof(lmsg.buf)) + len;
-
-		PSI_sendMsg((DDMsg_t *)&lmsg);
-	    }
 	    break;
 	}
     }
