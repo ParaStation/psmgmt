@@ -89,7 +89,7 @@ void PStask_printStat(void);
 
 /** Task structure */
 /* Members marked with C are (un)packed by PStask_encode()/PStask_decode() */
-typedef struct {
+typedef struct __task__ {
     list_t next;                   /**< used to put into managedTasks, etc. */
     /*C*/ PStask_ID_t tid;         /**< unique task identifier */
     /*C*/ PStask_ID_t ptid;        /**< unique identifier of parent task */
@@ -155,6 +155,7 @@ typedef struct {
     PSpart_slot_t *spawnNodes;     /**< Nodes the task can spawn to */
     int32_t spawnNodesSize;        /**< Current size of @ref spawnNodes */
     int32_t spawnNum;              /**< Amount of content of @ref spawnNodes */
+    struct __task__ *delegate;     /**< Delegate holding resources */
     int injectedEnv;               /**< Flag an injected environment into the
 				      current spawn. Used by psmom, etc. */
 
@@ -562,6 +563,17 @@ int PStask_decodeEnv(char *buffer, PStask_t *task);
  * decode the key-value pair.
  */
 int PStask_decodeEnvAppend(char *buffer, PStask_t *task);
+
+/**
+ * @brief Get reservation ID
+ *
+ * Get an unused reservation ID for task @a task.
+ *
+ * @param task The task providing the unique sequence
+ *
+ * @return The new reservation ID
+ */
+PSrsrvtn_ID_t PStask_getNextResID(PStask_t *task);
 
 #ifdef __cplusplus
 }/* extern "C" */

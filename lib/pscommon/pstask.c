@@ -123,6 +123,7 @@ int PStask_init(PStask_t* task)
     task->spawnNodes = NULL;
     task->spawnNodesSize = 0;
     task->spawnNum = 0;
+    task->delegate = NULL;
     task->injectedEnv = 0;
     task->resPorts = NULL;
 
@@ -402,6 +403,7 @@ PStask_t* PStask_clone(PStask_t* task)
     memcpy(clone->spawnNodes, task->spawnNodes,
 	   clone->spawnNodesSize * sizeof(*task->spawnNodes));
     clone->spawnNum = task->spawnNum;
+    clone->delegate = task->delegate;
     clone->injectedEnv = task->injectedEnv;
 
     cloneSigList(&clone->signalSender, &task->signalSender);
@@ -1026,4 +1028,13 @@ int PStask_decodeEnvAppend(char *buffer, PStask_t *task)
     }
 
     return ret;
+}
+
+PSrsrvtn_ID_t PStask_getNextResID(PStask_t *task)
+{
+    task->nextResID++;
+
+    if (!task->nextResID) task->nextResID++; // prevent resID == 0
+
+    return task->nextResID;
 }
