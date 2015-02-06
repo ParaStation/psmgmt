@@ -3494,6 +3494,8 @@ static void msg_GETNODES(DDBufferMsg_t *inmsg)
     }
 }
 
+static int handleResRequest(PSrsrvtn_t *r);
+
 /**
  * @brief Handle a PSP_DD_CHILDRESREL message.
  *
@@ -3516,6 +3518,7 @@ static void msg_CHILDRESREL(DDBufferMsg_t *msg)
     size_t nBytes, myBytes = PSCPU_bytesForCPUs(PSCPU_MAX);
     PSpart_slot_t slot;
     unsigned int numToRelease, released;
+    list_t *r, *tmp;
 
     if (!task) {
 	PSID_log(-1, "%s: Task %s not found\n", __func__, PSC_printTID(target));
@@ -3559,6 +3562,12 @@ static void msg_CHILDRESREL(DDBufferMsg_t *msg)
     }
 
     task->activeChild--;
+
+    list_for_each_safe(r, tmp, &task->resRequests) {
+	PSrsrvtn_t *res = list_entry(r, PSrsrvtn_t, next);
+
+	if (!handleResRequest(res)) break;
+    }
 
     return;
 }
