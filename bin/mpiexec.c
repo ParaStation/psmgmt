@@ -1307,7 +1307,7 @@ static void extractNodeInformation(PSnodes_ID_t *nodeList, int np)
 }
 
 static int spawnSingleExecutable(int np, int argc, char **argv, char *wd,
-				 uint32_t hwType, int verbose)
+				 uint32_t hwType, int tpp, int verbose)
 {
     int i, ret, *errors = NULL;
     PStask_ID_t *tids;
@@ -1373,7 +1373,7 @@ static int startProcs(int np, char *wd, int verbose)
     PSI_infoListGetNodes_t param;
 
     param.np = np;
-    param.hwType = (exec[0]->nodetype) ? getNodeType(exec[0]->nodetype) : 0;
+    param.hwType = exec[0]->hwType;
     param.option = (overbook ? PART_OPT_OVERBOOK : 0)
 	| (loopnodesfirst ? PART_OPT_NODEFIRST : 0);
     param.tpp = exec[0]->tpp;
