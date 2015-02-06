@@ -62,10 +62,10 @@ static char vcid[] __attribute__((used)) =
 
 typedef struct {
     int np;
-    int argc;
+    uint32_t hwType;
     int tpp;
+    int argc;
     char **argv;
-    char *nodetype;
     char *wdir;
 } Executable_t;
 
@@ -1307,19 +1307,17 @@ static void extractNodeInformation(PSnodes_ID_t *nodeList, int np)
 }
 
 static int spawnSingleExecutable(int np, int argc, char **argv, char *wd,
-				 char *cNodeType, int tpp, int verbose)
+				 uint32_t hwType, int verbose)
 {
     int i, ret, *errors = NULL;
     PStask_ID_t *tids;
-    uint32_t nodeType = 0;
 
     errors = umalloc(sizeof(int) * np, __func__);
     for (i=0; i<np; i++) errors[i] = 0;
     tids = umalloc(sizeof(PStask_ID_t) * np, __func__);
 
     /* spawn client processes */
-    if (cNodeType) nodeType = getNodeType(cNodeType);
-    ret = PSI_spawnStrictHW(np, nodeType, tpp,
+    ret = PSI_spawnStrictHW(np, hwType, tpp,
 			    (overbook ? PART_OPT_OVERBOOK : 0)
 			    | (loopnodesfirst ? PART_OPT_NODEFIRST : 0),
 			    wd, argc, argv, 1, errors, tids);
@@ -1413,7 +1411,7 @@ static int startProcs(int np, char *wd, int verbose)
 	setupExecEnv(i);
 
 	ret = spawnSingleExecutable(exec[i]->np, exec[i]->argc, exec[i]->argv,
-				    exec[i]->wdir, exec[i]->nodetype,
+				    exec[i]->wdir, exec[i]->hwType,
 				    exec[i]->tpp, verbose);
 	if (ret < 0) {
 	    if ((getenv("PMI_SPAWNED"))) {
@@ -2798,6 +2796,7 @@ struct poptOption optionsTable[] = {
 static void saveNextExecutable(int *sum_np, int argc, const char **argv)
 {
     int i;
+    char *hwTypeStr;
 
     if (execCount+1 >= MAX_BINARIES) {
 	fprintf(stderr, "maximum supported different executables %i\n",
@@ -2820,14 +2819,17 @@ static void saveNextExecutable(int *sum_np, int argc, const char **argv)
 		argv[0]);
 	exit(1);
     }
+
     if (nodetype) {
-	exec[execCount]->nodetype = nodetype;
+	hwTypeStr = nodetype;
 	nodetype = NULL;
     } else if (gnodetype) {
-	exec[execCount]->nodetype = gnodetype;
+	hwTypeStr = gnodetype;
     } else {
-	exec[execCount]->nodetype = NULL;
+	hwTypeStr = NULL;
     }
+    exec[execCount]->hwType = hwTypeStr ? getNodeType(hwTypeStr) : 0;
+
     if (tpp) {
 	exec[execCount]->tpp = tpp;
 	if (tpp > maxtpp) maxtpp = tpp;
