@@ -3339,7 +3339,7 @@ static void msg_GETNODES(DDBufferMsg_t *inmsg)
 {
     PStask_ID_t target = PSC_getPID(inmsg->header.dest) ?
 	inmsg->header.dest : inmsg->header.sender;
-    PStask_t *task = PStasklist_find(&managedTasks, target);
+    PStask_t *task = PStasklist_find(&managedTasks, target), *delegate;
     char *ptr = inmsg->buf;
     size_t usedBytes = sizeof(inmsg->header);
     uint32_t num, hwType = 0;
@@ -3364,7 +3364,9 @@ static void msg_GETNODES(DDBufferMsg_t *inmsg)
 	return;
     }
 
-    if (!task->totalThreads || !task->partThrds) {
+    delegate = task->delegate ? task->delegate : task;
+
+    if (!delegate->totalThreads || !delegate->partThrds) {
 	PSID_log(-1, "%s: Create partition first\n", __func__);
 	goto error;
     }
@@ -3406,7 +3408,7 @@ static void msg_GETNODES(DDBufferMsg_t *inmsg)
 
     if (num > NODES_CHUNK) goto error;
 
-    if (task->usedThreads + num * tpp <= task->totalThreads
+    if (delegate->usedThreads + num * tpp <= delegate->totalThreads
 	|| option & PART_OPT_OVERBOOK) {
 	int PSPver = PSIDnodes_getProtoV(PSC_getID(inmsg->header.sender));
 	int dmnPSPver = PSIDnodes_getDmnProtoV(PSC_getID(inmsg->header.sender));
@@ -3418,13 +3420,13 @@ static void msg_GETNODES(DDBufferMsg_t *inmsg)
 		.len = sizeof(msg.header) },
 	    .buf = { 0 } };
 	PSpart_slot_t slots[NODES_CHUNK];
-	unsigned int got = PSIDpart_getNodes(num, hwType, option, tpp, task,
+	unsigned int got = PSIDpart_getNodes(num, hwType, option, tpp, delegate,
 					     slots, 0);
 
 	if (got < num) {
 	    PSID_log(-1, "%s: Only %d HW-threads for %d processes found"
 		     " even though %d free expected\n", __func__, got*tpp, got,
-		     task->totalThreads - task->usedThreads);
+		     delegate->totalThreads - delegate->usedThreads);
 
 	    goto error;
 	}
@@ -3436,7 +3438,7 @@ static void msg_GETNODES(DDBufferMsg_t *inmsg)
 	msg.header.len += sizeof(int32_t);
 
 	task->numChild += num;
-	task->activeChild += num;
+	delegate->activeChild += num;
 
 	if (PSPver < 335) {
 	    PSnodes_ID_t *nodeBuf = (PSnodes_ID_t *)ptr;
@@ -3526,6 +3528,8 @@ static void msg_CHILDRESREL(DDBufferMsg_t *msg)
 	PSID_log(-1, "%s: Task %s not found\n", __func__, PSC_printTID(target));
 	return;
     }
+
+    if (task->delegate) task = task->delegate;
 
     if (!task->totalThreads || !task->partThrds) {
 	PSID_log(-1, "%s: Task %s has no partition\n", __func__,
@@ -3936,6 +3940,7 @@ static int PSIDpart_getReservation(PSrsrvtn_t *res)
 	PSID_log(-1, "%s: No task associated to %#x\n", __func__, res->rid);
 	return -1;
     }
+    if (task->delegate) task = task->delegate;
 
     if (!res->slots) res->slots = malloc(res->nMax * sizeof(*res->slots));
 
@@ -4041,7 +4046,7 @@ static int handleResRequest(PSrsrvtn_t *r)
 	    .len = sizeof(msg.header) },
 	.buf = { 0 } };
     int got = -1, eno = 0;
-    PStask_t *task;
+    PStask_t *task, *delegate;
 
     if (!r) return -1;  // Omit and handle next request
     task = PStasklist_find(&managedTasks, r->task);
@@ -4050,6 +4055,7 @@ static int handleResRequest(PSrsrvtn_t *r)
 	eno = EINVAL;
 	goto no_task_error;
     }
+    delegate = task->delegate ? task->delegate : task;
 
     /* Dynamic requests shall be handled only once */
     if (r->dynSent) return 1; // Handle next request
@@ -4100,12 +4106,12 @@ static int handleResRequest(PSrsrvtn_t *r)
 	eno = ENOSPC;
     }
 
-    deqRes(&task->resRequests, r);
+    deqRes(&delegate->resRequests, r);
 no_task_error:
     if (!eno) {
 	task->numChild += got;
 
-	enqRes(&task->reservations, r);
+	enqRes(&delegate->reservations, r);
 
 	PSP_putMsgBuf(&msg, __func__, "rid", &r->rid, sizeof(r->rid));
 	PSP_putMsgBuf(&msg, __func__, "nSlots", &r->nSlots, sizeof(r->nSlots));
@@ -4148,7 +4154,7 @@ static void msg_GETRESERVATION(DDBufferMsg_t *inmsg)
 {
     PStask_ID_t target = PSC_getPID(inmsg->header.dest) ?
 	inmsg->header.dest : inmsg->header.sender;
-    PStask_t *task = PStasklist_find(&managedTasks, target);
+    PStask_t *task = PStasklist_find(&managedTasks, target), *delegate;
     PSrsrvtn_t *r = PSrsrvtn_get();
     size_t used = 0;
     int32_t eno = 0;
@@ -4186,7 +4192,9 @@ static void msg_GETRESERVATION(DDBufferMsg_t *inmsg)
 	return;
     }
 
-    if (!task->totalThreads || !task->partThrds) {
+    delegate = task->delegate ? task->delegate : task;
+
+    if (!delegate->totalThreads || !delegate->partThrds) {
 	PSID_log(-1, "%s: Create partition first\n", __func__);
 	eno = EBADRQC;
 	goto error;
@@ -4209,7 +4217,7 @@ static void msg_GETRESERVATION(DDBufferMsg_t *inmsg)
 	goto error;
     }
 
-    r->rid = PStask_getNextResID(task);
+    r->rid = PStask_getNextResID(delegate);
 
     if (r->options & PART_OPT_DEFAULT) {
 	r->options = task->options;
@@ -4220,10 +4228,10 @@ static void msg_GETRESERVATION(DDBufferMsg_t *inmsg)
 	     "%s(nMin %d nMax %d tpp %d hwType %#x options %#x)\n", __func__,
 	     r->nMin, r->nMax, r->tpp, r->hwType, r->options);
 
-    if (!list_empty(&task->resRequests)) {
+    if (!list_empty(&delegate->resRequests)) {
 	if (r->options & (PART_OPT_WAIT|PART_OPT_DYNAMIC)) {
 	    PSID_log(PSID_LOG_PART, "%s: %#x must wait", __func__, r->rid);
-	    enqRes(&task->resRequests, r);
+	    enqRes(&delegate->resRequests, r);
 
 	    /* Answer will be sent once reservation is established */
 	    return;
@@ -4235,10 +4243,10 @@ static void msg_GETRESERVATION(DDBufferMsg_t *inmsg)
 	}
     }
 
-    if (task->usedThreads + r->nMin * r->tpp <= task->totalThreads
+    if (delegate->usedThreads + r->nMin * r->tpp <= delegate->totalThreads
 	|| r->options & (PART_OPT_OVERBOOK|PART_OPT_WAIT|PART_OPT_DYNAMIC)) {
 
-	enqRes(&task->resRequests, r);
+	enqRes(&delegate->resRequests, r);
 	handleResRequest(r);
 
 	/* Answer is already sent if possible. Otherwise we'll wait anyhow */
@@ -4326,6 +4334,8 @@ static void msg_GETSLOTS(DDBufferMsg_t *inmsg)
 	}
 	return;
     }
+
+    if (task->delegate) task = task->delegate;
 
     PSP_getMsgBuf(inmsg, &used, __func__, "resID", &resID, sizeof(resID));
     ret = PSP_getMsgBuf(inmsg, &used, __func__, "num", &num, sizeof(num));

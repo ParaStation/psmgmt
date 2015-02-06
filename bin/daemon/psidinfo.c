@@ -392,42 +392,43 @@ static void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 	{
 	    PStask_ID_t tid = PSC_getPID(inmsg->header.dest) ?
 		inmsg->header.dest : inmsg->header.sender;
-	    PStask_t *task = PStasklist_find(&managedTasks, tid);
-	    if (task) {
-		if (task->ptid) {
-		    msg.header.type = inmsg->header.type;
-		    msg.header.dest = task->ptid;
-		    msg.header.sender = inmsg->header.sender;
-		    if (msg.type == PSP_INFO_RANKID) {
-			*(int *)msg.buf = *(int *)inmsg->buf;
-			msg.header.len += sizeof(int);
-		    }
-		    msg_INFOREQUEST(&msg);
-		    return;
-		} else {
-		    if (msg.type == PSP_INFO_RANKID) {
-			int rank = *(int32_t *) inmsg->buf;
-			if (rank < 0) {
-			    *(PSnodes_ID_t *)msg.buf = -1;
-			} else if (rank >= (int)task->partitionSize) {
-			    /* @todo pinning Think about how to use OVERBOOK */
-			    if (task->options & PART_OPT_OVERBOOK) {
-				*(PSnodes_ID_t *)msg.buf =
-				    task->partition[rank%task->partitionSize].node;
-			    } else {
-				*(PSnodes_ID_t *)msg.buf = -1;
-			    }
-			} else {
-			    *(PSnodes_ID_t *)msg.buf = task->partition[rank].node;
-			}
-			msg.header.len += sizeof(PSnodes_ID_t);
-		    } else {
-			*(int *)msg.buf = task->activeChild;
-			msg.header.len += sizeof(int);
-		    }
-		}
-	    } else {
+	    PStask_t *task = PStasklist_find(&managedTasks, tid), *dlgt;
+	    if (!task) {
 		*(int *)msg.buf = -1;
+		msg.header.len += sizeof(int);
+		break;
+	    }
+
+	    if (task->ptid) {
+		msg.header.type = inmsg->header.type;
+		msg.header.dest = task->ptid;
+		msg.header.sender = inmsg->header.sender;
+		if (msg.type == PSP_INFO_RANKID) {
+		    *(int *)msg.buf = *(int *)inmsg->buf;
+		    msg.header.len += sizeof(int);
+		}
+		msg_INFOREQUEST(&msg);
+		return;
+	    }
+	    dlgt = task->delegate ? task->delegate : task;
+	    if (msg.type == PSP_INFO_RANKID) {
+		int rank = *(int32_t *) inmsg->buf;
+		if (rank < 0) {
+		    *(PSnodes_ID_t *)msg.buf = -1;
+		} else if (rank >= (int)dlgt->partitionSize) {
+		    /* @todo pinning Think about how to use OVERBOOK */
+		    if (task->options & PART_OPT_OVERBOOK) {
+			*(PSnodes_ID_t *)msg.buf =
+			    dlgt->partition[rank%dlgt->partitionSize].node;
+		    } else {
+			*(PSnodes_ID_t *)msg.buf = -1;
+		    }
+		} else {
+		    *(PSnodes_ID_t *)msg.buf = dlgt->partition[rank].node;
+		}
+		msg.header.len += sizeof(PSnodes_ID_t);
+	    } else {
+		*(int *)msg.buf = dlgt->activeChild;
 		msg.header.len += sizeof(int);
 	    }
 	    break;
