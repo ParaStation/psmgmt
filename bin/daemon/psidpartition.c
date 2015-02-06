@@ -3173,6 +3173,7 @@ int PSIDpart_getNodes(uint32_t np, uint32_t hwType, PSpart_option_t option,
     unsigned int got = 0, roundGot = 0, thrdsGot = 0, t, first = 0;
     int overbook = option & PART_OPT_OVERBOOK;
     int nodeFirst = option & PART_OPT_NODEFIRST;
+    int dynamic = option & PART_OPT_DYNAMIC;
     int nextMinUsed, minUsed, fullRound = 0;
     int mod = task->totalThreads + ((overbook || nodeFirst) ? 0 : 1);
     int nodeTPP = 1, maxTPP = 0;
@@ -3219,7 +3220,8 @@ int PSIDpart_getNodes(uint32_t np, uint32_t hwType, PSpart_option_t option,
     if (!nodeFirst && first) nextMinUsed++;
 
     if (tpp > maxTPP) {
-	PSID_log(-1, "%s: Invalid tpp (%d/%d)\n", __func__, tpp, maxTPP);
+	PSID_log(dynamic ? PSID_LOG_PART : -1, "%s: Invalid tpp (%d/%d)\n",
+		 __func__, tpp, maxTPP);
 	goto exit;
     }
 
@@ -3947,11 +3949,17 @@ static int PSIDpart_getReservation(PSrsrvtn_t *res)
 			    task, res->slots, 1);
 
     if (got < res->nMin) {
-	PSID_log(  (res->options & PART_OPT_WAIT) ?
+	PSID_log(  (res->options & (PART_OPT_WAIT|PART_OPT_DYNAMIC)) ?
 		   PSID_LOG_PART : -1,
 		 "%s: Only %d HW-threads for %d processes found"
 		 " even though %d free expected\n", __func__, got*res->tpp,
 		 got, task->totalThreads - task->usedThreads);
+
+	if (res->options & PART_OPT_DYNAMIC) {
+	    /* Get the available resources and request for more outside */
+	    return PSIDpart_getNodes(got, res->hwType, res->options, res->tpp,
+				     task, res->slots, 0);
+	}
 
 	if (!res->checked) {
 	    PSpart_HWThread_t *thread;
@@ -3986,12 +3994,14 @@ static int PSIDpart_getReservation(PSrsrvtn_t *res)
 	}
     }
 
-    s = realloc(res->slots, got * sizeof(*res->slots));
-    if (!s) {
-	PSID_log(-1, "%s: Failed to realloc()\n", __func__);
-	free(res->slots);
-	res->slots = NULL;
-	return -1;
+    if (!(res->options & PART_OPT_DYNAMIC)) {
+	s = realloc(res->slots, got * sizeof(*res->slots));
+	if (!s) {
+	    PSID_log(-1, "%s: Failed to realloc()\n", __func__);
+	    free(res->slots);
+	    res->slots = NULL;
+	    return -1;
+	}
     }
 
     return PSIDpart_getNodes(got, res->hwType, res->options, res->tpp,
@@ -4007,9 +4017,9 @@ static int PSIDpart_getReservation(PSrsrvtn_t *res)
  * reservation is dequeued from the task's resRequests list, added to
  * its reservation-list and a PSP_CD_RESERVATIONRES messages is sent
  * to the reserver. Otherwise it will be investigated if the reserver
- * is willing to wait (i.e. PART_OPT_WAIT is set
- * within the reservations options). If this is the case,
- * the reservation request remains in the
+ * is willing to wait (i.e. PART_OPT_WAIT or PART_OPT_DYNAMIC is set
+ * within the reservations options). If this is the case, a dynamic
+ * request might be sent and the reservation request remains in the
  * task's resRequests list. Otherwise the request is dequeued, and a
  * fatal PSP_CD_RESERVATIONRES is sent to the reserver.
  *
@@ -4041,13 +4051,41 @@ static int handleResRequest(PSrsrvtn_t *r)
 	goto no_task_error;
     }
 
+    /* Dynamic requests shall be handled only once */
+    if (r->dynSent) return 1; // Handle next request
+
     got = PSIDpart_getReservation(r);
 
     r->firstRank = task->numChild;
     r->nSlots = got;
     r->nextSlot = 0;
 
-    if (!got) {
+    if (got < (int)r->nMax && r->options & PART_OPT_DYNAMIC) {
+	int ret;
+
+	if (got < 0) r->nSlots = 0;
+	task->numChild += r->nMax; /* This might create a gap in ranks */
+
+	/* Try to get more resources */
+	// @todo setup parameters to be passed to the hook
+	ret = PSIDhook_call(PSIDHOOK_XTND_PART_DYNAMIC, NULL);
+	if (ret == PSIDHOOK_NOFUNC) {
+	    if (got < (int)r->nMin) {
+		task->numChild -= r->nMax;            /* Fix the gap */
+		/* free resource and error */
+		if (got > 0) releaseThreads(r->slots, got, task);
+		eno = ENOSPC;
+	    } else {
+		task->numChild -= (r->nMax - got);    /* Fix the gap */
+		/* send answer below */
+	    }
+	} else {
+	    /* Do not send twice */
+	    r->dynSent = 1;
+	    /* Answer is sent by hook's callback */
+	    return 1; // Handle next request
+	}
+    } else if (!got) {
 	if (r->options & PART_OPT_WAIT) {
 	    PSID_log(PSID_LOG_PART, "%s: %#x must wait", __func__, r->rid);
 	    /* Answer will be sent once reservation is established */
@@ -4183,7 +4221,7 @@ static void msg_GETRESERVATION(DDBufferMsg_t *inmsg)
 	     r->nMin, r->nMax, r->tpp, r->hwType, r->options);
 
     if (!list_empty(&task->resRequests)) {
-	if (r->options & PART_OPT_WAIT) {
+	if (r->options & (PART_OPT_WAIT|PART_OPT_DYNAMIC)) {
 	    PSID_log(PSID_LOG_PART, "%s: %#x must wait", __func__, r->rid);
 	    enqRes(&task->resRequests, r);
 
@@ -4198,7 +4236,7 @@ static void msg_GETRESERVATION(DDBufferMsg_t *inmsg)
     }
 
     if (task->usedThreads + r->nMin * r->tpp <= task->totalThreads
-	|| r->options & PART_OPT_OVERBOOK || r->options & PART_OPT_WAIT) {
+	|| r->options & (PART_OPT_OVERBOOK|PART_OPT_WAIT|PART_OPT_DYNAMIC)) {
 
 	enqRes(&task->resRequests, r);
 	handleResRequest(r);
