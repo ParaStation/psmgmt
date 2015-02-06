@@ -2846,7 +2846,7 @@ static void saveNextExecutable(int *sum_np, int argc, const char **argv)
 
     if (argc <= 0 || !argv || !argv[0]) errExit("invalid colon syntax\n");
 
-    exec[execCount] = umalloc(sizeof(exec), __func__);
+    exec[execCount] = umalloc(sizeof(**exec), __func__);
     if (np > 0) {
 	*sum_np += np;
 	exec[execCount]->np = np;
