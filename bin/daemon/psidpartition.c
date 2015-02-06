@@ -3209,6 +3209,7 @@ int PSIDpart_getNodes(uint32_t np, uint32_t hwType, PSpart_option_t option,
 	    nextMinUsed = myUse[t];
 	}
     }
+    if (nodeTPP > maxTPP) maxTPP = nodeTPP;
 
     if (nextMinUsed && !overbook) {
 	PSID_log(dryRun ? PSID_LOG_PART : -1, "%s: No free slots\n", __func__);
