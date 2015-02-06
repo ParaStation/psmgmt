@@ -21,8 +21,10 @@
 #ifndef __PSIDPARTITION_H
 #define __PSIDPARTITION_H
 
+#include "psprotocol.h"
 #include "psnodes.h"
 #include "pstask.h"
+#include "psreservation.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -285,6 +287,32 @@ int PSIDpart_getNodes(uint32_t np, uint32_t hwType, PSpart_option_t option,
  * @return No return value
  */
 void PSIDpart_register(PStask_t *task);
+
+/**
+ * @brief Send reservation's nodelist
+ *
+ * Send the nodelist of the reservation with ID @a resID belonging to
+ * the task @a task to the destination stored in @a msg. The message
+ * @a msg furthermore contains the sender and the message type used to
+ * send one or more messages containing the list of
+ * nodes. Additionally @a msg's buffer might contain some preset
+ * content. Thus, its internally stored length (in the .len field) has
+ * to correctly represent the messages preset content.
+ *
+ * In order to send the list of nodes, it is split into chunks. Each
+ * chunk is copied into the message and send separately to its
+ * destination.
+ *
+ * @param resID The ID of the reservation to investigate.
+ *
+ * @param task The task the reservation belongs to.
+ *
+ * @param msg The message buffer used to send the reservations node-list.
+ *
+ * @return No return value
+ */
+void PSIDpart_sendResNodes(PSrsrvtn_ID_t resID, PStask_t *task,
+			   DDTypedBufferMsg_t *msg);
 
 #ifdef __cplusplus
 }/* extern "C" */

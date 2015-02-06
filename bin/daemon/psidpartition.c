@@ -3816,6 +3816,102 @@ static void msg_NODESRES(DDBufferMsg_t *inmsg)
     sendMsg(inmsg);
 }
 
+/* ---------------------------------------------------------------------- */
+/**
+ * @brief Enqueue reservation.
+ *
+ * Enqueue the reservation @a res to the queue @a queue. The
+ * reservation might be incomplete when queued and can be found within
+ * this queue via @ref findRes() and should be removed from it using
+ * the @ref deqPart() function.
+ *
+ * @param queue The queue the request should be appended to.
+ *
+ * @param req The request to be appended to the queue.
+ *
+ * @return No return value.
+ *
+ * @see findRes(), deqRes()
+ */
+static void enqRes(list_t *queue, PSrsrvtn_t *res)
+{
+    PSID_log(PSID_LOG_PART, "%s(%p, %#x)\n", __func__, queue, res->rid);
+
+    list_add_tail(&res->next, queue);
+}
+
+/**
+ * @brief Find reservation.
+ *
+ * Find the reservation with ID @a rid from within the queue @a queue.
+ *
+ * @param queue The queue the reservation shall be searched in.
+ *
+ * @param rid The reservation ID to search for.
+ *
+ * @return On success, i.e. if a corresponding reservation was found, a
+ * pointer to this reservation is returned. Or NULL in case of an error.
+ */
+static PSrsrvtn_t *findRes(list_t *queue, PSrsrvtn_ID_t rid)
+{
+    list_t *r;
+
+    PSID_log(PSID_LOG_PART, "%s(%p,%#x)\n", __func__, queue, rid);
+
+    list_for_each(r, queue) {
+	PSrsrvtn_t *res = list_entry(r, PSrsrvtn_t, next);
+
+	if (res->rid == rid) return res;
+    }
+
+    return NULL;
+}
+
+/**
+ * @brief Dequeue reservation.
+ *
+ * Remove the reservation @a res from the queue @a queue. The
+ * reservation has to be created using @ref PSrsrvtn_get() and added
+ * to the list of reservation via @ref enqRes().
+ *
+ * @param queue The queue the reservation shall be removed from.
+ *
+ * @param res The reservation to be removed from the queue.
+ *
+ * @return If the reservation was found within the queue and could be
+ * removed, a pointer to it will be returned. Otherwise NULL will be
+ * returned.
+ *
+ * @see PSrsrvtn_get() enqRes()
+ */
+static PSrsrvtn_t *deqRes(list_t *queue, PSrsrvtn_t *res)
+{
+    PSrsrvtn_t *r;
+
+    if (!res) {
+	PSID_log(-1, "%s: no reservation given\n", __func__);
+	return NULL;
+    }
+
+    PSID_log(PSID_LOG_PART, "%s(%p, %#x)\n", __func__, queue, res->rid);
+
+    r = findRes(queue, res->rid);
+
+    if (!r) {
+	PSID_log(-1, "%s: reservationt %#x not found\n", __func__, res->rid);
+	return NULL;
+    }
+    if (r != res) {
+	PSID_log(-1, "%s: found duplicate of %#x\n", __func__, res->rid);
+	return NULL;
+    }
+
+    list_del_init(&r->next);
+
+    return r;
+}
+/* ---------------------------------------------------------------------- */
+
 static void msg_GETRESERVATION(DDBufferMsg_t *inmsg)
 {
     /* Try dryrun to determine available slots */
@@ -3829,9 +3925,6 @@ static void msg_GETRESERVATION(DDBufferMsg_t *inmsg)
     /* 	error; */
     /* } */
 }
-
-static void msg_RESERVATIONRES(DDBufferMsg_t *inmsg)
-{}
 
 static void msg_GETSLOTS(DDBufferMsg_t *inmsg)
 {}
@@ -4393,6 +4486,50 @@ void PSIDpart_register(PStask_t *task)
     if (knowMaster() && PSIDnodes_getDmnProtoV(getMasterID()) > 410) {
 	sendSinglePart(PSC_getTID(getMasterID(), 0), PSP_DD_REGISTERPART, task);
 	/* Otherwise we'll have to wait for a PSP_DD_GETTASKS message */
+    }
+}
+
+void PSIDpart_sendResNodes(PSrsrvtn_ID_t resID, PStask_t *task,
+			   DDTypedBufferMsg_t *msg)
+{
+    PSrsrvtn_t *res;
+    const size_t emptyLen = sizeof(msg->header) + sizeof(msg->type);
+    int s;
+
+    if (!task) {
+	PSID_log(PSID_LOG_PART | PSID_LOG_INFO, "%s: No task\n", __func__);
+	return;
+    }
+
+    res = findRes(&task->reservations, resID);
+    if (!res) {
+	PSID_log(PSID_LOG_PART | PSID_LOG_INFO, "%s: %#x not found\n",
+		 __func__, resID);
+	return;
+    }
+
+    if (!res->nSlots || !res->slots) {
+	PSID_log(PSID_LOG_PART | PSID_LOG_INFO, "%s: %#x has no slots\n",
+		 __func__, resID);
+	return;
+    }
+
+    PSID_log(PSID_LOG_PART | PSID_LOG_INFO, "%s: %#x has %d slots\n", __func__,
+	     resID, res->nSlots);
+
+    for (s = 0; s < res->nSlots; s++) {
+	if (!PSP_putTypedMsgBuf(msg, __func__, "slot", &res->slots[s].node,
+				sizeof(PSnodes_ID_t))) {
+	    sendMsg(msg);
+	    msg->header.len = emptyLen;
+	    PSP_putTypedMsgBuf(msg, __func__, "slot", &res->slots[s].node,
+			       sizeof(PSnodes_ID_t));
+	}
+    }
+
+    if (msg->header.len > emptyLen) {
+	sendMsg(msg);
+	msg->header.len = emptyLen;
     }
 }
 
