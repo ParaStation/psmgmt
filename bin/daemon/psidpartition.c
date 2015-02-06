@@ -815,7 +815,8 @@ static int nodeOK(PSnodes_ID_t node, PSpart_request_t *req)
 	return 0;
     }
 
-    if ((!req->hwType || PSIDnodes_getHWStatus(node) & req->hwType)
+    if ( ( !req->hwType
+	   || (PSIDnodes_getHWStatus(node)&req->hwType) == req->hwType)
 	&& PSIDnodes_runJobs(node)
 	&& ( !req->uid || PSIDnodes_testGUID(node, PSIDNODES_USER,
 					     (PSIDnodes_guid_t){.u=req->uid}))
@@ -3119,27 +3120,25 @@ static void msg_PROVIDEPARTRP(DDBufferMsg_t *inmsg)
  * @brief Release HW-threads
  *
  * Release the HW-threads presented within the first @a nSlots entries
- * of the slot-list @a slots, i.e. mark them as not used any more. For
- * this the list of HW-threads @a partition acting as a tasks
- * partition of size @a partSize is manipulated.
+ * of the slot-list @a slots, i.e. mark them as not used any more. The
+ * resources are release from the partition associated to the task @a
+ * task.
  *
  * @param slot The list of slots to be released
  *
  * @param nSlots Number of slots to be released. Each slot might
  * contain multiple HW-threads.
  *
- * @param partition List of HW-threads to be manipulated
- *
- * @param partSize Number of elements within @a partition
+ * @param task Tasks whose list of HW-threads is to be manipulated
  *
  * @return Return the total number of HW-threads released.
  */
 static int releaseThreads(PSpart_slot_t *slot, unsigned int nSlots,
-			  PSpart_HWThread_t *partition, unsigned int partSize)
+			  PStask_t *task)
 {
     unsigned int t, s, totalRelease = 0, numToRelease;
 
-    if (!slot || !partition) return 0;
+    if (!slot || !task || !task->partThrds) return 0;
 
     for (s=0; s<nSlots; s++) totalRelease += PSCPU_getCPUs(slot[s].CPUset,
 							   NULL, PSCPU_MAX);
@@ -3147,12 +3146,12 @@ static int releaseThreads(PSpart_slot_t *slot, unsigned int nSlots,
     PSID_log(PSID_LOG_PART, "%s: total %d %s\n", __func__, numToRelease,
 	     PSCPU_print(slot[0].CPUset));
 
-    for (t=0; t < partSize && numToRelease; t++) {
-	PSnodes_ID_t node = partition[t].node;
+    for (t=0; t < task->totalThreads && numToRelease; t++) {
+	PSnodes_ID_t node = task->partThrds[t].node;
 	for (s = 0; s < nSlots; s++) {
 	    if (slot[s].node == node
-		&& PSCPU_isSet(slot[s].CPUset, partition[t].id)) {
-		partition[t].timesUsed--;
+		&& PSCPU_isSet(slot[s].CPUset, task->partThrds[t].id)) {
+		task->partThrds[t].timesUsed--;
 		numToRelease--;
 		break;
 	    }
@@ -3198,7 +3197,7 @@ int PSIDpart_getNodes(uint32_t np, uint32_t hwType, PSpart_option_t option,
     for (t = 0; t < task->totalThreads; t++) {
 	PSnodes_ID_t node = thread[t].node;
 	myUse[t] = thread[t].timesUsed;
-	if (hwType && !(PSIDnodes_getHWStatus(node) & hwType)) continue;
+	if (hwType && (PSIDnodes_getHWStatus(node)&hwType) != hwType) continue;
 	if (t && thread[t-1].node == node) {
 	    nodeTPP++;
 	} else {
@@ -3254,7 +3253,7 @@ int PSIDpart_getNodes(uint32_t np, uint32_t hwType, PSpart_option_t option,
 	if (myUse[t] > minUsed) continue;
 
 	/* check for correct capabilities of HW-thread */
-	if (hwType && !(PSIDnodes_getHWStatus(node) & hwType)) continue;
+	if (hwType && (PSIDnodes_getHWStatus(node)&hwType) != hwType) continue;
 
 	/* ensure we loop over different nodes */
 	if (nodeFirst && roundGot && node == slots[got-1].node) {
@@ -3362,13 +3361,8 @@ static void msg_GETNODES(DDBufferMsg_t *inmsg)
 	return;
     }
 
-    if (!task->partitionSize || !task->partition) {
+    if (!task->totalThreads || !task->partThrds) {
 	PSID_log(-1, "%s: Create partition first\n", __func__);
-	goto error;
-    }
-
-    if (task->usedThreads < 0) {
-	PSID_log(-1, "%s: Partition's creation not yet finished\n", __func__);
 	goto error;
     }
 
@@ -3527,7 +3521,7 @@ static void msg_CHILDRESREL(DDBufferMsg_t *msg)
 	return;
     }
 
-    if (!task->partition || !task->partThrds) {
+    if (!task->totalThreads || !task->partThrds) {
 	PSID_log(-1, "%s: Task %s has no partition\n", __func__,
 		 PSC_printTID(target));
 	return;
@@ -3550,7 +3544,7 @@ static void msg_CHILDRESREL(DDBufferMsg_t *msg)
     numToRelease = PSCPU_getCPUs(slot.CPUset, NULL, PSCPU_MAX);
 
     /* Find and release the corresponding slots */
-    released = releaseThreads(&slot, 1, task->partThrds, task->totalThreads);
+    released = releaseThreads(&slot, 1, task);
 
     task->usedThreads -= released;
 
@@ -3611,7 +3605,7 @@ static void msg_GETRANKNODE(DDBufferMsg_t *inmsg)
 	return;
     }
 
-    if (!task->partitionSize || !task->partition) {
+    if (!task->totalThreads || !task->partThrds) {
 	PSID_log(-1, "%s: Create partition first\n", __func__);
 	goto error;
     }
