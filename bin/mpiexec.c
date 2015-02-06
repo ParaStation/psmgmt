@@ -64,6 +64,7 @@ typedef struct {
     int np;
     uint32_t hwType;
     int tpp;
+    PSrsrvtn_ID_t resID;
     int argc;
     char **argv;
     char *wdir;
@@ -1307,7 +1308,7 @@ static void extractNodeInformation(PSnodes_ID_t *nodeList, int np)
 }
 
 static int spawnSingleExecutable(int np, int argc, char **argv, char *wd,
-				 uint32_t hwType, int tpp, int verbose)
+				 PSrsrvtn_ID_t resID, int verbose)
 {
     int i, ret, *errors = NULL;
     PStask_ID_t *tids;
@@ -1317,10 +1318,7 @@ static int spawnSingleExecutable(int np, int argc, char **argv, char *wd,
     tids = umalloc(sizeof(PStask_ID_t) * np, __func__);
 
     /* spawn client processes */
-    ret = PSI_spawnStrictHW(np, hwType, tpp,
-			    (overbook ? PART_OPT_OVERBOOK : 0)
-			    | (loopnodesfirst ? PART_OPT_NODEFIRST : 0),
-			    wd, argc, argv, 1, errors, tids);
+    ret = PSI_spawnRsrvtn(np, resID, wd, argc, argv, 1, errors, tids);
 
     /* Analyze result, if necessary */
     if (ret<0) {
@@ -1390,29 +1388,67 @@ static void sendPMIFail(void)
  *
  * @param verbose Set verbose mode, output whats going on.
  *
- * @return Returns 0 on success, or errorcode on error.
+ * @return Returns 0 on success, or -1 on error.
  */
 static int startProcs(int np, char *wd, int verbose)
 {
-    int i, ret = 0;
+    int i, ret = 0, off = 0;
     char *hostname = NULL;
     PSnodes_ID_t *nodeList;
     int nlSize = np*sizeof(*nodeList);
-    PSI_infoListGetNodes_t param;
 
-    param.np = np;
-    param.hwType = exec[0]->hwType;
-    param.option = (overbook ? PART_OPT_OVERBOOK : 0)
-	| (loopnodesfirst ? PART_OPT_NODEFIRST : 0);
-    param.tpp = exec[0]->tpp;
+    /* Create the reservations required later on */
+    for (i=0; i< execCount; i++) {
+	unsigned int got;
+	PSpart_option_t options = (overbook ? PART_OPT_OVERBOOK : 0)
+	    | (loopnodesfirst ? PART_OPT_NODEFIRST : 0)
+	    | (wait ? PART_OPT_WAIT : 0);
 
-    /* request an assumption on the GET_NODES results */
+	if (!options) options = PART_OPT_DEFAULT;
+
+	exec[i]->resID = PSI_getReservation(exec[i]->np, exec[i]->np,
+					    exec[i]->tpp, exec[i]->hwType,
+					    options, &got);
+
+	if (exec[i]->resID) printf("got %d in %#x\n", got, exec[i]->resID);
+
+	if (!exec[i]->resID || (int)got != exec[i]->np) {
+	    fprintf(stderr, "%s: Unable to get reservation for app %d %d slots "
+		    "(tpp %d hwType %#x options %#x)\n", __func__, i,
+		    exec[i]->np, exec[i]->tpp, exec[i]->hwType, options);
+	    if ((getenv("PMI_SPAWNED"))) sendPMIFail();
+
+	    return -1;
+	}
+    }
+
+    /* Collect info on reservations */
     nodeList = umalloc(nlSize, __func__);
+    for (i=0; i< execCount; i++) {
+	int got = PSI_infoList(-1, PSP_INFO_LIST_RESNODES, &exec[i]->resID,
+			       nodeList+off, nlSize-off*sizeof(*nodeList), 0);
 
-    ret = PSI_infoList(-1, PSP_INFO_LIST_GETNODES, &param, nodeList, nlSize, 0);
+	if ((unsigned)got != exec[i]->np * sizeof(*nodeList)) {
+	    fprintf(stderr, "%s: Unable to get nodes in reservation %#x for"
+		    "app %d. Got %d expected %zd\n", __func__, exec[i]->resID,
+		    i, got, exec[i]->np * sizeof(*nodeList));
+	    if ((getenv("PMI_SPAWNED"))) sendPMIFail();
+
+	    return -1;
+	}
+	off += got / sizeof(*nodeList);
+    }
+
+    if (off != np) {
+	fprintf(stderr, "%s: some nodes are missing (%d/%d)\n", __func__,
+		off, np);
+	free(nodeList);
+
+	return -1;
+    }
 
     /* extract additional node informations (e.g. uniq nodes) */
-    if (ret == nlSize) extractNodeInformation(nodeList, np);
+    extractNodeInformation(nodeList, np);
 
     if (OpenMPI) {
 	/* get uniq hostnames from the uniq nodes list */
@@ -1439,8 +1475,7 @@ static int startProcs(int np, char *wd, int verbose)
 	setupExecEnv(i);
 
 	ret = spawnSingleExecutable(exec[i]->np, exec[i]->argc, exec[i]->argv,
-				    exec[i]->wdir, exec[i]->hwType,
-				    exec[i]->tpp, verbose);
+				    exec[i]->wdir, exec[i]->resID, verbose);
 	if (ret < 0) {
 	    if ((getenv("PMI_SPAWNED"))) sendPMIFail();
 
