@@ -122,6 +122,7 @@ static PSP_Info_t receiveInfo(void *buf, size_t *size, int verbose)
 	case PSP_INFO_NODEDOWNSCRIPT:
 	case PSP_INFO_LIST_RESPORTS:
 	case PSP_INFO_LIST_GETNODES:
+	case PSP_INFO_LIST_RESNODES:
 	{
 	    size_t s = msg.header.len - sizeof(msg.header) - sizeof(msg.type);
 	    if (!buf) {
@@ -506,6 +507,17 @@ int PSI_infoList(PSnodes_ID_t node, PSP_Info_t what, const void *param,
 	    PSP_putTypedMsgBuf(&msg,  __func__, "tpp", &p->tpp, sizeof(p->tpp));
 	} else {
 	    PSI_log(-1, "%s: %s request needs parameter\n", __func__,
+		    PSP_printInfo(what));
+	    errno = EINVAL;
+	    return -1;
+	}
+	break;
+    case PSP_INFO_LIST_RESNODES:
+	if (param) {
+	    PSP_putTypedMsgBuf(&msg, __func__, "resID", param,
+			       sizeof(PSrsrvtn_ID_t));
+	} else {
+	    PSI_log(-1, "%s: %s request needs a parameter\n", __func__,
 		    PSP_printInfo(what));
 	    errno = EINVAL;
 	    return -1;

@@ -428,6 +428,11 @@ typedef struct {
  * PSI_infoListGetNodes_t. The list of nodes is given back as a list
  * of entries of type PSnodes_ID_t.
  *
+ * - PSP_INFO_LIST_RESNODES requests a list of all nodes belonging to
+ * a given reservation. @a param has to point to the corresponding
+ * reservation ID with type PSrsrvtn_ID_t. The list of nodes is given
+ * back as a list of entries of type PSnodes_ID_t.
+ *
  * @param node The ParaStation ID of the node to ask.
  *
  * @param what The type of information to request as described above.
