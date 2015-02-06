@@ -174,6 +174,7 @@ int overbook = 0;
 int exclusive = 0;
 int wait = 0;
 int loopnodesfirst = 0;
+int dynamic = 0;
 int mergeout = 0;
 int mergedepth = 0;
 int mergetmout = 0;
@@ -1402,7 +1403,8 @@ static int startProcs(int np, char *wd, int verbose)
 	unsigned int got;
 	PSpart_option_t options = (overbook ? PART_OPT_OVERBOOK : 0)
 	    | (loopnodesfirst ? PART_OPT_NODEFIRST : 0)
-	    | (wait ? PART_OPT_WAIT : 0);
+	    | (wait ? PART_OPT_WAIT : 0)
+	    | (dynamic ? PART_OPT_DYNAMIC : 0);
 
 	if (!options) options = PART_OPT_DEFAULT;
 
