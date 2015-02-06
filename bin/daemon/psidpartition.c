@@ -5003,6 +5003,17 @@ void PSIDpart_register(PStask_t *task)
 	return;
     }
 
+    if (PSID_getDebugMask() & PSID_LOG_PART) {
+	unsigned int t;
+	PSID_log(PSID_LOG_PART, "%s(TID %s, num %d, (", __func__,
+		 PSC_printTID(task->tid), task->totalThreads);
+	for (t = 0; t < task->totalThreads; t++) {
+	    PSpart_HWThread_t thrd = task->partThrds[t];
+	    PSID_log(PSID_LOG_PART, "%s%d/%d ", t?",":"", thrd.node, thrd.id);
+	}
+	PSID_log(PSID_LOG_PART, "))\n");
+    }
+
     if (!knowMaster()) {
 	PSID_log(-1, "%s: Unknown master", __func__);
 	return;
