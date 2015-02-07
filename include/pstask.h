@@ -58,6 +58,7 @@ typedef enum {
     TG_SERVICE_SIG, /**< service task, used by mpirun_openib to spawn
 		     * procs; will receive SIGTERM on child's termination */
     TG_KVS,         /**< special task, the KVS used by the PMI interface */
+    TG_DELEGATE,    /**< special task used to hold resources */
 } PStask_group_t;
 
 /** Type to store unique task IDs in */

@@ -49,6 +49,7 @@ char* PStask_printGrp(PStask_group_t tg)
 	(tg==TG_SERVICE) ? "TG_SERVICE" :
 	(tg==TG_SERVICE_SIG) ? "TG_SERVICE_SIG" :
 	(tg==TG_KVS) ? "TG_KVS" :
+	(tg==TG_DELEGATE) ? "TG_DELEGATE" :
 	"UNKNOWN";
 }
 

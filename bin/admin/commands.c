@@ -753,6 +753,7 @@ void PSIADM_ProcStat(int count, int full, char *nl)
 	    if (taskInfo[numTasks].group==TG_SERVICE_SIG && !full) continue;
 	    if (taskInfo[numTasks].group==TG_KVS && !full) continue;
 	    if (taskInfo[numTasks].group==TG_ACCOUNT && !full) continue;
+	    if (taskInfo[numTasks].group==TG_DELEGATE && !full) continue;
 	    numTasks++;
 	    if (numTasks*sizeof(*taskInfo) >= tiList.actSize) {
 		if (extendList(&tiList, tiList.actSize * 2, __func__)) {
@@ -785,6 +786,7 @@ void PSIADM_ProcStat(int count, int full, char *nl)
 		   taskInfo[task].group==TG_SERVICE ? "(S)" :
 		   taskInfo[task].group==TG_SERVICE_SIG ? "(S)" :
 		   taskInfo[task].group==TG_ACCOUNT ? "(C)" :
+		   taskInfo[task].group==TG_DELEGATE ? "(D)" :
 		   " ");
 
 	    {
