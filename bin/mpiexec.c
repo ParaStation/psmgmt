@@ -1895,7 +1895,6 @@ static void setupEnvironment(int verbose)
     setupPSCOMEnv(verbose);
     /* Both *before* PSE_initialize() for environment propagation */
 
-    PSE_initialize();
     rank = PSE_getRank();
 
     /* be only verbose if we are the logger */
@@ -3193,6 +3192,9 @@ int main(int argc, char *argv[], char** envp)
     if ((envstr = getenv("PSI_TPP"))) {
 	envtpp = strtol(envstr, NULL, 0);
     }
+
+    /* Initialzie daemon connection */
+    PSE_initialize();
 
     /* parse command line options */
     parseCmdOptions(argc, argv);
