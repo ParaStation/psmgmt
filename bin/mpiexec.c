@@ -1412,8 +1412,6 @@ static int startProcs(int np, char *wd, int verbose)
 					    exec[i]->tpp, exec[i]->hwType,
 					    options, &got);
 
-	if (exec[i]->resID) printf("got %d in %#x\n", got, exec[i]->resID);
-
 	if (!exec[i]->resID || (int)got != exec[i]->np) {
 	    fprintf(stderr, "%s: Unable to get reservation for app %d %d slots "
 		    "(tpp %d hwType %#x options %#x)\n", __func__, i,
