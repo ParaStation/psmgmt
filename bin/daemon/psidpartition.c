@@ -3147,11 +3147,11 @@ static int releaseThreads(PSpart_slot_t *slot, unsigned int nSlots,
 	     PSCPU_print(slot[0].CPUset));
 
     for (t=0; t < task->totalThreads && numToRelease; t++) {
-	PSnodes_ID_t node = task->partThrds[t].node;
+	PSpart_HWThread_t *thrd = &task->partThrds[t];
 	for (s = 0; s < nSlots; s++) {
-	    if (slot[s].node == node
-		&& PSCPU_isSet(slot[s].CPUset, task->partThrds[t].id)) {
-		task->partThrds[t].timesUsed--;
+	    if (slot[s].node == thrd->node
+		&& PSCPU_isSet(slot[s].CPUset, thrd->id)) {
+		if (--(thrd->timesUsed) < 0) thrd->timesUsed = 0;
 		numToRelease--;
 		break;
 	    }
@@ -3438,7 +3438,7 @@ static void msg_GETNODES(DDBufferMsg_t *inmsg)
 	msg.header.len += sizeof(int32_t);
 
 	task->numChild += num;
-	delegate->activeChild += num;
+	task->activeChild += num;
 
 	if (PSPver < 335) {
 	    PSnodes_ID_t *nodeBuf = (PSnodes_ID_t *)ptr;
@@ -3498,7 +3498,7 @@ static void msg_GETNODES(DDBufferMsg_t *inmsg)
     }
 }
 
-static int handleResRequest(PSrsrvtn_t *r);
+static void handleResRequests(PStask_t *task);
 
 /**
  * @brief Handle a PSP_DD_CHILDRESREL message.
@@ -3517,21 +3517,20 @@ static int handleResRequest(PSrsrvtn_t *r);
 static void msg_CHILDRESREL(DDBufferMsg_t *msg)
 {
     PStask_ID_t target = msg->header.dest;
-    PStask_t *task = PStasklist_find(&managedTasks, target);
+    PStask_t *task = PStasklist_find(&managedTasks, target), *delegate;
     char *ptr = msg->buf;
     size_t nBytes, myBytes = PSCPU_bytesForCPUs(PSCPU_MAX);
     PSpart_slot_t slot;
     unsigned int numToRelease, released;
-    list_t *r, *tmp;
 
     if (!task) {
 	PSID_log(-1, "%s: Task %s not found\n", __func__, PSC_printTID(target));
 	return;
     }
 
-    if (task->delegate) task = task->delegate;
+    delegate = task->delegate ? task->delegate : task;
 
-    if (!task->totalThreads || !task->partThrds) {
+    if (!delegate->totalThreads || !delegate->partThrds) {
 	PSID_log(-1, "%s: Task %s has no partition\n", __func__,
 		 PSC_printTID(target));
 	return;
@@ -3554,9 +3553,8 @@ static void msg_CHILDRESREL(DDBufferMsg_t *msg)
     numToRelease = PSCPU_getCPUs(slot.CPUset, NULL, PSCPU_MAX);
 
     /* Find and release the corresponding slots */
-    released = releaseThreads(&slot, 1, task);
-
-    task->usedThreads -= released;
+    released = releaseThreads(&slot, 1, delegate);
+    delegate->usedThreads -= released;
 
     if (released != numToRelease) {
 	PSID_log(-1, "%s: Only %d of %d HW-threads released.\n", __func__,
@@ -3569,11 +3567,7 @@ static void msg_CHILDRESREL(DDBufferMsg_t *msg)
 
     task->activeChild--;
 
-    list_for_each_safe(r, tmp, &task->resRequests) {
-	PSrsrvtn_t *res = list_entry(r, PSrsrvtn_t, next);
-
-	if (!handleResRequest(res)) break;
-    }
+    handleResRequests(delegate);
 
     return;
 }
@@ -4036,7 +4030,7 @@ static int PSIDpart_getReservation(PSrsrvtn_t *res)
  * signaling the ability to handle furster requests (1) or not (0). If
  * the request failed finally, -1 is returned.
  */
-static int handleResRequest(PSrsrvtn_t *r)
+static int handleSingleResRequest(PSrsrvtn_t *r)
 {
     DDBufferMsg_t msg = (DDBufferMsg_t) {
 	.header = (DDMsg_t) {
@@ -4111,7 +4105,7 @@ no_task_error:
     if (!eno) {
 	task->numChild += got;
 
-	enqRes(&delegate->reservations, r);
+	enqRes(&task->reservations, r);
 
 	PSP_putMsgBuf(&msg, __func__, "rid", &r->rid, sizeof(r->rid));
 	PSP_putMsgBuf(&msg, __func__, "nSlots", &r->nSlots, sizeof(r->nSlots));
@@ -4131,6 +4125,31 @@ no_task_error:
     sendMsg(&msg);
 
     return eno ? -1 : got; // Handle next request
+}
+
+/**
+ * @brief Handle task's reservation requests
+ *
+ * Handle the task's @a task reservation requests. If reservations can
+ * be created, the corresponding answers will be sent and creation of
+ * reservations will continue.
+ *
+ * @param task Task structure providing the reservation requests
+ * within its resRequests list attribute
+ *
+ * @return No return value.
+ */
+static void handleResRequests(PStask_t *task)
+{
+    list_t *r, *tmp;
+
+    list_for_each_safe(r, tmp, &task->resRequests) {
+	PSrsrvtn_t *res = list_entry(r, PSrsrvtn_t, next);
+
+	if (!handleSingleResRequest(res)) break;
+    }
+
+    return;
 }
 
 /**
@@ -4247,7 +4266,7 @@ static void msg_GETRESERVATION(DDBufferMsg_t *inmsg)
 	|| r->options & (PART_OPT_OVERBOOK|PART_OPT_WAIT|PART_OPT_DYNAMIC)) {
 
 	enqRes(&delegate->resRequests, r);
-	handleResRequest(r);
+	handleSingleResRequest(r);
 
 	/* Answer is already sent if possible. Otherwise we'll wait anyhow */
 	return;
@@ -4334,8 +4353,6 @@ static void msg_GETSLOTS(DDBufferMsg_t *inmsg)
 	}
 	return;
     }
-
-    if (task->delegate) task = task->delegate;
 
     PSP_getMsgBuf(inmsg, &used, __func__, "resID", &resID, sizeof(resID));
     ret = PSP_getMsgBuf(inmsg, &used, __func__, "num", &num, sizeof(num));
@@ -5051,20 +5068,18 @@ void PSIDpart_sendResNodes(PSrsrvtn_ID_t resID, PStask_t *task,
     int s;
 
     if (!task) {
-	PSID_log(PSID_LOG_PART | PSID_LOG_INFO, "%s: No task\n", __func__);
+	PSID_log(-1, "%s: No task\n", __func__);
 	return;
     }
 
     res = findRes(&task->reservations, resID);
     if (!res) {
-	PSID_log(PSID_LOG_PART | PSID_LOG_INFO, "%s: %#x not found\n",
-		 __func__, resID);
+	PSID_log(-1, "%s: %#x not found\n", __func__, resID);
 	return;
     }
 
     if (!res->nSlots || !res->slots) {
-	PSID_log(PSID_LOG_PART | PSID_LOG_INFO, "%s: %#x has no slots\n",
-		 __func__, resID);
+	PSID_log(-1, "%s: %#x has no slots\n", __func__, resID);
 	return;
     }
 
