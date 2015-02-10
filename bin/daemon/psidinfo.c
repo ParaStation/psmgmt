@@ -412,6 +412,8 @@ static void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 	    }
 	    dlgt = task->delegate ? task->delegate : task;
 	    if (msg.type == PSP_INFO_RANKID) {
+		/* @todo this does not work any more !! */
+		/* @todo rework this for HW-threads and reservations */
 		int rank = *(int32_t *) inmsg->buf;
 		if (rank < 0) {
 		    *(PSnodes_ID_t *)msg.buf = -1;
@@ -428,7 +430,7 @@ static void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 		}
 		msg.header.len += sizeof(PSnodes_ID_t);
 	    } else {
-		*(int *)msg.buf = dlgt->activeChild;
+		*(int *)msg.buf = task->activeChild;
 		msg.header.len += sizeof(int);
 	    }
 	    break;
