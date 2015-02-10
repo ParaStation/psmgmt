@@ -4519,6 +4519,36 @@ int send_GETTASKS(PSnodes_ID_t node)
     return sendMsg(&msg);
 }
 
+void PSIDpart_cleanupRes(PStask_t *task)
+{
+    PStask_t *delegate;
+    int released = 0;
+    list_t *r, *tmp;
+
+    if (!task) return;
+
+    PSID_log(PSID_LOG_PART, "%s(%s)\n", __func__, PSC_printTID(task->tid));
+
+    delegate = task->delegate ? task->delegate : task;
+
+    list_for_each_safe(r, tmp, &task->reservations) {
+	PSrsrvtn_t *res = list_entry(r, PSrsrvtn_t, next);
+
+	deqRes(&task->reservations, res);
+
+	if (res->slots) {
+	    released += releaseThreads(res->slots, res->nSlots, delegate);
+	    free(res->slots);
+	    res->slots = NULL;
+	}
+	PSrsrvtn_put(res);
+    }
+
+    if (delegate != task && released) handleResRequests(delegate);
+
+    return;
+}
+
 static void sendRequests(void)
 {
     list_t *t;

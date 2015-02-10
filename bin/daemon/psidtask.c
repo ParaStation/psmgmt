@@ -430,6 +430,9 @@ void PStask_cleanup(PStask_ID_t tid)
 	    decJobs(1, (task->group==TG_ANY));
 	}
 
+	/* Release resources bound to reservations */
+	PSIDpart_cleanupRes(task);
+
 	/* Tell master about exiting root process */
 	if (task->request) send_CANCELPART(tid);
 	if (task->partition && task->partitionSize) send_TASKDEAD(tid);

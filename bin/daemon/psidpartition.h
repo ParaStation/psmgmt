@@ -314,6 +314,19 @@ void PSIDpart_register(PStask_t *task);
 void PSIDpart_sendResNodes(PSrsrvtn_ID_t resID, PStask_t *task,
 			   DDTypedBufferMsg_t *msg);
 
+/**
+ * @brief Cleanup reservations
+ *
+ * Cleanup all reservations associated to the task @a task. For this,
+ * all HW-threads allocatd in reservations are marked as unused again
+ * in the corresponding partition.
+ *
+ * @param task Task structure holding the reservations to cleanup
+ *
+ * @return No return value
+ */
+void PSIDpart_cleanupRes(PStask_t *task);
+
 #ifdef __cplusplus
 }/* extern "C" */
 #endif
