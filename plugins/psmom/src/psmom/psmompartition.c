@@ -43,79 +43,6 @@
 
 #include "psmompartition.h"
 
-/**
- * @brief Get job's HW-threads
- *
- * Convert the PBS node-list of the job @a job into a list of
- * HW-threads that is understood by ParaStation's psid and can be used
- * as a task's partition.
- *
- * @param job The job to convert the node-list for.
- *
- * @return Return the generated ParaStation list of HW-threads or NULL on
- * error.
- */
-static PSpart_HWThread_t *getThreads(Job_t *job)
-{
-    const char delim_host[] ="+\0";
-    char *exec_hosts;
-    char *tmp, *nodeStr, *toksave;
-    int threads = 0;
-    PSpart_HWThread_t *thrdList;
-
-    if (!(exec_hosts = getJobDetail(&job->data, "exec_host", NULL))) {
-	mdbg(PSMOM_LOG_WARN, "%s: getting exec_hosts for job '%s' failed\n",
-	    __func__, job->id);
-	return NULL;
-    }
-
-    thrdList = umalloc(job->nrOfNodes * sizeof(*thrdList));
-    if (!thrdList) {
-	mwarn(errno, "%s: thrdList", __func__);
-	return NULL;
-    }
-
-    tmp = ustrdup(exec_hosts);
-    nodeStr = strtok_r(tmp, delim_host, &toksave);
-    while (nodeStr) {
-	char *CPUStr = strchr(nodeStr,'/');
-	if (CPUStr) {
-	    PSnodes_ID_t node;
-	    char *endPtr;
-	    int16_t id;
-
-	    CPUStr[0] = '\0';
-	    CPUStr++;
-	    node = getNodeIDbyName(nodeStr);
-	    if (node == -1) {;
-		mlog("%s: No id for node '%s'\n", __func__, nodeStr);
-		free(thrdList);
-		return NULL;
-	    }
-	    id = strtol(CPUStr, &endPtr, 0);
-	    if (*endPtr != '\0') {
-		mlog("%s: No id for CPU '%s'\n", __func__, CPUStr);
-		free(thrdList);
-		return NULL;
-	    }
-	    if (threads >= job->nrOfNodes) {
-		mlog("%s: Too many nodes in exec_host list.\n", __func__);
-		free(thrdList);
-		return NULL;
-	    }
-
-	    thrdList[threads].node = node;
-	    thrdList[threads].id = id;
-	    thrdList[threads].timesUsed = 0;
-	    threads++;
-	}
-	nodeStr = strtok_r(NULL, delim_host, &toksave);
-    }
-    ufree(tmp);
-
-    return thrdList;
-}
-
 int isPSAdminUser(uid_t uid, gid_t gid)
 {
     if (!PSIDnodes_testGUID(PSC_getMyID(), PSIDNODES_ADMUSER,
@@ -245,25 +172,24 @@ void handlePSSpawnReq(DDTypedBufferMsg_t *msg)
 
 static void partitionDone(PStask_t *task)
 {
+    DDTypedMsg_t msg = (DDTypedMsg_t) {
+	.header = (DDMsg_t) {
+	    .type = PSP_CD_PARTITIONRES,
+	    .dest = task ? task->tid : 0,
+	    .sender = PSC_getMyTID(),
+	    .len = sizeof(msg) },
+	.type = 0};
+
     if (!task || !task->request) return;
 
     /* Cleanup the actual request not required any longer */
     PSpart_delReq(task->request);
     task->request = NULL;
 
-    /* Now register the partition at the master */
-    PSIDpart_register(task);
-
-    /* */
-    DDTypedMsg_t msg = (DDTypedMsg_t) {
-	.header = (DDMsg_t) {
-	    .type = PSP_CD_PARTITIONRES,
-	    .dest = task->tid,
-	    .sender = PSC_getMyTID(),
-	    .len = sizeof(msg) },
-	.type = 0};
+    /* Send result to requester */
     sendMsg(&msg);
 }
+
 int handleCreatePart(void *msg)
 {
     PStask_t *task;
@@ -306,19 +232,16 @@ int handleCreatePart(void *msg)
 	goto error;
     }
 
-    task->partThrds = getThreads(job);
-    if (!task->partThrds) {
-	/* we did not find the corresponding batch job */
-	mlog("%s: cannot create list of HW-threads for %s\n", __func__,
-	     PSC_printTID(task->tid));
+    if (!job->resDelegate) {
+	mdbg(-1, "%s: No delegate found for job '%s'\n", __func__, job->id);
 	errno = EACCES;
 	goto error;
     }
 
-    task->totalThreads = job->nrOfNodes;
-    task->usedThreads = 0;
-    task->activeChild = 0;
+    mdbg(PSMOM_LOG_VERBOSE, "%s: delegate has tid %s\n", __func__,
+	 PSC_printTID(job->resDelegate->tid));
 
+    task->delegate = job->resDelegate;
     task->options = task->request->options & ~PART_OPT_EXACT;
 
     if (!task->request->num) partitionDone(task);

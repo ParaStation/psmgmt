@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2013 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2015 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -28,6 +28,7 @@
 #include "list.h"
 #include "timer.h"
 #include "selector.h"
+#include "psidpartition.h"
 
 #include "pscommon.h"
 #include "psmompscomm.h"
@@ -355,6 +356,8 @@ Job_t *addJob(char *jobid, char *server)
     job->end_time = 0;
     job->start_time = 0;
 
+    job->resDelegate = NULL;
+
     INIT_LIST_HEAD(&job->data.list);
     INIT_LIST_HEAD(&job->status.list);
     INIT_LIST_HEAD(&job->tasks.list);
@@ -540,6 +543,13 @@ int deleteJob(char *jobid)
 	ufree(job->pwbuf);
     }
     ufree(job->nodes);
+
+    if (job->resDelegate) {
+	if (job->resDelegate->partition) {
+	    send_TASKDEAD(job->resDelegate->tid);
+	}
+	job->resDelegate->deleted = 1;
+    }
 
     clearDataList(&job->status.list);
     clearDataList(&job->data.list);

@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2013 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2015 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -51,6 +51,9 @@
 #include "timer.h"
 #include "selector.h"
 #include "psidutil.h"
+
+#include "psidtask.h"
+#include "psidpartition.h"
 
 #include "psmomscript.h"
 
@@ -223,6 +226,124 @@ void stopPElogueExecution(Job_t *job)
     }
 }
 
+/**
+ * @brief Get job's HW-threads
+ *
+ * Convert the PBS node-list of the job @a job into a list of
+ * HW-threads that is understood by ParaStation's psid and can be used
+ * as a task's partition.
+ *
+ * @param job The job to convert the node-list for.
+ *
+ * @return Return the generated ParaStation list of HW-threads or NULL on
+ * error.
+ */
+static PSpart_HWThread_t *getThreads(Job_t *job)
+{
+    const char delim_host[] ="+\0";
+    char *exec_hosts;
+    char *tmp, *nodeStr, *toksave;
+    int threads = 0;
+    PSpart_HWThread_t *thrdList;
+
+    if (!(exec_hosts = getJobDetail(&job->data, "exec_host", NULL))) {
+	mdbg(PSMOM_LOG_WARN, "%s: getting exec_hosts for job '%s' failed\n",
+	    __func__, job->id);
+	return NULL;
+    }
+
+    thrdList = umalloc(job->nrOfNodes * sizeof(*thrdList));
+    if (!thrdList) {
+	mwarn(errno, "%s: thrdList", __func__);
+	return NULL;
+    }
+
+    tmp = ustrdup(exec_hosts);
+    nodeStr = strtok_r(tmp, delim_host, &toksave);
+    while (nodeStr) {
+	char *CPUStr = strchr(nodeStr,'/');
+	if (CPUStr) {
+	    PSnodes_ID_t node;
+	    char *endPtr;
+	    int16_t id;
+
+	    CPUStr[0] = '\0';
+	    CPUStr++;
+	    node = getNodeIDbyName(nodeStr);
+	    if (node == -1) {;
+		mlog("%s: No id for node '%s'\n", __func__, nodeStr);
+		free(thrdList);
+		return NULL;
+	    }
+	    id = strtol(CPUStr, &endPtr, 0);
+	    if (*endPtr != '\0') {
+		mlog("%s: No id for CPU '%s'\n", __func__, CPUStr);
+		free(thrdList);
+		return NULL;
+	    }
+	    if (threads >= job->nrOfNodes) {
+		mlog("%s: Too many nodes in exec_host list.\n", __func__);
+		free(thrdList);
+		return NULL;
+	    }
+
+	    thrdList[threads].node = node;
+	    thrdList[threads].id = id;
+	    thrdList[threads].timesUsed = 0;
+	    threads++;
+	}
+	nodeStr = strtok_r(NULL, delim_host, &toksave);
+    }
+    ufree(tmp);
+
+    return thrdList;
+}
+
+static void registerPartition(Job_t *job, int childType)
+{
+    Child_t *jobChild;
+
+    if (!childType) return;
+
+    jobChild = findChildByJobid(job->id, childType);
+
+    if (!jobChild) {
+	mlog("%s: no child found, cannot register partition.\n", __func__);
+	return;
+    }
+
+    job->resDelegate = PStask_new();
+    if (!job->resDelegate)  {
+	mlog("%s: cannot create delegate.\n", __func__);
+	return;
+    }
+
+    job->resDelegate->group = TG_DELEGATE;
+    job->resDelegate->tid = PSC_getTID(-1, jobChild->pid);
+    mdbg(PSMOM_LOG_VERBOSE, "%s: use child with pid %d / tid %s\n", __func__,
+	 jobChild->pid, PSC_printTID(job->resDelegate->tid));
+    job->resDelegate->uid = job->passwd.pw_uid;
+    job->resDelegate->gid = job->passwd.pw_gid;
+    job->resDelegate->nextResID = job->resDelegate->tid + 0x042;
+    job->resDelegate->partThrds = getThreads(job);
+    if (!job->resDelegate->partThrds) {
+	/* we did not find the corresponding batch job */
+	mlog("%s: cannot create list of HW-threads for %s\n", __func__,
+	     PSC_printTID(job->resDelegate->tid));
+	PStask_delete(job->resDelegate);
+	job->resDelegate = NULL;
+	return;
+    }
+    job->resDelegate->totalThreads = job->nrOfNodes;
+    job->resDelegate->usedThreads = 0;
+    job->resDelegate->activeChild = 0;
+
+    PStasklist_enqueue(&managedTasks, job->resDelegate);
+
+    /* Now register the partition at the master */
+    PSIDpart_register(job->resDelegate);
+}
+
 static void PElogueExit(Job_t *job, int status, bool prologue)
 {
     char *peType;
@@ -264,6 +385,7 @@ static void PElogueExit(Job_t *job, int status, bool prologue)
 	}
 
 	if (prologue) {
+	    int childType = 0;
 	    /* stop execution if prologue failed */
 	    if (*epExit != 0 || job->state == JOB_CANCEL_PROLOGUE) {
 
@@ -285,6 +407,7 @@ static void PElogueExit(Job_t *job, int status, bool prologue)
 		/* job is interactive */
 		if ((com = getJobCom(job, JOB_CON_FORWARD))) {
 		    startInteractiveJob(job, com);
+		    childType = PSMOM_CHILD_INTERACTIVE;
 		} else {
 		    mlog("%s: interactive forwarder connection for job '%s'"
 			    " not found\n",
@@ -297,7 +420,10 @@ static void PElogueExit(Job_t *job, int status, bool prologue)
 		}
 	    } else {
 		spawnJobScript(job);
+		childType = PSMOM_CHILD_JOBSCRIPT;
 	    }
+	    /* Register partition here */
+	    registerPartition(job, childType);
 	} else {
 	    stopPElogueExecution(job);
 	}
