@@ -121,8 +121,7 @@ exit 0
 
 %files
 %defattr(-,root,root)
-%doc ChangeLog LICENSE.QPL NEWS VERSION.psmgmt
-%doc %{_docdir}/psmgmt/parastation.conf.tmpl
+%doc ChangeLog LICENSE.QPL NEWS VERSION.psmgmt doc/parastation.conf.tmpl
 %{_bindir}/mlisten
 %{_bindir}/mpiexec
 %{_bindir}/psaccounter
@@ -168,7 +167,7 @@ exit 0
 %config(missingok,noreplace) %{_sysconfdir}/profile.d/psmgmt.csh
 %{_sysconfdir}/init.d/parastation
 %config(noreplace) /etc/xinetd.d/psidstarter
-%ghost %config(missingok,noreplace) /etc/parastation.conf 
+%ghost %config(missingok,noreplace) /etc/parastation.conf
 %attr(770,root,root) %{_localstatedir}/log/psaccounter
 
 %files devel
