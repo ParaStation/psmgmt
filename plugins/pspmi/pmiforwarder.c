@@ -160,11 +160,11 @@ static int readFromPMIClient(int fd, void *data)
 
     pmiStatus = CONNECTED;
 
-    mdbg(PSPMI_LOG_VERBOSE, "%s: PMI message received:\n{%s}\n",
+    mdbg(PSPMI_LOG_RECV, "%s: PMI message received: {%s}\n",
 	 __func__, recvBuf);
 
     while(1) {
-	mdbg(PSPMI_LOG_VERBOSE, "%s: Current message buffer:\n{%s}\n",
+	mdbg(PSPMI_LOG_VERBOSE, "%s: Current message buffer: {%s}\n",
 	     __func__, msgBuf);
 
 	if (strncmp("cmd=", msgBuf, 4) == 0) {
@@ -195,7 +195,7 @@ static int readFromPMIClient(int fd, void *data)
 	strptr[0] = '\0';
 
         /* parse and handle the PMI msg */
-        mdbg(PSPMI_LOG_VERBOSE, "%s: PMI message complete:\n{%s}\n\n",
+        mdbg(PSPMI_LOG_RECV, "%s: PMI message complete: {%s}\n",
 	     __func__, msgBuf);
 	ret = handlePMIclientMsg(msgBuf);
 

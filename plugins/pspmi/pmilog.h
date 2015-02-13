@@ -33,6 +33,7 @@ void initLogger(FILE *logfile);
 void maskLogger(int32_t mask);
 
 typedef enum {
+    PSPMI_LOG_RECV    = 0x000001, /**< Log receive stuff */
     PSPMI_LOG_VERBOSE = 0x000010, /**< Other verbose stuff */
 } PSPMI_log_types_t;
 
