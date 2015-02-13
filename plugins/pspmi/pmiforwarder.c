@@ -124,8 +124,8 @@ static int readFromPMIClient(int fd, void *data)
 
     /* if there is a static buffer, append, else use stack buffer */
     if (mmBuffer) {
-	mmBuffer = urealloc(mmBuffer, mmBufferUsed + PMIU_MAXLINE);
-	mmBufferSize = mmBufferUsed + PMIU_MAXLINE;
+	mmBufferSize = mmBufferUsed + PMIU_MAXLINE + 1;
+	mmBuffer = urealloc(mmBuffer, mmBufferSize);
 	recvBuf = mmBuffer + mmBufferUsed;
 	msgBuf = mmBuffer;
 	msgBufUsed = mmBufferUsed;
@@ -217,6 +217,11 @@ static int readFromPMIClient(int fd, void *data)
 
 	msgBufUsed -= strlen(msgBuf) + 1;
 	msgBuf = strptr;
+    }
+
+    if (mmBuffer && (mmBuffer != msgBuf)) {
+	memmove(mmBuffer, msgBuf, msgBufUsed);
+	mmBufferUsed = msgBufUsed;
     }
 
     /* PMI communication finished */
