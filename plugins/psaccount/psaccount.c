@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2012 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010 - 2015 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -120,14 +120,14 @@ int initialize(void)
     struct utsname uts;
     char configfn[200];
 
-    /* init all lists */
-    initAccClientList();
-    initProcList();
-    initJobList();
-    initHist();
-
     /* init logging facility */
     initLogger(false);
+
+    /* init all lists */
+    initAccClientList();
+    initJobList();
+    initHist();
+    initProc();
 
     /* init the config facility */
     snprintf(configfn, sizeof(configfn), "%s/%s", PLUGINDIR, PSACCOUNT_CONFIG);
@@ -173,7 +173,7 @@ int initialize(void)
     }
 
     if (!Timer_isInitialized()) {
-	mdbg(LOG_VERBOSE, "timer facility not ready, trying to initialize"
+	mdbg(PSACC_LOG_VERBOSE, "timer facility not ready, trying to initialize"
 		" it\n");
 	Timer_init(NULL);
     }
@@ -216,4 +216,5 @@ void cleanup(void)
     clearAllProcSnapshots();
     clearHist();
     clearConfig();
+    clearCpuFreq();
 }

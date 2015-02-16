@@ -93,9 +93,7 @@ int stepCallback(int32_t exit_status, char *errMsg, size_t errLen, void *data)
     Step_t *step = fwdata->userData;
     Alloc_t *alloc;
 
-    if (errLen >0) {
-	mlog("%s: %s", __func__, errMsg);
-    }
+    if (errLen >0) mlog("%s: %s", __func__, errMsg);
 
     mlog("%s: step '%u:%u' state '%s' finished, exit '%u'\n", __func__,
 	step->jobid, step->stepid, strJobState(step->state), exit_status);
@@ -1036,8 +1034,10 @@ int handleUserOE(int sock, void *data)
 
     /* forward data to srun, size of 0 means EOF for stream */
     if ((ret = srunSendIO(type, step, buf, size)) != (size + 10)) {
-	mwarn(errno, "%s: sending IO failed: size:%i ret:%i ", __func__,
-		(size +10), ret);
+	if (!step->labelIO) {
+	    mwarn(errno, "%s: sending IO failed: size:%i ret:%i error:%i ",
+		    __func__, (size +10), ret, errno);
+	}
     }
 
     return 0;

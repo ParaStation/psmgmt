@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2013 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010 - 2015 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -100,9 +100,12 @@ void handleAccountEnd(DDTypedBufferMsg_t *msg, int remote)
 		job->grace = 1;
 	    } else {
 		/* psmom does not need the job, we can delete it */
+		/* but psslurm does need it! */
+		/*
 		if (!job->jobscript) {
 		    deleteJob(job->logger);
 		}
+		*/
 	    }
 	}
 	return;
@@ -208,9 +211,10 @@ void handleAccountEnd(DDTypedBufferMsg_t *msg, int remote)
     //ptr += sizeof(uint64_t);
     msg->header.len += sizeof(uint64_t);
 
-    mdbg(LOG_VERBOSE, "%s: exit child (%s): pid '%i' logger:%i "
-	"uid:%i gid:%i\n", __func__, getAccountMsgType(msg->type), child,
-	client->logger, client->uid, client->gid);
+    mdbg(PSACC_LOG_VERBOSE, "%s: child rank '%i' pid '%i' logger '%s' uid '%i' "
+	    "gid '%i' msg type '%s' finished\n", __func__, client->rank,  child,
+	PSC_printTID(client->logger), client->uid, client->gid,
+	getAccountMsgType(msg->type));
 
     /* forwarder to psaccount plugin with logger */
     if (!remote && globalCollectMode && PSC_getID(logger) != PSC_getMyID()) {
@@ -226,7 +230,7 @@ void handleAccountEnd(DDTypedBufferMsg_t *msg, int remote)
 	    /* all children exited */
 	    job->complete = 1;
 	    job->endTime = time(NULL);
-	    mdbg(LOG_VERBOSE, "%s: job complete [%i:%i]\n", __func__,
+	    mdbg(PSACC_LOG_VERBOSE, "%s: job complete [%i:%i]\n", __func__,
 		job->childsExit, job->nrOfChilds);
 
 	    if (PSC_getID(job->logger) != PSC_getMyID()) {
@@ -325,8 +329,8 @@ static void monitorJobStarted(void)
 		if (!job->jobscript) {
 
 		    if ((js = findJobscriptInClients(job))) {
-			mdbg(LOG_VERBOSE, "%s: found jobscript pid '%i'\n",
-			    __func__, js->pid);
+			mdbg(PSACC_LOG_VERBOSE, "%s: found jobscript pid "
+				"'%i'\n", __func__, js->pid);
 			job->jobscript = js->pid;
 			if (!job->jobid && js->jobid) {
 			    job->jobid = ustrdup(js->jobid);
@@ -426,7 +430,7 @@ void handlePSMsg(DDTypedBufferMsg_t *msg)
     if (msg->header.dest == PSC_getMyTID()) {
         /* message for me, let's get infos and forward to all accounters */
 
-	mdbg(LOG_ACC_MSG, "%s: got msg '%s'\n", __func__,
+	mdbg(PSACC_LOG_ACC_MSG, "%s: got msg '%s'\n", __func__,
 	     getAccountMsgType(msg->type));
 
 	switch (msg->type) {
@@ -449,7 +453,7 @@ void handlePSMsg(DDTypedBufferMsg_t *msg)
 		mlog("%s: invalid msg type '%i' sender '%s'\n", __func__,
 		    msg->type, PSC_printTID(msg->header.sender));
 	}
-	mdbg(LOG_VERBOSE, "%s: msg type '%s' sender '%s'\n",
+	mdbg(PSACC_LOG_VERBOSE, "%s: msg type '%s' sender '%s'\n",
 	   __func__, getAccountMsgType(msg->type),
 	   PSC_printTID(msg->header.sender));
     }

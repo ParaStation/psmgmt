@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010 - 2014 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010 - 2015 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -14,6 +14,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "pluginmalloc.h"
+#include "plugincomm.h"
+#include "pluginfrag.h"
+
 #include "psaccount.h"
 #include "psaccountcomm.h"
 #include "psaccountclient.h"
@@ -21,7 +25,6 @@
 #include "psaccountproc.h"
 #include "psaccountclient.h"
 #include "psaccounthistory.h"
-#include "pluginmalloc.h"
 
 #include "psaccountinter.h"
 
@@ -44,28 +47,21 @@ int psAccountGetJobData(pid_t jobscript, AccountDataExt_t *accData)
 {
     Client_t *client;
     Job_t *job;
+    list_t *pos, *tmp;
 
     memset(accData, 0, sizeof(AccountDataExt_t));
 
     if (!(client = findAccClientByClientPID(jobscript))) {
 	mlog("%s: getting account info by client '%i' failed\n", __func__,
 		jobscript);
-	return false;
+	return 0;
     }
 
-    /* find job */
-    if (!(job = findJobByJobscript(jobscript))) {
-
-	/* no MPI job started, get info for local clients */
-	addAccDataForClient(client, accData);
-    } else {
-	/* search all parallel jobs and calc data */
-	list_t *pos, *tmp;
-
-	if (list_empty(&JobList.list)) return false;
+    /* find the parallel job */
+    if ((job = findJobByJobscript(jobscript))) {
 
 	list_for_each_safe(pos, tmp, &JobList.list) {
-	    if ((job = list_entry(pos, Job_t, list)) == NULL) break;
+	    if (!(job = list_entry(pos, Job_t, list))) break;
 
 	    if (job->jobscript == jobscript) {
 
@@ -76,12 +72,12 @@ int psAccountGetJobData(pid_t jobscript, AccountDataExt_t *accData)
 		}
 	    }
 	}
-
-	/* finally add the jobscript */
-	addAccDataForClient(client, accData);
     }
 
-    return true;
+    /* add the jobscript */
+    addAccDataForClient(client, accData);
+
+    return 1;
 }
 
 int psAccountGetJobInfo(pid_t jobscript, psaccAccountInfo_t *accData)
@@ -112,7 +108,7 @@ int psAccountGetJobInfo(pid_t jobscript, psaccAccountInfo_t *accData)
 	if (list_empty(&JobList.list)) return false;
 
 	list_for_each_safe(pos, tmp, &JobList.list) {
-	    if ((job = list_entry(pos, Job_t, list)) == NULL) break;
+	    if (!(job = list_entry(pos, Job_t, list))) break;
 
 	    if (job->jobscript == jobscript) {
 
@@ -151,23 +147,20 @@ int psAccountGetJobInfo(pid_t jobscript, psaccAccountInfo_t *accData)
  *
  * @return No return value.
  */
-static void handleAccountUpdate(DDTypedBufferMsg_t *msg)
+static void handleAccountUpdate(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 {
-    uint64_t rssnew, vsizenew, cutime, cstime, threads;
+    uint64_t rssnew, vsizenew, cutime, cstime, threads, majflt, pageSize;
+    uint64_t rChar, wChar, readBytes, writeBytes, cpuFreq;
     Client_t *client;
     PStask_ID_t tid, logger;
     AccountData_t *accData;
-    char *ptr;
+    char *ptr = data->buf;
 
-    ptr = msg->buf;
+    /* get TaskID of logger */
+    getInt32(&ptr, &logger);
 
-    /* extract TaskID of logger */
-    logger = *(PStask_ID_t *) ptr;
-    ptr += sizeof(PStask_ID_t);
-
-    /* extract TaskID of remote child */
-    tid = *(PStask_ID_t *) ptr;
-    ptr += sizeof(PStask_ID_t);
+    /* get TaskID of remote child */
+    getInt32(&ptr, &tid);
 
     if (!(client = findAccClientByClientTID(tid))) {
 	if (!(findHist(logger))) {
@@ -179,44 +172,60 @@ static void handleAccountUpdate(DDTypedBufferMsg_t *msg)
     accData = &client->data;
 
     /* pageSize */
-    if (!client->pageSize) client->pageSize = *(uint64_t *) ptr;
-    ptr += sizeof(uint64_t);
+    getUint64(&ptr, &pageSize);
+    if (!client->pageSize) client->pageSize = pageSize;
 
     /* maxRss */
-    rssnew = *(uint64_t *) ptr;
-    ptr += sizeof(uint64_t);
+    getUint64(&ptr, &rssnew);
     if (rssnew > accData->maxRss) accData->maxRss = rssnew;
     accData->avgRss += rssnew;
     accData->avgRssCount++;
 
     /* maxVsize */
-    vsizenew = *(uint64_t *) ptr;
-    ptr += sizeof(uint64_t);
+    getUint64(&ptr, &vsizenew);
     if (vsizenew > accData->maxVsize) accData->maxVsize = vsizenew;
     accData->avgVsize += vsizenew;
     accData->avgVsizeCount++;
 
     /* cutime */
-    cutime = *(uint64_t *) ptr;
-    ptr += sizeof(uint64_t);
+    getUint64(&ptr, &cutime);
     if (cutime > accData->cutime) accData->cutime = cutime;
 
     /* cstime */
-    cstime = *(uint64_t *) ptr;
-    ptr += sizeof(uint64_t);
+    getUint64(&ptr, &cstime);
     if (cstime > accData->cstime) accData->cstime = cstime;
 
     /* threads */
-    threads = *(uint64_t *) ptr;
-    //ptr += sizeof(uint64_t);
+    getUint64(&ptr, &threads);
     if (threads > accData->maxThreads) accData->maxThreads = threads;
     accData->avgThreads += threads;
     accData->avgThreadsCount++;
 
-    mdbg(LOG_UPDATE_MSG, "%s: received update for client '%s' maxRss '%zu'"
-	    " maxVsize '%zu' cutime '%zu' cstime '%zu'\n", __func__,
-	PSC_printTID(client->taskid),
-	rssnew, vsizenew, cutime, cstime);
+    /* majflt */
+    getUint64(&ptr, &majflt);
+    if (majflt > accData->majflt) accData->majflt = majflt;
+
+    /* rChar/wChar */
+    getUint64(&ptr, &rChar);
+    if (rChar > accData->rChar) accData->rChar = rChar;
+    getUint64(&ptr, &wChar);
+    if (wChar > accData->wChar) accData->wChar = wChar;
+
+    /* readBytes/writeBytes */
+    getUint64(&ptr, &readBytes);
+    if (readBytes > accData->readBytes) accData->readBytes = readBytes;
+    getUint64(&ptr, &writeBytes);
+    if (writeBytes > accData->writeBytes) accData->writeBytes = writeBytes;
+
+    /* CPU freq */
+    getUint64(&ptr, &cpuFreq);
+    if (cpuFreq > accData->cpuFreq) accData->cpuFreq = cpuFreq;
+
+    mdbg(PSACC_LOG_UPDATE_MSG, "%s: client '%s' maxRss '%zu'" " maxVsize '%zu' "
+	    "cutime '%zu' cstime '%zu' majflt '%zu' rChar '%zu' wChar '%zu' "
+	    "readBytes '%zu' writeBytes '%zu' cpuFreq '%zu'\n", __func__,
+	    PSC_printTID(client->taskid), rssnew, vsizenew, cutime,
+	    cstime, majflt, rChar, wChar, readBytes, writeBytes, cpuFreq);
 }
 
 void handleInterAccount(DDTypedBufferMsg_t *msg)
@@ -231,7 +240,7 @@ void handleInterAccount(DDTypedBufferMsg_t *msg)
 	    handleAccountEnd(msg, 1);
 	    break;
 	case PSP_ACCOUNT_DATA_UPDATE:
-	    handleAccountUpdate(msg);
+	    recvFragMsg(msg, handleAccountUpdate);
 	    break;
 	default:
 	    mlog("%s: unknown msg type '%i' form sender '%s'\n", __func__,
@@ -242,65 +251,55 @@ void handleInterAccount(DDTypedBufferMsg_t *msg)
 void sendAccountUpdate(Client_t *client)
 {
     PSnodes_ID_t loggerNode = PSC_getID(client->logger);
-    char *ptr;
-
-    DDTypedBufferMsg_t msg = {
-	.type = PSP_ACCOUNT_DATA_UPDATE,
-	.header = {
-	    .type = PSP_CC_PLUG_ACCOUNT,
-	    .sender = PSC_getMyTID(),
-	    .dest = PSC_getTID(loggerNode, 0),
-	    .len = sizeof(msg.header) + sizeof(msg.type) },
-	.buf = { 0 } };
-
-    ptr = msg.buf;
+    PS_DataBuffer_t data = { .buf = NULL };
 
     /* add logger TaskID */
-    *(PStask_ID_t *) ptr = client->logger;
-    ptr += sizeof(PStask_ID_t);
-    msg.header.len += sizeof(PStask_ID_t);
+    addInt32ToMsg(client->logger, &data);
 
     /* add client TaskID */
-    *(PStask_ID_t *) ptr = client->taskid;
-    ptr += sizeof(PStask_ID_t);
-    msg.header.len += sizeof(PStask_ID_t);
+    addInt32ToMsg(client->taskid, &data);
 
     /* pageSize */
-    *(uint64_t *) ptr = pageSize;
-    ptr += sizeof(uint64_t);
-    msg.header.len += sizeof(uint64_t);
+    addUint64ToMsg(pageSize, &data);
 
     /* maxRss */
-    *(uint64_t *) ptr = client->data.maxRss;
-    ptr += sizeof(uint64_t);
-    msg.header.len += sizeof(uint64_t);
+    addUint64ToMsg(client->data.maxRss, &data);
 
     /* maxVsize */
-    *(uint64_t *) ptr = client->data.maxVsize;
-    ptr += sizeof(uint64_t);
-    msg.header.len += sizeof(uint64_t);
+    addUint64ToMsg(client->data.maxVsize, &data);
 
     /* cutime */
-    *(uint64_t *) ptr = client->data.cutime;
-    ptr += sizeof(uint64_t);
-    msg.header.len += sizeof(uint64_t);
+    addUint64ToMsg(client->data.cutime, &data);
 
     /* cstime */
-    *(uint64_t *) ptr = client->data.cstime;
-    ptr += sizeof(uint64_t);
-    msg.header.len += sizeof(uint64_t);
+    addUint64ToMsg(client->data.cstime, &data);
 
     /* threads */
-    *(uint64_t *) ptr = client->data.maxThreads;
-    // ptr += sizeof(uint64_t);
-    msg.header.len += sizeof(uint64_t);
+    addUint64ToMsg(client->data.maxThreads, &data);
 
-    mdbg(LOG_UPDATE_MSG, "%s: sending account update for '%s' maxRss '%zu'"
-	    " maxVsize '%zu' cutime '%zu' cstime '%zu'\n", __func__,
-	    PSC_printTID(client->taskid), client->data.maxRss,
-	    client->data.maxVsize, client->data.cutime, client->data.cstime);
+    /* major page faults */
+    addUint64ToMsg(client->data.majflt, &data);
 
-    sendMsg(&msg);
+    /* rChar/wChar */
+    addUint64ToMsg(client->data.rChar, &data);
+    addUint64ToMsg(client->data.wChar, &data);
+
+    /* readBytes/writeBytes */
+    addUint64ToMsg(client->data.readBytes, &data);
+    addUint64ToMsg(client->data.writeBytes, &data);
+
+    /* CPU freq */
+    addUint64ToMsg(client->data.cpuFreq, &data);
+
+    mdbg(PSACC_LOG_UPDATE_MSG, "%s: dest '%s' maxRss '%zu' maxVsize '%zu' "
+	    "cutime '%zu' cstime '%zu' maxThreads '%zu' majflt '%zu' "
+	    "cpuFreq '%zu'\n", __func__, PSC_printTID(client->taskid),
+	    client->data.maxRss, client->data.maxVsize, client->data.cutime,
+	    client->data.cstime, client->data.maxThreads, client->data.majflt,
+	    client->data.cpuFreq);
+
+    sendFragMsg(&data, PSC_getTID(loggerNode, 0), PSP_CC_PLUG_ACCOUNT,
+		    PSP_ACCOUNT_DATA_UPDATE);
 }
 
 void forwardAccountMsg(DDTypedBufferMsg_t *msg, int type, PStask_ID_t logger)
@@ -371,7 +370,7 @@ int psAccountreadProcStatInfo(pid_t pid, ProcStat_t *pS)
    return readProcStatInfo(pid, pS);
 }
 
-void psAccountRegisterMOMJob(pid_t jsPid, char *jobid)
+void psAccountRegisterJob(pid_t jsPid, char *jobid)
 {
     PStask_ID_t taskID;
     Client_t *client;
@@ -382,7 +381,7 @@ void psAccountRegisterMOMJob(pid_t jsPid, char *jobid)
     client->jobid = ustrdup(jobid);
 }
 
-void psAccountUnregisterMOMJob(pid_t jsPid)
+void psAccountUnregisterJob(pid_t jsPid)
 {
     list_t *pos, *tmp;
     PStask_ID_t taskID;
@@ -392,13 +391,11 @@ void psAccountUnregisterMOMJob(pid_t jsPid)
     taskID = PSC_getTID(PSC_getMyID(), jsPid);
     deleteAccClient(taskID);
 
-    if (!list_empty(&JobList.list)) {
-	list_for_each_safe(pos, tmp, &JobList.list) {
-	    if ((job = list_entry(pos, Job_t, list)) == NULL) break;
+    list_for_each_safe(pos, tmp, &JobList.list) {
+	if (!(job = list_entry(pos, Job_t, list))) break;
 
-	    if (job->jobscript == jsPid) {
-		deleteJob(job->logger);
-	    }
+	if (job->jobscript == jsPid) {
+	    deleteJob(job->logger);
 	}
     }
 }
@@ -423,12 +420,10 @@ PStask_ID_t psAccountgetLoggerByClientPID(pid_t pid)
 
     /* try to find the pid in the acc children */
     list_for_each(pos, &AccClientList.list) {
-	if ((client = list_entry(pos, Client_t, list)) == NULL) break;
+	if (!(client = list_entry(pos, Client_t, list))) break;
 
 	/* try pid */
-	if (client->pid == pid) {
-	    return client->logger;
-	}
+	if (client->pid == pid) return client->logger;
 
 	if (!psOK) continue;
 
@@ -445,7 +440,7 @@ PStask_ID_t psAccountgetLoggerByClientPID(pid_t pid)
 
     /* try all grand-children now */
     list_for_each(pos, &AccClientList.list) {
-	if ((client = list_entry(pos, Client_t, list)) == NULL) break;
+	if (!(client = list_entry(pos, Client_t, list))) break;
 
 	if (isChildofParent(client->pid, pid)) {
 	    return client->logger;

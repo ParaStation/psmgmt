@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010 - 2014 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010 - 2015 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -20,7 +20,7 @@
 #include "psaccountproc.h"
 
 typedef enum {
-    PSP_ACCOUNT_FORWARD_START = 0x00000,    /**< req psmom version information */
+    PSP_ACCOUNT_FORWARD_START = 0x00000,
     PSP_ACCOUNT_FORWARD_END,
     PSP_ACCOUNT_DATA_UPDATE,
 } PSP_PSAccount_t;
@@ -58,37 +58,6 @@ void forwardAccountMsg(DDTypedBufferMsg_t *msg, int type, PStask_ID_t logger);
  * @return No return value.
  */
 void sendAccountUpdate(Client_t *client);
-
-/**
- * @brief Register a PBS jobscript via its pid.
- *
- * This function is called by the psmom, because only
- * the psmom knows the pid of the jobscript. The psaccount
- * plugin is then able to identify all processes associated
- * with this jobscript.
- *
- * This enables the psmom the get valid accounting data for
- * all processes in the job, although it only knows the jobscript.
- *
- * @param jsPid The pid of the jobscript to register.
- *
- * @param jobid The torque jobid.
- *
- * @return No return value.
- */
-void psAccountRegisterMOMJob(pid_t jsPid, char *jobid);
-
-/**
- * @brief Unregister a PBS jobscript.
- *
- * The job has finished and the psmom is telling us to stop
- * accounting for this jobscript.
- *
- * @param jsPid The pid of the jobscript to un-register.
- *
- * @return No return value.
- */
-void psAccountUnregisterMOMJob(pid_t jsPid);
 
 /**
  * @brief Enable the global collection of accounting data.

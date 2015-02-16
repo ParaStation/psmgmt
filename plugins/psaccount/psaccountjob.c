@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2012 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010 - 2015 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -95,14 +95,11 @@ int deleteJob(PStask_ID_t loggerTID)
     /* delete all childs */
     deleteAllAccClientsByLogger(loggerTID);
 
-    if ((job = findJobByLogger(loggerTID)) == NULL) {
-	return 0;
-    }
+    if (!(job = findJobByLogger(loggerTID))) return 0;
 
-    if (job->jobid) {
-	ufree (job->jobid);
-    }
     list_del(&job->list);
+
+    ufree (job->jobid);
     ufree(job);
     return 1;
 }
@@ -145,7 +142,7 @@ void cleanupJobs()
 	if (job->complete) {
 	    /* check timeout */
 	    if (job->endTime + 60 * grace <= now) {
-		mdbg(LOG_VERBOSE, "%s: clean job '%i'\n", __func__,
+		mdbg(PSACC_LOG_VERBOSE, "%s: clean job '%i'\n", __func__,
 		job->logger);
 		deleteJob(job->logger);
 	    }

@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014 - 2015 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -952,7 +952,8 @@ static void handleStepStat(char *ptr, int sock, Slurm_msg_header_t *msgHead)
     ptrNumTasks = msg.buf + msg.bufUsed;
     addUint32ToMsg(SLURM_SUCCESS, &msg);
     /* account data */
-    numTasks = addSlurmAccData(step->accType, 0, step->loggerTID, &msg);
+    numTasks = addSlurmAccData(step->accType, 0, step->loggerTID, &msg,
+				step->nodes, step->nrOfNodes);
     /* correct numTasks */
     *(uint32_t *) ptrNumTasks = htonl(numTasks);
     /* add step pids */
@@ -1485,7 +1486,7 @@ static void handleTerminateReq(char *ptr, int sock, Slurm_msg_header_t *msgHead)
     }
 }
 
-static int getSlurmMsgHeader(int sock, char **ptr, Slurm_msg_header_t *head)
+int getSlurmMsgHeader(int sock, char **ptr, Slurm_msg_header_t *head)
 {
     uint32_t timeout;
     char *nl;
@@ -1836,8 +1837,37 @@ void addSlurmPids(PStask_ID_t loggerTID, PS_DataBuffer_t *data)
     ufree(pids);
 }
 
+int getSlurmNodeID(PSnodes_ID_t psNodeID, PSnodes_ID_t *nodes,
+		    uint32_t nrOfNodes)
+{
+    uint32_t i;
+
+    for (i=0; i<nrOfNodes; i++) {
+	if (nodes[i] == psNodeID) return i;
+    }
+    return -1;
+}
+
+static void packAccNodeId(PS_DataBuffer_t *data, int type,
+			    AccountDataExt_t *accData, PSnodes_ID_t *nodes,
+			    uint32_t nrOfNodes)
+{
+    PSnodes_ID_t psNodeID;
+    int nid;
+
+    psNodeID = PSC_getID(accData->taskIds[type]);
+
+    if ((nid = getSlurmNodeID(psNodeID, nodes, nrOfNodes)) < 0) {
+	addUint32ToMsg((uint32_t) 0, data);
+    } else {
+	addUint32ToMsg((uint32_t) nid, data);
+    }
+    addUint16ToMsg((uint16_t) 0, data);
+}
+
 int addSlurmAccData(uint8_t accType, pid_t childPid, PStask_ID_t loggerTID,
-			PS_DataBuffer_t *data)
+			PS_DataBuffer_t *data, PSnodes_ID_t *nodes,
+			uint32_t nrOfNodes)
 {
     AccountDataExt_t accData;
     int i, res = 0;
@@ -1857,8 +1887,8 @@ int addSlurmAccData(uint8_t accType, pid_t childPid, PStask_ID_t loggerTID,
     }
 
     if (!res) {
-	mlog("%s: getting account data for pid '%u' failed\n",
-		__func__, childPid);
+	mlog("%s: getting account data for pid '%u' logger '%s' failed\n",
+		__func__, childPid, PSC_printTID(loggerTID));
 
 	for (i=0; i<6; i++) {
 	    addUint64ToMsg(0, data);
@@ -1876,73 +1906,68 @@ int addSlurmAccData(uint8_t accType, pid_t childPid, PStask_ID_t loggerTID,
 	return 0;
     }
 
-    /*
-    mlog("%s: adding account data: maxVsize '%zu' maxRss '%zu' "
+    mlog("%s: adding account data: maxVsize '%zu' maxRss '%zu' pageSize '%lu'"
 	    "u_sec '%lu' u_usec '%lu' s_sec '%lu' s_usec '%lu' "
-	    "num_tasks '%u'\n",
-	    __func__, accData.maxVsize, accData.maxRss,
+	    "num_tasks '%u' mem '%lu' vmem '%lu' avg cpufreq '%.2fG'\n",
+	    __func__, accData.maxVsize, accData.maxRss, accData.pageSize,
 	    accData.rusage.ru_utime.tv_sec,
 	    accData.rusage.ru_utime.tv_usec,
 	    accData.rusage.ru_stime.tv_sec,
 	    accData.rusage.ru_stime.tv_usec,
-	    accData.numTasks);
-    */
+	    accData.numTasks, accData.mem, accData.vmem,
+	    ((double) accData.cpuFreq / (double) accData.numTasks)
+		/ (double) 1048576);
 
-    /* user cpu sec */
+    /* user cpu sec/usec */
     addUint32ToMsg(accData.rusage.ru_utime.tv_sec, data);
-    /* user cpu usec */
     addUint32ToMsg(accData.rusage.ru_utime.tv_usec, data);
-    /* system cpu sec */
+
+    /* system cpu sec/usec */
     addUint32ToMsg(accData.rusage.ru_stime.tv_sec, data);
-    /* system cpu usec */
     addUint32ToMsg(accData.rusage.ru_stime.tv_usec, data);
 
     /* max vsize */
-    addUint64ToMsg(accData.maxVsize, data);
-    /* tot vsize */
-    addUint64ToMsg(0, data);
-    /* max rss */
-    addUint64ToMsg(accData.maxRss, data);
-    /* tot rss */
-    addUint64ToMsg(0, data);
-    /* max pages */
-    addUint64ToMsg(0, data);
-    /* tot pages */
-    addUint64ToMsg(0, data);
+    addUint64ToMsg(accData.vmem, data);
+    /* total vsize */
+    addUint64ToMsg(accData.maxVsize / 1024, data);
 
-    /* min cpu */
-    addUint32ToMsg(0, data);
-    /* tot cpu */
-    addUint32ToMsg(0, data);
+    /* max rss */
+    addUint64ToMsg(accData.mem, data);
+    /* total rss */
+    addUint64ToMsg(accData.maxRss * (accData.pageSize / 1024), data);
+
+    /* max/total major page faults */
+    addUint64ToMsg(accData.maxMajflt, data);
+    addUint64ToMsg(accData.totMajflt, data);
+
+    /* minimum cpu time */
+    addUint32ToMsg(accData.minCputime, data);
+
+    /* total cpu time */
+    addUint32ToMsg(accData.totCputime, data);
+
     /* act cpufreq */
-    addUint32ToMsg(0, data);
+    addUint32ToMsg(accData.cpuFreq, data);
+
     /* energy consumed */
     addUint32ToMsg(0, data);
 
-    /*
-    packdouble((double)jobacct->max_disk_read, buffer);
-    packdouble((double)jobacct->tot_disk_read, buffer);
-    packdouble((double)jobacct->max_disk_write, buffer);
-    packdouble((double)jobacct->tot_disk_write, buffer);
-    */
-    for (i=0; i<4; i++) {
-	addDoubleToMsg(0, data);
-    }
+    /* max/total disk read */
+    addDoubleToMsg(accData.maxDiskRead, data);
+    addDoubleToMsg(accData.totDiskRead, data);
 
-    /*
-    _pack_jobacct_id(&jobacct->max_vsize_id, rpc_version, buffer);
-    _pack_jobacct_id(&jobacct->max_rss_id, rpc_version, buffer);
-    _pack_jobacct_id(&jobacct->max_pages_id, rpc_version, buffer);
-    _pack_jobacct_id(&jobacct->min_cpu_id, rpc_version, buffer);
-    _pack_jobacct_id(&jobacct->max_disk_read_id, rpc_version,
-	    buffer);
-    _pack_jobacct_id(&jobacct->max_disk_write_id, rpc_version,
-	    buffer);
-    */
-    for (i=0; i<6; i++) {
-	addUint32ToMsg((uint32_t) NO_VAL, data);
-	addUint16ToMsg((uint16_t) NO_VAL, data);
-    }
+    /* max/total disk write */
+    addDoubleToMsg(accData.maxDiskWrite, data);
+    addDoubleToMsg(accData.totDiskWrite, data);
+
+    /* node ids */
+    packAccNodeId(data, ACCID_MAX_VSIZE, &accData, nodes, nrOfNodes);
+    packAccNodeId(data, ACCID_MAX_RSS, &accData, nodes, nrOfNodes);
+    packAccNodeId(data, ACCID_MAX_PAGES, &accData, nodes, nrOfNodes);
+    packAccNodeId(data, ACCID_MIN_CPU, &accData, nodes, nrOfNodes);
+    packAccNodeId(data, ACCID_MAX_DISKREAD, &accData, nodes, nrOfNodes);
+    packAccNodeId(data, ACCID_MAX_DISKWRITE, &accData, nodes, nrOfNodes);
+
     return accData.numTasks;
 }
 
@@ -1961,7 +1986,8 @@ void sendStepExit(Step_t *step, int exit_status)
     addUint32ToMsg(exit_status, &body);
 
     /* account data */
-    addSlurmAccData(step->accType, step->fwdata->childPid, 0, &body);
+    addSlurmAccData(step->accType, 0, PSC_getTID(-1, step->fwdata->childPid),
+		    &body, step->nodes, step->nrOfNodes);
 
     mlog("%s: sending REQUEST_STEP_COMPLETE to slurmctld\n", __func__);
 
@@ -2099,7 +2125,8 @@ void sendJobExit(Job_t *job, uint32_t status)
     id = atoi(job->id);
 
     /* batch job */
-    addSlurmAccData(job->accType, job->fwdata->childPid, 0, &body);
+    addSlurmAccData(job->accType, job->fwdata->childPid, 0, &body,
+			job->nodes, job->nrOfNodes);
     /* jobid */
     addUint32ToMsg(id, &body);
     /* jobscript exit code */

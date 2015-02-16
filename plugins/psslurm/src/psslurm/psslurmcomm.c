@@ -328,22 +328,18 @@ static void addSlurmHeader(slurm_msg_type_t type, PS_DataBuffer_t *data,
 
 static int handleSlurmctldReply(int sock, void *data, size_t len, int error)
 {
+    Slurm_msg_header_t msgHead;
     char *ptr;
-    uint16_t tmp;
+    uint32_t rc;
 
     if (error) return 0;
 
     ptr = data;
+    getSlurmMsgHeader(sock, &ptr, &msgHead);
+    getUint32(&ptr, &rc);
 
-    getUint16(&ptr, &tmp);
-    getUint16(&ptr, &tmp);
-    getUint16(&ptr, &tmp);
-
-    //if (job) mlog("%s: job '%s'\n", __func__, job->id);
-
-    mdbg(PSSLURM_LOG_PROTO, "%s: got %zu bytes type:%i '%s'\n", __func__, len,
-	    tmp, msgType2String(tmp));
-
+    mdbg(PSSLURM_LOG_PROTO, "%s: type '%s' rc '%u'\n", __func__,
+	    msgType2String(msgHead.type), rc);
 
     /* TODO handle the message */
 

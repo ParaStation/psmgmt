@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010 - 2014 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010 - 2015 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -14,11 +14,12 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+#include "pluginmalloc.h"
+
+#include "psaccount.h"
 #include "psaccountcollect.h"
 #include "psaccountlog.h"
 #include "psaccountproc.h"
-#include "pluginmalloc.h"
-#include "psaccount.h"
 #include "psaccountconfig.h"
 
 #include "psaccountclient.h"
@@ -107,12 +108,9 @@ static Client_t *findJobscriptByLogger(PStask_ID_t logger)
     struct list_head *pos;
     Client_t *jobscript;
 
-    if (list_empty(&AccClientList.list)) return NULL;
-
     list_for_each(pos, &AccClientList.list) {
-	if ((jobscript = list_entry(pos, Client_t, list)) == NULL) {
-	    return NULL;
-	}
+	if (!(jobscript = list_entry(pos, Client_t, list))) return NULL;
+
 	if (jobscript->type == ACC_CHILD_JOBSCRIPT) {
 	    /* check if the jobscript is a parent of logger */
 	    if ((isChildofParent(jobscript->pid, PSC_getPID(logger)))) {
@@ -134,12 +132,9 @@ Client_t *findJobscriptInClients(Job_t *job)
     struct list_head *pos;
     Client_t *client, *js;
 
-    if (list_empty(&AccClientList.list)) return NULL;
-
     list_for_each(pos, &AccClientList.list) {
-	if ((client = list_entry(pos, Client_t, list)) == NULL) {
-	    return NULL;
-	}
+	if (!(client = list_entry(pos, Client_t, list))) return NULL;
+
 	if (client->job == job && client->type == ACC_CHILD_PSIDCHILD) {
 	    if ((js = findJobscriptByLogger(client->logger))) return js;
 	}
@@ -149,9 +144,26 @@ Client_t *findJobscriptInClients(Job_t *job)
 
 void addAccDataForClient(Client_t *client, AccountDataExt_t *accData)
 {
+    uint64_t tmp;
+    double dtmp;
+
     accData->maxThreads += client->data.maxThreads;
     accData->maxVsize += client->data.maxVsize;
     accData->maxRss += client->data.maxRss;
+
+    /* mem */
+    tmp =  client->data.maxRss * (client->pageSize / 1024);
+    if (accData->mem < tmp) {
+	accData->mem = tmp;
+	accData->taskIds[ACCID_MAX_RSS] = client->taskid;
+    }
+
+    /* vmem */
+    tmp = client->data.maxVsize / 1024;
+    if (accData->vmem < tmp) {
+	accData->vmem = tmp;;
+	accData->taskIds[ACCID_MAX_VSIZE] = client->taskid;
+    }
 
     accData->avgThreads	+= client->data.avgThreads;
     accData->avgThreadsCount += client->data.avgThreadsCount;
@@ -162,15 +174,66 @@ void addAccDataForClient(Client_t *client, AccountDataExt_t *accData)
 
     accData->cutime += client->data.cutime;
     accData->cstime += client->data.cstime;
+
     accData->cputime += client->data.cputime;
     accData->pageSize = client->pageSize;
+
     accData->rusage.ru_utime.tv_sec += client->rusage.ru_utime.tv_sec;
     accData->rusage.ru_utime.tv_usec += client->rusage.ru_utime.tv_usec;
     accData->rusage.ru_stime.tv_sec += client->rusage.ru_stime.tv_sec;
     accData->rusage.ru_stime.tv_usec += client->rusage.ru_stime.tv_usec;
-    accData->numTasks += client->data.numTasks;
-}
 
+    /* min cputime */
+    tmp = client->rusage.ru_utime.tv_sec + client->rusage.ru_stime.tv_sec;
+    if (!accData->numTasks) {
+	accData->minCputime = tmp;
+	accData->taskIds[ACCID_MIN_CPU] = client->taskid;
+    } else if (accData->minCputime > tmp) {
+	accData->minCputime = tmp;
+	accData->taskIds[ACCID_MIN_CPU] = client->taskid;
+    }
+
+    /* total cputime */
+    accData->totCputime +=
+		client->rusage.ru_utime.tv_sec + client->rusage.ru_stime.tv_sec;
+
+    /* major page faults */
+    accData->totMajflt += client->data.majflt;
+    if (client->data.majflt > accData->maxMajflt) {
+	accData->maxMajflt = client->data.majflt;
+	accData->taskIds[ACCID_MAX_PAGES] = client->taskid;
+    }
+
+    /* disc read */
+    dtmp = (double) client->data.rChar / (double)1048576;
+    accData->totDiskRead += dtmp;
+    if (dtmp > accData->maxDiskRead) {
+	accData->maxDiskRead = dtmp;
+	accData->taskIds[ACCID_MAX_DISKREAD] = client->taskid;
+    }
+
+    /* disc write */
+    dtmp = (double) client->data.wChar / (double)1048576;
+    accData->totDiskWrite += dtmp;
+    if (dtmp > accData->maxDiskWrite) {
+	accData->maxDiskWrite = dtmp;
+	accData->taskIds[ACCID_MAX_DISKWRITE] = client->taskid;
+    }
+
+    accData->numTasks++;
+
+    /* cpu freq */
+    accData->cpuFreq += client->data.cpuFreq;
+
+    mdbg(PSACC_LOG_AGGREGATE, "%s: client '%s' maxThreads '%lu' maxVsize '%lu' "
+	    "maxRss '%lu' cutime '%lu' cstime '%lu' cputime '%lu' avg cpuFreq "
+	    "'%.2fG'\n", __func__, PSC_printTID(client->taskid),
+	    client->data.maxThreads, client->data.maxVsize,
+	    client->data.maxRss, client->data.cutime, client->data.cstime,
+	    client->data.cputime,
+	    ((double) accData->cpuFreq / (double) accData->numTasks) /
+	    (double) 1048576);
+}
 
 int getPidsByLogger(PStask_ID_t logger, pid_t **pids, uint32_t *count)
 {
@@ -208,17 +271,17 @@ int getAccountDataByLogger(PStask_ID_t logger, AccountDataExt_t *accData)
 {
     struct list_head *pos;
     Client_t *client;
-
-    if (list_empty(&AccClientList.list)) return false;
+    int res = 0;
 
     list_for_each(pos, &AccClientList.list) {
 	if ((client = list_entry(pos, Client_t, list)) == NULL) break;
 
 	if (client->logger == logger && client->type != ACC_CHILD_JOBSCRIPT) {
 	    addAccDataForClient(client, accData);
+	    res = 1;
 	}
     }
-    return true;
+    return res;
 }
 
 void addAccInfoForClient(Client_t *client, psaccAccountInfo_t *accData)
@@ -299,7 +362,13 @@ Client_t *addAccClient(PStask_ID_t taskid, PS_Acct_job_types_t type)
     client->data.cutime = 0;
     client->data.cstime = 0;
     client->data.cputime = 0;
-    client->data.numTasks = 0;
+    client->data.majflt = 0;
+    client->data.rChar = 0;
+    client->data.wChar = 0;
+    client->data.readBytes = 0;
+    client->data.writeBytes = 0;
+    client->data.cpuWeight = 0;
+    client->data.cpuFreq = 0;
 
     list_add_tail(&(client->list), &AccClientList.list);
 
@@ -310,14 +379,13 @@ int deleteAccClient(PStask_ID_t tid)
 {
     Client_t *client;
 
-    if ((client = findAccClientByClientTID(tid)) == NULL) {
-	return 0;
-    }
-
-    if (client->jobid) ufree(client->jobid);
+    if (!(client = findAccClientByClientTID(tid))) return 0;
 
     list_del(&client->list);
+
+    ufree(client->jobid);
     ufree(client);
+
     return 1;
 }
 
@@ -335,15 +403,10 @@ int haveActiveAccClients()
     struct list_head *pos;
     Client_t *client;
 
-    if (list_empty(&AccClientList.list)) return 0;
-
     list_for_each(pos, &AccClientList.list) {
-	if ((client = list_entry(pos, Client_t, list)) == NULL) {
-	    return 0;
-	}
-	if (client->doAccounting) {
-	    return 1;
-	}
+	if (!(client = list_entry(pos, Client_t, list))) break;
+
+	if (client->doAccounting) return 1;
     }
     return 0;
 }
@@ -353,12 +416,9 @@ void clearAllAccClients()
     list_t *pos, *tmp;
     Client_t *client;
 
-    if (list_empty(&AccClientList.list)) return;
-
     list_for_each_safe(pos, tmp, &AccClientList.list) {
-	if ((client = list_entry(pos, Client_t, list)) == NULL) {
-	    return;
-	}
+	if (!(client = list_entry(pos, Client_t, list))) return;
+
 	if (!(deleteAccClient(client->taskid))) {
 	    mlog("%s: deleting acc client '%i' failed\n", __func__,
 		client->pid);
@@ -374,24 +434,21 @@ void cleanupClients()
     time_t now = time(NULL);
     long grace = 0;
 
-    if (list_empty(&AccClientList.list)) return;
-
     getConfParamL("TIME_CLIENT_GRACE", &grace);
 
     list_for_each_safe(pos, tmp, &AccClientList.list) {
-	if ((client = list_entry(pos, Client_t, list)) == NULL) break;
+	if (!(client = list_entry(pos, Client_t, list))) break;
 
 	if (client->doAccounting || !client->endTime) continue;
 	if (findJobByLogger(client->logger)) continue;
 
 	/* check timeout */
 	if (client->endTime + grace * 60 <= now) {
-	    mdbg(LOG_VERBOSE, "%s: cleanup client '%i'\n", __func__,
+	    mdbg(PSACC_LOG_VERBOSE, "%s: cleanup client '%i'\n", __func__,
 		    client->pid);
 	    deleteAccClient(client->taskid);
 	}
     }
-    return;
 }
 
 void updateAllAccClients(Job_t *job)
@@ -399,12 +456,8 @@ void updateAllAccClients(Job_t *job)
     struct list_head *pos;
     Client_t *client;
 
-    if (list_empty(&AccClientList.list)) return;
-
     list_for_each(pos, &AccClientList.list) {
-	if ((client = list_entry(pos, Client_t, list)) == NULL) {
-	    return;
-	}
+	if (!(client = list_entry(pos, Client_t, list))) return;
 	if (client->doAccounting) {
 	    if (job) {
 		if (client->job == job) {

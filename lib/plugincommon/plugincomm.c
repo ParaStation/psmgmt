@@ -106,23 +106,28 @@ int verifyTypeInfo(char **ptr, PS_DataType_t expectedType, const char *caller)
     return 1;
 }
 
+#define MAX_RETRY 20
 int __doWrite(int fd, void *buffer, size_t towrite, const char *func,
 			int pedantic)
 {
-    ssize_t ret;
+    ssize_t ret = 0;
+    size_t written = 0;
+    int retry = 0;
 
     while (1) {
-	if ((ret = write(fd, buffer, towrite)) == -1) {
+	if ((ret = write(fd, buffer, towrite - written)) == -1) {
 	    if (errno == EINTR || errno == EAGAIN) continue;
 
 	    pluginlog("%s (%s): write to fd '%i' failed (%i): %s\n", __func__,
 		    func, fd, errno, strerror(errno));
 	    return -1;
-	} if (pedantic && (size_t) ret != towrite) {
-	    pluginlog("%s (%s): not all data written to fd '%i' towrite "
-		    "'%zu' written '%zu'\n", __func__, func, fd, towrite, ret);
 	}
-	return ret;
+	if (!pedantic) return ret;
+
+	written += ret;
+	if (!ret) return ret;
+	if (written >= towrite) break;
+	if (retry++ >MAX_RETRY) return -1;
     }
     return ret;
 }
@@ -135,7 +140,6 @@ int __doRead(int fd, void *buffer, size_t toread, const char *func,
     return __doReadExt(fd, buffer, toread, &ret, func, pedantic);
 }
 
-#define MAX_RETRY 20
 int __doReadExt(int fd, void *buffer, size_t toread, size_t *ret,
 		    const char *func, int pedantic)
 {

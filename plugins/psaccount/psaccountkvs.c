@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2012 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2012 - 2015 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -246,6 +246,16 @@ char *set(char *key, char *value)
             }
             return buf;
         }
+
+	if (!(strcmp(key, "DEBUG_MASK"))) {
+	    int32_t mask;
+
+	    if ((sscanf(value, "%i", &mask)) != 1) {
+		return str2Buf("\nInvalid debug mask: not a number\n", &buf,
+			&bufSize);
+	    }
+	    maskLogger(mask);
+	}
 
         /* save new config value */
         if ((conf = getConfObject(key))) {

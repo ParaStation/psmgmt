@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010 - 2014 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010 - 2015 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -24,6 +24,13 @@ typedef struct {
 } Session_Info_t;
 
 typedef struct {
+    uint64_t rChar;
+    uint64_t wChar;
+    uint64_t readBytes;
+    uint64_t writeBytes;
+} ProcIO_t;
+
+typedef struct {
     uid_t uid;
     pid_t pid;
     pid_t ppid;
@@ -34,12 +41,17 @@ typedef struct {
     unsigned long threads;
     unsigned long vmem;
     unsigned long mem;
-    uint32_t numTasks;
+    unsigned long majflt;
     char *cmdline;
+    uint16_t cpu;
     struct list_head list;
 } Proc_Snapshot_t;
 
 Proc_Snapshot_t ProcList;
+
+extern int cpuCount;
+
+extern int *cpuFreq;
 
 Session_Info_t SessionList;
 
@@ -48,7 +60,7 @@ Session_Info_t SessionList;
  *
  * @return No return value.
  */
-void initProcList();
+void initProc();
 
 /**
  * @brief Collect all data from every related child process.
@@ -171,5 +183,9 @@ void findDaemonProcesses(uid_t userId, int kill, int warn);
  * @return Returns 1 on success and 0 on error.
  */
 int readProcStatInfo(pid_t pid, ProcStat_t *pS);
+
+int readProcIO(pid_t pid, ProcIO_t *io);
+
+void clearCpuFreq();
 
 #endif

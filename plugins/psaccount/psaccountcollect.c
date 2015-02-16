@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010 - 2014 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010 - 2015 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -36,7 +36,6 @@
 #include "pluginmalloc.h"
 #include "pscommon.h"
 
-
 #include "psaccountcollect.h"
 
 void updateAccountData(Client_t *client)
@@ -45,7 +44,9 @@ void updateAccountData(Client_t *client)
     uint64_t cutime, cstime;
     AccountData_t *accData;
     Proc_Snapshot_t *proc, *pChildren;
+    ProcIO_t procIO;
     int sendUpdate = 0;
+    uint64_t diffCputime, cputime;
 
     if (client->doAccounting == 0) return;
 
@@ -72,7 +73,6 @@ void updateAccountData(Client_t *client)
 
     rssnew = proc->mem + pChildren->mem;
     vsizenew = proc->vmem + pChildren->vmem;
-    accData->numTasks = proc->numTasks + pChildren->numTasks;
 
     /* save cutime and cstime in seconds */
     cutime = (proc->cutime + pChildren->cutime) / clockTicks;
@@ -90,7 +90,7 @@ void updateAccountData(Client_t *client)
     accData->avgVsize += vsizenew;
     accData->avgVsizeCount++;
 
-    /* set max threads */
+    /* set threads */
     if (proc->threads > accData->maxThreads) {
 	accData->maxThreads = proc->threads;
     }
@@ -98,8 +98,36 @@ void updateAccountData(Client_t *client)
     accData->avgThreadsCount++;
 
     /* set cutime and cstime */
+    cputime = cutime + cstime;
+    diffCputime = cputime - (accData->cutime + accData->cstime);
     if (cutime > accData->cutime) accData->cutime = cutime;
     if (cstime > accData->cstime) accData->cstime = cstime;
+
+    /* set major page faults */
+    if (proc->majflt > accData->majflt) accData->majflt = proc->majflt;
+
+    /* read IO statistics */
+    readProcIO(client->pid, &procIO);
+
+    /* set rChar/wChar */
+    if (procIO.rChar > accData->rChar) accData->rChar = procIO.rChar;
+    if (procIO.wChar > accData->wChar) accData->wChar = procIO.wChar;
+
+    /* set readBytes/writeBytes */
+    if (procIO.readBytes > accData->readBytes) {
+	accData->readBytes = procIO.readBytes;
+    }
+    if (procIO.writeBytes > accData->writeBytes) {
+	accData->writeBytes = procIO.writeBytes;
+    }
+
+    /* calc cpu freq */
+    if (diffCputime >0) {
+	accData->cpuWeight = accData->cpuWeight +
+				cpuFreq[proc->cpu] * diffCputime;
+	accData->cpuFreq = accData->cpuWeight / (cputime);
+    }
+    if (!cputime) accData->cpuFreq = cpuFreq[proc->cpu];
 
     getConfParamI("SAVE_ACC_UPDATES", &sendUpdate);
     if (sendUpdate) {
@@ -109,10 +137,11 @@ void updateAccountData(Client_t *client)
 	}
     }
 
-    /*
-    mlog("%s: pid:%i cutime: '%lu' cstime: '%lu' session '%i' mem '%lu' "
-	    "vmem '%lu' threads '%lu' numTasks '%u'\n", __func__, client->pid,
-	    accData->cutime, accData->cstime, accData->session, accData->maxRss,
-	    accData->maxVsize, accData->maxThreads, accData->numTasks);
-    */
+    mdbg(PSACC_LOG_COLLECT, "%s: tid '%s' rank '%i' cutime: '%lu' cstime: '%lu'"
+	    " session '%i' mem '%lu' vmem '%lu' threads '%lu' "
+	    "majflt '%lu' cpu '%u' cpuFreq '%lu'\n", __func__,
+	    PSC_printTID(client->taskid),
+	    client->rank, accData->cutime, accData->cstime, accData->session,
+	    accData->maxRss, accData->maxVsize, accData->maxThreads,
+	    accData->majflt, proc->cpu, accData->cpuFreq);
 }

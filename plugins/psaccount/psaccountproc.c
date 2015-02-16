@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010 - 2014 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010 - 2015 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -21,6 +21,8 @@
 #include <sys/stat.h>
 #include <signal.h>
 #include <unistd.h>
+#include <inttypes.h>
+#include <errno.h>
 
 #include "pluginmalloc.h"
 #include "psaccountlog.h"
@@ -29,15 +31,130 @@
 
 #include "psaccountproc.h"
 
+#define PROC_CPU_INFO	"/proc/cpuinfo"
+#define SYS_CPU_FREQ	"/sys/devices/system/cpu/cpu%d/cpufreq/cpuinfo_cur_freq"
+
 typedef enum {
     INFO_MEM,
     INFO_VMEM,
 } ProcInfoTypes;
 
-void initProcList()
+int *cpuFreq = NULL;
+
+int cpuCount = 0;
+
+static int cpuGovEnabled = 0;
+
+static int getCPUCount()
+{
+    int count = 0;
+    char buf[256];
+    FILE *fd;
+
+    if (!(fd = fopen(PROC_CPU_INFO, "r"))) {
+	mlog("%s: open '%s' failed\n", __func__, PROC_CPU_INFO);
+	return 0;
+    }
+
+    while ((fgets(buf, sizeof(buf), fd))) {
+	if (!(strncmp(buf, "processor", 9))) count++;
+    }
+    fclose(fd);
+
+    return count;
+}
+
+static void initCpuFreq()
+{
+    FILE *fd;
+    char buf[256], *tmp, *sfreq;
+    struct stat sbuf;
+    int freq, i;
+
+    cpuFreq = umalloc(sizeof(int) * cpuCount);
+
+    snprintf(buf, sizeof(buf), SYS_CPU_FREQ, 0);
+
+    if ((stat(buf, &sbuf)) == -1) {
+	if (!(fd = fopen(PROC_CPU_INFO, "r"))) {
+	    cpuCount = 0;
+	    ufree(cpuFreq);
+	    return;
+	}
+
+	while ((fgets(buf, sizeof(buf), fd))) {
+	    if (!(strncmp(buf, "cpu MHz", 7)) ||
+		!(strncmp(buf, "cpu GHz", 7))) {
+		break;
+	    }
+	}
+
+	sfreq = strchr(buf, ':') + 2;
+	tmp = sfreq;
+	while (tmp++) {
+	    if (tmp[0] == '.') {
+		tmp[0] = '0';
+		break;
+	    }
+	}
+	i = strlen(sfreq);
+	sfreq[i-2] = '\0';
+
+	if ((sscanf(sfreq, "%d", &freq)) != 1) {
+	    cpuCount = 0;
+	    ufree(cpuFreq);
+	    fclose(fd);
+	    return;
+	}
+
+	for (i=0; i<cpuCount; i++) {
+	    cpuFreq[i] = freq;
+	}
+
+	fclose(fd);
+	cpuGovEnabled = 0;
+    } else {
+	cpuGovEnabled = 1;
+    }
+}
+
+static void updateCpuFreq()
+{
+    FILE *fd;
+    int i;
+    char buf[256];
+
+    for (i=0; i<cpuCount; i++) {
+	snprintf(buf, sizeof(buf), SYS_CPU_FREQ, i);
+
+	if (!(fd = fopen(buf, "r"))) {
+	    mwarn(errno, "%s: fopen(%s) failed : ", __func__, buf);
+	    continue;
+	}
+
+	if ((fscanf(fd, "%d", &cpuFreq[i])) != 1) {
+	    mwarn(errno, "%s: fscanf(%s) failed : ", __func__, buf);
+	}
+
+	fclose(fd);
+    }
+}
+
+void clearCpuFreq()
+{
+    if (cpuCount) {
+	ufree(cpuFreq);
+    }
+}
+
+void initProc()
 {
     INIT_LIST_HEAD(&ProcList.list);
     INIT_LIST_HEAD(&SessionList.list);
+
+    if ((cpuCount = getCPUCount()) > 0) {
+	initCpuFreq();
+    }
 }
 
 Proc_Snapshot_t *findProcSnapshot(pid_t pid)
@@ -45,16 +162,11 @@ Proc_Snapshot_t *findProcSnapshot(pid_t pid)
     struct list_head *pos;
     Proc_Snapshot_t *proc;
 
-    if (list_empty(&ProcList.list)) return NULL;
-
     list_for_each(pos, &ProcList.list) {
-	if ((proc = list_entry(pos, Proc_Snapshot_t, list)) == NULL) {
-	    return NULL;
-	}
-	if (proc->pid == pid) {
-	    return proc;
-	}
+	if (!(proc = list_entry(pos, Proc_Snapshot_t, list))) break;
+	if (proc->pid == pid) return proc;
     }
+
     return NULL;
 }
 
@@ -94,7 +206,7 @@ int sendSignal2AllChildren(pid_t mypid, pid_t child, pid_t pgroup, int sig)
     }
 
     list_for_each_safe(pos, tmp, &ProcList.list) {
-        if ((Childproc = list_entry(pos, Proc_Snapshot_t, list)) == NULL) break;
+        if (!(Childproc = list_entry(pos, Proc_Snapshot_t, list))) break;
 
 	if (pgroup > 0) {
 	    if (Childproc->ppid == child) {
@@ -202,10 +314,61 @@ static int isChildofParentSnap(pid_t parent, pid_t child)
     return isChildofParent(parent, procChild->ppid);
 }
 
+int readProcIO(pid_t pid, ProcIO_t *io)
+{
+    FILE *fd;
+    char buf[200];
+    struct stat sbuf;
+    int ret;
+
+    memset(io, 0, sizeof(ProcIO_t));
+
+    /* format string of /proc/pid/io */
+    static char io_format[] =
+		    "%*[^:]: "
+		    "%"PRIu64" "     /* rchar */
+		    "%*[^:]: "
+		    "%"PRIu64" "     /* wchar */
+		    "%*[^:]: "
+		    "%*"PRIu64" "    /* syscr */
+		    "%*[^:]: "
+		    "%*"PRIu64" "    /* syscw */
+		    "%*[^:]: "
+		    "%"PRIu64" "     /* read_bytes */
+		    "%*[^:]: "
+		    "%"PRIu64" ";    /* write_bytes */
+
+    snprintf(buf, sizeof(buf), "/proc/%i/io", pid);
+
+    if ((stat(buf, &sbuf)) == -1) return 0;
+
+    if (!(fd = fopen(buf,"r"))) {
+	mlog("%s: open '%s' failed\n", __func__, buf);
+	return 0;
+    }
+
+    if ((ret = fscanf(fd, io_format, &io->rChar, &io->wChar, &io->readBytes,
+			&io->writeBytes)) != 4) {
+	fclose(fd);
+	return 0;
+    }
+
+    /*
+    mlog("%s: io stat: rChar '%zu' wChar '%zu' read_byes '%zu' writeBytes "
+	    "'%zu'\n", __func__, io->rChar, io->wChar, io->readBytes,
+	    io->writeBytes);
+    */
+    fclose(fd);
+    return 1;
+}
+
 int readProcStatInfo(pid_t pid, ProcStat_t *pS)
 {
-    // 14175 (vi) T 25119 14175 25119 34816 15418
-    /** Format string of /proc/pid/stat */
+    FILE *fd;
+    char buf[200];
+    struct stat sbuf;
+
+    /* format string of /proc/pid/stat */
     static char stat_format[] =
 		    "%*d "	    /* pid */
 		    "(%*[^)]) "	    /* comm */
@@ -217,7 +380,7 @@ int readProcStatInfo(pid_t pid, ProcStat_t *pS)
 		    "%*d "	    /* tpgid */
 		    "%*u "	    /* flags */
 		    "%*lu %*lu "    /* minflt cminflt */
-		    "%*lu %*lu "    /* majflt cmajflt */
+		    "%lu %lu "      /* majflt cmajflt */
 		    "%lu %lu "      /* utime stime */
 		    "%lu %lu "      /* cutime cstime */
 		    "%*d "	    /* priority */
@@ -235,37 +398,32 @@ int readProcStatInfo(pid_t pid, ProcStat_t *pS)
 		    "%*u "	    /* wchan */
 		    "%*u %*u "	    /* nswap cnswap */
 		    "%*d "	    /* exit_signal (kernel 2.1.22) */
-		    "%*d "	    /* processor  (kernel 2.2.8) */
+		    "%d "	    /* processor  (kernel 2.2.8) */
 		    "%*lu "	    /* rt_priority (kernel 2.5.19) */
 		    "%*lu "	    /* policy (kernel 2.5.19) */
 		    "%*llu";	    /* delayacct_blkio_ticks (kernel 2.6.18) */
 
-    FILE *fd;
-    char buf[200];
-    struct stat sbuf;
-    int res;
-
     snprintf(buf, sizeof(buf), "/proc/%i/stat", pid);
 
-    if ((stat(buf, &sbuf)) == -1) {
-	return 0;
-    }
+    if ((stat(buf, &sbuf)) == -1) return 0;
     pS->uid = sbuf.st_uid;
 
-    if ((fd = fopen(buf,"r")) == NULL) {
+    if (!(fd = fopen(buf,"r"))) {
 	mlog("%s: open '%s' failed\n", __func__, buf);
 	return 0;
     }
 
     pS->state[0] = '\0';
-    if ((res = fscanf(fd, stat_format, pS->state, &pS->ppid, &pS->pgroup,
-			&pS->session, &pS->ctime, &pS->stime, &pS->cutime,
-			&pS->cstime, &pS->threads, &pS->vmem, &pS->mem)) != 11) {
+    if ((fscanf(fd, stat_format, pS->state, &pS->ppid, &pS->pgroup,
+		&pS->session, &pS->majflt, &pS->cmajflt, &pS->utime,
+		&pS->stime, &pS->cutime, &pS->cstime, &pS->threads,
+		&pS->vmem, &pS->mem, &pS->cpu)) != 14) {
+
 	fclose(fd);
 	return 0;
     }
-    fclose(fd);
 
+    fclose(fd);
     return 1;
 }
 
@@ -318,17 +476,14 @@ static Proc_Snapshot_t *addProc(pid_t pid, ProcStat_t *pS, char *cmdline)
     proc->ppid = pS->ppid;
     proc->pgroup = pS->pgroup;
     proc->session = pS->session;
-    proc->cutime = pS->cutime;
-    proc->cstime = pS->cstime;
+    proc->cutime = pS->utime + pS->cutime;
+    proc->cstime = pS->stime + pS->cstime;
+    proc->majflt = pS->majflt + pS->cmajflt;
     proc->threads = pS->threads;
     proc->mem = pS->mem;
     proc->vmem = pS->vmem;
-    proc->numTasks = 1;
-    if (cmdline)  {
-	proc->cmdline = ustrdup(cmdline);
-    } else {
-	proc->cmdline = NULL;
-    }
+    proc->cmdline = (cmdline) ? ustrdup(cmdline) : NULL;
+    proc->cpu = pS->cpu;
 
     list_add_tail(&(proc->list), &ProcList.list);
     return proc;
@@ -347,15 +502,9 @@ static Session_Info_t *findSession(pid_t session)
     struct list_head *pos;
     Session_Info_t *info;
 
-    if (list_empty(&SessionList.list)) return NULL;
-
     list_for_each(pos, &SessionList.list) {
-	if ((info = list_entry(pos, Session_Info_t, list)) == NULL) {
-	    return NULL;
-	}
-	if (info->session == session) {
-	    return info;
-	}
+	if (!(info = list_entry(pos, Session_Info_t, list))) break;
+	if (info->session == session) return info;
     }
     return NULL;
 }
@@ -394,10 +543,8 @@ static void clearSessions()
     list_t *pos, *tmp;
     Session_Info_t *info;
 
-    if (list_empty(&SessionList.list)) return;
-
     list_for_each_safe(pos, tmp, &SessionList.list) {
-	if ((info = list_entry(pos, Session_Info_t, list)) == NULL) continue;
+	if (!(info = list_entry(pos, Session_Info_t, list))) break;
 	list_del(&info->list);
 	ufree(info);
     }
@@ -409,20 +556,18 @@ void clearAllProcSnapshots()
     Proc_Snapshot_t *proc;
 
     clearSessions();
-    if (list_empty(&ProcList.list)) return;
 
     list_for_each_safe(pos, tmp, &ProcList.list) {
-	if ((proc = list_entry(pos, Proc_Snapshot_t, list)) == NULL) continue;
-	if (proc->cmdline) {
-	    ufree(proc->cmdline);
-	}
+	if (!(proc = list_entry(pos, Proc_Snapshot_t, list))) break;
+	if (proc->cmdline) ufree(proc->cmdline);
 
 	list_del(&proc->list);
 	ufree(proc);
     }
 }
 
-void getSessionInformation(int *count, char *buf, size_t bufsize, int *userCount)
+void getSessionInformation(int *count, char *buf, size_t bufsize,
+			    int *userCount)
 {
     #define MAX_USER	300
     struct list_head *pos;
@@ -441,9 +586,8 @@ void getSessionInformation(int *count, char *buf, size_t bufsize, int *userCount
     }
 
     list_for_each(pos, &SessionList.list) {
-	if ((info = list_entry(pos, Session_Info_t, list)) == NULL) {
-	    return;
-	}
+	if (!(info = list_entry(pos, Session_Info_t, list))) return;
+
 	if (info->uid == 0 || info->session == 0) continue;
 	*count += 1;
 	snprintf(strSession, sizeof(strSession), "%i ", info->session);
@@ -478,8 +622,6 @@ static void getAllClientInfo(Proc_Snapshot_t *res, pid_t pid)
     struct list_head *pos;
     Proc_Snapshot_t *Childproc;
 
-    if (list_empty(&ProcList.list)) return;
-
     list_for_each(pos, &ProcList.list) {
 	if (!(Childproc = list_entry(pos, Proc_Snapshot_t, list))) return;
 
@@ -488,9 +630,8 @@ static void getAllClientInfo(Proc_Snapshot_t *res, pid_t pid)
 	    res->vmem += Childproc->vmem;
 	    res->cutime += Childproc->cutime;
 	    res->cstime += Childproc->cstime;
-	    res->numTasks++;
 
-	    mdbg(LOG_PROC_DEBUG, "%s: cmd:%s pid:%i ppid:%i cutime:%lu "
+	    mdbg(PSACC_LOG_PROC, "%s: cmd:%s pid:%i ppid:%i cutime:%lu "
 		 "cstime:%lu mem:%lu vmem:%lu\n", __func__, Childproc->cmdline,
 		 Childproc->pid, Childproc->ppid,
 		 Childproc->cutime, Childproc->cstime,
@@ -512,11 +653,12 @@ Proc_Snapshot_t *getAllChildrenData(pid_t pid)
     proc->vmem = 0;
     proc->cutime = 0;
     proc->cstime = 0;
-    proc->numTasks = 0;
+    proc->majflt = 0;
+    proc->cpu = 0;
 
     getAllClientInfo(proc, pid);
 
-    mdbg(LOG_PROC_DEBUG, "%s: pid:%i mem:%lu vmem:%lu cutime:%lu cstime:%lu\n",
+    mdbg(PSACC_LOG_PROC, "%s: pid:%i mem:%lu vmem:%lu cutime:%lu cstime:%lu\n",
 	    __func__, pid, proc->mem, proc->vmem, proc->cutime, proc->cstime);
     return proc;
 }
@@ -538,25 +680,25 @@ void updateProcSnapshot(int extended)
 	return;
     }
 
+    if (cpuGovEnabled) {
+	updateCpuFreq();
+    }
+
     rewinddir(dir);
-    while ((dent = readdir(dir)) != NULL){
+    while ((dent = readdir(dir)) != NULL) {
 	if ((pid = atoi(dent->d_name)) <= 0) {
-	    mdbg(LOG_PROC_DEBUG, "%s: pid '%i' too small for d_name '%s'\n",
+	    mdbg(PSACC_LOG_PROC, "%s: pid '%i' too small for d_name '%s'\n",
 		__func__, pid, dent->d_name);
 	    continue;
 	}
 
-	if (!(readProcStatInfo(pid, &pS))) {
-	    continue;
-	}
-
-	pS.cutime += pS.ctime;
-	pS.cstime += pS.stime;
+	if (!(readProcStatInfo(pid, &pS))) continue;
 
 	/*
 	mlog("pid '%i' state:%s ppid '%i' pgroup: %i session '%i' cutime: '%lu'"
-		"cstime: '%lu' threads '%lu' vmem: '%lu' mem: '%lu'\n", pid, state,
-		ppid, pgroup, session, cutime, cstime, threads, vmem, mem);
+		"cstime: '%lu' threads '%lu' vmem: '%lu' mem: '%lu'\n", pid,
+		state, ppid, pgroup, session, cutime, cstime, threads, vmem,
+		mem);
 	*/
 
 	if (extended) {
@@ -571,7 +713,7 @@ void updateProcSnapshot(int extended)
 	    fclose(fd);
 	    addProc(pid, &pS, buf);
 	    addSession(pS.session, pS.uid);
-	    mdbg(LOG_PROC_DEBUG, "%s: pid:%i ppid:%i session:%i, threads:%lu "
+	    mdbg(PSACC_LOG_PROC, "%s: pid:%i ppid:%i session:%i, threads:%lu "
 		"mem:%lu vmem:%lu cmd:%s\n", __func__, pid, pS.ppid, pS.session,
 		pS.threads, pS.mem, pS.vmem, buf);
 	    continue;

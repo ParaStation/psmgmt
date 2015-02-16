@@ -198,15 +198,15 @@ static int initPluginHandles()
     }
 
     if (!(psAccountRegisterJob = dlsym(pluginHandle,
-            "psAccountRegisterMOMJob"))) {
-        mlog("%s: loading function psAccountRegisterMOMJob() failed\n",
+            "psAccountRegisterJob"))) {
+        mlog("%s: loading function psAccountRegisterJob() failed\n",
                 __func__);
         return 0;
     }
 
     if (!(psAccountUnregisterJob = dlsym(pluginHandle,
-            "psAccountUnregisterMOMJob"))) {
-        mlog("%s: loading function psAccountUnregisterMOMJob() failed\n",
+            "psAccountUnregisterJob"))) {
+        mlog("%s: loading function psAccountUnregisterJob() failed\n",
                 __func__);
         return 0;
     }
