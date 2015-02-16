@@ -87,18 +87,17 @@ get_psid_pid() {
 }
 
 stop_daemon() {
-    PSID_BASE=`basename $PSID`
-    killall $PSID_BASE 2>/dev/null
+    killall $PSIDNAME 2>/dev/null
     RETVAL=$?
     if [ $RETVAL -eq 0 ]; then
-	PID=`pidof $PSID_BASE`
+	PID=`pidof $PSIDNAME`
 	cnt=0
 	while [ ! -z "$PID" ]; do
 	    cnt=$(expr $cnt + 1)
 	    if [ $cnt -gt 30 ]; then
-		killall -9 $PSID_BASE 2>/dev/null
+		killall -9 $PSIDNAME 2>/dev/null
 		sleep 1
-		PID=`pidof $PSID_BASE`
+		PID=`pidof $PSIDNAME`
 		if [ ! -z "$PID" ]; then
 		    return 0
 		else
@@ -107,7 +106,7 @@ stop_daemon() {
 	    fi
 	    echo -n "."
 	    sleep 1
-	    PID=`pidof $PSID_BASE`
+	    PID=`pidof $PSIDNAME`
 	done
 	return 1
     else
