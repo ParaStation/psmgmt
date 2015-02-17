@@ -659,8 +659,9 @@ static void msg_NEWCHILD(DDErrorMsg_t *msg)
 		 PSC_printTID(msg->header.dest));
 	answer.param = ESRCH;
     } else {
-	PSID_log(PSID_LOG_SIGNAL, "%s: child %s",
-		 __func__, PSC_printTID(msg->request));
+	PSID_log(PSID_LOG_SIGNAL, "%s: %s:", __func__,
+		 PSC_printTID(msg->header.dest));
+	PSID_log(PSID_LOG_SIGNAL, " child %s", PSC_printTID(msg->request));
 	PSID_log(PSID_LOG_SIGNAL, " inherited from %s\n",
 		 PSC_printTID(msg->header.sender));
 
