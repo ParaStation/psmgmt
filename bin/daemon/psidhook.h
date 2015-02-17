@@ -120,7 +120,16 @@ typedef enum {
     PSIDHOOK_XTND_PART_DYNAMIC,/** Dynamically extend a partition. The handler
 				of this hook is expected to call the function
 				PSIDpart_extendRes() either in a synchronous
-				or asynchronous way. */
+				or asynchronous way. Arg is a pointer to the
+				reservation created so far. I.e. the hook
+				might rely on the content of nMin, nMax, tpp,
+				hwType, nSlots, task and rid. nMin and nMax
+				are not corrected, i.e. we are actually
+				requesting between nMin-nSlots and nMax-nSlots
+				slots of type hwType with tpp threads each.*/
+    PSIDHOOK_RELS_PART_DYNAMIC,/** Release dynamically extended  resources.
+				Arg is a pointer to the slot describing the
+				resources to be	released. */
     PSIDHOOK_LAST,             /**< This has to be the last one */
 } PSIDhook_t;
 

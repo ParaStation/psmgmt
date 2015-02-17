@@ -3152,6 +3152,7 @@ static int releaseThreads(PSpart_slot_t *slot, unsigned int nSlots,
 	    if (slot[s].node == thrd->node
 		&& PSCPU_isSet(slot[s].CPUset, thrd->id)) {
 		if (--(thrd->timesUsed) < 0) thrd->timesUsed = 0;
+		PSCPU_clrCPU(slot[s].CPUset, thrd->id);
 		numToRelease--;
 		break;
 	    }
@@ -3569,8 +3570,13 @@ static void msg_CHILDRESREL(DDBufferMsg_t *msg)
     }
 
     if (released != numToRelease) {
-	PSID_log(-1, "%s: Only %d of %d HW-threads released.\n", __func__,
-		 released, numToRelease);
+	if (task->options & PART_OPT_DYNAMIC) {
+	    /* Maybe these resources were dynamically assigned */
+	    PSIDhook_call(PSIDHOOK_RELS_PART_DYNAMIC, &slot);
+	} else {
+	    PSID_log(-1, "%s: Only %d of %d HW-threads released.\n", __func__,
+		     released, numToRelease);
+	}
     } else {
 	PSID_log(PSID_LOG_PART, "%s: Allow to re-use threads %s on node %d."
 		 " %d threads used\n", __func__, PSCPU_print(slot.CPUset),
@@ -4091,8 +4097,7 @@ static int handleSingleResRequest(PSrsrvtn_t *r)
 	task->numChild += r->nMax; /* This might create a gap in ranks */
 
 	/* Try to get more resources */
-	// @todo setup parameters to be passed to the hook
-	ret = PSIDhook_call(PSIDHOOK_XTND_PART_DYNAMIC, NULL);
+	ret = PSIDhook_call(PSIDHOOK_XTND_PART_DYNAMIC, r);
 	if (ret == PSIDHOOK_NOFUNC) {
 	    if (got < (int)r->nMin) {
 		task->numChild -= r->nMax;            /* Fix the gap */
@@ -4181,6 +4186,71 @@ static void handleResRequests(PStask_t *task)
     return;
 }
 
+int PSIDpart_extendRes(PStask_ID_t tid, PSrsrvtn_ID_t resID,
+		       uint32_t got, PSpart_slot_t *slots)
+{
+    PStask_t *task = PStasklist_find(&managedTasks, tid), *delegate;
+    PSrsrvtn_t *res;
+    DDBufferMsg_t msg = (DDBufferMsg_t) {
+	.header = (DDMsg_t) {
+	    .type = PSP_CD_RESERVATIONRES,
+	    .sender = PSC_getMyTID(),
+	    .len = sizeof(msg.header) },
+	.buf = { 0 } };
+    uint32_t t, null = 0;
+
+    if (!task) {
+	PSID_log(-1, "%s: task %s not found\n", __func__, PSC_printTID(tid));
+	return -1;
+    }
+    delegate = task->delegate ? task->delegate : task;
+
+    res = findRes(&delegate->resRequests, resID);
+    if (!res) {
+	PSID_log(-1, "%s: reservation %#x not found\n", __func__, resID);
+	return -1;
+    }
+
+    deqRes(&delegate->resRequests, res);
+    msg.header.dest = res->requester;
+
+    if (!got || res->nSlots + got < res->nMin || res->nSlots + got > res->nMax
+	|| !res->slots) {
+	PSID_log(-1, "%s: reservation %#x not extendable\n", __func__, resID);
+
+	PSP_putMsgBuf(&msg, __func__, "error", &null, sizeof(null));
+
+	if (res->slots) {
+	    free(res->slots);
+	    res->slots = NULL;
+	}
+	PSrsrvtn_put(res);
+
+	sendMsg(&msg);
+
+	return 0;
+    }
+
+    /* Copy the received slots */
+    for (t = 0; t < got; t++) {
+	res->slots[res->nSlots + t].node = slots[t].node;
+	PSCPU_copy(res->slots[res->nSlots + t].CPUset, slots[t].CPUset);
+    }
+    res->nSlots += got;
+
+    enqRes(&task->reservations, res);
+
+    PSP_putMsgBuf(&msg, __func__, "rid", &res->rid, sizeof(res->rid));
+    PSP_putMsgBuf(&msg, __func__, "nSlots", &res->nSlots, sizeof(res->nSlots));
+
+    if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
+	PSID_warn(-1, errno, "%s: sendMsg()", __func__);
+	return -1;
+    }
+
+    return 0;
+}
+
 /**
  * @brief Handle a PSP_CD_GETRESERVATION/PSP_DD_GETRESERVATION message.
  *
@@ -4237,6 +4307,7 @@ static void msg_GETRESERVATION(DDBufferMsg_t *inmsg)
 	    eno = errno;
 	    goto error;
 	}
+	PSrsrvtn_put(r);
 	return;
     }
 
@@ -4349,6 +4420,14 @@ void PSIDpart_cleanupRes(PStask_t *task)
 	if (res->slots) {
 	    released += releaseThreads(res->slots + res->nextSlot,
 				       res->nSlots - res->nextSlot, delegate);
+	    if (task->options & PART_OPT_DYNAMIC) {
+		/* Maybe some resources were dynamically assigned */
+		int s;
+		for (s = res->nextSlot; s < res->nSlots; s++) {
+		    if (!PSCPU_any(res->slots[s].CPUset, PSCPU_MAX)) continue;
+		    PSIDhook_call(PSIDHOOK_RELS_PART_DYNAMIC, &res->slots[s]);
+		}
+	    }
 	    free(res->slots);
 	    res->slots = NULL;
 	}

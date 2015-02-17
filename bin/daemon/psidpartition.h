@@ -345,6 +345,36 @@ void PSIDpart_cleanupRes(PStask_t *task);
  */
 void PSIDpart_cleanupSlots(PStask_t *task);
 
+/**
+ * @brief Extend reservation
+ *
+ * Extend the reservation identified by the ID @a resID and associated
+ * to the task with ID @a tid by @a got slots given in the array @a
+ * slots. The latter is expected to have at least @a got entries.
+ *
+ * This function expects the slots to be according to the requirements
+ * stated in the corresponding reservation requests.
+ *
+ * @param tid The task ID the reservation is associated with
+ *
+ * @param resID The ID of the reservation to be extended
+ *
+ * @param got The number of slots to be added to the given
+ * reservation. If this is 0, we assumed no resources are available
+ * and the originating request for a reservation might fail.
+ *
+ * @param slots Array holding the slots to be added to the
+ * reservation. At least @a got entries are expected. Each entry shall
+ * be according to the features requestesd for the reservation.
+ *
+ * @return On success, i.e. if the reservation was extended and an
+ * answer was successfully sent to the requesting task, 0 is
+ * returned. Or -1 in case of an error. The latter might happen
+ * e.g. if the task or reservation was not found.
+ */
+int PSIDpart_extendRes(PStask_ID_t tid, PSrsrvtn_ID_t resID,
+		       uint32_t got, PSpart_slot_t *slots);
+
 #ifdef __cplusplus
 }/* extern "C" */
 #endif
