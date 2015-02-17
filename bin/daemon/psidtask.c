@@ -31,6 +31,7 @@ static char vcid[] __attribute__((used)) =
 #include "psidstatus.h"
 #include "psidpartition.h"
 #include "psidcomm.h"
+#include "psidnodes.h"
 
 #include "psidtask.h"
 
@@ -433,6 +434,9 @@ void PStask_cleanup(PStask_ID_t tid)
 	/* Release resources bound to reservations */
 	PSIDpart_cleanupRes(task);
 
+	/* Release resources bound to received slots */
+	PSIDpart_cleanupSlots(task);
+
 	/* Tell master about exiting root process */
 	if (task->request) send_CANCELPART(tid);
 	if (task->partition && task->partitionSize) send_TASKDEAD(tid);
@@ -494,7 +498,7 @@ void PStask_cleanup(PStask_ID_t tid)
     /* Make sure we get all pending messages */
     if (task->fd != -1) Selector_enable(task->fd);
 
-    if (PSID_emptySigList(&task->childList)) {
+    if (PSID_emptySigList(&task->childList) && !task->delegate) {
 	/* Mark task as deleted; will be actually removed in main loop */
 	task->deleted = 1;
     }

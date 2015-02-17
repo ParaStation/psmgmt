@@ -327,6 +327,24 @@ void PSIDpart_sendResNodes(PSrsrvtn_ID_t resID, PStask_t *task,
  */
 void PSIDpart_cleanupRes(PStask_t *task);
 
+/**
+ * @brief Cleanup reservered slots
+ *
+ * Cleanup all slots associated to the task @a task. These slots got
+ * associated by PSP_CD_GETSLOTS messages sent by the task requesting
+ * slots from a reservation in order to use them for spawning
+ * processes later on.
+ *
+ * This function will create corresponding PSP_DD_CHILDRESREL messages
+ * for each of the slots stored in the task's @ref spawnNodes
+ * attribute not yet used for spawning.
+ *
+ * @param task Task structure holding the slots to cleanup
+ *
+ * @return No return value
+ */
+void PSIDpart_cleanupSlots(PStask_t *task);
+
 #ifdef __cplusplus
 }/* extern "C" */
 #endif
