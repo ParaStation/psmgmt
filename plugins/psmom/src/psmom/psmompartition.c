@@ -242,6 +242,7 @@ int handleCreatePart(void *msg)
 	 PSC_printTID(job->resDelegate->tid));
 
     task->delegate = job->resDelegate;
+    task->usedThreads = 0;
     task->options = task->request->options & ~PART_OPT_EXACT;
 
     if (!task->request->num) partitionDone(task);
