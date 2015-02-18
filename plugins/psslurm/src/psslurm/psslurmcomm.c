@@ -699,17 +699,36 @@ static int handleSrunMsg(int sock, void *data)
     return 0;
 }
 
+static PSnodes_ID_t getJobLocalNodeID(Step_t *step)
+{
+    PSnodes_ID_t nodeID = 0;
+    uint32_t i;
+
+    /* find my job local nodeid */
+    for (i=0; i<step->nrOfNodes; i++) {
+	if (step->nodes[i] == PSC_getMyID()) {
+	    break;
+	}
+	nodeID++;
+    }
+
+    return nodeID;
+}
+
 int srunOpenControlConnection(Step_t *step)
 {
     char port[256];
     int sock;
+    PSnodes_ID_t nodeID;
 
     if (step->numSrunPorts <= 0) {
 	mlog("%s: sending failed, no srun ports available\n", __func__);
 	return -1;
     }
 
-    snprintf(port, sizeof(port), "%u", step->srunPorts[0]);
+    nodeID = getJobLocalNodeID(step);
+    snprintf(port, sizeof(port), "%u",
+		step->srunPorts[nodeID % step->numSrunPorts]);
     if ((sock = tcpConnect(inet_ntoa(step->srun.sin_addr), port)) <0) {
 	mlog("%s: connection to srun '%s:%s' failed\n", __func__,
 		inet_ntoa(step->srun.sin_addr), port);
@@ -768,20 +787,13 @@ int srunOpenIOConnection(Step_t *step)
 {
     PS_DataBuffer_t data = { .buf = NULL };
     char port[100];
-    int sock; //, ret;
+    int sock;
     PSnodes_ID_t nodeID = 0;
-    uint32_t i;
 
-    /* find my job local nodeid */
-    for (i=0; i<step->nrOfNodes; i++) {
-	if (step->nodes[i] == PSC_getMyID()) {
-	    break;
-	}
-	nodeID++;
-    }
 
     /* open connection to waiting srun */
-    snprintf(port, sizeof(port), "%u", step->IOPort[0]);
+    nodeID = getJobLocalNodeID(step);
+    snprintf(port, sizeof(port), "%u", step->IOPort[nodeID % step->numIOPort]);
 
     if ((sock = tcpConnect(inet_ntoa(step->srun.sin_addr), port)) <0) {
 	mlog("%s: connection to srun '%s:%s' failed\n", __func__,
