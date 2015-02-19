@@ -72,6 +72,18 @@ typedef enum cpu_bind_type {    /* cpu binding type from --cpu_bind=... */
         CPU_BIND_CPUSETS   = 0x8000
 } cpu_bind_type_t;
 
+typedef enum mem_bind_type {    /* memory binding type from --mem_bind=... */
+        /* verbose can be set with any other flag */
+        MEM_BIND_VERBOSE= 0x01, /* =v, */
+        /* the following manual binding flags are mutually exclusive */
+        /* MEM_BIND_NONE needs to be the first in this sub-list */
+        MEM_BIND_NONE   = 0x02, /* =no */
+        MEM_BIND_RANK   = 0x04, /* =rank */
+        MEM_BIND_MAP    = 0x08, /* =map_mem:<list of CPU IDs> */
+        MEM_BIND_MASK   = 0x10, /* =mask_mem:<list of CPU masks> */
+        MEM_BIND_LOCAL  = 0x20  /* =local */
+} mem_bind_type_t;
+
 /* magic slurm signals */
 #define SIG_PREEMPTED   994     /* Dummy signal value for job preemption */
 #define SIG_DEBUG_WAKE  995     /* Dummy signal value to wake procs stopped

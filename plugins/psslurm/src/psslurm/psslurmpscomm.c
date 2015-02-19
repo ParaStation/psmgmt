@@ -107,15 +107,11 @@ int handleCreatePart(void *msg)
 
 	cpuCount =
 	    cred->coresPerSocket[coreIndex] * cred->socketsPerNode[coreIndex];
-	coreArrayCount++;
-	if (coreArrayCount >= cred->sockCoreRepCount[coreIndex]) {
-	    coreIndex++;
-	    coreArrayCount = 0;
-	}
-	lastCpu = -1;
 
 	hwThreads = PSIDnodes_getVirtCPUs(step->nodes[node]) / cpuCount;
 	if (hwThreads < 1) hwThreads = 1;
+
+	lastCpu = -1; /* no cpu assigned yet */
 
 	/* set node and cpuset for every task */
 	for (local_tid=0; local_tid < step->globalTaskIdsLen[node];
@@ -137,14 +133,22 @@ int handleCreatePart(void *msg)
 
 	    /* calc CPUset */
 	    setCPUset(&CPUset, step->cpuBindType, step->cpuBind, coreMap,
-                        coreMapIndex, cpuCount, &lastCpu, node, &thread,
-                        hwThreads, step->globalTaskIdsLen[node], local_tid);
+                        coreMapIndex, cred->socketsPerNode[coreIndex],
+                        cred->coresPerSocket[coreIndex], cpuCount, &lastCpu,
+                        node, &thread, hwThreads, step->globalTaskIdsLen[node],
+                        step->tpp, local_tid);
 
 	    slots[tid].node = step->nodes[node];
 	    PSCPU_copy(slots[tid].CPUset, CPUset);
 
 	}
 	coreMapIndex += cpuCount;
+
+	coreArrayCount++;
+	if (coreArrayCount >= cred->sockCoreRepCount[coreIndex]) {
+	    coreIndex++;
+	    coreArrayCount = 0;
+	}
     }
 
     /* slots are hanging on the partition, the psid will free them for us */

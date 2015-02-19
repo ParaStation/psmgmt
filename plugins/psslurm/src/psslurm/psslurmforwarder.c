@@ -480,7 +480,7 @@ static void execBatchJob(void *data, int rerun)
 
     setPermissions(job);
 
-    /* TODO pinning, waiting for #2049 */
+    /* TODO pinning, waiting for #2049 (obsolete) */
 
     /* switch user */
     switchUser(job->username, job->uid, job->gid, job->cwd);

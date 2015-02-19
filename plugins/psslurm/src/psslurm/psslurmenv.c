@@ -347,6 +347,66 @@ void setTaskEnv(Step_t *step)
     snprintf(tmp, sizeof(tmp), "%u", step->tpp);
     envSet(&step->env, "SLURM_CPUS_PER_TASK", tmp);
 
+
+    /* cpu bind variables */
+    if (step->cpuBindType & CPU_BIND_VERBOSE) {
+	envSet(&step->env, "SLURM_CPU_BIND_VERBOSE", "verbose");
+    }
+    else {
+	envSet(&step->env, "SLURM_CPU_BIND_VERBOSE", "quiet");
+    }
+
+    if (step->cpuBindType & CPU_BIND_NONE) {
+	val = "none";
+    }
+    else if (step->cpuBindType & CPU_BIND_RANK) {
+	val = "rank";
+    }
+    else if (step->cpuBindType & CPU_BIND_TO_SOCKETS) {
+	val = "sockets";
+    }
+    else if (step->cpuBindType & CPU_BIND_TO_LDOMS) {
+	val = "ldoms";
+    }
+    else if (step->cpuBindType & CPU_BIND_MAP) {
+	val = "map_cpu:";
+    }
+    else if (step->cpuBindType & CPU_BIND_MASK) {
+	val = "mask_cpu:";
+    }
+    else {
+	val = "unsupported";
+    }
+    envSet(&step->env, "SLURM_CPU_BIND_TYPE", val);
+
+    if (step->cpuBindType & (CPU_BIND_MAP | CPU_BIND_MASK)) {
+	envSet(&step->env, "SLURM_CPU_BIND_LIST", step->cpuBind);
+    }
+
+    /* mem bind variables */
+    if (step->memBindType & MEM_BIND_VERBOSE) {
+	envSet(&step->env, "SLURM_MEM_BIND_VERBOSE", "verbose");
+    }
+    else {
+	envSet(&step->env, "SLURM_MEM_BIND_VERBOSE", "quiet");
+    }
+
+    if (step->memBindType & MEM_BIND_NONE) {
+	val = "none";
+    }
+    else if (step->memBindType & (MEM_BIND_RANK | MEM_BIND_MAP
+	     | MEM_BIND_MASK)) {
+	val = "unsupported";
+    }
+    else if (step->memBindType & MEM_BIND_LOCAL) {
+	val = "local";
+    }
+    else {
+	/* this is our default */
+	val = "local";
+    }
+    envSet(&step->env, "SLURM_MEM_BIND_TYPE", val);
+
     envSet(&step->env, "SLURM_CHECKPOINT_IMAGE_DIR", step->checkpoint);
     envSet(&step->env, "SLURM_LAUNCH_NODE_IPADDR",
 	    inet_ntoa(step->srun.sin_addr));
@@ -382,6 +442,11 @@ void setTaskEnv(Step_t *step)
     envSet(&step->env, "SLURM_JOB_USER", step->username);
     snprintf(tmp, sizeof(tmp), "%u", step->uid);
     envSet(&step->env, "SLURM_JOB_UID", tmp);
+
+    /* handle memory mapping */
+    if (step->memBindType & MEM_BIND_NONE) {
+	envSet(&step->env, "__PSI_NO_MEMBIND", "1");
+    }
 
     removeSpankOptions(&step->env);
 }
