@@ -74,7 +74,7 @@ handlerFunc_t oldChildBornHandler = NULL;
 
 /** psid plugin requirements */
 char name[] = "psslurm";
-int version = 20;
+int version = 21;
 int requiredAPI = 112;
 plugin_dep_t dependencies[5];
 
