@@ -10,6 +10,8 @@
  * $Id$
  *
  */
+
+#include <stdio.h>
 #include <string.h>
 
 #include "psdaemonprotocol.h"
@@ -73,7 +75,7 @@ static PSrsrvtn_t *res = NULL;
 #define MAXTHREADS 4
 #define THREAD_NODE 3
 
-void sendSlots(void)
+void provideSlots(void)
 {
     PSpart_slot_t slots[MAXTHREADS];
     int numSlot = 0, numThread = 0, s, min, max;
@@ -102,6 +104,7 @@ void sendSlots(void)
 	    numSlot++;
 	    slots[numSlot].node = THREAD_NODE;
 	    PSCPU_clrAll(slots[numSlot].CPUset);
+	    numThread = 0;
 	}
     }
 
@@ -118,10 +121,9 @@ void sendSlots(void)
     res = NULL;
 }
 
-
 int handleDynReservation(void *resPtr)
 {
-    struct timeval timeout = {7, 0};
+    struct timeval timeout = {1, 0};
     int min, max;
 
     if (!resPtr) {
@@ -136,9 +138,9 @@ int handleDynReservation(void *resPtr)
     if (min < 1) min = 1;
     max = res->nMax - res->nSlots;
 
-    PSID_log(-1, "%s: Try to reserve %d to %d nodes of type %s with %d threads"
-	     " for %#x\n", name, min, max, getHWStr(res->hwType), res->tpp,
-	     res->rid);
+    PSID_log(-1, "%s: Try to reserve %d to %d nodes of type '%s' with"
+	     " %d threads for reservation ID %#x\n", name, min, max,
+	     getHWStr(res->hwType), res->tpp, res->rid);
 
     if (min > MAXTHREADS) {
 	/* Unsuccessful: No slots to be provided */
@@ -146,7 +148,7 @@ int handleDynReservation(void *resPtr)
 	res = NULL;
     } else {
 	/* This timer mimicks waiting for the actual resource management */
-	resTimer = Timer_register(&timeout, sendSlots);
+	resTimer = Timer_register(&timeout, provideSlots);
 	PSID_log(-1, "%s: timer %d\n", name, resTimer);
     }
 
@@ -185,16 +187,18 @@ int initialize(void)
 {
     /* register needed hooks */
     if (!(PSIDhook_add(PSIDHOOK_XTND_PART_DYNAMIC, handleDynReservation))) {
-	PSID_log(-1, "register 'PSIDHOOK_XTND_PART_DYNAMIC' failed\n");
+	PSID_log(-1, "%s: 'PSIDHOOK_XTND_PART_DYNAMIC' registration failed\n",
+		 name);
 	goto INIT_ERROR;
     }
 
     if (!(PSIDhook_add(PSIDHOOK_RELS_PART_DYNAMIC, handleDynRelease))) {
-	PSID_log(-1, "register 'PSIDHOOK_RELS_PART_DYNAMIC' failed\n");
+	PSID_log(-1, "%s: 'PSIDHOOK_RELS_PART_DYNAMIC' registration failed\n",
+		 name);
 	goto INIT_ERROR;
     }
 
-    PSID_log(-1, "(%i) successfully started\n", version);
+    PSID_log(-1, "%s: (%i) successfully started\n", name, version);
     return 0;
 
 INIT_ERROR:
@@ -205,12 +209,15 @@ INIT_ERROR:
 
 void finalize(void)
 {
+    PSID_log(-1, "%s: %s\n", name, __func__);
     PSIDplugin_unload(name);
 }
 
 void cleanup(void)
 {
+    PSID_log(-1, "%s: %s\n", name, __func__);
     unregisterHooks();
+    PSID_log(-1, "%s: Done\n", name);
 }
 
 char * help(void)
