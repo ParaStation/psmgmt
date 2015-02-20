@@ -84,6 +84,33 @@ typedef enum mem_bind_type {    /* memory binding type from --mem_bind=... */
         MEM_BIND_LOCAL  = 0x20  /* =local */
 } mem_bind_type_t;
 
+/* Possible task distributions across the nodes */
+typedef enum task_dist_states {
+        /* NOTE: start SLURM_DIST_CYCLIC at 1 for HP MPI */
+        SLURM_DIST_CYCLIC = 1,  /* distribute tasks 1 per node, round robin */
+        SLURM_DIST_BLOCK,       /* distribute tasks filling node by node */
+        SLURM_DIST_ARBITRARY,   /* arbitrary task distribution  */
+        SLURM_DIST_PLANE,       /* distribute tasks by filling up
+                                   planes of lllp first and then by
+                                   going across the nodes See
+                                   documentation for more
+                                   information */
+        SLURM_DIST_CYCLIC_CYCLIC,/* distribute tasks 1 per node,
+                                    round robin, same for lowest
+                                    level of logical processor (lllp) */
+        SLURM_DIST_CYCLIC_BLOCK, /* cyclic for node and block for lllp  */
+        SLURM_DIST_BLOCK_CYCLIC, /* block for node and cyclic for lllp  */
+        SLURM_DIST_BLOCK_BLOCK, /* block for node and block for lllp  */
+        SLURM_NO_LLLP_DIST,     /* No distribution specified for lllp */
+        SLURM_DIST_UNKNOWN,     /* unknown dist */
+        SLURM_DIST_CYCLIC_CFULL, /* Same as cyclic:cyclic except for
+                                    multi-cpu tasks cyclically
+                                    bind cpus */
+        SLURM_DIST_BLOCK_CFULL, /* Same as block:cyclic except for
+                                   multi-cpu tasks cyclically
+                                   bind cpus  */
+} task_dist_states_t;
+
 /* magic slurm signals */
 #define SIG_PREEMPTED   994     /* Dummy signal value for job preemption */
 #define SIG_DEBUG_WAKE  995     /* Dummy signal value to wake procs stopped

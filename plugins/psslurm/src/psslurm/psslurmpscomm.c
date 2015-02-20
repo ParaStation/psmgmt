@@ -54,7 +54,7 @@ int handleCreatePart(void *msg)
     DDBufferMsg_t *inmsg = (DDBufferMsg_t *) msg;
     Step_t *step;
     PStask_t *task;
-    uint32_t node, local_tid, tid, slotsSize, cpuCount;
+    uint32_t node, local_tid, tid, slotsSize, cpuCount, i, shift;
     uint32_t coreMapIndex = 0, coreIndex = 0, coreArrayCount = 0;
     int32_t lastCpu;
     uint8_t *coreMap = NULL;
@@ -139,8 +139,29 @@ int handleCreatePart(void *msg)
                         step->tpp, local_tid);
 
 	    slots[tid].node = step->nodes[node];
-	    PSCPU_copy(slots[tid].CPUset, CPUset);
 
+            /* handle cyclic distribution */
+            if ((!(step->cpuBindType & (0xFFF & ~CPU_BIND_VERBOSE)) /* default */
+                    || step->cpuBindType & (CPU_BIND_RANK | CPU_BIND_TO_THREADS))
+                    && (step->taskDist == SLURM_DIST_BLOCK_CYCLIC ||
+                    step->taskDist == SLURM_DIST_CYCLIC_CYCLIC)) {
+                PSCPU_clrAll(slots[tid].CPUset);
+                shift = local_tid % 2 ? cred->coresPerSocket[coreIndex] : 0;
+                shift = shift - step->tpp * ((local_tid + 1) / 2);
+                for (i = 0; i < (cpuCount * hwThreads); i++) {
+                    if (PSCPU_isSet(CPUset, i)) {
+                        PSCPU_setCPU(slots[tid].CPUset,
+                                     (i + shift) % (cpuCount * hwThreads));
+                    }
+                }
+                mdbg(PSSLURM_LOG_PART, "%s: Cyclic shifting by %d:\n",
+                        __func__, shift);
+                mdbg(PSSLURM_LOG_PART, "- %s\n", PSCPU_print(CPUset));
+                mdbg(PSSLURM_LOG_PART, "+ %s\n", PSCPU_print(slots[tid].CPUset));
+            }
+            else {
+                PSCPU_copy(slots[tid].CPUset, CPUset);
+            }
 	}
 	coreMapIndex += cpuCount;
 
