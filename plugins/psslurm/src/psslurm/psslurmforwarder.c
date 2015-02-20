@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014 - 2015 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -479,8 +479,6 @@ static void execBatchJob(void *data, int rerun)
     initLogger(buf, NULL);
 
     setPermissions(job);
-
-    /* TODO pinning, waiting for #2049 (obsolete) */
 
     /* switch user */
     switchUser(job->username, job->uid, job->gid, job->cwd);
