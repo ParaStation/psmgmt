@@ -19,10 +19,10 @@ for p in helper.partitions():
 		for line in lines:
 			tmp = line.split()
 			if 0 == int(tmp[0]):
-				test.check(65537 == int(tmp[1], base = 16), p)
+				test.check(4294967295 == int(tmp[1], base = 16), p)
 				count += 1
 			if 1 == int(tmp[0]):
-				test.check(16777472 == int(tmp[1], base = 16), p)
+				test.check(4294967295 == int(tmp[1], base = 16), p)
 				count += 1
 		test.check(len(lines) == count, p)
 	except Exception as e:
