@@ -76,7 +76,13 @@ static int waitForReservation = 0;
  * mode removing all multiple consecutive entry from within a
  * hostfile.
  */
-#define ENV_HOSTS_UNIQUE    "PSI_HOSTS_UNIQUE"
+#define ENV_HOSTS_UNIQUE   "PSI_HOSTS_UNIQUE"
+
+/**
+ * Name of the evironment variable used in order to enable a
+ * dynamic resource allocation in cooperation with an external RMS.
+ */
+#define ENV_PART_DYNAMIC   "PSI_DYNAMIC"
 
 /**
  * @param Warn on ignored setting
@@ -260,7 +266,7 @@ static PSpart_sort_t getSortMode(void)
  *
  * Get the partition's options from the environment variables @ref
  * ENV_PART_LOOPNODES, @ref ENV_PART_EXCLUSIVE, @ref ENV_PART_OVERBOOK,
- * @ref ENV_PART_WAIT and @ref ENV_PART_OMPI.
+ * @ref ENV_PART_WAIT, @ref ENV_PART_OMPI and @ref ENV_PART_DYNAMIC.
  *
  * @return The bitwise OR'ed combination of the detected options.
  */
@@ -274,6 +280,7 @@ static PSpart_option_t getPartitionOptions(void)
     if (getenv(ENV_PART_WAIT)) options |= PART_OPT_WAIT;
     if (batchPartition) options |= PART_OPT_EXACT;
     if (getenv(ENV_PART_OMPI)) options |= PART_OPT_RESPORTS;
+    if (getenv(ENV_PART_DYNAMIC)) options |= PART_OPT_DYNAMIC;
 
     return options;
 }
