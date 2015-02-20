@@ -400,6 +400,7 @@ tests/plugins/plugin7.c \
 tests/plugins/plugin8.c \
 tests/plugins/plugin9.c \
 tests/plugins/no_flowcontrol.c \
+tests/plugins/dyn_resources.c \
 tests/psid/Makefile \
 tests/psid/config.tmpl \
 tests/psid/mpi_hello.c \

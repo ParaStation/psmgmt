@@ -1,0 +1,224 @@
+/*
+ * ParaStation
+ *
+ * Copyright (C) 2015 ParTec Cluster Competence Center GmbH, Munich
+ *
+ * This file may be distributed under the terms of the Q Public License
+ * as defined in the file LICENSE.QPL included in the packaging of this
+ * file.
+ *
+ * $Id$
+ *
+ */
+#include <string.h>
+
+#include "psdaemonprotocol.h"
+#include "psreservation.h"
+#include "hardware.h"
+#include "timer.h"
+
+#include "psidutil.h"
+#include "psidcomm.h"
+#include "psidplugin.h"
+#include "psidhook.h"
+#include "psidpartition.h"
+
+#include "plugin.h"
+
+/* We'll need the dynamic resource management stuff */
+int requiredAPI = 112;
+
+char name[] = "dyn_resources";
+
+int version = 100;
+
+plugin_dep_t dependencies[] = {
+    { NULL, 0 } };
+
+char *getHWStr(unsigned int hwType)
+{
+    int hwNum = 0;
+    static char txt[256];
+
+    txt[0] = '\0';
+
+    if (!hwType) snprintf(txt, sizeof(txt), "none ");
+
+    while (hwType) {
+	if (hwType & 1) {
+	    char *name = HW_name(hwNum);
+
+	    if (name) {
+		snprintf(txt+strlen(txt), sizeof(txt)-strlen(txt),
+			 "%s ", name);
+	    } else {
+		snprintf(txt+strlen(txt), sizeof(txt)-strlen(txt), "unknown ");
+	    }
+	}
+
+	hwType >>= 1;
+	hwNum++;
+    }
+
+    txt[strlen(txt)-1] = '\0';
+
+    return txt;
+}
+
+static int resTimer = -1;
+
+static PSrsrvtn_t *res = NULL;
+
+/* My pool of threads. All reside on node 3 */
+#define MAXTHREADS 4
+#define THREAD_NODE 3
+
+void sendSlots(void)
+{
+    PSpart_slot_t slots[MAXTHREADS];
+    int numSlot = 0, numThread = 0, s, min, max;
+
+    if (resTimer > -1) {
+	Timer_remove(resTimer);
+	PSID_log(-1, "%s: delete timer %d\n", name, resTimer);
+	resTimer = -1;
+    }
+
+    if (!res) {
+	PSID_log(-1, "%s: %s: No reservation", name, __func__);
+	return;
+    }
+
+    min = res->nMin - res->nSlots;
+    max = res->nMax - res->nSlots;
+
+    slots[numSlot].node = THREAD_NODE;
+    PSCPU_clrAll(slots[numSlot].CPUset);
+
+    for (s = 0; s < MAXTHREADS && numSlot < max; s++) {
+	PSCPU_setCPU(slots[numSlot].CPUset, s);
+	numThread++;
+	if (numThread == res->tpp) {
+	    numSlot++;
+	    slots[numSlot].node = THREAD_NODE;
+	    PSCPU_clrAll(slots[numSlot].CPUset);
+	}
+    }
+
+    if (numSlot >= min) {
+	PSID_log(-1, "%s: %s: Got %d of [%d..%d] slots\n",
+		 name, __func__, numSlot, min, max);
+	PSIDpart_extendRes(res->task, res->rid, numSlot, slots);
+    } else {
+	PSID_log(-1, "%s: %s: Only found %d of minimum %d slots\n",
+		 name, __func__, numSlot, min);
+	PSIDpart_extendRes(res->task, res->rid, 0, NULL);
+    }
+
+    res = NULL;
+}
+
+
+int handleDynReservation(void *resPtr)
+{
+    struct timeval timeout = {7, 0};
+    int min, max;
+
+    if (!resPtr) {
+	PSID_log(-1, "%s: %s: No reservation given\n", name, __func__);
+	return 0;
+    }
+
+    /* Keep the reservation somewhere */
+    res = resPtr;
+
+    min = res->nMin - res->nSlots;
+    if (min < 1) min = 1;
+    max = res->nMax - res->nSlots;
+
+    PSID_log(-1, "%s: Try to reserve %d to %d nodes of type %s with %d threads"
+	     " for %#x\n", name, min, max, getHWStr(res->hwType), res->tpp,
+	     res->rid);
+
+    if (min > MAXTHREADS) {
+	/* Unsuccessful: No slots to be provided */
+	PSIDpart_extendRes(res->task, res->rid, 0, NULL);
+	res = NULL;
+    } else {
+	/* This timer mimicks waiting for the actual resource management */
+	resTimer = Timer_register(&timeout, sendSlots);
+	PSID_log(-1, "%s: timer %d\n", name, resTimer);
+    }
+
+
+    return 1;
+}
+
+int handleDynRelease(void *slotPtr)
+{
+    PSpart_slot_t *slot = slotPtr;
+
+    if (!slotPtr) {
+	PSID_log(-1, "%s: No to be released slot given\n", __func__);
+	return 0;
+    }
+
+    PSID_log(-1, "%s: Slot to release: %d %s\n", __func__, slot->node,
+	     PSCPU_print(slot->CPUset));
+
+    return 1;
+}
+
+static void unregisterHooks(void)
+{
+    /* unregister hooks */
+    if (!(PSIDhook_del(PSIDHOOK_XTND_PART_DYNAMIC, handleDynReservation))) {
+	PSID_log(-1, "unregister 'PSIDHOOK_XTND_PART_DYNAMIC' failed\n");
+    }
+
+    if (!(PSIDhook_del(PSIDHOOK_RELS_PART_DYNAMIC, handleDynRelease))) {
+	PSID_log(-1, "unregister 'PSIDHOOK_RELS_PART_DYNAMIC' failed\n");
+    }
+}
+
+int initialize(void)
+{
+    /* register needed hooks */
+    if (!(PSIDhook_add(PSIDHOOK_XTND_PART_DYNAMIC, handleDynReservation))) {
+	PSID_log(-1, "register 'PSIDHOOK_XTND_PART_DYNAMIC' failed\n");
+	goto INIT_ERROR;
+    }
+
+    if (!(PSIDhook_add(PSIDHOOK_RELS_PART_DYNAMIC, handleDynRelease))) {
+	PSID_log(-1, "register 'PSIDHOOK_RELS_PART_DYNAMIC' failed\n");
+	goto INIT_ERROR;
+    }
+
+    PSID_log(-1, "(%i) successfully started\n", version);
+    return 0;
+
+INIT_ERROR:
+    unregisterHooks();
+    return 1;
+}
+
+
+void finalize(void)
+{
+    PSIDplugin_unload(name);
+}
+
+void cleanup(void)
+{
+    unregisterHooks();
+}
+
+char * help(void)
+{
+    char *helpText =
+	"\tThis is some dummy plugin mimicking dynamic resource handling.\n"
+	"\tIt will just add by chance some random resources to a given "
+	"request.\n";
+
+    return strdup(helpText);
+}
