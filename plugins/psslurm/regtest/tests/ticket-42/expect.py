@@ -22,8 +22,8 @@ set timeout -1
 
 spawn %s
 
-expect -re "queued and waiting for resources"
-expect -re "has been allocated resources"
+expect -re "launching"
+expect -re "tasks started"
 expect -re "bash" { send "exit\n" }
 expect eof
 
