@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2014 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2015 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -32,6 +32,7 @@ static char vcid[] __attribute__((used)) =
 #include <sys/time.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/un.h>
 #include <sys/resource.h>
 #include <sys/wait.h>
 #include <signal.h>
@@ -461,14 +462,13 @@ void sighandler(int sig)
 	    PSIlog_log(PSILOG_LOG_VERB, "Got SIGTERM. Problem with child?\n");
 	    firstTERM = 0;
 	}
-	PSIlog_log(PSILOG_LOG_VERB,
-		   "No of clients: %d open logs:", getNoClients());
+	PSIlog_log(PSILOG_LOG_VERB, "%d clients. Open logs:", getNoClients());
 	for (i=getMinRank(); i<=getMaxRank(); i++) {
 	    PStask_ID_t tid = getClientTID(i);
 	    if (tid == -1) continue;
-	    PSIlog_log(PSILOG_LOG_VERB, "%d (%s) ", i, PSC_printTID(tid));
+	    PSIlog_log(PSILOG_LOG_VERB, " %d (%s)", i, PSC_printTID(tid));
 	}
-	PSIlog_log(PSILOG_LOG_VERB, "\b\n");
+	PSIlog_log(PSILOG_LOG_VERB, "\n");
 	{
 	    DDSignalMsg_t msg;
 
@@ -531,15 +531,17 @@ void sighandler(int sig)
 	}
 	break;
     case SIGUSR1:
-	PSIlog_log(-1, "No of clients: %d open logs:", getNoClients());
-	for (i=getMinRank(); i<=getMaxRank(); i++) {
-	    PStask_ID_t tid = getClientTID(i);
-	    if (tid == -1) continue;
-	    PSIlog_log(-1, "%d (%s) ", i, PSC_printTID(tid));
+	if (!getenv("__SLURM_INFORM_TIDS")) {
+	    PSIlog_log(-1, "%d clients. Open logs:", getNoClients());
+	    for (i=getMinRank(); i<=getMaxRank(); i++) {
+		PStask_ID_t tid = getClientTID(i);
+		if (tid == -1) continue;
+		PSIlog_log(-1, " %d (%s)", i, PSC_printTID(tid));
+	    }
+	    PSIlog_log(-1, "\n");
+	    PSIlog_log(-1, "allActiveThere is %d\n", allActiveThere());
+	    break;
 	}
-	PSIlog_log(-1, "\b\n");
-	PSIlog_log(-1, "allActiveThere is %d\n", allActiveThere());
-	break;
     case SIGHUP:
     case SIGTSTP:
     case SIGCONT:
@@ -1097,6 +1099,144 @@ static void handleCCMsg(PSLog_Msg_t *msg)
     }
 }
 
+static int handleDebugMsg(int fd, void *info)
+{
+    char buf[256];
+    size_t len;
+    int eno, i;
+
+    len = read(fd, buf, (sizeof(buf) > SSIZE_MAX) ? SSIZE_MAX : sizeof(buf));
+    switch (len) {
+    case -1:
+	eno = errno;
+	PSIlog_warn(-1, eno, "%s: read()", __func__);
+	if (eno == EBADF) {
+	    Selector_remove(fd);
+	} else if (eno != EIO) {
+	    Selector_remove(fd);
+	    close(fd);
+	} else {
+	    /* ignore */
+	}
+	break;
+    case 0:
+	PSIlog_log(PSILOG_LOG_VERB, "%s: debugger disconnected\n", __func__);
+	Selector_remove(fd);
+	close(fd);
+    default:
+	PSIlog_log(PSILOG_LOG_VERB, "%s: %zd bytes\n", __func__, len);
+    }
+
+    if (len < 1) return 0;
+
+    PSIlog_log(PSILOG_LOG_VERB, "%s: received '%d'\n", __func__, *(int *)buf);
+
+    dprintf(fd, "%d clients. Open logs:\n", getNoClients());
+    for (i = getMinRank(); i <= getMaxRank(); i++) {
+	PStask_ID_t tid = getClientTID(i);
+	if (tid == -1) continue;
+	dprintf(fd, "\t%d (%s)\n", i, PSC_printTID(tid));
+    }
+    dprintf(fd, "allActiveThere is %d\n", allActiveThere());
+
+    Selector_remove(fd);
+    close(fd);
+
+    return 0;
+}
+
+/**
+ * @brief Handle debug socket
+ *
+ * Handle the debug socket @a fd, i.e. accept requests for connecting
+ * the logger from new debugging client. This will only register the
+ * new debugger's file-descriptor.
+ *
+ * This function is expected to be registered to the selector facility.
+ *
+ * This function will return 1 in order the make the calling Sselect()
+ * function return. This enables the Selector to update the readfds
+ * set of file-descriptors passed to the select().
+ *
+ * @param fd The file-descriptor from which the new connection might
+ * be accepted.
+ *
+ * @param info Extra info. Currently ignored.
+ *
+ * @return On success 1 is returned. Otherwise -1 is returned and
+ * errno is set appropriately.
+ */
+static int handleDebugSock(int fd, void *info)
+{
+    struct linger linger = { .l_onoff = 1,
+			     .l_linger= 1};
+    int ssock;
+
+    PSIlog_log(PSILOG_LOG_VERB, "%s: accepting new connection\n", __func__);
+
+    ssock = accept(fd, NULL, 0);
+    if (ssock < 0) {
+	PSIlog_warn(-1, errno, "%s: error while accept()", __func__);
+	return -1;
+    }
+
+    if (ssock >= FD_SETSIZE) {
+	PSIlog_log(-1, "%s: error while accept(), ssock %d out of mask\n",
+		   __func__, ssock);
+	close(ssock);
+	return -1;
+    }
+
+    Selector_register(ssock, handleDebugMsg, NULL);
+
+    PSIlog_log(PSILOG_LOG_VERB, "%s: new socket is %d\n", __func__, ssock);
+
+    linger.l_onoff=1;
+    linger.l_linger=1;
+    if (setsockopt(ssock, SOL_SOCKET, SO_LINGER, &linger, sizeof(linger)) < 0) {
+	PSIlog_warn(-1, errno, "%s: cannot setsockopt(SO_LINGER)", __func__);
+	close(ssock);
+	return -1;
+    }
+
+    return 1; /* return 1 to allow main-loop updating readfds */
+}
+
+#define debugSockName "psilogger_%d.sock"
+
+void enableDebugSock(void)
+{
+    int debugSock;
+    struct sockaddr_un sa;
+
+    debugSock = socket(PF_UNIX, SOCK_STREAM, 0);
+    if (debugSock < 0) {
+	PSIlog_exit(errno, "Unable to create socket for debugging");
+    }
+
+    memset(&sa, 0, sizeof(sa));
+
+    sa.sun_family = AF_UNIX;
+    sa.sun_path[0] = '\0';
+    snprintf(sa.sun_path+1, sizeof(sa.sun_path)-1, debugSockName, getpid());
+
+    /* bind the socket to the right address */
+    if (bind(debugSock, (struct sockaddr *)&sa, sizeof(sa)) < 0) {
+	PSIlog_warn(-1, errno, "Not able to debug logger ");
+	return;
+    }
+
+    if (listen(debugSock, 20) < 0) {
+	PSIlog_warn(-1, errno, "Error while trying to listen");
+	return;
+    }
+
+    Selector_register(debugSock, handleDebugSock, NULL);
+
+    PSIlog_log(PSILOG_LOG_VERB, "Local Debug Port (%d) enabled.\n", debugSock);
+}
+
+
 /**
  * @brief The main loop
  *
@@ -1410,6 +1550,8 @@ int main( int argc, char**argv)
 	    }
 	}
     }
+
+    enableDebugSock();
 
     /* call the loop which does all the work */
     loop();
