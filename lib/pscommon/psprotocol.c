@@ -236,7 +236,7 @@ static int doGetMsgBuf(DDBufferMsg_t *msg, size_t *used, const char *callName,
 
     u = *used;
     if (typed) {
-	DDTypedBufferMsg_t *p;
+	DDTypedBufferMsg_t *p = NULL;
 	u += (void *)&p->buf - (void *)&p->type;
     }
 
