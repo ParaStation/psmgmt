@@ -30,190 +30,190 @@ for p in helper.partitions():
 		test.check(1 == result[0][1], p)
 
 		test.check(0 == result[1][0], p)
-		test.check(65536 == result[1][1], p)
+		test.check(2 == result[1][1], p)
 
 		test.check(0 == result[2][0], p)
-		test.check(2 == result[2][1], p)
+		test.check(4 == result[2][1], p)
 
 		test.check(0 == result[3][0], p)
-		test.check(131072 == result[3][1], p)
+		test.check(8 == result[3][1], p)
 
 		test.check(0 == result[4][0], p)
-		test.check(4 == result[4][1], p)
+		test.check(16 == result[4][1], p)
 
 		test.check(0 == result[5][0], p)
-		test.check(262144 == result[5][1], p)
+		test.check(32 == result[5][1], p)
 
 		test.check(0 == result[6][0], p)
-		test.check(8 == result[6][1], p)
+		test.check(64 == result[6][1], p)
 
 		test.check(0 == result[7][0], p)
-		test.check(524288 == result[7][1], p)
+		test.check(128 == result[7][1], p)
 
 		test.check(0 == result[8][0], p)
-		test.check(16 == result[8][1], p)
+		test.check(256 == result[8][1], p)
 
 		test.check(0 == result[9][0], p)
-		test.check(1048576 == result[9][1], p)
+		test.check(512 == result[9][1], p)
 
 		test.check(0 == result[10][0], p)
-		test.check(32 == result[10][1], p)
+		test.check(1024 == result[10][1], p)
 
 		test.check(1 == result[11][0], p)
 		test.check(1 == result[11][1], p)
 
 		test.check(1 == result[12][0], p)
-		test.check(65536 == result[12][1], p)
+		test.check(2 == result[12][1], p)
 
 		test.check(1 == result[13][0], p)
-		test.check(2 == result[13][1], p)
+		test.check(4 == result[13][1], p)
 
 		test.check(1 == result[14][0], p)
-		test.check(131072 == result[14][1], p)
+		test.check(8 == result[14][1], p)
 
 		test.check(1 == result[15][0], p)
-		test.check(4 == result[15][1], p)
+		test.check(16 == result[15][1], p)
 
 		test.check(1 == result[16][0], p)
-		test.check(262144 == result[16][1], p)
+		test.check(32 == result[16][1], p)
 
 		test.check(1 == result[17][0], p)
-		test.check(8 == result[17][1], p)
+		test.check(64 == result[17][1], p)
 
 		test.check(1 == result[18][0], p)
-		test.check(524288 == result[18][1], p)
+		test.check(128 == result[18][1], p)
 
 		test.check(1 == result[19][0], p)
-		test.check(16 == result[19][1], p)
+		test.check(256 == result[19][1], p)
 
 		test.check(1 == result[20][0], p)
-		test.check(1048576 == result[20][1], p)
+		test.check(512 == result[20][1], p)
 
 		test.check(1 == result[21][0], p)
-		test.check(32 == result[21][1], p)
+		test.check(1024 == result[21][1], p)
 
 		test.check(0 == result[22][0], p)
-		test.check(2097152 == result[22][1], p)
+		test.check(2048 == result[22][1], p)
 
 		test.check(0 == result[23][0], p)
-		test.check(64 == result[23][1], p)
+		test.check(4096 == result[23][1], p)
 
 		test.check(0 == result[24][0], p)
-		test.check(4194304 == result[24][1], p)
+		test.check(8192 == result[24][1], p)
 
 		test.check(0 == result[25][0], p)
-		test.check(128 == result[25][1], p)
+		test.check(16384 == result[25][1], p)
 
 		test.check(0 == result[26][0], p)
-		test.check(8388608 == result[26][1], p)
+		test.check(32768 == result[26][1], p)
 
 		test.check(0 == result[27][0], p)
-		test.check(256 == result[27][1], p)
+		test.check(65536 == result[27][1], p)
 
 		test.check(0 == result[28][0], p)
-		test.check(16777216 == result[28][1], p)
+		test.check(131072 == result[28][1], p)
 
 		test.check(0 == result[29][0], p)
-		test.check(512 == result[29][1], p)
+		test.check(262144 == result[29][1], p)
 
 		test.check(0 == result[30][0], p)
-		test.check(33554432 == result[30][1], p)
+		test.check(524288 == result[30][1], p)
 
 		test.check(0 == result[31][0], p)
-		test.check(1024 == result[31][1], p)
+		test.check(1048576 == result[31][1], p)
 
 		test.check(0 == result[32][0], p)
-		test.check(67108864 == result[32][1], p)
+		test.check(2097152 == result[32][1], p)
 
 		test.check(1 == result[33][0], p)
-		test.check(2097152 == result[33][1], p)
+		test.check(2048 == result[33][1], p)
 
 		test.check(1 == result[34][0], p)
-		test.check(64 == result[34][1], p)
+		test.check(4096 == result[34][1], p)
 
 		test.check(1 == result[35][0], p)
-		test.check(4194304 == result[35][1], p)
+		test.check(8192 == result[35][1], p)
 
 		test.check(1 == result[36][0], p)
-		test.check(128 == result[36][1], p)
+		test.check(16384 == result[36][1], p)
 
 		test.check(1 == result[37][0], p)
-		test.check(8388608 == result[37][1], p)
+		test.check(32768 == result[37][1], p)
 
 		test.check(1 == result[38][0], p)
-		test.check(256 == result[38][1], p)
+		test.check(65536 == result[38][1], p)
 
 		test.check(1 == result[39][0], p)
-		test.check(16777216 == result[39][1], p)
+		test.check(131072 == result[39][1], p)
 
 		test.check(1 == result[40][0], p)
-		test.check(512 == result[40][1], p)
+		test.check(262144 == result[40][1], p)
 
 		test.check(1 == result[41][0], p)
-		test.check(33554432 == result[41][1], p)
+		test.check(524288 == result[41][1], p)
 
 		test.check(1 == result[42][0], p)
-		test.check(1024 == result[42][1], p)
+		test.check(1048576 == result[42][1], p)
 
 		test.check(1 == result[43][0], p)
-		test.check(67108864 == result[43][1], p)
+		test.check(2097152 == result[43][1], p)
 
 		test.check(0 == result[44][0], p)
-		test.check(2048 == result[44][1], p)
+		test.check(4194304 == result[44][1], p)
 
 		test.check(0 == result[45][0], p)
-		test.check(134217728 == result[45][1], p)
+		test.check(8388608 == result[45][1], p)
 
 		test.check(0 == result[46][0], p)
-		test.check(4096 == result[46][1], p)
+		test.check(16777216 == result[46][1], p)
 
 		test.check(0 == result[47][0], p)
-		test.check(268435456 == result[47][1], p)
+		test.check(33554432 == result[47][1], p)
 
 		test.check(0 == result[48][0], p)
-		test.check(8192 == result[48][1], p)
+		test.check(67108864 == result[48][1], p)
 
 		test.check(0 == result[49][0], p)
-		test.check(536870912 == result[49][1], p)
+		test.check(134217728 == result[49][1], p)
 
 		test.check(0 == result[50][0], p)
-		test.check(16384 == result[50][1], p)
+		test.check(268435456 == result[50][1], p)
 
 		test.check(0 == result[51][0], p)
-		test.check(1073741824 == result[51][1], p)
+		test.check(536870912 == result[51][1], p)
 
 		test.check(0 == result[52][0], p)
-		test.check(32768 == result[52][1], p)
+		test.check(1073741824 == result[52][1], p)
 
 		test.check(0 == result[53][0], p)
 		test.check(2147483648 == result[53][1], p)
 
 		test.check(1 == result[54][0], p)
-		test.check(2048 == result[54][1], p)
+		test.check(4194304 == result[54][1], p)
 
 		test.check(1 == result[55][0], p)
-		test.check(134217728 == result[55][1], p)
+		test.check(8388608 == result[55][1], p)
 
 		test.check(1 == result[56][0], p)
-		test.check(4096 == result[56][1], p)
+		test.check(16777216 == result[56][1], p)
 
 		test.check(1 == result[57][0], p)
-		test.check(268435456 == result[57][1], p)
+		test.check(33554432 == result[57][1], p)
 
 		test.check(1 == result[58][0], p)
-		test.check(8192 == result[58][1], p)
+		test.check(67108864 == result[58][1], p)
 
 		test.check(1 == result[59][0], p)
-		test.check(536870912 == result[59][1], p)
+		test.check(134217728 == result[59][1], p)
 
 		test.check(1 == result[60][0], p)
-		test.check(16384 == result[60][1], p)
+		test.check(268435456 == result[60][1], p)
 
 		test.check(1 == result[61][0], p)
-		test.check(1073741824 == result[61][1], p)
+		test.check(536870912 == result[61][1], p)
 
 		test.check(1 == result[62][0], p)
-		test.check(32768 == result[62][1], p)
+		test.check(1073741824 == result[62][1], p)
 
 		test.check(1 == result[63][0], p)
 		test.check(2147483648 == result[63][1], p)
