@@ -28,6 +28,7 @@
 #include "list.h"
 #include "timer.h"
 #include "selector.h"
+#include "psidtask.h"
 #include "psidpartition.h"
 
 #include "pscommon.h"
@@ -545,8 +546,14 @@ int deleteJob(char *jobid)
     ufree(job->nodes);
 
     if (job->resDelegate) {
+	list_t *t;
 	if (job->resDelegate->partition) {
 	    send_TASKDEAD(job->resDelegate->tid);
+	}
+	/* Cleanup all references to this delegate */
+	list_for_each(t, &managedTasks) {
+	    PStask_t *task = list_entry(t, PStask_t, next);
+	    if (task->delegate == job->resDelegate) task->delegate = NULL;
 	}
 	job->resDelegate->deleted = 1;
     }
