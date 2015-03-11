@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2013-2014 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2013-2015 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -31,7 +31,8 @@
  * @param nps Array of number of compute processes to spawn.
  *
  * @param c_argvs Array of argument vectors of the compute processes.
- *               The first argument in each array is the executable for this index.
+ *               The first argument in each array is the executable
+ *               for this index.
  *
  * @param c_argcs Array of the number of arguments.
  *
@@ -42,8 +43,11 @@
  *
  * @param c_envcs Array of the numbers of elements in the environment vectors.
  *
- * @param wdirs Array of working directories of the new spawned processes.
- *             If NULL the working directory of the spawning parent will be used.
+ * @param wdirs Array of working directories of the spawned processes.
+ *              If NULL, the working directory of the spawning parent
+ *              will be used.
+ *
+ * @param tpps Array of threads per process of the spawned processes.
  *
  * @param nTypes Array of the type of node to execute the new processes on.
  *
@@ -61,8 +65,8 @@
  * @return Returns 1 on success or 0 on error.
  */
 int spawnService(int np, char *nps[], char **c_argvs[], int c_argcs[],
-		    char **c_envvs[], int c_envcs[], char *wdirs[],
-		    char *nTypes[], char *paths[], int ts, int usize,
-		    int serviceRank, char *kvsTmp);
+		 char **c_envvs[], int c_envcs[], char *wdirs[], char *tpps[],
+		 char *nTypes[], char *paths[], int ts, int usize,
+		 int serviceRank, char *kvsTmp);
 
 #endif

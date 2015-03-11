@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2007-2014 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2007-2015 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -1016,7 +1016,7 @@ static char **getSpawnPreputAsEnv(char *msgBuffer, int *envc)
 
     count = 0;
     *envc = atoi(numPreput);
-    envv = umalloc(sizeof(char *) * ( *envc + 2));
+    envv = umalloc(sizeof(char *) * ( *envc * 2 + 1));
 
     snprintf(buffer, sizeof(buffer), "__PMI_preput_num=%i", *envc);
     envv[count++] = ustrdup(buffer);
@@ -1218,7 +1218,8 @@ static int tryPMISpawn(char *spawnBuffer[], int totalSpawns, int serviceRank)
     char *nps[totalSpawns];
     char **argvs[totalSpawns], **envvs[totalSpawns];
     int argcs[totalSpawns], envcs[totalSpawns];
-    char *wdirs[totalSpawns], *ntypes[totalSpawns], *paths[totalSpawns];
+    char *wdirs[totalSpawns], *tpps[totalSpawns], *ntypes[totalSpawns];
+    char *paths[totalSpawns];
 
     setPMIDelim(delm);
 
@@ -1248,10 +1249,10 @@ static int tryPMISpawn(char *spawnBuffer[], int totalSpawns, int serviceRank)
 	nps[i] = NULL;
 	argvs[i] = envvs[i] = NULL;
 	argcs[i] = envcs[i] = 0;
-	wdirs[i] = ntypes[i] = paths[i] = NULL;
+	wdirs[i] = tpps[i] = ntypes[i] = paths[i] = NULL;
 
-        /* get the number of processes to spawn */
-        if (!(nps[i] = getpmivm("nprocs", spawnBuffer[i]))) {
+	/* get the number of processes to spawn */
+	if (!(nps[i] = getpmivm("nprocs", spawnBuffer[i]))) {
 	    elog("%s(r%i): getting number of processes to spawn failed\n",
 		    __func__, rank);
 	    totalSpawns = i+1;
@@ -1266,10 +1267,9 @@ static int tryPMISpawn(char *spawnBuffer[], int totalSpawns, int serviceRank)
 
 	/* extract preput values and keys
 	 *
-	 * We will transport this kv-pairs using the spawn environment. When our
-	 * children are starting the pmi_init() call will add them to their local
-	 * KVS.
-	 * */
+	 * We will transport this kv-pairs using the spawn
+	 * environment. When our children are starting the pmi_init()
+	 * call will add them to their local KVS. */
 	if (!(envvs[i] = getSpawnPreputAsEnv(spawnBuffer[i], &envcs[i]))) {
 	    totalSpawns = i+1;
 	    goto spawn_error;
@@ -1277,14 +1277,16 @@ static int tryPMISpawn(char *spawnBuffer[], int totalSpawns, int serviceRank)
 
 	/* extract info values and keys
 	 *
-	 * These info variables are implementation dependend and can be used for
-	 * e.g. process placement. All unsupported values will be silently ignored.
+	 * These info variables are implementation dependend and can
+	 * be used for e.g. process placement. All unsupported values
+	 * will be silently ignored.
 	 *
 	 * ParaStation will support:
 	 *
-	 *  - wdir:	The working directory of the new spawned processes
-	 *  - arch/nodetype: The type of nodes requested
-	 *  - path: The directory were the executable should be searched.
+	 *  - wdir: The working directory of the spawned processes
+	 *  - arch/nodetype: The type of nodes to be used
+	 *  - path: The directory were to search for the executable
+	 *  - tpp: Threads per process
 	 *
 	 * TODO:
 	 *
@@ -1318,6 +1320,11 @@ static int tryPMISpawn(char *spawnBuffer[], int totalSpawns, int serviceRank)
 	    if (!strcmp(nextkey, "wdir")) {
 		wdirs[i] = getpmivm(buffer, spawnBuffer[i]);
 	    }
+	    if (!strcmp(nextkey, "tpp")) {
+		if (!tpps[i]) {
+		    tpps[i] = getpmivm(buffer, spawnBuffer[i]);
+		}
+	    }
 	    if (!strcmp(nextkey, "nodetype") || !strcmp(nextkey, "arch")) {
 		if (!ntypes[i]) {
 		    ntypes[i] = getpmivm(buffer, spawnBuffer[i]);
@@ -1345,7 +1352,7 @@ static int tryPMISpawn(char *spawnBuffer[], int totalSpawns, int serviceRank)
     spawnChildSuccess = 0;
     spawnChildCount = 0;
     for (i=0; i<totalSpawns; i++) {
-        spawnChildCount += atoi(nps[i]);
+	spawnChildCount += atoi(nps[i]);
     }
 
     /* setup new KVS name */
@@ -1354,9 +1361,9 @@ static int tryPMISpawn(char *spawnBuffer[], int totalSpawns, int serviceRank)
 
     /* spawn a service process which spawns the KVS provider and the new
      * children */
-    if (!(spawnService(spawnChildCount, nps, argvs, argcs, envvs, envcs, wdirs,
-			ntypes, paths, totalSpawns, universe_size, serviceRank,
-			buffer))) {
+    if (!(spawnService(spawnChildCount, nps, argvs, argcs, envvs, envcs,
+		       wdirs, tpps, ntypes, paths, totalSpawns, universe_size,
+		       serviceRank, buffer))) {
 	goto spawn_error;
     }
 
@@ -1368,12 +1375,12 @@ spawn_error:
        spawn block handled while the error occurred */
 
     for (i=0; i<totalSpawns; i++) {
-        for (j=0; j<argcs[i]; j++) {
+	for (j=0; j<argcs[i]; j++) {
 	    if (argvs[i] && argvs[i][j]) ufree(argvs[i][j]);
 	}
 	ufree(argvs[i]);
 
-        for (j=0; j<envcs[i]; j++) {
+	for (j=0; j<envcs[i]; j++) {
 	    if (envvs[i] && envvs[i][j]) ufree(envvs[i][j]);
 	}
 	ufree(envvs[i]);
@@ -1726,7 +1733,8 @@ int pmi_init(int pmisocket, int pRank, PStask_ID_t logger)
     }
     appnum = atoi(ptr);
     if(appnum < 0) {
-	elog("%s(r%i): invalid PMI APPNUM parameter: %d\n", __func__, rank, appnum);
+	elog("%s(r%i): invalid PMI APPNUM parameter: %d\n", __func__,
+	     rank, appnum);
 	return 1;
     }
 
@@ -2002,7 +2010,7 @@ static void handleKVScacheUpdate(PSLog_Msg_t *msg, char *ptr, int lastUpdateMsg)
     if ((int) (PMIUPDATE_HEADER_LEN + sizeof(int32_t) + len) != msgSize) {
 	elog("%s(r%i): got invalid update message\n", __func__, rank);
 	elog("%s(r%i): msg.header.size:%i, len:%i msgSize:%i pslog_header:%i\n",
-		__func__, rank, msg->header.len, len, msgSize, PSLog_headerSize);
+	     __func__, rank, msg->header.len, len, msgSize, PSLog_headerSize);
 	critErr();
 	return;
     }

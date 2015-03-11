@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2013-2014 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2013-2015 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -268,9 +268,9 @@ static void setPath(char *oldPath, char *addPath, char **env)
 #endif
 
 int spawnService(int np, char *nps[], char **c_argvs[], int c_argcs[],
-		    char **c_envvs[], int c_envcs[], char *wdirs[],
-		    char *nTypes[], char *paths[], int ts, int usize,
-		    int serviceRank, char *kvsTmp)
+		 char **c_envvs[], int c_envcs[], char *wdirs[], char *tpps[],
+		 char *nTypes[], char *paths[], int ts, int usize,
+		 int serviceRank, char *kvsTmp)
 {
     PStask_t *myTask, *task;
     int envc = 0, argc = 0, i, j;
@@ -308,11 +308,12 @@ int spawnService(int np, char *nps[], char **c_argvs[], int c_argcs[],
     /* calc max number of arguments to be passed to mpiexec */
     maxargc = 3; /* "mpiexec -u <UNIVERSE_SIZE>" */
     for (i=0; i<ts; i++) {
-	/* -np <NP> -d <WDIR> -p <PATH> --nodetype=<NODETYPE> <BINARY> ... */
-	maxargc += c_argcs[i] + 8;
-	/* separating colons */
-	maxargc += ts-1;
+	/* -np <NP> -d <WDIR> -p <PATH> --nodetype=<NODETYPE> --tpp=<TPP> \
+	   <BINARY> ... */
+	maxargc += c_argcs[i] + 9;
     }
+    /* separating colons */
+    maxargc += ts-1;
 
     /* build arguments */
     snprintf(buffer, sizeof(buffer), "%d", usize);
@@ -334,6 +335,11 @@ int spawnService(int np, char *nps[], char **c_argvs[], int c_argcs[],
 	    task->argv[argc++] = ustrdup("-p");
 	    task->argv[argc++] = ustrdup(paths[i]);
 	}
+	if (tpps[i]) {
+	    len = strlen(tpps[i]) + 7;
+	    task->argv[argc] = umalloc(len * sizeof(char));
+	    snprintf(task->argv[argc++], len, "--tpp=%s", tpps[i]);
+	}
 	if (nTypes[i]) {
 	    len = strlen(nTypes[i]) + 12;
 	    task->argv[argc] = umalloc(len * sizeof(char));
@@ -352,9 +358,8 @@ int spawnService(int np, char *nps[], char **c_argvs[], int c_argcs[],
     task->argc = argc;
 
     /* build environment */
-    for (envc=0; myTask->environ[envc]; envc++); //TODO wozu ist das gut?
-
-    task->environ = umalloc((envc + c_envcs[0] + 8  + 1) * sizeof(char *));
+    task->environ = umalloc((myTask->envSize + c_envcs[0] + 7  + 1)
+			    * sizeof(char *));
     i=0;
     for (envc=0; myTask->environ[envc]; envc++) {
 	next = myTask->environ[envc];
@@ -366,6 +371,7 @@ int spawnService(int np, char *nps[], char **c_argvs[], int c_argcs[],
 	if (!(strncmp(next, "PMI_PORT=", 9))) continue;
 	if (!(strncmp(next, "PMI_FD=", 7))) continue;
 	if (!(strncmp(next, "PMI_KVS_TMP=", 12))) continue;
+	if (!(strncmp(next, "OMP_NUM_THREADS=", 16))) continue;
 #if 0
 	if (path && !(strncmp(next, "PATH", 4))) {
 	    setPath(next, path, &task->environ[i++]);
@@ -394,12 +400,6 @@ int spawnService(int np, char *nps[], char **c_argvs[], int c_argcs[],
     task->environ[envc++] = ustrdup("PMI_SPAWNED=1");
     snprintf(buffer, sizeof(buffer), "PMI_SIZE=%d", np);
     task->environ[envc++] = ustrdup(buffer);
-#if 0
-    if (nType) {
-	snprintf(buffer, sizeof(buffer), "PSI_NODE_TYPE=%s", nType);
-	task->environ[envc++] = ustrdup(buffer);
-    }
-#endif
 
     task->environ[envc] = NULL;
     task->envSize = envc;
