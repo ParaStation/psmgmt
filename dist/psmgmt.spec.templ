@@ -71,7 +71,7 @@ daemon is necessary to integrate compute nodes into a Torque batch system.
 %setup -q -n %{name}-%{version}-%{release}
 
 %build
-export CFLAGS="%(echo %{optflags}|sed -e 's,-O.,,' -e 's,-Wall,,' -e 's,-Wextra,,')"
+export CFLAGS="%(echo %{optflags}|sed -e 's,-O.,,')"
 %configure --datarootdir=%{_datadir} --with-pamdir=%{_pamdir}
 make %{?_smp_mflags}
 
