@@ -1,4 +1,6 @@
 # -*- rpm-spec -*-
+%{?_without_psconfig: %define disable_psconfig 1}
+
 Summary:   ParaStation Process Management
 Vendor:    ParTec Cluster Competence Center GmbH, Munich, Germany
 Name:      psmgmt
@@ -8,11 +10,13 @@ License:   QPL
 Group:     Productivity/Clustering/Computing
 Packager:  support@par-tec.de
 Source0:   %{name}-%{version}-%{release}.tar.gz
+%if !0%{?disable_psconfig}
 Requires:  psconfig >= 1.0, glib2 >= 2.22.5
+BuildRequires:	psconfig-dev
+%endif
 BuildRequires:	ncurses-devel
 BuildRequires:	readline-devel
 BuildRequires:	popt-devel
-BuildRequires:	psconfig-dev
 BuildRequires:	pam-devel
 %if 0%{?suse_version}
 BuildRequires:	libnuma-devel
@@ -72,7 +76,7 @@ daemon is necessary to integrate compute nodes into a Torque batch system.
 
 %build
 export CFLAGS="%(echo %{optflags}|sed -e 's,-O.,,')"
-%configure --datarootdir=%{_datadir} --with-pamdir=%{_pamdir}
+%configure --datarootdir=%{_datadir} --with-pamdir=%{_pamdir} %{?disable_psconfig:--without-psconfig}
 make %{?_smp_mflags}
 
 %install
