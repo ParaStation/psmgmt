@@ -351,9 +351,11 @@ void setTaskEnv(Step_t *step)
     /* cpu bind variables */
     if (step->cpuBindType & CPU_BIND_VERBOSE) {
 	envSet(&step->env, "SLURM_CPU_BIND_VERBOSE", "verbose");
+	envSet(&step->env, "SBATCH_CPU_BIND_VERBOSE", "verbose");
     }
     else {
 	envSet(&step->env, "SLURM_CPU_BIND_VERBOSE", "quiet");
+	envSet(&step->env, "SBATCH_CPU_BIND_VERBOSE", "quiet");
     }
 
     if (step->cpuBindType & CPU_BIND_NONE) {
@@ -378,9 +380,11 @@ void setTaskEnv(Step_t *step)
 	val = "unsupported";
     }
     envSet(&step->env, "SLURM_CPU_BIND_TYPE", val);
+    envSet(&step->env, "SBATCH_CPU_BIND_TYPE", val);
 
     if (step->cpuBindType & (CPU_BIND_MAP | CPU_BIND_MASK)) {
 	envSet(&step->env, "SLURM_CPU_BIND_LIST", step->cpuBind);
+	envSet(&step->env, "SBATCH_CPU_BIND_LIST", step->cpuBind);
     }
 
     /* mem bind variables */
