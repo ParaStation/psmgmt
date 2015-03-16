@@ -303,7 +303,10 @@ void getRankBinding(PSCPU_set_t *CPUset, uint8_t *coreMap,
     found = 0;
 
     /* with oneThreadPerCore set, we use only thread 0 */
-    if (oneThreadPerCore && (*thread != 0)) return;
+    if (oneThreadPerCore && (*thread != 0)) {
+	*thread = 0;
+	hwThreads = 1;
+    }
 
     while (found <= threadsPerTask) {
 	localCpuCount = 0;
@@ -324,8 +327,6 @@ void getRankBinding(PSCPU_set_t *CPUset, uint8_t *coreMap,
 	}
 	if (!found && *lastCpu == -1) return; /* no hw threads left */
 	if (found == threadsPerTask) return; /* found sufficient hw threads */
-
-        if (oneThreadPerCore) return; /* no cores left */
 
 	/* switch to next hw thread level */
 	*lastCpu = -1;
