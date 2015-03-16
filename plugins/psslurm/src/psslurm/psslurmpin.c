@@ -492,7 +492,9 @@ void setCPUset(PSCPU_set_t *CPUset, uint16_t cpuBindType, char *cpuBindString,
 		uint16_t threadsPerTask, uint32_t local_tid)
 {
 
-    if (cpuBindType & CPU_BIND_NONE) {
+    if (cpuBindType & (CPU_BIND_NONE | CPU_BIND_TO_BOARDS)) {
+	/* XXX: Of cause, this is only correct for systems with
+		only one board per node */
 	PSCPU_setAll(*CPUset);
 	mdbg(PSSLURM_LOG_PART, "%s: (cpu_bind_none)\n", __func__);
     } else if (cpuBindType & (CPU_BIND_MAP | CPU_BIND_MASK)) {
