@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014 - 2015 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -38,6 +38,8 @@ typedef enum {
     PSP_JOB_LAUNCH,
     PSP_JOB_STATE_REQ,
     PSP_JOB_STATE_RES,
+    PSP_FORWARD_SMSG,
+    PSP_FORWARD_SMSG_RES,
 } PSP_PSSLURM_t;
 
 char *msg2Str(PSP_PSSLURM_t type);

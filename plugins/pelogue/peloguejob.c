@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014 - 2015 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -134,7 +134,7 @@ int countJobs()
 
 int deleteJob(Job_t *job)
 {
-    if ((job = findJobByJobId(job->plugin, job->id)) == NULL) return 0;
+    if (!(job = findJobByJobId(job->plugin, job->id))) return 0;
 
     /* make sure pelogue timeout monitoring is gone */
     removePELogueTimeout(job);

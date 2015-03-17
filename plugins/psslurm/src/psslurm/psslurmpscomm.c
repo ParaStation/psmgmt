@@ -466,7 +466,7 @@ static void handleTaskIds(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 
     if (ret < 0) goto SPAWN_FAILED;
 
-    sendSlurmRC(step->srunControlSock, SLURM_SUCCESS, step);
+    sendSlurmRC(&step->srunControlMsg, SLURM_SUCCESS);
     step->state = JOB_RUNNING;
 
     /* taskIds */
@@ -492,7 +492,7 @@ SPAWN_FAILED:
 	/* spawn failed, e.g. executable not found */
 
 	/* we should say okay to srun and return exit code 2 */
-	sendSlurmRC(step->srunControlSock, SLURM_SUCCESS, step);
+	sendSlurmRC(&step->srunControlMsg, SLURM_SUCCESS);
 	step->tidsLen = step->np;
 	step->tids = umalloc(sizeof(uint32_t) * step->np);
 	for (i=0; i<step->nrOfNodes; i++) {
@@ -504,7 +504,7 @@ SPAWN_FAILED:
 	step->exitCode = 0x200;
     } else {
 	/* spawn failed */
-	sendSlurmRC(step->srunControlSock, SLURM_ERROR, step);
+	sendSlurmRC(&step->srunControlMsg, SLURM_ERROR);
     }
 }
 
@@ -817,6 +817,142 @@ static void handle_PS_SignalTasks(DDTypedBufferMsg_t *msg)
     signalTasks(step->uid, &step->tasks, signal, group);
 }
 
+void forwardSlurmMsg(Slurm_Msg_t *sMsg, Connection_Forward_t *fw)
+{
+    uint32_t nrOfNodes, i, len;
+    PSnodes_ID_t *nodes = NULL;
+
+    PS_DataBuffer_t msg = { .buf = NULL };
+
+    /* add forward information */
+    addInt16ToMsg(sMsg->sock, &msg);
+    addTimeToMsg(&sMsg->recvTime, &msg);
+
+    /* copy header */
+    addUint16ToMsg(sMsg->head.version, &msg);
+    addUint16ToMsg(sMsg->head.flags, &msg);
+    addUint16ToMsg(sMsg->head.type, &msg);
+    addUint32ToMsg(sMsg->head.bodyLen, &msg);
+
+    /* add forward */
+    addUint16ToMsg((uint16_t) 0, &msg);
+    /* add return List */
+    addUint16ToMsg((uint16_t) 0, &msg);
+    /* add addr */
+    addUint32ToMsg(sMsg->head.addr, &msg);
+    addUint16ToMsg(sMsg->head.port, &msg);
+
+    /* add message body */
+    len = sMsg->data->bufUsed - (sMsg->ptr - sMsg->data->buf);
+    addMemToMsg(sMsg->ptr, len, &msg);
+
+    /* convert nodelist to PS nodes */
+    getNodesFromSlurmHL(fw->head.nodeList, &nrOfNodes, &nodes);
+
+    /* save infos in connection */
+    fw->nodes = nodes;
+    fw->nodesCount = nrOfNodes;
+
+    for (i=0; i<nrOfNodes; i++) {
+	sendFragMsg(&msg, PSC_getTID(nodes[i], 0),
+			PSP_CC_PLUG_PSSLURM, PSP_FORWARD_SMSG);
+    }
+    ufree(msg.buf);
+
+    /* complete the forward header */
+    fw->head.forward = sMsg->head.forward;
+    fw->head.returnList = sMsg->head.returnList;
+    fw->head.fwdata =
+	umalloc(sMsg->head.forward * sizeof(Slurm_Forward_Data_t));
+
+    for (i=0; i<sMsg->head.forward; i++) {
+	fw->head.fwdata[i].error = SLURM_COMMUNICATIONS_CONNECTION_ERROR;
+	fw->head.fwdata[i].type = RESPONSE_FORWARD_FAILED;
+	fw->head.fwdata[i].node = -1;
+	fw->head.fwdata[i].body.buf = NULL;
+    }
+
+    mdbg(PSSLURM_LOG_FWD, "%s: forward: type '%s' count '%u' nodelist '%s' "
+	    "timeout '%u'\n", __func__, msgType2String(sMsg->head.type),
+	    sMsg->head.forward, fw->head.nodeList, fw->head.timeout);
+}
+
+void send_PS_ForwardRes(Slurm_Msg_t *sMsg, PS_DataBuffer_t *body)
+{
+    PS_DataBuffer_t msg = { .buf = NULL };
+
+    /* add forward information */
+
+    /* socket */
+    addInt16ToMsg(sMsg->sock, &msg);
+    /* receive time */
+    addTimeToMsg(&sMsg->recvTime, &msg);
+    /* message type */
+    addUint16ToMsg(sMsg->head.type, &msg);
+
+    addMemToMsg(body->buf, body->bufUsed, &msg);
+
+    sendFragMsg(&msg, sMsg->source, PSP_CC_PLUG_PSSLURM, PSP_FORWARD_SMSG_RES);
+    ufree(msg.buf);
+
+    mdbg(PSSLURM_LOG_FWD, "%s: type '%s' source '%s' socket '%i' recvTime "
+	    "'%zu'\n", __func__, msgType2String(sMsg->head.type),
+	    PSC_printTID(sMsg->source), sMsg->sock, sMsg->recvTime);
+}
+
+static void handleFWslurmMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
+{
+    Slurm_Msg_t sMsg;
+    char *ptr = data->buf;
+    int16_t socket;
+
+    initSlurmMsg(&sMsg);
+    sMsg.data = data;
+    sMsg.source = msg->header.sender;
+
+    /* socket */
+    getInt16(&ptr, &socket);
+    /* receive time */
+    getTime(&ptr, &sMsg.recvTime);
+
+    sMsg.sock = socket;
+    sMsg.ptr = ptr;
+    getSlurmMsgHeader(&sMsg, NULL);
+
+    mdbg(PSSLURM_LOG_FWD, "%s: sender '%s' sock '%u' time '%lu' datalen '%u'\n",
+	    __func__, PSC_printTID(sMsg.source), sMsg.sock, sMsg.recvTime,
+	    data->bufUsed);
+
+    handleSlurmdMsg(&sMsg);
+}
+
+static void handleFWslurmMsgRes(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
+{
+    Slurm_Msg_t sMsg;
+    char *ptr = data->buf;
+    PS_DataBuffer_t body = { .buf = NULL };
+    uint32_t len = data->bufUsed;
+    int16_t socket;
+
+    initSlurmMsgHead(&sMsg.head);
+    sMsg.data = NULL;
+    sMsg.source = msg->header.sender;
+
+    /* socket */
+    getInt16(&ptr, &socket);
+    sMsg.sock = socket;
+    /* receive time */
+    getTime(&ptr, &sMsg.recvTime);
+    /* message type */
+    getUint16(&ptr, &sMsg.head.type);
+
+    len -=  (2 * sizeof(uint16_t)) + sizeof (int64_t);
+    addMemToMsg(ptr, len, &body);
+
+    saveForwardedMsgRes(&sMsg, &body, SLURM_SUCCESS);
+    ufree(body.buf);
+}
+
 void handlePsslurmMsg(DDTypedBufferMsg_t *msg)
 {
     char sender[100], dest[100];
@@ -860,6 +996,12 @@ void handlePsslurmMsg(DDTypedBufferMsg_t *msg)
 	    break;
 	case PSP_JOB_STATE_RES:
 	    handle_PS_JobStateRes(msg);
+	    break;
+	case PSP_FORWARD_SMSG:
+	    recvFragMsg(msg, handleFWslurmMsg);
+	    break;
+	case PSP_FORWARD_SMSG_RES:
+	    recvFragMsg(msg, handleFWslurmMsgRes);
 	    break;
 	default:
 	    mlog("%s: received unknown msg type:%i [%s -> %s]\n", __func__,
@@ -940,6 +1082,27 @@ int handleNodeDown(void *nodeID)
     return 0;
 }
 
+static void saveForwardError(DDTypedBufferMsg_t *msg)
+{
+    Slurm_Msg_t sMsg;
+    PS_DataBuffer_t data = { .buf = NULL };
+    char *ptr = msg->buf;
+    int16_t socket;
+
+    initSlurmMsgHead(&sMsg.head);
+    sMsg.data = NULL;
+    sMsg.source = msg->header.dest;
+    sMsg.head.type = RESPONSE_FORWARD_FAILED;
+
+    /* socket */
+    getInt16(&ptr, &socket);
+    sMsg.sock = socket;
+    /* receive time */
+    getTime(&ptr, &sMsg.recvTime);
+
+    saveForwardedMsgRes(&sMsg, &data, SLURM_COMMUNICATIONS_CONNECTION_ERROR);
+}
+
 void handleDroppedMsg(DDTypedBufferMsg_t *msg)
 {
     char *ptr, sjobid[300];
@@ -977,6 +1140,11 @@ void handleDroppedMsg(DDTypedBufferMsg_t *msg)
 		deleteAlloc(jobid);
 	    }
 	    break;
+
+	case PSP_FORWARD_SMSG:
+	    saveForwardError(msg);
+	    break;
+	case PSP_FORWARD_SMSG_RES:
 	case PSP_JOB_LAUNCH:
 	case PSP_JOB_EXIT:
 	case PSP_JOB_STATE_RES:

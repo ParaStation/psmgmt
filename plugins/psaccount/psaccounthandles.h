@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014 - 2015 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -202,5 +202,7 @@ int (*psAccountreadProcStatInfo)(pid_t, ProcStat_t *);
 int (*psAccountGetDataByLogger)(PStask_ID_t, AccountDataExt_t *);
 
 int (*psAccountGetPidsByLogger)(PStask_ID_t,  pid_t **, uint32_t *);
+
+void (*psAccountDelJob)(PStask_ID_t);
 
 #endif

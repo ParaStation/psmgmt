@@ -44,7 +44,7 @@ const ConfDef_t CONFIG_VALUES[] =
 	"The grace time for clients in minutes" },
     { "TIME_JOB_GRACE", 1,
 	"num",
-	"60",
+	"10",
 	"The grace time for jobs in minutes" },
     { "DEBUG_MASK", 1,
 	"num",

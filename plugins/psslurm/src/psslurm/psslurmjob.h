@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014 - 2015 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -25,6 +25,7 @@
 #include "pstask.h"
 
 #include "psslurmgres.h"
+#include "slurmmsg.h"
 
 #include "pluginforwarder.h"
 #include "plugincomm.h"
@@ -104,7 +105,7 @@ typedef struct {
     time_t mtime;
     char *block;
     char *username;
-    int sock;
+    Slurm_Msg_t msg;
     uid_t uid;
     gid_t gid;
     Forwarder_Data_t *fwdata;
@@ -163,9 +164,9 @@ typedef struct {
     char *stdOut;
     char *stdIn;
     char *stdErr;
-    int srunIOSock;	    /* socket connect to srun to exchange I/O data */
-    int srunControlSock;
-    int srunPTYSock;
+    Slurm_Msg_t srunIOMsg;	    /* socket connect to srun to exchange I/O data */
+    Slurm_Msg_t srunControlMsg;
+    Slurm_Msg_t srunPTYMsg;
     uint8_t appendMode;	    /* stdout/stderr will truncate(=0) / append(=1) */
     uint8_t pty;
     uint16_t userManagedIO;

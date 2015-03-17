@@ -32,6 +32,7 @@
 #include "psslurmlog.h"
 #include "psslurmauth.h"
 #include "psslurmenv.h"
+#include "psslurmpscomm.h"
 
 #include "plugincomm.h"
 #include "pluginconfig.h"
@@ -46,8 +47,6 @@
 const char *msgType2String(int type)
 {
     switch(type) {
-	case RESPONSE_SLURM_RC:
-	    return "RESPONSE_SLURM_RC";
 	case REQUEST_BATCH_JOB_LAUNCH:
 	    return "REQUEST_BATCH_JOB_LAUNCH";
 	case REQUEST_LAUNCH_TASKS:
@@ -114,6 +113,24 @@ const char *msgType2String(int type)
 	    return "REQUEST_LAUNCH_PROLOG";
 	case REQUEST_COMPLETE_PROLOG:
 	    return "REQUEST_COMPLETE_PROLOG";
+	case RESPONSE_PING_SLURMD:
+	    return "RESPONSE_PING_SLURMD";
+	case RESPONSE_SLURM_RC:
+	    return "RESPONSE_SLURM_RC";
+	case RESPONSE_ACCT_GATHER_UPDATE:
+	    return "RESPONSE_ACCT_GATHER_UPDATE";
+	case RESPONSE_ACCT_GATHER_ENERGY:
+	    return "RESPONSE_ACCT_GATHER_ENERGY";
+	case RESPONSE_JOB_ID:
+	    return "RESPONSE_JOB_ID";
+	case RESPONSE_JOB_STEP_STAT:
+	    return "RESPONSE_JOB_STEP_STAT";
+	case RESPONSE_JOB_STEP_PIDS:
+	    return "RESPONSE_JOB_STEP_PIDS";
+	case RESPONSE_LAUNCH_TASKS:
+	    return "RESPONSE_LAUNCH_TASKS";
+	case RESPONSE_FORWARD_FAILED:
+	    return "RESPONSE_FORWARD_FAILED";
     }
     return "";
 }
@@ -121,6 +138,31 @@ const char *msgType2String(int type)
 void initConnectionList()
 {
     INIT_LIST_HEAD(&ConnectionList.list);
+}
+
+void initSlurmMsg(Slurm_Msg_t *sMsg)
+{
+    sMsg->sock = -1;
+    sMsg->data = NULL;
+    sMsg->ptr = NULL;
+    sMsg->source = -1;
+    sMsg->recvTime = 0;
+    initSlurmMsgHead(&sMsg->head);
+}
+
+void freeSlurmMsg(Slurm_Msg_t *sMsg)
+{
+    if (sMsg->source == -1) {
+	/* local connection */
+	if (sMsg->sock != -1) {
+	    closeConnection(sMsg->sock);
+	    sMsg->sock = -1;
+	}
+    } else {
+	/* do we need to send result ??? */
+    }
+
+    initSlurmMsg(sMsg);
 }
 
 static int resetConnection(int socket)
@@ -158,6 +200,13 @@ Connection_t *addConnection(int socket, Connection_CB_t *cb)
     con->data.bufUsed = 0;
     con->error = 0;
 
+    /* init forward struct */
+    con->fw.res = 0;
+    con->fw.nodes = NULL;
+    con->fw.nodesCount = 0;
+    con->fw.body.buf = NULL;
+    initSlurmMsgHead(&con->fw.head);
+
     list_add_tail(&(con->list), &ConnectionList.list);
 
     return con;
@@ -176,6 +225,19 @@ Connection_t *findConnection(int socket)
     return NULL;
 }
 
+Connection_t *findConnectionEx(int socket, time_t recvTime)
+{
+    list_t *pos, *tmp;
+    Connection_t *con;
+
+    list_for_each_safe(pos, tmp, &ConnectionList.list) {
+	if (!(con = list_entry(pos, Connection_t, list))) break;
+	if (con->sock == socket && con->recvTime == recvTime) return con;
+    }
+
+    return NULL;
+}
+
 void closeConnection(int socket)
 {
     Connection_t *con;
@@ -187,6 +249,9 @@ void closeConnection(int socket)
     /* free memory */
     if ((con = findConnection(socket))) {
 	list_del(&con->list);
+	freeSlurmMsgHead(&con->fw.head);
+	ufree(con->fw.nodes);
+	ufree(con->fw.body.buf);
 	ufree(con->data.buf);
 	ufree(con);
     }
@@ -199,6 +264,63 @@ void clearConnections()
 
     list_for_each_safe(pos, tmp, &ConnectionList.list) {
 	if (!(con = list_entry(pos, Connection_t, list))) return;
+	closeConnection(con->sock);
+    }
+}
+
+void saveForwardedMsgRes(Slurm_Msg_t *sMsg, PS_DataBuffer_t *data,
+			    uint32_t error)
+{
+    Connection_t *con;
+    Connection_Forward_t *fw;
+    Slurm_Forward_Data_t *fwdata;
+    uint16_t i, saved = 0;
+
+    if (!(con = findConnectionEx(sMsg->sock, sMsg->recvTime))) {
+	mlog("%s: connection source '%s' socket '%i' recvTime '%zu' type '%s' "
+		"not found\n", __func__, PSC_printTID(sMsg->source), sMsg->sock,
+		sMsg->recvTime, msgType2String(sMsg->head.type));
+	return;
+    }
+    fw = &con->fw;
+
+    /* check fw time */
+    fw->res++;
+
+    if (PSC_getID(sMsg->source) == PSC_getMyID()) {
+	fw->head.type = sMsg->head.type;
+	addMemToMsg(data->buf, data->bufUsed, &fw->body);
+    } else {
+	for (i=0; i<fw->head.forward; i++) {
+	    fwdata = &fw->head.fwdata[i];
+	    if (fwdata->node == -1) {
+		fwdata->error = error;
+		fwdata->type = sMsg->head.type;
+		fwdata->node = PSC_getID(sMsg->source);
+		addMemToMsg(data->buf, data->bufUsed, &fwdata->body);
+		fw->head.returnList++;
+		saved = 1;
+		break;
+	    }
+	}
+	if (!saved) {
+	    mlog("%s: could not save messages result for '%s'\n", __func__,
+		    PSC_printTID(sMsg->source));
+	}
+    }
+
+    mdbg(PSSLURM_LOG_FWD, "%s: type '%s' forward '%u' resCount '%u' "
+	    "source '%s'\n", __func__,
+	    msgType2String(sMsg->head.type), fw->head.forward, fw->res,
+	    PSC_printTID(sMsg->source));
+
+    if (fw->res == fw->nodesCount + 1) {
+	mdbg(PSSLURM_LOG_FWD, "%s: forward '%s' complete, sending answer\n",
+		__func__, msgType2String(sMsg->head.type));
+
+	fw->head.forward = 0;
+	sendSlurmMsgEx(con->sock, &fw->head, &fw->body);
+
 	closeConnection(con->sock);
     }
 }
@@ -288,7 +410,29 @@ static int readSlurmMsg(int sock, void *param)
 
 CALLBACK:
 
-    con->cb(sock, dBuf->buf, dBuf->bufUsed, error);
+    if (!error) {
+	Slurm_Msg_t sMsg;
+
+	initSlurmMsg(&sMsg);
+	sMsg.sock = sock;
+	sMsg.data = dBuf;
+	sMsg.ptr = sMsg.data->buf;
+	sMsg.recvTime = con->recvTime = time(NULL);
+
+	/* overwrite empty addr informations */
+	getSockInfo(sock, &sMsg.head.addr, &sMsg.head.port);
+
+	/* extract slurm message header */
+	getSlurmMsgHeader(&sMsg, &con->fw);
+
+	/* forward the message */
+	if (sMsg.head.forward > 0) {
+	    forwardSlurmMsg(&sMsg, &con->fw);
+	}
+
+	/* let the callback handle the message */
+	con->cb(&sMsg);
+    }
     resetConnection(sock);
 
     if (error) closeConnection(sock);
@@ -306,44 +450,21 @@ int registerSlurmMessage(int sock, Connection_CB_t *cb)
     return 1;
 }
 
-static void addSlurmHeader(slurm_msg_type_t type, PS_DataBuffer_t *data,
-			    uint32_t bodyLen)
+static int handleSlurmctldReply(Slurm_Msg_t *sMsg)
 {
-    uint16_t flags = 0;
-
-    addUint16ToMsg(SLURM_14_03_PROTOCOL_VERSION, data);
-    flags |= SLURM_GLOBAL_AUTH_KEY;
-    addUint16ToMsg(flags, data);
-    addUint16ToMsg(type, data);
-    /* body len */
-    addUint32ToMsg(bodyLen, data);
-    /* forward */
-    addUint16ToMsg(0, data);
-    /* return list */
-    addUint16ToMsg(0, data);
-    /* addr/port */
-    addUint32ToMsg(0, data);
-    addUint16ToMsg(0, data);
-}
-
-static int handleSlurmctldReply(int sock, void *data, size_t len, int error)
-{
-    Slurm_msg_header_t msgHead;
-    char *ptr;
+    char **ptr;
     uint32_t rc;
 
-    if (error) return 0;
-
-    ptr = data;
-    getSlurmMsgHeader(sock, &ptr, &msgHead);
-    getUint32(&ptr, &rc);
+    ptr = &sMsg->ptr;
+    getUint32(ptr, &rc);
 
     mdbg(PSSLURM_LOG_PROTO, "%s: type '%s' rc '%u'\n", __func__,
-	    msgType2String(msgHead.type), rc);
+	    msgType2String(sMsg->head.type), rc);
 
     /* TODO handle the message */
-
-    closeConnection(sock);
+    if (sMsg->source == -1) {
+	closeConnection(sMsg->sock);
+    }
     return 0;
 }
 
@@ -403,7 +524,7 @@ TCP_RECONNECT:
     return sock;
 }
 
-static int connect2Slurmctld(void *data)
+static int connect2Slurmctld()
 {
     int sock, len;
     char *addr, *port;
@@ -439,8 +560,92 @@ static int connect2Slurmctld(void *data)
     return sock;
 }
 
-int sendSlurmMsg(int sock, slurm_msg_type_t type, PS_DataBuffer_t *body,
-		    void *sockData)
+void initSlurmMsgHead(Slurm_Msg_Header_t *head)
+{
+    head->version = SLURM_CUR_PROTOCOL_VERSION;
+    head->flags = 0;
+    head->flags |= SLURM_GLOBAL_AUTH_KEY;
+    head->type = 0;
+    head->bodyLen = 0;
+    head->forward = 0;
+    head->nodeList = NULL;
+    head->timeout = 0;
+    head->returnList = 0;
+    head->addr = 0;
+    head->port = 0;
+    head->fwdata = NULL;
+}
+
+void freeSlurmMsgHead(Slurm_Msg_Header_t *head)
+{
+    uint32_t i;
+
+    if (head->fwdata) {
+	for (i=0; i<head->returnList; i++) {
+	    ufree(head->fwdata[i].body.buf);
+	}
+    }
+
+    ufree(head->nodeList);
+    ufree(head->fwdata);
+}
+
+int sendSlurmMsg(int sock, slurm_msg_type_t type, PS_DataBuffer_t *body)
+{
+    Slurm_Msg_Header_t head;
+
+    initSlurmMsgHead(&head);
+    head.type = type;
+
+    return sendSlurmMsgEx(sock, &head, body);
+}
+
+static void addSlurmHeader(Slurm_Msg_Header_t *head, uint32_t bodyLen,
+			    PS_DataBuffer_t *data)
+{
+    uint32_t i;
+    const char *hn;
+
+    /* protocol version */
+    addUint16ToMsg(head->version, data);
+    /* flags */
+    addUint16ToMsg(head->flags, data);
+    /* type */
+    addUint16ToMsg(head->type, data);
+    /* body len */
+    addUint32ToMsg(bodyLen, data);
+
+    /* forward */
+    addUint16ToMsg(head->forward, data);
+    if (head->forward > 0) {
+	addStringToMsg(head->nodeList, data);
+	addUint32ToMsg(head->timeout, data);
+    }
+
+    /* return list */
+    addUint16ToMsg(head->returnList, data);
+    for (i=0; i<head->returnList; i++) {
+	/* error */
+	addUint32ToMsg(head->fwdata[i].error, data);
+
+	/* msg type */
+	addUint16ToMsg(head->fwdata[i].type, data);
+
+	/* nodename */
+	hn = getHostnameByNodeId(head->fwdata[i].node);
+	addStringToMsg(hn, data);
+
+	/* msg body */
+	addMemToMsg(head->fwdata[i].body.buf,
+		head->fwdata[i].body.bufUsed, data);
+    }
+
+    /* addr/port */
+    addUint32ToMsg(head->addr, data);
+    addUint16ToMsg(head->port, data);
+}
+
+int sendSlurmMsgEx(int sock, Slurm_Msg_Header_t *head, PS_DataBuffer_t *body)
 {
     PS_DataBuffer_t data = { .buf = NULL };
     uint32_t msgLen;
@@ -448,7 +653,7 @@ int sendSlurmMsg(int sock, slurm_msg_type_t type, PS_DataBuffer_t *body,
 
     /* connect to slurmctld */
     if (sock < 0) {
-	if ((sock = connect2Slurmctld(sockData))<0) {
+	if ((sock = connect2Slurmctld())<0) {
 	    /* TODO */
 	    mlog("%s: fixme: need to retry later!!!\n", __func__);
 	    return 0;
@@ -456,7 +661,7 @@ int sendSlurmMsg(int sock, slurm_msg_type_t type, PS_DataBuffer_t *body,
     }
 
     /* add message header */
-    addSlurmHeader(type, &data, body->bufUsed);
+    addSlurmHeader(head, body->bufUsed, &data);
     mdbg(PSSLURM_LOG_COMM, "%s: added slurm header (%i) : body len :%i\n",
 	    __func__, data.bufUsed, body->bufUsed);
 
@@ -755,7 +960,7 @@ int srunSendMsg(int sock, Step_t *step, slurm_msg_type_t type,
     mlog("%s: sock %u, len: body.bufUsed %u body.bufSize %u\n", __func__,
 	    sock, body->bufUsed, body->bufSize);
     */
-    return sendSlurmMsg(sock, type, body, step);
+    return sendSlurmMsg(sock, type, body);
 }
 
 int srunOpenPTY(Step_t *step)
@@ -774,7 +979,7 @@ int srunOpenPTY(Step_t *step)
     }
     mlog("%s: pty connection (%i) to '%s:%s'\n", __func__, sock,
 	    inet_ntoa(step->srun.sin_addr), port);
-    step->srunPTYSock = sock;
+    step->srunPTYMsg.sock = sock;
 
     if ((Selector_register(sock, handleSrunPTYMsg, step)) == -1) {
 	mlog("%s: Selector_register(%i) failed\n", __func__, sock);
@@ -790,7 +995,6 @@ int srunOpenIOConnection(Step_t *step)
     int sock;
     PSnodes_ID_t nodeID = 0;
 
-
     /* open connection to waiting srun */
     nodeID = getJobLocalNodeID(step);
     snprintf(port, sizeof(port), "%u", step->IOPort[nodeID % step->numIOPort]);
@@ -803,7 +1007,7 @@ int srunOpenIOConnection(Step_t *step)
     mlog("%s: addr '%s:%s' sock '%u'\n", __func__,
 	    inet_ntoa(step->srun.sin_addr), port, sock);
 
-    step->srunIOSock = sock;
+    step->srunIOMsg.sock = sock;
     if ((Selector_register(sock, handleSrunMsg, step)) == -1) {
 	mlog("%s: Selector_register(%i) failed\n", __func__, sock);
 	return 0;
@@ -871,7 +1075,7 @@ int srunSendIO(uint16_t type, Step_t *step, char *buf, uint32_t bufLen)
 			addUint32ToMsg(bufLen, &data);
 
 			addMemToMsg(sendBuf, bufLen, &data);
-			ret += doWriteP(step->srunIOSock, data.buf, data.bufUsed);
+			ret += doWriteP(step->srunIOMsg.sock, data.buf, data.bufUsed);
 			ufree(data.buf);
 			data.buf = NULL;
 		    } else {
@@ -902,7 +1106,7 @@ SRUN_IO_DEFAULT:
     addUint32ToMsg(bufLen, &data);
 
     if (bufLen >0) addMemToMsg(sendBuf, bufLen, &data);
-    ret = doWriteP(step->srunIOSock, data.buf, data.bufUsed);
+    ret = doWriteP(step->srunIOMsg.sock, data.buf, data.bufUsed);
     ufree(data.buf);
 
     return ret;
@@ -921,15 +1125,7 @@ void getSockInfo(int socket, uint32_t *addr, uint16_t *port)
 
 void closeAllStepConnections(Step_t *step)
 {
-    if (step->srunIOSock > -1) {
-	closeConnection(step->srunIOSock);
-    }
-
-    if (step->srunControlSock > -1) {
-	closeConnection(step->srunControlSock);
-    }
-
-    if (step->srunPTYSock > -1) {
-	closeConnection(step->srunPTYSock);
-    }
+    freeSlurmMsg(&step->srunIOMsg);
+    freeSlurmMsg(&step->srunControlMsg);
+    freeSlurmMsg(&step->srunPTYMsg);
 }

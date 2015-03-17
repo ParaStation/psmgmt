@@ -21,14 +21,22 @@
 #include "psslurmjob.h"
 #include "psslurmcomm.h"
 
-void sendNodeRegStatus(int sock, uint32_t status, int version);
+void sendNodeRegStatus(uint32_t status, int protoVersion);
 void getNodesFromSlurmHL(char *slurmNodes, uint32_t *nrOfNodes,
 			    PSnodes_ID_t **nodes);
-int getSlurmMsgHeader(int sock, char **ptr, Slurm_msg_header_t *head);
+int getSlurmMsgHeader(Slurm_Msg_t *sMsg, Connection_Forward_t *fw);
 
-int sendSlurmRC(int sock, uint32_t rc, void *data);
+#define sendSlurmRC(sMsg, rc) __sendSlurmRC(sMsg, rc, __func__, __LINE__)
+int __sendSlurmRC(Slurm_Msg_t *sMsg, uint32_t rc,
+		    const char *func, const int line);
+
+#define sendSlurmReply(sMsg, type, body) \
+		    __sendSlurmReply(sMsg, type, body, __func__, __LINE__)
+int __sendSlurmReply(Slurm_Msg_t *sMsg, slurm_msg_type_t type,
+		    PS_DataBuffer_t *body, const char *func, const int line);
+
 int writeJobscript(Job_t *job, char *script);
-int handleSlurmdMsg(int sock, void *data, size_t len, int error);
+int handleSlurmdMsg(Slurm_Msg_t *msg);
 
 int sendTaskPids(Step_t *step);
 void sendTaskExit(Step_t *step, int exit_status);

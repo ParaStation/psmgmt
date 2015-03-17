@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014 - 2015 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -23,8 +23,10 @@
 extern logger_t *psslurmlogger;
 extern FILE *psslurmlogfile;
 
-#define mlog(...) if (psslurmlogger) logger_print(psslurmlogger, -1, __VA_ARGS__)
-#define mwarn(...) if (psslurmlogger) logger_warn(psslurmlogger, -1, __VA_ARGS__)
+#define mlog(...) if (psslurmlogger) \
+	    logger_print(psslurmlogger, -1, __VA_ARGS__)
+#define mwarn(...) if (psslurmlogger) \
+	    logger_warn(psslurmlogger, -1, __VA_ARGS__)
 #define mdbg(...) if (psslurmlogger) logger_print(psslurmlogger, __VA_ARGS__)
 
 void initLogger(char *name, FILE *logfile);
@@ -43,7 +45,7 @@ typedef enum {
     PSSLURM_LOG_AUTH	 =	0x002000, /**< Auth */
     PSSLURM_LOG_PART	 =	0x004000, /**< Partition */
     PSSLURM_LOG_GRES	 =	0x008000, /**< Gres */
+    PSSLURM_LOG_FWD      =      0x010000, /** < Msg forwarding */
 } PSSLURM_log_types_t;
-
 
 #endif

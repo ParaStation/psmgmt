@@ -237,13 +237,19 @@ static int initPluginHandles()
         return 0;
     }
 
+    if (!(psAccountDelJob = dlsym(pluginHandle,
+	    "psAccountDelJob"))) {
+        mlog("%s: loading function psAccountDelJob() failed\n",
+		__func__);
+        return 0;
+    }
 
+    /* get pelogue function handles */
     if (!(pluginHandle = PSIDplugin_getHandle("pelogue"))) {
 	mlog("%s: getting pelogue handle failed\n", __func__);
 	return 0;
     }
 
-    /* get pelogue function handles */
     if (!(psPelogueAddPluginConfig = dlsym(pluginHandle,
 	    "psPelogueAddPluginConfig"))) {
 	mlog("%s: loading function psPelogueAddPluginConfig() failed\n",
@@ -391,12 +397,12 @@ int initialize(void)
 	snprintf(buf, sizeof(buf), "%u", PSSLURM_SLURMCTLD_PORT);
 	addConfigEntry(&SlurmConfig, "SlurmctldPort", buf);
     }
-    sendNodeRegStatus(-1, SLURM_SUCCESS, SLURM_14_03_PROTOCOL_VERSION);
+    sendNodeRegStatus(SLURM_SUCCESS, SLURM_CUR_PROTOCOL_VERSION);
 
     isInit = 1;
 
-    mlog("(%i) successfully started: %u\n", version,
-	    SLURM_14_03_PROTOCOL_VERSION);
+    mlog("(%i) successfully started, protocol '%s'\n", version,
+	    SLURM_CUR_PROTOCOL_VERSION_STR);
 
     return 0;
 

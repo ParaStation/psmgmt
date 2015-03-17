@@ -95,8 +95,8 @@ void clearAllJobs();
  *
  * @param loggerTID The taskID of the job to delete.
  *
- * @return Returns 1 on success and 0 on error.
+ * @return No return value.
  */
-int deleteJob(PStask_ID_t loggerTID);
+void deleteJob(PStask_ID_t loggerTID);
 
 #endif

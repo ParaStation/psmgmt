@@ -73,7 +73,7 @@ int jobCallback(int32_t exit_status, char *errMsg, size_t errLen, void *data)
 
     job->state = JOB_COMPLETE;
     sendJobExit(job, exit_status);
-    psAccountUnregisterJob(fwdata->childPid);
+    psAccountDelJob(PSC_getTID(-1, fwdata->childPid));
 
     /* run epilogue now */
     if (job->terminate && job->nodes) {
@@ -107,17 +107,21 @@ int stepCallback(int32_t exit_status, char *errMsg, size_t errLen, void *data)
     /* make sure all processes are gone */
     signalStep(step, SIGKILL);
 
-    if (step->srunIOSock != -1) {
+    freeSlurmMsg(&step->srunIOMsg);
+
+    /*
+    if (step->srunIOMsg != -1) {
 	if (Selector_isRegistered(step->srunIOSock)) {
 	    Selector_remove(step->srunIOSock);
 	}
 	close(step->srunIOSock);
 	step->srunIOSock = -1;
     }
+    */
 
     if (!SERIAL_MODE && step->state == JOB_PRESTART) {
 	/* spawn failed */
-	sendSlurmRC(step->srunControlSock, SLURM_ERROR, step);
+	sendSlurmRC(&step->srunControlMsg, SLURM_ERROR);
     } else {
 	if (step->exitCode != 0) {
 	    sendTaskExit(step, step->exitCode);
@@ -134,7 +138,7 @@ int stepCallback(int32_t exit_status, char *errMsg, size_t errLen, void *data)
     }
 
     step->state = JOB_COMPLETE;
-    psAccountUnregisterJob(fwdata->childPid);
+    psAccountDelJob(PSC_getTID(-1, fwdata->childPid));
 
     /* run epilogue now */
     if ((alloc = findAlloc(step->jobid)) &&
@@ -156,7 +160,7 @@ int bcastCallback(int32_t exit_status, char *errMsg, size_t errLen, void *data)
     Forwarder_Data_t *fwdata = data;
     BCast_t *bcast = fwdata->userData;
 
-    sendSlurmRC(bcast->sock, WEXITSTATUS(exit_status), NULL);
+    sendSlurmRC(&bcast->msg, WEXITSTATUS(exit_status));
 
     bcast->fwdata = NULL;
     if (bcast->lastBlock) {
@@ -462,8 +466,11 @@ static void switchUser(char *username, uid_t uid, gid_t gid, char *cwd)
 
     /* change to job working directory */
     if (cwd && (chdir(cwd)) == -1) {
-	mlog("%s: chdir to '%s' failed : %s\n", __func__, cwd, strerror(errno));
-	exit(1);
+	if (chdir("/tmp") == -1) {
+	    mlog("%s: chdir to '%s' failed : %s\n", __func__, cwd,
+		    strerror(errno));
+	    exit(1);
+	}
     }
 }
 
@@ -1171,7 +1178,7 @@ int execUserStep(Step_t *step)
     }
     step->fwdata = fwdata;
     if (SERIAL_MODE) {
-	sendSlurmRC(step->srunControlSock, SLURM_SUCCESS, step);
+	sendSlurmRC(&step->srunControlMsg, SLURM_SUCCESS);
     }
     return 1;
 }

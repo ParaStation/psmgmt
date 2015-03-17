@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014 - 2015 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -61,6 +61,10 @@ char *msg2Str(PSP_PSSLURM_t type)
 	    return "PSP_JOB_STATE_REQ";
 	case PSP_JOB_STATE_RES:
 	    return "PSP_JOB_STATE_RES";
+	case PSP_FORWARD_SMSG:
+	    return "PSP_FORWARD_SMSG";
+	case PSP_FORWARD_SMSG_RES:
+	    return "PSP_FORWARD_SMSG_RES";
     }
     return NULL;
 }

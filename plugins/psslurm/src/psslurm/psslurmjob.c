@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014 - 2015 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -174,15 +174,15 @@ Step_t *addStep(uint32_t jobid, uint32_t stepid)
     step->tidsLen = 0;
     step->exitCode = 0;
     step->state = JOB_INIT;
-    step->srunIOSock = -1;
-    step->srunControlSock = -1;
-    step->srunPTYSock = -1;
     step->x11forward = 0;
     step->loggerTID = 0;
     INIT_LIST_HEAD(&step->tasks.list);
     INIT_LIST_HEAD(&step->gres.list);
     envInit(&step->env);
     envInit(&step->spankenv);
+    initSlurmMsg(&step->srunIOMsg);
+    initSlurmMsg(&step->srunControlMsg);
+    initSlurmMsg(&step->srunPTYMsg);
 
     list_add_tail(&(step->list), &StepList.list);
 
@@ -228,7 +228,7 @@ BCast_t *addBCast(int socket)
     BCast_t *bcast;
 
     bcast = (BCast_t *) umalloc(sizeof(BCast_t));
-    bcast->sock = socket;
+    bcast->msg.sock = socket;
     bcast->sig = NULL;
     bcast->username = NULL;
     bcast->fileName = NULL;
@@ -243,8 +243,7 @@ BCast_t *addBCast(int socket)
 void deleteBCast(BCast_t *bcast)
 {
     list_del(&bcast->list);
-    closeConnection(bcast->sock);
-
+    freeSlurmMsg(&bcast->msg);
     ufree(bcast->username);
     ufree(bcast->fileName);
     ufree(bcast->block);

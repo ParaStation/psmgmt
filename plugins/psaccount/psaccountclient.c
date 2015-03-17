@@ -53,15 +53,12 @@ const char* clientType2Str(int type)
 static Client_t *findAccClient(PStask_ID_t clientTID, PStask_ID_t loggerTID,
 				pid_t clientPID)
 {
-    struct list_head *pos;
+    list_t *pos, *tmp;
     Client_t *client;
 
-    if (list_empty(&AccClientList.list)) return NULL;
+    list_for_each_safe(pos, tmp, &AccClientList.list) {
+	if (!(client = list_entry(pos, Client_t, list))) break;
 
-    list_for_each(pos, &AccClientList.list) {
-	if ((client = list_entry(pos, Client_t, list)) == NULL) {
-	    return NULL;
-	}
 	if (clientTID != -1) {
 	    if (client->taskid == clientTID) return client;
 	}
@@ -246,7 +243,7 @@ int getPidsByLogger(PStask_ID_t logger, pid_t **pids, uint32_t *count)
     if (list_empty(&AccClientList.list)) return 0;
 
     list_for_each(pos, &AccClientList.list) {
-	if ((client = list_entry(pos, Client_t, list)) == NULL) break;
+	if (!(client = list_entry(pos, Client_t, list))) break;
 
 	if (client->logger == logger && client->type == ACC_CHILD_PSIDCHILD) {
 	    (*count)++;
@@ -256,7 +253,7 @@ int getPidsByLogger(PStask_ID_t logger, pid_t **pids, uint32_t *count)
     *pids = (pid_t *) umalloc(sizeof(pid_t) * *count);
 
     list_for_each(pos, &AccClientList.list) {
-	if ((client = list_entry(pos, Client_t, list)) == NULL) break;
+	if (!(client = list_entry(pos, Client_t, list))) break;
 
 	if (client->logger == logger && client->type == ACC_CHILD_PSIDCHILD) {
 	    if (index == *count) break;
@@ -274,7 +271,7 @@ int getAccountDataByLogger(PStask_ID_t logger, AccountDataExt_t *accData)
     int res = 0;
 
     list_for_each(pos, &AccClientList.list) {
-	if ((client = list_entry(pos, Client_t, list)) == NULL) break;
+	if (!(client = list_entry(pos, Client_t, list))) break;
 
 	if (client->logger == logger && client->type != ACC_CHILD_JOBSCRIPT) {
 	    addAccDataForClient(client, accData);
@@ -314,7 +311,7 @@ int getAccountInfoByLogger(PStask_ID_t logger, psaccAccountInfo_t *accData)
     if (list_empty(&AccClientList.list)) return false;
 
     list_for_each(pos, &AccClientList.list) {
-	if ((client = list_entry(pos, Client_t, list)) == NULL) break;
+	if (!(client = list_entry(pos, Client_t, list))) break;
 
 	if (client->logger == logger && client->type != ACC_CHILD_JOBSCRIPT) {
 	    addAccInfoForClient(client, accData);

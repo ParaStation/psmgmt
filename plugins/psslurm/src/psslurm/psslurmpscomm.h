@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014 - 2015 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -19,6 +19,8 @@
 #define __PS_SLURM_PSCOMM
 
 #include "psprotocol.h"
+#include "pslog.h"
+#include "psslurmcomm.h"
 
 #include "psslurmjob.h"
 
@@ -44,5 +46,11 @@ void send_PS_JobExit(uint32_t jobid, uint32_t stepid, uint32_t nrOfNodes,
 void send_PS_JobLaunch(Job_t *job);
 
 void send_PS_JobState(uint32_t jobid, PStask_ID_t dest);
+
+void forwardSlurmMsg(Slurm_Msg_t *sMsg, Connection_Forward_t *fw);
+
+void send_PS_ForwardRes(Slurm_Msg_t *msg, PS_DataBuffer_t *body);
+
+void handleCCMsg(PSLog_Msg_t *msg);
 
 #endif

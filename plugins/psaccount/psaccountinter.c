@@ -300,6 +300,7 @@ void sendAccountUpdate(Client_t *client)
 
     sendFragMsg(&data, PSC_getTID(loggerNode, 0), PSP_CC_PLUG_ACCOUNT,
 		    PSP_ACCOUNT_DATA_UPDATE);
+    ufree(data.buf);
 }
 
 void forwardAccountMsg(DDTypedBufferMsg_t *msg, int type, PStask_ID_t logger)
@@ -379,6 +380,12 @@ void psAccountRegisterJob(pid_t jsPid, char *jobid)
     taskID = PSC_getTID(PSC_getMyID(), jsPid);
     client = addAccClient(taskID, ACC_CHILD_JOBSCRIPT);
     client->jobid = ustrdup(jobid);
+}
+
+void psAccountDelJob(PStask_ID_t loggerTID)
+{
+    deleteJob(loggerTID);
+    deleteAccClient(loggerTID);
 }
 
 void psAccountUnregisterJob(pid_t jsPid)
