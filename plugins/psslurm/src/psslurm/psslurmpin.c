@@ -292,8 +292,7 @@ Not supported unless the entire node is allocated to the job.
 void getRankBinding(PSCPU_set_t *CPUset, uint8_t *coreMap,
 		uint32_t coreMapIndex, uint32_t cpuCount, int32_t *lastCpu,
 		uint32_t nodeid, int *thread, int hwThreads,
-		uint16_t threadsPerTask, uint32_t local_tid,
-		int oneThreadPerCore)
+		uint16_t threadsPerTask, uint32_t local_tid)
 {
     int found;
     int32_t localCpuCount;
@@ -301,12 +300,6 @@ void getRankBinding(PSCPU_set_t *CPUset, uint8_t *coreMap,
 
     PSCPU_clrAll(*CPUset);
     found = 0;
-
-    /* with oneThreadPerCore set, we use only thread 0 */
-    if (oneThreadPerCore && (*thread != 0)) {
-	*thread = 0;
-	hwThreads = 1;
-    }
 
     while (found <= threadsPerTask) {
 	localCpuCount = 0;
@@ -336,19 +329,14 @@ void getRankBinding(PSCPU_set_t *CPUset, uint8_t *coreMap,
 }
 
 /*
- * Pin to all sockets taking oneThreadPerCore into account
+ * Pin to all sockets taking allowed hwThreads into account
  */
-void pinToAllSockets(PSCPU_set_t *CPUset, uint32_t cpuCount,
-	int oneThreadPerCore) {
-
+void pinToAllSockets(PSCPU_set_t *CPUset, uint32_t cpuCount, int hwThreads)
+{
     uint32_t i;
 
-    if (oneThreadPerCore) {
-	for (i = 0; i < cpuCount; i++) {
-	    PSCPU_setCPU(*CPUset, i);
-	}
-    } else {
-	PSCPU_setAll(*CPUset);
+    for (i = 0; i < cpuCount * hwThreads; i++) {
+	PSCPU_setCPU(*CPUset, i);
     }
 }
 
@@ -383,8 +371,7 @@ void getSocketBinding(PSCPU_set_t *CPUset, uint8_t *coreMap,
 		uint32_t coreMapIndex, uint16_t socketCount,
 		uint16_t coresPerSocket, uint32_t cpuCount,
 		int32_t *lastCpu, uint32_t nodeid, int *thread, int hwThreads,
-		uint16_t threadsPerTask, uint32_t local_tid,
-		int oneThreadPerCore)
+		uint16_t threadsPerTask, uint32_t local_tid)
 {
     uint32_t u, socketsNeeded, socketsUsed;
     int t;
@@ -397,13 +384,11 @@ void getSocketBinding(PSCPU_set_t *CPUset, uint8_t *coreMap,
 	    " cores_per_socket '%i' cpu_count '%i' hw_threads '%i'"
 	    " threads_per_task '%i'\n", __func__, nodeid, local_tid,
 	    socketCount, coresPerSocket, cpuCount, hwThreads, threadsPerTask);
-    mdbg(PSSLURM_LOG_PART, "%s: using %s per core\n", __func__,
-	    oneThreadPerCore ? "one thread" : "all threads");
     mdbg(PSSLURM_LOG_PART, "%s: thread '%i' last_cpu '%i'\n", __func__,
 	    *thread, *lastCpu);
 
     if (threadsPerTask > coresPerSocket * socketCount) {
-	pinToAllSockets(CPUset, cpuCount, oneThreadPerCore);
+	pinToAllSockets(CPUset, cpuCount, hwThreads);
 	return;
     }
 
@@ -432,14 +417,9 @@ void getSocketBinding(PSCPU_set_t *CPUset, uint8_t *coreMap,
 	    usedSocket = currentSocket;
 	}
 
-	if (oneThreadPerCore) {
-	    /* use only first thread of each core */
-	    PSCPU_setCPU(*CPUset, localCpuCount);
-	} else {
-	    /* bind to all hw threads of current core */
-	    for (t = 0; t < hwThreads; t++) {
-	       PSCPU_setCPU(*CPUset, localCpuCount + (t * cpuCount));
-	    }
+        /* bind to all hw threads (allowed) of current core */
+	for (t = 0; t < hwThreads; t++) {
+	    PSCPU_setCPU(*CPUset, localCpuCount + (t * cpuCount));
 	}
 
 	usedSocket = currentSocket;
@@ -454,7 +434,7 @@ void getSocketBinding(PSCPU_set_t *CPUset, uint8_t *coreMap,
 
     if (usedSocket == -1) {
 	/* no socket found to use, do not pin */
-	pinToAllSockets(CPUset, cpuCount, oneThreadPerCore);
+	pinToAllSockets(CPUset, cpuCount, hwThreads);
     }
 
     if ((unsigned)*lastCpu + 1 >= cpuCount) {
@@ -492,25 +472,26 @@ void setCPUset(PSCPU_set_t *CPUset, uint16_t cpuBindType, char *cpuBindString,
 		int *thread, int hwThreads, uint32_t tasksPerNode,
 		uint16_t threadsPerTask, uint32_t local_tid)
 {
+    /* handle --hint=nomultithread */
+    if (cpuBindType & CPU_BIND_ONE_THREAD_PER_CORE) {
+	hwThreads = 1;
+    }
 
-    if (cpuBindType & (CPU_BIND_NONE | CPU_BIND_TO_BOARDS)) {
-	/* XXX: Of cause, this is only correct for systems with
-		only one board per node */
+    if (cpuBindType & CPU_BIND_NONE) {
 	PSCPU_setAll(*CPUset);
 	mdbg(PSSLURM_LOG_PART, "%s: (cpu_bind_none)\n", __func__);
+    } else if (cpuBindType & CPU_BIND_TO_BOARDS) {
+	/* XXX: Only correct for systems with only one board per node */
+	PSCPU_clrAll(*CPUset);
+	pinToAllSockets(CPUset, cpuCount, hwThreads);
+	mdbg(PSSLURM_LOG_PART, "%s: (cpu_bind_boards)\n", __func__);
     } else if (cpuBindType & (CPU_BIND_MAP | CPU_BIND_MASK)) {
         getBindMapFromString(CPUset, cpuBindType, cpuBindString, nodeid,
 			     local_tid);
     } else if (cpuBindType & (CPU_BIND_TO_SOCKETS | CPU_BIND_TO_LDOMS)) {
-	if (cpuBindType & CPU_BIND_ONE_THREAD_PER_CORE) {
-	    getSocketBinding(CPUset, coreMap, coreMapIndex, socketCount,
-			    coresPerSocket, cpuCount, lastCpu, nodeid, thread,
-			    hwThreads, threadsPerTask, local_tid, 1);
-	} else {
-	    getSocketBinding(CPUset, coreMap, coreMapIndex, socketCount,
-			    coresPerSocket, cpuCount, lastCpu, nodeid, thread,
-			    hwThreads, threadsPerTask, local_tid, 0);
-	}
+	getSocketBinding(CPUset, coreMap, coreMapIndex, socketCount,
+		coresPerSocket, cpuCount, lastCpu, nodeid, thread, hwThreads,
+		threadsPerTask, local_tid);
 
 #if 0
     } else if (cpuBindType & CPU_BIND_LDRANK) {
@@ -524,15 +505,8 @@ void setCPUset(PSCPU_set_t *CPUset, uint16_t cpuBindType, char *cpuBindString,
 		cpuCount % tasksPerNode);
 #endif
     } else { /* default, CPU_BIND_RANK, CPU_BIND_TO_THREADS */
-	if (cpuBindType & CPU_BIND_ONE_THREAD_PER_CORE) {
-	    getRankBinding(CPUset, coreMap, coreMapIndex, cpuCount, lastCpu,
-			    nodeid, thread, hwThreads, threadsPerTask, local_tid,
-			    1);
-	} else {
-	    getRankBinding(CPUset, coreMap, coreMapIndex, cpuCount, lastCpu,
-			    nodeid, thread, hwThreads, threadsPerTask, local_tid,
-			    0);
-	}
+	getRankBinding(CPUset, coreMap, coreMapIndex, cpuCount, lastCpu,
+			nodeid, thread, hwThreads, threadsPerTask, local_tid);
 
 #if 0
     } else {
