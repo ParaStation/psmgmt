@@ -107,7 +107,7 @@ tests = {
 	"cpu_bind-socket"	: ["--cpu_bind=socket", "", [0x00FF00FF, 0xFF00FF00], "-DCPU_MASK=1", ""],
 	"cpu_bind-cores"	: ["--cpu_bind=cores", "", [0xFFFFFFFF, 0xFFFFFFFF], "-DCPU_MASK=1", ""],	# Differs from standard Slurm
 	"cpu_bind-ldoms"	: ["--cpu_bind=ldoms", "", [0x00FF00FF, 0xFF00FF00], "-DCPU_MASK=1", ""],
-	"cpu_bind-boards"	: ["--cpu_bind=boards", "", [0x00FF00FF, 0xFF00FF00], "-DCPU_MASK=1", ""],
+	"cpu_bind-boards"	: ["--cpu_bind=boards", "", [0xFFFFFFFF, 0xFFFFFFFF], "-DCPU_MASK=1", ""],
 	"mem_bind-none"		: ["--mem_bind=none", "", [0x3, 0x3], "-DMEM_MASK=1", "-lnuma"],
 	"mem_bind-local"	: ["--mem_bind=local", "--ntasks-per-socket=1", [0x1, 0x2], "-DMEM_MASK=1", "-lnuma"],
 	"mem_bind-map_mem"	: ["--mem_bind=map_mem:0,1", "", [0x1, 0x2], "-DMEM_MASK=1", "-lnuma"],
