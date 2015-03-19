@@ -156,27 +156,85 @@ static void parseCPUmask(PSCPU_set_t *CPUset, char *maskStr) {
     ufree(mask);
 }
 
+static void pinToSocket(PSCPU_set_t *CPUset, uint16_t socketCount,
+	    uint16_t coresPerSocket, uint32_t cpuCount, int hwThreads,
+	    uint16_t socket);
+
+/*
+ * Parse the socket mask string @a maskStr containing a hex number (with or
+ * without leading "0x") and set @a CPUset accordingly.
+ *
+ * If the sting is not a valid hex number, each bit in @a CPUset becomes set.
+ */
+static void parseSocketMask(PSCPU_set_t *CPUset, uint16_t socketCount,
+			uint16_t coresPerSocket, uint32_t cpuCount,
+			int hwThreads, char *maskStr)
+{
+    char *mask, *curchar, *endptr;
+    size_t len;
+    uint32_t curbit;
+    int i, j, digit;
+
+    mask = maskStr;
+
+    if (strncmp(maskStr, "0x", 2) == 0) {
+        /* skip "0x", treat always as hex */
+        mask += 2;
+    }
+
+    mask = ustrdup(mask); /* gets destroyed */
+
+    len = strlen(mask);
+    curchar = mask + (len - 1);
+    curbit = 0;
+    for (i = len; i>0; i--) {
+        digit = strtol(curchar, &endptr, 16);
+        if (*endptr != '\0') {
+	    mlog("%s: invalid digit in cpu mask '%s'\n", __func__, maskStr);
+	    PSCPU_setAll(*CPUset); //XXX other result in error case?
+	    break;
+	}
+
+	for (j = 0; j<4; j++) {
+	    if (digit & (1 << j)) {
+	        pinToSocket(CPUset, socketCount, coresPerSocket, cpuCount,
+			    hwThreads, curbit + j);
+	    }
+        }
+        curbit += 4;
+        *curchar = '\0';
+        curchar--;
+    }
+    ufree(mask);
+}
 /*
  * Sets the @a CPUset according to the string @a cpuBindString
  *
  * This function is to be called only if the CPU bind type is MAP or MASK and
- * so the bind string is formated "m1,m2,m3,..." with mn are CPU IDs or CPU masks.
+ * so the bind string is formated "m1,m2,m3,..." with mn are CPU IDs or CPU masks
+ * or if the CPU bind type is LDMAP or LDMASK and so the bind string is formated
+ * "s1,s2,..." with sn are Socket IDs or Socket masks.
  *
- * @param CPUset        CPU set to be set
- * @param cpuBindType   bind type to use (CPU_BIND_MASK or CPU_BIND_MAP)
- * @param cpuBindString comma separated list of maps or masks
- * @param nodeid        ParaStation node ID of the local node
- * @param local_tid     node local taskid
+ * @param CPUset         CPU set to be set
+ * @param cpuBindType    bind type to use (CPU_BIND_[MASK|MAP|LDMASK|LDMAP])
+ * @param cpuBindString  comma separated list of maps or masks
+ * @param socketCount    Number of Sockets in this node
+ * @param coresPerSocket Number of Cores per Socket in this node
+ * @param cpuCount       Number of CPUs in this node (in partition)
+ * @param nodeid         ParaStation node ID of the local node
+ * @param hwThreads      number of threads available per core
+ * @param local_tid      node local taskid
  */
 static void getBindMapFromString(PSCPU_set_t *CPUset, uint16_t cpuBindType,
-                            char *cpuBindString, uint32_t nodeid,
-			    uint32_t local_tid)
+                            char *cpuBindString, uint16_t socketCount,
+			    uint16_t coresPerSocket, uint32_t cpuCount,
+			    uint32_t nodeid, int hwThreads, uint32_t local_tid)
 {
     const char delimiters[] = ",";
     char *next, *saveptr, *ents, *myent, *endptr;
     char *entarray[PSCPU_MAX];
     unsigned int numents;
-    int16_t mycpu;
+    uint16_t mycpu, mysock;
 
     ents = ustrdup(cpuBindString);
     numents = 0;
@@ -205,6 +263,12 @@ static void getBindMapFromString(PSCPU_set_t *CPUset, uint16_t cpuBindType,
 	else if (cpuBindType & CPU_BIND_MAP) {
 	    mlog("%s: invalid cpu map string '%s'\n", __func__, ents);
 	}
+	else if (cpuBindType & CPU_BIND_LDMASK) {
+	    mlog("%s: invalid socket mask string '%s'\n", __func__, ents);
+	}
+	else if (cpuBindType & CPU_BIND_LDMAP) {
+	    mlog("%s: invalid socket map string '%s'\n", __func__, ents);
+	}
 	goto cleanup;
     }
 
@@ -213,7 +277,7 @@ static void getBindMapFromString(PSCPU_set_t *CPUset, uint16_t cpuBindType,
     if (cpuBindType & CPU_BIND_MASK) {
 	parseCPUmask(CPUset, myent);
 	mdbg(PSSLURM_LOG_PART, "%s: (bind_mask) node '%i' local task '%i' "
-		"maskstr '%s' mask '%s'\n", __func__, nodeid, local_tid,
+		"cpumaskstr '%s' cpumask '%s'\n", __func__, nodeid, local_tid,
 		myent, PSCPU_print(*CPUset));
     }
     else if (cpuBindType & CPU_BIND_MAP) {
@@ -234,41 +298,38 @@ static void getBindMapFromString(PSCPU_set_t *CPUset, uint16_t cpuBindType,
 		" cpustr '%s' cpu '%i'\n", __func__, nodeid, local_tid, myent,
 		mycpu);
     }
+    else if (cpuBindType & CPU_BIND_LDMASK) {
+	parseSocketMask(CPUset, socketCount, coresPerSocket, cpuCount,
+			hwThreads, myent);
+	mdbg(PSSLURM_LOG_PART, "%s: (bind_ldmask) node '%i' local task '%i' "
+		"socketmaskstr '%s' cpumask '%s'\n", __func__, nodeid, local_tid,
+		myent, PSCPU_print(*CPUset));
+    }
+    else if (cpuBindType & CPU_BIND_LDMAP) {
+	mysock = 0;
+	if (strncmp(myent, "0x", 2) == 0) {
+	    mysock = strtoul (myent+2, &endptr, 16);
+	} else {
+	    mysock = strtoul (myent, &endptr, 10);
+	}
+	if (*endptr == '\0') {
+	    pinToSocket(CPUset, socketCount, coresPerSocket, cpuCount,
+			hwThreads, mysock);
+	}
+	else {
+	    PSCPU_setAll(*CPUset); //XXX other result in error case?
+	    mlog("%s: invalid socket map '%s'\n", __func__, myent);
+	}
+	mdbg(PSSLURM_LOG_PART, "%s: (bind_ldmap) node '%i' local task '%i'"
+		" socketstr '%s' socket '%i'\n", __func__, nodeid, local_tid, myent,
+		mysock);
+    }
 
     cleanup:
 
     ufree(ents);
     return;
 }
-
-#if 0
-map_cpu:<list>
-Bind by mapping CPU IDs to tasks as specified where <list> is
-<cpuid1>,<cpuid2>,...<cpuidN>.
-CPU IDs are interpreted as decimal values unless they are preceded with '0x'
-in which case they are interpreted as hexadecimal values.
-Not supported unless the entire node is allocated to the job.
-
-mask_cpu:<list>
-Bind by setting CPU masks on tasks as specified where <list> is
-<mask1>,<mask2>,...<maskN>.
-CPU masks are always interpreted as hexadecimal values but can be preceded with
-an optional '0x'. Not supported unless the entire node is allocated to the job.
-
-map_ldom:<list>
-Bind by mapping NUMA locality domain IDs to tasks as specified where <list> is
-<ldom1>,<ldom2>,...<ldomN>.
-The locality domain IDs are interpreted as decimal values unless they are
-preceded with '0x' in which case they are interpreted as hexadecimal values.
-Not supported unless the entire node is allocated to the job.
-
-mask_ldom:<list>
-Bind by setting NUMA locality domain masks on tasks as specified where <list>
-is <mask1>,<mask2>,...<maskN>.
-NUMA locality domain masks are always interpreted as hexadecimal values but can
-be preceded with an optional '0x'.
-Not supported unless the entire node is allocated to the job.
-#endif
 
 /*
  * Set CPUset to bind processes to threads.
@@ -329,9 +390,32 @@ void getRankBinding(PSCPU_set_t *CPUset, uint8_t *coreMap,
 }
 
 /*
+ * Pin to specified socket taking allowed hwThreads into account
+ */
+static void pinToSocket(PSCPU_set_t *CPUset, uint16_t socketCount,
+	    uint16_t coresPerSocket, uint32_t cpuCount, int hwThreads,
+	    uint16_t socket)
+{
+    int t;
+    uint16_t s;
+    uint32_t i, thread;
+
+
+    for (t = 0; t < hwThreads; t++) {
+        for (s = 0; s < socketCount; s++) {
+	    if (s != socket) continue;
+	    for (i = 0; i < coresPerSocket; i++) {
+		thread = (t * cpuCount) + (s * coresPerSocket) + i;
+		PSCPU_setCPU(*CPUset, thread);
+	    }
+	}
+    }
+}
+
+/*
  * Pin to all sockets taking allowed hwThreads into account
  */
-void pinToAllSockets(PSCPU_set_t *CPUset, uint32_t cpuCount, int hwThreads)
+static void pinToAllSockets(PSCPU_set_t *CPUset, uint32_t cpuCount, int hwThreads)
 {
     uint32_t i;
 
@@ -485,8 +569,10 @@ void setCPUset(PSCPU_set_t *CPUset, uint16_t cpuBindType, char *cpuBindString,
 	PSCPU_clrAll(*CPUset);
 	pinToAllSockets(CPUset, cpuCount, hwThreads);
 	mdbg(PSSLURM_LOG_PART, "%s: (cpu_bind_boards)\n", __func__);
-    } else if (cpuBindType & (CPU_BIND_MAP | CPU_BIND_MASK)) {
-        getBindMapFromString(CPUset, cpuBindType, cpuBindString, nodeid,
+    } else if (cpuBindType & (CPU_BIND_MAP | CPU_BIND_MASK
+				| CPU_BIND_LDMAP | CPU_BIND_LDMASK)) {
+        getBindMapFromString(CPUset, cpuBindType, cpuBindString, socketCount,
+			     coresPerSocket, cpuCount, nodeid, hwThreads,
 			     local_tid);
     } else if (cpuBindType & (CPU_BIND_TO_SOCKETS | CPU_BIND_TO_LDOMS
 				| CPU_BIND_LDRANK)) {
