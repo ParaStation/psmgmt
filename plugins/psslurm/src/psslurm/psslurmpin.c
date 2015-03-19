@@ -488,7 +488,8 @@ void setCPUset(PSCPU_set_t *CPUset, uint16_t cpuBindType, char *cpuBindString,
     } else if (cpuBindType & (CPU_BIND_MAP | CPU_BIND_MASK)) {
         getBindMapFromString(CPUset, cpuBindType, cpuBindString, nodeid,
 			     local_tid);
-    } else if (cpuBindType & (CPU_BIND_TO_SOCKETS | CPU_BIND_TO_LDOMS)) {
+    } else if (cpuBindType & (CPU_BIND_TO_SOCKETS | CPU_BIND_TO_LDOMS
+				| CPU_BIND_LDRANK)) {
 	getSocketBinding(CPUset, coreMap, coreMapIndex, socketCount,
 		coresPerSocket, cpuCount, lastCpu, nodeid, thread, hwThreads,
 		threadsPerTask, local_tid);
