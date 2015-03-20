@@ -169,7 +169,6 @@ for p in helper.partitions():
 	out = helper.job_stdout(p)
 	test.check(re.match(r'.*not supported.*', out), p)
 """
-
 	else:
 		evl += """	helper.check_job_completed_ok(p)
 

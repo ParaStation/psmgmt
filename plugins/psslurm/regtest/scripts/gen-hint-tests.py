@@ -60,10 +60,10 @@ int main(int argc, char** argv)
 """
 
 tests = {
-	"hint-compute_bound"	: [2, 32, "--hint=compute_bound", [[0, 0x10001],[0, 0x1000100],[0, 0x10001],[0, 0x1000100],[0, 0x20002],[0, 0x2000200],[0, 0x20002],[0, 0x2000200],[0, 0x40004],[0, 0x4000400],[0, 0x40004],[0, 0x4000400],[0, 0x80008],[0, 0x8000800],[0, 0x80008],[0, 0x8000800],[1, 0x10001],[1, 0x1000100],[1, 0x10001],[1, 0x1000100],[1, 0x20002],[1, 0x2000200],[1, 0x20002],[1, 0x2000200],[1, 0x40004],[1, 0x4000400],[1, 0x40004],[1, 0x4000400],[1, 0x80008],[1, 0x8000800],[1, 0x80008],[1, 0x8000800]]],
-	"hint-memory_bound"	: [2, 32, "--hint=memory_bound", [[0, 0x10001],[0, 0x1000100],[0, 0x10001],[0, 0x1000100],[0, 0x20002],[0, 0x2000200],[0, 0x20002],[0, 0x2000200],[0, 0x40004],[0, 0x4000400],[0, 0x40004],[0, 0x4000400],[0, 0x80008],[0, 0x8000800],[0, 0x80008],[0, 0x8000800],[1, 0x10001],[1, 0x1000100],[1, 0x10001],[1, 0x1000100],[1, 0x20002],[1, 0x2000200],[1, 0x20002],[1, 0x2000200],[1, 0x40004],[1, 0x4000400],[1, 0x40004],[1, 0x4000400],[1, 0x80008],[1, 0x8000800],[1, 0x80008],[1, 0x8000800]]],
-	"hint-multithread"	: [2, 32, "--hint=multithread", [[0, 0x1],[0, 0x100],[0, 0x10000],[0, 0x1000000],[0, 0x2],[0, 0x200],[0, 0x20000],[0, 0x2000000],[0, 0x4],[0, 0x400],[0, 0x40000],[0, 0x4000000],[0, 0x8],[0, 0x800],[0, 0x80000],[0, 0x8000000],[1, 0x1],[1, 0x100],[1, 0x10000],[1, 0x1000000],[1, 0x2],[1, 0x200],[1, 0x20000],[1, 0x2000000],[1, 0x4],[1, 0x400],[1, 0x40000],[1, 0x4000000],[1, 0x8],[1, 0x800],[1, 0x80000],[1, 0x8000000]]],
-	"hint-nomultithread"	: [2, 32, "--hint=nomultithread", [[0, 0x1],[0, 0x100],[0, 0x2],[0, 0x200],[0, 0x4],[0, 0x400],[0, 0x8],[0, 0x800],[0, 0x10],[0, 0x1000],[0, 0x20],[0, 0x2000],[0, 0x40],[0, 0x4000],[0, 0x80],[0, 0x8000],[1, 0x1],[1, 0x100],[1, 0x2],[1, 0x200],[1, 0x4],[1, 0x400],[1, 0x8],[1, 0x800],[1, 0x10],[1, 0x1000],[1, 0x20],[1, 0x2000],[1, 0x40],[1, 0x4000],[1, 0x80],[1, 0x8000]]]
+	"hint-compute_bound"	: [2, 32, "--hint=compute_bound", None],
+	"hint-memory_bound"	: [2, 32, "--hint=memory_bound", None],
+	"hint-multithread"	: [2, 32, "--hint=multithread", [[0, 0x1], [0, 0x2], [0, 0x4], [0, 0x8], [0, 0x10], [0, 0x20], [0, 0x40], [0, 0x80], [0, 0x100], [0, 0x200], [0, 0x400], [0, 0x800], [0, 0x1000], [0, 0x2000], [0, 0x4000], [0, 0x8000], [1, 0x1], [1, 0x2], [1, 0x4], [1, 0x8], [1, 0x10], [1, 0x20], [1, 0x40], [1, 0x80], [1, 0x100], [1, 0x200], [1, 0x400], [1, 0x800], [1, 0x1000], [1, 0x2000], [1, 0x4000], [1, 0x8000]]],
+	"hint-nomultithread"	: [2, 32, "--hint=nomultithread", [[0, 0x1], [0, 0x2], [0, 0x4], [0, 0x8], [0, 0x10], [0, 0x20], [0, 0x40], [0, 0x80], [0, 0x100], [0, 0x200], [0, 0x400], [0, 0x800], [0, 0x1000], [0, 0x2000], [0, 0x4000], [0, 0x8000], [1, 0x1], [1, 0x2], [1, 0x4], [1, 0x8], [1, 0x10], [1, 0x20], [1, 0x40], [1, 0x80], [1, 0x100], [1, 0x200], [1, 0x400], [1, 0x800], [1, 0x1000], [1, 0x2000], [1, 0x4000], [1, 0x8000]]]
 }
 
 for k, v in tests.iteritems():
@@ -72,8 +72,6 @@ for k, v in tests.iteritems():
 
 	open("%s/descr.json" % k, "w").write("""{
 	"type":	"batch",
-	"partitions": ["batch", "psslurm"],
-	"reservations": ["", "psslurm"],
 	"submit": "salloc -N %d -t 1 ./test.sh",
 	"eval": ["eval.py"],
 	"fproc": null,
@@ -97,14 +95,30 @@ srun -n %d %s output-${JOB_NAME}/prog.exe
 
 import sys
 import os
+"""
 
+	if not v[3]:
+		evl += """import re
+"""
+
+	evl += """
 sys.path.append("/".join(os.path.abspath(os.path.dirname(sys.argv[0])).split('/')[0:-2] + ["lib"]))
 from testsuite import *
 
 helper.pretty_print_env()
 
 for p in helper.partitions():
-	helper.check_job_completed_ok(p)
+"""
+
+	if not v[3]:
+		evl += """	test.check("FAILED" == helper.job_state(p), p)
+	test.check("1:0"    == helper.job_exit_code(p), p)
+
+	out = helper.job_stdout(p)
+	test.check(re.match(r'.*not supported.*', out), p)
+"""
+	else:
+		evl += """	helper.check_job_completed_ok(p)
 
 	lines = helper.job_stdout_lines(p)
 	test.check(len(lines) == %d, p)
@@ -122,13 +136,13 @@ for p in helper.partitions():
 			result[int(rank)] = [nodeno[host], int(mask, base = 16)]
 """ % len(v[3])
 
-	for i, x in enumerate(v[3]):
-		evl += """
+		for i, x in enumerate(v[3]):
+			evl += """
 		test.check(%d == result[%d][0], p)
 		test.check(%d == result[%d][1], p)
 """ % (x[0], i, x[1], i)
 
-	evl += """
+		evl += """
 	except Exception as e:
 		test.check(1 == 0, p + ": " + str(e))
 
