@@ -105,9 +105,9 @@ tests = {
 	"cpu_bind-map_ldom"	: ["--cpu_bind=map_ldom:0,1", "", [0x00FF00FF, 0xFF00FF00], "-DCPU_MASK=1", ""],
 	"cpu_bind-mask_ldom"	: ["--cpu_bind=mask_ldom:0x1,0x2", "", [0x00FF00FF, 0xFF00FF00], "-DCPU_MASK=1", ""],
 	"cpu_bind-socket"	: ["--cpu_bind=socket", "", [0x00FF00FF, 0xFF00FF00], "-DCPU_MASK=1", ""],
-	"cpu_bind-cores"	: ["--cpu_bind=cores", "", [0xFFFFFFFF, 0xFFFFFFFF], "-DCPU_MASK=1", ""],	# Differs from standard Slurm
+	"cpu_bind-cores"	: ["--cpu_bind=cores", "", [None, None], "-DCPU_MASK=1", ""],	# Differs from standard Slurm
 	"cpu_bind-ldoms"	: ["--cpu_bind=ldoms", "", [0x00FF00FF, 0xFF00FF00], "-DCPU_MASK=1", ""],
-	"cpu_bind-boards"	: ["--cpu_bind=boards", "", [0xFFFFFFFF, 0xFFFFFFFF], "-DCPU_MASK=1", ""],
+	"cpu_bind-boards"	: ["--cpu_bind=boards", "", [0xFFFFFFFF, 0xFFFFFFFF], "-DCPU_MASK=1", ""],	# Differs from standard Slurm
 	"mem_bind-none"		: ["--mem_bind=none", "", [0x3, 0x3], "-DMEM_MASK=1", "-lnuma"],
 	"mem_bind-local"	: ["--mem_bind=local", "--ntasks-per-socket=1", [0x1, 0x2], "-DMEM_MASK=1", "-lnuma"],
 	"mem_bind-map_mem"	: ["--mem_bind=map_mem:0,1", "", [0x1, 0x2], "-DMEM_MASK=1", "-lnuma"],
@@ -147,14 +147,31 @@ srun -n %d %s %soutput-${JOB_NAME}/prog.exe
 
 import sys
 import os
+"""
 
+	if not v[2][0]:
+		evl += """import re
+"""
+
+	evl += """
 sys.path.append("/".join(os.path.abspath(os.path.dirname(sys.argv[0])).split('/')[0:-2] + ["lib"]))
 from testsuite import *
 
 helper.pretty_print_env()
 
 for p in helper.partitions():
-	helper.check_job_completed_ok(p)
+"""
+
+	if not v[2][0]:
+		evl += """	test.check("FAILED" == helper.job_state(p), p)
+	test.check("1:0"    == helper.job_exit_code(p), p)
+
+	out = helper.job_stdout(p)
+	test.check(re.match(r'.*not supported.*', out), p)
+"""
+
+	else:
+		evl += """	helper.check_job_completed_ok(p)
 
 	lines = helper.job_stdout_lines(p)
 	test.check(len(lines) == %d, p)
@@ -165,13 +182,13 @@ for p in helper.partitions():
 			tmp = line.split()
 """ % len(v[2])
 
-	for i, x in enumerate(v[2]):
-		evl += """			if %d == int(tmp[0]):
+		for i, x in enumerate(v[2]):
+			evl += """			if %d == int(tmp[0]):
 				test.check(%d == int(tmp[1], base = 16), p)
 				count += 1
 """ % (i, x)
 
-	evl += """		test.check(len(lines) == count, p)
+		evl += """		test.check(len(lines) == count, p)
 	except Exception as e:
 		test.check(1 == 0, p + ": " + str(e))
 
