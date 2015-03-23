@@ -893,6 +893,10 @@ static void redirectStepIO(Forwarder_Data_t *fwdata, Step_t *step)
 
     flags = getAppendFlags(step->appendMode);
 
+    if (setgid(step->gid) == -1) {
+	mwarn(errno, "%s: setgid(%i) failed: ", __func__, step->gid);
+    }
+
     /* need to create pipes as user, or the permission to /dev/stdX
      *  will be denied */
     if (seteuid(step->uid) == -1) {
@@ -978,6 +982,9 @@ static void redirectStepIO(Forwarder_Data_t *fwdata, Step_t *step)
 
     if (seteuid(0) == -1) {
 	mwarn(errno, "%s: seteuid(0) failed: ", __func__);
+    };
+    if (setgid(0) == -1) {
+	mwarn(errno, "%s: setgid(0) failed: ", __func__);
     };
 }
 
