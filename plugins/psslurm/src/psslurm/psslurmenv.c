@@ -405,6 +405,49 @@ static char * genCPUbindString(Step_t *step) {
     return string;
 }
 
+static char * genMemBindString(Step_t *step) {
+
+    char *string;
+    int len;
+
+    string = (char *) umalloc(sizeof(char) * (25 + strlen(step->memBind) + 1));
+
+    *string = '\0';
+    len = 0;
+
+    if (step->memBindType & MEM_BIND_VERBOSE) {
+	strcpy(string, "verbose");
+	len += 7;
+    } else {
+	strcpy(string, "quiet");
+	len += 5;
+    }
+
+    if (step->memBindType & MEM_BIND_NONE) {
+	strcpy(string+len, ",none");
+	len += 5;
+    } else if (step->memBindType & MEM_BIND_RANK) {
+	strcpy(string+len, ",rank");
+	len += 5;
+    } else if (step->memBindType & MEM_BIND_MAP) {
+	strcpy(string+len, ",map_mem:");
+	len += 9;
+    } else if (step->memBindType & MEM_BIND_MASK) {
+	strcpy(string+len, ",mask_mem:");
+	len += 10;
+    } else if (step->memBindType & MEM_BIND_LOCAL) {
+	strcpy(string+len, ",local");
+	len += 6;
+    }
+
+    if (step->memBindType & (MEM_BIND_MAP | MEM_BIND_MASK)) {
+	strcpy(string+len, step->memBind);
+	len += strlen(step->memBind);
+    }
+
+    return string;
+}
+
 void setTaskEnv(Step_t *step)
 {
     char *val, tmp[128];
@@ -458,6 +501,10 @@ void setTaskEnv(Step_t *step)
     }
 
     /* mem bind variables */
+    val = genMemBindString(step);
+    envSet(&step->env, "SLURM_MEM_BIND", val);
+    ufree(val);
+
     if (step->memBindType & MEM_BIND_VERBOSE) {
 	envSet(&step->env, "SLURM_MEM_BIND_VERBOSE", "verbose");
     }
