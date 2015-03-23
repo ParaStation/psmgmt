@@ -339,6 +339,72 @@ static void removeSpankOptions(env_t *env)
     }
 }
 
+static char * genCPUbindString(Step_t *step) {
+
+    char *string;
+    int len;
+
+    string = (char *) umalloc(sizeof(char) * (25 + strlen(step->cpuBind) + 1));
+
+    *string = '\0';
+    len = 0;
+
+    if (step->cpuBindType & CPU_BIND_VERBOSE) {
+	strcpy(string, "verbose");
+	len += 7;
+    } else {
+	strcpy(string, "quiet");
+	len += 5;
+    }
+
+    if (step->cpuBindType & CPU_BIND_TO_THREADS) {
+	strcpy(string+len, ",threads");
+	len += 8;
+    } else if (step->cpuBindType & CPU_BIND_TO_CORES) {
+	strcpy(string+len, ",cores");
+	len += 6;
+    } else if (step->cpuBindType & CPU_BIND_TO_SOCKETS) {
+	strcpy(string+len, ",sockets");
+	len += 8;
+    } else if (step->cpuBindType & CPU_BIND_TO_LDOMS) {
+	strcpy(string+len, ",ldoms");
+	len += 6;
+    } else if (step->cpuBindType & CPU_BIND_TO_BOARDS) {
+	strcpy(string+len, ",boards");
+	len += 7;
+    }
+
+    if (step->cpuBindType & CPU_BIND_NONE) {
+	strcpy(string+len, ",none");
+	len += 5;
+    } else if (step->cpuBindType & CPU_BIND_RANK) {
+	strcpy(string+len, ",rank");
+	len += 5;
+    } else if (step->cpuBindType & CPU_BIND_MAP) {
+	strcpy(string+len, ",map_cpu:");
+	len += 9;
+    } else if (step->cpuBindType & CPU_BIND_MASK) {
+	strcpy(string+len, ",mask_cpu:");
+	len += 10;
+    } else if (step->cpuBindType & CPU_BIND_LDRANK) {
+	strcpy(string+len, ",rank_ldom");
+	len += 10;
+    } else if (step->cpuBindType & CPU_BIND_LDMAP) {
+	strcpy(string+len, ",map_ldom");
+	len += 9;
+    } else if (step->cpuBindType & CPU_BIND_LDMASK) {
+	strcpy(string+len, ",mask_ldom");
+	len += 10;
+    }
+
+    if (step->cpuBindType & (CPU_BIND_MAP | CPU_BIND_MASK)) {
+	strcpy(string+len, step->cpuBind);
+	len += strlen(step->cpuBind);
+    }
+
+    return string;
+}
+
 void setTaskEnv(Step_t *step)
 {
     char *val, tmp[128];
@@ -349,6 +415,10 @@ void setTaskEnv(Step_t *step)
 
 
     /* cpu bind variables */
+    val = genCPUbindString(step);
+    envSet(&step->env, "SLURM_CPU_BIND", val);
+    ufree(val);
+
     if (step->cpuBindType & CPU_BIND_VERBOSE) {
 	envSet(&step->env, "SLURM_CPU_BIND_VERBOSE", "verbose");
 	envSet(&step->env, "SBATCH_CPU_BIND_VERBOSE", "verbose");
