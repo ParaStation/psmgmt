@@ -111,8 +111,8 @@ int PStask_init(PStask_t* task)
     INIT_LIST_HEAD(&task->deadBefore);
 
     task->request = NULL;
-    task->partitionSize = 0;
     task->options = 0;
+    task->partitionSize = 0;
     task->partition = NULL;
     task->totalThreads = 0;
     task->partThrds = NULL;
