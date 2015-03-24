@@ -272,18 +272,21 @@ static PSpart_HWThread_t *getThreads(Job_t *job)
 	    node = getNodeIDbyName(nodeStr);
 	    if (node == -1) {;
 		mlog("%s: No id for node '%s'\n", __func__, nodeStr);
-		free(thrdList);
+		ufree(thrdList);
+		ufree(tmp);
 		return NULL;
 	    }
 	    id = strtol(CPUStr, &endPtr, 0);
 	    if (*endPtr != '\0') {
 		mlog("%s: No id for CPU '%s'\n", __func__, CPUStr);
-		free(thrdList);
+		ufree(thrdList);
+		ufree(tmp);
 		return NULL;
 	    }
 	    if (threads >= job->nrOfNodes) {
 		mlog("%s: Too many nodes in exec_host list.\n", __func__);
-		free(thrdList);
+		ufree(thrdList);
+		ufree(tmp);
 		return NULL;
 	    }
 
