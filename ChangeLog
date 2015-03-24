@@ -1,3 +1,42 @@
+Version psmgmt-5.0.47-3:
+========================
+------------------------------------------------------------------------
+r9134 | eicker | 2015-03-24 14:36:06 +0100 (Tue, 24 Mar 2015) | 2 lines
+
+Bugfix: Leave handling of resDelegate to psmom/psslurm (#2412)
+
+------------------------------------------------------------------------
+r9133 | eicker | 2015-03-24 13:16:23 +0100 (Tue, 24 Mar 2015) | 2 lines
+
+Cosmetics: Adapt order of initializations to order of declaration.
+
+------------------------------------------------------------------------
+r9132 | eicker | 2015-03-24 13:15:30 +0100 (Tue, 24 Mar 2015) | 2 lines
+
+Bugfix: Close potential memory leak.
+
+------------------------------------------------------------------------
+r9131 | hauke | 2015-03-12 14:54:29 +0100 (Thu, 12 Mar 2015) | 8 lines
+
+Optional build rpms without psconfig support.
+
+Disable psconfig with:
+cd dist && make rpm CONFIGARGS="--without psconfig"
+or
+rpmrebuild --without psconfig ...
+
+------------------------------------------------------------------------
+r9130 | moschny | 2015-03-12 14:34:10 +0100 (Thu, 12 Mar 2015) | 1 line
+
+Do not filter out -Wall and -Wextra, as this causes problems with -Werror=format-security, which is also set by Fedora 21.
+------------------------------------------------------------------------
+r9126 | eicker | 2015-03-11 18:10:27 +0100 (Wed, 11 Mar 2015) | 2 lines
+
+New release (psmgmt-5.0.47-2)
+
+------------------------------------------------------------------------
+
+
 Version psmgmt-5.0.47-2:
 ========================
 ------------------------------------------------------------------------

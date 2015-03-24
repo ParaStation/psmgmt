@@ -5,6 +5,18 @@ Copyright (C) 2010-2015 ParTec Cluster Competence Center GmbH, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 5.0.47-3:
+=================
+
+Bugfixes:
+- Leave handling of resDelegate to psmom/psslurm (#2412)
+- Close potential memory leak.
+
+Additional changes:
+- Optional build rpms without psconfig support.
+- Do not filter out -Wall and -Wextra
+
+
 Version 5.0.47-2:
 =================
 
