@@ -460,6 +460,7 @@ void setTaskEnv(Step_t *step)
     /* cpu bind variables */
     val = genCPUbindString(step);
     envSet(&step->env, "SLURM_CPU_BIND", val);
+    envSet(&step->env, "SBATCH_CPU_BIND", val);
     ufree(val);
 
     if (step->cpuBindType & CPU_BIND_VERBOSE) {
@@ -503,6 +504,7 @@ void setTaskEnv(Step_t *step)
     /* mem bind variables */
     val = genMemBindString(step);
     envSet(&step->env, "SLURM_MEM_BIND", val);
+    envSet(&step->env, "SBATCH_MEM_BIND", val);
     ufree(val);
 
     if (step->memBindType & MEM_BIND_VERBOSE) {
