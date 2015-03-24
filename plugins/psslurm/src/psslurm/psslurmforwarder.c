@@ -466,11 +466,8 @@ static void switchUser(char *username, uid_t uid, gid_t gid, char *cwd)
 
     /* change to job working directory */
     if (cwd && (chdir(cwd)) == -1) {
-	if (chdir("/tmp") == -1) {
-	    mlog("%s: chdir to '%s' failed : %s\n", __func__, cwd,
-		    strerror(errno));
-	    exit(1);
-	}
+	mlog("%s: chdir to '%s' failed : %s\n", __func__, cwd, strerror(errno));
+	exit(1);
     }
 }
 
