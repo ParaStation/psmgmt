@@ -766,7 +766,7 @@ static void handleRebootNodes(Slurm_Msg_t *sMsg)
 	return;
     }
 
-    sendSlurmRC(sMsg, SLURM_SUCCESS);
+    sendSlurmRC(sMsg, ESLURM_NOT_SUPPORTED);
 }
 
 static void handleHealthCheck(Slurm_Msg_t *sMsg)
