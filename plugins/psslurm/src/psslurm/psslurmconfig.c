@@ -220,8 +220,6 @@ int parseSlurmConf(char *hn, struct list_head *confList, int gres)
     Config_t *config;
     char *hostline, *tmp;
 
-    if (list_empty(confList)) return 0;
-
     list_for_each(pos, confList) {
 	if (!(config = list_entry(pos, Config_t, list))) return 0;
 
