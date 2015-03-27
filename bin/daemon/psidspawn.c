@@ -744,6 +744,18 @@ static int testExecutable(PStask_t *task, char **executable)
 	return ENOENT;
     }
 
+    if (!strcmp(task->argv[0], "$SHELL")) {
+	struct passwd *passwd = getpwuid(getuid());
+	if (!passwd) {
+	    int eno = errno;
+	    fprintf(stderr, "%s: Unable to determine $SHELL: %s\n", __func__,
+		    get_strerror(eno));
+	    return eno;
+	}
+	free(task->argv[0]);
+	task->argv[0] = strdup(passwd->pw_shell);
+    }
+
     /* Test if executable is there */
     if (task->argv[0][0] != '/' && task->argv[0][0] != '.') {
 	/* Relative path -> let's search in $PATH */
