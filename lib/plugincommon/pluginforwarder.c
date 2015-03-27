@@ -773,7 +773,7 @@ static int handleListenSocket(int fd, void *info)
 
     if ((data->controlSocket = accept(fd, (void *)&SAddr, &clientlen)) == -1) {
 	pluginlog("%s error accepting new local tcp connection\n", __func__);
-	return -1;
+	return 0;
     }
 
     // TODO LOG VERBOSE

@@ -151,7 +151,7 @@ static int handleMasterSocket(int sock, void *empty)
 
     if ((clientSock = accept(sock, (void *)&SAddr, &clientlen)) == -1) {
 	mwarn(errno, "%s accept(%i) failed: ", __func__, sock);
-	return -1;
+	return 0;
     }
 
     Selector_register(clientSock, handlePamRequest, NULL);
