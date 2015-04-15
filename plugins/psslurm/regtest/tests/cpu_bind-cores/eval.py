@@ -2,6 +2,7 @@
 
 import sys
 import os
+import re
 
 sys.path.append("/".join(os.path.abspath(os.path.dirname(sys.argv[0])).split('/')[0:-2] + ["lib"]))
 from testsuite import *
@@ -9,23 +10,8 @@ from testsuite import *
 helper.pretty_print_env()
 
 for p in helper.partitions():
-	helper.check_job_completed_ok(p)
+	test.check("FAILED" == helper.job_state(p), p)
+	test.check("1:0"    == helper.job_exit_code(p), p)
 
-	lines = helper.job_stdout_lines(p)
-	test.check(len(lines) == 2, p)
-
-	try:
-		count = 0
-		for line in lines:
-			tmp = line.split()
-			if 0 == int(tmp[0]):
-				test.check(65537 == int(tmp[1], base = 16), p)
-				count += 1
-			if 1 == int(tmp[0]):
-				test.check(16777472 == int(tmp[1], base = 16), p)
-				count += 1
-		test.check(len(lines) == count, p)
-	except Exception as e:
-		test.check(1 == 0, p + ": " + str(e))
-
-test.quit()
+	out = helper.job_stdout(p)
+	test.check(re.match(r'.*not supported.*', out), p)

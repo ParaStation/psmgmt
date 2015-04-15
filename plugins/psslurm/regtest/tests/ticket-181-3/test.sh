@@ -1,0 +1,8 @@
+#!/bin/bash
+
+for i in {1..16} ; do
+	srun -N 1 -n 1 hostname&
+done
+
+wait
+

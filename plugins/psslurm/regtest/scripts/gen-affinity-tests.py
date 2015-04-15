@@ -95,6 +95,9 @@ int main(int argc, char** argv)
 """
 
 tests = {
+	"cpu_bind-default"	: ["", "", [0x1, 0x2], "-DCPU_MASK=1", ""],
+	"cpu_bind-threads"	: ["--cpu_bind=threads", "", [0x1, 0x2], "-DCPU_MASK=1", ""],	# Differs from standard Slurm
+	"mem_bind-rank"		: ["--mem_bind=rank", "", [0x1, 0x2], "-DMEM_MASK=1", "-lnuma"],
 	"cpu_bind-none"		: ["--cpu_bind=none", "", [0xFFFFFFFF, 0xFFFFFFFF], "-DCPU_MASK=1", ""],
 	"cpu_bind-map_cpu"	: ["--cpu_bind=map_cpu:0,2", "", [0x1, 0x4], "-DCPU_MASK=1", ""],
 	"cpu_bind-mask_cpu"	: ["--cpu_bind=mask_cpu:0x3,0xC", "", [0x3, 0xC], "-DCPU_MASK=1", ""],
@@ -102,12 +105,10 @@ tests = {
 	"cpu_bind-map_ldom"	: ["--cpu_bind=map_ldom:0,1", "", [0x00FF00FF, 0xFF00FF00], "-DCPU_MASK=1", ""],
 	"cpu_bind-mask_ldom"	: ["--cpu_bind=mask_ldom:0x1,0x2", "", [0x00FF00FF, 0xFF00FF00], "-DCPU_MASK=1", ""],
 	"cpu_bind-socket"	: ["--cpu_bind=socket", "", [0x00FF00FF, 0xFF00FF00], "-DCPU_MASK=1", ""],
-	"cpu_bind-cores"	: ["--cpu_bind=cores", "", [0x0010001, 0x1000100], "-DCPU_MASK=1", ""],
-	"cpu_bind-threads"	: ["--cpu_bind=threads", "", [0x001, 0x100], "-DCPU_MASK=1", ""],
-	"cpu_bind-ldoms"	: ["--cpu_bind=ldoms", "", [0x00ff00ff, 0xff00ff00], "-DCPU_MASK=1", ""],
-	"cpu_bind-boards"	: ["--cpu_bind=boards", "", [0x00ff00ff, 0xff00ff00], "-DCPU_MASK=1", ""],
+	"cpu_bind-cores"	: ["--cpu_bind=cores", "", [None, None], "-DCPU_MASK=1", ""],	# Differs from standard Slurm
+	"cpu_bind-ldoms"	: ["--cpu_bind=ldoms", "", [0x00FF00FF, 0xFF00FF00], "-DCPU_MASK=1", ""],
+	"cpu_bind-boards"	: ["--cpu_bind=boards", "", [0xFFFFFFFF, 0xFFFFFFFF], "-DCPU_MASK=1", ""],	# Differs from standard Slurm
 	"mem_bind-none"		: ["--mem_bind=none", "", [0x3, 0x3], "-DMEM_MASK=1", "-lnuma"],
-	"mem_bind-rank"		: ["--mem_bind=rank", "", [0x1, 0x2], "-DMEM_MASK=1", "-lnuma"],
 	"mem_bind-local"	: ["--mem_bind=local", "--ntasks-per-socket=1", [0x1, 0x2], "-DMEM_MASK=1", "-lnuma"],
 	"mem_bind-map_mem"	: ["--mem_bind=map_mem:0,1", "", [0x1, 0x2], "-DMEM_MASK=1", "-lnuma"],
 	"mem_bind-mask_mem"	: ["--mem_bind=mask_mem:0x2,0x3", "", [0x2, 0x3], "-DMEM_MASK=1", "-lnuma"]
@@ -119,8 +120,6 @@ for k, v in tests.iteritems():
 
 	open("%s/descr.json" % k, "w").write("""{
 	"type":	"batch",
-	"partitions": ["batch", "psslurm"],
-	"reservations": ["", "psslurm"],
 	"submit": "salloc -N 1 -t 1 ./test.sh",
 	"eval": ["eval.py"],
 	"fproc": null,
@@ -148,14 +147,30 @@ srun -n %d %s %soutput-${JOB_NAME}/prog.exe
 
 import sys
 import os
+"""
 
+	if not v[2][0]:
+		evl += """import re
+"""
+
+	evl += """
 sys.path.append("/".join(os.path.abspath(os.path.dirname(sys.argv[0])).split('/')[0:-2] + ["lib"]))
 from testsuite import *
 
 helper.pretty_print_env()
 
 for p in helper.partitions():
-	helper.check_job_completed_ok(p)
+"""
+
+	if not v[2][0]:
+		evl += """	test.check("FAILED" == helper.job_state(p), p)
+	test.check("1:0"    == helper.job_exit_code(p), p)
+
+	out = helper.job_stdout(p)
+	test.check(re.match(r'.*not supported.*', out), p)
+"""
+	else:
+		evl += """	helper.check_job_completed_ok(p)
 
 	lines = helper.job_stdout_lines(p)
 	test.check(len(lines) == %d, p)
@@ -166,13 +181,13 @@ for p in helper.partitions():
 			tmp = line.split()
 """ % len(v[2])
 
-	for i, x in enumerate(v[2]):
-		evl += """			if %d == int(tmp[0]):
+		for i, x in enumerate(v[2]):
+			evl += """			if %d == int(tmp[0]):
 				test.check(%d == int(tmp[1], base = 16), p)
 				count += 1
 """ % (i, x)
 
-	evl += """		test.check(len(lines) == count, p)
+		evl += """		test.check(len(lines) == count, p)
 	except Exception as e:
 		test.check(1 == 0, p + ": " + str(e))
 
