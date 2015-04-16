@@ -32,7 +32,7 @@
  * Prevent malloc deadlock in psid SIGCHLD sighandler.
  *
  **/
-static int blockSigChild(int block)
+int blockSigChild(int block)
 {
     sigset_t set, oldset;
 

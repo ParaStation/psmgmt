@@ -546,6 +546,7 @@ int deleteJob(uint32_t jobid)
 {
     Job_t *job;
     unsigned int i;
+    int blocked = 0;
 
     if (!(job = findJobById(jobid))) return 0;
 
@@ -608,7 +609,9 @@ int deleteJob(uint32_t jobid)
     list_del(&job->list);
     ufree(job);
 
+    blocked = blockSigChild(1);
     malloc_trim(200);
+    if (blocked) blockSigChild(0);
     return 1;
 }
 
