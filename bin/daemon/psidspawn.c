@@ -977,6 +977,8 @@ static void execClient(PStask_t *task)
 	eno = errno;
 	fprintf(stderr, "%s: read(): %s\n", __func__, get_strerror(eno));
 	PSID_exit(eno, "%s: read()", __func__);
+    } else {
+	close(task->fd);
     }
 
     if (eno) {
