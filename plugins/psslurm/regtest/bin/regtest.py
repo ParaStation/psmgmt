@@ -1393,6 +1393,12 @@ def main(argv):
 
 		retval = 0
 	else:
+		# Check that the folder "expect" in the root directory of the testsuite exists.
+		# Some tests call out to the Slurm testsuite.
+		expectFolder = "/".join(opts.testsdir.split("/")[:-1] + ["expect"])
+		if not os.path.isdir(expectFolder):
+			print("\n WARNING\texpect folder is not present.\n")
+
 		if 0 == len(opts.partition):
 			opts.partition = slurm_default_partition()
 
