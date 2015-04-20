@@ -19,6 +19,6 @@ for p in helper.partitions():
 
 		for line in [x for x in map(lambda z: z.strip(), open(fn, "r").readlines()) if len(x) > 0]:
 			test.check(not re.match(r'.*SIGPIPE.*' , line) and \
-			           not re.match(r'.*do_write.*', line), p + ": %s" + (2**i))
+			           not re.match(r'.*do_write.*', line), p + ": %d" % (2**i))
 
 test.quit()
