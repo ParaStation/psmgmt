@@ -287,6 +287,8 @@ def submit_via_sbatch(part, partinfo, reserv, qos, account, test):
 	wdir = test["root"]
 
 	env = os.environ.copy()
+	env["LANG"] = "C"
+
 	env["PSTEST_PARTITION"]      = "%s" % part
 	env["PSTEST_PARTITION_CPUS"] = "%s" % partinfo["cpus"]
 	env["PSTEST_RESERVATION"]    = "%s" % reserv
@@ -310,6 +312,8 @@ def submit_via_srun(part, partinfo, reserv, qos, account, test):
 	wdir = test["root"]
 
 	env = os.environ.copy()
+	env["LANG"] = "C"
+
 	env["PSTEST_PARTITION"]      = "%s" % part
 	env["PSTEST_PARTITION_CPUS"] = "%s" % partinfo["cpus"]
 	env["PSTEST_RESERVATION"]    = "%s" % reserv
@@ -336,6 +340,8 @@ def submit_via_salloc(part, partinfo, reserv, qos, account, test):
 	wdir = test["root"]
 
 	env = os.environ.copy()
+	env["LANG"] = "C"
+
 	env["PSTEST_PARTITION"]      = "%s" % part
 	env["PSTEST_PARTITION_CPUS"] = "%s" % partinfo["cpus"]
 	env["PSTEST_RESERVATION"]    = "%s" % reserv
@@ -403,6 +409,8 @@ def job_is_done(stats):
 def spawn_frontend_process(test, part, partinfo, reserv, qos, account, jobid, fo, fe):
 	# Prepare the environment for the front-end process
 	env = os.environ.copy()
+	env["LANG"] = "C"
+
 	env["PSTEST_PARTITION"]      = "%s" % part
 	env["PSTEST_PARTITION_CPUS"] = "%s" % partinfo["cpus"]
 	env["PSTEST_RESERVATION"]    = "%s" % reserv
@@ -962,6 +970,7 @@ def export_submit_variables_to_env(stats, part, env):
 # available corresponding to the scontrol output.
 def exec_eval_command(test, partinfo, stats):
 	env = os.environ.copy()
+	env["LANG"] = "C"
 
 	env["PSTEST_PARTITIONS"] = " ".join(test["partitions"])
 	env["PSTEST_TESTKEY"] = test["key"]
