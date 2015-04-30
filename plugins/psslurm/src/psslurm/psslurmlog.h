@@ -35,7 +35,7 @@ void maskLogger(int32_t mask);
 typedef enum {
     PSSLURM_LOG_DEBUG    =	0x000010, /**< Debug */
     PSSLURM_LOG_WARN     =	0x000020, /**< Warnings */
-    PSSLURM_LOG_PSCOMM   =	0x000040, /**< Warnings */
+    PSSLURM_LOG_PSCOMM   =	0x000040, /**< Daemon communication */
     PSSLURM_LOG_PROCESS  =	0x000080, /**< Process */
     PSSLURM_LOG_COMM	 =	0x000100, /**< Slurm communication */
     PSSLURM_LOG_PSIDCOM  =	0x000200, /**< Warnings */
@@ -46,6 +46,7 @@ typedef enum {
     PSSLURM_LOG_PART	 =	0x004000, /**< Partition */
     PSSLURM_LOG_GRES	 =	0x008000, /**< Gres */
     PSSLURM_LOG_FWD      =      0x010000, /** < Msg forwarding */
+    PSSLURM_LOG_IO       =      0x020000, /** < I/O */
 } PSSLURM_log_types_t;
 
 #endif

@@ -108,14 +108,15 @@ int verifyTypeInfo(char **ptr, PS_DataType_t expectedType, const char *caller)
 
 #define MAX_RETRY 20
 int __doWrite(int fd, void *buffer, size_t towrite, const char *func,
-			int pedantic)
+			int pedantic, int fini)
 {
     ssize_t ret = 0;
     size_t written = 0;
+    char *ptr = buffer;
     int retry = 0;
 
     while (1) {
-	if ((ret = write(fd, buffer, towrite - written)) == -1) {
+	if ((ret = write(fd, ptr + written, towrite - written)) == -1) {
 	    if (errno == EINTR || errno == EAGAIN) continue;
 
 	    pluginlog("%s (%s): write to fd '%i' failed (%i): %s\n", __func__,
@@ -127,9 +128,11 @@ int __doWrite(int fd, void *buffer, size_t towrite, const char *func,
 	written += ret;
 	if (!ret) return ret;
 	if (written >= towrite) break;
-	if (retry++ >MAX_RETRY) return -1;
+	if (!fini) {
+	    if (retry++ >MAX_RETRY) return -1;
+	}
     }
-    return ret;
+    return written;
 }
 
 int __doRead(int fd, void *buffer, size_t toread, const char *func,
@@ -246,6 +249,39 @@ int __addStringArrayToMsg(char **array, const uint32_t len,
 
     for (i=0; i<len; i++) {
 	if (!(__addStringToMsg(array[i], data, caller, line))) return 0;
+    }
+
+    return 1;
+}
+
+int __addDataToMsg(const void *buf, uint32_t bufLen, PS_DataBuffer_t *data,
+		    const char *caller, const int line)
+{
+    char *ptr;
+
+    if (!data) {
+	pluginlog("%s: invalid data from '%s'\n", __func__, caller);
+	return 0;
+    }
+
+    growBuffer(sizeof(uint8_t) + sizeof(uint32_t) + bufLen, data, caller, line);
+    ptr = data->buf + data->bufUsed;
+
+    /* add data type */
+    if (typeInfo) {
+	addDataType(&ptr, PSDATA_DATA);
+	data->bufUsed +=sizeof(uint8_t);
+    }
+
+    /* data length */
+    *(uint32_t *) ptr = byteOrder ? htonl(bufLen) : bufLen;
+    ptr += sizeof(uint32_t);
+    data->bufUsed += sizeof(uint32_t);
+
+    /* add the data */
+    if (bufLen > 0) {
+	memcpy(ptr, buf, bufLen);
+	data->bufUsed += bufLen;
     }
 
     return 1;
@@ -994,6 +1030,35 @@ char *__getStringML(char **ptr, size_t *len, const char *caller, const int line)
 	*ptr += *len;
     } else {
 	data[0] = '\0';
+    }
+
+    return data;
+}
+
+void *__getDataM(void **ptr, uint32_t *len, const char *caller, const int line)
+{
+    void *data;
+
+    if (!*ptr) {
+	if (debug) {
+	    pluginlog("%s: invalid ptr from '%s'\n", __func__, caller);
+	}
+	return NULL;
+    }
+
+    if (!(verifyTypeInfo((char **)ptr, PSDATA_DATA, caller))) return NULL;
+
+    /* data length */
+    *len = *(uint32_t *) *ptr;
+    *len = byteOrder ? ntohl(*len) : *len;
+    *ptr += sizeof(uint32_t);
+
+    data = __umalloc(*len, caller, line);
+
+    /* extract the string */
+    if (*len > 0) {
+	memcpy(data, *ptr, *len);
+	*ptr += *len;
     }
 
     return data;

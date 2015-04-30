@@ -68,11 +68,14 @@ void __getBitString(char **ptr, char **bitStr, const char *func,
 				const int line);
 int tcpConnect(char *addr, char *port);
 void getSockInfo(int socket, uint32_t *addr, uint16_t *port);
+PSnodes_ID_t getStepLocalNodeID(Step_t *step);
 
 int srunOpenControlConnection(Step_t *step);
 int srunOpenIOConnection(Step_t *step);
 int srunOpenPTY(Step_t *step);
-int srunSendIO(uint16_t type, Step_t *step, char *buf, uint32_t bufLen);
+void srunEnableIO(Step_t *step);
+int srunSendIO(uint16_t type, uint16_t taskid, Step_t *step,
+		char *buf, uint32_t bufLen);
 int srunSendMsg(int sock, Step_t *step, slurm_msg_type_t type,
 		PS_DataBuffer_t *body);
 void closeAllStepConnections(Step_t *step);

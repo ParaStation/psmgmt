@@ -41,6 +41,7 @@
 #include "psslurmconfig.h"
 #include "psslurmenv.h"
 #include "psslurmmultiprog.h"
+#include "psslurmio.h"
 #include "slurmcommon.h"
 
 #include "pluginpty.h"
@@ -50,13 +51,15 @@
 #include "selector.h"
 #include "psprotocolenv.h"
 #include "psaccounthandles.h"
+#include "pslog.h"
 
 #include "psslurmforwarder.h"
 
 #define SERIAL_MODE 0
 #define X11_AUTH_CMD "/usr/bin/xauth"
 
-int jobCallback(int32_t exit_status, char *errMsg, size_t errLen, void *data)
+static int jobCallback(int32_t exit_status, char *errMsg,
+			size_t errLen, void *data)
 {
     Forwarder_Data_t *fwdata = data;
     Job_t *job = fwdata->userData;
@@ -87,7 +90,24 @@ int jobCallback(int32_t exit_status, char *errMsg, size_t errLen, void *data)
     return 0;
 }
 
-int stepCallback(int32_t exit_status, char *errMsg, size_t errLen, void *data)
+static int stepFWIOcallback(int32_t exit_status, char *errMsg,
+			    size_t errLen, void *data)
+{
+    Forwarder_Data_t *fwdata = data;
+    Step_t *step = fwdata->userData;
+
+    if (!findStepById(step->jobid, step->stepid)) {
+	mlog("%s: step '%u:%u' not found\n", __func__, step->jobid,
+		step->stepid);
+	return 0;
+    }
+    step->fwdata = NULL;
+
+    return 0;
+}
+
+static int stepCallback(int32_t exit_status, char *errMsg,
+			size_t errLen, void *data)
 {
     Forwarder_Data_t *fwdata = data;
     Step_t *step = fwdata->userData;
@@ -108,16 +128,6 @@ int stepCallback(int32_t exit_status, char *errMsg, size_t errLen, void *data)
     signalStep(step, SIGKILL);
 
     freeSlurmMsg(&step->srunIOMsg);
-
-    /*
-    if (step->srunIOMsg != -1) {
-	if (Selector_isRegistered(step->srunIOSock)) {
-	    Selector_remove(step->srunIOSock);
-	}
-	close(step->srunIOSock);
-	step->srunIOSock = -1;
-    }
-    */
 
     if (!SERIAL_MODE && step->state == JOB_PRESTART) {
 	/* spawn failed */
@@ -170,272 +180,6 @@ int bcastCallback(int32_t exit_status, char *errMsg, size_t errLen, void *data)
     return 0;
 }
 
-static int setPermissions(Job_t *job)
-{
-    if (!job->jobscript) return 1;
-
-    if ((chown(job->jobscript, job->uid, job->gid)) == -1) {
-	mlog("%s: chown(%i:%i) '%s' failed : %s\n", __func__,
-		job->uid, job->gid, job->jobscript,
-		strerror(errno));
-	return 1;
-    }
-
-    if ((chmod(job->jobscript, 0700)) == -1) {
-	mlog("%s: chmod 0700 on '%s' failed : %s\n", __func__,
-		job->jobscript, strerror(errno));
-	return 1;
-    }
-
-    return 0;
-}
-
-static char *replaceStepSymbols(Step_t *step, int rank, char *path)
-{
-    char *hostname;
-    Job_t *job;
-    uint32_t i, arrayJobId = 0, arrayTaskId = 0, nodeid = 0;
-    PSnodes_ID_t myID;
-
-    hostname = getConfValueC(&Config, "SLURM_HOSTNAME");
-    if ((job = findJobById(step->jobid))) {
-	arrayJobId = job->arrayJobId;
-	arrayTaskId = job->arrayTaskId;
-    }
-
-    myID = PSC_getMyID();
-    for (i=0; i<step->nrOfNodes; i++) {
-	if (step->nodes[i] == myID) {
-	    nodeid = i;
-	    break;
-	}
-    }
-
-    return replaceSymbols(step->jobid, step->stepid, hostname, nodeid,
-			    step->username, arrayJobId, arrayTaskId, rank,
-			    path);
-}
-
-static char *replaceJobSymbols(Job_t *job, char *path)
-{
-    return replaceSymbols(job->jobid, SLURM_BATCH_SCRIPT, job->hostname,
-			    0, job->username, job->arrayJobId, job->arrayTaskId,
-			    0, path);
-}
-
-/*
- *  step replace symbols
- *
- * %A     Job array's master job allocation number.
- * %a     Job array ID (index) number.
- * %J     jobid.stepid of the running job. (e.g. "128.0")
- * %j     jobid of the running job.
- * %s     stepid of the running job.
- * %N     short hostname. This will create a separate IO file per node.
- * %n     Node identifier relative to current job (e.g. "0" is the first node
- *	    of the running job) This will create a separate IO file per node.
- * %t     task identifier (rank) relative to current job. This will
- *	    create a separate IO file per task.
- * %u     User name.
-*/
-char *replaceSymbols(uint32_t jobid, uint32_t stepid, char *hostname,
-			int nodeid, char *username, uint32_t arrayJobId,
-			uint32_t arrayTaskId, int rank, char *path)
-{
-    char *next, *ptr, *symbol, *symNum, *buf = NULL;
-    char tmp[1024], symLen[64], symLen2[256];
-    size_t symNumLen, len, bufSize = 0;
-    int saved = 0;
-
-    ptr = path;
-    if (!(next = strchr(ptr, '%'))) {
-	return ustrdup(path);
-    }
-
-    while (next) {
-	symbol = symNum = next+1;
-	len = next - ptr;
-	strn2Buf(ptr, len, &buf, &bufSize);
-
-	/* zero padding */
-	symNumLen = 0;
-	snprintf(symLen, sizeof(symLen), "%%u");
-	while (symNum[0] >= 48 && symNum[0] <=57) symNum++;
-	if ((symNumLen = symNum - symbol) >0) {
-	    if (symNumLen <= sizeof(symLen) -3) {
-		strcpy(symLen, "%0");
-		strncat(symLen, symbol, symNumLen);
-		strcat(symLen, "u");
-		symbol += symNumLen;
-	    }
-	}
-
-	switch (symbol[0]) {
-	    case 'A':
-		snprintf(tmp, sizeof(tmp), symLen, arrayJobId);
-		str2Buf(tmp, &buf, &bufSize);
-		saved = 1;
-		break;
-	    case 'a':
-		snprintf(tmp, sizeof(tmp), symLen, arrayTaskId);
-		str2Buf(tmp, &buf, &bufSize);
-		saved = 1;
-		break;
-	    case 'J':
-		snprintf(symLen2, sizeof(symLen2), "%s.%s", symLen, symLen);
-		snprintf(tmp, sizeof(tmp), symLen2, jobid, stepid);
-		str2Buf(tmp, &buf, &bufSize);
-		saved = 1;
-		break;
-	    case 'j':
-		snprintf(tmp, sizeof(tmp), symLen, jobid);
-		str2Buf(tmp, &buf, &bufSize);
-		saved = 1;
-		break;
-	    case 's':
-		snprintf(tmp, sizeof(tmp), symLen, stepid);
-		str2Buf(tmp, &buf, &bufSize);
-		saved = 1;
-		break;
-	    case 'N':
-		str2Buf(hostname, &buf, &bufSize);
-		saved = 1;
-		break;
-	    case 'n':
-		snprintf(tmp, sizeof(tmp), symLen, nodeid);
-		str2Buf(tmp, &buf, &bufSize);
-		saved = 1;
-		break;
-	    case 't':
-		snprintf(tmp, sizeof(tmp), symLen, rank);
-		str2Buf(tmp, &buf, &bufSize);
-		saved = 1;
-		break;
-	    case 'u':
-		str2Buf(username, &buf, &bufSize);
-		saved = 1;
-		break;
-	}
-
-	if (!saved) {
-	    strn2Buf(next, 2 + symNumLen, &buf, &bufSize);
-	}
-
-	saved = 0;
-	ptr = next + 2 + symNumLen;
-	next = strchr(ptr, '%');
-    }
-    str2Buf(ptr, &buf, &bufSize);
-
-    mlog("%s: orig '%s' result: '%s'\n", __func__, path, buf);
-
-    return buf;
-}
-
-static char *addCwd(char *cwd, char *path)
-{
-    char *buf = NULL;
-    size_t bufSize = 0;
-
-    if (path[0] == '/' || path[0] == '.') {
-	return path;
-    }
-
-    str2Buf(cwd, &buf, &bufSize);
-    str2Buf("/", &buf, &bufSize);
-    str2Buf(path, &buf, &bufSize);
-    ufree(path);
-
-    return buf;
-}
-
-int getAppendFlags(uint8_t appendMode)
-{
-    int flags = 0;
-
-    if (!appendMode) {
-	/* TODO: use default of configuration JobFileAppend */
-	flags |= O_CREAT|O_WRONLY|O_TRUNC|O_APPEND;
-    } else if (appendMode == OPEN_MODE_APPEND) {
-	flags |= O_CREAT|O_WRONLY|O_APPEND;
-    } else {
-	flags |= O_CREAT|O_WRONLY|O_TRUNC|O_APPEND;
-    }
-
-    return flags;
-}
-
-static void redirectJobOutput(Job_t *job)
-{
-    char *outFile, *errFile, *inFile, *defOutName;
-    int fd, flags = 0;
-
-    close(STDOUT_FILENO);
-    close(STDERR_FILENO);
-    close(STDIN_FILENO);
-
-    flags = getAppendFlags(job->appendMode);
-
-    if (job->arrayTaskId != NO_VAL) {
-	defOutName = "slurm-%A_%a.out";
-    } else {
-	defOutName = "slurm-%j.out";
-    }
-
-    /* stdout */
-    if (!(strlen(job->stdOut))) {
-	outFile = addCwd(job->cwd, replaceJobSymbols(job, defOutName));
-    } else {
-	outFile = addCwd(job->cwd, replaceJobSymbols(job, job->stdOut));
-    }
-
-    if ((fd = open(outFile, flags, 0666)) == -1) {
-	mwarn(errno, "%s: open stdout '%s' failed :", __func__, outFile);
-	exit(1);
-    }
-    if ((dup2(fd, STDOUT_FILENO)) == -1) {
-	mwarn(errno, "%s: dup2(%i) '%s' failed :", __func__, fd, outFile);
-	exit(1);
-    }
-
-    /* stderr */
-    if (!(strlen(job->stdErr))) {
-	errFile = addCwd(job->cwd, replaceJobSymbols(job, defOutName));
-    } else {
-	errFile = addCwd(job->cwd, replaceJobSymbols(job, job->stdErr));
-    }
-
-    if (strlen(job->stdErr)) {
-	if ((fd = open(errFile, flags, 0666)) == -1) {
-	    mwarn(errno, "%s: open stderr '%s' failed :", __func__, errFile);
-	    exit(1);
-	}
-    }
-    if ((dup2(fd, STDERR_FILENO)) == -1) {
-	mwarn(errno, "%s: dup2(%i) '%s' failed :", __func__, fd, errFile);
-	exit(1);
-    }
-
-    ufree(errFile);
-    ufree(outFile);
-
-    /* stdin */
-    if (!(strlen(job->stdIn))) {
-	inFile = ustrdup("/dev/null");
-    } else {
-	inFile = addCwd(job->cwd, replaceJobSymbols(job, job->stdIn));
-    }
-    if ((fd = open(inFile, O_RDONLY)) == -1) {
-	mwarn(errno, "%s: open stdin '%s' failed :", __func__, inFile);
-	exit(1);
-    }
-    if ((dup2(fd, STDIN_FILENO)) == -1) {
-	mwarn(errno, "%s: dup2(%i) '%s' failed :", __func__, fd, inFile);
-	exit(1);
-    }
-    ufree(inFile);
-}
-
 static void switchUser(char *username, uid_t uid, gid_t gid, char *cwd)
 {
     /* remove psslurm group memberships */
@@ -482,7 +226,7 @@ static void execBatchJob(void *data, int rerun)
     snprintf(buf, sizeof(buf), "psslurm-job:%u", job->jobid);
     initLogger(buf, NULL);
 
-    setPermissions(job);
+    setFilePermissions(job);
 
     /* switch user */
     switchUser(job->username, job->uid, job->gid, job->cwd);
@@ -499,95 +243,6 @@ static void execBatchJob(void *data, int rerun)
     /* do exec */
     closelog();
     execve(job->jobscript, job->argv, job->env.vars);
-}
-
-static void redirectIORank(Step_t *step, int rank)
-{
-    char *ptr, *next, *outFile, *errFile, *inFile;
-    int flags = 0, fd, needReplace = 0;
-
-    flags = getAppendFlags(step->appendMode);
-
-    if (strlen(step->stdOut) > 0) {
-	needReplace = 0;
-	ptr = step->stdOut;
-	while ((next = strchr(ptr, '%'))) {
-	    if (next[1] == 't') {
-		needReplace = 1;
-		break;
-	    }
-	    ptr = next+1;
-	}
-
-	if (needReplace) {
-	    ptr = replaceStepSymbols(step, rank, step->stdOut);
-	    outFile = addCwd(step->cwd, ptr);
-
-	    if ((fd = open(outFile, flags, 0666)) == -1) {
-		mwarn(errno, "%s: open(%s) failed: ", __func__, outFile);
-		exit(1);
-	    }
-	    close(STDOUT_FILENO);
-	    if ((dup2(fd, STDOUT_FILENO)) == -1) {
-		mwarn(errno, "%s: stdout dup2(%u) failed: ", __func__, fd);
-		exit(1);
-	    }
-	}
-    }
-
-    if (strlen(step->stdErr) > 0) {
-	needReplace = 0;
-	ptr = step->stdErr;
-	while ((next = strchr(ptr, '%'))) {
-	    if (next[1] == 't') {
-		needReplace = 1;
-		break;
-	    }
-	    ptr = next+1;
-	}
-
-	if (needReplace) {
-	    ptr = replaceStepSymbols(step, rank, step->stdErr);
-	    errFile = addCwd(step->cwd, ptr);
-
-	    if ((fd = open(errFile, flags, 0666)) == -1) {
-		mwarn(errno, "%s: open(%s) failed: ", __func__, errFile);
-		exit(1);
-	    }
-	    close(STDERR_FILENO);
-	    if ((dup2(fd, STDERR_FILENO)) == -1) {
-		mwarn(errno, "%s: stdout dup2(%u) failed: ", __func__, fd);
-		exit(1);
-	    }
-	}
-    }
-
-    if (strlen(step->stdIn) > 0) {
-	needReplace = 0;
-	ptr = step->stdIn;
-	while ((next = strchr(ptr, '%'))) {
-	    if (next[1] == 't') {
-		needReplace = 1;
-		break;
-	    }
-	    ptr = next+1;
-	}
-
-	if (needReplace) {
-	    ptr = replaceStepSymbols(step, rank, step->stdIn);
-	    inFile = addCwd(step->cwd, ptr);
-
-	    if ((fd = open(inFile, O_RDONLY)) == -1) {
-		mwarn(errno, "%s: open(%s) failed: ", __func__, inFile);
-		exit(1);
-	    }
-	    close(STDIN_FILENO);
-	    if ((dup2(fd, STDIN_FILENO)) == -1) {
-		mwarn(errno, "%s: stdout dup2(%u) failed: ", __func__, fd);
-		exit(1);
-	    }
-	}
-    }
 }
 
 int handleForwarderInit(void * data)
@@ -636,7 +291,8 @@ int handleForwarderInit(void * data)
 		    mwarn(errno, "%s: kill(%i) failed: ", __func__, child);
 		}
 		if ((ptrace(PTRACE_DETACH, child, 0, 0)) == -1) {
-		    mwarn(errno, "%s: ptrace(PTRACE_DETACH) failed: ", __func__);
+		    mwarn(errno, "%s: ptrace(PTRACE_DETACH) failed: ",
+			    __func__);
 		}
 	    }
 	}
@@ -883,108 +539,6 @@ static void execInteractiveJob(void *data, int rerun)
     execve(argv[0], argv, step->env.vars);
 }
 
-static void redirectStepIO(Forwarder_Data_t *fwdata, Step_t *step)
-{
-    char *outFile = NULL, *errFile = NULL, *inFile;
-    int flags = 0;
-
-    flags = getAppendFlags(step->appendMode);
-
-    if (setgid(step->gid) == -1) {
-	mwarn(errno, "%s: setgid(%i) failed: ", __func__, step->gid);
-    }
-
-    /* need to create pipes as user, or the permission to /dev/stdX
-     *  will be denied */
-    if (seteuid(step->uid) == -1) {
-	mwarn(errno, "%s: seteuid(%i) failed: ", __func__, step->uid);
-	return;
-    }
-
-    /* stdout */
-    if (step->stdOut && strlen(step->stdOut) > 0) {
-	outFile = addCwd(step->cwd, replaceStepSymbols(step, 0, step->stdOut));
-
-	fwdata->stdOut[0] = -1;
-	if ((fwdata->stdOut[1] = open(outFile, flags, 0666)) == -1) {
-	    mwarn(errno, "%s: open stdout '%s' failed :", __func__, outFile);
-	}
-	mlog("%s: outfile: '%s' fd '%i'\n", __func__, outFile,
-		fwdata->stdOut[1]);
-    } else {
-	if ((pipe(fwdata->stdOut)) == -1) {
-	    mlog("%s: create stdout pipe failed\n", __func__);
-	    return;
-	}
-	/*
-	mlog("%s: stdout pipe '%i:%i'\n", __func__, fwdata->stdOut[0],
-		fwdata->stdOut[1]);
-	*/
-    }
-
-    /* stderr */
-    if (step->stdErr && strlen(step->stdErr) > 0) {
-	errFile = addCwd(step->cwd, replaceStepSymbols(step, 0, step->stdErr));
-
-	fwdata->stdErr[0] = -1;
-	if (outFile && !(strcmp(outFile, errFile))) {
-	    fwdata->stdErr[1] = fwdata->stdOut[1];
-	} else {
-	    if ((fwdata->stdErr[1] = open(errFile, flags, 0666)) == -1) {
-		mwarn(errno, "%s: open stderr '%s' failed :",
-			__func__, errFile);
-	    }
-	}
-	/*
-	mlog("%s: errfile: '%s' fd '%i'\n", __func__, errFile,
-		fwdata->stdErr[1]);
-	*/
-    } else if (step->stdOut && strlen(step->stdOut) > 0) {
-	fwdata->stdErr[0] = -1;
-	fwdata->stdErr[1] = fwdata->stdOut[1];
-	mlog("%s: errfile: '%s' fd '%i'\n", __func__, outFile,
-		fwdata->stdErr[1]);
-    } else {
-	if ((pipe(fwdata->stdErr)) == -1) {
-	    mlog("%s: create stderr pipe failed\n", __func__);
-	    return;
-	}
-	/*
-	mlog("%s: stderr pipe '%i:%i'\n", __func__, fwdata->stdErr[0],
-		fwdata->stdErr[1]);
-	*/
-    }
-
-    /* stdin */
-    if (step->stdIn && strlen(step->stdIn) > 0) {
-	inFile = addCwd(step->cwd, replaceStepSymbols(step, 0, step->stdIn));
-
-	fwdata->stdIn[1] = -1;
-	if ((fwdata->stdIn[0] = open(inFile, O_RDONLY)) == -1) {
-	    mwarn(errno, "%s: open stdin '%s' failed :",
-		    __func__, inFile);
-	}
-	mlog("%s: infile: '%s' fd '%i'\n", __func__, inFile,
-		fwdata->stdIn[0]);
-    } else {
-	if ((pipe(fwdata->stdIn)) == -1) {
-	    mlog("%s: create stdin pipe failed\n", __func__);
-	    return;
-	}
-	/*
-	mlog("%s: stdin pipe '%i:%i'\n", __func__, fwdata->stdIn[0],
-		fwdata->stdIn[1]);
-	*/
-    }
-
-    if (seteuid(0) == -1) {
-	mwarn(errno, "%s: seteuid(0) failed: ", __func__);
-    };
-    if (setgid(0) == -1) {
-	mwarn(errno, "%s: setgid(0) failed: ", __func__);
-    };
-}
-
 void stepForwarderInit(void *data)
 {
     Forwarder_Data_t *fwdata = data;
@@ -1007,51 +561,6 @@ void stepForwarderInit(void *data)
     }
 }
 
-int handleUserOE(int sock, void *data)
-{
-    static char buf[1024];
-    Forwarder_Data_t *fwdata = data;
-    Step_t *step = fwdata->userData;
-    int32_t size, ret;
-    uint16_t type;
-
-    if (step->pty) {
-	type = (sock == fwdata->stdOut[1]) ? SLURM_IO_STDOUT : SLURM_IO_STDERR;
-    } else {
-	type = (sock == fwdata->stdOut[0]) ? SLURM_IO_STDOUT : SLURM_IO_STDERR;
-    }
-
-    if ((size = doRead(sock, buf, sizeof(buf) - 1)) <= 0) {
-	/*
-	mlog("%s: connection(%i) closed: %s\n", __func__, sock,
-		type == SLURM_IO_STDOUT ? "stdout" : "stderr");
-	*/
-	Selector_remove(sock);
-	close(sock);
-    }
-
-    /*
-    mlog("%s: sock '%i' forward '%s' size '%u'\n", __func__, sock,
-	    type == SLURM_IO_STDOUT ? "stdout" : "stderr", size);
-    */
-
-    /* eof to srun */
-    if (size <0) size = 0;
-    if (size >0) buf[size] = '\0';
-
-    //if (size>0) mlog("%s: '%s'", __func__, buf);
-
-    /* forward data to srun, size of 0 means EOF for stream */
-    if ((ret = srunSendIO(type, step, buf, size)) != (size + 10)) {
-	if (!step->labelIO) {
-	    mwarn(errno, "%s: sending IO failed: size:%i ret:%i error:%i ",
-		    __func__, (size +10), ret, errno);
-	}
-    }
-
-    return 0;
-}
-
 void stepForwarderLoop(void *data)
 {
     Forwarder_Data_t *fwdata = data;
@@ -1062,7 +571,6 @@ void stepForwarderLoop(void *data)
 
     if (!step->IOPort) {
 	mlog("%s: no IO Ports\n", __func__);
-	/* TODO: kill step ? */
 	return;
     }
 
@@ -1086,8 +594,9 @@ void stepForwarderLoop(void *data)
 	if (fwdata->stdErr[0] > -1) {
 	    Selector_register(fwdata->stdErr[0], handleUserOE, fwdata);
 	}
-	close(fwdata->stdOut[1]);
-	close(fwdata->stdErr[1]);
+
+	if (step->stdOutOpt == IO_SRUN) close(fwdata->stdOut[1]);
+	if (step->stdErrOpt == IO_SRUN) close(fwdata->stdErr[1]);
 	close(fwdata->stdIn[0]);
     }
 
@@ -1100,45 +609,6 @@ void stepForwarderLoop(void *data)
 	/* forward info to waiting srun */
 	sendTaskPids(step);
     }
-}
-
-#define CMD_PRINT_CHILD_MSG 100
-
-void printChildMessage(Forwarder_Data_t *fwdata, char *msg, int error)
-{
-    PS_DataBuffer_t data = { .buf = NULL };
-
-    /* can happen, if forwarder is already gone */
-    if (!fwdata) return;
-
-    addInt32ToMsg(CMD_PRINT_CHILD_MSG, &data);
-    addUint8ToMsg(error, &data);
-    addStringToMsg(msg, &data);
-
-    doWriteP(fwdata->controlSocket, data.buf, data.bufUsed);
-    ufree(data.buf);
-}
-
-static int stepForwarderMsg(void *data, char *ptr, int32_t cmd)
-{
-    Forwarder_Data_t *fwdata = data;
-    Step_t *step = fwdata->userData;
-    uint8_t error;
-    char *msg;
-
-    if (cmd == CMD_PRINT_CHILD_MSG) {
-	getUint8(&ptr, &error);
-	msg = getStringM(&ptr);
-
-	if (error && !step->pty) {
-	    srunSendIO(SLURM_IO_STDERR, step, msg, strlen(msg));
-	} else {
-	    srunSendIO(SLURM_IO_STDOUT, step, msg, strlen(msg));
-	}
-	ufree(msg);
-	return 1;
-    }
-    return 0;
 }
 
 static void handleChildStart(void *data, pid_t fw, pid_t childPid,
@@ -1170,14 +640,15 @@ int execUserStep(Step_t *step)
     fwdata->killSession = psAccountsendSignal2Session;
     fwdata->callback = stepCallback;
     fwdata->childFunc = execInteractiveJob;
-    fwdata->hookForwarderLoop = stepForwarderLoop;
-    fwdata->hookForwarderInit = stepForwarderInit;
-    fwdata->hookHandleMsg = stepForwarderMsg;
+    fwdata->hookLoop = stepForwarderLoop;
+    fwdata->hookFWInit = stepForwarderInit;
+    fwdata->hookMotherMsg = stepForwarderMsg;
     fwdata->hookChildStart = handleChildStart;
+    fwdata->hookFinalize = stepFinalize;
 
     if ((startForwarder(fwdata)) != 0) {
-	mlog("%s: starting forwarder for job '%u' failed\n", __func__,
-		step->stepid);
+	mlog("%s: starting forwarder for step '%u:%u' failed\n", __func__,
+		step->jobid, step->stepid);
 	return 0;
     }
     step->fwdata = fwdata;
@@ -1310,11 +781,69 @@ int execUserBCast(BCast_t *bcast)
     fwdata->childFunc = execBCast;
 
     if ((startForwarder(fwdata)) != 0) {
-	mlog("%s: starting forwarder for bcast '%u' failed\n", __func__,
-		bcast->jobid);
+	mlog("%s: starting forwarder for bcast '%u' failed\n",
+		__func__, bcast->jobid);
 	return 0;
     }
 
     bcast->fwdata = fwdata;
+    return 1;
+}
+
+void stepFWIOloop(void *data)
+{
+    Forwarder_Data_t *fwdata = data;
+    Step_t *step = fwdata->userData;
+    step->fwdata = fwdata;
+
+    /* user will take care of I/O handling */
+    if (step->userManagedIO) return;
+
+    if (!step->IOPort) {
+	mlog("%s: no IO Ports\n", __func__);
+	return;
+    }
+
+    if (!srunOpenIOConnection(step)) {
+	mlog("%s: srun connect failed\n", __func__);
+	return;
+    }
+
+    redirectStepIO2(fwdata, step);
+}
+
+int execStepFWIO(Step_t *step)
+{
+    Forwarder_Data_t *fwdata;
+    char jobid[100];
+    char fname[300];
+    int grace;
+
+    getConfValueI(&SlurmConfig, "KillWait", &grace);
+    mlog("%s: grace %u\n", __func__, grace);
+    if (grace < 3) grace = 30;
+
+    fwdata = getNewForwarderData();
+
+    snprintf(jobid, sizeof(jobid), "%u.%u", step->jobid, step->stepid);
+    snprintf(fname, sizeof(fname), "psslurm-step:%s", jobid);
+    fwdata->pTitle = ustrdup(fname);
+
+    fwdata->jobid = ustrdup(jobid);
+    fwdata->userData = step;
+    fwdata->graceTime = grace;
+    fwdata->killSession = psAccountsendSignal2Session;
+    fwdata->hookLoop = stepFWIOloop;
+    fwdata->hookMotherMsg = stepForwarderMsg;
+    fwdata->callback = stepFWIOcallback;
+    fwdata->hookFinalize = stepFinalize;
+
+    if ((startForwarder(fwdata)) != 0) {
+	mlog("%s: starting forwarder for step '%u:%u' failed\n",
+		__func__, step->jobid, step->stepid);
+	return 0;
+    }
+    step->fwdata = fwdata;
+
     return 1;
 }

@@ -171,11 +171,23 @@ Step_t *addStep(uint32_t jobid, uint32_t stepid)
     step->partition = NULL;
     step->username = NULL;
     step->tids = NULL;
+    step->outChannels = NULL;
+    step->errChannels = NULL;
+    step->outFDs = NULL;
+    step->errFDs = NULL;
     step->tidsLen = 0;
     step->exitCode = 0;
     step->state = JOB_INIT;
     step->x11forward = 0;
     step->loggerTID = 0;
+    step->fwInitCount = 0;
+    step->stdOutRank = -1;
+    step->stdErrRank = -1;
+    step->stdInRank = -1;
+    step->myNodeIndex = 0;
+    step->stdInOpt = IO_UNDEF;
+    step->stdOutOpt = IO_UNDEF;
+    step->stdErrOpt = IO_UNDEF;
     INIT_LIST_HEAD(&step->tasks.list);
     INIT_LIST_HEAD(&step->gres.list);
     envInit(&step->env);
@@ -191,7 +203,7 @@ Step_t *addStep(uint32_t jobid, uint32_t stepid)
 
 PS_Tasks_t *addTask(struct list_head *list, PStask_ID_t childTID,
 			PStask_ID_t forwarderTID, PStask_t *forwarder,
-			PStask_group_t childGroup)
+			PStask_group_t childGroup, uint16_t rank)
 {
     PS_Tasks_t *task;
 
@@ -200,10 +212,24 @@ PS_Tasks_t *addTask(struct list_head *list, PStask_ID_t childTID,
     task->forwarderTID = forwarderTID;
     task->forwarder = forwarder;
     task->childGroup = childGroup;
+    task->childRank = rank;
+    task->exitCode = 0;
 
     list_add_tail(&(task->list), list);
 
     return task;
+}
+
+int countTasks(struct list_head *taskList)
+{
+    struct list_head *pos;
+    int count = 0;
+
+    list_for_each(pos, taskList) {
+	if (!(list_entry(pos, PS_Tasks_t, list))) break;
+	count++;
+    }
+    return count;
 }
 
 static void deleteTask(PS_Tasks_t *task)
@@ -221,6 +247,30 @@ static void clearTasks(struct list_head *taskList)
 	if (!(task = list_entry(pos, PS_Tasks_t, list))) return;
 	deleteTask(task);
     }
+}
+
+PS_Tasks_t *findTaskByRank(struct list_head *taskList, uint16_t rank)
+{
+    list_t *pos, *tmp;
+    PS_Tasks_t *task = NULL;
+
+    list_for_each_safe(pos, tmp, taskList) {
+	if (!(task = list_entry(pos, PS_Tasks_t, list))) return NULL;
+	if (task->childRank == rank) return task;
+    }
+    return NULL;
+}
+
+PS_Tasks_t *findTaskByForwarder(struct list_head *taskList, PStask_ID_t fwTID)
+{
+    list_t *pos, *tmp;
+    PS_Tasks_t *task = NULL;
+
+    list_for_each_safe(pos, tmp, taskList) {
+	if (!(task = list_entry(pos, PS_Tasks_t, list))) return NULL;
+	if (task->forwarderTID == fwTID) return task;
+    }
+    return NULL;
 }
 
 BCast_t *addBCast(int socket)
@@ -298,8 +348,6 @@ Step_t *findStepById(uint32_t jobid, uint32_t stepid)
     struct list_head *pos;
     Step_t *step;
 
-    if (list_empty(&StepList.list)) return NULL;
-
     list_for_each(pos, &StepList.list) {
 	if (!(step = list_entry(pos, Step_t, list))) return NULL;
 	if (jobid == step->jobid && step->stepid == stepid) {
@@ -314,11 +362,21 @@ Step_t *findStepByJobid(uint32_t jobid)
     struct list_head *pos;
     Step_t *step;
 
-    if (list_empty(&StepList.list)) return NULL;
-
     list_for_each(pos, &StepList.list) {
 	if (!(step = list_entry(pos, Step_t, list))) return NULL;
 	if (jobid == step->jobid) return step;
+    }
+    return NULL;
+}
+
+Step_t *findStepByLogger(PStask_ID_t loggerTID)
+{
+    struct list_head *pos;
+    Step_t *step;
+
+    list_for_each(pos, &StepList.list) {
+	if (!(step = list_entry(pos, Step_t, list))) return NULL;
+	if (loggerTID == step->loggerTID) return step;
     }
     return NULL;
 }
@@ -510,6 +568,11 @@ int deleteStep(uint32_t jobid, uint32_t stepid)
     ufree(step->partition);
     ufree(step->username);
     ufree(step->tids);
+    ufree(step->outFDs);
+    ufree(step->errFDs);
+    ufree(step->outChannels);
+    ufree(step->errChannels);
+
     clearTasks(&step->tasks.list);
     clearGresCred(&step->gres);
 
@@ -680,16 +743,30 @@ int signalStep(Step_t *step, int signal)
     return ret;
 }
 
+void shutdownStepForwarder(uint32_t jobid)
+{
+    list_t *pos, *tmp;
+    Step_t *step;
+
+    list_for_each_safe(pos, tmp, &StepList.list) {
+	if (!(step = list_entry(pos, Step_t, list))) break;
+
+	if (step->jobid == jobid) {
+	    if (step->fwdata) {
+		shutdownForwarder(step->fwdata);
+	    }
+	}
+    }
+}
+
 int signalStepsByJobid(uint32_t jobid, int signal)
 {
     list_t *pos, *tmp;
     Step_t *step;
     int count = 0;
 
-    if (list_empty(&StepList.list)) return count;
-
     list_for_each_safe(pos, tmp, &StepList.list) {
-	if (!(step = list_entry(pos, Step_t, list))) return count;
+	if (!(step = list_entry(pos, Step_t, list))) break;
 
 	if (step->jobid == jobid) {
 	    count += signalStep(step, signal);

@@ -20,9 +20,9 @@
 
 #include "psprotocol.h"
 #include "pslog.h"
-#include "psslurmcomm.h"
-
 #include "psslurmjob.h"
+
+#include "psslurmcomm.h"
 
 int handleCreatePart(void *msg);
 
@@ -52,5 +52,7 @@ void forwardSlurmMsg(Slurm_Msg_t *sMsg, Connection_Forward_t *fw);
 void send_PS_ForwardRes(Slurm_Msg_t *msg, PS_DataBuffer_t *body);
 
 void handleCCMsg(PSLog_Msg_t *msg);
+
+void handleCCError(PSLog_Msg_t *msg);
 
 #endif

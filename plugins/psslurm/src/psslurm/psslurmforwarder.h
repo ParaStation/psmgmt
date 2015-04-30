@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014 - 2015 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -20,13 +20,14 @@
 
 #include "psslurmjob.h"
 
+#define CMD_PRINT_CHILD_MSG 100
+#define CMD_ENABLE_SRUN_IO  101
+#define CMD_FW_FINALIZE	    102
+
 int execUserStep(Step_t *step);
 int execUserJob(Job_t *job);
 int execUserBCast(BCast_t *bcast);
-char *replaceSymbols(uint32_t jobid, uint32_t stepid, char *hostname,
-			int nodeid, char *username, uint32_t arrayJobId,
-			uint32_t arrayTaskId, int rank, char *path);
-void printChildMessage(Forwarder_Data_t *fwdata, char *msg, int error);
+int execStepFWIO(Step_t *step);
 int handleExecClient(void * data);
 int handleForwarderInit(void * data);
 

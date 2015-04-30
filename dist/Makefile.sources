@@ -448,6 +448,8 @@ plugins/psslurm/src/psslurm/psslurmforwarder.h \
 plugins/psslurm/src/psslurm/psslurmgres.c \
 plugins/psslurm/src/psslurm/psslurmgres.h \
 plugins/psslurm/src/psslurm/psslurm.h \
+plugins/psslurm/src/psslurm/psslurmio.c \
+plugins/psslurm/src/psslurm/psslurmio.h \
 plugins/psslurm/src/psslurm/psslurmjob.c \
 plugins/psslurm/src/psslurm/psslurmjob.h \
 plugins/psslurm/src/psslurm/psslurmjobinfo.c \

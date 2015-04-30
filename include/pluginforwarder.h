@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014 - 2015 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -18,6 +18,8 @@
 #ifndef __PLUGIN_LIB_FORWARDER
 #define __PLUGIN_LIB_FORWARDER
 
+#include "plugincomm.h"
+
 typedef enum {
     CMD_LOCAL_HELLO = 0,
     CMD_LOCAL_SIGNAL,
@@ -30,7 +32,9 @@ typedef enum {
     CMD_LOCAL_PAM_SSH_REPLY,
     CMD_LOCAL_REQUEST_ACCOUNT,
     CMD_LOCAL_FORK_FAILED,
-    CMD_LOCAL_SIGNAL_CHILD
+    CMD_LOCAL_SIGNAL_CHILD,
+    CMD_LOCAL_FORWARD_MSG,
+    CMD_LOCAL_SHUTDOWN
 } LocalCommandType_t;
 
 typedef struct {
@@ -58,10 +62,12 @@ typedef struct {
     int (*killSession)(pid_t, int);
     int (*callback)(int32_t, char *, size_t, void *);
     void (*childFunc)(void *, int);
-    void (*hookForwarderInit)(void *);
-    void (*hookForwarderLoop)(void *);
+    void (*hookFWInit)(void *);
+    void (*hookLoop)(void *);
+    void (*hookFinalize)(void *);
     int (*hookHandleSignal)(void *);
-    int (*hookHandleMsg)(void *, char *, int32_t cmd);
+    int (*hookMotherMsg)(void *, char *, int32_t cmd);
+    int (*hookForwarderMsg)(void *, char *, int32_t cmd);
     void (*hookChildStart)(void *, pid_t, pid_t, pid_t);
 } Forwarder_Data_t;
 
@@ -70,5 +76,8 @@ void destroyForwarderData(Forwarder_Data_t *data);
 
 int startForwarder(Forwarder_Data_t *data);
 int signalForwarderChild(Forwarder_Data_t *data, int signal);
+void sendFWMsg(int fd, PS_DataBuffer_t *data);
+void forwardMsgtoMother(DDMsg_t *msg);
+void shutdownForwarder(Forwarder_Data_t *data);
 
 #endif

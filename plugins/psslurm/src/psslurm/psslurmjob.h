@@ -38,6 +38,8 @@ typedef struct {
     PStask_ID_t forwarderTID;
     PStask_t *forwarder;
     PStask_group_t childGroup;
+    uint16_t childRank;
+    int exitCode;
     struct list_head list;
 } PS_Tasks_t;
 
@@ -80,6 +82,15 @@ typedef enum {
     JOB_COMPLETE,
 } JobState_t;
 
+typedef enum {
+    IO_UNDEF = 0x05,
+    IO_SRUN,
+    IO_SRUN_RANK,
+    IO_GLOBAL_FILE,
+    IO_RANK_FILE,
+    IO_NODE_FILE,
+} IO_Opt_t;
+
 typedef struct {
     unsigned long cpu;
     unsigned long fsize;
@@ -117,28 +128,29 @@ typedef struct {
 typedef struct {
     uint32_t jobid;
     uint32_t stepid;
-    uint32_t np;	    /* number of processes */
-    uint16_t tpp;	    /* cpus per tasks = threads per process (PSI_TPP) */
-    char *username;	    /* username of step owner */
-    uid_t uid;		    /* user id of the step owner */
-    gid_t gid;		    /* group of the step owner */
-    char *partition;
-    JobCred_t *cred;	    /* job/step creditials */
-    Gres_Cred_t gres;
-    PSnodes_ID_t *nodes;    /* all participating nodes in the job */
+    uint32_t np;		/* number of processes */
+    uint16_t tpp;		/* cpus per tasks = threads per process (PSI_TPP) */
+    char *username;		/* username of step owner */
+    uid_t uid;			/* user id of the step owner */
+    gid_t gid;			/* group of the step owner */
+    char *partition;		/* name of the slurm partition */
+    JobCred_t *cred;		/* job/step creditials */
+    Gres_Cred_t gres;		/* gres informations */
+    PSnodes_ID_t *nodes;	/* all participating nodes in the step */
     uint32_t nrOfNodes;
-    char * slurmNodes;	    /* slurm compressed hostlist */
+    char *slurmNodes;		/* slurm compressed hostlist */
+    uint32_t myNodeIndex;
     uint32_t jobMemLimit;
     uint32_t stepMemLimit;
     uint16_t taskDist;
     uint16_t nodeCpus;
     uint16_t jobCoreSpec;	/* count of specialized cores */
     uint16_t *tasksToLaunch;	/* number of tasks to launch (per node) */
-    uint32_t **globalTaskIds;	/* job global slurm task ids (per node) */
-    uint32_t *globalTaskIdsLen;
+    uint32_t **globalTaskIds;	/* step global slurm task ids (per node) */
+    uint32_t *globalTaskIdsLen; /* len of step global slurm task ids */
     uint32_t tidsLen;
     PStask_ID_t *tids;
-    PStask_ID_t loggerTID;
+    PStask_ID_t loggerTID;	/* task id of the psilogger */
     uint16_t numSrunPorts;	/* number of srun control ports */
     uint16_t *srunPorts;	/* srun control ports */
     struct sockaddr_in srun;	/* srun tcp/ip addr, port is invalid */
@@ -161,13 +173,23 @@ typedef struct {
     char *taskProlog;
     char *taskEpilog;
     char *cwd;
+    int stdInOpt;
+    int stdOutOpt;
+    int stdErrOpt;
     char *stdOut;
     char *stdIn;
     char *stdErr;
-    Slurm_Msg_t srunIOMsg;	    /* socket connect to srun to exchange I/O data */
+    int32_t stdOutRank;
+    int32_t stdErrRank;
+    int32_t stdInRank;
+    int32_t *outChannels;
+    int32_t *errChannels;
+    int32_t *outFDs;
+    int32_t *errFDs;
+    Slurm_Msg_t srunIOMsg;	/* socket connect to srun to exchange I/O data */
     Slurm_Msg_t srunControlMsg;
     Slurm_Msg_t srunPTYMsg;
-    uint8_t appendMode;	    /* stdout/stderr will truncate(=0) / append(=1) */
+    uint8_t appendMode;		/* stdout/stderr will truncate(=0) / append(=1) */
     uint8_t pty;
     uint16_t userManagedIO;
     uint8_t bufferedIO;
@@ -179,9 +201,10 @@ typedef struct {
     char *checkpoint;
     char *restart;
     uint8_t x11forward;
+    uint32_t fwInitCount;
     Forwarder_Data_t *fwdata;
     PS_Tasks_t tasks;
-    struct list_head list;  /* the step list header */
+    struct list_head list;	/* the step list header */
 } Step_t;
 
 typedef struct {
@@ -304,21 +327,23 @@ char *strJobState(JobState_t state);
 void clearJobList();
 
 int countJobs();
-int countSteps();
 
 void addJobInfosToBuffer(PS_DataBuffer_t *buffer);
 int signalJob(Job_t *job, int signal, char *reason);
 int signalJobs(int signal, char *reason);
-int signalStepsByJobid(uint32_t jobid, int signal);
-int signalStep(Step_t *step, int signal);
 
+Step_t *addStep(uint32_t jobid, uint32_t stepid);
+int deleteStep(uint32_t jobid, uint32_t stepid);
+void clearStepList(uint32_t jobid);
+Step_t *findStepByJobid(uint32_t jobid);
+Step_t *findStepByLogger(PStask_ID_t loggerTID);
 Step_t *findStepById(uint32_t jobid, uint32_t stepid);
 Step_t *findStepByPid(pid_t pid);
 Step_t *findStepByTaskPid(pid_t pid);
-int deleteStep(uint32_t jobid, uint32_t stepid);
-void clearStepList(uint32_t jobid);
-Step_t *addStep(uint32_t jobid, uint32_t stepid);
-Step_t *findStepByJobid(uint32_t jobid);
+int countSteps();
+int signalStepsByJobid(uint32_t jobid, int signal);
+int signalStep(Step_t *step, int signal);
+
 int haveRunningSteps(uint32_t jobid);
 
 Alloc_t *addAllocation(uint32_t jobid, uint32_t nrOfNodes, char *slurmNodes,
@@ -330,13 +355,17 @@ void clearAllocList();
 
 PS_Tasks_t *addTask(struct list_head *list, PStask_ID_t childTID,
 			PStask_ID_t forwarderTID, PStask_t *forwarder,
-			PStask_group_t childGroup);
+			PStask_group_t childGroup, uint16_t rank);
 void signalTasks(uid_t uid, PS_Tasks_t *tasks, int signal, int32_t group);
+PS_Tasks_t *findTaskByRank(struct list_head *taskList, uint16_t rank);
+PS_Tasks_t *findTaskByForwarder(struct list_head *taskList, PStask_ID_t fwTID);
+int countTasks(struct list_head *taskList);
 
 BCast_t *addBCast(int socket);
 BCast_t *findBCast(uint32_t jobid, char *fileName, uint32_t blockNum);
 void deleteBCast(BCast_t *bcast);
 void clearBCastByJobid(uint32_t jobid);
 void clearBCasts();
+void shutdownStepForwarder(uint32_t jobid);
 
 #endif

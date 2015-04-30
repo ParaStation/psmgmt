@@ -71,6 +71,8 @@ uid_t slurmUserID = 495;
 time_t start_time;
 
 handlerFunc_t oldChildBornHandler = NULL;
+handlerFunc_t oldCCMsgHandler = NULL;
+handlerFunc_t oldCCErrorHandler = NULL;
 
 /** psid plugin requirements */
 char name[] = "psslurm";
@@ -111,8 +113,17 @@ static void unregisterHooks(int verbose)
     /* unregister psslurm msg */
     PSID_clearMsg(PSP_CC_PLUG_PSSLURM);
 
+    /* unregister various messages */
     if (oldChildBornHandler) {
 	PSID_registerMsg(PSP_DD_CHILDBORN, (handlerFunc_t) oldChildBornHandler);
+    }
+
+    if (oldCCMsgHandler) {
+	PSID_registerMsg(PSP_CC_MSG, (handlerFunc_t) oldCCMsgHandler);
+    }
+
+    if (oldCCErrorHandler) {
+	PSID_registerMsg(PSP_CC_ERROR, (handlerFunc_t) oldCCErrorHandler);
     }
 
     /* unregister msg drop handler */
@@ -145,8 +156,13 @@ static int registerHooks()
     /* register psslurm msg */
     PSID_registerMsg(PSP_CC_PLUG_PSSLURM, (handlerFunc_t) handlePsslurmMsg);
 
+    /* register various messages */
     oldChildBornHandler = PSID_registerMsg(PSP_DD_CHILDBORN,
 					    (handlerFunc_t) handleChildBornMsg);
+
+    oldCCMsgHandler = PSID_registerMsg(PSP_CC_MSG, (handlerFunc_t) handleCCMsg);
+    oldCCErrorHandler = PSID_registerMsg(PSP_CC_ERROR,
+					    (handlerFunc_t) handleCCError);
 
     /* register handler for dropped msgs */
     PSID_registerDropper(PSP_CC_PLUG_PSSLURM, (handlerFunc_t) handleDroppedMsg);
@@ -180,7 +196,7 @@ static int registerHooks()
     return 1;
 }
 
-static int initPluginHandles()
+static int regPsAccountHandles()
 {
     void *pluginHandle = NULL;
 
@@ -243,6 +259,12 @@ static int initPluginHandles()
 		__func__);
         return 0;
     }
+    return 1;
+}
+
+static int regPElogueHandles()
+{
+    void *pluginHandle = NULL;
 
     /* get pelogue function handles */
     if (!(pluginHandle = PSIDplugin_getHandle("pelogue"))) {
@@ -276,6 +298,18 @@ static int initPluginHandles()
 	mlog("%s: loading function psPelogueSignalPE() failed\n", __func__);
 	return 0;
     }
+    return 1;
+}
+
+static int initPluginHandles()
+{
+    void *pluginHandle = NULL;
+
+    /* get psaccount function handles */
+    if (!regPsAccountHandles()) return 0;
+
+    /* get pelogue function handles */
+    if (!regPElogueHandles()) return 0;
 
     /* get psmunge function handles */
     if (!(pluginHandle = PSIDplugin_getHandle("psmunge"))) {

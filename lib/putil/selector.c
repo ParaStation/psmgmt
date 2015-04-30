@@ -348,6 +348,7 @@ int Sselect(int n, fd_set  *readfds,  fd_set  *writefds, fd_set *exceptfds,
 
 	list_for_each(s, &selectorList) {
 	    Selector_t *selector = list_entry(s, Selector_t, next);
+	    if (selector->deleted) FD_CLR(selector->fd, &rfds);
 	    if (selector->deleted || selector->disabled) continue;
 	    if (FD_ISSET(selector->fd, &rfds) && selector->selectHandler) {
 		/* Got message on handled fd */

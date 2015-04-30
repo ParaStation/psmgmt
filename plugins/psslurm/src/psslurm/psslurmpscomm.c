@@ -45,6 +45,7 @@
 #include "psslurmconfig.h"
 #include "psslurmjob.h"
 #include "psslurmpin.h"
+#include "psslurmio.h"
 #include "psslurm.h"
 
 #include "psslurmpscomm.h"
@@ -812,6 +813,9 @@ static void handle_PS_SignalTasks(DDTypedBufferMsg_t *msg)
       return;
     }
 
+    /* shutdown io */
+    if (step->fwdata) shutdownForwarder(step->fwdata);
+
     /* signal tasks */
     mlog("%s: id '%u:%u'\n", __func__, jobid, stepid);
     signalTasks(step->uid, &step->tasks, signal, group);
@@ -1155,10 +1159,178 @@ void handleDroppedMsg(DDTypedBufferMsg_t *msg)
     }
 }
 
+static void handleCC_IO_Msg(PSLog_Msg_t *msg)
+{
+    Step_t *step = NULL;
+
+    if (!(step = findStepByLogger(msg->header.dest))) {
+	mlog("%s: step for I/O msg logger '%s' not found\n", __func__,
+		PSC_printTID(msg->header.dest));
+
+	if (oldCCMsgHandler) oldCCMsgHandler((DDBufferMsg_t *) msg);
+	return;
+    }
+
+    /*
+    mdbg(PSSLURM_LOG_IO, "%s: sender '%s' msgLen '%i' type '%i' taskid '%i'\n",
+	    __func__, PSC_printTID(msg->header.sender),
+	    msg->header.len - PSLog_headerSize, msg->type, msg->sender);
+
+    char format[64];
+    snprintf(format, sizeof(format), "%s: msg %%.%is\n",
+		__func__, msg->header.len - PSLog_headerSize);
+    mdbg(PSSLURM_LOG_IO, format, msg->buf);
+    */
+
+    /* filter stdout messages */
+    if (msg->type == STDOUT && step->stdOutRank > -1 &&
+	msg->sender != step->stdOutRank) return;
+
+    /* filter stderr messages */
+    if (msg->type == STDERR && step->stdErrRank > -1 &&
+	msg->sender != step->stdErrRank) return;
+
+    /* forward stdout for single file on mother superior */
+    if (msg->type == STDOUT && step->stdOutOpt == IO_GLOBAL_FILE) {
+	if (oldCCMsgHandler) oldCCMsgHandler((DDBufferMsg_t *) msg);
+	return;
+    }
+
+    /* forward stdout for single file on mother superior */
+    if (msg->type == STDERR && step->stdErrOpt == IO_GLOBAL_FILE) {
+	if (oldCCMsgHandler) oldCCMsgHandler((DDBufferMsg_t *) msg);
+	return;
+    }
+
+    printChildMessage(step->fwdata, msg->buf,
+			msg->header.len - PSLog_headerSize, msg->type,
+			msg->sender);
+}
+
+static void handleCC_INIT_Msg(PSLog_Msg_t *msg)
+{
+    Step_t *step = NULL;
+
+    if (msg->sender == -1) {
+	if ((step = findStepByLogger(msg->header.sender))) {
+
+	    if (findTaskByForwarder(&step->tasks.list, msg->header.dest)) {
+		step->fwInitCount++;
+
+		if (step->tasksToLaunch[getStepLocalNodeID(step)] ==
+			step->fwInitCount) {
+
+		    mdbg(PSSLURM_LOG_IO, "%s: enable srunIO!!!\n", __func__);
+		    sendEnableSrunIO(step);
+		}
+	    }
+	}
+    }
+}
+
+static void closeClientIO(PSLog_Msg_t *msg)
+{
+    Step_t *step = NULL;
+
+    if (PSC_getMyID() != PSC_getID(msg->header.sender)) return;
+    if (msg->sender < 0) return;
+
+    if (!(step = findStepByLogger(msg->header.dest))) {
+	mlog("%s: step for CC msg with logger '%s' not found\n", __func__,
+		PSC_printTID(msg->header.dest));
+
+	return;
+    }
+
+    if (step->pty) return;
+
+    printChildMessage(step->fwdata, NULL, 0, STDOUT, msg->sender);
+    printChildMessage(step->fwdata, NULL, 0, STDERR, msg->sender);
+}
+
+static void handleCC_STDIN_Msg(PSLog_Msg_t *msg)
+{
+    int count;
+
+    /* don't let the logger close stdins of the forwarders */
+    count = msg->header.len - PSLog_headerSize;
+    if (!count) return;
+
+    mdbg(PSSLURM_LOG_IO, "%s: sender: %d dest '%s' count:%u\n",
+	    __func__, msg->sender, PSC_printTID(msg->header.dest),
+	    count);
+
+    if (oldCCMsgHandler) oldCCMsgHandler((DDBufferMsg_t *) msg);
+}
+
+static void handleCC_Finalize_Msg(PSLog_Msg_t *msg)
+{
+    Step_t *step = NULL;
+    PS_Tasks_t *task;
+
+    if (PSC_getMyID() != PSC_getID(msg->header.sender) ||
+	(msg->sender < 0)) {
+	goto FORWARD;
+    }
+
+    if (!(step = findStepByLogger(msg->header.dest))) {
+	mlog("%s: step for CC msg with logger '%s' not found\n", __func__,
+		PSC_printTID(msg->header.dest));
+	goto FORWARD;
+    }
+
+    /* save exit code */
+    if (!(task = findTaskByForwarder(&step->tasks.list, msg->header.sender))) {
+	mlog("%s: task for forwarder '%s' not found\n", __func__,
+		PSC_printTID(msg->header.sender));
+	goto FORWARD;
+    }
+    task->exitCode = *(int *) msg->buf;
+
+    if (!step->pty) {
+	/* step forwarder should close I/O */
+	sendFinMessage(step->fwdata, msg);
+	return;
+    }
+
+FORWARD:
+    if (oldCCMsgHandler) oldCCMsgHandler((DDBufferMsg_t *) msg);
+}
+
+void handleCCMsg(PSLog_Msg_t *msg)
+{
+    switch (msg->type) {
+	case STDOUT:
+	case STDERR:
+	    handleCC_IO_Msg(msg);
+	    return;
+	case INITIALIZE:
+	    handleCC_INIT_Msg(msg);
+	    break;
+	case STDIN:
+	    handleCC_STDIN_Msg(msg);
+	    return;
+	case FINALIZE:
+	    handleCC_Finalize_Msg(msg);
+	    return;
+	default:
+	    /* let original handler take care of the msg */
+	    break;
+    }
+
+    if (oldCCMsgHandler) oldCCMsgHandler((DDBufferMsg_t *) msg);
+}
+
+void handleCCError(PSLog_Msg_t *msg)
+{
+    closeClientIO(msg);
+    if (oldCCErrorHandler) oldCCErrorHandler((DDBufferMsg_t *) msg);
+}
+
 void handleChildBornMsg(DDErrorMsg_t *msg)
 {
     PStask_t *forwarder = PStasklist_find(&managedTasks, msg->header.sender);
-    char *ptr, *sjobid = NULL, *sstepid = NULL;
+    char *ptr, *sjobid = NULL, *sstepid = NULL, *srank = NULL;
     int i=0;
     uint32_t jobid, stepid;
     Job_t *job;
@@ -1180,11 +1352,14 @@ void handleChildBornMsg(DDErrorMsg_t *msg)
 	if (!(strncmp(ptr, "SLURM_STEPID=", 13))) {
 	    sstepid = ptr+13;
 	}
-	if (sjobid && sstepid) break;
+	if (!(strncmp(ptr, "SLURM_PROCID=", 13))) {
+	    srank = ptr+13;
+	}
+	if (sjobid && sstepid && srank) break;
 	ptr = forwarder->environ[++i];
     }
 
-    if (!sjobid || !sstepid) goto FORWARD_CHILD_BORN;
+    if (!sjobid || !sstepid || !srank) goto FORWARD_CHILD_BORN;
 
     jobid = atoi(sjobid);
     stepid = atoi(sstepid);
@@ -1195,14 +1370,15 @@ void handleChildBornMsg(DDErrorMsg_t *msg)
 	    goto FORWARD_CHILD_BORN;
 	}
 	addTask(&job->tasks.list, msg->request, forwarder->tid,
-		    forwarder, forwarder->childGroup);
+		    forwarder, forwarder->childGroup, atoi(srank));
     } else {
 	if (!(step = findStepById(jobid, stepid))) {
 	    mlog("%s: step '%u:%u' not found\n", __func__, jobid, stepid);
 	    goto FORWARD_CHILD_BORN;
 	}
 	addTask(&step->tasks.list, msg->request, forwarder->tid,
-		    forwarder, forwarder->childGroup);
+		    forwarder, forwarder->childGroup, atoi(srank));
+
 	if (!step->loggerTID) step->loggerTID = forwarder->loggertid;
     }
 

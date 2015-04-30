@@ -31,6 +31,7 @@
 #include "psslurmcomm.h"
 #include "psslurmauth.h"
 #include "psslurmconfig.h"
+#include "psslurmio.h"
 #include "psslurmforwarder.h"
 #include "psslurmpscomm.h"
 #include "psslurmenv.h"
@@ -145,7 +146,6 @@ static void cbPElogueJob(char *jobid, int exit_status, int timeout)
 	}
 
 	if (job->terminate) {
-	    /* delete Job */
 	    deleteJob(job->jobid);
 	}
     } else {
@@ -208,6 +208,29 @@ static void sendPing(Slurm_Msg_t *sMsg)
     ufree(msg.buf);
 }
 
+uint32_t getLocalRankID(uint32_t rank, Step_t *step, uint32_t nodeId)
+{
+    uint32_t i;
+
+    for (i=0; i<step->globalTaskIdsLen[nodeId]; i++) {
+	if (step->globalTaskIds[nodeId][i] == rank) return i;
+    }
+    return -1;
+}
+
+uint32_t getMyNodeIndex(PSnodes_ID_t *nodes, uint32_t nrOfNodes)
+{
+    uint32_t i;
+    PSnodes_ID_t myNodeId;
+
+    myNodeId = PSC_getMyID();
+
+    for (i=0; i<nrOfNodes; i++) {
+	if (nodes[i] == myNodeId) return i;
+    }
+    return -1;
+}
+
 void getNodesFromSlurmHL(char *slurmNodes, uint32_t *nrOfNodes,
 			    PSnodes_ID_t **nodes)
 {
@@ -266,13 +289,162 @@ int writeJobscript(Job_t *job, char *script)
     return 0;
 }
 
+static int needIOReplace(char *ioString, char symbol)
+{
+    char *ptr = ioString, *next;
+    int needReplace = 0, index = 1;
+
+    while ((next = strchr(ptr, '%'))) {
+	while (next[index] >= 48 && next[index] <=57) index++;
+
+	if (next[index] == symbol) {
+	    needReplace = 1;
+	    break;
+	}
+	ptr = next+index;
+    }
+    return needReplace;
+}
+
+static void setIOoptions(char *ioString, int *Opt, int32_t *rank)
+{
+    if (ioString && strlen(ioString) > 0) {
+	if ((sscanf(ioString, "%u", rank)) == 1) {
+	    *Opt = IO_SRUN_RANK;
+	} else if (needIOReplace(ioString, 't')) {
+	    *Opt = IO_RANK_FILE;
+	} else if (needIOReplace(ioString, 'n') ||
+		needIOReplace(ioString, 'N')) {
+	    *Opt = IO_NODE_FILE;
+	} else {
+	    *Opt = IO_GLOBAL_FILE;
+	}
+    } else {
+	*Opt = IO_SRUN;
+    }
+}
+
+static void readStepIOoptions(Step_t *step, char **ptr)
+{
+    uint32_t i;
+
+    getUint16(ptr, &step->userManagedIO);
+    if (!step->userManagedIO) {
+
+	/* parse stdout options */
+	step->stdOut = getStringM(ptr);
+	setIOoptions(step->stdOut, &step->stdOutOpt, &step->stdOutRank);
+	mlog("%s: stdOut '%s' stdOutRank '%i' stdOutOpt '%i'\n", __func__,
+		step->stdOut, step->stdOutRank, step->stdOutOpt);
+
+	/* parse stderr options */
+	step->stdErr = getStringM(ptr);
+	setIOoptions(step->stdErr, &step->stdErrOpt, &step->stdErrRank);
+	mlog("%s: stdErr '%s' stdErrRank '%i' stdErrOpt '%i'\n", __func__,
+		step->stdErr, step->stdErrRank, step->stdErrOpt);
+
+	/* parse stdin options */
+	step->stdIn = getStringM(ptr);
+	setIOoptions(step->stdIn, &step->stdInOpt, &step->stdInRank);
+	mlog("%s: stdIn '%s' stdInRank '%i' stdInOpt '%i'\n", __func__,
+		step->stdIn, step->stdInRank, step->stdInOpt);
+
+	/* buffered I/O = default (unbufferd = RAW) */
+	getUint8(ptr, &step->bufferedIO);
+
+	/* label I/O = sourceprintf */
+	getUint8(ptr, &step->labelIO);
+
+	/* I/O Ports */
+	getUint16(ptr, &step->numIOPort);
+	if (step->numIOPort >0) {
+	    step->IOPort = umalloc(sizeof(uint16_t) * step->numIOPort);
+	    for (i=0; i<step->numIOPort; i++) {
+		getUint16(ptr, &step->IOPort[i]);
+	    }
+	}
+    }
+}
+
+static void readStepTaskIds(Step_t *step, char **ptr)
+{
+    uint32_t i, x;
+
+    step->tasksToLaunch = umalloc(step->nrOfNodes * sizeof(uint16_t));
+    step->globalTaskIds = umalloc(step->nrOfNodes * sizeof(uint32_t *));
+    step->globalTaskIdsLen = umalloc(step->nrOfNodes * sizeof(uint32_t));
+
+    for (i=0; i<step->nrOfNodes; i++) {
+
+	/* num of tasks per node */
+	getUint16(ptr, &step->tasksToLaunch[i]);
+
+	/* job global task ids per node */
+	getUint32Array(ptr, &(step->globalTaskIds)[i],
+			    &(step->globalTaskIdsLen)[i]);
+	mdbg(PSSLURM_LOG_PART, "%s: node '%u' tasksToLaunch '%u' "
+		"globalTaskIds: ", __func__, i, step->tasksToLaunch[i]);
+
+	for (x=0; x<step->globalTaskIdsLen[i]; x++) {
+	    mdbg(PSSLURM_LOG_PART, "%u,", step->globalTaskIds[i][x]);
+	}
+	mdbg(PSSLURM_LOG_PART, "\n");
+    }
+}
+
+static void readStepEnv(Step_t *step, char **ptr)
+{
+    uint32_t i;
+
+    /* env */
+    getStringArrayM(ptr, &step->env.vars, &step->env.cnt);
+    step->env.size = step->env.cnt;
+    for (i=0; i<step->env.cnt; i++) {
+	mdbg(PSSLURM_LOG_ENV, "%s: env%i: '%s'\n", __func__, i,
+		step->env.vars[i]);
+    }
+    /* spank env */
+    getStringArrayM(ptr, &step->spankenv.vars, &step->spankenv.cnt);
+    step->spankenv.size = step->spankenv.cnt;
+    for (i=0; i<step->spankenv.cnt; i++) {
+	if (!(strncmp("_SLURM_SPANK_OPTION_x11spank_forward_x",
+		step->spankenv.vars[i], 38))) {
+	    step->x11forward = 1;
+	}
+	mdbg(PSSLURM_LOG_ENV, "%s: spankenv%i: '%s'\n", __func__, i,
+		step->spankenv.vars[i]);
+    }
+}
+
+static void readStepAddr(Step_t *step, char **ptr, uint32_t msgAddr,
+			    uint16_t msgPort)
+{
+    uint32_t i, addr;
+    uint16_t port;
+
+    /* srun ports */
+    getUint16(ptr, &step->numSrunPorts);
+    if (step->numSrunPorts >0) {
+	step->srunPorts = umalloc(step->numSrunPorts * sizeof(uint16_t));
+	for (i=0; i<step->numSrunPorts; i++) {
+	    getUint16(ptr, &step->srunPorts[i]);
+	}
+    }
+
+    /* srun addr is always empty, use msg header addr instead */
+    getUint32(ptr, &addr);
+    getUint16(ptr, &port);
+    step->srun.sin_addr.s_addr = msgAddr;
+    step->srun.sin_port = msgPort;
+}
+
 static void handleLaunchTasks(Slurm_Msg_t *sMsg)
 {
     Alloc_t *alloc = NULL;
     Job_t *job;
     Step_t *step;
-    uint32_t jobid, stepid, i, tmp, count, addr;
-    uint16_t port, debug;
+    uint32_t jobid, stepid, i, tmp, count;
+    uint16_t debug;
     char jobOpt[512], *acctType;
     char **ptr = &sMsg->ptr;
 
@@ -309,61 +481,13 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
     step->cred = getJobCred(&step->gres, ptr, version);
 
     /* tasks to launch / global task ids */
-    step->tasksToLaunch = umalloc(step->nrOfNodes * sizeof(uint16_t));
-    step->globalTaskIds = umalloc(step->nrOfNodes * sizeof(uint32_t *));
-    step->globalTaskIdsLen = umalloc(step->nrOfNodes * sizeof(uint32_t));
+    readStepTaskIds(step, ptr);
 
-    for (i=0; i<step->nrOfNodes; i++) {
-	uint32_t x;
+    /* srun ports/addr */
+    readStepAddr(step, ptr, sMsg->head.addr, sMsg->head.port);
 
-	/* num of tasks per node */
-	getUint16(ptr, &step->tasksToLaunch[i]);
-
-	/* job global task ids per node */
-	getUint32Array(ptr, &(step->globalTaskIds)[i],
-			    &(step->globalTaskIdsLen)[i]);
-	mdbg(PSSLURM_LOG_PART, "%s: node '%u' tasksToLaunch '%u' "
-		"globalTaskIds: ", __func__, i, step->tasksToLaunch[i]);
-
-	for (x=0; x<step->globalTaskIdsLen[i]; x++) {
-	    mdbg(PSSLURM_LOG_PART, "%u,", step->globalTaskIds[i][x]);
-	}
-	mdbg(PSSLURM_LOG_PART, "\n");
-    }
-
-    /* srun ports */
-    getUint16(ptr, &step->numSrunPorts);
-    if (step->numSrunPorts >0) {
-	step->srunPorts = umalloc(step->numSrunPorts * sizeof(uint16_t));
-	for (i=0; i<step->numSrunPorts; i++) {
-	    getUint16(ptr, &step->srunPorts[i]);
-	}
-    }
-
-    /* srun addr is always empty, use msg header addr instead */
-    getUint32(ptr, &addr);
-    getUint16(ptr, &port);
-    step->srun.sin_addr.s_addr = sMsg->head.addr;
-    step->srun.sin_port = sMsg->head.port;
-
-    /* env */
-    getStringArrayM(ptr, &step->env.vars, &step->env.cnt);
-    step->env.size = step->env.cnt;
-    for (i=0; i<step->env.cnt; i++) {
-	mdbg(PSSLURM_LOG_ENV, "%s: env%i: '%s'\n", __func__, i,
-		step->env.vars[i]);
-    }
-    /* spank env */
-    getStringArrayM(ptr, &step->spankenv.vars, &step->spankenv.cnt);
-    step->spankenv.size = step->spankenv.cnt;
-    for (i=0; i<step->spankenv.cnt; i++) {
-	if (!(strncmp("_SLURM_SPANK_OPTION_x11spank_forward_x",
-		step->spankenv.vars[i], 38))) {
-	    step->x11forward = 1;
-	}
-	mdbg(PSSLURM_LOG_ENV, "%s: spankenv%i: '%s'\n", __func__, i,
-		step->spankenv.vars[i]);
-    }
+    /* env/spank env */
+    readStepEnv(step, ptr);
 
     /* cwd */
     step->cwd = getStringM(ptr);
@@ -387,32 +511,8 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
     /* multi prog */
     getUint16(ptr, &step->multiProg);
 
-    /* I/O */
-    getUint16(ptr, &step->userManagedIO);
-    if (!step->userManagedIO) {
-	step->stdOut = getStringM(ptr);
-	step->stdErr = getStringM(ptr);
-	step->stdIn = getStringM(ptr);
-
-	/*
-	mlog("%s: stdout '%s'\n", __func__, step->stdOut);
-	mlog("%s: stderr '%s'\n", __func__, step->stdErr);
-	mlog("%s: stdin '%s'\n", __func__, step->stdIn);
-	*/
-
-	/* buffered I/O = default (unbufferd = RAW) */
-	getUint8(ptr, &step->bufferedIO);
-	/* label I/O = sourceprintf */
-	getUint8(ptr, &step->labelIO);
-	/* I/O Ports */
-	getUint16(ptr, &step->numIOPort);
-	if (step->numIOPort >0) {
-	    step->IOPort = umalloc(sizeof(uint16_t) * step->numIOPort);
-	    for (i=0; i<step->numIOPort; i++) {
-		getUint16(ptr, &step->IOPort[i]);
-	    }
-	}
-    }
+    /* I/O options */
+    readStepIOoptions(step, ptr);
 
     /* profile */
     getUint32(ptr, &step->profile);
@@ -451,6 +551,7 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
 		step->nrOfNodes);
 	step->nrOfNodes = count;
     }
+    step->myNodeIndex = getMyNodeIndex(step->nodes, step->nrOfNodes);
 
     mlog("%s: step '%u:%u' user '%s' np '%u' nodes '%s' tpp '%u' exe '%s'\n",
 	    __func__, jobid, stepid, step->username, step->np, step->slurmNodes,
@@ -513,9 +614,7 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
 	    }
 	}
     } else {
-	if (!srunOpenIOConnection(step)) {
-	    mlog("%s: srun connect failed\n", __func__);
-	}
+	execStepFWIO(step);
 
 	/* say ok to waiting srun */
 	sendSlurmRC(sMsg, SLURM_SUCCESS);
@@ -649,11 +748,21 @@ static void handleReattachTasks(Slurm_Msg_t *sMsg)
 	return;
     }
 
+    if (!step->fwdata) {
+	/* no forwarder to attach to */
+	mlog("%s: forwarder for step '%u:%u' to reattach not found\n", __func__,
+		jobid, stepid);
+	sendSlurmRC(sMsg, ESLURM_INVALID_JOB_ID);
+	return;
+    }
+
     /* num_resp_ports */
 
     /* num_io_ports */
 
     /* credential */
+
+    /* send message to forwarder */
 
     mlog("%s: implement me!\n", __func__);
     sendSlurmRC(sMsg, ESLURM_NOT_SUPPORTED);
@@ -1045,10 +1154,72 @@ static void handleCompleteProlog(Slurm_Msg_t *sMsg)
     sendSlurmRC(sMsg, SLURM_SUCCESS);
 }
 
+static void readJobCpuOptions(Job_t *job, char **ptr)
+{
+    uint32_t i;
+
+    /* cpu group count */
+    getUint32(ptr, &job->cpuGroupCount);
+
+    if (job->cpuGroupCount) {
+	uint32_t len;
+
+	/* cpusPerNode */
+	getUint16Array(ptr, &job->cpusPerNode, &len);
+	if (len != job->cpuGroupCount) {
+	    mlog("%s: invalid cpu per node array '%u:%u'\n", __func__,
+		    len, job->cpuGroupCount);
+	    ufree(job->cpusPerNode);
+	    job->cpusPerNode = NULL;
+	}
+
+	/* cpuCountReps */
+	getUint32Array(ptr, &job->cpuCountReps, &len);
+	if (len != job->cpuGroupCount) {
+	    mlog("%s: invalid cpu count reps array '%u:%u'\n", __func__,
+		    len, job->cpuGroupCount);
+	    ufree(job->cpuCountReps);
+	    job->cpuCountReps = NULL;
+	}
+
+	if (job->cpusPerNode && job->cpuCountReps) {
+	    for (i=0; i<job->cpuGroupCount; i++) {
+		mdbg(PSSLURM_LOG_PART, "cpusPerNode '%u' cpuCountReps '%u'\n",
+			job->cpusPerNode[i], job->cpuCountReps[i]);
+	    }
+	}
+    }
+}
+
+static void readJobEnv(Job_t *job, char **ptr)
+{
+    uint32_t i, count;
+
+    /* spank env/envc */
+    getStringArrayM(ptr, &job->spankenv.vars, &job->spankenv.cnt);
+    job->spankenv.size = job->spankenv.cnt;
+    for (i=0; i<job->spankenv.cnt; i++) {
+	mdbg(PSSLURM_LOG_ENV, "%s: spankenv%i: '%s'\n", __func__, i,
+		job->spankenv.vars[i]);
+    }
+
+    /* env/envc */
+    getUint32(ptr, &count);
+    getStringArrayM(ptr, &job->env.vars, &job->env.cnt);
+    job->env.size = job->env.cnt;
+    if (count != job->env.cnt) {
+	mlog("%s: mismatching envc %u : %u\n", __func__, count, job->env.cnt);
+    }
+    for (i=0; i<job->env.cnt; i++) {
+	mdbg(PSSLURM_LOG_ENV, "%s: env%i: '%s'\n", __func__, i,
+		job->env.vars[i]);
+    }
+}
+
 static void handleBatchJobLaunch(Slurm_Msg_t *sMsg)
 {
     Job_t *job;
-    uint32_t tmp, count, i;
+    uint32_t tmp, count;
     char *script, *acctType, buf[1024];
     char **ptr = &sMsg->ptr;
     uint32_t jobid;
@@ -1094,36 +1265,8 @@ static void handleBatchJobLaunch(Slurm_Msg_t *sMsg)
     /* count of specialized cores */
     getUint16(ptr, &job->jobCoreSpec);
 
-    /* cpu group count */
-    getUint32(ptr, &job->cpuGroupCount);
-    if (job->cpuGroupCount) {
-	uint32_t len;
-
-	/* cpusPerNode */
-	getUint16Array(ptr, &job->cpusPerNode, &len);
-	if (len != job->cpuGroupCount) {
-	    mlog("%s: invalid cpu per node array '%u:%u'\n", __func__,
-		    len, job->cpuGroupCount);
-	    ufree(job->cpusPerNode);
-	    job->cpusPerNode = NULL;
-	}
-
-	/* cpuCountReps */
-	getUint32Array(ptr, &job->cpuCountReps, &len);
-	if (len != job->cpuGroupCount) {
-	    mlog("%s: invalid cpu count reps array '%u:%u'\n", __func__,
-		    len, job->cpuGroupCount);
-	    ufree(job->cpuCountReps);
-	    job->cpuCountReps = NULL;
-	}
-
-	if (job->cpusPerNode && job->cpuCountReps) {
-	    for (i=0; i<job->cpuGroupCount; i++) {
-		mdbg(PSSLURM_LOG_PART, "cpusPerNode '%u' cpuCountReps '%u'\n",
-			job->cpusPerNode[i], job->cpuCountReps[i]);
-	    }
-	}
-    }
+    /* cpusPerNode / cpuCountReps */
+    readJobCpuOptions(job, ptr);
 
     /* node alias */
     job->nodeAlias = getStringM(ptr);
@@ -1153,31 +1296,14 @@ static void handleBatchJobLaunch(Slurm_Msg_t *sMsg)
     if (count != job->argc) {
 	mlog("%s: mismatching argc %u : %u\n", __func__, count, job->argc);
     }
-    /* spank env/envc */
-    getStringArrayM(ptr, &job->spankenv.vars, &job->spankenv.cnt);
-    job->spankenv.size = job->spankenv.cnt;
-    for (i=0; i<job->spankenv.cnt; i++) {
-	mdbg(PSSLURM_LOG_ENV, "%s: spankenv%i: '%s'\n", __func__, i,
-		job->spankenv.vars[i]);
-    }
 
-    /* env/envc */
-    getUint32(ptr, &count);
-    getStringArrayM(ptr, &job->env.vars, &job->env.cnt);
-    job->env.size = job->env.cnt;
-    if (count != job->env.cnt) {
-	mlog("%s: mismatching envc %u : %u\n", __func__, count, job->env.cnt);
-    }
-    for (i=0; i<job->env.cnt; i++) {
-	mdbg(PSSLURM_LOG_ENV, "%s: env%i: '%s'\n", __func__, i,
-		job->env.vars[i]);
-    }
+    /* spank env/job env */
+    readJobEnv(job, ptr);
 
     /* TODO use job mem ?limit? uint32_t */
     getUint32(ptr, &job->memLimit);
 
     job->cred = getJobCred(&job->gres, ptr, sMsg->head.version);
-
 
     /* verify job credential */
     if (!(checkJobCred(job))) {
@@ -1268,6 +1394,7 @@ static void handleTerminateAlloc(Slurm_Msg_t *sMsg, Alloc_t *alloc)
 
     /* wait for mother superior to release the allocation */
     if (alloc->nodes[0] != PSC_getMyID()) {
+	shutdownStepForwarder(alloc->jobid);
 	if (alloc->terminate > 3) {
 	    send_PS_JobState(alloc->jobid, PSC_getTID(alloc->nodes[0], 0));
 	    alloc->terminate = 1;
@@ -1369,7 +1496,7 @@ static void handleKillReq(Slurm_Msg_t *sMsg, uint32_t jobid,
 	    snprintf(buf, sizeof(buf), "error: *** step %u:%u CANCELLED DUE "
 			"TO TIME LIMIT ***\n", jobid, stepid);
 	    mlog("%s: timeout for step '%u:%u'\n", __func__, jobid, stepid);
-	    printChildMessage(step->fwdata, buf, 1);
+	    printChildMessage(step->fwdata, buf, strlen(buf), STDERR, 0);
 	} else {
 	    snprintf(buf, sizeof(buf), "error: *** PREEMPTION for step "
 			"%u:%u ***\n", jobid, stepid);
@@ -1392,7 +1519,7 @@ static void handleKillReq(Slurm_Msg_t *sMsg, uint32_t jobid,
 	if (!job && step) {
 	    snprintf(buf, sizeof(buf), "error: *** step %u CANCELLED DUE TO"
 			" TIME LIMIT ***\n", jobid);
-	    printChildMessage(step->fwdata, buf, 1);
+	    printChildMessage(step->fwdata, buf, strlen(buf), STDERR, 0);
 	} else {
 	    mlog("%s: timeout for job '%u'\n", __func__, jobid);
 	}
@@ -1400,7 +1527,7 @@ static void handleKillReq(Slurm_Msg_t *sMsg, uint32_t jobid,
 	if (!job && step) {
 	    snprintf(buf, sizeof(buf), "error: *** PREEMPTION for step "
 		    "%u ***\n", jobid);
-	    printChildMessage(step->fwdata, buf, 1);
+	    printChildMessage(step->fwdata, buf, strlen(buf), STDERR, 0);
 	} else {
 	    mlog("%s: preemption for job '%u'\n", __func__, jobid);
 	}

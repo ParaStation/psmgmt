@@ -39,10 +39,13 @@
 #include "pluginhelper.h"
 #include "pluginmalloc.h"
 #include "selector.h"
+#include "pslog.h"
+#include "psidcomm.h"
 
 #include "psslurmcomm.h"
 
 #define MAX_PACK_STR_LEN        (16 * 1024 * 1024)
+#define DEBUG_IO 0
 
 const char *msgType2String(int type)
 {
@@ -553,7 +556,7 @@ static int connect2Slurmctld()
 	    return sock;
 	}
     }
-    //mlog("%s: connect to %s socket %i\n", __func__, addr, sock);
+    mdbg(PSSLURM_LOG_IO, "%s: connect to %s socket %i\n", __func__, addr, sock);
 
     registerSlurmMessage(sock, handleSlurmctldReply);
 
@@ -696,10 +699,8 @@ void __getBitString(char **ptr, char **bitStr, const char *func,
 				const int line)
 {
     uint32_t len;
-    //char *tmp;
 
     getUint32(ptr, &len);
-    //mlog("%s: len1 '%u'\n", __func__, len);
 
     if (len == NO_VAL) {
 	*bitStr = NULL;
@@ -713,15 +714,11 @@ void __getBitString(char **ptr, char **bitStr, const char *func,
 	mlog("%s(%s:%i): invalid str len '%i'\n", __func__, func, line, len);
 	return;
     }
-    //mlog("%s: len2 '%u'\n", __func__, len);
 
     if (len > 0) {
 	*bitStr = umalloc(len);
 	memcpy(*bitStr, *ptr, len);
 	*ptr += len;
-
-	/* TODO convert to bitstr?? */
-	//*bitStr = (bitstr_t *) tmp;
     } else {
 	*bitStr = NULL;
     }
@@ -836,31 +833,74 @@ static int handleSrunPTYMsg(int sock, void *data)
     return 0;
 }
 
+static int forwardInputMsg(Step_t *step, uint16_t rank, char *buf, int bufLen)
+{
+    int n = 0;
+    size_t c = bufLen;
+    PSLog_Msg_t msg;
+    PS_Tasks_t *task;
+    char *ptr = buf;
+    char format[128];
+
+    if (!(task = findTaskByRank(&step->tasks.list, rank))) {
+	mlog("%s: task for rank '%u' of step '%u:%u' not found\n", __func__,
+		rank, step->jobid, step->stepid);
+	return -1;
+    }
+
+    msg.header.type = PSP_CC_MSG;
+    msg.header.sender = PSC_getTID(-1, getpid());
+    msg.version = 2;
+    msg.type = STDIN;
+    msg.sender = -1;
+    msg.header.dest = task->forwarderTID;
+
+    do {
+	n = (c > sizeof(msg.buf)) ? sizeof(msg.buf) : c;
+	if (n) memcpy(msg.buf, ptr, n);
+	if (DEBUG_IO) {
+	    mlog("%s: rank '%u' len '%u' msg.header.len %u' to '%s'\n",
+		    __func__, rank, n, PSLog_headerSize + n,
+		    PSC_printTID(task->forwarderTID));
+	    snprintf(format, sizeof(format), "%s: %%.%is\n", __func__, n);
+	    mlog(format, msg.buf);
+	}
+	n = msg.header.len = PSLog_headerSize + n;
+	forwardMsgtoMother((DDMsg_t *) &msg);
+	c -= n - PSLog_headerSize;
+	ptr += n - PSLog_headerSize;
+    } while (c > 0);
+
+    return n;
+}
+
 static int handleSrunMsg(int sock, void *data)
 {
     Step_t *step = data;
     char *ptr, buffer[1024];
     int ret, headSize, readnow, fd = -1;
     size_t toread;
-    uint16_t type, gtid, ltid;
-    uint32_t lenght;
+    uint16_t type, gtid, ltid, i;
+    uint32_t lenght, myTaskIdsLen;
+    uint32_t *myTaskIds;
+
+    myTaskIdsLen = step->globalTaskIdsLen[step->myNodeIndex];
+    myTaskIds = step->globalTaskIds[step->myNodeIndex];
 
     headSize = sizeof(uint32_t) + 3 * sizeof(uint16_t);
     if ((ret = doReadP(sock, buffer, headSize)) <= 0) {
-	//mlog("%s: closing srun connection '%u'\n", __func__, sock);
 	closeConnection(sock);
 	return 0;
     }
     ptr = buffer;
-    if (step->nodes[0] == PSC_getMyID()) {
-	if (!step->fwdata) {
-	    mlog("%s: no forwarder running\n", __func__);
-	    closeConnection(sock);
-	    return 0;
-	}
 
-	fd = (step->pty) ? step->fwdata->stdOut[1] : step->fwdata->stdIn[1];
+    if (!step->fwdata) {
+	mlog("%s: no forwarder running for step '%u:%u'\n", __func__,
+		step->jobid, step->stepid);
+	closeConnection(sock);
+	return 0;
     }
+    fd = (step->pty) ? step->fwdata->stdOut[1] : step->fwdata->stdIn[1];
 
     /* type */
     getUint16(&ptr, &type);
@@ -871,24 +911,34 @@ static int handleSrunMsg(int sock, void *data)
     /* lenght */
     getUint32(&ptr, &lenght);
 
-    /*
-    mlog("%s: step '%u:%u' stdin '%u' type '%u' lenght '%u' gtid '%u' "
-	    "ltid '%u' pty:%u\n", __func__, step->jobid, step->stepid, fd,
-	    type, lenght, gtid, ltid, step->pty);
-    */
+    mdbg(PSSLURM_LOG_IO, "%s: step '%u:%u' stdin '%u' type '%u' lenght '%u' "
+	    "gtid '%u' ltid '%u' pty:%u\n", __func__, step->jobid, step->stepid,
+	    fd, type, lenght, gtid, ltid, step->pty);
 
     if (type == SLURM_IO_CONNECTION_TEST) {
 	if (lenght != 0) {
 	    mlog("%s: invalid connection test, lenght '%u'\n", __func__,
 		    lenght);
 	}
-	mlog("%s: got connection test\n", __func__);
-	srunSendIO(SLURM_IO_CONNECTION_TEST, step, NULL, 0);
+	srunSendIO(SLURM_IO_CONNECTION_TEST, 0, step, NULL, 0);
     } else if (!lenght) {
+	/* forward eof to all forwarders */
 	mlog("%s: got eof of stdin '%u'\n", __func__, fd);
-	if (!step->pty && (step->nodes[0] == PSC_getMyID())) closeConnection(fd);
+
+	if (type == SLURM_IO_STDIN) {
+	    forwardInputMsg(step, gtid, NULL, 0);
+	} else if (type == SLURM_IO_ALLSTDIN) {
+	    for (i=0; i<myTaskIdsLen; i++) {
+		forwardInputMsg(step, myTaskIds[i], NULL, 0);
+	    }
+	} else {
+	    mlog("%s: got unsupported I/O type '%d'\n", __func__, type);
+	}
+
+	/* close loggers stdin */
+	if (!step->pty) closeConnection(fd);
     } else {
-	/* read stdin message from srun and write to child pty */
+	/* foward stdin message to forwarders */
 	toread = lenght;
 	while (toread > 0) {
 	    readnow = (toread > (int) sizeof(buffer)) ? sizeof(buffer) : toread;
@@ -896,7 +946,21 @@ static int handleSrunMsg(int sock, void *data)
 		mlog("%s: reading body failed\n", __func__);
 		break;
 	    }
-	    if (step->nodes[0] == PSC_getMyID()) doWriteP(fd, buffer, ret);
+
+	    if (step->pty) {
+		if (step->nodes[0] == PSC_getMyID()) doWriteP(fd, buffer, ret);
+	    } else {
+		if (type == SLURM_IO_STDIN) {
+		    forwardInputMsg(step, gtid, buffer, ret);
+		} else if (type == SLURM_IO_ALLSTDIN) {
+		    for (i=0; i<myTaskIdsLen; i++) {
+			forwardInputMsg(step, myTaskIds[i], buffer, ret);
+		    }
+		} else {
+		    mlog("%s: got unsupported I/O type '%d'\n", __func__, type);
+		}
+	    }
+
 	    toread -= ret;
 	}
     }
@@ -904,17 +968,19 @@ static int handleSrunMsg(int sock, void *data)
     return 0;
 }
 
-static PSnodes_ID_t getJobLocalNodeID(Step_t *step)
+PSnodes_ID_t getStepLocalNodeID(Step_t *step)
 {
-    PSnodes_ID_t nodeID = 0;
+    PSnodes_ID_t myID, nodeID = 0;
     uint32_t i;
+
+    myID = PSC_getMyID();
 
     /* find my job local nodeid */
     for (i=0; i<step->nrOfNodes; i++) {
-	if (step->nodes[i] == PSC_getMyID()) {
+	if (step->nodes[i] == myID) {
+	    nodeID = i;
 	    break;
 	}
-	nodeID++;
     }
 
     return nodeID;
@@ -931,7 +997,7 @@ int srunOpenControlConnection(Step_t *step)
 	return -1;
     }
 
-    nodeID = getJobLocalNodeID(step);
+    nodeID = getStepLocalNodeID(step);
     snprintf(port, sizeof(port), "%u",
 		step->srunPorts[nodeID % step->numSrunPorts]);
     if ((sock = tcpConnect(inet_ntoa(step->srun.sin_addr), port)) <0) {
@@ -939,7 +1005,7 @@ int srunOpenControlConnection(Step_t *step)
 		inet_ntoa(step->srun.sin_addr), port);
 	return -1;
     }
-    //mlog("%s: new srun connection %i\n", __func__, sock);
+    mdbg(PSSLURM_LOG_IO, "%s: new srun connection %i\n", __func__, sock);
 
     return sock;
 }
@@ -956,10 +1022,10 @@ int srunSendMsg(int sock, Step_t *step, slurm_msg_type_t type,
 	return -1;
     }
 
-    /*
-    mlog("%s: sock %u, len: body.bufUsed %u body.bufSize %u\n", __func__,
-	    sock, body->bufUsed, body->bufSize);
-    */
+    if (DEBUG_IO) {
+	mlog("%s: sock %u, len: body.bufUsed %u body.bufSize %u\n", __func__,
+		sock, body->bufUsed, body->bufSize);
+    }
     return sendSlurmMsg(sock, type, body);
 }
 
@@ -994,9 +1060,10 @@ int srunOpenIOConnection(Step_t *step)
     char port[100];
     int sock;
     PSnodes_ID_t nodeID = 0;
+    uint32_t i;
 
     /* open connection to waiting srun */
-    nodeID = getJobLocalNodeID(step);
+    nodeID = getStepLocalNodeID(step);
     snprintf(port, sizeof(port), "%u", step->IOPort[nodeID % step->numIOPort]);
 
     if ((sock = tcpConnect(inet_ntoa(step->srun.sin_addr), port)) <0) {
@@ -1004,35 +1071,38 @@ int srunOpenIOConnection(Step_t *step)
 		inet_ntoa(step->srun.sin_addr), port);
 	return 0;
     }
-    mlog("%s: addr '%s:%s' sock '%u'\n", __func__,
-	    inet_ntoa(step->srun.sin_addr), port, sock);
 
     step->srunIOMsg.sock = sock;
-    if ((Selector_register(sock, handleSrunMsg, step)) == -1) {
-	mlog("%s: Selector_register(%i) failed\n", __func__, sock);
-	return 0;
-    }
 
     addUint16ToMsg(IO_PROTOCOL_VERSION, &data);
     /* nodeid */
     addUint32ToMsg(nodeID, &data);
 
     /* stdout obj count */
-    if ((step->stdOut && strlen(step->stdOut) >0) ||
-	(step->nodes[0] != PSC_getMyID())) {
-	addUint32ToMsg(0, &data);
+    if (step->stdOutOpt == IO_SRUN || step->stdOutOpt == IO_SRUN_RANK ||
+	step->pty) {
+	step->outChannels =
+		umalloc(sizeof(int32_t) * step->globalTaskIdsLen[nodeID]);
+	for (i=0; i<step->globalTaskIdsLen[nodeID]; i++) {
+	    step->outChannels[i] = 1;
+	}
+	addUint32ToMsg(step->globalTaskIdsLen[nodeID], &data);
     } else {
-	addUint32ToMsg(1, &data);
+	addUint32ToMsg(0, &data);
     }
 
     /* stderr obj count */
-    if (step->pty || (step->stdOut && strlen(step->stdOut) >0) ||
-	(step->stdErr && strlen(step->stdErr) > 0) ||
-	(step->nodes[0] != PSC_getMyID())) {
+    if (step->pty || ((step->stdOut && strlen(step->stdOut) >0)) ||
+	(step->stdErrRank == -1 && step->stdErr && strlen(step->stdErr) > 0)) {
 	/* stderr uses stdout in pty mode */
 	addUint32ToMsg(0, &data);
     } else {
-	addUint32ToMsg(1, &data);
+	step->errChannels =
+		umalloc(sizeof(int32_t) * step->globalTaskIdsLen[nodeID]);
+	for (i=0; i<step->globalTaskIdsLen[nodeID]; i++) {
+	    step->errChannels[i] = 1;
+	}
+	addUint32ToMsg(step->globalTaskIdsLen[nodeID], &data);
     }
 
     /* io key */
@@ -1042,75 +1112,81 @@ int srunOpenIOConnection(Step_t *step)
     doWriteP(sock, data.buf, data.bufUsed);
     ufree(data.buf);
 
-    //mlog("%s: ret:%i used:%i\n", __func__, ret, data.bufUsed);
+    mlog("%s: addr '%s:%s' sock '%u'\n", __func__,
+	    inet_ntoa(step->srun.sin_addr), port, sock);
+
     return 1;
 }
 
-int srunSendIO(uint16_t type, Step_t *step, char *buf, uint32_t bufLen)
+void srunEnableIO(Step_t *step)
 {
-    PS_DataBuffer_t data = { .buf = NULL };
-    uint16_t taskid = 0;
-    int id, ret = 0;
-    char *sendBuf = buf, *start;
-    const char delimiters[] ="\n";
-    char *next, *saveptr;
+    uint32_t i, myTaskIdsLen;
+    uint32_t *myTaskIds;
 
-    if ((bufLen > 3) && step->labelIO && (buf[0] == '[')) {
+    if (step->stdInRank != -1) {
+	/* close stdin for all other ranks */
+	myTaskIdsLen = step->globalTaskIdsLen[step->myNodeIndex];
+	myTaskIds = step->globalTaskIds[step->myNodeIndex];
 
-	next = strtok_r(buf, delimiters, &saveptr);
-
-	while (next) {
-	    if ((sscanf(next, "[%u]", &id)) == 1) {
-		taskid = id;
-		if ((start = strchr(next, ' ')) && start++) {
-		    if (start) {
-			sendBuf = start;
-			bufLen = strlen(sendBuf);
-
-			addUint16ToMsg(type, &data);
-			/* gtaskid */
-			addUint16ToMsg(taskid, &data);
-			/* ltaskid */
-			addUint16ToMsg(0, &data);
-			addUint32ToMsg(bufLen, &data);
-
-			addMemToMsg(sendBuf, bufLen, &data);
-			ret += doWriteP(step->srunIOMsg.sock, data.buf, data.bufUsed);
-			ufree(data.buf);
-			data.buf = NULL;
-		    } else {
-			mlog("%s: empty i/o\n", __func__);
-		    }
-		} else {
-		    mlog("%s: label error, missing space '%s'\n", __func__, buf);
-		    goto SRUN_IO_DEFAULT;
-		}
-	    } else {
-		mlog("%s: label error, scanf failed '%s'\n", __func__, buf);
-		goto SRUN_IO_DEFAULT;
-	    }
-	    next = strtok_r(NULL, delimiters, &saveptr);
+	for (i=0; i<myTaskIdsLen; i++) {
+	    if ((uint32_t) step->stdInRank == myTaskIds[i]) continue;
+	    forwardInputMsg(step, myTaskIds[i], NULL, 0);
 	}
-	ufree(data.buf);
-	return ret;
-
     }
 
-SRUN_IO_DEFAULT:
+    if ((Selector_register(step->srunIOMsg.sock, handleSrunMsg, step)) == -1) {
+	mlog("%s: Selector_register(%i) srun I/O socket failed\n", __func__,
+		step->srunIOMsg.sock);
+    }
+}
 
-    addUint16ToMsg(type, &data);
-    /* gtaskid */
-    addUint16ToMsg(0, &data);
-    /* ltaskid */
-    addUint16ToMsg(0, &data);
-    addUint32ToMsg(bufLen, &data);
+int srunSendIO(uint16_t type, uint16_t taskid, Step_t *step,
+		char *buf, uint32_t bufLen)
+{
+    PS_DataBuffer_t data = { .buf = NULL };
+    int ret = 0, once = 1;
+    int32_t len, towrite, written;
+    uint16_t headLen;
+    char format[128];
 
-    if (bufLen >0) addMemToMsg(sendBuf, bufLen, &data);
-    ret = doWriteP(step->srunIOMsg.sock, data.buf, data.bufUsed);
+    if (DEBUG_IO && bufLen>0) {
+	snprintf(format, sizeof(format), "%s: msg: '%%.%is'\n", __func__,
+		    bufLen);
+	mdbg(PSSLURM_LOG_IO, format, buf);
+    }
+
+    towrite = bufLen;
+    written = 0;
+
+    while (once || towrite > 0) {
+	len = towrite > 1000 ? 1000 : towrite;
+
+	/* type (stdout/stderr) */
+	addUint16ToMsg(type, &data);
+	/* global taskid */
+	addUint16ToMsg(taskid, &data);
+	/* local taskid (unused) */
+	addUint16ToMsg((uint16_t)NO_VAL, &data);
+	/* msg length */
+	addUint32ToMsg(len, &data);
+
+	headLen = data.bufUsed;
+	if (len>0) addMemToMsg(buf + written, len, &data);
+	ret = doWriteF(step->srunIOMsg.sock, data.buf, data.bufUsed);
+	data.bufUsed = once = 0;
+
+	if (ret < 0) break;
+	if (!ret) continue;
+
+	ret -= headLen;
+	written += ret;
+	towrite -= ret;
+	mdbg(PSSLURM_LOG_IO, "%s: ret :%i written :%i towrite: %i\n",
+		__func__, ret, written, towrite);
+    }
+
     ufree(data.buf);
-
     return ret;
-
 }
 
 void getSockInfo(int socket, uint32_t *addr, uint16_t *port)

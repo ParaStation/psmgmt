@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2012 - 2014 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2012 - 2015 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -36,6 +36,7 @@ typedef enum {
     PSDATA_PID,
     PSDATA_MEM,
     PSDATA_DOUBLE,
+    PSDATA_DATA,
 } PS_DataType_t;
 
 typedef struct {
@@ -61,10 +62,11 @@ typedef void PS_DataBuffer_func_t(DDTypedBufferMsg_t *msg,
  *
  * @return Returns the number of bytes written or -1 on error.
  */
-#define doWrite(fd, buffer, towrite) __doWrite(fd, buffer, towrite, __func__, 0)
-#define doWriteP(fd, buffer, towrite) __doWrite(fd, buffer, towrite, __func__, 1)
+#define doWrite(fd, buffer, towrite) __doWrite(fd, buffer, towrite, __func__, 0,  0)
+#define doWriteP(fd, buffer, towrite) __doWrite(fd, buffer, towrite, __func__, 1, 0)
+#define doWriteF(fd, buffer, towrite) __doWrite(fd, buffer, towrite, __func__, 1, 1)
 int __doWrite(int fd, void *buffer, size_t towrite, const char *func,
-		int pedantic);
+		int pedantic, int fini);
 
 /**
  * @brief Read data from a file descriptor.
@@ -216,6 +218,9 @@ char *__getString(char **ptr, char *buf, size_t buflen,
 int __getStringArrayM(char **ptr, char ***array, uint32_t *len,
 			const char *caller, const int line);
 
+#define getDataM(ptr, len) __getDataM(ptr, len, __func__, __LINE__)
+void *__getDataM(void **ptr, uint32_t *len, const char *caller, const int line);
+
 /**
  * @brief Add a string to a message.
  *
@@ -331,6 +336,11 @@ int __addPidToMsg(const pid_t pid, PS_DataBuffer_t *data, const char *caller,
 #define addMemToMsg(mem, memLen, data) \
 	__addMemToMsg(mem, memLen, data, __func__, __LINE__)
 int __addMemToMsg(void *mem, uint32_t memLen, PS_DataBuffer_t *data,
+		    const char *caller, const int line);
+
+#define addDataToMsg(buf, bufLen, data) \
+	__addDataToMsg(buf, bufLen, data, __func__, __LINE__)
+int __addDataToMsg(const void *buf, uint32_t bufLen, PS_DataBuffer_t *data,
 		    const char *caller, const int line);
 
 int setByteOrder(int val);

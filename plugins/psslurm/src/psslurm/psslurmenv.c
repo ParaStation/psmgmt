@@ -33,6 +33,7 @@
 #include "psslurmconfig.h"
 #include "psslurmjob.h"
 #include "psslurmlog.h"
+#include "psslurmproto.h"
 
 #include "psslurmenv.h"
 
@@ -258,29 +259,6 @@ static char *getMyGTIDsForNode(uint32_t **globalTaskIds,
     return buf;
 }
 
-static uint32_t getMyNodeIndex(PSnodes_ID_t *nodes, uint32_t nrOfNodes)
-{
-    uint32_t i;
-    PSnodes_ID_t myNodeId;
-
-    myNodeId = PSC_getMyID();
-
-    for (i=0; i<nrOfNodes; i++) {
-	if (nodes[i] == myNodeId) return i;
-    }
-    return -1;
-}
-
-static uint32_t getMyLocalId(uint32_t rank, Step_t *step, uint32_t nodeId)
-{
-    uint32_t i;
-
-    for (i=0; i<step->globalTaskIdsLen[nodeId]; i++) {
-	if (step->globalTaskIds[nodeId][i] == rank) return i;
-    }
-    return -1;
-}
-
 void setRankEnv(int32_t rank, Step_t *step)
 {
     char tmp[128], *myGTIDs, *list = NULL;
@@ -306,7 +284,7 @@ void setRankEnv(int32_t rank, Step_t *step)
 	ufree(myGTIDs);
     }
 
-    myLocalId = getMyLocalId(rank, step, myNodeId);
+    myLocalId = getLocalRankID(rank, step, myNodeId);
     snprintf(tmp, sizeof(tmp), "%u", myLocalId);
     setenv("SLURM_LOCALID", tmp, 1);
 
