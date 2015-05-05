@@ -912,8 +912,9 @@ static int handleSrunMsg(int sock, void *data)
     getUint32(&ptr, &lenght);
 
     mdbg(PSSLURM_LOG_IO, "%s: step '%u:%u' stdin '%u' type '%u' lenght '%u' "
-	    "gtid '%u' ltid '%u' pty:%u\n", __func__, step->jobid, step->stepid,
-	    fd, type, lenght, gtid, ltid, step->pty);
+	    "gtid '%u' ltid '%u' pty:%u myTIDsLen '%u'\n", __func__,
+	    step->jobid, step->stepid, fd, type, lenght, gtid, ltid, step->pty,
+	    myTaskIdsLen);
 
     if (type == SLURM_IO_CONNECTION_TEST) {
 	if (lenght != 0) {

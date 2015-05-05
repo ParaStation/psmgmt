@@ -1331,15 +1331,15 @@ void handleChildBornMsg(DDErrorMsg_t *msg)
 {
     PStask_t *forwarder = PStasklist_find(&managedTasks, msg->header.sender);
     char *ptr, *sjobid = NULL, *sstepid = NULL, *srank = NULL;
-    int i=0;
+    int rank, i=0;
     uint32_t jobid, stepid;
     Job_t *job;
     Step_t *step;
 
     if (!forwarder) goto FORWARD_CHILD_BORN;
-
     /*
-    mlog("%s: forwarder '%s'\n", __func__, PSC_printTID(forwarder->tid));
+    mlog("%s: forwarder '%s' rank '%i'\n", __func__, PSC_printTID(forwarder->tid),
+	    forwarder->rank);
     mlog("%s: child '%s' group '%i'\n", __func__, PSC_printTID(msg->request),
 	    forwarder->childGroup);
     */
@@ -1363,6 +1363,9 @@ void handleChildBornMsg(DDErrorMsg_t *msg)
 
     jobid = atoi(sjobid);
     stepid = atoi(sstepid);
+    rank = atoi(srank);
+
+    if (forwarder->rank < 0 || rank < 0) goto FORWARD_CHILD_BORN;
 
     if (stepid == SLURM_BATCH_SCRIPT) {
 	if (!(job = findJobById(jobid))) {
@@ -1370,14 +1373,14 @@ void handleChildBornMsg(DDErrorMsg_t *msg)
 	    goto FORWARD_CHILD_BORN;
 	}
 	addTask(&job->tasks.list, msg->request, forwarder->tid,
-		    forwarder, forwarder->childGroup, atoi(srank));
+		    forwarder, forwarder->childGroup, rank);
     } else {
 	if (!(step = findStepById(jobid, stepid))) {
 	    mlog("%s: step '%u:%u' not found\n", __func__, jobid, stepid);
 	    goto FORWARD_CHILD_BORN;
 	}
 	addTask(&step->tasks.list, msg->request, forwarder->tid,
-		    forwarder, forwarder->childGroup, atoi(srank));
+		    forwarder, forwarder->childGroup, rank);
 
 	if (!step->loggerTID) step->loggerTID = forwarder->loggertid;
     }
