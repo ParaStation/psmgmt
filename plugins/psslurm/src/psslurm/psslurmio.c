@@ -273,13 +273,13 @@ static void handleEnableSrunIO(void *data, char *ptr)
 {
     Forwarder_Data_t *fwdata = data;
     Step_t *step = fwdata->userData;
-    uint16_t rank, i, taskCount;
-    int32_t tid;
+    uint16_t i, taskCount;
+    int32_t tid, rank;
 
     getUint16(&ptr, &taskCount);
 
     for (i=0; i<taskCount; i++) {
-	getUint16(&ptr, &rank);
+	getInt32(&ptr, &rank);
 	getInt32(&ptr, &tid);
 	addTask(&step->tasks.list, -1, tid, NULL, 0, rank);
     }
@@ -841,7 +841,7 @@ void sendEnableSrunIO(Step_t *step)
 
     list_for_each(pos, &step->tasks.list) {
 	if (!(tasks = list_entry(pos, PS_Tasks_t, list))) break;
-	addUint16ToMsg(tasks->childRank, &data);
+	addInt32ToMsg(tasks->childRank, &data);
 	addInt32ToMsg(tasks->forwarderTID, &data);
     }
 

@@ -1210,11 +1210,14 @@ static void handleCC_IO_Msg(PSLog_Msg_t *msg)
 static void handleCC_INIT_Msg(PSLog_Msg_t *msg)
 {
     Step_t *step = NULL;
+    PS_Tasks_t *task;
 
     if (msg->sender == -1) {
 	if ((step = findStepByLogger(msg->header.sender))) {
 
-	    if (findTaskByForwarder(&step->tasks.list, msg->header.dest)) {
+	    if ((task = findTaskByForwarder(&step->tasks.list,
+						    msg->header.dest))) {
+		if (task->childRank < 0) return;
 		step->fwInitCount++;
 
 		if (step->tasksToLaunch[getStepLocalNodeID(step)] ==
@@ -1331,7 +1334,7 @@ void handleChildBornMsg(DDErrorMsg_t *msg)
 {
     PStask_t *forwarder = PStasklist_find(&managedTasks, msg->header.sender);
     char *ptr, *sjobid = NULL, *sstepid = NULL, *srank = NULL;
-    int rank, i=0;
+    int32_t rank, i=0;
     uint32_t jobid, stepid;
     Job_t *job;
     Step_t *step;
@@ -1359,13 +1362,11 @@ void handleChildBornMsg(DDErrorMsg_t *msg)
 	ptr = forwarder->environ[++i];
     }
 
-    if (!sjobid || !sstepid || !srank) goto FORWARD_CHILD_BORN;
+    if (!sjobid || !sstepid) goto FORWARD_CHILD_BORN;
 
     jobid = atoi(sjobid);
     stepid = atoi(sstepid);
-    rank = atoi(srank);
-
-    if (forwarder->rank < 0 || rank < 0) goto FORWARD_CHILD_BORN;
+    rank = srank ? atoi(srank) : forwarder->rank;
 
     if (stepid == SLURM_BATCH_SCRIPT) {
 	if (!(job = findJobById(jobid))) {

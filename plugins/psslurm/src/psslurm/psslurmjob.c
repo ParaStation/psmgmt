@@ -203,7 +203,7 @@ Step_t *addStep(uint32_t jobid, uint32_t stepid)
 
 PS_Tasks_t *addTask(struct list_head *list, PStask_ID_t childTID,
 			PStask_ID_t forwarderTID, PStask_t *forwarder,
-			PStask_group_t childGroup, uint16_t rank)
+			PStask_group_t childGroup, int32_t rank)
 {
     PS_Tasks_t *task;
 
