@@ -76,7 +76,7 @@ handlerFunc_t oldCCErrorHandler = NULL;
 
 /** psid plugin requirements */
 char name[] = "psslurm";
-int version = 25;
+int version = 26;
 int requiredAPI = 112;
 plugin_dep_t dependencies[5];
 
