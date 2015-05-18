@@ -938,7 +938,7 @@ int PSI_spawnRsrvtn(int count, PSrsrvtn_ID_t resID, char *workdir,
 	goto exit;
     }
 
-    if (! count > 0) return 0;
+    if (!(count > 0)) return 0;
 
     nodes = malloc(sizeof(*nodes) * NODES_CHUNK);
     if (!nodes) {
