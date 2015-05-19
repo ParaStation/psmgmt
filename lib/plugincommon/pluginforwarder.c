@@ -881,11 +881,11 @@ static int openListenSocket(Forwarder_Data_t *data)
     }
 
     snprintf(buf, sizeof(buf), "%s-XXXXXX", TEMP_SOCKET_NAME);
-    if (!(tmpName = mktemp(buf))) {
-	pluginwarn(errno, "%s: mktemp(%s) failed", __func__, buf);
+    if (!(tmpName = mkdtemp(buf))) {
+	pluginwarn(errno, "%s: mkdtemp(%s) failed", __func__, buf);
 	return -1;
     }
-    data->listenSocketName = strdup(buf);
+    data->listenSocketName = strdup(tmpName);
 
     if ((data->listenSocket = socket(PF_UNIX, SOCK_STREAM, 0)) == -1) {
 	pluginwarn(errno, "%s:", __func__);
@@ -899,7 +899,7 @@ static int openListenSocket(Forwarder_Data_t *data)
     /*
      * bind the socket to the right address
      */
-    unlink(data->listenSocketName);
+    rmdir(data->listenSocketName);
     if (bind(data->listenSocket, (struct sockaddr *)&sa, sizeof(sa)) < 0) {
 	pluginwarn(errno, "%s: bind failed :", __func__);
 	close(data->listenSocket);
