@@ -387,6 +387,33 @@ static void putSMsg(Smsg_t *mp)
 /* ---------------------------------------------------------------------- */
 
 /**
+ * @brief (Un-)Block SIGCHLD.
+ *
+ * Block or unblock SIGCHLD depending on the value of @a block. If
+ * block is 0, it will be blocked. Otherwise it will be unblocked.
+ *
+ * @param block Flag steering the (un-)blocking of SIGCHLD.
+ *
+ * @return Flag, if SIGCHLD was blocked before. I.e. return 1 if it
+ * was blocked or 0 otherwise.
+ */
+static int blockSigChld(int block)
+{
+    sigset_t set, oldset;
+
+    sigemptyset(&set);
+    sigaddset(&set, SIGCHLD);
+
+    if (sigprocmask(block ? SIG_BLOCK : SIG_UNBLOCK, &set, &oldset)) {
+	RDP_warn(-1, errno, "%s: sigprocmask()", __func__);
+    }
+
+    return sigismember(&oldset, SIGCHLD);
+}
+
+/* ---------------------------------------------------------------------- */
+
+/**
  * Prototype of a large (or normal) RDP message.
  */
 typedef struct {
@@ -481,7 +508,9 @@ static msgbuf_t *getMsg(void)
 static void putMsg(msgbuf_t *mp)
 {
     if (mp->len > RDP_SMALL_DATA_SIZE) {    /* release msg frame */
+	int blocked = blockSigChld(1);
 	free(mp->msg.large);                /* free memory */
+	blockSigChld(blocked);
     } else {
 	putSMsg(mp->msg.small);             /* back to freelist */
     }
@@ -2067,7 +2096,9 @@ int Rsendto(int node, void *buf, size_t len)
     if (len <= RDP_SMALL_DATA_SIZE) {
 	mp->msg.small = getSMsg();
     } else {
+	int blocked = blockSigChld(1);
 	mp->msg.large = malloc(sizeof(rdphdr_t) + len);
+	blockSigChld(blocked);
     }
 
     if (!mp->msg.small) {
@@ -2077,7 +2108,8 @@ int Rsendto(int node, void *buf, size_t len)
     }
 
     gettimeofday(&mp->sentTime, NULL);
-    if (list_empty(&conntable[node].pendList) && conntable[node].state == ACTIVE) {
+    if (list_empty(&conntable[node].pendList)
+	&& conntable[node].state == ACTIVE) {
 	timeradd(&mp->sentTime, &RESEND_TIMEOUT, &conntable[node].tmout);
 	conntable[node].retrans = 0;
     }
