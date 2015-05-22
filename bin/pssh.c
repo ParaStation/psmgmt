@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2006-2014 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2006-2015 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -51,7 +51,7 @@ int main(int argc, const char *argv[])
     PSnodes_ID_t nodeID;
     int interactive, node, version, verbose, rusage, rawIO;
     const char *host, *envlist, *login;
-    char *cmdLine = NULL, *shell, hostStr[30];
+    char *cmdLine = NULL, hostStr[30];
 
     int i, rc, hostSet;
 
@@ -195,15 +195,6 @@ int main(int argc, const char *argv[])
     }
     poptFreeContext(optCon);
 
-    {
-	struct passwd *passwd = getpwuid(getuid());
-	if (!passwd) {
-	    poptPrintUsage(optCon, stderr, 0);
-	    perror("getpwuid()");
-	    exit(1);
-	}
-	shell = strdup(passwd->pw_shell);
-    }
     if (verbose) {
 	if (host)
 	    printf("\nStart to host '%s'\n", host);
@@ -220,7 +211,7 @@ int main(int argc, const char *argv[])
 	if (cmdLine) {
 	    printf("%s\b\n\n", cmdLine);
 	} else {
-	    printf("%s\n", shell);
+	    printf("$SHELL\n");
 	}
     }
 
@@ -264,7 +255,7 @@ int main(int argc, const char *argv[])
 	    fprintf(stderr, "Unknown user '%s'\n", login);
 	} else if (myUid && passwd->pw_uid != myUid) {
 	    fprintf(stderr, "Can't start '%s' as %s\n",
-		    cmdLine ? cmdLine : shell, login);
+		    cmdLine ? cmdLine : "$SHELL", login);
 
 	    exit(1);
 	} else {
@@ -296,7 +287,7 @@ int main(int argc, const char *argv[])
     setenv("PSI_NOMSGLOGGERDONE", "", 1);
     setenv("PSI_SSH_COMPAT_HOST", host ? host : hostStr, 1);
 
-    exec_argv[0] = shell;
+    exec_argv[0] = "$SHELL";
     exec_argv[1] = "-i";
     exec_argv[2] = NULL;
 

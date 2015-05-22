@@ -807,7 +807,7 @@ install-dvi: install-dvi-am
 
 install-dvi-am:
 
-install-exec-am:
+install-exec-am: install-exec-local
 
 install-html: install-html-am
 
@@ -857,13 +857,14 @@ uninstall-am: uninstall-pluginLTLIBRARIES
 	distclean-libtool distclean-tags distdir dvi dvi-am html \
 	html-am info info-am install install-am install-data \
 	install-data-am install-dvi install-dvi-am install-exec \
-	install-exec-am install-html install-html-am install-info \
-	install-info-am install-man install-pdf install-pdf-am \
-	install-pluginLTLIBRARIES install-ps install-ps-am \
-	install-strip installcheck installcheck-am installdirs \
-	maintainer-clean maintainer-clean-generic mostlyclean \
-	mostlyclean-compile mostlyclean-generic mostlyclean-libtool \
-	pdf pdf-am ps ps-am tags tags-am uninstall uninstall-am \
+	install-exec-am install-exec-local install-html \
+	install-html-am install-info install-info-am install-man \
+	install-pdf install-pdf-am install-pluginLTLIBRARIES \
+	install-ps install-ps-am install-strip installcheck \
+	installcheck-am installdirs maintainer-clean \
+	maintainer-clean-generic mostlyclean mostlyclean-compile \
+	mostlyclean-generic mostlyclean-libtool pdf pdf-am ps ps-am \
+	tags tags-am uninstall uninstall-am \
 	uninstall-pluginLTLIBRARIES
 
 
@@ -871,6 +872,15 @@ uninstall-am: uninstall-pluginLTLIBRARIES
 	$(mkdir_verbose)mkdir -p $(@D)
 	$(sed_verbose)$(do_subst) < $^ > $@
 	$(chmod_verbose)chmod --reference $^ $@
+
+install-exec-local:
+	$(INSTALL) -d $(DESTDIR)$(localstatedir)/spool/parastation/jobs
+	$(INSTALL) -d $(DESTDIR)$(localstatedir)/spool/parastation/nodefiles
+	$(INSTALL) -d $(DESTDIR)$(localstatedir)/spool/parastation/temp
+	$(INSTALL) -d $(DESTDIR)$(localstatedir)/spool/parastation/undelivered
+	$(INSTALL) -d $(DESTDIR)$(localstatedir)/spool/parastation/account
+	$(INSTALL) -d $(DESTDIR)$(localstatedir)/spool/parastation/backup
+	$(INSTALL) -d $(DESTDIR)$(localstatedir)/spool/parastation/scripts
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.

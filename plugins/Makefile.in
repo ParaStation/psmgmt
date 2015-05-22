@@ -172,8 +172,7 @@ am__define_uniq_tagged_files = \
   done | $(am__uniquify_input)`
 ETAGS = etags
 CTAGS = ctags
-DIST_SUBDIRS = pelogue psaccount psmom pspam pspmi psresport psslurm \
-	psmunge
+DIST_SUBDIRS = pelogue psaccount pspam pspmi psresport psslurm psmunge
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 am__relativize = \
   dir0=`pwd`; \
@@ -372,7 +371,7 @@ configdir = $(prefix)/config
 # dito
 scriptsdir = $(prefix)/scripts
 slurmdir = $(libdir)/slurm
-SUBDIRS = pelogue psaccount psmom pspam pspmi psresport psslurm \
+SUBDIRS = pelogue psaccount pspam pspmi psresport psslurm \
 	$(am__append_1)
 all: all-recursive
 

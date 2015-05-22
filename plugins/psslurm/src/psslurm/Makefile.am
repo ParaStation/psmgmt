@@ -44,3 +44,12 @@ psslurm_la_CPPFLAGS = $(AM_CPPFLAGS) -DPLUGINDIR=\"$(plugindir)\" \
 	-DLOCALSTATEDIR=\"$(localstatedir)\"
 
 psslurm_la_LIBADD = $(libpsi) $(libplugincommon) $(libslurmcommon)
+
+install-exec-local:
+	$(INSTALL) -d $(DESTDIR)$(localstatedir)/spool/parastation/jobs
+	$(INSTALL) -d $(DESTDIR)$(localstatedir)/spool/parastation/nodefiles
+	$(INSTALL) -d $(DESTDIR)$(localstatedir)/spool/parastation/temp
+	$(INSTALL) -d $(DESTDIR)$(localstatedir)/spool/parastation/undelivered
+	$(INSTALL) -d $(DESTDIR)$(localstatedir)/spool/parastation/account
+	$(INSTALL) -d $(DESTDIR)$(localstatedir)/spool/parastation/backup
+	$(INSTALL) -d $(DESTDIR)$(localstatedir)/spool/parastation/scripts

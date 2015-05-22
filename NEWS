@@ -5,6 +5,40 @@ Copyright (C) 2010-2015 ParTec Cluster Competence Center GmbH, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 5.0.47-3:
+=================
+
+Bugfixes:
+- Leave handling of resDelegate to psmom/psslurm (#2412)
+- Close potential memory leak.
+
+Additional changes:
+- Optional build rpms without psconfig support.
+- Do not filter out -Wall and -Wextra
+
+
+Version 5.0.47-2:
+=================
+
+Bugfixes:
+- Re-enable OMP_NUM_THREADS handling in mpiexec.
+
+Enhancements:
+- Implement MPI_Info_set(<info>, "tpp", "<N>")
+
+
+Version 5.0.47-1:
+=================
+
+Bugfixes:
+- Before deleting a delegate psmom must remove all references (#2409)
+- Fix some more warning notified by clang's scan-build.
+
+Enhancements:
+- Add alternative debugging access to psilogger
+- Suppress psilogger's output on SIGUSR1 when SLURM is detected
+
+
 Version 5.0.47:
 ===============
 

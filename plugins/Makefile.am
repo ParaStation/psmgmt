@@ -12,7 +12,7 @@
 
 include $(top_srcdir)/common.am
 
-SUBDIRS = pelogue psaccount psmom pspam pspmi psresport psslurm
+SUBDIRS = pelogue psaccount pspam pspmi psresport psslurm
 
 if MUNGE_ENABLED
 SUBDIRS += psmunge

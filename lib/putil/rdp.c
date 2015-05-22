@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2014 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2015 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -83,7 +83,9 @@ typedef enum {
     ACTIVE       /**< connection is up */
 } RDPState_t;
 
-/** The possible RDP message types */
+/** The possible RDP message types. RDP_SYNNACK type is just kept for
+ * backward compatibility and not sent any more. It will disappear
+ * soon. */
 #define RDP_DATA     0x1  /**< regular data message */
 #define RDP_SYN      0x2  /**< synchronization message */
 #define RDP_ACK      0x3  /**< explicit acknowledgment */
@@ -865,31 +867,6 @@ static void sendSYNACK(int node)
 }
 
 /**
- * @brief Send a SYNNACK message.
- *
- * Send a SYNNACK message to node @a node.
- *
- * @param node The node number the message is send to.
- * @param oldseq The last sequence number we received from this node.
- *
- * @return No return value.
- */
-static void sendSYNNACK(int node)
-{
-    rdphdr_t hdr;
-
-    hdr.type = RDP_SYNNACK;
-    hdr.len = 0;
-    hdr.seqno = conntable[node].frameToSend;       /* Tell initial seqno */
-    hdr.ackno = conntable[node].frameExpected-1;   /* The frame I expect */
-    hdr.connid = conntable[node].ConnID_out;
-    RDP_log(RDP_LOG_CNTR, "%s: to %d, NFTS=%x, FE=%x\n", __func__, node,
-	    hdr.seqno, hdr.ackno);
-    MYsendto(rdpsock, &hdr, sizeof(hdr), 0, node, 1);
-    conntable[node].ackPending = 0;
-}
-
-/**
  * @brief Send a NACK message.
  *
  * Send a NACK message to node @a node.
@@ -1181,16 +1158,6 @@ static void updateState(rdphdr_t *hdr, int node)
 		    cp->frameExpected);
 	    sendSYNACK(node);
 	    break;
-	case RDP_DATA:
-	    if (cp->ConnID_in == hdr->connid) {
-		/* know this one from former times */
-		cp->state = SYN_SENT;
-		RDP_log(-1, "%s: state(%d): CLOSED -> SYN_SENT on %s, FE=%x\n",
-			__func__, node, RDPMsgString(hdr->type),
-			cp->frameExpected);
-		sendSYNNACK(node);
-		break;
-	    } /* else fall through */
 	default:
 	    cp->state = SYN_SENT;
 	    RDP_log(RDP_LOG_CNTR,
@@ -1298,8 +1265,8 @@ static void updateState(rdphdr_t *hdr, int node)
 	    /* New Connection */
 	    switch (hdr->type) {
 	    case RDP_SYN:
-		closeConnection(node, 1, 0);
 	    case RDP_SYNNACK:
+		closeConnection(node, 1, 0);
 		cp->state = SYN_RECVD;
 		cp->frameExpected = hdr->seqno;
 		cp->ConnID_in = hdr->connid;
@@ -1515,50 +1482,6 @@ static void doACK(rdphdr_t *hdr, int fromnode)
 }
 
 /**
- * @brief Re-sequence message queue of a connection.
- *
- * Re-sequence the message queue of the connection to node @a node,
- * i.e. ACK all messages received on the other side and set msgPending
- * for this connection accordingly.
- *
- * This is usually called upon reestablishing a disturbed connection.
- *
- * @param hdr The packet header with the ACK in
- *
- * @param fromnode The node @a hdr was received from and whose ACK
- * and msgPending information has to be updated.
- *
- * @return The number of re-sequenced packets.
- */
-static int resequenceMsgQ(rdphdr_t *hdr, int fromnode)
-{
-    Rconninfo_t *cp = &conntable[fromnode];;
-    int count = 0;
-    list_t *m;
-    int blocked = Timer_block(timerID, 1);
-
-    RDP_log(RDP_LOG_CNTR, "%s\n", __func__);
-
-    doACK(hdr, fromnode);
-
-    cp->frameToSend = cp->ackExpected;
-
-    list_for_each(m, &cp->pendList) {
-	msgbuf_t *mp = list_entry(m, msgbuf_t, next);
-
-	if (mp->deleted) continue;
-
-	count++;
-    }
-
-    cp->msgPending = count;
-
-    Timer_block(timerID, blocked);
-
-    return count;
-}
-
-/**
  * @brief Handle control packets.
  *
  * Handle the control packet @a hdr received from node @a
@@ -1593,11 +1516,8 @@ static void handleControlPacket(rdphdr_t *hdr, int node)
 	break;
     case RDP_SYN:
     case RDP_SYNACK:
-	updateState(hdr, node);
-	break;
     case RDP_SYNNACK:
 	updateState(hdr, node);
-	resequenceMsgQ(hdr, node);
 	break;
     default:
 	RDP_log(-1, "%s: delete unknown msg", __func__);

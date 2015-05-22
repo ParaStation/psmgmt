@@ -3231,7 +3231,9 @@ int main(int argc, char *argv[], char** envp)
     setSigHandlers();
 
     /* This has to be investigated before any command-line parsing */
-    if ((envstr = getenv("PSI_TPP"))) {
+    envstr = getenv("PSI_TPP");
+    if (!envstr) envstr = getenv("OMP_NUM_THREADS");
+    if (envstr) {
 	envtpp = strtol(envstr, NULL, 0);
     }
 

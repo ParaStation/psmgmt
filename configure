@@ -12731,18 +12731,6 @@ ac_config_files="$ac_config_files plugins/pelogue/Makefile"
 
 ac_config_files="$ac_config_files plugins/psaccount/Makefile"
 
-ac_config_files="$ac_config_files plugins/psmom/Makefile"
-
-ac_config_files="$ac_config_files plugins/psmom/doc/Makefile"
-
-ac_config_files="$ac_config_files plugins/psmom/src/include/Makefile"
-
-ac_config_files="$ac_config_files plugins/psmom/src/pam/Makefile"
-
-ac_config_files="$ac_config_files plugins/psmom/src/pbs/Makefile"
-
-ac_config_files="$ac_config_files plugins/psmom/src/psmom/Makefile"
-
 ac_config_files="$ac_config_files plugins/psmunge/Makefile"
 
 ac_config_files="$ac_config_files plugins/pspam/Makefile"
@@ -13834,12 +13822,6 @@ do
     "plugins/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/Makefile" ;;
     "plugins/pelogue/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/pelogue/Makefile" ;;
     "plugins/psaccount/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/psaccount/Makefile" ;;
-    "plugins/psmom/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/psmom/Makefile" ;;
-    "plugins/psmom/doc/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/psmom/doc/Makefile" ;;
-    "plugins/psmom/src/include/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/psmom/src/include/Makefile" ;;
-    "plugins/psmom/src/pam/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/psmom/src/pam/Makefile" ;;
-    "plugins/psmom/src/pbs/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/psmom/src/pbs/Makefile" ;;
-    "plugins/psmom/src/psmom/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/psmom/src/psmom/Makefile" ;;
     "plugins/psmunge/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/psmunge/Makefile" ;;
     "plugins/pspam/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/pspam/Makefile" ;;
     "plugins/pspam/doc/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/pspam/doc/Makefile" ;;

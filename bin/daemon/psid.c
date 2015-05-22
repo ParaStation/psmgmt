@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2014 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2015 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -256,7 +256,8 @@ void PSID_handleSIGCHLD(int sig)
 		/* Make sure we get all pending messages */
 		Selector_enable(task->fd);
 	    } else {
-		/* Delegates are handled explicitly in psmom/psslurm */
+		/* task not connected, remove from tasklist */
+		/* delegates are handled explicitly in psmom/psslurm */
 		if (task->group != TG_DELEGATE) PStask_cleanup(tid);
 	    }
 	}

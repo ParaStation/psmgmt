@@ -1802,13 +1802,13 @@ static int createNewPartition(PSpart_request_t *request, sortlist_t *candidates)
     }
 
     if (numProcs < numRequested) {
-	if (overbook) {
-	    numProcs = numRequested;
-	} else {
-	    PSID_log(PSID_LOG_PART, "%s: Not enough HW-threads\n", __func__);
+	if (!overbook || !curSlot) {
+	    PSID_log(PSID_LOG_PART, "%s: %s HW-threads found\n", __func__,
+		     curSlot ? "Insufficient" : "No");
 	    free(slots);
-
 	    return -1;
+	} else {
+	    numProcs = numRequested;
 	}
     }
 
@@ -2877,6 +2877,25 @@ static void msg_PROVIDEPART(DDBufferMsg_t *inmsg)
     }
 }
 
+/**
+ * @brief Create HW-threads from a received partition
+ *
+ * Create an array of hardware-threads from the partition (i.e. an
+ * array of slots) @a slots of size @a num and store it to @a threads.
+ *
+ * Usually the partition @a slots was received immediately before from
+ * the master daemon. The array of hardware-threads will be used to
+ * manage the corresponding resource for reservation, etc.
+ *
+ * @param slots Array of slots to be converted to an array of HW-threads.
+ *
+ * @param num Number of slots within @a slots
+ *
+ * @param threads Array of HW-threads to be created
+ *
+ * @return On success the number of threads contained in @a threads is
+ * returned. Otherwise -1 is returned and errno is set appropriately.
+ */
 static int getHWThreads(PSpart_slot_t *slots, uint32_t num,
 			PSpart_HWThread_t **threads)
 {
@@ -2885,6 +2904,14 @@ static int getHWThreads(PSpart_slot_t *slots, uint32_t num,
 
     for (s=0; s<num; s++) {
 	totThreads += PSCPU_getCPUs(slots[s].CPUset, NULL, PSCPU_MAX);
+    }
+
+    if (totThreads < 1) {
+	PSID_log(-1, "%s: No HW-threads in slots\n", __func__);
+	if (*threads) free(*threads);
+	*threads = NULL;
+
+	return 0;
     }
 
     PSID_log(PSID_LOG_PART, "%s: slots %d threads %d\n", __func__, num,
@@ -2909,6 +2936,7 @@ static int getHWThreads(PSpart_slot_t *slots, uint32_t num,
 	}
     }
 
+    if (*threads) free(*threads);
     *threads = HWThreads;
 
     return totThreads;
