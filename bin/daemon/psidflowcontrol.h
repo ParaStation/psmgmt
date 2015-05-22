@@ -127,7 +127,7 @@ int PSIDFlwCntrl_addStop(PSIDFlwCntrl_hash_t table, PStask_ID_t key);
 
 /**
  * @brief Send SENDCONT messages according to the hash
- * 
+ *
  * Send SENDCONT messages according to the hash @a stops. It is
  * assumed that the hash was initialized by @ref
  * PSIDFlwCntrl_initHash() and then filled via @ref

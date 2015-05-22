@@ -1,3 +1,678 @@
+Version psmgmt-5.0.47:
+======================
+------------------------------------------------------------------------
+r9111 | eicker | 2015-02-20 14:05:05 +0100 (Fri, 20 Feb 2015) | 2 lines
+
+Bugfixes and improvements for dyn_resources plugin.
+
+------------------------------------------------------------------------
+r9110 | eicker | 2015-02-20 13:14:06 +0100 (Fri, 20 Feb 2015) | 2 lines
+
+Allow to globally switch dynamic resource allocation via environment.
+
+------------------------------------------------------------------------
+r9109 | eicker | 2015-02-20 13:08:12 +0100 (Fri, 20 Feb 2015) | 2 lines
+
+Add example-plugin to test/show dynamic resource allocation.
+
+------------------------------------------------------------------------
+r9108 | eicker | 2015-02-20 13:06:59 +0100 (Fri, 20 Feb 2015) | 2 lines
+
+Enhancement: Push plugin API to 112 for dynamic resource allocation.
+
+------------------------------------------------------------------------
+r9107 | eicker | 2015-02-20 13:03:39 +0100 (Fri, 20 Feb 2015) | 2 lines
+
+Bugfix: timer.h needs to include stdio.h for FILE definition
+
+------------------------------------------------------------------------
+r9106 | eicker | 2015-02-17 20:10:23 +0100 (Tue, 17 Feb 2015) | 2 lines
+
+Add all the hooks required for dynamic resources in DEEP
+
+------------------------------------------------------------------------
+r9105 | eicker | 2015-02-17 17:50:39 +0100 (Tue, 17 Feb 2015) | 2 lines
+
+psmom: usedThreads has to be initialized for double-entry bookkeeping
+
+------------------------------------------------------------------------
+r9104 | eicker | 2015-02-17 17:49:55 +0100 (Tue, 17 Feb 2015) | 5 lines
+
+Improved tracking and cleanup of used resources
+- New method PSIDpart_cleanupSlots()
+- Keep task-structure long enough to find a delegate
+- double-entry bookkeeping when delegating resource handling
+
+------------------------------------------------------------------------
+r9103 | eicker | 2015-02-17 17:45:49 +0100 (Tue, 17 Feb 2015) | 2 lines
+
+Improved tracking of resource usage
+
+------------------------------------------------------------------------
+r9102 | eicker | 2015-02-17 16:55:13 +0100 (Tue, 17 Feb 2015) | 2 lines
+
+Improve debug messages.
+
+------------------------------------------------------------------------
+r9101 | rauh | 2015-02-16 11:12:21 +0100 (Mon, 16 Feb 2015) | 2 lines
+
+Cleanup: use already defined PSIDNAME.
+
+------------------------------------------------------------------------
+r9100 | rauh | 2015-02-16 11:07:11 +0100 (Mon, 16 Feb 2015) | 2 lines
+
+Bugfix: the init script should be able to restart the psid after a package update. 
+
+------------------------------------------------------------------------
+r9099 | krempel | 2015-02-13 05:14:44 +0100 (Fri, 13 Feb 2015) | 2 lines
+
+PMI plugin: Enhance debugging output
+
+------------------------------------------------------------------------
+r9098 | krempel | 2015-02-13 05:09:08 +0100 (Fri, 13 Feb 2015) | 2 lines
+
+PMI plugin: Fix receiving of large PMI messages
+
+------------------------------------------------------------------------
+r9097 | eicker | 2015-02-11 16:36:28 +0100 (Wed, 11 Feb 2015) | 3 lines
+
+Streamline parastation.conf.tmpl inclusion into RPM. As a side-effect it
+    now ends up in the correct directory when building on RedHat
+
+------------------------------------------------------------------------
+r9096 | eicker | 2015-02-11 16:33:08 +0100 (Wed, 11 Feb 2015) | 2 lines
+
+Add pssignal.h and psreservation.h to fix 'make distcheck'
+
+------------------------------------------------------------------------
+r9095 | eicker | 2015-02-10 21:29:32 +0100 (Tue, 10 Feb 2015) | 2 lines
+
+Add support for resource-delegation to psmom.
+
+------------------------------------------------------------------------
+r9094 | eicker | 2015-02-10 21:21:36 +0100 (Tue, 10 Feb 2015) | 3 lines
+
+Rework delegate handling
+Add one todo.
+
+------------------------------------------------------------------------
+r9093 | eicker | 2015-02-10 21:21:01 +0100 (Tue, 10 Feb 2015) | 3 lines
+
+Add PSIDpart_cleanupRes() to cleanup active reservations while tasks is
+    destructed.
+
+------------------------------------------------------------------------
+r9092 | eicker | 2015-02-10 21:16:24 +0100 (Tue, 10 Feb 2015) | 5 lines
+
+Rework delegate handling
+Rework reservation request handling
+Fix resource release
+Make some problem-reports in PSIDpart_sendResNodes() more verbose
+
+------------------------------------------------------------------------
+r9091 | eicker | 2015-02-10 21:05:49 +0100 (Tue, 10 Feb 2015) | 2 lines
+
+Remove some obsolete debug output
+
+------------------------------------------------------------------------
+r9090 | eicker | 2015-02-09 09:25:30 +0100 (Mon, 09 Feb 2015) | 3 lines
+
+We need to PSE_initialize() before parsing the cmdline (PSI_resolveHWList()
+    requires connection to psid to work)
+
+------------------------------------------------------------------------
+r9089 | eicker | 2015-02-07 19:33:54 +0100 (Sat, 07 Feb 2015) | 3 lines
+
+New task-group TG_DELEGATE marking tasks used as delegates for resource
+    handling.
+
+------------------------------------------------------------------------
+r9088 | moschny | 2015-02-06 15:30:47 +0100 (Fri, 06 Feb 2015) | 1 line
+
+Do not silently swallow a build failure for make rpm.
+------------------------------------------------------------------------
+r9087 | eicker | 2015-02-06 15:08:18 +0100 (Fri, 06 Feb 2015) | 2 lines
+
+Fix malloc size error in mpiexec (allocation was too large)
+
+------------------------------------------------------------------------
+r9086 | eicker | 2015-02-06 15:06:41 +0100 (Fri, 06 Feb 2015) | 2 lines
+
+Add stubs for temporary dynamic extensions of paritions in mpiexec.
+
+------------------------------------------------------------------------
+r9085 | eicker | 2015-02-06 15:04:30 +0100 (Fri, 06 Feb 2015) | 2 lines
+
+Enhancement: Use reservations in order to fetch resources in mpiexec
+
+------------------------------------------------------------------------
+r9084 | eicker | 2015-02-06 14:59:09 +0100 (Fri, 06 Feb 2015) | 2 lines
+
+Introduce sendPMIFail() in mpiexec to encapsulate failure message to PMI
+
+------------------------------------------------------------------------
+r9083 | eicker | 2015-02-06 14:52:54 +0100 (Fri, 06 Feb 2015) | 2 lines
+
+Fix errors introduced in r9082
+
+------------------------------------------------------------------------
+r9082 | eicker | 2015-02-06 14:49:32 +0100 (Fri, 06 Feb 2015) | 2 lines
+
+Do not store hwType (aka nodetype) as string in mpiexec
+
+------------------------------------------------------------------------
+r9081 | eicker | 2015-02-06 14:33:15 +0100 (Fri, 06 Feb 2015) | 2 lines
+
+Rename some variables to avoid confusion.
+
+------------------------------------------------------------------------
+r9080 | eicker | 2015-02-06 14:16:55 +0100 (Fri, 06 Feb 2015) | 2 lines
+
+Improved logging in PSIDpart_register()
+
+------------------------------------------------------------------------
+r9079 | eicker | 2015-02-06 14:15:04 +0100 (Fri, 06 Feb 2015) | 3 lines
+
+Enhancement: Add delegation of resource handling. Will be used in
+    psmom (and psslurm?)
+
+------------------------------------------------------------------------
+r9078 | eicker | 2015-02-06 14:05:50 +0100 (Fri, 06 Feb 2015) | 2 lines
+
+Enhancement: Add stubs for temporary dynamic extension of partitions
+
+------------------------------------------------------------------------
+r9077 | eicker | 2015-02-06 13:56:28 +0100 (Fri, 06 Feb 2015) | 2 lines
+
+Check for queued reservation requests when resources are released
+
+------------------------------------------------------------------------
+r9076 | eicker | 2015-02-06 13:46:32 +0100 (Fri, 06 Feb 2015) | 2 lines
+
+Enhancement: reservation handling
+
+------------------------------------------------------------------------
+r9075 | eicker | 2015-02-06 13:31:35 +0100 (Fri, 06 Feb 2015) | 2 lines
+
+Daemon side of PSP_INFO_LIST_RESNODES request.
+
+------------------------------------------------------------------------
+r9074 | eicker | 2015-02-06 13:26:23 +0100 (Fri, 06 Feb 2015) | 3 lines
+
+Bugfix: Use correct maxTPP in PSIDpart_getNodes() even if it comes
+    from the last node. 
+
+------------------------------------------------------------------------
+r9073 | eicker | 2015-02-06 13:04:25 +0100 (Fri, 06 Feb 2015) | 4 lines
+
+Add helpers for reservation handling
+There is no need to handle PSP_CD_RESERVATIONRES explicitely
+PSIDpart_sendResNodes() will send a reservation's nodelist
+
+------------------------------------------------------------------------
+r9072 | eicker | 2015-02-06 12:56:43 +0100 (Fri, 06 Feb 2015) | 2 lines
+
+Improve PSIDpart_getNodes()'s documentation
+
+------------------------------------------------------------------------
+r9071 | eicker | 2015-02-06 12:31:00 +0100 (Fri, 06 Feb 2015) | 4 lines
+
+Use totalThreads and partThrds as an indicator for parition creation
+    instead of partitionSize and partition
+Check for support of all requested HW-types on allocated resources
+
+------------------------------------------------------------------------
+r9070 | eicker | 2015-02-06 12:13:13 +0100 (Fri, 06 Feb 2015) | 2 lines
+
+Change naming-scheme of partition request handlers
+
+------------------------------------------------------------------------
+r9069 | eicker | 2015-02-06 11:33:05 +0100 (Fri, 06 Feb 2015) | 3 lines
+
+Encapsulate getting the next reservation ID in PStask_getNextResID()
+Prepare for resource delegation in psmom (and psslurm?)
+
+------------------------------------------------------------------------
+r9068 | eicker | 2015-02-06 11:31:02 +0100 (Fri, 06 Feb 2015) | 2 lines
+
+Client side of PSP_INFO_LIST_RESNODES request
+
+------------------------------------------------------------------------
+r9067 | eicker | 2015-02-05 21:49:26 +0100 (Thu, 05 Feb 2015) | 2 lines
+
+Pass reason for failure to calling function in PSI_getReservation()
+
+------------------------------------------------------------------------
+r9066 | eicker | 2015-02-05 21:43:51 +0100 (Thu, 05 Feb 2015) | 3 lines
+
+New info-type PSP_INFO_LIST_RESNODES
+Also fetch data from typed messages using PSP_getTypedMsgBuf()
+
+------------------------------------------------------------------------
+r9065 | eicker | 2015-02-03 19:16:45 +0100 (Tue, 03 Feb 2015) | 2 lines
+
+Seed the sequence of reservation IDs by some meaningfull value.
+
+------------------------------------------------------------------------
+r9064 | eicker | 2015-02-03 19:13:56 +0100 (Tue, 03 Feb 2015) | 2 lines
+
+Partitions might become dynamic in the future.
+
+------------------------------------------------------------------------
+r9063 | eicker | 2015-02-03 19:12:56 +0100 (Tue, 03 Feb 2015) | 2 lines
+
+Some more attributes required in reservations.
+
+------------------------------------------------------------------------
+r9062 | eicker | 2015-02-02 16:56:56 +0100 (Mon, 02 Feb 2015) | 2 lines
+
+Introduce the new PSIDHOOK_XTND_PART_DYNAMIC hook.
+
+------------------------------------------------------------------------
+r9061 | eicker | 2015-02-02 16:24:21 +0100 (Mon, 02 Feb 2015) | 2 lines
+
+Actually use PSP_getMsgBuf() to implement PSI_getReservation() and PSI_getSlots()
+
+------------------------------------------------------------------------
+r9060 | eicker | 2015-01-30 17:13:05 +0100 (Fri, 30 Jan 2015) | 4 lines
+
+We need additional message types PSP_DD_GETRESERVATION, PSP_DD_GETSLOTS
+    and PSP_DD_SLOTSRES to forward the corresponding PSP_CD messages.
+
+
+------------------------------------------------------------------------
+r9059 | eicker | 2015-01-30 17:08:51 +0100 (Fri, 30 Jan 2015) | 2 lines
+
+Minor renaming of a PSrsrvtn_t attribute
+
+------------------------------------------------------------------------
+r9058 | eicker | 2015-01-30 17:06:56 +0100 (Fri, 30 Jan 2015) | 3 lines
+
+Add helpers PSP_getMsgBuf() and PSP_tryGetMsgBuf() to fetch data from
+    message buffers.
+
+------------------------------------------------------------------------
+r9057 | eicker | 2015-01-22 23:55:18 +0100 (Thu, 22 Jan 2015) | 3 lines
+
+Add some stubs for handling of new message types PSP_CD_GETRESERVATION,
+    PSP_CD_RESERVATIONRES, PSP_CD_GETSLOTS and PSP_CD_SLOTSRES
+
+------------------------------------------------------------------------
+r9056 | eicker | 2015-01-22 23:53:41 +0100 (Thu, 22 Jan 2015) | 2 lines
+
+Use PSP_putMsgBuf() more often.
+
+------------------------------------------------------------------------
+r9055 | eicker | 2015-01-22 23:44:04 +0100 (Thu, 22 Jan 2015) | 5 lines
+
+Enhancement: Client side of PSI_getReservation(), PSI_getSlots() and
+    PSI_spawnRsrvtn()
+Enhancement: New message types PSP_CD_GETRESERVATION, PSP_CD_RESERVATIONRES, 
+    PSP_CD_GETSLOTS and PSP_CD_SLOTSRES
+
+------------------------------------------------------------------------
+r9054 | eicker | 2015-01-22 23:40:13 +0100 (Thu, 22 Jan 2015) | 2 lines
+
+Add more fields to the PSrsrvtn_t structure.
+
+------------------------------------------------------------------------
+r9053 | eicker | 2015-01-22 16:52:36 +0100 (Thu, 22 Jan 2015) | 2 lines
+
+Enhancement: Improve warning in PSP_putMsgBuf() and PSP_putTypedMsgBuf()
+
+------------------------------------------------------------------------
+r9052 | eicker | 2015-01-22 13:45:43 +0100 (Thu, 22 Jan 2015) | 2 lines
+
+Enhancement: Add facility to handle slot-reservations within partitions.
+
+------------------------------------------------------------------------
+r9051 | eicker | 2015-01-22 10:59:11 +0100 (Thu, 22 Jan 2015) | 2 lines
+
+Refactor PSsignal stuff out of pstask.c
+
+------------------------------------------------------------------------
+r9050 | eicker | 2015-01-19 21:31:32 +0100 (Mon, 19 Jan 2015) | 3 lines
+
+Enhancement: Upgrade psmom to use the registration mechanism for
+    partitions. This shall help with #1187 and #2049.
+
+------------------------------------------------------------------------
+r9049 | eicker | 2015-01-19 21:24:05 +0100 (Mon, 19 Jan 2015) | 2 lines
+
+Bugfix: Fix typo.
+
+------------------------------------------------------------------------
+r9048 | eicker | 2015-01-19 21:14:17 +0100 (Mon, 19 Jan 2015) | 3 lines
+
+Bugfix: Only register the partition if master is known and capable to
+    handle the registration.
+
+------------------------------------------------------------------------
+r9047 | eicker | 2015-01-19 21:05:33 +0100 (Mon, 19 Jan 2015) | 2 lines
+
+More detailed log-messages from nodeFree() while setting up partition.
+
+------------------------------------------------------------------------
+r9046 | eicker | 2015-01-19 16:54:19 +0100 (Mon, 19 Jan 2015) | 2 lines
+
+Don't mark nodes as exclusive unless this is allowed.
+
+------------------------------------------------------------------------
+r9045 | eicker | 2015-01-19 16:52:04 +0100 (Mon, 19 Jan 2015) | 2 lines
+
+Rename SWThreads to assgndThreads within partition handling.
+
+------------------------------------------------------------------------
+r9044 | eicker | 2015-01-19 16:27:46 +0100 (Mon, 19 Jan 2015) | 3 lines
+
+Enhancement: ENV_PART_LOOPNODES aka. PSI_LOOP_NODES_FIRST not required
+    any more for batch-partitions.
+
+------------------------------------------------------------------------
+r9043 | eicker | 2015-01-15 23:18:25 +0100 (Thu, 15 Jan 2015) | 3 lines
+
+Bugfix: psmom's injectedEnv has to be defined on a per task base to
+    prevent race-conitions on multiple spawns in parallel.
+
+------------------------------------------------------------------------
+r9042 | eicker | 2015-01-15 20:52:49 +0100 (Thu, 15 Jan 2015) | 2 lines
+
+Bugfix: Actually store the options of the request to create a partition
+
+------------------------------------------------------------------------
+r9041 | eicker | 2015-01-14 12:01:56 +0100 (Wed, 14 Jan 2015) | 2 lines
+
+Allow to trigger the use of default options for getting nodes.
+
+------------------------------------------------------------------------
+r9040 | eicker | 2015-01-14 12:00:31 +0100 (Wed, 14 Jan 2015) | 2 lines
+
+Improve debug messages of PSI_createPartition() and PSI_getNodes().
+
+------------------------------------------------------------------------
+r9039 | eicker | 2015-01-13 20:14:07 +0100 (Tue, 13 Jan 2015) | 3 lines
+
+Enhancement: PSIDpart_register() allows to register partitions provided
+    by an external resource manager.
+
+------------------------------------------------------------------------
+r9038 | eicker | 2015-01-13 20:10:52 +0100 (Tue, 13 Jan 2015) | 2 lines
+
+Revert last change on psmgmt.spec.templ.
+
+------------------------------------------------------------------------
+r9037 | eicker | 2015-01-13 20:08:01 +0100 (Tue, 13 Jan 2015) | 2 lines
+
+Bugfix: Ensure that HW-types are handled correctly during spawn.
+
+------------------------------------------------------------------------
+r9036 | eicker | 2015-01-13 17:42:35 +0100 (Tue, 13 Jan 2015) | 2 lines
+
+Bugfix: Ensure that mpiexec fails if we run out of nodes.
+
+------------------------------------------------------------------------
+r9035 | eicker | 2015-01-13 17:41:14 +0100 (Tue, 13 Jan 2015) | 3 lines
+
+Bugfix: Ensure partition will not get too big
+Enhancement: Nicer debug-messages from within msg_GETNODES()
+
+------------------------------------------------------------------------
+r9034 | eicker | 2015-01-09 17:04:35 +0100 (Fri, 09 Jan 2015) | 2 lines
+
+Enhancement: Prepare spec-file for /etc/SuSE-release to disappear
+
+------------------------------------------------------------------------
+r9033 | eicker | 2015-01-08 22:38:40 +0100 (Thu, 08 Jan 2015) | 2 lines
+
+Be less verbose in psid unless PSID_getNodes() fails fatally
+
+------------------------------------------------------------------------
+r9032 | eicker | 2015-01-08 22:31:42 +0100 (Thu, 08 Jan 2015) | 2 lines
+
+Enhancement: Major re-write of job-local partition handling.
+
+------------------------------------------------------------------------
+r9031 | eicker | 2015-01-08 22:17:03 +0100 (Thu, 08 Jan 2015) | 4 lines
+
+Prepare mpiexec for the fact that PSP_INFO_LIST_PARTITION will return
+    compresses slot-lists in the near future.
+Most probably it's not a good idea to run the KVS-provider on the second node.
+
+------------------------------------------------------------------------
+r9030 | eicker | 2015-01-08 22:06:21 +0100 (Thu, 08 Jan 2015) | 2 lines
+
+Enhancement: Reorganize mpiexec's setup of spawned environments.
+
+------------------------------------------------------------------------
+r9029 | eicker | 2015-01-08 21:44:07 +0100 (Thu, 08 Jan 2015) | 2 lines
+
+Bugfix: Handling of -tpp command line option was not correct.
+
+------------------------------------------------------------------------
+r9028 | eicker | 2015-01-08 18:53:21 +0100 (Thu, 08 Jan 2015) | 3 lines
+
+Enhancement: Add client-side stuff for new info-request PSP_INFO_LIST_GETNODES
+    which is required by mpiexec once the new partition-handling is active.
+
+------------------------------------------------------------------------
+r9027 | eicker | 2015-01-07 14:54:36 +0100 (Wed, 07 Jan 2015) | 2 lines
+
+Bugfix: Fix format of some of the forwarder's error-messages.
+
+------------------------------------------------------------------------
+r9026 | eicker | 2015-01-05 20:27:58 +0100 (Mon, 05 Jan 2015) | 2 lines
+
+Bugfix: Change r9016 prevents libpsi from correct parsing of node-ranges 
+
+------------------------------------------------------------------------
+r9025 | eicker | 2014-12-18 22:04:45 +0100 (Thu, 18 Dec 2014) | 3 lines
+
+Enhancement: Support the per spawn tpp and options
+Enhancement: New options -tpp and -gtpp
+
+------------------------------------------------------------------------
+r9024 | eicker | 2014-12-18 22:01:22 +0100 (Thu, 18 Dec 2014) | 2 lines
+
+Bugfix: Avoid more unnecessary PSP_DD_CHILDRESREL messages.
+
+------------------------------------------------------------------------
+r9023 | eicker | 2014-12-18 21:59:03 +0100 (Thu, 18 Dec 2014) | 2 lines
+
+Improve PSI_getNodes()'s error message.
+
+------------------------------------------------------------------------
+r9022 | eicker | 2014-12-17 18:51:29 +0100 (Wed, 17 Dec 2014) | 5 lines
+
+Enhancement: Implement creation of more compact representations of
+    partition. This evict the considerations of LOOP_NODES_FIRST from
+    the actual partition creation. Instead, this will be done within the
+    job's resource management. All this is not yet enabled.
+
+------------------------------------------------------------------------
+r9021 | eicker | 2014-12-15 19:13:11 +0100 (Mon, 15 Dec 2014) | 4 lines
+
+Try to be more specific with terminology like HW-threds vs. CPUs and
+    SW-threads vs. jobs.
+Fix many typos.
+
+------------------------------------------------------------------------
+r9020 | eicker | 2014-12-12 13:38:06 +0100 (Fri, 12 Dec 2014) | 2 lines
+
+Fix typos and whitespace aesthetics.
+
+------------------------------------------------------------------------
+r9019 | eicker | 2014-12-11 21:31:28 +0100 (Thu, 11 Dec 2014) | 3 lines
+
+Remove support to consider resources of ancient (+10 years old)
+    applications.
+
+------------------------------------------------------------------------
+r9018 | eicker | 2014-12-11 21:02:38 +0100 (Thu, 11 Dec 2014) | 2 lines
+
+Fix typo in comment.
+
+------------------------------------------------------------------------
+r9017 | eicker | 2014-12-11 19:15:49 +0100 (Thu, 11 Dec 2014) | 3 lines
+
+Bugfix: Apply J. Hauke's patch binding RDP's UDP socket to the
+    configured IP address.
+
+------------------------------------------------------------------------
+r9016 | eicker | 2014-12-11 18:55:26 +0100 (Thu, 11 Dec 2014) | 2 lines
+
+Bugfix: Fix some more memory leaks and warning notified by clang's scan-build.
+
+------------------------------------------------------------------------
+r9015 | eicker | 2014-12-11 18:54:04 +0100 (Thu, 11 Dec 2014) | 2 lines
+
+Fix copyright statement.
+
+------------------------------------------------------------------------
+r9014 | eicker | 2014-12-11 18:53:28 +0100 (Thu, 11 Dec 2014) | 2 lines
+
+More whitespace aesthetics.
+
+------------------------------------------------------------------------
+r9013 | eicker | 2014-12-11 13:37:47 +0100 (Thu, 11 Dec 2014) | 2 lines
+
+Bugfix: Fix some more problems notified by clang's scan-build.
+
+------------------------------------------------------------------------
+r9012 | eicker | 2014-12-11 13:36:12 +0100 (Thu, 11 Dec 2014) | 2 lines
+
+Fix whitespace aesthetics.
+
+------------------------------------------------------------------------
+r9011 | eicker | 2014-12-09 13:19:42 +0100 (Tue, 09 Dec 2014) | 2 lines
+
+Bugfix: Close unneeded file to pid_max as reported by D. Krause.
+
+------------------------------------------------------------------------
+r9010 | eicker | 2014-12-05 19:43:49 +0100 (Fri, 05 Dec 2014) | 2 lines
+
+Enhancement: Provide core communication for the new GETNODES mechanisms.
+
+------------------------------------------------------------------------
+r9009 | eicker | 2014-12-05 19:33:35 +0100 (Fri, 05 Dec 2014) | 3 lines
+
+Get rid of superfluous get/setPSIEnv() calls.
+Fix whitespace.
+
+------------------------------------------------------------------------
+r9008 | eicker | 2014-12-03 19:58:14 +0100 (Wed, 03 Dec 2014) | 2 lines
+
+Minor fixes in psmom's logging.
+
+------------------------------------------------------------------------
+r9007 | eicker | 2014-12-03 11:23:19 +0100 (Wed, 03 Dec 2014) | 2 lines
+
+Enhancement: Allow to set psid's resource-limits via psiadmin (#1042)
+
+------------------------------------------------------------------------
+r9006 | eicker | 2014-11-26 19:11:40 +0100 (Wed, 26 Nov 2014) | 2 lines
+
+Fix some wrong whitespace.
+
+------------------------------------------------------------------------
+r9005 | eicker | 2014-11-14 13:59:17 +0100 (Fri, 14 Nov 2014) | 2 lines
+
+Mark psmgmt.sh and psmgmt.csh as %config(missingok,noreplace) (psc:#150)
+
+------------------------------------------------------------------------
+r9004 | eicker | 2014-11-14 13:44:52 +0100 (Fri, 14 Nov 2014) | 3 lines
+
+Rename psmom's ChangeLog-History, README and LICENSE.OpenPBS since they
+    end up in their own directory, anyhow.
+
+------------------------------------------------------------------------
+r9003 | eicker | 2014-11-14 13:35:42 +0100 (Fri, 14 Nov 2014) | 3 lines
+
+Enhancement: More streamlined handling of documentation.
+Fix some typos in psmgmt.spec.templ.
+
+------------------------------------------------------------------------
+r9002 | eicker | 2014-11-14 13:32:33 +0100 (Fri, 14 Nov 2014) | 2 lines
+
+Actually ax_check_link_flag.m4 is not required to build.
+
+------------------------------------------------------------------------
+r9001 | eicker | 2014-11-10 01:06:31 +0100 (Mon, 10 Nov 2014) | 2 lines
+
+Bugfix: Actually respect the chosen hardware type in mpiexec.
+
+------------------------------------------------------------------------
+r9000 | eicker | 2014-11-10 01:04:26 +0100 (Mon, 10 Nov 2014) | 3 lines
+
+Bugfix: Choose the right slot when getting nodes (from r8993)
+Enhancement: Consider the choice of specific hwTypes in PSI_getNodes()
+
+------------------------------------------------------------------------
+r8999 | eicker | 2014-11-10 00:51:36 +0100 (Mon, 10 Nov 2014) | 2 lines
+
+Enhancement: Avoid unnecessary PSP_DD_CHILDRESREL messages.
+
+------------------------------------------------------------------------
+r8998 | eicker | 2014-11-10 00:46:40 +0100 (Mon, 10 Nov 2014) | 2 lines
+
+Try to avoid releasing a task twice. This shall make no harm but just in case...
+
+------------------------------------------------------------------------
+r8997 | eicker | 2014-11-10 00:44:32 +0100 (Mon, 10 Nov 2014) | 2 lines
+
+More debug from forwarder on PSID_LOG_SPAWN.
+
+------------------------------------------------------------------------
+r8996 | eicker | 2014-11-10 00:43:11 +0100 (Mon, 10 Nov 2014) | 2 lines
+
+Improve debug log if sending to client fails
+
+------------------------------------------------------------------------
+r8995 | eicker | 2014-11-10 00:19:12 +0100 (Mon, 10 Nov 2014) | 2 lines
+
+Fix wrongs whitespace characters
+
+------------------------------------------------------------------------
+r8994 | eicker | 2014-11-10 00:17:53 +0100 (Mon, 10 Nov 2014) | 2 lines
+
+Enhancement: Mark kvs-providers in psiadmin accordingly.
+
+------------------------------------------------------------------------
+r8993 | eicker | 2014-11-07 20:35:04 +0100 (Fri, 07 Nov 2014) | 2 lines
+
+Enhancement: Release resources in partition management (#1988)
+
+------------------------------------------------------------------------
+r8992 | eicker | 2014-11-07 18:59:42 +0100 (Fri, 07 Nov 2014) | 2 lines
+
+Enhancement: Prepare for re-use of resources not required any longer.
+
+------------------------------------------------------------------------
+r8991 | krempel | 2014-11-07 14:40:15 +0100 (Fri, 07 Nov 2014) | 2 lines
+
+Update spec file for better handling of parastation.conf
+
+------------------------------------------------------------------------
+r8990 | krempel | 2014-11-04 18:31:12 +0100 (Tue, 04 Nov 2014) | 2 lines
+
+Add option to build without psconfig support
+
+------------------------------------------------------------------------
+r8989 | moschny | 2014-11-03 21:41:42 +0100 (Mon, 03 Nov 2014) | 1 line
+
+Update .gitattributes.
+------------------------------------------------------------------------
+r8988 | eicker | 2014-11-02 22:18:59 +0100 (Sun, 02 Nov 2014) | 2 lines
+
+Bugfix: Fix some problems notified by clangs build-scan.
+
+------------------------------------------------------------------------
+r8984 | eicker | 2014-11-02 20:57:05 +0100 (Sun, 02 Nov 2014) | 2 lines
+
+New version (psmgmt-5.0.46)
+
+------------------------------------------------------------------------
+
+
 Version psmgmt-5.0.46:
 ======================
 ------------------------------------------------------------------------

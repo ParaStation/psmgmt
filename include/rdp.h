@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2011 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2014 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -31,6 +31,7 @@ extern "C" {
 #include <stdio.h>
 #include <stdint.h>
 #include <sys/types.h>
+#include <netinet/in.h>
 
 /**
  * Information container for callback of type @ref RDP_PKT_UNDELIVERABLE.
@@ -81,6 +82,8 @@ typedef struct {
  *
  * @param nodes Number of nodes to handle.
  *
+ * @param addr The source IP address to bind to.
+ *
  * @param portno The UDP port number in host byteorder to use for sending and
  * receiving packets. If 0, @ref DEFAULT_RDP_PORT is used.
  *
@@ -103,7 +106,7 @@ typedef struct {
  *
  * @see syslog()
  */
-int initRDP(int nodes, unsigned short portno, FILE* logfile,
+int initRDP(int nodes, in_addr_t addr, unsigned short portno, FILE* logfile,
 	    unsigned int hosts[], void (*callback)(int, void*));
 
 /**

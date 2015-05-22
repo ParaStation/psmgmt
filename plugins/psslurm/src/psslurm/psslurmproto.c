@@ -35,6 +35,7 @@
 #include "psslurmforwarder.h"
 #include "psslurmpscomm.h"
 #include "psslurmenv.h"
+#include "psslurmpin.h"
 #include "psslurm.h"
 
 #include "pluginhostlist.h"
@@ -592,6 +593,12 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
 	step->accType = (!(strcmp(acctType, "jobacct_gather/none"))) ? 0 : 1;
     } else {
 	step->accType = 0;
+    }
+
+    if (!(setHWthreads(step))) {
+	sendSlurmRC(sMsg, ESLURMD_INVALID_JOB_CREDENTIAL);
+	deleteStep(step->jobid, step->stepid);
+	return;
     }
 
     /* let prologue run, if there is no job with the jobid there */

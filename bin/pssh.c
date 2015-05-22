@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2006-2012 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2006-2014 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -179,7 +179,7 @@ int main(int argc, const char *argv[])
 
     if (version) {
 	printVersion();
-	return 0;
+	exit(EXIT_SUCCESS);
     }
 
     if (node<0 && !host) {

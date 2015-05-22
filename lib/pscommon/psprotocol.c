@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2012 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2015 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -68,6 +68,10 @@ static struct {
     { PSP_CD_GETNODES         , "PSP_CD_GETNODES"         },
     { PSP_CD_NODESRES         , "PSP_CD_NODESRES"         },
     { PSP_CD_GETRANKNODE      , "PSP_CD_GETRANKNODE"      },
+    { PSP_CD_GETRESERVATION   , "PSP_CD_GETRESERVATION"   },
+    { PSP_CD_RESERVATIONRES   , "PSP_CD_RESERVATIONRES"   },
+    { PSP_CD_GETSLOTS         , "PSP_CD_GETSLOTS"         },
+    { PSP_CD_SLOTSRES         , "PSP_CD_SLOTSRES"         },
 
     { PSP_CD_SENDSTOP         , "PSP_CD_SENDSTOP"         },
     { PSP_CD_SENDCONT         , "PSP_CD_SENDCONT"         },
@@ -145,6 +149,11 @@ static struct {
     { PSP_INFO_LIST_NORMTASKS,   "PSP_INFO_LIST_NORMTASKS" },
     { PSP_INFO_LIST_ALLOCJOBS,   "PSP_INFO_LIST_ALLOCJOBS" },
     { PSP_INFO_LIST_EXCLUSIVE,   "PSP_INFO_LIST_EXCLUSIVE" },
+    { PSP_INFO_LIST_PARTITION,   "PSP_INFO_LIST_PARTITION" },
+    { PSP_INFO_LIST_MEMORY,      "PSP_INFO_LIST_MEMORY" },
+    { PSP_INFO_LIST_RESPORTS,    "PSP_INFO_LIST_RESPORTS" },
+    { PSP_INFO_LIST_GETNODES,    "PSP_INFO_LIST_GETNODES" },
+    { PSP_INFO_LIST_RESNODES,    "PSP_INFO_LIST_RESNODES" },
 
     { PSP_INFO_CMDLINE,          "PSP_INFO_CMDLINE" },
     { PSP_INFO_RPMREV,           "PSP_INFO_RPMREV" },
@@ -153,10 +162,6 @@ static struct {
     { PSP_INFO_QUEUE_ALLTASK,    "PSP_INFO_QUEUE_ALLTASK" },
     { PSP_INFO_QUEUE_NORMTASK,   "PSP_INFO_QUEUE_NORMTASK" },
     { PSP_INFO_QUEUE_PARTITION,  "PSP_INFO_QUEUE_PARTITION" },
-
-    { PSP_INFO_LIST_PARTITION,   "PSP_INFO_LIST_PARTITION" },
-    { PSP_INFO_LIST_MEMORY,      "PSP_INFO_LIST_MEMORY" },
-    { PSP_INFO_LIST_RESPORTS,    "PSP_INFO_LIST_RESPORTS" },
 
     { PSP_INFO_QUEUE_PLUGINS,    "PSP_INFO_QUEUE_PLUGINS" },
 
@@ -193,7 +198,8 @@ size_t PSP_strLen(char *str)
     return str ? strlen(str) + 1 : 0;
 }
 
-int PSP_putMsgBuf(DDBufferMsg_t *msg, char *dataName, void *data, size_t size)
+int PSP_putMsgBuf(DDBufferMsg_t *msg, const char *funcName,
+		  const char *dataName, const void *data, size_t size)
 {
     size_t off = msg->header.len - sizeof(msg->header);
     size_t used;
@@ -206,7 +212,8 @@ int PSP_putMsgBuf(DDBufferMsg_t *msg, char *dataName, void *data, size_t size)
 	msg->buf[off] = '\0';
     }
     if (!used) {
-	PSC_log(-1, "%s: data '%s' too large for buffer\n", __func__, dataName);
+	PSC_log(-1, "%s: data '%s' too large in %s()\n", __func__, dataName,
+		funcName);
 	return 0;
     }
     msg->header.len += used;
@@ -214,8 +221,55 @@ int PSP_putMsgBuf(DDBufferMsg_t *msg, char *dataName, void *data, size_t size)
     return 1;
 }
 
-int PSP_putTypedMsgBuf(DDTypedBufferMsg_t *msg, char *dataName, void *data,
-		       size_t size)
+static int doGetMsgBuf(DDBufferMsg_t *msg, size_t *used, const char *callName,
+		       const char *funcName, const char *dataName, void *data,
+		       size_t size, int typed, int try)
+{
+    size_t avail;
+    size_t u;
+
+    if (!msg || !used || !data) {
+	PSC_log(-1, "%s: no '%s' provided for '%s' in %s()\n",callName,
+		msg ? (used ? "data" : "used") : "msg", dataName, funcName);
+	return 0;
+    }
+
+    u = *used;
+    if (typed) {
+	DDTypedBufferMsg_t *p;
+	u += (void *)&p->buf - (void *)&p->type;
+    }
+
+    avail = msg->header.len - sizeof(msg->header);
+    if (size > avail - u) {
+	PSC_log(try ? PSC_LOG_VERB : -1,
+		"%s: insufficient data for '%s' in %s()\n", callName, dataName,
+		funcName);
+	return 0;
+    }
+
+    memcpy(data, msg->buf + u, size);
+    *used += size;
+
+    return 1;
+}
+
+int PSP_tryGetMsgBuf(DDBufferMsg_t *msg, size_t *used, const char *funcName,
+		     const char *dataName, void *data, size_t size)
+{
+    return doGetMsgBuf(msg, used, __func__, funcName,
+		       dataName, data, size, 0, 1);
+}
+
+int PSP_getMsgBuf(DDBufferMsg_t *msg, size_t *used, const char *funcName,
+		  const char *dataName, void *data, size_t size)
+{
+    return doGetMsgBuf(msg, used, __func__, funcName,
+		       dataName, data, size, 0, 0);
+}
+
+int PSP_putTypedMsgBuf(DDTypedBufferMsg_t *msg, const char *funcName,
+		       const char *dataName, const void *data, size_t size)
 {
     size_t off = msg->header.len - sizeof(msg->header) - sizeof(msg->type);
     size_t used;
@@ -228,10 +282,19 @@ int PSP_putTypedMsgBuf(DDTypedBufferMsg_t *msg, char *dataName, void *data,
 	msg->buf[off] = '\0';
     }
     if (!used) {
-	PSC_log(-1, "%s: data '%s' too large for buffer\n", __func__, dataName);
+	PSC_log(-1, "%s: data '%s' too large in %s()\n", __func__, dataName,
+		funcName);
 	return 0;
     }
     msg->header.len += used;
 
     return 1;
+}
+
+int PSP_getTypedMsgBuf(DDTypedBufferMsg_t *msg, size_t *used,
+		       const char *funcName, const char *dataName, void *data,
+		       size_t size)
+{
+    return doGetMsgBuf((DDBufferMsg_t *)msg, used, __func__, funcName,
+		       dataName, data, size, 1, 0);
 }

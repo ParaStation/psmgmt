@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2013 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2015 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -39,6 +39,9 @@ static char vcid[] __attribute__((used)) =
 #include "psidinfo.h"
 
 extern char psid_cvsid[];
+
+#define slotSpaceSize (128*1024/sizeof(PSpart_slot_t))
+static PSpart_slot_t slotSpace[slotSpaceSize];
 
 /**
  * @brief Handle a PSP_CD_INFOREQUEST message.
@@ -389,42 +392,45 @@ static void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 	{
 	    PStask_ID_t tid = PSC_getPID(inmsg->header.dest) ?
 		inmsg->header.dest : inmsg->header.sender;
-	    PStask_t *task = PStasklist_find(&managedTasks, tid);
-	    if (task) {
-		if (task->ptid) {
-		    msg.header.type = inmsg->header.type;
-		    msg.header.dest = task->ptid;
-		    msg.header.sender = inmsg->header.sender;
-		    if (msg.type == PSP_INFO_RANKID) {
-			*(int *)msg.buf = *(int *)inmsg->buf;
-			msg.header.len += sizeof(int);
-		    }
-		    msg_INFOREQUEST(&msg);
-		    return;
-		} else {
-		    if (msg.type == PSP_INFO_RANKID) {
-			int rank = *(int32_t *) inmsg->buf;
-			if (rank < 0) {
-			    *(PSnodes_ID_t *)msg.buf = -1;
-			} else if (rank >= (int)task->partitionSize) {
-			    /* @todo pinning Think about how to use OVERBOOK */
-			    if (task->options & PART_OPT_OVERBOOK) {
-				*(PSnodes_ID_t *)msg.buf =
-				    task->partition[rank%task->partitionSize].node;
-			    } else {
-				*(PSnodes_ID_t *)msg.buf = -1;
-			    }
-			} else {
-			    *(PSnodes_ID_t *)msg.buf = task->partition[rank].node;
-			}
-			msg.header.len += sizeof(PSnodes_ID_t);
-		    } else {
-			*(int *)msg.buf = task->nextRank;
-			msg.header.len += sizeof(int);
-		    }
-		}
-	    } else {
+	    PStask_t *task = PStasklist_find(&managedTasks, tid), *dlgt;
+	    if (!task) {
 		*(int *)msg.buf = -1;
+		msg.header.len += sizeof(int);
+		break;
+	    }
+
+	    if (task->ptid) {
+		msg.header.type = inmsg->header.type;
+		msg.header.dest = task->ptid;
+		msg.header.sender = inmsg->header.sender;
+		if (msg.type == PSP_INFO_RANKID) {
+		    *(int *)msg.buf = *(int *)inmsg->buf;
+		    msg.header.len += sizeof(int);
+		}
+		msg_INFOREQUEST(&msg);
+		return;
+	    }
+	    dlgt = task->delegate ? task->delegate : task;
+	    if (msg.type == PSP_INFO_RANKID) {
+		/* @todo this does not work any more !! */
+		/* @todo rework this for HW-threads and reservations */
+		int rank = *(int32_t *) inmsg->buf;
+		if (rank < 0) {
+		    *(PSnodes_ID_t *)msg.buf = -1;
+		} else if (rank >= (int)dlgt->partitionSize) {
+		    /* @todo pinning Think about how to use OVERBOOK */
+		    if (task->options & PART_OPT_OVERBOOK) {
+			*(PSnodes_ID_t *)msg.buf =
+			    dlgt->partition[rank%dlgt->partitionSize].node;
+		    } else {
+			*(PSnodes_ID_t *)msg.buf = -1;
+		    }
+		} else {
+		    *(PSnodes_ID_t *)msg.buf = dlgt->partition[rank].node;
+		}
+		msg.header.len += sizeof(PSnodes_ID_t);
+	    } else {
+		*(int *)msg.buf = task->activeChild;
 		msg.header.len += sizeof(int);
 	    }
 	    break;
@@ -554,7 +560,7 @@ static void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 			size = sizeof(uint16_t);
 			break;
 		    case PSP_INFO_LIST_ALLOCJOBS:
-			((uint16_t *)msg.buf)[idx] = getAssignedJobs(node);
+			((uint16_t *)msg.buf)[idx] = getAssignedThreads(node);
 			size = sizeof(uint16_t);
 			break;
 		    case PSP_INFO_LIST_EXCLUSIVE:
@@ -684,6 +690,131 @@ static void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 
 	    msg.header.len = len;
 	    msg.type = PSP_INFO_LIST_END;
+	}
+	case PSP_INFO_LIST_GETNODES:
+	{
+	    PStask_ID_t target = PSC_getPID(inmsg->header.dest) ?
+		inmsg->header.dest : inmsg->header.sender;
+	    PStask_t *task = PStasklist_find(&managedTasks, target);
+
+	    if (!task) {
+		PSID_log(-1, "%s: task %s not found\n",
+			 funcStr, PSC_printTID(target));
+		msg.type = PSP_INFO_LIST_END;
+		break;
+	    }
+
+	    if (task->ptid) {
+		PSID_log(PSID_LOG_INFO, "%s: forward to root process %s\n",
+			 funcStr, PSC_printTID(task->ptid));
+		msg.header.type = inmsg->header.type;
+		msg.header.sender = inmsg->header.sender;
+		msg.header.dest = task->ptid;
+		memcpy(msg.buf, inmsg->buf, inmsg->header.len
+		       - sizeof(inmsg->header) - sizeof(inmsg->type));
+		msg.header.len = inmsg->header.len;
+		msg_INFOREQUEST(&msg);
+		return;
+	    } else {
+		char *ptr = inmsg->buf;
+		uint32_t np, hwType;
+		PSpart_option_t options;
+		uint16_t tpp;
+		unsigned int got;
+		PSpart_slot_t *mySlots;
+
+		np = *(uint32_t *)ptr;
+		ptr += sizeof(uint32_t);
+
+		hwType = *(uint32_t *)ptr;
+		ptr += sizeof(uint32_t);
+
+		options = *(PSpart_option_t *)ptr;
+		ptr += sizeof(PSpart_option_t);
+
+		tpp = *(uint16_t *)ptr;
+		//ptr += sizeof(uint16_t);
+
+		if (np > slotSpaceSize) {
+		    mySlots = malloc(np*sizeof(*mySlots));
+		    if (!mySlots) {
+			PSID_warn(-1, errno, "%s: mySlots", funcStr);
+			msg.type = PSP_INFO_LIST_END;
+			break;
+		    }
+		} else {
+		    mySlots = slotSpace;
+		}
+
+		got = PSIDpart_getNodes(np, hwType, options, tpp, task,
+					mySlots, 1);
+		PSID_log(PSID_LOG_INFO, "%s: got %d\n", funcStr, got);
+
+		if (got == np) {
+		    const size_t chunkSize = 1024;
+		    unsigned int idx = 0, n;
+		    for (n=0; n<got; n++) {
+			((PSnodes_ID_t *)msg.buf)[idx] = mySlots[n].node;
+			idx++;
+			if (idx >= chunkSize/sizeof(PSnodes_ID_t)) {
+			    msg.header.len += idx * sizeof(PSnodes_ID_t);
+			    sendMsg(&msg);
+			    msg.header.len -= idx * sizeof(PSnodes_ID_t);
+			    idx=0;
+			}
+		    }
+		    if (idx) {
+			msg.header.len += idx * sizeof(PSnodes_ID_t);
+			sendMsg(&msg);
+			msg.header.len -= idx * sizeof(PSnodes_ID_t);
+		    }
+		} else {
+		    PSID_log(-1, "%s: task %s has %d of %d nodes\n",
+			     funcStr, PSC_printTID(target), got, np);
+		}
+		msg.type = PSP_INFO_LIST_END;
+
+		if (np > slotSpaceSize && mySlots) {
+		    free(mySlots);
+		}
+	    }
+	    break;
+	}
+	case PSP_INFO_LIST_RESNODES:
+	{
+	    PStask_ID_t target = PSC_getPID(inmsg->header.dest) ?
+		inmsg->header.dest : inmsg->header.sender;
+	    PStask_t *task = PStasklist_find(&managedTasks, target);
+
+	    if (!task) {
+		PSID_log(-1, "%s: task %s not found\n",
+			 funcStr, PSC_printTID(target));
+		msg.type = PSP_INFO_LIST_END;
+		break;
+	    }
+
+	    if (task->ptid) {
+		PSID_log(PSID_LOG_INFO, "%s: forward to root process %s\n",
+			 funcStr, PSC_printTID(task->ptid));
+		msg.header.type = inmsg->header.type;
+		msg.header.sender = inmsg->header.sender;
+		msg.header.dest = task->ptid;
+		memcpy(msg.buf, inmsg->buf, inmsg->header.len
+		       - sizeof(inmsg->header) - sizeof(inmsg->type));
+		msg.header.len = inmsg->header.len;
+		msg_INFOREQUEST(&msg);
+		return;
+	    } else {
+		PSrsrvtn_ID_t resID;
+		size_t used = 0;
+
+		PSP_getTypedMsgBuf(inmsg, &used, __func__, "resID", &resID,
+				   sizeof(resID));
+
+		PSIDpart_sendResNodes(resID, task, &msg);
+		msg.type = PSP_INFO_LIST_END;
+	    }
+	    break;
 	}
 	case PSP_INFO_CMDLINE:
 	{

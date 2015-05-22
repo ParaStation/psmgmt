@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2013 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2013-2015 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -122,7 +122,8 @@ int PSIcomm_send(int dest_rank, int type, void *payload, size_t len)
     msg.type = type;
     msg.header.len += sizeof(msg.type);
 
-    PSP_putMsgBuf((DDBufferMsg_t*)&msg, "payload", len ? payload : NULL, len);
+    PSP_putMsgBuf((DDBufferMsg_t*)&msg, __func__, "payload",
+		  len ? payload : NULL, len);
 
     return do_send((char*)&msg, msg.header.len);
 

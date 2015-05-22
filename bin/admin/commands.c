@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2014 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2015 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -27,6 +27,7 @@ static char vcid[] __attribute__((used)) =
 #include <netdb.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
+#include <sys/resource.h>
 
 #include "pscommon.h"
 #include "parser.h"
@@ -277,7 +278,7 @@ void PSIADM_AddNode(char *nl)
 	} else {
 	    printf("starting node %s\n", nodeString(node));
 	    msg.header.len = sizeof(msg.header);
-	    PSP_putMsgBuf(&msg, "node ID", &node, sizeof(node));
+	    PSP_putMsgBuf(&msg, __func__, "node ID", &node, sizeof(node));
 	    PSI_sendMsg(&msg);
 	    usleep(delay * 1000);
 	}
@@ -296,8 +297,8 @@ void PSIADM_ShutdownNode(int silent, char *nl)
     int send_local = 0;
 
     if (geteuid()) {
-    	printf("Insufficient privilege\n");
-    	return;
+	printf("Insufficient privilege\n");
+	return;
     }
 
     if (! getHostStatus()) return;
@@ -343,7 +344,7 @@ void PSIADM_HWStart(int hw, char *nl)
     err = PSI_infoInt(-1, PSP_INFO_HWNUM, NULL, &hwnum, 1);
     if (err || hw < -1 || hw >= hwnum) return;
 
-    PSP_putMsgBuf(&msg, "hardware type", &hw32, sizeof(hw32));
+    PSP_putMsgBuf(&msg, __func__, "hardware type", &hw32, sizeof(hw32));
 
     if (! getHostStatus()) return;
 
@@ -379,7 +380,7 @@ void PSIADM_HWStop(int hw, char *nl)
     err = PSI_infoInt(-1, PSP_INFO_HWNUM, NULL, &hwnum, 1);
     if (err || hw < -1 || hw >= hwnum) return;
 
-    PSP_putMsgBuf(&msg, "hardware type", &hw32, sizeof(hw32));
+    PSP_putMsgBuf(&msg, __func__, "hardware type", &hw32, sizeof(hw32));
 
     if (! getHostStatus()) return;
 
@@ -752,6 +753,7 @@ void PSIADM_ProcStat(int count, int full, char *nl)
 	    if (taskInfo[numTasks].group==TG_SERVICE_SIG && !full) continue;
 	    if (taskInfo[numTasks].group==TG_KVS && !full) continue;
 	    if (taskInfo[numTasks].group==TG_ACCOUNT && !full) continue;
+	    if (taskInfo[numTasks].group==TG_DELEGATE && !full) continue;
 	    numTasks++;
 	    if (numTasks*sizeof(*taskInfo) >= tiList.actSize) {
 		if (extendList(&tiList, tiList.actSize * 2, __func__)) {
@@ -780,9 +782,11 @@ void PSIADM_ProcStat(int count, int full, char *nl)
 		   taskInfo[task].group==TG_PSCSPAWNER ? "(S)" :
 		   taskInfo[task].group==TG_MONITOR ? "(M)" :
 		   taskInfo[task].group==TG_ADMINTASK ? "(*)" :
+		   taskInfo[task].group==TG_KVS ? "(K)" :
 		   taskInfo[task].group==TG_SERVICE ? "(S)" :
 		   taskInfo[task].group==TG_SERVICE_SIG ? "(S)" :
 		   taskInfo[task].group==TG_ACCOUNT ? "(C)" :
+		   taskInfo[task].group==TG_DELEGATE ? "(D)" :
 		   " ");
 
 	    {
@@ -1494,11 +1498,28 @@ void PSIADM_SetParam(PSP_Option_t type, PSP_Optval_t value, char *nl)
 	    return;
 	}
 	break;
+    case PSP_OP_RL_AS:
+    case PSP_OP_RL_CORE:
+    case PSP_OP_RL_CPU:
+    case PSP_OP_RL_DATA:
+    case PSP_OP_RL_FSIZE:
+    case PSP_OP_RL_LOCKS:
+    case PSP_OP_RL_MEMLOCK:
+    case PSP_OP_RL_MSGQUEUE:
+    case PSP_OP_RL_NOFILE:
+    case PSP_OP_RL_NPROC:
+    case PSP_OP_RL_RSS:
+    case PSP_OP_RL_SIGPENDING:
+    case PSP_OP_RL_STACK:
+	if (value != (PSP_Optval_t)RLIM_INFINITY && value < 0) {
+	    printf(" value must be >= 0 or 'unlimited'.\n");
+	    return;
+	}
+	break;
     case PSP_OP_PSIDDEBUG:
     case PSP_OP_RDPDEBUG:
     case PSP_OP_MCASTDEBUG:
     case PSP_OP_FREEONSUSP:
-    case PSP_OP_HANDLEOLD:
     case PSP_OP_NODESSORT:
     case PSP_OP_OVERBOOK:
     case PSP_OP_STARTER:
@@ -1635,7 +1656,6 @@ void PSIADM_ShowParam(PSP_Option_t type, char *nl)
 			break;
 		    }
 		case PSP_OP_FREEONSUSP:
-		case PSP_OP_HANDLEOLD:
 		case PSP_OP_EXCLUSIVE:
 		case PSP_OP_RUNJOBS:
 		case PSP_OP_STARTER:
@@ -1740,7 +1760,7 @@ void PSIADM_ShowParamList(PSP_Option_t type, char *nl)
 		case PSP_OP_RL_SIGPENDING:
 		case PSP_OP_RL_STACK:
 		    if (total) printf(" / ");
-		    if (options[i].value == -1) {
+		    if (options[i].value == (PSP_Optval_t)RLIM_INFINITY) {
 			printf("unlimited");
 		    } else {
 			printf(paramHexFormat ? "0x%x" : "%d",
@@ -1950,7 +1970,8 @@ void PSIADM_Plugin(char *nl, char *name, PSP_Plugin_t action)
 
     msg.type = action;
 
-    if (!PSP_putTypedMsgBuf(&msg, "plugin", name, PSP_strLen(name))) return;
+    if (!PSP_putTypedMsgBuf(&msg, __func__, "plugin", name, PSP_strLen(name)))
+	return;
 
     if (! getHostStatus()) return;
 
@@ -2044,9 +2065,12 @@ void PSIADM_PluginKey(char *nl, char *name, char *key, char *value,
 
     msg.type = action;
 
-    if (!PSP_putTypedMsgBuf(&msg, "plugin", name, PSP_strLen(name))) return;
-    if (!PSP_putTypedMsgBuf(&msg, "key", key, PSP_strLen(key))) return;
-    if (!PSP_putTypedMsgBuf(&msg, "value", value, PSP_strLen(value))) return;
+    if (!PSP_putTypedMsgBuf(&msg, __func__, "plugin", name, PSP_strLen(name)))
+	return;
+    if (!PSP_putTypedMsgBuf(&msg, __func__, "key", key, PSP_strLen(key)))
+	return;
+    if (!PSP_putTypedMsgBuf(&msg, __func__, "value", value, PSP_strLen(value)))
+	return;
 
     if (! getHostStatus()) return;
 
@@ -2078,7 +2102,8 @@ static int putEnv(DDTypedBufferMsg_t *msg, char *key, char *value)
 
     snprintf(env, sizeof(env), "%s=%s", key, value);
 
-    return PSP_putTypedMsgBuf(msg, "environment", env, PSP_strLen(env));
+    return PSP_putTypedMsgBuf(msg, __func__, "environment", env,
+			      PSP_strLen(env));
 }
 
 
@@ -2100,7 +2125,8 @@ void PSIADM_Environment(char *nl, char *key, char *value, PSP_Env_t action)
 	if (!putEnv(&msg, key, value)) return;
 	break;
     case PSP_ENV_UNSET:
-	if (!PSP_putTypedMsgBuf(&msg, "key", key, PSP_strLen(key))) return;
+	if (!PSP_putTypedMsgBuf(&msg, __func__, "key", key, PSP_strLen(key)))
+	    return;
 	break;
     default:
 	printf("Unknown action %d\n", action);

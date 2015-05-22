@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2014 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2015 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -22,6 +22,7 @@
 #define __PSIDTASK_H
 
 #include "pstask.h"
+#include "pssignal.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -65,7 +66,7 @@ void PSID_setSignal(list_t *sigList, PStask_ID_t tid, int signal);
  * within the signal list, a pointer to the signal is
  * returned. Otherwise NULL is given back.
  */
-PStask_sig_t *PSID_findSignal(list_t *sigList, PStask_ID_t tid, int signal);
+PSsignal_t *PSID_findSignal(list_t *sigList, PStask_ID_t tid, int signal);
 
 /**
  * @brief Unregister signal.

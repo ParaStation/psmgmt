@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2007-2014 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2007-2015 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -67,9 +67,11 @@ static char vcid[] __attribute__((used)) =
 
 typedef struct {
     int np;
+    uint32_t hwType;
+    int tpp;
+    PSrsrvtn_ID_t resID;
     int argc;
     char **argv;
-    char *nodetype;
     char *wdir;
 } Executable_t;
 
@@ -99,8 +101,10 @@ int show = 0;
 int verbose = 0;
 /** set mpich 1 compatible mode */
 int mpichcom = 0;
-/** list of all nodes */
-PSnodes_ID_t *nodeList = NULL;
+/** list of all slots in the partition */
+PSnodes_ID_t *slotList = NULL;
+/** actual size of the slotList */
+size_t slotListSize = 0;
 /** number of unique nodes */
 int numUniqNodes = 0;
 /** number of unique hosts */
@@ -136,13 +140,17 @@ int *nodeLocalProcIDs = NULL;
 /* process options */
 int np = -1;
 int gnp = -1;
+int tpp = 0;
+int gtpp = 0;
+int envtpp = 0;
+int maxtpp = 1;
 int envall = 0;
 int usize = 0;
 mode_t u_mask;
 char *wdir = NULL;
 char *gwdir = NULL;
-char *nodelist = NULL;
-char *hostlist = NULL;
+char *nodelistStr = NULL;
+char *hostlistStr = NULL;
 char *hostfile = NULL;
 char *envlist = NULL;
 char *nodetype = NULL;
@@ -171,6 +179,7 @@ int overbook = 0;
 int exclusive = 0;
 int wait = 0;
 int loopnodesfirst = 0;
+int dynamic = 0;
 int mergeout = 0;
 int mergedepth = 0;
 int mergetmout = 0;
@@ -363,13 +372,13 @@ static void getFirstNodeID(PSnodes_ID_t *nodeID)
     envnodes = getenv(ENV_NODE_NODES);
     envhosts = getenv(ENV_NODE_HOSTS);
 
-    if (envnodes) nodelist = envnodes;
-    if (envhosts) hostlist = envhosts;
+    if (envnodes) nodelistStr = envnodes;
+    if (envhosts) hostlistStr = envhosts;
 
-    if (hostlist) {
-	parse = strdup(hostlist);
+    if (hostlistStr) {
+	parse = strdup(hostlistStr);
     } else {
-	parse = strdup(nodelist);
+	parse = strdup(nodelistStr);
     }
 
     if (!parse) {
@@ -382,7 +391,7 @@ static void getFirstNodeID(PSnodes_ID_t *nodeID)
 	return;
     }
 
-    if (hostlist) {
+    if (hostlistStr) {
 	getNodeIDbyHost(nodeparse, nodeID);
     } else {
 	node = strtol(nodeparse, &end, 10);
@@ -455,46 +464,56 @@ void setupGlobalEnv(int admin, int np)
 }
 
 /**
- * @brief Searches the nodelist by an index.
+ * @brief Searches the slot-list by an index.
  *
- * Searches the nodelist and returns a nodeID indicated by
- * an index. Identical nodeID will be skipped if the nodelist
- * is sorted.
+ * Searches the list of slots and return the nodeID indicated by
+ * index. Successive nodeIDs will be skipped.
  *
- * @param np The maximal number of process.
+ * Be aware of the fact that the list of slots forming the partition
+ * is not identical to the list of nodes in the sense of nodes used by
+ * specific ranks. In fact, the slots are a form of a compactified
+ * list of nodes, i.e. the is just one slot for each physical node.
  *
- * @param index The index to find in the nodelist.
+ * @param index The index to find in the slot-list.
  *
- * @return Returns the requested nodeID or the last nodeID
- * in the nodelist for invalid indexes.
+ * @return Returns the requested nodeID or the last nodeID in the
+ * slot-list for invalid indexes. In case the slot-list is not
+ * available, -1 is returned and thus the local node is adressed.
  */
-static PSnodes_ID_t getNodeIDbyIndex(int np, int index)
+static PSnodes_ID_t getNodeIDbyIndex(int index)
 {
     PSnodes_ID_t lastID;
-    int i, count = 1, pSize;
+    int count = 0;
+    unsigned int i;
 
-    /* request the complete nodelist */
-    if (!nodeList) {
-       pSize = usize > np ? usize : np;
-       nodeList = umalloc(pSize*sizeof(nodeList), __func__);
+    /* request the complete list of slots */
+    if (!slotList) {
+	int numBytes, pSize = usize > np ? usize : np;
 
-       PSI_infoList(-1, PSP_INFO_LIST_PARTITION, NULL,
-               nodeList, pSize*sizeof(*nodeList), 0);
+	slotList = umalloc(pSize*sizeof(slotList), __func__);
+
+	numBytes = PSI_infoList(-1, PSP_INFO_LIST_PARTITION, NULL,
+				slotList, pSize*sizeof(*slotList), 0);
+	if (numBytes < 0) {
+	    free(slotList);
+	    slotList = NULL;
+	    slotListSize = 0;
+	    return -1;
+	}
+	slotListSize = numBytes / sizeof(*slotList);
     }
 
-    lastID = nodeList[0];
+    lastID = slotList[0];
 
-    for (i=0; i<np; i++) {
-       if (lastID != nodeList[i]) {
-           if (count >= index) {
-               return nodeList[i];
-           }
-           count++;
-           lastID = nodeList[i];
+    for (i=0; i<slotListSize; i++) {
+	if (lastID != slotList[i]) {
+	   lastID = slotList[i];
+	   count++;
+	   if (count > index) break;
        }
     }
 
-    return nodeList[np -1];
+    return lastID;
 }
 
 static void startKVSProvider(int argc, char *argv[], char **envp)
@@ -529,7 +548,7 @@ static void startKVSProvider(int argc, char *argv[], char **envp)
     pwd = getcwd(tmp, sizeof(tmp));
 
     startNode = (getenv("__MPIEXEC_DIST_START") ?
-			getNodeIDbyIndex(np, 2) : PSC_getMyID());
+		 getNodeIDbyIndex(0) : PSC_getMyID());
 
     ret = PSI_spawnService(startNode, pwd, argc, argv, 0, &error,
 	    &spawnedProc, sRank);
@@ -605,18 +624,22 @@ static void createSpawner(int argc, char *argv[], int np, int admin)
     PStask_ID_t myTID = PSC_getMyTID();
 
     if (rank==-1) {
-	int error, spawnedProc, ret, pSize;
+	int error, spawnedProc, ret;
 	ssize_t cnt;
-
-	pSize = usize > np ? usize : np;
-	nodeList = umalloc(pSize*sizeof(nodeList), __func__);
+	int pSize = usize > np ? usize : np;
 
 	if (!admin) {
+	    if (maxtpp > 1 && !envtpp) {
+		char tmp[32];
+		snprintf(tmp, sizeof(tmp), "%d", maxtpp);
+		setenv("PSI_TPP", tmp, 1);
+	    }
 	    if (PSE_getPartition(pSize)<0) exit(EXIT_FAILURE);
-	    PSI_infoList(-1, PSP_INFO_LIST_PARTITION, NULL,
-			 nodeList, pSize*sizeof(*nodeList), 0);
+	    if (!envtpp) {
+		unsetenv("PSI_TPP");
+	    }
 	    startNode = (getenv("__MPIEXEC_DIST_START") ?
-			    getNodeIDbyIndex(np, 1) : PSC_getMyID());
+			 getNodeIDbyIndex(1) : PSC_getMyID());
 	    setPSIEnv("__MPIEXEC_DIST_START",
 		      getenv("__MPIEXEC_DIST_START"), 1);
 	} else {
@@ -654,8 +677,6 @@ static void createSpawner(int argc, char *argv[], int np, int admin)
 
 	ret=PSI_spawnService(startNode, pwd, argc, argv, 0, &error,
 				&spawnedProc, 0);
-
-	free(nodeList);
 
 	if (ret < 0 || error) {
 	    fprintf(stderr, "Could not spawn master process (%s)", argv[0]);
@@ -754,17 +775,17 @@ static char *str2Buf(char *strSave, char *buffer, size_t *bufSize)
     size_t lenSave, lenBuf;
 
     if (!buffer) {
-        buffer = umalloc(MALLOC_SIZE, __func__);
-        *bufSize = MALLOC_SIZE;
-        buffer[0] = '\0';
+	buffer = umalloc(MALLOC_SIZE, __func__);
+	*bufSize = MALLOC_SIZE;
+	buffer[0] = '\0';
     }
 
     lenSave = strlen(strSave);
     lenBuf = strlen(buffer);
 
     while (lenBuf + lenSave + 1 > *bufSize) {
-        buffer = urealloc(buffer, *bufSize + MALLOC_SIZE, __func__);
-        *bufSize += MALLOC_SIZE;
+	buffer = urealloc(buffer, *bufSize + MALLOC_SIZE, __func__);
+	*bufSize += MALLOC_SIZE;
     }
 
     strcat(buffer, strSave);
@@ -905,21 +926,21 @@ char *getProcessMap(int np)
     snprintf(pMap, sizeof(pMap), "(vector");
 
     for (i=0; i<numUniqNodes; i++) {
-       procCount = numProcPerNode[i];
+	procCount = numProcPerNode[i];
 
-       if (!i || oldProcCount == procCount) {
-	   if (i != numUniqNodes -1) nodeCount++;
-       } else {
-           snprintf(buf, sizeof(buf), ",(%i,%i,%i)", sid,
-                       nodeCount, oldProcCount);
-           if ((int)(sizeof(pMap) - strlen(pMap) - 1 - strlen(buf)) < 0) {
-               return NULL;
-           }
-           strcat(pMap, buf);
-           sid += nodeCount;
-	   nodeCount = (i != numUniqNodes -1) ? 1 : 0;
-       }
-       oldProcCount = procCount;
+	if (!i || oldProcCount == procCount) {
+	    if (i != numUniqNodes -1) nodeCount++;
+	} else {
+	    snprintf(buf, sizeof(buf), ",(%i,%i,%i)", sid,
+		     nodeCount, oldProcCount);
+	    if ((int)(sizeof(pMap) - strlen(pMap) - 1 - strlen(buf)) < 0) {
+		return NULL;
+	    }
+	    strcat(pMap, buf);
+	    sid += nodeCount;
+	    nodeCount = (i != numUniqNodes -1) ? 1 : 0;
+	}
+	oldProcCount = procCount;
     }
 
     nodeCount++;
@@ -935,11 +956,12 @@ char *getProcessMap(int np)
 /**
  * @brief Setup common environment
  *
- * Setup the general environment needed by the Process Manager
- * Interface (PMI). Additional variables are needed on a per rank
- * basis. These are setup via @ref setupNodeEnv().
+ * Setup the common environment as required by the Process Manager
+ * Interface (PMI). Additional variables are set on a per executable
+ * and on a per rank basis. These are set via @ref setupExecEnv() and
+ * @ref setupRankEnv() respectively.
  *
- * @param np Total number of processes intended to be spawn.
+ * @param np Total number of processes intended to be spawned.
  *
  * @return No return value.
  */
@@ -948,15 +970,6 @@ static void setupCommonEnv(int np)
     char *env, tmp[32];
 
     if (OpenMPI) {
-	char *env;
-
-	/* should equal to PSI_TPP (threads per process) */
-	if ((env = getenv("PSI_TPP"))) {
-	    setPSIEnv("SLURM_CPUS_PER_TASK", env, 1);
-	} else {
-	    setPSIEnv("SLURM_CPUS_PER_TASK", "1", 1);
-	}
-
 	/* The ID of the job step within the job allocation.
 	 * Not important for us, can always be 0.
 	 */
@@ -1105,49 +1118,45 @@ static void setupCommonEnv(int np)
 }
 
 /**
- * @brief Get the MPI_APPNUM parameter by rank.
+ * @brief Setup the per executable environment
  *
- * exec[] contains a list of different executables to be started.
- * By adding the numbers of procs per executable, the respective
- * APPNUM (= the position in the list) of a certain rank can easily
- * be determined.
+ * Setup the per executable environment needed by the Process Manager
+ * Interface (PMI). Additional variables are needed on a common and s
+ * per rank basis. These are setup via @ref setupCommonEnv() and @ref
+ * setupRankEnv() respectively.
  *
- * @param rank The rank to be checked.
+ * @param execNum The unique number of the current executable
  *
- * @return On success, the corresponding APPNUM parameter is returned.
- * On error -1 is returned.
+ * @return No return value.
  */
-static int getAppnumByRank(int rank)
+static void setupExecEnv(int execNum)
 {
-    int i, sum = 0;
+    char tmp[32];
 
-    for(i=0; i<execCount; i++) {
-	sum += exec[i]->np;
-	if(rank < sum) {
-	    return i;
-	}
+    if (OpenMPI) {
+	snprintf(tmp, sizeof(tmp), "%d", exec[execNum]->tpp);
+	setPSIEnv("SLURM_CPUS_PER_TASK", tmp, 1);
     }
-    return -1;
+
+    snprintf(tmp, sizeof(tmp), "%d", execNum);
+    setPSIEnv("PMI_APPNUM", tmp, 1);
 }
 
 /* Flag, if verbose-option is set */
 static int verboseRankMsg = 0;
 
-static char ** setupNodeEnv(int psRank)
+static char ** setupRankEnv(int psRank)
 {
     static char *env[8];
     char buf[200];
     int cur = 0;
     static int rank = 0;
     static char pmiRankItem[32];
-    static char pmiAppnumItem[32];
 
     /* setup PMI env */
     if (pmienabletcp || pmienablesockp) {
 	snprintf(pmiRankItem, sizeof(pmiRankItem), "PMI_RANK=%d", rank);
 	env[cur++] = pmiRankItem;
-	snprintf(pmiAppnumItem, sizeof(pmiAppnumItem), "PMI_APPNUM=%d", getAppnumByRank(rank));
-	env[cur++] = pmiAppnumItem;
     }
 
     if (!jobLocalNodeIDs || !nodeLocalProcIDs || !numProcPerNode) {
@@ -1281,8 +1290,8 @@ static void extractNodeInformation(PSnodes_ID_t *nodeList, int np)
     int i;
 
     if (!nodeList) {
-        fprintf(stderr, "%s: invalid nodeList\n", __func__);
-        exit(1);
+	fprintf(stderr, "%s: invalid nodeList\n", __func__);
+	exit(1);
     }
 
     /* list of job local nodeIDs starting by 0 */
@@ -1303,23 +1312,21 @@ static void extractNodeInformation(PSnodes_ID_t *nodeList, int np)
     /* save the information */
     for (i=0; i< np; i++) {
 	setRankInfos(np, nodeList[i], jobLocalUniqNodeIDs, numProcPerNode,
-			&jobLocalNodeIDs[i], &nodeLocalProcIDs[i]);
+		     &jobLocalNodeIDs[i], &nodeLocalProcIDs[i]);
     }
 }
 
 static int spawnSingleExecutable(int np, int argc, char **argv, char *wd,
-				 char *cNodeType, int verbose,
+				 PSrsrvtn_ID_t resID, int verbose,
 				 PStask_ID_t *tids)
 {
     int i, ret, *errors = NULL;
-    uint32_t nodeType = 0;
 
     errors = umalloc(sizeof(int) * np, __func__);
     for (i=0; i<np; i++) errors[i] = 0;
 
     /* spawn client processes */
-    if (nodetype) nodeType = getNodeType(cNodeType);
-    ret = PSI_spawnStrictHW(np, nodeType, wd, argc, argv, 1, errors, tids);
+    ret = PSI_spawnRsrvtn(np, resID, wd, argc, argv, 1, errors, tids);
 
     /* Analyze result, if necessary */
     if (ret<0) {
@@ -1367,7 +1374,7 @@ static void sendSpawnedTIDs(int ret, char *env, PStask_ID_t *tids)
     }
 }
 
-static void sendSpawnFailed()
+static void sendPMIFail(void)
 {
     PSLog_Msg_t lmsg;
     char *env, *lptr;
@@ -1376,8 +1383,7 @@ static void sendSpawnFailed()
 
     /* tell parent the spawn has failed */
     if (!(env = getenv("__PMI_SPAWN_PARENT"))) {
-	fprintf(stderr, "%s: don't know the spawn parent!\n",
-		__func__);
+	fprintf(stderr, "%s: don't know the spawn parent!\n", __func__);
 	exit(1);
     }
 
@@ -1414,21 +1420,63 @@ static void sendSpawnFailed()
  *
  * @param verbose Set verbose mode, output whats going on.
  *
- * @return Returns 0 on success, or errorcode on error.
+ * @return Returns 0 on success, or -1 on error.
  */
 static int startProcs(int np, char *wd, int verbose)
 {
-    int i, ret = 0, pSize, count = 0;
+    int i, ret = 0, count = 0, off = 0;
     char *hostname = NULL, *env;
+    PSnodes_ID_t *nodeList;
     PStask_ID_t *tids, *ptr;
+    int nlSize = np*sizeof(*nodeList);
 
-    /* request the complete nodelist from master */
-    if (!nodeList) {
-	pSize = usize > np ? usize : np;
-	nodeList = umalloc(pSize*sizeof(nodeList), __func__);
+    /* Create the reservations required later on */
+    for (i=0; i< execCount; i++) {
+	unsigned int got;
+	PSpart_option_t options = (overbook ? PART_OPT_OVERBOOK : 0)
+	    | (loopnodesfirst ? PART_OPT_NODEFIRST : 0)
+	    | (wait ? PART_OPT_WAIT : 0)
+	    | (dynamic ? PART_OPT_DYNAMIC : 0);
 
-	PSI_infoList(-1, PSP_INFO_LIST_PARTITION, NULL,
-		nodeList, pSize*sizeof(*nodeList), 0);
+	if (!options) options = PART_OPT_DEFAULT;
+
+	exec[i]->resID = PSI_getReservation(exec[i]->np, exec[i]->np,
+					    exec[i]->tpp, exec[i]->hwType,
+					    options, &got);
+
+	if (!exec[i]->resID || (int)got != exec[i]->np) {
+	    fprintf(stderr, "%s: Unable to get reservation for app %d %d slots "
+		    "(tpp %d hwType %#x options %#x)\n", __func__, i,
+		    exec[i]->np, exec[i]->tpp, exec[i]->hwType, options);
+	    if ((getenv("PMI_SPAWNED"))) sendPMIFail();
+
+	    return -1;
+	}
+    }
+
+    /* Collect info on reservations */
+    nodeList = umalloc(nlSize, __func__);
+    for (i=0; i< execCount; i++) {
+	int got = PSI_infoList(-1, PSP_INFO_LIST_RESNODES, &exec[i]->resID,
+			       nodeList+off, nlSize-off*sizeof(*nodeList), 0);
+
+	if ((unsigned)got != exec[i]->np * sizeof(*nodeList)) {
+	    fprintf(stderr, "%s: Unable to get nodes in reservation %#x for"
+		    "app %d. Got %d expected %zd\n", __func__, exec[i]->resID,
+		    i, got, exec[i]->np * sizeof(*nodeList));
+	    if ((getenv("PMI_SPAWNED"))) sendPMIFail();
+
+	    return -1;
+	}
+	off += got / sizeof(*nodeList);
+    }
+
+    if (off != np) {
+	fprintf(stderr, "%s: some nodes are missing (%d/%d)\n", __func__,
+		off, np);
+	free(nodeList);
+
+	return -1;
     }
 
     /* extract additional node informations (e.g. uniq nodes) */
@@ -1453,18 +1501,20 @@ static int startProcs(int np, char *wd, int verbose)
     setupCommonEnv(np);
 
     verboseRankMsg = verbose;
-    PSI_registerRankEnvFunc(setupNodeEnv);
+    PSI_registerRankEnvFunc(setupRankEnv);
 
     tids = umalloc(sizeof(PStask_ID_t) * np, __func__);
     for (i=0; i<np; i++) tids[i] = -1;
 
     for (i=0; i< execCount; i++) {
 	ptr = &tids[count];
-	if ((ret = spawnSingleExecutable(exec[i]->np, exec[i]->argc,
-			exec[i]->argv, exec[i]->wdir, exec[i]->nodetype,
-			verbose, ptr))< 0) {
+	setupExecEnv(i);
 
-	    if ((getenv("PMI_SPAWNED"))) sendSpawnFailed();
+	ret = spawnSingleExecutable(exec[i]->np, exec[i]->argc, exec[i]->argv,
+				    exec[i]->wdir, exec[i]->resID, verbose, ptr);
+	if (ret < 0) {
+	    if ((getenv("PMI_SPAWNED"))) sendPMIFail();
+
 	    break;
 	}
 	count += exec[i]->np;
@@ -1687,7 +1737,8 @@ static void setupPSIDEnv(int verbose)
 	setPSIEnv("PSI_USE_VALGRIND", "1", 1);
 	if (!callgrind) {
 	     if (verbose) {
-		  printf("PSI_USE_VALGRIND=1 : Running on Valgrind core(s) (memcheck tool)\n");
+		 printf("PSI_USE_VALGRIND=1 : Running on Valgrind core(s)"
+			" (memcheck tool)\n");
 		  if (!mergeout) {
 		       printf("(You can use '-merge' for merging output of all "
 			      "Valgrind cores)\n");
@@ -1697,7 +1748,8 @@ static void setupPSIDEnv(int verbose)
 	     setenv("PSI_USE_CALLGRIND", "1", 1);
 	     setPSIEnv("PSI_USE_CALLGRIND", "1", 1);
 	     if (verbose) {
-		  printf("PSI_USE_CALLGRIND=1 : Running on Valgrind core(s) (callgrind tool)\n");
+		 printf("PSI_USE_CALLGRIND=1 : Running on Valgrind core(s)"
+			" (callgrind tool)\n");
 	     }
 	}
     }
@@ -1739,7 +1791,6 @@ static void setupPSIDEnv(int verbose)
 
     if (loopnodesfirst || (getenv("PSI_LOOP_NODES_FIRST"))) {
 	setenv("PSI_LOOP_NODES_FIRST", "1", 1);
-	setPSIEnv("PSI_LOOP_NODES_FIRST", "1", 1);
 	if (verbose) printf("PSI_LOOP_NODES_FIRST=1 : Placing consecutive "
 	    "processes on different nodes.\n");
     }
@@ -1818,13 +1869,14 @@ static void setupPSIDEnv(int verbose)
 	free(val);
     }
 
-    msg = PSE_checkNodeEnv(nodelist, hostlist, hostfile, NULL, "--", verbose);
+    msg = PSE_checkNodeEnv(nodelistStr, hostlistStr, hostfile, NULL, "--",
+			   verbose);
     if (msg) errExit(msg);
 
     msg = PSE_checkSortEnv(sort, "--", verbose);
     if (msg) errExit(msg);
 
-    if ((getenv("PSI_OPENMPI")) || (getPSIEnv("PSI_OPENMPI")) ) {
+    if (getenv("PSI_OPENMPI")) {
 	OpenMPI = 1;
     }
 
@@ -1833,7 +1885,6 @@ static void setupPSIDEnv(int verbose)
 	    errExit("overbooking is unsupported for OpenMPI");
 	}
 	setenv("PSI_OPENMPI", "1", 1);
-	setPSIEnv("PSI_OPENMPI", "1", 1);
     }
 
     /* set the universe size */
@@ -1856,7 +1907,6 @@ static void setupPSIDEnv(int verbose)
 
     if ((envstr = getenv("PSI_NODE_TYPE"))) {
 	nodetype = strdup(envstr);
-	setPSIEnv("PSI_NODE_TYPE", envstr, 1);
     }
 
     setPSIEnv("__SLURM_INFORM_TIDS", getenv("__SLURM_INFORM_TIDS"), 1);
@@ -1885,7 +1935,6 @@ static void setupEnvironment(int verbose)
     setupPSCOMEnv(verbose);
     /* Both *before* PSE_initialize() for environment propagation */
 
-    PSE_initialize();
     rank = PSE_getRank();
 
     /* be only verbose if we are the logger */
@@ -2071,29 +2120,29 @@ static void setupAdminEnv(void)
 	parse = strdup(envadminhosts);
 	hostfile = NULL;
 	envhostsfile = NULL;
-	hostlist = strdup(envadminhosts);
+	hostlistStr = strdup(envadminhosts);
 	unsetenv("PSI_ADMIN_HOSTS");
     }
 
     if (PSE_getRank() == -1) {
 	if (envhostsfile) {
 	    parseHostfile(envhostsfile, hosts, sizeof(hosts));
-	    hostlist = hosts;
+	    hostlistStr = hosts;
 	    unsetPSIEnv(ENV_NODE_HOSTFILE);
 	    unsetenv(ENV_NODE_HOSTFILE);
 	    setPSIEnv("PSI_ADMIN_HOSTS", hosts, 1);
 	} else if (hostfile) {
 	    parseHostfile(hostfile, hosts, sizeof(hosts));
-	    hostlist = hosts;
+	    hostlistStr = hosts;
 	    hostfile = NULL;
 	    setPSIEnv("PSI_ADMIN_HOSTS", hosts, 1);
 	}
     }
 
-    if (!parse && hostlist) {
-	parse = strdup(hostlist);
-    } else if (!parse && nodelist) {
-	parse = strdup(nodelist);
+    if (!parse && hostlistStr) {
+	parse = strdup(hostlistStr);
+    } else if (!parse && nodelistStr) {
+	parse = strdup(nodelistStr);
     }
 
     if (!parse) {
@@ -2219,13 +2268,13 @@ static void createAdminTasks(char *login, int verbose, int show)
     envnodes = getenv(ENV_NODE_NODES);
     envhosts = getenv(ENV_NODE_HOSTS);
 
-    if (envnodes) nodelist = envnodes;
-    if (envhosts) hostlist = envhosts;
+    if (envnodes) nodelistStr = envnodes;
+    if (envhosts) hostlistStr = envhosts;
 
-    if (hostlist) {
-	parse = hostlist;
+    if (hostlistStr) {
+	parse = hostlistStr;
     } else {
-	parse = nodelist;
+	parse = nodelistStr;
     }
 
     if (!parse) {
@@ -2236,7 +2285,7 @@ static void createAdminTasks(char *login, int verbose, int show)
     nodeparse = strtok_r(parse, delimiters, &toksave);
 
     while (nodeparse != NULL) {
-	if (hostlist) {
+	if (hostlistStr) {
 	    getNodeIDbyHost(nodeparse, &nodeID);
 	} else {
 	    int node = 0, first, last, i;
@@ -2482,7 +2531,7 @@ struct poptOption poptMpiexecComp[] = {
       &path, 0, "place to look for executables", "<directory>"},
     { "host", '\0',
       POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
-      &hostlist, 0, "host to start on", NULL},
+      &hostlistStr, 0, "host to start on", NULL},
     { "soft", '\0',
       POPT_ARG_INT | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
       &none, 0, "giving hints instead of a precise number for the number"
@@ -2535,7 +2584,9 @@ struct poptOption poptMpiexecComp[] = {
     { "smpdfile", '\0',
       POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
       &smpdfile, 0, "not supported, will be ignored", NULL},
-    POPT_TABLEEND
+    { "tpp", '\0', POPT_ARG_INT | POPT_ARGFLAG_ONEDASH,
+      &tpp, 0, "number of threads per process", "num"},
+     POPT_TABLEEND
 };
 
 struct poptOption poptMpiexecCompGlobal[] = {
@@ -2556,7 +2607,7 @@ struct poptOption poptMpiexecCompGlobal[] = {
       &path, 0, "place to look for executables", "<directory>"},
     { "ghost", '\0',
       POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
-      &hostlist, 0, "host to start on", NULL},
+      &hostlistStr, 0, "host to start on", NULL},
     { "gsoft", '\0',
       POPT_ARG_INT | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
       &none, 0, "giving hints instead of a precise number for the number"
@@ -2577,6 +2628,8 @@ struct poptOption poptMpiexecCompGlobal[] = {
       POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
       &envopt, 'E', "export this value of this environment variable",
       "<name> <value>"},
+    { "gtpp", '\0', POPT_ARG_INT | POPT_ARGFLAG_ONEDASH,
+      &gtpp, 0, "global number of threads per process", "num"},
     POPT_TABLEEND
 };
 
@@ -2688,9 +2741,10 @@ struct poptOption poptAdvancedOptions[] = {
 
 struct poptOption poptExecutionOptions[] = {
     { "nodes", 'N', POPT_ARG_STRING,
-      &nodelist, 0, "list of nodes to use: nodelist <3-5,7,11-17>", NULL},
+      &nodelistStr, 0, "list of nodes to use: nodelist <3-5,7,11-17>", NULL},
     { "hosts", 'H', POPT_ARG_STRING,
-      &hostlist, 0, "list of hosts to use: hostlist <node-01 node-04>", NULL},
+      &hostlistStr, 0, "list of hosts to use: hostlist <node-01 node-04>",
+      NULL},
     { "hostfile", 'f', POPT_ARG_STRING,
       &hostfile, 0, "hostfile to use", "<file>"},
     { "machinefile", 'f', POPT_ARG_STRING,
@@ -2738,7 +2792,8 @@ struct poptOption poptCommunicationOptions[] = {
     { "ondemand", 'O', POPT_ARG_NONE,
       &ondemand, 0, "use psmpi2 \"on demand/dynamic\" connections", NULL},
     { "no_ondemand", '\0', POPT_ARG_NONE,
-      &no_ondemand, 0, "disable psmpi2 \"on demand/dynamic\" connections", NULL},
+      &no_ondemand, 0, "disable psmpi2 \"on demand/dynamic\" connections",
+      NULL},
     POPT_TABLEEND
 };
 
@@ -2820,6 +2875,7 @@ struct poptOption optionsTable[] = {
 static void saveNextExecutable(int *sum_np, int argc, const char **argv)
 {
     int i;
+    char *hwTypeStr;
 
     if (execCount+1 >= MAX_BINARIES) {
 	fprintf(stderr, "maximum supported different executables %i\n",
@@ -2829,7 +2885,7 @@ static void saveNextExecutable(int *sum_np, int argc, const char **argv)
 
     if (argc <= 0 || !argv || !argv[0]) errExit("invalid colon syntax\n");
 
-    exec[execCount] = umalloc(sizeof(exec), __func__);
+    exec[execCount] = umalloc(sizeof(**exec), __func__);
     if (np > 0) {
 	*sum_np += np;
 	exec[execCount]->np = np;
@@ -2842,13 +2898,29 @@ static void saveNextExecutable(int *sum_np, int argc, const char **argv)
 		argv[0]);
 	exit(1);
     }
+
     if (nodetype) {
-	exec[execCount]->nodetype = nodetype;
+	hwTypeStr = nodetype;
 	nodetype = NULL;
     } else if (gnodetype) {
-	exec[execCount]->nodetype = gnodetype;
+	hwTypeStr = gnodetype;
     } else {
-	exec[execCount]->nodetype = NULL;
+	hwTypeStr = NULL;
+    }
+    exec[execCount]->hwType = hwTypeStr ? getNodeType(hwTypeStr) : 0;
+
+    if (tpp) {
+	exec[execCount]->tpp = tpp;
+	if (tpp > maxtpp) maxtpp = tpp;
+	tpp = 0;
+    } else if (gtpp) {
+	exec[execCount]->tpp = gtpp;
+	if (gtpp > maxtpp) maxtpp = gtpp;
+    } else if (envtpp) {
+	exec[execCount]->tpp = envtpp;
+	if (envtpp > maxtpp) maxtpp = envtpp;
+    } else {
+	exec[execCount]->tpp = 1;
     }
     if (wdir) {
 	exec[execCount]->wdir = wdir;
@@ -3157,6 +3229,14 @@ int main(int argc, char *argv[], char** envp)
 
     /* set sighandlers */
     setSigHandlers();
+
+    /* This has to be investigated before any command-line parsing */
+    if ((envstr = getenv("PSI_TPP"))) {
+	envtpp = strtol(envstr, NULL, 0);
+    }
+
+    /* Initialzie daemon connection */
+    PSE_initialize();
 
     /* parse command line options */
     parseCmdOptions(argc, argv);

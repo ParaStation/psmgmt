@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2014 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2015 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -37,6 +37,7 @@ static struct {
     { PSP_DD_CHILDDEAD        , "PSP_DD_CHILDDEAD"        },
     { PSP_DD_CHILDBORN        , "PSP_DD_CHILDBORN"        },
     { PSP_DD_CHILDACK         , "PSP_DD_CHILDACK"         },
+    { PSP_DD_CHILDRESREL      , "PSP_DD_CHILDRESREL"      },
 
     { PSP_DD_NEWCHILD         , "PSP_DD_NEWCHILD"         },
     { PSP_DD_NEWPARENT        , "PSP_DD_NEWPARENT"        },
@@ -63,7 +64,13 @@ static struct {
     { PSP_DD_MASTER_IS        , "PSP_DD_MASTER_IS"        },
 
     { PSP_DD_NODESRES         , "PSP_DD_GETNODESRES"      },
+    { PSP_DD_REGISTERPART     , "PSP_DD_REGISTERPART"     },
+    { PSP_DD_REGISTERPARTSL   , "PSP_DD_REGISTERPARTSL"   },
+    { PSP_DD_REGISTERPARTRP   , "PSP_DD_REGISTERPARTRP"   },
 
+    { PSP_DD_GETRESERVATION   , "PSP_DD_GETRESERVATION"   },
+    { PSP_DD_GETSLOTS         , "PSP_DD_GETSLOTS"         },
+    { PSP_DD_SLOTSRES         , "PSP_DD_SLOTSRES"         },
     {0,NULL}
 };
 

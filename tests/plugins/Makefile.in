@@ -17,7 +17,7 @@
 #
 # ParaStation
 #
-# Copyright (C) 2012-2014 ParTec Cluster Competence Center GmbH, Munich
+# Copyright (C) 2012-2015 ParTec Cluster Competence Center GmbH, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -147,13 +147,16 @@ am__uninstall_files_from_dir = { \
   }
 am__installdirs = "$(DESTDIR)$(pkglibdir)"
 LTLIBRARIES = $(pkglib_LTLIBRARIES)
-no_flowcontrol_la_LIBADD =
-no_flowcontrol_la_SOURCES = no_flowcontrol.c
-no_flowcontrol_la_OBJECTS = no_flowcontrol.lo
+dyn_resources_la_LIBADD =
+dyn_resources_la_SOURCES = dyn_resources.c
+dyn_resources_la_OBJECTS = dyn_resources.lo
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
 am__v_lt_0 = --silent
 am__v_lt_1 = 
+no_flowcontrol_la_LIBADD =
+no_flowcontrol_la_SOURCES = no_flowcontrol.c
+no_flowcontrol_la_OBJECTS = no_flowcontrol.lo
 plugin1_la_LIBADD =
 plugin1_la_SOURCES = plugin1.c
 plugin1_la_OBJECTS = plugin1.lo
@@ -215,10 +218,12 @@ AM_V_CCLD = $(am__v_CCLD_@AM_V@)
 am__v_CCLD_ = $(am__v_CCLD_@AM_DEFAULT_V@)
 am__v_CCLD_0 = @echo "  CCLD    " $@;
 am__v_CCLD_1 = 
-SOURCES = no_flowcontrol.c plugin1.c plugin2.c plugin3.c plugin4.c \
-	plugin5.c plugin6.c plugin7.c plugin8.c plugin9.c
-DIST_SOURCES = no_flowcontrol.c plugin1.c plugin2.c plugin3.c \
-	plugin4.c plugin5.c plugin6.c plugin7.c plugin8.c plugin9.c
+SOURCES = dyn_resources.c no_flowcontrol.c plugin1.c plugin2.c \
+	plugin3.c plugin4.c plugin5.c plugin6.c plugin7.c plugin8.c \
+	plugin9.c
+DIST_SOURCES = dyn_resources.c no_flowcontrol.c plugin1.c plugin2.c \
+	plugin3.c plugin4.c plugin5.c plugin6.c plugin7.c plugin8.c \
+	plugin9.c
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
@@ -418,7 +423,8 @@ configdir = $(prefix)/config
 scriptsdir = $(prefix)/scripts
 slurmdir = $(libdir)/slurm
 pkglib_LTLIBRARIES = plugin1.la plugin2.la plugin3.la plugin4.la	\
-	plugin5.la plugin6.la plugin7.la plugin8.la plugin9.la no_flowcontrol.la
+	plugin5.la plugin6.la plugin7.la plugin8.la plugin9.la \
+	no_flowcontrol.la dyn_resources.la
 
 all: all-am
 
@@ -491,6 +497,9 @@ clean-pkglibLTLIBRARIES:
 	  rm -f $${locs}; \
 	}
 
+dyn_resources.la: $(dyn_resources_la_OBJECTS) $(dyn_resources_la_DEPENDENCIES) $(EXTRA_dyn_resources_la_DEPENDENCIES) 
+	$(AM_V_CCLD)$(LINK) -rpath $(pkglibdir) $(dyn_resources_la_OBJECTS) $(dyn_resources_la_LIBADD) $(LIBS)
+
 no_flowcontrol.la: $(no_flowcontrol_la_OBJECTS) $(no_flowcontrol_la_DEPENDENCIES) $(EXTRA_no_flowcontrol_la_DEPENDENCIES) 
 	$(AM_V_CCLD)$(LINK) -rpath $(pkglibdir) $(no_flowcontrol_la_OBJECTS) $(no_flowcontrol_la_LIBADD) $(LIBS)
 
@@ -527,6 +536,7 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/dyn_resources.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/no_flowcontrol.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/plugin1.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/plugin2.Plo@am__quote@

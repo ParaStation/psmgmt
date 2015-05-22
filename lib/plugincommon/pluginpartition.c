@@ -25,6 +25,7 @@
 #include "psidstatus.h"
 #include "psidcomm.h"
 #include "psdaemonprotocol.h"
+#include "psidpartition.h"
 
 #include "pluginmalloc.h"
 #include "pluginlog.h"
@@ -49,19 +50,34 @@ int isPSAdminUser(uid_t uid, gid_t gid)
     return 1;
 }
 
-void grantPartitionRequest(PSpart_slot_t *slots, uint32_t slotsSize,
-			    PStask_ID_t dest, PStask_t *task)
+void grantPartitionRequest(PSpart_HWThread_t *hwThreads, uint32_t numHWthreads,
+				PStask_ID_t dest, PStask_t *task)
 {
+    PSpart_HWThread_t *threads;
+
+    threads = malloc(numHWthreads * sizeof(*threads));
+    if (!threads) {
+	errno = ENOMEM;
+	rejectPartitionRequest(dest);
+	return;
+    }
+    memcpy(threads, hwThreads, numHWthreads * sizeof(*threads));
+
     /* save the request in the task structure */
-    task->partitionSize = slotsSize;
-    task->options |= PART_OPT_NODEFIRST;
     task->options |= PART_OPT_EXACT;
-    task->partition = slots;
-    task->nextRank = 0;
+    task->partition = NULL;
+    task->usedThreads = 0;
+    task->activeChild = 0;
+    task->partitionSize = 0;
+    task->partThrds = threads;
+    task->totalThreads = numHWthreads;
 
     /* delete the corresponding request */
     PSpart_delReq(task->request);
     task->request = NULL;
+
+    /* generate slots from hw threads and register partition to master psid */
+    PSIDpart_register(task);
 
     /* send OK to waiting mpiexec */
     DDTypedMsg_t msg = (DDTypedMsg_t) {
@@ -140,7 +156,6 @@ int saveNodelistInTask(PStask_t *task, int32_t nrOfNodes, PSnodes_ID_t *nodes)
     /* change partition options */
     task->request->num = nrOfNodes;
     task->request->sort = 0;
-    task->request->options |= PART_OPT_NODEFIRST;
     task->request->options |= PART_OPT_EXACT;
     task->request->numGot = nrOfNodes;
 

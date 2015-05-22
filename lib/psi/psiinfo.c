@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2011 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2015 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -121,6 +121,8 @@ static PSP_Info_t receiveInfo(void *buf, size_t *size, int verbose)
 	case PSP_INFO_NODEUPSCRIPT:
 	case PSP_INFO_NODEDOWNSCRIPT:
 	case PSP_INFO_LIST_RESPORTS:
+	case PSP_INFO_LIST_GETNODES:
+	case PSP_INFO_LIST_RESNODES:
 	{
 	    size_t s = msg.header.len - sizeof(msg.header) - sizeof(msg.type);
 	    if (!buf) {
@@ -493,6 +495,33 @@ int PSI_infoList(PSnodes_ID_t node, PSP_Info_t what, const void *param,
 	break;
     case PSP_INFO_LIST_PARTITION:
 	if (param) msg.header.dest = *(PStask_ID_t *)param;
+	break;
+    case PSP_INFO_LIST_GETNODES:
+	if (param) {
+	    const PSI_infoListGetNodes_t *p = param;
+	    PSP_putTypedMsgBuf(&msg, __func__, "np", &p->np, sizeof(p->np));
+	    PSP_putTypedMsgBuf(&msg,  __func__, "hwType", &p->hwType,
+			       sizeof(p->hwType));
+	    PSP_putTypedMsgBuf(&msg,  __func__, "option", &p->option,
+			       sizeof(p->option));
+	    PSP_putTypedMsgBuf(&msg,  __func__, "tpp", &p->tpp, sizeof(p->tpp));
+	} else {
+	    PSI_log(-1, "%s: %s request needs parameter\n", __func__,
+		    PSP_printInfo(what));
+	    errno = EINVAL;
+	    return -1;
+	}
+	break;
+    case PSP_INFO_LIST_RESNODES:
+	if (param) {
+	    PSP_putTypedMsgBuf(&msg, __func__, "resID", param,
+			       sizeof(PSrsrvtn_ID_t));
+	} else {
+	    PSI_log(-1, "%s: %s request needs a parameter\n", __func__,
+		    PSP_printInfo(what));
+	    errno = EINVAL;
+	    return -1;
+	}
 	break;
     default:
 	PSI_log(-1, "%s: don't know how to handle '%s' request\n", __func__,

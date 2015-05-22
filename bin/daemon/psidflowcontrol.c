@@ -49,7 +49,7 @@ typedef struct {
 } stopTID_chunk_t;
 
 /**
- * Pool of stopTID strucures ready to use. Initialized by @ref
+ * Pool of stopTID structures ready to use. Initialized by @ref
  * initStopTIDList(). To get a buffer from this pool, use @ref
  * getStopTID(), to put it back into it use @ref putStopTID().
  */

@@ -434,6 +434,8 @@ void setTaskEnv(Step_t *step)
     snprintf(tmp, sizeof(tmp), "%u", step->tpp);
     envSet(&step->env, "SLURM_CPUS_PER_TASK", tmp);
 
+    snprintf(tmp, sizeof(tmp), "%u", step->numHwThreads / step->np);
+    envSet(&step->env, "PSI_TPP", tmp);
 
     /* cpu bind variables */
     val = genCPUbindString(step);

@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2014 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2015 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -23,219 +23,15 @@ static char vcid[] __attribute__((used)) =
 
 #include "pscommon.h"
 #include "list.h"
+#include "pssignal.h"
+#include "psreservation.h"
 
 #include "pstask.h"
 
-/**
- * Number of signal structures allocated at once. Ensure this chunk is
- * larger than 128 kB to force it into mmap()ed memory
- */
-#define SIGNAL_CHUNK 8192
-
-/** Single chunk of signal structures allocated at once within incFreeList() */
-typedef struct {
-    list_t next;                      /**< Use to put into chunkList */
-    PStask_sig_t sigs[SIGNAL_CHUNK];  /**< the signal structures */
-} sig_chunk_t;
-
-/**
- * Pool of signal strucures ready to use. Initialized by @ref
- * initSigList(). To get a buffer from this pool, use @ref
- * PStask_getSig(), to put it back into it use @ref PStask_putSig().
- */
-static LIST_HEAD(sigFreeList);
-
-/** List of chunks of signal structures */
-static LIST_HEAD(chunkList);
-
-/** Number of signal structures currently in use */
-static unsigned int usedSigs = 0;
-
-/** Total number of signal structures currently available */
-static unsigned int availSigs = 0;
-
-/**
- * @brief Increase signal structures
- *
- * Increase the number of available signal structures. For that, a
- * chunk of @ref SIGNAL_CHUNK signal structures is allocated. All
- * signal structures are appended to the list of free signal
- * structures @ref sigFreeList. Additionally, the chunk is registered
- * within @ref chunkList. Chunks might be released within @ref
- * PStask_gcSig() as soon as enough signal structures are available
- * again.
- *
- * return On success, 1 is returned. Or 0, if allocating the required
- * memory failed. In the latter case errno is set appropriately.
- */
-static int incFreeList(void)
-{
-    sig_chunk_t *chunk = malloc(sizeof(*chunk));
-    unsigned int i;
-
-    if (!chunk) return 0;
-
-    list_add_tail(&chunk->next, &chunkList);
-
-    for (i=0; i<SIGNAL_CHUNK; i++) {
-	chunk->sigs[i].state = UNUSED;
-	list_add_tail(&chunk->sigs[i].next, &sigFreeList);
-    }
-
-    availSigs += SIGNAL_CHUNK;
-    PSC_log(PSC_LOG_TASK, "%s: now used %d.\n", __func__, availSigs);
-
-    return 1;
-}
-
-PStask_sig_t *PStask_getSig(void)
-{
-    PStask_sig_t *sp;
-
-    if (list_empty(&sigFreeList)) {
-	PSC_log(PSC_LOG_TASK, "%s: no more elements\n", __func__);
-	if (!incFreeList()) {
-	    PSC_log(-1, "%s: no memory\n", __func__);
-	    return NULL;
-	}
-    }
-
-    /* get list's first usable element */
-    sp = list_entry(sigFreeList.next, PStask_sig_t, next);
-    if (sp->state != UNUSED) {
-	PSC_log(-1, "%s: %s signal. Never be here.\n", __func__,
-		(sp->state == USED) ? "USED" : "DRAINED");
-	return NULL;
-    }
-
-    list_del(&sp->next);
-
-    INIT_LIST_HEAD(&sp->next);
-    sp->deleted = 0;
-    sp->state = USED;
-
-    usedSigs++;
-
-    return sp;
-}
-
-void PStask_putSig(PStask_sig_t *sp)
-{
-    sp->state = UNUSED;
-    sp->deleted = 0;
-    list_add_tail(&sp->next, &sigFreeList);
-
-    usedSigs--;
-}
-
-/**
- * @brief Free a chunk of signal structures
- *
- * Free the chunk of signal structures @a chunk. For that, all empty
- * signal structures from this chunk are removed from @ref sigFreeList and
- * marked as drained. All signal structures still in use are replaced by
- * using other free signal structure from @ref sigFreeList.
- *
- * Once all signal structures of the chunk are empty, the whole chunk
- * is free()ed.
- *
- * @param chunk The chunk of signal structures to free.
- *
- * @return No return value.
- */
-static void freeChunk(sig_chunk_t *chunk)
-{
-    unsigned int i;
-
-    if (!chunk) return;
-
-    /* First round: remove signal structs from sigFreeList */
-    for (i=0; i<SIGNAL_CHUNK; i++) {
-	if (chunk->sigs[i].state == UNUSED) {
-	    list_del(&chunk->sigs[i].next);
-	    chunk->sigs[i].state = DRAINED;
-	}
-    }
-
-    /* Second round: now copy and release all used signal structs */
-    for (i=0; i<SIGNAL_CHUNK; i++) {
-	PStask_sig_t *old = &chunk->sigs[i], *new;
-
-	if (old->state == DRAINED) continue;
-
-	if (old->deleted) {
-	    list_del(&old->next);
-	    old->state = DRAINED;
-	} else {
-	    new = (PStask_sig_t*) PStask_getSig();
-	    if (!new) {
-		PSC_log(-1, "%s: new is NULL\n", __func__);
-		return;
-	    }
-
-	    /* copy signal struct's content */
-	    new->tid = old->tid;
-	    new->signal = old->signal;
-	    new->deleted = old->deleted;
-
-	    /* tweak the list */
-	    __list_add(&new->next, old->next.prev, old->next.next);
-
-	    old->state = DRAINED;
-	}
-	usedSigs--;
-    }
-
-    /* Now that the chunk is completely empty, free() it */
-    list_del(&chunk->next);
-    free(chunk);
-    availSigs -= SIGNAL_CHUNK;
-    PSC_log(PSC_LOG_TASK, "%s: now used %d.\n", __func__, availSigs);
-}
-
-
-void PStask_gcSig(void)
-{
-    list_t *c, *tmp;
-    unsigned int i;
-    int first = 1;
-
-    PSC_log(PSC_LOG_TASK, "%s()\n", __func__);
-
-    if ((int)usedSigs > (int)availSigs/2 - SIGNAL_CHUNK) return;
-
-    list_for_each_safe(c, tmp, &chunkList) {
-	sig_chunk_t *chunk = list_entry(c, sig_chunk_t, next);
-	int unused = 0;
-
-	if (first) {
-	    first = 0;
-	    continue;
-	}
-
-	for (i=0; i<SIGNAL_CHUNK; i++) {
-	    if (chunk->sigs[i].state != USED) unused++;
-	}
-
-	if (unused > SIGNAL_CHUNK/2) freeChunk(chunk);
-
-	if (availSigs == SIGNAL_CHUNK) break; /* keep the last one */
-    }
-}
-
-int PStask_gcSigRequired(void)
-{
-    PSC_log(PSC_LOG_TASK, "%s()\n", __func__);
-
-    if ((int)usedSigs > (int)availSigs/2 - SIGNAL_CHUNK) return 0;
-
-    return 1;
-}
-
 void PStask_printStat(void)
 {
-    PSC_log(-1, "%s: Signals %d/%d (used/avail)\n", __func__,
-	    usedSigs, availSigs);
+    PSsignal_printStat();
+    PSrsrvtn_printStat();
 }
 
 char* PStask_printGrp(PStask_group_t tg)
@@ -253,6 +49,7 @@ char* PStask_printGrp(PStask_group_t tg)
 	(tg==TG_SERVICE) ? "TG_SERVICE" :
 	(tg==TG_SERVICE_SIG) ? "TG_SERVICE_SIG" :
 	(tg==TG_KVS) ? "TG_KVS" :
+	(tg==TG_DELEGATE) ? "TG_DELEGATE" :
 	"UNKNOWN";
 }
 
@@ -317,10 +114,18 @@ int PStask_init(PStask_t* task)
     task->partitionSize = 0;
     task->options = 0;
     task->partition = NULL;
-    task->nextRank = -1;
+    task->totalThreads = 0;
+    task->partThrds = NULL;
+    task->usedThreads = -1;
+    INIT_LIST_HEAD(&task->reservations);
+    INIT_LIST_HEAD(&task->resRequests);
+    task->activeChild = 0;
+    task->numChild = 0;
     task->spawnNodes = NULL;
     task->spawnNodesSize = 0;
     task->spawnNum = 0;
+    task->delegate = NULL;
+    task->injectedEnv = 0;
     task->resPorts = NULL;
 
     INIT_LIST_HEAD(&task->signalSender);
@@ -335,9 +140,24 @@ static void delSigList(list_t *list)
     list_t *s, *tmp;
 
     list_for_each_safe(s, tmp, list) {
-	PStask_sig_t *signal = list_entry(s, PStask_sig_t, next);
+	PSsignal_t *signal = list_entry(s, PSsignal_t, next);
 	list_del(&signal->next);
-	PStask_putSig(signal);
+	PSsignal_put(signal);
+    }
+}
+
+static void delReservationList(list_t *list)
+{
+    list_t *r, *tmp;
+
+    list_for_each_safe(r, tmp, list) {
+	PSrsrvtn_t *reservation = list_entry(r, PSrsrvtn_t, next);
+	list_del(&reservation->next);
+	if (reservation->slots) {
+	    free(reservation->slots);
+	    reservation->slots = NULL;
+	}
+	PSrsrvtn_put(reservation);
     }
 }
 
@@ -375,6 +195,11 @@ int PStask_reinit(PStask_t* task)
 
     if (task->request) PSpart_delReq(task->request);
     if (task->partition) free(task->partition);
+    if (task->partThrds) free(task->partThrds);
+
+    delReservationList(&task->reservations);
+    delReservationList(&task->resRequests);
+
     if (task->spawnNodes) free(task->spawnNodes);
     if (task->resPorts) free(task->resPorts);
 
@@ -400,6 +225,20 @@ int PStask_delete(PStask_t* task)
     return 1;
 }
 
+/**
+ * @brief Clone a signal list.
+ *
+ * Create an exact clone of the signal list @a origList and store it
+ * to the new list @a cloneList.
+ *
+ * @warn This function may fail silently when running out of memory.
+ *
+ * @param cloneList The list-head of the cloned list to be created.
+ *
+ * @param origList The original list of signals to be cloned.
+ *
+ * @return No return value.
+ */
 static void cloneSigList(list_t *cloneList, list_t *origList)
 {
     list_t *s;
@@ -409,12 +248,12 @@ static void cloneSigList(list_t *cloneList, list_t *origList)
     delSigList(cloneList);
 
     list_for_each(s, origList) {
-	PStask_sig_t *origSig = list_entry(s, PStask_sig_t, next);
-	PStask_sig_t *cloneSig;
+	PSsignal_t *origSig = list_entry(s, PSsignal_t, next);
+	PSsignal_t *cloneSig;
 
 	if (origSig->deleted) continue;
 
-	cloneSig = PStask_getSig();
+	cloneSig = PSsignal_get();
 	if (!cloneSig) {
 	    delSigList(cloneList);
 	    PSC_warn(-1, ENOMEM, "%s()", __func__);
@@ -542,7 +381,20 @@ PStask_t* PStask_clone(PStask_t* task)
     }
     memcpy(clone->partition, task->partition,
 	   task->partitionSize * sizeof(*task->partition));
-    clone->nextRank = task->nextRank;
+    clone->totalThreads = task->totalThreads;
+    clone->partThrds = malloc(task->totalThreads * sizeof(*task->partThrds));
+    if (!clone->partThrds) {
+	PSC_warn(-1, errno, "%s: malloc(partThrds)", __func__);
+	goto error;
+    }
+    memcpy(clone->partThrds, task->partThrds,
+	   task->totalThreads * sizeof(*task->partThrds));
+    clone->usedThreads = task->usedThreads;
+
+    /* Do not clone reservations */
+
+    clone->activeChild = task->activeChild;
+    clone->numChild = task->numChild;
     clone->spawnNodesSize = task->spawnNodesSize;
     clone->spawnNodes = malloc(task->spawnNodesSize*sizeof(*task->spawnNodes));
     if (!clone->spawnNodes) {
@@ -552,6 +404,8 @@ PStask_t* PStask_clone(PStask_t* task)
     memcpy(clone->spawnNodes, task->spawnNodes,
 	   clone->spawnNodesSize * sizeof(*task->spawnNodes));
     clone->spawnNum = task->spawnNum;
+    clone->delegate = task->delegate;
+    clone->injectedEnv = task->injectedEnv;
 
     cloneSigList(&clone->signalSender, &task->signalSender);
     cloneSigList(&clone->signalReceiver, &task->signalReceiver);
@@ -839,10 +693,10 @@ int PStask_decodeArgs(char *buffer, PStask_t *task)
  *
  * Before calling this function the first time @a cur has to be set to
  * 0 and @a offset to NULL. Both shall not be modified during the
- * course of repeted calls. Once @a cur holds the value -1, all
+ * course of repeated calls. Once @a cur holds the value -1, all
  * strings of @a strV are encoded.
  *
- * If a single string does not fit into @a buffer, i.e. if the lenght
+ * If a single string does not fit into @a buffer, i.e. if the length
  * of this string is larger than @a size, upon return @a offset will
  * point to the trailing part of the string. Further calls to this
  * function will encode the trailing part(s) into @a buffer. Once all
@@ -861,7 +715,7 @@ int PStask_decodeArgs(char *buffer, PStask_t *task)
  * encoded, if any.
  *
  * @return The number of characters put into the buffer. Or 0, if an
- * error occured.
+ * error occurred.
  */
 static size_t encodeStrV(char *buffer, size_t size, char **strV,
 			 int *cur, char **offset)
@@ -875,7 +729,7 @@ static size_t encodeStrV(char *buffer, size_t size, char **strV,
     }
 
     if (*cur == -1) {
-	PSC_log(-1, "%s: encdoding complete\n", __func__);
+	PSC_log(-1, "%s: encoding complete\n", __func__);
 	return 0;
     }
 
@@ -1175,4 +1029,13 @@ int PStask_decodeEnvAppend(char *buffer, PStask_t *task)
     }
 
     return ret;
+}
+
+PSrsrvtn_ID_t PStask_getNextResID(PStask_t *task)
+{
+    task->nextResID++;
+
+    if (!task->nextResID) task->nextResID++; // prevent resID == 0
+
+    return task->nextResID;
 }

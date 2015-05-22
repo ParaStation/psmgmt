@@ -20,6 +20,7 @@ static char vcid[] __attribute__((used)) =
 #include <pwd.h>
 #include <grp.h>
 #include <sys/types.h>
+#include <sys/resource.h>
 
 #include "pscommon.h"
 #include "pstask.h"
@@ -893,6 +894,24 @@ static keylist_t boolAutoList[] = {
     {NULL, NULL, NULL}
 };
 
+static keylist_t numOrUnlimitedList[] = {
+    {"<num>", NULL, NULL},
+    {"unlimited", NULL, NULL},
+    {NULL, NULL, NULL}
+};
+
+static keylist_t numOrAnyList[] = {
+    {"<num>", NULL, NULL},
+    {"any", NULL, NULL},
+    {NULL, NULL, NULL}
+};
+
+static keylist_t userOrAnyList[] = {
+    {"<user>", NULL, NULL},
+    {"any", NULL, NULL},
+    {NULL, NULL, NULL}
+};
+
 static keylist_t sortList[] = {
     {"load1", sortLoad1, NULL},
     {"load_1", sortLoad1, NULL},
@@ -1039,12 +1058,6 @@ static int setShowMCastDebug(char *token)
 static int setShowFOS(char *token)
 {
     setShowOpt = PSP_OP_FREEONSUSP;
-    return 0;
-}
-
-static int setShowHOB(char *token)
-{
-    setShowOpt = PSP_OP_HANDLEOLD;
     return 0;
 }
 
@@ -1222,11 +1235,11 @@ static int setShowError(char *token)
 }
 
 static keylist_t setShowList[] = {
-    {"maxproc", setShowMaxProc, NULL},
-    {"user", setShowUser, NULL},
-    {"group", setShowGroup, NULL},
-    {"adminuser", setShowAdminUser, NULL},
-    {"admingroup", setShowAdminGroup, NULL},
+    {"maxproc", setShowMaxProc, numOrAnyList},
+    {"user", setShowUser, userOrAnyList},
+    {"group", setShowGroup, userOrAnyList},
+    {"adminuser", setShowAdminUser, userOrAnyList},
+    {"admingroup", setShowAdminGroup, userOrAnyList},
     {"psiddebug", setShowPSIDDebug, NULL},
     {"selecttime", setShowSelectTime, NULL},
     {"statustimeout", setShowStatusTimeout, NULL},
@@ -1245,8 +1258,6 @@ static keylist_t setShowList[] = {
     {"mcastdebug", setShowMCastDebug, NULL},
     {"freeonsuspend", setShowFOS, boolList},
     {"fos", setShowFOS, boolList},
-    {"handleoldbins", setShowHOB, boolList},
-    {"hob", setShowHOB, boolList},
     {"nodessort", setShowNodesSort, sortList},
     {"overbook", setShowOverbook, boolAutoList},
     {"exclusive", setShowExclusive, boolList},
@@ -1262,18 +1273,18 @@ static keylist_t setShowList[] = {
     {"maxstattry", setShowMaxStatTry, NULL},
     {"rl_as", setShowRL_AS, NULL},
     {"rl_addressspace", setShowRL_AS, NULL},
-    {"rl_core", setShowRL_Core, NULL},
-    {"rl_cpu", setShowRL_CPU, NULL},
-    {"rl_data", setShowRL_Data, NULL},
-    {"rl_fsize", setShowRL_FSize, NULL},
-    {"rl_locks", setShowRL_Locks, NULL},
-    {"rl_memlock", setShowRL_MemLock, NULL},
-    {"rl_msgqueue", setShowRL_MsgQueue, NULL},
-    {"rl_nofile", setShowRL_NoFile, NULL},
-    {"rl_nproc", setShowRL_NProc, NULL},
-    {"rl_rss", setShowRL_RSS, NULL},
-    {"rl_sigpending", setShowRL_SigPending, NULL},
-    {"rl_stack", setShowRL_Stack, NULL},
+    {"rl_core", setShowRL_Core, numOrUnlimitedList},
+    {"rl_cpu", setShowRL_CPU, numOrUnlimitedList},
+    {"rl_data", setShowRL_Data, numOrUnlimitedList},
+    {"rl_fsize", setShowRL_FSize, numOrUnlimitedList},
+    {"rl_locks", setShowRL_Locks, numOrUnlimitedList},
+    {"rl_memlock", setShowRL_MemLock, numOrUnlimitedList},
+    {"rl_msgqueue", setShowRL_MsgQueue, numOrUnlimitedList},
+    {"rl_nofile", setShowRL_NoFile, numOrUnlimitedList},
+    {"rl_nproc", setShowRL_NProc, numOrUnlimitedList},
+    {"rl_rss", setShowRL_RSS, numOrUnlimitedList},
+    {"rl_sigpending", setShowRL_SigPending, numOrUnlimitedList},
+    {"rl_stack", setShowRL_Stack, numOrUnlimitedList},
     {"pluginapiversion", setShowPluginAPIver, NULL},
     {"pluginunloadtmout", setShowPluginUnloadTmout, NULL},
     {NULL, setShowError, NULL}
@@ -1331,16 +1342,16 @@ static int setCommand(char *token)
     long val;
     PSIADM_valList_t *valList = NULL;
 
-    if (!what || !value) goto error;
+    if (!what || !value) goto printError;
 
     setShowOpt = PSP_OP_UNKNOWN;
-    if (parser_parseToken(what, &setShowParser)) goto error;
+    if (parser_parseToken(what, &setShowParser)) goto printError;
     setOpt = setShowOpt;
 
     switch (setOpt) {
     case PSP_OP_PROCLIMIT:
 	val = procsFromString(value);
-	if (val == -2) goto error;
+	if (val == -2) goto printError;
 	break;
     case PSP_OP_UID:
     case PSP_OP_ADMUID:
@@ -1360,7 +1371,7 @@ static int setCommand(char *token)
 	    nl_descr = parser_getString();
 	}
 	val = uidFromString(value);
-	if (val == -2) goto error;
+	if (val == -2) goto printError;
 	break;
     }
     case PSP_OP_GID:
@@ -1381,7 +1392,7 @@ static int setCommand(char *token)
 	    nl_descr = parser_getString();
 	}
 	val = gidFromString(value);
-	if (val == -2) goto error;
+	if (val == -2) goto printError;
 	break;
     }
     case PSP_OP_PSIDDEBUG:
@@ -1404,7 +1415,7 @@ static int setCommand(char *token)
     case PSP_OP_PLUGINUNLOADTMOUT:
 	if (parser_getNumber(value, &val)) {
 	    printf("Illegal value '%s'\n", value);
-	    goto error;
+	    goto printError;
 	}
 	break;
     case PSP_OP_OVERBOOK:
@@ -1414,13 +1425,12 @@ static int setCommand(char *token)
 	    int tmp, ret = parser_getBool(value, &tmp, NULL);
 	    if (ret==-1) {
 		printf("Illegal value '%s' is not 'auto' or boolean\n", value);
-		goto error;
+		goto printError;
 	    }
 	    val = tmp;
 	}
 	break;
     case PSP_OP_FREEONSUSP:
-    case PSP_OP_HANDLEOLD:
     case PSP_OP_EXCLUSIVE:
     case PSP_OP_RUNJOBS:
     case PSP_OP_STARTER:
@@ -1433,7 +1443,7 @@ static int setCommand(char *token)
 	int tmp, ret = parser_getBool(value, &tmp, NULL);
 	if (ret==-1) {
 	    printf("Illegal value '%s' is not boolean\n", value);
-	    goto error;
+	    goto printError;
 	}
 	val = tmp;
 	break;
@@ -1441,7 +1451,7 @@ static int setCommand(char *token)
     case PSP_OP_NODESSORT:
 	if (parser_parseString(value, &sortParser)) {
 	    printf("Illegal value '%s'\n", value);
-	    goto error;
+	    goto printError;
 	}
 	val = sortMode;
 	break;
@@ -1449,20 +1459,46 @@ static int setCommand(char *token)
 	valList = cpusFromString(value);
 	if (!valList) {
 	    printf("Illegal value '%s' for CPU-map\n", value);
-	    goto error;
+	    goto printError;
 	}
 	break;
     case PSP_OP_PLUGINAPIVERSION:
 	printf("%s: pluginAPI is read only.\n", __func__);
+	break;
+    case PSP_OP_RL_AS:
+    case PSP_OP_RL_CORE:
+    case PSP_OP_RL_CPU:
+    case PSP_OP_RL_DATA:
+    case PSP_OP_RL_FSIZE:
+    case PSP_OP_RL_LOCKS:
+    case PSP_OP_RL_MEMLOCK:
+    case PSP_OP_RL_MSGQUEUE:
+    case PSP_OP_RL_NOFILE:
+    case PSP_OP_RL_NPROC:
+    case PSP_OP_RL_RSS:
+    case PSP_OP_RL_SIGPENDING:
+    case PSP_OP_RL_STACK:
+	if (!strcasecmp(value, "unlimited")) {
+	    val = RLIM_INFINITY;
+	} else {
+	    long tmp;
+	    int ret = parser_getNumber(value, &tmp);
+	    if (ret==-1) {
+		printf("Illegal value '%s' is not int or 'unlimited'\n", value);
+		goto printError;
+	    }
+	    val = tmp;
+	}
+	break;
     default:
-	goto error;
+	goto printError;
     }
 
-    if (parser_getString()) goto error;
+    if (parser_getString()) goto printError;
 
     if (nl_descr) {
 	nl = getNodeList(nl_descr);
-	if (!nl) return -1;
+	if (!nl) goto error;
     }
 
     switch (setOpt) {
@@ -1496,7 +1532,6 @@ static int setCommand(char *token)
     case PSP_OP_MCASTDEBUG:
     case PSP_OP_OVERBOOK:
     case PSP_OP_FREEONSUSP:
-    case PSP_OP_HANDLEOLD:
     case PSP_OP_EXCLUSIVE:
     case PSP_OP_RUNJOBS:
     case PSP_OP_STARTER:
@@ -1509,13 +1544,26 @@ static int setCommand(char *token)
     case PSP_OP_MAXSTATTRY:
     case PSP_OP_MASTER:
     case PSP_OP_PLUGINUNLOADTMOUT:
+    case PSP_OP_RL_AS:
+    case PSP_OP_RL_CORE:
+    case PSP_OP_RL_CPU:
+    case PSP_OP_RL_DATA:
+    case PSP_OP_RL_FSIZE:
+    case PSP_OP_RL_LOCKS:
+    case PSP_OP_RL_MEMLOCK:
+    case PSP_OP_RL_MSGQUEUE:
+    case PSP_OP_RL_NOFILE:
+    case PSP_OP_RL_NPROC:
+    case PSP_OP_RL_RSS:
+    case PSP_OP_RL_SIGPENDING:
+    case PSP_OP_RL_STACK:
 	PSIADM_SetParam(setOpt, val, nl);
 	break;
     case PSP_OP_CPUMAP:
 	PSIADM_SetParamList(setOpt, valList, nl);
 	break;
     default:
-	goto error;
+	goto printError;
     }
 
     if (valList) {
@@ -1525,8 +1573,15 @@ static int setCommand(char *token)
 
     return 0;
 
- error:
+printError:
     printError(&setInfo);
+
+error:
+    if (valList) {
+	if (valList->value) free(valList->value);
+	free(valList);
+    }
+
     return -1;
 }
 
@@ -1565,7 +1620,6 @@ static int showCommand(char *token)
     case PSP_OP_MCASTDEBUG:
     case PSP_OP_MASTER:
     case PSP_OP_FREEONSUSP:
-    case PSP_OP_HANDLEOLD:
     case PSP_OP_NODESSORT:
     case PSP_OP_OVERBOOK:
     case PSP_OP_EXCLUSIVE:
@@ -2324,7 +2378,8 @@ static int versionCommand(char *token)
 
     printf("PSIADMIN: ParaStation administration tool\n");
     printf("Copyright (C) 1996-2004 ParTec AG, Karlsruhe\n");
-    printf("Copyright (C) 2005-2012 ParTec Cluster Competence Center GmbH, Munich\n");
+    printf("Copyright (C) 2005-2014 ParTec Cluster Competence Center GmbH,"
+	   " Munich\n");
     printf("\n");
     printf("PSIADMIN:   %s\b/ %s\b/ %s\b \b\b\n", psiadmversion+11,
 	   commandsversion+11, parserversion+11);

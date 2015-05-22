@@ -1,8 +1,52 @@
 psmgmt NEWS -- history of user-visible changes.
 
-Copyright (C) 2010-2014 ParTec Cluster Competence Center GmbH, Munich
+Copyright (C) 2010-2015 ParTec Cluster Competence Center GmbH, Munich
 
 Please send bug reports, questions and suggestions to <support@par-tec.com>
+
+
+Version 5.0.47:
+===============
+
+Bugfixes:
+- Init script should be able to restart the psid after a package update
+- PMI plugin: Fix receiving of large PMI messages
+- Fix problem when sharing a batch-partition between several MPI-jobs (jt:#7554)
+- Actually respect the chosen hardware type in mpiexec
+- Ensure that HW-types are handled correctly during spawn
+- Bind RDP's UDP socket to the configured IP address
+- Fix malloc() size error in mpiexec (allocation was too large)
+- Fix many memory leaks and warning notified by clang's scan-build
+- Close unneeded file to pid_max as reported by D. Krause.
+- Fix location of parastation.conf.tmpl on RedHat based distributions
+- timer.h needs to include stdio.h for FILE definition
+
+Enhancements:
+- New resource handling: partition / reservation / slots
+- Improved integration of resources handling with psmom
+- Add support for dynamic resource allocation as required in DEEP
+  * PSIDHOOK_XTND_PART_DYNAMIC, PSIDHOOK_RELS_PART_DYNAMIC added
+  * PSIDpart_extendRes() added
+  * Therefore push plugin API to 112
+- PSIDpart_register() allows to register resources provided by external RMS
+- Upgrade psmom to just register partitions. Shall help with #1187 and #2049
+- PSI_DYNAMIC allows to enable dynamic resource allocation
+- Add support for -tpp (threads per process) to mpiexec
+- Support per spawn tpp and options in mpiexec
+- Release resources in partition management (#1988)
+- Allow to set psid's resource-limits via psiadmin (#1042)
+- Mark kvs-providers in psiadmin accordingly
+- Improve warning in PSP_putMsgBuf() and PSP_putTypedMsgBuf()
+- Prepare spec-file for /etc/SuSE-release to disappear
+
+Additional changes:
+- Remove support to consider resources of ancient (+10 years old) applications
+- Add example plugin 'dyn_resources' to test dynamic resource allocation
+- PSP_getMsgBuf() / PSP_tryGetMsgBuf() help to fetch data from message buffers
+- Mark psmgmt.sh and psmgmt.csh as %config(missingok,noreplace) (psc:#150)
+- Rename psmom's ChangeLog-History, README and LICENSE.OpenPBS since they
+  end up in their own directory, anyhow.
+- Add option to build without psconfig support
 
 
 *************************************************************************
@@ -53,9 +97,9 @@ Enhancements:
 - Rely on psid's PSID_checkPrivilege() for some privilege checking
 - Make pamdir (installation path of pspam plugin) configurable (#2302)
 - Add valgrind support also for spawned processes
-- More intelligent way of psmom to obtain jobs from multiple PBS servers 
+- More intelligent way of psmom to obtain jobs from multiple PBS servers
 - Switch %postinstall action to 'service inetd try-restart' (#1932)
-- Be more relaxed to leave the logger's raw-mode. 
+- Be more relaxed to leave the logger's raw-mode.
 - Enforce client messages to have correct sender information
 - PSID_cancelCB() allows cancellation of callbacks for scripts or
     functions executed asynchronously (#1503)
@@ -116,7 +160,7 @@ Bugfixes:
 - kvsprovider has to exit on itself if pspmi plugin is absent
 - Propagate PMI_BARRIER_TMOUT and PMI_BARRIER_ROUNDS to all kvsproviders
 - psmom: Flag copy forwarder and its children always valid
-- psaccount: Free all config objects when the plugin gets unloaded 
+- psaccount: Free all config objects when the plugin gets unloaded
 - psresport: Unregister hooks and message handler if initialisation fails
 - psmom: Unregister hooks and message handler if initialisation fails
 - More minor bugs and warnings detected by LLVM's scan-build fixed
@@ -149,7 +193,7 @@ Version 5.0.43:
 ===============
 
 Bugfixes:
- - Fix segmentation fault when growing client structures for negative 
+ - Fix segmentation fault when growing client structures for negative
    ranks in the logger
  - Prevent PSP_DD_SENDCONT-storms possibly initiated by forwarded
    PSP_CD_RELEASE messages
@@ -309,7 +353,7 @@ Enhancements:
 Additional changes:
  - Use $localstatedir instead of /var.
  - Change defaults of $sysconfigdir and $localstatedir to /etc and /var,
-   respectively. 
+   respectively.
  - Added PSIDHOOK_CREATEPARTNL and pushed the plugin API to 109.
  - Trigger a 1k malloc()/free() cycle via SIGUSR2 to psid.
  - added configuration file for psaccount plugin

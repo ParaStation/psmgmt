@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2013 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2014 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -261,12 +261,15 @@ static info_t setInfo = {
 	" | rdpmaxretrans <val> | rdpresendtimeout <val>| rdpretrans <val> "
 	" | rdpclosedtimeout <val> | rdpmaxackpend <val> | rdpstatistics <bool>"
 	" | mcastdebug <level> | {freeonsuspend|fos} <bool>"
-	" | {handleoldbins|hob} <bool> | starter <bool> | runjobs <bool>"
+	" | starter <bool> | runjobs <bool>"
 	" | overbook {<bool>|auto} | exclusive <bool> | pinprocs <bool>"
 	" | bindmem <bool> | supplementaryGroups <bool> | maxStatTry <num>"
 	" | cpumap <map> | allowUserMap <bool> | nodessort <mode>"
 	" | adminuser [+|-]{<user>|any} | admingroup [+|-]{<group>|any}"
-	" | accountpoll <interval> | pluginUnloadTmout <timeout>} <nodes>"
+	" | accountpoll <interval> | pluginUnloadTmout <timeout>"
+	" | {rl_{addressspace|as} | rl_core | rl_cpu | rl_data | rl_fsize"
+	"    | rl_locks | rl_memlock | rl_msgqueue | rl_nofile | rl_nproc"
+	"    | rl_rss | rl_sigpending | rl_stack} {<limit>|unlimited}} <nodes>"
     }},
     .nodes = 1,
     .descr = "Set one of various parameters of the ParaStation system:",
@@ -345,12 +348,6 @@ static info_t setInfo = {
 	  " temporarily to <bool>. Relevant values are 'false', 'true', 'no',"
 	  " 'yes', 0 or different from 0."
 	  " Only the value on the master node really steers the behavior!" },
-	{ .tag = "set {handleoldbins|hob} <bool>",
-	  .descr = "Set flag marking if old binaries resources are handled"
-	  " correctly to <bool>. Relevant values are 'false', 'true', 'no',"
-	  " 'yes', 0 or different from 0."
-	  " Unfortunately this will break 'freeOnSuspend'. Only the value on"
-	  " the master node really steers the behavior!" },
 	{ .tag = "set starter <bool>",
 	  .descr = "Set flag marking if starting is allowed from this nodes"
 	  " to <bool>. Relevant values are 'false', 'true', 'no',"
@@ -423,6 +420,45 @@ static info_t setInfo = {
 	{ .tag = "set pluginUnloadTmout <timeout>",
 	  .descr = "Set the timeout until plugins are evicted after a"
 	  " 'plugin forceunload' to <timeout> seconds." },
+	{ .tag = "set rl_{addressspace|as} {<limit>|unlimited}",
+	  .descr = "Set RLIMIT_AS to the given <limit> for both,"
+	  " rlim_cur and rlim_max." },
+	{ .tag = "set rl_core {<limit>|unlimited}",
+	  .descr = "Set RLIMIT_CORE to the given <limit> for both,"
+	  " rlim_cur and rlim_max." },
+	{ .tag = "set rl_cpu {<limit>|unlimited}",
+	  .descr = "Set RLIMIT_CPU to the given <limit> for both,"
+	  " rlim_cur and rlim_max." },
+	{ .tag = "set rl_data {<limit>|unlimited}",
+	  .descr = "Set RLIMIT_DATA to the given <limit> for both,"
+	  " rlim_cur and rlim_max." },
+	{ .tag = "set rl_fsize {<limit>|unlimited}",
+	  .descr = "Set RLIMIT_FSIZE to the given <limit> for both,"
+	  " rlim_cur and rlim_max." },
+	{ .tag = "set rl_locks {<limit>|unlimited}",
+	  .descr = "Set RLIMIT_LOCKS to the given <limit> for both,"
+	  "rlim_cur and rlim_max." },
+	{ .tag = "set rl_memlock {<limit>|unlimited}",
+	  .descr = "Set RLIMIT_MEMLOCK to the given <limit> for both,"
+	  " rlim_cur and rlim_max." },
+	{ .tag = "set rl_msgqueue {<limit>|unlimited}",
+	  .descr = "Set RLIMIT_MSGQUEUE to the given <limit> for both,"
+	  " rlim_cur and rlim_max." },
+	{ .tag = "set rl_nofile {<limit>|unlimited}",
+	  .descr = "Set RLIMIT_NOFILE to the given <limit> for both,"
+	  " rlim_cur and rlim_max." },
+	{ .tag = "set rl_nproc {<limit>|unlimited}",
+	  .descr = "Set RLIMIT_NPROC to the given <limit> for both,"
+	  " rlim_cur and rlim_max." },
+	{ .tag = "set rl_rss {<limit>|unlimited}",
+	  .descr = "Set RLIMIT_RSS to the given <limit> for both,"
+	  " rlim_cur and rlim_max." },
+	{ .tag = "set rl_sigpending {<limit>|unlimited}",
+	  .descr = "Set RLIMIT_SIGPENDING to the given <limit> for both,"
+	  " rlim_cur and rlim_max." },
+	{ .tag = "set rl_stack {<limit>|unlimited}",
+	  .descr = "Set RLIMIT_STACK to the given <limit> for both,"
+	  " rlim_cur and rlim_max." },
 	{ NULL, NULL }
     },
     .comment = "For more information reffer to 'help set <subcommand>'"
@@ -436,7 +472,7 @@ static info_t showInfo = {
 	" | statustimeout | statusbroadcasts | deadlimit | rdpdebug"
 	" | rdptimeout | rdppktloss | rdpmaxretrans | rdpresendtimeout"
 	" | rdpretrans | rdpclosedtimeout | rdpmaxackpend | rdpstatistics"
-	" | mcastdebug | master | {freeonsuspend|fos} | {handleoldbins|hob}"
+	" | mcastdebug | master | {freeonsuspend|fos}"
 	" | starter | runjobs | overbook | exclusive | pinprocs | bindmem"
 	" | cpumap | allowUserMap | nodessort | supplementaryGroups"
 	" | maxStatTry | adminuser | admingroup | accounters | accountpoll"
@@ -491,10 +527,6 @@ static info_t showInfo = {
 	  .descr = "Show flag marking if resources of suspended jobs are freed"
 	  " temporarily. Only the value on the master node really steers the"
 	  " behaviour!" },
-	{ .tag = "show {handleoldbins|hob}",
-	  .descr = "Show flag marking if old binaries resources are handled"
-	  " correctly. Unfortunately this will break 'freeOnSuspend'. Only"
-	  " the value on the master node really steers the behavior!" },
 	{ .tag = "show starter",
 	  .descr = "Show flag marking if starting is allowed." },
 	{ .tag = "show runjobs",

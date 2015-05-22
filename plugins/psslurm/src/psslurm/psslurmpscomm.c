@@ -25,7 +25,6 @@
 #include "pscommon.h"
 #include "psidcomm.h"
 #include "pluginenv.h"
-#include "psidnodes.h"
 #include "psidtask.h"
 #include "plugincomm.h"
 #include "pluginmalloc.h"
@@ -55,14 +54,6 @@ int handleCreatePart(void *msg)
     DDBufferMsg_t *inmsg = (DDBufferMsg_t *) msg;
     Step_t *step;
     PStask_t *task;
-    uint32_t node, local_tid, tid, slotsSize, cpuCount, i, shift;
-    uint32_t coreMapIndex = 0, coreIndex = 0, coreArrayCount = 0;
-    int32_t lastCpu;
-    uint8_t *coreMap = NULL;
-    PSpart_slot_t *slots = NULL;
-    JobCred_t *cred = NULL;
-    PSCPU_set_t CPUset;
-    int hwThreads, thread = 0;
 
     /* find task */
     if (!(task = PStasklist_find(&managedTasks, inmsg->header.sender))) {
@@ -80,105 +71,17 @@ int handleCreatePart(void *msg)
 	errno = EACCES;
 	goto error;
     }
-    cred = step->cred;
 
-    /* generate slotlist */
-    slotsSize = step->np;
-    if (!(slots = malloc(slotsSize * sizeof(PSpart_slot_t)))) {
-	mlog("%s: out of memory\n", __func__);
-	exit(1);
-    }
-
-    /* get cpus from job credential */
-    if (!(coreMap = getCPUsForPartition(slots, step))) {
+    if (!step->hwThreads) {
+	mlog("%s: invalid hw threads in step '%u:%u'\n", __func__,
+		step->jobid, step->stepid);
 	errno = EACCES;
 	goto error;
     }
 
-    for (node=0; node < step->nrOfNodes; node++) {
-	thread = 0;
-
-	/* get cpu count per node from job credential */
-	if (coreIndex >= cred->coreArraySize) {
-	    mlog("%s: invalid core index '%i', size '%i'\n", __func__,
-		    coreIndex, cred->coreArraySize);
-	    errno = EACCES;
-	    goto error;
-	}
-
-	cpuCount =
-	    cred->coresPerSocket[coreIndex] * cred->socketsPerNode[coreIndex];
-
-	hwThreads = PSIDnodes_getVirtCPUs(step->nodes[node]) / cpuCount;
-	if (hwThreads < 1) hwThreads = 1;
-
-	lastCpu = -1; /* no cpu assigned yet */
-
-	/* set node and cpuset for every task */
-	for (local_tid=0; local_tid < step->globalTaskIdsLen[node];
-                local_tid++) {
-
-	    tid = step->globalTaskIds[node][local_tid];
-
-	    mdbg(PSSLURM_LOG_PART, "%s: node '%u' nodeid '%u' task '%u' tid"
-                    " '%u'\n", __func__, node, step->nodes[node], local_tid,
-                    tid);
-
-	    /* sanity check */
-	    if (tid > slotsSize) {
-		mlog("%s: invalid taskids '%s' slotsSize '%u'\n", __func__,
-			PSC_printTID(tid), slotsSize);
-		errno = EACCES;
-		goto error;
-	    }
-
-	    /* calc CPUset */
-	    setCPUset(&CPUset, step->cpuBindType, step->cpuBind, coreMap,
-                        coreMapIndex, cred->socketsPerNode[coreIndex],
-                        cred->coresPerSocket[coreIndex], cpuCount, &lastCpu,
-                        node, &thread, hwThreads, step->globalTaskIdsLen[node],
-                        step->tpp, local_tid);
-
-	    slots[tid].node = step->nodes[node];
-
-            /* handle cyclic distribution */
-            if ((!(step->cpuBindType & (0xFFF & ~CPU_BIND_VERBOSE)) /* default */
-                    || step->cpuBindType & (CPU_BIND_RANK | CPU_BIND_TO_THREADS))
-                    && (step->taskDist == SLURM_DIST_BLOCK_CYCLIC ||
-                    step->taskDist == SLURM_DIST_CYCLIC_CYCLIC)) {
-                PSCPU_clrAll(slots[tid].CPUset);
-                shift = local_tid % 2 ? cred->coresPerSocket[coreIndex] : 0;
-                shift = shift - step->tpp * ((local_tid + 1) / 2);
-                for (i = 0; i < (cpuCount * hwThreads); i++) {
-                    if (PSCPU_isSet(CPUset, i)) {
-                        PSCPU_setCPU(slots[tid].CPUset,
-                                     (i + shift) % (cpuCount * hwThreads));
-                    }
-                }
-                mdbg(PSSLURM_LOG_PART, "%s: Cyclic shifting by %d:\n",
-                        __func__, shift);
-                mdbg(PSSLURM_LOG_PART, "- %s\n", PSCPU_print(CPUset));
-                mdbg(PSSLURM_LOG_PART, "+ %s\n", PSCPU_print(slots[tid].CPUset));
-            }
-            else {
-                PSCPU_copy(slots[tid].CPUset, CPUset);
-            }
-	}
-	coreMapIndex += cpuCount;
-
-	coreArrayCount++;
-	if (coreArrayCount >= cred->sockCoreRepCount[coreIndex]) {
-	    coreIndex++;
-	    coreArrayCount = 0;
-	}
-    }
-
-    /* slots are hanging on the partition, the psid will free them for us */
-    ufree(coreMap);
-
     /* answer request */
-    grantPartitionRequest(slots, slotsSize, inmsg->header.sender, task);
-
+    grantPartitionRequest(step->hwThreads, step->numHwThreads,
+			    inmsg->header.sender, task);
     return 0;
 
     error:
@@ -187,8 +90,6 @@ int handleCreatePart(void *msg)
 	    PSpart_delReq(task->request);
 	    task->request = NULL;
 	}
-	free(slots);
-	ufree(coreMap);
 
 	rejectPartitionRequest(inmsg->header.sender);
 	return 0;

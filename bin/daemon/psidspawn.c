@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2014 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2015 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -1949,7 +1949,14 @@ static LIST_HEAD(spawnTasks);
 static void msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
 {
     PStask_t *task, *ptask = NULL;
-    DDErrorMsg_t answer;
+    DDErrorMsg_t answer = {
+	.header = {
+	    .type = PSP_CD_SPAWNFAILED,
+	    .sender = msg->header.dest,
+	    .dest = msg->header.sender,
+	    .len = sizeof(answer) },
+	.error = 0,
+	.request = 0,};
     size_t usedBytes;
     int32_t rank = -1;
     PStask_group_t group = TG_ANY;
@@ -1958,12 +1965,6 @@ static void msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
 
     PSID_log(PSID_LOG_SPAWN, "%s: from %s msglen %d\n", __func__,
 	     PSC_printTID(msg->header.sender), msg->header.len);
-
-    answer.header.dest = msg->header.sender;
-    answer.header.sender = PSC_getMyTID();
-    answer.header.len = sizeof(answer);
-    answer.request = 0;
-    answer.error = 0;
 
     /* If message is from my node, test if everything is okay */
     if (PSC_getID(msg->header.sender)==PSC_getMyID()
@@ -1975,8 +1976,6 @@ static void msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
 
 	if (answer.error) {
 	    PStask_delete(task);
-	    answer.header.type = PSP_CD_SPAWNFAILED;
-	    answer.header.sender = msg->header.dest;
 	    sendMsg(&answer);
 
 	    return;
@@ -1999,79 +1998,92 @@ static void msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
     if (PSC_getID(msg->header.dest) != PSC_getMyID()) {
 	/* request for a remote site. */
 	int destDmnPSPver = PSIDnodes_getDmnProtoV(PSC_getID(msg->header.dest));
+	int sendLOC = 0;
 
 	if (!PSIDnodes_isUp(PSC_getID(msg->header.dest))) {
-	    answer.header.type = PSP_CD_SPAWNFAILED;
-	    answer.header.sender = msg->header.dest;
 	    answer.error = EHOSTDOWN;
 	    sendMsg(&answer);
 
 	    return;
 	}
 
+	/* Check if we have to and can send a LOC-message */
+	if (PSC_getID(msg->header.sender)==PSC_getMyID()
+	    && msg->type == PSP_SPAWN_TASK && group != TG_SERVICE
+	    && group != TG_SERVICE_SIG && group != TG_ADMINTASK
+	    && group != TG_KVS) {
+
+	    if (!ptask->spawnNodes || rank >= ptask->spawnNum) {
+		PSID_log(-1, "%s: rank %d out of range\n", __func__, rank);
+		answer.error = EADDRNOTAVAIL;
+	    } else if (!PSCPU_any(ptask->spawnNodes[rank].CPUset, PSCPU_MAX)) {
+		PSID_log(-1, "%s: rank %d exhausted\n", __func__, rank);
+		answer.error = EADDRINUSE;
+	    } else {
+		sendLOC = 1;
+	    }
+
+	    if (!sendLOC) {
+		sendMsg(&answer);
+
+		return;
+	    }
+	}
+
 	PSID_log(PSID_LOG_SPAWN, "%s: forwarding to node %d\n",
 		 __func__, PSC_getID(msg->header.dest));
 	if (sendMsg(msg) < 0) {
-	    answer.header.type = PSP_CD_SPAWNFAILED;
-	    answer.header.sender = msg->header.dest;
 	    answer.error = errno;
 	    sendMsg(&answer);
 
 	    return;
 	}
 
-	if (PSC_getID(msg->header.sender)==PSC_getMyID()
-	    && msg->type == PSP_SPAWN_TASK && group != TG_SERVICE
-	    && group != TG_SERVICE_SIG && group != TG_ADMINTASK
-	    && group != TG_KVS) {
-	    if (!ptask->spawnNodes || rank >= ptask->spawnNum) {
-		PSID_log(-1, "%s: rank %d out of range\n", __func__, rank);
+	if (sendLOC) {
+	    /* Create and send PSP_SPAWN_LOC message */
+	    DDTypedBufferMsg_t locMsg = (DDTypedBufferMsg_t) {
+		.header = (DDMsg_t) {
+		    .type = PSP_CD_SPAWNREQ,
+		    .dest = msg->header.dest,
+		    .sender = msg->header.sender,
+		    .len = sizeof(locMsg.header) + sizeof(locMsg.type)},
+		.type = PSP_SPAWN_LOC };
+	    PSCPU_set_t *rankSet = &ptask->spawnNodes[rank].CPUset;
+	    PSnodes_ID_t destID = PSC_getID(locMsg.header.dest);
+
+	    if (destDmnPSPver < 401) {
+		short numCPUs = PSIDnodes_getPhysCPUs(destID);
+		int16_t cpu = PSCPU_first(*rankSet, numCPUs);
+		PSP_putTypedMsgBuf(&locMsg, __func__, "cpu", &cpu, sizeof(cpu));
+	    } else if (destDmnPSPver < 408) {
+		size_t nBytes = PSCPU_bytesForCPUs(32);
+		PSCPU_set_t setBuf;
+		PSCPU_extract(setBuf, *rankSet, nBytes);
+		PSP_putTypedMsgBuf(&locMsg, __func__, "CPUset", setBuf, nBytes);
 	    } else {
-		/** Create and send PSP_SPAWN_LOC message */
-		DDTypedBufferMsg_t locMsg = (DDTypedBufferMsg_t) {
-		    .header = (DDMsg_t) {
-			.type = PSP_CD_SPAWNREQ,
-			.dest = msg->header.dest,
-			.sender = msg->header.sender,
-			.len = sizeof(locMsg.header) + sizeof(locMsg.type)},
-		    .type = PSP_SPAWN_LOC };
-		char *ptr = locMsg.buf;
+		PSCPU_set_t setBuf;
+		short numCPUs = PSIDnodes_getVirtCPUs(destID);
+		uint16_t nBytes = PSCPU_bytesForCPUs(numCPUs);
 
-		if (destDmnPSPver < 401) {
-		    *(int16_t *)ptr =
-			PSCPU_first(ptask->spawnNodes[rank].CPUset,
-				    PSIDnodes_getPhysCPUs(
-					PSC_getID(locMsg.header.dest)));
-		    //ptr += sizeof(int16_t);
-		    locMsg.header.len += sizeof(int16_t);
-		} else if (destDmnPSPver < 408) {
-		    size_t nBytes = PSCPU_bytesForCPUs(32);
-		    PSCPU_extract(ptr, ptask->spawnNodes[rank].CPUset, nBytes);
-		    //ptr += nBytes;
-		    locMsg.header.len += nBytes;
-		} else {
-		    unsigned short nBytes = PSCPU_bytesForCPUs(
-			PSIDnodes_getVirtCPUs(PSC_getID(locMsg.header.dest)));
+		PSP_putTypedMsgBuf(&locMsg, __func__, "nBytes", &nBytes,
+				   sizeof(nBytes));
 
-		    *(uint16_t *)ptr = nBytes;
-		    ptr += sizeof(int16_t);
-		    locMsg.header.len += sizeof(int16_t);
+		PSCPU_extract(setBuf, *rankSet, nBytes);
+		PSP_putTypedMsgBuf(&locMsg, __func__, "CPUset", setBuf, nBytes);
 
-		    PSCPU_extract(ptr, ptask->spawnNodes[rank].CPUset, nBytes);
-		    //ptr += nBytes;
-		    locMsg.header.len += nBytes;
-		}
+		/* Invalidate this entry */
+		PSCPU_clrAll(*rankSet);
+	    }
 
-		PSID_log(PSID_LOG_SPAWN, "%s: send PSP_SPAWN_LOC to node %d\n",
-			 __func__, PSC_getID(locMsg.header.dest));
+	    PSID_log(PSID_LOG_SPAWN, "%s: send PSP_SPAWN_LOC to node %d\n",
+		     __func__, PSC_getID(locMsg.header.dest));
 
-		if (sendMsg(&locMsg) < 0) {
-		    PSID_warn(-1, errno,
-			      "%s: send PSP_SPAWN_LOC to node %d failed",
-			      __func__, PSC_getID(locMsg.header.dest));
-		}
+	    if (sendMsg(&locMsg) < 0) {
+		PSID_warn(-1, errno, "%s: send PSP_SPAWN_LOC to node %d failed",
+			  __func__, PSC_getID(locMsg.header.dest));
 	    }
 	}
+
 	return;
     }
 
@@ -2093,22 +2105,39 @@ static void msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
 	    task->argc = 0;           /* determine from argv later */
 	}
 
-	PStask_snprintf(tasktxt, sizeof(tasktxt), task);
-	PSID_log(PSID_LOG_SPAWN, "%s: create %s\n", __func__, tasktxt);
-
-	PStasklist_enqueue(&spawnTasks, task);
-
+	/* Check if we have to and can copy the location */
 	if (task->group == TG_SERVICE || task->group == TG_SERVICE_SIG
 	    || task->group == TG_ADMINTASK || task->group == TG_KVS) {
 	    PSCPU_setAll(task->CPUset);
 	} else if (PSC_getID(msg->header.sender)==PSC_getMyID()) {
 	    if (!ptask->spawnNodes || rank >= ptask->spawnNum) {
 		PSID_log(-1, "%s: rank %d out of range\n", __func__, rank);
+		answer.error = EADDRNOTAVAIL;
+	    } else if (!PSCPU_any(ptask->spawnNodes[rank].CPUset, PSCPU_MAX)) {
+		PSID_log(-1, "%s: rank %d exhausted\n", __func__, rank);
+		answer.error = EADDRINUSE;
 	    } else {
-		memcpy(task->CPUset,
-		       ptask->spawnNodes[rank].CPUset, sizeof(task->CPUset));
+		PSCPU_set_t *rankSet = &ptask->spawnNodes[rank].CPUset;
+		memcpy(task->CPUset, *rankSet, sizeof(task->CPUset));
+
+		/* Invalidate this entry */
+		PSCPU_clrAll(*rankSet);
+	    }
+
+	    if  (answer.error) {
+		sendMsg(&answer);
+
+		PStask_delete(task);
+
+		return;
 	    }
 	}
+
+	PStask_snprintf(tasktxt, sizeof(tasktxt), task);
+	PSID_log(PSID_LOG_SPAWN, "%s: create %s\n", __func__, tasktxt);
+
+	PStasklist_enqueue(&spawnTasks, task);
+
 	return;
 	break;
     case PSP_SPAWN_LOC:
@@ -2195,7 +2224,6 @@ static void msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
 	    PSID_log(-1, "%s: PSP_SPAWN_EN[V|D] from %s: task not found\n",
 		     __func__, PSC_printTID(msg->header.sender));
 	    if (msg->type == PSP_SPAWN_END) {
-		answer.header.type = PSP_CD_SPAWNFAILED;
 		answer.error = ECHILD;
 		sendMsg(&answer);
 	    }
@@ -2237,7 +2265,6 @@ static void msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
 
 	if (answer.error) {
 	    /* send only on failure. success reported by forwarder */
-	    answer.header.type = PSP_CD_SPAWNFAILED;
 	    sendMsg(&answer);
 	}
     }
@@ -2348,7 +2375,7 @@ static void msg_SPAWNSUCCESS(DDErrorMsg_t *msg)
      * Send the initiator the success message.
      *
      * If the initiator is a normal but unconnected task, it has used
-     * to its forwarder as a proxy via PMI. Thus, send SPAWNSUCCESS to
+     * its forwarder as a proxy via PMI. Thus, send SPAWNSUCCESS to
      * the proxy.
      */
     if (task && task->group == TG_ANY && task->fd == -1) {
@@ -2692,6 +2719,41 @@ static void msg_CHILDDEAD(DDErrorMsg_t *msg)
 	PSID_log(PSID_LOG_SPAWN, "%s: task %s not found\n", __func__,
 		 PSC_printTID(msg->request));
     } else {
+	int destDmnPSPver = PSIDnodes_getDmnProtoV(PSC_getID(task->loggertid));
+	if (destDmnPSPver > 409
+	    && !(task->group == TG_SERVICE || task->group == TG_SERVICE_SIG
+		 || task->group == TG_ADMINTASK || task->group == TG_KVS) ) {
+	    /** Create and send PSP_DD_CHILDRESREL message */
+	    DDBufferMsg_t resRelMsg = (DDBufferMsg_t) {
+		.header = (DDMsg_t) {
+		    .type = PSP_DD_CHILDRESREL,
+		    .dest = task->loggertid,
+		    .sender = msg->request,
+		    .len = sizeof(resRelMsg.header)},
+		.buf = {0} };
+	    char *ptr = resRelMsg.buf;
+
+	    unsigned short nBytes = PSCPU_bytesForCPUs(
+		PSIDnodes_getVirtCPUs(PSC_getMyID()));
+	    *(uint16_t *)ptr = nBytes;
+	    ptr += sizeof(int16_t);
+	    resRelMsg.header.len += sizeof(int16_t);
+
+	    PSCPU_extract(ptr, task->CPUset, nBytes);
+	    //ptr += nBytes;
+	    resRelMsg.header.len += nBytes;
+
+	    PSID_log(PSID_LOG_SPAWN, "%s: PSP_DD_CHILDRESREL on %s to %d\n",
+		     __func__, PSC_printTID(task->tid),
+		     PSC_getID(task->loggertid));
+
+	    if (sendMsg(&resRelMsg) < 0) {
+		PSID_warn(-1, errno,
+			  "%s: send PSP_DD_CHILDRESREL to node %d failed",
+			  __func__, PSC_getID(resRelMsg.header.dest));
+	    }
+	}
+
 	/* Prepare CHILDDEAD msg here. Task might be removed in next step */
 	msg->header.dest = task->ptid;
 	msg->header.sender = PSC_getMyTID();

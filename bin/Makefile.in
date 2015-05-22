@@ -180,7 +180,8 @@ am_psid_OBJECTS = daemon/psidaccount.$(OBJEXT) \
 	daemon/psidflowcontrol.$(OBJEXT)
 psid_OBJECTS = $(am_psid_OBJECTS)
 psid_DEPENDENCIES = $(libputil) $(libpscommon) $(libpslog) \
-	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1)
+	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
+	$(am__DEPENDENCIES_1)
 psid_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
 	$(psid_LDFLAGS) $(LDFLAGS) -o $@
@@ -204,7 +205,7 @@ am_test_config_OBJECTS = test_config.$(OBJEXT) \
 	daemon/psidutil.$(OBJEXT)
 test_config_OBJECTS = $(am_test_config_OBJECTS)
 test_config_DEPENDENCIES = $(libputil) $(libpse) $(am__DEPENDENCIES_1) \
-	$(am__DEPENDENCIES_1)
+	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1)
 test_pse_SOURCES = test_pse.c
 test_pse_OBJECTS = test_pse.$(OBJEXT)
 test_pse_DEPENDENCIES = $(libpse) $(am__DEPENDENCIES_1)
@@ -524,7 +525,7 @@ psid_SOURCES = daemon/psidaccount.c daemon/psidaccount.h		\
 
 psid_LDFLAGS = $(AM_LDFLAGS) $(glib2_LIBS) -export-dynamic
 psid_LDADD = $(libputil) $(libpscommon) $(libpslog) -lutil	\
-	-ldl $(POPT_LIBS) $(NUMA_LIBS) -lpsconfig
+	-ldl $(POPT_LIBS) $(NUMA_LIBS) $(psconfig_LIBS)
 
 psilogger_SOURCES = logger/psilogger.c logger/psilogger.h	\
 	logger/psiloggermerge.c logger/psiloggermerge.h		\
@@ -545,7 +546,7 @@ test_config_SOURCES = test_config.c daemon/psidnodes.c			\
 	daemon/psidnodes.h daemon/psidscripts.c daemon/psidscripts.h	\
 	daemon/psidutil.c daemon/psidutil.h
 
-test_config_LDADD = $(libputil) $(libpse) $(POPT_LIBS) $(glib2_LIBS) -lpsconfig
+test_config_LDADD = $(libputil) $(libpse) $(POPT_LIBS) $(glib2_LIBS) $(psconfig_LIBS)
 pssh_LDADD = $(libpse) $(POPT_LIBS)
 psaccounter_SOURCES = accounter/psaccounter.c
 psaccounter_CPPFLAGS = $(AM_CPPFLAGS) -DLOCALSTATEDIR=\"$(localstatedir)\"

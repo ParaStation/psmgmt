@@ -202,7 +202,9 @@ typedef struct {
     char *restart;
     uint8_t x11forward;
     uint32_t fwInitCount;
+    uint32_t numHwThreads;
     Forwarder_Data_t *fwdata;
+    PSpart_HWThread_t *hwThreads;
     PS_Tasks_t tasks;
     struct list_head list;	/* the step list header */
 } Step_t;

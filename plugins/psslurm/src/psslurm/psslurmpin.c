@@ -23,10 +23,12 @@
 #include "psslurmjob.h"
 #include "psslurmlog.h"
 
+#include "psidnodes.h"
 #include "pluginmalloc.h"
 #include "slurmcommon.h"
 
 #include "psslurmpin.h"
+
 
 /*
  * Parse the coreBitmap of @a step and generate a coreMap.
@@ -46,7 +48,7 @@
  * @return  coreMap
  *
  */
-uint8_t *getCPUsForPartition(PSpart_slot_t *slots, Step_t *step)
+static uint8_t *getCPUsForPartition(PSpart_slot_t *slots, Step_t *step)
 {
     const char delimiters[] =", \n";
     uint32_t i, min, max;
@@ -549,7 +551,7 @@ void getSocketBinding(PSCPU_set_t *CPUset, uint8_t *coreMap,
  * @param local_tid      <IN>   local task id (current task on this node)
  *
  */
-void setCPUset(PSCPU_set_t *CPUset, uint16_t cpuBindType, char *cpuBindString,
+static void setCPUset(PSCPU_set_t *CPUset, uint16_t cpuBindType, char *cpuBindString,
                 uint8_t *coreMap, uint32_t coreMapIndex,
 		uint16_t socketCount, uint16_t coresPerSocket,
 		uint32_t cpuCount, int32_t *lastCpu, uint32_t nodeid,
@@ -634,6 +636,154 @@ void setCPUset(PSCPU_set_t *CPUset, uint16_t cpuBindType, char *cpuBindString,
 	}
 #endif
     }
+}
+
+static int genThreads(PSpart_slot_t *slots, uint32_t num,
+			PSpart_HWThread_t **threads)
+{
+    unsigned int s, t = 0, totThreads = 0;
+    PSpart_HWThread_t *HWThreads;
+
+    for (s=0; s<num; s++) {
+	totThreads += PSCPU_getCPUs(slots[s].CPUset, NULL, PSCPU_MAX);
+    }
+
+    HWThreads = umalloc(totThreads * sizeof(*HWThreads));
+
+    for (s=0; s<num; s++) {
+	unsigned int cpu;
+	for (cpu=0; cpu<PSCPU_MAX; cpu++) {
+	    if (PSCPU_isSet(slots[s].CPUset, cpu)) {
+		mlog("%s: num: %u threads: %i node %i cpuid %i\n", __func__, num, t, slots[s].node, cpu);
+		HWThreads[t].node = slots[s].node;
+		HWThreads[t].id = cpu;
+		HWThreads[t].timesUsed = 0;
+		t++;
+	    }
+	}
+    }
+
+    *threads = HWThreads;
+
+    return totThreads;
+}
+
+int setHWthreads(Step_t *step)
+{
+    uint32_t node, local_tid, tid, slotsSize, cpuCount, i, shift;
+    uint32_t coreMapIndex = 0, coreIndex = 0, coreArrayCount = 0;
+    uint8_t *coreMap = NULL;
+    int32_t lastCpu;
+    int hwThreads, thread = 0, numThreads;
+    JobCred_t *cred = NULL;
+    PSpart_slot_t *slots = NULL;
+    PSCPU_set_t CPUset;
+
+    cred = step->cred;
+
+    /* generate slotlist */
+    slotsSize = step->np;
+    if (!(slots = umalloc(slotsSize * sizeof(PSpart_slot_t)))) {
+	mlog("%s: out of memory\n", __func__);
+	exit(1);
+    }
+
+    /* get cpus from job credential */
+    if (!(coreMap = getCPUsForPartition(slots, step))) {
+	goto error;
+    }
+
+    for (node=0; node < step->nrOfNodes; node++) {
+	thread = 0;
+
+	/* get cpu count per node from job credential */
+	if (coreIndex >= cred->coreArraySize) {
+	    mlog("%s: invalid core index '%i', size '%i'\n", __func__,
+		    coreIndex, cred->coreArraySize);
+	    goto error;
+	}
+
+	cpuCount =
+	    cred->coresPerSocket[coreIndex] * cred->socketsPerNode[coreIndex];
+
+	hwThreads = PSIDnodes_getVirtCPUs(step->nodes[node]) / cpuCount;
+	if (hwThreads < 1) hwThreads = 1;
+
+	lastCpu = -1; /* no cpu assigned yet */
+
+	/* set node and cpuset for every task */
+	for (local_tid=0; local_tid < step->globalTaskIdsLen[node];
+                local_tid++) {
+
+	    tid = step->globalTaskIds[node][local_tid];
+
+	    mdbg(PSSLURM_LOG_PART, "%s: node '%u' nodeid '%u' task '%u' tid"
+                    " '%u'\n", __func__, node, step->nodes[node], local_tid,
+                    tid);
+
+	    /* sanity check */
+	    if (tid > slotsSize) {
+		mlog("%s: invalid taskids '%s' slotsSize '%u'\n", __func__,
+			PSC_printTID(tid), slotsSize);
+		goto error;
+	    }
+
+	    /* calc CPUset */
+	    setCPUset(&CPUset, step->cpuBindType, step->cpuBind, coreMap,
+                        coreMapIndex, cred->socketsPerNode[coreIndex],
+                        cred->coresPerSocket[coreIndex], cpuCount, &lastCpu,
+                        node, &thread, hwThreads, step->globalTaskIdsLen[node],
+                        step->tpp, local_tid);
+
+	    slots[tid].node = step->nodes[node];
+
+            /* handle cyclic distribution */
+            if ((!(step->cpuBindType & (0xFFF & ~CPU_BIND_VERBOSE)) /* default */
+                    || step->cpuBindType & (CPU_BIND_RANK | CPU_BIND_TO_THREADS))
+                    && (step->taskDist == SLURM_DIST_BLOCK_CYCLIC ||
+                    step->taskDist == SLURM_DIST_CYCLIC_CYCLIC)) {
+                PSCPU_clrAll(slots[tid].CPUset);
+                shift = local_tid % 2 ? cred->coresPerSocket[coreIndex] : 0;
+                shift = shift - step->tpp * ((local_tid + 1) / 2);
+                for (i = 0; i < (cpuCount * hwThreads); i++) {
+                    if (PSCPU_isSet(CPUset, i)) {
+                        PSCPU_setCPU(slots[tid].CPUset,
+                                     (i + shift) % (cpuCount * hwThreads));
+                    }
+                }
+                mdbg(PSSLURM_LOG_PART, "%s: Cyclic shifting by %d:\n",
+                        __func__, shift);
+                mdbg(PSSLURM_LOG_PART, "- %s\n", PSCPU_print(CPUset));
+                mdbg(PSSLURM_LOG_PART, "+ %s\n", PSCPU_print(slots[tid].CPUset));
+            }
+            else {
+                PSCPU_copy(slots[tid].CPUset, CPUset);
+            }
+	}
+	coreMapIndex += cpuCount;
+
+	coreArrayCount++;
+	if (coreArrayCount >= cred->sockCoreRepCount[coreIndex]) {
+	    coreIndex++;
+	    coreArrayCount = 0;
+	}
+    }
+
+    if ((numThreads = genThreads(slots, slotsSize, &step->hwThreads)) < 0) {
+	goto error;
+    }
+    step->numHwThreads = numThreads;
+
+    ufree(coreMap);
+    ufree(slots);
+
+    return 1;
+
+error:
+    ufree(coreMap);
+    ufree(slots);
+    return 0;
+
 }
 
 /* vim: set ts=8 sw=4 tw=0 sts=4 noet :*/

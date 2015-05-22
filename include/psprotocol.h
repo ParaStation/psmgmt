@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2014 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2015 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -117,8 +117,8 @@ typedef enum {
     PSP_OP_RDPSTATISTICS,         /**< Status of RDP statistics */
 
     PSP_OP_FREEONSUSP = 0x0038,   /**< Free suspended job's resources? */
-    PSP_OP_HANDLEOLD,             /**< Notice old binaries? */
-    PSP_OP_NODESSORT,             /**< Sorting strategy for nodes */
+    PSP_OP_HANDLEOLD,             /**< Notice old binaries? @deprecated */
+    PSP_OP_NODESSORT = 0x003a,    /**< Sorting strategy for nodes */
     PSP_OP_OVERBOOK,              /**< (Dis-)Allow overbooking this node */
     PSP_OP_STARTER,               /**< (Dis-)Allow starting from this node */
     PSP_OP_RUNJOBS,               /**< (Dis-)Allow running on this node */
@@ -252,6 +252,8 @@ typedef enum {
     PSP_INFO_QUEUE_ENVS,          /**< Queue of environment entries */
     PSP_INFO_RDPCONNSTATUS,       /**< Info on RDP connections */
     PSP_INFO_LIST_RESPORTS,	  /**< Reserved ports for OpenMPI startup */
+    PSP_INFO_LIST_GETNODES,       /**< Get assumption on GET_NODES results */
+    PSP_INFO_LIST_RESNODES,       /**< Get a reservation's node-list */
 } PSP_Info_t;
 
 /** Messages concerning spawning of tasks. */
@@ -335,6 +337,10 @@ typedef enum {
 #define PSP_CD_GETNODES          0x0063  /**< Request nodes from a partition */
 #define PSP_CD_NODESRES          0x0064  /**< Get nodes from a partition */
 #define PSP_CD_GETRANKNODE       0x0065  /**< Req node of rank from partition */
+#define PSP_CD_GETRESERVATION    0x0066  /**< Request reservation of slots */
+#define PSP_CD_RESERVATIONRES    0x0067  /**< Reservation result */
+#define PSP_CD_GETSLOTS          0x0068  /**< Request slots from reservation */
+#define PSP_CD_SLOTSRES          0x0069  /**< Slots got from a reservation */
 
 /** Flow-control to loggers and forwarders. */
 #define PSP_CD_SENDSTOP          0x0070  /**< Stop sending further packets */
@@ -361,7 +367,7 @@ typedef enum {
 #define PSP_RESET_HW              0x0001
 
 /**
- * Chunksize for PSP_CD_GETNODES, PSP_CD_CREATEPARTNL and
+ * Chunk-size for PSP_CD_GETNODES, PSP_CD_CREATEPARTNL and
  * PSP_DD_GETPARTNL messages
  */
 #define NODES_CHUNK 256
@@ -551,19 +557,22 @@ size_t PSP_strLen(char *str);
 /**
  * @brief Put data into message buffer
  *
- * Put some data referenced by @a data of size @a size into the buffer
- * @ref buf of the message @a msg of type @ref DDBufferMsg_t. The data
- * are placed with an offset defined by the @ref len member of @a
- * msg's header. Upon success, i.e. if the data fitted into the
- * remainder of @a msg's buffer, the @ref len entry of @a msg's header
- * is updated. In that case 1 is returned. Otherwise, an error-message
- * is put out and 0 is returned. In the latter case the len member of
- * @a msg is not updated.
+ * Put some data referenced by @a data of size @a size into the
+ * payload-buffer @ref buf of the message @a msg of type @ref
+ * DDBufferMsg_t. The data are placed with an offset defined by the
+ * @ref len member of @a msg's header. Upon success, i.e. if the data
+ * fitted into the remainder of @a msg's buffer, the @ref len entry of
+ * @a msg's header is updated and 1 is returned. Otherwise, an
+ * error-message is put out and 0 is returned. In the latter case the
+ * len member of @a msg is not updated.
  *
- * @a dataName is used in order the create the error-message. It shall
- * describe the type of content to be added to @a msg's buffer.
+ * @a funcName and @a dataName are used in order the create the
+ * error-message. It shall describe the calling function and the type
+ * of content to be added to @a msg's buffer.
  *
  * @param msg Message to be modified
+ *
+ * @param funcName Name of the calling function
  *
  * @param dataName Description of the data @a data to be added to @a
  * msg.
@@ -572,28 +581,97 @@ size_t PSP_strLen(char *str);
  *
  * @param size Amount of data to be put into the message @a msg.
  *
- * @return Upon success, 1 is returned. Or 0, if an error
+ * @return Upon success, 1 is returned. Or 0 if an error
  * occurred. This is mainly due to insufficient space within @a msg.
  */
-int PSP_putMsgBuf(DDBufferMsg_t *msg, char *strName, void *data, size_t size);
+int PSP_putMsgBuf(DDBufferMsg_t *msg, const char *funcName,
+		  const char *dataName, const void *data, size_t size);
 
+/**
+ * @brief Get data from message buffer
+ *
+ * Fetch data from the payload-buffer @ref buf of the message @a msg
+ * of type @ref DDBufferMsg_t. An amount of data is given by @a size
+ * will be stored to @a data. The data is fetched with an offset given
+ * by @a used . At the same time @a used is updated to point right
+ * after the fetched data. Thus, subsequent calls will fetch
+ * successive data from the payload buffer.
+ *
+ * Upon success, i.e. if the data is available in the message
+ * (i.e. its @ref len is large enough) and @a data is different from
+ * NULL, 1 is returned. Otherwise, an error-message is put out and 0
+ * is returned. In the latter case @a used is not updated.
+ *
+ * @a funcName and @a dataName are used in order the create the
+ * error-message. It shall describe the calling function and the type
+ * of content to be fetched from @a msg's buffer.
+ *
+ * @param msg Message to fetch data from
+ *
+ * @param used Counter used to track the data offset
+ *
+ * @param funcName Name of the calling function
+ *
+ * @param dataName Description of @a data to be fetched from to @a
+ * msg.
+ *
+ * @param data Pointer to the data to get from the message @a msg.
+ *
+ * @param size Amount of data to be fetched from the message @a msg.
+ *
+ * @return Upon success, 1 is returned. Or 0 if an error
+ * occurred. This is mainly due to insufficient data available in @a msg.
+ */
+int PSP_getMsgBuf(DDBufferMsg_t *msg, size_t *used, const char *funcName,
+		  const char *dataName, void *data, size_t size);
+
+/**
+ * @brief Try to get data from message buffer
+ *
+ * This function shows basically the same behavior as @ref
+ * PSP_getMsgBuf(). The main difference is an suppressed error message
+ * in case @a msg does not contain sufficient amount of data.
+ *
+ * @param msg Message to fetch data from
+ *
+ * @param used Counter used to track the data offset
+ *
+ * @param funcName Name of the calling function
+ *
+ * @param dataName Description of @a data to be fetched from to @a
+ * msg.
+ *
+ * @param data Pointer to the data to get from the message @a msg.
+ *
+ * @param size Amount of data to be fetched from the message @a msg.
+ *
+ * @return Upon success, 1 is returned. Or 0 if an error
+ * occurred. This is mainly due to insufficient data available in @a msg.
+ *
+ * @see PSP_getMsgBuf()
+ */
+int PSP_tryGetMsgBuf(DDBufferMsg_t *msg, size_t *used, const char *funcName,
+		     const char *dataName, void *data, size_t size);
 
 /**
  * @brief Put data into message buffer
  *
- * Put some data referenced by @a data of size @a size into the buffer
- * @ref buf of the message @a msg of type @ref DDTypedBufferMsg_t. The
- * data are placed with an offset defined by the @ref len member of @a
- * msg's header. Upon success, i.e. if the data fitted into the
- * remainder of @a msg's buffer, the @ref len entry of @a msg's header
- * is updated. In that case 1 is returned. Otherwise, an error-message
- * is put out and 0 is returned. In the latter case the len member of
- * @a msg is not updated.
+ * Put some data referenced by @a data of size @a size into the
+ * payload-buffer @ref buf of the message @a msg of type @ref
+ * DDTypedBufferMsg_t. The data are placed with an offset defined by
+ * the @ref len member of @a msg's header. Upon success, i.e. if the
+ * data fitted into the remainder of @a msg's buffer, the @ref len
+ * entry of @a msg's header is updated and 1 is returned. Otherwise,
+ * an error-message is put out and 0 is returned. In the latter case
+ * the len member of @a msg is not updated.
  *
- * @a dataName is used in order the create the error-message. It shall
- * describe the type of content to be added to @a msg's buffer.
+ * @a funcName and @a dataName are used in order the create the
+ * error-message. It shall describe the calling function and the type
+ * of content to be added to @a msg's buffer.
  *
  * @param msg Message to be modified
+ *
+ * @param funcName Name of the calling function
  *
  * @param dataName Description of the data @a data to be added to @a
  * msg.
@@ -602,11 +680,50 @@ int PSP_putMsgBuf(DDBufferMsg_t *msg, char *strName, void *data, size_t size);
  *
  * @param size Amount of data to be put into the message @a msg.
  *
- * @return Upon success, 1 is returned. Or 0, if an error
+ * @return Upon success, 1 is returned. Or 0 if an error
  * occurred. This is mainly due to insufficient space within @a msg.
  */
-int PSP_putTypedMsgBuf(DDTypedBufferMsg_t *msg, char *strName, void *data,
-		       size_t size);
+int PSP_putTypedMsgBuf(DDTypedBufferMsg_t *msg, const char *funcName,
+		       const char *dataName, const void *data, size_t size);
+
+/**
+ * @brief Get data from message buffer
+ *
+ * Fetch data from the payload-buffer @ref buf of the message @a msg
+ * of type @ref DDTypedBufferMsg_t. An amount of data is given by @a size
+ * will be stored to @a data. The data is fetched with an offset given
+ * by @a used . At the same time @a used is updated to point right
+ * after the fetched data. Thus, subsequent calls will fetch
+ * successive data from the payload buffer.
+ *
+ * Upon success, i.e. if the data is available in the message
+ * (i.e. its @ref len is large enough) and @a data is different from
+ * NULL, 1 is returned. Otherwise, an error-message is put out and 0
+ * is returned. In the latter case @a used is not updated.
+ *
+ * @a funcName and @a dataName are used in order the create the
+ * error-message. It shall describe the calling function and the type
+ * of content to be fetched from @a msg's buffer.
+ *
+ * @param msg Message to fetch data from
+ *
+ * @param used Counter used to track the data offset
+ *
+ * @param funcName Name of the calling function
+ *
+ * @param dataName Description of @a data to be fetched from to @a
+ * msg.
+ *
+ * @param data Pointer to the data to get from the message @a msg.
+ *
+ * @param size Amount of data to be fetched from the message @a msg.
+ *
+ * @return Upon success, 1 is returned. Or 0 if an error
+ * occurred. This is mainly due to insufficient data available in @a msg.
+ */
+int PSP_getTypedMsgBuf(DDTypedBufferMsg_t *msg, size_t *used,
+		       const char *funcName, const char *dataName,
+		       void *data, size_t size);
 
 #ifdef __cplusplus
 }/* extern "C" */

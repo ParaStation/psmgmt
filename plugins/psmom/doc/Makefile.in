@@ -17,7 +17,7 @@
 #
 # ParaStation
 #
-# Copyright (C) 2013 ParTec Cluster Competence Center GmbH, Munich
+# Copyright (C) 2013-2014 ParTec Cluster Competence Center GmbH, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -104,7 +104,7 @@ build_triplet = @build@
 host_triplet = @host@
 target_triplet = @target@
 DIST_COMMON = $(top_srcdir)/common.am $(srcdir)/Makefile.in \
-	$(srcdir)/Makefile.am $(dist_doc_DATA) $(dist_pamconf_DATA) \
+	$(srcdir)/Makefile.am $(dist_noinst_DATA) $(dist_pamconf_DATA) \
 	$(dist_plugin_DATA)
 subdir = plugins/psmom/doc
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
@@ -165,9 +165,8 @@ am__uninstall_files_from_dir = { \
     || { echo " ( cd '$$dir' && rm -f" $$files ")"; \
          $(am__cd) "$$dir" && rm -f $$files; }; \
   }
-am__installdirs = "$(DESTDIR)$(docdir)" "$(DESTDIR)$(pamconfdir)" \
-	"$(DESTDIR)$(plugindir)"
-DATA = $(dist_doc_DATA) $(dist_pamconf_DATA) $(dist_plugin_DATA)
+am__installdirs = "$(DESTDIR)$(pamconfdir)" "$(DESTDIR)$(plugindir)"
+DATA = $(dist_noinst_DATA) $(dist_pamconf_DATA) $(dist_plugin_DATA)
 am__tagged_files = $(HEADERS) $(SOURCES) $(TAGS_FILES) $(LISP)
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 ACLOCAL = @ACLOCAL@
@@ -343,7 +342,7 @@ configdir = $(prefix)/config
 scriptsdir = $(prefix)/scripts
 slurmdir = $(libdir)/slurm
 dist_plugin_DATA = psmom.conf
-dist_doc_DATA = psmom-prologue-example psmom-epilogue-example psmom-timeout-example
+dist_noinst_DATA = psmom-prologue-example psmom-epilogue-example psmom-timeout-example
 dist_pamconf_DATA = psmom
 EXTRA_DIST = psmom.pam
 CLEANFILES = psmom.pam
@@ -387,27 +386,6 @@ mostlyclean-libtool:
 
 clean-libtool:
 	-rm -rf .libs _libs
-install-dist_docDATA: $(dist_doc_DATA)
-	@$(NORMAL_INSTALL)
-	@list='$(dist_doc_DATA)'; test -n "$(docdir)" || list=; \
-	if test -n "$$list"; then \
-	  echo " $(MKDIR_P) '$(DESTDIR)$(docdir)'"; \
-	  $(MKDIR_P) "$(DESTDIR)$(docdir)" || exit 1; \
-	fi; \
-	for p in $$list; do \
-	  if test -f "$$p"; then d=; else d="$(srcdir)/"; fi; \
-	  echo "$$d$$p"; \
-	done | $(am__base_list) | \
-	while read files; do \
-	  echo " $(INSTALL_DATA) $$files '$(DESTDIR)$(docdir)'"; \
-	  $(INSTALL_DATA) $$files "$(DESTDIR)$(docdir)" || exit $$?; \
-	done
-
-uninstall-dist_docDATA:
-	@$(NORMAL_UNINSTALL)
-	@list='$(dist_doc_DATA)'; test -n "$(docdir)" || list=; \
-	files=`for p in $$list; do echo $$p; done | sed -e 's|^.*/||'`; \
-	dir='$(DESTDIR)$(docdir)'; $(am__uninstall_files_from_dir)
 install-dist_pamconfDATA: $(dist_pamconf_DATA)
 	@$(NORMAL_INSTALL)
 	@list='$(dist_pamconf_DATA)'; test -n "$(pamconfdir)" || list=; \
@@ -491,7 +469,7 @@ check-am: all-am
 check: check-am
 all-am: Makefile $(DATA)
 installdirs:
-	for dir in "$(DESTDIR)$(docdir)" "$(DESTDIR)$(pamconfdir)" "$(DESTDIR)$(plugindir)"; do \
+	for dir in "$(DESTDIR)$(pamconfdir)" "$(DESTDIR)$(plugindir)"; do \
 	  test -z "$$dir" || $(MKDIR_P) "$$dir"; \
 	done
 install: install-am
@@ -545,8 +523,7 @@ info: info-am
 
 info-am:
 
-install-data-am: install-dist_docDATA install-dist_pamconfDATA \
-	install-dist_pluginDATA
+install-data-am: install-dist_pamconfDATA install-dist_pluginDATA
 
 install-dvi: install-dvi-am
 
@@ -590,8 +567,7 @@ ps: ps-am
 
 ps-am:
 
-uninstall-am: uninstall-dist_docDATA uninstall-dist_pamconfDATA \
-	uninstall-dist_pluginDATA
+uninstall-am: uninstall-dist_pamconfDATA uninstall-dist_pluginDATA
 
 .MAKE: install-am install-strip
 
@@ -599,15 +575,14 @@ uninstall-am: uninstall-dist_docDATA uninstall-dist_pamconfDATA \
 	cscopelist-am ctags-am distclean distclean-generic \
 	distclean-libtool distdir dvi dvi-am html html-am info info-am \
 	install install-am install-data install-data-am \
-	install-dist_docDATA install-dist_pamconfDATA \
-	install-dist_pluginDATA install-dvi install-dvi-am \
-	install-exec install-exec-am install-exec-local install-html \
-	install-html-am install-info install-info-am install-man \
-	install-pdf install-pdf-am install-ps install-ps-am \
-	install-strip installcheck installcheck-am installdirs \
-	maintainer-clean maintainer-clean-generic mostlyclean \
-	mostlyclean-generic mostlyclean-libtool pdf pdf-am ps ps-am \
-	tags-am uninstall uninstall-am uninstall-dist_docDATA \
+	install-dist_pamconfDATA install-dist_pluginDATA install-dvi \
+	install-dvi-am install-exec install-exec-am install-exec-local \
+	install-html install-html-am install-info install-info-am \
+	install-man install-pdf install-pdf-am install-ps \
+	install-ps-am install-strip installcheck installcheck-am \
+	installdirs maintainer-clean maintainer-clean-generic \
+	mostlyclean mostlyclean-generic mostlyclean-libtool pdf pdf-am \
+	ps ps-am tags-am uninstall uninstall-am \
 	uninstall-dist_pamconfDATA uninstall-dist_pluginDATA
 
 

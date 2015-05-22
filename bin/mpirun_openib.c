@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2007-2013 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2007-2014 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -389,7 +389,10 @@ static void exchangeHostIDs(int sock, int nprocs)
 	nread = read(s, &hostidlen, sizeof(hostidlen));
 	if (nread != sizeof(hostidlen)) {
 	    /* nread == 0 is not actually an error! */
-	    if (nread == 0) continue;
+	    if (nread == 0) {
+		i--;
+		continue;
+	    }
 
 	    msg = "read";
 	    goto errexit;
@@ -437,6 +440,7 @@ static void exchangeHostIDs(int sock, int nprocs)
 	    goto errexit;
 	}
     }
+    free(hostids);
 
     /* close all open sockets */
     for (i = 0; i < nprocs; i++) close(plist[i].control_socket);
@@ -450,23 +454,30 @@ static void exchangeHostIDs(int sock, int nprocs)
     } else {
 	fprintf(stderr, "%s\n", msg);
     }
+    if (hostids) free(hostids);
     exit(1);
 }
 
-static void exchangeInfo(int sock, int nprocs)
+static void exchangeInfo(int sock, unsigned int nprocs)
 {
-    int addrlen, global_addrlen = 0, tot_nread, i;
+    unsigned int addrlen, global_addrlen = 0, tot_nread, i;
     int *alladdrs = NULL;
     char *alladdrs_char = NULL; /* for byte location */
-    int pidlen, global_pidlen = 0;
+    unsigned int pidlen, global_pidlen = 0;
     char *allpids=NULL;
     int out_addrs_len;
-    int *out_addrs;
+    int *out_addrs = NULL;
     char * msg;
+
+    if (!nprocs) {
+	msg = "illegal nprocs = 0";
+	goto errexit;
+    }
 
     /* accept incoming connections, read port numbers */
     for (i = 0; i < nprocs; i++) {
-	int s, rank, nread;
+	unsigned int rank;
+	int s, nread;
 
     ACCEPT:
 	s = accept(sock, NULL, NULL);
@@ -492,7 +503,7 @@ static void exchangeInfo(int sock, int nprocs)
 	    goto errexit;
 	}
 
-	if (rank < 0 || rank >= nprocs || plist[rank].state != P_STARTED) {
+	if (rank >= nprocs || plist[rank].state != P_STARTED) {
 	    msg = "invalid rank received.";
 	    goto errexit;
 	}
@@ -504,9 +515,16 @@ static void exchangeInfo(int sock, int nprocs)
 	if (nread != sizeof(addrlen)) {
 
 	    /* nread == 0 is not actually an error! */
-	    if (nread == 0) continue;
+	    if (nread == 0) {
+		i--;
+		continue;
+	    }
 
 	    msg = "read";
+	    goto errexit;
+	}
+	if (!addrlen) {
+	    msg = "illegal addrlen 0";
 	    goto errexit;
 	}
 
@@ -554,6 +572,10 @@ static void exchangeInfo(int sock, int nprocs)
 	nread = read(s, &pidlen, sizeof(pidlen));
 	if (nread != sizeof(pidlen)) {
 	    msg = "read";
+	    goto errexit;
+	}
+	if (!pidlen) {
+	    msg = "illegal pidlen 0";
 	    goto errexit;
 	}
 
@@ -612,7 +634,8 @@ static void exchangeInfo(int sock, int nprocs)
     }
 
     for (i = 0; i < nprocs; i++) {
-	int nwritten, j;
+	unsigned int j;
+	int nwritten;
 
 	/* personalized address information for each process */
 	for (j = 0; j < nprocs; j++) {
@@ -635,7 +658,7 @@ static void exchangeInfo(int sock, int nprocs)
 
 	if(pidlen != 0) {
 	    nwritten = write(plist[i].control_socket, allpids, nprocs*pidlen);
-	    if (nwritten != nprocs*pidlen) {
+	    if (nwritten != (int)(nprocs*pidlen)) {
 		msg = "write";
 		goto errexit;
 	    }
@@ -643,6 +666,8 @@ static void exchangeInfo(int sock, int nprocs)
 
 	plist[i].state = P_RUNNING;
     }
+    free(alladdrs);
+    free(out_addrs);
 
     return;
 
@@ -653,6 +678,8 @@ static void exchangeInfo(int sock, int nprocs)
     } else {
 	fprintf(stderr, "%s\n", msg);
     }
+    if (alladdrs) free(alladdrs);
+    if (out_addrs) free(out_addrs);
     exit(1);
 }
 

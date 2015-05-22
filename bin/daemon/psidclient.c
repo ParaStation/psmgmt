@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2014 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2015 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -610,7 +610,7 @@ void deleteClient(int fd)
 	msg.header.sender = task->tid;
 	msg.header.len = sizeof(msg.header);
 
-	msg.type = (task->nextRank < 1) ? PSP_ACCOUNT_DELETE : PSP_ACCOUNT_END;
+	msg.type = (task->numChild > 0) ? PSP_ACCOUNT_END : PSP_ACCOUNT_DELETE;
 	msg.header.len += sizeof(msg.type);
 
 	/* logger's TID, this identifies a task uniquely */
@@ -633,11 +633,11 @@ void deleteClient(int fd)
 	ptr += sizeof(gid_t);
 	msg.header.len += sizeof(gid_t);
 
-	if (task->nextRank > 0) {
+	if (task->numChild > 0) {
 	    struct timeval now, walltime;
 
 	    /* total number of children */
-	    *(int32_t *)ptr = task->nextRank;
+	    *(int32_t *)ptr = task->numChild;
 	    ptr += sizeof(int32_t);
 	    msg.header.len += sizeof(int32_t);
 
@@ -923,6 +923,9 @@ static void msg_CLIENTCONNECT(int fd, DDBufferMsg_t *bufmsg)
 	Selector_remove(fd);
     }
 
+    /* Seed the sequence of reservation IDs */
+    task->nextResID = task->tid + 0x042;
+
     registerClient(fd, tid, task);
 
     /*
@@ -1031,14 +1034,13 @@ static void msg_CC_MSG(DDBufferMsg_t *msg)
 {
     PSID_log(PSID_LOG_CLIENT, "%s: from %s", __func__,
 	     PSC_printTID(msg->header.sender));
-    PSID_log(PSID_LOG_CLIENT, "to %s", PSC_printTID(msg->header.dest));
+    PSID_log(PSID_LOG_CLIENT, " to %s\n", PSC_printTID(msg->header.dest));
 
     /* Forward this message. If this fails, send an error message. */
     if (sendMsg(msg) == -1 && errno != EWOULDBLOCK) {
-	PSID_log(PSID_LOG_CLIENT, "failed");
+	PSID_log(PSID_LOG_CLIENT, "%s: sending failed\n", __func__);
 	PSID_dropMsg(msg);
     }
-    PSID_log(PSID_LOG_CLIENT, "\n");
 }
 
 /**

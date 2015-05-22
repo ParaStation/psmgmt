@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2014 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2015 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -58,6 +58,7 @@ typedef enum {
     TG_SERVICE_SIG, /**< service task, used by mpirun_openib to spawn
 		     * procs; will receive SIGTERM on child's termination */
     TG_KVS,         /**< special task, the KVS used by the PMI interface */
+    TG_DELEGATE,    /**< special task used to hold resources */
 } PStask_group_t;
 
 /** Type to store unique task IDs in */
@@ -74,95 +75,22 @@ typedef int32_t PStask_ID_t;
  */
 char *PStask_printGrp(PStask_group_t taskgroup);
 
-/** Internal state of PStask_sig_t structure */
-typedef enum {
-    USED,           /**< In use */
-    UNUSED,         /**< Unused and ready for re-use */
-    DRAINED,        /**< Unused and ready for discard */
-} PStask_sig_state_t;
-
-/** Signal structure */
-typedef struct {
-    list_t next;              /**< used to put into signal-lists */
-    PStask_ID_t tid;          /**< unique task identifier */
-    int32_t signal;           /**< signal to send, or -1 for child-signal */
-    char deleted;             /**< flag to mark deleted signal structs.
-				 Will be removed later when save. */
-    PStask_sig_state_t state; /**< flag internal state of structure */
-} PStask_sig_t;
-
-/**
- * @brief Get signal structure from pool
- *
- * Get a signal structure from the pool of free signal structures. If
- * there is no structure left in the pool, this will be extended by
- * @ref SIGNAL_CHUNK structures via calling @ref incFreeList().
- *
- * The signal structure returned will be prepared, i.e. the
- * list-handle @a next is initialized, the deleted flag is cleared, it
- * is marked as USED, etc.
- *
- * @return On success, a pointer to the new signal structure is
- * returned. Or NULL, if an error occurred.
- */
-PStask_sig_t *PStask_getSig(void);
-
-/**
- * @brief Put signal structure back into pool
- *
- * Put the signal structure @a sp back into the pool of free signal
- * structures. The signal structure might get reused and handed back
- * to the application by calling @ref PStask_getSig().
- *
- * @param sp Pointer to the signal structure to be put back into the
- * pool.
- *
- * @return No return value
- */
-void PStask_putSig(PStask_sig_t *sp);
-
-/**
- * @brief Garbage collection
- *
- * Do garbage collection on unused signal structures. Since this
- * module will keep pre-allocated buffers for signal structures its
- * memory-footprint might have grown after phases of heavy
- * usage. Thus, this function shall be called regularly in order to
- * free() signal structures no longer required.
- *
- * @return No return value.
- *
- * @see PStask_gcSigRequired()
- */
-void PStask_gcSig(void);
-
-/**
- * @brief Garbage collection required?
- *
- * Find out, if a call to PStask_gcSig() will have any effect, i.e. if
- * sufficiently many unused signal structures are available to free().
- *
- * @return If enough signal structure to free() are available, 1 is
- * returned. Otherwise 0 is given back.
- *
- * @see PStask_gcSig()
- */
-int PStask_gcSigRequired(void);
-
 /**
  * @brief Print statistics
  *
- * Print statistics concerning the usage of signal structures.
+ * Print statistics concerning the usage of signal and reservation
+ * structures.
  *
  * @return No return value.
  */
 void PStask_printStat(void);
 
 #include "pspartition.h"
+#include "psreservation.h"
 
 /** Task structure */
 /* Members marked with C are (un)packed by PStask_encode()/PStask_decode() */
-typedef struct {
+typedef struct __task__ {
     list_t next;                   /**< used to put into managedTasks, etc. */
     /*C*/ PStask_ID_t tid;         /**< unique task identifier */
     /*C*/ PStask_ID_t ptid;        /**< unique identifier of parent task */
@@ -214,13 +142,23 @@ typedef struct {
     list_t releasedBefore;         /**< released children to be inherited */
     list_t deadBefore;             /**< dead children to be inherited */
     PSpart_request_t *request;     /**< Pointer to temp. partition request */
-    uint32_t partitionSize;        /**< Size of the partition. */
     PSpart_option_t options;       /**< The partition's options. */
+    uint32_t partitionSize;        /**< Number of slots in the partition. */
     PSpart_slot_t *partition;      /**< The actual partition. List of slots. */
-    int32_t nextRank;              /**< Next rank to start within the task. */
-    PSpart_slot_t *spawnNodes;     /**< Node the task can spawn to */
+    uint32_t totalThreads;         /**< Size of @ref partThreads. */
+    PSpart_HWThread_t *partThrds;  /**< HW-threads forming the partition. */
+    int32_t usedThreads;           /**< Number of HW-threads currently in use */
+    PSrsrvtn_ID_t nextResID;       /**< ID to be used for next reservation */
+    list_t reservations;           /**< List of active reservations */
+    list_t resRequests;            /**< List of reservation-requestd (FIFO). */
+    int32_t activeChild;           /**< # of active children right now */
+    int32_t numChild;              /**< Total # of children spawned over time */
+    PSpart_slot_t *spawnNodes;     /**< Nodes the task can spawn to */
     int32_t spawnNodesSize;        /**< Current size of @ref spawnNodes */
     int32_t spawnNum;              /**< Amount of content of @ref spawnNodes */
+    struct __task__ *delegate;     /**< Delegate holding resources */
+    int injectedEnv;               /**< Flag an injected environment into the
+				      current spawn. Used by psmom, etc. */
 
     list_t signalSender;           /**< Tasks which sent signals */
     list_t signalReceiver;         /**< Tasks which want to receive signals */
@@ -257,7 +195,7 @@ int PStask_init(PStask_t *task);
  * @brief Reinitialize a task structure.
  *
  * Reinitialize the task structure @a task that was previously
- * used. All allocated strings and signallists shall be removed, all
+ * used. All allocated strings and signal-lists shall be removed, all
  * links are reset to NULL.
  *
  * @param task Pointer to the task structure to be reinitialized.
@@ -271,7 +209,7 @@ int PStask_reinit(PStask_t *task);
  *
  * Delete the task structure @a task created via @ref
  * PStask_new(). First the task is cleaned up by @ref PStask_reinit(),
- * i.e. all allocated strings and signallists are removed. Afterward
+ * i.e. all allocated strings and signal-lists are removed. Afterward
  * the task itself is removed.
  *
  * @param task Pointer to the task structure to be deleted.
@@ -279,21 +217,6 @@ int PStask_reinit(PStask_t *task);
  * @return On success, 1 is returned, or 0 otherwise.
  */
 int PStask_delete(PStask_t *task);
-
-/**
- * @brief Clone a signal list.
- *
- * Create an exact clone of the signal list @a siglist and return a
- * pointer to first element of the cloned list.
- *
- * @param siglist The signal list to clone.
- *
- * @return On success, a pointer to the first element of the cloned
- * signal list is returned, or NULL otherwise. Beware of the fact that
- * the return value might also be NULL, if the original @a siglist was
- * also NULL.
- */
-PStask_sig_t *PStask_cloneSigList(PStask_sig_t *siglist);
 
 /**
  * @brief Clone a task structure.
@@ -339,7 +262,7 @@ void PStask_snprintf(char *txt, size_t size, PStask_t *task);
  * stored within @a buffer and write it to the task structure @a task
  * is pointing to.
  *
- * @param buffer The buffer the encoded task strucure is stored in.
+ * @param buffer The buffer the encoded task structure is stored in.
  *
  * @param task The task structure to write to.
  *
@@ -355,7 +278,7 @@ int PStask_decodeFull(char *buffer, PStask_t *task);
 /**
  * @brief Encode a task structure.
  *
- * Encode the task structure @a task into the the buffer @a buffer of
+ * Encode the task structure @a task into the buffer @a buffer of
  * size @a size. This enables the task to be sent to a remote node
  * where it can be decoded using the @ref PStask_decodeTask() function.
  *
@@ -404,7 +327,7 @@ size_t PStask_encodeTask(char *buffer, size_t size, PStask_t *task,
  * within @a buffer and write it to the task structure @a task is
  * pointing to.
  *
- * @param buffer The buffer the encoded task strucure is stored in.
+ * @param buffer The buffer the encoded task structure is stored in.
  *
  * @param task The task structure to write to.
  *
@@ -437,7 +360,7 @@ int PStask_decodeArgs(char *buffer, PStask_t *task);
 /**
  * @brief Encode argv part of task structure.
  *
- * Encode the argument-vector @a argv into the the buffer @a buffer of
+ * Encode the argument-vector @a argv into the buffer @a buffer of
  * size @a size. This enables the argument-vector to be sent to a
  * remote node where the argument-vector shall be decoded using the
  * @ref PStask_decodeArgv() and PStask_decodeArgvAppend() functions.
@@ -447,7 +370,7 @@ int PStask_decodeArgs(char *buffer, PStask_t *task);
  *
  * Since both, the argument-vector as whole and single arguments,
  * might be substantially larger than the buffer's size @a size, it
- * might be splitted into more than one messages and, thus, buffer
+ * might be split into more than one messages and, thus, buffer
  * contents. To support this feature, a pointer to an integer within
  * the calling context @a cur has to be provided. The integer @a cur
  * points to has to be set to 0 before calling this function for the
@@ -546,7 +469,7 @@ int PStask_decodeArgvAppend(char *buffer, PStask_t *task);
  *
  * Since both, the environment as whole and single environment's
  * key-value pairs, might be substantially larger than the buffer's
- * size @a size, it might be splitted into more than one messages and,
+ * size @a size, it might be split into more than one messages and,
  * thus, buffer contents. To support this feature, a pointer to an
  * integer within the calling context @a cur has to be provided. The
  * integer @a cur points to has to be set to 0 before calling this
@@ -555,7 +478,7 @@ int PStask_decodeArgvAppend(char *buffer, PStask_t *task);
  * same @a env they have to be left untouched.
  *
  * Since the environment might be substantially larger than the
- * buffer's size @a size, it might be splitted into more than one
+ * buffer's size @a size, it might be split into more than one
  * messages and thus buffer contents. To support this feature, a
  * pointer to an integer within the calling context @a cur has to be
  * provided. The integer @a cur points to has to be set to 0 before
@@ -641,6 +564,17 @@ int PStask_decodeEnv(char *buffer, PStask_t *task);
  * decode the key-value pair.
  */
 int PStask_decodeEnvAppend(char *buffer, PStask_t *task);
+
+/**
+ * @brief Get reservation ID
+ *
+ * Get an unused reservation ID for task @a task.
+ *
+ * @param task The task providing the unique sequence
+ *
+ * @return The new reservation ID
+ */
+PSrsrvtn_ID_t PStask_getNextResID(PStask_t *task);
 
 #ifdef __cplusplus
 }/* extern "C" */

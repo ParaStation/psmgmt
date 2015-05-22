@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2013 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2015 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -324,6 +324,14 @@ int PSI_infoTaskID(PSnodes_ID_t node, PSP_Info_t what, const void *param,
 int PSI_infoNodeID(PSnodes_ID_t node, PSP_Info_t what, const void *param,
 		   PSnodes_ID_t *nid, int verbose);
 
+/** Struct collecting all parameters for PSP_INFO_LIST_GETNODES */
+typedef struct {
+    uint32_t np;            /**< number of processes to request */
+    uint32_t hwType;        /**< Restricting hardware type */
+    PSpart_option_t option; /**< overbook, nodesFirst, etc. */
+    uint16_t tpp;           /**< threads per process */
+} PSI_infoListGetNodes_t;
+
 /**
  * @brief Retrieve info list
  *
@@ -414,6 +422,16 @@ int PSI_infoNodeID(PSnodes_ID_t node, PSP_Info_t what, const void *param,
  * parameters needed but param might point to a PStask_ID_t in order
  * to get info on some foreign tasks.
  *
+ * - PSP_INFO_LIST_GETNODES requests a list of all nodes a job would
+ * get if a series of corresponding PSP_CD_GETNODES messages would be
+ * emitted. @a param is expected to point to a structure of type @ref
+ * PSI_infoListGetNodes_t. The list of nodes is given back as a list
+ * of entries of type PSnodes_ID_t.
+ *
+ * - PSP_INFO_LIST_RESNODES requests a list of all nodes belonging to
+ * a given reservation. @a param has to point to the corresponding
+ * reservation ID with type PSrsrvtn_ID_t. The list of nodes is given
+ * back as a list of entries of type PSnodes_ID_t.
  *
  * @param node The ParaStation ID of the node to ask.
  *

@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2014 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2015 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -122,7 +122,7 @@ static char *mygetwd(const char *ext)
     char *dir;
 
     if (!ext || (ext[0]!='/')) {
-	char *temp = getenv("PWD");
+	char *temp = getenv("PWD"), *tmp;
 
 	if (temp) {
 	    dir = strdup(temp);
@@ -136,8 +136,12 @@ static char *mygetwd(const char *ext)
 	if (!dir) goto error;
 
 	/* Enlarge the string */
+	tmp = dir;
 	dir = realloc(dir, strlen(dir) + (ext ? strlen(ext) : 0) + 2);
-	if (!dir) goto error;
+	if (!dir) {
+	    if (tmp) free(tmp);
+	    goto error;
+	}
 
 	strcat(dir, "/");
 	strcat(dir, ext ? ext : "");
@@ -159,7 +163,7 @@ static char *mygetwd(const char *ext)
 
     return dir;
 
- error:
+error:
     errno = ENOMEM;
     return NULL;
 }
@@ -641,7 +645,7 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
 	 task->argv = (char**)malloc(sizeof(char*)*(task->argc+1));
     }
     else {
-	 /* add 'valgrind' and its parameters before the executable: (see below)*/
+	 /* add 'valgrind' and its parameters before executable: (see below)*/
 	 task->argv = (char**)malloc(sizeof(char*)*(task->argc+4));
     }
 
@@ -673,11 +677,11 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
 	    task->argv[0]=strdup(argv[0]);
 	}
     }
-    
+
     /* check for valgrind support and whether this is the actual executable: */
-    if( valgrind && (strcmp(basename(argv[0]), "mpiexec") !=0 ) && (strcmp(argv[0], "valgrind") !=0 ) ) {
-	 
-	 /* add 'valgrind' and its parameters before the executable name: */
+    if( valgrind && (strcmp(basename(argv[0]), "mpiexec") !=0 )
+	&& (strcmp(argv[0], "valgrind") !=0 ) ) {
+	/* add 'valgrind' and its parameters before the executable name: */
 	 task->argv[3]=strdup(argv[0]);
 	 task->argv[0]=strdup("valgrind");
 	 task->argv[1]=strdup("--quiet");
@@ -860,13 +864,14 @@ int PSI_spawn(int count, char *workdir, int argc, char **argv,
 int PSI_spawnStrict(int count, char *workdir, int argc, char **argv,
 		    int strictArgv, int *errors, PStask_ID_t *tids)
 {
-    return PSI_spawnStrictHW(count, 0, workdir, argc, argv, strictArgv,
-			     errors, tids);
+    return PSI_spawnStrictHW(count, 0/*hwType*/, 1/*tpp*/, 0/*options*/,
+			     workdir, argc, argv, strictArgv, errors, tids);
 }
 
-int PSI_spawnStrictHW(int count, uint32_t hwType, char *workdir,
-		      int argc, char **argv, int strictArgv, int *errors,
-		      PStask_ID_t *tids)
+int PSI_spawnStrictHW(int count, uint32_t hwType, uint16_t tpp,
+		      PSpart_option_t options, char *workdir,
+		      int argc, char **argv, int strictArgv,
+		      int *errors, PStask_ID_t *tids)
 {
     int total = 0;
     PSnodes_ID_t *nodes;
@@ -888,7 +893,7 @@ int PSI_spawnStrictHW(int count, uint32_t hwType, char *workdir,
 
     while (count>0) {
 	int chunk = (count>NODES_CHUNK) ? NODES_CHUNK : count;
-	int rank = PSI_getNodes(chunk, hwType, nodes);
+	int rank = PSI_getNodes(chunk, hwType, tpp, options, nodes);
 	int i, ret;
 
 	if (rank < 0) {
@@ -919,6 +924,59 @@ int PSI_spawnStrictHW(int count, uint32_t hwType, char *workdir,
     return total;
 }
 
+int PSI_spawnRsrvtn(int count, PSrsrvtn_ID_t resID, char *workdir,
+		    int argc, char **argv, int strictArgv,
+		    int *errors, PStask_ID_t *tids)
+{
+    int total = 0, ret = -1;
+    PSnodes_ID_t *nodes = NULL;
+
+    PSI_log(PSI_LOG_VERB, "%s(%d, %#x)\n", __func__, count, resID);
+
+    if (!errors) {
+	PSI_log(-1, "%s: unable to reports errors\n", __func__);
+	goto exit;
+    }
+
+    if (! count > 0) return 0;
+
+    nodes = malloc(sizeof(*nodes) * NODES_CHUNK);
+    if (!nodes) {
+	*errors = ENOMEM;
+	goto exit;
+    }
+
+    while (count>0) {
+	int chunk = (count>NODES_CHUNK) ? NODES_CHUNK : count;
+	int rank = PSI_getSlots(chunk, resID, nodes);
+	int i, num;
+
+	if (rank < 0) {
+	    errors[total] = ENXIO;
+	    goto exit;
+	}
+
+	PSI_log(PSI_LOG_SPAWN, "%s: will spawn to:", __func__);
+	for (i=0; i<chunk; i++) {
+	    PSI_log(PSI_LOG_SPAWN, " %2d", nodes[i]);
+	}
+	PSI_log(PSI_LOG_SPAWN, ".\n");
+	PSI_log(PSI_LOG_SPAWN, "%s: first rank: %d\n", __func__, rank);
+
+	num = dospawn(chunk, nodes, workdir, argc, argv, strictArgv,
+		      TG_ANY, rank, errors+total, tids ? tids+total : NULL);
+	if (num != chunk) goto exit;
+
+	count -= chunk;
+	total += chunk;
+    }
+    ret = total;
+
+exit:
+    if (nodes) free(nodes);
+    return ret;
+}
+
 int PSI_spawnSingle(char *workdir, int argc, char **argv,
 		    int *error, PStask_ID_t *tid)
 {
@@ -934,7 +992,7 @@ int PSI_spawnSingle(char *workdir, int argc, char **argv,
 	return -1;
     }
 
-    rank = PSI_getNodes(1, 0, &node);
+    rank = PSI_getNodes(1, 0 /*hwType*/, 1 /*tpp*/, 0/*options*/, &node);
     if (rank < 0) {
 	*error = ENXIO;
 	return -1;
@@ -1096,6 +1154,7 @@ char *PSI_createPGfile(int num, const char *prog, int local)
 	if (!PIfile) {
 	    PSI_warn(-1, errno, "%s: fopen", __func__);
 	    free(PIfilename);
+	    free(myprog);
 	    return NULL;
 	}
     }
@@ -1109,6 +1168,7 @@ char *PSI_createPGfile(int num, const char *prog, int local)
 	    if (ret || (node < 0)) {
 		fclose(PIfile);
 		free(PIfilename);
+		free(myprog);
 		return NULL;
 	    }
 	    PSI_infoUInt(-1, PSP_INFO_NODE, &node, &hostaddr.s_addr, 0);
@@ -1116,6 +1176,7 @@ char *PSI_createPGfile(int num, const char *prog, int local)
 	fprintf(PIfile, "%s %d %s\n", inet_ntoa(hostaddr), (i != 0), myprog);
     }
     fclose(PIfile);
+    free(myprog);
 
     return PIfilename;
 }

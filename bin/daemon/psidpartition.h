@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2013 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2015 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -20,6 +20,11 @@
  */
 #ifndef __PSIDPARTITION_H
 #define __PSIDPARTITION_H
+
+#include "psprotocol.h"
+#include "psnodes.h"
+#include "pstask.h"
+#include "psreservation.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -57,7 +62,7 @@ void initPartition(void);
  * and pending partition requests.
  *
  * @return On success, the number of bytes sent within the
- * PSP_DD_GETTASKS message is returned. If an error occured, -1 is
+ * PSP_DD_GETTASKS message is returned. If an error occurred, -1 is
  * returned and errno is set appropriately.
  */
 int send_GETTASKS(PSnodes_ID_t node);
@@ -73,7 +78,7 @@ int send_GETTASKS(PSnodes_ID_t node);
  * @param tid The task ID of the root process that exited.
  *
  * @return On success, the number of bytes sent within the
- * PSP_DD_TASKDEAD message is returned. If an error occured, -1 is
+ * PSP_DD_TASKDEAD message is returned. If an error occurred, -1 is
  * returned and errno is set appropriately.
  */
 int send_TASKDEAD(PStask_ID_t tid);
@@ -89,7 +94,7 @@ int send_TASKDEAD(PStask_ID_t tid);
  * @param tid The task ID of the root process that was suspended.
  *
  * @return On success, the number of bytes sent within the
- * PSP_DD_TASKSUSPEND message is returned. If an error occured, -1 is
+ * PSP_DD_TASKSUSPEND message is returned. If an error occurred, -1 is
  * returned and errno is set appropriately.
  */
 int send_TASKSUSPEND(PStask_ID_t tid);
@@ -99,13 +104,13 @@ int send_TASKSUSPEND(PStask_ID_t tid);
  *
  * Send a PSP_DD_TASKRESUME message to the current master node. This
  * message informs the master node on the continuation of the root
- * process with task ID @a tid and thus probably to realloc the
+ * process with task ID @a tid and thus probably to reallocate the
  * corresponding temporarily freed partition.
  *
  * @param tid The task ID of the root process that continues to run.
  *
  * @return On success, the number of bytes sent within the
- * PSP_DD_TASKRESUME message is returned. If an error occured, -1 is
+ * PSP_DD_TASKRESUME message is returned. If an error occurred, -1 is
  * returned and errno is set appropriately.
  */
 int send_TASKRESUME(PStask_ID_t tid);
@@ -121,7 +126,7 @@ int send_TASKRESUME(PStask_ID_t tid);
  * @param tid The task ID of the root process that exited.
  *
  * @return On success, the number of bytes sent within the
- * PSP_DD_CANCELPART message is returned. If an error occured, -1 is
+ * PSP_DD_CANCELPART message is returned. If an error occurred, -1 is
  * returned and errno is set appropriately.
  */
 int send_CANCELPART(PStask_ID_t tid);
@@ -148,7 +153,7 @@ void initPartHandler(void);
  *
  * Within this function, the partition requests are actually not
  * removed from the queue, but only marked to get deleted within the
- * next rund of handlePartRequests(). This is necessary to make this
+ * next round of handlePartRequests(). This is necessary to make this
  * function robust enough the get used from within a RDP callback.
  *
  * @param node The node whose request are going to be cleaned up.
@@ -174,17 +179,17 @@ void cleanupRequests(PSnodes_ID_t node);
 void exitPartHandler(void);
 
 /**
- * @brief Number of assigned jobs.
+ * @brief Number of assigned SW-threads.
  *
- * Return the number of job slots assigned to node @a node.
+ * Return the number of SW-threads assigned to node @a node.
  *
  * @param node The node to request.
  *
- * @return On success, the number of jobs slots assigned to the
+ * @return On success, the number of SW-threads assigned to the
  * requested node is returned, or 0, if an error occurred. Be aware of
  * the fact, that an error cannot be distinguished from an empty node.
  */
-unsigned short getAssignedJobs(PSnodes_ID_t node);
+unsigned short getAssignedThreads(PSnodes_ID_t node);
 
 /**
  * @brief The nodes exclusive flag.
@@ -206,7 +211,7 @@ int getIsExclusive(PSnodes_ID_t node);
  * @brief Send list of requests.
  *
  * Send a list of partition-requests registered within the master
- * daemon. Dependings on the flags set within @a opt, only pending,
+ * daemon. Depending on the flags set within @a opt, only pending,
  * running or suspended requests might be send to the @a requester.
  *
  * If @a ref PART_LIST_NODES is set in @a opt, also a list of the
@@ -220,6 +225,155 @@ int getIsExclusive(PSnodes_ID_t node);
  * @return No return value.
  */
 void sendRequestLists(PStask_ID_t requester, PSpart_list_t opt);
+
+/**
+ * @brief Collect slots from a task's list of HW-threads
+ *
+ * Collect @a np slots from @a task's list of HW-threads and store
+ * them to the array @a slot. For this @a slots has to be large enough
+ * to keep all created slots. Each slot will contain @a tpp HW-threads
+ * located on the same node. Selection of HW-threads respects the
+ * constraints given in @a option and @a hwType, i.e. the node
+ * provides the requested hardware-type and flags like
+ * PART_OPT_NODEFIRST or PART_OPT_OVERBOOK are taken into account. All
+ * resources put into the list of slots are allocated, i.e. marked to
+ * be busy.
+ *
+ * If the flag @a dryRun is set, actual allocation of resources is
+ * omitted. I.e. the slots returned within the array @a slots shall
+ * not actually be used but are just a hint on which result to expect
+ * if the call is done with @a dryRun set to 0.
+ *
+ * @param np Number of slots to select
+ *
+ * @param hwType Hardware-type the HW-threads are required to have
+ *
+ * @param option Flags to consider when selecting HW-threads
+ *
+ * @param tpp Threads per process to be facilitated
+ *
+ * @param task Task structure holding the list of HW-threads
+ *
+ * @param slots The list of slots to create
+ *
+ * @param dryRun Flag to prevent actual allocation of resources
+ *
+ * @return The number of slots possible to select. If this is less
+ * than @a np, no resources are actually allocated and the content of
+ * @a slots is undefined. Nevertheless, calling again with the same
+ * set of parameters and np replaced by the return value will be
+ * successful.
+ */
+int PSIDpart_getNodes(uint32_t np, uint32_t hwType, PSpart_option_t option,
+		      uint16_t tpp, PStask_t *task, PSpart_slot_t *slots,
+		      int dryRun);
+
+/**
+ * @brief Register partition
+ *
+ * Register a partition as given within the @ref partThrds section of
+ * the task-structure @a task. @ref partThrds is expected to hold a
+ * list of HW-threads that the task is allowed to use as its
+ * partition. For that, the @ref partition section will be created out
+ * of the list of HW-threads and registered within the master psid.
+ *
+ * This mechanism shall be used in order to inform the master daemon
+ * on partitioning decisions taken by some external resource
+ * manager. Thus, it will be called primarily from inside psmom and
+ * psslurm.
+ *
+ * @param task The task to register
+ *
+ * @return No return value
+ */
+void PSIDpart_register(PStask_t *task);
+
+/**
+ * @brief Send reservation's nodelist
+ *
+ * Send the nodelist of the reservation with ID @a resID belonging to
+ * the task @a task to the destination stored in @a msg. The message
+ * @a msg furthermore contains the sender and the message type used to
+ * send one or more messages containing the list of
+ * nodes. Additionally @a msg's buffer might contain some preset
+ * content. Thus, its internally stored length (in the .len field) has
+ * to correctly represent the messages preset content.
+ *
+ * In order to send the list of nodes, it is split into chunks. Each
+ * chunk is copied into the message and send separately to its
+ * destination.
+ *
+ * @param resID The ID of the reservation to investigate.
+ *
+ * @param task The task the reservation belongs to.
+ *
+ * @param msg The message buffer used to send the reservations node-list.
+ *
+ * @return No return value
+ */
+void PSIDpart_sendResNodes(PSrsrvtn_ID_t resID, PStask_t *task,
+			   DDTypedBufferMsg_t *msg);
+
+/**
+ * @brief Cleanup reservations
+ *
+ * Cleanup all reservations associated to the task @a task. For this,
+ * all HW-threads allocatd in reservations are marked as unused again
+ * in the corresponding partition.
+ *
+ * @param task Task structure holding the reservations to cleanup
+ *
+ * @return No return value
+ */
+void PSIDpart_cleanupRes(PStask_t *task);
+
+/**
+ * @brief Cleanup reservered slots
+ *
+ * Cleanup all slots associated to the task @a task. These slots got
+ * associated by PSP_CD_GETSLOTS messages sent by the task requesting
+ * slots from a reservation in order to use them for spawning
+ * processes later on.
+ *
+ * This function will create corresponding PSP_DD_CHILDRESREL messages
+ * for each of the slots stored in the task's @ref spawnNodes
+ * attribute not yet used for spawning.
+ *
+ * @param task Task structure holding the slots to cleanup
+ *
+ * @return No return value
+ */
+void PSIDpart_cleanupSlots(PStask_t *task);
+
+/**
+ * @brief Extend reservation
+ *
+ * Extend the reservation identified by the ID @a resID and associated
+ * to the task with ID @a tid by @a got slots given in the array @a
+ * slots. The latter is expected to have at least @a got entries.
+ *
+ * This function expects the slots to be according to the requirements
+ * stated in the corresponding reservation requests.
+ *
+ * @param tid The task ID the reservation is associated with
+ *
+ * @param resID The ID of the reservation to be extended
+ *
+ * @param got The number of slots to be added to the given
+ * reservation. If this is 0, we assumed no resources are available
+ * and the originating request for a reservation might fail.
+ *
+ * @param slots Array holding the slots to be added to the
+ * reservation. At least @a got entries are expected. Each entry shall
+ * be according to the features requestesd for the reservation.
+ *
+ * @return On success, i.e. if the reservation was extended and an
+ * answer was successfully sent to the requesting task, 0 is
+ * returned. Or -1 in case of an error. The latter might happen
+ * e.g. if the task or reservation was not found.
+ */
+int PSIDpart_extendRes(PStask_ID_t tid, PSrsrvtn_ID_t resID,
+		       uint32_t got, PSpart_slot_t *slots);
 
 #ifdef __cplusplus
 }/* extern "C" */

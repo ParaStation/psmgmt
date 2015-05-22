@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2014 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2015 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -549,6 +549,9 @@ static void releaseLogger(int status)
 	}
 	PSID_log(-1, "%s: Protocol messed up (type %d) from %s\n",
 		 __func__, msg.type, PSC_printTID(msg.header.sender));
+    } else {
+	PSID_log(PSID_LOG_SPAWN, "%s(%d): Released %s\n", __func__, status,
+		 PSC_printTID(loggerTID));
     }
 
     loggerTID = -1;
@@ -605,7 +608,7 @@ static int do_write(PSLog_Msg_t *msg, int offset)
 		break;
 	    default:
 		errstr = strerror(eno);
-		PSIDfwd_printMsgf(STDERR, "%s: got error %d on stdinSock: %s",
+		PSIDfwd_printMsgf(STDERR, "%s: got error %d on stdinSock: %s\n",
 				  __func__, eno, errstr ? errstr : "UNKNOWN");
 		return i;
 	    }
@@ -788,7 +791,7 @@ static int readFromLogger(int fd, void *data)
 	case KVS:
 	case SERV_TID:
 	case SERV_EXT:
-            PSIDhook_call(PSIDHOOK_FRWRD_KVS, &msg);
+	    PSIDhook_call(PSIDHOOK_FRWRD_KVS, &msg);
 	    break;
 	case WINCH:
 	    /* Logger detected change in window-size */
@@ -893,7 +896,7 @@ static int readFromChild(int fd, void *data)
 			  tag, __func__, fd, stdoutSock, stderrSock);
 	/* At least, read this stuff and throw it away */
 	if (read(fd, buf, sizeof(buf)) < 0) {
-	    PSIDfwd_printMsgf(STDERR, "%s: %s: read(%d) failed: %s",
+	    PSIDfwd_printMsgf(STDERR, "%s: %s: read(%d) failed: %s\n",
 			      tag, __func__, fd,  strerror(errno));
 	}
 	close(fd);

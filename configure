@@ -647,6 +647,8 @@ glib2_CFLAGS
 PKG_CONFIG_LIBDIR
 PKG_CONFIG_PATH
 PKG_CONFIG
+BUILD_WITHOUT_PSCONFIG_FALSE
+BUILD_WITHOUT_PSCONFIG_TRUE
 RL_LIBS
 MUNGE_ENABLED_FALSE
 MUNGE_ENABLED_TRUE
@@ -795,6 +797,7 @@ with_gnu_ld
 with_sysroot
 enable_libtool_lock
 with_pamdir
+with_psconfig
 enable_testplugins
 '
       ac_precious_vars='build_alias
@@ -1461,6 +1464,7 @@ Optional Packages:
   --with-sysroot=DIR Search for dependent libraries within DIR
                         (or the compiler's sysroot if not specified).
   --with-pamdir=DIR       specify pam plugin dir
+  --without-psconfig      build without psconfig support
 
 Some influential environment variables:
   CC          C compiler command
@@ -12209,6 +12213,21 @@ fi
 
 
 
+# Check whether --with-psconfig was given.
+if test "${with_psconfig+set}" = set; then :
+  withval=$with_psconfig;
+fi
+
+ if test "x$with_psconfig" = xno; then
+  BUILD_WITHOUT_PSCONFIG_TRUE=
+  BUILD_WITHOUT_PSCONFIG_FALSE='#'
+else
+  BUILD_WITHOUT_PSCONFIG_TRUE='#'
+  BUILD_WITHOUT_PSCONFIG_FALSE=
+fi
+
+
+
 
 
 
@@ -12328,6 +12347,14 @@ $as_echo "no" >&6; }
 		PKG_CONFIG=""
 	fi
 fi
+if test -z "$BUILD_WITHOUT_PSCONFIG_TRUE"; then :
+
+  { $as_echo "$as_me:${as_lineno-$LINENO}: Building without psconfig support" >&5
+$as_echo "$as_me: Building without psconfig support" >&6;}
+  AM_CFLAGS="$AM_CFLAGS -DBUILD_WITHOUT_PSCONFIG"
+
+else
+
 
 pkg_failed=no
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for glib2" >&5
@@ -12420,7 +12447,6 @@ $as_echo "yes" >&6; }
 
 fi
 
-
 pkg_failed=no
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for psconfig" >&5
 $as_echo_n "checking for psconfig... " >&6; }
@@ -12509,6 +12535,8 @@ else
 	psconfig_LIBS=$pkg_cv_psconfig_LIBS
         { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 $as_echo "yes" >&6; }
+
+fi
 
 fi
 
@@ -12929,6 +12957,10 @@ Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${MUNGE_ENABLED_TRUE}" && test -z "${MUNGE_ENABLED_FALSE}"; then
   as_fn_error $? "conditional \"MUNGE_ENABLED\" was never defined.
+Usually this means the macro was only invoked conditionally." "$LINENO" 5
+fi
+if test -z "${BUILD_WITHOUT_PSCONFIG_TRUE}" && test -z "${BUILD_WITHOUT_PSCONFIG_FALSE}"; then
+  as_fn_error $? "conditional \"BUILD_WITHOUT_PSCONFIG\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${TESTPLUGINS_ENABLED_TRUE}" && test -z "${TESTPLUGINS_ENABLED_FALSE}"; then

@@ -175,6 +175,8 @@ Step_t *addStep(uint32_t jobid, uint32_t stepid)
     step->errChannels = NULL;
     step->outFDs = NULL;
     step->errFDs = NULL;
+    step->hwThreads = NULL;
+    step->numHwThreads = 0;
     step->tidsLen = 0;
     step->exitCode = 0;
     step->state = JOB_INIT;
@@ -572,6 +574,7 @@ int deleteStep(uint32_t jobid, uint32_t stepid)
     ufree(step->errFDs);
     ufree(step->outChannels);
     ufree(step->errChannels);
+    ufree(step->hwThreads);
 
     clearTasks(&step->tasks.list);
     clearGresCred(&step->gres);

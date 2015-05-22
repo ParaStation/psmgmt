@@ -181,8 +181,8 @@ static void handlePrintChildMsg(void *data, char *ptr)
 
     /* get local rank from taskid */
     if ((lrank = getLocalRankID(taskid, step, myNodeID)) == (uint32_t )-1) {
-	mlog("%s: invalid node rank for taskid '%i'\n",
-		__func__, taskid);
+	mlog("%s: invalid node rank for taskid '%i' myNodeID '%i'\n",
+		__func__, taskid, myNodeID);
 	ufree(msg);
 	return;
     }

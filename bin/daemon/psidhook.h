@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2013 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2013-2015 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -120,6 +120,19 @@ typedef enum {
     PSIDHOOK_EXEC_CLIENT_USER,/**< Right before exec()ing the child, arg is a
 				pointer to the child's task structure. This
 				hook might be used to prepare the child's env */
+    PSIDHOOK_XTND_PART_DYNAMIC,/** Dynamically extend a partition. The handler
+				of this hook is expected to call the function
+				PSIDpart_extendRes() either in a synchronous
+				or asynchronous way. Arg is a pointer to the
+				reservation created so far. I.e. the hook
+				might rely on the content of nMin, nMax, tpp,
+				hwType, nSlots, task and rid. nMin and nMax
+				are not corrected, i.e. we are actually
+				requesting between nMin-nSlots and nMax-nSlots
+				slots of type hwType with tpp threads each.*/
+    PSIDHOOK_RELS_PART_DYNAMIC,/** Release dynamically extended  resources.
+				Arg is a pointer to the slot describing the
+				resources to be	released. */
     PSIDHOOK_LAST,             /**< This has to be the last one */
 } PSIDhook_t;
 

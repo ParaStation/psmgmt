@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2013 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2015 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -232,7 +232,7 @@ void PSID_sendSignal(PStask_ID_t tid, uid_t uid, PStask_ID_t sender,
 	    blockedRDP = RDP_blockTimer(1);
 
 	    list_for_each_safe(s, tmp, &dest->childList) { /* @todo safe req? */
-		PStask_sig_t *sig = list_entry(s, PStask_sig_t, next);
+		PSsignal_t *sig = list_entry(s, PSsignal_t, next);
 		if (sig->deleted) continue;
 
 		PSID_sendSignal(sig->tid, uid, sender, signal, 1, answer);
@@ -335,7 +335,7 @@ void PSID_sendSignalsToRelatives(PStask_t *task)
     blockedRDP = RDP_blockTimer(1);
 
     list_for_each(s, &task->childList) {
-	PStask_sig_t *sig = list_entry(s, PStask_sig_t, next);
+	PSsignal_t *sig = list_entry(s, PSsignal_t, next);
 	if (sig->deleted) continue;
 
 	PSID_sendSignal(sig->tid, task->uid, task->tid, -1, 0, 0);
@@ -659,8 +659,9 @@ static void msg_NEWCHILD(DDErrorMsg_t *msg)
 		 PSC_printTID(msg->header.dest));
 	answer.param = ESRCH;
     } else {
-	PSID_log(PSID_LOG_SIGNAL, "%s: child %s",
-		 __func__, PSC_printTID(msg->request));
+	PSID_log(PSID_LOG_SIGNAL, "%s: %s:", __func__,
+		 PSC_printTID(msg->header.dest));
+	PSID_log(PSID_LOG_SIGNAL, " child %s", PSC_printTID(msg->request));
 	PSID_log(PSID_LOG_SIGNAL, " inherited from %s\n",
 		 PSC_printTID(msg->header.sender));
 
@@ -1077,20 +1078,26 @@ static void msg_RELEASE(DDSignalMsg_t *msg)
 	/* Do not set msg->header.len! Length of DDSignalMsg_t has changed */
 
 	if (!task) {
-	    /* Task not found, maybe was connected and has self released */
+	    /* Task not found, maybe was connected and released itself before */
 	    msg->param = ESRCH;
 	} else if (registrarTid==tid
 		   || (registrarTid==task->forwardertid && task->fd==-1)) {
 	    /* Special case: Whole task wants to get released */
-	    /* Find out, if answer is required */
-	    task->releaseAnswer = msg->answer;
+	    if (task->released) {
+		/* maybe task was connected and released itself before */
+		/* just ignore and ack this message */
+		msg->param = 0;
+	    } else {
+		/* Find out, if answer is required */
+		task->releaseAnswer = msg->answer;
 
-	    msg->param = releaseTask(task);
+		msg->param = releaseTask(task);
 
-	    if (task->pendingReleaseRes) {
-		/* RELEASERES message pending, RELEASERES to initiatior
-		 * will be sent by msg_RELEASERES() */
-		return;
+		if (task->pendingReleaseRes) {
+		    /* RELEASERES message pending, RELEASERES to initiatior
+		     * will be sent by msg_RELEASERES() */
+		    return;
+		}
 	    }
 	} else if (registrarTid==task->forwardertid && task->fd!=-1) {
 	    /* message from forwarder while client is connected */
@@ -1272,11 +1279,11 @@ static void signalGC(void)
 {
     int blockedCHLD, blockedRDP;
 
-    if (!PStask_gcSigRequired()) return;
+    if (!PSsignal_gcRequired()) return;
 
     blockedCHLD = PSID_blockSIGCHLD(1);
     blockedRDP = RDP_blockTimer(1);
-    PStask_gcSig();
+    PSsignal_gc();
     RDP_blockTimer(blockedRDP);
     PSID_blockSIGCHLD(blockedCHLD);
 }

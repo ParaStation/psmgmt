@@ -256,8 +256,8 @@ void PSID_handleSIGCHLD(int sig)
 		/* Make sure we get all pending messages */
 		Selector_enable(task->fd);
 	    } else {
-		/* task not connected, remove from tasklist */
-		PStask_cleanup(tid);
+		/* Delegates are handled explicitly in psmom/psslurm */
+		if (task->group != TG_DELEGATE) PStask_cleanup(tid);
 	    }
 	}
 	SIGCHLDpending = 0;
@@ -803,8 +803,9 @@ int main(int argc, const char *argv[])
 	}
 
 	/* Initialize RDP */
-	RDPSocket = initRDP(PSC_getNrOfNodes(), config->RDPPort, logfile,
-			    hostlist, RDPCallBack);
+	RDPSocket = initRDP(PSC_getNrOfNodes(),
+			    PSIDnodes_getAddr(PSC_getMyID()), config->RDPPort,
+			    logfile, hostlist, RDPCallBack);
 	if (RDPSocket<0) {
 	    PSID_exit(errno, "Error while trying initRDP");
 	}
