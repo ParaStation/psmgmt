@@ -835,12 +835,11 @@ static int handleSrunPTYMsg(int sock, void *data)
 
 static int forwardInputMsg(Step_t *step, uint16_t rank, char *buf, int bufLen)
 {
+    char *ptr = buf, format[128];
     int n = 0;
     size_t c = bufLen;
     PSLog_Msg_t msg;
     PS_Tasks_t *task;
-    char *ptr = buf;
-    char format[128];
 
     if (!(task = findTaskByRank(&step->tasks.list, rank))) {
 	mlog("%s: task for rank '%u' of step '%u:%u' not found\n", __func__,

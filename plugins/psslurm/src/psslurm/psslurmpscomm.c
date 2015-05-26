@@ -63,6 +63,9 @@ int handleCreatePart(void *msg)
 	goto error;
     }
 
+    /* admin user can always pass */
+    if ((isPSAdminUser(task->uid, task->gid))) return 1;
+
     /* find step */
     if (!(step = findStepByPid(PSC_getPID(inmsg->header.sender)))) {
 	mlog("%s: step for sender '%s' not found\n", __func__,
@@ -103,9 +106,6 @@ int handleCreatePartNL(void *msg)
     DDBufferMsg_t *inmsg = (DDBufferMsg_t *) msg;
     int enforceBatch;
     PStask_t *task;
-
-    /* nothing to do here */
-    return 0;
 
     /* everyone is allowed to start, nothing to do for us here */
     getConfValueI(&Config, "ENFORCE_BATCH_START", &enforceBatch);
@@ -1234,8 +1234,8 @@ void handleCCError(PSLog_Msg_t *msg)
 void handleChildBornMsg(DDErrorMsg_t *msg)
 {
     PStask_t *forwarder = PStasklist_find(&managedTasks, msg->header.sender);
-    char *ptr, *sjobid = NULL, *sstepid = NULL, *srank = NULL;
-    int32_t rank, i=0;
+    char *ptr, *sjobid = NULL, *sstepid = NULL;
+    int32_t i=0;
     uint32_t jobid, stepid;
     Job_t *job;
     Step_t *step;
@@ -1256,10 +1256,7 @@ void handleChildBornMsg(DDErrorMsg_t *msg)
 	if (!(strncmp(ptr, "SLURM_STEPID=", 13))) {
 	    sstepid = ptr+13;
 	}
-	if (!(strncmp(ptr, "SLURM_PROCID=", 13))) {
-	    srank = ptr+13;
-	}
-	if (sjobid && sstepid && srank) break;
+	if (sjobid && sstepid) break;
 	ptr = forwarder->environ[++i];
     }
 
@@ -1267,7 +1264,6 @@ void handleChildBornMsg(DDErrorMsg_t *msg)
 
     jobid = atoi(sjobid);
     stepid = atoi(sstepid);
-    rank = srank ? atoi(srank) : forwarder->rank;
 
     if (stepid == SLURM_BATCH_SCRIPT) {
 	if (!(job = findJobById(jobid))) {
@@ -1275,14 +1271,14 @@ void handleChildBornMsg(DDErrorMsg_t *msg)
 	    goto FORWARD_CHILD_BORN;
 	}
 	addTask(&job->tasks.list, msg->request, forwarder->tid,
-		    forwarder, forwarder->childGroup, rank);
+		    forwarder, forwarder->childGroup, forwarder->rank);
     } else {
 	if (!(step = findStepById(jobid, stepid))) {
 	    mlog("%s: step '%u:%u' not found\n", __func__, jobid, stepid);
 	    goto FORWARD_CHILD_BORN;
 	}
 	addTask(&step->tasks.list, msg->request, forwarder->tid,
-		    forwarder, forwarder->childGroup, rank);
+		    forwarder, forwarder->childGroup, forwarder->rank);
 
 	if (!step->loggerTID) step->loggerTID = forwarder->loggertid;
     }

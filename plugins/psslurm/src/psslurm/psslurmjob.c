@@ -251,7 +251,7 @@ static void clearTasks(struct list_head *taskList)
     }
 }
 
-PS_Tasks_t *findTaskByRank(struct list_head *taskList, uint16_t rank)
+PS_Tasks_t *findTaskByRank(struct list_head *taskList, int32_t rank)
 {
     list_t *pos, *tmp;
     PS_Tasks_t *task = NULL;
