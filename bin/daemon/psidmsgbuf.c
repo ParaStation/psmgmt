@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2014 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2015 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -269,15 +269,14 @@ msgbuf_t *PSIDMsgbuf_get(size_t len)
 {
     msgbuf_t *mp;
     DDMsg_t *msg;
+    int blockedCHLD = PSID_blockSIGCHLD(1);
 
     if (len <= MSGBUF_SMALLSIZE) {
-	int blockedCHLD = PSID_blockSIGCHLD(1);
 	int blockedRDP = RDP_blockTimer(1);
 
 	mp = getSmallMsgbuf();
 
 	RDP_blockTimer(blockedRDP);
-	PSID_blockSIGCHLD(blockedCHLD);
     } else {
 	mp = malloc(sizeof(*mp) + len);
     }
@@ -286,6 +285,7 @@ msgbuf_t *PSIDMsgbuf_get(size_t len)
 	PSID_warn(-1, errno, "%s: malloc()", __func__);
 	return NULL;
     }
+    PSID_blockSIGCHLD(blockedCHLD);
 
     usedBufs++;
 
