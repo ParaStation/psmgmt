@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2014 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2015 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -2576,13 +2576,13 @@ static char *generator(const char *text, int state)
 char **completeLine(const char *text, int start, int end)
 {
     int tokStart = 0, tokEnd;
-    char **matches = NULL;
+    char **matches = NULL, *lb = rl_line_buffer;
 
     genList = NULL;
     rl_attempted_completion_over = 1;
 
     /* Try to find a token in front of the text to complete */
-    while (isspace(rl_line_buffer[tokStart])) tokStart++;
+    while (lb[tokStart] && isspace(lb[tokStart])) tokStart++;
 
     if (tokStart == start) {
 	genList = commandList;
@@ -2593,9 +2593,10 @@ char **completeLine(const char *text, int start, int end)
 	    char *token, *matchedToken;
 
 	    tokEnd = tokStart;
-	    while (!isspace(rl_line_buffer[tokEnd])) tokEnd++;
+	    while (lb[tokEnd] && !isspace(lb[tokEnd])) tokEnd++;
+	    if (!lb[tokEnd]) return NULL; /* prevent libedit to segfault */
 
-	    token = strndup(&rl_line_buffer[tokStart], tokEnd-tokStart);
+	    token = strndup(&lb[tokStart], tokEnd-tokStart);
 
 	    genList = parser_nextKeylist(token, genList, &matchedToken);
 	    if (genList == setShowList && !strcmp(matchedToken, "show"))
@@ -2607,7 +2608,7 @@ char **completeLine(const char *text, int start, int end)
 
 	    free(token);
 	    tokStart = tokEnd+1;
-	    while (isspace(rl_line_buffer[tokStart])) tokStart++;
+	    while (lb[tokStart] && isspace(lb[tokStart])) tokStart++;
 	}
 	if (!paramOpts &&
 	    (genList == PSPARM_boolKeys || genList == boolList
