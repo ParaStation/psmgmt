@@ -1,7 +1,7 @@
 #
 # ParaStation
 #
-# Copyright (C) 2012-2014 ParTec Cluster Competence Center GmbH, Munich
+# Copyright (C) 2012-2015 ParTec Cluster Competence Center GmbH, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -55,7 +55,7 @@ AM_CONDITIONAL([PAM_ENABLED], [test "x$pam_enabled" = xtrue])
 AC_ARG_WITH([pamdir], [AS_HELP_STRING([--with-pamdir=DIR],
   [specify pam plugin dir])],
   AS_IF([test "x$withval" = xyes -o "x$withval" = no],
-  	[AC_MSG_ERROR([missing arg to --with-pamdir])],
+	[AC_MSG_ERROR([missing arg to --with-pamdir])],
 	[pamdir="$withval"]),
   [pamdir='${libdir}/security'])
 AC_SUBST([pamdir])
