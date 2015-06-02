@@ -117,7 +117,7 @@ void PSID_setDebugMask(int32_t mask);
  *
  * @see logger_exit()
  */
-#define PSID_exit(...) {	                \
+#define PSID_exit(...) {			\
 	PSC_finalizeLog();			\
 	logger_exit(PSID_logger, __VA_ARGS__);	\
     }
