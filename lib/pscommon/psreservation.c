@@ -111,6 +111,7 @@ PSrsrvtn_t *PSrsrvtn_get(void)
     rp->requester = 0;
     rp->nMin = 0;
     rp->nMax = 0;
+    rp->ppn = 0;
     rp->tpp = 1;
     rp->hwType = 0;
     rp->options = 0;
@@ -196,6 +197,7 @@ static void freeChunk(res_chunk_t *chunk)
 	new->requester = old->requester;
 	new->nMin = old->nMin;
 	new->nMax = old->nMax;
+	new->ppn = old->ppn;
 	new->tpp = old->tpp;
 	new->hwType = old->hwType;
 	new->options = old->options;

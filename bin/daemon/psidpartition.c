@@ -3193,22 +3193,64 @@ static int releaseThreads(PSpart_slot_t *slot, unsigned int nSlots,
 #define myUseSpaceSize 65536
 static int16_t myUseSpace[myUseSpaceSize];
 
-int PSIDpart_getNodes(uint32_t np, uint32_t hwType, PSpart_option_t option,
-		      uint16_t tpp, PStask_t *task, PSpart_slot_t *slots,
-		      int dryRun)
+/**
+ * @brief Create slots from a task's list of HW-threads
+ *
+ * Create @a np slots from @a task's list of HW-threads and store them
+ * to the array @a slot. For this @a slots has to be large enough to
+ * keep all created slots. Each slot will contain @a tpp HW-threads
+ * located on the same node. If @a ppn is different from 0, at most
+ * this number of processes are placed onto one node. Selection of
+ * HW-threads respects the constraints given in @a options and @a
+ * hwType, i.e. the node provides the requested hardware-type and
+ * flags like PART_OPT_NODEFIRST or PART_OPT_OVERBOOK are taken into
+ * account. All resources put into the list of slots are allocated,
+ * i.e. marked to be busy.
+ *
+ * If the flag @a dryRun is set, actual allocation of resources is
+ * omitted. I.e. the slots returned within the array @a slots shall
+ * not actually be used but are just a hint on which result to expect
+ * if the call is done with @a dryRun set to 0.
+ *
+ * @param np Number of slots to select
+ *
+ * @param ppn Maximum number of processes per node to be facilitated
+ *
+ * @param tpp Threads per process to be facilitated
+ *
+ * @param hwType Hardware-type the HW-threads are required to have
+ *
+ * @param options Flags to consider when selecting HW-threads
+ *
+ * @param task Task structure holding the list of HW-threads
+ *
+ * @param slots The list of slots to create
+ *
+ * @param dryRun Flag to prevent actual allocation of resources
+ *
+ * @return The number of slots possible to select. If this is less
+ * than @a np, no resources are actually allocated and the content of
+ * @a slots is undefined. Nevertheless, calling again with the same
+ * set of parameters and np replaced by the return value will be
+ * successful.
+ */
+static int createSlots(uint32_t np, uint16_t ppn, uint16_t tpp,
+		       uint32_t hwType, PSpart_option_t options,
+		       PStask_t *task, PSpart_slot_t *slots, int dryRun)
 {
     PSpart_HWThread_t *thread;
     int16_t *myUse;
     unsigned int got = 0, roundGot = 0, thrdsGot = 0, t, first = 0;
-    int overbook = option & PART_OPT_OVERBOOK;
-    int nodeFirst = option & PART_OPT_NODEFIRST;
-    int dynamic = option & PART_OPT_DYNAMIC;
+    int overbook = options & PART_OPT_OVERBOOK;
+    int nodeFirst = options & PART_OPT_NODEFIRST;
+    int dynamic = options & PART_OPT_DYNAMIC;
     int nextMinUsed, minUsed, fullRound = 0;
     int mod = task->totalThreads + ((overbook || nodeFirst) ? 0 : 1);
     int nodeTPP = 1, maxTPP = 0;
+    static uint16_t *procsPerNode = NULL;
 
-    PSID_log(PSID_LOG_PART, "%s: np %d hwType %#x option %#x tpp %d"
-	     " dryRun %d\n", __func__,np, hwType, option, tpp, dryRun);
+    PSID_log(PSID_LOG_PART, "%s: np %d ppn %d tpp %d hwType %#x options %#x"
+	     " dryRun %d\n", __func__,np, ppn, tpp, hwType, options, dryRun);
 
     if (!task) return 0;
     thread = task->partThrds;
@@ -3222,6 +3264,17 @@ int PSIDpart_getNodes(uint32_t np, uint32_t hwType, PSpart_option_t option,
 	}
     } else {
 	myUse = myUseSpace;
+    }
+
+    if (ppn) {
+	if (!procsPerNode) {
+	    procsPerNode = malloc(PSC_getNrOfNodes() * sizeof(*procsPerNode));
+	    if (!procsPerNode) {
+		PSID_warn(-1, errno, "%s", __func__);
+		goto exit;
+	    }
+	}
+	memset(procsPerNode, 0, PSC_getNrOfNodes() * sizeof(*procsPerNode));
     }
 
     for (t = 0; t < task->totalThreads; t++) {
@@ -3287,6 +3340,9 @@ int PSIDpart_getNodes(uint32_t np, uint32_t hwType, PSpart_option_t option,
 	/* check for correct capabilities of HW-thread */
 	if (hwType && (PSIDnodes_getHWStatus(node)&hwType) != hwType) continue;
 
+	/* ensure we don't excel ppn */
+	if (ppn && procsPerNode[node] >= ppn) continue;
+
 	/* ensure we loop over different nodes */
 	if (nodeFirst && roundGot && node == slots[got-1].node) {
 	    /* Skip slot for now but check for usability in next round */
@@ -3331,6 +3387,7 @@ int PSIDpart_getNodes(uint32_t np, uint32_t hwType, PSpart_option_t option,
 	if (thrdsGot == tpp) {
 	    PSID_log(PSID_LOG_PART, "%s: Slot %d on node %d full\n", __func__,
 		     got, node);
+	    if (ppn) procsPerNode[node]++;
 	    got++;
 	    roundGot++;
 	    thrdsGot = 0;
@@ -3449,8 +3506,8 @@ static void msg_GETNODES(DDBufferMsg_t *inmsg)
 		.len = sizeof(msg.header) },
 	    .buf = { 0 } };
 	PSpart_slot_t slots[NODES_CHUNK];
-	unsigned int got = PSIDpart_getNodes(num, hwType, option, tpp, delegate,
-					     slots, 0);
+	unsigned int got = createSlots(num, 0, tpp, hwType, option, delegate,
+				       slots, 0);
 
 	if (got < num) {
 	    PSID_log(-1, "%s: Only %d HW-threads for %d processes found"
@@ -3977,6 +4034,7 @@ static int PSIDpart_getReservation(PSrsrvtn_t *res)
     unsigned int got;
     PSpart_slot_t *s;
     PStask_t * task, *delegate;
+    int blockedCHLD;
 
     if (!res) return -1;
     task = PStasklist_find(&managedTasks, res->task);
@@ -3987,7 +4045,9 @@ static int PSIDpart_getReservation(PSrsrvtn_t *res)
 
     delegate = task->delegate ? task->delegate : task;
 
+    blockedCHLD = PSID_blockSIGCHLD(1);
     if (!res->slots) res->slots = malloc(res->nMax * sizeof(*res->slots));
+    PSID_blockSIGCHLD(blockedCHLD);
 
     if (!res->slots) {
 	PSID_log(-1, "%s: No memory for slots in %#x\n", __func__, res->rid);
@@ -3995,8 +4055,8 @@ static int PSIDpart_getReservation(PSrsrvtn_t *res)
     }
 
     /* Try dryrun to determine available slots */
-    got = PSIDpart_getNodes(res->nMax, res->hwType, res->options, res->tpp,
-			    delegate, res->slots, 1);
+    got = createSlots(res->nMax, res->ppn, res->tpp, res->hwType, res->options,
+		      delegate, res->slots, 1);
 
     if (got < res->nMin) {
 	PSID_log(  (res->options & (PART_OPT_WAIT|PART_OPT_DYNAMIC)) ?
@@ -4007,8 +4067,8 @@ static int PSIDpart_getReservation(PSrsrvtn_t *res)
 
 	if (res->options & PART_OPT_DYNAMIC) {
 	    /* Get the available resources and request for more outside */
-	    PSIDpart_getNodes(got, res->hwType, res->options, res->tpp,
-			      delegate, res->slots, 0);
+	    createSlots(got, res->ppn, res->tpp, res->hwType, res->options,
+			delegate, res->slots, 0);
 	    /* double entry bookkeeping on delegation */
 	    if (task->delegate) task->usedThreads += got;
 	    return got;
@@ -4051,14 +4111,16 @@ static int PSIDpart_getReservation(PSrsrvtn_t *res)
 	s = realloc(res->slots, got * sizeof(*res->slots));
 	if (!s) {
 	    PSID_log(-1, "%s: Failed to realloc()\n", __func__);
+	    blockedCHLD = PSID_blockSIGCHLD(1);
 	    free(res->slots);
+	    PSID_blockSIGCHLD(blockedCHLD);
 	    res->slots = NULL;
 	    return -1;
 	}
     }
 
-    got = PSIDpart_getNodes(got, res->hwType, res->options, res->tpp,
-			    delegate, res->slots, 0);
+    got = createSlots(got, res->ppn, res->tpp, res->hwType, res->options,
+		      delegate, res->slots, 0);
     /* double entry bookkeeping on delegation */
     if (task->delegate) task->usedThreads += got;
 
@@ -4349,15 +4411,14 @@ static void msg_GETRESERVATION(DDBufferMsg_t *inmsg)
 
     r->task = task->tid;
     r->requester = inmsg->header.sender;
-    PSP_getMsgBuf(inmsg, &used, __func__, "nMin", &r->nMin,
-		  sizeof(r->nMin));
-    PSP_getMsgBuf(inmsg, &used, __func__, "nMax", &r->nMax,
-		  sizeof(r->nMax));
+    PSP_getMsgBuf(inmsg, &used, __func__, "nMin", &r->nMin, sizeof(r->nMin));
+    PSP_getMsgBuf(inmsg, &used, __func__, "nMax", &r->nMax, sizeof(r->nMax));
     PSP_getMsgBuf(inmsg, &used, __func__, "tpp", &r->tpp, sizeof(r->tpp));
     PSP_getMsgBuf(inmsg, &used, __func__, "hwType", &r->hwType,
 		  sizeof(r->hwType));
     ret = PSP_getMsgBuf(inmsg, &used, __func__, "options", &r->options,
 			sizeof(r->options));
+    PSP_tryGetMsgBuf(inmsg, &used, __func__, "ppn", &r->ppn, sizeof(r->ppn));
     if (!ret) {
 	PSID_log(-1, "%s: some information is missing\n", __func__);
 	eno = EINVAL;
@@ -4372,8 +4433,8 @@ static void msg_GETRESERVATION(DDBufferMsg_t *inmsg)
     }
 
     PSID_log(PSID_LOG_PART,
-	     "%s(nMin %d nMax %d tpp %d hwType %#x options %#x)\n", __func__,
-	     r->nMin, r->nMax, r->tpp, r->hwType, r->options);
+	     "%s(nMin %d nMax %d ppn %d tpp %d hwType %#x options %#x)\n",
+	     __func__, r->nMin, r->nMax, r->ppn, r->tpp, r->hwType, r->options);
 
     if (!list_empty(&delegate->resRequests)) {
 	if (r->options & (PART_OPT_WAIT|PART_OPT_DYNAMIC)) {

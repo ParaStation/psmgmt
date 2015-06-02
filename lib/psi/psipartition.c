@@ -1255,9 +1255,9 @@ int PSI_getRankNode(int32_t rank, PSnodes_ID_t *node)
     return ret;
 }
 
-PSrsrvtn_ID_t PSI_getReservation(uint32_t nMin, uint32_t nMax, uint16_t tpp,
-				 uint32_t hwType, PSpart_option_t options,
-				 uint32_t *got)
+PSrsrvtn_ID_t PSI_getReservation(uint32_t nMin, uint32_t nMax, uint16_t ppn,
+				 uint16_t tpp, uint32_t hwType,
+				 PSpart_option_t options, uint32_t *got)
 {
     DDBufferMsg_t msg = (DDBufferMsg_t) {
 	.header = (DDMsg_t) {
@@ -1270,6 +1270,7 @@ PSrsrvtn_ID_t PSI_getReservation(uint32_t nMin, uint32_t nMax, uint16_t tpp,
     size_t used = 0;
 
     PSI_log(PSI_LOG_PART, "%s(min %d max %d", __func__, nMin, nMax);
+    if (ppn) PSI_log(PSI_LOG_PART, " ppn %d", ppn);
     if (tpp != 1) PSI_log(PSI_LOG_PART, " tpp %d", tpp);
     if (hwType) PSI_log(PSI_LOG_PART, " hwType %#x", hwType);
     if (options) PSI_log(PSI_LOG_PART, " options %#x", options);
@@ -1285,6 +1286,7 @@ PSrsrvtn_ID_t PSI_getReservation(uint32_t nMin, uint32_t nMax, uint16_t tpp,
     PSP_putMsgBuf(&msg, __func__, "tpp", &tpp, sizeof(tpp));
     PSP_putMsgBuf(&msg, __func__, "hwType", &hwType, sizeof(hwType));
     PSP_putMsgBuf(&msg, __func__, "options", &options, sizeof(options));
+    PSP_putMsgBuf(&msg, __func__, "ppn", &ppn, sizeof(ppn));
 
     if (PSI_sendMsg(&msg)<0) {
 	PSI_warn(-1, errno, "%s: PSI_sendMsg", __func__);

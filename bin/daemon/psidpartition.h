@@ -227,48 +227,6 @@ int getIsExclusive(PSnodes_ID_t node);
 void sendRequestLists(PStask_ID_t requester, PSpart_list_t opt);
 
 /**
- * @brief Collect slots from a task's list of HW-threads
- *
- * Collect @a np slots from @a task's list of HW-threads and store
- * them to the array @a slot. For this @a slots has to be large enough
- * to keep all created slots. Each slot will contain @a tpp HW-threads
- * located on the same node. Selection of HW-threads respects the
- * constraints given in @a option and @a hwType, i.e. the node
- * provides the requested hardware-type and flags like
- * PART_OPT_NODEFIRST or PART_OPT_OVERBOOK are taken into account. All
- * resources put into the list of slots are allocated, i.e. marked to
- * be busy.
- *
- * If the flag @a dryRun is set, actual allocation of resources is
- * omitted. I.e. the slots returned within the array @a slots shall
- * not actually be used but are just a hint on which result to expect
- * if the call is done with @a dryRun set to 0.
- *
- * @param np Number of slots to select
- *
- * @param hwType Hardware-type the HW-threads are required to have
- *
- * @param option Flags to consider when selecting HW-threads
- *
- * @param tpp Threads per process to be facilitated
- *
- * @param task Task structure holding the list of HW-threads
- *
- * @param slots The list of slots to create
- *
- * @param dryRun Flag to prevent actual allocation of resources
- *
- * @return The number of slots possible to select. If this is less
- * than @a np, no resources are actually allocated and the content of
- * @a slots is undefined. Nevertheless, calling again with the same
- * set of parameters and np replaced by the return value will be
- * successful.
- */
-int PSIDpart_getNodes(uint32_t np, uint32_t hwType, PSpart_option_t option,
-		      uint16_t tpp, PStask_t *task, PSpart_slot_t *slots,
-		      int dryRun);
-
-/**
  * @brief Register partition
  *
  * Register a partition as given within the @ref partThrds section of

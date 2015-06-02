@@ -321,6 +321,8 @@ int PSI_getNodes(uint32_t num, uint32_t hwType, uint16_t tpp,
  *
  * @param nMax Maximum amount of slots in the reservation
  *
+ * @param ppn Number of processes to be placed on one node.
+ *
  * @param tpp Number of HW-threads contained in each slot.
  *
  * @param hwType Hardware-types to be supported by the HW-threads to
@@ -343,9 +345,9 @@ int PSI_getNodes(uint32_t num, uint32_t hwType, uint16_t tpp,
  *
  * @see PSI_getSlots()
  */
-PSrsrvtn_ID_t PSI_getReservation(uint32_t nMin, uint32_t nMax, uint16_t tpp,
-				 uint32_t hwType, PSpart_option_t options,
-				 uint32_t *got);
+PSrsrvtn_ID_t PSI_getReservation(uint32_t nMin, uint32_t nMax, uint16_t ppn,
+				 uint16_t tpp, uint32_t hwType,
+				 PSpart_option_t options, uint32_t *got);
 
 /**
  * @brief Get slots from reservation
