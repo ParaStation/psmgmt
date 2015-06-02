@@ -251,8 +251,8 @@ typedef enum {
 
     PSP_INFO_QUEUE_ENVS,          /**< Queue of environment entries */
     PSP_INFO_RDPCONNSTATUS,       /**< Info on RDP connections */
-    PSP_INFO_LIST_RESPORTS,	  /**< Reserved ports for OpenMPI startup */
-    PSP_INFO_LIST_GETNODES,       /**< Get assumption on GET_NODES results */
+    PSP_INFO_LIST_RESPORTS,       /**< Reserved ports for OpenMPI startup */
+    PSP_INFO_LIST_GETNODES,       /**< @obsolete */
     PSP_INFO_LIST_RESNODES,       /**< Get a reservation's node-list */
 } PSP_Info_t;
 
