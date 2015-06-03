@@ -21,6 +21,7 @@
 #include <stdbool.h>
 
 #include "pluginconfig.h"
+#include "peloguetypes.h"
 
 int (*psPelogueAddPluginConfig)(char *, Config_t *);
 

@@ -654,7 +654,6 @@ static int genThreads(PSpart_slot_t *slots, uint32_t num,
 	unsigned int cpu;
 	for (cpu=0; cpu<PSCPU_MAX; cpu++) {
 	    if (PSCPU_isSet(slots[s].CPUset, cpu)) {
-		mlog("%s: num: %u threads: %i node %i cpuid %i\n", __func__, num, t, slots[s].node, cpu);
 		HWThreads[t].node = slots[s].node;
 		HWThreads[t].id = cpu;
 		HWThreads[t].timesUsed = 0;

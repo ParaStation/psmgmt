@@ -259,6 +259,7 @@ plugins/pelogue/peloguelog.c \
 plugins/pelogue/peloguelog.h \
 plugins/pelogue/peloguescript.c \
 plugins/pelogue/peloguescript.h \
+plugins/pelogue/peloguetypes.h \
 plugins/psaccount/Makefile.am \
 plugins/psaccount/Makefile.in \
 plugins/psaccount/psaccount.c \
@@ -379,6 +380,8 @@ plugins/psslurm/src/psslurm/psslurmlog.c \
 plugins/psslurm/src/psslurm/psslurmlog.h \
 plugins/psslurm/src/psslurm/psslurmmultiprog.c \
 plugins/psslurm/src/psslurm/psslurmmultiprog.h \
+plugins/psslurm/src/psslurm/psslurmpelogue.c \
+plugins/psslurm/src/psslurm/psslurmpelogue.h \
 plugins/psslurm/src/psslurm/psslurmpin.c \
 plugins/psslurm/src/psslurm/psslurmpin.h \
 plugins/psslurm/src/psslurm/psslurmproto.c \

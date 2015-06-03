@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2013 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2013 - 2015 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -18,26 +18,13 @@
 #ifndef PS_PELOGUE_CHILD
 #define PS_PELOGUE_CHILD
 
+#include "peloguetypes.h"
+
 #include "list.h"
 #include "pluginforwarder.h"
 
-//#include "psmomjob.h"
-//#include "psmomcomm.h"
+#include "peloguechild.h"
 
-typedef enum {
-    PELOGUE_CHILD_PROLOGUE = 1,
-    PELOGUE_CHILD_EPILOGUE,
-} PELOGUE_child_types_t;
-
-typedef struct {
-    Forwarder_Data_t *fwdata;
-    PELOGUE_child_types_t type;	    /* type of the forwarder (e.g. interactive) */
-    struct timeval start_time;	    /* the start time of the forwarder */
-    char *jobid;		    /* the PBS jobid */
-    char *plugin;		    /* the name of the plugin */
-    int signalFlag;
-    struct list_head list;
-} Child_t;
 
 /** the list head of the child list */
 Child_t ChildList;

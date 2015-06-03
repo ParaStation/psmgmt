@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2013 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2013 - 2015 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -23,6 +23,7 @@
 #include "psprotocol.h"
 #include "pluginenv.h"
 #include "peloguechild.h"
+#include "peloguetypes.h"
 
 #include "peloguejob.h"
 
@@ -35,37 +36,6 @@ typedef enum {
     PSP_EPILOGUE_FINISH,    /**< result from epilogue script */
     PSP_PELOGUE_SIGNAL,	    /**< send a signal to a PElogue script */
 } PSP_PELOGUE_t;
-
-typedef struct {
-    bool frontend;
-    bool prologue;
-    PStask_ID_t mainPelogue;
-    char *dirScripts;
-    char *plugin;
-    char *jobid;
-    int32_t timeout;
-    int32_t exit;
-    env_t env;
-    char *scriptname;
-    Child_t *child;
-    uid_t uid;
-    gid_t gid;
-    time_t start_time;
-
-    /*
-    char *jobname;
-    char *user;
-    char *group;
-    char *limits;
-    char *queue;
-    char *sessid;
-    char *exec_host;
-    char *tmpDir;
-    char *resources_used;
-    char *gpus;
-    char *server;
-    */
-} PElogue_Data_t;
 
 void handlePelogueMsg(DDTypedBufferMsg_t *msg);
 

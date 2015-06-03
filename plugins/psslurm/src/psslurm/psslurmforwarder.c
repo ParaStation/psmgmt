@@ -42,6 +42,7 @@
 #include "psslurmenv.h"
 #include "psslurmmultiprog.h"
 #include "psslurmio.h"
+#include "psslurmpelogue.h"
 #include "slurmcommon.h"
 
 #include "pluginpty.h"

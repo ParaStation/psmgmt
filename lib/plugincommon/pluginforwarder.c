@@ -47,10 +47,10 @@
 #define TEMP_SOCKET_NAME LOCALSTATEDIR "/run/psmgmt-plugin"
 
 /** pid of the running forwarder child */
-static pid_t forwarder_child_pid = -1;
+static pid_t child_pid = -1;
 
 /** session id of the running forwarder child */
-static pid_t forwarder_child_sid = -1;
+static pid_t child_sid = -1;
 
 /** unix pipe to recognize signals in sleeping in select() */
 static int signalFD;
@@ -96,9 +96,12 @@ static int connect2Mother(char *listenSocketName)
     sa.sun_family = AF_UNIX;
     strncpy(sa.sun_path, listenSocketName, sizeof(sa.sun_path));
 
+CONNECT_AGAIN:
+
     if ((connect(motherSock, (struct sockaddr*) &sa, sizeof(sa))) < 0) {
+	if (errno == EINTR) goto CONNECT_AGAIN;
 	pluginwarn(errno, "%s: connect(%i) to %s failed: ", __func__,
-		    motherSock, listenSocketName);
+		motherSock, listenSocketName);
 	return 0;
     }
 
@@ -120,10 +123,9 @@ static int reConnect(int fd)
 	pluginlog("%s: re-connecting to mother failed, killing child\n",
 		__func__);
 
-	kill(forwarder_child_pid, SIGKILL);
+	if (child_pid> 0) kill(child_pid, SIGKILL);
 	return 0;
     }
-
 
     return 1;
 }
@@ -135,12 +137,16 @@ static int recvFWMsg(int fd, int32_t *cmd, char **buf, char **ptr)
     *buf = NULL;
 
     if (!(count = doReadP(fd, &len, sizeof(len))) || count != sizeof(len)) {
+	pluginlog("%s: socket '%i': reading len failed, len '%i' count '%i'\n",
+		    __func__, fd, len, count);
 	return 0;
     }
 
     *buf = umalloc(len);
 
     if (!(count = doReadP(fd, *buf, len)) || count != len) {
+	pluginlog("%s: socket '%i': reading msg failed, len '%i' count '%i'\n",
+		    __func__, fd, len, count);
 	ufree(*buf);
 	*buf = NULL;
 	return 0;
@@ -170,13 +176,7 @@ static void killForwarderChild(int signal, char *reason)
     int grace;
     char buffer[512];
 
-    if (forwarder_child_sid < 1) {
-	snprintf(logBuf, sizeof(logBuf), "%s: invalid child sid '%i'\n",
-		    __func__, forwarder_child_sid);
-	sigChild = 1;
-	Selector_startOver();
-	return;
-    }
+    if (child_sid < 1 || child_pid < 1) return;
 
     grace = fwdata->graceTime ? fwdata->graceTime : DEFAULT_GRACE_TIME;
 
@@ -187,25 +187,25 @@ static void killForwarderChild(int signal, char *reason)
     }
 
     snprintf(logBuf, sizeof(logBuf), "signal '%u' to sid '%i' %sgrace time '%i'"
-		" sec%s\n", signal, forwarder_child_sid, jobstring, grace,
+		" sec%s\n", signal, child_sid, jobstring, grace,
 		buffer);
 
     if (signal == SIGTERM) {
 	/* let children beeing debugged continue */
-	kill(forwarder_child_pid, SIGCONT);
+	kill(child_pid, SIGCONT);
 
-	if (!(kill(forwarder_child_pid, signal))) {
+	if (child_pid > 0 && !(kill(child_pid, signal))) {
 	    killAllChildren = 1;
 	    alarm(grace);
 	}
     } else {
-	kill(forwarder_child_pid, signal);
+	if (child_pid > 0) kill(child_pid, signal);
     }
 }
 
 static void handleLocalShutdown()
 {
-    if (forwarder_child_sid < 1) {
+    if (child_sid < 1) {
 	sigChild = 1;
 	Selector_startOver();
     } else {
@@ -304,8 +304,8 @@ static void signalHandler(int sig)
 	    if (killAllChildren) {
 		/* second kill phase, do it the hard way now */
 		snprintf(logBuf, sizeof(logBuf), "signal 'SIGKILL' to sid "
-			    "'%i'%s\n", forwarder_child_sid, jobstring);
-		fwdata->killSession(forwarder_child_sid, SIGKILL);
+			    "'%i'%s\n", child_sid, jobstring);
+		if (child_sid > 0) fwdata->killSession(child_sid, SIGKILL);
 		sentHardKill = 1;
 	    } else {
 		/* TODO */
@@ -432,7 +432,7 @@ static void initChild(int fwpid)
     int fd;
 
     /* needed or ioctl(TIOCSCTTY) will fail! */
-    if ((forwarder_child_sid = setsid()) == -1) {
+    if ((child_sid = setsid()) == -1) {
 	pluginlog("%s: setsid() failed\n", __func__);
 	exit(1);
     }
@@ -447,7 +447,7 @@ static void initChild(int fwpid)
     addPidToMsg(getpid(), &data);
 
     /* add sid of the forwarders child */
-    addPidToMsg(forwarder_child_sid, &data);
+    addPidToMsg(child_sid, &data);
 
     sendFWMsg(motherSock, &data);
     ufree(data.buf);
@@ -456,7 +456,7 @@ static void initChild(int fwpid)
     close(motherSock);
 
     /* send sid to forwarder */
-    if ((doWriteP(controlFDs[1], &forwarder_child_sid,
+    if ((doWriteF(controlFDs[1], &child_sid,
 	    sizeof(pid_t))) != sizeof(pid_t)) {
 	pluginlog("%s: failed writing childs sid\n", __func__);
 	exit(1);
@@ -533,7 +533,7 @@ static void forwarderExit()
     alarm(0);
 
     /* make sure all children are dead */
-    fwdata->killSession(forwarder_child_sid, SIGKILL);
+    if (child_sid > 0) fwdata->killSession(child_sid, SIGKILL);
 
     /* request connection close */
     if (motherSock < 0) {
@@ -567,11 +567,11 @@ static int execForwarder(void *info)
 
 	if (fwdata->childFunc) {
 	    /* fork child */
-	    if ((forwarder_child_pid = fork()) < 0) {
+	    if ((child_pid = fork()) < 0) {
 		pluginwarn(errno, "%s: unable to fork my child: ", __func__);
 		sendForkFailed();
 		return -3;
-	    } else if (forwarder_child_pid == 0) {
+	    } else if (child_pid == 0) {
 
 		initChild(fwpid);
 
@@ -582,23 +582,23 @@ static int execForwarder(void *info)
 	    }
 
 	    /* read sid of child */
-	    if ((doReadP(controlFDs[0], &forwarder_child_sid, sizeof(pid_t))
+	    if ((doReadP(controlFDs[0], &child_sid, sizeof(pid_t))
 			!= sizeof(pid_t))) {
 		pluginlog("%s: reading childs sid failed\n", __func__);
-		kill(SIGKILL, forwarder_child_pid);
+		if (child_pid > 0) kill(SIGKILL, child_pid);
 	    }
 	}
 	close(controlFDs[0]);
 	close(controlFDs[1]);
 
-	fwdata->childPid = forwarder_child_pid;
+	fwdata->childPid = child_pid;
 	if (fwdata->hookLoop) fwdata->hookLoop(fwdata);
 	forwarderLoop();
 
 	if (fwdata->childFunc) {
-	    if ((wait4(forwarder_child_pid, &status, 0, &rusage)) == -1) {
+	    if ((wait4(child_pid, &status, 0, &rusage)) == -1) {
 		pluginlog("%s: waitpid for %d failed\n", __func__,
-		    forwarder_child_pid);
+		    child_pid);
 		status = 1;
 	    }
 	}
@@ -803,8 +803,7 @@ static int handleControlSocket(int fd, void *info)
     int32_t cmd;
 
     if (!(recvFWMsg(fd, &cmd, &buf, &ptr))) {
-	pluginlog("%s: reading from forwarder failed, pid=%i\n",
-		    __func__, getpid());
+	pluginlog("%s: reading from forwarder failed\n", __func__);
 	fwdata->forwarderError = 1;
 	fwdata->controlSocket = fd;
 	closeControlSocket(fwdata);

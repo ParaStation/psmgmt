@@ -133,6 +133,9 @@ typedef enum {
     PSIDHOOK_RELS_PART_DYNAMIC,/** Release dynamically extended  resources.
 				Arg is a pointer to the slot describing the
 				resources to be	released. */
+    PSIDHOOK_PELOGUE_FINISH,	/** The result of a prologue/epilogue run
+				executed by the pelogue plugin can be inspected.
+				Used by the psslurm plugin. */
     PSIDHOOK_LAST,             /**< This has to be the last one */
 } PSIDhook_t;
 

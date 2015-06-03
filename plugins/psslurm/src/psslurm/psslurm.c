@@ -34,6 +34,7 @@
 #include "psslurmproto.h"
 #include "psslurmgres.h"
 #include "psslurmenv.h"
+#include "psslurmpelogue.h"
 #include "slurmcommon.h"
 
 #include "pluginmalloc.h"
@@ -149,6 +150,10 @@ static void unregisterHooks(int verbose)
     if (!(PSIDhook_del(PSIDHOOK_FRWRD_INIT, handleForwarderInit))) {
 	if (verbose) mlog("unregister 'PSIDHOOK_FRWRD_INIT' failed\n");
     }
+
+    if (!(PSIDhook_del(PSIDHOOK_PELOGUE_FINISH, handlePElogueFinish))) {
+	if (verbose) mlog("unregister 'PSIDHOOK_PELOGUE_FINISH' failed\n");
+    }
 }
 
 static int registerHooks()
@@ -190,6 +195,11 @@ static int registerHooks()
 
     if (!(PSIDhook_add(PSIDHOOK_FRWRD_INIT, handleForwarderInit))) {
 	mlog("register 'PSIDHOOK_FRWRD_INIT' failed\n");
+	return 0;
+    }
+
+    if (!(PSIDhook_add(PSIDHOOK_PELOGUE_FINISH, handlePElogueFinish))) {
+	mlog("register 'PSIDHOOK_PELOGUE_FINISH' failed\n");
 	return 0;
     }
 

@@ -45,6 +45,7 @@
 #include "psslurmjob.h"
 #include "psslurmpin.h"
 #include "psslurmio.h"
+#include "psslurmpelogue.h"
 #include "psslurm.h"
 
 #include "psslurmpscomm.h"
@@ -1191,7 +1192,7 @@ static void handleCC_Finalize_Msg(PSLog_Msg_t *msg)
     }
     task->exitCode = *(int *) msg->buf;
 
-    if (!step->pty) {
+    if (!step->pty && step->fwdata) {
 	/* step forwarder should close I/O */
 	sendFinMessage(step->fwdata, msg);
 	return;

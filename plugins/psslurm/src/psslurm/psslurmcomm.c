@@ -477,9 +477,12 @@ int tcpConnect(char *addr, char *port)
 #define TCP_CONNECTION_RETRYS 10
 
     struct addrinfo *result, *rp;
-    int sock = -1, ret, reConnect = 0;
+    int sock = -1, ret, reConnect = 0, blocked = 0;
 
 TCP_RECONNECT:
+
+    /* workaround for psid SIGCHLD malloc deadlock */
+    blocked = blockSigChild(1);
 
     /* set up the sockaddr structure */
     if ((ret = getaddrinfo(addr, port, NULL, &result)) != 0) {
@@ -487,6 +490,8 @@ TCP_RECONNECT:
 		addr, port, gai_strerror(ret));
 	return -1;
     }
+
+    if (blocked) blockSigChild(0);
 
     if (!reConnect) {
 	mdbg(PSSLURM_LOG_COMM, "%s: to %s port:%s\n",

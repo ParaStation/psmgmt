@@ -34,6 +34,7 @@
 #include "pspluginprotocol.h"
 #include "pscommon.h"
 #include "psidcomm.h"
+#include "psidhook.h"
 #include "psidscripts.h"
 #include "psaccounthandles.h"
 #include "pluginfrag.h"
@@ -180,6 +181,9 @@ int fwCallback(int32_t wstat, char *errMsg, size_t errLen, void *data)
 	exit_status = 1;
     }
 
+    /* let other plugins get information about completed pelogue */
+    PSIDhook_call(PSIDHOOK_PELOGUE_FINISH, pedata);
+
     /* log error locally and forward to mother superior */
     if (errLen > 0 && errMsg[0] != '\0' && strlen(errMsg) > 0) {
 	mlog("job '%s': %s", fwdata->jobid, errMsg);
@@ -195,7 +199,7 @@ int fwCallback(int32_t wstat, char *errMsg, size_t errLen, void *data)
 	mlog("%s: deleting child '%s' failed\n", __func__, fwdata->jobid);
     }
 
-    /* send result to mother superior*/
+    /* send result to mother superior */
     msgRes = (DDTypedBufferMsg_t) {
        .header = (DDMsg_t) {
        .type = PSP_CC_PLUG_PELOGUE,
