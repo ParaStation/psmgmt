@@ -24,7 +24,7 @@ SHELL := /bin/bash
 all: tar srpm rpm
 
 VERSION:=$(shell cd $(TOP_SRCDIR) && scripts/vcversion --fmt version)
-RELEASE:=$(shell cd $(TOP_SRCDIR) && scripts/vcversion --fmt release)
+RELEASE:=$(shell cd $(TOP_SRCDIR) && scripts/vcversion --fmt release $(if $(NODIRTY),--no-dirty,))
 DISTNAME=$(PKG_NAME)-$(VERSION)-$(RELEASE)
 RPMBUILDDIR=/var/tmp/$(DISTNAME)-$(USER)
 RPMBUILDLOG=$(PKG_NAME)$(shell echo -n $(CONFIGARGS)|tr -c "[0-9A-Za-z]" "_")-$(VERSION)-$(RELEASE).rpmbuild.log
