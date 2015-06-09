@@ -41,12 +41,16 @@ Get a version string from the last tag of the version control.
   --git               force usage of git
   --svn               force usage of svn
 
-  -r,--prjroot dir    project root (default ".")
+  -r|--prjroot dir    project root (default ".")
 
   --fmt format        with format:
                       "all"     : print full versionstring (default)
                       "release" : print the release (everything after the first "-")
                       "version" : print the version (everything before the first "-")
+
+  -n|--no-newline     do not output the trailing newline
+
+  --no-dirty          for git: do not add "dirty" for dirty working copies
 
   --isrelease         test, if version number matches "x.y-r" or "x.y.z-r" with xyzr digits only.
 
@@ -79,6 +83,7 @@ EOF
 arg_prjroot="."
 arg_fmt="all"
 arg_newline=""
+arg_dirty="--dirty=_dirty"
 
 function parse_arg() {
     while [ $# -gt 0 ]; do
@@ -88,10 +93,11 @@ function parse_arg() {
 	    --svn)		arg_vc="svn";;
 	    -r|--prjroot)	arg_prjroot="$2";shift;;
 	    --fmt)		arg_fmt="$2";shift;;
+	    -n|--no-newline)	arg_newline="-n";;
 	    --isrelease)	arg_isrelease="1"; arg_fmt="none";;
+	    --no-dirty)		arg_dirty="";;
 	    --help|-h)		usage;;
 	    --verbose|-v)	arg_verbose=1;;
-	    -n)			arg_newline="-n";;
 	    *)			echo "WARNING: unhandled option '$1'";;
 	esac
 	shift
@@ -123,8 +129,18 @@ case "$arg_vc" in
     git)
 	vecho "Tag from git"
 	# retry git-describe without --dirty on error. (pre git-1.6.6 has no --dirty)
-	version="$(git describe --tags --dirty --always --match "?*-?*" 2>/dev/null ||\
+	version="$(git describe --tags $arg_dirty --always --match "?*-?*" 2>/dev/null ||\
 		   git describe --tags --always --match "?*-?*")"
+	version_prefix="${version/\/*}"
+	version="${version#*\/}" # Remove prefix e.g. "sf/"
+	if ! git describe --tags --exact-match --always --match "?*-?*" >/dev/null 2>&1; then
+	    # Append the branchname, if not exactly on a tag and branch != master
+	    branch="$(git symbolic-ref HEAD)"
+	    branch="${branch/*\/}"
+	    if [ "$branch" != "master" ]; then
+		version="$version-$branch"
+	    fi
+	fi
 	;;
     svn)
 	vecho "Tag from svn"
