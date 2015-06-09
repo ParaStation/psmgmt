@@ -63,16 +63,13 @@ main() {
 
     (
 	cd "./${cdup}"
-	while {
-	    IFS= read -rd '' file
-	    IFS= read -rd ''
-	    IFS= read -rd '' val
-	} ; do
-	    if [[ "set" = "$val" ]] ; then
+	while IFS= read -r line; do
+	    if [[ $line = *rcs-keywords:\ set ]] ; then
+		file="${line%%: *}"
 		#printf '%s\n' "$file"
 		smudge "$file" "$head"
 	    fi
-	done < <(git ls-files -z | git check-attr rcs-keywords -z --stdin)
+	done < <(git ls-files | git check-attr rcs-keywords --stdin)
     )
 }
 
