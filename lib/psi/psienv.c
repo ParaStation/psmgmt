@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2001-2003 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2013 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2015 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -77,8 +77,8 @@ void unsetPSIEnv(const char *name)
     for (i=0; i<sizeOfEnv; i++) {
 	if ((environment[i])
 	    && !strncmp(environment[i], name, len)
-	    && environment[i][len]=='=') {
-	    /* the environment strings are the same, including the "=" */
+	    && environment[i][len] == '=') {
+	    /* the environment names are the same, including the length */
 	    break;
 	}
     }
@@ -105,8 +105,10 @@ int putPSIEnv(const char *string)
     len = ((long)beg) - ((long)string);
 
     for (i=0; i<sizeOfEnv; i++) {
-	if ((environment[i]) && (strncmp(environment[i],string,len+1)==0)) {
-	    /* the environment strings are the same, including the "=" */
+	if ((environment[i])
+	    && !strncmp(environment[i], string, len)
+	    && environment[i][len] == '=') {
+	    /* the environment names are the same, including the length */
 	    break;
 	}
     }
@@ -159,7 +161,10 @@ char* getPSIEnv(const char* name)
     len = strlen(name);
 
     for (i=0; i<sizeOfEnv; i++) {
-	if ((environment[i]) && (strncmp(environment[i],name,len)==0)) {
+	if ((environment[i])
+	    && !strncmp(environment[i], name, len)
+	    && environment[i][len] == '=') {
+	    /* the environment names are the same, including the length */
 	    break;
 	}
     }
