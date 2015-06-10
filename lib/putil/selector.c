@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2014 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2015 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -18,6 +18,7 @@ static char vcid[] __attribute__((used)) =
 #include <errno.h>
 #include <string.h>
 #include <syslog.h>
+#include <signal.h>
 #include <sys/select.h>
 
 #include "list.h"
@@ -83,6 +84,31 @@ static logger_t *logger = NULL;
 /** List of all registered selectors. */
 static LIST_HEAD(selectorList);
 
+/**
+ * @brief (Un-)Block SIGCHLD.
+ *
+ * Block or unblock SIGCHLD depending on the value of @a block. If
+ * block is 0, it will be blocked. Otherwise it will be unblocked.
+ *
+ * @param block Flag steering the (un-)blocking of SIGCHLD.
+ *
+ * @return Flag, if SIGCHLD was blocked before. I.e. return 1 if it
+ * was blocked or 0 otherwise.
+ */
+static int blockSigChld(int block)
+{
+    sigset_t set, oldset;
+
+    sigemptyset(&set);
+    sigaddset(&set, SIGCHLD);
+
+    if (sigprocmask(block ? SIG_BLOCK : SIG_UNBLOCK, &set, &oldset)) {
+	logger_warn(logger, -1, errno, "%s: sigprocmask()", __func__);
+    }
+
+    return sigismember(&oldset, SIGCHLD);
+}
+
 int32_t Selector_getDebugMask(void)
 {
     return logger_getMask(logger);
@@ -96,6 +122,7 @@ void Selector_setDebugMask(int32_t mask)
 void Selector_init(FILE* logfile)
 {
     list_t *s, *tmp;
+    int blocked;
 
     logger = logger_init("Selector", logfile);
     if (!logger) {
@@ -108,11 +135,13 @@ void Selector_init(FILE* logfile)
     }
 
     /* Free all old selectors, if any */
+    blocked = blockSigChld(1);
     list_for_each_safe(s, tmp, &selectorList) {
 	Selector_t *selector = list_entry(s, Selector_t, next);
 	list_del(&selector->next);
 	free(selector);
     }
+    blockSigChld(blocked);
 
     initialized = 1;
 }
@@ -163,7 +192,9 @@ int Selector_register(int fd, Selector_CB_t selectHandler, void *info)
 	list_del(&selector->next);
     } else {
 	/* Create new selector */
+	int blocked = blockSigChld(1);
 	selector = malloc(sizeof(Selector_t));
+	blockSigChld(blocked);
     }
     if (!selector) {
 	logger_print(logger, -1, "%s: No memory\n", __func__);
@@ -201,6 +232,8 @@ int Selector_remove(int fd)
 
 static void doRemove(Selector_t *selector)
 {
+    int blocked;
+
     if (!selector) {
 	logger_print(logger, -1, "%s: no selector given\n", __func__);
 	return;
@@ -209,7 +242,9 @@ static void doRemove(Selector_t *selector)
     list_del(&selector->next);
 
     /* Release allocated memory for removed selector */
+    blocked = blockSigChld(1);
     free(selector);
+    blockSigChld(blocked);
 }
 
 int Selector_isRegistered(int fd)
