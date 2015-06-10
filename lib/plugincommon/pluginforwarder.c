@@ -549,7 +549,7 @@ static int execForwarder(void *info)
 {
     fwdata = info;
     char tmp[200];
-    int status = 0, i, fwpid = getpid();
+    int ret, status = 0, i, fwpid = getpid();
     struct rusage rusage;
     struct timeval mytv={0,100};
 
@@ -561,7 +561,11 @@ static int execForwarder(void *info)
     }
 
     if (!initForwarder()) return -1;
-    if (fwdata->hookFWInit) fwdata->hookFWInit(fwdata);
+    if (fwdata->hookFWInit) {
+	if ((ret = fwdata->hookFWInit(fwdata)) < 0) {
+	    return ret;
+	}
+    }
 
     for (i=1; i<=fwdata->childRerun; i++) {
 

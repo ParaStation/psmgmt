@@ -62,7 +62,7 @@ typedef struct {
     int (*killSession)(pid_t, int);
     int (*callback)(int32_t, char *, size_t, void *);
     void (*childFunc)(void *, int);
-    void (*hookFWInit)(void *);
+    int (*hookFWInit)(void *);
     void (*hookLoop)(void *);
     void (*hookFinalize)(void *);
     int (*hookHandleSignal)(void *);

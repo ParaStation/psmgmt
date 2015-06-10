@@ -855,7 +855,7 @@ static void handleFWslurmMsgRes(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     len -=  (2 * sizeof(uint16_t)) + sizeof (int64_t);
     addMemToMsg(ptr, len, &body);
 
-    saveForwardedMsgRes(&sMsg, &body, SLURM_SUCCESS);
+    saveForwardedMsgRes(&sMsg, &body, SLURM_SUCCESS, __func__, __LINE__);
     ufree(body.buf);
 }
 
@@ -994,11 +994,19 @@ static void saveForwardError(DDTypedBufferMsg_t *msg)
     PS_DataBuffer_t data = { .buf = NULL };
     char *ptr = msg->buf;
     int16_t socket;
+    PS_Frag_Msg_Header_t *rhead;
 
     initSlurmMsgHead(&sMsg.head);
     sMsg.data = NULL;
     sMsg.source = msg->header.dest;
     sMsg.head.type = RESPONSE_FORWARD_FAILED;
+
+    /* fragmented message header */
+    rhead = (PS_Frag_Msg_Header_t *) ptr;
+    ptr += sizeof(PS_Frag_Msg_Header_t);
+
+    /* ignore follow up messages */
+    if (rhead->msgNum) return;
 
     /* socket */
     getInt16(&ptr, &socket);
@@ -1006,7 +1014,8 @@ static void saveForwardError(DDTypedBufferMsg_t *msg)
     /* receive time */
     getTime(&ptr, &sMsg.recvTime);
 
-    saveForwardedMsgRes(&sMsg, &data, SLURM_COMMUNICATIONS_CONNECTION_ERROR);
+    saveForwardedMsgRes(&sMsg, &data, SLURM_COMMUNICATIONS_CONNECTION_ERROR,
+			__func__, __LINE__);
 }
 
 void handleDroppedMsg(DDTypedBufferMsg_t *msg)

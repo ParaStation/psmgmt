@@ -116,7 +116,7 @@ static int stepCallback(int32_t exit_status, char *errMsg,
 
     if (errLen >0) mlog("%s: %s", __func__, errMsg);
 
-    mlog("%s: step '%u:%u' state '%s' finished, exit '%u'\n", __func__,
+    mlog("%s: step '%u:%u' state '%s' finished, exit '%i'\n", __func__,
 	step->jobid, step->stepid, strJobState(step->state), exit_status);
 
     if (!findStepById(step->jobid, step->stepid)) {
@@ -132,7 +132,11 @@ static int stepCallback(int32_t exit_status, char *errMsg,
 
     if (!SERIAL_MODE && step->state == JOB_PRESTART) {
 	/* spawn failed */
-	sendSlurmRC(&step->srunControlMsg, SLURM_ERROR);
+	if (exit_status == ESCRIPT_CHDIR_FAILED * -1) {
+	    sendSlurmRC(&step->srunControlMsg, ESCRIPT_CHDIR_FAILED);
+	} else {
+	    sendSlurmRC(&step->srunControlMsg, SLURM_ERROR);
+	}
     } else {
 	if (step->exitCode != 0) {
 	    sendTaskExit(step, step->exitCode);
@@ -321,6 +325,7 @@ int handleExecClient(void * data)
     unsetenv("PSI_SSH_INTERACTIVE");
     unsetenv("PSI_LOGGER_RAW_MODE");
     unsetenv("PSI_LOGGER_UNBUFFERED");
+    unsetenv("MALLOC_CHECK_");
 
     /* redirect stdin to /dev/null for all ranks > 0 to /dev/null */
     ptr = task->environ[count++];
@@ -540,11 +545,18 @@ static void execInteractiveJob(void *data, int rerun)
     execve(argv[0], argv, step->env.vars);
 }
 
-void stepForwarderInit(void *data)
+int stepForwarderInit(void *data)
 {
     Forwarder_Data_t *fwdata = data;
     Step_t *step = fwdata->userData;
     step->fwdata = fwdata;
+
+    /* check if we can change working dir */
+    if (step->cwd && chdir(step->cwd) == -1) {
+	mlog("%s: chdir to '%s' failed : %s\n", __func__, step->cwd,
+		strerror(errno));
+	return -1 * ESCRIPT_CHDIR_FAILED;
+    }
 
    /* open stderr/stdout/stdin fds */
     if (step->pty) {
@@ -552,14 +564,15 @@ void stepForwarderInit(void *data)
 	if ((openpty(&fwdata->stdOut[1], &fwdata->stdOut[0],
 			NULL, NULL, NULL)) == -1) {
 	    mlog("%s: openpty() failed\n", __func__);
-	    return;
+	    return -1;
 	}
     } else {
 	/* user will take care of I/O handling */
-	if (step->userManagedIO) return;
+	if (step->userManagedIO) return 1;
 
 	redirectStepIO(fwdata, step);
     }
+    return 1;
 }
 
 void stepForwarderLoop(void *data)

@@ -26,13 +26,6 @@
 
 #include "pluginfrag.h"
 
-typedef struct {
-    uint8_t uID;
-    uint16_t msgNum;
-    uint16_t msgCount;
-    uint16_t totalSize;
-} PS_Frag_Msg_Header_t;
-
 static Send_Msg_Func_t *sendPSMsg = NULL;
 
 void setFragMsgFunc(Send_Msg_Func_t *func)

@@ -59,7 +59,7 @@ void freeSlurmMsgHead(Slurm_Msg_Header_t *head);
 int sendSlurmMsg(int sock, slurm_msg_type_t type, PS_DataBuffer_t *body);
 int sendSlurmMsgEx(int sock, Slurm_Msg_Header_t *head, PS_DataBuffer_t *body);
 void saveForwardedMsgRes(Slurm_Msg_t *sMsg, PS_DataBuffer_t *data,
-			    uint32_t error);
+			    uint32_t error, const char *func, const int line);
 
 int openSlurmdSocket(int port);
 const char *msgType2String(int type);

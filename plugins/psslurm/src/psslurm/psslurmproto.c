@@ -1353,13 +1353,10 @@ static void handleKillReq(Slurm_Msg_t *sMsg, uint32_t jobid,
     Alloc_t *alloc;
     char buf[512];
 
-    /* send success back to slurmctld */
-    sendSlurmRC(sMsg, SLURM_SUCCESS);
-
     if (stepid != NO_VAL) {
 	if (!(step = findStepById(jobid, stepid))) {
 	    mlog("%s: step '%u:%u' not found\n", __func__, jobid, stepid);
-	    return;
+	    goto SEND_SUCCESS;
 	}
 	if (time) {
 	    snprintf(buf, sizeof(buf), "error: *** step %u:%u CANCELLED DUE "
@@ -1372,7 +1369,7 @@ static void handleKillReq(Slurm_Msg_t *sMsg, uint32_t jobid,
 	    mlog("%s: preemption for step '%u:%u'\n", __func__, jobid, stepid);
 	}
 	signalStep(step, SIGTERM);
-	return;
+	goto SEND_SUCCESS;
     }
 
     if ((job = findJobById(jobid))) job->terminate++;
@@ -1381,7 +1378,7 @@ static void handleKillReq(Slurm_Msg_t *sMsg, uint32_t jobid,
 
     if (!job && !alloc) {
 	mlog("%s: job '%u' not found\n", __func__, jobid);
-	return;
+	goto SEND_SUCCESS;
     }
 
     if (time) {
@@ -1407,6 +1404,13 @@ static void handleKillReq(Slurm_Msg_t *sMsg, uint32_t jobid,
     } else {
 	signalStepsByJobid(jobid, SIGTERM);
     }
+
+    return;
+
+SEND_SUCCESS:
+
+    /* send success back to slurmctld */
+    sendSlurmRC(sMsg, SLURM_SUCCESS);
 }
 
 static void handleTerminateReq(Slurm_Msg_t *sMsg)
@@ -1791,7 +1795,7 @@ int __sendSlurmReply(Slurm_Msg_t *sMsg, slurm_msg_type_t type,
 	if (!sMsg->head.forward) {
 	    ret = sendSlurmMsg(sMsg->sock, type, body);
 	} else {
-	    saveForwardedMsgRes(sMsg, body, SLURM_SUCCESS);
+	    saveForwardedMsgRes(sMsg, body, SLURM_SUCCESS, func, line);
 	}
     } else {
 	/* forwarded message */

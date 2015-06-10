@@ -272,7 +272,7 @@ void clearConnections()
 }
 
 void saveForwardedMsgRes(Slurm_Msg_t *sMsg, PS_DataBuffer_t *data,
-			    uint32_t error)
+			    uint32_t error, const char *func, const int line)
 {
     Connection_t *con;
     Connection_Forward_t *fw;
@@ -312,10 +312,10 @@ void saveForwardedMsgRes(Slurm_Msg_t *sMsg, PS_DataBuffer_t *data,
 	}
     }
 
-    mdbg(PSSLURM_LOG_FWD, "%s: type '%s' forward '%u' resCount '%u' "
-	    "source '%s'\n", __func__,
+    mdbg(PSSLURM_LOG_FWD, "%s (%s:%i): type '%s' forward '%u' resCount '%u' "
+	    "source '%s' sock '%i' recvTime '%zu'\n", __func__, func, line,
 	    msgType2String(sMsg->head.type), fw->head.forward, fw->res,
-	    PSC_printTID(sMsg->source));
+	    PSC_printTID(sMsg->source), sMsg->sock, sMsg->recvTime);
 
     if (fw->res == fw->nodesCount + 1) {
 	mdbg(PSSLURM_LOG_FWD, "%s: forward '%s' complete, sending answer\n",

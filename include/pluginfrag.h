@@ -23,6 +23,13 @@
 
 #include "plugincomm.h"
 
+typedef struct {
+    uint8_t uID;
+    uint16_t msgNum;
+    uint16_t msgCount;
+    uint16_t totalSize;
+} PS_Frag_Msg_Header_t;
+
 typedef int Send_Msg_Func_t(void *);
 
 void setFragMsgFunc(Send_Msg_Func_t *func);

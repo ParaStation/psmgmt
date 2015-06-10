@@ -148,8 +148,8 @@ int __envPut(env_t *env, char *envstring, const char *func, const int line)
     return envDoSet(env, __ustrdup(envstring, func, line), func, line);
 }
 
-static void envSetFilter(env_t *env, char *envstring, char **filter, const char *func,
-			    const int line)
+static void envSetFilter(env_t *env, char *envstring, char **filter,
+			    const char *func, const int line)
 {
     uint32_t count = 0;
     char *ptr;
