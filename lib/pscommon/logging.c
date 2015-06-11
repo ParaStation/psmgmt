@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2005-2014 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2015 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -220,7 +220,7 @@ static int blockSig(int block, int sig)
  */
 static void do_panic(logger_t* l, const char *f, const char *c1, const char *c2)
 {
-    if (!l || l->logfile) {
+    if (l && l->logfile) {
 	fprintf(l->logfile, f, c1, c2);
     } else {
 	int blocked = blockSig(1, SIGCHLD);

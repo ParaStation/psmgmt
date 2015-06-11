@@ -68,6 +68,7 @@ static char vcid[] __attribute__((used)) =
 typedef struct {
     int np;
     uint32_t hwType;
+    int ppn;
     int tpp;
     PSrsrvtn_ID_t resID;
     int argc;
@@ -140,6 +141,8 @@ int *nodeLocalProcIDs = NULL;
 /* process options */
 int np = -1;
 int gnp = -1;
+int ppn = 0;
+int gppn = 0;
 int tpp = 0;
 int gtpp = 0;
 int envtpp = 0;
@@ -1441,13 +1444,14 @@ static int startProcs(int np, char *wd, int verbose)
 	if (!options) options = PART_OPT_DEFAULT;
 
 	exec[i]->resID = PSI_getReservation(exec[i]->np, exec[i]->np,
-					    exec[i]->tpp, exec[i]->hwType,
-					    options, &got);
+					    exec[i]->ppn, exec[i]->tpp,
+					    exec[i]->hwType, options, &got);
 
 	if (!exec[i]->resID || (int)got != exec[i]->np) {
 	    fprintf(stderr, "%s: Unable to get reservation for app %d %d slots "
-		    "(tpp %d hwType %#x options %#x)\n", __func__, i,
-		    exec[i]->np, exec[i]->tpp, exec[i]->hwType, options);
+		    "(ppn %d tpp %d hwType %#x options %#x)\n", __func__, i,
+		    exec[i]->np, exec[i]->ppn, exec[i]->tpp, exec[i]->hwType,
+		    options);
 	    if ((getenv("PMI_SPAWNED"))) sendPMIFail();
 
 	    return -1;
@@ -2584,8 +2588,6 @@ struct poptOption poptMpiexecComp[] = {
     { "smpdfile", '\0',
       POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
       &smpdfile, 0, "not supported, will be ignored", NULL},
-    { "tpp", '\0', POPT_ARG_INT | POPT_ARGFLAG_ONEDASH,
-      &tpp, 0, "number of threads per process", "num"},
      POPT_TABLEEND
 };
 
@@ -2628,8 +2630,6 @@ struct poptOption poptMpiexecCompGlobal[] = {
       POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
       &envopt, 'E', "export this value of this environment variable",
       "<name> <value>"},
-    { "gtpp", '\0', POPT_ARG_INT | POPT_ARGFLAG_ONEDASH,
-      &gtpp, 0, "global number of threads per process", "num"},
     POPT_TABLEEND
 };
 
@@ -2709,6 +2709,12 @@ struct poptOption popt_IO_Options[] = {
       &mergeout, 0, "merge similar output from different ranks", NULL},
     { "timestamp", 'T', POPT_ARG_NONE,
       &timestamp, 0, "print detailed time-marks", NULL},
+    { "wdir", 'd', POPT_ARG_STRING,
+      &wdir, 0, "working directory for remote process", "<directory>"},
+    { "umask", '\0', POPT_ARG_INT,
+      &u_mask, 0, "umask for remote process", NULL},
+    { "path", 'p', POPT_ARG_STRING,
+      &path, 0, "the path to search for executables", "<directory>"},
     POPT_TABLEEND
 };
 
@@ -2760,15 +2766,18 @@ struct poptOption poptExecutionOptions[] = {
       &exclusive, 0, "do not allow any other processes on used node(s)", NULL},
     { "sort", 'S', POPT_ARG_STRING,
       &sort, 0, "sorting criterion to use: {proc|load|proc+load|none}", NULL},
-    { "wdir", 'd', POPT_ARG_STRING,
-      &wdir, 0, "working directory for remote process", "<directory>"},
-    { "umask", '\0', POPT_ARG_INT,
-      &u_mask, 0, "umask for remote process", NULL},
-    { "path", 'p', POPT_ARG_STRING,
-      &path, 0, "the path to search for executables", "<directory>"},
     { "maxtime", '\0', POPT_ARG_INT,
       &maxtime, 0, "maximum number of seconds the job is permitted to run",
       "INT"},
+    { "ppn", '\0', POPT_ARG_INT | POPT_ARGFLAG_ONEDASH,
+      &ppn, 0, "maximum number of processes per node (0 is unlimited)", "num"},
+    { "gppn", '\0', POPT_ARG_INT | POPT_ARGFLAG_ONEDASH,
+      &gppn, 0, "global maximum number of processes per node (0 is unlimited)",
+      "num"},
+    { "tpp", '\0', POPT_ARG_INT | POPT_ARGFLAG_ONEDASH,
+      &tpp, 0, "number of threads per process", "num"},
+    { "gtpp", '\0', POPT_ARG_INT | POPT_ARGFLAG_ONEDASH,
+      &gtpp, 0, "global number of threads per process", "num"},
     { "nodetype", '\0', POPT_ARG_STRING,
       &nodetype, 0, "comma separated list of local node types", NULL},
     { "gnodetype", '\0', POPT_ARG_STRING,
@@ -2908,6 +2917,15 @@ static void saveNextExecutable(int *sum_np, int argc, const char **argv)
 	hwTypeStr = NULL;
     }
     exec[execCount]->hwType = hwTypeStr ? getNodeType(hwTypeStr) : 0;
+
+    if (ppn) {
+	exec[execCount]->ppn = ppn;
+	ppn = 0;
+    } else if (gppn) {
+	exec[execCount]->ppn = gppn;
+    } else {
+	exec[execCount]->ppn = 0;
+    }
 
     if (tpp) {
 	exec[execCount]->tpp = tpp;

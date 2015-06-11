@@ -241,12 +241,12 @@ void PSID_sendSignal(PStask_ID_t tid, uid_t uid, PStask_ID_t sender,
 	    RDP_blockTimer(blockedRDP);
 	    PSID_blockSIGCHLD(blockedCHLD);
 
-	    /* Deliver signal, if tid not the original sender */
+	    /* Deliver signal if tid not the original sender */
 	    if (tid != sender) {
 		PSID_sendSignal(tid, uid, sender, signal, 0, answer);
 	    }
 
-	    /* Now inform the master, if necessary */
+	    /* Now inform the master if necessary */
 	    if (dest->partition && dest->partitionSize) {
 		if (signal == SIGSTOP) {
 		    dest->suspended = 1;
@@ -803,7 +803,7 @@ static void msg_RELEASE(DDSignalMsg_t *msg);
  *
  * @param sig The signal to be removed.
  *
- * @param answer Flag to expect answer. Used, if release is forwarded
+ * @param answer Flag to expect answer. Used if release is forwarded
  * to parent process
  *
  * @return On success, 0 is returned or an @a errno on error. In the
@@ -1045,7 +1045,7 @@ static int releaseTask(PStask_t *task)
  * undertaken within the @ref releaseTask() function called.
  *
  * In all cases adequate PSP_CD_RELEASERES message are send to the
- * task requesting the release, if the answer flag withing the message
+ * task requesting the release if the answer flag withing the message
  * @a msg is set.
  *
  * @param msg Pointer to the message to handle.
@@ -1088,7 +1088,7 @@ static void msg_RELEASE(DDSignalMsg_t *msg)
 		/* just ignore and ack this message */
 		msg->param = 0;
 	    } else {
-		/* Find out, if answer is required */
+		/* Find out if answer is required */
 		task->releaseAnswer = msg->answer;
 
 		msg->param = releaseTask(task);

@@ -49,6 +49,7 @@ typedef struct {
     PStask_ID_t requester;    /**< The task requesting the registration */
     uint32_t nMin;            /**< The minimum number of slots requested */
     uint32_t nMax;            /**< The maximum number of slots requested */
+    uint16_t ppn;             /**< Maximum number of processes per node */
     uint16_t tpp;             /**< Number of HW-threads per slot */
     uint32_t hwType;          /**< HW-type to be supported by the HW-threads */
     PSpart_option_t options;  /**< Options steering reservation creation */

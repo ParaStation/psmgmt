@@ -54,7 +54,7 @@ typedef struct {
 typedef struct {
     PSnodes_ID_t node;        /**< Node the slot belongs to */
     int16_t id;               /**< The logical number of this HW-thread */
-    int16_t timesUsed;            /**< The number of SW-threads assigned */
+    int16_t timesUsed;        /**< The number of SW-threads assigned */
 } PSpart_HWThread_t;
 
 /** Various sort modes for partition creation. */

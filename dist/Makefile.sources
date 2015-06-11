@@ -114,6 +114,7 @@ doc/MessageTypes \
 doc/parastation.conf.tmpl \
 doc/psaccount.conf \
 doc/psresport.conf \
+doc/psconfig/psmgmt.vipsconfig \
 include/Makefile.am \
 include/Makefile.in \
 include/config_parsing.h \

@@ -24,5 +24,3 @@ AC_DEFUN([PS_SEARCH_LIBS], [dnl
   LIBS="$ps_search_libs_save_LIBS"
   AC_SUBST([$3])
 ])
-
-
