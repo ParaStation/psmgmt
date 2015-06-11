@@ -692,6 +692,14 @@ int callbackForwarder(int fd, PSID_scriptCBInfo_t *info)
     size_t errLen = 0;
     Forwarder_Data_t *data = info->info;
 
+    /* remove connect timer */
+    if (data->timeoutConnectId > 0) {
+	if (Timer_remove(data->timeoutConnectId) == -1) {
+	    pluginlog("%s: removing connect timer failed\n", __func__);
+	}
+	data->timeoutConnectId = -1;
+    }
+
     getScriptCBData(fd, info, &exit, errMsg, sizeof(errMsg), &errLen);
 
     if (!exit && data->forwarderError == 1) {

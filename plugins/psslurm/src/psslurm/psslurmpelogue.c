@@ -180,6 +180,7 @@ int handlePElogueFinish(void *data)
 
     jobid = atoi(pedata->jobid);
 
+    if (!pedata->prologue) return 0;
     if (!(step = findStepByJobid(jobid))) return 0;
     if (step->nodes[0] == PSC_getMyID()) return 0;
 

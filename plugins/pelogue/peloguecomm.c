@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2013 - 2014 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2013 - 2015 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -269,8 +269,9 @@ int fwCallback(int32_t wstat, char *errMsg, size_t errLen, void *data)
     }
 
     ret = sendMsg(&msgRes);
-    mlog("%s: send pelogue exit '%i' back to '%s' ret '%i'\n", __func__,
-	    exit_status, PSC_printTID(pedata->mainPelogue), ret);
+    mlog("%s: %s exit '%i' job '%s' to '%s' ret '%i'\n", __func__,
+	    pedata->prologue ? "prologue" : "epilogue",
+	    exit_status, pedata->jobid, PSC_printTID(pedata->mainPelogue), ret);
 
     if (ret == -1) {
 	mwarn(errno, "%s: sendMsg() failed: ", __func__);
@@ -282,7 +283,8 @@ int fwCallback(int32_t wstat, char *errMsg, size_t errLen, void *data)
     return 0;
 }
 
-static void handlePELogueStart(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *recvData)
+static void handlePELogueStart(DDTypedBufferMsg_t *msg,
+				PS_DataBuffer_t *recvData)
 {
     char *ptr = recvData->buf, ctype[20], fname[100], *tmp, *dirScripts;
     int32_t envSize;

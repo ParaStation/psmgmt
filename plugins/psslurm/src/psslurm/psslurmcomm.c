@@ -888,9 +888,6 @@ static int handleSrunMsg(int sock, void *data)
     uint32_t lenght, myTaskIdsLen;
     uint32_t *myTaskIds;
 
-    myTaskIdsLen = step->globalTaskIdsLen[step->myNodeIndex];
-    myTaskIds = step->globalTaskIds[step->myNodeIndex];
-
     headSize = sizeof(uint32_t) + 3 * sizeof(uint16_t);
     if ((ret = doReadP(sock, buffer, headSize)) <= 0) {
 	closeConnection(sock);
@@ -914,6 +911,9 @@ static int handleSrunMsg(int sock, void *data)
     getUint16(&ptr, &ltid);
     /* lenght */
     getUint32(&ptr, &lenght);
+
+    myTaskIdsLen = step->globalTaskIdsLen[step->myNodeIndex];
+    myTaskIds = step->globalTaskIds[step->myNodeIndex];
 
     mdbg(PSSLURM_LOG_IO, "%s: step '%u:%u' stdin '%u' type '%u' lenght '%u' "
 	    "gtid '%u' ltid '%u' pty:%u myTIDsLen '%u'\n", __func__,
