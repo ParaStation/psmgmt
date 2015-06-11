@@ -1,7 +1,7 @@
 *.h rcs-keywords
 *.c rcs-keywords
 doc/MessageTypes rcs-keywords
-doc/parastation.conf rcs-keywords
+doc/parastation.conf.tmpl rcs-keywords
 scripts/.gdbinit rcs-keywords
 scripts/init.d/parastation.in rcs-keywords
 scripts/lsf/esub rcs-keywords
