@@ -1787,7 +1787,7 @@ static char* hwtype_scripts[] = {
 
 static int getHardwareOptions(char *name)
 {
-    int objlen;
+    int objlen, env_config_style;
     gchar *obj, *key, *val;
     GPtrArray *env;
     GError *err = NULL;
@@ -1828,18 +1828,57 @@ static int getHardwareOptions(char *name)
     // it's fine to have hwtype options w/o environment
     if (env == NULL) return 0;
 
-    if (env->len % 2 != 0) {
-	parser_comment(-1, "Invalid environment setting for hwtype '%s'\n",
-		       name);
-    }
+    // holds the detected config style
+    // 0 means config style yet undetected
+    // 1 means new config style having "key=value" list elements
+    // 2 means old config style having key, value alternating list entries
+    env_config_style = 0;
 
-    for(i = 0; (i+1) < env->len; i+=2) {
-	key = (gchar*)g_ptr_array_index(env,i);
-	val = (gchar*)g_ptr_array_index(env,i+1);
+    for(i = 0; (i+1) < env->len; i++) {
+        key = (gchar*)g_ptr_array_index(env,i);
+        val = strstr(key, "=");
+
+        if (val == NULL) {
+            if (env_config_style != 0) {
+                parser_comment(-1, "Invalid environment setting for hwtype"
+                        " '%s'\n", name);
+                break;
+            }
+            env_config_style = 2; // old style detected
+            break;
+        }
+
+        env_config_style = 1; // new style detected
+
+        *val = '\0';
+        val = val+1;
 
 	ret = setHardwareEnv(key, val);
 	if (ret) break;
     }
+
+    if (env_config_style == 2) {
+
+        // warn about old style config
+        parser_comment(-1, "Old style environment config used in hwtype '%s'."
+                " You should update your configuration.\n", name);
+
+        if (env->len % 2 != 0) {
+            parser_comment(-1, "Invalid environment setting for hwtype '%s'\n",
+                    name);
+            g_ptr_array_free(env, TRUE);
+            return 0;
+        }
+
+        for(i = 0; (i+1) < env->len; i+=2) {
+            key = (gchar*)g_ptr_array_index(env,i);
+            val = (gchar*)g_ptr_array_index(env,i+1);
+
+            ret = setHardwareEnv(key, val);
+            if (ret) break;
+        }
+    }
+
     g_ptr_array_free(env, TRUE);
 
     return ret;
