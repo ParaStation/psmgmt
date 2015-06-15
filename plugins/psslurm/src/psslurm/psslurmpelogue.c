@@ -28,6 +28,7 @@
 
 #include "slurmcommon.h"
 #include "peloguehandles.h"
+#include "pspamhandles.h"
 
 #include "psslurmpelogue.h"
 
@@ -176,15 +177,33 @@ int handlePElogueFinish(void *data)
 {
     PElogue_Data_t *pedata = data;
     Step_t *step;
+    Job_t *job;
+    char *username = NULL;
     uint32_t jobid;
 
     jobid = atoi(pedata->jobid);
+    step = findStepByJobid(jobid);
+    job = findJobById(jobid);
 
-    if (!pedata->prologue) return 0;
-    if (!(step = findStepByJobid(jobid))) return 0;
-    if (step->nodes[0] == PSC_getMyID()) return 0;
+    if (step) {
+	username = step->username;
+    } else if (job) {
+	username = job->username;
+    }
 
-    execStepFWIO(step);
+    if (username) {
+	if (pedata->exit && pedata->prologue) {
+	    psPamAddUser(username, "psslurm");
+	}
+	if (!pedata->prologue) {
+	    psPamDeleteUser(username, "psslurm");
+	}
+    }
+
+    /* start I/O forwarder */
+    if (pedata->prologue && step && step->nodes[0] != PSC_getMyID()) {
+	execStepFWIO(step);
+    }
 
     return 0;
 }
