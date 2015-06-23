@@ -1297,4 +1297,4 @@ FORWARD_CHILD_BORN:
     if (oldChildBornHandler) oldChildBornHandler((DDBufferMsg_t *) msg);
 }
 
-/* vim: set ts=8 sw=4 tw=0 sts=4 et :*/
+/* vim: set ts=8 sw=4 tw=0 sts=4 noet:*/
