@@ -120,6 +120,7 @@ PSrsrvtn_t *PSrsrvtn_get(void)
     rp->nSlots = 0;
     rp->slots = NULL;
     rp->nextSlot = 0;
+    rp->relSlot = 0;
     rp->checked = 0;
     rp->dynSent = 0;
     rp->state = RES_USED;
@@ -143,6 +144,7 @@ void PSrsrvtn_put(PSrsrvtn_t *rp)
     rp->nSlots = 0;
     rp->slots = NULL;
     rp->nextSlot = 0;
+    rp->relSlot = 0;
     rp->checked = 0;
     rp->dynSent = 0;
     list_add_tail(&rp->next, &resFreeList);
@@ -207,6 +209,7 @@ static void freeChunk(res_chunk_t *chunk)
 	new->slots = old->slots;
 	old->slots = NULL;
 	new->nextSlot = old->nextSlot;
+	new->relSlot = old->relSlot;
 	new->checked = old->checked;
 	new->dynSent = old->dynSent;
 

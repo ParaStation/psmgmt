@@ -58,6 +58,7 @@ typedef struct {
     int nSlots;               /**< Number of slots in @ref slots */
     PSpart_slot_t *slots;     /**< Slots forming the reservation */
     int nextSlot;             /**< Number of next slot to use */
+    int relSlots;             /**< Number of slots already released */
     char checked;             /**< Was checked to be completable */
     char dynSent;             /**< Dynamic request was sent */
     PSrsrvtn_state_t state;   /**< flag internal state of structure */
