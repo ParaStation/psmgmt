@@ -491,7 +491,7 @@ TCP_RECONNECT:
 	return -1;
     }
 
-    if (blocked) blockSigChild(0);
+    if (!blocked) blockSigChild(0);
 
     if (!reConnect) {
 	mdbg(PSSLURM_LOG_COMM, "%s: to %s port:%s\n",

@@ -677,7 +677,7 @@ int deleteJob(uint32_t jobid)
 
     blocked = blockSigChild(1);
     malloc_trim(200);
-    if (blocked) blockSigChild(0);
+    if (!blocked) blockSigChild(0);
     return 1;
 }
 
