@@ -1121,7 +1121,7 @@ static void handleCC_IO_Msg(PSLog_Msg_t *msg)
 static void handleCC_INIT_Msg(PSLog_Msg_t *msg)
 {
     Step_t *step = NULL;
-    PS_Tasks_t *task;
+    PS_Tasks_t *task = NULL;
 
     if (msg->sender == -1) {
 	if ((step = findStepByLogger(msg->header.sender))) {
@@ -1136,6 +1136,20 @@ static void handleCC_INIT_Msg(PSLog_Msg_t *msg)
 
 		    mdbg(PSSLURM_LOG_IO, "%s: enable srunIO!!!\n", __func__);
 		    sendEnableSrunIO(step);
+		}
+	    }
+	}
+    }
+
+    else if (msg->sender >= 0) {
+
+	if ((step = findStepByLogger(msg->header.dest))) {
+
+	    if (PSC_getMyID() == PSC_getID(msg->header.sender)) {
+
+		if ((task = findTaskByForwarder(&step->tasks.list, msg->header.sender))) {
+
+		    verbosePinningOutput(step, task);
 		}
 	    }
 	}

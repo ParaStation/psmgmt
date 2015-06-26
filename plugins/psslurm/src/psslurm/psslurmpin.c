@@ -20,6 +20,10 @@
 #include <stdlib.h>
 #include <numa.h>
 
+#define _GNU_SOURCE
+#define __USE_GNU
+#include <sched.h>
+
 #include "psslurmjob.h"
 #include "psslurmlog.h"
 
@@ -27,8 +31,11 @@
 #include "pluginmalloc.h"
 #include "slurmcommon.h"
 
-#include "psslurmpin.h"
+#include "psslurmconfig.h"
+#include "psslurmproto.h"
+#include "psslurmio.h"
 
+#include "psslurmpin.h"
 
 /*
  * Parse the coreBitmap of @a step and generate a coreMap.
@@ -786,6 +793,160 @@ error:
     ufree(slots);
     return 0;
 
+}
+
+static char * printCpuMask(pid_t pid) {
+
+    cpu_set_t mask;
+    PSCPU_set_t CPUset;
+    int numcpus, i;
+
+    static char ret[PSCPU_MAX/4+10];
+    char* lstr;
+    int offset;
+
+    if (sched_getaffinity(1, sizeof(cpu_set_t), &mask) == 0) {
+	numcpus = CPU_COUNT(&mask);
+    }
+    else {
+	numcpus = 128;
+    }
+
+    PSCPU_clrAll(CPUset);
+    if (sched_getaffinity(pid, sizeof(cpu_set_t), &mask) == 0) {
+	for (i = 0; i < numcpus; i++) {
+	    if(CPU_ISSET(i, &mask)) {
+		PSCPU_setCPU(CPUset, i);
+	    }
+	}
+    }
+    else {
+	return "unknown";
+    }
+
+    lstr = PSCPU_print(CPUset);
+
+    strcpy(ret, "0x");
+
+    // cut leading zeros
+    offset = 2;
+    while (*(lstr + offset) == '0') {
+	offset++;
+    }
+
+    if (*(lstr + offset) == '\0') {
+	return "0x0";
+    }
+
+    strcpy(ret + 2, lstr + offset);
+
+    return ret;
+}
+
+/* verbose binding output */
+void verbosePinningOutput(Step_t *step, PS_Tasks_t *task) {
+
+    char *units, *bind_type, *action, *verbstr;
+    int verbstr_len;
+    pid_t pid;
+
+
+    mlog("%s: Called\n", __func__);
+
+    if (step->cpuBindType & CPU_BIND_VERBOSE) {
+	action = " set";
+
+#if 0 // this is what original slurm would do
+	if (step->cpuBindType & CPU_BIND_NONE) {
+	    units  = "";
+	    bind_type = "NONE";
+	    action = "";
+	} else {
+	    if (step->cpuBindType & CPU_BIND_TO_THREADS) {
+		units = "_threads";
+	    }
+	    else if (step->cpuBindType & CPU_BIND_TO_CORES) {
+		units = "_cores"; // this is unsupported
+	    }
+	    else if (step->cpuBindType & CPU_BIND_TO_SOCKETS) {
+		units = "_sockets";
+	    }
+	    else if (step->cpuBindType & CPU_BIND_TO_LDOMS) {
+		units = "_ldoms";
+	    }
+	    else {
+		units = "";
+	    }
+
+	    if (step->cpuBindType & CPU_BIND_RANK) {
+		bind_type = "RANK";
+	    }
+	    else if (step->cpuBindType & CPU_BIND_MAP) {
+		bind_type = "MAP ";
+	    }
+	    else if (step->cpuBindType & CPU_BIND_MASK) {
+		bind_type = "MASK";
+	    }
+	    else if (step->cpuBindType & CPU_BIND_LDRANK) {
+		bind_type = "LDRANK";
+	    }
+	    else if (step->cpuBindType & CPU_BIND_LDMAP) {
+		bind_type = "LDMAP ";
+	    }
+	    else if (step->cpuBindType & CPU_BIND_LDMASK) {
+		bind_type = "LDMASK";
+	    }
+	    else if (step->cpuBindType & (~CPU_BIND_VERBOSE)) {
+		bind_type = "UNK ";
+	    }
+	    else {
+		action = "";
+		bind_type = "NULL";
+	    }
+	}
+#endif
+
+	units  = "";
+
+	if (step->cpuBindType & CPU_BIND_NONE) {
+	    bind_type = "NONE";
+	} else if (step->cpuBindType & CPU_BIND_TO_BOARDS) {
+	    bind_type = "BOARDS";
+	} else if (step->cpuBindType & CPU_BIND_MASK) {
+	    bind_type = "MASK";
+	} else if (step->cpuBindType & CPU_BIND_MAP) {
+	    bind_type = "MAP";
+	} else if (step->cpuBindType & CPU_BIND_LDMASK) {
+	    bind_type = "LDMASK";
+	} else if (step->cpuBindType & CPU_BIND_LDMAP) {
+	    bind_type = "LDMAP";
+	} else if (step->cpuBindType & CPU_BIND_TO_SOCKETS) {
+	    bind_type = "SOCKETS";
+	} else if (step->cpuBindType & CPU_BIND_TO_LDOMS) {
+	    bind_type = "LDOMS";
+	} else if (step->cpuBindType & CPU_BIND_LDRANK) {
+	    bind_type = "LDRANK";
+	} else { /* default, CPU_BIND_RANK, CPU_BIND_TO_THREADS */
+	    bind_type = "RANK";
+	}
+
+	verbstr_len = 500;
+	verbstr = umalloc(verbstr_len * sizeof(char));
+
+	pid = PSC_getPID(task->childTID);
+
+	snprintf(verbstr, verbstr_len, "cpu_bind%s=%s - "
+		"%s, task %2d %2u [%d]: mask %s%s\n", units, bind_type,
+		getConfValueC(&Config, "SLURM_HOSTNAME"), // hostname
+		task->childRank,
+		getLocalRankID(task->childRank, step, step->myNodeIndex),
+		pid, printCpuMask(pid), action);
+
+	printChildMessage(step->fwdata, verbstr, strlen(verbstr),
+		STDERR, task->childRank);
+
+	ufree(verbstr);
+    }
 }
 
 /* vim: set ts=8 sw=4 tw=0 sts=4 noet :*/
