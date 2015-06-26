@@ -76,7 +76,7 @@ int mungeEncodeCtx(char **cred, munge_ctx_t ctx, const void *buf, int len)
 	return 0;
     }
 
-    if (blocked) blockSigChild(0);
+    if (!blocked) blockSigChild(0);
 
     return 1;
 }

@@ -681,7 +681,7 @@ void updateProcSnapshot(int extended)
 	mlog("%s: open /proc failed\n", __func__);
 	return;
     }
-    if (blocked) blockSigChild(0);
+    if (!blocked) blockSigChild(0);
 
     if (cpuGovEnabled) {
 	updateCpuFreq();

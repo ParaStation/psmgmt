@@ -19,6 +19,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <signal.h>
+#include <errno.h>
 
 #include "pluginlog.h"
 #include "pluginmalloc.h"
@@ -35,20 +36,20 @@
 int blockSigChild(int block)
 {
     sigset_t set, oldset;
+    int res;
 
     sigemptyset(&set);
     sigaddset(&set, SIGCHLD);
 
-    if (block) {
-	if (sigprocmask(block, NULL, &oldset) != 0) return 0;
-	if (sigismember(&oldset, SIGCHLD) != 0) return 0;
-
-	sigprocmask(SIG_BLOCK, &set, NULL);
-    } else {
-	sigprocmask(SIG_UNBLOCK, &set, NULL);
+    if (sigprocmask(block ? SIG_BLOCK : SIG_UNBLOCK, &set, &oldset)) {
+	pluginwarn(errno, "%s: sigprocmask() failed:", __func__);
     }
 
-    return 1;
+    if ((res = sigismember(&oldset, SIGCHLD)) == -1) {
+	pluginwarn(errno, "%s: sigismember() failed:", __func__);
+    }
+
+    return res;
 }
 
 void *__umalloc(size_t size, const char *func, const int line)
@@ -64,7 +65,7 @@ void *__umalloc(size_t size, const char *func, const int line)
         pluginlog("%s: memory allocation of '%zu' failed\n", func, size);
         exit(EXIT_FAILURE);
     }
-    if (blocked) blockSigChild(0);
+    if (!blocked) blockSigChild(0);
 
     snprintf(tmp, sizeof(tmp), "%i", line);
     plugindbg(PLUGIN_LOG_MALLOC, "umalloc\t%15s\t%s\t%p (%zu)\n", func, tmp,
@@ -87,7 +88,7 @@ void *__urealloc(void *old ,size_t size, const char *func, const int line)
         pluginlog("%s: realloc of '%zu' failed.\n", func, size);
         exit(EXIT_FAILURE);
     }
-    if (blocked) blockSigChild(0);
+    if (!blocked) blockSigChild(0);
 
     snprintf(tmp, sizeof(tmp), "%i", line);
     if (old) {
@@ -125,7 +126,7 @@ void __ufree(void *ptr, const char *func, const int line)
 
     blocked = blockSigChild(1);
     free(ptr);
-    if (blocked) blockSigChild(0);
+    if (!blocked) blockSigChild(0);
 }
 
 char *__str2Buf(char *strSave, char **buffer, size_t *bufSize, const char *func,
