@@ -327,6 +327,14 @@ int handleExecClient(void * data)
     unsetenv("PSI_LOGGER_UNBUFFERED");
     unsetenv("MALLOC_CHECK_");
 
+    if (task->environ) {
+	for (i=0; task->environ[i]; i++) {
+	    if (!(strncmp("MALLOC_CHECK_=", task->environ[i], 14))) {
+		putenv(strdup(task->environ[i]));
+	    }
+	}
+    }
+
     /* redirect stdin to /dev/null for all ranks > 0 to /dev/null */
     ptr = task->environ[count++];
     while (ptr) {

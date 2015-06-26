@@ -64,11 +64,11 @@ int handleCreatePart(void *msg)
 	goto error;
     }
 
-    /* admin user can always pass */
-    if ((isPSAdminUser(task->uid, task->gid))) return 1;
-
     /* find step */
     if (!(step = findStepByPid(PSC_getPID(inmsg->header.sender)))) {
+	/* admin user can always pass */
+	if ((isPSAdminUser(task->uid, task->gid))) return 1;
+
 	mlog("%s: step for sender '%s' not found\n", __func__,
 		PSC_printTID(inmsg->header.sender));
 
@@ -120,11 +120,16 @@ int handleCreatePartNL(void *msg)
 	goto error;
     }
 
-    /* admin user can always pass */
-    if ((isPSAdminUser(task->uid, task->gid))) return 1;
+    /* find step */
+    if ((findStepByPid(PSC_getPID(inmsg->header.sender)))) {
+	return 0;
+    } else {
+	/* admin users can start mpiexec direct */
+	if ((isPSAdminUser(task->uid, task->gid))) return 1;
 
-    /* for batch users we send the nodelist before */
-    return 0;
+	/* for batch users we send the nodelist before */
+	return 0;
+    }
 
     error:
     {
@@ -1073,13 +1078,23 @@ void handleDroppedMsg(DDTypedBufferMsg_t *msg)
 static void handleCC_IO_Msg(PSLog_Msg_t *msg)
 {
     Step_t *step = NULL;
+    PStask_t *task;
 
     if (!(step = findStepByLogger(msg->header.dest))) {
+	if (PSC_getMyID() == PSC_getID(msg->header.sender)) {
+	    if ((task = PStasklist_find(&managedTasks, msg->header.sender))) {
+		if ((isPSAdminUser(task->uid, task->gid))) goto OLD_MSG_HANDLER;
+	    }
+	} else {
+	    if ((task = PStasklist_find(&managedTasks, msg->header.dest))) {
+		if ((isPSAdminUser(task->uid, task->gid))) goto OLD_MSG_HANDLER;
+	    }
+	}
+
 	mlog("%s: step for I/O msg logger '%s' not found\n", __func__,
 		PSC_printTID(msg->header.dest));
 
-	if (oldCCMsgHandler) oldCCMsgHandler((DDBufferMsg_t *) msg);
-	return;
+	goto OLD_MSG_HANDLER;
     }
 
     /*
@@ -1103,19 +1118,22 @@ static void handleCC_IO_Msg(PSLog_Msg_t *msg)
 
     /* forward stdout for single file on mother superior */
     if (msg->type == STDOUT && step->stdOutOpt == IO_GLOBAL_FILE) {
-	if (oldCCMsgHandler) oldCCMsgHandler((DDBufferMsg_t *) msg);
-	return;
+	goto OLD_MSG_HANDLER;
     }
 
     /* forward stdout for single file on mother superior */
     if (msg->type == STDERR && step->stdErrOpt == IO_GLOBAL_FILE) {
-	if (oldCCMsgHandler) oldCCMsgHandler((DDBufferMsg_t *) msg);
-	return;
+	goto OLD_MSG_HANDLER;
     }
 
     printChildMessage(step->fwdata, msg->buf,
 			msg->header.len - PSLog_headerSize, msg->type,
 			msg->sender);
+
+    return;
+
+OLD_MSG_HANDLER:
+    if (oldCCMsgHandler) oldCCMsgHandler((DDBufferMsg_t *) msg);
 }
 
 static void handleCC_INIT_Msg(PSLog_Msg_t *msg)
@@ -1159,11 +1177,16 @@ static void handleCC_INIT_Msg(PSLog_Msg_t *msg)
 static void closeClientIO(PSLog_Msg_t *msg)
 {
     Step_t *step = NULL;
+    PStask_t *psidTask;
 
     if (PSC_getMyID() != PSC_getID(msg->header.sender)) return;
     if (msg->sender < 0) return;
 
     if (!(step = findStepByLogger(msg->header.dest))) {
+	if ((psidTask = PStasklist_find(&managedTasks, msg->header.sender))) {
+	    if ((isPSAdminUser(psidTask->uid, psidTask->gid))) return;
+	}
+
 	mlog("%s: step for CC msg with logger '%s' not found\n", __func__,
 		PSC_printTID(msg->header.dest));
 
@@ -1195,6 +1218,7 @@ static void handleCC_Finalize_Msg(PSLog_Msg_t *msg)
 {
     Step_t *step = NULL;
     PS_Tasks_t *task;
+    PStask_t *psidTask;
 
     if (PSC_getMyID() != PSC_getID(msg->header.sender) ||
 	(msg->sender < 0)) {
@@ -1202,6 +1226,11 @@ static void handleCC_Finalize_Msg(PSLog_Msg_t *msg)
     }
 
     if (!(step = findStepByLogger(msg->header.dest))) {
+
+	if ((psidTask = PStasklist_find(&managedTasks, msg->header.sender))) {
+	    if ((isPSAdminUser(psidTask->uid, psidTask->gid))) goto FORWARD;
+	}
+
 	mlog("%s: step for CC msg with logger '%s' not found\n", __func__,
 		PSC_printTID(msg->header.dest));
 	goto FORWARD;
