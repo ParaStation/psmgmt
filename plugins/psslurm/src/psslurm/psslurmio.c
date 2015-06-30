@@ -54,12 +54,34 @@ static int sattachCtlSock[MAX_SATTACH_SOCKETS];
 
 static int sattachAddr[MAX_SATTACH_SOCKETS];
 
+static void forward2Sattach(char *msg, uint32_t msgLen, uint16_t taskid,
+			    uint8_t type)
+{
+    int i, ret, stype;
+
+    stype = (type == STDOUT) ?  SLURM_IO_STDOUT : SLURM_IO_STDERR;
+
+    for (i=0; i<MAX_SATTACH_SOCKETS; i++) {
+	if (sattachSockets[i] != -1) {
+	    ret = srunSendIO(stype, taskid, sattachSockets[i], msg, msgLen);
+	    if (ret <0) {
+		if (Selector_isRegistered(sattachSockets[i])) {
+		    Selector_remove(sattachSockets[i]);
+		}
+		close(sattachSockets[i]);
+		sattachSockets[i] = -1;
+		sattachCtlSock[i] = -1;
+		sattachCon--;
+	    }
+	}
+    }
+}
+
 static void writeIOmsg(char *msg, uint32_t msgLen, uint16_t taskid,
 			uint8_t type, Forwarder_Data_t *fwdata, Step_t *step,
 			uint32_t lrank)
 {
     void *msgPtr;
-    int i, ret;
 
     msgPtr = msgLen ? msg : NULL;
 
@@ -74,24 +96,7 @@ static void writeIOmsg(char *msg, uint32_t msgLen, uint16_t taskid,
     }
     */
 
-    if (sattachCon > 0) {
-	int stype = (type == STDOUT) ?  SLURM_IO_STDOUT : SLURM_IO_STDERR;
-	for (i=0; i<MAX_SATTACH_SOCKETS; i++) {
-	    if (sattachSockets[i] != -1) {
-		ret = srunSendIO(stype, taskid, sattachSockets[i],
-				    msgPtr, msgLen);
-		if (ret <0) {
-		    if (Selector_isRegistered(sattachSockets[i])) {
-			Selector_remove(sattachSockets[i]);
-		    }
-		    close(sattachSockets[i]);
-		    sattachSockets[i] = -1;
-		    sattachCtlSock[i] = -1;
-		    sattachCon--;
-		}
-	    }
-	}
-    }
+    if (sattachCon > 0) forward2Sattach(msgPtr, msgLen, taskid, type);
 
     if (type == STDOUT) {
 	if (step->stdOutOpt == IO_NODE_FILE) {
