@@ -263,7 +263,7 @@ void setRankEnv(int32_t rank, Step_t *step)
 {
     char tmp[128], *myGTIDs, *list = NULL;
     size_t listSize = 0;
-    uint32_t myNodeId, myLocalId, count = 0;
+    uint32_t myNodeId = step->myNodeIndex, myLocalId, count = 0;
     Gres_Cred_t *gres;
 
     setenv("SLURMD_NODENAME", getConfValueC(&Config, "SLURM_HOSTNAME"), 1);
@@ -272,8 +272,6 @@ void setRankEnv(int32_t rank, Step_t *step)
     snprintf(tmp, sizeof(tmp), "%u", getpid());
     setenv("SLURM_TASK_PID", tmp, 1);
     setenv("SLURM_CPUS_ON_NODE", getConfValueC(&Config, "SLURM_CPUS"), 1);
-
-    myNodeId = getMyNodeIndex(step->nodes, step->nrOfNodes);
 
     if (myNodeId < step->nrOfNodes) {
 	snprintf(tmp, sizeof(tmp), "%u", myNodeId);

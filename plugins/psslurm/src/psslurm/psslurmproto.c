@@ -79,7 +79,7 @@ uint32_t getLocalRankID(uint32_t rank, Step_t *step, uint32_t nodeId)
     return -1;
 }
 
-uint32_t getMyNodeIndex(PSnodes_ID_t *nodes, uint32_t nrOfNodes)
+int32_t getMyNodeIndex(PSnodes_ID_t *nodes, uint32_t nrOfNodes)
 {
     uint32_t i;
     PSnodes_ID_t myNodeId;
@@ -306,6 +306,7 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
     Step_t *step;
     uint32_t jobid, stepid, i, tmp, count;
     uint16_t debug;
+    int32_t nodeIndex;
     char jobOpt[512], *acctType;
     char **ptr = &sMsg->ptr;
 
@@ -339,7 +340,7 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
     getUint16(ptr, &step->jobCoreSpec);
 
     /* job creditials */
-    step->cred = getJobCred(&step->gres, ptr, version);
+    step->cred = getJobCred(&step->gres, ptr, version, 1);
 
     /* tasks to launch / global task ids */
     readStepTaskIds(step, ptr);
@@ -412,7 +413,15 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
 		step->nrOfNodes);
 	step->nrOfNodes = count;
     }
-    step->myNodeIndex = getMyNodeIndex(step->nodes, step->nrOfNodes);
+
+    /* calculate my node index */
+    if ((nodeIndex = getMyNodeIndex(step->nodes, step->nrOfNodes)) < 0) {
+	mlog("%s: failed getting my node index\n", __func__);
+	sendSlurmRC(sMsg, SLURM_ERROR);
+	deleteStep(step->jobid, step->stepid);
+	return;
+    }
+    step->myNodeIndex = nodeIndex;
 
     mlog("%s: step '%u:%u' user '%s' np '%u' nodes '%s' tpp '%u' exe '%s'\n",
 	    __func__, jobid, stepid, step->username, step->np, step->slurmNodes,
@@ -593,11 +602,67 @@ static void handleCheckpointTasks(Slurm_Msg_t *sMsg)
     sendSlurmRC(sMsg, ESLURM_NOT_SUPPORTED);
 }
 
+static void sendReattchReply(Step_t *step, Slurm_Msg_t *sMsg, uint32_t rc)
+{
+    PS_DataBuffer_t reply = { .buf = NULL };
+    char *ptrCount;
+    uint32_t i, numTasks, countPIDS = 0;
+    struct list_head *pos;
+    PS_Tasks_t *task = NULL;
+
+    /* hostname */
+    addStringToMsg(getConfValueC(&Config, "SLURM_HOSTNAME"), &reply);
+    /* return code */
+    addUint32ToMsg(rc, &reply);
+
+    if (rc == SLURM_SUCCESS) {
+	numTasks = step->globalTaskIdsLen[step->myNodeIndex];
+	/* number of tasks */
+	addUint32ToMsg(numTasks, &reply);
+	/* gtids */
+	addUint32ArrayToMsg(step->globalTaskIds[step->myNodeIndex],
+			    numTasks, &reply);
+	/* local pids */
+	ptrCount = reply.buf + reply.bufUsed;
+	addUint32ToMsg(0, &reply);
+
+	list_for_each(pos, &step->tasks.list) {
+	    if (!(task = list_entry(pos, PS_Tasks_t, list))) break;
+	    if (task->childRank >= 0) {
+		countPIDS++;
+		addUint32ToMsg(PSC_getPID(task->childTID), &reply);
+	    }
+	}
+	*(uint32_t *) ptrCount = htonl(countPIDS);
+
+	/* executable names */
+	for (i=0; i<numTasks; i++) {
+	    addStringToMsg(step->argv[0], &reply);
+	}
+    } else {
+	/* number of tasks */
+	addUint32ToMsg(0, &reply);
+	/* gtids */
+	addUint32ToMsg(0, &reply);
+	/* local pids */
+	addUint32ToMsg(0, &reply);
+	/* no executable names */
+    }
+
+    sendSlurmReply(sMsg, RESPONSE_REATTACH_TASKS, &reply);
+
+    ufree(reply.buf);
+}
+
 static void handleReattachTasks(Slurm_Msg_t *sMsg)
 {
     char **ptr = &sMsg->ptr;
     Step_t *step;
-    uint32_t jobid, stepid;
+    uint32_t i, jobid, stepid, rc = SLURM_SUCCESS;
+    uint16_t numIOports, numCtlPorts;
+    uint16_t *ioPorts = NULL, *ctlPorts = NULL;
+    JobCred_t *cred = NULL;
+    Gres_Cred_t gres;
 
     getUint32(ptr, &jobid);
     getUint32(ptr, &stepid);
@@ -605,36 +670,79 @@ static void handleReattachTasks(Slurm_Msg_t *sMsg)
     if (!(step = findStepById(jobid, stepid))) {
 	mlog("%s: step '%u:%u' to reattach not found\n", __func__,
 		jobid, stepid);
-	sendSlurmRC(sMsg, ESLURM_INVALID_JOB_ID);
-	return;
+	rc = ESLURM_INVALID_JOB_ID;
+	goto SEND_REPLY;
     }
 
     /* check permissions */
     if (!(checkAuthorizedUser(sMsg->head.uid, step->uid))) {
 	mlog("%s: request from invalid user '%u' step '%u:%u'\n", __func__,
 		sMsg->head.uid, jobid, stepid);
-	sendSlurmRC(sMsg, ESLURM_USER_ID_MISSING);
-	return;
+	rc = ESLURM_USER_ID_MISSING;
+	goto SEND_REPLY;
     }
 
     if (!step->fwdata) {
 	/* no forwarder to attach to */
 	mlog("%s: forwarder for step '%u:%u' to reattach not found\n", __func__,
 		jobid, stepid);
-	sendSlurmRC(sMsg, ESLURM_INVALID_JOB_ID);
-	return;
+	rc = ESLURM_INVALID_JOB_ID;
+	goto SEND_REPLY;
     }
 
-    /* num_resp_ports */
+    /* srun control ports */
+    getUint16(ptr, &numCtlPorts);
+    if (numCtlPorts >0) {
+	ctlPorts = umalloc(numCtlPorts * sizeof(uint16_t));
+	for (i=0; i<numCtlPorts; i++) {
+	    getUint16(ptr, &ctlPorts[i]);
+	}
+    } else {
+	mlog("%s: invalid request, no control ports\n", __func__);
+	rc = ESLURM_PORTS_INVALID;
+	goto SEND_REPLY;
+    }
 
-    /* num_io_ports */
+    /* get I/O ports */
+    getUint16(ptr, &numIOports);
+    if (numIOports >0) {
+	ioPorts = umalloc(numIOports * sizeof(uint16_t));
+	for (i=0; i<numIOports; i++) {
+	    getUint16(ptr, &ioPorts[i]);
+	}
+    } else {
+	mlog("%s: invalid request, no I/O ports\n", __func__);
+	rc = ESLURM_PORTS_INVALID;
+	goto SEND_REPLY;
+    }
 
-    /* credential */
+    /* job credential including I/O key */
+    if (!(cred = getJobCred(&gres, ptr, sMsg->head.version, 0))) {
+	mlog("%s: invalid credential for step '%u:%u'\n", __func__,
+		jobid, stepid);
+	rc = ESLURM_INVALID_JOB_CREDENTIAL;
+	goto SEND_REPLY;
+    }
+
+    if (strlen(cred->sig) +1 != SLURM_IO_KEY_SIZE) {
+	mlog("%s: invalid I/O key size '%zu'\n", __func__,
+		strlen(cred->sig) +1);
+	rc = ESLURM_INVALID_JOB_CREDENTIAL;
+	goto SEND_REPLY;
+    }
 
     /* send message to forwarder */
+    reattachTasks(step->fwdata, sMsg->head.addr,
+		    ioPorts[step->myNodeIndex % numIOports],
+		    ctlPorts[step->myNodeIndex % numCtlPorts],
+		    cred->sig);
+SEND_REPLY:
 
-    mlog("%s: implement me!\n", __func__);
-    sendSlurmRC(sMsg, ESLURM_NOT_SUPPORTED);
+    sendReattchReply(step, sMsg, rc);
+
+    ufree(cred);
+    ufree(ioPorts);
+    ufree(ctlPorts);
 }
 
 static void handleSignalJob(Slurm_Msg_t *sMsg)
@@ -1172,7 +1280,7 @@ static void handleBatchJobLaunch(Slurm_Msg_t *sMsg)
     /* TODO use job mem ?limit? uint32_t */
     getUint32(ptr, &job->memLimit);
 
-    job->cred = getJobCred(&job->gres, ptr, sMsg->head.version);
+    job->cred = getJobCred(&job->gres, ptr, sMsg->head.version, 1);
 
     /* verify job credential */
     if (!(checkJobCred(job))) {
@@ -1997,43 +2105,100 @@ void sendStepExit(Step_t *step, int exit_status)
     ufree(body.buf);
 }
 
-void sendTaskExit(Step_t *step, int exit_status)
+void sendTaskExit(Step_t *step, int *ctlPort, int *ctlAddr)
 {
     PS_DataBuffer_t body = { .buf = NULL };
-    uint32_t i, x, count = 0;
+    uint32_t count = 0, taskCount = 0, exitCount;
+    PS_Tasks_t *task;
+    struct list_head *pos;
+    int exitCode, sock, i;
+    char *ptrNumProcs, *ptrNumTIDs;
 
-    /* TODO: hook into CC exit messages to psilogger or let the psilogger send
-     * us the exit status for every child. For now we will use the exit status
-     * from the logger */
+    list_for_each(pos, &step->tasks.list) {
+	if (!(task = list_entry(pos, PS_Tasks_t, list))) break;
+	if (task->childRank < 0) continue;
+	taskCount++;
+    }
 
-    /* exit status */
-    addUint32ToMsg(exit_status, &body);
-    /* number of processes exited */
-    addUint32ToMsg(step->np, &body);
+    while (count < taskCount) {
+	body.bufUsed = exitCount = 0;
+	exitCode = -100;
 
-    /* task ids of processes (array) */
-    addUint32ToMsg(step->np, &body);
-    for (i=0; i<step->nrOfNodes; i++) {
-	for (x=0; x<step->globalTaskIdsLen[i]; x++) {
-	    addUint32ToMsg(step->globalTaskIds[i][x], &body);
-	    count++;
+	list_for_each(pos, &step->tasks.list) {
+	    if (!(task = list_entry(pos, PS_Tasks_t, list))) break;
+	    if (task->childRank < 0) continue;
+	    if (!task->sentExit) {
+		exitCode = task->exitCode;
+		break;
+	    }
+	}
+
+	if (exitCode == -100) {
+	    if (count != taskCount) {
+		mlog("%s: failed to find next exit code, count '%u' "
+			"taskCount '%u'\n", __func__, count, taskCount);
+
+	    }
+	    ufree(body.buf);
+	    return;
+	}
+
+	/* exit status */
+	addUint32ToMsg(exitCode, &body);
+
+	/* number of processes exited */
+	ptrNumProcs = body.buf + body.bufUsed;
+	addUint32ToMsg(0, &body);
+
+	/* task ids of processes (array) */
+	ptrNumTIDs = body.buf + body.bufUsed;
+	addUint32ToMsg(0, &body);
+
+	list_for_each(pos, &step->tasks.list) {
+	    if (!(task = list_entry(pos, PS_Tasks_t, list))) break;
+	    if (task->sentExit || task->childRank < 0) continue;
+	    if (task->exitCode == exitCode) {
+		addUint32ToMsg(task->childRank, &body);
+		task->sentExit = 1;
+		exitCount++;
+		/*
+		mlog("%s: tasks childRank:%i exit:%i exitCount:%i\n", __func__,
+			task->childRank, task->exitCode, exitCount);
+		*/
+	    }
+	}
+	*(uint32_t *) ptrNumProcs = htonl(exitCount);
+	*(uint32_t *) ptrNumTIDs = htonl(exitCount);
+	count += exitCount;
+
+	if (exitCount < 1) {
+	    mlog("%s: failed to find tasks for exitCode '%i'\n", __func__,
+		    exitCode);
+	    ufree(body.buf);
+	    return;
+	}
+
+	/* stepid */
+	addUint32ToMsg(step->jobid, &body);
+	addUint32ToMsg(step->stepid, &body);
+
+	mlog("%s: sending MESSAGE_TASK_EXIT '%u:%u' exit '%i'\n",
+		__func__, exitCount, count, exitCode);
+
+	srunSendMsg(-1, step, MESSAGE_TASK_EXIT, &body);
+
+	for (i=0; i<MAX_SATTACH_SOCKETS; i++) {
+	    if (ctlPort[i] != -1) {
+
+		if ((sock = tcpConnectU(ctlAddr[i], ctlPort[i])) <0) {
+		    mlog("%s: connection to srun '%u:%u' failed\n", __func__,
+			    ctlAddr[i], ctlPort[i]);
+		} else {
+		    srunSendMsg(sock, step, MESSAGE_TASK_EXIT, &body);
+		}
+	    }
 	}
     }
-
-    if (count != step->np) {
-	mlog("%s: invalid global taskids: count '%u' np '%u'\n",
-		__func__, count, step->np);
-	ufree(body.buf);
-	return;
-    }
-
-    /* stepid */
-    addUint32ToMsg(step->jobid, &body);
-    addUint32ToMsg(step->stepid, &body);
-
-    mlog("%s: sending MESSAGE_TASK_EXIT to srun\n", __func__);
-
-    srunSendMsg(-1, step, MESSAGE_TASK_EXIT, &body);
     ufree(body.buf);
 }
 

@@ -139,14 +139,11 @@ static int stepCallback(int32_t exit_status, char *errMsg,
 	}
     } else {
 	if (step->exitCode != 0) {
-	    sendTaskExit(step, step->exitCode);
 	    sendStepExit(step, step->exitCode);
 	} else {
 	    if (WIFSIGNALED(exit_status)) {
-		sendTaskExit(step, WTERMSIG(exit_status));
 		sendStepExit(step, WTERMSIG(exit_status));
 	    } else {
-		sendTaskExit(step, exit_status);
 		sendStepExit(step, exit_status);
 	    }
 	}
@@ -596,7 +593,7 @@ void stepForwarderLoop(void *data)
 	return;
     }
 
-    if (!srunOpenIOConnection(step)) {
+    if (!srunOpenIOConnection(step, 0, step->cred->sig)) {
 	mlog("%s: srun connect failed\n", __func__);
 	return;
     }
@@ -826,7 +823,7 @@ void stepFWIOloop(void *data)
 	return;
     }
 
-    if (!srunOpenIOConnection(step)) {
+    if (!srunOpenIOConnection(step, 0, step->cred->sig)) {
 	mlog("%s: srun connect failed\n", __func__);
 	return;
     }

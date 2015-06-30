@@ -40,6 +40,7 @@ typedef struct {
     PStask_group_t childGroup;
     int32_t childRank;
     int exitCode;
+    int sentExit;
     struct list_head list;
 } PS_Tasks_t;
 
