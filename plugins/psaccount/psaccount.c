@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2012 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2015 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -32,6 +32,7 @@
 #include "timer.h"
 #include "plugin.h"
 #include "psidnodes.h"
+#include "psidutil.h"
 
 #include "psaccount.h"
 
@@ -78,6 +79,7 @@ void periodicMain(void)
 {
     static int cleanup = 0;
     int poll;
+    int blocked = PSID_blockSIGCHLD(1);
 
     /* cleanup old jobs */
     if (cleanup++ == 4) {
@@ -100,6 +102,7 @@ void periodicMain(void)
 	    setMainTimer(poll);
 	}
     }
+    PSID_blockSIGCHLD(blocked);
 }
 
 void accountStart()
