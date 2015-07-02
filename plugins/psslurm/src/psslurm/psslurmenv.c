@@ -480,6 +480,10 @@ void setTaskEnv(Step_t *step)
 	envSet(&step->env, "SLURM_CPU_BIND_LIST", step->cpuBind);
 	envSet(&step->env, "SBATCH_CPU_BIND_LIST", step->cpuBind);
     }
+    else {
+	envSet(&step->env, "SLURM_CPU_BIND_LIST", "");
+	envSet(&step->env, "SBATCH_CPU_BIND_LIST", "");
+    }
 
     /* mem bind variables */
     val = genMemBindString(step);
