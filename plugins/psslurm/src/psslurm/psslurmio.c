@@ -41,10 +41,19 @@
 
 #include "psslurmio.h"
 
+#define RING_BUFFER_LEN 1024
+
 typedef struct {
     PS_DataBuffer_t out;
     PS_DataBuffer_t err;
 } IO_Msg_Buf_t;
+
+typedef struct {
+    uint16_t taskid;
+    uint8_t type;
+    char *msg;
+    uint32_t msgLen;
+} RingMsgBuffer_t;
 
 static int sattachCon = 0;
 
@@ -53,6 +62,30 @@ static int sattachSockets[MAX_SATTACH_SOCKETS];
 static int sattachCtlSock[MAX_SATTACH_SOCKETS];
 
 static int sattachAddr[MAX_SATTACH_SOCKETS];
+
+static RingMsgBuffer_t ringBuf[RING_BUFFER_LEN];
+
+static uint32_t ringBufLast = 0;
+
+static uint32_t ringBufStart = 0;
+
+void initStepIO(Step_t *step)
+{
+    uint16_t i;
+
+    for (i=0; i<MAX_SATTACH_SOCKETS; i++) {
+	sattachSockets[i] = -1;
+	sattachCtlSock[i] = -1;
+	sattachAddr[i] = -1;
+    }
+
+    for (i=0; i<RING_BUFFER_LEN; i++) {
+	ringBuf[i].taskid = -1;
+	ringBuf[i].type = -1;
+	ringBuf[i].msg = NULL;
+	ringBuf[i].msgLen = 0;
+    }
+}
 
 static void forward2Sattach(char *msg, uint32_t msgLen, uint16_t taskid,
 			    uint8_t type)
@@ -74,6 +107,38 @@ static void forward2Sattach(char *msg, uint32_t msgLen, uint16_t taskid,
 		sattachCon--;
 	    }
 	}
+    }
+}
+
+static void msg2Buffer(char *msg, uint32_t msgLen, uint16_t taskid,
+                        uint8_t type)
+{
+    RingMsgBuffer_t *rBuf;
+    int stype;
+
+    /*
+    mlog("%s: msgLen:%u ringBufLast:%u ringBufStart:%u\n", __func__, msgLen,
+	    ringBufLast, ringBufStart);
+    */
+
+    if (!msgLen) return;
+
+    stype = (type == STDOUT) ?  SLURM_IO_STDOUT : SLURM_IO_STDERR;
+
+    rBuf = &ringBuf[ringBufLast];
+    rBuf->taskid = taskid;
+    rBuf->type = stype;
+    if (rBuf->msgLen < msgLen) {
+	rBuf->msg = urealloc(rBuf->msg, msgLen);
+    }
+    rBuf->msgLen = msgLen;
+    memcpy(rBuf->msg, msg, msgLen);
+
+    ringBufLast = (ringBufLast + 1 == RING_BUFFER_LEN) ? 0 : ringBufLast + 1;
+
+    if (ringBufLast == ringBufStart) {
+	ringBufStart = (ringBufStart + 1 == RING_BUFFER_LEN) ?
+						    0 : ringBufStart + 1;
     }
 }
 
@@ -120,6 +185,8 @@ static void writeIOmsg(char *msg, uint32_t msgLen, uint16_t taskid,
 			msgPtr, msgLen);
 	}
     }
+
+    msg2Buffer(msg, msgLen, taskid, type);
 }
 
 static int getWidth(int32_t num)
@@ -282,6 +349,9 @@ void stepFinalize(void *data)
     Step_t *step = fwdata->userData;
     uint32_t i, myNodeID = step->myNodeIndex;
 
+    /* send task exit */
+    sendTaskExit(step, sattachCtlSock, sattachAddr);
+
     /* make sure to close all leftover I/O channels */
     for (i=0; i<step->globalTaskIdsLen[myNodeID]; i++) {
 	if (step->outChannels && step->outChannels[i] != 0) {
@@ -292,21 +362,20 @@ void stepFinalize(void *data)
 	}
     }
 
-    /* send task exit */
-    sendTaskExit(step, sattachCtlSock, sattachAddr);
+    /* close all sattach sockets */
+    for (i=0; i<MAX_SATTACH_SOCKETS; i++) {
+	if (Selector_isRegistered(sattachSockets[i])) {
+	    Selector_remove(sattachSockets[i]);
+	}
+	close(sattachSockets[i]);
+	close(sattachCtlSock[i]);
+    }
 }
 
 static void handleEnableSrunIO(void *data, char *ptr)
 {
     Forwarder_Data_t *fwdata = data;
     Step_t *step = fwdata->userData;
-    uint16_t i;
-
-    for (i=0; i<MAX_SATTACH_SOCKETS; i++) {
-	sattachSockets[i] = -1;
-	sattachCtlSock[i] = -1;
-	sattachAddr[i] = -1;
-    }
 
     srunEnableIO(step);
 }
@@ -346,7 +415,11 @@ static void handleReattachTasks(void *data, char *ptr)
     uint16_t ioPort, ctlPort;
     uint32_t ioAddr;
     char *sig;
-    int sock, i;
+    int sock, i, ret;
+
+    uint32_t index = ringBufStart;
+    RingMsgBuffer_t *rBuf;
+
 
     getUint32(&ptr, &ioAddr);
     getUint16(&ptr, &ioPort);
@@ -359,7 +432,8 @@ static void handleReattachTasks(void *data, char *ptr)
 	return;
     }
 
-    mlog("%s: opened connection to '%u:%u'\n", __func__, ioAddr, ioPort);
+    mdbg(PSSLURM_LOG_IO, "%s: opened connection to '%u:%u' ctlPort '%u'\n",
+	    __func__, ioAddr, ioPort, ctlPort);
 
     srunOpenIOConnection(step, sock, sig);
 
@@ -371,6 +445,32 @@ static void handleReattachTasks(void *data, char *ptr)
 	    sattachCon++;
 	    break;
 	}
+    }
+
+    if (i==MAX_SATTACH_SOCKETS) {
+	mlog("%s: no more free sattach sockets available\n", __func__);
+	close(sock);
+	return;
+    }
+
+    /* send previous buffered output */
+    for (i=0; i<RING_BUFFER_LEN; i++) {
+	rBuf = &ringBuf[index];
+	if (!rBuf->msg) break;
+
+	ret = srunSendIO(rBuf->type, rBuf->taskid, sock, rBuf->msg,
+			    rBuf->msgLen);
+	if (ret < 0) {
+	    mlog("%s: sending IO failed\n", __func__);
+	    close(sattachSockets[i]);
+	    sattachSockets[i] = -1;
+	    sattachCtlSock[i] = -1;
+	    sattachCon--;
+	    return;
+	}
+
+	index = (index + 1 == RING_BUFFER_LEN) ? 0 : index + 1;
+	if (index == ringBufLast) break;
     }
 
     if ((Selector_register(sock, handleSrunMsg, step)) == -1) {

@@ -585,6 +585,8 @@ void stepForwarderLoop(void *data)
     Forwarder_Data_t *fwdata = data;
     Step_t *step = fwdata->userData;
 
+    initStepIO(step);
+
     /* user will take care of I/O handling */
     if (step->userManagedIO) return;
 
@@ -814,6 +816,8 @@ void stepFWIOloop(void *data)
     Forwarder_Data_t *fwdata = data;
     Step_t *step = fwdata->userData;
     step->fwdata = fwdata;
+
+    initStepIO(step);
 
     /* user will take care of I/O handling */
     if (step->userManagedIO) return;

@@ -42,5 +42,6 @@ void sendFWfinMessage(Forwarder_Data_t *fwdata, PSLog_Msg_t *msg);
 void reattachTasks(Forwarder_Data_t *fwdata, uint32_t addr,
 		    uint16_t ioPort, uint16_t ctlPort, char *sig);
 void sendFWtaskInfo(Forwarder_Data_t *fwdata, PS_Tasks_t *task);
+void initStepIO(Step_t *step);
 
 #endif
