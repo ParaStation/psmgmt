@@ -64,6 +64,12 @@ typedef struct {
     PSrsrvtn_state_t state;   /**< flag internal state of structure */
 } PSrsrvtn_t;
 
+/** Structure used for the PSIDHOOK_RELS_PART_DYNAMIC hook */
+typedef struct{
+    PSrsrvtn_ID_t rid;        /**< Unique reservation identifier */
+    PSpart_slot_t slot;       /**< Slot to be released */
+} PSrsrvtn_dynRes_t;
+
 /**
  * @brief Get reservation structure from pool
  *

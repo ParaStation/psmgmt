@@ -156,17 +156,18 @@ int handleDynReservation(void *resPtr)
     return 1;
 }
 
-int handleDynRelease(void *slotPtr)
+int handleDynRelease(void *dynResPtr)
 {
-    PSpart_slot_t *slot = slotPtr;
+    PSrsrvtn_dynRes_t *dynRes = dynResPtr;
 
-    if (!slotPtr) {
+    if (!dynResPtr) {
 	PSID_log(-1, "%s: No to be released slot given\n", __func__);
 	return 0;
     }
 
-    PSID_log(-1, "%s: Slot to release: %d %s\n", __func__, slot->node,
-	     PSCPU_print(slot->CPUset));
+    PSID_log(-1, "%s: Slot to release: (%d/%s) part of reservation %#x\n",
+	     __func__, dynRes->slot.node, PSCPU_print(dynRes->slot.CPUset),
+	     dynRes->rid);
 
     return 1;
 }
