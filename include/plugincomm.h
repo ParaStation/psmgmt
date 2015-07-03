@@ -347,4 +347,6 @@ int setByteOrder(int val);
 
 int setTypeInfo(int val);
 
+void setFDblock(int fd, int block);
+
 #endif

@@ -67,6 +67,18 @@ static int byteOrder = 1;
 
 static int typeInfo = 0;
 
+void setFDblock(int fd, int block)
+{
+    int flags;
+
+    flags = fcntl(fd, F_GETFL, 0);
+    if (!block) {
+	fcntl(fd, F_SETFL, flags | O_NONBLOCK);
+    } else {
+	fcntl(fd, F_SETFL, flags & (~O_NONBLOCK));
+    }
+}
+
 int setByteOrder(int val)
 {
     int old = byteOrder;
@@ -107,20 +119,27 @@ int verifyTypeInfo(char **ptr, PS_DataType_t expectedType, const char *caller)
 }
 
 #define MAX_RETRY 20
+#define MAX_EAGAIN_RETRY 200
 int __doWrite(int fd, void *buffer, size_t towrite, const char *func,
 			int pedantic, int fini)
 {
     ssize_t ret = 0;
     size_t written = 0;
     char *ptr = buffer;
-    int retry = 0;
+    int retry = 0, egainRetry = 0;
+    static time_t lastLog = 0;
 
     while (1) {
 	if ((ret = write(fd, ptr + written, towrite - written)) == -1) {
-	    if (errno == EINTR || errno == EAGAIN) continue;
+	    if (errno == EINTR) continue;
+	    if (errno == EAGAIN) {
+		if (egainRetry++ < MAX_EAGAIN_RETRY) continue;
+	    }
 
+	    if (lastLog == time(NULL)) return -1;
 	    pluginlog("%s (%s): write to fd '%i' failed (%i): %s\n", __func__,
 		    func, fd, errno, strerror(errno));
+	    lastLog = time(NULL);
 	    return -1;
 	}
 	if (!pedantic) return ret;
@@ -148,13 +167,11 @@ int __doReadExt(int fd, void *buffer, size_t toread, size_t *ret,
 {
     ssize_t size = 0, left;
     char *ptr;
-    int flags, retry = 0;
+    int retry = 0;
+    static time_t lastLog = 0;
 
     *ret = 0;
-    if (pedantic) {
-	flags = fcntl(fd, F_GETFL, 0);
-	fcntl(fd, F_SETFL, flags | O_NONBLOCK);
-    }
+    if (pedantic) setFDblock(fd, 0);
 
     ptr = buffer;
     left = toread;
@@ -162,8 +179,10 @@ int __doReadExt(int fd, void *buffer, size_t toread, size_t *ret,
 	if ((size = read(fd, ptr, left)) < 0) {
 	    if (errno == EINTR || errno == EAGAIN) continue;
 
+	    if (lastLog == time(NULL)) return -1;
 	    pluginlog("%s (%s): read from fd '%i' failed (%i): %s\n", __func__,
 		    func, fd, errno, strerror(errno));
+	    lastLog = time(NULL);
 	    return -1;
 	}
 	if (!pedantic) return size;

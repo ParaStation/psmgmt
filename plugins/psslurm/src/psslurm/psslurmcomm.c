@@ -1001,6 +1001,9 @@ int srunOpenControlConnection(Step_t *step)
 		inet_ntoa(step->srun.sin_addr), port);
 	return -1;
     }
+
+    setFDblock(sock, 0);
+
     mdbg(PSSLURM_LOG_IO, "%s: new srun connection %i\n", __func__, sock);
 
     return sock;
@@ -1043,6 +1046,8 @@ int srunOpenPTY(Step_t *step)
 	    inet_ntoa(step->srun.sin_addr), port);
     step->srunPTYMsg.sock = sock;
 
+    setFDblock(sock, 0);
+
     if ((Selector_register(sock, handleSrunPTYMsg, step)) == -1) {
 	mlog("%s: Selector_register(%i) failed\n", __func__, sock);
 	return -1;
@@ -1074,6 +1079,8 @@ int srunOpenIOConnection(Step_t *step, int sock, char *sig)
 
 	step->srunIOMsg.sock = sock;
     }
+
+    setFDblock(sock, 0);
 
     addUint16ToMsg(IO_PROTOCOL_VERSION, &data);
     /* nodeid */
