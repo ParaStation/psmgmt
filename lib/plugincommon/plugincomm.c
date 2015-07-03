@@ -119,22 +119,18 @@ int verifyTypeInfo(char **ptr, PS_DataType_t expectedType, const char *caller)
 }
 
 #define MAX_RETRY 20
-#define MAX_EAGAIN_RETRY 200
 int __doWrite(int fd, void *buffer, size_t towrite, const char *func,
 			int pedantic, int fini)
 {
     ssize_t ret = 0;
     size_t written = 0;
     char *ptr = buffer;
-    int retry = 0, egainRetry = 0;
+    int retry = 0;
     static time_t lastLog = 0;
 
     while (1) {
 	if ((ret = write(fd, ptr + written, towrite - written)) == -1) {
-	    if (errno == EINTR) continue;
-	    if (errno == EAGAIN) {
-		if (egainRetry++ < MAX_EAGAIN_RETRY) continue;
-	    }
+	    if (errno == EINTR || errno == EAGAIN) continue;
 
 	    if (lastLog == time(NULL)) return -1;
 	    pluginlog("%s (%s): write to fd '%i' failed (%i): %s\n", __func__,
