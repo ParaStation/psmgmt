@@ -285,7 +285,8 @@ void deleteJobCred(JobCred_t *cred)
     ufree(cred);
 }
 
-JobCred_t *getJobCred(Gres_Cred_t *gres, char **ptr, uint16_t version)
+JobCred_t *getJobCred(Gres_Cred_t *gres, char **ptr, uint16_t version,
+			int decode)
 {
     char *credStart, *sigBuf;
     JobCred_t *cred;
@@ -349,23 +350,26 @@ JobCred_t *getJobCred(Gres_Cred_t *gres, char **ptr, uint16_t version)
     len = *ptr - credStart;
 
     cred->sig = getStringM(ptr);
-    if (!(psMungeDecodeBuf(cred->sig, (void **) &sigBuf, &sigBufLen,
-	    &sigUid, &sigGid))) {
-	mlog("%s: decoding creditial failed\n", __func__);
-	return NULL;
-    }
 
-    if (len != sigBufLen) {
-	mlog("%s: mismatching creditial len %u : %u\n", __func__,
-		len, sigBufLen);
-	goto ERROR;
-    }
+    if (decode) {
+	if (!(psMungeDecodeBuf(cred->sig, (void **) &sigBuf, &sigBufLen,
+		&sigUid, &sigGid))) {
+	    mlog("%s: decoding creditial failed\n", __func__);
+	    return NULL;
+	}
 
-    if (!!(memcmp(sigBuf, credStart, sigBufLen))) {
-	mlog("%s: manipulated data\n", __func__);
-	goto ERROR;
+	if (len != sigBufLen) {
+	    mlog("%s: mismatching creditial len %u : %u\n", __func__,
+		    len, sigBufLen);
+	    goto ERROR;
+	}
+
+	if (!!(memcmp(sigBuf, credStart, sigBufLen))) {
+	    mlog("%s: manipulated data\n", __func__);
+	    goto ERROR;
+	}
+	free(sigBuf);
     }
-    free(sigBuf);
 
     mdbg(PSSLURM_LOG_AUTH, "%s: cred len:%u jobMemLimit '%u' stepMemLimit '%u' "
 	    "hostlist '%s' jobhostlist '%s' ctime '%lu' " "sig '%s'\n",

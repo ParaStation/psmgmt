@@ -216,6 +216,7 @@ PS_Tasks_t *addTask(struct list_head *list, PStask_ID_t childTID,
     task->childGroup = childGroup;
     task->childRank = rank;
     task->exitCode = 0;
+    task->sentExit = 0;
 
     list_add_tail(&(task->list), list);
 

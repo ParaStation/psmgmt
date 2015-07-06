@@ -1149,7 +1149,7 @@ static void handleCC_INIT_Msg(PSLog_Msg_t *msg)
 		if (task->childRank < 0) return;
 		step->fwInitCount++;
 
-		if (step->tasksToLaunch[getStepLocalNodeID(step)] ==
+		if (step->tasksToLaunch[step->myNodeIndex] ==
 			step->fwInitCount) {
 
 		    mdbg(PSSLURM_LOG_IO, "%s: enable srunIO!!!\n", __func__);
@@ -1230,9 +1230,9 @@ static void handleCC_Finalize_Msg(PSLog_Msg_t *msg)
     }
     task->exitCode = *(int *) msg->buf;
 
-    if (!step->pty && step->fwdata) {
+    if (step->fwdata) {
 	/* step forwarder should close I/O */
-	sendFinMessage(step->fwdata, msg);
+	sendFWfinMessage(step->fwdata, msg);
 	return;
     }
 
@@ -1278,6 +1278,7 @@ void handleChildBornMsg(DDErrorMsg_t *msg)
     uint32_t jobid, stepid;
     Job_t *job;
     Step_t *step;
+    PS_Tasks_t *task = NULL;
 
     if (!forwarder) goto FORWARD_CHILD_BORN;
     /*
@@ -1316,10 +1317,11 @@ void handleChildBornMsg(DDErrorMsg_t *msg)
 	    mlog("%s: step '%u:%u' not found\n", __func__, jobid, stepid);
 	    goto FORWARD_CHILD_BORN;
 	}
-	addTask(&step->tasks.list, msg->request, forwarder->tid,
-		    forwarder, forwarder->childGroup, forwarder->rank);
+	task = addTask(&step->tasks.list, msg->request, forwarder->tid,
+			forwarder, forwarder->childGroup, forwarder->rank);
 
 	if (!step->loggerTID) step->loggerTID = forwarder->loggertid;
+	if (step->fwdata) sendFWtaskInfo(step->fwdata, task);
     }
 
 FORWARD_CHILD_BORN:

@@ -471,6 +471,17 @@ static int handleSlurmctldReply(Slurm_Msg_t *sMsg)
     return 0;
 }
 
+int tcpConnectU(uint32_t addr, uint16_t port)
+{
+    char sPort[128];
+    struct in_addr sin_addr;
+
+    snprintf(sPort, sizeof(sPort), "%u", port);
+    sin_addr.s_addr = addr;
+
+    return tcpConnect(inet_ntoa(sin_addr), sPort);
+}
+
 int tcpConnect(char *addr, char *port)
 {
 /* number of reconnect tries until we give up */
@@ -878,7 +889,7 @@ static int forwardInputMsg(Step_t *step, uint16_t rank, char *buf, int bufLen)
     return n;
 }
 
-static int handleSrunMsg(int sock, void *data)
+int handleSrunMsg(int sock, void *data)
 {
     Step_t *step = data;
     char *ptr, buffer[1024];
@@ -925,7 +936,7 @@ static int handleSrunMsg(int sock, void *data)
 	    mlog("%s: invalid connection test, lenght '%u'\n", __func__,
 		    lenght);
 	}
-	srunSendIO(SLURM_IO_CONNECTION_TEST, 0, step, NULL, 0);
+	srunSendIO(SLURM_IO_CONNECTION_TEST, 0, step->srunIOMsg.sock, NULL, 0);
     } else if (!lenght) {
 	/* forward eof to all forwarders */
 	mlog("%s: got eof of stdin '%u'\n", __func__, fd);
@@ -973,43 +984,26 @@ static int handleSrunMsg(int sock, void *data)
     return 0;
 }
 
-PSnodes_ID_t getStepLocalNodeID(Step_t *step)
-{
-    PSnodes_ID_t myID, nodeID = 0;
-    uint32_t i;
-
-    myID = PSC_getMyID();
-
-    /* find my job local nodeid */
-    for (i=0; i<step->nrOfNodes; i++) {
-	if (step->nodes[i] == myID) {
-	    nodeID = i;
-	    break;
-	}
-    }
-
-    return nodeID;
-}
-
 int srunOpenControlConnection(Step_t *step)
 {
     char port[256];
     int sock;
-    PSnodes_ID_t nodeID;
 
     if (step->numSrunPorts <= 0) {
 	mlog("%s: sending failed, no srun ports available\n", __func__);
 	return -1;
     }
 
-    nodeID = getStepLocalNodeID(step);
     snprintf(port, sizeof(port), "%u",
-		step->srunPorts[nodeID % step->numSrunPorts]);
+		step->srunPorts[step->myNodeIndex % step->numSrunPorts]);
     if ((sock = tcpConnect(inet_ntoa(step->srun.sin_addr), port)) <0) {
 	mlog("%s: connection to srun '%s:%s' failed\n", __func__,
 		inet_ntoa(step->srun.sin_addr), port);
 	return -1;
     }
+
+    setFDblock(sock, 0);
+
     mdbg(PSSLURM_LOG_IO, "%s: new srun connection %i\n", __func__, sock);
 
     return sock;
@@ -1052,6 +1046,8 @@ int srunOpenPTY(Step_t *step)
 	    inet_ntoa(step->srun.sin_addr), port);
     step->srunPTYMsg.sock = sock;
 
+    setFDblock(sock, 0);
+
     if ((Selector_register(sock, handleSrunPTYMsg, step)) == -1) {
 	mlog("%s: Selector_register(%i) failed\n", __func__, sock);
 	return -1;
@@ -1059,25 +1055,32 @@ int srunOpenPTY(Step_t *step)
     return sock;
 }
 
-int srunOpenIOConnection(Step_t *step)
+int srunOpenIOConnection(Step_t *step, int sock, char *sig)
 {
     PS_DataBuffer_t data = { .buf = NULL };
     char port[100];
-    int sock;
-    PSnodes_ID_t nodeID = 0;
+    PSnodes_ID_t nodeID = step->myNodeIndex;
     uint32_t i;
 
-    /* open connection to waiting srun */
-    nodeID = getStepLocalNodeID(step);
-    snprintf(port, sizeof(port), "%u", step->IOPort[nodeID % step->numIOPort]);
+    if (sock <= 0) {
+	/* open connection to waiting srun */
+	snprintf(port, sizeof(port), "%u",
+		    step->IOPort[nodeID % step->numIOPort]);
 
-    if ((sock = tcpConnect(inet_ntoa(step->srun.sin_addr), port)) <0) {
-	mlog("%s: connection to srun '%s:%s' failed\n", __func__,
-		inet_ntoa(step->srun.sin_addr), port);
-	return 0;
+	if ((sock = tcpConnect(inet_ntoa(step->srun.sin_addr), port)) <0) {
+	    mlog("%s: connection to srun '%s:%s' failed\n", __func__,
+		    inet_ntoa(step->srun.sin_addr), port);
+	    return 0;
+	}
+
+	mlog("%s: addr '%s:%s' sock '%u'\n", __func__,
+		inet_ntoa(step->srun.sin_addr), port, sock);
+
+
+	step->srunIOMsg.sock = sock;
     }
 
-    step->srunIOMsg.sock = sock;
+    setFDblock(sock, 0);
 
     addUint16ToMsg(IO_PROTOCOL_VERSION, &data);
     /* nodeid */
@@ -1112,13 +1115,10 @@ int srunOpenIOConnection(Step_t *step)
 
     /* io key */
     addUint32ToMsg((uint32_t) SLURM_IO_KEY_SIZE, &data);
-    addMemToMsg(step->cred->sig, (uint32_t) SLURM_IO_KEY_SIZE, &data);
+    addMemToMsg(sig, (uint32_t) SLURM_IO_KEY_SIZE, &data);
 
     doWriteP(sock, data.buf, data.bufUsed);
     ufree(data.buf);
-
-    mlog("%s: addr '%s:%s' sock '%u'\n", __func__,
-	    inet_ntoa(step->srun.sin_addr), port, sock);
 
     return 1;
 }
@@ -1145,7 +1145,7 @@ void srunEnableIO(Step_t *step)
     }
 }
 
-int srunSendIO(uint16_t type, uint16_t taskid, Step_t *step,
+int srunSendIO(uint16_t type, uint16_t taskid, int sock,
 		char *buf, uint32_t bufLen)
 {
     PS_DataBuffer_t data = { .buf = NULL };
@@ -1177,7 +1177,7 @@ int srunSendIO(uint16_t type, uint16_t taskid, Step_t *step,
 
 	headLen = data.bufUsed;
 	if (len>0) addMemToMsg(buf + written, len, &data);
-	ret = doWriteF(step->srunIOMsg.sock, data.buf, data.bufUsed);
+	ret = doWriteF(sock, data.buf, data.bufUsed);
 	data.bufUsed = once = 0;
 
 	if (ret < 0) break;

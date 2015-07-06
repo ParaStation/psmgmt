@@ -20,9 +20,13 @@
 
 #include "psslurmjob.h"
 
-#define CMD_PRINT_CHILD_MSG 100
-#define CMD_ENABLE_SRUN_IO  101
-#define CMD_FW_FINALIZE	    102
+typedef enum {
+    CMD_PRINT_CHILD_MSG = 100,
+    CMD_ENABLE_SRUN_IO,
+    CMD_FW_FINALIZE,
+    CMD_REATTACH_TASKS,
+    CMD_INFO_TASKS,
+} PSSLURM_Fw_Cmds_t;
 
 int execUserStep(Step_t *step);
 int execUserJob(Job_t *job);

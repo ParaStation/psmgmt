@@ -67,17 +67,18 @@ const char *msgType2String(int type);
 void __getBitString(char **ptr, char **bitStr, const char *func,
 				const int line);
 int tcpConnect(char *addr, char *port);
+int tcpConnectU(uint32_t addr, uint16_t port);
 void getSockInfo(int socket, uint32_t *addr, uint16_t *port);
-PSnodes_ID_t getStepLocalNodeID(Step_t *step);
 
 int srunOpenControlConnection(Step_t *step);
-int srunOpenIOConnection(Step_t *step);
+int srunOpenIOConnection(Step_t *step, int sock, char *sig);
 int srunOpenPTY(Step_t *step);
 void srunEnableIO(Step_t *step);
-int srunSendIO(uint16_t type, uint16_t taskid, Step_t *step,
+int srunSendIO(uint16_t type, uint16_t taskid, int sock,
 		char *buf, uint32_t bufLen);
 int srunSendMsg(int sock, Step_t *step, slurm_msg_type_t type,
 		PS_DataBuffer_t *body);
+int handleSrunMsg(int sock, void *data);
 void closeAllStepConnections(Step_t *step);
 
 #endif

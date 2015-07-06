@@ -39,7 +39,7 @@ int writeJobscript(Job_t *job, char *script);
 int handleSlurmdMsg(Slurm_Msg_t *msg);
 
 int sendTaskPids(Step_t *step);
-void sendTaskExit(Step_t *step, int exit_status);
+void sendTaskExit(Step_t *step, int *ctlPort, int *ctlAddr);
 void sendStepExit(Step_t *step, int exit_status);
 void sendJobExit(Job_t *job, uint32_t exit);
 void sendEpilogueComplete(uint32_t jobid, uint32_t rc);
@@ -50,7 +50,6 @@ void addSlurmPids(PStask_ID_t loggerTID, PS_DataBuffer_t *data);
 
 int getSlurmNodeID(PSnodes_ID_t psNodeID, PSnodes_ID_t *nodes,
 		    uint32_t nrOfNodes);
-uint32_t getMyNodeIndex(PSnodes_ID_t *nodes, uint32_t nrOfNodes);
 uint32_t getLocalRankID(uint32_t rank, Step_t *step, uint32_t nodeId);
 
 #endif

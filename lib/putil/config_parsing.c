@@ -397,13 +397,13 @@ static void setLimit(int limit, rlim_t value)
 }
 
 static suprlimit_t supported_rlimits[] = {
-    { "Psid.RessourceLimits.CpuTime", RLIMIT_CPU, 0 },
-    { "Psid.RessourceLimits.DataSize", RLIMIT_DATA, 1 },
-    { "Psid.RessourceLimits.StackSize", RLIMIT_STACK, 1 },
-    { "Psid.RessourceLimits.RsSize", RLIMIT_RSS, 0 },
-    { "Psid.RessourceLimits.MemLock", RLIMIT_MEMLOCK, 1 },
-    { "Psid.RessourceLimits.Core", RLIMIT_CORE, 1 },
-    { "Psid.RessourceLimits.NoFile", RLIMIT_NOFILE, 0 },
+    { "Psid.ResourceLimits.CpuTime", RLIMIT_CPU, 0 },
+    { "Psid.ResourceLimits.DataSize", RLIMIT_DATA, 1 },
+    { "Psid.ResourceLimits.StackSize", RLIMIT_STACK, 1 },
+    { "Psid.ResourceLimits.RsSize", RLIMIT_RSS, 0 },
+    { "Psid.ResourceLimits.MemLock", RLIMIT_MEMLOCK, 1 },
+    { "Psid.ResourceLimits.Core", RLIMIT_CORE, 1 },
+    { "Psid.ResourceLimits.NoFile", RLIMIT_NOFILE, 0 },
     { NULL, 0, 0 }
 };
 
@@ -419,7 +419,7 @@ static int getRLimit(char *pointer)
 
 	if (*limit == '\0') {
 	    // limit not set
-	    return 0;
+	    continue;
 	}
 
 	if (strcasecmp(limit,"infinity") == 0
@@ -434,6 +434,8 @@ static int getRLimit(char *pointer)
 		break;
 	    }
 	    value = intval;
+	    parser_comment(PARSER_LOG_RES, "got '%d' for '%s'\n",
+			   intval, supported_rlimits[i].key);
 	}
 
 	if (supported_rlimits[i].mult) {
@@ -1966,7 +1968,7 @@ static confkeylist_t node_configkey_list[] = {
     {"Psid.RdpStatusBroadcasts", getStatBcast},
     {"Psid.RdpStatusDeadLimit", getDeadLmt},
     {"Psid.AccountPollInterval", getAcctPollInterval},
-    {"Psid.RessourceLimits.", getRLimit},
+    {"Psid.ResourceLimits.", getRLimit},
     {"Psid.LogMask", getLogMask},
     {"Psid.LogDestination", getLogDest},
     {"Psid.FreeOnSuspend", getFreeOnSusp},
@@ -2008,6 +2010,8 @@ static int setupLocalNode()
     // get parameters for local node
     allret = 0;
     for (i = 0; node_configkey_list[i].key != NULL; i++) {
+        parser_comment(PARSER_LOG_VERB, "%s: processing config key '%s'\n",
+                __func__, node_configkey_list[i].key);
 	ret = node_configkey_list[i].handler(node_configkey_list[i].key);
 	allret = ret ? 1 : allret;
     }

@@ -24,7 +24,8 @@
 
 void addSlurmAuth(PS_DataBuffer_t *data);
 int testMungeAuth(char **ptr, Slurm_Msg_Header_t *msgHead);
-JobCred_t *getJobCred(Gres_Cred_t *gres, char **ptr, uint16_t version);
+JobCred_t *getJobCred(Gres_Cred_t *gres, char **ptr, uint16_t version,
+			int decode);
 void deleteJobCred(JobCred_t *cred);
 int checkJobCred(Job_t *job);
 int checkStepCred(Step_t *step);
