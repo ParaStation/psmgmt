@@ -40,18 +40,18 @@ RdpStatusBroadcasts = "8"
 RdpStatusDeadLimit = "5"
 RdpStatusTimeout = "2000"
 RdpTimeout = "100"
-RessourceLimits. = ptr(["defaults:ressourcelimit"])
+ResourceLimits. = ptr(["defaults:resourcelimits"])
 RunJobs = "yes"
 SelectTime = "2"
 SetSupplementaryGroups = "no"
 UseMCast = "no"
 # Inherited keys:
 
-; ressources defaults object
+; resources defaults object
 ; referenced in "defaults:psid" object
 ; not to be changed by the administrator
 ;
-[+defaults:ressourcelimits]
+[+defaults:resourcelimits]
 .parents = []
 Core = "unlimited"
 # Inherited keys:
@@ -63,7 +63,7 @@ Core = "unlimited"
 .parents = ["defaults:psid"]
 AdminUsers = ["+root", "+partec"]
 LoadPlugins = ["pspmi", "psaccount", "psresport"]
-RessourceLimits. = ptr(["class:ressourcelimit"])
+ResourceLimits. = ptr(["class:resourcelimits"])
 # Inherited keys:
 # AccountPollInterval = "0"
 # AdminGroups = ["root"]
@@ -105,12 +105,12 @@ RessourceLimits. = ptr(["class:ressourcelimit"])
 # SetSupplementaryGroups = "no"
 # UseMCast = "no"
 
-; ressources class object
+; resources class object
 ; referenced in "class:psid" object
-; adapt system wide ressource limits here
+; adapt system wide resource limits here
 ;
-[+class:ressourcelimits]
-.parents = ["defaults:ressourcelimits"]
+[+class:resourcelimits]
+.parents = ["defaults:resourcelimits"]
 MemLock = "unlimited"
 StackSize = "unlimited"
 # Inherited keys:

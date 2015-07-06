@@ -276,7 +276,7 @@ void PSIDpart_sendResNodes(PSrsrvtn_ID_t resID, PStask_t *task,
  * @brief Cleanup reservations
  *
  * Cleanup all reservations associated to the task @a task. For this,
- * all HW-threads allocatd in reservations are marked as unused again
+ * all HW-threads allocated in reservations are marked as unused again
  * in the corresponding partition.
  *
  * @param task Task structure holding the reservations to cleanup
@@ -286,7 +286,7 @@ void PSIDpart_sendResNodes(PSrsrvtn_ID_t resID, PStask_t *task,
 void PSIDpart_cleanupRes(PStask_t *task);
 
 /**
- * @brief Cleanup reservered slots
+ * @brief Cleanup reserved slots
  *
  * Cleanup all slots associated to the task @a task. These slots got
  * associated by PSP_CD_GETSLOTS messages sent by the task requesting

@@ -843,10 +843,10 @@ static int nodeOK(PSnodes_ID_t node, PSpart_request_t *req)
  *
  * - If the node has free processor slots.
  *
- * - In case of a EXCLUSIVE request, if the node is totally free and
- *   exclusiveness is allowed.
+ * - In case of an EXCLUSIVE request test if the node is totally free
+ *   and exclusiveness is allowed.
  *
- * - In case of a OVERBOOK request, if over-booking is generally
+ * - In case of a OVERBOOK request test if over-booking is generally
  * allowed or if over-booking in the classical sense
  * (i.e. OVERBOOK_AUTO) is allowed and the node is free or if
  * over-booking is not allowed and the node has a free CPU.
@@ -1621,7 +1621,7 @@ static unsigned int getOverbookPart(PSpart_request_t *request,
  * build the partition
  *
  * @return On success, the slot-list associated with the partition is
- * returned, or NULL, if a problem occurred. This may include less
+ * returned, or NULL if a problem occurred. This may include less
  * available nodes than requested.
 */
 static PSpart_slot_t *createPartition(PSpart_request_t *request,
@@ -2328,7 +2328,7 @@ static void sendAcctQueueMsg(PStask_t *task)
  * With this kind of message a client will request for a partition of
  * nodes. Besides forwarding this kind of message to the master node
  * as a PSP_DD_GETPART message it will be stored locally in order to
- * allow re-sending it, if the master changes.
+ * allow re-sending it if the master changes.
  *
  * Depending on the actual request, a PSP_CD_CREATEPART message might
  * be followed by one or more PSP_CD_CREATEPARTNL messages.
@@ -2479,7 +2479,7 @@ static void msg_GETPART(DDBufferMsg_t *inmsg)
     PSpart_decodeReq(inmsg->buf, req, dmnPSPver);
     req->tid = inmsg->header.sender;
 
-    /* Set the default sorting strategy, if necessary */
+    /* Set the default sorting strategy if necessary */
     if (req->sort == PART_SORT_DEFAULT) {
 	req->sort = config->nodesSort;
     }
@@ -4736,7 +4736,7 @@ static void msg_SLOTSRES(DDBufferMsg_t *inmsg)
 void PSIDpart_cleanupSlots(PStask_t *task)
 {
     DDBufferMsg_t relMsg;
-    uint16_t nB;
+    uint16_t nBytes;
     PSCPU_set_t setBuf;
     int r;
 
@@ -4759,11 +4759,11 @@ void PSIDpart_cleanupSlots(PStask_t *task)
 	relMsg.header.sender = PSC_getTID(rankNode, 0);
 	relMsg.header.len = sizeof(relMsg.header);
 
-	nB = PSCPU_bytesForCPUs(PSIDnodes_getVirtCPUs(rankNode));
-	PSP_putMsgBuf(&relMsg, __func__, "nBytes", &nB, sizeof(nB));
+	nBytes = PSCPU_bytesForCPUs(PSIDnodes_getVirtCPUs(rankNode));
+	PSP_putMsgBuf(&relMsg, __func__, "nBytes", &nBytes, sizeof(nBytes));
 
-	PSCPU_extract(setBuf, *rankSet, nB);
-	PSP_putMsgBuf(&relMsg, __func__, "CPUset", setBuf, nB);
+	PSCPU_extract(setBuf, *rankSet, nBytes);
+	PSP_putMsgBuf(&relMsg, __func__, "CPUset", setBuf, nBytes);
 
 	PSID_log(PSID_LOG_PART, "%s: CHILDRESREL to %s on node %d (rank %d)\n",
 		 __func__, PSC_printTID(relMsg.header.dest), rankNode, r);
