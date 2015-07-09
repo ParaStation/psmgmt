@@ -1025,12 +1025,15 @@ void sendEnableSrunIO(Step_t *step)
 }
 
 void printChildMessage(Forwarder_Data_t *fwdata, char *msg, uint32_t msgLen,
-			uint8_t type, uint16_t taskid)
+			uint8_t type, int32_t taskid)
 {
     PS_DataBuffer_t data = { .buf = NULL };
 
     /* can happen, if forwarder is already gone */
     if (!fwdata) return;
+
+    /* if msg from service rank, let it seem like it comes from task 0 */
+    if (taskid < 0) taskid = 0;
 
     addInt32ToMsg(CMD_PRINT_CHILD_MSG, &data);
     addUint8ToMsg(type, &data);

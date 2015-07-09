@@ -394,8 +394,8 @@ static void handleTaskIds(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     return;
 
 SPAWN_FAILED:
-    mlog("%s: spawn step '%u:%u' failed: ret '%i' state '%i'\n", __func__,
-	    step->jobid, step->uid, ret, step->state);
+    mlog("%s: spawn step '%u:%u' failed: ret '%i' state '%s'\n", __func__,
+	    step->jobid, step->uid, ret, strJobState(step->state));
     if (step->state == JOB_PRESTART) {
 	/* spawn failed, e.g. executable not found */
 
@@ -414,11 +414,6 @@ SPAWN_FAILED:
 	/* spawn failed */
 	sendSlurmRC(&step->srunControlMsg, SLURM_ERROR);
     }
-}
-
-static void handleRemoteJob(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
-{
-
 }
 
 void send_PS_JobLaunch(Job_t *job)
@@ -891,8 +886,6 @@ void handlePsslurmMsg(DDTypedBufferMsg_t *msg)
 	case PSP_TASK_IDS:
 	    recvFragMsg(msg, handleTaskIds);
 	    break;
-	case PSP_REMOTE_JOB:
-	    recvFragMsg(msg, handleRemoteJob);
 	case PSP_SIGNAL_TASKS:
 	    handle_PS_SignalTasks(msg);
 	    break;
@@ -1240,6 +1233,79 @@ FORWARD:
     if (oldCCMsgHandler) oldCCMsgHandler((DDBufferMsg_t *) msg);
 }
 
+static int getJobIDbyForwarderMsg(DDErrorMsg_t *msg, PStask_t **fwPtr,
+				    uint32_t *jobid, uint32_t *stepid)
+{
+    PStask_t *forwarder;
+    char *ptr, *sjobid = NULL, *sstepid = NULL;
+    int32_t i=0;
+
+    forwarder = PStasklist_find(&managedTasks, msg->header.sender);
+    if (!forwarder) return 0;
+
+    /*
+    mlog("%s: forwarder '%s' rank '%i'\n", __func__,
+	    PSC_printTID(forwarder->tid), forwarder->rank);
+    mlog("%s: child '%s' group '%i'\n", __func__,
+	    PSC_printTID(msg->request), forwarder->childGroup);
+    */
+
+    ptr = forwarder->environ[i];
+    while (ptr) {
+	if (!(strncmp(ptr, "SLURM_JOBID=", 12))) {
+	    sjobid = ptr+12;
+	}
+	if (!(strncmp(ptr, "SLURM_STEPID=", 13))) {
+	    sstepid = ptr+13;
+	}
+	if (sjobid && sstepid) break;
+	ptr = forwarder->environ[++i];
+    }
+
+    if (!sjobid || !sstepid) return 0;
+
+    *jobid = atoi(sjobid);
+    *stepid = atoi(sstepid);
+    *fwPtr = forwarder;
+
+    return 1;
+}
+
+void handleSpawnFailed(DDErrorMsg_t *msg)
+{
+    PStask_t *forwarder = NULL;
+    uint32_t jobid, stepid;
+    PS_Tasks_t *task = NULL;
+    Step_t *step;
+
+    mwarn(msg->error, "%s: spawn failed: forwarder '%s' rank '%i' errno '%i'",
+	    __func__, PSC_printTID(msg->header.sender),
+	    msg->request, msg->error);
+
+    if (!(getJobIDbyForwarderMsg(msg, &forwarder, &jobid, &stepid))) {
+	goto FORWARD_SPAWN_MSG;
+    }
+
+    if ((step = findStepById(jobid, stepid))) {
+	task = addTask(&step->tasks.list, msg->request, forwarder->tid,
+		forwarder, forwarder->childGroup, forwarder->rank);
+
+	switch (msg->error) {
+	    case 2:
+		task->exitCode = 0x200;
+		break;
+	    default:
+		task->exitCode = 1;
+	}
+
+	if (!step->loggerTID) step->loggerTID = forwarder->loggertid;
+	if (step->fwdata) sendFWtaskInfo(step->fwdata, task);
+    }
+
+FORWARD_SPAWN_MSG:
+    if (oldSpawnHandler) oldSpawnHandler((DDBufferMsg_t *) msg);
+}
+
 void handleCCMsg(PSLog_Msg_t *msg)
 {
     switch (msg->type) {
@@ -1272,38 +1338,15 @@ void handleCCError(PSLog_Msg_t *msg)
 
 void handleChildBornMsg(DDErrorMsg_t *msg)
 {
-    PStask_t *forwarder = PStasklist_find(&managedTasks, msg->header.sender);
-    char *ptr, *sjobid = NULL, *sstepid = NULL;
-    int32_t i=0;
+    PStask_t *forwarder = NULL;
     uint32_t jobid, stepid;
     Job_t *job;
     Step_t *step;
     PS_Tasks_t *task = NULL;
 
-    if (!forwarder) goto FORWARD_CHILD_BORN;
-    /*
-    mlog("%s: forwarder '%s' rank '%i'\n", __func__, PSC_printTID(forwarder->tid),
-	    forwarder->rank);
-    mlog("%s: child '%s' group '%i'\n", __func__, PSC_printTID(msg->request),
-	    forwarder->childGroup);
-    */
-
-    ptr = forwarder->environ[i];
-    while (ptr) {
-	if (!(strncmp(ptr, "SLURM_JOBID=", 12))) {
-	    sjobid = ptr+12;
-	}
-	if (!(strncmp(ptr, "SLURM_STEPID=", 13))) {
-	    sstepid = ptr+13;
-	}
-	if (sjobid && sstepid) break;
-	ptr = forwarder->environ[++i];
+    if (!(getJobIDbyForwarderMsg(msg, &forwarder, &jobid, &stepid))) {
+	goto FORWARD_CHILD_BORN;
     }
-
-    if (!sjobid || !sstepid) goto FORWARD_CHILD_BORN;
-
-    jobid = atoi(sjobid);
-    stepid = atoi(sstepid);
 
     if (stepid == SLURM_BATCH_SCRIPT) {
 	if (!(job = findJobById(jobid))) {
