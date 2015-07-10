@@ -1417,9 +1417,9 @@ static int startProcs(int np, char *wd, int verbose)
 
 	if (!exec[i]->resID || (int)got != exec[i]->np) {
 	    fprintf(stderr, "%s: Unable to get reservation for app %d %d slots "
-		    "(ppn %d tpp %d hwType %#x options %#x)\n", __func__, i,
-		    exec[i]->np, exec[i]->ppn, exec[i]->tpp, exec[i]->hwType,
-		    options);
+		    "(tpp %d hwType %#x options %#x ppn %d)\n", __func__, i,
+		    exec[i]->np, exec[i]->tpp, exec[i]->hwType, options,
+		    exec[i]->ppn);
 	    if ((getenv("PMI_SPAWNED"))) sendPMIFail();
 
 	    return -1;
