@@ -73,7 +73,7 @@ static PSrsrvtn_t *res = NULL;
 
 /* My pool of threads. All reside on node 3 */
 #define MAXTHREADS 4
-#define THREAD_NODE 3
+#define THREAD_NODE 2
 
 void provideSlots(void)
 {
@@ -87,7 +87,7 @@ void provideSlots(void)
     }
 
     if (!res) {
-	PSID_log(-1, "%s: %s: No reservation", name, __func__);
+	PSID_log(-1, "%s: %s: No reservation\n", name, __func__);
 	return;
     }
 
