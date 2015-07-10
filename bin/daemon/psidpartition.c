@@ -3214,8 +3214,8 @@ int PSIDpart_getNodes(uint32_t np, uint32_t hwType, PSpart_option_t option,
     thread = task->partThrds;
     nextMinUsed = thread[0].timesUsed;
 
-    if (np > myUseSpaceSize) {
-	myUse = malloc(np*sizeof(*myUse));
+    if (task->totalThreads > myUseSpaceSize) {
+	myUse = malloc(task->totalThreads * sizeof(*myUse));
 	if (!myUse) {
 	    PSID_warn(-1, errno, "%s", __func__);
 	    goto exit;
@@ -3345,7 +3345,7 @@ int PSIDpart_getNodes(uint32_t np, uint32_t hwType, PSpart_option_t option,
     }
 
 exit:
-    if (np > myUseSpaceSize && myUse) free(myUse);
+    if (task->totalThreads > myUseSpaceSize && myUse) free(myUse);
 
     return got;
 }
