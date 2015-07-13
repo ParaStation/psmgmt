@@ -1141,7 +1141,7 @@ static void setAction(char **token, char **actionStr)
 	(*token)++;
 	break;
     default:
-	GUIDaction = addID;
+	GUIDaction = setID;
 	*actionStr = "";
 	break;
     }

@@ -1,0 +1,210 @@
+; psid defaults object
+; not to be changed by the administrator
+;
+[+defaults:psid]
+.parents = []
+AccountPollInterval = "0"
+AdminGroups = ["root"]
+AdminUsers = ["root"]
+AllowExclusive = "no"
+AllowOverbooking = "no"
+AllowUserCpuMap = "no"
+AllowedGroups = ["any"]
+AllowedUsers = ["any"]
+AvailableHardwareTypes = ["booster", "ethernet", "p4sock", "gm", "accounter", "mvapi", "openib", "ipath"]
+BindMemory = "yes"
+CoreDirectory = "/tmp"
+CpuMap = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15"]
+EnableRdpStatistics = "0"
+FreeOnSuspend = "no"
+HandleOldBins = "no"
+HardwareTypes = ["ethernet", "p4sock"]
+InstallDirectory = "/opt/parastation"
+IsStarter = "yes"
+LoadPlugins = ["pspmi"]
+LogDestination = "LOG_DAEMON"
+LogMask = "0"
+MCastDeadInterval = "10"
+MCastGroup = "237"
+MCastPort = "1889"
+MaxNumberOfProcesses = "any"
+MaxStatTry = "1"
+PinProcesses = "yes"
+PsiNodesSortStrategy = "proc"
+RdpClosedTimeout = "2000"
+RdpMaxAckPending = "4"
+RdpMaxRetrans = "32"
+RdpPort = "886"
+RdpResendTimeout = "300"
+RdpStatusBroadcasts = "8"
+RdpStatusDeadLimit = "5"
+RdpStatusTimeout = "2000"
+RdpTimeout = "100"
+ResourceLimits. = ptr(["defaults:resourcelimits"])
+RunJobs = "yes"
+SelectTime = "2"
+SetSupplementaryGroups = "no"
+UseMCast = "no"
+# Inherited keys:
+
+; resources defaults object
+; referenced in "defaults:psid" object
+; not to be changed by the administrator
+;
+[+defaults:resourcelimits]
+.parents = []
+Core = "unlimited"
+# Inherited keys:
+
+; psid class object
+; adapt system wide configuration parameters here
+;
+[+class:psid]
+.parents = ["defaults:psid"]
+AdminUsers = ["root", "+partec"]
+LoadPlugins = ["pspmi", "psaccount", "psresport"]
+ResourceLimits. = ptr(["class:resourcelimits"])
+# Inherited keys:
+# AccountPollInterval = "0"
+# AdminGroups = ["root"]
+# AllowExclusive = "no"
+# AllowOverbooking = "no"
+# AllowUserCpuMap = "no"
+# AllowedGroups = ["any"]
+# AllowedUsers = ["any"]
+# AvailableHardwareTypes = ["booster", "ethernet", "p4sock", "gm", "accounter", "mvapi", "openib", "ipath"]
+# BindMemory = "yes"
+# CoreDirectory = "/tmp"
+# CpuMap = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15"]
+# EnableRdpStatistics = "0"
+# FreeOnSuspend = "no"
+# HandleOldBins = "no"
+# HardwareTypes = ["ethernet", "p4sock"]
+# InstallDirectory = "/opt/parastation"
+# IsStarter = "yes"
+# LogDestination = "LOG_DAEMON"
+# LogMask = "0"
+# MCastDeadInterval = "10"
+# MCastGroup = "237"
+# MCastPort = "1889"
+# MaxNumberOfProcesses = "any"
+# MaxStatTry = "1"
+# PinProcesses = "yes"
+# PsiNodesSortStrategy = "proc"
+# RdpClosedTimeout = "2000"
+# RdpMaxAckPending = "4"
+# RdpMaxRetrans = "32"
+# RdpPort = "886"
+# RdpResendTimeout = "300"
+# RdpStatusBroadcasts = "8"
+# RdpStatusDeadLimit = "5"
+# RdpStatusTimeout = "2000"
+# RdpTimeout = "100"
+# RunJobs = "yes"
+# SelectTime = "2"
+# SetSupplementaryGroups = "no"
+# UseMCast = "no"
+
+; resources class object
+; referenced in "class:psid" object
+; adapt system wide resource limits here
+;
+[+class:resourcelimits]
+.parents = ["defaults:resourcelimits"]
+MemLock = "unlimited"
+StackSize = "unlimited"
+# Inherited keys:
+# Core = "unlimited"
+
+; nodetype class object
+; ancestor of all nodetype and host objects
+; pointer "Psid." makes psid configuration available in each host object
+;
+[+class:nodetype]
+Psid. = ptr(["class:psid"])
+
+; psidhwtype class object
+; parent of all psidhwtype objects
+; currently only existing by convention
+;
+[+class:psidhwtype]
+
+; psidhwtype object
+; one such object has to exist for each entry in any [Psid.HardwareTypes] list
+;
+[+psidhwtype:accounter]
+.parents = ["class:psidhwtype"]
+HeaderScript = "config/ps_acc statusheader"
+StartScript = "config/ps_acc start"
+StatusScript = "config/ps_acc status"
+StopScript = "config/ps_acc stop"
+# Inherited keys:
+
+; psidhwtype object
+; one such object has to exist for each entry in any [Psid.HardwareTypes] list
+;
+[+psidhwtype:ethernet]
+.parents = ["class:psidhwtype"]
+HeaderScript = "config/ps_ethernet statusheader"
+StartScript = "config/ps_ethernet start"
+StatusScript = "config/ps_ethernet status"
+StopScript = "config/ps_ethernet stop"
+# Inherited keys:
+
+; psidhwtype object
+; one such object has to exist for each entry in any [Psid.HardwareTypes] list
+;
+[+psidhwtype:gm]
+.parents = ["class:psidhwtype"]
+Environment = ["GM_INSTALLDIR", "/opt/gm"]
+HeaderScript = "config/ps_gm statusheader"
+StartScript = "config/ps_gm start"
+StatusScript = "config/ps_gm status"
+StopScript = "config/ps_gm stop"
+# Inherited keys:
+
+; psidhwtype object
+; one such object has to exist for each entry in any [Psid.HardwareTypes] list
+;
+[+psidhwtype:p4sock]
+.parents = ["class:psidhwtype"]
+HeaderScript = "config/ps_p4sock statusheader"
+StartScript = "config/ps_p4sock start"
+StatusScript = "config/ps_p4sock status"
+StopScript = "config/ps_p4sock stop"
+# Inherited keys:
+
+; host object of the master node
+; keys "NodeName" and "NodeNo" have to be set in each host object
+; override Psid.* parameters as needed
+;
+[+host:master]
+NodeName = "master"
+NodeNo = "0"
+Psid.HardwareTypes = ["accounter"]
+Psid.IsStarter = "no"
+Psid.RunJobs = "no"
+# Inherited keys:
+# Psid. = ptr(["class:psid"])
+
+; any nodetype object
+; override Psid.* parameters as needed
+;
+[+nodetype:psslurm]
+.parents = ["class:nodetype"]
+Psid.LoadPlugins = ["pspmi", "psaccount", "psslurm", "psresport"]
+# Inherited keys:
+# Psid. = ptr(["class:psid"])
+
+; host object of any node
+; keys "NodeName" and "NodeNo" have to be set in each host object
+; override Psid.* parameters as needed
+;
+[+host:node01]
+.parents = ["nodetype:psslurm", "class:host"]
+NodeName = "node01"
+NodeNo = "16"
+# Inherited keys:
+# Psid. = ptr(["class:psid"])
+# Psid.LoadPlugins = ["pspmi", "psaccount", "psslurm", "psresport"]
+
