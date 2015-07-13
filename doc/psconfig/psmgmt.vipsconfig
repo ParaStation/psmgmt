@@ -61,7 +61,7 @@ Core = "unlimited"
 ;
 [+class:psid]
 .parents = ["defaults:psid"]
-AdminUsers = ["+root", "+partec"]
+AdminUsers = ["root", "+partec"]
 LoadPlugins = ["pspmi", "psaccount", "psresport"]
 ResourceLimits. = ptr(["class:resourcelimits"])
 # Inherited keys:
