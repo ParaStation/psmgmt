@@ -10,7 +10,7 @@ from testsuite import *
 helper.pretty_print_env()
 
 for p in helper.partitions():
-	rx  = re.compile(r'.*Permission denied.*', re.MULTILINE)
+	rx  = re.compile(r'.*Permission denied.*', re.MULTILINE | re.DOTALL)
 	err = helper.job_stderr(p)
 
 	test.check(re.match(rx, err), p)
