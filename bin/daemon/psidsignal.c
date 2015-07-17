@@ -26,6 +26,7 @@ static char vcid[] __attribute__((used)) =
 #include "rdp.h"
 
 #include "pscommon.h"
+#include "psreservation.h"
 #include "psprotocol.h"
 #include "psdaemonprotocol.h"
 
@@ -199,6 +200,7 @@ void PSID_sendSignal(PStask_ID_t tid, uid_t uid, PStask_ID_t sender,
 	PStask_t *dest = PStasklist_find(&managedTasks, tid);
 	pid_t pid = PSC_getPID(tid);
 	DDErrorMsg_t msg;
+	list_t *r;
 
 	msg.header.type = PSP_CD_SIGRES;
 	msg.header.sender = PSC_getMyTID();
@@ -254,6 +256,21 @@ void PSID_sendSignal(PStask_ID_t tid, uid_t uid, PStask_ID_t sender,
 		} else if (signal == SIGCONT) {
 		    dest->suspended = 0;
 		    send_TASKRESUME(dest->tid);
+		}
+	    } else if (!list_empty(&dest->reservations)) {
+		/* Temporarily free reservations' resources */
+		if (signal == SIGSTOP && !dest->suspended) {
+		    dest->suspended = 1;
+		    list_for_each(r, &dest->reservations) {
+			PSrsrvtn_t *res = list_entry(r, PSrsrvtn_t, next);
+			PSIDpart_suspSlts(res->slots, res->nSlots, dest);
+		    }
+		} else if (signal == SIGCONT && dest->suspended) {
+		    dest->suspended = 0;
+		    list_for_each(r, &dest->reservations) {
+			PSrsrvtn_t *res = list_entry(r, PSrsrvtn_t, next);
+			PSIDpart_contSlts(res->slots, res->nSlots, dest);
+		    }
 		}
 	    }
 	} else {
