@@ -71,14 +71,18 @@ static int resTimer = -1;
 
 static PSrsrvtn_t *res = NULL;
 
-/* My pool of threads. All reside on node 3 */
+/* My pool of threads. All reside on node 2 */
 #define MAXTHREADS 4
-#define THREAD_NODE 3
+#define THREAD_NODE 2
+
+static int usedThreads[MAXTHREADS];
 
 void provideSlots(void)
 {
-    PSpart_slot_t slots[MAXTHREADS];
+    static PSpart_slot_t slots[MAXTHREADS];
     int numSlot = 0, numThread = 0, s, min, max;
+    PStask_ID_t tid;
+    PSrsrvtn_ID_t rid;
 
     if (resTimer > -1) {
 	Timer_remove(resTimer);
@@ -87,7 +91,7 @@ void provideSlots(void)
     }
 
     if (!res) {
-	PSID_log(-1, "%s: %s: No reservation", name, __func__);
+	PSID_log(-1, "%s: %s: No reservation\n", name, __func__);
 	return;
     }
 
@@ -98,7 +102,11 @@ void provideSlots(void)
     PSCPU_clrAll(slots[numSlot].CPUset);
 
     for (s = 0; s < MAXTHREADS && numSlot < max; s++) {
+	if (usedThreads[s]) continue;
+	PSID_log(-1, "%s: %s: add HW-thread (%d/%d) to slot\n", name, __func__,
+		 THREAD_NODE, s);
 	PSCPU_setCPU(slots[numSlot].CPUset, s);
+	usedThreads[s] = 1;
 	numThread++;
 	if (numThread == res->tpp) {
 	    numSlot++;
@@ -108,17 +116,30 @@ void provideSlots(void)
 	}
     }
 
+    tid = res->task;
+    rid = res->rid;
+
+    res = NULL;
+
     if (numSlot >= min) {
 	PSID_log(-1, "%s: %s: Got %d of [%d..%d] slots\n",
 		 name, __func__, numSlot, min, max);
-	PSIDpart_extendRes(res->task, res->rid, numSlot, slots);
+	PSIDpart_extendRes(tid, rid, numSlot, slots);
     } else {
+	int s, t, frd=0;
+	for (s=0; s<numSlot+1; s++) {
+	    for (t=0; t<MAXTHREADS; t++) {
+		if (PSCPU_isSet(slots[s].CPUset, t)) {
+		    usedThreads[t] = 0;
+		    frd++;
+		}
+	    }
+	}
+	PSID_log(-1, "%s: %s: Bookkeeping minus %d\n", name, __func__, frd);
 	PSID_log(-1, "%s: %s: Only found %d of minimum %d slots\n",
 		 name, __func__, numSlot, min);
-	PSIDpart_extendRes(res->task, res->rid, 0, NULL);
+	PSIDpart_extendRes(tid, rid, 0, NULL);
     }
-
-    res = NULL;
 }
 
 int handleDynReservation(void *resPtr)
@@ -131,6 +152,15 @@ int handleDynReservation(void *resPtr)
 	return 0;
     }
 
+    if (res) {
+	PSrsrvtn_t *r = resPtr;
+
+	PSID_log(-1, "%s: %s: Pending reservation %#x\n", name, __func__,
+		 res->rid);
+	PSIDpart_extendRes(r->task, r->rid, 0, NULL);
+	return 1;
+    }
+
     /* Keep the reservation somewhere */
     res = resPtr;
 
@@ -138,8 +168,8 @@ int handleDynReservation(void *resPtr)
     if (min < 1) min = 1;
     max = res->nMax - res->nSlots;
 
-    PSID_log(-1, "%s: Try to reserve %d to %d nodes of type '%s' with"
-	     " %d threads for reservation ID %#x\n", name, min, max,
+    PSID_log(-1, "%s: %s: Try to reserve %d to %d slots of type '%s' with"
+	     " %d threads for reservation ID %#x\n", name, __func__, min, max,
 	     getHWStr(res->hwType), res->tpp, res->rid);
 
     if (min > MAXTHREADS) {
@@ -152,7 +182,6 @@ int handleDynReservation(void *resPtr)
 	PSID_log(-1, "%s: timer %d\n", name, resTimer);
     }
 
-
     return 1;
 }
 
@@ -161,13 +190,24 @@ int handleDynRelease(void *dynResPtr)
     PSrsrvtn_dynRes_t *dynRes = dynResPtr;
 
     if (!dynResPtr) {
-	PSID_log(-1, "%s: No to be released slot given\n", __func__);
+	PSID_log(-1, "%s: %s: No to be released slot given\n", name, __func__);
 	return 0;
     }
 
-    PSID_log(-1, "%s: Slot to release: (%d/%s) part of reservation %#x\n",
-	     __func__, dynRes->slot.node, PSCPU_print(dynRes->slot.CPUset),
-	     dynRes->rid);
+    PSID_log(-1, "%s: %s: release: (%d/%s) of reservation %#x\n",
+	     name, __func__, dynRes->slot.node,
+	     PSCPU_print_part(dynRes->slot.CPUset, 4), dynRes->rid);
+
+    if (dynRes->slot.node == THREAD_NODE) {
+	int t, freed = 0;
+	for (t=0; t<MAXTHREADS; t++) {
+	    if (PSCPU_isSet(dynRes->slot.CPUset, t)) {
+		usedThreads[t] = 0;
+		freed++;
+	    }
+	}
+	PSID_log(-1, "%s: %s: free %d thread(s)\n", name, __func__, freed);
+    }
 
     return 1;
 }
@@ -186,6 +226,8 @@ static void unregisterHooks(void)
 
 int initialize(void)
 {
+    int t;
+
     /* register needed hooks */
     if (!(PSIDhook_add(PSIDHOOK_XTND_PART_DYNAMIC, handleDynReservation))) {
 	PSID_log(-1, "%s: 'PSIDHOOK_XTND_PART_DYNAMIC' registration failed\n",
@@ -198,6 +240,8 @@ int initialize(void)
 		 name);
 	goto INIT_ERROR;
     }
+
+    for (t=0; t<MAXTHREADS; t++) usedThreads[t] = 0;
 
     PSID_log(-1, "%s: (%i) successfully started\n", name, version);
     return 0;

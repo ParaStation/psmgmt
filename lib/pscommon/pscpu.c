@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2007-2008 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2007-2015 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -118,16 +118,21 @@ int PSCPU_getUnset(PSCPU_set_t set, int16_t physCPUs,
     return found;
 }
 
-char *PSCPU_print(PSCPU_set_t set)
+char *PSCPU_print_part(PSCPU_set_t set, size_t num)
 {
     static char setStr[PSCPU_MAX/4+10];
     unsigned int i;
 
     snprintf(setStr, sizeof(setStr), "0x");
-    for (i=0; i<PSCPU_MAX/CPUmask_s; i++) {
+    for (i=num; i>0; i--) {
 	snprintf(setStr+strlen(setStr), sizeof(setStr)-strlen(setStr),
-		 "%hx", set[PSCPU_MAX/CPUmask_s-1-i]);
+		 "%hx", set[i-1]);
     }
 
     return setStr;
+}
+
+char *PSCPU_print(PSCPU_set_t set)
+{
+    return PSCPU_print_part(set, PSCPU_MAX/CPUmask_s);
 }
