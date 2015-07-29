@@ -34,7 +34,7 @@ void redirectStepIO(Forwarder_Data_t *fwdata, Step_t *step);
 void redirectStepIO2(Forwarder_Data_t *fwdata, Step_t *step);
 void sendEnableSrunIO(Step_t *step);
 void printChildMessage(Forwarder_Data_t *fwdata, char *msg, uint32_t msgLen,
-			uint8_t type, uint16_t taskid);
+			uint8_t type, int32_t taskid);
 int handleUserOE(int sock, void *data);
 int setFilePermissions(Job_t *job);
 void stepFinalize(void *data);

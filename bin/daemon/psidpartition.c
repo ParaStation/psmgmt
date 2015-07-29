@@ -3256,8 +3256,8 @@ static int createSlots(uint32_t np, uint16_t ppn, uint16_t tpp,
     thread = task->partThrds;
     nextMinUsed = thread[0].timesUsed;
 
-    if (np > myUseSpaceSize) {
-	myUse = malloc(np*sizeof(*myUse));
+    if (task->totalThreads > myUseSpaceSize) {
+	myUse = malloc(task->totalThreads * sizeof(*myUse));
 	if (!myUse) {
 	    PSID_warn(-1, errno, "%s", __func__);
 	    goto exit;
@@ -3402,7 +3402,7 @@ static int createSlots(uint32_t np, uint16_t ppn, uint16_t tpp,
     }
 
 exit:
-    if (np > myUseSpaceSize && myUse) free(myUse);
+    if (task->totalThreads > myUseSpaceSize && myUse) free(myUse);
 
     return got;
 }
