@@ -30,6 +30,7 @@ extern uid_t slurmUserID;
 extern handlerFunc_t oldChildBornHandler;
 extern handlerFunc_t oldCCMsgHandler;
 extern handlerFunc_t oldCCErrorHandler;
+extern handlerFunc_t oldSpawnHandler;
 
 /**
  * @brief Constructor for psslurm library.

@@ -55,4 +55,6 @@ void handleCCMsg(PSLog_Msg_t *msg);
 
 void handleCCError(PSLog_Msg_t *msg);
 
+void handleSpawnFailed(DDErrorMsg_t *msg);
+
 #endif

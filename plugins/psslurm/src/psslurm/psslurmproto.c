@@ -2105,14 +2105,79 @@ void sendStepExit(Step_t *step, int exit_status)
     ufree(body.buf);
 }
 
-void sendTaskExit(Step_t *step, int *ctlPort, int *ctlAddr)
+static void doSendTaskExit(Step_t *step, PS_Tasks_t *task, int exitCode,
+			    uint32_t *count, int *ctlPort, int *ctlAddr)
 {
     PS_DataBuffer_t body = { .buf = NULL };
-    uint32_t count = 0, taskCount = 0, exitCount;
+    char *ptrNumProcs, *ptrNumTIDs;
+    struct list_head *pos;
+    uint32_t exitCount = 0;
+    int i, sock;
+
+    /* exit status */
+    addUint32ToMsg(exitCode, &body);
+
+    /* number of processes exited */
+    ptrNumProcs = body.buf + body.bufUsed;
+    addUint32ToMsg(0, &body);
+
+    /* task ids of processes (array) */
+    ptrNumTIDs = body.buf + body.bufUsed;
+    addUint32ToMsg(0, &body);
+
+    list_for_each(pos, &step->tasks.list) {
+	if (!(task = list_entry(pos, PS_Tasks_t, list))) break;
+	if (task->sentExit || task->childRank < 0) continue;
+	if (task->exitCode == exitCode) {
+	    addUint32ToMsg(task->childRank, &body);
+	    task->sentExit = 1;
+	    exitCount++;
+	    /*
+	    mlog("%s: tasks childRank:%i exit:%i exitCount:%i\n", __func__,
+		    task->childRank, task->exitCode, exitCount);
+	    */
+	}
+    }
+    *(uint32_t *) ptrNumProcs = htonl(exitCount);
+    *(uint32_t *) ptrNumTIDs = htonl(exitCount);
+    *count += exitCount;
+
+    if (exitCount < 1) {
+	mlog("%s: failed to find tasks for exitCode '%i'\n", __func__,
+		exitCode);
+	ufree(body.buf);
+	return;
+    }
+
+    /* job/stepid */
+    addUint32ToMsg(step->jobid, &body);
+    addUint32ToMsg(step->stepid, &body);
+
+    mlog("%s: sending MESSAGE_TASK_EXIT '%u:%u' exit '%i'\n",
+	    __func__, exitCount, *count, exitCode);
+
+    srunSendMsg(-1, step, MESSAGE_TASK_EXIT, &body);
+
+    for (i=0; i<MAX_SATTACH_SOCKETS; i++) {
+	if (ctlPort[i] != -1) {
+
+	    if ((sock = tcpConnectU(ctlAddr[i], ctlPort[i])) <0) {
+		mlog("%s: connection to srun '%u:%u' failed\n", __func__,
+			ctlAddr[i], ctlPort[i]);
+	    } else {
+		srunSendMsg(sock, step, MESSAGE_TASK_EXIT, &body);
+	    }
+	}
+    }
+    ufree(body.buf);
+}
+
+void sendTaskExit(Step_t *step, int *ctlPort, int *ctlAddr)
+{
+    uint32_t count = 0, taskCount = 0;
     PS_Tasks_t *task;
     struct list_head *pos;
-    int exitCode, sock, i;
-    char *ptrNumProcs, *ptrNumTIDs;
+    int exitCode;
 
     list_for_each(pos, &step->tasks.list) {
 	if (!(task = list_entry(pos, PS_Tasks_t, list))) break;
@@ -2120,8 +2185,11 @@ void sendTaskExit(Step_t *step, int *ctlPort, int *ctlAddr)
 	taskCount++;
     }
 
+    if (!taskCount) {
+	mlog("%s: not tasks found!\n", __func__);
+    }
+
     while (count < taskCount) {
-	body.bufUsed = exitCount = 0;
 	exitCode = -100;
 
 	list_for_each(pos, &step->tasks.list) {
@@ -2139,67 +2207,11 @@ void sendTaskExit(Step_t *step, int *ctlPort, int *ctlAddr)
 			"taskCount '%u'\n", __func__, count, taskCount);
 
 	    }
-	    ufree(body.buf);
 	    return;
 	}
 
-	/* exit status */
-	addUint32ToMsg(exitCode, &body);
-
-	/* number of processes exited */
-	ptrNumProcs = body.buf + body.bufUsed;
-	addUint32ToMsg(0, &body);
-
-	/* task ids of processes (array) */
-	ptrNumTIDs = body.buf + body.bufUsed;
-	addUint32ToMsg(0, &body);
-
-	list_for_each(pos, &step->tasks.list) {
-	    if (!(task = list_entry(pos, PS_Tasks_t, list))) break;
-	    if (task->sentExit || task->childRank < 0) continue;
-	    if (task->exitCode == exitCode) {
-		addUint32ToMsg(task->childRank, &body);
-		task->sentExit = 1;
-		exitCount++;
-		/*
-		mlog("%s: tasks childRank:%i exit:%i exitCount:%i\n", __func__,
-			task->childRank, task->exitCode, exitCount);
-		*/
-	    }
-	}
-	*(uint32_t *) ptrNumProcs = htonl(exitCount);
-	*(uint32_t *) ptrNumTIDs = htonl(exitCount);
-	count += exitCount;
-
-	if (exitCount < 1) {
-	    mlog("%s: failed to find tasks for exitCode '%i'\n", __func__,
-		    exitCode);
-	    ufree(body.buf);
-	    return;
-	}
-
-	/* stepid */
-	addUint32ToMsg(step->jobid, &body);
-	addUint32ToMsg(step->stepid, &body);
-
-	mlog("%s: sending MESSAGE_TASK_EXIT '%u:%u' exit '%i'\n",
-		__func__, exitCount, count, exitCode);
-
-	srunSendMsg(-1, step, MESSAGE_TASK_EXIT, &body);
-
-	for (i=0; i<MAX_SATTACH_SOCKETS; i++) {
-	    if (ctlPort[i] != -1) {
-
-		if ((sock = tcpConnectU(ctlAddr[i], ctlPort[i])) <0) {
-		    mlog("%s: connection to srun '%u:%u' failed\n", __func__,
-			    ctlAddr[i], ctlPort[i]);
-		} else {
-		    srunSendMsg(sock, step, MESSAGE_TASK_EXIT, &body);
-		}
-	    }
-	}
+	doSendTaskExit(step, task, exitCode, &count, ctlPort, ctlAddr);
     }
-    ufree(body.buf);
 }
 
 int sendTaskPids(Step_t *step)
@@ -2260,6 +2272,7 @@ int sendTaskPids(Step_t *step)
 	}
 
 	if (countPIDS != countGTIDS) {
+
 	    mlog("%s: mismatching PID '%u' and GTID '%u' count\n", __func__,
 		    countPIDS, countGTIDS);
 	    ufree(body.buf);
