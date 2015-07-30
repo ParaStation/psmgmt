@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2007-2014 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2007-2015 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -271,12 +271,11 @@ int PSCPU_getUnset(PSCPU_set_t set, int16_t physCPUs,
  *
  * Get a string describing the CPU-set @a set. The returned pointer
  * leads to a static character array that contains the
- * description. Sequent calls to @ref PSCPU_print() will change the
- * content of this array. Therefore the result is not what you expect
- * if more than one call of this function is made within a single
- * argument-list of printf(3) and friends.
- *
- * @param tid The task ID to describe.
+ * description. Sequent calls to @ref PSCPU_print() or @ref
+ * PSCPU_print() will change the content of this array. Therefore the
+ * result is not what you expect if more than one call of this
+ * function is made within a single argument-list of printf(3) and
+ * friends.
  *
  * @param set The CPU-set to describe
  *
@@ -284,6 +283,26 @@ int PSCPU_getUnset(PSCPU_set_t set, int16_t physCPUs,
  * description. Do not try to free(2) this array.
  */
 char *PSCPU_print(PSCPU_set_t set);
+
+/**
+ * @brief Print parts of CPU-set
+ *
+ * Get a string describing the last @a num bytes CPU-set @a set. The
+ * returned pointer leads to a static character array that contains
+ * the description. Sequent calls to @ref PSCPU_print() or @ref
+ * PSCPU_print_part() will change the content of this array. Therefore
+ * the result is not what you expect if more than one call of this
+ * function is made within a single argument-list of printf(3) and
+ * friends.
+ *
+ * @param set The CPU-set to describe
+ *
+ * @param num The number of bytes to describe
+ *
+ * @return A pointer to a static character array containing task ID's
+ * description. Do not try to free(2) this array.
+ */
+char *PSCPU_print_part(PSCPU_set_t set, size_t num);
 
 /**
  * @brief Copy CPU-set

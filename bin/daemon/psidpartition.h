@@ -276,7 +276,7 @@ void PSIDpart_sendResNodes(PSrsrvtn_ID_t resID, PStask_t *task,
  * @brief Cleanup reservations
  *
  * Cleanup all reservations associated to the task @a task. For this,
- * all HW-threads allocatd in reservations are marked as unused again
+ * all HW-threads allocated in reservations are marked as unused again
  * in the corresponding partition.
  *
  * @param task Task structure holding the reservations to cleanup
@@ -286,7 +286,7 @@ void PSIDpart_sendResNodes(PSrsrvtn_ID_t resID, PStask_t *task,
 void PSIDpart_cleanupRes(PStask_t *task);
 
 /**
- * @brief Cleanup reservered slots
+ * @brief Cleanup reserved slots
  *
  * Cleanup all slots associated to the task @a task. These slots got
  * associated by PSP_CD_GETSLOTS messages sent by the task requesting
@@ -302,6 +302,50 @@ void PSIDpart_cleanupRes(PStask_t *task);
  * @return No return value
  */
 void PSIDpart_cleanupSlots(PStask_t *task);
+
+/**
+ * @brief Suspend reserved slots
+ *
+ * Suspend the HW-threads in the first @a nSlots slots in the array @a
+ * slot from the task @a task. By this means the corresponding
+ * resources become available again and might be used by different
+ * reservations while they are suspended. In order to end the
+ * suspension @ref PSIDpart_contSlts() might be used.
+ *
+ * This function is aware of resource delegation and might change the
+ * corresponding resources within the delegate.
+ *
+ * @param slot Array of slots to be suspended
+ *
+ * @param nSlots Number of slots to be considered within @a slot
+ *
+ * @param task Task structure owning the HW-threads to be suspended.
+ *
+ * @return The number of HW-threads actually suspended
+ */
+int PSIDpart_suspSlts(PSpart_slot_t *slot, unsigned int nSlots, PStask_t *task);
+
+/**
+ * @brief Re-assign reserved slots
+ *
+ * Re-assign the HW-threads in the first @a nSlots slots in the array
+ * @a slot to the task @a task. By this means the corresponding
+ * resources become unavailable again and can no longer be used to
+ * create additional reservations. This function is used to end the
+ * suspension created by @ref PSIDpart_suspSlts().
+ *
+ * This function is aware of resource delegation and might change the
+ * corresponding resources within the delegate.
+ *
+ * @param slot Array of slots to be re-assigned
+ *
+ * @param nSlots Number of slots to be considered within @a slot
+ *
+ * @param task Task structure owning the HW-threads to be re-assigned.
+ *
+ * @return The number of HW-threads actually re-assigned
+ */
+int PSIDpart_contSlts(PSpart_slot_t *slot, unsigned int nSlots, PStask_t *task);
 
 /**
  * @brief Extend reservation

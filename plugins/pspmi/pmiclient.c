@@ -1504,7 +1504,7 @@ static int p_Init(char *msgBuffer)
 	elog("%s(r%i): unsupported PMI version received: version=%i,"
 		" subversion=%i\n", __func__, rank, atoi(pmiversion),
 		atoi(pmisubversion));
-	return critErr();
+	return 1;
     }
     pmi_init_client = 1;
 

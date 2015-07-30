@@ -669,6 +669,7 @@ int handleNodeDown(void *nodeID)
 		/* stop pelogue scripts on all nodes */
 		signalPElogue(job, SIGTERM, "node down");
 		stopPElogueExecution(job);
+		return 1;
 	    }
 	}
     }

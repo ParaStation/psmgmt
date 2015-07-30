@@ -20,6 +20,10 @@
 #include <stdlib.h>
 #include <numa.h>
 
+#define _GNU_SOURCE
+#define __USE_GNU
+#include <sched.h>
+
 #include "psslurmjob.h"
 #include "psslurmlog.h"
 
@@ -27,8 +31,11 @@
 #include "pluginmalloc.h"
 #include "slurmcommon.h"
 
-#include "psslurmpin.h"
+#include "psslurmconfig.h"
+#include "psslurmproto.h"
+#include "psslurmio.h"
 
+#include "psslurmpin.h"
 
 /*
  * Parse the coreBitmap of @a step and generate a coreMap.
@@ -129,8 +136,8 @@ static void parseCPUmask(PSCPU_set_t *CPUset, char *maskStr) {
     mask = maskStr;
 
     if (strncmp(maskStr, "0x", 2) == 0) {
-        /* skip "0x", treat always as hex */
-        mask += 2;
+	/* skip "0x", treat always as hex */
+	mask += 2;
     }
 
     mask = ustrdup(mask); /* gets destroyed */
@@ -139,8 +146,8 @@ static void parseCPUmask(PSCPU_set_t *CPUset, char *maskStr) {
     curchar = mask + (len - 1);
     curbit = 0;
     for (i = len; i>0; i--) {
-        digit = strtol(curchar, &endptr, 16);
-        if (*endptr != '\0') {
+	digit = strtol(curchar, &endptr, 16);
+	if (*endptr != '\0') {
 	    mlog("%s: invalid digit in cpu mask '%s'\n", __func__, maskStr);
 	    PSCPU_setAll(*CPUset); //XXX other result in error case?
 	    break;
@@ -150,10 +157,10 @@ static void parseCPUmask(PSCPU_set_t *CPUset, char *maskStr) {
 	    if (digit & (1 << j)) {
 	        PSCPU_setCPU(*CPUset, curbit + j);
 	    }
-        }
-        curbit += 4;
-        *curchar = '\0';
-        curchar--;
+	}
+	curbit += 4;
+	*curchar = '\0';
+	curchar--;
     }
     ufree(mask);
 }
@@ -180,8 +187,8 @@ static void parseSocketMask(PSCPU_set_t *CPUset, uint16_t socketCount,
     mask = maskStr;
 
     if (strncmp(maskStr, "0x", 2) == 0) {
-        /* skip "0x", treat always as hex */
-        mask += 2;
+	/* skip "0x", treat always as hex */
+	mask += 2;
     }
 
     mask = ustrdup(mask); /* gets destroyed */
@@ -190,8 +197,8 @@ static void parseSocketMask(PSCPU_set_t *CPUset, uint16_t socketCount,
     curchar = mask + (len - 1);
     curbit = 0;
     for (i = len; i>0; i--) {
-        digit = strtol(curchar, &endptr, 16);
-        if (*endptr != '\0') {
+	digit = strtol(curchar, &endptr, 16);
+	if (*endptr != '\0') {
 	    mlog("%s: invalid digit in cpu mask '%s'\n", __func__, maskStr);
 	    PSCPU_setAll(*CPUset); //XXX other result in error case?
 	    break;
@@ -202,10 +209,10 @@ static void parseSocketMask(PSCPU_set_t *CPUset, uint16_t socketCount,
 	        pinToSocket(CPUset, socketCount, coresPerSocket, cpuCount,
 			    hwThreads, curbit + j);
 	    }
-        }
-        curbit += 4;
-        *curchar = '\0';
-        curchar--;
+	}
+	curbit += 4;
+	*curchar = '\0';
+	curchar--;
     }
     ufree(mask);
 }
@@ -258,7 +265,7 @@ static void getBindMapFromString(PSCPU_set_t *CPUset, uint16_t cpuBindType,
     }
 
     if (!myent) {
-        PSCPU_setAll(*CPUset); //XXX other result in error case?
+	PSCPU_setAll(*CPUset); //XXX other result in error case?
 	if (cpuBindType & CPU_BIND_MASK) {
 	    mlog("%s: invalid cpu mask string '%s'\n", __func__, ents);
 	}
@@ -404,7 +411,7 @@ static void pinToSocket(PSCPU_set_t *CPUset, uint16_t socketCount,
 
 
     for (t = 0; t < hwThreads; t++) {
-        for (s = 0; s < socketCount; s++) {
+	for (s = 0; s < socketCount; s++) {
 	    if (s != socket) continue;
 	    for (i = 0; i < coresPerSocket; i++) {
 		thread = (t * cpuCount) + (s * coresPerSocket) + i;
@@ -573,7 +580,7 @@ static void setCPUset(PSCPU_set_t *CPUset, uint16_t cpuBindType, char *cpuBindSt
 	mdbg(PSSLURM_LOG_PART, "%s: (cpu_bind_boards)\n", __func__);
     } else if (cpuBindType & (CPU_BIND_MAP | CPU_BIND_MASK
 				| CPU_BIND_LDMAP | CPU_BIND_LDMASK)) {
-        getBindMapFromString(CPUset, cpuBindType, cpuBindString, socketCount,
+	getBindMapFromString(CPUset, cpuBindType, cpuBindString, socketCount,
 			     coresPerSocket, cpuCount, nodeid, hwThreads,
 			     local_tid);
     } else if (cpuBindType & (CPU_BIND_TO_SOCKETS | CPU_BIND_TO_LDOMS
@@ -712,13 +719,13 @@ int setHWthreads(Step_t *step)
 
 	/* set node and cpuset for every task */
 	for (local_tid=0; local_tid < step->globalTaskIdsLen[node];
-                local_tid++) {
+		local_tid++) {
 
 	    tid = step->globalTaskIds[node][local_tid];
 
 	    mdbg(PSSLURM_LOG_PART, "%s: node '%u' nodeid '%u' task '%u' tid"
-                    " '%u'\n", __func__, node, step->nodes[node], local_tid,
-                    tid);
+		    " '%u'\n", __func__, node, step->nodes[node], local_tid,
+		    tid);
 
 	    /* sanity check */
 	    if (tid > slotsSize) {
@@ -729,35 +736,38 @@ int setHWthreads(Step_t *step)
 
 	    /* calc CPUset */
 	    setCPUset(&CPUset, step->cpuBindType, step->cpuBind, coreMap,
-                        coreMapIndex, cred->socketsPerNode[coreIndex],
-                        cred->coresPerSocket[coreIndex], cpuCount, &lastCpu,
-                        node, &thread, hwThreads, step->globalTaskIdsLen[node],
-                        step->tpp, local_tid);
+		    coreMapIndex, cred->socketsPerNode[coreIndex],
+		    cred->coresPerSocket[coreIndex], cpuCount, &lastCpu,
+		    node, &thread, hwThreads, step->globalTaskIdsLen[node],
+		    step->tpp, local_tid);
 
 	    slots[tid].node = step->nodes[node];
 
             /* handle cyclic distribution */
-            if ((!(step->cpuBindType & (0xFFF & ~CPU_BIND_VERBOSE)) /* default */
-                    || step->cpuBindType & (CPU_BIND_RANK | CPU_BIND_TO_THREADS))
-                    && (step->taskDist == SLURM_DIST_BLOCK_CYCLIC ||
-                    step->taskDist == SLURM_DIST_CYCLIC_CYCLIC)) {
-                PSCPU_clrAll(slots[tid].CPUset);
-                shift = local_tid % 2 ? cred->coresPerSocket[coreIndex] : 0;
-                shift = shift - step->tpp * ((local_tid + 1) / 2);
-                for (i = 0; i < (cpuCount * hwThreads); i++) {
-                    if (PSCPU_isSet(CPUset, i)) {
-                        PSCPU_setCPU(slots[tid].CPUset,
-                                     (i + shift) % (cpuCount * hwThreads));
-                    }
-                }
-                mdbg(PSSLURM_LOG_PART, "%s: Cyclic shifting by %d:\n",
-                        __func__, shift);
-                mdbg(PSSLURM_LOG_PART, "- %s\n", PSCPU_print(CPUset));
-                mdbg(PSSLURM_LOG_PART, "+ %s\n", PSCPU_print(slots[tid].CPUset));
-            }
-            else {
-                PSCPU_copy(slots[tid].CPUset, CPUset);
-            }
+	    if ((!(step->cpuBindType
+			    & (0xFFF & ~CPU_BIND_VERBOSE)) /* default */
+			|| step->cpuBindType
+			& (CPU_BIND_RANK | CPU_BIND_TO_THREADS))
+		    && (step->taskDist == SLURM_DIST_BLOCK_CYCLIC
+			|| step->taskDist == SLURM_DIST_CYCLIC_CYCLIC)) {
+		PSCPU_clrAll(slots[tid].CPUset);
+		shift = local_tid % 2 ? cred->coresPerSocket[coreIndex] : 0;
+		shift = shift - step->tpp * ((local_tid + 1) / 2);
+		for (i = 0; i < (cpuCount * hwThreads); i++) {
+		    if (PSCPU_isSet(CPUset, i)) {
+			PSCPU_setCPU(slots[tid].CPUset,
+				(i + shift) % (cpuCount * hwThreads));
+		    }
+		}
+		mdbg(PSSLURM_LOG_PART, "%s: Cyclic shifting by %d:\n",
+			__func__, shift);
+		mdbg(PSSLURM_LOG_PART, "- %s\n", PSCPU_print(CPUset));
+		mdbg(PSSLURM_LOG_PART, "+ %s\n",
+			PSCPU_print(slots[tid].CPUset));
+	    }
+	    else {
+		PSCPU_copy(slots[tid].CPUset, CPUset);
+	    }
 	}
 	coreMapIndex += cpuCount;
 
@@ -783,6 +793,160 @@ error:
     ufree(slots);
     return 0;
 
+}
+
+static char * printCpuMask(pid_t pid) {
+
+    cpu_set_t mask;
+    PSCPU_set_t CPUset;
+    int numcpus, i;
+
+    static char ret[PSCPU_MAX/4+10];
+    char* lstr;
+    int offset;
+
+    if (sched_getaffinity(1, sizeof(cpu_set_t), &mask) == 0) {
+	numcpus = CPU_COUNT(&mask);
+    }
+    else {
+	numcpus = 128;
+    }
+
+    PSCPU_clrAll(CPUset);
+    if (sched_getaffinity(pid, sizeof(cpu_set_t), &mask) == 0) {
+	for (i = 0; i < numcpus; i++) {
+	    if(CPU_ISSET(i, &mask)) {
+		PSCPU_setCPU(CPUset, i);
+	    }
+	}
+    }
+    else {
+	return "unknown";
+    }
+
+    lstr = PSCPU_print(CPUset);
+
+    strcpy(ret, "0x");
+
+    // cut leading zeros
+    offset = 2;
+    while (*(lstr + offset) == '0') {
+	offset++;
+    }
+
+    if (*(lstr + offset) == '\0') {
+	return "0x0";
+    }
+
+    strcpy(ret + 2, lstr + offset);
+
+    return ret;
+}
+
+/* verbose binding output */
+void verbosePinningOutput(Step_t *step, PS_Tasks_t *task) {
+
+    char *units, *bind_type, *action, *verbstr;
+    int verbstr_len;
+    pid_t pid;
+
+
+    mlog("%s: Called\n", __func__);
+
+    if (step->cpuBindType & CPU_BIND_VERBOSE) {
+	action = " set";
+
+#if 0 // this is what original slurm would do
+	if (step->cpuBindType & CPU_BIND_NONE) {
+	    units  = "";
+	    bind_type = "NONE";
+	    action = "";
+	} else {
+	    if (step->cpuBindType & CPU_BIND_TO_THREADS) {
+		units = "_threads";
+	    }
+	    else if (step->cpuBindType & CPU_BIND_TO_CORES) {
+		units = "_cores"; // this is unsupported
+	    }
+	    else if (step->cpuBindType & CPU_BIND_TO_SOCKETS) {
+		units = "_sockets";
+	    }
+	    else if (step->cpuBindType & CPU_BIND_TO_LDOMS) {
+		units = "_ldoms";
+	    }
+	    else {
+		units = "";
+	    }
+
+	    if (step->cpuBindType & CPU_BIND_RANK) {
+		bind_type = "RANK";
+	    }
+	    else if (step->cpuBindType & CPU_BIND_MAP) {
+		bind_type = "MAP ";
+	    }
+	    else if (step->cpuBindType & CPU_BIND_MASK) {
+		bind_type = "MASK";
+	    }
+	    else if (step->cpuBindType & CPU_BIND_LDRANK) {
+		bind_type = "LDRANK";
+	    }
+	    else if (step->cpuBindType & CPU_BIND_LDMAP) {
+		bind_type = "LDMAP ";
+	    }
+	    else if (step->cpuBindType & CPU_BIND_LDMASK) {
+		bind_type = "LDMASK";
+	    }
+	    else if (step->cpuBindType & (~CPU_BIND_VERBOSE)) {
+		bind_type = "UNK ";
+	    }
+	    else {
+		action = "";
+		bind_type = "NULL";
+	    }
+	}
+#endif
+
+	units  = "";
+
+	if (step->cpuBindType & CPU_BIND_NONE) {
+	    bind_type = "NONE";
+	} else if (step->cpuBindType & CPU_BIND_TO_BOARDS) {
+	    bind_type = "BOARDS";
+	} else if (step->cpuBindType & CPU_BIND_MASK) {
+	    bind_type = "MASK";
+	} else if (step->cpuBindType & CPU_BIND_MAP) {
+	    bind_type = "MAP";
+	} else if (step->cpuBindType & CPU_BIND_LDMASK) {
+	    bind_type = "LDMASK";
+	} else if (step->cpuBindType & CPU_BIND_LDMAP) {
+	    bind_type = "LDMAP";
+	} else if (step->cpuBindType & CPU_BIND_TO_SOCKETS) {
+	    bind_type = "SOCKETS";
+	} else if (step->cpuBindType & CPU_BIND_TO_LDOMS) {
+	    bind_type = "LDOMS";
+	} else if (step->cpuBindType & CPU_BIND_LDRANK) {
+	    bind_type = "LDRANK";
+	} else { /* default, CPU_BIND_RANK, CPU_BIND_TO_THREADS */
+	    bind_type = "RANK";
+	}
+
+	verbstr_len = 500;
+	verbstr = umalloc(verbstr_len * sizeof(char));
+
+	pid = PSC_getPID(task->childTID);
+
+	snprintf(verbstr, verbstr_len, "cpu_bind%s=%s - "
+		"%s, task %2d %2u [%d]: mask %s%s\n", units, bind_type,
+		getConfValueC(&Config, "SLURM_HOSTNAME"), // hostname
+		task->childRank,
+		getLocalRankID(task->childRank, step, step->myNodeIndex),
+		pid, printCpuMask(pid), action);
+
+	printChildMessage(step->fwdata, verbstr, strlen(verbstr),
+		STDERR, task->childRank);
+
+	ufree(verbstr);
+    }
 }
 
 /* vim: set ts=8 sw=4 tw=0 sts=4 noet :*/

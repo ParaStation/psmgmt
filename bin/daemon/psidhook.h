@@ -122,17 +122,18 @@ typedef enum {
 				hook might be used to prepare the child's env */
     PSIDHOOK_XTND_PART_DYNAMIC,/** Dynamically extend a partition. The handler
 				of this hook is expected to call the function
-				PSIDpart_extendRes() either in a synchronous
-				or asynchronous way. Arg is a pointer to the
-				reservation created so far. I.e. the hook
-				might rely on the content of nMin, nMax, tpp,
-				hwType, nSlots, task and rid. nMin and nMax
-				are not corrected, i.e. we are actually
+				PSIDpart_extendRes() either in a synchronous or
+				asynchronous way. Arg is a pointer of type
+				PSrsrvtn_t to the reservation created so far.
+				I.e. the hook might rely on the content of nMin,
+				nMax, tpp, hwType, nSlots, task and rid. nMin
+				and nMax are not corrected, i.e. we are actually
 				requesting between nMin-nSlots and nMax-nSlots
 				slots of type hwType with tpp threads each.*/
     PSIDHOOK_RELS_PART_DYNAMIC,/** Release dynamically extended  resources.
-				Arg is a pointer to the slot describing the
-				resources to be	released. */
+				Arg is a pointer of type PSrsrvtn_dynRes_t which
+				contains the reservation id and the actual slot
+				to be released. */
     PSIDHOOK_PELOGUE_FINISH,	/** The result of a prologue/epilogue run
 				executed by the pelogue plugin can be inspected.
 				Used by the psslurm plugin. */
