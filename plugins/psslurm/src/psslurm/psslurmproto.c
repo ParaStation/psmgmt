@@ -2252,8 +2252,10 @@ int sendTaskPids(Step_t *step)
 	    if (PSC_getID(step->tids[i]) == step->nodes[z]) {
 		addUint32ToMsg(PSC_getPID(step->tids[i]), &body);
 		countPIDS++;
+		/*
 		mlog("%s: add node%u nodeid '%u' pid%u: '%u'\n", __func__, z,
 			step->nodes[z], countPIDS, PSC_getPID(step->tids[i]));
+		*/
 	    }
 	}
 
@@ -2262,12 +2264,15 @@ int sendTaskPids(Step_t *step)
 	addUint32ToMsg(0, &body);
 	for (x=0; x<step->globalTaskIdsLen[z]; x++) {
 	    addUint32ToMsg(step->globalTaskIds[z][x], &body);
+	    /*
 	    mlog("%s: add node%u nodeid '%u' globaltid%u: '%u'\n", __func__, z,
 		    step->nodes[z], countGTIDS, step->globalTaskIds[z][x]);
+	    */
 	    countGTIDS++;
 	}
 
 	if (countPIDS != countGTIDS) {
+
 	    mlog("%s: mismatching PID '%u' and GTID '%u' count\n", __func__,
 		    countPIDS, countGTIDS);
 	    ufree(body.buf);
