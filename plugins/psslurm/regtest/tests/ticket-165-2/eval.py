@@ -10,8 +10,6 @@ from testsuite import *
 helper.pretty_print_env()
 
 for p in helper.partitions():
-	helper.check_job_completed_ok(p)
-
 	for i in range(4, 16):
 		fn = os.environ["PSTEST_OUTDIR"] + "/%d.txt" % (2**i)
 			
