@@ -571,6 +571,19 @@ void send_PS_JobState(uint32_t jobid, PStask_ID_t dest)
     ufree(data.buf);
 }
 
+void send_PS_fwLaunchTasks(Step_t *step, Slurm_Msg_t *sMsg)
+{
+    PSnodes_ID_t myID = PSC_getMyID();
+    uint32_t i;
+
+    for (i=0; i<step->nrOfNodes; i++) {
+	if (step->nodes[i] == myID) continue;
+
+	sendFragMsg(sMsg->data, PSC_getTID(step->nodes[i], 0),
+			PSP_CC_PLUG_PSSLURM, PSP_LAUNCH_TASKS);
+    }
+}
+
 static void handle_PS_JobExit(DDTypedBufferMsg_t *msg)
 {
     uint32_t jobid, stepid;
@@ -864,6 +877,25 @@ static void handleFWslurmMsgRes(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     ufree(body.buf);
 }
 
+static void handleFWlaunchTasks(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
+{
+    Slurm_Msg_t sMsg;
+    uint32_t temp;
+    Connection_Forward_t fw;
+
+    initSlurmMsg(&sMsg);
+    sMsg.ptr = data->buf;
+    sMsg.data = data;
+
+    /* strip header and munge auth */
+    getSlurmMsgHeader(&sMsg, &fw);
+    getStringM(&sMsg.ptr);
+    getUint32(&sMsg.ptr, &temp);
+    getStringM(&sMsg.ptr);
+
+    handleLaunchTasks(&sMsg);
+}
+
 void handlePsslurmMsg(DDTypedBufferMsg_t *msg)
 {
     char sender[100], dest[100];
@@ -913,6 +945,9 @@ void handlePsslurmMsg(DDTypedBufferMsg_t *msg)
 	    break;
 	case PSP_FORWARD_SMSG_RES:
 	    recvFragMsg(msg, handleFWslurmMsgRes);
+	    break;
+	case PSP_LAUNCH_TASKS:
+	    recvFragMsg(msg, handleFWlaunchTasks);
 	    break;
 	default:
 	    mlog("%s: received unknown msg type:%i [%s -> %s]\n", __func__,
