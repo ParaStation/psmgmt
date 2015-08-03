@@ -57,12 +57,16 @@ static void sendPing(Slurm_Msg_t *sMsg)
     PS_DataBuffer_t msg = { .buf = NULL };
     struct sysinfo info;
     float div;
+    uint32_t freemem;
 
     if (sysinfo(&info) < 0) {
+	addUint32ToMsg(0, &msg);
 	addUint32ToMsg(0, &msg);
     } else {
 	div = (float)(1 << SI_LOAD_SHIFT);
 	addUint32ToMsg(((info.loads[1]/div) * 100.0), &msg);
+	freemem = (((uint64_t )info.freeram)*info.mem_unit)/(1024*1024);
+	addUint32ToMsg(freemem, &msg);
     }
 
     sendSlurmReply(sMsg, RESPONSE_PING_SLURMD, &msg);
@@ -1710,7 +1714,7 @@ void sendNodeRegStatus(uint32_t status, int protoVersion)
     PS_DataBuffer_t msg = { .buf = NULL };
     time_t now = time(NULL);
     float div;
-    uint32_t load;
+    uint32_t load, freemem;
     struct utsname sys;
     struct sysinfo info;
     int i, tmp, haveSysInfo = 0;
@@ -1770,10 +1774,13 @@ void sendNodeRegStatus(uint32_t status, int protoVersion)
     /* cpu_load */
     if (haveSysInfo < 0) {
 	addUint32ToMsg(0, &msg);
+	addUint32ToMsg(0, &msg);
     } else {
 	div = (float)(1 << SI_LOAD_SHIFT);
 	load = (info.loads[1] / div) * 100.0;
 	addUint32ToMsg(load, &msg);
+	freemem = (((uint64_t )info.freeram)*info.mem_unit)/(1024*1024);
+	addUint32ToMsg(freemem, &msg);
     }
 
     /* job id infos (count, array (jobid/stepid) */
