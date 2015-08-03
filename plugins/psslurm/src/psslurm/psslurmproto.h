@@ -52,4 +52,6 @@ int getSlurmNodeID(PSnodes_ID_t psNodeID, PSnodes_ID_t *nodes,
 		    uint32_t nrOfNodes);
 uint32_t getLocalRankID(uint32_t rank, Step_t *step, uint32_t nodeId);
 
+void handleLaunchTasks(Slurm_Msg_t *sMsg);
+
 #endif

@@ -299,7 +299,7 @@ static void readStepAddr(Step_t *step, char **ptr, uint32_t msgAddr,
     step->srun.sin_port = msgPort;
 }
 
-static void handleLaunchTasks(Slurm_Msg_t *sMsg)
+void handleLaunchTasks(Slurm_Msg_t *sMsg)
 {
     Alloc_t *alloc = NULL;
     Job_t *job;
@@ -313,6 +313,15 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
     /* jobid/stepid */
     getUint32(ptr, &jobid);
     getUint32(ptr, &stepid);
+
+    if ((findStepById(jobid, stepid))) {
+	if (sMsg->sock != -1) {
+	    /* say ok to waiting srun */
+	    sendSlurmRC(sMsg, SLURM_SUCCESS);
+	}
+	return;
+    }
+
     step = addStep(jobid, stepid);
     step->state = JOB_QUEUED;
     /* ntasks */
@@ -478,6 +487,7 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
 	step->srunControlMsg.sock = sMsg->sock;
 	step->srunControlMsg.head.forward = sMsg->head.forward;
 	step->srunControlMsg.recvTime = sMsg->recvTime;
+	send_PS_fwLaunchTasks(step, sMsg);
 
 	if (!stepid && !job) {
 	    alloc->state = step->state = JOB_PROLOGUE;
@@ -494,8 +504,10 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
 	    execStepFWIO(step);
 	}
 
-	/* say ok to waiting srun */
-	sendSlurmRC(sMsg, SLURM_SUCCESS);
+	if (sMsg->sock != -1) {
+	    /* say ok to waiting srun */
+	    sendSlurmRC(sMsg, SLURM_SUCCESS);
+	}
     }
 }
 
