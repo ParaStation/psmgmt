@@ -40,6 +40,7 @@ typedef enum {
     PSP_JOB_STATE_RES,
     PSP_FORWARD_SMSG,
     PSP_FORWARD_SMSG_RES,
+    PSP_LAUNCH_TASKS,
 } PSP_PSSLURM_t;
 
 char *msg2Str(PSP_PSSLURM_t type);
