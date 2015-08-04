@@ -31,7 +31,10 @@ catch wait result
 exit [lindex $result 3]
 """ % " ".join(cmd)
 
-p = subprocess.Popen(["/usr/bin/expect", "-"], stdin = subprocess.PIPE)
+env = os.environ.copy()
+env["PS1"] = "bash$ "
+
+p = subprocess.Popen(["/usr/bin/expect", "-"], stdin = subprocess.PIPE, env = env)
 p.communicate(stdin)
 
 sys.exit(p.wait())
