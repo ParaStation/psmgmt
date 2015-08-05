@@ -2198,7 +2198,8 @@ void sendTaskExit(Step_t *step, int *ctlPort, int *ctlAddr)
     }
 
     if (!taskCount) {
-	mlog("%s: not tasks found!\n", __func__);
+	mlog("%s: no tasks found for step %i:%i in state '%s'\n", __func__,
+		step->jobid, step->stepid, strJobState(step->state));
     }
 
     while (count < taskCount) {
