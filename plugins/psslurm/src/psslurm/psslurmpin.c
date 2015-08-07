@@ -850,9 +850,6 @@ void verbosePinningOutput(Step_t *step, PS_Tasks_t *task) {
     int verbstr_len;
     pid_t pid;
 
-
-    mlog("%s: Called\n", __func__);
-
     if (step->cpuBindType & CPU_BIND_VERBOSE) {
 	action = " set";
 
