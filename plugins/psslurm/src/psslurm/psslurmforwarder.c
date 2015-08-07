@@ -252,7 +252,7 @@ int handleForwarderInit(void * data)
     PStask_t *task = data;
     Step_t *step;
     int count = 0, status;
-    char *ptr, *next;
+    char *ptr;
     uint32_t jobid = 0, stepid = SLURM_BATCH_SCRIPT;
     pid_t child = PSC_getPID(task->tid);
 
@@ -270,19 +270,6 @@ int handleForwarderInit(void * data)
     }
 
     if ((step = findStepById(jobid, stepid))) {
-	if (strlen(step->stdIn) >0) {
-	    ptr = step->stdIn;
-	    while ((next = strchr(ptr, '%'))) {
-		if (next[1] == 't') {
-		    mlog("%s: closing child stdin\n", __func__);
-		    close(task->stdin_fd);
-		    task->stdin_fd = -1;
-		    break;
-		}
-		ptr = next+1;
-	    }
-	}
-
 	if (step->taskFlags & TASK_PARALLEL_DEBUG) {
 
 	    waitpid(child, &status, WUNTRACED);
