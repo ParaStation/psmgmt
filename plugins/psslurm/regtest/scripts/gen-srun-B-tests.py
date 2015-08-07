@@ -425,8 +425,6 @@ for k, v in tests.iteritems():
 
 	open("%s/descr.json" % k, "w").write("""{
 	"type":	"batch",
-	"partitions": ["batch", "psslurm"],
-	"reservations": ["", "psslurm"],
 	"submit": "salloc -N %d -t 1 ./test.sh",
 	"eval": ["eval.py"],
 	"fproc": null,

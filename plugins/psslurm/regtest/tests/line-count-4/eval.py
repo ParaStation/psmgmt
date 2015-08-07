@@ -2,6 +2,7 @@
 
 import sys
 import os
+import re
 
 sys.path.append("/".join(os.path.abspath(os.path.dirname(sys.argv[0])).split('/')[0:-2] + ["lib"]))
 from testsuite import *
@@ -19,6 +20,12 @@ for p in helper.partitions():
 
 	for line in inplines:
 		test.check(4 == len([x for x in lines if x == line]), p)
+
+	rx  = re.compile(r'.*STDIN already closed.*', re.MULTILINE | re.DOTALL)
+	err = "\n".join([x for x in map(lambda z: z.strip(), open(os.environ["PSTEST_OUTDIR"] + "/slurm-2.err", "r").readlines()) if len(x) > 0])
+
+	test.check(not re.match(rx, err), p)
+
 
 test.quit()
 
