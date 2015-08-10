@@ -198,22 +198,37 @@ size_t PSP_strLen(char *str)
     return str ? strlen(str) + 1 : 0;
 }
 
-int PSP_putMsgBuf(DDBufferMsg_t *msg, const char *funcName,
-		  const char *dataName, const void *data, size_t size)
+static int doPutMsgBuf(DDBufferMsg_t *msg, const char *callName,
+		       const char *funcName, const char *dataName,
+		       const void *data, size_t size, int typed, int try)
 {
-    size_t off = msg->header.len - sizeof(msg->header);
-    size_t used;
+    size_t off, used;
+
+    if (!msg) {
+	PSC_log(-1, "%s: no 'msg' provided for '%s' in %s()\n", callName,
+		dataName, funcName);
+	return 0;
+    }
+
+    off = msg->header.len - sizeof(msg->header);
+    if (typed && !off) {
+	/* First item to add: adapt len and offset for type member */
+	DDTypedBufferMsg_t *p = NULL;
+	size_t t_off = (void *)&p->buf - (void *)&p->type;
+	off += t_off;
+	msg->header.len += t_off;
+    }
 
     if (data) {
 	used = (sizeof(msg->buf) - off >= size) ? size : 0;
 	if (used) memcpy(msg->buf+off, data, size);
     } else {
-	used = 1;
-	msg->buf[off] = '\0';
+	used = (sizeof(msg->buf) - off > 0) ? 1 : 0;
+	if (used) msg->buf[off] = '\0';
     }
     if (!used) {
-	PSC_log(-1, "%s: data '%s' too large in %s()\n", __func__, dataName,
-		funcName);
+	PSC_log(try ? PSC_LOG_VERB : -1, "%s: data '%s' too large in %s()\n",
+		callName, dataName, funcName);
 	return 0;
     }
     msg->header.len += used;
@@ -221,15 +236,35 @@ int PSP_putMsgBuf(DDBufferMsg_t *msg, const char *funcName,
     return 1;
 }
 
+int PSP_putMsgBuf(DDBufferMsg_t *msg, const char *funcName,
+		  const char *dataName, const void *data, size_t size)
+{
+    return doPutMsgBuf(msg, __func__, funcName, dataName,
+		       data, size, 0, 0);
+}
+
+int PSP_putTypedMsgBuf(DDTypedBufferMsg_t *msg, const char *funcName,
+		       const char *dataName, const void *data, size_t size)
+{
+    return doPutMsgBuf((DDBufferMsg_t *)msg, __func__, funcName, dataName,
+		       data, size, 1, 0);
+}
+
+int PSP_tryPutTypedMsgBuf(DDTypedBufferMsg_t *msg, const char *funcName,
+			  const char *dataName, const void *data, size_t size)
+{
+    return doPutMsgBuf((DDBufferMsg_t *)msg, __func__, funcName, dataName,
+		       data, size, 1, 1);
+}
+
 static int doGetMsgBuf(DDBufferMsg_t *msg, size_t *used, const char *callName,
 		       const char *funcName, const char *dataName, void *data,
 		       size_t size, int typed, int try)
 {
-    size_t avail;
-    size_t u;
+    size_t avail, u;
 
     if (!msg || !used || !data) {
-	PSC_log(-1, "%s: no '%s' provided for '%s' in %s()\n",callName,
+	PSC_log(-1, "%s: no '%s' provided for '%s' in %s()\n", callName,
 		msg ? (used ? "data" : "used") : "msg", dataName, funcName);
 	return 0;
     }
@@ -266,29 +301,6 @@ int PSP_getMsgBuf(DDBufferMsg_t *msg, size_t *used, const char *funcName,
 {
     return doGetMsgBuf(msg, used, __func__, funcName,
 		       dataName, data, size, 0, 0);
-}
-
-int PSP_putTypedMsgBuf(DDTypedBufferMsg_t *msg, const char *funcName,
-		       const char *dataName, const void *data, size_t size)
-{
-    size_t off = msg->header.len - sizeof(msg->header) - sizeof(msg->type);
-    size_t used;
-
-    if (data) {
-	used = (sizeof(msg->buf) - off >= size) ? size : 0;
-	if (used) memcpy(msg->buf+off, data, size);
-    } else {
-	used = 1;
-	msg->buf[off] = '\0';
-    }
-    if (!used) {
-	PSC_log(-1, "%s: data '%s' too large in %s()\n", __func__, dataName,
-		funcName);
-	return 0;
-    }
-    msg->header.len += used;
-
-    return 1;
 }
 
 int PSP_getTypedMsgBuf(DDTypedBufferMsg_t *msg, size_t *used,

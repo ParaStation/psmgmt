@@ -629,7 +629,7 @@ int PSP_getMsgBuf(DDBufferMsg_t *msg, size_t *used, const char *funcName,
  * @brief Try to get data from message buffer
  *
  * This function shows basically the same behavior as @ref
- * PSP_getMsgBuf(). The main difference is an suppressed error message
+ * PSP_getMsgBuf(). The main difference is suppressing an error message
  * in case @a msg does not contain sufficient amount of data.
  *
  * @param msg Message to fetch data from
@@ -685,6 +685,32 @@ int PSP_tryGetMsgBuf(DDBufferMsg_t *msg, size_t *used, const char *funcName,
  */
 int PSP_putTypedMsgBuf(DDTypedBufferMsg_t *msg, const char *funcName,
 		       const char *dataName, const void *data, size_t size);
+
+/**
+ * @brief Try to put data into message buffer
+ *
+ * This function shows basically the same behavior as @ref
+ * PSP_putTypedMsgBuf(). The main difference is suppressing an error message
+ * in case @a msg does not contain sufficient space for the data.
+ *
+ * @param msg Message to be modified
+ *
+ * @param funcName Name of the calling function
+ *
+ * @param dataName Description of the data @a data to be added to @a
+ * msg.
+ *
+ * @param data Pointer to the data to put into the message @a msg.
+ *
+ * @param size Amount of data to be put into the message @a msg.
+ *
+ * @return Upon success, 1 is returned. Or 0 if an error
+ * occurred. This is mainly due to insufficient space within @a msg.
+ *
+ * @see PSP_putTypedMsgBuf()
+ */
+int PSP_tryPutTypedMsgBuf(DDTypedBufferMsg_t *msg, const char *funcName,
+			  const char *dataName, const void *data, size_t size);
 
 /**
  * @brief Get data from message buffer
