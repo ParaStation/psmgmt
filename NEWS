@@ -5,6 +5,43 @@ Copyright (C) 2010-2015 ParTec Cluster Competence Center GmbH, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 5.0.48:
+===============
+
+Bugfixes:
+ - Suppress the disfigurement discussed in jrt:#394
+ - Catching SIGFPE for a normal shutdown of psid is a bad idea (jrt:#424)
+ - Ensure myUse is big enough for huge partThrds (jrt:#273)
+ - Guard psaccount's periodicMain (j3t:#679)
+ - Prevent getPSIEnv() from wrongly matching longer names (psc:#183)
+ - Block SIGCHLD at various places (psc:#192)
+ - Enforce RDP-connections getting closed on both sides (#1681)
+ - Make pssh using the remote settings for a user's shell (#2414)
+ - Handling of AdminUsers configuration in psconfig
+ - Present error message when dynamic reservation fails
+ - Fix resource bookkeeping when tpp is different from 1
+ - Fix reading of resource limits with psconfig
+ - Fix psconfig configuration template
+ - Fix logic in logger's panic output
+ - Prevent segfault if libedit (not updating rl_line_buffer) is used
+
+Enhancements:
+ - Support environment setting in KEY=VALUE style in psconfig
+ - Allow to suspend and resume jobs and resources with reservations
+ - Enable to count released resources within a reservation.
+ - Provide more information to the RM when releasing dynamical
+     resources (PSIDHOOK_RELS_PART_DYNAMIC)
+ - Add vipsconfig template for psconfig configuration
+ - Implement mpiexec's -ppn option (#845)
+ - Close unneeded file-descriptor before exec()ing the actual client process
+ - Allow to print smaller CPU-sets via PSCPU_print_part()
+
+Additional changes:
+ - Adapt dyn-resource example plugin to new HOOK parameters
+ - Expanding RCS-style keywords again
+ - Clean up PSP_INFO_LIST_GETNODES (never used due to PSP_INFO_LIST_RESNODES)
+
+
 Version 5.0.47-3:
 =================
 
