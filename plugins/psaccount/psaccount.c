@@ -33,6 +33,7 @@
 #include "plugin.h"
 #include "psidnodes.h"
 #include "psidutil.h"
+#include "pluginmalloc.h"
 
 #include "psaccount.h"
 
@@ -79,7 +80,9 @@ void periodicMain(void)
 {
     static int cleanup = 0;
     int poll;
-    int blocked = PSID_blockSIGCHLD(1);
+    int blocked;
+
+    blocked = blockSigChild(1);
 
     /* cleanup old jobs */
     if (cleanup++ == 4) {
@@ -102,7 +105,7 @@ void periodicMain(void)
 	    setMainTimer(poll);
 	}
     }
-    PSID_blockSIGCHLD(blocked);
+    if (!blocked) blockSigChild(0);
 }
 
 void accountStart()
