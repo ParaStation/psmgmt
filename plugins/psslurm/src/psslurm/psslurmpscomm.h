@@ -55,4 +55,6 @@ void handleCCMsg(PSLog_Msg_t *msg);
 
 void handleCCError(PSLog_Msg_t *msg);
 
+void send_PS_fwLaunchTasks(Step_t *step, Slurm_Msg_t *sMsg);
+
 #endif

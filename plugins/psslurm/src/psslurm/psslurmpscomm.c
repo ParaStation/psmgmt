@@ -159,8 +159,12 @@ static void handlePELogueStart(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 
     if (prologue) {
 	job->state = JOB_PROLOGUE;
+	mdbg(PSSLURM_LOG_JOB, "%s: job '%u' in '%s'\n", __func__,
+		job->jobid, strJobState(job->state));
     } else {
 	job->state = JOB_EPILOGUE;
+	mdbg(PSSLURM_LOG_JOB, "%s: job '%u' in '%s'\n", __func__,
+		job->jobid, strJobState(job->state));
     }
 
     /* use pelogue plugin to start */
@@ -213,6 +217,8 @@ void callbackPElogue(char *jobid, int exit_status, int timeout)
     if (!exit_status) {
 	if (job->state == JOB_PROLOGUE) {
 	    job->state = JOB_RUNNING;
+	    mdbg(PSSLURM_LOG_JOB, "%s: job '%u' in '%s'\n", __func__,
+		    job->jobid, strJobState(job->state));
 	    if (job->extended) execUserJob(job);
 	} else {
 	    /* tell slurmd job has finished */
@@ -225,6 +231,8 @@ void callbackPElogue(char *jobid, int exit_status, int timeout)
     } else {
 	job->state = (job->state == JOB_PROLOGUE) ?
 			    JOB_CANCEL_PROLOGUE : JOB_CANCEL_EPILOGUE;
+	mdbg(PSSLURM_LOG_JOB, "%s: job '%u' in '%s'\n", __func__,
+		job->jobid, strJobState(job->state));
     }
 }
 
@@ -258,6 +266,8 @@ static void handleQueueReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 
     /* type (batch/interactiv) ?? */
     job->state = JOB_QUEUED;
+    mdbg(PSSLURM_LOG_JOB, "%s: job '%u' in '%s'\n", __func__,
+	    job->jobid, strJobState(job->state));
     job->mother = msg->header.sender;
 
     psPelogueAddJob("psslurm", job->id, job->uid, job->gid,
@@ -315,6 +325,8 @@ static void handleJobInfo(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 
     /* TODO start prologue, now ?? */
     job->state = JOB_PROLOGUE;
+    mdbg(PSSLURM_LOG_JOB, "%s: job '%u' in '%s'\n", __func__,
+	    job->jobid, strJobState(job->state));
 
     /* use pelogue plugin to start */
     psPelogueStartPE("psslurm", job->id, 1, &job->env);
@@ -376,6 +388,8 @@ static void handleTaskIds(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 
     sendSlurmRC(&step->srunControlMsg, SLURM_SUCCESS);
     step->state = JOB_RUNNING;
+    mdbg(PSSLURM_LOG_JOB, "%s: step '%u:%u' in '%s'\n", __func__,
+	    step->jobid, step->stepid, strJobState(step->state));
 
     /* taskIds */
     getInt32Array(&ptr, &step->tids, &step->tidsLen);
@@ -409,6 +423,8 @@ SPAWN_FAILED:
 	sendTaskPids(step);
 
 	step->state = JOB_RUNNING;
+	mdbg(PSSLURM_LOG_JOB, "%s: step '%u:%u' in '%s'\n", __func__,
+		step->jobid, step->stepid, strJobState(step->state));
 	step->exitCode = 0x200;
     } else {
 	/* spawn failed */
@@ -571,6 +587,19 @@ void send_PS_JobState(uint32_t jobid, PStask_ID_t dest)
     ufree(data.buf);
 }
 
+void send_PS_fwLaunchTasks(Step_t *step, Slurm_Msg_t *sMsg)
+{
+    PSnodes_ID_t myID = PSC_getMyID();
+    uint32_t i;
+
+    for (i=0; i<step->nrOfNodes; i++) {
+	if (step->nodes[i] == myID) continue;
+
+	sendFragMsg(sMsg->data, PSC_getTID(step->nodes[i], 0),
+			PSP_CC_PLUG_PSSLURM, PSP_LAUNCH_TASKS);
+    }
+}
+
 static void handle_PS_JobExit(DDTypedBufferMsg_t *msg)
 {
     uint32_t jobid, stepid;
@@ -583,7 +612,8 @@ static void handle_PS_JobExit(DDTypedBufferMsg_t *msg)
     /* get stepid */
     getUint32(&ptr, &stepid);
 
-    mlog("%s: id '%u:%u'\n", __func__, jobid, stepid);
+    mlog("%s: id '%u:%u' from '%s'\n", __func__, jobid, stepid,
+	    PSC_printTID(msg->header.sender));
 
     /* delete all steps */
     if (stepid == SLURM_BATCH_SCRIPT) {
@@ -597,6 +627,8 @@ static void handle_PS_JobExit(DDTypedBufferMsg_t *msg)
       mlog("%s: step '%u:%u' not found\n", __func__, jobid, stepid);
     } else {
 	step->state = JOB_EXIT;
+	mdbg(PSSLURM_LOG_JOB, "%s: step '%u:%u' in '%s'\n", __func__,
+		step->jobid, step->stepid, strJobState(step->state));
     }
 }
 
@@ -615,15 +647,16 @@ static void handle_PS_JobStateRes(DDTypedBufferMsg_t *msg)
     getUint8(&ptr, &res);
     getUint8(&ptr, &state);
 
-    mlog("%s: jobid '%u' res '%u' state '%u'\n", __func__, jobid, res, state);
+    mlog("%s: jobid '%u' res '%u' state '%s' from '%s'\n", __func__, jobid, res,
+	    strJobState(state), PSC_printTID(msg->header.sender));
 
     if ((job = findJobById(jobid))) {
-	if (!res) {
+	if (!res || job->state == JOB_EXIT) {
 	    sendEpilogueComplete(jobid, 0);
 	    deleteJob(jobid);
 	}
     } else if ((alloc = findAlloc(jobid))) {
-	if (!res) {
+	if (!res || job->state == JOB_EXIT) {
 	    sendEpilogueComplete(jobid, 0);
 	    deleteAlloc(jobid);
 	}
@@ -683,6 +716,8 @@ static void handle_PS_JobLaunch(DDTypedBufferMsg_t *msg)
 
     job = addJob(jobid);
     job->state = JOB_QUEUED;
+    mdbg(PSSLURM_LOG_JOB, "%s: job '%u' in '%s'\n", __func__,
+	    job->jobid, strJobState(job->state));
     job->mother = msg->header.sender;
 
     /* get uid/gid */
@@ -692,7 +727,8 @@ static void handle_PS_JobLaunch(DDTypedBufferMsg_t *msg)
     /* get username */
     job->username = getStringM(&ptr);
 
-    mlog("%s: jobid '%u'\n", __func__, jobid);
+    mlog("%s: jobid '%u' user '%s' from '%s'\n", __func__, jobid, job->username,
+	    PSC_printTID(msg->header.sender));
 }
 
 static void handle_PS_SignalTasks(DDTypedBufferMsg_t *msg)
@@ -864,6 +900,25 @@ static void handleFWslurmMsgRes(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     ufree(body.buf);
 }
 
+static void handleFWlaunchTasks(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
+{
+    Slurm_Msg_t sMsg;
+    uint32_t temp;
+    Connection_Forward_t fw;
+
+    initSlurmMsg(&sMsg);
+    sMsg.ptr = data->buf;
+    sMsg.data = data;
+
+    /* strip header and munge auth */
+    getSlurmMsgHeader(&sMsg, &fw);
+    getStringM(&sMsg.ptr);
+    getUint32(&sMsg.ptr, &temp);
+    getStringM(&sMsg.ptr);
+
+    handleLaunchTasks(&sMsg);
+}
+
 void handlePsslurmMsg(DDTypedBufferMsg_t *msg)
 {
     char sender[100], dest[100];
@@ -914,6 +969,9 @@ void handlePsslurmMsg(DDTypedBufferMsg_t *msg)
 	case PSP_FORWARD_SMSG_RES:
 	    recvFragMsg(msg, handleFWslurmMsgRes);
 	    break;
+	case PSP_LAUNCH_TASKS:
+	    recvFragMsg(msg, handleFWlaunchTasks);
+	    break;
 	default:
 	    mlog("%s: received unknown msg type:%i [%s -> %s]\n", __func__,
 		msg->type, sender, dest);
@@ -939,21 +997,11 @@ int handleNodeDown(void *nodeID)
 			"state '%u' is down\n", __func__, node,
 			job->jobid, job->state);
 
-		if (job->nodes[0] == PSC_getMyID()) {
-		    /* we are mother superior */
-		    if (job->state != JOB_EPILOGUE &&
-		        job->state != JOB_COMPLETE &&
+		if (job->state != JOB_EPILOGUE &&
+			job->state != JOB_COMPLETE &&
 			job->state != JOB_EXIT) {
 
-			signalJob(job, SIGKILL, "node failure");
-			job->state = JOB_EPILOGUE;
-			startPElogue(job->jobid, job->uid, job->gid,
-					job->nrOfNodes, job->nodes,
-					&job->env, &job->spankenv, 0, 0);
-		    }
-		} else {
 		    signalJob(job, SIGKILL, "node failure");
-		    job->state = JOB_EXIT;
 		}
 	    }
 	}
@@ -968,23 +1016,12 @@ int handleNodeDown(void *nodeID)
 			"state '%u' is down\n", __func__, node,
 			step->jobid, step->stepid, step->state);
 
-		if (step->nodes[0] == PSC_getMyID()) {
-		    /* we are mother superior */
-		    if ((!(findJobById(step->jobid))) &&
+		if ((!(findJobById(step->jobid))) &&
 			step->state != JOB_EPILOGUE &&
-		        step->state != JOB_COMPLETE &&
+			step->state != JOB_COMPLETE &&
 			step->state != JOB_EXIT) {
 
-			signalStep(step, SIGKILL);
-			step->state = JOB_EPILOGUE;
-
-			startPElogue(step->jobid, step->uid, step->gid,
-					step->nrOfNodes, step->nodes,
-					&step->env, &step->spankenv, 1, 0);
-		    }
-		} else {
 		    signalStep(step, SIGKILL);
-		    step->state = JOB_EXIT;
 		}
 	    }
 	}
@@ -1049,6 +1086,8 @@ void handleDroppedMsg(DDTypedBufferMsg_t *msg)
 	    break;
 	case PSP_JOB_STATE_REQ:
 	    getUint32(&ptr, &jobid);
+	    mlog("%s: mother superior is dead, releasing job '%u'\n", __func__,
+		    jobid);
 
 	    if ((job = findJobById(jobid))) {
 		mlog("%s: deleting job '%u'\n", __func__, jobid);
@@ -1068,6 +1107,7 @@ void handleDroppedMsg(DDTypedBufferMsg_t *msg)
 	case PSP_JOB_LAUNCH:
 	case PSP_JOB_EXIT:
 	case PSP_JOB_STATE_RES:
+	case PSP_SIGNAL_TASKS:
 	    /* nothing we can do here */
 	    break;
 	default:

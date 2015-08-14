@@ -46,7 +46,8 @@ void updateAccountData(Client_t *client)
     Proc_Snapshot_t *proc, *pChildren;
     ProcIO_t procIO;
     int sendUpdate = 0;
-    uint64_t diffCputime, cputime;
+    uint64_t cputime;
+    int64_t diffCputime;
 
     if (client->doAccounting == 0) return;
 
@@ -125,7 +126,9 @@ void updateAccountData(Client_t *client)
     if (diffCputime >0) {
 	accData->cpuWeight = accData->cpuWeight +
 				cpuFreq[proc->cpu] * diffCputime;
-	accData->cpuFreq = accData->cpuWeight / (cputime);
+	if (cputime) {
+	    accData->cpuFreq = accData->cpuWeight / cputime;
+	}
     }
     if (!cputime) accData->cpuFreq = cpuFreq[proc->cpu];
 

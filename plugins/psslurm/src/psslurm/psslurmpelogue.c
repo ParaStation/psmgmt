@@ -65,6 +65,8 @@ static void cbPElogueAlloc(char *sjobid, int exit_status, int timeout)
 	} else if (exit_status == 0) {
 	    alloc->state = JOB_RUNNING;
 	    step->state = JOB_PRESTART;
+	    mdbg(PSSLURM_LOG_JOB, "%s: step '%u:%u' in '%s'\n", __func__,
+		    step->jobid, step->stepid, strJobState(step->state));
 	    if (!(execUserStep(step))) {
 		sendSlurmRC(&step->srunControlMsg, ESLURMD_FORK_FAILED);
 	    }
@@ -74,9 +76,13 @@ static void cbPElogueAlloc(char *sjobid, int exit_status, int timeout)
 	     * We only need to inform the waiting srun. */
 	    sendSlurmRC(&step->srunControlMsg, ESLURMD_PROLOG_FAILED);
 	    alloc->state = step->state = JOB_EXIT;
+	    mdbg(PSSLURM_LOG_JOB, "%s: step '%u:%u' in '%s'\n", __func__,
+		    step->jobid, step->stepid, strJobState(step->state));
 	}
     } else if (alloc->state == JOB_EPILOGUE) {
 	alloc->state = step->state = JOB_EXIT;
+	mdbg(PSSLURM_LOG_JOB, "%s: step '%u:%u' in '%s'\n", __func__,
+		step->jobid, step->stepid, strJobState(step->state));
 	psPelogueDeleteJob("psslurm", sjobid);
 	sendEpilogueComplete(alloc->jobid, 0);
 
@@ -108,17 +114,25 @@ static void cbPElogueJob(char *jobid, int exit_status, int timeout)
     if (job->state == JOB_PROLOGUE) {
 	if (job->terminate) {
 	    job->state = JOB_EPILOGUE;
+	    mdbg(PSSLURM_LOG_JOB, "%s: job '%u' in '%s'\n", __func__,
+		    job->jobid, strJobState(job->state));
 	    startPElogue(job->jobid, job->uid, job->gid, job->nrOfNodes,
 		    job->nodes, &job->env, &job->spankenv, 0, 0);
 	} else if (exit_status == 0) {
 	    job->state = JOB_PRESTART;
+	    mdbg(PSSLURM_LOG_JOB, "%s: job '%u' in '%s'\n", __func__,
+		    job->jobid, strJobState(job->state));
 	    execUserJob(job);
 	} else {
 	    job->state = JOB_EXIT;
+	    mdbg(PSSLURM_LOG_JOB, "%s: job '%u' in '%s'\n", __func__,
+		    job->jobid, strJobState(job->state));
 	}
     } else if (job->state == JOB_EPILOGUE) {
 	psPelogueDeleteJob("psslurm", job->id);
 	job->state = JOB_EXIT;
+	mdbg(PSSLURM_LOG_JOB, "%s: job '%u' in '%s'\n", __func__,
+		job->jobid, strJobState(job->state));
 	sendEpilogueComplete(job->jobid, 0);
 
 	/* tell sisters the job is finished */
