@@ -654,6 +654,7 @@ int handleNodeDown(void *nodeID)
     list_for_each_safe(pos, tmp, &JobList.list) {
 	if (!(job = list_entry(pos, Job_t, list))) break;
 	if (job->state != JOB_PROLOGUE && job->state != JOB_EPILOGUE) continue;
+	if (!(findChild(job->plugin, job->id))) continue;
 
 	for (i=0; i<job->nrOfNodes; i++) {
 	    if (job->nodes[i].id == id) {

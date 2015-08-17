@@ -547,6 +547,8 @@ int deleteStep(uint32_t jobid, uint32_t stepid)
 
     if (!(step = findStepById(jobid, stepid))) return 0;
 
+    mdbg(PSSLURM_LOG_JOB, "%s: '%u:%u'\n", __func__, jobid, stepid);
+
     /* make sure all connections for the step are closed */
     closeAllStepConnections(step);
     clearBCastByJobid(jobid);
@@ -617,6 +619,7 @@ int deleteJob(uint32_t jobid)
 
     if (!(job = findJobById(jobid))) return 0;
 
+    mdbg(PSSLURM_LOG_JOB, "%s: '%u'\n", __func__, jobid);
     clearBCastByJobid(jobid);
     psPamDeleteUser(job->username, "psslurm");
 

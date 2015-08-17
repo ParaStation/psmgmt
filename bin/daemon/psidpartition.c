@@ -5522,8 +5522,8 @@ void PSIDpart_sendResNodes(PSrsrvtn_ID_t resID, PStask_t *task,
 	     resID, res->nSlots);
 
     for (s = 0; s < res->nSlots; s++) {
-	if (!PSP_putTypedMsgBuf(msg, __func__, "slot", &res->slots[s].node,
-				sizeof(PSnodes_ID_t))) {
+	if (!PSP_tryPutTypedMsgBuf(msg, __func__, "slot", &res->slots[s].node,
+				   sizeof(PSnodes_ID_t))) {
 	    sendMsg(msg);
 	    msg->header.len = emptyLen;
 	    PSP_putTypedMsgBuf(msg, __func__, "slot", &res->slots[s].node,

@@ -76,6 +76,8 @@ static int jobCallback(int32_t exit_status, char *errMsg,
     signalTasks(job->uid, &job->tasks, SIGKILL, -1);
 
     job->state = JOB_COMPLETE;
+    mdbg(PSSLURM_LOG_JOB, "%s: job '%u' in '%s'\n", __func__,
+	    job->jobid, strJobState(job->state));
     sendJobExit(job, exit_status);
     psAccountDelJob(PSC_getTID(-1, fwdata->childPid));
 
@@ -83,6 +85,8 @@ static int jobCallback(int32_t exit_status, char *errMsg,
     if (job->terminate && job->nodes) {
 	mlog("%s: starting epilogue for job '%u'\n", __func__, job->jobid);
 	job->state = JOB_EPILOGUE;
+	mdbg(PSSLURM_LOG_JOB, "%s: job '%u' in '%s'\n", __func__,
+		job->jobid, strJobState(job->state));
 	startPElogue(job->jobid, job->uid, job->gid, job->nrOfNodes, job->nodes,
 		    &job->env, &job->spankenv, 0, 0);
     }
@@ -103,6 +107,13 @@ static int stepFWIOcallback(int32_t exit_status, char *errMsg,
 	return 0;
     }
     step->fwdata = NULL;
+
+    mlog("%s: step '%u:%u' finished\n", __func__,
+	step->jobid, step->stepid);
+
+    step->state = JOB_COMPLETE;
+    mdbg(PSSLURM_LOG_JOB, "%s: step '%u:%u' in '%s'\n", __func__,
+	    step->jobid, step->stepid, strJobState(step->state));
 
     return 0;
 }
@@ -150,6 +161,8 @@ static int stepCallback(int32_t exit_status, char *errMsg,
     }
 
     step->state = JOB_COMPLETE;
+    mdbg(PSSLURM_LOG_JOB, "%s: step '%u:%u' in '%s'\n", __func__,
+	    step->jobid, step->stepid, strJobState(step->state));
     psAccountDelJob(PSC_getTID(-1, fwdata->childPid));
 
     /* run epilogue now */
@@ -694,6 +707,8 @@ int execUserJob(Job_t *job)
     }
 
     job->state = JOB_RUNNING;
+    mdbg(PSSLURM_LOG_JOB, "%s: job '%u' in '%s'\n", __func__,
+	    job->jobid, strJobState(job->state));
     job->fwdata = fwdata;
     return 1;
 }
