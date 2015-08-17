@@ -328,6 +328,9 @@ void handleLaunchTasks(Slurm_Msg_t *sMsg)
 
     step = addStep(jobid, stepid);
     step->state = JOB_QUEUED;
+    mdbg(PSSLURM_LOG_JOB, "%s: step '%u:%u' in '%s'\n", __func__,
+	    step->jobid, step->stepid, strJobState(step->state));
+
     /* ntasks */
     getUint32(ptr, &step->np);
     /* uid */
@@ -495,10 +498,14 @@ void handleLaunchTasks(Slurm_Msg_t *sMsg)
 
 	if (!stepid && !job) {
 	    alloc->state = step->state = JOB_PROLOGUE;
+	    mdbg(PSSLURM_LOG_JOB, "%s: step '%u:%u' in '%s'\n", __func__,
+		    step->jobid, step->stepid, strJobState(step->state));
 	    startPElogue(alloc->jobid, alloc->uid, alloc->gid, alloc->nrOfNodes,
 			    alloc->nodes, &alloc->env, &alloc->spankenv, 1, 1);
 	} else {
 	    step->state = JOB_PRESTART;
+	    mdbg(PSSLURM_LOG_JOB, "%s: step '%u:%u' in '%s'\n", __func__,
+		    step->jobid, step->stepid, strJobState(step->state));
 	    if (!(execUserStep(step))) {
 		sendSlurmRC(sMsg, ESLURMD_FORK_FAILED);
 	    }
@@ -1225,6 +1232,8 @@ static void handleBatchJobLaunch(Slurm_Msg_t *sMsg)
     }
     job = addJob(jobid);
     job->state = JOB_QUEUED;
+    mdbg(PSSLURM_LOG_JOB, "%s: job '%u' in '%s'\n", __func__,
+	    job->jobid, strJobState(job->state));
 
     /* uid */
     getUint32(ptr, &job->uid);
@@ -1329,6 +1338,9 @@ static void handleBatchJobLaunch(Slurm_Msg_t *sMsg)
 
     /* start prologue */
     job->state = JOB_PROLOGUE;
+    mdbg(PSSLURM_LOG_JOB, "%s: job '%u' in '%s'\n", __func__,
+	    job->jobid, strJobState(job->state));
+
     startPElogue(job->jobid, job->uid, job->gid, job->nrOfNodes, job->nodes,
 		    &job->env, &job->spankenv, 0, 1);
 }
@@ -1377,6 +1389,8 @@ static void handleTerminateJob(Slurm_Msg_t *sMsg, Job_t *job, int signal)
     /* wait till job/epilogue is complete */
     mlog("%s: starting epilogue for job '%u'\n", __func__, job->jobid);
     job->state = JOB_EPILOGUE;
+    mdbg(PSSLURM_LOG_JOB, "%s: job '%u' in '%s'\n", __func__,
+	    job->jobid, strJobState(job->state));
     startPElogue(job->jobid, job->uid, job->gid, job->nrOfNodes, job->nodes,
 		    &job->env, &job->spankenv, 0, 0);
 }

@@ -654,6 +654,7 @@ int handleNodeDown(void *nodeID)
     list_for_each_safe(pos, tmp, &JobList.list) {
 	if (!(job = list_entry(pos, Job_t, list))) break;
 	if (job->state != JOB_PROLOGUE && job->state != JOB_EPILOGUE) continue;
+	if (!(findChild(job->plugin, job->id))) continue;
 
 	for (i=0; i<job->nrOfNodes; i++) {
 	    if (job->nodes[i].id == id) {
@@ -677,10 +678,39 @@ int handleNodeDown(void *nodeID)
     return 1;
 }
 
+void handleDroppedStartMsg(DDTypedBufferMsg_t *msg)
+{
+    PS_Frag_Msg_Header_t *rhead;
+    char *ptr = msg->buf;
+    char plugin[300], jobid[300];
+    Job_t *job;
+
+    /* fragmented message header */
+    rhead = (PS_Frag_Msg_Header_t *) ptr;
+    ptr += sizeof(PS_Frag_Msg_Header_t);
+
+    /* ignore follow up messages */
+    if (rhead->msgNum) return;
+
+    /* get plugin */
+    getString(&ptr, plugin, sizeof(plugin));
+
+    /* get jobid */
+    getString(&ptr, jobid, sizeof(jobid));
+
+    if (!(job = findJobByJobId(plugin, jobid))) {
+	mlog("%s: plugin '%s' job '%s' not found\n", __func__,
+		plugin, jobid);
+	return;
+    }
+
+    job->state = PSP_PROLOGUE_START ?
+	JOB_CANCEL_PROLOGUE : JOB_CANCEL_EPILOGUE;
+    stopPElogueExecution(job);
+}
+
 void handleDroppedMsg(DDTypedBufferMsg_t *msg)
 {
-    Job_t *job;
-    char *ptr, plugin[300], jobid[300];
     const char *hname;
     PSnodes_ID_t nodeId;
 
@@ -690,26 +720,11 @@ void handleDroppedMsg(DDTypedBufferMsg_t *msg)
 
     mlog("%s: msg type '%s (%i)' to host '%s(%i)' got dropped\n", __func__,
 	    msg2Str(msg->type), msg->type, hname, nodeId);
-    ptr = msg->buf;
 
     switch (msg->type) {
 	case PSP_PROLOGUE_START:
 	case PSP_EPILOGUE_START:
-	    /* get plugin */
-	    getString(&ptr, plugin, sizeof(plugin));
-
-	    /* get jobid */
-	    getString(&ptr, jobid, sizeof(jobid));
-
-	    if (!(job = findJobByJobId(plugin, jobid))) {
-		mlog("%s: plugin '%s' job '%s' not found\n", __func__,
-			plugin, jobid);
-		break;
-	    }
-
-	    job->state = PSP_PROLOGUE_START ?
-			    JOB_CANCEL_PROLOGUE : JOB_CANCEL_EPILOGUE;
-	    stopPElogueExecution(job);
+	    handleDroppedStartMsg(msg);
 	    break;
 	case PSP_PROLOGUE_FINISH:
 	case PSP_EPILOGUE_FINISH:

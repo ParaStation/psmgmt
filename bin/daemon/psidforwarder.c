@@ -1319,9 +1319,7 @@ static int handleSignalFD(int fd, void *info)
     if (WIFSTOPPED(childStatus) || WIFCONTINUED(childStatus)) return 0;
 
     gotSIGCHLD = 1;
-    /* Get rid of now useless selector */
-    Selector_remove(fd);
-    close(fd);
+
     /* Escape from Sselect() */
     Selector_startOver();
 
