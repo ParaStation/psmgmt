@@ -1520,6 +1520,7 @@ static int buildSandboxAndStart(PStask_t *task)
 
     if (!pid) {
 	/* this is the forwarder process */
+	int maxFD = sysconf(_SC_OPEN_MAX);
 
 	PSID_resetSigs();
 	/* keep SIGCHLD blocked */
@@ -1536,7 +1537,7 @@ static int buildSandboxAndStart(PStask_t *task)
 	/* Start with connection to syslog */
 	closelog();
 	/* Then all the rest */
-	for (i=0; i<getdtablesize(); i++) {
+	for (i=0; i<maxFD; i++) {
 	    if (i!=STDIN_FILENO && i!=STDOUT_FILENO && i!=STDERR_FILENO
 		&& i!=socketfds[1]) {
 		close(i);
