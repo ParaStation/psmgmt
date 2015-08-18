@@ -112,14 +112,14 @@ int PSID_kill(pid_t pid, int sig, uid_t uid)
 
     if (!forkPid) {
 	/* the killing process */
-	int error, fd;
+	int error, fd, maxFD = sysconf(_SC_OPEN_MAX);
 
 	PSID_resetSigs();
 	signal(SIGCHLD, SIG_DFL);
 	PSID_blockSig(0, SIGCHLD);
 
 	/* close all fds except the control channel and stdin/stdout/stderr */
-	for (fd=0; fd<getdtablesize(); fd++) {
+	for (fd=0; fd<maxFD; fd++) {
 	    if (fd!=STDIN_FILENO && fd!=STDOUT_FILENO && fd!=STDERR_FILENO
 		&& fd!=cntrlfds[1]) {
 		close(fd);
