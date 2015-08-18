@@ -656,7 +656,7 @@ static void handle_PS_JobStateRes(DDTypedBufferMsg_t *msg)
 	    deleteJob(jobid);
 	}
     } else if ((alloc = findAlloc(jobid))) {
-	if (!res || job->state == JOB_EXIT) {
+	if (!res || alloc->state == JOB_EXIT) {
 	    sendEpilogueComplete(jobid, 0);
 	    deleteAlloc(jobid);
 	}
