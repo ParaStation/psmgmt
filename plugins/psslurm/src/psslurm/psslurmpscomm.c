@@ -761,7 +761,7 @@ static void handle_PS_SignalTasks(DDTypedBufferMsg_t *msg)
 
     /* signal tasks */
     mlog("%s: id '%u:%u'\n", __func__, jobid, stepid);
-    signalTasks(step->uid, &step->tasks, signal, group);
+    signalTasks(step->jobid, step->uid, &step->tasks, signal, group);
 }
 
 void forwardSlurmMsg(Slurm_Msg_t *sMsg, Connection_Forward_t *fw)
