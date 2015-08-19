@@ -24,4 +24,10 @@ void startPElogue(uint32_t jobid, uid_t uid, gid_t gid, uint32_t nrOfNodes,
 
 int handlePElogueFinish(void *data);
 
+int handleTaskPrologue(char *taskPrologue, uint32_t rank,
+	uint32_t jobid, pid_t task_pid);
+
+int startTaskEpilogues(Step_t *step);
+
+void execTaskEpilogues(void *data, int rerun);
 #endif
