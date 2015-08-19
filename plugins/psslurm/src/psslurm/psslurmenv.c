@@ -147,6 +147,80 @@ static char *getCPUsPerNode(Job_t *job)
 }
 
 /**
+ * @brief calculates the tasks per node
+ *
+ * We need this to set SLURM_TASKS_PER_NODE in sbatch environment
+ * since we do not have this information provided by slurm.
+ *
+ * The returned array has to be freed using ufree()
+ *
+ * In case of an error, NULL is returned
+ */
+static uint16_t * calcTasksPerNode(Job_t *job) {
+
+    uint32_t N, n, i;
+    uint16_t *tasksPerNode;
+
+    N = job->nrOfNodes;
+    n = job->np;
+
+    if (N == 0 || n == 0) {
+	return NULL;
+    }
+
+    tasksPerNode = umalloc(N * sizeof(tasksPerNode));
+
+    for (i = 0; i < N; i++) {
+	tasksPerNode[i] = n / N + ((i < (n % N)) ? 1 : 0);
+    }
+    return tasksPerNode;
+}
+
+/**
+ * @brief create string for SLURM_TASKS_PER_NODE
+ *
+ * @param tasksPerNode array with the number of tasks for each node
+ * @param nrOfNodes    number of nodes, length of @a tasksPerNode
+ * @param str          pointer to an allocated string
+ * @param strsize      length of @a str
+ */
+static char * getTasksPerNode(uint16_t tasksPerNode[], uint32_t nrOfNodes) {
+
+    char *buffer = NULL;
+    size_t bufSize = 0;
+    uint32_t i;
+    uint16_t current, last, count;
+    char tmp[21];
+
+    if (nrOfNodes == 0) return NULL;
+
+    count = 0;
+    current = 0;
+    last = tasksPerNode[0]; /* for loop initialization */
+    for (i = 0; i <= nrOfNodes; i++) {
+	if (i != nrOfNodes) { /* don't do this in the last iteration */
+	    current = tasksPerNode[i];
+	    if (current == last) {
+		count++;
+		continue;
+	    }
+	}
+
+	if (count == 1) {
+	    snprintf(tmp, sizeof(tmp), "%u,", last);
+	} else {
+	    snprintf(tmp, sizeof(tmp), "%u(x%d),", last, count);
+	}
+	str2Buf(tmp, &buffer, &bufSize);
+
+	last = current;
+	count = 1;
+    }
+    buffer[strlen(buffer)-1] = '\0'; //override last comma
+    return buffer;
+}
+
+/**
  * @brief
  *
  * env set by slurmctld:
@@ -163,6 +237,7 @@ void setSlurmEnv(Job_t *job)
     Gres_Cred_t *gres;
     size_t listSize = 0;
     uint32_t count = 0;
+    uint16_t *tasksPerNode;
 
     /* MISSING BATCH VARS:
      *
@@ -202,7 +277,17 @@ void setSlurmEnv(Job_t *job)
     envSet(&job->env, "SLURM_JOB_CPUS_PER_NODE", cpus);
     ufree(cpus);
 
-    /* TODO: SLURM_TASKS_PER_NODE */
+    /* set SLURM_TASKS_PER_NODE for intel mpi */
+
+    tasksPerNode = calcTasksPerNode(job);
+    if (tasksPerNode) {
+	cpus = getTasksPerNode(tasksPerNode, job->nrOfNodes);
+	ufree(tasksPerNode);
+    } else {
+	cpus = getCPUsPerNode(job);
+    }
+    envSet(&job->env, "SLURM_TASKS_PER_NODE", cpus);
+    ufree(cpus);
 
     if (job->arrayTaskId != NO_VAL) {
 	snprintf(tmp, sizeof(tmp), "%u", job->arrayJobId);
@@ -426,7 +511,7 @@ static char * genMemBindString(Step_t *step) {
 
 void setTaskEnv(Step_t *step)
 {
-    char *val, tmp[128];
+    char *val, tmp[1024];
     mode_t slurmUmask;
 
     snprintf(tmp, sizeof(tmp), "%u", step->tpp);
@@ -552,6 +637,10 @@ void setTaskEnv(Step_t *step)
     if (step->memBindType & MEM_BIND_NONE) {
 	envSet(&step->env, "__PSI_NO_MEMBIND", "1");
     }
+
+    /* set SLURM_TASKS_PER_NODE */
+    val = getTasksPerNode(step->tasksToLaunch, step->nrOfNodes);
+    envSet(&step->env, "SLURM_TASKS_PER_NODE", val);
 
     removeSpankOptions(&step->env);
 }

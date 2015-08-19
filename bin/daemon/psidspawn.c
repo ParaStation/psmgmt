@@ -1107,7 +1107,7 @@ static void execForwarder(PStask_t *task, int daemonfd)
     struct timeval timeout = { .tv_sec = 30, .tv_usec = 0};
 
     /* Block until the forwarder has handled all output */
-    PSID_blockSig(1, SIGCHLD);
+    PSID_blockSIGCHLD(1);
 
     /* setup the environment; done here to pass it to forwarder, too */
     setenv("PWD", task->workingdir, 1);
@@ -1521,7 +1521,7 @@ static int buildSandboxAndStart(PStask_t *task)
     }
 
     /* fork the forwarder */
-    blocked = PSID_blockSig(1, SIGCHLD);
+    blocked = PSID_blockSIGCHLD(1);
     pid = fork();
     /* save errno in case of error */
     eno = errno;
@@ -1564,7 +1564,7 @@ static int buildSandboxAndStart(PStask_t *task)
 
 	execForwarder(task, socketfds[1]);
     }
-    PSID_blockSig(blocked, SIGCHLD);
+    PSID_blockSIGCHLD(blocked);
 
     /* this is the parent process */
 

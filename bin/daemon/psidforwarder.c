@@ -1332,6 +1332,9 @@ static int registerSelectHandlers(void)
 
     sigemptyset(&mask);
     sigaddset(&mask, SIGCHLD);
+
+    /* Make sure SIGCHLD is blocked by signal mask and open signalfd
+     * SIGCHLD must stay blocked as long as signalfd is in use. */
     PSID_blockSig(1, SIGCHLD);
 
     if ((signalFD = signalfd(-1, &mask, 0)) == -1) {
@@ -1449,7 +1452,6 @@ void PSID_forwarder(PStask_t *task, int daemonfd, int eno)
     stdoutSock = task->stdout_fd;
     stderrSock = task->stderr_fd;
 
-    PSID_blockSig(1, SIGCHLD);
     signal(SIGUSR1, sighandler);
     signal(SIGTTIN, sighandler);
     signal(SIGPIPE, sighandler);
