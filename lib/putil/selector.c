@@ -177,6 +177,17 @@ int Selector_register(int fd, Selector_CB_t selectHandler, void *info)
 {
     Selector_t *selector = findSelector(fd);
 
+    if (fd < 0 || fd >= FD_SETSIZE) {
+	logger_print(logger, -1, "%s: fd %d is invalid\n", __func__, fd);
+	if (fd < 0) {
+	    errno = EINVAL;
+	} else {
+	    errno = ERANGE;
+	}
+
+	return -1;
+    }
+
     /* Test if a selector is already registered on fd */
     if (selector && !selector->deleted) {
 	logger_print(logger, -1,

@@ -654,7 +654,7 @@ static void handle_PS_JobStateRes(DDTypedBufferMsg_t *msg)
 	    deleteJob(jobid);
 	}
     } else if ((alloc = findAlloc(jobid))) {
-	if (!res || job->state == JOB_EXIT) {
+	if (!res || alloc->state == JOB_EXIT) {
 	    sendEpilogueComplete(jobid, 0);
 	    deleteAlloc(jobid);
 	}
@@ -759,7 +759,7 @@ static void handle_PS_SignalTasks(DDTypedBufferMsg_t *msg)
 
     /* signal tasks */
     mlog("%s: id '%u:%u'\n", __func__, jobid, stepid);
-    signalTasks(step->uid, &step->tasks, signal, group);
+    signalTasks(step->jobid, step->uid, &step->tasks, signal, group);
 }
 
 void forwardSlurmMsg(Slurm_Msg_t *sMsg, Connection_Forward_t *fw)
