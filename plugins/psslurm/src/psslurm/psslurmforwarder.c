@@ -73,7 +73,7 @@ static int jobCallback(int32_t exit_status, char *errMsg,
     }
 
     /* make sure all processes are gone */
-    signalTasks(job->uid, &job->tasks, SIGKILL, -1);
+    signalTasks(job->jobid, job->uid, &job->tasks, SIGKILL, -1);
 
     job->state = JOB_COMPLETE;
     mdbg(PSSLURM_LOG_JOB, "%s: job '%u' in '%s'\n", __func__,

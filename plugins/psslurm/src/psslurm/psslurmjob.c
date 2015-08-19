@@ -685,11 +685,13 @@ int deleteJob(uint32_t jobid)
     return 1;
 }
 
-void signalTasks(uid_t uid, PS_Tasks_t *tasks, int signal, int32_t group)
+void signalTasks(uint32_t jobid, uid_t uid, PS_Tasks_t *tasks, int signal,
+		    int32_t group)
 {
     list_t *pos, *tmp;
     PS_Tasks_t *task;
     PStask_t *child;
+    int count = 0;
 
     list_for_each_safe(pos, tmp, &tasks->list) {
 	if (!(task = list_entry(pos, PS_Tasks_t, list))) return;
@@ -698,12 +700,17 @@ void signalTasks(uid_t uid, PS_Tasks_t *tasks, int signal, int32_t group)
 	    if (group > -1 && child->group != (PStask_group_t) group) continue;
 	    if (child->forwardertid == task->forwarderTID &&
 		child->uid == uid) {
-		mlog("%s: kill(%i) signal '%i' group '%i'\n", __func__,
-			PSC_getPID(child->tid), signal, child->group);
+		mdbg(PSSLURM_LOG_PROCESS, "%s: kill(%i) signal '%i' group '%i'"
+			" job '%u' \n", __func__, PSC_getPID(child->tid),
+			signal, child->group, jobid);
 		kill(PSC_getPID(child->tid), signal);
+		count++;
 	    }
 	}
     }
+
+    mlog("%s: killed %i processes with signal '%i' of job '%u'\n", __func__,
+	    count, signal, jobid);
 }
 
 int signalStep(Step_t *step, int signal)
@@ -716,7 +723,7 @@ int signalStep(Step_t *step, int signal)
 
     /* if we are not the mother superior we just signal all our local tasks */
     if (step->nodes[0] != PSC_getMyID()) {
-	signalTasks(step->uid, &step->tasks, signal, group);
+	signalTasks(step->jobid, step->uid, &step->tasks, signal, group);
 	return ret;
     }
 
@@ -726,7 +733,7 @@ int signalStep(Step_t *step, int signal)
 	    if (step->fwdata) {
 		ret = signalForwarderChild(step->fwdata, signal);
 	    }
-	    signalTasks(step->uid, &step->tasks, signal, group);
+	    signalTasks(step->jobid, step->uid, &step->tasks, signal, group);
 	    send_PS_SignalTasks(step, signal, group);
 	    break;
 	case SIGWINCH:
@@ -738,12 +745,12 @@ int signalStep(Step_t *step, int signal)
 	    if (step->fwdata) {
 		ret = signalForwarderChild(step->fwdata, signal);
 	    } else {
-		signalTasks(step->uid, &step->tasks, signal, group);
+		signalTasks(step->jobid, step->uid, &step->tasks, signal, group);
 		send_PS_SignalTasks(step, signal, group);
 	    }
 	    break;
 	default:
-	    signalTasks(step->uid, &step->tasks, signal, group);
+	    signalTasks(step->jobid, step->uid, &step->tasks, signal, group);
 	    send_PS_SignalTasks(step, signal, group);
     }
 

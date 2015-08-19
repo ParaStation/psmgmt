@@ -429,7 +429,9 @@ static void resetSignalHandling()
 static void initChild(int fwpid)
 {
     PS_DataBuffer_t data = { .buf = NULL};
-    int fd;
+    int fd, maxFD;
+
+    maxFD = sysconf(_SC_OPEN_MAX) > 1024 ? 1024 : sysconf(_SC_OPEN_MAX);
 
     /* needed or ioctl(TIOCSCTTY) will fail! */
     if ((child_sid = setsid()) == -1) {
@@ -463,7 +465,7 @@ static void initChild(int fwpid)
     }
 
     /* close all fd, except for stdout, stderr */
-    for (fd=0; fd<getdtablesize(); fd++) {
+    for (fd=0; fd<maxFD; fd++) {
 	if (fd == fwdata->stdIn[0] || fd == fwdata->stdOut[0] ||
 	    fd == fwdata->stdErr[0] || fd == fwdata->stdOut[1] ||
 	    fd == fwdata->stdErr[1] || fd == fwdata->stdIn[1]) continue;
