@@ -1,3 +1,231 @@
+Version psmgmt-5.0.48:
+======================
+------------------------------------------------------------------------
+r9181 | eicker | 2015-08-10 19:15:34 +0200 (Mon, 10 Aug 2015) | 2 lines
+
+Bugfix: Suppress the disfigurement discussed in jrt:#394
+
+------------------------------------------------------------------------
+r9180 | eicker | 2015-08-10 19:09:28 +0200 (Mon, 10 Aug 2015) | 3 lines
+
+Enhancement: Introduce PSP_tryPutTypedMsgBuf() and make the PSP_*put*MsgBuf()
+    family of calls more modular.
+
+------------------------------------------------------------------------
+r9179 | eicker | 2015-08-10 10:51:23 +0200 (Mon, 10 Aug 2015) | 3 lines
+
+Bugfix: According to signal(2) catching SIGFPE (and SIGILL) in order to
+    perform a normal shutdown of psid is a bad idea (jrt:#424)
+
+------------------------------------------------------------------------
+r9178 | eicker | 2015-07-17 22:05:20 +0200 (Fri, 17 Jul 2015) | 3 lines
+
+Adapt dyn-resource example plugin to new HOOK parameters and apply
+    general enhancements.
+
+------------------------------------------------------------------------
+r9177 | eicker | 2015-07-17 22:01:28 +0200 (Fri, 17 Jul 2015) | 7 lines
+
+Bugfix: Fix bookkeeping when tpp is different from 1.
+Bugfix: Present error message when dynamic reservation fails.
+Enhancement: Allow to suspend and resume jobs and resources with reservations.
+Enhancement: Provide more information to the RM when releasing dynamical
+    resources (PSIDHOOK_RELS_PART_DYNAMIC).
+Fix various typos and documentation comments.
+
+------------------------------------------------------------------------
+r9176 | eicker | 2015-07-17 21:40:48 +0200 (Fri, 17 Jul 2015) | 2 lines
+
+Enhancement: Allow to print smaller CPU-sets via PSCPU_print_part()
+
+------------------------------------------------------------------------
+r9175 | krempel | 2015-07-13 12:11:41 +0200 (Mon, 13 Jul 2015) | 2 lines
+
+Bugfix: Handling of AdminUsers configuration
+
+------------------------------------------------------------------------
+r9174 | eicker | 2015-07-10 18:28:54 +0200 (Fri, 10 Jul 2015) | 2 lines
+
+Enhancement: Put ppn more towards the in in error-message.
+
+------------------------------------------------------------------------
+r9173 | eicker | 2015-07-10 18:27:46 +0200 (Fri, 10 Jul 2015) | 2 lines
+
+Beautify debug messages.
+
+------------------------------------------------------------------------
+r9172 | eicker | 2015-07-10 17:34:15 +0200 (Fri, 10 Jul 2015) | 2 lines
+
+Bugfix: Ensure myUse is big enough for huge partThrds (JURECA #273)
+
+------------------------------------------------------------------------
+r9171 | eicker | 2015-07-03 20:12:25 +0200 (Fri, 03 Jul 2015) | 3 lines
+
+Enhancement: Also pass the reservation ID to the
+    PSIDHOOK_RELS_PART_DYNAMIC hook. For now just definition and tests.
+
+------------------------------------------------------------------------
+r9170 | eicker | 2015-07-01 11:39:36 +0200 (Wed, 01 Jul 2015) | 2 lines
+
+Bugfix: Guard psaccount's periodicMain (j3t:#679)
+
+------------------------------------------------------------------------
+r9169 | eicker | 2015-06-29 16:17:37 +0200 (Mon, 29 Jun 2015) | 2 lines
+
+Bugfix: Fix typo introduced in r9165
+
+------------------------------------------------------------------------
+r9168 | krempel | 2015-06-29 13:46:47 +0200 (Mon, 29 Jun 2015) | 2 lines
+
+Fix psconfig configuration template
+
+------------------------------------------------------------------------
+r9167 | krempel | 2015-06-29 13:41:29 +0200 (Mon, 29 Jun 2015) | 2 lines
+
+Fix reading of resource limits with psconfig
+
+------------------------------------------------------------------------
+r9166 | eicker | 2015-06-24 18:20:40 +0200 (Wed, 24 Jun 2015) | 3 lines
+
+Rename nB -> nBytes in PSIDpart_cleanupSlots()
+Fix various typos in documentation comments
+
+------------------------------------------------------------------------
+r9165 | eicker | 2015-06-24 18:09:05 +0200 (Wed, 24 Jun 2015) | 2 lines
+
+Enhancement: Enable to count released resources within a reservation.
+
+------------------------------------------------------------------------
+r9164 | krempel | 2015-06-15 12:58:32 +0200 (Mon, 15 Jun 2015) | 2 lines
+
+psconfig: Support environment setting in KEY=VALUE style
+
+------------------------------------------------------------------------
+r9163 | moschny | 2015-06-11 18:47:52 +0200 (Thu, 11 Jun 2015) | 1 line
+
+The config template has been renamed recently.
+------------------------------------------------------------------------
+r9162 | eicker | 2015-06-10 18:25:14 +0200 (Wed, 10 Jun 2015) | 2 lines
+
+Bugfix: Yet another fix for psc:#192 now in the selector context.
+
+------------------------------------------------------------------------
+r9161 | moschny | 2015-06-09 22:04:45 +0200 (Tue, 09 Jun 2015) | 1 line
+
+For older git versions, the -z option to check-attr works only on the input, not the output, so don't use it.
+------------------------------------------------------------------------
+r9160 | moschny | 2015-06-09 19:42:35 +0200 (Tue, 09 Jun 2015) | 1 line
+
+Make script executable.
+------------------------------------------------------------------------
+r9159 | eicker | 2015-06-09 18:59:27 +0200 (Tue, 09 Jun 2015) | 2 lines
+
+Bugfix: prevent getPSIEnv() from wrongly matching longer names (psc:#183)
+
+------------------------------------------------------------------------
+r9158 | moschny | 2015-06-09 17:53:25 +0200 (Tue, 09 Jun 2015) | 1 line
+
+Script for expanding RCS-style keywords.
+------------------------------------------------------------------------
+r9157 | moschny | 2015-06-09 17:52:21 +0200 (Tue, 09 Jun 2015) | 1 line
+
+When NODIRTY is non-empty, pass --no-dirty to vcversion.
+------------------------------------------------------------------------
+r9156 | moschny | 2015-06-09 11:59:37 +0200 (Tue, 09 Jun 2015) | 1 line
+
+Merge changes from psbuild.
+------------------------------------------------------------------------
+r9155 | eicker | 2015-06-03 18:57:09 +0200 (Wed, 03 Jun 2015) | 2 lines
+
+Fix some typos in comments
+
+------------------------------------------------------------------------
+r9154 | eicker | 2015-06-03 17:30:39 +0200 (Wed, 03 Jun 2015) | 2 lines
+
+Fix some misbehaved whitespace
+
+------------------------------------------------------------------------
+r9153 | krempel | 2015-06-03 12:13:42 +0200 (Wed, 03 Jun 2015) | 2 lines
+
+Add vipsconfig template for psconfig configuration
+
+------------------------------------------------------------------------
+r9152 | eicker | 2015-06-02 19:33:07 +0200 (Tue, 02 Jun 2015) | 2 lines
+
+Implement mpiexec's -ppn option (#845)
+
+------------------------------------------------------------------------
+r9151 | eicker | 2015-06-02 19:19:01 +0200 (Tue, 02 Jun 2015) | 2 lines
+
+Fix some incorrect whitespace
+
+------------------------------------------------------------------------
+r9150 | eicker | 2015-06-02 18:09:49 +0200 (Tue, 02 Jun 2015) | 2 lines
+
+Clean up PSP_INFO_LIST_GETNODES (never used due to PSP_INFO_LIST_RESNODES)
+
+------------------------------------------------------------------------
+r9149 | eicker | 2015-06-02 16:27:22 +0200 (Tue, 02 Jun 2015) | 2 lines
+
+Fix typo in documentation-comment
+
+------------------------------------------------------------------------
+r9148 | eicker | 2015-06-01 20:04:57 +0200 (Mon, 01 Jun 2015) | 2 lines
+
+Bugfix: Yet another fix for psc:#192.
+
+------------------------------------------------------------------------
+r9147 | eicker | 2015-06-01 19:47:38 +0200 (Mon, 01 Jun 2015) | 2 lines
+
+Bugfix: Prevent segfault if libedit (not updating rl_line_buffer) is used.
+
+------------------------------------------------------------------------
+r9146 | eicker | 2015-06-01 16:47:22 +0200 (Mon, 01 Jun 2015) | 2 lines
+
+Minor whitespace fixes.
+
+------------------------------------------------------------------------
+r9145 | eicker | 2015-05-28 17:17:47 +0200 (Thu, 28 May 2015) | 2 lines
+
+Bugfix: Fix logic in logger's panic output.
+
+------------------------------------------------------------------------
+r9144 | eicker | 2015-05-19 19:15:08 +0200 (Tue, 19 May 2015) | 2 lines
+
+Bugfix: Block SIGCHLD during dynamic memory operations in RDP (psc:#192)
+
+------------------------------------------------------------------------
+r9143 | moschny | 2015-05-19 00:58:09 +0200 (Tue, 19 May 2015) | 1 line
+
+Add missing parentheses.
+------------------------------------------------------------------------
+r9142 | eicker | 2015-04-24 17:56:47 +0200 (Fri, 24 Apr 2015) | 2 lines
+
+Bugfix: Enforce RDP-connections getting closed on both sides (#1681)
+
+------------------------------------------------------------------------
+r9141 | eicker | 2015-04-17 19:14:59 +0200 (Fri, 17 Apr 2015) | 3 lines
+
+Enhancement: Close unneeded file-descriptor before exec()ing the actual
+    client process.
+
+------------------------------------------------------------------------
+r9140 | moschny | 2015-03-27 17:21:39 +0100 (Fri, 27 Mar 2015) | 1 line
+
+Do not output garbage in case the daemon version string is not properly set.
+------------------------------------------------------------------------
+r9139 | eicker | 2015-03-27 12:32:33 +0100 (Fri, 27 Mar 2015) | 2 lines
+
+Bugfix: Make pssh using the remote settings for a user's shell (#2414)
+
+------------------------------------------------------------------------
+r9135 | eicker | 2015-03-24 14:52:25 +0100 (Tue, 24 Mar 2015) | 2 lines
+
+New release (psmgmt-5.0.47-3)
+
+------------------------------------------------------------------------
+
+
 Version psmgmt-5.0.47-3:
 ========================
 ------------------------------------------------------------------------
