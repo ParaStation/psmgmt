@@ -35,4 +35,6 @@ int execStepFWIO(Step_t *step);
 int handleExecClient(void * data);
 int handleForwarderInit(void * data);
 
+void switchUser(char *username, uid_t uid, gid_t gid, char *cwd);
+
 #endif

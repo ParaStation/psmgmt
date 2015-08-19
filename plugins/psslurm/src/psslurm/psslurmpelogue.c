@@ -12,12 +12,18 @@
  *
  * \author
  * Michael Rauh <rauh@par-tec.com>
+ * Stephan Krempel <krempel@par-tec.com>
  *
  */
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include <errno.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <signal.h>
+
 
 #include "psslurmlog.h"
 #include "psslurmjob.h"
@@ -25,10 +31,13 @@
 #include "psslurmforwarder.h"
 #include "psslurmpscomm.h"
 #include "psslurmenv.h"
+#include "psslurmconfig.h"
 
 #include "slurmcommon.h"
 #include "peloguehandles.h"
 #include "pspamhandles.h"
+#include "pluginmalloc.h"
+#include "psaccounthandles.h"
 
 #include "psslurmpelogue.h"
 
@@ -207,3 +216,245 @@ int handlePElogueFinish(void *data)
 
     return 0;
 }
+
+int handleTaskPrologue(char *taskPrologue, uint32_t rank,
+			uint32_t jobid, pid_t task_pid)
+{
+    int pipe_fd[2];
+    pid_t child;
+    char *child_argv[2];
+    FILE *output;
+    char envstr[21], line[4096];
+    char *saveptr, *key;
+    size_t last;
+
+    int status;
+
+    if (!taskPrologue || *taskPrologue == '\0') return 0;
+
+    mlog("%s: starting task prologue '%s' for rank '%u' of job '%u'\n",
+	    __func__, taskPrologue, rank, jobid);
+
+    if (access(taskPrologue, R_OK | X_OK) < 0) {
+        mwarn(errno, "task prologue '%s' not accessable", taskPrologue);
+	return -1;
+    }
+
+    if (pipe(pipe_fd) < 0) {
+        mlog("%s: open pipe failed\n", __func__);
+	return -1;
+    }
+
+    child_argv[0] = taskPrologue;
+    child_argv[1] = NULL;
+
+    if ((child = fork()) < 0) {
+        mlog("%s: fork failed\n", __func__);
+	return -1;
+    }
+
+    if (child == 0) {
+	/* This is the child */
+	close (pipe_fd[0]);
+	dup2 (pipe_fd[1], 1);
+	close (pipe_fd[1]);
+	close(0);
+	close(2);
+	setpgrp();
+
+	/* Set SLURM_TASK_PID variable in environment */
+	sprintf(envstr, "%d", task_pid);
+	setenv("SLURM_TASK_PID", envstr, 1);
+
+        /* Execute task prologue */
+	execvp (child_argv[0], child_argv);
+        mlog("%s: exec for task prologue '%s' failed in rank %d of job %d\n",
+		__func__, taskPrologue, rank, jobid);
+	return -1;
+    }
+
+    /* This is the parent */
+    close(pipe_fd[1]);
+
+    output = fdopen(pipe_fd[0], "r");
+    if (output == NULL) {
+        mlog("%s: cannot open pipe output\n", __func__);
+	return -1;
+    }
+
+    while (fgets(line, sizeof(line), output) != NULL) {
+
+	last = strlen(line)-1;
+	if (line[last] == '\n') line[last] = '\0';
+
+	/* only interested in lines "export key=value" */
+	key = strtok_r(line, " ", &saveptr);
+
+	if (key == NULL || strcmp(key, "export") != 0) {
+	    continue;
+	}
+
+	mlog("%s: setting '%s' for rank %d of job %d as requested by task"
+		" prologue\n", __func__, saveptr, rank, jobid);
+
+	if (putenv(saveptr) != 0) {
+	    mwarn(errno, "Failed to set task prologue requested environment");
+	}
+    }
+
+    fclose(output);
+    close(pipe_fd[0]);
+    close(pipe_fd[1]);
+
+    while (1) {
+	if(waitpid(child, &status, 0) < 0) {
+	    if (errno == EINTR)	continue;
+	    killpg(child, SIGKILL);
+	    return status;
+	}
+	return 0;
+    }
+}
+
+/*
+ * This is called if the task epiloge forwarder finished
+ * It starts the epilogue forwarder.
+ */
+static int taskEpiloguesCallback(int32_t exit_status, char *errMsg,
+	size_t errLen, void *data)
+{
+    Forwarder_Data_t *fwdata = data;
+    Step_t *step = fwdata->userData;
+    Alloc_t *alloc;
+
+    /* run epilogue now */
+    if ((alloc = findAlloc(step->jobid)) &&
+	alloc->terminate &&
+	alloc->nodes[0] == PSC_getMyID()) {
+	/* run epilogue now */
+	mlog("%s: starting epilogue for step '%u:%u'\n", __func__, step->jobid,
+		step->stepid);
+	alloc->state = JOB_EPILOGUE;
+	startPElogue(step->jobid, step->uid, step->gid, step->nrOfNodes,
+			step->nodes, &step->env, &step->spankenv, 1, 0);
+    }
+
+    step->fwdata = NULL;
+    return 0;
+}
+
+int startTaskEpilogues(Step_t *step)
+{
+    Forwarder_Data_t *fwdata;
+    char jobid[100];
+    char fname[300];
+    int grace;
+
+    getConfValueI(&SlurmConfig, "KillWait", &grace);
+    if (grace < 3) grace = 30;
+
+    fwdata = getNewForwarderData();
+
+    snprintf(jobid, sizeof(jobid), "%u", step->jobid);
+    snprintf(fname, sizeof(fname), "psslurm-taskepilog:%s", jobid);
+    fwdata->pTitle = ustrdup(fname);
+
+    fwdata->jobid = ustrdup(jobid);
+    fwdata->userData = step;
+    fwdata->graceTime = grace;
+    fwdata->killSession = psAccountsendSignal2Session; //XXX
+    fwdata->callback = taskEpiloguesCallback;
+    fwdata->timeoutChild = 5;
+    fwdata->childFunc = execTaskEpilogues;
+
+    if ((startForwarder(fwdata)) != 0) {
+	mlog("%s: starting forwarder for task epilogue '%u' failed\n",
+		__func__, step->jobid);
+	return 0;
+    }
+
+    return 1;
+}
+
+/*
+ * Executes the task epilogue script for each task in a step in its own
+ * forwarder
+ */
+void execTaskEpilogues(void *data, int rerun)
+{
+    Forwarder_Data_t *fwdata = data;
+    Step_t *step = fwdata->userData;
+
+    uint16_t i;
+    uint32_t rank;
+    pid_t* childs;
+    char *argv[2];
+    char envstr[21];
+    int status;
+
+    errno = 0;
+
+    if (!step->taskEpilog || *(step->taskEpilog) == '\0') return;
+
+    if (access(step->taskEpilog, R_OK | X_OK) < 0) {
+        mwarn(errno, "task epilogue '%s' not accessable", step->taskEpilog);
+	return;
+    }
+
+    setTaskEnv(step);
+
+    for (i = 0; i < step->env.cnt; i++) {
+	putenv(step->env.vars[i]);
+    }
+
+    argv[0] = step->taskEpilog;
+    argv[1] = NULL;
+
+    setpgrp();
+
+    childs = umalloc(step->tasksToLaunch[step->myNodeIndex] * sizeof(pid_t));
+
+    for (i = 0; i < step->tasksToLaunch[step->myNodeIndex]; i++) {
+	rank = step->globalTaskIds[step->myNodeIndex][i];
+
+	if ((childs[i] = fork()) < 0) {
+            mlog("%s: fork failed\n", __func__);
+	    continue;
+	}
+
+	if (childs[i] == 0) {
+	    /* This is the child */
+	    switchUser(step->username, step->uid, step->gid, step->cwd);
+	    setpgrp();
+
+	    setRankEnv(rank, step);
+
+	    sprintf(envstr, "%d", rank);
+	    setenv("SLURM_PROCID", envstr, 1);
+
+            /* execute task epilogue */
+	    mlog("%s: starting task epilogue '%s' for rank %u of job %u\n",
+		__func__, step->taskEpilog, rank, step->jobid);
+
+	    execvp (argv[0], argv);
+            mlog("%s: exec for task epilogue '%s' failed for rank %u of job"
+		    " %u\n", __func__, step->taskEpilog, rank, step->jobid);
+	    ufree(childs);
+	    exit(-1);
+	}
+    }
+
+    /* This is the parent */
+    for (i = 0; i < step->tasksToLaunch[step->myNodeIndex]; i++) {
+	while(1) {
+	    if(waitpid(childs[i], &status, 0) < 0) {
+		if (errno == EINTR) continue;
+		killpg(childs[i], SIGKILL);
+		break;
+	    }
+	}
+    }
+    ufree(childs);
+}
+
+/* vim: set ts=8 sw=4 tw=0 sts=4 noet:*/
