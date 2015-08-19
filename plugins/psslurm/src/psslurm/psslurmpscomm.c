@@ -587,15 +587,22 @@ void send_PS_JobState(uint32_t jobid, PStask_ID_t dest)
 
 void send_PS_fwLaunchTasks(Step_t *step, Slurm_Msg_t *sMsg)
 {
+    PS_DataBuffer_t data = { .buf = NULL };
     PSnodes_ID_t myID = PSC_getMyID();
     uint32_t i;
+
+    addUint32ToMsg(sMsg->head.addr, &data);
+    addUint16ToMsg(sMsg->head.port, &data);
+    addMemToMsg(sMsg->data->buf, sMsg->data->bufUsed, &data);
 
     for (i=0; i<step->nrOfNodes; i++) {
 	if (step->nodes[i] == myID) continue;
 
-	sendFragMsg(sMsg->data, PSC_getTID(step->nodes[i], 0),
+	sendFragMsg(&data, PSC_getTID(step->nodes[i], 0),
 			PSP_CC_PLUG_PSSLURM, PSP_LAUNCH_TASKS);
     }
+
+    ufree(data.buf);
 }
 
 static void handle_PS_JobExit(DDTypedBufferMsg_t *msg)
@@ -903,10 +910,12 @@ static void handleFWlaunchTasks(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     Slurm_Msg_t sMsg;
     uint32_t temp;
     Connection_Forward_t fw;
+    char *ptr = data->buf;
 
     initSlurmMsg(&sMsg);
-    sMsg.ptr = data->buf;
-    sMsg.data = data;
+    getUint32(&ptr, &sMsg.head.addr);
+    getUint16(&ptr, &sMsg.head.port);
+    sMsg.ptr = ptr;
 
     /* strip header and munge auth */
     getSlurmMsgHeader(&sMsg, &fw);
