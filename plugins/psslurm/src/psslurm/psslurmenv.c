@@ -308,7 +308,6 @@ void setSlurmEnv(Job_t *job)
     }
 
     if (job->hostname) {
-	mlog("%s: set hostname:%s\n", __func__, job->hostname);
 	envSet(&job->env, "HOSTNAME", job->hostname);
     }
 

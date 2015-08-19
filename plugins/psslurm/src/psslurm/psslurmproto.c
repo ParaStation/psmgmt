@@ -1110,8 +1110,45 @@ static void handleDaemonStatus(Slurm_Msg_t *sMsg)
 
 static void handleJobNotify(Slurm_Msg_t *sMsg)
 {
-    mlog("%s: implement me!\n", __func__);
-    sendSlurmRC(sMsg, ESLURM_NOT_SUPPORTED);
+    Step_t *step;
+    char **ptr = &sMsg->ptr;
+    char *msg = NULL;
+    uint32_t jobid, stepid;
+
+    getUint32(ptr, &jobid);
+    getUint32(ptr, &stepid);
+
+    if (stepid == SLURM_BATCH_SCRIPT) {
+	step = findStepByJobid(jobid);
+    } else {
+	step = findStepById(jobid, stepid);
+    }
+
+    if (!step) {
+	mlog("%s: step '%u.%u' to signal not found\n", __func__, jobid, stepid);
+	sendSlurmRC(sMsg, ESLURM_INVALID_JOB_ID);
+	return;
+    }
+
+    /* check permissions */
+    if (!(checkAuthorizedUser(sMsg->head.uid, step->uid))) {
+	mlog("%s: request from invalid user '%u'\n", __func__, sMsg->head.uid);
+	sendSlurmRC(sMsg, ESLURM_USER_ID_MISSING);
+	return;
+    }
+
+    msg = getStringM(ptr);
+    /*
+    mlog("%s: send message '%s' to step '%u:%u'\n", __func__, msg, step->jobid,
+	    step->stepid);
+    */
+
+    printChildMessage(step->fwdata, "psslurm: ", strlen("psslurm: "), STDERR, 0);
+    printChildMessage(step->fwdata, msg, strlen(msg), STDERR, 0);
+    printChildMessage(step->fwdata, "\n", strlen("\n"), STDERR, 0);
+
+    sendSlurmRC(sMsg, SLURM_SUCCESS);
+    ufree(msg);
 }
 
 static void handleForwardData(Slurm_Msg_t *sMsg)
@@ -2219,7 +2256,8 @@ void sendTaskExit(Step_t *step, int *ctlPort, int *ctlAddr)
     }
 
     if (!taskCount) {
-	mlog("%s: not tasks found!\n", __func__);
+	mlog("%s: no tasks found for step %i:%i in state '%s'\n", __func__,
+		step->jobid, step->stepid, strJobState(step->state));
     }
 
     while (count < taskCount) {

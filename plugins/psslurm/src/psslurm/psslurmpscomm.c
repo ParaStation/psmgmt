@@ -362,7 +362,7 @@ static void handleTaskIds(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     int32_t ret;
     Step_t *step;
     PStask_t *task;
-    uint32_t i;
+    uint32_t i, z, x;
 
     /* we don't know the pid, since the message is from the spawner process. But
      * we know the logger. So we have to find the task structure and look there
@@ -417,8 +417,11 @@ SPAWN_FAILED:
 	sendSlurmRC(&step->srunControlMsg, SLURM_SUCCESS);
 	step->tidsLen = step->np;
 	step->tids = umalloc(sizeof(uint32_t) * step->np);
+	x = 0;
 	for (i=0; i<step->nrOfNodes; i++) {
-	    step->tids[i] = PSC_getTID(step->nodes[i], rand()%128);
+	    for (z=0; z<step->globalTaskIdsLen[i]; z++) {
+		step->tids[x++] = PSC_getTID(step->nodes[i], rand()%128);
+	    }
 	}
 	sendTaskPids(step);
 
@@ -584,15 +587,22 @@ void send_PS_JobState(uint32_t jobid, PStask_ID_t dest)
 
 void send_PS_fwLaunchTasks(Step_t *step, Slurm_Msg_t *sMsg)
 {
+    PS_DataBuffer_t data = { .buf = NULL };
     PSnodes_ID_t myID = PSC_getMyID();
     uint32_t i;
+
+    addUint32ToMsg(sMsg->head.addr, &data);
+    addUint16ToMsg(sMsg->head.port, &data);
+    addMemToMsg(sMsg->data->buf, sMsg->data->bufUsed, &data);
 
     for (i=0; i<step->nrOfNodes; i++) {
 	if (step->nodes[i] == myID) continue;
 
-	sendFragMsg(sMsg->data, PSC_getTID(step->nodes[i], 0),
+	sendFragMsg(&data, PSC_getTID(step->nodes[i], 0),
 			PSP_CC_PLUG_PSSLURM, PSP_LAUNCH_TASKS);
     }
+
+    ufree(data.buf);
 }
 
 static void handle_PS_JobExit(DDTypedBufferMsg_t *msg)
@@ -900,10 +910,12 @@ static void handleFWlaunchTasks(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     Slurm_Msg_t sMsg;
     uint32_t temp;
     Connection_Forward_t fw;
+    char *ptr = data->buf;
 
     initSlurmMsg(&sMsg);
-    sMsg.ptr = data->buf;
-    sMsg.data = data;
+    getUint32(&ptr, &sMsg.head.addr);
+    getUint16(&ptr, &sMsg.head.port);
+    sMsg.ptr = ptr;
 
     /* strip header and munge auth */
     getSlurmMsgHeader(&sMsg, &fw);
@@ -1348,6 +1360,9 @@ void handleSpawnFailed(DDErrorMsg_t *msg)
 	    case 2:
 		task->exitCode = 0x200;
 		break;
+	    case 13:
+		task->exitCode = 0x0d00;
+		break;
 	    default:
 		task->exitCode = 1;
 	}
@@ -1355,6 +1370,7 @@ void handleSpawnFailed(DDErrorMsg_t *msg)
 	if (!step->loggerTID) step->loggerTID = forwarder->loggertid;
 	if (step->fwdata) sendFWtaskInfo(step->fwdata, task);
     }
+    sendEnableSrunIO(step);
 
 FORWARD_SPAWN_MSG:
     if (oldSpawnHandler) oldSpawnHandler((DDBufferMsg_t *) msg);

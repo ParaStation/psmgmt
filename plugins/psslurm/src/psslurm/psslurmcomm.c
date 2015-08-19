@@ -1127,6 +1127,9 @@ void srunEnableIO(Step_t *step)
 {
     uint32_t i, myTaskIdsLen;
     uint32_t *myTaskIds;
+    static int enabled = 0;
+
+    if (enabled) return;
 
     if (step->stdInRank != -1) {
 	/* close stdin for all other ranks */
@@ -1143,6 +1146,7 @@ void srunEnableIO(Step_t *step)
 	mlog("%s: Selector_register(%i) srun I/O socket failed\n", __func__,
 		step->srunIOMsg.sock);
     }
+    enabled = 1;
 }
 
 int srunSendIO(uint16_t type, uint16_t taskid, int sock,
