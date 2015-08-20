@@ -886,6 +886,7 @@ static int openListenSocket(Forwarder_Data_t *data)
 {
     struct sockaddr_un sa;
     char *tmpName, buf[50];
+    int opt = 1;
 
     if (data->listenSocketName) {
 	pluginlog("%s: listenSocket already in use '%s'.", __func__,
@@ -908,6 +909,12 @@ static int openListenSocket(Forwarder_Data_t *data)
     memset(&sa, 0, sizeof(sa));
     sa.sun_family = AF_UNIX;
     strncpy(sa.sun_path, data->listenSocketName, sizeof(sa.sun_path));
+
+    if ((setsockopt(data->listenSocket, SOL_SOCKET, SO_REUSEADDR,
+	    &opt, sizeof(opt))) < 0 ) {
+	pluginwarn(errno, "%s: setsockopt failed, socket:%i ", __func__,
+		data->listenSocket);
+    }
 
     /*
      * bind the socket to the right address

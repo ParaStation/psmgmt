@@ -197,13 +197,18 @@ int __doReadExt(int fd, void *buffer, size_t toread, size_t *ret,
 int __listenUnixSocket(char *socketName, const char *func)
 {
     struct sockaddr_un sa;
-    int sock = -1;
+    int sock = -1, opt = 1;
 
     sock = socket(PF_UNIX, SOCK_STREAM, 0);
 
     memset(&sa, 0, sizeof(sa));
     sa.sun_family = AF_UNIX;
     strncpy(sa.sun_path, socketName, sizeof(sa.sun_path));
+
+    if ((setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt))) < 0 ) {
+	pluginwarn(errno, "%s: setsockopt failed, socket:%i ", __func__,
+		sock);
+    }
 
     /*
      * bind the socket to the right address
