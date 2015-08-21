@@ -1578,6 +1578,7 @@ static void handleKillReq(Slurm_Msg_t *sMsg, uint32_t jobid,
 	handleTerminateJob(sMsg, job, SIGTERM);
     } else {
 	signalStepsByJobid(jobid, SIGTERM);
+	goto SEND_SUCCESS;
     }
 
     return;
