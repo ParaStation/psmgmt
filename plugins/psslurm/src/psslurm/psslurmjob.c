@@ -863,11 +863,9 @@ void addJobInfosToBuffer(PS_DataBuffer_t *buffer)
     addUint32ToMsg(count, buffer);
     for (i=0; i<count; i++) {
 	addUint32ToMsg(jobids[i], buffer);
-	mlog("%s: jobid '%u'\n", __func__, jobids[i]);
     }
     for (i=0; i<count; i++) {
 	addUint32ToMsg(stepids[i], buffer);
-	mlog("%s: stepids '%u'\n", __func__, stepids[i]);
     }
 
     ufree(jobids);
