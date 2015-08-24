@@ -769,6 +769,13 @@ void redirectIORank(Step_t *step, int rank)
 	    exit(1);
 	}
     }
+
+    if (step->pty && rank >0) {
+	close(STDIN_FILENO);
+	fd = open("/dev/null", O_RDONLY);
+	dup2(fd, STDIN_FILENO);
+    }
+
 }
 
 void redirectStepIO(Forwarder_Data_t *fwdata, Step_t *step)
