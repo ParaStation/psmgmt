@@ -67,14 +67,17 @@ typedef enum {
 } ExAccTaskIds_t;
 
 typedef struct {
+    uint64_t maxThreadsTotal;
+    uint64_t maxVsizeTotal;
+    uint64_t maxRssTotal;
     uint64_t maxThreads;
     uint64_t maxVsize;
     uint64_t maxRss;
-    uint64_t avgThreads;
+    uint64_t avgThreadsTotal;
     uint64_t avgThreadsCount;
-    uint64_t avgVsize;
+    uint64_t avgVsizeTotal;
     uint64_t avgVsizeCount;
-    uint64_t avgRss;
+    uint64_t avgRssTotal;
     uint64_t avgRssCount;
     uint64_t cutime;
     uint64_t cstime;
@@ -82,8 +85,6 @@ typedef struct {
     uint64_t minCputime;
     uint64_t pageSize;
     uint32_t numTasks;
-    uint64_t mem;
-    uint64_t vmem;
     uint64_t maxMajflt;
     uint64_t totMajflt;
     uint64_t totCputime;
