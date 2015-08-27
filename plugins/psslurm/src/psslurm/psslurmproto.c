@@ -2087,15 +2087,15 @@ int addSlurmAccData(uint8_t accType, pid_t childPid, PStask_ID_t loggerTID,
 	return 0;
     }
 
-    mlog("%s: adding account data: maxVsize '%zu' maxRss '%zu' pageSize '%lu'"
+    mlog("%s: adding account data: maxVsize '%zu' maxRss '%zu' pageSize '%lu' "
 	    "u_sec '%lu' u_usec '%lu' s_sec '%lu' s_usec '%lu' "
-	    "num_tasks '%u' mem '%lu' vmem '%lu' avg cpufreq '%.2fG'\n",
+	    "num_tasks '%u' avgVsizeTotal '%lu' avgRssTotal '%lu' avg cpufreq '%.2fG'\n",
 	    __func__, accData.maxVsize, accData.maxRss, accData.pageSize,
 	    accData.rusage.ru_utime.tv_sec,
 	    accData.rusage.ru_utime.tv_usec,
 	    accData.rusage.ru_stime.tv_sec,
 	    accData.rusage.ru_stime.tv_usec,
-	    accData.numTasks, accData.mem, accData.vmem,
+	    accData.numTasks, accData.avgVsizeTotal, accData.avgRssTotal,
 	    ((double) accData.cpuFreq / (double) accData.numTasks)
 		/ (double) 1048576);
 
@@ -2107,15 +2107,27 @@ int addSlurmAccData(uint8_t accType, pid_t childPid, PStask_ID_t loggerTID,
     addUint32ToMsg(accData.rusage.ru_stime.tv_sec, data);
     addUint32ToMsg(accData.rusage.ru_stime.tv_usec, data);
 
+    if (accData.avgVsizeCount > 0 &&
+	   accData.avgVsizeCount != accData.numTasks) {
+	mlog("%s: warning: total Vsize is not sum of #tasks values (%lu!=%u)\n",
+		__func__, accData.avgVsizeCount, accData.numTasks);
+    }
+
     /* max vsize */
-    addUint64ToMsg(accData.vmem, data);
-    /* total vsize */
-    addUint64ToMsg(accData.maxVsize / 1024, data);
+    addUint64ToMsg(accData.maxVsize, data);
+    /* total vsize (sum of average vsize of all tasks, slurm divides) */
+    addUint64ToMsg(accData.avgVsizeTotal, data);
+
+    if (accData.avgRssCount > 0 &&
+	    accData.avgRssCount != accData.numTasks) {
+	mlog("%s: warning: total RSS is not sum of #tasks values (%lu!=%u)\n",
+		__func__, accData.avgRssCount, accData.numTasks);
+    }
 
     /* max rss */
-    addUint64ToMsg(accData.mem, data);
-    /* total rss */
-    addUint64ToMsg(accData.maxRss * (accData.pageSize / 1024), data);
+    addUint64ToMsg(accData.maxRss, data);
+    /* total rss (sum of average rss of all tasks, slurm divides) */
+    addUint64ToMsg(accData.avgRssTotal, data);
 
     /* max/total major page faults */
     addUint64ToMsg(accData.maxMajflt, data);
@@ -2410,3 +2422,5 @@ void sendEpilogueComplete(uint32_t jobid, uint32_t rc)
     sendSlurmMsg(-1, MESSAGE_EPILOG_COMPLETE, &body);
     ufree(body.buf);
 }
+
+/* vim: set ts=8 sw=4 tw=0 sts=4 noet:*/

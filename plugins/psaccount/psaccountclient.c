@@ -141,33 +141,49 @@ Client_t *findJobscriptInClients(Job_t *job)
 
 void addAccDataForClient(Client_t *client, AccountDataExt_t *accData)
 {
-    uint64_t tmp;
+    uint64_t maxRss, maxVsize, tmp;
     double dtmp;
 
-    accData->maxThreads += client->data.maxThreads;
-    accData->maxVsize += client->data.maxVsize;
-    accData->maxRss += client->data.maxRss;
+    maxRss =  client->data.maxRss * (client->pageSize / 1024);
+    maxVsize = client->data.maxVsize / 1024;
 
-    /* mem */
-    tmp =  client->data.maxRss * (client->pageSize / 1024);
-    if (accData->mem < tmp) {
-	accData->mem = tmp;
+
+    /* sum up for maxima totals */
+    accData->maxThreads += client->data.maxThreads;
+    accData->maxRssTotal += maxRss;
+    accData->maxVsizeTotal += maxVsize;
+
+    /* maxima per client */
+    if (accData->maxThreads < client->data.maxThreads) {
+	accData->maxThreads = client->data.maxThreads;
+    }
+
+    if (accData->maxRss < maxRss) {
+	accData->maxRss = maxRss;
 	accData->taskIds[ACCID_MAX_RSS] = client->taskid;
     }
 
-    /* vmem */
-    tmp = client->data.maxVsize / 1024;
-    if (accData->vmem < tmp) {
-	accData->vmem = tmp;;
+    if (accData->maxVsize < maxVsize) {
+	accData->maxVsize = maxVsize;
 	accData->taskIds[ACCID_MAX_VSIZE] = client->taskid;
     }
 
-    accData->avgThreads	+= client->data.avgThreads;
-    accData->avgThreadsCount += client->data.avgThreadsCount;
-    accData->avgVsize += client->data.avgVsize;
-    accData->avgVsizeCount += client->data.avgVsizeCount;
-    accData->avgRss += client->data.avgRss;
-    accData->avgRssCount += client->data.avgRssCount;
+    /* calculate averages per client if data available */
+    if (client->data.avgThreadsCount > 0) {
+        accData->avgThreadsTotal +=
+	    client->data.avgThreads / client->data.avgThreadsCount;
+        accData->avgThreadsCount++;
+    }
+    if (client->data.avgVsizeCount > 0) {
+	accData->avgVsizeTotal +=
+	    client->data.avgVsize / (client->data.avgVsizeCount * 1024);
+	accData->avgVsizeCount++;
+    }
+    if (client->data.avgRssCount > 0) {
+	accData->avgRssTotal += (client->data.avgRss * client->pageSize)
+			/ (client->data.avgRssCount * 1024);
+	accData->avgRssCount++;
+    }
 
     accData->cutime += client->data.cutime;
     accData->cstime += client->data.cstime;
@@ -466,3 +482,5 @@ void updateAllAccClients(Job_t *job)
 	}
     }
 }
+
+/* vim: set ts=8 sw=4 tw=0 sts=4 noet:*/
