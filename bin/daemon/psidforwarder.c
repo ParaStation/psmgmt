@@ -1312,6 +1312,11 @@ again:
  */
 static int handleSignalFD(int fd, void *info)
 {
+    if (gotSIGCHLD) {
+	Selector_startOver();
+	return 0;
+    }
+
     if (verbose) PSIDfwd_printMsgf(STDERR, "%s: Got SIGCHLD\n", tag);
 
     childPID = wait3(&childStatus, WUNTRACED | WCONTINUED | WNOHANG,

@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2014 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2015 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -191,7 +191,7 @@ char* PSC_printTID(PStask_ID_t tid)
 
 void PSC_startDaemon(in_addr_t hostaddr)
 {
-    int sock, fd;
+    int sock, fd, maxFD = sysconf(_SC_OPEN_MAX);
     struct sockaddr_in sa;
 
     PSC_log(PSC_LOG_VERB, "%s(%s)\n",
@@ -209,7 +209,7 @@ void PSC_startDaemon(in_addr_t hostaddr)
     }
 
     /* close all fds except the control channel and stdin/stdout/stderr */
-    for (fd=0; fd<getdtablesize(); fd++) {
+    for (fd=0; fd<maxFD; fd++) {
 	if (fd!=STDIN_FILENO && fd!=STDOUT_FILENO && fd!=STDERR_FILENO) {
 	    close(fd);
 	}

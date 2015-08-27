@@ -191,12 +191,11 @@ static int setMyHostDef(char *hn, char *line, int gres)
 	if ((ptr = strchr(host, '.'))) ptr[0] = '\0';
 	if (gres) {
 	    if (!(strcmp(host, hn))) {
-		mlog("%s: found my gres conf\n", __func__);
 		if (!(parseGresOptions(hostopt))) return 0;
 	    }
 	} else {
 	    if (!(strcmp(host, "DEFAULT"))) {
-		mlog("%s: found default host definition\n", __func__);
+		mlog("%s: found the default host definition\n", __func__);
 		addHostOptions(hostopt);
 	    }
 	    if (!(strcmp(host, hn))) {

@@ -362,7 +362,7 @@ static void handleTaskIds(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     int32_t ret;
     Step_t *step;
     PStask_t *task;
-    uint32_t i;
+    uint32_t i, z, x;
 
     /* we don't know the pid, since the message is from the spawner process. But
      * we know the logger. So we have to find the task structure and look there
@@ -417,8 +417,11 @@ SPAWN_FAILED:
 	sendSlurmRC(&step->srunControlMsg, SLURM_SUCCESS);
 	step->tidsLen = step->np;
 	step->tids = umalloc(sizeof(uint32_t) * step->np);
+	x = 0;
 	for (i=0; i<step->nrOfNodes; i++) {
-	    step->tids[i] = PSC_getTID(step->nodes[i], rand()%128);
+	    for (z=0; z<step->globalTaskIdsLen[i]; z++) {
+		step->tids[x++] = PSC_getTID(step->nodes[i], rand()%128);
+	    }
 	}
 	sendTaskPids(step);
 
@@ -761,7 +764,7 @@ static void handle_PS_SignalTasks(DDTypedBufferMsg_t *msg)
 
     /* signal tasks */
     mlog("%s: id '%u:%u'\n", __func__, jobid, stepid);
-    signalTasks(step->uid, &step->tasks, signal, group);
+    signalTasks(step->jobid, step->uid, &step->tasks, signal, group);
 }
 
 void forwardSlurmMsg(Slurm_Msg_t *sMsg, Connection_Forward_t *fw)

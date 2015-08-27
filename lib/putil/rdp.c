@@ -2182,9 +2182,15 @@ int Rsendto(int node, void *buf, size_t len)
     /* Restore blocked timer */
     Timer_block(timerID, blocked);
 
-    if (retval==-1) {
-	RDP_warn(-1, errno, "%s",  __func__);
-	return retval;
+    if (retval == -1) {
+	if (errno == ENOBUFS) {
+	    /* Message kept in pendList anyhow => report success */
+	    errno = 0;
+	    retval = len;
+	} else {
+	    RDP_warn(-1, errno, "%s",  __func__);
+	    return retval;
+	}
     }
 
     return (retval - sizeof(rdphdr_t));

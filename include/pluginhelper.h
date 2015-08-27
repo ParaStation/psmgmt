@@ -47,5 +47,6 @@ char *trim(char *string);
 char *ltrim(char *string);
 char *rtrim(char *string);
 char *trim_quotes(char *string);
+char *printTime(time_t time);
 
 #endif

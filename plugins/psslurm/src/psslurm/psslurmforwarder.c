@@ -73,7 +73,7 @@ static int jobCallback(int32_t exit_status, char *errMsg,
     }
 
     /* make sure all processes are gone */
-    signalTasks(job->uid, &job->tasks, SIGKILL, -1);
+    signalTasks(job->jobid, job->uid, &job->tasks, SIGKILL, -1);
 
     job->state = JOB_COMPLETE;
     mdbg(PSSLURM_LOG_JOB, "%s: job '%u' in '%s'\n", __func__,
@@ -310,7 +310,7 @@ int handleExecClient(void * data)
 {
     PStask_t *task = data;
     Step_t *step;
-    int i, count = 0, fd;
+    int i, count = 0;
     char *ptr;
     uint32_t jobid = 0, stepid = SLURM_BATCH_SCRIPT;
 
@@ -335,17 +335,8 @@ int handleExecClient(void * data)
 	}
     }
 
-    /* redirect stdin to /dev/null for all ranks > 0 to /dev/null */
     ptr = task->environ[count++];
     while (ptr) {
-	if (!(strncmp(ptr, "SLURM_PTY_WIN_ROW", 17))) {
-	    if (task->rank >0) {
-		close(STDIN_FILENO);
-		fd = open("/dev/null", O_RDONLY);
-		dup2(fd, STDIN_FILENO);
-	    }
-	}
-
 	if (!(strncmp(ptr, "SLURM_STEPID=", 13))) {
 	    sscanf(ptr+13, "%u", &stepid);
 	}
@@ -519,7 +510,7 @@ static void execInteractiveJob(void *data, int rerun)
     */
 
     if (step->multiProg) {
-	argv = urealloc(argv, sizeof(char *) * (5 * step->np));
+	argv = urealloc(argv, sizeof(char *) * (10 * step->np));
 	setupArgsFromMultiProg(step, argv, &argc);
     } else {
 	if (!SERIAL_MODE) {
