@@ -157,3 +157,14 @@ char *trim_quotes(char *string)
 
     return string;
 }
+
+char *printTime(time_t time)
+{
+    struct tm *ts;
+    static char buf[512];
+
+    ts = localtime(&time);
+    strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S", ts);
+
+    return buf;
+}

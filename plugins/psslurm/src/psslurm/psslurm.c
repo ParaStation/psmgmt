@@ -85,7 +85,7 @@ plugin_dep_t dependencies[5];
 void startPsslurm()
 {
     dependencies[0].name = "psmunge";
-    dependencies[0].version = 1;
+    dependencies[0].version = 3;
     dependencies[1].name = "psaccount";
     dependencies[1].version = 23;
     dependencies[2].name = "pelogue";

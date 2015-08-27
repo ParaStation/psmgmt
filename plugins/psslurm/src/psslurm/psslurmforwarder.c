@@ -520,7 +520,7 @@ static void execInteractiveJob(void *data, int rerun)
     */
 
     if (step->multiProg) {
-	argv = urealloc(argv, sizeof(char *) * (5 * step->np));
+	argv = urealloc(argv, sizeof(char *) * (10 * step->np));
 	setupArgsFromMultiProg(step, argv, &argc);
     } else {
 	if (!SERIAL_MODE) {

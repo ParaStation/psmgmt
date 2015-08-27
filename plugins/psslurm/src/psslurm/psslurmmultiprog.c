@@ -197,7 +197,6 @@ void setupArgsFromMultiProg(Step_t *step, char **argv, int *argc)
     char *lastExe = NULL, *lastArgs = NULL;
     char np[128];
 
-    /* TODO: must grow argv dynamically */
     mp = umalloc(step->np * sizeof(Multi_Prog_t));
     for (i=0; i<step->np; i++) mp[i].exe = mp[i].args = NULL;
 

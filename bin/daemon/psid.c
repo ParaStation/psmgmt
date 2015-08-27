@@ -278,7 +278,7 @@ int PSID_blockSIGCHLD(int block)
 
 	if (SIGCHLDpending) {
 	    int blocked = PSID_blockSig(1, SIGCHLD);
-	    PSID_log(-1, "%s: still a pending signal.\n", __func__);
+	    PSID_log(PSID_LOG_SIGNAL, "%s: still pending signals\n", __func__);
 	    PSID_handleSIGCHLD(SIGCHLD);
 	    PSID_blockSig(blocked, SIGCHLD);
 	}

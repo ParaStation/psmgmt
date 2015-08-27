@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014 - 2015 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -24,6 +24,7 @@
 
 #include "plugin.h"
 #include "pluginmalloc.h"
+#include "pluginhelper.h"
 
 #include "psmungelog.h"
 
@@ -36,7 +37,7 @@ static int isInit = 0;
 
 /** psid plugin requirements */
 char name[] = "psmunge";
-int version = 2;
+int version = 3;
 int requiredAPI = 109;
 plugin_dep_t dependencies[1];
 
@@ -92,6 +93,28 @@ int mungeDecodeBuf(const char *cred, void **buf, int *len,
     return mungeDecodeCtx(cred, defDecCtx, buf, len, uid, gid);
 }
 
+void mungeLogCredTime(munge_ctx_t ctx)
+{
+    munge_err_t err;
+    time_t dTime, eTime;
+
+    err = munge_ctx_get(ctx, MUNGE_OPT_ENCODE_TIME, &eTime);
+    if (err != EMUNGE_SUCCESS) {
+	mlog("%s: getting encode time failed: %s\n",
+		__func__, munge_strerror(err));
+    } else {
+	mlog("%s: encode time '%s'\n", __func__, printTime(eTime));
+    }
+
+    err = munge_ctx_get(ctx, MUNGE_OPT_DECODE_TIME, &dTime);
+    if (err != EMUNGE_SUCCESS) {
+	mlog("%s: getting decode time failed: %s\n",
+		__func__, munge_strerror(err));
+    } else {
+	mlog("%s: decode time '%s'\n", __func__, printTime(dTime));
+    }
+}
+
 int mungeDecodeCtx(const char *cred, munge_ctx_t ctx, void **buf,
 		    int *len, uid_t *uid, gid_t *gid)
 {
@@ -99,6 +122,7 @@ int mungeDecodeCtx(const char *cred, munge_ctx_t ctx, void **buf,
 
     if ((err = munge_decode(cred, ctx, buf, len, uid, gid)) != EMUNGE_SUCCESS) {
 	mlog("%s: decode failed: %s\n", __func__, munge_strerror(err));
+	if (err == EMUNGE_CRED_EXPIRED) mungeLogCredTime(ctx);
 	return 0;
     }
 
