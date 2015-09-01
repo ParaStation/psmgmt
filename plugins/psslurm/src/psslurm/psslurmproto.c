@@ -485,7 +485,9 @@ void handleLaunchTasks(Slurm_Msg_t *sMsg)
 	step->srunControlMsg.sock = sMsg->sock;
 	step->srunControlMsg.head.forward = sMsg->head.forward;
 	step->srunControlMsg.recvTime = sMsg->recvTime;
-	send_PS_fwLaunchTasks(step, sMsg);
+	if (!(getenv("__PSSLURM_NO_DIST_TASK_INFO"))) {
+	    send_PS_fwLaunchTasks(step, sMsg);
+	}
 
 	if (!stepid && !job) {
 	    alloc->state = step->state = JOB_PROLOGUE;
