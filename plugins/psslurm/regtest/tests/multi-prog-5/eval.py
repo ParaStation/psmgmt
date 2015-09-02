@@ -13,15 +13,11 @@ for p in helper.partitions():
 	helper.check_job_completed_ok(p)
 
 	lines = [x for x in helper.job_stdout_lines(p) if x != "Submitted batch job %s" % helper.job_id(p)]
-	test.check(6 == len(lines))
+	test.check(2 == len(lines))
 
 	for line in lines:
-		test.check("1: 1" == line or \
-		           "2: 1" == line or \
-		           "3: 2" == line or \
-		           "4: 2" == line or \
-		           "0: 3" == line or \
-		           "5: 3" == line)
+		test.check("0: 0" == line or \
+		           "1: 1" == line)
 
 
 test.quit()
