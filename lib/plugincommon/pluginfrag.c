@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2012 - 2014 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2012 - 2015 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -19,6 +19,7 @@
 #include <stdio.h>
 #include <math.h>
 #include <time.h>
+#include <errno.h>
 
 #include "psidcomm.h"
 #include "pluginmalloc.h"
@@ -202,12 +203,11 @@ int __sendFragMsg(PS_DataBuffer_t *data, PStask_ID_t dest, int16_t headType,
     }
 
     if (extLog) {
-	pluginlog("%s: msgCount '%u' totalSize '%lu' uID '%u'\n", __func__,
-		fhead.msgCount, fhead.totalSize, fhead.uID);
+	pluginlog("%s(%s): msgCount '%u' totalSize '%lu' uID '%u'\n", __func__,
+		caller, fhead.msgCount, fhead.totalSize, fhead.uID);
     }
 
     for (i=0; i<fhead.msgCount; i++) {
-
 	msgPtr = msg.buf;
 	msg.header.len = sizeof(msg.header);
 	msg.header.len += sizeof(msg.type);
@@ -224,13 +224,11 @@ int __sendFragMsg(PS_DataBuffer_t *data, PStask_ID_t dest, int16_t headType,
 	/* add data */
 	memcpy(msgPtr, dataPtr, toCopy);
 	msg.header.len += toCopy;
-	dataPtr += toCopy;
-	dataLeft -= toCopy;
 
 	if (extLog) {
 	    pluginlog("%s: send(%s) msg(%i): bufSize:%u origBufSize:%lu "
 		    "dataLen:%u " "dataLeft:%u header.len:%u\n", __func__,
-		    caller, i, bufSize, BufTypedMsgSize, toCopy, dataLeft,
+		    caller, i+1, bufSize, BufTypedMsgSize, toCopy, dataLeft,
 		    msg.header.len);
 	}
 
@@ -240,8 +238,17 @@ int __sendFragMsg(PS_DataBuffer_t *data, PStask_ID_t dest, int16_t headType,
 	    res = sendPSMsg(&msg);
 	}
 
-	if (res == -1) return -1;
+	if (res == -1 && errno != EWOULDBLOCK) {
+	    pluginwarn(errno, "%s(%s): %s failed, msg '%i/%i' dataLeft '%u'",
+			__func__, caller,
+			sendPSMsg ? "sendPSMsg()" : "sendMsg()",
+			i+1, fhead.msgCount, dataLeft);
+	    return -1;
+	}
+
 	count += res;
+	dataPtr += toCopy;
+	dataLeft -= toCopy;
 
 	if (dataLeft <= 0) break;
     }
