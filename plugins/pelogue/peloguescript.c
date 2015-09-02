@@ -117,9 +117,8 @@ void signalPElogue(Job_t *job, int signal, char *reason)
 	mdbg(PELOGUE_LOG_PSIDCOM, "%s: send to %i [%i->%i]\n", __func__, id,
 		msg.header.sender, msg.header.dest);
 	if ((sendMsg(&msg)) == -1 && errno != EWOULDBLOCK) {
-	    mwarn("%s: sendMsg() to '%s' failed ", __func__,
+	    mwarn(errno, "%s: sendMsg() to '%s' failed ", __func__,
 		    PSC_printTID(msg.header.sender));
-
 	}
     }
 }
