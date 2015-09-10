@@ -22,4 +22,6 @@ int setHWthreads(Step_t *step);
 
 void verbosePinningOutput(Step_t *step, PS_Tasks_t *task);
 
+void doMemBind(Step_t *step, PStask_t *task);
+
 #endif

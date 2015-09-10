@@ -147,7 +147,9 @@ am__uninstall_files_from_dir = { \
   }
 am__installdirs = "$(DESTDIR)$(plugindir)"
 LTLIBRARIES = $(plugin_LTLIBRARIES)
-psslurm_la_DEPENDENCIES = $(libplugincommon) $(libslurmcommon)
+am__DEPENDENCIES_1 =
+psslurm_la_DEPENDENCIES = $(libplugincommon) $(libslurmcommon) \
+	$(am__DEPENDENCIES_1)
 am_psslurm_la_OBJECTS = psslurm_la-psslurm.lo psslurm_la-psslurmlog.lo \
 	psslurm_la-psslurmpscomm.lo psslurm_la-psslurmconfig.lo \
 	psslurm_la-psslurmjob.lo psslurm_la-psslurmforwarder.lo \
@@ -421,7 +423,7 @@ psslurm_la_SOURCES = psslurm.c psslurm.h psslurmlog.c psslurmlog.h \
 psslurm_la_CPPFLAGS = $(AM_CPPFLAGS) -DPLUGINDIR=\"$(plugindir)\" \
 	-DLOCALSTATEDIR=\"$(localstatedir)\"
 
-psslurm_la_LIBADD = $(libpsi) $(libplugincommon) $(libslurmcommon)
+psslurm_la_LIBADD = $(libpsi) $(libplugincommon) $(libslurmcommon) $(NUMA_LIBS)
 all: all-am
 
 .SUFFIXES:

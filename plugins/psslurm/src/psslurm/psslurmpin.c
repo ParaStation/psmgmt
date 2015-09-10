@@ -18,7 +18,9 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#ifdef HAVE_LIBNUMA
 #include <numa.h>
+#endif
 
 #define _GNU_SOURCE
 #define __USE_GNU
@@ -945,5 +947,244 @@ void verbosePinningOutput(Step_t *step, PS_Tasks_t *task) {
 	ufree(verbstr);
     }
 }
+
+#ifdef HAVE_LIBNUMA
+# ifdef HAVE_NUMA_ALLOCATE_NODEMASK
+/*
+ * Parse the string @a maskStr containing a hex number (with or without
+ * leading "0x") and set nodemask accordingly.
+ *
+ * If the sting is not a valid hex number, each bit in nodemask becomes set.
+ */
+static void parseNUMAmask(struct bitmask *nodemask, char *maskStr, int32_t rank) {
+
+    char *mask, *curchar, *endptr;
+    size_t len;
+    uint32_t curbit;
+    uint16_t i, j, digit;
+
+    mask = maskStr;
+
+    if (strncmp(maskStr, "0x", 2) == 0) {
+	/* skip "0x", treat always as hex */
+	mask += 2;
+    }
+
+    mask = ustrdup(mask); /* gets destroyed */
+
+    len = strlen(mask);
+    curchar = mask + (len - 1);
+    curbit = 0;
+    for (i = len; i > 0; i--) {
+	digit = strtol(curchar, &endptr, 16);
+	if (*endptr != '\0') {
+	    mlog("%s: error parsing memory mask '%s'\n", __func__, maskStr);
+	    goto error;
+	}
+
+	for (j = 0; j < 4; j++) {
+	    if (digit & (1 << j)) {
+		if ((long int)(curbit + j) > numa_max_node()) {
+		    mlog("%s: invalid memory mask entry '%s' for rank %d\n",
+			    __func__, maskStr, rank);
+		    fprintf(stderr, "Invalid memory mask entry '%s' for rank"
+			    " %d\n", maskStr, rank);
+		    goto error;
+		}
+		if (numa_bitmask_isbitset(numa_get_mems_allowed(),
+			    curbit + j)) {
+		    numa_bitmask_setbit(nodemask, curbit + j);
+		} else {
+		    mlog("%s: setting bit %d in memory mask not allowed in"
+			    " rank %d\n", __func__, curbit + j, rank);
+		    fprintf(stderr, "Not allowed to set bit %d in memory mask"
+			    " of rank %d\n", curbit + j, rank);
+		}
+	    }
+	}
+	curbit += 4;
+	*curchar = '\0';
+	curchar--;
+    }
+
+    ufree(mask);
+    return;
+
+error:
+    ufree(mask);
+    numa_bitmask_setall(nodemask);
+}
+# endif
+
+/**
+ * @brief Do memory binding.
+ *
+ * This is handling the binding types map_mem, mask_mem and rank.
+ * The types local (default) and none are handled directly by the deamon.
+ *
+ * When using libnuma with API v1, this is a noop, just giving a warning.
+ *
+ * @param step  Step structure
+ * @param task  Task structure
+ *
+ * @return No return value.
+ */
+void doMemBind(Step_t *step, PStask_t *task)
+{
+
+# ifndef HAVE_NUMA_ALLOCATE_NODEMASK
+    mlog("%s: psslurm does not support memory binding types map_mem, mask_mem"
+	    " and rank with libnuma v1\n", __func__);
+    fprintf(stderr, "Memory binding type not supported with used libnuma"
+	   " version");
+    return;
+# else
+
+    const char delimiters[] = ",";
+    uint32_t local_tid;
+    char *next, *saveptr, *ents, *myent, *endptr;
+    char **entarray;
+    unsigned int numents;
+    uint16_t mynode;
+
+    struct bitmask *nodemask = NULL;
+
+    if (!(step->memBindType & MEM_BIND_MAP)
+	    && !(step->memBindType & MEM_BIND_MASK)
+	    && !(step->memBindType & MEM_BIND_RANK)) {
+	/* things are handled elsewhere */
+	return;
+    }
+
+    if (!PSIDnodes_bindMem(PSC_getMyID()) || getenv("__PSI_NO_MEMBIND")) {
+	    // info messages already printed in doClamps()
+        return;
+    }
+
+    if (numa_available()==-1) {
+	fprintf(stderr, "NUMA not available:");
+	return;
+    }
+
+    nodemask = numa_allocate_nodemask();
+    if (!nodemask) {
+	fprintf(stderr, "Allocation of nodemask failed:");
+	return;
+    }
+
+    local_tid = getLocalRankID(task->rank, step, step->myNodeIndex);
+
+    if (step->memBindType & MEM_BIND_RANK) {
+	if (local_tid > (unsigned int)numa_max_node()) {
+	    mlog("%s: memory binding to ranks not possible for rank %d."
+		    " (local rank %d > #numa_nodes %d)\n", __func__,
+		    task->rank, local_tid, numa_max_node());
+	    fprintf(stderr, "Memory binding to ranks not possible for rank %d,"
+		    " local rank %d larger than max numa node %d.",
+		    task->rank, local_tid, numa_max_node());
+	    if (nodemask) numa_free_nodemask(nodemask);
+	    return;
+	}
+	if (numa_bitmask_isbitset(numa_get_mems_allowed(), local_tid)) {
+	    numa_bitmask_setbit(nodemask, local_tid);
+	} else {
+	    mlog("%s: setting bit %d in memory mask not allowed in rank"
+		    " %d\n", __func__, local_tid, task->rank);
+	    fprintf(stderr, "Not allowed to set bit %d in memory mask"
+		    " of rank %d\n", local_tid, task->rank);
+	}
+	numa_set_membind(nodemask);
+	if (nodemask) numa_free_nodemask(nodemask);
+	return;
+    }
+
+    ents = ustrdup(step->memBind);
+    entarray = umalloc(step->tasksToLaunch[step->myNodeIndex] * sizeof(char*));
+    numents = 0;
+    myent = NULL;
+    entarray[0] = NULL;
+
+    next = strtok_r(ents, delimiters, &saveptr);
+    while (next && (numents < step->tasksToLaunch[step->myNodeIndex])) {
+	entarray[numents++] = next;
+	if (numents == local_tid+1) {
+	    myent = next;
+	    break;
+	}
+	next = strtok_r(NULL, delimiters, &saveptr);
+    }
+
+    if (!myent) {
+	myent = entarray[local_tid % numents];
+    }
+
+    if (!myent) {
+        numa_set_membind(numa_all_nodes_ptr);
+	if (step->memBindType & MEM_BIND_MASK) {
+	    mlog("%s: invalid mem mask string '%s'\n", __func__, ents);
+	}
+	else if (step->memBindType & MEM_BIND_MAP) {
+	    mlog("%s: invalid mem map string '%s'\n", __func__, ents);
+	}
+	goto cleanup;
+    }
+
+    if (step->memBindType & MEM_BIND_MAP) {
+	mynode = 0;
+
+	if (strncmp(myent, "0x", 2) == 0) {
+	    mynode = strtoul (myent+2, &endptr, 16);
+	} else {
+	    mynode = strtoul (myent, &endptr, 10);
+	}
+
+	if (*endptr == '\0' && mynode <= numa_max_node()) {
+	    if (numa_bitmask_isbitset(numa_get_mems_allowed(), mynode)) {
+		numa_bitmask_setbit(nodemask, mynode);
+	    } else {
+		mlog("%s: setting bit %d in memory mask not allowed in rank"
+			" %d\n", __func__, mynode, task->rank);
+		fprintf(stderr, "Not allowed to set bit %d in memory mask"
+			" of rank %d\n", mynode, task->rank);
+	    }
+	} else {
+	    mlog("%s: invalid memory map entry '%s' (%d) for rank %d\n",
+		    __func__, myent, mynode, task->rank);
+	    fprintf(stderr, "Invalid memory map entry '%s' for rank %d\n",
+		    myent, task->rank);
+            numa_set_membind(numa_all_nodes_ptr);
+	    goto cleanup;
+	}
+	mdbg(PSSLURM_LOG_PART, "%s: (bind_map) node '%i' local task '%i'"
+		" memstr '%s'\n", __func__, step->myNodeIndex, local_tid, myent);
+
+    } else if (step->memBindType & MEM_BIND_MASK) {
+	parseNUMAmask(nodemask, myent, task->rank);
+    }
+
+    int i;
+    for (i = 0; i <= numa_max_node(); i++) {
+	int s = numa_bitmask_isbitset(nodemask, i) ? 1 : 0;
+	mlog("%d", s);
+    }
+    mlog("\n");
+
+
+    numa_set_membind(nodemask);
+
+    cleanup:
+
+    ufree(ents);
+    ufree(entarray);
+    if (nodemask) numa_free_nodemask(nodemask);
+# endif
+
+    return;
+}
+#else
+void doMemBind(Step_t *step, PStask_t *task) {
+    mlog("%s: No libnuma support: No memory binding\n", __func__);
+}
+#endif
 
 /* vim: set ts=8 sw=4 tw=0 sts=4 noet :*/

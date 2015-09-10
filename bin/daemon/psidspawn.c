@@ -974,9 +974,9 @@ static void execClient(PStask_t *task)
     }
     alarm(0);
 
-    PSIDhook_call(PSIDHOOK_EXEC_CLIENT_USER, task);
-
     doClamps(task);
+
+    PSIDhook_call(PSIDHOOK_EXEC_CLIENT_USER, task);
 
     /* Signal forwarder we're ready for execve() */
     if (write(task->fd, &eno, sizeof(eno)) < 0) {

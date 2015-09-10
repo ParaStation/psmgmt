@@ -44,6 +44,7 @@
 #include "psslurmmultiprog.h"
 #include "psslurmio.h"
 #include "psslurmpelogue.h"
+#include "psslurmpin.h"
 #include "slurmcommon.h"
 
 #include "pluginpty.h"
@@ -369,6 +370,8 @@ int handleExecClient(void * data)
 
 	handleTaskPrologue(step->taskProlog, task->rank, jobid,
 		PSC_getPID(task->tid));
+
+        doMemBind(step, task);
     }
 
     return 0;
