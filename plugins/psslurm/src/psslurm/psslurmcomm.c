@@ -1190,8 +1190,8 @@ int srunSendIO(uint16_t type, uint16_t taskid, int sock,
 	ret -= headLen;
 	written += ret;
 	towrite -= ret;
-	mdbg(PSSLURM_LOG_IO, "%s: ret :%i written :%i towrite: %i\n",
-		__func__, ret, written, towrite);
+	mdbg(PSSLURM_LOG_IO, "%s: fd '%i' ret :%i written :%i towrite: %i\n",
+		__func__, sock, ret, written, towrite);
     }
 
     ufree(data.buf);

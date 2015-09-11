@@ -349,9 +349,6 @@ void stepFinalize(void *data)
     Step_t *step = fwdata->userData;
     uint32_t i, myNodeID = step->myNodeIndex;
 
-    /* send task exit */
-    sendTaskExit(step, sattachCtlSock, sattachAddr);
-
     /* make sure to close all leftover I/O channels */
     for (i=0; i<step->globalTaskIdsLen[myNodeID]; i++) {
 	if (step->outChannels && step->outChannels[i] != 0) {
@@ -361,6 +358,9 @@ void stepFinalize(void *data)
 	    closeIOchannel(fwdata, step->globalTaskIds[myNodeID][i], STDERR);
 	}
     }
+
+    /* send task exit to sattach processes */
+    sendTaskExit(step, sattachCtlSock, sattachAddr);
 
     /* close all sattach sockets */
     for (i=0; i<MAX_SATTACH_SOCKETS; i++) {
@@ -490,6 +490,14 @@ static void handleInfoTasks(void *data, char *ptr)
     list_add_tail(&(task->list), &step->tasks.list);
 }
 
+static void handleStepTimeout(void *data, char *ptr)
+{
+    Forwarder_Data_t *fwdata = data;
+    Step_t *step = fwdata->userData;
+
+    step->timeout = 1;
+}
+
 int stepForwarderMsg(void *data, char *ptr, int32_t cmd)
 {
     switch (cmd) {
@@ -507,6 +515,9 @@ int stepForwarderMsg(void *data, char *ptr, int32_t cmd)
 	    return 1;
 	case CMD_INFO_TASKS:
 	    handleInfoTasks(data, ptr);
+	    return 1;
+	case CMD_STEP_TIMEOUT:
+	    handleStepTimeout(data, ptr);
 	    return 1;
     }
 
@@ -1092,6 +1103,19 @@ void sendFWtaskInfo(Forwarder_Data_t *fwdata, PS_Tasks_t *task)
 
     addInt32ToMsg(CMD_INFO_TASKS, &data);
     addDataToMsg(task, sizeof(*task), &data);
+
+    sendFWMsg(fwdata->controlSocket, &data);
+    ufree(data.buf);
+}
+
+void sendStepTimeout(Forwarder_Data_t *fwdata)
+{
+    PS_DataBuffer_t data = { .buf = NULL };
+
+    /* can happen, if forwarder is already gone */
+    if (!fwdata) return;
+
+    addInt32ToMsg(CMD_STEP_TIMEOUT, &data);
 
     sendFWMsg(fwdata->controlSocket, &data);
     ufree(data.buf);

@@ -207,7 +207,7 @@ void callbackPElogue(char *jobid, int exit_status, int timeout)
 	    PSC_printTID(job->mother));
 
     /*
-    if ((sendMsg(&msg)) == -1) {
+    if ((sendMsg(&msg)) == -1 && errno != EWOULDBLOCK) {
 	mwarn(errno, "%s: sending message to '%s' failed: ", __func__,
 		PSC_printTID(job->mother));
     }
@@ -468,7 +468,10 @@ void send_PS_JobLaunch(Job_t *job)
 	if (job->nodes[i] == myID) continue;
 
 	msg.header.dest = PSC_getTID(job->nodes[i], 0);
-	sendMsg(&msg);
+	if ((sendMsg(&msg)) == -1 && errno != EWOULDBLOCK) {
+	    mwarn(errno, "%s: sending msg to %s failed ", __func__,
+		    PSC_printTID(msg.header.dest));
+	}
     }
 
     ufree(data.buf);
@@ -506,7 +509,10 @@ void send_PS_JobExit(uint32_t jobid, uint32_t stepid, uint32_t nrOfNodes,
 	if (nodes[i] == myID) continue;
 
 	msg.header.dest = PSC_getTID(nodes[i], 0);
-	sendMsg(&msg);
+	if ((sendMsg(&msg)) == -1 && errno != EWOULDBLOCK) {
+	    mwarn(errno, "%s: sending msg to %s failed ", __func__,
+		    PSC_printTID(msg.header.dest));
+	}
     }
 
     ufree(data.buf);
@@ -549,7 +555,10 @@ void send_PS_SignalTasks(Step_t *step, int signal, PStask_group_t group)
 	if (step->nodes[i] == myID) continue;
 
 	msg.header.dest = PSC_getTID(step->nodes[i], 0);
-	sendMsg(&msg);
+	if ((sendMsg(&msg)) == -1 && errno != EWOULDBLOCK) {
+	    mwarn(errno, "%s: sending msg to %s failed ", __func__,
+		    PSC_printTID(msg.header.dest));
+	}
     }
 
     ufree(data.buf);
@@ -580,11 +589,17 @@ void send_PS_JobState(uint32_t jobid, PStask_ID_t dest)
     msg.header.len += data.bufUsed;
 
     msg.header.dest = dest;
-    sendMsg(&msg);
+    if ((sendMsg(&msg)) == -1 && errno != EWOULDBLOCK) {
+	mwarn(errno, "%s: sending msg to %s failed ", __func__,
+		PSC_printTID(msg.header.dest));
+    }
 
     ufree(data.buf);
 }
 
+/**
+ * should be obsolete.
+ */
 void send_PS_fwLaunchTasks(Step_t *step, Slurm_Msg_t *sMsg)
 {
     PS_DataBuffer_t data = { .buf = NULL };
@@ -705,7 +720,10 @@ static void handle_PS_JobStateReq(DDTypedBufferMsg_t *msg)
     memcpy(msg->buf, data.buf, data.bufUsed);
     msg->header.len += data.bufUsed;
 
-    sendMsg(msg);
+    if ((sendMsg(&msg)) == -1 && errno != EWOULDBLOCK) {
+	mwarn(errno, "%s: sending msg to %s failed ", __func__,
+		PSC_printTID(msg->header.dest));
+    }
 
     ufree(data.buf);
 }

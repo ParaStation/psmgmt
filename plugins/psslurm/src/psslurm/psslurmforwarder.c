@@ -109,6 +109,9 @@ static int stepFWIOcallback(int32_t exit_status, char *errMsg,
 	return 0;
     }
 
+    /* send task exit to srun processes */
+    sendTaskExit(step, NULL, NULL);
+
     /* execute task epilogue for each task on this node */
     execTaskEpilogues(data, 0);
 
@@ -155,7 +158,10 @@ static int stepCallback(int32_t exit_status, char *errMsg,
 	    sendSlurmRC(&step->srunControlMsg, SLURM_ERROR);
 	}
     } else {
-	if (step->exitCode != 0) {
+	/* send task exit to srun processes */
+	sendTaskExit(step, NULL, NULL);
+
+	if (step->exitCode != -1) {
 	    sendStepExit(step, step->exitCode);
 	} else {
 	    if (WIFSIGNALED(exit_status)) {
@@ -653,7 +659,7 @@ int execUserStep(Step_t *step)
     int grace;
 
     getConfValueI(&SlurmConfig, "KillWait", &grace);
-    mlog("%s: grace %u\n", __func__, grace);
+    mlog("%s: %u:%u grace %u\n", __func__, step->jobid, step->stepid, grace);
     if (grace < 3) grace = 30;
 
     fwdata = getNewForwarderData();

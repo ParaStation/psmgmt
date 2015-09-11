@@ -1312,6 +1312,13 @@ again:
  */
 static int handleSignalFD(int fd, void *info)
 {
+    struct signalfd_siginfo fdsi;
+
+    if ((read(fd, &fdsi, sizeof(struct signalfd_siginfo))) == -1) {
+	PSIDfwd_printMsgf(STDERR, "%s: Read on signalfd() failed\n", __func__);
+	return 0;
+    }
+
     if (gotSIGCHLD) {
 	Selector_startOver();
 	return 0;
@@ -1321,6 +1328,7 @@ static int handleSignalFD(int fd, void *info)
 
     childPID = wait3(&childStatus, WUNTRACED | WCONTINUED | WNOHANG,
 	    &childRUsage);
+
     if (WIFSTOPPED(childStatus) || WIFCONTINUED(childStatus)) return 0;
 
     gotSIGCHLD = 1;
@@ -1405,6 +1413,11 @@ static void loop(void)
 		}
 	    }
 	}
+    }
+
+    if (Selector_isRegistered(signalFD)) {
+	Selector_remove(signalFD);
+	close(signalFD);
     }
 
     /* send usage message */

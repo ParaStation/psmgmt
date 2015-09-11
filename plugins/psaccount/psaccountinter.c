@@ -13,6 +13,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <errno.h>
 
 #include "pluginmalloc.h"
 #include "plugincomm.h"
@@ -333,7 +334,10 @@ void forwardAccountMsg(DDTypedBufferMsg_t *msg, int type, PStask_ID_t logger)
 	fmsg->header.len += sizeof(PStask_ID_t);
     }
 
-    sendMsg(fmsg);
+    if (sendMsg(fmsg) == -1 && errno != EWOULDBLOCK) {
+	mwarn(errno, "%s: sendMsg() to '%s' failed ", __func__,
+		PSC_printTID(fmsg->header.dest));
+    }
     ufree(fmsg);
 }
 

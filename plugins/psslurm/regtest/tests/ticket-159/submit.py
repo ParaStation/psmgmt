@@ -39,6 +39,7 @@ o, e = p.communicate()
 ret  = p.wait()
 
 sys.stdout.write(o)
+sys.stderr.write(e)
 
 try:
 	os.rmdir(f)

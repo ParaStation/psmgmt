@@ -1,7 +1,7 @@
 /*
  *               ParaStation
  *
- * Copyright (C) 2011 - 2014 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2011 - 2015 ParTec Cluster Competence Center GmbH, Munich
  *
  * \author
  * Michael Rauh <rauh@par-tec.com>
@@ -310,7 +310,9 @@ static int pspam_sm_open_session(int argc, const char **argv)
     }
 
     /* ask pspam if user has a batch job running and is allowed to connect */
-    if ((res = hasRunningBatchJob(username, rhost))) {
+    res = hasRunningBatchJob(username, rhost);
+
+    if (res == 1 || res == 2) {
 	if (verbose > 1) {
 	    ilog("allowing access for user '%s@%s', reason: %s",
 		    username, rhost,
@@ -320,7 +322,8 @@ static int pspam_sm_open_session(int argc, const char **argv)
     }
 
     if (verbose > 0) {
-	ilog("denying access for user '%s@%s'", username, rhost);
+	ilog("denying access for user '%s@%s' (%s)", username, rhost,
+		(res == 3) ? "prologue running" : "no job");
     }
 
     if (!quiet) {
@@ -330,9 +333,16 @@ static int pspam_sm_open_session(int argc, const char **argv)
 	    strncpy(hname, "this node", sizeof(hname));
 	}
 
-	pam_prompt(pamH, PAM_TEXT_INFO, NULL, "\npspam: user '%s' has currently"
-		    " no jobs running on %s, access denied.\n",
-		    username, hname);
+	if (!res) {
+	    pam_prompt(pamH, PAM_TEXT_INFO, NULL, "\npspam: user '%s' has "
+			"currently no jobs running on %s, access denied.\n",
+			username, hname);
+	} else if (res == 3) {
+	    pam_prompt(pamH, PAM_TEXT_INFO, NULL, "\npspam: prologue running on"
+			" %s, access denied.\n", hname);
+	} else {
+	    pam_prompt(pamH, PAM_TEXT_INFO, NULL, "\npspam: access denied.\n");
+	}
     }
 
     return PAM_AUTH_ERR;

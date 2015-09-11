@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014 - 2015 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -30,7 +30,7 @@ void initUserList()
     INIT_LIST_HEAD(&UserList.list);
 }
 
-void addUser(char *username, char *plugin)
+void addUser(char *username, char *plugin, int state)
 {
     User_t *user;
 
@@ -39,6 +39,7 @@ void addUser(char *username, char *plugin)
     user = (User_t *) umalloc(sizeof(User_t));
     user->name = ustrdup(username);
     user->plugin = ustrdup(plugin);
+    user->state = state;
 
     list_add_tail(&(user->list), &UserList.list);
 }
@@ -83,6 +84,22 @@ void deleteUser(char *username, char *plugin)
     if (!(findUser(username, NULL))) delSSHSessions(username);
 }
 
+void setState(char *username, char *plugin, int state)
+{
+    list_t *pos, *tmp;
+    User_t *user;
+
+    if (!username || !plugin) return;
+
+    list_for_each_safe(pos, tmp, &UserList.list) {
+	if (!(user = list_entry(pos, User_t, list))) break;
+	if (!(strcmp(user->name, username)) &&
+	    !(strcmp(user->plugin, plugin))) {
+	    user->state = state;
+	}
+    }
+}
+
 void clearUserList()
 {
     list_t *pos, *tmp;
@@ -94,12 +111,17 @@ void clearUserList()
     }
 }
 
-void psPamAddUser(char *username, char *plugin)
+void psPamAddUser(char *username, char *plugin, int state)
 {
-    addUser(username, plugin);
+    addUser(username, plugin, state);
 }
 
 void psPamDeleteUser(char *username, char *plugin)
 {
     deleteUser(username, plugin);
+}
+
+void psPamSetState(char *username, char *plugin, int state)
+{
+    setState(username, plugin, state);
 }

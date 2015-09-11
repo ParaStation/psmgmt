@@ -806,7 +806,9 @@ static void handle_Forward_Msg(Forwarder_Data_t *data, void *ptr)
 
     msg = getDataM(&ptr, &len);
 
-    sendMsg(msg);
+    if ((sendMsg(msg)) == -1 && errno != EWOULDBLOCK) {
+	pluginwarn(errno, "%s: sending msg failed ", __func__);
+    }
     ufree(msg);
 }
 

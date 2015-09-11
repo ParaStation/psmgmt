@@ -91,7 +91,7 @@ void startPsslurm()
     dependencies[2].name = "pelogue";
     dependencies[2].version = 5;
     dependencies[3].name = "pspam";
-    dependencies[3].version = 1;
+    dependencies[3].version = 3;
     dependencies[4].name = NULL;
     dependencies[4].version = 0;
 }
@@ -362,6 +362,11 @@ static int initPluginHandles()
 
     if (!(psPamDeleteUser = dlsym(pluginHandle, "psPamDeleteUser"))) {
 	mlog("%s: loading function psPamDeleteUser() failed\n", __func__);
+	return 0;
+    }
+
+    if (!(psPamSetState = dlsym(pluginHandle, "psPamSetState"))) {
+	mlog("%s: loading function psPamSetState() failed\n", __func__);
 	return 0;
     }
 

@@ -10,12 +10,15 @@ from testsuite import *
 helper.pretty_print_env()
 
 for p in helper.partitions():
-	test.check(re.match("[1-9]:0", helper.job_exit_code(p)), p)
+	helper.check_job_completed_ok(p)
 
-	rx = re.compile(r'.*unable to change directory to work directory.*', re.MULTILINE | re.DOTALL)
-	err = helper.job_stderr(p)
+	lines = [x for x in helper.job_stdout_lines(p) if x != "Submitted batch job %s" % helper.job_id(p)]
+	test.check(2 == len(lines))
 
-	test.check(re.match(rx, err), p)
+	for line in lines:
+		test.check("0: 0" == line or \
+		           "1: 1" == line)
+
 
 test.quit()
 

@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014 - 2015 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -23,18 +23,21 @@
 typedef struct {
     char *name;
     char *plugin;
+    int state;
     struct list_head list;
 } User_t;
 
 User_t UserList;
 
 void initUserList();
-void addUser(char *username, char *plugin);
+void addUser(char *username, char *plugin, int state);
 User_t *findUser(char *username, char *plugin);
 void deleteUser(char *username, char *plugin);
 void clearUserList();
+void setState(char *username, char *plugin, int state);
 
-void psPamAddUser(char *username, char *plugin);
+void psPamAddUser(char *username, char *plugin, int state);
 void psPamDeleteUser(char *username, char *plugin);
+void psPamSetState(char *username, char *plugin, int state);
 
 #endif

@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2013 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2013 - 2015 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -19,6 +19,7 @@
 #include <stdio.h>
 #include <sys/stat.h>
 #include <signal.h>
+#include <errno.h>
 
 #include "peloguejob.h"
 #include "peloguecomm.h"
@@ -115,7 +116,10 @@ void signalPElogue(Job_t *job, int signal, char *reason)
 
 	mdbg(PELOGUE_LOG_PSIDCOM, "%s: send to %i [%i->%i]\n", __func__, id,
 		msg.header.sender, msg.header.dest);
-	sendMsg(&msg);
+	if ((sendMsg(&msg)) == -1 && errno != EWOULDBLOCK) {
+	    mwarn(errno, "%s: sendMsg() to '%s' failed ", __func__,
+		    PSC_printTID(msg.header.sender));
+	}
     }
 }
 

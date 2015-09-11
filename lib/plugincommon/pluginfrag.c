@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2012 - 2014 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2012 - 2015 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -19,6 +19,7 @@
 #include <stdio.h>
 #include <math.h>
 #include <time.h>
+#include <errno.h>
 
 #include "psidcomm.h"
 #include "pluginmalloc.h"
@@ -61,6 +62,12 @@ int __recvFragMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_func_t *func,
     rhead = (PS_Frag_Msg_Header_t *) ptr;
     ptr += sizeof(PS_Frag_Msg_Header_t);
 
+
+    if (getenv("__PSSLURM_LOG_FRAG_MSG")) {
+	pluginlog("%s: msgCount '%u' totalSize '%lu' uID '%u'\n", __func__,
+		rhead->msgCount, rhead->totalSize, rhead->uID);
+    }
+
     /* do some sanity checks */
     if (msgCount != rhead->msgNum) {
 	pluginlog("%s(%s): mismatching msg count, last '%i' new '%i'\n",
@@ -76,7 +83,7 @@ int __recvFragMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_func_t *func,
 	    cleanup = 1;
 	}
 	if (fhead->totalSize != rhead->totalSize) {
-	    pluginlog("%s(%s): mismatching data size, last '%i' new '%i' \n",
+	    pluginlog("%s(%s): mismatching data size, last '%lu' new '%lu' \n",
 		    __func__, caller, fhead->totalSize, rhead->totalSize);
 	    cleanup = 1;
 	}
@@ -116,10 +123,10 @@ int __recvFragMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_func_t *func,
 	return 0;
     }
 
-    /*
-    pluginlog("%s: toCopy:%i dataLeft:%i rhead->msgNum:%i\n", __func__, toCopy,
-    	    dataLeft, rhead->msgNum);
-    */
+    if (getenv("__PSSLURM_LOG_FRAG_MSG")) {
+	pluginlog("%s: toCopy:%i dataLeft:%i rhead->msgNum:%i\n", __func__,
+		    toCopy, dataLeft, rhead->msgNum);
+    }
     memcpy(dataPtr, ptr, toCopy);
     dataPtr += toCopy;
     dataLeft -= toCopy;
@@ -158,7 +165,7 @@ int __sendFragMsg(PS_DataBuffer_t *data, PStask_ID_t dest, int16_t headType,
     DDTypedBufferMsg_t msg;
     PS_Frag_Msg_Header_t fhead;
     char *msgPtr, *dataPtr;
-    int i, res = 0, count = 0;
+    int i, res = 0, count = 0, extLog = 0;
     uint32_t bufSize, toCopy, dataLeft;
     struct timespec tp;
 
@@ -166,6 +173,8 @@ int __sendFragMsg(PS_DataBuffer_t *data, PStask_ID_t dest, int16_t headType,
 	pluginlog("%s(%s): invalid data buffer\n", __func__, caller);
 	return -1;
     }
+
+    extLog = getenv("__PSSLURM_LOG_FRAG_MSG") ? 1 : 0;
 
     msg = (DDTypedBufferMsg_t) {
        .header = (DDMsg_t) {
@@ -193,8 +202,12 @@ int __sendFragMsg(PS_DataBuffer_t *data, PStask_ID_t dest, int16_t headType,
 	pluginlog("%s: no messages to send\n", __func__);
     }
 
-    for (i=0; i<fhead.msgCount; i++) {
+    if (extLog) {
+	pluginlog("%s(%s): msgCount '%u' totalSize '%lu' uID '%u'\n", __func__,
+		caller, fhead.msgCount, fhead.totalSize, fhead.uID);
+    }
 
+    for (i=0; i<fhead.msgCount; i++) {
 	msgPtr = msg.buf;
 	msg.header.len = sizeof(msg.header);
 	msg.header.len += sizeof(msg.type);
@@ -211,14 +224,13 @@ int __sendFragMsg(PS_DataBuffer_t *data, PStask_ID_t dest, int16_t headType,
 	/* add data */
 	memcpy(msgPtr, dataPtr, toCopy);
 	msg.header.len += toCopy;
-	dataPtr += toCopy;
-	dataLeft -= toCopy;
 
-	/*
-	pluginlog("%s: send(%s) msg(%i): bufSize:%u origBufSize:%lu "
-		"dataLen:%u " "dataLeft:%u header.len:%u\n", __func__, caller,
-		i, bufSize, BufTypedMsgSize, toCopy, dataLeft, msg.header.len);
-	*/
+	if (extLog) {
+	    pluginlog("%s: send(%s) msg(%i): bufSize:%u origBufSize:%lu "
+		    "dataLen:%u " "dataLeft:%u header.len:%u\n", __func__,
+		    caller, i+1, bufSize, BufTypedMsgSize, toCopy, dataLeft,
+		    msg.header.len);
+	}
 
 	if (!sendPSMsg) {
 	    res = sendMsg(&msg);
@@ -226,8 +238,17 @@ int __sendFragMsg(PS_DataBuffer_t *data, PStask_ID_t dest, int16_t headType,
 	    res = sendPSMsg(&msg);
 	}
 
-	if (res == -1) return -1;
+	if (res == -1 && errno != EWOULDBLOCK) {
+	    pluginwarn(errno, "%s(%s): %s failed, msg '%i/%i' dataLeft '%u'",
+			__func__, caller,
+			sendPSMsg ? "sendPSMsg()" : "sendMsg()",
+			i+1, fhead.msgCount, dataLeft);
+	    return -1;
+	}
+
 	count += res;
+	dataPtr += toCopy;
+	dataLeft -= toCopy;
 
 	if (dataLeft <= 0) break;
     }

@@ -204,6 +204,7 @@ typedef struct {
     uint8_t x11forward;
     uint32_t fwInitCount;
     uint32_t numHwThreads;
+    uint8_t timeout;
     Forwarder_Data_t *fwdata;
     PSpart_HWThread_t *hwThreads;
     PS_Tasks_t tasks;
@@ -244,6 +245,7 @@ typedef struct {
     char *checkpoint;
     char *restart;
     int state;
+    int signaled;
     uint8_t terminate;
     RLimits_t limit;
     uint16_t interactive;   /* interactive(1) or batch(0) job */

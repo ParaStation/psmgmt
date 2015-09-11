@@ -306,6 +306,7 @@ plugins/pspam/src/pspam/Makefile.am \
 plugins/pspam/src/pspam/Makefile.in \
 plugins/pspam/src/pspam/pspam.c \
 plugins/pspam/src/pspam/pspam.h \
+plugins/pspam/src/pspam/pspamdef.h \
 plugins/pspam/src/pspam/pspamhandles.h \
 plugins/pspam/src/pspam/pspamlog.c \
 plugins/pspam/src/pspam/pspamlog.h \

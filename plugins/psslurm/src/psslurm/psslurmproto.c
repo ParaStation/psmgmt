@@ -494,7 +494,6 @@ void handleLaunchTasks(Slurm_Msg_t *sMsg)
 	step->srunControlMsg.sock = sMsg->sock;
 	step->srunControlMsg.head.forward = sMsg->head.forward;
 	step->srunControlMsg.recvTime = sMsg->recvTime;
-	send_PS_fwLaunchTasks(step, sMsg);
 
 	if (!stepid && !job) {
 	    alloc->state = step->state = JOB_PROLOGUE;
@@ -812,6 +811,7 @@ static void handleSignalJob(Slurm_Msg_t *sMsg)
     } else if (job) {
 	mlog("%s: send job '%u' signal '%u'\n", __func__,
 		jobid, signal);
+	if (signal == SIGUSR1) job->signaled = 1;
 	signalJob(job, signal, NULL);
     } else {
 	mlog("%s: send steps with jobid '%u' signal '%u'\n", __func__,
@@ -1278,7 +1278,6 @@ static void handleBatchJobLaunch(Slurm_Msg_t *sMsg)
     job->partition = getStringM(ptr);
     /* username */
     job->username = getStringM(ptr);
-    psPamAddUser(job->username, "psslurm");
     /* gid */
     getUint32(ptr, &job->gid);
     /* ntasks */
@@ -1365,6 +1364,9 @@ static void handleBatchJobLaunch(Slurm_Msg_t *sMsg)
 
     /* return success to slurmctld and start prologue*/
     sendSlurmRC(sMsg, SLURM_SUCCESS);
+
+    /* add user in pam for ssh access */
+    psPamAddUser(job->username, "psslurm", PSPAM_PROLGOUE);
 
     /* forward job info to other nodes in the job */
     send_PS_JobLaunch(job);
@@ -1538,6 +1540,8 @@ static void handleKillReq(Slurm_Msg_t *sMsg, uint32_t jobid,
 			"TO TIME LIMIT ***\n", jobid, stepid);
 	    mlog("%s: timeout for step '%u:%u'\n", __func__, jobid, stepid);
 	    printChildMessage(step->fwdata, buf, strlen(buf), STDERR, 0);
+	    sendStepTimeout(step->fwdata);
+	    step->timeout = 1;
 	} else {
 	    snprintf(buf, sizeof(buf), "error: *** PREEMPTION for step "
 			"%u:%u ***\n", jobid, stepid);
@@ -1561,6 +1565,8 @@ static void handleKillReq(Slurm_Msg_t *sMsg, uint32_t jobid,
 	    snprintf(buf, sizeof(buf), "error: *** step %u CANCELLED DUE TO"
 			" TIME LIMIT ***\n", jobid);
 	    printChildMessage(step->fwdata, buf, strlen(buf), STDERR, 0);
+	    sendStepTimeout(step->fwdata);
+	    step->timeout = 1;
 	} else {
 	    mlog("%s: timeout for job '%u'\n", __func__, jobid);
 	}
@@ -2176,13 +2182,18 @@ void sendStepExit(Step_t *step, int exit_status)
     addUint32ToMsg(step->nrOfNodes -1, &body);
 
     /* exit status */
-    addUint32ToMsg(exit_status, &body);
+    if (step->timeout) {
+	addUint32ToMsg(NO_VAL, &body);
+    } else {
+	addUint32ToMsg(exit_status, &body);
+    }
 
     /* account data */
     addSlurmAccData(step->accType, 0, PSC_getTID(-1, step->fwdata->childPid),
 		    &body, step->nodes, step->nrOfNodes);
 
-    mlog("%s: sending REQUEST_STEP_COMPLETE to slurmctld\n", __func__);
+    mlog("%s: sending REQUEST_STEP_COMPLETE to slurmctld: exit '%u'\n",
+	    __func__, exit_status);
 
     sendSlurmMsg(-1, REQUEST_STEP_COMPLETE, &body);
     ufree(body.buf);
@@ -2236,19 +2247,22 @@ static void doSendTaskExit(Step_t *step, PS_Tasks_t *task, int exitCode,
     addUint32ToMsg(step->jobid, &body);
     addUint32ToMsg(step->stepid, &body);
 
-    mlog("%s: sending MESSAGE_TASK_EXIT '%u:%u' exit '%i'\n",
-	    __func__, exitCount, *count, exitCode);
+    if (!ctlPort) {
+	mlog("%s: sending MESSAGE_TASK_EXIT '%u:%u' exit '%i'\n",
+		__func__, exitCount, *count,
+		(step->timeout ? 0 : exitCode));
 
-    srunSendMsg(-1, step, MESSAGE_TASK_EXIT, &body);
+	srunSendMsg(-1, step, MESSAGE_TASK_EXIT, &body);
+    } else {
+	for (i=0; i<MAX_SATTACH_SOCKETS; i++) {
+	    if (ctlPort[i] != -1) {
 
-    for (i=0; i<MAX_SATTACH_SOCKETS; i++) {
-	if (ctlPort[i] != -1) {
-
-	    if ((sock = tcpConnectU(ctlAddr[i], ctlPort[i])) <0) {
-		mlog("%s: connection to srun '%u:%u' failed\n", __func__,
-			ctlAddr[i], ctlPort[i]);
-	    } else {
-		srunSendMsg(sock, step, MESSAGE_TASK_EXIT, &body);
+		if ((sock = tcpConnectU(ctlAddr[i], ctlPort[i])) <0) {
+		    mlog("%s: connection to srun '%u:%u' failed\n", __func__,
+			    ctlAddr[i], ctlPort[i]);
+		} else {
+		    srunSendMsg(sock, step, MESSAGE_TASK_EXIT, &body);
+		}
 	    }
 	}
     }
@@ -2384,7 +2398,10 @@ void sendJobExit(Job_t *job, uint32_t status)
     PS_DataBuffer_t body = { .buf = NULL };
     uint32_t id;
 
-    mlog("%s: jobid '%s'\n", __func__, job->id);
+    if (job->signaled) status = 0;
+
+    mlog("%s: REQUEST_COMPLETE_BATCH_SCRIPT: jobid '%s' exit '%u'\n", __func__,
+	    job->id, status);
 
     id = atoi(job->id);
 

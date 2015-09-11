@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014 - 2015 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -35,6 +35,7 @@
 #include "pspamlog.h"
 #include "pspamssh.h"
 #include "pspamuser.h"
+#include "pspamdef.h"
 
 #include "pspam.h"
 
@@ -44,7 +45,7 @@
 
 /** psid plugin requirements */
 char name[] = "pspam";
-int version = 2;
+int version = 3;
 int requiredAPI = 109;
 plugin_dep_t dependencies[1];
 
@@ -72,6 +73,7 @@ static int handlePamRequest(int sock, void *empty)
     pid_t pid, sid;
     struct passwd *spasswd;
     PS_DataBuffer_t data = { .buf = NULL};
+    User_t *pamUser;
 
     if ((ret = doReadP(sock, &msgLen, sizeof(msgLen))) != sizeof(msgLen)) {
 	if (ret != 0) {
@@ -112,9 +114,13 @@ static int handlePamRequest(int sock, void *empty)
     }
 
     /* test if the user has running jobs */
-    if (!res && (findUser(user, NULL))) {
-	res = 1;
-	addSSHSession(user, rhost, pid, sid);
+    if (!res && (pamUser = findUser(user, NULL))) {
+	if (pamUser->state == PSPAM_PROLGOUE) {
+	    res = 3;
+	} else {
+	    res = 1;
+	    addSSHSession(user, rhost, pid, sid);
+	}
     }
 
     /* add result */

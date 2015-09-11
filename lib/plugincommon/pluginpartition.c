@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014 - 2015 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -88,7 +88,10 @@ void grantPartitionRequest(PSpart_HWThread_t *hwThreads, uint32_t numHWthreads,
 		.len = sizeof(msg) },
 	    .type = 0};
 
-    sendMsg(&msg);
+    if ((sendMsg(&msg)) == -1 && errno != EWOULDBLOCK) {
+	pluginwarn(errno, "%s: sendMsg() to '%s' failed ", __func__,
+		    PSC_printTID(msg.header.dest));
+    }
 }
 
 void rejectPartitionRequest(PStask_ID_t dest)
@@ -100,7 +103,10 @@ void rejectPartitionRequest(PStask_ID_t dest)
 		.sender = PSC_getMyTID(),
 		.len = sizeof(msg) },
 	    .type = errno};
-    sendMsg(&msg);
+    if ((sendMsg(&msg)) == -1 && errno != EWOULDBLOCK) {
+	pluginwarn(errno, "%s: sendMsg() to '%s' failed ", __func__,
+		    PSC_printTID(msg.header.dest));
+    }
 }
 
 /**

@@ -273,7 +273,7 @@ int fwCallback(int32_t wstat, char *errMsg, size_t errLen, void *data)
 	    pedata->prologue ? "prologue" : "epilogue",
 	    exit_status, pedata->jobid, PSC_printTID(pedata->mainPelogue), ret);
 
-    if (ret == -1) {
+    if (ret == -1 && errno != EWOULDBLOCK) {
 	mwarn(errno, "%s: sendMsg() failed: ", __func__);
     }
 
@@ -372,7 +372,10 @@ static void handlePELogueStart(DDTypedBufferMsg_t *msg,
 	/* add result */
 	addInt32ToMsgBuf(&msgRes, &ptr, exitVal);
 
-	sendMsg(&msgRes);
+	if ((sendMsg(&msgRes)) == -1 && errno != EWOULDBLOCK) {
+	    mwarn(errno, "%s: sendMsg() to '%s' failed ", __func__,
+		    PSC_printTID(msgRes.header.sender));
+	}
 
 	return;
     }
@@ -446,7 +449,10 @@ static void handlePELogueStart(DDTypedBufferMsg_t *msg,
 	/* add result */
 	addInt32ToMsgBuf(&msgRes, &ptr, exitVal);
 
-	sendMsg(&msgRes);
+	if ((sendMsg(&msgRes)) == -1 && errno != EWOULDBLOCK) {
+	    mwarn(errno, "%s: sendMsg() to '%s' failed ", __func__,
+		    PSC_printTID(msgRes.header.sender));
+	}
 
 	destroyPElogueData(data);
 

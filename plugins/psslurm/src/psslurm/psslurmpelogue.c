@@ -76,6 +76,8 @@ static void cbPElogueAlloc(char *sjobid, int exit_status, int timeout)
 	    step->state = JOB_PRESTART;
 	    mdbg(PSSLURM_LOG_JOB, "%s: step '%u:%u' in '%s'\n", __func__,
 		    step->jobid, step->stepid, strJobState(step->state));
+
+	    psPamSetState(step->username, "psslurm", PSPAM_JOB);
 	    if (!(execUserStep(step))) {
 		sendSlurmRC(&step->srunControlMsg, ESLURMD_FORK_FAILED);
 	    }
@@ -132,6 +134,7 @@ static void cbPElogueJob(char *jobid, int exit_status, int timeout)
 	    mdbg(PSSLURM_LOG_JOB, "%s: job '%u' in '%s'\n", __func__,
 		    job->jobid, strJobState(job->state));
 	    execUserJob(job);
+	    psPamSetState(job->username, "psslurm", PSPAM_JOB);
 	} else {
 	    job->state = JOB_EXIT;
 	    mdbg(PSSLURM_LOG_JOB, "%s: job '%u' in '%s'\n", __func__,
@@ -216,7 +219,8 @@ int handlePElogueFinish(void *data)
 
     if (username) {
 	if (pedata->exit && pedata->prologue) {
-	    psPamAddUser(username, "psslurm");
+	    psPamAddUser(username, "psslurm", PSPAM_JOB);
+	    psPamSetState(username, "psslurm", PSPAM_JOB);
 	}
 	if (!pedata->prologue) {
 	    psPamDeleteUser(username, "psslurm");

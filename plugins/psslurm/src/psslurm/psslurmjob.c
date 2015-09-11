@@ -90,6 +90,7 @@ Job_t *addJob(uint32_t jobid)
     job->cpusPerNode = NULL;
     job->cpuCountReps = NULL;
     job->mother = 0;
+    job->signaled = 0;
     INIT_LIST_HEAD(&job->tasks.list);
     INIT_LIST_HEAD(&job->gres.list);
     envInit(&job->env);
@@ -128,7 +129,8 @@ Alloc_t *addAllocation(uint32_t jobid, uint32_t nrOfNodes, char *slurmNodes,
 
     list_add_tail(&(alloc->list), &AllocList.list);
 
-    psPamAddUser(alloc->username, "psslurm");
+    /* add user in pam for ssh access */
+    psPamAddUser(alloc->username, "psslurm", PSPAM_PROLGOUE);
 
     return alloc;
 }
@@ -178,7 +180,7 @@ Step_t *addStep(uint32_t jobid, uint32_t stepid)
     step->hwThreads = NULL;
     step->numHwThreads = 0;
     step->tidsLen = 0;
-    step->exitCode = 0;
+    step->exitCode = -1;
     step->state = JOB_INIT;
     step->x11forward = 0;
     step->loggerTID = 0;
@@ -190,6 +192,7 @@ Step_t *addStep(uint32_t jobid, uint32_t stepid)
     step->stdInOpt = IO_UNDEF;
     step->stdOutOpt = IO_UNDEF;
     step->stdErrOpt = IO_UNDEF;
+    step->timeout = 0;
     INIT_LIST_HEAD(&step->tasks.list);
     INIT_LIST_HEAD(&step->gres.list);
     envInit(&step->env);
@@ -698,11 +701,13 @@ void signalTasks(uint32_t jobid, uid_t uid, PS_Tasks_t *tasks, int signal,
 
 	if ((child = PStasklist_find(&managedTasks, task->childTID))) {
 	    if (group > -1 && child->group != (PStask_group_t) group) continue;
+	    if (child->rank < 0 && signal != SIGKILL) continue;
+
 	    if (child->forwardertid == task->forwarderTID &&
 		child->uid == uid) {
-		mdbg(PSSLURM_LOG_PROCESS, "%s: kill(%i) signal '%i' group '%i'"
-			" job '%u' \n", __func__, PSC_getPID(child->tid),
-			signal, child->group, jobid);
+		mdbg(PSSLURM_LOG_PROCESS, "%s: rank '%i' kill(%i) signal '%i' "
+			"group '%i' job '%u' \n", __func__, child->rank,
+			PSC_getPID(child->tid), signal, child->group, jobid);
 		kill(PSC_getPID(child->tid), signal);
 		count++;
 	    }
@@ -730,9 +735,6 @@ int signalStep(Step_t *step, int signal)
     switch (signal) {
 	case SIGTERM:
 	case SIGKILL:
-	    if (step->fwdata) {
-		ret = signalForwarderChild(step->fwdata, signal);
-	    }
 	    signalTasks(step->jobid, step->uid, &step->tasks, signal, group);
 	    send_PS_SignalTasks(step, signal, group);
 	    break;
