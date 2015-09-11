@@ -178,7 +178,7 @@ Step_t *addStep(uint32_t jobid, uint32_t stepid)
     step->hwThreads = NULL;
     step->numHwThreads = 0;
     step->tidsLen = 0;
-    step->exitCode = 0;
+    step->exitCode = -1;
     step->state = JOB_INIT;
     step->x11forward = 0;
     step->loggerTID = 0;

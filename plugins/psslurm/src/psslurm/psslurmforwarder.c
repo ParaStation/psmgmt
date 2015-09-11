@@ -149,7 +149,7 @@ static int stepCallback(int32_t exit_status, char *errMsg,
 	    sendSlurmRC(&step->srunControlMsg, SLURM_ERROR);
 	}
     } else {
-	if (step->exitCode != 0) {
+	if (step->exitCode != -1) {
 	    sendTaskExit(step, step->exitCode);
 	    sendStepExit(step, step->exitCode);
 	} else {

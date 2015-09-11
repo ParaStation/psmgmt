@@ -2024,7 +2024,8 @@ void sendStepExit(Step_t *step, int exit_status)
     addSlurmAccData(step->accType, 0, PSC_getTID(-1, step->fwdata->childPid),
 		    &body, step->nodes, step->nrOfNodes);
 
-    mlog("%s: sending REQUEST_STEP_COMPLETE to slurmctld\n", __func__);
+    mlog("%s: sending REQUEST_STEP_COMPLETE to slurmctld: exit '%u'\n",
+	    __func__, exit_status);
 
     sendSlurmMsg(-1, REQUEST_STEP_COMPLETE, &body);
     ufree(body.buf);
@@ -2064,7 +2065,8 @@ void sendTaskExit(Step_t *step, int exit_status)
     addUint32ToMsg(step->jobid, &body);
     addUint32ToMsg(step->stepid, &body);
 
-    mlog("%s: sending MESSAGE_TASK_EXIT to srun\n", __func__);
+    mlog("%s: sending MESSAGE_TASK_EXIT to srun, status '%u'\n", __func__,
+	    exit_status);
 
     srunSendMsg(-1, step, MESSAGE_TASK_EXIT, &body);
     ufree(body.buf);
@@ -2155,7 +2157,7 @@ void sendJobExit(Job_t *job, uint32_t status)
     PS_DataBuffer_t body = { .buf = NULL };
     uint32_t id;
 
-    mlog("%s: jobid '%s'\n", __func__, job->id);
+    mlog("%s: jobid '%s' exit '%u'\n", __func__, job->id, status);
 
     id = atoi(job->id);
 
