@@ -377,7 +377,8 @@ int handleExecClient(void * data)
 	handleTaskPrologue(step->taskProlog, task->rank, jobid,
 		PSC_getPID(task->tid));
 
-        doMemBind(step, task);
+	doMemBind(step, task);
+	verboseMemPinningOutput(step, task);
     }
 
     return 0;

@@ -18,8 +18,12 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/types.h>
+#include <unistd.h>
+
 #ifdef HAVE_LIBNUMA
 #include <numa.h>
+#include <math.h>
 #endif
 
 #define _GNU_SOURCE
@@ -845,8 +849,37 @@ static char * printCpuMask(pid_t pid) {
     return ret;
 }
 
+static char * printMemMask() {
+#ifdef HAVE_LIBNUMA
+    struct bitmask *memmask;
+    int i, j, p, max, s;
+
+    static char ret[PSCPU_MAX/4+10];
+
+    memmask = numa_get_membind();
+
+    strcpy(ret, "0x");
+
+    i = 0;
+    p = 2;
+    max = numa_max_node();
+    while (i <= max) {
+	s = 0;
+	for (j = 0; j < 4 && i <= max; j++) {
+	    s += (numa_bitmask_isbitset(memmask, i++) ? 1 : 0) * pow(2, j);
+	}
+	snprintf(ret+(p++), 2, "%X", s);
+    }
+
+    return ret;
+
+#else
+    return "(no numa support)"
+#endif
+}
+
 /* verbose binding output */
-void verbosePinningOutput(Step_t *step, PS_Tasks_t *task) {
+void verboseCpuPinningOutput(Step_t *step, PS_Tasks_t *task) {
 
     char *units, *bind_type, *action, *verbstr;
     int verbstr_len;
@@ -945,6 +978,45 @@ void verbosePinningOutput(Step_t *step, PS_Tasks_t *task) {
 		STDERR, task->childRank);
 
 	ufree(verbstr);
+    }
+}
+
+/* output memory binding, this is done in the client right before execve()
+ * since it is only possible to get the own memmask not the one of other
+ * processes */
+void verboseMemPinningOutput(Step_t *step, PStask_t *task) {
+
+    char *bind_type, *action;
+
+    if (step->memBindType & MEM_BIND_VERBOSE) {
+	action = " set";
+
+	if (step->memBindType & MEM_BIND_NONE) {
+	    action = "";
+	    bind_type = "NONE";
+	} else {
+	    if (step->memBindType & MEM_BIND_RANK) {
+		bind_type = "RANK ";
+	    } else if (step->memBindType & MEM_BIND_LOCAL) {
+		bind_type = "LOC ";
+	    } else if (step->memBindType & MEM_BIND_MAP) {
+		bind_type = "MAP ";
+	    } else if (step->memBindType & MEM_BIND_MASK) {
+		bind_type = "MASK";
+	    } else if (step->memBindType & (~MEM_BIND_VERBOSE)) {
+		bind_type = "UNK ";
+	    } else {
+		action = "";
+		bind_type = "NULL";
+	    }
+	}
+
+	fprintf(stderr, "mem_bind=%s - "
+		"%s, task %2d %2u [%d]: mask %s%s\n", bind_type,
+		getConfValueC(&Config, "SLURM_HOSTNAME"), // hostname
+		task->rank,
+		getLocalRankID(task->rank, step, step->myNodeIndex),
+		getpid(), printMemMask(), action);
     }
 }
 
@@ -1161,14 +1233,6 @@ void doMemBind(Step_t *step, PStask_t *task)
     } else if (step->memBindType & MEM_BIND_MASK) {
 	parseNUMAmask(nodemask, myent, task->rank);
     }
-
-    int i;
-    for (i = 0; i <= numa_max_node(); i++) {
-	int s = numa_bitmask_isbitset(nodemask, i) ? 1 : 0;
-	mlog("%d", s);
-    }
-    mlog("\n");
-
 
     numa_set_membind(nodemask);
 

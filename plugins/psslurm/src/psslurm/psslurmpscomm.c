@@ -1230,7 +1230,7 @@ static void handleCC_INIT_Msg(PSLog_Msg_t *msg)
 
 		if ((task = findTaskByForwarder(&step->tasks.list, msg->header.sender))) {
 
-		    verbosePinningOutput(step, task);
+		    verboseCpuPinningOutput(step, task);
 		}
 	    }
 	}
