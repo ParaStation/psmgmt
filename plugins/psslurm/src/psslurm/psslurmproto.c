@@ -1391,6 +1391,7 @@ static void handleTerminateJob(Slurm_Msg_t *sMsg, Job_t *job, int signal)
     if (job->firstKillRequest) {
 	getConfValueI(&SlurmConfig, "KillWait", &grace);
 	if (time(NULL) - job->firstKillRequest > grace + 5) {
+	    mlog("%s: sending SIGKILL NOW\n", __func__);
 	    signal = SIGKILL;
 	}
     }
@@ -1450,6 +1451,7 @@ static void handleTerminateAlloc(Slurm_Msg_t *sMsg, Alloc_t *alloc)
     if (alloc->firstKillRequest) {
 	getConfValueI(&SlurmConfig, "KillWait", &grace);
 	if (time(NULL) - alloc->firstKillRequest > grace + 5) {
+	    mlog("%s: sending SIGKILL NOW\n", __func__);
 	    signal = SIGKILL;
 	}
     }

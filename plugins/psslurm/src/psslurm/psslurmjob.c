@@ -737,6 +737,9 @@ int signalStep(Step_t *step, int signal)
     switch (signal) {
 	case SIGTERM:
 	case SIGKILL:
+	    if (step->fwdata) {
+		sendStartGraceTime(step->fwdata);
+	    }
 	    signalTasks(step->jobid, step->uid, &step->tasks, signal, group);
 	    send_PS_SignalTasks(step, signal, group);
 	    break;

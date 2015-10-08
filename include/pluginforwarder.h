@@ -34,7 +34,8 @@ typedef enum {
     CMD_LOCAL_FORK_FAILED,
     CMD_LOCAL_SIGNAL_CHILD,
     CMD_LOCAL_FORWARD_MSG,
-    CMD_LOCAL_SHUTDOWN
+    CMD_LOCAL_SHUTDOWN,
+    CMD_LOCAL_GRACE_START
 } LocalCommandType_t;
 
 typedef struct {
@@ -79,5 +80,6 @@ int signalForwarderChild(Forwarder_Data_t *data, int signal);
 void sendFWMsg(int fd, PS_DataBuffer_t *data);
 void forwardMsgtoMother(DDMsg_t *msg);
 void shutdownForwarder(Forwarder_Data_t *data);
+void sendStartGraceTime(Forwarder_Data_t *data);
 
 #endif

@@ -171,6 +171,16 @@ void sendFWMsg(int fd, PS_DataBuffer_t *data)
     doWriteP(fd, data->buf, data->bufUsed);
 }
 
+static void startGraceTime()
+{
+    int grace;
+
+    grace = fwdata->graceTime ? fwdata->graceTime : DEFAULT_GRACE_TIME;
+
+    killAllChildren = 1;
+    alarm(grace);
+}
+
 static void killForwarderChild(int signal, char *reason)
 {
     int grace;
@@ -236,6 +246,9 @@ static int handleMotherMsg(int fd, void *info)
 	case CMD_LOCAL_SIGNAL_CHILD:
 	    getInt32(&ptr, &signal);
 	    killForwarderChild(signal, NULL);
+	    break;
+	case CMD_LOCAL_GRACE_START:
+	    startGraceTime();
 	    break;
 	case CMD_LOCAL_SHUTDOWN:
 	    handleLocalShutdown();
@@ -1026,6 +1039,17 @@ void forwardMsgtoMother(DDMsg_t *msg)
     sendFWMsg(motherSock, &data);
 
     ufree(data.buf);
+}
+
+void sendStartGraceTime(Forwarder_Data_t *data)
+{
+    PS_DataBuffer_t buffer = { .buf = NULL};
+
+    if (data->controlSocket > -1) {
+	addInt32ToMsg(CMD_LOCAL_GRACE_START, &buffer);
+	sendFWMsg(data->controlSocket, &buffer);
+	ufree(buffer.buf);
+    }
 }
 
 int signalForwarderChild(Forwarder_Data_t *data, int signal)
