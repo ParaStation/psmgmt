@@ -37,13 +37,13 @@ void setFragMsgFunc(Send_Msg_Func_t *func)
 int __recvFragMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_func_t *func,
 		    const char *caller)
 {
-    uint16_t toCopy;
+    static uint64_t dataLeft = 0;
+    static uint16_t msgCount = 0;
+    uint64_t toCopy;
     char *ptr;
-    static uint16_t dataLeft = 0;
     static char *dataPtr = NULL;
     static PS_DataBuffer_t data = { .buf = NULL, .bufSize = 0 };
     static PS_Frag_Msg_Header_t *fhead = NULL, *rhead;
-    static int msgCount = 0;
     int cleanup = 0;
 
     if (!msg) {
@@ -118,13 +118,13 @@ int __recvFragMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_func_t *func,
 		sizeof(PS_Frag_Msg_Header_t) - 1;
 
     if (toCopy > dataLeft) {
-	pluginlog("%s(%s): buffer too small, toCopy '%i' dataLeft '%i'\n",
+	pluginlog("%s(%s): buffer too small, toCopy '%lu' dataLeft '%lu'\n",
 		__func__, caller, toCopy, dataLeft);
 	return 0;
     }
 
     if (getenv("__PSSLURM_LOG_FRAG_MSG")) {
-	pluginlog("%s: toCopy:%i dataLeft:%i rhead->msgNum:%i\n", __func__,
+	pluginlog("%s: toCopy:%lu dataLeft:%lu rhead->msgNum:%i\n", __func__,
 		    toCopy, dataLeft, rhead->msgNum);
     }
     memcpy(dataPtr, ptr, toCopy);
@@ -166,7 +166,7 @@ int __sendFragMsg(PS_DataBuffer_t *data, PStask_ID_t dest, int16_t headType,
     PS_Frag_Msg_Header_t fhead;
     char *msgPtr, *dataPtr;
     int i, res = 0, count = 0, extLog = 0;
-    uint32_t bufSize, toCopy, dataLeft;
+    uint64_t bufSize, toCopy, dataLeft;
     struct timespec tp;
 
     if (!data) {
@@ -226,8 +226,8 @@ int __sendFragMsg(PS_DataBuffer_t *data, PStask_ID_t dest, int16_t headType,
 	msg.header.len += toCopy;
 
 	if (extLog) {
-	    pluginlog("%s: send(%s) msg(%i): bufSize:%u origBufSize:%lu "
-		    "dataLen:%u " "dataLeft:%u header.len:%u\n", __func__,
+	    pluginlog("%s: send(%s) msg(%i): bufSize:%lu origBufSize:%lu "
+		    "dataLen:%lu " "dataLeft:%lu header.len:%u\n", __func__,
 		    caller, i+1, bufSize, BufTypedMsgSize, toCopy, dataLeft,
 		    msg.header.len);
 	}
@@ -239,7 +239,7 @@ int __sendFragMsg(PS_DataBuffer_t *data, PStask_ID_t dest, int16_t headType,
 	}
 
 	if (res == -1 && errno != EWOULDBLOCK) {
-	    pluginwarn(errno, "%s(%s): %s failed, msg '%i/%i' dataLeft '%u'",
+	    pluginwarn(errno, "%s(%s): %s failed, msg '%i/%i' dataLeft '%lu'",
 			__func__, caller,
 			sendPSMsg ? "sendPSMsg()" : "sendMsg()",
 			i+1, fhead.msgCount, dataLeft);

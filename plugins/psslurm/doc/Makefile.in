@@ -340,7 +340,7 @@ configdir = $(prefix)/config
 # dito
 scriptsdir = $(prefix)/scripts
 slurmdir = $(libdir)/slurm
-dist_doc_DATA = psslurm-prologue.example psslurm-epilogue.example 
+dist_doc_DATA = psslurm-prologue.example psslurm-epilogue.example psslurm.conf.template
 all: all-am
 
 .SUFFIXES:

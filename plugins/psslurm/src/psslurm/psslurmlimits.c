@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014 - 2015 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -24,6 +24,9 @@
 #include "psslurmenv.h"
 #include "psslurmconfig.h"
 #include "psslurmlog.h"
+#include "psslurmconfig.h"
+
+#include "pluginmalloc.h"
 
 #include "psslurmlimits.h"
 
@@ -134,26 +137,85 @@ int initLimits()
     return 1;
 }
 
-/*
-TODO: set default hard limits from config
-void setHardRlimits()
+static int resString2Limit(char *limit)
 {
+    char *name;
+    int i = 0;
+
+    if (!limit || strlen(limit) < 8) return -1;
+    name = limit + 7;
+
+    while (slurmConfLimits[i].name) {
+	if (!(strcasecmp(name, slurmConfLimits[i].name))) {
+	    return  slurmConfLimits[i].limit;
+	}
+	i++;
+    }
+
+    return -1;
+}
+
+void setDefaultRlimits(char *limits, int soft)
+{
+    char *cp_limits, *toksave, *next, *lname, *lvalue, *tmp;
+    const char delim[] = ",";
+    int iLimit;
+    unsigned long iValue;
     struct rlimit limit;
 
-    if (!getrlimit(RLIMIT_CORE, &limit)) {
-	limit.rlim_max = RLIM_INFINITY;
-	if ((setrlimit(RLIMIT_CORE, &limit)) != 0) {
-	    mlog("%s: setting RLIMIT_CORE failed\n", __func__);
-	    return;
-	}
-	mlog("%s: limit set successful\n", __func__);
-    } else {
-	    mlog("%s: getting RLIMIT_CORE failed\n", __func__);
-    }
-}
-*/
+    cp_limits = ustrdup(limits);
+    next = strtok_r(cp_limits, delim, &toksave);
 
-void setRlimitsFromEnv(env_t *env, int psi)
+    while (next) {
+	if (!(tmp = strchr(next, '='))) {
+	    mlog("%s: invalid rlimit '%s'\n", __func__, next);
+	    next = strtok_r(NULL, delim, &toksave);
+	    continue;
+	}
+	tmp[0] = '\0';
+	lvalue = tmp + 1;
+	lname = next;
+
+	if ((iLimit = resString2Limit(lname)) == -1) {
+	    mlog("%s: invalid rlimit name '%s'\n", __func__, lname);
+	    next = strtok_r(NULL, delim, &toksave);
+	    continue;
+	}
+
+	if ((sscanf(lvalue, "%lu", &iValue)) != 1) {
+	    mlog("%s: invalid rlimit value '%s'\n", __func__, lvalue);
+	    next = strtok_r(NULL, delim, &toksave);
+	    continue;
+	}
+
+	if ((getrlimit(iLimit, &limit)) < 0) {
+	    mlog("%s: getting rlimit failed :  '%s'\n", __func__,
+		    strerror(errno));
+	    limit.rlim_cur = limit.rlim_max = iValue;
+	} else {
+	    if (soft) {
+		limit.rlim_cur = iValue;
+	    } else {
+		limit.rlim_max = iValue;
+		if (limit.rlim_cur > limit.rlim_max) {
+		    limit.rlim_cur = limit.rlim_max;
+		}
+	    }
+	}
+
+	if ((setrlimit(iLimit, &limit)) == -1) {
+	    mlog("%s: setting default rlimit '%s' soft '%li' hard '%lu' failed:"
+		    " %s\n", __func__, lname, limit.rlim_cur,
+		    limit.rlim_max, strerror(errno));
+	}
+
+	next = strtok_r(NULL, delim, &toksave);
+    }
+
+    ufree(cp_limits);
+}
+
+static void setRlimitsFromEnv(env_t *env, int psi)
 {
     struct rlimit limit;
     unsigned long softLimit;
@@ -211,4 +273,21 @@ void setRlimitsFromEnv(env_t *env, int psi)
 	}
 	i++;
     }
+}
+
+void setRLimits(env_t *env, int psi)
+{
+    char *limits;
+
+    /* set default hard rlimits */
+    if ((limits = getConfValueC(&Config, "RLIMITS_HARD"))) {
+	setDefaultRlimits(limits, 0);
+    }
+
+    /* set default soft rlimits */
+    if ((limits = getConfValueC(&Config, "RLIMITS_SOFT"))) {
+	setDefaultRlimits(limits, 1);
+    }
+
+    setRlimitsFromEnv(env, psi);
 }
