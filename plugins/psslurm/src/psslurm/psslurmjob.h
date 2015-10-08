@@ -375,5 +375,6 @@ void deleteBCast(BCast_t *bcast);
 void clearBCastByJobid(uint32_t jobid);
 void clearBCasts();
 void shutdownStepForwarder(uint32_t jobid);
+int killForwarderByJobid(uint32_t jobid);
 
 #endif

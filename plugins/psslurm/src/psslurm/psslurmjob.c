@@ -796,6 +796,38 @@ int signalStepsByJobid(uint32_t jobid, int signal)
     return count;
 }
 
+int killForwarderByJobid(uint32_t jobid)
+{
+    list_t *pos, *tmp;
+    Step_t *step;
+    Job_t *job;
+    int count = 0;
+
+    list_for_each_safe(pos, tmp, &StepList.list) {
+	if (!(step = list_entry(pos, Step_t, list))) break;
+
+	if (step->jobid == jobid) {
+	    if (step->fwdata) {
+		kill(step->fwdata->forwarderPid, SIGKILL);
+		count++;
+	    }
+	}
+    }
+
+    list_for_each_safe(pos, tmp, &JobList.list) {
+	if (!(job = list_entry(pos, Job_t, list))) break;
+
+	if (job->jobid == jobid) {
+	    if (job->fwdata) {
+		kill(job->fwdata->forwarderPid, SIGKILL);
+		count++;
+	    }
+	}
+    }
+
+    return count;
+}
+
 int countSteps()
 {
     struct list_head *pos;
