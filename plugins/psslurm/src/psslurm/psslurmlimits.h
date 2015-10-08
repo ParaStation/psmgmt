@@ -30,7 +30,18 @@ typedef struct {
 
 int initLimits();
 void printLimits();
-void setRlimitsFromEnv(env_t *env, int psi);
-void setHardRlimits();
+void setRLimits(env_t *env, int psi);
+
+/**
+ * @brief Set default ulimits from configuration.
+ *
+ * @param limits A comma separated string with limits to set.
+ *
+ * @param soft Flag which should be set to 1 for setting soft limits and
+ * 0 for setting hard limits.
+ *
+ * @return No return value.
+ */
+void setDefaultRlimits(char *limits, int soft);
 
 #endif

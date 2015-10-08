@@ -12,4 +12,4 @@
 
 include $(top_srcdir)/common.am
 
-dist_doc_DATA = psslurm-prologue.example psslurm-epilogue.example 
+dist_doc_DATA = psslurm-prologue.example psslurm-epilogue.example psslurm.conf.template

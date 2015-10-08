@@ -256,7 +256,7 @@ static void execBatchJob(void *data, int rerun)
     setBatchEnv(job);
 
     /* set rlimits */
-    setRlimitsFromEnv(&job->env, 0);
+    setRLimits(&job->env, 0);
 
     /* do exec */
     closelog();
@@ -311,7 +311,7 @@ int handleExecClient(void * data)
     PStask_t *task = data;
     Step_t *step;
     int i, count = 0;
-    char *ptr;
+    char *ptr, *limits;
     uint32_t jobid = 0, stepid = SLURM_BATCH_SCRIPT;
 
     if (task->rank <0) return 0;
@@ -359,6 +359,16 @@ int handleExecClient(void * data)
 	}
 
 	setRankEnv(task->rank, step);
+    }
+
+    /* set default hard rlimits */
+    if ((limits = getConfValueC(&Config, "RLIMITS_HARD"))) {
+	setDefaultRlimits(limits, 0);
+    }
+
+    /* set default soft rlimits */
+    if ((limits = getConfValueC(&Config, "RLIMITS_SOFT"))) {
+	setDefaultRlimits(limits, 1);
     }
 
     return 0;
@@ -537,7 +547,7 @@ static void execInteractiveJob(void *data, int rerun)
 	    step->stepid, getpid());
 
     /* set rlimits */
-    setRlimitsFromEnv(&step->env, 1);
+    setRLimits(&step->env, 1);
 
     /* start mpiexec to spawn the parallel job */
     closelog();

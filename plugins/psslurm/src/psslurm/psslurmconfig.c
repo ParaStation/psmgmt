@@ -89,6 +89,14 @@ const ConfDef_t CONFIG_VALUES[] =
 	"SLURM_*",
 	"Positive filter which will allow forwarding of selected "
 	"environment variables to prologue/epilogue." },
+    { "RLIMITS_SOFT", 0,
+	"list",
+	NULL,
+	"Set soft resource limits for user processes" },
+    { "RLIMITS_HARD", 0,
+	"list",
+	NULL,
+	"Set hard resource limits for user processes" },
     { NULL, 0, NULL, NULL, NULL },
 };
 
