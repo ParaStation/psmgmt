@@ -1386,6 +1386,15 @@ static void handleBatchJobLaunch(Slurm_Msg_t *sMsg)
 
 static void handleTerminateJob(Slurm_Msg_t *sMsg, Job_t *job, int signal)
 {
+    int grace;
+
+    if (job->firstKillRequest) {
+	getConfValueI(&SlurmConfig, "KillWait", &grace);
+	if (time(NULL) - job->firstKillRequest > grace + 5) {
+	    signal = SIGKILL;
+	}
+    }
+
     /* set terminate flag */
     job->terminate++;
 
@@ -1436,6 +1445,14 @@ static void handleTerminateJob(Slurm_Msg_t *sMsg, Job_t *job, int signal)
 
 static void handleTerminateAlloc(Slurm_Msg_t *sMsg, Alloc_t *alloc)
 {
+    int grace, signal = SIGTERM;
+
+    if (alloc->firstKillRequest) {
+	getConfValueI(&SlurmConfig, "KillWait", &grace);
+	if (time(NULL) - alloc->firstKillRequest > grace + 5) {
+	    signal = SIGKILL;
+	}
+    }
     alloc->terminate++;
 
     /* wait for mother superior to release the allocation */
@@ -1453,7 +1470,7 @@ static void handleTerminateAlloc(Slurm_Msg_t *sMsg, Alloc_t *alloc)
 	case JOB_RUNNING:
 	    /* check if we still have running steps and kill them */
 	    if ((haveRunningSteps(alloc->jobid))) {
-		signalStepsByJobid(alloc->jobid, SIGTERM);
+		signalStepsByJobid(alloc->jobid, signal);
 		mlog("%s: waiting till steps are completed\n", __func__);
 	    } else {
 		/* no running steps left, lets start epilogue */
@@ -1623,6 +1640,12 @@ static void handleTerminateReq(Slurm_Msg_t *sMsg)
     /* find the corresponding job/allocation */
     job = findJobById(jobid);
     alloc = findAlloc(jobid);
+
+    if (job && !job->firstKillRequest) {
+	job->firstKillRequest = time(NULL);
+    } else if (alloc && !alloc->firstKillRequest) {
+	alloc->firstKillRequest = time(NULL);
+    }
 
     switch (sMsg->head.type) {
 	case REQUEST_KILL_PREEMPTED:

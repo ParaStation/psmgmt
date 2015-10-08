@@ -261,6 +261,7 @@ typedef struct {
     char *nodeAlias;
     struct list_head list;  /* the job list header */
     PS_Tasks_t tasks;
+    time_t firstKillRequest;
     Forwarder_Data_t *fwdata;
 } Job_t;
 
@@ -276,6 +277,7 @@ typedef struct {
     uint8_t terminate;
     int state;
     char *username;
+    time_t firstKillRequest;
     struct list_head list;  /* the job list header */
 } Alloc_t;
 

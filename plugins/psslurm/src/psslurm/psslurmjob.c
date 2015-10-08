@@ -91,6 +91,7 @@ Job_t *addJob(uint32_t jobid)
     job->cpuCountReps = NULL;
     job->mother = 0;
     job->signaled = 0;
+    job->firstKillRequest = 0;
     INIT_LIST_HEAD(&job->tasks.list);
     INIT_LIST_HEAD(&job->gres.list);
     envInit(&job->env);
@@ -126,6 +127,7 @@ Alloc_t *addAllocation(uint32_t jobid, uint32_t nrOfNodes, char *slurmNodes,
     alloc->terminate = 0;
     alloc->slurmNodes = ustrdup(slurmNodes);
     alloc->username = ustrdup(username);
+    alloc->firstKillRequest = 0;
 
     list_add_tail(&(alloc->list), &AllocList.list);
 
