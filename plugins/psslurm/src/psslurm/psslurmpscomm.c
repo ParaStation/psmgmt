@@ -435,11 +435,6 @@ SPAWN_FAILED:
     }
 }
 
-static void handleRemoteJob(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
-{
-
-}
-
 void send_PS_JobLaunch(Job_t *job)
 {
     DDTypedBufferMsg_t msg;
@@ -600,22 +595,6 @@ void send_PS_JobState(uint32_t jobid, PStask_ID_t dest)
     }
 
     ufree(data.buf);
-}
-
-/**
- * should be obsolete.
- */
-void send_PS_fwLaunchTasks(Step_t *step, Slurm_Msg_t *sMsg)
-{
-    PSnodes_ID_t myID = PSC_getMyID();
-    uint32_t i;
-
-    for (i=0; i<step->nrOfNodes; i++) {
-	if (step->nodes[i] == myID) continue;
-
-	sendFragMsg(sMsg->data, PSC_getTID(step->nodes[i], 0),
-			PSP_CC_PLUG_PSSLURM, PSP_LAUNCH_TASKS);
-    }
 }
 
 static void handle_PS_JobExit(DDTypedBufferMsg_t *msg)
@@ -967,8 +946,6 @@ void handlePsslurmMsg(DDTypedBufferMsg_t *msg)
 	case PSP_TASK_IDS:
 	    recvFragMsg(msg, handleTaskIds);
 	    break;
-	case PSP_REMOTE_JOB:
-	    recvFragMsg(msg, handleRemoteJob);
 	case PSP_SIGNAL_TASKS:
 	    handle_PS_SignalTasks(msg);
 	    break;
