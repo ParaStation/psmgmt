@@ -33,7 +33,8 @@ int execUserStep(Step_t *step);
 int execUserJob(Job_t *job);
 int execUserBCast(BCast_t *bcast);
 int execStepFWIO(Step_t *step);
-int handleExecClient(void * data);
+int handleExecClient(void *data);
+int handleExecClientUser(void * data);
 int handleForwarderInit(void * data);
 
 void switchUser(char *username, uid_t uid, gid_t gid, char *cwd);

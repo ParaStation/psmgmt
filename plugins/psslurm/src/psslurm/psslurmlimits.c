@@ -155,7 +155,7 @@ static int resString2Limit(char *limit)
     return -1;
 }
 
-void setDefaultRlimits(char *limits, int soft)
+static void doSetDefaultRlimits(char *limits, int soft)
 {
     char *cp_limits, *toksave, *next, *lname, *lvalue, *tmp;
     const char delim[] = ",";
@@ -215,7 +215,23 @@ void setDefaultRlimits(char *limits, int soft)
     ufree(cp_limits);
 }
 
-static void setRlimitsFromEnv(env_t *env, int psi)
+void setDefaultRlimits()
+{
+    char *limits;
+
+
+    /* set default hard rlimits */
+    if ((limits = getConfValueC(&Config, "RLIMITS_HARD"))) {
+	doSetDefaultRlimits(limits, 0);
+    }
+
+    /* set default soft rlimits */
+    if ((limits = getConfValueC(&Config, "RLIMITS_SOFT"))) {
+	doSetDefaultRlimits(limits, 1);
+    }
+}
+
+void setRlimitsFromEnv(env_t *env, int psi)
 {
     struct rlimit limit;
     unsigned long softLimit;
@@ -273,21 +289,4 @@ static void setRlimitsFromEnv(env_t *env, int psi)
 	}
 	i++;
     }
-}
-
-void setRLimits(env_t *env, int psi)
-{
-    char *limits;
-
-    /* set default hard rlimits */
-    if ((limits = getConfValueC(&Config, "RLIMITS_HARD"))) {
-	setDefaultRlimits(limits, 0);
-    }
-
-    /* set default soft rlimits */
-    if ((limits = getConfValueC(&Config, "RLIMITS_SOFT"))) {
-	setDefaultRlimits(limits, 1);
-    }
-
-    setRlimitsFromEnv(env, psi);
 }

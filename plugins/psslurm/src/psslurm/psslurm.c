@@ -148,7 +148,11 @@ static void unregisterHooks(int verbose)
 	if (verbose) mlog("unregister 'PSIDHOOK_CREATEPARTNL' failed\n");
     }
 
-    if (!(PSIDhook_del(PSIDHOOK_EXEC_CLIENT_USER, handleExecClient))) {
+    if (!(PSIDhook_del(PSIDHOOK_EXEC_CLIENT, handleExecClient))) {
+	if (verbose) mlog("unregister 'PSIDHOOK_EXEC_CLIENT' failed\n");
+    }
+
+    if (!(PSIDhook_del(PSIDHOOK_EXEC_CLIENT_USER, handleExecClientUser))) {
 	if (verbose) mlog("unregister 'PSIDHOOK_EXEC_CLIENT_USER' failed\n");
     }
 
@@ -195,7 +199,12 @@ static int registerHooks()
 	return 0;
     }
 
-    if (!(PSIDhook_add(PSIDHOOK_EXEC_CLIENT_USER, handleExecClient))) {
+    if (!(PSIDhook_add(PSIDHOOK_EXEC_CLIENT, handleExecClient))) {
+	mlog("register 'PSIDHOOK_EXEC_CLIENT' failed\n");
+	return 0;
+    }
+
+    if (!(PSIDhook_add(PSIDHOOK_EXEC_CLIENT_USER, handleExecClientUser))) {
 	mlog("register 'PSIDHOOK_EXEC_CLIENT_USER' failed\n");
 	return 0;
     }

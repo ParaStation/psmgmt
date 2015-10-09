@@ -260,6 +260,9 @@ static void execBatchJob(void *data, int rerun)
 
     setFilePermissions(job);
 
+    /* set default rlimits */
+    setDefaultRlimits();
+
     /* switch user */
     switchUser(job->username, job->uid, job->gid, job->cwd);
 
@@ -270,7 +273,7 @@ static void execBatchJob(void *data, int rerun)
     setBatchEnv(job);
 
     /* set rlimits */
-    setRLimits(&job->env, 0);
+    setRlimitsFromEnv(&job->env, 0);
 
     /* do exec */
     closelog();
@@ -320,12 +323,23 @@ int handleForwarderInit(void * data)
     return 0;
 }
 
-int handleExecClient(void * data)
+int handleExecClient(void *data)
+{
+    PStask_t *task = data;
+
+    if (task->rank <0) return 0;
+
+    setDefaultRlimits();
+
+    return 0;
+}
+
+int handleExecClientUser(void *data)
 {
     PStask_t *task = data;
     Step_t *step;
     int i, count = 0;
-    char *ptr, *limits;
+    char *ptr;
     uint32_t jobid = 0, stepid = SLURM_BATCH_SCRIPT;
 
     if (task->rank <0) return 0;
@@ -379,16 +393,6 @@ int handleExecClient(void * data)
 
 	doMemBind(step, task);
 	verboseMemPinningOutput(step, task);
-    }
-
-    /* set default hard rlimits */
-    if ((limits = getConfValueC(&Config, "RLIMITS_HARD"))) {
-	setDefaultRlimits(limits, 0);
-    }
-
-    /* set default soft rlimits */
-    if ((limits = getConfValueC(&Config, "RLIMITS_SOFT"))) {
-	setDefaultRlimits(limits, 1);
     }
 
     return 0;
@@ -515,6 +519,9 @@ static void execInteractiveJob(void *data, int rerun)
 	close(fwdata->stdErr[1]);
     }
 
+    /* set default rlimits */
+    setDefaultRlimits();
+
     /* switch user */
     switchUser(step->username, step->uid, step->gid, step->cwd);
 
@@ -567,7 +574,7 @@ static void execInteractiveJob(void *data, int rerun)
 	    step->stepid, getpid());
 
     /* set rlimits */
-    setRLimits(&step->env, 1);
+    setRlimitsFromEnv(&step->env, 1);
 
     /* start mpiexec to spawn the parallel job */
     closelog();
