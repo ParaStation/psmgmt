@@ -56,7 +56,30 @@ def execute_sstat(jobid):
 
 	return ret, o, e
 
-jobid = os.environ["PSTEST_JOB_ID"]
+sbatch = ["sbatch"]
+if "" != os.environ["PSTEST_PARTITION"]:
+        sbatch += ["--partition", os.environ["PSTEST_PARTITION"]]
+if "" != os.environ["PSTEST_RESERVATION"]:
+        sbatch += ["--reservation", os.environ["PSTEST_RESERVATION"]]
+if "" != os.environ["PSTEST_QOS"]:
+        sbatch += ["--qos", os.environ["PSTEST_QOS"]]
+if "" != os.environ["PSTEST_ACCOUNT"]:
+        sbatch += ["--account", os.environ["PSTEST_ACCOUNT"]]
+
+cmd = sbatch + ["-N", "1", "-t", "1", "test.sh"]
+
+p = subprocess.Popen(cmd, \
+                     stdout = subprocess.PIPE, \
+                     stderr = subprocess.PIPE, \
+                     stdin  = subprocess.PIPE)
+o, _ = p.communicate()
+_ = p.wait()
+
+x = re.search(r'.*Submitted batch job ([0-9]+).*', o)
+if not x:
+	sys.exit(1)
+else:
+	jobid = x.group(1)
 
 # Wait until the job is running
 while 1:
@@ -90,7 +113,7 @@ while 1:
 	if time.time() - start > 120:
 		dobrk = 1
 
-	sstat = {"now": time.time() - start, "sstat": []}
+	sstat = {"now": time.time() - start, "jobId": jobid, "sstat": []}
 
 	for line in lines[1:]:
 		if '' == line or '-' == line.strip()[0]:

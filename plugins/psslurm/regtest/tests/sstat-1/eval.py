@@ -23,10 +23,18 @@ for p in helper.partitions():
 			continue
 
 		hits += 1
+		test.check(len(sstat["sstat"]) in [1, 2], p)	# One job step might already be terminated
 
-		test.check(2 == len(sstat["sstat"]), p)
-		test.check("%s.0" % helper.job_id(p) == sstat["sstat"][0]["JobID"], p)
-		test.check("%s.1" % helper.job_id(p) == sstat["sstat"][1]["JobID"], p)
+
+		jobId   = sstat["jobId"]
+		stepIds = [sstat["sstat"][x]["JobID"] for x in [0, 1]]
+
+		if 2 == len(stepIds):
+			test.check("%s.0" % jobId == stepIds[0], p)
+			test.check("%s.1" % jobId == stepIds[1], p)
+		else:
+			test.check(("%s.0" % jobId == stepIds[0]) or \
+			           ("%s.1" % jobId == stepIds[0]), p)
 
 	test.check(hits > 0, p)
 
