@@ -49,7 +49,6 @@ for p in helper.partitions():
 		test.check(not re.match(r'.*G', d["MaxVMSize"]), p)
 		test.check("00:00:00" != d["TotalCPU"], p)
 		test.check("00:00:00" != d["UserCPU"], p)
-		test.check("00:00:00" != d["SystemCPU"], p)
 
 test.quit()
 

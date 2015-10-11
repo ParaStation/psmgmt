@@ -163,19 +163,8 @@ def pretty_print_env():
 #
 # Get the sacct record of the job. The function returns an array of dictionaries
 def job_sacct_record(part):
-	N = 60
-	def split60(line):
-		tmp = []
-
-		n = N + 1
-		while '' != line:
-			tmp.append(line[0:n].strip())
-			line = line[n:]
-
-		return tmp
-
 	try:
-		cmd = ["sacct", "-o", "ALL%%-%d" % N, "-j", os.environ["PSTEST_SCONTROL_%s_JOB_ID" % part.upper()]]
+		cmd = ["sacct", "-o", "ALL", "-P", "-j", os.environ["PSTEST_SCONTROL_%s_JOB_ID" % part.upper()]]
 
 		q = subprocess.Popen(cmd, \
 		                     stdout = subprocess.PIPE, \
@@ -185,12 +174,12 @@ def job_sacct_record(part):
 		q.wait()
 
 		lines = x.split('\n')   # Important: Do not strip here
-		keys  = split60(lines[0])
+		keys  = lines[0].split("|")
 
 		sacct = []
-		for line in [x for x in lines[2:] if len(x.strip()) > 0]:
+		for line in [x for x in lines[1:] if len(x.strip()) > 0]:
 			d = {}
-			for i, v in enumerate(split60(line)):
+			for i, v in enumerate(line.split("|")):
 				d[keys[i]] = v
 
 			sacct.append(d)
