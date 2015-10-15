@@ -675,7 +675,7 @@ static void handle_PS_JobStateReq(DDTypedBufferMsg_t *msg)
 
     mlog("%s: from '%s' jobid '%u' res '%u' state '%s'\n", __func__,
 	    PSC_printTID(msg->header.sender), jobid, res,
-	    strJobState(job->state));
+	    strJobState(state));
 
     addUint32ToMsg(jobid, &data);
     addUint8ToMsg(res, &data);
