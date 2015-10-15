@@ -203,6 +203,7 @@ typedef struct {
     uint8_t x11forward;
     uint32_t fwInitCount;
     uint32_t numHwThreads;
+    uint8_t ioCon;
     Forwarder_Data_t *fwdata;
     PSpart_HWThread_t *hwThreads;
     PS_Tasks_t tasks;
@@ -370,5 +371,6 @@ void deleteBCast(BCast_t *bcast);
 void clearBCastByJobid(uint32_t jobid);
 void clearBCasts();
 void shutdownStepForwarder(uint32_t jobid);
+int killChild(pid_t pid, int signal);
 
 #endif

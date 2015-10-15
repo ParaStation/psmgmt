@@ -386,7 +386,6 @@ static void handleTaskIds(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 
     if (ret < 0) goto SPAWN_FAILED;
 
-    sendSlurmRC(&step->srunControlMsg, SLURM_SUCCESS);
     step->state = JOB_RUNNING;
     mdbg(PSSLURM_LOG_JOB, "%s: step '%u:%u' in '%s'\n", __func__,
 	    step->jobid, step->stepid, strJobState(step->state));
@@ -408,31 +407,25 @@ static void handleTaskIds(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     return;
 
 SPAWN_FAILED:
-    mlog("%s: spawn step '%u:%u' failed: ret '%i' state '%i'\n", __func__,
-	    step->jobid, step->uid, ret, step->state);
-    if (step->state == JOB_PRESTART) {
-	/* spawn failed, e.g. executable not found */
+    mlog("%s: spawn step '%u:%u' failed: ret '%i' state '%s'\n", __func__,
+	    step->jobid, step->uid, ret, strJobState(step->state));
+    /* spawn failed, e.g. executable not found */
 
-	/* we should say okay to srun and return exit code 2 */
-	sendSlurmRC(&step->srunControlMsg, SLURM_SUCCESS);
-	step->tidsLen = step->np;
-	step->tids = umalloc(sizeof(uint32_t) * step->np);
-	x = 0;
-	for (i=0; i<step->nrOfNodes; i++) {
-	    for (z=0; z<step->globalTaskIdsLen[i]; z++) {
-		step->tids[x++] = PSC_getTID(step->nodes[i], rand()%128);
-	    }
+    /* return exit code 2 */
+    step->tidsLen = step->np;
+    step->tids = umalloc(sizeof(uint32_t) * step->np);
+    x = 0;
+    for (i=0; i<step->nrOfNodes; i++) {
+	for (z=0; z<step->globalTaskIdsLen[i]; z++) {
+	    step->tids[x++] = PSC_getTID(step->nodes[i], rand()%128);
 	}
-	sendTaskPids(step);
-
-	step->state = JOB_RUNNING;
-	mdbg(PSSLURM_LOG_JOB, "%s: step '%u:%u' in '%s'\n", __func__,
-		step->jobid, step->stepid, strJobState(step->state));
-	step->exitCode = 0x200;
-    } else {
-	/* spawn failed */
-	sendSlurmRC(&step->srunControlMsg, SLURM_ERROR);
     }
+    sendTaskPids(step);
+
+    step->state = JOB_RUNNING;
+    mdbg(PSSLURM_LOG_JOB, "%s: step '%u:%u' in '%s'\n", __func__,
+	    step->jobid, step->stepid, strJobState(step->state));
+    step->exitCode = 0x200;
 }
 
 void send_PS_JobLaunch(Job_t *job)
@@ -672,8 +665,6 @@ static void handle_PS_JobStateReq(DDTypedBufferMsg_t *msg)
     /* get jobid */
     getUint32(&ptr, &jobid);
 
-    mlog("%s: jobid '%u'\n", __func__, jobid);
-
     if ((job = findJobById(jobid))) {
 	res = 1;
 	state = job->state;
@@ -681,6 +672,10 @@ static void handle_PS_JobStateReq(DDTypedBufferMsg_t *msg)
 	res = 1;
 	state = alloc->state;
     }
+
+    mlog("%s: from '%s' jobid '%u' res '%u' state '%s'\n", __func__,
+	    PSC_printTID(msg->header.sender), jobid, res,
+	    strJobState(job->state));
 
     addUint32ToMsg(jobid, &data);
     addUint8ToMsg(res, &data);
@@ -697,7 +692,7 @@ static void handle_PS_JobStateReq(DDTypedBufferMsg_t *msg)
     memcpy(msg->buf, data.buf, data.bufUsed);
     msg->header.len += data.bufUsed;
 
-    if ((sendMsg(&msg)) == -1 && errno != EWOULDBLOCK) {
+    if ((sendMsg(msg)) == -1 && errno != EWOULDBLOCK) {
 	mwarn(errno, "%s: sending msg to %s failed ", __func__,
 		PSC_printTID(msg->header.dest));
     }
@@ -1117,6 +1112,7 @@ static void handleCC_IO_Msg(PSLog_Msg_t *msg)
 {
     Step_t *step = NULL;
     PStask_t *task;
+    static PStask_ID_t noLoggerDest = -1;
 
     if (!(step = findStepByLogger(msg->header.dest))) {
 	if (PSC_getMyID() == PSC_getID(msg->header.sender)) {
@@ -1129,10 +1125,12 @@ static void handleCC_IO_Msg(PSLog_Msg_t *msg)
 	    }
 	}
 
+	if (noLoggerDest == msg->header.dest) return;
 	mlog("%s: step for I/O msg logger '%s' not found\n", __func__,
 		PSC_printTID(msg->header.dest));
 
-	goto OLD_MSG_HANDLER;
+	noLoggerDest = msg->header.dest;
+	return;
     }
 
     /*
@@ -1164,9 +1162,8 @@ static void handleCC_IO_Msg(PSLog_Msg_t *msg)
 	goto OLD_MSG_HANDLER;
     }
 
-    printChildMessage(step->fwdata, msg->buf,
-			msg->header.len - PSLog_headerSize, msg->type,
-			msg->sender);
+    printChildMessage(step, msg->buf, msg->header.len - PSLog_headerSize,
+			msg->type, msg->sender);
 
     return;
 
@@ -1219,8 +1216,8 @@ static void closeClientIO(PSLog_Msg_t *msg)
 
     if (step->pty) return;
 
-    printChildMessage(step->fwdata, NULL, 0, STDOUT, msg->sender);
-    printChildMessage(step->fwdata, NULL, 0, STDERR, msg->sender);
+    printChildMessage(step, NULL, 0, STDOUT, msg->sender);
+    printChildMessage(step, NULL, 0, STDERR, msg->sender);
 }
 
 static void handleCC_STDIN_Msg(PSLog_Msg_t *msg)

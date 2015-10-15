@@ -1010,6 +1010,11 @@ static void handleConnectTimeout(int timerId, void *fwdata)
     Timer_remove(timerId);
 }
 
+void sendMsgtoMother(PS_DataBuffer_t *data)
+{
+    sendFWMsg(motherSock, data);
+}
+
 void forwardMsgtoMother(DDMsg_t *msg)
 {
     PS_DataBuffer_t data = { .buf = NULL };

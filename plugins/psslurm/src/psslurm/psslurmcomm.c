@@ -31,6 +31,7 @@
 #include "psslurmjob.h"
 #include "psslurmlog.h"
 #include "psslurmauth.h"
+#include "psslurmio.h"
 #include "psslurmenv.h"
 #include "psslurmpscomm.h"
 
@@ -830,7 +831,7 @@ static int handleSrunPTYMsg(int sock, void *data)
     if (ioctl(step->stdOut[1], TIOCSWINSZ, &ws)) {
 	mwarn(errno, "%s: ioctl(TIOCSWINSZ): ", __func__);
     }
-    if (step->fwdata && kill(step->fwdata->childPid, SIGWINCH)) {
+    if (step->fwdata && killChild(step->fwdata->childPid, SIGWINCH)) {
 	if (errno == ESRCH) return 0;
 	mlog("%s: error sending SIGWINCH to '%i'\n", __func__,
 	step->fwdata->childPid);
@@ -1164,8 +1165,11 @@ int srunSendIO(uint16_t type, uint16_t taskid, Step_t *step,
 	mdbg(PSSLURM_LOG_IO, format, buf);
     }
 
+    if (step->srunIOMsg.sock == -1) return -1;
+
     towrite = bufLen;
     written = 0;
+    errno = 0;
 
     while (once || towrite > 0) {
 	len = towrite > 1000 ? 1000 : towrite;
@@ -1192,6 +1196,17 @@ int srunSendIO(uint16_t type, uint16_t taskid, Step_t *step,
 	towrite -= ret;
 	mdbg(PSSLURM_LOG_IO, "%s: ret :%i written :%i towrite: %i\n",
 		__func__, ret, written, towrite);
+    }
+
+    if (ret < 0 ) {
+	switch (errno) {
+	    case ECONNRESET:
+	    case EPIPE:
+	    case EBADF:
+		sendBrokeIOcon();
+		freeSlurmMsg(&step->srunIOMsg);
+		break;
+	}
     }
 
     ufree(data.buf);

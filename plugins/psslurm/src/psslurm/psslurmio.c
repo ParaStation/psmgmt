@@ -320,6 +320,35 @@ int stepForwarderMsg(void *data, char *ptr, int32_t cmd)
     return 0;
 }
 
+void sendBrokeIOcon()
+{
+    PS_DataBuffer_t data = { .buf = NULL };
+
+    addInt32ToMsg(CMD_BROKE_IO_CON, &data);
+    sendMsgtoMother(&data);
+
+    ufree(data.buf);
+}
+
+static void handleBrokeIOcon(void *data, char *ptr)
+{
+    Forwarder_Data_t *fwdata = data;
+    Step_t *step = fwdata->userData;
+
+    if (step->ioCon < 2) step->ioCon = 2;
+}
+
+int hookFWmsg(void *data, char *ptr, int32_t cmd)
+{
+    switch (cmd) {
+	case CMD_BROKE_IO_CON:
+	    handleBrokeIOcon(data, ptr);
+	    return 1;
+    }
+
+    return 0;
+}
+
 static int getAppendFlags(uint8_t appendMode)
 {
     int flags = 0;
@@ -858,13 +887,22 @@ void sendEnableSrunIO(Step_t *step)
     ufree(data.buf);
 }
 
-void printChildMessage(Forwarder_Data_t *fwdata, char *msg, uint32_t msgLen,
+void printChildMessage(Step_t *step, char *msg, uint32_t msgLen,
 			uint8_t type, int32_t taskid)
 {
     PS_DataBuffer_t data = { .buf = NULL };
 
     /* can happen, if forwarder is already gone */
-    if (!fwdata) return;
+    if (!step->fwdata) return;
+
+    /* connection to srun broke */
+    if (step->ioCon > 2) return;
+
+    if (step->ioCon == 2) {
+	mlog("%s: I/O connection for step '%u:%u' is broken\n", __func__,
+		step->jobid, step->stepid);
+	step->ioCon = 3;
+    }
 
     /* if msg from service rank, let it seem like it comes from task 0 */
     if (taskid < 0) taskid = 0;
@@ -874,7 +912,7 @@ void printChildMessage(Forwarder_Data_t *fwdata, char *msg, uint32_t msgLen,
     addUint16ToMsg(taskid, &data);
     addDataToMsg(msg, msgLen, &data);
 
-    sendFWMsg(fwdata->controlSocket, &data);
+    sendFWMsg(step->fwdata->controlSocket, &data);
     ufree(data.buf);
 }
 

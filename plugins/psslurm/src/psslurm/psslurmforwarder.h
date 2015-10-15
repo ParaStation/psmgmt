@@ -23,6 +23,7 @@
 #define CMD_PRINT_CHILD_MSG 100
 #define CMD_ENABLE_SRUN_IO  101
 #define CMD_FW_FINALIZE	    102
+#define CMD_BROKE_IO_CON    103
 
 int execUserStep(Step_t *step);
 int execUserJob(Job_t *job);
