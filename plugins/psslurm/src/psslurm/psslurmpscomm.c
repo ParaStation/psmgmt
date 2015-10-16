@@ -221,7 +221,7 @@ void callbackPElogue(char *jobid, int exit_status, int timeout)
 		    job->jobid, strJobState(job->state));
 	    if (job->extended) execUserJob(job);
 	} else {
-	    /* tell slurmd job has finished */
+	    /* tell slurmctld job has finished */
 	    mlog("%s: TODO let job exit in slurm\n", __func__);
 	    sendJobExit(job, exit_status);
 
