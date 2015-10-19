@@ -31,6 +31,7 @@
 #include "psslurmjob.h"
 #include "psslurmlog.h"
 #include "psslurmauth.h"
+#include "psslurmio.h"
 #include "psslurmenv.h"
 #include "psslurmpscomm.h"
 
@@ -841,7 +842,7 @@ static int handleSrunPTYMsg(int sock, void *data)
     if (ioctl(step->stdOut[1], TIOCSWINSZ, &ws)) {
 	mwarn(errno, "%s: ioctl(TIOCSWINSZ): ", __func__);
     }
-    if (step->fwdata && kill(step->fwdata->childPid, SIGWINCH)) {
+    if (step->fwdata && killChild(step->fwdata->childPid, SIGWINCH)) {
 	if (errno == ESRCH) return 0;
 	mlog("%s: error sending SIGWINCH to '%i'\n", __func__,
 	step->fwdata->childPid);
@@ -936,7 +937,7 @@ int handleSrunMsg(int sock, void *data)
 	    mlog("%s: invalid connection test, lenght '%u'\n", __func__,
 		    lenght);
 	}
-	srunSendIO(SLURM_IO_CONNECTION_TEST, 0, step->srunIOMsg.sock, NULL, 0);
+	srunSendIO(SLURM_IO_CONNECTION_TEST, 0, step, NULL, 0);
     } else if (!lenght) {
 	/* forward eof to all forwarders */
 	mlog("%s: got eof of stdin '%u'\n", __func__, fd);
@@ -1149,8 +1150,29 @@ void srunEnableIO(Step_t *step)
     enabled = 1;
 }
 
-int srunSendIO(uint16_t type, uint16_t taskid, int sock,
-		char *buf, uint32_t bufLen)
+int srunSendIO(uint16_t type, uint16_t taskid, Step_t *step,
+                char *buf, uint32_t bufLen)
+{
+    int ret, error;
+
+    ret = srunSendIOSock(type, taskid, step->srunIOMsg.sock, buf, bufLen, &error);
+
+    if (ret < 0 ) {
+	switch (error) {
+	    case ECONNRESET:
+	    case EPIPE:
+	    case EBADF:
+		sendBrokeIOcon();
+		freeSlurmMsg(&step->srunIOMsg);
+		break;
+	}
+    }
+
+    return ret;
+}
+
+int srunSendIOSock(uint16_t type, uint16_t taskid, int sock,
+                char *buf, uint32_t bufLen, int *error)
 {
     PS_DataBuffer_t data = { .buf = NULL };
     int ret = 0, once = 1;
@@ -1164,8 +1186,11 @@ int srunSendIO(uint16_t type, uint16_t taskid, int sock,
 	mdbg(PSSLURM_LOG_IO, format, buf);
     }
 
+    if (sock == -1) return -1;
+
     towrite = bufLen;
     written = 0;
+    errno = 0;
 
     while (once || towrite > 0) {
 	len = towrite > 1000 ? 1000 : towrite;
@@ -1194,7 +1219,9 @@ int srunSendIO(uint16_t type, uint16_t taskid, int sock,
 		__func__, sock, ret, written, towrite);
     }
 
+    *error = errno;
     ufree(data.buf);
+
     return ret;
 }
 

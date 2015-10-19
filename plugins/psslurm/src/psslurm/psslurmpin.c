@@ -974,7 +974,7 @@ void verboseCpuPinningOutput(Step_t *step, PS_Tasks_t *task) {
 		getLocalRankID(task->childRank, step, step->myNodeIndex),
 		pid, printCpuMask(pid), action);
 
-	printChildMessage(step->fwdata, verbstr, strlen(verbstr),
+	printChildMessage(step, verbstr, strlen(verbstr),
 		STDERR, task->childRank);
 
 	ufree(verbstr);

@@ -309,7 +309,7 @@ int handleForwarderInit(void * data)
 	    if (!WIFSTOPPED(status)) {
 		mlog("%s: child '%i' not stopped\n", __func__, child);
 	    } else {
-		if ((kill(child, SIGSTOP)) == -1) {
+		if ((killChild(child, SIGSTOP)) == -1) {
 		    mwarn(errno, "%s: kill(%i) failed: ", __func__, child);
 		}
 		if ((ptrace(PTRACE_DETACH, child, 0, 0)) == -1) {
@@ -663,10 +663,22 @@ void stepForwarderLoop(void *data)
     }
 }
 
-static void handleChildStart(void *data, pid_t fw, pid_t childPid,
+static void handleChildStartJob(void *data, pid_t fw, pid_t childPid,
 				pid_t childSid)
 {
     psAccountRegisterJob(childPid, NULL);
+}
+
+static void handleChildStartStep(void *data, pid_t fw, pid_t childPid,
+				pid_t childSid)
+{
+    Forwarder_Data_t *fwdata = data;
+    Step_t *step = fwdata->userData;
+
+    psAccountRegisterJob(childPid, NULL);
+
+    /* say ok to srun if mpiexec could be spawned */
+    sendSlurmRC(&step->srunControlMsg, SLURM_SUCCESS);
 }
 
 int execUserStep(Step_t *step)
@@ -695,7 +707,8 @@ int execUserStep(Step_t *step)
     fwdata->hookLoop = stepForwarderLoop;
     fwdata->hookFWInit = stepForwarderInit;
     fwdata->hookMotherMsg = stepForwarderMsg;
-    fwdata->hookChildStart = handleChildStart;
+    fwdata->hookForwarderMsg = hookFWmsg;
+    fwdata->hookChildStart = handleChildStartStep;
     fwdata->hookFinalize = stepFinalize;
 
     if ((startForwarder(fwdata)) != 0) {
@@ -730,7 +743,7 @@ int execUserJob(Job_t *job)
     fwdata->killSession = psAccountsendSignal2Session;
     fwdata->callback = jobCallback;
     fwdata->childFunc = execBatchJob;
-    fwdata->hookChildStart = handleChildStart;
+    fwdata->hookChildStart = handleChildStartJob;
 
     if ((startForwarder(fwdata)) != 0) {
 	mlog("%s: starting forwarder for job '%s' failed\n", __func__, job->id);
@@ -891,6 +904,7 @@ int execStepFWIO(Step_t *step)
     fwdata->killSession = psAccountsendSignal2Session;
     fwdata->hookLoop = stepFWIOloop;
     fwdata->hookMotherMsg = stepForwarderMsg;
+    fwdata->hookForwarderMsg = hookFWmsg;
     fwdata->callback = stepFWIOcallback;
     fwdata->hookFinalize = stepFinalize;
 

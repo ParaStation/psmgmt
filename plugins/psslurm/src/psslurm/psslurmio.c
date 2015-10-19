@@ -90,13 +90,14 @@ void initStepIO(Step_t *step)
 static void forward2Sattach(char *msg, uint32_t msgLen, uint16_t taskid,
 			    uint8_t type)
 {
-    int i, ret, stype;
+    int i, ret, stype, error;
 
     stype = (type == STDOUT) ?  SLURM_IO_STDOUT : SLURM_IO_STDERR;
 
     for (i=0; i<MAX_SATTACH_SOCKETS; i++) {
 	if (sattachSockets[i] != -1) {
-	    ret = srunSendIO(stype, taskid, sattachSockets[i], msg, msgLen);
+	    ret = srunSendIOSock(stype, taskid, sattachSockets[i], msg,
+				    msgLen, &error);
 	    if (ret <0) {
 		if (Selector_isRegistered(sattachSockets[i])) {
 		    Selector_remove(sattachSockets[i]);
@@ -169,7 +170,7 @@ static void writeIOmsg(char *msg, uint32_t msgLen, uint16_t taskid,
 	} else if (step->stdOutOpt == IO_RANK_FILE) {
 	    doWriteP(step->outFDs[lrank], msgPtr, msgLen);
 	} else {
-	    srunSendIO(SLURM_IO_STDOUT, taskid, step->srunIOMsg.sock,
+	    srunSendIO(SLURM_IO_STDOUT, taskid, step,
 			msgPtr, msgLen);
 	}
     } else if (type == STDERR) {
@@ -178,10 +179,10 @@ static void writeIOmsg(char *msg, uint32_t msgLen, uint16_t taskid,
 	} else if (step->stdErrOpt == IO_RANK_FILE) {
 	    doWriteP(step->errFDs[lrank], msgPtr, msgLen);
 	} else if (step->pty) {
-	    srunSendIO(SLURM_IO_STDOUT, taskid, step->srunIOMsg.sock,
+	    srunSendIO(SLURM_IO_STDOUT, taskid, step,
 			msgPtr, msgLen);
 	} else {
-	    srunSendIO(SLURM_IO_STDERR, taskid, step->srunIOMsg.sock,
+	    srunSendIO(SLURM_IO_STDERR, taskid, step,
 			msgPtr, msgLen);
 	}
     }
@@ -415,7 +416,7 @@ static void handleReattachTasks(void *data, char *ptr)
     uint16_t ioPort, ctlPort;
     uint32_t ioAddr;
     char *sig;
-    int sock, i, ret;
+    int sock, i, ret, sockIndex = 0, error;
 
     uint32_t index = ringBufStart;
     RingMsgBuffer_t *rBuf;
@@ -443,6 +444,7 @@ static void handleReattachTasks(void *data, char *ptr)
 	    sattachCtlSock[i] = ctlPort;
 	    sattachAddr[i] = ioAddr;
 	    sattachCon++;
+	    sockIndex = i;
 	    break;
 	}
     }
@@ -458,13 +460,14 @@ static void handleReattachTasks(void *data, char *ptr)
 	rBuf = &ringBuf[index];
 	if (!rBuf->msg) break;
 
-	ret = srunSendIO(rBuf->type, rBuf->taskid, sock, rBuf->msg,
-			    rBuf->msgLen);
+	ret = srunSendIOSock(rBuf->type, rBuf->taskid,
+				sattachSockets[sockIndex], rBuf->msg,
+				rBuf->msgLen, &error);
 	if (ret < 0) {
 	    mlog("%s: sending IO failed\n", __func__);
-	    close(sattachSockets[i]);
-	    sattachSockets[i] = -1;
-	    sattachCtlSock[i] = -1;
+	    close(sattachSockets[sockIndex]);
+	    sattachSockets[sockIndex] = -1;
+	    sattachCtlSock[sockIndex] = -1;
 	    sattachCon--;
 	    return;
 	}
@@ -518,6 +521,35 @@ int stepForwarderMsg(void *data, char *ptr, int32_t cmd)
 	    return 1;
 	case CMD_STEP_TIMEOUT:
 	    handleStepTimeout(data, ptr);
+	    return 1;
+    }
+
+    return 0;
+}
+
+void sendBrokeIOcon()
+{
+    PS_DataBuffer_t data = { .buf = NULL };
+
+    addInt32ToMsg(CMD_BROKE_IO_CON, &data);
+    sendMsgtoMother(&data);
+
+    ufree(data.buf);
+}
+
+static void handleBrokeIOcon(void *data, char *ptr)
+{
+    Forwarder_Data_t *fwdata = data;
+    Step_t *step = fwdata->userData;
+
+    if (step->ioCon < 2) step->ioCon = 2;
+}
+
+int hookFWmsg(void *data, char *ptr, int32_t cmd)
+{
+    switch (cmd) {
+	case CMD_BROKE_IO_CON:
+	    handleBrokeIOcon(data, ptr);
 	    return 1;
     }
 
@@ -1042,13 +1074,22 @@ void sendEnableSrunIO(Step_t *step)
     ufree(data.buf);
 }
 
-void printChildMessage(Forwarder_Data_t *fwdata, char *msg, uint32_t msgLen,
+void printChildMessage(Step_t *step, char *msg, uint32_t msgLen,
 			uint8_t type, int32_t taskid)
 {
     PS_DataBuffer_t data = { .buf = NULL };
 
     /* can happen, if forwarder is already gone */
-    if (!fwdata) return;
+    if (!step->fwdata) return;
+
+    /* connection to srun broke */
+    if (step->ioCon > 2) return;
+
+    if (step->ioCon == 2) {
+	mlog("%s: I/O connection for step '%u:%u' is broken\n", __func__,
+		step->jobid, step->stepid);
+	step->ioCon = 3;
+    }
 
     /* if msg from service rank, let it seem like it comes from task 0 */
     if (taskid < 0) taskid = 0;
@@ -1058,7 +1099,7 @@ void printChildMessage(Forwarder_Data_t *fwdata, char *msg, uint32_t msgLen,
     addUint16ToMsg(taskid, &data);
     addDataToMsg(msg, msgLen, &data);
 
-    sendFWMsg(fwdata->controlSocket, &data);
+    sendFWMsg(step->fwdata->controlSocket, &data);
     ufree(data.buf);
 }
 
@@ -1151,7 +1192,7 @@ int handleUserOE(int sock, void *data)
     return 0;
 
     /* forward data to srun, size of 0 means EOF for stream */
-    if ((ret = srunSendIO(type, 0, step->srunIOMsg.sock, buf, size)) != (size + 10)) {
+    if ((ret = srunSendIO(type, 0, step, buf, size)) != (size + 10)) {
 	if (!step->labelIO) {
 	    mwarn(errno, "%s: sending IO failed: size:%i ret:%i error:%i ",
 		    __func__, (size +10), ret, errno);

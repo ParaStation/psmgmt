@@ -27,6 +27,7 @@ typedef enum {
     CMD_REATTACH_TASKS,
     CMD_INFO_TASKS,
     CMD_STEP_TIMEOUT,
+    CMD_BROKE_IO_CON,
 } PSSLURM_Fw_Cmds_t;
 
 int execUserStep(Step_t *step);

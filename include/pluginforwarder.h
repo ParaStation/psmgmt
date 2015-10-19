@@ -81,5 +81,6 @@ void sendFWMsg(int fd, PS_DataBuffer_t *data);
 void forwardMsgtoMother(DDMsg_t *msg);
 void shutdownForwarder(Forwarder_Data_t *data);
 void sendStartGraceTime(Forwarder_Data_t *data);
+void sendMsgtoMother(PS_DataBuffer_t *data);
 
 #endif

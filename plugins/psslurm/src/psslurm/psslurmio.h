@@ -33,7 +33,7 @@ void redirectIORank(Step_t *step, int rank);
 void redirectStepIO(Forwarder_Data_t *fwdata, Step_t *step);
 void redirectStepIO2(Forwarder_Data_t *fwdata, Step_t *step);
 void sendEnableSrunIO(Step_t *step);
-void printChildMessage(Forwarder_Data_t *fwdata, char *msg, uint32_t msgLen,
+void printChildMessage(Step_t *step, char *msg, uint32_t msgLen,
 			uint8_t type, int32_t taskid);
 int handleUserOE(int sock, void *data);
 int setFilePermissions(Job_t *job);
@@ -44,5 +44,7 @@ void reattachTasks(Forwarder_Data_t *fwdata, uint32_t addr,
 void sendFWtaskInfo(Forwarder_Data_t *fwdata, PS_Tasks_t *task);
 void initStepIO(Step_t *step);
 void sendStepTimeout(Forwarder_Data_t *fwdata);
+int hookFWmsg(void *data, char *ptr, int32_t cmd);
+void sendBrokeIOcon();
 
 #endif

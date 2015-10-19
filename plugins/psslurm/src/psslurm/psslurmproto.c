@@ -601,7 +601,7 @@ static void handleSignalTasks(Slurm_Msg_t *sMsg)
 		    jobid, signal);
 	    /* signal jobscript only, not all corresponding steps */
 	    if (job->state == JOB_RUNNING && job->fwdata) {
-		kill(job->fwdata->childPid, signal);
+		killChild(job->fwdata->childPid, signal);
 	    }
 	} else {
 	    mlog("%s: send steps with jobid '%u' signal '%u'\n", __func__,
@@ -806,7 +806,7 @@ static void handleSignalJob(Slurm_Msg_t *sMsg)
 		jobid, signal);
 	/* signal only job, not all corresponding steps */
 	if (job->state == JOB_RUNNING && job->fwdata) {
-	    kill(job->fwdata->forwarderPid, signal);
+	    killChild(job->fwdata->forwarderPid, signal);
 	}
     } else if (job) {
 	mlog("%s: send job '%u' signal '%u'\n", __func__,
@@ -1143,9 +1143,9 @@ static void handleJobNotify(Slurm_Msg_t *sMsg)
 	    step->stepid);
     */
 
-    printChildMessage(step->fwdata, "psslurm: ", strlen("psslurm: "), STDERR, 0);
-    printChildMessage(step->fwdata, msg, strlen(msg), STDERR, 0);
-    printChildMessage(step->fwdata, "\n", strlen("\n"), STDERR, 0);
+    printChildMessage(step, "psslurm: ", strlen("psslurm: "), STDERR, 0);
+    printChildMessage(step, msg, strlen(msg), STDERR, 0);
+    printChildMessage(step, "\n", strlen("\n"), STDERR, 0);
 
     sendSlurmRC(sMsg, SLURM_SUCCESS);
     ufree(msg);
@@ -1562,7 +1562,7 @@ static void handleKillReq(Slurm_Msg_t *sMsg, uint32_t jobid,
 	    snprintf(buf, sizeof(buf), "error: *** step %u:%u CANCELLED DUE "
 			"TO TIME LIMIT ***\n", jobid, stepid);
 	    mlog("%s: timeout for step '%u:%u'\n", __func__, jobid, stepid);
-	    printChildMessage(step->fwdata, buf, strlen(buf), STDERR, 0);
+	    printChildMessage(step, buf, strlen(buf), STDERR, 0);
 	    sendStepTimeout(step->fwdata);
 	    step->timeout = 1;
 	} else {
@@ -1587,7 +1587,7 @@ static void handleKillReq(Slurm_Msg_t *sMsg, uint32_t jobid,
 	if (!job && step) {
 	    snprintf(buf, sizeof(buf), "error: *** step %u CANCELLED DUE TO"
 			" TIME LIMIT ***\n", jobid);
-	    printChildMessage(step->fwdata, buf, strlen(buf), STDERR, 0);
+	    printChildMessage(step, buf, strlen(buf), STDERR, 0);
 	    sendStepTimeout(step->fwdata);
 	    step->timeout = 1;
 	} else {
@@ -1597,7 +1597,7 @@ static void handleKillReq(Slurm_Msg_t *sMsg, uint32_t jobid,
 	if (!job && step) {
 	    snprintf(buf, sizeof(buf), "error: *** PREEMPTION for step "
 		    "%u ***\n", jobid);
-	    printChildMessage(step->fwdata, buf, strlen(buf), STDERR, 0);
+	    printChildMessage(step, buf, strlen(buf), STDERR, 0);
 	} else {
 	    mlog("%s: preemption for job '%u'\n", __func__, jobid);
 	}

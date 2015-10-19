@@ -221,7 +221,7 @@ void callbackPElogue(char *jobid, int exit_status, int timeout)
 		    job->jobid, strJobState(job->state));
 	    if (job->extended) execUserJob(job);
 	} else {
-	    /* tell slurmd job has finished */
+	    /* tell slurmctld job has finished */
 	    mlog("%s: TODO let job exit in slurm\n", __func__);
 	    sendJobExit(job, exit_status);
 
@@ -386,7 +386,6 @@ static void handleTaskIds(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 
     if (ret < 0) goto SPAWN_FAILED;
 
-    sendSlurmRC(&step->srunControlMsg, SLURM_SUCCESS);
     step->state = JOB_RUNNING;
     mdbg(PSSLURM_LOG_JOB, "%s: step '%u:%u' in '%s'\n", __func__,
 	    step->jobid, step->stepid, strJobState(step->state));
@@ -410,29 +409,23 @@ static void handleTaskIds(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 SPAWN_FAILED:
     mlog("%s: spawn step '%u:%u' failed: ret '%i' state '%s'\n", __func__,
 	    step->jobid, step->uid, ret, strJobState(step->state));
-    if (step->state == JOB_PRESTART) {
-	/* spawn failed, e.g. executable not found */
+    /* spawn failed, e.g. executable not found */
 
-	/* we should say okay to srun and return exit code 2 */
-	sendSlurmRC(&step->srunControlMsg, SLURM_SUCCESS);
-	step->tidsLen = step->np;
-	step->tids = umalloc(sizeof(uint32_t) * step->np);
-	x = 0;
-	for (i=0; i<step->nrOfNodes; i++) {
-	    for (z=0; z<step->globalTaskIdsLen[i]; z++) {
-		step->tids[x++] = PSC_getTID(step->nodes[i], rand()%128);
-	    }
+    /* return exit code 2 */
+    step->tidsLen = step->np;
+    step->tids = umalloc(sizeof(uint32_t) * step->np);
+    x = 0;
+    for (i=0; i<step->nrOfNodes; i++) {
+	for (z=0; z<step->globalTaskIdsLen[i]; z++) {
+	    step->tids[x++] = PSC_getTID(step->nodes[i], rand()%128);
 	}
-	sendTaskPids(step);
-
-	step->state = JOB_RUNNING;
-	mdbg(PSSLURM_LOG_JOB, "%s: step '%u:%u' in '%s'\n", __func__,
-		step->jobid, step->stepid, strJobState(step->state));
-	step->exitCode = 0x200;
-    } else {
-	/* spawn failed */
-	sendSlurmRC(&step->srunControlMsg, SLURM_ERROR);
     }
+    sendTaskPids(step);
+
+    step->state = JOB_RUNNING;
+    mdbg(PSSLURM_LOG_JOB, "%s: step '%u:%u' in '%s'\n", __func__,
+	    step->jobid, step->stepid, strJobState(step->state));
+    step->exitCode = 0x200;
 }
 
 void send_PS_JobLaunch(Job_t *job)
@@ -597,29 +590,6 @@ void send_PS_JobState(uint32_t jobid, PStask_ID_t dest)
     ufree(data.buf);
 }
 
-/**
- * should be obsolete.
- */
-void send_PS_fwLaunchTasks(Step_t *step, Slurm_Msg_t *sMsg)
-{
-    PS_DataBuffer_t data = { .buf = NULL };
-    PSnodes_ID_t myID = PSC_getMyID();
-    uint32_t i;
-
-    addUint32ToMsg(sMsg->head.addr, &data);
-    addUint16ToMsg(sMsg->head.port, &data);
-    addMemToMsg(sMsg->data->buf, sMsg->data->bufUsed, &data);
-
-    for (i=0; i<step->nrOfNodes; i++) {
-	if (step->nodes[i] == myID) continue;
-
-	sendFragMsg(&data, PSC_getTID(step->nodes[i], 0),
-			PSP_CC_PLUG_PSSLURM, PSP_LAUNCH_TASKS);
-    }
-
-    ufree(data.buf);
-}
-
 static void handle_PS_JobExit(DDTypedBufferMsg_t *msg)
 {
     uint32_t jobid, stepid;
@@ -695,8 +665,6 @@ static void handle_PS_JobStateReq(DDTypedBufferMsg_t *msg)
     /* get jobid */
     getUint32(&ptr, &jobid);
 
-    mlog("%s: jobid '%u'\n", __func__, jobid);
-
     if ((job = findJobById(jobid))) {
 	res = 1;
 	state = job->state;
@@ -704,6 +672,10 @@ static void handle_PS_JobStateReq(DDTypedBufferMsg_t *msg)
 	res = 1;
 	state = alloc->state;
     }
+
+    mlog("%s: from '%s' jobid '%u' res '%u' state '%s'\n", __func__,
+	    PSC_printTID(msg->header.sender), jobid, res,
+	    strJobState(state));
 
     addUint32ToMsg(jobid, &data);
     addUint8ToMsg(res, &data);
@@ -720,7 +692,7 @@ static void handle_PS_JobStateReq(DDTypedBufferMsg_t *msg)
     memcpy(msg->buf, data.buf, data.bufUsed);
     msg->header.len += data.bufUsed;
 
-    if ((sendMsg(&msg)) == -1 && errno != EWOULDBLOCK) {
+    if ((sendMsg(msg)) == -1 && errno != EWOULDBLOCK) {
 	mwarn(errno, "%s: sending msg to %s failed ", __func__,
 		PSC_printTID(msg->header.dest));
     }
@@ -1142,6 +1114,7 @@ static void handleCC_IO_Msg(PSLog_Msg_t *msg)
 {
     Step_t *step = NULL;
     PStask_t *task;
+    static PStask_ID_t noLoggerDest = -1;
 
     if (!(step = findStepByLogger(msg->header.dest))) {
 	if (PSC_getMyID() == PSC_getID(msg->header.sender)) {
@@ -1154,10 +1127,12 @@ static void handleCC_IO_Msg(PSLog_Msg_t *msg)
 	    }
 	}
 
+	if (noLoggerDest == msg->header.dest) return;
 	mlog("%s: step for I/O msg logger '%s' not found\n", __func__,
 		PSC_printTID(msg->header.dest));
 
-	goto OLD_MSG_HANDLER;
+	noLoggerDest = msg->header.dest;
+	return;
     }
 
     /*
@@ -1189,9 +1164,8 @@ static void handleCC_IO_Msg(PSLog_Msg_t *msg)
 	goto OLD_MSG_HANDLER;
     }
 
-    printChildMessage(step->fwdata, msg->buf,
-			msg->header.len - PSLog_headerSize, msg->type,
-			msg->sender);
+    printChildMessage(step, msg->buf, msg->header.len - PSLog_headerSize,
+			msg->type, msg->sender);
 
     return;
 
@@ -1258,8 +1232,8 @@ static void closeClientIO(PSLog_Msg_t *msg)
 
     if (step->pty) return;
 
-    printChildMessage(step->fwdata, NULL, 0, STDOUT, msg->sender);
-    printChildMessage(step->fwdata, NULL, 0, STDERR, msg->sender);
+    printChildMessage(step, NULL, 0, STDOUT, msg->sender);
+    printChildMessage(step, NULL, 0, STDERR, msg->sender);
 }
 
 static void handleCC_STDIN_Msg(PSLog_Msg_t *msg)

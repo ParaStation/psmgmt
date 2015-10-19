@@ -195,6 +195,7 @@ Step_t *addStep(uint32_t jobid, uint32_t stepid)
     step->stdOutOpt = IO_UNDEF;
     step->stdErrOpt = IO_UNDEF;
     step->timeout = 0;
+    step->ioCon = 1;
     INIT_LIST_HEAD(&step->tasks.list);
     INIT_LIST_HEAD(&step->gres.list);
     envInit(&step->env);
@@ -318,7 +319,7 @@ void clearBCastByJobid(uint32_t jobid)
 	if (!(bcast = list_entry(pos, BCast_t, list))) return;
 	if (bcast->jobid == jobid) {
 	    if (bcast->fwdata) {
-		kill(bcast->fwdata->forwarderPid, SIGKILL);
+		killChild(bcast->fwdata->forwarderPid, SIGKILL);
 	    } else {
 		deleteBCast(bcast);
 	    }
@@ -588,9 +589,9 @@ int deleteStep(uint32_t jobid, uint32_t stepid)
     clearGresCred(&step->gres);
 
     if (step->fwdata) {
-	if (step->fwdata->childPid) kill(step->fwdata->childPid, SIGKILL);
+	if (step->fwdata->childPid) killChild(step->fwdata->childPid, SIGKILL);
 	if (step->fwdata->forwarderPid) {
-	    kill(step->fwdata->forwarderPid, SIGKILL);
+	    killChild(step->fwdata->forwarderPid, SIGKILL);
 	}
     }
 
@@ -667,8 +668,8 @@ int deleteJob(uint32_t jobid)
     clearTasks(&job->tasks.list);
 
     if (job->fwdata) {
-	kill(job->fwdata->childPid, SIGKILL);
-	kill(job->fwdata->forwarderPid, SIGKILL);
+	killChild(job->fwdata->childPid, SIGKILL);
+	killChild(job->fwdata->forwarderPid, SIGKILL);
     }
 
     deleteJobCred(job->cred);
@@ -710,7 +711,7 @@ void signalTasks(uint32_t jobid, uid_t uid, PS_Tasks_t *tasks, int signal,
 		mdbg(PSSLURM_LOG_PROCESS, "%s: rank '%i' kill(%i) signal '%i' "
 			"group '%i' job '%u' \n", __func__, child->rank,
 			PSC_getPID(child->tid), signal, child->group, jobid);
-		kill(PSC_getPID(child->tid), signal);
+		killChild(PSC_getPID(child->tid), signal);
 		count++;
 	    }
 	}
@@ -950,6 +951,14 @@ int signalJobs(int signal, char *reason)
 	    count += signalJob(job, signal, reason);
     }
     return count;
+}
+
+int killChild(pid_t pid, int signal)
+{
+    if (!pid || pid < 0) return -1;
+    if (pid == getpid()) return -1;
+
+    return kill(pid, signal);
 }
 
 char *strJobState(JobState_t state)

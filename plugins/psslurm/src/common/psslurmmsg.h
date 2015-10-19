@@ -32,7 +32,7 @@ typedef enum {
     PSP_JOB_INFO,
     PSP_JOB_INFO_RES,
     PSP_TASK_IDS,
-    PSP_REMOTE_JOB,
+    PSP_REMOTE_JOB,	    /* obsolete */
     PSP_SIGNAL_TASKS,
     PSP_JOB_EXIT,
     PSP_JOB_LAUNCH,
