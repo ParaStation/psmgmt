@@ -175,7 +175,7 @@ typedef struct __task__ {
  * @return On success, a pointer to the new task structure is
  * returned, or NULL otherwise.
  *
- * @see PStask_init(), PStask_delete
+ * @see PStask_init(), PStask_delete()
  */
 PStask_t *PStask_new(void);
 
@@ -229,9 +229,10 @@ int PStask_delete(PStask_t *task);
  * @param task Pointer to the task structure to be cloned.
  *
  * @return On success, a pointer to the new task structure is
- * returned, or NULL otherwise.
+ * returned, or NULL otherwise. In the latter case errno is set
+ * appropriately.
  *
- * @see PStask_new(), PStask_delete
+ * @see PStask_new(), PStask_delete()
  */
 PStask_t *PStask_clone(PStask_t *task);
 
