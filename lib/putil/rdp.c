@@ -782,7 +782,8 @@ static int MYsendto(int sock, void *buf, size_t len, int flags,
  restart:
     ret = sendto(sock, buf, len, flags, to, tolen);
     if (ret < 0) {
-	switch (errno) {
+	int eno = errno;
+	switch (eno) {
 	case EINTR:
 	    RDP_log(RDP_LOG_INTR, "%s: sendto() interrupted\n", __func__);
 	    goto restart;
@@ -790,8 +791,6 @@ static int MYsendto(int sock, void *buf, size_t len, int flags,
 	case ECONNREFUSED:
 	case EHOSTUNREACH:
 #ifdef __linux__
-	{
-	    int eno = errno;
 	    RDP_warn(RDP_LOG_CONN, eno, "%s: to %s (%d), handle this", __func__,
 		     inet_ntoa(((struct sockaddr_in *)to)->sin_addr), node);
 	    /* Handle extended error */
@@ -813,11 +812,11 @@ static int MYsendto(int sock, void *buf, size_t len, int flags,
 	    /* Try to send again */
 	    goto restart;
 	    break;
-	}
 #endif
 	default:
-	    RDP_warn(-1, errno, "%s to %s(%d)", __func__,
+	    RDP_warn(-1, eno, "%s to %s(%d)", __func__,
 		     inet_ntoa(((struct sockaddr_in *)to)->sin_addr), node);
+	    errno = eno;
 	}
     }
     return ret;
