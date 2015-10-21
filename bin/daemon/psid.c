@@ -325,7 +325,7 @@ static void sighandler(int sig)
     case SIGABRT:
     case SIGSEGV:
     case SIGILL:     /* (*) illegal instruction (not reset when caught)*/
-    case SIGFPE:     /* (*) floating point exception */
+//  case SIGFPE:     /* (*) floating point exception */
 	PSID_log(-1, "Received signal %s. Shut down hardly.\n",
 		 sys_siglist[sig] ? sys_siglist[sig] : sigStr);
 	PSID_finalizeLogs();

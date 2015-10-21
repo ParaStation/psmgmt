@@ -123,4 +123,6 @@ int countJobs();
 
 void signalJobs(int signal, char *reason);
 
+int isValidJobPointer(Job_t *jobPtr);
+
 #endif

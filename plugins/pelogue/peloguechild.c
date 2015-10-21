@@ -40,14 +40,11 @@ void clearChildList()
     list_t *pos, *tmp;
     Child_t *child;
 
-    if (list_empty(&ChildList.list)) return;
-
     list_for_each_safe(pos, tmp, &ChildList.list) {
 	if (!(child = list_entry(pos, Child_t, list))) return;
 
 	deleteChild(child->plugin, child->jobid);
     }
-    return;
 }
 
 char *childType2String(int type)
@@ -65,8 +62,6 @@ Child_t *findChild(const char *plugin, const char *jobid)
 {
     list_t *pos, *tmp;
     Child_t *child;
-
-    if (list_empty(&ChildList.list)) return NULL;
 
     list_for_each_safe(pos, tmp, &ChildList.list) {
 	if (!(child = list_entry(pos, Child_t, list))) return NULL;

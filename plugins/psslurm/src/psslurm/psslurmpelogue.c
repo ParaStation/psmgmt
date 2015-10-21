@@ -76,6 +76,7 @@ static void cbPElogueAlloc(char *sjobid, int exit_status, int timeout)
 	     * We only need to inform the waiting srun. */
 	    sendSlurmRC(&step->srunControlMsg, ESLURMD_PROLOG_FAILED);
 	    alloc->state = step->state = JOB_EXIT;
+	    psPelogueDeleteJob("psslurm", sjobid);
 	    mdbg(PSSLURM_LOG_JOB, "%s: step '%u:%u' in '%s'\n", __func__,
 		    step->jobid, step->stepid, strJobState(step->state));
 	}
@@ -125,6 +126,7 @@ static void cbPElogueJob(char *jobid, int exit_status, int timeout)
 	    execUserJob(job);
 	} else {
 	    job->state = JOB_EXIT;
+	    psPelogueDeleteJob("psslurm", job->id);
 	    mdbg(PSSLURM_LOG_JOB, "%s: job '%u' in '%s'\n", __func__,
 		    job->jobid, strJobState(job->state));
 	}

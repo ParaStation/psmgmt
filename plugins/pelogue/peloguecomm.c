@@ -652,15 +652,12 @@ int handleNodeDown(void *nodeID)
     int i;
     const char *hname = NULL;
 
-    if (list_empty(&JobList.list)) return 1;
-
     id = *((PSnodes_ID_t *) nodeID);
 
     /* check if the node which has gone down is a part of a local job */
     list_for_each_safe(pos, tmp, &JobList.list) {
 	if (!(job = list_entry(pos, Job_t, list))) break;
 	if (job->state != JOB_PROLOGUE && job->state != JOB_EPILOGUE) continue;
-	if (!(findChild(job->plugin, job->id))) continue;
 
 	for (i=0; i<job->nrOfNodes; i++) {
 	    if (job->nodes[i].id == id) {
