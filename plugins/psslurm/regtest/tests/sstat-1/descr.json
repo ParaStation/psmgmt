@@ -1,6 +1,6 @@
 {
 	"type": "batch",
-	"submit": "sbatch -N 1 -t 1 test.sh",
+	"submit": null,
 	"eval": ["eval.py"],
 	"fproc": "sstat.py",
 	"monitor_hz": 10
