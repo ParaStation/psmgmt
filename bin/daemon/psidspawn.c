@@ -1965,6 +1965,7 @@ static void msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
     size_t usedBytes;
     int32_t rank = -1;
     PStask_group_t group = TG_ANY;
+    int blocked;
 
     char tasktxt[128];
 
@@ -1974,6 +1975,7 @@ static void msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
     /* If message is from my node, test if everything is okay */
     if (PSC_getID(msg->header.sender)==PSC_getMyID()
 	&& msg->type == PSP_SPAWN_TASK) {
+	blocked = PSID_blockSIGCHLD(1);
 	task = PStask_new();
 	PStask_decodeTask(msg->buf, task);
 	answer.request = task->rank;
@@ -1983,6 +1985,7 @@ static void msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
 	    PStask_delete(task);
 	    sendMsg(&answer);
 
+	    PSID_blockSIGCHLD(blocked);
 	    return;
 	}
 	/* Store some info from task for latter usage */
@@ -1990,6 +1993,7 @@ static void msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
 	rank = task->rank;
 
 	PStask_delete(task);
+	PSID_blockSIGCHLD(blocked);
 
 	/* Since checkRequest() did not fail, we will find ptask */
 	ptask = PStasklist_find(&managedTasks, msg->header.sender);
@@ -2103,6 +2107,7 @@ static void msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
 		     __func__, PSC_printTID(msg->header.sender), tasktxt);
 	    return;
 	}
+	blocked = PSID_blockSIGCHLD(1);
 	task = PStask_new();
 	PStask_decodeTask(msg->buf, task);
 	task->tid = msg->header.sender;
@@ -2134,9 +2139,11 @@ static void msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
 
 		PStask_delete(task);
 
+		PSID_blockSIGCHLD(blocked);
 		return;
 	    }
 	}
+	PSID_blockSIGCHLD(blocked);
 
 	PStask_snprintf(tasktxt, sizeof(tasktxt), task);
 	PSID_log(PSID_LOG_SPAWN, "%s: create %s\n", __func__, tasktxt);
@@ -2193,7 +2200,9 @@ static void msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
 	    size_t newLen = task->workingdir ? strlen(task->workingdir) : 0;
 	    newLen += strlen(msg->buf) + 1;
 
+	    blocked = PSID_blockSIGCHLD(1);
 	    task->workingdir = realloc(task->workingdir, newLen);
+	    PSID_blockSIGCHLD(blocked);
 	    if (!task->workingdir) {
 		PSID_warn(-1, errno, "%s: realloc(task->workingdir)", __func__);
 		return;
@@ -2209,11 +2218,13 @@ static void msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
 		     __func__, PSC_printTID(msg->header.sender));
 	    return;
 	}
+	blocked = PSID_blockSIGCHLD(1);
 	if (PSIDnodes_getProtoV(PSC_getID(msg->header.sender)) < 340) {
 	    usedBytes = PStask_decodeArgs(msg->buf, task);
 	} else {
 	    usedBytes = PStask_decodeArgv(msg->buf, task);
 	}
+	PSID_blockSIGCHLD(blocked);
 	break;
     case PSP_SPAWN_ARGCNTD:
 	if (!task) {
@@ -2221,7 +2232,9 @@ static void msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
 		     __func__, PSC_printTID(msg->header.sender));
 	    return;
 	}
+	blocked = PSID_blockSIGCHLD(1);
 	usedBytes = PStask_decodeArgvAppend(msg->buf, task);
+	PSID_blockSIGCHLD(blocked);
 	break;
     case PSP_SPAWN_ENV:
     case PSP_SPAWN_END:
@@ -2234,7 +2247,9 @@ static void msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
 	    }
 	    return;
 	}
+	blocked = PSID_blockSIGCHLD(1);
 	usedBytes = PStask_decodeEnv(msg->buf, task);
+	PSID_blockSIGCHLD(blocked);
 	break;
     case PSP_SPAWN_ENVCNTD:
 	if (!task) {
@@ -2242,7 +2257,9 @@ static void msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
 		     __func__, PSC_printTID(msg->header.sender));
 	    return;
 	}
+	blocked = PSID_blockSIGCHLD(1);
 	usedBytes = PStask_decodeEnvAppend(msg->buf, task);
+	PSID_blockSIGCHLD(blocked);
 	break;
     default:
 	PSID_log(-1, "%s: Unknown type '%d'\n", __func__, msg->type);
