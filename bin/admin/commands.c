@@ -825,13 +825,13 @@ void PSIADM_LoadStat(char *nl)
     exclusiveFlag = (uint8_t *) exclList.list;
 
     printf("Node\t\t Load\t\t     Jobs\n");
-    printf("\t 1 min\t 5 min\t15 min\t tot.\tnorm.\talloc.\texclusive\n");
+    printf("\t  1 min\t  5 min\t 15 min\t  tot.\t norm.\talloc.\texclusive\n");
 
     for (node=0; node<PSC_getNrOfNodes(); node++) {
 	if (nl && !nl[node]) continue;
 	printf("%s\t", nodeString(node));
 	if (hostStatus.list[node]) {
-	    printf("%2.4f\t%2.4f\t%2.4f\t%4d\t%4d\t%4d\t%5d\n",
+	    printf("%7.2f\t%7.2f\t%7.2f\t%6d\t%6d\t%6d\t%5d\n",
 		   loads[3*node+0], loads[3*node+1], loads[3*node+2],
 		   taskNumFull[node], taskNumNorm[node], taskNumAlloc[node],
 		   exclusiveFlag[node]);
