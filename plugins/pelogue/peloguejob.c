@@ -83,8 +83,6 @@ Job_t *findJobByJobId(const char *plugin, const char *jobid)
     struct list_head *pos;
     Job_t *job;
 
-    if (list_empty(&JobList.list)) return NULL;
-
     list_for_each(pos, &JobList.list) {
 	if (!(job = list_entry(pos, Job_t, list))) return NULL;
 
@@ -123,8 +121,6 @@ int countJobs()
     Job_t *job;
     int count=0;
 
-    if (list_empty(&JobList.list)) return 0;
-
     list_for_each(pos, &JobList.list) {
 	if (!(job = list_entry(pos, Job_t, list))) break;
 	count++;
@@ -154,8 +150,6 @@ void clearJobList()
 {
     list_t *pos, *tmp;
     Job_t *job;
-
-    if (list_empty(&JobList.list)) return;
 
     list_for_each_safe(pos, tmp, &JobList.list) {
 	if (!(job = list_entry(pos, Job_t, list))) return;
@@ -188,11 +182,22 @@ void signalJobs(int signal, char *reason)
     list_t *pos, *tmp;
     Job_t *job;
 
-    if (list_empty(&JobList.list)) return;
-
     list_for_each_safe(pos, tmp, &JobList.list) {
 	if (!(job = list_entry(pos, Job_t, list))) return;
 
 	signalPElogue(job, signal, reason);
     }
+}
+
+int isValidJobPointer(Job_t *jobPtr)
+{
+    list_t *pos, *tmp;
+    Job_t *job;
+
+    list_for_each_safe(pos, tmp, &JobList.list) {
+	if (!(job = list_entry(pos, Job_t, list))) break;
+	if (job == jobPtr) return 1;
+    }
+
+    return 0;
 }

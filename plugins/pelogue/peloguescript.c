@@ -133,19 +133,6 @@ void PElogueExit(Job_t *job, int status, bool prologue)
     track = (prologue) ? &job->prologueTrack : &job->epilogueTrack;
     epExit = (prologue) ? &job->prologueExit : &job->epilogueExit;
 
-    /* check if job is in PElogue state */
-    /* MAYBE IN PSSLURM???
-    if (job->state != JOB_PROLOGUE &&
-	job->state != JOB_EPILOGUE &&
-	job->state != JOB_CANCEL_PROLOGUE &&
-	job->state != JOB_CANCEL_EPILOGUE &&
-	job->state != JOB_CANCEL_INTERACTIVE) {
-	mlog("%s: %s exit for job '%s' which is in state '%s'\n",
-	    __func__, peType, job->id, jobState2String(job->state));
-	return;
-    }
-    */
-
     if (*track < 0) {
 	mlog("%s: %s tracking error for job '%s'\n", __func__, peType,
 		job->id);
@@ -184,7 +171,6 @@ void PElogueExit(Job_t *job, int status, bool prologue)
     }
 }
 
-// REMOVE???
 void stopPElogueExecution(Job_t *job)
 {
     removePELogueTimeout(job);
@@ -210,6 +196,9 @@ static void handlePELogueTimeout(int timerId, void *data)
 
     /* don't call myself again */
     Timer_remove(timerId);
+
+    /* job could be already deleted */
+    if (!isValidJobPointer(job)) return;
 
     /* don't break job if it got re-queued */
     if (timerId != job->pelogueMonitorId) {

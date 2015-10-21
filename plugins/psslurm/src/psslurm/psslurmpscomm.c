@@ -1086,10 +1086,12 @@ void handleDroppedMsg(DDTypedBufferMsg_t *msg)
 
 	    if ((job = findJobById(jobid))) {
 		mlog("%s: deleting job '%u'\n", __func__, jobid);
+		signalJob(job, SIGKILL, "mother superior dead");
 		sendEpilogueComplete(jobid, 0);
 		deleteJob(jobid);
 	    } else if ((alloc = findAlloc(jobid))) {
 		mlog("%s: deleting allocation '%u'\n", __func__, jobid);
+		signalStepsByJobid(alloc->jobid, SIGKILL);
 		sendEpilogueComplete(jobid, 0);
 		deleteAlloc(jobid);
 	    }
