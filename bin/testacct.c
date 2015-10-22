@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2006-2013 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2006-2015 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -318,11 +318,9 @@ void loop(void)
 int main(int argc, char *argv[])
 {
     poptContext optCon;   /* context for parsing command-line options */
-    int arg_np, rc;
+    int rc;
 
     struct poptOption optionsTable[] = {
-	{ "np", '\0', POPT_ARG_INT | POPT_ARGFLAG_ONEDASH,
-	  &arg_np, 0, "number of processes to start", "num"},
 	POPT_AUTOHELP
 	{ NULL, '\0', 0, NULL, 0, NULL, NULL}
     };
