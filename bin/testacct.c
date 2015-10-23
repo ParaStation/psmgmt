@@ -48,182 +48,178 @@ static char vcid[] __attribute__((used)) =
 
 void handleSlotsMsg(DDTypedBufferMsg_t *msg)
 {
-    char *ptr = msg->buf;
-    int numSlots, slot;
-    size_t nBytes;
+    PStask_ID_t logger;
+    uid_t uid;
+    uint16_t numSlots, nBytes;
+    int slot;
+    size_t used = 0;
 
     /* logger's TID, this identifies a task uniquely */
-    ptr += sizeof(PStask_ID_t);
+    PSP_getTypedMsgBuf(msg, &used, __func__, "logger", &logger, sizeof(logger));
 
     /* child's uid */
-    ptr += sizeof(uid_t);
+    PSP_getTypedMsgBuf(msg, &used, __func__, "uid", &uid, sizeof(uid));
 
     /* number of slots */
-    numSlots = *(uint16_t *)ptr;
-    ptr += sizeof(uint16_t);
+    PSP_getTypedMsgBuf(msg, &used, __func__, "numSlots", &numSlots,
+		       sizeof(numSlots));
 
     /* size of CPUset part */
-    nBytes = *(uint16_t *)ptr;
-    ptr += sizeof(uint16_t);
+    PSP_getTypedMsgBuf(msg, &used, __func__, "nBytes", &nBytes, sizeof(nBytes));
 
     for (slot = 0; slot < numSlots; slot++) {
 	PSnodes_ID_t node;
-	PSCPU_set_t cpus;
+	PSCPU_set_t cpus, setBuf;
 
-	if (!slot) printf(": "); else printf(", ");
+	PSP_getTypedMsgBuf(msg, &used, __func__, "node", &node, sizeof(node));
 
-	node = *(PSnodes_ID_t *)ptr;
-	ptr += sizeof(PSnodes_ID_t);
-
+	PSP_getTypedMsgBuf(msg, &used, __func__, "CPUset", setBuf, nBytes);
 	PSCPU_clrAll(cpus);
-	PSCPU_inject(cpus, ptr, nBytes);
-	ptr += nBytes;
+	PSCPU_inject(cpus, setBuf, nBytes);
 
-	printf("%d/%s", node, PSCPU_print(cpus));
+	printf("%s%d/%s", slot ? ", " : ": ", node,
+	       PSCPU_print_part(cpus, nBytes));
     }
-    printf("\n");
 }
 
-char *handleCommonMsg(DDTypedBufferMsg_t *msg)
+size_t handleCommonMsg(DDTypedBufferMsg_t *msg)
 {
-    char *ptr = msg->buf;
-    int rank;
+    PStask_ID_t logger;
+    int32_t rank;
     uid_t uid;
     gid_t gid;
+    size_t used = 0;
 
     /* logger's TID, this identifies a task uniquely */
-    ptr += sizeof(PStask_ID_t);
+    PSP_getTypedMsgBuf(msg, &used, __func__, "logger", &logger, sizeof(logger));
 
     /* current rank */
-    rank = *(int32_t *)ptr;
-    ptr += sizeof(int32_t);
+    PSP_getTypedMsgBuf(msg, &used, __func__, "rank", &rank, sizeof(rank));
 
     /* child's uid */
-    uid = *(uid_t *)ptr;
-    ptr += sizeof(uid_t);
+    PSP_getTypedMsgBuf(msg, &used, __func__, "uid", &uid, sizeof(uid));
 
     /* child's gid */
-    gid = *(gid_t *)ptr;
-    ptr += sizeof(gid_t);
+    PSP_getTypedMsgBuf(msg, &used, __func__, "gid", &gid, sizeof(gid));
 
     printf(" rank %d", rank);
     printf(" UID %d GID %d", uid, gid);
 
-    return ptr;
+    return used;
 }
 
-char *handleQueueMsg(DDTypedBufferMsg_t *msg)
+void handleQueueMsg(DDTypedBufferMsg_t *msg)
 {
-    char *ptr = handleCommonMsg(msg);
-    int partReqSize;
+    size_t used = handleCommonMsg(msg);
+    int32_t partReqSize;
 
     /* size of the requested partition */
-    partReqSize = *(int32_t *)ptr;
-    ptr += sizeof(int32_t);
+    PSP_getTypedMsgBuf(msg, &used, __func__, "partReqSize", &partReqSize,
+		       sizeof(partReqSize));
     printf(" req part-size %d", partReqSize);
-
-    return ptr;
 }
 
-char *handleEndMsg(DDTypedBufferMsg_t *msg)
+void handleEndMsg(DDTypedBufferMsg_t *msg)
 {
-    char *ptr = handleCommonMsg(msg);
-    struct timeval walltime;
+    size_t used = handleCommonMsg(msg);
+    pid_t pid;
+    struct rusage rusage;
+    struct timeval wallTm;
+    uint64_t pgSize, maxRSS, avgRSS, maxVM, avgVM, avgThd;
+    uint32_t extFlg, maxThd;
+    int32_t sessID, status;
 
     if (msg->header.sender == *(PStask_ID_t *)msg->buf) {
 	/* end message from logger process */
-	int numChild;
+	int32_t numChild;
 
 	/* total number of children. Only the logger knows this */
-	numChild = *(int32_t *)ptr;
-	ptr += sizeof(int32_t);
+	PSP_getTypedMsgBuf(msg, &used, __func__, "numChild", &numChild,
+		       sizeof(numChild));
 	/* walltime used by logger */
-	memcpy(&walltime, ptr, sizeof(walltime));
-	ptr += sizeof(walltime);
+	PSP_getTypedMsgBuf(msg, &used, __func__, "wallTm", &wallTm,
+		       sizeof(wallTm));
 
 	printf(" num children %d", numChild);
-	printf(" wall %.6f", walltime.tv_sec + 1.0e-6*walltime.tv_usec);
-    } else {
-	struct rusage rusage;
-	int status;
+	printf(" wall %.6f", wallTm.tv_sec + 1.0e-6*wallTm.tv_usec);
 
-	memcpy(&rusage, ptr, sizeof(rusage));
-	ptr += sizeof(rusage);
-
-	/* skip some stuff */
-	/* size of max used mem */
-	ptr += sizeof(uint64_t);
-	/* pagesize */
-	ptr += sizeof(int64_t);
-	/* size of max used vmem */
-	ptr += sizeof(uint64_t);
-	/* walltime used by child */
-	memcpy(&walltime, ptr, sizeof(walltime));
-	ptr += sizeof(walltime);
-	/* number of threads */
-	ptr += sizeof(uint32_t);
-	/* session id of job */
-	ptr += sizeof(int32_t);
-
-	/* child's return status */
-	status = *(int32_t *)ptr;
-	ptr += sizeof(int32_t);
-
-	/* ignore all trailing info, too */
-
-	printf(" user %.6f sys %.6f",
-	       rusage.ru_utime.tv_sec + 1.0e-6 * rusage.ru_utime.tv_usec,
-	       rusage.ru_stime.tv_sec + 1.0e-6 * rusage.ru_stime.tv_usec);
-	printf(" wall %.6f", walltime.tv_sec + 1.0e-6*walltime.tv_usec);
-	printf(" exit status %d", WEXITSTATUS(status));
-	if (WIFSIGNALED(status)) {
-	    printf(" on signal %d", WTERMSIG(status));
-	    if (WCOREDUMP(status)) printf(" core dumped");
-	}
+	return;
     }
 
-    return ptr;
-}
+    PSP_getTypedMsgBuf(msg, &used, __func__, "pid", &pid, sizeof(pid));
+    printf(" pid %d", pid);
 
-char *handleDeleteMsg(DDTypedBufferMsg_t *msg)
-{
-    char *ptr = handleCommonMsg(msg);
+    PSP_getTypedMsgBuf(msg, &used, __func__, "rusage", &rusage, sizeof(rusage));
+    printf(" user %.6f sys %.6f",
+	   rusage.ru_utime.tv_sec + 1.0e-6 * rusage.ru_utime.tv_usec,
+	   rusage.ru_stime.tv_sec + 1.0e-6 * rusage.ru_stime.tv_usec);
 
-    return ptr;
+    /* pagesize */
+    PSP_getTypedMsgBuf(msg, &used, __func__, "pgSize", &pgSize, sizeof(pgSize));
+    printf(" page-size %ld", pgSize);
+
+    /* walltime used by child */
+    PSP_getTypedMsgBuf(msg, &used, __func__, "wallTm", &wallTm, sizeof(wallTm));
+    printf(" wall %.6f", wallTm.tv_sec + 1.0e-6*wallTm.tv_usec);
+
+    /* child's return status */
+    PSP_getTypedMsgBuf(msg, &used, __func__, "status", &status, sizeof(status));
+    printf(" exit status %d", WEXITSTATUS(status));
+    if (WIFSIGNALED(status)) {
+	printf(" on signal %d", WTERMSIG(status));
+	if (WCOREDUMP(status)) printf(" core dumped");
+    }
+
+    PSP_getTypedMsgBuf(msg, &used, __func__, "extFlg", &extFlg, sizeof(extFlg));
+    if (!extFlg) {
+	printf(" nothing else");
+	return;
+    }
+
+    PSP_getTypedMsgBuf(msg, &used, __func__, "maxRSS", &maxRSS, sizeof(maxRSS));
+    PSP_getTypedMsgBuf(msg, &used, __func__, "maxVM", &maxVM, sizeof(maxVM));
+    PSP_getTypedMsgBuf(msg, &used, __func__, "maxThd", &maxThd, sizeof(maxThd));
+
+    /* session id of job */
+    PSP_getTypedMsgBuf(msg, &used, __func__, "sessID", &sessID, sizeof(sessID));
+    printf(" sessID %d", sessID);
+
+    PSP_getTypedMsgBuf(msg, &used, __func__, "avgRSS", &avgRSS, sizeof(avgRSS));
+    printf(" RSS %ld/%ld", maxRSS, avgRSS);
+    PSP_getTypedMsgBuf(msg, &used, __func__, "avgVM", &avgVM, sizeof(avgVM));
+    printf(" VM %ld/%ld", maxVM, avgVM);
+    PSP_getTypedMsgBuf(msg, &used, __func__, "avgThd", &avgThd, sizeof(avgThd));
+    printf(" HW-threads %d/%ld", maxThd, avgThd);
 }
 
 void handleStartMsg(DDTypedBufferMsg_t *msg)
 {
-    /* total number of possible children */
-    int possChild = *(int32_t *)handleCommonMsg(msg);
+    size_t used = handleCommonMsg(msg);
+    int32_t num;
 
-    printf(" poss children %d", possChild);
+    PSP_getTypedMsgBuf(msg, &used, __func__, "num", &num, sizeof(num));
+    printf(" number of children %d", num);
 }
 
 void handleChildMsg(DDTypedBufferMsg_t *msg)
 {
-    char *progname = handleCommonMsg(msg);
+    size_t used = handleCommonMsg(msg);
 
-    printf(" prog '%s'", progname);
+    printf(" prog '%s'", &msg->buf[used]);
 }
 
 void handleLogMsg(DDTypedBufferMsg_t *msg)
 {
-    char *ptr = handleCommonMsg(msg);
-    int maxConnected;
-    char *jobID;
+    size_t used = handleCommonMsg(msg);
+    int32_t maxConnected;
 
     /* total number of children connected to logger */
-    maxConnected = *(int32_t *)ptr;
-    ptr += sizeof(int32_t);
+    PSP_getTypedMsgBuf(msg, &used, __func__, "maxConnected",
+		       &maxConnected, sizeof(maxConnected));
     printf(" logger conn children %d", maxConnected);
 
-    /* job ID (if available) */
-    jobID = ptr;
-    //ptr += strlen(ptr)+1;
-
-    if (*jobID) {
-	printf(" jobID '%s'", jobID);
+    if (msg->buf[used]) {
+	printf(" jobID '%s'", &msg->buf[used]);
     } else {
 	printf(" no jobID");
     }
@@ -232,15 +228,17 @@ void handleLogMsg(DDTypedBufferMsg_t *msg)
 void handleAcctMsg(DDTypedBufferMsg_t *msg)
 {
     PStask_ID_t sender = msg->header.sender, logger;
+    size_t used = 0;
+    int ret;
 
     /* logger's TID, this identifies a task uniquely */
+    PSP_getTypedMsgBuf(msg, &used, __func__, "logger", &logger, sizeof(logger));
+
     logger = *(PStask_ID_t *)msg->buf;
 
-    {
-	int ret = PSI_kill(logger, 0, 1); /* ping the sender */
-	if (ret == -1) printf("PSI_kill(%s, 0): %s\n",
-			      PSC_printTID(logger), strerror(ret));
-    }
+    ret = PSI_kill(logger, 0, 1); /* ping the sender */
+    if (ret == -1) printf("PSI_kill(%s, 0): %s\n",
+			  PSC_printTID(logger), strerror(ret));
 
     printf("%s: msg from %s:", __func__, PSC_printTID(sender));
     printf(" job %s type ", PSC_printTID(logger));
@@ -252,7 +250,7 @@ void handleAcctMsg(DDTypedBufferMsg_t *msg)
 	break;
     case PSP_ACCOUNT_DELETE:
 	printf("D");
-	handleDeleteMsg(msg);
+	handleCommonMsg(msg);
 	break;
     case PSP_ACCOUNT_START:
 	printf("S");
