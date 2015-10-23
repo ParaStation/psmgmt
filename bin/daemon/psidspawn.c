@@ -1406,59 +1406,44 @@ error:
  */
 static void sendAcctChild(PStask_t *task)
 {
-	DDTypedBufferMsg_t msg;
-	char *ptr = msg.buf;
+    DDTypedBufferMsg_t msg = (DDTypedBufferMsg_t) {
+	.header = (DDMsg_t) {
+	    .type = PSP_CD_ACCOUNT,
+	    .dest =  PSC_getMyTID(),
+	    .sender = task->tid,
+	    .len = sizeof(msg.header) + sizeof(msg.type)},
+	.type = PSP_ACCOUNT_CHILD };
 
-	msg.header.type = PSP_CD_ACCOUNT;
-	msg.header.dest = PSC_getMyTID();
-	msg.header.sender = task->tid;
-	msg.header.len = sizeof(msg.header);
+    /* logger's TID, this identifies a task uniquely */
+    PSP_putTypedMsgBuf(&msg, __func__, "loggertid", &task->loggertid,
+		       sizeof(task->loggertid));
 
-	msg.type = PSP_ACCOUNT_CHILD;
-	msg.header.len += sizeof(msg.type);
+    /* current rank */
+    PSP_putTypedMsgBuf(&msg, __func__, "rank", &task->rank, sizeof(task->rank));
 
-	/* logger's TID, this identifies a task uniquely */
-	*(PStask_ID_t *)ptr = task->loggertid;
-	ptr += sizeof(PStask_ID_t);
-	msg.header.len += sizeof(PStask_ID_t);
+    /* child's uid */
+    PSP_putTypedMsgBuf(&msg, __func__, "uid", &task->uid, sizeof(task->uid));
 
-	/* current rank */
-	*(int32_t *)ptr = task->rank;
-	ptr += sizeof(int32_t);
-	msg.header.len += sizeof(int32_t);
-
-	/* child's uid */
-	*(uid_t *)ptr = task->uid;
-	ptr += sizeof(uid_t);
-	msg.header.len += sizeof(uid_t);
-
-	/* child's gid */
-	*(gid_t *)ptr = task->gid;
-	ptr += sizeof(gid_t);
-	msg.header.len += sizeof(gid_t);
+    /* child's gid */
+    PSP_putTypedMsgBuf(&msg, __func__, "gid", &task->gid, sizeof(task->gid));
 
 #define MAXARGV0 128
-	/* job's name */
-	if (task->argv && task->argv[0]) {
-	    size_t len = strlen(task->argv[0]), offset=0;
+    /* job's name */
+    if (task->argv && task->argv[0]) {
+	size_t len = strlen(task->argv[0]), offset=0;
 
-	    if (len > MAXARGV0) {
-		strcpy(ptr, "...");
-		ptr += 3;
-		msg.header.len += 3;
-
-		offset = len-MAXARGV0+3;
-		len = MAXARGV0-3;
-	    }
-	    strcpy(ptr, &task->argv[0][offset]);
-	    ptr += len;
-	    msg.header.len += len;
+	if (len > MAXARGV0) {
+	    char dots[]="...";
+	    PSP_putTypedMsgBuf(&msg, __func__, "dots", dots, strlen(dots));
+	    offset = len-MAXARGV0+3;
+	    len = MAXARGV0-3;
 	}
-	*ptr = '\0';
-	ptr++;
-	msg.header.len++;
+	PSP_putTypedMsgBuf(&msg, __func__, "name", task->argv[0] + offset,
+			   strlen(task->argv[0] + offset));
+    }
+    PSP_putTypedMsgBuf(&msg, __func__, "trailing \\0", NULL, 0);
 
-	sendMsg((DDMsg_t *)&msg);
+    sendMsg((DDMsg_t *)&msg);
 }
 
 /**
@@ -1599,95 +1584,74 @@ static int buildSandboxAndStart(PStask_t *task)
  */
 static void sendAcctStart(PStask_ID_t sender, PStask_t *task)
 {
-    DDTypedBufferMsg_t msg;
-    char *ptr = msg.buf;
+    DDTypedBufferMsg_t msg = (DDTypedBufferMsg_t) {
+	.header = (DDMsg_t) {
+	    .type = PSP_CD_ACCOUNT,
+	    .dest =  PSC_getMyTID(),
+	    .sender = sender,
+	    .len = sizeof(msg.header) + sizeof(msg.type)},
+	.type = PSP_ACCOUNT_START };
+    PSCPU_set_t setBuf;
     unsigned short maxCPUs = 0;
-    int slotsChunk, slot, num = task->partitionSize;
-    size_t nBytes;
-
-    msg.header.type = PSP_CD_ACCOUNT;
-    msg.header.dest = PSC_getMyTID();
-    msg.header.sender = sender;
-    msg.header.len = sizeof(msg.header);
-
-    msg.type = PSP_ACCOUNT_START;
-    msg.header.len += sizeof(msg.type);
+    int32_t slotsChunk, slot, num = task->totalThreads;
+    uint16_t nBytes;
+    int pSize = task->partitionSize;
 
     /* logger's TID, this identifies a task uniquely */
-    *(PStask_ID_t *)ptr = task->loggertid;
-    ptr += sizeof(PStask_ID_t);
-    msg.header.len += sizeof(PStask_ID_t);
+    PSP_putTypedMsgBuf(&msg, __func__, "loggertid", &task->loggertid,
+		       sizeof(task->loggertid));
 
     /* current rank */
-    *(int32_t *)ptr = task->rank;
-    ptr += sizeof(int32_t);
-    msg.header.len += sizeof(int32_t);
+    PSP_putTypedMsgBuf(&msg, __func__, "rank", &task->rank, sizeof(task->rank));
 
     /* child's uid */
-    *(uid_t *)ptr = task->uid;
-    ptr += sizeof(uid_t);
-    msg.header.len += sizeof(uid_t);
+    PSP_putTypedMsgBuf(&msg, __func__, "uid", &task->uid, sizeof(task->uid));
 
     /* child's gid */
-    *(gid_t *)ptr = task->gid;
-    ptr += sizeof(gid_t);
-    msg.header.len += sizeof(gid_t);
+    PSP_putTypedMsgBuf(&msg, __func__, "gid", &task->gid, sizeof(task->gid));
 
     /* total number of children */
-    *(int32_t *)ptr = num;
-    ptr += sizeof(int32_t);
-    msg.header.len += sizeof(int32_t);
+    PSP_putTypedMsgBuf(&msg, __func__, "num", &num, sizeof(num));
 
     sendMsg((DDMsg_t *)&msg);
 
-    msg.type = PSP_ACCOUNT_SLOTS;
-
-    for (slot = 0; slot < num; slot++) {
+    for (slot = 0; slot < pSize; slot++) {
 	unsigned short cpus = PSIDnodes_getVirtCPUs(task->partition[slot].node);
 	if (cpus > maxCPUs) maxCPUs = cpus;
     }
-
-    if (!num || !maxCPUs) {
+    if (!pSize || !maxCPUs) {
 	PSID_log(-1, "%s: No CPUs\n", __func__);
 	return;
     }
 
+    msg.type = PSP_ACCOUNT_SLOTS;
+
     nBytes = PSCPU_bytesForCPUs(maxCPUs);
     slotsChunk = 1024 / (sizeof(PSnodes_ID_t) + nBytes);
 
-    for (slot = 0; slot < num; slot++) {
+    for (slot = 0; slot < pSize; slot++) {
 	if (! (slot%slotsChunk)) {
+	    uint16_t chunk =
+		(pSize-slot < slotsChunk) ? pSize-slot : slotsChunk;
+
 	    if (slot) sendMsg((DDMsg_t *)&msg);
 
 	    msg.header.len = sizeof(msg.header) + sizeof(msg.type);
 
-	    /* skip logger's TID */
-	    ptr = msg.buf + sizeof(PStask_ID_t);
-	    msg.header.len += sizeof(PStask_ID_t);
-
-	    /* child's uid */
-	    *(uid_t *)ptr = task->uid;
-	    ptr += sizeof(uid_t);
-	    msg.header.len += sizeof(uid_t);
-
-	    /* number of slots to add now */
-	    *(uint16_t *)ptr = (num-slot < slotsChunk) ? num-slot : slotsChunk;
-	    ptr += sizeof(uint16_t);
-	    msg.header.len += sizeof(uint16_t);
-
-	    /* size of CPUset part */
-	    *(uint16_t *)ptr = nBytes;
-	    ptr += sizeof(uint16_t);
-	    msg.header.len += sizeof(uint16_t);
+	    PSP_putTypedMsgBuf(&msg, __func__, "loggertid", &task->loggertid,
+			       sizeof(task->loggertid));
+	    PSP_putTypedMsgBuf(&msg, __func__, "uid", &task->uid,
+			       sizeof(task->uid));
+	    PSP_putTypedMsgBuf(&msg, __func__, "chunk", &chunk, sizeof(chunk));
+	    PSP_putTypedMsgBuf(&msg, __func__, "nBytes", &nBytes,
+			       sizeof(nBytes));
 	}
 
-	*(PSnodes_ID_t *)ptr = task->partition[slot].node;
-	ptr += sizeof(PSnodes_ID_t);
-	msg.header.len += sizeof(PSnodes_ID_t);
+	PSP_putTypedMsgBuf(&msg, __func__, "node", &task->partition[slot].node,
+			   sizeof(task->partition[slot].node));
 
-	PSCPU_extract(ptr, task->partition[slot].CPUset, nBytes);
-	ptr += nBytes;
-	msg.header.len += nBytes;
+	PSCPU_extract(setBuf, task->partition[slot].CPUset, nBytes);
+	PSP_putTypedMsgBuf(&msg, __func__, "CPUset", setBuf, nBytes);
     }
 
     sendMsg((DDMsg_t *)&msg);
@@ -2753,17 +2717,15 @@ static void msg_CHILDDEAD(DDErrorMsg_t *msg)
 		    .sender = msg->request,
 		    .len = sizeof(resRelMsg.header)},
 		.buf = {0} };
-	    char *ptr = resRelMsg.buf;
-
-	    unsigned short nBytes = PSCPU_bytesForCPUs(
+	    PSCPU_set_t setBuf;
+	    uint16_t nBytes = PSCPU_bytesForCPUs(
 		PSIDnodes_getVirtCPUs(PSC_getMyID()));
-	    *(uint16_t *)ptr = nBytes;
-	    ptr += sizeof(int16_t);
-	    resRelMsg.header.len += sizeof(int16_t);
 
-	    PSCPU_extract(ptr, task->CPUset, nBytes);
-	    //ptr += nBytes;
-	    resRelMsg.header.len += nBytes;
+	    PSP_putMsgBuf(&resRelMsg, __func__, "nBytes", &nBytes,
+			  sizeof(nBytes));
+
+	    PSCPU_extract(setBuf, task->CPUset, nBytes);
+	    PSP_putMsgBuf(&resRelMsg, __func__, "CPUset", setBuf, nBytes);
 
 	    PSID_log(PSID_LOG_SPAWN, "%s: PSP_DD_CHILDRESREL on %s to %d\n",
 		     __func__, PSC_printTID(task->tid),
