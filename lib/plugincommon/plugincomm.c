@@ -544,6 +544,11 @@ int __addUint16ArrayToMsg(const uint16_t *val, const uint32_t len,
 	return 0;
     }
 
+    if (!val) {
+	pluginlog("%s: invalid value ptr from '%s'\n", __func__, caller);
+	return 0;
+    }
+
     if (!( __addUint32ToMsg(len, data, caller, line))) return 0;
 
     for (i=0; i<len; i++) {
@@ -561,6 +566,11 @@ int __addUint32ArrayToMsg(const uint32_t *val, const uint32_t len,
 
     if (!data) {
 	pluginlog("%s: invalid data from '%s'\n", __func__, caller);
+	return 0;
+    }
+
+    if (!val) {
+	pluginlog("%s: invalid value ptr from '%s'\n", __func__, caller);
 	return 0;
     }
 
@@ -584,6 +594,11 @@ int __addInt16ArrayToMsg(const int16_t *val, const uint32_t len,
 	return 0;
     }
 
+    if (!val) {
+	pluginlog("%s: invalid value ptr from '%s'\n", __func__, caller);
+	return 0;
+    }
+
     if (!( __addUint32ToMsg(len, data, caller, line))) return 0;
 
     for (i=0; i<len; i++) {
@@ -601,6 +616,11 @@ int __addInt32ArrayToMsg(const int32_t *val, const uint32_t len,
 
     if (!data) {
 	pluginlog("%s: invalid data from '%s'\n", __func__, caller);
+	return 0;
+    }
+
+    if (!val) {
+	pluginlog("%s: invalid value ptr from '%s'\n", __func__, caller);
 	return 0;
     }
 
@@ -656,6 +676,11 @@ int __addMemToMsg(void *mem, uint32_t memLen, PS_DataBuffer_t *data,
 	return 0;
     }
 
+    if (!mem) {
+	pluginlog("%s: invalid memory ptr from '%s'\n", __func__, caller);
+	return 0;
+    }
+
     growBuffer(sizeof(uint8_t) + sizeof(uint32_t) + memLen, data, caller, line);
     ptr = data->buf + data->bufUsed;
 
@@ -708,6 +733,11 @@ int __addStringToMsgBuf(DDTypedBufferMsg_t *msg, char **ptr,
 	return 0;
     }
 
+    if (!msg) {
+	pluginlog("%s: invalid msg ptr from '%s'\n", __func__, caller);
+	return 0;
+    }
+
     len = (!string) ? 0 : strlen(string) +1;
 
     /* add data type */
@@ -752,6 +782,11 @@ int __addTimeToMsgBuf(DDTypedBufferMsg_t *msg, char **ptr,
 
     if (!*ptr) {
 	pluginlog("%s: invalid ptr from '%s'\n", __func__, caller);
+	return 0;
+    }
+
+    if (!msg) {
+	pluginlog("%s: invalid msg ptr from '%s'\n", __func__, caller);
 	return 0;
     }
 

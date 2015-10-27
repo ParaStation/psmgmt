@@ -323,6 +323,12 @@ void saveForwardedMsgRes(Slurm_Msg_t *sMsg, PS_DataBuffer_t *data,
 		__func__, msgType2String(sMsg->head.type));
 
 	fw->head.forward = 0;
+
+	if (!fw->body.buf || !fw->body.bufUsed) {
+	    mlog("%s: invalid local data, dropping msg\n", __func__);
+	    closeConnection(con->sock);
+	    return;
+	}
 	sendSlurmMsgEx(con->sock, &fw->head, &fw->body);
 
 	closeConnection(con->sock);
