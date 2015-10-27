@@ -123,9 +123,15 @@ typedef int Selector_CB_t (int, void *);
  * Registration of a new selector. The selector will be identified by
  * its corresponding file-descriptor @a fd. Only one selector per
  * file-descriptor can be registered. The @a selectHandler will be
- * called, if data on @a fd is pending during a call to @ref
+ * called if data on @a fd is pending during a call to @ref
  * Sselect(). Additional information might be passed to @a
  * selectHandler via the pointer @a info.
+ *
+ * A second use-case of the @a selectHandler is to signal problems
+ * with the file-descriptor, especially if select() called with just
+ * the associated file-descriptor returns EBADF. Thus, the handler has
+ * expect a misbehaving file descriptor. The corresponding selector
+ * will be deleted after the return anyhow.
  *
  * @param fd The file-descriptor, the selector is registered on.
  *
