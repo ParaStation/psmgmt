@@ -130,7 +130,7 @@ typedef int Selector_CB_t (int, void *);
  * A second use-case of the @a selectHandler is to signal problems
  * with the file-descriptor, especially if select() called with just
  * the associated file-descriptor returns EBADF. Thus, the handler has
- * expect a misbehaving file descriptor. The corresponding selector
+ * to expect a misbehaving file descriptor. The corresponding selector
  * will be deleted after the return anyhow.
  *
  * @param fd The file-descriptor, the selector is registered on.
