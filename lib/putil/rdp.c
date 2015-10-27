@@ -551,8 +551,8 @@ typedef struct {
     struct timeval tmout;    /**< Timer for resend timeout */
     struct timeval closed;   /**< Timer for closed connection timeout */
     struct timeval TTA;      /**< Total amount of time waiting for ACK */
-    int retrans;             /**< Number of retransmissions */
-    unsigned int totRetrans; /**< Total number of retransmissions */
+    int retrans;             /**< Number of re-transmissions */
+    unsigned int totRetrans; /**< Total number of re-transmissions */
     unsigned int totSent;    /**< Number of messages sent successfully */
 } Rconninfo_t;
 
@@ -620,7 +620,7 @@ static void initConntable(int nodes, unsigned int host[], unsigned short port)
 }
 
 
-static int handleErr(void);
+static int handleErr(int eno);
 
 /**
  * @brief Recv a message
@@ -660,7 +660,8 @@ static int MYrecvfrom(int sock, void *buf, size_t len, int flags,
  restart:
     ret = recvfrom(sock, buf, len, flags, from, fromlen);
     if (ret < 0) {
-	switch (errno) {
+	int eno = errno;
+	switch (eno) {
 	case EINTR:
 	    RDP_log(RDP_LOG_INTR, "%s: recvfrom() interrupted\n", __func__);
 	    goto restart;
@@ -668,11 +669,9 @@ static int MYrecvfrom(int sock, void *buf, size_t len, int flags,
 	case ECONNREFUSED:
 	case EHOSTUNREACH:
 #ifdef __linux__
-	{
-	    int eno = errno;
 	    RDP_warn(RDP_LOG_CONN, eno, "%s: handle this", __func__);
 	    /* Handle extended error */
-	    ret = handleErr();
+	    ret = handleErr(eno);
 	    if (ret < 0) {
 		RDP_warn(-1, eno, "%s", __func__);
 		return ret;
@@ -694,8 +693,10 @@ static int MYrecvfrom(int sock, void *buf, size_t len, int flags,
 				"%s: select() interrupted\n", __func__);
 			goto select_cont;
 		    } else {
-			RDP_warn(-1, errno, "%s: select", __func__);
-			break;
+			eno = errno;
+			RDP_warn(-1, eno, "%s: select", __func__);
+			errno = eno;
+			return ret;
 		    }
 		}
 		if (ret) goto restart;
@@ -703,14 +704,15 @@ static int MYrecvfrom(int sock, void *buf, size_t len, int flags,
 		return 0;
 	    }
 	    break;
-	}
 #endif
 	default:
-	    RDP_warn(-1, errno, "%s", __func__);
+	    RDP_warn(-1, eno, "%s", __func__);
 	}
     }
     if (ret < (int)sizeof(rdphdr_t)) {
-	RDP_log(-1, "%s: incomplete RDP message received\n", __func__);
+	if (ret >= 0) {
+	    RDP_log(-1, "%s: incomplete RDP message received\n", __func__);
+	}
     } else {
 	/* message on the wire not in host-byteorder */
 	rdphdr_t *msg = buf;
@@ -794,7 +796,7 @@ static int MYsendto(int sock, void *buf, size_t len, int flags,
 	    RDP_warn(RDP_LOG_CONN, eno, "%s: to %s (%d), handle this", __func__,
 		     inet_ntoa(((struct sockaddr_in *)to)->sin_addr), node);
 	    /* Handle extended error */
-	    ret = handleErr();
+	    ret = handleErr(eno);
 	    if (ret < 0) {
 		RDP_warn(-1, eno, "%s: to %s (%d)", __func__,
 			 inet_ntoa(((struct sockaddr_in *)to)->sin_addr), node);
@@ -1567,7 +1569,7 @@ static void handleControlPacket(rdphdr_t *hdr, int node)
  *
  * @see cmsg(3), IP(7)
  */
-static int handleErr(void)
+static int handleErr(int eno)
 {
 #ifdef __linux__
     struct msghdr errmsg;
@@ -1575,10 +1577,9 @@ static int handleErr(void)
     struct iovec iov;
     struct cmsghdr *cmsg;
     struct sock_extended_err *extErr;
-    int node, handleErrno;
+    int node;
     char cbuf[256];
 
-    handleErrno = errno;
     errmsg.msg_name = &sin;
     errmsg.msg_namelen = sizeof(sin);
     errmsg.msg_iov = &iov;
@@ -1588,8 +1589,10 @@ static int handleErr(void)
     iov.iov_base = NULL;
     iov.iov_len = 0;
     if (recvmsg(rdpsock, &errmsg, MSG_ERRQUEUE) == -1) {
+	int leno = errno;
 	if (errno == EAGAIN) return 0;
 	RDP_warn(-1, errno, "%s: recvmsg", __func__);
+	errno = leno;
 	return -1;
     }
 
@@ -1654,21 +1657,20 @@ static int handleErr(void)
 	return -1;
     }
 
-    switch (handleErrno) {
+    switch (eno) {
     case ECONNREFUSED:
 	RDP_log(RDP_LOG_CONN, "%s: CONNREFUSED to %s(%d) port %d", __func__,
 		inet_ntoa(sin.sin_addr), node, ntohs(sin.sin_port));
 	closeConnection(node, 1, 0);
 	break;
     case EHOSTUNREACH:
-	RDP_log(RDP_LOG_CONN, "%s: HOSTUNREACH to %s(%d) port %d\n",
-		__func__, inet_ntoa(sin.sin_addr), node, ntohs(sin.sin_port));
+	RDP_log(RDP_LOG_CONN, "%s: HOSTUNREACH to %s(%d) port %d\n", __func__,
+		inet_ntoa(sin.sin_addr), node, ntohs(sin.sin_port));
 	closeConnection(node, 1, 0);
 	break;
     default:
-	RDP_warn(-1, handleErrno, "%s: UNKNOWN errno %d to %s(%d) port %d\n",
-		 __func__, handleErrno, inet_ntoa(sin.sin_addr), node,
-		 ntohs(sin.sin_port));
+	RDP_warn(-1, eno, "%s: UNKNOWN errno %d to %s(%d) port %d\n", __func__,
+		 eno, inet_ntoa(sin.sin_addr), node, ntohs(sin.sin_port));
     }
 #endif
 
