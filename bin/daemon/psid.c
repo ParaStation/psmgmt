@@ -853,6 +853,7 @@ int main(int argc, const char *argv[])
 	if (res < 0) {
 	    PSID_warn(-1, errno, "Error while Sselect");
 
+	    Selector_checkFDs();
 	    checkFileTable(&PSID_readfds);
 	    checkFileTable(&PSID_writefds);
 

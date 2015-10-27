@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2014 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2015 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -87,7 +87,7 @@ int32_t Selector_getDebugMask(void);
  * the different keys defined within @ref Selector_log_key_t. If the
  * respective bit is set within @a mask, the log-messages marked with
  * the corresponding bits are put out to the selected channel
- * (i.e. stderr of syslog() as defined within @ref
+ * (i.e. stderr or syslog() as defined within @ref
  * Selector_init()). Accordingly a @mask of -1 means to put out all
  * messages defined.
  *
@@ -220,10 +220,21 @@ int Selector_enable(int fd);
  *
  * @param fd The file-descriptor to identify the selector.
  *
- * @return Return 0 if the selector is disabled or 1 if this is not
- * the case. -1 might be returned if the selector was not found.
+ * @return If the selector is disabled, 0 is returned or 1 otherwise.
+ -1 might be returned if the selector was not found.
  */
 int Selector_isActive(int fd);
+
+/**
+ * @brief Checks file-decriptors after select() has failed.
+ *
+ * Detailed checking of the file-descriptors in the list of selectors
+ * on validity after a select(2) call has failed. Thus all file
+ * descriptors within the list are examined and handled if necessary.
+ *
+ * @return No return value.
+ */
+void Selector_checkFDs(void);
 
 /**
  * @brief select() replacement that handles registered file-descriptors.

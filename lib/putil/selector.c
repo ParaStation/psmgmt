@@ -315,6 +315,57 @@ void Selector_startOver(void)
     startOver = 1;
 }
 
+void Selector_checkFDs(void)
+{
+    fd_set fdset;
+    struct timeval tv;
+    list_t *s, *tmp;
+
+    list_for_each_safe(s, tmp, &selectorList) {
+	Selector_t *selector = list_entry(s, Selector_t, next);
+	if (selector->deleted) {
+	    doRemove(selector);
+	    continue;
+	}
+
+	FD_ZERO(&fdset);
+	FD_SET(selector->fd, &fdset);
+
+	tv.tv_sec=0;
+	tv.tv_usec=0;
+	if (select(selector->fd + 1, &fdset, NULL, NULL, &tv) < 0) {
+	    switch (errno) {
+	    case EBADF:
+		logger_print(logger, -1, "%s(%d): EBADF -> close\n",
+			     __func__, selector->fd);
+		/* call the handler to signal it, then close */
+		selector->selectHandler(selector->fd, selector->info);
+		Selector_remove(selector->fd);
+		break;
+	    case EINTR:
+		logger_print(logger, -1, "%s(%d): EINTR -> try again\n",
+			     __func__, selector->fd);
+		tmp = s; /* try again */
+		break;
+	    case EINVAL:
+		logger_print(logger, -1, "%s(%d): illegal value -> exit\n",
+			     __func__, selector->fd);
+		exit(1);
+		break;
+	    case ENOMEM:
+		logger_print(logger, -1, "%s(%d): not enough memory. exit\n",
+			     __func__, selector->fd);
+		exit(1);
+		break;
+	    default:
+		logger_warn(logger, -1, errno, "%s(%d): uncaught errno %d",
+			    __func__, selector->fd, errno);
+		break;
+	    }
+	}
+    }
+}
+
 int Sselect(int n, fd_set  *readfds,  fd_set  *writefds, fd_set *exceptfds,
 	    struct timeval *timeout)
 {
