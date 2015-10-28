@@ -495,9 +495,11 @@ int tcpConnect(char *addr, char *port)
 #define TCP_CONNECTION_RETRYS 10
 
     struct addrinfo *result, *rp;
-    int sock = -1, ret, reConnect = 0, blocked = 0;
+    int sock = -1, ret, reConnect = 0, blocked = 0, err;
 
 TCP_RECONNECT:
+
+    err = errno = 0;
 
     /* workaround for psid SIGCHLD malloc deadlock */
     blocked = blockSigChild(1);
@@ -518,17 +520,19 @@ TCP_RECONNECT:
 
     for (rp = result; rp != NULL; rp = rp->ai_next) {
 	if ((sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0) {
+	    err = errno;
 	    mwarn(errno, "%s: socket failed, port '%s' addr '%s' ", __func__,
 		    port, addr);
 	    continue;
 	}
 
 	if ((connect(sock, rp->ai_addr, rp->ai_addrlen)) == -1) {
-	    close(sock);
+	    err = errno;
 	    if (errno != EINTR) {
 		mwarn(errno, "%s: connect failed, port '%s' addr '%s' ",
 			__func__, port, addr);
 	    }
+	    close(sock);
 	    continue;
 	}
 	break;
@@ -536,13 +540,13 @@ TCP_RECONNECT:
     freeaddrinfo(result);
 
     if (rp == NULL) {
-	if (errno == EISCONN && reConnect < TCP_CONNECTION_RETRYS) {
+	if (err == EISCONN && reConnect < TCP_CONNECTION_RETRYS) {
 	    close(sock);
 	    reConnect++;
 	    goto TCP_RECONNECT;
 	}
-	mwarn(errno, "%s: failed(%i) addr '%s' port '%s' ", __func__,
-	    errno, addr, port);
+	mwarn(err, "%s: failed(%i) addr '%s' port '%s' ", __func__,
+	    err, addr, port);
 	close(sock);
 	return -1;
     }

@@ -717,8 +717,10 @@ void signalTasks(uint32_t jobid, uid_t uid, PS_Tasks_t *tasks, int signal,
 	}
     }
 
-    mlog("%s: killed %i processes with signal '%i' of job '%u'\n", __func__,
+    if (count) {
+	mlog("%s: killed %i processes with signal '%i' of job '%u'\n", __func__,
 	    count, signal, jobid);
+    }
 }
 
 int signalStep(Step_t *step, int signal)

@@ -66,6 +66,8 @@ int checkPELogueFileStats(char *filename, int root)
 
 void removePELogueTimeout(Job_t *job)
 {
+    if (!isValidJobPointer(job)) return;
+
     if (job->pelogueMonitorId != -1) {
 	Timer_remove(job->pelogueMonitorId);
 	job->pelogueMonitorId = -1;

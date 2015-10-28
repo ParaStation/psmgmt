@@ -80,10 +80,10 @@ void *addJob(const char *plugin, const char *jobid, uid_t uid, gid_t gid,
 
 Job_t *findJobByJobId(const char *plugin, const char *jobid)
 {
-    struct list_head *pos;
+    list_t *pos, *tmp;
     Job_t *job;
 
-    list_for_each(pos, &JobList.list) {
+    list_for_each_safe(pos, tmp, &JobList.list) {
 	if (!(job = list_entry(pos, Job_t, list))) return NULL;
 
 	if (!strcmp(job->plugin, plugin) && !strcmp(job->id, jobid)) {
@@ -130,7 +130,7 @@ int countJobs()
 
 int deleteJob(Job_t *job)
 {
-    if (!(job = findJobByJobId(job->plugin, job->id))) return 0;
+    if (!(isValidJobPointer(job))) return 0;
 
     /* make sure pelogue timeout monitoring is gone */
     removePELogueTimeout(job);
@@ -139,6 +139,8 @@ int deleteJob(Job_t *job)
     ufree(job->plugin);
     ufree(job->nodes);
     ufree(job->scriptname);
+    job->id = job->plugin = NULL;
+    job->nrOfNodes = 0;
 
     list_del(&job->list);
     ufree(job);

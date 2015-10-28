@@ -106,7 +106,7 @@ int PSID_kill(pid_t pid, int sig, uid_t uid)
      * fork to a new process to change the userid
      * and get the right errors
      */
-    blocked = PSID_blockSIGCHLD(1);
+    blocked = PSID_blockSig(1, SIGCHLD);
     forkPid = fork();
     /* save errno in case of error */
     eno = errno;
@@ -117,7 +117,7 @@ int PSID_kill(pid_t pid, int sig, uid_t uid)
 
 	PSID_resetSigs();
 	signal(SIGCHLD, SIG_DFL);
-	PSID_blockSIGCHLD(0);
+	PSID_blockSig(0, SIGCHLD);
 
 	/* close all fds except the control channel and stdin/stdout/stderr */
 	for (fd=0; fd<maxFD; fd++) {
@@ -157,7 +157,7 @@ int PSID_kill(pid_t pid, int sig, uid_t uid)
 
 	exit(0);
     }
-    PSID_blockSIGCHLD(blocked);
+    PSID_blockSig(blocked, SIGCHLD);
 
     /* close the writing pipe */
     close(cntrlfds[1]);

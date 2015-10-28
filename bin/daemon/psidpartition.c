@@ -20,6 +20,7 @@ static char vcid[] __attribute__((used)) =
 #include <errno.h>
 #include <time.h>
 #include <sys/types.h>
+#include <signal.h>
 
 #include "pscommon.h"
 #include "psprotocol.h"
@@ -4089,9 +4090,9 @@ static int PSIDpart_getReservation(PSrsrvtn_t *res)
 
     delegate = task->delegate ? task->delegate : task;
 
-    blockedCHLD = PSID_blockSIGCHLD(1);
+    blockedCHLD = PSID_blockSig(1, SIGCHLD);
     if (!res->slots) res->slots = malloc(res->nMax * sizeof(*res->slots));
-    PSID_blockSIGCHLD(blockedCHLD);
+    PSID_blockSig(blockedCHLD, SIGCHLD);
 
     if (!res->slots) {
 	PSID_log(-1, "%s: No memory for slots in %#x\n", __func__, res->rid);
@@ -4155,9 +4156,9 @@ static int PSIDpart_getReservation(PSrsrvtn_t *res)
 	s = realloc(res->slots, got * sizeof(*res->slots));
 	if (!s) {
 	    PSID_log(-1, "%s: Failed to realloc()\n", __func__);
-	    blockedCHLD = PSID_blockSIGCHLD(1);
+	    blockedCHLD = PSID_blockSig(1, SIGCHLD);
 	    free(res->slots);
-	    PSID_blockSIGCHLD(blockedCHLD);
+	    PSID_blockSig(blockedCHLD, SIGCHLD);
 	    res->slots = NULL;
 	    return -1;
 	}
