@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2014 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2015 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -87,7 +87,7 @@ int32_t Selector_getDebugMask(void);
  * the different keys defined within @ref Selector_log_key_t. If the
  * respective bit is set within @a mask, the log-messages marked with
  * the corresponding bits are put out to the selected channel
- * (i.e. stderr of syslog() as defined within @ref
+ * (i.e. stderr or syslog() as defined within @ref
  * Selector_init()). Accordingly a @mask of -1 means to put out all
  * messages defined.
  *
@@ -123,9 +123,15 @@ typedef int Selector_CB_t (int, void *);
  * Registration of a new selector. The selector will be identified by
  * its corresponding file-descriptor @a fd. Only one selector per
  * file-descriptor can be registered. The @a selectHandler will be
- * called, if data on @a fd is pending during a call to @ref
+ * called if data on @a fd is pending during a call to @ref
  * Sselect(). Additional information might be passed to @a
  * selectHandler via the pointer @a info.
+ *
+ * A second use-case of the @a selectHandler is to signal problems
+ * with the file-descriptor, especially if select() called with just
+ * the associated file-descriptor returns EBADF. Thus, the handler has
+ * to expect a misbehaving file descriptor. The corresponding selector
+ * will be deleted after the return anyhow.
  *
  * @param fd The file-descriptor, the selector is registered on.
  *
@@ -220,10 +226,21 @@ int Selector_enable(int fd);
  *
  * @param fd The file-descriptor to identify the selector.
  *
- * @return Return 0 if the selector is disabled or 1 if this is not
- * the case. -1 might be returned if the selector was not found.
+ * @return If the selector is disabled, 0 is returned or 1 otherwise.
+ -1 might be returned if the selector was not found.
  */
 int Selector_isActive(int fd);
+
+/**
+ * @brief Checks file-decriptors after select() has failed.
+ *
+ * Detailed checking of the file-descriptors in the list of selectors
+ * on validity after a select(2) call has failed. Thus all file
+ * descriptors within the list are examined and handled if necessary.
+ *
+ * @return No return value.
+ */
+void Selector_checkFDs(void);
 
 /**
  * @brief select() replacement that handles registered file-descriptors.

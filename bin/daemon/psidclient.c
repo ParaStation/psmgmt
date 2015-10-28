@@ -79,7 +79,9 @@ static int handleClientConnectMsg(int fd, void *info)
 	deleteClient(fd);
     } else if (msglen==-1) {
 	if (errno != EAGAIN) {
-	    PSID_warn(-1, errno, "%s(%d): recvMsg()", __func__, fd);
+	    int eno = errno;
+	    PSID_warn(-1, eno, "%s(%d): recvMsg()", __func__, fd);
+	    if (eno == EBADF) deleteClient(fd);
 	}
     } else {
 	if (msg.header.type != PSP_CD_CLIENTCONNECT) {
@@ -142,7 +144,9 @@ static int handleClientMsg(int fd, void *info)
 	deleteClient(fd);
     } else if (msglen==-1) {
 	if (errno != EAGAIN) {
-	    PSID_warn(-1, errno, "%s(%d): recvMsg()", __func__, fd);
+	    int eno = errno;
+	    PSID_warn(-1, eno, "%s(%d): recvMsg()", __func__, fd);
+	    if (eno == EBADF) deleteClient(fd);
 	}
     } else {
 	if (msg.header.sender != getClientTID(fd)) {
