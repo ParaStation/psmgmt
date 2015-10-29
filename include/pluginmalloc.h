@@ -91,6 +91,4 @@ char *__str2Buf(char *strSave, char **buffer, size_t *bufSize, const char *func,
 char *__strn2Buf(char *strSave, size_t lenSave, char **buffer, size_t *bufSize,
 		const char *func, const int line);
 
-int blockSigChild(int block);
-
 #endif

@@ -80,9 +80,6 @@ void periodicMain(void)
 {
     static int cleanup = 0;
     int poll;
-    int blocked;
-
-    blocked = blockSigChild(1);
 
     /* cleanup old jobs */
     if (cleanup++ == 4) {
@@ -105,7 +102,6 @@ void periodicMain(void)
 	    setMainTimer(poll);
 	}
     }
-    if (!blocked) blockSigChild(0);
 }
 
 void accountStart()

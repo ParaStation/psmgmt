@@ -245,25 +245,6 @@ int PSID_readall(int fd, void *buf, size_t count);
 int PSID_blockSig(int block, int sig);
 
 /**
- * @brief (Un-)Block signal SIGCHLD
- *
- * Block or unblock the signal SIGCHLD depending on the value of @a
- * block. If block is 0, the signal will be blocked. Otherwise it will
- * be unblocked.
- *
- * This mechnism is a more lightweight one compared to @ref
- * PSID_blockSig() since no syscall is executed. Instead, flags are
- * raised in order to delay the execution of the actual signal-handler
- * until the signal is unblocked.
- *
- * @param block Flag steering the (un-)blocking of the signal.
- *
- * @return Flag, if signal was blocked before. I.e. return 1, if
- * signal was blocked or 0 otherwise.
- */
-int PSID_blockSIGCHLD(int block);
-
-/**
  * @brief Reset signal handlers.
  *
  * Reset all the signal handlers distorted by the daemon to

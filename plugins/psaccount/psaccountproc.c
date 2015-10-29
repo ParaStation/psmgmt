@@ -671,17 +671,14 @@ void updateProcSnapshot(int extended)
     pid_t pid = -1;
     char buf[201];
     ProcStat_t pS;
-    int blocked = 0;
 
     /* clear all previous proc entrys */
     clearAllProcSnapshots();
 
-    blocked = blockSigChild(1);
     if (!(dir = opendir("/proc/"))) {
 	mlog("%s: open /proc failed\n", __func__);
 	return;
     }
-    if (!blocked) blockSigChild(0);
 
     if (cpuGovEnabled) {
 	updateCpuFreq();

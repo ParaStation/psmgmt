@@ -235,12 +235,11 @@ static void freeChunk(msgbuf_schunk_t *chunk)
 static void PSIDMsgbuf_gc(void)
 {
     list_t *c, *tmp;
-    int blockedCHLD, blockedRDP, first = 1;
+    int blockedRDP, first = 1;
     unsigned int i;
 
     if ((int)usedSmallBufs > (int)smallBufs/2 - MSGBUF_SCHUNK) return;
 
-    blockedCHLD = PSID_blockSIGCHLD(1);
     blockedRDP = RDP_blockTimer(1);
 
     list_for_each_safe(c, tmp, &chunkList) {
@@ -262,14 +261,12 @@ static void PSIDMsgbuf_gc(void)
     }
 
     RDP_blockTimer(blockedRDP);
-    PSID_blockSIGCHLD(blockedCHLD);
 }
 
 msgbuf_t *PSIDMsgbuf_get(size_t len)
 {
     msgbuf_t *mp;
     DDMsg_t *msg;
-    int blockedCHLD = PSID_blockSIGCHLD(1);
 
     if (len <= MSGBUF_SMALLSIZE) {
 	int blockedRDP = RDP_blockTimer(1);
@@ -285,7 +282,6 @@ msgbuf_t *PSIDMsgbuf_get(size_t len)
 	PSID_warn(-1, errno, "%s: malloc()", __func__);
 	return NULL;
     }
-    PSID_blockSIGCHLD(blockedCHLD);
 
     usedBufs++;
 

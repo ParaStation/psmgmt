@@ -41,7 +41,7 @@ static int doExec(char *script, PSID_scriptFunc_t func, PSID_scriptPrep_t prep,
 		  PSID_scriptCB_t cb, void *info, const char *caller)
 {
     PSID_scriptCBInfo_t *cbInfo = NULL;
-    int controlfds[2], iofds[2], eno, ret = 0, blocked;
+    int controlfds[2], iofds[2], eno, ret = 0;
     pid_t pid;
 
     if (!script && !func) {
@@ -60,9 +60,7 @@ static int doExec(char *script, PSID_scriptFunc_t func, PSID_scriptPrep_t prep,
 		     script ? script : "");
 	    return -1;
 	}
-	blocked = PSID_blockSig(1, SIGCHLD);
 	cbInfo = malloc(sizeof(*cbInfo));
-	PSID_blockSig(blocked, SIGCHLD);
 	if (!cbInfo) {
 	    PSID_warn(-1, errno, "%s: malloc()", caller);
 	    return -1;
@@ -85,7 +83,6 @@ static int doExec(char *script, PSID_scriptFunc_t func, PSID_scriptPrep_t prep,
 	return -1;
     }
 
-    blocked = PSID_blockSig(1, SIGCHLD);
     pid = fork();
     /* save errno in case of error */
     eno = errno;
@@ -155,7 +152,6 @@ static int doExec(char *script, PSID_scriptFunc_t func, PSID_scriptPrep_t prep,
 
 	exit(0);
     }
-    PSID_blockSig(blocked, SIGCHLD);
 
     close(controlfds[1]);
     close(iofds[1]);
@@ -214,7 +210,6 @@ int PSID_registerScript(config_t *config, char *type, char *script)
 {
     struct stat sb;
     char **scriptStr, *command;
-    int blocked;
 
     if (strcasecmp(type, "startupscript")==0) {
 	scriptStr = &config->startupScript;
@@ -226,8 +221,6 @@ int PSID_registerScript(config_t *config, char *type, char *script)
 	PSID_log(-1, "unknown script type '%s'\n", type);
 	return -1;
     }
-
-    blocked = PSID_blockSig(1, SIGCHLD);
 
     /* test scripts availability */
     if (*script != '/') {
@@ -241,7 +234,6 @@ int PSID_registerScript(config_t *config, char *type, char *script)
     if (stat(command, &sb)) {
 	PSID_warn(-1, errno, "%s(%s, %s)", __func__, type, script);
 	free(command);
-	PSID_blockSig(blocked, SIGCHLD);
 	return -1;
     }
 
@@ -251,7 +243,6 @@ int PSID_registerScript(config_t *config, char *type, char *script)
 	PSID_log(-1, "%s(%s, %s): %s\n", __func__,type, script,
 		 (!S_ISREG(sb.st_mode)) ? "S_ISREG error" :
 		 (sb.st_mode & S_IXUSR) ? "" : "S_IXUSR error");
-	PSID_blockSig(blocked, SIGCHLD);
 	return -1;
     }
 
@@ -263,8 +254,6 @@ int PSID_registerScript(config_t *config, char *type, char *script)
     }
 
     *scriptStr = strdup(script);
-
-    PSID_blockSig(blocked, SIGCHLD);
 
     if (!scriptStr) {
 	PSID_warn(-1, errno, "%s: strdup(%s)", __func__, script);

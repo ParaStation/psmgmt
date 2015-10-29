@@ -1482,7 +1482,7 @@ static int buildSandboxAndStart(PStask_t *task)
 {
     int socketfds[2];     /* sockets for communication with forwarder */
     pid_t pid;            /* forwarder's pid */
-    int i, eno, blocked;
+    int i, eno;
 
     if (PSID_getDebugMask() & PSID_LOG_SPAWN) {
 	char tasktxt[128];
@@ -1506,7 +1506,6 @@ static int buildSandboxAndStart(PStask_t *task)
     }
 
     /* fork the forwarder */
-    blocked = PSID_blockSig(1, SIGCHLD);
     pid = fork();
     /* save errno in case of error */
     eno = errno;
@@ -1516,7 +1515,7 @@ static int buildSandboxAndStart(PStask_t *task)
 	int maxFD = sysconf(_SC_OPEN_MAX);
 
 	PSID_resetSigs();
-	/* keep SIGCHLD blocked */
+	PSID_blockSig(1, SIGCHLD);
 
 	/*
 	 * Create a new process group. This is needed since the daemon
@@ -1549,7 +1548,6 @@ static int buildSandboxAndStart(PStask_t *task)
 
 	execForwarder(task, socketfds[1]);
     }
-    PSID_blockSig(blocked, SIGCHLD);
 
     /* this is the parent process */
 
@@ -2444,7 +2442,6 @@ static void msg_CHILDBORN(DDErrorMsg_t *msg)
     PStask_t *forwarder = PStasklist_find(&managedTasks, msg->header.sender);
     PStask_t *child = PStasklist_find(&managedTasks, msg->request);
     PStask_ID_t succMsgDest = 0;
-    int blocked;
 
     PSID_log(PSID_LOG_SPAWN, "%s: from %s\n", __func__,
 	     PSC_printTID(msg->header.sender));
@@ -2467,9 +2464,7 @@ static void msg_CHILDBORN(DDErrorMsg_t *msg)
     }
 
     /* prepare child task */
-    blocked = PSID_blockSIGCHLD(1);
     child = PStask_clone(forwarder);
-    PSID_blockSIGCHLD(blocked);
     if (!child) {
 	PSID_warn(-1, errno, "%s: PStask_clone()", __func__);
 
@@ -2762,9 +2757,6 @@ static void checkObstinateTasks(void)
 {
     time_t now = time(NULL);
     list_t *t, *tmp;
-    int blocked;
-
-    blocked = PSID_blockSIGCHLD(1);
 
     list_for_each_safe(t, tmp, &managedTasks) {
 	PStask_t *task = list_entry(t, PStask_t, next);
@@ -2793,8 +2785,6 @@ static void checkObstinateTasks(void)
 	    }
 	}
     }
-
-    PSID_blockSIGCHLD(blocked);
 }
 
 

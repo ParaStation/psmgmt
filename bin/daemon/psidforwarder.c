@@ -79,7 +79,7 @@ static int openfds = 0;
 /** Flag for real SIGCHLD received */
 static int gotSIGCHLD = 0;
 
-/** socketpair to recognize SIGCHLD while sleeping in select() */
+/** socket to recognize SIGCHLD while sleeping in select() */
 static int signalFD = -1;
 
 /** List of messages waiting to be sent */

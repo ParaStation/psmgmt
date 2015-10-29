@@ -44,7 +44,7 @@ int PSID_kill(pid_t pid, int sig, uid_t uid)
     PStask_ID_t childTID = PSC_getTID(-1, pid < 0 ? -pid : pid);
     PStask_t *child = PStasklist_find(&managedTasks, childTID);
     int cntrlfds[2];  /* pipe fds to control the actuall kill(2) */
-    int ret, eno, blocked;
+    int ret, eno;
     pid_t forkPid;
 
     PSID_log(PSID_LOG_SIGNAL, "%s(%d, %d, %d)\n", __func__, pid, sig, uid);
@@ -106,7 +106,6 @@ int PSID_kill(pid_t pid, int sig, uid_t uid)
      * fork to a new process to change the userid
      * and get the right errors
      */
-    blocked = PSID_blockSig(1, SIGCHLD);
     forkPid = fork();
     /* save errno in case of error */
     eno = errno;
@@ -157,7 +156,6 @@ int PSID_kill(pid_t pid, int sig, uid_t uid)
 
 	exit(0);
     }
-    PSID_blockSig(blocked, SIGCHLD);
 
     /* close the writing pipe */
     close(cntrlfds[1]);
@@ -226,11 +224,10 @@ void PSID_sendSignal(PStask_ID_t tid, uid_t uid, PStask_ID_t sender,
 	    PSID_log(-1, "%s: Do not send signal to daemon\n", __func__);
 	} else if (pervasive) {
 	    list_t *s, *tmp;
-	    int blockedCHLD, blockedRDP;
+	    int blockedRDP;
 
 	    answer = 0;
 
-	    blockedCHLD = PSID_blockSIGCHLD(1);
 	    blockedRDP = RDP_blockTimer(1);
 
 	    list_for_each_safe(s, tmp, &dest->childList) { /* @todo safe req? */
@@ -241,7 +238,6 @@ void PSID_sendSignal(PStask_ID_t tid, uid_t uid, PStask_ID_t sender,
 	    }
 
 	    RDP_blockTimer(blockedRDP);
-	    PSID_blockSIGCHLD(blockedCHLD);
 
 	    /* Deliver signal if tid not the original sender */
 	    if (tid != sender) {
@@ -339,7 +335,7 @@ void PSID_sendAllSignals(PStask_t *task)
 void PSID_sendSignalsToRelatives(PStask_t *task)
 {
     list_t *s;
-    int blockedCHLD, blockedRDP;
+    int blockedRDP;
 
     if (task->ptid) {
 	PSID_sendSignal(task->ptid, task->uid, task->tid, -1, 0, 0);
@@ -348,7 +344,6 @@ void PSID_sendSignalsToRelatives(PStask_t *task)
 		 PSC_printTID(task->ptid));
     }
 
-    blockedCHLD = PSID_blockSIGCHLD(1);
     blockedRDP = RDP_blockTimer(1);
 
     list_for_each(s, &task->childList) {
@@ -362,7 +357,6 @@ void PSID_sendSignalsToRelatives(PStask_t *task)
     }
 
     RDP_blockTimer(blockedRDP);
-    PSID_blockSIGCHLD(blockedCHLD);
 }
 
 /**
@@ -926,7 +920,7 @@ static int releaseTask(PStask_t *task)
     } else {
 	PStask_ID_t child, sender;
 	DDSignalMsg_t sigMsg;
-	int blocked, sig;
+	int sig;
 
 	sigMsg.header.type = PSP_CD_RELEASE;
 	sigMsg.header.sender = task->tid;
@@ -949,8 +943,6 @@ static int releaseTask(PStask_t *task)
 
 	    /* Reorganize children. They are inherited by the parent task */
 	    sig = -1;
-
-	    blocked = PSID_blockSIGCHLD(1);
 
 	    while ((child = PSID_getSignal(&task->childList, &sig))) {
 		PSID_log(PSID_LOG_TASK|PSID_LOG_SIGNAL,
@@ -981,8 +973,6 @@ static int releaseTask(PStask_t *task)
 		PSID_removeSignal(&task->assignedSigs, child, sig);
 		sig = -1;
 	    }
-
-	    PSID_blockSIGCHLD(blocked);
 
 	    /* notify parent to release task there, too */
 	    /* this has to be done *after* the children are inherited */
@@ -1294,15 +1284,13 @@ static void drop_RELEASE(DDBufferMsg_t *msg)
 
 static void signalGC(void)
 {
-    int blockedCHLD, blockedRDP;
+    int blockedRDP;
 
     if (!PSsignal_gcRequired()) return;
 
-    blockedCHLD = PSID_blockSIGCHLD(1);
     blockedRDP = RDP_blockTimer(1);
     PSsignal_gc();
     RDP_blockTimer(blockedRDP);
-    PSID_blockSIGCHLD(blockedCHLD);
 }
 
 void initSignal(void)

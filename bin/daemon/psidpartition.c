@@ -4079,7 +4079,6 @@ static int PSIDpart_getReservation(PSrsrvtn_t *res)
     unsigned int got;
     PSpart_slot_t *s;
     PStask_t * task, *delegate;
-    int blockedCHLD;
 
     if (!res) return -1;
     task = PStasklist_find(&managedTasks, res->task);
@@ -4090,9 +4089,7 @@ static int PSIDpart_getReservation(PSrsrvtn_t *res)
 
     delegate = task->delegate ? task->delegate : task;
 
-    blockedCHLD = PSID_blockSig(1, SIGCHLD);
     if (!res->slots) res->slots = malloc(res->nMax * sizeof(*res->slots));
-    PSID_blockSig(blockedCHLD, SIGCHLD);
 
     if (!res->slots) {
 	PSID_log(-1, "%s: No memory for slots in %#x\n", __func__, res->rid);
@@ -4156,9 +4153,7 @@ static int PSIDpart_getReservation(PSrsrvtn_t *res)
 	s = realloc(res->slots, got * sizeof(*res->slots));
 	if (!s) {
 	    PSID_log(-1, "%s: Failed to realloc()\n", __func__);
-	    blockedCHLD = PSID_blockSig(1, SIGCHLD);
 	    free(res->slots);
-	    PSID_blockSig(blockedCHLD, SIGCHLD);
 	    res->slots = NULL;
 	    return -1;
 	}

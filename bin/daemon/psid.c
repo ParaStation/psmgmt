@@ -38,6 +38,7 @@ static char vcid[] __attribute__((used)) =
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <sys/signalfd.h>
 
 #include <popt.h>
 
@@ -77,6 +78,8 @@ static char vcid[] __attribute__((used)) =
 struct timeval selectTime;
 
 char psid_cvsid[] = "$Revision$";
+
+static int signalFD = -1;
 
 /**
  * @brief MCast callback handler
@@ -211,22 +214,16 @@ static void RDPCallBack(int msgid, void *buf)
     }
 }
 
-static int blockSIGCHLD = 0;
-static int SIGCHLDpending = 0;
-
-void PSID_handleSIGCHLD(int sig)
+static int handleSignalFD(int fd, void *info)
 {
     pid_t pid;         /* pid of the child process */
     PStask_ID_t tid;   /* tid of the child process */
     int estatus;       /* termination status of the child process */
-    static int handlingActive = 0;
+    struct signalfd_siginfo fdsi;
 
-    if (handlingActive) {
-	SIGCHLDpending = 1;
-	return;
+    if ((read(fd, &fdsi, sizeof(struct signalfd_siginfo))) == -1) {
+	PSID_log(-1, "%s: Read on signalfd() failed\n", __func__);
     }
-
-    handlingActive = 1;
 
     while ((pid = waitpid(-1, &estatus, WNOHANG)) > 0){
 	/*
@@ -261,30 +258,9 @@ void PSID_handleSIGCHLD(int sig)
 		if (task->group != TG_DELEGATE) PStask_cleanup(tid);
 	    }
 	}
-	SIGCHLDpending = 0;
     }
 
-    handlingActive = 0;
-}
-
-int PSID_blockSIGCHLD(int block)
-{
-    int wasBlocked = blockSIGCHLD;
-
-    blockSIGCHLD = block;
-
-    if (!block && SIGCHLDpending) {
-	PSID_handleSIGCHLD(SIGCHLD);
-
-	if (SIGCHLDpending) {
-	    int blocked = PSID_blockSig(1, SIGCHLD);
-	    PSID_log(PSID_LOG_SIGNAL, "%s: still pending signals\n", __func__);
-	    PSID_handleSIGCHLD(SIGCHLD);
-	    PSID_blockSig(blocked, SIGCHLD);
-	}
-    }
-
-    return wasBlocked;
+    return 0;
 }
 
 static void printMallocInfo(void)
@@ -337,11 +313,7 @@ static void sighandler(int sig)
 	PSID_shutdown();
 	break;
     case SIGCHLD:
-	if (blockSIGCHLD) {
-	    SIGCHLDpending = 1;
-	} else {
-	    PSID_handleSIGCHLD(sig);
-	}
+	/* ignore, since we are using signalfd() now */
 	break;
     case  SIGPIPE:   /* write on a pipe with no one to read it */
 	/* Ignore silently */
@@ -442,6 +414,22 @@ static void initSigHandlers(void)
     signal(SIGSTKFLT,sighandler);
 #endif
     signal(SIGHUP   ,SIG_IGN);
+}
+
+static void initSignalFD()
+{
+    sigset_t mask;
+
+    sigemptyset(&mask);
+    sigaddset(&mask, SIGCHLD);
+    PSID_blockSig(1, SIGCHLD);
+
+    if ((signalFD = signalfd(-1, &mask, 0)) == -1) {
+	PSID_exit(errno, "Error creating signalfd");
+    }
+    if ((Selector_register(signalFD, handleSignalFD, NULL)) == -1) {
+	PSID_exit(errno, "Error registering signalfd");
+    }
 }
 
 /**
@@ -748,6 +736,7 @@ int main(int argc, const char *argv[])
     /* initialize various modules */
     initComm();  /* This has to be first since it gives msgHandler hash */
 
+    initSignalFD();
     initClients();
     initState();
     initOptions();

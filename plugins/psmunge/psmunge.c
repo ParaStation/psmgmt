@@ -67,17 +67,11 @@ int mungeEncodeBuf(char **cred, const void *buf, int len)
 int mungeEncodeCtx(char **cred, munge_ctx_t ctx, const void *buf, int len)
 {
     munge_err_t err;
-    int blocked = 0;
-
-    /* workaround for psid SIGCHLD malloc deadlock */
-    blocked = blockSigChild(1);
 
     if ((err = munge_encode(cred, ctx, buf, len)) != EMUNGE_SUCCESS) {
 	mlog("%s: encode failed: %s\n", __func__, munge_strerror(err));
 	return 0;
     }
-
-    if (!blocked) blockSigChild(0);
 
     return 1;
 }
