@@ -20,6 +20,7 @@ import signal
 import math
 import socket
 import random
+import shutil
 
 
 # Approximate frequency of main loop updates.
@@ -1120,6 +1121,9 @@ def check_test_description(test):
 			raise Exception("Interactive jobs need a frontend process " \
 			                "that handles the interaction.")
 
+def cleanup_after_test(test):
+	shutil.rmtree(test["outdir"], True)	# ignore errors
+
 #
 # Run a single test. For each specified partition the function will submit one
 # job, potentially spawn an accompanying frontend process that can interact with
@@ -1226,6 +1230,9 @@ def perform_test(thread, testdir, testkey, opts, partinfo):
 	except:
 		pass
 
+	if opts.cleanup and (result in [CANCELED, RESUNAVAIL, OK]):
+		cleanup_after_test(test)
+
 	return (result, test)
 
 #
@@ -1260,7 +1267,6 @@ def get_test_list(argv, opts):
 					break
 
 	return sorted(tests)
-
 
 #
 # Create a unique key for the test based on name, number and date
@@ -1408,6 +1414,9 @@ def parse_cmdline_args():
 	parser.add_option("--randomize", action = "store_true", \
 	                  dest = "randomize", \
 	                  help = "Randomize the test order.")
+	parser.add_option("--cleanup", action = "store_true", \
+	                  dest = "cleanup", \
+	                  help = "Cleanup successful tests")
 
 	(opts, args) = parser.parse_args()
 
