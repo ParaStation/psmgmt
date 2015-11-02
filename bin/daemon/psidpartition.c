@@ -4160,6 +4160,8 @@ static int PSIDpart_getReservation(PSrsrvtn_t *res)
 	    PSID_blockSIGCHLD(blockedCHLD);
 	    res->slots = NULL;
 	    return -1;
+	} else {
+	    res-slots = s;
 	}
     }
 
