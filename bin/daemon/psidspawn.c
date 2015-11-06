@@ -1444,7 +1444,6 @@ static void sendAcctChild(PStask_t *task)
 	    char dots[]="...";
 	    PSP_putTypedMsgBuf(&msg, __func__, "dots", dots, strlen(dots));
 	    offset = len-MAXARGV0+3;
-	    len = MAXARGV0-3;
 	}
 	PSP_putTypedMsgBuf(&msg, __func__, "name", task->argv[0] + offset,
 			   strlen(task->argv[0] + offset));

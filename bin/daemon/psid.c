@@ -269,15 +269,15 @@ static void printMallocInfo(void)
 
     mi = mallinfo();
 
-    PSID_log(-1, "%s:\n", __func__);
-    PSID_log(-1, "arena    %d\n", mi.arena);
-    PSID_log(-1, "ordblks  %d\n", mi.ordblks);
-    PSID_log(-1, "hblks    %d\n", mi.hblks);
-    PSID_log(-1, "hblkhd   %d\n", mi.hblkhd);
-    PSID_log(-1, "uordblks %d\n", mi.uordblks);
-    PSID_log(-1, "fordblks %d\n", mi.fordblks);
-    PSID_log(-1, "keepcost %d\n", mi.keepcost);
-    PSID_log(-1, "====================\n");
+    PSID_log(PSID_LOG_RESET, "%s:\n", __func__);
+    PSID_log(PSID_LOG_RESET, "arena    %d\n", mi.arena);
+    PSID_log(PSID_LOG_RESET, "ordblks  %d\n", mi.ordblks);
+    PSID_log(PSID_LOG_RESET, "hblks    %d\n", mi.hblks);
+    PSID_log(PSID_LOG_RESET, "hblkhd   %d\n", mi.hblkhd);
+    PSID_log(PSID_LOG_RESET, "uordblks %d\n", mi.uordblks);
+    PSID_log(PSID_LOG_RESET, "fordblks %d\n", mi.fordblks);
+    PSID_log(PSID_LOG_RESET, "keepcost %d\n", mi.keepcost);
+    PSID_log(PSID_LOG_RESET, "====================\n");
 }
 
 /**
@@ -430,6 +430,24 @@ static void initSignalFD()
     if ((Selector_register(signalFD, handleSignalFD, NULL)) == -1) {
 	PSID_exit(errno, "Error registering signalfd");
     }
+}
+
+/**
+ * @brief Handling of SIGUSR2
+ *
+ * Handling of SIGUSR2 is suppressed most of the time in order to
+ * prevent receiving it in a critical situation, i.e. while in
+ * malloc() and friends. This has to be prevented since SIGUSR2's only
+ * purpose is to call malloc_trim() which will block if called from
+ * within malloc() and friends.
+ *
+ * It is save to handle SIGURS2 from within the main-loop. Thus, this
+ * function should be registered via @ref PSID_registerLoopAct().
+ */
+static void handleSIGUSR2(void)
+{
+    PSID_blockSig(0, SIGUSR2);
+    PSID_blockSig(1, SIGUSR2);
 }
 
 /**
@@ -608,7 +626,9 @@ int main(int argc, const char *argv[])
        }
     }
 
+    PSID_blockSig(1,SIGUSR2);
     initSigHandlers();
+    PSID_registerLoopAct(handleSIGUSR2);
 
 #define _PATH_TTY "/dev/tty"
     /* First disconnect from the old controlling tty. */

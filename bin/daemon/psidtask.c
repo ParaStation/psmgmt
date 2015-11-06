@@ -472,7 +472,6 @@ void PStask_cleanup(PStask_ID_t tid)
 	    }
 
 	    RDP_blockTimer(blockedRDP);
-
 	}
     }
 

@@ -631,7 +631,6 @@ char *replaceSymbols(uint32_t jobid, uint32_t stepid, char *hostname,
 	strn2Buf(ptr, len, &buf, &bufSize);
 
 	/* zero padding */
-	symNumLen = 0;
 	snprintf(symLen, sizeof(symLen), "%%u");
 	while (symNum[0] >= 48 && symNum[0] <=57) symNum++;
 	if ((symNumLen = symNum - symbol) >0) {

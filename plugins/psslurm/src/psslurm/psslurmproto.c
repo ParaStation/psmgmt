@@ -784,14 +784,14 @@ static void handleSignalJob(Slurm_Msg_t *sMsg)
 
     job = findJobById(jobid);
     step = findStepByJobid(jobid);
-    uid = step ? step->uid : 0;
-    uid = job ? job->uid : 0;
 
     if (!job && !step) {
 	mlog("%s: job '%u' to signal not found\n", __func__, jobid);
 	sendSlurmRC(sMsg, ESLURM_INVALID_JOB_ID);
 	return;
     }
+
+    uid = step ? step->uid : job->uid;
 
     /* check permissions */
     if (!(checkAuthorizedUser(sMsg->head.uid, uid))) {
@@ -2202,6 +2202,7 @@ int addSlurmAccData(uint8_t accType, pid_t childPid, PStask_ID_t loggerTID,
 void sendStepExit(Step_t *step, int exit_status)
 {
     PS_DataBuffer_t body = { .buf = NULL };
+    pid_t childPid;
 
     addUint32ToMsg(step->jobid, &body);
     addUint32ToMsg(step->stepid, &body);
@@ -2218,7 +2219,8 @@ void sendStepExit(Step_t *step, int exit_status)
     }
 
     /* account data */
-    addSlurmAccData(step->accType, 0, PSC_getTID(-1, step->fwdata->childPid),
+    childPid = (step->fwdata) ? step->fwdata->childPid : 1;
+    addSlurmAccData(step->accType, 0, PSC_getTID(-1, childPid),
 		    &body, step->nodes, step->nrOfNodes);
 
     mlog("%s: sending REQUEST_STEP_COMPLETE to slurmctld: exit '%u'\n",

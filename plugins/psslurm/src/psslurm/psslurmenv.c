@@ -459,7 +459,6 @@ static char * genCPUbindString(Step_t *step) {
 
     if (step->cpuBindType & (CPU_BIND_MAP | CPU_BIND_MASK)) {
 	strcpy(string+len, step->cpuBind);
-	len += strlen(step->cpuBind);
     }
 
     return string;
@@ -502,7 +501,6 @@ static char * genMemBindString(Step_t *step) {
 
     if (step->memBindType & (MEM_BIND_MAP | MEM_BIND_MASK)) {
 	strcpy(string+len, step->memBind);
-	len += strlen(step->memBind);
     }
 
     return string;

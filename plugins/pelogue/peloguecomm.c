@@ -306,6 +306,8 @@ static void handlePELogueStart(DDTypedBufferMsg_t *msg,
        .buf = {'\0'} };
 
     data = umalloc(sizeof(PElogue_Data_t));
+    data->exit = 0;
+    data->prologue = prologue;
 
     /* get plugin */
     data->plugin = getStringM(&ptr);

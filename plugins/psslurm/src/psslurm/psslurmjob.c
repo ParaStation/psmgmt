@@ -293,6 +293,8 @@ BCast_t *addBCast(int socket)
     bcast->fileName = NULL;
     bcast->block = NULL;
     bcast->fwdata = NULL;
+    bcast->sigLen = 0;
+    initSlurmMsg(&bcast->msg);
 
     list_add_tail(&(bcast->list), &BCastList.list);
 

@@ -266,7 +266,7 @@ static void getBindMapFromString(PSCPU_set_t *CPUset, uint16_t cpuBindType,
 	next = strtok_r(NULL, delimiters, &saveptr);
     }
 
-    if (!myent) {
+    if (!myent && numents) {
 	myent = entarray[local_tid % numents];
     }
 
@@ -274,14 +274,11 @@ static void getBindMapFromString(PSCPU_set_t *CPUset, uint16_t cpuBindType,
 	PSCPU_setAll(*CPUset); //XXX other result in error case?
 	if (cpuBindType & CPU_BIND_MASK) {
 	    mlog("%s: invalid cpu mask string '%s'\n", __func__, ents);
-	}
-	else if (cpuBindType & CPU_BIND_MAP) {
+	} else if (cpuBindType & CPU_BIND_MAP) {
 	    mlog("%s: invalid cpu map string '%s'\n", __func__, ents);
-	}
-	else if (cpuBindType & CPU_BIND_LDMASK) {
+	} else if (cpuBindType & CPU_BIND_LDMASK) {
 	    mlog("%s: invalid socket mask string '%s'\n", __func__, ents);
-	}
-	else if (cpuBindType & CPU_BIND_LDMAP) {
+	} else if (cpuBindType & CPU_BIND_LDMAP) {
 	    mlog("%s: invalid socket map string '%s'\n", __func__, ents);
 	}
 	goto cleanup;
@@ -294,9 +291,7 @@ static void getBindMapFromString(PSCPU_set_t *CPUset, uint16_t cpuBindType,
 	mdbg(PSSLURM_LOG_PART, "%s: (bind_mask) node '%i' local task '%i' "
 		"cpumaskstr '%s' cpumask '%s'\n", __func__, nodeid, local_tid,
 		myent, PSCPU_print(*CPUset));
-    }
-    else if (cpuBindType & CPU_BIND_MAP) {
-	mycpu = 0;
+    } else if (cpuBindType & CPU_BIND_MAP) {
 	if (strncmp(myent, "0x", 2) == 0) {
 	    mycpu = strtoul (myent+2, &endptr, 16);
 	} else {
@@ -304,24 +299,20 @@ static void getBindMapFromString(PSCPU_set_t *CPUset, uint16_t cpuBindType,
 	}
 	if (*endptr == '\0') {
 	    PSCPU_setCPU(*CPUset, mycpu);
-	}
-	else {
+	} else {
 	    PSCPU_setAll(*CPUset); //XXX other result in error case?
 	    mlog("%s: invalid cpu map '%s'\n", __func__, myent);
 	}
 	mdbg(PSSLURM_LOG_PART, "%s: (bind_map) node '%i' local task '%i'"
 		" cpustr '%s' cpu '%i'\n", __func__, nodeid, local_tid, myent,
 		mycpu);
-    }
-    else if (cpuBindType & CPU_BIND_LDMASK) {
+    } else if (cpuBindType & CPU_BIND_LDMASK) {
 	parseSocketMask(CPUset, socketCount, coresPerSocket, cpuCount,
 			hwThreads, myent);
 	mdbg(PSSLURM_LOG_PART, "%s: (bind_ldmask) node '%i' local task '%i' "
 		"socketmaskstr '%s' cpumask '%s'\n", __func__, nodeid, local_tid,
 		myent, PSCPU_print(*CPUset));
-    }
-    else if (cpuBindType & CPU_BIND_LDMAP) {
-	mysock = 0;
+    } else if (cpuBindType & CPU_BIND_LDMAP) {
 	if (strncmp(myent, "0x", 2) == 0) {
 	    mysock = strtoul (myent+2, &endptr, 16);
 	} else {
@@ -330,8 +321,7 @@ static void getBindMapFromString(PSCPU_set_t *CPUset, uint16_t cpuBindType,
 	if (*endptr == '\0') {
 	    pinToSocket(CPUset, socketCount, coresPerSocket, cpuCount,
 			hwThreads, mysock);
-	}
-	else {
+	} else {
 	    PSCPU_setAll(*CPUset); //XXX other result in error case?
 	    mlog("%s: invalid socket map '%s'\n", __func__, myent);
 	}
@@ -513,7 +503,6 @@ void getSocketBinding(PSCPU_set_t *CPUset, uint8_t *coreMap,
 
 	    /* we need another socket to hold the threads */
 	    socketsUsed++;
-	    usedSocket = currentSocket;
 	}
 
         /* bind to all hw threads (allowed) of current core */
@@ -1186,7 +1175,7 @@ void doMemBind(Step_t *step, PStask_t *task)
 	next = strtok_r(NULL, delimiters, &saveptr);
     }
 
-    if (!myent) {
+    if (!myent && numents) {
 	myent = entarray[local_tid % numents];
     }
 
@@ -1202,7 +1191,6 @@ void doMemBind(Step_t *step, PStask_t *task)
     }
 
     if (step->memBindType & MEM_BIND_MAP) {
-	mynode = 0;
 
 	if (strncmp(myent, "0x", 2) == 0) {
 	    mynode = strtoul (myent+2, &endptr, 16);

@@ -1196,16 +1196,14 @@ static void handleCC_INIT_Msg(PSLog_Msg_t *msg)
 		}
 	    }
 	}
-    }
-
-    else if (msg->sender >= 0) {
+    } else if (msg->sender >= 0) {
 
 	if ((step = findStepByLogger(msg->header.dest))) {
 
 	    if (PSC_getMyID() == PSC_getID(msg->header.sender)) {
 
-		if ((task = findTaskByForwarder(&step->tasks.list, msg->header.sender))) {
-
+		if ((task = findTaskByForwarder(&step->tasks.list,
+						    msg->header.sender))) {
 		    verboseCpuPinningOutput(step, task);
 		}
 	    }
@@ -1213,6 +1211,7 @@ static void handleCC_INIT_Msg(PSLog_Msg_t *msg)
     }
 }
 
+/*
 static void closeClientIO(PSLog_Msg_t *msg)
 {
     Step_t *step = NULL;
@@ -1237,6 +1236,7 @@ static void closeClientIO(PSLog_Msg_t *msg)
     printChildMessage(step, NULL, 0, STDOUT, msg->sender);
     printChildMessage(step, NULL, 0, STDERR, msg->sender);
 }
+*/
 
 static void handleCC_STDIN_Msg(PSLog_Msg_t *msg)
 {
@@ -1396,7 +1396,7 @@ void handleCCMsg(PSLog_Msg_t *msg)
 
 void handleCCError(PSLog_Msg_t *msg)
 {
-    closeClientIO(msg);
+    //closeClientIO(msg);
     if (oldCCErrorHandler) oldCCErrorHandler((DDBufferMsg_t *) msg);
 }
 

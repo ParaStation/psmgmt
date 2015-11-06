@@ -311,7 +311,7 @@ void forwardAccountMsg(DDTypedBufferMsg_t *msg, int type, PStask_ID_t logger)
     char *ptr;
 
     /* copy the msg */
-    fmsg = umalloc(msg->header.len);
+    fmsg = umalloc(sizeof(DDTypedBufferMsg_t));
     memcpy(fmsg, msg, msg->header.len);
 
     /* prepare to forward */
@@ -323,11 +323,16 @@ void forwardAccountMsg(DDTypedBufferMsg_t *msg, int type, PStask_ID_t logger)
 
     /* add TaskID of child for start message */
     if (type == PSP_ACCOUNT_FORWARD_START) {
+	fmsg->header.len = sizeof(fmsg->header);
 	ptr = fmsg->buf;
 	ptr += sizeof(PStask_ID_t);
+	fmsg->header.len += sizeof(PStask_ID_t);
 	ptr += sizeof(int32_t);
+	fmsg->header.len += sizeof(int32_t);
 	ptr += sizeof(uid_t);
+	fmsg->header.len += sizeof(uid_t);
 	ptr += sizeof(gid_t);
+	fmsg->header.len += sizeof(gid_t);
 
 	*( PStask_ID_t *)ptr = msg->header.sender;
 	//ptr += sizeof(PStask_ID_t);

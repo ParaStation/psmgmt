@@ -393,6 +393,7 @@ int startTaskEpilogues(Step_t *step)
 	return 0;
     }
 
+    step->fwdata = fwdata;
     return 1;
 }
 

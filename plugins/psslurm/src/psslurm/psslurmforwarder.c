@@ -179,8 +179,8 @@ static int stepCallback(int32_t exit_status, char *errMsg,
 
     if (step->taskEpilog && *(step->taskEpilog) != '\0') {
 	/* run task epilogue now for each task in this step */
-	return startTaskEpilogues(step);
-
+	if (!(startTaskEpilogues(step))) step->fwdata = NULL;
+	return 0;
     } else if ((alloc = findAlloc(step->jobid)) &&
 	alloc->terminate &&
 	alloc->nodes[0] == PSC_getMyID()) {
@@ -361,18 +361,18 @@ int handleExecClientUser(void *data)
 		putenv(strdup(task->environ[i]));
 	    }
 	}
-    }
-
-    ptr = task->environ[count++];
-    while (ptr) {
-	if (!(strncmp(ptr, "SLURM_STEPID=", 13))) {
-	    sscanf(ptr+13, "%u", &stepid);
-	}
-	if (!(strncmp(ptr, "SLURM_JOBID=", 12))) {
-	    sscanf(ptr+12, "%u", &jobid);
-	}
 
 	ptr = task->environ[count++];
+	while (ptr) {
+	    if (!(strncmp(ptr, "SLURM_STEPID=", 13))) {
+		sscanf(ptr+13, "%u", &stepid);
+	    }
+	    if (!(strncmp(ptr, "SLURM_JOBID=", 12))) {
+		sscanf(ptr+12, "%u", &jobid);
+	    }
+
+	    ptr = task->environ[count++];
+	}
     }
 
     if ((step = findStepById(jobid, stepid))) {

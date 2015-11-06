@@ -239,6 +239,7 @@ static void *umalloc(size_t size, const char *func)
 {
     void *ptr;
 
+    if (!size) return NULL;
     if (!(ptr = malloc(size))) {
 	fprintf(stderr, "%s: memory allocation failed\n", func);
 	exit(EXIT_FAILURE);
