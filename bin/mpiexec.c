@@ -713,7 +713,7 @@ static void createSpawner(int argc, char *argv[], int np, int admin)
 	if ((getenv("SERVICE_KVS_PROVIDER"))) {
 	    printf("KVS process %s started\n", PSC_printTID(myTID));
 	} else {
-	    printf("service process %s started\n",  PSC_printTID(myTID));
+	    printf("spawner process %s started\n",  PSC_printTID(myTID));
 	}
     }
     return;

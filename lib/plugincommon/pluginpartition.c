@@ -72,10 +72,6 @@ void grantPartitionRequest(PSpart_HWThread_t *hwThreads, uint32_t numHWthreads,
     task->partThrds = threads;
     task->totalThreads = numHWthreads;
 
-    /* delete the corresponding request */
-    PSpart_delReq(task->request);
-    task->request = NULL;
-
     /* generate slots from hw threads and register partition to master psid */
     PSIDpart_register(task);
 

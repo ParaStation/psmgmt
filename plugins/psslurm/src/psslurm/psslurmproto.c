@@ -23,6 +23,7 @@
 #include <sys/utsname.h>
 #include <signal.h>
 #include <sys/vfs.h>
+#include <malloc.h>
 
 #include "slurmcommon.h"
 #include "psslurmjob.h"
@@ -199,20 +200,20 @@ static void readStepIOoptions(Step_t *step, char **ptr)
 	/* parse stdout options */
 	step->stdOut = getStringM(ptr);
 	setIOoptions(step->stdOut, &step->stdOutOpt, &step->stdOutRank);
-	mlog("%s: stdOut '%s' stdOutRank '%i' stdOutOpt '%i'\n", __func__,
-		step->stdOut, step->stdOutRank, step->stdOutOpt);
+	mdbg(PSSLURM_LOG_IO, "%s: stdOut '%s' stdOutRank '%i' stdOutOpt '%i'\n",
+		__func__, step->stdOut, step->stdOutRank, step->stdOutOpt);
 
 	/* parse stderr options */
 	step->stdErr = getStringM(ptr);
 	setIOoptions(step->stdErr, &step->stdErrOpt, &step->stdErrRank);
-	mlog("%s: stdErr '%s' stdErrRank '%i' stdErrOpt '%i'\n", __func__,
-		step->stdErr, step->stdErrRank, step->stdErrOpt);
+	mdbg(PSSLURM_LOG_IO, "%s: stdErr '%s' stdErrRank '%i' stdErrOpt '%i'\n",
+		__func__, step->stdErr, step->stdErrRank, step->stdErrOpt);
 
 	/* parse stdin options */
 	step->stdIn = getStringM(ptr);
 	setIOoptions(step->stdIn, &step->stdInOpt, &step->stdInRank);
-	mlog("%s: stdIn '%s' stdInRank '%i' stdInOpt '%i'\n", __func__,
-		step->stdIn, step->stdInRank, step->stdInOpt);
+	mdbg(PSSLURM_LOG_IO, "%s: stdIn '%s' stdInRank '%i' stdInOpt '%i'\n",
+		__func__, step->stdIn, step->stdInRank, step->stdInOpt);
 
 	/* buffered I/O = default (unbufferd = RAW) */
 	getUint8(ptr, &step->bufferedIO);
@@ -1261,6 +1262,9 @@ static void handleBatchJobLaunch(Slurm_Msg_t *sMsg)
     char **ptr = &sMsg->ptr;
     uint32_t jobid;
 
+    /* memory cleanup  */
+    malloc_trim(200);
+
     /* job / step id */
     getUint32(ptr, &jobid);
     getUint32(ptr, &tmp);
@@ -1729,9 +1733,14 @@ int testSlurmVersion(uint32_t version, uint32_t cmd)
 
 int handleSlurmdMsg(Slurm_Msg_t *sMsg)
 {
-    mdbg(PSSLURM_LOG_PROTO, "%s: msg(%i): %s, version '%u'\n",
-	    __func__, sMsg->head.type, msgType2String(sMsg->head.type),
-	    sMsg->head.version);
+    mdbg(PSSLURM_LOG_PROTO, "%s: msg(%i): %s, version '%u' "
+	    "addr '%u.%u.%u.%u' port '%u'\n", __func__, sMsg->head.type,
+	    msgType2String(sMsg->head.type), sMsg->head.version,
+	    (sMsg->head.addr & 0x000000ff),
+	    (sMsg->head.addr & 0x0000ff00) >> 8,
+	    (sMsg->head.addr & 0x00ff0000) >> 16,
+	    (sMsg->head.addr & 0xff000000) >> 24,
+	    sMsg->head.port);
 
     if (!(testSlurmVersion(sMsg->head.version, sMsg->head.type))) {
 	sendSlurmRC(sMsg, SLURM_PROTOCOL_VERSION_ERROR);
@@ -2030,6 +2039,11 @@ int __sendSlurmRC(Slurm_Msg_t *sMsg, uint32_t rc, const char *func,
 
     if (!sMsg->head.forward) {
 	freeSlurmMsg(sMsg);
+    }
+
+    if (ret < 1) {
+	mlog("%s: sending rc '%u' for '%s:%u' failed\n", __func__, rc,
+		func, line);
     }
 
     ufree(body.buf);
@@ -2348,9 +2362,7 @@ int sendTaskPids(Step_t *step)
     PS_DataBuffer_t body = { .buf = NULL };
     uint32_t i, x, z, countPIDS, countGTIDS;
     char *ptrCount, *ptrPIDS, *ptrGTIDS;
-    int sock;
-
-    mlog("%s: sending RESPONSE_LAUNCH_TASKS to srun\n", __func__);
+    int sock = -1;
 
     for (z=0; z<step->nrOfNodes; z++) {
 	body.bufUsed = 0;
@@ -2415,11 +2427,19 @@ int sendTaskPids(Step_t *step)
 
 	/* send the message to srun */
 	if ((sock = srunOpenControlConnection(step)) != -1) {
-	    sendSlurmMsg(sock, RESPONSE_LAUNCH_TASKS, &body);
+	    if ((sendSlurmMsg(sock, RESPONSE_LAUNCH_TASKS, &body)) < 1) {
+		mlog("%s: send RESPONSE_LAUNCH_TASKS failed step '%u:%u'\n",
+			__func__, step->jobid, step->stepid);
+	    }
 	    close(sock);
+	} else {
+	    mlog("%s: open control connection failed, step '%u:%u'\n",
+		    __func__, step->jobid, step->stepid);
 	}
     }
 
+    mlog("%s: send success RESPONSE_LAUNCH_TASKS step '%u:%u'\n", __func__,
+	    step->jobid, step->stepid);
     ufree(body.buf);
     return 1;
 }

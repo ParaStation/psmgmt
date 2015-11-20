@@ -52,9 +52,6 @@
 
 #include "psslurm.h"
 
-// set default dir from my config / build system
-//#define SPOOL_DIR "/var/spool/parastation/scripts"
-
 #define PSSLURM_CONFIG_FILE  PLUGINDIR "/psslurm.conf"
 #define PSSLURM_SLURMD_PORT 6818
 #define PSSLURM_SLURMCTLD_PORT 6817

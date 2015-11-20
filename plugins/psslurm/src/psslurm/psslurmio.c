@@ -1090,8 +1090,8 @@ void printChildMessage(Step_t *step, char *msg, uint32_t msgLen,
 	step->ioCon = 3;
     }
 
-    /* if msg from service rank, let it seem like it comes from task 0 */
-    if (taskid < 0) taskid = 0;
+    /* if msg from service rank, let it seem like it comes from first task */
+    if (taskid < 0) taskid = step->globalTaskIds[step->myNodeIndex][0];
 
     addInt32ToMsg(CMD_PRINT_CHILD_MSG, &data);
     addUint8ToMsg(type, &data);

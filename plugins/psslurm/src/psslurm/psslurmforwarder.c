@@ -570,7 +570,7 @@ static void execInteractiveJob(void *data, int rerun)
     /* setup x11 forwarding */
     if (step->x11forward) initX11Forward(step);
 
-    mlog("%s: exec job '%u:%u' mypid '%u'\n", __func__, step->jobid,
+    mlog("%s: exec step '%u:%u' mypid '%u'\n", __func__, step->jobid,
 	    step->stepid, getpid());
 
     /* set rlimits */
@@ -678,6 +678,8 @@ static void handleChildStartStep(void *data, pid_t fw, pid_t childPid,
     psAccountRegisterJob(childPid, NULL);
 
     /* say ok to srun if mpiexec could be spawned */
+    mlog("%s: send launch success for step '%u:%u' to srun sock '%u'\n",
+	    __func__, step->jobid, step->stepid, step->srunControlMsg.sock);
     sendSlurmRC(&step->srunControlMsg, SLURM_SUCCESS);
 }
 

@@ -220,17 +220,6 @@ static char * getTasksPerNode(uint16_t tasksPerNode[], uint32_t nrOfNodes) {
     return buffer;
 }
 
-/**
- * @brief
- *
- * env set by slurmctld:
- *
- * SLURM_JOB_NAME=batchjob
- * SLURM_PRIO_PROCESS=0
- * SLURM_SUBMIT_DIR=/direct/home-fs/rauh
- * SLURM_SUBMIT_HOST=prosciutto
- *
- */
 void setSlurmEnv(Job_t *job)
 {
     char tmp[1024], *cpus = NULL, *list = NULL;
@@ -278,7 +267,6 @@ void setSlurmEnv(Job_t *job)
     ufree(cpus);
 
     /* set SLURM_TASKS_PER_NODE for intel mpi */
-
     tasksPerNode = calcTasksPerNode(job);
     if (tasksPerNode) {
 	cpus = getTasksPerNode(tasksPerNode, job->nrOfNodes);
@@ -642,10 +630,6 @@ void setTaskEnv(Step_t *step)
     removeSpankOptions(&step->env);
 }
 
-/*
-     * depending on the option we need to call "su - username /usr/bin/env" and
-     * parse the output. This will be set first and can be overwritten by env
-     * which comes from slurmd, or is slurmd doing that for us? */
 void setBatchEnv(Job_t *job)
 {
     char tmp[1024], *val = NULL;
@@ -656,7 +640,6 @@ void setBatchEnv(Job_t *job)
     envSet(&job->env, "SLURM_PROCID", "0");
     envSet(&job->env, "SLURM_LOCALID", "0");
 
-    /* CORRECT ME */
     snprintf(tmp, sizeof(tmp), "%u", job->nodeMinMemory);
     envSet(&job->env, "SLURM_MEM_PER_NODE", tmp);
 

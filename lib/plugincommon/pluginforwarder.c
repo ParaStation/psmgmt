@@ -519,6 +519,7 @@ static void forwarderLoop()
 	if (Sselect(FD_SETSIZE, NULL, NULL, NULL, NULL) < 0) {
 	    if (errno != EINTR) {
 		pluginlog("%s: select error : %s\n", __func__, strerror(errno));
+		Selector_checkFDs();
 		killForwarderChild(SIGKILL, "Sselect error");
 		break;
 	    }

@@ -388,16 +388,24 @@ Client_t *addAccClient(PStask_ID_t taskid, PS_Acct_job_types_t type)
     return client;
 }
 
+static void doDeleteClient(Client_t *client)
+{
+
+    if (!client) return;
+
+    list_del(&client->list);
+
+    ufree(client->jobid);
+    ufree(client);
+}
+
 int deleteAccClient(PStask_ID_t tid)
 {
     Client_t *client;
 
     if (!(client = findAccClientByClientTID(tid))) return 0;
 
-    list_del(&client->list);
-
-    ufree(client->jobid);
-    ufree(client);
+    doDeleteClient(client);
 
     return 1;
 }
@@ -407,7 +415,7 @@ void deleteAllAccClientsByLogger(PStask_ID_t loggerTID)
     Client_t *client;
 
     while ((client = findAccClientByLogger(loggerTID))) {
-	deleteAccClient(client->taskid);
+	doDeleteClient(client);
     }
 }
 

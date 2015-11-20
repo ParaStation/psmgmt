@@ -465,11 +465,15 @@ static int handleSlurmctldReply(Slurm_Msg_t *sMsg)
     char **ptr;
     uint32_t rc;
 
+    if (!(testMungeAuth(&sMsg->ptr, &sMsg->head))) return 0;
+
     ptr = &sMsg->ptr;
     getUint32(ptr, &rc);
 
-    mdbg(PSSLURM_LOG_PROTO, "%s: type '%s' rc '%u'\n", __func__,
-	    msgType2String(sMsg->head.type), rc);
+    if (rc != SLURM_SUCCESS) {
+	mdbg(PSSLURM_LOG_PROTO, "%s: error: msg '%s' rc '%u'\n", __func__,
+		msgType2String(sMsg->head.type), rc);
+    }
 
     /* TODO handle the message */
     if (sMsg->source == -1) {

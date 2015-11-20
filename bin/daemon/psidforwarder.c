@@ -1399,6 +1399,7 @@ static void loop(void)
 	    if (errno && errno != EINTR) {
 		PSIDfwd_printMsgf(STDERR, "%s: %s: error on Sselect(): %s\n",
 				  tag, __func__, strerror(errno));
+		Selector_checkFDs();
 	    }
 	    continue;
 	}
