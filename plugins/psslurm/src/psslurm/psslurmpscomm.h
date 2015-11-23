@@ -53,8 +53,6 @@ void send_PS_ForwardRes(Slurm_Msg_t *msg, PS_DataBuffer_t *body);
 
 void handleCCMsg(PSLog_Msg_t *msg);
 
-void handleCCError(PSLog_Msg_t *msg);
-
 void handleSpawnFailed(DDErrorMsg_t *msg);
 
 #endif

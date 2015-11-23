@@ -174,14 +174,12 @@ Step_t *addStep(uint32_t jobid, uint32_t stepid)
     step->fwdata = NULL;
     step->partition = NULL;
     step->username = NULL;
-    step->tids = NULL;
     step->outChannels = NULL;
     step->errChannels = NULL;
     step->outFDs = NULL;
     step->errFDs = NULL;
     step->hwThreads = NULL;
     step->numHwThreads = 0;
-    step->tidsLen = 0;
     step->exitCode = -1;
     step->state = JOB_INIT;
     step->x11forward = 0;
@@ -229,13 +227,27 @@ PS_Tasks_t *addTask(struct list_head *list, PStask_ID_t childTID,
     return task;
 }
 
-int countTasks(struct list_head *taskList)
+unsigned int countTasks(struct list_head *taskList)
 {
     struct list_head *pos;
-    int count = 0;
+    unsigned int count = 0;
 
     list_for_each(pos, taskList) {
 	if (!(list_entry(pos, PS_Tasks_t, list))) break;
+	count++;
+    }
+    return count;
+}
+
+unsigned int countRegTasks(struct list_head *taskList)
+{
+    PS_Tasks_t *task;
+    struct list_head *pos;
+    unsigned int count = 0;
+
+    list_for_each(pos, taskList) {
+	if (!(task = list_entry(pos, PS_Tasks_t, list))) break;
+	if (task->childRank <0) continue;
 	count++;
     }
     return count;
@@ -281,6 +293,19 @@ PS_Tasks_t *findTaskByForwarder(struct list_head *taskList, PStask_ID_t fwTID)
     }
     return NULL;
 }
+
+PS_Tasks_t *findTaskByChildPid(struct list_head *taskList, pid_t childPid)
+{
+    list_t *pos, *tmp;
+    PS_Tasks_t *task = NULL;
+
+    list_for_each_safe(pos, tmp, taskList) {
+	if (!(task = list_entry(pos, PS_Tasks_t, list))) return NULL;
+	if (PSC_getPID(task->childTID) == childPid) return task;
+    }
+    return NULL;
+}
+
 
 BCast_t *addBCast(int socket)
 {
@@ -408,14 +433,14 @@ Step_t *findStepByTaskPid(pid_t pid)
 {
     struct list_head *pos;
     Step_t *step;
-    uint32_t i;
 
     list_for_each(pos, &StepList.list) {
 	if (!(step = list_entry(pos, Step_t, list))) return NULL;
-	for (i=0; i<step->tidsLen; i++) {
-	    if (PSC_getPID(step->tids[i]) == pid) return step;
+	if ((findTaskByChildPid(&step->tasks.list, pid))) {
+	    return step;
 	}
     }
+
     return NULL;
 }
 
@@ -580,7 +605,6 @@ int deleteStep(uint32_t jobid, uint32_t stepid)
     ufree(step->checkpoint);
     ufree(step->partition);
     ufree(step->username);
-    ufree(step->tids);
     ufree(step->outFDs);
     ufree(step->errFDs);
     ufree(step->outChannels);

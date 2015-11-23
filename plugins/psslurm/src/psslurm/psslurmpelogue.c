@@ -410,7 +410,6 @@ void execTaskEpilogues(void *data, int rerun)
     uint32_t rank;
     pid_t* childs;
     char *argv[2];
-    char envstr[21];
     int status;
 
     errno = 0;
@@ -449,9 +448,6 @@ void execTaskEpilogues(void *data, int rerun)
 	    setpgrp();
 
 	    setRankEnv(rank, step);
-
-	    sprintf(envstr, "%d", rank);
-	    setenv("SLURM_PROCID", envstr, 1);
 
             /* execute task epilogue */
 	    mlog("%s: starting task epilogue '%s' for rank %u of job %u\n",

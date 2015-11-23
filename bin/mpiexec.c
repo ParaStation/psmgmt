@@ -1109,7 +1109,6 @@ static void setupCommonEnv(int np)
 	setPSIEnv("PMI_BARRIER_ROUNDS", getenv("PMI_BARRIER_ROUNDS"), 1);
 	setPSIEnv("__MPIEXEC_DIST_START", getenv("__MPIEXEC_DIST_START"), 1);
     }
-    unsetPSIEnv("__SLURM_INFORM_TIDS");
 
     /* set the size of the job */
     env = getenv("PSI_NP_INFO");
@@ -1175,7 +1174,7 @@ static char ** setupRankEnv(int psRank)
 	    numProcPerNode[jobLocalNodeIDs[rank]]);
     env[cur++] = strdup(buf);
 
-    if (OpenMPI || getenv("__SLURM_INFORM_TIDS")) {
+    if (OpenMPI) {
 	/* Task ID  relative to the other tasks in the job step.
 	 * Counting begins at zero. */
 	snprintf(buf, sizeof(buf), "SLURM_PROCID=%i", rank);
@@ -1359,25 +1358,6 @@ int sendMsg(void *amsg)
     return PSI_sendMsg(amsg);
 }
 
-static void sendSpawnedTIDs(int ret, char *env, PStask_ID_t *tids)
-{
-#define PSP_TASK_IDS 15
-
-    PS_DataBuffer_t data = { .buf = NULL };
-    PStask_ID_t parent;
-
-    initPluginLogger("mpiexec", NULL);
-
-    addInt32ToMsg(ret, &data);
-    addInt32ArrayToMsg(tids, np, &data);
-
-    parent = atoi(env);
-    if ((sendFragMsg(&data, parent, PSP_CC_PLUG_PSSLURM,
-			    PSP_TASK_IDS)) == -1) {
-	fprintf(stderr, "%s: sending slurm taskid message failed\n", __func__);
-    }
-}
-
 static void sendPMIFail(void)
 {
     PSLog_Msg_t lmsg;
@@ -1429,7 +1409,7 @@ static void sendPMIFail(void)
 static int startProcs(int np, char *wd, int verbose)
 {
     int i, ret = 0, count = 0, off = 0;
-    char *hostname = NULL, *env;
+    char *hostname = NULL;
     PSnodes_ID_t *nodeList;
     PStask_ID_t *tids, *ptr;
     int nlSize = np*sizeof(*nodeList);
@@ -1525,7 +1505,6 @@ static int startProcs(int np, char *wd, int verbose)
 	count += exec[i]->np;
     }
 
-    if ((env = getenv("__SLURM_INFORM_TIDS"))) sendSpawnedTIDs(ret, env, tids);
     free(tids);
 
     return ret;
@@ -1913,8 +1892,6 @@ static void setupPSIDEnv(int verbose)
     if ((envstr = getenv("PSI_NODE_TYPE"))) {
 	nodetype = strdup(envstr);
     }
-
-    setPSIEnv("__SLURM_INFORM_TIDS", getenv("__SLURM_INFORM_TIDS"), 1);
 
     /* forward the possibly adjusted usize of the job */
     snprintf(tmp, sizeof(tmp), "%d", usize);

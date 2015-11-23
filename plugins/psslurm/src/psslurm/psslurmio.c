@@ -491,6 +491,17 @@ static void handleInfoTasks(void *data, char *ptr)
 
     task = getDataM((void **)&ptr, &len);
     list_add_tail(&(task->list), &step->tasks.list);
+
+    /*
+    mlog("%s: got TID '%s' rank '%i' count tasks '%u'\n", __func__,
+	    PSC_printTID(task->childTID), task->childRank,
+	    countRegTasks(&step->tasks.list));
+    */
+
+    if (step->globalTaskIdsLen[step->myNodeIndex] ==
+	    countRegTasks(&step->tasks.list)) {
+	sendTaskPids(step);
+    }
 }
 
 static void handleStepTimeout(void *data, char *ptr)

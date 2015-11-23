@@ -345,6 +345,9 @@ void setRankEnv(int32_t rank, Step_t *step)
     setenv("SLURM_TASK_PID", tmp, 1);
     setenv("SLURM_CPUS_ON_NODE", getConfValueC(&Config, "SLURM_CPUS"), 1);
 
+    sprintf(tmp, "%d", rank);
+    setenv("SLURM_PROCID", tmp, 1);
+
     if (myNodeId < step->nrOfNodes) {
 	snprintf(tmp, sizeof(tmp), "%u", myNodeId);
 	setenv("SLURM_NODEID", tmp, 1);
@@ -514,31 +517,24 @@ void setTaskEnv(Step_t *step)
     if (step->cpuBindType & CPU_BIND_VERBOSE) {
 	envSet(&step->env, "SLURM_CPU_BIND_VERBOSE", "verbose");
 	envSet(&step->env, "SBATCH_CPU_BIND_VERBOSE", "verbose");
-    }
-    else {
+    } else {
 	envSet(&step->env, "SLURM_CPU_BIND_VERBOSE", "quiet");
 	envSet(&step->env, "SBATCH_CPU_BIND_VERBOSE", "quiet");
     }
 
     if (step->cpuBindType & CPU_BIND_NONE) {
 	val = "none";
-    }
-    else if (step->cpuBindType & CPU_BIND_RANK) {
+    } else if (step->cpuBindType & CPU_BIND_RANK) {
 	val = "rank";
-    }
-    else if (step->cpuBindType & CPU_BIND_TO_SOCKETS) {
+    } else if (step->cpuBindType & CPU_BIND_TO_SOCKETS) {
 	val = "sockets";
-    }
-    else if (step->cpuBindType & CPU_BIND_TO_LDOMS) {
+    } else if (step->cpuBindType & CPU_BIND_TO_LDOMS) {
 	val = "ldoms";
-    }
-    else if (step->cpuBindType & CPU_BIND_MAP) {
+    } else if (step->cpuBindType & CPU_BIND_MAP) {
 	val = "map_cpu:";
-    }
-    else if (step->cpuBindType & CPU_BIND_MASK) {
+    } else if (step->cpuBindType & CPU_BIND_MASK) {
 	val = "mask_cpu:";
-    }
-    else {
+    } else {
 	val = "unsupported";
     }
     envSet(&step->env, "SLURM_CPU_BIND_TYPE", val);
@@ -547,8 +543,7 @@ void setTaskEnv(Step_t *step)
     if (step->cpuBindType & (CPU_BIND_MAP | CPU_BIND_MASK)) {
 	envSet(&step->env, "SLURM_CPU_BIND_LIST", step->cpuBind);
 	envSet(&step->env, "SBATCH_CPU_BIND_LIST", step->cpuBind);
-    }
-    else {
+    } else {
 	envSet(&step->env, "SLURM_CPU_BIND_LIST", "");
 	envSet(&step->env, "SBATCH_CPU_BIND_LIST", "");
     }
@@ -561,22 +556,18 @@ void setTaskEnv(Step_t *step)
 
     if (step->memBindType & MEM_BIND_VERBOSE) {
 	envSet(&step->env, "SLURM_MEM_BIND_VERBOSE", "verbose");
-    }
-    else {
+    } else {
 	envSet(&step->env, "SLURM_MEM_BIND_VERBOSE", "quiet");
     }
 
     if (step->memBindType & MEM_BIND_NONE) {
 	val = "none";
-    }
-    else if (step->memBindType & (MEM_BIND_RANK | MEM_BIND_MAP
+    } else if (step->memBindType & (MEM_BIND_RANK | MEM_BIND_MAP
 	     | MEM_BIND_MASK)) {
 	val = "unsupported";
-    }
-    else if (step->memBindType & MEM_BIND_LOCAL) {
+    } else if (step->memBindType & MEM_BIND_LOCAL) {
 	val = "local";
-    }
-    else {
+    } else {
 	/* this is our default */
 	val = "local";
     }
@@ -588,7 +579,6 @@ void setTaskEnv(Step_t *step)
     envSet(&step->env, "SLURM_SRUN_COMM_HOST", inet_ntoa(step->srun.sin_addr));
     //envSet(&step->env, "PSI_LOGGERDEBUG", "1");
     //envSet(&step->env, "PSI_FORWARDERDEBUG", "1");
-    envSet(&step->env, "__SLURM_INFORM_TIDS", "1");
 
     /* forward overbook mode */
     if ((val = envGet(&step->env, "SLURM_OVERCOMMIT"))) {

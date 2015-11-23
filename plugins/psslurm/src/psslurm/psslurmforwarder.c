@@ -58,7 +58,6 @@
 
 #include "psslurmforwarder.h"
 
-#define SERIAL_MODE 0
 #define X11_AUTH_CMD "/usr/bin/xauth"
 
 static int jobCallback(int32_t exit_status, char *errMsg,
@@ -150,7 +149,7 @@ static int stepCallback(int32_t exit_status, char *errMsg,
 
     freeSlurmMsg(&step->srunIOMsg);
 
-    if (!SERIAL_MODE && step->state == JOB_PRESTART) {
+    if (step->state == JOB_PRESTART) {
 	/* spawn failed */
 	if (exit_status == ESCRIPT_CHDIR_FAILED * -1) {
 	    sendSlurmRC(&step->srunControlMsg, ESCRIPT_CHDIR_FAILED);
@@ -344,7 +343,7 @@ int handleExecClientUser(void *data)
 
     if (task->rank <0) return 0;
 
-    /* clear environment */
+    /* clean up environment */
     for (i=0; PSP_rlimitEnv[i].envName; i++) {
 	unsetenv(PSP_rlimitEnv[i].envName);
     }
@@ -354,8 +353,11 @@ int handleExecClientUser(void *data)
     unsetenv("PSI_LOGGER_RAW_MODE");
     unsetenv("PSI_LOGGER_UNBUFFERED");
     unsetenv("MALLOC_CHECK_");
+    unsetenv("__MPIEXEC_DIST_START");
+    unsetenv("MPIEXEC_VERBOSE");
 
     if (task->environ) {
+	/* restore malloc check set by user */
 	for (i=0; task->environ[i]; i++) {
 	    if (!(strncmp("MALLOC_CHECK_=", task->environ[i], 14))) {
 		putenv(strdup(task->environ[i]));
@@ -434,29 +436,17 @@ static void initX11Forward(Step_t *step)
     }
 }
 
-static void execInteractiveJob(void *data, int rerun)
+static void setupStepIO(Forwarder_Data_t *fwdata, Step_t *step)
 {
-    /* TODO use correct path */
-#define MPIEXEC_BINARY "/opt/parastation/bin/mpiexec"
-
-    Forwarder_Data_t *fwdata = data;
-    Step_t *step = fwdata->userData;
-    int argc = 0;
-    unsigned int i;
-    char **argv, buf[128], *tty_name;
-    char *cols = NULL, *rows = NULL;
+    char *tty_name, *cols = NULL, *rows = NULL;
     struct winsize ws;
-
-    /* reopen syslog */
-    openlog("psid", LOG_PID|LOG_CONS, LOG_DAEMON);
-    snprintf(buf, sizeof(buf), "psslurm-step:%u.%u", step->jobid, step->stepid);
-    initLogger(buf, NULL);
 
     close(STDOUT_FILENO);
     close(STDERR_FILENO);
     close(STDIN_FILENO);
 
     if (step->pty) {
+	/* setup pty */
 	tty_name = ttyname(fwdata->stdOut[0]);
 	close(fwdata->stdOut[1]);
 
@@ -510,6 +500,7 @@ static void execInteractiveJob(void *data, int rerun)
 		exit(1);
 	    }
 	}
+
 	/* close obsolete fds */
 	close(fwdata->stdIn[0]);
 	close(fwdata->stdOut[0]);
@@ -518,6 +509,26 @@ static void execInteractiveJob(void *data, int rerun)
 	close(fwdata->stdOut[1]);
 	close(fwdata->stdErr[1]);
     }
+}
+
+static void execJobStep(void *data, int rerun)
+{
+    /* TODO use correct path */
+#define MPIEXEC_BINARY "/opt/parastation/bin/mpiexec"
+
+    Forwarder_Data_t *fwdata = data;
+    Step_t *step = fwdata->userData;
+    int argc = 0;
+    unsigned int i;
+    char **argv, buf[128];
+
+    /* reopen syslog */
+    openlog("psid", LOG_PID|LOG_CONS, LOG_DAEMON);
+    snprintf(buf, sizeof(buf), "psslurm-step:%u.%u", step->jobid, step->stepid);
+    initLogger(buf, NULL);
+
+    /* setup standard I/O and pty */
+    setupStepIO(fwdata, step);
 
     /* set default rlimits */
     setDefaultRlimits();
@@ -527,35 +538,24 @@ static void execInteractiveJob(void *data, int rerun)
 
     /* build mpiexec argv */
     argv = umalloc((step->argc + 20 + 1) * sizeof(char *));
+    argv[argc++] = ustrdup(MPIEXEC_BINARY);
 
-    if (!SERIAL_MODE) {
-	argv[argc++] = ustrdup(MPIEXEC_BINARY);
-	//argv[argc++] = ustrdup("-v");
+    /* always export all environment variables */
+    argv[argc++] = ustrdup("-x");
 
-	/* export all environment variables */
-	argv[argc++] = ustrdup("-x");
-
-	/* interactive mode */
-	if (step->pty) argv[argc++] = ustrdup("-i");
-	/* label output */
-	if (step->labelIO) argv[argc++] = ustrdup("-l");
-    }
-
-    /*
-    argv[argc++] = ustrdup("-u");
-    argv[argc++] = ustrdup(buffer);
-    */
+    /* interactive mode */
+    if (step->pty) argv[argc++] = ustrdup("-i");
+    /* label output */
+    if (step->labelIO) argv[argc++] = ustrdup("-l");
 
     if (step->multiProg) {
 	argv = urealloc(argv, sizeof(char *) * (10 * step->np));
 	setupArgsFromMultiProg(step, argv, &argc);
     } else {
-	if (!SERIAL_MODE) {
-	    /* number of processes */
-	    argv[argc++] = ustrdup("-np");
-	    snprintf(buf, sizeof(buf), "%u", step->np);
-	    argv[argc++] = ustrdup(buf);
-	}
+	/* number of processes */
+	argv[argc++] = ustrdup("-np");
+	snprintf(buf, sizeof(buf), "%u", step->np);
+	argv[argc++] = ustrdup(buf);
 
 	/* executable and arguments */
 	for (i=0; i<step->argc; i++) {
@@ -651,16 +651,6 @@ void stepForwarderLoop(void *data)
 	if (step->stdErrOpt == IO_SRUN) close(fwdata->stdErr[1]);
 	close(fwdata->stdIn[0]);
     }
-
-    if (SERIAL_MODE) {
-	/* set pid info for our only child */
-	step->tidsLen = 1;
-	step->tids = umalloc(sizeof(uint32_t));
-	step->tids[0] = PSC_getTID(PSC_getMyID(), fwdata->childPid);
-
-	/* forward info to waiting srun */
-	sendTaskPids(step);
-    }
 }
 
 static void handleChildStartJob(void *data, pid_t fw, pid_t childPid,
@@ -705,7 +695,7 @@ int execUserStep(Step_t *step)
     fwdata->graceTime = grace;
     fwdata->killSession = psAccountsendSignal2Session;
     fwdata->callback = stepCallback;
-    fwdata->childFunc = execInteractiveJob;
+    fwdata->childFunc = execJobStep;
     fwdata->hookLoop = stepForwarderLoop;
     fwdata->hookFWInit = stepForwarderInit;
     fwdata->hookMotherMsg = stepForwarderMsg;
@@ -719,9 +709,6 @@ int execUserStep(Step_t *step)
 	return 0;
     }
     step->fwdata = fwdata;
-    if (SERIAL_MODE) {
-	sendSlurmRC(&step->srunControlMsg, SLURM_SUCCESS);
-    }
     return 1;
 }
 

@@ -149,8 +149,6 @@ typedef struct {
     uint16_t *tasksToLaunch;	/* number of tasks to launch (per node) */
     uint32_t **globalTaskIds;	/* step global slurm task ids (per node) */
     uint32_t *globalTaskIdsLen; /* len of step global slurm task ids */
-    uint32_t tidsLen;
-    PStask_ID_t *tids;
     PStask_ID_t loggerTID;	/* task id of the psilogger */
     uint16_t numSrunPorts;	/* number of srun control ports */
     uint16_t *srunPorts;	/* srun control ports */
@@ -368,7 +366,9 @@ void signalTasks(uint32_t jobid, uid_t uid, PS_Tasks_t *tasks, int signal,
 		    int32_t group);
 PS_Tasks_t *findTaskByRank(struct list_head *taskList, int32_t rank);
 PS_Tasks_t *findTaskByForwarder(struct list_head *taskList, PStask_ID_t fwTID);
-int countTasks(struct list_head *taskList);
+PS_Tasks_t *findTaskByChildPid(struct list_head *taskList, pid_t childPid);
+unsigned int countTasks(struct list_head *taskList);
+unsigned int countRegTasks(struct list_head *taskList);
 
 BCast_t *addBCast(int socket);
 BCast_t *findBCast(uint32_t jobid, char *fileName, uint32_t blockNum);

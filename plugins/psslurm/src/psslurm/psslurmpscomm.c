@@ -358,74 +358,9 @@ static void handleDeleteReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 
 static void handleTaskIds(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 {
-    char *ptr = data->buf;
-    int32_t ret;
-    Step_t *step;
-    PStask_t *task;
-    uint32_t i, z, x;
-
-    /* we don't know the pid, since the message is from the spawner process. But
-     * we know the logger. So we have to find the task structure and look there
-     * for the logger.
-     */
-    if (!(task = PStasklist_find(&managedTasks, msg->header.sender))) {
-	mlog("%s: task for message from '%s' not found\n", __func__,
-	    PSC_printTID(msg->header.sender));
-	return;
-    }
-
-    /* find mpiexec process in steps */
-    if (!(step = findStepByPid(PSC_getPID(task->loggertid)))) {
-	mlog("%s: step for task '%s' not found\n", __func__,
-		PSC_printTID(msg->header.sender));
-	return;
-    }
-
-    /* spawn return code */
-    getInt32(&ptr, &ret);
-
-    if (ret < 0) goto SPAWN_FAILED;
-
-    step->state = JOB_RUNNING;
-    mdbg(PSSLURM_LOG_JOB, "%s: step '%u:%u' in '%s'\n", __func__,
-	    step->jobid, step->stepid, strJobState(step->state));
-
-    /* taskIds */
-    getInt32Array(&ptr, &step->tids, &step->tidsLen);
-    mlog("%s: received %u taskids for step %u:%u\n", __func__, step->tidsLen,
-	    step->jobid, step->stepid);
-
-    /*
-    for (i=0; i<step->tidsLen; i++) {
-	mlog("%s: tid%u: %s\n", __func__, i, PSC_printTID(step->tids[i]));
-    }
-    */
-
-    /* forward info to waiting srun */
-    if (!(sendTaskPids(step))) goto SPAWN_FAILED;
+    /*obsolete */
 
     return;
-
-SPAWN_FAILED:
-    mlog("%s: spawn step '%u:%u' failed: ret '%i' state '%s'\n", __func__,
-	    step->jobid, step->uid, ret, strJobState(step->state));
-    /* spawn failed, e.g. executable not found */
-
-    /* return exit code 2 */
-    step->tidsLen = step->np;
-    step->tids = umalloc(sizeof(uint32_t) * step->np);
-    x = 0;
-    for (i=0; i<step->nrOfNodes; i++) {
-	for (z=0; z<step->globalTaskIdsLen[i]; z++) {
-	    step->tids[x++] = PSC_getTID(step->nodes[i], rand()%128);
-	}
-    }
-    sendTaskPids(step);
-
-    step->state = JOB_RUNNING;
-    mdbg(PSSLURM_LOG_JOB, "%s: step '%u:%u' in '%s'\n", __func__,
-	    step->jobid, step->stepid, strJobState(step->state));
-    step->exitCode = 0x200;
 }
 
 void send_PS_JobLaunch(Job_t *job)
@@ -752,10 +687,12 @@ static void handle_PS_SignalTasks(DDTypedBufferMsg_t *msg)
     }
 
     /* shutdown io */
-    if (step->fwdata) shutdownForwarder(step->fwdata);
+    if (signal == SIGTERM || signal == SIGKILL) {
+	if (step->fwdata) shutdownForwarder(step->fwdata);
+    }
 
     /* signal tasks */
-    mlog("%s: id '%u:%u'\n", __func__, jobid, stepid);
+    mlog("%s: id '%u:%u' signal '%u'\n", __func__, jobid, stepid, signal);
     signalTasks(step->jobid, step->uid, &step->tasks, signal, group);
 }
 
@@ -1193,6 +1130,7 @@ static void handleCC_INIT_Msg(PSLog_Msg_t *msg)
 
 		    mdbg(PSSLURM_LOG_IO, "%s: enable srunIO!!!\n", __func__);
 		    sendEnableSrunIO(step);
+		    step->state = JOB_RUNNING;
 		}
 	    }
 	}
@@ -1210,33 +1148,6 @@ static void handleCC_INIT_Msg(PSLog_Msg_t *msg)
 	}
     }
 }
-
-/*
-static void closeClientIO(PSLog_Msg_t *msg)
-{
-    Step_t *step = NULL;
-    PStask_t *psidTask;
-
-    if (PSC_getMyID() != PSC_getID(msg->header.sender)) return;
-    if (msg->sender < 0) return;
-
-    if (!(step = findStepByLogger(msg->header.dest))) {
-	if ((psidTask = PStasklist_find(&managedTasks, msg->header.sender))) {
-	    if ((isPSAdminUser(psidTask->uid, psidTask->gid))) return;
-	}
-
-	mlog("%s: step for CC msg with logger '%s' not found\n", __func__,
-		PSC_printTID(msg->header.dest));
-
-	return;
-    }
-
-    if (step->pty) return;
-
-    printChildMessage(step, NULL, 0, STDOUT, msg->sender);
-    printChildMessage(step, NULL, 0, STDERR, msg->sender);
-}
-*/
 
 static void handleCC_STDIN_Msg(PSLog_Msg_t *msg)
 {
@@ -1336,7 +1247,7 @@ void handleSpawnFailed(DDErrorMsg_t *msg)
     PStask_t *forwarder = NULL;
     uint32_t jobid, stepid;
     PS_Tasks_t *task = NULL;
-    Step_t *step;
+    Step_t *step = NULL;
 
     mwarn(msg->error, "%s: spawn failed: forwarder '%s' rank '%i' errno '%i'",
 	    __func__, PSC_printTID(msg->header.sender),
@@ -1363,8 +1274,12 @@ void handleSpawnFailed(DDErrorMsg_t *msg)
 
 	if (!step->loggerTID) step->loggerTID = forwarder->loggertid;
 	if (step->fwdata) sendFWtaskInfo(step->fwdata, task);
+
+	sendEnableSrunIO(step);
+
+	step->state = JOB_RUNNING;
+	step->exitCode = 0x200;
     }
-    sendEnableSrunIO(step);
 
 FORWARD_SPAWN_MSG:
     if (oldSpawnHandler) oldSpawnHandler((DDBufferMsg_t *) msg);
@@ -1392,12 +1307,6 @@ void handleCCMsg(PSLog_Msg_t *msg)
     }
 
     if (oldCCMsgHandler) oldCCMsgHandler((DDBufferMsg_t *) msg);
-}
-
-void handleCCError(PSLog_Msg_t *msg)
-{
-    //closeClientIO(msg);
-    if (oldCCErrorHandler) oldCCErrorHandler((DDBufferMsg_t *) msg);
 }
 
 void handleChildBornMsg(DDErrorMsg_t *msg)

@@ -70,7 +70,6 @@ time_t start_time;
 
 handlerFunc_t oldChildBornHandler = NULL;
 handlerFunc_t oldCCMsgHandler = NULL;
-handlerFunc_t oldCCErrorHandler = NULL;
 handlerFunc_t oldSpawnHandler = NULL;
 
 /** psid plugin requirements */
@@ -121,10 +120,6 @@ static void unregisterHooks(int verbose)
 	PSID_registerMsg(PSP_CC_MSG, (handlerFunc_t) oldCCMsgHandler);
     }
 
-    if (oldCCErrorHandler) {
-	PSID_registerMsg(PSP_CC_ERROR, (handlerFunc_t) oldCCErrorHandler);
-    }
-
     if (oldSpawnHandler) {
 	PSID_registerMsg(PSP_CD_SPAWNFAILED, (handlerFunc_t) oldSpawnHandler);
     }
@@ -172,8 +167,6 @@ static int registerHooks()
 					    (handlerFunc_t) handleChildBornMsg);
 
     oldCCMsgHandler = PSID_registerMsg(PSP_CC_MSG, (handlerFunc_t) handleCCMsg);
-    oldCCErrorHandler = PSID_registerMsg(PSP_CC_ERROR,
-					    (handlerFunc_t) handleCCError);
     oldSpawnHandler = PSID_registerMsg(PSP_CD_SPAWNFAILED,
 					    (handlerFunc_t) handleSpawnFailed);
 

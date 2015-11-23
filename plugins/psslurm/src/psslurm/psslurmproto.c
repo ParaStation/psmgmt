@@ -2327,10 +2327,7 @@ void sendTaskExit(Step_t *step, int *ctlPort, int *ctlAddr)
 	taskCount++;
     }
 
-    if (!taskCount) {
-	mlog("%s: no tasks found for step %i:%i in state '%s'\n", __func__,
-		step->jobid, step->stepid, strJobState(step->state));
-    }
+    taskCount = countRegTasks(&step->tasks.list);
 
     while (count < taskCount) {
 	exitCode = -100;
@@ -2360,87 +2357,75 @@ void sendTaskExit(Step_t *step, int *ctlPort, int *ctlAddr)
 int sendTaskPids(Step_t *step)
 {
     PS_DataBuffer_t body = { .buf = NULL };
-    uint32_t i, x, z, countPIDS, countGTIDS;
+    uint32_t countPIDS = 0, countGTIDS = 0;
     char *ptrCount, *ptrPIDS, *ptrGTIDS;
     int sock = -1;
+    list_t *pos, *tmp;
+    PS_Tasks_t *task = NULL;
 
-    for (z=0; z<step->nrOfNodes; z++) {
-	body.bufUsed = 0;
-	countPIDS = countGTIDS = 0;
+    /* return code */
+    addUint32ToMsg(SLURM_SUCCESS, &body);
 
-	/* return code */
-	addUint32ToMsg(0, &body);
+    /* node_name */
+    addStringToMsg(getConfValueC(&Config, "SLURM_HOSTNAME"), &body);
 
-	/* node_name */
-	addStringToMsg(getHostnameByNodeId(step->nodes[z]), &body);
+    /* count of pids */
+    ptrCount = body.buf + body.bufUsed;
+    addUint32ToMsg(0, &body);
 
-	/* count of pids */
-	ptrCount = body.buf + body.bufUsed;
-	addUint32ToMsg(0, &body);
+    /* local pids */
+    ptrPIDS = body.buf + body.bufUsed;
+    addUint32ToMsg(0, &body);
 
-	/* local pids */
-	ptrPIDS = body.buf + body.bufUsed;
-	addUint32ToMsg(0, &body);
-	for (i=0; i<step->tidsLen; i++) {
-	    if (step->tids[i] == -1) {
-		mlog("%s: invalid taskid '-1' for step '%u:%u' node%u nodeid "
-			"'%u'\n", __func__, step->jobid, step->stepid, z,
-			step->nodes[z]);
-		ufree(body.buf);
-		return 0;
-	    }
+    list_for_each_safe(pos, tmp, &step->tasks.list) {
+	if (!(task = list_entry(pos, PS_Tasks_t, list))) break;
+	if (task->childRank <0) continue;
 
-	    if (PSC_getID(step->tids[i]) == step->nodes[z]) {
-		addUint32ToMsg(PSC_getPID(step->tids[i]), &body);
-		countPIDS++;
-		/*
-		mlog("%s: add node%u nodeid '%u' pid%u: '%u'\n", __func__, z,
-			step->nodes[z], countPIDS, PSC_getPID(step->tids[i]));
-		*/
-	    }
-	}
-
-	/* task ids of processes (array) */
-	ptrGTIDS = body.buf + body.bufUsed;
-	addUint32ToMsg(0, &body);
-	for (x=0; x<step->globalTaskIdsLen[z]; x++) {
-	    addUint32ToMsg(step->globalTaskIds[z][x], &body);
-	    /*
-	    mlog("%s: add node%u nodeid '%u' globaltid%u: '%u'\n", __func__, z,
-		    step->nodes[z], countGTIDS, step->globalTaskIds[z][x]);
-	    */
-	    countGTIDS++;
-	}
-
-	if (countPIDS != countGTIDS) {
-
-	    mlog("%s: mismatching PID '%u' and GTID '%u' count\n", __func__,
-		    countPIDS, countGTIDS);
-	    ufree(body.buf);
-	    return 0;
-	}
-
-	/* correct pid count */
-	*(uint32_t *) ptrCount = htonl(countPIDS);
-	*(uint32_t *) ptrPIDS = htonl(countPIDS);
-	*(uint32_t *) ptrGTIDS = htonl(countPIDS);
-
-	/* send the message to srun */
-	if ((sock = srunOpenControlConnection(step)) != -1) {
-	    if ((sendSlurmMsg(sock, RESPONSE_LAUNCH_TASKS, &body)) < 1) {
-		mlog("%s: send RESPONSE_LAUNCH_TASKS failed step '%u:%u'\n",
-			__func__, step->jobid, step->stepid);
-	    }
-	    close(sock);
-	} else {
-	    mlog("%s: open control connection failed, step '%u:%u'\n",
-		    __func__, step->jobid, step->stepid);
-	}
+	addUint32ToMsg(PSC_getPID(task->childTID), &body);
+	countPIDS++;
     }
 
-    mlog("%s: send success RESPONSE_LAUNCH_TASKS step '%u:%u'\n", __func__,
+    /* task ids of processes (array) */
+    ptrGTIDS = body.buf + body.bufUsed;
+    addUint32ToMsg(0, &body);
+
+    list_for_each_safe(pos, tmp, &step->tasks.list) {
+	if (!(task = list_entry(pos, PS_Tasks_t, list))) break;
+	if (task->childRank <0) continue;
+
+	addUint32ToMsg(task->childRank, &body);
+	countGTIDS++;
+    }
+
+    if (countPIDS != countGTIDS) {
+	mlog("%s: mismatching PID '%u' and GTID '%u' count\n", __func__,
+		countPIDS, countGTIDS);
+	ufree(body.buf);
+	return 0;
+    }
+
+    /* correct pid/tid count */
+    *(uint32_t *) ptrCount = htonl(countPIDS);
+    *(uint32_t *) ptrPIDS = htonl(countPIDS);
+    *(uint32_t *) ptrGTIDS = htonl(countPIDS);
+
+    /* send the message to srun */
+    if ((sock = srunOpenControlConnection(step)) != -1) {
+	setFDblock(sock, 1);
+	if ((sendSlurmMsg(sock, RESPONSE_LAUNCH_TASKS, &body)) < 1) {
+	    mlog("%s: send RESPONSE_LAUNCH_TASKS failed step '%u:%u'\n",
+		    __func__, step->jobid, step->stepid);
+	}
+	close(sock);
+    } else {
+	mlog("%s: open control connection failed, step '%u:%u'\n",
+		__func__, step->jobid, step->stepid);
+    }
+
+    mlog("%s: send RESPONSE_LAUNCH_TASKS success, step '%u:%u'\n", __func__,
 	    step->jobid, step->stepid);
     ufree(body.buf);
+
     return 1;
 }
 
