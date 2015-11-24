@@ -421,7 +421,7 @@ void execTaskEpilogues(void *data, int rerun)
 	return;
     }
 
-    setTaskEnv(step);
+    setStepEnv(step);
 
     for (i = 0; i < step->env.cnt; i++) {
 	putenv(step->env.vars[i]);

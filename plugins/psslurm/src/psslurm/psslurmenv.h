@@ -25,7 +25,7 @@ extern char **envFilter;
 int initEnvFilter();
 void freeEnvFilter();
 void setBatchEnv(Job_t *job);
-void setTaskEnv(Step_t *step);
+void setStepEnv(Step_t *step);
 void setSlurmEnv(Job_t *job);
 void setRankEnv(int32_t rank, Step_t *step);
 

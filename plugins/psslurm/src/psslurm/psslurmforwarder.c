@@ -564,8 +564,8 @@ static void execJobStep(void *data, int rerun)
     }
     argv[argc] = NULL;
 
-    /* setup task specific env */
-    setTaskEnv(step);
+    /* setup step specific env */
+    setStepEnv(step);
 
     /* setup x11 forwarding */
     if (step->x11forward) initX11Forward(step);

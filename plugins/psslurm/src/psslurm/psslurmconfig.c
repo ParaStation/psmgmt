@@ -97,6 +97,10 @@ const ConfDef_t CONFIG_VALUES[] =
 	"list",
 	NULL,
 	"Set hard resource limits for user processes" },
+    { "DIST_START", 0,
+	"bool",
+	"0",
+	"Distribute mpiexec service processes at startup" },
     { NULL, 0, NULL, NULL, NULL },
 };
 
