@@ -275,6 +275,7 @@ typedef enum {
     PSP_SPAWN_ENVCNTD,            /**< Content is continued single env-var */
     PSP_SPAWN_WDIRCNTD,           /**< Content is continued workdir */
     PSP_SPAWN_ARGCNTD,            /**< Content is continued argument-vector */
+    PSP_SPAWN_ENV_CLONE,	  /**< There is no content */
 } PSP_Spawn_t;
 
 /** Accounting messages */

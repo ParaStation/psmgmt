@@ -1899,6 +1899,42 @@ static void msg_SPAWNREQUEST(DDBufferMsg_t *msg)
 static LIST_HEAD(spawnTasks);
 
 /**
+ * @brief Clone environment from sister task.
+ *
+ * @param task The task which environment should be set.
+ *
+ * @return No return value.
+ */
+static void CloneEnvFromTasks(PStask_t *task)
+{
+    PStask_t *tt;
+    list_t *t;
+    int i, count = 0, eSize = 0;
+
+    if (task->environ) return;
+
+    list_for_each(t, &managedTasks) {
+	tt = list_entry(t, PStask_t, next);
+
+	if (tt->loggertid == task->loggertid &&
+	    tt->environ && tt->rank >= 0) {
+
+	    for (i=0; tt->environ[i]; i++) eSize++;
+	    task->environ = malloc(sizeof (char *) * eSize);
+	    if (!task->environ) PSID_exit(ENOMEM, "%s", __func__);
+
+	    for (i=0; i<eSize; i++) {
+		if (tt->environ[i] == NULL) continue;
+		task->environ[i] = strdup(tt->environ[i]);
+		count++;
+	    }
+	    task->envSize = count;
+	    return;
+	}
+    }
+}
+
+/**
  * @brief Handle a PSP_CD_SPAWNREQ message.
  *
  * Handle the message @a msg of type PSP_CD_SPAWNREQ. These replace
@@ -2213,6 +2249,14 @@ static void msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
 	}
 	usedBytes = PStask_decodeEnvAppend(msg->buf, task);
 	break;
+    case PSP_SPAWN_ENV_CLONE:
+	if (!task) {
+	    PSID_log(-1, "%s: PSP_SPAWN_ENV_CLONE from %s: task not found\n",
+		     __func__, PSC_printTID(msg->header.sender));
+	    return;
+	}
+	CloneEnvFromTasks(task);
+	return;
     default:
 	PSID_log(-1, "%s: Unknown type '%d'\n", __func__, msg->type);
 	return;
