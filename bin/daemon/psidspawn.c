@@ -1917,6 +1917,7 @@ static void CloneEnvFromTasks(PStask_t *task)
 	tt = list_entry(t, PStask_t, next);
 
 	if (tt->loggertid == task->loggertid &&
+	    tt->ptid == task->ptid &&
 	    tt->environ && tt->rank >= 0) {
 
 	    for (i=0; tt->environ[i]; i++) eSize++;
@@ -1926,12 +1927,17 @@ static void CloneEnvFromTasks(PStask_t *task)
 	    for (i=0; i<eSize; i++) {
 		if (tt->environ[i] == NULL) continue;
 		task->environ[i] = strdup(tt->environ[i]);
+		if (!task->environ[i]) PSID_exit(ENOMEM, "%s", __func__);
 		count++;
 	    }
 	    task->envSize = count;
 	    return;
 	}
     }
+
+    PSID_log(-1, "%s: No sister for task '%s' ", __func__,
+		PSC_printTID(task->tid));
+    PSID_log(-1, "logger '%s' found\n", PSC_printTID(task->loggertid));
 }
 
 /**

@@ -509,6 +509,47 @@ recv_retry:
 }
 
 /**
+ * @brief Save a node in a node array if its not already there.
+ *
+ * @param nodes The node array to save the node in.
+ *
+ * @param count The size of the node array.
+ *
+ * @param newNode The node to save.
+ */
+static void saveUsedNode(PSnodes_ID_t *nodes, int count, PSnodes_ID_t newNode)
+{
+    int i;
+
+    for (i=0; i<count; i++) {
+	if (nodes[i] == newNode) break;
+	if (nodes[i] != -1) continue;
+	nodes[i] = newNode;
+	break;
+    }
+}
+
+/**
+ * @brief Find a given node in the used nodes array.
+ *
+ * @param nodes The node array to search in.
+ *
+ * @param count The size of the node array.
+ *
+ * @param newNode The node to find.
+ */
+static int findUsedNodes(PSnodes_ID_t *nodes, int count, PSnodes_ID_t node)
+{
+    int i;
+
+    for (i=0; i<count; i++) {
+	if (nodes[i] == -1) break;
+	if (nodes[i] == node) return 1;
+    }
+    return 0;
+}
+
+/**
  * @brief Actually spawn processes.
  *
  * Actually spawn @a count processes on the nodes stored within @a
@@ -574,6 +615,7 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
     int hugeTask = 0, hugeArgv = 0;
     char *valgrind;
     char *callgrind;
+    PSnodes_ID_t *usedNodes;
 
     if (!errors) {
 	PSI_log(-1, "%s: unable to reports errors\n", __func__);
@@ -600,6 +642,13 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
 	PSI_log(-1, "%s: Cannot create task structure.\n", __func__);
 	return -1;
     }
+
+    usedNodes = malloc(sizeof(PSnodes_ID_t) * count);
+    if (!usedNodes) {
+	PSI_warn(-1, errno, "%s: out of memory", __func__);
+	goto error;
+    }
+    for (i=0; i<count; i++) usedNodes[i] = -1;
 
     task->ptid = PSC_getMyTID();
     if (defaultUID) {
@@ -769,10 +818,12 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
 	/* send argv stuff */
 	if (sendArgv(&msg, task->argv) < 0) goto error;
 
-	if (lastNode != dstnodes[i]) {
+	if (lastNode != dstnodes[i] &&
+	    !findUsedNodes(usedNodes, count, dstnodes[i])) {
 	    /* Send the static part of the environment */
 	    msg.type = PSP_SPAWN_ENV;
 	    if (sendEnv(&msg, task->environ, &len) < 0) goto error;
+	    saveUsedNode(usedNodes, count, dstnodes[i]);
 	} else {
 	    /* Let the new rank use the environment of its sister */
 	    msg.type = PSP_SPAWN_ENV_CLONE;
