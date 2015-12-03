@@ -422,7 +422,7 @@ static info_t setInfo = {
 	  .descr = "Unexpectedly dying relatives (i.e. the parent process or"
 	  " any child process) will lead to a signal to be sent. The processes"
 	  " is expected to finalize after receiving such signal. In order to"
-	  " enforce this, a SIGKILL signal is sent with some# delay. This sets"
+	  " enforce this, a SIGKILL signal is sent with some delay. This sets"
 	  " the delay on the selected node to <delay> seconds. If set to  0,"
 	  " no SIGKILL at all will be sent." },
 	{ .tag = "set pluginUnloadTmout <timeout>",
