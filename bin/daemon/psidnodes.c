@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2012 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2015 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -73,6 +73,7 @@ typedef struct {
     list_t admgid_list;    /**< AdminGroup on this node */
     int maxProcs;          /**< Number of processes this node will handle */
     int acctPollInterval;  /**< Interval in sec for polling on accnting info */
+    int killDelay;         /**< Seconds between relatives' signal and SIGKILL */
     char supplGrps;        /**< Set supplementary groups for new tasks */
     char maxStatTry;       /**< Number of tries to stat() executable to spawn */
 } node_t;
@@ -115,6 +116,7 @@ static void nodeInit(node_t *node)
     node->admgid_list = LIST_HEAD_INIT(node->admgid_list);
     node->maxProcs = -1;
     node->acctPollInterval = 0;
+    node->killDelay = 0;
     node->supplGrps = 0;
     node->maxStatTry = 1;
 }
@@ -1063,6 +1065,25 @@ int PSIDnodes_acctPollI(PSnodes_ID_t id)
 {
     if (PSIDnodes_validID(id)) {
 	return nodes[id].acctPollInterval;
+    } else {
+	return -1;
+    }
+}
+
+int PSIDnodes_setKillDelay(PSnodes_ID_t id, int delay)
+{
+    if (PSIDnodes_validID(id) && delay >= 0) {
+	nodes[id].killDelay = delay;
+	return 0;
+    } else {
+	return -1;
+    }
+}
+
+int PSIDnodes_killDelay(PSnodes_ID_t id)
+{
+    if (PSIDnodes_validID(id)) {
+	return nodes[id].killDelay;
     } else {
 	return -1;
     }

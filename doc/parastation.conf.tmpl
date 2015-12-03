@@ -2,7 +2,7 @@
 # ParaStation
 #
 # Copyright (C) 2003-2004 ParTec AG, Karlsruhe
-# Copyright (C) 2005-2014 ParTec Cluster Competence Center GmbH, Munich
+# Copyright (C) 2005-2015 ParTec Cluster Competence Center GmbH, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -432,9 +432,18 @@ Nodes {
 #
 # In order to retrieve more detailed accounting information the
 # forwarders might poll on /proc. This sets the poll interval in
-# seconds. If Set to 0, no polling at all will take place.
+# seconds. If set to 0, no polling at all will take place.
 #
 # accountPoll	0
+#
+# Unexpectedly dying relatives (i.e. the parent process or any child
+# process) of a process will lead to a signal to be sent to the
+# process. The processes is expected to finalize after receiving such
+# signal. In order to enforce this, a SIGKILL signal is sent with some
+# delay. This sets the corresponding intervall in seconds. If set to
+# 0, no SIGKILL at all will be sent.
+#
+# killDelay 10
 #
 # Set the resource limit 'core' for the daemon process and all its
 # children to the given value. If set to 0, no core-dumps will be

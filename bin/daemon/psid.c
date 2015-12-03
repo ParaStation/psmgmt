@@ -752,6 +752,7 @@ int main(int argc, const char *argv[])
     PSIDnodes_setProtoV(PSC_getMyID(), PSProtocolVersion);
     PSIDnodes_setDmnProtoV(PSC_getMyID(), PSDaemonProtocolVersion);
     PSIDnodes_setHWStatus(PSC_getMyID(), 0);
+    PSIDnodes_setKillDelay(PSC_getMyID(), config->killDelay);
 
     /* Bring node up with correct numbers of CPUs */
     if (!Selector_isInitialized()) Selector_init(logfile);

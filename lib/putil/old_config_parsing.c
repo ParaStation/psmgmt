@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2014 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2015 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -66,6 +66,7 @@ static config_t config = (config_t) {
     .freeOnSuspend = 0,
     .nodesSort = PART_SORT_PROC,
     .acctPollInterval = 0,
+    .killDelay = 10,
     .startupScript = NULL,
     .nodeUpScript = NULL,
     .nodeDownScript = NULL,
@@ -440,6 +441,18 @@ static int getAcctPollInterval(char *token)
     if (ret) return ret;
 
     config.acctPollInterval = temp;
+
+    return ret;
+}
+
+static int getKillDelay(char *token)
+{
+    int temp, ret;
+
+    ret = parser_getNumValue(parser_getString(), &temp, "kill delay");
+    if (ret) return ret;
+
+    config.killDelay = temp;
 
     return ret;
 }
@@ -2754,6 +2767,7 @@ static keylist_t config_list[] = {
     {"statusbroadcasts", getStatBcast, NULL},
     {"deadlimit", getDeadLmt, NULL},
     {"accountpoll", getAcctPollInterval, NULL},
+    {"killdelay", getKillDelay, NULL},
     {"rlimit", getRLimit, NULL},
     {"loglevel", getLogMask, NULL},
     {"logmask", getLogMask, NULL},

@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2015 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -78,6 +78,7 @@ static config_t config = (config_t) {
     .freeOnSuspend = 0,
     .nodesSort = PART_SORT_PROC,
     .acctPollInterval = 0,
+    .killDelay = 10,
     .startupScript = NULL,
     .nodeUpScript = NULL,
     .nodeDownScript = NULL,
@@ -722,6 +723,19 @@ static int getAcctPollInterval(char *key)
     if (ret) return ret;
 
     config.acctPollInterval = temp;
+
+    return ret;
+}
+
+static int getKillDelay(char *key)
+{
+    int temp;
+    int ret;
+
+    ret = getNumber(key, &temp);
+    if (ret) return ret;
+
+    config.killDelay = temp;
 
     return ret;
 }
@@ -1837,23 +1851,23 @@ static int getHardwareOptions(char *name)
     env_config_style = 0;
 
     for(i = 0; (i+1) < env->len; i++) {
-        key = (gchar*)g_ptr_array_index(env,i);
-        val = strstr(key, "=");
+	key = (gchar*)g_ptr_array_index(env,i);
+	val = strstr(key, "=");
 
-        if (val == NULL) {
-            if (env_config_style != 0) {
-                parser_comment(-1, "Invalid environment setting for hwtype"
-                        " '%s'\n", name);
-                break;
-            }
-            env_config_style = 2; // old style detected
-            break;
-        }
+	if (val == NULL) {
+	    if (env_config_style != 0) {
+		parser_comment(-1, "Invalid environment setting for hwtype"
+			       " '%s'\n", name);
+		break;
+	    }
+	    env_config_style = 2; // old style detected
+	    break;
+	}
 
-        env_config_style = 1; // new style detected
+	env_config_style = 1; // new style detected
 
-        *val = '\0';
-        val = val+1;
+	*val = '\0';
+	val = val+1;
 
 	ret = setHardwareEnv(key, val);
 	if (ret) break;
@@ -1861,24 +1875,24 @@ static int getHardwareOptions(char *name)
 
     if (env_config_style == 2) {
 
-        // warn about old style config
-        parser_comment(-1, "Old style environment config used in hwtype '%s'."
-                " You should update your configuration.\n", name);
+	// warn about old style config
+	parser_comment(-1, "Old style environment config used in hwtype '%s'."
+		       " You should update your configuration.\n", name);
 
-        if (env->len % 2 != 0) {
-            parser_comment(-1, "Invalid environment setting for hwtype '%s'\n",
-                    name);
-            g_ptr_array_free(env, TRUE);
-            return 0;
-        }
+	if (env->len % 2 != 0) {
+	    parser_comment(-1, "Invalid environment setting for hwtype '%s'\n",
+			   name);
+	    g_ptr_array_free(env, TRUE);
+	    return 0;
+	}
 
-        for(i = 0; (i+1) < env->len; i+=2) {
-            key = (gchar*)g_ptr_array_index(env,i);
-            val = (gchar*)g_ptr_array_index(env,i+1);
+	for(i = 0; (i+1) < env->len; i+=2) {
+	    key = (gchar*)g_ptr_array_index(env,i);
+	    val = (gchar*)g_ptr_array_index(env,i+1);
 
-            ret = setHardwareEnv(key, val);
-            if (ret) break;
-        }
+	    ret = setHardwareEnv(key, val);
+	    if (ret) break;
+	}
     }
 
     g_ptr_array_free(env, TRUE);
@@ -2007,6 +2021,7 @@ static confkeylist_t node_configkey_list[] = {
     {"Psid.RdpStatusBroadcasts", getStatBcast},
     {"Psid.RdpStatusDeadLimit", getDeadLmt},
     {"Psid.AccountPollInterval", getAcctPollInterval},
+    {"Psid.KillDelay", getKillDelay},
     {"Psid.ResourceLimits.", getRLimit},
     {"Psid.LogMask", getLogMask},
     {"Psid.LogDestination", getLogDest},
@@ -2049,8 +2064,8 @@ static int setupLocalNode()
     // get parameters for local node
     allret = 0;
     for (i = 0; node_configkey_list[i].key != NULL; i++) {
-        parser_comment(PARSER_LOG_VERB, "%s: processing config key '%s'\n",
-                __func__, node_configkey_list[i].key);
+	parser_comment(PARSER_LOG_VERB, "%s: processing config key '%s'\n",
+		       __func__, node_configkey_list[i].key);
 	ret = node_configkey_list[i].handler(node_configkey_list[i].key);
 	allret = ret ? 1 : allret;
     }
