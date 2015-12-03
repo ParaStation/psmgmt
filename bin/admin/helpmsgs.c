@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2014 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2015 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -81,7 +81,7 @@ static info_t helpInfo = {
 	{ .tag = "list",
 	  .descr = "List information." },
 	{ .tag = "parameter",
-	  .descr = "Hande psiadmin's control parameters." },
+	  .descr = "Handle psiadmin's control parameters." },
 	{ .tag = "range",
 	  .descr = "Set or show the default node-range." },
 	{ .tag = "resolve",
@@ -266,7 +266,8 @@ static info_t setInfo = {
 	" | bindmem <bool> | supplementaryGroups <bool> | maxStatTry <num>"
 	" | cpumap <map> | allowUserMap <bool> | nodessort <mode>"
 	" | adminuser [+|-]{<user>|any} | admingroup [+|-]{<group>|any}"
-	" | accountpoll <interval> | pluginUnloadTmout <timeout>"
+	" | accountpoll <interval> | killdelay <delay>"
+	" | pluginUnloadTmout <timeout>"
 	" | {rl_{addressspace|as} | rl_core | rl_cpu | rl_data | rl_fsize"
 	"    | rl_locks | rl_memlock | rl_msgqueue | rl_nofile | rl_nproc"
 	"    | rl_rss | rl_sigpending | rl_stack} {<limit>|unlimited}} <nodes>"
@@ -279,12 +280,12 @@ static info_t setInfo = {
 	  "argument is 'any', an unlimited number of processes is allowed." },
 	{ .tag = "set user [+|-]{<user>|any}",
 	  .descr = "Grant access to a particular or any user. <user> might be"
-	  " a user name or a numerical UID. If <user> is preceeded by a '+' or"
+	  " a user name or a numerical UID. If <user> is preceded by a '+' or"
 	  " '-', this user is added to or removed from the list of users"
 	  " respectively." },
 	{ .tag = "set group [+|-]{<group>|any}",
 	  .descr = "Grant access to a particular or any group. <group> might"
-	  " be a group name or a numerical GID. If <group> is preceeded by a"
+	  " be a group name or a numerical GID. If <group> is preceded by a"
 	  " '+' or '-', this group is added to or removed from the list of"
 	  " groups respectively." },
 	{ .tag = "set psiddebug <level>",
@@ -311,7 +312,7 @@ static info_t setInfo = {
 	  " selected nodes." },
 	{ .tag = "set rdpdebug <level>",
 	  .descr = "Set RDP protocol's debugging level to <level> on the"
-	  " seleceted nodes."
+	  " selected nodes."
 	  " Depending on <level> the daemon might log a huge amount of"
 	  " messages to the syslog. Thus do not use large values for <level>"
 	  " for a long time." },
@@ -403,13 +404,13 @@ static info_t setInfo = {
 	{ .tag = "set adminuser [+|-]{<user>|any}",
 	  .descr = "Grant authorization to start admin-tasks, i.e. task not"
 	  " accounted, to a particular or any user. <user> might be a user"
-	  " name or a numerical UID. If <user> is preceeded by a '+' or '-',"
+	  " name or a numerical UID. If <user> is preceded by a '+' or '-',"
 	  " this user is added to or removed from the list of adminusers"
 	  " respectively." },
 	{ .tag = "set admingroup [+|-]{<group>|any}",
 	  .descr = "Grant authorization to start admin-tasks, i.e. task not"
 	  " accounted, to a particular or any group. <group> might be a group"
-	  " name or a numerical GID. If <group> is preceeded by a '+' or '-',"
+	  " name or a numerical GID. If <group> is preceded by a '+' or '-',"
 	  " this group is added to or removed from the list of admingroups"
 	  " respectively." },
 	{ .tag = "set accountpoll <interval>",
@@ -417,6 +418,13 @@ static info_t setInfo = {
 	  " the forwarders might poll on /proc. This sets the poll interval on"
 	  " the selected nodes to <interval> seconds. If Set to 0, no polling"
 	  " at all will take place." },
+	{ .tag = "set killdelay <delay>",
+	  .descr = "Unexpectedly dying relatives (i.e. the parent process or"
+	  " any child process) will lead to a signal to be sent. The processes"
+	  " is expected to finalize after receiving such signal. In order to"
+	  " enforce this, a SIGKILL signal is sent with some# delay. This sets"
+	  " the delay on the selected node to <delay> seconds. If set to  0,"
+	  " no SIGKILL at all will be sent." },
 	{ .tag = "set pluginUnloadTmout <timeout>",
 	  .descr = "Set the timeout until plugins are evicted after a"
 	  " 'plugin forceunload' to <timeout> seconds." },
@@ -461,7 +469,7 @@ static info_t setInfo = {
 	  " rlim_cur and rlim_max." },
 	{ NULL, NULL }
     },
-    .comment = "For more information reffer to 'help set <subcommand>'"
+    .comment = "For more information refer to 'help set <subcommand>'"
 };
 
 static info_t showInfo = {
@@ -476,7 +484,7 @@ static info_t showInfo = {
 	" | starter | runjobs | overbook | exclusive | pinprocs | bindmem"
 	" | cpumap | allowUserMap | nodessort | supplementaryGroups"
 	" | maxStatTry | adminuser | admingroup | accounters | accountpoll"
-	" | pluginAPIversion | pluginUnloadTmout"
+	" | killdelay | pluginAPIversion | pluginUnloadTmout"
 	" | rl_{addressspace|as} | rl_core | rl_cpu | rl_data | rl_fsize"
 	" | rl_locks | rl_memlock | rl_msgqueue | rl_nofile | rl_nproc"
 	" | rl_rss | rl_sigpending | rl_stack}"
@@ -567,8 +575,11 @@ static info_t showInfo = {
 	  .descr = "Show all accounter tasks, i.e. tasks collecting accounting"
 	  " messages." },
 	{ .tag = "show accountpoll",
-	  .descr = "Show polling interval in seconds of accounter to retrieve"
-	  " more detailed information." },
+	  .descr = "Show polling interval of accounter to retrieve more"
+	  " detailed information. Value is in seconds." },
+	{ .tag = "show killdelay",
+	  .descr = "Show delay before sending SIGKILL from relatives. Value"
+	  " is in seconds."},
 	{ .tag = "show pluginAPIversion",
 	  .descr = "Show the version number of the plugin API." },
 	{ .tag = "show pluginUnloadTmout",
@@ -686,7 +697,7 @@ static info_t listInfo = {
 	  .descr = "Show the jobs within the system. Using the 'state' option,"
 	  " only specific classes of jobs will be displayed. The 'slots'"
 	  " option enables to show the job's allocated processing slots. If"
-	  " <tid> is given, only informations concerning the job the process"
+	  " <tid> is given, only information concerning the job the process"
 	  " <tid> is connected to is displayed." },
 	{ NULL, NULL }
     },
@@ -780,18 +791,18 @@ static info_t pluginInfo = {
 	  " might trigger more plugins required by <plugin> to be loaded." },
 	{ .tag = "plugin {delete|remove|rm|unload} <plugin>",
 	  .descr = "Unload plugin named <plugin> on the selected nodes. The"
-	  " plugin might still be loaded afterwards, if it is used by another"
+	  " plugin might still be loaded afterward, if it is used by another"
 	  " depending plugin or if it ignores the command to unload itself." },
 	{ .tag = "plugin {forceremove|forceunload} <plugin>",
 	  .descr = "Forcefully unload plugin named <plugin> on the selected"
-	  " nodes. The plugin might still be loaded for some time afterwards"
+	  " nodes. The plugin might still be loaded for some time afterward"
 	  " until all depending plugin are unloaded and all timeouts are"
 	  " expunged." },
 	{ .tag = "plugin help <plugin>",
 	  .descr = "Request some help-message from the plugin <plugin>." },
 	{ .tag = "plugin show <plugin> [key <key>]",
 	  .descr = "Show key-value pair indexed by <key> for the given plugin"
-	  " <plugin>. If no key is given explicitely, all pairs are"
+	  " <plugin>. If no key is given explicitly, all pairs are"
 	  " displayed." },
 	{ .tag = "plugin set <plugin> <key> <value>",
 	  .descr = "Set key-value pair indexed by <key> to <value> for the"
@@ -801,7 +812,7 @@ static info_t pluginInfo = {
 	  " <plugin>." },
 	{ .tag = "plugin loadtime [plugin <plugin>]",
 	  .descr = "Display the load-time of the plugin <plugin>. If no plugin"
-	  " is given explicitely, the load-time of all plugins is displayed." },
+	  " is given explicitly, the load-time of all plugins is displayed." },
 	{ NULL, NULL}
     },
     .comment = NULL
@@ -933,7 +944,7 @@ static const char sep[] =   "================================================"
  * than the length of the actual line.
  *
  * Suitable positions for a line wrap are whitespace (' ') characters
- * which are not preceeded by pipe ('|') characters, or the
+ * which are not preceded by pipe ('|') characters, or the
  * corresponding pipe character. Leading whitespace at the beginning
  * of a wrapped line - apart from the indentation - will be skipped.
  *
@@ -973,7 +984,7 @@ static void printSyntax(const char *tag, syntax_t *syntax)
 /**
  * @brief Print tagged description.
  *
- * Print the description @a descr preceeded by the tag @a tag.
+ * Print the description @a descr preceded by the tag @a tag.
  *
  * The output format is as follows: After the indenting tag @a tag,
  * the description is printed out.

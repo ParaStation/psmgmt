@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2014 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2015 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -79,9 +79,6 @@ void send_OPTIONS(PSnodes_ID_t destnode)
     msg.count++;
     msg.opt[(int) msg.count].option = PSP_OP_BINDMEM;
     msg.opt[(int) msg.count].value = PSIDnodes_bindMem(PSC_getMyID());
-    msg.count++;
-    msg.opt[(int) msg.count].option = PSP_OP_ACCTPOLL;
-    msg.opt[(int) msg.count].value = PSIDnodes_acctPollI(PSC_getMyID());
     msg.count++;
     msg.opt[(int) msg.count].option = PSP_OP_SUPPL_GRPS;
     msg.opt[(int) msg.count].value = PSIDnodes_supplGrps(PSC_getMyID());
@@ -758,23 +755,14 @@ static void msg_SETOPTION(DDOptionMsg_t *msg)
 		break;
 	    case PSP_OP_ACCTPOLL:
 		if (PSC_getPID(msg->header.sender)) {
-		    DDOptionMsg_t info = {
-			.header = {
-			    .type = PSP_CD_SETOPTION,
-			    .sender = PSC_getMyTID(),
-			    .dest = 0,
-			    .len = sizeof(info) },
-			.count = 1,
-			.opt = {{ .option = msg->opt[i].option,
-				  .value = msg->opt[i].value }} };
-
+		    /* Ignore info sent by other daemons for compatibility */
 		    PSIDnodes_setAcctPollI(PSC_getMyID(), msg->opt[i].value);
-
-		    /* Info all nodes about my ACCTPOLL */
-		    broadcastMsg(&info);
-		} else {
-		    PSIDnodes_setAcctPollI(PSC_getID(msg->header.sender),
-					   msg->opt[i].value);
+		}
+		break;
+	    case PSP_OP_KILLDELAY:
+		if (PSC_getPID(msg->header.sender)) {
+		    /* Ignore info sent by other daemons for compatibility */
+		    PSIDnodes_setKillDelay(PSC_getMyID(), msg->opt[i].value);
 		}
 		break;
 	    case PSP_OP_SUPPL_GRPS:
@@ -1016,6 +1004,9 @@ static void msg_GETOPTION(DDOptionMsg_t *msg)
 		break;
 	    case PSP_OP_ACCTPOLL:
 		msg->opt[out].value = PSIDnodes_acctPollI(PSC_getMyID());
+		break;
+	    case PSP_OP_KILLDELAY:
+		msg->opt[out].value = PSIDnodes_killDelay(PSC_getMyID());
 		break;
 	    case PSP_OP_SUPPL_GRPS:
 		msg->opt[out].value = PSIDnodes_supplGrps(PSC_getMyID());
