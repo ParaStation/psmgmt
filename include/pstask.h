@@ -134,6 +134,8 @@ typedef struct __task__ {
 				      will be removed from the list of
 				      managed tasks in the next round
 				      of the main loop */
+    char noParricide;              /**< flag to be set if kill signals should
+				      not be forwarded to parents. */
     time_t killat;                 /**< flag a killed task, i.e. the time when
 				      the task should really go away. */
     struct timeval started;        /**< Time the task structure was created. */

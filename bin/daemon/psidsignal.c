@@ -958,6 +958,13 @@ static int releaseTask(PStask_t *task)
 			 "%s: notify child %s\n",
 			 __func__, PSC_printTID(child));
 
+		if (task->group == TG_KVS && task->noParricide) {
+		    /* Avoid inheritance to prevent parricide */
+		    PSID_removeSignal(&task->assignedSigs, child, sig);
+		    sig = -1;
+		    continue;
+		}
+
 		/* Send child new ptid */
 		inheritMsg.header.type = PSP_DD_NEWPARENT;
 		inheritMsg.header.dest = child;

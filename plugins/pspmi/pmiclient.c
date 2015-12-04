@@ -1220,6 +1220,7 @@ static int tryPMISpawn(char *spawnBuffer[], int totalSpawns, int serviceRank)
     int argcs[totalSpawns], envcs[totalSpawns];
     char *wdirs[totalSpawns], *tpps[totalSpawns], *ntypes[totalSpawns];
     char *paths[totalSpawns];
+    char noParricide = 0;
 
     setPMIDelim(delm);
 
@@ -1345,6 +1346,15 @@ static int tryPMISpawn(char *spawnBuffer[], int totalSpawns, int serviceRank)
 		ufree(soft);
 	    }
 	    */
+
+	    if (!strcmp(nextkey, "parricide")) {
+		if (!strcmp(getpmivm(buffer, spawnBuffer[i]), "disabled")) {
+		    noParricide = 1;
+		} else if (!strcmp(getpmivm(buffer, spawnBuffer[i]),
+				   "enabled")) {
+		    noParricide = 0;
+		}
+	    }
 	}
     }
 
@@ -1363,7 +1373,7 @@ static int tryPMISpawn(char *spawnBuffer[], int totalSpawns, int serviceRank)
      * children */
     if (!(spawnService(spawnChildCount, nps, argvs, argcs, envvs, envcs,
 		       wdirs, tpps, ntypes, paths, totalSpawns, universe_size,
-		       serviceRank, buffer))) {
+		       serviceRank, buffer, noParricide))) {
 	goto spawn_error;
     }
 

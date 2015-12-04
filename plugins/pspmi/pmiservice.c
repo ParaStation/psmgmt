@@ -270,7 +270,7 @@ static void setPath(char *oldPath, char *addPath, char **env)
 int spawnService(int np, char *nps[], char **c_argvs[], int c_argcs[],
 		 char **c_envvs[], int c_envcs[], char *wdirs[], char *tpps[],
 		 char *nTypes[], char *paths[], int ts, int usize,
-		 int serviceRank, char *kvsTmp)
+		 int serviceRank, char *kvsTmp, char noParricide)
 {
     PStask_t *myTask, *task;
     int envc = 0, argc = 0, i, j;
@@ -297,6 +297,7 @@ int spawnService(int np, char *nps[], char **c_argvs[], int c_argcs[],
     task->rank = serviceRank -1;
     task->winsize = myTask->winsize;
     task->termios = myTask->termios;
+    task->noParricide = noParricide;
 
     /* set work dir */
     if (myTask->workingdir) {
@@ -399,6 +400,9 @@ int spawnService(int np, char *nps[], char **c_argvs[], int c_argcs[],
     task->environ[envc++] = ustrdup("SERVICE_KVS_PROVIDER=1");
     task->environ[envc++] = ustrdup("PMI_SPAWNED=1");
     snprintf(buffer, sizeof(buffer), "PMI_SIZE=%d", np);
+    task->environ[envc++] = ustrdup(buffer);
+
+    snprintf(buffer, sizeof(buffer), "__PMI_NO_PARRICIDE=%i", noParricide);
     task->environ[envc++] = ustrdup(buffer);
 
     task->environ[envc] = NULL;

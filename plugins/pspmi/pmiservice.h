@@ -62,11 +62,13 @@
  *
  * @param kvsTmp The KVS mask to use. Must be a uniq string in the current job.
  *
+ * @param noParricide Flag to not kill process upon relative's unexpected death.
+ *
  * @return Returns 1 on success or 0 on error.
  */
 int spawnService(int np, char *nps[], char **c_argvs[], int c_argcs[],
 		 char **c_envvs[], int c_envcs[], char *wdirs[], char *tpps[],
 		 char *nTypes[], char *paths[], int ts, int usize,
-		 int serviceRank, char *kvsTmp);
+		 int serviceRank, char *kvsTmp, char noParricide);
 
 #endif
