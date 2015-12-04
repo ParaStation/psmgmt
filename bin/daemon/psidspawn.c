@@ -700,7 +700,10 @@ static void doClamps(PStask_t *task)
 	}
 	if (PSIDnodes_bindMem(PSC_getMyID())) {
 	    if (getenv("__PSI_NO_MEMBIND")) {
-		fprintf(stderr, "Binding suppressed for rank %d\n", task->rank);
+		if (!getenv("SLURM_JOBID")) {
+		    fprintf(stderr, "Binding suppressed for rank %d\n",
+			    task->rank);
+		}
 	    } else {
 		PSID_bindToNodes(physSet);
 	    }
