@@ -1,3 +1,151 @@
+Version psmgmt-5.0.49:
+======================
+------------------------------------------------------------------------
+r9211 | eicker | 2015-12-04 15:00:01 +0100 (Fri, 04 Dec 2015) | 3 lines
+
+Enhancement: Add Carsten's changes for a more fault tolerant MPI
+    developed in the context of DEEP-ER.
+
+------------------------------------------------------------------------
+r9210 | eicker | 2015-12-03 20:51:34 +0100 (Thu, 03 Dec 2015) | 2 lines
+
+Actually enable the configurable killDelay.
+
+------------------------------------------------------------------------
+r9209 | eicker | 2015-12-03 20:51:10 +0100 (Thu, 03 Dec 2015) | 3 lines
+
+Actually enable psiadmin's 'set killdelay' directive.
+Fix one typo in 'set killdelay''s description.
+
+------------------------------------------------------------------------
+r9208 | eicker | 2015-12-03 20:36:03 +0100 (Thu, 03 Dec 2015) | 4 lines
+
+Enhancement: Make killDelay dynamic.
+Suppress unneeded distribution of PSP_OP_ACCTPOLL
+Tons of typos fixed.
+
+------------------------------------------------------------------------
+r9207 | eicker | 2015-12-03 19:56:34 +0100 (Thu, 03 Dec 2015) | 2 lines
+
+Enhancement: New config parameter killDelay
+
+------------------------------------------------------------------------
+r9206 | eicker | 2015-11-05 11:40:53 +0100 (Thu, 05 Nov 2015) | 3 lines
+
+Bugifx: Discontinue the blocking of SIGUSR2 after fork(). This was
+    triggered by r9205.
+
+------------------------------------------------------------------------
+r9205 | eicker | 2015-11-03 19:52:36 +0100 (Tue, 03 Nov 2015) | 3 lines
+
+Enhancement: Make psid's behavior under SIGUSR2 bombardment nicer. This
+    shall help with jrt:#3694
+
+------------------------------------------------------------------------
+r9204 | eicker | 2015-11-03 09:24:31 +0100 (Tue, 03 Nov 2015) | 2 lines
+
+Fix typo preventing compilation introduced in r9202.
+
+------------------------------------------------------------------------
+r9203 | eicker | 2015-11-02 15:21:59 +0100 (Mon, 02 Nov 2015) | 2 lines
+
+Remove dead code.
+
+------------------------------------------------------------------------
+r9202 | eicker | 2015-11-02 15:21:18 +0100 (Mon, 02 Nov 2015) | 2 lines
+
+Bugfix: Fix memory corruption if realloc() actually moves data.
+
+------------------------------------------------------------------------
+r9201 | eicker | 2015-10-27 19:21:12 +0100 (Tue, 27 Oct 2015) | 2 lines
+
+Fix typo in description.
+
+------------------------------------------------------------------------
+r9200 | eicker | 2015-10-27 19:17:33 +0100 (Tue, 27 Oct 2015) | 2 lines
+
+Some more description on behavior change due to the previous checkin.
+
+------------------------------------------------------------------------
+r9199 | eicker | 2015-10-27 19:11:01 +0100 (Tue, 27 Oct 2015) | 3 lines
+
+Bugfix: Also check file-descriptors in Selector's list if Sselect()
+    returns with error (#2498)
+
+------------------------------------------------------------------------
+r9198 | eicker | 2015-10-27 18:58:57 +0100 (Tue, 27 Oct 2015) | 2 lines
+
+Bugfix: Save errno also when calling handleErr in RDP.
+
+------------------------------------------------------------------------
+r9197 | moschny | 2015-10-27 15:44:01 +0100 (Tue, 27 Oct 2015) | 1 line
+
+Change the name of RPM built without psconfig support (#2502).
+------------------------------------------------------------------------
+r9196 | eicker | 2015-10-23 11:54:46 +0200 (Fri, 23 Oct 2015) | 2 lines
+
+Enhancement: Use PSP_putTypedMsgBuf() to prepare accounting messages
+
+------------------------------------------------------------------------
+r9195 | eicker | 2015-10-23 11:19:33 +0200 (Fri, 23 Oct 2015) | 3 lines
+
+Enhancement: Make testacct using PSP_getMsgBuf() family of calls. At the
+    same time adapt to newly available accounting data
+
+------------------------------------------------------------------------
+r9194 | eicker | 2015-10-22 17:28:41 +0200 (Thu, 22 Oct 2015) | 2 lines
+
+Remove obsolete CL-argument from the testacct accounting tester.
+
+------------------------------------------------------------------------
+r9193 | eicker | 2015-10-21 18:55:26 +0200 (Wed, 21 Oct 2015) | 2 lines
+
+Bugfix: Guard dynamic memory related calls in msg_SPAWNREQ() (psc:#214)
+
+------------------------------------------------------------------------
+r9192 | eicker | 2015-10-20 19:55:19 +0200 (Tue, 20 Oct 2015) | 2 lines
+
+Bugfix: More savings of errno.
+
+------------------------------------------------------------------------
+r9191 | eicker | 2015-10-20 19:37:48 +0200 (Tue, 20 Oct 2015) | 2 lines
+
+Bugfix: Save errno before doing further calls (jrt:#3316)
+
+------------------------------------------------------------------------
+r9190 | eicker | 2015-09-01 19:18:39 +0200 (Tue, 01 Sep 2015) | 2 lines
+
+Enhancement: Nicer output of psiadmin's 'list load' for load > 100
+
+------------------------------------------------------------------------
+r9189 | eicker | 2015-08-19 14:57:05 +0200 (Wed, 19 Aug 2015) | 2 lines
+
+Remove one confusing log-message concerning handling of SIGCHLD
+
+------------------------------------------------------------------------
+r9188 | eicker | 2015-08-18 19:29:40 +0200 (Tue, 18 Aug 2015) | 2 lines
+
+Bugfix: Prevent duplicating message on ENOBUFS in RDP's sendto()
+
+------------------------------------------------------------------------
+r9187 | eicker | 2015-08-18 16:46:13 +0200 (Tue, 18 Aug 2015) | 3 lines
+
+Enhancement: Replace getdtablesize() by sysconf(_SC_OPEN_MAX) and call
+    less frequently
+
+------------------------------------------------------------------------
+r9186 | eicker | 2015-08-18 14:04:52 +0200 (Tue, 18 Aug 2015) | 2 lines
+
+Enhancement: Ensure fd in valid range within the selector facility.
+
+------------------------------------------------------------------------
+r9182 | eicker | 2015-08-14 20:24:05 +0200 (Fri, 14 Aug 2015) | 2 lines
+
+New version (psmgmt-5.0.48)
+
+------------------------------------------------------------------------
+
+
 Version psmgmt-5.0.48:
 ======================
 ------------------------------------------------------------------------

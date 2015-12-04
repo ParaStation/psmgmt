@@ -5,9 +5,30 @@ Copyright (C) 2010-2015 ParTec Cluster Competence Center GmbH, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 5.0.49:
+===============
+Bugfixes:
+ - Check Selector's file-descriptors if Sselect() returns with error (#2498)
+ - Save errno before doing further calls at various places (jrt:#3316)
+ - Guard dynamic memory related calls in msg_SPAWNREQ() (psc:#214)
+ - Make psid's behavior under SIGUSR2 bombardment nicer (jrt:#3694)
+ - Prevent duplicating messages on ENOBUFS in RDP's sendto()
+ - Fix memory corruption if realloc() actually moves data
+ - Ensure fd is in valid range within the selector facility
+
+Enhancements:
+ - Configurable delay of SIGKILL after signals from relatives
+ - Support of a more fault tolerant MPI developed in the context of DEEP-ER
+ - Replace getdtablesize() by sysconf(_SC_OPEN_MAX) and call less frequently
+ - Improve psiadmin's output of 'list load' for load > 100
+
+Additional changes:
+ - Change RPM's name when built without psconfig support (#2502)
+ - Adapt testacct to newly available accounting data
+
+
 Version 5.0.48:
 ===============
-
 Bugfixes:
  - Suppress the disfigurement discussed in jrt:#394
  - Catching SIGFPE for a normal shutdown of psid is a bad idea (jrt:#424)
