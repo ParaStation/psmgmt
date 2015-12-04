@@ -69,8 +69,9 @@ static void cbPElogueAlloc(char *sjobid, int exit_status, int timeout)
 	if (alloc->terminate) {
 	    sendSlurmRC(&step->srunControlMsg, SLURM_ERROR);
 	    alloc->state = JOB_EPILOGUE;
-	    startPElogue(alloc->jobid, alloc->uid, alloc->gid, alloc->nrOfNodes,
-		    alloc->nodes, &alloc->env, &alloc->spankenv, 1, 0);
+	    startPElogue(alloc->jobid, alloc->uid, alloc->gid, alloc->username,
+		    alloc->nrOfNodes, alloc->nodes, &alloc->env,
+		    &alloc->spankenv, 1, 0);
 	} else if (exit_status == 0) {
 	    alloc->state = JOB_RUNNING;
 	    step->state = JOB_PRESTART;
@@ -128,8 +129,9 @@ static void cbPElogueJob(char *jobid, int exit_status, int timeout)
 	    job->state = JOB_EPILOGUE;
 	    mdbg(PSSLURM_LOG_JOB, "%s: job '%u' in '%s'\n", __func__,
 		    job->jobid, strJobState(job->state));
-	    startPElogue(job->jobid, job->uid, job->gid, job->nrOfNodes,
-		    job->nodes, &job->env, &job->spankenv, 0, 0);
+	    startPElogue(job->jobid, job->uid, job->gid, job->username,
+			    job->nrOfNodes, job->nodes, &job->env,
+			    &job->spankenv, 0, 0);
 	} else if (exit_status == 0) {
 	    job->state = JOB_PRESTART;
 	    mdbg(PSSLURM_LOG_JOB, "%s: job '%u' in '%s'\n", __func__,
@@ -164,11 +166,11 @@ static void cbPElogueJob(char *jobid, int exit_status, int timeout)
     }
 }
 
-void startPElogue(uint32_t jobid, uid_t uid, gid_t gid, uint32_t nrOfNodes,
-		    PSnodes_ID_t *nodes, env_t *env, env_t *spankenv,
-		    int step, int prologue)
+void startPElogue(uint32_t jobid, uid_t uid, gid_t gid, char *username,
+		    uint32_t nrOfNodes, PSnodes_ID_t *nodes, env_t *env,
+		    env_t *spankenv, int step, int prologue)
 {
-    char sjobid[256];
+    char sjobid[256], buf[512];
     env_t clone;
 
     if (!nodes) {
@@ -194,6 +196,9 @@ void startPElogue(uint32_t jobid, uid_t uid, gid_t gid, uint32_t nrOfNodes,
 
     envClone(env, &clone, envFilter);
     envCat(&clone, spankenv, envFilter);
+    envSet(&clone, "SLURM_USER", username);
+    snprintf(buf, sizeof(buf), "%u", uid);
+    envSet(&clone, "SLURM_UID", buf);
 
     /* use pelogue plugin to start */
     psPelogueStartPE("psslurm", sjobid, prologue, &clone);
@@ -220,7 +225,7 @@ int handlePElogueFinish(void *data)
     }
 
     if (username) {
-	if (pedata->exit && pedata->prologue) {
+	if (!pedata->exit && pedata->prologue) {
 	    psPamAddUser(username, "psslurm", PSPAM_JOB);
 	    psPamSetState(username, "psslurm", PSPAM_JOB);
 	}
@@ -355,8 +360,9 @@ static int taskEpiloguesCallback(int32_t exit_status, char *errMsg,
 	mlog("%s: starting epilogue for step '%u:%u'\n", __func__, step->jobid,
 		step->stepid);
 	alloc->state = JOB_EPILOGUE;
-	startPElogue(step->jobid, step->uid, step->gid, step->nrOfNodes,
-			step->nodes, &step->env, &step->spankenv, 1, 0);
+	startPElogue(step->jobid, step->uid, step->gid, step->username,
+			step->nrOfNodes, step->nodes, &step->env,
+			&step->spankenv, 1, 0);
     }
 
     step->fwdata = NULL;

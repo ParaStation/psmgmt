@@ -1921,7 +1921,7 @@ static void CloneEnvFromTasks(PStask_t *task)
 	    tt->environ && tt->rank >= 0) {
 
 	    for (i=0; tt->environ[i]; i++) eSize++;
-	    task->environ = malloc(sizeof (char *) * eSize);
+	    task->environ = malloc(sizeof (char *) * eSize +1);
 	    if (!task->environ) PSID_exit(ENOMEM, "%s", __func__);
 
 	    for (i=0; i<eSize; i++) {
@@ -1930,7 +1930,10 @@ static void CloneEnvFromTasks(PStask_t *task)
 		if (!task->environ[i]) PSID_exit(ENOMEM, "%s", __func__);
 		count++;
 	    }
-	    task->envSize = count;
+	    /* add trailing NULL */
+	    task->environ[count] = NULL;
+	    task->envSize = count+1;
+
 	    return;
 	}
     }

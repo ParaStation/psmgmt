@@ -354,6 +354,9 @@ static int initForwarder()
     /* overwrite proc title */
     if (fwdata->pTitle) {
 	PSC_setProcTitle(PSID_argc, (char ** )PSID_argv, fwdata->pTitle, 0);
+	initPluginLogger(fwdata->pTitle, NULL);
+    } else {
+	initPluginLogger("psidfw", NULL);
     }
 
     /* Reset connection to syslog */
@@ -915,7 +918,7 @@ static int openListenSocket(Forwarder_Data_t *data)
 	pluginwarn(errno, "%s: mkdtemp(%s) failed", __func__, buf);
 	return -1;
     }
-    data->listenSocketName = strdup(tmpName);
+    data->listenSocketName = ustrdup(tmpName);
 
     if ((data->listenSocket = socket(PF_UNIX, SOCK_STREAM, 0)) == -1) {
 	pluginwarn(errno, "%s:", __func__);

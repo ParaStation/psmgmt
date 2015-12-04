@@ -143,226 +143,6 @@ int handleCreatePartNL(void *msg)
     }
 }
 
-static void handlePELogueStart(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
-{
-    Job_t *job;
-    char *ptr = data->buf, jobid[MAX_JOBID_LEN];
-    int prologue = (msg->type == PSP_PROLOGUE_START) ? 1 : 0;
-
-    /* slurm jobid */
-    getString(&ptr, jobid, sizeof(jobid));
-
-    if (!(job = findJobByIdC(jobid))) {
-	mlog("%s: unknown job with id '%s'\n", __func__, jobid);
-	return;
-    }
-
-    if (prologue) {
-	job->state = JOB_PROLOGUE;
-	mdbg(PSSLURM_LOG_JOB, "%s: job '%u' in '%s'\n", __func__,
-		job->jobid, strJobState(job->state));
-    } else {
-	job->state = JOB_EPILOGUE;
-	mdbg(PSSLURM_LOG_JOB, "%s: job '%u' in '%s'\n", __func__,
-		job->jobid, strJobState(job->state));
-    }
-
-    /* use pelogue plugin to start */
-    psPelogueStartPE("psslurm", job->id, prologue, &job->env);
-}
-
-void callbackPElogue(char *jobid, int exit_status, int timeout)
-{
-    Job_t *job;
-    DDTypedBufferMsg_t msg;
-    char *ptr;
-
-    if (!(job = findJobByIdC(jobid))) {
-	mlog("%s: job '%s' not found\n", __func__, jobid);
-	return;
-    }
-
-    mlog("%s: jobid '%s' state '%s' exit '%i' timeout '%i'\n", __func__, jobid,
-	    strJobState(job->state), exit_status, timeout);
-
-    msg = (DDTypedBufferMsg_t) {
-	.header = (DDMsg_t) {
-	.type = PSP_CC_MSG,
-	.sender = PSC_getMyTID(),
-	.dest = job->mother,
-	.len = sizeof(msg.header) },
-	.buf = {'\0'} };
-
-    msg.header.type = (job->extended) ? PSP_CC_PLUG_PSSLURM : PSP_CC_MSG;
-    msg.type = (job->state == JOB_PROLOGUE) ?
-			    PSP_PROLOGUE_RES : PSP_EPILOGUE_RES;
-    msg.header.len += sizeof(msg.type);
-
-    ptr = msg.buf;
-
-    addStringToMsgBuf(&msg, &ptr, jobid);
-    addInt32ToMsgBuf(&msg, &ptr, exit_status);
-
-    mlog("%s: sending message to job '%s' dest:%s\n", __func__, jobid,
-	    PSC_printTID(job->mother));
-
-    /*
-    if ((sendMsg(&msg)) == -1 && errno != EWOULDBLOCK) {
-	mwarn(errno, "%s: sending message to '%s' failed: ", __func__,
-		PSC_printTID(job->mother));
-    }
-    */
-
-    /* start main job */
-    if (!exit_status) {
-	if (job->state == JOB_PROLOGUE) {
-	    job->state = JOB_RUNNING;
-	    mdbg(PSSLURM_LOG_JOB, "%s: job '%u' in '%s'\n", __func__,
-		    job->jobid, strJobState(job->state));
-	    if (job->extended) execUserJob(job);
-	} else {
-	    /* tell slurmctld job has finished */
-	    mlog("%s: TODO let job exit in slurm\n", __func__);
-	    sendJobExit(job, exit_status);
-
-	    /* delete Job */
-	    deleteJob(job->jobid);
-	}
-    } else {
-	job->state = (job->state == JOB_PROLOGUE) ?
-			    JOB_CANCEL_PROLOGUE : JOB_CANCEL_EPILOGUE;
-	mdbg(PSSLURM_LOG_JOB, "%s: job '%u' in '%s'\n", __func__,
-		job->jobid, strJobState(job->state));
-    }
-}
-
-static void handleQueueReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
-{
-    Job_t *job;
-    char *ptr = data->buf, jobid[MAX_JOBID_LEN];
-    uint32_t tmp, stepid;
-
-    /* slurm jobid */
-    getString(&ptr, jobid, sizeof(jobid));
-
-    mlog("%s: new slurm job '%s' queued %s\n", __func__, jobid,
-	    PSC_printTID(msg->header.dest));
-
-    if ((sscanf(jobid, "%u", &tmp)) != 1) {
-	mlog("%s: invalid jobid '%s'\n", __func__, jobid);
-	return;
-    }
-    job = addJob(tmp);
-
-    /* uid and gid */
-    getUint32(&ptr, &job->uid);
-    getUint32(&ptr, &job->gid);
-
-    /* hostlist */
-    job->slurmNodes = getStringM(&ptr);
-    getNodesFromSlurmHL(job->slurmNodes, &job->nrOfNodes, &job->nodes);
-    getUint32(&ptr, &stepid);
-    job->hostname = getStringM(&ptr);
-
-    /* type (batch/interactiv) ?? */
-    job->state = JOB_QUEUED;
-    mdbg(PSSLURM_LOG_JOB, "%s: job '%u' in '%s'\n", __func__,
-	    job->jobid, strJobState(job->state));
-    job->mother = msg->header.sender;
-
-    psPelogueAddJob("psslurm", job->id, job->uid, job->gid,
-		    job->nrOfNodes, job->nodes, callbackPElogue);
-}
-
-static void handleJobInfo(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
-{
-    char *ptr = data->buf, jobid[MAX_JOBID_LEN];
-    Job_t *job;
-
-    getString(&ptr, jobid, sizeof(jobid));
-
-    mlog("%s: new slurm job info for '%s'  %s\n", __func__, jobid,
-	    PSC_printTID(msg->header.dest));
-
-    if (!(job = findJobByIdC(jobid))) {
-	mlog("%s: job '%s' not found\n", __func__, jobid);
-	return;
-    }
-
-    getUint32(&ptr, &job->np);
-    getStringArrayM(&ptr, &job->env.vars, &job->env.cnt);
-    job->env.size = job->env.cnt;
-    getStringArrayM(&ptr, &job->argv, &job->argc);
-    job->cwd = getStringM(&ptr);
-    job->stdOut = getStringM(&ptr);
-    job->stdIn = getStringM(&ptr);
-    job->stdErr = getStringM(&ptr);
-    getUint16(&ptr, &job->tpp);
-    getUint16(&ptr, &job->interactive);
-    getUint8(&ptr, &job->appendMode);
-    getUint16(&ptr, &job->accType);
-    getUint16(&ptr, &job->accFreq);
-
-    if (job->interactive) {
-	mlog("%s: interactive job: %i\n", __func__, job->interactive);
-
-    } else {
-	char *script;
-
-	mlog("%s: batch job: %i\n", __func__, job->interactive);
-	/* save jobscript */
-	script = getStringM(&ptr);
-
-	if (!(writeJobscript(job, script))) {
-	    /* TODO cancel job */
-	    //JOB_INFO_RES msg to proxy
-	}
-	ufree(script);
-	getUint32(&ptr, &job->arrayJobId);
-    }
-
-    job->extended = 1;
-
-    /* TODO start prologue, now ?? */
-    job->state = JOB_PROLOGUE;
-    mdbg(PSSLURM_LOG_JOB, "%s: job '%u' in '%s'\n", __func__,
-	    job->jobid, strJobState(job->state));
-
-    /* use pelogue plugin to start */
-    psPelogueStartPE("psslurm", job->id, 1, &job->env);
-
-    /* return result */
-    //JOB_INFO_RES msg to proxy
-}
-
-static void handleDeleteReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
-{
-    char *ptr = data->buf, jobid[MAX_JOBID_LEN];
-    Job_t *job;
-
-    /* slurm jobid */
-    getString(&ptr, jobid, sizeof(jobid));
-
-    /* make sure job is gone in pelogue */
-    psPelogueDeleteJob("psslurm", jobid);
-
-    if ((job = findJobByIdC(jobid))) {
-	/* check job state, and kill children, then delete job */
-	if (!(deleteJob(job->jobid))) {
-	    mlog("%s: unknown job with id '%s'\n", __func__, jobid);
-	}
-    } else {
-	mlog("%s: job '%s' not found\n", __func__, jobid);
-    }
-}
-
-static void handleTaskIds(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
-{
-    /*obsolete */
-
-    return;
-}
-
 void send_PS_JobLaunch(Job_t *job)
 {
     DDTypedBufferMsg_t msg;
@@ -832,27 +612,6 @@ static void handleFWslurmMsgRes(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     ufree(body.buf);
 }
 
-static void handleFWlaunchTasks(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
-{
-    Slurm_Msg_t sMsg;
-    uint32_t temp;
-    Connection_Forward_t fw;
-    char *ptr = data->buf;
-
-    initSlurmMsg(&sMsg);
-    getUint32(&ptr, &sMsg.head.addr);
-    getUint16(&ptr, &sMsg.head.port);
-    sMsg.ptr = ptr;
-
-    /* strip header and munge auth */
-    getSlurmMsgHeader(&sMsg, &fw);
-    getStringM(&sMsg.ptr);
-    getUint32(&sMsg.ptr, &temp);
-    getStringM(&sMsg.ptr);
-
-    handleLaunchTasks(&sMsg);
-}
-
 void handlePsslurmMsg(DDTypedBufferMsg_t *msg)
 {
     char sender[100], dest[100];
@@ -864,22 +623,6 @@ void handlePsslurmMsg(DDTypedBufferMsg_t *msg)
 	msg->type, sender, dest);
 
     switch (msg->type) {
-	case PSP_PROLOGUE_START:
-	case PSP_EPILOGUE_START:
-	    recvFragMsg(msg, handlePELogueStart);
-	    break;
-	case PSP_QUEUE:
-	    recvFragMsg(msg, handleQueueReq);
-	    break;
-	case PSP_JOB_INFO:
-	    recvFragMsg(msg, handleJobInfo);
-	    break;
-	case PSP_DELETE:
-	    recvFragMsg(msg, handleDeleteReq);
-	    break;
-	case PSP_TASK_IDS:
-	    recvFragMsg(msg, handleTaskIds);
-	    break;
 	case PSP_SIGNAL_TASKS:
 	    handle_PS_SignalTasks(msg);
 	    break;
@@ -901,8 +644,15 @@ void handlePsslurmMsg(DDTypedBufferMsg_t *msg)
 	case PSP_FORWARD_SMSG_RES:
 	    recvFragMsg(msg, handleFWslurmMsgRes);
 	    break;
+	/* obsolete, to be removed */
+	case PSP_PROLOGUE_START:
+	case PSP_EPILOGUE_START:
+	case PSP_QUEUE:
+	case PSP_JOB_INFO:
+	case PSP_DELETE:
+	case PSP_TASK_IDS:
 	case PSP_LAUNCH_TASKS:
-	    recvFragMsg(msg, handleFWlaunchTasks);
+	    mlog("%s: got obsolete msg type '%i'\n", __func__, msg->type);
 	    break;
 	default:
 	    mlog("%s: received unknown msg type:%i [%s -> %s]\n", __func__,

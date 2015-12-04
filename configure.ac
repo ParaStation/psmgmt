@@ -60,10 +60,6 @@ AC_ARG_WITH([pamdir], [AS_HELP_STRING([--with-pamdir=DIR],
   [pamdir='${libdir}/security'])
 AC_SUBST([pamdir])
 
-AX_CHECK_LIBRARY([SLURM], [slurm/spank.h], [slurm],
-  [ slurm_enabled=true ], [])
-AM_CONDITIONAL([SLURM_ENABLED], [test "x$slurm_enabled" = xtrue])
-
 AX_CHECK_LIBRARY([MUNGE], [munge.h], [munge],
   [ munge_enabled=true ], [])
 AM_CONDITIONAL([MUNGE_ENABLED], [test "x$munge_enabled" = xtrue])
@@ -134,7 +130,6 @@ AC_CONFIG_FILES(plugins/psslurm/Makefile)
 AC_CONFIG_FILES(plugins/psslurm/doc/Makefile)
 AC_CONFIG_FILES(plugins/psslurm/src/common/Makefile)
 AC_CONFIG_FILES(plugins/psslurm/src/psslurm/Makefile)
-AC_CONFIG_FILES(plugins/psslurm/src/psspank/Makefile)
 AC_CONFIG_FILES(scripts/Makefile)
 AC_CONFIG_FILES(tests/plugins/Makefile)
 AC_CONFIG_FILES(tests/functional/Makefile)

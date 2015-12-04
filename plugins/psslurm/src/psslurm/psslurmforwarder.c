@@ -60,6 +60,8 @@
 
 #define X11_AUTH_CMD "/usr/bin/xauth"
 
+#define MPIEXEC_BINARY BINDIR "/mpiexec"
+
 static int jobCallback(int32_t exit_status, char *errMsg,
 			size_t errLen, void *data)
 {
@@ -88,8 +90,9 @@ static int jobCallback(int32_t exit_status, char *errMsg,
 	job->state = JOB_EPILOGUE;
 	mdbg(PSSLURM_LOG_JOB, "%s: job '%u' in '%s'\n", __func__,
 		job->jobid, strJobState(job->state));
-	startPElogue(job->jobid, job->uid, job->gid, job->nrOfNodes, job->nodes,
-		    &job->env, &job->spankenv, 0, 0);
+	startPElogue(job->jobid, job->uid, job->gid, job->username,
+			job->nrOfNodes, job->nodes, &job->env,
+			&job->spankenv, 0, 0);
     }
 
     job->fwdata = NULL;
@@ -187,8 +190,9 @@ static int stepCallback(int32_t exit_status, char *errMsg,
 	mlog("%s: starting epilogue for step '%u:%u'\n", __func__, step->jobid,
 		step->stepid);
 	alloc->state = JOB_EPILOGUE;
-	startPElogue(step->jobid, step->uid, step->gid, step->nrOfNodes,
-			step->nodes, &step->env, &step->spankenv, 1, 0);
+	startPElogue(step->jobid, step->uid, step->gid, step->username,
+			step->nrOfNodes, step->nodes, &step->env,
+			&step->spankenv, 1, 0);
     }
 
     step->fwdata = NULL;
@@ -360,7 +364,7 @@ int handleExecClientUser(void *data)
 	/* restore malloc check set by user */
 	for (i=0; task->environ[i]; i++) {
 	    if (!(strncmp("MALLOC_CHECK_=", task->environ[i], 14))) {
-		putenv(strdup(task->environ[i]));
+		putenv(ustrdup(task->environ[i]));
 	    }
 	}
 
@@ -513,9 +517,6 @@ static void setupStepIO(Forwarder_Data_t *fwdata, Step_t *step)
 
 static void execJobStep(void *data, int rerun)
 {
-    /* TODO use correct path */
-#define MPIEXEC_BINARY "/opt/parastation/bin/mpiexec"
-
     Forwarder_Data_t *fwdata = data;
     Step_t *step = fwdata->userData;
     int argc = 0;

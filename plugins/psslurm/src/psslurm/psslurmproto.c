@@ -50,6 +50,7 @@
 #include "psaccounthandles.h"
 #include "peloguehandles.h"
 #include "pspamhandles.h"
+#include "psidnodes.h"
 
 #include "psslurmproto.h"
 
@@ -139,7 +140,7 @@ int writeJobscript(Job_t *job, char *script)
 
     if (!(fp = fopen(job->jobscript, "a"))) {
 	mlog("%s: open file '%s' failed\n", __func__, job->jobscript);
-	return 1;
+	return 0;
     }
 
     while ((written = fprintf(fp, "%s", script)) !=
@@ -147,12 +148,12 @@ int writeJobscript(Job_t *job, char *script)
 	if (errno == EINTR) continue;
 	mlog("%s: writing jobscript '%s' failed : %s\n", __func__,
 		job->jobscript, strerror(errno));
-	return 1;
+	return 0;
 	break;
     }
     fclose(fp);
 
-    return 0;
+    return 1;
 }
 
 static int needIOReplace(char *ioString, char symbol)
@@ -304,6 +305,23 @@ static void readStepAddr(Step_t *step, char **ptr, uint32_t msgAddr,
     step->srun.sin_port = msgPort;
 }
 
+static void setAccFreq(char **ptr)
+{
+    char acctg[128];
+    int freq;
+
+    getString(ptr, acctg, sizeof(acctg));
+
+    if (!(strncmp("task=", acctg, 5))) {
+	freq = atoi(acctg+5);
+
+	if (freq >0) {
+	    mlog("%s: setting acct freq to '%i'\n", __func__, freq);
+	    PSIDnodes_setAcctPollI(PSC_getMyID(), freq);
+	}
+    }
+}
+
 void handleLaunchTasks(Slurm_Msg_t *sMsg)
 {
     Alloc_t *alloc = NULL;
@@ -420,7 +438,7 @@ void handleLaunchTasks(Slurm_Msg_t *sMsg)
 	getString(ptr, jobOpt, sizeof(jobOpt));
     }
 
-    /* node alias ?? */
+    /* node alias */
     step->nodeAlias = getStringM(ptr);
     /* nodelist */
     step->slurmNodes = getStringM(ptr);
@@ -448,14 +466,14 @@ void handleLaunchTasks(Slurm_Msg_t *sMsg)
     getUint8(ptr, &step->appendMode);
     /* pty */
     getUint8(ptr, &step->pty);
-    /* acct freq */
-    step->accFreq = getStringM(ptr);
+    /* acctg freq */
+    setAccFreq(ptr);
     /* cpu freq */
     getUint32(ptr, &step->cpuFreq);
     step->checkpoint = getStringM(ptr);
     step->restart = getStringM(ptr);
 
-    /* TODO implement slurm jobinfo */
+    /* jobinfo plugin id */
     getUint32(ptr, &tmp);
 
     /* verify job credential */
@@ -500,8 +518,9 @@ void handleLaunchTasks(Slurm_Msg_t *sMsg)
 	    alloc->state = step->state = JOB_PROLOGUE;
 	    mdbg(PSSLURM_LOG_JOB, "%s: step '%u:%u' in '%s'\n", __func__,
 		    step->jobid, step->stepid, strJobState(step->state));
-	    startPElogue(alloc->jobid, alloc->uid, alloc->gid, alloc->nrOfNodes,
-			    alloc->nodes, &alloc->env, &alloc->spankenv, 1, 1);
+	    startPElogue(alloc->jobid, alloc->uid, alloc->gid, alloc->username,
+			    alloc->nrOfNodes, alloc->nodes, &alloc->env,
+			    &alloc->spankenv, 1, 1);
 	} else {
 	    step->state = JOB_PRESTART;
 	    mdbg(PSSLURM_LOG_JOB, "%s: step '%u:%u' in '%s'\n", __func__,
@@ -763,7 +782,7 @@ SEND_REPLY:
 
     sendReattchReply(step, sMsg, rc);
 
-    ufree(cred);
+    deleteJobCred(cred);
     ufree(ioPorts);
     ufree(ctlPorts);
 }
@@ -1296,8 +1315,8 @@ static void handleBatchJobLaunch(Slurm_Msg_t *sMsg)
     getUint32(ptr, &job->arrayJobId);
     /* array task id */
     getUint32(ptr, &job->arrayTaskId);
-    /* TODO: acctg_freq string */
-    getString(ptr, buf, sizeof(buf));
+    /* acctg freq */
+    setAccFreq(ptr);
     /* cpu bind type */
     getUint16(ptr, &job->cpuBindType);
     /* cpus per task */
@@ -1312,7 +1331,7 @@ static void handleBatchJobLaunch(Slurm_Msg_t *sMsg)
 
     /* node alias */
     job->nodeAlias = getStringM(ptr);
-    /* TODO: cpu bind string */
+    /* cpu bind string */
     getString(ptr, buf, sizeof(buf));
     /* nodelist */
     job->slurmNodes = getStringM(ptr);
@@ -1320,8 +1339,10 @@ static void handleBatchJobLaunch(Slurm_Msg_t *sMsg)
     /* jobscript */
     script = getStringM(ptr);
     if (!(writeJobscript(job, script))) {
-	/* TODO cancel job */
-	//JOB_INFO_RES msg to proxy
+	ufree(script);
+	sendSlurmRC(sMsg, ESLURMD_CREATE_BATCH_SCRIPT_ERROR);
+	deleteJob(job->jobid);
+	return;
     }
     ufree(script);
 
@@ -1354,7 +1375,7 @@ static void handleBatchJobLaunch(Slurm_Msg_t *sMsg)
 	return;
     }
 
-    /* TODO correct jobinfo plugin Id */
+    /* jobinfo plugin id */
     getUint32(ptr, &tmp);
 
     job->extended = 1;
@@ -1384,8 +1405,8 @@ static void handleBatchJobLaunch(Slurm_Msg_t *sMsg)
     mdbg(PSSLURM_LOG_JOB, "%s: job '%u' in '%s'\n", __func__,
 	    job->jobid, strJobState(job->state));
 
-    startPElogue(job->jobid, job->uid, job->gid, job->nrOfNodes, job->nodes,
-		    &job->env, &job->spankenv, 0, 1);
+    startPElogue(job->jobid, job->uid, job->gid, job->username, job->nrOfNodes,
+		    job->nodes, &job->env, &job->spankenv, 0, 1);
 }
 
 static void handleTerminateJob(Slurm_Msg_t *sMsg, Job_t *job, int signal)
@@ -1446,8 +1467,8 @@ static void handleTerminateJob(Slurm_Msg_t *sMsg, Job_t *job, int signal)
     job->state = JOB_EPILOGUE;
     mdbg(PSSLURM_LOG_JOB, "%s: job '%u' in '%s'\n", __func__,
 	    job->jobid, strJobState(job->state));
-    startPElogue(job->jobid, job->uid, job->gid, job->nrOfNodes, job->nodes,
-		    &job->env, &job->spankenv, 0, 0);
+    startPElogue(job->jobid, job->uid, job->gid, job->username, job->nrOfNodes,
+		    job->nodes, &job->env, &job->spankenv, 0, 0);
 }
 
 static void handleTerminateAlloc(Slurm_Msg_t *sMsg, Alloc_t *alloc)
@@ -1488,8 +1509,8 @@ static void handleTerminateAlloc(Slurm_Msg_t *sMsg, Alloc_t *alloc)
 			__func__, alloc->jobid, strJobState(alloc->state));
 		alloc->state = JOB_EPILOGUE;
 		startPElogue(alloc->jobid, alloc->uid, alloc->gid,
-				alloc->nrOfNodes, alloc->nodes, &alloc->env,
-				&alloc->spankenv, 1, 0);
+				alloc->username, alloc->nrOfNodes, alloc->nodes,
+				&alloc->env, &alloc->spankenv, 1, 0);
 	    }
 	    break;
 	case JOB_PROLOGUE:
@@ -1588,7 +1609,7 @@ static void handleKillReq(Slurm_Msg_t *sMsg, uint32_t jobid,
     }
 
     if (time) {
-	if (!job && step) {
+	if (step) {
 	    snprintf(buf, sizeof(buf), "error: *** step %u CANCELLED DUE TO"
 			" TIME LIMIT ***\n", jobid);
 	    printChildMessage(step, buf, strlen(buf), STDERR, 0);
@@ -1598,7 +1619,7 @@ static void handleKillReq(Slurm_Msg_t *sMsg, uint32_t jobid,
 	    mlog("%s: timeout for job '%u'\n", __func__, jobid);
 	}
     } else {
-	if (!job && step) {
+	if (step) {
 	    snprintf(buf, sizeof(buf), "error: *** PREEMPTION for step "
 		    "%u ***\n", jobid);
 	    printChildMessage(step, buf, strlen(buf), STDERR, 0);
@@ -1646,6 +1667,9 @@ static void handleTerminateReq(Slurm_Msg_t *sMsg)
 
     mlog("%s: jobid '%u:%u' slurm_jobstate '%u' uid '%u' type '%i'\n", __func__,
 	    jobid, stepid, jobstate, uid, sMsg->head.type);
+
+    /* restore account freq */
+    PSIDnodes_setAcctPollI(PSC_getMyID(), confAccPollTime);
 
     /* find the corresponding job/allocation */
     job = findJobById(jobid);
@@ -2107,7 +2131,6 @@ int addSlurmAccData(uint8_t accType, pid_t childPid, PStask_ID_t loggerTID,
 	return 0;
     }
 
-    /* TODO get all real values */
     addUint8ToMsg(1, data);
 
     if (childPid) {
@@ -2138,13 +2161,12 @@ int addSlurmAccData(uint8_t accType, pid_t childPid, PStask_ID_t loggerTID,
 
     mlog("%s: adding account data: maxVsize '%zu' maxRss '%zu' pageSize '%lu' "
 	    "u_sec '%lu' u_usec '%lu' s_sec '%lu' s_usec '%lu' "
-	    "num_tasks '%u' avgVsizeTotal '%lu' avgRssTotal '%lu' avg cpufreq '%.2fG'\n",
-	    __func__, accData.maxVsize, accData.maxRss, accData.pageSize,
-	    accData.rusage.ru_utime.tv_sec,
-	    accData.rusage.ru_utime.tv_usec,
-	    accData.rusage.ru_stime.tv_sec,
-	    accData.rusage.ru_stime.tv_usec,
-	    accData.numTasks, accData.avgVsizeTotal, accData.avgRssTotal,
+	    "num_tasks '%u' avgVsizeTotal '%lu' avgRssTotal '%lu' avg cpufreq "
+	    "'%.2fG'\n", __func__, accData.maxVsize, accData.maxRss,
+	    accData.pageSize, accData.rusage.ru_utime.tv_sec,
+	    accData.rusage.ru_utime.tv_usec, accData.rusage.ru_stime.tv_sec,
+	    accData.rusage.ru_stime.tv_usec, accData.numTasks,
+	    accData.avgVsizeTotal, accData.avgRssTotal,
 	    ((double) accData.cpuFreq / (double) accData.numTasks)
 		/ (double) 1048576);
 

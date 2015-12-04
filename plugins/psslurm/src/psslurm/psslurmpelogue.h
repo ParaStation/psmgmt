@@ -18,9 +18,9 @@
 #ifndef __PS_SLURM_PELOGUE
 #define __PS_SLURM_PELOGUE
 
-void startPElogue(uint32_t jobid, uid_t uid, gid_t gid, uint32_t nrOfNodes,
-		    PSnodes_ID_t *nodes, env_t *env, env_t *spankenv,
-		    int step, int prologue);
+void startPElogue(uint32_t jobid, uid_t uid, gid_t gid, char *username,
+		    uint32_t nrOfNodes, PSnodes_ID_t *nodes, env_t *env,
+		    env_t *spankenv, int step, int prologue);
 
 int handlePElogueFinish(void *data);
 

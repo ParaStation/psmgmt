@@ -654,10 +654,6 @@ MUNGE_ENABLED_FALSE
 MUNGE_ENABLED_TRUE
 MUNGE_LDFLAGS
 MUNGE_CPPFLAGS
-SLURM_ENABLED_FALSE
-SLURM_ENABLED_TRUE
-SLURM_LDFLAGS
-SLURM_CPPFLAGS
 pamdir
 PAM_ENABLED_FALSE
 PAM_ENABLED_TRUE
@@ -809,8 +805,6 @@ LDFLAGS
 LIBS
 CPPFLAGS
 CPP
-SLURM_CPPFLAGS
-SLURM_LDFLAGS
 MUNGE_CPPFLAGS
 MUNGE_LDFLAGS
 PKG_CONFIG
@@ -1475,10 +1469,6 @@ Some influential environment variables:
   CPPFLAGS    (Objective) C/C++ preprocessor flags, e.g. -I<include dir> if
               you have headers in a nonstandard directory <include dir>
   CPP         C preprocessor
-  SLURM_CPPFLAGS
-              C preprocessor flags for SLURM headers
-  SLURM_LDFLAGS
-              linker flags for SLURM libraries
   MUNGE_CPPFLAGS
               C preprocessor flags for MUNGE headers
   MUNGE_LDFLAGS
@@ -11848,91 +11838,6 @@ fi
 
 
 
-  if ${ax_cv_have_SLURM+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  save_CPPFLAGS="$CPPFLAGS"
-     save_LDFLAGS="$LDFLAGS"
-     save_LIBS="$LIBS"
-
-     if test "x$SLURM_CPPFLAGS" != "x"; then :
-  CPPFLAGS="$CPPFLAGS $SLURM_CPPFLAGS"
-fi
-
-     if test "x$SLURM_LDFLAGS" != "x"; then :
-  LDFLAGS="$LDFLAGS $SLURM_LDFLAGS"
-fi
-
-     ac_fn_c_check_header_mongrel "$LINENO" "slurm/spank.h" "ac_cv_header_slurm_spank_h" "$ac_includes_default"
-if test "x$ac_cv_header_slurm_spank_h" = xyes; then :
-
-       { $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -lslurm" >&5
-$as_echo_n "checking for main in -lslurm... " >&6; }
-if ${ac_cv_lib_slurm_main+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-lslurm  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-
-int
-main ()
-{
-return main ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_slurm_main=yes
-else
-  ac_cv_lib_slurm_main=no
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_slurm_main" >&5
-$as_echo "$ac_cv_lib_slurm_main" >&6; }
-if test "x$ac_cv_lib_slurm_main" = xyes; then :
-  ax_cv_have_SLURM=yes
-else
-  ax_cv_have_SLURM=no
-fi
-
-
-else
-  ax_cv_have_SLURM=no
-fi
-
-
-
-     CPPFLAGS="$save_CPPFLAGS"
-     LDFLAGS="$save_LDFLAGS"
-     LIBS="$save_LIBS"
-
-fi
-
-
-  if test "$ax_cv_have_SLURM" = "yes"; then :
-   slurm_enabled=true
-fi
-
- if test "x$slurm_enabled" = xtrue; then
-  SLURM_ENABLED_TRUE=
-  SLURM_ENABLED_FALSE='#'
-else
-  SLURM_ENABLED_TRUE='#'
-  SLURM_ENABLED_FALSE=
-fi
-
-
-
-
-
-
   if ${ax_cv_have_MUNGE+:} false; then :
   $as_echo_n "(cached) " >&6
 else
@@ -12753,8 +12658,6 @@ ac_config_files="$ac_config_files plugins/psslurm/src/common/Makefile"
 
 ac_config_files="$ac_config_files plugins/psslurm/src/psslurm/Makefile"
 
-ac_config_files="$ac_config_files plugins/psslurm/src/psspank/Makefile"
-
 ac_config_files="$ac_config_files scripts/Makefile"
 
 ac_config_files="$ac_config_files tests/plugins/Makefile"
@@ -12937,10 +12840,6 @@ Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${PAM_ENABLED_TRUE}" && test -z "${PAM_ENABLED_FALSE}"; then
   as_fn_error $? "conditional \"PAM_ENABLED\" was never defined.
-Usually this means the macro was only invoked conditionally." "$LINENO" 5
-fi
-if test -z "${SLURM_ENABLED_TRUE}" && test -z "${SLURM_ENABLED_FALSE}"; then
-  as_fn_error $? "conditional \"SLURM_ENABLED\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${MUNGE_ENABLED_TRUE}" && test -z "${MUNGE_ENABLED_FALSE}"; then
@@ -13833,7 +13732,6 @@ do
     "plugins/psslurm/doc/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/psslurm/doc/Makefile" ;;
     "plugins/psslurm/src/common/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/psslurm/src/common/Makefile" ;;
     "plugins/psslurm/src/psslurm/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/psslurm/src/psslurm/Makefile" ;;
-    "plugins/psslurm/src/psspank/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/psslurm/src/psspank/Makefile" ;;
     "scripts/Makefile") CONFIG_FILES="$CONFIG_FILES scripts/Makefile" ;;
     "tests/plugins/Makefile") CONFIG_FILES="$CONFIG_FILES tests/plugins/Makefile" ;;
     "tests/functional/Makefile") CONFIG_FILES="$CONFIG_FILES tests/functional/Makefile" ;;

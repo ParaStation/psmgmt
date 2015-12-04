@@ -19,19 +19,19 @@
 #define __PS_PSSLURM_MSG
 
 typedef enum {
-    PSP_QUEUE = 3,
-    PSP_QUEUE_RES,
-    PSP_START,
-    PSP_START_RES,
-    PSP_DELETE,
-    PSP_DELETE_RES,
-    PSP_PROLOGUE_START,
-    PSP_PROLOGUE_RES,
-    PSP_EPILOGUE_START,
-    PSP_EPILOGUE_RES,
-    PSP_JOB_INFO,
-    PSP_JOB_INFO_RES,
-    PSP_TASK_IDS,
+    PSP_QUEUE = 3,	    /* obsolete */
+    PSP_QUEUE_RES,	    /* obsolete */
+    PSP_START,		    /* obsolete */
+    PSP_START_RES,	    /* obsolete */
+    PSP_DELETE,		    /* obsolete */
+    PSP_DELETE_RES,	    /* obsolete */
+    PSP_PROLOGUE_START,	    /* obsolete */
+    PSP_PROLOGUE_RES,	    /* obsolete */
+    PSP_EPILOGUE_START,	    /* obsolete */
+    PSP_EPILOGUE_RES,	    /* obsolete */
+    PSP_JOB_INFO,	    /* obsolete */
+    PSP_JOB_INFO_RES,	    /* obsolete */
+    PSP_TASK_IDS,	    /* obsolete */
     PSP_REMOTE_JOB,	    /* obsolete */
     PSP_SIGNAL_TASKS,
     PSP_JOB_EXIT,

@@ -92,10 +92,6 @@ int testMungeAuth(char **ptr, Slurm_Msg_Header_t *msgHead)
     return 1;
 }
 
-/*
-TODO make cred work for job_t and step_t. First extract cred.
-Then check in separate steps.
-*/
 int checkStepCred(Step_t *step)
 {
     JobCred_t *cred;

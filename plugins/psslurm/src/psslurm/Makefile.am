@@ -42,7 +42,7 @@ psslurm_la_SOURCES = psslurm.c psslurm.h psslurmlog.c psslurmlog.h \
 	psslurmpelogue.c
 
 psslurm_la_CPPFLAGS = $(AM_CPPFLAGS) -DPLUGINDIR=\"$(plugindir)\" \
-	-DLOCALSTATEDIR=\"$(localstatedir)\"
+	-DLOCALSTATEDIR=\"$(localstatedir)\" -DBINDIR=\"$(bindir)\"
 
 psslurm_la_LIBADD = $(libpsi) $(libplugincommon) $(libslurmcommon) $(NUMA_LIBS)
 

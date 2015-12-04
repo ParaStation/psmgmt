@@ -77,6 +77,7 @@ Job_t *addJob(uint32_t jobid)
     job->checkpoint = NULL;
     job->restart = NULL;
     job->argc = 0;
+    job->argv = NULL;
     job->hostname = NULL;
     job->slurmNodes = NULL;
     job->nodeAlias = NULL;
@@ -168,7 +169,6 @@ Step_t *addStep(uint32_t jobid, uint32_t stepid)
     step->stdOut = NULL;
     step->stdIn = NULL;
     step->stdErr = NULL;
-    step->accFreq = NULL;
     step->restart = NULL;
     step->checkpoint = NULL;
     step->fwdata = NULL;
@@ -312,7 +312,6 @@ BCast_t *addBCast(int socket)
     BCast_t *bcast;
 
     bcast = (BCast_t *) umalloc(sizeof(BCast_t));
-    bcast->msg.sock = socket;
     bcast->sig = NULL;
     bcast->username = NULL;
     bcast->fileName = NULL;
@@ -320,6 +319,7 @@ BCast_t *addBCast(int socket)
     bcast->fwdata = NULL;
     bcast->sigLen = 0;
     initSlurmMsg(&bcast->msg);
+    bcast->msg.sock = socket;
 
     list_add_tail(&(bcast->list), &BCastList.list);
 
@@ -600,7 +600,6 @@ int deleteStep(uint32_t jobid, uint32_t stepid)
     ufree(step->stdOut);
     ufree(step->stdIn);
     ufree(step->stdErr);
-    ufree(step->accFreq);
     ufree(step->restart);
     ufree(step->checkpoint);
     ufree(step->partition);

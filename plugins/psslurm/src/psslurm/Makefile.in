@@ -297,8 +297,6 @@ RL_LIBS = @RL_LIBS@
 SED = @SED@
 SET_MAKE = @SET_MAKE@
 SHELL = @SHELL@
-SLURM_CPPFLAGS = @SLURM_CPPFLAGS@
-SLURM_LDFLAGS = @SLURM_LDFLAGS@
 STRIP = @STRIP@
 VERSION = @VERSION@
 abs_builddir = @abs_builddir@
@@ -421,7 +419,7 @@ psslurm_la_SOURCES = psslurm.c psslurm.h psslurmlog.c psslurmlog.h \
 	psslurmpelogue.c
 
 psslurm_la_CPPFLAGS = $(AM_CPPFLAGS) -DPLUGINDIR=\"$(plugindir)\" \
-	-DLOCALSTATEDIR=\"$(localstatedir)\"
+	-DLOCALSTATEDIR=\"$(localstatedir)\" -DBINDIR=\"$(bindir)\"
 
 psslurm_la_LIBADD = $(libpsi) $(libplugincommon) $(libslurmcommon) $(NUMA_LIBS)
 all: all-am

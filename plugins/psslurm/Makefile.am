@@ -13,7 +13,3 @@
 include $(top_srcdir)/common.am
 
 SUBDIRS = doc src/common src/psslurm
-
-if SLURM_ENABLED
-SUBDIRS += src/psspank
-endif

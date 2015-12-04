@@ -94,9 +94,9 @@ void handleAccountEnd(DDTypedBufferMsg_t *msg, int remote)
 	    job->complete = 1;
 
 	    if (job->childsExit < job->nrOfChilds) {
-		mlog("%s: logger '%i' exited, but '%i' children are still "
-		    "alive\n", __func__, logger, (job->nrOfChilds -
-		    job->childsExit));
+		mdbg(PSACC_LOG_VERBOSE, "%s: logger '%i' exited, but '%i' "
+			"children are still alive\n", __func__, logger,
+			(job->nrOfChilds - job->childsExit));
 		job->grace = 1;
 	    } else {
 		/* psmom does not need the job, we can delete it */

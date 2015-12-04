@@ -43,6 +43,7 @@
 #include "psdaemonprotocol.h"
 #include "psidplugin.h"
 #include "psidhook.h"
+#include "psidnodes.h"
 #include "plugin.h"
 #include "timer.h"
 #include "psaccounthandles.h"
@@ -63,6 +64,8 @@ static int cleanupTimerID = -1;
 static int obitTime = 10;
 
 static int isInit = 0;
+
+int confAccPollTime;
 
 uid_t slurmUserID = 495;
 
@@ -428,6 +431,11 @@ int initialize(void)
 	mdbg(PSSLURM_LOG_WARN, "timer facility not ready, trying to initialize"
 	    " it\n");
 	Timer_init(NULL);
+    }
+
+    /* save default account poll time */
+    if ((confAccPollTime = PSIDnodes_acctPollI(PSC_getMyID())) < 0) {
+	confAccPollTime = 30;
     }
 
     /* save the slurm user id */

@@ -471,11 +471,10 @@ static int handleSlurmctldReply(Slurm_Msg_t *sMsg)
     getUint32(ptr, &rc);
 
     if (rc != SLURM_SUCCESS) {
-	mdbg(PSSLURM_LOG_PROTO, "%s: error: msg '%s' rc '%u'\n", __func__,
-		msgType2String(sMsg->head.type), rc);
+	mdbg(PSSLURM_LOG_PROTO, "%s: error: msg '%s' rc '%u' sock '%i'\n",
+		__func__, msgType2String(sMsg->head.type), rc, sMsg->sock);
     }
 
-    /* TODO handle the message */
     if (sMsg->source == -1) {
 	closeConnection(sMsg->sock);
     }

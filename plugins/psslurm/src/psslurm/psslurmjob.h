@@ -195,7 +195,6 @@ typedef struct {
     uint8_t labelIO;
     uint16_t accType;
     char *nodeAlias;
-    char *accFreq;
     uint32_t cpuFreq;
     char *checkpoint;
     char *restart;
@@ -250,7 +249,6 @@ typedef struct {
     uint16_t interactive;   /* interactive(1) or batch(0) job */
     uint16_t extended;	    /* full integrated mode */
     uint16_t accType;
-    uint16_t accFreq;
     uint8_t appendMode;	    /* stdout/stderr will truncate(=0) / append(=1) */
     uint32_t arrayJobId;
     uint32_t arrayTaskId;
