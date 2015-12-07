@@ -158,6 +158,9 @@ void send_PS_JobLaunch(Job_t *job)
     addUint32ToMsg(job->gid, &data);
     addStringToMsg(job->username, &data);
 
+    /* node list */
+    addInt16ArrayToMsg(job->nodes, job->nrOfNodes, &data);
+
     /* send the messages */
     msg = (DDTypedBufferMsg_t) {
        .header = (DDMsg_t) {
@@ -436,6 +439,9 @@ static void handle_PS_JobLaunch(DDTypedBufferMsg_t *msg)
 
     /* get username */
     job->username = getStringM(&ptr);
+
+    /* get nodelist */
+    getInt16Array(&ptr, &job->nodes, &job->nrOfNodes);
 
     mlog("%s: jobid '%u' user '%s' from '%s'\n", __func__, jobid, job->username,
 	    PSC_printTID(msg->header.sender));
