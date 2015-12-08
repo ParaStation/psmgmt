@@ -7,3 +7,6 @@
 
 # Set various hard resources limits (comma separated list, unlimited = -1)
 #RLIMITS_HARD = RLIMIT_CORE=-1
+
+# Set default membind type (string, values: {none|local}, default: local)
+#MEMBIND_DEFAULT = local
