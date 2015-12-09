@@ -672,11 +672,12 @@ static int genThreads(PSpart_slot_t *slots, uint32_t num,
 int setHWthreads(Step_t *step)
 {
     uint32_t node, local_tid, tid, slotsSize, cpuCount, i, shift;
-    uint32_t coreMapIndex = 0, coreIndex = 0, coreArrayCount = 0;
+    uint32_t coreMapIndex = 0, coreArrayIndex = 0, coreArrayCount = 0;
     uint8_t *coreMap = NULL;
     int32_t lastCpu;
     int hwThreads, thread = 0, numThreads;
     JobCred_t *cred = NULL;
+    Job_t *job;
     PSpart_slot_t *slots = NULL;
     PSCPU_set_t CPUset;
 
@@ -694,33 +695,70 @@ int setHWthreads(Step_t *step)
 	goto error;
     }
 
+    /* find start index for this step in core map that is job global */
+    job = findJobById(step->jobid);
+    if (job) {
+	for (node=0; job && node < job->nrOfNodes; node++) {
+
+	    if (job->nodes[node] == step->nodes[0]) {
+		/* we found the first node of our step */
+		mdbg(PSSLURM_LOG_PART, "%s: step start found: job node '%u'"
+			" nodeid '%u' coreMapIndex '%u' coreArrayCount '%u'"
+			" coreArrayIndex '%u'\n", __func__, node,
+			job->nodes[node], coreMapIndex, coreArrayCount,
+			coreArrayIndex);
+		break;
+	    }
+
+	    /* get cpu count per node from job credential */
+	    if (coreArrayIndex >= cred->coreArraySize) {
+		mlog("%s: invalid core array index '%i', size '%i'\n",
+			__func__, coreArrayIndex, cred->coreArraySize);
+		goto error;
+	    }
+	    cpuCount = cred->coresPerSocket[coreArrayIndex]
+			* cred->socketsPerNode[coreArrayIndex];
+
+	    /* update global core map index to first core of the next node */
+	    coreMapIndex += cpuCount;
+
+	    coreArrayCount++;
+	    if (coreArrayCount >= cred->sockCoreRepCount[coreArrayIndex]) {
+		coreArrayIndex++;
+		coreArrayCount = 0;
+	    }
+	}
+    }
+
     for (node=0; node < step->nrOfNodes; node++) {
 	thread = 0;
 
 	/* get cpu count per node from job credential */
-	if (coreIndex >= cred->coreArraySize) {
-	    mlog("%s: invalid core index '%i', size '%i'\n", __func__,
-		    coreIndex, cred->coreArraySize);
+	if (coreArrayIndex >= cred->coreArraySize) {
+	    mlog("%s: invalid core array index '%i', size '%i'\n", __func__,
+		    coreArrayIndex, cred->coreArraySize);
 	    goto error;
 	}
 
-	cpuCount =
-	    cred->coresPerSocket[coreIndex] * cred->socketsPerNode[coreIndex];
+	cpuCount = cred->coresPerSocket[coreArrayIndex]
+		    * cred->socketsPerNode[coreArrayIndex];
 
 	hwThreads = PSIDnodes_getVirtCPUs(step->nodes[node]) / cpuCount;
 	if (hwThreads < 1) hwThreads = 1;
 
 	lastCpu = -1; /* no cpu assigned yet */
 
-	/* set node and cpuset for every task */
+	/* set node and cpuset for every task on this node */
 	for (local_tid=0; local_tid < step->globalTaskIdsLen[node];
 		local_tid++) {
 
 	    tid = step->globalTaskIds[node][local_tid];
 
 	    mdbg(PSSLURM_LOG_PART, "%s: node '%u' nodeid '%u' task '%u' tid"
-		    " '%u'\n", __func__, node, step->nodes[node], local_tid,
-		    tid);
+		    " '%u' coreMapIndex '%u' coreArrayCount '%u'"
+		    " coreArrayIndex '%u'\n", __func__, node, step->nodes[node],
+		    local_tid, tid, coreMapIndex, coreArrayCount,
+		    coreArrayIndex);
 
 	    /* sanity check */
 	    if (tid > slotsSize) {
@@ -731,8 +769,8 @@ int setHWthreads(Step_t *step)
 
 	    /* calc CPUset */
 	    setCPUset(&CPUset, step->cpuBindType, step->cpuBind, coreMap,
-		    coreMapIndex, cred->socketsPerNode[coreIndex],
-		    cred->coresPerSocket[coreIndex], cpuCount, &lastCpu,
+		    coreMapIndex, cred->socketsPerNode[coreArrayIndex],
+		    cred->coresPerSocket[coreArrayIndex], cpuCount, &lastCpu,
 		    node, &thread, hwThreads, step->globalTaskIdsLen[node],
 		    step->tpp, local_tid);
 
@@ -746,7 +784,7 @@ int setHWthreads(Step_t *step)
 		    && (step->taskDist == SLURM_DIST_BLOCK_CYCLIC
 			|| step->taskDist == SLURM_DIST_CYCLIC_CYCLIC)) {
 		PSCPU_clrAll(slots[tid].CPUset);
-		shift = local_tid % 2 ? cred->coresPerSocket[coreIndex] : 0;
+		shift = local_tid % 2 ? cred->coresPerSocket[coreArrayIndex] : 0;
 		shift = shift - step->tpp * ((local_tid + 1) / 2);
 		for (i = 0; i < (cpuCount * hwThreads); i++) {
 		    if (PSCPU_isSet(CPUset, i)) {
@@ -763,17 +801,24 @@ int setHWthreads(Step_t *step)
 	    else {
 		PSCPU_copy(slots[tid].CPUset, CPUset);
 	    }
+
 	}
+
+	/* update global core map index to first core of the next node */
 	coreMapIndex += cpuCount;
 
 	coreArrayCount++;
-	if (coreArrayCount >= cred->sockCoreRepCount[coreIndex]) {
-	    coreIndex++;
+	if (coreArrayCount >= cred->sockCoreRepCount[coreArrayIndex]) {
+	    coreArrayIndex++;
 	    coreArrayCount = 0;
 	}
     }
 
     if ((numThreads = genThreads(slots, slotsSize, &step->hwThreads)) < 0) {
+	goto error;
+    }
+    if (numThreads == 0) {
+	mlog("%s: Error: numThreads == 0\n", __func__);
 	goto error;
     }
     step->numHwThreads = numThreads;

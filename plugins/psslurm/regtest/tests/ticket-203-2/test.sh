@@ -6,6 +6,6 @@ gcc -fopenmp prog.c -o output-${JOB_NAME}/prog.exe
 
 (
 	ulimit -t 10
-	env OMP_NUM_THREADS=8 srun -n 2 --cpu_bind=none output-${JOB_NAME}/prog.exe
+	env OMP_NUM_THREADS=8 srun -n 2 --cpu_bind=none --propagate=CPU output-${JOB_NAME}/prog.exe
 )
 

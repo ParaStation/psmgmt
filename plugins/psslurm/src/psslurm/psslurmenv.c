@@ -627,7 +627,11 @@ void setStepEnv(Step_t *step)
     envUnset(&step->env, "SLURM_MPI_TYPE");
 
     /* handle memory mapping */
-    if (step->memBindType & MEM_BIND_NONE) {
+    val = getConfValueC(&Config, "MEMBIND_DEFAULT");
+    if (step->memBindType & MEM_BIND_NONE ||
+	    (!(step->memBindType & (MEM_BIND_RANK | MEM_BIND_MAP |
+				    MEM_BIND_MASK | MEM_BIND_LOCAL)) &&
+		    (strcmp(val, "none") == 0))) {
 	envSet(&step->env, "__PSI_NO_MEMBIND", "1");
     }
 

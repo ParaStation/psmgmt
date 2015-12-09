@@ -101,6 +101,10 @@ const ConfDef_t CONFIG_VALUES[] =
 	"bool",
 	"0",
 	"Distribute mpiexec service processes at startup" },
+    { "MEMBIND_DEFAULT", 0,
+	"string",
+	"local",
+	"Default value to be used for memory binding (none|local)" },
     { NULL, 0, NULL, NULL, NULL },
 };
 
