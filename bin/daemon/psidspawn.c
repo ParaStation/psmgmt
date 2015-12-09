@@ -1938,8 +1938,9 @@ static void CloneEnvFromTasks(PStask_t *task)
 	}
     }
 
-    PSID_log(-1, "%s: No sister for task '%s' ", __func__,
-		PSC_printTID(task->tid));
+    PSID_log(-1, "%s: No sister for task '%s' rank '%i' ", __func__,
+		PSC_printTID(task->tid), task->rank);
+    PSID_log(-1, "ptid '%s' ", PSC_printTID(task->ptid));
     PSID_log(-1, "logger '%s' found\n", PSC_printTID(task->loggertid));
 }
 
