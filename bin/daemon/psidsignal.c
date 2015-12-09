@@ -273,9 +273,10 @@ void PSID_sendSignal(PStask_ID_t tid, uid_t uid, PStask_ID_t sender,
 	    int ret, sig = (signal!=-1) ? signal : dest->relativesignal;
 
 	    if (signal == -1) {
-		/* Kill using SIGKILL in 10 seconds */
-		if (sig == SIGTERM && !dest->killat) {
-		    dest->killat = time(NULL) + 10;
+		int delay = PSIDnodes_killDelay(PSC_getMyID());
+		/* Kill using SIGKILL in some seconds */
+		if (sig == SIGTERM && delay && !dest->killat) {
+		    dest->killat = time(NULL) + delay;
 		    if (dest->group == TG_LOGGER) dest->killat++;
 		}
 		/* Let's listen to this client again */
@@ -948,6 +949,13 @@ static int releaseTask(PStask_t *task)
 		PSID_log(PSID_LOG_TASK|PSID_LOG_SIGNAL,
 			 "%s: notify child %s\n",
 			 __func__, PSC_printTID(child));
+
+		if (task->group == TG_KVS && task->noParricide) {
+		    /* Avoid inheritance to prevent parricide */
+		    PSID_removeSignal(&task->assignedSigs, child, sig);
+		    sig = -1;
+		    continue;
+		}
 
 		/* Send child new ptid */
 		inheritMsg.header.type = PSP_DD_NEWPARENT;

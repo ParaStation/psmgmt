@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2014 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2015 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -77,6 +77,8 @@ typedef struct {
 			    does not declare a different one explicitely. */
     int acctPollInterval;/**< Interval of forwarder to poll for accounting
 			    info. No polling for 0 (the default). */
+    int killDelay;       /**< Number of seconds to wait before SIGKILL
+			    is following a SIGTERM from relatives. */
     list_t plugins;      /**< Names of plugins scheduled to be loaded on
 			    startup */
     char *startupScript; /**< Script called during daemon's startup */

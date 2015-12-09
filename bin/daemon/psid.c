@@ -451,6 +451,24 @@ static void handleSIGUSR2(void)
 }
 
 /**
+ * @brief Handling of SIGUSR2
+ *
+ * Handling of SIGUSR2 is suppressed most of the time in order to
+ * prevent receiving it in a critical situation, i.e. while in
+ * malloc() and friends. This has to be prevented since SIGUSR2's only
+ * purpose is to call malloc_trim() which will block if called from
+ * within malloc() and friends.
+ *
+ * It is save to handle SIGURS2 from within the main-loop. Thus, this
+ * function should be registered via @ref PSID_registerLoopAct().
+ */
+static void handleSIGUSR2(void)
+{
+    PSID_blockSig(0, SIGUSR2);
+    PSID_blockSig(1, SIGUSR2);
+}
+
+/**
  * @brief Print welcome
  *
  * Print a welcome message to the current log destination.
@@ -740,6 +758,7 @@ int main(int argc, const char *argv[])
     PSIDnodes_setProtoV(PSC_getMyID(), PSProtocolVersion);
     PSIDnodes_setDmnProtoV(PSC_getMyID(), PSDaemonProtocolVersion);
     PSIDnodes_setHWStatus(PSC_getMyID(), 0);
+    PSIDnodes_setKillDelay(PSC_getMyID(), config->killDelay);
 
     /* Bring node up with correct numbers of CPUs */
     if (!Selector_isInitialized()) Selector_init(logfile);

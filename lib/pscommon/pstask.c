@@ -102,6 +102,7 @@ int PStask_init(PStask_t* task)
     task->suspended = 0;
     task->removeIt = 0;
     task->deleted = 0;
+    task->noParricide = 0;
     task->killat = 0;
     gettimeofday(&task->started, NULL);
     task->protocolVersion = -1;
@@ -368,6 +369,7 @@ PStask_t* PStask_clone(PStask_t* task)
     clone->suspended = task->suspended;
     clone->removeIt = task->removeIt;
     clone->deleted = task->deleted;
+    clone->noParricide = task->noParricide;
     clone->killat = task->killat;
     gettimeofday(&clone->started, NULL);
     clone->protocolVersion = task->protocolVersion;
@@ -482,6 +484,7 @@ static struct {
     int32_t rank;
     PStask_ID_t loggertid;
     int32_t argc;
+    int32_t noParricide;
 } tmpTask;
 
 static char someStr[256];
@@ -578,6 +581,7 @@ size_t PStask_encodeTask(char *buffer, size_t size, PStask_t *task, char **off)
     tmpTask.rank = task->rank;
     tmpTask.loggertid = task->loggertid;
     tmpTask.argc = task->argc;
+    tmpTask.noParricide = task->noParricide;
 
     memcpy(buffer, &tmpTask, sizeof(tmpTask));
 
@@ -632,6 +636,7 @@ int PStask_decodeTask(char *buffer, PStask_t *task)
     task->rank = tmpTask.rank;
     task->loggertid = tmpTask.loggertid;
     task->argc = tmpTask.argc;
+    task->noParricide = tmpTask.noParricide;
 
     len = strlen(&buffer[msglen]);
 

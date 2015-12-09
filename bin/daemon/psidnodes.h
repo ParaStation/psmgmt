@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2011 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2015 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -10,7 +10,7 @@
  */
 /**
  * @file
- * Functions for handling the various informations about the nodes
+ * Functions for handling the various information about the nodes
  * within the ParaStation daemon
  *
  * $Id$
@@ -43,9 +43,9 @@ extern "C" {
  * This is mainly a wrapper of @ref PSIDnodes_grow().
  *
  * @param numNodes Number of nodes the PSIDnodes module is capable to
- * handle after successful returnd of this function.
+ * handle after successful return of this function.
  *
- * @return On success, 0 is returned or -1, if an error occured.
+ * @return On success, 0 is returned. Or -1 if an error occurred.
  */
 int PSIDnodes_init(PSnodes_ID_t numNodes);
 
@@ -55,15 +55,15 @@ int PSIDnodes_init(PSnodes_ID_t numNodes);
  * Re-initialize the PSIDnodes module and enable it to handle up to @a
  * numNodes nodes.
  *
- * Usually this function is called implicitely as soon as @ref
+ * Usually this function is called implicitly as soon as @ref
  * PSIDnodes_register() is called to register a new node which ID will
  * be out of the current range. @ref PSIDnodes_register() will grow
  * the number of nodes in chunks of 64 nodes.
  *
  * @param numNodes Number of nodes the PSIDnodes module is capable to
- * handle after successful returnd of this function.
+ * handle after successful return of this function.
  *
- * @return On success, 0 is returned or -1, if an error occured.
+ * @return On success, 0 is returned or -1 if an error occurred.
  */
 int PSIDnodes_grow(PSnodes_ID_t numNodes);
 
@@ -103,7 +103,7 @@ PSnodes_ID_t PSIDnodes_getMaxID(void);
  *
  * @param addr IP address of the new node.
  *
- * @return On success, 0 is returned or -1, if an error occured.
+ * @return On success, 0 is returned. Or -1 if an error occurred.
  */
 int PSIDnodes_register(PSnodes_ID_t id, in_addr_t addr);
 
@@ -117,7 +117,7 @@ int PSIDnodes_register(PSnodes_ID_t id, in_addr_t addr);
  * @param addr IP address of the node to lookup.
  *
  * @return If the node was found, the ParaStation ID is returned. Or
- * -1, if an error occured.
+ * -1 if an error occurred.
  */
 PSnodes_ID_t PSIDnodes_lookupHost(in_addr_t addr);
 
@@ -130,7 +130,7 @@ PSnodes_ID_t PSIDnodes_lookupHost(in_addr_t addr);
  * @param id ParaStation ID of the node to look up.
  *
  * @return If the node was found, the IP address is returned. Or
- * INADDR_ANY, if an error occured.
+ * INADDR_ANY if an error occurred.
  */
 in_addr_t PSIDnodes_getAddr(PSnodes_ID_t id);
 
@@ -152,7 +152,7 @@ int PSIDnodes_validID(PSnodes_ID_t id);
  *
  * @param id ParaStation ID of the node to bring up.
  *
- * @return On success, 0 is returned or -1, if an error occured.
+ * @return On success, 0 is returned. Or -1 if an error occurred.
  */
 int PSIDnodes_bringUp(PSnodes_ID_t id);
 
@@ -163,7 +163,7 @@ int PSIDnodes_bringUp(PSnodes_ID_t id);
  *
  * @param id ParaStation ID of the node to bring down.
  *
- * @return On success, 0 is returned or -1, if an error occured.
+ * @return On success, 0 is returned. Or -1 if an error occurred.
  */
 int PSIDnodes_bringDown(PSnodes_ID_t id);
 
@@ -174,8 +174,8 @@ int PSIDnodes_bringDown(PSnodes_ID_t id);
  *
  * @param id ParaStation ID of the node to look up.
  *
- * @return If the node is up, 1 is returned. 0 is returned, if an
- * error occured or the node is down.
+ * @return If the node is up, 1 is returned. 0 is returned if an
+ * error occurred or the node is down.
  */
 int PSIDnodes_isUp(PSnodes_ID_t id);
 
@@ -183,14 +183,14 @@ int PSIDnodes_isUp(PSnodes_ID_t id);
 /**
  * @brief Set the protocol version of a node.
  *
- * Set the protocol version the node with ParaStation ID @a id talks
- * to @a version.
+ * Set the protocol version the node with ParaStation ID @a id is
+ * capable to understand to @a version.
  *
  * @param id ParaStation ID of the node to be modified.
  *
  * @param hwType The protocol version of this node.
  *
- * @return On success, 0 is returned or -1, if an error occured.
+ * @return On success, 0 is returned. Or -1 if an error occurred.
  */
 int PSIDnodes_setProtoV(PSnodes_ID_t id, int version);
 
@@ -202,7 +202,7 @@ int PSIDnodes_setProtoV(PSnodes_ID_t id, int version);
  * @param id ParaStation ID of the node to look up.
  *
  * @return If the node was found, the protocol version is returned. Or
- * -1, if an error occured.
+ * -1 if an error occurred.
  */
 int PSIDnodes_getProtoV(PSnodes_ID_t id);
 
@@ -216,7 +216,7 @@ int PSIDnodes_getProtoV(PSnodes_ID_t id);
  *
  * @param hwType The daemon-protocol version of this node.
  *
- * @return On success, 0 is returned or -1, if an error occured.
+ * @return On success, 0 is returned. Or -1 if an error occurred.
  */
 int PSIDnodes_setDmnProtoV(PSnodes_ID_t id, int version);
 
@@ -229,7 +229,7 @@ int PSIDnodes_setDmnProtoV(PSnodes_ID_t id, int version);
  * @param id ParaStation ID of the node to look up.
  *
  * @return If the node was found, the daemon-protocol version is
- * returned. Or -1, if an error occured.
+ * returned. Or -1 if an error occurred.
  */
 int PSIDnodes_getDmnProtoV(PSnodes_ID_t id);
 
@@ -242,7 +242,7 @@ int PSIDnodes_getDmnProtoV(PSnodes_ID_t id);
  *
  * @param hwType The hardware type to be set to this node.
  *
- * @return On success, 0 is returned or -1, if an error occured.
+ * @return On success, 0 is returned. Or -1 if an error occurred.
  */
 int PSIDnodes_setHWType(PSnodes_ID_t id, int hwType);
 
@@ -254,7 +254,7 @@ int PSIDnodes_setHWType(PSnodes_ID_t id, int hwType);
  * @param id ParaStation ID of the node to look up.
  *
  * @return If the node was found, the hardware type is returned. Or
- * -1, if an error occured.
+ * -1 if an error occurred.
  */
 int PSIDnodes_getHWType(PSnodes_ID_t id);
 
@@ -267,7 +267,7 @@ int PSIDnodes_getHWType(PSnodes_ID_t id);
  *
  * @param runjobs The runjobs flag to be set to this node.
  *
- * @return On success, 0 is returned or -1, if an error occured.
+ * @return On success, 0 is returned. Or -1 if an error occurred.
  */
 int PSIDnodes_setRunJobs(PSnodes_ID_t id, int runjobs);
 
@@ -279,7 +279,7 @@ int PSIDnodes_setRunJobs(PSnodes_ID_t id, int runjobs);
  * @param id ParaStation ID of the node to look up.
  *
  * @return If the node was found, the jobs flag is returned. Or
- * -1, if an error occured.
+ * -1 if an error occurred.
  */
 int PSIDnodes_runJobs(PSnodes_ID_t id);
 
@@ -292,7 +292,7 @@ int PSIDnodes_runJobs(PSnodes_ID_t id);
  *
  * @param starter The starter flag to be set to this node.
  *
- * @return On success, 0 is returned or -1, if an error occured.
+ * @return On success, 0 is returned. Or -1 if an error occurred.
  */
 int PSIDnodes_setIsStarter(PSnodes_ID_t id, int starter);
 
@@ -304,7 +304,7 @@ int PSIDnodes_setIsStarter(PSnodes_ID_t id, int starter);
  * @param id ParaStation ID of the node to look up.
  *
  * @return If the node was found, the starter flag is returned. Or
- * -1, if an error occured.
+ * -1 if an error occurred.
  */
 int PSIDnodes_isStarter(PSnodes_ID_t id);
 
@@ -317,7 +317,7 @@ int PSIDnodes_isStarter(PSnodes_ID_t id);
  *
  * @param addr The extra IP address to be set to this node.
  *
- * @return On success, 0 is returned or -1, if an error occured.
+ * @return On success, 0 is returned. Or -1 if an error occurred.
  */
 int PSIDnodes_setExtraIP(PSnodes_ID_t id, in_addr_t addr);
 
@@ -329,7 +329,7 @@ int PSIDnodes_setExtraIP(PSnodes_ID_t id, in_addr_t addr);
  * @param id ParaStation ID of the node to look up.
  *
  * @return If the node was found, the extra IP address is returned. Or
- * INADDR_ANY, if an error occured or the extra IP address was not set.
+ * INADDR_ANY if an error occurred or the extra IP address was not set.
  */
 in_addr_t PSIDnodes_getExtraIP(PSnodes_ID_t id);
 
@@ -343,7 +343,7 @@ in_addr_t PSIDnodes_getExtraIP(PSnodes_ID_t id);
  *
  * @param numCPU The number of physical CPUs to be set to this node.
  *
- * @return On success, 0 is returned or -1, if an error occured.
+ * @return On success, 0 is returned. Or -1 if an error occurred.
  */
 int PSIDnodes_setPhysCPUs(PSnodes_ID_t id, short numCPU);
 
@@ -355,7 +355,7 @@ int PSIDnodes_setPhysCPUs(PSnodes_ID_t id, short numCPU);
  * @param id ParaStation ID of the node to look up.
  *
  * @return If the node was found, the number of physical CPUs is
- * returned. Or -1, if an error occured.
+ * returned. Or -1 if an error occurred.
  */
 short PSIDnodes_getPhysCPUs(PSnodes_ID_t id);
 
@@ -369,7 +369,7 @@ short PSIDnodes_getPhysCPUs(PSnodes_ID_t id);
  *
  * @param numCPU The number of virtual CPUs to be set to this node.
  *
- * @return On success, 0 is returned or -1, if an error occured.
+ * @return On success, 0 is returned. Or -1 if an error occurred.
  */
 int PSIDnodes_setVirtCPUs(PSnodes_ID_t id, short numCPU);
 
@@ -381,7 +381,7 @@ int PSIDnodes_setVirtCPUs(PSnodes_ID_t id, short numCPU);
  * @param id ParaStation ID of the node to look up.
  *
  * @return If the node was found, the number of virtual CPUs is
- * returned. Or -1, if an error occured.
+ * returned. Or -1 if an error occurred.
  */
 short PSIDnodes_getVirtCPUs(PSnodes_ID_t id);
 
@@ -395,7 +395,7 @@ short PSIDnodes_getVirtCPUs(PSnodes_ID_t id);
  *
  * @param hwStatus The hardware status to be set to this node.
  *
- * @return On success, 0 is returned or -1, if an error occured.
+ * @return On success, 0 is returned. Or -1 if an error occurred.
  */
 int PSIDnodes_setHWStatus(PSnodes_ID_t id, int hwStatus);
 
@@ -407,7 +407,7 @@ int PSIDnodes_setHWStatus(PSnodes_ID_t id, int hwStatus);
  * @param id ParaStation ID of the node to look up.
  *
  * @return If the node was found, the hardware status is returned. Or
- * -1, if an error occured.
+ * -1 if an error occurred.
  */
 int PSIDnodes_getHWStatus(PSnodes_ID_t id);
 
@@ -441,7 +441,7 @@ typedef enum {
  *
  * @param guid The user/group ID to be set to this node.
  *
- * @return On success, 0 is returned or -1, if an error occured.
+ * @return On success, 0 is returned. Or -1 if an error occurred.
  */
 int PSIDnodes_setGUID(PSnodes_ID_t id,
 		      PSIDnodes_gu_t what, PSIDnodes_guid_t guid);
@@ -458,7 +458,7 @@ int PSIDnodes_setGUID(PSnodes_ID_t id,
  *
  * @param guid The user/group ID to be added to this node.
  *
- * @return On success, 0 is returned or -1, if an error occured.
+ * @return On success, 0 is returned. Or -1 if an error occurred.
  */
 int PSIDnodes_addGUID(PSnodes_ID_t id,
 		      PSIDnodes_gu_t what, PSIDnodes_guid_t guid);
@@ -475,7 +475,7 @@ int PSIDnodes_addGUID(PSnodes_ID_t id,
  *
  * @param guid The user/group ID to be removed from this node.
  *
- * @return On success, 0 is returned or -1, if an error occured.
+ * @return On success, 0 is returned. Or -1 if an error occurred.
  */
 int PSIDnodes_remGUID(PSnodes_ID_t id,
 		      PSIDnodes_gu_t what, PSIDnodes_guid_t guid);
@@ -537,7 +537,7 @@ void send_GUID_OPTIONS(PStask_ID_t dest, PSIDnodes_gu_t what, int compat);
  *
  * @param procs The maximum number of processes to be set to this node.
  *
- * @return On success, 0 is returned or -1, if an error occured.
+ * @return On success, 0 is returned. Or -1 if an error occurred.
  */
 int PSIDnodes_setProcs(PSnodes_ID_t id, int procs);
 
@@ -550,7 +550,7 @@ int PSIDnodes_setProcs(PSnodes_ID_t id, int procs);
  * @param id ParaStation ID of the node to look up.
  *
  * @return If the node was found, the maximum number of processes is
- * returned. Or -1, if an error occured.
+ * returned. Or -1 if an error occurred.
  */
 int PSIDnodes_getProcs(PSnodes_ID_t id);
 
@@ -564,7 +564,7 @@ int PSIDnodes_getProcs(PSnodes_ID_t id);
  *
  * @param overbook The overbook flag to be set to this node.
  *
- * @return On success, 0 is returned or -1, if an error occured.
+ * @return On success, 0 is returned. Or -1 if an error occurred.
  */
 int PSIDnodes_setOverbook(PSnodes_ID_t id, PSnodes_overbook_t overbook);
 
@@ -576,7 +576,7 @@ int PSIDnodes_setOverbook(PSnodes_ID_t id, PSnodes_overbook_t overbook);
  * @param id ParaStation ID of the node to look up.
  *
  * @return If the node was found, the overbook flag is returned. Or
- * -1, if an error occured.
+ * -1 if an error occurred.
  */
 PSnodes_overbook_t PSIDnodes_overbook(PSnodes_ID_t id);
 
@@ -590,7 +590,7 @@ PSnodes_overbook_t PSIDnodes_overbook(PSnodes_ID_t id);
  *
  * @param exclusive The exclusive flag to be set to this node.
  *
- * @return On success, 0 is returned or -1, if an error occured.
+ * @return On success, 0 is returned. Or -1 if an error occurred.
  */
 int PSIDnodes_setExclusive(PSnodes_ID_t id, int exclusive);
 
@@ -602,7 +602,7 @@ int PSIDnodes_setExclusive(PSnodes_ID_t id, int exclusive);
  * @param id ParaStation ID of the node to look up.
  *
  * @return If the node was found, the exclusive flag is returned. Or
- * -1, if an error occured.
+ * -1 if an error occurred.
  */
 int PSIDnodes_exclusive(PSnodes_ID_t id);
 
@@ -616,7 +616,7 @@ int PSIDnodes_exclusive(PSnodes_ID_t id);
  *
  * @param pinProcs The process-pinning flag to be set to this node.
  *
- * @return On success, 0 is returned or -1, if an error occured.
+ * @return On success, 0 is returned. Or -1 if an error occurred.
  */
 int PSIDnodes_setPinProcs(PSnodes_ID_t id, int pinProcs);
 
@@ -628,7 +628,7 @@ int PSIDnodes_setPinProcs(PSnodes_ID_t id, int pinProcs);
  * @param id ParaStation ID of the node to look up.
  *
  * @return If the node was found, the process-pinning flag is returned. Or
- * -1, if an error occured.
+ * -1 if an error occurred.
  */
 int PSIDnodes_pinProcs(PSnodes_ID_t id);
 
@@ -642,7 +642,7 @@ int PSIDnodes_pinProcs(PSnodes_ID_t id);
  *
  * @param bindMem The memory-binding flag to be set to this node.
  *
- * @return On success, 0 is returned or -1, if an error occured.
+ * @return On success, 0 is returned. Or -1 if an error occurred.
  */
 int PSIDnodes_setBindMem(PSnodes_ID_t id, int bindMem);
 
@@ -654,7 +654,7 @@ int PSIDnodes_setBindMem(PSnodes_ID_t id, int bindMem);
  * @param id ParaStation ID of the node to look up.
  *
  * @return If the node was found, the memory-binding flag is returned. Or
- * -1, if an error occured.
+ * -1 if an error occurred.
  */
 int PSIDnodes_bindMem(PSnodes_ID_t id);
 
@@ -667,7 +667,7 @@ int PSIDnodes_bindMem(PSnodes_ID_t id);
  *
  * @param id ParaStation ID of the node to change.
  *
- * @return On success, 0 is returned or -1, if an error occured.
+ * @return On success, 0 is returned. Or -1 if an error occurred.
  */
 int PSIDnodes_clearCPUMap(PSnodes_ID_t id);
 
@@ -682,7 +682,7 @@ int PSIDnodes_clearCPUMap(PSnodes_ID_t id);
  *
  * @param cpu The number of the CPU to append to the CPU-map.
  *
- * @return On success, 0 is returned or -1, if an error occured.
+ * @return On success, 0 is returned . Or -1 if an error occurred.
  */
 int PSIDnodes_appendCPUMap(PSnodes_ID_t id, short cpu);
 
@@ -698,7 +698,7 @@ int PSIDnodes_appendCPUMap(PSnodes_ID_t id, short cpu);
  * @param cpu Number of the CPU-slot to map on a physical core.
  *
  * @return On success, the number of the core the CPU-slot is mapped
- * to will be returned or -1, if an error occured.
+ * to will be returned. Or -1 if an error occurred.
  */
 short PSIDnodes_mapCPU(PSnodes_ID_t id, short cpu);
 
@@ -726,7 +726,7 @@ void send_CPUMap_OPTIONS(PStask_ID_t dest);
  *
  * @param allowMap The allowUserMap flag to be set to this node.
  *
- * @return On success, 0 is returned or -1, if an error occured.
+ * @return On success, 0 is returned. Or -1 if an error occurred.
  */
 int PSIDnodes_setAllowUserMap(PSnodes_ID_t id, int allowMap);
 
@@ -741,7 +741,7 @@ int PSIDnodes_setAllowUserMap(PSnodes_ID_t id, int allowMap);
  * @param id ParaStation ID of the node to look up.
  *
  * @return If the node was found, the allowUserMap flag is returned. Or
- * -1, if an error occured.
+ * -1 if an error occurred.
  */
 int PSIDnodes_allowUserMap(PSnodes_ID_t id);
 
@@ -755,7 +755,7 @@ int PSIDnodes_allowUserMap(PSnodes_ID_t id);
  *
  * @param interval The polling interval in seconds to be set.
  *
- * @return On success, 0 is returned or -1, if an error occured.
+ * @return On success, 0 is returned. Or -1 if an error occurred.
  */
 int PSIDnodes_setAcctPollI(PSnodes_ID_t id, int interval);
 
@@ -767,9 +767,35 @@ int PSIDnodes_setAcctPollI(PSnodes_ID_t id, int interval);
  * @param id ParaStation ID of the node to look up.
  *
  * @return If the node was found, the accounting poll interval is
- * returned. Or -1, if an error occured.
+ * returned. Or -1 if an error occurred.
  */
 int PSIDnodes_acctPollI(PSnodes_ID_t id);
+
+/**
+ * @brief Set node's kill delay
+ *
+ * Set the kill delay of node @a id to @a delay. This determines the
+ * number of seconds between a relative signal and the follow-up SIGKILL.
+ *
+ * @param id ParaStation ID of the node to change.
+ *
+ * @param delay The kill delay in seconds to be set.
+ *
+ * @return On success, 0 is returned. Or -1 if an error occurred.
+ */
+int PSIDnodes_setKillDelay(PSnodes_ID_t id, int delay);
+
+/**
+ * @brief Get node's kill delay
+ *
+ * Get the kill delay of node @a id.
+ *
+ * @param id ParaStation ID of the node to look up.
+ *
+ * @return If the node was found, the kill delay is returned. Or -1
+ * if an error occurred.
+ */
+int PSIDnodes_killDelay(PSnodes_ID_t id);
 
 /**
  * @brief Set the supplementary groups flag of a node.
@@ -784,7 +810,7 @@ int PSIDnodes_acctPollI(PSnodes_ID_t id);
  *
  * @param supplGrps The supplementary groups flag to be set to this node.
  *
- * @return On success, 0 is returned or -1, if an error occured.
+ * @return On success, 0 is returned. Or -1 if an error occurred.
  */
 int PSIDnodes_setSupplGrps(PSnodes_ID_t id, int supplGrps);
 
@@ -800,7 +826,7 @@ int PSIDnodes_setSupplGrps(PSnodes_ID_t id, int supplGrps);
  * @param id ParaStation ID of the node to look up.
  *
  * @return If the node was found, the supplementary groups flag is
- * returned. Or -1, if an error occured.
+ * returned. Or -1 if an error occurred.
  */
 int PSIDnodes_supplGrps(PSnodes_ID_t id);
 
@@ -811,7 +837,7 @@ int PSIDnodes_supplGrps(PSnodes_ID_t id);
  * the node with ParaStation ID @a id to @a tries.
  *
  * Whenever a process is spawned, before actually starting the
- * executable via eaecv() stat() is applied in order to find out, if
+ * executable via execv() stat() is applied in order to find out if
  * the executable is accessible. This gives the maximum number of
  * retries before failing this operation.
  *
@@ -819,7 +845,7 @@ int PSIDnodes_supplGrps(PSnodes_ID_t id);
  *
  * @param tries The number of tries to be set to this node.
  *
- * @return On success, 0 is returned or -1, if an error occured.
+ * @return On success, 0 is returned. Or -1 if an error occurred.
  */
 int PSIDnodes_setMaxStatTry(PSnodes_ID_t id, int tries);
 
@@ -830,14 +856,14 @@ int PSIDnodes_setMaxStatTry(PSnodes_ID_t id, int tries);
  * the node with ParaStation ID @a id.
  *
  * Whenever a process is spawned, before actually starting the
- * executable via eaecv() stat() is applied in order to find out, if
+ * executable via execv(), stat() is applied in order to find out if
  * the executable is accessible. This gives the maximum number of
  * retries before failing this operation.
  *
  * @param id ParaStation ID of the node to look up.
  *
  * @return If the node was found, the maximum number of tries is
- * returned. Or -1, if an error occured.
+ * returned. Or -1 if an error occurred.
  */
 int PSIDnodes_maxStatTry(PSnodes_ID_t id);
 

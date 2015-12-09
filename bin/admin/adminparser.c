@@ -1127,6 +1127,12 @@ static int setShowAcctPoll(char *token)
     return 0;
 }
 
+static int setShowKillDelay(char *token)
+{
+    setShowOpt = PSP_OP_KILLDELAY;
+    return 0;
+}
+
 static int setShowSupplGrps(char *token)
 {
     setShowOpt = PSP_OP_SUPPL_GRPS;
@@ -1269,6 +1275,7 @@ static keylist_t setShowList[] = {
     {"allowusermap", setShowAllowUserMap, boolList},
     {"accounters", setShowAccounter, NULL},
     {"accountpoll", setShowAcctPoll, NULL},
+    {"killdelay", setShowKillDelay, NULL},
     {"supplementarygroups", setShowSupplGrps, boolList},
     {"maxstattry", setShowMaxStatTry, NULL},
     {"rl_as", setShowRL_AS, NULL},
@@ -1410,6 +1417,7 @@ static int setCommand(char *token)
     case PSP_OP_RDPRETRANS:
     case PSP_OP_MCASTDEBUG:
     case PSP_OP_ACCTPOLL:
+    case PSP_OP_KILLDELAY:
     case PSP_OP_MASTER:
     case PSP_OP_MAXSTATTRY:
     case PSP_OP_PLUGINUNLOADTMOUT:
@@ -1540,6 +1548,7 @@ static int setCommand(char *token)
     case PSP_OP_ALLOWUSERMAP:
     case PSP_OP_NODESSORT:
     case PSP_OP_ACCTPOLL:
+    case PSP_OP_KILLDELAY:
     case PSP_OP_SUPPL_GRPS:
     case PSP_OP_MAXSTATTRY:
     case PSP_OP_MASTER:
@@ -1629,6 +1638,7 @@ static int showCommand(char *token)
     case PSP_OP_BINDMEM:
     case PSP_OP_ALLOWUSERMAP:
     case PSP_OP_ACCTPOLL:
+    case PSP_OP_KILLDELAY:
     case PSP_OP_SUPPL_GRPS:
     case PSP_OP_MAXSTATTRY:
     case PSP_OP_PLUGINAPIVERSION:

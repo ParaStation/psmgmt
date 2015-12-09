@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2013 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2013-2015 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -115,6 +115,9 @@ static int verbose = 0;
 /** The PStask ID of our logger */
 static PStask_ID_t loggertid = -1;
 
+/** Flag to be set if kill signals should not be forwarded to parents */
+static char noParricide = 0;
+
 /** Generic message buffer */
 static char buffer[1024];
 
@@ -217,7 +220,8 @@ static void terminateJob(const char *func)
 
 	msg.header.type = PSP_CD_SIGNAL;
 	msg.header.sender = PSC_getMyTID();
-	msg.header.dest = (loggertid == -1) ? PSC_getMyTID() : loggertid;
+	msg.header.dest =
+	    ((loggertid == -1) || noParricide) ? PSC_getMyTID() : loggertid;
 	msg.header.len = sizeof(msg);
 	msg.signal = -1;
 	msg.param = getuid();
@@ -1168,6 +1172,9 @@ static void initKvsProvider(void)
 	terminateJob(__func__);
     }
     loggertid = atoi(envstr);
+
+    envstr = getenv("__PMI_NO_PARRICIDE");
+    if (envstr) noParricide = atoi(envstr);
 
     /* init the timer structure, if necessary */
     if (!Timer_isInitialized()) Timer_init(stderr);

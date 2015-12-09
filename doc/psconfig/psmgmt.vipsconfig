@@ -21,6 +21,7 @@ HandleOldBins = "no"
 HardwareTypes = ["ethernet", "p4sock"]
 InstallDirectory = "/opt/parastation"
 IsStarter = "yes"
+KillDelay = "10"
 LoadPlugins = ["pspmi"]
 LogDestination = "LOG_DAEMON"
 LogMask = "0"
