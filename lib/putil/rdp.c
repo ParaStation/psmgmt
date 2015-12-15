@@ -554,6 +554,7 @@ typedef struct {
     int retrans;             /**< Number of re-transmissions */
     unsigned int totRetrans; /**< Total number of re-transmissions */
     unsigned int totSent;    /**< Number of messages sent successfully */
+    unsigned int totNACK;    /**< Number of NACKs sent */
 } Rconninfo_t;
 
 /**
@@ -616,6 +617,7 @@ static void initConntable(int nodes, unsigned int host[], unsigned short port)
 	conntable[i].retrans = 0;
 	conntable[i].totRetrans = 0;
 	conntable[i].totSent = 0;
+	conntable[i].totNACK = 0;
     }
 }
 
@@ -914,6 +916,7 @@ static void sendNACK(int node)
     hdr.seqno = 0;                                 /* NACKs have no seqno */
     hdr.ackno = conntable[node].frameExpected-1;   /* The frame I expect */
     hdr.connid = conntable[node].ConnID_out;
+    conntable[node].totNACK++;
     RDP_log(RDP_LOG_CNTR, "%s: to %d, FE=%x\n", __func__, node, hdr.ackno);
     MYsendto(rdpsock, &hdr, sizeof(hdr), 0, node, 1);
 }
@@ -1050,6 +1053,7 @@ static void closeConnection(int node, int callback, int silent)
     conntable[node].retrans = 0;
     conntable[node].totRetrans = 0;
     conntable[node].totSent = 0;
+    conntable[node].totNACK = 0;
     timerclear(&conntable[node].tmout);
     timerclear(&conntable[node].TTA);
 
@@ -2025,6 +2029,7 @@ void RDP_setStatistics(int state)
 	    timerclear(&conntable[n].TTA);
 	    conntable[n].totRetrans = 0;
 	    conntable[n].totSent = 0;
+	    conntable[n].totNACK = 0;
 	}
     }
 }
@@ -2326,10 +2331,12 @@ void getConnInfoRDP(int node, char *s, size_t len)
 void getStateInfoRDP(int node, char *s, size_t len)
 {
     snprintf(s, len, "%3d [%s]: IP=%-15s TOT=%6d AP=%2d MP=%2d RTR=%2d"
-	     " TOTRET=%4d", node, stateStringRDP(conntable[node].state),
+	     " TOTRET=%4d NACK=%4d", node,
+	     stateStringRDP(conntable[node].state),
 	     inet_ntoa(conntable[node].sin.sin_addr), conntable[node].totSent,
 	     conntable[node].ackPending, conntable[node].msgPending,
-	     conntable[node].retrans, conntable[node].totRetrans);
+	     conntable[node].retrans, conntable[node].totRetrans,
+	     conntable[node].totNACK);
 
     if (RDPStatistics) {
 	double tta = conntable[node].TTA.tv_sec * 1000
