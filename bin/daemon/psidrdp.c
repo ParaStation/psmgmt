@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2014 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2015 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -266,4 +266,22 @@ void handleRDPMsg(int fd)
 	    PSID_log(-1, "%s: Problem on RDP-socket\n", __func__);
 	}
     }
+}
+
+void PSIDRDP_clearMem(void)
+{
+    int node;
+
+    for (node=0; node<PSC_getNrOfNodes(); node++) {
+	list_t *m, *tmp;
+
+	list_for_each_safe(m, tmp, &node_bufs[node].list) {
+	    msgbuf_t *mp = list_entry(m, msgbuf_t, next);
+
+	    list_del(&mp->next);
+	    PSIDMsgbuf_put(mp);
+	}
+    }
+
+    free(node_bufs);
 }
