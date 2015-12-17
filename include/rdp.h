@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2014 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2015 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -531,6 +531,20 @@ int RDP_blockTimer(int block);
  * @return No return value.
  */
 void RDP_printStat(void);
+
+/**
+ * @brief Memory cleanup
+ *
+ * Cleanup all memory currently used by the RDP module. This will very
+ * aggressively free() all allocated memory destroying all of RDP's
+ * functionality.
+ *
+ * The purpose of this function is cleanup before a fork()ed process
+ * is handling other tasks, e.g. becoming a forwarder.
+ *
+ * @return No return value.
+ */
+void RDP_clearMem(void);
 
 #ifdef __cplusplus
 }/* extern "C" */
