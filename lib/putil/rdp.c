@@ -55,7 +55,7 @@ static int rdpsock = -1;
 static int timerID = -1;
 
 /** The size of the cluster. Set via initRDP(). */
-static int  nrOfNodes = 0;
+static int nrOfNodes = 0;
 
 /** The logger we use inside RDP */
 static logger_t *logger;
@@ -302,6 +302,20 @@ static int lookupIPTable(struct in_addr ipno)
     return -1;
 }
 
+static void cleanupIPTable(void)
+{
+    int i;
+    for (i=0; i<256; i++) {
+	ipentry_t *ip = iptable[i].next;
+
+	while (ip) {
+	    ipentry_t *next = ip->next;
+	    free(ip);
+	    ip = next;
+	}
+    }
+}
+
 /* ---------------------------------------------------------------------- */
 
 static LIST_HEAD(AckList);     /**< List of pending ACKs */
@@ -316,6 +330,9 @@ typedef struct Smsg_ {
     char data[RDP_SMALL_DATA_SIZE]; /**< Body for small packets */
     struct Smsg_ *next;             /**< Pointer to next Smsg buffer */
 } Smsg_t;
+
+/** Pointer to pool of Smsgs */
+static Smsg_t *SmsgPool = NULL;
 
 /**
  * Pool of small messages ready to use. Initialized by initSMsgList().
@@ -337,17 +354,18 @@ static Smsg_t *SMsgFreeList;
 static void initSMsgList(int nodes)
 {
     int i, count;
-    Smsg_t *sbuf;
+
+    if (SmsgPool) return;
 
     count = nodes * MAX_WINDOW_SIZE;
-    sbuf = malloc(count * sizeof(*sbuf));
-    if (!sbuf) RDP_exit(errno, "%s", __func__);
+    SmsgPool = malloc(count * sizeof(*SmsgPool));
+    if (!SmsgPool) RDP_exit(errno, "%s", __func__);
 
     for (i=0; i<count; i++) {
-	sbuf[i].next = &sbuf[i+1];
+	SmsgPool[i].next = &SmsgPool[i+1];
     }
-    sbuf[count - 1].next = NULL;
-    SMsgFreeList = sbuf;
+    SmsgPool[count - 1].next = NULL;
+    SMsgFreeList = SmsgPool;
 }
 
 /**
@@ -409,6 +427,9 @@ typedef struct {
 				     * during next timeout */
 } msgbuf_t;
 
+/** Pointer to pool of Msgs */
+static msgbuf_t *MsgPool = NULL;
+
 /**
  * Pool of message buffers ready to use. Initialized by initMsgList().
  * To get a buffer from this pool, use getMsg(), to put it back into
@@ -429,19 +450,20 @@ static LIST_HEAD(MsgFreeList);
 static void initMsgList(int nodes)
 {
     int i, count;
-    msgbuf_t *buf;
+
+    if (MsgPool) return;
 
     count = nodes * MAX_WINDOW_SIZE;
-    buf = malloc(count * sizeof(*buf));
-    if (!buf) RDP_exit(errno, "%s", __func__);
+    MsgPool = malloc(count * sizeof(*MsgPool));
+    if (!MsgPool) RDP_exit(errno, "%s", __func__);
 
     for (i=0; i<count; i++) {
-	buf[i].node = -1;
-	buf[i].len = -1;
-	INIT_LIST_HEAD(&buf[i].nxtACK);
-	buf[i].msg.small = NULL;
-	buf[i].deleted = 0;
-	list_add_tail(&buf[i].next, &MsgFreeList);
+	MsgPool[i].node = -1;
+	MsgPool[i].len = -1;
+	INIT_LIST_HEAD(&MsgPool[i].nxtACK);
+	MsgPool[i].msg.small = NULL;
+	MsgPool[i].deleted = 0;
+	list_add_tail(&MsgPool[i].next, &MsgFreeList);
     }
 }
 
@@ -523,6 +545,7 @@ typedef struct {
     int retrans;             /**< Number of re-transmissions */
     unsigned int totRetrans; /**< Total number of re-transmissions */
     unsigned int totSent;    /**< Number of messages sent successfully */
+    unsigned int totNACK;    /**< Number of NACKs sent */
 } Rconninfo_t;
 
 /**
@@ -585,6 +608,7 @@ static void initConntable(int nodes, unsigned int host[], unsigned short port)
 	conntable[i].retrans = 0;
 	conntable[i].totRetrans = 0;
 	conntable[i].totSent = 0;
+	conntable[i].totNACK = 0;
     }
 }
 
@@ -883,6 +907,7 @@ static void sendNACK(int node)
     hdr.seqno = 0;                                 /* NACKs have no seqno */
     hdr.ackno = conntable[node].frameExpected-1;   /* The frame I expect */
     hdr.connid = conntable[node].ConnID_out;
+    conntable[node].totNACK++;
     RDP_log(RDP_LOG_CNTR, "%s: to %d, FE=%x\n", __func__, node, hdr.ackno);
     MYsendto(rdpsock, &hdr, sizeof(hdr), 0, node, 1);
 }
@@ -1019,6 +1044,7 @@ static void closeConnection(int node, int callback, int silent)
     conntable[node].retrans = 0;
     conntable[node].totRetrans = 0;
     conntable[node].totSent = 0;
+    conntable[node].totNACK = 0;
     timerclear(&conntable[node].tmout);
     timerclear(&conntable[node].TTA);
 
@@ -1873,6 +1899,7 @@ void exitRDP(void)
     close(rdpsock);                /* close RDP socket */
     logger_finalize(logger);
     logger = NULL;
+    RDP_clearMem();
 }
 
 int32_t getDebugMaskRDP(void)
@@ -1994,6 +2021,7 @@ void RDP_setStatistics(int state)
 	    timerclear(&conntable[n].TTA);
 	    conntable[n].totRetrans = 0;
 	    conntable[n].totSent = 0;
+	    conntable[n].totNACK = 0;
 	}
     }
 }
@@ -2293,10 +2321,12 @@ void getConnInfoRDP(int node, char *s, size_t len)
 void getStateInfoRDP(int node, char *s, size_t len)
 {
     snprintf(s, len, "%3d [%s]: IP=%-15s TOT=%6d AP=%2d MP=%2d RTR=%2d"
-	     " TOTRET=%4d", node, stateStringRDP(conntable[node].state),
+	     " TOTRET=%4d NACK=%4d", node,
+	     stateStringRDP(conntable[node].state),
 	     inet_ntoa(conntable[node].sin.sin_addr), conntable[node].totSent,
 	     conntable[node].ackPending, conntable[node].msgPending,
-	     conntable[node].retrans, conntable[node].totRetrans);
+	     conntable[node].retrans, conntable[node].totRetrans,
+	     conntable[node].totNACK);
 
     if (RDPStatistics) {
 	double tta = conntable[node].TTA.tv_sec * 1000
@@ -2360,4 +2390,21 @@ void RDP_printStat(void)
 	    RDP_log(-1, "%s: SO_SNDBUF is %d\n", __func__, sval);
 	}
     }
+}
+
+void RDP_clearMem(void)
+{
+    if (MsgPool) {
+	msgbuf_t *mp = MsgPool, *mpend = &MsgPool[nrOfNodes * MAX_WINDOW_SIZE];
+	while (mp != mpend) {
+	    if (mp->msg.large && mp->len > RDP_SMALL_DATA_SIZE) {
+		free(mp->msg.large);
+	    }
+	    mp++;
+	}
+	free(MsgPool);
+    }
+    if (SmsgPool) free(SmsgPool);
+    cleanupIPTable();
+    if (conntable) free(conntable);
 }
