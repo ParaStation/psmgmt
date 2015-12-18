@@ -328,4 +328,16 @@ void PSIDMsgbuf_init(void)
 }
 
 void PSIDMsgbuf_clearMem(void)
-{}
+{
+    list_t *c, *tmp;
+
+    list_for_each_safe(c, tmp, &chunkList) {
+	msgbuf_schunk_t *chunk = list_entry(c, msgbuf_schunk_t, next);
+
+	list_del(&chunk->next);
+	free(chunk);
+    }
+
+    INIT_LIST_HEAD(&msgbufFreeList);
+    usedBufs = smallBufs = usedSmallBufs = 0;
+}
