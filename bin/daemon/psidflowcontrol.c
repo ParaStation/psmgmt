@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2015 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -459,6 +459,18 @@ static void msg_SENDCONT(DDMsg_t *msg)
 	task->activeStops--;
 	if (!task->activeStops) Selector_enable(task->fd);
 
+    }
+}
+
+void PSIDFlwCntrl_clearMem(void)
+{
+    list_t *c, *tmp;
+
+    list_for_each_safe(c, tmp, &chunkList) {
+	stopTID_chunk_t *chunk = list_entry(c, stopTID_chunk_t, next);
+
+	list_del(&chunk->next);
+	free(chunk);
     }
 }
 
