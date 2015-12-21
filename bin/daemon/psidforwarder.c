@@ -38,7 +38,6 @@ static char vcid[] __attribute__((used)) =
 #include "psdaemonprotocol.h"
 #include "pslog.h"
 #include "psidmsgbuf.h"
-#include "psidnodes.h"
 #include "psidhook.h"
 
 #include "psidforwarder.h"
