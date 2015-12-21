@@ -1126,3 +1126,28 @@ int PSIDnodes_maxStatTry(PSnodes_ID_t id)
 	return -1;
     }
 }
+
+void PSIDnodes_clearMem(void)
+{
+    int h, n;
+
+    for (h=0; h<256; h++) {
+	struct host_t *host = hosts[h];
+	while (host) {
+	    struct host_t *next = host->next;
+	    free(host);
+	    host = next;
+	}
+    }
+
+    for (n=0; n<PSIDnodes_getNum(); n++) {
+	clear_GUID_list(&nodes[n].uid_list);
+	clear_GUID_list(&nodes[n].gid_list);
+	clear_GUID_list(&nodes[n].admuid_list);
+	clear_GUID_list(&nodes[n].admgid_list);
+	if (nodes[n].CPUmap) free(nodes[n].CPUmap);
+    }
+
+    free(nodes);
+    nodes = NULL;
+}

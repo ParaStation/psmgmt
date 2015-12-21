@@ -867,6 +867,20 @@ int PSIDnodes_setMaxStatTry(PSnodes_ID_t id, int tries);
  */
 int PSIDnodes_maxStatTry(PSnodes_ID_t id);
 
+/**
+ * @brief Memory cleanup
+ *
+ * Cleanup all memory currently used by the module. It will very
+ * aggressively free all allocated memory most likely destroying
+ * all the module's funcitonality.
+ *
+ * The purpose of this function is to cleanup before a fork()ed
+ * process is handling other tasks, e.g. becoming a forwarder.
+ *
+ * @return No return value.
+ */
+void PSIDnodes_clearMem(void);
+
 
 #ifdef __cplusplus
 }/* extern "C" */
