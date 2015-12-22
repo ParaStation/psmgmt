@@ -1280,6 +1280,9 @@ static void execForwarder(PStask_t *task, int daemonfd)
 
     /* this is the forwarder process */
 
+    /* Cleanup all unneeded memory */
+    PSID_clearMem();
+
     /* save errno in case of error */
     if (pid == -1) eno = errno;
 

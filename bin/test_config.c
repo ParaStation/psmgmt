@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2014 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2015 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -36,6 +36,8 @@ extern logger_t *PSID_logger;
 int sendMsg(void *amsg) {return 0;}
 /* stubs required to link against psidutil.o */
 void registerClient(int fd, int tid, void *task) {}
+/* stub required to link against psidscripts.o */
+void PSID_clearMem(void) {}
 int managedTasks;
 void *PStasklist_find(list_t *list, void *tid) {return NULL;}
 
