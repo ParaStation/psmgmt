@@ -706,6 +706,7 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
     }
     task->argv[task->argc] = NULL;
 
+    unsetPSIEnv("__PSI_EXPORTS");
     task->environ = dumpPSIEnv();
     if (!task->environ) {
 	PSI_log(-1, "%s: cannot dump environment.", __func__);

@@ -105,7 +105,7 @@ CONNECT_AGAIN:
 	return 0;
     }
 
-    //mdbg(PSMOM_LOG_LOCAL, "open local connection to psmom '%i'\n", sock);
+    plugindbg(PLUGIN_LOG_FW, "%s: fd '%i'\n", __func__, motherSock);
 
     return motherSock;
 }
@@ -321,15 +321,7 @@ static void signalHandler(int sig)
 		if (child_sid > 0) fwdata->killSession(child_sid, SIGKILL);
 		sentHardKill = 1;
 	    } else {
-		/* TODO */
-		/* static char errmsg[] = "\r\npsmom: job timeout reached, "
-		 *			    "terminating.\n\n\r";
-		if (forwarder_type == FORWARDER_INTER) {
-		    writeQsubMessage(errmsg, strlen(errmsg));
-		}
-		*/
 		job_timeout = 1;
-
 		killForwarderChild(SIGTERM, "timeout");
 	    }
 	    break;
@@ -362,8 +354,6 @@ static int initForwarder()
     /* Reset connection to syslog */
     closelog();
     openlog("psid", LOG_PID|LOG_CONS, LOG_DAEMON);
-
-    //forwarder_type = forwarderType;
 
     if (!(connect2Mother(fwdata->listenSocketName))) {
 	pluginlog("%s: connecting to mother psid failed\n", __func__);
@@ -534,7 +524,7 @@ static void forwarderLoop()
 }
 
 /**
- * @brief Make sure all children are dead and request the psmom to close the
+ * @brief Make sure all children are dead and request the mother to close the
  * main connection.
  *
  * @return No return value.
@@ -728,20 +718,12 @@ int callbackForwarder(int fd, PSID_scriptCBInfo_t *info)
 	exit = data->forwarderError;
     }
 
-    /*
-    pluginlog("%s: callback: fd %i listenSock %i controlsock %i "
-		"forwarderPid: %i\n", __func__, fd, data->listenSocket,
+    plugindbg(PLUGIN_LOG_FW, "%s: fd '%i' listenSock '%i' controlsock '%i' "
+		"forwarderPid '%i'\n", __func__, fd, data->listenSocket,
 		data->controlSocket, data->forwarderPid);
-    */
 
-    if (data) {
-	if (data->callback) {
-	    data->callback(exit, errMsg, errLen, info->info);
-	}
-
-	/* close all leftover sockets */
-	closeListenSocket(data);
-	closeControlSocket(data);
+    if (data && data->callback) {
+	data->callback(exit, errMsg, errLen, info->info);
     }
 
     destroyForwarderData(data);
@@ -804,11 +786,8 @@ static void handle_FW_Child_Start(Forwarder_Data_t *data, char *ptr)
 				data->childSid);
     }
 
-    // TODO LOG VERBOSE
-    /*
-    pluginlog("%s: %i : %i : %i\n", __func__,
-		data->forwarderPid, data->childPid, data->childSid);
-    */
+    plugindbg(PLUGIN_LOG_FW, "%s: fwPid '%i' childPid '%i'  childSid '%i'\n",
+		__func__, data->forwarderPid, data->childPid, data->childSid);
 }
 
 static void handle_FW_Fork_Failed(Forwarder_Data_t *data, char *ptr)
@@ -883,19 +862,17 @@ static int handleListenSocket(int fd, void *info)
     unsigned int clientlen;
     struct sockaddr_in SAddr;
 
-    /* accept new tcp connection */
+    /* accept new connection */
     clientlen = sizeof(SAddr);
 
     if ((data->controlSocket = accept(fd, (void *)&SAddr, &clientlen)) == -1) {
-	pluginlog("%s error accepting new local tcp connection\n", __func__);
+	pluginlog("%s error accepting new local connection\n", __func__);
 	return 0;
     }
 
-    // TODO LOG VERBOSE
-    /*
-    pluginlog("%s: accepting new local client '%i' for forwarder '%i'\n",
-		__func__, data->controlSocket, data->forwarderPid);
-    */
+    plugindbg(PLUGIN_LOG_FW, "%s: accepting new local client '%i' for "
+		"forwarder '%i'\n", __func__, data->controlSocket,
+		data->forwarderPid);
     Selector_register(data->controlSocket, handleControlSocket, data);
 
     return 0;
@@ -957,10 +934,8 @@ static int openListenSocket(Forwarder_Data_t *data)
     /* register the selector */
     Selector_register(data->listenSocket, handleListenSocket, data);
 
-    /*
-    plugindbg(PSMOM_LOG_LOCAL, "%s: Local Service Port (%d) created.\n",
-	__func__, listenSocket);
-    */
+    plugindbg(PLUGIN_LOG_FW, "%s: Local Service Port (%d) created.\n",
+	__func__, data->listenSocket);
 
     return 1;
 }
@@ -1012,6 +987,10 @@ Forwarder_Data_t *getNewForwarderData()
 void destroyForwarderData(Forwarder_Data_t *data)
 {
     if (!data) return;
+
+    /* close all leftover sockets */
+    closeListenSocket(data);
+    closeControlSocket(data);
 
     ufree(data->pTitle);
     ufree(data->jobid);

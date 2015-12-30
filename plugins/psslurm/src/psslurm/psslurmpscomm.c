@@ -145,7 +145,6 @@ int handleCreatePartNL(void *msg)
 
 void send_PS_JobLaunch(Job_t *job)
 {
-    DDTypedBufferMsg_t msg;
     PS_DataBuffer_t data = { .buf = NULL };
     PStask_ID_t myID = PSC_getMyID();
     uint32_t i;
@@ -162,27 +161,11 @@ void send_PS_JobLaunch(Job_t *job)
     addInt16ArrayToMsg(job->nodes, job->nrOfNodes, &data);
 
     /* send the messages */
-    msg = (DDTypedBufferMsg_t) {
-       .header = (DDMsg_t) {
-       .type = PSP_CC_PLUG_PSSLURM,
-       .sender = PSC_getMyTID(),
-       .len = sizeof(msg.header) },
-       .buf = {'\0'} };
-
-    msg.type = PSP_JOB_LAUNCH;
-    msg.header.len += sizeof(msg.type);
-
-    memcpy(msg.buf, data.buf, data.bufUsed);
-    msg.header.len += data.bufUsed;
-
     for (i=0; i<job->nrOfNodes; i++) {
 	if (job->nodes[i] == myID) continue;
 
-	msg.header.dest = PSC_getTID(job->nodes[i], 0);
-	if ((sendMsg(&msg)) == -1 && errno != EWOULDBLOCK) {
-	    mwarn(errno, "%s: sending msg to %s failed ", __func__,
-		    PSC_printTID(msg.header.dest));
-	}
+	sendFragMsg(&data, PSC_getTID(job->nodes[i], 0),
+			PSP_CC_PLUG_PSSLURM, PSP_JOB_LAUNCH);
     }
 
     ufree(data.buf);
@@ -325,6 +308,7 @@ static void handle_PS_JobExit(DDTypedBufferMsg_t *msg)
 
     /* delete all steps */
     if (stepid == SLURM_BATCH_SCRIPT) {
+	if (!findAlloc(jobid) && !findJobById(jobid)) return;
 	sendEpilogueComplete(jobid, 0);
 	deleteAlloc(jobid);
 	deleteJob(jobid);
@@ -418,11 +402,11 @@ static void handle_PS_JobStateReq(DDTypedBufferMsg_t *msg)
     ufree(data.buf);
 }
 
-static void handle_PS_JobLaunch(DDTypedBufferMsg_t *msg)
+static void handle_PS_JobLaunch(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 {
     uint32_t jobid;
     Job_t *job;
-    char *ptr = msg->buf;
+    char *ptr = data->buf;
 
     /* get jobid */
     getUint32(&ptr, &jobid);
@@ -443,8 +427,8 @@ static void handle_PS_JobLaunch(DDTypedBufferMsg_t *msg)
     /* get nodelist */
     getInt16Array(&ptr, &job->nodes, &job->nrOfNodes);
 
-    mlog("%s: jobid '%u' user '%s' from '%s'\n", __func__, jobid, job->username,
-	    PSC_printTID(msg->header.sender));
+    mlog("%s: jobid '%u' user '%s' nodes '%u' from '%s'\n", __func__, jobid,
+	    job->username, job->nrOfNodes, PSC_printTID(msg->header.sender));
 }
 
 static void handle_PS_SignalTasks(DDTypedBufferMsg_t *msg)
@@ -636,7 +620,7 @@ void handlePsslurmMsg(DDTypedBufferMsg_t *msg)
 	    handle_PS_JobExit(msg);
 	    break;
 	case PSP_JOB_LAUNCH:
-	    handle_PS_JobLaunch(msg);
+	    recvFragMsg(msg, handle_PS_JobLaunch);
 	    break;
 	case PSP_JOB_STATE_REQ:
 	    handle_PS_JobStateReq(msg);

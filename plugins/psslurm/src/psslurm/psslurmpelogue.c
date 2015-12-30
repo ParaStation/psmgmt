@@ -41,6 +41,26 @@
 
 #include "psslurmpelogue.h"
 
+static void letAllStepsRun(uint32_t jobid)
+{
+    list_t *pos, *tmp;
+    Step_t *step;
+
+    list_for_each_safe(pos, tmp, &StepList.list) {
+	if (!(step = list_entry(pos, Step_t, list))) break;
+	if (step->jobid != jobid) continue;
+
+	step->state = JOB_PRESTART;
+	mdbg(PSSLURM_LOG_JOB, "%s: step '%u:%u' in '%s'\n", __func__,
+		step->jobid, step->stepid, strJobState(step->state));
+
+	psPamSetState(step->username, "psslurm", PSPAM_JOB);
+	if (!(execUserStep(step))) {
+	    sendSlurmRC(&step->srunControlMsg, ESLURMD_FORK_FAILED);
+	}
+    }
+}
+
 static void cbPElogueAlloc(char *sjobid, int exit_status, int timeout)
 {
     Alloc_t *alloc;
@@ -62,8 +82,9 @@ static void cbPElogueAlloc(char *sjobid, int exit_status, int timeout)
 	return;
     }
 
-    mlog("%s: stepid '%u:%u' exit '%i' timeout '%i'\n", __func__, step->jobid,
-	    step->stepid, exit_status, timeout);
+    mlog("%s: state '%s' stepid '%u:%u' exit '%i' timeout '%i'\n", __func__,
+	    strJobState(alloc->state), step->jobid, step->stepid, exit_status,
+	    timeout);
 
     if (alloc->state == JOB_PROLOGUE) {
 	if (alloc->terminate) {
@@ -74,14 +95,9 @@ static void cbPElogueAlloc(char *sjobid, int exit_status, int timeout)
 		    &alloc->spankenv, 1, 0);
 	} else if (exit_status == 0) {
 	    alloc->state = JOB_RUNNING;
-	    step->state = JOB_PRESTART;
-	    mdbg(PSSLURM_LOG_JOB, "%s: step '%u:%u' in '%s'\n", __func__,
-		    step->jobid, step->stepid, strJobState(step->state));
 
-	    psPamSetState(step->username, "psslurm", PSPAM_JOB);
-	    if (!(execUserStep(step))) {
-		sendSlurmRC(&step->srunControlMsg, ESLURMD_FORK_FAILED);
-	    }
+	    /* start all waiting steps */
+	    letAllStepsRun(alloc->jobid);
 	} else {
 	    /* Prologue failed.
 	     * The prologue script will offline the corresponding node itself.

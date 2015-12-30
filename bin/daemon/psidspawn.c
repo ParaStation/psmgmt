@@ -1918,6 +1918,7 @@ static void CloneEnvFromTasks(PStask_t *task)
 
     list_for_each(t, &managedTasks) {
 	tt = list_entry(t, PStask_t, next);
+	if (tt->deleted) continue;
 
 	if (tt->loggertid == task->loggertid &&
 	    tt->ptid == task->ptid &&

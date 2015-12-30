@@ -375,6 +375,32 @@ static int initPluginHandles()
     return 1;
 }
 
+static void setConfOpt()
+{
+    int mask, mCheck;
+
+    /* psslurm debug */
+    getConfValueI(&Config, "DEBUG_MASK", &mask);
+    if (mask) {
+	mlog("%s: set psslurm debug mask '%i'\n", __func__, mask);
+	maskLogger(mask);
+    }
+
+    /* plugin library debug */
+    getConfValueI(&Config, "PLUGIN_DEBUG_MASK", &mask);
+    if (mask) {
+	mlog("%s: set plugin debug mask '%i'\n", __func__, mask);
+	maskPluginLogger(mask);
+    }
+
+    /* glib malloc checking */
+    getConfValueI(&Config, "MALLOC_CHECK", &mCheck);
+    if (mCheck) {
+	mlog("%s: enable memory checking\n", __func__);
+	setenv("MALLOC_CHECK_", "2", 1);
+    }
+}
+
 int initialize(void)
 {
     int ctlPort;
@@ -383,14 +409,8 @@ int initialize(void)
 
     start_time = time(NULL);
 
-    setenv("MALLOC_CHECK_", "2", 1);
-
     /* init the logger (log to syslog) */
     initLogger("psslurm", NULL);
-    maskLogger(PSSLURM_LOG_PROTO);
-    //maskLogger(PSSLURM_LOG_PROTO| PSSLURM_LOG_AUTH);
-    //maskLogger(PSSLURM_LOG_PROTO | PSSLURM_LOG_PART);
-    //maskLogger(PSSLURM_LOG_PROTO | PSSLURM_LOG_GRES | PSSLURM_LOG_ENV);
 
     /*
     FILE *lfile = fopen("/tmp/malloc", "w+");
@@ -415,6 +435,9 @@ int initialize(void)
 	mlog("%s: init of the configuration failed\n", __func__);
 	return 1;
     }
+
+    /* set various config options */
+    setConfOpt();
 
     if (!(registerHooks())) goto INIT_ERROR;
     if (!(initPluginHandles())) goto INIT_ERROR;

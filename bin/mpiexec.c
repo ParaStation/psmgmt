@@ -1019,6 +1019,9 @@ static void setupCommonEnv(int np)
     unsetPSIEnv("PSI_LOOP_NODES_FIRST");
     unsetPSIEnv("PSI_OPENMPI");
 
+    unsetPSIEnv("__PSI_LOGGER_TID");
+    unsetPSIEnv("__PMI_PROVIDER_FD");
+
     if (pmienabletcp || pmienablesockp ) {
 	char *mapping;
 

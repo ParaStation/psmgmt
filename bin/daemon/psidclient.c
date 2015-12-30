@@ -1077,3 +1077,19 @@ void initClients(void)
 
     PSID_registerDropper(PSP_CC_MSG, drop_CC_MSG);
 }
+
+void PSIDclient_clearMem(void)
+{
+    int fd;
+
+    for (fd=0; fd<FD_SETSIZE; fd++) {
+	list_t *m, *tmp;
+
+	list_for_each_safe(m, tmp, &clients[fd].msgs) {
+	    msgbuf_t *mp = list_entry(m, msgbuf_t, next);
+
+	    list_del(&mp->next);
+	    PSIDMsgbuf_put(mp);
+	}
+    }
+}

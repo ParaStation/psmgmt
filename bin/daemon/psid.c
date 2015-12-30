@@ -301,7 +301,6 @@ static void sighandler(int sig)
     case SIGABRT:
     case SIGSEGV:
     case SIGILL:     /* (*) illegal instruction (not reset when caught)*/
-//  case SIGFPE:     /* (*) floating point exception */
 	PSID_log(-1, "Received signal %s. Shut down hardly.\n",
 		 sys_siglist[sig] ? sys_siglist[sig] : sigStr);
 	PSID_finalizeLogs();
@@ -341,7 +340,9 @@ static void sighandler(int sig)
 	malloc_trim(0);
 	printMallocInfo();
 	break;
+    case SIGFPE:     /* (*) floating point exception */
     case  SIGTRAP:   /* (*) trace trap (not reset when caught) */
+	break;
     case  SIGBUS:    /* (*) bus error (specification exception) */
 #ifdef SIGEMT
     case  SIGEMT:    /* (*) EMT instruction */

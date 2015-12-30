@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014 - 2015 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -45,11 +45,7 @@ const ConfDef_t CONFIG_VALUES[] =
     { "DIR_JOB_FILES", 0,
 	"path",
 	SPOOL_DIR "/jobs",
-	"Directory to store jobfiles" },
-    { "DIR_TEMP", 0,
-	"path",
-	NULL,
-	"Directory for the job specific scratch space" },
+	"Directory to store jobscripts" },
     { "TIMEOUT_PROLOGUE", 1,
 	"sec",
 	"300",
@@ -67,10 +63,6 @@ const ConfDef_t CONFIG_VALUES[] =
 	"10",
 	"Number of seconds until a child must connect to the mother"
 	    " superior" },
-    { "CLEAN_TEMP_DIR", 1,
-	"bool",
-	"1",
-	"Clean scratch space directory on startup" },
     { "OFFLINE_PELOGUE_TIMEOUT", 1,
 	"bool",
 	"1",
@@ -97,7 +89,7 @@ const ConfDef_t CONFIG_VALUES[] =
 	"list",
 	NULL,
 	"Set hard resource limits for user processes" },
-    { "DIST_START", 0,
+    { "DIST_START", 1,
 	"bool",
 	"0",
 	"Distribute mpiexec service processes at startup" },
@@ -105,6 +97,18 @@ const ConfDef_t CONFIG_VALUES[] =
 	"string",
 	"local",
 	"Default value to be used for memory binding (none|local)" },
+    { "MALLOC_CHECK", 1,
+	"bool",
+	"0",
+	"Enable libc malloc checking" },
+    { "DEBUG_MASK", 1,
+	"int",
+	"0",
+	"Set the psslurm debug mask" },
+    { "PLUGIN_DEBUG_MASK", 1,
+	"int",
+	"0",
+	"Set the plugin library debug mask" },
     { NULL, 0, NULL, NULL, NULL },
 };
 

@@ -39,6 +39,7 @@ void finalizePluginLogger();
 typedef enum {
     PLUGIN_LOG_VERBOSE	= 0x000010, /**< Other verbose stuff */
     PLUGIN_LOG_MALLOC	= 0x000020, /**< Log memory allocation */
+    PLUGIN_LOG_FW	= 0x000040, /**< Verbose forwarder */
 } PSPlugin_log_types_t;
 
 #endif

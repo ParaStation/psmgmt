@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2010 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2015 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -127,6 +127,20 @@ int recvRDP(DDMsg_t *msg, size_t size);
  * @return No return value
  */
 void handleRDPMsg(int fd);
+
+/**
+ * @brief Memory cleanup
+ *
+ * Cleanup all dynamic memory currently used by the module. It will
+ * very aggressively free() all allocated memory most likely
+ * destroying the existing status reqresentation.
+ *
+ * The purpose of this function is to cleanup before a fork()ed
+ * process is handling other tasks, e.g. becoming a forwarder.
+ *
+ * @return No return value.
+ */
+void PSIDRDP_clearMem(void);
 
 #ifdef __cplusplus
 }/* extern "C" */

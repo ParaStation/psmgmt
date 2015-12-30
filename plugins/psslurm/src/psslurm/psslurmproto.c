@@ -325,7 +325,7 @@ static void setAccFreq(char **ptr)
 void handleLaunchTasks(Slurm_Msg_t *sMsg)
 {
     Alloc_t *alloc = NULL;
-    Job_t *job;
+    Job_t *job = NULL;
     Step_t *step;
     uint32_t jobid, stepid, i, tmp, count;
     uint16_t debug;
@@ -336,14 +336,6 @@ void handleLaunchTasks(Slurm_Msg_t *sMsg)
     /* jobid/stepid */
     getUint32(ptr, &jobid);
     getUint32(ptr, &stepid);
-
-    if ((findStepById(jobid, stepid))) {
-	if (sMsg->sock != -1) {
-	    /* say ok to waiting srun */
-	    sendSlurmRC(sMsg, SLURM_SUCCESS);
-	}
-	return;
-    }
 
     step = addStep(jobid, stepid);
     step->state = JOB_QUEUED;
@@ -490,7 +482,15 @@ void handleLaunchTasks(Slurm_Msg_t *sMsg)
 		step->cred->jobHostlist, &step->env,
 		&step->spankenv, step->uid, step->gid, step->username);
 
-	alloc->state = JOB_RUNNING;
+	alloc->state = JOB_QUEUED;
+    } else if (!job) {
+	if (!(alloc = findAlloc(step->jobid))) {
+	    mlog("%s: no allocation for step '%u:%u'\n", __func__,
+		    step->jobid, step->stepid);
+	    sendSlurmRC(sMsg, SLURM_ERROR);
+	    deleteStep(step->jobid, step->stepid);
+	    return;
+	}
     }
 
     if ((acctType = getConfValueC(&SlurmConfig, "JobAcctGatherType"))) {
@@ -505,23 +505,26 @@ void handleLaunchTasks(Slurm_Msg_t *sMsg)
 	return;
     }
 
-    /* let prologue run, if there is no job with the jobid there */
-    /* fire up the forwarder and let mpiexec run, intercept createPart Call to
-     * overwrite the nodelist, when spawner process sends the tids forward them
-     * to srun */
     if (step->nodes[0] == PSC_getMyID()) {
+	/* mother superior */
 	step->srunControlMsg.sock = sMsg->sock;
 	step->srunControlMsg.head.forward = sMsg->head.forward;
 	step->srunControlMsg.recvTime = sMsg->recvTime;
 
 	if (!stepid && !job) {
+	    /* start prologue for steps without job */
 	    alloc->state = step->state = JOB_PROLOGUE;
 	    mdbg(PSSLURM_LOG_JOB, "%s: step '%u:%u' in '%s'\n", __func__,
 		    step->jobid, step->stepid, strJobState(step->state));
 	    startPElogue(alloc->jobid, alloc->uid, alloc->gid, alloc->username,
 			    alloc->nrOfNodes, alloc->nodes, &alloc->env,
 			    &alloc->spankenv, 1, 1);
+	} else if (!job && alloc->state == JOB_PROLOGUE) {
+	    /* prologue already running, wait till it is finished */
+	    step->state = JOB_PROLOGUE;
 	} else {
+	    /* start mpiexec to spawn the parallel processes,
+	     * intercept createPart call to overwrite the nodelist */
 	    step->state = JOB_PRESTART;
 	    mdbg(PSSLURM_LOG_JOB, "%s: step '%u:%u' in '%s'\n", __func__,
 		    step->jobid, step->stepid, strJobState(step->state));
@@ -530,7 +533,9 @@ void handleLaunchTasks(Slurm_Msg_t *sMsg)
 	    }
 	}
     } else {
+	/* sister node */
 	if (job || stepid) {
+	    /* start I/O forwarder */
 	    execStepFWIO(step);
 	}
 
@@ -1500,7 +1505,7 @@ static void handleTerminateAlloc(Slurm_Msg_t *sMsg, Alloc_t *alloc)
     switch (alloc->state) {
 	case JOB_RUNNING:
 	    /* check if we still have running steps and kill them */
-	    if ((haveRunningSteps(alloc->jobid))) {
+	    if ((haveRunningSteps(alloc->jobid)) && alloc->terminate < 40) {
 		signalStepsByJobid(alloc->jobid, signal);
 		mlog("%s: waiting till steps are completed\n", __func__);
 	    } else {

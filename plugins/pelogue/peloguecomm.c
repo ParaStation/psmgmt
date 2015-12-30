@@ -269,7 +269,7 @@ int fwCallback(int32_t wstat, char *errMsg, size_t errLen, void *data)
     }
 
     ret = sendMsg(&msgRes);
-    mlog("%s: %s exit '%i' job '%s' to '%s' ret '%i'\n", __func__,
+    mlog("%s: local %s exit '%i' job '%s' to '%s' ret '%i'\n", __func__,
 	    pedata->prologue ? "prologue" : "epilogue",
 	    exit_status, pedata->jobid, PSC_printTID(pedata->mainPelogue), ret);
 
