@@ -25,7 +25,7 @@ void startPElogue(uint32_t jobid, uid_t uid, gid_t gid, char *username,
 int handlePElogueFinish(void *data);
 
 int handleTaskPrologue(char *taskPrologue, uint32_t rank,
-	uint32_t jobid, pid_t task_pid);
+	uint32_t jobid, pid_t task_pid, char *wdir);
 
 int startTaskEpilogues(Step_t *step);
 

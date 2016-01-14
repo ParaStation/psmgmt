@@ -397,7 +397,7 @@ int handleExecClientUser(void *data)
 	setRankEnv(task->rank, step);
 
 	handleTaskPrologue(step->taskProlog, task->rank, jobid,
-		PSC_getPID(task->tid));
+		PSC_getPID(task->tid), step->cwd);
 
 	doMemBind(step, task);
 	verboseMemPinningOutput(step, task);

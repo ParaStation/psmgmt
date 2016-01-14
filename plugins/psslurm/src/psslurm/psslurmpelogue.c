@@ -259,13 +259,13 @@ int handlePElogueFinish(void *data)
 }
 
 int handleTaskPrologue(char *taskPrologue, uint32_t rank,
-			uint32_t jobid, pid_t task_pid)
+			uint32_t jobid, pid_t task_pid, char *wdir)
 {
     int pipe_fd[2];
     pid_t child;
     char *child_argv[2];
     FILE *output;
-    char envstr[21], line[4096];
+    char envstr[21], line[4096], buffer[4096];
     char *saveptr, *key;
     size_t last;
 
@@ -275,6 +275,12 @@ int handleTaskPrologue(char *taskPrologue, uint32_t rank,
 
     mlog("%s: starting task prologue '%s' for rank '%u' of job '%u'\n",
 	    __func__, taskPrologue, rank, jobid);
+
+    /* handle relative paths */
+    if (taskPrologue[0] != '/') {
+        snprintf(buffer, 4096, "%s/%s", wdir, taskPrologue);
+	taskPrologue = buffer;
+    }
 
     if (access(taskPrologue, R_OK | X_OK) < 0) {
         mwarn(errno, "task prologue '%s' not accessable", taskPrologue);
@@ -432,14 +438,23 @@ void execTaskEpilogues(void *data, int rerun)
     uint32_t rank;
     pid_t* childs;
     char *argv[2];
+    char buffer[4096], *taskEpilogue;
     int status;
 
     errno = 0;
 
     if (!step->taskEpilog || *(step->taskEpilog) == '\0') return;
 
-    if (access(step->taskEpilog, R_OK | X_OK) < 0) {
-        mwarn(errno, "task epilogue '%s' not accessable", step->taskEpilog);
+    taskEpilogue = step->taskEpilog;
+
+    /* handle relative paths */
+    if (taskEpilogue[0] != '/') {
+        snprintf(buffer, 4096, "%s/%s", step->cwd, taskEpilogue);
+	taskEpilogue = buffer;
+    }
+
+    if (access(taskEpilogue, R_OK | X_OK) < 0) {
+        mwarn(errno, "task epilogue '%s' not accessable", taskEpilogue);
 	return;
     }
 
@@ -449,7 +464,7 @@ void execTaskEpilogues(void *data, int rerun)
 	putenv(step->env.vars[i]);
     }
 
-    argv[0] = step->taskEpilog;
+    argv[0] = taskEpilogue;
     argv[1] = NULL;
 
     setpgrp();
@@ -473,11 +488,11 @@ void execTaskEpilogues(void *data, int rerun)
 
             /* execute task epilogue */
 	    mlog("%s: starting task epilogue '%s' for rank %u of job %u\n",
-		__func__, step->taskEpilog, rank, step->jobid);
+		__func__, taskEpilogue, rank, step->jobid);
 
 	    execvp (argv[0], argv);
             mlog("%s: exec for task epilogue '%s' failed for rank %u of job"
-		    " %u\n", __func__, step->taskEpilog, rank, step->jobid);
+		    " %u\n", __func__, taskEpilogue, rank, step->jobid);
 	    ufree(childs);
 	    exit(-1);
 	}
