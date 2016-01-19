@@ -434,7 +434,7 @@ static char *showConnectionState(char *buf, size_t *bufSize)
 	    snprintf(lport, sizeof(lport), "%i", com->localPort);
 	}
 	snprintf(local, sizeof(local), "%s:%s",
-		    com->addr ? com->addr : "0.0.0.0", lport);
+		    com->addr[0] ? com->addr : "0.0.0.0", lport);
 
 	/* print remote addr */
 	if (com->remotePort == -1) {
@@ -443,7 +443,7 @@ static char *showConnectionState(char *buf, size_t *bufSize)
 	    snprintf(rport, sizeof(rport), "%i", com->remotePort);
 	}
 	snprintf(remote, sizeof(remote), "%s:%s",
-		    com->remoteAddr ? com->remoteAddr : "0.0.0.0",
+		    com->remoteAddr[0] ? com->remoteAddr : "0.0.0.0",
 		    rport);
 
 	snprintf(line, sizeof(line), "%i\t%s\t%20s\t%20s\t%s\n", com->socket,

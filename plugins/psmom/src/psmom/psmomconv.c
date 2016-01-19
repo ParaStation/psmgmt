@@ -112,7 +112,7 @@ int WriteDigit(ComHandle_t *com, long digit)
     size_t len=0;
     unsigned long udigit = 0;
 
-    if ((udigit = abs(digit)) > 9) {
+    if ((udigit = labs(digit)) > 9) {
 	snprintf(buf, sizeof(buf), "%lu", udigit);
 	len = strlen(buf);
 	snprintf(buf, sizeof(buf), "%zu%+ld", len, digit);
