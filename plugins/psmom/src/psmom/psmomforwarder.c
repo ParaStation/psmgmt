@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2014 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -98,12 +98,6 @@ static int controlFDs[2];
 
 /** communication handle conneted to the local psmom for std output */
 static ComHandle_t *com = NULL;
-
-/** read fd set */
-static fd_set readfds;
-
-/** write fd set */
-static fd_set writefds;
 
 int __doWrite(int fd, void *buffer, size_t towrite, const char *func)
 {
@@ -513,8 +507,6 @@ static void signalHandler(int sig)
  */
 static void forwarderLoop()
 {
-    fd_set rfds, wfds;
-
     /* set timeout */
     if (timeout > 0) {
 	alarm(timeout);
@@ -525,13 +517,10 @@ static void forwarderLoop()
     blockSignal(SIGALRM, 0);
 
     while (1) {
-	memcpy(&rfds, &readfds, sizeof(rfds));
-	memcpy(&wfds, &writefds, sizeof(wfds));
-
 	/* check for really short jobs */
 	if (sigChild) return;
 
-	if (Sselect(FD_SETSIZE, &rfds, &wfds, NULL, NULL) < 0) {
+	if (Sselect(FD_SETSIZE, NULL, NULL, NULL, NULL) < 0) {
 	    if (errno != EINTR) {
 		mlog("%s: select error : %s\n", __func__, strerror(errno));
 	    }
@@ -626,9 +615,6 @@ static int initForwarder(int forwarderType, char *jobname)
     /* open local control connection back to psmom */
     forwarder_type = forwarderType;
     jobid = jobname;
-
-    FD_ZERO(&readfds);
-    FD_ZERO(&writefds);
 
     if (!(com = openLocalConnection())) {
 	fprintf(stderr, "%s: open connection to psmom failed\n", __func__);
