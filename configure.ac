@@ -69,9 +69,9 @@ PS_SEARCH_LIBS([readline], [readline], [RL_LIBS], [],
 PS_SEARCH_LIBS([using_history], [history], [RL_LIBS], [],
   [AC_MSG_ERROR([please install the readline devel package])])
 
-AC_ARG_WITH([psconfig], [AS_HELP_STRING([--without-psconfig],
+AC_ARG_ENABLE([psconfig], [AS_HELP_STRING([--disable-psconfig],
   [build without psconfig support])])
-AM_CONDITIONAL([BUILD_WITHOUT_PSCONFIG], [test "x$with_psconfig" = xno])
+AM_CONDITIONAL([BUILD_WITHOUT_PSCONFIG], [test "x$enable_psconfig" = xno])
 
 AM_COND_IF([BUILD_WITHOUT_PSCONFIG], [
   AC_MSG_NOTICE([Building without psconfig support])

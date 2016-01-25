@@ -791,7 +791,7 @@ with_gnu_ld
 with_sysroot
 enable_libtool_lock
 with_pamdir
-with_psconfig
+enable_psconfig
 enable_testplugins
 '
       ac_precious_vars='build_alias
@@ -1444,6 +1444,7 @@ Optional Features:
   --enable-fast-install[=PKGS]
                           optimize for fast installation [default=yes]
   --disable-libtool-lock  avoid locking (might break parallel builds)
+  --disable-psconfig      build without psconfig support
   --enable-testplugins    build test plugins
 
 Optional Packages:
@@ -1458,7 +1459,6 @@ Optional Packages:
   --with-sysroot[=DIR]    Search for dependent libraries within DIR (or the
                           compiler's sysroot if not specified).
   --with-pamdir=DIR       specify pam plugin dir
-  --without-psconfig      build without psconfig support
 
 Some influential environment variables:
   CC          C compiler command
@@ -12395,13 +12395,12 @@ fi
 
 
 
-
-# Check whether --with-psconfig was given.
-if test "${with_psconfig+set}" = set; then :
-  withval=$with_psconfig;
+# Check whether --enable-psconfig was given.
+if test "${enable_psconfig+set}" = set; then :
+  enableval=$enable_psconfig;
 fi
 
- if test "x$with_psconfig" = xno; then
+ if test "x$enable_psconfig" = xno; then
   BUILD_WITHOUT_PSCONFIG_TRUE=
   BUILD_WITHOUT_PSCONFIG_FALSE='#'
 else

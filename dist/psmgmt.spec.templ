@@ -76,7 +76,7 @@ daemon is necessary to integrate compute nodes into a Torque batch system.
 
 %build
 export CFLAGS="%(echo %{optflags}|sed -e 's,-O.,,')"
-%configure --datarootdir=%{_datadir} --with-pamdir=%{_pamdir} %{?disable_psconfig:--without-psconfig}
+%configure --datarootdir=%{_datadir} --with-pamdir=%{_pamdir} %{?disable_psconfig:--disable-psconfig}
 make %{?_smp_mflags}
 
 %install
