@@ -700,7 +700,6 @@ int main(int argc, const char *argv[])
     }
 
     /* Init fd sets */
-    FD_ZERO(&PSID_readfds);
     FD_ZERO(&PSID_writefds);
 
     /*
@@ -880,20 +879,17 @@ int main(int argc, const char *argv[])
      */
     while (1) {
 	struct timeval tv;  /* timeval for waiting on select()*/
-	fd_set rfds;        /* read file descriptor set */
 	fd_set wfds;        /* write file descriptor set */
 	int fd, res;
 
 	timerset(&tv, &selectTime);
-	memcpy(&rfds, &PSID_readfds, sizeof(rfds));
 	memcpy(&wfds, &PSID_writefds, sizeof(wfds));
 
-	res = Sselect(FD_SETSIZE, &rfds, &wfds, (fd_set *)NULL, &tv);
+	res = Sselect(FD_SETSIZE, NULL, &wfds, NULL, &tv);
 	if (res < 0) {
 	    PSID_warn(-1, errno, "Error while Sselect");
 
 	    Selector_checkFDs();
-	    checkFileTable(&PSID_readfds);
 	    checkFileTable(&PSID_writefds);
 
 	    PSID_log(PSID_LOG_VERB, "Error while Sselect: continue\n");

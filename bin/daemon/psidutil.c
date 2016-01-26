@@ -224,17 +224,12 @@ static int masterSock = -1;
  *
  * This function is expected to be registered to the selector facility.
  *
- * This function will return 1 in order the make the calling Sselect()
- * function return. This enables the daemon's main-loop to update the
- * PSID_readfds set of file-descriptors passed to the Sselect()
- * function of the selector facility.
- *
  * @param fd The file-descriptor from which the new connection might
  * be accepted.
  *
  * @param info Extra info. Currently ignored.
  *
- * @return On success 1 is returned. Otherwise -1 is returned and
+ * @return On success 0 is returned. Otherwise -1 is returned and
  * errno is set appropriately.
  */
 static int handleMasterSock(int fd, void *info)
@@ -281,7 +276,7 @@ static int handleMasterSock(int fd, void *info)
     size = sizeof(linger);
     setsockopt(ssock, SOL_SOCKET, SO_LINGER, &linger, size);
 
-    return 1; /* return 1 to allow main-loop updating PSID_readfds */
+    return 0;
 }
 
 void PSID_createMasterSock(char *sockname)
