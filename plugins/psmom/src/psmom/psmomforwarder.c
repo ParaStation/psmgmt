@@ -520,7 +520,7 @@ static void forwarderLoop()
 	/* check for really short jobs */
 	if (sigChild) return;
 
-	if (Sselect(FD_SETSIZE, NULL, NULL, NULL, NULL) < 0) {
+	if (Sselect(0, NULL, NULL, NULL, NULL) < 0) {
 	    if (errno != EINTR) {
 		mlog("%s: select error : %s\n", __func__, strerror(errno));
 	    }

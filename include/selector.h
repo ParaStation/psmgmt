@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2015 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -131,7 +131,7 @@ typedef int Selector_CB_t (int, void *);
  * with the file-descriptor, especially if select() called with just
  * the associated file-descriptor returns EBADF. Thus, the handler has
  * to expect a misbehaving file descriptor. The corresponding selector
- * will be deleted after the return anyhow.
+ * will be deleted after the return, anyhow.
  *
  * @param fd The file-descriptor, the selector is registered on.
  *
@@ -250,7 +250,7 @@ void Selector_checkFDs(void);
  * @ref selectHandler() is called.
  *
  *
- * @param n The highest-numbered descriptor in the three sets, plus 1.
+ * @param nfds The highest-numbered descriptor in the three sets, plus 1.
  *
  * @param readfds The set of descriptors to be watched for data available to
  * read.
@@ -274,7 +274,7 @@ void Selector_checkFDs(void);
  *
  * @see select(2)
  */
-int Sselect(int n, fd_set* readfds, fd_set* writefds, fd_set* exceptfds,
+int Sselect(int nfds, fd_set* readfds, fd_set* writefds, fd_set* exceptfds,
 	    struct timeval* timeout);
 
 /**
