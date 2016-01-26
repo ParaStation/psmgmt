@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014-2015 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -420,7 +420,7 @@ static void msg_SENDSTOPACK(DDMsg_t *msg)
     PSID_log(PSID_LOG_FLWCNTRL, "%s: from %s\n",
 	     __func__, PSC_printTID(msg->sender));
 
-    if (task->fd != -1) releaseACKClient(task->fd);
+    if (task->fd != -1) PSIDclient_releaseACK(task->fd);
 }
 
 /**

@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2015 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -36,6 +36,7 @@ static char vcid[] __attribute__((used)) =
 #include "psidhw.h"
 #include "psidaccount.h"
 #include "psidplugin.h"
+#include "psidclient.h"
 
 #include "psidoption.h"
 
@@ -293,6 +294,18 @@ static void set_rlimit(PSP_Option_t option, PSP_Optval_t value)
     if (setrlimit(resource, &limit)) {
 	PSID_warn(-1, errno, "%s: setrlimit(%d, %d)", __func__,
 		  resource, value);
+    } else {
+	/* We might have to inform other facilities, too */
+	switch (resource) {
+	case RLIMIT_NOFILE:
+	    if (PSIDclient_setMax(value) < 0) {
+		PSID_exit(errno, "%s: Failed to adapt PSIDclient", __func__);
+	    }
+	    break;
+	default:
+	    /* nothing to do */
+	    break;
+	}
     }
 }
 

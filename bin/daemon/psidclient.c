@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2015 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -51,14 +51,21 @@ static char vcid[] __attribute__((used)) =
 #define FLUSH           0x00000002   /* Flush is under way */
 #define CLOSE           0x00000004   /* About to close the connection */
 
-static struct {
+/** Information we have on current clients */
+typedef struct {
     PStask_ID_t tid;     /**< Clients task ID */
     PStask_t *task;      /**< Clients task structure */
     unsigned int flags;  /**< Special flags (INITIALCONTACT, FLUSH, CLOSE) */
     int pendingACKs;     /**< SENDSTOPACK messages to wait for */
     list_t msgs;         /**< Chain of undelivered messages */
     PSIDFlwCntrl_hash_t stops;  /**< Hash-table to track SENDSTOPs */
-} clients[FD_SETSIZE];
+} client_t;
+
+/** Array (indexed by file-descriptor number) to store info on clients */
+static client_t *clients = NULL;
+
+/** Maximum number of clients the module currently can take care of */
+static int maxClientFD = 0;
 
 static void msg_CLIENTCONNECT(int fd, DDBufferMsg_t *bufmsg);
 
@@ -109,7 +116,7 @@ void registerClient(int fd, PStask_ID_t tid, PStask_t *task)
 
 PStask_ID_t getClientTID(int fd)
 {
-    if (fd < 0 || fd >= FD_SETSIZE) {
+    if (fd < 0 || fd >= maxClientFD) {
 	PSID_log(-1, "%s(%d): file descriptor out of range\n", __func__, fd);
 	return PSC_getMyTID();
     }
@@ -119,7 +126,7 @@ PStask_ID_t getClientTID(int fd)
 
 PStask_t *getClientTask(int fd)
 {
-    if (fd < 0 || fd >= FD_SETSIZE) {
+    if (fd < 0 || fd >= maxClientFD) {
 	PSID_log(-1, "%s(%d): file descriptor out of range\n", __func__, fd);
 	return NULL;
     }
@@ -246,7 +253,7 @@ int flushClientMsgs(int fd)
     list_t *m, *tmp;
     int blockedCHLD, blockedRDP, ret = 0;
 
-    if (fd<0 || fd >= FD_SETSIZE) {
+    if (fd < 0 || fd >= maxClientFD) {
 	errno = EINVAL;
 	return -1;
     }
@@ -279,7 +286,7 @@ int flushClientMsgs(int fd)
     if (list_empty(&clients[fd].msgs) && !clients[fd].pendingACKs) {
 	/* Use the stop-hash to actually send SENDCONT msgs */
 	int ret = PSIDFlwCntrl_sendContMsgs(clients[fd].stops, clients[fd].tid);
-	PSID_log(PSID_LOG_FLWCNTRL, "%s: sent %d SENDCONT msgs\n", __func__, ret);
+	PSID_log(PSID_LOG_FLWCNTRL, "%s: sent %d msgs\n", __func__, ret);
     }
 
     clients[fd].flags &= ~FLUSH;
@@ -703,9 +710,9 @@ int killAllClients(int sig, int killAdminTasks)
     return ret;
 }
 
-void releaseACKClient(int fd)
+void PSIDclient_releaseACK(int fd)
 {
-    if (fd < 0 || fd >= FD_SETSIZE) {
+    if (fd < 0 || fd >= maxClientFD) {
 	PSID_log(-1, "%s(%d): file descriptor out of range\n", __func__, fd);
 	return;
     }
@@ -715,7 +722,7 @@ void releaseACKClient(int fd)
     if (!clients[fd].pendingACKs && list_empty(&clients[fd].msgs)) {
 	/* Use the stop-hash to actually send SENDCONT msgs */
 	int ret = PSIDFlwCntrl_sendContMsgs(clients[fd].stops, clients[fd].tid);
-	PSID_log(PSID_LOG_FLWCNTRL, "%s: sent %d SENDCONT msgs\n", __func__, ret);
+	PSID_log(PSID_LOG_FLWCNTRL, "%s: sent %d msgs\n", __func__, ret);
     }
 }
 
@@ -1072,19 +1079,46 @@ static void drop_CC_MSG(DDBufferMsg_t *msg)
     sendMsg(&errmsg);
 }
 
-void initClients(void)
+/**
+ * @brief Init client structure
+ *
+ * Initialize the client structure @a client.
+ *
+ * @param client The client to initialize.
+ *
+ * @return No return value.
+ */
+static void clientInit(client_t *client)
 {
-    int fd;
+    client->tid = -1;
+    client->task = NULL;
+    client->flags = 0;
+    client->pendingACKs = 0;
+    INIT_LIST_HEAD(&client->msgs);
+    PSIDFlwCntrl_initHash(client->stops);
+}
+
+void PSIDclient_init(void)
+{
+    int numFiles;
 
     PSIDFlwCntrl_init();
 
-    for (fd=0; fd<FD_SETSIZE; fd++) {
-	clients[fd].tid = -1;
-	clients[fd].task = NULL;
-	clients[fd].flags = 0;
-	clients[fd].pendingACKs = 0;
-	INIT_LIST_HEAD(&clients[fd].msgs);
-	PSIDFlwCntrl_initHash(clients[fd].stops);
+    if (clients) {
+	PSID_log(-1, "%s: already initialized\n", __func__);
+	return;
+    }
+
+    numFiles = sysconf(_SC_OPEN_MAX);
+    if (numFiles <= 0) {
+	PSID_exit(errno, "%s: sysconf(_SC_OPEN_MAX) returns %d", __func__,
+		  numFiles);
+	return;
+    }
+
+    if (PSIDclient_setMax(numFiles) < 0) {
+	PSID_exit(errno, "%s: PSIDclient_setMax()", __func__);
+	return;
     }
 
     PSID_registerMsg(PSP_CC_MSG, msg_CC_MSG);
@@ -1092,11 +1126,60 @@ void initClients(void)
     PSID_registerDropper(PSP_CC_MSG, drop_CC_MSG);
 }
 
+static inline void fixList(list_t *list, list_t *oldHead)
+{
+    if (list->next == oldHead) {
+	/* list was empty */
+	INIT_LIST_HEAD(list);
+    } else {
+	/* fix reverse pointers */
+	list->next->prev = list;
+	list->prev->next = list;
+    }
+}
+
+int PSIDclient_setMax(int max)
+{
+    int oldMax = maxClientFD;
+    client_t *oldClients = clients;
+    int fd;
+
+    if (maxClientFD >= max) return 0; /* don't shrink */
+
+    maxClientFD = max;
+
+    clients = realloc(clients, sizeof(*clients) * maxClientFD);
+    if (!clients) {
+	PSID_warn(-1, ENOMEM, "%s", __func__);
+	errno = ENOMEM;
+	return -1;
+    }
+
+    /* Restore old lists if necessary */
+    if (clients != oldClients) {
+	for (fd=0; fd < oldMax; fd++) {
+	    int h;
+	    fixList(&clients[fd].msgs, &oldClients[fd].msgs);
+	    for (h=0; h<FLWCNTRL_HASH_SIZE; h++) {
+		fixList(&clients[fd].stops[h], &oldClients[fd].stops[h]);
+	    }
+	}
+    }
+
+    /* Initialize new clients */
+    for (fd = oldMax; fd < maxClientFD; fd++) {
+	clientInit(&clients[fd]);
+    }
+
+    return 0;
+}
+
 void PSIDclient_clearMem(void)
 {
     int fd;
 
-    for (fd=0; fd<FD_SETSIZE; fd++) {
+    /* Need to put MsgBufs to free() non-small messages */
+    for (fd = 0; fd < maxClientFD; fd++) {
 	list_t *m, *tmp;
 
 	list_for_each_safe(m, tmp, &clients[fd].msgs) {
@@ -1106,4 +1189,10 @@ void PSIDclient_clearMem(void)
 	    PSIDMsgbuf_put(mp);
 	}
     }
+
+    if (clients) {
+	free(clients);
+	clients = NULL;
+    }
+    maxClientFD = 0;
 }
