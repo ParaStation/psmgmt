@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2015 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -45,16 +45,13 @@ static char vcid[] __attribute__((used)) =
 
 #include "rdp.h"
 
-/**
- * The socket used to send and receive RDP packets. Will be opened in
- * initRDP().
- */
+/** The socket used to send and receive RDP messages. Created in RDP_init(). */
 static int rdpsock = -1;
 
 /** The unique ID of the timer registered by RDP. */
 static int timerID = -1;
 
-/** The size of the cluster. Set via initRDP(). */
+/** The size of the cluster. Set via RDP_init(). */
 static int nrOfNodes = 0;
 
 /** The logger we use inside RDP */
@@ -70,10 +67,17 @@ static logger_t *logger;
 #define RDP_exit(...) logger_exit(logger, __VA_ARGS__)
 
 /**
- * The callback function. Will be used to send messages to the calling
- * process. Set via initRDP().
+ * The callback function. Will be used to send notifications to the
+ * calling process. Set via RDP_init().
  */
 static void (*RDPCallback)(int, void*) = NULL;
+
+/**
+ * The message dispatcher function. Will be used to actually read and
+ * handle valid RDP messages. To be provided by the calling process
+ * within RDP_init().
+ */
+static void (*RDPDispatcher)(int) = NULL;
 
 /** Possible RDP states of a connection */
 typedef enum {
@@ -1852,6 +1856,11 @@ static int handleRDP(int fd, void *info)
 	return 0;
     }
 
+    if (RDPDispatcher) {
+	RDPDispatcher(fd);
+	return 0;
+    }
+
     return 1;
 }
 
@@ -1888,8 +1897,9 @@ static char *stateStringRDP(RDPState_t state)
 
 /* ---------------------------------------------------------------------- */
 
-int initRDP(int nodes, in_addr_t addr, unsigned short portno, FILE* logfile,
-	    unsigned int hosts[], void (*callback)(int, void*))
+int RDP_init(int nodes, in_addr_t addr, unsigned short portno, FILE* logfile,
+	     unsigned int hosts[], void (*dispatcher)(int),
+	     void (*callback)(int, void*))
 {
     logger = logger_init("RDP", logfile);
     if (!logger) {
@@ -1901,6 +1911,7 @@ int initRDP(int nodes, in_addr_t addr, unsigned short portno, FILE* logfile,
 	exit(1);
     }
 
+    RDPDispatcher = dispatcher;
     RDPCallback = callback;
     nrOfNodes = nodes;
 

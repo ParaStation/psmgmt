@@ -845,16 +845,14 @@ int main(int argc, const char *argv[])
 	}
 
 	/* Initialize RDP */
-	RDPSocket = initRDP(PSC_getNrOfNodes(),
-			    PSIDnodes_getAddr(PSC_getMyID()), config->RDPPort,
-			    logfile, hostlist, RDPCallBack);
+	RDPSocket = RDP_init(PSC_getNrOfNodes(),
+			     PSIDnodes_getAddr(PSC_getMyID()), config->RDPPort,
+			     logfile, hostlist, PSIDRDP_handleMsg, RDPCallBack);
 	if (RDPSocket<0) {
 	    PSID_exit(errno, "Error while trying initRDP");
 	}
 
 	PSID_log(-1, "RDP (%d) initialized.\n", RDPSocket);
-
-	FD_SET(RDPSocket, &PSID_readfds);
 
 	free(hostlist);
     }
@@ -900,13 +898,6 @@ int main(int argc, const char *argv[])
 
 	    PSID_log(PSID_LOG_VERB, "Error while Sselect: continue\n");
 	    continue;
-	}
-
-	/* handle RDP messages */
-	/* not in a selector since RDP itself registeres one */
-	if (FD_ISSET(RDPSocket, &rfds)) {
-	    handleRDPMsg(RDPSocket);
-	    res--;
 	}
 
 	/* check client sockets to flush messages */
