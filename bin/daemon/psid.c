@@ -572,7 +572,7 @@ int main(int argc, const char *argv[])
 {
     poptContext optCon;   /* context for parsing command-line options */
 
-    int rc, version = 0, debugMask = 0;
+    int rc, version = 0, debugMask = 0, pipeFD[2] = {-1, -1};
     char *logdest = NULL, *configfile = "/etc/parastation.conf";
     FILE *logfile = NULL;
     struct rlimit rlimit;
@@ -644,15 +644,23 @@ int main(int argc, const char *argv[])
     /* Save some space in order to modify the cmdline later on */
     PSC_saveTitleSpace(PSID_argc, (char **)PSID_argv, 1);
 
-    if (!debugMask || (logfile!=stderr && logfile!=stdout)) {
+    if (logfile!=stderr && logfile!=stdout) {
+	/* Daemonize only if neither stdout nor stderr is used for logging */
+	if (pipe(pipeFD) < 0) {
+	    PSID_exit(errno, "unable to create pipe");
+	}
+
 	/* Start as daemon */
 	switch (fork()) {
 	case -1:
 	    PSID_exit(errno, "unable to fork server process");
 	    break;
 	case 0: /* I'm the child (and running further) */
+	    close (pipeFD[0]);
 	    break;
 	default: /* I'm the parent and exiting */
+	    close (pipeFD[1]);
+	    read(pipeFD[0], &rc, sizeof(rc)); /* Wait for child's dummy data */
 	    return 0;
 	    break;
        }
@@ -858,6 +866,9 @@ int main(int argc, const char *argv[])
 
     /* Now start to listen for clients */
     PSID_enableMasterSock();
+
+    /* Once RDP and the master socket are ready parents might be released */
+    if (pipeFD[1] > -1) close(pipeFD[1]);
 
     PSID_log(-1, "SelectTime=%d sec    DeadInterval=%d\n",
 	     config->selectTime, config->deadInterval);
