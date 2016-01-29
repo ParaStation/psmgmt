@@ -660,7 +660,8 @@ int main(int argc, const char *argv[])
 	    break;
 	default: /* I'm the parent and exiting */
 	    close (pipeFD[1]);
-	    read(pipeFD[0], &rc, sizeof(rc)); /* Wait for child's dummy data */
+	    /* Wait for child's dummy data */
+	    rc = read(pipeFD[0], &pipeFD[1], sizeof(pipeFD[1]));
 	    return 0;
 	    break;
        }
