@@ -108,11 +108,11 @@ tests = {
 	"cpu_bind-cores"	: ["--cpu_bind=cores", "", [None, None], "-DCPU_MASK=1", ""],	# Differs from standard Slurm
 	"cpu_bind-ldoms"	: ["--cpu_bind=ldoms", "", [0x00FF00FF, 0xFF00FF00], "-DCPU_MASK=1", ""],
 	"cpu_bind-boards"	: ["--cpu_bind=boards", "", [0xFFFFFFFF, 0xFFFFFFFF], "-DCPU_MASK=1", ""],	# Differs from standard Slurm
-	"mem_bind-default"	: ["", "", [0x3, 0x3], "-DMEM_MASK=1", "-lnuma"],
-	"mem_bind-none"		: ["--mem_bind=none", "", [0x3, 0x3], "-DMEM_MASK=1", "-lnuma"],
-	"mem_bind-local"	: ["--mem_bind=local", "--ntasks-per-socket=1", [0x1, 0x2], "-DMEM_MASK=1", "-lnuma"],
-	"mem_bind-map_mem"	: ["--mem_bind=map_mem:0,1", "", [0x1, 0x2], "-DMEM_MASK=1", "-lnuma"],
-	"mem_bind-mask_mem"	: ["--mem_bind=mask_mem:0x2,0x3", "", [0x2, 0x3], "-DMEM_MASK=1", "-lnuma"]
+	"mem_bind-default"	: ["", "--cpu_bind=socket", [0x3, 0x3], "-DMEM_MASK=1", "-lnuma"],
+	"mem_bind-none"		: ["--mem_bind=none", "--cpu_bind=socket", [0x3, 0x3], "-DMEM_MASK=1", "-lnuma"],
+	"mem_bind-local"	: ["--mem_bind=local", "--cpu_bind=socket", [0x1, 0x2], "-DMEM_MASK=1", "-lnuma"],
+	"mem_bind-map_mem"	: ["--mem_bind=map_mem:1,0", "--cpu_bind=socket", [0x2, 0x1], "-DMEM_MASK=1", "-lnuma"],
+	"mem_bind-mask_mem"	: ["--mem_bind=mask_mem:0x2,0x3", "--cpu_bind=socket", [0x2, 0x3], "-DMEM_MASK=1", "-lnuma"]
 }
 
 for k, v in tests.iteritems():

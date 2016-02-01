@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014 - 2015 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -62,6 +62,7 @@ void saveForwardedMsgRes(Slurm_Msg_t *sMsg, PS_DataBuffer_t *data,
 			    uint32_t error, const char *func, const int line);
 
 int openSlurmdSocket(int port);
+void closeSlurmdSocket();
 const char *msgType2String(int type);
 #define getBitString(ptr, bits) __getBitString(ptr, bits, __func__, __LINE__)
 void __getBitString(char **ptr, char **bitStr, const char *func,

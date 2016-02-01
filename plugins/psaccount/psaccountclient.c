@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010 - 2015 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -487,6 +487,22 @@ void updateAllAccClients(Job_t *job)
 	    } else {
 		updateAccountData(client);
 	    }
+	}
+    }
+}
+
+void switchClientUpdate(PStask_ID_t clientTID, int enable)
+{
+    struct list_head *pos;
+    Client_t *client;
+
+    list_for_each(pos, &AccClientList.list) {
+	if (!(client = list_entry(pos, Client_t, list))) return;
+
+	if (client->taskid == clientTID) {
+	    mdbg(PSACC_LOG_ACC_SWITCH, "%s: %s accounting for '%s'\n", __func__,
+		    (enable) ? "enable" : "disable", PSC_printTID(clientTID));
+	    client->doAccounting = (enable) ? 1 : 0;
 	}
     }
 }

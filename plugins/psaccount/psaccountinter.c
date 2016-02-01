@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010 - 2015 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -18,6 +18,7 @@
 #include "pluginmalloc.h"
 #include "plugincomm.h"
 #include "pluginfrag.h"
+#include "psi.h"
 
 #include "psaccount.h"
 #include "psaccountcomm.h"
@@ -31,6 +32,38 @@
 
 /* flag to control the global collect mode */
 int globalCollectMode = 0;
+
+int psAccountSwitchAccounting(PStask_ID_t clientTID, int enable)
+{
+    DDTypedBufferMsg_t msg;
+    char *ptr = msg.buf;
+
+    /* send the messages */
+    msg = (DDTypedBufferMsg_t) {
+	.header = (DDMsg_t) {
+	.type = PSP_CC_PLUG_ACCOUNT,
+	.sender = PSC_getMyTID(),
+	.dest = PSC_getTID(PSC_getMyID(), 0),
+	.len = sizeof(msg.header) },
+	.buf = {'\0'} };
+
+    msg.type = (enable) ? PSP_ACCOUNT_ENABLE_UPDATE : PSP_ACCOUNT_DISABLE_UPDATE;
+    msg.header.len += sizeof(msg.type);
+
+    addInt32ToMsgBuf(&msg, &ptr, clientTID);
+
+    return doWriteP(daemonSock, &msg, msg.header.len);
+}
+
+void handleSwitchUpdate(DDTypedBufferMsg_t *msg, int enable)
+{
+    PStask_ID_t clientTID;
+    char *ptr = msg->buf;
+
+    getInt32(&ptr, &clientTID);
+
+    switchClientUpdate(clientTID, enable);
+}
 
 int psAccountGetDataByLogger(PStask_ID_t logger, AccountDataExt_t *accData)
 {
@@ -242,6 +275,12 @@ void handleInterAccount(DDTypedBufferMsg_t *msg)
 	    break;
 	case PSP_ACCOUNT_DATA_UPDATE:
 	    recvFragMsg(msg, handleAccountUpdate);
+	    break;
+	case PSP_ACCOUNT_ENABLE_UPDATE:
+	    handleSwitchUpdate(msg, 1);
+	    break;
+	case PSP_ACCOUNT_DISABLE_UPDATE:
+	    handleSwitchUpdate(msg, 0);
 	    break;
 	default:
 	    mlog("%s: unknown msg type '%i' form sender '%s'\n", __func__,

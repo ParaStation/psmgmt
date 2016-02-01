@@ -13099,6 +13099,8 @@ ac_config_files="$ac_config_files plugins/pelogue/Makefile"
 
 ac_config_files="$ac_config_files plugins/psaccount/Makefile"
 
+ac_config_files="$ac_config_files plugins/psexec/Makefile"
+
 ac_config_files="$ac_config_files plugins/psmunge/Makefile"
 
 ac_config_files="$ac_config_files plugins/pspam/Makefile"
@@ -14190,6 +14192,7 @@ do
     "plugins/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/Makefile" ;;
     "plugins/pelogue/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/pelogue/Makefile" ;;
     "plugins/psaccount/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/psaccount/Makefile" ;;
+    "plugins/psexec/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/psexec/Makefile" ;;
     "plugins/psmunge/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/psmunge/Makefile" ;;
     "plugins/pspam/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/pspam/Makefile" ;;
     "plugins/pspam/doc/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/pspam/doc/Makefile" ;;

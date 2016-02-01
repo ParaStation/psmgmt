@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -20,8 +20,9 @@
 
 #include "list.h"
 #include "psnodes.h"
+#include "peloguetypes.h"
 
-typedef void Pelogue_JobCb_Func_t (char *, int, int);
+typedef void Pelogue_JobCb_Func_t (char *, int, int, PElogue_Res_List_t *);
 
 typedef enum {
     JOB_QUEUED,		    /* the job was queued */
@@ -33,18 +34,12 @@ typedef enum {
 } JobState_t;
 
 typedef struct {
-    int prologue;
-    int epilogue;
-    PSnodes_ID_t id;
-} Job_Node_List_t;
-
-typedef struct {
     char *id;		    /* the PBS jobid */
     uid_t uid;		    /* user id of the job owner */
     gid_t gid;		    /* group of the job owner */
     pid_t pid;		    /* the pid of the running child (e.g. jobscript) */
     pid_t sid;		    /* the sid of the running child */
-    Job_Node_List_t *nodes; /* all participating nodes in the job */
+    PElogue_Res_List_t *nodes; /* all participating nodes in the job */
     int prologueTrack;	    /* track how many prologue scripts has finished */
     int prologueExit;	    /* the max exit code of all prologue scripts */
     int epilogueTrack;	    /* track how many epilogue scripts has finished */
@@ -54,7 +49,7 @@ typedef struct {
     int signalFlag;
     int state;
     char *plugin;
-    void (*pluginCallback)(char *, int, int);
+    Pelogue_JobCb_Func_t *pluginCallback;
     char *scriptname;
     time_t PElogue_start;
     time_t start_time;	    /* the time were the job started */
@@ -113,7 +108,7 @@ int deleteJob(Job_t *job);
  */
 int isJobIDinHistory(char *jobid);
 
-Job_Node_List_t *findJobNodeEntry(Job_t *job, PSnodes_ID_t id);
+PElogue_Res_List_t *findJobNodeEntry(Job_t *job, PSnodes_ID_t id);
 
 const char *getPluginFromJob(char *jobid);
 

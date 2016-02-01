@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2013 - 2015 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2013-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -182,6 +182,7 @@ int fwCallback(int32_t wstat, char *errMsg, size_t errLen, void *data)
     }
 
     /* let other plugins get information about completed pelogue */
+    pedata->exit = exit_status;
     PSIDhook_call(PSIDHOOK_PELOGUE_FINISH, pedata);
 
     /* log error locally and forward to mother superior */
@@ -475,7 +476,7 @@ void handlePELogueFinish(DDTypedBufferMsg_t *msg, char *msgData)
     Job_t *job;
     int32_t res = 1, signalFlag = 0;
     time_t job_start;
-    Job_Node_List_t *nodeEntry;
+    PElogue_Res_List_t *nodeEntry;
     int prologue = msg->type == PSP_PROLOGUE_FINISH ? 1 : 0;
 
     ptr = msg->buf;
@@ -670,8 +671,13 @@ int handleNodeDown(void *nodeID)
 			"jstate '%s' is down\n", __func__, hname, id,
 			job->id, jobState2String(job->state));
 
-		job->state = JOB_PROLOGUE ?
-			    JOB_CANCEL_PROLOGUE : JOB_CANCEL_EPILOGUE;
+		if (job->state == JOB_PROLOGUE) {
+		    job->nodes[i].prologue = 2;
+		    job->state = JOB_CANCEL_PROLOGUE;
+		} else {
+		    job->nodes[i].epilogue = 2;
+		    job->state = JOB_CANCEL_EPILOGUE;
+		}
 
 		/* stop pelogue scripts on all nodes */
 		signalPElogue(job, SIGTERM, "node down");

@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2012 - 2015 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2012-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -227,6 +227,15 @@ int __listenUnixSocket(char *socketName, const char *func)
     }
 
     return sock;
+}
+
+void freeDataBuffer(PS_DataBuffer_t *data)
+{
+    if (!data) return;
+
+    ufree(data->buf);
+    data->buf = NULL;
+    data->bufUsed = data->bufSize = 0;
 }
 
 /**
@@ -1146,14 +1155,14 @@ char *__getString(char **ptr, char *buf, size_t buflen,
     size_t len;
 
     if (!buf) {
-	pluginlog("%s: invalid buffer from '%s'\n", __func__, caller);
+	pluginlog("%s: invalid buffer from '%s:%i'\n", __func__, caller, line);
 	return NULL;
     }
     buf[0] = '\0';
 
     if (!*ptr) {
 	if (debug) {
-	    pluginlog("%s: invalid ptr from '%s'\n", __func__, caller);
+	    pluginlog("%s: invalid ptr from '%s:%i'\n", __func__, caller, line);
 	}
 	return NULL;
     }
@@ -1169,8 +1178,8 @@ char *__getString(char **ptr, char *buf, size_t buflen,
 
     /* buffer to small */
     if (len > buflen) {
-	pluginlog("%s: buffer (%zu) to small for message (%zu) from '%s'\n",
-		__func__, buflen, len, caller);
+	pluginlog("%s: buffer (%zu) to small for message (%zu) from '%s:%i'\n",
+		__func__, buflen, len, caller, line);
 	return NULL;
     }
 

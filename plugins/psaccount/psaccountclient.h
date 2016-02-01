@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010 - 2014 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -218,5 +218,7 @@ void addAccDataForClient(Client_t *client, AccountDataExt_t *accData);
 int getAccountDataByLogger(PStask_ID_t logger, AccountDataExt_t *accData);
 
 int getPidsByLogger(PStask_ID_t logger, pid_t **pids, uint32_t *count);
+
+void switchClientUpdate(PStask_ID_t clientTID, int enable);
 
 #endif

@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014 - 2015 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -52,5 +52,10 @@ void send_PS_ForwardRes(Slurm_Msg_t *msg, PS_DataBuffer_t *body);
 void handleCCMsg(PSLog_Msg_t *msg);
 
 void handleSpawnFailed(DDErrorMsg_t *msg);
+
+void setNodeOffline(env_t *env, uint32_t id, PSnodes_ID_t dest,
+			const char *host, char *reason);
+
+void requeueBatchJob(Job_t *job, PSnodes_ID_t dest);
 
 #endif

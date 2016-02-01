@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014 - 2015 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -32,7 +32,9 @@
 #include "pluginfrag.h"
 #include "pluginpartition.h"
 #include "peloguehandles.h"
+#include "psexechandles.h"
 #include "psaccounthandles.h"
+#include "psexectypes.h"
 
 #include "slurmcommon.h"
 #include "psslurmforwarder.h"
@@ -46,6 +48,7 @@
 #include "psslurmpin.h"
 #include "psslurmio.h"
 #include "psslurmpelogue.h"
+#include "psslurmenv.h"
 #include "psslurm.h"
 
 #include "psslurmpscomm.h"
@@ -169,6 +172,115 @@ void send_PS_JobLaunch(Job_t *job)
     }
 
     ufree(data.buf);
+}
+
+static int retryExecScript(PSnodes_ID_t remote, uint16_t scriptID)
+{
+    if (remote == slurmController && slurmBackupController > -1) {
+	/* retry using slurm backup controller */
+	mlog("%s: using backup controller, nodeID '%i'\n", __func__,
+		slurmBackupController);
+	return psExecSendScriptStart(scriptID, slurmBackupController);
+    } else if (remote != PSC_getMyID()) {
+	/* retry using local offline script */
+	mlog("%s: using local script\n", __func__);
+	return psExecStartLocalScript(scriptID);
+    }
+
+    /* nothing more we can try */
+    return -1;
+}
+
+static int callbackNodeOffline(uint32_t id, int32_t exit, PSnodes_ID_t remote,
+				uint16_t scriptID)
+{
+    Job_t *job = NULL;
+    Alloc_t *alloc = NULL;
+
+    mlog("%s: id '%u' exit %i remote '%i'\n", __func__, id, exit, remote);
+
+    if (exit) {
+	if (retryExecScript(remote, scriptID) != -1) return 2;
+    }
+
+    if ((job = findJobById(id))) {
+	if (!exit) {
+	    mlog("%s: success job '%u' state '%s'\n", __func__, job->jobid,
+		    strJobState(job->state));
+	    if (job->state == JOB_PROLOGUE || job->state == JOB_QUEUED ||
+		job->state == JOB_EXIT) {
+		/* only mother superior should try to requeue a job */
+		if (job->nodes[0] == PSC_getMyID()) {
+		    requeueBatchJob(job, slurmController);
+		}
+	    }
+	}  else {
+	    mlog("%s: failed\n", __func__);
+	}
+    } else if ((alloc = findAlloc(id))) {
+	if (!exit) {
+	    mlog("%s: success alloc '%u' state '%s'\n", __func__, alloc->jobid,
+		    strJobState(alloc->state));
+	}  else {
+	    mlog("%s: failed\n", __func__);
+	}
+    } else {
+	mlog("%s: job/alloc '%u' not found\n", __func__, id);
+    }
+
+    return 0;
+}
+
+void setNodeOffline(env_t *env, uint32_t id, PSnodes_ID_t dest,
+			const char *host, char *reason)
+{
+    env_t clone;
+
+    if (!host || !reason) {
+	mlog("%s: empty host or reason\n", __func__);
+	return;
+    }
+
+    envClone(env, &clone, envFilter);
+    envSet(&clone, "SLURM_HOSTNAME", host);
+    envSet(&clone, "SLURM_REASON", reason);
+
+    mlog("%s: node '%s' exec script on node '%i'\n", __func__, host, dest);
+    psExecStartScript(id, "psslurm-offline", &clone, dest, callbackNodeOffline);
+
+    envDestroy(&clone);
+}
+
+static int callbackRequeueBatchJob(uint32_t id, int32_t exit,
+					PSnodes_ID_t remote, uint16_t scriptID)
+{
+    Job_t *job;
+
+    if (!exit) {
+	mlog("%s: success for job '%u'\n", __func__, id);
+    }  else {
+	if (retryExecScript(remote, scriptID) != -1) return 2;
+
+	mlog("%s: failed for job '%u' exit '%u' remote '%i'\n", __func__,
+		id, exit, remote);
+
+	/* cancel job */
+	if ((job = findJobById(id))) sendJobExit(job, -1);
+    }
+    return 0;
+}
+
+void requeueBatchJob(Job_t *job, PSnodes_ID_t dest)
+{
+    env_t clone;
+
+    envClone(&job->env, &clone, envFilter);
+
+    envSet(&clone, "SLURM_JOBID", job->id);
+    psExecStartScript(job->jobid, "psslurm-requeue-job", &clone,
+			dest, callbackRequeueBatchJob);
+
+    envDestroy(&clone);
 }
 
 void send_PS_JobExit(uint32_t jobid, uint32_t stepid, uint32_t nrOfNodes,

@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014 - 2015 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -39,6 +39,7 @@
 
 #include "pluginmalloc.h"
 #include "pluginlog.h"
+#include "pluginhelper.h"
 #include "pspluginprotocol.h"
 #include "psdaemonprotocol.h"
 #include "psidplugin.h"
@@ -50,6 +51,7 @@
 #include "peloguehandles.h"
 #include "psmungehandles.h"
 #include "pspamhandles.h"
+#include "psexechandles.h"
 
 #include "psslurm.h"
 
@@ -71,6 +73,9 @@ uid_t slurmUserID = 495;
 
 time_t start_time;
 
+PSnodes_ID_t slurmController;
+PSnodes_ID_t slurmBackupController;
+
 handlerFunc_t oldChildBornHandler = NULL;
 handlerFunc_t oldCCMsgHandler = NULL;
 handlerFunc_t oldSpawnHandler = NULL;
@@ -79,7 +84,7 @@ handlerFunc_t oldSpawnHandler = NULL;
 char name[] = "psslurm";
 int version = 82;
 int requiredAPI = 112;
-plugin_dep_t dependencies[5];
+plugin_dep_t dependencies[6];
 
 void startPsslurm()
 {
@@ -91,8 +96,10 @@ void startPsslurm()
     dependencies[2].version = 5;
     dependencies[3].name = "pspam";
     dependencies[3].version = 3;
-    dependencies[4].name = NULL;
-    dependencies[4].version = 0;
+    dependencies[4].name = "psexec";
+    dependencies[4].version = 1;
+    dependencies[5].name = NULL;
+    dependencies[5].version = 0;
 }
 
 void stopPsslurm()
@@ -155,7 +162,7 @@ static void unregisterHooks(int verbose)
 	if (verbose) mlog("unregister 'PSIDHOOK_FRWRD_INIT' failed\n");
     }
 
-    if (!(PSIDhook_del(PSIDHOOK_PELOGUE_FINISH, handlePElogueFinish))) {
+    if (!(PSIDhook_del(PSIDHOOK_PELOGUE_FINISH, handleLocalPElogueFinish))) {
 	if (verbose) mlog("unregister 'PSIDHOOK_PELOGUE_FINISH' failed\n");
     }
 }
@@ -207,7 +214,7 @@ static int registerHooks()
 	return 0;
     }
 
-    if (!(PSIDhook_add(PSIDHOOK_PELOGUE_FINISH, handlePElogueFinish))) {
+    if (!(PSIDhook_add(PSIDHOOK_PELOGUE_FINISH, handleLocalPElogueFinish))) {
 	mlog("register 'PSIDHOOK_PELOGUE_FINISH' failed\n");
 	return 0;
     }
@@ -372,6 +379,29 @@ static int initPluginHandles()
 	return 0;
     }
 
+    /* get psexec function handles */
+    if (!(pluginHandle = PSIDplugin_getHandle("psexec"))) {
+	mlog("%s: getting psexec handle failed\n", __func__);
+	return 0;
+    }
+
+    if (!(psExecStartScript = dlsym(pluginHandle, "psExecStartScript"))) {
+	mlog("%s: loading function psExecStartScript() failed\n", __func__);
+	return 0;
+    }
+
+    if (!(psExecSendScriptStart = dlsym(pluginHandle,
+					    "psExecSendScriptStart"))) {
+	mlog("%s: loading function psExecSendScriptStart() failed\n", __func__);
+	return 0;
+    }
+
+    if (!(psExecStartLocalScript = dlsym(pluginHandle,
+					    "psExecStartLocalScript"))) {
+	mlog("%s: loading function psExecStartLocalScript() failed\n", __func__);
+	return 0;
+    }
+
     return 1;
 }
 
@@ -471,6 +501,12 @@ int initialize(void)
 	    goto INIT_ERROR;
 	}
     }
+
+    /* resolve controller ids */
+    slurmController = getNodeIDbyName(getConfValueC(&SlurmConfig,
+						    "ControlMachine"));
+    slurmBackupController = getNodeIDbyName(getConfValueC(&SlurmConfig,
+						    "BackupController"));
 
     /* listening on slurmd port */
     getConfValueI(&SlurmConfig, "SlurmdPort", &ctlPort);

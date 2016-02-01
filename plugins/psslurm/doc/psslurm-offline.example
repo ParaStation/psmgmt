@@ -1,0 +1,13 @@
+#!/bin/bash
+
+TIMEOUT=5
+
+PSTOUT="pstimeout -k $TIMEOUT $TIMEOUT"
+
+drainedFlag=$($PSTOUT scontrol show node "$SLURM_HOSTNAME" | awk '/State=/ { gsub(".*State=",""); gsub(" .*",""); print $0; }')
+
+if [ "$drainedFlag" =~ DRAIN ]; then
+    exit 0
+else
+    $PSTOUT scontrol update NodeName="$SLURM_HOSTNAME" State=DRAIN Reason="$SLURM_REASON"
+fi

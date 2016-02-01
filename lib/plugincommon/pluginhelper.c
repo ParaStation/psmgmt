@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2012 - 2013 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2012-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -63,6 +63,8 @@ PSnodes_ID_t getNodeIDbyName(char *host)
 {
     struct hostent *hp;
     struct in_addr sin_addr;
+
+    if (!host) return -1;
 
     if (!(hp = gethostbyname(host))) {
         pluginlog("%s: unknown host '%s'\n", __func__, host);

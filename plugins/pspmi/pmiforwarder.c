@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2013-2014 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2013-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -288,7 +288,7 @@ static int acceptPMIClient(int fd, void *data)
     closePMIlistenSocket();
 
     /* init the PMI interface */
-    if ((pmi_init(pmiClientSock, childTask->rank, childTask->loggertid))) {
+    if ((pmi_init(pmiClientSock, childTask))) {
 	pmiType = PMI_DISABLED;
 	return 0;
     }
@@ -347,8 +347,7 @@ int setupPMIsockets(void *data)
     switch (pmiType) {
 	case PMI_OVER_UNIX:
 	    /* init the PMI interface */
-	    if ((pmi_init(pmiClientSock, childTask->rank,
-				    childTask->loggertid))) {
+	    if ((pmi_init(pmiClientSock, childTask))) {
 		pmiType = PMI_DISABLED;
 		return -1;
 	    }

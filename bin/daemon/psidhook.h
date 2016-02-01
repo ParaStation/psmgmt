@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2013-2015 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2013-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -137,6 +137,8 @@ typedef enum {
     PSIDHOOK_PELOGUE_FINISH,	/** The result of a prologue/epilogue run
 				executed by the pelogue plugin can be inspected.
 				Used by the psslurm plugin. */
+    PSIDHOOK_FRWRD_DSOCK,       /**< In forwarder's init() function, arg is a
+				pointer to the daemon socket. */
     PSIDHOOK_LAST,             /**< This has to be the last one */
 } PSIDhook_t;
 

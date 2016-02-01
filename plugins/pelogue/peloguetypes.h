@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2015 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2015-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -54,5 +54,11 @@ typedef struct {
     gid_t gid;
     time_t start_time;
 } PElogue_Data_t;
+
+typedef struct {
+    int prologue;
+    int epilogue;
+    PSnodes_ID_t id;
+} PElogue_Res_List_t;
 
 #endif

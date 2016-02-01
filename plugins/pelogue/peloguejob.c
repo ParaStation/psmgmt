@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014 - 2015 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -60,8 +60,8 @@ void *addJob(const char *plugin, const char *jobid, uid_t uid, gid_t gid,
     job->epilogueTrack = -1;
     job->epilogueExit = 0;
 
-    job->nodes = umalloc(sizeof(Job_Node_List_t *) * nrOfNodes +
-			    sizeof(Job_Node_List_t) * nrOfNodes);
+    job->nodes = umalloc(sizeof(Pelogue_JobCb_Func_t *) * nrOfNodes +
+			    sizeof(Pelogue_JobCb_Func_t) * nrOfNodes);
 
     for (i=0; i<job->nrOfNodes; i++) {
 	job->nodes[i].id = nodes[i];
@@ -93,7 +93,7 @@ Job_t *findJobByJobId(const char *plugin, const char *jobid)
     return NULL;
 }
 
-Job_Node_List_t *findJobNodeEntry(Job_t *job, PSnodes_ID_t id)
+PElogue_Res_List_t *findJobNodeEntry(Job_t *job, PSnodes_ID_t id)
 {
     int i;
 

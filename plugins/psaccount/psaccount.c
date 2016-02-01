@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010 - 2015 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -34,6 +34,7 @@
 #include "psidnodes.h"
 #include "psidutil.h"
 #include "pluginmalloc.h"
+#include "psidhook.h"
 
 #include "psaccount.h"
 
@@ -41,7 +42,7 @@
 
 /** psid plugin requirements */
 char name[] = "psaccount";
-int version = 23;
+int version = 24;
 int requiredAPI = 101;
 plugin_dep_t dependencies[1];
 
@@ -50,6 +51,8 @@ int clockTicks = -1;
 
 /** the linux system page size */
 int pageSize = -1;
+
+int daemonSock;
 
 /** save default handler for accouting msgs */
 handlerFunc_t oldAccountHandler = NULL;
@@ -116,6 +119,15 @@ void accountStop()
     /* nothing to do here */
 }
 
+int setDaemonSock(void *dsock)
+{
+    int *sock = dsock;
+
+    daemonSock = *sock;
+
+    return 0;
+}
+
 int initialize(void)
 {
     int poll, debugMask;
@@ -169,6 +181,11 @@ int initialize(void)
 	return 1;
     }
 
+    if (!(PSIDhook_add(PSIDHOOK_FRWRD_DSOCK, setDaemonSock))) {
+	mlog("register 'PSIDHOOK_FRWRD_DSOCK' failed\n");
+	return 1;
+    }
+
     /* register periodic timer */
     if ((poll = PSIDnodes_acctPollI(PSC_getMyID())) > 0) {
 	mainTimer.tv_sec = poll;
@@ -202,6 +219,10 @@ void cleanup(void)
     /* remove all timer */
     Timer_remove(mainTimerID);
     if (jobTimerID != -1) Timer_remove(jobTimerID);
+
+    if (!(PSIDhook_del(PSIDHOOK_FRWRD_DSOCK, setDaemonSock))) {
+	mlog("unregister 'PSIDHOOK_FRWRD_DSOCK' failed\n");
+    }
 
     /* unregister account msg */
     PSID_clearMsg(PSP_CC_PLUG_ACCOUNT);

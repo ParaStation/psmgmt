@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010 - 2015 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -23,6 +23,8 @@ typedef enum {
     PSP_ACCOUNT_FORWARD_START = 0x00000,
     PSP_ACCOUNT_FORWARD_END,
     PSP_ACCOUNT_DATA_UPDATE,
+    PSP_ACCOUNT_ENABLE_UPDATE,
+    PSP_ACCOUNT_DISABLE_UPDATE,
 } PSP_PSAccount_t;
 
 extern int globalCollectMode;
@@ -136,5 +138,7 @@ int psAccountGetDataByLogger(PStask_ID_t logger, AccountDataExt_t *accData);
  */
 int psAccountGetPidsByLogger(PStask_ID_t loggerTID, pid_t **pids,
 				uint32_t *count);
+
+int psAccountSwitchAccounting(PStask_ID_t clientTID, int enable);
 
 #endif

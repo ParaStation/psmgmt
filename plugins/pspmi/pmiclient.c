@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2007-2015 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2007-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -36,6 +36,8 @@ static char vcid[] __attribute__((used)) =
 #include "list.h"
 #include "selector.h"
 #include "psidforwarder.h"
+#include "psaccounthandles.h"
+
 #include "pmilog.h"
 #include "pmiservice.h"
 #include "pmiprovider.h"
@@ -121,6 +123,9 @@ static PStask_ID_t predtid = -1;
 
 /** The successor task ID of the current job */
 static PStask_ID_t succtid = -1;
+
+/** Our childs task ID */
+static PStask_ID_t childtid = -1;
 
 /** Flag to indicate if the successor is ready to receive update messages */
 static int isSuccReady = 0;
@@ -1518,6 +1523,8 @@ static int p_Init(char *msgBuffer)
     }
     pmi_init_client = 1;
 
+    if (psAccountSwitchAccounting) psAccountSwitchAccounting(childtid, 0);
+
     /* tell provider that the MPI client was initialized */
     ptr = buffer;
     len = 0;
@@ -1723,19 +1730,20 @@ static int setPreputValues()
     return 0;
 }
 
-int pmi_init(int pmisocket, int pRank, PStask_ID_t logger)
+int pmi_init(int pmisocket, PStask_t *childTask)
 {
     char *envPtr, *env_kvs_name, *ptr;
     size_t len;
 
-    rank = pRank;
+    rank = childTask->rank;
     if (!(ptr = getenv("PMI_RANK"))) {
 	elog("%s(r%i): invalid PMI rank environment\n", __func__, rank);
 	return 1;
     }
     pmiRank = atoi(ptr);
     pmisock = pmisocket;
-    loggertid = logger;
+    loggertid = childTask->loggertid;
+    childtid = childTask->tid;
 
     if (!(ptr = getenv("PMI_APPNUM"))) {
 	elog("%s(r%i): invalid PMI APPNUM environment\n", __func__, rank);
@@ -1749,8 +1757,8 @@ int pmi_init(int pmisocket, int pRank, PStask_ID_t logger)
     }
 
     mdbg(PSPMI_LOG_VERBOSE, "%s:(r%i): pmiRank '%i' pmisock '%i' logger '%i'"
-	 " spawned '%s' myTid '%s'\n", __func__, rank, pmiRank, pmisock, logger,
-	 getenv("PMI_SPAWNED"), PSC_printTID(PSC_getMyTID()));
+	 " spawned '%s' myTid '%s'\n", __func__, rank, pmiRank, pmisock,
+	 loggertid, getenv("PMI_SPAWNED"), PSC_printTID(PSC_getMyTID()));
 
     INIT_LIST_HEAD(&uBufferList.list);
 
@@ -2040,6 +2048,10 @@ static void handleKVScacheUpdate(PSLog_Msg_t *msg, char *ptr, int lastUpdateMsg)
 
     /* forward to successor */
     if (isSuccReady && succtid != providertid) sendKvstoSucc(msg->buf, msgSize);
+
+    if (lastUpdateMsg) {
+	if (psAccountSwitchAccounting) psAccountSwitchAccounting(childtid, 1);
+    }
 
     /* wait with the update until we got the barrier_in from local MPI client */
     if (!gotBarrierIn) return;

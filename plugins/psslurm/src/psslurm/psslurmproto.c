@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014 - 2015 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -1343,14 +1343,6 @@ static void handleBatchJobLaunch(Slurm_Msg_t *sMsg)
     getNodesFromSlurmHL(job->slurmNodes, &job->nrOfNodes, &job->nodes);
     /* jobscript */
     script = getStringM(ptr);
-    if (!(writeJobscript(job, script))) {
-	ufree(script);
-	sendSlurmRC(sMsg, ESLURMD_CREATE_BATCH_SCRIPT_ERROR);
-	deleteJob(job->jobid);
-	return;
-    }
-    ufree(script);
-
     job->cwd = getStringM(ptr);
     job->checkpoint = getStringM(ptr);
     job->restart = getStringM(ptr);
@@ -1391,6 +1383,19 @@ static void handleBatchJobLaunch(Slurm_Msg_t *sMsg)
     } else {
 	job->accType = 0;
     }
+
+    /* write the jobscript */
+    if (!(writeJobscript(job, script))) {
+	ufree(script);
+	/* set myself offline and requeue the job */
+	setNodeOffline(&job->env, job->jobid, slurmController,
+			getConfValueC(&Config, "SLURM_HOSTNAME"),
+			"psslurm: writing jobscript failed");
+	/* need to return success to be able to requeue the job */
+	sendSlurmRC(sMsg, SLURM_SUCCESS);
+	return;
+    }
+    ufree(script);
 
     /* return success to slurmctld and start prologue*/
     sendSlurmRC(sMsg, SLURM_SUCCESS);
@@ -1461,8 +1466,9 @@ static void handleTerminateJob(Slurm_Msg_t *sMsg, Job_t *job, int signal)
 	    return;
 	case JOB_INIT:
 	case JOB_QUEUED:
-	    sendSlurmRC(sMsg, SLURM_SUCCESS);
-	    mlog("%s: waiting till job init is complete\n", __func__);
+	    sendSlurmRC(sMsg, ESLURMD_KILL_JOB_ALREADY_COMPLETE);
+	    deleteJob(job->jobid);
+	    return;
     }
 
     sendSlurmRC(sMsg, SLURM_SUCCESS);

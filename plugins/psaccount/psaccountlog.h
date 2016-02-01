@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010 - 2015 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -34,6 +34,7 @@ typedef enum {
     PSACC_LOG_MALLOC	    = 0x000100, /**< memory allocation */
     PSACC_LOG_COLLECT	    = 0x000200,	/**< client collect */
     PSACC_LOG_AGGREGATE     = 0x000400, /**< aggregated data */
+    PSACC_LOG_ACC_SWITCH    = 0x000800, /**< enable/disable acct by pspmi */
 } PSAccount_log_types_t;
 
 /**

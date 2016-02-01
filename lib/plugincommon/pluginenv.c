@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -64,7 +64,7 @@ void envInit(env_t *env)
     memset(env, 0, sizeof(*env));
 }
 
-void __envUnset(env_t *env, char *name, const char *func, const int line)
+void __envUnset(env_t *env, const char *name, const char *func, const int line)
 {
     uint32_t idx = 0;
 
@@ -97,6 +97,12 @@ char *envGet(env_t *env, const char *name)
     return strchr(env->vars[idx], '=') + 1;
 }
 
+char *envGetIndex(env_t *env, uint32_t idx)
+{
+    if (idx+1 > env->cnt) return NULL;
+    return env->vars[idx];
+}
+
 int envGetUint32(env_t *env, const char *name, uint32_t *val)
 {
     char *valc;
@@ -107,7 +113,7 @@ int envGetUint32(env_t *env, const char *name, uint32_t *val)
     return 0;
 }
 
-int __envSet(env_t *env, char *name, char *val, const char *func,
+int __envSet(env_t *env, const char *name, const char *val, const char *func,
 		const int line)
 {
     char *tmp;
@@ -126,7 +132,7 @@ int __envSet(env_t *env, char *name, char *val, const char *func,
     return envDoSet(env, tmp, func, line);
 }
 
-int __envPut(env_t *env, char *envstring, const char *func, const int line)
+int __envPut(env_t *env, const char *envstring, const char *func, const int line)
 {
     char *value;
     size_t len;
@@ -148,11 +154,11 @@ int __envPut(env_t *env, char *envstring, const char *func, const int line)
     return envDoSet(env, __ustrdup(envstring, func, line), func, line);
 }
 
-static void envSetFilter(env_t *env, char *envstring, char **filter,
+static void envSetFilter(env_t *env, const char *envstring, char **filter,
 			    const char *func, const int line)
 {
     uint32_t count = 0;
-    char *ptr;
+    const char *ptr;
     size_t len, cmpLen;
 
     if (filter) {

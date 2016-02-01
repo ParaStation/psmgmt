@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014 - 2015 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -47,6 +47,8 @@
 
 #define MAX_PACK_STR_LEN        (16 * 1024 * 1024)
 #define DEBUG_IO 0
+
+static int slurmListenSocket = -1;
 
 const char *msgType2String(int type)
 {
@@ -775,6 +777,13 @@ static int acceptSlurmClient(int asocket, void *data)
     return 0;
 }
 
+void closeSlurmdSocket()
+{
+    Selector_remove(slurmListenSocket);
+    close(slurmListenSocket);
+    slurmListenSocket = -1;
+}
+
 int openSlurmdSocket(int port)
 {
     int res, sock;
@@ -821,6 +830,7 @@ int openSlurmdSocket(int port)
 	return -1;
     }
 
+    slurmListenSocket = sock;
     return sock;
 }
 
@@ -1247,7 +1257,13 @@ void getSockInfo(int socket, uint32_t *addr, uint16_t *port)
 
 void closeAllStepConnections(Step_t *step)
 {
-    freeSlurmMsg(&step->srunIOMsg);
-    freeSlurmMsg(&step->srunControlMsg);
-    freeSlurmMsg(&step->srunPTYMsg);
+    if (!step->srunIOMsg.head.forward) {
+	freeSlurmMsg(&step->srunIOMsg);
+    }
+    if (!step->srunControlMsg.head.forward) {
+	freeSlurmMsg(&step->srunControlMsg);
+    }
+    if (!step->srunPTYMsg.head.forward) {
+	freeSlurmMsg(&step->srunPTYMsg);
+    }
 }

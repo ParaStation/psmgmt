@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2015 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2015-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -24,7 +24,7 @@
 #include <sys/wait.h>
 #include <signal.h>
 
-
+#include "psslurm.h"
 #include "psslurmlog.h"
 #include "psslurmjob.h"
 #include "psslurmproto.h"
@@ -37,6 +37,7 @@
 #include "peloguehandles.h"
 #include "pspamhandles.h"
 #include "pluginmalloc.h"
+#include "pluginhelper.h"
 #include "psaccounthandles.h"
 
 #include "psslurmpelogue.h"
@@ -61,7 +62,35 @@ static void letAllStepsRun(uint32_t jobid)
     }
 }
 
-static void cbPElogueAlloc(char *sjobid, int exit_status, int timeout)
+static void handleFailedPElogue(int prologue, uint32_t nrOfNodes, env_t *env,
+				    PElogue_Res_List_t *resList, uint32_t jobid)
+{
+    uint32_t i;
+    char msg[256];
+
+    for (i=0; i<nrOfNodes; i++) {
+	if (prologue) {
+	    if (resList[i].prologue == 2) {
+		snprintf(msg, sizeof(msg), "psslurm: %s failed with exit "
+			    "code '%i'\n", "prologue", resList[i].prologue);
+
+		setNodeOffline(env, jobid, slurmController,
+				getHostnameByNodeId(resList[i].id), msg);
+	    }
+	} else {
+	    if (resList[i].epilogue == 2) {
+		snprintf(msg, sizeof(msg), "psslurm: %s failed with exit "
+			    "code '%i'\n", "epilogue", resList[i].epilogue);
+
+		setNodeOffline(env, jobid, slurmController,
+				getHostnameByNodeId(resList[i].id), msg);
+	    }
+	}
+    }
+}
+
+static void cbPElogueAlloc(char *sjobid, int exit_status, int timeout,
+			    PElogue_Res_List_t *resList)
 {
     Alloc_t *alloc;
     Step_t *step;
@@ -85,6 +114,13 @@ static void cbPElogueAlloc(char *sjobid, int exit_status, int timeout)
     mlog("%s: state '%s' stepid '%u:%u' exit '%i' timeout '%i'\n", __func__,
 	    strJobState(alloc->state), step->jobid, step->stepid, exit_status,
 	    timeout);
+
+    /* try to set failed node(s) offline */
+    if (exit_status != 0) {
+	handleFailedPElogue(alloc->state == JOB_PROLOGUE ? 1 : 0,
+			    alloc->nrOfNodes, &alloc->env, resList,
+			    alloc->jobid);
+    }
 
     if (alloc->state == JOB_PROLOGUE) {
 	if (alloc->terminate) {
@@ -128,7 +164,8 @@ static void cbPElogueAlloc(char *sjobid, int exit_status, int timeout)
     }
 }
 
-static void cbPElogueJob(char *jobid, int exit_status, int timeout)
+static void cbPElogueJob(char *jobid, int exit_status, int timeout,
+			    PElogue_Res_List_t *resList)
 {
     Job_t *job;
 
@@ -139,6 +176,12 @@ static void cbPElogueJob(char *jobid, int exit_status, int timeout)
 
     mlog("%s: jobid '%s' state '%s' exit '%i' timeout '%i'\n", __func__, jobid,
 	    strJobState(job->state), exit_status, timeout);
+
+    /* try to set failed node(s) offline */
+    if (exit_status != 0) {
+	handleFailedPElogue(job->state == JOB_PROLOGUE ? 1 : 0, job->nrOfNodes,
+				&job->env, resList, job->jobid);
+    }
 
     if (job->state == JOB_PROLOGUE) {
 	if (job->terminate) {
@@ -222,18 +265,20 @@ void startPElogue(uint32_t jobid, uid_t uid, gid_t gid, char *username,
     envDestroy(&clone);
 }
 
-int handlePElogueFinish(void *data)
+int handleLocalPElogueFinish(void *data)
 {
     PElogue_Data_t *pedata = data;
     Step_t *step;
     Job_t *job;
     char *username = NULL;
     uint32_t jobid;
+    char msg[256];
 
     jobid = atoi(pedata->jobid);
     step = findStepByJobid(jobid);
     job = findJobById(jobid);
 
+    /* ssh access to my node */
     if (step) {
 	username = step->username;
     } else if (job) {
@@ -251,8 +296,23 @@ int handlePElogueFinish(void *data)
     }
 
     /* start I/O forwarder */
-    if (pedata->prologue && step && step->nodes[0] != PSC_getMyID()) {
+    if (pedata->prologue && step && step->nodes[0] != PSC_getMyID() &&
+	!pedata->exit) {
 	execStepFWIO(step);
+    }
+
+    /* set myself offline */
+    if (pedata->exit == 2) {
+	snprintf(msg, sizeof(msg), "psslurm: %s failed with exit code '%i'\n",
+		    pedata->prologue ? "prologue" : "epilogue", pedata->exit);
+
+	if (job) {
+	    setNodeOffline(&job->env, job->jobid, slurmController,
+			    getConfValueC(&Config, "SLURM_HOSTNAME"), msg);
+	} else if (step) {
+	    setNodeOffline(&step->env, step->jobid, slurmController,
+			    getConfValueC(&Config, "SLURM_HOSTNAME"), msg);
+	}
     }
 
     return 0;

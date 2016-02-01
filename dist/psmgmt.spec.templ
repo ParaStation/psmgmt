@@ -173,6 +173,8 @@ exit 0
 %exclude %{_plugindir}/pspam.la
 %{_plugindir}/psslurm.so
 %exclude %{_plugindir}/psslurm.la
+%{_plugindir}/psexec.so
+%exclude %{_plugindir}/psexec.la
 %{_pamdir}/pam_pspam.so
 %exclude %{_pamdir}/pam_pspam.la
 %config(missingok,noreplace) %{_sysconfdir}/profile.d/psmgmt.sh

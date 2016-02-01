@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2013 - 2015 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2013-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -151,7 +151,7 @@ void PElogueExit(Job_t *job, int status, bool prologue)
 
 	/* stop monitoring the PELouge script for timeout */
 	removePELogueTimeout(job);
-	job->pluginCallback(job->id, *epExit, 0);
+	job->pluginCallback(job->id, *epExit, 0, job->nodes);
 
     } else if (status != 0 && *epExit == 0) {
 	char *reason;
@@ -176,7 +176,7 @@ void PElogueExit(Job_t *job, int status, bool prologue)
 void stopPElogueExecution(Job_t *job)
 {
     removePELogueTimeout(job);
-    job->pluginCallback(job->id, -4, 1);
+    job->pluginCallback(job->id, -4, 1, job->nodes);
 }
 
 /**
@@ -191,7 +191,6 @@ void stopPElogueExecution(Job_t *job)
 static void handlePELogueTimeout(int timerId, void *data)
 {
     Job_t *job = data;
-    const char *host;
     char *buf = NULL, tmp[100];
     size_t buflen = 0;
     int i, count = 0;
@@ -223,16 +222,8 @@ static void handlePELogueTimeout(int timerId, void *data)
 		}
 		snprintf(tmp, sizeof(tmp), "%i", job->nodes[i].id);
 		str2Buf(tmp, &buf, &buflen);
-		if ((host = getHostnameByNodeId(job->nodes[i].id))) {
-
-		    // TODO forward information using callback to psmom/psslurm
-		    //PElogueTimeoutAction(job->id, 1, host);
-
-		} else {
-		    mlog("%s: get hostname by node ID '%i' failed\n", __func__,
-			    job->nodes[i].id);
-		}
 		count++;
+		job->nodes[i].prologue = 2;
 	    }
 	} else {
 	    if (job->nodes[i].epilogue == -1) {
@@ -241,16 +232,8 @@ static void handlePELogueTimeout(int timerId, void *data)
 		}
 		snprintf(tmp, sizeof(tmp), "%i", job->nodes[i].id);
 		str2Buf(tmp, &buf, &buflen);
-		if ((host = getHostnameByNodeId(job->nodes[i].id))) {
-
-		    // TODO forward information using callback to psmom/psslurm
-		    //PElogueTimeoutAction(job->server, job->id, 0, host);
-
-		} else {
-		    mlog("%s: get hostname by node ID '%i' failed\n", __func__,
-			    job->nodes[i].id);
-		}
 		count++;
+		job->nodes[i].epilogue = 2;
 	    }
 	}
     }

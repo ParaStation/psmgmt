@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -27,7 +27,8 @@ int (*psPelogueAddPluginConfig)(char *, Config_t *);
 
 void (*psPelogueAddJob)(const char *, const char *, uid_t, gid_t, int,
 			PSnodes_ID_t *,
-			void (*pluginCallback)(char *, int, int));
+			void (*pluginCallback)(char *, int, int,
+							PElogue_Res_List_t *));
 
 int (*psPelogueStartPE)(const char *, const char *, bool, env_t *);
 

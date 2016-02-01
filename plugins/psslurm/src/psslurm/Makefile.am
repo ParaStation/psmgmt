@@ -1,7 +1,7 @@
 #
 # ParaStation
 #
-# Copyright (C) 2014 ParTec Cluster Competence Center GmbH, Munich
+# Copyright (C) 2014-2016 ParTec Cluster Competence Center GmbH, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -17,6 +17,7 @@ psaccount_dir := plugins/psaccount
 pelogue_dir   := plugins/pelogue
 psmunge_dir   := plugins/psmunge
 pspam_dir     := plugins/pspam/src/pspam
+psexec_dir    := plugins/psexec
 
 AM_LDFLAGS += -avoid-version -module
 AM_CPPFLAGS += -I$(top_srcdir)/bin/daemon -I$(srcdir)/../include \
@@ -24,7 +25,8 @@ AM_CPPFLAGS += -I$(top_srcdir)/bin/daemon -I$(srcdir)/../include \
 	       -I$(top_srcdir)/$(psaccount_dir) \
 	       -I$(top_srcdir)/$(pelogue_dir) \
 	       -I$(top_srcdir)/$(psmunge_dir) \
-	       -I$(top_srcdir)/$(pspam_dir)
+	       -I$(top_srcdir)/$(pspam_dir) \
+	       -I$(top_srcdir)/$(psexec_dir)
 
 plugin_LTLIBRARIES = psslurm.la
 

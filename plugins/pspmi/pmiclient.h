@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2007-2013 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2007-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -39,13 +39,11 @@ int handlePMIclientMsg(char *msg);
  *
  * This must be the first call before calling any other PMI functions.
  *
- * @param pmisocket The socket witch is connect to the local MPI client.
- *
- * @param pRank The parastation rank of the MPI client.
+ * @param childTask The task structure of the forwarders child.
  *
  * @return Returns 0 on success and 1 on errors.
  */
-int pmi_init(int pmisocket, int pRank, PStask_ID_t logger);
+int pmi_init(int pmisocket, PStask_t *childTask);
 
 /**
  * @brief Set the KVS provider task ID.
