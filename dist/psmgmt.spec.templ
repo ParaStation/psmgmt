@@ -1,5 +1,5 @@
 # -*- rpm-spec -*-
-%{?_without_psconfig: %define disable_psconfig 1}
+%{?_without_psconfig: %global disable_psconfig 1}
 
 Summary:   ParaStation Process Management
 Vendor:    ParTec Cluster Competence Center GmbH, Munich, Germany
@@ -66,7 +66,7 @@ legacy implementations of the MPI version 1 standard.
 
 %build
 export CFLAGS="%(echo %{optflags}|sed -e 's,-O.,,')"
-%configure --datarootdir=%{_datadir} --with-pamdir=%{_pamdir} %{?disable_psconfig:--without-psconfig}
+%configure --datarootdir=%{_datadir} --with-pamdir=%{_pamdir} %{?disable_psconfig:--disable-psconfig}
 make %{?_smp_mflags}
 
 %install
@@ -78,7 +78,7 @@ touch %{buildroot}/etc/parastation.conf
 rm -rf %{buildroot}
 
 %pre
-if [ "$1" -gt 1 ]; then  # Thats an update
+if [ $1 -gt 1 ] ; then  # Thats an update
     if [ -x /opt/parastation/config/PSM_INSTALL ]; then
 	# Upgrade from old version, call the OLD uninstall script.
 	/opt/parastation/config/PSM_INSTALL -U
@@ -90,7 +90,7 @@ fi
 exit 0
 
 %post
-if [ "$1" = 1 ]; then
+if [ $1 -eq 1 ] ; then
     # first install
     /sbin/chkconfig --add parastation
     /sbin/chkconfig psidstarter on
@@ -104,7 +104,7 @@ fi
 exit 0
 
 %preun
-if [ "$1" = 0 ]; then
+if [ $1 -eq 0 ] ; then
     # final de-install
     /sbin/service parastation stop
     /sbin/chkconfig psidstarter off
@@ -115,7 +115,12 @@ exit 0
 
 %files
 %defattr(-,root,root)
-%doc ChangeLog LICENSE.QPL NEWS VERSION.psmgmt doc/parastation.conf.tmpl doc/psconfig/psmgmt.vipsconfig
+%doc ChangeLog
+%doc LICENSE.QPL
+%doc NEWS
+%doc VERSION.psmgmt
+%doc doc/parastation.conf.tmpl
+%doc doc/psconfig/psmgmt.vipsconfig
 %doc %{_docdir}/psmgmt/psslurm-epilogue.example
 %doc %{_docdir}/psmgmt/psslurm-prologue.example
 %doc %{_docdir}/psmgmt/psslurm.conf.template

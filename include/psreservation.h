@@ -143,6 +143,21 @@ int PSrsrvtn_gcRequired(void);
  */
 void PSrsrvtn_printStat(void);
 
+/**
+ * @brief Memory cleanup
+ *
+ * Cleanup all memory currently used by the module. It will very
+ * aggressively free all allocated memory most likely destroying
+ * existing reservations. Thus, these should have been cleaned up
+ * earlier. Currently this requires PSIDtask to be cleaned up.
+ *
+ * The purpose of this function is to cleanup before a fork()ed
+ * process is handling other tasks, e.g. becoming a forwarder.
+ *
+ * @return No return value.
+ */
+void PSrsrvtn_clearMem(void);
+
 #ifdef __cplusplus
 }/* extern "C" */
 #endif

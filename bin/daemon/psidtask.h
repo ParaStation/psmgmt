@@ -260,6 +260,21 @@ PStask_t *PStasklist_find(list_t *list, PStask_ID_t tid);
  */
 void PStask_cleanup(PStask_ID_t tid);
 
+/**
+ * @brief Memory cleanup
+ *
+ * Cleanup all dynamic memory currently retained in task structures
+ * collected in the @ref managedTasks list.This will very aggressively
+ * free() all allocated memory destroying all information on
+ * controlled tasks.
+ *
+ * The purpose of this function is to cleanup before a fork()ed
+ * process is handling other businesses, e.g. becoming a forwarder.
+ *
+ * @return No return value.
+ */
+void PSIDtask_clearMem(void);
+
 #ifdef __cplusplus
 }/* extern "C" */
 #endif

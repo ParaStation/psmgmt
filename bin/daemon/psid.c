@@ -525,6 +525,26 @@ static void checkFileTable(fd_set *controlfds)
     }
 }
 
+void PSID_clearMem(void)
+{
+    //PSIDtask_clearMem(); @todo Disabled for the time being -> Discuss with MR
+    PSsignal_gc();
+    PSrsrvtn_clearMem();
+
+    PSIDRDP_clearMem();
+    PSIDclient_clearMem();
+    /* This one has to wait until PSIDRDP and PSIDclient are cleaned up */
+    PSIDMsgbuf_clearMem();
+
+    /* This one has to wait until PSIDclient is cleaned up */
+    PSIDFlwCntrl_clearMem();
+
+    //PSIDnodes_clearMem(); @todo Disabled for the time being -> Discuss with MR
+    RDP_clearMem();
+
+    malloc_trim(0);
+}
+
 /**
  * @brief Print version info.
  *

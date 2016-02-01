@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010 - 2014 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -43,13 +43,12 @@
 #include "psmomconv.h"
 #include "psmomsignal.h"
 #include "psmominteractive.h"
-#include "psmomenv.h"
-
+#include "psmompsaccfunc.h"
 #include "pluginmalloc.h"
 #include "helper.h"
+#include "psmomenv.h"
 #include "pluginlog.h"
-#include "pluginpty.h"
-#include "psaccounthandles.h"
+
 #include "psidutil.h"
 #include "pscommon.h"
 #include "selector.h"
@@ -100,11 +99,58 @@ static int controlFDs[2];
 /** communication handle conneted to the local psmom for std output */
 static ComHandle_t *com = NULL;
 
-/** read fd set */
-static fd_set readfds;
+int __doWrite(int fd, void *buffer, size_t towrite, const char *func)
+{
+    ssize_t ret;
 
-/** write fd set */
-static fd_set writefds;
+    while (1) {
+	if ((ret = write(fd, buffer, towrite)) == -1) {
+	    if (errno == EINTR || errno == EAGAIN) continue;
+
+	    mlog("%s (%s): write to fd '%i' failed (%i): %s\n", __func__,
+		    func, fd, errno, strerror(errno));
+	    return -1;
+	} if ((size_t) ret != towrite) {
+	    mlog("%s (%s): not all data could be written to fd '%i' towrite "
+		    "'%zu' written '%zu'\n", __func__, func, fd, towrite, ret);
+	}
+	return ret;
+    }
+    return ret;
+}
+
+/**
+ * @brief Read data from a file descriptor.
+ *
+ * @param fd The socket to read the data from.
+ *
+ * @param buffer The buffer to write the data to.
+ *
+ * @param toread The number of bytes to read.
+ *
+ * @param func Pointer to the name of the parent function.
+ *
+ * @return Returns the number of bytes read or -1 on error.
+ */
+static int doRead(int fd, void *buffer, size_t toread, const char *func)
+{
+    ssize_t ret;
+
+    while (1) {
+	if ((ret = read(fd, buffer, toread)) == -1) {
+	    if (errno == EINTR || errno == EAGAIN) continue;
+
+	    mlog("%s (%s): read from fd '%i' failed (%i): %s\n", __func__,
+		    func, fd, errno, strerror(errno));
+	    return -1;
+	} if ((size_t) ret != toread) {
+	    mlog("%s (%s): not all data could be read from fd '%i' toread "
+		    "'%zu' read '%zu'\n", __func__, func, fd, toread, ret);
+	}
+	return ret;
+    }
+    return ret;
+}
 
 char *fwType2Str(int type)
 {
@@ -135,7 +181,7 @@ static void doForwarderChildStart()
     close(controlFDs[1]);
 
     /* read sid */
-    if ((doRead(controlFDs[0], &forwarder_child_sid, sizeof(pid_t))
+    if ((doRead(controlFDs[0], &forwarder_child_sid, sizeof(pid_t), __func__)
 	    != sizeof(pid_t))) {
 	mlog("%s: reading childs sid failed\n", __func__);
 	kill(SIGKILL, forwarder_child_pid);
@@ -461,8 +507,6 @@ static void signalHandler(int sig)
  */
 static void forwarderLoop()
 {
-    fd_set rfds, wfds;
-
     /* set timeout */
     if (timeout > 0) {
 	alarm(timeout);
@@ -473,13 +517,10 @@ static void forwarderLoop()
     blockSignal(SIGALRM, 0);
 
     while (1) {
-	memcpy(&rfds, &readfds, sizeof(rfds));
-	memcpy(&wfds, &writefds, sizeof(wfds));
-
 	/* check for really short jobs */
 	if (sigChild) return;
 
-	if (Sselect(FD_SETSIZE, &rfds, &wfds, NULL, NULL) < 0) {
+	if (Sselect(FD_SETSIZE, NULL, NULL, NULL, NULL) < 0) {
 	    if (errno != EINTR) {
 		mlog("%s: select error : %s\n", __func__, strerror(errno));
 	    }
@@ -540,7 +581,7 @@ static int handleSignalFd(int fd, void *info)
 {
     int res;
 
-    doRead(fd, &res, sizeof(res));
+    doRead(fd, &res, sizeof(res), __func__);
     return 1;
 }
 
@@ -574,9 +615,6 @@ static int initForwarder(int forwarderType, char *jobname)
     /* open local control connection back to psmom */
     forwarder_type = forwarderType;
     jobid = jobname;
-
-    FD_ZERO(&readfds);
-    FD_ZERO(&writefds);
 
     if (!(com = openLocalConnection())) {
 	fprintf(stderr, "%s: open connection to psmom failed\n", __func__);
@@ -1285,7 +1323,7 @@ int execInterForwarder(void *info)
 
 	/* wait till prologue finished */
 	close(controlPro[0]);
-	doRead(controlPro[1], &prologue_exit, sizeof(int));
+	doRead(controlPro[1], &prologue_exit, sizeof(int), __func__);
 
 	if (prologue_exit != 0) {
 	    mlog("%s: progloue exit not 0: %i\n", __func__, prologue_exit);
@@ -1354,7 +1392,7 @@ int execInterForwarder(void *info)
     doForwarderChildStart();
 
     /* wait till prologue is finished */
-    if ((doRead(com->socket, &prologue_exit, sizeof(int)))
+    if ((doRead(com->socket, &prologue_exit, sizeof(int), __func__))
 	    != sizeof(prologue_exit)) {
 
 	kill(forwarder_child_pid, SIGKILL);

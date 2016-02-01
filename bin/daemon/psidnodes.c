@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2015 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -128,10 +128,21 @@ static void initHash(void)
     for (i=0; i < sizeof(hosts)/sizeof(*hosts); i++) hosts[i] = NULL;
 }
 
+static inline void fixList(list_t *list, list_t *oldHead)
+{
+    if (list->next == oldHead) {
+	/* list was empty */
+	INIT_LIST_HEAD(list);
+    } else {
+	/* fix reverse pointers */
+	list->next->prev = list;
+	list->prev->next = list;
+    }
+}
+
 int PSIDnodes_grow(PSnodes_ID_t num)
 {
     PSnodes_ID_t oldNum = PSIDnodes_getNum();
-    list_t *listBackups = NULL;
     node_t *oldNodes = nodes;
     int i;
 
@@ -142,80 +153,23 @@ int PSIDnodes_grow(PSnodes_ID_t num)
 	oldNum = 0;
     }
 
-    /* Backup lists in case nodes will get relocated */
-    if (oldNum > 0) {
-	listBackups = malloc(4 * oldNum * sizeof(*listBackups));
-	if (! listBackups) {
-	    PSID_warn(-1, ENOMEM, "%s", __func__);
-	    return -1;
-	}
-	for (i=0; i<oldNum; i++) {
-	    if (list_empty(&nodes[i].uid_list)) {
-		INIT_LIST_HEAD(&listBackups[4*i + 0]);
-	    } else {
-		listBackups[4*i + 0] = nodes[i].uid_list;
-	    }
-	    if (list_empty(&nodes[i].gid_list)) {
-		INIT_LIST_HEAD(&listBackups[4*i + 1]);
-	    } else {
-		listBackups[4*i + 1] = nodes[i].gid_list;
-	    }
-	    if (list_empty(&nodes[i].admuid_list)) {
-		INIT_LIST_HEAD(&listBackups[4*i + 2]);
-	    } else {
-		listBackups[4*i + 2] = nodes[i].admuid_list;
-	    }
-	    if (list_empty(&nodes[i].admgid_list)) {
-		INIT_LIST_HEAD(&listBackups[4*i + 3]);
-	    } else {
-		listBackups[4*i + 3] = nodes[i].admgid_list;
-	    }
-	}
-    }
-
     numNodes = num;
 
     nodes = realloc(nodes, sizeof(*nodes) * numNodes);
     if (!nodes) {
 	PSID_warn(-1, ENOMEM, "%s", __func__);
-	if (listBackups) free(listBackups);
 	return -1;
     }
 
-    /* Restore old lists */
-    if (nodes != oldNodes && listBackups) {
+    /* Restore old lists if necessary */
+    if (nodes != oldNodes) {
 	for (i=0; i<oldNum; i++) {
-	    if (list_empty(&listBackups[4*i + 0])) {
-		INIT_LIST_HEAD(&nodes[i].uid_list);
-	    } else {
-		nodes[i].uid_list = listBackups[4*i + 0];
-		nodes[i].uid_list.next->prev = &nodes[i].uid_list;
-		nodes[i].uid_list.prev->next = &nodes[i].uid_list;
-	    }
-	    if (list_empty(&listBackups[4*i + 1])) {
-		INIT_LIST_HEAD(&nodes[i].gid_list);
-	    } else {
-		nodes[i].gid_list = listBackups[4*i + 1];
-		nodes[i].gid_list.next->prev = &nodes[i].gid_list;
-		nodes[i].gid_list.prev->next = &nodes[i].gid_list;
-	    }
-	    if (list_empty(&listBackups[4*i + 2])) {
-		INIT_LIST_HEAD(&nodes[i].admuid_list);
-	    } else {
-		nodes[i].admuid_list = listBackups[4*i + 2];
-		nodes[i].admuid_list.next->prev = &nodes[i].admuid_list;
-		nodes[i].admuid_list.prev->next = &nodes[i].admuid_list;
-	    }
-	    if (list_empty(&listBackups[4*i + 3])) {
-		INIT_LIST_HEAD(&nodes[i].admgid_list);
-	    } else {
-		nodes[i].admgid_list = listBackups[4*i + 3];
-		nodes[i].admgid_list.next->prev = &nodes[i].admgid_list;
-		nodes[i].admgid_list.prev->next = &nodes[i].admgid_list;
-	    }
+	    fixList(&nodes[i].uid_list, &oldNodes[i].uid_list);
+	    fixList(&nodes[i].gid_list, &oldNodes[i].gid_list);
+	    fixList(&nodes[i].admuid_list, &oldNodes[i].admuid_list);
+	    fixList(&nodes[i].admgid_list, &oldNodes[i].admgid_list);
 	}
     }
-    if (listBackups) free(listBackups);
 
     /* Initialize new nodes */
     for (i=oldNum; i<numNodes; i++) {
@@ -1125,4 +1079,29 @@ int PSIDnodes_maxStatTry(PSnodes_ID_t id)
     } else {
 	return -1;
     }
+}
+
+void PSIDnodes_clearMem(void)
+{
+    int h, n;
+
+    for (h=0; h<256; h++) {
+	struct host_t *host = hosts[h];
+	while (host) {
+	    struct host_t *next = host->next;
+	    free(host);
+	    host = next;
+	}
+    }
+
+    for (n=0; n<PSIDnodes_getNum(); n++) {
+	clear_GUID_list(&nodes[n].uid_list);
+	clear_GUID_list(&nodes[n].gid_list);
+	clear_GUID_list(&nodes[n].admuid_list);
+	clear_GUID_list(&nodes[n].admgid_list);
+	if (nodes[n].CPUmap) free(nodes[n].CPUmap);
+    }
+
+    free(nodes);
+    nodes = NULL;
 }

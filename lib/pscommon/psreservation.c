@@ -271,3 +271,15 @@ void PSrsrvtn_printStat(void)
     PSC_log(-1, "%s: Reservations %d/%d (used/avail)\n", __func__,
 	    usedRess, availRess);
 }
+
+void PSrsrvtn_clearMem(void)
+{
+    list_t *c, *tmp;
+
+    list_for_each_safe(c, tmp, &chunkList) {
+	res_chunk_t *chunk = list_entry(c, res_chunk_t, next);
+
+	list_del(&chunk->next);
+	free(chunk);
+    }
+}

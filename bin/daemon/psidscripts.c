@@ -118,6 +118,9 @@ static int doExec(char *script, PSID_scriptFunc_t func, PSID_scriptPrep_t prep,
 	close(iofds[1]);
 
 	if (func) {
+	    /* Cleanup all unneeded memory. @todo really? */
+	    PSID_clearMem();
+
 	    ret = func(info);
 	} else {
 	    char *command, *dir = PSC_lookupInstalldir(NULL);

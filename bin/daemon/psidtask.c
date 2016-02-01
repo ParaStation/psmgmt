@@ -484,3 +484,14 @@ void PStask_cleanup(PStask_ID_t tid)
     }
 
 }
+
+void PSIDtask_clearMem(void)
+{
+    list_t *t, *tmp;
+
+    list_for_each_safe(t, tmp, &managedTasks) {
+	PStask_t *tt = list_entry(t, PStask_t, next);
+
+	PStask_delete(tt);
+    }
+}

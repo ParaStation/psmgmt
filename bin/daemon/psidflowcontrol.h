@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2015 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -155,6 +155,19 @@ int PSIDFlwCntrl_sendContMsgs(PSIDFlwCntrl_hash_t stops, PStask_ID_t sender);
  */
 void PSIDFlwCntrl_printStat(void);
 
+/**
+ * @brief Memory cleanup
+ *
+ * Cleanup all dynamic memory currently used by the module. It will
+ * very aggressively free() all allocated memory most likely
+ * destroying the existing flow-control reqresentation.
+ *
+ * The purpose of this function is to cleanup before a fork()ed
+ * process is handling other tasks, e.g. becoming a forwarder.
+ *
+ * @return No return value.
+ */
+void PSIDFlwCntrl_clearMem(void);
 
 #ifdef __cplusplus
 }/* extern "C" */

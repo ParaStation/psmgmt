@@ -212,7 +212,7 @@ int rppReconnect(int stream, const char *caller)
     }
     serv->haveConnection = 0;
 
-    if (!com->remotePort || !com->remoteAddr) {
+    if (!com->remotePort || !com->remoteAddr[0]) {
 	mlog("%s no remote port or addr for stream '%i'\n", __func__, stream);
 	return -1;
     }

@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2014 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2015 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -84,14 +84,13 @@ void PSIDMsgbuf_put(msgbuf_t *mp);
  * @brief Memory cleanup
  *
  * Cleanup all memory currently used by the module. It will very
- * aggressively free all allocated memory probably destroying existing
- * lists of message-buffers. Thus, these lists should have been
- * cleaned up earlier.
+ * aggressively free all allocated memory most likely destroying
+ * existing lists of message-buffers. Thus, these lists should have
+ * been cleaned up earlier. Currently this requires PSIDRDP and
+ * PSIDclient to be cleaned up.
  *
- * The purpose of this function is cleanup before a fork()ed process
- * is handling other tasks, e.g. becoming a forwarder.
- *
- * @warn This one is not yet implemented.
+ * The purpose of this function is to cleanup before a fork()ed
+ * process is handling other tasks, e.g. becoming a forwarder.
  *
  * @return No return value.
  */

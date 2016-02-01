@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2008-2014 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2008-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -114,9 +114,9 @@ void PSID_shutdown(void)
 	} else {
 	    exitMCast();
 	}
-	send_DAEMONSHUTDOWN();
+	PSID_stopAllHW(); /* must be here due to RDP-broadcasting HW change */
+	send_DAEMONSHUTDOWN(); /* shuts down the RDP connections */
 	exitRDP();
-	PSID_stopAllHW();
 	PSID_unregisterLoopAct(PSID_shutdown);
 	PSID_shutdownMasterSock(); /* used for locking => ALAP */
 	PSID_log(-1, "%s: good bye\n", __func__);
