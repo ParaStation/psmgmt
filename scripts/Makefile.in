@@ -112,10 +112,10 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/ax_check_compile_flag.m4 \
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 DIST_COMMON = $(srcdir)/Makefile.am $(dist_bin_SCRIPTS) \
-	$(dist_config_SCRIPTS) $(dist_init_d_SCRIPTS) \
+	$(dist_config_SCRIPTS) $(am__dist_init_d_SCRIPTS_DIST) \
 	$(dist_scripts_SCRIPTS) $(dist_config_DATA) \
-	$(dist_profile_d_DATA) $(dist_xinetd_d_DATA) \
-	$(am__DIST_COMMON)
+	$(dist_profile_d_DATA) $(am__dist_unit_DATA_DIST) \
+	$(am__dist_xinetd_d_DATA_DIST) $(am__DIST_COMMON)
 mkinstalldirs = $(install_sh) -d
 CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
@@ -149,7 +149,8 @@ am__uninstall_files_from_dir = { \
 am__installdirs = "$(DESTDIR)$(bindir)" "$(DESTDIR)$(configdir)" \
 	"$(DESTDIR)$(init_ddir)" "$(DESTDIR)$(scriptsdir)" \
 	"$(DESTDIR)$(configdir)" "$(DESTDIR)$(profile_ddir)" \
-	"$(DESTDIR)$(xinetd_ddir)"
+	"$(DESTDIR)$(unitdir)" "$(DESTDIR)$(xinetd_ddir)"
+am__dist_init_d_SCRIPTS_DIST = init.d/parastation
 SCRIPTS = $(dist_bin_SCRIPTS) $(dist_config_SCRIPTS) \
 	$(dist_init_d_SCRIPTS) $(dist_scripts_SCRIPTS) \
 	$(noinst_SCRIPTS)
@@ -172,7 +173,10 @@ am__can_run_installinfo = \
     n|no|NO) false;; \
     *) (install-info --version) >/dev/null 2>&1;; \
   esac
-DATA = $(dist_config_DATA) $(dist_profile_d_DATA) \
+am__dist_unit_DATA_DIST = systemd/psid.service \
+	systemd/psidstarter.socket systemd/psidstarter@.service
+am__dist_xinetd_d_DATA_DIST = xinetd.d/psidstarter
+DATA = $(dist_config_DATA) $(dist_profile_d_DATA) $(dist_unit_DATA) \
 	$(dist_xinetd_d_DATA)
 am__tagged_files = $(HEADERS) $(SOURCES) $(TAGS_FILES) $(LISP)
 am__DIST_COMMON = $(srcdir)/Makefile.in $(top_srcdir)/common.am \
@@ -313,6 +317,7 @@ target_vendor = @target_vendor@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
+unitdir = @unitdir@
 AM_CPPFLAGS = -I$(top_srcdir)/include -DNDEBUG
 sed_verbose = $(sed_verbose_$(V))
 sed_verbose_ = $(sed_verbose_$(AM_DEFAULT_VERBOSITY))
@@ -351,7 +356,7 @@ scriptsdir = $(prefix)/scripts
 #
 # ParaStation
 #
-# Copyright (C) 2012-2015 ParTec Cluster Competence Center GmbH, Munich
+# Copyright (C) 2012-2016 ParTec Cluster Competence Center GmbH, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -362,10 +367,13 @@ scriptsdir = $(prefix)/scripts
 dist_bin_SCRIPTS = psh psaccview
 profile_ddir = $(sysconfdir)/profile.d
 dist_profile_d_DATA = psmgmt.csh psmgmt.sh
-init_ddir = $(sysconfdir)/init.d
-dist_init_d_SCRIPTS = init.d/parastation
-xinetd_ddir = $(sysconfdir)/xinetd.d
-dist_xinetd_d_DATA = xinetd.d/psidstarter
+@HAVE_SYSTEMD_TRUE@dist_unit_DATA = systemd/psid.service \
+@HAVE_SYSTEMD_TRUE@	systemd/psidstarter.socket \
+@HAVE_SYSTEMD_TRUE@	systemd/psidstarter@.service
+@HAVE_SYSTEMD_FALSE@init_ddir = $(sysconfdir)/init.d
+@HAVE_SYSTEMD_FALSE@dist_init_d_SCRIPTS = init.d/parastation
+@HAVE_SYSTEMD_FALSE@xinetd_ddir = $(sysconfdir)/xinetd.d
+@HAVE_SYSTEMD_FALSE@dist_xinetd_d_DATA = xinetd.d/psidstarter
 dist_config_DATA = mpiexec.gdb
 dist_config_SCRIPTS = ps_gm ps_acc
 dist_scripts_SCRIPTS = ps_gmcounters
@@ -375,11 +383,13 @@ noinst_SCRIPTS = psid2cmustatus memtest.py
 EXTRA_DIST = vcversion .gdbinit mpirun_java parastation_tru64 lsf \
 	memtest.py loggerdebug.py psaccview.in psmgmt.csh.in \
 	psmgmt.sh.in ps_gm.in ps_acc.in init.d/parastation.in \
-	xinetd.d/psidstarter.in psid2cmustatus.in
+	xinetd.d/psidstarter.in systemd/psid.service.in \
+	psid2cmustatus.in
 
 # clean up generated files
 CLEANFILES = psaccview psmgmt.csh psmgmt.sh ps_gm ps_acc \
-	init.d/parastation xinetd.d/psidstarter psid2cmustatus
+	init.d/parastation xinetd.d/psidstarter systemd/psid.service \
+	psid2cmustatus
 all: all-am
 
 .SUFFIXES:
@@ -601,6 +611,27 @@ uninstall-dist_profile_dDATA:
 	@list='$(dist_profile_d_DATA)'; test -n "$(profile_ddir)" || list=; \
 	files=`for p in $$list; do echo $$p; done | sed -e 's|^.*/||'`; \
 	dir='$(DESTDIR)$(profile_ddir)'; $(am__uninstall_files_from_dir)
+install-dist_unitDATA: $(dist_unit_DATA)
+	@$(NORMAL_INSTALL)
+	@list='$(dist_unit_DATA)'; test -n "$(unitdir)" || list=; \
+	if test -n "$$list"; then \
+	  echo " $(MKDIR_P) '$(DESTDIR)$(unitdir)'"; \
+	  $(MKDIR_P) "$(DESTDIR)$(unitdir)" || exit 1; \
+	fi; \
+	for p in $$list; do \
+	  if test -f "$$p"; then d=; else d="$(srcdir)/"; fi; \
+	  echo "$$d$$p"; \
+	done | $(am__base_list) | \
+	while read files; do \
+	  echo " $(INSTALL_DATA) $$files '$(DESTDIR)$(unitdir)'"; \
+	  $(INSTALL_DATA) $$files "$(DESTDIR)$(unitdir)" || exit $$?; \
+	done
+
+uninstall-dist_unitDATA:
+	@$(NORMAL_UNINSTALL)
+	@list='$(dist_unit_DATA)'; test -n "$(unitdir)" || list=; \
+	files=`for p in $$list; do echo $$p; done | sed -e 's|^.*/||'`; \
+	dir='$(DESTDIR)$(unitdir)'; $(am__uninstall_files_from_dir)
 install-dist_xinetd_dDATA: $(dist_xinetd_d_DATA)
 	@$(NORMAL_INSTALL)
 	@list='$(dist_xinetd_d_DATA)'; test -n "$(xinetd_ddir)" || list=; \
@@ -663,7 +694,7 @@ check-am: all-am
 check: check-am
 all-am: Makefile $(SCRIPTS) $(DATA)
 installdirs:
-	for dir in "$(DESTDIR)$(bindir)" "$(DESTDIR)$(configdir)" "$(DESTDIR)$(init_ddir)" "$(DESTDIR)$(scriptsdir)" "$(DESTDIR)$(configdir)" "$(DESTDIR)$(profile_ddir)" "$(DESTDIR)$(xinetd_ddir)"; do \
+	for dir in "$(DESTDIR)$(bindir)" "$(DESTDIR)$(configdir)" "$(DESTDIR)$(init_ddir)" "$(DESTDIR)$(scriptsdir)" "$(DESTDIR)$(configdir)" "$(DESTDIR)$(profile_ddir)" "$(DESTDIR)$(unitdir)" "$(DESTDIR)$(xinetd_ddir)"; do \
 	  test -z "$$dir" || $(MKDIR_P) "$$dir"; \
 	done
 install: install-am
@@ -719,7 +750,8 @@ info-am:
 
 install-data-am: install-dist_configDATA install-dist_configSCRIPTS \
 	install-dist_init_dSCRIPTS install-dist_profile_dDATA \
-	install-dist_scriptsSCRIPTS install-dist_xinetd_dDATA
+	install-dist_scriptsSCRIPTS install-dist_unitDATA \
+	install-dist_xinetd_dDATA
 
 install-dvi: install-dvi-am
 
@@ -766,7 +798,7 @@ ps-am:
 uninstall-am: uninstall-dist_binSCRIPTS uninstall-dist_configDATA \
 	uninstall-dist_configSCRIPTS uninstall-dist_init_dSCRIPTS \
 	uninstall-dist_profile_dDATA uninstall-dist_scriptsSCRIPTS \
-	uninstall-dist_xinetd_dDATA
+	uninstall-dist_unitDATA uninstall-dist_xinetd_dDATA
 
 .MAKE: install-am install-strip
 
@@ -777,17 +809,18 @@ uninstall-am: uninstall-dist_binSCRIPTS uninstall-dist_configDATA \
 	install-dist_binSCRIPTS install-dist_configDATA \
 	install-dist_configSCRIPTS install-dist_init_dSCRIPTS \
 	install-dist_profile_dDATA install-dist_scriptsSCRIPTS \
-	install-dist_xinetd_dDATA install-dvi install-dvi-am \
-	install-exec install-exec-am install-html install-html-am \
-	install-info install-info-am install-man install-pdf \
-	install-pdf-am install-ps install-ps-am install-strip \
-	installcheck installcheck-am installdirs maintainer-clean \
-	maintainer-clean-generic mostlyclean mostlyclean-generic \
-	mostlyclean-libtool pdf pdf-am ps ps-am tags-am uninstall \
-	uninstall-am uninstall-dist_binSCRIPTS \
+	install-dist_unitDATA install-dist_xinetd_dDATA install-dvi \
+	install-dvi-am install-exec install-exec-am install-html \
+	install-html-am install-info install-info-am install-man \
+	install-pdf install-pdf-am install-ps install-ps-am \
+	install-strip installcheck installcheck-am installdirs \
+	maintainer-clean maintainer-clean-generic mostlyclean \
+	mostlyclean-generic mostlyclean-libtool pdf pdf-am ps ps-am \
+	tags-am uninstall uninstall-am uninstall-dist_binSCRIPTS \
 	uninstall-dist_configDATA uninstall-dist_configSCRIPTS \
 	uninstall-dist_init_dSCRIPTS uninstall-dist_profile_dDATA \
-	uninstall-dist_scriptsSCRIPTS uninstall-dist_xinetd_dDATA
+	uninstall-dist_scriptsSCRIPTS uninstall-dist_unitDATA \
+	uninstall-dist_xinetd_dDATA
 
 .PRECIOUS: Makefile
 

@@ -1,5 +1,14 @@
 # -*- rpm-spec -*-
 %{?_without_psconfig: %global disable_psconfig 1}
+%{?_without_systemd: %global disable_systemd 1}
+
+%if 0%{?rhel} && 0%{?rhel} < 7
+%global disable_systemd 1
+%endif
+
+%if !0%{?disable_systemd}
+%{!?_unitdir: %global _unitdir %(pkg-config --variable=systemdsystemunitdir systemd)}
+%endif
 
 Summary:   ParaStation Process Management
 Vendor:    ParTec Cluster Competence Center GmbH, Munich, Germany
@@ -23,6 +32,13 @@ BuildRequires:	libnuma-devel
 %else
 BuildRequires:	numactl-devel
 %endif
+%if !0%{?disable_systemd}
+BuildRequires:  systemd
+Requires(post): systemd
+Requires(preun): systemd
+Requires(postun): systemd
+%endif # with_systemd
+
 
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
@@ -84,7 +100,9 @@ daemon is necessary to integrate compute nodes into a Torque batch system.
 
 %build
 export CFLAGS="%(echo %{optflags}|sed -e 's,-O.,,')"
-%configure --datarootdir=%{_datarootdir} --with-pamdir=%{_pamdir} %{?disable_psconfig:--disable-psconfig}
+%configure --datarootdir=%{_datarootdir} --with-pamdir=%{_pamdir} \
+	   %{?disable_psconfig:--disable-psconfig} \
+	   %{?disable_systemd:--with-unitdir=no}
 make %{?_smp_mflags}
 
 %install
@@ -110,6 +128,9 @@ exit 0
 %post
 if [ $1 -eq 1 ] ; then
     # first install
+%if !0%{?disable_systemd}
+    systemctl preset x >/dev/null 2>&1 || :
+%else
     /sbin/chkconfig --add parastation
     /sbin/chkconfig psidstarter on
     /sbin/service xinetd try-restart
@@ -118,18 +139,29 @@ if [ $1 -eq 1 ] ; then
     echo "* or prepare and maintain the configuration file      *"
     echo "* /etc/parastation.conf                              *"
     echo "******************************************************"
+%endif
 fi
 exit 0
 
 %preun
 if [ $1 -eq 0 ] ; then
     # final de-install
+%if !0%{?disable_systemd}
+    systemctl --no-reload disable psid.service psidstarter.socket > /dev/null 2>&1 || :
+    systemctl stop psid.service psidstarter.socket > /dev/null 2>&1 || :
+%else
     /sbin/service parastation stop
     /sbin/chkconfig psidstarter off
     /sbin/chkconfig --del parastation
     /sbin/service xinetd reload
+%endif
 fi
 exit 0
+
+%postun
+%if !0%{?disable_systemd}
+    systemctl daemon-reload >/dev/null 2>&1 || :
+%endif
 
 %files
 %defattr(-,root,root)
@@ -182,8 +214,14 @@ exit 0
 %exclude %{_plugindir}/pspmi.la
 %config(missingok,noreplace) %{_sysconfdir}/profile.d/psmgmt.sh
 %config(missingok,noreplace) %{_sysconfdir}/profile.d/psmgmt.csh
+%if !0%{?disable_systemd}
+%_unitdir/psid.service
+%_unitdir/psidstarter@.service
+%_unitdir/psidstarter.socket
+%else
 %{_sysconfdir}/init.d/parastation
 %config(noreplace) /etc/xinetd.d/psidstarter
+%endif
 %ghost %config(missingok,noreplace) /etc/parastation.conf
 %attr(770,root,root) %{_localstatedir}/log/psaccounter
 

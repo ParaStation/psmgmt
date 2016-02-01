@@ -1,7 +1,7 @@
 #
 # ParaStation
 #
-# Copyright (C) 2012-2015 ParTec Cluster Competence Center GmbH, Munich
+# Copyright (C) 2012-2016 ParTec Cluster Competence Center GmbH, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -16,11 +16,17 @@ dist_bin_SCRIPTS = psh psaccview
 profile_ddir = $(sysconfdir)/profile.d
 dist_profile_d_DATA = psmgmt.csh psmgmt.sh
 
-init_ddir = $(sysconfdir)/init.d
-dist_init_d_SCRIPTS = init.d/parastation
+if HAVE_SYSTEMD
+  dist_unit_DATA = systemd/psid.service
+  dist_unit_DATA += systemd/psidstarter.socket
+  dist_unit_DATA += systemd/psidstarter@.service
+else
+  init_ddir = $(sysconfdir)/init.d
+  dist_init_d_SCRIPTS = init.d/parastation
 
-xinetd_ddir = $(sysconfdir)/xinetd.d
-dist_xinetd_d_DATA = xinetd.d/psidstarter
+  xinetd_ddir = $(sysconfdir)/xinetd.d
+  dist_xinetd_d_DATA = xinetd.d/psidstarter
+endif
 
 dist_config_DATA = mpiexec.gdb
 dist_config_SCRIPTS = ps_gm ps_acc
@@ -39,6 +45,7 @@ EXTRA_DIST += psaccview.in
 EXTRA_DIST += psmgmt.csh.in psmgmt.sh.in
 EXTRA_DIST += ps_gm.in ps_acc.in
 EXTRA_DIST += init.d/parastation.in xinetd.d/psidstarter.in
+EXTRA_DIST += systemd/psid.service.in
 EXTRA_DIST += psid2cmustatus.in
 
 # clean up generated files
@@ -46,4 +53,5 @@ CLEANFILES = psaccview
 CLEANFILES += psmgmt.csh psmgmt.sh
 CLEANFILES += ps_gm ps_acc
 CLEANFILES += init.d/parastation xinetd.d/psidstarter
+CLEANFILES += systemd/psid.service
 CLEANFILES += psid2cmustatus

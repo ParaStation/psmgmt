@@ -1,7 +1,7 @@
 #
 # ParaStation
 #
-# Copyright (C) 2012-2015 ParTec Cluster Competence Center GmbH, Munich
+# Copyright (C) 2012-2016 ParTec Cluster Competence Center GmbH, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -99,6 +99,20 @@ AC_SUBST([AM_LDFLAGS])
 AC_ARG_ENABLE([testplugins], [AS_HELP_STRING([--enable-testplugins],
   [build test plugins])])
 AM_CONDITIONAL([TESTPLUGINS_ENABLED], [test "x$enable_testplugins" = xyes])
+
+PKG_PROG_PKG_CONFIG
+AC_ARG_WITH([unitdir], [AS_HELP_STRING([--with-unitdir=DIR],
+  [directory for systemd service files])],,[with_unitdir=auto])
+AS_IF([test "x$with_unitdir" = "xyes" -o "x$with_unitdir" = "xauto"],
+  [def_unitdir=$($PKG_CONFIG --variable=systemdsystemunitdir systemd)
+   AS_IF([test "x$def_unitdir" = "x"],
+     [AS_IF([test "x$with_unitdir" = "xyes"],
+       [AC_MSG_ERROR([systemd support requested but pkg-config unable to query systemd package])])
+      with_unitdir=no],
+     [with_unitdir="$def_unitdir"])])
+AS_IF([test "x$with_unitdir" != "xno"],
+  [AC_SUBST([unitdir], [$with_unitdir])])
+AM_CONDITIONAL([HAVE_SYSTEMD], [test "x$with_unitdir" != "xno"])
 
 AC_CONFIG_FILES(Makefile)
 AC_CONFIG_FILES(bin/Makefile)
