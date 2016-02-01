@@ -432,6 +432,9 @@ scripts/psh \
 scripts/psid2cmustatus.in \
 scripts/psmgmt.csh.in \
 scripts/psmgmt.sh.in \
+scripts/systemd/psid.service.in \
+scripts/systemd/psidstarter@.service \
+scripts/systemd/psidstarter.socket \
 scripts/test-driver \
 scripts/vcversion \
 scripts/xinetd.d/psidstarter.in \
