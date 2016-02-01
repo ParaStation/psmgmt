@@ -28,6 +28,14 @@ BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
 # for now
 %global _prefix /opt/parastation
+%global _exec_prefix %{_prefix}
+%global _bindir %{_exec_prefix}/bin
+%global _sbindir %{_exec_prefix}/sbin
+%global _datarootdir %{_prefix}/share
+%global _datadir %{_datarootdir}
+%global _includedir %{_prefix}/include
+%global _libdir %{_prefix}/%{_lib}
+%global _libexecdir %{_exec_prefix}/libexec
 %global _plugindir %{_prefix}/plugins
 %global _configdir %{_prefix}/config
 %global _scriptsdir %{_prefix}/scripts
@@ -76,7 +84,7 @@ daemon is necessary to integrate compute nodes into a Torque batch system.
 
 %build
 export CFLAGS="%(echo %{optflags}|sed -e 's,-O.,,')"
-%configure --datarootdir=%{_datadir} --with-pamdir=%{_pamdir} %{?disable_psconfig:--disable-psconfig}
+%configure --datarootdir=%{_datarootdir} --with-pamdir=%{_pamdir} %{?disable_psconfig:--disable-psconfig}
 make %{?_smp_mflags}
 
 %install
