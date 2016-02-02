@@ -465,8 +465,10 @@ static void handlePELogueStart(DDTypedBufferMsg_t *msg,
     }
 
     data->child = addChild(data->plugin, data->jobid, fwdata, itype);
+    /*
     mdbg(PELOGUE_LOG_PROCESS, "%s: %s for job '%s:%s' started\n",
 	    __func__, ctype, data->plugin, data->jobid);
+    */
 }
 
 void handlePELogueFinish(DDTypedBufferMsg_t *msg, char *msgData)
