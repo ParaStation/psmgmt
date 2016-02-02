@@ -18,15 +18,14 @@ static char vcid[] __attribute__ ((used)) =
 #include <errno.h>
 #include <sys/socket.h>
 #include <sys/types.h>
+#include <stddef.h>
 
 #include "pscommon.h"
 #include "pstask.h"
 
 #include "pslog.h"
 
-static PSLog_Msg_t dummymsg;
-
-const int PSLog_headerSize = sizeof(dummymsg) - sizeof(dummymsg.buf);
+const int PSLog_headerSize = offsetof(PSLog_Msg_t, buf);
 
 static int daemonsock = -1;
 static int id;
