@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2013 Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2016 Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -97,6 +97,17 @@ void PSLog_init(int daemonSocket, int nodeID, int versionID);
 void PSLog_close(void);
 
 /**
+ * @brief Check availability of PSLog facility.
+ *
+ * Check the availability of a working PSLog facility, i.e.if it is
+ * capable to send and receive messages.
+ *
+ * @return If the PSLog facility is up and running, 1 is
+ * returned. Otherwise 0 is returned.
+ */
+int PSLog_avail(void);
+
+/**
  * @brief Send a PSLog message.
  *
  * Send a PSLog message of length @a count referenced by @a buf with
@@ -111,7 +122,7 @@ void PSLog_close(void);
  * the body of the message. If @a buf is NULL, the body of the PSLog
  * message will be empty.
  *
- * @param len Amount of meaningfull data within @a buf in bytes. If @a
+ * @param len Amount of meaningful data within @a buf in bytes. If @a
  * len is larger the 1024, more than one message will be generated.
  * The number of messages can be computed by (len/1024 + 1).
  *
