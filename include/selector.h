@@ -37,10 +37,10 @@ extern "C" {
 #endif
 
 /**
- * @brief Initializes the Selector module.
+ * @brief (Re-)Initialize the Selector module.
  *
- * Initialization of the Selector machinery. If any selector is registered,
- * it will be removed.
+ * (Re-)Initialization of the Selector machinery. If any selector was
+ * registered before, it will be removed.
  *
  * @param logfile File to use for logging. If NULL, syslog(3) is used.
  *
@@ -106,6 +106,25 @@ int32_t Selector_getDebugMask(void);
  * @see Selector_getDebugMask(), Selector_log_key_t
  */
 void Selector_setDebugMask(int32_t mask);
+
+/**
+ * @brief Set the number of selectors to handle
+ *
+ * Set the number of selectors the modules can handle to @a max. Since
+ * selectors are addressed by their file-descriptor, the maximum has
+ * to be adapted each time RLIMIT_NOFILE is adapted.  Nevertheless,
+ * since old file-descriptor keep staying alive, only a value of @a
+ * max larger than the previous maximum will have an effect.
+ *
+ * The initial value is determined within @ref Selector_init() via
+ * sysconf(_SC_OPEN_MAX).
+ *
+ * @param max New maximum number of selectors to handle
+ *
+ * @return On success 0 is returned. In case of failure -1 is returned
+ * and errno is set appropriately.
+ */
+int Selector_setMax(int max);
 
 /**
  * @brief Selector callback
@@ -217,7 +236,7 @@ int Selector_disable(int fd);
 int Selector_enable(int fd);
 
 /**
- * @brief Get a selector's activitiy-status
+ * @brief Get a selector's activity-status
  *
  * Get the activity-status of a selector, i.e. give an indication that
  * the selector is not disabled via @ref Selector_disable(). The
@@ -232,7 +251,7 @@ int Selector_enable(int fd);
 int Selector_isActive(int fd);
 
 /**
- * @brief Checks file-decriptors after select() has failed.
+ * @brief Checks file-descriptors after select() has failed.
  *
  * Detailed checking of the file-descriptors in the list of selectors
  * on validity after a select(2) call has failed. Thus all file

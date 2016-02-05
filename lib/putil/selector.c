@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2015 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -15,6 +15,7 @@ static char vcid[] __attribute__((used)) =
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include <errno.h>
 #include <string.h>
 #include <syslog.h>
@@ -27,8 +28,9 @@ static char vcid[] __attribute__((used)) =
 
 #include "selector.h"
 
+#ifndef __linux__
 /**
- * OSF provides no timeradd in sys/time.h
+ * OSF provides neither timeradd nor timersub in sys/time.h
  */
 #ifndef timeradd
 #define timeradd(a, b, result)                                        \
@@ -41,9 +43,6 @@ static char vcid[] __attribute__((used)) =
     }                                                                 \
   } while (0)
 #endif
-/**
- * OSF provides no timersub in sys/time.h
- */
 #ifndef timersub
 #define timersub(a, b, result)                                        \
   do {                                                                \
@@ -55,12 +54,7 @@ static char vcid[] __attribute__((used)) =
     }                                                                 \
   } while (0)
 #endif
-
-/**
- * The module's initialization state. Set by @ref Selector_init(),
- * read by @ref Selector_isInitialized().
- */
-static int initialized = 0;
+#endif
 
 /** Flag to let Sselect() start over, i.e. return 0 and all fds cleared */
 static int startOver = 0;
@@ -70,10 +64,12 @@ static int startOver = 0;
  */
 typedef struct {
     list_t next;                   /**< Use to put into @ref selectorList. */
-    Selector_CB_t *selectHandler;  /**< Handler called within Sselect(). */
+    Selector_CB_t *readHandler;    /**< Handler called on available input. */
+    Selector_CB_t *writeHandler;   /**< Handler called on possible output. */
     void *info;                    /**< Extra info to be passed to handler */
     int fd;                        /**< The corresponding file-descriptor. */
-    int requested;                 /**< Flag used within Sselect(). */
+    int reqRead;                   /**< Flag used within Sselect(). */
+    int reqWrite;                  /**< Flag used within Sselect(). */
     int disabled;                  /**< Flag to disable fd temporarily. */
     int deleted;                   /**< Flag used for asynchronous delete. */
 } Selector_t;
@@ -83,6 +79,12 @@ static logger_t *logger = NULL;
 
 /** List of all registered selectors. */
 static LIST_HEAD(selectorList);
+
+/** Array (indexed by file-descriptor number) pointing to Selectors */
+static Selector_t **selectors = NULL;
+
+/** Maximum number of selectors the module currently can take care of */
+static int maxSelectorFD = 0;
 
 /**
  * @brief (Un-)Block SIGCHLD.
@@ -119,10 +121,32 @@ void Selector_setDebugMask(int32_t mask)
     logger_setMask(logger, mask);
 }
 
+int Selector_setMax(int max)
+{
+    int oldMax = maxSelectorFD;
+    int fd;
+
+    if (maxSelectorFD >= max) return 0; /* don't shrink */
+
+    maxSelectorFD = max;
+
+    selectors = realloc(selectors, sizeof(*selectors) * maxSelectorFD);
+    if (!selectors) {
+	logger_warn(logger, -1, ENOMEM, "%s", __func__);
+	errno = ENOMEM;
+	return -1;
+    }
+
+    /* Initialize new selector pointers */
+    for (fd = oldMax; fd < maxSelectorFD; fd++) selectors[fd] = NULL;
+
+    return 0;
+}
+
 void Selector_init(FILE* logfile)
 {
     list_t *s, *tmp;
-    int blocked;
+    int numFiles, blocked;
 
     logger = logger_init("Selector", logfile);
     if (!logger) {
@@ -134,21 +158,34 @@ void Selector_init(FILE* logfile)
 	exit(1);
     }
 
-    /* Free all old selectors, if any */
     blocked = blockSigChld(1);
+
+    /* Free all old selectors, if any */
     list_for_each_safe(s, tmp, &selectorList) {
 	Selector_t *selector = list_entry(s, Selector_t, next);
 	list_del(&selector->next);
+	selectors[selector->fd] = NULL;
 	free(selector);
     }
-    blockSigChld(blocked);
 
-    initialized = 1;
+    numFiles = sysconf(_SC_OPEN_MAX);
+    if (numFiles <= 0) {
+	logger_exit(logger, errno, "%s: sysconf(_SC_OPEN_MAX) returns %d",
+		    __func__, numFiles);
+	return;
+    }
+
+    if (Selector_setMax(numFiles) < 0) {
+	logger_exit(logger, errno, "%s: Selector_setMax()", __func__);
+	return;
+    }
+
+    blockSigChld(blocked);
 }
 
 int Selector_isInitialized(void)
 {
-    return initialized;
+    return !!selectors;
 }
 
 /**
@@ -158,26 +195,21 @@ int Selector_isInitialized(void)
  *
  * @param fd The file-descriptor handled by the searched selector.
  *
- * @return If a selector handling @a fd is found, a pointer to this
+ * @return If a selector handling @a fd exists, a pointer to this
  * selector is returned. Or NULL otherwise.
  */
 static Selector_t * findSelector(int fd)
 {
-    list_t *s;
+    if (fd < 0 || fd >= maxSelectorFD) return NULL;
 
-    list_for_each(s, &selectorList) {
-	Selector_t *selector = list_entry(s, Selector_t, next);
-	if (selector->fd == fd) return selector;
-    }
-
-    return NULL;
+    return selectors[fd];
 }
 
 int Selector_register(int fd, Selector_CB_t selectHandler, void *info)
 {
     Selector_t *selector = findSelector(fd);
 
-    if (fd < 0 || fd >= FD_SETSIZE) {
+    if (fd < 0 || fd >= maxSelectorFD || fd >= FD_SETSIZE) {
 	logger_print(logger, -1, "%s: fd %d is invalid\n", __func__, fd);
 	if (fd < 0) {
 	    errno = EINVAL;
@@ -193,7 +225,7 @@ int Selector_register(int fd, Selector_CB_t selectHandler, void *info)
 	logger_print(logger, -1,
 		     "%s: found selector for fd %d\n", __func__, fd);
 	logger_print(logger, -1, "%s: handler is at %p %s disabled\n",
-		     __func__, selector->selectHandler,
+		     __func__, selector->readHandler,
 		     selector->disabled ? "but" : "not");
 	return -1;
     }
@@ -215,14 +247,16 @@ int Selector_register(int fd, Selector_CB_t selectHandler, void *info)
     *selector = (Selector_t) {
 	.fd = fd,
 	.info = info,
-	.selectHandler = selectHandler,
-	.requested = 0,
+	.readHandler = selectHandler,
+	.writeHandler = NULL,
+	.reqRead = 0,
+	.reqWrite = 0,
 	.disabled = 0,
 	.deleted = 0,
     };
 
     list_add_tail(&selector->next, &selectorList);
-
+    selectors[fd] = selector;
     return 0;
 }
 
@@ -237,6 +271,7 @@ int Selector_remove(int fd)
     }
 
     selector->deleted = 1;
+    selector->readHandler = NULL;
 
     return 0;
 }
@@ -251,6 +286,7 @@ static void doRemove(Selector_t *selector)
     }
 
     list_del(&selector->next);
+    selectors[selector->fd] = NULL;
 
     /* Release allocated memory for removed selector */
     blocked = blockSigChld(1);
@@ -339,7 +375,7 @@ void Selector_checkFDs(void)
 		logger_print(logger, -1, "%s(%d): EBADF -> close\n",
 			     __func__, selector->fd);
 		/* call the handler to signal it, then close */
-		selector->selectHandler(selector->fd, selector->info);
+		selector->readHandler(selector->fd, selector->info);
 		Selector_remove(selector->fd);
 		break;
 	    case EINTR:
@@ -385,7 +421,8 @@ int Sselect(int n, fd_set  *readfds,  fd_set  *writefds, fd_set *exceptfds,
 	    doRemove(selector);
 	    continue;
 	}
-	selector->requested = (readfds) ? FD_ISSET(selector->fd, readfds) : 0;
+	selector->reqRead = (readfds) ? FD_ISSET(selector->fd, readfds) : 0;
+	selector->reqWrite = (writefds) ? FD_ISSET(selector->fd, writefds) : 0;
 	if (selector->fd >= n) n = selector->fd + 1;
     }
 
@@ -413,10 +450,11 @@ int Sselect(int n, fd_set  *readfds,  fd_set  *writefds, fd_set *exceptfds,
 	    if (selector->deleted) {
 		doRemove(selector);
 		continue;
-	    } else if (selector->disabled) {
-		continue;
 	    }
-	    FD_SET(selector->fd, &rfds);              /* activate port */
+	    if (selector->writeHandler) FD_SET(selector->fd, &wfds);
+	    if (selector->readHandler && !selector->disabled) {
+		FD_SET(selector->fd, &rfds);          /* activate port */
+	    }
 	}
 
 	if (timeout) {
@@ -445,11 +483,30 @@ int Sselect(int n, fd_set  *readfds,  fd_set  *writefds, fd_set *exceptfds,
 
 	list_for_each(s, &selectorList) {
 	    Selector_t *selector = list_entry(s, Selector_t, next);
-	    if (selector->deleted || selector->disabled) continue;
-	    if (FD_ISSET(selector->fd, &rfds) && selector->selectHandler) {
-		/* Got message on handled fd */
-		int ret = selector->selectHandler(selector->fd,
-						  selector->info);
+	    if (selector->deleted) continue;
+	    if (FD_ISSET(selector->fd, &wfds) && selector->writeHandler) {
+		/* Can write to fd */
+		int ret = selector->writeHandler(selector->fd, selector->info);
+		switch (ret) {
+		case -1:
+		    retval = -1;
+		    break;
+		case 0:
+		    retval--;
+		    FD_CLR(selector->fd, &wfds);
+		    break;
+		case 1:
+		    break;
+		default:
+		    logger_print(logger, -1,
+				 "%s: writeHandler for fd=%d returns %d\n",
+				 __func__, selector->fd, ret);
+		}
+	    }
+	    if (FD_ISSET(selector->fd, &rfds) && selector->readHandler
+		&& !selector->deleted && !selector->disabled) {
+		/* Data available on fd */
+		int ret = selector->readHandler(selector->fd, selector->info);
 		switch (ret) {
 		case -1:
 		    retval = -1;
@@ -478,7 +535,7 @@ int Sselect(int n, fd_set  *readfds,  fd_set  *writefds, fd_set *exceptfds,
     if (readfds && !eno) {
 	list_for_each_safe(s, tmp, &selectorList) {
 	    Selector_t *selector = list_entry(s, Selector_t, next);
-	    if (!selector->requested && FD_ISSET(selector->fd, &rfds)) {
+	    if (!selector->reqRead && FD_ISSET(selector->fd, &rfds)) {
 		FD_CLR(selector->fd, &rfds);
 		retval--;
 	    }
