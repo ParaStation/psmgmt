@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2015 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -110,7 +110,7 @@ static int showUsage = 0;
 int maxConnected = 0;
 
 /** The socket connecting to the local ParaStation daemon */
-static int daemonSock;
+static int daemonSock = -1;
 
 /** Maximum runtime of the job allowed by user */
 static long maxTime = 0;
@@ -183,19 +183,20 @@ void PSIlog_finalizeLogs(void)
 /**
  * @brief Close socket to daemon.
  *
- * Close the socket connecting the forwarder with the local daemon.
+ * Close the socket @a fd connecting the logger to the local daemon.
+ *
+ * @param fd File-descriptor connecting to the local daemon
  *
  * @return No return value.
  */
-static void closeDaemonSock(void)
+static void closeDaemonSock(int fd)
 {
-    int tmp = daemonSock;
-
-    if (daemonSock < 0) return;
+    if (fd < 0) return;
 
     daemonSock=-1;
     PSLog_close();
-    close(tmp);
+    Selector_remove(fd);
+    close(fd);
 }
 
 int GDBcmdEcho = 0;
@@ -269,27 +270,19 @@ static void readGDBInput(char *line)
  * the body of the message. If @a buf is NULL, the body of the PSLog
  * message will be empty.
  *
- * @param len Amount of meaningfull data within @a buf in bytes. If @a
+ * @param len Amount of meaningful data within @a buf in bytes. If @a
  * len is larger the 1024, more than one message will be generated.
  * The number of messages can be computed by (len/1024 + 1).
  *
- *
  * @return On success, the number of bytes written is returned,
- * i.e. usually this is @a len. On error, -1 is returned, and errno is
+ * i.e. usually this is @a len. On error -1 is returned and errno is
  * set appropriately.
  */
 int sendMsg(PStask_ID_t tid, PSLog_msg_t type, char *buf, size_t len)
 {
-    int ret = 0;
+    int ret = PSLog_write(tid, type, buf, len);
 
-    if (daemonSock < 0) {
-	errno = EBADF;
-	return -1;
-    }
-
-    ret = PSLog_write(tid, type, buf, len);
-
-    if (ret < 0) {
+    if (ret < 0 && errno != EBADF) {
 	PSIlog_warn(-1, errno, "%s: error (%d)", __func__, errno);
     }
 
@@ -305,23 +298,14 @@ int sendMsg(PStask_ID_t tid, PSLog_msg_t type, char *buf, size_t len)
  * This is mainly a wrapper for PSLog_read(). Furthermore PSP_CC_ERROR
  * messages are handled correctly.
  *
- *
  * @param msg Address of a buffer the received message is stored to.
- *
  *
  * @return On success, the number of bytes read are returned. On error,
  * -1 is returned, and errno is set appropriately.
  */
 static int recvMsg(PSLog_Msg_t *msg)
 {
-    int ret;
-
-    if (daemonSock < 0) {
-	errno = EBADF;
-	return -1;
-    }
-
-    ret = PSLog_read(msg, NULL);
+    int ret = PSLog_read(msg, NULL);
 
     if (!ret) return ret;
 
@@ -376,8 +360,6 @@ static int recvMsg(PSLog_Msg_t *msg)
  * Send the message @a msg to the local daemon.
  *
  * @param msg The message to send.
- *
- * @param daemonSock Socket connected with the local daemon.
  *
  * @return On success, the number of bytes send is returned,
  * i.e. usually @a msg->header.len. Otherwise -1 is returned and errno
@@ -694,7 +676,6 @@ static int newrequest(PSLog_Msg_t *msg)
  * to the forwarder(s) with ParaStation task IDs in forwardInputTID.
  *
  * @param std_in File descriptor to read STDIN data from.
- *
  *
  * @return No return value.
  */
@@ -1204,7 +1185,7 @@ static int handleDebugSock(int fd, void *info)
 
 #define debugSockName "psilogger_%d.sock"
 
-void enableDebugSock(void)
+static void enableDebugSock(void)
 {
     int debugSock;
     struct sockaddr_un sa;
@@ -1236,6 +1217,71 @@ void enableDebugSock(void)
     PSIlog_log(PSILOG_LOG_VERB, "Local Debug Port (%d) enabled.\n", debugSock);
 }
 
+/**
+ * @brief Handle daemon message
+ *
+ * Handle message available on the daemon socket @a fd, i.e. receive
+ * the message and pass it to the appropriate handler.
+ *
+ * This function is expected to be registered to the selector facility.
+ *
+ * @param fd The file-descriptor connected to the daemon. The message
+ * is read from here.
+ *
+ * @param info Extra info. Currently ignored.
+ *
+ * @return On success 1 is returned. Otherwise -1 is returned and
+ * errno is set appropriately.
+ */
+static int handleDaemonMsg(int fd, void *info)
+{
+    PSLog_Msg_t msg;
+    int ret = recvMsg(&msg);
+
+    /* Ignore all errors */
+    if (ret < 0) return 0;
+
+    if (!ret) {
+	PSIlog_log(-1, "daemon died. Exiting\n");
+	PSIlog_finalizeLogs();
+	exit(1);
+    }
+
+    switch(msg.header.type) {
+    case PSP_CC_MSG:
+	handleCCMsg(&msg);
+	break;
+    case PSP_CD_ERROR:
+	/* Ignore */
+	break;
+    case PSP_CD_SENDSTOP:
+	handleSENDSTOP((DDMsg_t *)&msg);
+	break;
+    case PSP_CD_SENDCONT:
+	handleSENDCONT((DDMsg_t *)&msg);
+	break;
+    default:
+	PSIlog_log(-1, "%s: Unknown message type %s from %s.\n", __func__,
+		   PSP_printMsg(msg.header.type),
+		   PSC_printTID(msg.header.sender));
+    }
+
+    return 0;
+}
+
+static void enableDaemonSock(int fd)
+{
+    /* Receive data from local daemon */
+    Selector_register(fd, handleDaemonMsg, NULL);
+
+    /* Enable sendDaemonMsg() to send data */
+    daemonSock = fd;
+
+    /* Initialize PSLog accordingly */
+    PSLog_init(fd, -1 /* nodeID */, 2 /* versionID */);
+
+    PSIlog_log(PSILOG_LOG_VERB, "Daemon Socket (%d) enabled.\n", fd);
+}
 
 /**
  * @brief The main loop
@@ -1249,8 +1295,7 @@ void enableDebugSock(void)
  */
 static void loop(void)
 {
-    struct timeval mytv={1,0}, atv;
-    PSLog_Msg_t msg;
+    struct timeval mytv={1,0};
 
     timeoutval = 0;
 
@@ -1259,53 +1304,17 @@ static void loop(void)
      * phase, while no connection exists. Thus wait at least 10 * mytv.
      */
     while (getNoClients() > 0 || timeoutval < MIN_WAIT) {
-	fd_set afds;
-
-	FD_ZERO(&afds);
-	if (daemonSock != -1) FD_SET(daemonSock, &afds);
-	atv = mytv;
+	struct timeval atv = mytv;
 
 	if (mergeOutput && usize > 1) displayCachedOutput(0);
 
-	if (Sselect(daemonSock + 1, &afds, NULL, NULL, &atv) < 0) {
+	if (Sselect(0, NULL, NULL, NULL, &atv) < 0) {
 	    if (errno == EINTR) {
 		/* Interrupted syscall, just start again */
 		continue;
 	    }
 	    PSIlog_warn(-1, errno, "select()");
 	    continue;
-	}
-	if (FD_ISSET(daemonSock, &afds)) {
-	    /* message from the daemon */
-	    int ret = recvMsg(&msg);
-
-	    /* Ignore all errors */
-	    if (ret < 0) continue;
-	    if (!ret) {
-		PSIlog_log(-1, "daemon died. Exiting\n");
-		PSIlog_finalizeLogs();
-		exit(1);
-	    }
-
-	    switch(msg.header.type) {
-	    case PSP_CC_MSG:
-		handleCCMsg(&msg);
-		break;
-	    case PSP_CD_ERROR:
-		/* Ignore */
-		break;
-	    case PSP_CD_SENDSTOP:
-		handleSENDSTOP((DDMsg_t *)&msg);
-		break;
-	    case PSP_CD_SENDCONT:
-		handleSENDCONT((DDMsg_t *)&msg);
-		break;
-	    default:
-		PSIlog_log(-1, "%s: Unknown message type %s from %s.\n",
-			   __func__, PSP_printMsg(msg.header.type),
-			   PSC_printTID(msg.header.sender));
-	    }
-
 	}
 	if (!getNoClients()) timeoutval++;
     }
@@ -1326,13 +1335,13 @@ static void loop(void)
 /**
  * @brief The main program
  *
- * After registering several signals gets global variables @ref
- * daemonSock and local ParaStation ID from arguments. Furthermore the
- * global variables @ref forw_verbose, @ref prependSource @ref
- * InputDest and @ref usage are set from environment. After setting up
- * logging finally @ref loop() is called. Upon return from this
- * central loop, all further arguments to the two already evaluated
- * above are executed via system() calls.
+ * After registering several signals gets daemon socket and local
+ * ParaStation ID from arguments. Furthermore the global variables
+ * @ref forw_verbose, @ref prependSource @ref InputDest and @ref usage
+ * are set from environment. After setting up logging finally @ref
+ * loop() is called. Upon return from this central loop, all further
+ * arguments to the two already evaluated above are executed via
+ * system() calls.
  *
  * @param argc The number of arguments in @a argv.
  *
@@ -1351,7 +1360,7 @@ static void loop(void)
 int main( int argc, char**argv)
 {
     char *envstr, *end, *input;
-    int i;
+    int i, dSock;
 
     sigset_t set;
 
@@ -1386,16 +1395,16 @@ int main( int argc, char**argv)
 	exit(1);
     }
 
-    /* daemonSock lost during exec() */
-    daemonSock = strtol(argv[1], &end, 10);
-    if (*end != '\0' || (daemonSock==0 && errno==EINVAL)) {
+    /* daemon socket lost during exec() */
+    dSock = strtol(argv[1], &end, 10);
+    if (*end != '\0' || (dSock==0 && errno==EINVAL)) {
 	PSIlog_log(-1, "Sorry, program must be called correctly"
 		   " inside an application.\n");
 	PSIlog_log(-1, "'%s' is not a socket number.\n", argv[1]);
 	PSIlog_finalizeLogs();
 	exit(1);
     }
-    if (daemonSock < 0) {
+    if (dSock < 0) {
 	PSIlog_log(-1, "Not connected to local daemon. Exiting.\n");
 	PSIlog_finalizeLogs();
 	exit(1);
@@ -1415,7 +1424,7 @@ int main( int argc, char**argv)
     if (getenv("PSI_LOGGERDEBUG")) {
 	PSIlog_setDebugMask(PSILOG_LOG_VERB);
 	PSIlog_log(PSILOG_LOG_VERB, "Going to be verbose.\n");
-	PSIlog_log(PSILOG_LOG_VERB, "Daemon on %d\n", daemonSock);
+	PSIlog_log(PSILOG_LOG_VERB, "Daemon on %d\n", dSock);
 	PSIlog_log(PSILOG_LOG_VERB, "My ID is %d\n", i);
     }
 
@@ -1452,13 +1461,13 @@ int main( int argc, char**argv)
     }
 
     /* Destination list has to be set before initClients() */
-    if (daemonSock) {
+    if (dSock) {
 	input = getenv("PSI_INPUTDEST");
 	if (!input) input = "0";
 
 	PSIlog_log(PSILOG_LOG_VERB, "Input goes to [%s].\n", input);
     } else {
-	/* daemonSock = 0, this means there is no stdin connected */
+	/* dSock = 0 implies no stdin connected */
 	PSIlog_log(PSILOG_LOG_VERB, "No stdin available.\n");
 	input = "";
     }
@@ -1514,7 +1523,8 @@ int main( int argc, char**argv)
 	PSIlog_logger = NULL;
     }
 
-    PSLog_init(daemonSock, -1, 2);
+    /* register Selector, etc. */
+    enableDaemonSock(dSock);
 
     /* init the timer structure */
     if (!Timer_isInitialized()) {
@@ -1560,7 +1570,7 @@ int main( int argc, char**argv)
 
     sendAcctData();
 
-    closeDaemonSock();
+    closeDaemonSock(dSock);
 
     for (i=3; i<argc; i++) {
 	int ret;
