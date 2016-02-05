@@ -21,6 +21,7 @@ static char vcid[] __attribute__((used)) =
 
 #include "rdp.h"
 #include "mcast.h"
+#include "selector.h"
 
 #include "pscommon.h"
 #include "psprotocol.h"
@@ -300,6 +301,9 @@ static void set_rlimit(PSP_Option_t option, PSP_Optval_t value)
 	case RLIMIT_NOFILE:
 	    if (PSIDclient_setMax(value) < 0) {
 		PSID_exit(errno, "%s: Failed to adapt PSIDclient", __func__);
+	    }
+	    if (Selector_setMax(value) < 0) {
+		PSID_exit(errno, "%s: Failed to adapt Selector", __func__);
 	    }
 	    break;
 	default:
