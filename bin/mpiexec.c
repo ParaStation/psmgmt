@@ -588,8 +588,11 @@ static uint32_t getNodeType(char *hardwareList)
     if (verbose) {
 	printf("setting node type to '%s'\n", hardwareList);
     }
-    next = strtok_r(hardwareList, delimiters, &toksave);
 
+    /* hwList is null-terminated */
+    hwList = umalloc(sizeof(hwList), __func__);
+
+    next = strtok_r(hardwareList, delimiters, &toksave);
     while (next) {
 	count++;
 	hwList = urealloc(hwList, (count +1) * sizeof(hwList), __func__);
