@@ -152,7 +152,7 @@ char *trim_quotes(char *string)
 	string++;
 
 	len = strlen(string);
-	if ((string[len-1] == '"')) {
+	if (string[len-1] == '"') {
 	    string[len-1] = '\0';
 	}
     }
