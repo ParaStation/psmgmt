@@ -232,7 +232,7 @@ static int callbackNodeOffline(uint32_t id, int32_t exit, PSnodes_ID_t remote,
 }
 
 void setNodeOffline(env_t *env, uint32_t id, PSnodes_ID_t dest,
-			const char *host, char *reason)
+		    char *host, char *reason)
 {
     env_t clone;
 
