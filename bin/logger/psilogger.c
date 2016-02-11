@@ -911,6 +911,8 @@ static int handleFINALIZEMsg(PSLog_Msg_t *msg)
 
     deregisterClient(msg->sender);
 
+    if (!getNoClients()) Selector_startOver();
+
     return ret;
 }
 
@@ -1522,6 +1524,8 @@ int main( int argc, char**argv)
 	logger_finalize(PSIlog_logger);
 	PSIlog_logger = NULL;
     }
+
+    Selector_init(stderr);
 
     /* register Selector, etc. */
     enableDaemonSock(dSock);
