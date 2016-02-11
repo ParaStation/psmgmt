@@ -184,6 +184,23 @@ int isEstablishedClient(int fd)
     return !(clients[fd].flags & INITIALCONTACT);
 }
 
+/**
+ * @brief Actually send a message
+ *
+ * Send message @a msg to file-descriptor @a fd in a non-blocking
+ * fashion. In fact not the whole message is sent but @a offset bytes
+ * at the beginning of @a msg are left out.
+ *
+ * @param fd File-descriptor to send the message to
+ *
+ * @param msg Message to send
+ *
+ * @param offset Number of bytes skipped at the beginning of @a msg
+ *
+ * @return Upon success the offset of the next byte to send is
+ * returned. This might be used as an offset for subsequent calls. Or
+ * -1 if an error occurred.
+ */
 static int do_send(int fd, DDMsg_t *msg, int offset)
 {
     PStask_t *task;
@@ -198,7 +215,6 @@ static int do_send(int fd, DDMsg_t *msg, int offset)
 		break;
 	    case EAGAIN:
 		return n;
-		break;
 	    default:
 		eno = errno;
 		PSID_warn((eno==EPIPE) ? PSID_LOG_CLIENT : -1, eno,
@@ -248,17 +264,34 @@ static int storeMsgClient(int fd, DDMsg_t *msg, int offset)
     return 0;
 }
 
-int flushClientMsgs(int fd)
+/**
+ * @brief Flush messages to client.
+ *
+ * Try to send all messages to the client connected via file
+ * descriptor @a fd that could not be delivered in prior calls to
+ * PSIDclient_send() or flushClientMsgs().
+ *
+ * @param fd The file descriptor the messages to send are associated with
+ *
+ * @param info Dummy argument to match Selector_CB_t's signature
+ *
+ * @return If all pending messages were delivered, 0 is returned. If
+ * not all messages were delivered, 1 is returned. Or -1 if a problem
+ * occurred.
+ *
+ * @see PSIDclient_send()
+ */
+static int flushClientMsgs(int fd, void *info)
 {
     list_t *m, *tmp;
-    int blockedCHLD, blockedRDP, ret = 0;
+    int blockedCHLD, blockedRDP;
 
     if (fd < 0 || fd >= maxClientFD) {
 	errno = EINVAL;
 	return -1;
     }
 
-    if (clients[fd].flags & (FLUSH | CLOSE)) return -1;
+    if (clients[fd].flags & (FLUSH | CLOSE)) return 1;
 
     blockedCHLD = PSID_blockSIGCHLD(1);
     blockedRDP = RDP_blockTimer(1);
@@ -270,10 +303,13 @@ int flushClientMsgs(int fd)
 	DDMsg_t *msg = (DDMsg_t *)msgbuf->msg;
 	int sent = do_send(fd, msg, msgbuf->offset);
 
-	if (sent<0 || list_empty(&clients[fd].msgs)) {
-	    ret = sent;
-	    break;
+	if (sent < 0) {
+	    RDP_blockTimer(blockedRDP);
+	    PSID_blockSIGCHLD(blockedCHLD);
+
+	    return sent;
 	}
+
 	if (sent != msg->len) {
 	    msgbuf->offset = sent;
 	    break;
@@ -285,8 +321,8 @@ int flushClientMsgs(int fd)
 
     if (list_empty(&clients[fd].msgs) && !clients[fd].pendingACKs) {
 	/* Use the stop-hash to actually send SENDCONT msgs */
-	int ret = PSIDFlwCntrl_sendContMsgs(clients[fd].stops, clients[fd].tid);
-	PSID_log(PSID_LOG_FLWCNTRL, "%s: sent %d msgs\n", __func__, ret);
+	int num = PSIDFlwCntrl_sendContMsgs(clients[fd].stops, clients[fd].tid);
+	PSID_log(PSID_LOG_FLWCNTRL, "%s: sent %d msgs\n", __func__, num);
     }
 
     clients[fd].flags &= ~FLUSH;
@@ -294,15 +330,14 @@ int flushClientMsgs(int fd)
     RDP_blockTimer(blockedRDP);
     PSID_blockSIGCHLD(blockedCHLD);
 
-    if (!ret && !list_empty(&clients[fd].msgs)) {
-	errno = EWOULDBLOCK;
-	ret = -1;
-    }
+    if (!list_empty(&clients[fd].msgs)) return 1;
 
-    return ret;
+    Selector_vacateWrite(fd);
+
+    return 0;
 }
 
-int sendClient(DDMsg_t *msg)
+int PSIDclient_send(DDMsg_t *msg)
 {
     PStask_t *task = PStasklist_find(&managedTasks, msg->dest);
     int fd, sent = 0;
@@ -328,7 +363,7 @@ int sendClient(DDMsg_t *msg)
     }
     fd = task->fd;
 
-    if (!list_empty(&clients[fd].msgs)) flushClientMsgs(fd);
+    if (!list_empty(&clients[fd].msgs)) flushClientMsgs(fd, NULL);
 
     if (list_empty(&clients[fd].msgs)) {
 	PSID_log(PSID_LOG_CLIENT, "%s: use fd %d\n", __func__, fd);
@@ -341,8 +376,7 @@ int sendClient(DDMsg_t *msg)
 	    PSID_warn(-1, errno, "%s: Failed to store message", __func__);
 	    errno = ENOBUFS;
 	} else {
-	    FD_SET(fd, &PSID_writefds);
-	    Selector_startOver();
+	    Selector_awaitWrite(fd, flushClientMsgs, NULL);
 
 	    if (PSIDFlwCntrl_applicable(msg)) {
 		int ret = PSIDFlwCntrl_addStop(clients[fd].stops, msg->sender);
@@ -505,8 +539,7 @@ static void closeConnection(int fd)
     close(fd);
     Selector_remove(fd);
 
-    FD_CLR(fd, &PSID_writefds);
-    Selector_startOver();
+    Selector_vacateWrite(fd);
 }
 
 void deleteClient(int fd)

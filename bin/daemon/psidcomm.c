@@ -37,8 +37,6 @@ static char vcid[] __attribute__((used)) =
 
 #include "psidcomm.h"
 
-fd_set PSID_writefds;
-
 typedef struct {
     list_t next;
     int msgType;
@@ -183,8 +181,8 @@ int sendMsg(void *amsg)
 	if (ret) errno = EINVAL;
     } else if (PSC_getID(msg->dest)==PSC_getMyID()) { /* my own node */
 	if (msg->type < 0x0100) {          /* PSP_CD_* message */
-	    sender="sendClient";
-	    ret = sendClient(amsg);
+	    sender="PSIDclient_send";
+	    ret = PSIDclient_send(amsg);
 	} else {                           /* PSP_DD_* message */
 	    /* Daemon message */
 	    sender="handleMsg";

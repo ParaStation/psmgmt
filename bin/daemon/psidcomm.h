@@ -32,9 +32,6 @@ extern "C" {
 #endif
 #endif
 
-/** file descriptor set actively used for writing */
-extern fd_set PSID_writefds;
-
 /**
  * @brief Initialize communication stuff
  *

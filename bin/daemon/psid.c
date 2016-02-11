@@ -481,61 +481,6 @@ static void printWelcome(void)
     return;
 }
 
-/**
- * @brief Checks file table after select has failed.
- *
- * Detailed checking of the file table on validity after a select(2)
- * call has failed. Thus all file descriptors within the set @a
- * controlfds are examined and handled if necessary.
- *
- * @param controlfds Set of file descriptors that have to be checked.
- *
- * @return No return value.
- */
-static void checkFileTable(fd_set *controlfds)
-{
-    fd_set fdset;
-    int fd;
-    struct timeval tv;
-
-    for (fd=0; fd<FD_SETSIZE; fd++) {
-	if (FD_ISSET(fd, controlfds)) {
-	    FD_ZERO(&fdset);
-	    FD_SET(fd, &fdset);
-
-	    tv.tv_sec=0;
-	    tv.tv_usec=0;
-	    if (select(FD_SETSIZE, &fdset, NULL, NULL, &tv) < 0) {
-		/* error : check if it is a wrong fd in the table */
-		switch (errno) {
-		case EBADF:
-		    PSID_log(-1, "%s(%d): EBADF -> close\n", __func__, fd);
-		    deleteClient(fd);
-		    break;
-		case EINTR:
-		    PSID_log(-1, "%s(%d): EINTR -> try again\n", __func__, fd);
-		    fd--; /* try again */
-		    break;
-		case EINVAL:
-		    PSID_log(-1, "%s(%d): wrong filenumber -> exit\n",
-			     __func__, fd);
-		    PSID_shutdown();
-		    break;
-		case ENOMEM:
-		    PSID_log(-1, "%s(%d): not enough memory. exit\n",
-			     __func__, fd);
-		    PSID_shutdown();
-		    break;
-		default:
-		    PSID_warn(-1, errno, "%s(%d): unrecognized error (%d)\n",
-			      __func__, fd, errno);
-		    break;
-		}
-	    }
-	}
-    }
-}
-
 void PSID_clearMem(void)
 {
     //PSIDtask_clearMem(); @todo Disabled for the time being -> Discuss with MR
@@ -707,9 +652,6 @@ int main(int argc, const char *argv[])
 	PSC_setDebugMask(debugMask);
 	PSID_log(-1, "Debugging mode (mask 0x%x) enabled\n", debugMask);
     }
-
-    /* Init fd sets */
-    FD_ZERO(&PSID_writefds);
 
     /*
      * Create the Local Service Port as early as possible. Actual
@@ -891,30 +833,18 @@ int main(int argc, const char *argv[])
      */
     while (1) {
 	struct timeval tv;  /* timeval for waiting on select()*/
-	fd_set wfds;        /* write file descriptor set */
-	int fd, res;
+	int res;
 
 	timerset(&tv, &selectTime);
-	memcpy(&wfds, &PSID_writefds, sizeof(wfds));
 
-	res = Sselect(FD_SETSIZE, NULL, &wfds, NULL, &tv);
+	res = Sselect(0, NULL, NULL, NULL, &tv);
 	if (res < 0) {
 	    PSID_warn(-1, errno, "Error while Sselect");
 
 	    Selector_checkFDs();
-	    checkFileTable(&PSID_writefds);
 
 	    PSID_log(PSID_LOG_VERB, "Error while Sselect: continue\n");
 	    continue;
-	}
-
-	/* check client sockets to flush messages */
-	if (res) {
-	    for (fd=0; fd<FD_SETSIZE; fd++) {
-		if (FD_ISSET(fd, &wfds)) {
-		    if (!flushClientMsgs(fd)) FD_CLR(fd, &PSID_writefds);
-		}
-	    }
 	}
 
 	/* Handle actions registered to main-loop */

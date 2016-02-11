@@ -120,22 +120,6 @@ PStask_t *getClientTask(int fd);
 int isEstablishedClient(int fd);
 
 /**
- * @brief Flush messages to client.
- *
- * Try to send all messages to the client connected via file
- * descriptor @a fd that could not be delivered in prior calls to
- * sendClient() or flushClientMsgs().
- *
- * @param fd The file descriptor the messages to send are associated with.
- *
- * @return If all pending message were delivered, 0 is returned. Or
- * -1, if a problem occurred.
- *
- * @see sendClient()
- */
-int flushClientMsgs(int fd);
-
-/**
  * @brief Signal a received SENDSTOPACK
  *
  * Signal the client connected via the file-descriptor @a fd that a
@@ -160,7 +144,7 @@ void PSIDclient_releaseACK(int fd);
  *
  * If the message could not be delivered, it will be stored internally
  * and @a errno will be set to EWOULDBLOCK. Further calls to
- * sendClient() resulting in the same file descriptor or to
+ * PSIDclient_send() resulting in the same file descriptor or to
  * flushClientMsgs() using this file descriptor will try to deliver this
  * packet.
  *
@@ -170,9 +154,9 @@ void PSIDclient_releaseACK(int fd);
  * the message, is returned. Otherwise -1 is returned and errno is set
  * appropriately.
  *
- * @see flushClientMsgs(), errno(3)
+ * @see errno(3)
  */
-int sendClient(DDMsg_t *msg);
+int PSIDclient_send(DDMsg_t *msg);
 
 /**
  * @brief Receive message from client.

@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2015 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -2823,7 +2823,7 @@ void initSpawn(void)
     PSID_registerMsg(PSP_CD_SPAWNFINISH, (handlerFunc_t) msg_SPAWNFINISH);
     PSID_registerMsg(PSP_DD_CHILDDEAD, (handlerFunc_t) msg_CHILDDEAD);
     PSID_registerMsg(PSP_DD_CHILDBORN, (handlerFunc_t) msg_CHILDBORN);
-    PSID_registerMsg(PSP_DD_CHILDACK, (handlerFunc_t) sendClient);
+    PSID_registerMsg(PSP_DD_CHILDACK, (handlerFunc_t) PSIDclient_send);
 
     PSID_registerDropper(PSP_CD_SPAWNREQUEST, drop_SPAWNREQ);
     PSID_registerDropper(PSP_CD_SPAWNREQ, drop_SPAWNREQ);
