@@ -155,8 +155,8 @@ typedef int Selector_CB_t (int, void *);
  * @param fd The file-descriptor, the selector is registered on.
  *
  * @param selectHandler If data on @a fd is pending during a call to
- * Sselect(), this functions is called. @a fd is passed as an
- * argument. Sselect() expects the return values as follows:
+ * Sselect(), this functions is called. @a fd and @a info are passed
+ * as arguments. Sselect() expects the return values as follows:
  *
  *  - -1 An error occurred and Sselect() is expected to stop. Passing
  *       this value to Sselect() lets the current call to it return
@@ -168,11 +168,12 @@ typedef int Selector_CB_t (int, void *);
  *       closed and cleaned-up subsequently a return-value of 0 is
  *       more appropriately.
  *
- *  - 0  If no pending data on @a fd remained. Sselect() will continue watching
- *       its descriptor-set then.
+ *  - 0  No pending data on @a fd remained. Sselect() will continue
+ *       handling other file-descriptors with pending data.
  *
- *  - 1  If there is still pending data on @a fd. This forces Sselect() to
- *       pass @a fd to its own caller.
+ *  - 1  There is still pending data on @a fd. This tells Sselect() to
+ *       pass @a fd to its own caller if it was set within @ref
+ *       readfds, i.e. to let it get handled outside.
  *
  * @param info Pointer to additional information passed to @a
  * selectHandler in case of pending data on the file-descriptor.
@@ -193,6 +194,67 @@ int Selector_register(int fd, Selector_CB_t selectHandler, void *info);
  * @return On success, 0 is returned. On error, -1 is returned.
  */
 int Selector_remove(int fd);
+
+/*
+ * @brief Register a write selector.
+ *
+ * Register the write handler @a writeHandler to a selector identified
+ * by the file-descriptor @a fd. Only one write-handler per
+ * file-descriptor can be registered. Subsequent calls to this
+ * function will replace prior handlers and shall be avoided.
+ *
+ * The @a writeHandler will be called if data can be written to @a fd
+ * during a call to @ref Sselect(). Additional information might be
+ * passed to @a writeHandler via the pointer @a info.
+ *
+ * @param fd The file-descriptor, the selector is registered on.
+ *
+ * @param writeHandler If data can be sent to @a fd during a call to
+ * Sselect(), this functions is called. @a fd and @a info are passed
+ * as arguments. Sselect() expects the return values as follows:
+ *
+ *  - -1 An error occurred and Sselect() is expected to stop. Passing
+ *       this value to Sselect() lets the current call to it return
+ *       with -1. Thus, errno should be set appropriately before
+ *       returning. This return-value is intended for fatal situations
+ *       where continuing within Sselect() makes no sense at all like
+ *       running out of memory, etc. For isolated problems like the
+ *       file-descriptor handled was detected to be closed and
+ *       cleaned-up subsequently a return-value of 0 is more
+ *       appropriately.
+ *
+ *  - 0  All data pending for @a fd was sent. Sselect() is expected to
+ *       continue handling other file-descriptors. If Sselect() is not
+ *       required to watch for @a fd any longer, the handler is
+ *       expected to vacate itself via Selector_vacateWrite(). At the
+ *       same time this value signals Sselect() to pass @a fd to its
+ *       caller if requested in @ref writefds since @a fd is expected
+ *       to accept further data.
+ *
+ *  - 1  The handler was able to use @a fd but unsuccessful in
+ *       dispatching all pending data. Sselect() will continue
+ *       handling other file-descriptors. Nevertheless, @a fd will not
+ *       be passed to Sselect()'s caller, even if requested.
+ *
+ * @param info Pointer to additional information passed to @a
+ * writeHandler in case of data can be written to the file-descriptor.
+ *
+ * @return On success, 0 is returned. On error -1 is returned and
+ * errno is set appropriately.
+ */
+int Selector_awaitWrite(int fd, Selector_CB_t writeHandler, void *info);
+
+/**
+ * @brief Vacate a write selector.
+ *
+ * Remove a registered write selector. The selector will be identified
+ * by its corresponding file-descriptor @a fd.
+ *
+ * @param fd The file-descriptor to identify the write selector.
+ *
+ * @return On success, 0 is returned. On error, -1 is returned.
+ */
+int Selector_vacateWrite(int fd);
 
 /**
  * @brief Check for registered selector
