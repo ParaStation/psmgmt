@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2015 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2015-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -32,9 +32,9 @@ typedef struct {
 } sig_chunk_t;
 
 /**
- * Pool of signal strucures ready to use. Initialized by @ref
- * incFreeList(). To get a buffer from this pool, use @ref
- * PSsignal_get(), to put it back into it use @ref PSsignal_put().
+ * Pool of signal structures ready to use. Initialized by @ref
+ * incFreeList(). To get a signal structure from this pool, use @ref
+ * PSsignal_get(), to put it back use @ref PSsignal_put().
  */
 static LIST_HEAD(sigFreeList);
 
