@@ -75,8 +75,7 @@ static void handleFailedPElogue(int prologue, uint32_t nrOfNodes, env_t *env,
 			    "code '%i'\n", "prologue", resList[i].prologue);
 
 		setNodeOffline(env, jobid, slurmController,
-				(char *) getHostnameByNodeId(resList[i].id),
-				msg);
+				getHostnameByNodeId(resList[i].id), msg);
 	    }
 	} else {
 	    if (resList[i].epilogue == 2) {
@@ -84,8 +83,7 @@ static void handleFailedPElogue(int prologue, uint32_t nrOfNodes, env_t *env,
 			    "code '%i'\n", "epilogue", resList[i].epilogue);
 
 		setNodeOffline(env, jobid, slurmController,
-				(char *) getHostnameByNodeId(resList[i].id),
-				msg);
+				getHostnameByNodeId(resList[i].id), msg);
 	    }
 	}
     }

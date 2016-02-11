@@ -54,7 +54,7 @@ void handleCCMsg(PSLog_Msg_t *msg);
 void handleSpawnFailed(DDErrorMsg_t *msg);
 
 void setNodeOffline(env_t *env, uint32_t id, PSnodes_ID_t dest,
-			char *host, char *reason);
+			const char *host, char *reason);
 
 void requeueBatchJob(Job_t *job, PSnodes_ID_t dest);
 
