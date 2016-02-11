@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014 - 2015 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -51,14 +51,14 @@ plugin_dep_t dependencies[1];
 
 int masterSock = -1;
 
-void startPspam()
+void startPspam(void)
 {
     /* we have no dependencies */
     dependencies[0].name = NULL;
     dependencies[0].version = 0;
 }
 
-void stopPspam()
+void stopPspam(void)
 {
     /* release the logger */
     logger_finalize(pspamlogger);

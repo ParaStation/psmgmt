@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -32,7 +32,7 @@
 #include "psslurmgres.h"
 
 
-void initGresConf()
+void initGresConf(void)
 {
     INIT_LIST_HEAD(&GresConfList.list);
 }
@@ -194,7 +194,7 @@ GRES_ERROR:
     return NULL;
 }
 
-void clearGresConf()
+void clearGresConf(void)
 {
     list_t *pos, *tmp;
     Gres_Conf_t *gres;
@@ -269,7 +269,7 @@ void clearGresCred(Gres_Cred_t *gresList)
     }
 }
 
-Gres_Cred_t *getJobCredData(char **ptr, int index)
+static Gres_Cred_t *getJobCredData(char **ptr, int index)
 {
     Gres_Cred_t *gres;
     uint32_t magic;
@@ -331,7 +331,7 @@ Gres_Cred_t *getJobCredData(char **ptr, int index)
     return gres;
 }
 
-Gres_Cred_t *getStepCredData(char **ptr, int index)
+static Gres_Cred_t *getStepCredData(char **ptr, int index)
 {
     Gres_Cred_t *gres;
     uint32_t magic;

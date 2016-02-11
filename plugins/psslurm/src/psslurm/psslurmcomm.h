@@ -45,12 +45,12 @@ typedef struct {
 /* list which holds all jobs */
 Connection_t ConnectionList;
 
-void initConnectionList();
+void initConnectionList(void);
 Connection_t *addConnection(int socket, Connection_CB_t *cb);
 Connection_t *findConnection(int socket);
 Connection_t *findConnectionEx(int socket, time_t recvTime);
 void closeConnection(int socket);
-void clearConnections();
+void clearConnections(void);
 
 void initSlurmMsg(Slurm_Msg_t *msg);
 void freeSlurmMsg(Slurm_Msg_t *sMsg);
@@ -62,7 +62,7 @@ void saveForwardedMsgRes(Slurm_Msg_t *sMsg, PS_DataBuffer_t *data,
 			    uint32_t error, const char *func, const int line);
 
 int openSlurmdSocket(int port);
-void closeSlurmdSocket();
+void closeSlurmdSocket(void);
 const char *msgType2String(int type);
 #define getBitString(ptr, bits) __getBitString(ptr, bits, __func__, __LINE__)
 void __getBitString(char **ptr, char **bitStr, const char *func,

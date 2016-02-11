@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014 - 2015 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -45,7 +45,7 @@ static char jobHistory[JOB_HISTORY_SIZE][JOB_HISTORY_ID_LEN];
 static int jobHistIndex = 0;
 
 
-void initJobList()
+void initJobList(void)
 {
     INIT_LIST_HEAD(&JobList.list);
     INIT_LIST_HEAD(&StepList.list);
@@ -232,6 +232,8 @@ unsigned int countTasks(struct list_head *taskList)
     struct list_head *pos;
     unsigned int count = 0;
 
+    if (!taskList) return 0;
+
     list_for_each(pos, taskList) {
 	if (!(list_entry(pos, PS_Tasks_t, list))) break;
 	count++;
@@ -245,6 +247,8 @@ unsigned int countRegTasks(struct list_head *taskList)
     struct list_head *pos;
     unsigned int count = 0;
 
+    if (!taskList) return 0;
+
     list_for_each(pos, taskList) {
 	if (!(task = list_entry(pos, PS_Tasks_t, list))) break;
 	if (task->childRank <0) continue;
@@ -255,6 +259,7 @@ unsigned int countRegTasks(struct list_head *taskList)
 
 static void deleteTask(PS_Tasks_t *task)
 {
+    if (!task) return;
     list_del(&task->list);
     ufree(task);
 }
@@ -263,6 +268,8 @@ static void clearTasks(struct list_head *taskList)
 {
     list_t *pos, *tmp;
     PS_Tasks_t *task;
+
+    if (!taskList) return;
 
     list_for_each_safe(pos, tmp, taskList) {
 	if (!(task = list_entry(pos, PS_Tasks_t, list))) return;
@@ -275,6 +282,7 @@ PS_Tasks_t *findTaskByRank(struct list_head *taskList, int32_t rank)
     list_t *pos, *tmp;
     PS_Tasks_t *task = NULL;
 
+    if (!taskList) return NULL;
     list_for_each_safe(pos, tmp, taskList) {
 	if (!(task = list_entry(pos, PS_Tasks_t, list))) return NULL;
 	if (task->childRank == rank) return task;
@@ -287,6 +295,7 @@ PS_Tasks_t *findTaskByForwarder(struct list_head *taskList, PStask_ID_t fwTID)
     list_t *pos, *tmp;
     PS_Tasks_t *task = NULL;
 
+    if (!taskList) return NULL;
     list_for_each_safe(pos, tmp, taskList) {
 	if (!(task = list_entry(pos, PS_Tasks_t, list))) return NULL;
 	if (task->forwarderTID == fwTID) return task;
@@ -299,6 +308,7 @@ PS_Tasks_t *findTaskByChildPid(struct list_head *taskList, pid_t childPid)
     list_t *pos, *tmp;
     PS_Tasks_t *task = NULL;
 
+    if (!taskList) return NULL;
     list_for_each_safe(pos, tmp, taskList) {
 	if (!(task = list_entry(pos, PS_Tasks_t, list))) return NULL;
 	if (PSC_getPID(task->childTID) == childPid) return task;
@@ -487,7 +497,7 @@ int isJobIDinHistory(char *jobid)
     return 0;
 }
 
-void clearJobList()
+void clearJobList(void)
 {
     list_t *pos, *tmp;
     Job_t *job;
@@ -502,7 +512,7 @@ void clearJobList()
     }
 }
 
-void clearAllocList()
+void clearAllocList(void)
 {
     list_t *pos, *tmp;
     Alloc_t *alloc;
@@ -853,7 +863,7 @@ int killForwarderByJobid(uint32_t jobid)
     return count;
 }
 
-int countSteps()
+int countSteps(void)
 {
     struct list_head *pos;
     Step_t *step;
@@ -884,7 +894,7 @@ int haveRunningSteps(uint32_t jobid)
     return 0;
 }
 
-int countJobs()
+int countJobs(void)
 {
     struct list_head *pos;
     Job_t *job;

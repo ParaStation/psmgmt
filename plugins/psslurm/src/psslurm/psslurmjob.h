@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014 - 2015 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -284,14 +284,14 @@ Step_t StepList;
 Alloc_t AllocList;
 BCast_t BCastList;
 
-void initJobList();
+void initJobList(void);
 
 /**
  * @brief Delete all jobs.
  *
  * @return No return value.
  */
-void clearJobList();
+void clearJobList(void);
 
 /**
  * @brief Add a new job.
@@ -328,9 +328,7 @@ int deleteJob(uint32_t jobid);
 
 char *strJobState(JobState_t state);
 
-void clearJobList();
-
-int countJobs();
+int countJobs(void);
 
 void addJobInfosToBuffer(PS_DataBuffer_t *buffer);
 int signalJob(Job_t *job, int signal, char *reason);
@@ -344,7 +342,7 @@ Step_t *findStepByLogger(PStask_ID_t loggerTID);
 Step_t *findStepById(uint32_t jobid, uint32_t stepid);
 Step_t *findStepByPid(pid_t pid);
 Step_t *findStepByTaskPid(pid_t pid);
-int countSteps();
+int countSteps(void);
 int signalStepsByJobid(uint32_t jobid, int signal);
 int signalStep(Step_t *step, int signal);
 
@@ -355,7 +353,7 @@ Alloc_t *addAllocation(uint32_t jobid, uint32_t nrOfNodes, char *slurmNodes,
 			    char *username);
 Alloc_t *findAlloc(uint32_t jobid);
 int deleteAlloc(uint32_t jobid);
-void clearAllocList();
+void clearAllocList(void);
 
 PS_Tasks_t *addTask(struct list_head *list, PStask_ID_t childTID,
 			PStask_ID_t forwarderTID, PStask_t *forwarder,

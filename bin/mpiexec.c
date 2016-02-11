@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2007-2015 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2007-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -426,7 +426,7 @@ static void getFirstNodeID(PSnodes_ID_t *nodeID)
  *
  * @return No return value.
  */
-void setupGlobalEnv(int admin, int np)
+static void setupGlobalEnv(int admin, int np)
 {
     char tmp[32];
 
@@ -916,7 +916,7 @@ static char *opmiGetReservedPorts()
  * @return On success a buffer with the requested process mapping is
  * returned. On error NULL is returned.
  */
-char *getProcessMap(int np)
+static char *getProcessMap(int np)
 {
     int i, sid = 0, nodeCount = 0, procCount = 0;
     int oldProcCount = 0;

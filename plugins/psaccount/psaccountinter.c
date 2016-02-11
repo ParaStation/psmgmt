@@ -55,7 +55,7 @@ int psAccountSwitchAccounting(PStask_ID_t clientTID, int enable)
     return doWriteP(daemonSock, &msg, msg.header.len);
 }
 
-void handleSwitchUpdate(DDTypedBufferMsg_t *msg, int enable)
+static void handleSwitchUpdate(DDTypedBufferMsg_t *msg, int enable)
 {
     PStask_ID_t clientTID;
     char *ptr = msg->buf;

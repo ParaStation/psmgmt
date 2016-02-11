@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010 - 2015 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -22,7 +22,7 @@
 
 #include "psaccountjob.h"
 
-void initJobList()
+void initJobList(void)
 {
     INIT_LIST_HEAD(&JobList.list);
 }
@@ -92,7 +92,7 @@ void deleteJob(PStask_ID_t loggerTID)
     }
 }
 
-void clearAllJobs()
+void clearAllJobs(void)
 {
     list_t *pos, *tmp;
     Job_t *job;
@@ -103,7 +103,7 @@ void clearAllJobs()
     }
 }
 
-void cleanupJobs()
+void cleanupJobs(void)
 {
     list_t *pos, *tmp;
     Job_t *job;

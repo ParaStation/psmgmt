@@ -266,7 +266,7 @@ static void handleExecScriptRes(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     }
 }
 
-void handleDroppedExecMsg(DDTypedBufferMsg_t *msg)
+static void handleDroppedExecMsg(DDTypedBufferMsg_t *msg)
 {
     Script_t *script;
     uint16_t uID;

@@ -57,7 +57,7 @@ int version = 5;
 int requiredAPI = 109;
 plugin_dep_t dependencies[2];
 
-void startPelogue()
+void startPelogue(void)
 {
     dependencies[0].name = "psaccount";
     dependencies[0].version = 21;
@@ -65,13 +65,13 @@ void startPelogue()
     dependencies[1].version = 0;
 }
 
-void stopPelogue()
+void stopPelogue(void)
 {
     /* release the logger */
     logger_finalize(peloguelogger);
 }
 
-static void cleanupJobs()
+static void cleanupJobs(void)
 {
     static int obitTimeCounter = 0;
     int njobs;
@@ -91,7 +91,7 @@ static void cleanupJobs()
     }
 }
 
-static void shutdownJobs()
+static void shutdownJobs(void)
 {
     struct timeval cleanupTimer = {1,0};
 
@@ -143,7 +143,7 @@ static void unregisterHooks(int verbose)
     }
 }
 
-static int setRootHome()
+static int setRootHome(void)
 {
     struct passwd *spasswd;
 

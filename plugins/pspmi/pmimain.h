@@ -23,14 +23,14 @@
  *
  * @return No return value;
  */
-void __attribute__ ((constructor)) startPMI();
+void __attribute__ ((constructor)) startPMI(void);
 
 /**
  * @brief Destructor for the pspmi plugin.
  *
  * @return No return value;
  */
-void __attribute__ ((destructor)) stopPMI();
+void __attribute__ ((destructor)) stopPMI(void);
 
 /**
  * @brief Initialize the pspmi plugin.

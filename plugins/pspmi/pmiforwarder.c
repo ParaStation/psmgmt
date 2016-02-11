@@ -80,7 +80,7 @@ static void closePMIclientSocket(void)
     }
 }
 
-PStask_t *getChildTask()
+PStask_t *getChildTask(void)
 {
     return childTask;
 }

@@ -233,7 +233,7 @@ static int setMyHostDef(char *hn, char *line, int gres)
     return 1;
 }
 
-int parseSlurmConf(char *hn, struct list_head *confList, int gres)
+static int parseSlurmConf(char *hn, struct list_head *confList, int gres)
 {
     struct list_head *pos;
     Config_t *config;

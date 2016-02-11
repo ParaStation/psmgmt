@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014 - 2015 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -201,7 +201,8 @@ static int stepCallback(int32_t exit_status, char *errMsg,
     return 0;
 }
 
-int bcastCallback(int32_t exit_status, char *errMsg, size_t errLen, void *data)
+static int bcastCallback(int32_t exit_status, char *errMsg, size_t errLen,
+			    void *data)
 {
     Forwarder_Data_t *fwdata = data;
     BCast_t *bcast = fwdata->userData;
@@ -584,7 +585,7 @@ static void execJobStep(void *data, int rerun)
     execve(argv[0], argv, step->env.vars);
 }
 
-int stepForwarderInit(void *data)
+static int stepForwarderInit(void *data)
 {
     Forwarder_Data_t *fwdata = data;
     Step_t *step = fwdata->userData;
@@ -614,7 +615,7 @@ int stepForwarderInit(void *data)
     return 1;
 }
 
-void stepForwarderLoop(void *data)
+static void stepForwarderLoop(void *data)
 {
     Forwarder_Data_t *fwdata = data;
     Step_t *step = fwdata->userData;
@@ -849,7 +850,7 @@ int execUserBCast(BCast_t *bcast)
     return 1;
 }
 
-void stepFWIOloop(void *data)
+static void stepFWIOloop(void *data)
 {
     Forwarder_Data_t *fwdata = data;
     Step_t *step = fwdata->userData;

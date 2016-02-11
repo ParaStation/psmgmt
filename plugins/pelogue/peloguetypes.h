@@ -61,4 +61,6 @@ typedef struct {
     PSnodes_ID_t id;
 } PElogue_Res_List_t;
 
+typedef void Pelogue_JobCb_Func_t (char *, int, int, PElogue_Res_List_t *);
+
 #endif

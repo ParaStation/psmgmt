@@ -30,14 +30,14 @@ extern handlerFunc_t oldSpawnReqHandler;
  *
  * @return No return value.
  */
-void __attribute__ ((constructor)) startPelogue();
+void __attribute__ ((constructor)) startPelogue(void);
 
 /**
  * @brief Destructor for pelogue library.
  *
  * @return No return value.
  */
-void __attribute__ ((destructor)) stopPelogue();
+void __attribute__ ((destructor)) stopPelogue(void);
 
 /**
  * @brief Initialize the pelogue plugin.

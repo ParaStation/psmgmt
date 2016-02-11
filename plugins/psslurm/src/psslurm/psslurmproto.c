@@ -85,7 +85,7 @@ uint32_t getLocalRankID(uint32_t rank, Step_t *step, uint32_t nodeId)
     return -1;
 }
 
-int32_t getMyNodeIndex(PSnodes_ID_t *nodes, uint32_t nrOfNodes)
+static int32_t getMyNodeIndex(PSnodes_ID_t *nodes, uint32_t nrOfNodes)
 {
     uint32_t i;
     PSnodes_ID_t myNodeId;
@@ -136,7 +136,6 @@ int writeJobscript(Job_t *job, char *script)
     jobdir = getConfValueC(&Config, "DIR_JOB_FILES");
     snprintf(buf, sizeof(buf), "%s/%s", jobdir, job->id);
     job->jobscript = ustrdup(buf);
-    mlog("%s: writing jobscript '%s'\n", __func__, job->jobscript);
 
     if (!(fp = fopen(job->jobscript, "a"))) {
 	mlog("%s: open file '%s' failed\n", __func__, job->jobscript);
@@ -450,9 +449,9 @@ void handleLaunchTasks(Slurm_Msg_t *sMsg)
     }
     step->myNodeIndex = nodeIndex;
 
-    mlog("%s: step '%u:%u' user '%s' np '%u' nodes '%s' tpp '%u' exe '%s'\n",
-	    __func__, jobid, stepid, step->username, step->np, step->slurmNodes,
-	    step->tpp, step->argv[0]);
+    mlog("%s: step '%u:%u' user '%s' np '%u' nodes '%s' N '%u' tpp '%u' exe "
+	    "'%s'\n", __func__, jobid, stepid, step->username, step->np,
+	    step->slurmNodes, step->nrOfNodes, step->tpp, step->argv[0]);
 
     /* I/O open_mode */
     getUint8(ptr, &step->appendMode);
@@ -502,6 +501,14 @@ void handleLaunchTasks(Slurm_Msg_t *sMsg)
     if (!(setHWthreads(step))) {
 	sendSlurmRC(sMsg, ESLURMD_INVALID_JOB_CREDENTIAL);
 	deleteStep(step->jobid, step->stepid);
+	return;
+    }
+
+    /* sanity check nrOfNodes */
+    if (step->nrOfNodes > (uint16_t) PSC_getNrOfNodes()) {
+	mlog("%s: invalid nrOfNodes '%u' known Nodes '%u'\n", __func__,
+		step->nrOfNodes, PSC_getNrOfNodes());
+	sendSlurmRC(sMsg, ESLURMD_INVALID_JOB_CREDENTIAL);
 	return;
     }
 
@@ -1397,6 +1404,18 @@ static void handleBatchJobLaunch(Slurm_Msg_t *sMsg)
     }
     ufree(script);
 
+    mlog("%s: job '%u' user '%s' np '%u' nodes '%s' N '%u' tpp '%u' "
+	    "script '%s'\n", __func__, job->jobid, job->username, job->np,
+	    job->slurmNodes, job->nrOfNodes, job->tpp, job->jobscript);
+
+    /* sanity check nrOfNodes */
+    if (job->nrOfNodes > (uint16_t) PSC_getNrOfNodes()) {
+	mlog("%s: invalid nrOfNodes '%u' known Nodes '%u'\n", __func__,
+		job->nrOfNodes, PSC_getNrOfNodes());
+	sendSlurmRC(sMsg, ESLURMD_INVALID_JOB_CREDENTIAL);
+	return;
+    }
+
     /* return success to slurmctld and start prologue*/
     sendSlurmRC(sMsg, SLURM_SUCCESS);
 
@@ -1750,7 +1769,7 @@ int getSlurmMsgHeader(Slurm_Msg_t *sMsg, Connection_Forward_t *fw)
     return 1;
 }
 
-int testSlurmVersion(uint32_t version, uint32_t cmd)
+static int testSlurmVersion(uint32_t version, uint32_t cmd)
 {
     if (version < SLURM_CUR_PROTOCOL_VERSION) {
 	if (cmd == REQUEST_PING) return 1;

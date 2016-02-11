@@ -24,7 +24,7 @@
 
 #include "psaccountclient.h"
 
-void initAccClientList()
+void initAccClientList(void)
 {
     INIT_LIST_HEAD(&AccClientList.list);
 }
@@ -419,7 +419,7 @@ void deleteAllAccClientsByLogger(PStask_ID_t loggerTID)
     }
 }
 
-int haveActiveAccClients()
+int haveActiveAccClients(void)
 {
     struct list_head *pos;
     Client_t *client;
@@ -432,7 +432,7 @@ int haveActiveAccClients()
     return 0;
 }
 
-void clearAllAccClients()
+void clearAllAccClients(void)
 {
     list_t *pos, *tmp;
     Client_t *client;
@@ -448,7 +448,7 @@ void clearAllAccClients()
     return;
 }
 
-void cleanupClients()
+void cleanupClients(void)
 {
     list_t *pos, *tmp;
     Client_t *client;

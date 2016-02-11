@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2013 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2013-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -30,12 +30,12 @@
 
 #include "peloguechild.h"
 
-void initChildList()
+void initChildList(void)
 {
     INIT_LIST_HEAD(&ChildList.list);
 }
 
-void clearChildList()
+void clearChildList(void)
 {
     list_t *pos, *tmp;
     Child_t *child;

@@ -24,9 +24,9 @@
 
 Script_t ScriptList;
 
-void initScriptList();
+void initScriptList(void);
 int deleteScript(pid_t pid);
-void clearScriptList();
+void clearScriptList(void);
 Script_t *findScript(pid_t pid);
 Script_t *findScriptByuID(uint16_t uID);
 Script_t *addScript(uint32_t id, pid_t pid, PSnodes_ID_t client, char *execName);

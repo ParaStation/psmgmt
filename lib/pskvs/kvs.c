@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2007-2013 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2007-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -284,11 +284,4 @@ char *kvs_getbyidx(char *kvsname, int index)
     }
 
     return env_dump(lkvs->env, index);
-}
-
-char *kvs_getKvsnameByIndex(int index)
-{
-    if (index >= numKVS) return NULL;
-
-    return kvs[index].name;
 }

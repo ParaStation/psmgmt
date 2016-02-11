@@ -39,7 +39,7 @@
 
 char **envFilter = NULL;
 
-int initEnvFilter()
+int initEnvFilter(void)
 {
     char *conf, *dup, *next, *saveptr;
     const char delimiters[] =",\n";
@@ -71,7 +71,7 @@ int initEnvFilter()
     return 1;
 }
 
-void freeEnvFilter()
+void freeEnvFilter(void)
 {
     char *ptr;
     uint32_t index = 0;

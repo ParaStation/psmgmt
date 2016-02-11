@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2013 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2013-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -25,7 +25,7 @@
 
 int psPelogueAddPluginConfig(char * name, Config_t *configList);
 
-void psPelogueAddJob(const char *plugin, const char *jobid, uid_t uid,
+int psPelogueAddJob(const char *plugin, const char *jobid, uid_t uid,
 			gid_t gid, int nrOfNodes, PSnodes_ID_t *nodes,
 			Pelogue_JobCb_Func_t *pluginCallback);
 
@@ -34,5 +34,7 @@ int psPelogueStartPE(const char *plugin, const char *jobid, bool prologue,
 
 int psPelogueSignalPE(const char *plugin, const char *jobid, int signal,
 			char *reason);
+
+void psPelogueDeleteJob(const char *plugin, const char *jobid);
 
 #endif

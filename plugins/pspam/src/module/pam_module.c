@@ -1,7 +1,7 @@
 /*
  *               ParaStation
  *
- * Copyright (C) 2011 - 2015 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2011-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * \author
  * Michael Rauh <rauh@par-tec.com>
@@ -138,7 +138,7 @@ static int openPspamConnection()
     return sock;
 }
 
-int doSend(int sock, char *msg, int offset, int len)
+static int doSend(int sock, char *msg, int offset, int len)
 {
     int n, i;
 

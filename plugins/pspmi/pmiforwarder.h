@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2013 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2013-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -75,6 +75,6 @@ int getClientStatus(void *data);
  * @return Returns a pointer to the requested task structure
  * or NULL on error.
  */
-PStask_t *getChildTask();
+PStask_t *getChildTask(void);
 
 #endif

@@ -44,15 +44,19 @@
 
 #include "peloguecomm.h"
 
-void sendFragMsgToHostList(Job_t *job, PS_DataBuffer_t *data, int32_t type,
-			    int myself)
+static void sendFragMsgToHostList(Job_t *job, PS_DataBuffer_t *data,
+				    int32_t type, int myself)
 {
     PStask_ID_t myTID = PSC_getMyTID(), dest;
     int i;
 
     for (i=0; i<job->nrOfNodes; i++) {
 
-	dest = PSC_getTID(job->nodes[i].id, 0);
+	if ((dest = PSC_getTID(job->nodes[i].id, 0)) == -1) {
+	    mlog("%s: skipping invalid node id '%u'\n", __func__,
+		    job->nodes[i].id);
+	    continue;
+	}
 
 	/* skip sending to myself if requested */
 	if (!myself && myTID == dest) continue;
@@ -120,7 +124,7 @@ int sendPElogueStart(Job_t *job, bool prologue, env_t *env)
     return 1;
 }
 
-void manageTempDir(const char *plugin, const char *jobid, int create,
+static void manageTempDir(const char *plugin, const char *jobid, int create,
 		    uid_t uid, gid_t gid)
 {
     char *confTmpDir, tmpDir[400] = {'\0'};
@@ -465,13 +469,11 @@ static void handlePELogueStart(DDTypedBufferMsg_t *msg,
     }
 
     data->child = addChild(data->plugin, data->jobid, fwdata, itype);
-    /*
     mdbg(PELOGUE_LOG_PROCESS, "%s: %s for job '%s:%s' started\n",
 	    __func__, ctype, data->plugin, data->jobid);
-    */
 }
 
-void handlePELogueFinish(DDTypedBufferMsg_t *msg, char *msgData)
+static void handlePELogueFinish(DDTypedBufferMsg_t *msg, char *msgData)
 {
     PSnodes_ID_t nodeId = PSC_getID(msg->header.sender);
     char *ptr, plugin[100], buf[300], peType[100];
@@ -692,7 +694,7 @@ int handleNodeDown(void *nodeID)
     return 1;
 }
 
-void handleDroppedStartMsg(DDTypedBufferMsg_t *msg)
+static void handleDroppedStartMsg(DDTypedBufferMsg_t *msg)
 {
     PS_Frag_Msg_Header_t *rhead;
     char *ptr = msg->buf;

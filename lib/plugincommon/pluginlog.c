@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2013 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2013-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -19,7 +19,7 @@
 
 logger_t *pluginlogger = NULL;
 
-int isPluginLoggerInitialized()
+int isPluginLoggerInitialized(void)
 {
     if (!pluginlogger) return 0;
     return 1;
@@ -39,12 +39,12 @@ void maskPluginLogger(int32_t mask)
     logger_setMask(pluginlogger, mask);
 }
 
-int32_t getPluginLoggerMask()
+int32_t getPluginLoggerMask(void)
 {
     return logger_getMask(pluginlogger);
 }
 
-void finalizePluginLogger()
+void finalizePluginLogger(void)
 {
     logger_finalize(pluginlogger);
 }

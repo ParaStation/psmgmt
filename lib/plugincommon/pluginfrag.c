@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2012 - 2015 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2012-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -64,14 +64,15 @@ int __recvFragMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_func_t *func,
 
 
     if (getenv("__PSSLURM_LOG_FRAG_MSG")) {
-	pluginlog("%s: msgCount '%u' totalSize '%lu' uID '%u'\n", __func__,
-		rhead->msgCount, rhead->totalSize, rhead->uID);
+	pluginlog("%s: msgCount '%u' msgNum '%u' totalSize '%lu' uID '%u'\n",
+		    __func__, rhead->msgCount, rhead->msgNum,
+		    rhead->totalSize, rhead->uID);
     }
 
     /* do some sanity checks */
     if (msgCount != rhead->msgNum) {
-	pluginlog("%s(%s): mismatching msg count, last '%i' new '%i'\n",
-		    __func__, caller, msgCount, rhead->msgNum);
+	pluginlog("%s(%s): mismatching msg count, last '%i' new '%i' ID '%i'\n",
+		    __func__, caller, msgCount, rhead->msgNum, rhead->uID);
 	cleanup = 1;
     }
     msgCount++;
@@ -134,18 +135,19 @@ int __recvFragMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_func_t *func,
     /* last message fragment ? */
     if (rhead->msgNum + 1 == rhead->msgCount) {
 
+	/* cleanup tracking */
+	if (fhead) ufree(fhead);
+	fhead = NULL;
+	dataPtr = NULL;
+	dataLeft = msgCount = 0;
+
 	/* invoke callback */
 	msg->buf[0] = '\0';
 	data.bufUsed = rhead->totalSize;
 	func(msg, &data);
 
-	/* cleanup */
-	if (fhead) ufree(fhead);
-	fhead = NULL;
-
-	ufree(data.buf);
-	data.buf = dataPtr = NULL;
-	data.bufUsed = data.bufSize = dataLeft = msgCount = 0;
+	/* cleanup data */
+	freeDataBuffer(&data);
 
 	return 1;
     }

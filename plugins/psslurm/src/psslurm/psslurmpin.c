@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014 -2015 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -355,7 +355,7 @@ static void getBindMapFromString(PSCPU_set_t *CPUset, uint16_t cpuBindType,
  * @param oneThreadPerCore <IN>   use only one thread per core
  *
  */
-void getRankBinding(PSCPU_set_t *CPUset, uint8_t *coreMap,
+static void getRankBinding(PSCPU_set_t *CPUset, uint8_t *coreMap,
 		uint32_t coreMapIndex, uint32_t cpuCount, int32_t *lastCpu,
 		uint32_t nodeid, int *thread, int hwThreads,
 		uint16_t threadsPerTask, uint32_t local_tid)
@@ -456,7 +456,7 @@ static void pinToAllSockets(PSCPU_set_t *CPUset, uint32_t cpuCount, int hwThread
  * @param oneThreadPerCore <IN>   use only one thread per core
  *
  */
-void getSocketBinding(PSCPU_set_t *CPUset, uint8_t *coreMap,
+static void getSocketBinding(PSCPU_set_t *CPUset, uint8_t *coreMap,
 		uint32_t coreMapIndex, uint16_t socketCount,
 		uint16_t coresPerSocket, uint32_t cpuCount,
 		int32_t *lastCpu, uint32_t nodeid, int *thread, int hwThreads,

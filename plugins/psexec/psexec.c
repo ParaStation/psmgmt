@@ -45,14 +45,14 @@ int version = 1;
 int requiredAPI = 109;
 plugin_dep_t dependencies[1];
 
-void startPsexec()
+void startPsexec(void)
 {
     /* we have no dependencies */
     dependencies[0].name = NULL;
     dependencies[0].version = 0;
 }
 
-void stopPsexec()
+void stopPsexec(void)
 {
     /* release the logger */
     logger_finalize(psexeclogger);

@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010 - 2015 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -140,14 +140,14 @@ static void updateCpuFreq()
     }
 }
 
-void clearCpuFreq()
+void clearCpuFreq(void)
 {
     if (cpuCount) {
 	ufree(cpuFreq);
     }
 }
 
-void initProc()
+void initProc(void)
 {
     INIT_LIST_HEAD(&ProcList.list);
     INIT_LIST_HEAD(&SessionList.list);
@@ -538,7 +538,7 @@ static void addSession(pid_t session, uid_t uid)
  *
  * @return No return value.
  */
-static void clearSessions()
+static void clearSessions(void)
 {
     list_t *pos, *tmp;
     Session_Info_t *info;
@@ -550,7 +550,7 @@ static void clearSessions()
     }
 }
 
-void clearAllProcSnapshots()
+void clearAllProcSnapshots(void)
 {
     list_t *pos, *tmp;
     Proc_Snapshot_t *proc;

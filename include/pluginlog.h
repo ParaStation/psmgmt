@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2013 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2013-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -31,10 +31,10 @@ extern logger_t *pluginlogger;
 	    logger_print(pluginlogger, __VA_ARGS__)
 
 void initPluginLogger(char *name, FILE *logfile);
-int isPluginLoggerInitialized();
+int isPluginLoggerInitialized(void);
 void maskPluginLogger(int32_t mask);
-int32_t getPluginLoggerMask();
-void finalizePluginLogger();
+int32_t getPluginLoggerMask(void);
+void finalizePluginLogger(void);
 
 typedef enum {
     PLUGIN_LOG_VERBOSE	= 0x000010, /**< Other verbose stuff */

@@ -22,8 +22,6 @@
 #include "psnodes.h"
 #include "peloguetypes.h"
 
-typedef void Pelogue_JobCb_Func_t (char *, int, int, PElogue_Res_List_t *);
-
 typedef enum {
     JOB_QUEUED,		    /* the job was queued */
     JOB_RUNNING,	    /* the user job is executed */
@@ -59,15 +57,14 @@ typedef struct {
 /* list which holds all jobs */
 Job_t JobList;
 
-
-void initJobList();
+void initJobList(void);
 
 /**
  * @brief Delete all jobs.
  *
  * @return No return value.
  */
-void clearJobList();
+void clearJobList(void);
 
 /**
  * @brief Add a new job.
@@ -114,7 +111,7 @@ const char *getPluginFromJob(char *jobid);
 
 char *jobState2String(JobState_t state);
 
-int countJobs();
+int countJobs(void);
 
 void signalJobs(int signal, char *reason);
 

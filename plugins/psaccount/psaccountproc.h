@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010 - 2015 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -60,7 +60,7 @@ Session_Info_t SessionList;
  *
  * @return No return value.
  */
-void initProc();
+void initProc(void);
 
 /**
  * @brief Collect all data from every related child process.
@@ -115,7 +115,7 @@ int isChildofParent(pid_t parent, pid_t child);
  *
  * @return No return value.
  */
-void clearAllProcSnapshots();
+void clearAllProcSnapshots(void);
 
 /**
  * @brief Provide information about currently active sessions.
@@ -186,6 +186,6 @@ int readProcStatInfo(pid_t pid, ProcStat_t *pS);
 
 int readProcIO(pid_t pid, ProcIO_t *io);
 
-void clearCpuFreq();
+void clearCpuFreq(void);
 
 #endif

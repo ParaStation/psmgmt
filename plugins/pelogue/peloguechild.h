@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2013 - 2015 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2013-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -34,7 +34,7 @@ Child_t ChildList;
  *
  * @return No return value.
  */
-void initChildList();
+void initChildList(void);
 
 /**
  * @brief Convert a child type to string.
@@ -50,7 +50,7 @@ char *childType2String(int type);
  *
  * @return No return value.
  */
-void clearChildList();
+void clearChildList(void);
 
 /**
  * @brief Add a new child.

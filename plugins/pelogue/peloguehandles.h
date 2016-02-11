@@ -25,10 +25,8 @@
 
 int (*psPelogueAddPluginConfig)(char *, Config_t *);
 
-void (*psPelogueAddJob)(const char *, const char *, uid_t, gid_t, int,
-			PSnodes_ID_t *,
-			void (*pluginCallback)(char *, int, int,
-							PElogue_Res_List_t *));
+int (*psPelogueAddJob)(const char *, const char *, uid_t, gid_t, int,
+			PSnodes_ID_t *, Pelogue_JobCb_Func_t *pluginCallback);
 
 int (*psPelogueStartPE)(const char *, const char *, bool, env_t *);
 

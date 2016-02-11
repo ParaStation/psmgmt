@@ -107,7 +107,7 @@ int __parseConfigFile(char *filename, Config_t *conf, int trimQuotes)
     return count;
 }
 
-Config_t *findConfigObj(Config_t *conf, char *key)
+static Config_t *findConfigObj(Config_t *conf, char *key)
 {
     struct list_head *pos;
     Config_t *confObj;

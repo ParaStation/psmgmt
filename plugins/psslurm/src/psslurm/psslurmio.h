@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2015 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2015-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -45,6 +45,6 @@ void sendFWtaskInfo(Forwarder_Data_t *fwdata, PS_Tasks_t *task);
 void initStepIO(Step_t *step);
 void sendStepTimeout(Forwarder_Data_t *fwdata);
 int hookFWmsg(void *data, char *ptr, int32_t cmd);
-void sendBrokeIOcon();
+void sendBrokeIOcon(void);
 
 #endif

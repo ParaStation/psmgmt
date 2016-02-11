@@ -141,7 +141,7 @@ const char *msgType2String(int type)
     return "";
 }
 
-void initConnectionList()
+void initConnectionList(void)
 {
     INIT_LIST_HEAD(&ConnectionList.list);
 }
@@ -263,7 +263,7 @@ void closeConnection(int socket)
     }
 }
 
-void clearConnections()
+void clearConnections(void)
 {
     list_t *pos, *tmp;
     Connection_t *con;
@@ -452,7 +452,7 @@ CALLBACK:
     return 0;
 }
 
-int registerSlurmMessage(int sock, Connection_CB_t *cb)
+static int registerSlurmMessage(int sock, Connection_CB_t *cb)
 {
     Connection_t *con;
 
@@ -777,7 +777,7 @@ static int acceptSlurmClient(int asocket, void *data)
     return 0;
 }
 
-void closeSlurmdSocket()
+void closeSlurmdSocket(void)
 {
     Selector_remove(slurmListenSocket);
     close(slurmListenSocket);

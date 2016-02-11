@@ -694,7 +694,7 @@ static void closeControlSocket(Forwarder_Data_t *data)
     }
 }
 
-int callbackForwarder(int fd, PSID_scriptCBInfo_t *info)
+static int callbackForwarder(int fd, PSID_scriptCBInfo_t *info)
 {
     char errMsg[1024];
     int32_t exit;
@@ -940,7 +940,7 @@ static int openListenSocket(Forwarder_Data_t *data)
     return 1;
 }
 
-Forwarder_Data_t *getNewForwarderData()
+Forwarder_Data_t *getNewForwarderData(void)
 {
     Forwarder_Data_t *data;
 

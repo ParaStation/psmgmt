@@ -86,7 +86,7 @@ int version = 86;
 int requiredAPI = 112;
 plugin_dep_t dependencies[6];
 
-void startPsslurm()
+void startPsslurm(void)
 {
     dependencies[0].name = "psmunge";
     dependencies[0].version = 3;
@@ -102,7 +102,7 @@ void startPsslurm()
     dependencies[5].version = 0;
 }
 
-void stopPsslurm()
+void stopPsslurm(void)
 {
     /* release the logger */
     logger_finalize(psslurmlogger);

@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2012-2013 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2012-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -64,14 +64,14 @@ static uint32_t uniqNodeCount = 0;
 /** number of reservations */
 static int reservationCount = 0;
 
-void psresportStart()
+void psresportStart(void)
 {
     /* we have no dependencies */
     dependencies[0].name = NULL;
     dependencies[0].version = 0;
 }
 
-void psresportStop()
+void psresportStop(void)
 {
     /* nothing to do here */
 }
@@ -81,7 +81,7 @@ void psresportStop()
  *
  * @return No return value.
  */
-static void initNodeBitField()
+static void initNodeBitField(void)
 {
     int i;
 
@@ -101,7 +101,7 @@ static void initNodeBitField()
  *
  * @return No return value.
  */
-static void freeUniqNodes()
+static void freeUniqNodes(void)
 {
     ufree(uniqNodeList);
     uniqNodeList = NULL;

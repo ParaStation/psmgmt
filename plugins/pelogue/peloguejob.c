@@ -32,7 +32,7 @@ static char jobHistory[JOB_HISTORY_SIZE][JOB_HISTORY_ID_LEN];
 
 static int jobHistIndex = 0;
 
-void initJobList()
+void initJobList(void)
 {
     INIT_LIST_HEAD(&JobList.list);
 }
@@ -43,6 +43,8 @@ void *addJob(const char *plugin, const char *jobid, uid_t uid, gid_t gid,
 {
     Job_t *job;
     int i = 0;
+
+    if (!plugin || !jobid || !nodes || !pluginCallback) return NULL;
 
     if ((job = findJobByJobId(plugin, jobid))) deleteJob(job);
 
@@ -60,8 +62,8 @@ void *addJob(const char *plugin, const char *jobid, uid_t uid, gid_t gid,
     job->epilogueTrack = -1;
     job->epilogueExit = 0;
 
-    job->nodes = umalloc(sizeof(Pelogue_JobCb_Func_t *) * nrOfNodes +
-			    sizeof(Pelogue_JobCb_Func_t) * nrOfNodes);
+    job->nodes = umalloc(sizeof(PElogue_Res_List_t *) * nrOfNodes +
+			    sizeof(PElogue_Res_List_t) * nrOfNodes);
 
     for (i=0; i<job->nrOfNodes; i++) {
 	job->nodes[i].id = nodes[i];
@@ -83,6 +85,8 @@ Job_t *findJobByJobId(const char *plugin, const char *jobid)
     list_t *pos, *tmp;
     Job_t *job;
 
+    if (!plugin || !jobid) return NULL;
+
     list_for_each_safe(pos, tmp, &JobList.list) {
 	if (!(job = list_entry(pos, Job_t, list))) return NULL;
 
@@ -97,7 +101,7 @@ PElogue_Res_List_t *findJobNodeEntry(Job_t *job, PSnodes_ID_t id)
 {
     int i;
 
-    if (!job->nodes) return NULL;
+    if (!job || !job->nodes) return NULL;
 
     for (i=0; i<job->nrOfNodes; i++) {
 	if (job->nodes[i].id == id) return &job->nodes[i];
@@ -109,13 +113,15 @@ int isJobIDinHistory(char *jobid)
 {
     int i;
 
+    if (!jobid) return 0;
+
     for (i=0; i<JOB_HISTORY_SIZE; i++) {
 	if (!(strncmp(jobid, jobHistory[i], JOB_HISTORY_ID_LEN))) return 1;
     }
     return 0;
 }
 
-int countJobs()
+int countJobs(void)
 {
     struct list_head *pos;
     Job_t *job;
@@ -148,7 +154,7 @@ int deleteJob(Job_t *job)
     return 1;
 }
 
-void clearJobList()
+void clearJobList(void)
 {
     list_t *pos, *tmp;
     Job_t *job;
@@ -195,6 +201,8 @@ int isValidJobPointer(Job_t *jobPtr)
 {
     list_t *pos, *tmp;
     Job_t *job;
+
+    if (!jobPtr) return 0;
 
     list_for_each_safe(pos, tmp, &JobList.list) {
 	if (!(job = list_entry(pos, Job_t, list))) break;

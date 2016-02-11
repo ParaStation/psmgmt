@@ -62,7 +62,7 @@ Client_t AccClientList;
  *
  * @return No return value.
  */
-void initAccClientList();
+void initAccClientList(void);
 
 /**
  * @brief Convert a client type to string.
@@ -171,14 +171,14 @@ void deleteAllAccClientsByLogger(PStask_ID_t loggerTID);
  * @return Returns 1 if we have at least one client which should
  * be accounted or else 0.
  */
-int haveActiveAccClients();
+int haveActiveAccClients(void);
 
 /**
  * @brief Clear all account clients and free the used memory.
  *
  * @return No return value.
  */
-void clearAllAccClients();
+void clearAllAccClients(void);
 
 /**
  * @brief Update all client account data.
@@ -200,7 +200,7 @@ void updateAllAccClients(Job_t *job);
  *
  * @return No return value.
  */
-void cleanupClients();
+void cleanupClients(void);
 
 /**
  * @brief Delete an account client.

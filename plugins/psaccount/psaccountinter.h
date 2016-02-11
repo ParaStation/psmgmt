@@ -141,4 +141,12 @@ int psAccountGetPidsByLogger(PStask_ID_t loggerTID, pid_t **pids,
 
 int psAccountSwitchAccounting(PStask_ID_t clientTID, int enable);
 
+int psAccountGetJobData(pid_t jobscript, AccountDataExt_t *accData);
+
+void psAccountRegisterJob(pid_t jsPid, char *jobid);
+
+void psAccountDelJob(PStask_ID_t loggerTID);
+
+void psAccountUnregisterJob(pid_t jsPid);
+
 #endif

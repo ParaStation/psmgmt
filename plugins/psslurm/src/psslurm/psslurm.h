@@ -40,14 +40,14 @@ extern PSnodes_ID_t slurmBackupController;
  *
  * @return No return value.
  */
-void __attribute__ ((constructor)) startPsslurm();
+void __attribute__ ((constructor)) startPsslurm(void);
 
 /**
  * @brief Destructor for psslurm library.
  *
  * @return No return value.
  */
-void __attribute__ ((destructor)) stopPsslurm();
+void __attribute__ ((destructor)) stopPsslurm(void);
 
 /**
  * @brief Initialize the psslurm plugin.

@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014 - 2015 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -45,7 +45,7 @@ Limits_t slurmConfLimits[] =
     { 0, NULL, NULL, 0 },
 };
 
-void printLimits()
+void printLimits(void)
 {
     int i = 0;
 
@@ -66,7 +66,7 @@ static void setPropagateFlags(int prop)
     }
 }
 
-int initLimits()
+int initLimits(void)
 {
     const char delimiters[] =", \t\n";
     char *next, *saveptr;
@@ -215,10 +215,9 @@ static void doSetDefaultRlimits(char *limits, int soft)
     ufree(cp_limits);
 }
 
-void setDefaultRlimits()
+void setDefaultRlimits(void)
 {
     char *limits;
-
 
     /* set default hard rlimits */
     if ((limits = getConfValueC(&Config, "RLIMITS_HARD"))) {

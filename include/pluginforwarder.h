@@ -72,7 +72,7 @@ typedef struct {
     void (*hookChildStart)(void *, pid_t, pid_t, pid_t);
 } Forwarder_Data_t;
 
-Forwarder_Data_t *getNewForwarderData();
+Forwarder_Data_t *getNewForwarderData(void);
 void destroyForwarderData(Forwarder_Data_t *data);
 
 int startForwarder(Forwarder_Data_t *data);

@@ -26,7 +26,7 @@
 #include "psexecscripts.h"
 
 
-void initScriptList()
+void initScriptList(void)
 {
     INIT_LIST_HEAD(&ScriptList.list);
 }
@@ -61,7 +61,7 @@ int deleteScriptByuID(uint16_t uID)
     return 1;
 }
 
-void clearScriptList()
+void clearScriptList(void)
 {
     list_t *pos, *tmp;
     Script_t *script;

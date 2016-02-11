@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2012 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2012-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -18,13 +18,13 @@
  * @brief Constructor for the psresport library.
  *
  */
-void __attribute__ ((constructor)) psresportStart();
+void __attribute__ ((constructor)) psresportStart(void);
 
 /**
  * @brief Destructor for the psresport library.
  *
  */
-void __attribute__ ((destructor)) psresportStop();
+void __attribute__ ((destructor)) psresportStop(void);
 
 /**
  * @brief Initialize the psresport plugin.

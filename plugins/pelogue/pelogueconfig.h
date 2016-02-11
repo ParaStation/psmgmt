@@ -40,7 +40,7 @@ extern const int configValueCount;
 /**
  * @brief Parse a configuration file and save the result.
  */
-int initConfig();
+int initConfig(void);
 
 /**
 * @brief Retrieve a config value as string.
@@ -101,7 +101,7 @@ void delConfig(Config_t *conf);
  *
  * @return No return value.
  */
-void clearConfig();
+void clearConfig(void);
 
 char *getConfParamC(const char *plugin, char *name);
 

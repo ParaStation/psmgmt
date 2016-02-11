@@ -107,19 +107,19 @@ void periodicMain(void)
     }
 }
 
-void accountStart()
+void accountStart(void)
 {
     /* we have no dependencies */
     dependencies[0].name = NULL;
     dependencies[0].version = 0;
 }
 
-void accountStop()
+void accountStop(void)
 {
     /* nothing to do here */
 }
 
-int setDaemonSock(void *dsock)
+static int setDaemonSock(void *dsock)
 {
     int *sock = dsock;
 

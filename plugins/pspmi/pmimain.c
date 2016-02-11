@@ -43,7 +43,7 @@ int requiredAPI = 110;
 plugin_dep_t dependencies[2];
 
 /* pmi init */
-void startPMI()
+void startPMI(void)
 {
     /* we depend on psaccount */
     dependencies[0].name = "psaccount";
@@ -92,7 +92,7 @@ int initialize(void)
 
 
 
-void stopPMI()
+void stopPMI(void)
 {
     /* remove registered hooks */
     PSIDhook_del(PSIDHOOK_EXEC_FORWARDER, handleForwarderSpawn);

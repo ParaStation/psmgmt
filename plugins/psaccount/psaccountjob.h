@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2011 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -42,7 +42,7 @@ Job_t JobList;
  *
  * @return No return value.
  */
-void initJobList();
+void initJobList(void);
 
 /**
  * @brief Find a job identified by its logger.
@@ -81,14 +81,14 @@ Job_t *addJob(PStask_ID_t loggerTID);
  *
  * @return No return value.
  */
-void cleanupJobs();
+void cleanupJobs(void);
 
 /**
  * @brief Delete all jobs.
  *
  * @return No return value.
  */
-void clearAllJobs();
+void clearAllJobs(void);
 
 /**
  * @brief Delete a job.

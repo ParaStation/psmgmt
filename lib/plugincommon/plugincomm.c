@@ -93,13 +93,14 @@ int setTypeInfo(int val)
     return old;
 }
 
-void addDataType(char **ptr, PS_DataType_t type)
+static void addDataType(char **ptr, PS_DataType_t type)
 {
     *(uint8_t *) *ptr = type;
     *ptr += sizeof(uint8_t);
 }
 
-int verifyTypeInfo(char **ptr, PS_DataType_t expectedType, const char *caller)
+static int verifyTypeInfo(char **ptr, PS_DataType_t expectedType,
+			    const char *caller)
 {
     uint8_t type;
 

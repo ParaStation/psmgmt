@@ -23,14 +23,14 @@
  *
  * @return No return value.
  */
-void __attribute__ ((constructor)) startPsexec();
+void __attribute__ ((constructor)) startPsexec(void);
 
 /**
  * @brief Destructor for psexec library.
  *
  * @return No return value.
  */
-void __attribute__ ((destructor)) stopPsexec();
+void __attribute__ ((destructor)) stopPsexec(void);
 
 /**
  * @brief Initialize the psexec plugin.

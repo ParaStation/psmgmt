@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2013 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2013-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -40,7 +40,7 @@ static int isInit = 0;
 
 static pluginConfList_t pluginConfList[MAX_SUPPORTED_PLUGINS];
 
-int initConfig()
+int initConfig(void)
 {
     int i;
 
@@ -55,7 +55,7 @@ int initConfig()
     return 1;
 }
 
-void clearConfig()
+void clearConfig(void)
 {
     int i;
 

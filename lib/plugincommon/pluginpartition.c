@@ -141,7 +141,8 @@ static int sendNodelist(nodelist_t *nodelist, DDBufferMsg_t *msg)
     return 0;
 }
 
-int saveNodelistInTask(PStask_t *task, int32_t nrOfNodes, PSnodes_ID_t *nodes)
+static int saveNodelistInTask(PStask_t *task, int32_t nrOfNodes,
+				PSnodes_ID_t *nodes)
 {
     if (!task->request) {
 	pluginlog("%s: request for task is empty\n", __func__);
