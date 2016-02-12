@@ -363,6 +363,7 @@ static void sighandler(int sig)
 	PStask_printStat();
 	RDP_printStat();
 	PSIDFlwCntrl_printStat();
+	Selector_printStat();
 	break;
     case  SIGUSR2:   /* user defined signal 2 */
 	printMallocInfo();
@@ -655,6 +656,7 @@ int main(int argc, const char *argv[])
 
     /* Init the Selector facility as soon as possible */
     if (!Selector_isInitialized()) Selector_init(logfile);
+    PSID_registerLoopAct(Selector_gc);
 
     /* Initialize timer facility explicitely to ensure correct logging */
     if (!Timer_isInitialized()) Timer_init(logfile);
