@@ -653,6 +653,12 @@ int main(int argc, const char *argv[])
 	PSID_log(-1, "Debugging mode (mask 0x%x) enabled\n", debugMask);
     }
 
+    /* Init the Selector facility as soon as possible */
+    if (!Selector_isInitialized()) Selector_init(logfile);
+
+    /* Initialize timer facility explicitely to ensure correct logging */
+    if (!Timer_isInitialized()) Timer_init(logfile);
+
     /*
      * Create the Local Service Port as early as possible. Actual
      * handling is enabled later. This gives psiadmin the chance to
@@ -727,9 +733,6 @@ int main(int argc, const char *argv[])
     /* Bring node up with correct numbers of CPUs */
     if (!Selector_isInitialized()) Selector_init(logfile);
     declareNodeAlive(PSC_getMyID(), PSID_getPhysCPUs(), PSID_getVirtCPUs());
-
-    /* Initialize timer facility explicitely to ensure correct logging */
-    if (!Timer_isInitialized()) Selector_init(logfile);
 
     /* Initialize timeouts, etc. */
     selectTime.tv_sec = config->selectTime;
