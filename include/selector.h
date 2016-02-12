@@ -374,6 +374,43 @@ int Sselect(int nfds, fd_set* readfds, fd_set* writefds, fd_set* exceptfds,
  */
 void Selector_startOver(void);
 
+/**
+ * @brief Garbage collection
+ *
+ * Do garbage collection on unused selector structures. Since this
+ * module will keep pre-allocated buffers for selectors its
+ * memory-footprint might have grown after phases of heavy
+ * usage. Thus, this function shall be called regularly in order to
+ * free() selector structures no longer required.
+ *
+ * @return No return value.
+ *
+ * @see Selector_gcRequired()
+ */
+void Selector_gc(void);
+
+/**
+ * @brief Garbage collection required?
+ *
+ * Find out, if a call to Selector_gc() will have any effect, i.e. if
+ * sufficiently many unused selector structures are available to free().
+ *
+ * @return If enough selector structure to free() are available, 1 is
+ * returned. Otherwise 0 is given back.
+ *
+ * @see Selector_gc()
+ */
+int Selector_gcRequired(void);
+
+/**
+ * @brief Print statistics
+ *
+ * Print statistics concerning the usage of selector structures.
+ *
+ * @return No return value.
+ */
+void Selector_printStat(void);
+
 #ifdef __cplusplus
 }/* extern "C" */
 #endif

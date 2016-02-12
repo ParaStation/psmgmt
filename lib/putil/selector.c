@@ -59,6 +59,12 @@ static char vcid[] __attribute__((used)) =
 /** Flag to let Sselect() start over, i.e. return 0 and all fds cleared */
 static int startOver = 0;
 
+typedef enum {
+    SEL_USED,           /**< In use */
+    SEL_UNUSED,         /**< Unused and ready for re-use */
+    SEL_DRAINED,        /**< Unused and ready for discard */
+} Selector_state_t;
+
 /**
  * Structure to hold all info about each selector
  */
@@ -73,6 +79,7 @@ typedef struct {
     int reqWrite;                  /**< Flag used within Sselect(). */
     int disabled;                  /**< Flag to disable fd temporarily. */
     int deleted;                   /**< Flag used for asynchronous delete. */
+    Selector_state_t state;        /**< flag internal state of structure */
 } Selector_t;
 
 /** The logger used by the Selector facility */
@@ -113,25 +120,105 @@ static int blockSigChld(int block)
 }
 
 /**
- * @brief Create selector structure
- *
- * Create and initialize a new selector structure and return pointer
- * to it.
- *
- * @return If a new selector was created, a pointer to it is
- * returned. Otherwise NULL is given back.
+ * Number of selectors allocated at once. Ensure this chunk is larger
+ * than 128 kB to force it into mmap()ed memory
  */
-static Selector_t * getSelector(void)
+#define SELECTOR_CHUNK 2048
+
+/** Single chunk of selectors allocated at once (in incFreeList()) */
+typedef struct {
+    list_t next;                       /**< Used to put into chunkList */
+    Selector_t sels[SELECTOR_CHUNK];   /**< the selector structures */
+} sel_chunk_t;
+
+/**
+ * Pool of selectors ready to use. Filled by @ref incFreeList(). To
+ * get a selector from this pool, use @ref getSelector(), to put it
+ * back use @ref putSelector().
+ */
+static LIST_HEAD(selFreeList);
+
+/** List of chunks of selector structures */
+static LIST_HEAD(chunkList);
+
+/** Number of selectors currently in use */
+static unsigned int usedSelectors = 0;
+
+/** Total number of selectors currently available */
+static unsigned int availSelectors = 0;
+
+/**
+ * @brief Increase selectors
+ *
+ * Increase the number of available selectors. For that, a chunk of
+ * @ref SELECTOR_CHUNK selectors is allocated. All selectors are added
+ * to the list of free selectors @ref selFreeList. Additionally, the
+ * chunk is registered within @ref chunkList. Chunks might be released
+ * within @ref Selector_gc() as soon as enough selectors are unused.
+ *
+ * return On success, 1 is returned. Or 0 if allocating the required
+ * memory failed. In the latter case errno is set appropriately.
+ */
+static int incFreeList(void)
 {
     int blocked = blockSigChld(1);
-    Selector_t *selector = malloc(sizeof(*selector));
+    sel_chunk_t *chunk = malloc(sizeof(*chunk));
+    unsigned int i;
 
     blockSigChld(blocked);
 
-    if (!selector) {
-	logger_print(logger, -1, "%s: No memory\n", __func__);
+    if (!chunk) return 0;
+
+    list_add_tail(&chunk->next, &chunkList);
+
+    for (i=0; i<SELECTOR_CHUNK; i++) {
+	chunk->sels[i].state = SEL_UNUSED;
+	list_add_tail(&chunk->sels[i].next, &selFreeList);
+    }
+
+    availSelectors += SELECTOR_CHUNK;
+    logger_print(logger, SELECTOR_LOG_VERB, "%s: now used %d.\n", __func__,
+		 availSelectors);
+
+    return 1;
+}
+
+/**
+ * @brief Get selector from pool
+ *
+ * Get a selector structure from the pool of free selectors. If there
+ * is no structure left in the pool, this will be extended by @ref
+ * SELECTOR_CHUNK structures via calling @ref incFreeList().
+ *
+ * The selector returned will be prepared, i.e. the list-handle @a
+ * next is initialized, the deleted flag is cleared, it is marked as
+ * SEL_USED, etc.
+ *
+ * @return On success, a pointer to the new selector is returned. Or
+ * NULL if an error occurred.
+ */
+static Selector_t * getSelector(void)
+{
+    Selector_t *selector;
+
+    if (list_empty(&selFreeList)) {
+	logger_print(logger, SELECTOR_LOG_VERB, "%s: get more\n", __func__);
+	if (!incFreeList()) {
+	    logger_print(logger, -1, "%s: no memory\n", __func__);
+	    return NULL;
+	}
+    }
+
+    /* get list's first usable element */
+    selector = list_entry(selFreeList.next, Selector_t, next);
+    if (selector->state != SEL_UNUSED) {
+	logger_print(logger, -1, "%s: %s selector. Never be here.\n", __func__,
+		     (selector->state == SEL_USED) ? "USED" : "DRAINED");
 	return NULL;
     }
+
+    list_del(&selector->next);
+    usedSelectors++;
 
     INIT_LIST_HEAD(&selector->next);
     *selector = (Selector_t) {
@@ -144,24 +231,26 @@ static Selector_t * getSelector(void)
 	.reqWrite = 0,
 	.disabled = 0,
 	.deleted = 0,
+	.state = SEL_USED,
     };
 
     return selector;
 }
 
 /**
- * @brief Disengage selector structure
+ * @brief Put selector back into pool
  *
- * Disengage and free() the selector structure @a selector.
+ * Put the selector structure @a selector back into the pool of free
+ * selectors. The selector structure might get reused and handed back
+ * to the application by calling @ref getSelector().
  *
- * @param selector The selector structure to disengage and free()
+ * @param selector Pointer to the selector to be put back into the
+ * pool.
  *
  * @return No return value
  */
 static void putSelector(Selector_t *selector)
 {
-    int blocked;
-
     if (!selector) return;
 
     if (!list_empty(&selector->next)) list_del(&selector->next);
@@ -170,9 +259,124 @@ static void putSelector(Selector_t *selector)
 	selectors[selector->fd] = NULL;
     }
 
+    selector->state = SEL_UNUSED;
+    selector->deleted = 0;
+    list_add_tail(&selector->next, &selFreeList);
+
+    usedSelectors--;
+}
+
+/**
+ * @brief Free a chunk of selectors
+ *
+ * Free the chunk of selectors @a chunk. For that, all empty selectors
+ * from this chunk are removed from @ref selFreeList and marked as
+ * drained. All selectors still in use are replaced by using other
+ * free selectors within @ref selFreeList.
+ *
+ * Once all selectors of the chunk are empty, the whole chunk is
+ * free()ed.
+ *
+ * @param chunk The chunk of selectors to free.
+ *
+ * @return No return value.
+ */
+static void freeChunk(sel_chunk_t *chunk)
+{
+    unsigned int i;
+    int blocked;
+
+    if (!chunk) return;
+
+    /* First round: remove selectors from selFreeList */
+    for (i=0; i<SELECTOR_CHUNK; i++) {
+	if (chunk->sels[i].state == SEL_UNUSED) {
+	    list_del(&chunk->sels[i].next);
+	    chunk->sels[i].state = SEL_DRAINED;
+	}
+    }
+
+    /* Second round: now copy and release all used selectors */
+    for (i=0; i<SELECTOR_CHUNK; i++) {
+	Selector_t *old = &chunk->sels[i], *new;
+
+	if (old->state == SEL_DRAINED) continue;
+
+	if (old->deleted) {
+	    list_del(&old->next);
+	    old->state = SEL_DRAINED;
+	} else {
+	    new = (Selector_t*) getSelector();
+	    if (!new) {
+		logger_print(logger, -1, "%s: new is NULL\n", __func__);
+		return;
+	    }
+
+	    /* copy selector's content */
+	    new->readHandler = old->readHandler;
+	    new->writeHandler = old->writeHandler;
+	    new->readInfo = old->readInfo;
+	    new->writeInfo = old->writeInfo;
+	    new->fd = old->fd;
+	    new->reqRead = old->reqRead;
+	    new->reqWrite = old->reqWrite;
+	    new->disabled = old->disabled;
+	    new->deleted = old->deleted;
+
+	    /* tweak the list */
+	    __list_add(&new->next, old->next.prev, old->next.next);
+
+	    old->state = SEL_DRAINED;
+	}
+	usedSelectors--;
+    }
+
+    /* Now that the chunk is completely empty, free() it */
+    list_del(&chunk->next);
     blocked = blockSigChld(1);
-    free(selector);
+    free(chunk);
     blockSigChld(blocked);
+    availSelectors -= SELECTOR_CHUNK;
+    logger_print(logger, SELECTOR_LOG_VERB, "%s: now used %d.\n", __func__,
+		 availSelectors);
+}
+
+void Selector_gc(void)
+{
+    list_t *c, *tmp;
+    unsigned int i;
+    int first = 1;
+
+    if (!Selector_gcRequired()) return;
+
+    list_for_each_safe(c, tmp, &chunkList) {
+	sel_chunk_t *chunk = list_entry(c, sel_chunk_t, next);
+	int unused = 0;
+
+	/* always keep the first one */
+	if (first) {
+	    first = 0;
+	    continue;
+	}
+
+	for (i=0; i<SELECTOR_CHUNK; i++) {
+	    if (chunk->sels[i].state != SEL_USED) unused++;
+	}
+	if (unused > SELECTOR_CHUNK/2) freeChunk(chunk);
+
+	if (!Selector_gcRequired()) break;
+    }
+}
+
+int Selector_gcRequired(void)
+{
+    return ((int)usedSelectors < ((int)availSelectors - SELECTOR_CHUNK)/2);
+}
+
+void Selector_printStat(void)
+{
+    logger_print(logger, -1, "%s: %d/%d (used/avail)\n", __func__,
+		 usedSelectors, availSelectors);
 }
 
 int32_t Selector_getDebugMask(void)
@@ -288,10 +492,9 @@ int Selector_register(int fd, Selector_CB_t selectHandler, void *info)
 
     /* Test if a selector is already registered on fd */
     if (selector && !selector->deleted) {
-	logger_print(logger, -1,
-		     "%s: found selector for fd %d\n", __func__, fd);
-	logger_print(logger, -1, "%s: handler is at %p %s disabled\n",
-		     __func__, selector->readHandler,
+	logger_print(logger, -1, "%s: found selector for fd %d", __func__, fd);
+	logger_print(logger, -1, " handlers are %p/%p %s disabled\n",
+		     selector->readHandler, selector->writeHandler,
 		     selector->disabled ? "but" : "not");
 	return -1;
     }
@@ -324,8 +527,7 @@ int Selector_remove(int fd)
     Selector_t *selector = findSelector(fd);
 
     if (!selector) {
-	logger_print(logger, -1,
-		     "%s: no selector found for fd %d\n", __func__, fd);
+	logger_print(logger, -1, "%s(fd %d): no selector\n", __func__, fd);
 	return -1;
     }
 
@@ -357,8 +559,7 @@ int Selector_awaitWrite(int fd, Selector_CB_t writeHandler, void *info)
     }
 
     if (selector && selector->deleted) {
-	logger_print(logger, -1, "%s: selector for fd %d was deleted\n",
-		     __func__,fd);
+	logger_print(logger, -1, "%s(fd %d): deleted selector\n", __func__, fd);
 
 	selector->readHandler = NULL;
 	selector->readInfo = NULL;
@@ -366,7 +567,7 @@ int Selector_awaitWrite(int fd, Selector_CB_t writeHandler, void *info)
 	selector->deleted = 0;
     } else if (!selector) {
 	/* no selector yet? This is strange */
-	logger_print(logger, -1, "%s: no selector for fd %d?!\n", __func__,fd);
+	logger_print(logger, -1, "%s(fd %d): no selector yet?!\n", __func__,fd);
 
 	selector = getSelector();
     }
@@ -414,9 +615,7 @@ int Selector_isRegistered(int fd)
 {
     Selector_t *selector = findSelector(fd);
 
-    if (selector && !selector->deleted) return 1;
-
-    return 0;
+    return (selector && !selector->deleted);
 }
 
 int Selector_isActive(int fd)
@@ -424,8 +623,7 @@ int Selector_isActive(int fd)
     Selector_t *selector = findSelector(fd);
 
     if (!selector) {
-	logger_print(logger, -1,
-		     "%s: no selector found for fd %d\n", __func__, fd);
+	logger_print(logger, -1, "%s(fd %d): no selector\n", __func__, fd);
 	return -1;
     }
 
@@ -437,8 +635,7 @@ int Selector_disable(int fd)
     Selector_t *selector = findSelector(fd);
 
     if (!selector) {
-	logger_print(logger, -1,
-		     "%s: no selector found for fd %d\n", __func__, fd);
+	logger_print(logger, -1, "%s(fd %d): no selector\n", __func__, fd);
 	return -1;
     }
 
@@ -452,8 +649,7 @@ int Selector_enable(int fd)
     Selector_t *selector = findSelector(fd);
 
     if (!selector) {
-	logger_print(logger, -1,
-		     "%s: no selector found for fd %d\n", __func__, fd);
+	logger_print(logger, -1, "%s(fd %d): no selector\n", __func__, fd);
 	return -1;
     }
 
@@ -492,6 +688,7 @@ void Selector_checkFDs(void)
 			     __func__, selector->fd);
 		/* call the handler to signal it, then close */
 		selector->readHandler(selector->fd, selector->readInfo);
+		selector->writeHandler = NULL; /* force remove */
 		Selector_remove(selector->fd);
 		break;
 	    case EINTR:
@@ -648,7 +845,7 @@ int Sselect(int n, fd_set  *readfds,  fd_set  *writefds, fd_set *exceptfds,
 		    break;
 		default:
 		    logger_print(logger, -1,
-				 "%s: selectHandler for fd=%d returns %d\n",
+				 "%s: readHandler for fd=%d returns %d\n",
 				 __func__, selector->fd, ret);
 		}
 	    }
