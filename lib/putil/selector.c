@@ -269,7 +269,11 @@ int Selector_register(int fd, Selector_CB_t selectHandler, void *info)
 {
     Selector_t *selector = findSelector(fd);
 
-    if (!Selector_isInitialized()) exit(1);
+    if (!Selector_isInitialized()) {
+	fprintf(stderr, "%s: uninitialized!\n", __func__);
+	syslog(LOG_CRIT, "%s: uninitialized\n", __func__);
+	exit(1);
+    }
 
     if (fd < 0 || fd >= maxSelectorFD || fd >= FD_SETSIZE) {
 	logger_print(logger, -1, "%s: fd %d is invalid\n", __func__, fd);
@@ -335,7 +339,11 @@ int Selector_awaitWrite(int fd, Selector_CB_t writeHandler, void *info)
 {
     Selector_t *selector = findSelector(fd);
 
-    if (!Selector_isInitialized()) exit(1);
+    if (!Selector_isInitialized()) {
+	fprintf(stderr, "%s: uninitialized!\n", __func__);
+	syslog(LOG_CRIT, "%s: uninitialized\n", __func__);
+	exit(1);
+    }
 
     if (fd < 0 || fd >= maxSelectorFD || fd >= FD_SETSIZE) {
 	logger_print(logger, -1, "%s: fd %d is invalid\n", __func__, fd);
