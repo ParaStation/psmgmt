@@ -295,6 +295,8 @@ int Selector_register(int fd, Selector_CB_t selectHandler, void *info)
     if (selector) {
 	/* enable deleted selector for reuse */
 	list_del(&selector->next);
+	selector->deleted = 0;
+	selector->disabled = 0;
     } else {
 	/* Create new selector */
 	selector = getSelector();
