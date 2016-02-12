@@ -514,11 +514,13 @@ static void printVersion(void)
     fprintf(stderr, "psid %s\b \n", psid_cvsid+11);
 }
 
+#define FORKMAGIC 4711
+
 int main(int argc, const char *argv[])
 {
     poptContext optCon;   /* context for parsing command-line options */
 
-    int rc, version = 0, debugMask = 0, pipeFD[2] = {-1, -1};
+    int rc, version = 0, debugMask = 0, pipeFD[2] = {-1, -1}, magic = FORKMAGIC;
     char *logdest = NULL, *configfile = "/etc/parastation.conf";
     FILE *logfile = NULL;
     struct rlimit rlimit;
@@ -606,10 +608,12 @@ int main(int argc, const char *argv[])
 	    break;
 	default: /* I'm the parent and exiting */
 	    close (pipeFD[1]);
-	    /* Wait for child's dummy data */
-	    rc = read(pipeFD[0], &pipeFD[1], sizeof(pipeFD[1]));
+
+	    /* Wait for child's magic data */
+	    rc = read(pipeFD[0], &magic, sizeof(magic));
+	    if (rc != sizeof(magic) || magic != (FORKMAGIC)) return -1;
+
 	    return 0;
-	    break;
        }
     }
 
@@ -816,7 +820,10 @@ int main(int argc, const char *argv[])
     PSID_enableMasterSock();
 
     /* Once RDP and the master socket are ready parents might be released */
-    if (pipeFD[1] > -1) close(pipeFD[1]);
+    if (pipeFD[1] > -1) {
+	write(pipeFD[1], &magic, sizeof(magic));
+	close(pipeFD[1]);
+    }
 
     PSID_log(-1, "SelectTime=%d sec    DeadInterval=%d\n",
 	     config->selectTime, config->deadInterval);
