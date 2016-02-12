@@ -102,7 +102,7 @@ static int maxSelectorFD = 0;
  *
  * @param block Flag steering the (un-)blocking of SIGCHLD.
  *
- * @return Flag, if SIGCHLD was blocked before. I.e. return 1 if it
+ * @return Flag if SIGCHLD was blocked before. I.e. return 1 if it
  * was blocked or 0 otherwise.
  */
 static int blockSigChld(int block)
@@ -428,7 +428,7 @@ void Selector_init(FILE* logfile)
 	exit(1);
     }
 
-    /* Free all old selectors, if any */
+    /* Free all old selectors if any */
     list_for_each_safe(s, tmp, &selectorList) {
 	Selector_t *selector = list_entry(s, Selector_t, next);
 	putSelector(selector);

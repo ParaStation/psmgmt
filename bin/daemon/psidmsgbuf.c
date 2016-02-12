@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2015 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -85,7 +85,7 @@ static unsigned int usedSmallBufs = 0;
  * chunkList. Chunks might be released within @ref PSIDMsgbuf_gc() as
  * soon as enough small msgbufs are again available.
  *
- * return On success, 1 is returned. Or 0, if allocation the required
+ * return On success, 1 is returned. Or 0 if allocation the required
  * memory failed. In the latter case errno is set appropriately.
  */
 static int incFreeList(void)
@@ -118,7 +118,7 @@ static int incFreeList(void)
  * list-handle @a next is initialized, etc.
  *
  * @return On success, a pointer to the new msgbuf is returned. Or
- * NULL, if an error occurred.
+ * NULL if an error occurred.
  */
 static msgbuf_t *getSmallMsgbuf(void)
 {
@@ -222,6 +222,22 @@ static void freeChunk(msgbuf_schunk_t *chunk)
 }
 
 /**
+ * @brief Garbage collection required?
+ *
+ * Find out if a call to PSIDMsgbuf_gc() will have any effect, i.e. if
+ * sufficiently many unused message buffers are available to free().
+ *
+ * @return If enough message buffers to free() are available, 1 is
+ * returned. Otherwise 0 is given back.
+ *
+ * @see Selector_gc()
+ */
+static int PSIDMsgbuf_gcRequired(void)
+{
+    return ((int)usedSmallBufs < ((int)smallBufs - MSGBUF_SCHUNK)/2);
+}
+
+/**
  * @brief Garbage collection
  *
  * Do garbage collection on unused message buffers. Since this module
@@ -238,7 +254,7 @@ static void PSIDMsgbuf_gc(void)
     int blockedCHLD, blockedRDP, first = 1;
     unsigned int i;
 
-    if ((int)usedSmallBufs > (int)smallBufs/2 - MSGBUF_SCHUNK) return;
+    if (!PSIDMsgbuf_gcRequired()) return;
 
     blockedCHLD = PSID_blockSIGCHLD(1);
     blockedRDP = RDP_blockTimer(1);
@@ -247,6 +263,7 @@ static void PSIDMsgbuf_gc(void)
 	msgbuf_schunk_t *chunk = list_entry(c, msgbuf_schunk_t, next);
 	int unused = 0;
 
+	/* always keep the first one */
 	if (first) {
 	    first = 0;
 	    continue;
@@ -258,7 +275,7 @@ static void PSIDMsgbuf_gc(void)
 
 	if (unused > MSGBUF_SCHUNK/2) freeChunk(chunk);
 
-	if (smallBufs == MSGBUF_SCHUNK) break; /* keep the last one */
+	if (!PSIDMsgbuf_gcRequired()) break;
     }
 
     RDP_blockTimer(blockedRDP);

@@ -75,7 +75,7 @@ static unsigned int availStopTIDs = 0;
  * PSIDFlwCntrl_gc() as soon as enough stopTID structures are available
  * again.
  *
- * return On success, 1 is returned. Or 0, if allocating the required
+ * return On success, 1 is returned. Or 0 if allocating the required
  * memory failed. In the latter case errno is set appropriately.
  */
 static int incFreeList(void)
@@ -109,7 +109,7 @@ static int incFreeList(void)
  * list-handle @a next is initialized, the tid is set to UNUSED, etc.
  *
  * @return On success, a pointer to the new stopTID structure is
- * returned. Or NULL, if an error occurred.
+ * returned. Or NULL if an error occurred.
  */
 static stopTID_t *getStopTID(void)
 {
@@ -225,6 +225,23 @@ static void freeChunk(stopTID_chunk_t *chunk)
 }
 
 /**
+ * @brief Garbage collection required?
+ *
+ * Find out if a call to PSIDFlwCntrl_gc() will have any effect,
+ * i.e. if sufficiently many unused stopTID structures are available
+ * to free().
+ *
+ * @return If enough stopTID structures to free() are available, 1 is
+ * returned. Otherwise 0 is given back.
+ *
+ * @see Selector_gc()
+ */
+static int PSIDFlwCntrl_gcRequired(void)
+{
+    return ((int)usedStopTIDs < ((int)availStopTIDs - STOPTID_CHUNK)/2);
+}
+
+/**
  * @brief Garbage collection
  *
  * Do garbage collection on unused stopTID structures. Since this
@@ -241,7 +258,7 @@ static void PSIDFlwCntrl_gc(void)
     unsigned int i;
     int first = 1;
 
-    if ((int)usedStopTIDs > (int)availStopTIDs/2 - STOPTID_CHUNK) return;
+    if (!PSIDFlwCntrl_gcRequired()) return;
 
     PSID_log(PSID_LOG_FLWCNTRL, "%s()\n", __func__);
 
@@ -249,6 +266,7 @@ static void PSIDFlwCntrl_gc(void)
 	stopTID_chunk_t *chunk = list_entry(c, stopTID_chunk_t, next);
 	int unused = 0;
 
+	/* always keep the first one */
 	if (first) {
 	    first = 0;
 	    continue;
@@ -263,7 +281,7 @@ static void PSIDFlwCntrl_gc(void)
 
 	if (unused > STOPTID_CHUNK/2) freeChunk(chunk);
 
-	if (availStopTIDs == STOPTID_CHUNK) break; /* keep the last one */
+	if (!PSIDFlwCntrl_gcRequired()) break;
     }
 }
 

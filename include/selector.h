@@ -129,7 +129,7 @@ int Selector_setMax(int max);
 /**
  * @brief Selector callback
  *
- * Callback used by Sselect(), if data on the corresponding
+ * Callback used by Sselect() if data on the corresponding
  * file-descriptor is pending. This file-descriptor is passed as the
  * first argument. The second argument is used to hand-over additional
  * information to the callback-handler.
@@ -392,7 +392,7 @@ void Selector_gc(void);
 /**
  * @brief Garbage collection required?
  *
- * Find out, if a call to Selector_gc() will have any effect, i.e. if
+ * Find out if a call to Selector_gc() will have any effect, i.e. if
  * sufficiently many unused selector structures are available to free().
  *
  * @return If enough selector structure to free() are available, 1 is
