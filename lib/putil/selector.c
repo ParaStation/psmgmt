@@ -539,7 +539,6 @@ int Sselect(int n, fd_set  *readfds,  fd_set  *writefds, fd_set *exceptfds,
 	}
 	selector->reqRead = (readfds) ? FD_ISSET(selector->fd, readfds) : 0;
 	selector->reqWrite = (writefds) ? FD_ISSET(selector->fd, writefds) : 0;
-	if (selector->fd >= n) n = selector->fd + 1;
     }
 
     do {
@@ -567,9 +566,13 @@ int Sselect(int n, fd_set  *readfds,  fd_set  *writefds, fd_set *exceptfds,
 		doRemove(selector);
 		continue;
 	    }
-	    if (selector->writeHandler) FD_SET(selector->fd, &wfds);
+	    if (selector->writeHandler) {
+		FD_SET(selector->fd, &wfds);
+		if (selector->fd >= n) n = selector->fd + 1;
+	    }
 	    if (selector->readHandler && !selector->disabled) {
-		FD_SET(selector->fd, &rfds);          /* activate port */
+		FD_SET(selector->fd, &rfds);
+		if (selector->fd >= n) n = selector->fd + 1;
 	    }
 	}
 
