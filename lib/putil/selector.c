@@ -496,6 +496,7 @@ int Selector_register(int fd, Selector_CB_t selectHandler, void *info)
 	logger_print(logger, -1, " handlers are %p/%p %s disabled\n",
 		     selector->readHandler, selector->writeHandler,
 		     selector->disabled ? "but" : "not");
+	errno = EADDRINUSE;
 	return -1;
     }
 
@@ -510,6 +511,7 @@ int Selector_register(int fd, Selector_CB_t selectHandler, void *info)
     }
     if (!selector) {
 	logger_print(logger, -1, "%s: No memory\n", __func__);
+	errno = ENOMEM;
 	return -1;
     }
 
