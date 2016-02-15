@@ -192,7 +192,7 @@ void PSID_reset(void)
 	PSID_log(-1, "%s: done\n", __func__);
     }
 }
-    
+
 /**
  * @brief Handle a PSP_CD_DAEMONSTART message.
  *
@@ -224,12 +224,7 @@ static void msg_DAEMONSTART(DDBufferMsg_t *msg)
 	if (node<PSC_getNrOfNodes()) {
 	    if (!PSIDnodes_isUp(node)) {
 		in_addr_t addr = PSIDnodes_getAddr(node);
-		if (addr != INADDR_ANY)	{
-		    /* block SIGCHLD here since PSC_startDaemon() fork()s */
-		    int blocked = PSID_blockSig(1, SIGCHLD);
-		    PSC_startDaemon(addr);
-		    PSID_blockSig(blocked, SIGCHLD);
-		}
+		if (addr != INADDR_ANY)	PSC_startDaemon(addr);
 	    } else {
 		PSID_log(-1, "%s: node %d already up\n", __func__, node);
 	    }

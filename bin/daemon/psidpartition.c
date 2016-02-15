@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2015 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -4078,7 +4078,6 @@ static int PSIDpart_getReservation(PSrsrvtn_t *res)
     unsigned int got;
     PSpart_slot_t *s;
     PStask_t * task, *delegate;
-    int blockedCHLD;
 
     if (!res) return -1;
     task = PStasklist_find(&managedTasks, res->task);
@@ -4089,9 +4088,7 @@ static int PSIDpart_getReservation(PSrsrvtn_t *res)
 
     delegate = task->delegate ? task->delegate : task;
 
-    blockedCHLD = PSID_blockSIGCHLD(1);
     if (!res->slots) res->slots = malloc(res->nMax * sizeof(*res->slots));
-    PSID_blockSIGCHLD(blockedCHLD);
 
     if (!res->slots) {
 	PSID_log(-1, "%s: No memory for slots in %#x\n", __func__, res->rid);
@@ -4155,9 +4152,7 @@ static int PSIDpart_getReservation(PSrsrvtn_t *res)
 	s = realloc(res->slots, got * sizeof(*res->slots));
 	if (!s) {
 	    PSID_log(-1, "%s: Failed to realloc()\n", __func__);
-	    blockedCHLD = PSID_blockSIGCHLD(1);
 	    free(res->slots);
-	    PSID_blockSIGCHLD(blockedCHLD);
 	    res->slots = NULL;
 	    return -1;
 	} else {

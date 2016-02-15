@@ -242,7 +242,7 @@ static int do_send(int fd, DDMsg_t *msg, int offset)
 
 static int storeMsgClient(int fd, DDMsg_t *msg, int offset)
 {
-    int blockedCHLD, blockedRDP;
+    int blockedRDP;
     msgbuf_t *msgbuf = PSIDMsgbuf_get(msg->len);
 
     if (!msgbuf) {
@@ -253,13 +253,9 @@ static int storeMsgClient(int fd, DDMsg_t *msg, int offset)
     memcpy(msgbuf->msg, msg, msg->len);
     msgbuf->offset = offset;
 
-    blockedCHLD = PSID_blockSIGCHLD(1);
     blockedRDP = RDP_blockTimer(1);
-
     list_add_tail(&msgbuf->next, &clients[fd].msgs);
-
     RDP_blockTimer(blockedRDP);
-    PSID_blockSIGCHLD(blockedCHLD);
 
     return 0;
 }
@@ -284,7 +280,7 @@ static int storeMsgClient(int fd, DDMsg_t *msg, int offset)
 static int flushClientMsgs(int fd, void *info)
 {
     list_t *m, *tmp;
-    int blockedCHLD, blockedRDP;
+    int blockedRDP;
 
     if (fd < 0 || fd >= maxClientFD) {
 	errno = EINVAL;
@@ -293,7 +289,6 @@ static int flushClientMsgs(int fd, void *info)
 
     if (clients[fd].flags & (FLUSH | CLOSE)) return 1;
 
-    blockedCHLD = PSID_blockSIGCHLD(1);
     blockedRDP = RDP_blockTimer(1);
 
     clients[fd].flags |= FLUSH;
@@ -305,7 +300,6 @@ static int flushClientMsgs(int fd, void *info)
 
 	if (sent < 0) {
 	    RDP_blockTimer(blockedRDP);
-	    PSID_blockSIGCHLD(blockedCHLD);
 
 	    return sent;
 	}
@@ -328,7 +322,6 @@ static int flushClientMsgs(int fd, void *info)
     clients[fd].flags &= ~FLUSH;
 
     RDP_blockTimer(blockedRDP);
-    PSID_blockSIGCHLD(blockedCHLD);
 
     if (!list_empty(&clients[fd].msgs)) return 1;
 
@@ -500,7 +493,7 @@ static void closeConnection(int fd)
 {
     list_t *m, *tmp;
     PStask_ID_t tid = getClientTID(fd);
-    int blockedCHLD, blockedRDP;
+    int blockedRDP;
 
     if (fd<0) {
 	PSID_log(-1, "%s(%d): fd < 0\n", __func__, fd);
@@ -513,7 +506,6 @@ static void closeConnection(int fd)
 
     if (clients[fd].flags & CLOSE) return;
 
-    blockedCHLD = PSID_blockSIGCHLD(1);
     blockedRDP = RDP_blockTimer(1);
 
     clients[fd].flags |= CLOSE;
@@ -533,7 +525,6 @@ static void closeConnection(int fd)
     clients[fd].flags &= ~CLOSE;
 
     RDP_blockTimer(blockedRDP);
-    PSID_blockSIGCHLD(blockedCHLD);
 
     shutdown(fd, SHUT_RDWR);
     close(fd);
@@ -545,7 +536,6 @@ static void closeConnection(int fd)
 void deleteClient(int fd)
 {
     PStask_t *task;
-    int blocked;
 
     PSID_log(fd<0 ? -1 : PSID_LOG_CLIENT, "%s(%d)\n", __func__, fd);
     if (fd<0) return;
@@ -554,14 +544,11 @@ void deleteClient(int fd)
 
     PSID_log(PSID_LOG_CLIENT, "%s: closing connection to %s\n",
 	     __func__, task ? PSC_printTID(task->tid) : "<unknown>");
-
-    blocked = PSID_blockSIGCHLD(1); /* prevent SIGCHLD from cleaning tasks */
     closeConnection(fd);
 
     if (!task) {
 	PSID_log(-1, "%s: Task %s not found\n", __func__,
 		 PSC_printTID(getClientTID(fd)));
-	PSID_blockSIGCHLD(blocked);
 	return;
     }
 
@@ -701,8 +688,6 @@ void deleteClient(int fd)
 	PSID_log(PSID_LOG_TASK, "%s: PStask_cleanup()\n", __func__);
 	PStask_cleanup(task->tid);
     }
-
-    PSID_blockSIGCHLD(blocked);
 
     return;
 }
@@ -850,12 +835,7 @@ static void msg_CLIENTCONNECT(int fd, DDBufferMsg_t *bufmsg)
 	if (task) {
 	    /* Spawned process has changed pid */
 	    /* This might happen due to stuff in PSI_RARG_PRE_0 */
-	    PStask_t *child;
-	    int blocked;
-
-	    blocked = PSID_blockSIGCHLD(1);
-	    child = PStask_clone(task);
-	    PSID_blockSIGCHLD(blocked);
+	    PStask_t *child = PStask_clone(task);
 
 	    PSID_log(PSID_LOG_CLIENT, "%s: reconnection with changed PID"
 		     "%d -> %d\n", __func__, PSC_getPID(task->tid), pid);

@@ -95,31 +95,6 @@ static Selector_t **selectors = NULL;
 static int maxSelectorFD = 0;
 
 /**
- * @brief (Un-)Block SIGCHLD.
- *
- * Block or unblock SIGCHLD depending on the value of @a block. If
- * block is 0, it will be blocked. Otherwise it will be unblocked.
- *
- * @param block Flag steering the (un-)blocking of SIGCHLD.
- *
- * @return Flag if SIGCHLD was blocked before. I.e. return 1 if it
- * was blocked or 0 otherwise.
- */
-static int blockSigChld(int block)
-{
-    sigset_t set, oldset;
-
-    sigemptyset(&set);
-    sigaddset(&set, SIGCHLD);
-
-    if (sigprocmask(block ? SIG_BLOCK : SIG_UNBLOCK, &set, &oldset)) {
-	logger_warn(logger, -1, errno, "%s: sigprocmask()", __func__);
-    }
-
-    return sigismember(&oldset, SIGCHLD);
-}
-
-/**
  * Number of selectors allocated at once. Ensure this chunk is larger
  * than 128 kB to force it into mmap()ed memory
  */
@@ -161,11 +136,8 @@ static unsigned int availSelectors = 0;
  */
 static int incFreeList(void)
 {
-    int blocked = blockSigChld(1);
     sel_chunk_t *chunk = malloc(sizeof(*chunk));
     unsigned int i;
-
-    blockSigChld(blocked);
 
     if (!chunk) return 0;
 
@@ -284,7 +256,6 @@ static void putSelector(Selector_t *selector)
 static void freeChunk(sel_chunk_t *chunk)
 {
     unsigned int i;
-    int blocked;
 
     if (!chunk) return;
 
@@ -333,9 +304,6 @@ static void freeChunk(sel_chunk_t *chunk)
 
     /* Now that the chunk is completely empty, free() it */
     list_del(&chunk->next);
-    blocked = blockSigChld(1);
-    free(chunk);
-    blockSigChld(blocked);
     availSelectors -= SELECTOR_CHUNK;
     logger_print(logger, SELECTOR_LOG_VERB, "%s: now used %d.\n", __func__,
 		 availSelectors);
@@ -391,16 +359,13 @@ void Selector_setDebugMask(int32_t mask)
 
 int Selector_setMax(int max)
 {
-    int oldMax = maxSelectorFD;
-    int fd, blocked;
+    int oldMax = maxSelectorFD, fd;
 
     if (maxSelectorFD >= max) return 0; /* don't shrink */
 
     maxSelectorFD = max;
 
-    blocked = blockSigChld(1);
     selectors = realloc(selectors, sizeof(*selectors) * maxSelectorFD);
-    blockSigChld(blocked);
     if (!selectors) {
 	logger_warn(logger, -1, ENOMEM, "%s", __func__);
 	errno = ENOMEM;

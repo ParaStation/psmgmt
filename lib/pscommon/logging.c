@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2005-2015 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -169,35 +169,6 @@ static inline char *getTimeStr(logger_t *logger)
 }
 
 /**
- * @brief (Un-)Block signal.
- *
- * Block or unblock the signal @a sig depending on the value of @a
- * block. If block is 0, the signal will be blocked. Otherwise it will
- * be unblocked.
- *
- * @param block Flag steering the (un-)blocking of the signal.
- *
- * @param sig The signal to block or unblock.
- *
- * @return Flag, if signal was blocked before. I.e. return 1, if
- * signal was blocked or 0 otherwise.
- */
-static int blockSig(int block, int sig)
-{
-    sigset_t set, oldset;
-
-    sigemptyset(&set);
-    sigaddset(&set, sig);
-
-    if (sigprocmask(block ? SIG_BLOCK : SIG_UNBLOCK, &set, &oldset)) {
-	// @todo how to create output here?
-	// PSID_log(-1, "%s: sigprocmask()\n", __func__);
-    }
-
-    return sigismember(&oldset, sig);
-}
-
-/**
  * @brief Panic output and exit
  *
  * Print some panic output to the logger @a l. The structure of the
@@ -223,9 +194,7 @@ static void do_panic(logger_t* l, const char *f, const char *c1, const char *c2)
     if (l && l->logfile) {
 	fprintf(l->logfile, f, c1, c2);
     } else {
-	int blocked = blockSig(1, SIGCHLD);
 	syslog(LOG_ERR,  f, c1, c2);
-	blockSig(blocked, SIGCHLD);
     }
 
     exit(1);
@@ -270,12 +239,9 @@ static void do_print(logger_t* l, const char* format, va_list ap)
     size_t len;
     va_list aq;
     char *tag, *timeStr, *c;
-    int blocked;
 
     if (!l) return;
     tag = l->tag;
-
-    blocked = blockSig(1, SIGCHLD);
 
     /* Prepare prefix string */
     timeStr = getTimeStr(l);
@@ -354,8 +320,6 @@ static void do_print(logger_t* l, const char* format, va_list ap)
     }
 
     if (l->logfile) fflush(l->logfile);
-
-    blockSig(blocked, SIGCHLD);
 }
 
 void logger_print(logger_t* logger, int32_t key, const char* format, ...)

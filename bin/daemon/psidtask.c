@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2015 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -52,7 +52,7 @@ static void printList(list_t *sigList)
 void PSID_setSignal(list_t *sigList, PStask_ID_t tid, int signal)
 {
     PSsignal_t *thissig = PSsignal_get();
-    int blockedCHLD, blockedRDP;
+    int blockedRDP;
 
     if (!thissig) {
 	PSID_warn(-1, errno, "%s(%s,%d)", __func__, PSC_printTID(tid), signal);
@@ -62,7 +62,6 @@ void PSID_setSignal(list_t *sigList, PStask_ID_t tid, int signal)
     PSID_log(PSID_LOG_SIGNAL, "%s(%s, %d)\n",
 	     __func__, PSC_printTID(tid), signal);
 
-    blockedCHLD = PSID_blockSIGCHLD(1);
     blockedRDP = RDP_blockTimer(1);
 
     if (PSID_getDebugMask() & PSID_LOG_SIGDBG) {
@@ -85,18 +84,17 @@ void PSID_setSignal(list_t *sigList, PStask_ID_t tid, int signal)
     }
 
     RDP_blockTimer(blockedRDP);
-    PSID_blockSIGCHLD(blockedCHLD);
+
 }
 
 PSsignal_t *PSID_findSignal(list_t *sigList, PStask_ID_t tid, int signal)
 {
     list_t *s;
-    int blockedCHLD, blockedRDP;
+    int blockedRDP;
 
     PSID_log(PSID_LOG_SIGNAL, "%s(%s, %d)\n",
 	     __func__, PSC_printTID(tid), signal);
 
-    blockedCHLD = PSID_blockSIGCHLD(1);
     blockedRDP = RDP_blockTimer(1);
 
     list_for_each(s, sigList) {
@@ -104,13 +102,11 @@ PSsignal_t *PSID_findSignal(list_t *sigList, PStask_ID_t tid, int signal)
 	if (sig->deleted) continue;
 	if (sig->tid == tid && sig->signal == signal) {
 	    RDP_blockTimer(blockedRDP);
-	    PSID_blockSIGCHLD(blockedCHLD);
 	    return sig;
 	}
     }
 
     RDP_blockTimer(blockedRDP);
-    PSID_blockSIGCHLD(blockedCHLD);
 
     return NULL;
 }
@@ -119,9 +115,8 @@ static int remSig(const char *fname, list_t *sigList, PStask_ID_t tid,
 		  int signal, int remove)
 {
     PSsignal_t *sig;
-    int blockedCHLD, blockedRDP, ret = 0;
+    int blockedRDP, ret = 0;
 
-    blockedCHLD = PSID_blockSIGCHLD(1);
     blockedRDP = RDP_blockTimer(1);
 
     sig = PSID_findSignal(sigList, tid, signal);
@@ -158,7 +153,6 @@ static int remSig(const char *fname, list_t *sigList, PStask_ID_t tid,
     }
 
     RDP_blockTimer(blockedRDP);
-    PSID_blockSIGCHLD(blockedCHLD);
 
     return ret;
 }
@@ -178,9 +172,8 @@ PStask_ID_t PSID_getSignal(list_t *sigList, int *signal)
     list_t *s, *tmp;
     PStask_ID_t tid = 0;
     PSsignal_t *thissig = NULL;
-    int blockedCHLD, blockedRDP;
+    int blockedRDP;
 
-    blockedCHLD = PSID_blockSIGCHLD(1);
     blockedRDP = RDP_blockTimer(1);
 
     /* Search signal or take any signal if *signal==-1, i.e. first entry */
@@ -207,7 +200,6 @@ PStask_ID_t PSID_getSignal(list_t *sigList, int *signal)
     }
 
     RDP_blockTimer(blockedRDP);
-    PSID_blockSIGCHLD(blockedCHLD);
 
     return tid;
 }
@@ -218,9 +210,8 @@ PStask_ID_t PSID_getSignalByID(list_t *sigList,
     list_t *s;
     PStask_ID_t tid = 0;
     PSsignal_t *thissig = NULL;
-    int blockedCHLD, blockedRDP;
+    int blockedRDP;
 
-    blockedCHLD = PSID_blockSIGCHLD(1);
     blockedRDP = RDP_blockTimer(1);
 
     list_for_each(s, sigList) {
@@ -246,7 +237,6 @@ PStask_ID_t PSID_getSignalByID(list_t *sigList,
     }
 
     RDP_blockTimer(blockedRDP);
-    PSID_blockSIGCHLD(blockedCHLD);
 
     return tid;
 }
@@ -255,9 +245,8 @@ int PSID_getSignalByTID(list_t *sigList, PStask_ID_t tid)
 {
     list_t *s, *tmp;
     PSsignal_t *thissig = NULL;
-    int blockedCHLD, blockedRDP, signal = 0;
+    int blockedRDP, signal = 0;
 
-    blockedCHLD = PSID_blockSIGCHLD(1);
     blockedRDP = RDP_blockTimer(1);
 
     list_for_each_safe(s, tmp, sigList) {
@@ -282,7 +271,6 @@ int PSID_getSignalByTID(list_t *sigList, PStask_ID_t tid)
     }
 
     RDP_blockTimer(blockedRDP);
-    PSID_blockSIGCHLD(blockedCHLD);
 
     return signal;
 }
@@ -290,11 +278,10 @@ int PSID_getSignalByTID(list_t *sigList, PStask_ID_t tid)
 int PSID_numSignals(list_t *sigList)
 {
     list_t *s;
-    int blockedCHLD, blockedRDP, num = 0;
+    int blockedRDP, num = 0;
 
     if (!sigList) return 0;
 
-    blockedCHLD = PSID_blockSIGCHLD(1);
     blockedRDP = RDP_blockTimer(1);
 
     list_for_each(s, sigList) {
@@ -304,7 +291,6 @@ int PSID_numSignals(list_t *sigList)
     }
 
     RDP_blockTimer(blockedRDP);
-    PSID_blockSIGCHLD(blockedCHLD);
 
     return num;
 }
@@ -312,11 +298,10 @@ int PSID_numSignals(list_t *sigList)
 int PSID_emptySigList(list_t *sigList)
 {
     list_t *s;
-    int blockedCHLD, blockedRDP, empty = 1;
+    int blockedRDP, empty = 1;
 
     if (!sigList) return 1;
 
-    blockedCHLD = PSID_blockSIGCHLD(1);
     blockedRDP = RDP_blockTimer(1);
 
     list_for_each(s, sigList) {
@@ -327,7 +312,6 @@ int PSID_emptySigList(list_t *sigList)
     }
 
     RDP_blockTimer(blockedRDP);
-    PSID_blockSIGCHLD(blockedCHLD);
 
     return empty;
 }
@@ -444,9 +428,8 @@ void PStask_cleanup(PStask_ID_t tid)
 	if (task->group==TG_FORWARDER && !task->released) {
 	    /* cleanup children */
 	    list_t *s, *tmp;
-	    int blockedCHLD, blockedRDP;
+	    int blockedRDP;
 
-	    blockedCHLD = PSID_blockSIGCHLD(1);
 	    blockedRDP = RDP_blockTimer(1);
 
 	    list_for_each_safe(s, tmp, &task->childList) { /* @todo safe req? */
@@ -490,8 +473,6 @@ void PStask_cleanup(PStask_ID_t tid)
 	    }
 
 	    RDP_blockTimer(blockedRDP);
-	    PSID_blockSIGCHLD(blockedCHLD);
-
 	}
     }
 

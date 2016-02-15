@@ -274,11 +274,6 @@ static int handleSIGCHLD(int fd, void *info)
     return 0;
 }
 
-int PSID_blockSIGCHLD(int block)
-{
-    return 1;
-}
-
 /**
  * @brief Handling of SIGUSR1
  *
@@ -492,7 +487,6 @@ static void initSigHandlers(void)
     signal(SIGHUP   ,SIG_IGN);
 
     /* Some signals are better handled via Selector */
-    PSID_log(-1, "%s: initializing signal FDs\n", __func__);
     initSignalFD(SIGCHLD, handleSIGCHLD);
     initSignalFD(SIGUSR1, handleSIGUSR1);
     initSignalFD(SIGUSR2, handleSIGUSR2);
