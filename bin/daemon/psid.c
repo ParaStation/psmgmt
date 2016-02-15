@@ -36,6 +36,7 @@ static char vcid[] __attribute__((used)) =
 #include <sys/resource.h>
 #include <sys/wait.h>
 #include <sys/socket.h>
+#include <sys/signalfd.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
@@ -211,22 +212,29 @@ static void RDPCallBack(int msgid, void *buf)
     }
 }
 
-static int blockSIGCHLD = 0;
-static int SIGCHLDpending = 0;
-
-void PSID_handleSIGCHLD(int sig)
+/**
+ * @brief Handling of SIGCHLD
+ *
+ * Process all pending SIGCHLD. Will cleanup corresponding
+ * task-structures, etc.
+ *
+ * @param fd File-selector providing info on died child processes. Ignored.
+ *
+ * @param info Dummy pointer to extra info. Ignored.
+ *
+ * @return Always returs 0
+ */
+static int handleSIGCHLD(int fd, void *info)
 {
+    struct signalfd_siginfo sigInfo;
     pid_t pid;         /* pid of the child process */
     PStask_ID_t tid;   /* tid of the child process */
     int estatus;       /* termination status of the child process */
-    static int handlingActive = 0;
 
-    if (handlingActive) {
-	SIGCHLDpending = 1;
-	return;
+    /* Ignore data available on fd. We rely on waitpid() alone */
+    if (read(fd, &sigInfo, sizeof(sigInfo)) < 0) {
+	PSID_warn(-1, errno, "%s: read()", __func__);
     }
-
-    handlingActive = 1;
 
     while ((pid = waitpid(-1, &estatus, WNOHANG)) > 0){
 	/*
@@ -261,30 +269,43 @@ void PSID_handleSIGCHLD(int sig)
 		if (task->group != TG_DELEGATE) PStask_cleanup(tid);
 	    }
 	}
-	SIGCHLDpending = 0;
     }
 
-    handlingActive = 0;
+    return 0;
 }
 
 int PSID_blockSIGCHLD(int block)
 {
-    int wasBlocked = blockSIGCHLD;
+    return 1;
+}
 
-    blockSIGCHLD = block;
+/**
+ * @brief Handling of SIGUSR1
+ *
+ * Print some statistics on RDP, buffer usage, etc.
+ *
+ * @param fd Dummy file-descriptor. Ignored.
+ *
+ * @param info Dummy pointer to extra info. Ignored.
+ *
+ * @return Always returs 0
+ */
+static int handleSIGUSR1(int fd, void *info)
+{
+    struct signalfd_siginfo sigInfo;
 
-    if (!block && SIGCHLDpending) {
-	PSID_handleSIGCHLD(SIGCHLD);
-
-	if (SIGCHLDpending) {
-	    int blocked = PSID_blockSig(1, SIGCHLD);
-	    PSID_log(PSID_LOG_SIGNAL, "%s: still pending signals\n", __func__);
-	    PSID_handleSIGCHLD(SIGCHLD);
-	    PSID_blockSig(blocked, SIGCHLD);
-	}
+    /* Ignore data available on fd. We rely on waitpid() alone */
+    if (read(fd, &sigInfo, sizeof(sigInfo)) < 0) {
+	PSID_warn(-1, errno, "%s: read()", __func__);
     }
 
-    return wasBlocked;
+    PSIDMsgbuf_printStat();
+    PStask_printStat();
+    RDP_printStat();
+    PSIDFlwCntrl_printStat();
+    Selector_printStat();
+
+    return 0;
 }
 
 static void printMallocInfo(void)
@@ -305,11 +326,36 @@ static void printMallocInfo(void)
 }
 
 /**
+ * @brief Handling of SIGUSR2
+ *
+ * Print some info on memory usage and try to trim it.
+ *
+ * @param fd Dummy file-descriptor. Ignored.
+ *
+ * @param info Dummy pointer to extra info. Ignored.
+ *
+ * @return Always returs 0
+ */
+static int handleSIGUSR2(int fd, void *info)
+{
+    struct signalfd_siginfo sigInfo;
+
+    /* Ignore data available on fd. We rely on waitpid() alone */
+    if (read(fd, &sigInfo, sizeof(sigInfo)) < 0) {
+	PSID_warn(-1, errno, "%s: read()", __func__);
+    }
+
+    printMallocInfo();
+    malloc_trim(0);
+    printMallocInfo();
+
+    return 0;
+}
+
+/**
  * @brief Signal handler
  *
- * Handle signals caught by the local daemon. Most prominent all
- * SIGCHLD signals originating from processes fork()ed from the local
- * daemon are handled here.
+ * Handle signals caught by the local daemon.
  *
  * @param sig Signal to handle.
  *
@@ -336,13 +382,6 @@ static void sighandler(int sig)
 		 sys_siglist[sig] ? sys_siglist[sig] : sigStr);
 	PSID_shutdown();
 	break;
-    case SIGCHLD:
-	if (blockSIGCHLD) {
-	    SIGCHLDpending = 1;
-	} else {
-	    PSID_handleSIGCHLD(sig);
-	}
-	break;
     case  SIGPIPE:   /* write on a pipe with no one to read it */
 	/* Ignore silently */
 	break;
@@ -357,18 +396,6 @@ static void sighandler(int sig)
     case  SIGALRM:   /* alarm clock timeout */
 	PSID_log(-1, "Received signal %s. Continue\n",
 		 sys_siglist[sig] ? sys_siglist[sig] : sigStr);
-	break;
-    case  SIGUSR1:   /* user defined signal 1 */
-	PSIDMsgbuf_printStat();
-	PStask_printStat();
-	RDP_printStat();
-	PSIDFlwCntrl_printStat();
-	Selector_printStat();
-	break;
-    case  SIGUSR2:   /* user defined signal 2 */
-	printMallocInfo();
-	malloc_trim(0);
-	printMallocInfo();
 	break;
     case  SIGTRAP:   /* (*) trace trap (not reset when caught) */
     case  SIGBUS:    /* (*) bus error (specification exception) */
@@ -402,6 +429,29 @@ static void sighandler(int sig)
     signal(sig, sighandler);
 }
 
+static void initSignalFD(int sig, Selector_CB_t handler)
+{
+    sigset_t set;
+    int sigFD;
+
+    sigemptyset(&set);
+    sigaddset(&set, sig);
+
+    if (sigprocmask(SIG_BLOCK, &set, NULL) < 0) {
+	PSID_exit(errno, "%s(%s): sigprocmask()", __func__, strsignal(sig));
+    }
+
+    sigFD = signalfd(-1, &set, SFD_NONBLOCK | SFD_CLOEXEC);
+    if (sigFD < 0) {
+	PSID_exit(errno, "%s(%s): signalfd()", __func__, strsignal(sig));
+    }
+
+    if (Selector_register(sigFD, handler, NULL) < 0) {
+	PSID_exit(errno, "%s(%s): Selector_register()", __func__,
+		  strsignal(sig));
+    }
+}
+
 /**
  * @brief Initialize signal handlers
  *
@@ -419,11 +469,8 @@ static void initSigHandlers(void)
     signal(SIGILL   ,sighandler);
     signal(SIGTRAP  ,sighandler);
     signal(SIGFPE   ,sighandler);
-    signal(SIGUSR1  ,sighandler);
-    signal(SIGUSR2  ,sighandler);
     signal(SIGPIPE  ,sighandler);
     signal(SIGTERM  ,sighandler);
-    signal(SIGCHLD  ,sighandler);
     signal(SIGCONT  ,sighandler);
     signal(SIGTSTP  ,sighandler);
     signal(SIGTTIN  ,sighandler);
@@ -443,24 +490,12 @@ static void initSigHandlers(void)
     signal(SIGSTKFLT,sighandler);
 #endif
     signal(SIGHUP   ,SIG_IGN);
-}
 
-/**
- * @brief Handling of SIGUSR2
- *
- * Handling of SIGUSR2 is suppressed most of the time in order to
- * prevent receiving it in a critical situation, i.e. while in
- * malloc() and friends. This has to be prevented since SIGUSR2's only
- * purpose is to call malloc_trim() which will block if called from
- * within malloc() and friends.
- *
- * It is save to handle SIGURS2 from within the main-loop. Thus, this
- * function should be registered via @ref PSID_registerLoopAct().
- */
-static void handleSIGUSR2(void)
-{
-    PSID_blockSig(0, SIGUSR2);
-    PSID_blockSig(1, SIGUSR2);
+    /* Some signals are better handled via Selector */
+    PSID_log(-1, "%s: initializing signal FDs\n", __func__);
+    initSignalFD(SIGCHLD, handleSIGCHLD);
+    initSignalFD(SIGUSR1, handleSIGUSR1);
+    initSignalFD(SIGUSR2, handleSIGUSR2);
 }
 
 /**
@@ -617,10 +652,6 @@ int main(int argc, const char *argv[])
        }
     }
 
-    PSID_blockSig(1,SIGUSR2);
-    initSigHandlers();
-    PSID_registerLoopAct(handleSIGUSR2);
-
 #define _PATH_TTY "/dev/tty"
     /* First disconnect from the old controlling tty. */
     {
@@ -717,6 +748,9 @@ int main(int argc, const char *argv[])
 	}
     }
 
+    /* Setup handling of signals */
+    initSigHandlers();
+
     /* Catch SIGSEGV, SIGABRT and SIGBUS only if core dumps are suppressed */
     getrlimit(RLIMIT_CORE, &rlimit);
     if (!rlimit.rlim_cur) {
@@ -737,7 +771,6 @@ int main(int argc, const char *argv[])
     PSIDnodes_setKillDelay(PSC_getMyID(), config->killDelay);
 
     /* Bring node up with correct numbers of CPUs */
-    if (!Selector_isInitialized()) Selector_init(logfile);
     declareNodeAlive(PSC_getMyID(), PSID_getPhysCPUs(), PSID_getVirtCPUs());
 
     /* Initialize timeouts, etc. */
