@@ -513,7 +513,7 @@ static void releaseLogger(int status)
  send_again:
     sendMsg(FINALIZE, (char *)&status, sizeof(status));
 
-    timeout = (struct timeval) {loggerTimeout, 0};
+    timeout = (struct timeval) {10, 0};
  again:
     ret = recvMsg(&msg, &timeout);
 
