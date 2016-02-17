@@ -192,7 +192,6 @@ static Selector_t * getSelector(void)
     list_del(&selector->next);
     usedSelectors++;
 
-    INIT_LIST_HEAD(&selector->next);
     *selector = (Selector_t) {
 	.readHandler = NULL,
 	.writeHandler = NULL,
@@ -205,6 +204,7 @@ static Selector_t * getSelector(void)
 	.deleted = 0,
 	.state = SEL_USED,
     };
+    INIT_LIST_HEAD(&selector->next);
 
     return selector;
 }
@@ -533,9 +533,8 @@ int Selector_awaitWrite(int fd, Selector_CB_t writeHandler, void *info)
 	selector->disabled = 0;
 	selector->deleted = 0;
     } else if (!selector) {
-	/* no selector yet? This is strange */
-	logger_print(logger, -1, "%s(fd %d): no selector yet?!\n", __func__,fd);
-
+	logger_print(logger, SELECTOR_LOG_VERB,
+		     "%s(fd %d): no selector yet?!\n", __func__,fd);
 	selector = getSelector();
     }
     if (!selector) {
