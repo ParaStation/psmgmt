@@ -68,9 +68,6 @@ int stdoutSock = -1;
 /** The socket connected to the stderr port of the client */
 int stderrSock = -1;
 
-/** Set of fds the forwarder writes to (this is stdinSock) */
-static fd_set writefds;
-
 /** Number of open file descriptors to wait for */
 static int openfds = 0;
 
@@ -574,7 +571,7 @@ static void releaseLogger(int status)
  * returned. If an error occurs, -1 or 0 is returned and errno is set
  * appropriately.
  */
-static int do_write(PSLog_Msg_t *msg, int offset)
+static int doWrite(PSLog_Msg_t *msg, int offset)
 {
     int n, i;
     int count = msg->header.len - PSLog_headerSize;
@@ -582,7 +579,7 @@ static int do_write(PSLog_Msg_t *msg, int offset)
     if (!count) {
 	/* close clients stdin */
 	shutdown(stdinSock, SHUT_WR);
-	FD_CLR(stdinSock, &writefds);
+	if (Selector_isRegistered(stdinSock)) Selector_vacateWrite(stdinSock);
 	stdinSock = -1;
 	return 0;
     }
@@ -591,22 +588,27 @@ static int do_write(PSLog_Msg_t *msg, int offset)
 	char *errstr;
 	errno = 0;
 	i = write(stdinSock, &msg->buf[n], count-n);
-	if (i<=0) {
+	if (i<0) {
 	    int eno = errno;
 	    switch (eno) {
 	    case EINTR:
 		i=1;
 		continue;
-		break;
 	    case EAGAIN:
 		return n;
+	    case EPIPE:
+		sendMsg(STOP, NULL, 0);
+		if (Selector_isRegistered(stdinSock))
+		    Selector_vacateWrite(stdinSock);
+		stdinSock = -1;
 		break;
 	    default:
 		errstr = strerror(eno);
 		PSIDfwd_printMsgf(STDERR, "%s: got error %d on stdinSock: %s\n",
 				  __func__, eno, errstr ? errstr : "UNKNOWN");
-		return i;
 	    }
+	    errno = eno;
+	    return i;
 	} else
 	    n+=i;
     }
@@ -630,7 +632,7 @@ static int storeMsg(PSLog_Msg_t *msg, int offset)
     return 0;
 }
 
-static int flushMsgs(void)
+static int flushMsgs(int fd /* dummy */, void *info /* dummy */)
 {
     list_t *m, *tmp;
 
@@ -638,7 +640,7 @@ static int flushMsgs(void)
 	msgbuf_t *msgbuf = list_entry(m, msgbuf_t, next);
 	PSLog_Msg_t *msg = (PSLog_Msg_t *)msgbuf->msg;
 	int len = msg->header.len - PSLog_headerSize;
-	int written = do_write(msg, msgbuf->offset);
+	int written = doWrite(msg, msgbuf->offset);
 
 	if (written<0) return written;
 	if (written != len) {
@@ -653,8 +655,7 @@ static int flushMsgs(void)
 	errno = EWOULDBLOCK;
 	return -1;
     } else {
-	if (stdinSock != -1) FD_CLR(stdinSock, &writefds);
-	Selector_startOver();
+	if (stdinSock != -1) Selector_vacateWrite(stdinSock);
 	sendMsg(CONT, NULL, 0);
     }
 
@@ -665,14 +666,13 @@ static int writeMsg(PSLog_Msg_t *msg)
 {
     int len = msg->header.len - PSLog_headerSize, written = 0;
 
-    if (!list_empty(&oldMsgs)) flushMsgs();
-    if (list_empty(&oldMsgs)) written = do_write(msg, 0);
+    if (!list_empty(&oldMsgs)) flushMsgs(0, NULL);
+    if (list_empty(&oldMsgs)) written = doWrite(msg, 0);
 
     if (written<0) return written;
     if ((written != len) || (!list_empty(&oldMsgs))) {
 	if (!storeMsg(msg, written)) errno = EWOULDBLOCK;
-	if (stdinSock != -1) FD_SET(stdinSock, &writefds);
-	Selector_startOver();
+	if (stdinSock != -1) Selector_awaitWrite(stdinSock, flushMsgs, NULL);
 	if (len) sendMsg(STOP, NULL, 0);
 	return -1;
     }
@@ -764,8 +764,12 @@ static int readFromLogger(int fd, void *data)
 				  __func__, msg.header.len - PSLog_headerSize);
 	    }
 	    if (stdinSock<0) {
-		PSIDfwd_printMsgf(STDERR, "%s: STDIN already closed\n",
-				  __func__);
+		static int first = 1;
+		if (first) {
+		    PSIDfwd_printMsgf(STDERR, "%s: STDIN already closed\n",
+				      __func__);
+		    first = 0;
+		}
 	    } else {
 		writeMsg(&msg);
 	    }
@@ -867,7 +871,7 @@ static size_t collectRead(int sock, char *buf, size_t count, size_t *total)
  *
  * @param fd The file-descriptor to read from
  *
- * @param data Some additional data. Currently not in use.
+ * @param data Some additional data. Used for the type of PSLog message.
  *
  * @return If a fatal error occurred, -1 is returned and errno is set
  * appropriately. Otherwise 0 is returned.
@@ -875,27 +879,9 @@ static size_t collectRead(int sock, char *buf, size_t count, size_t *total)
 static int readFromChild(int fd, void *data)
 {
     char buf[4000];
-    PSLog_msg_t type = 0;
+    PSLog_msg_t type = *(PSLog_msg_t *)data;
     size_t total;
     int n;
-
-    if (fd == stdoutSock) {
-	type = STDOUT;
-    } else if (fd == stderrSock) {
-	type = STDERR;
-    } else {
-	PSIDfwd_printMsgf(STDERR, "%s: PANIC: %s: socket %d active"
-			  " (neither stdout (%d) nor stderr (%d))\n",
-			  tag, __func__, fd, stdoutSock, stderrSock);
-	/* At least, read this stuff and throw it away */
-	if (read(fd, buf, sizeof(buf)) < 0) {
-	    PSIDfwd_printMsgf(STDERR, "%s: %s: read(%d) failed: %s\n",
-			      tag, __func__, fd,  strerror(errno));
-	}
-	close(fd);
-	Selector_remove(fd);
-	return 0;
-    }
 
     n = collectRead(fd, buf, sizeof(buf), &total);
     if (verbose) {
@@ -1065,6 +1051,10 @@ static void sighandler(int sig)
 	PSIDfwd_printMsg(STDERR, txt);
 	PSID_log(-1, "%s: %s", __func__, txt);
 	break;
+    case SIGUSR2:
+	PSIDfwd_printMsgf(STDERR, "%s: Got SIGUSR2\n", tag);
+	raise(SIGSEGV);
+	break;
     case SIGTTIN:
 	PSIDfwd_printMsg(STDERR, "got SIGTTIN\n");
 	break;
@@ -1084,7 +1074,6 @@ static void sighandler(int sig)
 	break;
     case SIGPIPE:
 	PSIDfwd_printMsgf(STDERR, "%s: Got SIGPIPE\n", tag);
-	raise(SIGSEGV);
 	break;
     }
 
@@ -1319,6 +1308,8 @@ static int handleSignalFD(int fd, void *info)
 
 static int registerSelectHandlers(void)
 {
+    static PSLog_msg_t stdoutType = STDOUT, stderrType = STDERR;
+
     /* open signal control fds */
     if (socketpair(PF_UNIX, SOCK_STREAM, 0, signalFD) < 0) {
 	PSID_log(-1, "%s: open control socket failed\n", __func__);
@@ -1327,17 +1318,15 @@ static int registerSelectHandlers(void)
     Selector_register(signalFD[0], handleSignalFD, NULL);
 
     if (stdoutSock != -1) {
-	Selector_register(stdoutSock, readFromChild, NULL);
+	Selector_register(stdoutSock, readFromChild, &stdoutType);
 	openfds++;
     }
     if (stderrSock != -1 && stderrSock != stdoutSock) {
-	Selector_register(stderrSock, readFromChild, NULL);
+	Selector_register(stderrSock, readFromChild, &stderrType);
 	openfds++;
     }
 
     Selector_register(daemonSock, readFromLogger, NULL);
-
-    FD_ZERO(&writefds);
 
     return 1;
 }
@@ -1354,9 +1343,6 @@ static int registerSelectHandlers(void)
  */
 static void loop(void)
 {
-    fd_set wfds;
-    int sock;
-
     if (verbose) {
 	PSIDfwd_printMsgf(STDERR, "%s: childTask=%s daemon=%d",
 			  tag, PSC_printTID(childTask->tid), daemonSock);
@@ -1366,25 +1352,13 @@ static void loop(void)
 
     /* Loop forever. We exit on SIGCHLD. */
     while (openfds || !gotSIGCHLD) {
-	memcpy(&wfds, &writefds, sizeof(wfds));
 
-	if (Sselect(FD_SETSIZE, NULL, &wfds, NULL, NULL) < 0) {
+	if (Sselect(0, NULL, NULL, NULL, NULL) < 0) {
 	    if (errno && errno != EINTR) {
 		PSIDfwd_printMsgf(STDERR, "%s: %s: error on Sselect(): %s\n",
 				  tag, __func__, strerror(errno));
 	    }
 	    continue;
-	}
-
-	/* check the remaining sockets to accept more input */
-	for (sock=0; sock<=stdinSock; sock++) {
-	    if (FD_ISSET(sock, &wfds)) { /* socket ready */
-		if (sock == stdinSock) {
-		    flushMsgs();
-		} else {
-		    PSIDfwd_printMsgf(STDERR, "%s: write to %d?\n", tag, sock);
-		}
-	    }
 	}
     }
 
@@ -1433,8 +1407,9 @@ void PSID_forwarder(PStask_t *task, int daemonfd, int eno)
     signal(SIGCHLD, sighandler);
     signal(SIGUSR1, sighandler);
     signal(SIGTTIN, sighandler);
-    if (getenv("PSIDFORWARDER_DUMP_CORE_ON_SIGPIPE")) {
-	signal(SIGPIPE, sighandler);
+    signal(SIGPIPE, sighandler);
+    if (getenv("PSIDFORWARDER_DUMP_CORE_ON_SIGUSR2")) {
+	signal(SIGUSR2, sighandler);
     }
     PSID_blockSig(0, SIGCHLD);
 
