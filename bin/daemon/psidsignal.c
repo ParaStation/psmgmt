@@ -1180,7 +1180,7 @@ static void msg_RELEASERES(DDSignalMsg_t *msg)
     }
 
     if (msg->param) {
-	if (task->pendingReleaseErr && msg->param != ESRCH) {
+	if (!task->pendingReleaseErr && msg->param != ESRCH) {
 	    task->pendingReleaseErr = msg->param;
 	}
 	PSID_log(dbgMask, "%s: sig %d: error = %d from %s", __func__,
