@@ -420,7 +420,7 @@ CLEANFILES = VERSION.psmgmt
 
 # ---- proxy to dist/Makefile
 #
-@BUILD_WITHOUT_PSCONFIG_TRUE@CONFIGARGS = --without=psconfig
+@BUILD_WITHOUT_PSCONFIG_TRUE@CONFIGARGS = "-without psconfig"
 DISTCLEANFILES = dist/Makefile
 all: all-recursive
 

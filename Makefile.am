@@ -46,7 +46,7 @@ dist-hook:
 # ---- proxy to dist/Makefile
 #
 if BUILD_WITHOUT_PSCONFIG
-  CONFIGARGS=--without=psconfig
+  CONFIGARGS="-without psconfig"
 endif
 
 .PHONY: tar rpm srpm tag version
