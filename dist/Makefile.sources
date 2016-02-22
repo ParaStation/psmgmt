@@ -114,6 +114,8 @@ doc/parastation.conf.tmpl \
 doc/psaccount.conf \
 doc/psresport.conf \
 doc/psconfig/psmgmt.vipsconfig \
+doc/systemd/psidstarter_socket_d_port.conf \
+doc/systemd/psid_service_d_munge.conf \
 include/Makefile.am \
 include/Makefile.in \
 include/config_parsing.h \
