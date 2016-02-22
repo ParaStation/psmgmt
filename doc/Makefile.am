@@ -16,4 +16,4 @@ dist_plugin_DATA = psresport.conf psaccount.conf
 
 dist_noinst_DATA = parastation.conf.tmpl
 
-EXTRA_DIST = MessageTypes
+EXTRA_DIST = MessageTypes psconfig
