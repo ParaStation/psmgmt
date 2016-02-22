@@ -139,10 +139,6 @@ AC_CONFIG_FILES(plugins/psmom/src/psmom/Makefile)
 AC_CONFIG_FILES(scripts/Makefile)
 AC_CONFIG_FILES(tests/plugins/Makefile)
 AC_CONFIG_FILES(tests/functional/Makefile)
+AC_CONFIG_LINKS(dist/Makefile:dist/Makefile)
 
 AC_OUTPUT
-
-# copy hand written Makefiles
-if test ! ${srcdir}/dist/Makefile -ef dist/Makefile ; then
-   install -D -p ${srcdir}/dist/Makefile dist/Makefile
-fi

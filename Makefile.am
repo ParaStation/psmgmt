@@ -21,8 +21,7 @@ if TESTPLUGINS_ENABLED
 endif
 
 EXTRA_DIST = README tests/psid
-EXTRA_DIST += dist/.gitignore dist/Makefile dist/Makefile.sources	\
-	dist/psmgmt.spec.templ
+EXTRA_DIST += dist/.gitignore dist/Makefile.sources dist/psmgmt.spec.templ
 
 dist_noinst_DATA = LICENSE.QPL
 
@@ -52,5 +51,3 @@ endif
 .PHONY: tar rpm srpm tag version
 tar rpm srpm tag version:
 	TOP_SRCDIR=$(abs_top_srcdir) CONFIGARGS=$(CONFIGARGS) $(MAKE) -C dist $@
-
-DISTCLEANFILES = dist/Makefile

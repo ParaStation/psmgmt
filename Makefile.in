@@ -129,7 +129,7 @@ am__CONFIG_DISTCLEAN_FILES = config.status config.cache config.log \
  configure.lineno config.status.lineno
 mkinstalldirs = $(install_sh) -d
 CONFIG_CLEAN_FILES =
-CONFIG_CLEAN_VPATH_FILES =
+CONFIG_CLEAN_VPATH_FILES = dist/Makefile
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
 am__v_P_0 = false
@@ -189,7 +189,7 @@ CSCOPE = cscope
 DIST_SUBDIRS = include lib bin plugins doc scripts tests/plugins \
 	tests/functional
 am__DIST_COMMON = $(srcdir)/Makefile.in $(top_srcdir)/common.am \
-	$(top_srcdir)/scripts/compile \
+	$(top_srcdir)/dist/Makefile $(top_srcdir)/scripts/compile \
 	$(top_srcdir)/scripts/config.guess \
 	$(top_srcdir)/scripts/config.sub \
 	$(top_srcdir)/scripts/install-sh \
@@ -408,8 +408,8 @@ configdir = $(prefix)/config
 scriptsdir = $(prefix)/scripts
 ACLOCAL_AMFLAGS = -I m4
 SUBDIRS = include lib bin plugins doc scripts $(am__append_1)
-EXTRA_DIST = README tests/psid dist/.gitignore dist/Makefile \
-	dist/Makefile.sources dist/psmgmt.spec.templ
+EXTRA_DIST = README tests/psid dist/.gitignore dist/Makefile.sources \
+	dist/psmgmt.spec.templ
 dist_noinst_DATA = LICENSE.QPL
 PKG_VER := $(shell ${top_srcdir}/scripts/vcversion -r $(top_srcdir) -n)
 
@@ -421,7 +421,6 @@ CLEANFILES = VERSION.psmgmt
 # ---- proxy to dist/Makefile
 #
 @BUILD_WITHOUT_PSCONFIG_TRUE@CONFIGARGS = "-without psconfig"
-DISTCLEANFILES = dist/Makefile
 all: all-recursive
 
 .SUFFIXES:
@@ -798,7 +797,6 @@ clean-generic:
 distclean-generic:
 	-test -z "$(CONFIG_CLEAN_FILES)" || rm -f $(CONFIG_CLEAN_FILES)
 	-test . = "$(srcdir)" || test -z "$(CONFIG_CLEAN_VPATH_FILES)" || rm -f $(CONFIG_CLEAN_VPATH_FILES)
-	-test -z "$(DISTCLEANFILES)" || rm -f $(DISTCLEANFILES)
 
 maintainer-clean-generic:
 	@echo "This command is intended for maintainers to use"
