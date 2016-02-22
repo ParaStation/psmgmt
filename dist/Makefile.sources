@@ -255,7 +255,7 @@ plugins/psmom/doc/Makefile.in \
 plugins/psmom/doc/psmom-epilogue-example \
 plugins/psmom/doc/psmom-prologue-example \
 plugins/psmom/doc/psmom-timeout-example \
-plugins/psmom/doc/psmom.pam \
+plugins/psmom/doc/pam/psmom \
 plugins/psmom/doc/psmom.conf \
 plugins/psmom/src/include/Makefile.am \
 plugins/psmom/src/include/Makefile.in \
