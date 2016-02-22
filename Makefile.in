@@ -415,6 +415,12 @@ CLEANFILES = VERSION.psmgmt
 # ---- proxy to dist/Makefile
 #
 @BUILD_WITHOUT_PSCONFIG_TRUE@CONFIGARGS = "-without psconfig"
+
+# keep "make distcheck" happy
+AM_DISTCHECK_CONFIGURE_FLAGS = \
+       --with-unitdir=$$dc_install_base/$(unitdir)     \
+       --with-pamdir=$$dc_install_base/$(pamdir)
+
 all: all-recursive
 
 .SUFFIXES:

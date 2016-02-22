@@ -57,7 +57,7 @@ AC_ARG_WITH([pamdir], [AS_HELP_STRING([--with-pamdir=DIR],
   AS_IF([test "x$withval" = xyes -o "x$withval" = no],
 	[AC_MSG_ERROR([missing arg to --with-pamdir])],
 	[pamdir="$withval"]),
-  [pamdir='${libdir}/security'])
+  [pamdir=/lib/security])
 AC_SUBST([pamdir])
 
 PS_SEARCH_LIBS([initscr], [ncurses curses], [RL_LIBS], [],

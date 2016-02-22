@@ -51,3 +51,8 @@ endif
 .PHONY: tar rpm srpm tag version
 tar rpm srpm tag version:
 	TOP_SRCDIR=$(abs_top_srcdir) CONFIGARGS=$(CONFIGARGS) $(MAKE) -C dist $@
+
+# keep "make distcheck" happy
+AM_DISTCHECK_CONFIGURE_FLAGS =                         \
+       --with-unitdir=$$dc_install_base/$(unitdir)     \
+       --with-pamdir=$$dc_install_base/$(pamdir)

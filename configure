@@ -12197,7 +12197,7 @@ else
   pamdir="$withval"
 fi
 else
-  pamdir='${libdir}/security'
+  pamdir=/lib/security
 fi
 
 
