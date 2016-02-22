@@ -1,7 +1,7 @@
 #
 # ParaStation
 #
-# Copyright (C) 2013 ParTec Cluster Competence Center GmbH, Munich
+# Copyright (C) 2013-2016 ParTec Cluster Competence Center GmbH, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -21,7 +21,7 @@ libpbs = $(top_builddir)/plugins/psmom/src/pbs/libpbs.la
 libpsi = $(top_builddir)/lib/psi/libpsi.la
 libplugincommon = $(top_builddir)/lib/plugincommon/libplugincommon.la
 
-psmom_la_SOURCES = config.h.in helper.c helper.h Makefile.am psmomacc.c \
+psmom_la_SOURCES = helper.c helper.h Makefile.am psmomacc.c \
 	psmomacc.h psmom.c psmomchild.c psmomchild.h psmomauth.c \
 	psmomauth.h psmomcollect.c psmomcollect.h psmomcomm.c psmomcomm.h \
 	psmomconfig.c psmomconfig.h psmomconv.c psmomconv.h \
