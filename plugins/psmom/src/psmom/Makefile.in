@@ -29,7 +29,7 @@
 #
 # ParaStation
 #
-# Copyright (C) 2012 ParTec Cluster Competence Center GmbH, Munich
+# Copyright (C) 2012-2016 ParTec Cluster Competence Center GmbH, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -378,15 +378,9 @@ top_srcdir = @top_srcdir@
 unitdir = @unitdir@
 AM_CPPFLAGS = -I$(top_srcdir)/include -DNDEBUG \
 	-I$(top_srcdir)/bin/daemon -I$(srcdir)/../include
-sed_verbose = $(sed_verbose_$(V))
-sed_verbose_ = $(sed_verbose_$(AM_DEFAULT_VERBOSITY))
-sed_verbose_0 = @echo "  SED     " $(@F);
-chmod_verbose = $(chmod_verbose_$(V))
-chmod_verbose_ = $(chmod_verbose_$(AM_DEFAULT_VERBOSITY))
-chmod_verbose_0 = @echo "  CHMOD   " $(@F);
-mkdir_verbose = $(mkdir_verbose_$(V))
-mkdir_verbose_ = $(mkdir_verbose_$(AM_DEFAULT_VERBOSITY))
-mkdir_verbose_0 = @echo "  MKDIR   " $(@D);
+subst_verbose = $(subst_verbose_$(V))
+subst_verbose_ = $(subst_verbose_$(AM_DEFAULT_VERBOSITY))
+subst_verbose_0 = @echo "  SUBST   " $(@F);
 do_subst = sed \
 	-e 's,[@]bindir[@],$(bindir),g' \
 	-e 's,[@]configdir[@],$(configdir),g' \
@@ -988,9 +982,7 @@ uninstall-am: uninstall-pluginLTLIBRARIES
 
 
 %: %.in
-	$(mkdir_verbose)mkdir -p $(@D)
-	$(sed_verbose)$(do_subst) < $^ > $@
-	$(chmod_verbose)chmod --reference $^ $@
+	$(subst_verbose)$(do_subst) < $^ > $@ && chmod --reference $^ $@
 
 install-exec-local:
 	$(INSTALL) -d $(DESTDIR)$(localstatedir)/spool/parastation/jobs

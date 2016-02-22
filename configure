@@ -13092,6 +13092,8 @@ ac_config_files="$ac_config_files tests/functional/Makefile"
 
 ac_config_links="$ac_config_links dist/Makefile:dist/Makefile"
 
+ac_config_commands="$ac_config_commands mkdir"
+
 
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
@@ -14170,6 +14172,7 @@ do
     "tests/plugins/Makefile") CONFIG_FILES="$CONFIG_FILES tests/plugins/Makefile" ;;
     "tests/functional/Makefile") CONFIG_FILES="$CONFIG_FILES tests/functional/Makefile" ;;
     "dist/Makefile") CONFIG_LINKS="$CONFIG_LINKS dist/Makefile:dist/Makefile" ;;
+    "mkdir") CONFIG_COMMANDS="$CONFIG_COMMANDS mkdir" ;;
 
   *) as_fn_error $? "invalid argument: \`$ac_config_target'" "$LINENO" 5;;
   esac
@@ -15267,6 +15270,7 @@ ltmain=$ac_aux_dir/ltmain.sh
   chmod +x "$ofile"
 
  ;;
+    "mkdir":C) $MKDIR_P scripts/init.d scripts/xinetd.d scripts/systemd ;;
 
   esac
 done # for ac_tag
