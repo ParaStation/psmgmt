@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2013 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -96,14 +96,14 @@ void rppShutdown()
 {
     int i;
 
-    /* close all open streams */
-    rpp_shutdown();
-
     /* Remove all rpp sockets from the selector facility.
      * The rpp_fd_num is located in the PBS rpp library.*/
     for (i=0; i<rpp_fd_num; i++) {
 	Selector_remove(rpp_fd_array[i]);
     }
+
+    /* close all open streams */
+    rpp_shutdown();
 
     /* free all remaining memory */
     rpp_terminate();

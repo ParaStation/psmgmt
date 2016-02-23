@@ -89,8 +89,8 @@ static void closeDaemonSock(void)
     PSLog_close();
     loggerTID = -1;
 
-    close(daemonSock);
     Selector_remove(daemonSock);
+    close(daemonSock);
     daemonSock = -1;
 }
 
@@ -887,8 +887,8 @@ static int readFromChild(int fd, void *data)
 			      tag, __func__, fd);
 	}
 
-	shutdown(fd, SHUT_RD);
 	Selector_remove(fd);
+	shutdown(fd, SHUT_RD);
 	openfds--;
 	if (!openfds && verbose) {
 	    /* stdout and stderr closed -> wait for SIGCHLD */
@@ -1026,15 +1026,16 @@ static struct rusage childRUsage;
  */
 static void sighandler(int sig)
 {
-    int i;
+    int i, maxFD;
 
     char txt[80];
 
     switch (sig) {
     case SIGUSR1:
+	maxFD = sysconf(_SC_OPEN_MAX);
 	snprintf(txt, sizeof(txt),
 		 "[%d] %s: open sockets left:", childTask->rank, tag);
-	for (i=0; i<FD_SETSIZE; i++) {
+	for (i = 0; i < maxFD; i++) {
 	    if (Selector_isRegistered(i)) {
 		snprintf(txt+strlen(txt), sizeof(txt)-strlen(txt), " %d", i);
 	    }
@@ -1291,6 +1292,7 @@ static int handleSIGCHLD(int fd, void *info)
 	gotSIGCHLD = 1;
 	Selector_remove(fd);
 	Selector_startOver();
+	close(fd);
     }
 
     return 0;

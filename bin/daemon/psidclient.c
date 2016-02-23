@@ -526,9 +526,9 @@ static void closeConnection(int fd)
 
     RDP_blockTimer(blockedRDP);
 
+    Selector_remove(fd);
     shutdown(fd, SHUT_RDWR);
     close(fd);
-    Selector_remove(fd);
 
     Selector_vacateWrite(fd);
 }

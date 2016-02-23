@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2015 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -138,9 +138,9 @@ int getScriptCBData(int fd, PSID_scriptCBInfo_t *info, int32_t *exit,
     int iofd = -1;
 
     /* get exit status */
+    Selector_remove(fd);
     PSID_readall(fd, exit, sizeof(int32_t));
     close(fd);
-    Selector_remove(fd);
 
     /* get stdout/stderr output / pid of child */
     if (info) {
