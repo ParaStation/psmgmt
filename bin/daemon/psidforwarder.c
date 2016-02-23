@@ -1342,6 +1342,16 @@ void PSID_forwarder(PStask_t *task, int daemonfd, int eno)
     char *envStr, *timeoutStr;
     long flags, val;
 
+    /* Ensure that PSLog can handle daemonfd via select() */
+    if (daemonfd >= FD_SETSIZE) {
+	int newFD = dup(daemonfd);
+	if (newFD >= FD_SETSIZE) {
+	    PSID_exit(ECHRNG, "%s: daemonfd %d", __func__, newFD);
+	}
+	close(daemonfd);
+	daemonfd = newFD;
+    }
+
     childTask = task;
     daemonSock = daemonfd;
 
