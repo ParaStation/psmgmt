@@ -225,7 +225,7 @@ static int do_send(int fd, DDMsg_t *msg, int offset)
 			task->killat = time(NULL) + 10;
 		    }
 		    /* Make sure we get all pending messages */
-		    Selector_enable(task->fd);
+		    Selector_enable(fd);
 		} else {
 		    PSID_log(-1, "%s: No task\n", __func__);
 		    deleteClient(fd);
@@ -518,6 +518,7 @@ static void closeConnection(int fd)
 	PSID_dropMsg(msg);
 	PSIDMsgbuf_put(mp);
     }
+    Selector_vacateWrite(fd);
 
     /* Now use the stop-hash to actually send SENDCONT msgs */
     PSIDFlwCntrl_sendContMsgs(clients[fd].stops, tid);
@@ -529,8 +530,6 @@ static void closeConnection(int fd)
     Selector_remove(fd);
     shutdown(fd, SHUT_RDWR);
     close(fd);
-
-    Selector_vacateWrite(fd);
 }
 
 void deleteClient(int fd)
