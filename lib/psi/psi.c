@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2014 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -745,12 +745,12 @@ static int myexecv( const char *path, char *const argv[])
 
 void PSI_execLogger(const char *command)
 {
-    int i;
+    int i, maxFD = sysconf(_SC_OPEN_MAX);
     char* argv[5], *envStr;
     /*
      * close all open filedesciptor except my std* and the daemonSock
      */
-    for (i=1; i<FD_SETSIZE; i++) {
+    for (i = 1; i < maxFD; i++) {
 	if (i != daemonSock && i != STDOUT_FILENO && i != STDERR_FILENO) {
 	    close(i);
 	}
