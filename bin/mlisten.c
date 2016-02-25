@@ -28,9 +28,9 @@ static char vcid[] __attribute__((used)) =
 
 static char errtxt[256];
 
-char wheel[4] = {'|', '/', '-', '\\'};
-unsigned int *count = NULL;
-char *display = NULL;
+static char wheel[4] = {'|', '/', '-', '\\'};
+static unsigned int *count = NULL;
+static char *display = NULL;
 
 /*
  * Initialize counter and display fields

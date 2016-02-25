@@ -77,7 +77,7 @@ typedef struct {
     struct list_head list;
 } Client_t;
 
-Client_t AccClientList;
+extern Client_t AccClientList;
 
 /**
  * @brief Initialize the list.

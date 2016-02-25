@@ -174,13 +174,13 @@ static int RDPMaxAckPending = 4;
 static int RDPStatistics = 0;
 
 /** Timeout for retransmission = 300msec */
-struct timeval RESEND_TIMEOUT = {0, 300000}; /* sec, usec */
+static struct timeval RESEND_TIMEOUT = {0, 300000}; /* sec, usec */
 
 /** Timeout for closed connections = 2sec */
-struct timeval CLOSED_TIMEOUT = {2, 0}; /* sec, usec */
+static struct timeval CLOSED_TIMEOUT = {2, 0}; /* sec, usec */
 
 /** The timeout used for RDP timer = 100 msec. Change via setTmOutRDP() */
-struct timeval RDPTimeout = {0, 100000}; /* sec, usec */
+static struct timeval RDPTimeout = {0, 100000}; /* sec, usec */
 
 /** The actual packet-loss rate. Get/set by getPktLossRDP()/setPktLossRDP() */
 static int RDPPktLoss = 0;
@@ -971,7 +971,7 @@ static int initSockRDP(in_addr_t addr, unsigned short port, int qlen)
     return s;
 }
 
-RDPDeadbuf deadbuf;
+static RDPDeadbuf deadbuf;
 
 /**
  * @brief Clear message queue of a connection.

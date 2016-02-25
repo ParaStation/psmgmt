@@ -47,16 +47,16 @@ static char tag[] = "PSID_forwarder";
  *
  * Set by connectLogger() on behalf of info from logger.
  */
-int verbose = 0;
+static int verbose = 0;
 
 /** The ParaStation task ID of the logger */
-PStask_ID_t loggerTID = -1;
+static PStask_ID_t loggerTID = -1;
 
 /** Description of the local child-task */
-PStask_t *childTask = NULL;
+static PStask_t *childTask = NULL;
 
 /** The socket connecting to the local ParaStation daemon */
-int daemonSock = -1;
+static int daemonSock = -1;
 
 /** Number of open file descriptors to wait for */
 static int openfds = 0;
@@ -65,7 +65,7 @@ static int openfds = 0;
 static int gotSIGCHLD = 0;
 
 /** List of messages waiting to be sent */
-LIST_HEAD(oldMsgs);
+static LIST_HEAD(oldMsgs);
 
 /**
  * Timeout for connecting to logger. This will be set according to the
@@ -73,7 +73,7 @@ LIST_HEAD(oldMsgs);
  * PSID_forwarder(). Might be overruled via __PSI_LOGGER_TIMEOUT
  * environment
  */
-int loggerTimeout = 60;
+static int loggerTimeout = 60;
 
 /**
  * @brief Close socket to daemon.

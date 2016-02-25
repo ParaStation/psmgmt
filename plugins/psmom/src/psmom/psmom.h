@@ -45,7 +45,7 @@ extern int rmPort;
 extern int momPort;
 
 /** flag to identify if the current process is the main psmom process */
-int isMaster;
+extern int isMaster;
 
 /** flag which will be set to 1 if we are currently in the shutdown process */
 extern int doShutdown;

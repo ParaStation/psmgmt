@@ -52,9 +52,9 @@ typedef struct {
     struct list_head list;
 } Proc_Snapshot_t;
 
-Proc_Snapshot_t ProcList;
+extern Proc_Snapshot_t ProcList;
 
-Session_Info_t SessionList;
+extern Session_Info_t SessionList;
 
 /**
  * @brief Initialize the proc list.

@@ -74,6 +74,7 @@ static char vcid[] __attribute__((used)) =
 #include "psidenv.h"
 #include "psidhook.h"
 #include "psidflowcontrol.h"
+#include "psid.h"
 
 struct timeval selectTime;
 

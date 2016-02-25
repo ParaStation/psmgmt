@@ -250,7 +250,7 @@ static char * nodeString(PSnodes_ID_t node)
 /* ---------------------------------------------------------------------- */
 
 /** Delay between starting nodes in msec. @todo Make this configurable. */
-const int delay = 50;
+static const int delay = 50;
 
 void PSIADM_AddNode(char *nl)
 {

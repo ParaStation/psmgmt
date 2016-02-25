@@ -25,7 +25,7 @@
 
 #include "psaccountkvs.h"
 
-char line[100];
+static char line[100];
 
 FILE *memoryDebug = NULL;
 

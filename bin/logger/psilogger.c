@@ -90,14 +90,14 @@ int np = 0;
 /**
  * Maximum number of service-processes in this job.
  */
-int numService = 0;
+static int numService = 0;
 
 /**
  * Verbosity of Forwarders (1=Yes, 0=No)
  *
  * Set in main() to 1 if environment variable PSI_FORWARDERDEBUG is defined.
  */
-int forw_verbose = 0;
+static int forw_verbose = 0;
 
 /**
  * Shall we display usage info (1=Yes, 0=No)
@@ -107,7 +107,7 @@ int forw_verbose = 0;
 static int showUsage = 0;
 
 /** Number of maximum connected forwarders during runtime */
-int maxConnected = 0;
+static int maxConnected = 0;
 
 /** The socket connecting to the local ParaStation daemon */
 static int daemonSock = -1;
@@ -119,10 +119,10 @@ static long maxTime = 0;
 static int maxTimeID = -1;
 
 /** The value which will be returned when the logger stops execution */
-int retVal = 0;
+static int retVal = 0;
 
 /** Flag marking a client got signaled */
-int signaled = 0;
+static int signaled = 0;
 
 logger_t *PSIlog_stdoutLogger = NULL;
 logger_t *PSIlog_stderrLogger = NULL;

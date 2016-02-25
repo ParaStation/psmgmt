@@ -45,6 +45,7 @@ static char vcid[] __attribute__((used)) =
 
 #include "commands.h"
 #include "adminparser.h"
+#include "psiadmin.h"
 
 char psiadmversion[] = "$Revision$";
 
@@ -165,8 +166,8 @@ static int handleRCfile(const char *progname)
 
 #define HISTNAME ".psiadm_history"
 
-char *histname = NULL;
-int histfilesize = 200;
+static char *histname = NULL;
+static int histfilesize = 200;
 
 static int handleHistFile(const char *progname)
 {

@@ -320,7 +320,7 @@ static int sendArgv(DDTypedBufferMsg_t *msg, char **argv)
 }
 
 /** Function called to create per rank environment */
-char **(*extraEnvFunc)(int) = NULL;
+static char **(*extraEnvFunc)(int) = NULL;
 
 void PSI_registerRankEnvFunc(char **(*func)(int))
 {

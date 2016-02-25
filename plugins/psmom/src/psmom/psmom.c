@@ -67,7 +67,7 @@
 #define PSMOM_CONFIG_FILE  PLUGINDIR "/psmom.conf"
 
 /** default torque server port (udp/tcp) */
-int serverPort;
+static int serverPort;
 
 /** default mom port (tcp) */
 int momPort;
@@ -130,7 +130,10 @@ int requiredAPI = 109;
 plugin_dep_t dependencies[2];
 
 /** the process id of the main psmom process */
-pid_t mainPid = -1;
+static pid_t mainPid = -1;
+
+/* flag to prevent side effects of children */
+int isMaster = 1;
 
 
 /**
@@ -221,6 +224,19 @@ void stopPsmom()
     /* release the logger */
     logger_finalize(psmomlogger);
 }
+
+
+void (*psAccountRegisterMOMJob)(pid_t, char *) = NULL;
+void (*psAccountUnregisterMOMJob)(pid_t) = NULL;
+void (*psAccountSetGlobalCollect)(int) = NULL;
+void (*psAccountGetSessionInfos)(int *, char *, size_t, int *) = NULL;
+int (*psAccountsendSignal2Session)(pid_t, int) = NULL;
+int (*psAccountSignalAllChildren)(pid_t, pid_t, pid_t, int) = NULL;
+void (*psAccountGetJobInfo)(pid_t, psaccAccountInfo_t *) = NULL;
+int (*psAccountisChildofParent)(pid_t, pid_t) = NULL;
+void (*psAccountFindDaemonProcs)(uid_t, int, int) = NULL;
+PStask_ID_t (*psAccountgetLoggerByClientPID)(pid_t) = NULL;
+int (*psAccountreadProcStatInfo)(pid_t, psaccProcStat_t *) = NULL;
 
 static int initAccountingFunc()
 {

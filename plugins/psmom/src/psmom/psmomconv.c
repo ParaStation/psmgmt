@@ -93,7 +93,7 @@ const Data_Filter_t DataFilterJob[] =
     { "x",		1 }, /* (from moab) advres:mpi_xxx.2039491 */
 };
 
-const int DataFilterCount = sizeof(DataFilterJob) / sizeof (DataFilterJob[0]);
+static const int DataFilterCount = sizeof(DataFilterJob) / sizeof (DataFilterJob[0]);
 
 int WriteString(ComHandle_t *com, char *data)
 {

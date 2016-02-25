@@ -33,6 +33,7 @@ static char vcid[] __attribute__((used)) =
 #include "commands.h"
 
 #include "adminparser.h"
+#include "psiadmin.h"
 
 #include "helpmsgs.c"
 
@@ -2380,7 +2381,6 @@ static void cleanupParameters(void)
 
 static int versionCommand(char *token)
 {
-    extern char psiadmversion[];
     char tmp[100];
     int err;
 

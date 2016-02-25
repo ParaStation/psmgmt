@@ -24,7 +24,7 @@
 
 #include "plugincomm.h"
 
-int debug = 0;
+static int debug = 0;
 
 /**
  * @brief Grow the data buffer if needed.

@@ -22,6 +22,8 @@
 
 #include "psaccountjob.h"
 
+Job_t JobList;
+
 void initJobList()
 {
     INIT_LIST_HEAD(&JobList.list);

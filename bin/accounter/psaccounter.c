@@ -132,26 +132,26 @@ typedef struct struct_list {
  * 0x080 very verbose output
  * 0x100 show node information on startup
  */
-int debug;
+static int debug;
 
 /** file pointer for the accouting files  */
-FILE *fp;
+static FILE *fp;
 /** root of the binary tree */
-struct t_node *btroot;
+static struct t_node *btroot;
 /** log queue, start, delete messages, not only end messages */
-int extendedLogging = 0;
+static int extendedLogging = 0;
 /** set post processing command for accouting log files like gzip */
-char *logPostProcessing;
+static char *logPostProcessing;
 /** structure for syslog */
-logger_t *alogger;
+static logger_t *alogger;
 /** log file for debug and error messages */
-FILE *logfile = NULL;
+static FILE *logfile = NULL;
 /** the number of nodes in the parastation cluster */
-int nrOfNodes = 0;
+static int nrOfNodes = 0;
 /** store incomplete jobs waiting for missing children */
-Joblist_t *dJobs;
+static Joblist_t *dJobs;
 /** store node information */
-Acc_Nodes_t *accNodes;
+static Acc_Nodes_t *accNodes;
 
 #define alog(...) if (alogger) logger_print(alogger, -1, __VA_ARGS__)
 

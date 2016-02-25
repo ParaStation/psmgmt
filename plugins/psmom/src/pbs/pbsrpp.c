@@ -197,10 +197,10 @@ extern int h_errno;
 */
 #define RPP_HIGHWATER 60
 
-int RPPTimeOut = DEFAULT_RPP_TIMEOUT;
-int RPPRetry   = DEFAULT_RPP_RETRY;
+static int RPPTimeOut = DEFAULT_RPP_TIMEOUT;
+static int RPPRetry   = DEFAULT_RPP_RETRY;
 
-char *server_alias = NULL;
+static char *server_alias = NULL;
 
 /*
 ** Several kinds of linked lists hang from each RPP stream structure.
@@ -466,7 +466,7 @@ int  rpp_fd_num = 0;
 ** Tables used by the macros I2TOH, HTOI2, I8TOH, HTOI8
 ** to convert 2 and 8 digit hexidecimal strings to integer and back.
 */
-char cval[] =
+static char cval[] =
   {
   -1, -1, -1, -1, -1, -1, -1, -1,  /* nul .. bel */
   -1, -1, -1, -1, -1, -1, -1, -1,  /* bs .. si */
@@ -486,7 +486,7 @@ char cval[] =
   -1, -1, -1, -1, -1, -1, -1, -1  /* x .. del */
   };
 
-char ival[] =
+static char ival[] =
   {
   '0', '1', '2', '3', '4', '5', '6', '7',
   '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'

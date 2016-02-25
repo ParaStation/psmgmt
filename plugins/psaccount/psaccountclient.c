@@ -23,6 +23,8 @@
 
 #include "psaccountclient.h"
 
+Client_t AccClientList;
+
 void initAccClientList()
 {
     INIT_LIST_HEAD(&AccClientList.list);

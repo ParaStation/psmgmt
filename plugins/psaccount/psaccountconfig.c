@@ -66,6 +66,8 @@ const ConfDef_t *findConfigDef(char *name)
     return NULL;
 }
 
+Config_t ConfigList;
+
 int initConfig(char *cfgName)
 {
     FILE *fp;

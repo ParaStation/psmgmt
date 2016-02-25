@@ -31,7 +31,7 @@ typedef struct {
 } Server_t;
 
 /** list which holds all known PBS servers */
-Server_t ServerList;
+extern Server_t ServerList;
 
 void initServerList();
 int openServerConnections();

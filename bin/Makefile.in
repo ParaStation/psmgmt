@@ -495,12 +495,12 @@ libputil = $(top_builddir)/lib/putil/libputil.la
 libpscommon = $(top_builddir)/lib/pscommon/libpscommon.la
 libpslog = $(top_builddir)/lib/pslog/libpslog.la
 libpskvs = $(top_builddir)/lib/pskvs/libpskvs.la
-psiadmin_SOURCES = admin/psiadmin.c admin/commands.c admin/commands.h	\
-	admin/adminparser.c admin/adminparser.h
+psiadmin_SOURCES = admin/psiadmin.c admin/psiadmin.h admin/commands.c	\
+	admin/commands.h admin/adminparser.c admin/adminparser.h
 
 psiadmin_LDADD = $(libputil) $(libpse) $(POPT_LIBS) $(RL_LIBS)
 psid_SOURCES = daemon/psidaccount.c daemon/psidaccount.h		\
-	daemon/psidamd.c daemon/psidamd.h daemon/psid.c			\
+	daemon/psidamd.c daemon/psidamd.h daemon/psid.c daemon/psid.h	\
 	daemon/psidclient.c daemon/psidclient.h daemon/psidcomm.c	\
 	daemon/psidcomm.h daemon/psidenv.c daemon/psidenv.h		\
 	daemon/psidforwarder.c daemon/psidforwarder.h			\

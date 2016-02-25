@@ -23,6 +23,7 @@
 #include "pluginmalloc.h"
 
 #include "pmilog.h"
+#include "pmikvs.h"
 
 FILE *memoryDebug = NULL;
 

@@ -34,6 +34,9 @@ typedef enum {
     INFO_VMEM,
 } ProcInfoTypes;
 
+Proc_Snapshot_t ProcList;
+Session_Info_t SessionList;
+
 void initProcList()
 {
     INIT_LIST_HEAD(&ProcList.list);

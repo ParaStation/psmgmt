@@ -29,6 +29,8 @@
 
 #include "psmomchild.h"
 
+Child_t ChildList;
+
 void initChildList()
 {
     INIT_LIST_HEAD(&ChildList.list);

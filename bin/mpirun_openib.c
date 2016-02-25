@@ -66,13 +66,13 @@ typedef struct {
 		     plist[i].state == P_CONNECTED ||		    \
 		     plist[i].state == P_RUNNING) ? 1 : 0)
 
-process *plist;
+static process *plist;
 
 /** Relevant info for reconnection of clients */
-char mpirun_host[256];   /**< hostname of current process */
-int port;                /**< port process is listening on */
+static char mpirun_host[256];   /**< hostname of current process */
+static int port;                /**< port process is listening on */
 
-char msgstr[512]; /* Space for error messages */
+static char msgstr[512]; /* Space for error messages */
 
 #ifndef PARAM_GLOBAL
 #define PARAM_GLOBAL "/etc/mvapich.conf"

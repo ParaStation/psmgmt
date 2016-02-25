@@ -77,23 +77,23 @@ static int prelen;
  * Structure for each client which holds the pointers to the
  * cached messages (points into messageCache).
  */
-OutputBuffers *clientOutBuf;
+static OutputBuffers *clientOutBuf;
 
 /**
  * Structure for each client which holds incomplete
  * messages.
  */
-TempBuffers *clientTmpBuf;
+static TempBuffers *clientTmpBuf;
 
 /**
  * All received complete messages are cached in this structure.
  */
-bMessages messageCache;
+static bMessages messageCache;
 
 /**
  * All received incomplete messages are cached in this structure.
  */
-bMessages msgTmpCache;
+static bMessages msgTmpCache;
 
 /**
  * Set the maxima depth (rows) for searching for equal
@@ -101,18 +101,18 @@ bMessages msgTmpCache;
  *
  * in the matrix. -1 for infinit depth.
  */
-int maxMergeDepth = 200;
+static int maxMergeDepth = 200;
 
 /**
  * Set the time in seconds who long a received output msg
  * will maximal be hold back.
  */
-int maxMergeWait = 2;
+static int maxMergeWait = 2;
 
 /**
  * Enable debbuging messages.
  */
-int db = 0;
+static int db = 0;
 
 /**
  * @brief Malloc with error handling.
