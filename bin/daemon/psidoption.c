@@ -32,7 +32,6 @@ static char vcid[] __attribute__((used)) =
 #include "psidcomm.h"
 #include "psidnodes.h"
 #include "psidtask.h"
-#include "psidtimer.h"
 #include "psidstatus.h"
 #include "psidhw.h"
 #include "psidaccount.h"
@@ -356,7 +355,7 @@ static void msg_SETOPTION(DDOptionMsg_t *msg)
 	    switch (msg->opt[i].option) {
 	    case PSP_OP_PSIDSELECTTIME:
 		if (msg->opt[i].value > 0) {
-		    selectTime.tv_sec = msg->opt[i].value;
+		    config->selectTime = msg->opt[i].value;
 		}
 		break;
 	    case PSP_OP_STATUS_TMOUT:
@@ -906,7 +905,7 @@ static void msg_GETOPTION(DDOptionMsg_t *msg)
 		msg->opt[out].value = PSID_getDebugMask();
 		break;
 	    case PSP_OP_PSIDSELECTTIME:
-		msg->opt[out].value = selectTime.tv_sec;
+		msg->opt[out].value = config->selectTime;
 		break;
 	    case PSP_OP_STATUS_TMOUT:
 		msg->opt[out].value = getStatusTimeout();

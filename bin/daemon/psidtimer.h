@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2008 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -34,25 +34,6 @@ extern "C" {
 #endif
 
 /**
- * The standard time spent within the main select. Defined within
- * psid.c. The value is defined from parastation.conf's SelectTime
- * option.
- */
-extern struct timeval selectTime;
-
-/**
- * @brief Set a timer.
- *
- * Set the timer pointed by @a tvp to the value pointed by @a fvp.
- *
- * @param tvp Pointer to the timer to set.
- *
- * @param fvp Pointer to the value to use.
- */
-#define timerset(tvp,fvp)        {(tvp)->tv_sec  = (fvp)->tv_sec;\
-                                  (tvp)->tv_usec = (fvp)->tv_usec;}
-
-/**
  * @brief Operate on a timer.
  *
  * Execute the operation @a op on the timer pointed by @a tvp using
@@ -71,8 +52,8 @@ extern struct timeval selectTime;
  * @param op The operation to execute. To make sense, this has to be
  * one of '+' and '-'.
  */
-#define timerop(tvp,sec,usec,op) {(tvp)->tv_sec  = (tvp)->tv_sec op sec;\
-                                  (tvp)->tv_usec = (tvp)->tv_usec op usec;}
+#define timerop(tvp,sec,usec,op) {(tvp)->tv_sec  = (tvp)->tv_sec op sec; \
+				  (tvp)->tv_usec = (tvp)->tv_usec op usec;}
 
 /**
  * @brief Add to a timer

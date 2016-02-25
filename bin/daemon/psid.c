@@ -76,8 +76,6 @@ static char vcid[] __attribute__((used)) =
 #include "psidflowcontrol.h"
 #include "psid.h"
 
-struct timeval selectTime;
-
 char psid_cvsid[] = "$Revision$";
 
 /**
@@ -769,8 +767,6 @@ int main(int argc, const char *argv[])
     declareNodeAlive(PSC_getMyID(), PSID_getPhysCPUs(), PSID_getVirtCPUs());
 
     /* Initialize timeouts, etc. */
-    selectTime.tv_sec = config->selectTime;
-    selectTime.tv_usec = 0;
     PSID_initStarttime();
 
     /* initialize various modules */
@@ -874,20 +870,9 @@ int main(int argc, const char *argv[])
      * Main loop
      */
     while (1) {
-	struct timeval tv;  /* timeval for waiting on select()*/
-	int res;
+	int res = Swait(config->selectTime * 1000);
 
-	timerset(&tv, &selectTime);
-
-	res = Sselect(0, NULL, NULL, NULL, &tv);
-	if (res < 0) {
-	    PSID_warn(-1, errno, "Error while Sselect");
-
-	    Selector_checkFDs();
-
-	    PSID_log(PSID_LOG_VERB, "Error while Sselect: continue\n");
-	    continue;
-	}
+	if (res < 0) PSID_warn(-1, errno, "Error while Swait()");
 
 	/* Handle actions registered to main-loop */
 	PSID_handleLoopActions();
