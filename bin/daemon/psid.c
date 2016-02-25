@@ -849,7 +849,9 @@ int main(int argc, const char *argv[])
 
     /* Once RDP and the master socket are ready parents might be released */
     if (pipeFD[1] > -1) {
-	write(pipeFD[1], &magic, sizeof(magic));
+	if (write(pipeFD[1], &magic, sizeof(magic)) <= 0) {
+	    /* We don't care */
+	}
 	close(pipeFD[1]);
     }
 
