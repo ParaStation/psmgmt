@@ -1163,13 +1163,6 @@ static int handleDebugSock(int fd, void *info)
 	return -1;
     }
 
-    if (ssock >= FD_SETSIZE) {
-	PSIlog_log(-1, "%s: error while accept(), ssock %d out of mask\n",
-		   __func__, ssock);
-	close(ssock);
-	return -1;
-    }
-
     Selector_register(ssock, handleDebugMsg, NULL);
 
     PSIlog_log(PSILOG_LOG_VERB, "%s: new socket is %d\n", __func__, ssock);

@@ -1490,14 +1490,6 @@ static int buildSandboxAndStart(PStask_t *task)
 	PSID_warn(-1, eno, "%s: socketpair()", __func__);
 	return eno;
     }
-    if (socketfds[0] >= FD_SETSIZE) {
-	PSID_log(-1, "%s: socketfd (%d) out of mask\n", __func__,
-		 socketfds[0]);
-	close(socketfds[0]);
-	close(socketfds[1]);
-
-	return EOVERFLOW;
-    }
 
     /* fork the forwarder */
     pid = fork();

@@ -251,13 +251,6 @@ static int handleMasterSock(int fd, void *info)
 	return -1;
     }
 
-    if (ssock >= FD_SETSIZE) {
-	PSID_log(-1, "%s: error while accept(), ssock %d out of mask\n",
-		 __func__, ssock);
-	close(ssock);
-	return -1;
-    }
-
     registerClient(ssock, -1, NULL);
 
     PSID_log(PSID_LOG_CLIENT | PSID_LOG_VERB,
