@@ -1431,7 +1431,7 @@ static void doACK(rdphdr_t *hdr, int fromnode)
 {
     Rconninfo_t *cp;
     list_t *m, *tmp;
-    int blocked, callback = 0;
+    int blocked, callback = 0, doStatistics = RDPStatistics;
     struct timeval now;
 
     if ((hdr->type == RDP_SYN) || (hdr->type == RDP_SYNACK)) return;
@@ -1461,7 +1461,7 @@ static void doACK(rdphdr_t *hdr, int fromnode)
 	}
     }
 
-    if (RDPStatistics) gettimeofday(&now, NULL);
+    if (doStatistics) gettimeofday(&now, NULL);
 
     blocked = Timer_block(timerID, 1);
 
@@ -1491,7 +1491,7 @@ static void doACK(rdphdr_t *hdr, int fromnode)
 
 	    if (!callback) callback = !cp->window;
 	    cp->totSent++;
-	    if (RDPStatistics) {
+	    if (doStatistics) {
 		if (cp->totSent > NUM_WARMUP) {
 		    struct timeval flightTime;
 		    timersub(&now, &mp->sentTime, &flightTime);
