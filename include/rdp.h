@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2015 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -70,7 +70,7 @@ typedef struct {
 
 /**
  * The default RDP-port number. Magic number defined by Joe long time ago.
- * Can be overruled via initRDP().
+ * Can be overruled via RDP_init().
  */
 #define DEFAULT_RDP_PORT 886
 
@@ -92,6 +92,15 @@ typedef struct {
  * @param hosts An array of size @a nodes containing the IP-addresses of the
  * participating nodes in network-byteorder.
  *
+ * @param dispatcher Pointer to a dispatcher function. This function
+ * will be called each time a new RDP message is available. The
+ * function is expected to accept the RDP file-descriptor as an
+ * argument and to read the actual message from this descriptor. If
+ * NULL, RDP will signal the availability of a new messages to the
+ * Selector facility. In this case the calling function of the
+ * Selector has to guarantee the proper handling of available RDP
+ * messages.
+ *
  * @param callback Pointer to a callback-function. This function is called if
  * something exceptional happens. If NULL, no callbacks will be done.
  * The callback function is expected to accept two arguments. The first one,
@@ -106,8 +115,9 @@ typedef struct {
  *
  * @see syslog()
  */
-int initRDP(int nodes, in_addr_t addr, unsigned short portno, FILE* logfile,
-	    unsigned int hosts[], void (*callback)(int, void*));
+int RDP_init(int nodes, in_addr_t addr, unsigned short portno, FILE* logfile,
+	     unsigned int hosts[], void (*dispatcher)(int),
+	     void (*callback)(int, void*));
 
 /**
  * @brief Shutdown the RDP module.
@@ -152,7 +162,7 @@ int32_t getDebugMaskRDP(void);
  * respective bit is set within @a mask, the log-messages marked with
  * the corresponding bits are put out to the selected channel
  * (i.e. stderr of syslog() as defined within @ref
- * initRDP()). Accordingly a @mask of -1 means to put out all messages
+ * RDP_init()). Accordingly a @mask of -1 means to put out all messages
  * defined.
  *
  * All messages marked with -1 represent fatal messages that are

@@ -427,7 +427,8 @@ void handleSTOPMsg(PSLog_Msg_t *msg)
 
     if (clientIsActive(rank) && !clientIsStopped(rank)) {
 	if (!nActvSTOPs) {
-	    Selector_disable(STDIN_FILENO);
+	    if (Selector_isRegistered(STDIN_FILENO))
+		Selector_disable(STDIN_FILENO);
 	    PSIlog_log(PSILOG_LOG_VERB, "forward input is paused\n");
 	}
 	nActvSTOPs++;
@@ -448,7 +449,8 @@ void handleCONTMsg(PSLog_Msg_t *msg)
     if (clientIsActive(rank) && clientIsStopped(rank)) {
 	nActvSTOPs--;
 	if (!nActvSTOPs && allActiveThere()) {
-	    Selector_enable(STDIN_FILENO);
+	    if (Selector_isRegistered(STDIN_FILENO))
+		Selector_enable(STDIN_FILENO);
 	    PSIlog_log(PSILOG_LOG_VERB, "forward input continues\n");
 	}
     }
@@ -462,7 +464,8 @@ void handleSENDSTOP(DDMsg_t *msg)
     /* some daemon wants pause */
     if (!daemonCommStopped) {
 	if (!nActvSTOPs) {
-	    Selector_disable(STDIN_FILENO);
+	    if (Selector_isRegistered(STDIN_FILENO))
+		Selector_disable(STDIN_FILENO);
 	    PSIlog_log(PSILOG_LOG_VERB, "forward input is paused\n");
 	}
 	nActvSTOPs++;
@@ -476,7 +479,8 @@ void handleSENDCONT(DDMsg_t *msg)
     if (daemonCommStopped) {
 	nActvSTOPs--;
 	if (!nActvSTOPs && allActiveThere()) {
-	    Selector_enable(STDIN_FILENO);
+	    if (Selector_isRegistered(STDIN_FILENO))
+		Selector_enable(STDIN_FILENO);
 	    PSIlog_log(PSILOG_LOG_VERB, "forward input continues\n");
 	}
     }
@@ -603,10 +607,12 @@ void setupDestList(char *input)
     }
 
     if (nActvSTOPs) {
-	Selector_disable(STDIN_FILENO);
+	if (Selector_isRegistered(STDIN_FILENO))
+	    Selector_disable(STDIN_FILENO);
 	if (!oldSTOPs) PSIlog_log(PSILOG_LOG_VERB, "input-forward paused\n");
     } else if (oldSTOPs && allActiveThere()) {
-	Selector_enable(STDIN_FILENO);
+	if (Selector_isRegistered(STDIN_FILENO))
+	    Selector_enable(STDIN_FILENO);
 	PSIlog_log(PSILOG_LOG_VERB, "input-forward continues\n");
     }
 }

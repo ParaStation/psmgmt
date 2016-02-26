@@ -42,7 +42,7 @@
 #define PROC_LOADINFO_PATH  "/proc/loadavg"
 #define PROC_NETLOAD_PATH   "/proc/net/dev"
 
-char buffer[1000];
+static char buffer[1000];
 /*
 Not implemented:
 **              idletime        seconds of idle time -> watch dev tty's for date entrys
@@ -467,6 +467,9 @@ void updateInfoList(int all)
     setNetload();
     setFsSize();
 }
+
+Data_Entry_t infoData;
+Data_Entry_t staticInfoData;
 
 void initInfoList()
 {

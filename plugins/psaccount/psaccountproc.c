@@ -34,6 +34,9 @@
 #define PROC_CPU_INFO	"/proc/cpuinfo"
 #define SYS_CPU_FREQ	"/sys/devices/system/cpu/cpu%d/cpufreq/cpuinfo_cur_freq"
 
+Proc_Snapshot_t ProcList;
+Session_Info_t SessionList;
+
 typedef enum {
     INFO_MEM,
     INFO_VMEM,
@@ -147,7 +150,7 @@ void clearCpuFreq(void)
     }
 }
 
-void initProc(void)
+void initProcList(void)
 {
     INIT_LIST_HEAD(&ProcList.list);
     INIT_LIST_HEAD(&SessionList.list);

@@ -61,7 +61,7 @@ handlerFunc_t oldAccountHandler = NULL;
 static int mainTimerID = -1;
 
 /** the main timer which calls periodicMain() to do all the work */
-struct timeval mainTimer = {30,0};
+static struct timeval mainTimer = {30,0};
 
 /**
  * @brief Update the main timer configuration.
@@ -141,7 +141,7 @@ int initialize(void)
     initAccClientList();
     initJobList();
     initHist();
-    initProc();
+    initProcList();
 
     /* init the config facility */
     snprintf(configfn, sizeof(configfn), "%s/%s", PLUGINDIR, PSACCOUNT_CONFIG);

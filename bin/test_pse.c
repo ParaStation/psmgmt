@@ -28,7 +28,7 @@
 
 #include "pse.h"
 
-int arg_np;
+static int arg_np;
 
 void run(int argc, char *argv[], int np)
 {

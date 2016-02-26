@@ -31,6 +31,7 @@
 
 #include "psmomssh.h"
 
+SSHSession_t SSHList;
 
 void initSSHList()
 {

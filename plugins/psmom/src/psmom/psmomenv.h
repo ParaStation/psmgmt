@@ -27,7 +27,7 @@ typedef struct {
 } Env_t;
 
 /* list which holds users environment variables */
-Env_t EnvList;
+extern Env_t EnvList;
 
 /**
  * @brief Initialize the environment list.

@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2015 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -36,9 +36,9 @@ static char vcid[] __attribute__((used)) =
 #include <sys/resource.h>
 #include <sys/wait.h>
 #include <sys/socket.h>
+#include <sys/signalfd.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
-#include <sys/signalfd.h>
 
 #include <popt.h>
 
@@ -74,12 +74,9 @@ static char vcid[] __attribute__((used)) =
 #include "psidenv.h"
 #include "psidhook.h"
 #include "psidflowcontrol.h"
-
-struct timeval selectTime;
+#include "psid.h"
 
 char psid_cvsid[] = "$Revision$";
-
-static int signalFD = -1;
 
 /**
  * @brief MCast callback handler
@@ -214,15 +211,28 @@ static void RDPCallBack(int msgid, void *buf)
     }
 }
 
-static int handleSignalFD(int fd, void *info)
+/**
+ * @brief Handling of SIGCHLD
+ *
+ * Process all pending SIGCHLD. Will cleanup corresponding
+ * task-structures, etc.
+ *
+ * @param fd File-selector providing info on died child processes. Ignored.
+ *
+ * @param info Dummy pointer to extra info. Ignored.
+ *
+ * @return Always returs 0
+ */
+static int handleSIGCHLD(int fd, void *info)
 {
+    struct signalfd_siginfo sigInfo;
     pid_t pid;         /* pid of the child process */
     PStask_ID_t tid;   /* tid of the child process */
     int estatus;       /* termination status of the child process */
-    struct signalfd_siginfo fdsi;
 
-    if ((read(fd, &fdsi, sizeof(struct signalfd_siginfo))) == -1) {
-	PSID_log(-1, "%s: Read on signalfd() failed\n", __func__);
+    /* Ignore data available on fd. We rely on waitpid() alone */
+    if (read(fd, &sigInfo, sizeof(sigInfo)) < 0) {
+	PSID_warn(-1, errno, "%s: read()", __func__);
     }
 
     while ((pid = waitpid(-1, &estatus, WNOHANG)) > 0){
@@ -263,6 +273,35 @@ static int handleSignalFD(int fd, void *info)
     return 0;
 }
 
+/**
+ * @brief Handling of SIGUSR1
+ *
+ * Print some statistics on RDP, buffer usage, etc.
+ *
+ * @param fd Dummy file-descriptor. Ignored.
+ *
+ * @param info Dummy pointer to extra info. Ignored.
+ *
+ * @return Always returs 0
+ */
+static int handleSIGUSR1(int fd, void *info)
+{
+    struct signalfd_siginfo sigInfo;
+
+    /* Ignore data available on fd. We rely on waitpid() alone */
+    if (read(fd, &sigInfo, sizeof(sigInfo)) < 0) {
+	PSID_warn(-1, errno, "%s: read()", __func__);
+    }
+
+    PSIDMsgbuf_printStat();
+    PStask_printStat();
+    RDP_printStat();
+    PSIDFlwCntrl_printStat();
+    Selector_printStat();
+
+    return 0;
+}
+
 static void printMallocInfo(void)
 {
     struct mallinfo mi;
@@ -281,11 +320,36 @@ static void printMallocInfo(void)
 }
 
 /**
+ * @brief Handling of SIGUSR2
+ *
+ * Print some info on memory usage and try to trim it.
+ *
+ * @param fd Dummy file-descriptor. Ignored.
+ *
+ * @param info Dummy pointer to extra info. Ignored.
+ *
+ * @return Always returs 0
+ */
+static int handleSIGUSR2(int fd, void *info)
+{
+    struct signalfd_siginfo sigInfo;
+
+    /* Ignore data available on fd. We rely on waitpid() alone */
+    if (read(fd, &sigInfo, sizeof(sigInfo)) < 0) {
+	PSID_warn(-1, errno, "%s: read()", __func__);
+    }
+
+    printMallocInfo();
+    malloc_trim(0);
+    printMallocInfo();
+
+    return 0;
+}
+
+/**
  * @brief Signal handler
  *
- * Handle signals caught by the local daemon. Most prominent all
- * SIGCHLD signals originating from processes fork()ed from the local
- * daemon are handled here.
+ * Handle signals caught by the local daemon.
  *
  * @param sig Signal to handle.
  *
@@ -301,6 +365,7 @@ static void sighandler(int sig)
     case SIGABRT:
     case SIGSEGV:
     case SIGILL:     /* (*) illegal instruction (not reset when caught)*/
+    case SIGFPE:     /* (*) floating point exception */
 	PSID_log(-1, "Received signal %s. Shut down hardly.\n",
 		 sys_siglist[sig] ? sys_siglist[sig] : sigStr);
 	PSID_finalizeLogs();
@@ -310,9 +375,6 @@ static void sighandler(int sig)
 	PSID_log(-1, "Received signal %s. Shut down.\n",
 		 sys_siglist[sig] ? sys_siglist[sig] : sigStr);
 	PSID_shutdown();
-	break;
-    case SIGCHLD:
-	/* ignore, since we are using signalfd() now */
 	break;
     case  SIGPIPE:   /* write on a pipe with no one to read it */
 	/* Ignore silently */
@@ -329,20 +391,7 @@ static void sighandler(int sig)
 	PSID_log(-1, "Received signal %s. Continue\n",
 		 sys_siglist[sig] ? sys_siglist[sig] : sigStr);
 	break;
-    case  SIGUSR1:   /* user defined signal 1 */
-	PSIDMsgbuf_printStat();
-	PStask_printStat();
-	RDP_printStat();
-	PSIDFlwCntrl_printStat();
-	break;
-    case  SIGUSR2:   /* user defined signal 2 */
-	printMallocInfo();
-	malloc_trim(0);
-	printMallocInfo();
-	break;
-    case SIGFPE:     /* (*) floating point exception */
     case  SIGTRAP:   /* (*) trace trap (not reset when caught) */
-	break;
     case  SIGBUS:    /* (*) bus error (specification exception) */
 #ifdef SIGEMT
     case  SIGEMT:    /* (*) EMT instruction */
@@ -374,6 +423,29 @@ static void sighandler(int sig)
     signal(sig, sighandler);
 }
 
+static void initSignalFD(int sig, Selector_CB_t handler)
+{
+    sigset_t set;
+    int sigFD;
+
+    sigemptyset(&set);
+    sigaddset(&set, sig);
+
+    if (sigprocmask(SIG_BLOCK, &set, NULL) < 0) {
+	PSID_exit(errno, "%s(%s): sigprocmask()", __func__, strsignal(sig));
+    }
+
+    sigFD = signalfd(-1, &set, SFD_NONBLOCK | SFD_CLOEXEC);
+    if (sigFD < 0) {
+	PSID_exit(errno, "%s(%s): signalfd()", __func__, strsignal(sig));
+    }
+
+    if (Selector_register(sigFD, handler, NULL) < 0) {
+	PSID_exit(errno, "%s(%s): Selector_register()", __func__,
+		  strsignal(sig));
+    }
+}
+
 /**
  * @brief Initialize signal handlers
  *
@@ -389,13 +461,10 @@ static void initSigHandlers(void)
     signal(SIGINT   ,sighandler);
     signal(SIGQUIT  ,sighandler);
     signal(SIGILL   ,sighandler);
-    signal(SIGTRAP  ,sighandler);
+//    signal(SIGTRAP  ,sighandler);
 //    signal(SIGFPE   ,sighandler);
-    signal(SIGUSR1  ,sighandler);
-    signal(SIGUSR2  ,sighandler);
     signal(SIGPIPE  ,sighandler);
     signal(SIGTERM  ,sighandler);
-    signal(SIGCHLD  ,sighandler);
     signal(SIGCONT  ,sighandler);
     signal(SIGTSTP  ,sighandler);
     signal(SIGTTIN  ,sighandler);
@@ -415,40 +484,11 @@ static void initSigHandlers(void)
     signal(SIGSTKFLT,sighandler);
 #endif
     signal(SIGHUP   ,SIG_IGN);
-}
 
-static void initSignalFD()
-{
-    sigset_t mask;
-
-    sigemptyset(&mask);
-    sigaddset(&mask, SIGCHLD);
-    PSID_blockSig(1, SIGCHLD);
-
-    if ((signalFD = signalfd(-1, &mask, 0)) == -1) {
-	PSID_exit(errno, "Error creating signalfd");
-    }
-    if ((Selector_register(signalFD, handleSignalFD, NULL)) == -1) {
-	PSID_exit(errno, "Error registering signalfd");
-    }
-}
-
-/**
- * @brief Handling of SIGUSR2
- *
- * Handling of SIGUSR2 is suppressed most of the time in order to
- * prevent receiving it in a critical situation, i.e. while in
- * malloc() and friends. This has to be prevented since SIGUSR2's only
- * purpose is to call malloc_trim() which will block if called from
- * within malloc() and friends.
- *
- * It is save to handle SIGURS2 from within the main-loop. Thus, this
- * function should be registered via @ref PSID_registerLoopAct().
- */
-static void handleSIGUSR2(void)
-{
-    PSID_blockSig(0, SIGUSR2);
-    PSID_blockSig(1, SIGUSR2);
+    /* Some signals are better handled via Selector */
+    initSignalFD(SIGCHLD, handleSIGCHLD);
+    initSignalFD(SIGUSR1, handleSIGUSR1);
+    initSignalFD(SIGUSR2, handleSIGUSR2);
 }
 
 /**
@@ -468,61 +508,6 @@ static void printWelcome(void)
 	     "(www.par-tec.com)\n");
 
     return;
-}
-
-/**
- * @brief Checks file table after select has failed.
- *
- * Detailed checking of the file table on validity after a select(2)
- * call has failed. Thus all file descriptors within the set @a
- * controlfds are examined and handled if necessary.
- *
- * @param controlfds Set of file descriptors that have to be checked.
- *
- * @return No return value.
- */
-static void checkFileTable(fd_set *controlfds)
-{
-    fd_set fdset;
-    int fd;
-    struct timeval tv;
-
-    for (fd=0; fd<FD_SETSIZE; fd++) {
-	if (FD_ISSET(fd, controlfds)) {
-	    FD_ZERO(&fdset);
-	    FD_SET(fd, &fdset);
-
-	    tv.tv_sec=0;
-	    tv.tv_usec=0;
-	    if (select(FD_SETSIZE, &fdset, NULL, NULL, &tv) < 0) {
-		/* error : check if it is a wrong fd in the table */
-		switch (errno) {
-		case EBADF:
-		    PSID_log(-1, "%s(%d): EBADF -> close\n", __func__, fd);
-		    deleteClient(fd);
-		    break;
-		case EINTR:
-		    PSID_log(-1, "%s(%d): EINTR -> try again\n", __func__, fd);
-		    fd--; /* try again */
-		    break;
-		case EINVAL:
-		    PSID_log(-1, "%s(%d): wrong filenumber -> exit\n",
-			     __func__, fd);
-		    PSID_shutdown();
-		    break;
-		case ENOMEM:
-		    PSID_log(-1, "%s(%d): not enough memory. exit\n",
-			     __func__, fd);
-		    PSID_shutdown();
-		    break;
-		default:
-		    PSID_warn(-1, errno, "%s(%d): unrecognized error (%d)\n",
-			      __func__, fd, errno);
-		    break;
-		}
-	    }
-	}
-    }
 }
 
 void PSID_clearMem(void)
@@ -557,11 +542,13 @@ static void printVersion(void)
     fprintf(stderr, "psid %s\b \n", psid_cvsid+11);
 }
 
+#define FORKMAGIC 4711
+
 int main(int argc, const char *argv[])
 {
     poptContext optCon;   /* context for parsing command-line options */
 
-    int rc, version = 0, debugMask = 0, pipeFD[2] = {-1, -1};
+    int rc, version = 0, debugMask = 0, pipeFD[2] = {-1, -1}, magic = FORKMAGIC;
     char *logdest = NULL, *configfile = "/etc/parastation.conf";
     FILE *logfile = NULL;
     struct rlimit rlimit;
@@ -649,15 +636,14 @@ int main(int argc, const char *argv[])
 	    break;
 	default: /* I'm the parent and exiting */
 	    close (pipeFD[1]);
-	    read(pipeFD[0], &rc, sizeof(rc)); /* Wait for child's dummy data */
+
+	    /* Wait for child's magic data */
+	    rc = read(pipeFD[0], &magic, sizeof(magic));
+	    if (rc != sizeof(magic) || magic != (FORKMAGIC)) return -1;
+
 	    return 0;
-	    break;
        }
     }
-
-    PSID_blockSig(1,SIGUSR2);
-    initSigHandlers();
-    PSID_registerLoopAct(handleSIGUSR2);
 
 #define _PATH_TTY "/dev/tty"
     /* First disconnect from the old controlling tty. */
@@ -696,9 +682,12 @@ int main(int argc, const char *argv[])
 	PSID_log(-1, "Debugging mode (mask 0x%x) enabled\n", debugMask);
     }
 
-    /* Init fd sets */
-    FD_ZERO(&PSID_readfds);
-    FD_ZERO(&PSID_writefds);
+    /* Init the Selector facility as soon as possible */
+    if (!Selector_isInitialized()) Selector_init(logfile);
+    PSID_registerLoopAct(Selector_gc);
+
+    /* Initialize timer facility explicitely to ensure correct logging */
+    if (!Timer_isInitialized()) Timer_init(logfile);
 
     /*
      * Create the Local Service Port as early as possible. Actual
@@ -752,6 +741,9 @@ int main(int argc, const char *argv[])
 	}
     }
 
+    /* Setup handling of signals */
+    initSigHandlers();
+
     /* Catch SIGSEGV, SIGABRT and SIGBUS only if core dumps are suppressed */
     getrlimit(RLIMIT_CORE, &rlimit);
     if (!rlimit.rlim_cur) {
@@ -772,22 +764,15 @@ int main(int argc, const char *argv[])
     PSIDnodes_setKillDelay(PSC_getMyID(), config->killDelay);
 
     /* Bring node up with correct numbers of CPUs */
-    if (!Selector_isInitialized()) Selector_init(logfile);
     declareNodeAlive(PSC_getMyID(), PSID_getPhysCPUs(), PSID_getVirtCPUs());
 
-    /* Initialize timer facility explicitely to ensure correct logging */
-    if (!Timer_isInitialized()) Selector_init(logfile);
-
     /* Initialize timeouts, etc. */
-    selectTime.tv_sec = config->selectTime;
-    selectTime.tv_usec = 0;
     PSID_initStarttime();
 
     /* initialize various modules */
     initComm();  /* This has to be first since it gives msgHandler hash */
 
-    initSignalFD();
-    initClients();
+    PSIDclient_init();
     initState();
     initOptions();
     initStatus();
@@ -843,16 +828,14 @@ int main(int argc, const char *argv[])
 	}
 
 	/* Initialize RDP */
-	RDPSocket = initRDP(PSC_getNrOfNodes(),
-			    PSIDnodes_getAddr(PSC_getMyID()), config->RDPPort,
-			    logfile, hostlist, RDPCallBack);
+	RDPSocket = RDP_init(PSC_getNrOfNodes(),
+			     PSIDnodes_getAddr(PSC_getMyID()), config->RDPPort,
+			     logfile, hostlist, PSIDRDP_handleMsg, RDPCallBack);
 	if (RDPSocket<0) {
 	    PSID_exit(errno, "Error while trying initRDP");
 	}
 
 	PSID_log(-1, "RDP (%d) initialized.\n", RDPSocket);
-
-	FD_SET(RDPSocket, &PSID_readfds);
 
 	free(hostlist);
     }
@@ -861,7 +844,12 @@ int main(int argc, const char *argv[])
     PSID_enableMasterSock();
 
     /* Once RDP and the master socket are ready parents might be released */
-    if (pipeFD[1] > -1) close(pipeFD[1]);
+    if (pipeFD[1] > -1) {
+	if (write(pipeFD[1], &magic, sizeof(magic)) <= 0) {
+	    /* We don't care */
+	}
+	close(pipeFD[1]);
+    }
 
     PSID_log(-1, "SelectTime=%d sec    DeadInterval=%d\n",
 	     config->selectTime, config->deadInterval);
@@ -882,42 +870,9 @@ int main(int argc, const char *argv[])
      * Main loop
      */
     while (1) {
-	struct timeval tv;  /* timeval for waiting on select()*/
-	fd_set rfds;        /* read file descriptor set */
-	fd_set wfds;        /* write file descriptor set */
-	int fd, res;
+	int res = Swait(config->selectTime * 1000);
 
-	timerset(&tv, &selectTime);
-	memcpy(&rfds, &PSID_readfds, sizeof(rfds));
-	memcpy(&wfds, &PSID_writefds, sizeof(wfds));
-
-	res = Sselect(FD_SETSIZE, &rfds, &wfds, (fd_set *)NULL, &tv);
-	if (res < 0) {
-	    PSID_warn(-1, errno, "Error while Sselect");
-
-	    Selector_checkFDs();
-	    checkFileTable(&PSID_readfds);
-	    checkFileTable(&PSID_writefds);
-
-	    PSID_log(PSID_LOG_VERB, "Error while Sselect: continue\n");
-	    continue;
-	}
-
-	/* handle RDP messages */
-	/* not in a selector since RDP itself registeres one */
-	if (FD_ISSET(RDPSocket, &rfds)) {
-	    handleRDPMsg(RDPSocket);
-	    res--;
-	}
-
-	/* check client sockets to flush messages */
-	if (res) {
-	    for (fd=0; fd<FD_SETSIZE; fd++) {
-		if (FD_ISSET(fd, &wfds)) {
-		    if (!flushClientMsgs(fd)) FD_CLR(fd, &PSID_writefds);
-		}
-	    }
-	}
+	if (res < 0) PSID_warn(-1, errno, "Error while Swait()");
 
 	/* Handle actions registered to main-loop */
 	PSID_handleLoopActions();

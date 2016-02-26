@@ -46,7 +46,7 @@ typedef struct {
 } Child_t;
 
 /** the list head of the child list */
-Child_t ChildList;
+extern Child_t ChildList;
 
 /**
  * @brief Initialize the child list.

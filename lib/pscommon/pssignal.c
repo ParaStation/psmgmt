@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2015 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2015-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -32,9 +32,9 @@ typedef struct {
 } sig_chunk_t;
 
 /**
- * Pool of signal strucures ready to use. Initialized by @ref
- * incFreeList(). To get a buffer from this pool, use @ref
- * PSsignal_get(), to put it back into it use @ref PSsignal_put().
+ * Pool of signal structures ready to use. Initialized by @ref
+ * incFreeList(). To get a signal structure from this pool, use @ref
+ * PSsignal_get(), to put it back use @ref PSsignal_put().
  */
 static LIST_HEAD(sigFreeList);
 
@@ -58,7 +58,7 @@ static unsigned int availSigs = 0;
  * PSsignal_gc() as soon as enough signal structures are available
  * again.
  *
- * return On success, 1 is returned. Or 0, if allocating the required
+ * return On success, 1 is returned. Or 0 if allocating the required
  * memory failed. In the latter case errno is set appropriately.
  */
 static int incFreeList(void)
@@ -194,12 +194,13 @@ void PSsignal_gc(void)
 
     PSC_log(PSC_LOG_TASK, "%s()\n", __func__);
 
-    if ((int)usedSigs > (int)availSigs/2 - SIGNAL_CHUNK) return;
+    if (!PSsignal_gcRequired()) return;
 
     list_for_each_safe(c, tmp, &chunkList) {
 	sig_chunk_t *chunk = list_entry(c, sig_chunk_t, next);
 	int unused = 0;
 
+	/* always keep the first one */
 	if (first) {
 	    first = 0;
 	    continue;
@@ -211,7 +212,7 @@ void PSsignal_gc(void)
 
 	if (unused > SIGNAL_CHUNK/2) freeChunk(chunk);
 
-	if (availSigs == SIGNAL_CHUNK) break; /* keep the last one */
+	if (!PSsignal_gcRequired()) break;
     }
 }
 
@@ -219,9 +220,7 @@ int PSsignal_gcRequired(void)
 {
     PSC_log(PSC_LOG_TASK, "%s()\n", __func__);
 
-    if ((int)usedSigs > (int)availSigs/2 - SIGNAL_CHUNK) return 0;
-
-    return 1;
+    return ((int)usedSigs < ((int)availSigs - SIGNAL_CHUNK)/2);
 }
 
 void PSsignal_printStat(void)

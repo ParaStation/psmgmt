@@ -47,20 +47,20 @@ typedef struct {
     struct list_head list;
 } Proc_Snapshot_t;
 
-Proc_Snapshot_t ProcList;
+extern Proc_Snapshot_t ProcList;
 
 extern int cpuCount;
 
 extern int *cpuFreq;
 
-Session_Info_t SessionList;
+extern Session_Info_t SessionList;
 
 /**
  * @brief Initialize the proc list.
  *
  * @return No return value.
  */
-void initProc(void);
+void initProcList(void);
 
 /**
  * @brief Collect all data from every related child process.

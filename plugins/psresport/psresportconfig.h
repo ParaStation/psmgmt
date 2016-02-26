@@ -34,7 +34,7 @@ extern const ConfDef_t CONFIG_VALUES[];
 extern const int configValueCount;
 
 /** The configuration list. */
-Config_t ConfigList;
+extern Config_t ConfigList;
 
 /**
  * @brief Parse a configuration file and save the result.

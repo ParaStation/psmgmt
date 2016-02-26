@@ -37,6 +37,8 @@
 
 #include "psmomcomm.h"
 
+ComHandle_t ComList;
+
 void initComList()
 {
     INIT_LIST_HEAD(&ComList.list);

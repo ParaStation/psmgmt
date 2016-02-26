@@ -31,7 +31,9 @@ bin/admin/commands.c \
 bin/admin/commands.h \
 bin/admin/helpmsgs.c \
 bin/admin/psiadmin.c \
+bin/admin/psiadmin.h \
 bin/daemon/psid.c \
+bin/daemon/psid.h \
 bin/daemon/psidaccount.c \
 bin/daemon/psidaccount.h \
 bin/daemon/psidamd.c \
@@ -115,6 +117,9 @@ doc/parastation.conf.tmpl \
 doc/psaccount.conf \
 doc/psresport.conf \
 doc/psconfig/psmgmt.vipsconfig \
+doc/systemd/psidstarter_socket_d_port.conf \
+doc/systemd/psid_service_d_munge.conf \
+doc/systemd/psid_service_d_nvidia.conf \
 include/Makefile.am \
 include/Makefile.in \
 include/config_parsing.h \
@@ -438,6 +443,7 @@ scripts/systemd/psidstarter.socket \
 scripts/test-driver \
 scripts/vcversion \
 scripts/xinetd.d/psidstarter.in \
+tests/functional/Makefile.am \
 tests/functional/Makefile.in \
 tests/functional/test_logging.c \
 tests/functional/test_paramspace.c \

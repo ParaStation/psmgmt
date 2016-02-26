@@ -34,7 +34,7 @@ typedef struct {
 } JobInfo_t;
 
 /* list which holds all job infos */
-JobInfo_t JobInfoList;
+extern JobInfo_t JobInfoList;
 
 /**
  * @brief Initialize the job info list.

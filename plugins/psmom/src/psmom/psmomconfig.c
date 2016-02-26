@@ -249,6 +249,8 @@ Config_t *addConfig(char *key, char *value)
     return config;
 }
 
+Config_t ConfigList;
+
 int initConfig(char *cfgName)
 {
     FILE *fp;

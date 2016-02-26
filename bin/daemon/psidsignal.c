@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2015 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -115,7 +115,6 @@ int PSID_kill(pid_t pid, int sig, uid_t uid)
 	int error, fd, maxFD = sysconf(_SC_OPEN_MAX);
 
 	PSID_resetSigs();
-	signal(SIGCHLD, SIG_DFL);
 	PSID_blockSig(0, SIGCHLD);
 
 	/* close all fds except the control channel and stdin/stdout/stderr */
@@ -1181,7 +1180,7 @@ static void msg_RELEASERES(DDSignalMsg_t *msg)
     }
 
     if (msg->param) {
-	if (task->pendingReleaseErr && msg->param != ESRCH) {
+	if (!task->pendingReleaseErr && msg->param != ESRCH) {
 	    task->pendingReleaseErr = msg->param;
 	}
 	PSID_log(dbgMask, "%s: sig %d: error = %d from %s", __func__,

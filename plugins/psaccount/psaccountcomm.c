@@ -35,7 +35,7 @@
 int jobTimerID = -1;
 
 /** timer value to monitor the startup of a new job */
-struct timeval jobTimer = {1,0};
+static struct timeval jobTimer = {1,0};
 
 /**
  * @brief Convert the int acc msg type to string.

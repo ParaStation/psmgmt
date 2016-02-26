@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2015 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -14,6 +14,10 @@
  * without disturbing a select() call in a transparent way. Within
  * ParaStation this is used by the MCast, RDP and PSIDstatus
  * modules. Additionally, various plugins make use of this.
+ *
+ * In fact the facility is based internally on the more recent
+ * epoll(7) I/O event notification facility but keeps select()
+ * semantics for compatibility reasons.
  *
  * $Id$
  *
@@ -37,10 +41,10 @@ extern "C" {
 #endif
 
 /**
- * @brief Initializes the Selector module.
+ * @brief (Re-)Initialize the Selector module.
  *
- * Initialization of the Selector machinery. If any selector is registered,
- * it will be removed.
+ * (Re-)Initialization of the Selector machinery. If any selector was
+ * registered before, it will be removed.
  *
  * @param logfile File to use for logging. If NULL, syslog(3) is used.
  *
@@ -108,9 +112,28 @@ int32_t Selector_getDebugMask(void);
 void Selector_setDebugMask(int32_t mask);
 
 /**
+ * @brief Set the number of selectors to handle
+ *
+ * Set the number of selectors the modules can handle to @a max. Since
+ * selectors are addressed by their file-descriptor, the maximum has
+ * to be adapted each time RLIMIT_NOFILE is adapted.  Nevertheless,
+ * since old file-descriptor keep staying alive, only a value of @a
+ * max larger than the previous maximum will have an effect.
+ *
+ * The initial value is determined within @ref Selector_init() via
+ * sysconf(_SC_OPEN_MAX).
+ *
+ * @param max New maximum number of selectors to handle
+ *
+ * @return On success 0 is returned. In case of failure -1 is returned
+ * and errno is set appropriately.
+ */
+int Selector_setMax(int max);
+
+/**
  * @brief Selector callback
  *
- * Callback used by Sselect(), if data on the corresponding
+ * Callback used by Sselect() and Swait() if data on the corresponding
  * file-descriptor is pending. This file-descriptor is passed as the
  * first argument. The second argument is used to hand-over additional
  * information to the callback-handler.
@@ -123,37 +146,40 @@ typedef int Selector_CB_t (int, void *);
  * Registration of a new selector. The selector will be identified by
  * its corresponding file-descriptor @a fd. Only one selector per
  * file-descriptor can be registered. The @a selectHandler will be
- * called if data on @a fd is pending during a call to @ref
- * Sselect(). Additional information might be passed to @a
+ * called if data on @a fd is pending during a call to @ref Sselect()
+ * or @ref Swait(). Additional information might be passed to @a
  * selectHandler via the pointer @a info.
  *
  * A second use-case of the @a selectHandler is to signal problems
- * with the file-descriptor, especially if select() called with just
- * the associated file-descriptor returns EBADF. Thus, the handler has
- * to expect a misbehaving file descriptor. The corresponding selector
- * will be deleted after the return anyhow.
+ * with the file-descriptor, especially if epoll_wait() signals an
+ * event of type EPOLLERR for the corresponding file-descriptor.
+ * Thus, the handler has to expect a misbehaving file
+ * descriptor. Nevertheless, the corresponding selector will be
+ * deleted after the return, anyhow.
  *
  * @param fd The file-descriptor, the selector is registered on.
  *
  * @param selectHandler If data on @a fd is pending during a call to
- * Sselect(), this functions is called. @a fd is passed as an
- * argument. Sselect() expects the return values as follows:
+ * Sselect() or Swait(), this functions is called. @a fd and @a info
+ * are passed as arguments. Both functions expect the return values as
+ * follows:
  *
- *  - -1 An error occurred and Sselect() is expected to stop. Passing
- *       this value to Sselect() lets the current call to it return
- *       with -1. Thus, errno should be set appropriately before
- *       returning it. This return-value is intended for fatal
- *       situations where continuing within Sselect() makes no sense
- *       at all like running out of memory, etc.  For isolated
- *       problems like the file-descriptor handled was detected to be
- *       closed and cleaned-up subsequently a return-value of 0 is
- *       more appropriately.
+ *  - -1 An error occurred and Sselect() / Swait() is expected to
+ *       stop. Passing this value to the caller lets the current call
+ *       to it return with -1. Thus, errno should be set appropriately
+ *       before returning it. This return-value is intended for fatal
+ *       situations where continuing within Sselect() / Swait() makes
+ *       no sense at all like running out of memory, etc.  For
+ *       isolated problems like the file-descriptor handled was
+ *       detected to be closed and cleaned-up subsequently a
+ *       return-value of 0 is more appropriate.
  *
- *  - 0  If no pending data on @a fd remained. Sselect() will continue watching
- *       its descriptor-set then.
+ *  - 0  No pending data on @a fd remained. Sselect() / Swait() will
+ *       continue handling other file-descriptors with pending data.
  *
- *  - 1  If there is still pending data on @a fd. This forces Sselect() to
- *       pass @a fd to its own caller.
+ *  - 1  There is still pending data on @a fd. This tells Sselect() to
+ *       pass @a fd to its own caller if it was set within @ref
+ *       readfds, i.e. to let it get handled outside.
  *
  * @param info Pointer to additional information passed to @a
  * selectHandler in case of pending data on the file-descriptor.
@@ -176,6 +202,69 @@ int Selector_register(int fd, Selector_CB_t selectHandler, void *info);
 int Selector_remove(int fd);
 
 /**
+ * @brief Register a write selector.
+ *
+ * Register the write handler @a writeHandler to a selector identified
+ * by the file-descriptor @a fd. Only one write-handler per
+ * file-descriptor can be registered. Subsequent calls to this
+ * function will replace prior handlers and shall be avoided.
+ *
+ * The @a writeHandler will be called if data can be written to @a fd
+ * during a call to @ref Sselect() or @ref Swait(). Additional
+ * information might be passed to @a writeHandler via the pointer @a
+ * info.
+ *
+ * @param fd The file-descriptor, the selector is registered on.
+ *
+ * @param writeHandler If data can be sent to @a fd during a call to
+ * Sselect() or Swait(), this functions is called. @a fd and @a info
+ * are passed as arguments. Both functions expect the return values as
+ * follows:
+ *
+ *  - -1 An error occurred and Sselect() / Swait() is expected to
+ *       stop. Passing this value to the caller lets the current call
+ *       to it return with -1. Thus, errno should be set appropriately
+ *       before returning. This return-value is intended for fatal
+ *       situations where continuing within Sselect() / Swait() makes
+ *       no sense at all like running out of memory, etc. For isolated
+ *       problems like the file-descriptor handled was detected to be
+ *       closed and cleaned-up subsequently a return-value of 0 is
+ *       more appropriate.
+ *
+ *  - 0  All data pending for @a fd was sent. Sselect() / Swait() is
+ *       expected to continue handling other file-descriptors. If the
+ *       caller is not required to watch for @a fd any longer, the
+ *       handler is expected to vacate itself via
+ *       Selector_vacateWrite(). At the same time this value signals
+ *       Sselect() to pass @a fd to its caller if requested in @ref
+ *       writefds since @a fd is expected to accept further data.
+ *
+ *  - 1  The handler was able to use @a fd but unsuccessful in
+ *       dispatching all pending data. Sselect() or Swait() will
+ *       continue handling other file-descriptors. Nevertheless, @a fd
+ *       will not be passed to Sselect()'s caller, even if requested.
+ *
+ * @param info Pointer to additional information passed to @a
+ * writeHandler in case of data can be written to the file-descriptor.
+ *
+ * @return On success, 0 is returned. On error -1 is returned and
+ * errno is set appropriately.
+ */
+int Selector_awaitWrite(int fd, Selector_CB_t writeHandler, void *info);
+
+/**
+ * @brief Vacate a write selector.
+ *
+ * Remove a registered write selector. The selector will be identified
+ * by its corresponding file-descriptor @a fd.
+ *
+ * @param fd The file-descriptor to identify the write selector.
+ *
+ * @return On success, 0 is returned. On error, -1 is returned.
+ */
+int Selector_vacateWrite(int fd);
+
+/**
  * @brief Check for registered selector
  *
  * Test for a registered selector on the file-descriptor @a fd.
@@ -192,9 +281,9 @@ int Selector_isRegistered(int fd);
  *
  * Disable a registered selector. The selector will be identified by
  * its corresponding file-descriptor @a fd. As long as the selector is
- * disabled, it will not be monitored within @ref Sselect() and the
- * corresponding handler will not be called, even if the
- * file-descriptor @a fd is explicitly monitored with the
+ * disabled, it will not be monitored within @ref Sselect() or @ref
+ * Swait() and the corresponding handler will not be called, even if
+ * the file-descriptor @a fd is explicitly monitored with the
  * file-descriptor set passed to @ref Sselect()
  *
  * @param fd The file-descriptor to identify the selector.
@@ -217,7 +306,7 @@ int Selector_disable(int fd);
 int Selector_enable(int fd);
 
 /**
- * @brief Get a selector's activitiy-status
+ * @brief Get a selector's activity-status
  *
  * Get the activity-status of a selector, i.e. give an indication that
  * the selector is not disabled via @ref Selector_disable(). The
@@ -232,11 +321,14 @@ int Selector_enable(int fd);
 int Selector_isActive(int fd);
 
 /**
- * @brief Checks file-decriptors after select() has failed.
+ * @brief Checks file-descriptors after select() has failed.
  *
  * Detailed checking of the file-descriptors in the list of selectors
  * on validity after a select(2) call has failed. Thus all file
  * descriptors within the list are examined and handled if necessary.
+ *
+ * @deprecated This mechanism is obsolete since epoll(7) is used in
+ * the meantime and in fact is a no-op. To be removed soon.
  *
  * @return No return value.
  */
@@ -249,8 +341,14 @@ void Selector_checkFDs(void);
  * of a registered file-descriptor is affected, the corresponding
  * @ref selectHandler() is called.
  *
+ * In fact the implementation is based internally on the more recent
+ * epoll(7) I/O event notification facility but keeps select() semantics
+ * for compatibility reasons.
  *
- * @param n The highest-numbered descriptor in the three sets, plus 1.
+ * It is recommended to avoid this mechanism and to use the more
+ * appropriate @ref Swait() instead.
+ *
+ * @param nfds The highest-numbered descriptor in the three sets, plus 1.
  *
  * @param readfds The set of descriptors to be watched for data available to
  * read.
@@ -260,7 +358,7 @@ void Selector_checkFDs(void);
  *
  * @param exceptfds The set of descriptors to be watched for exceptions.
  *
- * @param timeval The upper bound on the amount of time elapsed before
+ * @param timeout The upper bound on the amount of time elapsed before
  * Sselect() returns. It may be zero causing Sselect() to return
  * immediately.  If @a timeout is NULL, Sselect() can block
  * indefinitely.
@@ -274,24 +372,82 @@ void Selector_checkFDs(void);
  *
  * @see select(2)
  */
-int Sselect(int n, fd_set* readfds, fd_set* writefds, fd_set* exceptfds,
+int Sselect(int nfds, fd_set* readfds, fd_set* writefds, fd_set* exceptfds,
 	    struct timeval* timeout);
 
 /**
- * @brief Let Sselect() start over
+ * @brief Simplified epoll_wait() replacement.
+ *
+ * Simplified epoll_wait() replacement that handles registered
+ * selectors. If the status of a registered file-descriptor is
+ * affected, the corresponding @ref selectHandler() is called.
+ *
+ * The implementation is based internally on the kernel's epoll(7) I/O
+ * event notification facility.
+ *
+ * @param timeout The upper bound (in milliseconds) on the amount of
+ * time elapsed before Swait() returns. It may be zero causing
+ * Swait() to return immediately.  If @a timeout is -1, Swait()
+ * can block indefinitely.
+ *
+ * @return On success, 0 is returned. Or -1 if an error occurred. In
+ * the latter case @ref errno is set appropriately.
+ */
+int Swait(int timeout);
+
+/**
+ * @brief Let Sselect() or Swait() start over
  *
  * Once this function is called, @ref Sselect() will return upon exit
- * from its internal call to @ref select() with return-value 0 and all
- * file-descriptor sets cleared.
+ * from its internal call to @ref epoll_wait() with return-value 0 and
+ * all file-descriptor sets cleared. Accordingly, @ref Swait() will
+ * return, too.
  *
  * This might primarily be used in order enable changes to the
  * file-descriptor sets used while calling Sselect(). Especially the
- * timeout passed to @ref Sselect() will be overruled by calling this
- * function.
+ * timeout passed to @ref Sselect() or @ref Swait() will be overruled
+ * by calling this function.
  *
  * @return No return value
  */
 void Selector_startOver(void);
+
+/**
+ * @brief Garbage collection
+ *
+ * Do garbage collection on unused selector structures. Since this
+ * module will keep pre-allocated buffers for selectors its
+ * memory-footprint might have grown after phases of heavy
+ * usage. Thus, this function shall be called regularly in order to
+ * free() selector structures no longer required.
+ *
+ * @return No return value.
+ *
+ * @see Selector_gcRequired()
+ */
+void Selector_gc(void);
+
+/**
+ * @brief Garbage collection required?
+ *
+ * Find out if a call to Selector_gc() will have any effect, i.e. if
+ * sufficiently many unused selector structures are available to free().
+ *
+ * @return If enough selector structure to free() are available, 1 is
+ * returned. Otherwise 0 is given back.
+ *
+ * @see Selector_gc()
+ */
+int Selector_gcRequired(void);
+
+/**
+ * @brief Print statistics
+ *
+ * Print statistics concerning the usage of selector structures.
+ *
+ * @return No return value.
+ */
+void Selector_printStat(void);
 
 #ifdef __cplusplus
 }/* extern "C" */

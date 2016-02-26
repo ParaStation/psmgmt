@@ -54,7 +54,7 @@ typedef struct {
 } ComHandle_t;
 
 /** the communication list */
-ComHandle_t ComList;
+extern ComHandle_t ComList;
 
 /**
  * @brief Init the communication list.

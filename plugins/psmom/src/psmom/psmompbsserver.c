@@ -43,6 +43,8 @@ static int serverUpdateID = -1;
 /** keep alive time interval */
 static int keepAliveTime;
 
+Server_t ServerList;
+
 void initServerList()
 {
     INIT_LIST_HEAD(&ServerList.list);

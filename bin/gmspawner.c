@@ -45,9 +45,9 @@ static char vcid[] __attribute__((used)) =
 #include <psienv.h>
 #include <pscommon.h>
 
-pthread_t listener;
+static pthread_t listener;
 
-struct {
+static struct {
     unsigned int port;
     unsigned int board;
     unsigned int node;
@@ -260,7 +260,7 @@ typedef struct {
     int verbose;
 } listenerArgs;
 
-listenerArgs args;
+static listenerArgs args;
 
 static void *listenToClients(void *val)
 {

@@ -1,7 +1,7 @@
 #
 # ParaStation
 #
-# Copyright (C) 2012-2014 ParTec Cluster Competence Center GmbH, Munich
+# Copyright (C) 2012-2016 ParTec Cluster Competence Center GmbH, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -41,12 +41,12 @@ plugincommon_objs += $(top_builddir)/lib/plugincommon/plugincomm.lo
 plugincommon_objs += $(top_builddir)/lib/plugincommon/pluginmalloc.lo
 plugincommon_objs += $(top_builddir)/lib/plugincommon/pluginlog.lo
 
-psiadmin_SOURCES = admin/psiadmin.c admin/commands.c admin/commands.h	\
-	admin/adminparser.c admin/adminparser.h
+psiadmin_SOURCES = admin/psiadmin.c admin/psiadmin.h admin/commands.c	\
+	admin/commands.h admin/adminparser.c admin/adminparser.h
 psiadmin_LDADD = $(libputil) $(libpse) $(POPT_LIBS) $(RL_LIBS)
 
 psid_SOURCES = daemon/psidaccount.c daemon/psidaccount.h		\
-	daemon/psidamd.c daemon/psidamd.h daemon/psid.c			\
+	daemon/psidamd.c daemon/psidamd.h daemon/psid.c daemon/psid.h	\
 	daemon/psidclient.c daemon/psidclient.h daemon/psidcomm.c	\
 	daemon/psidcomm.h daemon/psidenv.c daemon/psidenv.h		\
 	daemon/psidforwarder.c daemon/psidforwarder.h			\
@@ -106,3 +106,6 @@ AM_CPPFLAGS += -I$(top_srcdir)/bin/daemon
 mpiexec_CPPFLAGS = $(AM_CPPFLAGS) -DCONFIGDIR=\"$(configdir)\"
 mpiexec_LDADD = $(libpse) $(libpskvs) $(plugincommon_objs) $(POPT_LIBS) -lrt
 testacct_LDADD = $(libpse) $(POPT_LIBS)
+
+install-exec-local:
+	$(INSTALL) -d $(DESTDIR)$(localstatedir)/log/psaccounter

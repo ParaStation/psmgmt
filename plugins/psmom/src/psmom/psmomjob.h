@@ -126,7 +126,7 @@ typedef struct {
 } Job_t;
 
 /* list which holds all jobs */
-Job_t JobList;
+extern Job_t JobList;
 
 extern int jobObitTimerID;
 

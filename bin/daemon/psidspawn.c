@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2015 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -1109,9 +1109,6 @@ static void execForwarder(PStask_t *task, int daemonfd)
     struct timeval start, end = { .tv_sec = 0, .tv_usec = 0 }, stv;
     struct timeval timeout = { .tv_sec = 30, .tv_usec = 0};
 
-    /* Block until the forwarder has handled all output */
-    PSID_blockSig(1, SIGCHLD);
-
     /* setup the environment; done here to pass it to forwarder, too */
     setenv("PWD", task->workingdir, 1);
 
@@ -1500,14 +1497,6 @@ static int buildSandboxAndStart(PStask_t *task)
 	eno = errno;
 	PSID_warn(-1, eno, "%s: socketpair()", __func__);
 	return eno;
-    }
-    if (socketfds[0] >= FD_SETSIZE) {
-	PSID_log(-1, "%s: socketfd (%d) out of mask\n", __func__,
-		 socketfds[0]);
-	close(socketfds[0]);
-	close(socketfds[1]);
-
-	return EOVERFLOW;
     }
 
     /* fork the forwarder */
@@ -1987,7 +1976,6 @@ static void msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
     size_t usedBytes;
     int32_t rank = -1;
     PStask_group_t group = TG_ANY;
-
     char tasktxt[128];
 
     PSID_log(PSID_LOG_SPAWN, "%s: from %s msglen %d\n", __func__,
@@ -2845,8 +2833,8 @@ static void checkObstinateTasks(void)
 	    }
 	}
     }
-}
 
+}
 
 void initSpawn(void)
 {
@@ -2859,7 +2847,7 @@ void initSpawn(void)
     PSID_registerMsg(PSP_CD_SPAWNFINISH, (handlerFunc_t) msg_SPAWNFINISH);
     PSID_registerMsg(PSP_DD_CHILDDEAD, (handlerFunc_t) msg_CHILDDEAD);
     PSID_registerMsg(PSP_DD_CHILDBORN, (handlerFunc_t) msg_CHILDBORN);
-    PSID_registerMsg(PSP_DD_CHILDACK, (handlerFunc_t) sendClient);
+    PSID_registerMsg(PSP_DD_CHILDACK, (handlerFunc_t) PSIDclient_send);
 
     PSID_registerDropper(PSP_CD_SPAWNREQUEST, drop_SPAWNREQ);
     PSID_registerDropper(PSP_CD_SPAWNREQ, drop_SPAWNREQ);

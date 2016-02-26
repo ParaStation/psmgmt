@@ -32,7 +32,7 @@ typedef struct {
     struct list_head list;
 } Job_t;
 
-Job_t JobList;
+extern Job_t JobList;
 
 /**
  * @brief Initialize the list.

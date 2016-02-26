@@ -11,47 +11,38 @@
 #
 include $(top_srcdir)/common.am
 
-dist_bin_SCRIPTS = psh psaccview
+bin_SCRIPTS = psh psaccview
 
 profile_ddir = $(sysconfdir)/profile.d
-dist_profile_d_DATA = psmgmt.csh psmgmt.sh
+profile_d_DATA = psmgmt.csh psmgmt.sh
 
 if HAVE_SYSTEMD
-  dist_unit_DATA = systemd/psid.service
-  dist_unit_DATA += systemd/psidstarter.socket
-  dist_unit_DATA += systemd/psidstarter@.service
+  unit_DATA = systemd/psid.service
+  unit_DATA += systemd/psidstarter.socket
+  unit_DATA += systemd/psidstarter@.service
 else
-  init_ddir = $(sysconfdir)/init.d
-  dist_init_d_SCRIPTS = init.d/parastation
-
-  xinetd_ddir = $(sysconfdir)/xinetd.d
-  dist_xinetd_d_DATA = xinetd.d/psidstarter
+  nobase_sysconf_DATA = init.d/parastation
+  nobase_sysconf_DATA += xinetd.d/psidstarter
 endif
 
-dist_config_DATA = mpiexec.gdb
-dist_config_SCRIPTS = ps_gm ps_acc
+config_DATA = mpiexec.gdb
 
-dist_scripts_SCRIPTS = ps_gmcounters
+config_SCRIPTS = ps_gm ps_acc
 
-noinst_SCRIPTS = psid2cmustatus
-noinst_SCRIPTS += memtest.py
+scripts_SCRIPTS = ps_gmcounters
 
-EXTRA_DIST = vcversion
-EXTRA_DIST += .gdbinit mpirun_java parastation_tru64
-EXTRA_DIST += lsf memtest.py loggerdebug.py
+noinst_SCRIPTS = psid2cmustatus memtest.py
 
-# templates for generated files
-EXTRA_DIST += psaccview.in
-EXTRA_DIST += psmgmt.csh.in psmgmt.sh.in
-EXTRA_DIST += ps_gm.in ps_acc.in
-EXTRA_DIST += init.d/parastation.in xinetd.d/psidstarter.in
-EXTRA_DIST += systemd/psid.service.in
-EXTRA_DIST += psid2cmustatus.in
+# for simplicity, put all dist files here, so no dist_ primaries above
+EXTRA_DIST = .gdbinit init.d/parastation.in loggerdebug.py lsf  \
+        memtest.py mpiexec.gdb mpirun_java parastation_tru64    \
+        ps_acc.in ps_gm.in ps_gmcounters psaccview.in psh       \
+        psid2cmustatus.in psmgmt.csh.in psmgmt.sh.in            \
+        systemd/psid.service.in systemd/psidstarter.socket      \
+        systemd/psidstarter@.service vcversion                  \
+        xinetd.d/psidstarter.in
 
 # clean up generated files
-CLEANFILES = psaccview
-CLEANFILES += psmgmt.csh psmgmt.sh
-CLEANFILES += ps_gm ps_acc
-CLEANFILES += init.d/parastation xinetd.d/psidstarter
-CLEANFILES += systemd/psid.service
-CLEANFILES += psid2cmustatus
+CLEANFILES = psaccview psmgmt.csh psmgmt.sh ps_gm ps_acc                \
+        init.d/parastation xinetd.d/psidstarter systemd/psid.service    \
+        psid2cmustatus

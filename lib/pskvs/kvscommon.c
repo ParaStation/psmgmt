@@ -23,8 +23,8 @@
 
 #include "kvscommon.h"
 
-const char delimiters[] =" \n";
-const char *uDelim = NULL;
+static const char delimiters[] =" \n";
+static const char *uDelim = NULL;
 
 const char *PSKVScmdToString(PSKVS_cmd_t cmd)
 {

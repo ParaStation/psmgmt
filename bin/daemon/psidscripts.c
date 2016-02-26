@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2009-2015 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2009-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -92,7 +92,6 @@ static int doExec(char *script, PSID_scriptFunc_t func, PSID_scriptPrep_t prep,
 	int fd, ret = 0, maxFD = sysconf(_SC_OPEN_MAX);
 
 	PSID_resetSigs();
-	signal(SIGCHLD, SIG_DFL);
 	PSID_blockSig(0, SIGCHLD);
 
 	/* close all fds except control channel and connecting socket */

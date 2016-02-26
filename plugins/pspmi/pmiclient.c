@@ -71,7 +71,7 @@ typedef struct {
 } Update_Buffer_t;
 
 /** A list of buffers holding KVS update data */
-Update_Buffer_t uBufferList;
+static Update_Buffer_t uBufferList;
 
 /** Flag to check if the pmi_init() was called successful */
 static int is_init = 0;
@@ -1666,7 +1666,7 @@ static int p_Execution_Problem(char *msgBuffer)
     return 0;
 }
 
-const PMI_Msg pmi_commands[] =
+static const PMI_Msg pmi_commands[] =
 {
 	{ "put",			&p_Put			},
 	{ "get",			&p_Get			},
@@ -1683,7 +1683,7 @@ const PMI_Msg pmi_commands[] =
 	{ "destroy_kvs",		&p_Destroy_Kvs		},
 };
 
-const PMI_shortMsg pmi_short_commands[] =
+static const PMI_shortMsg pmi_short_commands[] =
 {
 	{ "get_maxes",			&p_Get_Maxes		},
 	{ "get_appnum",			&p_Get_Appnum		},
@@ -1693,8 +1693,8 @@ const PMI_shortMsg pmi_short_commands[] =
 	{ "create_kvs",			&p_Create_Kvs		},
 };
 
-const int pmi_com_count = sizeof(pmi_commands)/sizeof(pmi_commands[0]);
-const int pmi_short_com_count =
+static const int pmi_com_count = sizeof(pmi_commands)/sizeof(pmi_commands[0]);
+static const int pmi_short_com_count =
     sizeof(pmi_short_commands)/sizeof(pmi_short_commands[0]);
 
 

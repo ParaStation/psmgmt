@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2015 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -34,12 +34,12 @@ extern "C" {
 /**
  * @brief Initialize clients structures.
  *
- * Initialize the clients structures. This has to be called befor any
+ * Initialize the client structures. This has to be called before any
  * function within this module is used.
  *
  * @return No return value.
  */
-void initClients(void);
+void PSIDclient_init(void);
 
 /**
  * @brief Register a new client.
@@ -78,7 +78,7 @@ PStask_ID_t getClientTID(int fd);
 /**
  * @brief Get a clients task structure.
  *
- * Get the task strucure of the client connected to file descriptor @a fd.
+ * Get the task structure of the client connected to file descriptor @a fd.
  *
  * @param fd The file descriptor the requested client is connected to.
  *
@@ -107,7 +107,7 @@ PStask_t *getClientTask(int fd);
  * @brief Test if client's connection is established.
  *
  * Test if the client's connection via file descriptor @a fd is
- * already established, i.e. the setEstablished functionn was called
+ * already established, i.e. the setEstablished function was called
  * for this @a fd.
  *
  * @param fd The file descriptor the client is connected through.
@@ -118,22 +118,6 @@ PStask_t *getClientTask(int fd);
  * @see setEstablishedClient()
  */
 int isEstablishedClient(int fd);
-
-/**
- * @brief Flush messages to client.
- *
- * Try to send all messages to the client connected via file
- * descriptor @a fd that could not be delivered in prior calls to
- * sendClient() or flushClientMsgs().
- *
- * @param fd The file descriptor the messages to send are associated with.
- *
- * @return If all pending message were delivered, 0 is returned. Or
- * -1, if a problem occured.
- *
- * @see sendClient()
- */
-int flushClientMsgs(int fd);
 
 /**
  * @brief Signal a received SENDSTOPACK
@@ -149,7 +133,7 @@ int flushClientMsgs(int fd);
  *
  * @return No return value.
  */
-void releaseACKClient(int fd);
+void PSIDclient_releaseACK(int fd);
 
 /**
  * @brief Send message to client.
@@ -160,7 +144,7 @@ void releaseACKClient(int fd);
  *
  * If the message could not be delivered, it will be stored internally
  * and @a errno will be set to EWOULDBLOCK. Further calls to
- * sendClient() resulting in the same file descriptor or to
+ * PSIDclient_send() resulting in the same file descriptor or to
  * flushClientMsgs() using this file descriptor will try to deliver this
  * packet.
  *
@@ -170,9 +154,9 @@ void releaseACKClient(int fd);
  * the message, is returned. Otherwise -1 is returned and errno is set
  * appropriately.
  *
- * @see flushClientMsgs(), errno(3)
+ * @see errno(3)
  */
-int sendClient(DDMsg_t *msg);
+int PSIDclient_send(DDMsg_t *msg);
 
 /**
  * @brief Receive message from client.
@@ -188,7 +172,7 @@ int sendClient(DDMsg_t *msg);
  * @param size The maximum length of the message, i.e. the size of @a msg.
  *
  * @return On success, the number of bytes received is returned, or -1 if
- * an error occured. In the latter case errno will be set appropiately.
+ * an error occurred. In the latter case errno will be set appropriately.
  *
  * @see errno(3)
  */
@@ -232,7 +216,7 @@ int killAllClients(int sig, int killAdminTasks);
  *
  * Cleanup all dynamic memory currently used by the module. It will
  * very aggressively free() all allocated memory most likely
- * destroying the existing status reqresentation.
+ * destroying the existing status representation.
  *
  * The purpose of this function is to cleanup before a fork()ed
  * process is handling other tasks, e.g. becoming a forwarder.
@@ -240,6 +224,26 @@ int killAllClients(int sig, int killAdminTasks);
  * @return No return value.
  */
 void PSIDclient_clearMem(void);
+
+/**
+ * @brief Set the number of clients to handle
+ *
+ * Set the number of clients the modules can handle to @a max. Since
+ * connected clients are addressed by their file-descriptor, the
+ * maximum has to be adapted each time RLIMIT_NOFILE is adapted.
+ * Nevertheless, since old file-descriptor keep staying alive, only a
+ * value of @a max larger than the previous maximum will have an
+ * effect.
+ *
+ * The initial value is determined within @ref PSIDclient_init() via
+ * sysconf(_SC_OPEN_MAX).
+ *
+ * @param max New maximum number of clients to handle
+ *
+ * @return On success 0 is returned. In case of failure -1 is returned
+ * and errno is set appropriately.
+ */
+int PSIDclient_setMax(int max);
 
 #ifdef __cplusplus
 }/* extern "C" */

@@ -17,6 +17,7 @@ static char vcid[] __attribute__((used)) =
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <ctype.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <sys/ioctl.h>
@@ -26,9 +27,6 @@ static char vcid[] __attribute__((used)) =
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <signal.h>
-#include <dirent.h>
-#include <ctype.h>
-#include <sys/utsname.h>
 #include <sys/signalfd.h>
 
 #include "psidutil.h"
@@ -49,28 +47,16 @@ static char tag[] = "PSID_forwarder";
  *
  * Set by connectLogger() on behalf of info from logger.
  */
-int verbose = 0;
+static int verbose = 0;
 
 /** The ParaStation task ID of the logger */
-PStask_ID_t loggerTID = -1;
+static PStask_ID_t loggerTID = -1;
 
 /** Description of the local child-task */
-PStask_t *childTask = NULL;
+static PStask_t *childTask = NULL;
 
 /** The socket connecting to the local ParaStation daemon */
-int daemonSock = -1;
-
-/** The socket connected to the stdin port of the client */
-int stdinSock = -1;
-
-/** The socket connected to the stdout port of the client */
-int stdoutSock = -1;
-
-/** The socket connected to the stderr port of the client */
-int stderrSock = -1;
-
-/** Set of fds the forwarder writes to (this is stdinSock) */
-static fd_set writefds;
+static int daemonSock = -1;
 
 /** Number of open file descriptors to wait for */
 static int openfds = 0;
@@ -78,11 +64,8 @@ static int openfds = 0;
 /** Flag for real SIGCHLD received */
 static int gotSIGCHLD = 0;
 
-/** socket to recognize SIGCHLD while sleeping in select() */
-static int signalFD = -1;
-
 /** List of messages waiting to be sent */
-LIST_HEAD(oldMsgs);
+static LIST_HEAD(oldMsgs);
 
 /**
  * Timeout for connecting to logger. This will be set according to the
@@ -90,7 +73,7 @@ LIST_HEAD(oldMsgs);
  * PSID_forwarder(). Might be overruled via __PSI_LOGGER_TIMEOUT
  * environment
  */
-int loggerTimeout = 60;
+static int loggerTimeout = 60;
 
 /**
  * @brief Close socket to daemon.
@@ -106,8 +89,8 @@ static void closeDaemonSock(void)
     PSLog_close();
     loggerTID = -1;
 
-    close(daemonSock);
     Selector_remove(daemonSock);
+    close(daemonSock);
     daemonSock = -1;
 }
 
@@ -198,7 +181,7 @@ static void sendSignal(pid_t dest, int signal)
 
     /* determine foreground process group for or default pid */
     if (childTask->interactive && dest > 0) {
-	pid = tcgetpgrp(stderrSock);
+	pid = tcgetpgrp(childTask->stderr_fd);
 	if (pid == -1) {
 	    PSID_warn((errno==EBADF) ? PSID_LOG_SIGNAL : -1, errno,
 		      "%s: tcgetpgrp()", __func__);
@@ -407,8 +390,8 @@ int sendDaemonMsg(DDMsg_t *msg)
     }
 
     if (verbose && loggerTID >= 0) {
-	PSIDfwd_printMsgf(STDERR, "%s: type %s (len=%d) to %s\n",
-			  __func__, PSDaemonP_printMsg(msg->type),
+	PSIDfwd_printMsgf(STDERR, "%s: %s: type %s (len=%d) to %s\n",
+			  tag, __func__, PSDaemonP_printMsg(msg->type),
 			  msg->len, PSC_printTID(msg->dest));
     }
 
@@ -514,7 +497,7 @@ static void releaseLogger(int status)
  send_again:
     sendMsg(FINALIZE, (char *)&status, sizeof(status));
 
-    timeout = (struct timeval) {loggerTimeout, 0};
+    timeout = (struct timeval) {10, 0};
  again:
     ret = recvMsg(&msg, &timeout);
 
@@ -557,37 +540,36 @@ static void releaseLogger(int status)
 }
 
 /**
- * @brief Write to @ref stdinSock descriptor
+ * @brief Write to client's stdin
  *
- * Write the message @a msg to the @ref stdinSock file-descriptor,
- * starting at by @a offset of the message. It is expected that the
- * previous parts of the message were sent in earlier calls to this
- * function.
+ * Write the message @a msg to the file-descriptor connected to the
+ * clients stdin starting at an offset of @a offset bytes. It is
+ * expected that the previous parts of the message were sent in
+ * earlier calls to this function.
  *
  * @param msg The message to transmit.
  *
  * @param offset Number of bytes sent in earlier calls.
  *
  * @return On success, the total number of bytes written is returned,
- * i.e. usually this is the length of @a msg. If the @ref stdinSock
- * file-descriptor blocks, this might also be smaller. In this case
- * the total number of bytes sent in this and all previous calls is
- * returned. If an error occurs, -1 or 0 is returned and errno is set
- * appropriately.
+ * i.e. usually this is the length of @a msg. If the file-descriptor
+ * blocks, this might also be smaller. In this case the total number
+ * of bytes sent in this and all previous calls is returned. If an
+ * error occurs, -1 or 0 is returned and errno is set appropriately.
  */
-static int do_write(PSLog_Msg_t *msg, int offset)
+static int doWrite(PSLog_Msg_t *msg, int offset)
 {
     int n, i;
     int count = msg->header.len - PSLog_headerSize;
+    int stdinSock = childTask->stdin_fd;
 
     if (stdinSock <0) return 0;
 
     if (!count) {
 	/* close clients stdin */
 	shutdown(stdinSock, SHUT_WR);
-	FD_CLR(stdinSock, &writefds);
-	close(stdinSock);
-	stdinSock = -1;
+	if (Selector_isRegistered(stdinSock)) Selector_vacateWrite(stdinSock);
+	childTask->stdin_fd = -1;
 	return 0;
     }
 
@@ -595,22 +577,29 @@ static int do_write(PSLog_Msg_t *msg, int offset)
 	char *errstr;
 	errno = 0;
 	i = write(stdinSock, &msg->buf[n], count-n);
-	if (i<=0) {
+	if (i<0) {
 	    int eno = errno;
 	    switch (eno) {
 	    case EINTR:
 		i=1;
 		continue;
-		break;
 	    case EAGAIN:
 		return n;
+	    case EPIPE:
+		sendMsg(STOP, NULL, 0);
+		if (Selector_isRegistered(stdinSock))
+		    Selector_vacateWrite(stdinSock);
+		childTask->stdin_fd = -1;
 		break;
 	    default:
 		errstr = strerror(eno);
-		PSIDfwd_printMsgf(STDERR, "%s: got error %d on stdinSock: %s\n",
-				  __func__, eno, errstr ? errstr : "UNKNOWN");
-		return i;
+		PSIDfwd_printMsgf(STDERR,
+				  "%s: %s: got error %d on stdinSock: %s\n",
+				  tag, __func__, eno,
+				  errstr ? errstr : "UNKNOWN");
 	    }
+	    errno = eno;
+	    return i;
 	} else
 	    n+=i;
     }
@@ -634,15 +623,16 @@ static int storeMsg(PSLog_Msg_t *msg, int offset)
     return 0;
 }
 
-static int flushMsgs(void)
+static int flushMsgs(int fd /* dummy */, void *info /* dummy */)
 {
     list_t *m, *tmp;
+    int stdinSock = childTask->stdin_fd;
 
     list_for_each_safe(m, tmp, &oldMsgs) {
 	msgbuf_t *msgbuf = list_entry(m, msgbuf_t, next);
 	PSLog_Msg_t *msg = (PSLog_Msg_t *)msgbuf->msg;
 	int len = msg->header.len - PSLog_headerSize;
-	int written = do_write(msg, msgbuf->offset);
+	int written = doWrite(msg, msgbuf->offset);
 
 	if (written<0) return written;
 	if (written != len) {
@@ -657,8 +647,7 @@ static int flushMsgs(void)
 	errno = EWOULDBLOCK;
 	return -1;
     } else {
-	if (stdinSock != -1) FD_CLR(stdinSock, &writefds);
-	Selector_startOver();
+	if (stdinSock != -1) Selector_vacateWrite(stdinSock);
 	sendMsg(CONT, NULL, 0);
     }
 
@@ -668,15 +657,15 @@ static int flushMsgs(void)
 static int writeMsg(PSLog_Msg_t *msg)
 {
     int len = msg->header.len - PSLog_headerSize, written = 0;
+    int stdinSock = childTask->stdin_fd;
 
-    if (!list_empty(&oldMsgs)) flushMsgs();
-    if (list_empty(&oldMsgs)) written = do_write(msg, 0);
+    if (!list_empty(&oldMsgs)) flushMsgs(0, NULL);
+    if (list_empty(&oldMsgs)) written = doWrite(msg, 0);
 
     if (written<0) return written;
     if ((written != len) || (!list_empty(&oldMsgs))) {
 	if (!storeMsg(msg, written)) errno = EWOULDBLOCK;
-	if (stdinSock != -1) FD_SET(stdinSock, &writefds);
-	Selector_startOver();
+	if (stdinSock != -1) Selector_awaitWrite(stdinSock, flushMsgs, NULL);
 	if (len) sendMsg(STOP, NULL, 0);
 	return -1;
     }
@@ -690,13 +679,14 @@ static void handleWINCH(PSLog_Msg_t *msg)
     int count, len = 0;
     int *buf;
 
-    if (stdinSock<0 || !msg) return;
+    if (childTask->stdin_fd < 0 || !msg) return;
 
     count = msg->header.len - PSLog_headerSize;
     buf = (int *)msg->buf;
 
     if (count != 4 * sizeof(*buf)) {
-	PSIDfwd_printMsgf(STDERR, "%s: Corrupted WINCH message\n", __func__);
+	PSIDfwd_printMsgf(STDERR, "%s: %s: Corrupted WINCH message\n", tag,
+			  __func__);
 	return;
     }
 
@@ -705,24 +695,26 @@ static void handleWINCH(PSLog_Msg_t *msg)
     w.ws_xpixel = buf[len++];
     w.ws_ypixel = buf[len++];
 
-    (void) ioctl(stdinSock, TIOCSWINSZ, &w);
+    (void) ioctl(childTask->stdin_fd, TIOCSWINSZ, &w);
+
+    /* @todo Maybe we shall send a SIGWINCH to the client ? */
 
     if (verbose) {
-	PSIDfwd_printMsgf(STDERR, "%s: WINCH to"
-			  " col %d row %d xpixel %d ypixel %d\n", __func__,
+	PSIDfwd_printMsgf(STDERR, "%s: %s: WINCH to col %d row %d"
+			  " xpixel %d ypixel %d\n", tag, __func__,
 			  w.ws_col, w.ws_row, w.ws_xpixel, w.ws_ypixel);
     }
 }
 
 /**
- * @brief Read input from logger
+ * @brief Read input from local daemon
  *
- * Read and handle input from the logger. Usually this will be input
- * designated to the local client process which will be forwarded. As
- * an extension this might be an #EXIT message displaying that the
- * controlling logger is going to die. Thus also the forwarder will
- * stop execution and exit() which finally will result in the local
- * daemon killing the client process.
+ * Read and handle input from the local daemon. Usually this will be
+ * input designated to the local client process which will be
+ * forwarded. As an extension this might be an #EXIT message
+ * displaying that the controlling logger is going to die. Thus also
+ * the forwarder will stop execution and exit() which finally will
+ * result in the local daemon killing the client process.
  *
  * @param fd The file-descriptor to read from
  *
@@ -731,11 +723,10 @@ static void handleWINCH(PSLog_Msg_t *msg)
  * @return If a fatal error occurred, -1 is returned and errno is set
  * appropriately. Otherwise 0 is returned.
  */
-static int readFromLogger(int fd, void *data)
+static int readFromDaemon(int fd, void *data)
 {
     PSLog_Msg_t msg;
     int ret, res;
-    int count;
 
     ret = recvMsg(&msg, NULL);
 
@@ -763,14 +754,15 @@ static int readFromLogger(int fd, void *data)
 	switch (msg.type) {
 	case STDIN:
 	    if (verbose) {
-		PSIDfwd_printMsgf(STDERR, "%s: %d byte received on STDIN\n",
+		PSIDfwd_printMsgf(STDERR, "%s: %s: %d bytes on STDIN\n", tag,
 				  __func__, msg.header.len - PSLog_headerSize);
 	    }
-	    if (stdinSock<0) {
-		count =  msg.header.len - PSLog_headerSize;
-		if (count >0) {
-		    PSIDfwd_printMsgf(STDERR, "%s: STDIN already closed\n",
-				      __func__);
+	    if (childTask->stdin_fd < 0) {
+		static int first = 1;
+		if (first) {
+		    PSIDfwd_printMsgf(STDERR, "%s: %s: STDIN already closed\n",
+				      tag, __func__);
+		    first = 0;
 		}
 	    } else {
 		writeMsg(&msg);
@@ -800,13 +792,13 @@ static int readFromLogger(int fd, void *data)
 	    /* ignore late INITIALIZE answer */
 	    break;
 	default:
-	    PSIDfwd_printMsgf(STDERR,"%s: Unknown type %d\n",
-			      __func__, msg.type);
+	    PSIDfwd_printMsgf(STDERR,"%s: %s: Unknown type %d\n",
+			      tag, __func__, msg.type);
 	}
 	break;
     default:
-	PSIDfwd_printMsgf(STDERR, "%s: Unexpected msg type %s\n", __func__,
-			  PSP_printMsg(msg.header.type));
+	PSIDfwd_printMsgf(STDERR, "%s: %s: Unexpected msg type %s\n",
+			  tag, __func__, PSP_printMsg(msg.header.type));
     }
 
     return 0;
@@ -873,7 +865,7 @@ static size_t collectRead(int sock, char *buf, size_t count, size_t *total)
  *
  * @param fd The file-descriptor to read from
  *
- * @param data Some additional data. Currently not in use.
+ * @param data Some additional data. Used for the type of PSLog message.
  *
  * @return If a fatal error occurred, -1 is returned and errno is set
  * appropriately. Otherwise 0 is returned.
@@ -881,27 +873,9 @@ static size_t collectRead(int sock, char *buf, size_t count, size_t *total)
 static int readFromChild(int fd, void *data)
 {
     char buf[4000];
-    PSLog_msg_t type = 0;
+    PSLog_msg_t type = *(PSLog_msg_t *)data;
     size_t total;
     int n;
-
-    if (fd == stdoutSock) {
-	type = STDOUT;
-    } else if (fd == stderrSock) {
-	type = STDERR;
-    } else {
-	PSIDfwd_printMsgf(STDERR, "%s: PANIC: %s: socket %d active"
-			  " (neither stdout (%d) nor stderr (%d))\n",
-			  tag, __func__, fd, stdoutSock, stderrSock);
-	/* At least, read this stuff and throw it away */
-	if (read(fd, buf, sizeof(buf)) < 0) {
-	    PSIDfwd_printMsgf(STDERR, "%s: %s: read(%d) failed: %s\n",
-			      tag, __func__, fd,  strerror(errno));
-	}
-	close(fd);
-	Selector_remove(fd);
-	return 0;
-    }
 
     n = collectRead(fd, buf, sizeof(buf), &total);
     if (verbose) {
@@ -915,8 +889,8 @@ static int readFromChild(int fd, void *data)
 			      tag, __func__, fd);
 	}
 
-	shutdown(fd, SHUT_RD);
 	Selector_remove(fd);
+	shutdown(fd, SHUT_RD);
 	openfds--;
 	if (!openfds && verbose) {
 	    /* stdout and stderr closed -> wait for SIGCHLD */
@@ -1042,11 +1016,11 @@ static struct rusage childRUsage;
  * debugging stuff. This is mainly for internal use as testing and
  * debugging.
  *
- * - SIGCHLD This is usually generated by the dying client process
- * controlled by the forwarder. It will result in reading and
- * forwarding the remaining output of the client and sending post
- * mortem information like exit status and usage to the logger
- * process. Finally the forwarder will exit on this signal.
+ * - SIGUSR2 Rasise SIGSEGV in order to dump core
+ *
+ * - SIGTTIN Just report
+ *
+ * - SIGPIPE Just report
  *
  * @param sig The signal to handle.
  *
@@ -1054,15 +1028,16 @@ static struct rusage childRUsage;
  */
 static void sighandler(int sig)
 {
-    int i;
+    int i, maxFD;
 
     char txt[80];
 
     switch (sig) {
     case SIGUSR1:
+	maxFD = sysconf(_SC_OPEN_MAX);
 	snprintf(txt, sizeof(txt),
 		 "[%d] %s: open sockets left:", childTask->rank, tag);
-	for (i=0; i<FD_SETSIZE; i++) {
+	for (i = 0; i < maxFD; i++) {
 	    if (Selector_isRegistered(i)) {
 		snprintf(txt+strlen(txt), sizeof(txt)-strlen(txt), " %d", i);
 	    }
@@ -1071,23 +1046,18 @@ static void sighandler(int sig)
 	PSIDfwd_printMsg(STDERR, txt);
 	PSID_log(-1, "%s: %s", __func__, txt);
 	break;
-    case SIGTTIN:
-	PSIDfwd_printMsg(STDERR, "got SIGTTIN\n");
-	break;
-    case SIGCHLD:
-	if (verbose) PSIDfwd_printMsgf(STDERR, "%s: Got SIGCHLD\n", tag);
-
-	childPID = wait3(&childStatus, WUNTRACED | WCONTINUED | WNOHANG,
-			 &childRUsage);
-	if (WIFSTOPPED(childStatus) || WIFCONTINUED(childStatus)) break;
-
-	gotSIGCHLD = 1;
-	break;
-    case SIGPIPE:
-	PSIDfwd_printMsgf(STDERR, "%s: Got SIGPIPE\n", tag);
+    case SIGUSR2:
+	PSIDfwd_printMsgf(STDERR, "%s: Got SIGUSR2\n", tag);
+	raise(SIGSEGV);
 	break;
     case SIGTERM:
 	sendSignal(PSC_getPID(childTask->tid), SIGTERM);
+	break;
+    case SIGTTIN:
+	PSIDfwd_printMsgf(STDERR, "%s: got SIGTTIN\n", tag);
+	break;
+    case SIGPIPE:
+	PSIDfwd_printMsgf(STDERR, "%s: Got SIGPIPE\n", tag);
 	break;
     }
 
@@ -1201,7 +1171,7 @@ static void sendSpawnFailed(PStask_t *task, int eno)
     bufAvail = sizeof(answer.buf) - bufUsed;
 
     do {
-	collectRead(stderrSock, ptr, bufAvail, &read);
+	collectRead(childTask->stderr_fd, ptr, bufAvail, &read);
 	bufAvail -= read;
 	answer.header.len += read;
 	ptr += read;
@@ -1297,157 +1267,72 @@ again:
 }
 
 /**
- * @brief Handle signalFD
+ * @brief Handling of SIGCHLD
  *
- * This selector handles the signalFD file-descriptor. It mainly
- * closes and unregisters it. Its main function is to escape from
- * the Sselect() the function @ref loop() is sleeping in.
+ * Process all pending SIGCHLD. Will cleanup corresponding
+ * task-structures, etc.
  *
- * @param fd The file-descriptor to handle
+ * @param fd File-selector providing info on died child processes.
  *
- * @param info Additional information. Unused.
+ * @param info Dummy pointer to extra info. Ignored.
  *
- * @return Always returns 0.
+ * @return Always returs 0
  */
-static int handleSignalFD(int fd, void *info)
+static int handleSIGCHLD(int fd, void *info)
 {
-    struct signalfd_siginfo fdsi;
+    struct signalfd_siginfo sigInfo;
 
-    if ((read(fd, &fdsi, sizeof(struct signalfd_siginfo))) == -1) {
-	PSIDfwd_printMsgf(STDERR, "%s: Read on signalfd() failed\n", __func__);
-	return 0;
-    }
-
-    if (gotSIGCHLD) {
-	Selector_startOver();
-	return 0;
+    /* Ignore data available on fd. We rely on waitpid() alone */
+    if (read(fd, &sigInfo, sizeof(sigInfo)) < 0) {
+	PSID_warn(-1, errno, "%s: read()", __func__);
     }
 
     if (verbose) PSIDfwd_printMsgf(STDERR, "%s: Got SIGCHLD\n", tag);
 
+    /* if child is stopped, return */
     childPID = wait3(&childStatus, WUNTRACED | WCONTINUED | WNOHANG,
-	    &childRUsage);
-
-    if (WIFSTOPPED(childStatus) || WIFCONTINUED(childStatus)) return 0;
-
-    gotSIGCHLD = 1;
-
-    /* Escape from Sselect() */
-    Selector_startOver();
+		     &childRUsage);
+    if (!WIFSTOPPED(childStatus) && !WIFCONTINUED(childStatus)) {
+	/* Get rid of now useless selector */
+	gotSIGCHLD = 1;
+	Selector_remove(fd);
+	Selector_startOver();
+	close(fd);
+    }
 
     return 0;
 }
 
-static int registerSelectHandlers(void)
+static void initSignalFD(int sig, Selector_CB_t handler)
 {
-    sigset_t mask;
+    sigset_t set;
+    int sigFD;
 
-    sigemptyset(&mask);
-    sigaddset(&mask, SIGCHLD);
-    PSID_blockSig(1, SIGCHLD);
+    sigemptyset(&set);
+    sigaddset(&set, sig);
 
-    if ((signalFD = signalfd(-1, &mask, 0)) == -1) {
-	PSIDfwd_printMsgf(STDERR, "%s: signalfd() failed", __func__);
-	return 0;
-    }
-    Selector_register(signalFD, handleSignalFD, NULL);
-
-    if (stdoutSock != -1) {
-	Selector_register(stdoutSock, readFromChild, NULL);
-	openfds++;
-    }
-    if (stderrSock != -1 && stderrSock != stdoutSock) {
-	Selector_register(stderrSock, readFromChild, NULL);
-	openfds++;
+    if (sigprocmask(SIG_BLOCK, &set, NULL) < 0) {
+	PSID_exit(errno, "%s(%s): sigprocmask()", __func__, strsignal(sig));
     }
 
-    Selector_register(daemonSock, readFromLogger, NULL);
-
-    FD_ZERO(&writefds);
-
-    return 1;
-}
-
-/**
- * @brief The main loop
- *
- * Does all the forwarding work. A tasks is connected and output forwarded
- * to the logger. I/O data is expected on stdout-port and stderr-port.
- * It is send via #STDOUT and #STDERR messages respectively.
- *
- * @return No return value.
- *
- */
-static void loop(void)
-{
-    fd_set wfds;
-    int sock;
-
-    if (verbose) {
-	PSIDfwd_printMsgf(STDERR, "%s: childTask=%s daemon=%d",
-			  tag, PSC_printTID(childTask->tid), daemonSock);
-	PSIDfwd_printMsgf(STDERR, " stdin=%d stdout=%d stderr=%d\n",
-			  stdinSock, stdoutSock, stderrSock);
+    sigFD = signalfd(-1, &set, SFD_NONBLOCK | SFD_CLOEXEC);
+    if (sigFD < 0) {
+	PSID_exit(errno, "%s(%s): signalfd()", __func__, strsignal(sig));
     }
 
-    /* Loop forever. We exit on SIGCHLD. */
-    while (openfds || !gotSIGCHLD) {
-	memcpy(&wfds, &writefds, sizeof(wfds));
-
-	if (Sselect(FD_SETSIZE, NULL, &wfds, NULL, NULL) < 0) {
-	    if (errno && errno != EINTR) {
-		PSIDfwd_printMsgf(STDERR, "%s: %s: error on Sselect(): %s\n",
-				  tag, __func__, strerror(errno));
-		Selector_checkFDs();
-	    }
-	    continue;
-	}
-
-	/* check the remaining sockets to accept more input */
-	for (sock=0; sock<=stdinSock; sock++) {
-	    if (FD_ISSET(sock, &wfds)) { /* socket ready */
-		if (sock == stdinSock) {
-		    flushMsgs();
-		} else {
-		    PSIDfwd_printMsgf(STDERR, "%s: write to %d?\n", tag, sock);
-		}
-	    }
-	}
+    if (Selector_register(sigFD, handler, NULL) < 0) {
+	PSID_exit(errno, "%s(%s): Selector_register()", __func__,
+		  strsignal(sig));
     }
-
-    if (Selector_isRegistered(signalFD)) {
-	Selector_remove(signalFD);
-	close(signalFD);
-    }
-
-    /* send usage message */
-    finalizeForwarder();
-
-    return;
 }
 
 static void waitForChildsDead(void)
 {
-    if (Selector_isRegistered(signalFD)) {
-	Selector_remove(signalFD);
-	close(signalFD);
-    }
-
-    signal(SIGCHLD, sighandler);
-    PSID_blockSig(0, SIGCHLD);
-
     while (!gotSIGCHLD) {
-	PSLog_Msg_t msg;
 	struct timeval timeout = {10, 0};
-	int ret;
 
-	ret = recvMsg(&msg, &timeout); /* sleep in recvMsg */
+	Sselect(0, NULL, NULL, NULL, &timeout);  /* sleep in Sselect */
 
-	if (ret > 0) {
-	    PSID_log(-1, "%s: recvMsg type %s from %s len %d\n", __func__,
-		     PSDaemonP_printMsg(msg.header.type),
-		     PSC_printTID(msg.header.sender), msg.header.len);
-	}
 	sendSignal(PSC_getPID(childTask->tid), SIGKILL);
     }
 
@@ -1457,23 +1342,39 @@ static void waitForChildsDead(void)
 /* see header file for documentation */
 void PSID_forwarder(PStask_t *task, int daemonfd, int eno)
 {
+    static PSLog_msg_t stdoutType = STDOUT, stderrType = STDERR;
     char pTitle[50];
     char *envStr, *timeoutStr;
     long flags, val;
 
+    /* Ensure that PSLog can handle daemonfd via select() */
+    if (daemonfd >= FD_SETSIZE) {
+	int newFD = dup(daemonfd);
+	if (newFD >= FD_SETSIZE) {
+	    PSID_exit(ECHRNG, "%s: daemonfd %d", __func__, newFD);
+	}
+	close(daemonfd);
+	daemonfd = newFD;
+    }
+
     childTask = task;
     daemonSock = daemonfd;
 
-    stdoutSock = task->stdout_fd;
-    stderrSock = task->stderr_fd;
+    initSignalFD(SIGCHLD, handleSIGCHLD);
 
-    PSID_blockSig(1, SIGCHLD);
+    /* Catch some additional signals */
     signal(SIGUSR1, sighandler);
     signal(SIGTTIN, sighandler);
     signal(SIGPIPE, sighandler);
     signal(SIGTERM, sighandler);
+    if (getenv("PSIDFORWARDER_DUMP_CORE_ON_SIGUSR2")) {
+	signal(SIGUSR2, sighandler);
+    }
 
     PSLog_init(daemonSock, childTask->rank, 3);
+
+    /* Enable handling of daemon messages */
+    Selector_register(daemonSock, readFromDaemon, NULL);
 
     /* scale logger's timeout according to number of clients */
     if ((envStr = getenv("PSI_NP_INFO"))) {
@@ -1497,13 +1398,21 @@ void PSID_forwarder(PStask_t *task, int daemonfd, int eno)
     }
 
     /* Make stdin nonblocking for us */
-    flags = fcntl(stdinSock, F_GETFL);
+    flags = fcntl(childTask->stdin_fd, F_GETFL);
     flags |= O_NONBLOCK;
-    fcntl(stdinSock, F_SETFL, flags);
-
-    if (!registerSelectHandlers()) waitForChildsDead();
+    fcntl(childTask->stdin_fd, F_SETFL, flags);
 
     if (connectLogger(childTask->loggertid) != 0) waitForChildsDead();
+
+    /* Once the logger is connected, I/O forwarding is feasible */
+    if (task->stdout_fd != -1) {
+	Selector_register(task->stdout_fd, readFromChild, &stdoutType);
+	openfds++;
+    }
+    if (childTask->stderr_fd != -1 && childTask->stderr_fd != task->stdout_fd) {
+	Selector_register(childTask->stderr_fd, readFromChild, &stderrType);
+	openfds++;
+    }
 
     /* Send this message late. No connection to logger before */
     if (loggerTimeout != val)
@@ -1515,14 +1424,29 @@ void PSID_forwarder(PStask_t *task, int daemonfd, int eno)
     PSIDhook_call(PSIDHOOK_FRWRD_INIT, childTask);
     PSIDhook_call(PSIDHOOK_FRWRD_DSOCK, &daemonSock);
 
-    stdinSock = task->stdin_fd;
-
     /* set the process title */
     snprintf(pTitle, sizeof(pTitle), "psidfw TID[%d:%d] R%d",
 		PSC_getID(childTask->loggertid),
 		PSC_getPID(childTask->loggertid), childTask->rank);
     PSC_setProcTitle(PSID_argc, (char **)PSID_argv, pTitle, 1);
 
-    /* call the loop which does all the work */
-    loop();
+    if (verbose) {
+	PSIDfwd_printMsgf(STDERR, "%s: childTask=%s daemon=%d",
+			  tag, PSC_printTID(task->tid), daemonfd);
+	PSIDfwd_printMsgf(STDERR, " stdin=%d stdout=%d stderr=%d\n",
+			  task->stdin_fd, task->stdout_fd,  task->stderr_fd);
+    }
+
+    /* Loop forever. We exit on SIGCHLD. */
+    while (openfds || !gotSIGCHLD) {
+	if (Sselect(0, NULL, NULL, NULL, NULL) < 0) {
+	    if (errno && errno != EINTR) {
+		PSIDfwd_printMsgf(STDERR, "%s: %s: error on Sselect(): %s\n",
+				  tag, __func__, strerror(errno));
+	    }
+	}
+    }
+
+    /* send usage message */
+    finalizeForwarder();
 }

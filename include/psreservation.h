@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2015 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2015-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -82,7 +82,7 @@ typedef struct{
  * is marked as RES_USED, etc.
  *
  * @return On success, a pointer to the new reservation structure is
- * returned. Or NULL, if an error occurred.
+ * returned. Or NULL if an error occurred.
  */
 PSrsrvtn_t *PSrsrvtn_get(void);
 
@@ -123,7 +123,7 @@ void PSrsrvtn_gc(void);
 /**
  * @brief Garbage collection required?
  *
- * Find out, if a call to PSrsrvtn_gc() will have any effect, i.e. if
+ * Find out if a call to PSrsrvtn_gc() will have any effect, i.e. if
  * sufficiently many unused reservation structures are available to
  * free().
  *

@@ -22,6 +22,8 @@
 
 #include "psmomauth.h"
 
+Auth_t AuthList;
+
 void initAuthList()
 {
     INIT_LIST_HEAD(&AuthList.list);

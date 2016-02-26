@@ -30,7 +30,7 @@ typedef struct {
 } SSHSession_t;
 
 /* list which holds all ssh sessions */
-SSHSession_t SSHList;
+extern SSHSession_t SSHList;
 
 /**
  * @brief Initialize the ssh list.

@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2015 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -58,7 +58,7 @@ typedef struct {
  * buffer acquired.
  *
  * @return On success a pointer to the message buffer is returned, or
- * NULL, if allocating the message-buffer failed.
+ * NULL if allocating the message-buffer failed.
  */
 msgbuf_t *PSIDMsgbuf_get(size_t len);
 

@@ -1,7 +1,7 @@
 #
 # ParaStation
 #
-# Copyright (C) 2012-2014 ParTec Cluster Competence Center GmbH, Munich
+# Copyright (C) 2012-2016 ParTec Cluster Competence Center GmbH, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -21,8 +21,7 @@ if TESTPLUGINS_ENABLED
 endif
 
 EXTRA_DIST = README tests/psid
-EXTRA_DIST += dist/.gitignore dist/Makefile dist/Makefile.sources	\
-	dist/psmgmt.spec.templ
+EXTRA_DIST += dist/.gitignore dist/Makefile.sources dist/psmgmt.spec.templ
 
 dist_noinst_DATA = LICENSE.QPL
 
@@ -45,8 +44,15 @@ dist-hook:
 
 # ---- proxy to dist/Makefile
 #
+if BUILD_WITHOUT_PSCONFIG
+  CONFIGARGS="-without psconfig"
+endif
+
 .PHONY: tar rpm srpm tag version
 tar rpm srpm tag version:
-	TOP_SRCDIR=$(abs_top_srcdir) $(MAKE) -C dist $@
+	TOP_SRCDIR=$(abs_top_srcdir) CONFIGARGS=$(CONFIGARGS) $(MAKE) -C dist $@
 
-DISTCLEANFILES = dist/Makefile
+# keep "make distcheck" happy
+AM_DISTCHECK_CONFIGURE_FLAGS =                         \
+       --with-unitdir=$$dc_install_base/$(unitdir)     \
+       --with-pamdir=$$dc_install_base/$(pamdir)

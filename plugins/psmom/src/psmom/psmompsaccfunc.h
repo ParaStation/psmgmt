@@ -57,7 +57,7 @@ typedef struct {
  *
  * @return No return value.
  */
-void (*psAccountRegisterMOMJob)(pid_t, char *);
+extern void (*psAccountRegisterMOMJob)(pid_t, char *);
 
 /**
  * @brief Unregister a PBS jobscript.
@@ -69,7 +69,7 @@ void (*psAccountRegisterMOMJob)(pid_t, char *);
  *
  * @return No return value.
  */
-void (*psAccountUnregisterMOMJob)(pid_t);
+extern void (*psAccountUnregisterMOMJob)(pid_t);
 
 /**
  * @brief Enable the global collection of accounting data.
@@ -84,7 +84,7 @@ void (*psAccountUnregisterMOMJob)(pid_t);
  *
  * @return No return value.
  */
-void (*psAccountSetGlobalCollect)(int);
+extern void (*psAccountSetGlobalCollect)(int);
 
 /**
  * @brief Provide information about currently active sessions.
@@ -99,7 +99,7 @@ void (*psAccountSetGlobalCollect)(int);
  *
  * @return No return value.
  */
-void (*psAccountGetSessionInfos)(int *, char *, size_t, int *);
+extern void (*psAccountGetSessionInfos)(int *, char *, size_t, int *);
 
 /**
  * @brief Send a signal to a session.
@@ -111,7 +111,7 @@ void (*psAccountGetSessionInfos)(int *, char *, size_t, int *);
  * @return Returns the number of children which the signal
  * was sent to.
  */
-int (*psAccountsendSignal2Session)(pid_t, int);
+extern int (*psAccountsendSignal2Session)(pid_t, int);
 
 /**
  * @brief Send a signal to a pid and all its children.
@@ -126,7 +126,7 @@ int (*psAccountsendSignal2Session)(pid_t, int);
  *
  * @return No return value.
  */
-int (*psAccountSignalAllChildren)(pid_t, pid_t, pid_t, int);
+extern int (*psAccountSignalAllChildren)(pid_t, pid_t, pid_t, int);
 
 /**
  * @brief Get account info for a jobscript.
@@ -138,7 +138,7 @@ int (*psAccountSignalAllChildren)(pid_t, pid_t, pid_t, int);
  *
  * @return Returns 1 on success and 0 on error.
  */
-void (*psAccountGetJobInfo)(pid_t, psaccAccountInfo_t *);
+extern void (*psAccountGetJobInfo)(pid_t, psaccAccountInfo_t *);
 
 /**
  * @brief Test if a pid is the parent of an other pid.
@@ -150,7 +150,7 @@ void (*psAccountGetJobInfo)(pid_t, psaccAccountInfo_t *);
  * @return Returns 1 if the second pid is a child of the
  * first pid, otherwise 0 is returned.
  */
-int (*psAccountisChildofParent)(pid_t, pid_t);
+extern int (*psAccountisChildofParent)(pid_t, pid_t);
 
 /**
  * @brief Find all daemon processes for the specified user.
@@ -163,7 +163,7 @@ int (*psAccountisChildofParent)(pid_t, pid_t);
  *
  * @return No return value.
  */
-void (*psAccountFindDaemonProcs)(uid_t, int, int);
+extern void (*psAccountFindDaemonProcs)(uid_t, int, int);
 
 /**
  * @brief Find an account client by its pid and return the corresponding logger.
@@ -172,7 +172,7 @@ void (*psAccountFindDaemonProcs)(uid_t, int, int);
  *
  * @return Returns the task id of the clients logger or -1 on error.
  */
-PStask_ID_t (*psAccountgetLoggerByClientPID)(pid_t);
+extern PStask_ID_t (*psAccountgetLoggerByClientPID)(pid_t);
 
 /**
  * @brief Read selected informations from /proc/pid/stat.
@@ -183,6 +183,6 @@ PStask_ID_t (*psAccountgetLoggerByClientPID)(pid_t);
  *
  * @return Returns 1 on success and 0 on error.
  */
-int (*psAccountreadProcStatInfo)(pid_t, psaccProcStat_t *);
+extern int (*psAccountreadProcStatInfo)(pid_t, psaccProcStat_t *);
 
 #endif

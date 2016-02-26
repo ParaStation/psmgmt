@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2015 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2015-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -61,7 +61,7 @@ static unsigned int availRess = 0;
  * within @ref PSrsrvtn_gc() as soon as enough reservation structures
  * are available again.
  *
- * return On success, 1 is returned. Or 0, if allocating the required
+ * return On success, 1 is returned. Or 0 if allocating the required
  * memory failed. In the latter case errno is set appropriately.
  */
 static int incFreeList(void)
@@ -236,12 +236,13 @@ void PSrsrvtn_gc(void)
 
     PSC_log(PSC_LOG_TASK, "%s()\n", __func__);
 
-    if ((int)usedRess > (int)availRess/2 - RESERVATION_CHUNK) return;
+    if (!PSrsrvtn_gcRequired()) return;
 
     list_for_each_safe(c, tmp, &chunkList) {
 	res_chunk_t *chunk = list_entry(c, res_chunk_t, next);
 	int unused = 0;
 
+	/* always keep the first one */
 	if (first) {
 	    first = 0;
 	    continue;
@@ -253,7 +254,7 @@ void PSrsrvtn_gc(void)
 
 	if (unused > RESERVATION_CHUNK/2) freeChunk(chunk);
 
-	if (availRess == RESERVATION_CHUNK) break; /* keep the last one */
+	if (!PSrsrvtn_gcRequired()) break;
     }
 }
 
@@ -261,9 +262,7 @@ int PSrsrvtn_gcRequired(void)
 {
     PSC_log(PSC_LOG_TASK, "%s()\n", __func__);
 
-    if ((int)usedRess > (int)availRess/2 - RESERVATION_CHUNK) return 0;
-
-    return 1;
+    return ((int)usedRess < ((int)availRess - RESERVATION_CHUNK)/2);
 }
 
 void PSrsrvtn_printStat(void)

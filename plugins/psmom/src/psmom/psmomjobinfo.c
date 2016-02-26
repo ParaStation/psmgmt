@@ -26,6 +26,8 @@
 
 #include "psmomjobinfo.h"
 
+JobInfo_t JobInfoList;
+
 void initJobInfoList()
 {
     INIT_LIST_HEAD(&JobInfoList.list);

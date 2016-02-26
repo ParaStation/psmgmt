@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2015 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -51,14 +51,21 @@ static char vcid[] __attribute__((used)) =
 #define FLUSH           0x00000002   /* Flush is under way */
 #define CLOSE           0x00000004   /* About to close the connection */
 
-static struct {
+/** Information we have on current clients */
+typedef struct {
     PStask_ID_t tid;     /**< Clients task ID */
     PStask_t *task;      /**< Clients task structure */
     unsigned int flags;  /**< Special flags (INITIALCONTACT, FLUSH, CLOSE) */
     int pendingACKs;     /**< SENDSTOPACK messages to wait for */
     list_t msgs;         /**< Chain of undelivered messages */
     PSIDFlwCntrl_hash_t stops;  /**< Hash-table to track SENDSTOPs */
-} clients[FD_SETSIZE];
+} client_t;
+
+/** Array (indexed by file-descriptor number) to store info on clients */
+static client_t *clients = NULL;
+
+/** Maximum number of clients the module currently can take care of */
+static int maxClientFD = 0;
 
 static void msg_CLIENTCONNECT(int fd, DDBufferMsg_t *bufmsg);
 
@@ -109,7 +116,7 @@ void registerClient(int fd, PStask_ID_t tid, PStask_t *task)
 
 PStask_ID_t getClientTID(int fd)
 {
-    if (fd < 0 || fd >= FD_SETSIZE) {
+    if (fd < 0 || fd >= maxClientFD) {
 	PSID_log(-1, "%s(%d): file descriptor out of range\n", __func__, fd);
 	return PSC_getMyTID();
     }
@@ -119,7 +126,7 @@ PStask_ID_t getClientTID(int fd)
 
 PStask_t *getClientTask(int fd)
 {
-    if (fd < 0 || fd >= FD_SETSIZE) {
+    if (fd < 0 || fd >= maxClientFD) {
 	PSID_log(-1, "%s(%d): file descriptor out of range\n", __func__, fd);
 	return NULL;
     }
@@ -177,6 +184,23 @@ int isEstablishedClient(int fd)
     return !(clients[fd].flags & INITIALCONTACT);
 }
 
+/**
+ * @brief Actually send a message
+ *
+ * Send message @a msg to file-descriptor @a fd in a non-blocking
+ * fashion. In fact not the whole message is sent but @a offset bytes
+ * at the beginning of @a msg are left out.
+ *
+ * @param fd File-descriptor to send the message to
+ *
+ * @param msg Message to send
+ *
+ * @param offset Number of bytes skipped at the beginning of @a msg
+ *
+ * @return Upon success the offset of the next byte to send is
+ * returned. This might be used as an offset for subsequent calls. Or
+ * -1 if an error occurred.
+ */
 static int do_send(int fd, DDMsg_t *msg, int offset)
 {
     PStask_t *task;
@@ -191,7 +215,6 @@ static int do_send(int fd, DDMsg_t *msg, int offset)
 		break;
 	    case EAGAIN:
 		return n;
-		break;
 	    default:
 		eno = errno;
 		PSID_warn((eno==EPIPE) ? PSID_LOG_CLIENT : -1, eno,
@@ -202,7 +225,7 @@ static int do_send(int fd, DDMsg_t *msg, int offset)
 			task->killat = time(NULL) + 10;
 		    }
 		    /* Make sure we get all pending messages */
-		    Selector_enable(task->fd);
+		    Selector_enable(fd);
 		} else {
 		    PSID_log(-1, "%s: No task\n", __func__);
 		    deleteClient(fd);
@@ -231,25 +254,40 @@ static int storeMsgClient(int fd, DDMsg_t *msg, int offset)
     msgbuf->offset = offset;
 
     blockedRDP = RDP_blockTimer(1);
-
     list_add_tail(&msgbuf->next, &clients[fd].msgs);
-
     RDP_blockTimer(blockedRDP);
 
     return 0;
 }
 
-int flushClientMsgs(int fd)
+/**
+ * @brief Flush messages to client.
+ *
+ * Try to send all messages to the client connected via file
+ * descriptor @a fd that could not be delivered in prior calls to
+ * PSIDclient_send() or flushClientMsgs().
+ *
+ * @param fd The file descriptor the messages to send are associated with
+ *
+ * @param info Dummy argument to match Selector_CB_t's signature
+ *
+ * @return If all pending messages were delivered, 0 is returned. If
+ * not all messages were delivered, 1 is returned. Or -1 if a problem
+ * occurred.
+ *
+ * @see PSIDclient_send()
+ */
+static int flushClientMsgs(int fd, void *info)
 {
     list_t *m, *tmp;
-    int blockedRDP, ret = 0;
+    int blockedRDP;
 
-    if (fd<0 || fd >= FD_SETSIZE) {
+    if (fd < 0 || fd >= maxClientFD) {
 	errno = EINVAL;
 	return -1;
     }
 
-    if (clients[fd].flags & (FLUSH | CLOSE)) return -1;
+    if (clients[fd].flags & (FLUSH | CLOSE)) return 1;
 
     blockedRDP = RDP_blockTimer(1);
 
@@ -260,10 +298,12 @@ int flushClientMsgs(int fd)
 	DDMsg_t *msg = (DDMsg_t *)msgbuf->msg;
 	int sent = do_send(fd, msg, msgbuf->offset);
 
-	if (sent<0 || list_empty(&clients[fd].msgs)) {
-	    ret = sent;
-	    break;
+	if (sent < 0) {
+	    RDP_blockTimer(blockedRDP);
+
+	    return sent;
 	}
+
 	if (sent != msg->len) {
 	    msgbuf->offset = sent;
 	    break;
@@ -275,23 +315,22 @@ int flushClientMsgs(int fd)
 
     if (list_empty(&clients[fd].msgs) && !clients[fd].pendingACKs) {
 	/* Use the stop-hash to actually send SENDCONT msgs */
-	int ret = PSIDFlwCntrl_sendContMsgs(clients[fd].stops, clients[fd].tid);
-	PSID_log(PSID_LOG_FLWCNTRL, "%s: sent %d SENDCONT msgs\n", __func__, ret);
+	int num = PSIDFlwCntrl_sendContMsgs(clients[fd].stops, clients[fd].tid);
+	PSID_log(PSID_LOG_FLWCNTRL, "%s: sent %d msgs\n", __func__, num);
     }
 
     clients[fd].flags &= ~FLUSH;
 
     RDP_blockTimer(blockedRDP);
 
-    if (!ret && !list_empty(&clients[fd].msgs)) {
-	errno = EWOULDBLOCK;
-	ret = -1;
-    }
+    if (!list_empty(&clients[fd].msgs)) return 1;
 
-    return ret;
+    Selector_vacateWrite(fd);
+
+    return 0;
 }
 
-int sendClient(DDMsg_t *msg)
+int PSIDclient_send(DDMsg_t *msg)
 {
     PStask_t *task = PStasklist_find(&managedTasks, msg->dest);
     int fd, sent = 0;
@@ -317,7 +356,7 @@ int sendClient(DDMsg_t *msg)
     }
     fd = task->fd;
 
-    if (!list_empty(&clients[fd].msgs)) flushClientMsgs(fd);
+    if (!list_empty(&clients[fd].msgs)) flushClientMsgs(fd, NULL);
 
     if (list_empty(&clients[fd].msgs)) {
 	PSID_log(PSID_LOG_CLIENT, "%s: use fd %d\n", __func__, fd);
@@ -330,8 +369,7 @@ int sendClient(DDMsg_t *msg)
 	    PSID_warn(-1, errno, "%s: Failed to store message", __func__);
 	    errno = ENOBUFS;
 	} else {
-	    FD_SET(fd, &PSID_writefds);
-	    Selector_startOver();
+	    Selector_awaitWrite(fd, flushClientMsgs, NULL);
 
 	    if (PSIDFlwCntrl_applicable(msg)) {
 		int ret = PSIDFlwCntrl_addStop(clients[fd].stops, msg->sender);
@@ -480,6 +518,7 @@ static void closeConnection(int fd)
 	PSID_dropMsg(msg);
 	PSIDMsgbuf_put(mp);
     }
+    Selector_vacateWrite(fd);
 
     /* Now use the stop-hash to actually send SENDCONT msgs */
     PSIDFlwCntrl_sendContMsgs(clients[fd].stops, tid);
@@ -488,12 +527,9 @@ static void closeConnection(int fd)
 
     RDP_blockTimer(blockedRDP);
 
+    Selector_remove(fd);
     shutdown(fd, SHUT_RDWR);
     close(fd);
-    Selector_remove(fd);
-
-    FD_CLR(fd, &PSID_writefds);
-    Selector_startOver();
 }
 
 void deleteClient(int fd)
@@ -507,7 +543,6 @@ void deleteClient(int fd)
 
     PSID_log(PSID_LOG_CLIENT, "%s: closing connection to %s\n",
 	     __func__, task ? PSC_printTID(task->tid) : "<unknown>");
-
     closeConnection(fd);
 
     if (!task) {
@@ -692,9 +727,9 @@ int killAllClients(int sig, int killAdminTasks)
     return ret;
 }
 
-void releaseACKClient(int fd)
+void PSIDclient_releaseACK(int fd)
 {
-    if (fd < 0 || fd >= FD_SETSIZE) {
+    if (fd < 0 || fd >= maxClientFD) {
 	PSID_log(-1, "%s(%d): file descriptor out of range\n", __func__, fd);
 	return;
     }
@@ -704,7 +739,7 @@ void releaseACKClient(int fd)
     if (!clients[fd].pendingACKs && list_empty(&clients[fd].msgs)) {
 	/* Use the stop-hash to actually send SENDCONT msgs */
 	int ret = PSIDFlwCntrl_sendContMsgs(clients[fd].stops, clients[fd].tid);
-	PSID_log(PSID_LOG_FLWCNTRL, "%s: sent %d SENDCONT msgs\n", __func__, ret);
+	PSID_log(PSID_LOG_FLWCNTRL, "%s: sent %d msgs\n", __func__, ret);
     }
 }
 
@@ -799,9 +834,7 @@ static void msg_CLIENTCONNECT(int fd, DDBufferMsg_t *bufmsg)
 	if (task) {
 	    /* Spawned process has changed pid */
 	    /* This might happen due to stuff in PSI_RARG_PRE_0 */
-	    PStask_t *child;
-
-	    child = PStask_clone(task);
+	    PStask_t *child = PStask_clone(task);
 
 	    PSID_log(PSID_LOG_CLIENT, "%s: reconnection with changed PID"
 		     "%d -> %d\n", __func__, PSC_getPID(task->tid), pid);
@@ -1058,19 +1091,46 @@ static void drop_CC_MSG(DDBufferMsg_t *msg)
     sendMsg(&errmsg);
 }
 
-void initClients(void)
+/**
+ * @brief Init client structure
+ *
+ * Initialize the client structure @a client.
+ *
+ * @param client The client to initialize.
+ *
+ * @return No return value.
+ */
+static void clientInit(client_t *client)
 {
-    int fd;
+    client->tid = -1;
+    client->task = NULL;
+    client->flags = 0;
+    client->pendingACKs = 0;
+    INIT_LIST_HEAD(&client->msgs);
+    PSIDFlwCntrl_initHash(client->stops);
+}
+
+void PSIDclient_init(void)
+{
+    int numFiles;
 
     PSIDFlwCntrl_init();
 
-    for (fd=0; fd<FD_SETSIZE; fd++) {
-	clients[fd].tid = -1;
-	clients[fd].task = NULL;
-	clients[fd].flags = 0;
-	clients[fd].pendingACKs = 0;
-	INIT_LIST_HEAD(&clients[fd].msgs);
-	PSIDFlwCntrl_initHash(clients[fd].stops);
+    if (clients) {
+	PSID_log(-1, "%s: already initialized\n", __func__);
+	return;
+    }
+
+    numFiles = sysconf(_SC_OPEN_MAX);
+    if (numFiles <= 0) {
+	PSID_exit(errno, "%s: sysconf(_SC_OPEN_MAX) returns %d", __func__,
+		  numFiles);
+	return;
+    }
+
+    if (PSIDclient_setMax(numFiles) < 0) {
+	PSID_exit(errno, "%s: PSIDclient_setMax()", __func__);
+	return;
     }
 
     PSID_registerMsg(PSP_CC_MSG, msg_CC_MSG);
@@ -1078,11 +1138,60 @@ void initClients(void)
     PSID_registerDropper(PSP_CC_MSG, drop_CC_MSG);
 }
 
+static inline void fixList(list_t *list, list_t *oldHead)
+{
+    if (list->next == oldHead) {
+	/* list was empty */
+	INIT_LIST_HEAD(list);
+    } else {
+	/* fix reverse pointers */
+	list->next->prev = list;
+	list->prev->next = list;
+    }
+}
+
+int PSIDclient_setMax(int max)
+{
+    int oldMax = maxClientFD;
+    client_t *oldClients = clients;
+    int fd;
+
+    if (maxClientFD >= max) return 0; /* don't shrink */
+
+    maxClientFD = max;
+
+    clients = realloc(clients, sizeof(*clients) * maxClientFD);
+    if (!clients) {
+	PSID_warn(-1, ENOMEM, "%s", __func__);
+	errno = ENOMEM;
+	return -1;
+    }
+
+    /* Restore old lists if necessary */
+    if (clients != oldClients) {
+	for (fd=0; fd < oldMax; fd++) {
+	    int h;
+	    fixList(&clients[fd].msgs, &oldClients[fd].msgs);
+	    for (h=0; h<FLWCNTRL_HASH_SIZE; h++) {
+		fixList(&clients[fd].stops[h], &oldClients[fd].stops[h]);
+	    }
+	}
+    }
+
+    /* Initialize new clients */
+    for (fd = oldMax; fd < maxClientFD; fd++) {
+	clientInit(&clients[fd]);
+    }
+
+    return 0;
+}
+
 void PSIDclient_clearMem(void)
 {
     int fd;
 
-    for (fd=0; fd<FD_SETSIZE; fd++) {
+    /* Need to put MsgBufs to free() non-small messages */
+    for (fd = 0; fd < maxClientFD; fd++) {
 	list_t *m, *tmp;
 
 	list_for_each_safe(m, tmp, &clients[fd].msgs) {
@@ -1092,4 +1201,10 @@ void PSIDclient_clearMem(void)
 	    PSIDMsgbuf_put(mp);
 	}
     }
+
+    if (clients) {
+	free(clients);
+	clients = NULL;
+    }
+    maxClientFD = 0;
 }

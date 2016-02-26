@@ -44,7 +44,7 @@
 
 #include "psmomsignal.h"
 
-struct sigTable sig_Table[] =
+static struct sigTable sig_Table[] =
 {
     { "SIGHUP",	    "1",    SIGHUP },
     { "SIGINT",	    "2",    SIGINT },

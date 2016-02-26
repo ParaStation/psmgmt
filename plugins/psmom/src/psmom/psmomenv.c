@@ -30,6 +30,7 @@
 
 #include "psmomenv.h"
 
+Env_t EnvList;
 
 void initEnvList()
 {

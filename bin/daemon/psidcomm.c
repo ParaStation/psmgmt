@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2014 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -36,9 +36,6 @@ static char vcid[] __attribute__((used)) =
 #include "psidflowcontrol.h"
 
 #include "psidcomm.h"
-
-fd_set PSID_readfds;
-fd_set PSID_writefds;
 
 typedef struct {
     list_t next;
@@ -184,8 +181,8 @@ int sendMsg(void *amsg)
 	if (ret) errno = EINVAL;
     } else if (PSC_getID(msg->dest)==PSC_getMyID()) { /* my own node */
 	if (msg->type < 0x0100) {          /* PSP_CD_* message */
-	    sender="sendClient";
-	    ret = sendClient(amsg);
+	    sender="PSIDclient_send";
+	    ret = PSIDclient_send(amsg);
 	} else {                           /* PSP_DD_* message */
 	    /* Daemon message */
 	    sender="handleMsg";

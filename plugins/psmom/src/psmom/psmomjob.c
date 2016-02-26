@@ -123,6 +123,8 @@ void obitWaitingJobs(void)
     }
 }
 
+Job_t JobList;
+
 void initJobList()
 {
     INIT_LIST_HEAD(&JobList.list);

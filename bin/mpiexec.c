@@ -76,153 +76,153 @@ typedef struct {
     char *wdir;
 } Executable_t;
 
-int execCount = 0;
-Executable_t *exec[MAX_BINARIES];
+static int execCount = 0;
+static Executable_t *exec[MAX_BINARIES];
 
 /** Space for error messages */
-char msgstr[512];
+static char msgstr[512];
 /** context for parsing command-line options */
-poptContext optCon;
+static poptContext optCon;
 
 /** start admin task which are not accounted */
-int admin = 0;
+static int admin = 0;
 /** set debugging mode and np * gdb to control child processes */
-int gdb = 0;
+static int gdb = 0;
 /** don't call gdb with --args option */
-int gdb_noargs = 0;
+static int gdb_noargs = 0;
 /** run child processes on synthetic CPUs provided by the
  * Valgrind core (memcheck tool) */
-int valgrind = 0;
+static int valgrind = 0;
 /** profile child processes on synthetic CPUs provided by the
  * Valgrind core (callgrind tool) */
-int callgrind = 0;
+static int callgrind = 0;
 /** just print output, don't run anything */
-int show = 0;
+static int show = 0;
 /** flag to set verbose mode */
-int verbose = 0;
+static int verbose = 0;
 /** set mpich 1 compatible mode */
-int mpichcom = 0;
+static int mpichcom = 0;
 /** list of all slots in the partition */
-PSnodes_ID_t *slotList = NULL;
+static PSnodes_ID_t *slotList = NULL;
 /** actual size of the slotList */
-size_t slotListSize = 0;
+static size_t slotListSize = 0;
 /** number of unique nodes */
-int numUniqNodes = 0;
+static int numUniqNodes = 0;
 /** number of unique hosts */
-int numUniqHosts = 0;
+static int numUniqHosts = 0;
 /** list of uniq hsots */
-char **uniqHosts = NULL;
+static char **uniqHosts = NULL;
 
 /* PMI options */
-int pmienabletcp = 0;
-int pmienablesockp = 0;
-int pmitmout = 0;
-int pmidebug = 0;
-int pmidebug_client = 0;
-int pmidebug_kvs = 0;
-int pmidis = 0;
+static int pmienabletcp = 0;
+static int pmienablesockp = 0;
+static int pmitmout = 0;
+static int pmidebug = 0;
+static int pmidebug_client = 0;
+static int pmidebug_kvs = 0;
+static int pmidis = 0;
 
 /** flag to activate OpenMPI support */
-int OpenMPI = 0;
+static int OpenMPI = 0;
 /** flag to enable openmpi debug output */
-int ompidebug = 0;
+static int ompidebug = 0;
 /** openmpi list of reserved port */
-uint16_t *resPorts = NULL;
+static uint16_t *resPorts = NULL;
 
 /** list of job local uniq nodeIDs */
-PSnodes_ID_t *jobLocalUniqNodeIDs = NULL;
+static PSnodes_ID_t *jobLocalUniqNodeIDs = NULL;
 /** list of number of processes per node */
-int *numProcPerNode = NULL;
+static int *numProcPerNode = NULL;
 /** list of job local nodeIDs starting by 0 */
-int *jobLocalNodeIDs = NULL;
+static int *jobLocalNodeIDs = NULL;
 /** list of node local processIDs (rank) */
-int *nodeLocalProcIDs = NULL;
+static int *nodeLocalProcIDs = NULL;
 
 /* process options */
-int np = -1;
-int gnp = -1;
-int ppn = 0;
-int gppn = 0;
-int tpp = 0;
-int gtpp = 0;
-int envtpp = 0;
-int maxtpp = 1;
-int envall = 0;
-int usize = 0;
-mode_t u_mask;
-char *wdir = NULL;
-char *gwdir = NULL;
-char *nodelistStr = NULL;
-char *hostlistStr = NULL;
-char *hostfile = NULL;
-char *envlist = NULL;
-char *nodetype = NULL;
-char *gnodetype = NULL;
+static int np = -1;
+static int gnp = -1;
+static int ppn = 0;
+static int gppn = 0;
+static int tpp = 0;
+static int gtpp = 0;
+static int envtpp = 0;
+static int maxtpp = 1;
+static int envall = 0;
+static int usize = 0;
+static mode_t u_mask;
+static char *wdir = NULL;
+static char *gwdir = NULL;
+static char *nodelistStr = NULL;
+static char *hostlistStr = NULL;
+static char *hostfile = NULL;
+static char *envlist = NULL;
+static char *nodetype = NULL;
+static char *gnodetype = NULL;
 /** Accumulated list of envirenments to get exported */
-char *accenvlist = NULL;
-char *envopt = NULL;
-char *envval = NULL;
-char *path = NULL;
+static char *accenvlist = NULL;
+static char *envopt = NULL;
+static char *envval = NULL;
+static char *path = NULL;
 
 /* compability options from other mpiexec commands */
-int totalview = 0;
-int ecfn = 0;
-int gdba = 0;
-int noprompt = 0;
-int localroot = 0;
-int exitinfo = 0;
-int exitcode = 0;
-int port = 0;
-char *phrase = 0;
-char *smpdfile = 0;
+static int totalview = 0;
+static int ecfn = 0;
+static int gdba = 0;
+static int noprompt = 0;
+static int localroot = 0;
+static int exitinfo = 0;
+static int exitcode = 0;
+static int port = 0;
+static char *phrase = 0;
+static char *smpdfile = 0;
 
 /* options for parastation (psid/logger/forwarder) */
-int sourceprintf = 0;
-int overbook = 0;
-int exclusive = 0;
-int wait = 0;
-int loopnodesfirst = 0;
-int dynamic = 0;
-int mergeout = 0;
-int mergedepth = 0;
-int mergetmout = 0;
-int rusage = 0;
-int timestamp = 0;
-int interactive = 0;
-int maxtime = 0;
-char *sort = NULL;
-char *login = NULL;
-char *dest = NULL;
+static int sourceprintf = 0;
+static int overbook = 0;
+static int exclusive = 0;
+static int wait = 0;
+static int loopnodesfirst = 0;
+static int dynamic = 0;
+static int mergeout = 0;
+static int mergedepth = 0;
+static int mergetmout = 0;
+static int rusage = 0;
+static int timestamp = 0;
+static int interactive = 0;
+static int maxtime = 0;
+static char *sort = NULL;
+static char *login = NULL;
+static char *dest = NULL;
 
 /* debug options */
-int loggerdb = 0;
-int forwarderdb = 0;
-int pscomdb = 0;
-int loggerrawmode = 0;
-int psidb = 0;
+static int loggerdb = 0;
+static int forwarderdb = 0;
+static int pscomdb = 0;
+static int loggerrawmode = 0;
+static int psidb = 0;
 
 /* options for the pscom library */
-int sndbuf = 0;
-int rcvbuf = 0;
-int nodelay = 0;
-int schedyield = 0;
-int retry = 0;
-int sigquit = 0;
-int ondemand = 0;
-int no_ondemand = 0;
-int collectives = 0;
-char *plugindir = NULL;
-char *discom = NULL;
-char *network = NULL;
+static int sndbuf = 0;
+static int rcvbuf = 0;
+static int nodelay = 0;
+static int schedyield = 0;
+static int retry = 0;
+static int sigquit = 0;
+static int ondemand = 0;
+static int no_ondemand = 0;
+static int collectives = 0;
+static char *plugindir = NULL;
+static char *discom = NULL;
+static char *network = NULL;
 
 /* help option flags */
-int help = 0, usage = 0;
-int debughelp = 0, debugusage = 0;
-int extendedhelp = 0, extendedusage = 0;
-int comphelp = 0, compusage = 0;
+static int help = 0, usage = 0;
+static int debughelp = 0, debugusage = 0;
+static int extendedhelp = 0, extendedusage = 0;
+static int comphelp = 0, compusage = 0;
 
-int none = 0;
-int version = 0;
+static int none = 0;
+static int version = 0;
 
 static char versionstring[] = "$Revision$";
 
@@ -594,9 +594,11 @@ static uint32_t getNodeType(char *hardwareList)
     if (verbose) {
 	printf("setting node type to '%s'\n", hardwareList);
     }
-    next = strtok_r(hardwareList, delimiters, &toksave);
 
+    /* hwList is null-terminated */
     hwList = umalloc(sizeof(hwList), __func__);
+
+    next = strtok_r(hardwareList, delimiters, &toksave);
     while (next) {
 	count++;
 	hwList = urealloc(hwList, (count +1) * sizeof(hwList), __func__);
@@ -2462,7 +2464,7 @@ static void checkSanity(char *argv[])
 }
 
 /* Set up the popt help tables */
-struct poptOption poptMpiexecComp[] = {
+static struct poptOption poptMpiexecComp[] = {
     { "bnr", '\0',
       POPT_ARG_NONE | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
       &mpichcom, 0, "Enable ParaStation4 compatibility mode", NULL},
@@ -2572,7 +2574,7 @@ struct poptOption poptMpiexecComp[] = {
      POPT_TABLEEND
 };
 
-struct poptOption poptMpiexecCompGlobal[] = {
+static struct poptOption poptMpiexecCompGlobal[] = {
     { "gn", '\0',
       POPT_ARG_INT | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
       &gnp, 0, "equal to gnp: global number of processes to start", "num"},
@@ -2614,7 +2616,7 @@ struct poptOption poptMpiexecCompGlobal[] = {
     POPT_TABLEEND
 };
 
-struct poptOption poptCommonOptions[] = {
+static struct poptOption poptCommonOptions[] = {
     { "np", '\0', POPT_ARG_INT | POPT_ARGFLAG_ONEDASH,
       &np, 0, "number of processes to start", "num"},
     { "gnp", '\0', POPT_ARG_INT | POPT_ARGFLAG_ONEDASH,
@@ -2642,7 +2644,7 @@ struct poptOption poptCommonOptions[] = {
     POPT_TABLEEND
 };
 
-struct poptOption poptPrivilegedOptions[] = {
+static struct poptOption poptPrivilegedOptions[] = {
     { "admin", 'A', POPT_ARG_NONE,
       &admin, 0, "start an admin-task which is not accounted", NULL},
     { "login", 'L', POPT_ARG_STRING,
@@ -2651,7 +2653,7 @@ struct poptOption poptPrivilegedOptions[] = {
     POPT_TABLEEND
 };
 
-struct poptOption poptDebugOptions[] = {
+static struct poptOption poptDebugOptions[] = {
     { "loggerdb", '\0', POPT_ARG_NONE | POPT_ARGFLAG_DOC_HIDDEN,
       &loggerdb, 0, "set debug mode of the logger", "num"},
     { "forwarderdb", '\0', POPT_ARG_NONE | POPT_ARGFLAG_DOC_HIDDEN,
@@ -2677,7 +2679,7 @@ struct poptOption poptDebugOptions[] = {
     POPT_TABLEEND
 };
 
-struct poptOption popt_IO_Options[] = {
+static struct poptOption popt_IO_Options[] = {
     { "interactive", 'i', POPT_ARG_NONE,
       &interactive, 0, "set interactive mode (similar to ssh -t)", NULL},
     { "inputdest", 's', POPT_ARG_STRING,
@@ -2699,7 +2701,7 @@ struct poptOption popt_IO_Options[] = {
     POPT_TABLEEND
 };
 
-struct poptOption poptAdvancedOptions[] = {
+static struct poptOption poptAdvancedOptions[] = {
     { "plugindir", '\0', POPT_ARG_STRING | POPT_ARGFLAG_DOC_HIDDEN,
       &plugindir, 0, "set the directory to search for plugins", NULL},
     { "sndbuf", '\0', POPT_ARG_INT | POPT_ARGFLAG_DOC_HIDDEN,
@@ -2726,7 +2728,7 @@ struct poptOption poptAdvancedOptions[] = {
     POPT_TABLEEND
 };
 
-struct poptOption poptExecutionOptions[] = {
+static struct poptOption poptExecutionOptions[] = {
     { "nodes", 'N', POPT_ARG_STRING,
       &nodelistStr, 0, "list of nodes to use: nodelist <3-5,7,11-17>", NULL},
     { "hosts", 'H', POPT_ARG_STRING,
@@ -2767,7 +2769,7 @@ struct poptOption poptExecutionOptions[] = {
     POPT_TABLEEND
 };
 
-struct poptOption poptCommunicationOptions[] = {
+static struct poptOption poptCommunicationOptions[] = {
     { "discom", 'c', POPT_ARG_STRING,
       &discom, 0, "disable an communication architecture: {SHM,TCP,P4SOCK,"
       "GM,MVAPI,OPENIB,DAPL}", NULL},
@@ -2787,7 +2789,7 @@ struct poptOption poptCommunicationOptions[] = {
     POPT_TABLEEND
 };
 
-struct poptOption poptOtherOptions[] = {
+static struct poptOption poptOtherOptions[] = {
     { "gdb", '\0', POPT_ARG_NONE,
       &gdb, 0, "debug processes with gdb", NULL},
     { "valgrind", '\0', POPT_ARG_NONE,
@@ -2805,7 +2807,7 @@ struct poptOption poptOtherOptions[] = {
     POPT_TABLEEND
 };
 
-struct poptOption poptStandardHelpOptions[] = {
+static struct poptOption poptStandardHelpOptions[] = {
     { "extendedhelp", '\0', POPT_ARG_NONE,
       &extendedhelp, 0, "display extended help", NULL},
     { "extendedusage", '\0', POPT_ARG_NONE,
@@ -2825,7 +2827,7 @@ struct poptOption poptStandardHelpOptions[] = {
     POPT_TABLEEND
 };
 
-struct poptOption optionsTable[] = {
+static struct poptOption optionsTable[] = {
     { NULL, '\0', POPT_ARG_INCLUDE_TABLE, poptCommonOptions, \
       0, "Common options:", NULL },
     { NULL, '\0', POPT_ARG_INCLUDE_TABLE, poptExecutionOptions, \

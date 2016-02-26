@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2015 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -21,6 +21,7 @@ static char vcid[] __attribute__((used)) =
 
 #include "rdp.h"
 #include "mcast.h"
+#include "selector.h"
 
 #include "pscommon.h"
 #include "psprotocol.h"
@@ -31,11 +32,11 @@ static char vcid[] __attribute__((used)) =
 #include "psidcomm.h"
 #include "psidnodes.h"
 #include "psidtask.h"
-#include "psidtimer.h"
 #include "psidstatus.h"
 #include "psidhw.h"
 #include "psidaccount.h"
 #include "psidplugin.h"
+#include "psidclient.h"
 
 #include "psidoption.h"
 
@@ -293,6 +294,21 @@ static void set_rlimit(PSP_Option_t option, PSP_Optval_t value)
     if (setrlimit(resource, &limit)) {
 	PSID_warn(-1, errno, "%s: setrlimit(%d, %d)", __func__,
 		  resource, value);
+    } else {
+	/* We might have to inform other facilities, too */
+	switch (resource) {
+	case RLIMIT_NOFILE:
+	    if (PSIDclient_setMax(value) < 0) {
+		PSID_exit(errno, "%s: Failed to adapt PSIDclient", __func__);
+	    }
+	    if (Selector_setMax(value) < 0) {
+		PSID_exit(errno, "%s: Failed to adapt Selector", __func__);
+	    }
+	    break;
+	default:
+	    /* nothing to do */
+	    break;
+	}
     }
 }
 
@@ -339,7 +355,7 @@ static void msg_SETOPTION(DDOptionMsg_t *msg)
 	    switch (msg->opt[i].option) {
 	    case PSP_OP_PSIDSELECTTIME:
 		if (msg->opt[i].value > 0) {
-		    selectTime.tv_sec = msg->opt[i].value;
+		    config->selectTime = msg->opt[i].value;
 		}
 		break;
 	    case PSP_OP_STATUS_TMOUT:
@@ -889,7 +905,7 @@ static void msg_GETOPTION(DDOptionMsg_t *msg)
 		msg->opt[out].value = PSID_getDebugMask();
 		break;
 	    case PSP_OP_PSIDSELECTTIME:
-		msg->opt[out].value = selectTime.tv_sec;
+		msg->opt[out].value = config->selectTime;
 		break;
 	    case PSP_OP_STATUS_TMOUT:
 		msg->opt[out].value = getStatusTimeout();

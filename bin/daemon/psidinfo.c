@@ -37,8 +37,8 @@ static char vcid[] __attribute__((used)) =
 #include "psidenv.h"
 
 #include "psidinfo.h"
+#include "psid.h"
 
-extern char psid_cvsid[];
 
 /**
  * @brief Handle a PSP_CD_INFOREQUEST message.

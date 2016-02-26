@@ -34,6 +34,9 @@ BuildRequires:	numactl-devel
 %endif
 %if !0%{?disable_systemd}
 BuildRequires:  systemd
+%if 0%{?suse_version}
+BuildRequires:	systemd-devel
+%endif
 Requires(post): systemd
 Requires(preun): systemd
 Requires(postun): systemd
@@ -164,6 +167,8 @@ exit 0
 %doc %{_docdir}/psmgmt/psslurm-epilogue.example
 %doc %{_docdir}/psmgmt/psslurm-prologue.example
 %doc %{_docdir}/psmgmt/psslurm.conf.template
+%doc doc/psconfig
+%doc doc/systemd
 %{_bindir}/mlisten
 %{_bindir}/mpiexec
 %{_bindir}/psaccounter

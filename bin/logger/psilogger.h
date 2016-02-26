@@ -46,6 +46,10 @@ extern int enableGDB;
 /** The prompt used by parallel GDB mode's readline routines */
 extern char GDBprompt[128];
 
+/** Maximum/Current number of processes in this job. */
+extern int usize;
+extern int np;
+
 /**
  * Flag used by GDB mode to ignore the next output line since it's
  * expected to contain just the echo of the last command passed to the

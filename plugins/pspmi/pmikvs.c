@@ -22,6 +22,7 @@
 #include "pluginlog.h"
 #include "pluginmalloc.h"
 #include "pmilog.h"
+#include "pmikvs.h"
 
 #include "pmikvs.h"
 

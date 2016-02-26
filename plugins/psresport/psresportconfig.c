@@ -38,6 +38,8 @@ const ConfDef_t CONFIG_VALUES[] =
 
 const int configValueCount = sizeof(CONFIG_VALUES) / sizeof (CONFIG_VALUES[0]);
 
+Config_t ConfigList;
+
 const ConfDef_t *findConfigDef(char *name)
 {
     int i;

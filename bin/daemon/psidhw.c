@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2006-2014 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2006-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -203,6 +203,7 @@ static int switchHWCB(int fd, PSID_scriptCBInfo_t *info)
 	hwName = hwScript = "unknown";
     }
 
+    Selector_remove(fd);
     PSID_readall(fd, &result, sizeof(result));
     close(fd);
     if (result) {
@@ -236,8 +237,6 @@ static int switchHWCB(int fd, PSID_scriptCBInfo_t *info)
 	}
     }
     if (iofd > -1) close(iofd); /* Discard further output */
-
-    Selector_remove(fd);
 
     return 0;
 }
@@ -407,6 +406,7 @@ static int getCounterCB(int fd, PSID_scriptCBInfo_t *info)
 	.type = type,
 	.buf = { 0 } };
 
+    Selector_remove(fd);
     PSID_readall(fd, &result, sizeof(result));
     close(fd);
     if (iofd == -1) {
@@ -438,8 +438,6 @@ static int getCounterCB(int fd, PSID_scriptCBInfo_t *info)
     }
 
     if (dest) sendMsg(&msg);
-
-    Selector_remove(fd);
 
     return 0;
 }

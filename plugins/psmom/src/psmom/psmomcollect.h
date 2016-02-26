@@ -24,10 +24,10 @@
 #include "psmomlist.h"
 
 /* save changing job independent information e.g. load */
-Data_Entry_t infoData;
+extern Data_Entry_t infoData;
 
 /* save static job independent information e.g. number of cpus on node */
-Data_Entry_t staticInfoData;
+extern Data_Entry_t staticInfoData;
 
 /**
  * @brief Collect various variable informations.
