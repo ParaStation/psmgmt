@@ -1510,6 +1510,8 @@ static int buildSandboxAndStart(PStask_t *task)
 
 	PSID_resetSigs();
 	PSID_blockSig(1, SIGCHLD);
+	PSID_blockSig(0, SIGUSR1);
+	PSID_blockSig(0, SIGUSR2);
 
 	/*
 	 * Create a new process group. This is needed since the daemon
