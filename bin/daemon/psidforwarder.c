@@ -569,6 +569,7 @@ static int doWrite(PSLog_Msg_t *msg, int offset)
 	/* close clients stdin */
 	shutdown(stdinSock, SHUT_WR);
 	if (Selector_isRegistered(stdinSock)) Selector_vacateWrite(stdinSock);
+	close(stdinSock);
 	childTask->stdin_fd = -1;
 	return 0;
     }
