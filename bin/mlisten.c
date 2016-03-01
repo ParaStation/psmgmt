@@ -35,7 +35,7 @@ static char *display = NULL;
 /*
  * Initialize counter and display fields
  */
-void init(int num_nodes)
+static void init(int num_nodes)
 {
     int i;
 

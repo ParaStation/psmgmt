@@ -63,7 +63,7 @@ int rppDoSend(int stream, const char *caller);
  *
  * @return Returns 1 on success, -1 on error.
  */
-int rppPoll();
+int rppPoll(int fd, void *data);
 
 /**
  * @brief Read from a rpp stream.
@@ -123,7 +123,7 @@ int rppClose(int stream);
  *
  * @return No return value.
  */
-void rppShutdown();
+void rppShutdown(void);
 
 /**
  * Get the address of a rpp stream.

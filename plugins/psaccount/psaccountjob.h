@@ -42,7 +42,7 @@ extern Job_t JobList;
  *
  * @return No return value.
  */
-void initJobList();
+void initJobList(void);
 
 /**
  * @brief Find a job identified by its logger.
@@ -81,14 +81,14 @@ Job_t *addJob(PStask_ID_t loggerTID);
  *
  * @return No return value.
  */
-void cleanupJobs();
+void cleanupJobs(void);
 
 /**
  * @brief Delete all jobs.
  *
  * @return No return value.
  */
-void clearAllJobs();
+void clearAllJobs(void);
 
 /**
  * @brief Delete a job.

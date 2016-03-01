@@ -421,7 +421,7 @@ static void getFirstNodeID(PSnodes_ID_t *nodeID)
  *
  * @return No return value.
  */
-void setupGlobalEnv(int admin, int np)
+static void setupGlobalEnv(int admin, int np)
 {
     char tmp[32];
 
@@ -913,7 +913,7 @@ static char *opmiGetReservedPorts()
  * @return On success a buffer with the requested process mapping is
  * returned. On error NULL is returned.
  */
-char *getProcessMap(int np)
+static char *getProcessMap(int np)
 {
     int i, sid = 0, nodeCount = 0, procCount = 0;
     int oldProcCount = 0;

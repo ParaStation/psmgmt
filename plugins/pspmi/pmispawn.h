@@ -32,6 +32,6 @@ int handleForwarderSpawn(void *data);
  *
  * @return Always returns 0.
  */
-int handleClientSpawn();
+int handleClientSpawn(void* data);
 
 #endif

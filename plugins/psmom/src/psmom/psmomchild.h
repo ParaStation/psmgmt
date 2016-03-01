@@ -53,7 +53,7 @@ extern Child_t ChildList;
  *
  * @return No return value.
  */
-void initChildList();
+void initChildList(void);
 
 /**
  * @brief Convert a child type to string.
@@ -69,7 +69,7 @@ char *childType2String(int type);
  *
  * @return No return value.
  */
-void clearChildList();
+void clearChildList(void);
 
 /**
  * @brief Add a new child.

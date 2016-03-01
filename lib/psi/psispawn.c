@@ -416,7 +416,7 @@ static int sendEnv(DDTypedBufferMsg_t *msg, char **env, size_t *len)
  * general error, but answer from known node, 1: no error, 2: ignore
  * message, e.g. from unknown node or answer on "who died" question.
  */
-int handleAnswer(unsigned int firstRank, int count, PSnodes_ID_t *dstnodes,
+static int handleAnswer(unsigned int firstRank, int count, PSnodes_ID_t *dstnodes,
 		 int *errors, PStask_ID_t *tids)
 {
     DDBufferMsg_t answer;

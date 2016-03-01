@@ -63,14 +63,14 @@ extern handlerFunc_t oldSpawnReqHandler;
  *
  * @return No return value.
  */
-void __attribute__ ((constructor)) startPsmom();
+void __attribute__ ((constructor)) startPsmom(void);
 
 /**
  * @brief Destructor for psmom library.
  *
  * @return No return value.
  */
-void __attribute__ ((destructor)) stopPsmom();
+void __attribute__ ((destructor)) stopPsmom(void);
 
 /**
  * @brief Initialize the psmom plugin.

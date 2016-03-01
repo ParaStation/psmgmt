@@ -35,7 +35,7 @@
 
 #include "pbsrpp.h"
 
-int rppPoll()
+int rppPoll(int fd, void *data)
 {
     int stream = -1;
     ComHandle_t *com;

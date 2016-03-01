@@ -112,7 +112,6 @@ Server_t *findServerByrAddr(char *addr)
 
 	if (!strcmp(serv->addr, addr)) return serv;
 
-	if (!serv->com->remoteAddr) continue;
 	if (!strcmp(serv->com->remoteAddr, addr)) return serv;
     }
     return NULL;
@@ -196,7 +195,7 @@ void sendStatusUpdate(void)
 
 static void callrppPoll(void)
 {
-    rppPoll();
+    rppPoll(/* dummy */ 0, /* dummy */ 0);
 }
 
 int openServerConnections()

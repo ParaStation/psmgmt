@@ -75,6 +75,6 @@ int getClientStatus(void *data);
  * @return Returns a pointer to the requested task structure
  * or NULL on error.
  */
-PStask_t *getChildTask();
+PStask_t *getChildTask(void);
 
 #endif

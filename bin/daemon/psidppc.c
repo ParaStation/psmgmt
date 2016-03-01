@@ -23,6 +23,7 @@ static char vcid[] __attribute__((used)) =
 
 #include "psidutil.h"
 #include "psidhw.h"
+#include "psidppc.h"
 
 
 int PSID_PPC(void)

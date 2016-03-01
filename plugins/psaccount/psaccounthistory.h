@@ -16,12 +16,12 @@
 
 #include "pscommon.h"
 
-void initHist();
+void initHist(void);
 
 void saveHist(PStask_ID_t tid);
 
 int findHist(PStask_ID_t tid);
 
-void clearHist();
+void clearHist(void);
 
 #endif

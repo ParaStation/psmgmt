@@ -61,7 +61,7 @@ extern Session_Info_t SessionList;
  *
  * @return No return value.
  */
-void initProcList();
+void initProcList(void);
 
 /**
  * @brief Collect all data from every related child process.
@@ -116,7 +116,7 @@ int isChildofParent(pid_t parent, pid_t child);
  *
  * @return No return value.
  */
-void clearAllProcSnapshots();
+void clearAllProcSnapshots(void);
 
 /**
  * @brief Provide information about currently active sessions.

@@ -490,7 +490,7 @@ void PSE_spawnTasks(int num, int node, int port, int argc, char *argv[]);
  *
  * @see PSE_spawnTasks(), PSP_GetNodeID()
  * */
-int PSE_getMasterNode();
+int PSE_getMasterNode(void);
 
 /**
  * @brief Get the port number of the master process.
@@ -505,7 +505,7 @@ int PSE_getMasterNode();
  *
  * @see PSE_spawnTasks(), PSP_GetPortNo()
  * */
-int PSE_getMasterPort();
+int PSE_getMasterPort(void);
 
 /**
  * @brief Spawn admin process.

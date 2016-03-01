@@ -154,6 +154,6 @@ void afterJobCleanup(char *user);
  *
  * @return No return value.
  */
-void handleFailedSpawn();
+void handleFailedSpawn(void);
 
 #endif

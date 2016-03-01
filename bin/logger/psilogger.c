@@ -433,7 +433,7 @@ void terminateJob(void)
  *
  * @return No return value.
  */
-void sighandler(int sig)
+static void sighandler(int sig)
 {
     int i;
     static int firstTERM = 1;

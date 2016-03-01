@@ -122,7 +122,7 @@ int verfiyConfOption(char *name, char *value);
  *
  * @return No return value.
  */
-void clearConfig();
+void clearConfig(void);
 
 /**
  * @brief Get a config value as string.

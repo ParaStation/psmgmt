@@ -22,7 +22,7 @@
  *
  * @return No return value.
  */
-void closeKVSForwarderSock();
+void closeKVSForwarderSock(void);
 
 /**
  * @brief Forward exit request to KVS provider.
@@ -38,4 +38,4 @@ void handleServiceExit(PSLog_Msg_t *msg);
  *
  * @return No return value.
  */
-void setupKVSProviderComm();
+void setupKVSProviderComm(void);

@@ -38,7 +38,7 @@ static char vcid[] __attribute__((used)) =
 #include "psipartition.h"
 #include "psispawn.h"
 
-void usage(char *progname)
+static void usage(char *progname)
 {
     fprintf(stderr, "%s: host -l user -n prog [args]\n", progname);
 }

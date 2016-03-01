@@ -18,13 +18,13 @@
  * @brief Constructor for the psresport library.
  *
  */
-void __attribute__ ((constructor)) psresportStart();
+void __attribute__ ((constructor)) psresportStart(void);
 
 /**
  * @brief Destructor for the psresport library.
  *
  */
-void __attribute__ ((destructor)) psresportStop();
+void __attribute__ ((destructor)) psresportStop(void);
 
 /**
  * @brief Initialize the psresport plugin.

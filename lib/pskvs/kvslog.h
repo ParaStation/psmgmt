@@ -28,10 +28,10 @@ extern logger_t *kvslogger;
 #define mdbg(...) if (kvslogger) logger_print(kvslogger, __VA_ARGS__)
 
 void initKVSLogger(char *name, FILE *logfile);
-int isKVSLoggerInitialized();
+int isKVSLoggerInitialized(void);
 void maskKVSLogger(int32_t mask);
-int32_t getKVSLoggerMask();
-void finalizeKVSLogger();
+int32_t getKVSLoggerMask(void);
+void finalizeKVSLogger(void);
 
 typedef enum {
     KVS_LOG_VERBOSE	= 0x000010, /**< Other verbose stuff */

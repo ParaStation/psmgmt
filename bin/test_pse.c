@@ -30,7 +30,7 @@
 
 static int arg_np;
 
-void run(int argc, char *argv[], int np)
+static void run(int argc, char *argv[], int np)
 {
     int mapnode;
     int mapport;

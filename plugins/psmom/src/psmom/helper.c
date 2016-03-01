@@ -73,7 +73,7 @@ unsigned long sizeToBytes(char *string)
     return 0;
 }
 
-char *secToStringTime(long span)
+static char *secToStringTime(long span)
 {
     static char time[50];
     int hour, min, sec;

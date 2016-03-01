@@ -32,6 +32,7 @@
 #include "pluginmalloc.h"
 #include "psidtask.h"
 #include "pluginlog.h"
+#include "plugin.h"
 
 #include "pscommon.h"
 #include "psmompsaccfunc.h"

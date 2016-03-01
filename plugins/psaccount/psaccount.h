@@ -20,13 +20,13 @@
  * @brief Constructor for the psaccount library.
  *
  */
-void __attribute__ ((constructor)) accountStart();
+void __attribute__ ((constructor)) accountStart(void);
 
 /**
  * @brief Destructor for the psaccount library.
  *
  */
-void __attribute__ ((destructor)) accountStop();
+void __attribute__ ((destructor)) accountStop(void);
 
 /**
  * @brief Main loop to do all the work.

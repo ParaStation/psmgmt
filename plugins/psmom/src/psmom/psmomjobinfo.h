@@ -41,7 +41,7 @@ extern JobInfo_t JobInfoList;
  *
  * @return No return value.
  */
-void initJobInfoList();
+void initJobInfoList(void);
 
 /**
  * @brief Check for remote job timeouts.
@@ -52,7 +52,7 @@ void initJobInfoList();
  *
  * @return No return value.
  */
-void checkJobInfoTimeouts();
+void checkJobInfoTimeouts(void);
 
 /**
  * @brief Add information about a remote job.
@@ -111,6 +111,6 @@ int delJobInfo(char *id);
  *
  * @return No return value.
  */
-void clearJobInfoList();
+void clearJobInfoList(void);
 
 #endif

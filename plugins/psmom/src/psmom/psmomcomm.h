@@ -61,7 +61,7 @@ extern ComHandle_t ComList;
  *
  * @return No return value.
  */
-void initComList();
+void initComList(void);
 
 /**
  * @brief Find a communication handle.
@@ -129,7 +129,7 @@ void initComHandle(ComHandle_t *com, Protocol_t type, int socket);
  *
  * @return No return value.
  */
-void closeAllConnections();
+void closeAllConnections(void);
 
 /**
  * @brief Write data to a connection buffer.

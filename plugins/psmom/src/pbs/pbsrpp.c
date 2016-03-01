@@ -4011,7 +4011,7 @@ int rpp_putc(
 
 
 
-int RPPConfigure(
+static int RPPConfigure(
 
   int SRPPTimeOut,  /* I */
   int SRPPRetry)    /* I */
@@ -4029,7 +4029,7 @@ int RPPConfigure(
 
 
 
-int RPPReset(void)
+static int RPPReset(void)
 
   {
   RPPTimeOut = DEFAULT_RPP_TIMEOUT;
@@ -4038,7 +4038,7 @@ int RPPReset(void)
   return(0);
   }
 
-int rpp_get_stream_state(int index)
+static int rpp_get_stream_state(int index)
 {
   struct stream *sp;
 
