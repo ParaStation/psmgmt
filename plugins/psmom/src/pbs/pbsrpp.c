@@ -4011,47 +4011,6 @@ int rpp_putc(
 
 
 
-static int RPPConfigure(
-
-  int SRPPTimeOut,  /* I */
-  int SRPPRetry)    /* I */
-
-  {
-  if (SRPPTimeOut > 0)
-    RPPTimeOut = SRPPTimeOut;
-
-  if (SRPPRetry > 1) /* always need an "extra" retry to invalidate existing conns */
-    RPPRetry = SRPPRetry;
-
-  return(0);
-  }
-
-
-
-
-static int RPPReset(void)
-
-  {
-  RPPTimeOut = DEFAULT_RPP_TIMEOUT;
-  RPPRetry   = DEFAULT_RPP_RETRY;
-
-  return(0);
-  }
-
-static int rpp_get_stream_state(int index)
-{
-  struct stream *sp;
-
-  sp = &stream_array[index];
-
-  if(sp)
-    {
-    return(sp->state);
-    }
-
-  return(-1);
-}
-
 /**
  * @brief Return the fd for a stream.
  */
