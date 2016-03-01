@@ -144,11 +144,11 @@ am__uninstall_files_from_dir = { \
          $(am__cd) "$$dir" && rm -f $$files; }; \
   }
 am__installdirs = "$(DESTDIR)$(bindir)" "$(DESTDIR)$(configdir)" \
-	"$(DESTDIR)$(scriptsdir)" "$(DESTDIR)$(configdir)" \
-	"$(DESTDIR)$(sysconfdir)" "$(DESTDIR)$(profile_ddir)" \
-	"$(DESTDIR)$(unitdir)"
-SCRIPTS = $(bin_SCRIPTS) $(config_SCRIPTS) $(noinst_SCRIPTS) \
-	$(scripts_SCRIPTS)
+	"$(DESTDIR)$(init_ddir)" "$(DESTDIR)$(scriptsdir)" \
+	"$(DESTDIR)$(configdir)" "$(DESTDIR)$(sysconfdir)" \
+	"$(DESTDIR)$(profile_ddir)" "$(DESTDIR)$(unitdir)"
+SCRIPTS = $(bin_SCRIPTS) $(config_SCRIPTS) $(init_d_SCRIPTS) \
+	$(noinst_SCRIPTS) $(scripts_SCRIPTS)
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
 am__v_P_0 = false
@@ -356,11 +356,12 @@ slurmdir = $(libdir)/slurm
 bin_SCRIPTS = psh psaccview
 profile_ddir = $(sysconfdir)/profile.d
 profile_d_DATA = psmgmt.csh psmgmt.sh
+init_ddir = $(sysconfdir)/init.d
 @HAVE_SYSTEMD_TRUE@unit_DATA = systemd/psid.service \
 @HAVE_SYSTEMD_TRUE@	systemd/psidstarter.socket \
 @HAVE_SYSTEMD_TRUE@	systemd/psidstarter@.service
-@HAVE_SYSTEMD_FALSE@nobase_sysconf_DATA = init.d/parastation \
-@HAVE_SYSTEMD_FALSE@	xinetd.d/psidstarter
+@HAVE_SYSTEMD_FALSE@init_d_SCRIPTS = init.d/parastation
+@HAVE_SYSTEMD_FALSE@nobase_sysconf_DATA = xinetd.d/psidstarter
 config_DATA = mpiexec.gdb
 config_SCRIPTS = ps_gm ps_acc
 scripts_SCRIPTS = ps_gmcounters
@@ -484,6 +485,41 @@ uninstall-configSCRIPTS:
 	files=`for p in $$list; do echo "$$p"; done | \
 	       sed -e 's,.*/,,;$(transform)'`; \
 	dir='$(DESTDIR)$(configdir)'; $(am__uninstall_files_from_dir)
+install-init_dSCRIPTS: $(init_d_SCRIPTS)
+	@$(NORMAL_INSTALL)
+	@list='$(init_d_SCRIPTS)'; test -n "$(init_ddir)" || list=; \
+	if test -n "$$list"; then \
+	  echo " $(MKDIR_P) '$(DESTDIR)$(init_ddir)'"; \
+	  $(MKDIR_P) "$(DESTDIR)$(init_ddir)" || exit 1; \
+	fi; \
+	for p in $$list; do \
+	  if test -f "$$p"; then d=; else d="$(srcdir)/"; fi; \
+	  if test -f "$$d$$p"; then echo "$$d$$p"; echo "$$p"; else :; fi; \
+	done | \
+	sed -e 'p;s,.*/,,;n' \
+	    -e 'h;s|.*|.|' \
+	    -e 'p;x;s,.*/,,;$(transform)' | sed 'N;N;N;s,\n, ,g' | \
+	$(AWK) 'BEGIN { files["."] = ""; dirs["."] = 1; } \
+	  { d=$$3; if (dirs[d] != 1) { print "d", d; dirs[d] = 1 } \
+	    if ($$2 == $$4) { files[d] = files[d] " " $$1; \
+	      if (++n[d] == $(am__install_max)) { \
+		print "f", d, files[d]; n[d] = 0; files[d] = "" } } \
+	    else { print "f", d "/" $$4, $$1 } } \
+	  END { for (d in files) print "f", d, files[d] }' | \
+	while read type dir files; do \
+	     if test "$$dir" = .; then dir=; else dir=/$$dir; fi; \
+	     test -z "$$files" || { \
+	       echo " $(INSTALL_SCRIPT) $$files '$(DESTDIR)$(init_ddir)$$dir'"; \
+	       $(INSTALL_SCRIPT) $$files "$(DESTDIR)$(init_ddir)$$dir" || exit $$?; \
+	     } \
+	; done
+
+uninstall-init_dSCRIPTS:
+	@$(NORMAL_UNINSTALL)
+	@list='$(init_d_SCRIPTS)'; test -n "$(init_ddir)" || exit 0; \
+	files=`for p in $$list; do echo "$$p"; done | \
+	       sed -e 's,.*/,,;$(transform)'`; \
+	dir='$(DESTDIR)$(init_ddir)'; $(am__uninstall_files_from_dir)
 install-scriptsSCRIPTS: $(scripts_SCRIPTS)
 	@$(NORMAL_INSTALL)
 	@list='$(scripts_SCRIPTS)'; test -n "$(scriptsdir)" || list=; \
@@ -653,7 +689,7 @@ check-am: all-am
 check: check-am
 all-am: Makefile $(SCRIPTS) $(DATA)
 installdirs:
-	for dir in "$(DESTDIR)$(bindir)" "$(DESTDIR)$(configdir)" "$(DESTDIR)$(scriptsdir)" "$(DESTDIR)$(configdir)" "$(DESTDIR)$(sysconfdir)" "$(DESTDIR)$(profile_ddir)" "$(DESTDIR)$(unitdir)"; do \
+	for dir in "$(DESTDIR)$(bindir)" "$(DESTDIR)$(configdir)" "$(DESTDIR)$(init_ddir)" "$(DESTDIR)$(scriptsdir)" "$(DESTDIR)$(configdir)" "$(DESTDIR)$(sysconfdir)" "$(DESTDIR)$(profile_ddir)" "$(DESTDIR)$(unitdir)"; do \
 	  test -z "$$dir" || $(MKDIR_P) "$$dir"; \
 	done
 install: install-am
@@ -708,7 +744,8 @@ info: info-am
 info-am:
 
 install-data-am: install-configDATA install-configSCRIPTS \
-	install-profile_dDATA install-scriptsSCRIPTS install-unitDATA
+	install-init_dSCRIPTS install-profile_dDATA \
+	install-scriptsSCRIPTS install-unitDATA
 
 install-dvi: install-dvi-am
 
@@ -753,9 +790,9 @@ ps: ps-am
 ps-am:
 
 uninstall-am: uninstall-binSCRIPTS uninstall-configDATA \
-	uninstall-configSCRIPTS uninstall-nobase_sysconfDATA \
-	uninstall-profile_dDATA uninstall-scriptsSCRIPTS \
-	uninstall-unitDATA
+	uninstall-configSCRIPTS uninstall-init_dSCRIPTS \
+	uninstall-nobase_sysconfDATA uninstall-profile_dDATA \
+	uninstall-scriptsSCRIPTS uninstall-unitDATA
 
 .MAKE: install-am install-strip
 
@@ -765,15 +802,16 @@ uninstall-am: uninstall-binSCRIPTS uninstall-configDATA \
 	install install-am install-binSCRIPTS install-configDATA \
 	install-configSCRIPTS install-data install-data-am install-dvi \
 	install-dvi-am install-exec install-exec-am install-html \
-	install-html-am install-info install-info-am install-man \
-	install-nobase_sysconfDATA install-pdf install-pdf-am \
-	install-profile_dDATA install-ps install-ps-am \
-	install-scriptsSCRIPTS install-strip install-unitDATA \
-	installcheck installcheck-am installdirs maintainer-clean \
-	maintainer-clean-generic mostlyclean mostlyclean-generic \
-	mostlyclean-libtool pdf pdf-am ps ps-am tags-am uninstall \
-	uninstall-am uninstall-binSCRIPTS uninstall-configDATA \
-	uninstall-configSCRIPTS uninstall-nobase_sysconfDATA \
+	install-html-am install-info install-info-am \
+	install-init_dSCRIPTS install-man install-nobase_sysconfDATA \
+	install-pdf install-pdf-am install-profile_dDATA install-ps \
+	install-ps-am install-scriptsSCRIPTS install-strip \
+	install-unitDATA installcheck installcheck-am installdirs \
+	maintainer-clean maintainer-clean-generic mostlyclean \
+	mostlyclean-generic mostlyclean-libtool pdf pdf-am ps ps-am \
+	tags-am uninstall uninstall-am uninstall-binSCRIPTS \
+	uninstall-configDATA uninstall-configSCRIPTS \
+	uninstall-init_dSCRIPTS uninstall-nobase_sysconfDATA \
 	uninstall-profile_dDATA uninstall-scriptsSCRIPTS \
 	uninstall-unitDATA
 

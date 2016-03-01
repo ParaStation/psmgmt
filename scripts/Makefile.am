@@ -15,14 +15,15 @@ bin_SCRIPTS = psh psaccview
 
 profile_ddir = $(sysconfdir)/profile.d
 profile_d_DATA = psmgmt.csh psmgmt.sh
+init_ddir = $(sysconfdir)/init.d
 
 if HAVE_SYSTEMD
   unit_DATA = systemd/psid.service
   unit_DATA += systemd/psidstarter.socket
   unit_DATA += systemd/psidstarter@.service
 else
-  nobase_sysconf_DATA = init.d/parastation
-  nobase_sysconf_DATA += xinetd.d/psidstarter
+  init_d_SCRIPTS = init.d/parastation
+  nobase_sysconf_DATA = xinetd.d/psidstarter
 endif
 
 config_DATA = mpiexec.gdb
