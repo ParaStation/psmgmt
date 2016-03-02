@@ -49,7 +49,7 @@ int PSIcomm_init(void)
     return -1;
 }
 
-int do_send(char *buf, size_t count)
+static int do_send(char *buf, size_t count)
 {
     int n;
     size_t c = count;

@@ -1065,7 +1065,7 @@ static void sighandler(int sig)
     signal(sig, sighandler);
 }
 
-void finalizeForwarder(void)
+static void finalizeForwarder(void)
 {
     int res, clientStat;
 

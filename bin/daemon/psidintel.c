@@ -27,6 +27,7 @@ static char vcid[] __attribute__((used)) =
 
 #include "psidutil.h"
 #include "psidhw.h"
+#include "psidintel.h"
 
 
 int PSID_GenuineIntel(void)

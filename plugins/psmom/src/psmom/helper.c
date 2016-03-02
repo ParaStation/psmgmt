@@ -73,21 +73,6 @@ unsigned long sizeToBytes(char *string)
     return 0;
 }
 
-char *secToStringTime(long span)
-{
-    static char time[50];
-    int hour, min, sec;
-
-    hour = span / 3600;
-    span = span % 3600;
-    min = span / 60;
-    sec = span % 60;
-
-    snprintf(time, sizeof(time), "%i:%i:%i", hour, min, sec);
-
-    return time;
-}
-
 unsigned long stringTimeToSec(char *wtime)
 {
     int count = 0;

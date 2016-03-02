@@ -1900,7 +1900,7 @@ static void clearEnv(void)
  *
  * @return On success, 0 is returned. Or -1, if any error occurred.
  */
-int setupNodeFromDefault(void)
+static int setupNodeFromDefault(void)
 {
     int ret;
 

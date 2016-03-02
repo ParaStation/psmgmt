@@ -279,6 +279,7 @@ static void printVersion(void)
 	      versionstring+11);
 }
 
+static void errExit(char *msg) __attribute__ ((noreturn));
 /**
  * @brief Print error msg and exit.
  *

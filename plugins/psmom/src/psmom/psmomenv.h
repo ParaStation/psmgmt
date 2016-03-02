@@ -34,7 +34,7 @@ extern Env_t EnvList;
  *
  * @return No return value.
  */
-void initEnvList();
+void initEnvList(void);
 
 /**
  * @brief Add an environment string to the list.
@@ -73,7 +73,7 @@ char *getEnvValue(char *name);
  *
  * @return No return value.
  */
-void setEnvVars();
+void setEnvVars(void);
 
 /**
  * @brief Setup the PBS job environment.

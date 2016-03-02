@@ -1940,7 +1940,7 @@ static int pluginUnsetCmd(char *token)
 }
 
 
-int pluginError(char *token)
+static int pluginError(char *token)
 {
     printError(&pluginInfo);
     return -1;
@@ -2025,7 +2025,7 @@ static int envUnsetCommand(char *token)
     return -1;
 }
 
-int envError(char *token)
+static int envError(char *token)
 {
     printError(&envInfo);
     return -1;
@@ -2287,7 +2287,7 @@ static int paramHelpCommand(char *token)
 }
 
 
-int paramError(char *token)
+static int paramError(char *token)
 {
     printError(&paramInfo);
     return -1;

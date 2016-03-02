@@ -47,12 +47,12 @@ typedef enum {
 
 extern int masterSocket;
 
-ComHandle_t *openLocalConnection();
+ComHandle_t *openLocalConnection(void);
 ssize_t localRead(int sock, char *buffer, ssize_t len, const char *caller);
 int localWrite(int sock, void *msg, size_t len, const char *caller);
 int localDoSend(int sock, const char *caller);
 int closeLocalConnetion(int fd);
-void openMasterSock();
-void closeMasterSock();
+void openMasterSock(void);
+void closeMasterSock(void);
 
 #endif

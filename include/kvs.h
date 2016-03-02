@@ -125,15 +125,6 @@ int kvs_count_values(char *kvsname);
  */
 int kvs_count(void);
 
-/**
- * @brief Read the name of a kvs by index.
- *
- * @param index The index of the kvs.
- *
- * @return Returns the name of a kvs by index or 0 on error.
- */
-char *kvs_getKvsNameByIndex(int index);
-
 #ifdef __cplusplus
 }/* extern "C" */
 #endif

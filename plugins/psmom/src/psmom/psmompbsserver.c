@@ -196,7 +196,7 @@ void sendStatusUpdate(void)
 
 static void callrppPoll(void)
 {
-    rppPoll();
+    rppPoll(/* dummy */ 0, /* dummy */ 0);
 }
 
 int openServerConnections()

@@ -400,12 +400,6 @@ int PSIDclient_send(DDMsg_t *msg)
     return sent;
 }
 
-/* @todo This will handle different client versions */
-int recvInitialMsg(int fd, DDInitMsg_t *msg, size_t size)
-{
-    return 0;
-}
-
 /* @todo we need to timeout if message is too small */
 int recvClient(int fd, DDMsg_t *msg, size_t size)
 {

@@ -37,7 +37,7 @@ void initEnvList()
     INIT_LIST_HEAD(&EnvList.list);
 }
 
-Env_t *findEnvEntry(char *envStr)
+static Env_t *findEnvEntry(char *envStr)
 {
     struct list_head *pos;
     Env_t *env;

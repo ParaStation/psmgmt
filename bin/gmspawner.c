@@ -400,7 +400,7 @@ static int createListener(int startport, unsigned int np, unsigned int magic,
  *
  * @return No return value.
  */
-void sighandler(int sig)
+static void sighandler(int sig)
 {
     switch(sig) {
     case SIGALRM:

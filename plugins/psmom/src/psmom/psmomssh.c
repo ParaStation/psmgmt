@@ -56,7 +56,7 @@ SSHSession_t *addSSHSession(char *user, char *rhost, pid_t sshPid, pid_t sshSid)
     return ssh;
 }
 
-SSHSession_t *findSSHSession(char *user)
+static SSHSession_t *findSSHSession(char *user)
 {
     list_t *pos, *tmp;
     SSHSession_t *ssh;

@@ -46,7 +46,7 @@ static char vcid[] __attribute__((used)) =
 
 #include "pscommon.h"
 
-void handleSlotsMsg(DDTypedBufferMsg_t *msg)
+static void handleSlotsMsg(DDTypedBufferMsg_t *msg)
 {
     PStask_ID_t logger;
     uid_t uid;
@@ -82,7 +82,7 @@ void handleSlotsMsg(DDTypedBufferMsg_t *msg)
     }
 }
 
-size_t handleCommonMsg(DDTypedBufferMsg_t *msg)
+static size_t handleCommonMsg(DDTypedBufferMsg_t *msg)
 {
     PStask_ID_t logger;
     int32_t rank;
@@ -108,7 +108,7 @@ size_t handleCommonMsg(DDTypedBufferMsg_t *msg)
     return used;
 }
 
-void handleQueueMsg(DDTypedBufferMsg_t *msg)
+static void handleQueueMsg(DDTypedBufferMsg_t *msg)
 {
     size_t used = handleCommonMsg(msg);
     int32_t partReqSize;
@@ -119,7 +119,7 @@ void handleQueueMsg(DDTypedBufferMsg_t *msg)
     printf(" req part-size %d", partReqSize);
 }
 
-void handleEndMsg(DDTypedBufferMsg_t *msg)
+static void handleEndMsg(DDTypedBufferMsg_t *msg)
 {
     size_t used = handleCommonMsg(msg);
     pid_t pid;
@@ -192,7 +192,7 @@ void handleEndMsg(DDTypedBufferMsg_t *msg)
     printf(" HW-threads %d/%ld", maxThd, avgThd);
 }
 
-void handleStartMsg(DDTypedBufferMsg_t *msg)
+static void handleStartMsg(DDTypedBufferMsg_t *msg)
 {
     size_t used = handleCommonMsg(msg);
     int32_t num;
@@ -201,14 +201,14 @@ void handleStartMsg(DDTypedBufferMsg_t *msg)
     printf(" number of children %d", num);
 }
 
-void handleChildMsg(DDTypedBufferMsg_t *msg)
+static void handleChildMsg(DDTypedBufferMsg_t *msg)
 {
     size_t used = handleCommonMsg(msg);
 
     printf(" prog '%s'", &msg->buf[used]);
 }
 
-void handleLogMsg(DDTypedBufferMsg_t *msg)
+static void handleLogMsg(DDTypedBufferMsg_t *msg)
 {
     size_t used = handleCommonMsg(msg);
     int32_t maxConnected;
@@ -225,7 +225,7 @@ void handleLogMsg(DDTypedBufferMsg_t *msg)
     }
 }
 
-void handleAcctMsg(DDTypedBufferMsg_t *msg)
+static void handleAcctMsg(DDTypedBufferMsg_t *msg)
 {
     PStask_ID_t sender = msg->header.sender, logger;
     size_t used = 0;
@@ -278,7 +278,7 @@ void handleAcctMsg(DDTypedBufferMsg_t *msg)
     printf("\n");
 }
 
-void handleSigMsg(DDErrorMsg_t *msg)
+static void handleSigMsg(DDErrorMsg_t *msg)
 {
     char *errstr = strerror(msg->error);
 
@@ -290,7 +290,7 @@ void handleSigMsg(DDErrorMsg_t *msg)
     return;
 }
 
-void loop(void)
+static void loop(void)
 {
     while (1) {
 	DDTypedBufferMsg_t msg;

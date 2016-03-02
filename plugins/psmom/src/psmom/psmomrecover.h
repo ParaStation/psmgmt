@@ -20,7 +20,7 @@
 
 
 void saveJobInfo(Job_t *job);
-void recoverJobInfo();
+void recoverJobInfo(void);
 
 
 #endif

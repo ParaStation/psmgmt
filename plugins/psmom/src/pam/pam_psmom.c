@@ -148,7 +148,7 @@ static int openPsmomConnection()
     return sock;
 }
 
-int doSend(int sock, char *msg, int offset, int len)
+static int doSend(int sock, char *msg, int offset, int len)
 {
     int n, i;
 

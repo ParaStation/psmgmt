@@ -14,6 +14,7 @@ static char vcid[] __attribute__((used)) =
 
 #include "psidutil.h"
 #include "psidhw.h"
+#include "psidamd.h"
 
 
 int PSID_AuthenticAMD(void)

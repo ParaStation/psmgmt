@@ -45,7 +45,7 @@ void updateInfoList(int all);
  *
  * @return No return value.
  */
-void initInfoList();
+void initInfoList(void);
 
 /**
  * Set the psmom job state.

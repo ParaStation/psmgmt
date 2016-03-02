@@ -27,6 +27,11 @@ static char vcid[] __attribute__((used)) =
 #include <stdlib.h>
 #include <popt.h>
 
+#include "daemon/psidtask.h"
+#include "daemon/psidclient.h"
+#include "daemon/psidcomm.h"
+#include "daemon/psidutil.h"
+
 #include "logging.h"
 #include "config_parsing.h"
 
@@ -35,13 +40,11 @@ extern logger_t *PSID_logger;
 /* stub required to link against psidnodes.o */
 int sendMsg(void *amsg) {return 0;}
 /* stubs required to link against psidutil.o */
-void registerClient(int fd, int tid, void *task) {}
+void registerClient(int fd, PStask_ID_t tid, PStask_t *task) {}
 /* stub required to link against psidscripts.o */
 void PSID_clearMem(void) {}
-/* silence clang warning */
-extern int managedTasks;
-int managedTasks;
-void *PStasklist_find(list_t *list, void *tid) {return NULL;}
+list_t managedTasks;
+PStask_t *PStasklist_find(list_t *list, PStask_ID_t tid) {return NULL;}
 
 /**
  * @brief Print version info.

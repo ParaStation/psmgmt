@@ -22,6 +22,7 @@
 #include "psaccountlog.h"
 #include "pluginmalloc.h"
 #include "pluginlog.h"
+#include "plugin.h"
 
 #include "psaccountkvs.h"
 

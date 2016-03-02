@@ -1975,6 +1975,7 @@ static void msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
 	    .len = sizeof(answer) },
 	.error = 0,
 	.request = 0,};
+    int localSender = (PSC_getID(msg->header.sender)==PSC_getMyID());
     size_t usedBytes;
     int32_t rank = -1;
     PStask_group_t group = TG_ANY;
@@ -1984,8 +1985,7 @@ static void msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
 	     PSC_printTID(msg->header.sender), msg->header.len);
 
     /* If message is from my node, test if everything is okay */
-    if (PSC_getID(msg->header.sender)==PSC_getMyID()
-	&& msg->type == PSP_SPAWN_TASK) {
+    if (localSender && msg->type == PSP_SPAWN_TASK) {
 	task = PStask_new();
 	PStask_decodeTask(msg->buf, task);
 	answer.request = task->rank;
@@ -2025,8 +2025,7 @@ static void msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
 	}
 
 	/* Check if we have to and can send a LOC-message */
-	if (PSC_getID(msg->header.sender)==PSC_getMyID()
-	    && msg->type == PSP_SPAWN_TASK && group != TG_SERVICE
+	if (localSender && msg->type == PSP_SPAWN_TASK && group != TG_SERVICE
 	    && group != TG_SERVICE_SIG && group != TG_ADMINTASK
 	    && group != TG_KVS) {
 
@@ -2126,7 +2125,7 @@ static void msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
 	if (task->group == TG_SERVICE || task->group == TG_SERVICE_SIG
 	    || task->group == TG_ADMINTASK || task->group == TG_KVS) {
 	    PSCPU_setAll(task->CPUset);
-	} else if (PSC_getID(msg->header.sender)==PSC_getMyID()) {
+	} else if (localSender) {
 	    if (!ptask->spawnNodes || rank >= ptask->spawnNum) {
 		PSID_log(-1, "%s: rank %d out of range\n", __func__, rank);
 		answer.error = EADDRNOTAVAIL;
@@ -2557,8 +2556,10 @@ static void msg_CHILDBORN(DDErrorMsg_t *msg)
     }
 
     /* Fix interactive shell's argv[0] */
-    if (child->argc == 2 && (!strcmp(child->argv[0], "/bin/bash")
-			     && !strcmp(child->argv[1], "-i"))) {
+    if (child->argc == 2 && (!child->argv[0] || !child->argv[1])) {
+	PSID_log(-1, "%s: argv seems to be messed up\n", __func__);
+    } else if (child->argc == 2 && (!strcmp(child->argv[0], "/bin/bash")
+				    && !strcmp(child->argv[1], "-i"))) {
 	free(child->argv[0]);
 	child->argv[0] = strdup("-bash");
 	free(child->argv[1]);

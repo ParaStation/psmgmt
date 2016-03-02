@@ -50,7 +50,6 @@ typedef struct {
     in_addr_t addr;        /**< IP address of that node */
     int protoVer;          /**< Node's PSprotocol version */
     int daemonProtoVer;    /**< Node's PSDaemonprotocol version */
-    int version;           /**< Version of the config info from that node */
     short physCPU;         /**< Number of physical CPUs in that node */
     short virtCPU;         /**< Number of virtual CPUs in that node */
     char isUp;             /**< Actual status of that node */
@@ -95,7 +94,6 @@ static void nodeInit(node_t *node)
     node->addr = INADDR_ANY;
     node->protoVer = 0;
     node->daemonProtoVer = 0;
-    node->version = 0;
     node->physCPU = 0;
     node->virtCPU = 0;
     node->isUp = 0;
@@ -309,28 +307,6 @@ int PSIDnodes_isUp(PSnodes_ID_t id)
 	return nodes[id].isUp;
     } else {
 	return 0;
-    }
-}
-
-/**********************************************************************/
-/* @todo This does not really make sense, but is a good start.
-   Actually each piece of information needs its own version number */
-int PSIDnodes_setInfoVersion(PSnodes_ID_t id, int version)
-{
-    if (PSIDnodes_validID(id)) {
-	nodes[id].version = version;
-	return 0;
-    } else {
-	return -1;
-    }
-}
-
-int PSIDnodes_getInfoVersion(PSnodes_ID_t id)
-{
-    if (PSIDnodes_validID(id)) {
-	return nodes[id].version;
-    } else {
-	return -1;
     }
 }
 

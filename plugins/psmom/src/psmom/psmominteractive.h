@@ -42,14 +42,14 @@ ComHandle_t *initQsubConnection(Job_t *job, Inter_Data_t *data, int term);
  *
  * @return No return value.
  */
-void enableQsubConnection();
+void enableQsubConnection(void);
 
 /**
  * @brief Close all connections between qsub and the local terminal.
  *
  * @return No return value.
  */
-void closeQsubConnection();
+void closeQsubConnection(void);
 
 /**
  * @brief Write a message to qsub.

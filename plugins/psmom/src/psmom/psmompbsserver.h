@@ -33,9 +33,9 @@ typedef struct {
 /** list which holds all known PBS servers */
 extern Server_t ServerList;
 
-void initServerList();
-int openServerConnections();
-void clearServerList();
+void initServerList(void);
+int openServerConnections(void);
+void clearServerList(void);
 Server_t *findServer(ComHandle_t *com);
 Server_t *findServerByrAddr(char *addr);
 

@@ -28,9 +28,9 @@ typedef struct {
 /** the list head of the auth list */
 extern Auth_t AuthList;
 
-void initAuthList();
+void initAuthList(void);
 int isAuthIP(unsigned long ipaddr);
 void addAuthIP(unsigned long ipaddr);
-void clearAuthList();
+void clearAuthList(void);
 
 #endif

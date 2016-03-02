@@ -130,12 +130,12 @@ extern Job_t JobList;
 
 extern int jobObitTimerID;
 
-void initJobList();
+void initJobList(void);
 
 /**
  * @brief Delete all jobs.
  */
-void clearJobList();
+void clearJobList(void);
 
 /**
  * @brief Add a new job.
@@ -233,7 +233,7 @@ Job_t *findJobByCom(ComHandle_t *com, Job_Conn_type_t type);
  */
 int deleteJob(char *jobname);
 
-int countJobs();
+int countJobs(void);
 
 /**
  * @brief Convert a job state into its string representation.
@@ -253,7 +253,7 @@ char *jobState2String(int state);
  * @return Returns NULL if no jobs are found or the requested
  * string.
  */
-char *getJobString();
+char *getJobString(void);
 
 /**
  * @brief Extract node information from PBS job structure.

@@ -37,14 +37,14 @@ extern SSHSession_t SSHList;
  *
  * @return No return value.
  */
-void initSSHList();
+void initSSHList(void);
 
 /**
  * @brief Terminate all ssh clients and free all memory.
  *
  * @return No return value.
  */
-void clearSSHList();
+void clearSSHList(void);
 
 /**
  * @brief Add a new SSH session.
