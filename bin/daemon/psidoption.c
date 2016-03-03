@@ -37,6 +37,7 @@ static char vcid[] __attribute__((used)) =
 #include "psidaccount.h"
 #include "psidplugin.h"
 #include "psidclient.h"
+#include "psidscripts.h"
 
 #include "psidoption.h"
 
@@ -298,6 +299,9 @@ static void set_rlimit(PSP_Option_t option, PSP_Optval_t value)
 	/* We might have to inform other facilities, too */
 	switch (resource) {
 	case RLIMIT_NOFILE:
+	    if (PSIDscripts_setMax(value) < 0) {
+		PSID_exit(errno, "%s: Failed to adapt PSIDscripts", __func__);
+	    }
 	    if (PSIDclient_setMax(value) < 0) {
 		PSID_exit(errno, "%s: Failed to adapt PSIDclient", __func__);
 	    }
