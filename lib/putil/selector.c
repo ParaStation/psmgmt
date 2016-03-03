@@ -946,34 +946,37 @@ int Sselect(int n, fd_set  *readfds,  fd_set  *writefds, fd_set *exceptfds,
 		logger_print(logger, -1, "%s: got EPOLLPRI for %d\n", __func__,
 			     selector->fd);
 	    }
-	    if (events[ev].events & EPOLLHUP && !selector->deleted) {
+	    if (events[ev].events & EPOLLERR && !selector->deleted) {
+		/* maybe RDP's extended reliable error message pending */
+		if (!(events[ev].events & EPOLLIN) && selector->readHandler) {
+		    selector->readHandler(selector->fd, selector->readInfo);
+		} else if (!selector->readHandler) {
+		    logger_print(logger, -1,
+				 "%s: EPOLLERR on %d / %#x w/out handler\n",
+				 __func__, selector->fd, events[ev].events);
+		    selector->writeHandler = NULL; /* force remove */
+		    Selector_remove(selector->fd);
+		}
+	    }
+	    if (events[ev].events & EPOLLHUP && !(events[ev].events & EPOLLIN)
+		&& !selector->deleted && !selector->disabled) {
 		if (selector->readHandler) {
 		    selector->readHandler(selector->fd, selector->readInfo);
 		} else if (readfds && selector->reqRead) {
 		    FD_SET(selector->fd, readfds);
+		} else if (writefds && selector->reqWrite) {
+		    FD_SET(selector->fd, writefds);
 		}
-		if (!selector->deleted && !(events[ev].events & EPOLLIN)) {
+		if (!selector->deleted) {
 		    logger_print(logger,
 				 selector->readHandler ? -1 : SELECTOR_LOG_VERB,
-				 "%s: EPOLLHUP on %d / %x\n", __func__,
+				 "%s: EPOLLHUP on %d / %#x\n", __func__,
 				 selector->fd, events[ev].events);
 		    if (selector->readHandler) {
 			Selector_remove(selector->fd);
 		    } else {
 			Selector_vacateWrite(selector->fd);
 		    }
-		}
-	    }
-	    if (events[ev].events & EPOLLERR && !selector->deleted) {
-		/* call the handler to signal it, then close */
-		if (selector->readHandler) {
-		    selector->readHandler(selector->fd, selector->readInfo);
-		}
-		if (!selector->deleted && !(events[ev].events & EPOLLIN)) {
-		    logger_print(logger, -1, "%s: EPOLLERR on %d / %x\n",
-				 __func__, selector->fd, events[ev].events);
-		    selector->writeHandler = NULL; /* force remove */
-		    Selector_remove(selector->fd);
 		}
 	    }
 	}
@@ -1130,32 +1133,33 @@ int Swait(int timeout)
 		logger_print(logger, -1, "%s: got EPOLLPRI for %d\n", __func__,
 			     selector->fd);
 	    }
-	    if (events[ev].events & EPOLLHUP && !selector->deleted) {
+	    if (events[ev].events & EPOLLERR && !selector->deleted) {
+		/* maybe RDP's extended reliable error message pending */
+		if (!(events[ev].events & EPOLLIN) && selector->readHandler) {
+		    selector->readHandler(selector->fd, selector->readInfo);
+		} else if (!selector->readHandler) {
+		    logger_print(logger, -1,
+				 "%s: EPOLLERR on %d / %#x w/out handler\n",
+				 __func__, selector->fd, events[ev].events);
+		    selector->writeHandler = NULL; /* force remove */
+		    Selector_remove(selector->fd);
+		}
+	    }
+	    if (events[ev].events & EPOLLHUP && !(events[ev].events & EPOLLIN)
+		&& !selector->deleted && !selector->disabled) {
 		if (selector->readHandler) {
 		    selector->readHandler(selector->fd, selector->readInfo);
 		}
-		if (!selector->deleted && !(events[ev].events & EPOLLIN)) {
+		if (!selector->deleted) {
 		    logger_print(logger,
 				 selector->readHandler ? -1 : SELECTOR_LOG_VERB,
-				 "%s: EPOLLHUP on %d / %x\n", __func__,
+				 "%s: EPOLLHUP on %d / %#x\n", __func__,
 				 selector->fd, events[ev].events);
 		    if (selector->readHandler) {
 			Selector_remove(selector->fd);
 		    } else {
 			Selector_vacateWrite(selector->fd);
 		    }
-		}
-	    }
-	    if (events[ev].events & EPOLLERR && !selector->deleted) {
-		/* call the handler to signal it, then close */
-		if (selector->readHandler) {
-		    selector->readHandler(selector->fd, selector->readInfo);
-		}
-		if (!selector->deleted && !(events[ev].events & EPOLLIN)) {
-		    logger_print(logger, -1, "%s: EPOLLERR on %d / %x\n",
-				 __func__, selector->fd, events[ev].events);
-		    selector->writeHandler = NULL; /* force remove */
-		    Selector_remove(selector->fd);
 		}
 	    }
 	}
