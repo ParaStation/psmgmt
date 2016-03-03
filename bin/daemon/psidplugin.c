@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2009-2015 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2009-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -113,8 +113,12 @@ static LIST_HEAD(pluginList);
  *
  * 112: dynamic resource allocation via PSIDHOOK_XTND_PART_DYNAMIC,
  *      PSIDHOOK_RELS_PART_DYNAMIC and PSIDpart_extendRes()
+ *
+ * 113: added PSIDHOOK_EXEC_CLIENT_USER
+ *
+ * 114: added PSIDHOOK_PELOGUE_FINISH and PSIDHOOK_FRWRD_DSOCK
  */
-static int pluginAPIVersion = 112;
+static int pluginAPIVersion = 114;
 
 
 /** Grace period between finalize and unload on forcefully unloads */
