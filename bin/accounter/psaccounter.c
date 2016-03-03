@@ -753,7 +753,7 @@ static void printAccEndMsg(char *chead, PStask_ID_t key)
  *
  * @return No return value.
  */
-static void timer_handler(void)
+static void timer_handler(int sig)
 {
     PStask_ID_t tid;
     struct itimerval timer;
