@@ -775,7 +775,7 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
 	    msg.type = PSP_SPAWN_ENV;
 	    if (sendEnv(&msg, task->environ, &len) < 0) goto error;
 	} else {
-	    /* Let the new rank use the environment of its sister */
+	    /* Let the new rank use the environment of its siblings */
 	    msg.type = PSP_SPAWN_ENV_CLONE;
 	    msg.header.len = sizeof(msg.header) + sizeof(msg.type);
 	    if (PSI_sendMsg(&msg)<0) {

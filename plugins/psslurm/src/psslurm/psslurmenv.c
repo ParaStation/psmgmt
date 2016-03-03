@@ -611,7 +611,7 @@ void setStepEnv(Step_t *step)
     /* unbuffered (raw I/O) mode */
     if (!step->bufferedIO) {
 	envSet(&step->env, "__PSI_RAW_IO", "1");
-	envSet(&step->env, "PSI_LOGGER_UNBUFFERED", "1");
+	envSet(&step->env, "__PSI_LOGGER_UNBUFFERED", "1");
     }
 
     if (!step->pty) envSet(&step->env, "PSI_INPUTDEST", "all");

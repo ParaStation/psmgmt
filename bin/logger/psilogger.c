@@ -1534,7 +1534,7 @@ int main( int argc, char**argv)
 	if (PSIlog_stderrLogger) logger_setWaitNLFlag(PSIlog_stderrLogger, 0);
     }
 
-    if (getenv("PSI_LOGGER_UNBUFFERED")) {
+    if (getenv("__PSI_LOGGER_UNBUFFERED")) {
 	if (PSIlog_stdoutLogger) logger_setWaitNLFlag(PSIlog_stdoutLogger, 0);
 	if (PSIlog_stderrLogger) logger_setWaitNLFlag(PSIlog_stderrLogger, 0);
     }

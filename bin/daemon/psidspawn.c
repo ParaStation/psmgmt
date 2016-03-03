@@ -979,6 +979,7 @@ static void execClient(PStask_t *task)
 
     doClamps(task);
 
+    /* used by psslurm to modify default pinning */
     PSIDhook_call(PSIDHOOK_EXEC_CLIENT_USER, task);
 
     /* Signal forwarder we're ready for execve() */
@@ -1936,7 +1937,7 @@ static void CloneEnvFromTasks(PStask_t *task)
 	}
     }
 
-    PSID_log(-1, "%s: No sister for task '%s' rank '%i' ", __func__,
+    PSID_log(-1, "%s: No sibling for task '%s' rank '%i' ", __func__,
 		PSC_printTID(task->tid), task->rank);
     PSID_log(-1, "ptid '%s' ", PSC_printTID(task->ptid));
     PSID_log(-1, "logger '%s' found\n", PSC_printTID(task->loggertid));

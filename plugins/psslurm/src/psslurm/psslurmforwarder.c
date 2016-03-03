@@ -358,7 +358,7 @@ int handleExecClientUser(void *data)
     unsetenv("__PSI_RAW_IO");
     unsetenv("PSI_SSH_INTERACTIVE");
     unsetenv("PSI_LOGGER_RAW_MODE");
-    unsetenv("PSI_LOGGER_UNBUFFERED");
+    unsetenv("__PSI_LOGGER_UNBUFFERED");
     unsetenv("MALLOC_CHECK_");
     unsetenv("__MPIEXEC_DIST_START");
     unsetenv("MPIEXEC_VERBOSE");
