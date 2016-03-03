@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2007-2013 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2007-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -51,7 +51,7 @@ static KVS_t *kvs;
  *
  * @return No return value.
  */
-static void growKVS()
+static void growKVS(void)
 {
     int i, oldSize = maxKVS;
 
@@ -102,7 +102,7 @@ static KVS_t *getKvsByname(char *name)
  *
  * @return No return value.
  */
-static void initKVS()
+static void initKVS(void)
 {
     char tmp[100];
 

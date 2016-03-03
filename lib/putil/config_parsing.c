@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014-2015 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -1678,7 +1678,7 @@ static int newHost(int id, in_addr_t addr)
     - works on node those obj is currently in psconfigobj
     - as a side effect set id of local node in nodeconf struct
 */
-static int insertNode()
+static int insertNode(void)
 {
     gchar *nodename;
     in_addr_t ipaddr;
@@ -1710,7 +1710,7 @@ static int insertNode()
     return ret;
 }
 
-static int getNodes()
+static int getNodes(void)
 {
     GPtrArray *nodeobjlist;
     GError *err = NULL;
@@ -2057,7 +2057,7 @@ static confkeylist_t nodeoption_list[] = {
 };
 #endif
 
-static int setupLocalNode()
+static int setupLocalNode(void)
 {
     int i, ret, allret;
 
