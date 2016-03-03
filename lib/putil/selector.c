@@ -525,7 +525,8 @@ recheck:
 		goto recheck;
 	    }
 	default:
-	    logger_warn(logger, -1, errno, "%s: epoll_ctl(%d)", __func__, fd);
+	    logger_warn(logger, fd ? -1 : SELECTOR_LOG_VERB, errno,
+			"%s: epoll_ctl(%d)", __func__, fd);
 	}
     }
 
