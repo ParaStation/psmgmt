@@ -1024,6 +1024,8 @@ static struct rusage childRUsage;
  *
  * - SIGUSR2 Rasise SIGSEGV in order to dump core
  *
+ * - SIGTERM Catch and forward to child
+ *
  * - SIGTTIN Just report
  *
  * - SIGPIPE Just report
@@ -1055,6 +1057,9 @@ static void sighandler(int sig)
     case SIGUSR2:
 	PSIDfwd_printMsgf(STDERR, "%s: Got SIGUSR2\n", tag);
 	raise(SIGSEGV);
+	break;
+    case SIGTERM:
+	sendSignal(PSC_getPID(childTask->tid), SIGTERM);
 	break;
     case SIGTTIN:
 	PSIDfwd_printMsgf(STDERR, "%s: got SIGTTIN\n", tag);
@@ -1367,6 +1372,7 @@ void PSID_forwarder(PStask_t *task, int daemonfd, int eno)
 
     /* Catch some additional signals */
     signal(SIGUSR1, sighandler);
+    signal(SIGTERM, sighandler);
     signal(SIGTTIN, sighandler);
     signal(SIGPIPE, sighandler);
     if (getenv("PSIDFORWARDER_DUMP_CORE_ON_SIGUSR2")) {
