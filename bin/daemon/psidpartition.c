@@ -20,7 +20,6 @@ static char vcid[] __attribute__((used)) =
 #include <errno.h>
 #include <time.h>
 #include <sys/types.h>
-#include <signal.h>
 
 #include "pscommon.h"
 #include "psprotocol.h"
