@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2007-2013 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2007-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -124,15 +124,6 @@ int kvs_count_values(char *kvsname);
  * @return The number of kvs created.
  */
 int kvs_count(void);
-
-/**
- * @brief Read the name of a kvs by index.
- *
- * @param index The index of the kvs.
- *
- * @return Returns the name of a kvs by index or 0 on error.
- */
-char *kvs_getKvsNameByIndex(int index);
 
 #ifdef __cplusplus
 }/* extern "C" */

@@ -285,10 +285,3 @@ char *kvs_getbyidx(char *kvsname, int index)
 
     return env_dump(lkvs->env, index);
 }
-
-char *kvs_getKvsNameByIndex(int index)
-{
-    if (index >= numKVS) return NULL;
-
-    return kvs[index].name;
-}
