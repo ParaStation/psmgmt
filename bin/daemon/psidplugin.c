@@ -115,8 +115,10 @@ static LIST_HEAD(pluginList);
  *      PSIDHOOK_RELS_PART_DYNAMIC and PSIDpart_extendRes()
  *
  * 113: added PSIDHOOK_EXEC_CLIENT_USER
+ *
+ * 114: added PSIDHOOK_PELOGUE_FINISH and PSIDHOOK_FRWRD_DSOCK
  */
-static int pluginAPIVersion = 113;
+static int pluginAPIVersion = 114;
 
 
 /** Grace period between finalize and unload on forcefully unloads */
