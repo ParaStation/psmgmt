@@ -1510,9 +1510,7 @@ static int buildSandboxAndStart(PStask_t *task)
 	int maxFD = sysconf(_SC_OPEN_MAX);
 
 	PSID_resetSigs();
-	PSID_blockSig(1, SIGCHLD);
-	PSID_blockSig(0, SIGUSR1);
-	PSID_blockSig(0, SIGUSR2);
+	/* keep SIGCHLD blocked */
 
 	/*
 	 * Create a new process group. This is needed since the daemon
