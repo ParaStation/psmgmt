@@ -130,6 +130,9 @@ void PSID_resetSigs(void)
 #else
     signal(SIGSTKFLT,SIG_DFL);
 #endif
+
+    PSID_blockSig(0, SIGUSR1);
+    PSID_blockSig(0, SIGUSR2);
 }
 
 /* Reading and basic handling of the configuration */

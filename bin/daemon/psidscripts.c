@@ -28,11 +28,11 @@ static char vcid[] __attribute__((used)) =
 
 #include "psidscripts.h"
 
-/** List of registered callbacks PIDs (indexed by file-descriptor) */
-static pid_t cbList[FD_SETSIZE];
+/** Array of registered callbacks PIDs (indexed by file-descriptor) */
+static pid_t *cbList = NULL;
 
-/** Flag validity of @ref cbList */
-static int cbListInitialized = 0;
+/** Maximum number of callbacks capable to store in @ref cbList */
+static int maxCBFD = 0;
 
 /*
  * For documentation see PSID_execScript() and PSID_execFunc in psidscripts.h
@@ -50,10 +50,12 @@ static int doExec(char *script, PSID_scriptFunc_t func, PSID_scriptPrep_t prep,
     }
 
     if (cb) {
-	if (!cbListInitialized) {
-	    int i;
-	    for (i=0; i<FD_SETSIZE; i++) cbList[i] = 0;
-	    cbListInitialized = 1;
+	if (!maxCBFD || !cbList) {
+	    int numFiles = sysconf(_SC_OPEN_MAX);
+	    if (PSIDscripts_setMax(numFiles) < 0) {
+		PSID_warn(1, errno, "%s: failed to init cbList\n", __func__);
+		return -1;
+	    }
 	}
 	if (!Selector_isInitialized()) {
 	    PSID_log(-1, "%s(%s): needs running Selector\n", caller,
@@ -271,20 +273,42 @@ int PSID_execFunc(PSID_scriptFunc_t func, PSID_scriptPrep_t prep,
     return doExec(NULL, func, prep, cb, info, __func__);
 }
 
+int PSIDscripts_setMax(int max)
+{
+    int oldMax = maxCBFD;
+    int fd;
+
+    if (maxCBFD >= max) return 0; /* don't shrink */
+
+    maxCBFD = max;
+
+    cbList = realloc(cbList, sizeof(*cbList) * maxCBFD);
+    if (!cbList) {
+	PSID_warn(-1, ENOMEM, "%s", __func__);
+	errno = ENOMEM;
+	return -1;
+    }
+
+    /* Initialize new cbs */
+    for (fd = oldMax; fd < maxCBFD; fd++) cbList[fd] = 0;
+
+    return 0;
+}
+
 int PSID_cancelCB(pid_t pid)
 {
     int fd;
 
-    if (!cbListInitialized) {
+    if (!maxCBFD || !cbList) {
 	PSID_log(-1, "%s: cbList not initialized.\n", __func__);
 	return -1;
     }
 
-    for (fd=0; fd<FD_SETSIZE; fd++) {
+    for (fd = 0; fd < maxCBFD; fd++) {
 	if (cbList[fd] == pid) break;
     }
 
-    if (fd == FD_SETSIZE) {
+    if (fd == maxCBFD) {
 	PSID_log(-1, "%s: pid %d not found.\n", __func__, pid);
 	return -1;
     }

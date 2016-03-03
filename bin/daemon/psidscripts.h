@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2009-2014 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2009-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -220,6 +220,26 @@ int PSID_execFunc(PSID_scriptFunc_t func, PSID_scriptPrep_t prep,
  * @return On success 0 is returned. Or -1 if an error occurred.
  */
 int PSID_cancelCB(pid_t pid);
+
+/**
+ * @brief Set the number of callbacks to handle
+ *
+ * Set the number of callbacks the modules can handle to @a max. Since
+ * registered callbacks are addressed by their file-descriptor, the
+ * maximum has to be adapted each time RLIMIT_NOFILE is adapted.
+ * Nevertheless, since old file-descriptor keep staying alive, only a
+ * value of @a max larger than the previous maximum will have an
+ * effect.
+ *
+ * The initial value is determined during the first registration of a
+ * callback via sysconf(_SC_OPEN_MAX).
+ *
+ * @param max New maximum number of callbacks to handle
+ *
+ * @return On success 0 is returned. In case of failure -1 is returned
+ * and errno is set appropriately.
+ */
+int PSIDscripts_setMax(int max);
 
 #ifdef __cplusplus
 }/* extern "C" */

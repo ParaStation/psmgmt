@@ -1660,7 +1660,7 @@ static int handleErr(int eno)
 
     switch (eno) {
     case ECONNREFUSED:
-	RDP_log(RDP_LOG_CONN, "%s: CONNREFUSED to %s(%d) port %d", __func__,
+	RDP_log(RDP_LOG_CONN, "%s: CONNREFUSED to %s(%d) port %d\n", __func__,
 		inet_ntoa(sin.sin_addr), node, ntohs(sin.sin_port));
 	closeConnection(node, 1, 0);
 	break;
