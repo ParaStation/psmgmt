@@ -153,8 +153,7 @@ mlisten_OBJECTS = mlisten.$(OBJEXT)
 mlisten_DEPENDENCIES = $(am__DEPENDENCIES_1)
 mpiexec_SOURCES = mpiexec.c
 mpiexec_OBJECTS = mpiexec-mpiexec.$(OBJEXT)
-mpiexec_DEPENDENCIES = $(libpse) $(libpskvs) $(plugincommon_objs) \
-	$(am__DEPENDENCIES_1)
+mpiexec_DEPENDENCIES = $(libpse) $(libpskvs) $(am__DEPENDENCIES_1)
 mpirun_chgm_SOURCES = mpirun_chgm.c
 mpirun_chgm_OBJECTS = mpirun_chgm.$(OBJEXT)
 mpirun_chgm_DEPENDENCIES = $(libpse) $(am__DEPENDENCIES_1)
@@ -458,7 +457,7 @@ top_srcdir = @top_srcdir@
 unitdir = @unitdir@
 AM_CPPFLAGS = -I$(top_srcdir)/include -DNDEBUG \
 	-DVERSION_psmgmt=\"$(PKG_VER)\" \
-	-DRELEASE_psmgmt=\"$(PKG_REL)\" -I$(top_srcdir)/bin/daemon
+	-DRELEASE_psmgmt=\"$(PKG_REL)\"
 subst_verbose = $(subst_verbose_$(V))
 subst_verbose_ = $(subst_verbose_$(AM_DEFAULT_VERBOSITY))
 subst_verbose_0 = @echo "  SUBST   " $(@F);
@@ -500,10 +499,6 @@ libputil = $(top_builddir)/lib/putil/libputil.la
 libpscommon = $(top_builddir)/lib/pscommon/libpscommon.la
 libpslog = $(top_builddir)/lib/pslog/libpslog.la
 libpskvs = $(top_builddir)/lib/pskvs/libpskvs.la
-plugincommon_objs = $(top_builddir)/lib/plugincommon/pluginfrag.lo \
-	$(top_builddir)/lib/plugincommon/plugincomm.lo \
-	$(top_builddir)/lib/plugincommon/pluginmalloc.lo \
-	$(top_builddir)/lib/plugincommon/pluginlog.lo
 psiadmin_SOURCES = admin/psiadmin.c admin/psiadmin.h admin/commands.c	\
 	admin/commands.h admin/adminparser.c admin/adminparser.h
 
@@ -557,7 +552,7 @@ psaccounter_SOURCES = accounter/psaccounter.c
 psaccounter_CPPFLAGS = $(AM_CPPFLAGS) -DLOCALSTATEDIR=\"$(localstatedir)\"
 psaccounter_LDADD = $(libpse) $(POPT_LIBS)
 mpiexec_CPPFLAGS = $(AM_CPPFLAGS) -DCONFIGDIR=\"$(configdir)\"
-mpiexec_LDADD = $(libpse) $(libpskvs) $(plugincommon_objs) $(POPT_LIBS) -lrt
+mpiexec_LDADD = $(libpse) $(libpskvs) $(POPT_LIBS)
 testacct_LDADD = $(libpse) $(POPT_LIBS)
 all: all-am
 

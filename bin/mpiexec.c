@@ -47,11 +47,6 @@ static char vcid[] __attribute__((used)) =
 #include <pscommon.h>
 #include "kvscommon.h"
 #include "kvsprovider.h"
-#include "pspluginprotocol.h"
-#include "plugincomm.h"
-#include "pluginlog.h"
-#include "pluginfrag.h"
-#include "pspluginprotocol.h"
 
 #define GDB_COMMAND_EXE "gdb"
 #define GDB_COMMAND_FILE CONFIGDIR "/mpiexec.gdb"
@@ -1180,19 +1175,17 @@ static char ** setupRankEnv(int psRank)
 	    numProcPerNode[jobLocalNodeIDs[rank]]);
     env[cur++] = strdup(buf);
 
-    if (OpenMPI) {
-	/* Task ID  relative to the other tasks in the job step.
-	 * Counting begins at zero. */
-	snprintf(buf, sizeof(buf), "SLURM_PROCID=%i", rank);
-	env[cur++] = strdup(buf);
-    }
-
     /* setup OpenMPI support */
     if (OpenMPI) {
 
 	/* Node ID relative to other  nodes  in  the  job  step.
 	 * Counting begins at zero. */
 	snprintf(buf, sizeof(buf), "SLURM_NODEID=%i", jobLocalNodeIDs[rank]);
+	env[cur++] = strdup(buf);
+
+	/* Task ID  relative to the other tasks in the job step.
+	 * Counting begins at zero. */
+	snprintf(buf, sizeof(buf), "SLURM_PROCID=%i", rank);
 	env[cur++] = strdup(buf);
 
 	/* Task ID relative to the other tasks on the same node which
@@ -1326,13 +1319,14 @@ static void extractNodeInformation(PSnodes_ID_t *nodeList, int np)
 }
 
 static int spawnSingleExecutable(int np, int argc, char **argv, char *wd,
-				 PSrsrvtn_ID_t resID, int verbose,
-				 PStask_ID_t *tids)
+				 PSrsrvtn_ID_t resID, int verbose)
 {
     int i, ret, *errors = NULL;
+    PStask_ID_t *tids;
 
     errors = umalloc(sizeof(int) * np, __func__);
     for (i=0; i<np; i++) errors[i] = 0;
+    tids = umalloc(sizeof(PStask_ID_t) * np, __func__);
 
     /* spawn client processes */
     ret = PSI_spawnRsrvtn(np, resID, wd, argc, argv, 1, errors, tids);
@@ -1357,11 +1351,6 @@ static int spawnSingleExecutable(int np, int argc, char **argv, char *wd,
 
     free(errors);
     return ret;
-}
-
-int sendMsg(void *amsg)
-{
-    return PSI_sendMsg(amsg);
 }
 
 static void sendPMIFail(void)
@@ -1414,10 +1403,9 @@ static void sendPMIFail(void)
  */
 static int startProcs(int np, char *wd, int verbose)
 {
-    int i, ret = 0, count = 0, off = 0;
+    int i, ret = 0, off = 0;
     char *hostname = NULL;
     PSnodes_ID_t *nodeList;
-    PStask_ID_t *tids, *ptr;
     int nlSize = np*sizeof(*nodeList);
 
     /* Create the reservations required later on */
@@ -1494,24 +1482,17 @@ static int startProcs(int np, char *wd, int verbose)
     verboseRankMsg = verbose;
     PSI_registerRankEnvFunc(setupRankEnv);
 
-    tids = umalloc(sizeof(PStask_ID_t) * np, __func__);
-    for (i=0; i<np; i++) tids[i] = -1;
-
     for (i=0; i< execCount; i++) {
-	ptr = &tids[count];
 	setupExecEnv(i);
 
 	ret = spawnSingleExecutable(exec[i]->np, exec[i]->argc, exec[i]->argv,
-				    exec[i]->wdir, exec[i]->resID, verbose, ptr);
+				    exec[i]->wdir, exec[i]->resID, verbose);
 	if (ret < 0) {
 	    if ((getenv("PMI_SPAWNED"))) sendPMIFail();
 
 	    break;
 	}
-	count += exec[i]->np;
     }
-
-    free(tids);
 
     return ret;
 }

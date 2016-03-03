@@ -36,10 +36,6 @@ libputil = $(top_builddir)/lib/putil/libputil.la
 libpscommon = $(top_builddir)/lib/pscommon/libpscommon.la
 libpslog = $(top_builddir)/lib/pslog/libpslog.la
 libpskvs = $(top_builddir)/lib/pskvs/libpskvs.la
-plugincommon_objs = $(top_builddir)/lib/plugincommon/pluginfrag.lo
-plugincommon_objs += $(top_builddir)/lib/plugincommon/plugincomm.lo
-plugincommon_objs += $(top_builddir)/lib/plugincommon/pluginmalloc.lo
-plugincommon_objs += $(top_builddir)/lib/plugincommon/pluginlog.lo
 
 psiadmin_SOURCES = admin/psiadmin.c admin/psiadmin.h admin/commands.c	\
 	admin/commands.h admin/adminparser.c admin/adminparser.h
@@ -102,9 +98,8 @@ psaccounter_SOURCES = accounter/psaccounter.c
 psaccounter_CPPFLAGS = $(AM_CPPFLAGS) -DLOCALSTATEDIR=\"$(localstatedir)\"
 psaccounter_LDADD = $(libpse) $(POPT_LIBS)
 
-AM_CPPFLAGS += -I$(top_srcdir)/bin/daemon
 mpiexec_CPPFLAGS = $(AM_CPPFLAGS) -DCONFIGDIR=\"$(configdir)\"
-mpiexec_LDADD = $(libpse) $(libpskvs) $(plugincommon_objs) $(POPT_LIBS) -lrt
+mpiexec_LDADD = $(libpse) $(libpskvs) $(POPT_LIBS)
 testacct_LDADD = $(libpse) $(POPT_LIBS)
 
 install-exec-local:
