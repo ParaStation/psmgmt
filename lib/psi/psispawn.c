@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2015 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -574,6 +574,7 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
     int hugeTask = 0, hugeArgv = 0;
     char *valgrind;
     char *callgrind;
+    PSnodes_ID_t lastNode = -1;
 
     if (!errors) {
 	PSI_log(-1, "%s: unable to reports errors\n", __func__);
@@ -749,7 +750,7 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
     /* send actual requests */
     outstanding_answers=0;
     for (i=0; i<count && !error; i++) {
-	size_t len;
+	size_t len = 0;
 
 	msg.header.type = PSP_CD_SPAWNREQ;
 	msg.header.dest = PSC_getTID(dstnodes[i],0);
@@ -768,10 +769,20 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
 	/* send argv stuff */
 	if (sendArgv(&msg, task->argv) < 0) goto error;
 
-	msg.type = PSP_SPAWN_ENV;
-
-	/* Send the static part of the environment */
-	if (sendEnv(&msg, task->environ, &len) < 0) goto error;
+	if (lastNode != dstnodes[i]) {
+	    /* Send the static part of the environment */
+	    msg.type = PSP_SPAWN_ENV;
+	    if (sendEnv(&msg, task->environ, &len) < 0) goto error;
+	} else {
+	    /* Let the new rank use the environment of its sibling */
+	    msg.type = PSP_SPAWN_ENV_CLONE;
+	    msg.header.len = sizeof(msg.header) + sizeof(msg.type);
+	    if (PSI_sendMsg(&msg)<0) {
+		PSI_warn(-1, errno, "%s: PSI_sendMsg", __func__);
+		goto error;
+	    }
+	}
+	lastNode = dstnodes[i];
 
 	/* Maybe some variable stuff shall also be sent */
 	if (extraEnvFunc) {
@@ -786,6 +797,7 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
 		    msg.header.len -= len;
 		}
 
+		msg.type = PSP_SPAWN_ENV;
 		if (sendEnv(&msg, extraEnv, &len) < 0) goto error;
 	    }
 	}
