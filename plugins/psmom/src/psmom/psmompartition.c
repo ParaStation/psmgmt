@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2015 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -96,78 +96,80 @@ void handlePSSpawnReq(DDTypedBufferMsg_t *msg)
 {
     PStask_t *task;
 
-    if (!msg) return;
-
-    /* call old message handler to forward the original message */
-    if (oldSpawnReqHandler) oldSpawnReqHandler((DDBufferMsg_t *)msg);
+    if (!msg || !oldSpawnReqHandler) return;
 
     /* don't mess with messages from other nodes */
-    if (PSC_getID(msg->header.sender) != PSC_getMyID()) return;
+    if (PSC_getID(msg->header.sender) != PSC_getMyID()) goto done;
 
     task = PStasklist_find(&managedTasks, msg->header.sender);
 
     if (!task) {
 	mlog("%s: task %s not found\n", __func__,
 	     PSC_printTID(msg->header.sender));
-	return;
+	goto done;
     }
 
-    if (msg->type == PSP_SPAWN_ARG) {
-	if (!task->injectedEnv) {
-	    Job_t *job;
-	    JobInfo_t *jinfo;
-	    char *next, *jobid = NULL, *jobcookie = NULL;
-	    size_t left, len = 0;
-	    pid_t logger = PSC_getPID(task->loggertid);
+    if (msg->type == PSP_SPAWN_END) {
+	DDTypedBufferMsg_t envMsg = (DDTypedBufferMsg_t) {
+	    .header = (DDMsg_t) {
+		.type = msg->header.type,
+		.dest = msg->header.dest,
+		.sender = msg->header.sender,
+		.len = sizeof(envMsg.header) + sizeof(envMsg.type) },
+	    .type = PSP_SPAWN_ENV};
 
-	    /* the logger can be located on our node or on a different node
-	     * if the spawner was shifted.
-	     */
-	    if ((job = findJobByLogger(logger))) {
-		jobid = job->id;
-		jobcookie = job->cookie;
-	    } else if ((job = findJobforPID(logger))) {
-		if (job->mpiexec == -1) {
-		    job->mpiexec = task->loggertid;
+	Job_t *job;
+	JobInfo_t *jinfo;
+	char *next, *jobid = NULL, *jobcookie = NULL;
+	size_t left, len = 0;
+	pid_t logger = PSC_getPID(task->loggertid);
 
-		    /* forward info to all nodes */
-		    sendJobUpdate(job);
-		}
-		jobid = job->id;
-		jobcookie = job->cookie;
-	    } else if ((jinfo = findJobInfoByLogger(task->loggertid))) {
-		jobid = jinfo->id;
-		jobcookie = jinfo->cookie;
+	/* the logger can be located on our node or on a different node
+	 * if the spawner was shifted.
+	 */
+	if ((job = findJobByLogger(logger))) {
+	    jobid = job->id;
+	    jobcookie = job->cookie;
+	} else if ((job = findJobforPID(logger))) {
+	    if (job->mpiexec == -1) {
+		job->mpiexec = task->loggertid;
+
+		/* forward info to all nodes */
+		sendJobUpdate(job);
 	    }
-
-	    if (!jobid || !jobcookie) return;
-
-	    /* send additional environment variables */
-	    msg->type = PSP_SPAWN_ENV;
-	    msg->header.len = sizeof(msg->header) + sizeof(msg->type);
-	    memset(msg->buf, 0, BufTypedMsgSize);
-	    left = BufTypedMsgSize;
-
-	    len = snprintf(msg->buf, left, "PBS_JOBCOOKIE=%s", jobcookie);
-	    next = msg->buf + len + 1;
-	    msg->header.len += len +1;
-	    left -= len +1;
-
-	    len = snprintf(next, left, "PBS_JOBID=%s", jobid);
-	    //next += len + 1;
-	    msg->header.len += len +1;
-	    //left -= len +1;
-
-	    /* end of encoding */
-	    msg->header.len++;
-
-	    /* send altered message */
-	    if (oldSpawnReqHandler) oldSpawnReqHandler((DDBufferMsg_t *) msg);
-	    task->injectedEnv = 1;
+	    jobid = job->id;
+	    jobcookie = job->cookie;
+	} else if ((jinfo = findJobInfoByLogger(task->loggertid))) {
+	    jobid = jinfo->id;
+	    jobcookie = jinfo->cookie;
 	}
-    } else if (msg->type == PSP_SPAWN_END) {
-	task->injectedEnv = 0;
+
+	if (!jobid || !jobcookie) goto done;
+
+	/* send additional environment variables */
+	memset(envMsg.buf, 0, BufTypedMsgSize);
+	left = BufTypedMsgSize;
+
+	len = snprintf(envMsg.buf, left, "PBS_JOBCOOKIE=%s", jobcookie);
+	next = envMsg.buf + len + 1;
+	envMsg.header.len += len +1;
+	left -= len +1;
+
+	len = snprintf(next, left, "PBS_JOBID=%s", jobid);
+	//next += len + 1;
+	envMsg.header.len += len +1;
+	//left -= len +1;
+
+	/* end of encoding */
+	envMsg.header.len++;
+
+	/* send additional message */
+	oldSpawnReqHandler((DDBufferMsg_t *) &envMsg);
     }
+
+done:
+    /* call old message handler to forward the original message */
+    oldSpawnReqHandler((DDBufferMsg_t *)msg);
 }
 
 static void partitionDone(PStask_t *task)
