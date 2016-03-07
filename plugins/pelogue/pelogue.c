@@ -54,7 +54,7 @@ static int obitTime = 10;
 /** psid plugin requirements */
 char name[] = "pelogue";
 int version = 5;
-int requiredAPI = 109;
+int requiredAPI = 114;
 plugin_dep_t dependencies[2];
 
 void startPelogue(void)

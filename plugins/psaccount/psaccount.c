@@ -43,7 +43,7 @@
 /** psid plugin requirements */
 char name[] = "psaccount";
 int version = 24;
-int requiredAPI = 101;
+int requiredAPI = 114;
 plugin_dep_t dependencies[1];
 
 /** the linux system clock ticks */
