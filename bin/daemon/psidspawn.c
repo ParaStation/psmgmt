@@ -1049,9 +1049,9 @@ static int openChannel(PStask_t *task, int *fds, int fileNo)
 	    return eno;
 	}
     } else {
-	if (socketpair(PF_UNIX, SOCK_STREAM, 0, fds)) {
+	if (pipe(fds)) {
 	    int eno = errno;
-	    PSID_warn(-1, errno, "%s: socketpair(%s)", __func__, fdName);
+	    PSID_warn(-1, errno, "%s: pipe(%s)", __func__, fdName);
 	    return eno;
 	}
     }
@@ -1135,45 +1135,26 @@ static void execForwarder(PStask_t *task, int daemonfd)
     if (task->interactive) {
 	if ((eno = openChannel(task, stderrfds, STDERR_FILENO))) goto error;
     } else {
+	/* need to create as user for permission to access to /dev/stdX */
+	if ((seteuid(task->uid)) == -1) {
+	    eno = errno;
+	    PSID_warn(-1, eno, "%s: seteiud(%i)", __func__, task->uid);
+	    goto error;
+	}
+
 	/* first stdout */
 	if ((eno = openChannel(task, stdoutfds, STDOUT_FILENO))) goto error;
 
 	/* then stderr */
 	if ((eno = openChannel(task, stderrfds, STDERR_FILENO))) goto error;
 
-	/*
-	 * For stdin, use the stdout or stderr connection if the
-	 * requested type is available, or open an extra connection.
-	 */
-	if (task->aretty & (1<<STDIN_FILENO)) {
-	    if (task->aretty & (1<<STDERR_FILENO)) {
-		stdinfds[0] = stderrfds[0];
-		stdinfds[1] = stderrfds[1];
-	    } else if (task->aretty & (1<<STDOUT_FILENO)) {
-		stdinfds[0] = stdoutfds[0];
-		stdinfds[1] = stdoutfds[1];
-	    } else {
-		if (openpty(&stdinfds[0], &stdinfds[1],
-			    NULL, &task->termios, &task->winsize)) {
-		    eno = errno;
-		    PSID_warn(-1, eno, "%s: openpty(stdin)", __func__);
-		    goto error;
-		}
-	    }
-	} else {
-	    if (!(task->aretty & (1<<STDERR_FILENO))) {
-		stdinfds[0] = stderrfds[0];
-		stdinfds[1] = stderrfds[1];
-	    } else if (!(task->aretty & (1<<STDOUT_FILENO))) {
-		stdinfds[0] = stdoutfds[0];
-		stdinfds[1] = stdoutfds[1];
-	    } else {
-		if (socketpair(PF_UNIX, SOCK_STREAM, 0, stdinfds)) {
-		    eno = errno;
-		    PSID_warn(-1, eno, "%s: socketpair(stdin)", __func__);
-		    goto error;
-		}
-	    }
+	/* last stdin */
+	if ((eno = openChannel(task, stdinfds, STDIN_FILENO))) goto error;
+
+	if ((seteuid(0)) == -1) {
+	    eno = errno;
+	    PSID_warn(-1, eno, "%s: seteiud(0)", __func__);
+	    goto error;
 	}
     }
 
@@ -1223,8 +1204,8 @@ static void execForwarder(PStask_t *task, int daemonfd)
 	    task->stdin_fd = task->stderr_fd;
 	    task->stdout_fd = task->stderr_fd;
 	} else {
-	    close(stdinfds[0]);
-	    task->stdin_fd = stdinfds[1];
+	    close(stdinfds[1]);
+	    task->stdin_fd = stdinfds[0];
 	    close(stdoutfds[0]);
 	    task->stdout_fd = stdoutfds[1];
 	    close(stderrfds[0]);
@@ -1297,8 +1278,8 @@ static void execForwarder(PStask_t *task, int daemonfd)
 	task->stdout_fd = stderrfds[0];
 	task->stderr_fd = stderrfds[0]; /* req. by SPAWNFAILED extension */
     } else {
-	close(stdinfds[1]);
-	task->stdin_fd = stdinfds[0];
+	close(stdinfds[0]);
+	task->stdin_fd = stdinfds[1];
 	close(stdoutfds[1]);
 	task->stdout_fd = stdoutfds[0];
 	close(stderrfds[1]);

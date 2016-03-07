@@ -1295,14 +1295,15 @@ static int handleSIGCHLD(int fd, void *info)
 	PSID_warn(-1, errno, "%s: read()", __func__);
     }
 
-    if (verbose) PSIDfwd_printMsgf(STDERR, "%s: Got SIGCHLD\n", tag);
-
     /* if child is stopped, return */
     childPID = wait3(&childStatus, WUNTRACED | WCONTINUED | WNOHANG,
 		     &childRUsage);
-    if (!WIFSTOPPED(childStatus) && !WIFCONTINUED(childStatus)) {
-	/* Get rid of now useless selector */
+    if (childPID && !WIFSTOPPED(childStatus) && !WIFCONTINUED(childStatus)) {
+	if (verbose) PSIDfwd_printMsgf(STDERR, "%s: SIGCHLD for %d\n", tag,
+				       childPID);
 	gotSIGCHLD = 1;
+
+	/* Get rid of now useless selector */
 	Selector_remove(fd);
 	Selector_startOver();
 	close(fd);
