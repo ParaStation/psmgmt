@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2015 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -276,7 +276,7 @@ typedef enum {
     PSP_SPAWN_ENVCNTD,            /**< Content is continued single env-var */
     PSP_SPAWN_WDIRCNTD,           /**< Content is continued workdir */
     PSP_SPAWN_ARGCNTD,            /**< Content is continued argument-vector */
-    PSP_SPAWN_ENV_CLONE,	  /**< There is no content */
+    PSP_SPAWN_ENV_CLONE,          /**< No content, trigger clone from sibling */
 } PSP_Spawn_t;
 
 /** Accounting messages */

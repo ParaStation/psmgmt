@@ -240,7 +240,7 @@ static void terminateJob(const char *func)
  *
  * @return No return value.
  */
-static void initKVS()
+static void initKVS(void)
 {
     int i;
 
@@ -744,7 +744,7 @@ static void handleInitTimeout(int timerid, void *ptr)
  *
  * @return No return value.
  */
-static void setInitTimeout()
+static void setInitTimeout(void)
 {
     struct timeval timer;
 
@@ -873,7 +873,7 @@ static void handleKVS_Join(PSLog_Msg_t *msg, char *ptr)
 
     /*
     mlog("%s(%i): %s rank:%i pmiRank:%i\n", __func__, getpid(),
-    	    PSC_printTID(msg->header.sender), rank, pmiRank);
+	    PSC_printTID(msg->header.sender), rank, pmiRank);
     */
 
     if (clients[pmiRank].tid != -1) {

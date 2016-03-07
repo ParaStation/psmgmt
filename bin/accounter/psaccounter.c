@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2006-2013 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2006-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -238,7 +238,7 @@ static int finddJob(PStask_ID_t Job)
 * @return Returns the task id of the next job,
 * or 0 if there are no more jobs.
 */
-static PStask_ID_t getNextdJob()
+static PStask_ID_t getNextdJob(void)
 {
     if (!dJobs) {
 	return 0;
@@ -753,7 +753,7 @@ static void printAccEndMsg(char *chead, PStask_ID_t key)
  *
  * @return No return value.
  */
-static void timer_handler()
+static void timer_handler(int sig)
 {
     PStask_ID_t tid;
     struct itimerval timer;
@@ -1658,7 +1658,7 @@ static void daemonize(const char *cmd)
 *
 * @return No return value.
 */
-static void getNodeInformation()
+static void getNodeInformation(void)
 {
     int n, ret, maxlen;
     struct in_addr senderIP;

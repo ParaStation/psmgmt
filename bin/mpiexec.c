@@ -800,7 +800,7 @@ static char *str2Buf(char *strSave, char *buffer, size_t *bufSize)
  *
  * @return Returns the requested string.
  */
-static char *ompiGetUniqHostString()
+static char *ompiGetUniqHostString(void)
 {
     char *buf = NULL;
     size_t bufSize = 0;
@@ -824,7 +824,7 @@ static char *ompiGetUniqHostString()
  *
  * @return Returns the requested string.
  */
-static char *ompiGetTasksPerNode()
+static char *ompiGetTasksPerNode(void)
 {
     int i;
     char tmp[100];
@@ -854,7 +854,7 @@ static char *ompiGetTasksPerNode()
  *
  * @return Returns a string holding the requested reserved port range.
  */
-static char *opmiGetReservedPorts()
+static char *opmiGetReservedPorts(void)
 {
     char tmp[10];
     int lastPort = 0, skip = 0, i;
@@ -3097,7 +3097,7 @@ static void printHelp(int argc, char *argv[])
  *
  * @return No return value.
  */
-static void setupGDB()
+static void setupGDB(void)
 {
     int i, x, new_argc;
     char **new_argv;
@@ -3129,7 +3129,7 @@ static void setupGDB()
  *
  * @return No return value.
  */
-static void setupVALGRIND()
+static void setupVALGRIND(void)
 {
     int i, x, new_argc;
     char **new_argv;
@@ -3167,7 +3167,7 @@ static void setupVALGRIND()
  *
  * @return No return value.
  */
-static void setupComp()
+static void setupComp(void)
 {
     char *cnp, **tmp;
     int len = 10, i, argc;
@@ -3197,7 +3197,7 @@ static void setupComp()
 *
 * @return No return value.
 */
-static void setSigHandlers()
+static void setSigHandlers(void)
 {
     /* install sig handlers */
     signal(SIGTERM, sighandler);

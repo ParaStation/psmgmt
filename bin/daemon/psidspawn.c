@@ -979,7 +979,7 @@ static void execClient(PStask_t *task)
 
     doClamps(task);
 
-    /* used by psslurm to modify default pinning */
+    /* used by psslurm to modify default pinning; thus after doClamps() */
     PSIDhook_call(PSIDHOOK_EXEC_CLIENT_USER, task);
 
     /* Signal forwarder we're ready for execve() */
@@ -1049,7 +1049,7 @@ static int openChannel(PStask_t *task, int *fds, int fileNo)
 	    return eno;
 	}
     } else {
-	if ((pipe(fds)) == -1) {
+	if (pipe(fds)) {
 	    int eno = errno;
 	    PSID_warn(-1, errno, "%s: pipe(%s)", __func__, fdName);
 	    return eno;
@@ -1135,8 +1135,7 @@ static void execForwarder(PStask_t *task, int daemonfd)
     if (task->interactive) {
 	if ((eno = openChannel(task, stderrfds, STDERR_FILENO))) goto error;
     } else {
-	/* need to create pipe as user, or permission to write to /dev/stdX
-	 * will be denied  */
+	/* need to create as user for permission to access to /dev/stdX */
 	if ((seteuid(task->uid)) == -1) {
 	    eno = errno;
 	    PSID_warn(-1, eno, "%s: seteiud(%i)", __func__, task->uid);
@@ -1149,32 +1148,8 @@ static void execForwarder(PStask_t *task, int daemonfd)
 	/* then stderr */
 	if ((eno = openChannel(task, stderrfds, STDERR_FILENO))) goto error;
 
-	/*
-	 * For stdin, use the stdout or stderr connection if the
-	 * requested type is available, or open an extra connection.
-	 */
-	if (task->aretty & (1<<STDIN_FILENO)) {
-	    if (task->aretty & (1<<STDERR_FILENO)) {
-		stdinfds[0] = stderrfds[0];
-		stdinfds[1] = stderrfds[1];
-	    } else if (task->aretty & (1<<STDOUT_FILENO)) {
-		stdinfds[0] = stdoutfds[0];
-		stdinfds[1] = stdoutfds[1];
-	    } else {
-		if (openpty(&stdinfds[0], &stdinfds[1],
-			    NULL, &task->termios, &task->winsize)) {
-		    eno = errno;
-		    PSID_warn(-1, eno, "%s: openpty(stdin)", __func__);
-		    goto error;
-		}
-	    }
-	} else {
-	    if ((pipe(stdinfds)) == -1) {
-		eno = errno;
-		PSID_warn(-1, eno, "%s: pipe(stdin)", __func__);
-		goto error;
-	    }
-	}
+	/* last stdin */
+	if ((eno = openChannel(task, stdinfds, STDIN_FILENO))) goto error;
 
 	if ((seteuid(0)) == -1) {
 	    eno = errno;
@@ -1895,50 +1870,62 @@ static void msg_SPAWNREQUEST(DDBufferMsg_t *msg)
 static LIST_HEAD(spawnTasks);
 
 /**
- * @brief Clone environment from sister task.
+ * @brief Clone environment from sibling task.
  *
  * @param task The task which environment should be set.
  *
  * @return No return value.
  */
-static void CloneEnvFromTasks(PStask_t *task)
+static void cloneEnvFromTasks(PStask_t *task)
 {
-    PStask_t *tt;
     list_t *t;
-    int i, count = 0, eSize = 0;
+    PStask_t *sibling = NULL;
+    int i, envSize = 0;
+    size_t totSize = 0; // @todo
 
     if (task->environ) return;
 
     list_for_each(t, &managedTasks) {
-	tt = list_entry(t, PStask_t, next);
+	PStask_t *tt = list_entry(t, PStask_t, next);
 	if (tt->deleted) continue;
 
-	if (tt->loggertid == task->loggertid &&
-	    tt->ptid == task->ptid &&
-	    tt->environ && tt->rank >= 0) {
-
-	    for (i=0; tt->environ[i]; i++) eSize++;
-	    task->environ = malloc(sizeof (char *) * eSize +1);
-	    if (!task->environ) PSID_exit(ENOMEM, "%s", __func__);
-
-	    for (i=0; i<eSize; i++) {
-		if (tt->environ[i] == NULL) continue;
-		task->environ[i] = strdup(tt->environ[i]);
-		if (!task->environ[i]) PSID_exit(ENOMEM, "%s", __func__);
-		count++;
-	    }
-	    /* add trailing NULL */
-	    task->environ[count] = NULL;
-	    task->envSize = count+1;
-
-	    return;
+	if (tt->loggertid == task->loggertid && tt->ptid == task->ptid
+	    && tt->environ && tt->rank >= 0) {
+	    sibling = tt;
+	    break;
 	}
     }
 
-    PSID_log(-1, "%s: No sibling for task '%s' rank '%i' ", __func__,
-		PSC_printTID(task->tid), task->rank);
-    PSID_log(-1, "ptid '%s' ", PSC_printTID(task->ptid));
-    PSID_log(-1, "logger '%s' found\n", PSC_printTID(task->loggertid));
+    if (!sibling) {
+	PSID_log(-1, "%s: No sibling for task '%s' rank '%i' ", __func__,
+		 PSC_printTID(task->tid), task->rank);
+	PSID_log(-1, "ptid '%s' ", PSC_printTID(task->ptid));
+	PSID_log(-1, "logger '%s' found\n", PSC_printTID(task->loggertid));
+
+	return;
+    }
+
+    while (sibling->environ[envSize]) envSize++;
+    task->environ = malloc(sizeof(char*) * envSize + 1);
+    if (!task->environ) {
+	PSID_warn(-1, ENOMEM, "%s", __func__);
+	return;
+    }
+
+    for (i=0; i<envSize; i++) {
+	task->environ[i] = strdup(sibling->environ[i]);
+	totSize += strlen(task->environ[i]);
+	if (!task->environ[i]) PSID_warn(-1, ENOMEM, "%s", __func__);
+    }
+
+    /* add trailing NULL */
+    task->environ[envSize] = NULL;
+    task->envSize = envSize+1;
+
+    PSID_log(PSID_LOG_SPAWN, "%s(%s): cloned %d entries (size %zd)",
+	     __func__, PSC_printTID(task->tid), envSize, totSize);
+    PSID_log(PSID_LOG_SPAWN, " from sibling %s\n", PSC_printTID(sibling->tid));
+
 }
 
 /**
@@ -2260,8 +2247,9 @@ static void msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
 		     __func__, PSC_printTID(msg->header.sender));
 	    return;
 	}
-	CloneEnvFromTasks(task);
-	return;
+	cloneEnvFromTasks(task);
+	usedBytes = 0;
+	break;
     default:
 	PSID_log(-1, "%s: Unknown type '%d'\n", __func__, msg->type);
 	return;

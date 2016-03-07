@@ -576,6 +576,7 @@ static int doWrite(PSLog_Msg_t *msg, int offset)
 	    stdinSock != childTask->stderr_fd) {
 	    close(stdinSock);
 	}
+
 	childTask->stdin_fd = -1;
 	return 0;
     }
@@ -1025,6 +1026,8 @@ static struct rusage childRUsage;
  *
  * - SIGUSR2 Rasise SIGSEGV in order to dump core
  *
+ * - SIGTERM Catch and forward to child
+ *
  * - SIGTTIN Just report
  *
  * - SIGPIPE Just report
@@ -1294,14 +1297,15 @@ static int handleSIGCHLD(int fd, void *info)
 	PSID_warn(-1, errno, "%s: read()", __func__);
     }
 
-    if (verbose) PSIDfwd_printMsgf(STDERR, "%s: Got SIGCHLD\n", tag);
-
     /* if child is stopped, return */
     childPID = wait3(&childStatus, WUNTRACED | WCONTINUED | WNOHANG,
 		     &childRUsage);
-    if (!WIFSTOPPED(childStatus) && !WIFCONTINUED(childStatus)) {
-	/* Get rid of now useless selector */
+    if (childPID && !WIFSTOPPED(childStatus) && !WIFCONTINUED(childStatus)) {
+	if (verbose) PSIDfwd_printMsgf(STDERR, "%s: SIGCHLD for %d\n", tag,
+				       childPID);
 	gotSIGCHLD = 1;
+
+	/* Get rid of now useless selector */
 	Selector_remove(fd);
 	Selector_startOver();
 	close(fd);
@@ -1371,9 +1375,9 @@ void PSID_forwarder(PStask_t *task, int daemonfd, int eno)
 
     /* Catch some additional signals */
     signal(SIGUSR1, sighandler);
+    signal(SIGTERM, sighandler);
     signal(SIGTTIN, sighandler);
     signal(SIGPIPE, sighandler);
-    signal(SIGTERM, sighandler);
     if (getenv("PSIDFORWARDER_DUMP_CORE_ON_SIGUSR2")) {
 	signal(SIGUSR2, sighandler);
     }

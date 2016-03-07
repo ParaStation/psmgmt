@@ -236,7 +236,8 @@ static void do_panic(logger_t* l, const char *f, const char *c1, const char *c2)
  */
 static void do_print(logger_t* l, const char* format, va_list ap)
 {
-    size_t len;
+    size_t len = 0;
+    int res;
     va_list aq;
     char *tag, *timeStr, *c;
 
@@ -245,8 +246,11 @@ static void do_print(logger_t* l, const char* format, va_list ap)
 
     /* Prepare prefix string */
     timeStr = getTimeStr(l);
-    len = snprintf(l->prfx, l->prfxSize, "%s%s%s", tag ? tag : "", timeStr,
+    res = snprintf(l->prfx, l->prfxSize, "%s%s%s", tag ? tag : "", timeStr,
 		   (tag || l->timeFlag) ? ": " : "");
+    if (res >= 0) {
+	len = (size_t)res;
+    }
     if (len >= l->prfxSize) {
 	l->prfxSize = len + 80; /* Some extra space */
 	l->prfx = (char*)realloc(l->prfx, l->prfxSize);
@@ -259,7 +263,10 @@ static void do_print(logger_t* l, const char* format, va_list ap)
 
     /* Create actual output */
     va_copy(aq, ap);
-    len = vsnprintf(l->txt, l->txtSize, format, ap);
+    res = vsnprintf(l->txt, l->txtSize, format, ap);
+    if (res > 0) {
+	len = (size_t)res;
+    }
     if (len >= l->txtSize) {
 	l->txtSize = len + 80; /* Some extra space */
 	l->txt = (char*)realloc(l->txt, l->txtSize);
@@ -311,9 +318,15 @@ static void do_print(logger_t* l, const char* format, va_list ap)
 	    }
 	    if (!l->trailUsed && l->prfx) {
 		/* some prefix to be put into trail */
-		l->trailUsed = sprintf(l->trail, "%s", l->prfx);
+		res = sprintf(l->trail, "%s", l->prfx);
+		if (res >= 0) {
+		    l->trailUsed = (size_t)res;
+		}
 	    }
-	    l->trailUsed += sprintf(l->trail + l->trailUsed, "%s", c);
+	    res = sprintf(l->trail + l->trailUsed, "%s", c);
+	    if (res >= 0) {
+		l->trailUsed += (size_t)res;
+	    }
 	}
 
 	c = r;
@@ -346,12 +359,16 @@ void logger_warn(logger_t* logger, int32_t key, int eno,
 {
     char* errstr = strerror(eno);
     va_list ap;
-    size_t len;
+    size_t len = 0;
+    int res;
 
     if (!logger || ((key != -1) && !(logger->mask & key))) return;
 
-    len = snprintf(logger->fmt, logger->fmtSize,
+    res = snprintf(logger->fmt, logger->fmtSize,
 		   "%s: %s\n", format, errstr ? errstr : "UNKNOWN");
+    if (res >= 0) {
+	len = (size_t)res;
+    }
     if (len >= logger->fmtSize) {
 	logger->fmtSize = len + 80; /* Some extra space */
 	logger->fmt = (char*)realloc(logger->fmt, logger->fmtSize);
@@ -385,7 +402,7 @@ void logger_write(logger_t* logger, int32_t key, const char *buf, size_t count)
 		    do_panic(logger, "%s: %s", __func__, strerror(errno));
 		}
 	    } else {
-		n+=i;
+		n += (size_t)i;
 	    }
 	}
     }
@@ -395,12 +412,16 @@ void logger_exit(logger_t* logger, int eno, const char* format, ...)
 {
     char* errstr = strerror(eno);
     va_list ap;
-    size_t len;
+    size_t len = 0;
+    int res;
 
     if (!logger) exit(-1);
 
-    len = snprintf(logger->fmt, logger->fmtSize,
+    res = snprintf(logger->fmt, logger->fmtSize,
 		   "%s: %s\n", format, errstr ? errstr : "UNKNOWN");
+    if (res >= 0) {
+	len = (size_t)res;
+    }
     if (len >= logger->fmtSize) {
 	logger->fmtSize = len + 80; /* Some extra space */
 	logger->fmt = (char*)realloc(logger->fmt, logger->fmtSize);

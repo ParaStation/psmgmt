@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -21,21 +21,38 @@
 #include <errno.h>
 #include <stdbool.h>
 
-#include "pluginpartition.h"
-#include "psidtask.h"
-#include "pluginmalloc.h"
-#include "pluginhelper.h"
-#include "list.h"
-#include "psaccounthandles.h"
-
-#include "psmom.h"
 #include "psmomjob.h"
 #include "psmomlog.h"
+#include "psmom.h"
+#include "pscommon.h"
+#include "psidtask.h"
+#include "psidcomm.h"
+#include "psidstatus.h"
+#include "psidnodes.h"
+#include "psidpartition.h"
+#include "psdaemonprotocol.h"
+#include "psmompsaccfunc.h"
 #include "psmomjobinfo.h"
+
 #include "psmompscomm.h"
 #include "psmomconfig.h"
+#include "pluginmalloc.h"
+
+#include "pstask.h"
+#include "list.h"
 
 #include "psmompartition.h"
+
+int isPSAdminUser(uid_t uid, gid_t gid)
+{
+    if (!PSIDnodes_testGUID(PSC_getMyID(), PSIDNODES_ADMUSER,
+		(PSIDnodes_guid_t){.u=uid})
+	    && !PSIDnodes_testGUID(PSC_getMyID(), PSIDNODES_ADMGROUP,
+		(PSIDnodes_guid_t){.g=gid})) {
+	return 0;
+    }
+    return 1;
+}
 
 /**
  * @brief Test if a pid belongs to a local running job.
@@ -77,97 +94,111 @@ static Job_t *findJobforPID(pid_t pid)
 
 void handlePSSpawnReq(DDTypedBufferMsg_t *msg)
 {
-    static int injectedEnv = 0;
     PStask_t *task;
-    Job_t *job;
-    JobInfo_t *jinfo;
-    char *next, *jobid = NULL, *jobcookie = NULL;
-    size_t left, len = 0;
-    pid_t logger;
+
+    if (!msg || !oldSpawnReqHandler) return;
 
     /* don't mess with messages from other nodes */
-    if (PSC_getID(msg->header.sender) != PSC_getMyID()) {
-	if (oldSpawnReqHandler) oldSpawnReqHandler((DDBufferMsg_t *)msg);
-	return;
+    if (PSC_getID(msg->header.sender) != PSC_getMyID()) goto done;
+
+    task = PStasklist_find(&managedTasks, msg->header.sender);
+
+    if (!task) {
+	mlog("%s: task %s not found\n", __func__,
+	     PSC_printTID(msg->header.sender));
+	goto done;
     }
 
-    if (msg->type == PSP_SPAWN_ARG) {
-	if (!injectedEnv) {
+    if (msg->type == PSP_SPAWN_END) {
+	DDTypedBufferMsg_t envMsg = (DDTypedBufferMsg_t) {
+	    .header = (DDMsg_t) {
+		.type = msg->header.type,
+		.dest = msg->header.dest,
+		.sender = msg->header.sender,
+		.len = sizeof(envMsg.header) + sizeof(envMsg.type) },
+	    .type = PSP_SPAWN_ENV};
 
-	    /* forward original msg */
-	    oldSpawnReqHandler((DDBufferMsg_t *) msg);
+	Job_t *job;
+	JobInfo_t *jinfo;
+	char *next, *jobid = NULL, *jobcookie = NULL;
+	size_t left, len = 0;
+	pid_t logger = PSC_getPID(task->loggertid);
 
-	    /* find the job */
-	    if (!(task = PStasklist_find(&managedTasks, msg->header.sender))) {
-		mlog("%s: task '%s' not found\n", __func__,
-		    PSC_printTID(msg->header.sender));
-		return;
+	/* the logger can be located on our node or on a different node
+	 * if the spawner was shifted.
+	 */
+	if ((job = findJobByLogger(logger))) {
+	    jobid = job->id;
+	    jobcookie = job->cookie;
+	} else if ((job = findJobforPID(logger))) {
+	    if (job->mpiexec == -1) {
+		job->mpiexec = task->loggertid;
+
+		/* forward info to all nodes */
+		sendJobUpdate(job);
 	    }
-
-	    logger = PSC_getPID(task->loggertid);
-
-	    /* the logger can be located on our node or on a different node
-	     * if the spawner was shifted.
-	     */
-	    if ((job = findJobByLogger(logger))) {
-		jobid = job->id;
-		jobcookie = job->cookie;
-	    } else if ((job = findJobforPID(logger))) {
-		if (job->mpiexec == -1) {
-		    job->mpiexec = task->loggertid;
-
-		    /* forward info to all nodes */
-		    sendJobUpdate(job);
-		}
-		jobid = job->id;
-		jobcookie = job->cookie;
-	    } else if ((jinfo = findJobInfoByLogger(task->loggertid))) {
-		jobid = jinfo->id;
-		jobcookie = jinfo->cookie;
-	    }
-
-	    if (!jobid || !jobcookie) return;
-
-	    /* send additional environment variables */
-	    msg->type = PSP_SPAWN_ENV;
-	    msg->header.len = sizeof(msg->header) + sizeof(msg->type);
-	    memset(msg->buf, 0, BufTypedMsgSize);
-	    left = BufTypedMsgSize;
-
-	    len = snprintf(msg->buf, left, "PBS_JOBCOOKIE=%s", jobcookie);
-	    next = msg->buf + len + 1;
-	    msg->header.len += len +1;
-	    left -= len +1;
-
-	    len = snprintf(next, left, "PBS_JOBID=%s", jobid);
-	    //next += len + 1;
-	    msg->header.len += len +1;
-	    //left -= len +1;
-
-	    /* end of encoding */
-	    msg->header.len++;
-
-	    /* send altered message */
-	    oldSpawnReqHandler((DDBufferMsg_t *) msg);
-	    injectedEnv = 1;
-	    return;
+	    jobid = job->id;
+	    jobcookie = job->cookie;
+	} else if ((jinfo = findJobInfoByLogger(task->loggertid))) {
+	    jobid = jinfo->id;
+	    jobcookie = jinfo->cookie;
 	}
-    } else if (msg->type == PSP_SPAWN_END) {
-	injectedEnv = 0;
+
+	if (!jobid || !jobcookie) goto done;
+
+	/* send additional environment variables */
+	memset(envMsg.buf, 0, BufTypedMsgSize);
+	left = BufTypedMsgSize;
+
+	len = snprintf(envMsg.buf, left, "PBS_JOBCOOKIE=%s", jobcookie);
+	next = envMsg.buf + len + 1;
+	envMsg.header.len += len +1;
+	left -= len +1;
+
+	len = snprintf(next, left, "PBS_JOBID=%s", jobid);
+	//next += len + 1;
+	envMsg.header.len += len +1;
+	//left -= len +1;
+
+	/* end of encoding */
+	envMsg.header.len++;
+
+	/* send additional message */
+	oldSpawnReqHandler((DDBufferMsg_t *) &envMsg);
     }
 
-    /* call old message handler */
-    if (oldSpawnReqHandler) oldSpawnReqHandler((DDBufferMsg_t *)msg);
+done:
+    /* call old message handler to forward the original message */
+    oldSpawnReqHandler((DDBufferMsg_t *)msg);
+}
+
+static void partitionDone(PStask_t *task)
+{
+    DDTypedMsg_t msg = (DDTypedMsg_t) {
+	.header = (DDMsg_t) {
+	    .type = PSP_CD_PARTITIONRES,
+	    .dest = task ? task->tid : 0,
+	    .sender = PSC_getMyTID(),
+	    .len = sizeof(msg) },
+	.type = 0};
+
+    if (!task || !task->request) return;
+
+    /* Cleanup the actual request not required any longer */
+    PSpart_delReq(task->request);
+    task->request = NULL;
+
+    /* Send result to requester */
+    sendMsg(&msg);
 }
 
 int handleCreatePart(void *msg)
 {
+    PStask_t *task;
+    DDBufferMsg_t *inmsg = msg;
     Job_t *job = NULL;
-    PSnodes_ID_t *nodes = NULL;
-    DDBufferMsg_t *inmsg = (DDBufferMsg_t *) msg;
     pid_t mPid;
-    int32_t i;
-    int enforceBatch, ret;
+    int enforceBatch;
 
     mPid = PSC_getPID(inmsg->header.sender);
 
@@ -183,19 +214,60 @@ int handleCreatePart(void *msg)
     getConfParamI("ENFORCE_BATCH_START", &enforceBatch);
     if (!enforceBatch) return 1;
 
-    if (job) {
-	/* overwrite the nodelist */
-	nodes = umalloc(sizeof(PSnodes_ID_t) * job->nrOfUniqueNodes);
-	for (i=0; i<job->nrOfUniqueNodes; i++) {
-	    nodes[i] = job->nodes->id;
-	}
-	ret = injectNodelist(inmsg, job->nrOfUniqueNodes, nodes);
-    } else {
-	ret = injectNodelist(inmsg, 0, NULL);
+    /* find task */
+    if (!(task = PStasklist_find(&managedTasks, inmsg->header.sender))) {
+	mlog("%s: task for msg from '%s' not found\n", __func__,
+	    PSC_printTID(inmsg->header.sender));
+	errno = EACCES;
+	goto error;
     }
 
-    ufree(nodes);
-    return ret;
+    /* admin user can always pass */
+    if ((isPSAdminUser(task->uid, task->gid))) return 1;
+
+    if (!job || job->mpiexec == -1) {
+	/* we did not find the corresponding batch job */
+	mlog("%s: denying access to mpiexec for non admin user with uid '%i'\n",
+		__func__, task->uid);
+
+	errno = EACCES;
+	goto error;
+    }
+
+    if (!job->resDelegate) {
+	mdbg(-1, "%s: No delegate found for job '%s'\n", __func__, job->id);
+	errno = EACCES;
+	goto error;
+    }
+
+    mdbg(PSMOM_LOG_VERBOSE, "%s: delegate has tid %s\n", __func__,
+	 PSC_printTID(job->resDelegate->tid));
+
+    task->delegate = job->resDelegate;
+    task->usedThreads = 0;
+    task->options = task->request->options & ~PART_OPT_EXACT;
+
+    if (!task->request->num) partitionDone(task);
+
+    return 0;
+
+error:
+    {
+	if (task && task->request) {
+	    PSpart_delReq(task->request);
+	    task->request = NULL;
+	}
+	DDTypedMsg_t errmsg = (DDTypedMsg_t) {
+	    .header = (DDMsg_t) {
+		.type = PSP_CD_PARTITIONRES,
+		.dest = inmsg->header.sender,
+		.sender = PSC_getMyTID(),
+		.len = sizeof(errmsg) },
+	    .type = errno};
+	sendMsg(&errmsg);
+
+	return 0;
+    }
 }
 
 int handleCreatePartNL(void *msg)
@@ -204,9 +276,15 @@ int handleCreatePartNL(void *msg)
     PStask_t *task;
     DDBufferMsg_t *inmsg = (DDBufferMsg_t *) msg;
 
-    /* everyone is allowed to start, nothing to do for us here */
     getConfParamI("ENFORCE_BATCH_START", &enforceBatch);
+
+    /* everyone is allowed to start, nothing to do for us here */
     if (!enforceBatch) return 1;
+
+    if (!msg) {
+	mlog("%s: no msg\n", __func__);
+	return 1;
+    }
 
     /* find task */
     if (!(task = PStasklist_find(&managedTasks, inmsg->header.sender))) {
@@ -219,23 +297,22 @@ int handleCreatePartNL(void *msg)
     /* admin user can always pass */
     if ((isPSAdminUser(task->uid, task->gid))) return 1;
 
-    /* for batch users we send the nodelist before */
+    task->request->numGot += *(int16_t *)inmsg->buf;
+
+    if (task->request->numGot == task->request->num) partitionDone(task);
+
+    /* for batch users we don't have to sent the node-list */
     return 0;
 
-    error:
+error:
     {
-	if (task && task->request) {
-	    PSpart_delReq(task->request);
-	    task->request = NULL;
-	}
-	mwarn(errno, "%s: sendMsg() : ", __func__);
 	DDTypedMsg_t msg = (DDTypedMsg_t) {
 	    .header = (DDMsg_t) {
-		    .type = PSP_CD_PARTITIONRES,
-		    .dest = inmsg->header.sender,
-		    .sender = PSC_getMyTID(),
-		    .len = sizeof(msg)},
-		.type = errno};
+		.type = PSP_CD_PARTITIONRES,
+		.dest = inmsg->header.sender,
+		.sender = PSC_getMyTID(),
+		.len = sizeof(msg)},
+	    .type = errno};
 	sendMsg(&msg);
 
 	return 0;

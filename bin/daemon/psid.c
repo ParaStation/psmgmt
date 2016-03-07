@@ -245,7 +245,7 @@ static int handleSIGCHLD(int fd, void *info)
 
 	/* I'll just report it to the logfile */
 	PSID_log(logClass,
-		 "Received SIGCHLD for pid %d (0x%06x) with status %d",
+		 "Received SIGCHLD for pid %d (%#04x) with status %d",
 		 pid, pid, WEXITSTATUS(estatus));
 	if (WIFSIGNALED(estatus)) {
 	    PSID_log(logClass, " after signal %d", WTERMSIG(estatus));

@@ -51,7 +51,7 @@ static KVS_t *kvs;
  *
  * @return No return value.
  */
-static void growKVS()
+static void growKVS(void)
 {
     int i, oldSize = maxKVS;
 
@@ -102,7 +102,7 @@ static KVS_t *getKvsByname(char *name)
  *
  * @return No return value.
  */
-static void initKVS()
+static void initKVS(void)
 {
     char tmp[100];
 

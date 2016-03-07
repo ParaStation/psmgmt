@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2007-2010 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2007-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -144,7 +144,7 @@ static void *umalloc(size_t size, const char *func)
  *
  * @return No return value.
  */
-static void dumpGlobalBuffer()
+static void dumpGlobalBuffer(void)
 {
     struct list_head *npos;
     bMessages *nval;
@@ -173,7 +173,7 @@ static void dumpGlobalBuffer()
  *
  * @return No return value.
  */
-static void dumpClientBuffer()
+static void dumpClientBuffer(void)
 {
     struct list_head *npos;
     OutputBuffers *nval;
@@ -816,7 +816,7 @@ static void insertOutputBuffer(int sender, char *buf, size_t len, int outfd)
  *
  * @return No return value.
  */
-static void moveTmpToClientBuf()
+static void moveTmpToClientBuf(void)
 {
     TempBuffers *tmpBuf;
     int i,z;
