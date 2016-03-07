@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2013 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -77,14 +77,21 @@ int env_setIdx(env_fields_t *env, const char *name, const char *val, int *idx)
     env_unset(env, name);
 
     tmp = (char *)malloc(strlen(name) + 1 + strlen(val) + 1);
+    if (!tmp) return -1;
     tmp[0] = 0;
     strcpy(tmp, name);
     strcat(tmp, "=");
     strcat(tmp, val);
 
     if (env->size < env->cnt + 2) {
+	char **bak = env->vars;
 	env->size += 5;
-	env->vars = (char **)realloc(env->vars, env->size * sizeof(char *));
+	env->vars = realloc(env->vars, env->size * sizeof(char *));
+	if (!env->vars) {
+	    env->vars = bak;
+	    free(tmp);
+	    return -1;
+	}
     }
     *idx = env->cnt;
     env->vars[env->cnt] = tmp;
