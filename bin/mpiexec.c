@@ -234,6 +234,7 @@ static void *umalloc(size_t size, const char *func)
 {
     void *ptr;
 
+    if (!size) return NULL;
     if (!(ptr = malloc(size))) {
 	fprintf(stderr, "%s: memory allocation failed\n", func);
 	exit(EXIT_FAILURE);
@@ -710,7 +711,7 @@ static void createSpawner(int argc, char *argv[], int np, int admin)
 	if ((getenv("SERVICE_KVS_PROVIDER"))) {
 	    printf("KVS process %s started\n", PSC_printTID(myTID));
 	} else {
-	    printf("service process %s started\n",  PSC_printTID(myTID));
+	    printf("spawner process %s started\n",  PSC_printTID(myTID));
 	}
     }
     return;
@@ -1016,6 +1017,9 @@ static void setupCommonEnv(int np)
     unsetPSIEnv("PSI_LOOP_NODES_FIRST");
     unsetPSIEnv("PSI_OPENMPI");
 
+    unsetPSIEnv("__PSI_LOGGER_TID");
+    unsetPSIEnv("__PMI_PROVIDER_FD");
+
     if (pmienabletcp || pmienablesockp ) {
 	char *mapping;
 
@@ -1170,7 +1174,6 @@ static char ** setupRankEnv(int psRank)
     snprintf(buf, sizeof(buf), "MPI_LOCALNRANKS=%i",
 	    numProcPerNode[jobLocalNodeIDs[rank]]);
     env[cur++] = strdup(buf);
-
 
     /* setup OpenMPI support */
     if (OpenMPI) {
@@ -3204,6 +3207,8 @@ int main(int argc, char *argv[], char** envp)
 {
     char *envstr;
     int ret;
+
+    setlinebuf(stdout);
 
     /* set sighandlers */
     setSigHandlers();
