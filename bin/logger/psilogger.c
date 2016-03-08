@@ -51,60 +51,32 @@ static char vcid[] __attribute__((used)) =
 #include "psilogger.h"
 #include "timer.h"
 
-/**
- * Shall source and length of each message be displayed ?  (1=Yes, 0=No)
- *
- * Set in main() to 1 if environment variable PSI_SOURCEPRINTF is defined.
- */
-static int prependSource = 0;
-
-/**
- * Shall output lines of different ranks be merged ?  (1=Yes, 0=No)
- *
- * Set in main() to 1 if environment variable PSI_MERGEOUTPUT is defined.
- */
-static int mergeOutput = 0;
-
-/**
- * Shall output lines be scanned for Valgrind PID patterns?  (1=Yes, 0=No)
- *
- * Set in main() to 1 if environment variable PSI_USE_VALGRIND is defined.
- */
-int useValgrind = 0;
-
-static int rawIO = 0;
-
-/**
- * Parse STDIN for special commands changing the input destination.
- *
- * Set in main() to 1 if environment variable PSI_ENABLE_GDB is defined.
- */
-int enableGDB = 0;
-
-/**
- * Maximum/Current number of processes in this job.
- */
 int usize = 0;
+
 int np = 0;
 
-/**
- * Maximum number of service-processes in this job.
- */
+bool enableGDB = false;
+
+bool useValgrind = false;
+
+/** Scan output for Valgrind PID patterns?  Set from PSI_USE_VALGRIND */
+static int rawIO = false;
+
+/** Display source and length of each message? Set from PSI_SOURCEPRINTF */
+static bool prependSource = false;
+
+/** Merge output lines of different ranks?  Set from PSI_MERGEOUTPUT */
+static bool mergeOutput = false;
+
+/** Maximum number of service-processes in this job. */
 static int numService = 0;
 
-/**
- * Verbosity of Forwarders (1=Yes, 0=No)
- *
- * Set in main() to 1 if environment variable PSI_FORWARDERDEBUG is defined.
- */
-static int forw_verbose = 0;
+/** Verbosity of Forwarders. Set from PSI_FORWARDERDEBUG */
+static bool forw_verbose = false;
 
 /**
- * Shall we display usage info (1=Yes, 0=No)
- *
- * Set in main() to 1 if environment variable PSI_USAGE is defined.
- */
-static int showUsage = 0;
+ * Flag display of usage info. Set from PSI_USAGE */
+static bool showUsage = false;
 
 /** Number of maximum connected forwarders during runtime */
 static int maxConnected = 0;
@@ -122,7 +94,7 @@ static int maxTimeID = -1;
 static int retVal = 0;
 
 /** Flag marking a client got signaled */
-static int signaled = 0;
+static bool signaled = false;
 
 logger_t *PSIlog_stdoutLogger = NULL;
 logger_t *PSIlog_stderrLogger = NULL;
@@ -158,12 +130,12 @@ void PSIlog_setDebugMask(int32_t mask)
     logger_setMask(PSIlog_logger, mask);
 }
 
-char PSIlog_getTimeFlag(void)
+bool PSIlog_getTimeFlag(void)
 {
     return logger_getTimeFlag(PSIlog_logger);
 }
 
-void PSIlog_setTimeFlag(char flag)
+void PSIlog_setTimeFlag(bool flag)
 {
     logger_setTimeFlag(PSIlog_logger, flag);
     logger_setTimeFlag(PSIlog_stdoutLogger, flag);
@@ -199,7 +171,7 @@ static void closeDaemonSock(int fd)
     close(fd);
 }
 
-int GDBcmdEcho = 0;
+bool GDBcmdEcho = false;
 
 char GDBprompt[128];
 
@@ -247,7 +219,7 @@ static void readGDBInput(char *line)
 
     forwardInputStr(buf, len);
     /* Expect command's echo */
-    GDBcmdEcho = 1;
+    GDBcmdEcho = true;
     rl_set_prompt("");
 
     PSIlog_log(PSILOG_LOG_VERB, "%s: %zd bytes\n", __func__, len);
@@ -436,13 +408,13 @@ void terminateJob(void)
 static void sighandler(int sig)
 {
     int i;
-    static int firstTERM = 1;
+    static bool firstTERM = true;
 
     switch(sig) {
     case SIGTERM:
 	if (firstTERM) {
 	    PSIlog_log(PSILOG_LOG_VERB, "Got SIGTERM. Problem with child?\n");
-	    firstTERM = 0;
+	    firstTERM = false;
 	}
 	PSIlog_log(PSILOG_LOG_VERB, "%d clients. Open logs:", getNoClients());
 	for (i=getMinRank(); i<=getMaxRank(); i++) {
@@ -578,7 +550,7 @@ static void handleMaxTime(void)
 
 /* Raw mode handling. raw mode is needed for correct functioning of pssh */
 static struct termios _saved_tio;
-static int _in_raw_mode = 0;
+static bool _in_raw_mode = false;
 
 static void leaveRawMode(void)
 {
@@ -587,7 +559,7 @@ static void leaveRawMode(void)
 	PSIlog_warn(-1, errno, "%s: tcsetattr()", __func__);
     } else {
 	PSIlog_log(PSILOG_LOG_VERB, "Leaving raw-mode\n");
-	_in_raw_mode = 0;
+	_in_raw_mode = false;
     }
 }
 
@@ -620,7 +592,7 @@ static void enterRawMode(void)
     if (tcsetattr(STDIN_FILENO, TCSADRAIN, &termios) == -1) {
 	PSIlog_warn(-1, errno, "%s: tcsetattr()", __func__);
     } else
-	_in_raw_mode = 1;
+	_in_raw_mode = true;
 }
 
 /**
@@ -633,18 +605,19 @@ static void enterRawMode(void)
  *
  * @param msg INITIALIZE message used to contact the logger.
  *
- * @return On success, 1 is returned. On error, 0 is returned.
+ * @return On success, true is returned. On error, false is returned.
  */
-static int newrequest(PSLog_Msg_t *msg)
+static bool newrequest(PSLog_Msg_t *msg)
 {
     int rank = msg->sender;
     char *ptr = msg->buf;
     PStask_group_t group;
+    uint32_t verb = forw_verbose;
 
     group = *(PStask_group_t *) ptr;
     //ptr += sizeof(PStask_group_t);
 
-    if (!registerClient(rank, msg->header.sender, group)) return 0;
+    if (!registerClient(rank, msg->header.sender, group)) return false;
 
     if (enableGDB) {
 	snprintf(GDBprompt, sizeof(GDBprompt), "[%s]: (gdb) ", getDestStr(128));
@@ -663,10 +636,9 @@ static int newrequest(PSLog_Msg_t *msg)
     }
 
     /* send init answer */
-    sendMsg(msg->header.sender, INITIALIZE,
-	    (char *) &forw_verbose, sizeof(forw_verbose));
+    sendMsg(msg->header.sender, INITIALIZE, (char *) &verb, sizeof(verb));
 
-    return 1;
+    return true;
 }
 
 /**
@@ -758,7 +730,8 @@ static void handleUSAGEMsg(PSLog_Msg_t *msg)
  */
 static void handleOutMsg(PSLog_Msg_t *msg, int outfd)
 {
-    static int lastSender = lastSenderMagic, nlAtEnd = 1;
+    static int lastSender = lastSenderMagic;
+    static bool nlAtEnd = true;
     PSIlog_log(PSILOG_LOG_VERB, "Got %d bytes from %s\n",
 	       msg->header.len - PSLog_headerSize,
 	       PSC_printTID(msg->header.sender));
@@ -807,11 +780,11 @@ static void handleOutMsg(PSLog_Msg_t *msg, int outfd)
 		count -= nl - buf;
 		buf = nl;
 		lastSender = lastSenderMagic;
-		nlAtEnd = 1;
+		nlAtEnd = true;
 	    } else {
 		count = 0;
 		lastSender = msg->sender;
-		nlAtEnd = 0;
+		nlAtEnd = false;
 	    }
 	}
     } else {
@@ -840,10 +813,10 @@ static void handleOutMsg(PSLog_Msg_t *msg, int outfd)
 	}
 	if (msg->buf[msg->header.len-PSLog_headerSize-1] == '\n') {
 	    lastSender = lastSenderMagic;
-	    nlAtEnd = 1;
+	    nlAtEnd = true;
 	} else {
 	    lastSender = msg->sender;
-	    nlAtEnd = 0;
+	    nlAtEnd = false;
 	}
     }
 }
@@ -854,11 +827,11 @@ static void handleOutMsg(PSLog_Msg_t *msg, int outfd)
  * @param msg The received msg to handle.
  *
  * @return If service-process (with rank -2) has exited with
- * non-trivial status, 1 is returned. Otherwise 0 is returned.
+ * non-trivial status, true is returned. Otherwise false is returned.
  */
-static int handleFINALIZEMsg(PSLog_Msg_t *msg)
+static bool handleFINALIZEMsg(PSLog_Msg_t *msg)
 {
-    int ret = 0;
+    bool ret = false;
 
     if (msg->sender >= 0 && getNoClients()==1) leaveRawMode();
     if (getenv("PSI_SSH_COMPAT_HOST")) {
@@ -881,7 +854,7 @@ static int handleFINALIZEMsg(PSLog_Msg_t *msg)
 	    PSIlog_log(key, "Child with rank %d exited on signal %d",
 		       msg->sender, WTERMSIG(status));
 	    PSIlog_log(key, ": %s\n", sigStr ? sigStr : "Unknown signal");
-	    signaled = 1;
+	    signaled = true;
 	}
 
 	if (WIFEXITED(status)) {
@@ -889,7 +862,7 @@ static int handleFINALIZEMsg(PSLog_Msg_t *msg)
 	    if (exitStatus) {
 		int logLevel = -1;
 		if (msg->sender == -2) {
-		    ret = 1;
+		    ret = true;
 		    logLevel = PSILOG_LOG_VERB;
 		}
 		PSIlog_log(logLevel,
@@ -1027,7 +1000,7 @@ static int timeoutval = 0;
 
 static void handleCCMsg(PSLog_Msg_t *msg)
 {
-    static int stdinHandled = 0;
+    static bool stdinHandled = false;
     int outfd = STDOUT_FILENO;
 
     if (msg->type == INITIALIZE) {
@@ -1036,7 +1009,7 @@ static void handleCCMsg(PSLog_Msg_t *msg)
 	    if (allActiveThere() && !stdinHandled) {
 		Selector_register(STDIN_FILENO, readFromStdin, NULL);
 		/* If STDIN get's closed, don't re-add it to the selector */
-		stdinHandled = 1;
+		stdinHandled = true;
 	    }
 	}
     } else if (msg->sender > getMaxRank()) {
@@ -1137,16 +1110,12 @@ static int handleDebugMsg(int fd, void *info)
  *
  * This function is expected to be registered to the selector facility.
  *
- * This function will return 1 in order the make the calling Sselect()
- * function return. This enables the Selector to update the readfds
- * set of file-descriptors passed to the select().
- *
  * @param fd The file-descriptor from which the new connection might
  * be accepted.
  *
  * @param info Extra info. Currently ignored.
  *
- * @return On success 1 is returned. Otherwise -1 is returned and
+ * @return On success 0 is returned. Otherwise -1 is returned and
  * errno is set appropriately.
  */
 static int handleDebugSock(int fd, void *info)
@@ -1175,7 +1144,7 @@ static int handleDebugSock(int fd, void *info)
 	return -1;
     }
 
-    return 1; /* return 1 to allow main-loop updating readfds */
+    return 0;
 }
 
 #define debugSockName "psilogger_%d.sock"
@@ -1290,20 +1259,16 @@ static void enableDaemonSock(int fd)
  */
 static void loop(void)
 {
-    struct timeval mytv={1,0};
-
     timeoutval = 0;
 
     /*
      * Loop until there is no connection left. Pay attention to the startup
-     * phase, while no connection exists. Thus wait at least 10 * mytv.
+     * phase, while no connection exists. Wait at least MIN_WAIT * 1000 msec.
      */
     while (getNoClients() > 0 || timeoutval < MIN_WAIT) {
-	struct timeval atv = mytv;
+	if (mergeOutput && usize > 1) displayCachedOutput(false);
 
-	if (mergeOutput && usize > 1) displayCachedOutput(0);
-
-	if (Sselect(0, NULL, NULL, NULL, &atv) < 0) {
+	if (Swait(1000 /* msec */) < 0) {
 	    if (errno == EINTR) {
 		/* Interrupted syscall, just start again */
 		continue;
@@ -1314,9 +1279,9 @@ static void loop(void)
 	if (!getNoClients()) timeoutval++;
     }
     if (mergeOutput && usize > 1) {
-	displayCachedOutput(0);
+	displayCachedOutput(false);
 	/* flush output */
-	displayCachedOutput(1);
+	displayCachedOutput(true);
     }
     if (!getenv("PSI_NOMSGLOGGERDONE")) {
 	PSIlog_stderr(-1, "\n");
@@ -1350,8 +1315,7 @@ static void loop(void)
  * -# The local ParaStation ID.
  *
  * All further arguments will be executed via system() calls.
- *
- * @return Always returns 0.  */
+ */
 int main( int argc, char**argv)
 {
     char *envstr, *end, *input;
@@ -1429,17 +1393,17 @@ int main( int argc, char**argv)
     }
 
     if (getenv("PSI_FORWARDERDEBUG")) {
-	forw_verbose=1;
+	forw_verbose=true;
 	PSIlog_log(PSILOG_LOG_VERB, "Forwarders will be verbose, too.\n");
     }
 
     if (getenv("PSI_TIMESTAMPS")) {
 	PSIlog_log(PSILOG_LOG_VERB, "Print detailed time-marks.\n");
-	PSIlog_setTimeFlag(1);
+	PSIlog_setTimeFlag(true);
     }
 
     if (getenv("PSI_SOURCEPRINTF")) {
-	prependSource = 1;
+	prependSource = true;
 	PSIlog_log(PSILOG_LOG_VERB, "Will print source-info.\n");
     }
 
@@ -1469,7 +1433,7 @@ int main( int argc, char**argv)
     setupDestList(input);
 
     if (getenv("PSI_ENABLE_GDB")) {
-	enableGDB = 1;
+	enableGDB = true;
 	rl_callback_handler_install(NULL, (rl_vcpfunc_t*)readGDBInput);
 	PSIlog_log(PSILOG_LOG_VERB, "Enabling gdb functions.\n");
 	snprintf(GDBprompt, sizeof(GDBprompt), "[%s]: (gdb) ", getDestStr(128));
@@ -1478,24 +1442,24 @@ int main( int argc, char**argv)
 
     initClients(-2, np ? np-1 : 0);
     if (getenv("PSI_MERGEOUTPUT")) {
-	mergeOutput = 1;
+	mergeOutput = true;
 	PSIlog_log(PSILOG_LOG_VERB, "Will merge the output of all ranks.\n");
 	outputMergeInit();
     }
 
     if (getenv("PSI_USE_VALGRIND")) {
-	useValgrind = 1;
+	useValgrind = true;
 	PSIlog_log(PSILOG_LOG_VERB, "Running on Valgrind cores.\n");
     }
 
     if (getenv("PSI_RUSAGE")) {
-	showUsage=1;
+	showUsage = true;
 	PSIlog_log(PSILOG_LOG_VERB, "Going to show resource usage.\n");
     }
 
     if (getenv("__PSI_RAW_IO")) {
 	PSIlog_log(PSILOG_LOG_VERB, "Using raw IO\n");
-	rawIO = 1;
+	rawIO = true;
 
 	if (prependSource) {
 	    PSIlog_log(-1, "Option clash between 'prepend source' and"

@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2009-2014 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2009-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -95,16 +95,15 @@ static int offsetServiceRank = 0;
 int getNextServiceRank(void)
 {
      int ret;
-     
+
      /* return next free (and unique!) service rank: */
      ret = minRank - offsetServiceRank;
 
      /* keep returned/assigned service ranks unique: */
-     offsetServiceRank += 2; /* one for service process plus one for KVS provider */
+     offsetServiceRank += 2; /* service process plus KVS provider */
 
      return ret;
 }
-
 
 int getMaxRank(void)
 {
@@ -167,7 +166,7 @@ static inline void remClnt(int rank)
     clients[rank].flags &= ~CLIENT_ACTIVE;
 }
 
-int clientIsActive(int rank)
+bool clientIsActive(int rank)
 {
     if (!clients) {
 	PSIlog_log(-1, "%s: Not initialized", __func__);
@@ -175,12 +174,12 @@ int clientIsActive(int rank)
 	exit(1);
     }
 
-    if (rank < minRank || rank > maxRank) return 0;
+    if (rank < minRank || rank > maxRank) return false;
 
-    return clients[rank].flags & CLIENT_ACTIVE;
+    return !!(clients[rank].flags & CLIENT_ACTIVE);
 }
 
-int clientIsGone(int rank)
+bool clientIsGone(int rank)
 {
     if (!clients) {
 	PSIlog_log(-1, "%s: Not initialized", __func__);
@@ -188,9 +187,9 @@ int clientIsGone(int rank)
 	exit(1);
     }
 
-    if (rank < minRank || rank > maxRank) return 0;
+    if (rank < minRank || rank > maxRank) return false;
 
-    return clients[rank].flags & CLIENT_GONE;
+    return !!(clients[rank].flags & CLIENT_GONE);
 }
 
 /**
@@ -202,10 +201,10 @@ int clientIsGone(int rank)
  *
  * @param rank Rank of the client to be tested.
  *
- * @return If the client is marked as stopped, a value different from
- * 0 is returned. Otherwise 0 is returned.
+ * @return If the client is marked as stopped, this function returns
+ * true. Otherwise false is returned.
  */
-static int clientIsStopped(int rank)
+static bool clientIsStopped(int rank)
 {
     if (!clients) {
 	PSIlog_log(-1, "%s: Not initialized", __func__);
@@ -213,12 +212,12 @@ static int clientIsStopped(int rank)
 	exit(1);
     }
 
-    if (rank < minRank || rank > maxRank) return 0;
+    if (rank < minRank || rank > maxRank) return false;
 
-    return clients[rank].flags & CLIENT_STOPPED;
+    return !!(clients[rank].flags & CLIENT_STOPPED);
 }
 
-int allActiveThere(void)
+bool allActiveThere(void)
 {
     return (nRecvClnts == nActvClnts);
 }
@@ -304,7 +303,7 @@ void initClients(int minClientRank, int maxClientRank)
     nTaskClnts = 0;
 }
 
-int registerClient(int rank, PStask_ID_t tid, PStask_group_t group)
+bool registerClient(int rank, PStask_ID_t tid, PStask_group_t group)
 {
     int oldMaxRank = maxRank;
 
@@ -350,7 +349,7 @@ int registerClient(int rank, PStask_ID_t tid, PStask_group_t group)
 		       PSC_printTID(clients[rank].tid), rank);
 	    PSIlog_log(-1, " connects as %s.\n", PSC_printTID(tid));
 	}
-	return 0;
+	return false;
     }
 
     clients[rank].tid = tid;
@@ -366,7 +365,7 @@ int registerClient(int rank, PStask_ID_t tid, PStask_group_t group)
     PSIlog_log(PSILOG_LOG_VERB, "%s: new connection from %s (%d)\n", __func__,
 	       PSC_printTID(tid), rank);
 
-    return 1;
+    return true;
 }
 
 void deregisterClient(int rank)
@@ -392,9 +391,8 @@ void deregisterClient(int rank)
     clients[rank].flags |= CLIENT_GONE;
 
     if (rank > -1) {
-	if ((--nTaskClnts) == 0) {
-	    /* the last regular child left us,
-	     * tell all service processes to exit */
+	if (!(--nTaskClnts)) {
+	    /* last regular child left -> tell all service processes to exit */
 	    for (i=minRank; i<0; i++) {
 		if (clients[i].tid != -1 && clients[i].group == TG_KVS
 		    && !(clients[i].flags & CLIENT_REL)) {
@@ -457,7 +455,7 @@ void handleCONTMsg(PSLog_Msg_t *msg)
     clients[rank].flags &= ~CLIENT_STOPPED;
 }
 
-static int daemonCommStopped = 0;
+static bool daemonCommStopped = false;
 
 void handleSENDSTOP(DDMsg_t *msg)
 {
@@ -470,7 +468,7 @@ void handleSENDSTOP(DDMsg_t *msg)
 	}
 	nActvSTOPs++;
     }
-    daemonCommStopped = 1;
+    daemonCommStopped = true;
 }
 
 void handleSENDCONT(DDMsg_t *msg)
@@ -484,7 +482,7 @@ void handleSENDCONT(DDMsg_t *msg)
 	    PSIlog_log(PSILOG_LOG_VERB, "forward input continues\n");
 	}
     }
-    daemonCommStopped = 0;
+    daemonCommStopped = false;
 }
 
 /**
