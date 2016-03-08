@@ -208,6 +208,7 @@ again:
  *
  * @return Never returns.
  */
+__attribute__ ((noreturn))
 static void terminateJob(const char *func)
 {
     if (verbose) {
@@ -247,7 +248,6 @@ static void initKVS(void)
     if (!(clients = malloc(sizeof(*clients) * maxClients))) {
 	mwarn(errno, "%s", __func__);
 	terminateJob(__func__);
-	exit(0);
     }
 
     for (i=0; i<maxClients; i++) {
@@ -262,7 +262,6 @@ static void initKVS(void)
     if (!(kvsUpdateIndex = malloc(sizeof(*kvsUpdateIndex) * kvsIndexSize))) {
 	mwarn(errno, "%s", __func__);
 	terminateJob(__func__);
-	exit(0);
     }
 
     for (i=0; i<kvsIndexSize; i++) {
@@ -466,7 +465,6 @@ static void sendKvsUpdateToClients(int finish)
 		mlog("%s: invalid KVS index valup '%i' kvsvalcount '%i'\n",
 			__func__, valup, kvsvalcount);
 		terminateJob(__func__);
-		return;
 	    }
 	    snprintf(nextval, sizeof(nextval), " %s", valPtr);
 
@@ -656,7 +654,6 @@ static void handleKVS_Update_Cache_Finish(PSLog_Msg_t *msg, char *ptr)
 	mlog("%s: invalid update index %i from %s\n",
 		   __func__, updateIndex, PSC_printTID(msg->header.sender));
 	terminateJob(__func__);
-	return;
     }
 
     /* check if clients got all the updates */
@@ -664,7 +661,6 @@ static void handleKVS_Update_Cache_Finish(PSLog_Msg_t *msg, char *ptr)
 	mlog("%s: clients did not get all KVS update msgs %i : %i\n",
 		   __func__, mc, kvsUpdateTrack[updateIndex]);
 	terminateJob(__func__);
-	return;
     }
     kvsUpdateTrack[updateIndex] = 0;
 
@@ -682,7 +678,6 @@ static void handleKVS_Update_Cache_Finish(PSLog_Msg_t *msg, char *ptr)
 	mlog("%s: update from wrong rank %i on %s\n", __func__,
 		msg->sender, PSC_printTID(msg->header.sender));
 	terminateJob(__func__);
-	return;
     }
 }
 
@@ -834,13 +829,10 @@ static void handleKVS_Join(PSLog_Msg_t *msg, char *ptr)
 	mlog("%s: got invalid default KVS name '%s' from rank '%i'\n", __func__,
 		client_kvs, rank);
 	terminateJob(__func__);
-	return;
     }
     if ((rRank = getKVSInt32(&ptr)) != rank) {
 	mlog("%s: mismatching ranks '%i' - '%i'.\n", __func__, rank, rRank);
 	terminateJob(__func__);
-	return;
-
     }
     pmiRank = getKVSInt32(&ptr);
 
@@ -966,7 +958,6 @@ static void handleKvsMsg(PSLog_Msg_t *msg)
 	mlog("%s: unsupported PSLog msg version '%i' from '%s'\n",
 		    __func__, msg->version, PSC_printTID(msg->header.sender));
 	terminateJob(__func__);
-	return;
     }
 
     ptr = msg->buf;
@@ -1047,7 +1038,6 @@ static int handlePSIMessage(int fd, void *data)
 	    mwarn(errno, "%s: PSI_recvMsg", __func__);
 	}
 	terminateJob(__func__);
-	return 0;
     }
 
     switch (msg.header.type) {
@@ -1064,9 +1054,7 @@ static int handlePSIMessage(int fd, void *data)
 		releaseMySelf(__func__);
 		exit(0);
 	    }
-
 	    terminateJob(__func__);
-	    break;
 	case PSP_CC_ERROR:
 	    if (msg.header.sender == loggertid) {
 		/* logger died, nothing left for me to do here */
@@ -1106,8 +1094,6 @@ static void sighandler(int sig)
     switch(sig) {
 	case SIGTERM:
 	    terminateJob(__func__);
-	    exit(0);
-	    break;
 	default:
 	    if (verbose) mlog("Got signal %d.\n", sig);
     }
@@ -1149,12 +1135,10 @@ static void initKvsProvider(void)
 	if ((maxClients = atoi(envstr)) < 1) {
 	    mlog("%s: PMI_SIZE '%i' is invalid\n", __func__, maxClients);
 	    terminateJob(__func__);
-	    return;
 	}
     } else {
 	mlog("%s: PMI_SIZE is not set.\n", __func__);
 	terminateJob(__func__);
-	return;
     }
     initKVS();
 
@@ -1206,7 +1190,6 @@ static void initKvsProvider(void)
     if ((daemonFD = PSI_getDaemonFD()) == -1) {
 	mlog("%s: Connection to local daemon is broken\n", __func__);
 	terminateJob(__func__);
-	return;
     }
     Selector_register(daemonFD, handlePSIMessage, NULL);
 
