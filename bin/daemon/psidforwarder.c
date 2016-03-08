@@ -15,6 +15,7 @@ static char vcid[] __attribute__((used)) =
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <string.h>
 #include <unistd.h>
 #include <ctype.h>
@@ -42,12 +43,8 @@ static char vcid[] __attribute__((used)) =
 #include "psidforwarder.h"
 
 static char tag[] = "PSID_forwarder";
-/**
- * Verbosity of Forwarder (1=Yes, 0=No)
- *
- * Set by connectLogger() on behalf of info from logger.
- */
-static int verbose = 0;
+/** Forwarder's verbosity. Set in connectLogger() on behalf of logger's info. */
+static bool verbose = false;
 
 /** The ParaStation task ID of the logger */
 static PStask_ID_t loggerTID = -1;
@@ -62,7 +59,7 @@ static int daemonSock = -1;
 static int openfds = 0;
 
 /** Flag for real SIGCHLD received */
-static int gotSIGCHLD = 0;
+static bool gotSIGCHLD = false;
 
 /** List of messages waiting to be sent */
 static LIST_HEAD(oldMsgs);
@@ -115,13 +112,13 @@ static void closeDaemonSock(void)
 static int sendMsg(PSLog_msg_t type, char *buf, size_t len)
 {
     int ret = 0;
-    static int first = 1;
+    static bool first = true;
 
     if (loggerTID < 0) {
 	if (first) {
 	    PSID_log(-1, "%s(%d): not connected\n", __func__, type);
 	    PSID_log(-1, "%s(%d): %s\n", __func__, type, buf);
-	    first = 0;
+	    first = false;
 	}
 	errno = EPIPE;
 
@@ -304,7 +301,7 @@ again:
 		errno = EPIPE;
 		ret = -1;
 	    } else {
-		/* the psmpi plugin can spawn children and therefore
+		/* the pspmi plugin may spawn children and therefore
 		 * we need to handle PSP_CC_ERROR for them  */
 		if ((PSIDhook_call(PSIDHOOK_FRWRD_CC_ERROR, msg)) == 1) {
 		    ret = 1;
@@ -458,7 +455,7 @@ again:
     } else {
 	char *ptr = msg.buf;
 
-	verbose = *(int *)ptr;
+	verbose = !!(*(int *)ptr);
 	ptr += sizeof(int);
 	PSID_log(PSID_LOG_SPAWN, "%s(%s): Connected\n", __func__,
 		 PSC_printTID(tid));
@@ -568,8 +565,7 @@ static int doWrite(PSLog_Msg_t *msg, int offset)
 	shutdown(stdinSock, SHUT_WR);
 	if (Selector_isRegistered(stdinSock)) Selector_vacateWrite(stdinSock);
 
-	/* temporary fix to prevent closing of the stdin socket if it is
-	 * also used for stdout or stderr */
+	/* Interactive jobs might use a single file-descriptor */
 	if (stdinSock != childTask->stdout_fd &&
 	    stdinSock != childTask->stderr_fd) {
 	    close(stdinSock);
@@ -764,11 +760,11 @@ static int readFromDaemon(int fd, void *data)
 				  __func__, msg.header.len - PSLog_headerSize);
 	    }
 	    if (childTask->stdin_fd < 0) {
-		static int first = 1;
+		static bool first = true;
 		if (first) {
 		    PSIDfwd_printMsgf(STDERR, "%s: %s: STDIN already closed\n",
 				      tag, __func__);
-		    first = 0;
+		    first = false;
 		}
 	    } else {
 		writeMsg(&msg);
@@ -1022,7 +1018,7 @@ static struct rusage childRUsage;
  * debugging stuff. This is mainly for internal use as testing and
  * debugging.
  *
- * - SIGUSR2 Rasise SIGSEGV in order to dump core
+ * - SIGUSR2 Raise SIGSEGV in order to dump core
  *
  * - SIGTERM Catch and forward to child
  *
@@ -1284,7 +1280,7 @@ again:
  *
  * @param info Dummy pointer to extra info. Ignored.
  *
- * @return Always returs 0
+ * @return Always return 0
  */
 static int handleSIGCHLD(int fd, void *info)
 {
@@ -1301,7 +1297,7 @@ static int handleSIGCHLD(int fd, void *info)
     if (childPID && !WIFSTOPPED(childStatus) && !WIFCONTINUED(childStatus)) {
 	if (verbose) PSIDfwd_printMsgf(STDERR, "%s: SIGCHLD for %d\n", tag,
 				       childPID);
-	gotSIGCHLD = 1;
+	gotSIGCHLD = true;
 
 	/* Get rid of now useless selector */
 	Selector_remove(fd);
@@ -1338,9 +1334,7 @@ static void initSignalFD(int sig, Selector_CB_t handler)
 static void waitForChildsDead(void)
 {
     while (!gotSIGCHLD) {
-	struct timeval timeout = {10, 0};
-
-	Sselect(0, NULL, NULL, NULL, &timeout);  /* sleep in Sselect */
+	Swait(10 * 1000);  /* sleep in Swait */
 
 	sendSignal(PSC_getPID(childTask->tid), SIGKILL);
     }
@@ -1403,15 +1397,15 @@ void PSID_forwarder(PStask_t *task, int daemonfd, int eno)
 	sendSpawnFailed(childTask, eno);
 	exit(1);
     } else {
-	if (sendChildBorn(childTask) != 0) waitForChildsDead();
+	if (sendChildBorn(childTask)) waitForChildsDead();
     }
 
-    /* Make stdin nonblocking for us */
+    /* Make stdin non-blocking for us */
     flags = fcntl(childTask->stdin_fd, F_GETFL);
     flags |= O_NONBLOCK;
     fcntl(childTask->stdin_fd, F_SETFL, flags);
 
-    if (connectLogger(childTask->loggertid) != 0) waitForChildsDead();
+    if (connectLogger(childTask->loggertid)) waitForChildsDead();
 
     /* Once the logger is connected, I/O forwarding is feasible */
     if (task->stdout_fd != -1) {
@@ -1448,9 +1442,9 @@ void PSID_forwarder(PStask_t *task, int daemonfd, int eno)
 
     /* Loop forever. We exit on SIGCHLD. */
     while (openfds || !gotSIGCHLD) {
-	if (Sselect(0, NULL, NULL, NULL, NULL) < 0) {
+	if (Swait(-1) < 0) {
 	    if (errno && errno != EINTR) {
-		PSIDfwd_printMsgf(STDERR, "%s: %s: error on Sselect(): %s\n",
+		PSIDfwd_printMsgf(STDERR, "%s: %s: error on Swait(): %s\n",
 				  tag, __func__, strerror(errno));
 	    }
 	}
