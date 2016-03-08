@@ -19,9 +19,9 @@ static char vcid[] __attribute__((used)) =
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <string.h>
 #include <unistd.h>
-#include <errno.h>
 #include <sys/time.h>
 #include <readline/readline.h>
 
@@ -109,10 +109,8 @@ static int maxMergeDepth = 200;
  */
 static int maxMergeWait = 2;
 
-/**
- * Enable debbuging messages.
- */
-static int db = 0;
+/** Enable debbuging messages. */
+static bool db = false;
 
 /**
  * @brief Malloc with error handling.
@@ -300,9 +298,9 @@ static void findEqualData(int ClientIdx, struct list_head *saveBuf[np],
 /**
  * @brief Delete a entry form the client buffer.
  *
- * Deletes a entry from the client buffer and reduces the
- * counter in the global buffer, or delete the entry from the
- * global buffer, if counter is 0.
+ * Delete an entry from the client buffer and reduce the counter in
+ * the global buffer, or delete the entry from the global buffer if
+ * counter is 0.
  *
  * @param nval The element of the client buffer to delete.
  *
@@ -314,7 +312,7 @@ static void delCachedMsg(OutputBuffers *nval, struct list_head *npos)
 {
     struct list_head *pos;
     bMessages *val;
-    int found = 0;
+    bool found = false;
     val = NULL;
     if (!list_empty(&messageCache.list)) {
 	list_for_each(pos, &messageCache.list) {
@@ -323,7 +321,7 @@ static void delCachedMsg(OutputBuffers *nval, struct list_head *npos)
 
 	    if (!val || !val->line) break;
 	    if (nval->line == val->line) {
-		found = 1;
+		found = true;
 		break;
 	    }
 	}
@@ -461,11 +459,11 @@ static void printLine(int outfd, char *line, int mcount, int start,
 	if (!strncmp(line, "(gdb)\r", 6)) {
 	    rl_set_prompt(GDBprompt);
 	    rl_forced_update_display();
-	    GDBcmdEcho = 0;
+	    GDBcmdEcho = false;
 	    return;
 	}
 	if (GDBcmdEcho) {
-	    GDBcmdEcho = 0;
+	    GDBcmdEcho = false;
 	    return;
 	}
     }
@@ -663,7 +661,7 @@ static void delCachedTmpMsg(char *tmpLine)
 {
     struct list_head *pos;
     bMessages *val;
-    int found = 0;
+    bool found = false;
     val = NULL;
 
     if (!list_empty(&msgTmpCache.list)) {
@@ -673,7 +671,7 @@ static void delCachedTmpMsg(char *tmpLine)
 
 	    if (!val || !val->line) break;
 	    if (val->line == tmpLine) {
-		found = 1;
+		found = true;
 		break;
 	    }
 	}
@@ -749,24 +747,22 @@ static void insertOutputBuffer(int sender, char *buf, size_t len, int outfd)
 
 
     /* Shall output lines be scanned for Valgrind PID patterns? */
-    if(useValgrind)
-    {
-	 /* Yes: replace every first occurrence of '==12345==' by '=========' */
-	 char *ptr1, *ptr2, *ptr3;
+    if (useValgrind) {
+	/* Yes: replace every first occurrence of '==12345==' by '=========' */
+	char *ptr1, *ptr2, *ptr3;
 
-	 ptr1 = strstr(savep, "==");
-	 if(ptr1) { 
-	      ptr2 = strstr(ptr1+2, "==");
-	      if(ptr2) {
-		   errno = 0;
-		   if( (strtol(ptr1+2, &ptr3, 10) != 0) && (ptr3 == ptr2) && (errno == 0) ) {		   
-			while(ptr1 != ptr2) {
-			     (*ptr1) = '=';
-			     ptr1++;
-			}
-		   }
-	      }
-	 }
+	ptr1 = strstr(savep, "==");
+	if (ptr1) {
+	    ptr2 = strstr(ptr1+2, "==");
+	    if (ptr2) {
+		if (strtol(ptr1+2, &ptr3, 10) && (ptr3 == ptr2)) {
+		    while(ptr1 != ptr2) {
+			(*ptr1) = '=';
+			ptr1++;
+		    }
+		}
+	    }
+	}
     }
 
 
@@ -894,7 +890,7 @@ void cacheOutput(PSLog_Msg_t *msg, int outfd)
     }
 }
 
-void displayCachedOutput(int flush)
+void displayCachedOutput(bool flush)
 {
     list_t *pos, *tmp;
     OutputBuffers *val, *nval;
@@ -902,15 +898,13 @@ void displayCachedOutput(int flush)
     struct list_head *saveBuf[np];
     int saveBufInd[np];
     time_t ltime = time(0);
-    int countMode = 1;
+    bool countMode = true;
 
     /* reset tracking array */
     for (i=0; i<np; i++) saveBuf[i] = NULL;
 
     /* add all the leftovers in tmp buffer to normal buffer */
-    if (flush) {
-	moveTmpToClientBuf();
-    }
+    if (flush) moveTmpToClientBuf();
 
     for (i=0; i<np; i++) {
 	if (list_empty(&clientOutBuf[i].list)) continue;
@@ -922,11 +916,9 @@ void displayCachedOutput(int flush)
 	    if (!val || !val->line) break;
 
 	    if (ltime - val->time > maxMergeWait || flush) {
-		countMode = 0;
-	    } else {
-		if (*(val->counter) < np -1) {
-		    break;
-		}
+		countMode = false;
+	    } else if (*(val->counter) < np -1) {
+		break;
 	    }
 
 	    /* find equal data */
@@ -937,53 +929,58 @@ void displayCachedOutput(int flush)
 	     * - we exit and flush all left data
 	     * - all ranks have output the same msg
 	     */
-	    if (mcount == np-1 || countMode == 0) {
-		/* output single msg from tracked rank */
-		outputSingleCMsg(i, pos, saveBuf, saveBufInd, mcount);
+	    if (countMode && mcount != np-1) continue;
 
-		for (z=0; z<mcount; z++) {
-		    /* output single msg from other ranks */
-		    outputSingleCMsg(saveBufInd[z], saveBuf[z], saveBuf,
-				     saveBufInd, mcount);
+	    /* output single msg from tracked rank */
+	    outputSingleCMsg(i, pos, saveBuf, saveBufInd, mcount);
 
-		    /* remove already displayed msg from all other ranks */
-		    nval = list_entry(saveBuf[z], OutputBuffers, list);
-		    delCachedMsg(nval, saveBuf[z]);
-		}
+	    for (z=0; z<mcount; z++) {
+		/* output single msg from other ranks */
+		outputSingleCMsg(saveBufInd[z], saveBuf[z], saveBuf,
+				 saveBufInd, mcount);
 
-		if (mcount != np-1) {
-		    printLine(val->outfd, val->line, mcount, i, saveBufInd);
+		/* remove already displayed msg from all other ranks */
+		nval = list_entry(saveBuf[z], OutputBuffers, list);
+		delCachedMsg(nval, saveBuf[z]);
+	    }
+
+	    if (mcount != np-1) {
+		printLine(val->outfd, val->line, mcount, i, saveBufInd);
+	    } else {
+		if (enableGDB && !strncmp(val->line, "(gdb)\r", 6)) {
+		    rl_set_prompt(GDBprompt);
+		    rl_forced_update_display();
+		    GDBcmdEcho = false;
+		} else if (enableGDB && GDBcmdEcho) {
+		    GDBcmdEcho = false;
 		} else {
-		    if (enableGDB && !strncmp(val->line, "(gdb)\r", 6)) {
-			rl_set_prompt(GDBprompt);
-			rl_forced_update_display();
-			GDBcmdEcho = 0;
-		    } else if (enableGDB && GDBcmdEcho) {
-			GDBcmdEcho = 0;
-		    } else {
-			switch (val->outfd) {
-			case STDOUT_FILENO:
-			    if(np==1) {
-				 PSIlog_stdout(-1, "%*s[0]: %s", prelen - 3, "", val->line);
-			    } else {
-				 PSIlog_stdout(-1, "%*s[0-%i]: %s", prelen - 5, "", np-1, val->line);
-			    }
-			    break;
-			case STDERR_FILENO:
-			    if(np==1) {
-				 PSIlog_stderr(-1, "%*s[0]: %s", prelen - 3, "", val->line);
-			    } else {
-				 PSIlog_stderr(-1, "%*s[0-%i]: %s", prelen - 5, "", np-1, val->line);
-			    }
-			    break;
-			default:
-			    PSIlog_log(-1, "%s: unknown outfd %d\n", __func__,
-				       val->outfd);
+		    switch (val->outfd) {
+		    case STDOUT_FILENO:
+			if (np==1) {
+			    PSIlog_stdout(-1, "%*s[0]: %s", prelen - 3, "",
+					  val->line);
+			} else {
+			    PSIlog_stdout(-1, "%*s[0-%i]: %s", prelen - 5, "",
+					  np-1, val->line);
 			}
+			break;
+		    case STDERR_FILENO:
+			if (np==1) {
+			    PSIlog_stderr(-1, "%*s[0]: %s", prelen - 3, "",
+					  val->line);
+			} else {
+			    PSIlog_stderr(-1, "%*s[0-%i]: %s", prelen - 5, "",
+					  np-1, val->line);
+			}
+			break;
+		    default:
+			PSIlog_log(-1, "%s: unknown outfd %d\n", __func__,
+				   val->outfd);
 		    }
 		}
-		delCachedMsg(val, pos);
 	    }
+
+	    delCachedMsg(val, pos);
 	}
     }
 }

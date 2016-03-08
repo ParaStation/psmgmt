@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2007-2009 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2007-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -20,18 +20,20 @@
 #ifndef __PSILOGGERMERGE
 #define __PSILOGGERMERGE
 
+#include <stdbool.h>
+
 #include "pslog.h"
 
 /**
  * @brief Print all collected output which is already merged, or a
  * timeout is reached.
  *
- * @param flush If set to 1 any output is flushed without waiting for
- * a timeout.
+ * @param flush If true any output is flushed without waiting for a
+ * timeout.
  *
  * @return No return value.
  */
-void displayCachedOutput(int flush);
+void displayCachedOutput(bool flush);
 
 /**
  * @brief Cache the received output msg.

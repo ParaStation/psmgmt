@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2007-2011 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2007-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -19,6 +19,9 @@
 
 #ifndef __PSILOGGER_H
 #define __PSILOGGER_H
+
+#include <stdint.h>
+#include <stdbool.h>
 
 #include "pslog.h"
 #include "pstask.h"
@@ -40,25 +43,27 @@ extern logger_t *PSIlog_stderrLogger;
 /** A logger used within psilogger. This one is used for error messages */
 extern logger_t *PSIlog_logger;
 
-/** Flag to show that special handling for parallel GDB is enabled */
-extern int enableGDB;
+/** Maximum number of processes within this job. */
+extern int usize;
+
+/** Actual number of processes within this job. */
+extern int np;
+
+/** Flag special input handling for parallel GDB. Set from PSI_ENABLE_GDB */
+extern bool enableGDB;
 
 /** The prompt used by parallel GDB mode's readline routines */
 extern char GDBprompt[128];
-
-/** Maximum/Current number of processes in this job. */
-extern int usize;
-extern int np;
 
 /**
  * Flag used by GDB mode to ignore the next output line since it's
  * expected to contain just the echo of the last command passed to the
  * gdbs
  */
-extern int GDBcmdEcho;
+extern bool GDBcmdEcho;
 
-/* Shall output lines be scanned for Valgrind PID patterns? */
-extern int useValgrind;
+/** Scan output for Valgrind PID patterns?  Set from PSI_USE_VALGRIND */
+extern bool useValgrind;
 
 /**
  * @brief Initialize the psilogger logging facilities.
@@ -115,7 +120,7 @@ void PSIlog_setDebugMask(int32_t mask);
  *
  * @see PSIlog_setTimeFlag(), logger_getTimeFlag()
  */
-char PSIlog_getTimeFlag(void);
+bool PSIlog_getTimeFlag(void);
 
 /**
  * @brief Set the time-flag of the psilogger logging facility.
@@ -130,7 +135,7 @@ char PSIlog_getTimeFlag(void);
  *
  * @see logger_setTimeFlag()
  */
-void PSIlog_setTimeFlag(char flag);
+void PSIlog_setTimeFlag(bool flag);
 
 /**
  * @brief Finalize psiloggers's logging facility.

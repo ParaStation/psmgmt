@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2009-2013 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2009-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -20,7 +20,7 @@
 #ifndef __PSILOGGERCLIENT_H
 #define __PSILOGGERCLIENT_H
 
-#include <stdio.h>
+#include <stdbool.h>
 
 #include "pstask.h"
 #include "pslog.h"
@@ -66,11 +66,11 @@ void initClients(int minClientRank, int maxClientRank);
  *
  * @param group @doctodo
  *
- * @return If the client was registered successfully, 1 is returned. 0
- * is returned, if some problem occurred, e.g. a client with the same
- * rank was already registered.
+ * @return If the client was registered successfully, true is
+ * returned.  false is returned if some problem occurred, e.g. a
+ * client with the same rank was already registered.
  */
-int registerClient(int rank, PStask_ID_t tid, PStask_group_t group);
+bool registerClient(int rank, PStask_ID_t tid, PStask_group_t group);
 
 /**
  * @brief Unregister client
@@ -169,10 +169,10 @@ PStask_ID_t getClientTID(int rank);
  *
  * @param rank Rank of the client to test
  *
- * @return If the client is marked to receive input, 1 is
- * returned. Otherwise 0 is given back.
+ * @return If the client is marked to receive input, true is
+ * returned. Otherwise false is given back.
  */
-int clientIsActive(int rank);
+bool clientIsActive(int rank);
 
 /**
  * @brief Test all active clients
@@ -180,10 +180,10 @@ int clientIsActive(int rank);
  * Test, if all clients marked to receive input are currently
  * registered to the facility.
  *
- * @return If all clients are registered, 1 is returned. Otherwise 0
- * is given back.
+ * @return If all clients are registered, true is returned. Otherwise
+ * false is given back.
  */
-int allActiveThere(void);
+bool allActiveThere(void);
 
 /**
  * @brief Test, if client is gone
@@ -195,9 +195,9 @@ int allActiveThere(void);
  * @param rank Rank of the client to be tested.
  *
  * @return If the client is marked as gone, a value different from
- * 0 is returned. Otherwise 0 is returned.
+ * true is returned. Otherwise false is returned.
  */
-int clientIsGone(int rank);
+bool clientIsGone(int rank);
 
 /**
  * @brief Handle STOP message
