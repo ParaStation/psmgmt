@@ -160,6 +160,7 @@ include/psreservation.h \
 include/pssignal.h \
 include/psstrings.h \
 include/pstask.h \
+include/pstaskid.h \
 include/rdp.h \
 include/selector.h \
 include/timer.h \
