@@ -1119,6 +1119,7 @@ static void setupCommonEnv(int np)
     /* *hack* let MPI processes fail if no pspmi plugin is loaded */
     setPSIEnv("PMI_FD", "10000", 1);
     setPSIEnv("PMI_PORT", "10000", 1);
+    unsetPSIEnv("__PSI_EXPORTS");
 }
 
 /**
