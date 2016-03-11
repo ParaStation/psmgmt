@@ -1680,7 +1680,9 @@ static int newHost(int id, in_addr_t addr)
 */
 static int insertNode(void)
 {
-    gchar *nodename;
+    gchar *nodename, *netname, *ipaddress;
+    char buffer[64];
+    struct in_addr *tmpaddr;
     in_addr_t ipaddr;
     int nodenum, ret;
 
@@ -1688,8 +1690,28 @@ static int insertNode(void)
     if (getString("NodeName", &nodename)) return -1;
     CHECK_PSCONFIG_EMPTY_STRING_AND_RETURN(nodename, "NodeName", -1);
 
-    ipaddr = parser_getHostname(nodename);
-    if (!ipaddr) return -1;
+    if (getString("Psid.NetworkName", &netname)) {
+	g_free(nodename);
+	return -1;
+    }
+    CHECK_PSCONFIG_EMPTY_STRING_AND_RETURN(netname, "Psid.NetworkName", -1);
+
+    snprintf(buffer, sizeof(buffer), "%s.DevIPAddress", netname);
+    g_free(netname);
+    if (getString(buffer, &ipaddress)) {
+	g_free(nodename);
+	return -1;
+    }
+    CHECK_PSCONFIG_EMPTY_STRING_AND_RETURN(ipaddress, buffer, -1);
+
+    tmpaddr = g_malloc(sizeof(struct in_addr));
+    if (!inet_pton(AF_INET, ipaddress, tmpaddr)) {
+	parser_comment(-1, "Cannot convert IP address '%s' for node '%s'\n",
+		ipaddress, nodename);
+	return -1;
+    }
+    ipaddr = tmpaddr->s_addr;
+    g_free(tmpaddr);
 
     ret = getNumber("NodeNo", &nodenum);
     if (ret) return ret;
@@ -2215,7 +2237,14 @@ config_t *parseConfig(FILE* logfile, int logmask, char *configfile)
     psconfigobj = NULL;
 
     // get hostname to ID mapping
-    getNodes();
+    ret = getNodes();
+
+    if (ret) {
+	parser_comment(-1,
+		       "ERROR: Reading nodes configuration from psconfig"
+		       " failed.\n");
+	return NULL;
+    }
 
     // generate local psconfig host object name
     psconfigobj = malloc(70*sizeof(char));
@@ -2261,4 +2290,4 @@ config_t *parseConfig(FILE* logfile, int logmask, char *configfile)
 }
 #endif /* BUILD_WITHOUT_PSCONFIG */
 
-/* vim: set ts=8 sw=4 tw=0 sts=4 et :*/
+/* vim: set ts=8 sw=4 tw=0 sts=4 noet :*/
