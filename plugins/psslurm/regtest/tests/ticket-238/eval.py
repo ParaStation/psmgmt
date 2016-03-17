@@ -13,9 +13,9 @@ for p in helper.partitions():
 
 	lines = helper.job_stdout_lines(p)
 
-	test.check(5 == len(lines), p)
+	test.check(2 == len(lines), p)
+	test.check("0" == lines[0], p)
 	test.check("0" == lines[1], p)
-	test.check("0" == lines[4], p)
 
 
 test.quit()
