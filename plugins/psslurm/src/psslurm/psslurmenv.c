@@ -220,7 +220,7 @@ static char * getTasksPerNode(uint16_t tasksPerNode[], uint32_t nrOfNodes) {
     return buffer;
 }
 
-void setSlurmEnv(Job_t *job)
+void setSlurmJobEnv(Job_t *job)
 {
     char tmp[1024], *cpus = NULL, *list = NULL;
     Gres_Cred_t *gres;
@@ -512,8 +512,18 @@ void setRankEnv(int32_t rank, Step_t *step)
 {
     char tmp[128], *myGTIDs, *list = NULL, *val;
     size_t listSize = 0;
-    uint32_t myNodeId = step->myNodeIndex, myLocalId, count = 0;
+    uint32_t myNodeId = step->myNodeIndex, myLocalId, count = 0, localNodeId;
     Gres_Cred_t *gres;
+    Alloc_t *alloc;
+    Job_t *job;
+
+    for (count=0; count<step->env.cnt; count++) {
+	if (!(strncmp(step->env.vars[count], "SLURM_RLIMIT_", 13))) continue;
+	if (!(strncmp(step->env.vars[count], "SLURM_UMASK=", 12))) continue;
+	if (!(strncmp(step->env.vars[count], "SLURM_MPI_TYPE=", 15))) continue;
+	if (!(strncmp(step->env.vars[count], "PWD=", 4))) continue;
+	putenv(step->env.vars[count]);
+    }
 
     setenv("SLURMD_NODENAME", getConfValueC(&Config, "SLURM_HOSTNAME"), 1);
     gethostname(tmp, sizeof(tmp));
@@ -538,19 +548,31 @@ void setRankEnv(int32_t rank, Step_t *step)
     snprintf(tmp, sizeof(tmp), "%u", myLocalId);
     setenv("SLURM_LOCALID", tmp, 1);
 
-    /* gres "gpu" plugin */
-    if ((gres = findGresCred(&step->gres, GRES_PLUGIN_GPU, 0))) {
-	range2List(NULL, gres->bitAlloc[myNodeId], &list, &listSize, &count);
-	setenv("CUDA_VISIBLE_DEVICES", list, 1);
-	setenv("GPU_DEVICE_ORDINAL", list, 1);
-	ufree(list);
+    if ((job = findJobById(step->jobid))) {
+	localNodeId = job->localNodeId;
+    } else if ((alloc = findAlloc(step->jobid))) {
+	localNodeId = alloc->localNodeId;
+    } else {
+	localNodeId = -1;
     }
 
-    /* gres "mic" plugin */
-    if ((gres = findGresCred(&step->gres, GRES_PLUGIN_MIC, 0))) {
-	range2List(NULL, gres->bitAlloc[myNodeId], &list, &listSize, &count);
-	setenv("OFFLOAD_DEVICES", list, 1);
-	ufree(list);
+    if ((int32_t) localNodeId != -1) {
+	/* gres "gpu" plugin */
+	if ((gres = findGresCred(&step->gres, GRES_PLUGIN_GPU, 0))) {
+	    range2List(NULL, gres->bitAlloc[localNodeId], &list,
+			&listSize, &count);
+	    setenv("CUDA_VISIBLE_DEVICES", list, 1);
+	    setenv("GPU_DEVICE_ORDINAL", list, 1);
+	    ufree(list);
+	}
+
+	/* gres "mic" plugin */
+	if ((gres = findGresCred(&step->gres, GRES_PLUGIN_MIC, 0))) {
+	    range2List(NULL, gres->bitAlloc[localNodeId], &list,
+			&listSize, &count);
+	    setenv("OFFLOAD_DEVICES", list, 1);
+	    ufree(list);
+	}
     }
 
     /* set cpu/memory bind env vars */
@@ -582,6 +604,35 @@ static void removeSpankOptions(env_t *env)
 		(!(strncmp("_SLURM_SPANK_OPTION", env->vars[i], 19)))) {
 	    envUnsetIndex(env, i);
 	}
+    }
+}
+
+void removeUserVars(env_t *env)
+{
+    uint32_t i = 0;
+
+    /* get rid of all environment variables which are not needed
+     * for spawning of processes via mpiexec */
+    for (i=0; i<env->cnt; i++) {
+	if (!strncmp(env->vars[i], "USER=", 5)) continue;
+	if (!strncmp(env->vars[i], "HOSTNAME=", 9)) continue;
+	if (!strncmp(env->vars[i], "PATH=", 5)) continue;
+	if (!strncmp(env->vars[i], "HOME=", 5)) continue;
+	if (!strncmp(env->vars[i], "PWD=", 4)) continue;
+
+	if (!(strncmp(env->vars[i], "SLURM_STEPID=", 13))) continue;
+	if (!(strncmp(env->vars[i], "SLURM_JOBID=", 12))) continue;
+
+	if (!(strncmp(env->vars[i], "__MPIEXEC_DIST_START=", 21))) continue;
+	if (!(strncmp(env->vars[i], "MPIEXEC_", 8))) continue;
+
+	if (!strncmp(env->vars[i], "PSI_", 4)) continue;
+	if (!strncmp(env->vars[i], "__PSI_", 6)) continue;
+
+	if (!strncmp(env->vars[i], "PMI_DEBUG", 9)) continue;
+
+	envUnsetIndex(env, i);
+	i--;
     }
 }
 

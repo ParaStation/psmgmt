@@ -67,6 +67,10 @@ char *msg2Str(PSP_PSSLURM_t type)
 	    return "PSP_FORWARD_SMSG_RES";
 	case PSP_LAUNCH_TASKS:
 	    return "PSP_LAUNCH_TASKS";
+	case PSP_ALLOC_LAUNCH:
+	    return "PSP_ALLOC_LAUNCH";
+	case PSP_ALLOC_STATE:
+	    return "PSP_ALLOC_STATE";
     }
     return NULL;
 }

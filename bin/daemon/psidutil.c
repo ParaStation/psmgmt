@@ -141,7 +141,12 @@ void PSID_readConfigFile(FILE* logfile, char *configfile)
     /* Parse the configfile */
     config = parseConfig(logfile, PSID_getDebugMask(), configfile);
     if (! config) {
+#ifdef BUILD_WITHOUT_PSCONFIG
 	PSID_log(-1, "%s: parsing of <%s> failed\n", __func__, configfile);
+#else
+	PSID_log(-1, "%s: reading configuration from psconfig failed\n", __func__);
+#endif
+
 	PSID_finalizeLogs();
 	exit(1);
     }

@@ -75,9 +75,9 @@ int srunOpenControlConnection(Step_t *step);
 int srunOpenIOConnection(Step_t *step, int sock, char *sig);
 int srunOpenPTY(Step_t *step);
 void srunEnableIO(Step_t *step);
-int srunSendIO(uint16_t type, uint16_t taskid, Step_t *step,
+int srunSendIO(uint16_t type, uint32_t taskid, Step_t *step,
                 char *buf, uint32_t bufLen);
-int srunSendIOSock(uint16_t type, uint16_t taskid, int sock,
+int srunSendIOSock(uint16_t type, uint32_t taskid, int sock,
                 char *buf, uint32_t bufLen, int *error);
 int srunSendMsg(int sock, Step_t *step, slurm_msg_type_t type,
 		PS_DataBuffer_t *body);

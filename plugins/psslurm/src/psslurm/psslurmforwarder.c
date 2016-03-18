@@ -186,8 +186,9 @@ static int stepCallback(int32_t exit_status, char *errMsg,
 	if (!(startTaskEpilogues(step))) step->fwdata = NULL;
 	return 0;
     } else if ((alloc = findAlloc(step->jobid)) &&
+	alloc->state == JOB_RUNNING &&
 	alloc->terminate &&
-	alloc->nodes[0] == PSC_getMyID()) {
+	alloc->motherSup == PSC_getMyTID()) {
 	/* run epilogue now */
 	mlog("%s: starting epilogue for step '%u:%u'\n", __func__, step->jobid,
 		step->stepid);
@@ -196,7 +197,6 @@ static int stepCallback(int32_t exit_status, char *errMsg,
 			step->nrOfNodes, step->nodes, &step->env,
 			&step->spankenv, 1, 0);
     }
-
     step->fwdata = NULL;
     return 0;
 }
@@ -350,27 +350,10 @@ int handleExecClientUser(void *data)
 
     if (task->rank <0) return 0;
 
-    /* clean up environment */
-    for (i=0; PSP_rlimitEnv[i].envName; i++) {
-	unsetenv(PSP_rlimitEnv[i].envName);
-    }
-    unsetenv("__PSI_UMASK");
-    unsetenv("__PSI_RAW_IO");
-    unsetenv("PSI_SSH_INTERACTIVE");
-    unsetenv("PSI_LOGGER_RAW_MODE");
-    unsetenv("__PSI_LOGGER_UNBUFFERED");
+    /* unset MALLOC_CHECK_ set by psslurm */
     unsetenv("MALLOC_CHECK_");
-    unsetenv("__MPIEXEC_DIST_START");
-    unsetenv("MPIEXEC_VERBOSE");
 
     if (task->environ) {
-	/* restore malloc check set by user */
-	for (i=0; task->environ[i]; i++) {
-	    if (!(strncmp("MALLOC_CHECK_=", task->environ[i], 14))) {
-		putenv(ustrdup(task->environ[i]));
-	    }
-	}
-
 	ptr = task->environ[count++];
 	while (ptr) {
 	    if (!(strncmp(ptr, "SLURM_STEPID=", 13))) {
@@ -403,6 +386,19 @@ int handleExecClientUser(void *data)
 	doMemBind(step, task);
 	verboseMemPinningOutput(step, task);
     }
+
+    /* clean up environment */
+    for (i=0; PSP_rlimitEnv[i].envName; i++) {
+	unsetenv(PSP_rlimitEnv[i].envName);
+    }
+
+    unsetenv("__PSI_UMASK");
+    unsetenv("__PSI_RAW_IO");
+    unsetenv("PSI_SSH_INTERACTIVE");
+    unsetenv("PSI_LOGGER_RAW_MODE");
+    unsetenv("__PSI_LOGGER_UNBUFFERED");
+    unsetenv("__MPIEXEC_DIST_START");
+    unsetenv("MPIEXEC_VERBOSE");
 
     return 0;
 }
@@ -579,6 +575,8 @@ static void execJobStep(void *data, int rerun)
 
     /* set rlimits */
     setRlimitsFromEnv(&step->env, 1);
+
+    removeUserVars(&step->env);
 
     /* start mpiexec to spawn the parallel job */
     closelog();

@@ -29,6 +29,7 @@
 #include <sys/time.h>
 
 #include "list_t.h"
+#include "pstaskid.h" /* IWYU pragma: export */
 
 #include "psnodes.h"
 #include "pscpu.h"
@@ -60,9 +61,6 @@ typedef enum {
     TG_KVS,         /**< special task, the KVS used by the PMI interface */
     TG_DELEGATE,    /**< special task used to hold resources */
 } PStask_group_t;
-
-/** Type to store unique task IDs in */
-typedef int32_t PStask_ID_t;
 
 /**
  * @brief Get the name of a PStask_group.

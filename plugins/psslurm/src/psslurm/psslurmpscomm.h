@@ -58,4 +58,8 @@ void setNodeOffline(env_t *env, uint32_t id, PSnodes_ID_t dest,
 
 void requeueBatchJob(Job_t *job, PSnodes_ID_t dest);
 
+void send_PS_AllocLaunch(Alloc_t *alloc);
+
+void send_PS_AllocState(Alloc_t *alloc);
+
 #endif

@@ -712,7 +712,7 @@ int setHWthreads(Step_t *step)
 
 	    /* get cpu count per node from job credential */
 	    if (coreArrayIndex >= cred->coreArraySize) {
-		mlog("%s: invalid core array index '%i', size '%i'\n",
+		mlog("%s: invalid job core array index '%i', size '%i'\n",
 			__func__, coreArrayIndex, cred->coreArraySize);
 		goto error;
 	    }
@@ -735,8 +735,8 @@ int setHWthreads(Step_t *step)
 
 	/* get cpu count per node from job credential */
 	if (coreArrayIndex >= cred->coreArraySize) {
-	    mlog("%s: invalid core array index '%i', size '%i'\n", __func__,
-		    coreArrayIndex, cred->coreArraySize);
+	    mlog("%s: invalid step core array index '%i', size '%i'\n",
+		    __func__, coreArrayIndex, cred->coreArraySize);
 	    goto error;
 	}
 

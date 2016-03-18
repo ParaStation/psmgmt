@@ -175,8 +175,10 @@ void PElogueExit(Job_t *job, int status, bool prologue)
 
 void stopPElogueExecution(Job_t *job)
 {
-    removePELogueTimeout(job);
-    job->pluginCallback(job->id, -4, 1, job->nodes);
+    if (isValidJobPointer(job)) {
+	removePELogueTimeout(job);
+	job->pluginCallback(job->id, -4, 1, job->nodes);
+    }
 }
 
 /**

@@ -99,18 +99,21 @@ static int32_t getMyNodeIndex(PSnodes_ID_t *nodes, uint32_t nrOfNodes)
 }
 
 void getNodesFromSlurmHL(char *slurmNodes, uint32_t *nrOfNodes,
-			    PSnodes_ID_t **nodes)
+			    PSnodes_ID_t **nodes, uint32_t *localId)
 {
     const char delimiters[] =", \n";
-    char *next, *saveptr;
+    char *next, *saveptr, *myHost;
     char compHL[1024], *hostlist;
     int i = 0;
 
+    *localId = -1;
     if (!(hostlist = expandHostList(slurmNodes, nrOfNodes))||
 	!*nrOfNodes) {
 	mlog("%s: invalid hostlist '%s'\n", __func__, compHL);
 	return;
     }
+
+    myHost = getConfValueC(&Config, "SLURM_HOSTNAME");
 
     *nodes = umalloc(sizeof(PSnodes_ID_t *) * *nrOfNodes +
 	    sizeof(PSnodes_ID_t) * *nrOfNodes);
@@ -119,6 +122,7 @@ void getNodesFromSlurmHL(char *slurmNodes, uint32_t *nrOfNodes,
 
     while (next) {
 	(*nodes)[i] = getNodeIDbyName(next);
+	if (!strcmp(next, myHost)) *localId = i;
 	//mlog("%s: node%u: %s id(%i)\n", __func__, i, next, (*nodes)[i]);
 	i++;
 	next = strtok_r(NULL, delimiters, &saveptr);
@@ -433,7 +437,8 @@ void handleLaunchTasks(Slurm_Msg_t *sMsg)
     step->nodeAlias = getStringM(ptr);
     /* nodelist */
     step->slurmNodes = getStringM(ptr);
-    getNodesFromSlurmHL(step->slurmNodes, &count, &step->nodes);
+    getNodesFromSlurmHL(step->slurmNodes, &count, &step->nodes,
+			&step->localNodeId);
     if (count != step->nrOfNodes) {
 	mlog("%s: mismatching number of nodes '%u:%u'\n", __func__, count,
 		step->nrOfNodes);
@@ -474,22 +479,11 @@ void handleLaunchTasks(Slurm_Msg_t *sMsg)
 	return;
     }
 
-    /* add job allocation */
-    job = findJobById(step->jobid);
-    if (!stepid && !job) {
+    /* add allocation */
+    if (!(job = findJobById(step->jobid))) {
 	alloc = addAllocation(step->jobid, step->cred->jobNumHosts,
 		step->cred->jobHostlist, &step->env,
 		&step->spankenv, step->uid, step->gid, step->username);
-
-	alloc->state = JOB_QUEUED;
-    } else if (!job) {
-	if (!(alloc = findAlloc(step->jobid))) {
-	    mlog("%s: no allocation for step '%u:%u'\n", __func__,
-		    step->jobid, step->stepid);
-	    sendSlurmRC(sMsg, SLURM_ERROR);
-	    deleteStep(step->jobid, step->stepid);
-	    return;
-	}
     }
 
     if ((acctType = getConfValueC(&SlurmConfig, "JobAcctGatherType"))) {
@@ -519,6 +513,10 @@ void handleLaunchTasks(Slurm_Msg_t *sMsg)
 	step->srunControlMsg.recvTime = sMsg->recvTime;
 
 	if (!stepid && !job) {
+	    /* forward allocation info */
+	    alloc->motherSup = PSC_getMyTID();
+	    send_PS_AllocLaunch(alloc);
+
 	    /* start prologue for steps without job */
 	    alloc->state = step->state = JOB_PROLOGUE;
 	    mdbg(PSSLURM_LOG_JOB, "%s: step '%u:%u' in '%s'\n", __func__,
@@ -528,6 +526,7 @@ void handleLaunchTasks(Slurm_Msg_t *sMsg)
 			    &alloc->spankenv, 1, 1);
 	} else if (!job && alloc->state == JOB_PROLOGUE) {
 	    /* prologue already running, wait till it is finished */
+	    mlog("%s:wait for prologue\n", __func__);
 	    step->state = JOB_PROLOGUE;
 	} else {
 	    /* start mpiexec to spawn the parallel processes,
@@ -1347,7 +1346,8 @@ static void handleBatchJobLaunch(Slurm_Msg_t *sMsg)
     getString(ptr, buf, sizeof(buf));
     /* nodelist */
     job->slurmNodes = getStringM(ptr);
-    getNodesFromSlurmHL(job->slurmNodes, &job->nrOfNodes, &job->nodes);
+    getNodesFromSlurmHL(job->slurmNodes, &job->nrOfNodes, &job->nodes,
+			&job->localNodeId);
     /* jobscript */
     script = getStringM(ptr);
     job->cwd = getStringM(ptr);
@@ -1426,7 +1426,7 @@ static void handleBatchJobLaunch(Slurm_Msg_t *sMsg)
     send_PS_JobLaunch(job);
 
     /* setup job environment */
-    setSlurmEnv(job);
+    setSlurmJobEnv(job);
     job->interactive = 0;
 
     /* start prologue */
@@ -1517,10 +1517,10 @@ static void handleTerminateAlloc(Slurm_Msg_t *sMsg, Alloc_t *alloc)
     alloc->terminate++;
 
     /* wait for mother superior to release the allocation */
-    if (alloc->nodes[0] != PSC_getMyID()) {
+    if (alloc->motherSup != PSC_getMyTID()) {
 	shutdownStepForwarder(alloc->jobid);
 	if (alloc->terminate > 3) {
-	    send_PS_JobState(alloc->jobid, PSC_getTID(alloc->nodes[0], 0));
+	    send_PS_JobState(alloc->jobid, PSC_getTID(alloc->motherSup, 0));
 	    alloc->terminate = 1;
 	}
 	sendSlurmRC(sMsg, SLURM_SUCCESS);
@@ -1591,7 +1591,7 @@ static void handleAbortReq(Slurm_Msg_t *sMsg, uint32_t jobid, uint32_t stepid)
 	}
 	deleteJob(jobid);
     } else {
-	if (alloc->nodes[0] == PSC_getMyID()) {
+	if (alloc->motherSup == PSC_getMyTID()) {
 	    signalStepsByJobid(alloc->jobid, SIGKILL);
 	    send_PS_JobExit(alloc->jobid, SLURM_BATCH_SCRIPT,
 		    alloc->nrOfNodes, alloc->nodes);

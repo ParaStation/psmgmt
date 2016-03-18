@@ -49,7 +49,7 @@ typedef struct {
 } IO_Msg_Buf_t;
 
 typedef struct {
-    uint16_t taskid;
+    uint32_t taskid;
     uint8_t type;
     char *msg;
     uint32_t msgLen;
@@ -87,7 +87,7 @@ void initStepIO(Step_t *step)
     }
 }
 
-static void forward2Sattach(char *msg, uint32_t msgLen, uint16_t taskid,
+static void forward2Sattach(char *msg, uint32_t msgLen, uint32_t taskid,
 			    uint8_t type)
 {
     int i, ret, stype, error;
@@ -111,7 +111,7 @@ static void forward2Sattach(char *msg, uint32_t msgLen, uint16_t taskid,
     }
 }
 
-static void msg2Buffer(char *msg, uint32_t msgLen, uint16_t taskid,
+static void msg2Buffer(char *msg, uint32_t msgLen, uint32_t taskid,
                         uint8_t type)
 {
     RingMsgBuffer_t *rBuf;
@@ -143,7 +143,7 @@ static void msg2Buffer(char *msg, uint32_t msgLen, uint16_t taskid,
     }
 }
 
-static void writeIOmsg(char *msg, uint32_t msgLen, uint16_t taskid,
+static void writeIOmsg(char *msg, uint32_t msgLen, uint32_t taskid,
 			uint8_t type, Forwarder_Data_t *fwdata, Step_t *step,
 			uint32_t lrank)
 {
@@ -199,7 +199,7 @@ static int getWidth(int32_t num)
     return width;
 }
 
-static void writeLabelIOmsg(char *msg, uint32_t msgLen, uint16_t taskid,
+static void writeLabelIOmsg(char *msg, uint32_t msgLen, uint32_t taskid,
 			uint8_t type, Forwarder_Data_t *fwdata, Step_t *step,
 			uint32_t lrank)
 
@@ -235,7 +235,7 @@ static void writeLabelIOmsg(char *msg, uint32_t msgLen, uint16_t taskid,
 
 static void handleBufferedMsg(char *msg, uint32_t len, PS_DataBuffer_t *buffer,
 				Forwarder_Data_t *fwdata, Step_t *step,
-				uint16_t taskid, uint8_t type, uint32_t lrank)
+				uint32_t taskid, uint8_t type, uint32_t lrank)
 {
     uint32_t nlLen;
     char *nl;
@@ -263,7 +263,7 @@ static void handlePrintChildMsg(void *data, char *ptr)
     Forwarder_Data_t *fwdata = data;
     Step_t *step = fwdata->userData;
     uint8_t type;
-    uint16_t taskid;
+    uint32_t taskid;
     uint32_t len, lrank, i;
     char *msg = NULL;
     static IO_Msg_Buf_t *lineBuf;
@@ -272,7 +272,7 @@ static void handlePrintChildMsg(void *data, char *ptr)
 
     /* read message */
     getUint8(&ptr, &type);
-    getUint16(&ptr, &taskid);
+    getUint32(&ptr, &taskid);
     msg = getDataM((void **)&ptr, &len);
 
     /* get local rank from taskid */
@@ -330,14 +330,14 @@ static void handlePrintChildMsg(void *data, char *ptr)
     ufree(msg);
 }
 
-static void closeIOchannel(Forwarder_Data_t *fwdata, uint16_t taskid,
+static void closeIOchannel(Forwarder_Data_t *fwdata, uint32_t taskid,
 			    uint8_t type)
 {
     PS_DataBuffer_t msg = { .buf = NULL };
 
     msg.bufUsed = 0;
     addUint8ToMsg(type, &msg);
-    addUint16ToMsg(taskid, &msg);
+    addUint32ToMsg(taskid, &msg);
     addDataToMsg(NULL, 0, &msg);
     handlePrintChildMsg(fwdata, msg.buf);
 
@@ -1085,7 +1085,7 @@ void sendEnableSrunIO(Step_t *step)
 }
 
 void printChildMessage(Step_t *step, char *msg, uint32_t msgLen,
-			uint8_t type, int32_t taskid)
+			uint8_t type, int64_t taskid)
 {
     PS_DataBuffer_t data = { .buf = NULL };
 
@@ -1106,7 +1106,7 @@ void printChildMessage(Step_t *step, char *msg, uint32_t msgLen,
 
     addInt32ToMsg(CMD_PRINT_CHILD_MSG, &data);
     addUint8ToMsg(type, &data);
-    addUint16ToMsg(taskid, &data);
+    addUint32ToMsg(taskid, &data);
     addDataToMsg(msg, msgLen, &data);
 
     sendFWMsg(step->fwdata->controlSocket, &data);

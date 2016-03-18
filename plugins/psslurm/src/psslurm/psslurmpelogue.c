@@ -126,11 +126,13 @@ static void cbPElogueAlloc(char *sjobid, int exit_status, int timeout,
 	if (alloc->terminate) {
 	    sendSlurmRC(&step->srunControlMsg, SLURM_ERROR);
 	    alloc->state = JOB_EPILOGUE;
+	    send_PS_AllocState(alloc);
 	    startPElogue(alloc->jobid, alloc->uid, alloc->gid, alloc->username,
 		    alloc->nrOfNodes, alloc->nodes, &alloc->env,
 		    &alloc->spankenv, 1, 0);
 	} else if (exit_status == 0) {
 	    alloc->state = JOB_RUNNING;
+	    send_PS_AllocState(alloc);
 
 	    /* start all waiting steps */
 	    letAllStepsRun(alloc->jobid);
@@ -140,21 +142,24 @@ static void cbPElogueAlloc(char *sjobid, int exit_status, int timeout,
 	     * We only need to inform the waiting srun. */
 	    sendSlurmRC(&step->srunControlMsg, ESLURMD_PROLOG_FAILED);
 	    alloc->state = step->state = JOB_EXIT;
+	    send_PS_AllocState(alloc);
 	    psPelogueDeleteJob("psslurm", sjobid);
 	    mdbg(PSSLURM_LOG_JOB, "%s: step '%u:%u' in '%s'\n", __func__,
 		    step->jobid, step->stepid, strJobState(step->state));
 	}
     } else if (alloc->state == JOB_EPILOGUE) {
 	alloc->state = step->state = JOB_EXIT;
+	send_PS_AllocState(alloc);
 	mdbg(PSSLURM_LOG_JOB, "%s: step '%u:%u' in '%s'\n", __func__,
 		step->jobid, step->stepid, strJobState(step->state));
 	psPelogueDeleteJob("psslurm", sjobid);
 	sendEpilogueComplete(alloc->jobid, 0);
 
-	if (alloc->nodes[0] == PSC_getMyID()) {
+	if (alloc->motherSup == PSC_getMyTID()) {
 	    send_PS_JobExit(alloc->jobid, SLURM_BATCH_SCRIPT,
 		    alloc->nrOfNodes, alloc->nodes);
 	}
+
 	if (alloc->terminate || !haveRunningSteps(alloc->jobid)) {
 	    deleteAlloc(alloc->jobid);
 	}
@@ -236,9 +241,6 @@ void startPElogue(uint32_t jobid, uid_t uid, gid_t gid, char *username,
 	mlog("%s: invalid nodelist for job '%u'\n", __func__, jobid);
 	return;
     }
-
-    /* only mother superior may run pelogue */
-    if (nodes[0] != PSC_getMyID()) return;
 
     snprintf(sjobid, sizeof(sjobid), "%u", jobid);
 
@@ -436,8 +438,9 @@ static int taskEpiloguesCallback(int32_t exit_status, char *errMsg,
 
     /* run epilogue now */
     if ((alloc = findAlloc(step->jobid)) &&
+	alloc->state == JOB_RUNNING &&
 	alloc->terminate &&
-	alloc->nodes[0] == PSC_getMyID()) {
+	alloc->motherSup == PSC_getMyTID()) {
 	/* run epilogue now */
 	mlog("%s: starting epilogue for step '%u:%u'\n", __func__, step->jobid,
 		step->stepid);

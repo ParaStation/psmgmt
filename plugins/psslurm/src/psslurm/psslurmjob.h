@@ -19,6 +19,7 @@
 #define __PS_PSSLURM_JOB
 
 #include <netinet/in.h>
+#include <stdbool.h>
 
 #include "list.h"
 #include "psnodes.h"
@@ -203,6 +204,7 @@ typedef struct {
     uint32_t numHwThreads;
     uint8_t timeout;
     uint8_t ioCon;
+    uint32_t localNodeId;
     Forwarder_Data_t *fwdata;
     PSpart_HWThread_t *hwThreads;
     PS_Tasks_t tasks;
@@ -254,6 +256,7 @@ typedef struct {
     uint32_t arrayTaskId;
     uint32_t memLimit;
     uint32_t nodeMinMemory; /* minimum memory per node */
+    uint32_t localNodeId;
     time_t start_time;	    /* the time were the job started */
     char *nodeAlias;
     struct list_head list;  /* the job list header */
@@ -275,6 +278,8 @@ typedef struct {
     int state;
     char *username;
     time_t firstKillRequest;
+    PStask_ID_t motherSup;
+    uint32_t localNodeId;
     struct list_head list;  /* the job list header */
 } Alloc_t;
 

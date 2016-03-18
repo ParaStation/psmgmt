@@ -23,7 +23,7 @@
 
 void sendNodeRegStatus(uint32_t status, int protoVersion);
 void getNodesFromSlurmHL(char *slurmNodes, uint32_t *nrOfNodes,
-			    PSnodes_ID_t **nodes);
+			    PSnodes_ID_t **nodes, uint32_t *localId);
 int getSlurmMsgHeader(Slurm_Msg_t *sMsg, Connection_Forward_t *fw);
 
 #define sendSlurmRC(sMsg, rc) __sendSlurmRC(sMsg, rc, __func__, __LINE__)

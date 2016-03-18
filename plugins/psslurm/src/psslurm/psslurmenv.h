@@ -26,7 +26,8 @@ int initEnvFilter(void);
 void freeEnvFilter(void);
 void setBatchEnv(Job_t *job);
 void setStepEnv(Step_t *step);
-void setSlurmEnv(Job_t *job);
+void setSlurmJobEnv(Job_t *job);
 void setRankEnv(int32_t rank, Step_t *step);
+void removeUserVars(env_t *env);
 
 #endif

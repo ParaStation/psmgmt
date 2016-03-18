@@ -113,22 +113,39 @@ Alloc_t *addAllocation(uint32_t jobid, uint32_t nrOfNodes, char *slurmNodes,
 {
     Alloc_t *alloc;
 
+    if ((alloc = findAlloc(jobid))) return alloc;
+
     alloc = (Alloc_t *) umalloc(sizeof(Alloc_t));
     alloc->jobid = jobid;
     alloc->state = JOB_QUEUED;
-    getNodesFromSlurmHL(slurmNodes, &alloc->nrOfNodes, &alloc->nodes);
-    if (alloc->nrOfNodes != nrOfNodes) {
-	mlog("%s: mismatching nrOfNodes '%u:%u'\n", __func__, nrOfNodes,
-		alloc->nrOfNodes);
-    }
-    envClone(env, &alloc->env, envFilter);
-    envClone(spankenv, &alloc->spankenv, envFilter);
     alloc->uid = uid;
     alloc->gid = gid;
     alloc->terminate = 0;
     alloc->slurmNodes = ustrdup(slurmNodes);
     alloc->username = ustrdup(username);
     alloc->firstKillRequest = 0;
+    alloc->motherSup = -1;
+
+    /* init nodes */
+    getNodesFromSlurmHL(slurmNodes, &alloc->nrOfNodes, &alloc->nodes,
+			&alloc->localNodeId);
+    if (alloc->nrOfNodes != nrOfNodes) {
+	mlog("%s: mismatching nrOfNodes '%u:%u'\n", __func__, nrOfNodes,
+		alloc->nrOfNodes);
+    }
+
+    /* init env */
+    if (env) {
+	envClone(env, &alloc->env, envFilter);
+    } else {
+	envInit(&alloc->env);
+    }
+
+    if (spankenv) {
+	envClone(spankenv, &alloc->spankenv, envFilter);
+    } else {
+	envInit(&alloc->spankenv);
+    }
 
     list_add_tail(&(alloc->list), &AllocList.list);
 
@@ -564,7 +581,7 @@ int deleteAlloc(uint32_t jobid)
     if (!(alloc = findAlloc(jobid))) return 0;
 
     /* tell sisters the allocation is revoked */
-    if (alloc->nodes[0] == PSC_getMyID()) {
+    if (alloc->motherSup == PSC_getMyTID()) {
 	send_PS_JobExit(alloc->jobid, SLURM_BATCH_SCRIPT,
 		alloc->nrOfNodes, alloc->nodes);
     }

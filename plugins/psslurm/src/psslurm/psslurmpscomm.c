@@ -174,6 +174,60 @@ void send_PS_JobLaunch(Job_t *job)
     ufree(data.buf);
 }
 
+void send_PS_AllocLaunch(Alloc_t *alloc)
+{
+
+    PS_DataBuffer_t data = { .buf = NULL };
+    PStask_ID_t myID = PSC_getMyID();
+    uint32_t i;
+
+    /* add jobid */
+    addUint32ToMsg(alloc->jobid, &data);
+
+    /* uid/gid */
+    addUint32ToMsg(alloc->uid, &data);
+    addUint32ToMsg(alloc->gid, &data);
+    addStringToMsg(alloc->username, &data);
+
+    /* node list */
+    addUint32ToMsg(alloc->nrOfNodes, &data);
+    addStringToMsg(alloc->slurmNodes, &data);
+
+    /* send the messages */
+    for (i=0; i<alloc->nrOfNodes; i++) {
+	if (alloc->nodes[i] == myID) continue;
+
+	sendFragMsg(&data, PSC_getTID(alloc->nodes[i], 0),
+			PSP_CC_PLUG_PSSLURM, PSP_ALLOC_LAUNCH);
+    }
+
+    ufree(data.buf);
+}
+
+void send_PS_AllocState(Alloc_t *alloc)
+{
+
+    PS_DataBuffer_t data = { .buf = NULL };
+    PStask_ID_t myID = PSC_getMyID();
+    uint32_t i;
+
+    /* add jobid */
+    addUint32ToMsg(alloc->jobid, &data);
+
+    /* add state */
+    addUint16ToMsg(alloc->state, &data);
+
+    /* send the messages */
+    for (i=0; i<alloc->nrOfNodes; i++) {
+	if (alloc->nodes[i] == myID) continue;
+
+	sendFragMsg(&data, PSC_getTID(alloc->nodes[i], 0),
+			PSP_CC_PLUG_PSSLURM, PSP_ALLOC_STATE);
+    }
+
+    ufree(data.buf);
+}
+
 static int retryExecScript(PSnodes_ID_t remote, uint16_t scriptID)
 {
     if (remote == slurmController && slurmBackupController > -1) {
@@ -543,6 +597,64 @@ static void handle_PS_JobLaunch(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 	    job->username, job->nrOfNodes, PSC_printTID(msg->header.sender));
 }
 
+static void handleAllocLaunch(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
+{
+    uint32_t jobid, nrOfNodes;
+    char *ptr = data->buf, *username, *slurmNodes;
+    Alloc_t *alloc;
+    uid_t uid;
+    gid_t gid;
+
+    /* get jobid */
+    getUint32(&ptr, &jobid);
+
+    /* get uid/gid */
+    getUint32(&ptr, &uid);
+    getUint32(&ptr, &gid);
+
+    /* get username */
+    username = getStringM(&ptr);
+
+    /* get nodelist */
+    getUint32(&ptr, &nrOfNodes);
+    slurmNodes = getStringM(&ptr);
+
+    alloc = addAllocation(jobid, nrOfNodes, slurmNodes,
+			    NULL, NULL, uid, gid, username);
+    alloc->state = JOB_PROLOGUE;
+    alloc->motherSup = msg->header.sender;
+
+    ufree(username);
+    ufree(slurmNodes);
+
+    mlog("%s: jobid '%u' user '%s' nodes '%u' from '%s'\n", __func__, jobid,
+	    alloc->username, alloc->nrOfNodes, PSC_printTID(msg->header.sender));
+}
+
+static void handleAllocState(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
+{
+    uint32_t jobid;
+    uint16_t state;
+    Alloc_t *alloc;
+    char *ptr = data->buf;
+
+    /* get jobid */
+    getUint32(&ptr, &jobid);
+
+    /* get state */
+    getUint16(&ptr, &state);
+
+    if (!(alloc = findAlloc(jobid))) {
+	mlog("%s: allocation '%u' not found\n", __func__, jobid);
+	return;
+    }
+
+    alloc->state = state;
+
+    mlog("%s: jobid '%u' state '%s' from '%s'\n", __func__, jobid,
+	    strJobState(alloc->state), PSC_printTID(msg->header.sender));
+}
+
 static void handle_PS_SignalTasks(DDTypedBufferMsg_t *msg)
 {
     uint32_t jobid, stepid;
@@ -580,7 +692,7 @@ static void handle_PS_SignalTasks(DDTypedBufferMsg_t *msg)
 
 void forwardSlurmMsg(Slurm_Msg_t *sMsg, Connection_Forward_t *fw)
 {
-    uint32_t nrOfNodes, i, len;
+    uint32_t nrOfNodes, i, len, localId;
     PSnodes_ID_t *nodes = NULL;
 
     PS_DataBuffer_t msg = { .buf = NULL };
@@ -608,7 +720,7 @@ void forwardSlurmMsg(Slurm_Msg_t *sMsg, Connection_Forward_t *fw)
     addMemToMsg(sMsg->ptr, len, &msg);
 
     /* convert nodelist to PS nodes */
-    getNodesFromSlurmHL(fw->head.nodeList, &nrOfNodes, &nodes);
+    getNodesFromSlurmHL(fw->head.nodeList, &nrOfNodes, &nodes, &localId);
 
     /* save infos in connection */
     fw->nodes = nodes;
@@ -745,6 +857,12 @@ void handlePsslurmMsg(DDTypedBufferMsg_t *msg)
 	    break;
 	case PSP_FORWARD_SMSG_RES:
 	    recvFragMsg(msg, handleFWslurmMsgRes);
+	    break;
+	case PSP_ALLOC_LAUNCH:
+	    recvFragMsg(msg, handleAllocLaunch);
+	    break;
+	case PSP_ALLOC_STATE:
+	    recvFragMsg(msg, handleAllocState);
 	    break;
 	/* obsolete, to be removed */
 	case PSP_PROLOGUE_START:

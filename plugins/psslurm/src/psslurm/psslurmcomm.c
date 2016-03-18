@@ -1170,12 +1170,13 @@ void srunEnableIO(Step_t *step)
     enabled = 1;
 }
 
-int srunSendIO(uint16_t type, uint16_t taskid, Step_t *step,
+int srunSendIO(uint16_t type, uint32_t taskid, Step_t *step,
                 char *buf, uint32_t bufLen)
 {
     int ret, error;
 
-    ret = srunSendIOSock(type, taskid, step->srunIOMsg.sock, buf, bufLen, &error);
+    ret = srunSendIOSock(type, taskid, step->srunIOMsg.sock, buf,
+			    bufLen, &error);
 
     if (ret < 0 ) {
 	switch (error) {
@@ -1191,7 +1192,7 @@ int srunSendIO(uint16_t type, uint16_t taskid, Step_t *step,
     return ret;
 }
 
-int srunSendIOSock(uint16_t type, uint16_t taskid, int sock,
+int srunSendIOSock(uint16_t type, uint32_t taskid, int sock,
                 char *buf, uint32_t bufLen, int *error)
 {
     PS_DataBuffer_t data = { .buf = NULL };
