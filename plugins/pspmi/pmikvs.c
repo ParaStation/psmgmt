@@ -26,8 +26,6 @@
 #include "pmilog.h"
 #include "pmikvs.h"
 
-#include "pmikvs.h"
-
 FILE *memoryDebug = NULL;
 
 char *set(char *key, char *value)
