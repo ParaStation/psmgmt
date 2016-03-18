@@ -82,7 +82,7 @@ handlerFunc_t oldSpawnHandler = NULL;
 
 /** psid plugin requirements */
 char name[] = "psslurm";
-int version = 90;
+int version = 92;
 int requiredAPI = 114;
 plugin_dep_t dependencies[6];
 
