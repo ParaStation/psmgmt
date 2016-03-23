@@ -2,6 +2,7 @@
 !*.d/
 *.o
 *~
+*.swp
 .svn
 /autom4te.cache
 build*/*
