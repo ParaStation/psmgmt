@@ -19,9 +19,13 @@
 #define __PS_SLURM_IO
 
 #include "pslog.h"
+#include "psslurmjob.h"
 
 #define MAX_SATTACH_SOCKETS 30
 
+void writeIOmsg(char *msg, uint32_t msgLen, uint32_t taskid,
+			uint8_t type, Forwarder_Data_t *fwdata, Step_t *step,
+			uint32_t lrank);
 int stepForwarderMsg(void *data, char *ptr, int32_t cmd);
 char *replaceStepSymbols(Step_t *step, int rank, char *path);
 char *replaceJobSymbols(Job_t *job, char *path);

@@ -550,7 +550,7 @@ static void execJobStep(void *data, int rerun)
 
     if (step->multiProg) {
 	argv = urealloc(argv, sizeof(char *) * (10 * step->np));
-	setupArgsFromMultiProg(step, argv, &argc);
+	setupArgsFromMultiProg(step, fwdata, argv, &argc);
     } else {
 	/* number of processes */
 	argv[argc++] = ustrdup("-np");

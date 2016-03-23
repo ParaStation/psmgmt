@@ -20,6 +20,7 @@
 
 #include "psslurmjob.h"
 
-void setupArgsFromMultiProg(Step_t *step, char **argv, int *argc);
+void setupArgsFromMultiProg(Step_t *step, Forwarder_Data_t *fwdata,
+			    char **argv, int *argc);
 
 #endif

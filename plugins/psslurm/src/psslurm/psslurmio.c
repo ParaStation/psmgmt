@@ -143,7 +143,7 @@ static void msg2Buffer(char *msg, uint32_t msgLen, uint32_t taskid,
     }
 }
 
-static void writeIOmsg(char *msg, uint32_t msgLen, uint32_t taskid,
+void writeIOmsg(char *msg, uint32_t msgLen, uint32_t taskid,
 			uint8_t type, Forwarder_Data_t *fwdata, Step_t *step,
 			uint32_t lrank)
 {
