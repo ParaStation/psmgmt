@@ -50,5 +50,7 @@ void getConfValueU(Config_t *conf, char *key, unsigned int *value);
 void getConfValueI(Config_t *conf, char *key, int *value);
 void getConfValueL(Config_t *conf, char *key, long *value);
 void setConfigDefaults(Config_t *conf, const ConfDef_t confDef[]);
+int verfiyConfigEntry(const ConfDef_t confDef[], char *key, char *value);
+int unsetConfigEntry(Config_t *conf, const ConfDef_t confDef[], char *key);
 
 #endif

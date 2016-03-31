@@ -86,6 +86,10 @@ int handleCreatePart(void *msg)
 	goto error;
     }
 
+    mlog("%s: register TID '%s' to step '%u:%u' numThreads '%u'\n", __func__,
+	    PSC_printTID(task->tid), step->jobid, step->stepid,
+	    step->numHwThreads);
+
     /* answer request */
     grantPartitionRequest(step->hwThreads, step->numHwThreads,
 			    inmsg->header.sender, task);

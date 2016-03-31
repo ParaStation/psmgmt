@@ -177,26 +177,34 @@ const ConfDef_t *getConfigDef(char *name, const ConfDef_t confDef[])
     return NULL;
 }
 
-int verifyConfig(Config_t *conf, const ConfDef_t confDef[])
+int verfiyConfigEntry(const ConfDef_t confDef[], char *key, char *value)
 {
-    list_t *pos, *tmp;
-    long testNum;
     const ConfDef_t *def;
-    Config_t *config;
+    long testNum;
 
-    if (list_empty(&conf->list)) return 0;
+    if (!(def = getConfigDef(key, confDef))) return 1;
 
-    list_for_each_safe(pos, tmp, &conf->list) {
-	if (!(config = list_entry(pos, Config_t, list))) return 0;
-
-	if (!(def = getConfigDef(config->key, confDef))) return 1;
-
-	if (def->isNum) {
-	    if ((sscanf(config->value, "%li", &testNum)) != 1) return 2;
-	}
+    if (def->isNum) {
+	if ((sscanf(value, "%li", &testNum)) != 1) return 2;
     }
 
     return 0;
+}
+
+int verifyConfig(Config_t *conf, const ConfDef_t confDef[])
+{
+    list_t *pos, *tmp;
+    Config_t *config;
+    int res = 0;
+
+    list_for_each_safe(pos, tmp, &conf->list) {
+	if (!(config = list_entry(pos, Config_t, list))) break;
+
+	res = verfiyConfigEntry(confDef, config->key, config->value);
+	if (res) return res;
+    }
+
+    return res;
 }
 
 void delConfigEntry(Config_t *conf)
@@ -218,6 +226,25 @@ void freeConfig(Config_t *conf)
 	if (!(config = list_entry(pos, Config_t, list))) continue;
 	delConfigEntry(config);
     }
+}
+
+int unsetConfigEntry(Config_t *conf, const ConfDef_t confDef[], char *key)
+{
+    const ConfDef_t *def;
+    Config_t *confEntry;
+
+    if (!(confEntry = findConfigObj(conf, key))) return 0;
+    if (!(def = getConfigDef(key, confDef))) return 0;
+
+    if (def->def) {
+	/* reset config entry to its default value */
+	ufree(confEntry->value);
+	confEntry->value = ustrdup(def->def);
+    } else {
+	delConfigEntry(confEntry);
+    }
+
+    return 1;
 }
 
 void getConfValueL(Config_t *conf, char *key, long *value)

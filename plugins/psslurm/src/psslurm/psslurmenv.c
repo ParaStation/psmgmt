@@ -510,18 +510,23 @@ static void setBindingEnvVars(Step_t *step)
 
 void setRankEnv(int32_t rank, Step_t *step)
 {
-    char tmp[128], *myGTIDs, *list = NULL, *val;
+    char tmp[128], *myGTIDs, *list = NULL, *val, *display;
     size_t listSize = 0;
     uint32_t myNodeId = step->myNodeIndex, myLocalId, count = 0, localNodeId;
     Gres_Cred_t *gres;
     Alloc_t *alloc;
     Job_t *job;
 
+    /* we need the DISPLAY variable set by psslurm */
+    display = getenv("DISPLAY");
+
     for (count=0; count<step->env.cnt; count++) {
 	if (!(strncmp(step->env.vars[count], "SLURM_RLIMIT_", 13))) continue;
 	if (!(strncmp(step->env.vars[count], "SLURM_UMASK=", 12))) continue;
 	if (!(strncmp(step->env.vars[count], "SLURM_MPI_TYPE=", 15))) continue;
 	if (!(strncmp(step->env.vars[count], "PWD=", 4))) continue;
+	if (display &&
+	    !(strncmp(step->env.vars[count], "DISPLAY=", 8))) continue;
 	putenv(step->env.vars[count]);
     }
 
@@ -619,6 +624,7 @@ void removeUserVars(env_t *env)
 	if (!strncmp(env->vars[i], "PATH=", 5)) continue;
 	if (!strncmp(env->vars[i], "HOME=", 5)) continue;
 	if (!strncmp(env->vars[i], "PWD=", 4)) continue;
+	if (!strncmp(env->vars[i], "DISPLAY=", 8)) continue;
 
 	if (!(strncmp(env->vars[i], "SLURM_STEPID=", 13))) continue;
 	if (!(strncmp(env->vars[i], "SLURM_JOBID=", 12))) continue;

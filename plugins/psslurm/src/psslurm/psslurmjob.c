@@ -93,6 +93,7 @@ Job_t *addJob(uint32_t jobid)
     job->mother = 0;
     job->signaled = 0;
     job->firstKillRequest = 0;
+    job->start_time = time(0);
     INIT_LIST_HEAD(&job->tasks.list);
     INIT_LIST_HEAD(&job->gres.list);
     envInit(&job->env);
@@ -125,6 +126,7 @@ Alloc_t *addAllocation(uint32_t jobid, uint32_t nrOfNodes, char *slurmNodes,
     alloc->username = ustrdup(username);
     alloc->firstKillRequest = 0;
     alloc->motherSup = -1;
+    alloc->start_time = time(0);
 
     /* init nodes */
     getNodesFromSlurmHL(slurmNodes, &alloc->nrOfNodes, &alloc->nodes,
@@ -211,6 +213,7 @@ Step_t *addStep(uint32_t jobid, uint32_t stepid)
     step->stdErrOpt = IO_UNDEF;
     step->timeout = 0;
     step->ioCon = 1;
+    step->start_time = time(0);
     INIT_LIST_HEAD(&step->tasks.list);
     INIT_LIST_HEAD(&step->gres.list);
     envInit(&step->env);
@@ -841,7 +844,7 @@ int signalStepsByJobid(uint32_t jobid, int signal)
     list_for_each_safe(pos, tmp, &StepList.list) {
 	if (!(step = list_entry(pos, Step_t, list))) break;
 
-	if (step->jobid == jobid) {
+	if (step->jobid == jobid && step->state != JOB_COMPLETE) {
 	    count += signalStep(step, signal);
 	}
     }

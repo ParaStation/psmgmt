@@ -205,6 +205,7 @@ typedef struct {
     uint8_t timeout;
     uint8_t ioCon;
     uint32_t localNodeId;
+    time_t start_time;	        /* the time were the step started */
     Forwarder_Data_t *fwdata;
     PSpart_HWThread_t *hwThreads;
     PS_Tasks_t tasks;
@@ -279,8 +280,9 @@ typedef struct {
     char *username;
     time_t firstKillRequest;
     PStask_ID_t motherSup;
+    time_t start_time;	        /* the time were the allocation started */
     uint32_t localNodeId;
-    struct list_head list;  /* the job list header */
+    struct list_head list;	/* the allocation list header */
 } Alloc_t;
 
 /* list which holds all jobs */
