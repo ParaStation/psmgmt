@@ -174,113 +174,132 @@ int psAccountGetJobInfo(pid_t jobscript, psaccAccountInfo_t *accData)
     return true;
 }
 
-/**
- * @brief Handle an account update message.
- *
- * @param msg The message to handle.
- *
- * @return No return value.
- */
-static void handleAccountUpdate(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
+static void handleAggDataFinish(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 {
-    uint64_t rssnew, vsizenew, cutime, cstime, threads, majflt, pageSize;
-    uint64_t rChar, wChar, readBytes, writeBytes, cpuFreq;
-    Client_t *client;
-    PStask_ID_t tid, logger;
-    AccountData_t *accData;
+    PStask_ID_t logger;
     char *ptr = data->buf;
+    Client_t *client;
+    list_t *pos, *tmp;
 
     /* get TaskID of logger */
     getInt32(&ptr, &logger);
 
-    /* get TaskID of remote child */
-    getInt32(&ptr, &tid);
-
-    if (!(client = findAccClientByClientTID(tid))) {
-	if (!(findHist(logger))) {
-	    mlog("%s: data update for unknown client '%s'\n", __func__,
-		PSC_printTID(tid));
+    list_for_each_safe(pos, tmp, &AccClientList.list) {
+	if (!(client = list_entry(pos, Client_t, list))) break;
+	if (PSC_getID(client->taskid) == PSC_getID(msg->header.sender) &&
+	    client->logger == logger) {
+	    client->endTime = time(NULL);
 	}
+    }
+}
+
+static void handleAggDataUpdate(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
+{
+    char *ptr = data->buf;
+    AccountDataExt_t *aggData;
+    PStask_ID_t logger;
+    Client_t *client;
+    list_t *pos, *tmp;
+    int found = 0;
+    Job_t *job;
+
+    /* get TaskID of logger */
+    getInt32(&ptr, &logger);
+
+    if (!(job = findJobByLogger(logger))) {
+	mlog("%s: update for unknown logger '%s'\n", __func__,
+	                PSC_printTID(logger));
 	return;
     }
-    accData = &client->data;
 
-    /* pageSize */
-    getUint64(&ptr, &pageSize);
-    if (!client->pageSize) client->pageSize = pageSize;
+    list_for_each_safe(pos, tmp, &AccClientList.list) {
+	if (!(client = list_entry(pos, Client_t, list))) break;
+	if (PSC_getID(client->taskid) == PSC_getID(msg->header.sender) &&
+	    client->logger == logger) {
+	    found = 1;
+	    break;
+	}
+    }
 
-    /* maxRss */
-    getUint64(&ptr, &rssnew);
-    if (rssnew > accData->maxRss) accData->maxRss = rssnew;
-    accData->avgRss += rssnew;
-    accData->avgRssCount++;
+    if (!found) {
+	client = addAccClient(msg->header.sender, ACC_CHILD_REMOTE);
+	client->logger = logger;
+	client->doAccounting = 0;
+    }
 
-    /* maxVsize */
-    getUint64(&ptr, &vsizenew);
-    if (vsizenew > accData->maxVsize) accData->maxVsize = vsizenew;
-    accData->avgVsize += vsizenew;
-    accData->avgVsizeCount++;
+    aggData = &client->data;
 
-    /* cutime */
-    getUint64(&ptr, &cutime);
-    if (cutime > accData->cutime) accData->cutime = cutime;
+    getUint64(&ptr, &aggData->maxThreadsTotal);
+    getUint64(&ptr, &aggData->maxVsizeTotal);
+    getUint64(&ptr, &aggData->maxRssTotal);
+    getUint64(&ptr, &aggData->maxThreads);
+    getUint64(&ptr, &aggData->maxVsize);
+    getUint64(&ptr, &aggData->maxRss);
 
-    /* cstime */
-    getUint64(&ptr, &cstime);
-    if (cstime > accData->cstime) accData->cstime = cstime;
+    getUint64(&ptr, &aggData->avgThreadsTotal);
+    getUint64(&ptr, &aggData->avgThreadsCount);
+    getUint64(&ptr, &aggData->avgVsizeTotal);
+    getUint64(&ptr, &aggData->avgVsizeCount);
+    getUint64(&ptr, &aggData->avgRssTotal);
+    getUint64(&ptr, &aggData->avgRssCount);
 
-    /* threads */
-    getUint64(&ptr, &threads);
-    if (threads > accData->maxThreads) accData->maxThreads = threads;
-    accData->avgThreads += threads;
-    accData->avgThreadsCount++;
+    getUint64(&ptr, &aggData->cutime);
+    getUint64(&ptr, &aggData->cstime);
+    getUint64(&ptr, &aggData->cputime);
+    getUint64(&ptr, &aggData->minCputime);
+    getUint64(&ptr, &aggData->pageSize);
+    getUint32(&ptr, &aggData->numTasks);
 
-    /* majflt */
-    getUint64(&ptr, &majflt);
-    if (majflt > accData->majflt) accData->majflt = majflt;
+    getUint64(&ptr, &aggData->maxMajflt);
+    getUint64(&ptr, &aggData->totMajflt);
+    getUint64(&ptr, &aggData->totCputime);
+    getUint64(&ptr, &aggData->cpuFreq);
 
-    /* rChar/wChar */
-    getUint64(&ptr, &rChar);
-    if (rChar > accData->rChar) accData->rChar = rChar;
-    getUint64(&ptr, &wChar);
-    if (wChar > accData->wChar) accData->wChar = wChar;
+    getDouble(&ptr, &aggData->maxDiskRead);
+    getDouble(&ptr, &aggData->totDiskRead);
+    getDouble(&ptr, &aggData->maxDiskWrite);
+    getDouble(&ptr, &aggData->totDiskWrite);
 
-    /* readBytes/writeBytes */
-    getUint64(&ptr, &readBytes);
-    if (readBytes > accData->readBytes) accData->readBytes = readBytes;
-    getUint64(&ptr, &writeBytes);
-    if (writeBytes > accData->writeBytes) accData->writeBytes = writeBytes;
+    getInt32(&ptr, &aggData->taskIds[ACCID_MAX_VSIZE]);
+    getInt32(&ptr, &aggData->taskIds[ACCID_MAX_RSS]);
+    getInt32(&ptr, &aggData->taskIds[ACCID_MAX_PAGES]);
+    getInt32(&ptr, &aggData->taskIds[ACCID_MIN_CPU]);
+    getInt32(&ptr, &aggData->taskIds[ACCID_MAX_DISKREAD]);
+    getInt32(&ptr, &aggData->taskIds[ACCID_MAX_DISKWRITE]);
 
-    /* CPU freq */
-    getUint64(&ptr, &cpuFreq);
-    if (cpuFreq > accData->cpuFreq) accData->cpuFreq = cpuFreq;
+    getTime(&ptr, &aggData->rusage.ru_utime.tv_sec);
+    getTime(&ptr, &aggData->rusage.ru_utime.tv_usec);
+    getTime(&ptr, &aggData->rusage.ru_stime.tv_sec);
+    getTime(&ptr, &aggData->rusage.ru_stime.tv_usec);
 
-    mdbg(PSACC_LOG_UPDATE_MSG, "%s: client '%s' maxRss '%zu'" " maxVsize '%zu' "
-	    "cutime '%zu' cstime '%zu' majflt '%zu' rChar '%zu' wChar '%zu' "
-	    "readBytes '%zu' writeBytes '%zu' cpuFreq '%zu'\n", __func__,
-	    PSC_printTID(client->taskid), rssnew, vsizenew, cutime,
-	    cstime, majflt, rChar, wChar, readBytes, writeBytes, cpuFreq);
+    mdbg(PSACC_LOG_UPDATE_MSG, "%s: from '%s' maxThreadsTot '%zu' maxVsizeTot "
+	    "'%zu' maxRsstot '%zu' maxThreads '%zu' maxVsize '%zu' maxRss '%zu'"
+	    " numTasks '%u'\n", __func__, PSC_printTID(msg->header.sender),
+	    aggData->maxThreadsTotal, aggData->maxVsizeTotal,
+	    aggData->maxRssTotal, aggData->maxThreads, aggData->maxVsize,
+	    aggData->maxRss, aggData->numTasks);
 }
 
 void handleInterAccount(DDTypedBufferMsg_t *msg)
 {
     switch (msg->type) {
-	case PSP_ACCOUNT_FORWARD_START:
-	    /* remote child started */
-	    handleAccountChild(msg, 1);
-	    break;
-	case PSP_ACCOUNT_FORWARD_END:
-	    /* remote child/logger finished */
-	    handleAccountEnd(msg, 1);
-	    break;
-	case PSP_ACCOUNT_DATA_UPDATE:
-	    recvFragMsg(msg, handleAccountUpdate);
-	    break;
 	case PSP_ACCOUNT_ENABLE_UPDATE:
 	    handleSwitchUpdate(msg, 1);
 	    break;
 	case PSP_ACCOUNT_DISABLE_UPDATE:
 	    handleSwitchUpdate(msg, 0);
+	    break;
+	case PSP_ACCOUNT_AGG_DATA_UPDATE:
+	    recvFragMsg(msg, handleAggDataUpdate);
+	    break;
+	case PSP_ACCOUNT_AGG_DATA_FINISH:
+	    recvFragMsg(msg, handleAggDataFinish);
+	    break;
+	/* obsolete, to be removed */
+	case PSP_ACCOUNT_FORWARD_START:
+	case PSP_ACCOUNT_DATA_UPDATE:
+	case PSP_ACCOUNT_FORWARD_END:
+	    mlog("%s: got obsolete msg '%i'\n", __func__, msg->type);
 	    break;
 	default:
 	    mlog("%s: unknown msg type '%i' form sender '%s'\n", __func__,
@@ -288,101 +307,84 @@ void handleInterAccount(DDTypedBufferMsg_t *msg)
     }
 }
 
-void sendAccountUpdate(Client_t *client)
+void sendAggDataFinish(PStask_ID_t loggerTID)
 {
-    PSnodes_ID_t loggerNode = PSC_getID(client->logger);
     PS_DataBuffer_t data = { .buf = NULL };
+    PSnodes_ID_t loggerNode = PSC_getID(loggerTID);
 
     /* add logger TaskID */
-    addInt32ToMsg(client->logger, &data);
-
-    /* add client TaskID */
-    addInt32ToMsg(client->taskid, &data);
-
-    /* pageSize */
-    addUint64ToMsg(pageSize, &data);
-
-    /* maxRss */
-    addUint64ToMsg(client->data.maxRss, &data);
-
-    /* maxVsize */
-    addUint64ToMsg(client->data.maxVsize, &data);
-
-    /* cutime */
-    addUint64ToMsg(client->data.cutime, &data);
-
-    /* cstime */
-    addUint64ToMsg(client->data.cstime, &data);
-
-    /* threads */
-    addUint64ToMsg(client->data.maxThreads, &data);
-
-    /* major page faults */
-    addUint64ToMsg(client->data.majflt, &data);
-
-    /* rChar/wChar */
-    addUint64ToMsg(client->data.rChar, &data);
-    addUint64ToMsg(client->data.wChar, &data);
-
-    /* readBytes/writeBytes */
-    addUint64ToMsg(client->data.readBytes, &data);
-    addUint64ToMsg(client->data.writeBytes, &data);
-
-    /* CPU freq */
-    addUint64ToMsg(client->data.cpuFreq, &data);
-
-    mdbg(PSACC_LOG_UPDATE_MSG, "%s: dest '%s' maxRss '%zu' maxVsize '%zu' "
-	    "cutime '%zu' cstime '%zu' maxThreads '%zu' majflt '%zu' "
-	    "cpuFreq '%zu'\n", __func__, PSC_printTID(client->taskid),
-	    client->data.maxRss, client->data.maxVsize, client->data.cutime,
-	    client->data.cstime, client->data.maxThreads, client->data.majflt,
-	    client->data.cpuFreq);
+    addInt32ToMsg(loggerTID, &data);
 
     sendFragMsg(&data, PSC_getTID(loggerNode, 0), PSP_CC_PLUG_ACCOUNT,
-		    PSP_ACCOUNT_DATA_UPDATE);
-    ufree(data.buf);
+		    PSP_ACCOUNT_AGG_DATA_FINISH);
 }
 
-void forwardAccountMsg(DDTypedBufferMsg_t *msg, int type, PStask_ID_t logger)
+void sendAggregatedData(AccountDataExt_t *aggData, PStask_ID_t loggerTID)
 {
-    DDTypedBufferMsg_t *fmsg;
-    PSnodes_ID_t loggerNode;
-    char *ptr;
+    PS_DataBuffer_t data = { .buf = NULL };
+    PSnodes_ID_t loggerNode = PSC_getID(loggerTID);
 
-    /* copy the msg */
-    fmsg = umalloc(sizeof(DDTypedBufferMsg_t));
-    memcpy(fmsg, msg, msg->header.len);
+    /* add logger TaskID */
+    addInt32ToMsg(loggerTID, &data);
 
-    /* prepare to forward */
-    fmsg->type = type;
-    fmsg->header.sender = PSC_getMyTID();
-    loggerNode = PSC_getID(logger);
-    fmsg->header.dest = PSC_getTID(loggerNode, 0);
-    fmsg->header.type = PSP_CC_PLUG_ACCOUNT;
+    addUint64ToMsg(aggData->maxThreadsTotal, &data);
+    addUint64ToMsg(aggData->maxVsizeTotal, &data);
+    addUint64ToMsg(aggData->maxRssTotal, &data);
+    addUint64ToMsg(aggData->maxThreads, &data);
+    addUint64ToMsg(aggData->maxVsize, &data);
+    addUint64ToMsg(aggData->maxRss, &data);
 
-    /* add TaskID of child for start message */
-    if (type == PSP_ACCOUNT_FORWARD_START) {
-	fmsg->header.len = sizeof(fmsg->header);
-	ptr = fmsg->buf;
-	ptr += sizeof(PStask_ID_t);
-	fmsg->header.len += sizeof(PStask_ID_t);
-	ptr += sizeof(int32_t);
-	fmsg->header.len += sizeof(int32_t);
-	ptr += sizeof(uid_t);
-	fmsg->header.len += sizeof(uid_t);
-	ptr += sizeof(gid_t);
-	fmsg->header.len += sizeof(gid_t);
+    addUint64ToMsg(aggData->avgThreadsTotal, &data);
+    addUint64ToMsg(aggData->avgThreadsCount, &data);
+    addUint64ToMsg(aggData->avgVsizeTotal, &data);
+    addUint64ToMsg(aggData->avgVsizeCount, &data);
+    addUint64ToMsg(aggData->avgRssTotal, &data);
+    addUint64ToMsg(aggData->avgRssCount, &data);
 
-	*( PStask_ID_t *)ptr = msg->header.sender;
-	//ptr += sizeof(PStask_ID_t);
-	fmsg->header.len += sizeof(PStask_ID_t);
-    }
+    addUint64ToMsg(aggData->cutime, &data);
+    addUint64ToMsg(aggData->cstime, &data);
+    addUint64ToMsg(aggData->cputime, &data);
+    addUint64ToMsg(aggData->minCputime, &data);
+    addUint64ToMsg(pageSize, &data);
+    addUint32ToMsg(aggData->numTasks, &data);
 
-    if (sendMsg(fmsg) == -1 && errno != EWOULDBLOCK) {
-	mwarn(errno, "%s: sendMsg() to '%s' failed ", __func__,
-		PSC_printTID(fmsg->header.dest));
-    }
-    ufree(fmsg);
+    addUint64ToMsg(aggData->maxMajflt, &data);
+    addUint64ToMsg(aggData->totMajflt, &data);
+    addUint64ToMsg(aggData->totCputime, &data);
+    addUint64ToMsg(aggData->cpuFreq, &data);
+
+    addDoubleToMsg(aggData->maxDiskRead, &data);
+    addDoubleToMsg(aggData->totDiskRead, &data);
+    addDoubleToMsg(aggData->maxDiskWrite, &data);
+    addDoubleToMsg(aggData->totDiskWrite, &data);
+
+    addInt32ToMsg(aggData->taskIds[ACCID_MAX_VSIZE], &data);
+    addInt32ToMsg(aggData->taskIds[ACCID_MAX_RSS], &data);
+    addInt32ToMsg(aggData->taskIds[ACCID_MAX_PAGES], &data);
+    addInt32ToMsg(aggData->taskIds[ACCID_MIN_CPU], &data);
+    addInt32ToMsg(aggData->taskIds[ACCID_MAX_DISKREAD], &data);
+    addInt32ToMsg(aggData->taskIds[ACCID_MAX_DISKWRITE], &data);
+
+    addTimeToMsg(&aggData->rusage.ru_utime.tv_sec, &data);
+    addTimeToMsg(&aggData->rusage.ru_utime.tv_usec, &data);
+    addTimeToMsg(&aggData->rusage.ru_stime.tv_sec, &data);
+    addTimeToMsg(&aggData->rusage.ru_stime.tv_usec, &data);
+
+    sendFragMsg(&data, PSC_getTID(loggerNode, 0), PSP_CC_PLUG_ACCOUNT,
+		    PSP_ACCOUNT_AGG_DATA_UPDATE);
+
+    ufree(data.buf);
+
+    mdbg(PSACC_LOG_UPDATE_MSG, "%s: to '%i' maxThreadsTot '%zu' maxVsizeTot "
+	    "'%zu' maxRsstot '%zu' maxThreads '%zu' maxVsize '%zu' maxRss '%zu'"
+	    " numTasks '%u' avgThreadsTotal '%zu' avgThreadsCount '%zu' "
+	    "avgVsizeTotal '%zu' avgVsizeCount '%zu' avgRssTotal '%zu' "
+	    "avgRssCount '%zu'\n", __func__, loggerNode,
+	    aggData->maxThreadsTotal, aggData->maxVsizeTotal,
+	    aggData->maxRssTotal, aggData->maxThreads, aggData->maxVsize,
+	    aggData->maxRss, aggData->numTasks, aggData->avgThreadsTotal,
+	    aggData->avgThreadsCount, aggData->avgVsizeTotal,
+	    aggData->avgVsizeCount, aggData->avgRssTotal, aggData->avgRssCount);
 }
 
 int psAccountSignalAllChildren(pid_t mypid, pid_t child, pid_t pgroup, int sig)

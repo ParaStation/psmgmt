@@ -25,6 +25,8 @@ typedef enum {
     PSP_ACCOUNT_DATA_UPDATE,
     PSP_ACCOUNT_ENABLE_UPDATE,
     PSP_ACCOUNT_DISABLE_UPDATE,
+    PSP_ACCOUNT_AGG_DATA_UPDATE,
+    PSP_ACCOUNT_AGG_DATA_FINISH,
 } PSP_PSAccount_t;
 
 extern int globalCollectMode;
@@ -38,28 +40,9 @@ extern int globalCollectMode;
  */
 void handleInterAccount(DDTypedBufferMsg_t *msg);
 
-/**
- * @brief Forward an accounting data record to another node.
- *
- * This function will forward received accounting messages
- * to the node were the logger is executed.
- *
- * @param msg The message to forward.
- *
- * @param type The type of the message to forward.
- *
- * @param logger The logger TaskID to forward this message to.
- *
- * @return No return value.
- */
-void forwardAccountMsg(DDTypedBufferMsg_t *msg, int type, PStask_ID_t logger);
+void sendAggregatedData(AccountDataExt_t *aggData, PStask_ID_t loggerTID);
 
-/**
- * @brief Experimental function.
- *
- * @return No return value.
- */
-void sendAccountUpdate(Client_t *client);
+void sendAggDataFinish(PStask_ID_t loggerTID);
 
 /**
  * @brief Enable the global collection of accounting data.

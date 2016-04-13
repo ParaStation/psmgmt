@@ -151,7 +151,8 @@ static char *showClient(char *buf, size_t *bufSize, int detailed)
 	snprintf(line, sizeof(line), "gid '%i'\n", client->gid);
 	str2Buf(line, &buf, bufSize);
 
-	snprintf(line, sizeof(line), "page size '%zu'\n", client->pageSize);
+	snprintf(line, sizeof(line), "page size '%zu'\n",
+		    client->data.pageSize);
 	str2Buf(line, &buf, bufSize);
 
 	snprintf(line, sizeof(line), "start time %s",

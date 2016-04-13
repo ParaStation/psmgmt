@@ -91,7 +91,7 @@ void startPsslurm(void)
     dependencies[0].name = "psmunge";
     dependencies[0].version = 3;
     dependencies[1].name = "psaccount";
-    dependencies[1].version = 23;
+    dependencies[1].version = 25;
     dependencies[2].name = "pelogue";
     dependencies[2].version = 5;
     dependencies[3].name = "pspam";

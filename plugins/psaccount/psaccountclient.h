@@ -45,10 +45,8 @@ typedef struct {
     time_t endTime;
     int rank;
     int status;
-    uint64_t pageSize;
-    AccountData_t data;
+    AccountDataExt_t data;
     struct timeval walltime;
-    struct rusage rusage;
     struct list_head list;
 } Client_t;
 
@@ -215,10 +213,14 @@ int deleteAccClient(PStask_ID_t tid);
 
 void addAccDataForClient(Client_t *client, AccountDataExt_t *accData);
 
+void addAggData(AccountDataExt_t *srcData, AccountDataExt_t *destData);
+
 int getAccountDataByLogger(PStask_ID_t logger, AccountDataExt_t *accData);
 
 int getPidsByLogger(PStask_ID_t logger, pid_t **pids, uint32_t *count);
 
 void switchClientUpdate(PStask_ID_t clientTID, int enable);
+
+void forwardAggData(void);
 
 #endif

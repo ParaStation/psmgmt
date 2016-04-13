@@ -50,6 +50,10 @@ const ConfDef_t CONFIG_VALUES[] =
 	"num",
 	"0",
 	"The debug mask for logging" },
+    { "FORWARD_INTERVAL", 1,
+	"num",
+	"2",
+	"Forward every x accounting update" },
 };
 
 const int configValueCount = sizeof(CONFIG_VALUES) / sizeof (CONFIG_VALUES[0]);

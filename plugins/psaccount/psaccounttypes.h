@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014 - 2015 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -14,7 +14,6 @@
  * Michael Rauh <rauh@par-tec.com>
  *
  */
-
 
 #ifndef __PS_ACCOUNT_TYPES
 #define __PS_ACCOUNT_TYPES
@@ -54,7 +53,6 @@ typedef struct {
     uint64_t readBytes;
     uint64_t writeBytes;
     uint64_t cpuFreq;
-    uint64_t cpuWeight;
 } AccountData_t;
 
 typedef enum {
@@ -67,6 +65,8 @@ typedef enum {
 } ExAccTaskIds_t;
 
 typedef struct {
+    pid_t session;
+    pid_t pgroup;
     uint64_t maxThreadsTotal;
     uint64_t maxVsizeTotal;
     uint64_t maxRssTotal;
@@ -93,6 +93,9 @@ typedef struct {
     double totDiskRead;
     double maxDiskWrite;
     double totDiskWrite;
+    uint64_t readBytes;
+    uint64_t writeBytes;
+    uint64_t cpuWeight;
     PStask_ID_t taskIds[6];
     struct rusage rusage;
 } AccountDataExt_t;

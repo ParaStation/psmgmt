@@ -24,8 +24,8 @@ typedef struct {
 } Session_Info_t;
 
 typedef struct {
-    uint64_t rChar;
-    uint64_t wChar;
+    uint64_t diskRead;
+    uint64_t diskWrite;
     uint64_t readBytes;
     uint64_t writeBytes;
 } ProcIO_t;

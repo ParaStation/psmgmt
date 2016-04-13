@@ -2155,6 +2155,7 @@ int addSlurmAccData(uint8_t accType, pid_t childPid, PStask_ID_t loggerTID,
 {
     AccountDataExt_t accData;
     int i, res = 0;
+    uint64_t avgVsize = 0, avgRss = 0;
 
     if (!accType) {
 	addUint8ToMsg(0, data);
@@ -2189,16 +2190,29 @@ int addSlurmAccData(uint8_t accType, pid_t childPid, PStask_ID_t loggerTID,
 	return 0;
     }
 
+    avgVsize = accData.avgVsizeCount ?
+		    accData.avgVsizeTotal / accData.avgVsizeCount : 0;
+    avgRss = accData.avgRssCount ?
+		    accData.avgRssTotal / accData.avgRssCount : 0;
+
     mlog("%s: adding account data: maxVsize '%zu' maxRss '%zu' pageSize '%lu' "
 	    "u_sec '%lu' u_usec '%lu' s_sec '%lu' s_usec '%lu' "
-	    "num_tasks '%u' avgVsizeTotal '%lu' avgRssTotal '%lu' avg cpufreq "
+	    "num_tasks '%u' avgVsize '%lu' avgRss '%lu' avg cpufreq "
 	    "'%.2fG'\n", __func__, accData.maxVsize, accData.maxRss,
 	    accData.pageSize, accData.rusage.ru_utime.tv_sec,
 	    accData.rusage.ru_utime.tv_usec, accData.rusage.ru_stime.tv_sec,
-	    accData.rusage.ru_stime.tv_usec, accData.numTasks,
-	    accData.avgVsizeTotal, accData.avgRssTotal,
+	    accData.rusage.ru_stime.tv_usec, accData.numTasks, avgVsize, avgRss,
 	    ((double) accData.cpuFreq / (double) accData.numTasks)
 		/ (double) 1048576);
+
+    mdbg(PSSLURM_LOG_ACC, "%s: nodes maxVsize '%u' maxRss '%u' maxPages '%u' "
+	    "minCpu '%u' maxDiskRead '%u' maxDiskWrite '%u'\n", __func__,
+	    PSC_getID(accData.taskIds[ACCID_MAX_VSIZE]),
+	    PSC_getID(accData.taskIds[ACCID_MAX_RSS]),
+	    PSC_getID(accData.taskIds[ACCID_MAX_PAGES]),
+	    PSC_getID(accData.taskIds[ACCID_MIN_CPU]),
+	    PSC_getID(accData.taskIds[ACCID_MAX_DISKREAD]),
+	    PSC_getID(accData.taskIds[ACCID_MAX_DISKWRITE]));
 
     /* user cpu sec/usec */
     addUint32ToMsg(accData.rusage.ru_utime.tv_sec, data);

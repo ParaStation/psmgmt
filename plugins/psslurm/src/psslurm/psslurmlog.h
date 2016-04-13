@@ -47,6 +47,7 @@ typedef enum {
     PSSLURM_LOG_GRES	 =	0x008000, /**< Gres */
     PSSLURM_LOG_FWD      =      0x010000, /** < Msg forwarding */
     PSSLURM_LOG_IO       =      0x020000, /** < I/O */
+    PSSLURM_LOG_ACC       =     0x040000, /** < Account */
 } PSSLURM_log_types_t;
 
 #endif

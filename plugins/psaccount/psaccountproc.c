@@ -329,9 +329,9 @@ int readProcIO(pid_t pid, ProcIO_t *io)
     /* format string of /proc/pid/io */
     static char io_format[] =
 		    "%*[^:]: "
-		    "%"PRIu64" "     /* rchar */
+		    "%"PRIu64" "     /* rchar / disk read */
 		    "%*[^:]: "
-		    "%"PRIu64" "     /* wchar */
+		    "%"PRIu64" "     /* wchar / disk write */
 		    "%*[^:]: "
 		    "%*"PRIu64" "    /* syscr */
 		    "%*[^:]: "
@@ -350,8 +350,8 @@ int readProcIO(pid_t pid, ProcIO_t *io)
 	return 0;
     }
 
-    if ((ret = fscanf(fd, io_format, &io->rChar, &io->wChar, &io->readBytes,
-			&io->writeBytes)) != 4) {
+    if ((ret = fscanf(fd, io_format, &io->diskRead, &io->diskWrite,
+			&io->readBytes, &io->writeBytes)) != 4) {
 	fclose(fd);
 	return 0;
     }

@@ -42,7 +42,7 @@
 
 /** psid plugin requirements */
 char name[] = "psaccount";
-int version = 24;
+int version = 25;
 int requiredAPI = 114;
 plugin_dep_t dependencies[1];
 
@@ -52,7 +52,7 @@ int clockTicks = -1;
 /** the linux system page size */
 int pageSize = -1;
 
-int daemonSock;
+int daemonSock = -1;
 
 /** save default handler for accouting msgs */
 handlerFunc_t oldAccountHandler = NULL;

@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010 - 2015 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -42,20 +42,15 @@ void updateAccountData(Client_t *client)
 {
     unsigned long rssnew, vsizenew = 0;
     uint64_t cutime, cstime;
-    AccountData_t *accData;
+    AccountDataExt_t *accData;
     Proc_Snapshot_t *proc, *pChildren;
     ProcIO_t procIO;
-    int sendUpdate = 0;
-    uint64_t cputime;
+    uint64_t cputime, maxRssMB = 0;
     int64_t diffCputime;
 
     if (client->doAccounting == 0) return;
 
     if (!(proc = findProcSnapshot(client->pid))) {
-	/*
-	mlog("%s: snapshot for child '%i' not found, stopping accounting\n",
-	    __func__, client->pid);
-	*/
 	client->doAccounting = 0;
 	client->endTime = time(NULL);
 	return;
@@ -83,19 +78,19 @@ void updateAccountData(Client_t *client)
 
     /* set rss (resident set size) */
     if (rssnew > accData->maxRss) accData->maxRss = rssnew;
-    accData->avgRss += rssnew;
+    accData->avgRssTotal += rssnew;
     accData->avgRssCount++;
 
     /* set virtual mem */
     if (vsizenew > accData->maxVsize) accData->maxVsize = vsizenew;
-    accData->avgVsize += vsizenew;
+    accData->avgVsizeTotal += vsizenew;
     accData->avgVsizeCount++;
 
     /* set threads */
     if (proc->threads > accData->maxThreads) {
 	accData->maxThreads = proc->threads;
     }
-    accData->avgThreads += proc->threads;
+    accData->avgThreadsTotal += proc->threads;
     accData->avgThreadsCount++;
 
     /* set cutime and cstime */
@@ -105,14 +100,18 @@ void updateAccountData(Client_t *client)
     if (cstime > accData->cstime) accData->cstime = cstime;
 
     /* set major page faults */
-    if (proc->majflt > accData->majflt) accData->majflt = proc->majflt;
+    if (proc->majflt > accData->totMajflt) accData->totMajflt = proc->majflt;
 
     /* read IO statistics */
     readProcIO(client->pid, &procIO);
 
-    /* set rChar/wChar */
-    if (procIO.rChar > accData->rChar) accData->rChar = procIO.rChar;
-    if (procIO.wChar > accData->wChar) accData->wChar = procIO.wChar;
+    /* set total disc read/write */
+    if (procIO.diskRead > accData->totDiskRead) {
+	accData->totDiskRead = procIO.diskRead;
+    }
+    if (procIO.diskWrite > accData->totDiskWrite) {
+	accData->totDiskWrite = procIO.diskWrite;
+    }
 
     /* set readBytes/writeBytes */
     if (procIO.readBytes > accData->readBytes) {
@@ -132,19 +131,13 @@ void updateAccountData(Client_t *client)
     }
     if (!cputime) accData->cpuFreq = cpuFreq[proc->cpu];
 
-    getConfParamI("SAVE_ACC_UPDATES", &sendUpdate);
-    if (sendUpdate) {
-	if (globalCollectMode && client->logger != -1 &&
-		PSC_getID(client->logger) != PSC_getMyID()) {
-	    sendAccountUpdate(client);
-	}
-    }
+    maxRssMB = (accData->maxRss * (pageSize / (1024)) / 1024);
 
     mdbg(PSACC_LOG_COLLECT, "%s: tid '%s' rank '%i' cutime: '%lu' cstime: '%lu'"
-	    " session '%i' mem '%lu' vmem '%lu' threads '%lu' "
+	    " session '%i' mem '%lu MB' vmem '%lu MB' threads '%lu' "
 	    "majflt '%lu' cpu '%u' cpuFreq '%lu'\n", __func__,
 	    PSC_printTID(client->taskid),
 	    client->rank, accData->cutime, accData->cstime, accData->session,
-	    accData->maxRss, accData->maxVsize, accData->maxThreads,
-	    accData->majflt, proc->cpu, accData->cpuFreq);
+	    maxRssMB, accData->maxVsize / (1024 * 1024), accData->maxThreads,
+	    accData->totMajflt, proc->cpu, accData->cpuFreq);
 }
