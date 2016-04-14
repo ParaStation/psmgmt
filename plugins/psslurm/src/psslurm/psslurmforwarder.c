@@ -45,6 +45,7 @@
 #include "psslurmio.h"
 #include "psslurmpelogue.h"
 #include "psslurmpin.h"
+#include "psslurmspawn.h"
 #include "slurmcommon.h"
 
 #include "pluginpty.h"
@@ -54,6 +55,7 @@
 #include "selector.h"
 #include "psprotocolenv.h"
 #include "psaccounthandles.h"
+#include "pspmihandles.h"
 #include "pslog.h"
 
 #include "psslurmforwarder.h"
@@ -309,6 +311,9 @@ int handleForwarderInit(void * data)
     }
 
     if ((step = findStepById(jobid, stepid))) {
+
+	initSpawnFacility(step);
+
 	if (step->taskFlags & TASK_PARALLEL_DEBUG) {
 
 	    waitpid(child, &status, WUNTRACED);
@@ -325,6 +330,10 @@ int handleForwarderInit(void * data)
 	    }
 	}
     }
+
+    /* override spawn task filling function in pspmi */
+    mlog("Setting PMI spawn function to fillSpawnTaskWithSrun()\n");
+    psPmiSetFillSpawnTaskFunction(fillSpawnTaskWithSrun);
 
     return 0;
 }

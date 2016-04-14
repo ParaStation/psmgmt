@@ -36,6 +36,7 @@
 #include "psslurmenv.h"
 #include "psslurmpelogue.h"
 #include "slurmcommon.h"
+#include "psslurmspawn.h"
 
 #include "pluginmalloc.h"
 #include "pluginlog.h"
@@ -52,6 +53,7 @@
 #include "psmungehandles.h"
 #include "pspamhandles.h"
 #include "psexechandles.h"
+#include "pspmihandles.h"
 
 #include "psslurm.h"
 
@@ -84,7 +86,7 @@ handlerFunc_t oldSpawnHandler = NULL;
 char name[] = "psslurm";
 int version = 94;
 int requiredAPI = 114;
-plugin_dep_t dependencies[6];
+plugin_dep_t dependencies[7];
 
 void startPsslurm(void)
 {
@@ -98,8 +100,10 @@ void startPsslurm(void)
     dependencies[3].version = 3;
     dependencies[4].name = "psexec";
     dependencies[4].version = 1;
-    dependencies[5].name = NULL;
-    dependencies[5].version = 0;
+    dependencies[5].name = "pspmi";
+    dependencies[5].version = 4;
+    dependencies[6].name = NULL;
+    dependencies[6].version = 0;
 }
 
 void stopPsslurm(void)
@@ -399,6 +403,26 @@ static int initPluginHandles()
     if (!(psExecStartLocalScript = dlsym(pluginHandle,
 					    "psExecStartLocalScript"))) {
 	mlog("%s: loading function psExecStartLocalScript() failed\n", __func__);
+	return 0;
+    }
+
+    /* get pspmi function handles */
+    if (!(pluginHandle = PSIDplugin_getHandle("pspmi"))) {
+	mlog("%s: getting pspmi handle failed\n", __func__);
+	return 0;
+    }
+
+    if (!(psPmiSetFillSpawnTaskFunction =
+		dlsym(pluginHandle, "psPmiSetFillSpawnTaskFunction"))) {
+	mlog("%s: loading function psPmiSetFillSpawnTaskFunction() failed\n",
+		__func__);
+	return 0;
+    }
+
+    if (!(psPmiResetFillSpawnTaskFunction =
+		dlsym(pluginHandle, "psPmiResetFillSpawnTaskFunction"))) {
+	mlog("%s: loading function psPmiResetFillSpawnTaskFunction() failed\n",
+		__func__);
 	return 0;
     }
 

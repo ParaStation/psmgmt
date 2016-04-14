@@ -18,6 +18,7 @@ pelogue_dir   := plugins/pelogue
 psmunge_dir   := plugins/psmunge
 pspam_dir     := plugins/pspam/src/pspam
 psexec_dir    := plugins/psexec
+pspmi_dir     := plugins/pspmi
 
 AM_LDFLAGS += -avoid-version -module
 AM_CPPFLAGS += -I$(top_srcdir)/bin/daemon -I$(srcdir)/../include \
@@ -26,7 +27,8 @@ AM_CPPFLAGS += -I$(top_srcdir)/bin/daemon -I$(srcdir)/../include \
 	       -I$(top_srcdir)/$(pelogue_dir) \
 	       -I$(top_srcdir)/$(psmunge_dir) \
 	       -I$(top_srcdir)/$(pspam_dir) \
-	       -I$(top_srcdir)/$(psexec_dir)
+	       -I$(top_srcdir)/$(psexec_dir) \
+	       -I$(top_srcdir)/$(pspmi_dir)
 
 plugin_LTLIBRARIES = psslurm.la
 
@@ -41,12 +43,13 @@ psslurm_la_SOURCES = psslurm.c psslurm.h psslurmlog.c psslurmlog.h \
 	psslurmjobinfo.c psslurmjobinfo.h psslurmlimits.c psslurmlimits.h \
 	psslurmmultiprog.c psslurmmultiprog.h psslurmgres.c psslurmgres.h \
 	psslurmpin.c psslurmpin.h psslurmio.c psslurmio.h psslurmpelogue.h \
-	psslurmpelogue.c psslurmkvs.h psslurmkvs.c
+	psslurmpelogue.c psslurmkvs.h psslurmkvs.c psslurmspawn.c psslurmspawn.h
 
 psslurm_la_CPPFLAGS = $(AM_CPPFLAGS) -DPLUGINDIR=\"$(plugindir)\" \
 	-DLOCALSTATEDIR=\"$(localstatedir)\" -DBINDIR=\"$(bindir)\"
 
-psslurm_la_LIBADD = $(libpsi) $(libplugincommon) $(libslurmcommon) $(NUMA_LIBS)
+psslurm_la_LIBADD = $(libpsi) $(libplugincommon) $(libslurmcommon) \
+		    $(NUMA_LIBS)
 
 install-exec-local:
 	$(INSTALL) -d $(DESTDIR)$(localstatedir)/spool/parastation/jobs

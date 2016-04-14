@@ -210,6 +210,8 @@ typedef struct {
     PSpart_HWThread_t *hwThreads;
     PS_Tasks_t tasks;
     struct list_head list;	/* the step list header */
+    uint32_t pmiSrunPort;
+    char *pmiStepNodes;
 } Step_t;
 
 typedef struct {

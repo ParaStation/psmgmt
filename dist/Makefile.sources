@@ -415,6 +415,8 @@ plugins/psslurm/src/psslurm/psslurmproto.c \
 plugins/psslurm/src/psslurm/psslurmproto.h \
 plugins/psslurm/src/psslurm/psslurmpscomm.c \
 plugins/psslurm/src/psslurm/psslurmpscomm.h \
+plugins/psslurm/src/psslurm/psslurmspawn.c \
+plugins/psslurm/src/psslurm/psslurmspawn.h \
 scripts/.gdbinit \
 scripts/Makefile.am \
 scripts/Makefile.in \

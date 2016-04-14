@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014 - 2015 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -635,7 +635,9 @@ void removeUserVars(env_t *env)
 	if (!strncmp(env->vars[i], "PSI_", 4)) continue;
 	if (!strncmp(env->vars[i], "__PSI_", 6)) continue;
 
-	if (!strncmp(env->vars[i], "PMI_DEBUG", 9)) continue;
+	if (!strncmp(env->vars[i], "PMI_", 4)) continue;
+	if (!strncmp(env->vars[i], "__PMI_", 6)) continue;
+	if (!strncmp(env->vars[i], "SERVICE_KVS_PROVIDER", 20)) continue;
 
 	envUnsetIndex(env, i);
 	i--;
