@@ -21,6 +21,20 @@
 #define PMI_FINALIZED 55
 
 #include "pslog.h"
+#include "pmiclientspawn.h"
+
+/**
+ * @brief Set spawn function (symbol to be loaded in other modules)
+ *
+ * @param spawnFunc  function to use
+ */
+void psPmiSetFillSpawnTaskFunction(
+	int (*spawnFunc)(SpawnRequest_t *req, int usize, PStask_t *task));
+
+/**
+ * @brief Reset spawn function (symbol to be loaded in other modules)
+ */
+void psPmiResetFillSpawnTaskFunction(void);
 
 /**
  * @brief Handle a new PMI message from the local MPI client.

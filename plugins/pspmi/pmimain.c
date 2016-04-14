@@ -12,6 +12,7 @@
  *
  * \author
  * Michael Rauh <rauh@par-tec.com>
+ * Stephan Krempel <krempel@par-tec.com>
  *
  */
 
@@ -38,7 +39,7 @@ static int debugMask = 0;
 
 /** psid plugin requirements */
 char name[] = "pspmi";
-int version = 3;
+int version = 4;
 int requiredAPI = 110;
 plugin_dep_t dependencies[2];
 
@@ -60,6 +61,7 @@ int initialize(void)
     initLogger(NULL);
 
     /* set debug mask */
+//    debugMask = PSPMI_LOG_RECV | PSPMI_LOG_VERBOSE;
     maskLogger(debugMask);
 
     /* register needed hooks */

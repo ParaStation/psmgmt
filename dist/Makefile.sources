@@ -338,6 +338,8 @@ plugins/pspmi/Makefile.am \
 plugins/pspmi/Makefile.in \
 plugins/pspmi/pmiclient.c \
 plugins/pspmi/pmiclient.h \
+plugins/pspmi/pmiclientspawn.c \
+plugins/pspmi/pmiclientspawn.h \
 plugins/pspmi/pmiforwarder.c \
 plugins/pspmi/pmiforwarder.h \
 plugins/pspmi/pmikvs.c \
@@ -352,6 +354,7 @@ plugins/pspmi/pmiservice.c \
 plugins/pspmi/pmiservice.h \
 plugins/pspmi/pmispawn.c \
 plugins/pspmi/pmispawn.h \
+plugins/pspmi/pspmihandles.h \
 plugins/psresport/Makefile.am \
 plugins/psresport/Makefile.in \
 plugins/psresport/psresport.c \
