@@ -21,11 +21,13 @@
 #ifndef __PSPARTITION_H
 #define __PSPARTITION_H
 
+#include <stdint.h>
 #include <stdbool.h>
 
 #include "list_t.h"
 
-#include "pstask.h"
+#include "psnodes.h"
+#include "pstaskid.h"
 #include "pscpu.h"
 #include "psprotocol.h"
 
