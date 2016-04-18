@@ -2669,7 +2669,7 @@ static void msg_CHILDDEAD(DDErrorMsg_t *msg)
 
 		sendMsg(msg);
 	    }
-	    /* To be sure, mark child as released */
+	    /* To be sure, mark child as dead */
 	    PSID_log(PSID_LOG_SPAWN, "%s: %s not (yet?) child of",
 		     __func__, PSC_printTID(msg->request));
 	    PSID_log(PSID_LOG_SPAWN, " %s\n", PSC_printTID(task->tid));
