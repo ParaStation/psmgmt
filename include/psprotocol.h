@@ -24,7 +24,7 @@
 #include <stdint.h>
 #include <sys/types.h>
 #include "psnodes.h"
-#include "pstask.h"
+#include "pstaskid.h"
 
 #ifdef __cplusplus
 extern "C" {
