@@ -136,7 +136,7 @@ static int remSig(const char *fname, list_t *sigList, PStask_ID_t tid,
 	    list_del(&sig->next);
 	    PSsignal_put(sig);
 	} else {
-	    sig->deleted = 1;
+	    sig->deleted = true;
 	}
 
 	PSID_log(PSID_LOG_SIGNAL, "\n");
@@ -232,7 +232,7 @@ PStask_ID_t PSID_getSignalByID(list_t *sigList,
 	    list_del(&thissig->next);
 	    PSsignal_put(thissig);
 	} else {
-	    thissig->deleted = 1;
+	    thissig->deleted = true;
 	}
     }
 
@@ -461,7 +461,7 @@ void PStask_cleanup(PStask_ID_t tid)
 		/* @todo This is not true. See code in
 		 * msg_CLIENTCONNECT() concerning re-connected
 		 * processes and duplicate tasks */
-		sig->deleted = 1;
+		sig->deleted = true;
 
 		if (child && child->fd == -1) {
 		    PSID_log(-1, "%s: forwarder kills child %s\n",
