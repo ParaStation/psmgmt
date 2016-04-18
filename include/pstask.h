@@ -22,6 +22,7 @@
 #define __PSTASK_H
 
 #include <stdint.h>
+#include <stdbool.h>
 #include <sys/types.h>
 #include <termios.h>
 #include <sys/ioctl.h>
@@ -74,7 +75,7 @@ typedef struct __task__ {
     /*C*/ uid_t uid;               /**< user id */
     /*C*/ gid_t gid;               /**< group id */
     /*C*/ uint32_t aretty;         /**< flag stdin, stdout & stderr as tty */
-    char interactive;              /**< stdin, stdout and stderr: all ttys */
+    bool interactive;              /**< stdin, stdout and stderr: all ttys */
     int stdin_fd;                  /**< helper fd during spawn */
     int stdout_fd;                 /**< helper fd during spawn */
     int stderr_fd;                 /**< helper fd during spawn */
@@ -98,20 +99,20 @@ typedef struct __task__ {
     int pendingReleaseRes;         /**< num of pending RELEASERES messages */
     int pendingReleaseErr;         /**< set to param!=0 in RELEASERES msg */
     int activeStops;               /**< Number of active SENDSTOPs */
-    char releaseAnswer;            /**< flag final RELEASERES to initiator */
-    char released;                 /**< flag to mark released task, i.e. don't
+    bool releaseAnswer;            /**< flag final RELEASERES to initiator */
+    bool released;                 /**< flag to mark released task, i.e. don't
 				      send signal to parent on exit */
-    char parentReleased;           /**< flag RELEASE msg sent to parent */
-    char duplicate;                /**< flag to mark duplicate task, i.e. a
+    bool parentReleased;           /**< flag RELEASE msg sent to parent */
+    bool duplicate;                /**< flag to mark duplicate task, i.e. a
 				      tasks that are fork()ed by a client */
-    char suspended;                /**< flag to mark suspended tasks. */
-    char removeIt;                 /**< flag to mark task to be removed (as
+    bool suspended;                /**< flag to mark suspended tasks. */
+    bool removeIt;                 /**< flag to mark task to be removed (as
 				      soon as all children are released). */
-    char deleted;                  /**< flag to mark deleted tasks. It
+    bool deleted;                  /**< flag to mark deleted tasks. It
 				      will be removed from the list of
 				      managed tasks in the next round
 				      of the main loop */
-    char noParricide;              /**< flag to be set if kill signals should
+    /*C*/ bool noParricide;        /**< flag to be set if kill signals should
 				      not be forwarded to parents. */
     time_t killat;                 /**< flag a killed task, i.e. the time when
 				      the task should really go away. */

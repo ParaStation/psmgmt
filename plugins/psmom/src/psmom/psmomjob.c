@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2015 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -557,7 +557,7 @@ int deleteJob(char *jobid)
 	    PStask_t *task = list_entry(t, PStask_t, next);
 	    if (task->delegate == job->resDelegate) task->delegate = NULL;
 	}
-	job->resDelegate->deleted = 1;
+	job->resDelegate->deleted = true;
     }
 
     clearDataList(&job->status.list);

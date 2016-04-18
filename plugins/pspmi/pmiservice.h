@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2013-2015 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2013-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -18,6 +18,8 @@
 
 #ifndef __PS_PMI_SERVICE
 #define __PS_PMI_SERVICE
+
+#include <stdbool.h>
 
 /**
  * @brief Spawn a service process to start further compute processes.
@@ -69,6 +71,6 @@
 int spawnService(int np, char *nps[], char **c_argvs[], int c_argcs[],
 		 char **c_envvs[], int c_envcs[], char *wdirs[], char *tpps[],
 		 char *nTypes[], char *paths[], int ts, int usize,
-		 int serviceRank, char *kvsTmp, char noParricide);
+		 int serviceRank, char *kvsTmp, bool noParricide);
 
 #endif

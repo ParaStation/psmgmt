@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2007-2015 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2007-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -1220,7 +1220,7 @@ static int tryPMISpawn(char *spawnBuffer[], int totalSpawns, int serviceRank)
     int argcs[totalSpawns], envcs[totalSpawns];
     char *wdirs[totalSpawns], *tpps[totalSpawns], *ntypes[totalSpawns];
     char *paths[totalSpawns];
-    char noParricide = 0;
+    bool noParricide = false;
 
     setPMIDelim(delm);
 
@@ -1349,10 +1349,10 @@ static int tryPMISpawn(char *spawnBuffer[], int totalSpawns, int serviceRank)
 
 	    if (!strcmp(nextkey, "parricide")) {
 		if (!strcmp(getpmivm(buffer, spawnBuffer[i]), "disabled")) {
-		    noParricide = 1;
+		    noParricide = true;
 		} else if (!strcmp(getpmivm(buffer, spawnBuffer[i]),
 				   "enabled")) {
-		    noParricide = 0;
+		    noParricide = false;
 		}
 	    }
 	}

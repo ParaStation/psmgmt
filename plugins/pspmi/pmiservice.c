@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2013-2015 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2013-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -270,7 +270,7 @@ static void setPath(char *oldPath, char *addPath, char **env)
 int spawnService(int np, char *nps[], char **c_argvs[], int c_argcs[],
 		 char **c_envvs[], int c_envcs[], char *wdirs[], char *tpps[],
 		 char *nTypes[], char *paths[], int ts, int usize,
-		 int serviceRank, char *kvsTmp, char noParricide)
+		 int serviceRank, char *kvsTmp, bool noParricide)
 {
     PStask_t *myTask, *task;
     int envc = 0, argc = 0, i, j;

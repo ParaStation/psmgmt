@@ -1129,7 +1129,7 @@ static void execForwarder(PStask_t *task, int daemonfd)
 
     if (task->aretty & (1<<STDIN_FILENO)
 	&& task->aretty & (1<<STDOUT_FILENO)
-	&& task->aretty & (1<<STDERR_FILENO)) task->interactive = 1;
+	&& task->aretty & (1<<STDERR_FILENO)) task->interactive = true;
 
     /* create stdin/stdout/stderr connections between forwarder & client */
     if (task->interactive) {
@@ -2317,7 +2317,7 @@ void deleteSpawnTasks(PSnodes_ID_t node)
 
     list_for_each(t, &spawnTasks) {
 	PStask_t *task = list_entry(t, PStask_t, next);
-	if (PSC_getID(task->tid) == node) task->deleted = 1;
+	if (PSC_getID(task->tid) == node) task->deleted = true;
     }
 }
 
@@ -2428,7 +2428,7 @@ static void msg_SPAWNFAILED(DDErrorMsg_t *msg)
 	    PSID_log(-1, "%s: task %s not found\n", __func__,
 		     PSC_printTID(msg->header.sender));
 	} else {
-	    task->released = 1;
+	    task->released = true;
 	    deleteClient(task->fd);
 	}
     }
@@ -2685,7 +2685,7 @@ static void msg_CHILDDEAD(DDErrorMsg_t *msg)
 	/* Release a TG_(PSC)SPAWNER if child died in a fine way */
 	if (WIFEXITED(msg->error) && !WIFSIGNALED(msg->error)) {
 	    if (task->group == TG_SPAWNER || task->group == TG_PSCSPAWNER)
-		task->released = 1;
+		task->released = true;
 	}
 
 	switch (task->group) {
@@ -2712,7 +2712,7 @@ static void msg_CHILDDEAD(DDErrorMsg_t *msg)
     /* Release the corresponding forwarder */
     forwarder = PStasklist_find(&managedTasks, msg->header.sender);
     if (forwarder) {
-	forwarder->released = 1;
+	forwarder->released = true;
 	PSID_removeSignal(&forwarder->childList, msg->request, -1);
     } else {
 	/* Forwarder not found */
@@ -2818,7 +2818,7 @@ static void checkObstinateTasks(void)
 		if (!task->removeIt) {
 		    PStask_cleanup(task->tid);
 		} else {
-		    task->deleted = 1;
+		    task->deleted = true;
 		}
 	    }
 	}

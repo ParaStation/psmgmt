@@ -246,22 +246,22 @@ void PSID_sendSignal(PStask_ID_t tid, uid_t uid, PStask_ID_t sender,
 	    /* Now inform the master if necessary */
 	    if (dest->partition && dest->partitionSize) {
 		if (signal == SIGSTOP) {
-		    dest->suspended = 1;
+		    dest->suspended = true;
 		    send_TASKSUSPEND(dest->tid);
 		} else if (signal == SIGCONT) {
-		    dest->suspended = 0;
+		    dest->suspended = false;
 		    send_TASKRESUME(dest->tid);
 		}
 	    } else if (!list_empty(&dest->reservations)) {
 		/* Temporarily free reservations' resources */
 		if (signal == SIGSTOP && !dest->suspended) {
-		    dest->suspended = 1;
+		    dest->suspended = true;
 		    list_for_each(r, &dest->reservations) {
 			PSrsrvtn_t *res = list_entry(r, PSrsrvtn_t, next);
 			PSIDpart_suspSlts(res->slots, res->nSlots, dest);
 		    }
 		} else if (signal == SIGCONT && dest->suspended) {
-		    dest->suspended = 0;
+		    dest->suspended = false;
 		    list_for_each(r, &dest->reservations) {
 			PSrsrvtn_t *res = list_entry(r, PSrsrvtn_t, next);
 			PSIDpart_contSlts(res->slots, res->nSlots, dest);
@@ -867,7 +867,7 @@ static int releaseSignal(PStask_ID_t sigSndr, PStask_ID_t sigRcvr, int sig,
 		    PStask_t *rtask = PStasklist_find(&managedTasks, sigRcvr);
 		    if (rtask && !rtask->parentReleased) {
 			rtask->pendingReleaseRes += !!answer;
-			rtask->parentReleased = 1;
+			rtask->parentReleased = true;
 		    }
 		}
 		msg_RELEASE(&msg);
@@ -926,12 +926,12 @@ static int releaseTask(PStask_t *task)
 	sigMsg.header.sender = task->tid;
 	sigMsg.header.len = sizeof(sigMsg);
 	sigMsg.signal = -1;
-	sigMsg.answer = task->releaseAnswer;
+	sigMsg.answer = task->releaseAnswer ? 1 : 0;
 
 	PSID_log(PSID_LOG_TASK|PSID_LOG_SIGNAL, "%s(%s): release\n", __func__,
 		 PSC_printTID(task->tid));
 
-	task->released = 1;
+	task->released = true;
 
 	/* Prevent sending premature RELEASERES messages to initiator */
 	task->pendingReleaseRes++;
@@ -997,8 +997,8 @@ static int releaseTask(PStask_t *task)
 		sendMsg(&sigMsg);
 
 		if (!task->parentReleased) {
-		    task->pendingReleaseRes += task->releaseAnswer;
-		    task->parentReleased = 1;
+		    if (task->releaseAnswer) task->pendingReleaseRes++;
+		    task->parentReleased = true;
 		}
 	    }
 	    /* Also remove parent's assigned signal */
@@ -1026,7 +1026,7 @@ static int releaseTask(PStask_t *task)
 
 		sendMsg(&sigMsg);
 
-		task->pendingReleaseRes += task->releaseAnswer;
+		if (task->releaseAnswer) task->pendingReleaseRes++;
 	    }
 	    sig = -1;
 	}
@@ -1103,7 +1103,7 @@ static void msg_RELEASE(DDSignalMsg_t *msg)
 		msg->param = 0;
 	    } else {
 		/* Find out if answer is required */
-		task->releaseAnswer = msg->answer;
+		task->releaseAnswer = !!(msg->answer);
 
 		msg->param = releaseTask(task);
 

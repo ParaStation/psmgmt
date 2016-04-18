@@ -4563,7 +4563,7 @@ void PSIDpart_cleanupRes(PStask_t *task)
 
 	if (!task->partition && task->suspended) {
 	    PSIDpart_contSlts(res->slots, res->nSlots, delegate);
-	    task->suspended = 0;
+	    task->suspended = false;
 	}
 
 	deqRes(&task->reservations, res);
@@ -5013,7 +5013,7 @@ static void sendSinglePart(PStask_ID_t dest, int16_t type, PStask_t *task)
 	msg.header.len += sizeof(uint32_t);
     }
 
-    *(uint8_t *)ptr = task->suspended;
+    *(uint8_t *)ptr = task->suspended ? 1 : 0;
     ptr += sizeof(uint8_t);
     msg.header.len += sizeof(uint8_t);
 

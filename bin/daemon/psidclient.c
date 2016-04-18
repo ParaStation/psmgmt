@@ -585,7 +585,7 @@ void deleteClient(int fd)
 	    sig = -1;
 	};
 
-	task->released = 1;
+	task->released = true;
     }
 
     /* Unregister TG_(PSC)SPAWNER from parent process */
@@ -835,7 +835,7 @@ static void msg_CLIENTCONNECT(int fd, DDBufferMsg_t *bufmsg)
 
 	    if (child) {
 		child->tid = tid;
-		child->duplicate = 1;
+		child->duplicate = true;
 		PStasklist_enqueue(&managedTasks, child);
 
 		if (task->forwardertid) {
