@@ -15,6 +15,7 @@ static char vcid[] __attribute__((used)) =
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <unistd.h>
 #include <errno.h>
 #include <string.h>
@@ -74,10 +75,10 @@ typedef struct {
     void *readInfo;                /**< Extra info passed to readHandler */
     void *writeInfo;               /**< Extra info passed to writeHandler */
     int fd;                        /**< The corresponding file-descriptor. */
-    int reqRead;                   /**< Flag used within Sselect(). */
-    int reqWrite;                  /**< Flag used within Sselect(). */
-    int disabled;                  /**< Flag to disable fd temporarily. */
-    int deleted;                   /**< Flag used for asynchronous delete. */
+    bool reqRead;                  /**< Flag used within Sselect(). */
+    bool reqWrite;                 /**< Flag used within Sselect(). */
+    bool disabled;                 /**< Flag to disable fd temporarily. */
+    bool deleted;                  /**< Flag used for asynchronous delete. */
     Selector_state_t state;        /**< flag internal state of structure */
 } Selector_t;
 
@@ -200,10 +201,10 @@ static Selector_t * getSelector(void)
 	.readInfo = NULL,
 	.writeInfo = NULL,
 	.fd = -1,
-	.reqRead = 0,
-	.reqWrite = 0,
-	.disabled = 0,
-	.deleted = 0,
+	.reqRead = false,
+	.reqWrite = false,
+	.disabled = false,
+	.deleted = false,
 	.state = SEL_USED,
     };
     INIT_LIST_HEAD(&selector->next);
@@ -234,7 +235,7 @@ static void putSelector(Selector_t *selector)
     }
 
     selector->state = SEL_UNUSED;
-    selector->deleted = 0;
+    selector->deleted = false;
     list_add_tail(&selector->next, &selFreeList);
 
     usedSelectors--;
@@ -490,8 +491,8 @@ int Selector_register(int fd, Selector_CB_t selectHandler, void *info)
 	list_del(&selector->next);
 	selector->writeHandler = NULL;
 	selector->writeInfo = NULL;
-	selector->deleted = 0;
-	selector->disabled = 0;
+	selector->deleted = false;
+	selector->disabled = false;
     } else {
 	/* get new selector */
 	selector = getSelector();
@@ -556,7 +557,7 @@ int Selector_remove(int fd)
 			  epollFD, fd);
 
     selector->readHandler = NULL;
-    if (!selector->writeHandler) selector->deleted = 1;
+    if (!selector->writeHandler) selector->deleted = true;
 
     return 0;
 }
@@ -593,8 +594,8 @@ int Selector_awaitWrite(int fd, Selector_CB_t writeHandler, void *info)
 	selector->readHandler = NULL;
 	selector->readInfo = NULL;
 	selector->writeHandler = NULL;
-	selector->disabled = 0;
-	selector->deleted = 0;
+	selector->disabled = false;
+	selector->deleted = false;
     } else if (!selector) {
 	logger_print(logger, SELECTOR_LOG_VERB,
 		     "%s(fd %d): no selector yet?!\n", __func__,fd);
@@ -663,7 +664,7 @@ int Selector_vacateWrite(int fd)
 			  epollFD, fd);
 
     selector->writeHandler = NULL;
-    if (!selector->readHandler) selector->deleted = 1;
+    if (!selector->readHandler) selector->deleted = true;
 
     return 0;
 }
@@ -717,7 +718,7 @@ int Selector_disable(int fd)
 		   fd, &ev);
     if (rc<0) logger_warn(logger, -1, errno, "%s: epoll_ctl(%d)", __func__, fd);
 
-    selector->disabled = 1;
+    selector->disabled = true;
 
     return 0;
 }
@@ -741,7 +742,7 @@ int Selector_enable(int fd)
 		   fd, &ev);
     if (rc<0) logger_warn(logger, -1, errno, "%s: epoll_ctl(%d)", __func__, fd);
 
-    selector->disabled = 0;
+    selector->disabled = false;
 
     return 0;
 }
@@ -778,7 +779,7 @@ int Sselect(int n, fd_set  *readfds,  fd_set  *writefds, fd_set *exceptfds,
 
 	for (fd = 0; fd < n; fd++) {
 	    Selector_t *selector = findSelector(fd);
-	    if (selector) selector->reqRead = 0;
+	    if (selector) selector->reqRead = false;
 
 	    if (!FD_ISSET(fd, readfds)) continue;
 
@@ -790,7 +791,7 @@ int Sselect(int n, fd_set  *readfds,  fd_set  *writefds, fd_set *exceptfds,
 		logger_exit(logger, ENOMEM, "%s: Register(read)", __func__);
 	    }
 
-	    selector->reqRead = 1;
+	    selector->reqRead = true;
 	}
 	FD_ZERO(readfds);
    }
@@ -800,7 +801,7 @@ int Sselect(int n, fd_set  *readfds,  fd_set  *writefds, fd_set *exceptfds,
 
 	for (fd = 0; fd < n; fd++) {
 	    Selector_t *selector = findSelector(fd);
-	    if (selector) selector->reqWrite = 0;
+	    if (selector) selector->reqWrite = false;
 
 	    if (!FD_ISSET(fd, writefds)) continue;
 
@@ -811,7 +812,7 @@ int Sselect(int n, fd_set  *readfds,  fd_set  *writefds, fd_set *exceptfds,
 	    if (!selector) {
 		logger_exit(logger, ENOMEM, "%s: Register(write)", __func__);
 	    }
-	    selector->reqWrite = 1;
+	    selector->reqWrite = true;
 	}
 	FD_ZERO(writefds);
    }
@@ -993,11 +994,11 @@ int Sselect(int n, fd_set  *readfds,  fd_set  *writefds, fd_set *exceptfds,
 	    Selector_t *selector = list_entry(s, Selector_t, next);
 	    if (!selector->deleted) {
 		if (selector->reqRead) {
-		    selector->reqRead = 0;
+		    selector->reqRead = false;
 		    if (!selector->readHandler) Selector_remove(selector->fd);
 		}
 		if (selector->reqWrite) {
-		    selector->reqWrite = 0;
+		    selector->reqWrite = false;
 		    if (!selector->writeHandler)
 			Selector_vacateWrite(selector->fd);
 		}
