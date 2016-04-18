@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2015 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -40,27 +40,6 @@ extern "C" {
 } /* <- just for emacs indentation */
 #endif
 #endif
-
-/** Task Group constants */
-typedef enum {
-    TG_ANY,         /**< normal task */
-    TG_ADMIN,       /**< taskgroup for psiadmin (and GUI client) */
-    TG_RESET,       /**< normal task */
-    TG_LOGGER,      /**< special task, the logger */
-    TG_FORWARDER,   /**< special task, the forwarder */
-    TG_SPAWNER,     /**< special task, the spawner (helper to spawn p4 jobs) */
-    TG_GMSPAWNER,   /**< special task, the gmspawner (helper to spawn GM) */
-    TG_MONITOR,     /**< special task that monitors the daemon. Don't kill */
-    TG_PSCSPAWNER,  /**< special task, the pscspawner (helper to spawn
-		     * PSC) @deprecated */
-    TG_ADMINTASK,   /**< admin-task, i.e. unaccounted task */
-    TG_SERVICE,     /**< service task, e.g. used by mpiexec to spawn procs */
-    TG_ACCOUNT,     /**< accounter, will receive and log accounting info */
-    TG_SERVICE_SIG, /**< service task, used by mpirun_openib to spawn
-		     * procs; will receive SIGTERM on child's termination */
-    TG_KVS,         /**< special task, the KVS used by the PMI interface */
-    TG_DELEGATE,    /**< special task used to hold resources */
-} PStask_group_t;
 
 /**
  * @brief Get the name of a PStask_group.
