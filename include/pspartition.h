@@ -24,6 +24,8 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+#include <stdbool.h>
+
 #include "list_t.h"
 
 #include "psnodes.h"
@@ -128,9 +130,9 @@ typedef struct {
     unsigned int sizeExpected;     /**< Number of slots expected */
     PSnodes_ID_t *nodes;           /**< List of partition candidates */
     PSpart_slot_t *slots;          /**< Partition (list of slots) associated */
-    char deleted;                  /**< Flag to mark request for deletion */
-    char suspended;                /**< Corresponding task is suspended */
-    char freed;                    /**< Resources are freed temporarily */
+    bool deleted;                  /**< Flag to mark request for deletion */
+    bool suspended;                /**< Corresponding task is suspended */
+    bool freed;                    /**< Resources are freed temporarily */
     uint16_t *resPorts;		   /**< Reserved ports for OpenMPI startup */
 } PSpart_request_t;
 

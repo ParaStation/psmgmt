@@ -411,7 +411,7 @@ static void jobSuspended(PSpart_request_t *req)
     }
     if (config->freeOnSuspend) {
 	unregisterReq(req);
-	req->freed = 1;
+	req->freed = true;
     }
     enqPart(&suspReq, req);
 
@@ -430,7 +430,7 @@ static void jobResumed(PSpart_request_t *req)
     }
     if (req->freed) {
 	registerReq(req);
-	req->freed = 0;
+	req->freed = false;
     }
     enqPart(&runReq, req);
 
@@ -448,13 +448,13 @@ void cleanupRequests(PSnodes_ID_t node)
     list_for_each(r, &runReq) {
 	PSpart_request_t *req = list_entry(r, PSpart_request_t, next);
 
-	if (PSC_getID(req->tid) == node) req->deleted = 1;
+	if (PSC_getID(req->tid) == node) req->deleted = true;
     }
 
     list_for_each(r, &pendReq) {
 	PSpart_request_t *req = list_entry(r, PSpart_request_t, next);
 
-	if (PSC_getID(req->tid) == node) req->deleted = 1;
+	if (PSC_getID(req->tid) == node) req->deleted = true;
     }
 
     if (nodeStat && nodeStat[node].taskReqPending) {
@@ -5232,7 +5232,7 @@ static void msg_PROVIDETASKSL(DDBufferMsg_t *inmsg)
 	}
 	if (req->suspended) {
 	    if (config->freeOnSuspend) {
-		req->freed = 1;
+		req->freed = true;
 	    } else {
 		registerReq(req);
 	    }

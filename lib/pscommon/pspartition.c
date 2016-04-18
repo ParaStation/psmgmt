@@ -54,9 +54,9 @@ void PSpart_initReq(PSpart_request_t* request)
     request->sizeExpected = 0;
     request->nodes = NULL;
     request->slots = NULL;
-    request->deleted = 0;
-    request->suspended = 0;
-    request->freed = 0;
+    request->deleted = false;
+    request->suspended = false;
+    request->freed = false;
     request->resPorts = NULL;
 }
 
