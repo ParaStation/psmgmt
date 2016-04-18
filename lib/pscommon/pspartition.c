@@ -168,10 +168,10 @@ static struct {
 
 static char partString[256];
 
-size_t PSpart_encodeReq(char* buffer, size_t size, PSpart_request_t* request,
-			int daemonProtoVersion)
+bool PSpart_encodeReq(DDBufferMsg_t *msg, PSpart_request_t* request,
+		      int daemonProtoVersion)
 {
-    size_t length =  sizeof(tmpRequest);
+    size_t size, off = msg->header.len - sizeof(msg->header);
 
     if (!request) {
 	PSC_log(-1, "%s: request is NULL\n", __func__);
@@ -179,34 +179,39 @@ size_t PSpart_encodeReq(char* buffer, size_t size, PSpart_request_t* request,
     }
 
     PSpart_snprintf(partString, sizeof(partString), request);
-    PSC_log(PSC_LOG_PART, "%s(%p, %ld, request (%s), %d)\n",
-	    __func__, buffer, (long)size, partString, daemonProtoVersion);
-
-    if (size >= sizeof(tmpRequest)) {
-	tmpRequest.size = request->size;
-	tmpRequest.hwType = request->hwType;
-	tmpRequest.uid = request->uid;
-	tmpRequest.gid = request->gid;
-	tmpRequest.sort = request->sort;
-	tmpRequest.options = request->options;
-	tmpRequest.priority = request->priority;
-	tmpRequest.num = request->num;
-	tmpRequest.tpp = request->tpp;
-	tmpRequest.start = request->start;
-
-	memcpy(buffer, &tmpRequest, sizeof(tmpRequest));
-    } else {
-	PSC_log(-1, "%s: Buffer (size %ld) too small\n", __func__, (long)size);
-    }
+    PSC_log(PSC_LOG_PART, "%s(%p, request (%s), %d)\n",
+	    __func__, msg, partString, daemonProtoVersion);
 
     /* size settings for compatibility */
     if (daemonProtoVersion < 401) {
-	length = sizeof(tmpRequest_400_t);
+	size = sizeof(tmpRequest_400_t);
     } else if (daemonProtoVersion < 407) {
-	length = sizeof(tmpRequest_406_t);
+	size = sizeof(tmpRequest_406_t);
+    } else {
+	size = sizeof(tmpRequest);
     }
 
-    return length;
+    if (size > sizeof(msg->buf) - off) {
+	PSC_log(-1, "%s: request '%s' too large\n", __func__, partString);
+	return false;
+    }
+
+    tmpRequest.size = request->size;
+    tmpRequest.hwType = request->hwType;
+    tmpRequest.uid = request->uid;
+    tmpRequest.gid = request->gid;
+    tmpRequest.sort = request->sort;
+    tmpRequest.options = request->options;
+    tmpRequest.priority = request->priority;
+    tmpRequest.num = request->num;
+    tmpRequest.tpp = request->tpp;
+    tmpRequest.start = request->start;
+
+    memcpy(msg->buf + off, &tmpRequest, size);
+
+    msg->header.len += size;
+
+    return true;
 }
 
 size_t PSpart_decodeReq(char* buffer, PSpart_request_t* request,
