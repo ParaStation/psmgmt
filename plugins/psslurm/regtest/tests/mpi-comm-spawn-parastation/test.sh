@@ -4,7 +4,7 @@ JOB_NAME=$(scontrol show job ${SLURM_JOB_ID} | head -n 1 | awk '{print $2}' | se
 
 # Juropa-3 specific :(
 module load intel-para
-mpiicc prog.c -o output-${JOB_NAME}/prog.exe
+mpicc prog.c -o output-${JOB_NAME}/prog.exe
 
 export I_MPI_FABRICS=tcp
 export I_MPI_FALLBACK=off
