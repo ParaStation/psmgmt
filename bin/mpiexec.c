@@ -1902,15 +1902,12 @@ static void setupPSIDEnv(int verbose)
  */
 static void setupEnvironment(int verbose)
 {
-    int rank;
+    int rank = PSE_getRank();
 
     /* setup environment depending on psid/logger */
     setupPSIDEnv(verbose);
     /* setup environment depending on pscom library */
     setupPSCOMEnv(verbose);
-    /* Both *before* PSE_initialize() for environment propagation */
-
-    rank = PSE_getRank();
 
     /* be only verbose if we are the logger */
     if (rank != -1) verbose = 0;
@@ -3268,6 +3265,11 @@ int main(int argc, char *argv[], char** envp)
 /*     PSI_RemoteArgs(filter_argc-dup_argc, &filter_argv[dup_argc],
  *     &dup_argc, &dup_argv); */
 /*     @todo Enable PSI_RARG_PRE correctly !! */
+
+    /* Now actually Propagate parts of the environment */
+    PSI_propEnv();
+    PSI_propEnvList("PSI_EXPORTS");
+    PSI_propEnvList("__PSI_EXPORTS");
 
     /* create spawner process and switch to logger */
     createSpawner(argc, argv, np, admin);

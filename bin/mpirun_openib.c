@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2007-2014 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2007-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -101,7 +101,13 @@ static void createSpawner(int argc, char *argv[], int np)
     }
 
     PSE_initialize();
+
     rank = PSE_getRank();
+
+    /* Propagate some environment variables */
+    PSI_propEnv();
+    PSI_propEnvList("PSI_EXPORTS");
+    PSI_propEnvList("__PSI_EXPORTS");
 
     if (rank == -1) {
 	PSnodes_ID_t *nds;

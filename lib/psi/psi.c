@@ -275,21 +275,7 @@ static int connectDaemon(PStask_group_t taskGroup, int tryStart)
     return 0;
 }
 
-/**
- * @brief Propagate list of environments
- *
- * Propagate a list of environment variables to the next level of
- * spawning. For that, the environment variable @a listName containing
- * a comma-separated list of environment variable names is
- * analyzed. Each environment mentioned in this list is put into the
- * PSI_environment
- *
- * @param listName Name of the environment containing a
- * comma-separated list of environments to be propagated.
- *
- * @return No return value.
- */
-static void propEnvList(char *listName)
+void PSI_propEnvList(char *listName)
 {
     char *envStr = getenv(listName);
 
@@ -363,9 +349,6 @@ int PSI_initClient(PStask_group_t taskGroup)
 	}
 	return 0;
     }
-
-    propEnvList("PSI_EXPORTS");
-    propEnvList("__PSI_EXPORTS");
 
     return 1;
 }
