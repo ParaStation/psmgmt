@@ -22,6 +22,7 @@
 #define __PSPROTOCOL_H
 
 #include <stdint.h>
+#include <stdbool.h>
 #include <sys/types.h>
 #include "psnodes.h"
 #include "pstaskid.h"
@@ -363,7 +364,9 @@ typedef enum {
     /* The IDs from 0x0100 on are reserved for daemon-daemon messages */
     /******************************************************************/
 
-
+    /***********************************************************/
+    /* The IDs from 0x0200 on are reserved for plugin messages */
+    /***********************************************************/
 
 /** global reset actions. */
 #define PSP_RESET_HW              0x0001
@@ -583,11 +586,35 @@ size_t PSP_strLen(char *str);
  *
  * @param size Amount of data to be put into the message @a msg.
  *
- * @return Upon success, 1 is returned. Or 0 if an error
+ * @return Upon success, @a true is returned. Or @a false if an error
  * occurred. This is mainly due to insufficient space within @a msg.
  */
-int PSP_putMsgBuf(DDBufferMsg_t *msg, const char *funcName,
-		  const char *dataName, const void *data, size_t size);
+bool PSP_putMsgBuf(DDBufferMsg_t *msg, const char *funcName,
+		   const char *dataName, const void *data, size_t size);
+
+/**
+ * @brief Try to put data into message buffer
+ *
+ * This function shows basically the same behavior as @ref
+ * PSP_putMsgBuf(). The main difference is suppressing an error message
+ * in case @a msg does not contain sufficient space for the data.
+ *
+ * @param msg Message to be modified
+ *
+ * @param funcName Name of the calling function
+ *
+ * @param dataName Description of the data @a data to be added to @a
+ * msg.
+ *
+ * @param data Pointer to the data to put into the message @a msg.
+ *
+ * @param size Amount of data to be put into the message @a msg.
+ *
+ * @return Upon success, @a true is returned. Or @a false if an error
+ * occurred. This is mainly due to insufficient space within @a msg.
+ */
+bool PSP_tryPutMsgBuf(DDBufferMsg_t *msg, const char *funcName,
+		      const char *dataName, const void *data, size_t size);
 
 /**
  * @brief Get data from message buffer
@@ -621,11 +648,11 @@ int PSP_putMsgBuf(DDBufferMsg_t *msg, const char *funcName,
  *
  * @param size Amount of data to be fetched from the message @a msg.
  *
- * @return Upon success, 1 is returned. Or 0 if an error
+ * @return Upon success, @a true is returned. Or @a false if an error
  * occurred. This is mainly due to insufficient data available in @a msg.
  */
-int PSP_getMsgBuf(DDBufferMsg_t *msg, size_t *used, const char *funcName,
-		  const char *dataName, void *data, size_t size);
+bool PSP_getMsgBuf(DDBufferMsg_t *msg, size_t *used, const char *funcName,
+		   const char *dataName, void *data, size_t size);
 
 /**
  * @brief Try to get data from message buffer
@@ -647,13 +674,13 @@ int PSP_getMsgBuf(DDBufferMsg_t *msg, size_t *used, const char *funcName,
  *
  * @param size Amount of data to be fetched from the message @a msg.
  *
- * @return Upon success, 1 is returned. Or 0 if an error
+ * @return Upon success, @a true is returned. Or @a false if an error
  * occurred. This is mainly due to insufficient data available in @a msg.
  *
  * @see PSP_getMsgBuf()
  */
-int PSP_tryGetMsgBuf(DDBufferMsg_t *msg, size_t *used, const char *funcName,
-		     const char *dataName, void *data, size_t size);
+bool PSP_tryGetMsgBuf(DDBufferMsg_t *msg, size_t *used, const char *funcName,
+		      const char *dataName, void *data, size_t size);
 
 /**
  * @brief Put data into message buffer
@@ -682,11 +709,11 @@ int PSP_tryGetMsgBuf(DDBufferMsg_t *msg, size_t *used, const char *funcName,
  *
  * @param size Amount of data to be put into the message @a msg.
  *
- * @return Upon success, 1 is returned. Or 0 if an error
+ * @return Upon success, @a true is returned. Or @a false if an error
  * occurred. This is mainly due to insufficient space within @a msg.
  */
-int PSP_putTypedMsgBuf(DDTypedBufferMsg_t *msg, const char *funcName,
-		       const char *dataName, const void *data, size_t size);
+bool PSP_putTypedMsgBuf(DDTypedBufferMsg_t *msg, const char *funcName,
+			const char *dataName, const void *data, size_t size);
 
 /**
  * @brief Try to put data into message buffer
@@ -706,13 +733,13 @@ int PSP_putTypedMsgBuf(DDTypedBufferMsg_t *msg, const char *funcName,
  *
  * @param size Amount of data to be put into the message @a msg.
  *
- * @return Upon success, 1 is returned. Or 0 if an error
+ * @return Upon success, @a true is returned. Or @a false if an error
  * occurred. This is mainly due to insufficient space within @a msg.
  *
  * @see PSP_putTypedMsgBuf()
  */
-int PSP_tryPutTypedMsgBuf(DDTypedBufferMsg_t *msg, const char *funcName,
-			  const char *dataName, const void *data, size_t size);
+bool PSP_tryPutTypedMsgBuf(DDTypedBufferMsg_t *msg, const char *funcName,
+			   const char *dataName, const void *data, size_t size);
 
 /**
  * @brief Get data from message buffer
@@ -746,12 +773,12 @@ int PSP_tryPutTypedMsgBuf(DDTypedBufferMsg_t *msg, const char *funcName,
  *
  * @param size Amount of data to be fetched from the message @a msg.
  *
- * @return Upon success, 1 is returned. Or 0 if an error
+ * @return Upon success, @a true is returned. Or @a false if an error
  * occurred. This is mainly due to insufficient data available in @a msg.
  */
-int PSP_getTypedMsgBuf(DDTypedBufferMsg_t *msg, size_t *used,
-		       const char *funcName, const char *dataName,
-		       void *data, size_t size);
+bool PSP_getTypedMsgBuf(DDTypedBufferMsg_t *msg, size_t *used,
+			const char *funcName, const char *dataName,
+			void *data, size_t size);
 
 #ifdef __cplusplus
 }/* extern "C" */
