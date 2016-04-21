@@ -362,8 +362,6 @@ PStask_t *PStasklist_find(list_t *list, PStask_ID_t tid)
 
     PSID_log(PSID_LOG_TASK, "%s(%p, %s)", __func__, list, PSC_printTID(tid));
 
-    if (PSC_getID(tid) != PSC_getMyID()) return NULL;
-
     list_for_each(t, list) {
 	PStask_t *tt = list_entry(t, PStask_t, next);
 	if (tt->tid == tid) {
