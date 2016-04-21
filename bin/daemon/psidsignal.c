@@ -507,8 +507,6 @@ static void msg_NOTIFYDEAD(DDSignalMsg_t *msg)
     PStask_ID_t registrarTid = msg->header.sender;
     PStask_ID_t tid = msg->header.dest;
 
-    PStask_t *task;
-
     PSID_log(PSID_LOG_SIGNAL, "%s: sender=%s", __func__,
 	     PSC_printTID(registrarTid));
     PSID_log(PSID_LOG_SIGNAL, " tid=%s sig=%d\n",
@@ -521,7 +519,7 @@ static void msg_NOTIFYDEAD(DDSignalMsg_t *msg)
 
     if (!tid) {
 	/* Try to set signal send from relatives */
-	task = PStasklist_find(&managedTasks, registrarTid);
+	PStask_t *task = PStasklist_find(&managedTasks, registrarTid);
 	if (task) {
 	    task->relativesignal = msg->signal;
 	    PSID_log(PSID_LOG_SIGNAL, "%s: relativesignal for %s set to %d\n",
@@ -539,7 +537,7 @@ static void msg_NOTIFYDEAD(DDSignalMsg_t *msg)
 	    msg->param = EHOSTUNREACH; /* failure */
 	} else if (id==PSC_getMyID()) {
 	    /* task is on my node */
-	    task = PStasklist_find(&managedTasks, tid);
+	    PStask_t *task = PStasklist_find(&managedTasks, tid);
 
 	    if (task) {
 		PSID_log(PSID_LOG_SIGNAL, "%s: set signalReceiver (%s",
@@ -613,12 +611,11 @@ static void msg_NOTIFYDEADRES(DDSignalMsg_t *msg)
     } else {
 	/* No error, signal was registered on remote node */
 	/* include into assignedSigs */
-	PStask_t *task;
+	PStask_t *task = PStasklist_find(&managedTasks, registrarTid);
 
 	PSID_log(PSID_LOG_SIGNAL, "%s: sending msg to local parent %s\n",
 		 __func__, PSC_printTID(registrarTid));
 
-	task = PStasklist_find(&managedTasks, registrarTid);
 	if (task) {
 	    PSID_setSignal(&task->assignedSigs, controlledTid, msg->signal);
 	} else {
@@ -826,9 +823,7 @@ static void msg_RELEASE(DDSignalMsg_t *msg);
 static int releaseSignal(PStask_ID_t sigSndr, PStask_ID_t sigRcvr, int sig,
 			 int answer)
 {
-    PStask_t *task;
-
-    task = PStasklist_find(&managedTasks, sigSndr);
+    PStask_t *task = PStasklist_find(&managedTasks, sigSndr);
 
     if (!task) {
 	PSID_log(-1, "%s: signal %d to %s",
@@ -1185,21 +1180,19 @@ static void msg_RELEASE(DDSignalMsg_t *msg)
 static void msg_RELEASERES(DDSignalMsg_t *msg)
 {
     PStask_ID_t tid = msg->header.dest;
-    PStask_t *task;
+    PStask_t *task = PStasklist_find(&managedTasks, tid);
     int dbgMask = (msg->param == ESRCH) ? PSID_LOG_SIGNAL : -1;
 
     if (PSID_getDebugMask() & PSID_LOG_SIGNAL) {
 	PSID_log(PSID_LOG_SIGNAL, "%s(%s)", __func__,
 		 PSC_printTID(msg->header.sender));
-	PSID_log(PSID_LOG_SIGNAL, "for %s\n", PSC_printTID(msg->header.dest));
+	PSID_log(PSID_LOG_SIGNAL, "for %s\n", PSC_printTID(tid));
     }
 
     if (PSC_getID(tid) != PSC_getMyID()) {
 	sendMsg(msg);
 	return;
     }
-
-    task = PStasklist_find(&managedTasks, tid);
 
     if (!task) {
 	PSID_log(-1, "%s(%s) from ", __func__, PSC_printTID(tid));
@@ -1258,12 +1251,11 @@ static void msg_RELEASERES(DDSignalMsg_t *msg)
  */
 static void msg_WHODIED(DDSignalMsg_t *msg)
 {
-    PStask_t *task;
+    PStask_t *task = PStasklist_find(&managedTasks, msg->header.sender);
 
     PSID_log(PSID_LOG_SIGNAL, "%s: who=%s sig=%d\n", __func__,
 	     PSC_printTID(msg->header.sender), msg->signal);
 
-    task = PStasklist_find(&managedTasks, msg->header.sender);
     if (task) {
 	PStask_ID_t tid;
 	tid = PSID_getSignal(&task->signalSender, &msg->signal);
