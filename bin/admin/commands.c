@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2015 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -768,6 +768,8 @@ void PSIADM_ProcStat(int count, int full, char *nl)
 	displdTasks = (count<0) ? numTasks : (numTasks<count) ? numTasks:count;
 	for (task=0; task < displdTasks; task++) {
 	    usedWidth = printf("%s\t", nodeString(node));
+	    /* Adapt to actual width due to <TAB> */
+	    usedWidth = ((usedWidth-1)/8 + 1) * 8;
 	    usedWidth += printf("%22s ", PSC_printTID(taskInfo[task].tid));
 	    usedWidth += printf("%22s ", PSC_printTID(taskInfo[task].ptid));
 	    usedWidth += printf("%2d  ", taskInfo[task].connected);
@@ -907,7 +909,10 @@ void PSIADM_PluginStat(char *nl)
 	return;
     }
 
-    usedWidth = printf(" %s\t%16s   %3s   ", "Node", "Plugin", "Ver");
+    usedWidth = printf(" %s\t", "Node");
+    /* Adapt to actual width due to <TAB> */
+    usedWidth = ((usedWidth-1)/8 + 1) * 8;
+    usedWidth += printf("%16s   %3s   ", "Plugin", "Ver");
     printf("%.*s\n", (width-usedWidth) > 0 ? width-usedWidth : 0, "Used by");
     for (node=0; node<PSC_getNrOfNodes(); node++) {
 	int firstline = 1;
