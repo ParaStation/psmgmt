@@ -52,6 +52,7 @@
 #include "pluginmalloc.h"
 #include "pluginhelper.h"
 #include "pluginforwarder.h"
+#include "pluginstrv.h"
 #include "selector.h"
 #include "psprotocolenv.h"
 #include "psaccounthandles.h"
@@ -527,9 +528,9 @@ static void execJobStep(void *data, int rerun)
 {
     Forwarder_Data_t *fwdata = data;
     Step_t *step = fwdata->userData;
-    int argc = 0;
     unsigned int i;
-    char **argv, buf[128];
+    strv_t argV;
+    char buf[128];
 
     /* reopen syslog */
     openlog("psid", LOG_PID|LOG_CONS, LOG_DAEMON);
@@ -545,33 +546,31 @@ static void execJobStep(void *data, int rerun)
     /* switch user */
     switchUser(step->username, step->uid, step->gid, step->cwd);
 
-    /* build mpiexec argv */
-    argv = umalloc((step->argc + 20 + 1) * sizeof(char *));
-    argv[argc++] = ustrdup(MPIEXEC_BINARY);
+    /* build mpiexec argV */
+    strvInit(&argV, NULL, 0);
+    strvAdd(&argV, ustrdup(MPIEXEC_BINARY));
 
     /* always export all environment variables */
-    argv[argc++] = ustrdup("-x");
+    strvAdd(&argV, ustrdup("-x"));
 
     /* interactive mode */
-    if (step->pty) argv[argc++] = ustrdup("-i");
+    if (step->pty) strvAdd(&argV, ustrdup("-i"));
     /* label output */
-    if (step->labelIO) argv[argc++] = ustrdup("-l");
+    if (step->labelIO) strvAdd(&argV, ustrdup("-l"));
 
     if (step->multiProg) {
-	argv = urealloc(argv, sizeof(char *) * (10 * step->np));
-	setupArgsFromMultiProg(step, fwdata, argv, &argc);
+	setupArgsFromMultiProg(step, fwdata, &argV);
     } else {
 	/* number of processes */
-	argv[argc++] = ustrdup("-np");
+	strvAdd(&argV, ustrdup("-np"));
 	snprintf(buf, sizeof(buf), "%u", step->np);
-	argv[argc++] = ustrdup(buf);
+	strvAdd(&argV, ustrdup(buf));
 
 	/* executable and arguments */
 	for (i=0; i<step->argc; i++) {
-	    argv[argc++] = step->argv[i];
+	    strvAdd(&argV, step->argv[i]);
 	}
     }
-    argv[argc] = NULL;
 
     /* setup step specific env */
     setStepEnv(step);
@@ -589,7 +588,7 @@ static void execJobStep(void *data, int rerun)
 
     /* start mpiexec to spawn the parallel job */
     closelog();
-    execve(argv[0], argv, step->env.vars);
+    execve(argV.strings[0], argV.strings, step->env.vars);
 }
 
 static int stepForwarderInit(void *data)

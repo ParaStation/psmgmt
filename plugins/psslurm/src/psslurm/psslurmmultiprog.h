@@ -19,8 +19,9 @@
 #define __PS_SLURM_MULTI_PROG
 
 #include "psslurmjob.h"
+#include "pluginstrv.h"
 
 void setupArgsFromMultiProg(Step_t *step, Forwarder_Data_t *fwdata,
-			    char **argv, int *argc);
+			    strv_t *argV);
 
 #endif
