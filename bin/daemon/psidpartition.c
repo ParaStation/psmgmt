@@ -411,7 +411,7 @@ static void jobSuspended(PSpart_request_t *req)
     }
     if (config->freeOnSuspend) {
 	unregisterReq(req);
-	req->freed = 1;
+	req->freed = true;
     }
     enqPart(&suspReq, req);
 
@@ -430,7 +430,7 @@ static void jobResumed(PSpart_request_t *req)
     }
     if (req->freed) {
 	registerReq(req);
-	req->freed = 0;
+	req->freed = false;
     }
     enqPart(&runReq, req);
 
@@ -448,13 +448,13 @@ void cleanupRequests(PSnodes_ID_t node)
     list_for_each(r, &runReq) {
 	PSpart_request_t *req = list_entry(r, PSpart_request_t, next);
 
-	if (PSC_getID(req->tid) == node) req->deleted = 1;
+	if (PSC_getID(req->tid) == node) req->deleted = true;
     }
 
     list_for_each(r, &pendReq) {
 	PSpart_request_t *req = list_entry(r, PSpart_request_t, next);
 
-	if (PSC_getID(req->tid) == node) req->deleted = 1;
+	if (PSC_getID(req->tid) == node) req->deleted = true;
     }
 
     if (nodeStat && nodeStat[node].taskReqPending) {
@@ -2405,12 +2405,13 @@ static void msg_CREATEPART(DDBufferMsg_t *inmsg)
 
     if (!knowMaster()) return; /* Automatic pull in initPartHandler() */
 
-    inmsg->header.len = sizeof(inmsg->header)
-	+ PSpart_encodeReq(inmsg->buf, sizeof(inmsg->buf), task->request,
-			   PSIDnodes_getDmnProtoV(getMasterID()));
-
+    /* Re-use inmsg to send answer */
     inmsg->header.type = PSP_DD_GETPART;
     inmsg->header.dest = PSC_getTID(getMasterID(), 0);
+    inmsg->header.len = sizeof(inmsg->header);
+    PSpart_encodeReq(inmsg, task->request,
+		     PSIDnodes_getDmnProtoV(getMasterID()));
+
     if (sendMsg(inmsg) == -1 && errno != EWOULDBLOCK) {
 	PSID_warn(-1, errno, "%s: sendMsg()", __func__);
 	goto cleanup;
@@ -4562,7 +4563,7 @@ void PSIDpart_cleanupRes(PStask_t *task)
 
 	if (!task->partition && task->suspended) {
 	    PSIDpart_contSlts(res->slots, res->nSlots, delegate);
-	    task->suspended = 0;
+	    task->suspended = false;
 	}
 
 	deqRes(&task->reservations, res);
@@ -4967,15 +4968,11 @@ static void sendRequests(void)
 		    .dest = PSC_getTID(getMasterID(), 0),
 		    .len = sizeof(msg.header) },
 		.buf = { '\0' }};
-	    size_t len;
 
-	    len = PSpart_encodeReq(msg.buf, sizeof(msg.buf), task->request,
-				   dmnPSPver);
-	    if (len > sizeof(msg.buf)) {
+	    if (!PSpart_encodeReq(&msg, task->request, dmnPSPver)) {
 		PSID_log(-1, "%s: PSpart_encodeReq() failed\n", __func__);
 		continue;
 	    }
-	    msg.header.len += len;
 	    sendMsg(&msg);
 
 	    msg.header.type = PSP_DD_GETPARTNL;
@@ -5016,7 +5013,7 @@ static void sendSinglePart(PStask_ID_t dest, int16_t type, PStask_t *task)
 	msg.header.len += sizeof(uint32_t);
     }
 
-    *(uint8_t *)ptr = task->suspended;
+    *(uint8_t *)ptr = task->suspended ? 1 : 0;
     ptr += sizeof(uint8_t);
     msg.header.len += sizeof(uint8_t);
 
@@ -5235,7 +5232,7 @@ static void msg_PROVIDETASKSL(DDBufferMsg_t *inmsg)
 	}
 	if (req->suspended) {
 	    if (config->freeOnSuspend) {
-		req->freed = 1;
+		req->freed = true;
 	    } else {
 		registerReq(req);
 	    }
@@ -5245,6 +5242,110 @@ static void msg_PROVIDETASKSL(DDBufferMsg_t *inmsg)
 	    enqPart(&runReq, req);
 	}
     }
+}
+
+/**
+ * @brief Send slots-part of a request.
+ *
+ * Send the slots-part of the request @a req using the message @a msg
+ * of type @ref DDTypedBufferMsg_t. This function assumes that the
+ * message is set up accordingly, i.e. that sender, destination,
+ * etc. are set correctly.
+ *
+ * @param msg Prepared message used to send the actual information.
+ *
+ * @param req Request containing the information to be sent.
+ *
+ * @return Upon success @a true is returned. Or @a false if an error
+ * occurred, i.e. the message's payload-buffer is too small to encode
+ * the request.
+ */
+static bool sendReqSlots(DDTypedBufferMsg_t *msg, PSpart_request_t *req)
+{
+    size_t offset = 0, num = req->size, maxChunk, n;
+    unsigned short maxCPUs = 0;
+    int PSPver = PSIDnodes_getProtoV(PSC_getID(msg->header.dest));
+    int dmnPSPver = PSIDnodes_getDmnProtoV(PSC_getID(msg->header.dest));
+
+    /* Determine maximum number of CPUs */
+    for (n = 0; n < num; n++) {
+	unsigned short cpus = PSIDnodes_getVirtCPUs(req->slots[n].node);
+	if (cpus > maxCPUs) maxCPUs = cpus;
+    }
+
+    if (PSPver < 334) {
+	maxChunk = BufTypedMsgSize / sizeof(PSnodes_ID_t);
+    } else if (dmnPSPver < 401) {
+	maxChunk = BufTypedMsgSize / sizeof(PSpart_oldSlot_t);
+    } else if (dmnPSPver < 408) {
+	maxChunk = BufTypedMsgSize
+	    / (sizeof(PSnodes_ID_t) + PSCPU_bytesForCPUs(32));
+    } else {
+	maxChunk = (BufTypedMsgSize - sizeof(uint16_t))
+	    / (sizeof(PSnodes_ID_t) + PSCPU_bytesForCPUs(maxCPUs));
+    }
+
+    /* Reset message setup */
+    msg->header.len = sizeof(msg->header) + sizeof(msg->type);
+    msg->type = PSP_INFO_QUEUE_SEP;
+    if (sendMsg(msg) == -1 && errno != EWOULDBLOCK) {
+	PSID_warn(-1, errno, "%s: sendMsg()", __func__);
+	return false;
+    }
+
+    msg->type = PSP_INFO_QUEUE_PARTITION;
+
+    while (offset < num) {
+	size_t chunk = (num - offset > maxChunk) ? maxChunk : num - offset;
+	PSpart_slot_t *slots = req->slots+offset;
+
+	if (PSPver < 334) {
+	    for (n = 0; n < chunk; n++) {
+		PSP_putTypedMsgBuf(msg, __func__, "node", &slots[n].node,
+				   sizeof(slots[n].node));
+	    }
+	} else if (dmnPSPver < 401) {
+	    for (n = 0; n < chunk; n++) {
+		int16_t cpu = PSCPU_first(slots[n].CPUset,
+					  PSIDnodes_getPhysCPUs(slots[n].node));
+		PSP_putTypedMsgBuf(msg, __func__, "node", &slots[n].node,
+				   sizeof(slots[n].node));
+		PSP_putTypedMsgBuf(msg, __func__, "cpu", &cpu, sizeof(cpu));
+	    }
+	} else {
+	    uint16_t nBytes;
+
+	    if (dmnPSPver < 408) {
+		nBytes = PSCPU_bytesForCPUs(32);
+	    } else {
+		nBytes = PSCPU_bytesForCPUs(maxCPUs);
+		if (!offset) {
+		    PSP_putTypedMsgBuf(msg, __func__, "nBytes",
+				       &nBytes, sizeof(nBytes));
+		}
+	    }
+
+	    for (n = 0; n < chunk; n++) {
+		char cpuBuf[nBytes];
+
+		PSP_putTypedMsgBuf(msg, __func__, "node", &slots[n].node,
+				   sizeof(slots[n].node));
+
+		PSCPU_extract(cpuBuf, slots[n].CPUset, nBytes);
+		PSP_putTypedMsgBuf(msg, __func__, "cpuSet", cpuBuf, nBytes);
+	    }
+	}
+
+	offset += chunk;
+
+	if (sendMsg(msg) == -1 && errno != EWOULDBLOCK) {
+	    PSID_warn(-1, errno, "%s: sendMsg()", __func__);
+	    return false;
+	}
+	msg->header.len = sizeof(msg->header) + sizeof(msg->type);
+    }
+
+    return true;
 }
 
 /**
@@ -5275,120 +5376,41 @@ static void sendReqList(PStask_ID_t dest, list_t *queue, PSpart_list_t opt)
 	    .len = sizeof(msg.header) + sizeof(msg.type) },
 	.type = PSP_INFO_QUEUE_PARTITION,
 	.buf = {0}};
-    int PSPver = PSIDnodes_getProtoV(PSC_getID(dest));
     int dmnPSPver = PSIDnodes_getDmnProtoV(PSC_getID(dest));
     list_t *r;
 
     list_for_each(r, queue) {
 	PSpart_request_t *req = list_entry(r, PSpart_request_t, next);
-	size_t len = 0;
-	char *ptr = msg.buf;
-	int tmp, num;
+	int tmp;
 
-	*(PStask_ID_t *)ptr = req->tid;
-	ptr += sizeof(PStask_ID_t);
-	len += sizeof(PStask_ID_t);
+	msg.type = PSP_INFO_QUEUE_PARTITION;
+	msg.header.len = sizeof(msg.header) + sizeof(msg.type);
 
-	*(PSpart_list_t *)ptr = opt;
-	ptr += sizeof(PSpart_list_t);
-	len += sizeof(PSpart_list_t);
+	PSP_putTypedMsgBuf(&msg, __func__, "TID", &req->tid, sizeof(req->tid));
+	PSP_putTypedMsgBuf(&msg, __func__, "opt", &opt, sizeof(opt));
 
 	tmp = req->num;
-	num = req->num = (opt & PART_LIST_NODES) ? req->size : 0;
-	len += PSpart_encodeReq(ptr, sizeof(msg.buf)-len, req, dmnPSPver);
+	req->num = (opt & PART_LIST_NODES) ? req->size : 0;
+	if (!PSpart_encodeReq((DDBufferMsg_t*)&msg, req, dmnPSPver)) {
+	    PSID_log(-1, "%s: PSpart_encodeReq\n", __func__);
+	    req->num = tmp;
+	    return;
+	}
 	req->num = tmp;
 
-	if (len > sizeof(msg.buf)) {
-	    PSID_log(-1, "%s: PSpart_encodeReq\n", __func__);
-	    return;
-	}
-
-	msg.header.len += len;
 	if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
 	    PSID_warn(-1, errno, "%s: sendMsg()", __func__);
 	    return;
 	}
-	msg.header.len -= len;
 
-	if (num) {
-	    int offset = 0, n;
-	    unsigned short maxCPUs = 0;
+	if ((opt & PART_LIST_NODES) && !sendReqSlots(&msg, req)) goto error;
 
-	    /* Determine maximum number of CPUs */
-	    for (n = 0; n < num; n++) {
-		unsigned short cpus = PSIDnodes_getVirtCPUs(req->slots[n].node);
-		if (cpus > maxCPUs) maxCPUs = cpus;
-	    }
-
-	    msg.type = PSP_INFO_QUEUE_SEP;
-	    if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
-		PSID_warn(-1, errno, "%s: sendMsg()", __func__);
-		goto error;
-	    }
-	    msg.type = PSP_INFO_QUEUE_PARTITION;
-
-	    while (offset < num) {
-		int chunk =
-		    (num-offset > SLOTS_CHUNK) ? SLOTS_CHUNK : num-offset;
-		int n;
-		PSpart_slot_t *slots = req->slots+offset;
-
-		ptr = msg.buf;
-
-		if (PSPver < 334) {
-		    PSnodes_ID_t *nodeBuf = (PSnodes_ID_t *)ptr;
-		    for (n = 0; n < chunk; n++) nodeBuf[n] = slots[n].node;
-		    len = chunk * sizeof(*nodeBuf);
-		} else if (dmnPSPver < 401) {
-		    PSpart_oldSlot_t *oldSlots = (PSpart_oldSlot_t *)ptr;
-		    for (n = 0; n < chunk; n++) {
-			PSnodes_ID_t node = oldSlots[n].node = slots[n].node;
-			oldSlots[n].cpu = PSCPU_first(slots[n].CPUset,
-						PSIDnodes_getPhysCPUs(node));
-		    }
-		    len = chunk * sizeof(*oldSlots);
-		} else {
-		    size_t nBytes;
-		    len = 0;
-
-		    if (dmnPSPver < 408) {
-			nBytes = PSCPU_bytesForCPUs(32);
-		    } else {
-			nBytes = PSCPU_bytesForCPUs(maxCPUs);
-			if (!offset) {
-			    *(uint16_t *)ptr = nBytes;
-			    ptr += sizeof(uint16_t);
-			    len += sizeof(uint16_t);
-			}
-		    }
-
-		    for (n = 0; n < chunk; n++) {
-			*(PSnodes_ID_t *)ptr = slots[n].node;
-			ptr += sizeof(PSnodes_ID_t);
-			len += sizeof(PSnodes_ID_t);
-
-			PSCPU_extract(ptr, slots[n].CPUset, nBytes);
-			ptr += nBytes;
-			len += nBytes;
-		    }
-		}
-
-		offset += chunk;
-
-		msg.header.len += len;
-		if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
-		    PSID_warn(-1, errno, "%s: sendMsg()", __func__);
-		    goto error;
-		}
-		msg.header.len -= len;
-	    }
-	}
 	msg.type = PSP_INFO_QUEUE_SEP;
+	msg.header.len = sizeof(msg.header) + sizeof(msg.type);
 	if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
 	    PSID_warn(-1, errno, "%s: sendMsg()", __func__);
 	    return;
 	}
-	msg.type = PSP_INFO_QUEUE_PARTITION;
     }
 
     return;

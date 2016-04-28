@@ -21,6 +21,7 @@
 #define __PSSIGNAL_H
 
 #include <stdint.h>
+#include <stdbool.h>
 
 #include "list_t.h"
 
@@ -45,7 +46,7 @@ typedef struct {
     list_t next;              /**< used to put into signal-lists */
     PStask_ID_t tid;          /**< unique task identifier */
     int32_t signal;           /**< signal to send, or -1 for child-signal */
-    char deleted;             /**< flag to mark deleted signal structs.
+    bool deleted;             /**< flag to mark deleted signal structs.
 				 Will be removed later when save. */
     PSsignal_state_t state;   /**< flag internal state of structure */
 } PSsignal_t;

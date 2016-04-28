@@ -136,7 +136,7 @@ static int remSig(const char *fname, list_t *sigList, PStask_ID_t tid,
 	    list_del(&sig->next);
 	    PSsignal_put(sig);
 	} else {
-	    sig->deleted = 1;
+	    sig->deleted = true;
 	}
 
 	PSID_log(PSID_LOG_SIGNAL, "\n");
@@ -232,7 +232,7 @@ PStask_ID_t PSID_getSignalByID(list_t *sigList,
 	    list_del(&thissig->next);
 	    PSsignal_put(thissig);
 	} else {
-	    thissig->deleted = 1;
+	    thissig->deleted = true;
 	}
     }
 
@@ -358,7 +358,7 @@ PStask_t *PStasklist_find(list_t *list, PStask_ID_t tid)
 {
     list_t *t;
     PStask_t *task = NULL;
-    int foundDeleted = 0;
+    bool foundDeleted = false;
 
     PSID_log(PSID_LOG_TASK, "%s(%p, %s)", __func__, list, PSC_printTID(tid));
 
@@ -369,7 +369,7 @@ PStask_t *PStasklist_find(list_t *list, PStask_ID_t tid)
 		/* continue to search since we migth have duplicates
 		 * of PID due to some problems in flow-control */
 		PSID_log(PSID_LOG_TASK, " found but deleted\n");
-		foundDeleted = 1;
+		foundDeleted = true;
 	    } else {
 		task = tt;
 		break;
@@ -400,7 +400,7 @@ void PStask_cleanup(PStask_ID_t tid)
 
     if (!task->removeIt) {
 	/* first call for this task */
-	task->removeIt = 1;
+	task->removeIt = true;
 
 	/* send all tasks the signals they have requested */
 	PSID_sendAllSignals(task);
@@ -461,7 +461,7 @@ void PStask_cleanup(PStask_ID_t tid)
 		/* @todo This is not true. See code in
 		 * msg_CLIENTCONNECT() concerning re-connected
 		 * processes and duplicate tasks */
-		sig->deleted = 1;
+		sig->deleted = true;
 
 		if (child && child->fd == -1) {
 		    PSID_log(-1, "%s: forwarder kills child %s\n",
@@ -481,7 +481,7 @@ void PStask_cleanup(PStask_ID_t tid)
 
     if (PSID_emptySigList(&task->childList) && !task->delegate) {
 	/* Mark task as deleted; will be actually removed in main loop */
-	task->deleted = 1;
+	task->deleted = true;
     }
 
 }

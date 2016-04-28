@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2015 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -1019,8 +1019,7 @@ int PSI_createPartition(unsigned int size, uint32_t hwType)
 	    .len = sizeof(msg.header)},
 	.buf = {0}};
     PSpart_request_t *request = PSpart_newReq();
-    nodelist_t *nodelist =  NULL;
-    size_t len;
+    nodelist_t *nodelist = NULL;
     uint32_t hwEnv;
     int daemonProtoVer = getDaemonProtocolVersion(), ret = -1;
 
@@ -1066,12 +1065,10 @@ int PSI_createPartition(unsigned int size, uint32_t hwType)
 	goto end;
     }
 
-    len = PSpart_encodeReq(msg.buf, sizeof(msg.buf), request, daemonProtoVer);
-    if (len > sizeof(msg.buf)) {
+    if (!PSpart_encodeReq(&msg, request, daemonProtoVer)) {
 	PSI_log(-1, "%s: PSpart_encodeReq\n", __func__);
 	goto end;
     }
-    msg.header.len += len;
 
     if (PSI_sendMsg(&msg)<0) {
 	PSI_warn(-1, errno, "%s: PSI_sendMsg", __func__);

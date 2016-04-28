@@ -1,8 +1,61 @@
 psmgmt NEWS -- history of user-visible changes.
 
-Copyright (C) 2010-2015 ParTec Cluster Competence Center GmbH, Munich
+Copyright (C) 2010-2016 ParTec Cluster Competence Center GmbH, Munich
 
 Please send bug reports, questions and suggestions to <support@par-tec.com>
+
+
+Version 5.0.50:
+===============
+Bugfixes:
+ - Printing PSCPU_set_t via PSCPU_print() might be broken (psc:#243)
+ - Fix mpiexec's -e option for environment propagation
+ - Actually adapt psiadmin's "list proc" directive to screen-width
+ - Prevent sendReqList() from messing up the stack for nodes >72 cores
+ - Create pipe()s with correct euid between forwarder and client
+ - Also unblock SIGUSR[12] in PSID_resetSigs()
+ - Catch rare case of new parent's node down during process inheritance
+ - Ensure all file-descriptors are closed when exec()ing logger
+ - Fix logic in error reporting while releasing task
+ - Check for failed allocation in putil/env
+ - Fix parser-syntax of psiadmin's 'list jobs' directive
+
+Enhancements:
+ - Selector now uses epoll() (psc:#231)
+ - Remove mpiexec's limitation on number of executables (jrt:#5402)
+ - Use signalfd() to handle SIGCHLD, SIGUSR1 and SIGUSR2 in psid
+ - Take IP addresses from psconfig avoiding name resolution bursts
+ - Clone environment optimization during spawn
+ - Count the number of sent NACKs per connection within RDP
+ - Catch and forward stray SIGTERM in psidforwarder
+ - Delayed finalization of psid's parent process (#2522)
+ - Report daemon failure via psid's parent process (#2522)
+ - Activate PSID_clearMem() during task-spawn and PSID_execScript() (#1218)
+ - free() all memory used by RDP on exit or by request (#1013)
+ - Suppress warning on membind if using SLURM (psc:#226)
+ - Reorder psid's module initialization
+ - Don't wait too long in forwarder befores re-sending FINALIZE message
+ - Make PSID_cancelCB() working for file-descriptors beyond FD_SETSIZE
+ - Merge KVS related changes from psslurm
+ - Add new hooks PSIDHOOK_EXEC_CLIENT_USER, PSIDHOOK_FRWRD_DSOCK
+     and PSIDHOOK_PELOGUE_FINISH required by psslurm
+ - Let psilogger handle daemon messages via Selector.
+ - Re-organize psidforwarder: Use signalfd, improved error messages, etc.
+ - Prepare for asynchronouos inheritance of children (??)
+
+Additional changes:
+ - Add various systemd example override files (jurecatrac:ticket:4718)
+ - Simplify handling of the pam config file
+ - Refactoring of psidforwarder, psilogger (booleanize, Swait(), etc.)
+ - Use a dispatcher registered in RDP to handle RDP messages.
+ - Add PSP_tryPutMsgBuf()
+ - Get selector structures in chunks.
+ - Make PSpart_encodeReq() compatible to PSP_putMsgBuf() et.al.
+ - Suppress one warning coming out of psh
+ - Include psconfig docs for "make dist"
+ - psprotocol.h now only depends on pstaskid.h instead of pstask.h
+ - Mark kvsprovider's terminateJob() to be 'noreturn'
+ - Add annotation for iwyu tool.
 
 
 Version 5.0.49:

@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2001-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2013 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -12,7 +12,7 @@
  * \file
  * test_pse: ParaStation PSE test program
  *
- * $Id$ 
+ * $Id$
  *
  * \author
  * Jens Hauke <hauke@par-tec.com>
@@ -26,7 +26,8 @@
 
 #include <popt.h>
 
-#include "pse.h"
+#include <pse.h>
+#include <psi.h>
 
 static int arg_np;
 
@@ -42,6 +43,11 @@ static void run(int argc, char *argv[], int np)
     PSE_initialize();
 
     rank = PSE_getRank();
+
+    /* Propagate some environment variables */
+    PSI_propEnv();
+    PSI_propEnvList("PSI_EXPORTS");
+    PSI_propEnvList("__PSI_EXPORTS");
 
     if (rank == -1){
 	/* I am the logger */
@@ -78,7 +84,7 @@ int main(int argc, char *argv[])
     int rc;
 
     struct poptOption optionsTable[] = {
-        { "np", '\0', POPT_ARG_INT | POPT_ARGFLAG_ONEDASH,
+	{ "np", '\0', POPT_ARG_INT | POPT_ARGFLAG_ONEDASH,
 	  &arg_np, 0, "number of processes to start", "num"},
 	POPT_AUTOHELP
 	{ NULL, '\0', 0, NULL, 0, NULL, NULL}

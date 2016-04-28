@@ -58,7 +58,6 @@ static char vcid[] __attribute__((used)) =
 #define VALGRIND_COMMAND_MEMCHECK "--leak-check=full"
 #define VALGRIND_COMMAND_CALLGRIND "--tool=callgrind"
 #define MPI1_NP_OPT "-np"
-#define MAX_BINARIES 100
 
 typedef struct {
     int np;
@@ -71,8 +70,12 @@ typedef struct {
     char *wdir;
 } Executable_t;
 
+/** Maximum number of executables currently fitting to @ref exec */
+static int execMax = 0;
+/** Actual number of executables in @ref exec */
 static int execCount = 0;
-static Executable_t *exec[MAX_BINARIES];
+/** Keep information on different executables to start */
+static Executable_t *exec;
 
 /** Space for error messages */
 static char msgstr[512];
@@ -1142,7 +1145,7 @@ static void setupExecEnv(int execNum)
     char tmp[32];
 
     if (OpenMPI) {
-	snprintf(tmp, sizeof(tmp), "%d", exec[execNum]->tpp);
+	snprintf(tmp, sizeof(tmp), "%d", exec[execNum].tpp);
 	setPSIEnv("SLURM_CPUS_PER_TASK", tmp, 1);
     }
 
@@ -1422,15 +1425,15 @@ static int startProcs(int np, char *wd, int verbose)
 
 	if (!options) options = PART_OPT_DEFAULT;
 
-	exec[i]->resID = PSI_getReservation(exec[i]->np, exec[i]->np,
-					    exec[i]->ppn, exec[i]->tpp,
-					    exec[i]->hwType, options, &got);
+	exec[i].resID = PSI_getReservation(exec[i].np, exec[i].np, exec[i].ppn,
+					   exec[i].tpp, exec[i].hwType,
+					   options, &got);
 
-	if (!exec[i]->resID || (int)got != exec[i]->np) {
+	if (!exec[i].resID || (int)got != exec[i].np) {
 	    fprintf(stderr, "%s: Unable to get reservation for app %d %d slots "
 		    "(tpp %d hwType %#x options %#x ppn %d)\n", __func__, i,
-		    exec[i]->np, exec[i]->tpp, exec[i]->hwType, options,
-		    exec[i]->ppn);
+		    exec[i].np, exec[i].tpp, exec[i].hwType, options,
+		    exec[i].ppn);
 	    if ((getenv("PMI_SPAWNED"))) sendPMIFail();
 
 	    return -1;
@@ -1440,13 +1443,13 @@ static int startProcs(int np, char *wd, int verbose)
     /* Collect info on reservations */
     nodeList = umalloc(nlSize, __func__);
     for (i=0; i< execCount; i++) {
-	int got = PSI_infoList(-1, PSP_INFO_LIST_RESNODES, &exec[i]->resID,
+	int got = PSI_infoList(-1, PSP_INFO_LIST_RESNODES, &exec[i].resID,
 			       nodeList+off, nlSize-off*sizeof(*nodeList), 0);
 
-	if ((unsigned)got != exec[i]->np * sizeof(*nodeList)) {
+	if ((unsigned)got != exec[i].np * sizeof(*nodeList)) {
 	    fprintf(stderr, "%s: Unable to get nodes in reservation %#x for"
-		    "app %d. Got %d expected %zd\n", __func__, exec[i]->resID,
-		    i, got, exec[i]->np * sizeof(*nodeList));
+		    "app %d. Got %d expected %zd\n", __func__, exec[i].resID,
+		    i, got, exec[i].np * sizeof(*nodeList));
 	    if ((getenv("PMI_SPAWNED"))) sendPMIFail();
 
 	    return -1;
@@ -1489,8 +1492,8 @@ static int startProcs(int np, char *wd, int verbose)
     for (i=0; i< execCount; i++) {
 	setupExecEnv(i);
 
-	ret = spawnSingleExecutable(exec[i]->np, exec[i]->argc, exec[i]->argv,
-				    exec[i]->wdir, exec[i]->resID, verbose);
+	ret = spawnSingleExecutable(exec[i].np, exec[i].argc, exec[i].argv,
+				    exec[i].wdir, exec[i].resID, verbose);
 	if (ret < 0) {
 	    if ((getenv("PMI_SPAWNED"))) sendPMIFail();
 
@@ -1900,15 +1903,12 @@ static void setupPSIDEnv(int verbose)
  */
 static void setupEnvironment(int verbose)
 {
-    int rank;
+    int rank = PSE_getRank();
 
     /* setup environment depending on psid/logger */
     setupPSIDEnv(verbose);
     /* setup environment depending on pscom library */
     setupPSCOMEnv(verbose);
-    /* Both *before* PSE_initialize() for environment propagation */
-
-    rank = PSE_getRank();
 
     /* be only verbose if we are the logger */
     if (rank != -1) verbose = 0;
@@ -2233,8 +2233,8 @@ static void createAdminTasks(char *login, int verbose, int show)
     char *envnodes, *envhosts, **argv;
     int argc, numNodes = PSC_getNrOfNodes();
 
-    argc = exec[0]->argc;
-    argv = exec[0]->argv;
+    argc = exec[0].argc;
+    argv = exec[0].argv;
 
     if (login) setupUID(argv);
 
@@ -2320,7 +2320,7 @@ static void checkSanity(char *argv[])
 	errExit(msgstr);
     }
 
-    if (!execCount || !exec[0]->argc) {
+    if (!execCount || !exec[0].argc) {
 	printf("%s: execCount:%i\n", __func__, execCount);
 	errExit("No <command> specified.");
     }
@@ -2855,22 +2855,20 @@ static void saveNextExecutable(int *sum_np, int argc, const char **argv)
     int i;
     char *hwTypeStr;
 
-    if (execCount+1 >= MAX_BINARIES) {
-	fprintf(stderr, "maximum supported different executables %i\n",
-		    MAX_BINARIES);
-	exit(1);
+    if (execCount >= execMax) {
+	execMax += 64;
+	exec = urealloc(exec, execMax * sizeof(*exec), __func__);
     }
 
     if (argc <= 0 || !argv || !argv[0]) errExit("invalid colon syntax\n");
 
-    exec[execCount] = umalloc(sizeof(**exec), __func__);
     if (np > 0) {
 	*sum_np += np;
-	exec[execCount]->np = np;
+	exec[execCount].np = np;
 	np = -1;
     } else if (gnp > 0) {
 	*sum_np += gnp;
-	exec[execCount]->np = gnp;
+	exec[execCount].np = gnp;
     } else if (!admin) {
 	fprintf(stderr, "no -np argument for binary(%i) '%s'\n", execCount+1,
 		argv[0]);
@@ -2885,44 +2883,48 @@ static void saveNextExecutable(int *sum_np, int argc, const char **argv)
     } else {
 	hwTypeStr = NULL;
     }
-    exec[execCount]->hwType = hwTypeStr ? getNodeType(hwTypeStr) : 0;
+    exec[execCount].hwType = hwTypeStr ? getNodeType(hwTypeStr) : 0;
 
     if (ppn) {
-	exec[execCount]->ppn = ppn;
+	exec[execCount].ppn = ppn;
 	ppn = 0;
     } else if (gppn) {
-	exec[execCount]->ppn = gppn;
+	exec[execCount].ppn = gppn;
     } else {
-	exec[execCount]->ppn = 0;
+	exec[execCount].ppn = 0;
     }
 
     if (tpp) {
-	exec[execCount]->tpp = tpp;
+	exec[execCount].tpp = tpp;
 	if (tpp > maxtpp) maxtpp = tpp;
 	tpp = 0;
     } else if (gtpp) {
-	exec[execCount]->tpp = gtpp;
+	exec[execCount].tpp = gtpp;
 	if (gtpp > maxtpp) maxtpp = gtpp;
     } else if (envtpp) {
-	exec[execCount]->tpp = envtpp;
+	exec[execCount].tpp = envtpp;
 	if (envtpp > maxtpp) maxtpp = envtpp;
     } else {
-	exec[execCount]->tpp = 1;
+	exec[execCount].tpp = 1;
     }
     if (wdir) {
-	exec[execCount]->wdir = wdir;
+	exec[execCount].wdir = wdir;
 	wdir = NULL;
     } else if (gwdir) {
-	exec[execCount]->wdir = gwdir;
+	exec[execCount].wdir = gwdir;
     } else {
-	exec[execCount]->wdir = NULL;
+	exec[execCount].wdir = NULL;
     }
-    exec[execCount]->argc = argc;
-    exec[execCount]->argv = umalloc(sizeof(char *) * (argc +1), __func__);
+    exec[execCount].argc = argc;
+    exec[execCount].argv = umalloc(sizeof(char *) * (argc +1), __func__);
     for (i=0; i<argc; i++) {
-	exec[execCount]->argv[i] = strdup(argv[i]);
+	exec[execCount].argv[i] = strdup(argv[i]);
+	if (!exec[execCount].argv[i]) {
+	    fprintf(stderr, "%s: failed to strdup '%s'\n", __func__, argv[i]);
+	    exit(1);
+	}
     }
-    exec[execCount]->argv[argc] = NULL;
+    exec[execCount].argv[argc] = NULL;
     execCount++;
 }
 
@@ -3103,12 +3105,12 @@ static void printHelp(int argc, char *argv[])
  */
 static void setupGDB(void)
 {
-    int i, x, new_argc;
-    char **new_argv;
+    int  x;
 
     for (x=0; x<execCount; x++) {
-	new_argc = 0;
-	new_argv = umalloc((exec[x]->argc + 5 + 1) * sizeof(char *), __func__);
+	int new_argc = 0, i;
+	char **new_argv =
+	    umalloc((exec[x].argc + 5 + 1) * sizeof(char *), __func__);
 
 	new_argv[new_argc++] = GDB_COMMAND_EXE;
 	new_argv[new_argc++] = GDB_COMMAND_SILENT;
@@ -3118,13 +3120,14 @@ static void setupGDB(void)
 	    new_argv[new_argc++] = GDB_COMMAND_ARGS;
 	}
 
-	for (i=0; i<exec[x]->argc; i++) {
-	    new_argv[new_argc++] = exec[x]->argv[i];
+	for (i=0; i<exec[x].argc; i++) {
+	    new_argv[new_argc++] = exec[x].argv[i];
 	}
-
 	new_argv[new_argc] = NULL;
-	exec[x]->argv = new_argv;
-	exec[x]->argc = new_argc;
+
+	free(exec[x].argv);
+	exec[x].argv = new_argv;
+	exec[x].argc = new_argc;
     }
 }
 
@@ -3135,32 +3138,31 @@ static void setupGDB(void)
  */
 static void setupVALGRIND(void)
 {
-    int i, x, new_argc;
-    char **new_argv;
+    int x;
 
     for (x=0; x<execCount; x++) {
-	new_argc = 0;
-	new_argv = umalloc((exec[x]->argc + 3 + 1) * sizeof(char *), __func__);
+	int new_argc = 0, i;
+	char **new_argv =
+	    umalloc((exec[x].argc + 3 + 1) * sizeof(char *), __func__);
 
 	new_argv[new_argc++] = VALGRIND_COMMAND_EXE;
 	new_argv[new_argc++] = VALGRIND_COMMAND_SILENT;
-
-	if(callgrind) {
+	if (callgrind) {
 	     /* Use Callgrind Tool */
 	     new_argv[new_argc++] = VALGRIND_COMMAND_CALLGRIND;
-
 	} else {
 	     /* Default: Memcheck Tool */
 	     new_argv[new_argc++] = VALGRIND_COMMAND_MEMCHECK;
 	}
 
-	for (i=0; i<exec[x]->argc; i++) {
-	     new_argv[new_argc++] = exec[x]->argv[i];
+	for (i=0; i<exec[0].argc; i++) {
+	     new_argv[new_argc++] = exec[x].argv[i];
 	}
-
 	new_argv[new_argc] = NULL;
-	exec[x]->argv = new_argv;
-	exec[x]->argc = new_argc;
+
+	free(exec[x].argv);
+	exec[x].argv = new_argv;
+	exec[x].argc = new_argc;
     }
 }
 
@@ -3173,25 +3175,27 @@ static void setupVALGRIND(void)
  */
 static void setupComp(void)
 {
-    char *cnp, **tmp;
-    int len = 10, i, argc;
+    int len = 10, new_argc = 0, i;
+    char *cnp;
+    char **new_argv =
+	umalloc((exec[0].argc + 2 + 1) * sizeof(char *), __func__ );
 
-    argc = exec[0]->argc;
     cnp = umalloc(len, __func__);
     snprintf(cnp, len, "%d", np);
-    tmp = umalloc((argc + 2 + 1) * sizeof(char *), __func__ );
 
-    for (i=0; i<argc; i++) {
-	tmp[i] = exec[0]->argv[i];
+    for (i=0; i<exec[0].argc; i++) {
+	new_argv[new_argc++] = exec[0].argv[i];
     }
 
-    exec[0]->argv = tmp;
-    exec[0]->argv[argc++] = MPI1_NP_OPT;
-    exec[0]->argv[argc++] = cnp;
-    exec[0]->argv[argc] = NULL;
-    exec[0]->argc = argc;
+    new_argv[new_argc++] = MPI1_NP_OPT;
+    new_argv[new_argc++] = cnp;
+    new_argv[new_argc] = NULL;
 
-    exec[0]->np = 1;
+    free(exec[0].argv);
+    exec[0].argv = new_argv;
+    exec[0].argc = new_argc;
+
+    exec[0].np = 1;
 }
 
 /**
@@ -3262,6 +3266,11 @@ int main(int argc, char *argv[], char** envp)
 /*     PSI_RemoteArgs(filter_argc-dup_argc, &filter_argv[dup_argc],
  *     &dup_argc, &dup_argv); */
 /*     @todo Enable PSI_RARG_PRE correctly !! */
+
+    /* Now actually Propagate parts of the environment */
+    PSI_propEnv();
+    PSI_propEnvList("PSI_EXPORTS");
+    PSI_propEnvList("__PSI_EXPORTS");
 
     /* create spawner process and switch to logger */
     createSpawner(argc, argv, np, admin);

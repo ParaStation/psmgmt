@@ -1,3 +1,699 @@
+Version psmgmt-5.0.50:
+======================
+------------------------------------------------------------------------
+r9353 | eicker | 2016-04-21 22:52:07 +0200 (Thu, 21 Apr 2016) | 4 lines
+
+Bugfix: Fix mpiexec's propagation of single environments via the -e
+    option. This broke in r9090. To fix it environment propagation had
+    to be detached from PSI / PSE initialization.
+
+------------------------------------------------------------------------
+r9352 | eicker | 2016-04-21 16:15:54 +0200 (Thu, 21 Apr 2016) | 2 lines
+
+Bugfix: Actually adapt psiadmin's "list proc" directive to screen's width
+
+------------------------------------------------------------------------
+r9351 | eicker | 2016-04-21 15:45:34 +0200 (Thu, 21 Apr 2016) | 2 lines
+
+Enhancement: Remove mpiexec's limitation on number of executables (jrt:#5402)
+
+------------------------------------------------------------------------
+r9350 | eicker | 2016-04-21 12:13:20 +0200 (Thu, 21 Apr 2016) | 3 lines
+
+Bugfix: Undo r9348. No good idea at all since PStasklist_find() is also
+    used to search outside managedTasks
+
+------------------------------------------------------------------------
+r9349 | eicker | 2016-04-21 10:18:28 +0200 (Thu, 21 Apr 2016) | 2 lines
+
+Code beautifications
+
+------------------------------------------------------------------------
+r9348 | eicker | 2016-04-21 10:18:09 +0200 (Thu, 21 Apr 2016) | 2 lines
+
+Speedup PStasklist_find() if searching for remote task
+
+------------------------------------------------------------------------
+r9347 | eicker | 2016-04-21 10:08:56 +0200 (Thu, 21 Apr 2016) | 4 lines
+
+Enhancement: Add PSP_tryPutMsgBuf()
+Booleanize psprotocol
+Drop note about plugin's message IDs
+
+------------------------------------------------------------------------
+r9346 | eicker | 2016-04-21 09:52:10 +0200 (Thu, 21 Apr 2016) | 2 lines
+
+Bugfix: Catch rare case of new parent's node down during process inheritance
+
+------------------------------------------------------------------------
+r9345 | eicker | 2016-04-21 09:45:32 +0200 (Thu, 21 Apr 2016) | 2 lines
+
+Fill message content during declaration
+
+------------------------------------------------------------------------
+r9344 | eicker | 2016-04-21 09:24:03 +0200 (Thu, 21 Apr 2016) | 2 lines
+
+Enhancement: Prepare for asynchronouos inheritance of children
+
+------------------------------------------------------------------------
+r9343 | eicker | 2016-04-19 11:04:26 +0200 (Tue, 19 Apr 2016) | 2 lines
+
+More use of offsetof()
+
+------------------------------------------------------------------------
+r9342 | eicker | 2016-04-18 23:46:29 +0200 (Mon, 18 Apr 2016) | 2 lines
+
+Clarify one comment
+
+------------------------------------------------------------------------
+r9341 | eicker | 2016-04-18 23:45:28 +0200 (Mon, 18 Apr 2016) | 2 lines
+
+Booleanize PSsignal_t
+
+------------------------------------------------------------------------
+r9340 | eicker | 2016-04-18 23:42:58 +0200 (Mon, 18 Apr 2016) | 2 lines
+
+Booleanize selector
+
+------------------------------------------------------------------------
+r9339 | eicker | 2016-04-18 23:40:19 +0200 (Mon, 18 Apr 2016) | 2 lines
+
+Booleanize PSpart_request_t
+
+------------------------------------------------------------------------
+r9338 | eicker | 2016-04-18 23:37:17 +0200 (Mon, 18 Apr 2016) | 2 lines
+
+Booleanize content of PStask_t
+
+------------------------------------------------------------------------
+r9337 | eicker | 2016-04-18 23:35:44 +0200 (Mon, 18 Apr 2016) | 2 lines
+
+Prevent include loop triggered by one of the test-plugins.
+
+------------------------------------------------------------------------
+r9336 | eicker | 2016-04-18 23:08:35 +0200 (Mon, 18 Apr 2016) | 4 lines
+
+Bugfix: Prevent sendReqList() from messing up the stack if
+    PART_LIST_NODES is set and nodes have more than 72 cores
+Enhancement: Make PSpart_encodeReq() compatible to PSP_putMsgBuf() et.al.
+
+------------------------------------------------------------------------
+r9335 | eicker | 2016-04-18 19:10:09 +0200 (Mon, 18 Apr 2016) | 2 lines
+
+psprotocol.h now only depends on pstaskid.h instead of pstask.h.
+
+------------------------------------------------------------------------
+r9334 | eicker | 2016-04-18 19:09:00 +0200 (Mon, 18 Apr 2016) | 2 lines
+
+Move PStask_group_t's declaration into pstaskid.h, too.
+
+------------------------------------------------------------------------
+r9333 | eicker | 2016-04-18 19:03:07 +0200 (Mon, 18 Apr 2016) | 2 lines
+
+Remove one compiler-warning about undefined memcpy()
+
+------------------------------------------------------------------------
+r9332 | eicker | 2016-04-18 18:55:21 +0200 (Mon, 18 Apr 2016) | 2 lines
+
+Bugfix: Fix parser-syntax of psiadmin's 'list jobs' directive.
+
+------------------------------------------------------------------------
+r9331 | eicker | 2016-04-01 21:19:31 +0200 (Fri, 01 Apr 2016) | 2 lines
+
+Bugfix: Printing PSCPU_set_t via PSCPU_print() might be broken (psc:#243)
+
+------------------------------------------------------------------------
+r9330 | krempel | 2016-03-11 15:49:20 +0100 (Fri, 11 Mar 2016) | 2 lines
+
+Take ip addresses from psconfig avoiding name resolution bursts
+
+------------------------------------------------------------------------
+r9329 | krempel | 2016-03-11 15:46:51 +0100 (Fri, 11 Mar 2016) | 2 lines
+
+Fix error message for psconfig reading error.
+
+------------------------------------------------------------------------
+r9328 | moschny | 2016-03-08 16:36:12 +0100 (Tue, 08 Mar 2016) | 1 line
+
+Move PStask_ID_t definition to a separate header, to avoid circular
+    dependencies of the include files.
+
+------------------------------------------------------------------------
+r9327 | moschny | 2016-03-08 16:19:23 +0100 (Tue, 08 Mar 2016) | 1 line
+
+Add annotation for iwyu tool.
+------------------------------------------------------------------------
+r9326 | eicker | 2016-03-08 15:56:50 +0100 (Tue, 08 Mar 2016) | 2 lines
+
+Refactoring of psidforwarder (booleanize, Swait(), etc.).
+
+------------------------------------------------------------------------
+r9325 | eicker | 2016-03-08 12:06:57 +0100 (Tue, 08 Mar 2016) | 2 lines
+
+Yet another merge from psslurm.
+
+------------------------------------------------------------------------
+r9324 | eicker | 2016-03-08 11:56:14 +0100 (Tue, 08 Mar 2016) | 2 lines
+
+Major refactoring of psilogger (booleanize, Swait(), etc.).
+
+------------------------------------------------------------------------
+r9323 | eicker | 2016-03-07 18:40:55 +0100 (Mon, 07 Mar 2016) | 2 lines
+
+Bugfix: Check for failed allocation in putil/env.
+
+------------------------------------------------------------------------
+r9322 | eicker | 2016-03-07 18:08:44 +0100 (Mon, 07 Mar 2016) | 2 lines
+
+Merge minor changes from psslurm into mpiexec
+
+------------------------------------------------------------------------
+r9321 | eicker | 2016-03-07 18:02:08 +0100 (Mon, 07 Mar 2016) | 3 lines
+
+More merge from psslurm: psslurm might like to have the logger
+    unbuffered.
+
+------------------------------------------------------------------------
+r9320 | eicker | 2016-03-07 17:58:05 +0100 (Mon, 07 Mar 2016) | 2 lines
+
+Enhancement: Mark kvsprovider's terminateJob() to be 'noreturn'.
+
+------------------------------------------------------------------------
+r9319 | eicker | 2016-03-07 14:03:51 +0100 (Mon, 07 Mar 2016) | 5 lines
+
+Use pipe()s created with correct euid between forwarder and client.
+    Merged from psslurm. seteuid() seems to create an extra SIGCHLD
+    which needs a fix in psidforwarder.
+
+------------------------------------------------------------------------
+r9318 | eicker | 2016-03-07 13:57:38 +0100 (Mon, 07 Mar 2016) | 2 lines
+
+Fix log-message formatting.
+
+------------------------------------------------------------------------
+r9317 | eicker | 2016-03-04 14:23:56 +0100 (Fri, 04 Mar 2016) | 2 lines
+
+Bugfix: Make psmom compatible to clone environment optimization
+
+------------------------------------------------------------------------
+r9316 | eicker | 2016-03-04 14:22:55 +0100 (Fri, 04 Mar 2016) | 2 lines
+
+Enhancement: Merge clone environment optimization from psslurm
+
+------------------------------------------------------------------------
+r9315 | moschny | 2016-03-03 18:56:56 +0100 (Thu, 03 Mar 2016) | 1 line
+
+Fix a some warnings about integer casts.
+------------------------------------------------------------------------
+r9314 | eicker | 2016-03-03 18:56:26 +0100 (Thu, 03 Mar 2016) | 2 lines
+
+Merge KVS related changes from psslurm.
+
+------------------------------------------------------------------------
+r9313 | eicker | 2016-03-03 17:50:36 +0100 (Thu, 03 Mar 2016) | 4 lines
+
+Enhancement: Add new hooks PSIDHOOK_EXEC_CLIENT_USER,
+    PSIDHOOK_FRWRD_DSOCK and PSIDHOOK_PELOGUE_FINISH required by psslurm
+    and push pluginAPIVersion accordingly
+
+------------------------------------------------------------------------
+r9312 | eicker | 2016-03-03 17:23:49 +0100 (Thu, 03 Mar 2016) | 2 lines
+
+Enhancement: catch and forward stray SIGTERM in psidforwarder
+
+------------------------------------------------------------------------
+r9311 | eicker | 2016-03-03 17:21:54 +0100 (Thu, 03 Mar 2016) | 2 lines
+
+Actually fix a function declaration.
+
+------------------------------------------------------------------------
+r9310 | eicker | 2016-03-03 14:27:20 +0100 (Thu, 03 Mar 2016) | 2 lines
+
+Merge a fix from psslum helping to survive the test-suite.
+
+------------------------------------------------------------------------
+r9309 | eicker | 2016-03-03 14:13:35 +0100 (Thu, 03 Mar 2016) | 2 lines
+
+Fix more function declarations.
+
+------------------------------------------------------------------------
+r9308 | eicker | 2016-03-03 14:12:01 +0100 (Thu, 03 Mar 2016) | 2 lines
+
+Suppress one warning coming out of psh.
+
+------------------------------------------------------------------------
+r9307 | eicker | 2016-03-03 09:53:27 +0100 (Thu, 03 Mar 2016) | 2 lines
+
+Bugfix: Make PSID_cancelCB() working for file-descriptors beyond FD_SETSIZE
+
+------------------------------------------------------------------------
+r9306 | eicker | 2016-03-03 09:42:56 +0100 (Thu, 03 Mar 2016) | 2 lines
+
+Bugfix: Rework handling of EPOLLERR and EPOLLHUP
+
+------------------------------------------------------------------------
+r9305 | eicker | 2016-03-02 22:23:00 +0100 (Wed, 02 Mar 2016) | 2 lines
+
+Bugfix: Add missing newline to debug message.
+
+------------------------------------------------------------------------
+r9304 | eicker | 2016-03-02 22:21:17 +0100 (Wed, 02 Mar 2016) | 2 lines
+
+Bugfix: Also unblock SIGUSR[12] in PSID_resetSigs()
+
+------------------------------------------------------------------------
+r9303 | moschny | 2016-03-01 18:09:40 +0100 (Tue, 01 Mar 2016) | 1 line
+
+Remove unused functions.
+------------------------------------------------------------------------
+r9302 | moschny | 2016-03-01 18:08:39 +0100 (Tue, 01 Mar 2016) | 1 line
+
+Revert change inadvertently checked in in r9301.
+------------------------------------------------------------------------
+r9301 | moschny | 2016-03-01 18:02:16 +0100 (Tue, 01 Mar 2016) | 3 lines
+
+More consistently declare functions to be local or global.
+
+Candidates can be found using clang's -Wmissing-prototypes.
+------------------------------------------------------------------------
+r9300 | moschny | 2016-03-01 16:19:48 +0100 (Tue, 01 Mar 2016) | 1 line
+
+Restore x-bit for sysv init script.
+------------------------------------------------------------------------
+r9299 | moschny | 2016-03-01 16:10:10 +0100 (Tue, 01 Mar 2016) | 1 line
+
+Fix rpmbuild for non-systemd systems.
+------------------------------------------------------------------------
+r9298 | eicker | 2016-02-26 18:41:23 +0100 (Fri, 26 Feb 2016) | 2 lines
+
+Remove obsolete stubs of ideas that never materialized.
+
+------------------------------------------------------------------------
+r9297 | eicker | 2016-02-26 09:59:23 +0100 (Fri, 26 Feb 2016) | 2 lines
+
+Help clang to ignore false positives.
+
+------------------------------------------------------------------------
+r9296 | eicker | 2016-02-25 21:23:42 +0100 (Thu, 25 Feb 2016) | 2 lines
+
+Make use of Swait() replacing Sselect() in psid's main loop.
+
+------------------------------------------------------------------------
+r9295 | eicker | 2016-02-25 21:22:28 +0100 (Thu, 25 Feb 2016) | 3 lines
+
+Enhancement: Omit checks for FD_SETSIZE since Selector can handle
+    file-descriptors beyond that limit now. (psc:#231)
+
+------------------------------------------------------------------------
+r9294 | eicker | 2016-02-25 21:19:03 +0100 (Thu, 25 Feb 2016) | 2 lines
+
+Enhancement: Selector now uses epoll. (psc:#231)
+
+------------------------------------------------------------------------
+r9293 | moschny | 2016-02-25 12:00:54 +0100 (Thu, 25 Feb 2016) | 1 line
+
+Make it explicit that we don't use the return value.
+------------------------------------------------------------------------
+r9292 | moschny | 2016-02-25 11:27:00 +0100 (Thu, 25 Feb 2016) | 3 lines
+
+More consistently declare variables to be local or global.
+
+Candidates can be found using clang's -Wmissing-variable-declarations.
+------------------------------------------------------------------------
+r9291 | moschny | 2016-02-24 14:15:14 +0100 (Wed, 24 Feb 2016) | 1 line
+
+Add another systemd example override file (jurecatrac:ticket:4718).
+------------------------------------------------------------------------
+r9290 | eicker | 2016-02-23 17:55:11 +0100 (Tue, 23 Feb 2016) | 2 lines
+
+Bugfix: Also Selector_vacateWrite() shall not be called after close().
+
+------------------------------------------------------------------------
+r9289 | eicker | 2016-02-23 17:40:35 +0100 (Tue, 23 Feb 2016) | 2 lines
+
+Enhancement: Prepare for file-descriptors to daemon > FD_SETSIZE
+
+------------------------------------------------------------------------
+r9288 | eicker | 2016-02-23 17:38:53 +0100 (Tue, 23 Feb 2016) | 2 lines
+
+Bugfix: Ensure all file-descriptors are closed when exec()ing logger.
+
+------------------------------------------------------------------------
+r9287 | eicker | 2016-02-23 10:08:03 +0100 (Tue, 23 Feb 2016) | 3 lines
+
+Remove Selector before actually closing a file-descriptor. Preparation
+    for epoll.
+
+------------------------------------------------------------------------
+r9286 | moschny | 2016-02-22 20:07:28 +0100 (Mon, 22 Feb 2016) | 1 line
+
+Add two examples of systemd override files.
+------------------------------------------------------------------------
+r9285 | moschny | 2016-02-22 18:21:42 +0100 (Mon, 22 Feb 2016) | 1 line
+
+Add missing file.
+------------------------------------------------------------------------
+r9284 | moschny | 2016-02-22 18:20:19 +0100 (Mon, 22 Feb 2016) | 1 line
+
+Include psconfig docs for "make dist".
+------------------------------------------------------------------------
+r9283 | moschny | 2016-02-22 18:18:28 +0100 (Mon, 22 Feb 2016) | 1 line
+
+Remove obsolete file.
+------------------------------------------------------------------------
+r9282 | moschny | 2016-02-22 17:32:27 +0100 (Mon, 22 Feb 2016) | 1 line
+
+Simplify handling of the pam config file.
+------------------------------------------------------------------------
+r9281 | moschny | 2016-02-22 16:57:13 +0100 (Mon, 22 Feb 2016) | 1 line
+
+Keep "make distcheck" happy.
+------------------------------------------------------------------------
+r9280 | moschny | 2016-02-22 16:40:42 +0100 (Mon, 22 Feb 2016) | 1 line
+
+Rework/simplify scrips/Makefile.am.
+------------------------------------------------------------------------
+r9279 | moschny | 2016-02-22 15:59:37 +0100 (Mon, 22 Feb 2016) | 1 line
+
+Simplify subst rule in common.am.
+------------------------------------------------------------------------
+r9278 | moschny | 2016-02-22 15:38:23 +0100 (Mon, 22 Feb 2016) | 1 line
+
+Move creation of /var/log/psaccounter from doc/Makefile to bin/Makefile.
+------------------------------------------------------------------------
+r9277 | moschny | 2016-02-22 15:18:57 +0100 (Mon, 22 Feb 2016) | 1 line
+
+Let autoconf handle dist/Makefile.
+------------------------------------------------------------------------
+r9276 | moschny | 2016-02-19 14:00:12 +0100 (Fri, 19 Feb 2016) | 1 line
+
+Fix r9273 for older rpm versions.
+------------------------------------------------------------------------
+r9275 | eicker | 2016-02-19 12:59:54 +0100 (Fri, 19 Feb 2016) | 2 lines
+
+Bugfix: Fix logic in error reporting while releasing task
+
+------------------------------------------------------------------------
+r9274 | eicker | 2016-02-19 12:01:59 +0100 (Fri, 19 Feb 2016) | 3 lines
+
+Enhancement: Re-organize psidforwarder: Use signalfd, improved error
+    messages, get rid of global variables, etc.
+
+------------------------------------------------------------------------
+r9273 | moschny | 2016-02-19 10:51:16 +0100 (Fri, 19 Feb 2016) | 1 line
+
+Forward --disable-psconfig to "make rpm".
+------------------------------------------------------------------------
+r9272 | eicker | 2016-02-17 20:37:47 +0100 (Wed, 17 Feb 2016) | 2 lines
+
+Enhancement: Prevent use of writefds in PSID_forwarder().
+
+------------------------------------------------------------------------
+r9271 | eicker | 2016-02-17 20:06:45 +0100 (Wed, 17 Feb 2016) | 3 lines
+
+Bugfix: Initialize Selector correctly in getSelector()
+Enhancement: Suppress wrong warning in Selector_awaitWrite()
+
+------------------------------------------------------------------------
+r9270 | eicker | 2016-02-16 17:58:30 +0100 (Tue, 16 Feb 2016) | 3 lines
+
+Enhancement: Don't wait too long in forwarder befores re-sending
+    FINALIZE message to logger.
+
+------------------------------------------------------------------------
+r9269 | eicker | 2016-02-15 19:17:19 +0100 (Mon, 15 Feb 2016) | 2 lines
+
+Get rid of all the now useless SIGCHLD blocking.
+
+------------------------------------------------------------------------
+r9268 | eicker | 2016-02-15 18:05:49 +0100 (Mon, 15 Feb 2016) | 2 lines
+
+Enhancement: Use signalfd() to handle SIGCHLD, SIGUSR1 and SIGUSR2 in psid.
+
+------------------------------------------------------------------------
+r9267 | eicker | 2016-02-15 18:02:57 +0100 (Mon, 15 Feb 2016) | 2 lines
+
+Enhancement: Provide better errno from Selector_register()
+
+------------------------------------------------------------------------
+r9266 | eicker | 2016-02-12 19:03:42 +0100 (Fri, 12 Feb 2016) | 2 lines
+
+Unify the behavior of  various garbage collectors in the psid
+
+------------------------------------------------------------------------
+r9265 | eicker | 2016-02-12 18:28:46 +0100 (Fri, 12 Feb 2016) | 2 lines
+
+Enhancement: Report daemon failure via psid's parent process (#2522)
+
+------------------------------------------------------------------------
+r9264 | eicker | 2016-02-12 17:55:38 +0100 (Fri, 12 Feb 2016) | 2 lines
+
+Enable Selector's garbage-collection and statistics
+
+------------------------------------------------------------------------
+r9263 | eicker | 2016-02-12 17:55:01 +0100 (Fri, 12 Feb 2016) | 2 lines
+
+Enhancement: Get selector structures in chunks.
+
+------------------------------------------------------------------------
+r9262 | eicker | 2016-02-12 14:45:16 +0100 (Fri, 12 Feb 2016) | 2 lines
+
+Add RPM build dependency to systemd-devel on SUSE.
+
+------------------------------------------------------------------------
+r9261 | eicker | 2016-02-12 13:02:02 +0100 (Fri, 12 Feb 2016) | 2 lines
+
+Suppress messages now visible since psilogger's Selector is initialized.
+
+------------------------------------------------------------------------
+r9260 | eicker | 2016-02-12 12:08:41 +0100 (Fri, 12 Feb 2016) | 2 lines
+
+Enhancement: Reorder psid's module initialization
+
+------------------------------------------------------------------------
+r9259 | eicker | 2016-02-12 12:07:41 +0100 (Fri, 12 Feb 2016) | 2 lines
+
+Bugfix: Ensure all selectors are considered within Sselect()
+
+------------------------------------------------------------------------
+r9258 | eicker | 2016-02-12 11:49:30 +0100 (Fri, 12 Feb 2016) | 2 lines
+
+Be more verbose when stopping hard in Selector
+
+------------------------------------------------------------------------
+r9257 | eicker | 2016-02-12 09:33:13 +0100 (Fri, 12 Feb 2016) | 2 lines
+
+Bugfix: Ensure that re-used selectors survive the next round of cleanup
+
+------------------------------------------------------------------------
+r9256 | eicker | 2016-02-11 21:16:10 +0100 (Thu, 11 Feb 2016) | 3 lines
+
+Enhancement: Stop execution the hard way on register of selector despite
+    missing initialization
+
+------------------------------------------------------------------------
+r9255 | eicker | 2016-02-11 21:11:26 +0100 (Thu, 11 Feb 2016) | 3 lines
+
+Bugfix: The selector has to be initialized explicitly
+Enhancement: Speedup logger's detection of all clients disconnected.
+
+------------------------------------------------------------------------
+r9254 | eicker | 2016-02-11 18:59:09 +0100 (Thu, 11 Feb 2016) | 2 lines
+
+Fix typos.
+
+------------------------------------------------------------------------
+r9253 | eicker | 2016-02-11 18:48:42 +0100 (Thu, 11 Feb 2016) | 3 lines
+
+Enhancement: Get rid of PSID_writefds by using write selectors
+Rename sendClient() to PSIDclient_send()
+
+------------------------------------------------------------------------
+r9252 | eicker | 2016-02-11 18:12:28 +0100 (Thu, 11 Feb 2016) | 3 lines
+
+Enhancement: Add write selector functionality via Selector_awaitWrite()
+    and Selector_vacateWrite() to Selector facility.
+
+------------------------------------------------------------------------
+r9251 | eicker | 2016-02-09 19:27:33 +0100 (Tue, 09 Feb 2016) | 2 lines
+
+Add one todo.
+
+------------------------------------------------------------------------
+r9250 | moschny | 2016-02-08 16:15:44 +0100 (Mon, 08 Feb 2016) | 1 line
+
+Fix a potential segfault found by clang.
+------------------------------------------------------------------------
+r9249 | eicker | 2016-02-05 18:48:53 +0100 (Fri, 05 Feb 2016) | 2 lines
+
+Tell Selector when RLIMIT_NOFILE changes.
+
+------------------------------------------------------------------------
+r9248 | eicker | 2016-02-05 18:46:19 +0100 (Fri, 05 Feb 2016) | 2 lines
+
+Enhancement: Prepare infrastructure to enable Selectors for write-fds.
+
+------------------------------------------------------------------------
+r9247 | eicker | 2016-02-05 16:48:26 +0100 (Fri, 05 Feb 2016) | 2 lines
+
+Enhancement: Let psilogger handle daemon messages via Selector.
+
+------------------------------------------------------------------------
+r9246 | eicker | 2016-02-04 19:17:43 +0100 (Thu, 04 Feb 2016) | 2 lines
+
+Enhancement: Check availability of PSLog via PSLog_avail()
+
+------------------------------------------------------------------------
+r9245 | moschny | 2016-02-02 19:42:04 +0100 (Tue, 02 Feb 2016) | 1 line
+
+Simplify, and fix a clang warning.
+------------------------------------------------------------------------
+r9244 | moschny | 2016-02-02 19:41:36 +0100 (Tue, 02 Feb 2016) | 1 line
+
+Fix undefined behavior.
+------------------------------------------------------------------------
+r9243 | moschny | 2016-02-01 16:37:57 +0100 (Mon, 01 Feb 2016) | 1 line
+
+Merge current state of the systemd branch.
+------------------------------------------------------------------------
+r9242 | moschny | 2016-02-01 16:07:19 +0100 (Mon, 01 Feb 2016) | 1 line
+
+Define install dirs explicitly, seems to be needed for F23+.
+------------------------------------------------------------------------
+r9241 | eicker | 2016-01-29 19:52:12 +0100 (Fri, 29 Jan 2016) | 2 lines
+
+Fix one compiler warning.
+
+------------------------------------------------------------------------
+r9240 | eicker | 2016-01-29 18:33:19 +0100 (Fri, 29 Jan 2016) | 2 lines
+
+Enhancement: Delayed finalization of psid's parent process (#2522)
+
+------------------------------------------------------------------------
+r9239 | eicker | 2016-01-26 23:42:41 +0100 (Tue, 26 Jan 2016) | 2 lines
+
+Enhancement: Get rid of psid's unused PSID_readfds set.
+
+------------------------------------------------------------------------
+r9238 | eicker | 2016-01-26 23:39:28 +0100 (Tue, 26 Jan 2016) | 2 lines
+
+Enhancement: Reduce Sselect()'s nfds argument to 0 if all fd-sets are NULL.
+
+------------------------------------------------------------------------
+r9237 | eicker | 2016-01-26 18:53:18 +0100 (Tue, 26 Jan 2016) | 2 lines
+
+Enhancement: Use a dispatcher registered in RDP to handle RDP messages.
+
+------------------------------------------------------------------------
+r9236 | eicker | 2016-01-26 18:06:42 +0100 (Tue, 26 Jan 2016) | 2 lines
+
+Enhancement: Enable PSIDclient facility to handle file-descriptors > 1024.
+
+------------------------------------------------------------------------
+r9235 | eicker | 2016-01-26 11:15:44 +0100 (Tue, 26 Jan 2016) | 2 lines
+
+Get rid of one helper-array when reallocating the nodes-information.
+
+------------------------------------------------------------------------
+r9234 | moschny | 2016-01-25 21:42:31 +0100 (Mon, 25 Jan 2016) | 1 line
+
+Some basic fixes to the spec file template.
+------------------------------------------------------------------------
+r9233 | moschny | 2016-01-25 15:09:44 +0100 (Mon, 25 Jan 2016) | 1 line
+
+Use AC_ARG_ENABLE instead of AC_ARG_WITH for selecting psconfig support.
+------------------------------------------------------------------------
+r9232 | eicker | 2016-01-22 16:57:53 +0100 (Fri, 22 Jan 2016) | 2 lines
+
+Get rid of psmomforwarder's unused fd_sets.
+
+------------------------------------------------------------------------
+r9231 | moschny | 2016-01-19 20:32:00 +0100 (Tue, 19 Jan 2016) | 1 line
+
+Update generated files with automake 1.15.
+------------------------------------------------------------------------
+r9230 | moschny | 2016-01-19 19:46:13 +0100 (Tue, 19 Jan 2016) | 1 line
+
+Fix some (potential) problems shown by clang.
+------------------------------------------------------------------------
+r9229 | eicker | 2016-01-12 18:02:41 +0100 (Tue, 12 Jan 2016) | 2 lines
+
+Bugfix: psid might SEGFAULT during shutdown due to late use of RDP
+
+------------------------------------------------------------------------
+r9228 | eicker | 2015-12-22 18:00:49 +0100 (Tue, 22 Dec 2015) | 3 lines
+
+Enhancement: Activate PSID_clearMem() during task-spawn and
+    PSID_execScript(). This shall solve #1218 at least partly.
+
+------------------------------------------------------------------------
+r9227 | eicker | 2015-12-21 18:18:54 +0100 (Mon, 21 Dec 2015) | 2 lines
+
+Enhancement: Provide PSID_clearMem() to realize funcionality for #1218
+
+------------------------------------------------------------------------
+r9226 | eicker | 2015-12-21 18:13:38 +0100 (Mon, 21 Dec 2015) | 2 lines
+
+Remove one unneeded #include
+
+------------------------------------------------------------------------
+r9225 | eicker | 2015-12-21 18:12:54 +0100 (Mon, 21 Dec 2015) | 2 lines
+
+Enhancement: Provide PSIDnodes_clearMem() to help with #1218
+
+------------------------------------------------------------------------
+r9224 | eicker | 2015-12-21 14:47:52 +0100 (Mon, 21 Dec 2015) | 2 lines
+
+Enhancement: Provide PSrsrvtn_clearMem() to help with #1218
+
+------------------------------------------------------------------------
+r9223 | eicker | 2015-12-18 14:02:19 +0100 (Fri, 18 Dec 2015) | 2 lines
+
+Enhancement: Provide PSIDMsgbuf_clearMem() to help with #1218
+
+------------------------------------------------------------------------
+r9222 | eicker | 2015-12-18 13:47:26 +0100 (Fri, 18 Dec 2015) | 2 lines
+
+Enhancement: Provide PSIDFlwCntrl_clearMem() to help with #1218
+
+------------------------------------------------------------------------
+r9221 | eicker | 2015-12-18 13:40:13 +0100 (Fri, 18 Dec 2015) | 2 lines
+
+Enhancement: Provide PSIDtask_clearMem() to help with #1218
+
+------------------------------------------------------------------------
+r9220 | eicker | 2015-12-17 10:40:07 +0100 (Thu, 17 Dec 2015) | 2 lines
+
+Enhancement: Provide PSIDclient_clearMem() to help with #1218
+
+------------------------------------------------------------------------
+r9219 | eicker | 2015-12-17 10:36:24 +0100 (Thu, 17 Dec 2015) | 2 lines
+
+Enhancement: Provide PSIDRDP_clearMem() to help with #1218
+
+------------------------------------------------------------------------
+r9218 | eicker | 2015-12-17 09:19:16 +0100 (Thu, 17 Dec 2015) | 2 lines
+
+Enhancement: free() all memory used by RDP on exit or by request (#1013)
+
+------------------------------------------------------------------------
+r9217 | eicker | 2015-12-15 19:38:14 +0100 (Tue, 15 Dec 2015) | 2 lines
+
+Enhancement: Count the number of sent NACKs per connection within RDP
+
+------------------------------------------------------------------------
+r9216 | eicker | 2015-12-04 16:43:14 +0100 (Fri, 04 Dec 2015) | 2 lines
+
+Enhancement: Suppress warning on membind if using SLURM (psc:#226)
+
+------------------------------------------------------------------------
+r9212 | eicker | 2015-12-04 16:16:41 +0100 (Fri, 04 Dec 2015) | 2 lines
+
+New version (psmgmt-5.0.49)
+
+------------------------------------------------------------------------
+
+
 Version psmgmt-5.0.49:
 ======================
 ------------------------------------------------------------------------

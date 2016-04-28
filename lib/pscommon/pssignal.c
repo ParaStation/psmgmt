@@ -104,7 +104,7 @@ PSsignal_t *PSsignal_get(void)
     list_del(&sp->next);
 
     INIT_LIST_HEAD(&sp->next);
-    sp->deleted = 0;
+    sp->deleted = false;
     sp->state = SIG_USED;
 
     usedSigs++;
@@ -115,7 +115,7 @@ PSsignal_t *PSsignal_get(void)
 void PSsignal_put(PSsignal_t *sp)
 {
     sp->state = SIG_UNUSED;
-    sp->deleted = 0;
+    sp->deleted = false;
     list_add_tail(&sp->next, &sigFreeList);
 
     usedSigs--;
@@ -190,7 +190,7 @@ void PSsignal_gc(void)
 {
     list_t *c, *tmp;
     unsigned int i;
-    int first = 1;
+    bool first = true;
 
     PSC_log(PSC_LOG_TASK, "%s()\n", __func__);
 
@@ -202,7 +202,7 @@ void PSsignal_gc(void)
 
 	/* always keep the first one */
 	if (first) {
-	    first = 0;
+	    first = false;
 	    continue;
 	}
 

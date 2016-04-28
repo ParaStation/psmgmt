@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2012 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -248,14 +248,14 @@ int main(int argc, const char *argv[])
     /* Don't irritate the user with logger messages */
     setenv("PSI_NOMSGLOGGERDONE", "", 1);
 
-    /*
-     * Besides initializing the PSI stuff, this furthermore propagetes
-     * some environment variables. Thus use this one instead of
-     * PSI_initClient().
-     */
     PSE_initialize();
 
     rank = PSE_getRank();
+
+    /* Propagate some additional environment variables */
+    PSI_propEnv();
+    PSI_propEnvList("PSI_EXPORTS");
+    PSI_propEnvList("__PSI_EXPORTS");
 
     if (rank != -1) {
 	fprintf(stderr, "%s: never act as client process.\n", argv[dup_argc]);

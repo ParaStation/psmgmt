@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2015 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -678,7 +678,7 @@ static int listJobsCommand(char *token)
     PSpart_list_t opt = 0;
 
     while (tid_descr) {
-	if (!strcasecmp(tid_descr, "state")) {
+	if (!strncasecmp(tid_descr, "state", 2)) {
 	    char *tok = parser_getString();
 	    if (!tok) goto error;
 	    if (!strncasecmp(tok, "p", 1)) {
@@ -690,7 +690,7 @@ static int listJobsCommand(char *token)
 	    } else goto error;
 	    tid_descr = parser_getString();
 	    continue;
-	} else if (!strncasecmp(tid_descr, "slots", 1)) {
+	} else if (!strncasecmp(tid_descr, "slots", 2)) {
 	    opt |= PART_LIST_NODES;
 	    tid_descr = parser_getString();
 	    continue;

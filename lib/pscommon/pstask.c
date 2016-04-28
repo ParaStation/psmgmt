@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2015 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -75,7 +75,7 @@ int PStask_init(PStask_t* task)
     task->uid = -1;
     task->gid = -1;
     task->aretty = 0;
-    task->interactive = 0;
+    task->interactive = false;
     task->stdin_fd = -1;
     task->stdout_fd = -1;
     task->stderr_fd = -1;
@@ -95,14 +95,14 @@ int PStask_init(PStask_t* task)
     task->pendingReleaseRes = 0;
     task->pendingReleaseErr = 0;
     task->activeStops = 0;
-    task->releaseAnswer = 1;
-    task->released = 0;
-    task->parentReleased = 0;
-    task->duplicate = 0;
-    task->suspended = 0;
-    task->removeIt = 0;
-    task->deleted = 0;
-    task->noParricide = 0;
+    task->releaseAnswer = true;
+    task->released = false;
+    task->parentReleased = false;
+    task->duplicate = false;
+    task->suspended = false;
+    task->removeIt = false;
+    task->deleted = false;
+    task->noParricide = false;
     task->killat = 0;
     gettimeofday(&task->started, NULL);
     task->protocolVersion = -1;
@@ -581,7 +581,7 @@ size_t PStask_encodeTask(char *buffer, size_t size, PStask_t *task, char **off)
     tmpTask.rank = task->rank;
     tmpTask.loggertid = task->loggertid;
     tmpTask.argc = task->argc;
-    tmpTask.noParricide = task->noParricide;
+    tmpTask.noParricide = task->noParricide ? 1 : 0;
 
     memcpy(buffer, &tmpTask, sizeof(tmpTask));
 
@@ -636,7 +636,7 @@ int PStask_decodeTask(char *buffer, PStask_t *task)
     task->rank = tmpTask.rank;
     task->loggertid = tmpTask.loggertid;
     task->argc = tmpTask.argc;
-    task->noParricide = tmpTask.noParricide;
+    task->noParricide = !!tmpTask.noParricide;
 
     len = strlen(&buffer[msglen]);
 

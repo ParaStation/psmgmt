@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2015 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -22,6 +22,7 @@
 #define __PSTASK_H
 
 #include <stdint.h>
+#include <stdbool.h>
 #include <sys/types.h>
 #include <termios.h>
 #include <sys/ioctl.h>
@@ -40,27 +41,6 @@ extern "C" {
 } /* <- just for emacs indentation */
 #endif
 #endif
-
-/** Task Group constants */
-typedef enum {
-    TG_ANY,         /**< normal task */
-    TG_ADMIN,       /**< taskgroup for psiadmin (and GUI client) */
-    TG_RESET,       /**< normal task */
-    TG_LOGGER,      /**< special task, the logger */
-    TG_FORWARDER,   /**< special task, the forwarder */
-    TG_SPAWNER,     /**< special task, the spawner (helper to spawn p4 jobs) */
-    TG_GMSPAWNER,   /**< special task, the gmspawner (helper to spawn GM) */
-    TG_MONITOR,     /**< special task that monitors the daemon. Don't kill */
-    TG_PSCSPAWNER,  /**< special task, the pscspawner (helper to spawn
-		     * PSC) @deprecated */
-    TG_ADMINTASK,   /**< admin-task, i.e. unaccounted task */
-    TG_SERVICE,     /**< service task, e.g. used by mpiexec to spawn procs */
-    TG_ACCOUNT,     /**< accounter, will receive and log accounting info */
-    TG_SERVICE_SIG, /**< service task, used by mpirun_openib to spawn
-		     * procs; will receive SIGTERM on child's termination */
-    TG_KVS,         /**< special task, the KVS used by the PMI interface */
-    TG_DELEGATE,    /**< special task used to hold resources */
-} PStask_group_t;
 
 /**
  * @brief Get the name of a PStask_group.
@@ -95,7 +75,7 @@ typedef struct __task__ {
     /*C*/ uid_t uid;               /**< user id */
     /*C*/ gid_t gid;               /**< group id */
     /*C*/ uint32_t aretty;         /**< flag stdin, stdout & stderr as tty */
-    char interactive;              /**< stdin, stdout and stderr: all ttys */
+    bool interactive;              /**< stdin, stdout and stderr: all ttys */
     int stdin_fd;                  /**< helper fd during spawn */
     int stdout_fd;                 /**< helper fd during spawn */
     int stderr_fd;                 /**< helper fd during spawn */
@@ -119,20 +99,20 @@ typedef struct __task__ {
     int pendingReleaseRes;         /**< num of pending RELEASERES messages */
     int pendingReleaseErr;         /**< set to param!=0 in RELEASERES msg */
     int activeStops;               /**< Number of active SENDSTOPs */
-    char releaseAnswer;            /**< flag final RELEASERES to initiator */
-    char released;                 /**< flag to mark released task, i.e. don't
+    bool releaseAnswer;            /**< flag final RELEASERES to initiator */
+    bool released;                 /**< flag to mark released task, i.e. don't
 				      send signal to parent on exit */
-    char parentReleased;           /**< flag RELEASE msg sent to parent */
-    char duplicate;                /**< flag to mark duplicate task, i.e. a
+    bool parentReleased;           /**< flag RELEASE msg sent to parent */
+    bool duplicate;                /**< flag to mark duplicate task, i.e. a
 				      tasks that are fork()ed by a client */
-    char suspended;                /**< flag to mark suspended tasks. */
-    char removeIt;                 /**< flag to mark task to be removed (as
+    bool suspended;                /**< flag to mark suspended tasks. */
+    bool removeIt;                 /**< flag to mark task to be removed (as
 				      soon as all children are released). */
-    char deleted;                  /**< flag to mark deleted tasks. It
+    bool deleted;                  /**< flag to mark deleted tasks. It
 				      will be removed from the list of
 				      managed tasks in the next round
 				      of the main loop */
-    char noParricide;              /**< flag to be set if kill signals should
+    /*C*/ bool noParricide;        /**< flag to be set if kill signals should
 				      not be forwarded to parents. */
     time_t killat;                 /**< flag a killed task, i.e. the time when
 				      the task should really go away. */

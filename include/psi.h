@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 1999-2003 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2013 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -255,6 +255,22 @@ void PSI_execLogger(const char *command);
  * @return No return value.
  */
 void PSI_propEnv(void);
+
+/**
+ * @brief Propagate list of environments
+ *
+ * Propagate a list of environment variables to the next level of
+ * spawning. For that, the environment variable @a listName containing
+ * a comma-separated list of environment variable names is
+ * analyzed. Each environment mentioned in this list is put into the
+ * PSI_environment
+ *
+ * @param listName Name of the environment containing a
+ * comma-separated list of environments to be propagated.
+ *
+ * @return No return value.
+ */
+void PSI_propEnvList(char *listName);
 
 /**
  * @brief Get the fd which is connected to the local daemon.

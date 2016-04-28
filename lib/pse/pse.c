@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 1999-2003 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2014 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -101,9 +101,6 @@ void PSE_initialize(void)
 
     logger_print(logger, PSE_LOG_VERB, "[%d] My TID is %s\n",
 		 PSE_getRank(), PSC_printTID(PSC_getMyTID()));
-
-    /* Propagate some environment variables */
-    PSI_propEnv();
 
     /* Get masterNode/masterPort from environment (if available) */
     envStr = getenv("__PSI_MASTERNODE");

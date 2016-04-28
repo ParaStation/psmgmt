@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2015 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -94,6 +94,10 @@ extern "C" {
 #define PSP_DD_GETRESERVATION      0x013C  /**< Forwarded GETRESERVATION msg */
 #define PSP_DD_GETSLOTS            0x013D  /**< Forwarded GETSLOTS msg */
 #define PSP_DD_SLOTSRES            0x013E  /**< Results of GETSLOTS msg */
+
+    /***********************************************************/
+    /* The IDs from 0x0200 on are reserved for plugin messages */
+    /***********************************************************/
 
 /**
  * @brief Generate a string describing the message type.

@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2015 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -21,10 +21,17 @@
 #ifndef __PSPARTITION_H
 #define __PSPARTITION_H
 
+#include <stdint.h>
+#include <stdbool.h>
+
+#include <stdbool.h>
+
 #include "list_t.h"
 
-#include "pstask.h"
+#include "psnodes.h"
+#include "pstaskid.h"
 #include "pscpu.h"
+#include "psprotocol.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -123,9 +130,9 @@ typedef struct {
     unsigned int sizeExpected;     /**< Number of slots expected */
     PSnodes_ID_t *nodes;           /**< List of partition candidates */
     PSpart_slot_t *slots;          /**< Partition (list of slots) associated */
-    char deleted;                  /**< Flag to mark request for deletion */
-    char suspended;                /**< Corresponding task is suspended */
-    char freed;                    /**< Resources are freed temporarily */
+    bool deleted;                  /**< Flag to mark request for deletion */
+    bool suspended;                /**< Corresponding task is suspended */
+    bool freed;                    /**< Resources are freed temporarily */
     uint16_t *resPorts;		   /**< Reserved ports for OpenMPI startup */
 } PSpart_request_t;
 
@@ -188,31 +195,32 @@ int PSpart_delReq(PSpart_request_t *request);
 /**
  * @brief Encode a partition request structure.
  *
- * Encode the partition request structure @a request into the
- * buffer @a buffer of size @a size. This enables the partition
- * request to be sent to a remote node where it can be decoded using
- * the @ref PSpart_decodeReq() function. Since the encoding-scheme
- * might depend on the protocol-version spoken by the remote daemon
- * the corresponding version has to be provided within @a
- * protoVersion.
+ * Encode the partition request structure @a request and store it into
+ * the payload-buffer @ref buf of the message @a msg of type @ref
+ * DDBufferMsg_t. The data are placed with an offset defined by the
+ * @ref len member of @a msg's header. Upon success, i.e. if the data
+ * fitted into the remainder of @a msg's buffer, the @ref len entry of
+ * @a msg's header is updated and @a true is returned. Otherwise, an
+ * error-message is put out and @a false is returned. In the latter
+ * case the len member of @a msg is not updated.
  *
- * @param buffer The buffer used to encode the partition request
- * structure.
+ * Since the encoding-scheme might depend on the protocol-version
+ * spoken by the remote daemon the corresponding version has to be
+ * provided within @a protoVersion.
  *
- * @param size The size of the buffer.
+ * @param msg Message to be modified
  *
- * @param request The partition request structure to encode.
+ * @param request The partition request structure to encode
  *
  * @param protoVersion Protocol version used for encoding
  *
- * @return On success, the number of bytes written to the buffer are
- * returned. If the return value is larger than @a size, the buffer is
- * to small in order to encode the whole partition request.
+ * @return On success @a true is returned. Or @a false if the buffer
+ * is to small in order to encode the whole partition request.
  *
  * @see PSpart_decodeReq()
  */
-size_t PSpart_encodeReq(char *buffer, size_t size, PSpart_request_t *request,
-			int protoVersion);
+bool PSpart_encodeReq(DDBufferMsg_t *msg, PSpart_request_t* request,
+		      int daemonProtoVersion);
 
 /**
  * @brief Decode a partition request structure.
