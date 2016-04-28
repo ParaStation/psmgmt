@@ -140,6 +140,7 @@ int main(int argc, const char *argv[])
 	    if (unknownArg == argv[i]) {
 		int j, totLen = 2;
 		for (j=i; j<argc; j++) totLen += strlen(argv[j]) + 1;
+		if (cmdLine) free(cmdLine);
 		cmdLine = malloc(totLen);
 		cmdLine[0] = '\0';
 		for (j=i; j<argc; j++)
