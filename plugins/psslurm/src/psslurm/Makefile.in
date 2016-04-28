@@ -381,15 +381,9 @@ AM_CPPFLAGS = -I$(top_srcdir)/include -DNDEBUG \
 	-I$(top_srcdir)/$(pelogue_dir) -I$(top_srcdir)/$(psmunge_dir) \
 	-I$(top_srcdir)/$(pspam_dir) -I$(top_srcdir)/$(psexec_dir) \
 	-I$(top_srcdir)/$(pspmi_dir)
-sed_verbose = $(sed_verbose_$(V))
-sed_verbose_ = $(sed_verbose_$(AM_DEFAULT_VERBOSITY))
-sed_verbose_0 = @echo "  SED     " $(@F);
-chmod_verbose = $(chmod_verbose_$(V))
-chmod_verbose_ = $(chmod_verbose_$(AM_DEFAULT_VERBOSITY))
-chmod_verbose_0 = @echo "  CHMOD   " $(@F);
-mkdir_verbose = $(mkdir_verbose_$(V))
-mkdir_verbose_ = $(mkdir_verbose_$(AM_DEFAULT_VERBOSITY))
-mkdir_verbose_0 = @echo "  MKDIR   " $(@D);
+subst_verbose = $(subst_verbose_$(V))
+subst_verbose_ = $(subst_verbose_$(AM_DEFAULT_VERBOSITY))
+subst_verbose_0 = @echo "  SUBST   " $(@F);
 do_subst = sed \
 	-e 's,[@]bindir[@],$(bindir),g' \
 	-e 's,[@]configdir[@],$(configdir),g' \
