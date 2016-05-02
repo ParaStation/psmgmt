@@ -687,6 +687,7 @@ int deleteJob(uint32_t jobid)
     if (job->mother) {
 	ufree(job->id);
 	ufree(job->username);
+	ufree(job->nodes);
 	list_del(&job->list);
 	ufree(job);
 	return 1;

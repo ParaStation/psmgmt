@@ -317,6 +317,8 @@ void sendAggDataFinish(PStask_ID_t loggerTID)
 
     sendFragMsg(&data, PSC_getTID(loggerNode, 0), PSP_CC_PLUG_ACCOUNT,
 		    PSP_ACCOUNT_AGG_DATA_FINISH);
+
+    ufree(data.buf);
 }
 
 void sendAggregatedData(AccountDataExt_t *aggData, PStask_ID_t loggerTID)
