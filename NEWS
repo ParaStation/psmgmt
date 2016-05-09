@@ -5,6 +5,12 @@ Copyright (C) 2010-2016 ParTec Cluster Competence Center GmbH, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 5.0.50-1:
+=================
+Bugfixes:
+ - Fix MPI_Comm_spawn()
+ - Fix memory leak in pssh
+
 Version 5.0.50:
 ===============
 Bugfixes:
