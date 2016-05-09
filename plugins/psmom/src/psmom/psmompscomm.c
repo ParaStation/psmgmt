@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2013 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -22,16 +22,18 @@
 #include <math.h>
 #include <time.h>
 
+#include "pluginfrag.h"
+#include "pluginhelper.h"
+#include "pluginmalloc.h"
+
 #include "psmomlog.h"
 #include "psmomscript.h"
 #include "psmomjob.h"
 #include "psmomproto.h"
-#include "pluginmalloc.h"
 #include "psmom.h"
 #include "psmomjobinfo.h"
 #include "psmomssh.h"
 #include "psmompbsserver.h"
-#include "pluginfrag.h"
 
 #include "psidcomm.h"
 #include "psidplugin.h"
@@ -39,43 +41,6 @@
 #include "psidnodes.h"
 
 #include "psmompscomm.h"
-
-PSnodes_ID_t getNodeIDbyName(char *host)
-{
-    struct hostent *hp;
-    struct in_addr sin_addr;
-
-    if (!(hp = gethostbyname(host))) {
-        mlog("%s: unknown host '%s'\n", __func__, host);
-	return -1;
-    }
-
-    memcpy(&sin_addr, hp->h_addr_list[0], hp->h_length);
-    return PSIDnodes_lookupHost(sin_addr.s_addr);
-}
-
-const char *getHostnameByNodeId(PSnodes_ID_t id)
-{
-    in_addr_t nAddr;
-    char *nName = NULL, *ptr;
-    struct hostent *hp;
-
-    /* identify and set hostname */
-    nAddr = PSIDnodes_getAddr(id);
-
-    if (nAddr == INADDR_ANY) {
-	nName = NULL;
-    } else {
-	hp = gethostbyaddr(&nAddr, sizeof(nAddr), AF_INET);
-
-	if (hp) {
-	    if ((ptr = strchr (hp->h_name, '.'))) *ptr = '\0';
-	    nName = hp->h_name;
-	}
-    }
-
-    return nName;
-}
 
 void sendPSmomVersion(Job_t *job)
 {

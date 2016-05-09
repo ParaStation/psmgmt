@@ -159,8 +159,8 @@ LTLIBRARIES = $(plugin_LTLIBRARIES)
 am__DEPENDENCIES_1 =
 psmom_la_DEPENDENCIES = $(libpsi) $(libpbs) $(libplugincommon) \
 	$(am__DEPENDENCIES_1)
-am_psmom_la_OBJECTS = psmom_la-helper.lo psmom_la-psmomacc.lo \
-	psmom_la-psmom.lo psmom_la-psmomchild.lo psmom_la-psmomauth.lo \
+am_psmom_la_OBJECTS = psmom_la-psmomacc.lo psmom_la-psmom.lo \
+	psmom_la-psmomchild.lo psmom_la-psmomauth.lo \
 	psmom_la-psmomcollect.lo psmom_la-psmomcomm.lo \
 	psmom_la-psmomconfig.lo psmom_la-psmomconv.lo \
 	psmom_la-psmomenv.lo psmom_la-psmomforwarder.lo \
@@ -409,7 +409,7 @@ plugin_LTLIBRARIES = psmom.la
 libpbs = $(top_builddir)/plugins/psmom/src/pbs/libpbs.la
 libpsi = $(top_builddir)/lib/psi/libpsi.la
 libplugincommon = $(top_builddir)/lib/plugincommon/libplugincommon.la
-psmom_la_SOURCES = helper.c helper.h Makefile.am psmomacc.c \
+psmom_la_SOURCES = Makefile.am psmomacc.c \
 	psmomacc.h psmom.c psmomchild.c psmomchild.h psmomauth.c \
 	psmomauth.h psmomcollect.c psmomcollect.h psmomcomm.c psmomcomm.h \
 	psmomconfig.c psmomconfig.h psmomconv.c psmomconv.h \
@@ -507,7 +507,6 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psmom_la-helper.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psmom_la-psmom.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psmom_la-psmomacc.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psmom_la-psmomauth.Plo@am__quote@
@@ -560,13 +559,6 @@ distclean-compile:
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='$<' object='$@' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LTCOMPILE) -c -o $@ $<
-
-psmom_la-helper.lo: helper.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(psmom_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT psmom_la-helper.lo -MD -MP -MF $(DEPDIR)/psmom_la-helper.Tpo -c -o psmom_la-helper.lo `test -f 'helper.c' || echo '$(srcdir)/'`helper.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/psmom_la-helper.Tpo $(DEPDIR)/psmom_la-helper.Plo
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='helper.c' object='psmom_la-helper.lo' libtool=yes @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(psmom_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o psmom_la-helper.lo `test -f 'helper.c' || echo '$(srcdir)/'`helper.c
 
 psmom_la-psmomacc.lo: psmomacc.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(psmom_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT psmom_la-psmomacc.lo -MD -MP -MF $(DEPDIR)/psmom_la-psmomacc.Tpo -c -o psmom_la-psmomacc.lo `test -f 'psmomacc.c' || echo '$(srcdir)/'`psmomacc.c

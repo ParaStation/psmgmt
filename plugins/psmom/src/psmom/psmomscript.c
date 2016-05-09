@@ -40,7 +40,7 @@
 #include "psmomforwarder.h"
 #include "psmomjobinfo.h"
 #include "psmom.h"
-#include "helper.h"
+#include "pluginhelper.h"
 #include "pluginmalloc.h"
 #include "psmomconv.h"
 #include "psmomlocalcomm.h"

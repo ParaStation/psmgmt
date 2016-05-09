@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2013 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -34,8 +34,8 @@
 
 #include "pbsdef.h"
 #include "psmomlog.h"
+#include "pluginhelper.h"
 #include "pluginmalloc.h"
-#include "helper.h"
 #include "psmomconfig.h"
 #include "psmom.h"
 #include "psmompscomm.h"
@@ -349,6 +349,48 @@ static void setDefaultResLimits(char *limits, int soft)
 
     ufree(cp_limits);
 }
+
+static unsigned long sizeToBytes(char *string)
+{
+    unsigned long size;
+    char suf[11];
+    int s_word = sizeof(int);
+
+    struct {
+	char *format;
+	uint64_t mult;
+    } conf_table[] = {
+	{ "b",  1 },
+	{ "kb", 1024 },
+	{ "mb", 1024 * 1024 },
+	{ "gb", 1024 * 1024 * 1024 },
+	{ "w",  s_word },
+	{ "kw", s_word * 1024 },
+	{ "mw", s_word * 1024 * 1024 },
+	{ "gw", s_word * 1024 * 1024 * 1024 },
+	{ "", 0 },
+    }, *ptr = conf_table;
+
+
+    if ((sscanf(string, "%lu%10s", &size, suf)) > 2) return 0;
+
+    while (ptr->mult !=  0) {
+	if (!(strcmp(ptr->format, suf))) return ptr->mult * size;
+	ptr++;
+    }
+
+    return 0;
+}
+
+static int strToInt(char *string)
+{
+    int num;
+
+    if ((sscanf(string, "%d", &num)) != 1) return 0;
+
+    return num;
+}
+
 
 void setResourceLimits(Job_t *job)
 {

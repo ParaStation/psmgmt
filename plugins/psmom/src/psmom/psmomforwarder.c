@@ -44,9 +44,9 @@
 #include "psmomsignal.h"
 #include "psmominteractive.h"
 #include "psmompsaccfunc.h"
-#include "pluginmalloc.h"
-#include "helper.h"
 #include "psmomenv.h"
+#include "pluginhelper.h"
+#include "pluginmalloc.h"
 #include "pluginlog.h"
 
 #include "psidutil.h"
@@ -368,24 +368,6 @@ static void sendForkFailed()
 
     WriteDigit(com, CMD_LOCAL_FORK_FAILED);
     wDoSend(com);
-}
-
-/**
- * @brief Block a signal.
- *
- * @param signal The signal to block.
- *
- * @param block Flag to block the signal if set to 1 or unblock it if set to 0.
- *
- * @return No return value.
- */
-static void blockSignal(int signal, int block)
-{
-    sigset_t set, oldset;
-
-    sigemptyset(&set);
-    sigaddset(&set, signal);
-    sigprocmask(block ? SIG_BLOCK : SIG_UNBLOCK, &set, &oldset);
 }
 
 /**
