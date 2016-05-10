@@ -1292,6 +1292,9 @@ static void execForwarder(PStask_t *task, int daemonfd)
 	goto error;
     }
 
+    /* Jail all my children */
+    PSIDhook_call(PSIDHOOK_JAIL_CHILD, &pid);
+
     /* change the gid */
     if (setgid(task->gid)<0) {
 	eno = errno;

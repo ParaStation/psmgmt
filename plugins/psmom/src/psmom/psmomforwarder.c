@@ -50,6 +50,7 @@
 #include "pluginlog.h"
 
 #include "psidutil.h"
+#include "psidhook.h"
 #include "pscommon.h"
 #include "selector.h"
 #include "timer.h"
@@ -186,6 +187,9 @@ static void doForwarderChildStart()
 	mlog("%s: reading childs sid failed\n", __func__);
 	kill(SIGKILL, forwarder_child_pid);
     }
+
+    /* Jail all my children */
+    PSIDhook_call(PSIDHOOK_JAIL_CHILD, &forwarder_child_pid);
 
     /* send header */
     WriteDigit(com, CMD_LOCAL_CHILD_START);

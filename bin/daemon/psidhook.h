@@ -138,7 +138,8 @@ typedef enum {
 				executed by the pelogue plugin can be inspected.
 				Used by the psslurm plugin. */
     PSIDHOOK_FRWRD_DSOCK,     /**< In forwarder's init() function, arg is a
-				pointer to the daemon socket. */
+				 pointer to the daemon socket. */
+    PSIDHOOK_JAIL_CHILD,      /**< Jail child into cgroup, etc. */
     PSIDHOOK_LAST,            /**< This has to be the last one */
 } PSIDhook_t;
 
