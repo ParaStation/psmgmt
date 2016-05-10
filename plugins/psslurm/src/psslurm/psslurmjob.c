@@ -59,40 +59,14 @@ Job_t *addJob(uint32_t jobid)
     char tmp[256];
 
     deleteJob(jobid);
-
     snprintf(tmp, sizeof(tmp), "%u", jobid);
 
     job = (Job_t *) umalloc(sizeof(Job_t));
+    memset(job, 0, sizeof(Job_t));
+
     job->id = ustrdup(tmp);
     job->jobid = jobid;
-    job->username = NULL;
-    job->nodes = NULL;
-    job->nrOfNodes = 0;
-    job->extended = 0;
-    job->jobscript = NULL;
-    job->stdOut = NULL;
-    job->stdErr = NULL;
-    job->stdIn = NULL;
-    job->cwd = NULL;
-    job->checkpoint = NULL;
-    job->restart = NULL;
-    job->argc = 0;
-    job->argv = NULL;
-    job->hostname = NULL;
-    job->slurmNodes = NULL;
-    job->nodeAlias = NULL;
-    job->cred = NULL;
-    job->fwdata = NULL;
-    job->partition = NULL;
-    job->overcommit = 0;
-    job->terminate = 0;
     job->state = JOB_INIT;
-    job->cpuGroupCount = 0;
-    job->cpusPerNode = NULL;
-    job->cpuCountReps = NULL;
-    job->mother = 0;
-    job->signaled = 0;
-    job->firstKillRequest = 0;
     job->start_time = time(0);
     INIT_LIST_HEAD(&job->tasks.list);
     INIT_LIST_HEAD(&job->gres.list);
@@ -164,56 +138,22 @@ Step_t *addStep(uint32_t jobid, uint32_t stepid)
     deleteStep(jobid, stepid);
 
     step = (Step_t *) umalloc(sizeof(Step_t));
+    memset(step, 0, sizeof(Step_t));
+
     step->jobid = jobid;
     step->stepid = stepid;
-    step->numSrunPorts = 0;
     step->bufferedIO = 1;
-    step->numIOPort = 0;
-    step->labelIO = 0;
-    step->srunPorts = NULL;
-    step->cred = NULL;
-    step->tasksToLaunch = NULL;
-    step->globalTaskIds = NULL;
-    step->globalTaskIdsLen = NULL;
-    step->slurmNodes = NULL;
-    step->nodeAlias = NULL;
-    step->nodes = NULL;
-    step->cpuBind = NULL;
-    step->memBind = NULL;
-    step->IOPort = NULL;
-    step->argv = NULL;
-    step->cwd = NULL;
-    step->taskProlog = NULL;
-    step->taskEpilog = NULL;
-    step->stdOut = NULL;
-    step->stdIn = NULL;
-    step->stdErr = NULL;
-    step->restart = NULL;
-    step->checkpoint = NULL;
-    step->fwdata = NULL;
-    step->partition = NULL;
-    step->username = NULL;
-    step->outChannels = NULL;
-    step->errChannels = NULL;
-    step->outFDs = NULL;
-    step->errFDs = NULL;
-    step->hwThreads = NULL;
-    step->numHwThreads = 0;
     step->exitCode = -1;
-    step->state = JOB_INIT;
-    step->x11forward = 0;
-    step->loggerTID = 0;
-    step->fwInitCount = 0;
     step->stdOutRank = -1;
     step->stdErrRank = -1;
     step->stdInRank = -1;
-    step->myNodeIndex = 0;
+    step->state = JOB_INIT;
     step->stdInOpt = IO_UNDEF;
     step->stdOutOpt = IO_UNDEF;
     step->stdErrOpt = IO_UNDEF;
-    step->timeout = 0;
     step->ioCon = 1;
     step->start_time = time(0);
+
     INIT_LIST_HEAD(&step->tasks.list);
     INIT_LIST_HEAD(&step->gres.list);
     envInit(&step->env);
@@ -342,12 +282,8 @@ BCast_t *addBCast(int socket)
     BCast_t *bcast;
 
     bcast = (BCast_t *) umalloc(sizeof(BCast_t));
-    bcast->sig = NULL;
-    bcast->username = NULL;
-    bcast->fileName = NULL;
-    bcast->block = NULL;
-    bcast->fwdata = NULL;
-    bcast->sigLen = 0;
+    memset(bcast, 0, sizeof(BCast_t));
+
     initSlurmMsg(&bcast->msg);
     bcast->msg.sock = socket;
 
@@ -683,27 +619,27 @@ int deleteJob(uint32_t jobid)
     clearBCastByJobid(jobid);
     psPamDeleteUser(job->username, "psslurm");
 
-    /* remote job, only delete it */
-    if (job->mother) {
-	ufree(job->id);
-	ufree(job->username);
-	ufree(job->nodes);
-	list_del(&job->list);
-	ufree(job);
-	return 1;
+    /* cleanup local job */
+    if (!job->mother) {
+
+	if (job->jobscript) unlink(job->jobscript);
+
+	deleteAlloc(job->jobid);
+	clearGresCred(&job->gres);
+
+	/* tell sisters the job is finished */
+	if (job->nodes && job->nodes[0] == PSC_getMyID()) {
+	    send_PS_JobExit(job->jobid, SLURM_BATCH_SCRIPT,
+				job->nrOfNodes, job->nodes);
+	}
+
+	if (job->fwdata) {
+	    killChild(job->fwdata->childPid, SIGKILL);
+	    killChild(job->fwdata->forwarderPid, SIGKILL);
+	}
     }
 
-    if (job->jobscript) unlink(job->jobscript);
-
-    deleteAlloc(job->jobid);
-    clearGresCred(&job->gres);
-
-    /* tell sisters the job is finished */
-    if (job->nodes && job->nodes[0] == PSC_getMyID()) {
-	send_PS_JobExit(job->jobid, SLURM_BATCH_SCRIPT,
-			    job->nrOfNodes, job->nodes);
-    }
-
+    /* free memory */
     ufree(job->id);
     ufree(job->username);
     ufree(job->nodes);
@@ -720,19 +656,14 @@ int deleteJob(uint32_t jobid)
     ufree(job->partition);
     ufree(job->cpusPerNode);
     ufree(job->cpuCountReps);
-    clearTasks(&job->tasks.list);
-
-    if (job->fwdata) {
-	killChild(job->fwdata->childPid, SIGKILL);
-	killChild(job->fwdata->forwarderPid, SIGKILL);
-    }
-
-    deleteJobCred(job->cred);
 
     for (i=0; i<job->argc; i++) {
 	ufree(job->argv[i]);
     }
     ufree(job->argv);
+
+    clearTasks(&job->tasks.list);
+    deleteJobCred(job->cred);
 
     envDestroy(&job->env);
     envDestroy(&job->spankenv);

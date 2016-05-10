@@ -165,7 +165,7 @@ void send_PS_JobLaunch(Job_t *job)
     addStringToMsg(job->username, &data);
 
     /* node list */
-    addInt16ArrayToMsg(job->nodes, job->nrOfNodes, &data);
+    addStringToMsg(job->slurmNodes, &data);
 
     /* send the messages */
     for (i=0; i<job->nrOfNodes; i++) {
@@ -595,7 +595,9 @@ static void handle_PS_JobLaunch(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     job->username = getStringM(&ptr);
 
     /* get nodelist */
-    getInt16Array(&ptr, &job->nodes, &job->nrOfNodes);
+    job->slurmNodes = getStringM(&ptr);
+    getNodesFromSlurmHL(job->slurmNodes, &job->nrOfNodes, &job->nodes,
+			&job->localNodeId);
 
     mlog("%s: jobid '%u' user '%s' nodes '%u' from '%s'\n", __func__, jobid,
 	    job->username, job->nrOfNodes, PSC_printTID(msg->header.sender));

@@ -564,19 +564,29 @@ void setRankEnv(int32_t rank, Step_t *step)
     if ((int32_t) localNodeId != -1) {
 	/* gres "gpu" plugin */
 	if ((gres = findGresCred(&step->gres, GRES_PLUGIN_GPU, 0))) {
-	    range2List(NULL, gres->bitAlloc[localNodeId], &list,
-			&listSize, &count);
-	    setenv("CUDA_VISIBLE_DEVICES", list, 1);
-	    setenv("GPU_DEVICE_ORDINAL", list, 1);
-	    ufree(list);
+	    if (gres->bitAlloc[localNodeId]) {
+		range2List(NULL, gres->bitAlloc[localNodeId], &list,
+			    &listSize, &count);
+		setenv("CUDA_VISIBLE_DEVICES", list, 1);
+		setenv("GPU_DEVICE_ORDINAL", list, 1);
+		ufree(list);
+	    } else {
+		mlog("%s: invalid gpu gres bitAlloc for local nodeID '%u'\n",
+			__func__, localNodeId);
+	    }
 	}
 
 	/* gres "mic" plugin */
 	if ((gres = findGresCred(&step->gres, GRES_PLUGIN_MIC, 0))) {
-	    range2List(NULL, gres->bitAlloc[localNodeId], &list,
-			&listSize, &count);
-	    setenv("OFFLOAD_DEVICES", list, 1);
-	    ufree(list);
+	    if (gres->bitAlloc[localNodeId]) {
+		range2List(NULL, gres->bitAlloc[localNodeId], &list,
+			    &listSize, &count);
+		setenv("OFFLOAD_DEVICES", list, 1);
+		ufree(list);
+	    } else {
+		mlog("%s: invalid mic gres bitAlloc for local nodeID '%u'\n",
+			__func__, localNodeId);
+	    }
 	}
     }
 
