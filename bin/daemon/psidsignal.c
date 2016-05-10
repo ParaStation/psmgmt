@@ -1028,7 +1028,7 @@ static int releaseTask(PStask_t *task)
  * @return If the task is released from all dependencies, @true is
  * returned. Or @false if it waits for further RELEASERES messages.
  */
-bool deregisterFromParent(PStask_t *task)
+static bool deregisterFromParent(PStask_t *task)
 {
     if (!task) return false;
 
