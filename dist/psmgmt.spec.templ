@@ -217,6 +217,9 @@ exit 0
 %config(noreplace) %{_plugindir}/psresport.conf
 %{_plugindir}/pspmi.so
 %exclude %{_plugindir}/pspmi.la
+%{_plugindir}/cgroup.so
+%exclude %{_plugindir}/cgroup.la
+%config(noreplace) %{_plugindir}/cgroup.conf
 %config(missingok,noreplace) %{_sysconfdir}/profile.d/psmgmt.sh
 %config(missingok,noreplace) %{_sysconfdir}/profile.d/psmgmt.csh
 %if !0%{?disable_systemd}

@@ -115,6 +115,7 @@ doc/MessageTypes \
 doc/parastation.conf.tmpl \
 doc/psaccount.conf \
 doc/psresport.conf \
+doc/cgroup.conf \
 doc/psconfig/psmgmt.vipsconfig \
 doc/systemd/psidstarter_socket_d_port.conf \
 doc/systemd/psid_service_d_munge.conf \
@@ -364,6 +365,13 @@ plugins/psresport/psresportconfig.c \
 plugins/psresport/psresportconfig.h \
 plugins/psresport/psresportlog.c \
 plugins/psresport/psresportlog.h \
+plugins/cgroup/Makefile.am \
+plugins/cgroup/Makefile.in \
+plugins/cgroup/cgroup.c \
+plugins/cgroup/cgroupconfig.c \
+plugins/cgroup/cgroupconfig.h \
+plugins/cgroup/cgrouplog.c \
+plugins/cgroup/cgrouplog.h \
 scripts/.gdbinit \
 scripts/Makefile.am \
 scripts/Makefile.in \

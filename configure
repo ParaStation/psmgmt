@@ -13084,6 +13084,8 @@ ac_config_files="$ac_config_files plugins/psmom/src/pbs/Makefile"
 
 ac_config_files="$ac_config_files plugins/psmom/src/psmom/Makefile"
 
+ac_config_files="$ac_config_files plugins/cgroup/Makefile"
+
 ac_config_files="$ac_config_files scripts/Makefile"
 
 ac_config_files="$ac_config_files tests/plugins/Makefile"
@@ -14168,6 +14170,7 @@ do
     "plugins/psmom/src/pam/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/psmom/src/pam/Makefile" ;;
     "plugins/psmom/src/pbs/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/psmom/src/pbs/Makefile" ;;
     "plugins/psmom/src/psmom/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/psmom/src/psmom/Makefile" ;;
+    "plugins/cgroup/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/cgroup/Makefile" ;;
     "scripts/Makefile") CONFIG_FILES="$CONFIG_FILES scripts/Makefile" ;;
     "tests/plugins/Makefile") CONFIG_FILES="$CONFIG_FILES tests/plugins/Makefile" ;;
     "tests/functional/Makefile") CONFIG_FILES="$CONFIG_FILES tests/functional/Makefile" ;;

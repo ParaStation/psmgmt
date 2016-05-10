@@ -12,7 +12,7 @@
 
 include $(top_srcdir)/common.am
 
-dist_plugin_DATA = psresport.conf psaccount.conf
+dist_plugin_DATA = psresport.conf psaccount.conf cgroup.conf
 
 dist_noinst_DATA = parastation.conf.tmpl
 
