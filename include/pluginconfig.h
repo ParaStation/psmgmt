@@ -87,7 +87,7 @@ void freeConfig(Config_t *conf);
  * interrupted and @ref traverseConfig() will return to its calling
  * function.
  */
-typedef bool configVisitor_t(char *key, char *value, void *info);
+typedef bool configVisitor_t(char *key, char *value, const void *info);
 
 /**
  * @brief Traverse configuration
@@ -110,7 +110,7 @@ typedef bool configVisitor_t(char *key, char *value, void *info);
  * true is returned. If no visitor returned true during the traversal
  * false is returned.
  */
-bool traverseConfig(Config_t *conf, configVisitor_t visitor, void *info);
+bool traverseConfig(Config_t *conf, configVisitor_t visitor, const void *info);
 
 /**
  * @brief Add entry to configuration
@@ -283,7 +283,6 @@ const ConfDef_t *getConfigDef(char *name, const ConfDef_t confDef[]);
  */
 bool unsetConfigEntry(Config_t *conf, const ConfDef_t confDef[], char *key);
 
-
 /**
  * @brief Extend configuration by defaults
  *
@@ -301,5 +300,15 @@ bool unsetConfigEntry(Config_t *conf, const ConfDef_t confDef[], char *key);
  */
 void setConfigDefaults(Config_t *conf, const ConfDef_t confDef[]);
 
+/**
+ * @brief Get length of longest key-name
+ *
+ * Get the length of the longest key-name withing the definition @a confDef.
+ *
+ * @param confDef Configuration definition to be analyzed
+ *
+ * @return The length of the longest key-name
+ */
+size_t getMaxKeyLen(const ConfDef_t confDef[]);
 
 #endif  /* __PS_PLUGIN_LIB_CONFIG */

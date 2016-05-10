@@ -20,8 +20,6 @@
 
 #include "pluginconfig.h"
 
-#define MAX_KEY_LEN 1024
-
 /** Single object of a configuration */
 typedef struct {
     struct list_head next;  /**< Used to put object into a configration */
@@ -275,13 +273,10 @@ unsigned int getConfValueU(Config_t *conf, char *key)
 
 char *getConfValueC(Config_t *conf, char *key)
 {
-    char *val;
-
-    if (!(val = getConfValue(conf, key))) return NULL;
-    return val;
+    return getConfValue(conf, key);
 }
 
-bool traverseConfig(Config_t *conf, configVisitor_t visitor, void *info)
+bool traverseConfig(Config_t *conf, configVisitor_t visitor, const void *info)
 {
     list_t *o;
 
@@ -292,4 +287,19 @@ bool traverseConfig(Config_t *conf, configVisitor_t visitor, void *info)
     }
 
     return false;
+}
+
+size_t getMaxKeyLen(const ConfDef_t confDef[])
+{
+    int i;
+    size_t max = 0;
+
+    if (!confDef) return 0;
+
+    for (i = 0; confDef[i].name; i++) {
+	size_t len = strlen(confDef[i].name);
+	if (len > max) max = len;
+    }
+
+    return max;
 }
