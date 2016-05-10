@@ -281,8 +281,6 @@ plugins/psmom/src/pbs/Makefile.in \
 plugins/psmom/src/pbs/pbsrpp.c \
 plugins/psmom/src/psmom/Makefile.am \
 plugins/psmom/src/psmom/Makefile.in \
-plugins/psmom/src/psmom/helper.c \
-plugins/psmom/src/psmom/helper.h \
 plugins/psmom/src/psmom/psmomacc.c \
 plugins/psmom/src/psmom/psmomacc.h \
 plugins/psmom/src/psmom/psmom.c \
