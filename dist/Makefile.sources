@@ -112,6 +112,7 @@ dist/psmgmt.spec.templ \
 doc/Makefile.am \
 doc/Makefile.in \
 doc/MessageTypes \
+doc/README.cgroup \
 doc/parastation.conf.tmpl \
 doc/psaccount.conf \
 doc/psresport.conf \

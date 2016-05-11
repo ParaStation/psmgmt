@@ -22,7 +22,6 @@ extern logger_t *cgrouplogger;
 
 typedef enum {
     CG_LOG_VERBOSE	= 0x00001, /**< Be verbose */
-    CG_LOG_DEBUG	= 0x00002, /**< Log debug messages */
 } Cgroup_log_types_t;
 
 /**

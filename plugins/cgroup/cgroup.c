@@ -8,8 +8,14 @@
  * file.
  */
 
+#include <stdio.h>
+#include <unistd.h>
 #include <stdbool.h>
 #include <limits.h>
+#include <signal.h>
+#include <errno.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 
 #include "plugin.h"
 #include "psidhook.h"
@@ -41,14 +47,135 @@ static long memLim = -1;
 /** Memory+Swap limit of psmgmt's memory cgroup */
 static long memSwLim = -1;
 
+/** cgroup to use */
+static char *myCgroup = NULL;
+
 /** Actual pid-file to jail processes */
-static char *pidFile = NULL;
+static char *tasksFile = NULL;
+
+static bool enforceLimit(char *name, long limit)
+{
+    if (!myCgroup) {
+	cglog(-1, "%s: no local cgroup defined!\n", __func__);
+	return false;
+    }
+
+    char fName[PATH_MAX];
+    snprintf(fName, sizeof(fName), "%s/%s", myCgroup, name);
+
+    FILE *fp = fopen(fName, "w");
+    if (!fp) {
+	cgwarn(-1, errno, "%s: cannot open '%s'", __func__, fName);
+	return false;
+    }
+    if (fprintf(fp, "%ld\n", limit) < 0) {
+	cgwarn(-1, errno, "%s: failed to set %ld to %s", __func__, limit, name);
+	return false;
+    }
+    fclose(fp);
+
+    return true;
+}
+static bool enforceAllLimits(void)
+{
+    return enforceLimit("memory.limit_in_bytes", memLim)
+	&& enforceLimit("memory.memsw.limit_in_bytes", memSwLim);
+}
+
+/**
+ * @brief Setup private cgroup
+ *
+ * Setup the private cgroup according to the settings found in @ref
+ * cgroupRoot, @ref cgroupName, @ref memLim and @ref memSwLim.
+ *
+ * @return On success true is returned. Or false if an error occurred.
+ */
+static bool initCgroup(void)
+{
+    /* check if cgroup is there */
+    struct stat sb;
+    if (stat(cgroupRoot, &sb) < 0) {
+	cgwarn(-1, errno, "%s: cannot stat cgroup '%s'", __func__, cgroupRoot);
+	return false;
+    }
+
+    char tmp[PATH_MAX];
+    snprintf(tmp, sizeof(tmp), "%s/%s", cgroupRoot, "memory");
+    if (stat(tmp, &sb) < 0) {
+	cgwarn(-1, errno, "%s: no memory group in '%s'", __func__, cgroupRoot);
+	return false;
+    }
+
+    /* create subgroup */
+    snprintf(tmp, sizeof(tmp), "%s/%s/%s", cgroupRoot, "memory", cgroupName);
+    myCgroup = ustrdup(tmp);
+    if (mkdir(myCgroup, S_IRWXU | S_IRWXG | S_IRWXO) < 0 && errno != EEXIST) {
+	cgwarn(-1, errno, "%s: cannot create cgroup '%s'", __func__, myCgroup);
+	return false;
+    }
+
+    /* stat the tasks file */
+    snprintf(tmp, sizeof(tmp), "%s/%s", myCgroup, "tasks");
+    tasksFile = ustrdup(tmp);
+    if (stat(tasksFile, &sb) < 0) {
+	cgwarn(-1, errno, "%s: cannot stat() '%s'", __func__, tasksFile);
+	return false;
+    }
+
+    enforceAllLimits();
+
+    return true;
+}
 
 static int jailProcess(void *info)
 {
-    cglog(-1, "%s: called\n", __func__);
+    pid_t pid = *(pid_t *)info;
+
+    cglog(CG_LOG_VERBOSE, "%s: called for %d\n", __func__, pid);
+
+    if (!tasksFile) {
+	cglog(-1, "%s: no tasks file!\n", __func__);
+	return -1;
+    }
+
+    FILE *fp = fopen(tasksFile, "w");
+    if (!fp) {
+	cgwarn(-1, errno, "%s: cannot open '%s'", __func__, tasksFile);
+	return -1;
+    }
+    if (fprintf(fp, "%d\n", pid) < 0) {
+	cgwarn(-1, errno, "%s: failed to add %d", __func__, pid);
+	return -1;
+    }
+    fclose(fp);
 
     return 0;
+}
+
+static int cleanupProcesses(void)
+{
+    int pid, cnt = 0;
+
+    if (!tasksFile) {
+	cglog(-1, "%s: no tasks file!\n", __func__);
+	return -1;
+    }
+
+    FILE *fp = fopen(tasksFile, "r");
+    if (!fp) {
+	cgwarn(-1, errno, "%s: cannot open '%s'", __func__, tasksFile);
+	return -1;
+    }
+
+    while (fscanf(fp, "%i", &pid) != -1) {
+	cglog(CG_LOG_VERBOSE, "%s: cleanup %d\n", __func__, pid);
+	kill(pid, SIGKILL);
+	cnt++;
+    }
+
+    fclose(fp);
+
+    return cnt;
 }
 
 /**
@@ -105,9 +232,7 @@ int initialize(void)
     memSwLim = getConfValueL(&cgroupConfig, "MEMSW_LIMIT");
     cglog(CG_LOG_VERBOSE, "%s: memSwLim set to %ld\n", __func__, memSwLim);
 
-    /* @todo identify memory cgroup */
-    /* @todo try to create our cgroup */
-    /* @todo enforce the limits */
+    if (!initCgroup()) return 1;
 
     if (!(PSIDhook_add(PSIDHOOK_JAIL_CHILD, jailProcess))) {
 	cglog(-1, "%s: register PSIDHOOK_JAIL_CHILD failed\n", __func__);
@@ -125,18 +250,23 @@ INIT_ERROR:
 
 void finalize(void)
 {
-    /* @todo kill all processes within the cgroup */
-
-    PSIDplugin_unload(name);
+    if (!cleanupProcesses()) PSIDplugin_unload(name);
 }
 
 void cleanup(void)
 {
+    if (myCgroup && rmdir(myCgroup) < 0) {
+	cgwarn(-1, errno, "%s: rmdir(%s)", __func__, myCgroup);
+    }
+
     unregisterHooks(true);
     freeConfig(&cgroupConfig);
     if (cgroupRoot) ufree(cgroupRoot);
     if (cgroupName) ufree(cgroupName);
-    if (pidFile) ufree(pidFile);
+    if (myCgroup) ufree(myCgroup);
+    if (tasksFile) ufree(tasksFile);
+
+    cgroupRoot = cgroupName = myCgroup = tasksFile = NULL;
 }
 
 char *help(void)
@@ -175,13 +305,13 @@ char *set(char *key, char *val)
 	memLim = getConfValueL(&cgroupConfig, key);
 	cglog(CG_LOG_VERBOSE, "%s: memLim set to %ld\n", __func__, memLim);
 
-	/* @todo set new memLim */
+	enforceAllLimits();
     } else if (!strcmp(key, "MEMSW_LIMIT")) {
 	addConfigEntry(&cgroupConfig, key, val);
 	memSwLim = getConfValueL(&cgroupConfig, key);
 	cglog(CG_LOG_VERBOSE, "%s: memSwLim set to %ld\n", __func__, memSwLim);
 
-	/* @todo set new memSwLim */
+	enforceAllLimits();
     } else if (!strcmp(key, "DEBUG_MASK")) {
 	int dbgMask;
 	addConfigEntry(&cgroupConfig, key, val);
@@ -202,13 +332,13 @@ char *unset(char *key)
 	memLim = getConfValueL(&cgroupConfig, key);
 	cglog(CG_LOG_VERBOSE, "%s: memLim set to %ld\n", __func__, memLim);
 
-	/* @todo set new memLim */
+	enforceAllLimits();
     } else if (!strcmp(key, "MEMSW_LIMIT")) {
 	unsetConfigEntry(&cgroupConfig, cgConfDef, key);
 	memSwLim = getConfValueL(&cgroupConfig, key);
 	cglog(CG_LOG_VERBOSE, "%s: memSwLim set to %ld\n", __func__, memSwLim);
 
-	/* @todo set new memSwLim */
+	enforceAllLimits();
     } else if (!strcmp(key, "DEBUG_MASK")) {
 	int dbgMask;
 	unsetConfigEntry(&cgroupConfig, cgConfDef, key);
@@ -228,7 +358,7 @@ char *show(char *key)
     size_t bufSize = 0;
 
     if (!key) {
-	/* Show the whole configration */
+	/* Show the whole configuration */
 	int maxKeyLen = getMaxKeyLen(cgConfDef);
 	int i;
 
