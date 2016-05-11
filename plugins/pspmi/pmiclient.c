@@ -2230,7 +2230,7 @@ int fillSpawnTaskWithMpiexec(SpawnRequest_t *req, int usize, PStask_t *task) {
  * which will then spawn the requested executable. The first service process
  * will then turn into a new KVS provider for the new spawned PMI group.
  *
- * The new spawned children will have their own MPI_COMM_WOLRD and
+ * The new spawned children will have their own MPI_COMM_WORLD and
  * therefore a separate KVS, separate PMI barriers and a separate
  * daisy chain to communicate.
  *
@@ -2332,23 +2332,33 @@ static int tryPMISpawn(SpawnRequest_t *req, int universeSize,
 
     /* add additional env vars */
     envc = task->envSize;
+
     task->environ = urealloc(task->environ, (task->envSize + 7 + 1) * sizeof(char *));
     snprintf(buffer, sizeof(buffer), "PMI_KVS_TMP=pshost_%i_%i",
 		PSC_getMyTID(), kvs_next++);  /* setup new KVS name */
     task->environ[envc++] = ustrdup(buffer);
+    if (debug) elog("%s(r%i): Set %s\n", __func__, rank, buffer);
+
     snprintf(buffer, sizeof(buffer), "__PMI_SPAWN_SERVICE_RANK=%i",
-		serviceRank -2);
+		serviceRank - 2);
     task->environ[envc++] = ustrdup(buffer);
+    if (debug) elog("%s(r%i): Set %s\n", __func__, rank, buffer);
+
     snprintf(buffer, sizeof(buffer), "__PMI_SPAWN_PARENT=%i", PSC_getMyTID());
     task->environ[envc++] = ustrdup(buffer);
+    if (debug) elog("%s(r%i): Set %s\n", __func__, rank, buffer);
+
     task->environ[envc++] = ustrdup("SERVICE_KVS_PROVIDER=1");
     task->environ[envc++] = ustrdup("PMI_SPAWNED=1");
+
     snprintf(buffer, sizeof(buffer), "PMI_SIZE=%d", *totalProcs);
     task->environ[envc++] = ustrdup(buffer);
+    if (debug) elog("%s(r%i): Set %s\n", __func__, rank, buffer);
 
     snprintf(buffer, sizeof(buffer), "__PMI_NO_PARRICIDE=%i",
 	     task->noParricide);
     task->environ[envc++] = ustrdup(buffer);
+    if (debug) elog("%s(r%i): Set %s\n", __func__, rank, buffer);
 
     task->environ[envc] = NULL;
     task->envSize = envc;
