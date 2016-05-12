@@ -7,13 +7,6 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-/**
- * $Id$
- *
- * \author
- * Michael Rauh <rauh@par-tec.com>
- *
- */
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -93,76 +86,76 @@ static char *showJob(Job_t *job, char *buf, size_t *bufSize)
     Child_t *child;
 
     snprintf(line, sizeof(line), "\n## job '%s' ##\n", job->id);
-    buf = str2Buf(line, buf, bufSize);
+    str2Buf(line, &buf, bufSize);
 
-    buf = str2Buf("\n# psmom attributes #\n", buf, bufSize);
+    str2Buf("\n# psmom attributes #\n", &buf, bufSize);
 
     snprintf(line, sizeof(line), "user = '%s'\n", job->user);
-    buf = str2Buf(line, buf, bufSize);
+    str2Buf(line, &buf, bufSize);
 
     snprintf(line, sizeof(line), "nr of procs = '%i'\n", job->nrOfNodes);
-    buf = str2Buf(line, buf, bufSize);
+    str2Buf(line, &buf, bufSize);
 
     snprintf(line, sizeof(line), "nr of nodes = '%i'\n", job->nrOfUniqueNodes);
-    buf = str2Buf(line, buf, bufSize);
+    str2Buf(line, &buf, bufSize);
 
     snprintf(line, sizeof(line), "server = '%s'\n", job->server);
-    buf = str2Buf(line, buf, bufSize);
+    str2Buf(line, &buf, bufSize);
 
     snprintf(line, sizeof(line), "state = '%s'\n", jobState2String(job->state));
-    buf = str2Buf(line, buf, bufSize);
+    str2Buf(line, &buf, bufSize);
 
     if (job->pwbuf) {
 	snprintf(line, sizeof(line), "uid = '%i'\n", job->passwd.pw_uid);
-	buf = str2Buf(line, buf, bufSize);
+	str2Buf(line, &buf, bufSize);
 
 	snprintf(line, sizeof(line), "gid = '%i'\n", job->passwd.pw_gid);
-	buf = str2Buf(line, buf, bufSize);
+	str2Buf(line, &buf, bufSize);
     }
 
     snprintf(line, sizeof(line), "start time = %s", ctime(&job->start_time));
-    buf = str2Buf(line, buf, bufSize);
+    str2Buf(line, &buf, bufSize);
 
     if (job->end_time > 0) {
 	snprintf(line, sizeof(line), "end time = %s", ctime(&job->end_time));
-	buf = str2Buf(line, buf, bufSize);
+	str2Buf(line, &buf, bufSize);
     }
 
     if (job->pid != -1) {
 	snprintf(line, sizeof(line), "child pid = '%i'\n", job->pid);
-	buf = str2Buf(line, buf, bufSize);
+	str2Buf(line, &buf, bufSize);
     }
 
     if (job->sid != -1) {
 	snprintf(line, sizeof(line), "child sid = '%i'\n", job->pid);
-	buf = str2Buf(line, buf, bufSize);
+	str2Buf(line, &buf, bufSize);
     }
 
     if (job->mpiexec != -1) {
 	snprintf(line, sizeof(line), "mpiexec pid = '%i'\n", job->mpiexec);
-	buf = str2Buf(line, buf, bufSize);
+	str2Buf(line, &buf, bufSize);
     }
 
     snprintf(line, sizeof(line), "job cookie = '%s'\n", job->cookie);
-    buf = str2Buf(line, buf, bufSize);
+    str2Buf(line, &buf, bufSize);
 
     snprintf(line, sizeof(line), "prologue exit = '%i'\n", job->prologueExit);
-    buf = str2Buf(line, buf, bufSize);
+    str2Buf(line, &buf, bufSize);
 
     snprintf(line, sizeof(line), "epilogue exit = '%i'\n", job->epilogueExit);
-    buf = str2Buf(line, buf, bufSize);
+    str2Buf(line, &buf, bufSize);
 
     if (job->qsubPort != 0) {
-	buf = str2Buf("interactive = true\n", buf, bufSize);
+	str2Buf("interactive = true\n", &buf, bufSize);
 
 	snprintf(line, sizeof(line), "qsub port = '%i'\n", job->qsubPort);
-	buf = str2Buf(line, buf, bufSize);
+	str2Buf(line, &buf, bufSize);
     } else {
-	buf = str2Buf("interactive = false\n", buf, bufSize);
+	str2Buf("interactive = false\n", &buf, bufSize);
     }
 
     /* display saved pbs attributes */
-    buf = str2Buf("\n# pbs attributes #\n", buf, bufSize);
+    str2Buf("\n# pbs attributes #\n", &buf, bufSize);
 
     if (!(list_empty(&job->data.list))) {
 
@@ -177,12 +170,12 @@ static char *showJob(Job_t *job, char *buf, size_t *bufSize)
 		snprintf(line, sizeof(line), "%s = %s\n", next->name,
 			next->value);
 	    }
-	    buf = str2Buf(line, buf, bufSize);
+	    str2Buf(line, &buf, bufSize);
 	}
     }
 
     /* display known accouting data */
-    buf = str2Buf("\n# accounting information #\n", buf, bufSize);
+    str2Buf("\n# accounting information #\n", &buf, bufSize);
 
     if (!(list_empty(&job->status.list))) {
 
@@ -197,7 +190,7 @@ static char *showJob(Job_t *job, char *buf, size_t *bufSize)
 		snprintf(line, sizeof(line), "%s = %s\n", next->name,
 			next->value);
 	    }
-	    buf = str2Buf(line, buf, bufSize);
+	    str2Buf(line, &buf, bufSize);
 	}
     }
 
@@ -205,26 +198,26 @@ static char *showJob(Job_t *job, char *buf, size_t *bufSize)
     if ((child = findChildByJobid(job->id, -1))) {
 	time_t max_runtime;
 
-	buf = str2Buf("\n# forwarder information #\n", buf, bufSize);
+	str2Buf("\n# forwarder information #\n", &buf, bufSize);
 
 	snprintf(line, sizeof(line), "pid = '%i'\n", child->pid);
-	buf = str2Buf(line, buf, bufSize);
+	str2Buf(line, &buf, bufSize);
 
 	snprintf(line, sizeof(line), "type = '%s'\n",
 		childType2String(child->type));
-	buf = str2Buf(line, buf, bufSize);
+	str2Buf(line, &buf, bufSize);
 
 	snprintf(line, sizeof(line), "child pid = '%i'\n",
 		    child->c_pid);
-	buf = str2Buf(line, buf, bufSize);
+	str2Buf(line, &buf, bufSize);
 
 	snprintf(line, sizeof(line), "child sid = '%i'\n",
 		    child->c_sid);
-	buf = str2Buf(line, buf, bufSize);
+	str2Buf(line, &buf, bufSize);
 
 	snprintf(line, sizeof(line), "start time = %s",
 			    ctime(&child->start_time.tv_sec));
-	buf = str2Buf(line, buf, bufSize);
+	str2Buf(line, &buf, bufSize);
 
 	if (child->fw_timeout > 0) {
 	    max_runtime = child->start_time.tv_sec + child->fw_timeout;
@@ -232,7 +225,7 @@ static char *showJob(Job_t *job, char *buf, size_t *bufSize)
 	    snprintf(line, sizeof(line), "timeout = %s",
 				ctime(&max_runtime));
 	}
-	buf = str2Buf(line, buf, bufSize);
+	str2Buf(line, &buf, bufSize);
     }
 
     return buf;
@@ -255,12 +248,12 @@ static char *showRemoteJobs(char *buf, size_t *bufSize)
     struct tm *ts;
 
     if (list_empty(&JobInfoList.list)) {
-	return str2Buf("\nNo current remote jobs.\n", buf, bufSize);
+	return str2Buf("\nNo current remote jobs.\n", &buf, bufSize);
     }
 
     snprintf(line, sizeof(line), "\n%26s  %9s  %6s  %15s  %15s\n",
 		"JobId", "User", "NId", "Starttime", "Timeout");
-    buf = str2Buf(line, buf, bufSize);
+    str2Buf(line, &buf, bufSize);
 
     list_for_each_safe(pos, tmp, &JobInfoList.list) {
 	if ((job = list_entry(pos, JobInfo_t, list)) == NULL) break;
@@ -280,7 +273,7 @@ static char *showRemoteJobs(char *buf, size_t *bufSize)
 		start,
 		timeout);
 
-	buf = str2Buf(line, buf, bufSize);
+	str2Buf(line, &buf, bufSize);
     }
     return buf;
 }
@@ -303,13 +296,13 @@ static char *showJobs(char *buf, size_t *bufSize)
     long secTimeout;
 
     if (list_empty(&JobList.list)) {
-	return str2Buf("\nCurrently no jobs.\n", buf, bufSize);
+	return str2Buf("\nCurrently no jobs.\n", &buf, bufSize);
     }
 
     snprintf(line, sizeof(line), "\n%26s %8s %8s %6s %10s %10s %20s %20s\n",
 		"JobId", "State", "Procs", "Nodes", "User", "TaskID",
 		"Startttime", "Timeout");
-    buf = str2Buf(line, buf, bufSize);
+    str2Buf(line, &buf, bufSize);
 
     list_for_each(pos, &JobList.list) {
 	if ((job = list_entry(pos, Job_t, list)) == NULL) {
@@ -346,7 +339,7 @@ static char *showJobs(char *buf, size_t *bufSize)
 			start,
 			timeout);
 
-	buf = str2Buf(line, buf, bufSize);
+	str2Buf(line, &buf, bufSize);
     }
 
     return buf;
@@ -366,7 +359,7 @@ static char *showState(char *buf, size_t *bufSize)
     struct list_head *pos;
     Data_Entry_t *next;
 
-    buf = str2Buf("\n", buf, bufSize);
+    str2Buf("\n", &buf, bufSize);
 
     updateInfoList(1);
     if (!(list_empty(&infoData.list))) {
@@ -375,8 +368,8 @@ static char *showState(char *buf, size_t *bufSize)
 	    if ((next = list_entry(pos, Data_Entry_t, list)) == NULL) break;
 	    if (!next->name || next->name == '\0') break;
 
-	    buf = str2Buf(next->value, buf, bufSize);
-	    buf = str2Buf("\n", buf, bufSize);
+	    str2Buf(next->value, &buf, bufSize);
+	    str2Buf("\n", &buf, bufSize);
 	}
     }
     clearDataList(&infoData.list);
@@ -387,8 +380,8 @@ static char *showState(char *buf, size_t *bufSize)
 	    if ((next = list_entry(pos, Data_Entry_t, list)) == NULL) break;
 	    if (!next->name || next->name == '\0') break;
 
-	    buf = str2Buf(next->value, buf, bufSize);
-	    buf = str2Buf("\n", buf, bufSize);
+	    str2Buf(next->value, &buf, bufSize);
+	    str2Buf("\n", &buf, bufSize);
 	}
     }
 
@@ -412,12 +405,12 @@ static char *showConnectionState(char *buf, size_t *bufSize)
 
     snprintf(line, sizeof(line), "\nsocket\ttype\t%20s\t%20s\tinfo\n",
 		"local", "remote");
-    buf = str2Buf(line, buf, bufSize);
+    str2Buf(line, &buf, bufSize);
 
     if (masterSocket != -1) {
 	snprintf(line, sizeof(line), "%i\t%s\t%20s\t%20s\t%s\n", masterSocket,
 		"UNIX", "0.0.0.0:*", "0.0.0.0:*", masterSocketName);
-	buf = str2Buf(line, buf, bufSize);
+	str2Buf(line, &buf, bufSize);
     }
 
     if (list_empty(&ComList.list)) return buf;
@@ -449,7 +442,7 @@ static char *showConnectionState(char *buf, size_t *bufSize)
 
 	snprintf(line, sizeof(line), "%i\t%s\t%20s\t%20s\t%s\n", com->socket,
 		protocolType2String(com->type), local, remote, info);
-	buf = str2Buf(line, buf, bufSize);
+	str2Buf(line, &buf, bufSize);
     }
 
     return buf;
@@ -472,12 +465,12 @@ static char *showSSHLogins(char *buf, size_t *bufSize)
     char start[50];
 
     if (list_empty(&SSHList.list)) {
-	return str2Buf("\nNo current ssh logins.\n", buf, bufSize);
+	return str2Buf("\nNo current ssh logins.\n", &buf, bufSize);
     }
 
     snprintf(line, sizeof(line), "\n%9s\t%12s\t#Jobs\tPid\tSid\tStarttime\n",
 		"User", "RHost");
-    buf = str2Buf(line, buf, bufSize);
+    str2Buf(line, &buf, bufSize);
 
     list_for_each_safe(pos, tmp, &SSHList.list) {
 	if ((ssh = list_entry(pos, SSHSession_t, list)) == NULL) break;
@@ -489,7 +482,7 @@ static char *showSSHLogins(char *buf, size_t *bufSize)
 	snprintf(line, sizeof(line), "%9s\t%12s\t%i\t%i\t%i\t%s\n", ssh->user,
 		    ssh->rhost, hasRunningJobs(ssh->user), ssh->pid,
 		    ssh->sid, start);
-	buf = str2Buf(line, buf, bufSize);
+	str2Buf(line, &buf, bufSize);
     }
 
     return buf;
@@ -512,12 +505,12 @@ static char *showForwarder(char *buf, size_t *bufSize)
     struct tm *ts;
 
     if (list_empty(&ChildList.list)) {
-	return str2Buf("\nCurrently no running forwarders.\n", buf, bufSize);
+	return str2Buf("\nCurrently no running forwarders.\n", &buf, bufSize);
     }
 
     snprintf(line, sizeof(line), "\n%12s\t%19s\t%19s\tPID\tChild PID"
 		"\tChild SID\n", "Type", "Starttime", "Timeout");
-    buf = str2Buf(line, buf, bufSize);
+    str2Buf(line, &buf, bufSize);
 
 
     list_for_each_safe(pos, tmp, &ChildList.list) {
@@ -539,7 +532,7 @@ static char *showForwarder(char *buf, size_t *bufSize)
 		 child->c_pid,
 		 child->c_sid);
 
-	buf = str2Buf(line, buf, bufSize);
+	str2Buf(line, &buf, bufSize);
     }
 
     return buf;
@@ -605,7 +598,7 @@ static char *showAllowedPid(char *key, char *buf, size_t *bufSize)
     Child_t *child;
 
     if ((sscanf(key, "allowed_%i", &pid)) != 1) {
-	return str2Buf("\nInvalid pid: not a number\n", buf, bufSize);
+	return str2Buf("\nInvalid pid: not a number\n", &buf, bufSize);
     }
 
     sid = getSIDforPID(pid);
@@ -713,15 +706,15 @@ static char *showAllowedPid(char *key, char *buf, size_t *bufSize)
 FINISH:
 
     snprintf(line, sizeof(line), "\n%i ", pid);
-    buf = str2Buf(line, buf, bufSize);
+    str2Buf(line, &buf, bufSize);
 
     if (found) {
-	str2Buf("TRUE ", buf, bufSize);
-	str2Buf(reason, buf, bufSize);
-	return str2Buf("\n", buf, bufSize);
+	str2Buf("TRUE ", &buf, bufSize);
+	str2Buf(reason, &buf, bufSize);
+	return str2Buf("\n", &buf, bufSize);
     }
 
-    return str2Buf("FALSE\n", buf, bufSize);
+    return str2Buf("FALSE\n", &buf, bufSize);
 }
 
 /**
@@ -737,69 +730,69 @@ static char *showStatistic(char *buf, size_t *bufSize)
 {
     uint64_t stat_allJobs = stat_batchJobs + stat_interJobs;
 
-    buf = str2Buf("\n# statistic #\n\n", buf, bufSize);
+    str2Buf("\n# statistic #\n\n", &buf, bufSize);
 
     snprintf(line, sizeof(line), "executed batch jobs\t\t%u\n",
 		stat_batchJobs);
-    buf = str2Buf(line, buf, bufSize);
+    str2Buf(line, &buf, bufSize);
 
     snprintf(line, sizeof(line), "executed interactive jobs\t%u\n",
 		stat_interJobs);
-    buf = str2Buf(line, buf, bufSize);
+    str2Buf(line, &buf, bufSize);
 
     snprintf(line, sizeof(line), "successful batch jobs\t\t%u\n",
 		stat_successBatchJobs);
-    buf = str2Buf(line, buf, bufSize);
+    str2Buf(line, &buf, bufSize);
 
     snprintf(line, sizeof(line), "successful interactive jobs\t%u\n",
 		stat_successInterJobs);
-    buf = str2Buf(line, buf, bufSize);
+    str2Buf(line, &buf, bufSize);
 
     snprintf(line, sizeof(line), "failed batch jobs\t\t%u\n",
 		stat_failedBatchJobs);
-    buf = str2Buf(line, buf, bufSize);
+    str2Buf(line, &buf, bufSize);
 
     snprintf(line, sizeof(line), "failed interactive jobs\t\t%u\n",
 		stat_failedInterJobs);
-    buf = str2Buf(line, buf, bufSize);
+    str2Buf(line, &buf, bufSize);
 
     snprintf(line, sizeof(line), "successful local prologue\t%u\n",
 		stat_lPrologue);
-    buf = str2Buf(line, buf, bufSize);
+    str2Buf(line, &buf, bufSize);
 
     snprintf(line, sizeof(line), "successful remote prologue\t%u\n",
 		stat_rPrologue);
-    buf = str2Buf(line, buf, bufSize);
+    str2Buf(line, &buf, bufSize);
 
     snprintf(line, sizeof(line), "failed local prologue\t\t%u\n",
 		stat_failedlPrologue);
-    buf = str2Buf(line, buf, bufSize);
+    str2Buf(line, &buf, bufSize);
 
     snprintf(line, sizeof(line), "failed remote prologue\t\t%u\n",
 		stat_failedrPrologue);
-    buf = str2Buf(line, buf, bufSize);
+    str2Buf(line, &buf, bufSize);
 
 
     if (stat_allJobs > 0) {
 	snprintf(line, sizeof(line), "average nodes\t\t\t%lu\n",
 		    stat_numNodes / stat_allJobs);
-	buf = str2Buf(line, buf, bufSize);
+	str2Buf(line, &buf, bufSize);
 
 	snprintf(line, sizeof(line), "average processes\t\t%lu\n",
 		    stat_numProcs / stat_allJobs);
-	buf = str2Buf(line, buf, bufSize);
+	str2Buf(line, &buf, bufSize);
     }
 
     snprintf(line, sizeof(line), "executed remote jobs\t\t%u\n",
 		stat_remoteJobs);
-    buf = str2Buf(line, buf, bufSize);
+    str2Buf(line, &buf, bufSize);
 
     snprintf(line, sizeof(line), "ssh sessions\t\t\t%u\n", stat_SSHLogins);
-    buf = str2Buf(line, buf, bufSize);
+    str2Buf(line, &buf, bufSize);
 
     snprintf(line, sizeof(line), "psmom start time\t\t%s\n",
 		ctime(&stat_startTime));
-    buf = str2Buf(line, buf, bufSize);
+    str2Buf(line, &buf, bufSize);
 
     return buf;
 }
@@ -818,7 +811,7 @@ static char *showConfig(char *buf, size_t *bufSize)
     char empty[] = "";
     int i;
 
-    buf = str2Buf("\n", buf, bufSize);
+    str2Buf("\n", &buf, bufSize);
 
     for (i=0; i<configValueCount; i++) {
 	char *name, *val;
@@ -828,7 +821,7 @@ static char *showConfig(char *buf, size_t *bufSize)
 	    val = empty;
 	}
 	snprintf(line, sizeof(line), "%21s = %s\n", name, val);
-	buf = str2Buf(line, buf, bufSize);
+	str2Buf(line, &buf, bufSize);
     }
 
     return buf;
@@ -847,43 +840,43 @@ static char *showVirtualKeys(char *buf, size_t *bufSize, int example)
 {
     char *msg;
 
-    buf = str2Buf("\n# available keys #\n\n", buf, bufSize);
+    str2Buf("\n# available keys #\n\n", &buf, bufSize);
 
     snprintf(line, sizeof(line), "%12s\t%s\n", "config",
 	    "show current configuration");
-    buf = str2Buf(line, buf, bufSize);
+    str2Buf(line, &buf, bufSize);
 
     snprintf(line, sizeof(line), "%12s\t%s\n", "jobs",
 	    "show all jobs");
-    buf = str2Buf(line, buf, bufSize);
+    str2Buf(line, &buf, bufSize);
 
     snprintf(line, sizeof(line), "%12s\t%s\n", "job-id",
 	    "show detailed information about a selected job");
-    buf = str2Buf(line, buf, bufSize);
+    str2Buf(line, &buf, bufSize);
 
     snprintf(line, sizeof(line), "%12s\t%s\n", "state",
 	    "show internal state");
-    buf = str2Buf(line, buf, bufSize);
+    str2Buf(line, &buf, bufSize);
 
     snprintf(line, sizeof(line), "%12s\t%s\n", "connections",
 	    "show all connections");
-    buf = str2Buf(line, buf, bufSize);
+    str2Buf(line, &buf, bufSize);
 
     snprintf(line, sizeof(line), "%12s\t%s\n", "rjobs",
 	    "show all remote jobs");
-    buf = str2Buf(line, buf, bufSize);
+    str2Buf(line, &buf, bufSize);
 
     snprintf(line, sizeof(line), "%12s\t%s\n", "forwarder",
 	    "show running forwarder");
-    buf = str2Buf(line, buf, bufSize);
+    str2Buf(line, &buf, bufSize);
 
     snprintf(line, sizeof(line), "%12s\t%s\n", "statistic",
 	    "show statistic");
-    buf = str2Buf(line, buf, bufSize);
+    str2Buf(line, &buf, bufSize);
 
     snprintf(line, sizeof(line), "%12s\t%s\n", "ssh",
 	    "show all ssh logins/sessions");
-    buf = str2Buf(line, buf, bufSize);
+    str2Buf(line, &buf, bufSize);
 
 
     if (example) {
@@ -891,7 +884,7 @@ static char *showVirtualKeys(char *buf, size_t *bufSize, int example)
 	    " 'plugin show psmom 1001'\nto display detailed job information"
 	    " about job '1001.frontend'.\n";
 
-	buf = str2Buf(msg, buf, bufSize);
+	str2Buf(msg, &buf, bufSize);
     }
 
     return buf;
@@ -917,12 +910,12 @@ char *set(char *key, char *value)
 	    return NULL;
 	} else if (!(strcmp(key, "TORQUE_VERSION"))) {
 	    return str2Buf("\nInvalid request: changing torque version is not"
-				" possible without a restart\n", buf, &bufSize);
+			   " possible without a restart\n", &buf, &bufSize);
 	} else if (!(strcmp(key, "DEBUG_MASK"))) {
 	    int32_t mask;
 
 	    if ((sscanf(value, "%i", &mask)) != 1) {
-		return str2Buf("\nInvalid debug mask: not a number\n", buf,
+		return str2Buf("\nInvalid debug mask: not a number\n", &buf,
 				&bufSize);
 	    }
 	    maskLogger(mask);
@@ -930,15 +923,14 @@ char *set(char *key, char *value)
 
 	if ((ret = verfiyConfOption(key, value)) != 0) {
 	    if (ret == 1) {
-		buf = str2Buf("\nInvalid key '", buf, &bufSize);
-		buf = str2Buf(key, buf, &bufSize);
-		buf = str2Buf("' for cmd set : use 'plugin help psmom' "
-				"for help.\n", buf, &bufSize);
+		str2Buf("\nInvalid key '", &buf, &bufSize);
+		str2Buf(key, &buf, &bufSize);
+		str2Buf("' for cmd set : use 'plugin help psmom' foor help.\n",
+			&buf, &bufSize);
 	    } else if (ret == 2) {
-		buf = str2Buf("\nThe key '", buf, &bufSize);
-		buf = str2Buf(key, buf, &bufSize);
-		buf = str2Buf("' for cmd set has to be numeric.\n", buf,
-				&bufSize);
+		str2Buf("\nThe key '", &buf, &bufSize);
+		str2Buf(key, &buf, &bufSize);
+		str2Buf("' for cmd set has to be numeric.\n", &buf, &bufSize);
 	    }
 	    return buf;
 	}
@@ -952,7 +944,7 @@ char *set(char *key, char *value)
 	}
 
 	snprintf(line, sizeof(line), "\nsaved '%s = %s'\n", key, value);
-	buf = str2Buf(line, buf, &bufSize);
+	str2Buf(line, &buf, &bufSize);
 	return buf;
     }
 
@@ -974,9 +966,9 @@ char *set(char *key, char *value)
 	    stat_numNodes = 0;
 	    stat_numProcs = 0;
 
-	    return str2Buf("\nReset statistics\n", buf, &bufSize);
+	    return str2Buf("\nReset statistics\n", &buf, &bufSize);
 	}
-	return str2Buf("\nInvalid statistic command\n", buf, &bufSize);
+	return str2Buf("\nInvalid statistic command\n", &buf, &bufSize);
     }
 
     if (!(strcmp(key, "memdebug"))) {
@@ -986,22 +978,22 @@ char *set(char *key, char *value)
 	    finalizePluginLogger();
 	    initPluginLogger(memoryDebug);
 	    maskPluginLogger(PLUGIN_LOG_MALLOC);
-	    buf = str2Buf("\nmemory logging to '", buf, &bufSize);
-	    buf = str2Buf(value, buf, &bufSize);
-	    buf = str2Buf("'\n", buf, &bufSize);
+	    str2Buf("\nmemory logging to '", &buf, &bufSize);
+	    str2Buf(value, &buf, &bufSize);
+	    str2Buf("'\n", &buf, &bufSize);
 	    return buf;
 	} else {
-	    buf = str2Buf("\nopening file '", buf, &bufSize);
-	    buf = str2Buf(value, buf, &bufSize);
-	    buf = str2Buf("' for writing failed\n", buf, &bufSize);
+	    str2Buf("\nopening file '", &buf, &bufSize);
+	    str2Buf(value, &buf, &bufSize);
+	    str2Buf("' for writing failed\n", &buf, &bufSize);
 	    return buf;
 	}
     }
 
-    buf = str2Buf("\nInvalid key '", buf, &bufSize);
-    buf = str2Buf(key, buf, &bufSize);
-    buf = str2Buf("' for cmd set : use 'plugin help psmom' for help.\n", buf,
-		    &bufSize);
+    str2Buf("\nInvalid key '", &buf, &bufSize);
+    str2Buf(key, &buf, &bufSize);
+    str2Buf("' for cmd set : use 'plugin help psmom' for help.\n", &buf,
+	    &bufSize);
 
     return buf;
 }
@@ -1034,13 +1026,13 @@ char *unset(char *key)
 	    memoryDebug = NULL;
 	    initPluginLogger(psmomlogfile);
 	}
-	return str2Buf("Stopped memory debugging\n", buf, &bufSize);
+	return str2Buf("Stopped memory debugging\n", &buf, &bufSize);
     }
 
-    buf = str2Buf("\nInvalid key '", buf, &bufSize);
-    buf = str2Buf(key, buf, &bufSize);
-    buf = str2Buf("' for cmd unset : use 'plugin help psmom' for help.\n",
-	    buf, &bufSize);
+    str2Buf("\nInvalid key '", &buf, &bufSize);
+    str2Buf(key, &buf, &bufSize);
+    str2Buf("' for cmd unset : use 'plugin help psmom' for help.\n",
+	    &buf, &bufSize);
 
     return buf;
 }
@@ -1052,29 +1044,29 @@ char *help(void)
     size_t bufSize = 0;
     int i;
 
-    buf = str2Buf("\nThe psmom is a complete replacement of the Torque pbs_mom."
-		    " Using the psmom plug-in the psid\ntherefore is the only"
-		    " daemon needed on the compute nodes to integrate them into"
-		    " the batch system.\n", buf, &bufSize);
+    str2Buf("\nThe psmom is a complete replacement of the Torque pbs_mom."
+	    " Using the psmom plug-in the psid\ntherefore is the only"
+	    " daemon needed on the compute nodes to integrate them into"
+	    " the batch system.\n", &buf, &bufSize);
 
-    buf = str2Buf("\n# configuration options #\n\n", buf, &bufSize);
+    str2Buf("\n# configuration options #\n\n", &buf, &bufSize);
     for (i=0; i<configValueCount; i++) {
 	snprintf(type, sizeof(type), "<%s>", CONFIG_VALUES[i].type);
 	snprintf(line, sizeof(line), "%21s\t%8s    %s\n", CONFIG_VALUES[i].name,
 		    type, CONFIG_VALUES[i].desc);
-	buf = str2Buf(line, buf, &bufSize);
+	str2Buf(line, &buf, &bufSize);
     }
 
     buf = showVirtualKeys(buf, &bufSize, 0);
 
-    buf = str2Buf("\nUse 'plugin show psmom [key name]' to view the"
-		    " current configuration or internal informations.\n"
-		    "To change the configuration use 'plugin set psmom"
-		    " <name> <value>'.\n"
-		    "To unset a configuration value use 'plugin unset psmom"
-		    " <name>'.\n"
-		    "To reset the statistic use 'plugin set psmom statistic 0'"
-		    ".\n", buf, &bufSize);
+    str2Buf("\nUse 'plugin show psmom [key name]' to view the"
+	    " current configuration or internal informations.\n"
+	    "To change the configuration use 'plugin set psmom"
+	    " <name> <value>'.\n"
+	    "To unset a configuration value use 'plugin unset psmom"
+	    " <name>'.\n"
+	    "To reset the statistic use 'plugin set psmom statistic 0'"
+	    ".\n", &buf, &bufSize);
 
     return buf;
 }
@@ -1094,10 +1086,10 @@ char *show(char *key)
 
     /* search in config for given key */
     if ((tmp = getConfParam(key))) {
-	buf = str2Buf(key, buf, &bufSize);
-	buf = str2Buf(" = ", buf, &bufSize);
-	buf = str2Buf(tmp, buf, &bufSize);
-	buf = str2Buf("\n", buf, &bufSize);
+	str2Buf(key, &buf, &bufSize);
+	str2Buf(" = ", &buf, &bufSize);
+	str2Buf(tmp, &buf, &bufSize);
+	str2Buf("\n", &buf, &bufSize);
 
 	return buf;
     }
@@ -1154,9 +1146,9 @@ char *show(char *key)
 	return showJob(job, buf, &bufSize);
     }
 
-    buf = str2Buf("\nInvalid key '", buf, &bufSize);
-    buf = str2Buf(key, buf, &bufSize);
-    buf = str2Buf("' for cmd show : use 'plugin help psmom'.\n", buf, &bufSize);
+    str2Buf("\nInvalid key '", &buf, &bufSize);
+    str2Buf(key, &buf, &bufSize);
+    str2Buf("' for cmd show : use 'plugin help psmom'.\n", &buf, &bufSize);
 
     return buf;
 }

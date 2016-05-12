@@ -1,18 +1,11 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2012 - 2013 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2012-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
- */
-/**
- * $Id$
- *
- * \author
- * Michael Rauh <rauh@par-tec.com>
- *
  */
 
 #include <stdlib.h>
@@ -33,8 +26,8 @@ void *__umalloc(size_t size, const char *func, const int line)
     if (size < MIN_MALLOC_SIZE) size = MIN_MALLOC_SIZE;
 
     if (!(ptr = malloc(size))) {
-        pluginlog("%s: memory allocation failed\n", func);
-        exit(EXIT_FAILURE);
+	pluginlog("%s: memory allocation of '%zu' failed\n", func, size);
+	exit(EXIT_FAILURE);
     }
 
     snprintf(tmp, sizeof(tmp), "%i", line);
@@ -53,13 +46,18 @@ void *__urealloc(void *old ,size_t size, const char *func, const int line)
     if (size < MIN_MALLOC_SIZE) size = MIN_MALLOC_SIZE;
 
     if (!(ptr = realloc(old, size))) {
-        pluginlog("%s: realloc failed.\n", func);
-        exit(EXIT_FAILURE);
+	pluginlog("%s: realloc of '%zu' failed.\n", func, size);
+	exit(EXIT_FAILURE);
     }
 
     snprintf(tmp, sizeof(tmp), "%i", line);
-    plugindbg(PLUGIN_LOG_MALLOC, "urealloc\t%15s\t%s\t%p (%zu)\t%s\n", func,
-		tmp, ptr, size, save);
+    if (old) {
+	plugindbg(PLUGIN_LOG_MALLOC, "urealloc\t%15s\t%s\t%p (%zu)\t%s\n", func,
+		  tmp, ptr, size, save);
+    } else {
+	plugindbg(PLUGIN_LOG_MALLOC, "umalloc\t%15s\t%s\t%p (%zu)\n", func, tmp,
+		  ptr, size);
+    }
 
     return ptr;
 }
@@ -88,25 +86,31 @@ void __ufree(void *ptr, const char *func, const int line)
     free(ptr);
 }
 
-char *str2Buf(char *strSave, char *buffer, size_t *bufSize)
+char *__str2Buf(char *strSave, char **buffer, size_t *bufSize, const char *func,
+		const int line)
 {
-    size_t lenSave, lenBuf;
+    return __strn2Buf(strSave, strlen(strSave), buffer, bufSize, func, line);
+}
 
-    if (!buffer) {
-	buffer = umalloc(STR_MALLOC_SIZE);
+char *__strn2Buf(char *strSave, size_t lenSave, char **buffer, size_t *bufSize,
+		 const char *func, const int line)
+{
+    size_t lenBuf;
+
+    if (!*buffer) {
 	*bufSize = STR_MALLOC_SIZE;
-	buffer[0] = '\0';
+	*buffer = __umalloc(*bufSize, func, line);
+	*buffer[0] = '\0';
     }
 
-    lenSave = strlen(strSave);
-    lenBuf = strlen(buffer);
+    lenBuf = strlen(*buffer);
 
     while (lenBuf + lenSave + 1 > *bufSize) {
-	buffer = urealloc(buffer, *bufSize + STR_MALLOC_SIZE);
 	*bufSize += STR_MALLOC_SIZE;
+	*buffer = __urealloc(*buffer, *bufSize, func, line);
     }
 
-    strcat(buffer, strSave);
+    strncat(*buffer, strSave, lenSave);
 
-    return buffer;
+    return *buffer;
 }

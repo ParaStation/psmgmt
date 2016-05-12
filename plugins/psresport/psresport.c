@@ -1,33 +1,26 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2012-2013 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2012-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
- *
- * Authors:     Michael Rauh <rauh@par-tec.com>
- *
  */
 
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "pstask.h"
-#include "psnodes.h"
-#include "psidpartition.h"
-#include "psidhook.h"
-#include "plugin.h"
 #include "pscommon.h"
+#include "pspartition.h"
+#include "plugin.h"
+#include "psidhook.h"
 
 #include "pluginmalloc.h"
+#include "pluginlog.h"
 
 #include "psresportlog.h"
 #include "psresportconfig.h"
-#include "pluginlog.h"
-
-#include "psresport.h"
 
 #define RESPORT_CONFIG "psresport.conf"
 
@@ -35,7 +28,7 @@
 char name[] = "psresport";
 int version = 2;
 int requiredAPI = 108;
-plugin_dep_t dependencies[1];
+plugin_dep_t dependencies[] = { { NULL, 0 } };
 
 /** the start of the reserved port range */
 static int pRangeMin = 0;
@@ -64,24 +57,12 @@ static uint32_t uniqNodeCount = 0;
 /** number of reservations */
 static int reservationCount = 0;
 
-void psresportStart()
-{
-    /* we have no dependencies */
-    dependencies[0].name = NULL;
-    dependencies[0].version = 0;
-}
-
-void psresportStop()
-{
-    /* nothing to do here */
-}
-
 /**
  * @brief Initialize the global node reservation bitfield.
  *
  * @return No return value.
  */
-static void initNodeBitField()
+static void initNodeBitField(void)
 {
     int i;
 
@@ -101,7 +82,7 @@ static void initNodeBitField()
  *
  * @return No return value.
  */
-static void freeUniqNodes()
+static void freeUniqNodes(void)
 {
     ufree(uniqNodeList);
     uniqNodeList = NULL;
@@ -513,7 +494,7 @@ static void freeEmptyNodeBitmasks(int *uNodeList, uint32_t uNodeCount)
  *
  * @return Always returns 0.
  */
-static int clearAllReservations()
+static int clearAllReservations(void *info)
 {
     ufree(nodeBitField);
     nodeBitField = NULL;
@@ -594,10 +575,10 @@ int initialize(void)
     /* init the config facility */
     snprintf(configfn, sizeof(configfn), "%s/%s", PLUGINDIR, RESPORT_CONFIG);
 
-    if (!(initConfig(configfn))) return 1;
+    initConfig(configfn);
 
     /* init logging facility */
-    getConfParamI("DEBUG_MASK", &debugMask);
+    debugMask = getConfValueI(&psresportConfig, "DEBUG_MASK");
     maskLogger(debugMask);
 
     if (!(PSIDhook_add(PSIDHOOK_MASTER_GETPART, addNewReservation))) {
@@ -621,7 +602,7 @@ int initialize(void)
     }
 
     /* get reserved ports from config */
-    ports = getConfParamC("RESERVED_PORTS");
+    ports = getConfValueC(&psresportConfig, "RESERVED_PORTS");
 
     if (!(extractPortInfos(ports))) {
 	mlog("%s: invalid port range '%s'\n", __func__, ports);
@@ -659,7 +640,7 @@ static char *showReservationCount(char *buf, size_t *bufSize)
 
     snprintf(line, sizeof(line), "\n%i reservation(s) in port range '%i-%i'\n",
 		reservationCount, pRangeMin, pRangeMax);
-    buf = str2Buf(line, buf, bufSize);
+    str2Buf(line, &buf, bufSize);
     return buf;
 }
 
@@ -685,15 +666,15 @@ static char *dumpNodeBitmask(char *buf, size_t *bufSize)
 
 	snprintf(tmp, sizeof(tmp), "node[%i]", node);
 	snprintf(line, sizeof(line), "%-12s:", tmp);
-	buf = str2Buf(line, buf, bufSize);
+	str2Buf(line, &buf, bufSize);
 	for (i=0; i<pRangeCount; i++) {
 	    if (nodeBitField[node][i] == 1) {
-		buf = str2Buf("1", buf, bufSize);
+		str2Buf("1", &buf, bufSize);
 	    } else {
-		buf = str2Buf("0", buf, bufSize);
+		str2Buf("0", &buf, bufSize);
 	    }
 	}
-	buf = str2Buf("\n", buf, bufSize);
+	str2Buf("\n", &buf, bufSize);
     }
     return buf;
 }
@@ -704,8 +685,7 @@ char *show(char *key)
     size_t bufSize = 0;
 
     if (!key) {
-	buf = str2Buf("\nuse 'reservations' or 'bitmask' as key\n",
-			buf, &bufSize);
+	str2Buf("\nuse 'reservations' or 'bitmask' as key\n", &buf, &bufSize);
 	return buf;
     }
 
@@ -719,10 +699,9 @@ char *show(char *key)
 	return dumpNodeBitmask(buf, &bufSize);
     }
 
-    buf = str2Buf("\nInvalid key '", buf, &bufSize);
-    buf = str2Buf(key, buf, &bufSize);
-    buf = str2Buf("' for cmd show : use 'plugin help psresport'.\n",
-		    buf, &bufSize);
+    str2Buf("\nInvalid key '", &buf, &bufSize);
+    str2Buf(key, &buf, &bufSize);
+    str2Buf("' for cmd show : use 'plugin help psresport'.\n", &buf, &bufSize);
 
     return buf;
 }
@@ -732,13 +711,13 @@ char *help(void)
     char *buf = NULL;
     size_t bufSize = 0;
 
-    buf = str2Buf("\nThe psresport plugin is providing a port reservation "
-		    "facility which is currently used\nby the startup mechanism"
-		    " of OpenMPI since version 1.5.\n",
-		    buf, &bufSize);
+    str2Buf("\nThe psresport plugin is providing a port reservation "
+	    "facility which is currently used\nby the startup mechanism"
+	    " of OpenMPI since version 1.5.\n",
+	    &buf, &bufSize);
 
-    buf = str2Buf("\nUse 'plugin show psresport [key reservation|bitmask]'.\n",
-		    buf, &bufSize);
+    str2Buf("\nUse 'plugin show psresport [key reservation|bitmask]'.\n",
+	    &buf, &bufSize);
 
     return buf;
 }

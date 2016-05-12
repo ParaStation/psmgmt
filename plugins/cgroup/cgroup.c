@@ -276,16 +276,16 @@ char *help(void)
     int maxKeyLen = getMaxKeyLen(cgConfDef);
     int i;
 
-    buf = str2Buf("\nSimple plugin to jail all psid's client processes into"
-		  " a single cgroup\n\n", buf, &bufSize);
-    buf = str2Buf("\n# configuration options #\n\n", buf, &bufSize);
+    str2Buf("\nSimple plugin to jail all psid's client processes into"
+	    " a single cgroup\n\n", &buf, &bufSize);
+    str2Buf("\n# configuration options #\n\n", &buf, &bufSize);
 
     for (i = 0; cgConfDef[i].name; i++) {
 	char type[10], line[160];
 	snprintf(type, sizeof(type), "<%s>", cgConfDef[i].type);
 	snprintf(line, sizeof(line), "%*s %10s  %s\n",
 		 maxKeyLen, cgConfDef[i].name, type, cgConfDef[i].desc);
-	buf = str2Buf(line, buf, &bufSize);
+	str2Buf(line, &buf, &bufSize);
     }
 
     return buf;
@@ -362,20 +362,20 @@ char *show(char *key)
 	int maxKeyLen = getMaxKeyLen(cgConfDef);
 	int i;
 
-	buf = str2Buf("\n", buf, &bufSize);
+	str2Buf("\n", &buf, &bufSize);
 	for (i = 0; cgConfDef[i].name; i++) {
 	    char *name = cgConfDef[i].name, line[160];
 	    val = getConfValueC(&cgroupConfig, name);
 
 	    snprintf(line, sizeof(line), "%*s = %s\n", maxKeyLen, name, val);
-	    buf = str2Buf(line, buf, &bufSize);
+	    str2Buf(line, &buf, &bufSize);
 	}
     } else if ((val = getConfValueC(&cgroupConfig, key))) {
-	buf = str2Buf("\n", buf, &bufSize);
-	buf = str2Buf(key, buf, &bufSize);
-	buf = str2Buf(" = ", buf, &bufSize);
-	buf = str2Buf(val, buf, &bufSize);
-	buf = str2Buf("\n", buf, &bufSize);
+	str2Buf("\n", &buf, &bufSize);
+	str2Buf(key, &buf, &bufSize);
+	str2Buf(" = ", &buf, &bufSize);
+	str2Buf(val, &buf, &bufSize);
+	str2Buf("\n", &buf, &bufSize);
     }
 
     return buf;

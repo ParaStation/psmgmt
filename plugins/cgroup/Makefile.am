@@ -20,7 +20,5 @@ libplugincommon = $(top_builddir)/lib/plugincommon/libplugincommon.la
 cgroup_la_SOURCES = cgroup.c cgroupconfig.c cgroupconfig.h cgrouplog.c \
 	cgrouplog.h
 
-cgroup_la_CPPFLAGS = $(AM_CPPFLAGS) -DPLUGINDIR=\"$(plugindir)\" \
-	-DBINDIR=\"$(bindir)\"
-
+cgroup_la_CPPFLAGS = $(AM_CPPFLAGS) -DPLUGINDIR=\"$(plugindir)\"
 cgroup_la_LIBADD = $(libplugincommon)

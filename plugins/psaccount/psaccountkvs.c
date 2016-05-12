@@ -45,45 +45,45 @@ static char *showJobs(char *buf, size_t *bufSize)
     Job_t *job;
 
     if (list_empty(&JobList.list)) {
-	return str2Buf("\nNo current jobs.\n", buf, bufSize);
+	return str2Buf("\nNo current jobs.\n", &buf, bufSize);
     }
 
-    buf = str2Buf("\njobs:\n", buf, bufSize);
+    str2Buf("\njobs:\n", &buf, bufSize);
 
     list_for_each_safe(pos, tmp, &JobList.list) {
 	if ((job = list_entry(pos, Job_t, list)) == NULL) break;
 
 	snprintf(line, sizeof(line), "nr Of Children '%i'\n", job->nrOfChilds);
-	buf = str2Buf(line, buf, bufSize);
+	str2Buf(line, &buf, bufSize);
 
 	snprintf(line, sizeof(line), "total Children '%i'\n", job->totalChilds);
-	buf = str2Buf(line, buf, bufSize);
+	str2Buf(line, &buf, bufSize);
 
 	snprintf(line, sizeof(line), "exit Children '%i'\n", job->childsExit);
-	buf = str2Buf(line, buf, bufSize);
+	str2Buf(line, &buf, bufSize);
 
 	snprintf(line, sizeof(line), "complete '%i'\n", job->complete);
-	buf = str2Buf(line, buf, bufSize);
+	str2Buf(line, &buf, bufSize);
 
 	snprintf(line, sizeof(line), "grace '%i'\n", job->grace);
-	buf = str2Buf(line, buf, bufSize);
+	str2Buf(line, &buf, bufSize);
 
 	snprintf(line, sizeof(line), "id '%s'\n", job->jobid);
-	buf = str2Buf(line, buf, bufSize);
+	str2Buf(line, &buf, bufSize);
 
 	snprintf(line, sizeof(line), "jobscript '%i'\n", job->jobscript);
-	buf = str2Buf(line, buf, bufSize);
+	str2Buf(line, &buf, bufSize);
 
 	snprintf(line, sizeof(line), "logger '%s'\n",
 		    PSC_printTID(job->logger));
-	buf = str2Buf(line, buf, bufSize);
+	str2Buf(line, &buf, bufSize);
 
 	snprintf(line, sizeof(line), "start time %s", ctime(&job->startTime));
-	buf = str2Buf(line, buf, bufSize);
+	str2Buf(line, &buf, bufSize);
 
 	snprintf(line, sizeof(line), "end time %s",
 		    job->endTime ? ctime(&job->endTime) : "-\n");
-	buf = str2Buf(line, buf, bufSize);
+	str2Buf(line, &buf, bufSize);
 
 	if (job->jobscript) {
 	    psaccAccountInfo_t accData;
@@ -93,11 +93,11 @@ static char *showJobs(char *buf, size_t *bufSize)
 			    " stime '%zu' mem '%zu' vmem '%zu'\n",
 			    accData.cputime, accData.utime, accData.stime,
 			    accData.mem, accData.vmem);
-		buf = str2Buf(line, buf, bufSize);
+		str2Buf(line, &buf, bufSize);
 	    }
 	}
 
-	buf = str2Buf("-\n", buf, bufSize);
+	str2Buf("-\n", &buf, bufSize);
     }
 
     return buf;
@@ -118,10 +118,10 @@ static char *showClient(char *buf, size_t *bufSize, int detailed)
     Client_t *client;
 
     if (list_empty(&AccClientList.list)) {
-	return str2Buf("\nNo current clients.\n", buf, bufSize);
+	return str2Buf("\nNo current clients.\n", &buf, bufSize);
     }
 
-    buf = str2Buf("\nclients:\n", buf, bufSize);
+    str2Buf("\nclients:\n", &buf, bufSize);
 
     list_for_each(pos, &AccClientList.list) {
 
@@ -129,65 +129,65 @@ static char *showClient(char *buf, size_t *bufSize, int detailed)
 
 	snprintf(line, sizeof(line), "taskID '%s'\n",
 		    PSC_printTID(client->taskid));
-	buf = str2Buf(line, buf, bufSize);
+	str2Buf(line, &buf, bufSize);
 
 	snprintf(line, sizeof(line), "rank '%i'\n", client->rank);
-	buf = str2Buf(line, buf, bufSize);
+	str2Buf(line, &buf, bufSize);
 
 	snprintf(line, sizeof(line), "logger '%s'\n",
 		    PSC_printTID(client->logger));
-	buf = str2Buf(line, buf, bufSize);
+	str2Buf(line, &buf, bufSize);
 
 	snprintf(line, sizeof(line), "account '%i'\n", client->doAccounting);
-	buf = str2Buf(line, buf, bufSize);
+	str2Buf(line, &buf, bufSize);
 
 	snprintf(line, sizeof(line), "type '%s'\n",
 		    clientType2Str(client->type));
-	buf = str2Buf(line, buf, bufSize);
+	str2Buf(line, &buf, bufSize);
 
 	snprintf(line, sizeof(line), "uid '%i'\n", client->uid);
-	buf = str2Buf(line, buf, bufSize);
+	str2Buf(line, &buf, bufSize);
 
 	snprintf(line, sizeof(line), "gid '%i'\n", client->gid);
-	buf = str2Buf(line, buf, bufSize);
+	str2Buf(line, &buf, bufSize);
 
 	snprintf(line, sizeof(line), "page size '%zu'\n", client->pageSize);
-	buf = str2Buf(line, buf, bufSize);
+	str2Buf(line, &buf, bufSize);
 
 	snprintf(line, sizeof(line), "start time %s",
 		    ctime(&client->startTime));
-	buf = str2Buf(line, buf, bufSize);
+	str2Buf(line, &buf, bufSize);
 
 	snprintf(line, sizeof(line), "end time %s",
 		    client->endTime ? ctime(&client->endTime) : "-\n");
-	buf = str2Buf(line, buf, bufSize);
+	str2Buf(line, &buf, bufSize);
 
 	if (detailed) {
 
 	    snprintf(line, sizeof(line), "max mem '%zu'\n",
 						client->data.maxRss * pageSize);
-	    buf = str2Buf(line, buf, bufSize);
+	    str2Buf(line, &buf, bufSize);
 
 	    snprintf(line, sizeof(line), "max vmem '%zu'\n",
 						client->data.maxVsize);
-	    buf = str2Buf(line, buf, bufSize);
+	    str2Buf(line, &buf, bufSize);
 
 	    snprintf(line, sizeof(line), "cutime '%zu'\n", client->data.cutime);
-	    buf = str2Buf(line, buf, bufSize);
+	    str2Buf(line, &buf, bufSize);
 
 	    snprintf(line, sizeof(line), "cstime '%zu'\n", client->data.cstime);
-	    buf = str2Buf(line, buf, bufSize);
+	    str2Buf(line, &buf, bufSize);
 
 	    snprintf(line, sizeof(line), "cputime '%zu'\n",
 			client->data.cputime);
-	    buf = str2Buf(line, buf, bufSize);
+	    str2Buf(line, &buf, bufSize);
 
 	    snprintf(line, sizeof(line), "max threads '%zu'\n",
 						client->data.maxThreads);
-	    buf = str2Buf(line, buf, bufSize);
+	    str2Buf(line, &buf, bufSize);
 	}
 
-	buf = str2Buf("-\n", buf, bufSize);
+	str2Buf("-\n", &buf, bufSize);
     }
 
     return buf;
@@ -207,17 +207,17 @@ static char *showConfig(char *buf, size_t *bufSize)
     char empty[] = "";
     int i;
 
-    buf = str2Buf("\n", buf, bufSize);
+    str2Buf("\n", &buf, bufSize);
 
     for (i=0; i<configValueCount; i++) {
-        char *name, *val;
+	char *name, *val;
 
-        name = CONFIG_VALUES[i].name;
-        if (!(val = getConfParamC(name))) {
-            val = empty;
-        }
-        snprintf(line, sizeof(line), "%21s = %s\n", name, val);
-        buf = str2Buf(line, buf, bufSize);
+	name = CONFIG_VALUES[i].name;
+	if (!(val = getConfParamC(name))) {
+	    val = empty;
+	}
+	snprintf(line, sizeof(line), "%21s = %s\n", name, val);
+	str2Buf(line, &buf, bufSize);
     }
 
     return buf;
@@ -233,32 +233,32 @@ char *set(char *key, char *value)
     /* search in config for given key */
     if ((findConfigDef(key))) {
 
-        if ((ret = verfiyConfOption(key, value)) != 0) {
-            if (ret == 1) {
-                buf = str2Buf("\nInvalid key '", buf, &bufSize);
-                buf = str2Buf(key, buf, &bufSize);
-                buf = str2Buf("' for cmd set : use 'plugin help psaccount' "
-                                "for help.\n", buf, &bufSize);
-            } else if (ret == 2) {
-                buf = str2Buf("\nThe key '", buf, &bufSize);
-                buf = str2Buf(key, buf, &bufSize);
-                buf = str2Buf("' for cmd set has to be numeric.\n", buf,
-                                &bufSize);
-            }
-            return buf;
-        }
+	if ((ret = verfiyConfOption(key, value)) != 0) {
+	    if (ret == 1) {
+		str2Buf("\nInvalid key '", &buf, &bufSize);
+		str2Buf(key, &buf, &bufSize);
+		str2Buf("' for cmd set : use 'plugin help psaccount' "
+			      "for help.\n", &buf, &bufSize);
+	    } else if (ret == 2) {
+		str2Buf("\nThe key '", &buf, &bufSize);
+		str2Buf(key, &buf, &bufSize);
+		str2Buf("' for cmd set has to be numeric.\n", &buf,
+			      &bufSize);
+	    }
+	    return buf;
+	}
 
-        /* save new config value */
-        if ((conf = getConfObject(key))) {
-            if (conf->value) ufree(conf->value);
-            conf->value = ustrdup(value);
-        } else {
-            addConfig(key, value);
-        }
+	/* save new config value */
+	if ((conf = getConfObject(key))) {
+	    if (conf->value) ufree(conf->value);
+	    conf->value = ustrdup(value);
+	} else {
+	    addConfig(key, value);
+	}
 
 	snprintf(line, sizeof(line), "\nsaved '%s = %s'\n", key, value);
-        buf = str2Buf(line, buf, &bufSize);
-        return buf;
+	str2Buf(line, &buf, &bufSize);
+	return buf;
     }
 
     if (!(strcmp(key, "memdebug"))) {
@@ -268,22 +268,22 @@ char *set(char *key, char *value)
 	    finalizePluginLogger();
 	    initPluginLogger(memoryDebug);
 	    maskPluginLogger(PLUGIN_LOG_MALLOC);
-	    buf = str2Buf("\nmemory logging to '", buf, &bufSize);
-	    buf = str2Buf(value, buf, &bufSize);
-	    buf = str2Buf("'\n", buf, &bufSize);
+	    str2Buf("\nmemory logging to '", &buf, &bufSize);
+	    str2Buf(value, &buf, &bufSize);
+	    str2Buf("'\n", &buf, &bufSize);
 	    return buf;
 	} else {
-	    buf = str2Buf("\nopening file '", buf, &bufSize);
-	    buf = str2Buf(value, buf, &bufSize);
-	    buf = str2Buf("' for writing failed\n", buf, &bufSize);
+	    str2Buf("\nopening file '", &buf, &bufSize);
+	    str2Buf(value, &buf, &bufSize);
+	    str2Buf("' for writing failed\n", &buf, &bufSize);
 	    return buf;
 	}
     }
 
-    buf = str2Buf("\nInvalid key '", buf, &bufSize);
-    buf = str2Buf(key, buf, &bufSize);
-    buf = str2Buf("' for cmd set : use 'plugin help psaccount' for help.\n",
-		    buf, &bufSize);
+    str2Buf("\nInvalid key '", &buf, &bufSize);
+    str2Buf(key, &buf, &bufSize);
+    str2Buf("' for cmd set : use 'plugin help psaccount' for help.\n",
+	    &buf, &bufSize);
 
     return buf;
 }
@@ -316,13 +316,13 @@ char *unset(char *key)
 	    memoryDebug = NULL;
 	    initPluginLogger(psaccountlogfile);
 	}
-	return str2Buf("Stopped memory debugging\n", buf, &bufSize);
+	return str2Buf("Stopped memory debugging\n", &buf, &bufSize);
     }
 
-    buf = str2Buf("\nInvalid key '", buf, &bufSize);
-    buf = str2Buf(key, buf, &bufSize);
-    buf = str2Buf("' for cmd unset : use 'plugin help psaccount' for help.\n",
-	    buf, &bufSize);
+    str2Buf("\nInvalid key '", &buf, &bufSize);
+    str2Buf(key, &buf, &bufSize);
+    str2Buf("' for cmd unset : use 'plugin help psaccount' for help.\n",
+	    &buf, &bufSize);
 
     return buf;
 }
@@ -334,15 +334,15 @@ char *help(void)
     int i;
     char type[10];
 
-    buf = str2Buf("\n# configuration options #\n\n", buf, &bufSize);
+    str2Buf("\n# configuration options #\n\n", &buf, &bufSize);
     for (i=0; i<configValueCount; i++) {
 	snprintf(type, sizeof(type), "<%s>", CONFIG_VALUES[i].type);
 	snprintf(line, sizeof(line), "%21s\t%8s    %s\n", CONFIG_VALUES[i].name,
 		type, CONFIG_VALUES[i].desc);
-	buf = str2Buf(line, buf, &bufSize);
+	str2Buf(line, &buf, &bufSize);
     }
 
-    buf = str2Buf("\nuse show [clients|dclients|jobs|config]\n", buf, &bufSize);
+    str2Buf("\nuse show [clients|dclients|jobs|config]\n", &buf, &bufSize);
 
     return buf;
 }
@@ -353,32 +353,31 @@ char *show(char *key)
     size_t bufSize = 0;
 
     if (!key) {
-	buf = str2Buf("use key [clients|dclients|jobs|config]\n",
-			buf, &bufSize);
-        return buf;
+	str2Buf("use key [clients|dclients|jobs|config]\n", &buf, &bufSize);
+	return buf;
     }
 
     /* show current clients */
     if (!(strcmp(key, "clients"))) {
-        return showClient(buf, &bufSize, 0);
+	return showClient(buf, &bufSize, 0);
     }
 
     /* show current clients in detail */
     if (!(strcmp(key, "dclients"))) {
-        return showClient(buf, &bufSize, 1);
+	return showClient(buf, &bufSize, 1);
     }
 
     /* show current jobs */
     if (!(strcmp(key, "jobs"))) {
-        return showJobs(buf, &bufSize);
+	return showJobs(buf, &bufSize);
     }
 
     /* show current config */
     if (!(strcmp(key, "config"))) {
-        return showConfig(buf, &bufSize);
+	return showConfig(buf, &bufSize);
     }
 
-    buf = str2Buf("invalid key, use [clients|dclients|jobs|config]\n",
-		    buf, &bufSize);
+    str2Buf("invalid key, use [clients|dclients|jobs|config]\n",
+	    &buf, &bufSize);
     return buf;
 }

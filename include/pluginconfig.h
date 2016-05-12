@@ -8,8 +8,8 @@
  * file.
  */
 
-#ifndef __PS_PLUGIN_LIB_CONFIG
-#define __PS_PLUGIN_LIB_CONFIG
+#ifndef __PLUGIN_LIB_CONFIG
+#define __PLUGIN_LIB_CONFIG
 
 #include <stdbool.h>
 
@@ -311,4 +311,4 @@ void setConfigDefaults(Config_t *conf, const ConfDef_t confDef[]);
  */
 size_t getMaxKeyLen(const ConfDef_t confDef[]);
 
-#endif  /* __PS_PLUGIN_LIB_CONFIG */
+#endif  /* __PLUGIN_LIB_CONFIG */
