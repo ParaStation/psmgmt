@@ -2249,7 +2249,7 @@ static int tryPMISpawn(SpawnRequest_t *req, int universeSize,
 		int serviceRank, int *totalProcs)
 {
     PStask_t *myTask, *task;
-    int i, envc;
+    int i, rc, envc;
     char *next, buffer[1024];
 
     if (!req) {
@@ -2328,12 +2328,28 @@ static int tryPMISpawn(SpawnRequest_t *req, int universeSize,
     }
 
     /* interchangable function to fill actual spawn command into task */
-    fillSpawnTaskFunction(req, universeSize, task);
+    rc = fillSpawnTaskFunction(req, universeSize, task);
+
+    if (rc == -1) {
+	/* function to fill the spawn task tells us she is not responsible */
+	mlog("%s(r%i): Falling back to default PMI fill spawn task"
+		" function.\n", __func__, rank);
+	rc = defaultFillSpawnTaskFunction(req, universeSize, task);
+    }
+
+    if (rc != 1) {
+	elog("Error with spawning processes.\n");
+	mlog("%s(r%i): Error in PMI fill spawn task function.\n", __func__,
+		rank);
+	PStask_delete(task);
+	return 0;
+    }
 
     /* add additional env vars */
     envc = task->envSize;
 
-    task->environ = urealloc(task->environ, (task->envSize + 7 + 1) * sizeof(char *));
+    task->environ = urealloc(task->environ, (task->envSize + 7 + 1)
+				* sizeof(char *));
     snprintf(buffer, sizeof(buffer), "PMI_KVS_TMP=pshost_%i_%i",
 		PSC_getMyTID(), kvs_next++);  /* setup new KVS name */
     task->environ[envc++] = ustrdup(buffer);
