@@ -126,6 +126,10 @@ static int readFromPMIClient(int fd, void *data)
     if (mmBuffer) {
 	mmBufferSize = mmBufferUsed + PMIU_MAXLINE + 1;
 	mmBuffer = urealloc(mmBuffer, mmBufferSize);
+	if (!mmBuffer) {
+	    elog("%s: failed to allocate message buffer\n", __func__);
+	    goto readFromPMIClient_error;
+	}
 	recvBuf = mmBuffer + mmBufferUsed;
 	msgBuf = mmBuffer;
 	msgBufUsed = mmBufferUsed;
