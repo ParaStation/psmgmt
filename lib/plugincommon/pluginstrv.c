@@ -23,7 +23,7 @@
 
 #define VECTOR_CHUNK_SIZE 5
 
-void __strvInit(strv_t *strv, const char **initstrv, const size_t initcount,
+void __strvInit(strv_t *strv, char **initstrv, size_t initcount,
 	const char *func, const int line) {
 
     size_t count;
@@ -54,7 +54,7 @@ void __strvInit(strv_t *strv, const char **initstrv, const size_t initcount,
 }
 
 int __strvAdd(strv_t *strv, char *str, const char *func,
-	const int line) {
+	int line) {
 
     assert(strv && strv->strings);
     assert(strv->size > strv->count);
@@ -69,7 +69,7 @@ int __strvAdd(strv_t *strv, char *str, const char *func,
     return 0;
 }
 
-void __strvDestroy(strv_t *strv, const char *func, const int line) {
+void __strvDestroy(strv_t *strv, const char *func, int line) {
 
     if (!strv || !strv->strings) return;
 

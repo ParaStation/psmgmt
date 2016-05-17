@@ -53,7 +53,7 @@ typedef struct {
  */
 #define strvInit(strv, initstrv, initcount) \
     __strvInit(strv, initstrv, initcount, __func__, __LINE__)
-void __strvInit(strv_t *strv, const char **initstrv, const size_t initcount,
+void __strvInit(strv_t *strv, char **initstrv, size_t initcount,
         const char *func, const int line);
 
 /**
@@ -71,7 +71,7 @@ void __strvInit(strv_t *strv, const char **initstrv, const size_t initcount,
  * @return 0 on success, -1 else
  */
 #define strvAdd(strv, str) __strvAdd(strv, str, __func__, __LINE__)
-int __strvAdd(strv_t *strv, char *str, const char *func, const int line);
+int __strvAdd(strv_t *strv, char *str, const char *func, int line);
 
 /**
  * Destroys the string vector, you cannot use strv in any way afterwards.
@@ -83,7 +83,7 @@ int __strvAdd(strv_t *strv, char *str, const char *func, const int line);
  * @param strv  The string vector to destroy
  */
 #define strvDestroy(strv) __strvDestroy(strv, __func__, __LINE__)
-void __strvDestroy(strv_t *strv, const char *func, const int line);
+void __strvDestroy(strv_t *strv, const char *func, int line);
 
 #endif
 
