@@ -39,6 +39,7 @@
 
 #include "pluginfrag.h"
 #include "pluginlog.h"
+#include "pluginfrag.h"
 
 #include "pelogue.h"
 
@@ -179,6 +180,7 @@ int initialize(void)
     initConfig();
     initJobList();
     initChildList();
+    initFraqComm();
 
     /* register pelogue msg */
     PSID_registerMsg(PSP_CC_PLUG_PELOGUE, (handlerFunc_t) handlePelogueMsg);
@@ -249,6 +251,7 @@ void cleanup(void)
     clearJobList();
     clearChildList();
     clearConfig();
+    finalizeFraqComm();
 
     mlog("...Bye.\n");
 }

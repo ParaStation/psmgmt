@@ -26,6 +26,7 @@
 #include "pluginhelper.h"
 #include "plugincomm.h"
 #include "pluginfrag.h"
+
 #include "pspluginprotocol.h"
 #include "pscommon.h"
 #include "psidscripts.h"
@@ -70,6 +71,7 @@ int initialize(void)
     }
 
     initScriptList();
+    initFraqComm();
 
     /* register psexec msg */
     PSID_registerMsg(PSP_CC_PLUG_PSEXEC, (handlerFunc_t) handlePsExecMsg);
@@ -94,6 +96,8 @@ void cleanup(void)
 
     /* unregister msg drop handler */
     PSID_clearDropper(PSP_CC_PLUG_PSSLURM);
+
+    finalizeFraqComm();
 
     mlog("...Bye.\n");
 }

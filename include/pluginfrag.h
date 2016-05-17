@@ -34,6 +34,10 @@ typedef int Send_Msg_Func_t(void *);
 
 void setFragMsgFunc(Send_Msg_Func_t *func);
 
+int initFraqComm(void);
+
+void finalizeFraqComm(void);
+
 /**
  * @brief Receive a fragmented message.
  *
@@ -46,9 +50,9 @@ void setFragMsgFunc(Send_Msg_Func_t *func);
  *
  * @return Returns 1 on success and 0 on error.
  */
-#define recvFragMsg(msg, func) __recvFragMsg(msg, func, __func__)
+#define recvFragMsg(msg, func) __recvFragMsg(msg, func, __func__, __LINE__)
 int __recvFragMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_func_t *func,
-		    const char *caller);
+		    const char *caller, const int line);
 
 /**
  * @brief Send a fragmented message.
@@ -66,8 +70,8 @@ int __recvFragMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_func_t *func,
  * @return No return value.
  */
 #define sendFragMsg(data, dest, headType, msgType) \
-	    __sendFragMsg(data, dest, headType, msgType, __func__)
+	    __sendFragMsg(data, dest, headType, msgType, __func__, __LINE__)
 int __sendFragMsg(PS_DataBuffer_t *data, PStask_ID_t dest, int16_t headType,
-		    int32_t msgType, const char *caller);
+		    int32_t msgType, const char *caller, const int line);
 
 #endif

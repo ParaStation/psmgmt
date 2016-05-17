@@ -174,7 +174,6 @@ Gres_Conf_t *addGresConf(char *name, char *count, char *file, char *cpus)
 
     /* parse file */
     if (file) {
-	gres->file = ustrdup(file);
 	if (!(parseGresFile(gres, file))) goto GRES_ERROR;
     } else {
 	gres->file = NULL;
@@ -201,8 +200,6 @@ void clearGresConf(void)
 {
     list_t *pos, *tmp;
     Gres_Conf_t *gres;
-
-    if (list_empty(&GresConfList.list)) return;
 
     list_for_each_safe(pos, tmp, &GresConfList.list) {
 	if (!(gres = list_entry(pos, Gres_Conf_t, list))) return;

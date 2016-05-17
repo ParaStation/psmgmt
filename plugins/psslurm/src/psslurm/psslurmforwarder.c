@@ -333,7 +333,6 @@ int handleForwarderInit(void * data)
     }
 
     /* override spawn task filling function in pspmi */
-    mlog("Setting PMI spawn function to fillSpawnTaskWithSrun()\n");
     psPmiSetFillSpawnTaskFunction(fillSpawnTaskWithSrun);
 
     return 0;

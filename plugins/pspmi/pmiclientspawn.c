@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2015 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2015-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -11,7 +11,7 @@
  * $Id$
  *
  * \author
- * Stephan Krempel <krempel@par-tec.com
+ * Stephan Krempel <krempel@par-tec.com>
  *
  */
 
@@ -82,16 +82,16 @@ SpawnRequest_t *copySpawnRequest(SpawnRequest_t *req) {
 	    new->preputc = old->preputc;
 	    new->preputv = umalloc(new->preputc * sizeof(KVP_t));
 	    for (j = 0; j < old->preputc; j++) {
-		new->preputv[j].key = strdup(old->preputv[j].key);
-		new->preputv[j].value = strdup(old->preputv[j].value);
+		new->preputv[j].key = ustrdup(old->preputv[j].key);
+		new->preputv[j].value = ustrdup(old->preputv[j].value);
 	    }
 	}
 	if (old->infov != NULL) {
 	    new->infoc = old->infoc;
 	    new->infov = umalloc(new->infoc * sizeof(KVP_t));
 	    for (j = 0; j < old->infoc; j++) {
-		new->infov[j].key = strdup(old->infov[j].key);
-		new->infov[j].value = strdup(old->infov[j].value);
+		new->infov[j].key = ustrdup(old->infov[j].key);
+		new->infov[j].value = ustrdup(old->infov[j].value);
 	    }
 	}
     }
@@ -100,8 +100,8 @@ SpawnRequest_t *copySpawnRequest(SpawnRequest_t *req) {
 	ret->pmienvc = req->pmienvc;
 	ret->pmienvv = umalloc(ret->pmienvc * sizeof(KVP_t));
 	for (i = 0; i < req->pmienvc; i++) {
-	    ret->pmienvv[i].key = strdup(req->pmienvv[i].key);
-	    ret->pmienvv[i].value = strdup(req->pmienvv[i].value);
+	    ret->pmienvv[i].key = ustrdup(req->pmienvv[i].key);
+	    ret->pmienvv[i].value = ustrdup(req->pmienvv[i].value);
 	}
     }
 

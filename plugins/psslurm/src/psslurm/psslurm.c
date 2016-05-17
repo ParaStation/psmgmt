@@ -41,6 +41,7 @@
 #include "pluginmalloc.h"
 #include "pluginlog.h"
 #include "pluginhelper.h"
+#include "pluginfrag.h"
 #include "pspluginprotocol.h"
 #include "psdaemonprotocol.h"
 #include "psidplugin.h"
@@ -497,6 +498,7 @@ int initialize(void)
     if (!(initPluginHandles())) goto INIT_ERROR;
     if (!(initLimits())) goto INIT_ERROR;
     if (!(initEnvFilter())) goto INIT_ERROR;
+    if (!(initFraqComm())) goto INIT_ERROR;
 
     /* set collect mode in psaccount */
     psAccountSetGlobalCollect(1);
@@ -618,6 +620,7 @@ void cleanup(void)
     freeConfig(&SlurmConfig);
     freeConfig(&SlurmGresConfig);
     freeEnvFilter();
+    finalizeFraqComm();
 
     mlog("...Bye.\n");
 }

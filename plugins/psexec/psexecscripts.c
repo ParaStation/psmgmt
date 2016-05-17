@@ -109,7 +109,7 @@ Script_t *addScript(uint32_t id, pid_t pid, PSnodes_ID_t origin, char *execName)
     script->pid = pid;
     script->origin = origin;
     script->cb = NULL;
-    script->execName = strdup(execName);
+    script->execName = ustrdup(execName);
     envInit(&script->env);
 
     if (!(clock_gettime(CLOCK_REALTIME, &tp))) {

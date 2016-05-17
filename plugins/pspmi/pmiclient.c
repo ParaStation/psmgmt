@@ -184,6 +184,7 @@ int (*defaultFillSpawnTaskFunction)(SpawnRequest_t *req, int usize,
 
 void psPmiSetFillSpawnTaskFunction(
 	int (*spawnFunc)(SpawnRequest_t *req, int usize, PStask_t *task)) {
+    mdbg(PSPMI_LOG_VERBOSE, "Setting specific PMI spawn function\n");
     fillSpawnTaskFunction = spawnFunc;
 }
 

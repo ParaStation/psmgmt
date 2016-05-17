@@ -256,7 +256,7 @@ void closeConnection(int socket)
     if ((con = findConnection(socket))) {
 	list_del(&con->list);
 	freeSlurmMsgHead(&con->fw.head);
-	ufree(con->fw.nodes);
+	if (con->fw.nodesCount) ufree(con->fw.nodes);
 	ufree(con->fw.body.buf);
 	ufree(con->data.buf);
 	ufree(con);

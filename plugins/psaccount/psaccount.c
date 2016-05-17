@@ -33,8 +33,9 @@
 #include "plugin.h"
 #include "psidnodes.h"
 #include "psidutil.h"
-#include "pluginmalloc.h"
 #include "psidhook.h"
+#include "pluginmalloc.h"
+#include "pluginfrag.h"
 
 #include "psaccount.h"
 
@@ -142,6 +143,7 @@ int initialize(void)
     initJobList();
     initHist();
     initProcList();
+    initFraqComm();
 
     /* init the config facility */
     snprintf(configfn, sizeof(configfn), "%s/%s", PLUGINDIR, PSACCOUNT_CONFIG);
@@ -240,4 +242,5 @@ void cleanup(void)
     clearHist();
     clearConfig();
     clearCpuFreq();
+    finalizeFraqComm();
 }

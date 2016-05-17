@@ -1,5 +1,7 @@
 #!/bin/bash
 
+PATH=$PATH:/opt/parastation/bin:/opt/parastation/sbin
+
 TIMEOUT=5
 
 PSTOUT="pstimeout -k $TIMEOUT $TIMEOUT"
