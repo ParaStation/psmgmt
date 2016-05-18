@@ -7,13 +7,6 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-/**
- * $Id$
- *
- * \author
- * Michael Rauh <rauh@par-tec.com>
- *
- */
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -48,6 +41,7 @@
 #include "pluginhelper.h"
 #include "pluginmalloc.h"
 #include "pluginlog.h"
+#include "pluginpty.h"
 
 #include "psidutil.h"
 #include "psidhook.h"

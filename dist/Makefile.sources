@@ -139,6 +139,8 @@ include/pluginfrag.h \
 include/pluginhelper.h \
 include/pluginlog.h \
 include/pluginmalloc.h \
+include/pluginstrv.h \
+include/pluginpty.h \
 include/psbyteorder.h \
 include/pscommon.h \
 include/pscpu.h \
@@ -176,6 +178,8 @@ lib/plugincommon/pluginfrag.c \
 lib/plugincommon/pluginhelper.c \
 lib/plugincommon/pluginlog.c \
 lib/plugincommon/pluginmalloc.c \
+lib/plugincommon/pluginstrv.c \
+lib/plugincommon/pluginpty.c \
 lib/pscommon/Makefile.am \
 lib/pscommon/Makefile.in \
 lib/pscommon/logging.c \

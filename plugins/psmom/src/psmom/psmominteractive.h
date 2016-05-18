@@ -1,18 +1,11 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2013 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
- */
-/**
- * $Id$
- *
- * \author
- * Michael Rauh <rauh@par-tec.com>
- *
  */
 
 #ifndef __ps_mom_interactive
@@ -64,11 +57,9 @@ int writeQsubMessage(char *msg, size_t len);
 
 void handle_Local_Qsub_Out(ComHandle_t *com);
 
-void pty_setowner(uid_t uid, gid_t gid, const char *tty);
 int setWindowSize(char *windowSize, int pty);
 int setTermOptions(char *termOpt, int pty);
 int setSocketNonBlocking(int socket);
-void pty_make_controlling_tty(int *ttyfd, const char *tty);
 int initX11Forwarding1(Job_t *job, int *xport);
 int initX11Forwarding2(Job_t *job, char *x11Cookie, int port,
     char *display, size_t displaySize);
