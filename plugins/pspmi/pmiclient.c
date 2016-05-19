@@ -2307,6 +2307,7 @@ static int tryPMISpawn(SpawnRequest_t *req, int universeSize,
     task->envSize = env.count;
 
     /* calc totalProcs */
+    *totalProcs = 0;
     for (i = 0; i < req->totalSpawns; i++) {
 	*totalProcs += req->spawns[i].np;
     }
