@@ -7,13 +7,6 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-/**
- * $Id$
- *
- * \author
- * Michael Rauh <rauh@par-tec.com>
- *
- */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -35,6 +28,7 @@
 #include "psmomconv.h"
 #include "selector.h"
 #include "pluginmalloc.h"
+#include "pluginpartition.h"
 #include "psmomforwarder.h"
 #include "psmomchild.h"
 #include "psmomscript.h"
@@ -49,8 +43,8 @@
 
 #include "psmomlocalcomm.h"
 
-#define UNIX_BUFFER_ALLOC 4096   /* the start size for the tcp message buffer */
-#define UNIX_BUFFER_GROW 1024	/* add min grow size if we realloc the message buffer */
+#define UNIX_BUFFER_ALLOC 4096 /* the start size for the tcp message buffer */
+#define UNIX_BUFFER_GROW 1024  /* min grow size on realloc() message buffer */
 
 /** Master socket (type UNIX) for clients to connect. */
 int masterSocket = -1;
@@ -509,7 +503,7 @@ ssize_t localRead(int sock, char *buffer, ssize_t len, const char *caller)
 
     /* no data received from client */
     if (!read) {
-        mlog("%s(%s): no data on socket '%i'\n", __func__, caller, sock);
+	mlog("%s(%s): no data on socket '%i'\n", __func__, caller, sock);
 	closeLocalConnetion(sock);
 	errno = read_errno;
 	return -1;
@@ -520,13 +514,13 @@ ssize_t localRead(int sock, char *buffer, ssize_t len, const char *caller)
 	if (errno == EINTR) {
 	    return localRead(sock, buffer, len, caller);
 	}
-        mlog("%s(%s): error on unix socket '%i' occured : %s\n", __func__,
+	mlog("%s(%s): error on unix socket '%i' occured : %s\n", __func__,
 		caller, sock, strerror(errno));
 	mwarn(errno, "%s(%s): local read on socket:%i failed ", __func__,
 		caller, sock);
 	closeLocalConnetion(sock);
 	errno = read_errno;
-        return -1;
+	return -1;
     }
 
     return read;

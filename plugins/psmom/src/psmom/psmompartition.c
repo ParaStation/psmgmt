@@ -7,19 +7,10 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-/**
- * $Id$
- *
- * \author
- * Michael Rauh <rauh@par-tec.com>
- *
- */
 
-#define _GNU_SOURCE
 #include <stdio.h>
-#include <stdlib.h>
+#include <string.h>
 #include <errno.h>
-#include <stdbool.h>
 
 #include "psmomjob.h"
 #include "psmomlog.h"
@@ -36,23 +27,12 @@
 
 #include "psmompscomm.h"
 #include "psmomconfig.h"
-#include "pluginmalloc.h"
+#include "pluginpartition.h"
 
 #include "pstask.h"
 #include "list.h"
 
 #include "psmompartition.h"
-
-int isPSAdminUser(uid_t uid, gid_t gid)
-{
-    if (!PSIDnodes_testGUID(PSC_getMyID(), PSIDNODES_ADMUSER,
-		(PSIDnodes_guid_t){.u=uid})
-	    && !PSIDnodes_testGUID(PSC_getMyID(), PSIDNODES_ADMGROUP,
-		(PSIDnodes_guid_t){.g=gid})) {
-	return 0;
-    }
-    return 1;
-}
 
 /**
  * @brief Test if a pid belongs to a local running job.

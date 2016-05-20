@@ -1,18 +1,11 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2013 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
- */
-/**
- * $Id$
- *
- * \author
- * Michael Rauh <rauh@par-tec.com>
- *
  */
 
 #ifndef __PS_MOM_PARTITION
@@ -35,17 +28,6 @@ int handleCreatePart(void *msg);
  * @return No return value.
  */
 int handleCreatePartNL(void *msg);
-
-/**
- * @brief Test if a user is member of the PS admin users/group.
- *
- * @param uid The uid of the user to test.
- *
- * @param gid The gid of the user to test.
- *
- * @return Returns 1 if the user is member of the PS admin group or 0 otherwise.
- */
-int isPSAdminUser(uid_t uid, gid_t gid);
 
 /**
  * @brief Handle a PS spawn request message.
