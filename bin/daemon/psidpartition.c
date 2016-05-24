@@ -2039,7 +2039,8 @@ static int sendSlotlist(PSpart_slot_t *slots, int num, DDBufferMsg_t *msg)
  *
  * @param msg Pointer to the message to use.
  *
- * @return Returns true on success and false in case of an error.
+ * @return Returns true on success and false in case of an error. In
+ * the latter case errno is set appropriately.
  */
 static bool sendResPorts(uint16_t *resPorts, DDBufferMsg_t *msg)
 {
@@ -2106,7 +2107,7 @@ static bool sendPartition(PSpart_request_t *req)
 	msg.header.type = PSP_DD_PROVIDEPARTRP;
 	msg.header.len = sizeof(msg.header);
 
-	if ((sendResPorts(req->resPorts, &msg)) <0) {
+	if (!sendResPorts(req->resPorts, &msg)) {
 	    PSID_warn(-1, errno, "%s: sendResPorts()", __func__);
 	    return false;
 	}
@@ -5032,7 +5033,7 @@ static void sendSinglePart(PStask_ID_t dest, int16_t type, PStask_t *task)
 	msg.header.type = PSP_DD_PROVIDETASKRP;
 	msg.header.len = sizeof(msg.header);
 
-	if ((sendResPorts(task->resPorts, &msg)) <0) {
+	if (!sendResPorts(task->resPorts, &msg)) {
 	    PSID_warn(-1, errno, "%s: sendResPorts()", __func__);
 	}
     }
