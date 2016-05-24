@@ -508,7 +508,7 @@ static void cleanupReqQueues(void)
 	PSpart_request_t *req = list_entry(r, PSpart_request_t, next);
 	if (req->deleted) {
 	    if (!deqPart(&pendReq, req)) {
-		PSID_log(-1, "%s: Unable to dequeue request %s\n",
+		PSID_log(-1, "%s: Unable to dequeue pending request %s\n",
 			 __func__, PSC_printTID(req->tid));
 	    }
 	    PSpart_delReq(req);
@@ -519,7 +519,7 @@ static void cleanupReqQueues(void)
 	PSpart_request_t *req = list_entry(r, PSpart_request_t, next);
 	if (req->deleted) {
 	    if (!deqPart(&regisReq, req)) {
-		PSID_log(-1, "%s: Unable to dequeue request %s\n",
+		PSID_log(-1, "%s: Unable to dequeue registration request %s\n",
 			 __func__, PSC_printTID(req->tid));
 	    }
 	    PSpart_delReq(req);
@@ -2168,7 +2168,7 @@ static bool sendPartition(PSpart_request_t *req)
  */
 static bool getPartition(PSpart_request_t *request)
 {
-    int ret = false;
+    bool ret = false;
     sortlist_t *candidates = NULL;
     int dmnPSPver = PSIDnodes_getDmnProtoV(PSC_getID(request->tid));
 
