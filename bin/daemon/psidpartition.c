@@ -46,6 +46,9 @@ static LIST_HEAD(runReq);
 /** The list of suspended partition request. Only on master nodes. */
 static LIST_HEAD(suspReq);
 
+/** The list of incomplete registration and partition reports. */
+static LIST_HEAD(regisReq);
+
 /**
  * @brief Enqueue partition.
  *
@@ -258,6 +261,7 @@ void exitPartHandler(void)
     clrPartQueue(&pendReq);
     clrPartQueue(&runReq);
     clrPartQueue(&suspReq);
+    clrPartQueue(&regisReq);
     if (nodeStat) free(nodeStat);
     nodeStat = NULL;
     if (tmpStat) free(tmpStat);
@@ -447,13 +451,16 @@ void cleanupRequests(PSnodes_ID_t node)
 
     list_for_each(r, &runReq) {
 	PSpart_request_t *req = list_entry(r, PSpart_request_t, next);
-
 	if (PSC_getID(req->tid) == node) req->deleted = true;
     }
 
     list_for_each(r, &pendReq) {
 	PSpart_request_t *req = list_entry(r, PSpart_request_t, next);
+	if (PSC_getID(req->tid) == node) req->deleted = true;
+    }
 
+    list_for_each(r, &regisReq) {
+	PSpart_request_t *req = list_entry(r, PSpart_request_t, next);
 	if (PSC_getID(req->tid) == node) req->deleted = true;
     }
 
@@ -461,6 +468,7 @@ void cleanupRequests(PSnodes_ID_t node)
 	pendingTaskReq -= nodeStat[node].taskReqPending;
 	nodeStat[node].taskReqPending = 0;
     }
+
     doCleanup = 1;
 }
 
@@ -469,12 +477,13 @@ void cleanupRequests(PSnodes_ID_t node)
  *
  * Cleanup the two queues used for storing requests.
  *
- * The queues to handle are @ref pendReq for all pending requests and
- * @ref runReq for all running requests. The whole queues will be
- * searched for requests marked for deletion. Whenever such an request
- * is found, it will be dequeued and deleted. If the requests was
- * found within @ref runReq, furthermore the resources allocated by
- * this requests will be freed via @ref unregisterReq().
+ * The queues to handle are @ref pendReq for all pending requests,
+ * @ref runReq for all running requests, and @ref regisReq for
+ * incomplete registrations and partition reports. The whole queues
+ * will be searched for requests marked for deletion. Whenever such an
+ * request is found, it will be dequeued and deleted. If the requests
+ * was found within @ref runReq, furthermore the resources allocated
+ * by this requests will be freed via @ref unregisterReq().
  *
  * Requests may be marked for deletion from within @ref
  * cleanupRequests(). This marking / action mechanism is used, since
@@ -491,13 +500,11 @@ static void cleanupReqQueues(void)
 
     list_for_each_safe(r, tmp, &runReq) {
 	PSpart_request_t *req = list_entry(r, PSpart_request_t, next);
-
 	if (req->deleted) jobFinished(req);
     }
 
     list_for_each_safe(r, tmp, &pendReq) {
 	PSpart_request_t *req = list_entry(r, PSpart_request_t, next);
-
 	if (req->deleted) {
 	    if (!deqPart(&pendReq, req)) {
 		PSID_log(-1, "%s: Unable to dequeue request %s\n",
@@ -506,6 +513,18 @@ static void cleanupReqQueues(void)
 	    PSpart_delReq(req);
 	}
     }
+
+    list_for_each_safe(r, tmp, &regisReq) {
+	PSpart_request_t *req = list_entry(r, PSpart_request_t, next);
+	if (req->deleted) {
+	    if (!deqPart(&regisReq, req)) {
+		PSID_log(-1, "%s: Unable to dequeue request %s\n",
+			 __func__, PSC_printTID(req->tid));
+	    }
+	    PSpart_delReq(req);
+	}
+    }
+
     doCleanup = 0;
 }
 
@@ -5192,7 +5211,7 @@ static void msg_PROVIDETASK(DDBufferMsg_t *inmsg)
 	return;
     }
     req->sizeGot = 0;
-    enqPart(&pendReq, req);
+    enqPart(&regisReq, req);
 }
 
 /**
@@ -5211,7 +5230,7 @@ static void msg_PROVIDETASK(DDBufferMsg_t *inmsg)
  */
 static void msg_PROVIDETASKSL(DDBufferMsg_t *inmsg)
 {
-    PSpart_request_t *req = findPart(&pendReq, inmsg->header.sender);
+    PSpart_request_t *req = findPart(&regisReq, inmsg->header.sender);
 
     if (!knowMaster() || PSC_getMyID() != getMasterID()) return;
 
@@ -5224,7 +5243,7 @@ static void msg_PROVIDETASKSL(DDBufferMsg_t *inmsg)
     appendToSlotlist(inmsg, req);
 
     if (req->sizeGot == req->size) {
-	if (!deqPart(&pendReq, req)) {
+	if (!deqPart(&regisReq, req)) {
 	    PSID_log(-1, "%s: Unable to dequeue request %s\n",
 		     __func__, PSC_printTID(req->tid));
 	    PSpart_delReq(req);
