@@ -1874,7 +1874,7 @@ static int createNewPartition(PSpart_request_t *request, sortlist_t *candidates)
 static int sendNodelist(PSpart_request_t *request, DDBufferMsg_t *msg)
 {
     PSnodes_ID_t *nodes = request->nodes;
-    int num = request->numGot, offset = 0;
+    int num = request->numGot, off = 0;
 
     PSID_log(PSID_LOG_PART, "%s(%s)\n", __func__,
 	     PSC_printTID(msg->header.dest));
@@ -1884,18 +1884,14 @@ static int sendNodelist(PSpart_request_t *request, DDBufferMsg_t *msg)
 	return -1;
     }
 
-    while (offset < num && PSIDnodes_isUp(PSC_getID(msg->header.dest))) {
-	int chunk = (num-offset > NODES_CHUNK) ? NODES_CHUNK : num-offset;
-	char *ptr = msg->buf;
+    while (off < num && PSIDnodes_isUp(PSC_getID(msg->header.dest))) {
+	uint16_t chunk = (num-off > NODES_CHUNK) ? NODES_CHUNK : num-off;
 	msg->header.len = sizeof(msg->header);
 
-	*(uint16_t *)ptr = chunk;
-	ptr += sizeof(uint16_t);
-	msg->header.len += sizeof(uint16_t);
+	PSP_putMsgBuf(msg, __func__, "chunk", &chunk, sizeof(chunk));
+	PSP_putMsgBuf(msg, __func__, "nodes", nodes+off, chunk*sizeof(*nodes));
+	off += chunk;
 
-	memcpy(ptr, nodes+offset, chunk * sizeof(*nodes));
-	msg->header.len += chunk * sizeof(*nodes);
-	offset += chunk;
 	if (sendMsg(msg) == -1 && errno != EWOULDBLOCK) {
 	    PSID_warn(-1, errno, "%s: sendMsg()", __func__);
 	    return -1;
@@ -1920,7 +1916,7 @@ static int sendNodelist(PSpart_request_t *request, DDBufferMsg_t *msg)
  * contains the sender and the message type used to send one or more
  * messages containing the list of nodes. Additionally @a msg's buffer
  * might contain some preset content. Thus, its internally stored
- * length (in the .len field) has to correctly represent the messages
+ * length (in the .len field) has to correctly represent the message's
  * preset content.
  *
  * In order to send the list of slots, it is split into chunks. Each
@@ -1975,7 +1971,7 @@ static int sendSlotlist(PSpart_slot_t *slots, int num, DDBufferMsg_t *msg)
 
     while (offset < num && PSIDnodes_isUp(PSC_getID(msg->header.dest))) {
 	PSpart_slot_t *mySlots = slots+offset;
-	int chunk = (num-offset > slotsChunk) ? slotsChunk : num-offset;
+	uint16_t chunk = (num-offset > slotsChunk) ? slotsChunk : num-offset;
 	char *ptr = msg->buf + bufOffset;
 	msg->header.len = sizeof(msg->header) + bufOffset;
 
@@ -2047,24 +2043,17 @@ static int sendSlotlist(PSpart_slot_t *slots, int num, DDBufferMsg_t *msg)
  */
 static bool sendResPorts(uint16_t *resPorts, DDBufferMsg_t *msg)
 {
-    char *ptr = msg->buf;
-    int i = 0;
     uint16_t count = 0;
+    int i = 0;
 
     /* determine number of reserved ports */
     while (resPorts[count]) count++;
 
-    *(uint16_t *)ptr = count;
-    ptr += sizeof(uint16_t);
-    msg->header.len += sizeof(uint16_t);
+    PSP_putMsgBuf(msg, __func__, "count", &count, sizeof(count));
 
     /* add the ports */
     while (resPorts[i]) {
-
-	*(uint16_t *)ptr = resPorts[i];
-	ptr += sizeof(uint16_t);
-	msg->header.len += sizeof(uint16_t);
-
+	PSP_putMsgBuf(msg, __func__, "port", &resPorts[i], sizeof(*resPorts));
 	i++;
     }
 
@@ -2099,17 +2088,12 @@ static bool sendPartition(PSpart_request_t *req)
 	    .sender = PSC_getMyTID(),
 	    .len = sizeof(msg.header) },
 	.buf = { '\0' }};
-    char *ptr = msg.buf;
 
     PSID_log(PSID_LOG_PART, "%s(%s)\n", __func__, PSC_printTID(req->tid));
 
-    *(uint32_t *)ptr = req->size;
-    ptr += sizeof(uint32_t);
-    msg.header.len += sizeof(uint32_t);
-
-    *(PSpart_option_t *)ptr = req->options;
-    //ptr += sizeof(req->options);
-    msg.header.len += sizeof(req->options);
+    PSP_putMsgBuf(&msg, __func__, "size", &req->size, sizeof(req->size));
+    PSP_putMsgBuf(&msg, __func__, "options",
+		  &req->options, sizeof(req->options));
 
     if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
 	PSID_warn(-1, errno, "%s: sendMsg()", __func__);
@@ -3070,7 +3054,7 @@ static void msg_PROVIDETASKRP(DDBufferMsg_t *inmsg)
 {
     PSpart_request_t *req;
     uint16_t count, i;
-    char *ptr = inmsg->buf;
+    size_t used = 0;
 
     /* Handle running and suspended request only. Pending requests will get a
      * new reservation in @ref getPartition(). */
@@ -3091,8 +3075,7 @@ static void msg_PROVIDETASKRP(DDBufferMsg_t *inmsg)
     }
 
     /* get number of ports */
-    count = *(uint16_t *) ptr;
-    ptr += sizeof(uint16_t);
+    PSP_getMsgBuf(inmsg, &used, __func__, "count", &count, sizeof(count));
 
     if (!(req->resPorts = malloc((count + 1) * sizeof(uint16_t)))) {
 	PSID_log(-1, "%s: out of memory\n", __func__);
@@ -3101,10 +3084,9 @@ static void msg_PROVIDETASKRP(DDBufferMsg_t *inmsg)
 
     /* get the actual ports */
     for (i=0; i<count; i++) {
-	req->resPorts[i] = *(uint16_t *) ptr;
-	ptr += sizeof(uint16_t);
+	PSP_getMsgBuf(inmsg, &used, __func__, "port",
+		      &req->resPorts[i], sizeof(*req->resPorts));
     }
-
     req->resPorts[count] = 0;
 
     /* restore the port reservation if I am the new master */
@@ -3135,7 +3117,7 @@ static void msg_PROVIDEPARTRP(DDBufferMsg_t *inmsg)
     PStask_t *task = PStasklist_find(&managedTasks, inmsg->header.dest);
     PStask_ID_t tid = inmsg->header.dest;
     uint16_t count, i;
-    char *ptr = inmsg->buf;
+    size_t used = 0;
 
     PSID_log(PSID_LOG_PART, "%s(%s)\n", __func__,
 	     PSC_printTID(inmsg->header.dest));
@@ -3149,8 +3131,7 @@ static void msg_PROVIDEPARTRP(DDBufferMsg_t *inmsg)
     if (task->resPorts) return;
 
     /* get number of ports */
-    count = *(uint16_t *) ptr;
-    ptr += sizeof(uint16_t);
+    PSP_getMsgBuf(inmsg, &used, __func__, "count", &count, sizeof(count));
 
     if (!(task->resPorts = malloc((count +1 ) * sizeof(uint16_t)))) {
 	PSID_log(-1, "%s: out of memory\n", __func__);
@@ -3159,10 +3140,9 @@ static void msg_PROVIDEPARTRP(DDBufferMsg_t *inmsg)
 
     /* get the reserved ports */
     for (i=0; i<count; i++) {
-	task->resPorts[i] = *(uint16_t *) ptr;
-	ptr += sizeof(uint16_t);
+	PSP_getMsgBuf(inmsg, &used, __func__, "port",
+		      &task->resPorts[i], sizeof(*task->resPorts));
     }
-
     task->resPorts[count] = 0;
 }
 
@@ -5015,34 +4995,25 @@ static void sendSinglePart(PStask_ID_t dest, int16_t type, PStask_t *task)
 	    .dest = dest,
 	    .len = sizeof(msg.header) },
 	.buf = { '\0' }};
-    char *ptr = msg.buf;
 
-    *(PSpart_option_t *)ptr = task->options;
-    ptr += sizeof(task->options);
-    msg.header.len += sizeof(task->options);
-
-    *(uint32_t *)ptr = task->partitionSize;
-    ptr += sizeof(task->partitionSize);
-    msg.header.len += sizeof(task->partitionSize);
+    PSP_putMsgBuf(&msg, __func__, "options",
+		  &task->options, sizeof(task->options));
+    PSP_putMsgBuf(&msg, __func__, "partitionSize",
+		  &task->partitionSize, sizeof(task->partitionSize));
 
     if (PSIDnodes_getDmnProtoV(PSC_getID(dest)) > 402) {
-	*(uint32_t *)ptr = task->uid;
-	ptr += sizeof(uint32_t);
-	msg.header.len += sizeof(uint32_t);
-
-	*(uint32_t *)ptr = task->gid;
-	ptr += sizeof(uint32_t);
-	msg.header.len += sizeof(uint32_t);
+	int32_t id = task->uid;
+	PSP_putMsgBuf(&msg, __func__, "uid", &id, sizeof(id));
+	id = task->gid;
+	PSP_putMsgBuf(&msg, __func__, "gid", &id, sizeof(id));
     }
 
-    *(uint8_t *)ptr = task->suspended ? 1 : 0;
-    ptr += sizeof(uint8_t);
-    msg.header.len += sizeof(uint8_t);
+    uint8_t flag = task->suspended ? 1 : 0;
+    PSP_putMsgBuf(&msg, __func__, "suspended", &flag, sizeof(flag));
 
     if (PSIDnodes_getDmnProtoV(PSC_getID(dest)) > 406) {
-	*(int64_t *)ptr = task->started.tv_sec;
-	//ptr += sizeof(int64_t);
-	msg.header.len += sizeof(uint64_t);
+	int64_t start = task->started.tv_sec;
+	PSP_putMsgBuf(&msg, __func__, "start", &start, sizeof(start));
     }
 
     sendMsg(&msg);
@@ -5155,7 +5126,7 @@ static void msg_PROVIDETASK(DDBufferMsg_t *inmsg)
 {
     PSpart_request_t *req;
     int16_t type = inmsg->header.type;
-    char *ptr = inmsg->buf;
+    size_t used = 0;
 
     if (!knowMaster() || PSC_getMyID() != getMasterID()) return;
 
@@ -5176,11 +5147,11 @@ static void msg_PROVIDETASK(DDBufferMsg_t *inmsg)
 
     req->tid = inmsg->header.sender;
 
-    req->options = *(PSpart_option_t *)ptr;
-    ptr += sizeof(PSpart_option_t);
+    PSP_getMsgBuf(inmsg, &used, __func__, "options",
+		  &req->options, sizeof(req->options));
 
-    req->size = *(uint32_t *)ptr;
-    ptr += sizeof(uint32_t);
+    PSP_getMsgBuf(inmsg, &used, __func__, "size",
+		  &req->size, sizeof(req->size));
 
     if (!req->size) {
 	PSID_log(-1, "%s: Task %s without partition\n", __func__,
@@ -5190,19 +5161,21 @@ static void msg_PROVIDETASK(DDBufferMsg_t *inmsg)
     }
 
     if (PSIDnodes_getDmnProtoV(PSC_getID(req->tid)) > 402) {
-	req->uid = *(uint32_t *)ptr;
-	ptr += sizeof(uint32_t);
-
-	req->gid = *(uint32_t *)ptr;
-	ptr += sizeof(uint32_t);
+	int32_t id;
+	PSP_getMsgBuf(inmsg, &used, __func__, "uid", &id, sizeof(id));
+	req->uid = id;
+	PSP_getMsgBuf(inmsg, &used, __func__, "gid", &id, sizeof(id));
+	req->gid = id;
     }
 
-    req->suspended = *(uint8_t *)ptr;
-    ptr += sizeof(uint8_t);
+    uint8_t flag;
+    PSP_getMsgBuf(inmsg, &used, __func__, "suspended", &flag, sizeof(flag));
+    req->suspended = flag;
 
     if (PSIDnodes_getDmnProtoV(PSC_getID(req->tid)) > 406) {
-	req->start = *(int64_t *)ptr;
-	//ptr += sizeof(int64_t);
+	int64_t start;
+	PSP_getMsgBuf(inmsg, &used, __func__, "start", &start, sizeof(start));
+	req->start = start;
     } else {
 	req->start = 0;
     }
