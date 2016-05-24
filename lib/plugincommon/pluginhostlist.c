@@ -1,18 +1,11 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
- */
-/**
- * $Id$
- *
- * \author
- * Michael Rauh <rauh@par-tec.com>
- *
  */
 
 #include <stdlib.h>
@@ -24,39 +17,39 @@
 
 #include "pluginhostlist.h"
 
-int range2List(char *prefix, char *range, char **list, size_t *size,
-			uint32_t *count)
+bool range2List(char *prefix, char *range, char **list, size_t *size,
+		uint32_t *count)
 {
-    char *sep, tmp[1024], format[128];
+    char *sep;
     unsigned int i, min, max, pad;
 
     if (!(sep = strchr(range, '-'))) {
 	if (*size) str2Buf(",", list, size);
 	if (prefix) str2Buf(prefix, list, size);
 	str2Buf(range, list, size);
-	*count = *count +1;
-	return 1;
+	(*count)++;
+	return true;
     }
 
     if ((sscanf(range, "%u%n-%u", &min, &pad, &max)) != 2) {
 	pluginlog("%s: invalid range '%s'\n", __func__, range);
-	return 0;
+	return false;
     }
-    snprintf(format, sizeof(format), "%%0%uu", pad);
 
     if (min>max) {
 	pluginlog("%s: invalid range '%s'\n", __func__, range);
-	return 0;
+	return false;
     }
 
     for (i=min; i<=max; i++) {
+	char tmp[1024];
 	if (*size) str2Buf(",", list, size);
 	if (prefix) str2Buf(prefix, list, size);
-	snprintf(tmp, sizeof(tmp), format, i);
+	snprintf(tmp, sizeof(tmp), "%0*u", pad, i);
 	str2Buf(tmp, list, size);
-	*count = *count +1;
+	(*count)++;
     }
-    return 1;
+    return true;
 }
 
 char *expandHostList(char *hostlist, uint32_t *count)
@@ -64,7 +57,7 @@ char *expandHostList(char *hostlist, uint32_t *count)
     const char delimiters[] =", \n";
     char *next, *saveptr, *openBrk, *closeBrk, *duphl, *range;
     char *prefix = NULL, *expHL = NULL;
-    int isOpen = 0;
+    bool isOpen = false;
     size_t expHLSize = 0;
 
     duphl = ustrdup(hostlist);
@@ -88,7 +81,7 @@ char *expandHostList(char *hostlist, uint32_t *count)
 	    if (!(range2List(prefix, range, &expHL, &expHLSize, count))) {
 		goto expandError;
 	    }
-	    isOpen = 1;
+	    isOpen = true;
 	} else if (openBrk && closeBrk) {
 	    if (isOpen) {
 		pluginlog("%s: error two open bracket found\n", __func__);
@@ -117,7 +110,7 @@ char *expandHostList(char *hostlist, uint32_t *count)
 
 	    ufree(prefix);
 	    prefix = NULL;
-	    isOpen = 0;
+	    isOpen = false;
 	} else if (isOpen) {
 	    if (!prefix) {
 		pluginlog("%s: error invalid prefix\n", __func__);
@@ -129,7 +122,7 @@ char *expandHostList(char *hostlist, uint32_t *count)
 	} else {
 	    if (expHLSize) str2Buf(",", &expHL, &expHLSize);
 	    str2Buf(next, &expHL, &expHLSize);
-	    *count = *count + 1;
+	    (*count)++;
 	}
 	next = strtok_r(NULL, delimiters, &saveptr);
     }
