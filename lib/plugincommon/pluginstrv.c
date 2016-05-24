@@ -17,7 +17,7 @@
 
 #define VECTOR_CHUNK_SIZE 5
 
-void __strvInit(strv_t *strv, const char **initstrv, const size_t initcount,
+void __strvInit(strv_t *strv, char **initstrv, size_t initcount,
 		const char *func, const int line)
 {
     size_t count = 0;

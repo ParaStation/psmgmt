@@ -48,7 +48,7 @@ typedef struct {
  *
  * @return No return value
  */
-void __strvInit(strv_t *strv, const char **initstrv, const size_t initcount,
+void __strvInit(strv_t *strv, char **initstrv, size_t initcount,
 		const char *func, const int line);
 #define strvInit(strv, initstrv, initcount) \
     __strvInit(strv, initstrv, initcount, __func__, __LINE__)
