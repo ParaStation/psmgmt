@@ -262,7 +262,7 @@ static int fillCmdForMultiSpawn(SpawnRequest_t *req, int usize,
  *
  *  @param task   task structure to adjust
  *
- *  @return 1 on success, 0 on error
+ *  @return 1 on success, 0 on error, -1 on not responsible
  */
 int fillSpawnTaskWithSrun(SpawnRequest_t *req, int usize, PStask_t *task) {
 
@@ -274,8 +274,9 @@ int fillSpawnTaskWithSrun(SpawnRequest_t *req, int usize, PStask_t *task) {
     SingleSpawn_t *spawn;
 
     if (step == NULL) {
-	mlog("%s: step == NULL", __func__);
-	return 0;
+	mlog("%s: There is no slurm step. Assuming this is not a slurm job.\n",
+		__func__);
+	return -1;
     }
 
     totalSpawns = req->totalSpawns;
