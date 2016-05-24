@@ -689,7 +689,7 @@ int execUserStep(Step_t *step)
     char fname[300];
     int grace;
 
-    getConfValueI(&SlurmConfig, "KillWait", &grace);
+    grace = getConfValueI(&SlurmConfig, "KillWait");
     mlog("%s: %u:%u grace %u\n", __func__, step->jobid, step->stepid, grace);
     if (grace < 3) grace = 30;
 
@@ -727,7 +727,7 @@ int execUserJob(Job_t *job)
     char fname[300];
     int grace;
 
-    getConfValueI(&SlurmConfig, "KillWait", &grace);
+    grace = getConfValueI(&SlurmConfig, "KillWait");
     if (grace < 3) grace = 30;
 
     fwdata = getNewForwarderData();
@@ -829,7 +829,7 @@ int execUserBCast(BCast_t *bcast)
     char fname[300];
     int grace;
 
-    getConfValueI(&SlurmConfig, "KillWait", &grace);
+    grace = getConfValueI(&SlurmConfig, "KillWait");
     if (grace < 3) grace = 30;
 
     fwdata = getNewForwarderData();
@@ -886,7 +886,7 @@ int execStepFWIO(Step_t *step)
     char fname[300];
     int grace;
 
-    getConfValueI(&SlurmConfig, "KillWait", &grace);
+    grace = getConfValueI(&SlurmConfig, "KillWait");
     mlog("%s: grace %u\n", __func__, grace);
     if (grace < 3) grace = 30;
 

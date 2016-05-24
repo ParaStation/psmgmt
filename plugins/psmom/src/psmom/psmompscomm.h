@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2013 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -39,8 +39,8 @@ typedef enum {
     PSP_PSMOM_EPILOGUE_FINISH,	    /**< result from epilogue script */
     PSP_PSMOM_PELOGUE_SIGNAL,	    /**< send a signal to a PElogue script */
     PSP_PSMOM_JOB_INFO,		    /**< a job is started/finished and our
-				         node is involved */
-    PSP_PSMOM_JOB_UPDATE,	    /**< a new parallel job via mpiexec started */
+					 node is involved */
+    PSP_PSMOM_JOB_UPDATE,	    /**< new parallel job via mpiexec started */
 } PSP_PSMOM_t;
 
 /**

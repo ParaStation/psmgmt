@@ -6,28 +6,21 @@
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
- *
- * Authors:     Michael Rauh <rauh@par-tec.com>
- *
  */
 
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "pstask.h"
-#include "psnodes.h"
-#include "psidpartition.h"
-#include "psidhook.h"
-#include "plugin.h"
 #include "pscommon.h"
+#include "pspartition.h"
+#include "plugin.h"
+#include "psidhook.h"
 
 #include "pluginmalloc.h"
+#include "pluginlog.h"
 
 #include "psresportlog.h"
 #include "psresportconfig.h"
-#include "pluginlog.h"
-
-#include "psresport.h"
 
 #define RESPORT_CONFIG "psresport.conf"
 
@@ -35,7 +28,7 @@
 char name[] = "psresport";
 int version = 2;
 int requiredAPI = 108;
-plugin_dep_t dependencies[1];
+plugin_dep_t dependencies[] = { { NULL, 0 } };
 
 /** the start of the reserved port range */
 static int pRangeMin = 0;
@@ -63,18 +56,6 @@ static uint32_t uniqNodeCount = 0;
 
 /** number of reservations */
 static int reservationCount = 0;
-
-void psresportStart(void)
-{
-    /* we have no dependencies */
-    dependencies[0].name = NULL;
-    dependencies[0].version = 0;
-}
-
-void psresportStop(void)
-{
-    /* nothing to do here */
-}
 
 /**
  * @brief Initialize the global node reservation bitfield.
@@ -513,7 +494,7 @@ static void freeEmptyNodeBitmasks(int *uNodeList, uint32_t uNodeCount)
  *
  * @return Always returns 0.
  */
-static int clearAllReservations()
+static int clearAllReservations(void *info)
 {
     ufree(nodeBitField);
     nodeBitField = NULL;
@@ -594,10 +575,10 @@ int initialize(void)
     /* init the config facility */
     snprintf(configfn, sizeof(configfn), "%s/%s", PLUGINDIR, RESPORT_CONFIG);
 
-    if (!(initConfig(configfn))) return 1;
+    initConfig(configfn);
 
     /* init logging facility */
-    getConfParamI("DEBUG_MASK", &debugMask);
+    debugMask = getConfValueI(&psresportConfig, "DEBUG_MASK");
     maskLogger(debugMask);
 
     if (!(PSIDhook_add(PSIDHOOK_MASTER_GETPART, addNewReservation))) {
@@ -621,7 +602,7 @@ int initialize(void)
     }
 
     /* get reserved ports from config */
-    ports = getConfParamC("RESERVED_PORTS");
+    ports = getConfValueC(&psresportConfig, "RESERVED_PORTS");
 
     if (!(extractPortInfos(ports))) {
 	mlog("%s: invalid port range '%s'\n", __func__, ports);
@@ -704,8 +685,7 @@ char *show(char *key)
     size_t bufSize = 0;
 
     if (!key) {
-	str2Buf("\nuse 'reservations' or 'bitmask' as key\n",
-			&buf, &bufSize);
+	str2Buf("\nuse 'reservations' or 'bitmask' as key\n", &buf, &bufSize);
 	return buf;
     }
 
@@ -721,8 +701,7 @@ char *show(char *key)
 
     str2Buf("\nInvalid key '", &buf, &bufSize);
     str2Buf(key, &buf, &bufSize);
-    str2Buf("' for cmd show : use 'plugin help psresport'.\n",
-		    &buf, &bufSize);
+    str2Buf("' for cmd show : use 'plugin help psresport'.\n", &buf, &bufSize);
 
     return buf;
 }
@@ -733,12 +712,12 @@ char *help(void)
     size_t bufSize = 0;
 
     str2Buf("\nThe psresport plugin is providing a port reservation "
-		    "facility which is currently used\nby the startup mechanism"
-		    " of OpenMPI since version 1.5.\n",
-		    &buf, &bufSize);
+	    "facility which is currently used\nby the startup mechanism"
+	    " of OpenMPI since version 1.5.\n",
+	    &buf, &bufSize);
 
     str2Buf("\nUse 'plugin show psresport [key reservation|bitmask]'.\n",
-		    &buf, &bufSize);
+	    &buf, &bufSize);
 
     return buf;
 }

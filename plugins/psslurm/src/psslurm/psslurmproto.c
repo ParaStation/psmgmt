@@ -1453,7 +1453,7 @@ static void handleTerminateJob(Slurm_Msg_t *sMsg, Job_t *job, int signal)
     int grace;
 
     if (job->firstKillRequest) {
-	getConfValueI(&SlurmConfig, "KillWait", &grace);
+	grace = getConfValueI(&SlurmConfig, "KillWait");
 	if (time(NULL) - job->firstKillRequest > grace + 10) {
 	    mlog("%s: sending SIGKILL to fowarders of job '%u'\n", __func__,
 		    job->jobid);
@@ -1516,7 +1516,7 @@ static void handleTerminateAlloc(Slurm_Msg_t *sMsg, Alloc_t *alloc)
     int grace, signal = SIGTERM;
 
     if (alloc->firstKillRequest) {
-	getConfValueI(&SlurmConfig, "KillWait", &grace);
+	grace = getConfValueI(&SlurmConfig, "KillWait");
 	if (time(NULL) - alloc->firstKillRequest > grace + 10) {
 	    mlog("%s: sending SIGKILL to fowarders of job '%u'\n", __func__,
 		    alloc->jobid);
@@ -1997,19 +1997,19 @@ void sendNodeRegStatus(uint32_t status, int protoVersion)
     /* os */
     addStringToMsg(sys.sysname, &msg);
     /* cpus */
-    getConfValueI(&Config, "SLURM_CPUS", &tmp);
+    tmp = getConfValueI(&Config, "SLURM_CPUS");
     addUint16ToMsg(tmp, &msg);
     /* boards */
-    getConfValueI(&Config, "SLURM_BOARDS", &tmp);
+    tmp = getConfValueI(&Config, "SLURM_BOARDS");
     addUint16ToMsg(tmp, &msg);
     /* sockets */
-    getConfValueI(&Config, "SLURM_SOCKETS", &tmp);
+    tmp = getConfValueI(&Config, "SLURM_SOCKETS");
     addUint16ToMsg(tmp, &msg);
     /* cores */
-    getConfValueI(&Config, "SLURM_CORES_PER_SOCKET", &tmp);
+    tmp = getConfValueI(&Config, "SLURM_CORES_PER_SOCKET");
     addUint16ToMsg(tmp, &msg);
     /* threads */
-    getConfValueI(&Config, "SLURM_THREADS_PER_CORE", &tmp);
+    tmp = getConfValueI(&Config, "SLURM_THREADS_PER_CORE");
     addUint16ToMsg(tmp, &msg);
     /* real mem */
     addUint32ToMsg(getNodeMem(), &msg);

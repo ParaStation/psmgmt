@@ -21,7 +21,7 @@ libpbs = $(top_builddir)/plugins/psmom/src/pbs/libpbs.la
 libpsi = $(top_builddir)/lib/psi/libpsi.la
 libplugincommon = $(top_builddir)/lib/plugincommon/libplugincommon.la
 
-psmom_la_SOURCES = helper.c helper.h Makefile.am psmomacc.c \
+psmom_la_SOURCES = Makefile.am psmomacc.c \
 	psmomacc.h psmom.c psmomchild.c psmomchild.h psmomauth.c \
 	psmomauth.h psmomcollect.c psmomcollect.h psmomcomm.c psmomcomm.h \
 	psmomconfig.c psmomconfig.h psmomconv.c psmomconv.h \

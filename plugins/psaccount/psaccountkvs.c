@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2012-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2012 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -153,6 +153,7 @@ static char *showClient(char *buf, size_t *bufSize, int detailed)
 
 	snprintf(line, sizeof(line), "page size '%zu'\n",
 		    client->data.pageSize);
+
 	str2Buf(line, &buf, bufSize);
 
 	snprintf(line, sizeof(line), "start time %s",
@@ -211,14 +212,14 @@ static char *showConfig(char *buf, size_t *bufSize)
     str2Buf("\n", &buf, bufSize);
 
     for (i=0; i<configValueCount; i++) {
-        char *name, *val;
+	char *name, *val;
 
-        name = CONFIG_VALUES[i].name;
-        if (!(val = getConfParamC(name))) {
-            val = empty;
-        }
-        snprintf(line, sizeof(line), "%21s = %s\n", name, val);
-        str2Buf(line, &buf, bufSize);
+	name = CONFIG_VALUES[i].name;
+	if (!(val = getConfParamC(name))) {
+	    val = empty;
+	}
+	snprintf(line, sizeof(line), "%21s = %s\n", name, val);
+	str2Buf(line, &buf, bufSize);
     }
 
     return buf;
@@ -234,42 +235,32 @@ char *set(char *key, char *value)
     /* search in config for given key */
     if ((findConfigDef(key))) {
 
-        if ((ret = verfiyConfOption(key, value)) != 0) {
-            if (ret == 1) {
-                str2Buf("\nInvalid key '", &buf, &bufSize);
-                str2Buf(key, &buf, &bufSize);
-                str2Buf("' for cmd set : use 'plugin help psaccount' "
-                                "for help.\n", &buf, &bufSize);
-            } else if (ret == 2) {
-                str2Buf("\nThe key '", &buf, &bufSize);
-                str2Buf(key, &buf, &bufSize);
-                str2Buf("' for cmd set has to be numeric.\n", &buf,
-                                &bufSize);
-            }
-            return buf;
-        }
-
-	if (!(strcmp(key, "DEBUG_MASK"))) {
-	    int32_t mask;
-
-	    if ((sscanf(value, "%i", &mask)) != 1) {
-		return str2Buf("\nInvalid debug mask: not a number\n", &buf,
-			&bufSize);
+	if ((ret = verfiyConfOption(key, value)) != 0) {
+	    if (ret == 1) {
+		str2Buf("\nInvalid key '", &buf, &bufSize);
+		str2Buf(key, &buf, &bufSize);
+		str2Buf("' for cmd set : use 'plugin help psaccount' "
+			      "for help.\n", &buf, &bufSize);
+	    } else if (ret == 2) {
+		str2Buf("\nThe key '", &buf, &bufSize);
+		str2Buf(key, &buf, &bufSize);
+		str2Buf("' for cmd set has to be numeric.\n", &buf,
+			      &bufSize);
 	    }
-	    maskLogger(mask);
+	    return buf;
 	}
 
-        /* save new config value */
-        if ((conf = getConfObject(key))) {
-            if (conf->value) ufree(conf->value);
-            conf->value = ustrdup(value);
-        } else {
-            addConfig(key, value);
-        }
+	/* save new config value */
+	if ((conf = getConfObject(key))) {
+	    if (conf->value) ufree(conf->value);
+	    conf->value = ustrdup(value);
+	} else {
+	    addConfig(key, value);
+	}
 
 	snprintf(line, sizeof(line), "\nsaved '%s = %s'\n", key, value);
-        str2Buf(line, &buf, &bufSize);
-        return buf;
+	str2Buf(line, &buf, &bufSize);
+	return buf;
     }
 
     if (!(strcmp(key, "memdebug"))) {
@@ -294,7 +285,7 @@ char *set(char *key, char *value)
     str2Buf("\nInvalid key '", &buf, &bufSize);
     str2Buf(key, &buf, &bufSize);
     str2Buf("' for cmd set : use 'plugin help psaccount' for help.\n",
-		    &buf, &bufSize);
+	    &buf, &bufSize);
 
     return buf;
 }
@@ -364,32 +355,31 @@ char *show(char *key)
     size_t bufSize = 0;
 
     if (!key) {
-	str2Buf("use key [clients|dclients|jobs|config]\n",
-			&buf, &bufSize);
-        return buf;
+	str2Buf("use key [clients|dclients|jobs|config]\n", &buf, &bufSize);
+	return buf;
     }
 
     /* show current clients */
     if (!(strcmp(key, "clients"))) {
-        return showClient(buf, &bufSize, 0);
+	return showClient(buf, &bufSize, 0);
     }
 
     /* show current clients in detail */
     if (!(strcmp(key, "dclients"))) {
-        return showClient(buf, &bufSize, 1);
+	return showClient(buf, &bufSize, 1);
     }
 
     /* show current jobs */
     if (!(strcmp(key, "jobs"))) {
-        return showJobs(buf, &bufSize);
+	return showJobs(buf, &bufSize);
     }
 
     /* show current config */
     if (!(strcmp(key, "config"))) {
-        return showConfig(buf, &bufSize);
+	return showConfig(buf, &bufSize);
     }
 
     str2Buf("invalid key, use [clients|dclients|jobs|config]\n",
-		    &buf, &bufSize);
+	    &buf, &bufSize);
     return buf;
 }

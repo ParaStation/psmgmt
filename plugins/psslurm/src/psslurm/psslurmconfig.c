@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014 - 2015 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -27,6 +27,11 @@
 #include "psslurmgres.h"
 
 #include "psslurmconfig.h"
+
+typedef struct {
+    char hostname[1024];
+    int gres;
+} Slurm_Conf_Info;
 
 const ConfDef_t CONFIG_VALUES[] =
 {
@@ -182,7 +187,7 @@ static int parseGresOptions(char *options)
     return 1;
 }
 
-static int setMyHostDef(char *hn, char *line, int gres)
+static int setMyHostDef(const char *hn, char *line, int gres)
 {
     char *hostopt, *hostrange, *hostlist, *host, *toksave, *ptr;
     uint32_t numHosts;
@@ -233,35 +238,30 @@ static int setMyHostDef(char *hn, char *line, int gres)
     return 1;
 }
 
-static int parseSlurmConf(char *hn, struct list_head *confList, int gres)
+static bool parseSlurmConf(char *key, char *value, const void *info)
 {
-    struct list_head *pos;
-    Config_t *config;
+    const Slurm_Conf_Info *i = info;
     char *hostline, *tmp;
 
-    list_for_each(pos, confList) {
-	if (!(config = list_entry(pos, Config_t, list))) return 0;
-
-	/* parse all NodeName entries */
-	if (!(strcmp(config->key, "NodeName"))) {
-	    hostline = ustrdup(config->value);
-	    if (!(setMyHostDef(hn, hostline, gres))) {
-		ufree(hostline);
-		return 0;
-	    }
+    /* parse all NodeName entries */
+    if (!(strcmp(key, "NodeName"))) {
+	hostline = ustrdup(value);
+	if (!(setMyHostDef(i->hostname, hostline, i->gres))) {
 	    ufree(hostline);
-	} else if (gres && !(strcmp(config->key, "Name"))) {
-	    tmp = umalloc(strlen(config->value) +6 + 1);
-	    snprintf(tmp, strlen(config->value) +6, "Name=%s", config->value);
-	    //mlog("%s: Gres single name '%s'\n", __func__, tmp);
-	    parseGresOptions(tmp);
-	    ufree(tmp);
+	    return true;
 	}
+	ufree(hostline);
+    } else if (i->gres && !(strcmp(key, "Name"))) {
+	tmp = umalloc(strlen(value) +6 + 1);
+	snprintf(tmp, strlen(value) +6, "Name=%s", value);
+	//mlog("%s: Gres single name '%s'\n", __func__, tmp);
+	parseGresOptions(tmp);
+	ufree(tmp);
     }
-    return 1;
+
+    return false;
 }
 
-/* TODO: identify and check important values */
 static int verifySlurmConf()
 {
     if (!getConfValueC(&Config, "SLURM_CPUS")) {
@@ -295,10 +295,10 @@ static int verifySlurmConf()
 int initConfig(char *filename)
 {
     char *slurmConfFile;
-    char hn[1024];
     struct stat sbuf;
+    Slurm_Conf_Info sinfo = { .gres = 0 };
 
-    if ((gethostname(hn, sizeof(hn))) < 0) {
+    if ((gethostname(sinfo.hostname, sizeof(sinfo.hostname))) < 0) {
 	mlog("%s: getting my hostname failed\n", __func__);
 	return 0;
     }
@@ -311,16 +311,17 @@ int initConfig(char *filename)
     /* parse slurm config file */
     if (!(slurmConfFile = getConfValueC(&Config, "SLURM_CONF"))) return 0;
     if (parseConfigFileQ(slurmConfFile, &SlurmConfig) < 0) return 0;
-    if (!(parseSlurmConf(hn, &SlurmConfig.list, 0))) return 0;
+    if (traverseConfig(&SlurmConfig, parseSlurmConf, &sinfo)) return 0;
     if (!(verifySlurmConf())) return 0;
 
     /* parse optional slurm gres config file */
+    sinfo.gres = 1;
     if (!(slurmConfFile = getConfValueC(&Config, "SLURM_GRES_CONF"))) return 0;
     if (stat(slurmConfFile, &sbuf) == -1) return 1;
     if (parseConfigFileQ(slurmConfFile, &SlurmGresTmp) < 0) return 0;
 
-    INIT_LIST_HEAD(&SlurmGresConfig.list);
-    if (!(parseSlurmConf(hn, &SlurmGresTmp.list, 1))) return 0;
+    INIT_LIST_HEAD(&SlurmGresConfig);
+    if (traverseConfig(&SlurmGresTmp, parseSlurmConf, &sinfo)) return 0;
     freeConfig(&SlurmGresTmp);
 
     return 1;

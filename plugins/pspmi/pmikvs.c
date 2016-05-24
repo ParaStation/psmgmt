@@ -7,13 +7,6 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-/**
- * $Id$
- *
- * \author
- * Michael Rauh <rauh@par-tec.com>
- *
- */
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -52,10 +45,10 @@ char *set(char *key, char *value)
 	}
     }
 
-    buf = str2Buf("\nInvalid key '", &buf, &bufSize);
-    buf = str2Buf(key ? key : "<empty>", &buf, &bufSize);
-    buf = str2Buf("' for cmd set : use 'plugin help pspmi' for help.\n", &buf,
-		    &bufSize);
+    str2Buf("\nInvalid key '", &buf, &bufSize);
+    str2Buf(key ? key : "<empty>", &buf, &bufSize);
+    str2Buf("' for cmd set : use 'plugin help pspmi' for help.\n", &buf,
+	    &bufSize);
     return buf;
 }
 
@@ -64,9 +57,9 @@ char *show(char *key)
     char *buf = NULL;
     size_t bufSize = 0;
 
-    buf = str2Buf("\nInvalid key '", &buf, &bufSize);
-    buf = str2Buf(key ? key : "<empty>", &buf, &bufSize);
-    buf = str2Buf("' for cmd show : use 'plugin help pspmi'.\n", &buf, &bufSize);
+    str2Buf("\nInvalid key '", &buf, &bufSize);
+    str2Buf(key ? key : "<empty>", &buf, &bufSize);
+    str2Buf("' for cmd show : use 'plugin help pspmi'.\n", &buf, &bufSize);
 
     return buf;
 }
@@ -86,10 +79,10 @@ char *unset(char *key)
 	return str2Buf("Stopped memory debugging\n", &buf, &bufSize);
     }
 
-    buf = str2Buf("\nInvalid key '", &buf, &bufSize);
-    buf = str2Buf(key ? key : "<empty>", &buf, &bufSize);
-    buf = str2Buf("' for cmd unset : use 'plugin help pspmi' for help.\n",
-	    &buf, &bufSize);
+    str2Buf("\nInvalid key '", &buf, &bufSize);
+    str2Buf(key ? key : "<empty>", &buf, &bufSize);
+    str2Buf("' for cmd unset : use 'plugin help pspmi' for help.\n", &buf,
+	    &bufSize);
 
     return buf;
 }
@@ -99,7 +92,8 @@ char *help(void)
     char *buf = NULL;
     size_t bufSize = 0;
 
-    buf = str2Buf("\nThe pspmi plugin provides the PMI layer which is needed "
-		    "for the startup mechanism of MPI2.\n", &buf, &bufSize);
+    str2Buf("\nThe pspmi plugin provides the PMI layer which is needed "
+	    "for the startup mechanism of MPI2.\n", &buf, &bufSize);
+
     return buf;
 }

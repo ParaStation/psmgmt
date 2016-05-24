@@ -7,14 +7,6 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-/**
- * $Id$
- *
- * \author
- * Stephan Krempel <krempel@par-tec.com>
- *
- */
-
 /*
  * This small library is a collection of functions for easy handling of dynamic
  * NULL terminated string vectors.
@@ -23,12 +15,10 @@
  * - strv->count contains the number of entries in the strings vector
  */
 
-#ifndef __PS_PLUGINSTRV_H
-#define __PS_PLUGINSTRV_H
+#ifndef __PLUGIN_LIB_STRV
+#define __PLUGIN_LIB_STRV
 
-/**
- * String vector to be handled by strv* functions
- */
+/** String vector to be handled by strv* functions */
 typedef struct {
     char **strings;    /**< Array of strings */
     size_t count;      /**< Current size */
@@ -36,55 +26,76 @@ typedef struct {
 } strv_t;
 
 /**
- * Initialize a string vector.
+ * @brief Initialize string vector
  *
- * This function has to be called for strv before you can pass it to any other
- * strv* function.
+ * This function has to be called for @a strv before it can be passed
+ * to any other strv* function.
  *
- * You can give an array of strings to be set initially. This array is copied,
- *  the strings are not. If count is 0, initstrv is assumed to be NULL
- *  terminated.
+ * @a initstrv might hold the initial content to be copied into @a
+ * strv or NULL if @a strv shall be started empty. Only the actual
+ * array is copied, the strings are not. If @a initcount is 0, @a
+ * initstrv is assumed to be NULL terminated.
  *
- * @param strv       The string vector to initialize.
+ * @param strv The string vector to initialize
  *
- * @param initstrv   Array to set initially or NULL
+ * @param initstrv Array to set initially or NULL
  *
- * @param initcount  Length of initstrv or 0 if initstrv is NULL terminated.
+ * @param initcount Length of initstrv or 0 if initstrv is NULL terminated
+ *
+ * @param func Function name of the calling function
+ *
+ * @param line Line number where this function is called
+ *
+ * @return No return value
  */
+void __strvInit(strv_t *strv, const char **initstrv, const size_t initcount,
+		const char *func, const int line);
 #define strvInit(strv, initstrv, initcount) \
     __strvInit(strv, initstrv, initcount, __func__, __LINE__)
-void __strvInit(strv_t *strv, const char **initstrv, const size_t initcount,
-        const char *func, const int line);
 
 /**
- * Adds a string to the string vector.
+ * @brief Add string to string vector
  *
- * The vector has to be initialized by @a strvInit().
+ * Append the string @a str to the string vector @a strv. The string
+ * vector @a strv has to be initialized via @ref strvInit() before.
  *
- * ATTENTION: The string pointer is stored directly, so you have to do strdup
- *  by your own if intended.
+ * @attention The pointer @a str to the string pointer is stored
+ * directly, i.e. a @ref strdup() has to be done explicitely if
+ * intended.
  *
- * @param strv  The initialized string vector
+ * @param strv The string vector to be extended
  *
- * @param str   The string to add
+ * @param str The string to add
  *
- * @return 0 on success, -1 else
+ * @param func Function name of the calling function
+ *
+ * @param line Line number where this function is called
+ *
+ * @return No return value
  */
+void __strvAdd(strv_t *strv, char *str, const char *func, const int line);
 #define strvAdd(strv, str) __strvAdd(strv, str, __func__, __LINE__)
-int __strvAdd(strv_t *strv, char *str, const char *func, const int line);
 
 /**
- * Destroys the string vector, you cannot use strv in any way afterwards.
+ * Destroys string vector
  *
- * To use strv again you have to call @a strvInit(strv) again.
+ * Destroy the string vector @a strv. All memory used by the string
+ * vector itself is invalidated and free()ed. Nevertheless, memory
+ * used by the strings within the vector is left untouched.
  *
- * ATTENTION: This function especially frees strv->strings.
+ * To use @a strv again @ref strvInit() has to be called once more.
  *
- * @param strv  The string vector to destroy
+ * @attention This function especially frees strv->strings.
+ *
+ * @param strv The string vector to be destroy
+ *
+ * @param func Function name of the calling function
+ *
+ * @param line Line number where this function is called
+ *
+ * @return No return value
  */
-#define strvDestroy(strv) __strvDestroy(strv, __func__, __LINE__)
 void __strvDestroy(strv_t *strv, const char *func, const int line);
+#define strvDestroy(strv) __strvDestroy(strv, __func__, __LINE__)
 
-#endif
-
-/* vim: set ts=9 sw=4 tw=0 sts=4 noet:*/
+#endif  /* __PLUGIN_LIB_STRV */

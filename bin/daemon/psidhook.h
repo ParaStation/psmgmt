@@ -42,9 +42,12 @@ extern "C" {
  * to. Registration might be done via @ref PSIDhook_add(). The pointer
  * argument might be used to pass extra information to this
  * function. This additional information has to be provided via @ref
- * PSIDhook_call(). Thus, it depends on the hook-type and the use of,
- * if such additional information is available and what type is
- * passed.
+ * PSIDhook_call(). Thus, it depends on the hook-type if such
+ * additional information is available and what type is passed.
+ *
+ * @return @ref PSIDhook_call() will return the minimum of all the
+ * returns provided by the different functions registered to this
+ * hook.
  */
 typedef int PSIDhook_func_t(void *);
 
@@ -138,7 +141,8 @@ typedef enum {
 				executed by the pelogue plugin can be inspected.
 				Used by the psslurm plugin. */
     PSIDHOOK_FRWRD_DSOCK,     /**< In forwarder's init() function, arg is a
-				pointer to the daemon socket. */
+				 pointer to the daemon socket. */
+    PSIDHOOK_JAIL_CHILD,      /**< Jail child into cgroup, arg points to pid */
     PSIDHOOK_LAST,            /**< This has to be the last one */
 } PSIDhook_t;
 

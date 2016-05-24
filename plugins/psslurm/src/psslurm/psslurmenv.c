@@ -667,7 +667,7 @@ void setStepEnv(Step_t *step)
     //envSet(&step->env, "PSI_FORWARDERDEBUG", "1");
 
     /* distribute mpiexec service processes */
-    getConfValueI(&Config, "DIST_START", &dist);
+    dist = getConfValueI(&Config, "DIST_START");
     if (dist) envSet(&step->env, "__MPIEXEC_DIST_START", "1");
 
     /* forward overbook mode */

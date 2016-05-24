@@ -116,7 +116,7 @@ int handleCreatePartNL(void *msg)
     PStask_t *task;
 
     /* everyone is allowed to start, nothing to do for us here */
-    getConfValueI(&Config, "ENFORCE_BATCH_START", &enforceBatch);
+    enforceBatch = getConfValueI(&Config, "ENFORCE_BATCH_START");
     if (!enforceBatch) return 1;
 
     /* find task */

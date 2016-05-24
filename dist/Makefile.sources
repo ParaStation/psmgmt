@@ -7,9 +7,6 @@
 # as defined in the file LICENSE.QPL included in the packaging of this
 # file.
 #
-# Author:       Thomas Moschny <moschny@par-tec.com>
-# 		Michael Rauh <rauh@par-tec.com>
-#
 
 PKG_NAME=psmgmt
 
@@ -113,9 +110,11 @@ dist/psmgmt.spec.templ \
 doc/Makefile.am \
 doc/Makefile.in \
 doc/MessageTypes \
+doc/README.cgroup \
 doc/parastation.conf.tmpl \
 doc/psaccount.conf \
 doc/psresport.conf \
+doc/cgroup.conf \
 doc/psconfig/psmgmt.vipsconfig \
 doc/systemd/psidstarter_socket_d_port.conf \
 doc/systemd/psid_service_d_munge.conf \
@@ -360,7 +359,6 @@ plugins/pspmi/pspmihandles.h \
 plugins/psresport/Makefile.am \
 plugins/psresport/Makefile.in \
 plugins/psresport/psresport.c \
-plugins/psresport/psresport.h \
 plugins/psresport/psresportconfig.c \
 plugins/psresport/psresportconfig.h \
 plugins/psresport/psresportlog.c \
@@ -419,6 +417,13 @@ plugins/psslurm/src/psslurm/psslurmpscomm.c \
 plugins/psslurm/src/psslurm/psslurmpscomm.h \
 plugins/psslurm/src/psslurm/psslurmspawn.c \
 plugins/psslurm/src/psslurm/psslurmspawn.h \
+plugins/cgroup/Makefile.am \
+plugins/cgroup/Makefile.in \
+plugins/cgroup/cgroup.c \
+plugins/cgroup/cgroupconfig.c \
+plugins/cgroup/cgroupconfig.h \
+plugins/cgroup/cgrouplog.c \
+plugins/cgroup/cgrouplog.h \
 scripts/.gdbinit \
 scripts/Makefile.am \
 scripts/Makefile.in \

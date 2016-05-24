@@ -1,34 +1,34 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2012-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
 
-#ifndef __PS_RESPORT_CONFIG
-#define __PS_RESPORT_CONFIG
+#ifndef __CGROUP_CONFIG_H
+#define __CGROUP_CONFIG_H
 
 #include "pluginconfig.h"
 
-/** psresport's configuration list */
-extern Config_t psresportConfig;
+/** cgroup's configuration list */
+extern Config_t cgroupConfig;
 
-/** Defintion of psresport's configuration */
-extern const ConfDef_t psresportConfDef[];
+/** Defintion of cgroup's configuration */
+extern const ConfDef_t cgConfDef[];
 
 /**
  * @brief Parse configuration file and save result
  *
  * Parse the configuration @a cfgName and save the result into @ref
- * psresportConfig.
+ * cgroupConfig.
  *
  * @param cfgName Name of the configuration file to parse
  *
  * @return No return value
  */
-void initConfig(char *cfgName);
+void initCgConfig(char *cfgName);
 
-#endif  /* __PS_RESPORT_CONFIG */
+#endif  /* CGROUP_CONFIG */

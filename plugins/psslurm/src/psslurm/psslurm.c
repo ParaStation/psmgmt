@@ -435,21 +435,21 @@ static void setConfOpt()
     int mask, mCheck;
 
     /* psslurm debug */
-    getConfValueI(&Config, "DEBUG_MASK", &mask);
+    mask = getConfValueI(&Config, "DEBUG_MASK");
     if (mask) {
 	mlog("%s: set psslurm debug mask '%i'\n", __func__, mask);
 	maskLogger(mask);
     }
 
     /* plugin library debug */
-    getConfValueI(&Config, "PLUGIN_DEBUG_MASK", &mask);
+    mask = getConfValueI(&Config, "PLUGIN_DEBUG_MASK");
     if (mask) {
 	mlog("%s: set plugin debug mask '%i'\n", __func__, mask);
 	maskPluginLogger(mask);
     }
 
     /* glib malloc checking */
-    getConfValueI(&Config, "MALLOC_CHECK", &mCheck);
+    mCheck = getConfValueI(&Config, "MALLOC_CHECK");
     if (mCheck) {
 	mlog("%s: enable memory checking\n", __func__);
 	setenv("MALLOC_CHECK_", "2", 1);
@@ -535,12 +535,12 @@ int initialize(void)
 						    "BackupController"));
 
     /* listening on slurmd port */
-    getConfValueI(&SlurmConfig, "SlurmdPort", &ctlPort);
+    ctlPort = getConfValueI(&SlurmConfig, "SlurmdPort");
     if (ctlPort < 0) ctlPort = PSSLURM_SLURMD_PORT;
     if ((openSlurmdSocket(ctlPort)) < 0) goto INIT_ERROR;
 
     /* register to slurmctld */
-    getConfValueI(&SlurmConfig, "SlurmctldPort", &ctlPort);
+    ctlPort = getConfValueI(&SlurmConfig, "SlurmctldPort");
     if (ctlPort < 0) {
 	snprintf(buf, sizeof(buf), "%u", PSSLURM_SLURMCTLD_PORT);
 	addConfigEntry(&SlurmConfig, "SlurmctldPort", buf);

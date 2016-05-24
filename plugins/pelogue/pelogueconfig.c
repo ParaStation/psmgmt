@@ -72,66 +72,64 @@ void clearConfig(void)
     isInit = 0;
 }
 
-void getConfParamL(const char *plugin, char *name, long *value)
+static Config_t *getPluginConfig(const char *plugin)
 {
-    char *val;
+    int i;
 
-    *value = -1;
-    if (!isInit) return;
-    if (!name) return;
-    if (!(val = getConfParam(plugin, name))) {
-	return;
-    }
-
-    if ((sscanf(val, "%li", value)) != 1) {
-	mlog("%s: option '%s' is not a number\n", __func__, name);
-	*value = -1;
-    }
-}
-
-void getConfParamI(const char *plugin, char *name, int *value)
-{
-    char *val;
-
-    *value = -1;
-    if (!isInit) return;
-    if (!name) return;
-    if (!(val = getConfParam(plugin, name))) {
-	return;
-    }
-
-    if ((sscanf(val, "%i", value)) != 1) {
-	mlog("%s: option '%s' is not a number\n", __func__, name);
-	*value = -1;
-    }
-}
-
-void getConfParamU(const char *plugin, char *name, unsigned int *value)
-{
-    char *val;
-
-    *value = -1;
-    if (!isInit) return;
-    if (!name) return;
-    if (!(val = getConfParam(plugin, name))) {
-	return;
-    }
-
-    if ((sscanf(val, "%u", value)) != 1) {
-	mlog("%s: option '%s' is not a number\n", __func__, name);
-	*value = -1;
-    }
-}
-
-char *getConfParamC(const char *plugin, char *name)
-{
-    char *val;
-
-    if (!isInit) return NULL;
-    if (!(val = getConfParam(plugin, name))) {
+    if (!isInit) {
+	mlog("%s: configuration not initialized\n", __func__);
 	return NULL;
     }
-    return val;
+
+    for (i=0; i<MAX_SUPPORTED_PLUGINS; i++) {
+	if (pluginConfList[i].name &&
+	    !(strcmp(pluginConfList[i].name, plugin))) {
+	    return pluginConfList[i].conf;
+	}
+    }
+
+    mlog("%s: no config found for plugin '%s'\n", __func__, plugin);
+    return NULL;
+}
+
+long getConfParamL(const char *plugin, char *key)
+{
+    Config_t *config;
+
+    if (!key) return -1;
+    if (!(config = getPluginConfig(plugin))) return -1;
+
+    return getConfValueL(config, key);
+}
+
+int getConfParamI(const char *plugin, char *key)
+{
+    Config_t *config;
+
+    if (!key) return -1;
+    if (!(config = getPluginConfig(plugin))) return -1;
+
+    return getConfValueI(config, key);
+}
+
+unsigned int getConfParamU(const char *plugin, char *key)
+{
+    Config_t *config;
+
+    if (!key) return -1;
+    if (!(config = getPluginConfig(plugin))) return -1;
+
+    return getConfValueU(config, key);
+}
+
+char *getConfParamC(const char *plugin, char *key)
+{
+    Config_t *config;
+
+    if (!key) return NULL;
+    if (!(config = getPluginConfig(plugin))) return NULL;
+
+    return getConfValueC(config, key);
 }
 
 /**
@@ -225,37 +223,4 @@ int addPluginConfig(const char *name, Config_t *config)
     }
 
     return 0;
-}
-
-static Config_t *getConfigList(const char *plugin)
-{
-    int i;
-
-    for (i=0; i<MAX_SUPPORTED_PLUGINS; i++) {
-	if (pluginConfList[i].name &&
-	    !(strcmp(pluginConfList[i].name, plugin))) {
-	    return pluginConfList[i].conf;
-	}
-    }
-
-    return NULL;
-}
-
-char *getConfParam(const char *plugin, char *name)
-{
-    struct list_head *pos;
-    Config_t *config, *confList;
-
-    if (!isInit || !plugin || !name) return NULL;
-
-    if (!(confList = getConfigList(plugin))) return NULL;
-
-    list_for_each(pos, &confList->list) {
-	if (!(config = list_entry(pos, Config_t, list))) return NULL;
-
-	if (!(strcmp(config->key, name))) {
-	    return config->value;
-	}
-    }
-    return NULL;
 }

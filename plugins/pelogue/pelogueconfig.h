@@ -20,19 +20,7 @@
 
 #include "list.h"
 
-typedef struct {
-    char *key;
-    char *value;
-    struct list_head list;
-} Config_t;
-
-typedef struct {
-    char *name;	    /* the name of the config key */
-    int isNum;	    /* set to 1 if the value is numeric */
-    char *type;	    /* the type of the config value e.g. <string> */
-    char *def;	    /* the default value, NULL if there is no default */
-    char *desc;	    /* a short help description */
-} ConfDef_t;
+#include "pluginconfig.h"
 
 extern const ConfDef_t CONFIG_VALUES[];
 extern const int configValueCount;
@@ -43,40 +31,40 @@ extern const int configValueCount;
 int initConfig(void);
 
 /**
-* @brief Retrieve a config value as string.
-*
-* @param name The name of the parameter to read.
-*
-* @return Returns the config value or NULL on error.
-*/
-char *getConfParam(const char *plugin, char *name);
-
-/**
 * @brief Read a config parameter as signed int.
 *
 * @param name The name of the parameter to read.
 *
 * @return Returns the config value or -1 on error.
 */
-void getConfParamI(const char *plugin, char *name, int *value);
+int getConfParamI(const char *plugin, char *key);
 
 /**
 * @brief Read a config parameter as signed long.
 *
-* @param name The name of the parameter to read.
+* @param key The name of the parameter to read.
 *
-* @return Returns the config value or -1 on error.
+* @return Returns the value or -1 on error.
 */
-void getConfParamL(const char *plugin, char *name, long *value);
+long getConfParamL(const char *plugin, char *key);
 
 /**
 * @brief Read a config parameter as unsigned int.
 *
-* @param name The name of the parameter to read.
+* @param key The name of the parameter to read.
 *
-* @return Returns the config value or -1 on error.
+* @return Returns the value or -1 on error.
 */
-void getConfParamU(const char *plugin, char *name, unsigned int *value);
+unsigned int getConfParamU(const char *plugin, char *key);
+
+/**
+* @brief Read a config parameter as char.
+*
+* @param key The name of the parameter to read.
+*
+* @return Returns the value or NULL on error.
+*/
+char *getConfParamC(const char *plugin, char *key);
 
 /**
  * @brief Find a config definition.
@@ -102,8 +90,6 @@ void delConfig(Config_t *conf);
  * @return No return value.
  */
 void clearConfig(void);
-
-char *getConfParamC(const char *plugin, char *name);
 
 int addPluginConfig(const char *name, Config_t *config);
 

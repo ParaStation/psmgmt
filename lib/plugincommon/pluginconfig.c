@@ -1,21 +1,13 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-/**
- * $Id$
- *
- * \author
- * Michael Rauh <rauh@par-tec.com>
- *
- */
 
-#define _GNU_SOURCE
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -27,77 +19,69 @@
 
 #include "pluginconfig.h"
 
-#define MAX_KEY_LEN 1024
+/** Single object of a configuration */
+typedef struct {
+    struct list_head next;  /**< Used to put object into a configration */
+    char *key;              /**< Object's key */
+    char *value;            /**< Object's value */
+} ConfObj_t;
 
-int __parseConfigFile(char *filename, Config_t *conf, int trimQuotes)
+static void doAddConfigEntry(Config_t *conf, char *key, char *value)
+{
+    ConfObj_t *obj = umalloc(sizeof(*obj));
+    char *myVal = (value) ? ustrdup(value) : ustrdup("");
+
+    obj->key = ustrdup(key);
+    obj->value = myVal;
+    list_add_tail(&(obj->next), conf);
+}
+
+static int doParseConfigFile(char *fName, Config_t *conf,
+			     const char *funcName, bool trimQuotes)
 {
     FILE *fp;
-    char *line = NULL, *linebuf = NULL, *value, *tmp, key[MAX_KEY_LEN], *pkey;
-    size_t len = 0, keylen = 0;
-    int read, count = 0;
-    Config_t *config;
+    char *linebuf = NULL;
+    size_t len = 0;
+    ssize_t read;
+    int count = 0;
 
     /* init config list */
-    INIT_LIST_HEAD(&conf->list);
+    INIT_LIST_HEAD(conf);
 
-    if (!(fp = fopen(filename, "r"))) {
-	char cwd[256];
+    if (!(fp = fopen(fName, "r"))) {
+	char *cwd = getcwd(NULL, 0);
 
-	if (!getcwd(cwd, sizeof(cwd))) {
-	    cwd[0] = '\0';
-	}
-	pluginlog("%s: error opening config cwd:%s file:%s\n", __func__, cwd,
-		filename);
+	pluginlog("%s: error opening config cwd:%s file:%s\n", funcName, cwd,
+		  fName);
 	return -1;
     }
 
     while ((read = getline(&linebuf, &len, fp)) != -1) {
-	line = linebuf;
+	char *line = linebuf, *key, *val, *tmp;
 
 	/* skip comments and empty lines */
-	if (read == 0 || line[0] == '\n' || line[0] == '#'
-		|| line[0] == '\0') continue;
-
-	/* remove trailing comments */
-	if ((tmp = strchr(line, '#'))) {
-	    tmp[0] = '\0';
-	}
-
-	line = trim(line);
-
-	/* find the key and the value */
-	if ((value = strchr(line,'=')) && strlen(value) > 1) {
-	    value++;
-	    keylen = strlen(line) - strlen(value) - 1;
-	} else if (value && strlen(value) == 1) {
-	    keylen = strlen(line) -1;
-	    value = NULL;
-	} else {
-	    keylen = strlen(line);
-	}
-
-	if (keylen > MAX_KEY_LEN -1) {
-	    pluginlog("%s: key '%s' to long %zu\n", __func__, key, keylen);
+	if (!read || line[0] == '\n' || line[0] == '#' || line[0] == '\0') {
 	    continue;
 	}
-	strncpy(key, line, keylen);
-	key[keylen] = '\0';
-	pkey = key;
 
-	/* remove trailing whitespaces from key */
-	rtrim(key);
+	/* remove trailing comments */
+	if ((tmp = strchr(line, '#'))) *tmp = '\0';
 
-	/* remove proceeding whitespaces from value */
-	value = ltrim(value);
+	/* Split line into key and value */
+	key = line;
+	val = strchr(line,'=');
 
-	/* remove quotes from value */
-	if (trimQuotes) value = trim_quotes(value);
+	if (val) {
+	    *val = '\0';
+	    val = trim(++val);
+	    /* remove quotes from value if required */
+	    if (trimQuotes) val = trim_quotes(val);
+	    if (!strlen(val)) val = NULL;
+	}
 
-	config = (Config_t *) umalloc(sizeof(Config_t));
-	config->key = ustrdup(pkey);
-	config->value = (!value) ? ustrdup("") : ustrdup(value);
+	key = trim(key);
 
-	list_add_tail(&(config->list), &conf->list);
+	doAddConfigEntry(conf, key, val);
 	count++;
     }
 
@@ -107,77 +91,77 @@ int __parseConfigFile(char *filename, Config_t *conf, int trimQuotes)
     return count;
 }
 
-static Config_t *findConfigObj(Config_t *conf, char *key)
+int parseConfigFile(char *filename, Config_t *conf)
 {
-    struct list_head *pos;
-    Config_t *confObj;
+    return doParseConfigFile(filename, conf, __func__, false);
+}
 
-    if (!key || list_empty(&conf->list)) return NULL;
+int parseConfigFileQ(char *filename, Config_t *conf)
+{
+    return doParseConfigFile(filename, conf, __func__, true);
+}
 
-    list_for_each(pos, &conf->list) {
-	if (!(confObj = list_entry(pos, Config_t, list))) return NULL;
-	if (!(strcmp(confObj->key, key))) return confObj;
+static ConfObj_t *findConfObj(Config_t *conf, char *key)
+{
+    list_t *o;
+
+    if (!key || list_empty(conf)) return NULL;
+
+    list_for_each(o, conf) {
+	ConfObj_t *obj = list_entry(o, ConfObj_t, next);
+
+	if (!(strcmp(obj->key, key))) return obj;
     }
 
     return NULL;
 }
 
-char *getConfValue(Config_t *conf, char *key)
+static char *getConfValue(Config_t *conf, char *key)
 {
-    Config_t *confObj;
+    ConfObj_t *obj = findConfObj(conf, key);
 
-    if ((confObj = findConfigObj(conf, key))) return confObj->value;
+    if (obj) return obj->value;
 
     return NULL;
 }
 
-Config_t *addConfigEntry(Config_t *conf, char *key, char *value)
+void addConfigEntry(Config_t *conf, char *key, char *value)
 {
-    Config_t *newConf;
+    ConfObj_t *obj = findConfObj(conf, key);
 
     //pluginlog("%s: key '%s' value '%s'\n", __func__, key, value);
 
-    if ((newConf = findConfigObj(conf, key))) {
-	ufree(newConf->value);
-	newConf->value = ustrdup(value);
+    if (obj) {
+	char *myVal = (value) ? ustrdup(value) : ustrdup("");
+	if (obj->value) ufree(obj->value);
+	obj->value = myVal;
     } else {
-	newConf = (Config_t *) umalloc(sizeof(Config_t));
-	newConf->key = ustrdup(key);
-	newConf->value = ustrdup(value);
-	list_add_tail(&(newConf->list), &conf->list);
+	doAddConfigEntry(conf, key, value);
     }
-
-    return newConf;
 }
 
 void setConfigDefaults(Config_t *conf, const ConfDef_t confDef[])
 {
-    int i = 0;
+    int i;
 
-    while (confDef[i].name != NULL) {
-	if (!(getConfValue(conf, confDef[i].name))) {
-	    if (confDef[i].def) {
-		addConfigEntry(conf, confDef[i].name, confDef[i].def);
-	    }
+    for (i = 0; confDef[i].name; i++) {
+	if (!(getConfValue(conf, confDef[i].name)) && confDef[i].def) {
+	    addConfigEntry(conf, confDef[i].name, confDef[i].def);
 	}
-	i++;
     }
 }
 
 const ConfDef_t *getConfigDef(char *name, const ConfDef_t confDef[])
 {
-    int i = 0;
+    int i;
 
-    while (confDef[i].name != NULL) {
-	if (!(strcmp(name, confDef[i].name))) {
-	    return &confDef[i];
-	}
-	i++;
+    for (i = 0; confDef[i].name; i++) {
+	if (!(strcmp(name, confDef[i].name))) return &confDef[i];
     }
     return NULL;
 }
 
-int verfiyConfigEntry(const ConfDef_t confDef[], char *key, char *value)
+int verifyConfigEntry(const ConfDef_t confDef[], char *key, char *value)
 {
     const ConfDef_t *def;
     long testNum;
@@ -193,121 +177,128 @@ int verfiyConfigEntry(const ConfDef_t confDef[], char *key, char *value)
 
 int verifyConfig(Config_t *conf, const ConfDef_t confDef[])
 {
-    list_t *pos, *tmp;
-    Config_t *config;
+    list_t *o;
     int res = 0;
 
-    list_for_each_safe(pos, tmp, &conf->list) {
-	if (!(config = list_entry(pos, Config_t, list))) break;
-
-	res = verfiyConfigEntry(confDef, config->key, config->value);
+    list_for_each(o, conf) {
+	ConfObj_t *obj = list_entry(o, ConfObj_t, next);
+	int res = verifyConfigEntry(confDef, obj->key, obj->value);
 	if (res) return res;
     }
 
     return res;
 }
 
-void delConfigEntry(Config_t *conf)
+static void delConfObj(ConfObj_t *obj)
 {
-    if (conf->key) ufree(conf->key);
-    if (conf->value) ufree(conf->value);
-    list_del(&conf->list);
-    ufree(conf);
+    if (obj->key) ufree(obj->key);
+    if (obj->value) ufree(obj->value);
+    list_del(&obj->next);
+    ufree(obj);
 }
 
 void freeConfig(Config_t *conf)
 {
-    list_t *pos, *tmp;
-    Config_t *config;
+    list_t *o, *tmp;
 
-    if (list_empty(&conf->list)) return;
-
-    list_for_each_safe(pos, tmp, &conf->list) {
-	if (!(config = list_entry(pos, Config_t, list))) continue;
-	delConfigEntry(config);
+    list_for_each_safe(o, tmp, conf) {
+	ConfObj_t *obj = list_entry(o, ConfObj_t, next);
+	delConfObj(obj);
     }
 }
 
-int unsetConfigEntry(Config_t *conf, const ConfDef_t confDef[], char *key)
+bool unsetConfigEntry(Config_t *conf, const ConfDef_t confDef[], char *key)
 {
-    const ConfDef_t *def;
-    Config_t *confEntry;
+    ConfObj_t *obj = findConfObj(conf, key);
+    const ConfDef_t *def = getConfigDef(key, confDef);
 
-    if (!(confEntry = findConfigObj(conf, key))) return 0;
-    if (!(def = getConfigDef(key, confDef))) return 0;
+    if (!obj || !def) return false;
 
     if (def->def) {
 	/* reset config entry to its default value */
-	ufree(confEntry->value);
-	confEntry->value = ustrdup(def->def);
+	ufree(obj->value);
+	obj->value = ustrdup(def->def);
     } else {
-	delConfigEntry(confEntry);
+	delConfObj(obj);
     }
 
-    return 1;
+    return true;
 }
 
-void getConfValueL(Config_t *conf, char *key, long *value)
+long getConfValueL(Config_t *conf, char *key)
 {
-    char *val;
+    long val = -1;
+    char *valStr;
 
-    *value = -1;
-    if (!key) return;
-    if (!(val = getConfValue(conf, key))) return;
+    if (!key || !(valStr = getConfValue(conf, key))) return val;
 
-    if ((sscanf(val, "%li", value)) != 1) {
+    if ((sscanf(valStr, "%li", &val)) != 1) {
 	pluginlog("%s: option '%s' is not a number\n", __func__, key);
-	*value = -1;
+	val = -1;
     }
+
+    return val;
 }
 
-void getConfValueI(Config_t *conf, char *key, int *value)
+int getConfValueI(Config_t *conf, char *key)
 {
-    char *val;
+    int val = -1;
+    char *valStr;
 
-    *value = -1;
-    if (!key) return;
-    if (!(val = getConfValue(conf, key))) return;
+    if (!key || !(valStr = getConfValue(conf, key))) return val;
 
-    if ((sscanf(val, "%i", value)) != 1) {
+    if ((sscanf(valStr, "%i", &val)) != 1) {
 	pluginlog("%s: option '%s' is not a number\n", __func__, key);
-	*value = -1;
+	val = -1;
     }
+
+    return val;
 }
 
-void getConfValueU(Config_t *conf, char *key, unsigned int *value)
+unsigned int getConfValueU(Config_t *conf, char *key)
 {
-    char *val;
+    unsigned int val = -1;
+    char *valStr;
 
-    *value = -1;
-    if (!key) return;
-    if (!(val = getConfValue(conf, key))) return;
+    if (!key || !(valStr = getConfValue(conf, key))) return val;
 
-    if ((sscanf(val, "%u", value)) != 1) {
+    if ((sscanf(valStr, "%u", &val)) != 1) {
 	pluginlog("%s: option '%s' is not a number\n", __func__, key);
-	*value = -1;
+	val = -1;
     }
+
+    return val;
 }
 
 char *getConfValueC(Config_t *conf, char *key)
 {
-    char *val;
-
-    if (!(val = getConfValue(conf, key))) return NULL;
-    return val;
+    return getConfValue(conf, key);
 }
 
-Config_t *getConfigObject(Config_t *conf, char *key)
+bool traverseConfig(Config_t *conf, configVisitor_t visitor, const void *info)
 {
-    struct list_head *pos;
-    Config_t *config;
+    list_t *o;
 
-    if (!key || list_empty(&conf->list)) return NULL;
+    list_for_each(o, conf) {
+	ConfObj_t *obj = list_entry(o, ConfObj_t, next);
 
-    list_for_each(pos, &conf->list) {
-	if (!(config = list_entry(pos, Config_t, list))) return NULL;
-
-	if (!(strcmp(config->key, key))) return config;
+	if (visitor(obj->key, obj->value, info)) return true;
     }
-    return NULL;
+
+    return false;
+}
+
+size_t getMaxKeyLen(const ConfDef_t confDef[])
+{
+    int i;
+    size_t max = 0;
+
+    if (!confDef) return 0;
+
+    for (i = 0; confDef[i].name; i++) {
+	size_t len = strlen(confDef[i].name);
+	if (len > max) max = len;
+    }
+
+    return max;
 }

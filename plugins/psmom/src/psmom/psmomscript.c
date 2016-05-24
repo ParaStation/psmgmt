@@ -7,13 +7,6 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-/**
- * $Id$
- *
- * \author
- * Michael Rauh <rauh@par-tec.com>
- *
- */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -40,7 +33,7 @@
 #include "psmomforwarder.h"
 #include "psmomjobinfo.h"
 #include "psmom.h"
-#include "helper.h"
+#include "pluginhelper.h"
 #include "pluginmalloc.h"
 #include "psmomconv.h"
 #include "psmomlocalcomm.h"
@@ -813,16 +806,16 @@ static void handlePELogueTimeout(int timerId, void *data)
 	    __func__, job->state == JOB_PROLOGUE ? "prologue" : "epilogue",
 	    job->id);
 
-    buf = str2Buf("missing nodeID(s): ", buf, &buflen);
+    str2Buf("missing nodeID(s): ", &buf, &buflen);
 
     for (i=0; i<job->nrOfUniqueNodes; i++) {
 	if (job->state == JOB_PROLOGUE) {
 	    if (job->nodes[i].prologue == -1) {
 		if (count>0) {
-		    buf = str2Buf(",", buf, &buflen);
+		    str2Buf(",", &buf, &buflen);
 		}
 		snprintf(tmp, sizeof(tmp), "%i", job->nodes[i].id);
-		buf = str2Buf(tmp, buf, &buflen);
+		str2Buf(tmp, &buf, &buflen);
 		if ((host = getHostnameByNodeId(job->nodes[i].id))) {
 		    PElogueTimeoutAction(job->server, job->id, 1, host);
 		} else {
@@ -833,10 +826,10 @@ static void handlePELogueTimeout(int timerId, void *data)
 	} else {
 	    if (job->nodes[i].epilogue == -1) {
 		if (count>0) {
-		    buf = str2Buf(",", buf, &buflen);
+		    str2Buf(",", &buf, &buflen);
 		}
 		snprintf(tmp, sizeof(tmp), "%i", job->nodes[i].id);
-		buf = str2Buf(tmp, buf, &buflen);
+		str2Buf(tmp, &buf, &buflen);
 		if ((host = getHostnameByNodeId(job->nodes[i].id))) {
 		    PElogueTimeoutAction(job->server, job->id, 0, host);
 		} else {

@@ -461,7 +461,7 @@ int startTaskEpilogues(Step_t *step)
     char fname[300];
     int grace;
 
-    getConfValueI(&SlurmConfig, "KillWait", &grace);
+    grace = getConfValueI(&SlurmConfig, "KillWait");
     if (grace < 3) grace = 30;
 
     fwdata = getNewForwarderData();

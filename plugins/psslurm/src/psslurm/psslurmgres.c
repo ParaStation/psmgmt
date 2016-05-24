@@ -58,7 +58,7 @@ void addGresData(PS_DataBuffer_t *msg, int version)
     Gres_Conf_t *gres;
     PS_DataBuffer_t data = { .buf = NULL };
 
-    getConfValueI(&Config, "SLURM_CPUS", &cpus);
+    cpus = getConfValueI(&Config, "SLURM_CPUS");
 
     /* add slurm version */
     addUint16ToMsg(version, &data);

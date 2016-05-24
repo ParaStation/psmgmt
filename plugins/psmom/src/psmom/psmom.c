@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010 - 2014 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -39,9 +39,7 @@
 #include "psidplugin.h"
 #include "psidhook.h"
 #include "plugin.h"
-#include "helper.h"
 #include "pluginhelper.h"
-#include "psaccounthandles.h"
 
 #include "psmomscript.h"
 #include "psmomcomm.h"
@@ -56,6 +54,7 @@
 #include "psmompscomm.h"
 #include "psmomlocalcomm.h"
 #include "psmompartition.h"
+#include "psmompsaccfunc.h"
 #include "psmompbsserver.h"
 #include "psmomjobinfo.h"
 #include "psmomssh.h"

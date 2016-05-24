@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010 - 2014 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -33,21 +33,19 @@
 #include "psmomlog.h"
 #include "psmomcomm.h"
 #include "psmomconv.h"
+#include "selector.h"
+#include "pluginmalloc.h"
 #include "psmomforwarder.h"
 #include "psmomchild.h"
 #include "psmomscript.h"
 #include "psmompscomm.h"
 #include "psmomcollect.h"
 #include "psmomacc.h"
+#include "psmompsaccfunc.h"
 #include "psmominteractive.h"
 #include "psmomssh.h"
 #include "psmompartition.h"
 #include "psmomproto.h"
-
-#include "selector.h"
-#include "pluginmalloc.h"
-#include "helper.h"
-#include "psaccounthandles.h"
 
 #include "psmomlocalcomm.h"
 
@@ -277,16 +275,16 @@ static void handle_Local_PAM_Request(ComHandle_t *com)
     ptr = buf;
 
     /* get ssh pid */
-    getPid(&ptr, &pid);
+    getPidFromMsgBuf(&ptr, &pid);
 
     /* get ssh sid */
-    getPid(&ptr, &sid);
+    getPidFromMsgBuf(&ptr, &sid);
 
     /* get pam username */
-    getString(&ptr, user, sizeof(user));
+    getStringFromMsgBuf(&ptr, user, sizeof(user));
 
     /* get pam rhost */
-    getString(&ptr, rhost, sizeof(rhost));
+    getStringFromMsgBuf(&ptr, rhost, sizeof(rhost));
 
     mlog("%s: got pam request pid: '%i' sid: '%i' user: '%s' rhost: '%s'\n",
 	__func__, pid, sid, user, rhost);
@@ -306,7 +304,7 @@ static void handle_Local_PAM_Request(ComHandle_t *com)
     }
 
     /* add result */
-    addInt32ToMsg(res, &data);
+    addInt32ToMsg(&res, &data);
 
     /* add pam username */
     addStringToMsg(user, &data);

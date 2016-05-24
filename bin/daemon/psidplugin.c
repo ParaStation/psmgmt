@@ -117,8 +117,10 @@ static LIST_HEAD(pluginList);
  * 113: added PSIDHOOK_EXEC_CLIENT_USER
  *
  * 114: added PSIDHOOK_PELOGUE_FINISH and PSIDHOOK_FRWRD_DSOCK
+ *
+ * 115: added PSIDHOOK_JAIL_CHILD
  */
-static int pluginAPIVersion = 114;
+static int pluginAPIVersion = 115;
 
 
 /** Grace period between finalize and unload on forcefully unloads */
@@ -1092,7 +1094,7 @@ static int forceUnloadPlugin(char *name)
 		PSID_log(-1, "%s: no victim found despite of loop\n", __func__);
 		return -1;
 	    }
-		
+
 	    PSID_log(-1, "%s: kick out victim '%s' (distance %d) forcefully\n",
 		     __func__, victim->name, victim->distance);
 

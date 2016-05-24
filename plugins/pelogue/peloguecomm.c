@@ -74,11 +74,11 @@ int sendPElogueStart(Job_t *job, bool prologue, env_t *env)
     uint32_t i;
 
     if (prologue) {
-	getConfParamI(job->plugin, "TIMEOUT_PROLOGUE", &timeout);
+	timeout = getConfParamI(job->plugin, "TIMEOUT_PROLOGUE");
 	type = PSP_PROLOGUE_START;
 	job->state = JOB_PROLOGUE;
     } else {
-	getConfParamI(job->plugin, "TIMEOUT_EPILOGUE", &timeout);
+	timeout = getConfParamI(job->plugin, "TIMEOUT_EPILOGUE");
 	type = PSP_EPILOGUE_START;
 	job->state = JOB_EPILOGUE;
     }
@@ -131,7 +131,7 @@ static void manageTempDir(const char *plugin, const char *jobid, int create,
     struct stat statbuf;
 
     /* set temp dir using hashname */
-    if ((confTmpDir = getConfParam(plugin, "DIR_TEMP"))) {
+    if ((confTmpDir = getConfParamC(plugin, "DIR_TEMP"))) {
 	snprintf(tmpDir, sizeof(tmpDir), "%s/%s", confTmpDir, jobid);
     }
 
@@ -357,7 +357,7 @@ static void handlePELogueStart(DDTypedBufferMsg_t *msg,
     }
     msgRes.header.len += sizeof(msgRes.type);
 
-    getConfParamI(data->plugin, "DISABLE_PELOGUE", &disPE);
+    disPE = getConfParamI(data->plugin, "DISABLE_PELOGUE");
 
     if (disPE == 1) {
 	int32_t exitVal = 0;
@@ -436,7 +436,7 @@ static void handlePELogueStart(DDTypedBufferMsg_t *msg,
     fwdata->childFunc = execPElogueScript;
     fwdata->timeoutChild = timeout;
 
-    getConfParamI(data->plugin, "TIMEOUT_CHILD_CONNECT", &conTimeout);
+    conTimeout = getConfParamI(data->plugin, "TIMEOUT_CHILD_CONNECT");
     if (conTimeout > 0) {
 	fwdata->timeoutConnect = conTimeout;
     }

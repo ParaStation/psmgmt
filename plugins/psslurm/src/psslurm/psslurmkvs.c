@@ -384,7 +384,7 @@ char *set(char *key, char *value)
     /* search in config for given key */
     if ((getConfigDef(key, CONFIG_VALUES))) {
 
-        if ((ret = verfiyConfigEntry(CONFIG_VALUES, key, value)) != 0) {
+        if ((ret = verifyConfigEntry(CONFIG_VALUES, key, value)) != 0) {
             if (ret == 1) {
                 str2Buf("\nInvalid key '", &buf, &bufSize);
                 str2Buf(key, &buf, &bufSize);

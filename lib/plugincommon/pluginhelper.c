@@ -7,13 +7,6 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-/**
- * $Id$
- *
- * \author
- * Michael Rauh <rauh@par-tec.com>
- *
- */
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -67,7 +60,7 @@ PSnodes_ID_t getNodeIDbyName(char *host)
     if (!host) return -1;
 
     if (!(hp = gethostbyname(host))) {
-        pluginlog("%s: unknown host '%s'\n", __func__, host);
+	pluginlog("%s: unknown host '%s'\n", __func__, host);
 	return -1;
     }
 
@@ -120,7 +113,7 @@ char *ltrim(char *string)
 {
     if (!string) return NULL;
 
-    /* remove proceeding whitespaces */
+    /* remove leading whitespaces */
     while (string[0] == ' ') {
 	string++;
     }
@@ -169,4 +162,26 @@ char *printTime(time_t time)
     strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S", ts);
 
     return buf;
+}
+
+unsigned long stringTimeToSec(char *wtime)
+{
+    int count = 0;
+    int arg1 = 0, arg2 = 0, arg3 = 0;
+
+    if (!wtime) return 0;
+
+    if ((count = sscanf(wtime, "%d:%d:%d", &arg1, &arg2, &arg3)) > 3) return 0;
+
+    switch (count) {
+    case 0:
+	return 0;
+    case 1:
+	return arg1;
+    case 2:
+	return (arg1 * 60) + arg2;
+    case 3:
+	return (arg1 * 3600) + (arg2 * 60) + arg3 ;
+    }
+    return 0;
 }

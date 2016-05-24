@@ -1,45 +1,38 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2013 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-/**
- * $Id$
- *
- * \author
- * Michael Rauh <rauh@par-tec.com>
- *
- */
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/ioctl.h>
 #include <termios.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <signal.h>
 #include <string.h>
 #include <errno.h>
-#include <grp.h>
-#include <pwd.h>
-#include <netdb.h>
-#include <sys/ioctl.h>
 #include <sys/stat.h>
+#include <grp.h>
 #include <sys/types.h>
+#include <pwd.h>
+
 #include <sys/socket.h>
+#include <netdb.h>
 
-#include "pluginmalloc.h"
-#include "plugincomm.h"
-#include "selector.h"
-#include "pbsdef.h"
-
-#include "psmomtcp.h"
 #include "psmomlog.h"
 #include "psmomconv.h"
 #include "psmomlocalcomm.h"
+#include "pluginmalloc.h"
+#include "pluginpty.h"
+#include "selector.h"
+#include "psmomtcp.h"
+#include "pbsdef.h"
 #include "psmomenv.h"
 #include "psmomforwarder.h"
 

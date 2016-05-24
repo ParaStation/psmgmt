@@ -1,18 +1,11 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2011 - 2014 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2011-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
- */
-/**
- * $Id$
- *
- * \author
- * Michael Rauh <rauh@par-tec.com>
- *
  */
 
 #include <stdlib.h>
@@ -29,16 +22,15 @@
 #include "psmomlocalcomm.h"
 #include "psmomssh.h"
 #include "psmomjobinfo.h"
-
+#include "pluginhelper.h"
 #include "pluginmalloc.h"
 #include "psidtask.h"
 #include "pluginlog.h"
 #include "plugin.h"
 
 #include "pscommon.h"
-#include "psaccounthandles.h"
+#include "psmompsaccfunc.h"
 
-#include "helper.h"
 #include "psmomkvs.h"
 
 /* some statistic tracking */
@@ -918,7 +910,7 @@ char *set(char *key, char *value)
 	    return NULL;
 	} else if (!(strcmp(key, "TORQUE_VERSION"))) {
 	    return str2Buf("\nInvalid request: changing torque version is not"
-				" possible without a restart\n", &buf, &bufSize);
+			   " possible without a restart\n", &buf, &bufSize);
 	} else if (!(strcmp(key, "DEBUG_MASK"))) {
 	    int32_t mask;
 
@@ -933,13 +925,12 @@ char *set(char *key, char *value)
 	    if (ret == 1) {
 		str2Buf("\nInvalid key '", &buf, &bufSize);
 		str2Buf(key, &buf, &bufSize);
-		str2Buf("' for cmd set : use 'plugin help psmom' "
-				"for help.\n", &buf, &bufSize);
+		str2Buf("' for cmd set : use 'plugin help psmom' foor help.\n",
+			&buf, &bufSize);
 	    } else if (ret == 2) {
 		str2Buf("\nThe key '", &buf, &bufSize);
 		str2Buf(key, &buf, &bufSize);
-		str2Buf("' for cmd set has to be numeric.\n", &buf,
-				&bufSize);
+		str2Buf("' for cmd set has to be numeric.\n", &buf, &bufSize);
 	    }
 	    return buf;
 	}
@@ -985,7 +976,7 @@ char *set(char *key, char *value)
 
 	if ((memoryDebug = fopen(value, "w+"))) {
 	    finalizePluginLogger();
-	    initPluginLogger(NULL, memoryDebug);
+	    initPluginLogger(memoryDebug);
 	    maskPluginLogger(PLUGIN_LOG_MALLOC);
 	    str2Buf("\nmemory logging to '", &buf, &bufSize);
 	    str2Buf(value, &buf, &bufSize);
@@ -1002,7 +993,7 @@ char *set(char *key, char *value)
     str2Buf("\nInvalid key '", &buf, &bufSize);
     str2Buf(key, &buf, &bufSize);
     str2Buf("' for cmd set : use 'plugin help psmom' for help.\n", &buf,
-		    &bufSize);
+	    &bufSize);
 
     return buf;
 }
@@ -1033,7 +1024,7 @@ char *unset(char *key)
 	    finalizePluginLogger();
 	    fclose(memoryDebug);
 	    memoryDebug = NULL;
-	    initPluginLogger(NULL, psmomlogfile);
+	    initPluginLogger(psmomlogfile);
 	}
 	return str2Buf("Stopped memory debugging\n", &buf, &bufSize);
     }
@@ -1054,9 +1045,9 @@ char *help(void)
     int i;
 
     str2Buf("\nThe psmom is a complete replacement of the Torque pbs_mom."
-		    " Using the psmom plug-in the psid\ntherefore is the only"
-		    " daemon needed on the compute nodes to integrate them into"
-		    " the batch system.\n", &buf, &bufSize);
+	    " Using the psmom plug-in the psid\ntherefore is the only"
+	    " daemon needed on the compute nodes to integrate them into"
+	    " the batch system.\n", &buf, &bufSize);
 
     str2Buf("\n# configuration options #\n\n", &buf, &bufSize);
     for (i=0; i<configValueCount; i++) {
@@ -1069,13 +1060,13 @@ char *help(void)
     buf = showVirtualKeys(buf, &bufSize, 0);
 
     str2Buf("\nUse 'plugin show psmom [key name]' to view the"
-		    " current configuration or internal informations.\n"
-		    "To change the configuration use 'plugin set psmom"
-		    " <name> <value>'.\n"
-		    "To unset a configuration value use 'plugin unset psmom"
-		    " <name>'.\n"
-		    "To reset the statistic use 'plugin set psmom statistic 0'"
-		    ".\n", &buf, &bufSize);
+	    " current configuration or internal informations.\n"
+	    "To change the configuration use 'plugin set psmom"
+	    " <name> <value>'.\n"
+	    "To unset a configuration value use 'plugin unset psmom"
+	    " <name>'.\n"
+	    "To reset the statistic use 'plugin set psmom statistic 0'"
+	    ".\n", &buf, &bufSize);
 
     return buf;
 }

@@ -7,13 +7,7 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-/**
- * $Id$
- *
- * \author
- * Stephan Krempel <krempel@par-tec.com>
- *
- */
+
 #include <string.h>
 #include <assert.h>
 
@@ -24,53 +18,46 @@
 #define VECTOR_CHUNK_SIZE 5
 
 void __strvInit(strv_t *strv, const char **initstrv, const size_t initcount,
-	const char *func, const int line) {
-
-    size_t count;
+		const char *func, const int line)
+{
+    size_t count = 0;
 
     if (initstrv) {
 	if (initcount) {
 	    count = initcount;
+	} else {
+	    while (initstrv[count]) count++;
 	}
-	else {
-	    count = 0;
-	    while (initstrv[count] != NULL) count++;
-	}
-
-	strv->size = count + count % VECTOR_CHUNK_SIZE;
-	strv->strings = __umalloc((strv->size + 1) * sizeof(char *), func,
-		line);
-	memcpy(strv->strings, initstrv, count * sizeof(char *));
+	strv->size = (count/VECTOR_CHUNK_SIZE + 1) * VECTOR_CHUNK_SIZE;
 	strv->count = count;
-    }
-    else {
-        strv->size = VECTOR_CHUNK_SIZE;
-	strv->strings = __umalloc((strv->size + 1) * sizeof(char *), func,
-		line);
+    } else {
+	strv->size = VECTOR_CHUNK_SIZE;
 	strv->count = 0;
     }
+
+    strv->strings = __umalloc(strv->size * sizeof(char *), func, line);
+
+    if (initstrv) memcpy(strv->strings, initstrv, count * sizeof(char *));
 
     strv->strings[strv->count] = NULL; /* terminate string */
 }
 
-int __strvAdd(strv_t *strv, char *str, const char *func,
-	const int line) {
-
+void __strvAdd(strv_t *strv, char *str, const char *func, const int line)
+{
     assert(strv && strv->strings);
     assert(strv->size > strv->count);
 
-    if (strv->count % VECTOR_CHUNK_SIZE == 0) {
+    if (strv->count == strv->size - 2) {
 	strv->size += VECTOR_CHUNK_SIZE;
-	strv->strings = __urealloc(strv->strings,
-		(strv->size + 1) * sizeof(char *), func, line);
+	strv->strings = __urealloc(strv->strings, strv->size * sizeof(char *),
+				   func, line);
     }
     strv->strings[strv->count++] = str;
     strv->strings[strv->count] = NULL;
-    return 0;
 }
 
-void __strvDestroy(strv_t *strv, const char *func, const int line) {
-
+void __strvDestroy(strv_t *strv, const char *func, const int line)
+{
     if (!strv || !strv->strings) return;
 
     __ufree(strv->strings, func, line);

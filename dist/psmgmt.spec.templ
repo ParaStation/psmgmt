@@ -169,6 +169,7 @@ exit 0
 %doc %{_docdir}/psmgmt/psslurm.conf.template
 %doc doc/psconfig
 %doc doc/systemd
+%doc doc/README.cgroup
 %{_bindir}/mlisten
 %{_bindir}/mpiexec
 %{_bindir}/psaccounter
@@ -196,6 +197,7 @@ exit 0
 %{_includedir}/pspartition.h
 %{_includedir}/psprotocol.h
 %{_includedir}/pstask.h
+%{_includedir}/pstaskid.h
 %{_includedir}/psreservation.h
 %{_libdir}/libpse.so*
 %exclude %{_libdir}/libpse.la
@@ -222,6 +224,9 @@ exit 0
 %exclude %{_plugindir}/psexec.la
 %{_pamdir}/pam_pspam.so
 %exclude %{_pamdir}/pam_pspam.la
+%{_plugindir}/cgroup.so
+%exclude %{_plugindir}/cgroup.la
+%config(noreplace) %{_plugindir}/cgroup.conf
 %config(missingok,noreplace) %{_sysconfdir}/profile.d/psmgmt.sh
 %config(missingok,noreplace) %{_sysconfdir}/profile.d/psmgmt.csh
 %if !0%{?disable_systemd}

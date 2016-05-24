@@ -24,6 +24,7 @@
 #include <unistd.h>
 #include <inttypes.h>
 
+#include "pluginhelper.h"
 #include "pluginmalloc.h"
 #include "list.h"
 #include "timer.h"
@@ -32,7 +33,6 @@
 #include "psidpartition.h"
 
 #include "pscommon.h"
-#include "psmompscomm.h"
 #include "psmomlog.h"
 #include "psmomcomm.h"
 #include "psmomconfig.h"
