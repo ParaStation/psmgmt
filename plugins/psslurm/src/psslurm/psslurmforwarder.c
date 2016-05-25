@@ -58,6 +58,7 @@
 #include "psaccounthandles.h"
 #include "pspmihandles.h"
 #include "pslog.h"
+#include "psidhook.h"
 
 #include "psslurmforwarder.h"
 
@@ -223,6 +224,11 @@ static int bcastCallback(int32_t exit_status, char *errMsg, size_t errLen,
 
 void switchUser(char *username, uid_t uid, gid_t gid, char *cwd)
 {
+    pid_t pid = getpid();
+
+    /* jail child into cgroup */
+    PSIDhook_call(PSIDHOOK_JAIL_CHILD, &pid);
+
     /* remove psslurm group memberships */
     if ((setgroups(0, NULL)) == -1) {
 	mlog("%s: setgroups(0) failed : %s\n", __func__, strerror(errno));
