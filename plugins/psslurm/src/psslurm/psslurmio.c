@@ -802,7 +802,7 @@ void redirectJobOutput(Job_t *job)
     ufree(inFile);
 }
 
-void redirectIORank(Step_t *step, int rank)
+int redirectIORank(Step_t *step, int rank)
 {
     char *ptr, *inFile;
     int fd;
@@ -814,12 +814,12 @@ void redirectIORank(Step_t *step, int rank)
 
 	if ((fd = open(inFile, O_RDONLY)) == -1) {
 	    mwarn(errno, "%s: open stdin '%s' failed: ", __func__, inFile);
-	    exit(1);
+	    return 0;
 	}
 	close(STDIN_FILENO);
 	if ((dup2(fd, STDIN_FILENO)) == -1) {
 	    mwarn(errno, "%s: stdin dup2(%u) failed: ", __func__, fd);
-	    exit(1);
+	    return 0;
 	}
     }
 
@@ -829,6 +829,7 @@ void redirectIORank(Step_t *step, int rank)
 	dup2(fd, STDIN_FILENO);
     }
 
+    return 1;
 }
 
 void redirectStepIO(Forwarder_Data_t *fwdata, Step_t *step)

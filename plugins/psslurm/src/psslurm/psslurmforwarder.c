@@ -383,13 +383,13 @@ int handleExecClientUser(void *data)
     }
 
     if ((step = findStepById(jobid, stepid))) {
-	redirectIORank(step, task->rank);
+	if (!(redirectIORank(step, task->rank))) return -1;
 
 	/* stop child after exec */
 	if (step->taskFlags & TASK_PARALLEL_DEBUG) {
 	    if ((ptrace(PTRACE_TRACEME, 0, 0, 0)) == -1) {
 		mwarn(errno, "%s: ptrace() failed: ", __func__);
-		exit(1);
+		return -1;
 	    }
 	}
 

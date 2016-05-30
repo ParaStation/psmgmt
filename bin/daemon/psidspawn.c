@@ -980,7 +980,16 @@ static void execClient(PStask_t *task)
     doClamps(task);
 
     /* used by psslurm to modify default pinning; thus after doClamps() */
-    PSIDhook_call(PSIDHOOK_EXEC_CLIENT_USER, task);
+    if (PSIDhook_call(PSIDHOOK_EXEC_CLIENT_USER, task) < 0) {
+	eno = EPERM;
+	fprintf(stderr, "%s: PSIDHOOK_EXEC_CLIENT_USER failed\n", __func__);
+	if (write(task->fd, &eno, sizeof(eno)) < 0) {
+	    eno = errno;
+	    fprintf(stderr, "%s: PSIDHOOK_EXEC_CLIENT_USER: write(): %s\n",
+		    __func__, get_strerror(eno));
+	}
+	exit(1);
+    }
 
     /* Signal forwarder we're ready for execve() */
     if (write(task->fd, &eno, sizeof(eno)) < 0) {
