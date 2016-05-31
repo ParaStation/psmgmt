@@ -473,8 +473,6 @@ void clearAllocList(void)
     list_t *pos, *tmp;
     Alloc_t *alloc;
 
-    if (list_empty(&AllocList.list)) return;
-
     list_for_each_safe(pos, tmp, &AllocList.list) {
 	if (!(alloc = list_entry(pos, Alloc_t, list))) return;
 
@@ -487,8 +485,6 @@ void clearStepList(uint32_t jobid)
     list_t *pos, *tmp;
     Step_t *step;
 
-    if (list_empty(&StepList.list)) return;
-
     list_for_each_safe(pos, tmp, &StepList.list) {
 	if (!(step = list_entry(pos, Step_t, list))) return;
 	if (step->jobid == jobid) deleteStep(step->jobid, step->stepid);
@@ -499,8 +495,6 @@ Alloc_t *findAlloc(uint32_t jobid)
 {
     list_t *pos, *tmp;
     Alloc_t *alloc;
-
-    if (list_empty(&AllocList.list)) return NULL;
 
     list_for_each_safe(pos, tmp, &AllocList.list) {
 	if (!(alloc = list_entry(pos, Alloc_t, list))) break;
@@ -821,8 +815,6 @@ int countSteps(void)
     Step_t *step;
     int count=0;
 
-    if (list_empty(&StepList.list)) return 0;
-
     list_for_each(pos, &StepList.list) {
 	if (!(step = list_entry(pos, Step_t, list))) break;
 	count++;
@@ -851,8 +843,6 @@ int countJobs(void)
     struct list_head *pos;
     Job_t *job;
     int count=0;
-
-    if (list_empty(&JobList.list)) return 0;
 
     list_for_each(pos, &JobList.list) {
 	if (!(job = list_entry(pos, Job_t, list))) break;
@@ -929,8 +919,6 @@ int signalJobs(int signal, char *reason)
     list_t *pos, *tmp;
     Job_t *job;
     int count = 0;
-
-    if (list_empty(&JobList.list)) return count;
 
     list_for_each_safe(pos, tmp, &JobList.list) {
 	if (!(job = list_entry(pos, Job_t, list))) return count;

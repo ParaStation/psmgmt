@@ -49,8 +49,6 @@ static JobInfo_t *findJobInfo(uint32_t jobid, uint32_t stepid)
     list_t *pos, *tmp;
     JobInfo_t *jobinfo;
 
-    if (list_empty(&JobInfoList.list)) return NULL;
-
     list_for_each_safe(pos, tmp, &JobInfoList.list) {
 	if (!(jobinfo = list_entry(pos, JobInfo_t, list))) return NULL;
 
@@ -65,8 +63,6 @@ JobInfo_t *findJobInfoByLogger(PStask_ID_t logger)
 {
     list_t *pos, *tmp;
     JobInfo_t *jobinfo;
-
-    if (list_empty(&JobInfoList.list)) return NULL;
 
     list_for_each_safe(pos, tmp, &JobInfoList.list) {
 	if (!(jobinfo = list_entry(pos, JobInfo_t, list))) return NULL;
@@ -92,8 +88,6 @@ void clearJobInfoList(void)
 {
     list_t *pos, *tmp;
     JobInfo_t *jobinfo;
-
-    if (list_empty(&JobInfoList.list)) return;
 
     list_for_each_safe(pos, tmp, &JobInfoList.list) {
 	if (!(jobinfo = list_entry(pos, JobInfo_t, list))) return;
