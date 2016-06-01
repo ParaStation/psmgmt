@@ -215,14 +215,10 @@ void clearGresConf(void)
 static Gres_Cred_t* getGresCred()
 {
     Gres_Cred_t *gres;
-    gres = (Gres_Cred_t *) umalloc(sizeof(Gres_Cred_t));
 
-    gres->countAlloc = 0;
-    gres->nodeCount = 0;
-    gres->bitAlloc = NULL;
-    gres->bitStepAlloc = NULL;
-    gres->countStepAlloc = NULL;
-    gres->nodeInUse = NULL;
+    gres = (Gres_Cred_t *) umalloc(sizeof(Gres_Cred_t));
+    memset(gres, 0, sizeof(Gres_Cred_t));
+    INIT_LIST_HEAD(&gres->list);
 
     return gres;
 }
