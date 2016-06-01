@@ -287,7 +287,8 @@ static Gres_Cred_t *getJobCredData(char **ptr, int index)
     if (magic != GRES_MAGIC) {
 	mlog("%s: gres job magic error '%u' : '%u'\n", __func__, magic,
 		GRES_MAGIC);
-	exit(1);
+	clearGresCred(gres);
+	return NULL;
     }
 
     mdbg(PSSLURM_LOG_GRES, "%s: index '%i' pluginID '%u' "
@@ -350,7 +351,8 @@ static Gres_Cred_t *getStepCredData(char **ptr, int index)
     if (magic != GRES_MAGIC) {
 	mlog("%s: magic error: '%u' : '%u'\n", __func__, magic,
 		GRES_MAGIC);
-	exit(1);
+	clearGresCred(gres);
+	return NULL;
     }
 
     mdbg(PSSLURM_LOG_GRES, "%s: index '%i' pluginID '%u' gresCountAlloc '%u'"
@@ -384,7 +386,7 @@ int getGresJobCred(Gres_Cred_t *gresList, char **ptr, uint32_t jobid,
 	    "count '%u'\n", __func__, jobid, stepid,  uid, count);
 
     for (i=0; i<count; i++) {
-	gres = getJobCredData(ptr, i);
+	if (!(gres = getJobCredData(ptr, i))) continue;
 	list_add_tail(&(gres->list), &(gresList->list));
     }
 
@@ -394,7 +396,7 @@ int getGresJobCred(Gres_Cred_t *gresList, char **ptr, uint32_t jobid,
 	    "count '%u'\n", __func__, jobid, stepid,  uid, count);
 
     for (i=0; i<count; i++) {
-	gres = getStepCredData(ptr, i);
+	if (!(gres = getStepCredData(ptr, i))) continue;
 	list_add_tail(&(gres->list), &(gresList->list));
     }
 
