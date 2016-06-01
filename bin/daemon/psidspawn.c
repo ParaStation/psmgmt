@@ -1049,7 +1049,8 @@ static void execClient(PStask_t *task)
 static int openChannel(PStask_t *task, int *fds, int fileNo)
 {
     char *fdName = (fileNo == STDOUT_FILENO) ? "stdout" :
-	(fileNo == STDERR_FILENO) ? "stderr" : "unknown";
+	(fileNo == STDERR_FILENO) ? "stderr" :
+	(fileNo == STDIN_FILENO) ? "stdin" : "unknown";
 
     if (task->aretty & (1<<fileNo)) {
 	if (openpty(&fds[0], &fds[1], NULL, &task->termios, &task->winsize)) {
@@ -1058,9 +1059,20 @@ static int openChannel(PStask_t *task, int *fds, int fileNo)
 	    return eno;
 	}
     } else {
+	/* need to create as user to grant permission to access /dev/stdX */
+	if ((seteuid(task->uid)) == -1) {
+	    int eno = errno;
+	    PSID_warn(-1, eno, "%s: seteiud(%i)", __func__, task->uid);
+	    return eno;
+	}
 	if (pipe(fds)) {
 	    int eno = errno;
 	    PSID_warn(-1, errno, "%s: pipe(%s)", __func__, fdName);
+	    return eno;
+	}
+	if ((seteuid(0)) == -1) {
+	    int eno = errno;
+	    PSID_warn(-1, eno, "%s: seteiud(0)", __func__);
 	    return eno;
 	}
     }
@@ -1144,13 +1156,6 @@ static void execForwarder(PStask_t *task, int daemonfd)
     if (task->interactive) {
 	if ((eno = openChannel(task, stderrfds, STDERR_FILENO))) goto error;
     } else {
-	/* need to create as user for permission to access to /dev/stdX */
-	if ((seteuid(task->uid)) == -1) {
-	    eno = errno;
-	    PSID_warn(-1, eno, "%s: seteiud(%i)", __func__, task->uid);
-	    goto error;
-	}
-
 	/* first stdout */
 	if ((eno = openChannel(task, stdoutfds, STDOUT_FILENO))) goto error;
 
@@ -1159,12 +1164,6 @@ static void execForwarder(PStask_t *task, int daemonfd)
 
 	/* last stdin */
 	if ((eno = openChannel(task, stdinfds, STDIN_FILENO))) goto error;
-
-	if ((seteuid(0)) == -1) {
-	    eno = errno;
-	    PSID_warn(-1, eno, "%s: seteiud(0)", __func__);
-	    goto error;
-	}
     }
 
     /* init the process manager sockets */
@@ -1215,10 +1214,24 @@ static void execForwarder(PStask_t *task, int daemonfd)
 	} else {
 	    close(stdinfds[1]);
 	    task->stdin_fd = stdinfds[0];
+	    if (task->aretty & (1<<STDIN_FILENO)) {
+		char *name = ttyname(stdinfds[0]);
+		pty_setowner(task->uid, task->gid, name);
+	    }
+
 	    close(stdoutfds[0]);
 	    task->stdout_fd = stdoutfds[1];
+	    if (task->aretty & (1<<STDOUT_FILENO)) {
+		char *name = ttyname(stdoutfds[1]);
+		pty_setowner(task->uid, task->gid, name);
+	    }
+
 	    close(stderrfds[0]);
 	    task->stderr_fd = stderrfds[1];
+	    if (task->aretty & (1<<STDERR_FILENO)) {
+		char *name = ttyname(stderrfds[1]);
+		pty_setowner(task->uid, task->gid, name);
+	    }
 	}
 
 	/* redirect stdin/stdout/stderr */
