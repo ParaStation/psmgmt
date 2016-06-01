@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2015 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -11,12 +11,6 @@
 /**
  * @file
  * Helper functions in order to setup and handle partitions.
- *
- * $Id$
- *
- * @author
- * Norbert Eicker <eicker@par-tec.com>
- *
  */
 #ifndef __PSIDPARTITION_H
 #define __PSIDPARTITION_H
@@ -201,10 +195,10 @@ unsigned short getAssignedThreads(PSnodes_ID_t node);
  *
  * @return On success, the nodes exclusive flag is returned, i.e. the
  * flag marking the node to be used by its current job exclusively. Or
- * 0, if an error occurred. Be aware of the fact, that an error cannot
- * be distinguished from a node not used exclusively.
+ * false, if an error occurred. Be aware of the fact, that an error
+ * cannot be distinguished from a node not used exclusively.
  */
-int getIsExclusive(PSnodes_ID_t node);
+bool getIsExclusive(PSnodes_ID_t node);
 
 
 /**
