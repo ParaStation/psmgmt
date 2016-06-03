@@ -456,6 +456,36 @@ static void setConfOpt()
     }
 }
 
+static int getControllerIDs()
+{
+    char *conAddr;
+
+    /* resolve main controller */
+    if (!(conAddr = getConfValueC(&SlurmConfig, "ControlMachine"))) {
+	mlog("%s: invalid ControlMachine\n", __func__);
+	return 0;
+    }
+
+    if ((slurmController = getNodeIDbyName(conAddr)) == -1) {
+	mlog("%s: unable to resolve main controller '%s'\n", __func__, conAddr);
+	return 0;
+    }
+
+    /* resolve backup controller */
+    if (!(conAddr = getConfValueC(&SlurmConfig, "BackupController"))) {
+	/* we could be running without backup controller */
+	return 1;
+    }
+
+    if ((slurmBackupController = getNodeIDbyName(conAddr)) == -1) {
+	mlog("%s: unable to resolve backup controller '%s'\n",
+		__func__, conAddr);
+	return 0;
+    }
+
+    return 1;
+}
+
 int initialize(void)
 {
     int ctlPort;
@@ -528,11 +558,8 @@ int initialize(void)
 	}
     }
 
-    /* resolve controller ids */
-    slurmController = getNodeIDbyName(getConfValueC(&SlurmConfig,
-						    "ControlMachine"));
-    slurmBackupController = getNodeIDbyName(getConfValueC(&SlurmConfig,
-						    "BackupController"));
+    /* resolve controller IDs */
+    if (!(getControllerIDs())) goto INIT_ERROR;
 
     /* listening on slurmd port */
     ctlPort = getConfValueI(&SlurmConfig, "SlurmdPort");

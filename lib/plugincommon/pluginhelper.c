@@ -15,6 +15,7 @@
 #include <string.h>
 #include <netdb.h>
 #include <signal.h>
+#include <errno.h>
 
 #include "psidnodes.h"
 #include "pluginlog.h"
@@ -56,16 +57,22 @@ PSnodes_ID_t getNodeIDbyName(char *host)
 {
     struct hostent *hp;
     struct in_addr sin_addr;
+    PSnodes_ID_t node;
 
     if (!host) return -1;
 
     if (!(hp = gethostbyname(host))) {
-	pluginlog("%s: unknown host '%s'\n", __func__, host);
+	pluginwarn(errno, "%s: gethostbyname failed for '%s' : ", __func__,
+		    host);
 	return -1;
     }
 
     memcpy(&sin_addr, hp->h_addr_list[0], hp->h_length);
-    return PSIDnodes_lookupHost(sin_addr.s_addr);
+    if ((node = PSIDnodes_lookupHost(sin_addr.s_addr)) == -1) {
+	pluginlog("%s: lookup host '%s' failed\n", __func__, host);
+    }
+
+    return node;
 }
 
 const char *getHostnameByNodeId(PSnodes_ID_t id)
