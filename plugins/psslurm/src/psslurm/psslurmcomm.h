@@ -58,8 +58,12 @@ void initSlurmMsgHead(Slurm_Msg_Header_t *head);
 void freeSlurmMsgHead(Slurm_Msg_Header_t *head);
 int sendSlurmMsg(int sock, slurm_msg_type_t type, PS_DataBuffer_t *body);
 int sendSlurmMsgEx(int sock, Slurm_Msg_Header_t *head, PS_DataBuffer_t *body);
-void saveForwardedMsgRes(Slurm_Msg_t *sMsg, PS_DataBuffer_t *data,
+
+#define saveForwardedMsgRes(sMsg, data, error) \
+	    __saveForwardedMsgRes(sMsg, data, error, __func__, __LINE__);
+void __saveForwardedMsgRes(Slurm_Msg_t *sMsg, PS_DataBuffer_t *data,
 			    uint32_t error, const char *func, const int line);
+void handleBrokenConnection(PSnodes_ID_t nodeID);
 
 int openSlurmdSocket(int port);
 void closeSlurmdSocket(void);

@@ -2082,7 +2082,7 @@ int __sendSlurmReply(Slurm_Msg_t *sMsg, slurm_msg_type_t type,
 	if (!sMsg->head.forward) {
 	    ret = sendSlurmMsg(sMsg->sock, type, body);
 	} else {
-	    saveForwardedMsgRes(sMsg, body, SLURM_SUCCESS, func, line);
+	    __saveForwardedMsgRes(sMsg, body, SLURM_SUCCESS, func, line);
 	}
     } else {
 	/* forwarded message */

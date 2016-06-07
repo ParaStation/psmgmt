@@ -199,18 +199,10 @@ Connection_t *addConnection(int socket, Connection_CB_t *cb)
     }
 
     con = (Connection_t *) umalloc(sizeof(Connection_t));
+
+    memset(con, 0, sizeof(Connection_t));
     con->sock = socket;
     con->cb = cb;
-    con->data.buf = NULL;
-    con->data.bufSize = 0;
-    con->data.bufUsed = 0;
-    con->error = 0;
-
-    /* init forward struct */
-    con->fw.res = 0;
-    con->fw.nodes = NULL;
-    con->fw.nodesCount = 0;
-    con->fw.body.buf = NULL;
     initSlurmMsgHead(&con->fw.head);
 
     list_add_tail(&(con->list), &ConnectionList.list);
@@ -274,13 +266,24 @@ void clearConnections(void)
     }
 }
 
-void saveForwardedMsgRes(Slurm_Msg_t *sMsg, PS_DataBuffer_t *data,
+void __saveForwardedMsgRes(Slurm_Msg_t *sMsg, PS_DataBuffer_t *data,
 			    uint32_t error, const char *func, const int line)
 {
     Connection_t *con;
     Connection_Forward_t *fw;
     Slurm_Forward_Data_t *fwdata;
     uint16_t i, saved = 0;
+    PSnodes_ID_t srcNode;
+
+    if (!sMsg) {
+	mlog("%s: invalid sMsg ptr\n", __func__);
+	return;
+    }
+
+    if (!data) {
+	mlog("%s: invalid data ptr\n", __func__);
+	return;
+    }
 
     if (!(con = findConnectionEx(sMsg->sock, sMsg->recvTime))) {
 	mlog("%s: connection source '%s' socket '%i' recvTime '%zu' type '%s' "
@@ -288,21 +291,27 @@ void saveForwardedMsgRes(Slurm_Msg_t *sMsg, PS_DataBuffer_t *data,
 		sMsg->recvTime, msgType2String(sMsg->head.type));
 	return;
     }
+
     fw = &con->fw;
-
-    /* check fw time */
     fw->res++;
+    srcNode = PSC_getID(sMsg->source);
 
-    if (PSC_getID(sMsg->source) == PSC_getMyID()) {
+    if (srcNode == PSC_getMyID()) {
 	fw->head.type = sMsg->head.type;
 	addMemToMsg(data->buf, data->bufUsed, &fw->body);
     } else {
 	for (i=0; i<fw->head.forward; i++) {
 	    fwdata = &fw->head.fwdata[i];
+	    if (fwdata->node == srcNode) {
+		mlog("%s: result for node '%i' already saved\n",
+			__func__, srcNode);
+		fw->res--;
+		return;
+	    }
 	    if (fwdata->node == -1) {
 		fwdata->error = error;
 		fwdata->type = sMsg->head.type;
-		fwdata->node = PSC_getID(sMsg->source);
+		fwdata->node = srcNode;
 		addMemToMsg(data->buf, data->bufUsed, &fwdata->body);
 		fw->head.returnList++;
 		saved = 1;
@@ -594,18 +603,9 @@ static int connect2Slurmctld()
 
 void initSlurmMsgHead(Slurm_Msg_Header_t *head)
 {
+    memset(head, 0, sizeof(Slurm_Msg_Header_t));
     head->version = SLURM_CUR_PROTOCOL_VERSION;
-    head->flags = 0;
     head->flags |= SLURM_GLOBAL_AUTH_KEY;
-    head->type = 0;
-    head->bodyLen = 0;
-    head->forward = 0;
-    head->nodeList = NULL;
-    head->timeout = 0;
-    head->returnList = 0;
-    head->addr = 0;
-    head->port = 0;
-    head->fwdata = NULL;
 }
 
 void freeSlurmMsgHead(Slurm_Msg_Header_t *head)
@@ -1266,5 +1266,38 @@ void closeAllStepConnections(Step_t *step)
     }
     if (!step->srunPTYMsg.head.forward) {
 	freeSlurmMsg(&step->srunPTYMsg);
+    }
+}
+
+void handleBrokenConnection(PSnodes_ID_t nodeID)
+{
+    list_t *pos, *tmp;
+    Connection_t *con;
+    Connection_Forward_t *fw;
+    uint32_t i;
+    Slurm_Msg_t sMsg;
+    PS_DataBuffer_t data = { .buf = NULL };
+
+    list_for_each_safe(pos, tmp, &ConnectionList.list) {
+	if (!(con = list_entry(pos, Connection_t, list))) break;
+
+	fw = &con->fw;
+
+	for (i=0; i<fw->nodesCount; i++) {
+	    if (fw->nodes[i] == nodeID) {
+
+		initSlurmMsgHead(&sMsg.head);
+		sMsg.data = NULL;
+		sMsg.source = PSC_getTID(nodeID, 0);
+		sMsg.head.type = RESPONSE_FORWARD_FAILED;
+		sMsg.sock = con->sock;
+		sMsg.recvTime = con->recvTime;
+
+		saveForwardedMsgRes(&sMsg, &data,
+					SLURM_COMMUNICATIONS_CONNECTION_ERROR);
+		mlog("%s: forwarded message error for node '%i' saved\n",
+			__func__, nodeID);
+	    }
+	}
     }
 }
