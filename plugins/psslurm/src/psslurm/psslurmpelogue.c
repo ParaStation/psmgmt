@@ -70,7 +70,7 @@ static void handleFailedPElogue(int prologue, uint32_t nrOfNodes, env_t *env,
 
     for (i=0; i<nrOfNodes; i++) {
 	if (prologue) {
-	    if (resList[i].prologue == 2) {
+	    if (resList[i].prologue == 2 || resList[i].prologue == -4) {
 		snprintf(msg, sizeof(msg), "psslurm: %s failed with exit "
 			    "code '%i'\n", "prologue", resList[i].prologue);
 
@@ -78,7 +78,7 @@ static void handleFailedPElogue(int prologue, uint32_t nrOfNodes, env_t *env,
 				getHostnameByNodeId(resList[i].id), msg);
 	    }
 	} else {
-	    if (resList[i].epilogue == 2) {
+	    if (resList[i].epilogue == 2 || resList[i].epilogue == -4) {
 		snprintf(msg, sizeof(msg), "psslurm: %s failed with exit "
 			    "code '%i'\n", "epilogue", resList[i].epilogue);
 
