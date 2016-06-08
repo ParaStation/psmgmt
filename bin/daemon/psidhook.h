@@ -112,7 +112,9 @@ typedef enum {
 				be send, otherwise only the connection will
 				be closed. */
     PSIDHOOK_FRWRD_CLIENT_STAT,/**< Ask all plugins if we are ready to release
-				the child. */
+				the child. Also used by psslurm to execute task
+			        epilog at sister nodes, therefor passes the
+				client task structure. */
     PSIDHOOK_FRWRD_SPAWNRES,  /**< A result msg to a spawn request. Arg is a
 				pointer to the msg. Used by pspmi to handle the
 				result of spawning new service processes. */
