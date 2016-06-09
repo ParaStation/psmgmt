@@ -193,7 +193,7 @@ char *PSP_printInfo(PSP_Info_t infotype)
     }
 }
 
-size_t PSP_strLen(char *str)
+size_t PSP_strLen(const char *str)
 {
     return str ? strlen(str) + 1 : 0;
 }
