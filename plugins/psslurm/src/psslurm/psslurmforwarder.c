@@ -415,6 +415,10 @@ int handleForwarderClientStatus(void * data)
 
 	setRankEnv(task->rank, step);
 
+	if (chdir(step->cwd) != 0) {
+	    mwarn(errno, "cannot change to working direktory '%s'", step->cwd);
+	}
+
 	argv[0] = taskEpilogue;
 	argv[1] = NULL;
 
