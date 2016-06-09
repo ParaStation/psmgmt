@@ -42,7 +42,7 @@ void __strvInit(strv_t *strv, char **initstrv, size_t initcount,
     strv->strings[strv->count] = NULL; /* terminate string */
 }
 
-void __strvAdd(strv_t *strv, char *str, const char *func, int line)
+void __strvAdd(strv_t *strv, char *str, const char *func, const int line)
 {
     assert(strv && strv->strings);
     assert(strv->size > strv->count);
@@ -56,7 +56,7 @@ void __strvAdd(strv_t *strv, char *str, const char *func, int line)
     strv->strings[strv->count] = NULL;
 }
 
-void __strvDestroy(strv_t *strv, const char *func, int line)
+void __strvDestroy(strv_t *strv, const char *func, const int line)
 {
     if (!strv || !strv->strings) return;
 

@@ -73,7 +73,7 @@ void __strvInit(strv_t *strv, char **initstrv, size_t initcount,
  *
  * @return No return value
  */
-void __strvAdd(strv_t *strv, char *str, const char *func, int line);
+void __strvAdd(strv_t *strv, char *str, const char *func, const int line);
 #define strvAdd(strv, str) __strvAdd(strv, str, __func__, __LINE__)
 
 /**
@@ -95,7 +95,7 @@ void __strvAdd(strv_t *strv, char *str, const char *func, int line);
  *
  * @return No return value
  */
-void __strvDestroy(strv_t *strv, const char *func, int line);
+void __strvDestroy(strv_t *strv, const char *func, const int line);
 #define strvDestroy(strv) __strvDestroy(strv, __func__, __LINE__)
 
 #endif  /* __PLUGIN_LIB_STRV */
