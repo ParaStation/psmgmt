@@ -91,9 +91,6 @@ int __doRead(int fd, void *buffer, size_t toread, const char *func,
 int __doReadExt(int fd, void *buffer, size_t toread, size_t *ret,
 		    const char *func, int pedantic);
 
-#define listenUnixSocket(sock) __listenUnixSocket(sock,  __func__)
-int __listenUnixSocket(char *socketName, const char *func);
-
 /**
  * @brief Add a string to a PS message buffer.
  *

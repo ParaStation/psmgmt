@@ -22,6 +22,8 @@
 #include <string.h>
 #include <pwd.h>
 #include <dlfcn.h>
+#include <sys/un.h>
+#include <sys/stat.h>
 
 #include "plugin.h"
 #include "selector.h"
@@ -183,6 +185,39 @@ static int initPluginHandles()
     }
 
     return 1;
+}
+
+static int listenUnixSocket(char *socketName)
+{
+    struct sockaddr_un sa;
+    int sock = -1, opt = 1;
+
+    sock = socket(PF_UNIX, SOCK_STREAM, 0);
+
+    memset(&sa, 0, sizeof(sa));
+    sa.sun_family = AF_UNIX;
+    strncpy(sa.sun_path, socketName, sizeof(sa.sun_path));
+
+    if ((setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt))) < 0 ) {
+	mwarn(errno, "%s: setsockopt failed, socket:%i ", __func__, sock);
+    }
+
+    /*
+     * bind the socket to the right address
+     */
+    unlink(socketName);
+    if (bind(sock, (struct sockaddr *)&sa, sizeof(sa)) < 0) {
+	mwarn(errno, "%s: bind() to '%s' failed: ", __func__, socketName);
+	return -1;
+    }
+    chmod(sa.sun_path, S_IRWXU);
+
+    if (listen(sock, 20) < 0) {
+	mwarn(errno, "%s: listen() on '%s' failed: ", __func__, socketName);
+	return -1;
+    }
+
+    return sock;
 }
 
 int initialize(void)
