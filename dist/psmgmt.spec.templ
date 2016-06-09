@@ -124,7 +124,7 @@ exit 0
 if [ $1 -eq 1 ] ; then
     # first install
 %if !0%{?disable_systemd}
-    systemctl preset x >/dev/null 2>&1 || :
+    systemctl preset psid.service psidstarter.socket >/dev/null 2>&1 || :
 %else
     /sbin/chkconfig --add parastation
     /sbin/chkconfig psidstarter on
