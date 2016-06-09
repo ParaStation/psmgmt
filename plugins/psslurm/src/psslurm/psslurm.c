@@ -167,6 +167,10 @@ static void unregisterHooks(int verbose)
 	if (verbose) mlog("unregister 'PSIDHOOK_FRWRD_INIT' failed\n");
     }
 
+    if (!(PSIDhook_del(PSIDHOOK_FRWRD_CLIENT_STAT, handleForwarderClientStatus))) {
+	if (verbose) mlog("unregister 'PSIDHOOK_FRWRD_CLIENT_STAT' failed\n");
+    }
+
     if (!(PSIDhook_del(PSIDHOOK_PELOGUE_FINISH, handleLocalPElogueFinish))) {
 	if (verbose) mlog("unregister 'PSIDHOOK_PELOGUE_FINISH' failed\n");
     }
@@ -216,6 +220,11 @@ static int registerHooks()
 
     if (!(PSIDhook_add(PSIDHOOK_FRWRD_INIT, handleForwarderInit))) {
 	mlog("register 'PSIDHOOK_FRWRD_INIT' failed\n");
+	return 0;
+    }
+
+    if (!(PSIDhook_add(PSIDHOOK_FRWRD_CLIENT_STAT, handleForwarderClientStatus))) {
+	mlog("register 'PSIDHOOK_FRWRD_CLIENT_STAT' failed\n");
 	return 0;
     }
 

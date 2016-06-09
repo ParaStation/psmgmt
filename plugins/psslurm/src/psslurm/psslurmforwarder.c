@@ -120,9 +120,6 @@ static int stepFWIOcallback(int32_t exit_status, char *errMsg,
     /* send task exit to srun processes */
     sendTaskExit(step, NULL, NULL);
 
-    /* execute task epilogue for each task on this node */
-    execTaskEpilogues(data, 0);
-
     step->fwdata = NULL;
 
     mlog("%s: step '%u:%u' finished\n", __func__,
@@ -185,11 +182,7 @@ static int stepCallback(int32_t exit_status, char *errMsg,
 	    step->jobid, step->stepid, strJobState(step->state));
     psAccountDelJob(PSC_getTID(-1, fwdata->childPid));
 
-    if (step->taskEpilog && *(step->taskEpilog) != '\0') {
-	/* run task epilogue now for each task in this step */
-	if (!(startTaskEpilogues(step))) step->fwdata = NULL;
-	return 0;
-    } else if ((alloc = findAlloc(step->jobid)) &&
+    if ((alloc = findAlloc(step->jobid)) &&
 	alloc->state == JOB_RUNNING &&
 	alloc->terminate &&
 	alloc->motherSup == PSC_getMyTID()) {
@@ -243,16 +236,16 @@ void switchUser(char *username, uid_t uid, gid_t gid, char *cwd)
 
     /* change the gid */
     if ((setgid(gid)) < 0) {
-        mlog("%s: setgid(%i) failed : %s\n", __func__, gid,
+	mlog("%s: setgid(%i) failed : %s\n", __func__, gid,
 		strerror(errno));
-        exit(1);
+	exit(1);
     }
 
     /* change the uid */
     if ((setuid(uid)) < 0) {
 	mlog("%s: setuid(%i) failed : %s\n", __func__, uid,
 		strerror(errno));
-        exit(1);
+	exit(1);
     }
 
     /* change to job working directory */
@@ -295,29 +288,51 @@ static void execBatchJob(void *data, int rerun)
     execve(job->jobscript, job->argv, job->env.vars);
 }
 
+/**
+ * Find step structure by using the values of SLURM_STEPID and SLURM_JOBID
+ * in the passed environment. If NULL is passed as environment or one of the
+ * variables is not found, the values used are 0 as job id and
+ * SLURM_BATCH_SCRIPT as step id.
+ *
+ * jobid_out and stepid_out are set to the used values if not NULL.
+ */
+static Step_t * findStepByEnv(char **environ, uint32_t *jobid_out,
+				uint32_t *stepid_out) {
+    int count = 0;
+    char *ptr;
+    uint32_t jobid = 0, stepid = SLURM_BATCH_SCRIPT;
+
+    if (environ) {
+	ptr = environ[count++];
+	while (ptr) {
+	    if (!(strncmp(ptr, "SLURM_STEPID=", 13))) {
+		sscanf(ptr+13, "%u", &stepid);
+	    }
+	    if (!(strncmp(ptr, "SLURM_JOBID=", 12))) {
+		sscanf(ptr+12, "%u", &jobid);
+	    }
+
+	    ptr = environ[count++];
+	}
+    }
+
+    if (jobid_out) *jobid_out = jobid;
+    if (stepid_out) *stepid_out = stepid;
+
+    return findStepById(jobid, stepid);
+}
+
 int handleForwarderInit(void * data)
 {
     PStask_t *task = data;
     Step_t *step;
-    int count = 0, status;
-    char *ptr;
-    uint32_t jobid = 0, stepid = SLURM_BATCH_SCRIPT;
+    int status;
+
     pid_t child = PSC_getPID(task->tid);
 
     if (task->rank <0) return 0;
 
-    ptr = task->environ[count++];
-    while (ptr) {
-	if (!(strncmp(ptr, "SLURM_STEPID=", 13))) {
-	    sscanf(ptr+13, "%u", &stepid);
-	}
-	if (!(strncmp(ptr, "SLURM_JOBID=", 12))) {
-	    sscanf(ptr+12, "%u", &jobid);
-	}
-	ptr = task->environ[count++];
-    }
-
-    if ((step = findStepById(jobid, stepid))) {
+    if ((step = findStepByEnv(task->environ, NULL, NULL))) {
 
 	initSpawnFacility(step);
 
@@ -344,6 +359,94 @@ int handleForwarderInit(void * data)
     return 0;
 }
 
+int handleForwarderClientStatus(void * data)
+{
+    PStask_t *task = data;
+    Step_t *step;
+
+    pid_t childpid;
+    char *argv[2];
+    char buffer[4096], *taskEpilogue;
+    int status, grace;
+    size_t i;
+    time_t t;
+
+    if (!(step = findStepByEnv(task->environ, NULL, NULL))) {
+	mlog("%s: cannot find step.\n", __func__);
+	return 0;
+    }
+
+    if (task->rank < 0) return 0;
+
+    if (!step->taskEpilog || *(step->taskEpilog) == '\0') return 0;
+
+    taskEpilogue = step->taskEpilog;
+
+    /* handle relative paths */
+    if (taskEpilogue[0] != '/') {
+	snprintf(buffer, 4096, "%s/%s", step->cwd, taskEpilogue);
+	taskEpilogue = buffer;
+    }
+
+    if ((childpid = fork()) < 0) {
+	mlog("%s: fork failed\n", __func__);
+	return 0;
+    }
+
+    if (childpid == 0) {
+	/* This is the child */
+
+	setpgrp();
+
+	setDefaultRlimits();
+
+	setStepEnv(step);
+
+	errno = 0;
+
+	if (access(taskEpilogue, R_OK | X_OK) < 0) {
+	    mwarn(errno, "task epilogue '%s' not accessable", taskEpilogue);
+	    exit(-1);
+	}
+
+	for (i = 0; i < step->env.cnt; i++) {
+	    putenv(step->env.vars[i]);
+	}
+
+	setRankEnv(task->rank, step);
+
+	argv[0] = taskEpilogue;
+	argv[1] = NULL;
+
+	/* execute task epilogue */
+	mlog("%s: starting task epilogue '%s' for rank %u of job %u\n",
+	    __func__, taskEpilogue, task->rank, step->jobid);
+
+	execvp (argv[0], argv);
+	mlog("%s: exec for task epilogue '%s' failed for rank %u of job"
+		" %u\n", __func__, taskEpilogue, task->rank, step->jobid);
+	exit(-1);
+    }
+
+    /* This is the parent */
+
+    t = time(NULL);
+    grace = getConfValueI(&SlurmConfig, "KillWait");
+
+    while(1) {
+	if ((time(NULL) - t) > 5) killpg(childpid, SIGTERM);
+	if ((time(NULL) - t) > (5 + grace)) killpg(childpid, SIGKILL);
+	usleep(100000);
+	if(waitpid(childpid, &status, WNOHANG) < 0) {
+	    if (errno == EINTR) continue;
+	    killpg(childpid, SIGKILL);
+	    break;
+	}
+    }
+
+    return 0;
+}
+
 int handleExecClient(void *data)
 {
     PStask_t *task = data;
@@ -359,30 +462,15 @@ int handleExecClientUser(void *data)
 {
     PStask_t *task = data;
     Step_t *step;
-    int i, count = 0;
-    char *ptr;
-    uint32_t jobid = 0, stepid = SLURM_BATCH_SCRIPT;
+    int i;
+    uint32_t jobid = 0;
 
     if (task->rank <0) return 0;
 
     /* unset MALLOC_CHECK_ set by psslurm */
     unsetenv("MALLOC_CHECK_");
 
-    if (task->environ) {
-	ptr = task->environ[count++];
-	while (ptr) {
-	    if (!(strncmp(ptr, "SLURM_STEPID=", 13))) {
-		sscanf(ptr+13, "%u", &stepid);
-	    }
-	    if (!(strncmp(ptr, "SLURM_JOBID=", 12))) {
-		sscanf(ptr+12, "%u", &jobid);
-	    }
-
-	    ptr = task->environ[count++];
-	}
-    }
-
-    if ((step = findStepById(jobid, stepid))) {
+    if ((step = findStepByEnv(task->environ, &jobid, NULL))) {
 	if (!(redirectIORank(step, task->rank))) return -1;
 
 	/* stop child after exec */
