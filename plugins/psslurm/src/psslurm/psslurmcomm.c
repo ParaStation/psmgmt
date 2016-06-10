@@ -606,6 +606,9 @@ void initSlurmMsgHead(Slurm_Msg_Header_t *head)
     memset(head, 0, sizeof(Slurm_Msg_Header_t));
     head->version = SLURM_CUR_PROTOCOL_VERSION;
     head->flags |= SLURM_GLOBAL_AUTH_KEY;
+#ifdef SLURM_PROTOCOL_1605
+    head->treeWidth = 1;
+#endif
 }
 
 void freeSlurmMsgHead(Slurm_Msg_Header_t *head)
@@ -642,6 +645,10 @@ static void addSlurmHeader(Slurm_Msg_Header_t *head, uint32_t bodyLen,
     addUint16ToMsg(head->version, data);
     /* flags */
     addUint16ToMsg(head->flags, data);
+#ifdef SLURM_PROTOCOL_1605
+    /* index */
+    addUint16ToMsg(head->index, data);
+#endif
     /* type */
     addUint16ToMsg(head->type, data);
     /* body len */
@@ -650,8 +657,14 @@ static void addSlurmHeader(Slurm_Msg_Header_t *head, uint32_t bodyLen,
     /* forward */
     addUint16ToMsg(head->forward, data);
     if (head->forward > 0) {
+	/* nodelist */
 	addStringToMsg(head->nodeList, data);
+	/* timeout */
 	addUint32ToMsg(head->timeout, data);
+#ifdef SLURM_PROTOCOL_1605
+	/* tree width */
+	addUint16ToMsg(head->treeWidth, data);
+#endif
     }
 
     /* return list */

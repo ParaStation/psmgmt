@@ -32,8 +32,11 @@
 #include "psslurmauth.h"
 
 #define AUTH_MUNGE_STRING "auth/munge"
-#define AUTH_MUNGE_VERSION 10
-
+#ifdef SLURM_PROTOCOL_1605
+ #define AUTH_MUNGE_VERSION SLURM_CUR_VERSION
+#else
+ #define AUTH_MUNGE_VERSION 10
+#endif
 
 int checkAuthorizedUser(uid_t user, uid_t test)
 {
@@ -69,7 +72,7 @@ int testMungeAuth(char **ptr, Slurm_Msg_Header_t *msgHead)
 
     getUint32(ptr, &version);
     if (version != AUTH_MUNGE_VERSION) {
-	mlog("%s: auth munge verison differ '%u' : '%u'\n", __func__,
+	mlog("%s: auth munge version differ '%u' : '%u'\n", __func__,
 		AUTH_MUNGE_VERSION, version);
 	return 0;
     }
@@ -325,8 +328,13 @@ JobCred_t *getJobCred(Gres_Cred_t *gres, char **ptr, uint16_t version,
     /* job/step memory limit */
     getUint32(ptr, &cred->jobMemLimit);
     getUint32(ptr, &cred->stepMemLimit);
-
+#ifdef SLURM_PROTOCOL_1605
+    /* job constraints */
+    cred->jobConstraints = getStringM(ptr);
+#endif
+    /* hostlist */
     cred->hostlist = getStringM(ptr);
+    /* time */
     getTime(ptr, &cred->ctime);
 
     /* core/socket maps */

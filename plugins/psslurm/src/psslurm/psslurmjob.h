@@ -67,6 +67,7 @@ typedef struct {
     uint32_t jobNumHosts;
     char *jobHostlist;
     char *sig;
+    char *jobConstraints;
 } JobCred_t;
 
 typedef enum {
@@ -144,7 +145,11 @@ typedef struct {
     uint32_t myNodeIndex;
     uint32_t jobMemLimit;
     uint32_t stepMemLimit;
+#ifdef SLURM_PROTOCOL_1605
+    uint32_t taskDist;
+#else
     uint16_t taskDist;
+#endif
     uint16_t nodeCpus;
     uint16_t jobCoreSpec;	/* count of specialized cores */
     uint16_t *tasksToLaunch;	/* number of tasks to launch (per node) */
@@ -196,7 +201,17 @@ typedef struct {
     uint8_t labelIO;
     uint16_t accType;
     char *nodeAlias;
+#ifdef SLURM_PROTOCOL_1605
+    uint32_t cpuFreqMin;
+    uint32_t cpuFreqMax;
+    uint32_t cpuFreqGov;
+    uint16_t ntasksPerBoard;
+    uint16_t ntasksPerCore;
+    uint16_t ntasksPerSocket;
+    uint16_t accelBindType;
+#else
     uint32_t cpuFreq;
+#endif
     char *checkpoint;
     char *restart;
     uint8_t x11forward;

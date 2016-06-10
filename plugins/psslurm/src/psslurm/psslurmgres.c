@@ -71,12 +71,19 @@ void addGresData(PS_DataBuffer_t *msg, int version)
 	if (!(gres = list_entry(pos, Gres_Conf_t, list))) break;
 
 	addUint32ToMsg(GRES_MAGIC, &data);
+#ifdef SLURM_PROTOCOL_1605
+	addUint64ToMsg(gres->count, &data);
+#else
 	addUint32ToMsg(gres->count, &data);
+#endif
 	addUint32ToMsg(cpus, &data);
 	addUint8ToMsg((gres->file ? 1 : 0), &data);
 	addUint32ToMsg(gres->id, &data);
 	addStringToMsg(gres->cpus, &data);
 	addStringToMsg(gres->name, &data);
+#ifdef SLURM_PROTOCOL_1605
+	addStringToMsg(gres->type, &data);
+#endif
 	count++;
     }
 
@@ -171,6 +178,9 @@ Gres_Conf_t *addGresConf(char *name, char *count, char *file, char *cpus)
 
     /* TODO support CPUs in gres */
     gres->cpus = NULL;
+#ifdef SLURM_PROTOCOL_1605
+    gres->type = NULL;
+#endif
 
     /* parse file */
     if (file) {
@@ -182,7 +192,11 @@ Gres_Conf_t *addGresConf(char *name, char *count, char *file, char *cpus)
 	if (!(setGresCount(gres, count))) goto GRES_ERROR;
     }
 
+#ifdef SLURM_PROTOCOL_1605
+    mlog("%s: gres conf '%s' count '%lu' file '%s' cpus '%s' "
+#else
     mlog("%s: gres conf '%s' count '%u' file '%s' cpus '%s' "
+#endif
 	    "id '%u'\n", __func__, gres->name, gres->count, gres->file,
 	    gres->cpus, gres->id);
     list_add_tail(&(gres->list), &GresConfList.list);
@@ -193,6 +207,9 @@ GRES_ERROR:
     ufree(gres->name);
     ufree(gres->cpus);
     ufree(gres->file);
+#ifdef SLURM_PROTOCOL_1605
+    ufree(gres->type);
+#endif
     return NULL;
 }
 
@@ -206,6 +223,9 @@ void clearGresConf(void)
 	ufree(gres->name);
 	ufree(gres->cpus);
 	ufree(gres->file);
+#ifdef SLURM_PROTOCOL_1605
+	ufree(gres->type);
+#endif
 
 	list_del(&gres->list);
 	ufree(gres);
@@ -260,6 +280,9 @@ void clearGresCred(Gres_Cred_t *gresList)
 
 	ufree(gres->countStepAlloc);
 	ufree(gres->nodeInUse);
+#ifdef SLURM_PROTOCOL_1605
+	ufree(gres->typeModel);
+#endif
 	list_del(&gres->list);
 	ufree(gres);
     }
@@ -277,7 +300,12 @@ static Gres_Cred_t *getJobCredData(char **ptr, int index)
 
     getUint32(ptr, &magic);
     getUint32(ptr, &gres->id);
+#ifdef SLURM_PROTOCOL_1605
+    getUint64(ptr, &gres->countAlloc);
+    gres->typeModel = getStringM(ptr);
+#else
     getUint32(ptr, &gres->countAlloc);
+#endif
     getUint32(ptr, &gres->nodeCount);
 
     if (magic != GRES_MAGIC) {
@@ -288,7 +316,11 @@ static Gres_Cred_t *getJobCredData(char **ptr, int index)
     }
 
     mdbg(PSSLURM_LOG_GRES, "%s: index '%i' pluginID '%u' "
+#ifdef SLURM_PROTOCOL_1605
+	    "gresCountAlloc '%lu' nodeCount '%u'\n", __func__, index,
+#else
 	    "gresCountAlloc '%u' nodeCount '%u'\n", __func__, index,
+#endif
 	    gres->id, gres->countAlloc, gres->nodeCount);
 
     /* bit allocation */
@@ -317,12 +349,21 @@ static Gres_Cred_t *getJobCredData(char **ptr, int index)
     /* count step allocation */
     getUint8(ptr, &more);
     if (more) {
+#ifdef SLURM_PROTOCOL_1605
+	gres->countStepAlloc = umalloc(sizeof(uint64_t) * gres->nodeCount);
+	for (i=0; i<gres->nodeCount; i++) {
+	    getUint64(ptr, &(gres->countStepAlloc)[i]);
+	    mdbg(PSSLURM_LOG_GRES, "%s: node '%u' gres_cnt_step_alloc "
+		    "'%lu'\n", __func__, i, gres->countStepAlloc[i]);
+	}
+#else
 	gres->countStepAlloc = umalloc(sizeof(uint32_t) * gres->nodeCount);
 	for (i=0; i<gres->nodeCount; i++) {
 	    getUint32(ptr, &(gres->countStepAlloc)[i]);
 	    mdbg(PSSLURM_LOG_GRES, "%s: node '%u' gres_cnt_step_alloc "
 		    "'%u'\n", __func__, i, gres->countStepAlloc[i]);
 	}
+#endif
     }
 
     return gres;
@@ -340,7 +381,11 @@ static Gres_Cred_t *getStepCredData(char **ptr, int index)
 
     getUint32(ptr, &magic);
     getUint32(ptr, &gres->id);
+#ifdef SLURM_PROTOCOL_1605
+    getUint64(ptr, &gres->countAlloc);
+#else
     getUint32(ptr, &gres->countAlloc);
+#endif
     getUint32(ptr, &gres->nodeCount);
     getBitString(ptr, &gres->nodeInUse);
 
@@ -351,7 +396,11 @@ static Gres_Cred_t *getStepCredData(char **ptr, int index)
 	return NULL;
     }
 
+#ifdef SLURM_PROTOCOL_1605
+    mdbg(PSSLURM_LOG_GRES, "%s: index '%i' pluginID '%u' gresCountAlloc '%lu'"
+#else
     mdbg(PSSLURM_LOG_GRES, "%s: index '%i' pluginID '%u' gresCountAlloc '%u'"
+#endif
 	    " nodeCount '%u' nodeInUse '%s'\n", __func__, index, gres->id,
 	    gres->countAlloc, gres->nodeCount, gres->nodeInUse);
 

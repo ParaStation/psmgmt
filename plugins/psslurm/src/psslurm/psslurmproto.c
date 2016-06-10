@@ -54,6 +54,8 @@
 
 #include "psslurmproto.h"
 
+#define DEBUG_MSG_HEADER 1
+
 static void sendPing(Slurm_Msg_t *sMsg)
 {
     PS_DataBuffer_t msg = { .buf = NULL };
@@ -357,6 +359,12 @@ void handleLaunchTasks(Slurm_Msg_t *sMsg)
 
     /* ntasks */
     getUint32(ptr, &step->np);
+#ifdef SLURM_PROTOCOL_1605
+    /* ntasks per board/core/socket */
+    getUint16(ptr, &step->ntasksPerBoard);
+    getUint16(ptr, &step->ntasksPerCore);
+    getUint16(ptr, &step->ntasksPerSocket);
+#endif
     /* uid */
     getUint32(ptr, &step->uid);
     /* partition */
@@ -373,12 +381,19 @@ void handleLaunchTasks(Slurm_Msg_t *sMsg)
     /* cpus_per_task */
     getUint16(ptr, &step->tpp);
     /* task distribution */
+#ifdef SLURM_PROTOCOL_1605
+    getUint32(ptr, &step->taskDist);
+#else
     getUint16(ptr, &step->taskDist);
+#endif
     /* node cpus */
     getUint16(ptr, &step->nodeCpus);
     /* count of specialized cores */
     getUint16(ptr, &step->jobCoreSpec);
-
+#ifdef SLURM_PROTOCOL_1605
+    /* accel bind type */
+    getUint16(ptr, &step->accelBindType);
+#endif
     /* job creditials */
     step->cred = getJobCred(&step->gres, ptr, version, 1);
 
@@ -474,8 +489,15 @@ void handleLaunchTasks(Slurm_Msg_t *sMsg)
     getUint8(ptr, &step->pty);
     /* acctg freq */
     setAccFreq(ptr);
+#ifdef SLURM_PROTOCOL_1605
+    /* cpu freq min/max/gov */
+    getUint32(ptr, &step->cpuFreqMin);
+    getUint32(ptr, &step->cpuFreqMax);
+    getUint32(ptr, &step->cpuFreqGov);
+#else
     /* cpu freq */
     getUint32(ptr, &step->cpuFreq);
+#endif
     step->checkpoint = getStringM(ptr);
     step->restart = getStringM(ptr);
 
@@ -1226,12 +1248,6 @@ static void handleLaunchProlog(Slurm_Msg_t *sMsg)
     ufree(partition);
 }
 
-static void handleCompleteProlog(Slurm_Msg_t *sMsg)
-{
-    mlog("%s: implement me!\n", __func__);
-    sendSlurmRC(sMsg, SLURM_SUCCESS);
-}
-
 static void readJobCpuOptions(Job_t *job, char **ptr)
 {
     uint32_t i;
@@ -1689,13 +1705,22 @@ static void handleTerminateReq(Slurm_Msg_t *sMsg)
     Job_t *job;
     Alloc_t *alloc;
     uint32_t jobid, stepid;
+#ifdef SLURM_PROTOCOL_1605
+    uint32_t jobstate;
+#else
     uint16_t jobstate;
+#endif
     uid_t uid;
 
     /* unpack the request */
     getUint32(ptr, &jobid);
     getUint32(ptr, &stepid);
+
+#ifdef SLURM_PROTOCOL_1605
+    getUint32(ptr, &jobstate);
+#else
     getUint16(ptr, &jobstate);
+#endif
     getUint32(ptr, &uid);
 
     /* check permissions */
@@ -1747,6 +1772,24 @@ static void handleTerminateReq(Slurm_Msg_t *sMsg)
     }
 }
 
+static void handleNetworkCallerID(Slurm_Msg_t *sMsg)
+{
+    mlog("%s: implement me!\n", __func__);
+    sendSlurmRC(sMsg, ESLURM_NOT_SUPPORTED);
+}
+
+static void handleMessageComposite(Slurm_Msg_t *sMsg)
+{
+    mlog("%s: implement me!\n", __func__);
+    sendSlurmRC(sMsg, ESLURM_NOT_SUPPORTED);
+}
+
+static void handleRespMessageComposite(Slurm_Msg_t *sMsg)
+{
+    mlog("%s: implement me!\n", __func__);
+    sendSlurmRC(sMsg, ESLURM_NOT_SUPPORTED);
+}
+
 int getSlurmMsgHeader(Slurm_Msg_t *sMsg, Connection_Forward_t *fw)
 {
     char **ptr = &sMsg->ptr;
@@ -1755,6 +1798,9 @@ int getSlurmMsgHeader(Slurm_Msg_t *sMsg, Connection_Forward_t *fw)
 
     getUint16(ptr, &sMsg->head.version);
     getUint16(ptr, &sMsg->head.flags);
+#ifdef SLURM_PROTOCOL_1605
+    getUint16(ptr, &sMsg->head.index);
+#endif
     getUint16(ptr, &sMsg->head.type);
     getUint32(ptr, &sMsg->head.bodyLen);
 
@@ -1763,6 +1809,9 @@ int getSlurmMsgHeader(Slurm_Msg_t *sMsg, Connection_Forward_t *fw)
     if (sMsg->head.forward >0) {
 	fw->head.nodeList = getStringM(ptr);
 	getUint32(ptr, &fw->head.timeout);
+#ifdef SLURM_PROTOCOL_1605
+	getUint16(ptr, &sMsg->head.treeWidth);
+#endif
     }
     getUint16(ptr, &sMsg->head.returnList);
 
@@ -1775,6 +1824,20 @@ int getSlurmMsgHeader(Slurm_Msg_t *sMsg, Connection_Forward_t *fw)
 	getUint32(ptr, &tmp);
 	getUint16(ptr, &i);
     }
+
+#if defined (SLURM_PROTOCOL_1605) && defined (DEBUG_MSG_HEADER)
+    mlog("%s: version '%u' flags '%u' index '%u' type '%u' bodyLen '%u' "
+	    "forward '%u' treeWidth '%u' returnList '%u'\n",
+	    __func__, sMsg->head.version, sMsg->head.flags, sMsg->head.index,
+	    sMsg->head.type, sMsg->head.bodyLen, sMsg->head.forward,
+	    sMsg->head.treeWidth, sMsg->head.returnList);
+
+    if (sMsg->head.forward) {
+	mlog("%s: forward to nodeList '%s' timeout '%u' treeWidth '%u'\n",
+		__func__, fw->head.nodeList, fw->head.timeout,
+		sMsg->head.treeWidth);
+    }
+#endif
 
     return 1;
 }
@@ -1817,9 +1880,6 @@ int handleSlurmdMsg(Slurm_Msg_t *sMsg)
 	case REQUEST_LAUNCH_PROLOG:
 	    handleLaunchProlog(sMsg);
 	    break;
-	case REQUEST_COMPLETE_PROLOG:
-	    handleCompleteProlog(sMsg);
-	    break;
 	case REQUEST_BATCH_JOB_LAUNCH:
 	    handleBatchJobLaunch(sMsg);
 	    break;
@@ -1835,17 +1895,6 @@ int handleSlurmdMsg(Slurm_Msg_t *sMsg)
 	    break;
 	case REQUEST_REATTACH_TASKS:
 	    handleReattachTasks(sMsg);
-	    break;
-	case REQUEST_STEP_COMPLETE:
-	    /* should not happen, since we don't have a slurmstepd */
-	    mlog("%s: got invalid '%s' request\n", __func__,
-		    msgType2String(REQUEST_STEP_COMPLETE));
-	    goto MSG_ERROR_CLEANUP;
-	case REQUEST_JOB_STEP_STAT:
-	    handleStepStat(sMsg);
-	    break;
-	case REQUEST_JOB_STEP_PIDS:
-	    handleStepPids(sMsg);
 	    break;
 	case REQUEST_KILL_PREEMPTED:
 	case REQUEST_KILL_TIMELIMIT:
@@ -1871,6 +1920,15 @@ int handleSlurmdMsg(Slurm_Msg_t *sMsg)
 	case REQUEST_UPDATE_JOB_TIME:
 	    handleUpdateJobTime(sMsg);
 	    break;
+	case REQUEST_SHUTDOWN:
+	    handleShutdown(sMsg);
+	    break;
+	case REQUEST_RECONFIGURE:
+	    handleReconfigure(sMsg);
+	    break;
+	case REQUEST_REBOOT_NODES:
+	    handleRebootNodes(sMsg);
+	    break;
 	case REQUEST_NODE_REGISTRATION_STATUS:
 	    sendPing(sMsg);
 	    sendNodeRegStatus(SLURM_SUCCESS, sMsg->head.version);
@@ -1893,6 +1951,18 @@ int handleSlurmdMsg(Slurm_Msg_t *sMsg)
 	case REQUEST_FILE_BCAST:
 	    handleFileBCast(sMsg);
 	    break;
+	case REQUEST_STEP_COMPLETE:
+	case REQUEST_STEP_COMPLETE_AGGR:
+	    /* should not happen, since we don't have a slurmstepd */
+	    mlog("%s: got invalid '%s' request\n", __func__,
+		    msgType2String(sMsg->head.type));
+	    goto MSG_ERROR_CLEANUP;
+	case REQUEST_JOB_STEP_STAT:
+	    handleStepStat(sMsg);
+	    break;
+	case REQUEST_JOB_STEP_PIDS:
+	    handleStepPids(sMsg);
+	    break;
 	case REQUEST_DAEMON_STATUS:
 	    handleDaemonStatus(sMsg);
 	    break;
@@ -1902,14 +1972,15 @@ int handleSlurmdMsg(Slurm_Msg_t *sMsg)
 	case REQUEST_FORWARD_DATA:
 	    handleForwardData(sMsg);
 	    break;
-	case REQUEST_SHUTDOWN:
-	    handleShutdown(sMsg);
+	/* new */
+	case REQUEST_NETWORK_CALLERID:
+	    handleNetworkCallerID(sMsg);
 	    break;
-	case REQUEST_RECONFIGURE:
-	    handleReconfigure(sMsg);
+	case MESSAGE_COMPOSITE:
+	    handleMessageComposite(sMsg);
 	    break;
-	case REQUEST_REBOOT_NODES:
-	    handleRebootNodes(sMsg);
+	case RESPONSE_MESSAGE_COMPOSITE:
+	    handleRespMessageComposite(sMsg);
 	    break;
 	default:
 	    goto MSG_ERROR_CLEANUP;
@@ -1971,7 +2042,7 @@ void sendNodeRegStatus(uint32_t status, int protoVersion)
     uint32_t load, freemem;
     struct utsname sys;
     struct sysinfo info;
-    int i, tmp, haveSysInfo = 0;
+    int tmp, haveSysInfo = 0;
     static int initVersion = 0;
     static char verStr[64];
 
@@ -1989,11 +2060,20 @@ void sendNodeRegStatus(uint32_t status, int protoVersion)
     addTimeToMsg(&start_time, &msg);
     /* status */
     addUint32ToMsg(status, &msg);
+#ifdef SLURM_PROTOCOL_1605
+    /* features active/avail */
+    addStringToMsg(NULL, &msg);
+    addStringToMsg(NULL, &msg);
+#endif
     /* node_name */
     addStringToMsg(getConfValueC(&Config, "SLURM_HOSTNAME"), &msg);
     /* architecture */
     uname(&sys);
     addStringToMsg(sys.machine, &msg);
+#ifdef SLURM_PROTOCOL_1605
+    /* cpu spec list */
+    addStringToMsg("", &msg);
+#endif
     /* os */
     addStringToMsg(sys.sysname, &msg);
     /* cpus */
@@ -2025,7 +2105,7 @@ void sendNodeRegStatus(uint32_t status, int protoVersion)
     /* hash_val TODO calc correct hash value */
     addUint32ToMsg(NO_VAL, &msg);
 
-    /* cpu_load */
+    /* cpu load / free mem */
     if (haveSysInfo < 0) {
 	addUint32ToMsg(0, &msg);
 	addUint32ToMsg(0, &msg);
@@ -2052,9 +2132,19 @@ void sendNodeRegStatus(uint32_t status, int protoVersion)
     addGresData(&msg, protoVersion);
 
     /* TODO: acct_gather_energy_pack(msg->energy, buffer, protocol_version); */
-    for (i=0; i<5; i++) {
-	addUint32ToMsg(0, &msg);
-    }
+#ifdef SLURM_PROTOCOL_1605
+    addUint64ToMsg(0, &msg);
+    addUint32ToMsg(0, &msg);
+    addUint64ToMsg(0, &msg);
+    addUint32ToMsg(0, &msg);
+    addUint64ToMsg(0, &msg);
+#else
+    addUint32ToMsg(0, &msg);
+    addUint32ToMsg(0, &msg);
+    addUint32ToMsg(0, &msg);
+    addUint32ToMsg(0, &msg);
+    addUint32ToMsg(0, &msg);
+#endif
     now = 0;
     addTimeToMsg(&now, &msg);
 

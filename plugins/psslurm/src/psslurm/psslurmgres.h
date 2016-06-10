@@ -28,18 +28,29 @@ typedef struct {
     char *name;
     char *cpus;
     char *file;
+#ifdef SLURM_PROTOCOL_1605
+    char *type;
+    uint64_t count;
+#else
     uint32_t count;
+#endif
     uint32_t id;
     struct list_head list;  /* the gres list header */
 } Gres_Conf_t;
 
 typedef struct {
     uint32_t id;
+#ifdef SLURM_PROTOCOL_1605
+    uint64_t countAlloc;
+    uint64_t *countStepAlloc;
+    char *typeModel;
+#else
     uint32_t countAlloc;
+    uint32_t *countStepAlloc;
+#endif
     uint32_t nodeCount;
     char **bitAlloc;
     char **bitStepAlloc;
-    uint32_t *countStepAlloc;
     char *nodeInUse;
     int job;
     struct list_head list;  /* the gres list header */

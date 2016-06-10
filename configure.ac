@@ -104,6 +104,14 @@ AC_ARG_ENABLE([testplugins], [AS_HELP_STRING([--enable-testplugins],
   [build test plugins])])
 AM_CONDITIONAL([TESTPLUGINS_ENABLED], [test "x$enable_testplugins" = xyes])
 
+AC_ARG_ENABLE([slurm_proto_1605], [AS_HELP_STRING([--enable-slurm_proto_1605],
+  [enable slurm protocol 16.05 support])])
+AM_CONDITIONAL([SLURM_PROTOCOL_1605], [test "x$enable_slurm_proto_1605" = xyes])
+
+AM_COND_IF([SLURM_PROTOCOL_1605], [
+  AC_MSG_NOTICE([Building with slurm protocol 16.05 support])
+  AM_CFLAGS="$AM_CFLAGS -DSLURM_PROTOCOL_1605"])
+
 PKG_PROG_PKG_CONFIG
 AC_ARG_WITH([unitdir], [AS_HELP_STRING([--with-unitdir=DIR],
   [directory for systemd service files])],,[with_unitdir=auto])

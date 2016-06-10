@@ -14,22 +14,35 @@
 #define KILL_JOB_BATCH 0x0001
 
 #define MAX_GOVERNOR_LEN 24
-#define MAX_STR_LEN (16 * 1024 * 1024)
-#define MAX_ARRAY_LEN (128 * 1024)
-#define MAX_MEM_LEN (16 * 1024 * 1024)
-#define MAX_MSG_SIZE     (128*1024*1024)
+#define MAX_STR_LEN	 (16 * 1024 * 1024)
+#define MAX_ARRAY_LEN	 (128 * 1024)
+#define MAX_MEM_LEN	 (16 * 1024 * 1024)
+#define MAX_MSG_SIZE	 (128*1024*1024)
 
 #define PATH_BUFFER_LEN 1024
 
 #define SLURM_GLOBAL_AUTH_KEY   0x0001
 
-#define SLURM_CUR_PROTOCOL_VERSION_STR "14.03"
-#define SLURM_CUR_PROTOCOL_VERSION  SLURM_14_03_PROTOCOL_VERSION
-#define SLURM_14_03_PROTOCOL_VERSION	((27 << 8) | 0)
-#define SLURM_2_6_PROTOCOL_VERSION	((26 << 8) | 0)
-#define SLURM_2_5_PROTOCOL_VERSION	((25 << 8) | 0)
 
-#define SLURM_BATCH_SCRIPT (0xfffffffe) /* stepid of batch jobs */
+/* protocol versions */
+#ifdef SLURM_PROTOCOL_1605
+ #define SLURM_CUR_VERSION 0x100500
+ #define SLURM_CUR_PROTOCOL_VERSION_STR "16.05"
+ #define SLURM_CUR_PROTOCOL_VERSION  SLURM_16_05_PROTOCOL_VERSION
+#else
+ #define SLURM_CUR_PROTOCOL_VERSION_STR "14.03"
+ #define SLURM_CUR_PROTOCOL_VERSION  SLURM_14_03_PROTOCOL_VERSION
+#endif
+
+#define SLURM_16_05_PROTOCOL_VERSION ((30 << 8) | 0)
+#define SLURM_15_08_PROTOCOL_VERSION ((29 << 8) | 0)
+#define SLURM_14_11_PROTOCOL_VERSION ((28 << 8) | 0)
+#define SLURM_14_03_PROTOCOL_VERSION ((27 << 8) | 0)
+#define SLURM_2_6_PROTOCOL_VERSION   ((26 << 8) | 0)
+#define SLURM_2_5_PROTOCOL_VERSION   ((25 << 8) | 0)
+
+/* stepid of batch jobs */
+#define SLURM_BATCH_SCRIPT (0xfffffffe)
 
 /* IO */
 #define IO_PROTOCOL_VERSION 0xb001
@@ -128,6 +141,5 @@ enum task_flag_vals {
     TASK_UNUSED1 = 0x2,
     TASK_UNUSED2 = 0x4
 };
-
 
 #endif
