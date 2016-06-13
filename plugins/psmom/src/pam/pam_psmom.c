@@ -1,14 +1,10 @@
 /*
  *               ParaStation
  *
- * Copyright (C) 2011 - 2012 ParTec Cluster Competence Center GmbH, Munich
- *
- * \author
- * Michael Rauh <rauh@par-tec.com>
+ * Copyright (C) 2011-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  */
 
-#define _GNU_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/types.h>
@@ -155,27 +151,26 @@ static int doSend(int sock, char *msg, int offset, int len)
     if (!len || !msg) return 0;
 
     for (n=offset, i=1; (n<len) && (i>0);) {
-        i = send(sock, &msg[n], len-n, 0);
-        if (i<=0) {
-            switch (errno) {
-            case EINTR:
-                break;
-            case EAGAIN:
-                return n;
-                break;
-            default:
-                {
-                elog("(%s): on socket %i ", strerror(errno), sock);
-            return i;
-                }
-            }
-        } else
-            n+=i;
+	i = send(sock, &msg[n], len-n, 0);
+	if (i<=0) {
+	    switch (errno) {
+	    case EINTR:
+		break;
+	    case EAGAIN:
+		return n;
+		break;
+	    default:
+		elog("(%s): on socket %i ", strerror(errno), sock);
+		return i;
+	    }
+	} else {
+	    n+=i;
+	}
     }
     return n;
 }
 
-static int writeToPsmom(int sock, void *buf, size_t towrite)
+static unsigned int writeToPsmom(int sock, void *buf, size_t towrite)
 {
     ssize_t written = 0, len = towrite;
     int i;
@@ -203,7 +198,7 @@ static int readFromPsmom(int sock, void *buffer, size_t len)
 	}
 	elog("error while reading from psmom : %s",
 		    strerror(errno));
-        return -1;
+	return -1;
     }
 
     return read;
@@ -214,7 +209,8 @@ static int hasRunningBatchJob(const char *username, const char *rhost)
     char recvUser[200], recvRHost[200], cmd[20], buf[800];
     char *ptr;
     int32_t res = 0;
-    int sock = 0, len;
+    int sock = 0;
+    size_t len;
     pid_t pid;
     PS_DataBuffer_t data = { .buf = NULL};
 
@@ -234,11 +230,11 @@ static int hasRunningBatchJob(const char *username, const char *rhost)
 
     /* add ssh pid */
     pid = getpid();
-    addPidToMsg(&pid, &data);
+    addPidToMsg(pid, &data);
 
     /* add ssh sid */
     pid = getsid((pid_t)0);
-    addPidToMsg(&pid, &data);
+    addPidToMsg(pid, &data);
 
     /* add username */
     addStringToMsg(username, &data);
@@ -264,10 +260,10 @@ static int hasRunningBatchJob(const char *username, const char *rhost)
     ptr = buf;
 
     /* get result */
-    getInt32FromMsgBuf(&ptr, &res);
+    getInt32(&ptr, &res);
 
     /* get username */
-    getStringFromMsgBuf(&ptr, recvUser, sizeof(recvUser));
+    getString(&ptr, recvUser, sizeof(recvUser));
 
     if (!(!strcmp(recvUser, username))) {
 	elog("received invalid reply: got user '%s' should be '%s'",
@@ -277,7 +273,7 @@ static int hasRunningBatchJob(const char *username, const char *rhost)
     }
 
     /* get remote host */
-    getStringFromMsgBuf(&ptr, recvRHost, sizeof(recvRHost));
+    getString(&ptr, recvRHost, sizeof(recvRHost));
 
     if (!(!strcmp(recvRHost, rhost))) {
 	elog("received invalid reply: got rhost '%s' should be '%s'",

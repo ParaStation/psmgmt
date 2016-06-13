@@ -94,59 +94,6 @@ static int controlFDs[2];
 /** communication handle conneted to the local psmom for std output */
 static ComHandle_t *com = NULL;
 
-int __doWrite(int fd, void *buffer, size_t towrite, const char *func)
-{
-    ssize_t ret;
-
-    while (1) {
-	if ((ret = write(fd, buffer, towrite)) == -1) {
-	    if (errno == EINTR || errno == EAGAIN) continue;
-
-	    mlog("%s (%s): write to fd '%i' failed (%i): %s\n", __func__,
-		    func, fd, errno, strerror(errno));
-	    return -1;
-	} if ((size_t) ret != towrite) {
-	    mlog("%s (%s): not all data could be written to fd '%i' towrite "
-		    "'%zu' written '%zu'\n", __func__, func, fd, towrite, ret);
-	}
-	return ret;
-    }
-    return ret;
-}
-
-/**
- * @brief Read data from a file descriptor.
- *
- * @param fd The socket to read the data from.
- *
- * @param buffer The buffer to write the data to.
- *
- * @param toread The number of bytes to read.
- *
- * @param func Pointer to the name of the parent function.
- *
- * @return Returns the number of bytes read or -1 on error.
- */
-static int doRead(int fd, void *buffer, size_t toread, const char *func)
-{
-    ssize_t ret;
-
-    while (1) {
-	if ((ret = read(fd, buffer, toread)) == -1) {
-	    if (errno == EINTR || errno == EAGAIN) continue;
-
-	    mlog("%s (%s): read from fd '%i' failed (%i): %s\n", __func__,
-		    func, fd, errno, strerror(errno));
-	    return -1;
-	} if ((size_t) ret != toread) {
-	    mlog("%s (%s): not all data could be read from fd '%i' toread "
-		    "'%zu' read '%zu'\n", __func__, func, fd, toread, ret);
-	}
-	return ret;
-    }
-    return ret;
-}
-
 char *fwType2Str(int type)
 {
     switch (type) {
@@ -176,8 +123,8 @@ static void doForwarderChildStart()
     close(controlFDs[1]);
 
     /* read sid */
-    if ((doRead(controlFDs[0], &forwarder_child_sid, sizeof(pid_t), __func__)
-	    != sizeof(pid_t))) {
+    if ((doRead(controlFDs[0], &forwarder_child_sid, sizeof(pid_t))
+	 != sizeof(pid_t))) {
 	mlog("%s: reading childs sid failed\n", __func__);
 	kill(SIGKILL, forwarder_child_pid);
     }
@@ -561,7 +508,7 @@ static int handleSignalFd(int fd, void *info)
 {
     int res;
 
-    doRead(fd, &res, sizeof(res), __func__);
+    doRead(fd, &res, sizeof(res));
     return 1;
 }
 
@@ -1303,7 +1250,7 @@ int execInterForwarder(void *info)
 
 	/* wait till prologue finished */
 	close(controlPro[0]);
-	doRead(controlPro[1], &prologue_exit, sizeof(int), __func__);
+	doRead(controlPro[1], &prologue_exit, sizeof(int));
 
 	if (prologue_exit != 0) {
 	    mlog("%s: progloue exit not 0: %i\n", __func__, prologue_exit);
@@ -1372,8 +1319,8 @@ int execInterForwarder(void *info)
     doForwarderChildStart();
 
     /* wait till prologue is finished */
-    if ((doRead(com->socket, &prologue_exit, sizeof(int), __func__))
-	    != sizeof(prologue_exit)) {
+    if (doRead(com->socket, &prologue_exit, sizeof(prologue_exit))
+	!= sizeof(prologue_exit)) {
 
 	kill(forwarder_child_pid, SIGKILL);
 	fprintf(stderr, "%s: reading prologue exit status failed (%i): %s\n",

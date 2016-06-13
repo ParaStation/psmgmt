@@ -1,18 +1,11 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2013 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
- */
-/**
- * $Id$
- *
- * \author
- * Michael Rauh <rauh@par-tec.com>
- *
  */
 
 #ifndef __PS_MOM_FORWARDER
@@ -81,23 +74,6 @@ typedef struct {
  * @return Returns the requested string or NULL on error.
  */
 char *fwType2Str(int type);
-
-/**
- * @brief Write data to a file descriptor.
- *
- * Write data to a file descripter and retry on minor errors until all data was
- * written.
- *
- * @param fd The socket to write to.
- *
- * @param buffer The buffer holding the data to write.
- *
- * @param towrite The number of bytes to write.
- *
- * @return Returns the number of bytes written or -1 on error.
- */
-#define doWrite(fd, buffer, towrite) __doWrite(fd, buffer, towrite, __func__)
-int __doWrite(int fd, void *buffer, size_t towrite, const char *func);
 
 /**
  * @brief Execute a forwarder for the copy phase.

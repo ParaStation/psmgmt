@@ -7,13 +7,6 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-/**
- * $Id$
- *
- * \author
- * Michael Rauh <rauh@par-tec.com>
- *
- */
 
 #include <stdbool.h>
 #include <stdio.h>
@@ -609,6 +602,9 @@ int initialize(void)
 
     /* save local config values */
     saveConfigValues();
+
+    /* psmom's communication ignores byte-order */
+    setByteOrder(false);
 
     /* test if all needed directories are there */
     if (validateDirs()) return 1;

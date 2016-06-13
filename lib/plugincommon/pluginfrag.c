@@ -1,18 +1,11 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2012 - 2013 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2012-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
- */
-/**
- * $Id$
- *
- * \author
- * Michael Rauh <rauh@par-tec.com>
- *
  */
 
 #include <stdlib.h>
@@ -39,7 +32,8 @@ int __recvFragMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_func_t *func,
     uint16_t toCopy;
     char *ptr;
     static uint16_t dataLeft = 0;
-    static char *data = NULL, *dataPtr = NULL;
+    static char *dataPtr = NULL;
+    static PS_DataBuffer_t data = { .buf = NULL, .bufSize = 0 };
     static PS_Frag_Msg_Header_t *fhead = NULL, *rhead;
     static int msgCount = 0;
     int cleanup = 0;
@@ -86,22 +80,24 @@ int __recvFragMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_func_t *func,
 	ufree(fhead);
 	fhead = NULL;
 
-	ufree(data);
-	data = dataPtr = NULL;
-	dataLeft = msgCount = 0;
+	ufree(data.buf);
+	data.buf = dataPtr = NULL;
+	data.bufUsed = data.bufSize = dataLeft = msgCount = 0;
     }
 
-    if (!data && rhead->msgNum != 0) {
+    if (!data.buf && rhead->msgNum != 0) {
 	pluginlog("%s(%s): invalid msg number '%i', dropping msg\n", __func__,
 		caller, rhead->msgNum);
 	return 0;
     }
 
     /* save the data */
-    if (!data) {
-	data = umalloc(rhead->totalSize);
+    if (!data.buf) {
+	data.buf = umalloc(rhead->totalSize);
 	dataLeft = rhead->totalSize;
-	dataPtr = data;
+	dataPtr = data.buf;
+	data.bufSize = rhead->totalSize;
+	data.bufUsed = 0;
     }
 
     toCopy = msg->header.len - sizeof(msg->header) - sizeof(msg->type) -
@@ -124,17 +120,20 @@ int __recvFragMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_func_t *func,
     /* last message fragment ? */
     if (rhead->msgNum + 1 == rhead->msgCount) {
 
-	/* invoke callback */
-	msg->buf[0] = '\0';
-	func(msg, data);
 
 	/* cleanup */
 	if (fhead) ufree(fhead);
 	fhead = NULL;
-
-	if (data) ufree(data);
-	data = dataPtr = NULL;
+	dataPtr = NULL;
 	dataLeft = msgCount = 0;
+
+	/* invoke callback */
+	msg->buf[0] = '\0';
+	data.bufUsed = rhead->totalSize;
+	func(msg, &data);
+
+	/* cleanup data */
+	freeDataBuffer(&data);
 
 	return 1;
     }

@@ -7,13 +7,6 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-/**
- * $Id$
- *
- * \author
- * Michael Rauh <rauh@par-tec.com>
- *
- */
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -209,11 +202,11 @@ void handleDroppedMsg(DDTypedBufferMsg_t *msg)
     switch (msg->type) {
 	case PSP_PSMOM_PROLOGUE_START:
 	    /* hashname */
-	    getStringFromMsgBuf(&ptr, buf, sizeof(buf));
+	    getString(&ptr, buf, sizeof(buf));
 	    /* user */
-	    getStringFromMsgBuf(&ptr, buf, sizeof(buf));
+	    getString(&ptr, buf, sizeof(buf));
 	    /* jobid */
-	    getStringFromMsgBuf(&ptr, buf, sizeof(buf));
+	    getString(&ptr, buf, sizeof(buf));
 
 	    /* ignore broken jobids */
 	    if (strlen(buf) < 2) break;
@@ -228,7 +221,7 @@ void handleDroppedMsg(DDTypedBufferMsg_t *msg)
 	    stopPElogueExecution(job);
 	    break;
 	case PSP_PSMOM_EPILOGUE_START:
-	    getStringFromMsgBuf(&ptr, buf, sizeof(buf));
+	    getString(&ptr, buf, sizeof(buf));
 
 	    /* ignore broken jobids */
 	    if (strlen(buf) < 2) break;
@@ -243,7 +236,7 @@ void handleDroppedMsg(DDTypedBufferMsg_t *msg)
 	    stopPElogueExecution(job);
 	    break;
 	case PSP_PSMOM_VERSION:
-	    getStringFromMsgBuf(&ptr, buf, sizeof(buf));
+	    getString(&ptr, buf, sizeof(buf));
 
 	    /* ignore broken jobids */
 	    if (strlen(buf) < 2) break;
@@ -347,7 +340,7 @@ static void handleJobUpdate(DDTypedBufferMsg_t *msg)
     ptr = msg->buf;
 
     /* get jobid */
-    getStringFromMsgBuf(&ptr, jobid, sizeof(jobid));
+    getString(&ptr, jobid, sizeof(jobid));
 
     if (!(jInfo = findJobInfoById(jobid))) {
 	mlog("%s: remote job info for '%s' not found\n", __func__, jobid);
@@ -355,7 +348,7 @@ static void handleJobUpdate(DDTypedBufferMsg_t *msg)
     }
 
     /* get mpiexec/logger pid */
-    getInt32FromMsgBuf(&ptr, &loggerPID);
+    getInt32(&ptr, &loggerPID);
     node = PSC_getID(msg->header.sender);
 
     jInfo->logger = PSC_getTID(node, loggerPID);
@@ -371,23 +364,23 @@ static void handleJobInfo(DDTypedBufferMsg_t *msg)
     ptr = msg->buf;
 
     /* get info type (start/stop) */
-    getInt32FromMsgBuf(&ptr, &start);
+    getInt32(&ptr, &start);
 
     /* get jobid */
-    getStringFromMsgBuf(&ptr, jobid, sizeof(jobid));
+    getString(&ptr, jobid, sizeof(jobid));
 
     /* get username */
-    getStringFromMsgBuf(&ptr, username, sizeof(username));
+    getString(&ptr, username, sizeof(username));
 
     if (start) {
 	mdbg(PSMOM_LOG_VERBOSE, "%s: job '%s' user '%s' is starting\n",
 		__func__, jobid, username);
 
 	/* get timeout */
-	getStringFromMsgBuf(&ptr, timeout, sizeof(timeout));
+	getString(&ptr, timeout, sizeof(timeout));
 
 	/* get cookie */
-	getStringFromMsgBuf(&ptr, cookie, sizeof(cookie));
+	getString(&ptr, cookie, sizeof(cookie));
 
 	/* cleanup old job infos */
 	checkJobInfoTimeouts();

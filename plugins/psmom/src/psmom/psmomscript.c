@@ -455,17 +455,17 @@ void handlePELogueSignal(DDTypedBufferMsg_t *msg)
     ptr = msg->buf;
 
     /* get jobid */
-    getStringFromMsgBuf(&ptr, jobid, sizeof(jobid));
+    getString(&ptr, jobid, sizeof(jobid));
 
     /* get signal */
-    getStringFromMsgBuf(&ptr, signal, sizeof(signal));
+    getString(&ptr, signal, sizeof(signal));
     if (!(isignal = string2Signal(signal))) {
 	mlog("%s: got invalid signal '%s'\n", __func__, signal);
 	return;
     }
 
     /* get the finish/slient flag */
-    getInt32FromMsgBuf(&ptr, &finish);
+    getInt32(&ptr, &finish);
 
     /* find job */
     if (!(child = findChildByJobid(jobid, PSMOM_CHILD_PROLOGUE))) {
@@ -479,7 +479,7 @@ void handlePELogueSignal(DDTypedBufferMsg_t *msg)
     }
 
     /* get the reason for sending the signal */
-    getStringFromMsgBuf(&ptr, reason, sizeof(reason));
+    getString(&ptr, reason, sizeof(reason));
 
     /* save the signal we are about to send */
     if (isignal == SIGTERM || isignal == SIGKILL) {
@@ -539,7 +539,7 @@ void handlePELogueFinish(DDTypedBufferMsg_t *msg, char *msgData)
     peType = prologue ? "prologue" : "epilogue";
 
     /* get jobid */
-    getStringFromMsgBuf(&ptr, buf, sizeof(buf));
+    getString(&ptr, buf, sizeof(buf));
 
     if ((job = findJobById(buf)) == NULL) {
 	if (!(isJobIDinHistory(buf))) {
@@ -550,7 +550,7 @@ void handlePELogueFinish(DDTypedBufferMsg_t *msg, char *msgData)
     }
 
     /* get job start_time */
-    getTimeFromMsgBuf(&ptr, &job_start);
+    getTime(&ptr, &job_start);
 
     if (job->start_time != job_start) {
 	/* msg is for previous job, ignore */
@@ -560,7 +560,7 @@ void handlePELogueFinish(DDTypedBufferMsg_t *msg, char *msgData)
     }
 
     /* get result */
-    getInt32FromMsgBuf(&ptr, &res);
+    getInt32(&ptr, &res);
 
     if ((nodeEntry = findJobNodeEntry(job, nodeId))) {
 	if (prologue) {
@@ -571,12 +571,12 @@ void handlePELogueFinish(DDTypedBufferMsg_t *msg, char *msgData)
     }
 
     /* get signal flag */
-    getInt32FromMsgBuf(&ptr, &signalFlag);
+    getInt32(&ptr, &signalFlag);
 
     /* on error get errmsg */
     if (res != 0) {
 
-	getStringFromMsgBuf(&ptr, buf, sizeof(buf));
+	getString(&ptr, buf, sizeof(buf));
 
 	/* suppress error message if we have killed the pelogue by request */
 	if (!signalFlag) {
@@ -886,7 +886,7 @@ void monitorPELogueTimeout(Job_t *job)
     }
 }
 
-void handlePELogueStart(DDTypedBufferMsg_t *msg, char *msgData)
+void handlePELogueStart(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *msgData)
 {
     char *ptr, ctype[20], buf[300], tmpDir[400] = { '\0' };
     char *dirScripts, *jobid, *confTmpDir;
@@ -908,10 +908,10 @@ void handlePELogueStart(DDTypedBufferMsg_t *msg, char *msgData)
        .len = sizeof(msgRes.header) },
        .buf = {'\0'} };
 
-    ptr = msgData;
+    ptr = msgData->buf;
 
     /* fetch job hashname */
-    getStringFromMsgBuf(&ptr, buf, sizeof(buf));
+    getString(&ptr, buf, sizeof(buf));
 
     /* set temp dir using hashname */
     if ((confTmpDir = getConfParam("DIR_TEMP"))) {
@@ -919,7 +919,7 @@ void handlePELogueStart(DDTypedBufferMsg_t *msg, char *msgData)
     }
 
     /* fetch username */
-    getStringFromMsgBuf(&ptr, buf, sizeof(buf));
+    getString(&ptr, buf, sizeof(buf));
 
     if (prologue) {
 	snprintf(ctype, sizeof(ctype), "%s", "prologue");
@@ -964,10 +964,10 @@ void handlePELogueStart(DDTypedBufferMsg_t *msg, char *msgData)
 	exit = 0;
 
 	/* get jobid from received msg */
-	jobid = getStringFromMsgBufM(&ptr);
+	jobid = getStringM(&ptr);
 
 	/* get start_time */
-	getTimeFromMsgBuf(&ptr, &job_start);
+	getTime(&ptr, &job_start);
 
 	/* add jobid */
 	ptr = msgRes.buf;
@@ -1006,20 +1006,20 @@ void handlePELogueStart(DDTypedBufferMsg_t *msg, char *msgData)
     data->dirScripts = ustrdup(dirScripts);
 
     /* set pelogue data structure */
-    data->jobid = getStringFromMsgBufM(&ptr);
-    getTimeFromMsgBuf(&ptr, &data->start_time);
-    data->jobname = getStringFromMsgBufM(&ptr);
-    data->user = getStringFromMsgBufM(&ptr);
-    data->group = getStringFromMsgBufM(&ptr);
-    data->limits = getStringFromMsgBufM(&ptr);
-    data->queue = getStringFromMsgBufM(&ptr);
-    getInt32FromMsgBuf(&ptr, &data->timeout);
-    data->sessid = getStringFromMsgBufM(&ptr);
-    data->nameExt = getStringFromMsgBufM(&ptr);
-    data->resources_used = getStringFromMsgBufM(&ptr);
-    getInt32FromMsgBuf(&ptr, &data->exit);
-    data->gpus = getStringFromMsgBufM(&ptr);
-    data->server = getStringFromMsgBufM(&ptr);
+    data->jobid = getStringM(&ptr);
+    getTime(&ptr, &data->start_time);
+    data->jobname = getStringM(&ptr);
+    data->user = getStringM(&ptr);
+    data->group = getStringM(&ptr);
+    data->limits = getStringM(&ptr);
+    data->queue = getStringM(&ptr);
+    getInt32(&ptr, &data->timeout);
+    data->sessid = getStringM(&ptr);
+    data->nameExt = getStringM(&ptr);
+    data->resources_used = getStringM(&ptr);
+    getInt32(&ptr, &data->exit);
+    data->gpus = getStringM(&ptr);
+    data->server = getStringM(&ptr);
     data->tmpDir = (confTmpDir != NULL) ? ustrdup(tmpDir) : NULL;
 
     if (!data->frontend) {
