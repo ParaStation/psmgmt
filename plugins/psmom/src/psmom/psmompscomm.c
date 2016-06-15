@@ -268,64 +268,48 @@ void handleDroppedMsg(DDTypedBufferMsg_t *msg)
 
 void sendJobUpdate(Job_t *job)
 {
-    DDTypedBufferMsg_t msg;
-    char *ptr;
-
-    msg = (DDTypedBufferMsg_t) {
-       .header = (DDMsg_t) {
-       .type = PSP_CC_PSMOM,
-       .sender = PSC_getMyTID(),
-       .dest = PSC_getMyTID(),
-       .len = sizeof(msg.header) },
-       .buf = {'\0'} };
-
-    msg.type = PSP_PSMOM_JOB_UPDATE;
-    msg.header.len += sizeof(msg.type);
-
-    ptr = msg.buf;
+    DDTypedBufferMsg_t msg = (DDTypedBufferMsg_t) {
+	.header = (DDMsg_t) {
+	    .type = PSP_CC_PSMOM,
+	    .sender = PSC_getMyTID(),
+	    .dest = PSC_getMyTID(),
+	    .len = sizeof(msg.header) + sizeof(msg.type)},
+	.type = PSP_PSMOM_JOB_UPDATE};
 
     /* add jobid */
-    addStringToMsgBuf(&msg, &ptr, job->id);
+    addStringToMsgBuf(&msg, job->id);
 
     /* add mpiexec/logger pid */
-    addInt32ToMsgBuf(&msg, &ptr, job->mpiexec);
+    addInt32ToMsgBuf(&msg, job->mpiexec);
 
     sendPSMsgToHostList(job, &msg, 0);
 }
 
 void sendJobInfo(Job_t *job, int start)
 {
-    DDTypedBufferMsg_t msg;
-    char *ptr;
-
-    msg = (DDTypedBufferMsg_t) {
-       .header = (DDMsg_t) {
-       .type = PSP_CC_PSMOM,
-       .sender = PSC_getMyTID(),
-       .dest = PSC_getMyTID(),
-       .len = sizeof(msg.header) },
-       .buf = {'\0'} };
-
-    msg.type = PSP_PSMOM_JOB_INFO;
-    msg.header.len += sizeof(msg.type);
-
-    ptr = msg.buf;
+    DDTypedBufferMsg_t msg = (DDTypedBufferMsg_t) {
+	.header = (DDMsg_t) {
+	    .type = PSP_CC_PSMOM,
+	    .sender = PSC_getMyTID(),
+	    .dest = PSC_getMyTID(),
+	    .len = sizeof(msg.header) + sizeof(msg.type)},
+	.type = PSP_PSMOM_JOB_INFO};
 
     /* add info type */
-    addInt32ToMsgBuf(&msg, &ptr, start);
+    addInt32ToMsgBuf(&msg, start);
 
     /* add jobid */
-    addStringToMsgBuf(&msg, &ptr, job->id);
+    addStringToMsgBuf(&msg, job->id);
 
     /* add username */
-    addStringToMsgBuf(&msg, &ptr, job->user);
+    addStringToMsgBuf(&msg, job->user);
 
     if (start) {
 	/* add timeout */
-	addStringToMsgBuf(&msg, &ptr, getJobDetail(&job->data,
-				"Resource_List", "walltime"));
+	addStringToMsgBuf(&msg, getJobDetail(&job->data,
+					     "Resource_List", "walltime"));
 	/* add cookie */
-	addStringToMsgBuf(&msg, &ptr, job->cookie);
+	addStringToMsgBuf(&msg, job->cookie);
     }
     sendPSMsgToHostList(job, &msg, 0);
 }

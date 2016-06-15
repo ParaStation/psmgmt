@@ -502,7 +502,7 @@ int sendPElogueStart(Job_t *job, bool prologue)
     addStringToMsg(job->id, &data);
 
     /* add start time */
-    addTimeToMsg(&job->start_time, &data);
+    addTimeToMsg(job->start_time, &data);
 
     /* add users job name */
     if (!(jobUserName = getJobDetail(&job->data, "Job_Name", NULL))) {
