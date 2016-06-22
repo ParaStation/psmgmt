@@ -688,7 +688,11 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
 	 task->argv[1]=strdup("--quiet");
 
 	 if (!callgrind) {
-	      task->argv[2]=strdup("--leak-check=full");
+	      if(strcmp(valgrind, "1") == 0) {
+		   task->argv[2]=strdup("--leak-check=no");
+	      } else {
+		   task->argv[2]=strdup("--leak-check=full");
+	      }
 	 } else {
 	      task->argv[2]=strdup("--tool=callgrind");
 	 }
