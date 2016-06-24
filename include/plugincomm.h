@@ -39,10 +39,6 @@ typedef struct {
     uint32_t bufUsed;    /**< Used bytes of @ref buf */
 } PS_DataBuffer_t;
 
-/* @todo move to pluginfrag.h */
-typedef void PS_DataBuffer_func_t(DDTypedBufferMsg_t *msg,
-				  PS_DataBuffer_t *data);
-
 /**
  * @brief Set byte-order flag
  *
