@@ -11,13 +11,6 @@
  * @file mpiexec.c Replacement of the standard mpiexec command provided by
  * MPIch in order to start such applications within a ParaStation
  * cluster.
- *
- * $Id$
- *
- * \author
- * Michael Rauh <rauh@par-tec.com>
- * Stephan Krempel <krempel@par-tec.com>
- *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 static char vcid[] __attribute__((used)) =
@@ -1711,7 +1704,7 @@ static void setupPSIDEnv(int verbose)
 
     if (valgrind) {
 	char level[2];
-	snprintf(level, 2, "%d", valgrind);
+	snprintf(level, sizeof(level), "%d", valgrind);
 	setenv("PSI_USE_VALGRIND", level, 1);
 	setPSIEnv("PSI_USE_VALGRIND", level, 1);
 	if (!callgrind) {
