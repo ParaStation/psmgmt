@@ -1,14 +1,11 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2012 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2012-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
- *
- * Authors:     Michael Rauh <rauh@par-tec.com>
- *
  */
 
 #include <stdlib.h>
@@ -266,7 +263,7 @@ char *set(char *key, char *value)
 
 	if ((memoryDebug = fopen(value, "w+"))) {
 	    finalizePluginLogger();
-	    initPluginLogger(memoryDebug);
+	    initPluginLogger(NULL, memoryDebug);
 	    maskPluginLogger(PLUGIN_LOG_MALLOC);
 	    str2Buf("\nmemory logging to '", &buf, &bufSize);
 	    str2Buf(value, &buf, &bufSize);
@@ -314,7 +311,7 @@ char *unset(char *key)
 	    finalizePluginLogger();
 	    fclose(memoryDebug);
 	    memoryDebug = NULL;
-	    initPluginLogger(psaccountlogfile);
+	    initPluginLogger(NULL, psaccountlogfile);
 	}
 	return str2Buf("Stopped memory debugging\n", &buf, &bufSize);
     }

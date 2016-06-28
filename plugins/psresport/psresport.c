@@ -570,7 +570,7 @@ int initialize(void)
     char configfn[200];
 
     initLogger(NULL);
-    initPluginLogger(NULL);
+    initPluginLogger(NULL, NULL);
 
     /* init the config facility */
     snprintf(configfn, sizeof(configfn), "%s/%s", PLUGINDIR, RESPORT_CONFIG);

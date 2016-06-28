@@ -211,7 +211,7 @@ int initialize(void)
 
     /* init logging facility */
     initCgLogger(NULL);
-    initPluginLogger(NULL);
+    initPluginLogger(NULL, NULL);
 
     /* init the config facility */
     snprintf(configFile, sizeof(configFile), "%s/%s", PLUGINDIR, CGROUP_CONFIG);

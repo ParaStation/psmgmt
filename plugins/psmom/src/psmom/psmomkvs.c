@@ -976,7 +976,7 @@ char *set(char *key, char *value)
 
 	if ((memoryDebug = fopen(value, "w+"))) {
 	    finalizePluginLogger();
-	    initPluginLogger(memoryDebug);
+	    initPluginLogger(NULL, memoryDebug);
 	    maskPluginLogger(PLUGIN_LOG_MALLOC);
 	    str2Buf("\nmemory logging to '", &buf, &bufSize);
 	    str2Buf(value, &buf, &bufSize);
@@ -1024,7 +1024,7 @@ char *unset(char *key)
 	    finalizePluginLogger();
 	    fclose(memoryDebug);
 	    memoryDebug = NULL;
-	    initPluginLogger(psmomlogfile);
+	    initPluginLogger(NULL, psmomlogfile);
 	}
 	return str2Buf("Stopped memory debugging\n", &buf, &bufSize);
     }
