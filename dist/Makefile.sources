@@ -135,6 +135,7 @@ include/parser.h \
 include/plugin.h \
 include/plugincomm.h \
 include/pluginconfig.h \
+include/pluginenv.h \
 include/pluginfrag.h \
 include/pluginhelper.h \
 include/pluginhostlist.h \
@@ -176,6 +177,7 @@ lib/plugincommon/Makefile.am \
 lib/plugincommon/Makefile.in \
 lib/plugincommon/plugincomm.c \
 lib/plugincommon/pluginconfig.c \
+lib/plugincommon/pluginenv.c \
 lib/plugincommon/pluginfrag.c \
 lib/plugincommon/pluginhelper.c \
 lib/plugincommon/pluginhostlist.c \
