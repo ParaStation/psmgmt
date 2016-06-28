@@ -92,7 +92,7 @@ int32_t PSID_getDebugMask(void);
 void PSID_setDebugMask(int32_t mask);
 
 /**
- * Print a log messages via PSI's logging facility @a PSI_logger .
+ * Print a log messages via PSID's logging facility @a PSID_logger.
  *
  * This is a wrapper to @ref logger_print().
  *
@@ -101,7 +101,7 @@ void PSID_setDebugMask(int32_t mask);
 #define PSID_log(...) if (PSID_logger) logger_print(PSID_logger, __VA_ARGS__)
 
 /**
- * Print a warn messages via PSID's logging facility @a PSID_logger .
+ * Print a warn messages via PSID's logging facility @a PSID_logger.
  *
  * This is a wrapper to @ref logger_warn().
  *
@@ -139,7 +139,7 @@ void PSID_finalizeLogs(void);
  * Various message classes for logging. These define the different
  * bits of the debug-mask set via @ref PSID_setDebugMask().
  *
- * The four least signigicant bits are reserved for pscommon.
+ * The four least-significant bits are reserved for pscommon.
  *
  * The parser's logging facility uses the flags starting with bit 25.
  */
@@ -177,7 +177,7 @@ extern config_t *config;
  * @brief Read (and parse) the configuration-file.
  *
  * Read (and parse) the configuration file @a configfile. Furthermore
- * basic tests on the consistancy of the configuration is done.
+ * basic tests on the consistency of the configuration is done.
  *
  * @param logfile The file used for any output within the parser. If
  * NULL, syslog(3) is used.
@@ -394,7 +394,7 @@ void PSID_dumpMsg(DDMsg_t *msg);
  * @brief Check the sender's privileges
  *
  * Check the privileges of the task @a sender in order to trigger some
- * privileged action like starting, stopping, reseting daemons, etc.
+ * privileged action like starting, stopping, resetting daemons, etc.
  *
  * @param sender The local task ID to check.
  *
