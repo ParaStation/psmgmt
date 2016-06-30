@@ -1,6 +1,7 @@
 # -*- rpm-spec -*-
 %{?_without_psconfig: %global disable_psconfig 1}
 %{?_without_systemd: %global disable_systemd 1}
+%{?_with_slurm1605: %global enable_slurm1605 1}
 
 %if ( 0%{?rhel} && 0%{?rhel} < 7 ) || %(pkg-config --exists systemd; echo $?) != 0
 %global disable_systemd 1
@@ -12,7 +13,7 @@
 
 Summary:   ParaStation Process Management
 Vendor:    ParTec Cluster Competence Center GmbH, Munich, Germany
-Name:      psmgmt%{?disable_psconfig:-parastationconf}
+Name:      psmgmt%{?disable_psconfig:-parastationconf}%{?enable_slurm1605:-slurm1605}
 Version:   @VERSION_psmgmt@
 Release:   @RELEASE_psmgmt@
 License:   QPL
@@ -68,7 +69,7 @@ The ParaStation Process Management Layer.
 %package devel
 Summary:   Development files for ParaStation process management
 Group:     Productivity/Clustering/Computing
-Requires:  psmgmt = %{version}
+Requires:  psmgmt%{?enable_slurm1605:-slurm1605} = %{version}
 
 %description devel
 The psmgmt-devel package includes additional header files necessary
@@ -77,7 +78,7 @@ for developing plugins of the ParaStation Process Management daemon.
 %package mpilegacy
 Summary:   Legacy MPI-starters for ParaStation process management
 Group:     Productivity/Clustering/Computing
-Requires:  psmgmt = %{version}
+Requires:  psmgmt%{?enable_slurm1605:-slurm1605} = %{version}
 
 %description mpilegacy
 The psmgmt-mpilegacy package includes additional MPI starters for
@@ -95,7 +96,8 @@ legacy implementations of the MPI version 1 standard.
 export CFLAGS="%(echo %{optflags}|sed -e 's,-O.,,')"
 %configure --datarootdir=%{_datarootdir} --with-pamdir=%{_pamdir} \
 	   %{?disable_psconfig:--disable-psconfig} \
-	   %{?disable_systemd:--with-unitdir=no}
+	   %{?disable_systemd:--with-unitdir=no} \
+	   %{?enable_slurm1605:--enable-slurm_proto_1605}
 make %{?_smp_mflags}
 
 %install
