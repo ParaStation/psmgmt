@@ -54,7 +54,7 @@
 
 #include "psslurmproto.h"
 
-#define DEBUG_MSG_HEADER 1
+#define DEBUG_MSG_HEADER 0
 
 static void sendPing(Slurm_Msg_t *sMsg)
 {
@@ -950,8 +950,6 @@ static void handleHealthCheck(Slurm_Msg_t *sMsg)
 static void handleAcctGatherUpdate(Slurm_Msg_t *sMsg)
 {
     PS_DataBuffer_t msg = { .buf = NULL };
-    time_t now = 0;
-    int i;
 
     /* check permissions */
     if (sMsg->head.uid != 0 && sMsg->head.uid != slurmUserID) {
@@ -964,10 +962,18 @@ static void handleAcctGatherUpdate(Slurm_Msg_t *sMsg)
     addStringToMsg(getConfValueC(&Config, "SLURM_HOSTNAME"), &msg);
 
     /* set dummy energy data */
+#ifdef SLURM_PROTOCOL_1605
+    /* sensor count */
+    addUint16ToMsg(0, &msg);
+#else
+    time_t now = 0;
+    int i;
+
     for (i=0; i<5; i++) {
 	addUint32ToMsg(0, &msg);
     }
     addTimeToMsg(&now, &msg);
+#endif
 
     sendSlurmReply(sMsg, RESPONSE_ACCT_GATHER_UPDATE, &msg);
     ufree(msg.buf);
@@ -976,8 +982,6 @@ static void handleAcctGatherUpdate(Slurm_Msg_t *sMsg)
 static void handleAcctGatherEnergy(Slurm_Msg_t *sMsg)
 {
     PS_DataBuffer_t msg = { .buf = NULL };
-    time_t now = 0;
-    int i;
 
     /* check permissions */
     if (sMsg->head.uid != 0 && sMsg->head.uid != slurmUserID) {
@@ -990,10 +994,18 @@ static void handleAcctGatherEnergy(Slurm_Msg_t *sMsg)
     addStringToMsg(getConfValueC(&Config, "SLURM_HOSTNAME"), &msg);
 
     /* set dummy energy data */
+#ifdef SLURM_PROTOCOL_1605
+    /* sensor count */
+    addUint16ToMsg(0, &msg);
+#else
+    time_t now = 0;
+    int i;
+
     for (i=0; i<5; i++) {
 	addUint32ToMsg(0, &msg);
     }
     addTimeToMsg(&now, &msg);
+#endif
 
     sendSlurmReply(sMsg, RESPONSE_ACCT_GATHER_ENERGY, &msg);
     ufree(msg.buf);
@@ -1028,6 +1040,9 @@ static void handleFileBCast(Slurm_Msg_t *sMsg)
     bcast = addBCast(sMsg->sock);
 
     getUint16(ptr, &bcast->blockNumber);
+#ifdef SLURM_PROTOCOL_1605
+    getUint16(ptr, &bcast->compress);
+#endif
     getUint16(ptr, &bcast->lastBlock);
     getUint16(ptr, &bcast->force);
     getUint16(ptr, &bcast->modes);
@@ -1041,6 +1056,11 @@ static void handleFileBCast(Slurm_Msg_t *sMsg)
     getTime(ptr, &bcast->mtime);
     bcast->fileName = getStringM(ptr);
     getUint32(ptr, &bcast->blockLen);
+#ifdef SLURM_PROTOCOL_1605
+    getUint32(ptr, &bcast->uncompLen);
+    getUint32(ptr, &bcast->blockOffset);
+    getUint64(ptr, &bcast->fileSize);
+#endif
     bcast->block = getStringM(ptr);
 
     if (!(checkBCastCred(ptr, bcast))) {
@@ -1407,6 +1427,15 @@ static void handleBatchJobLaunch(Slurm_Msg_t *sMsg)
 
     /* jobinfo plugin id */
     getUint32(ptr, &tmp);
+
+#ifdef SLURM_PROTOCOL_1605
+    /* TODO: account */
+    job->account = getStringM(ptr);
+    /* TODO: qos */
+    job->qos = getStringM(ptr);
+    /* TODO: resv name */
+    job->resvName = getStringM(ptr);
+#endif
 
     job->extended = 1;
     job->hostname = ustrdup(getConfValueC(&Config, "SLURM_HOSTNAME"));
@@ -1851,8 +1880,8 @@ static int testSlurmVersion(uint32_t version, uint32_t cmd)
 	    version >= SLURM_2_5_PROTOCOL_VERSION) {
 	    return 1;
 	}
-	mlog("%s: slurm protocol < '%s' not supported\n", __func__,
-		SLURM_CUR_PROTOCOL_VERSION_STR);
+	mlog("%s: slurm protocol '%u' < '%s' not supported\n", __func__,
+		version, SLURM_CUR_PROTOCOL_VERSION_STR);
 	return 0;
     }
     return 1;
@@ -2352,13 +2381,21 @@ int addSlurmAccData(uint8_t accType, pid_t childPid, PStask_ID_t loggerTID,
     addUint32ToMsg(accData.minCputime, data);
 
     /* total cpu time */
+#ifdef SLURM_PROTOCOL_1605
+    addDoubleToMsg(accData.totCputime, data);
+#else
     addUint32ToMsg(accData.totCputime, data);
+#endif
 
     /* act cpufreq */
     addUint32ToMsg(accData.cpuFreq, data);
 
     /* energy consumed */
+#ifdef SLURM_PROTOCOL_1605
+    addUint64ToMsg(0, data);
+#else
     addUint32ToMsg(0, data);
+#endif
 
     /* max/total disk read */
     addDoubleToMsg(accData.maxDiskRead, data);

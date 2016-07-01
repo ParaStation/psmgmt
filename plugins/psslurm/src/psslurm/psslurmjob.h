@@ -110,11 +110,15 @@ typedef struct {
 typedef struct {
     char *fileName;
     uint16_t blockNumber;
+    uint16_t compress;
     uint16_t lastBlock;
     uint16_t force;	    /* overwrite dest file */
     uint16_t modes;	    /* access writes */
     uint32_t blockLen;
+    uint32_t uncompLen;
+    uint32_t blockOffset;
     uint32_t jobid;
+    uint64_t fileSize;
     time_t atime;
     time_t mtime;
     char *block;
@@ -262,6 +266,9 @@ typedef struct {
     char *hostname;
     char *checkpoint;
     char *restart;
+    char *account;
+    char *qos;
+    char *resvName;
     int state;
     int signaled;
     uint8_t terminate;

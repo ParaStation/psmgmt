@@ -650,6 +650,9 @@ int deleteJob(uint32_t jobid)
     ufree(job->partition);
     ufree(job->cpusPerNode);
     ufree(job->cpuCountReps);
+    ufree(job->account);
+    ufree(job->qos);
+    ufree(job->resvName);
 
     for (i=0; i<job->argc; i++) {
 	ufree(job->argv[i]);
