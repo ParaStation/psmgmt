@@ -9,14 +9,8 @@
  * file.
  */
 /**
- * \file
+ * @file
  * psid: ParaStation Daemon
- *
- * $Id$
- *
- * \author
- * Norbert Eicker <eicker@par-tec.com>
- *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 static char vcid[] __attribute__((used)) =
@@ -221,7 +215,7 @@ static void RDPCallBack(int msgid, void *buf)
  *
  * @param info Dummy pointer to extra info. Ignored.
  *
- * @return Always returs 0
+ * @return Always returns 0
  */
 static int handleSIGCHLD(int fd, void *info)
 {
@@ -255,7 +249,8 @@ static int handleSIGCHLD(int fd, void *info)
 	tid = PSC_getTID(-1, pid);
 
 	task = PStasklist_find(&managedTasks, tid);
-	if (task) {
+	if (task && task->group != TG_DELEGATE) {
+	    /* delegates are handled explicitly in psmom/psslurm */
 	    if (!task->killat) {
 		task->killat = time(NULL) + 10;
 	    }
@@ -264,8 +259,7 @@ static int handleSIGCHLD(int fd, void *info)
 		Selector_enable(task->fd);
 	    } else {
 		/* task not connected, remove from tasklist */
-		/* delegates are handled explicitly in psmom/psslurm */
-		if (task->group != TG_DELEGATE) PStask_cleanup(tid);
+		PStask_cleanup(tid);
 	    }
 	}
     }
@@ -282,7 +276,7 @@ static int handleSIGCHLD(int fd, void *info)
  *
  * @param info Dummy pointer to extra info. Ignored.
  *
- * @return Always returs 0
+ * @return Always returns 0
  */
 static int handleSIGUSR1(int fd, void *info)
 {
@@ -328,7 +322,7 @@ static void printMallocInfo(void)
  *
  * @param info Dummy pointer to extra info. Ignored.
  *
- * @return Always returs 0
+ * @return Always returns 0
  */
 static int handleSIGUSR2(int fd, void *info)
 {
