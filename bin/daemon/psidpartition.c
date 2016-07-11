@@ -474,9 +474,9 @@ void cleanupRequests(PSnodes_ID_t node)
 }
 
 /**
- * @brief Cleanup the request queues.
+ * @brief Cleanup request queues
  *
- * Cleanup the two queues used for storing requests.
+ * Cleanup the queues used for storing requests.
  *
  * The queues to handle are @ref pendReq for all pending requests,
  * @ref runReq for all running requests, and @ref regisReq for
@@ -1334,7 +1334,7 @@ static unsigned int getNormalPart(PSpart_request_t *request,
  * containing the number of CPUs indexed by the node's ParaStation ID.
  *
  * @param candSlots The process distribution to create. This has to be
- * a array of size @ref PSC_getNrOfNodes() initialized with all
+ * an array of size @ref PSC_getNrOfNodes() initialized with all
  * 0. Upon return it will contain the number of processes allocated to
  * each node indexed by the node's ParaStation ID.
  *
