@@ -309,6 +309,7 @@ static void freeChunk(sel_chunk_t *chunk)
 
     /* Now that the chunk is completely empty, free() it */
     list_del(&chunk->next);
+    free(chunk);
     availSelectors -= SELECTOR_CHUNK;
     logger_print(logger, SELECTOR_LOG_VERB, "%s: now used %d.\n", __func__,
 		 availSelectors);
