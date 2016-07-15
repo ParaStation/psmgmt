@@ -192,3 +192,31 @@ unsigned long stringTimeToSec(char *wtime)
     }
     return 0;
 }
+
+void __printBinaryData(char *data, size_t len, char *tag,
+			const char *func, const int line)
+{
+    size_t i;
+
+    if (!data) {
+	pluginlog("%s: invalid data ptr from '%s:%i'\n", __func__,
+		    func, line);
+	return;
+    }
+
+    if (tag) {
+	pluginlog("%s: %s len '%zu' '", func, tag, len);
+    } else {
+	pluginlog("%s: len '%zu' '", func, len);
+    }
+
+    for (i=0; i<len; i++) {
+	if (i!=len -1) {
+	    pluginlog("%02x ", (unsigned char) data[i]);
+	} else {
+	    pluginlog("%02x", (unsigned char) data[i]);
+	}
+    }
+
+    pluginlog("'\n");
+}

@@ -54,7 +54,7 @@
 
 #include "psslurmproto.h"
 
-#define DEBUG_MSG_HEADER 0
+#undef DEBUG_MSG_HEADER
 
 static void sendPing(Slurm_Msg_t *sMsg)
 {

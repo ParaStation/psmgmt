@@ -28,6 +28,7 @@
 #include "psslurmgres.h"
 #include "psslurmproto.h"
 #include "slurmcommon.h"
+#include "pluginhelper.h"
 
 #include "psslurmauth.h"
 
@@ -284,24 +285,6 @@ void deleteJobCred(JobCred_t *cred)
     ufree(cred);
 }
 
-static void showCredBuffers(char *sigBuf, int sigBufLen, char *credStart,
-			    int jobDataLen)
-{
-    int x;
-
-    mlog("%s: sigB:'", __func__);
-    for (x=0; x<sigBufLen; x++) {
-	mlog("%x", sigBuf[x]);
-    }
-    mlog("'\n");
-
-    mlog("%s: jobD:'", __func__);
-    for (x=0; x<jobDataLen; x++) {
-	mlog("%x", credStart[x]);
-    }
-    mlog("'\n");
-}
-
 JobCred_t *getJobCred(Gres_Cred_t *gres, char **ptr, uint16_t version,
 			int decode)
 {
@@ -383,13 +366,15 @@ JobCred_t *getJobCred(Gres_Cred_t *gres, char **ptr, uint16_t version,
 	if (len != sigBufLen) {
 	    mlog("%s: mismatching creditial len %u : %u\n", __func__,
 		    len, sigBufLen);
-	    showCredBuffers(sigBuf, sigBufLen, credStart, len);
+	    printBinaryData(sigBuf, sigBufLen, "sigBuf");
+	    printBinaryData(credStart, len, "jobData");
 	    goto ERROR;
 	}
 
 	if (!!(memcmp(sigBuf, credStart, sigBufLen))) {
 	    mlog("%s: manipulated data\n", __func__);
-	    showCredBuffers(sigBuf, sigBufLen, credStart, len);
+	    printBinaryData(sigBuf, sigBufLen, "sigBuf");
+	    printBinaryData(credStart, len, "jobData");
 	    goto ERROR;
 	}
 	free(sigBuf);
@@ -401,7 +386,6 @@ JobCred_t *getJobCred(Gres_Cred_t *gres, char **ptr, uint16_t version,
 	    cred->hostlist, cred->jobHostlist, cred->ctime, cred->sig);
 
     return cred;
-
 
 ERROR:
     free(sigBuf);

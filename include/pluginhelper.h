@@ -138,4 +138,25 @@ char *printTime(time_t time);
  */
 unsigned long stringTimeToSec(char *wtime);
 
+/**
+ * @brief Print binary data in hex format
+ *
+ * @param data Pointer to data to print
+ *
+ * @param len The lenght of the data to print
+ *
+ * @param tag The tag will be printed in front of the data
+ *
+ * @param func Function name of the calling function
+ *
+ * @param line Line number where this function is called
+ *
+ * @return No return value
+ */
+void __printBinaryData(char *data, size_t len, char *tag,
+			const char *func, const int line);
+
+#define printBinaryData(data, len, tag) \
+	__printBinaryData(data, len, tag, __func__, __LINE__)
+
 #endif  /* __PS_PLUGIN_LIB_HELPER */

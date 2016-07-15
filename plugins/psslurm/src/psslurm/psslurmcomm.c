@@ -693,7 +693,7 @@ static void addSlurmHeader(Slurm_Msg_Header_t *head, uint32_t bodyLen,
 int sendSlurmMsgEx(int sock, Slurm_Msg_Header_t *head, PS_DataBuffer_t *body)
 {
     PS_DataBuffer_t data = { .buf = NULL };
-    uint32_t msgLen;
+    uint32_t msgLen, lastBufLen = 0;
     int ret;
 
     /* connect to slurmctld */
@@ -710,15 +710,34 @@ int sendSlurmMsgEx(int sock, Slurm_Msg_Header_t *head, PS_DataBuffer_t *body)
     mdbg(PSSLURM_LOG_COMM, "%s: added slurm header (%i) : body len :%i\n",
 	    __func__, data.bufUsed, body->bufUsed);
 
+    if (DEBUG_IO > 1) {
+	printBinaryData(data.buf + lastBufLen, data.bufUsed - lastBufLen,
+			"msg header");
+	lastBufLen = data.bufUsed;
+    }
+
     /* add munge auth string, will *not* be counted to msg header body len */
     addSlurmAuth(&data);
     mdbg(PSSLURM_LOG_COMM, "%s: added slurm auth (%i)\n",
 	    __func__, data.bufUsed);
 
+
+    if (DEBUG_IO > 1) {
+	printBinaryData(data.buf + lastBufLen, data.bufUsed - lastBufLen,
+			"slurm auth");
+	lastBufLen = data.bufUsed;
+    }
+
     /* add the message body */
     addMemToMsg(body->buf, body->bufUsed, &data);
     mdbg(PSSLURM_LOG_COMM, "%s: added slurm msg body (%i)\n",
 	    __func__, data.bufUsed);
+
+    if (DEBUG_IO > 1) {
+	printBinaryData(data.buf + lastBufLen, data.bufUsed - lastBufLen,
+			"msg body");
+	lastBufLen = data.bufUsed;
+    }
 
     /* send the message */
     msgLen = htonl(data.bufUsed);
@@ -726,6 +745,7 @@ int sendSlurmMsgEx(int sock, Slurm_Msg_Header_t *head, PS_DataBuffer_t *body)
 	ufree(data.buf);
 	return ret;
     }
+
     mdbg(PSSLURM_LOG_COMM, "%s: wrote len: %u\n", __func__, ret);
     if ((ret = doWriteP(sock, data.buf, data.bufUsed)) < 1) {
 	ufree(data.buf);
