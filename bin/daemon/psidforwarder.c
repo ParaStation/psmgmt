@@ -1085,7 +1085,7 @@ static void finalizeForwarder(void)
 
     sendMsg(USAGE, (char *) &childRUsage, sizeof(childRUsage));
 
-    clientStat = PSIDhook_call(PSIDHOOK_FRWRD_CLIENT_STAT, NULL);
+    clientStat = PSIDhook_call(PSIDHOOK_FRWRD_CLIENT_STAT, childTask);
 
     /* Release, if no error occurred and not already done */
     if ((!clientStat || clientStat == PSIDHOOK_NOFUNC)
