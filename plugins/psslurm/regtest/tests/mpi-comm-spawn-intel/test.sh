@@ -9,5 +9,5 @@ mpiicc prog.c -o output-${JOB_NAME}/prog.exe
 export I_MPI_FABRICS=tcp
 export I_MPI_FALLBACK=off
 
-srun --mpi pmi2 -n 1 output-${JOB_NAME}/prog.exe 
+srun --mpi pmi2 -n 1 output-${JOB_NAME}/prog.exe
 

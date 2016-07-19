@@ -138,7 +138,7 @@ for k, v in tests.iteritems():
 
 JOB_NAME=$(scontrol show job ${SLURM_JOB_ID} | head -n 1 | awk '{print $2}' | sed 's/Name=//g')
 
-gcc %s prog.c -o output-${JOB_NAME}/prog.exe %s
+env PATH=/usr/local/bin:/bin:/usr/bin:/usr/local/sbin:/usr/sbin:/sbin /usr/bin/gcc %s prog.c -o output-${JOB_NAME}/prog.exe %s
 srun -n %d %s %soutput-${JOB_NAME}/prog.exe
 
 """ % (v[3], v[4], len(v[2]), v[0], tmp))
