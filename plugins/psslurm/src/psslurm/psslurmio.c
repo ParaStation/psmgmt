@@ -302,7 +302,7 @@ static void handlePrintChildMsg(void *data, char *ptr)
     }
 
     /* handle unbuffered IO */
-    if (!step->bufferedIO || step->pty) {
+    if ((!step->labelIO && !step->bufferedIO) || step->pty) {
 	writeIOmsg(msg, len, taskid, type, fwdata, step, lrank);
 	ufree(msg);
 	return;
