@@ -73,7 +73,8 @@ typedef struct {
 typedef enum {
     JOB_INIT   = 0x0001,
     JOB_QUEUED,		    /* the job was queued */
-    JOB_PRESTART,	    /* job spawned, but not yet started */
+    JOB_PRESTART,	    /* forwarder was spawned to start mpiexec */
+    JOB_SPAWNED,	    /* mpiexec was started, srun was informed */
     JOB_RUNNING,	    /* the user job is executed */
     JOB_PROLOGUE,	    /* the prologue is executed */
     JOB_EPILOGUE,	    /* the epilogue is executed */
@@ -242,7 +243,7 @@ typedef struct {
     uid_t uid;		    /* user id of the job owner */
     gid_t gid;		    /* group of the job owner */
     PSnodes_ID_t *nodes;    /* all participating nodes in the job */
-    char * slurmNodes;	    /* slurm compressed hostlist */
+    char *slurmNodes;	    /* slurm compressed hostlist */
     PStask_ID_t mother;
     char *partition;
     JobCred_t *cred;	    /* job/step creditials */

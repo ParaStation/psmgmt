@@ -947,6 +947,8 @@ char *strJobState(JobState_t state)
 	    return "QUEUED";
 	case JOB_PRESTART:
 	    return "PRESTART";
+	case JOB_SPAWNED:
+	    return "SPAWNED";
 	case JOB_RUNNING:
 	    return "RUNNING";
 	case JOB_PROLOGUE:

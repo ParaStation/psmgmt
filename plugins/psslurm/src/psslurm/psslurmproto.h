@@ -39,6 +39,7 @@ int writeJobscript(Job_t *job, char *script);
 int handleSlurmdMsg(Slurm_Msg_t *msg);
 
 int sendTaskPids(Step_t *step);
+void sendLaunchTasksFailed(Step_t *step, uint32_t error);
 void sendTaskExit(Step_t *step, int *ctlPort, int *ctlAddr);
 void sendStepExit(Step_t *step, int exit_status);
 void sendJobExit(Job_t *job, uint32_t exit);

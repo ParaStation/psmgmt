@@ -2557,6 +2557,61 @@ void sendTaskExit(Step_t *step, int *ctlPort, int *ctlAddr)
     }
 }
 
+void sendLaunchTasksFailed(Step_t *step, uint32_t error)
+{
+    PS_DataBuffer_t body = { .buf = NULL };
+    int sock = -1;
+    uint32_t i, z;
+
+    for (i=0; i<step->nrOfNodes; i++) {
+
+	body.bufUsed = 0;
+	body.buf = NULL;
+
+	/* return code */
+	addUint32ToMsg(error, &body);
+
+	/* node_name */
+	addStringToMsg(getHostnameByNodeId(step->nodes[i]), &body);
+
+	/* count of pids */
+	addUint32ToMsg(step->globalTaskIdsLen[i], &body);
+
+	/* local pids */
+	addUint32ToMsg(step->globalTaskIdsLen[i], &body);
+
+	for (z=0; z<step->globalTaskIdsLen[i]; z++) {
+	    addUint32ToMsg(step->globalTaskIds[i][z], &body);
+	}
+
+	/* task ids of processes (array) */
+	addUint32ToMsg(step->globalTaskIdsLen[i], &body);
+
+	for (z=0; z<step->globalTaskIdsLen[i]; z++) {
+	    addUint32ToMsg(step->globalTaskIds[i][z], &body);
+	}
+
+	/* send the message to srun */
+	if ((sock = srunOpenControlConnection(step)) != -1) {
+	    setFDblock(sock, 1);
+	    if ((sendSlurmMsg(sock, RESPONSE_LAUNCH_TASKS, &body)) < 1) {
+		mlog("%s: send RESPONSE_LAUNCH_TASKS failed step '%u:%u'\n",
+			__func__, step->jobid, step->stepid);
+	    }
+	    close(sock);
+	} else {
+	    mlog("%s: open control connection failed, step '%u:%u'\n",
+		    __func__, step->jobid, step->stepid);
+	}
+
+	mlog("%s: send RESPONSE_LAUNCH_TASKS step '%u:%u' pids '%u'\n",
+		__func__, step->jobid, step->stepid, step->globalTaskIdsLen[i]);
+
+    }
+
+    ufree(body.buf);
+}
+
 int sendTaskPids(Step_t *step)
 {
     PS_DataBuffer_t body = { .buf = NULL };
@@ -2625,8 +2680,8 @@ int sendTaskPids(Step_t *step)
 		__func__, step->jobid, step->stepid);
     }
 
-    mlog("%s: send RESPONSE_LAUNCH_TASKS success, step '%u:%u'\n", __func__,
-	    step->jobid, step->stepid);
+    mlog("%s: send RESPONSE_LAUNCH_TASKS step '%u:%u' pids '%u'\n",
+	    __func__, step->jobid, step->stepid, countPIDS);
     ufree(body.buf);
 
     return 1;

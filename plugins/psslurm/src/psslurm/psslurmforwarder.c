@@ -162,6 +162,8 @@ static int stepCallback(int32_t exit_status, char *errMsg,
 	} else {
 	    sendSlurmRC(&step->srunControlMsg, SLURM_ERROR);
 	}
+    } else if (step->state == JOB_SPAWNED) {
+	    sendLaunchTasksFailed(step, SLURM_ERROR);
     } else {
 	/* send task exit to srun processes */
 	sendTaskExit(step, NULL, NULL);
@@ -778,6 +780,7 @@ static void handleChildStartStep(void *data, pid_t fw, pid_t childPid,
     mlog("%s: send launch success for step '%u:%u' to srun sock '%u'\n",
 	    __func__, step->jobid, step->stepid, step->srunControlMsg.sock);
     sendSlurmRC(&step->srunControlMsg, SLURM_SUCCESS);
+    step->state = JOB_SPAWNED;
 }
 
 int execUserStep(Step_t *step)
