@@ -587,7 +587,7 @@ void handleLaunchTasks(Slurm_Msg_t *sMsg)
 static void handleSignalTasks(Slurm_Msg_t *sMsg)
 {
     char **ptr = &sMsg->ptr;
-    uint32_t jobid, stepid, siginfo;
+    uint32_t jobid, stepid, siginfo, flag;
     int signal;
     Step_t *step = NULL;
     Job_t *job = NULL;
@@ -598,6 +598,7 @@ static void handleSignalTasks(Slurm_Msg_t *sMsg)
     getUint32(ptr, &siginfo);
 
     /* extract flags and signal */
+    flag = siginfo >> 24;
     signal = siginfo & 0xfff;
 
     /* find step */
@@ -658,23 +659,30 @@ static void handleSignalTasks(Slurm_Msg_t *sMsg)
 	    return;
     }
 
-    if (stepid == SLURM_BATCH_SCRIPT) {
+    if (flag & KILL_FULL_JOB) {
+	mlog("%s: send full job '%u' signal '%u'\n", __func__,
+		jobid, signal);
 	if (job) {
-	    mlog("%s: send jobscript '%u' signal '%u'\n", __func__,
-		    jobid, signal);
+	    /* signal jobscript only, not all corresponding steps */
+	    if (job->state == JOB_RUNNING && job->fwdata) {
+		killChild(job->fwdata->childPid, signal);
+	    }
+	}
+	signalStepsByJobid(jobid, signal);
+    } else if (flag & KILL_STEPS_ONLY) {
+	mlog("%s: send steps '%u' signal '%u'\n", __func__, jobid, signal);
+	signalStepsByJobid(jobid, signal);
+    } else {
+	mlog("%s: send step '%u:%u' signal '%u'\n", __func__, jobid,
+		stepid, signal);
+	if (stepid == SLURM_BATCH_SCRIPT) {
 	    /* signal jobscript only, not all corresponding steps */
 	    if (job->state == JOB_RUNNING && job->fwdata) {
 		killChild(job->fwdata->childPid, signal);
 	    }
 	} else {
-	    mlog("%s: send steps with jobid '%u' signal '%u'\n", __func__,
-		    jobid, signal);
-	    signalStepsByJobid(jobid, signal);
+	    signalStep(step, signal);
 	}
-    } else {
-	mlog("%s: send step '%u:%u' signal '%u'\n", __func__, jobid,
-		stepid, signal);
-	signalStep(step, signal);
     }
 
     sendSlurmRC(sMsg, SLURM_SUCCESS);

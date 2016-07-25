@@ -135,6 +135,12 @@ typedef enum task_dist_states {
 #define SIG_NODE_FAIL   998     /* Dummy signal value to signify node failure */
 #define SIG_FAILURE     999     /* Dummy signal value to signify sys failure */
 
+#define KILL_JOB_BATCH  0x0001  /* signal batch shell only */
+#define KILL_JOB_ARRAY  0x0002  /* kill all elements of a job array */
+#define KILL_STEPS_ONLY 0x0004  /* Do not signal batch script */
+#define KILL_FULL_JOB   0x0008  /* Signal all steps, including batch script */
+
+
 /* task flags */
 enum task_flag_vals {
     TASK_PARALLEL_DEBUG = 0x1,
