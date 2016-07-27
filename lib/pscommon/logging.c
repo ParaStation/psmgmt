@@ -46,7 +46,7 @@ char* logger_getTag(logger_t* logger)
     return logger->tag;
 }
 
-void logger_setTag(logger_t* logger, char* tag)
+void logger_setTag(logger_t* logger, const char* tag)
 {
     if (!logger) return;
 
@@ -87,7 +87,7 @@ void logger_setWaitNLFlag(logger_t* logger, int flag)
     logger->waitNLFlag = flag;
 }
 
-logger_t* logger_init(char* tag, FILE* logfile)
+logger_t* logger_init(const char* tag, FILE* logfile)
 {
     logger_t* logger = (logger_t*)malloc(sizeof(*logger));
 
