@@ -1,3 +1,238 @@
+Version psmgmt-5.0.51:
+======================
+------------------------------------------------------------------------
+r9403 | eicker | 2016-07-27 14:11:06 +0200 (Wed, 27 Jul 2016) | 2 lines
+
+Enhancement: Allow const tags in logging facility
+
+------------------------------------------------------------------------
+r9402 | eicker | 2016-07-27 14:07:44 +0200 (Wed, 27 Jul 2016) | 2 lines
+
+Fix typo in documentation comment
+
+------------------------------------------------------------------------
+r9401 | eicker | 2016-07-19 12:44:29 +0200 (Tue, 19 Jul 2016) | 2 lines
+
+Remove obsolete RDP_SYNNACK message type from RDP (#2426)
+
+------------------------------------------------------------------------
+r9400 | eicker | 2016-07-19 12:31:04 +0200 (Tue, 19 Jul 2016) | 5 lines
+
+Merge changes from psslurm-devel
+
+ - New mechanism for task epilog execution
+ - Bugfix: never exit in hook PSIDHOOK_EXEC_CLIENT_USER
+
+------------------------------------------------------------------------
+r9399 | eicker | 2016-07-11 22:38:02 +0200 (Mon, 11 Jul 2016) | 2 lines
+
+Bugfix: Ensure that resource delegates never get released outside of
+	psmom (dt:#1495)
+
+------------------------------------------------------------------------
+r9398 | eicker | 2016-07-11 22:35:49 +0200 (Mon, 11 Jul 2016) | 2 lines
+
+Improve documentation comments
+
+------------------------------------------------------------------------
+r9397 | eicker | 2016-07-11 22:34:31 +0200 (Mon, 11 Jul 2016) | 2 lines
+
+Enhancement: Toughen pscpu for different sizes of PSCPU_mask_t
+
+------------------------------------------------------------------------
+r9396 | eicker | 2016-07-11 22:32:22 +0200 (Mon, 11 Jul 2016) | 2 lines
+
+Bugfix: Fix memory leak in selector
+
+------------------------------------------------------------------------
+r9395 | eicker | 2016-06-30 15:17:52 +0200 (Thu, 30 Jun 2016) | 2 lines
+
+Bugfix: epoll requires special handling of stdin in psilogger (#2561)
+
+------------------------------------------------------------------------
+r9394 | eicker | 2016-06-28 13:35:30 +0200 (Tue, 28 Jun 2016) | 2 lines
+
+Merge pluginlog from psslurm-devel
+
+------------------------------------------------------------------------
+r9393 | eicker | 2016-06-28 13:00:00 +0200 (Tue, 28 Jun 2016) | 2 lines
+
+Fix various typos in comments.
+
+------------------------------------------------------------------------
+r9392 | eicker | 2016-06-28 12:06:02 +0200 (Tue, 28 Jun 2016) | 2 lines
+
+Merge pluginenv from psslurm-devel
+
+------------------------------------------------------------------------
+r9391 | eicker | 2016-06-24 21:58:55 +0200 (Fri, 24 Jun 2016) | 4 lines
+
+Merge plugincomm from psslurm-devel
+
+- Streamline API and implementation
+
+------------------------------------------------------------------------
+r9390 | eicker | 2016-06-24 19:01:30 +0200 (Fri, 24 Jun 2016) | 5 lines
+
+Improve cgroup plugin
+
+- Unload plugin even if cgroup got removed (jrt:#5680)
+- 'plugin show cgroup key status' prints cgroup's status (#2558)
+
+------------------------------------------------------------------------
+r9389 | eicker | 2016-06-24 11:22:56 +0200 (Fri, 24 Jun 2016) | 2 lines
+
+Minor cleanup.
+
+------------------------------------------------------------------------
+r9388 | clauss | 2016-06-22 17:22:18 +0200 (Wed, 22 Jun 2016) | 7 lines
+
+Up to now, the mpiexec options --valgrind and --memcheck are essentially
+the same. However, as leak checking can produce a lot of superfluous
+valgrind debug output, from now on, --valgrind disable leak checking
+(valgrind option --leak-check=no) whereas --memcheck enables full leak
+checking (--leak-check=full).
+
+
+------------------------------------------------------------------------
+r9387 | eicker | 2016-06-15 08:22:59 +0200 (Wed, 15 Jun 2016) | 6 lines
+
+Major rework of plugincomm
+
+- Streamline the API
+- Condense and cleanup the implementation
+- Adjust psmom to changes of the interface
+
+------------------------------------------------------------------------
+r9386 | eicker | 2016-06-13 16:16:01 +0200 (Mon, 13 Jun 2016) | 6 lines
+
+Merge plugincomm from psslurm-devel
+
+- Merge plugincomm as is. Will streamline it later
+- Adapt psmom and pam_psmom to the emerged API
+- pluginfrag needs an update, too.
+
+------------------------------------------------------------------------
+r9385 | moschny | 2016-06-09 22:11:37 +0200 (Thu, 09 Jun 2016) | 1 line
+
+Fix copy-and-paste error.
+------------------------------------------------------------------------
+r9384 | eicker | 2016-06-09 16:37:43 +0200 (Thu, 09 Jun 2016) | 2 lines
+
+Enhancement: PSP_strLen() will keep its arguement
+
+------------------------------------------------------------------------
+r9383 | eicker | 2016-05-31 20:21:13 +0200 (Tue, 31 May 2016) | 2 lines
+
+Bugfix: Ensure psid has correct permissions to call openpty() (#2549)
+
+------------------------------------------------------------------------
+r9382 | eicker | 2016-05-24 19:43:14 +0200 (Tue, 24 May 2016) | 2 lines
+
+Merge pluginstrv from psslurm-devel again.
+
+------------------------------------------------------------------------
+r9381 | eicker | 2016-05-24 14:23:20 +0200 (Tue, 24 May 2016) | 2 lines
+
+Fix two warnings.
+
+------------------------------------------------------------------------
+r9380 | eicker | 2016-05-24 13:44:12 +0200 (Tue, 24 May 2016) | 2 lines
+
+More use of PSP_putMsgBuf()/PSP_getMsgBuf() in psidpartition
+
+------------------------------------------------------------------------
+r9379 | eicker | 2016-05-24 12:48:19 +0200 (Tue, 24 May 2016) | 2 lines
+
+Improve error messages and add one missed bool to psidpartition
+
+------------------------------------------------------------------------
+r9378 | eicker | 2016-05-24 12:24:42 +0200 (Tue, 24 May 2016) | 2 lines
+
+Booleanize psidpartition
+
+------------------------------------------------------------------------
+r9377 | eicker | 2016-05-24 11:53:52 +0200 (Tue, 24 May 2016) | 2 lines
+
+Bugfix: Prevent partition registrations from handled as normal
+	requests (jsc:#181)
+
+------------------------------------------------------------------------
+r9376 | eicker | 2016-05-20 17:44:17 +0200 (Fri, 20 May 2016) | 2 lines
+
+Enhancement: Merge pluginhostlist from psslurm branch
+
+------------------------------------------------------------------------
+r9375 | eicker | 2016-05-20 11:20:48 +0200 (Fri, 20 May 2016) | 3 lines
+
+Enhancement: Merge pluginpartition from psslurm branch
+Adapt psmom plugin to libplugincommon changes
+
+------------------------------------------------------------------------
+r9374 | eicker | 2016-05-18 13:05:06 +0200 (Wed, 18 May 2016) | 4 lines
+
+Enhancement: Merge pluginpty and pluginstrv from psslurm branch
+Adapt psmom plugins to libplugincommon changes
+
+
+------------------------------------------------------------------------
+r9373 | eicker | 2016-05-12 13:09:25 +0200 (Thu, 12 May 2016) | 4 lines
+
+Enhancement: Merge pluginmalloc extension form psslurm branch
+Adapt various plugins to pluginmalloc changes
+Streamline psresport plugin
+
+------------------------------------------------------------------------
+r9372 | eicker | 2016-05-11 18:11:37 +0200 (Wed, 11 May 2016) | 2 lines
+
+Enhancement: First working version of the cgroup plugin (jrt:#5439)
+
+------------------------------------------------------------------------
+r9371 | eicker | 2016-05-11 17:55:25 +0200 (Wed, 11 May 2016) | 2 lines
+
+Improve documentation
+
+------------------------------------------------------------------------
+r9370 | eicker | 2016-05-10 23:29:29 +0200 (Tue, 10 May 2016) | 2 lines
+
+Enhancement: Add a first skeleton for the cgroup plugin (jrt:#5439)
+
+------------------------------------------------------------------------
+r9369 | eicker | 2016-05-10 23:21:08 +0200 (Tue, 10 May 2016) | 3 lines
+
+Enhancement: Add PSIDHOOK_JAIL_CHILD for cgroup plugin. Thus, push
+    plugin API version to 115
+
+------------------------------------------------------------------------
+r9368 | eicker | 2016-05-10 22:55:56 +0200 (Tue, 10 May 2016) | 2 lines
+
+Enhancement: Improve pluginconfig's API and add getMaxKeyLen()
+
+------------------------------------------------------------------------
+r9367 | eicker | 2016-05-10 12:13:51 +0200 (Tue, 10 May 2016) | 2 lines
+
+Bugfix: Synchronize also with psmgmt.spec.templ
+
+------------------------------------------------------------------------
+r9366 | eicker | 2016-05-10 11:35:10 +0200 (Tue, 10 May 2016) | 2 lines
+
+Bugfix: Fix some more filelists for the build-system.
+
+------------------------------------------------------------------------
+r9365 | eicker | 2016-05-09 19:25:50 +0200 (Mon, 09 May 2016) | 4 lines
+
+Enhancement: Merge pluginconfig and pluginhelper from psslurm-branch
+     into master's pluginlib. Major re-design of pluginconfig's interface.
+Enhancement: Adapt psmom to changes in pluginlib.
+
+------------------------------------------------------------------------
+r9361 | eicker | 2016-05-09 10:14:34 +0200 (Mon, 09 May 2016) | 2 lines
+
+New release (psmgmt-5.0.50-1)
+
+------------------------------------------------------------------------
+
+
 Version psmgmt-5.0.50-1:
 ========================
 ------------------------------------------------------------------------

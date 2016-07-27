@@ -4,6 +4,48 @@ Copyright (C) 2010-2016 ParTec Cluster Competence Center GmbH, Munich
 
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
+*************************************************************************
+*************************************************************************
+**                                                                     **
+**  Remark: psmgmt 5.0.51 dropps support of RDP SYNNACK messages.      **
+**  Therefore compatibility with versions prior to psmgmt-5.0.48 is    **
+**  dropped by this release. This new version is *NOT* compatible      **
+**  with ParaStation versions 5.0.47-3 or older. A setup of the        **
+**  current version mixed with ones prior to 5.0.48 will *NOT* work.   **
+**                                                                     **
+*************************************************************************
+*************************************************************************
+
+Version 5.0.51:
+===============
+Bugfixes:
+ - epoll requires special handling of stdin in psilogger (#2561)
+ - Prevent partition registrations from handled as normal requests (jsc:#181)
+ - Ensure that resource delegates never get released outside of psmom (dt:#1495)
+ - Ensure psid has correct permissions to call openpty() (#2549)
+ - Never exit in hook PSIDHOOK_EXEC_CLIENT_USER
+ - Fix memory leak in selector
+ - Fix some more file lists for the build-system
+
+Enhancements:
+ - New mechanism for task epilogue execution
+ - First working version of the cgroup plugin (jrt:#5439)
+ - Unload plugin even if cgroup got removed (jrt:#5680)
+ - 'plugin show cgroup key status' prints cgroup's status (#2558)
+ - Add PSIDHOOK_JAIL_CHILD for cgroup plugin. Push plugin API version to 115
+ - Improve usability of mpiexec's --valgrind option
+ - Allow const tags in logging facility
+ - PSP_strLen() will keep its argument thus allow const arguments
+ - Toughen pscpu for different sizes of PSCPU_mask_t
+
+Additional changes:
+ - Remove obsolete RDP_SYNNACK message type from RDP (#2426)
+ - Merge large parts libplugincommon from the psslurm-devel branch
+ - More use of PSP_putMsgBuf()/PSP_getMsgBuf() in psidpartition
+ - More use of bool instead of int all over the code
+ - Adapt various plugins to libplugincommon changes
+ - Streamline psresport plugin
+
 
 Version 5.0.50-1:
 =================
