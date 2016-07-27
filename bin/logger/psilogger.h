@@ -8,13 +8,10 @@
  * file.
  */
 /**
- * \file
+ * @file
  * psilogger.h: Log-daemon for ParaStation I/O forwarding facility
  *
  * $Id$
- *
- * \author
- * Michael Rauh <rauh@par-tec.com>
  */
 
 #ifndef __PSILOGGER_H
@@ -37,7 +34,7 @@ extern "C" {
 /** A logger used within psilogger. This one is used for stdout stuff */
 extern logger_t *PSIlog_stdoutLogger;
 
-/** A logger used within psilogger. This one is used for stdout stuff */
+/** A logger used within psilogger. This one is used for stderr stuff */
 extern logger_t *PSIlog_stderrLogger;
 
 /** A logger used within psilogger. This one is used for error messages */
