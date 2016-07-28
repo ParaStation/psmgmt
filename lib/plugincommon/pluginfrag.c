@@ -91,6 +91,13 @@ static int handleNodeDown(void *nodeID)
 
     PSnodes_ID_t id = *(PSnodes_ID_t *)nodeID;
 
+    PSnodes_ID_t nrOfNodes = PSC_getNrOfNodes();
+
+    if (id < 0 || id >= nrOfNodes) {
+	pluginlog("%s: invalid node id %i\n", __func__, id);
+	return 1;
+    }
+
     if (recvBuffers[id]) {
 	pluginlog("%s: freeing recv buffer for node '%i'\n", __func__, id);
 	freeRecvBuffer(recvBuffers[id]);
