@@ -467,7 +467,9 @@ static int registerSlurmMessage(int sock, Connection_CB_t *cb)
 
     con = addConnection(sock, cb);
 
-    Selector_register(sock, readSlurmMsg, con);
+    if ((Selector_register(sock, readSlurmMsg, con)) == -1) {
+	mlog("%s: register socket '%i' failed\n", __func__, sock);
+    }
     return 1;
 }
 
