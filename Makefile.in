@@ -414,7 +414,7 @@ CLEANFILES = VERSION.psmgmt
 
 # ---- proxy to dist/Makefile
 #
-@BUILD_WITHOUT_PSCONFIG_TRUE@CONFIGARGS = "-without psconfig"
+@BUILD_WITHOUT_PSCONFIG_TRUE@AM_CONFIGARGS = -without psconfig
 
 # keep "make distcheck" happy
 AM_DISTCHECK_CONFIGURE_FLAGS = \
@@ -907,7 +907,7 @@ dist-hook:
 
 .PHONY: tar rpm srpm tag version
 tar rpm srpm tag version:
-	TOP_SRCDIR=$(abs_top_srcdir) CONFIGARGS=$(CONFIGARGS) $(MAKE) -C dist $@
+	$(MAKE) TOP_SRCDIR=$(abs_top_srcdir) CONFIGARGS="$(AM_CONFIGARGS) $(CONFIGARGS)" -C dist $@
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.

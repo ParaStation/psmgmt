@@ -45,12 +45,12 @@ dist-hook:
 # ---- proxy to dist/Makefile
 #
 if BUILD_WITHOUT_PSCONFIG
-  CONFIGARGS="-without psconfig"
+  AM_CONFIGARGS = -without psconfig
 endif
 
 .PHONY: tar rpm srpm tag version
 tar rpm srpm tag version:
-	TOP_SRCDIR=$(abs_top_srcdir) CONFIGARGS=$(CONFIGARGS) $(MAKE) -C dist $@
+	$(MAKE) TOP_SRCDIR=$(abs_top_srcdir) CONFIGARGS="$(AM_CONFIGARGS) $(CONFIGARGS)" -C dist $@
 
 # keep "make distcheck" happy
 AM_DISTCHECK_CONFIGURE_FLAGS =                         \
