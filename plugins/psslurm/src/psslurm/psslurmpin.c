@@ -908,7 +908,7 @@ static char * printMemMask() {
     return ret;
 
 #else
-    return "(no numa support)"
+    return "(no numa support)";
 #endif
 }
 
