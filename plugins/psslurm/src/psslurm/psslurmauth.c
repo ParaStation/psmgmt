@@ -72,11 +72,13 @@ int testMungeAuth(char **ptr, Slurm_Msg_Header_t *msgHead)
     }
 
     getUint32(ptr, &version);
+    /* TODO: disable check temporarly
     if (version != AUTH_MUNGE_VERSION) {
 	mlog("%s: auth munge version differ '%u' : '%u'\n", __func__,
 		AUTH_MUNGE_VERSION, version);
 	return 0;
     }
+    */
 
     cred = getStringM(ptr);
     ret = psMungeDecode(cred, &uid, &gid);
