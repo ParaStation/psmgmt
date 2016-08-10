@@ -19,7 +19,7 @@ for p in helper.partitions():
 
 	test.check(lines[0] == lines[1], p)
 	test.check(lines[0] == lines[2], p)
-	
+
 	if not re.match(r'.*cannot modify limit.*', err):
 		test.check(lines[3] != lines[0], p)
 		test.check(lines[3] == lines[4], p)
