@@ -73,7 +73,7 @@ int sendScriptExec(Script_t *script, PSnodes_ID_t dest)
     addStringToMsg(script->execName, &data);
 
     /* add env */
-    mlog("%s: env count '%u' dest '%i'\n", __func__, env->cnt, dest);
+    mlog("%s: name '%s' dest '%i'\n", __func__, script->execName, dest);
     addUint32ToMsg(env->cnt, &data);
     for (i=0; i<env->cnt; i++) {
 	addStringToMsg(envGetIndex(env, i), &data);
