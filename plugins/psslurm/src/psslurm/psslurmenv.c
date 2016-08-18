@@ -527,6 +527,14 @@ void setRankEnv(int32_t rank, Step_t *step)
 	if (!(strncmp(step->env.vars[count], "PWD=", 4))) continue;
 	if (display &&
 	    !(strncmp(step->env.vars[count], "DISPLAY=", 8))) continue;
+	if (!(strncmp(step->env.vars[count], "PMI_FD=", 7))) continue;
+	if (!(strncmp(step->env.vars[count], "PMI_PORT=", 9))) continue;
+	if (!(strncmp(step->env.vars[count], "PMI_RANK=", 9))) continue;
+	if (!(strncmp(step->env.vars[count], "PMI_SIZE=", 9))) continue;
+	if (!(strncmp(step->env.vars[count], "PMI_UNIVERSE_SIZE=", 18))) {
+	    continue;
+	}
+
 	putenv(step->env.vars[count]);
     }
 
