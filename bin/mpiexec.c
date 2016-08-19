@@ -1148,8 +1148,11 @@ static void setupExecEnv(int execNum)
 	setPSIEnv("SLURM_CPUS_PER_TASK", tmp, 1);
     }
 
-    snprintf(tmp, sizeof(tmp), "%d", execNum);
-    setPSIEnv("PMI_APPNUM", tmp, 1);
+
+    if (pmienabletcp || pmienablesockp ) {
+	snprintf(tmp, sizeof(tmp), "%d", execNum);
+	setPSIEnv("PMI_APPNUM", tmp, 1);
+    }
 }
 
 /* Flag, if verbose-option is set */
