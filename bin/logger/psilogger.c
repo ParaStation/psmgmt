@@ -32,8 +32,6 @@ static char vcid[] __attribute__((used)) =
 #include <sys/resource.h>
 #include <sys/wait.h>
 #include <signal.h>
-#include <readline/readline.h>
-#include <readline/history.h>
 #include <limits.h>
 
 #include "pscommon.h"
@@ -41,11 +39,12 @@ static char vcid[] __attribute__((used)) =
 #include "psprotocol.h"
 #include "pslog.h"
 #include "selector.h"
+#include "timer.h"
+#include "linenoise.h"
 #include "psiloggermerge.h"
 #include "psiloggerclient.h"
 
 #include "psilogger.h"
-#include "timer.h"
 
 int usize = 0;
 
@@ -179,7 +178,7 @@ char GDBprompt[128];
  *
  * @return No return value.
  */
-static void readGDBInput(char *line)
+static void readGDBInput(const char *line)
 {
     char buf[1000];
     size_t len;
@@ -188,12 +187,10 @@ static void readGDBInput(char *line)
 
     /* add the newline again */
     snprintf(buf, sizeof(buf), "%s\n", line);
+    PSIlog_stdout(-1, "\n");
 
     /*add to history */
-    HIST_ENTRY *last = history_get(history_length);
-    if (line && line[0] != '\0' && (!last || strcmp(last->line, line))) {
-	add_history(line);
-    }
+    if (line[0]) linenoiseHistoryAdd(line);
 
     /* check for input changing cmd */
     len = strlen(buf);
@@ -201,21 +198,21 @@ static void readGDBInput(char *line)
 	/* remove trailing garbage */
 	buf[len-1] = '\0';
 
-	PSIlog_log(-1, "Changing input dest to: %s", buf);
+	PSIlog_stdout(-1, "Changing input dest to: %s", buf);
 
 	setupDestList(buf);
-	PSIlog_log(-1, " -> [%s]\n", getDestStr(128));
+	PSIlog_stdout(-1, " -> [%s]\n", getDestStr(128));
 
 	/* modify readline's prompt */
 	snprintf(GDBprompt, sizeof(GDBprompt), "[%s]: (gdb) ", getDestStr(128));
-	rl_set_prompt(GDBprompt);
+	linenoiseSetPrompt(GDBprompt);
 	return;
     }
 
     forwardInputStr(buf, len);
     /* Expect command's echo */
     GDBcmdEcho = true;
-    rl_set_prompt("");
+    linenoiseSetPrompt("");
 
     PSIlog_log(PSILOG_LOG_VERB, "%s: %zd bytes\n", __func__, len);
 }
@@ -616,7 +613,7 @@ static bool newrequest(PSLog_Msg_t *msg)
 
     if (enableGDB) {
 	snprintf(GDBprompt, sizeof(GDBprompt), "[%s]: (gdb) ", getDestStr(128));
-	rl_set_prompt(GDBprompt);
+	linenoiseSetPrompt(GDBprompt);
     }
 
     maxConnected++;
@@ -1014,7 +1011,7 @@ static int readFromStdin(int fd, void *data)
 {
     /* if we debug with gdb, use readline callback for stdin */
     if (enableGDB) {
-	rl_callback_read_char();
+	linenoiseReadChar();
     } else {
 	forwardInput(fd);
     }
@@ -1321,7 +1318,7 @@ static void loop(void)
 	PSIlog_stderr(-1, "\n");
 	PSIlog_log(-1, "done\n");
     }
-    if (enableGDB) rl_callback_handler_remove();
+    if (enableGDB) linenoiseRemoveHandlerCallback();
 
     return;
 }
@@ -1468,10 +1465,10 @@ int main( int argc, char**argv)
 
     if (getenv("PSI_ENABLE_GDB")) {
 	enableGDB = true;
-	rl_callback_handler_install(NULL, (rl_vcpfunc_t*)readGDBInput);
+	linenoiseSetHandlerCallback(NULL, readGDBInput);
 	PSIlog_log(PSILOG_LOG_VERB, "Enabling gdb functions.\n");
 	snprintf(GDBprompt, sizeof(GDBprompt), "[%s]: (gdb) ", getDestStr(128));
-	rl_set_prompt(GDBprompt);
+	linenoiseSetPrompt(GDBprompt);
     }
 
     initClients(-2, np ? np-1 : 0);
