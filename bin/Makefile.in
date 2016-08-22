@@ -23,8 +23,6 @@
 # as defined in the file LICENSE.QPL included in the packaging of this
 # file.
 #
-# Author:	Thomas Moschny <moschny@par-tec.com>
-#
 
 #
 # ParaStation
@@ -169,8 +167,7 @@ psaccounter_DEPENDENCIES = $(libpse) $(am__DEPENDENCIES_1)
 am_psiadmin_OBJECTS = admin/psiadmin.$(OBJEXT) \
 	admin/commands.$(OBJEXT) admin/adminparser.$(OBJEXT)
 psiadmin_OBJECTS = $(am_psiadmin_OBJECTS)
-psiadmin_DEPENDENCIES = $(libputil) $(libpse) $(am__DEPENDENCIES_1) \
-	$(am__DEPENDENCIES_1)
+psiadmin_DEPENDENCIES = $(libputil) $(libpse) $(am__DEPENDENCIES_1)
 am_psid_OBJECTS = daemon/psidaccount.$(OBJEXT) \
 	daemon/psidamd.$(OBJEXT) daemon/psid.$(OBJEXT) \
 	daemon/psidclient.$(OBJEXT) daemon/psidcomm.$(OBJEXT) \
@@ -498,7 +495,7 @@ libpskvs = $(top_builddir)/lib/pskvs/libpskvs.la
 psiadmin_SOURCES = admin/psiadmin.c admin/psiadmin.h admin/commands.c	\
 	admin/commands.h admin/adminparser.c admin/adminparser.h
 
-psiadmin_LDADD = $(libputil) $(libpse) $(POPT_LIBS) $(RL_LIBS)
+psiadmin_LDADD = $(libputil) $(libpse) $(POPT_LIBS)
 psid_SOURCES = daemon/psidaccount.c daemon/psidaccount.h		\
 	daemon/psidamd.c daemon/psidamd.h daemon/psid.c daemon/psid.h	\
 	daemon/psidclient.c daemon/psidclient.h daemon/psidcomm.c	\

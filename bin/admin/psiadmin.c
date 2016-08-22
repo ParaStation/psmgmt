@@ -31,13 +31,12 @@ static char vcid[] __attribute__((used)) =
 #include <termios.h> /* Just to prevent a warning */
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <readline/readline.h>
-#include <readline/history.h>
 #include <popt.h>
 
 #include "parser.h"
 #include "psprotocol.h"
 #include "pscommon.h"
+#include "linenoise.h"
 #include "psi.h"
 
 #include "commands.h"
@@ -112,13 +111,21 @@ static void doReset(void)
     printf("Trying to reconnect.\n");
 }
 
-/* Get line from stdin. Read on, if line ends with '\\' */
-static char *nextline(FILE *file, bool silent)
+/* Get line from file or stdin. Read on, if line ends with '\\' */
+static char *nextline(FILE *inFile, bool silent)
 {
     char *line = NULL;
-    rl_instream = file;
     do {
-	char *tmp = readline(silent ? NULL : (line ? ">" : "PSIadmin>"));
+	char *tmp = NULL;
+	if (inFile == stdin) {
+	    tmp = linenoise(silent ? NULL : (line ? ">" : "PSIadmin>"));
+	} else {
+	    size_t len;
+	    if (getline(&tmp, &len, inFile) < 0) {
+		free(tmp);
+		tmp = NULL;
+	    }
+	}
 
 	if (!tmp) break;
 	if (!line) {
@@ -152,7 +159,7 @@ static char *homedir(void)
 
 #define RCNAME ".psiadminrc"
 
-static int handleRCfile(void)
+static int handleRCfile(bool echo)
 {
     FILE *rcfile = fopen(RCNAME, "r");
 
@@ -187,6 +194,7 @@ static int handleRCfile(void)
 
 	    if (*line) {
 		parser_removeComment(line);
+		if (echo) printf("%s", line);
 		done = parseLine(line);
 	    }
 	    free(line);
@@ -197,27 +205,24 @@ static int handleRCfile(void)
     return 0;
 }
 
-/** Size of the command history to handle */
-static int historyLen = 200;
-
 static void getHistoryLen(void)
 {
     char *env = getenv("PSIADM_HISTFILESIZE"), *tail;
+    int historyLen = 200;
     if (!env) return;
 
     unsigned long size = strtoul(env, &tail, 0);
 
     if (*tail) {
-	PSIadm_log(-1, "%s: '%s' invalid, use infinity (0).\n", __func__, env);
-	historyLen = 0;
+	PSIadm_log(-1, "%s: '%s' invalid, INT_MAX.\n", __func__, env);
+	historyLen = INT_MAX;
+    } else if (size != (unsigned long)(int)size) {
+	PSIadm_log(-1, "%s: '%s' too large, use INT_MAX.\n", __func__, env);
+	historyLen = INT_MAX;
     } else {
-	if (size != (unsigned long)(int)size) {
-	    PSIadm_log(-1, "%s: '%s' too large, use INT_MAX.\n", __func__, env);
-	    historyLen = INT_MAX;
-	} else {
-	    historyLen = (int)size;
-	}
+	historyLen = (int)size;
     }
+    linenoiseHistorySetMaxLen(historyLen);
 }
 
 #define HISTNAME ".psiadm_history"
@@ -247,7 +252,7 @@ static bool readHistoryFile(void)
     }
     if (file) fclose(file);
 
-    if (read_history(histName)) {
+    if (linenoiseHistoryLoad(histName)) {
 	PSIadm_warn(-1, errno, "%s: cannot read history file '%s'",
 		    __func__, histName);
 	return false;
@@ -259,15 +264,11 @@ static void saveHistoryFile(void)
 {
     if (!histName) return;
 
-    if (write_history(histName)) {
+    if (linenoiseHistorySave(histName)) {
 	PSIadm_warn(-1, errno, "cannot write history file '%s'", histName);
 	return;
-    } else if (historyLen) {
-	if (history_truncate_file(histName, historyLen)) {
-	    PSIadm_warn(-1, errno, "cannot truncate history file '%s'",
-			histName);
-	}
     }
+
     free(histName);
     histName = NULL;
 }
@@ -351,7 +352,7 @@ int main(int argc, const char **argv)
 
     /* Read the startup file */
     if (!noinit) {
-	int ret = handleRCfile();
+	int ret = handleRCfile(!progfile || echo);
 	if (ret) {
 	    parserRelease();
 	    PSIadm_finalizeLogs();
@@ -372,12 +373,10 @@ int main(int argc, const char **argv)
 	quiet = true;
     } else {
 	/* Interactive mode */
-	using_history();
 	getHistoryLen();
 	readHistoryFile();
 
-	rl_readline_name = "PSIadmin";
-	rl_attempted_completion_function = completeLine;
+	linenoiseSetCompletionCallback(completeLine);
     }
 
     while (!done) {
@@ -385,17 +384,9 @@ int main(int argc, const char **argv)
 	if (!line) break;
 
 	if (*line) {
-	    if (echo) printf("%s\n", line);
-
+	    if (echo) printf("%s", line);
 	    parser_removeComment(line);
-
-	    if (!progfile) {
-		HIST_ENTRY *last = history_get(history_length);
-		if (!last || strcmp(last->line, line)) {
-		    add_history(line);
-		}
-	    }
-
+	    if (!progfile) linenoiseHistoryAdd(line);
 	    done = parseLine(line);
 	}
 	free(line);

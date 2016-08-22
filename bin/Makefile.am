@@ -7,8 +7,6 @@
 # as defined in the file LICENSE.QPL included in the packaging of this
 # file.
 #
-# Author:	Thomas Moschny <moschny@par-tec.com>
-#
 
 include $(top_srcdir)/common.am
 
@@ -39,7 +37,7 @@ libpskvs = $(top_builddir)/lib/pskvs/libpskvs.la
 
 psiadmin_SOURCES = admin/psiadmin.c admin/psiadmin.h admin/commands.c	\
 	admin/commands.h admin/adminparser.c admin/adminparser.h
-psiadmin_LDADD = $(libputil) $(libpse) $(POPT_LIBS) $(RL_LIBS)
+psiadmin_LDADD = $(libputil) $(libpse) $(POPT_LIBS)
 
 psid_SOURCES = daemon/psidaccount.c daemon/psidaccount.h		\
 	daemon/psidamd.c daemon/psidamd.h daemon/psid.c daemon/psid.h	\

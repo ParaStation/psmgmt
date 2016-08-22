@@ -2,26 +2,23 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2011 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
 /**
- * \file
+ * @file
  * ParaStation admin command line parser functions
  *
  * $Id$
- *
- * \author
- * Norbert Eicker <eicker@par-tec.com>
- *
  */
 #ifndef __ADMINPARSER_H
 #define __ADMINPARSER_H
 
 #include <stdbool.h>
+#include "linenoise.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -63,31 +60,25 @@ void parserRelease(void);
 bool parseLine(char *line);
 
 /**
- * @brief Generate candidate for line completion
+ * @brief Generate candidates for line completion
  *
- * Generate a list list of candidates for readline's line completion
- * given the word @a text typed in so far. This function is intended
- * to act as readline's @a rl_attempted_completion_function, thus it
- * will be called from readline whenever a completion has to be done.
+ * Generate a list of candidates for linenoise's line completion given
+ * the text in @a buf typed in so far. This function is intended to
+ * act as linenoise's completion callback, thus it will be called from
+ * linenoise whenever a completion has to be done.
  *
  * The actual implementation utilizes the same keylists as the parser
- * used to implement the special syntax of psiadmin's directives.
+ * used to implement the specific of psiadmin's directives.
  *
- * @param text The text to complete
+ * @param buf The text to complete
  *
- * @param start The position of the first character of @a text within
- * readline's @a rl_line_buffer.
+ * @param lc Handle to add linenoise's completions to
  *
- * @param end The position of the last character of @a text within
- * readline's @a rl_line_buffer.
+ * @return No return value
  *
- * @return If possible completions are found, a array of these strings
- * is returned. The actual array returned is created using readline's
- * @ref rl_completion_matches() function.
- *
- * @see rl_line_buffer, rl_completion_matches()
+ * @see linenoiseAddCompletion()
  */
-char **completeLine(const char *text, int start, int end);
+void completeLine(const char *buf, linenoiseCompletions *lc);
 
 /* ******************* psiadmin's parameter-space **********************/
 

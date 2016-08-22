@@ -2553,81 +2553,65 @@ void parserRelease(void)
     parser_finalize();
 }
 
-#include <readline/readline.h>
-
-static keylist_t *genList = NULL;
-
-static char *generator(const char *text, int state)
+void completeLine(const char *buf, linenoiseCompletions *lc)
 {
-    static int index, len;
-    char *name, *ret=NULL;
-
-    /* If this is a new word to complete, initialize now.  This
-       includes saving the length of TEXT for efficiency, and
-       initializing the index variable to 0. */
-    if (!state) {
-	index = 0;
-	len = strlen (text);
-    }
-
-    /* Return the next name which partially matches from the
-       command list. */
-    if (genList) {
-	while ((name = genList[index].key) && !ret) {
-	    if (!strncmp(name, text, len))
-		ret = strdup(name);
-	    index++;
-	}
-    }
-
-    return ret;
-}
-
-char **completeLine(const char *text, int start, int end)
-{
+    keylist_t *genList = commandList;
     int tokStart = 0, tokEnd;
-    char **matches = NULL, *lb = rl_line_buffer;
-
-    genList = NULL;
-    rl_attempted_completion_over = 1;
+    int end = strlen(buf);
+    int start = end;
+    while (start > 0 && !isspace(buf[start-1])) start--;
 
     /* Try to find a token in front of the text to complete */
-    while (lb[tokStart] && isspace(lb[tokStart])) tokStart++;
+    while (buf[tokStart] && isspace(buf[tokStart])) tokStart++;
 
-    if (tokStart == start) {
-	genList = commandList;
-    } else {
-	int paramOpts = 1;
+    if (tokStart != start) {
+	bool paramOpts = true;
 	genList = commandList;
 	while (tokStart != start) {
 	    char *token, *matchedToken;
 
 	    tokEnd = tokStart;
-	    while (lb[tokEnd] && !isspace(lb[tokEnd])) tokEnd++;
-	    if (!lb[tokEnd]) return NULL; /* prevent libedit to segfault */
+	    while (buf[tokEnd] && !isspace(buf[tokEnd])) tokEnd++;
+	    if (!buf[tokEnd]) {
+		printf("return to save libedit\n");
+		return; /* prevent libedit to segfault */
+	    }
 
-	    token = strndup(&lb[tokStart], tokEnd-tokStart);
+	    token = strndup(&buf[tokStart], tokEnd-tokStart);
 
 	    genList = parser_nextKeylist(token, genList, &matchedToken);
 	    if (genList == setShowList && !strcmp(matchedToken, "show"))
-		paramOpts = 0;
+		paramOpts = false;
 	    if (genList == parametersList) {
-		paramOpts = 0;
-		if (!strcmp(matchedToken, "set")) paramOpts = 1;
+		paramOpts = false;
+		if (!strcmp(matchedToken, "set")) paramOpts = true;
 	    }
 
 	    free(token);
 	    tokStart = tokEnd+1;
-	    while (lb[tokStart] && isspace(lb[tokStart])) tokStart++;
+	    while (buf[tokStart] && isspace(buf[tokStart])) tokStart++;
 	}
 	if (!paramOpts &&
 	    (genList == PSPARM_boolKeys || genList == boolList
 	     || genList == sortList )) {
 	    genList = NULL;
 	}
-
     }
-    matches = rl_completion_matches(text, generator);
 
-    return (matches);
+    if (!genList) return;
+
+    const char *name, *text = &buf[start];
+    char completion[1024];
+    size_t len = strlen(text);
+    int index = 0;
+
+    if (start > 0) memcpy(completion, buf, start);
+
+    while ((name = genList[index].key)) {
+	if (!strncmp(name, text, len)) {
+	    memcpy(completion+start, name, strlen(name)+1);
+	    linenoiseAddCompletion(lc, completion);
+	}
+	index++;
+    }
 }
