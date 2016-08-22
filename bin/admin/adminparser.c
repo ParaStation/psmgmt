@@ -2527,7 +2527,7 @@ static keylist_t lineList[] = {
 };
 static parser_t lineParser = {";\n", lineList};
 
-int parseLine(char *line)
+bool parseLine(char *line)
 {
     char *token;
 

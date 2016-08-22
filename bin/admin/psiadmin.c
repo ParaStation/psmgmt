@@ -19,6 +19,7 @@ static char vcid[] __attribute__((used)) =
     "$Id$";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -112,9 +113,10 @@ static void doReset(void)
 }
 
 /* Get line from stdin. Read on, if line ends with '\\' */
-static char *nextline(int silent)
+static char *nextline(FILE *file, bool silent)
 {
     char *line = NULL;
+    rl_instream = file;
     do {
 	char *tmp = readline(silent ? NULL : (line ? ">" : "PSIadmin>"));
 
@@ -177,107 +179,106 @@ static int handleRCfile(void)
     }
 
     if (rcfile) {
-	int done = 0;
-	rl_instream = rcfile;
+	bool done = false;
 
 	while (!done) {
-	    char *line = nextline(1);
+	    char *line = nextline(rcfile, true);
+	    if (!line) break;
 
-	    if (line && *line) {
+	    if (*line) {
 		parser_removeComment(line);
 		done = parseLine(line);
 	    }
-	    if (line)
-		free(line);
-	    else
-		break;
+	    free(line);
 	}
-	rl_instream = stdin;
 	fclose(rcfile);
     }
 
     return 0;
 }
 
+/** Size of the command history to handle */
+static int historyLen = 200;
+
+static void getHistoryLen(void)
+{
+    char *env = getenv("PSIADM_HISTFILESIZE"), *tail;
+    if (!env) return;
+
+    unsigned long size = strtoul(env, &tail, 0);
+
+    if (*tail) {
+	PSIadm_log(-1, "%s: '%s' invalid, use infinity (0).\n", __func__, env);
+	historyLen = 0;
+    } else {
+	if (size != (unsigned long)(int)size) {
+	    PSIadm_log(-1, "%s: '%s' too large, use INT_MAX.\n", __func__, env);
+	    historyLen = INT_MAX;
+	} else {
+	    historyLen = (int)size;
+	}
+    }
+}
+
 #define HISTNAME ".psiadm_history"
 
-static char *histname = NULL;
-static int histfilesize = 200;
+static char *histName = NULL;
 
-static int handleHistFile(void)
+static bool readHistoryFile(void)
 {
-    char *env;
+    char *env = getenv("PSIADM_HISTFILE");
     struct stat statbuf;
     FILE *file = NULL;
 
-    if ((env = getenv("PSIADM_HISTFILE"))) {
-	histname = strdup(env);
-    }
+    if (env) histName = strdup(env);
 
-    if (!histname) {
+    if (!histName) {
 	char *home = homedir();
 	if (!home) {
 	    PSIadm_log(-1, "%s: no homedir?\n", __func__);
-	    return -1;
+	    return false;
 	}
-	histname = PSC_concat(home, "/", HISTNAME, NULL);
+	histName = PSC_concat(home, "/", HISTNAME, NULL);
     }
 
-    if ((env = getenv("PSIADM_HISTFILESIZE"))) {
-	char *tail;
-	unsigned long size = strtoul(env, &tail, 0);
-
-	if (*tail) {
-	    PSIadm_log(-1, "%s: '%s' is invalid, use infinity (0).\n",
-		       __func__, env);
-	    histfilesize = 0;
-	} else {
-	    if (size != (unsigned long)(int)size) {
-		PSIadm_log(-1, "%s: '%s' is too large, use INT_MAX.\n",
-			   __func__, env);
-		histfilesize = INT_MAX;
-	    } else {
-		histfilesize = (int)size;
-	    }
-	}
-    }
-
-    if ((stat(histname, &statbuf) < 0) && !(file = fopen(histname, "a"))) {
+    if ((stat(histName, &statbuf) < 0) && !(file = fopen(histName, "a"))) {
 	PSIadm_warn(-1, errno, "%s: cannot create history file '%s'",
-		    __func__, histname);
+		    __func__, histName);
     }
     if (file) fclose(file);
 
-    if (read_history(histname)) {
+    if (read_history(histName)) {
 	PSIadm_warn(-1, errno, "%s: cannot read history file '%s'",
-		    __func__, histname);
-	return -1;
+		    __func__, histName);
+	return false;
     }
-    return 0;
+    return true;
 }
 
-static int saveHistFile()
+static void saveHistoryFile(void)
 {
-    if (histname) {
-	if (write_history(histname)) {
-	    PSIadm_warn(-1, errno, "cannot write history file '%s'", histname);
-	    return -1;
-	} else if (histfilesize) {
-	    if (history_truncate_file(histname, histfilesize)) {
-		PSIadm_warn(-1, errno, "cannot truncate history file '%s'",
-			    histname);
-	    }
+    if (!histName) return;
+
+    if (write_history(histName)) {
+	PSIadm_warn(-1, errno, "cannot write history file '%s'", histName);
+	return;
+    } else if (historyLen) {
+	if (history_truncate_file(histName, historyLen)) {
+	    PSIadm_warn(-1, errno, "cannot truncate history file '%s'",
+			histName);
 	}
-	free(histname);
     }
-    return 0;
+    free(histName);
+    histName = NULL;
 }
 
 int main(int argc, const char **argv)
 {
     char *copt = NULL, *progfile = NULL;
     int echo=0, noinit=0, quiet=0, reset=0, no_start=0, start_all=0, version=0;
-    int rc, done=0;
+    int rc;
+    FILE *cmdStream = stdin;
+    bool done = false;
 
     poptContext optCon;   /* context for parsing command-line options */
 
@@ -360,28 +361,30 @@ int main(int argc, const char **argv)
 
     if (progfile) {
 	/* Program-file processing */
-	rl_instream = fopen(progfile, "r");
+	cmdStream = fopen(progfile, "r");
 
-	if (!rl_instream) {
+	if (!cmdStream) {
 	    PSIadm_warn(-1, errno, "%s", progfile);
 	    parserRelease();
 	    PSIadm_finalizeLogs();
 	    return -1;
 	}
-	quiet = 1;
+	quiet = true;
     } else {
 	/* Interactive mode */
 	using_history();
-	handleHistFile();
+	getHistoryLen();
+	readHistoryFile();
 
 	rl_readline_name = "PSIadmin";
 	rl_attempted_completion_function = completeLine;
     }
 
     while (!done) {
-	char *line = nextline(quiet);
+	char *line = nextline(cmdStream, quiet);
+	if (!line) break;
 
-	if (line && *line) {
+	if (*line) {
 	    if (echo) printf("%s\n", line);
 
 	    parser_removeComment(line);
@@ -395,15 +398,12 @@ int main(int argc, const char **argv)
 
 	    done = parseLine(line);
 	}
-	if (line)
-	    free(line);
-	else
-	    break;
+	free(line);
     }
 
     if (!quiet) printf("PSIadmin: Goodbye\n");
 
-    if (!progfile) saveHistFile();
+    if (!progfile) saveHistoryFile();
 
     parserRelease();
 

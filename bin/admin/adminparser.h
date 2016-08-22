@@ -21,6 +21,8 @@
 #ifndef __ADMINPARSER_H
 #define __ADMINPARSER_H
 
+#include <stdbool.h>
+
 #ifdef __cplusplus
 extern "C" {
 #if 0
@@ -55,10 +57,10 @@ void parserRelease(void);
  *
  * @param line The line to handle, i.e. to parse and execute.
  *
- * @return If the 'exit' or 'quit' command was reached, 1 is returned
- * or 0 otherwise.
+ * @return If the 'exit' or 'quit' command was reached, true is returned
+ * or false otherwise.
  */
-int parseLine(char *line);
+bool parseLine(char *line);
 
 /**
  * @brief Generate candidate for line completion
