@@ -2388,7 +2388,7 @@ static int versionCommand(char *token)
 
     printf("PSIADMIN: ParaStation administration tool\n");
     printf("Copyright (C) 1996-2004 ParTec AG, Karlsruhe\n");
-    printf("Copyright (C) 2005-2014 ParTec Cluster Competence Center GmbH,"
+    printf("Copyright (C) 2005-2016 ParTec Cluster Competence Center GmbH,"
 	   " Munich\n");
     printf("\n");
     printf("PSIADMIN:   %s\b/ %s\b/ %s\b \b\b\n", psiadmversion+11,
