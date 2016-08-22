@@ -40,6 +40,7 @@ static char vcid[] __attribute__((used)) =
 #include "psispawn.h"
 
 #include "adminparser.h"
+#include "psiadmin.h"
 
 #include "commands.h"
 
@@ -1816,7 +1817,7 @@ void PSIADM_sighandler(int sig)
 	sleep(2);
 	fprintf(stderr, "PSIadmin: Restarting...\n");
 	if (!PSI_initClient(TG_ADMIN)) {
-	    fprintf(stderr, "can't contact my own daemon.\n");
+	    PSIadm_log(-1, "%s: can't contact my own daemon.\n", __func__);
 	    exit(-1);
 	}
 	doRestart = 0;
