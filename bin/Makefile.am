@@ -65,7 +65,7 @@ psid_LDADD = $(libputil) $(libpscommon) $(libpslog) -lutil	\
 psilogger_SOURCES = logger/psilogger.c logger/psilogger.h	\
 	logger/psiloggermerge.c logger/psiloggermerge.h		\
 	logger/psiloggerclient.c logger/psiloggerclient.h
-psilogger_LDADD = $(libputil) $(libpscommon) $(libpslog) $(RL_LIBS)
+psilogger_LDADD = $(libputil) $(libpscommon) $(libpslog)
 
 mlisten_LDADD = $(POPT_LIBS)
 

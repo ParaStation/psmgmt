@@ -60,15 +60,6 @@ AC_ARG_WITH([pamdir], [AS_HELP_STRING([--with-pamdir=DIR],
   [pamdir=/lib/security])
 AC_SUBST([pamdir])
 
-PS_SEARCH_LIBS([initscr], [ncurses curses], [RL_LIBS], [],
-  [AC_MSG_ERROR([please install the (n)curses devel package])])
-
-PS_SEARCH_LIBS([readline], [readline], [RL_LIBS], [],
-  [AC_MSG_ERROR([please install the readline devel package])])
-
-PS_SEARCH_LIBS([using_history], [history], [RL_LIBS], [],
-  [AC_MSG_ERROR([please install the readline devel package])])
-
 AC_ARG_ENABLE([psconfig], [AS_HELP_STRING([--disable-psconfig],
   [build without psconfig support])])
 AM_CONDITIONAL([BUILD_WITHOUT_PSCONFIG], [test "x$enable_psconfig" = xno])

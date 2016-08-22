@@ -123,8 +123,7 @@ ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/m4/ax_check_compile_flag.m4 \
 	$(top_srcdir)/m4/libtool.m4 $(top_srcdir)/m4/ltoptions.m4 \
 	$(top_srcdir)/m4/ltsugar.m4 $(top_srcdir)/m4/ltversion.m4 \
-	$(top_srcdir)/m4/lt~obsolete.m4 \
-	$(top_srcdir)/m4/ps_search_libs.m4 $(top_srcdir)/configure.ac
+	$(top_srcdir)/m4/lt~obsolete.m4 $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 DIST_COMMON = $(srcdir)/Makefile.am $(include_HEADERS) \
@@ -193,8 +192,7 @@ am_psilogger_OBJECTS = logger/psilogger.$(OBJEXT) \
 	logger/psiloggermerge.$(OBJEXT) \
 	logger/psiloggerclient.$(OBJEXT)
 psilogger_OBJECTS = $(am_psilogger_OBJECTS)
-psilogger_DEPENDENCIES = $(libputil) $(libpscommon) $(libpslog) \
-	$(am__DEPENDENCIES_1)
+psilogger_DEPENDENCIES = $(libputil) $(libpscommon) $(libpslog)
 psispawn_SOURCES = psispawn.c
 psispawn_OBJECTS = psispawn.$(OBJEXT)
 psispawn_DEPENDENCIES = $(libpsi)
@@ -381,7 +379,6 @@ PKG_CONFIG_LIBDIR = @PKG_CONFIG_LIBDIR@
 PKG_CONFIG_PATH = @PKG_CONFIG_PATH@
 POPT_LIBS = @POPT_LIBS@
 RANLIB = @RANLIB@
-RL_LIBS = @RL_LIBS@
 SED = @SED@
 SET_MAKE = @SET_MAKE@
 SHELL = @SHELL@
@@ -524,7 +521,7 @@ psilogger_SOURCES = logger/psilogger.c logger/psilogger.h	\
 	logger/psiloggermerge.c logger/psiloggermerge.h		\
 	logger/psiloggerclient.c logger/psiloggerclient.h
 
-psilogger_LDADD = $(libputil) $(libpscommon) $(libpslog) $(RL_LIBS)
+psilogger_LDADD = $(libputil) $(libpscommon) $(libpslog)
 mlisten_LDADD = $(POPT_LIBS)
 psmstart_LDADD = $(libpse) $(POPT_LIBS)
 mpirun_chp4_LDADD = $(libpse) $(POPT_LIBS)
