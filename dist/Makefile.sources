@@ -127,6 +127,7 @@ include/hardware.h \
 include/kvs.h \
 include/kvscommon.h \
 include/kvsprovider.h \
+include/linenoise.h \
 include/list.h \
 include/list_t.h \
 include/logging.h \
@@ -223,6 +224,7 @@ lib/putil/Makefile.in \
 lib/putil/config_parsing.c \
 lib/putil/env.c \
 lib/putil/hardware.c \
+lib/putil/linenoise.c \
 lib/putil/mcast.c \
 lib/putil/old_config_parsing.c \
 lib/putil/parser.c \
