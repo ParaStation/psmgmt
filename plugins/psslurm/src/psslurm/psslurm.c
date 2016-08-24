@@ -592,6 +592,7 @@ int initialize(void)
 
 INIT_ERROR:
     unregisterHooks(0);
+    finalizeFraqComm();  /* needed for unregister hooks */
     return 1;
 }
 
