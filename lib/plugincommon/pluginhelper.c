@@ -22,6 +22,8 @@
 
 #include "pluginhelper.h"
 
+extern int h_errno; /* errno for gethostbyname from netdb.h */
+
 int removeDir(char *directory, int root)
 {
     struct dirent *d;
@@ -62,8 +64,8 @@ PSnodes_ID_t getNodeIDbyName(char *host)
     if (!host) return -1;
 
     if (!(hp = gethostbyname(host))) {
-	pluginwarn(errno, "%s: gethostbyname failed for '%s' : ", __func__,
-		    host);
+	pluginlog("%s: gethostbyname failed for '%s' : %s", __func__, host,
+		    hstrerror(h_errno));
 	return -1;
     }
 
