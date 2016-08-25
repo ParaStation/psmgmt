@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2015 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -41,6 +41,7 @@ static char vcid[] __attribute__((used)) =
 #include "pspartition.h"
 #include "timer.h"
 #include "rdp.h"
+#include "selector.h"
 
 #include "psidnodes.h"
 #include "psidstatus.h"
@@ -611,6 +612,26 @@ static void setLimit(int limit, rlim_t value)
 	char *errstr = strerror(errno);
 	parser_comment(-1, "%s: setres failed: %s\n",
 		       __func__, errstr ? errstr : "UNKNOWN");
+    } else {
+	/* We might have to inform other facilities, too */
+	switch (limit) {
+	case RLIMIT_NOFILE:
+	    if (value == RLIM_INFINITY) {
+		parser_exit(EINVAL, "%s: cannot handle unlimited files",
+			    __func__);
+		break;
+	    }
+	    if (PSIDscripts_setMax(value) < 0) {
+		parser_exit(errno, "%s: Failed to adapt PSIDscripts", __func__);
+	    }
+	    if (Selector_setMax(value) < 0) {
+		parser_exit(errno, "%s: Failed to adapt Selector", __func__);
+	    }
+	    break;
+	default:
+	    /* nothing to do */
+	    break;
+	}
     }
 }
 
