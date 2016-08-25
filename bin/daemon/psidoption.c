@@ -299,6 +299,10 @@ static void set_rlimit(PSP_Option_t option, PSP_Optval_t value)
 	/* We might have to inform other facilities, too */
 	switch (resource) {
 	case RLIMIT_NOFILE:
+	    if (limit.rlim_cur == RLIM_INFINITY) {
+		PSID_log(-1, "%s: cannot handle unlimited files\n", __func__);
+		break;
+	    }
 	    if (PSIDscripts_setMax(value) < 0) {
 		PSID_exit(errno, "%s: Failed to adapt PSIDscripts", __func__);
 	    }

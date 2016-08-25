@@ -53,6 +53,7 @@ config_t *parseConfig(FILE* logfile, int logmask, char *configfile)
 #include "pspartition.h"
 #include "timer.h"
 #include "rdp.h"
+#include "selector.h"
 
 #include "psidnodes.h"
 #include "psidstatus.h"
@@ -394,6 +395,26 @@ static void setLimit(int limit, rlim_t value)
 	char *errstr = strerror(errno);
 	parser_comment(-1, "%s: setres failed: %s\n",
 		       __func__, errstr ? errstr : "UNKNOWN");
+    } else {
+	/* We might have to inform other facilities, too */
+	switch (limit) {
+	case RLIMIT_NOFILE:
+	    if (value == RLIM_INFINITY) {
+		parser_exit(EINVAL, "%s: cannot handle unlimited files",
+			    __func__);
+		break;
+	    }
+	    if (PSIDscripts_setMax(value) < 0) {
+		parser_exit(errno, "%s: Failed to adapt PSIDscripts", __func__);
+	    }
+	    if (Selector_setMax(value) < 0) {
+		parser_exit(errno, "%s: Failed to adapt Selector", __func__);
+	    }
+	    break;
+	default:
+	    /* nothing to do */
+	    break;
+	}
     }
 }
 
