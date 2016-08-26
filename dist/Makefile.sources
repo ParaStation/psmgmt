@@ -162,6 +162,7 @@ include/pslog.h \
 include/psnodes.h \
 include/psparamspace.h \
 include/pspartition.h \
+include/pspluginprotocol.h \
 include/psprotocol.h \
 include/psprotocolenv.h \
 include/psreservation.h \
