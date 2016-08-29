@@ -130,18 +130,14 @@ for k, v in tests.iteritems():
 
 	open("%s/prog.c" % k, "w").write(prog)
 
-	tmp = ""
-	if len(v[1]) > 0:
-		tmp = v[1] + " "
-
 	open("%s/test.sh" % k, "w").write("""#!/bin/bash
 
 JOB_NAME=$(scontrol show job -o ${SLURM_JOB_ID} | python2 -c 'import sys ; import os; d = dict([(x[0], "=".join(x[1:])) for x in map(lambda u: u.split("="), sys.stdin.read().split())]) ; x = d["Name"] if "Name" in d.keys() else d["JobName"] ; print(x)')
 
 env PATH=/usr/local/bin:/bin:/usr/bin:/usr/local/sbin:/usr/sbin:/sbin /usr/bin/gcc %s prog.c -o output-${JOB_NAME}/prog.exe %s
-srun -n %d %s %soutput-${JOB_NAME}/prog.exe
+srun -n %d %s %s output-${JOB_NAME}/prog.exe
 
-""" % (v[3], v[4], len(v[2]), v[0], tmp))
+""" % (v[3], v[4], len(v[2]), v[0], v[1].strip()))
 	os.chmod("%s/test.sh" % k, stat.S_IRWXU)
 
 	evl = """#!/usr/bin/env python
