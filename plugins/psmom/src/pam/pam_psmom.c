@@ -228,6 +228,9 @@ static int hasRunningBatchJob(const char *username, const char *rhost)
 	return 0;
     }
 
+    /* psmom's communication ignores byte-order */
+    setByteOrder(false);
+
     /* add ssh pid */
     pid = getpid();
     addPidToMsg(pid, &data);
