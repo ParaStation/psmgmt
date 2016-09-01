@@ -982,7 +982,7 @@ int handleSrunMsg(int sock, void *data)
     myTaskIdsLen = step->globalTaskIdsLen[step->myNodeIndex];
     myTaskIds = step->globalTaskIds[step->myNodeIndex];
 
-    mdbg(PSSLURM_LOG_IO, "%s: step '%u:%u' stdin '%u' type '%u' length '%u' "
+    mdbg(PSSLURM_LOG_IO, "%s: step '%u:%u' stdin '%d' type '%u' length '%u' "
 	    "gtid '%u' ltid '%u' pty:%u myTIDsLen '%u'\n", __func__,
 	    step->jobid, step->stepid, fd, type, length, gtid, ltid, step->pty,
 	    myTaskIdsLen);
@@ -995,7 +995,7 @@ int handleSrunMsg(int sock, void *data)
 	srunSendIO(SLURM_IO_CONNECTION_TEST, 0, step, NULL, 0);
     } else if (!length) {
 	/* forward eof to all forwarders */
-	mlog("%s: got eof of stdin '%u'\n", __func__, fd);
+	mlog("%s: got eof of stdin '%d'\n", __func__, fd);
 
 	if (type == SLURM_IO_STDIN) {
 	    forwardInputMsg(step, gtid, NULL, 0);
@@ -1004,7 +1004,7 @@ int handleSrunMsg(int sock, void *data)
 		forwardInputMsg(step, myTaskIds[i], NULL, 0);
 	    }
 	} else {
-	    mlog("%s: got unsupported I/O type '%d'\n", __func__, type);
+	    mlog("%s: got unsupported I/O type '%u'\n", __func__, type);
 	}
 
 	/* close loggers stdin */
@@ -1029,7 +1029,7 @@ int handleSrunMsg(int sock, void *data)
 			forwardInputMsg(step, myTaskIds[i], buffer, ret);
 		    }
 		} else {
-		    mlog("%s: got unsupported I/O type '%d'\n", __func__, type);
+		    mlog("%s: got unsupported I/O type '%u'\n", __func__, type);
 		}
 	    }
 
