@@ -252,7 +252,7 @@ static unsigned int findMaskwidth(unsigned int CountItem)
  * @brief Extract subset from bit field
  *
  * Extract a trailing subset of bit field from the 8-bit value @a
- * full. The lenght of the subset is determined by the number of bits
+ * full. The length of the subset is determined by the number of bits
  * needed to store the the value of @a maxVal. It returns a 8-bit
  * sub ID.
  *

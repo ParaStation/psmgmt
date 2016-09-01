@@ -97,7 +97,7 @@ int __ReadString(ComHandle_t *com, char *buf, size_t len, const char *caller);
  *
  * @param com The communication handle to use.
  *
- * @param len The lenght of the string to read.
+ * @param len The length of the string to read.
  *
  * @return Returns a pointer to the read string or NULL on error.
  */
