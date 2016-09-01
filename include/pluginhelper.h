@@ -143,7 +143,7 @@ unsigned long stringTimeToSec(char *wtime);
  *
  * @param data Pointer to data to print
  *
- * @param len The lenght of the data to print
+ * @param len The length of the data to print
  *
  * @param tag The tag will be printed in front of the data
  *

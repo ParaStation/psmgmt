@@ -952,7 +952,7 @@ int handleSrunMsg(int sock, void *data)
     int ret, headSize, readnow, fd = -1;
     size_t toread;
     uint16_t type, gtid, ltid, i;
-    uint32_t lenght, myTaskIdsLen;
+    uint32_t length, myTaskIdsLen;
     uint32_t *myTaskIds;
 
     headSize = sizeof(uint32_t) + 3 * sizeof(uint16_t);
@@ -976,24 +976,24 @@ int handleSrunMsg(int sock, void *data)
     getUint16(&ptr, &gtid);
     /* local taskid */
     getUint16(&ptr, &ltid);
-    /* lenght */
-    getUint32(&ptr, &lenght);
+    /* length */
+    getUint32(&ptr, &length);
 
     myTaskIdsLen = step->globalTaskIdsLen[step->myNodeIndex];
     myTaskIds = step->globalTaskIds[step->myNodeIndex];
 
-    mdbg(PSSLURM_LOG_IO, "%s: step '%u:%u' stdin '%u' type '%u' lenght '%u' "
+    mdbg(PSSLURM_LOG_IO, "%s: step '%u:%u' stdin '%u' type '%u' length '%u' "
 	    "gtid '%u' ltid '%u' pty:%u myTIDsLen '%u'\n", __func__,
-	    step->jobid, step->stepid, fd, type, lenght, gtid, ltid, step->pty,
+	    step->jobid, step->stepid, fd, type, length, gtid, ltid, step->pty,
 	    myTaskIdsLen);
 
     if (type == SLURM_IO_CONNECTION_TEST) {
-	if (lenght != 0) {
-	    mlog("%s: invalid connection test, lenght '%u'\n", __func__,
-		    lenght);
+	if (length != 0) {
+	    mlog("%s: invalid connection test, length '%u'\n", __func__,
+		    length);
 	}
 	srunSendIO(SLURM_IO_CONNECTION_TEST, 0, step, NULL, 0);
-    } else if (!lenght) {
+    } else if (!length) {
 	/* forward eof to all forwarders */
 	mlog("%s: got eof of stdin '%u'\n", __func__, fd);
 
@@ -1011,7 +1011,7 @@ int handleSrunMsg(int sock, void *data)
 	if (!step->pty) closeConnection(fd);
     } else {
 	/* foward stdin message to forwarders */
-	toread = lenght;
+	toread = length;
 	while (toread > 0) {
 	    readnow = (toread > (int) sizeof(buffer)) ? sizeof(buffer) : toread;
 	    if ((ret = doRead(sock, buffer, readnow)) <= 0) {

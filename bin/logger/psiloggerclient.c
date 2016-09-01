@@ -54,7 +54,7 @@ static int nActvClnts;
 
 /**
  * Number of clients currently marked to expect input *and*
- * connected. This is the lenght of the @ref activeClients list.
+ * connected. This is the length of the @ref activeClients list.
  */
 static int nRecvClnts;
 
