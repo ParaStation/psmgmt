@@ -9,7 +9,6 @@
  */
 
 #include <stdlib.h>
-#include <stdio.h>
 #include <string.h>
 
 #include "pluginlog.h"
@@ -20,19 +19,18 @@
 
 void *__umalloc(size_t size, const char *func, const int line)
 {
-    char tmp[11];
     void *ptr;
 
     if (size < MIN_MALLOC_SIZE) size = MIN_MALLOC_SIZE;
 
-    if (!(ptr = malloc(size))) {
+    ptr = malloc(size);
+    if (!ptr) {
 	pluginlog("%s: memory allocation of '%zu' failed\n", func, size);
 	exit(EXIT_FAILURE);
     }
 
-    snprintf(tmp, sizeof(tmp), "%i", line);
-    plugindbg(PLUGIN_LOG_MALLOC, "umalloc\t%15s\t%s\t%p (%zu)\n", func, tmp,
-	    ptr, size);
+    plugindbg(PLUGIN_LOG_MALLOC, "umalloc\t%15s\t%i\t%p (%zu)\n", func, line,
+	      ptr, size);
 
     return ptr;
 }
@@ -40,24 +38,19 @@ void *__umalloc(size_t size, const char *func, const int line)
 void *__urealloc(void *old ,size_t size, const char *func, const int line)
 {
     void *ptr;
-    char tmp[11], save[20];
 
-    snprintf(save, sizeof(save), "%p", old);
     if (size < MIN_MALLOC_SIZE) size = MIN_MALLOC_SIZE;
 
-    if (!(ptr = realloc(old, size))) {
+    ptr = realloc(old, size);
+    if (!ptr) {
 	pluginlog("%s: realloc of '%zu' failed.\n", func, size);
 	exit(EXIT_FAILURE);
     }
 
-    snprintf(tmp, sizeof(tmp), "%i", line);
-    if (old) {
-	plugindbg(PLUGIN_LOG_MALLOC, "urealloc\t%15s\t%s\t%p (%zu)\t%s\n", func,
-		  tmp, ptr, size, save);
-    } else {
-	plugindbg(PLUGIN_LOG_MALLOC, "umalloc\t%15s\t%s\t%p (%zu)\n", func, tmp,
-		  ptr, size);
-    }
+    plugindbg(PLUGIN_LOG_MALLOC, "%s\t%15s\t%i\t%p (%zu)",
+	      old ? "urealloc" : "umalloc", func, line, ptr, size);
+    if (old) plugindbg(PLUGIN_LOG_MALLOC, "\t%p", old);
+    plugindbg(PLUGIN_LOG_MALLOC, "\n");
 
     return ptr;
 }
@@ -78,10 +71,7 @@ char *__ustrdup(const char *s1, const char *func, const int line)
 
 void __ufree(void *ptr, const char *func, const int line)
 {
-    char tmp[11];
-
-    snprintf(tmp, sizeof(tmp), "%i", line);
-    plugindbg(PLUGIN_LOG_MALLOC, "ufree\t%15s\t%s\t%p\n", func, tmp, ptr);
+    plugindbg(PLUGIN_LOG_MALLOC, "ufree\t%15s\t%i\t%p\n", func, line, ptr);
 
     free(ptr);
 }
