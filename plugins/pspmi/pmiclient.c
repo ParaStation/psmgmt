@@ -1965,7 +1965,7 @@ void pmi_finalize(void)
  * @param lastUpdate If this flag is set to 1 then the update is complete
  * with this message.
  *
- * @param strLen The lenght of the update payload.
+ * @param strLen The length of the update payload.
  *
  * @return No return value.
  */

@@ -342,7 +342,7 @@ static void testMsg(const char fName[], PSLog_Msg_t *msg)
  *
  * @param msg The message to send.
  *
- * @param len The lenght of the message to send.
+ * @param len The length of the message to send.
  *
  * @return No return value.
  */
@@ -379,7 +379,7 @@ static void sendKvsMsg(PStask_ID_t tid, char *buffer, size_t len)
  *
  * @param msg The message to send.
  *
- * @param len The lenght of the message to send.
+ * @param len The length of the message to send.
  *
  * @return No return value.
  */

@@ -59,7 +59,7 @@ int tcpDoSend(int sock, const char *caller);
  *
  * @param size The size of the buffer.
  *
- * @return Returns the lenght of the received message in bytes or -1 on error.
+ * @return Returns the length of the received message in bytes or -1 on error.
  */
 ssize_t tcpRead(int sock, char *buffer, ssize_t size, const char *caller);
 
@@ -72,7 +72,7 @@ ssize_t tcpRead(int sock, char *buffer, ssize_t size, const char *caller);
  *
  * @param len The length of the message.
  *
- * @return Returns the lenght of the messsage saved or -1 on error.
+ * @return Returns the length of the messsage saved or -1 on error.
  */
 int tcpWrite(int sock, void *msg, size_t len, const char *caller);
 
