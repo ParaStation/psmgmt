@@ -302,7 +302,11 @@ static void handlePrintChildMsg(void *data, char *ptr)
     }
 
     /* handle unbuffered IO */
+#ifdef SLURM_PROTOCOL_1605
     if (type == STDERR || (!step->labelIO && !step->bufferedIO) || step->pty) {
+#else
+    if ((!step->labelIO && !step->bufferedIO) || step->pty) {
+#endif
 	writeIOmsg(msg, len, taskid, type, fwdata, step, lrank);
 	ufree(msg);
 	return;
