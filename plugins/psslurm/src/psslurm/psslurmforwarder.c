@@ -298,30 +298,42 @@ static void execBatchJob(void *data, int rerun)
  *
  * jobid_out and stepid_out are set to the used values if not NULL.
  */
-static Step_t * findStepByEnv(char **environ, uint32_t *jobid_out,
-				uint32_t *stepid_out) {
+#define findStepByEnv(environ, jobid_out, stepid_out) \
+	    __findStepByEnv(environ, jobid_out, stepid_out, __func__, __LINE__)
+static Step_t * __findStepByEnv(char **environ, uint32_t *jobid_out,
+				uint32_t *stepid_out, const char *func,
+				const int line) {
     int count = 0;
     char *ptr;
     uint32_t jobid = 0, stepid = SLURM_BATCH_SCRIPT;
+    Step_t *step;
 
-    if (environ) {
-	ptr = environ[count++];
-	while (ptr) {
-	    if (!(strncmp(ptr, "SLURM_STEPID=", 13))) {
-		sscanf(ptr+13, "%u", &stepid);
-	    }
-	    if (!(strncmp(ptr, "SLURM_JOBID=", 12))) {
-		sscanf(ptr+12, "%u", &jobid);
-	    }
+    if (!environ) {
+	mlog("%s: invalid environ pointer from '%s:%i'\n", __func__,
+		func, line);
+	return NULL;
+    }
 
-	    ptr = environ[count++];
+    ptr = environ[count++];
+    while (ptr) {
+	if (!(strncmp(ptr, "SLURM_STEPID=", 13))) {
+	    sscanf(ptr+13, "%u", &stepid);
 	}
+	if (!(strncmp(ptr, "SLURM_JOBID=", 12))) {
+	    sscanf(ptr+12, "%u", &jobid);
+	}
+
+	ptr = environ[count++];
     }
 
     if (jobid_out) *jobid_out = jobid;
     if (stepid_out) *stepid_out = stepid;
 
-    return findStepById(jobid, stepid);
+    if (!(step = findStepById(jobid, stepid))) {
+	mlog("%s: step '%u:%u' not found\n", __func__, jobid, stepid);
+    }
+
+    return step;
 }
 
 int handleForwarderInit(void * data)
@@ -353,6 +365,8 @@ int handleForwarderInit(void * data)
 		}
 	    }
 	}
+    } else {
+	mlog("%s: rank '%i' failed to find my step\n", __func__, task->rank);
     }
 
     /* override spawn task filling function in pspmi */
@@ -374,7 +388,7 @@ int handleForwarderClientStatus(void * data)
     time_t t;
 
     if (!(step = findStepByEnv(task->environ, NULL, NULL))) {
-	mlog("%s: cannot find step.\n", __func__);
+	mlog("%s: rank '%i' failed to find my step\n", __func__, task->rank);
 	return 0;
     }
 
@@ -494,6 +508,8 @@ int handleExecClientUser(void *data)
 
 	doMemBind(step, task);
 	verboseMemPinningOutput(step, task);
+    } else {
+	mlog("%s: rank '%i' failed to find my step\n", __func__, task->rank);
     }
 
     /* clean up environment */
