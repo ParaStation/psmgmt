@@ -14,10 +14,10 @@
 #include "pluginconfig.h"
 
 /** cgroup's configuration list */
-extern Config_t cgroupConfig;
+extern Config_t config;
 
 /** Defintion of cgroup's configuration */
-extern const ConfDef_t cgConfDef[];
+extern const ConfDef_t confDef[];
 
 /**
  * @brief Parse configuration file and save result

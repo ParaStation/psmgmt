@@ -21,6 +21,7 @@
 #include "timer.h"
 #include "psidhook.h"
 #include "psidplugin.h"
+#include "psidutil.h"
 
 #include "pluginmalloc.h"
 #include "pluginlog.h"
@@ -219,28 +220,28 @@ int initialize(void)
     initCgConfig(configFile);
 
     /* adapt the debug mask */
-    debugMask = getConfValueI(&cgroupConfig, "DEBUG_MASK");
+    debugMask = getConfValueI(&config, "DEBUG_MASK");
     maskCgLogger(debugMask);
     cglog(CG_LOG_VERBOSE, "%s: debugMask set to %#x\n", __func__, debugMask);
 
-    cgroupRoot = ustrdup(getConfValueC(&cgroupConfig, "CGROUP_ROOT"));
+    cgroupRoot = ustrdup(getConfValueC(&config, "CGROUP_ROOT"));
     if (!cgroupRoot) {
 	cglog(-1, "%s: CGROUP_ROOT not found in '%s'\n", __func__, configFile);
 	return 1;
     }
     cglog(CG_LOG_VERBOSE, "%s: cgroupRoot set to '%s'\n", __func__, cgroupRoot);
 
-    cgroupName = ustrdup(getConfValueC(&cgroupConfig, "CGROUP_NAME"));
+    cgroupName = ustrdup(getConfValueC(&config, "CGROUP_NAME"));
     if (!cgroupName) {
 	cglog(-1, "%s: CGROUP_NAME not found in '%s'\n", __func__, configFile);
 	return 1;
     }
     cglog(CG_LOG_VERBOSE, "%s: cgroupName set to '%s'\n", __func__, cgroupName);
 
-    memLim = getConfValueL(&cgroupConfig, "MEM_LIMIT");
+    memLim = getConfValueL(&config, "MEM_LIMIT");
     cglog(CG_LOG_VERBOSE, "%s: memLim set to %ld\n", __func__, memLim);
 
-    memSwLim = getConfValueL(&cgroupConfig, "MEMSW_LIMIT");
+    memSwLim = getConfValueL(&config, "MEMSW_LIMIT");
     cglog(CG_LOG_VERBOSE, "%s: memSwLim set to %ld\n", __func__, memSwLim);
 
     if (!initCgroup()) return 1;
@@ -285,7 +286,7 @@ void cleanup(void)
 	cgTimer = -1;
     }
     unregisterHooks(true);
-    freeConfig(&cgroupConfig);
+    freeConfig(&config);
     if (cgroupRoot) ufree(cgroupRoot);
     if (cgroupName) ufree(cgroupName);
     if (myCgroup) ufree(myCgroup);
@@ -298,7 +299,7 @@ char *help(void)
 {
     char *buf = NULL;
     size_t bufSize = 0;
-    int maxKeyLen = getMaxKeyLen(cgConfDef);
+    int maxKeyLen = getMaxKeyLen(confDef);
     int i;
 
     str2Buf("\tJail all psid's client processes into a single cgroup\n\n",
@@ -307,11 +308,11 @@ char *help(void)
 	    &buf, &bufSize);
     str2Buf("# configuration options #\n", &buf, &bufSize);
 
-    for (i = 0; cgConfDef[i].name; i++) {
+    for (i = 0; confDef[i].name; i++) {
 	char type[10], line[160];
-	snprintf(type, sizeof(type), "<%s>", cgConfDef[i].type);
+	snprintf(type, sizeof(type), "<%s>", confDef[i].type);
 	snprintf(line, sizeof(line), "%*s %10s  %s\n",
-		 maxKeyLen+2, cgConfDef[i].name, type, cgConfDef[i].desc);
+		 maxKeyLen+2, confDef[i].name, type, confDef[i].desc);
 	str2Buf(line, &buf, &bufSize);
     }
 
@@ -320,29 +321,29 @@ char *help(void)
 
 char *set(char *key, char *val)
 {
-    const ConfDef_t *thisConfDef = getConfigDef(key, cgConfDef);
+    const ConfDef_t *thisConfDef = getConfigDef(key, confDef);
 
     if (!thisConfDef) return ustrdup("\nUnknown option\n");
 
-    if (verifyConfigEntry(cgConfDef, key, val))
+    if (verifyConfigEntry(confDef, key, val))
 	return ustrdup("\nIllegal value\n");
 
     if (!strcmp(key, "MEM_LIMIT")) {
-	addConfigEntry(&cgroupConfig, key, val);
-	memLim = getConfValueL(&cgroupConfig, key);
+	addConfigEntry(&config, key, val);
+	memLim = getConfValueL(&config, key);
 	cglog(CG_LOG_VERBOSE, "%s: memLim set to %ld\n", __func__, memLim);
 
 	enforceAllLimits();
     } else if (!strcmp(key, "MEMSW_LIMIT")) {
-	addConfigEntry(&cgroupConfig, key, val);
-	memSwLim = getConfValueL(&cgroupConfig, key);
+	addConfigEntry(&config, key, val);
+	memSwLim = getConfValueL(&config, key);
 	cglog(CG_LOG_VERBOSE, "%s: memSwLim set to %ld\n", __func__, memSwLim);
 
 	enforceAllLimits();
     } else if (!strcmp(key, "DEBUG_MASK")) {
 	int dbgMask;
-	addConfigEntry(&cgroupConfig, key, val);
-	dbgMask = getConfValueI(&cgroupConfig, key);
+	addConfigEntry(&config, key, val);
+	dbgMask = getConfValueI(&config, key);
 	maskCgLogger(dbgMask);
 	cglog(CG_LOG_VERBOSE, "%s: debugMask set to %#x\n", __func__, dbgMask);
     } else {
@@ -355,21 +356,21 @@ char *set(char *key, char *val)
 char *unset(char *key)
 {
     if (!strcmp(key, "MEM_LIMIT")) {
-	unsetConfigEntry(&cgroupConfig, cgConfDef, key);
-	memLim = getConfValueL(&cgroupConfig, key);
+	unsetConfigEntry(&config, confDef, key);
+	memLim = getConfValueL(&config, key);
 	cglog(CG_LOG_VERBOSE, "%s: memLim set to %ld\n", __func__, memLim);
 
 	enforceAllLimits();
     } else if (!strcmp(key, "MEMSW_LIMIT")) {
-	unsetConfigEntry(&cgroupConfig, cgConfDef, key);
-	memSwLim = getConfValueL(&cgroupConfig, key);
+	unsetConfigEntry(&config, confDef, key);
+	memSwLim = getConfValueL(&config, key);
 	cglog(CG_LOG_VERBOSE, "%s: memSwLim set to %ld\n", __func__, memSwLim);
 
 	enforceAllLimits();
     } else if (!strcmp(key, "DEBUG_MASK")) {
 	int dbgMask;
-	unsetConfigEntry(&cgroupConfig, cgConfDef, key);
-	dbgMask = getConfValueI(&cgroupConfig, key);
+	unsetConfigEntry(&config, confDef, key);
+	dbgMask = getConfValueI(&config, key);
 	maskCgLogger(dbgMask);
 	cglog(CG_LOG_VERBOSE, "%s: debugMask set to %#x\n", __func__, dbgMask);
     } else {
@@ -470,20 +471,20 @@ char *show(char *key)
 
     if (!key) {
 	/* Show the whole configuration */
-	int maxKeyLen = getMaxKeyLen(cgConfDef);
+	int maxKeyLen = getMaxKeyLen(confDef);
 	int i;
 
 	str2Buf("\n", &buf, &bufSize);
-	for (i = 0; cgConfDef[i].name; i++) {
-	    char *name = cgConfDef[i].name, line[160];
-	    val = getConfValueC(&cgroupConfig, name);
+	for (i = 0; confDef[i].name; i++) {
+	    char *name = confDef[i].name, line[160];
+	    val = getConfValueC(&config, name);
 
 	    snprintf(line, sizeof(line), "%*s = %s\n", maxKeyLen+2, name, val);
 	    str2Buf(line, &buf, &bufSize);
 	}
     } else if (!(strcmp(key, "status"))) {
 	return showStatus(&buf, &bufSize);
-    } else if ((val = getConfValueC(&cgroupConfig, key))) {
+    } else if ((val = getConfValueC(&config, key))) {
 	str2Buf("\n", &buf, &bufSize);
 	str2Buf(key, &buf, &bufSize);
 	str2Buf(" = ", &buf, &bufSize);
