@@ -4,6 +4,28 @@ Copyright (C) 2010-2016 ParTec Cluster Competence Center GmbH, Munich
 
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
+
+Version 5.0.52:
+===============
+Bugfixes:
+ - Ensure all fds are handled if number is increased in config (jrt:#5879)
+ - Resolve byte-ordering clash between psmom and pam_psmom (dt:#1567)
+ - Fix merge done in r9400
+ - Fix minor memory leak
+ - Prevent potential segfault in common node down hook handler
+
+Enhancements:
+ - Get rid of libreadline dependencies, use linenoise (#1690)
+ - Don't let psidutil spoil the global namespace
+ - Use a logger for psiadmin's errors
+
+Additional changes:
+ - Minor improvements if msg components are not densely packed
+ - Merge various changes from psslurm-devel
+ - Get rid of some useless snprintf() in pluginmalloc.c
+ - Add plugin debug function to log binary data in hex format
+
+
 *************************************************************************
 *************************************************************************
 **                                                                     **

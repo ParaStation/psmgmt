@@ -1,3 +1,113 @@
+Version psmgmt-5.0.52:
+======================
+------------------------------------------------------------------------
+r9427 | eicker | 2016-09-12 08:17:42 +0200 (Mon, 12 Sep 2016) | 2 lines
+
+Some renames in cgroup's config handling
+
+------------------------------------------------------------------------
+r9426 | eicker | 2016-09-12 08:15:34 +0200 (Mon, 12 Sep 2016) | 2 lines
+
+Enhancement: Don't let psidutil spoil the global namespace
+
+------------------------------------------------------------------------
+r9425 | eicker | 2016-09-02 14:24:23 +0200 (Fri, 02 Sep 2016) | 2 lines
+
+Get rid of some useless snprintf() in pluginmalloc.c
+
+------------------------------------------------------------------------
+r9424 | eicker | 2016-09-02 14:09:27 +0200 (Fri, 02 Sep 2016) | 2 lines
+
+Minor improvements if msg components are not densely packed
+
+------------------------------------------------------------------------
+r9423 | eicker | 2016-09-02 13:59:11 +0200 (Fri, 02 Sep 2016) | 2 lines
+
+Fix minor memory leak.
+
+------------------------------------------------------------------------
+r9422 | eicker | 2016-09-02 12:43:35 +0200 (Fri, 02 Sep 2016) | 2 lines
+
+Bugfix: Fix merge done in r9400
+
+------------------------------------------------------------------------
+r9421 | eicker | 2016-09-02 11:25:39 +0200 (Fri, 02 Sep 2016) | 2 lines
+
+Merge fixed typos from psslurm-devel
+
+------------------------------------------------------------------------
+r9420 | eicker | 2016-08-31 17:49:34 +0200 (Wed, 31 Aug 2016) | 2 lines
+
+Bugfix: Resolve byte-ordering clash between psmom and pam_psmom (dt:#1567)
+
+------------------------------------------------------------------------
+r9419 | eicker | 2016-08-26 10:48:44 +0200 (Fri, 26 Aug 2016) | 2 lines
+
+Merge pspluginprotocol.h from psslurm
+
+------------------------------------------------------------------------
+r9418 | eicker | 2016-08-25 11:37:23 +0200 (Thu, 25 Aug 2016) | 2 lines
+
+Bugfix: Ensure all fds are handled if number increased in config (jrt:#5879)
+
+------------------------------------------------------------------------
+r9417 | eicker | 2016-08-22 13:52:46 +0200 (Mon, 22 Aug 2016) | 2 lines
+
+Get rid of libreadline dependencies (#1690)
+
+------------------------------------------------------------------------
+r9416 | eicker | 2016-08-22 13:49:30 +0200 (Mon, 22 Aug 2016) | 2 lines
+
+Replace libreadline by linenoise in psilogger (#1690)
+
+------------------------------------------------------------------------
+r9415 | eicker | 2016-08-22 13:47:05 +0200 (Mon, 22 Aug 2016) | 2 lines
+
+Update psiadmin's copyright message
+
+------------------------------------------------------------------------
+r9414 | eicker | 2016-08-22 13:45:41 +0200 (Mon, 22 Aug 2016) | 2 lines
+
+Replace readline by linenoise in psiadmin (#1690)
+
+------------------------------------------------------------------------
+r9413 | eicker | 2016-08-22 10:23:28 +0200 (Mon, 22 Aug 2016) | 3 lines
+
+Add linenoise to libputil. We'll use the version from
+    git@github.com:neicker/linenoise.git
+
+------------------------------------------------------------------------
+r9412 | eicker | 2016-08-22 10:11:11 +0200 (Mon, 22 Aug 2016) | 2 lines
+
+Reorganize psiadmin to prepare for liblinenoise
+
+------------------------------------------------------------------------
+r9411 | eicker | 2016-08-22 09:43:52 +0200 (Mon, 22 Aug 2016) | 2 lines
+
+Enhancement: Use a logger for psiadmin's errors
+
+------------------------------------------------------------------------
+r9410 | eicker | 2016-08-22 09:34:47 +0200 (Mon, 22 Aug 2016) | 4 lines
+
+Merge from psslurm-devel:
+
+ - Add plugin debug function to log binary data in hex format
+
+------------------------------------------------------------------------
+r9409 | moschny | 2016-08-03 17:25:15 +0200 (Wed, 03 Aug 2016) | 4 lines
+
+Try to fix handling of CONFIGARGS in toplevel Makefile.
+
+- Fix quoting.
+- Fix merging of internal and external CONFIGARGS.
+------------------------------------------------------------------------
+r9408 | krempel | 2016-07-28 13:51:09 +0200 (Thu, 28 Jul 2016) | 2 lines
+
+Prevent potential segfault in common node down hook handler
+
+------------------------------------------------------------------------
+
+
 Version psmgmt-5.0.51:
 ======================
 ------------------------------------------------------------------------
