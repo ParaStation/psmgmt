@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2015 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -280,7 +280,7 @@ static void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 		(256 < PSC_getNrOfNodes()) ? 256 : PSC_getNrOfNodes();
 	    /* Limit these requests to 256 nodes due to message length */
 
-	    if ((! config->useMCast) && (PSC_getMyID() != getMasterID())) {
+	    if ((! PSID_config->useMCast) && (PSC_getMyID() != getMasterID())) {
 		/* Handled by master node -> forward */
 		inmsg->header.dest = PSC_getTID(getMasterID(), 0);
 		msg_INFOREQUEST(inmsg);
@@ -469,7 +469,7 @@ static void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 	case PSP_INFO_LIST_NORMJOBS:
 	case PSP_INFO_LIST_ALLOCJOBS:
 	case PSP_INFO_LIST_EXCLUSIVE:
-	    if ((! config->useMCast) && (PSC_getMyID() != getMasterID())) {
+	    if ((! PSID_config->useMCast) && (PSC_getMyID() != getMasterID())) {
 		/* Handled by master node -> forward */
 		inmsg->header.dest = PSC_getTID(getMasterID(), 0);
 		msg_INFOREQUEST(inmsg);
@@ -812,8 +812,8 @@ static void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 	    msg.header.len += sizeof(int64_t);
 	    break;
 	case PSP_INFO_STARTUPSCRIPT:
-	    if (config->startupScript) {
-		strncpy(msg.buf, config->startupScript, sizeof(msg.buf));
+	    if (PSID_config->startupScript) {
+		strncpy(msg.buf, PSID_config->startupScript, sizeof(msg.buf));
 		msg.buf[sizeof(msg.buf)-1] = '\0';
 	    } else {
 		*msg.buf = '\0';
@@ -821,8 +821,8 @@ static void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 	    msg.header.len += strlen(msg.buf)+1;
 	    break;
 	case PSP_INFO_NODEUPSCRIPT:
-	    if (config->nodeUpScript) {
-		strncpy(msg.buf, config->nodeUpScript, sizeof(msg.buf));
+	    if (PSID_config->nodeUpScript) {
+		strncpy(msg.buf, PSID_config->nodeUpScript, sizeof(msg.buf));
 		msg.buf[sizeof(msg.buf)-1] = '\0';
 	    } else {
 		*msg.buf = '\0';
@@ -830,8 +830,8 @@ static void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 	    msg.header.len += strlen(msg.buf)+1;
 	    break;
 	case PSP_INFO_NODEDOWNSCRIPT:
-	    if (config->nodeDownScript) {
-		strncpy(msg.buf, config->nodeDownScript, sizeof(msg.buf));
+	    if (PSID_config->nodeDownScript) {
+		strncpy(msg.buf, PSID_config->nodeDownScript, sizeof(msg.buf));
 		msg.buf[sizeof(msg.buf)-1] = '\0';
 	    } else {
 		*msg.buf = '\0';

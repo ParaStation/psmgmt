@@ -109,7 +109,7 @@ void PSID_shutdown(void)
 	    phase--;
 	    break;
 	}
-	if (!config->useMCast) {
+	if (!PSID_config->useMCast) {
 	    releaseStatusTimer();
 	} else {
 	    exitMCast();

@@ -1666,10 +1666,10 @@ void initPlugins(void)
     PSID_registerLoopAct(handlePlugins);
 
     /* Handle list of plugins found in the configuration file */
-    if (!list_empty(&config->plugins)) {
+    if (!list_empty(&PSID_config->plugins)) {
 	list_t *p, *tmp;
 
-	list_for_each_safe(p, tmp, &config->plugins) {
+	list_for_each_safe(p, tmp, &PSID_config->plugins) {
 	    nameList_t *ent = list_entry(p, nameList_t, next);
 
 	    list_del(&ent->next);

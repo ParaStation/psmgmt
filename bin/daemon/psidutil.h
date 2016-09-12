@@ -168,10 +168,8 @@ typedef enum {
 } PSID_log_key_t;
 
 
-/**
- * This holds most of the daemon's configuration.
- */
-extern config_t *config;
+/** Pointer to most of the daemon's configuration. */
+extern config_t *PSID_config;
 
 /**
  * @brief Read (and parse) the configuration-file.

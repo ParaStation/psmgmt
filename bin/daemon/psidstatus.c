@@ -402,7 +402,7 @@ void incJobs(int total, int normal)
     if (total) myJobs.total++;
     if (normal) myJobs.normal++;
 
-    if (config->useMCast) incJobsMCast(PSC_getMyID(), total, normal);
+    if (PSID_config->useMCast) incJobsMCast(PSC_getMyID(), total, normal);
 }
 
 void decJobs(int total, int normal)
@@ -412,7 +412,7 @@ void decJobs(int total, int normal)
     if (total) myJobs.total--;
     if (normal) myJobs.normal--;
 
-    if (config->useMCast) decJobsMCast(PSC_getMyID(), total, normal);
+    if (PSID_config->useMCast) decJobsMCast(PSC_getMyID(), total, normal);
 }
 
 void decJobsHint(PSnodes_ID_t node)
@@ -427,7 +427,7 @@ PSID_NodeStatus_t getStatusInfo(PSnodes_ID_t node)
 {
     PSID_NodeStatus_t status;
 
-    if (config->useMCast) {
+    if (PSID_config->useMCast) {
 	MCastConInfo_t info;
 
 	getInfoMCast(node, &info);
@@ -458,7 +458,7 @@ PSID_Mem_t getMemoryInfo(PSnodes_ID_t node)
 {
     PSID_Mem_t memory;
 
-    if (config->useMCast) {
+    if (PSID_config->useMCast) {
 	memory = (PSID_Mem_t) { -1, -1 };
     } else {
 	if (node == PSC_getMyID()) {
@@ -491,11 +491,11 @@ void declareMaster(PSnodes_ID_t newMaster)
 
     if (newMaster == PSC_getMyID()) allocMasterSpace();
 
-    if (config->useMCast) {
+    if (PSID_config->useMCast) {
 	timerID = 0;
     } else if (!knowMaster()) {
 	if (!Timer_isInitialized()) {
-	    Timer_init(config->logfile);
+	    Timer_init(PSID_config->logfile);
 	}
 	timerID = Timer_register(&StatusTimeout, sendRDPPing);
 	sendRDPPing();
@@ -626,7 +626,7 @@ void declareNodeDead(PSnodes_ID_t id, int sendDeadnode, int silent)
     PSIDnodes_setPhysCPUs(id, 0);
     PSIDnodes_setVirtCPUs(id, 0);
 
-    if (config->useMCast) declareNodeDeadMCast(id);
+    if (PSID_config->useMCast) declareNodeDeadMCast(id);
 
     /* Send signals to all processes that controlled task on the dead node */
     list_for_each(t, &managedTasks) {
@@ -678,15 +678,15 @@ void declareNodeDead(PSnodes_ID_t id, int sendDeadnode, int silent)
 	declareMaster(node);
     } else if (PSC_getMyID() == getMasterID()) {
 	cleanupRequests(id);
-	if (config->nodeDownScript && *config->nodeDownScript) {
+	if (PSID_config->nodeDownScript && *PSID_config->nodeDownScript) {
 	    stateChangeInfo_t *info = malloc(sizeof(*info));
 	    if (!info) {
 		PSID_warn(-1, errno, "%s", __func__);
 	    } else {
 		info->id = id;
-		info->script = config->nodeDownScript;
+		info->script = PSID_config->nodeDownScript;
 	    }
-	    PSID_execScript(config->nodeDownScript, stateChangeEnv,
+	    PSID_execScript(PSID_config->nodeDownScript, stateChangeEnv,
 			    stateChangeCB, info);
 	}
     }
@@ -694,7 +694,8 @@ void declareNodeDead(PSnodes_ID_t id, int sendDeadnode, int silent)
     /* Drop messages not before new master is found */
     clearRDPMsgs(id);
 
-    if (!config->useMCast && getMasterID() == PSC_getMyID() && sendDeadnode) {
+    if (!PSID_config->useMCast
+	&& getMasterID() == PSC_getMyID() && sendDeadnode) {
 	send_DEADNODE(id);
     }
 }
@@ -739,23 +740,23 @@ void declareNodeAlive(PSnodes_ID_t id, int physCPUs, int virtCPUs)
 
 	declareMaster(id);
 
-	if (!config->useMCast) send_MASTERIS(oldMaster);
+	if (!PSID_config->useMCast) send_MASTERIS(oldMaster);
     }
 
-    if (!config->useMCast && getMasterID() == PSC_getMyID() && !wasUp) {
+    if (!PSID_config->useMCast && getMasterID() == PSC_getMyID() && !wasUp) {
 	send_ACTIVENODES(id);
     }
 
     if (getMasterID() == PSC_getMyID() && !wasUp) {
-	if (config->nodeUpScript && *config->nodeUpScript) {
+	if (PSID_config->nodeUpScript && *PSID_config->nodeUpScript) {
 	    stateChangeInfo_t *info = malloc(sizeof(*info));
 	    if (!info) {
 		PSID_warn(-1, errno, "%s", __func__);
 	    } else {
 		info->id = id;
-		info->script = config->nodeUpScript;
+		info->script = PSID_config->nodeUpScript;
 	    }
-	    PSID_execScript(config->nodeUpScript, stateChangeEnv,
+	    PSID_execScript(PSID_config->nodeUpScript, stateChangeEnv,
 			    stateChangeCB, info);
 	}
 
@@ -851,7 +852,7 @@ static void drop_DAEMONCONNECT(DDBufferMsg_t *msg)
 {
     static int block = 0;
 
-    if (!block && !config->useMCast && !knowMaster()
+    if (!block && !PSID_config->useMCast && !knowMaster()
 	&& ! (PSID_getDaemonState() & PSID_STATE_SHUTDOWN)) {
 	PSnodes_ID_t next = PSC_getID(msg->header.dest) + 1;
 

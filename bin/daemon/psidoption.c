@@ -363,7 +363,7 @@ static void msg_SETOPTION(DDOptionMsg_t *msg)
 	    switch (msg->opt[i].option) {
 	    case PSP_OP_PSIDSELECTTIME:
 		if (msg->opt[i].value > 0) {
-		    config->selectTime = msg->opt[i].value;
+		    PSID_config->selectTime = msg->opt[i].value;
 		}
 		break;
 	    case PSP_OP_STATUS_TMOUT:
@@ -766,10 +766,10 @@ static void msg_SETOPTION(DDOptionMsg_t *msg)
 		setDebugMaskMCast(msg->opt[i].value);
 		break;
 	    case PSP_OP_FREEONSUSP:
-		config->freeOnSuspend = msg->opt[i].value;
+		PSID_config->freeOnSuspend = msg->opt[i].value;
 		break;
 	    case PSP_OP_NODESSORT:
-		config->nodesSort = msg->opt[i].value;
+		PSID_config->nodesSort = msg->opt[i].value;
 		break;
 	    case PSP_OP_ADD_ACCT:
 		PSID_addAcct(msg->opt[i].value);
@@ -913,7 +913,7 @@ static void msg_GETOPTION(DDOptionMsg_t *msg)
 		msg->opt[out].value = PSID_getDebugMask();
 		break;
 	    case PSP_OP_PSIDSELECTTIME:
-		msg->opt[out].value = config->selectTime;
+		msg->opt[out].value = PSID_config->selectTime;
 		break;
 	    case PSP_OP_STATUS_TMOUT:
 		msg->opt[out].value = getStatusTimeout();
@@ -1016,10 +1016,10 @@ static void msg_GETOPTION(DDOptionMsg_t *msg)
 		msg->opt[out].value = getMasterID();
 		break;
 	    case PSP_OP_FREEONSUSP:
-		msg->opt[out].value = config->freeOnSuspend;
+		msg->opt[out].value = PSID_config->freeOnSuspend;
 		break;
 	    case PSP_OP_NODESSORT:
-		msg->opt[out].value = config->nodesSort;
+		msg->opt[out].value = PSID_config->nodesSort;
 		break;
 	    case PSP_OP_ACCT:
 		send_acct_OPTIONS(msg->header.sender, 1);

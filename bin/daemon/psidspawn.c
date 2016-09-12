@@ -1184,7 +1184,7 @@ static void execForwarder(PStask_t *task, int daemonfd)
 
 	/* Reset connection to syslog */
 	closelog();
-	openlog("psid_client", LOG_PID|LOG_CONS, config->logDest);
+	openlog("psid_client", LOG_PID|LOG_CONS, PSID_config->logDest);
 
 	/*
 	 * Create a new process group. This is needed since the daemon
@@ -1531,7 +1531,7 @@ static int buildSandboxAndStart(PStask_t *task)
 	    }
 	}
 	/* Reopen the syslog and rename the tag */
-	openlog("psidforwarder", LOG_PID|LOG_CONS, config->logDest);
+	openlog("psidforwarder", LOG_PID|LOG_CONS, PSID_config->logDest);
 
 	/* Get rid of now useless selectors */
 	Selector_init(NULL);

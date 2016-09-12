@@ -537,7 +537,7 @@ static int initForwarder(int forwarderType, char *jobname)
     /* Reset connection to syslog */
     closelog();
     initLogger(NULL, NULL);
-    openlog("psmomfw", LOG_PID|LOG_CONS, config->logDest);
+    openlog("psmomfw", LOG_PID|LOG_CONS, PSID_config->logDest);
 
     /* open local control connection back to psmom */
     forwarder_type = forwarderType;
