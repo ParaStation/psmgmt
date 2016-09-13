@@ -6,9 +6,6 @@
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
- *
- * Authors:     Michael Rauh <rauh@par-tec.com>
- *
  */
 
 #include <stdio.h>
@@ -37,6 +34,8 @@
 #include "pscommon.h"
 
 #include "psaccountcollect.h"
+
+int clockTicks = -1;
 
 void updateAccountData(Client_t *client)
 {

@@ -9,10 +9,8 @@
  */
 
 #include <stdio.h>
-#include <stdlib.h>
-#include <sys/utsname.h>
 #include <string.h>
-#include <errno.h>
+#include <sys/utsname.h>
 #include <unistd.h>
 
 #include "psaccountcollect.h"
@@ -31,7 +29,6 @@
 #include "psidnodes.h"
 #include "psidutil.h"
 #include "psidhook.h"
-#include "pluginmalloc.h"
 #include "pluginfrag.h"
 
 #include "psaccount.h"
@@ -42,15 +39,11 @@
 char name[] = "psaccount";
 int version = 25;
 int requiredAPI = 114;
-plugin_dep_t dependencies[1];
+plugin_dep_t dependencies[] = {
+    { .name = NULL, .version = 0 } };
 
-/** the linux system clock ticks */
-int clockTicks = -1;
-
-/** the linux system page size */
+/** System's page size */
 int pageSize = -1;
-
-int daemonSock = -1;
 
 /** save default handler for accouting msgs */
 handlerFunc_t oldAccountHandler = NULL;
@@ -61,23 +54,15 @@ static int mainTimerID = -1;
 /** the main timer which calls periodicMain() to do all the work */
 static struct timeval mainTimer = {30,0};
 
+/* Forward declaration */
+static void setMainTimer(int sec);
+
 /**
- * @brief Update the main timer configuration.
- *
- * @param sec The new value of the timer in seconds.
+ * @brief Main loop doing all the work.
  *
  * @return No return value.
  */
-static void setMainTimer(int sec)
-{
-    if (mainTimerID != -1) {
-	Timer_remove(mainTimerID);
-    }
-    mainTimer.tv_sec = sec;
-    mainTimerID = Timer_register(&mainTimer, periodicMain);
-}
-
-void periodicMain(void)
+static void periodicMain(void)
 {
     static int cleanup = 0;
     int poll;
@@ -105,23 +90,25 @@ void periodicMain(void)
     }
 }
 
-void accountStart(void)
+/**
+ * @brief Update the main timer configuration.
+ *
+ * @param sec The new value of the timer in seconds.
+ *
+ * @return No return value.
+ */
+static void setMainTimer(int sec)
 {
-    /* we have no dependencies */
-    dependencies[0].name = NULL;
-    dependencies[0].version = 0;
-}
-
-void accountStop(void)
-{
-    /* nothing to do here */
+    if (mainTimerID != -1) {
+	Timer_remove(mainTimerID);
+    }
+    mainTimer.tv_sec = sec;
+    mainTimerID = Timer_register(&mainTimer, periodicMain);
 }
 
 static int setDaemonSock(void *dsock)
 {
-    int *sock = dsock;
-
-    daemonSock = *sock;
+    daemonSock = *(int *)dsock;
 
     return 0;
 }
@@ -162,7 +149,7 @@ int initialize(void)
 	}
     }
 
-    /* read system clock ticks */
+    /* determine system's clock ticks */
     if ((clockTicks = sysconf(_SC_CLK_TCK)) < 1) {
 	mlog("%s: reading clock ticks failed\n", __func__);
 	return 1;

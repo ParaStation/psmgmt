@@ -7,8 +7,6 @@
 # as defined in the file LICENSE.QPL included in the packaging of this
 # file.
 #
-# Author:	Thomas Moschny <moschny@par-tec.com>
-#
 
 include $(top_srcdir)/common.am
 
@@ -20,11 +18,11 @@ plugin_LTLIBRARIES = psaccount.la
 libplugincommon = $(top_builddir)/lib/plugincommon/libplugincommon.la
 
 psaccount_la_SOURCES = psaccount.c psaccountclient.c psaccountclient.h  \
-	 psaccountcollect.c psaccountcollect.h psaccountcomm.c 		\
+	 psaccountcollect.c psaccountcollect.h psaccountcomm.c		\
 	 psaccountcomm.h psaccount.h psaccountinter.c psaccountinter.h  \
 	 psaccountjob.c	psaccountjob.h psaccountkvs.c psaccountkvs.h    \
 	 psaccountlog.c	psaccountlog.h psaccountproc.c psaccountproc.h  \
-	 psaccountconfig.c psaccountconfig.h psaccounthistory.h 	\
+	 psaccountconfig.c psaccountconfig.h psaccounthistory.h		\
 	 psaccounthistory.c psaccounthandles.h psaccounttypes.h
 
 psaccount_la_CPPFLAGS = $(AM_CPPFLAGS) -DPLUGINDIR=\"$(plugindir)\"

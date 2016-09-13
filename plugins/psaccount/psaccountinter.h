@@ -6,9 +6,6 @@
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
- *
- * Authors:     Michael Rauh <rauh@par-tec.com>
- *
  */
 
 #ifndef __PS_ACCOUNT_INTER
@@ -30,6 +27,9 @@ typedef enum {
 } PSP_PSAccount_t;
 
 extern int globalCollectMode;
+
+/** Socket connected to the local daemon */
+extern int daemonSock;
 
 /**
  * @brief Global message switch for inter account messages.
@@ -132,4 +132,4 @@ void psAccountDelJob(PStask_ID_t loggerTID);
 
 void psAccountUnregisterJob(pid_t jsPid);
 
-#endif
+#endif  /* __PS_ACCOUNT_INTER */

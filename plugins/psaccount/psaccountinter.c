@@ -30,6 +30,8 @@
 /* flag to control the global collect mode */
 int globalCollectMode = 0;
 
+int daemonSock = -1;
+
 int psAccountSwitchAccounting(PStask_ID_t clientTID, int enable)
 {
     DDTypedBufferMsg_t msg = (DDTypedBufferMsg_t) {

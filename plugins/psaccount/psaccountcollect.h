@@ -6,15 +6,15 @@
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
- *
- * Authors:     Michael Rauh <rauh@par-tec.com>
- *
  */
 
 #ifndef __PS_ACCOUNT_COLLECT
 #define __PS_ACCOUNT_COLLECT
 
 #include "psaccountclient.h"
+
+/** System's clock granularity (set during initialization) */
+extern int clockTicks;
 
 /**
  * @brief Update Accounting Data for a client.
@@ -38,4 +38,4 @@
  */
 void updateAccountData(Client_t *client);
 
-#endif
+#endif  /* __PS_ACCOUNT_COLLECT */
