@@ -6,68 +6,56 @@
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
- *
- * Authors:     Michael Rauh <rauh@par-tec.com>
- *
  */
 
 #ifndef __PS_ACCOUNT_CLIENT
 #define __PS_ACCOUNT_CLIENT
 
 #include <stdbool.h>
-#include <arpa/inet.h>
+#include <time.h>
 #include <sys/types.h>
-#include <sys/resource.h>
-#include <sys/wait.h>
 
 #include "list.h"
 #include "pscommon.h"
 #include "psaccountjob.h"
 #include "psaccounttypes.h"
 
+/** Various types of clients to be handled */
 typedef enum {
-    ACC_CHILD_JOBSCRIPT = 0x0000,
-    ACC_CHILD_PSIDCHILD,
-    ACC_CHILD_REMOTE
+    ACC_CHILD_JOBSCRIPT = 0x0000, /**< Job script */
+    ACC_CHILD_PSIDCHILD,          /**< Child of the local psid */
+    ACC_CHILD_REMOTE              /**< Remote client to be mirrored here */
 } PS_Acct_job_types_t;
 
+/** Structure holding all information concerning a distinct client */
 typedef struct {
-    bool doAccounting;
-    PS_Acct_job_types_t type;
-    PStask_ID_t logger;
-    PStask_ID_t taskid;
-    Job_t *job;
-    char *jobid;
-    pid_t pid;
-    uid_t uid;
-    gid_t gid;
-    time_t startTime;
-    time_t endTime;
-    int rank;
-    int status;
-    AccountDataExt_t data;
-    struct timeval walltime;
-    struct list_head list;
+    list_t next;                /**< used to put into @ref psAccountClients */
+    bool doAccounting;          /**< flag accounting of this client */
+    PS_Acct_job_types_t type;   /**< type of client */
+    PStask_ID_t logger;         /**< logger associated to the client */
+    PStask_ID_t taskid;         /**< client's task ID */
+    Job_t *job;                 /**< job associated to the client */
+    char *jobid;                /**< job ID associated to the client */
+    pid_t pid;                  /**< client's PID */
+    uid_t uid;                  /**< client's UID */
+    gid_t gid;                  /**< client's GID */
+    time_t startTime;           /**< client's start time */
+    time_t endTime;             /**< client's finishing time */
+    int rank;                   /**< client's rank (ParaStation's perspective)*/
+    int status;                 /**< client's status upon exit */
+    AccountDataExt_t data;      /**< actual accounting data */
+    struct timeval walltime;    /**< amount of walltime consumed by client */
 } Client_t;
 
-extern Client_t AccClientList;
-
-/**
- * @brief Initialize the list.
- *
- * This function must be called before using any other
- * client list functions.
- *
- * @return No return value.
- */
-void initAccClientList(void);
+/** List of all known clients */
+extern list_t clientList;
 
 /**
  * @brief Convert a client type to string.
  *
  * @param type The type of the client to convert.
  *
- * @return Returns the requested string.
+ * @return Returns the requested string
  */
 const char* clientType2Str(int type);
 
@@ -77,20 +65,9 @@ const char* clientType2Str(int type);
  * @param clientTID The TaskID of the client to find.
  *
  * @return Returns the found client or NULL on error and if no client
- * was found.
+ * was found
  */
-Client_t *findAccClientByClientTID(PStask_ID_t clientTID);
-
-/**
- * @brief Find an account client by the logger TID.
- *
- * @param loggerTID The TaskID of the logger which is assosicated with
- * the client.
- *
- * @return Returns the found client or NULL on error and if no client
- * was found.
- */
-Client_t *findAccClientByLogger(PStask_ID_t loggerTID);
+Client_t *findClientByTID(PStask_ID_t clientTID);
 
 /**
  * @brief Find an account client by its pid.
@@ -98,9 +75,9 @@ Client_t *findAccClientByLogger(PStask_ID_t loggerTID);
  * @param clientPID The pid of the client to find.
  *
  * @return Returns the found client or NULL on error and if no client
- * was found.
+ * was found
  */
-Client_t *findAccClientByClientPID(pid_t clientPID);
+Client_t *findClientByPID(pid_t clientPID);
 
 /**
  * @brief Find the jobscript for a specific job.
@@ -110,38 +87,9 @@ Client_t *findAccClientByClientPID(pid_t clientPID);
  * @param job The job structure to find the jobscript for.
  *
  * @return On success the found jobscript is returned, on error NULL
- * is returned.
+ * is returned
  */
 Client_t *findJobscriptInClients(Job_t *job);
-
-/**
- * @brief Request all accounting information for a job.
- *
- * Collect all known accounting information for a job. The job is identified
- * by the uniq TaskID of the logger. All collected information is combined into
- * a psaccAccountInfo_t structure. This function is used by the psmom at the end
- * of a job to return the accouting information to the pbs_server. The jobscript
- * will not be added since it can start multiple jobs.
- *
- * @param The logger TaskID to identifiy the job.
- *
- * @param accData The data structure which will hold all the collected
- * accounting information.
- *
- * @return Returns 1 on success and 0 on error.
- */
-int getAccountInfoByLogger(PStask_ID_t logger, psaccAccountInfo_t *accData);
-
-/**
- * @brief Add accounting data from client.
- *
- * @param client The client the calculate the data to add.
- *
- * @param accData Pointer to an accounting data structure.
- *
- * @return No return value.
- */
-void addAccInfoForClient(Client_t *client, psaccAccountInfo_t *accData);
 
 /**
  * @brief Add a new account client.
@@ -150,33 +98,33 @@ void addAccInfoForClient(Client_t *client, psaccAccountInfo_t *accData);
  *
  * @param type The type of the new client to add.
  *
- * @return Returns the new created account client.
+ * @return Returns the newly created account client
  */
-Client_t *addAccClient(PStask_ID_t taskid, PS_Acct_job_types_t type);
+Client_t *addClient(PStask_ID_t taskid, PS_Acct_job_types_t type);
 
 /**
  * @brief Delete all account clients with the specified logger TID.
  *
  * @param loggerTID The taskID of the logger to identify all clients.
  *
- * @return No return value.
+ * @return No return value
  */
-void deleteAllAccClientsByLogger(PStask_ID_t loggerTID);
+void deleteClientsByLogger(PStask_ID_t loggerTID);
 
 /**
- * @brief Test if we have clients which should be accounted.
+ * @brief Test for clients which shall be accounted
  *
- * @return Returns 1 if we have at least one client which should
- * be accounted or else 0.
+ * @return Returns true if any client to be accounted is available or
+ * false otherwise.
  */
-int haveActiveAccClients(void);
+bool haveActiveClients(void);
 
 /**
  * @brief Clear all account clients and free the used memory.
  *
- * @return No return value.
+ * @return No return value
  */
-void clearAllAccClients(void);
+void clearAllClients(void);
 
 /**
  * @brief Update all client account data.
@@ -186,17 +134,17 @@ void clearAllAccClients(void);
  *
  * @param job The job to identify the clients to update.
  *
- * @return No return value.
+ * @return No return value
  */
-void updateAllAccClients(Job_t *job);
+void updateClients(Job_t *job);
 
 /**
  * @brief Clean leftover account clients.
  *
  * Cleanup accounting clients which disappeared without an ACCOUNT_END msg or
- * jobscripts which were un-registered.
+ * jobscripts which were unregistered.
  *
- * @return No return value.
+ * @return No return value
  */
 void cleanupClients(void);
 
@@ -207,20 +155,44 @@ void cleanupClients(void);
  *
  * @param tid The taskID of the client to delete.
  *
- * @return Returns 1 on success and 0 on error.
+ * @return Returns true on success and false if node client was found
  */
-int deleteAccClient(PStask_ID_t tid);
+bool deleteClient(PStask_ID_t tid);
 
-void addAccDataForClient(Client_t *client, AccountDataExt_t *accData);
+/** @brief @doctodo
+ *
+ * @return No return value
+ */
+void addClientToAggData(Client_t *client, AccountDataExt_t *accData);
 
+/** @brief @doctodo
+ *
+ * @return No return value
+ */
 void addAggData(AccountDataExt_t *srcData, AccountDataExt_t *destData);
 
-int getAccountDataByLogger(PStask_ID_t logger, AccountDataExt_t *accData);
+/** @brief @doctodo
+ *
+ * @return 
+ */
+bool aggregateDataByLogger(PStask_ID_t logger, AccountDataExt_t *accData);
 
-int getPidsByLogger(PStask_ID_t logger, pid_t **pids, uint32_t *count);
+/** @brief @doctodo
+ *
+ * @return No return value
+ */
+void getPidsByLogger(PStask_ID_t logger, pid_t **pids, uint32_t *count);
 
-void switchClientUpdate(PStask_ID_t clientTID, int enable);
+/** @brief @doctodo
+ *
+ * @return No return value
+ */
+void switchClientUpdate(PStask_ID_t clientTID, bool enable);
 
+/** @brief @doctodo
+ *
+ * @return No return value
+ */
 void forwardAggData(void);
 
-#endif
+#endif  /* __PS_ACCOUNT_CLIENT */

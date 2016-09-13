@@ -1,14 +1,11 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2012 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2012-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
- *
- * Authors:     Michael Rauh <rauh@par-tec.com>
- *
  */
 
 #include <stdlib.h>
@@ -86,15 +83,15 @@ static char *showJobs(char *buf, size_t *bufSize)
 	str2Buf(line, &buf, bufSize);
 
 	if (job->jobscript) {
-	    psaccAccountInfo_t accData;
+	    /* psaccAccountInfo_t accData; */
 
-	    if (psAccountGetJobInfo(job->jobscript, &accData)) {
-		snprintf(line, sizeof(line), "cputime '%zu' utime '%zu'"
-			    " stime '%zu' mem '%zu' vmem '%zu'\n",
-			    accData.cputime, accData.utime, accData.stime,
-			    accData.mem, accData.vmem);
-		str2Buf(line, &buf, bufSize);
-	    }
+	    /* if (psAccountGetJobInfo(job->jobscript, &accData)) { */
+	    /* 	snprintf(line, sizeof(line), "cputime '%zu' utime '%zu'" */
+	    /* 		    " stime '%zu' mem '%zu' vmem '%zu'\n", */
+	    /* 		    accData.cputime, accData.utime, accData.stime, */
+	    /* 		    accData.mem, accData.vmem); */
+	    /* 	str2Buf(line, &buf, bufSize); */
+	    /* } */
 	}
 
 	str2Buf("-\n", &buf, bufSize);
@@ -112,20 +109,18 @@ static char *showJobs(char *buf, size_t *bufSize)
  *
  * @return Returns the buffer with the updated client information.
  */
-static char *showClient(char *buf, size_t *bufSize, int detailed)
+static char *showClient(char *buf, size_t *bufSize, bool detailed)
 {
-    struct list_head *pos;
-    Client_t *client;
+    list_t *pos;
 
-    if (list_empty(&AccClientList.list)) {
+    if (list_empty(&clientList)) {
 	return str2Buf("\nNo current clients.\n", &buf, bufSize);
     }
 
     str2Buf("\nclients:\n", &buf, bufSize);
 
-    list_for_each(pos, &AccClientList.list) {
-
-	if ((client = list_entry(pos, Client_t, list)) == NULL) break;
+    list_for_each(pos, &clientList) {
+	Client_t *client = list_entry(pos, Client_t, next);
 
 	snprintf(line, sizeof(line), "taskID '%s'\n",
 		    PSC_printTID(client->taskid));
@@ -361,12 +356,12 @@ char *show(char *key)
 
     /* show current clients */
     if (!(strcmp(key, "clients"))) {
-	return showClient(buf, &bufSize, 0);
+	return showClient(buf, &bufSize, false);
     }
 
     /* show current clients in detail */
     if (!(strcmp(key, "dclients"))) {
-	return showClient(buf, &bufSize, 1);
+	return showClient(buf, &bufSize, true);
     }
 
     /* show current jobs */

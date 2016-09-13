@@ -75,11 +75,11 @@ static void periodicMain(void)
     }
 
     /* update proc snapshot */
-    if ((haveActiveAccClients())) {
+    if ((haveActiveClients())) {
 	updateProcSnapshot(0);
 
 	/* update all accounting data */
-	updateAllAccClients(NULL);
+	updateClients(NULL);
     }
 
     /* check if config changed */
@@ -123,7 +123,6 @@ int initialize(void)
     initLogger(false);
 
     /* init all lists */
-    initAccClientList();
     initJobList();
     initHist();
     initProcList();
@@ -221,7 +220,7 @@ void cleanup(void)
 
     /* cleanup allocated lists/memory */
     clearAllJobs();
-    clearAllAccClients();
+    clearAllClients();
     clearAllProcSnapshots();
     clearHist();
     clearConfig();

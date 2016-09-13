@@ -26,7 +26,8 @@ typedef enum {
     PSP_ACCOUNT_AGG_DATA_FINISH,
 } PSP_PSAccount_t;
 
-extern int globalCollectMode;
+/** Flag mode to globally collect accounting data */
+extern bool globalCollectMode;
 
 /** Socket connected to the local daemon */
 extern int daemonSock;
@@ -58,18 +59,6 @@ void sendAggDataFinish(PStask_ID_t loggerTID);
  * @return No return value.
  */
 void psAccountSetGlobalCollect(int active);
-
-/**
- * @brief Get account info for a jobscript.
- *
- * @param jobscript The jobscript to get the info for.
- *
- * @param accData A pointer to an accountInfo structure which will receive the
- * requested information.
- *
- * @return Returns 1 on success and 0 on error.
- */
-int psAccountGetJobInfo(pid_t jobscript, psaccAccountInfo_t *accData);
 
 /**
  * @brief Wrapper for the getSessionInformation() function.
@@ -119,7 +108,7 @@ int psAccountGetDataByLogger(PStask_ID_t logger, AccountDataExt_t *accData);
 /**
  * @brief Wrapper for  getPidsByLogger().
  */
-int psAccountGetPidsByLogger(PStask_ID_t loggerTID, pid_t **pids,
+void psAccountGetPidsByLogger(PStask_ID_t loggerTID, pid_t **pids,
 				uint32_t *count);
 
 int psAccountSwitchAccounting(PStask_ID_t clientTID, int enable);

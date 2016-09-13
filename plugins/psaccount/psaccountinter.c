@@ -28,7 +28,7 @@
 #include "psaccountinter.h"
 
 /* flag to control the global collect mode */
-int globalCollectMode = 0;
+bool globalCollectMode = false;
 
 int daemonSock = -1;
 
@@ -62,11 +62,11 @@ static void handleSwitchUpdate(DDTypedBufferMsg_t *msg, int enable)
 int psAccountGetDataByLogger(PStask_ID_t logger, AccountDataExt_t *accData)
 {
     memset(accData, 0, sizeof(AccountDataExt_t));
-    return getAccountDataByLogger(logger, accData);
+    return aggregateDataByLogger(logger, accData);
 }
 
-int psAccountGetPidsByLogger(PStask_ID_t loggerTID, pid_t **pids,
-				uint32_t *count)
+void psAccountGetPidsByLogger(PStask_ID_t loggerTID, pid_t **pids,
+			     uint32_t *count)
 {
     return getPidsByLogger(loggerTID, pids, count);
 }
@@ -79,7 +79,7 @@ int psAccountGetJobData(pid_t jobscript, AccountDataExt_t *accData)
 
     memset(accData, 0, sizeof(AccountDataExt_t));
 
-    if (!(client = findAccClientByClientPID(jobscript))) {
+    if (!(client = findClientByPID(jobscript))) {
 	mlog("%s: getting account info by client '%i' failed\n", __func__,
 		jobscript);
 	return 0;
@@ -93,7 +93,7 @@ int psAccountGetJobData(pid_t jobscript, AccountDataExt_t *accData)
 
 	    if (job->jobscript == jobscript) {
 
-		if (!(getAccountDataByLogger(job->logger, accData))) {
+		if (!(aggregateDataByLogger(job->logger, accData))) {
 		    mlog("%s: getting account info by jobscript '%i' failed\n",
 			    __func__, jobscript);
 		    continue;
@@ -103,85 +103,24 @@ int psAccountGetJobData(pid_t jobscript, AccountDataExt_t *accData)
     }
 
     /* add the jobscript */
-    addAccDataForClient(client, accData);
+    addClientToAggData(client, accData);
 
     return 1;
-}
-
-int psAccountGetJobInfo(pid_t jobscript, psaccAccountInfo_t *accData)
-{
-    Client_t *client;
-    psaccAccountInfo_t tmpData;
-    Job_t *job;
-
-    /* init accData structure */
-    accData->cputime = accData->mem = accData->vmem = 0;
-    accData->count = accData->utime = accData->stime = 0;
-
-    if (!(client = findAccClientByClientPID(jobscript))) {
-	mlog("%s: getting account info by client '%i' failed\n", __func__,
-		jobscript);
-	return false;
-    }
-
-    /* find job */
-    if (!(job = findJobByJobscript(jobscript))) {
-
-	/* no MPI job started, get info for local clients */
-	addAccInfoForClient(client, accData);
-    } else {
-	/* search all parallel jobs and calc data */
-	list_t *pos, *tmp;
-
-	if (list_empty(&JobList.list)) return false;
-
-	list_for_each_safe(pos, tmp, &JobList.list) {
-	    if (!(job = list_entry(pos, Job_t, list))) break;
-
-	    if (job->jobscript == jobscript) {
-
-		tmpData.cputime = tmpData.mem = tmpData.vmem = 0;
-		tmpData.count = tmpData.utime = tmpData.stime = 0;
-
-		if (!(getAccountInfoByLogger(job->logger, &tmpData))) {
-		    mlog("%s: getting account info by jobscript '%i' failed\n",
-			    __func__, jobscript);
-		    continue;
-		}
-
-		accData->cputime += tmpData.cputime;
-		accData->utime += tmpData.utime;
-		accData->stime += tmpData.stime;
-
-		if (accData->mem < tmpData.mem) accData->mem = tmpData.mem;
-		if (accData->vmem < tmpData.vmem) accData->vmem = tmpData.vmem;
-		if (accData->count < tmpData.count) {
-		    accData->count = tmpData.count;
-		}
-	    }
-	}
-
-	/* finally add the jobscript */
-	addAccInfoForClient(client, accData);
-    }
-
-    return true;
 }
 
 static void handleAggDataFinish(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 {
     PStask_ID_t logger;
     char *ptr = data->buf;
-    Client_t *client;
-    list_t *pos, *tmp;
+    list_t *pos;
 
     /* get TaskID of logger */
     getInt32(&ptr, &logger);
 
-    list_for_each_safe(pos, tmp, &AccClientList.list) {
-	if (!(client = list_entry(pos, Client_t, list))) break;
-	if (PSC_getID(client->taskid) == PSC_getID(msg->header.sender) &&
-	    client->logger == logger) {
+    list_for_each(pos, &clientList) {
+	Client_t *client = list_entry(pos, Client_t, next);
+	if (PSC_getID(client->taskid) == PSC_getID(msg->header.sender)
+	    && client->logger == logger) {
 	    client->endTime = time(NULL);
 	}
     }
@@ -193,32 +132,32 @@ static void handleAggDataUpdate(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     AccountDataExt_t *aggData;
     PStask_ID_t logger;
     Client_t *client;
-    list_t *pos, *tmp;
-    int found = 0;
+    list_t *pos;
+    bool found = false;
     Job_t *job;
 
-    /* get TaskID of logger */
+    /* get logger's task ID */
     getInt32(&ptr, &logger);
 
     if (!(job = findJobByLogger(logger))) {
 	mlog("%s: update for unknown logger '%s'\n", __func__,
-	                PSC_printTID(logger));
+	     PSC_printTID(logger));
 	return;
     }
 
-    list_for_each_safe(pos, tmp, &AccClientList.list) {
-	if (!(client = list_entry(pos, Client_t, list))) break;
-	if (PSC_getID(client->taskid) == PSC_getID(msg->header.sender) &&
-	    client->logger == logger) {
-	    found = 1;
+    list_for_each(pos, &clientList) {
+	client = list_entry(pos, Client_t, next);
+	if (PSC_getID(client->taskid) == PSC_getID(msg->header.sender)
+	    && client->logger == logger) { // @todo is the getID() correct? */
+	    found = true;
 	    break;
 	}
     }
 
     if (!found) {
-	client = addAccClient(msg->header.sender, ACC_CHILD_REMOTE);
+	client = addClient(msg->header.sender, ACC_CHILD_REMOTE);
 	client->logger = logger;
-	client->doAccounting = 0;
+	client->doAccounting = false;
     }
 
     aggData = &client->data;
@@ -424,14 +363,14 @@ void psAccountRegisterJob(pid_t jsPid, char *jobid)
 
     /* monitor the JS */
     taskID = PSC_getTID(PSC_getMyID(), jsPid);
-    client = addAccClient(taskID, ACC_CHILD_JOBSCRIPT);
+    client = addClient(taskID, ACC_CHILD_JOBSCRIPT);
     client->jobid = ustrdup(jobid);
 }
 
 void psAccountDelJob(PStask_ID_t loggerTID)
 {
     deleteJob(loggerTID);
-    deleteAccClient(loggerTID);
+    deleteClient(loggerTID);
 }
 
 void psAccountUnregisterJob(pid_t jsPid)
@@ -442,7 +381,7 @@ void psAccountUnregisterJob(pid_t jsPid)
 
     /* stop accounting of dead jobscript */
     taskID = PSC_getTID(PSC_getMyID(), jsPid);
-    deleteAccClient(taskID);
+    deleteClient(taskID);
 
     list_for_each_safe(pos, tmp, &JobList.list) {
 	if (!(job = list_entry(pos, Job_t, list))) break;
@@ -455,25 +394,24 @@ void psAccountUnregisterJob(pid_t jsPid)
 
 void psAccountSetGlobalCollect(int active)
 {
-    globalCollectMode = active;
+    globalCollectMode = !!active;
 }
 
 PStask_ID_t psAccountgetLoggerByClientPID(pid_t pid)
 {
-    struct list_head *pos;
-    Client_t *client;
     ProcStat_t pS;
-    int psOK = 0;
+    bool psOK = false;
+    struct list_head *pos;
 
-    if (list_empty(&AccClientList.list)) return -1;
+    if (list_empty(&clientList)) return -1;
 
     if ((readProcStatInfo(pid, &pS))) {
-	psOK = 1;
+	psOK = true;
     }
 
     /* try to find the pid in the acc children */
-    list_for_each(pos, &AccClientList.list) {
-	if (!(client = list_entry(pos, Client_t, list))) break;
+    list_for_each(pos, &clientList) {
+	Client_t *client = list_entry(pos, Client_t, next);
 
 	/* try pid */
 	if (client->pid == pid) return client->logger;
@@ -492,12 +430,9 @@ PStask_ID_t psAccountgetLoggerByClientPID(pid_t pid)
     }
 
     /* try all grand-children now */
-    list_for_each(pos, &AccClientList.list) {
-	if (!(client = list_entry(pos, Client_t, list))) break;
-
-	if (isChildofParent(client->pid, pid)) {
-	    return client->logger;
-	}
+    list_for_each(pos, &clientList) {
+	Client_t *client = list_entry(pos, Client_t, next);
+	if (isChildofParent(client->pid, pid)) return client->logger;
     }
 
     return -1;

@@ -85,7 +85,7 @@ void deleteJob(PStask_ID_t loggerTID)
     Job_t *job;
 
     /* delete all childs */
-    deleteAllAccClientsByLogger(loggerTID);
+    deleteClientsByLogger(loggerTID);
 
     while ((job = findJobByLogger(loggerTID))) {
 	list_del(&job->list);

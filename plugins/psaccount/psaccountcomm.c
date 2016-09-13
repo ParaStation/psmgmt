@@ -6,9 +6,6 @@
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
- *
- * Authors:     Michael Rauh <rauh@par-tec.com>
- *
  */
 
 #include <stdio.h>
@@ -131,7 +128,7 @@ void handleAccountEnd(DDTypedBufferMsg_t *msg)
     childID = PSC_getTID(childNode, child);
 
     /* find the child exiting */
-    if (!(client = findAccClientByClientTID(childID))) {
+    if (!(client = findClientByTID(childID))) {
 	if (!(findHist(logger))) {
 	    mlog("%s: end msg for unknown client '%s' from '%s'\n", __func__,
 		PSC_printTID(childID), PSC_printTID(msg->header.sender));
@@ -326,7 +323,7 @@ static void monitorJobStarted(void)
 		    updateProcSnapshot(0);
 		    update = 1;
 		}
-		updateAllAccClients(job);
+		updateClients(job);
 
 		/* try to find the missing jobscript */
 		if (!job->jobscript) {
@@ -383,7 +380,7 @@ void handleAccountChild(DDTypedBufferMsg_t *msg)
     gid = *(gid_t *) ptr;
     ptr += sizeof(gid_t);
 
-    client = addAccClient(msg->header.sender, ACC_CHILD_PSIDCHILD);
+    client = addClient(msg->header.sender, ACC_CHILD_PSIDCHILD);
 
     /* save start time to trigger next update */
     if (job->lastChildStart < 1 && jobTimerID == -1) {
