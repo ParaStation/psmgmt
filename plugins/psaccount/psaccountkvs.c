@@ -100,97 +100,6 @@ static char *showJobs(char *buf, size_t *bufSize)
 }
 
 /**
- * @brief Show current clients.
- *
- * @param buf The buffer to write the information to.
- *
- * @param bufSize The size of the buffer.
- *
- * @return Returns the buffer with the updated client information.
- */
-static char *showClient(char *buf, size_t *bufSize, bool detailed)
-{
-    char line[160];
-    list_t *pos;
-
-    if (list_empty(&clientList)) {
-	return str2Buf("\nNo current clients.\n", &buf, bufSize);
-    }
-
-    str2Buf("\nclients:\n", &buf, bufSize);
-
-    list_for_each(pos, &clientList) {
-	Client_t *client = list_entry(pos, Client_t, next);
-
-	snprintf(line, sizeof(line), "taskID '%s'\n",
-		    PSC_printTID(client->taskid));
-	str2Buf(line, &buf, bufSize);
-
-	snprintf(line, sizeof(line), "rank '%i'\n", client->rank);
-	str2Buf(line, &buf, bufSize);
-
-	snprintf(line, sizeof(line), "logger '%s'\n",
-		    PSC_printTID(client->logger));
-	str2Buf(line, &buf, bufSize);
-
-	snprintf(line, sizeof(line), "account '%i'\n", client->doAccounting);
-	str2Buf(line, &buf, bufSize);
-
-	snprintf(line, sizeof(line), "type '%s'\n",
-		    clientType2Str(client->type));
-	str2Buf(line, &buf, bufSize);
-
-	snprintf(line, sizeof(line), "uid '%i'\n", client->uid);
-	str2Buf(line, &buf, bufSize);
-
-	snprintf(line, sizeof(line), "gid '%i'\n", client->gid);
-	str2Buf(line, &buf, bufSize);
-
-	snprintf(line, sizeof(line), "page size '%zu'\n",
-		    client->data.pageSize);
-
-	str2Buf(line, &buf, bufSize);
-
-	snprintf(line, sizeof(line), "start time %s",
-		    ctime(&client->startTime));
-	str2Buf(line, &buf, bufSize);
-
-	snprintf(line, sizeof(line), "end time %s",
-		    client->endTime ? ctime(&client->endTime) : "-\n");
-	str2Buf(line, &buf, bufSize);
-
-	if (detailed) {
-
-	    snprintf(line, sizeof(line), "max mem '%zu'\n",
-						client->data.maxRss * pageSize);
-	    str2Buf(line, &buf, bufSize);
-
-	    snprintf(line, sizeof(line), "max vmem '%zu'\n",
-						client->data.maxVsize);
-	    str2Buf(line, &buf, bufSize);
-
-	    snprintf(line, sizeof(line), "cutime '%zu'\n", client->data.cutime);
-	    str2Buf(line, &buf, bufSize);
-
-	    snprintf(line, sizeof(line), "cstime '%zu'\n", client->data.cstime);
-	    str2Buf(line, &buf, bufSize);
-
-	    snprintf(line, sizeof(line), "cputime '%zu'\n",
-			client->data.cputime);
-	    str2Buf(line, &buf, bufSize);
-
-	    snprintf(line, sizeof(line), "max threads '%zu'\n",
-						client->data.maxThreads);
-	    str2Buf(line, &buf, bufSize);
-	}
-
-	str2Buf("-\n", &buf, bufSize);
-    }
-
-    return buf;
-}
-
-/**
  * @brief Show current configuration.
  *
  * @param buf The buffer to write the information to.
@@ -240,18 +149,14 @@ char *set(char *key, char *val)
 		str2Buf(key, &buf, &bufSize);
 		str2Buf("' has to be numeric.\n", &buf,	&bufSize);
 	    }
-	    return buf;
+	} else {
+	    /* save new config value */
+	    addConfigEntry(&config, key, val);
+
+	    snprintf(line, sizeof(line), "\nsaved '%s = %s'\n", key, val);
+	    str2Buf(line, &buf, &bufSize);
 	}
-
-	/* save new config value */
-	addConfigEntry(&config, key, val);
-
-	snprintf(line, sizeof(line), "\nsaved '%s = %s'\n", key, val);
-	str2Buf(line, &buf, &bufSize);
-	return buf;
-    }
-
-    if (!(strcmp(key, "memdebug"))) {
+    } else if (!(strcmp(key, "memdebug"))) {
 	if (memoryDebug) fclose(memoryDebug);
 
 	if ((memoryDebug = fopen(val, "w+"))) {
@@ -261,19 +166,17 @@ char *set(char *key, char *val)
 	    str2Buf("\nmemory logging to '", &buf, &bufSize);
 	    str2Buf(val, &buf, &bufSize);
 	    str2Buf("'\n", &buf, &bufSize);
-	    return buf;
 	} else {
 	    str2Buf("\nopening file '", &buf, &bufSize);
 	    str2Buf(val, &buf, &bufSize);
 	    str2Buf("' for writing failed\n", &buf, &bufSize);
-	    return buf;
 	}
+    } else {
+	str2Buf("\nInvalid key '", &buf, &bufSize);
+	str2Buf(key, &buf, &bufSize);
+	str2Buf("' for cmd set : use 'plugin help psaccount' for help.\n",
+		&buf, &bufSize);
     }
-
-    str2Buf("\nInvalid key '", &buf, &bufSize);
-    str2Buf(key, &buf, &bufSize);
-    str2Buf("' for cmd set : use 'plugin help psaccount' for help.\n",
-	    &buf, &bufSize);
 
     return buf;
 }
@@ -286,23 +189,20 @@ char *unset(char *key)
     /* search in config for given key */
     if (getConfValueC(&config, key)) {
 	unsetConfigEntry(&config, confDef, key);
-	return buf;
-    }
-
-    if (!(strcmp(key, "memdebug"))) {
+    } else if (!(strcmp(key, "memdebug"))) {
 	if (memoryDebug) {
 	    finalizePluginLogger();
 	    fclose(memoryDebug);
 	    memoryDebug = NULL;
 	    initPluginLogger(NULL, psaccountlogfile);
 	}
-	return str2Buf("Stopped memory debugging\n", &buf, &bufSize);
+	str2Buf("Stopped memory debugging\n", &buf, &bufSize);
+    } else {
+	str2Buf("\nInvalid key '", &buf, &bufSize);
+	str2Buf(key, &buf, &bufSize);
+	str2Buf("' for cmd unset : use 'plugin help psaccount' for help.\n",
+		&buf, &bufSize);
     }
-
-    str2Buf("\nInvalid key '", &buf, &bufSize);
-    str2Buf(key, &buf, &bufSize);
-    str2Buf("' for cmd unset : use 'plugin help psaccount' for help.\n",
-	    &buf, &bufSize);
 
     return buf;
 }
@@ -340,12 +240,12 @@ char *show(char *key)
 
     /* show current clients */
     if (!(strcmp(key, "clients"))) {
-	return showClient(buf, &bufSize, false);
+	return listClients(buf, &bufSize, false);
     }
 
     /* show current clients in detail */
     if (!(strcmp(key, "dclients"))) {
-	return showClient(buf, &bufSize, true);
+	return listClients(buf, &bufSize, true);
     }
 
     /* show current jobs */

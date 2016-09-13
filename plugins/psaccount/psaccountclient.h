@@ -195,4 +195,22 @@ void switchClientUpdate(PStask_ID_t clientTID, bool enable);
  */
 void forwardAggData(void);
 
+/**
+ * @brief List current clients
+ *
+ * List current clients and put all information into the buffer @a
+ * buf. Upon return @a bufSize indicates the current size of @a
+ * buf. If the flag @a detailed is true, detailed information will be
+ * provided.
+ *
+ * @param buf Buffer to write all information to
+ *
+ * @param bufSize Size of the buffer
+ *
+ * @param detailed Flag detailed information to be put into @a buf
+ *
+ * @return Pointer to buffer with updated client information
+ */
+char *listClients(char *buf, size_t *bufSize, bool detailed);
+
 #endif  /* __PS_ACCOUNT_CLIENT */

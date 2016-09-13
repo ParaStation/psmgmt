@@ -535,3 +535,85 @@ void switchClientUpdate(PStask_ID_t clientTID, bool enable)
 	client->doAccounting = enable;
     }
 }
+
+char *listClients(char *buf, size_t *bufSize, bool detailed)
+{
+    char line[160];
+    list_t *pos;
+
+    if (list_empty(&clientList)) {
+	return str2Buf("\nNo current clients.\n", &buf, bufSize);
+    }
+
+    str2Buf("\nclients:\n", &buf, bufSize);
+
+    list_for_each(pos, &clientList) {
+	Client_t *client = list_entry(pos, Client_t, next);
+
+	snprintf(line, sizeof(line), "taskID '%s'\n",
+		    PSC_printTID(client->taskid));
+	str2Buf(line, &buf, bufSize);
+
+	snprintf(line, sizeof(line), "rank '%i'\n", client->rank);
+	str2Buf(line, &buf, bufSize);
+
+	snprintf(line, sizeof(line), "logger '%s'\n",
+		    PSC_printTID(client->logger));
+	str2Buf(line, &buf, bufSize);
+
+	snprintf(line, sizeof(line), "account '%i'\n", client->doAccounting);
+	str2Buf(line, &buf, bufSize);
+
+	snprintf(line, sizeof(line), "type '%s'\n",
+		    clientType2Str(client->type));
+	str2Buf(line, &buf, bufSize);
+
+	snprintf(line, sizeof(line), "uid '%i'\n", client->uid);
+	str2Buf(line, &buf, bufSize);
+
+	snprintf(line, sizeof(line), "gid '%i'\n", client->gid);
+	str2Buf(line, &buf, bufSize);
+
+	snprintf(line, sizeof(line), "page size '%zu'\n",
+		    client->data.pageSize);
+
+	str2Buf(line, &buf, bufSize);
+
+	snprintf(line, sizeof(line), "start time %s",
+		    ctime(&client->startTime));
+	str2Buf(line, &buf, bufSize);
+
+	snprintf(line, sizeof(line), "end time %s",
+		    client->endTime ? ctime(&client->endTime) : "-\n");
+	str2Buf(line, &buf, bufSize);
+
+	if (detailed) {
+
+	    snprintf(line, sizeof(line), "max mem '%zu'\n",
+						client->data.maxRss * pageSize);
+	    str2Buf(line, &buf, bufSize);
+
+	    snprintf(line, sizeof(line), "max vmem '%zu'\n",
+						client->data.maxVsize);
+	    str2Buf(line, &buf, bufSize);
+
+	    snprintf(line, sizeof(line), "cutime '%zu'\n", client->data.cutime);
+	    str2Buf(line, &buf, bufSize);
+
+	    snprintf(line, sizeof(line), "cstime '%zu'\n", client->data.cstime);
+	    str2Buf(line, &buf, bufSize);
+
+	    snprintf(line, sizeof(line), "cputime '%zu'\n",
+			client->data.cputime);
+	    str2Buf(line, &buf, bufSize);
+
+	    snprintf(line, sizeof(line), "max threads '%zu'\n",
+						client->data.maxThreads);
+	    str2Buf(line, &buf, bufSize);
+	}
+
+	str2Buf("-\n", &buf, bufSize);
+    }
+
+    return buf;
+}
