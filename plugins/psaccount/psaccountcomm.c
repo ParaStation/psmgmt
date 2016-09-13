@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2013 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -66,7 +66,7 @@ static char *getAccountMsgType(int type)
     return "UNKNOWN";
 }
 
-void handleAccountEnd(DDTypedBufferMsg_t *msg, int remote)
+void handleAccountEnd(DDTypedBufferMsg_t *msg)
 {
     char *ptr;
     PStask_ID_t logger, childID;
@@ -88,21 +88,26 @@ void handleAccountEnd(DDTypedBufferMsg_t *msg, int remote)
     if (msg->header.sender == logger) {
 	/* find the job */
 	if (!(job = findJobByLogger(logger))) {
-	    mlog("%s: job for logger '%i' not found\n", __func__, logger);
+	    mlog("%s: job for logger '%s' not found\n", __func__,
+		    PSC_printTID(logger));
 	} else {
 	    job->endTime = time(NULL);
 	    job->complete = 1;
 
 	    if (job->childsExit < job->nrOfChilds) {
-		mlog("%s: logger '%i' exited, but '%i' children are still "
-		    "alive\n", __func__, logger, (job->nrOfChilds -
-		    job->childsExit));
+		mdbg(PSACC_LOG_VERBOSE, "%s: logger '%s' exited, but '%i' "
+			"children are still alive\n", __func__,
+			PSC_printTID(logger),
+			(job->nrOfChilds - job->childsExit));
 		job->grace = 1;
 	    } else {
 		/* psmom does not need the job, we can delete it */
+		/* but psslurm does need it! */
+		/*
 		if (!job->jobscript) {
 		    deleteJob(job->logger);
 		}
+		*/
 	    }
 	}
 	return;
@@ -139,11 +144,11 @@ void handleAccountEnd(DDTypedBufferMsg_t *msg, int remote)
     client->endTime = time(NULL);
 
     /* actual rusage structure */
-    memcpy(&client->rusage, ptr, sizeof(client->rusage));
-    ptr += sizeof(client->rusage);
+    memcpy(&client->data.rusage, ptr, sizeof(client->data.rusage));
+    ptr += sizeof(client->data.rusage);
 
     /* pagesize */
-    client->pageSize = *(uint64_t *) ptr;
+    client->data.pageSize = *(uint64_t *) ptr;
     ptr += sizeof(uint64_t);
 
     /* walltime used by child */
@@ -179,43 +184,40 @@ void handleAccountEnd(DDTypedBufferMsg_t *msg, int remote)
     msg->header.len += sizeof(uint32_t);
 
     /* add size of average used mem */
-    if (client->data.avgRss < 1 || client->data.avgRssCount < 1) {
+    if (client->data.avgRssTotal < 1 || client->data.avgRssCount < 1) {
 	avgRss = 0;
     } else {
-	avgRss = (client->data.avgRss / client->data.avgRssCount);
+	avgRss = client->data.avgRssTotal / client->data.avgRssCount;
     }
     *(uint64_t *)ptr = (uint64_t) avgRss;
     ptr += sizeof(uint64_t);
     msg->header.len += sizeof(uint64_t);
 
     /* add size of average used vmem */
-    if (client->data.avgVsize < 1 || client->data.avgVsizeCount < 1) {
+    if (client->data.avgVsizeTotal < 1 || client->data.avgVsizeCount < 1) {
 	avgVsize = 0;
     } else {
-	avgVsize = (client->data.avgVsize / client->data.avgVsizeCount);
+	avgVsize = client->data.avgVsizeTotal / client->data.avgVsizeCount;
     }
     *(uint64_t *)ptr = (uint64_t) avgVsize;
     ptr += sizeof(uint64_t);
     msg->header.len += sizeof(uint64_t);
 
     /* add number of average threads */
-    if (client->data.avgThreads < 1 || client->data.avgThreadsCount < 1) {
+    if (client->data.avgThreadsTotal < 1 || client->data.avgThreadsCount < 1) {
 	avgThreads = 0;
     } else {
-	avgThreads = (client->data.avgThreads / client->data.avgThreadsCount);
+	avgThreads =
+		client->data.avgThreadsTotal / client->data.avgThreadsCount;
     }
     *(uint64_t *)ptr = (uint64_t) avgThreads;
     //ptr += sizeof(uint64_t);
     msg->header.len += sizeof(uint64_t);
 
-    mdbg(LOG_VERBOSE, "%s: exit child (%s): pid '%i' logger:%i "
-	"uid:%i gid:%i\n", __func__, getAccountMsgType(msg->type), child,
-	client->logger, client->uid, client->gid);
-
-    /* forwarder to psaccount plugin with logger */
-    if (!remote && globalCollectMode && PSC_getID(logger) != PSC_getMyID()) {
-	forwardAccountMsg(msg, PSP_ACCOUNT_FORWARD_END, client->logger);
-    }
+    mdbg(PSACC_LOG_VERBOSE, "%s: child rank '%i' pid '%i' logger '%s' uid '%i' "
+	    "gid '%i' msg type '%s' finished\n", __func__, client->rank,  child,
+	PSC_printTID(client->logger), client->uid, client->gid,
+	getAccountMsgType(msg->type));
 
     /* find the job */
     if (!(job = findJobByLogger(client->logger))) {
@@ -224,9 +226,14 @@ void handleAccountEnd(DDTypedBufferMsg_t *msg, int remote)
 	job->childsExit++;
 	if (job->childsExit >= job->nrOfChilds) {
 	    /* all children exited */
+	    if (globalCollectMode) {
+		forwardAggData();
+		sendAggDataFinish(logger);
+	    }
+
 	    job->complete = 1;
 	    job->endTime = time(NULL);
-	    mdbg(LOG_VERBOSE, "%s: job complete [%i:%i]\n", __func__,
+	    mdbg(PSACC_LOG_VERBOSE, "%s: job complete [%i:%i]\n", __func__,
 		job->childsExit, job->nrOfChilds);
 
 	    if (PSC_getID(job->logger) != PSC_getMyID()) {
@@ -325,8 +332,8 @@ static void monitorJobStarted(void)
 		if (!job->jobscript) {
 
 		    if ((js = findJobscriptInClients(job))) {
-			mdbg(LOG_VERBOSE, "%s: found jobscript pid '%i'\n",
-			    __func__, js->pid);
+			mdbg(PSACC_LOG_VERBOSE, "%s: found jobscript pid "
+				"'%i'\n", __func__, js->pid);
 			job->jobscript = js->pid;
 			if (!job->jobid && js->jobid) {
 			    job->jobid = ustrdup(js->jobid);
@@ -343,19 +350,19 @@ static void monitorJobStarted(void)
     }
 }
 
-void handleAccountChild(DDTypedBufferMsg_t *msg, int remote)
+void handleAccountChild(DDTypedBufferMsg_t *msg)
 {
     char *ptr;
     Client_t *client;
     Job_t *job;
-    PStask_ID_t logger, childTID;
+    PStask_ID_t logger;
     uid_t uid;
     gid_t gid;
     int32_t rank;
 
     ptr = msg->buf;
 
-    /* get TaskID of the logger */
+    /* TaskID of the logger */
     logger = *(PStask_ID_t *) ptr;
     ptr += sizeof(PStask_ID_t);
 
@@ -364,7 +371,7 @@ void handleAccountChild(DDTypedBufferMsg_t *msg, int remote)
 	job = addJob(logger);
     }
 
-    /* skip rank */
+    /* rank */
     rank = *(int32_t *) ptr;
     ptr += sizeof(int32_t);
 
@@ -376,49 +383,29 @@ void handleAccountChild(DDTypedBufferMsg_t *msg, int remote)
     gid = *(gid_t *) ptr;
     ptr += sizeof(gid_t);
 
-    if (!remote) {
-	/* the child is running on my node, we need to account it here */
-	client = addAccClient(msg->header.sender, ACC_CHILD_PSIDCHILD);
+    client = addAccClient(msg->header.sender, ACC_CHILD_PSIDCHILD);
 
-	/* forward to psaccount plugin on node with the logger */
-	if (globalCollectMode && PSC_getID(logger) != PSC_getMyID()) {
-	    forwardAccountMsg(msg, PSP_ACCOUNT_FORWARD_START, logger);
-	}
-
-	/* save start time to trigger next update */
-	if (job->lastChildStart < 1 && jobTimerID == -1) {
-	    getConfParamL("TIME_JOBSTART_POLL", &jobTimer.tv_usec);
-	    jobTimerID = Timer_register(&jobTimer, monitorJobStarted);
-	}
-	job->lastChildStart = time(NULL);
-	/*
-	mdbg(-1, "%s: new %s: tid '%s' logger:%i"
-	    " uid:%i gid:%i \n", __func__, getAccountMsgType(msg->type),
-	    PSC_printTID(msg->header.sender), logger, uid, gid);
-	*/
-    } else {
-	/* extract taskid of remote child */
-	childTID = *(PStask_ID_t *) ptr;
-	//ptr += sizeof(PStask_ID_t);
-
-	client = addAccClient(childTID, ACC_CHILD_REMOTE);
-	/* no accounting here for remote children */
-	client->doAccounting = 0;
-	/*
-	mdbg(-1, "%s: new remote %s: pid '%s'"
-	    " logger:%i uid:%i gid:%i \n", __func__,
-	    getAccountMsgType(msg->type), PSC_printTID(childTID),
-	    logger, uid, gid);
-	*/
+    /* save start time to trigger next update */
+    if (job->lastChildStart < 1 && jobTimerID == -1) {
+	getConfParamL("TIME_JOBSTART_POLL", &jobTimer.tv_usec);
+	jobTimerID = Timer_register(&jobTimer, monitorJobStarted);
     }
 
+    if (!(findHist(logger))) saveHist(logger);
+
+    job->lastChildStart = time(NULL);
     job->nrOfChilds++;
     client->logger = logger;
-    if (!(findHist(logger))) saveHist(logger);
     client->uid = uid;
     client->gid = gid;
     client->job = job;
     client->rank = rank;
+
+    /*
+       mdbg(-1, "%s: new %s: tid '%s' logger:%i"
+       " uid:%i gid:%i \n", __func__, getAccountMsgType(msg->type),
+       PSC_printTID(msg->header.sender), logger, uid, gid);
+       */
 }
 
 void handlePSMsg(DDTypedBufferMsg_t *msg)
@@ -426,7 +413,7 @@ void handlePSMsg(DDTypedBufferMsg_t *msg)
     if (msg->header.dest == PSC_getMyTID()) {
         /* message for me, let's get infos and forward to all accounters */
 
-	mdbg(LOG_ACC_MSG, "%s: got msg '%s'\n", __func__,
+	mdbg(PSACC_LOG_ACC_MSG, "%s: got msg '%s'\n", __func__,
 	     getAccountMsgType(msg->type));
 
 	switch (msg->type) {
@@ -440,16 +427,16 @@ void handlePSMsg(DDTypedBufferMsg_t *msg)
 		handleAccountLog(msg);
 		break;
 	    case PSP_ACCOUNT_CHILD:
-		handleAccountChild(msg, 0);
+		handleAccountChild(msg);
 		break;
 	    case PSP_ACCOUNT_END:
-		handleAccountEnd(msg, 0);
+		handleAccountEnd(msg);
 		break;
 	    default:
 		mlog("%s: invalid msg type '%i' sender '%s'\n", __func__,
 		    msg->type, PSC_printTID(msg->header.sender));
 	}
-	mdbg(LOG_VERBOSE, "%s: msg type '%s' sender '%s'\n",
+	mdbg(PSACC_LOG_VERBOSE, "%s: msg type '%s' sender '%s'\n",
 	   __func__, getAccountMsgType(msg->type),
 	   PSC_printTID(msg->header.sender));
     }

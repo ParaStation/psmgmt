@@ -256,6 +256,7 @@ plugins/psaccount/psaccountcomm.c \
 plugins/psaccount/psaccountcomm.h \
 plugins/psaccount/psaccountconfig.c \
 plugins/psaccount/psaccountconfig.h \
+plugins/psaccount/psaccounthandles.h \
 plugins/psaccount/psaccounthistory.c \
 plugins/psaccount/psaccounthistory.h \
 plugins/psaccount/psaccountinter.c \
@@ -268,6 +269,7 @@ plugins/psaccount/psaccountlog.c \
 plugins/psaccount/psaccountlog.h \
 plugins/psaccount/psaccountproc.c \
 plugins/psaccount/psaccountproc.h \
+plugins/psaccount/psaccounttypes.h \
 plugins/psmom/Makefile.am \
 plugins/psmom/Makefile.in \
 plugins/psmom/ChangeLog-History \

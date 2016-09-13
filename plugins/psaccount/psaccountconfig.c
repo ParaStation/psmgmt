@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2012 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2012-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -44,12 +44,16 @@ const ConfDef_t CONFIG_VALUES[] =
 	"The grace time for clients in minutes" },
     { "TIME_JOB_GRACE", 1,
 	"num",
-	"60",
+	"10",
 	"The grace time for jobs in minutes" },
     { "DEBUG_MASK", 1,
 	"num",
 	"0",
 	"The debug mask for logging" },
+    { "FORWARD_INTERVAL", 1,
+	"num",
+	"2",
+	"Forward every x accounting update" },
 };
 
 const int configValueCount = sizeof(CONFIG_VALUES) / sizeof (CONFIG_VALUES[0]);
@@ -212,7 +216,7 @@ void delConfig(Config_t *conf)
     ufree(conf);
 }
 
-void clearConfig()
+void clearConfig(void)
 {
     list_t *pos, *tmp;
     Config_t *config;

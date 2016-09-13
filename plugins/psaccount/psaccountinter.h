@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2012 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -15,15 +15,18 @@
 #define __PS_ACCOUNT_INTER
 
 #include "psidcomm.h"
+#include "pspluginprotocol.h"
 #include "psaccountclient.h"
 #include "psaccountproc.h"
 
-#define PSP_CC_PLUGIN_ACCOUNT      0x0201  /**< psaccount plugin message */
-
 typedef enum {
-    PSP_ACCOUNT_FORWARD_START = 0x00000,    /**< req psmom version information */
+    PSP_ACCOUNT_FORWARD_START = 0x00000,
     PSP_ACCOUNT_FORWARD_END,
     PSP_ACCOUNT_DATA_UPDATE,
+    PSP_ACCOUNT_ENABLE_UPDATE,
+    PSP_ACCOUNT_DISABLE_UPDATE,
+    PSP_ACCOUNT_AGG_DATA_UPDATE,
+    PSP_ACCOUNT_AGG_DATA_FINISH,
 } PSP_PSAccount_t;
 
 extern int globalCollectMode;
@@ -37,59 +40,9 @@ extern int globalCollectMode;
  */
 void handleInterAccount(DDTypedBufferMsg_t *msg);
 
-/**
- * @brief Forward an accounting data record to another node.
- *
- * This function will forward received accounting messages
- * to the node were the logger is executed.
- *
- * @param msg The message to forward.
- *
- * @param type The type of the message to forward.
- *
- * @param logger The logger TaskID to forward this message to.
- *
- * @return No return value.
- */
-void forwardAccountMsg(DDTypedBufferMsg_t *msg, int type, PStask_ID_t logger);
+void sendAggregatedData(AccountDataExt_t *aggData, PStask_ID_t loggerTID);
 
-/**
- * @brief Experimental function.
- *
- * @return No return value.
- */
-void sendAccountUpdate(Client_t *client);
-
-/**
- * @brief Register a PBS jobscript via its pid.
- *
- * This function is called by the psmom, because only
- * the psmom knows the pid of the jobscript. The psaccount
- * plugin is then able to identify all processes associated
- * with this jobscript.
- *
- * This enables the psmom the get valid accounting data for
- * all processes in the job, although it only knows the jobscript.
- *
- * @param jsPid The pid of the jobscript to register.
- *
- * @param jobid The torque jobid.
- *
- * @return No return value.
- */
-void psAccountRegisterMOMJob(pid_t jsPid, char *jobid);
-
-/**
- * @brief Unregister a PBS jobscript.
- *
- * The job has finished and the psmom is telling us to stop
- * accounting for this jobscript.
- *
- * @param jsPid The pid of the jobscript to un-register.
- *
- * @return No return value.
- */
-void psAccountUnregisterMOMJob(pid_t jsPid);
+void sendAggDataFinish(PStask_ID_t loggerTID);
 
 /**
  * @brief Enable the global collection of accounting data.
@@ -157,5 +110,26 @@ PStask_ID_t psAccountgetLoggerByClientPID(pid_t pid);
  * @brief Wrapper for the readProcStatInfo() function.
  */
 int psAccountreadProcStatInfo(pid_t pid, ProcStat_t *pS);
+
+/**
+ * @brief Wrapper for getAccountDataByLogger().
+ */
+int psAccountGetDataByLogger(PStask_ID_t logger, AccountDataExt_t *accData);
+
+/**
+ * @brief Wrapper for  getPidsByLogger().
+ */
+int psAccountGetPidsByLogger(PStask_ID_t loggerTID, pid_t **pids,
+				uint32_t *count);
+
+int psAccountSwitchAccounting(PStask_ID_t clientTID, int enable);
+
+int psAccountGetJobData(pid_t jobscript, AccountDataExt_t *accData);
+
+void psAccountRegisterJob(pid_t jsPid, char *jobid);
+
+void psAccountDelJob(PStask_ID_t loggerTID);
+
+void psAccountUnregisterJob(pid_t jsPid);
 
 #endif

@@ -33,6 +33,9 @@
 #include "plugin.h"
 #include "psidnodes.h"
 #include "psidutil.h"
+#include "psidhook.h"
+#include "pluginmalloc.h"
+#include "pluginfrag.h"
 
 #include "psaccount.h"
 
@@ -40,8 +43,8 @@
 
 /** psid plugin requirements */
 char name[] = "psaccount";
-int version = 22;
-int requiredAPI = 101;
+int version = 25;
+int requiredAPI = 114;
 plugin_dep_t dependencies[1];
 
 /** the linux system clock ticks */
@@ -49,6 +52,8 @@ int clockTicks = -1;
 
 /** the linux system page size */
 int pageSize = -1;
+
+int daemonSock = -1;
 
 /** save default handler for accouting msgs */
 handlerFunc_t oldAccountHandler = NULL;
@@ -103,16 +108,25 @@ void periodicMain(void)
     }
 }
 
-void accountStart()
+void accountStart(void)
 {
     /* we have no dependencies */
     dependencies[0].name = NULL;
     dependencies[0].version = 0;
 }
 
-void accountStop()
+void accountStop(void)
 {
     /* nothing to do here */
+}
+
+static int setDaemonSock(void *dsock)
+{
+    int *sock = dsock;
+
+    daemonSock = *sock;
+
+    return 0;
 }
 
 int initialize(void)
@@ -121,14 +135,15 @@ int initialize(void)
     struct utsname uts;
     char configfn[200];
 
-    /* init all lists */
-    initAccClientList();
-    initProcList();
-    initJobList();
-    initHist();
-
     /* init logging facility */
     initLogger(false);
+
+    /* init all lists */
+    initAccClientList();
+    initJobList();
+    initHist();
+    initProcList();
+    initFraqComm();
 
     /* init the config facility */
     snprintf(configfn, sizeof(configfn), "%s/%s", PLUGINDIR, PSACCOUNT_CONFIG);
@@ -168,13 +183,18 @@ int initialize(void)
 	return 1;
     }
 
+    if (!(PSIDhook_add(PSIDHOOK_FRWRD_DSOCK, setDaemonSock))) {
+	mlog("register 'PSIDHOOK_FRWRD_DSOCK' failed\n");
+	return 1;
+    }
+
     /* register periodic timer */
     if ((poll = PSIDnodes_acctPollI(PSC_getMyID())) > 0) {
 	mainTimer.tv_sec = poll;
     }
 
     if (!Timer_isInitialized()) {
-	mdbg(LOG_VERBOSE, "timer facility not ready, trying to initialize"
+	mdbg(PSACC_LOG_VERBOSE, "timer facility not ready, trying to initialize"
 		" it\n");
 	Timer_init(NULL);
     }
@@ -187,7 +207,7 @@ int initialize(void)
     /* register account msg */
     oldAccountHandler = PSID_registerMsg(PSP_CD_ACCOUNT,
 					    (handlerFunc_t) handlePSMsg);
-    PSID_registerMsg(PSP_CC_PLUGIN_ACCOUNT, (handlerFunc_t) handleInterAccount);
+    PSID_registerMsg(PSP_CC_PLUG_ACCOUNT, (handlerFunc_t) handleInterAccount);
 
     /* update proc snapshot */
     updateProcSnapshot(0);
@@ -202,8 +222,12 @@ void cleanup(void)
     Timer_remove(mainTimerID);
     if (jobTimerID != -1) Timer_remove(jobTimerID);
 
+    if (!(PSIDhook_del(PSIDHOOK_FRWRD_DSOCK, setDaemonSock))) {
+	mlog("unregister 'PSIDHOOK_FRWRD_DSOCK' failed\n");
+    }
+
     /* unregister account msg */
-    PSID_clearMsg(PSP_CC_PLUGIN_ACCOUNT);
+    PSID_clearMsg(PSP_CC_PLUG_ACCOUNT);
     PSID_clearMsg(PSP_CD_ACCOUNT);
     if (oldAccountHandler) {
 	PSID_registerMsg(PSP_CD_ACCOUNT, oldAccountHandler);
@@ -217,4 +241,6 @@ void cleanup(void)
     clearAllProcSnapshots();
     clearHist();
     clearConfig();
+    clearCpuFreq();
+    finalizeFraqComm();
 }

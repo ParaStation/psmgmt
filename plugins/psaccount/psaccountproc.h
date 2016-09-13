@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2011 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -15,6 +15,7 @@
 #define __PS_ACCOUNT_PROC
 
 #include "list.h"
+#include "psaccounttypes.h"
 
 typedef struct {
     pid_t session;
@@ -23,19 +24,11 @@ typedef struct {
 } Session_Info_t;
 
 typedef struct {
-    pid_t ppid;
-    pid_t pgroup;
-    pid_t session;
-    char state[1];
-    uint64_t ctime;
-    uint64_t stime;
-    uint64_t cutime;
-    uint64_t cstime;
-    uint64_t threads;
-    uint64_t vmem;
-    uint64_t mem;
-    uid_t uid;
-} ProcStat_t;
+    uint64_t diskRead;
+    uint64_t diskWrite;
+    uint64_t readBytes;
+    uint64_t writeBytes;
+} ProcIO_t;
 
 typedef struct {
     uid_t uid;
@@ -48,11 +41,17 @@ typedef struct {
     unsigned long threads;
     unsigned long vmem;
     unsigned long mem;
+    unsigned long majflt;
     char *cmdline;
+    uint16_t cpu;
     struct list_head list;
 } Proc_Snapshot_t;
 
 extern Proc_Snapshot_t ProcList;
+
+extern int cpuCount;
+
+extern int *cpuFreq;
 
 extern Session_Info_t SessionList;
 
@@ -131,7 +130,8 @@ void clearAllProcSnapshots(void);
  *
  * @return No return value.
  */
-void getSessionInformation(int *count, char *buf, size_t bufsize, int *userCount);
+void getSessionInformation(int *count, char *buf, size_t bufsize,
+			    int *userCount);
 
 /**
  * @brief Send a signal to a pid and all its children.
@@ -183,5 +183,9 @@ void findDaemonProcesses(uid_t userId, int kill, int warn);
  * @return Returns 1 on success and 0 on error.
  */
 int readProcStatInfo(pid_t pid, ProcStat_t *pS);
+
+int readProcIO(pid_t pid, ProcIO_t *io);
+
+void clearCpuFreq(void);
 
 #endif

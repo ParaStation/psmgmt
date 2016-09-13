@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2012 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -24,7 +24,7 @@
 
 Job_t JobList;
 
-void initJobList()
+void initJobList(void)
 {
     INIT_LIST_HEAD(&JobList.list);
 }
@@ -34,15 +34,9 @@ Job_t *findJobByLogger(PStask_ID_t loggerTID)
     list_t *pos, *tmp;
     Job_t *job;
 
-    if (list_empty(&JobList.list)) return NULL;
-
     list_for_each_safe(pos, tmp, &JobList.list) {
-	if ((job = list_entry(pos, Job_t, list)) == NULL) {
-	    return NULL;
-	}
-	if (job->logger == loggerTID) {
-	    return job;
-	}
+	if (!(job = list_entry(pos, Job_t, list))) break;
+	if (job->logger == loggerTID) return job;
     }
     return NULL;
 }
@@ -52,12 +46,8 @@ Job_t *findJobByJobscript(pid_t js)
     list_t *pos, *tmp;
     Job_t *job;
 
-    if (list_empty(&JobList.list)) return NULL;
-
     list_for_each_safe(pos, tmp, &JobList.list) {
-	if ((job = list_entry(pos, Job_t, list)) == NULL) {
-	    return NULL;
-	}
+	if (!(job = list_entry(pos, Job_t, list))) return NULL;
 	if (job->jobscript == js) return job;
 
 	if ((isChildofParent(js, job->logger))) {
@@ -90,68 +80,53 @@ Job_t *addJob(PStask_ID_t loggerTID)
     return job;
 }
 
-int deleteJob(PStask_ID_t loggerTID)
+void deleteJob(PStask_ID_t loggerTID)
 {
     Job_t *job;
 
     /* delete all childs */
     deleteAllAccClientsByLogger(loggerTID);
 
-    if ((job = findJobByLogger(loggerTID)) == NULL) {
-	return 0;
-    }
-
-    if (job->jobid) {
+    while ((job = findJobByLogger(loggerTID))) {
+	list_del(&job->list);
 	ufree (job->jobid);
+	ufree(job);
     }
-    list_del(&job->list);
-    ufree(job);
-    return 1;
 }
 
-void clearAllJobs()
+void clearAllJobs(void)
 {
     list_t *pos, *tmp;
     Job_t *job;
 
-    if (list_empty(&JobList.list)) return;
-
     list_for_each_safe(pos, tmp, &JobList.list) {
-	if ((job = list_entry(pos, Job_t, list)) == NULL) {
-	    return;
-	}
+	if (!(job = list_entry(pos, Job_t, list))) break;
 	deleteJob(job->logger);
     }
-    return;
 }
 
-void cleanupJobs()
+void cleanupJobs(void)
 {
     list_t *pos, *tmp;
     Job_t *job;
     time_t now = time(NULL);
     long grace = 0;
 
-    if (list_empty(&JobList.list)) return;
-
     getConfParamL("TIME_JOB_GRACE", &grace);
 
     list_for_each_safe(pos, tmp, &JobList.list) {
-	if ((job = list_entry(pos, Job_t, list)) == NULL) {
-	    return;
-	}
+	if (!(job = list_entry(pos, Job_t, list))) break;
 
 	/* will be cleanup by psmom */
 	if (job->jobscript) continue;
 
 	if (job->complete) {
 	    /* check timeout */
-	    if (job->endTime + 60 * grace <= now) {
-		mdbg(LOG_VERBOSE, "%s: clean job '%i'\n", __func__,
-		job->logger);
+	    if (job->endTime + (60 * grace) <= now) {
+		mdbg(PSACC_LOG_VERBOSE, "%s: clean job '%i'\n",
+			__func__, job->logger);
 		deleteJob(job->logger);
 	    }
 	}
     }
-    return;
 }

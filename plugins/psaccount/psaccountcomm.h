@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2011 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -38,12 +38,9 @@ void handlePSMsg(DDTypedBufferMsg_t *msg);
  *
  * @param msg The message to handle.
  *
- * @param remote If set to 1 the msg has been forwarded from an
- * other node. If set to 0 the msg is from our local node.
- *
  * @return No return value.
  */
-void handleAccountChild(DDTypedBufferMsg_t *msg, int remote);
+void handleAccountChild(DDTypedBufferMsg_t *msg);
 
 /**
  * @brief Handle a PSP_ACCOUNT_END message.
@@ -58,7 +55,7 @@ void handleAccountChild(DDTypedBufferMsg_t *msg, int remote);
  *
  * @return No return value.
  */
-void handleAccountEnd(DDTypedBufferMsg_t *msg, int remote);
+void handleAccountEnd(DDTypedBufferMsg_t *msg);
 
 extern int jobTimerID;
 
