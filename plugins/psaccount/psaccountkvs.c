@@ -26,80 +26,6 @@
 FILE *memoryDebug = NULL;
 
 /**
- * @brief Show current jobs.
- *
- * @param buf The buffer to write the information to.
- *
- * @param bufSize The size of the buffer.
- *
- * @return Returns the buffer with the updated job information.
- */
-static char *showJobs(char *buf, size_t *bufSize)
-{
-    char line[160];
-    list_t *pos, *tmp;
-    Job_t *job;
-
-    if (list_empty(&JobList.list)) {
-	return str2Buf("\nNo current jobs.\n", &buf, bufSize);
-    }
-
-    str2Buf("\njobs:\n", &buf, bufSize);
-
-    list_for_each_safe(pos, tmp, &JobList.list) {
-	if ((job = list_entry(pos, Job_t, list)) == NULL) break;
-
-	snprintf(line, sizeof(line), "nr Of Children '%i'\n", job->nrOfChilds);
-	str2Buf(line, &buf, bufSize);
-
-	snprintf(line, sizeof(line), "total Children '%i'\n", job->totalChilds);
-	str2Buf(line, &buf, bufSize);
-
-	snprintf(line, sizeof(line), "exit Children '%i'\n", job->childsExit);
-	str2Buf(line, &buf, bufSize);
-
-	snprintf(line, sizeof(line), "complete '%i'\n", job->complete);
-	str2Buf(line, &buf, bufSize);
-
-	snprintf(line, sizeof(line), "grace '%i'\n", job->grace);
-	str2Buf(line, &buf, bufSize);
-
-	snprintf(line, sizeof(line), "id '%s'\n", job->jobid);
-	str2Buf(line, &buf, bufSize);
-
-	snprintf(line, sizeof(line), "jobscript '%i'\n", job->jobscript);
-	str2Buf(line, &buf, bufSize);
-
-	snprintf(line, sizeof(line), "logger '%s'\n",
-		    PSC_printTID(job->logger));
-	str2Buf(line, &buf, bufSize);
-
-	snprintf(line, sizeof(line), "start time %s", ctime(&job->startTime));
-	str2Buf(line, &buf, bufSize);
-
-	snprintf(line, sizeof(line), "end time %s",
-		    job->endTime ? ctime(&job->endTime) : "-\n");
-	str2Buf(line, &buf, bufSize);
-
-	if (job->jobscript) {
-	    /* psaccAccountInfo_t accData; */
-
-	    /* if (psAccountGetJobInfo(job->jobscript, &accData)) { */
-	    /* 	snprintf(line, sizeof(line), "cputime '%zu' utime '%zu'" */
-	    /* 		    " stime '%zu' mem '%zu' vmem '%zu'\n", */
-	    /* 		    accData.cputime, accData.utime, accData.stime, */
-	    /* 		    accData.mem, accData.vmem); */
-	    /* 	str2Buf(line, &buf, bufSize); */
-	    /* } */
-	}
-
-	str2Buf("-\n", &buf, bufSize);
-    }
-
-    return buf;
-}
-
-/**
  * @brief Show current configuration.
  *
  * @param buf The buffer to write the information to.
@@ -250,7 +176,7 @@ char *show(char *key)
 
     /* show current jobs */
     if (!(strcmp(key, "jobs"))) {
-	return showJobs(buf, &bufSize);
+	return listJobs(buf, &bufSize);
     }
 
     /* show current config */

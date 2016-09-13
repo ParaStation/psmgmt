@@ -51,6 +51,28 @@ typedef struct {
 extern bool globalCollectMode;
 
 /**
+ * @brief Add new client
+ *
+ * Add a new client identified by its task ID @a taskID. The new
+ * client will be of type @a type.
+ *
+ * @param taskID Task ID of the client to add
+ *
+ * @param type Type of the client to add
+ *
+ * @return Return the newly created client
+ */
+Client_t *addClient(PStask_ID_t taskid, PS_Acct_job_types_t type);
+
+/**
+ * @brief Test for clients to be accounted
+ *
+ * @return Returns true if any client to be accounted is available or
+ * false otherwise.
+ */
+bool haveActiveClients(void);
+
+/**
  * @brief Find an account client by the client TID.
  *
  * @param clientTID The TaskID of the client to find.
@@ -84,77 +106,64 @@ Client_t *findJobscriptInClients(Job_t *job);
 
 /** @brief @doctodo
  *
- * @return 
+ * @return No return value
  */
-bool aggregateDataByLogger(PStask_ID_t logger, AccountDataExt_t *accData);
+void getPidsByLogger(PStask_ID_t logger, pid_t **pids, uint32_t *count);
 
-/**
- * @brief Add a new account client.
- *
- * @param taskid The taskID of the new client to add.
- *
- * @param type The type of the new client to add.
- *
- * @return Returns the newly created account client
- */
-Client_t *addClient(PStask_ID_t taskid, PS_Acct_job_types_t type);
-
-/**
- * @brief Delete all account clients with the specified logger TID.
- *
- * @param loggerTID The taskID of the logger to identify all clients.
+/** @brief @doctodo
  *
  * @return No return value
  */
-void deleteClientsByLogger(PStask_ID_t loggerTID);
+PStask_ID_t getLoggerByClientPID(pid_t pid);
 
 /**
- * @brief Test for clients which shall be accounted
- *
- * @return Returns true if any client to be accounted is available or
- * false otherwise.
- */
-bool haveActiveClients(void);
-
-/**
- * @brief Clear all account clients and free the used memory.
+ * @brief Clear all account clients and free the used memory
  *
  * @return No return value
  */
 void clearAllClients(void);
 
 /**
- * @brief Update all client account data.
+ * @brief Update client's accounting data
  *
- * Update all client account data for a job. If job is NULL then
- * all account clients will be updated.
+ * Update all client's account data for a job. If job is NULL, all
+ * clients will be updated.
  *
- * @param job The job to identify the clients to update.
+ * @param job Job to identify the clients to update
  *
  * @return No return value
  */
 void updateClients(Job_t *job);
 
 /**
- * @brief Clean leftover account clients.
+ * @brief Delete client
  *
- * Cleanup accounting clients which disappeared without an ACCOUNT_END msg or
- * jobscripts which were unregistered.
+ * Delete a client identified by its task ID @a tid.
+ *
+ * @param tid Task ID of the client to delete
+ *
+ * @return Returns true on success and false if no client was found
+ */
+bool deleteClient(PStask_ID_t tid);
+
+/**
+ * @brief Delete all account clients with the specified logger TID.
+ *
+ * @param loggerTID Task ID of the logger to identify clients to delete
+ *
+ * @return No return value
+ */
+void deleteClientsByLogger(PStask_ID_t loggerTID);
+
+/**
+ * @brief Clean leftover account clients
+ *
+ * Cleanup accounting clients which disappeared without an ACCOUNT_END
+ * message or jobscripts which were unregistered.
  *
  * @return No return value
  */
 void cleanupClients(void);
-
-/**
- * @brief Delete an account client.
- *
- * Delete an account client identified by its TaskID.
- *
- * @param tid The taskID of the client to delete.
- *
- * @return Returns true on success and false if node client was found
- */
-bool deleteClient(PStask_ID_t tid);
 
 /**
  * @brief List current clients
@@ -175,6 +184,31 @@ bool deleteClient(PStask_ID_t tid);
 char *listClients(char *buf, size_t *bufSize, bool detailed);
 
 /************************* Aggregation *************************/
+
+/** @brief Accumulate data by logger
+ *
+ * Accumulate all resource data of clients associated to the logger @a
+ * logger. Data is accumulated in @a accData.
+ *
+ * @param logger Logger to identify the clients to be accumulated
+ *
+ * @param accData Data aggregation acting as the accumulator
+ *
+ * @return Returns true if any client was found or false otherwise
+ */
+bool aggregateDataByLogger(PStask_ID_t logger, AccountDataExt_t *accData);
+
+/** @brief Add client to aggregated data
+ *
+ * Add resource data of the client @a client to @a accData.
+ *
+ * @param client Client holding data to be added
+ *
+ * @param accData Data aggregation acting as the accumulator
+ *
+ * @return No return value
+ */
+void addClientToAggData(Client_t *client, AccountDataExt_t *accData);
 
 /**
  * @brief Store remote aggregated data
@@ -200,32 +234,12 @@ void finishAggData(PStask_ID_t tid, PStask_ID_t logger);
  *
  * @return No return value
  */
-void addClientToAggData(Client_t *client, AccountDataExt_t *accData);
-
-
-
-/** @brief @doctodo
- *
- * @return No return value
- */
-void getPidsByLogger(PStask_ID_t logger, pid_t **pids, uint32_t *count);
-
-/** @brief @doctodo
- *
- * @return No return value
- */
-PStask_ID_t getLoggerByClientPID(pid_t pid);
+void forwardAggData(void);
 
 /** @brief @doctodo
  *
  * @return No return value
  */
 void switchClientUpdate(PStask_ID_t clientTID, bool enable);
-
-/** @brief @doctodo
- *
- * @return No return value
- */
-void forwardAggData(void);
 
 #endif  /* __PS_ACCOUNT_CLIENT */

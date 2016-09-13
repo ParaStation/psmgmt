@@ -29,7 +29,7 @@ static LIST_HEAD(clientList);
 /* flag to control the global collect mode */
 bool globalCollectMode = false;
 
-static const char* clientType2Str(int type)
+static const char* clientType2Str(PS_Acct_job_types_t type)
 {
     switch(type) {
     case ACC_CHILD_JOBSCRIPT:
@@ -470,13 +470,12 @@ bool aggregateDataByLogger(PStask_ID_t logger, AccountDataExt_t *accData)
     return res;
 }
 
-Client_t *addClient(PStask_ID_t taskid, PS_Acct_job_types_t type)
+Client_t *addClient(PStask_ID_t taskID, PS_Acct_job_types_t type)
 {
-    Client_t *client;
+    Client_t *client = umalloc(sizeof(*client));
 
-    client = (Client_t *) umalloc(sizeof(Client_t));
-    client->taskid = taskid;
-    client->pid = PSC_getPID(taskid);
+    client->taskid = taskID;
+    client->pid = PSC_getPID(taskID);
     client->status = -1;
     client->logger = -1;
     client->doAccounting = 1;
@@ -613,11 +612,7 @@ void updateClients(Job_t *job)
     list_for_each(pos, &clientList) {
 	Client_t *client = list_entry(pos, Client_t, next);
 	if (!client->doAccounting) continue;
-	if (job) {
-	    if (client->job == job) updateAccountData(client);
-	} else {
-	    updateAccountData(client);
-	}
+	if (!job || client->job == job) updateAccountData(client);
     }
 
     if (globalCollectMode) {

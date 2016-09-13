@@ -8,14 +8,12 @@
  * file.
  */
 
-#include <stdbool.h>
 #include <string.h>
 
-#include "pstaskid.h"
 #include "pluginmalloc.h"
 
-#include "psaccountcomm.h"
 #include "psaccountclient.h"
+#include "psaccountcomm.h"
 #include "psaccountjob.h"
 #include "psaccountlog.h"
 #include "psaccountproc.h"
@@ -41,39 +39,24 @@ void psAccountGetPidsByLogger(PStask_ID_t loggerTID, pid_t **pids,
 
 int psAccountGetJobData(pid_t jobscript, AccountDataExt_t *accData)
 {
-    Client_t *client;
-    Job_t *job;
-    list_t *pos, *tmp;
+    Client_t *jsClient = findClientByPID(jobscript);
+    Job_t *job = findJobByJobscript(jobscript);
 
     memset(accData, 0, sizeof(*accData));
 
-    if (!(client = findClientByPID(jobscript))) {
+    if (!jsClient) {
 	mlog("%s: getting account info by client '%i' failed\n", __func__,
-		jobscript);
-	return 0;
+	     jobscript);
+	return false;
     }
 
-    /* find the parallel job */
-    if ((job = findJobByJobscript(jobscript))) {
-
-	list_for_each_safe(pos, tmp, &JobList.list) {
-	    if (!(job = list_entry(pos, Job_t, list))) break;
-
-	    if (job->jobscript == jobscript) {
-
-		if (!(aggregateDataByLogger(job->logger, accData))) {
-		    mlog("%s: getting account info by jobscript '%i' failed\n",
-			    __func__, jobscript);
-		    continue;
-		}
-	    }
-	}
-    }
+    /* search all parallel jobs and calc data */
+    if (job) collectDataByJobscript(jobscript, accData);
 
     /* add the jobscript */
-    addClientToAggData(client, accData);
+    addClientToAggData(jsClient, accData);
 
-    return 1;
+    return true;
 }
 
 int psAccountSignalAllChildren(pid_t mypid, pid_t child, pid_t pgroup, int sig)
@@ -129,19 +112,11 @@ void psAccountDelJob(PStask_ID_t loggerTID)
 
 void psAccountUnregisterJob(pid_t jsPid)
 {
-    list_t *pos, *tmp;
-    PStask_ID_t taskID;
-    Job_t *job;
+    PStask_ID_t taskID = PSC_getTID(-1, jsPid);
 
     /* stop accounting of dead jobscript */
-    taskID = PSC_getTID(PSC_getMyID(), jsPid);
     deleteClient(taskID);
-
-    list_for_each_safe(pos, tmp, &JobList.list) {
-	if (!(job = list_entry(pos, Job_t, list))) break;
-
-	if (job->jobscript == jsPid) deleteJob(job->logger);
-    }
+    deleteJobsByJobscript(jsPid);
 }
 
 void psAccountSetGlobalCollect(int active)

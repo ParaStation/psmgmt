@@ -39,12 +39,6 @@ static int daemonSock = -1;
  */
 static handlerFunc_t origHandler = NULL;
 
-/** timer ID to monitor the startup of a new job */
-static int jobTimerID = -1;
-
-/** timer value to monitor the startup of a new job */
-static struct timeval jobTimer = {1,0};
-
 /**
  * @brief Convert the int acc msg type to string.
  *
@@ -117,10 +111,9 @@ static void handleAccountEnd(DDTypedBufferMsg_t *msg)
 			"children are still alive\n", __func__,
 			PSC_printTID(logger),
 			(job->nrOfChilds - job->childsExit));
-		job->grace = true;
 	    } else {
 		/* psmom does not need the job, we can delete it */
-		/* but psslurm does need it! */
+		/* but psslurm does need it! */ // @todo check this with psmom
 		/*
 		if (!job->jobscript) {
 		    deleteJob(job->logger);
@@ -262,75 +255,11 @@ static void handleAccountLog(DDTypedBufferMsg_t *msg)
 		       sizeof(uid_t));
     PSP_getTypedMsgBuf(msg, &used, __func__, "gid(skipped)", &dummy,
 		       sizeof(gid_t));
-    PSP_getTypedMsgBuf(msg, &used, __func__, "total children",
-		       &job->totalChilds, sizeof(job->totalChilds));
+    PSP_getTypedMsgBuf(msg, &used, __func__, "total children (skipped)", &dummy,
+		       sizeof(int32_t));
 
-    /* service process will not be accounted */
-    job->totalChilds--;
-
-    /* set up job id */
-    if (!job->jobid) {
-	job->jobid = ustrdup(msg->buf+used);
-    }
-}
-
-/**
- * @brief Monitor the startup of a job.
- *
- * Monitor the startup of a job. If the job start is complete, start
- * an immediate update of the accounting data, so we have a least
- * some data on very short jobs. We can't poll the accounting data
- * in the startup phase or we will disturb the job too much.
- *
- * @return No return value.
- */
-static void monitorJobStarted(void)
-{
-    list_t *pos, *tmp;
-    Job_t *job;
-    bool started = false, update = false;
-    int grace = 0;
-    Client_t *js;
-
-    if (list_empty(&JobList.list)) return;
-
-    grace = getConfValueI(&config, "TIME_JOBSTART_WAIT");
-
-    list_for_each_safe(pos, tmp, &JobList.list) {
-	if ((job = list_entry(pos, Job_t, list)) == NULL) break;
-
-	if (job->lastChildStart > 0) {
-	    started = true;
-	    if (time(NULL) >= job->lastChildStart + grace) {
-		job->lastChildStart = 0;
-
-		/* update all accounting data */
-		if (!update) {
-		    updateProcSnapshot();
-		    update = true;
-		}
-		updateClients(job);
-
-		/* try to find the missing jobscript */
-		if (!job->jobscript) {
-
-		    if ((js = findJobscriptInClients(job))) {
-			mdbg(PSACC_LOG_VERBOSE, "%s: found jobscript pid "
-			     "'%i'\n", __func__, js->pid);
-			job->jobscript = js->pid;
-			if (!job->jobid && js->jobid) {
-			    job->jobid = ustrdup(js->jobid);
-			}
-		    }
-		}
-	    }
-	}
-    }
-
-    if (!started && jobTimerID > 0) {
-	Timer_remove(jobTimerID);
-	jobTimerID = -1;
-    }
+    /* set the job ID */
+    if (!job->jobid) job->jobid = ustrdup(msg->buf+used);
 }
 
 /**
@@ -365,15 +294,12 @@ static void handleAccountChild(DDTypedBufferMsg_t *msg)
 
     client = addClient(msg->header.sender, ACC_CHILD_PSIDCHILD);
 
-    /* save start time to trigger next update */
-    if (job->lastChildStart < 1 && jobTimerID == -1) {
-	jobTimer.tv_usec = getConfValueL(&config, "TIME_JOBSTART_POLL");
-	jobTimerID = Timer_register(&jobTimer, monitorJobStarted);
-    }
+    bool triggerMonitor = !job->latestChildStart;
+    job->latestChildStart = time(NULL);
+    if (triggerMonitor) triggerJobStartMonitor();
 
-    if (!(findHist(logger))) saveHist(logger);
+    if (!findHist(logger)) saveHist(logger);
 
-    job->lastChildStart = time(NULL);
     job->nrOfChilds++;
     client->logger = logger;
     client->uid = uid;
@@ -683,8 +609,6 @@ bool initAccComm(void)
 
 void finalizeAccComm(void)
 {
-    if (jobTimerID != -1) Timer_remove(jobTimerID);
-
     PSID_clearMsg(PSP_CD_ACCOUNT);
     if (origHandler) PSID_registerMsg(PSP_CD_ACCOUNT, origHandler);
 

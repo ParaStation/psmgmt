@@ -112,7 +112,6 @@ int initialize(void)
     initLogger(false);
 
     /* init all lists */
-    initJobList();
     initHist();
     initProc();
     initFragComm();
@@ -189,7 +188,7 @@ void cleanup(void)
     if (memoryDebug) fclose(memoryDebug);
 
     /* cleanup allocated lists/memory */
-    clearAllJobs();
+    finalizeJobs();
     clearAllClients();
     finalizeProc();
     clearHist();
