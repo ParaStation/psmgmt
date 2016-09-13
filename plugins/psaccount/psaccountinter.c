@@ -6,9 +6,6 @@
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
- *
- * Authors:     Michael Rauh <rauh@par-tec.com>
- *
  */
 
 #include <stdio.h>
@@ -35,22 +32,17 @@ int globalCollectMode = 0;
 
 int psAccountSwitchAccounting(PStask_ID_t clientTID, int enable)
 {
-    DDTypedBufferMsg_t msg;
-    char *ptr = msg.buf;
-
-    /* send the messages */
-    msg = (DDTypedBufferMsg_t) {
+    DDTypedBufferMsg_t msg = (DDTypedBufferMsg_t) {
 	.header = (DDMsg_t) {
-	.type = PSP_CC_PLUG_ACCOUNT,
-	.sender = PSC_getMyTID(),
-	.dest = PSC_getTID(PSC_getMyID(), 0),
-	.len = sizeof(msg.header) },
+	    .type = PSP_CC_PLUG_ACCOUNT,
+	    .sender = PSC_getMyTID(),
+	    .dest = PSC_getTID(PSC_getMyID(), 0),
+	    .len = sizeof(msg.header) + sizeof(msg.type)},
+	.type = enable ? PSP_ACCOUNT_ENABLE_UPDATE : PSP_ACCOUNT_DISABLE_UPDATE,
 	.buf = {'\0'} };
 
-    msg.type = (enable) ? PSP_ACCOUNT_ENABLE_UPDATE : PSP_ACCOUNT_DISABLE_UPDATE;
-    msg.header.len += sizeof(msg.type);
-
-    addInt32ToMsgBuf(&msg, &ptr, clientTID);
+    /* send the messages */
+    addInt32ToMsgBuf(&msg, clientTID);
 
     return doWriteP(daemonSock, &msg, msg.header.len);
 }
@@ -367,10 +359,10 @@ void sendAggregatedData(AccountDataExt_t *aggData, PStask_ID_t loggerTID)
     addInt32ToMsg(aggData->taskIds[ACCID_MAX_DISKREAD], &data);
     addInt32ToMsg(aggData->taskIds[ACCID_MAX_DISKWRITE], &data);
 
-    addTimeToMsg(&aggData->rusage.ru_utime.tv_sec, &data);
-    addTimeToMsg(&aggData->rusage.ru_utime.tv_usec, &data);
-    addTimeToMsg(&aggData->rusage.ru_stime.tv_sec, &data);
-    addTimeToMsg(&aggData->rusage.ru_stime.tv_usec, &data);
+    addTimeToMsg(aggData->rusage.ru_utime.tv_sec, &data);
+    addTimeToMsg(aggData->rusage.ru_utime.tv_usec, &data);
+    addTimeToMsg(aggData->rusage.ru_stime.tv_sec, &data);
+    addTimeToMsg(aggData->rusage.ru_stime.tv_usec, &data);
 
     sendFragMsg(&data, PSC_getTID(loggerNode, 0), PSP_CC_PLUG_ACCOUNT,
 		    PSP_ACCOUNT_AGG_DATA_UPDATE);

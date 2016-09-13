@@ -6,9 +6,6 @@
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
- *
- * Authors:     Michael Rauh <rauh@par-tec.com>
- *
  */
 
 #include <stdio.h>
@@ -143,7 +140,7 @@ int initialize(void)
     initJobList();
     initHist();
     initProcList();
-    initFraqComm();
+    initFragComm();
 
     /* init the config facility */
     snprintf(configfn, sizeof(configfn), "%s/%s", PLUGINDIR, PSACCOUNT_CONFIG);
@@ -242,5 +239,5 @@ void cleanup(void)
     clearHist();
     clearConfig();
     clearCpuFreq();
-    finalizeFraqComm();
+    finalizeFragComm();
 }
