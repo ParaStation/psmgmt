@@ -42,7 +42,7 @@ typedef struct {
     time_t startTime;           /**< client's start time */
     time_t endTime;             /**< client's finishing time */
     int rank;                   /**< client's rank (ParaStation's perspective)*/
-    int status;                 /**< client's status upon exit */
+    int32_t status;             /**< client's status upon exit */
     AccountDataExt_t data;      /**< actual accounting data */
     struct timeval walltime;    /**< amount of walltime consumed by client */
 } Client_t;

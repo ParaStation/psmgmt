@@ -8,15 +8,8 @@
  * file.
  */
 /**
- * \file
+ * @file
  * psaccounter: ParaStation accounting daemon
- *
- * $Id$
- *
- * \author
- * Michael Rauh <rauh@par-tec.com>
- * Norbert Eicker <eicker@par-tec.com>
- * Ralph Krotz <krotz@par-tec.com>
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 static char vcid[] __attribute__ ((used)) =
@@ -1076,8 +1069,8 @@ static void handleAccEndMsg(char *msgptr, char *chead, PStask_ID_t sender)
 	    ptr += sizeof(uint32_t);
 
 	    /* session id */
-	    if (!job->session) job->session = *(int32_t *) ptr;
-	    ptr += sizeof(int32_t);
+	    if (!job->session) job->session = *(pid_t *) ptr;
+	    ptr += sizeof(pid_t);
 
 	    /* size of average used mem */
 	    avgrss = *(uint64_t *) ptr;

@@ -45,9 +45,6 @@ plugin_dep_t dependencies[] = {
 /** System's page size */
 int pageSize = -1;
 
-/** save default handler for accouting msgs */
-handlerFunc_t oldAccountHandler = NULL;
-
 /** the ID of the main timer */
 static int mainTimerID = -1;
 
@@ -188,8 +185,7 @@ int initialize(void)
     }
 
     /* register account msg */
-    oldAccountHandler = PSID_registerMsg(PSP_CD_ACCOUNT,
-					    (handlerFunc_t) handlePSMsg);
+    initAccComm();
     PSID_registerMsg(PSP_CC_PLUG_ACCOUNT, (handlerFunc_t) handleInterAccount);
 
     /* update proc snapshot */
@@ -203,17 +199,13 @@ void cleanup(void)
 {
     /* remove all timer */
     Timer_remove(mainTimerID);
-    if (jobTimerID != -1) Timer_remove(jobTimerID);
-
-    if (!(PSIDhook_del(PSIDHOOK_FRWRD_DSOCK, setDaemonSock))) {
-	mlog("unregister 'PSIDHOOK_FRWRD_DSOCK' failed\n");
-    }
 
     /* unregister account msg */
     PSID_clearMsg(PSP_CC_PLUG_ACCOUNT);
-    PSID_clearMsg(PSP_CD_ACCOUNT);
-    if (oldAccountHandler) {
-	PSID_registerMsg(PSP_CD_ACCOUNT, oldAccountHandler);
+    finalizeAccComm();
+
+    if (!(PSIDhook_del(PSIDHOOK_FRWRD_DSOCK, setDaemonSock))) {
+	mlog("unregister 'PSIDHOOK_FRWRD_DSOCK' failed\n");
     }
 
     if (memoryDebug) fclose(memoryDebug);

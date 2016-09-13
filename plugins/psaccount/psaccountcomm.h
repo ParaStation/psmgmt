@@ -6,57 +6,29 @@
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
- *
- * Authors:     Michael Rauh <rauh@par-tec.com>
- *
  */
 
 #ifndef __PS_ACCOUNT_COMM
 #define __PS_ACCOUNT_COMM
 
-#include "psidcomm.h"
+/**
+ * @brief Initialize comm layer
+ *
+ * Initialize the plugin's comm-layer. This will mainly register an
+ * alternative handler for accounting messages of type PSP_CD_ACCOUNT.
+ *
+ * @Return No return value
+*/
+void initAccComm(void);
 
 /**
- * @brief Parse all accounting messages.
+ * @brief Finalize comm layer
  *
- * This function will receive all accounting messages
- * created by the psid daemon(s). The relevant messages
- * for extended accounting will be process here.
- * All message will be forwarded to the accounting
- * daemon(s) after processing.
+ * Finalize the plugin's comm-layer. This will unregister the handler
+ * for accounting messages registered by @ref psAccountInitComm().
  *
- * @param msg The message to handle.
- *
- * @return No return value.
- */
-void handlePSMsg(DDTypedBufferMsg_t *msg);
+ * @Return No return value
+*/
+void finalizeAccComm(void);
 
-/**
- * @brief Handle a PSP_ACCOUNT_CHILD message.
- *
- * This message is sent if a new child is started.
- *
- * @param msg The message to handle.
- *
- * @return No return value.
- */
-void handleAccountChild(DDTypedBufferMsg_t *msg);
-
-/**
- * @brief Handle a PSP_ACCOUNT_END message.
- *
- * This function will add extended accounting information to a
- * account end message.
- *
- * @param msg The message to handle.
- *
- * @param remote If set to 1 the msg has been forwarded from an
- * other node. If set to 0 the msg is from our local node.
- *
- * @return No return value.
- */
-void handleAccountEnd(DDTypedBufferMsg_t *msg);
-
-extern int jobTimerID;
-
-#endif
+#endif  /* __PS_ACCOUNT_COMM */
