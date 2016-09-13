@@ -6,9 +6,6 @@
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
- *
- * Authors:     Michael Rauh <rauh@par-tec.com>
- *
  */
 
 #include <stdio.h>
@@ -24,9 +21,10 @@
 #include <inttypes.h>
 #include <errno.h>
 
+#include "pluginconfig.h"
 #include "pluginmalloc.h"
 #include "psaccountlog.h"
-#include "psaccountlog.h"
+#include "psaccountconfig.h"
 #include "psaccountclient.h"
 
 #include "psaccountproc.h"
@@ -34,19 +32,13 @@
 #define PROC_CPU_INFO	"/proc/cpuinfo"
 #define SYS_CPU_FREQ	"/sys/devices/system/cpu/cpu%d/cpufreq/cpuinfo_cur_freq"
 
-Proc_Snapshot_t ProcList;
-Session_Info_t SessionList;
+static LIST_HEAD(procList);
 
-typedef enum {
-    INFO_MEM,
-    INFO_VMEM,
-} ProcInfoTypes;
+static int *cpuFreq = NULL;
 
-int *cpuFreq = NULL;
+static int cpuCount = 0;
 
-int cpuCount = 0;
-
-static int cpuGovEnabled = 0;
+static bool cpuGovEnabled = false;
 
 static int getCPUCount()
 {
@@ -74,7 +66,7 @@ static void initCpuFreq()
     struct stat sbuf;
     int freq, i;
 
-    cpuFreq = umalloc(sizeof(int) * cpuCount);
+    cpuFreq = umalloc(sizeof(*cpuFreq) * cpuCount);
 
     snprintf(buf, sizeof(buf), SYS_CPU_FREQ, 0);
 
@@ -115,9 +107,9 @@ static void initCpuFreq()
 	}
 
 	fclose(fd);
-	cpuGovEnabled = 0;
+	cpuGovEnabled = false;
     } else {
-	cpuGovEnabled = 1;
+	cpuGovEnabled = true;
     }
 }
 
@@ -143,30 +135,24 @@ static void updateCpuFreq()
     }
 }
 
-void clearCpuFreq(void)
+int getCpuFreq(int cpuID)
 {
-    if (cpuCount) {
-	ufree(cpuFreq);
-    }
+    if (cpuID < cpuCount) return cpuFreq[cpuID];
+
+    return -1;
 }
 
-void initProcList(void)
+static void clearCpuFreq(void)
 {
-    INIT_LIST_HEAD(&ProcList.list);
-    INIT_LIST_HEAD(&SessionList.list);
-
-    if ((cpuCount = getCPUCount()) > 0) {
-	initCpuFreq();
-    }
+    if (cpuCount) ufree(cpuFreq);
+    cpuCount = 0;
 }
 
-Proc_Snapshot_t *findProcSnapshot(pid_t pid)
+ProcSnapshot_t *findProcSnapshot(pid_t pid)
 {
-    struct list_head *pos;
-    Proc_Snapshot_t *proc;
-
-    list_for_each(pos, &ProcList.list) {
-	if (!(proc = list_entry(pos, Proc_Snapshot_t, list))) break;
+    list_t *pos;
+    list_for_each(pos, &procList) {
+	ProcSnapshot_t *proc = list_entry(pos, ProcSnapshot_t, next);
 	if (proc->pid == pid) return proc;
     }
 
@@ -194,73 +180,51 @@ static void doKill(pid_t child, pid_t pgroup, int sig)
     kill(child, sig);
 }
 
-int sendSignal2AllChildren(pid_t mypid, pid_t child, pid_t pgroup, int sig)
+int signalChildren(pid_t mypid, pid_t child, pid_t pgrp, int sig)
 {
-    list_t *pos, *tmp;
-    Proc_Snapshot_t *Childproc;
     int sendCount = 0;
+    list_t *pos;
 
     /* never send signal to myself */
     if (child == mypid) return 0;
 
-    if (list_empty(&ProcList.list)) {
-	doKill(child, pgroup, sig);
-        return 1;
+    if (list_empty(&procList)) {
+	doKill(child, pgrp, sig);
+	return 1;
     }
 
-    list_for_each_safe(pos, tmp, &ProcList.list) {
-        if (!(Childproc = list_entry(pos, Proc_Snapshot_t, list))) break;
-
-	if (pgroup > 0) {
-	    if (Childproc->ppid == child) {
-		sendCount += sendSignal2AllChildren(mypid, Childproc->pid,
-							Childproc->pgroup, sig);
-	    }
-	} else {
-	    if (Childproc->ppid == child) {
-		sendCount += sendSignal2AllChildren(mypid, Childproc->pid,
-							pgroup, sig);
-	    }
+    list_for_each(pos, &procList) {
+	ProcSnapshot_t *childProc = list_entry(pos, ProcSnapshot_t, next);
+	int myPgrp = (pgrp > 0) ? childProc->pgrp : pgrp;
+	if (childProc->ppid == child) {
+	    sendCount += signalChildren(mypid, childProc->pid, myPgrp, sig);
 	}
     }
-    doKill(child, pgroup, sig);
+    doKill(child, pgrp, sig);
     sendCount++;
 
     return sendCount;
 }
 
-int sendSignal2Session(pid_t session, int sig)
+int signalSession(pid_t session, int sig)
 {
-    struct list_head *pos;
-    Proc_Snapshot_t *Childproc;
     pid_t mypid = getpid();
-    pid_t child;
     int sendCount = 0;
+    list_t *pos;
 
     /* don't kill zombies */
     if (session < 1) return 0;
 
     /* we need up2date information */
-    updateProcSnapshot(0);
+    updateProcSnapshot();
 
-    if (!list_empty(&ProcList.list)) {
-	list_for_each(pos, &ProcList.list) {
-	    if (!(Childproc = list_entry(pos, Proc_Snapshot_t, list))) {
-		return 0;
-	    }
+    list_for_each(pos, &procList) {
+	ProcSnapshot_t *childProc = list_entry(pos, ProcSnapshot_t, next);
+	pid_t child = childProc->pid;
 
-	    child = Childproc->pid;
-	    if (Childproc->session == session) {
-		if (child != mypid && child > 0) {
-		    /*
-		    mlog("%s: send signal '%i' to pid '%i' pgroup '%i' "
-			"sid '%i' and all its children\n",
-			__func__, sig, child, Childproc->pgroup,
-			Childproc->session);
-		    */
-		    sendCount += sendSignal2AllChildren(mypid, child,
-							Childproc->pgroup, sig);
-		}
+	if (childProc->session == session) {
+	    if (child != mypid && child > 0) {
+		sendCount += signalChildren(mypid, child, childProc->pgrp, sig);
 	    }
 	}
     }
@@ -268,65 +232,83 @@ int sendSignal2Session(pid_t session, int sig)
     return sendCount;
 }
 
-void findDaemonProcesses(uid_t userId, int kill, int warn)
+void findDaemonProcesses(uid_t uid, bool kill, bool warn)
 {
-    struct list_head *pos;
-    Proc_Snapshot_t *Childproc;
     pid_t mypid = getpid();
-    char killMsg[] = "and killing ";
+    list_t *pos;
 
     /* we need up2date information */
-    updateProcSnapshot(0);
+    updateProcSnapshot();
 
-    if (!list_empty(&ProcList.list)) {
-	list_for_each(pos, &ProcList.list) {
-	    if ((Childproc = list_entry(pos, Proc_Snapshot_t, list)) == NULL) {
-		return;
-	    }
+    list_for_each(pos, &procList) {
+	ProcSnapshot_t *childProc = list_entry(pos, ProcSnapshot_t, next);
 
-	    if (Childproc->uid == userId && Childproc->ppid == 1) {
-		if (warn) {
-		    mlog("found %sdaemon process: pid '%i' uid '%i'\n",
-			    kill ? killMsg : "", Childproc->pid, userId);
-		}
-		if (kill) {
-		    sendSignal2AllChildren(mypid, Childproc->pid,
-					    Childproc->pgroup, SIGKILL);
-		}
-	    }
+	if (childProc->uid == uid && childProc->ppid == 1) {
+	    if (warn) mlog("found %sdaemon process: pid '%i' uid '%i'\n",
+			   kill ? "and kill " : "", childProc->pid, uid);
+	    if (kill) signalChildren(mypid, childProc->pid,
+				     childProc->pgrp, SIGKILL);
 	}
     }
 }
 
-static int isChildofParentSnap(pid_t parent, pid_t child)
+static bool isDescendantSnap(pid_t parent, pid_t child)
 {
-    Proc_Snapshot_t *procChild;
+    ProcSnapshot_t *procChild;
 
-    if (child == 0) return 0;
+    if (!child) return false;
 
-    if (!(procChild = findProcSnapshot(child))) {
+    procChild = findProcSnapshot(child);
+    if (!procChild) {
 	//mlog("%s: child %i  not found in snapshot\n", __func__, child);
-	return 0;
+	return false;
     }
 
-    if (procChild->ppid == parent) {
-	return 1;
-    }
+    if (procChild->ppid == parent) return true;
+
     //mlog("%s: child(%i)->parent %i not parent %i\n", __func__,
     //		procChild->pid, procChild->ppid, parent);
-    return isChildofParent(parent, procChild->ppid);
+    return isDescendantSnap(parent, procChild->ppid);
 }
 
-int readProcIO(pid_t pid, ProcIO_t *io)
+/**
+ * @brief Check if a child pid belongs to a parent pid.
+ *
+ * @param parent The parent pid.
+ *
+ * @param child The child pid.
+ *
+ * @return Returns 1 if the second pid is a child of the first pid or 0
+ * otherwise.
+ */
+static bool isDescendantLive(pid_t parent, pid_t child)
+{
+    ProcStat_t pS;
+
+    if (child <= 1) return false;
+
+    if (!readProcStatInfo(child, &pS)) return false;
+    if (pS.ppid == parent) return true;
+
+    return isDescendantLive(parent, pS.ppid);
+}
+
+bool isDescendant(pid_t parent, pid_t child)
+{
+    if (list_empty(&procList)) return isDescendantLive(parent,child);
+
+    return isDescendantSnap(parent, child);
+}
+
+bool readProcIO(pid_t pid, ProcIO_t *io)
 {
     FILE *fd;
     char buf[200];
     struct stat sbuf;
-    int ret;
 
-    memset(io, 0, sizeof(ProcIO_t));
+    memset(io, 0, sizeof(*io));
 
-    /* format string of /proc/pid/io */
+    /* format string of /proc/<pid>/io */
     static char io_format[] =
 		    "%*[^:]: "
 		    "%"PRIu64" "     /* rchar / disk read */
@@ -343,17 +325,18 @@ int readProcIO(pid_t pid, ProcIO_t *io)
 
     snprintf(buf, sizeof(buf), "/proc/%i/io", pid);
 
-    if ((stat(buf, &sbuf)) == -1) return 0;
+    if (stat(buf, &sbuf) == -1) return false;
 
-    if (!(fd = fopen(buf,"r"))) {
+    fd = fopen(buf,"r");
+    if (!fd) {
 	mlog("%s: open '%s' failed\n", __func__, buf);
-	return 0;
+	return false;
     }
 
-    if ((ret = fscanf(fd, io_format, &io->diskRead, &io->diskWrite,
-			&io->readBytes, &io->writeBytes)) != 4) {
+    if (fscanf(fd, io_format, &io->diskRead, &io->diskWrite, &io->readBytes,
+	       &io->writeBytes) != 4) {
 	fclose(fd);
-	return 0;
+	return false;
     }
 
     /*
@@ -362,16 +345,16 @@ int readProcIO(pid_t pid, ProcIO_t *io)
 	    io->writeBytes);
     */
     fclose(fd);
-    return 1;
+    return true;
 }
 
-int readProcStatInfo(pid_t pid, ProcStat_t *pS)
+bool readProcStatInfo(pid_t pid, ProcStat_t *pS)
 {
     FILE *fd;
     char buf[200];
     struct stat sbuf;
 
-    /* format string of /proc/pid/stat */
+    /* format string of /proc/<pid>/stat */
     static char stat_format[] =
 		    "%*d "	    /* pid */
 		    "(%*[^)]) "	    /* comm */
@@ -408,60 +391,26 @@ int readProcStatInfo(pid_t pid, ProcStat_t *pS)
 
     snprintf(buf, sizeof(buf), "/proc/%i/stat", pid);
 
-    if ((stat(buf, &sbuf)) == -1) return 0;
+    if (stat(buf, &sbuf) == -1) return false;
     pS->uid = sbuf.st_uid;
 
-    if (!(fd = fopen(buf,"r"))) {
+    fd = fopen(buf,"r");
+    if (!fd) {
 	mlog("%s: open '%s' failed\n", __func__, buf);
-	return 0;
+	return false;
     }
 
     pS->state[0] = '\0';
-    if ((fscanf(fd, stat_format, pS->state, &pS->ppid, &pS->pgroup,
-		&pS->session, &pS->majflt, &pS->cmajflt, &pS->utime,
-		&pS->stime, &pS->cutime, &pS->cstime, &pS->threads,
-		&pS->vmem, &pS->mem, &pS->cpu)) != 14) {
-
+    if (fscanf(fd, stat_format, pS->state, &pS->ppid, &pS->pgrp,
+	       &pS->session, &pS->majflt, &pS->cmajflt, &pS->utime,
+	       &pS->stime, &pS->cutime, &pS->cstime, &pS->threads,
+	       &pS->vmem, &pS->mem, &pS->cpu) != 14) {
 	fclose(fd);
-	return 0;
+	return false;
     }
 
     fclose(fd);
-    return 1;
-}
-
-/**
- * @brief Check if a child pid belongs to a parent pid.
- *
- * @param parent The parent pid.
- *
- * @param child The child pid.
- *
- * @return Returns 1 if the second pid is a child of the first pid or 0
- * otherwise.
- */
-static int isChildofParentProc(pid_t parent, pid_t child)
-{
-    ProcStat_t pS;
-
-    if (child <= 1) return 0;
-
-    if (!(readProcStatInfo(child, &pS))) {
-	return 0;
-    }
-
-    if (pS.ppid == parent) return 1;
-
-    return isChildofParentProc(parent, pS.ppid);
-}
-
-int isChildofParent(pid_t parent, pid_t child)
-{
-    if (!list_empty(&ProcList.list)) {
-	return isChildofParentSnap(parent, child);
-    }
-
-    return isChildofParentProc(parent,child);
+    return true;
 }
 
 /**
@@ -469,15 +418,16 @@ int isChildofParent(pid_t parent, pid_t child)
  *
  * @return Returns the created proc snapshot.
  */
-static Proc_Snapshot_t *addProc(pid_t pid, ProcStat_t *pS, char *cmdline)
+static ProcSnapshot_t *addProc(pid_t pid, ProcStat_t *pS)
 {
-    Proc_Snapshot_t *proc;
+    ProcSnapshot_t *proc;
 
-    proc = (Proc_Snapshot_t *) umalloc(sizeof(Proc_Snapshot_t));
+    proc = umalloc(sizeof(*proc));
+    if (!proc) return NULL;
     proc->uid = pS->uid;
     proc->pid = pid;
     proc->ppid = pS->ppid;
-    proc->pgroup = pS->pgroup;
+    proc->pgrp = pS->pgrp;
     proc->session = pS->session;
     proc->cutime = pS->utime + pS->cutime;
     proc->cstime = pS->stime + pS->cstime;
@@ -485,195 +435,125 @@ static Proc_Snapshot_t *addProc(pid_t pid, ProcStat_t *pS, char *cmdline)
     proc->threads = pS->threads;
     proc->mem = pS->mem;
     proc->vmem = pS->vmem;
-    proc->cmdline = (cmdline) ? ustrdup(cmdline) : NULL;
     proc->cpu = pS->cpu;
 
-    list_add_tail(&(proc->list), &ProcList.list);
+    list_add_tail(&proc->next, &procList);
     return proc;
 }
 
 /**
- * @brief Find a session info with the sid.
- *
- * @param session The sid of the session info to find.
- *
- * @return On success the found session info is returned,
- * otherwise NULL is returned.
- */
-static Session_Info_t *findSession(pid_t session)
-{
-    struct list_head *pos;
-    Session_Info_t *info;
-
-    list_for_each(pos, &SessionList.list) {
-	if (!(info = list_entry(pos, Session_Info_t, list))) break;
-	if (info->session == session) return info;
-    }
-    return NULL;
-}
-
-/**
- * @brief Add a session info.
- *
- * Add a new session info. If a info with the same session ID
- * is found then no new session will be added.
+ * @brief Delete all proc snapshots.
  *
  * @return No return value.
  */
-static void addSession(pid_t session, uid_t uid)
-{
-    Session_Info_t *info;
-
-    if (uid == 0) return;
-    if ((findSession(session)) != NULL) {
-	return;
-    }
-
-    info = (Session_Info_t *) umalloc(sizeof(Session_Info_t));
-    info->session = session;
-    info->uid = uid;
-
-    list_add_tail(&(info->list), &SessionList.list);
-}
-
-/**
- * @brief Delete all session infos.
- *
- * @return No return value.
- */
-static void clearSessions(void)
+static void clearAllProcSnapshots(void)
 {
     list_t *pos, *tmp;
-    Session_Info_t *info;
-
-    list_for_each_safe(pos, tmp, &SessionList.list) {
-	if (!(info = list_entry(pos, Session_Info_t, list))) break;
-	list_del(&info->list);
-	ufree(info);
-    }
-}
-
-void clearAllProcSnapshots(void)
-{
-    list_t *pos, *tmp;
-    Proc_Snapshot_t *proc;
-
-    clearSessions();
-
-    list_for_each_safe(pos, tmp, &ProcList.list) {
-	if (!(proc = list_entry(pos, Proc_Snapshot_t, list))) break;
-	if (proc->cmdline) ufree(proc->cmdline);
-
-	list_del(&proc->list);
+    list_for_each_safe(pos, tmp, &procList) {
+	ProcSnapshot_t *proc = list_entry(pos, ProcSnapshot_t, next);
+	list_del(&proc->next);
 	ufree(proc);
     }
 }
 
-void getSessionInformation(int *count, char *buf, size_t bufsize,
-			    int *userCount)
+#define MAX_USER 300
+
+void getSessionInformation(int *count, char *buf, size_t size, int *userCount)
 {
-    #define MAX_USER	300
-    struct list_head *pos;
-    Session_Info_t *info;
-    char strSession[50];
-    int i, ucount, ufound;
     uid_t users[MAX_USER];
+    list_t *pos;
 
     buf[0] = '\0';
     *count = 0;
-    *userCount = ucount = 0;
-    if (list_empty(&SessionList.list)) return;
+    *userCount = 0;
 
-    for (i=0; i<MAX_USER; i++) {
-	users[i] = 0;
-    }
+    list_for_each(pos, &procList) {
+	ProcSnapshot_t *proc = list_entry(pos, ProcSnapshot_t, next);
+	char sessStr[50];
+	int i;
 
-    list_for_each(pos, &SessionList.list) {
-	if (!(info = list_entry(pos, Session_Info_t, list))) return;
+	if (proc->uid == 0 || proc->session == 0) continue;
+	(*count)++;
+	snprintf(sessStr, sizeof(sessStr), "%i ", proc->session);
+	strncat(buf, sessStr, size - strlen(buf));
 
-	if (info->uid == 0 || info->session == 0) continue;
-	*count += 1;
-	snprintf(strSession, sizeof(strSession), "%i ", info->session);
-	strncat(buf, strSession, bufsize - strlen(buf));
-
-	ufound = 0;
-	for (i=0; i<MAX_USER; i++) {
-	    if (users[i] == info->uid) {
-		ufound = 1;
-		break;
-	    }
+	for (i=0; i < *userCount; i++) {
+	    if (users[i] == proc->uid) break;
 	}
-	if (!ufound) users[ucount++] = info->uid;
+	if (i == *userCount) {
+	    if (*userCount == MAX_USER-1) {
+		mlog("%s: MAX_USER exceeded. Truncating sessions\n", __func__);
+		continue;
+	    }
+	    users[(*userCount)++] = proc->uid;
+	}
     }
-    buf[bufsize] = '\0';
+    buf[size-1] = '\0';
     if (strlen(buf) > 0) buf[strlen(buf) - 1] = '\0';
-    *userCount = ucount;
 }
 
 /**
- * @brief Get all memory for a proc snapshot.
+ * @brief Collect resources for descendants
  *
- * @proc The proc snapshot to calculate the information for.
+ * recursively collect resource information for descendants of the
+ * given process identified by @a pid. Resource information is
+ * collected in @a res.
  *
- * @flag_vmem If set to 1 the virtual memory is calulated, otherwise the
- * pyhsical memory is calculated.
+ * @param pid Process ID of the root process
  *
- * @return Returns the calculated memory information.
+ * @param res Structure used to accumulate resource information
+ *
+ * @return No return value
  */
-static void getAllClientInfo(Proc_Snapshot_t *res, pid_t pid)
+static void collectDescendantData(pid_t pid, ProcSnapshot_t *res)
 {
-    struct list_head *pos;
-    Proc_Snapshot_t *Childproc;
+    list_t *pos;
+    list_for_each(pos, &procList) {
+	ProcSnapshot_t *childProc = list_entry(pos, ProcSnapshot_t, next);
 
-    list_for_each(pos, &ProcList.list) {
-	if (!(Childproc = list_entry(pos, Proc_Snapshot_t, list))) return;
+	if (childProc->ppid == pid) {
+	    res->mem += childProc->mem;
+	    res->vmem += childProc->vmem;
+	    res->cutime += childProc->cutime;
+	    res->cstime += childProc->cstime;
 
-	if (Childproc->ppid == pid) {
-	    res->mem += Childproc->mem;
-	    res->vmem += Childproc->vmem;
-	    res->cutime += Childproc->cutime;
-	    res->cstime += Childproc->cstime;
-
-	    mdbg(PSACC_LOG_PROC, "%s: cmd:%s pid:%i ppid:%i cutime:%lu "
-		 "cstime:%lu mem:%lu vmem:%lu\n", __func__, Childproc->cmdline,
-		 Childproc->pid, Childproc->ppid,
-		 Childproc->cutime, Childproc->cstime,
-		 Childproc->mem, Childproc->vmem);
-	    getAllClientInfo(res, Childproc->pid);
+	    mdbg(PSACC_LOG_PROC, "%s: pid:%i ppid:%i cutime:%lu "
+		 "cstime:%lu mem:%lu vmem:%lu\n", __func__,
+		 childProc->pid, childProc->ppid,
+		 childProc->cutime, childProc->cstime,
+		 childProc->mem, childProc->vmem);
+	    collectDescendantData(childProc->pid, res);
 	}
     }
 }
 
-Proc_Snapshot_t *getAllChildrenData(pid_t pid)
+void getDescendantData(pid_t pid, ProcSnapshot_t *res)
 {
-    Proc_Snapshot_t *proc;
+    if (!res) return;
 
-    proc = (Proc_Snapshot_t *) umalloc(sizeof(Proc_Snapshot_t));
-    proc->pid = pid;
-    proc->ppid = 0;
-    proc->session = 0;
-    proc->mem = 0;
-    proc->vmem = 0;
-    proc->cutime = 0;
-    proc->cstime = 0;
-    proc->majflt = 0;
-    proc->cpu = 0;
+    res->pid = pid;
+    res->ppid = 0;
+    res->session = 0;
+    res->mem = 0;
+    res->vmem = 0;
+    res->cutime = 0;
+    res->cstime = 0;
+    res->majflt = 0;
+    res->cpu = 0;
 
-    getAllClientInfo(proc, pid);
+    collectDescendantData(pid, res);
 
     mdbg(PSACC_LOG_PROC, "%s: pid:%i mem:%lu vmem:%lu cutime:%lu cstime:%lu\n",
-	    __func__, pid, proc->mem, proc->vmem, proc->cutime, proc->cstime);
-    return proc;
+	 __func__, pid, res->mem, res->vmem, res->cutime, res->cstime);
 }
 
-void updateProcSnapshot(int extended)
+void updateProcSnapshot(void)
 {
-    FILE *fd;
     DIR *dir;
     struct dirent *dent;
     pid_t pid = -1;
-    char buf[201];
     ProcStat_t pS;
+    bool ignoreRoot = getConfValueI(&config, "IGNORE_ROOT_PROCESSES");
 
     /* clear all previous proc entrys */
     clearAllProcSnapshots();
@@ -683,9 +563,7 @@ void updateProcSnapshot(int extended)
 	return;
     }
 
-    if (cpuGovEnabled) {
-	updateCpuFreq();
-    }
+    if (cpuGovEnabled) updateCpuFreq();
 
     rewinddir(dir);
     while ((dent = readdir(dir)) != NULL) {
@@ -695,34 +573,21 @@ void updateProcSnapshot(int extended)
 	    continue;
 	}
 
-	if (!(readProcStatInfo(pid, &pS))) continue;
-
-	/*
-	mlog("pid '%i' state:%s ppid '%i' pgroup: %i session '%i' cutime: '%lu'"
-		"cstime: '%lu' threads '%lu' vmem: '%lu' mem: '%lu'\n", pid,
-		state, ppid, pgroup, session, cutime, cstime, threads, vmem,
-		mem);
-	*/
-
-	if (extended) {
-	    snprintf(buf, sizeof(buf), "/proc/%i/cmdline", pid);
-	    if ((fd = fopen(buf,"r")) == NULL) {
-		mlog("%s: open '%s' failed\n", __func__, buf);
-		continue;
-	    }
-	    if ((fscanf(fd, "%200s", buf)) != 1) {
-		snprintf(buf, sizeof(buf), "cmd not available");
-	    }
-	    fclose(fd);
-	    addProc(pid, &pS, buf);
-	    addSession(pS.session, pS.uid);
-	    mdbg(PSACC_LOG_PROC, "%s: pid:%i ppid:%i session:%i, threads:%lu "
-		"mem:%lu vmem:%lu cmd:%s\n", __func__, pid, pS.ppid, pS.session,
-		pS.threads, pS.mem, pS.vmem, buf);
-	    continue;
+	if (readProcStatInfo(pid, &pS) && (!ignoreRoot || pS.uid)) {
+	    addProc(pid, &pS);
 	}
-	addProc(pid, &pS, NULL);
-	addSession(pS.session, pS.uid);
     }
     closedir(dir);
+}
+
+void initProc(void)
+{
+    cpuCount = getCPUCount();
+    if (cpuCount) initCpuFreq();
+}
+
+void finalizeProc(void)
+{
+    clearAllProcSnapshots();
+    clearCpuFreq();
 }

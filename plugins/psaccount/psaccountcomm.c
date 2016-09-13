@@ -283,7 +283,8 @@ static void monitorJobStarted(void)
 {
     list_t *pos, *tmp;
     Job_t *job;
-    int starting = 0, update = 0, grace = 0;
+    bool started = false, update = false;
+    int grace = 0;
     Client_t *js;
 
     if (list_empty(&JobList.list)) return;
@@ -294,14 +295,14 @@ static void monitorJobStarted(void)
 	if ((job = list_entry(pos, Job_t, list)) == NULL) break;
 
 	if (job->lastChildStart > 0) {
-	    starting++;
+	    started = true;
 	    if (time(NULL) >= job->lastChildStart + grace) {
 		job->lastChildStart = 0;
 
 		/* update all accounting data */
 		if (!update) {
-		    updateProcSnapshot(0);
-		    update = 1;
+		    updateProcSnapshot();
+		    update = true;
 		}
 		updateClients(job);
 
@@ -321,7 +322,7 @@ static void monitorJobStarted(void)
 	}
     }
 
-    if (!starting && jobTimerID > 0) {
+    if (!started && jobTimerID > 0) {
 	Timer_remove(jobTimerID);
 	jobTimerID = -1;
     }

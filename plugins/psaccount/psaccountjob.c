@@ -47,7 +47,7 @@ Job_t *findJobByJobscript(pid_t js)
 	if (!(job = list_entry(pos, Job_t, list))) return NULL;
 	if (job->jobscript == js) return job;
 
-	if ((isChildofParent(js, job->logger))) {
+	if (isDescendant(js, job->logger)) {
 	    job->jobscript = js;
 	    return job;
 	}
@@ -107,7 +107,7 @@ void cleanupJobs(void)
     list_t *pos, *tmp;
     Job_t *job;
     time_t now = time(NULL);
-    long grace = getConfValueL(&config, "TIME_JOB_GRACE");
+    int grace = getConfValueI(&config, "TIME_JOB_GRACE");
 
     list_for_each_safe(pos, tmp, &JobList.list) {
 	if (!(job = list_entry(pos, Job_t, list))) break;

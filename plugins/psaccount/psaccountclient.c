@@ -80,7 +80,7 @@ static Client_t *findJobscriptByLogger(PStask_ID_t logger)
 
 	if (client->type == ACC_CHILD_JOBSCRIPT) {
 	    /* check if the jobscript is a parent of logger */
-	    if ((isChildofParent(client->pid, PSC_getPID(logger)))) {
+	    if ((isDescendant(client->pid, PSC_getPID(logger)))) {
 		client->logger = logger;
 		return client;
 	    } else {
@@ -444,7 +444,7 @@ void cleanupClients(void)
 {
     list_t *pos, *tmp;
     time_t now = time(NULL);
-    long grace = getConfValueL(&config, "TIME_CLIENT_GRACE");
+    int grace = getConfValueI(&config, "TIME_CLIENT_GRACE");
 
     list_for_each_safe(pos, tmp, &clientList) {
 	Client_t *client = list_entry(pos, Client_t, next);

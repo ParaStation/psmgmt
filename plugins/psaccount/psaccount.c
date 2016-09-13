@@ -73,7 +73,7 @@ static void periodicMain(void)
 
     /* update proc snapshot */
     if ((haveActiveClients())) {
-	updateProcSnapshot(0);
+	updateProcSnapshot();
 
 	/* update all accounting data */
 	updateClients(NULL);
@@ -122,7 +122,7 @@ int initialize(void)
     /* init all lists */
     initJobList();
     initHist();
-    initProcList();
+    initProc();
     initFragComm();
 
     /* init the config facility */
@@ -188,7 +188,7 @@ int initialize(void)
     PSID_registerMsg(PSP_CC_PLUG_ACCOUNT, (handlerFunc_t) handleInterAccount);
 
     /* update proc snapshot */
-    updateProcSnapshot(0);
+    updateProcSnapshot();
 
     mlog("(%i) successfully started\n", version);
     return 0;
@@ -212,9 +212,8 @@ void cleanup(void)
     /* cleanup allocated lists/memory */
     clearAllJobs();
     clearAllClients();
-    clearAllProcSnapshots();
+    finalizeProc();
     clearHist();
     freeConfig(&config);
-    clearCpuFreq();
     finalizeFragComm();
 }

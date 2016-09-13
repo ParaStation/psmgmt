@@ -22,10 +22,10 @@ int clockTicks = -1;
 
 void updateAccountData(Client_t *client)
 {
-    unsigned long rssnew = 0, vsizenew = 0;
-    uint64_t cutime = 0, cstime = 0;
+    unsigned long rssnew, vsizenew;
+    uint64_t cutime, cstime;
     AccountDataExt_t *accData;
-    Proc_Snapshot_t *proc, *pChildren;
+    ProcSnapshot_t *proc, pChildren;
     ProcIO_t procIO;
     uint64_t cputime, maxRssMB = 0;
     int64_t diffCputime;
@@ -43,21 +43,17 @@ void updateAccountData(Client_t *client)
 	accData->session = proc->session;
     }
     if (!accData->pgroup) {
-	accData->pgroup = proc->pgroup;
+	accData->pgroup = proc->pgrp;
     }
 
     /* get infos for all children  */
-    pChildren = getAllChildrenData(client->pid);
-    if (pChildren) {
-	rssnew = proc->mem + pChildren->mem;
-	vsizenew = proc->vmem + pChildren->vmem;
+    getDescendantData(client->pid, &pChildren);
+    rssnew = proc->mem + pChildren.mem;
+    vsizenew = proc->vmem + pChildren.vmem;
 
-	/* save cutime and cstime in seconds */
-	cutime = (proc->cutime + pChildren->cutime) / clockTicks;
-	cstime = (proc->cstime + pChildren->cstime) / clockTicks;
-
-	ufree(pChildren);
-    }
+    /* save cutime and cstime in seconds */
+    cutime = (proc->cutime + pChildren.cutime) / clockTicks;
+    cstime = (proc->cstime + pChildren.cstime) / clockTicks;
 
     /* set rss (resident set size) */
     if (rssnew > accData->maxRss) accData->maxRss = rssnew;
@@ -107,12 +103,12 @@ void updateAccountData(Client_t *client)
     /* calc cpu freq */
     if (diffCputime > 0) {
 	accData->cpuWeight = accData->cpuWeight +
-	    cpuFreq[proc->cpu] * diffCputime;
+	    getCpuFreq(proc->cpu) * diffCputime;
 	if (cputime) {
 	    accData->cpuFreq = accData->cpuWeight / cputime;
 	}
     }
-    if (!cputime) accData->cpuFreq = cpuFreq[proc->cpu];
+    if (!cputime) accData->cpuFreq = getCpuFreq(proc->cpu);
 
     maxRssMB = (accData->maxRss * (pageSize / (1024)) / 1024);
 

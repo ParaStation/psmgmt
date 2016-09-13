@@ -324,20 +324,20 @@ void sendAggregatedData(AccountDataExt_t *aggData, PStask_ID_t loggerTID)
 
 int psAccountSignalAllChildren(pid_t mypid, pid_t child, pid_t pgroup, int sig)
 {
-    return sendSignal2AllChildren(mypid, child, pgroup, sig);
+    return signalChildren(mypid, child, pgroup, sig);
 }
 
 int psAccountsendSignal2Session(pid_t session, int sig)
 {
-    return sendSignal2Session(session, sig);
+    return signalSession(session, sig);
 }
 
 void psAccountisChildofParent(pid_t parent, pid_t child)
 {
     /* we need up2date information */
-    updateProcSnapshot(0);
+    updateProcSnapshot();
 
-    isChildofParent(parent, child);
+    isDescendant(parent, child);
 }
 
 void psAccountGetSessionInfos(int *count, char *buf, size_t bufsize,
@@ -348,12 +348,12 @@ void psAccountGetSessionInfos(int *count, char *buf, size_t bufsize,
 
 void psAccountFindDaemonProcs(uid_t uid, int kill, int warn)
 {
-   findDaemonProcesses(uid, kill, warn);
+    findDaemonProcesses(uid, !!kill, !!warn);
 }
 
 int psAccountreadProcStatInfo(pid_t pid, ProcStat_t *pS)
 {
-   return readProcStatInfo(pid, pS);
+    return readProcStatInfo(pid, pS);
 }
 
 void psAccountRegisterJob(pid_t jsPid, char *jobid)
@@ -424,7 +424,7 @@ PStask_ID_t psAccountgetLoggerByClientPID(pid_t pid)
 	}
 
 	/* try pgroup */
-	if (client->data.pgroup && client->data.pgroup == pS.pgroup) {
+	if (client->data.pgroup && client->data.pgroup == pS.pgrp) {
 	    return client->logger;
 	}
     }
@@ -432,7 +432,7 @@ PStask_ID_t psAccountgetLoggerByClientPID(pid_t pid)
     /* try all grand-children now */
     list_for_each(pos, &clientList) {
 	Client_t *client = list_entry(pos, Client_t, next);
-	if (isChildofParent(client->pid, pid)) return client->logger;
+	if (isDescendant(client->pid, pid)) return client->logger;
     }
 
     return -1;

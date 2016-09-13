@@ -29,6 +29,8 @@ const ConfDef_t confDef[] =
       "The debug mask for logging" },
     { "FORWARD_INTERVAL", true, "num", "2",
       "Forward every Nth accounting update to global aggregation" },
+    { "IGNORE_ROOT_PROCESSES", true, "num", "1",
+      "Flag ignoring of root's processes" },
     { NULL, false, NULL, NULL, NULL },
 };
 

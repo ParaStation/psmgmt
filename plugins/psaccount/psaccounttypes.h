@@ -102,7 +102,7 @@ typedef struct {
 
 typedef struct {
     pid_t ppid;
-    pid_t pgroup;
+    pid_t pgrp;
     pid_t session;
     char state[1];
     uint64_t utime;
