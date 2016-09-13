@@ -11,6 +11,8 @@
 #ifndef __PS_ACCOUNT_PROC
 #define __PS_ACCOUNT_PROC
 
+#include <stdbool.h>
+
 #include "list.h"
 #include "psaccounttypes.h"
 
@@ -131,7 +133,7 @@ bool isDescendant(pid_t parent, pid_t child);
  *
  * @return No return value
  */
-void getSessionInformation(int *count, char *buf, size_t size, int *userCount);
+void getSessionInfo(int *count, char *buf, size_t size, int *userCount);
 
 /**
  * @brief Send signal to process and all descendants

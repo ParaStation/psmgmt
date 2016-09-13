@@ -28,7 +28,6 @@
 #include "plugin.h"
 #include "psidnodes.h"
 #include "psidutil.h"
-#include "psidhook.h"
 #include "pluginfrag.h"
 
 #include "psaccount.h"
@@ -103,13 +102,6 @@ static void setMainTimer(int sec)
     mainTimerID = Timer_register(&mainTimer, periodicMain);
 }
 
-static int setDaemonSock(void *dsock)
-{
-    daemonSock = *(int *)dsock;
-
-    return 0;
-}
-
 int initialize(void)
 {
     int poll, debugMask;
@@ -162,15 +154,12 @@ int initialize(void)
 	return 1;
     }
 
-    if (!(PSIDhook_add(PSIDHOOK_FRWRD_DSOCK, setDaemonSock))) {
-	mlog("register 'PSIDHOOK_FRWRD_DSOCK' failed\n");
-	return 1;
-    }
-
     /* register periodic timer */
     if ((poll = PSIDnodes_acctPollI(PSC_getMyID())) > 0) {
 	mainTimer.tv_sec = poll;
     }
+
+    if (!initAccComm()) return 1;
 
     if (!Timer_isInitialized()) {
 	mdbg(PSACC_LOG_VERBOSE, "timer facility not ready, trying to initialize"
@@ -182,10 +171,6 @@ int initialize(void)
 	mlog("registering main timer failed\n");
 	return 1;
     }
-
-    /* register account msg */
-    initAccComm();
-    PSID_registerMsg(PSP_CC_PLUG_ACCOUNT, (handlerFunc_t) handleInterAccount);
 
     /* update proc snapshot */
     updateProcSnapshot();
@@ -199,13 +184,7 @@ void cleanup(void)
     /* remove all timer */
     Timer_remove(mainTimerID);
 
-    /* unregister account msg */
-    PSID_clearMsg(PSP_CC_PLUG_ACCOUNT);
     finalizeAccComm();
-
-    if (!(PSIDhook_del(PSIDHOOK_FRWRD_DSOCK, setDaemonSock))) {
-	mlog("unregister 'PSIDHOOK_FRWRD_DSOCK' failed\n");
-    }
 
     if (memoryDebug) fclose(memoryDebug);
 

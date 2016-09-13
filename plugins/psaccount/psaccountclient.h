@@ -47,17 +47,8 @@ typedef struct {
     struct timeval walltime;    /**< amount of walltime consumed by client */
 } Client_t;
 
-/** List of all known clients */
-extern list_t clientList;
-
-/**
- * @brief Convert a client type to string.
- *
- * @param type The type of the client to convert.
- *
- * @return Returns the requested string
- */
-const char* clientType2Str(int type);
+/** Flag mode to globally collect accounting data */
+extern bool globalCollectMode;
 
 /**
  * @brief Find an account client by the client TID.
@@ -90,6 +81,12 @@ Client_t *findClientByPID(pid_t clientPID);
  * is returned
  */
 Client_t *findJobscriptInClients(Job_t *job);
+
+/** @brief @doctodo
+ *
+ * @return 
+ */
+bool aggregateDataByLogger(PStask_ID_t logger, AccountDataExt_t *accData);
 
 /**
  * @brief Add a new account client.
@@ -159,42 +156,6 @@ void cleanupClients(void);
  */
 bool deleteClient(PStask_ID_t tid);
 
-/** @brief @doctodo
- *
- * @return No return value
- */
-void addClientToAggData(Client_t *client, AccountDataExt_t *accData);
-
-/** @brief @doctodo
- *
- * @return No return value
- */
-void addAggData(AccountDataExt_t *srcData, AccountDataExt_t *destData);
-
-/** @brief @doctodo
- *
- * @return 
- */
-bool aggregateDataByLogger(PStask_ID_t logger, AccountDataExt_t *accData);
-
-/** @brief @doctodo
- *
- * @return No return value
- */
-void getPidsByLogger(PStask_ID_t logger, pid_t **pids, uint32_t *count);
-
-/** @brief @doctodo
- *
- * @return No return value
- */
-void switchClientUpdate(PStask_ID_t clientTID, bool enable);
-
-/** @brief @doctodo
- *
- * @return No return value
- */
-void forwardAggData(void);
-
 /**
  * @brief List current clients
  *
@@ -212,5 +173,59 @@ void forwardAggData(void);
  * @return Pointer to buffer with updated client information
  */
 char *listClients(char *buf, size_t *bufSize, bool detailed);
+
+/************************* Aggregation *************************/
+
+/**
+ * @brief Store remote aggregated data
+ *
+ * @param tid
+ *
+ * @param logger
+ *
+ * @param data Aggregated data on resource usage to be stored
+ *
+ * @return No return value
+ */
+void setAggData(PStask_ID_t tid, PStask_ID_t logger, AccountDataExt_t *data);
+
+/**
+ * @brief @doctodo
+ *
+ * @return No return value
+ */
+void finishAggData(PStask_ID_t tid, PStask_ID_t logger);
+
+/** @brief @doctodo
+ *
+ * @return No return value
+ */
+void addClientToAggData(Client_t *client, AccountDataExt_t *accData);
+
+
+
+/** @brief @doctodo
+ *
+ * @return No return value
+ */
+void getPidsByLogger(PStask_ID_t logger, pid_t **pids, uint32_t *count);
+
+/** @brief @doctodo
+ *
+ * @return No return value
+ */
+PStask_ID_t getLoggerByClientPID(pid_t pid);
+
+/** @brief @doctodo
+ *
+ * @return No return value
+ */
+void switchClientUpdate(PStask_ID_t clientTID, bool enable);
+
+/** @brief @doctodo
+ *
+ * @return No return value
+ */
+void forwardAggData(void);
 
 #endif  /* __PS_ACCOUNT_CLIENT */

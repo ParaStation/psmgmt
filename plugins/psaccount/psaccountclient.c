@@ -18,25 +18,29 @@
 #include "psaccountlog.h"
 #include "psaccountproc.h"
 #include "psaccountconfig.h"
-#include "psaccountinter.h"
+#include "psaccountcomm.h"
 
 #include "psaccountclient.h"
 
 #define MAX_JOBS_PER_NODE 1024
 
-LIST_HEAD(clientList);
+static LIST_HEAD(clientList);
 
-const char* clientType2Str(int type)
+/* flag to control the global collect mode */
+bool globalCollectMode = false;
+
+static const char* clientType2Str(int type)
 {
     switch(type) {
-	case ACC_CHILD_JOBSCRIPT:
-	    return "JOBSCRIPT";
-	case ACC_CHILD_PSIDCHILD:
-	    return "PSIDCHILD";
-	case ACC_CHILD_REMOTE:
-	    return "REMOTE";
+    case ACC_CHILD_JOBSCRIPT:
+	return "JOBSCRIPT";
+    case ACC_CHILD_PSIDCHILD:
+	return "PSIDCHILD";
+    case ACC_CHILD_REMOTE:
+	return "REMOTE";
+    default:
+	return "UNKOWN";
     }
-    return "UNKOWN";
 }
 
 Client_t *findClientByTID(PStask_ID_t clientTID)
@@ -108,7 +112,22 @@ Client_t *findJobscriptInClients(Job_t *job)
     return NULL;
 }
 
-void addClientToAggData(Client_t *client, AccountDataExt_t *accData)
+/******************** Data aggregations ******************************/
+
+/**
+ * @brief Add client data to data aggregation
+ *
+ * Add each data item of the client @a client to the corresponding
+ * item of the data aggregation @a aggData and store the results into
+ * @a aggData.
+ *
+ * @param srcData Data aggregation to be added
+ *
+ * @param destData Data aggregation acting as the accumulator
+ *
+ * @return No return value
+ */
+void addClientToAggData(Client_t *client, AccountDataExt_t *aggData)
 {
     uint64_t maxRss, maxVsize, tmp;
     double dtmp;
@@ -119,97 +138,97 @@ void addClientToAggData(Client_t *client, AccountDataExt_t *accData)
     maxVsize = client->data.maxVsize / 1024;
 
     /* sum up for maxima totals */
-    accData->maxThreads += client->data.maxThreads;
-    accData->maxRssTotal += maxRss;
-    accData->maxVsizeTotal += maxVsize;
+    aggData->maxThreads += client->data.maxThreads;
+    aggData->maxRssTotal += maxRss;
+    aggData->maxVsizeTotal += maxVsize;
 
     /* maxima per client */
-    if (accData->maxThreads < client->data.maxThreads) {
-	accData->maxThreads = client->data.maxThreads;
+    if (aggData->maxThreads < client->data.maxThreads) {
+	aggData->maxThreads = client->data.maxThreads;
     }
 
-    if (accData->maxRss < maxRss) {
-	accData->maxRss = maxRss;
-	accData->taskIds[ACCID_MAX_RSS] = client->taskid;
+    if (aggData->maxRss < maxRss) {
+	aggData->maxRss = maxRss;
+	aggData->taskIds[ACCID_MAX_RSS] = client->taskid;
     }
 
-    if (accData->maxVsize < maxVsize) {
-	accData->maxVsize = maxVsize;
-	accData->taskIds[ACCID_MAX_VSIZE] = client->taskid;
+    if (aggData->maxVsize < maxVsize) {
+	aggData->maxVsize = maxVsize;
+	aggData->taskIds[ACCID_MAX_VSIZE] = client->taskid;
     }
 
     /* calculate averages per client if data available */
     if (client->data.avgThreadsCount > 0) {
-	accData->avgThreadsTotal +=
+	aggData->avgThreadsTotal +=
 	    client->data.avgThreadsTotal / client->data.avgThreadsCount;
-	accData->avgThreadsCount++;
+	aggData->avgThreadsCount++;
     }
     if (client->data.avgVsizeCount > 0) {
-	accData->avgVsizeTotal +=
+	aggData->avgVsizeTotal +=
 	    client->data.avgVsizeTotal / (client->data.avgVsizeCount * 1024);
-	accData->avgVsizeCount++;
+	aggData->avgVsizeCount++;
     }
     if (client->data.avgRssCount > 0) {
-	accData->avgRssTotal +=
+	aggData->avgRssTotal +=
 			(client->data.avgRssTotal * client->data.pageSize)
 			    / (client->data.avgRssCount * 1024);
-	accData->avgRssCount++;
+	aggData->avgRssCount++;
     }
 
-    accData->cutime += client->data.cutime;
-    accData->cstime += client->data.cstime;
+    aggData->cutime += client->data.cutime;
+    aggData->cstime += client->data.cstime;
 
-    accData->cputime += client->data.cputime;
-    accData->pageSize = client->data.pageSize;
+    aggData->cputime += client->data.cputime;
+    aggData->pageSize = client->data.pageSize;
 
-    accData->rusage.ru_utime.tv_sec += client->data.rusage.ru_utime.tv_sec;
-    accData->rusage.ru_utime.tv_usec += client->data.rusage.ru_utime.tv_usec;
-    accData->rusage.ru_stime.tv_sec += client->data.rusage.ru_stime.tv_sec;
-    accData->rusage.ru_stime.tv_usec += client->data.rusage.ru_stime.tv_usec;
+    aggData->rusage.ru_utime.tv_sec += client->data.rusage.ru_utime.tv_sec;
+    aggData->rusage.ru_utime.tv_usec += client->data.rusage.ru_utime.tv_usec;
+    aggData->rusage.ru_stime.tv_sec += client->data.rusage.ru_stime.tv_sec;
+    aggData->rusage.ru_stime.tv_usec += client->data.rusage.ru_stime.tv_usec;
 
     /* min cputime */
     tmp = client->data.rusage.ru_utime.tv_sec +
 		client->data.rusage.ru_stime.tv_sec;
-    if (!accData->numTasks) {
-	accData->minCputime = tmp;
-	accData->taskIds[ACCID_MIN_CPU] = client->taskid;
-    } else if (accData->minCputime > tmp) {
-	accData->minCputime = tmp;
-	accData->taskIds[ACCID_MIN_CPU] = client->taskid;
+    if (!aggData->numTasks) {
+	aggData->minCputime = tmp;
+	aggData->taskIds[ACCID_MIN_CPU] = client->taskid;
+    } else if (aggData->minCputime > tmp) {
+	aggData->minCputime = tmp;
+	aggData->taskIds[ACCID_MIN_CPU] = client->taskid;
     }
 
     /* total cputime */
-    accData->totCputime +=
+    aggData->totCputime +=
 		client->data.rusage.ru_utime.tv_sec +
 		client->data.rusage.ru_stime.tv_sec;
 
     /* major page faults */
-    accData->totMajflt += client->data.totMajflt;
-    if (client->data.totMajflt > accData->maxMajflt) {
-	accData->maxMajflt = client->data.totMajflt;
-	accData->taskIds[ACCID_MAX_PAGES] = client->taskid;
+    aggData->totMajflt += client->data.totMajflt;
+    if (client->data.totMajflt > aggData->maxMajflt) {
+	aggData->maxMajflt = client->data.totMajflt;
+	aggData->taskIds[ACCID_MAX_PAGES] = client->taskid;
     }
 
     /* disc read */
     dtmp = (double) client->data.totDiskRead / (double)1048576;
-    accData->totDiskRead += dtmp;
-    if (dtmp > accData->maxDiskRead) {
-	accData->maxDiskRead = dtmp;
-	accData->taskIds[ACCID_MAX_DISKREAD] = client->taskid;
+    aggData->totDiskRead += dtmp;
+    if (dtmp > aggData->maxDiskRead) {
+	aggData->maxDiskRead = dtmp;
+	aggData->taskIds[ACCID_MAX_DISKREAD] = client->taskid;
     }
 
     /* disc write */
     dtmp = (double) client->data.totDiskWrite / (double)1048576;
-    accData->totDiskWrite += dtmp;
-    if (dtmp > accData->maxDiskWrite) {
-	accData->maxDiskWrite = dtmp;
-	accData->taskIds[ACCID_MAX_DISKWRITE] = client->taskid;
+    aggData->totDiskWrite += dtmp;
+    if (dtmp > aggData->maxDiskWrite) {
+	aggData->maxDiskWrite = dtmp;
+	aggData->taskIds[ACCID_MAX_DISKWRITE] = client->taskid;
     }
 
-    accData->numTasks++;
+    aggData->numTasks++;
 
     /* cpu freq */
-    accData->cpuFreq += client->data.cpuFreq;
+    aggData->cpuFreq += client->data.cpuFreq;
 
     mdbg(PSACC_LOG_AGGREGATE, "%s: client '%s' maxThreads '%lu' maxVsize '%lu' "
 	    "maxRss '%lu' cutime '%lu' cstime '%lu' cputime '%lu' avg cpuFreq "
@@ -217,11 +236,23 @@ void addClientToAggData(Client_t *client, AccountDataExt_t *accData)
 	    client->data.maxThreads, client->data.maxVsize,
 	    client->data.maxRss, client->data.cutime, client->data.cstime,
 	    client->data.cputime,
-	    ((double) accData->cpuFreq / (double) accData->numTasks) /
+	    ((double) aggData->cpuFreq / (double) aggData->numTasks) /
 	    (double) 1048576);
 }
 
-void addAggData(AccountDataExt_t *srcData, AccountDataExt_t *destData)
+/**
+ * @brief Add two data aggregations
+ *
+ * Create the sum of each data item of the two data aggregations @a
+ * srcData and @a destData and store the results into @a destData.
+ *
+ * @param srcData Data aggregation to be added
+ *
+ * @param destData Data aggregation acting as the accumulator
+ *
+ * @return No return value
+ */
+static void addAggData(AccountDataExt_t *srcData, AccountDataExt_t *destData)
 {
     /* sum up for maxima totals */
     destData->maxThreadsTotal += srcData->maxThreadsTotal;
@@ -310,13 +341,45 @@ void addAggData(AccountDataExt_t *srcData, AccountDataExt_t *destData)
     destData->pageSize = srcData->pageSize;
 
     mdbg(PSACC_LOG_AGGREGATE, "%s: maxThreads '%lu' maxVsize '%lu' "
-	    "maxRss '%lu' cutime '%lu' cstime '%lu' cputime '%lu' avg cpuFreq "
-	    "'%.2fG'\n", __func__,
-	    srcData->maxThreads, srcData->maxVsize,
-	    srcData->maxRss, srcData->cutime, srcData->cstime,
-	    srcData->cputime,
-	    ((double) destData->cpuFreq / (double) destData->numTasks) /
-	    (double) 1048576);
+	 "maxRss '%lu' cutime '%lu' cstime '%lu' cputime '%lu' avg cpuFreq "
+	 "'%.2fG'\n", __func__, srcData->maxThreads, srcData->maxVsize,
+	 srcData->maxRss, srcData->cutime, srcData->cstime, srcData->cputime,
+	 ((double)destData->cpuFreq / destData->numTasks) / (1024*1024));
+}
+
+void setAggData(PStask_ID_t tid, PStask_ID_t logger, AccountDataExt_t *data)
+{
+    Client_t *client;
+    bool found = false;
+    list_t *pos;
+
+    list_for_each(pos, &clientList) {
+	client = list_entry(pos, Client_t, next);
+	if (client->taskid == tid &&  client->logger == logger) {
+	    found = true;
+	    break;
+	}
+    }
+
+    if (!found) {
+	client = addClient(tid, ACC_CHILD_REMOTE);
+	client->logger = logger;
+	client->doAccounting = false;
+    }
+
+    memcpy(&client->data, data, sizeof(client->data));
+}
+
+void finishAggData(PStask_ID_t tid, PStask_ID_t logger)
+{
+    list_t *pos;
+    list_for_each(pos, &clientList) {
+	Client_t *client = list_entry(pos, Client_t, next);
+	if (client->taskid == tid && client->logger == logger) {
+	    client->endTime = time(NULL);
+	    break;
+	}
+    }
 }
 
 void getPidsByLogger(PStask_ID_t logger, pid_t **pids, uint32_t *count)
@@ -345,6 +408,47 @@ void getPidsByLogger(PStask_ID_t logger, pid_t **pids, uint32_t *count)
 	    (*pids)[index++] = client->pid;
 	}
     }
+}
+
+PStask_ID_t getLoggerByClientPID(pid_t pid)
+{
+    ProcStat_t pS;
+    bool psOK = false;
+    list_t *pos;
+
+    if (list_empty(&clientList)) return -1;
+
+    if (readProcStatInfo(pid, &pS)) {
+	psOK = true;
+    }
+
+    /* try to find the pid in the acc children */
+    list_for_each(pos, &clientList) {
+	Client_t *client = list_entry(pos, Client_t, next);
+
+	/* try pid */
+	if (client->pid == pid) return client->logger;
+
+	if (!psOK) continue;
+
+	/* try sid */
+	if (client->data.session && client->data.session == pS.session) {
+	    return client->logger;
+	}
+
+	/* try pgroup */
+	if (client->data.pgroup && client->data.pgroup == pS.pgrp) {
+	    return client->logger;
+	}
+    }
+
+    /* try all grand-children now */
+    list_for_each(pos, &clientList) {
+	Client_t *client = list_entry(pos, Client_t, next);
+	if (isDescendant(client->pid, pid)) return client->logger;
+    }
+
+    return -1;
 }
 
 bool aggregateDataByLogger(PStask_ID_t logger, AccountDataExt_t *accData)
@@ -497,7 +601,7 @@ void forwardAggData(void)
 	}
 
 	/* send the update */
-	if (aggData.numTasks) sendAggregatedData(&aggData, loggerTIDs[i]);
+	if (aggData.numTasks) sendAggData(loggerTIDs[i], &aggData);
     }
 }
 
@@ -548,67 +652,59 @@ char *listClients(char *buf, size_t *bufSize, bool detailed)
     str2Buf("\nclients:\n", &buf, bufSize);
 
     list_for_each(pos, &clientList) {
-	Client_t *client = list_entry(pos, Client_t, next);
+	Client_t *c = list_entry(pos, Client_t, next);
 
-	snprintf(line, sizeof(line), "taskID '%s'\n",
-		    PSC_printTID(client->taskid));
+	snprintf(line, sizeof(line), "taskID '%s'\n", PSC_printTID(c->taskid));
 	str2Buf(line, &buf, bufSize);
 
-	snprintf(line, sizeof(line), "rank '%i'\n", client->rank);
+	snprintf(line, sizeof(line), "rank '%i'\n", c->rank);
 	str2Buf(line, &buf, bufSize);
 
-	snprintf(line, sizeof(line), "logger '%s'\n",
-		    PSC_printTID(client->logger));
+	snprintf(line, sizeof(line), "logger '%s'\n", PSC_printTID(c->logger));
 	str2Buf(line, &buf, bufSize);
 
-	snprintf(line, sizeof(line), "account '%i'\n", client->doAccounting);
+	snprintf(line, sizeof(line), "account '%i'\n", c->doAccounting);
 	str2Buf(line, &buf, bufSize);
 
-	snprintf(line, sizeof(line), "type '%s'\n",
-		    clientType2Str(client->type));
+	snprintf(line, sizeof(line), "type '%s'\n", clientType2Str(c->type));
 	str2Buf(line, &buf, bufSize);
 
-	snprintf(line, sizeof(line), "uid '%i'\n", client->uid);
+	snprintf(line, sizeof(line), "uid '%i'\n", c->uid);
 	str2Buf(line, &buf, bufSize);
 
-	snprintf(line, sizeof(line), "gid '%i'\n", client->gid);
+	snprintf(line, sizeof(line), "gid '%i'\n", c->gid);
 	str2Buf(line, &buf, bufSize);
 
-	snprintf(line, sizeof(line), "page size '%zu'\n",
-		    client->data.pageSize);
-
+	snprintf(line, sizeof(line), "page size '%zu'\n", c->data.pageSize);
 	str2Buf(line, &buf, bufSize);
 
-	snprintf(line, sizeof(line), "start time %s",
-		    ctime(&client->startTime));
+	snprintf(line, sizeof(line), "start time %s", ctime(&c->startTime));
 	str2Buf(line, &buf, bufSize);
 
 	snprintf(line, sizeof(line), "end time %s",
-		    client->endTime ? ctime(&client->endTime) : "-\n");
+		 c->endTime ? ctime(&c->endTime) : "-\n");
 	str2Buf(line, &buf, bufSize);
 
 	if (detailed) {
-
 	    snprintf(line, sizeof(line), "max mem '%zu'\n",
-						client->data.maxRss * pageSize);
+		     c->data.maxRss * pageSize);
 	    str2Buf(line, &buf, bufSize);
 
 	    snprintf(line, sizeof(line), "max vmem '%zu'\n",
-						client->data.maxVsize);
+		     c->data.maxVsize);
 	    str2Buf(line, &buf, bufSize);
 
-	    snprintf(line, sizeof(line), "cutime '%zu'\n", client->data.cutime);
+	    snprintf(line, sizeof(line), "cutime '%zu'\n", c->data.cutime);
 	    str2Buf(line, &buf, bufSize);
 
-	    snprintf(line, sizeof(line), "cstime '%zu'\n", client->data.cstime);
+	    snprintf(line, sizeof(line), "cstime '%zu'\n", c->data.cstime);
 	    str2Buf(line, &buf, bufSize);
 
-	    snprintf(line, sizeof(line), "cputime '%zu'\n",
-			client->data.cputime);
+	    snprintf(line, sizeof(line), "cputime '%zu'\n", c->data.cputime);
 	    str2Buf(line, &buf, bufSize);
 
 	    snprintf(line, sizeof(line), "max threads '%zu'\n",
-						client->data.maxThreads);
+		     c->data.maxThreads);
 	    str2Buf(line, &buf, bufSize);
 	}
 

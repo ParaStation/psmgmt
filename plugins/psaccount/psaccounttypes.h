@@ -7,21 +7,15 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-/**
- * $Id$
- *
- * \author
- * Michael Rauh <rauh@par-tec.com>
- *
- */
 
 #ifndef __PS_ACCOUNT_TYPES
 #define __PS_ACCOUNT_TYPES
 
-#include <sys/resource.h>
 #include <stdint.h>
+#include <sys/resource.h>
+#include <sys/types.h>
 
-#include "pstask.h"
+#include "pstaskid.h"
 
 typedef struct {
     uint64_t cputime;
@@ -118,4 +112,4 @@ typedef struct {
     uid_t uid;
 } ProcStat_t;
 
-#endif
+#endif  /* __PS_ACCOUNT_TYPES */

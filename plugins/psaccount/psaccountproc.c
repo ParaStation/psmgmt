@@ -458,7 +458,7 @@ static void clearAllProcSnapshots(void)
 
 #define MAX_USER 300
 
-void getSessionInformation(int *count, char *buf, size_t size, int *userCount)
+void getSessionInfo(int *count, char *buf, size_t size, int *userCount)
 {
     uid_t users[MAX_USER];
     list_t *pos;

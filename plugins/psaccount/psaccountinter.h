@@ -11,39 +11,11 @@
 #ifndef __PS_ACCOUNT_INTER
 #define __PS_ACCOUNT_INTER
 
-#include "psidcomm.h"
-#include "pspluginprotocol.h"
-#include "psaccountclient.h"
-#include "psaccountproc.h"
+#include <stdint.h>
+#include <sys/types.h>
 
-typedef enum {
-    PSP_ACCOUNT_FORWARD_START = 0x00000,
-    PSP_ACCOUNT_FORWARD_END,
-    PSP_ACCOUNT_DATA_UPDATE,
-    PSP_ACCOUNT_ENABLE_UPDATE,
-    PSP_ACCOUNT_DISABLE_UPDATE,
-    PSP_ACCOUNT_AGG_DATA_UPDATE,
-    PSP_ACCOUNT_AGG_DATA_FINISH,
-} PSP_PSAccount_t;
-
-/** Flag mode to globally collect accounting data */
-extern bool globalCollectMode;
-
-/** Socket connected to the local daemon */
-extern int daemonSock;
-
-/**
- * @brief Global message switch for inter account messages.
- *
- * @msg The message to handle.
- *
- * @return No return value.
- */
-void handleInterAccount(DDTypedBufferMsg_t *msg);
-
-void sendAggregatedData(AccountDataExt_t *aggData, PStask_ID_t loggerTID);
-
-void sendAggDataFinish(PStask_ID_t loggerTID);
+#include "pstaskid.h"
+#include "psaccounttypes.h"
 
 /**
  * @brief Enable the global collection of accounting data.
@@ -64,7 +36,7 @@ void psAccountSetGlobalCollect(int active);
  * @brief Wrapper for the getSessionInformation() function.
  */
 void psAccountGetSessionInfos(int *count, char *buf, size_t bufsize,
-				int *userCount);
+			      int *userCount);
 
 /**
  * @brief Wrapper for the sendSignal2Session() function.
@@ -108,8 +80,7 @@ int psAccountGetDataByLogger(PStask_ID_t logger, AccountDataExt_t *accData);
 /**
  * @brief Wrapper for  getPidsByLogger().
  */
-void psAccountGetPidsByLogger(PStask_ID_t loggerTID, pid_t **pids,
-				uint32_t *count);
+void psAccountGetPidsByLogger(PStask_ID_t logger, pid_t **pids, uint32_t *cnt);
 
 int psAccountSwitchAccounting(PStask_ID_t clientTID, int enable);
 
