@@ -26,29 +26,6 @@ typedef struct {
     int count;
 } psaccAccountInfo_t;
 
-typedef struct {
-    pid_t session;
-    pid_t pgroup;
-    uint64_t maxThreads;
-    uint64_t maxVsize;
-    uint64_t maxRss;
-    uint64_t avgThreads;
-    uint64_t avgThreadsCount;
-    uint64_t avgVsize;
-    uint64_t avgVsizeCount;
-    uint64_t avgRss;
-    uint64_t avgRssCount;
-    uint64_t cutime;
-    uint64_t cstime;
-    uint64_t cputime;
-    uint64_t majflt;
-    uint64_t rChar;
-    uint64_t wChar;
-    uint64_t readBytes;
-    uint64_t writeBytes;
-    uint64_t cpuFreq;
-} AccountData_t;
-
 typedef enum {
     ACCID_MAX_VSIZE,
     ACCID_MAX_RSS,
