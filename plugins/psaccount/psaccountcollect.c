@@ -8,30 +8,13 @@
  * file.
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <errno.h>
-#include <fcntl.h>
-#include <sys/ioctl.h>
-#include <sys/resource.h>
-#include <sys/socket.h>
-#include <sys/time.h>
-#include <sys/types.h>
-#include <sys/wait.h>
-#include <signal.h>
-#include <dirent.h>
-#include <ctype.h>
-
-#include "psaccountinter.h"
-#include "psaccountlog.h"
-#include "psaccountproc.h"
-#include "psaccount.h"
-#include "psaccountconfig.h"
+#include <stdint.h>
 
 #include "pluginmalloc.h"
-#include "pscommon.h"
+
+#include "psaccount.h"
+#include "psaccountproc.h"
+#include "psaccountlog.h"
 
 #include "psaccountcollect.h"
 
@@ -39,41 +22,42 @@ int clockTicks = -1;
 
 void updateAccountData(Client_t *client)
 {
-    unsigned long rssnew, vsizenew = 0;
-    uint64_t cutime, cstime;
+    unsigned long rssnew = 0, vsizenew = 0;
+    uint64_t cutime = 0, cstime = 0;
     AccountDataExt_t *accData;
     Proc_Snapshot_t *proc, *pChildren;
     ProcIO_t procIO;
     uint64_t cputime, maxRssMB = 0;
     int64_t diffCputime;
 
-    if (client->doAccounting == 0) return;
+    if (!client->doAccounting) return;
 
     if (!(proc = findProcSnapshot(client->pid))) {
-	client->doAccounting = 0;
+	client->doAccounting = false;
 	client->endTime = time(NULL);
 	return;
     }
 
     accData = &client->data;
-    if (!(accData->session)) {
+    if (!accData->session) {
 	accData->session = proc->session;
     }
-    if (!(accData->pgroup)) {
+    if (!accData->pgroup) {
 	accData->pgroup = proc->pgroup;
     }
 
     /* get infos for all children  */
     pChildren = getAllChildrenData(client->pid);
+    if (pChildren) {
+	rssnew = proc->mem + pChildren->mem;
+	vsizenew = proc->vmem + pChildren->vmem;
 
-    rssnew = proc->mem + pChildren->mem;
-    vsizenew = proc->vmem + pChildren->vmem;
+	/* save cutime and cstime in seconds */
+	cutime = (proc->cutime + pChildren->cutime) / clockTicks;
+	cstime = (proc->cstime + pChildren->cstime) / clockTicks;
 
-    /* save cutime and cstime in seconds */
-    cutime = (proc->cutime + pChildren->cutime) / clockTicks;
-    cstime = (proc->cstime + pChildren->cstime) / clockTicks;
-
-    ufree(pChildren);
+	ufree(pChildren);
+    }
 
     /* set rss (resident set size) */
     if (rssnew > accData->maxRss) accData->maxRss = rssnew;
@@ -121,9 +105,9 @@ void updateAccountData(Client_t *client)
     }
 
     /* calc cpu freq */
-    if (diffCputime >0) {
+    if (diffCputime > 0) {
 	accData->cpuWeight = accData->cpuWeight +
-				cpuFreq[proc->cpu] * diffCputime;
+	    cpuFreq[proc->cpu] * diffCputime;
 	if (cputime) {
 	    accData->cpuFreq = accData->cpuWeight / cputime;
 	}
@@ -133,10 +117,10 @@ void updateAccountData(Client_t *client)
     maxRssMB = (accData->maxRss * (pageSize / (1024)) / 1024);
 
     mdbg(PSACC_LOG_COLLECT, "%s: tid '%s' rank '%i' cutime: '%lu' cstime: '%lu'"
-	    " session '%i' mem '%lu MB' vmem '%lu MB' threads '%lu' "
-	    "majflt '%lu' cpu '%u' cpuFreq '%lu'\n", __func__,
-	    PSC_printTID(client->taskid),
-	    client->rank, accData->cutime, accData->cstime, accData->session,
-	    maxRssMB, accData->maxVsize / (1024 * 1024), accData->maxThreads,
-	    accData->totMajflt, proc->cpu, accData->cpuFreq);
+	 " session '%i' mem '%lu MB' vmem '%lu MB' threads '%lu' "
+	 "majflt '%lu' cpu '%u' cpuFreq '%lu'\n", __func__,
+	 PSC_printTID(client->taskid),
+	 client->rank, accData->cutime, accData->cstime, accData->session,
+	 maxRssMB, accData->maxVsize / (1024 * 1024), accData->maxThreads,
+	 accData->totMajflt, proc->cpu, accData->cpuFreq);
 }
