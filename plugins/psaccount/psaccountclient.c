@@ -444,9 +444,7 @@ void cleanupClients(void)
 {
     list_t *pos, *tmp;
     time_t now = time(NULL);
-    long grace = 0;
-
-    getConfParamL("TIME_CLIENT_GRACE", &grace);
+    long grace = getConfValueL(&config, "TIME_CLIENT_GRACE");
 
     list_for_each_safe(pos, tmp, &clientList) {
 	Client_t *client = list_entry(pos, Client_t, next);
@@ -519,10 +517,9 @@ void updateClients(Job_t *job)
     }
 
     if (globalCollectMode) {
-	int forwardInterval;
-	getConfParamI("FORWARD_INTERVAL", &forwardInterval);
+	int forwInterval = getConfValueI(&config, "FORWARD_INTERVAL");
 
-	if (++updateCount >= forwardInterval) {
+	if (++updateCount >= forwInterval) {
 	    forwardAggData();
 	    updateCount = 0;
 	}

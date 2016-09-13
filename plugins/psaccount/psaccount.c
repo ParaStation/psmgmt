@@ -127,11 +127,10 @@ int initialize(void)
 
     /* init the config facility */
     snprintf(configfn, sizeof(configfn), "%s/%s", PLUGINDIR, PSACCOUNT_CONFIG);
-
-    if (!(initConfig(configfn))) return 1;
+    if (!initConfig(configfn)) return 1;
 
     /* init logging facility */
-    getConfParamI("DEBUG_MASK", &debugMask);
+    debugMask = getConfValueI(&config, "DEBUG_MASK");
     maskLogger(debugMask);
 
     /* read plattform version */
@@ -215,7 +214,7 @@ void cleanup(void)
     clearAllClients();
     clearAllProcSnapshots();
     clearHist();
-    clearConfig();
+    freeConfig(&config);
     clearCpuFreq();
     finalizeFragComm();
 }

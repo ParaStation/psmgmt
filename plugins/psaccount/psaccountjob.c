@@ -6,9 +6,6 @@
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
- *
- * Authors:     Michael Rauh <rauh@par-tec.com>
- *
  */
 
 #include <stdlib.h>
@@ -110,9 +107,7 @@ void cleanupJobs(void)
     list_t *pos, *tmp;
     Job_t *job;
     time_t now = time(NULL);
-    long grace = 0;
-
-    getConfParamL("TIME_JOB_GRACE", &grace);
+    long grace = getConfValueL(&config, "TIME_JOB_GRACE");
 
     list_for_each_safe(pos, tmp, &JobList.list) {
 	if (!(job = list_entry(pos, Job_t, list))) break;

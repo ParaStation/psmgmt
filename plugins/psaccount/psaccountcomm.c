@@ -288,7 +288,7 @@ static void monitorJobStarted(void)
 
     if (list_empty(&JobList.list)) return;
 
-    getConfParamI("TIME_JOBSTART_WAIT", &grace);
+    grace = getConfValueI(&config, "TIME_JOBSTART_WAIT");
 
     list_for_each_safe(pos, tmp, &JobList.list) {
 	if ((job = list_entry(pos, Job_t, list)) == NULL) break;
@@ -361,7 +361,7 @@ static void handleAccountChild(DDTypedBufferMsg_t *msg)
 
     /* save start time to trigger next update */
     if (job->lastChildStart < 1 && jobTimerID == -1) {
-	getConfParamL("TIME_JOBSTART_POLL", &jobTimer.tv_usec);
+	jobTimer.tv_usec = getConfValueL(&config, "TIME_JOBSTART_POLL");
 	jobTimerID = Timer_register(&jobTimer, monitorJobStarted);
     }
 
