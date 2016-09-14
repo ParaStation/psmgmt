@@ -115,21 +115,6 @@ void cleanupJobs(void);
 void triggerJobStartMonitor(void);
 
 /**
- * @brief Collect data associated to jobscript
- *
- * Accumulate all resource usage information associated to the
- * jobscript @ref jobscript into @a accData.
- *
- * @param jobscript PID of the jobscript to investigate
- *
- * @param accData The data structure which will hold all the accumulated
- * accounting information
- *
- * @return No return value
- */
-void collectDataByJobscript(pid_t jobscript, AccountDataExt_t *accData);
-
-/**
  * @brief Get account data for jobscript
  *
  * Get accounting data for all processes associated to the jobscript

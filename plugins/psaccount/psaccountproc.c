@@ -188,11 +188,6 @@ int signalChildren(pid_t mypid, pid_t child, pid_t pgrp, int sig)
     /* never send signal to myself */
     if (child == mypid) return 0;
 
-    if (list_empty(&procList)) {
-	doKill(child, pgrp, sig);
-	return 1;
-    }
-
     list_for_each(pos, &procList) {
 	ProcSnapshot_t *childProc = list_entry(pos, ProcSnapshot_t, next);
 	int myPgrp = (pgrp > 0) ? childProc->pgrp : pgrp;

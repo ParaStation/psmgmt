@@ -17,7 +17,6 @@
 #include "psaccountproc.h"
 #include "psaccountcomm.h"
 #include "psaccountjob.h"
-#include "psaccountinter.h"
 #include "psaccountclient.h"
 #include "psaccountconfig.h"
 #include "psaccounthistory.h"
@@ -26,7 +25,6 @@
 #include "timer.h"
 #include "plugin.h"
 #include "psidnodes.h"
-#include "psidutil.h"
 #include "pluginfrag.h"
 
 #include "psaccount.h"

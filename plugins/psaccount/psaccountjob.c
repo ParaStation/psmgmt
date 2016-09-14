@@ -177,22 +177,6 @@ void triggerJobStartMonitor(void)
     }
 }
 
-
-void collectDataByJobscript(pid_t jobscript, AccountDataExt_t *accData)
-{
-    list_t *pos;
-    list_for_each(pos, &jobList) {
-	Job_t *job = list_entry(pos, Job_t, next);
-
-	if (job->jobscript != jobscript) continue;
-
-	if (!aggregateDataByLogger(job->logger, accData)) {
-	    mlog("%s: getting account data by jobscript '%i' failed\n",
-		 __func__, jobscript);
-	}
-    }
-}
-
 /**
  * @brief Accumulate data associated to jobscript
  *

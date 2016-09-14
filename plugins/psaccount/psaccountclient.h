@@ -30,7 +30,7 @@ typedef enum {
 
 /** Structure holding all information concerning a distinct client */
 typedef struct {
-    list_t next;                /**< used to put into @ref psAccountClients */
+    list_t next;                /**< used to put into list of clients */
     bool doAccounting;          /**< flag accounting of this client */
     PS_Acct_job_types_t type;   /**< type of client */
     PStask_ID_t logger;         /**< logger associated to the client */
@@ -186,9 +186,9 @@ char *listClients(char *buf, size_t *bufSize, bool detailed);
 
 /************************* Aggregation *************************/
 
-/** @brief Accumulate data by logger
+/** @brief Aggregate data by logger
  *
- * Accumulate all resource data of clients associated to the logger @a
+ * Aggregate resource data of clients associated to the logger @a
  * logger. Data is accumulated in @a accData.
  *
  * @param logger Logger to identify the clients to be accumulated

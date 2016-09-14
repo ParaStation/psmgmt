@@ -20,75 +20,57 @@
 
 #include "psaccountinter.h"
 
-int psAccountSwitchAccounting(PStask_ID_t clientTID, int enable)
+int psAccountSwitchAccounting(PStask_ID_t clientTID, bool enable)
 {
-    return switchAccounting(clientTID, !!enable);
+    return switchAccounting(clientTID, enable);
 }
 
-int psAccountGetDataByLogger(PStask_ID_t logger, AccountDataExt_t *accData)
+void psAccountGetPidsByLogger(PStask_ID_t logger, pid_t **pids, uint32_t *cnt)
+{
+    getPidsByLogger(logger, pids, cnt);
+}
+
+bool psAccountGetDataByLogger(PStask_ID_t logger, AccountDataExt_t *accData)
 {
     memset(accData, 0, sizeof(*accData));
     return aggregateDataByLogger(logger, accData);
 }
 
-void psAccountGetPidsByLogger(PStask_ID_t loggerTID, pid_t **pids,
-			      uint32_t *count)
+bool psAccountGetDataByJob(pid_t jobscript, AccountDataExt_t *accData)
 {
-    return getPidsByLogger(loggerTID, pids, count);
+    return getDataByJob(jobscript, accData);
 }
 
-int psAccountGetJobData(pid_t jobscript, AccountDataExt_t *accData)
-{
-    Client_t *jsClient = findClientByPID(jobscript);
-    Job_t *job = findJobByJobscript(jobscript);
-
-    memset(accData, 0, sizeof(*accData));
-
-    if (!jsClient) {
-	mlog("%s: getting account info by client '%i' failed\n", __func__,
-	     jobscript);
-	return false;
-    }
-
-    /* search all parallel jobs and calc data */
-    if (job) collectDataByJobscript(jobscript, accData);
-
-    /* add the jobscript */
-    addClientToAggData(jsClient, accData);
-
-    return true;
-}
-
-int psAccountSignalAllChildren(pid_t mypid, pid_t child, pid_t pgroup, int sig)
+int psAccountSignalChildren(pid_t mypid, pid_t child, pid_t pgroup, int sig)
 {
     return signalChildren(mypid, child, pgroup, sig);
 }
 
-int psAccountsendSignal2Session(pid_t session, int sig)
+int psAccountSignalSession(pid_t session, int sig)
 {
     return signalSession(session, sig);
 }
 
-void psAccountisChildofParent(pid_t parent, pid_t child)
+bool psAccountIsDescendant(pid_t parent, pid_t child)
 {
     /* we need up2date information */
     updateProcSnapshot();
 
-    isDescendant(parent, child);
+    return isDescendant(parent, child);
 }
 
 void psAccountGetSessionInfos(int *count, char *buf, size_t bufsize,
-				int *userCount)
+			       int *userCount)
 {
     getSessionInfo(count, buf, bufsize, userCount);
 }
 
-void psAccountFindDaemonProcs(uid_t uid, int kill, int warn)
+void psAccountFindDaemonProcs(uid_t uid, bool kill, bool warn)
 {
-    findDaemonProcesses(uid, !!kill, !!warn);
+    findDaemonProcesses(uid, kill, warn);
 }
 
-int psAccountreadProcStatInfo(pid_t pid, ProcStat_t *pS)
+bool psAccountReadProcStatInfo(pid_t pid, ProcStat_t *pS)
 {
     return readProcStatInfo(pid, pS);
 }
@@ -119,12 +101,12 @@ void psAccountUnregisterJob(pid_t jsPid)
     deleteJobsByJobscript(jsPid);
 }
 
-void psAccountSetGlobalCollect(int active)
+void psAccountSetGlobalCollect(bool active)
 {
-    globalCollectMode = !!active;
+    globalCollectMode = active;
 }
 
-PStask_ID_t psAccountgetLoggerByClientPID(pid_t pid)
+PStask_ID_t psAccountGetLoggerByClient(pid_t pid)
 {
     return getLoggerByClientPID(pid);
 }
