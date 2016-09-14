@@ -249,7 +249,7 @@ void addClientToAggData(Client_t *client, AccountDataExt_t *aggData)
     maxVsize = client->data.maxVsize / 1024;
 
     /* sum up for maxima totals */
-    aggData->maxThreads += client->data.maxThreads;
+    aggData->maxThreadsTotal += client->data.maxThreads;
     aggData->maxRssTotal += maxRss;
     aggData->maxVsizeTotal += maxVsize;
 
