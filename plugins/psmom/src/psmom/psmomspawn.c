@@ -25,10 +25,20 @@
 #include <netdb.h>
 #include <sys/wait.h>
 
-#include "pbsdef.h"
-#include "psmomlog.h"
+#include "timer.h"
+#include "psidscripts.h"
+#include "pscommon.h"
+#include "psprotocol.h"
+#include "psnodes.h"
+#include "psidcomm.h"
+
 #include "pluginhelper.h"
 #include "pluginmalloc.h"
+
+#include "psaccounthandles.h"
+
+#include "pbsdef.h"
+#include "psmomlog.h"
 #include "psmomconfig.h"
 #include "psmom.h"
 #include "psmompscomm.h"
@@ -37,17 +47,9 @@
 #include "psmomforwarder.h"
 #include "psmomproto.h"
 #include "psmomconv.h"
-#include "psmompsaccfunc.h"
 #include "psmomssh.h"
 #include "psmomenv.h"
 #include "psmompbsserver.h"
-
-#include "timer.h"
-#include "psidscripts.h"
-#include "pscommon.h"
-#include "psprotocol.h"
-#include "psnodes.h"
-#include "psidcomm.h"
 #include "psmomcollect.h"
 #include "psmomacc.h"
 #include "psmomkvs.h"
@@ -769,7 +771,7 @@ static int callbackJob(int fd, PSID_scriptCBInfo_t *info)
     fetchAccInfo(job);
 
     /* stop accounting of the job */
-    psAccountUnregisterMOMJob(job->pid);
+    psAccountUnregisterJob(job->pid);
 
     /* tell other nodes the job is finished */
     sendJobInfo(job, 0);

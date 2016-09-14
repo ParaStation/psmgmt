@@ -7,13 +7,14 @@
 # as defined in the file LICENSE.QPL included in the packaging of this
 # file.
 #
-# Author:	Michael Rauh <rauh@par-tec.com>
-#
 
 include $(top_srcdir)/common.am
 
+psaccount_dir := plugins/psaccount
+
 AM_LDFLAGS += -avoid-version -module
-AM_CPPFLAGS += -I$(top_srcdir)/bin/daemon -I$(srcdir)/../include
+AM_CPPFLAGS += -I$(top_srcdir)/bin/daemon -I$(srcdir)/../include \
+		-I$(top_srcdir)/$(psaccount_dir)
 
 plugin_LTLIBRARIES = psmom.la
 
@@ -30,7 +31,7 @@ psmom_la_SOURCES = Makefile.am psmomacc.c \
 	psmomjobinfo.c psmomjobinfo.h psmomkvs.c psmomkvs.h psmomlist.c \
 	psmomlist.h psmomlocalcomm.c psmomlocalcomm.h psmomlog.c psmomlog.h \
 	psmompartition.c psmompartition.h psmompbsserver.c psmompbsserver.h \
-	psmomproto.c psmomproto.h psmompsaccfunc.h psmompscomm.c \
+	psmomproto.c psmomproto.h psmompscomm.c \
 	psmompscomm.h psmomrecover.c psmomrecover.h psmomrpp.c psmomrpp.h \
 	psmomscript.c psmomscript.h psmomsignal.c psmomsignal.h psmomspawn.c \
 	psmomspawn.h psmomssh.c psmomssh.h psmomtcp.c psmomtcp.h

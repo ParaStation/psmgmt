@@ -1,18 +1,11 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2011-2013 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2011-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
- */
-/**
- * $Id$
- *
- * \author
- * Michael Rauh <rauh@par-tec.com>
- *
  */
 
 #include <stdlib.h>
@@ -23,7 +16,9 @@
 #include <unistd.h>
 
 #include "pluginmalloc.h"
-#include "psmompsaccfunc.h"
+
+#include "psaccounthandles.h"
+
 #include "psmomjob.h"
 #include "psmomlog.h"
 #include "psmomkvs.h"
@@ -87,13 +82,13 @@ void delSSHSessions(char *user)
 	 *
 	 * not always working with Suse (#1795)
 	 *
-	psAccountSignalAllChildren(getpid(), ssh->pid, -1, SIGTERM);
-	psAccountSignalAllChildren(getpid(), ssh->pid, -1, SIGKILL);
+	psAccountSignalChildren(getpid(), ssh->pid, -1, SIGTERM);
+	psAccountSignalChildren(getpid(), ssh->pid, -1, SIGKILL);
 	*/
 
 	/* kill ssh session */
-	psAccountsendSignal2Session(ssh->sid, SIGTERM);
-	psAccountsendSignal2Session(ssh->sid, SIGKILL);
+	psAccountSignalSession(ssh->sid, SIGTERM);
+	psAccountSignalSession(ssh->sid, SIGKILL);
 
 
 	if (ssh->user) ufree(ssh->user);
@@ -131,7 +126,7 @@ SSHSession_t *findSSHSessionforPID(pid_t pid)
 	if ((ssh = list_entry(pos, SSHSession_t, list)) == NULL) return NULL;
 
 	/* checking for pgroup or session does not make sense for SSH logins */
-	if ((ssh->pid == pid || psAccountisChildofParent(ssh->pid, pid))) {
+	if (ssh->pid == pid || psAccountIsDescendant(ssh->pid, pid)) {
 	    return ssh;
 	}
     }

@@ -1,18 +1,11 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2015 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
- */
-/**
- * $Id$
- *
- * \author
- * Michael Rauh <rauh@par-tec.com>
- *
  */
 
 #ifndef __PS_MOM_JOB
@@ -36,7 +29,7 @@ typedef enum {
     JOB_CANCEL_PROLOGUE,    /* prologue failed and is canceled */
     JOB_CANCEL_EPILOGUE,    /* epilouge failed and is canceled */
     JOB_CANCEL_INTERACTIVE, /* an interactive job failed and is canceled */
-    JOB_WAIT_OBIT,	    /* send job obit failed, try it periodically again */
+    JOB_WAIT_OBIT,	    /* send job obit failed, try again periodically */
     JOB_EXIT		    /* the job is exiting */
 } JobState_t;
 
@@ -63,8 +56,8 @@ typedef struct {
 } Task_t;
 
 typedef enum {
-    JOB_CON_FORWARD,		/* local connection between the forwarder and the psmom */
-    JOB_CON_X11_CLIENT, 	/* connection between qsub and x11 client */
+    JOB_CON_FORWARD,      /* local connection between forwarder and psmom */
+    JOB_CON_X11_CLIENT,   /* connection between qsub and x11 client */
     JOB_CON_X11_LISTEN
 } Job_Conn_type_t;
 
@@ -90,7 +83,7 @@ typedef struct {
     char *id;		    /* the PBS jobid */
     char *hashname;	    /* filesystem compatible jobid */
     char *server;	    /* pbs_server address for the job */
-    char *jobscript;	    /* filename of the jobscript, empty for interactive jobs */
+    char *jobscript;	    /* filename of jobscript, empty if interactive */
     char *cookie;	    /* uniq job cookie for job recognition */
     char *user;		    /* username of the job owner */
     struct passwd passwd;   /* passwd information from the job owner */
@@ -100,12 +93,12 @@ typedef struct {
     pid_t mpiexec;	    /* the pid of the last mpiexec/psilogger process */
     Data_Entry_t data;	    /* job information received from torque server */
     Data_Entry_t status;    /* status information as string e.g. walltime */
-    Task_t tasks;	    /* information about additional tasks e.g. (interactive) */
+    Task_t tasks;	    /* info on additional tasks e.g. (interactive) */
     Resources_t res;	    /* all used resources (walltime, mem, cputime) */
-    JobState_t state;	    /* the state of the job e.g. prologue, running,..  */
+    JobState_t state;	    /* state of the job e.g. prologue, running,..  */
     Job_Conn_t connections; /* structure with all job related connections */
     Job_Node_List_t *nodes; /* all participating nodes in the job */
-    int update;		    /* flag to save the request of an initial job update */
+    int update;		    /* flag to save request of an initial job update */
     int nrOfNodes;	    /* number of participating nodes */
     int nrOfUniqueNodes;    /* number of participating unique nodes */
     int prologueTrack;	    /* track how many prologue scripts has finished */
@@ -114,11 +107,11 @@ typedef struct {
     int epilogueExit;	    /* the max exit code of all epilogue scripts */
     int jobscriptExit;	    /* the exit code of the jobscript */
     int qsubPort;	    /* save the qsub port for interactive jobs */
-    int recovered;	    /* set to true if the job was recovered and not running */
-    int recoverTrack;	    /* track how many times job recover infos were requested */
+    int recovered;	    /* true if job was recovered and not running */
+    int recoverTrack;	    /* track number of requests on job recover infos */
     int pelogueMonitorId;   /* timer id of the pelogue monitor */
-    int signalFlag;	    /* set to the last signal received from PBS server */
-    char *pelogueMonStr;    /* pointer to the jobid use by the pelogue timeout */
+    int signalFlag;	    /* set to last signal received from PBS server */
+    char *pelogueMonStr;    /* pointer to jobid use by the pelogue timeout */
     time_t PElogue_start;
     time_t start_time;	    /* the time were the job started */
     time_t end_time;	    /* the time were the job terminated */

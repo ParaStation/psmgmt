@@ -22,20 +22,22 @@
 #include <sys/wait.h>
 #include <pwd.h>
 
+#include "selector.h"
+#include "pluginmalloc.h"
+#include "pluginpartition.h"
+
+#include "psaccounthandles.h"
+
 #include "psmom.h"
 #include "psmomlog.h"
 #include "psmomcomm.h"
 #include "psmomconv.h"
-#include "selector.h"
-#include "pluginmalloc.h"
-#include "pluginpartition.h"
 #include "psmomforwarder.h"
 #include "psmomchild.h"
 #include "psmomscript.h"
 #include "psmompscomm.h"
 #include "psmomcollect.h"
 #include "psmomacc.h"
-#include "psmompsaccfunc.h"
 #include "psmominteractive.h"
 #include "psmomssh.h"
 #include "psmompartition.h"
@@ -185,7 +187,7 @@ static void handle_Local_Child_Start(ComHandle_t *com)
     /* register jobscript in the accounting plugin */
     if ((forwarder_type == FORWARDER_JOBSCRIPT ||
 	forwarder_type == FORWARDER_INTER ) && job) {
-	psAccountRegisterMOMJob(childpid, job->id);
+	psAccountRegisterJob(childpid, job->id);
     }
 
     mdbg(PSMOM_LOG_PROCESS, "%s: new child '%i' type '%i' started\n",

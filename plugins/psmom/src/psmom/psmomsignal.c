@@ -1,18 +1,11 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2013 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
- */
-/**
- * $Id$
- *
- * \author
- * Michael Rauh <rauh@par-tec.com>
- *
  */
 
 #include <stdlib.h>
@@ -27,17 +20,19 @@
 #include <execinfo.h>
 #include <signal.h>
 
+#include "timer.h"
+
+#include "psaccounthandles.h"
+
 #include "psmom.h"
 #include "psmomlog.h"
 #include "psmomjob.h"
 #include "psmomcomm.h"
 #include "psmomproto.h"
-#include "timer.h"
 #include "psmomcollect.h"
 #include "psmomconfig.h"
 #include "psmomchild.h"
 #include "psmomscript.h"
-#include "psmompsaccfunc.h"
 #include "psmomconv.h"
 #include "psmomlocalcomm.h"
 
@@ -128,7 +123,7 @@ static int doSendSignal(Job_t *job, int signal, char *reason)
     if (job->sid != -1) {
 	mlog("signal '%s (%i)' to job '%s' - reason '%s' - sid '%i'\n",
 		signal2String(signal), signal, job->id, reason, job->sid);
-	psAccountsendSignal2Session(job->sid, signal);
+	psAccountSignalSession(job->sid, signal);
     } else if (job->pid != -1) {
 	mlog("signal '%s (%i)' to job '%s' - reason '%s' - pid '%i'\n",
 		signal2String(signal), signal, job->id, reason, job->pid);

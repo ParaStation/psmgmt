@@ -1,18 +1,11 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2013 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
- */
-/**
- * $Id$
- *
- * \author
- * Michael Rauh <rauh@par-tec.com>
- *
  */
 
 #include <stdio.h>
@@ -32,6 +25,8 @@
 
 #include "timer.h"
 
+#include "psaccounthandles.h"
+
 #include "pbsdef.h"
 #include "psmomcomm.h"
 #include "psmomconv.h"
@@ -49,7 +44,6 @@
 #include "psmomchild.h"
 #include "psmomlocalcomm.h"
 #include "psmompbsserver.h"
-#include "psmompsaccfunc.h"
 #include "psmomssh.h"
 #include "psmomrecover.h"
 
@@ -1466,8 +1460,8 @@ int jobCleanup(Job_t *job, int save)
     /* make sure all children are dead */
     while ((child = findChildByJobid(job->id, -1)) != NULL) {
 	if (child->c_sid > 0) {
-	    psAccountsendSignal2Session(child->c_sid, SIGTERM);
-	    psAccountsendSignal2Session(child->c_sid, SIGKILL);
+	    psAccountSignalSession(child->c_sid, SIGTERM);
+	    psAccountSignalSession(child->c_sid, SIGKILL);
 	} else {
 	    mlog("%s: can't kill child, session id missing\n", __func__);
 	}

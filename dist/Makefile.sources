@@ -334,7 +334,6 @@ plugins/psmom/src/psmom/psmompbsserver.c \
 plugins/psmom/src/psmom/psmompbsserver.h \
 plugins/psmom/src/psmom/psmomproto.c \
 plugins/psmom/src/psmom/psmomproto.h \
-plugins/psmom/src/psmom/psmompsaccfunc.h \
 plugins/psmom/src/psmom/psmompscomm.c \
 plugins/psmom/src/psmom/psmompscomm.h \
 plugins/psmom/src/psmom/psmomrecover.c \

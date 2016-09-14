@@ -34,6 +34,8 @@
 #include "plugin.h"
 #include "pluginhelper.h"
 
+#include "psaccounthandles.h"
+
 #include "psmomscript.h"
 #include "psmomcomm.h"
 #include "psmomjob.h"
@@ -47,7 +49,6 @@
 #include "psmompscomm.h"
 #include "psmomlocalcomm.h"
 #include "psmompartition.h"
-#include "psmompsaccfunc.h"
 #include "psmompbsserver.h"
 #include "psmomjobinfo.h"
 #include "psmomssh.h"
@@ -218,108 +219,88 @@ void stopPsmom()
     logger_finalize(psmomlogger);
 }
 
-
-void (*psAccountRegisterMOMJob)(pid_t, char *) = NULL;
-void (*psAccountUnregisterMOMJob)(pid_t) = NULL;
-void (*psAccountSetGlobalCollect)(int) = NULL;
-void (*psAccountGetSessionInfos)(int *, char *, size_t, int *) = NULL;
-int (*psAccountsendSignal2Session)(pid_t, int) = NULL;
-int (*psAccountSignalAllChildren)(pid_t, pid_t, pid_t, int) = NULL;
-void (*psAccountGetJobInfo)(pid_t, psaccAccountInfo_t *) = NULL;
-int (*psAccountisChildofParent)(pid_t, pid_t) = NULL;
-void (*psAccountFindDaemonProcs)(uid_t, int, int) = NULL;
-PStask_ID_t (*psAccountgetLoggerByClientPID)(pid_t) = NULL;
-int (*psAccountreadProcStatInfo)(pid_t, psaccProcStat_t *) = NULL;
-
-static int initAccountingFunc()
+static bool initAccountingFunc()
 {
-    void *accHandle = NULL;
+    void *accHandle = PSIDplugin_getHandle("psaccount");
 
     /* get psaccount function handles */
-    if (!(accHandle = PSIDplugin_getHandle("psaccount"))) {
+    if (!accHandle) {
 	mlog("%s: getting psaccount handle failed\n", __func__);
-	return 1;
+	return false;
     }
 
-    if (!(psAccountSetGlobalCollect = dlsym(accHandle,
-	    "psAccountSetGlobalCollect"))) {
+    psAccountSetGlobalCollect = dlsym(accHandle, "psAccountSetGlobalCollectF");
+    if (!psAccountSetGlobalCollect) {
 	mlog("%s: loading function psAccountSetGlobalCollect() failed\n",
-		__func__);
-	return 1;
+	     __func__);
+	return false;
     }
 
-    if (!(psAccountRegisterMOMJob = dlsym(accHandle,
-	    "psAccountRegisterMOMJob"))) {
-	mlog("%s: loading function psAccountRegisterMOMJob() failed\n",
-		__func__);
-	return 1;
+    psAccountRegisterJob = dlsym(accHandle, "psAccountRegisterJobF");
+    if (!psAccountRegisterJob) {
+	mlog("%s: loading function psAccountRegisterJob() failed\n", __func__);
+	return false;
     }
 
-    if (!(psAccountUnregisterMOMJob = dlsym(accHandle,
-	    "psAccountUnregisterMOMJob"))) {
-	mlog("%s: loading function psAccountUnregisterMOMJob() failed\n",
-		__func__);
-	return 1;
+    psAccountUnregisterJob = dlsym(accHandle, "psAccountUnregisterJobF");
+    if (!psAccountUnregisterJob) {
+	mlog("%s: loading function psAccountUnregisterJob() failed\n",
+	     __func__);
+	return false;
     }
 
-    if (!(psAccountGetSessionInfos = dlsym(accHandle,
-	    "psAccountGetSessionInfos"))) {
+    psAccountGetSessionInfos = dlsym(accHandle, "psAccountGetSessionInfosF");
+    if (psAccountGetSessionInfos) {
 	mlog("%s: loading function psAccountGetSessionInfos() failed\n",
-		__func__);
-	return 1;
+	     __func__);
+	return false;
     }
 
-    if (!(psAccountsendSignal2Session = dlsym(accHandle,
-	    "psAccountsendSignal2Session"))) {
-	mlog("%s: loading function psAccountsendSignal2Session() failed\n",
-		__func__);
-	return 1;
+    psAccountSignalSession = dlsym(accHandle, "psAccountSignalSessionF");
+    if (!psAccountSignalSession) {
+	mlog("%s: loading function psAccountSignalSession() failed\n",
+	     __func__);
+	return false;
     }
 
-    if (!(psAccountSignalAllChildren = dlsym(accHandle,
-	    "psAccountSignalAllChildren"))) {
-	mlog("%s: loading function psAccountSignalAllChildren() failed\n",
-		__func__);
-	return 1;
+    psAccountSignalChildren = dlsym(accHandle, "psAccountSignalChildrenF");
+    if (!psAccountSignalChildren) {
+	mlog("%s: loading function psAccountSignalChildren() failed\n",
+	     __func__);
+	return false;
     }
 
-    if (!(psAccountGetJobInfo = dlsym(accHandle, "psAccountGetJobInfo"))) {
-	mlog("%s: loading function psAccountGetJobInfo() failed\n", __func__);
-	return 1;
+    psAccountGetDataByJob = dlsym(accHandle, "psAccountGetDataByJobF");
+    if (!psAccountGetDataByJob) {
+	mlog("%s: loading function psAccountGetDataByJob() failed\n", __func__);
+	return false;
     }
 
-    if (!(psAccountisChildofParent = dlsym(accHandle,
-					    "psAccountisChildofParent"))) {
-	mlog("%s: loading function psAccountisChildofParent() failed\n",
-		__func__);
-	return 1;
+    psAccountIsDescendant = dlsym(accHandle, "psAccountIsDescendantF");
+    if (!psAccountIsDescendant) {
+	mlog("%s: loading function psAccountIsDescendant() failed\n",
+	     __func__);
+	return false;
     }
 
-    if (!(psAccountFindDaemonProcs = dlsym(accHandle,
-					    "psAccountFindDaemonProcs"))) {
+    psAccountFindDaemonProcs = dlsym(accHandle, "psAccountFindDaemonProcsF");
+    if (!psAccountFindDaemonProcs) {
 	mlog("%s: loading function psAccountFindDaemonProcs() failed\n",
-		__func__);
-	return 1;
+	     __func__);
+	return false;
     }
 
-    if (!(psAccountgetLoggerByClientPID = dlsym(accHandle,
-					    "psAccountgetLoggerByClientPID"))) {
-	mlog("%s: loading function psAccountgetLoggerByClientPID() failed\n",
+    psAccountGetLoggerByClient = dlsym(accHandle,"psAccountGetLoggerByClientF");
+    if (!psAccountGetLoggerByClient) {
+	mlog("%s: loading function psAccountGetLoggerByClient() failed\n",
 		__func__);
-	return 1;
-    }
-
-    if (!(psAccountreadProcStatInfo = dlsym(accHandle,
-					    "psAccountreadProcStatInfo"))) {
-	mlog("%s: loading function psAccountreadProcStatInfo() failed\n",
-		__func__);
-	return 1;
+	return false;
     }
 
     /* set collect mode in psaccount */
-    psAccountSetGlobalCollect(1);
+    psAccountSetGlobalCollect(true);
 
-    return 0;
+    return true;
 }
 
 /**
@@ -612,7 +593,7 @@ int initialize(void)
     /* test if all configured scripts exists and have the correct permissions */
     if (validateScripts()) return 1;
 
-    if ((initAccountingFunc())) {
+    if (!initAccountingFunc()) {
 	fprintf(stderr, "%s: init accounting functions failed\n", __func__);
 	return 1;
     }
