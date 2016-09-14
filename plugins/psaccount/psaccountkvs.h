@@ -11,6 +11,8 @@
 #ifndef __PS_ACCOUNT_KVS
 #define __PS_ACCOUNT_KVS
 
+#include <stdio.h>
+
 /* file handle for memory debug output */
 extern FILE *memoryDebug;
 

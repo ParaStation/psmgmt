@@ -8,29 +8,31 @@
  * file.
  */
 
-#include <stdlib.h>
-#include <stdio.h>
 #include <string.h>
 
-#include "psaccount.h"
-#include "psaccountinter.h"
+#include "pluginlog.h"
+#include "pluginmalloc.h"
+#include "pluginconfig.h"
+#include "plugin.h"
+
 #include "psaccountclient.h"
 #include "psaccountconfig.h"
 #include "psaccountlog.h"
-#include "pluginmalloc.h"
-#include "pluginlog.h"
-#include "plugin.h"
 
 #include "psaccountkvs.h"
 
 FILE *memoryDebug = NULL;
 
 /**
- * @brief Show current configuration.
+ * @brief Show current configuration
  *
- * @param buf The buffer to write the information to.
+ * Print the current configuration of the plugin to the buffer @a buf
+ * of current length @a length. The buffer might be dynamically
+ * extended if required.
  *
- * @param bufSize The size of the buffer.
+ * @param buf Buffer to write information to
+ *
+ * @param bufSize Size of the buffer
  *
  * @return Returns the buffer with the updated configuration information.
  */
@@ -49,6 +51,42 @@ static char *showConfig(char *buf, size_t *bufSize)
 	str2Buf(line, &buf, bufSize);
     }
 
+    return buf;
+}
+
+
+char *show(char *key)
+{
+    char *buf = NULL;
+    size_t bufSize = 0;
+
+    if (!key) {
+	str2Buf("use key [clients|dclients|jobs|config]\n", &buf, &bufSize);
+	return buf;
+    }
+
+    /* show current clients */
+    if (!(strcmp(key, "clients"))) {
+	return listClients(buf, &bufSize, false);
+    }
+
+    /* show current clients in detail */
+    if (!(strcmp(key, "dclients"))) {
+	return listClients(buf, &bufSize, true);
+    }
+
+    /* show current jobs */
+    if (!(strcmp(key, "jobs"))) {
+	return listJobs(buf, &bufSize);
+    }
+
+    /* show current config */
+    if (!(strcmp(key, "config"))) {
+	return showConfig(buf, &bufSize);
+    }
+
+    str2Buf("invalid key, use [clients|dclients|jobs|config]\n",
+	    &buf, &bufSize);
     return buf;
 }
 
@@ -151,40 +189,5 @@ char *help(void)
     }
     str2Buf("\nuse show [clients|dclients|jobs|config]\n", &buf, &bufSize);
 
-    return buf;
-}
-
-char *show(char *key)
-{
-    char *buf = NULL;
-    size_t bufSize = 0;
-
-    if (!key) {
-	str2Buf("use key [clients|dclients|jobs|config]\n", &buf, &bufSize);
-	return buf;
-    }
-
-    /* show current clients */
-    if (!(strcmp(key, "clients"))) {
-	return listClients(buf, &bufSize, false);
-    }
-
-    /* show current clients in detail */
-    if (!(strcmp(key, "dclients"))) {
-	return listClients(buf, &bufSize, true);
-    }
-
-    /* show current jobs */
-    if (!(strcmp(key, "jobs"))) {
-	return listJobs(buf, &bufSize);
-    }
-
-    /* show current config */
-    if (!(strcmp(key, "config"))) {
-	return showConfig(buf, &bufSize);
-    }
-
-    str2Buf("invalid key, use [clients|dclients|jobs|config]\n",
-	    &buf, &bufSize);
     return buf;
 }
