@@ -13,7 +13,6 @@
 #include <sys/utsname.h>
 #include <unistd.h>
 
-#include "psaccountcollect.h"
 #include "psaccountlog.h"
 #include "psaccountproc.h"
 #include "psaccountcomm.h"
@@ -106,6 +105,7 @@ int initialize(void)
 {
     int poll, debugMask;
     struct utsname uts;
+    int clockTicks;
     char configfn[200];
 
     /* init logging facility */
@@ -139,6 +139,7 @@ int initialize(void)
 	mlog("%s: reading clock ticks failed\n", __func__);
 	return 1;
     }
+    setClockTicks(clockTicks);
 
     /* read system page size */
     if ((pageSize = sysconf(_SC_PAGESIZE)) < 1) {

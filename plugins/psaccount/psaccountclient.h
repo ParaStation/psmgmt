@@ -11,6 +11,7 @@
 #ifndef __PS_ACCOUNT_CLIENT
 #define __PS_ACCOUNT_CLIENT
 
+#include <stdint.h>
 #include <stdbool.h>
 #include <time.h>
 #include <sys/types.h>
@@ -241,5 +242,17 @@ void forwardAggData(void);
  * @return No return value
  */
 void switchClientUpdate(PStask_ID_t clientTID, bool enable);
+
+/**
+ * @brief Set system's clock granularity
+ *
+ * Set the system's clock granularity as required to calculate times
+ * in seconds.
+ *
+ * @param clkTics Clock granularity to be used for time calculations
+ *
+ * @return No return value
+ */
+void setClockTicks(int clkTics);
 
 #endif  /* __PS_ACCOUNT_CLIENT */

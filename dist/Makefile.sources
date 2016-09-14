@@ -250,8 +250,6 @@ plugins/psaccount/psaccount.c \
 plugins/psaccount/psaccount.h \
 plugins/psaccount/psaccountclient.c \
 plugins/psaccount/psaccountclient.h \
-plugins/psaccount/psaccountcollect.c \
-plugins/psaccount/psaccountcollect.h \
 plugins/psaccount/psaccountcomm.c \
 plugins/psaccount/psaccountcomm.h \
 plugins/psaccount/psaccountconfig.c \
