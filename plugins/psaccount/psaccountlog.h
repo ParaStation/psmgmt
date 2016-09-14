@@ -6,9 +6,6 @@
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
- *
- * Authors:     Michael Rauh <rauh@par-tec.com>
- *
  */
 
 #ifndef __PS_ACCOUNT_LOG
@@ -26,29 +23,41 @@ extern FILE *psaccountlogfile;
 #define mdbg(...)  if (psaccountlogger) \
 			    logger_print(psaccountlogger, __VA_ARGS__)
 
+/** Various types of logging levels for more verbose logging */
 typedef enum {
-    PSACC_LOG_VERBOSE	    = 0x000010, /**< Be verbose */
-    PSACC_LOG_PROC	    = 0x000020, /**< proc collection debug messages */
-    PSACC_LOG_ACC_MSG	    = 0x000040, /**< received accounting messages */
+    PSACC_LOG_VERBOSE       = 0x000010, /**< Be verbose */
+    PSACC_LOG_PROC          = 0x000020, /**< proc collection debug messages */
+    PSACC_LOG_ACC_MSG       = 0x000040, /**< received accounting messages */
     PSACC_LOG_UPDATE_MSG    = 0x000080, /**< periodic update messages */
-    PSACC_LOG_MALLOC	    = 0x000100, /**< memory allocation */
-    PSACC_LOG_COLLECT	    = 0x000200,	/**< client collect */
+    PSACC_LOG_MALLOC        = 0x000100, /**< memory allocation */
+    PSACC_LOG_COLLECT       = 0x000200,	/**< client collect */
     PSACC_LOG_AGGREGATE     = 0x000400, /**< aggregated data */
     PSACC_LOG_ACC_SWITCH    = 0x000800, /**< enable/disable acct by pspmi */
 } PSAccount_log_types_t;
 
 /**
- * @brief Init the logger facility.
+ * @brief Init logging facility
  *
- * @return No return value.
+ * Init psaccount plugin's logging facility. If the filehandle @a
+ * logfile is different from NULL, the corresponding file will be used
+ * for logging. Otherwise the syslog facilityis used.
+ *
+ * @param logfile File to use for logging
+ *
+ * @return No return value
  */
 void initLogger(FILE *logfile);
 
 /**
- * @brief Set the debug mask of the logger.
+ * @brief Set logger's debug mask
  *
- * @return No return value.
+ * Set the logger's debug mask to @a mask. @a mask is expected to be a
+ * bit-field of type @ref PSAccount_log_types_t.
+ *
+ * @param mask Bit-field of type @ref PSAccount_log_types_t
+ *
+ * @return No return value
  */
 void maskLogger(int32_t mask);
 
-#endif
+#endif  /* __PS_ACCOUNT_LOG */
