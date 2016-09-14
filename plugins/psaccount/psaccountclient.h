@@ -69,14 +69,16 @@ Client_t *addClient(PStask_ID_t taskid, PS_Acct_job_types_t type);
  * @brief Test for clients to be accounted
  *
  * @return Returns true if any client to be accounted is available or
- * false otherwise.
+ * false otherwise
  */
 bool haveActiveClients(void);
 
 /**
- * @brief Find an account client by the client TID.
+ * @brief Find client by its TID
  *
- * @param clientTID The TaskID of the client to find.
+ * Find an account client by its task ID @a clientTID
+ *
+ * @param clientTID Task ID of the client to find
  *
  * @return Returns the found client or NULL on error and if no client
  * was found
@@ -84,9 +86,11 @@ bool haveActiveClients(void);
 Client_t *findClientByTID(PStask_ID_t clientTID);
 
 /**
- * @brief Find an account client by its pid.
+ * @brief Find client by its PID
  *
- * @param clientPID The pid of the client to find.
+ * Find an account client by its process ID @a clientPID
+ *
+ * @param clientPID Process ID of the client to find
  *
  * @return Returns the found client or NULL on error and if no client
  * was found
@@ -98,22 +102,43 @@ Client_t *findClientByPID(pid_t clientPID);
  *
  * Try to identify the jobscript which belongs to the specified job.
  *
- * @param job The job structure to find the jobscript for.
+ * @param job The job structure to find the jobscript for
  *
  * @return On success the found jobscript is returned, on error NULL
  * is returned
  */
 Client_t *findJobscriptInClients(Job_t *job);
 
-/** @brief @doctodo
+/**
+ * @brief Get PIDs associated to logger
+ *
+ * Get the process ID of all clients associated to the logger @a
+ * logger and store them to @a pids. Upon return @a pids will point to
+ * a memory region allocated via @ref malloc(). It is the obligation
+ * of the calling function to release this memory using @ref
+ * free(). Furthermore, upon return @a cnt will hold the number of
+ * processes found and thus the size of @a pids.
+ *
+ * @param logger Logger to search for
+ *
+ * @param pids Pointer to dynamically allocated array of process IDs
+ * upon return
+ *
+ * @param cnt Number of processes found upon return
  *
  * @return No return value
  */
 void getPidsByLogger(PStask_ID_t logger, pid_t **pids, uint32_t *count);
 
-/** @brief @doctodo
+/**
+ * @brief Find client by PID and return its logger
  *
- * @return No return value
+ * Find an accounting client by its process ID @a pid and return the
+ * process ID of the corresponding logger.
+ *
+ * @param pid Process ID of the client to search for
+ *
+ * @return Process ID of the client's logger or -1 on error
  */
 PStask_ID_t getLoggerByClientPID(pid_t pid);
 
@@ -214,9 +239,13 @@ void addClientToAggData(Client_t *client, AccountDataExt_t *accData);
 /**
  * @brief Store remote aggregated data
  *
- * @param tid
+ * Store remote aggregate data to a client structure identified by the
+ * task ID @a tid and the logger's task ID @a logger. @a data contains
+ * the aggregated accounting data to be storred.
  *
- * @param logger
+ * @param tid Task ID identifying the client structure to use
+ *
+ * @param logger Task ID of the logger identifying the client structure to use
  *
  * @param data Aggregated data on resource usage to be stored
  *
@@ -225,19 +254,42 @@ void addClientToAggData(Client_t *client, AccountDataExt_t *accData);
 void setAggData(PStask_ID_t tid, PStask_ID_t logger, AccountDataExt_t *data);
 
 /**
- * @brief @doctodo
+ * @brief Add endtime to accounting data
+ *
+ * Add the current time as the endtime to client structure identified
+ * by its task ID @a tid and its logger's task ID @a logger.
+ *
+ * @param tid Task ID identifying the client to modify
+ *
+ * @param logger Logger's task ID identifying the client to modify
  *
  * @return No return value
  */
 void finishAggData(PStask_ID_t tid, PStask_ID_t logger);
 
-/** @brief @doctodo
+/**
+ * @brief Forward aggregated accounting data
+ *
+ * Forward all aggregated accounting data to its corresponding
+ * destination. Accounting data is aggregated on a per logger
+ * basis. In a second step the aggregated data is forwarded to the
+ * nodes hosting the logger processes.
  *
  * @return No return value
  */
 void forwardAggData(void);
 
-/** @brief @doctodo
+/**
+ * @brief Switch client's update behavior
+ *
+ * Switch the update behavior of the client identified by its task ID
+ * @a clientTID. If the flag @a enable is true, accounting data for
+ * the corresponding client will be updated. Otherwise the client will
+ * be ignored within future rounds for updating accounting data.
+ *
+ * @param clientTID Task ID of the client to modify
+ *
+ * @param enable Flag updating or ignoring the client
  *
  * @return No return value
  */

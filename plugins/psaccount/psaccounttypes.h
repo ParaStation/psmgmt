@@ -73,7 +73,7 @@ typedef struct {
     pid_t ppid;        /**< parent process ID */
     pid_t pgrp;        /**< process group */
     pid_t session;     /**< session ID */
-    char state[1];     /**< @doctodo */
+    char state[1];     /**< process' state (R,S,D,Z or T) */
     uint64_t utime;    /**< user time consumed by process */
     uint64_t stime;    /**< system time consumed by process */
     uint64_t cutime;   /**< user time consumed by process' descendants */
@@ -83,7 +83,7 @@ typedef struct {
     uint64_t mem;      /**< process' RSS */
     uint64_t majflt;   /**< # of major pagefaults triggered by process */
     uint64_t cmajflt;  /**< # of major pagefaults triggered by descendants  */
-    uint16_t cpu;      /**< @doctodo */
+    uint16_t cpu;      /**< CPU the process was scheduled on lately */
     uid_t uid;         /**< process' user ID */
 } ProcStat_t;
 
