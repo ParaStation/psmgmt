@@ -112,7 +112,6 @@ int initialize(void)
     initLogger(false);
 
     /* init all lists */
-    initHist();
     initProc();
     initFragComm();
 
@@ -191,7 +190,6 @@ void cleanup(void)
     finalizeJobs();
     clearAllClients();
     finalizeProc();
-    clearHist();
     freeConfig(&config);
     finalizeFragComm();
 }
