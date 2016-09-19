@@ -208,7 +208,7 @@ void startPsmom()
 {
     /* we depend on the psaccount plugin */
     dependencies[0].name = "psaccount";
-    dependencies[0].version = 21;
+    dependencies[0].version = 26;
     dependencies[1].name = NULL;
     dependencies[1].version = 0;
 }
