@@ -273,6 +273,7 @@ int handleLocalPElogueFinish(void *data)
     PElogue_Data_t *pedata = data;
     Step_t *step;
     Job_t *job;
+    Alloc_t *alloc;
     char *username = NULL;
     uint32_t jobid;
     char msg[256];
@@ -280,12 +281,15 @@ int handleLocalPElogueFinish(void *data)
     jobid = atoi(pedata->jobid);
     step = findStepByJobid(jobid);
     job = findJobById(jobid);
+    alloc = findAlloc(jobid);
 
     /* ssh access to my node */
     if (step) {
 	username = step->username;
     } else if (job) {
 	username = job->username;
+    } else if (alloc) {
+	username = alloc->username;
     }
 
     if (username) {
