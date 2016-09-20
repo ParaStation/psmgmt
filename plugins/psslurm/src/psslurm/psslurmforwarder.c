@@ -639,6 +639,17 @@ static void setupStepIO(Forwarder_Data_t *fwdata, Step_t *step)
     }
 }
 
+static int isPMIdisabled(Step_t *step)
+{
+    char *val;
+
+    if ((val = envGet(&step->env, "SLURM_MPI_TYPE"))) {
+	if (!strcmp(val, "none")) return 1;
+    }
+
+    return 0;
+}
+
 static void execJobStep(void *data, int rerun)
 {
     Forwarder_Data_t *fwdata = data;
@@ -672,6 +683,8 @@ static void execJobStep(void *data, int rerun)
     if (step->pty) strvAdd(&argV, ustrdup("-i"));
     /* label output */
     if (step->labelIO) strvAdd(&argV, ustrdup("-l"));
+    /* PMI layer support */
+    if (isPMIdisabled(step)) strvAdd(&argV, ustrdup("--pmidisable"));
 
     if (step->multiProg) {
 	setupArgsFromMultiProg(step, fwdata, &argV);
