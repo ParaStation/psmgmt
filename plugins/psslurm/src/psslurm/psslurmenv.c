@@ -523,7 +523,6 @@ void setRankEnv(int32_t rank, Step_t *step)
     for (count=0; count<step->env.cnt; count++) {
 	if (!(strncmp(step->env.vars[count], "SLURM_RLIMIT_", 13))) continue;
 	if (!(strncmp(step->env.vars[count], "SLURM_UMASK=", 12))) continue;
-	if (!(strncmp(step->env.vars[count], "SLURM_MPI_TYPE=", 15))) continue;
 	if (!(strncmp(step->env.vars[count], "PWD=", 4))) continue;
 	if (display &&
 	    !(strncmp(step->env.vars[count], "DISPLAY=", 8))) continue;
@@ -701,8 +700,6 @@ void setStepEnv(Step_t *step)
 	envSet(&step->env, "__PSI_UMASK", val);
 	envUnset(&step->env, "SLURM_UMASK");
     }
-
-    envUnset(&step->env, "SLURM_MPI_TYPE");
 
     /* handle memory mapping */
     val = getConfValueC(&Config, "MEMBIND_DEFAULT");

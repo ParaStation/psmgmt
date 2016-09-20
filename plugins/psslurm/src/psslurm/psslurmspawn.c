@@ -297,7 +297,6 @@ int fillSpawnTaskWithSrun(SpawnRequest_t *req, int usize, PStask_t *task) {
     for (i=0; i < step->env.cnt; i++) {
 	if (!(strncmp(step->env.vars[i], "SLURM_RLIMIT_", 13))) continue;
 	if (!(strncmp(step->env.vars[i], "SLURM_UMASK=", 12))) continue;
-	if (!(strncmp(step->env.vars[i], "SLURM_MPI_TYPE=", 15))) continue;
 	if (!(strncmp(step->env.vars[i], "PWD=", 4))) continue;
 	if (display &&
 	    !(strncmp(step->env.vars[i], "DISPLAY=", 8))) continue;
