@@ -41,7 +41,7 @@ extern "C" {
  *
  * @return No return value.
  */
-void initComm(void);
+void PSIDcomm_init(void);
 
 /**
  * @brief Send a message

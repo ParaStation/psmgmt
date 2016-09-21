@@ -392,7 +392,7 @@ int PSID_handleMsg(DDBufferMsg_t *msg)
     return 0;
 }
 
-void initComm(void)
+void PSIDcomm_init(void)
 {
     initMsgHash();
 
