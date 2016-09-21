@@ -88,7 +88,8 @@ test_pse_LDADD = $(libpse) $(POPT_LIBS)
 test_config_SOURCES = test_config.c daemon/psidnodes.c			\
 	daemon/psidnodes.h daemon/psidscripts.c daemon/psidscripts.h	\
 	daemon/psidutil.c daemon/psidutil.h
-test_config_LDADD = $(libputil) $(libpse) $(POPT_LIBS) $(glib2_LIBS) $(psconfig_LIBS)
+test_config_LDADD = $(libputil) $(libpse) $(POPT_LIBS) $(glib2_LIBS)	\
+	$(psconfig_LIBS)
 
 pssh_LDADD = $(libpse) $(POPT_LIBS)
 

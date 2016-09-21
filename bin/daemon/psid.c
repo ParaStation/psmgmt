@@ -521,6 +521,9 @@ void PSID_clearMem(void)
     //PSIDnodes_clearMem(); @todo Disabled for the time being -> Discuss with MR
     RDP_clearMem();
 
+    /* Now call all cleanup functions registered by plugins */
+    PSIDhook_call(PSIDHOOK_CLEARMEM, NULL);
+
     malloc_trim(0);
 }
 

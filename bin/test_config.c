@@ -43,6 +43,7 @@ int sendMsg(void *amsg) {return 0;}
 void registerClient(int fd, PStask_ID_t tid, PStask_t *task) {}
 /* stub required to link against psidscripts.o */
 void PSID_clearMem(void) {}
+/* stub required to link against psidutil.o */
 list_t managedTasks;
 PStask_t *PStasklist_find(list_t *list, PStask_ID_t tid) {return NULL;}
 
