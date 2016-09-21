@@ -36,7 +36,7 @@ psAccountGetSessionInfos_t *psAccountGetSessionInfos;
 psAccountIsDescendant_t *psAccountIsDescendant;
 psAccountGetLoggerByClient_t *psAccountGetLoggerByClient;
 psAccountGetPidsByLogger_t *psAccountGetPidsByLogger;
-psAccountReadProcStatInfo_t *psAccountReadProcStatInfo;
+psAccountReadProcStat_t *psAccountReadProcStat;
 
 psAccountFindDaemonProcs_t *psAccountFindDaemonProcs;
 psAccountSignalChildren_t *psAccountSignalChildren;

@@ -70,9 +70,9 @@ void psAccountFindDaemonProcs(uid_t uid, bool kill, bool warn)
     findDaemonProcesses(uid, kill, warn);
 }
 
-bool psAccountReadProcStatInfo(pid_t pid, ProcStat_t *pS)
+bool psAccountReadProcStat(pid_t pid, ProcStat_t *pS)
 {
-    return readProcStatInfo(pid, pS);
+    return readProcStat(pid, pS);
 }
 
 void psAccountRegisterJob(pid_t jsPid, char *jobid)

@@ -298,7 +298,7 @@ typedef void(psAccountGetPidsByLogger_t)(PStask_ID_t logger, pid_t **pids,
  *
  * @return Returns true on success and false on error.
  */
-typedef bool(psAccountReadProcStatInfo_t)(pid_t pid, ProcStat_t *pS);
+typedef bool(psAccountReadProcStat_t)(pid_t pid, ProcStat_t *pS);
 
 /**
  * @brief Find all daemon processes of a specific user

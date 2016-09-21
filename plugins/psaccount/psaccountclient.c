@@ -529,9 +529,7 @@ PStask_ID_t getLoggerByClientPID(pid_t pid)
 
     if (list_empty(&clientList)) return -1;
 
-    if (readProcStatInfo(pid, &pS)) {
-	psOK = true;
-    }
+    if (readProcStat(pid, &pS)) psOK = true;
 
     /* try to find the pid in the acc children */
     list_for_each(pos, &clientList) {

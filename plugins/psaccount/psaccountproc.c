@@ -282,7 +282,7 @@ static bool isDescendantLive(pid_t parent, pid_t child)
 
     if (child <= 1) return false;
 
-    if (!readProcStatInfo(child, &pS)) return false;
+    if (!readProcStat(child, &pS)) return false;
     if (pS.ppid == parent) return true;
 
     return isDescendantLive(parent, pS.ppid);
@@ -343,7 +343,7 @@ bool readProcIO(pid_t pid, ProcIO_t *io)
     return true;
 }
 
-bool readProcStatInfo(pid_t pid, ProcStat_t *pS)
+bool readProcStat(pid_t pid, ProcStat_t *pS)
 {
     FILE *fd;
     char buf[200];
@@ -568,7 +568,7 @@ void updateProcSnapshot(void)
 	    continue;
 	}
 
-	if (readProcStatInfo(pid, &pS) && (!ignoreRoot || pS.uid)) {
+	if (readProcStat(pid, &pS) && (!ignoreRoot || pS.uid)) {
 	    addProc(pid, &pS);
 	}
     }

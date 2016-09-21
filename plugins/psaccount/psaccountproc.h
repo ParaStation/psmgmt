@@ -204,7 +204,7 @@ void findDaemonProcesses(uid_t uid, bool kill, bool warn);
  *
  * @return Returns true on success and false in the case of an error
  */
-bool readProcStatInfo(pid_t pid, ProcStat_t *pS);
+bool readProcStat(pid_t pid, ProcStat_t *pS);
 
 
 /**
