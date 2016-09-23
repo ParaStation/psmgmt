@@ -2334,7 +2334,7 @@ static void drop_SPAWNREQ(DDBufferMsg_t *msg)
     sendMsg(&errmsg);
 }
 
-void deleteSpawnTasks(PSnodes_ID_t node)
+void PSIDspawn_cleanupByNode(PSnodes_ID_t node)
 {
     list_t *t;
 
@@ -2343,6 +2343,18 @@ void deleteSpawnTasks(PSnodes_ID_t node)
     list_for_each(t, &spawnTasks) {
 	PStask_t *task = list_entry(t, PStask_t, next);
 	if (PSC_getID(task->tid) == node) task->deleted = true;
+    }
+}
+
+void PSIDspawn_cleanupBySpawner(PStask_ID_t tid)
+{
+    list_t *t;
+
+    PSID_log(PSID_LOG_SPAWN, "%s(%s)\n", __func__, PSC_printTID(tid));
+
+    list_for_each(t, &spawnTasks) {
+	PStask_t *task = list_entry(t, PStask_t, next);
+	if (task->tid == tid) task->deleted = true;
     }
 }
 
@@ -2851,7 +2863,7 @@ static void checkObstinateTasks(void)
 
 }
 
-void initSpawn(void)
+void PSIDspawn_init(void)
 {
     PSID_log(PSID_LOG_VERB, "%s()\n", __func__);
 
