@@ -229,68 +229,68 @@ static bool initAccountingFunc()
 	return false;
     }
 
-    psAccountSetGlobalCollect = dlsym(accHandle, "psAccountSetGlobalCollectF");
+    psAccountSetGlobalCollect = dlsym(accHandle, "psAccountSetGlobalCollect");
     if (!psAccountSetGlobalCollect) {
 	mlog("%s: loading function psAccountSetGlobalCollect() failed\n",
 	     __func__);
 	return false;
     }
 
-    psAccountRegisterJob = dlsym(accHandle, "psAccountRegisterJobF");
+    psAccountRegisterJob = dlsym(accHandle, "psAccountRegisterJob");
     if (!psAccountRegisterJob) {
 	mlog("%s: loading function psAccountRegisterJob() failed\n", __func__);
 	return false;
     }
 
-    psAccountUnregisterJob = dlsym(accHandle, "psAccountUnregisterJobF");
+    psAccountUnregisterJob = dlsym(accHandle, "psAccountUnregisterJob");
     if (!psAccountUnregisterJob) {
 	mlog("%s: loading function psAccountUnregisterJob() failed\n",
 	     __func__);
 	return false;
     }
 
-    psAccountGetSessionInfos = dlsym(accHandle, "psAccountGetSessionInfosF");
-    if (psAccountGetSessionInfos) {
+    psAccountGetSessionInfos = dlsym(accHandle, "psAccountGetSessionInfos");
+    if (!psAccountGetSessionInfos) {
 	mlog("%s: loading function psAccountGetSessionInfos() failed\n",
 	     __func__);
 	return false;
     }
 
-    psAccountSignalSession = dlsym(accHandle, "psAccountSignalSessionF");
+    psAccountSignalSession = dlsym(accHandle, "psAccountSignalSession");
     if (!psAccountSignalSession) {
 	mlog("%s: loading function psAccountSignalSession() failed\n",
 	     __func__);
 	return false;
     }
 
-    psAccountSignalChildren = dlsym(accHandle, "psAccountSignalChildrenF");
+    psAccountSignalChildren = dlsym(accHandle, "psAccountSignalChildren");
     if (!psAccountSignalChildren) {
 	mlog("%s: loading function psAccountSignalChildren() failed\n",
 	     __func__);
 	return false;
     }
 
-    psAccountGetDataByJob = dlsym(accHandle, "psAccountGetDataByJobF");
+    psAccountGetDataByJob = dlsym(accHandle, "psAccountGetDataByJob");
     if (!psAccountGetDataByJob) {
 	mlog("%s: loading function psAccountGetDataByJob() failed\n", __func__);
 	return false;
     }
 
-    psAccountIsDescendant = dlsym(accHandle, "psAccountIsDescendantF");
+    psAccountIsDescendant = dlsym(accHandle, "psAccountIsDescendant");
     if (!psAccountIsDescendant) {
 	mlog("%s: loading function psAccountIsDescendant() failed\n",
 	     __func__);
 	return false;
     }
 
-    psAccountFindDaemonProcs = dlsym(accHandle, "psAccountFindDaemonProcsF");
+    psAccountFindDaemonProcs = dlsym(accHandle, "psAccountFindDaemonProcs");
     if (!psAccountFindDaemonProcs) {
 	mlog("%s: loading function psAccountFindDaemonProcs() failed\n",
 	     __func__);
 	return false;
     }
 
-    psAccountGetLoggerByClient = dlsym(accHandle,"psAccountGetLoggerByClientF");
+    psAccountGetLoggerByClient = dlsym(accHandle,"psAccountGetLoggerByClient");
     if (!psAccountGetLoggerByClient) {
 	mlog("%s: loading function psAccountGetLoggerByClient() failed\n",
 		__func__);
