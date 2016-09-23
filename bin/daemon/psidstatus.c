@@ -654,7 +654,7 @@ void declareNodeDead(PSnodes_ID_t id, int sendDeadnode, int silent)
 	}
     }
 
-    deleteSpawnTasks(id);
+    PSIDspawn_cleanupByNode(id);
 
     /* Disable accounters located on dead node */
     PSID_cleanAcctFromNode(id);

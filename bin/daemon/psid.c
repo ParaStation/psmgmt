@@ -777,7 +777,7 @@ int main(int argc, const char *argv[])
     initOptions();
     initStatus();
     initSignal();
-    initSpawn();
+    PSIDspawn_init();
     initPartition();
     initHW();
     initAccount();
