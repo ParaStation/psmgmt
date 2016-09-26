@@ -2,21 +2,15 @@
  * ParaStation
  *
  * Copyright (C) 2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2015 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
 /**
- * \file
+ * @file
  * test_config: ParaStation configuration validator
- *
- * $Id$
- *
- * \author
- * Norbert Eicker <eicker@par-tec.com>
- *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 static char vcid[] __attribute__((used)) =
@@ -40,9 +34,10 @@ extern logger_t *PSID_logger;
 /* stub required to link against psidnodes.o */
 int sendMsg(void *amsg) {return 0;}
 /* stubs required to link against psidutil.o */
-void registerClient(int fd, PStask_ID_t tid, PStask_t *task) {}
+void PSIDclient_register(int fd, PStask_ID_t tid, PStask_t *task) {}
 /* stub required to link against psidscripts.o */
 void PSID_clearMem(void) {}
+/* stub required to link against psidutil.o */
 list_t managedTasks;
 PStask_t *PStasklist_find(list_t *list, PStask_ID_t tid) {return NULL;}
 

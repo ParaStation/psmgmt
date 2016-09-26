@@ -521,6 +521,9 @@ void PSID_clearMem(void)
     //PSIDnodes_clearMem(); @todo Disabled for the time being -> Discuss with MR
     RDP_clearMem();
 
+    /* Now call all cleanup functions registered by plugins */
+    PSIDhook_call(PSIDHOOK_CLEARMEM, NULL);
+
     malloc_trim(0);
 }
 
@@ -764,14 +767,14 @@ int main(int argc, const char *argv[])
     PSID_initStarttime();
 
     /* initialize various modules */
-    initComm();  /* This has to be first since it gives msgHandler hash */
+    PSIDcomm_init();  /* This has to be first since it gives msgHandler hash */
 
     PSIDclient_init();
     initState();
     initOptions();
     initStatus();
     initSignal();
-    initSpawn();
+    PSIDspawn_init();
     initPartition();
     initHW();
     initAccount();

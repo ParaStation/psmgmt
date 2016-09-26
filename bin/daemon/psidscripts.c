@@ -119,7 +119,7 @@ static int doExec(char *script, PSID_scriptFunc_t func, PSID_scriptPrep_t prep,
 	close(iofds[1]);
 
 	if (func) {
-	    /* Cleanup all unneeded memory. @todo really? */
+	    /* Cleanup all unneeded memory. */
 	    PSID_clearMem();
 
 	    ret = func(info);

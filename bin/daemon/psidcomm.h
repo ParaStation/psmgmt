@@ -9,14 +9,8 @@
  * file.
  */
 /**
- * \file
+ * @file
  * Communication multiplexer for the ParaStation daemon
- *
- * $Id$
- *
- * \author
- * Norbert Eicker <eicker@par-tec.com>
- *
  */
 #ifndef __PSIDCOMM_H
 #define __PSIDCOMM_H
@@ -41,7 +35,7 @@ extern "C" {
  *
  * @return No return value.
  */
-void initComm(void);
+void PSIDcomm_init(void);
 
 /**
  * @brief Send a message
@@ -71,7 +65,7 @@ int sendMsg(void *msg);
  * msg.
  *
  * If @a fd is the @ref RDPSocket, recvRDP() will be used to actually
- * get the message, otherwise recvClient() is used.
+ * get the message, otherwise PSIDclient_recv() is used.
  *
  *
  * @param fd The file descriptor to receive from.
@@ -84,7 +78,7 @@ int sendMsg(void *msg);
  * @return On success, the number of bytes received is returned, or -1 if
  * an error occured. In the latter case errno will be set appropriately.
  *
- * @see recvRDP(), recvClient()
+ * @see recvRDP(), PSIDclient_recv()
  */
 int recvMsg(int fd, DDMsg_t *msg, size_t size);
 

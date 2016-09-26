@@ -83,12 +83,12 @@ static int handleClientConnectMsg(int fd, void *info)
     if (msglen==0) {
 	/* closing connection */
 	PSID_log(PSID_LOG_CLIENT, "%s(%d): close connection\n", __func__, fd);
-	deleteClient(fd);
+	PSIDclient_delete(fd);
     } else if (msglen==-1) {
 	if (errno != EAGAIN) {
 	    int eno = errno;
 	    PSID_warn(-1, eno, "%s(%d): recvMsg()", __func__, fd);
-	    if (eno == EBADF) deleteClient(fd);
+	    if (eno == EBADF) PSIDclient_delete(fd);
 	}
     } else {
 	if (msg.header.type != PSP_CD_CLIENTCONNECT) {
@@ -102,7 +102,7 @@ static int handleClientConnectMsg(int fd, void *info)
     return 0;
 }
 
-void registerClient(int fd, PStask_ID_t tid, PStask_t *task)
+void PSIDclient_register(int fd, PStask_ID_t tid, PStask_t *task)
 {
     clients[fd].tid = tid;
     clients[fd].task = task;
@@ -114,7 +114,7 @@ void registerClient(int fd, PStask_ID_t tid, PStask_t *task)
     Selector_register(fd, handleClientConnectMsg, NULL);
 }
 
-PStask_ID_t getClientTID(int fd)
+PStask_ID_t PSIDclient_getTID(int fd)
 {
     if (fd < 0 || fd >= maxClientFD) {
 	PSID_log(-1, "%s(%d): file descriptor out of range\n", __func__, fd);
@@ -124,7 +124,7 @@ PStask_ID_t getClientTID(int fd)
     return clients[fd].tid;
 }
 
-PStask_t *getClientTask(int fd)
+PStask_t *PSIDclient_getTask(int fd)
 {
     if (fd < 0 || fd >= maxClientFD) {
 	PSID_log(-1, "%s(%d): file descriptor out of range\n", __func__, fd);
@@ -148,18 +148,19 @@ static int handleClientMsg(int fd, void *info)
     if (msglen==0) {
 	/* closing connection */
 	PSID_log(PSID_LOG_CLIENT, "%s(%d): close connection\n", __func__, fd);
-	deleteClient(fd);
+	PSIDclient_delete(fd);
     } else if (msglen==-1) {
 	if (errno != EAGAIN) {
 	    int eno = errno;
 	    PSID_warn(-1, eno, "%s(%d): recvMsg()", __func__, fd);
-	    if (eno == EBADF) deleteClient(fd);
+	    if (eno == EBADF) PSIDclient_delete(fd);
 	}
     } else {
-	if (msg.header.sender != getClientTID(fd)) {
+	PStask_ID_t tid = PSIDclient_getTID(fd);
+	if (msg.header.sender != tid) {
 	    PSID_log(-1, "%s: Got msg from %s on socket %d", __func__,
 		     PSC_printTID(msg.header.sender), fd);
-	    PSID_log(-1, " assigned to %s\n", PSC_printTID(getClientTID(fd)));
+	    PSID_log(-1, " assigned to %s\n", PSC_printTID(tid));
 	    /* drop message silently */
 	    return 0;
 	}
@@ -171,7 +172,7 @@ static int handleClientMsg(int fd, void *info)
     return 0;
 }
 
-void setEstablishedClient(int fd)
+void PSIDclient_setEstablished(int fd)
 {
     Selector_remove(fd);
     Selector_register(fd, handleClientMsg, NULL);
@@ -179,7 +180,7 @@ void setEstablishedClient(int fd)
     clients[fd].flags &= ~INITIALCONTACT;
 }
 
-int isEstablishedClient(int fd)
+int PSIDclient_isEstablished(int fd)
 {
     return !(clients[fd].flags & INITIALCONTACT);
 }
@@ -219,7 +220,7 @@ static int do_send(int fd, DDMsg_t *msg, int offset)
 		eno = errno;
 		PSID_warn((eno==EPIPE) ? PSID_LOG_CLIENT : -1, eno,
 			  "%s: error on socket %d", __func__, fd);
-		task = getClientTask(fd);
+		task = PSIDclient_getTask(fd);
 		if (task) {
 		    if (!task->killat) {
 			task->killat = time(NULL) + 10;
@@ -228,7 +229,7 @@ static int do_send(int fd, DDMsg_t *msg, int offset)
 		    Selector_enable(fd);
 		} else {
 		    PSID_log(-1, "%s: No task\n", __func__);
-		    deleteClient(fd);
+		    PSIDclient_delete(fd);
 		}
 		errno = eno;
 
@@ -401,7 +402,7 @@ int PSIDclient_send(DDMsg_t *msg)
 }
 
 /* @todo we need to timeout if message is too small */
-int recvClient(int fd, DDMsg_t *msg, size_t size)
+int PSIDclient_recv(int fd, DDMsg_t *msg, size_t size)
 {
     int n;
     int count = 0;
@@ -414,7 +415,7 @@ int recvClient(int fd, DDMsg_t *msg, size_t size)
 
     msg->len = sizeof(*msg);
 
-    if (!isEstablishedClient(fd)) {
+    if (!PSIDclient_isEstablished(fd)) {
 	/*
 	 * if this is the first contact of the client, the client may
 	 * use an incompatible msg format
@@ -486,7 +487,7 @@ int recvClient(int fd, DDMsg_t *msg, size_t size)
 static void closeConnection(int fd)
 {
     list_t *m, *tmp;
-    PStask_ID_t tid = getClientTID(fd);
+    PStask_ID_t tid = PSIDclient_getTID(fd);
     int blockedRDP;
 
     if (fd<0) {
@@ -526,14 +527,14 @@ static void closeConnection(int fd)
     close(fd);
 }
 
-void deleteClient(int fd)
+void PSIDclient_delete(int fd)
 {
     PStask_t *task;
 
     PSID_log(fd<0 ? -1 : PSID_LOG_CLIENT, "%s(%d)\n", __func__, fd);
     if (fd<0) return;
 
-    task = getClientTask(fd);
+    task = PSIDclient_getTask(fd);
 
     PSID_log(PSID_LOG_CLIENT, "%s: closing connection to %s\n",
 	     __func__, task ? PSC_printTID(task->tid) : "<unknown>");
@@ -541,7 +542,7 @@ void deleteClient(int fd)
 
     if (!task) {
 	PSID_log(-1, "%s: Task %s not found\n", __func__,
-		 PSC_printTID(getClientTID(fd)));
+		 PSC_printTID(PSIDclient_getTID(fd)));
 	return;
     }
 
@@ -685,7 +686,7 @@ void deleteClient(int fd)
     return;
 }
 
-int killAllClients(int sig, int killAdminTasks)
+int PSIDclient_killAll(int sig, int killAdminTasks)
 {
     list_t *t;
     int ret = 0;
@@ -713,8 +714,8 @@ int killAllClients(int sig, int killAdminTasks)
 	}
 
 	if (sig==SIGKILL && killAdminTasks && task->fd != -1) {
-	    PSID_log(-1, "%s: deleteClient()\n", __func__);
-	    deleteClient(task->fd);
+	    PSID_log(-1, "%s: PSIDclient_delete()\n", __func__);
+	    PSIDclient_delete(task->fd);
 	}
     }
 
@@ -943,7 +944,7 @@ static void msg_CLIENTCONNECT(int fd, DDBufferMsg_t *bufmsg)
     /* Seed the sequence of reservation IDs */
     task->nextResID = task->tid + 0x042;
 
-    registerClient(fd, tid, task);
+    PSIDclient_register(fd, tid, task);
 
     /*
      * Get the number of processes
@@ -998,12 +999,12 @@ static void msg_CLIENTCONNECT(int fd, DDBufferMsg_t *bufmsg)
 	sendMsg(&outmsg);
 
 	/* clean up */
-	PSID_log(-1, "%s: deleteClient()\n", __func__);
-	deleteClient(fd);
+	PSID_log(-1, "%s: PSIDclient_delete()\n", __func__);
+	PSIDclient_delete(fd);
 
 	if (msg->group==TG_RESET && !uid) PSID_reset();
     } else {
-	setEstablishedClient(fd);
+	PSIDclient_setEstablished(fd);
 	task->protocolVersion = msg->version;
 
 	outmsg.type = PSC_getMyID();
