@@ -18,7 +18,7 @@ plugin_LTLIBRARIES = psaccount.la
 libplugincommon = $(top_builddir)/lib/plugincommon/libplugincommon.la
 
 psaccount_la_SOURCES = psaccount.c psaccountclient.c			\
-	psaccountclient.h psaccountcomm.c psaccountcomm.h psaccount.h	\
+	psaccountclient.h psaccountcomm.c psaccountcomm.h		\
 	psaccountinter.c psaccountinter.h psaccountjob.c		\
 	psaccountjob.h psaccountkvs.c psaccountkvs.h psaccountlog.c	\
 	psaccountlog.h psaccountproc.c psaccountproc.h			\

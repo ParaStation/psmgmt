@@ -27,8 +27,6 @@
 #include "psidnodes.h"
 #include "pluginfrag.h"
 
-#include "psaccount.h"
-
 #define PSACCOUNT_CONFIG "psaccount.conf"
 
 /** psid plugin requirements */
