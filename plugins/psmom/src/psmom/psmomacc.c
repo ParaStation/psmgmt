@@ -173,13 +173,13 @@ static void setJobMemUsage(Job_t *job, uint64_t mem, uint64_t vmem)
 
     if (mem > job->res.mem) {
 	job->res.mem = mem;
-	snprintf(memory, sizeof(memory), "%" PRIu64 "kb", mem / 1024);
+	snprintf(memory, sizeof(memory), "%" PRIu64 "kb", mem);
 	setEntry(&job->status.list, "resources_used", "mem", memory);
     }
 
     if (vmem > job->res.vmem) {
 	job->res.vmem = vmem;
-	snprintf(memory, sizeof(memory), "%" PRIu64 "kb", vmem / 1024);
+	snprintf(memory, sizeof(memory), "%" PRIu64 "kb", vmem);
 	setEntry(&job->status.list, "resources_used", "vmem", memory);
     }
 }
@@ -197,7 +197,7 @@ void fetchAccInfo(Job_t *job)
     calcJobPollCpuTime(job, accData.cstime, accData.cutime);
     addJobWaitCpuTime(job, accData.cputime);
     setJobCpuTime(job);
-    setJobMemUsage(job, accData.maxRss, accData.maxVsize);
+    setJobMemUsage(job, accData.maxRssTotal, accData.maxVsizeTotal);
     setJobWalltime(job);
 }
 
