@@ -195,7 +195,7 @@ void fetchAccInfo(Job_t *job)
     psAccountGetDataByJob(job->pid, &accData);
 
     calcJobPollCpuTime(job, accData.cstime, accData.cutime);
-    addJobWaitCpuTime(job, accData.cputime);
+    addJobWaitCpuTime(job, accData.totCputime);
     setJobCpuTime(job);
     setJobMemUsage(job, accData.maxRssTotal, accData.maxVsizeTotal);
     setJobWalltime(job);

@@ -241,23 +241,22 @@ char *listJobs(char *buf, size_t *bufSize)
     list_for_each(pos, &jobList) {
 	Job_t *job = list_entry(pos, Job_t, next);
 
-	snprintf(line, sizeof(line), "nr Of Children '%i'\n", job->nrOfChilds);
+	snprintf(line, sizeof(line), "nr Of Children %i\n", job->nrOfChilds);
 	str2Buf(line, &buf, bufSize);
 
-	snprintf(line, sizeof(line), "exit Children '%i'\n", job->childsExit);
+	snprintf(line, sizeof(line), "exit Children %i\n", job->childsExit);
 	str2Buf(line, &buf, bufSize);
 
-	snprintf(line, sizeof(line), "complete '%i'\n", job->complete);
+	snprintf(line, sizeof(line), "complete %i\n", job->complete);
 	str2Buf(line, &buf, bufSize);
 
 	snprintf(line, sizeof(line), "id '%s'\n", job->jobid);
 	str2Buf(line, &buf, bufSize);
 
-	snprintf(line, sizeof(line), "jobscript '%i'\n", job->jobscript);
+	snprintf(line, sizeof(line), "jobscript %i\n", job->jobscript);
 	str2Buf(line, &buf, bufSize);
 
-	snprintf(line, sizeof(line), "logger '%s'\n",
-		 PSC_printTID(job->logger));
+	snprintf(line, sizeof(line), "logger %s\n", PSC_printTID(job->logger));
 	str2Buf(line, &buf, bufSize);
 
 	snprintf(line, sizeof(line), "start time %s", ctime(&job->startTime));
@@ -271,9 +270,8 @@ char *listJobs(char *buf, size_t *bufSize)
 	    AccountDataExt_t accData;
 
 	    if (getDataByJob(job->jobscript, &accData)) {
-		snprintf(line, sizeof(line), "cputime '%zu' utime '%zu'"
-			 " stime '%zu' mem[kB] '%zu' vmem[kB] '%zu'\n",
-			 accData.cputime, accData.cutime, accData.cstime,
+		snprintf(line, sizeof(line), "utime %zu stime %zu mem[kB] %zu"
+			 " vmem[kB] %zu\n", accData.cutime, accData.cstime,
 			 accData.maxRssTotal, accData.maxVsizeTotal);
 		str2Buf(line, &buf, bufSize);
 	    }

@@ -49,7 +49,6 @@ typedef struct {
     uint64_t avgRssCount;      /**< number of addends in @ref avgRssTotal */
     uint64_t cutime;
     uint64_t cstime;
-    uint64_t cputime;
     uint64_t minCputime;
     uint64_t pageSize;
     uint32_t numTasks;

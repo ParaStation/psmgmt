@@ -237,10 +237,9 @@ static void updateClntData(Client_t *client)
     }
     if (!cputime) accData->cpuFreq = getCpuFreq(proc->cpu);
 
-    mdbg(PSACC_LOG_COLLECT, "%s: tid '%s' rank '%i' cutime: '%lu' cstime: '%lu'"
-	 " session '%i' mem '%lu kB' vmem '%lu kB' threads '%lu' "
-	 "majflt '%lu' cpu '%u' cpuFreq '%lu'\n", __func__,
-	 PSC_printTID(client->taskid),
+    mdbg(PSACC_LOG_COLLECT, "%s: tid %s rank %i cutime: %lu cstime: %lu"
+	 " session %i mem %lukB vmem %lukB threads %lu majflt %lu"
+	 " cpu %u cpuFreq %lu\n", __func__, PSC_printTID(client->taskid),
 	 client->rank, accData->cutime, accData->cstime, accData->session,
 	 accData->maxRss, accData->maxVsize, accData->maxThreads,
 	 accData->totMajflt, proc->cpu, accData->cpuFreq);
@@ -308,7 +307,6 @@ void addClientToAggData(Client_t *client, AccountDataExt_t *aggData)
     aggData->cutime += cData->cutime;
     aggData->cstime += cData->cstime;
 
-    aggData->cputime += cData->cputime;
     aggData->pageSize = cData->pageSize;
 
     timeradd(&aggData->rusage.ru_utime, &cData->rusage.ru_utime,
@@ -357,11 +355,10 @@ void addClientToAggData(Client_t *client, AccountDataExt_t *aggData)
     /* cpu freq */
     aggData->cpuFreq += cData->cpuFreq;
 
-    mdbg(PSACC_LOG_AGGREGATE, "%s: client '%s' maxThreads '%lu' maxVsize '%lu'"
-	 " maxRss '%lu' cutime '%lu' cstime '%lu' cputime '%lu' avg cpuFreq "
-	 " '%.2fG'\n", __func__, PSC_printTID(client->taskid),
-	 cData->maxThreads, cData->maxVsize, cData->maxRss,
-	 cData->cutime, cData->cstime, cData->cputime,
+    mdbg(PSACC_LOG_AGGREGATE, "%s: client %s maxThreads %lu maxVsize %lu"
+	 " maxRss %lu cutime %lu cstime %lu avg cpuFreq %.2fG\n",
+	 __func__, PSC_printTID(client->taskid), cData->maxThreads,
+	 cData->maxVsize, cData->maxRss, cData->cutime, cData->cstime,
 	 (double) aggData->cpuFreq / aggData->numTasks / (1024*1024));
 }
 
@@ -440,7 +437,6 @@ static void addAggData(AccountDataExt_t *srcData, AccountDataExt_t *destData)
 
     destData->cutime += srcData->cutime;
     destData->cstime += srcData->cstime;
-    destData->cputime += srcData->cputime;
 
     timeradd(&destData->rusage.ru_utime, &srcData->rusage.ru_utime,
 	     &destData->rusage.ru_utime);
@@ -465,10 +461,10 @@ static void addAggData(AccountDataExt_t *srcData, AccountDataExt_t *destData)
     destData->numTasks += srcData->numTasks;
     destData->pageSize = srcData->pageSize;
 
-    mdbg(PSACC_LOG_AGGREGATE, "%s: maxThreads '%lu' maxVsize '%lu' "
-	 "maxRss '%lu' cutime '%lu' cstime '%lu' cputime '%lu' avg cpuFreq "
-	 "'%.2fG'\n", __func__, srcData->maxThreads, srcData->maxVsize,
-	 srcData->maxRss, srcData->cutime, srcData->cstime, srcData->cputime,
+    mdbg(PSACC_LOG_AGGREGATE, "%s: maxThreads %lu maxVsize %lu maxRss %lu"
+	 " cutime %lu cstime %lu avg cpuFreq %.2fG\n", __func__,
+	 srcData->maxThreads, srcData->maxVsize, srcData->maxRss,
+	 srcData->cutime, srcData->cstime,
 	 ((double)destData->cpuFreq / destData->numTasks) / (1024*1024));
 }
 
@@ -680,8 +676,7 @@ void cleanupClients(void)
 
 	/* check timeout */
 	if (client->endTime + grace * 60 <= now) {
-	    mdbg(PSACC_LOG_VERBOSE, "%s: cleanup client '%i'\n", __func__,
-		    client->pid);
+	    mdbg(PSACC_LOG_VERBOSE, "%s: %i\n", __func__, client->pid);
 	    doDeleteClient(client);
 	}
     }
@@ -752,7 +747,7 @@ void switchClientUpdate(PStask_ID_t clientTID, bool enable)
 {
     Client_t *client = findClientByTID(clientTID);
     if (client) {
-	mdbg(PSACC_LOG_ACC_SWITCH, "%s: %s accounting for '%s'\n", __func__,
+	mdbg(PSACC_LOG_ACC_SWITCH, "%s: %s accounting for %s\n", __func__,
 	     (enable) ? "enable" : "disable", PSC_printTID(clientTID));
 	client->doAccounting = enable;
     }
@@ -772,28 +767,28 @@ char *listClients(char *buf, size_t *bufSize, bool detailed)
     list_for_each(pos, &clientList) {
 	Client_t *c = list_entry(pos, Client_t, next);
 
-	snprintf(line, sizeof(line), "taskID '%s'\n", PSC_printTID(c->taskid));
+	snprintf(line, sizeof(line), "taskID %s\n", PSC_printTID(c->taskid));
 	str2Buf(line, &buf, bufSize);
 
-	snprintf(line, sizeof(line), "rank '%i'\n", c->rank);
+	snprintf(line, sizeof(line), "rank %i\n", c->rank);
 	str2Buf(line, &buf, bufSize);
 
-	snprintf(line, sizeof(line), "logger '%s'\n", PSC_printTID(c->logger));
+	snprintf(line, sizeof(line), "logger %s\n", PSC_printTID(c->logger));
 	str2Buf(line, &buf, bufSize);
 
-	snprintf(line, sizeof(line), "account '%i'\n", c->doAccounting);
+	snprintf(line, sizeof(line), "account %i\n", c->doAccounting);
 	str2Buf(line, &buf, bufSize);
 
 	snprintf(line, sizeof(line), "type '%s'\n", clientType2Str(c->type));
 	str2Buf(line, &buf, bufSize);
 
-	snprintf(line, sizeof(line), "uid '%i'\n", c->uid);
+	snprintf(line, sizeof(line), "uid %i\n", c->uid);
 	str2Buf(line, &buf, bufSize);
 
-	snprintf(line, sizeof(line), "gid '%i'\n", c->gid);
+	snprintf(line, sizeof(line), "gid %i\n", c->gid);
 	str2Buf(line, &buf, bufSize);
 
-	snprintf(line, sizeof(line), "page size '%zu'\n", c->data.pageSize);
+	snprintf(line, sizeof(line), "page size %zu\n", c->data.pageSize);
 	str2Buf(line, &buf, bufSize);
 
 	snprintf(line, sizeof(line), "start time %s", ctime(&c->startTime));
@@ -814,9 +809,6 @@ char *listClients(char *buf, size_t *bufSize, bool detailed)
 	    str2Buf(line, &buf, bufSize);
 
 	    snprintf(line, sizeof(line), "cstime %zu\n", c->data.cstime);
-	    str2Buf(line, &buf, bufSize);
-
-	    snprintf(line, sizeof(line), "cputime %zu\n", c->data.cputime);
 	    str2Buf(line, &buf, bufSize);
 
 	    snprintf(line, sizeof(line), "max threads %zu\n",

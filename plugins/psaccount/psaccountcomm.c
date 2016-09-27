@@ -99,17 +99,16 @@ static void handleAccountEnd(DDTypedBufferMsg_t *msg)
     if (msg->header.sender == logger) {
 	/* find the job */
 	if (!(job = findJobByLogger(logger))) {
-	    mlog("%s: job for logger '%s' not found\n", __func__,
-		    PSC_printTID(logger));
+	    mlog("%s: job for logger %s not found\n", __func__,
+		 PSC_printTID(logger));
 	} else {
 	    job->endTime = time(NULL);
 	    job->complete = true;
 
 	    if (job->childsExit < job->nrOfChilds) {
-		mdbg(PSACC_LOG_VERBOSE, "%s: logger '%s' exited, but '%i' "
-			"children are still alive\n", __func__,
-			PSC_printTID(logger),
-			(job->nrOfChilds - job->childsExit));
+		mdbg(PSACC_LOG_VERBOSE, "%s: logger %s exited, but %i"
+		     " children are still alive\n", __func__,
+		     PSC_printTID(logger), job->nrOfChilds - job->childsExit);
 	    } else {
 		/* psmom does not need the job, we can delete it */
 		/* but psslurm does need it! */ // @todo check this with psmom
@@ -138,7 +137,7 @@ static void handleAccountEnd(DDTypedBufferMsg_t *msg)
     /* find the child exiting */
     if (!(client = findClientByTID(childTID))) {
 	if (!(findHist(logger))) {
-	    mlog("%s: end msg for unknown client '%s' from '%s'\n", __func__,
+	    mlog("%s: end msg for unknown client %s from %s\n", __func__,
 		 PSC_printTID(childTID), PSC_printTID(msg->header.sender));
 	}
 	return;
@@ -196,14 +195,14 @@ static void handleAccountEnd(DDTypedBufferMsg_t *msg)
     }
     PSP_putTypedMsgBuf(msg, __func__, "avgThrds", &avgThrds, sizeof(avgThrds));
 
-    mdbg(PSACC_LOG_VERBOSE, "%s: child rank '%i' pid '%i' logger '%s' uid '%i' "
-	    "gid '%i' msg type '%s' finished\n", __func__, client->rank,  child,
-	PSC_printTID(client->logger), client->uid, client->gid,
-	getAccountMsgType(msg->type));
+    mdbg(PSACC_LOG_VERBOSE, "%s: child rank %i pid %i logger %s uid %i"
+	 " gid %i msg type %s finished\n", __func__, client->rank, child,
+	 PSC_printTID(client->logger), client->uid, client->gid,
+	 getAccountMsgType(msg->type));
 
     /* find the job */
     if (!(job = findJobByLogger(client->logger))) {
-	mlog("%s: job for child '%i' not found\n", __func__, child);
+	mlog("%s: job for child %i not found\n", __func__, child);
     } else {
 	job->childsExit++;
 	if (job->childsExit >= job->nrOfChilds) {
@@ -216,7 +215,7 @@ static void handleAccountEnd(DDTypedBufferMsg_t *msg)
 	    job->complete = true;
 	    job->endTime = time(NULL);
 	    mdbg(PSACC_LOG_VERBOSE, "%s: job complete [%i:%i]\n", __func__,
-		job->childsExit, job->nrOfChilds);
+		 job->childsExit, job->nrOfChilds);
 
 	    if (PSC_getID(job->logger) != PSC_getMyID()) {
 		deleteJob(job->logger);
@@ -305,12 +304,6 @@ static void handleAccountChild(DDTypedBufferMsg_t *msg)
     client->gid = gid;
     client->job = job;
     client->rank = rank;
-
-    /*
-       mdbg(-1, "%s: new %s: tid '%s' logger:%i"
-       " uid:%i gid:%i \n", __func__, getAccountMsgType(msg->type),
-       PSC_printTID(msg->header.sender), logger, uid, gid);
-       */
 }
 
 static void handlePSMsg(DDTypedBufferMsg_t *msg)
@@ -318,7 +311,7 @@ static void handlePSMsg(DDTypedBufferMsg_t *msg)
     if (msg->header.dest == PSC_getMyTID()) {
 	/* message for me, let's get infos and forward to all accounters */
 
-	mdbg(PSACC_LOG_ACC_MSG, "%s: got msg '%s'\n", __func__,
+	mdbg(PSACC_LOG_ACC_MSG, "%s: got msg %s\n", __func__,
 	     getAccountMsgType(msg->type));
 
 	switch (msg->type) {
@@ -338,11 +331,11 @@ static void handlePSMsg(DDTypedBufferMsg_t *msg)
 		handleAccountEnd(msg);
 		break;
 	    default:
-		mlog("%s: invalid msg type '%i' sender '%s'\n", __func__,
-		    msg->type, PSC_printTID(msg->header.sender));
+		mlog("%s: invalid msg type %i sender %s\n", __func__, msg->type,
+		     PSC_printTID(msg->header.sender));
 	}
-	mdbg(PSACC_LOG_VERBOSE, "%s: msg type '%s' sender '%s'\n",
-	   __func__, getAccountMsgType(msg->type),
+	mdbg(PSACC_LOG_VERBOSE, "%s: msg type %s sender %s\n", __func__,
+	     getAccountMsgType(msg->type),
 	   PSC_printTID(msg->header.sender));
     }
 
@@ -396,7 +389,6 @@ void sendAggData(PStask_ID_t logger, AccountDataExt_t *aggData)
 
     addUint64ToMsg(aggData->cutime, &data);
     addUint64ToMsg(aggData->cstime, &data);
-    addUint64ToMsg(aggData->cputime, &data);
     addUint64ToMsg(aggData->minCputime, &data);
     addUint64ToMsg(aggData->pageSize, &data);
     addUint32ToMsg(aggData->numTasks, &data);
@@ -428,12 +420,11 @@ void sendAggData(PStask_ID_t logger, AccountDataExt_t *aggData)
 
     ufree(data.buf);
 
-    mdbg(PSACC_LOG_UPDATE_MSG, "%s: to '%i' maxThreadsTot '%zu' maxVsizeTot "
-	 "'%zu' maxRsstot '%zu' maxThreads '%zu' maxVsize '%zu' maxRss '%zu'"
-	 " numTasks '%u' avgThreadsTotal '%zu' avgThreadsCount '%zu' "
-	 "avgVsizeTotal '%zu' avgVsizeCount '%zu' avgRssTotal '%zu' "
-	 "avgRssCount '%zu'\n", __func__, loggerNode,
-	 aggData->maxThreadsTotal, aggData->maxVsizeTotal,
+    mdbg(PSACC_LOG_UPDATE_MSG, "%s: to %i maxThreadsTot %zu maxVsizeTot %zu"
+	 " maxRsstot %zu maxThreads %zu maxVsize %zu maxRss %zu numTasks %u"
+	 " avgThreadsTotal %zu avgThreadsCount %zu avgVsizeTotal %zu"
+	 " avgVsizeCount %zu avgRssTotal %zu avgRssCount %zu\n", __func__,
+	 loggerNode, aggData->maxThreadsTotal, aggData->maxVsizeTotal,
 	 aggData->maxRssTotal, aggData->maxThreads, aggData->maxVsize,
 	 aggData->maxRss, aggData->numTasks, aggData->avgThreadsTotal,
 	 aggData->avgThreadsCount, aggData->avgVsizeTotal,
@@ -470,7 +461,6 @@ static void handleAggDataUpdate(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 
     getUint64(&ptr, &aggData.cutime);
     getUint64(&ptr, &aggData.cstime);
-    getUint64(&ptr, &aggData.cputime);
     getUint64(&ptr, &aggData.minCputime);
     getUint64(&ptr, &aggData.pageSize);
     getUint32(&ptr, &aggData.numTasks);
@@ -499,12 +489,11 @@ static void handleAggDataUpdate(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 
     setAggData(msg->header.sender, logger, &aggData);
 
-    mdbg(PSACC_LOG_UPDATE_MSG, "%s: from '%s' maxThreadsTot '%zu' maxVsizeTot "
-	 "'%zu' maxRsstot '%zu' maxThreads '%zu' maxVsize '%zu' maxRss '%zu'"
-	 " numTasks '%u'\n", __func__, PSC_printTID(msg->header.sender),
-	 aggData.maxThreadsTotal, aggData.maxVsizeTotal, aggData.maxRssTotal,
-	 aggData.maxThreads, aggData.maxVsize, aggData.maxRss,
-	 aggData.numTasks);
+    mdbg(PSACC_LOG_UPDATE_MSG, "%s: from %s maxThreadsTot %zu maxVsizeTot %zu"
+	 " maxRsstot %zu maxThreads %zu maxVsize %zu maxRss %zu numTasks %u\n",
+	 __func__, PSC_printTID(msg->header.sender), aggData.maxThreadsTotal,
+	 aggData.maxVsizeTotal, aggData.maxRssTotal, aggData.maxThreads,
+	 aggData.maxVsize, aggData.maxRss, aggData.numTasks);
 }
 
 /**
@@ -562,11 +551,11 @@ static void handleInterAccount(DDTypedBufferMsg_t *msg)
     case PSP_ACCOUNT_FORWARD_START:
     case PSP_ACCOUNT_DATA_UPDATE:
     case PSP_ACCOUNT_FORWARD_END:
-	mlog("%s: got obsolete msg '%i'\n", __func__, msg->type);
+	mlog("%s: got obsolete msg %i\n", __func__, msg->type);
 	break;
     default:
-	mlog("%s: unknown msg type '%i' form sender '%s'\n", __func__,
-	     msg->type, PSC_printTID(msg->header.sender));
+	mlog("%s: unknown msg type %i received form %s\n", __func__, msg->type,
+	     PSC_printTID(msg->header.sender));
     }
 }
 
