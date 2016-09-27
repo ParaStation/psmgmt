@@ -804,22 +804,22 @@ char *listClients(char *buf, size_t *bufSize, bool detailed)
 	str2Buf(line, &buf, bufSize);
 
 	if (detailed) {
-	    snprintf(line, sizeof(line), "max mem '%zu'\n", c->data.maxRss);
+	    snprintf(line, sizeof(line), "max mem %zukB\n", c->data.maxRss);
 	    str2Buf(line, &buf, bufSize);
 
-	    snprintf(line, sizeof(line), "max vmem '%zu'\n", c->data.maxVsize);
+	    snprintf(line, sizeof(line), "max vmem %zukB\n", c->data.maxVsize);
 	    str2Buf(line, &buf, bufSize);
 
-	    snprintf(line, sizeof(line), "cutime '%zu'\n", c->data.cutime);
+	    snprintf(line, sizeof(line), "cutime %zu\n", c->data.cutime);
 	    str2Buf(line, &buf, bufSize);
 
-	    snprintf(line, sizeof(line), "cstime '%zu'\n", c->data.cstime);
+	    snprintf(line, sizeof(line), "cstime %zu\n", c->data.cstime);
 	    str2Buf(line, &buf, bufSize);
 
-	    snprintf(line, sizeof(line), "cputime '%zu'\n", c->data.cputime);
+	    snprintf(line, sizeof(line), "cputime %zu\n", c->data.cputime);
 	    str2Buf(line, &buf, bufSize);
 
-	    snprintf(line, sizeof(line), "max threads '%zu'\n",
+	    snprintf(line, sizeof(line), "max threads %zu\n",
 		     c->data.maxThreads);
 	    str2Buf(line, &buf, bufSize);
 	}
