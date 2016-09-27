@@ -35,18 +35,18 @@ typedef enum {
 typedef struct {
     pid_t session;             /**< client's session ID*/
     pid_t pgroup;              /**< client's process group */
-    uint64_t maxThreadsTotal;
-    uint64_t maxVsizeTotal;
-    uint64_t maxRssTotal;
-    uint64_t maxThreads;
-    uint64_t maxVsize;
-    uint64_t maxRss;
-    uint64_t avgThreadsTotal;
-    uint64_t avgThreadsCount;
-    uint64_t avgVsizeTotal;
-    uint64_t avgVsizeCount;
-    uint64_t avgRssTotal;
-    uint64_t avgRssCount;
+    uint64_t maxThreadsTotal;  /**< accumulated max. number of threads */
+    uint64_t maxVsizeTotal;    /**< accumulated max. virt. mem. size (in kB) */
+    uint64_t maxRssTotal;      /**< accumulated max. RSS (in kB) */
+    uint64_t maxThreads;       /**< maximum number of threads */
+    uint64_t maxVsize;         /**< maximum virtual memory size (in kB) */
+    uint64_t maxRss;           /**< maximum resident set memory size (in kB) */
+    uint64_t avgThreadsTotal;  /**< sum of number of threads samples */
+    uint64_t avgThreadsCount;  /**< number of addends in @ref avgThreadsTotal */
+    uint64_t avgVsizeTotal;    /**< sum of virtual memory size samples (in kB)*/
+    uint64_t avgVsizeCount;    /**< number of addends in @ref avgVsizeTotal */
+    uint64_t avgRssTotal;      /**< sum of res. set mem. size samples (in kB)*/
+    uint64_t avgRssCount;      /**< number of addends in @ref avgRssTotal */
     uint64_t cutime;
     uint64_t cstime;
     uint64_t cputime;
@@ -65,7 +65,7 @@ typedef struct {
     uint64_t writeBytes;
     uint64_t cpuWeight;
     PStask_ID_t taskIds[6];
-    struct rusage rusage;
+    struct rusage rusage;      /**< resource usage collect upon client's dead */
 } AccountDataExt_t;
 
 /** Resource usage of individual processes */
