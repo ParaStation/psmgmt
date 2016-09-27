@@ -295,16 +295,4 @@ void forwardAggData(void);
  */
 void switchClientUpdate(PStask_ID_t clientTID, bool enable);
 
-/**
- * @brief Set system's clock granularity
- *
- * Set the system's clock granularity as required to calculate times
- * in seconds.
- *
- * @param clkTics Clock granularity to be used for time calculations
- *
- * @return No return value
- */
-void setClockTicks(int clkTics);
-
 #endif  /* __PS_ACCOUNT_CLIENT */

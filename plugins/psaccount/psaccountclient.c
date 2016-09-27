@@ -10,6 +10,8 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <unistd.h>
+#include <sys/time.h>
 
 #include "pluginmalloc.h"
 
@@ -113,8 +115,11 @@ Client_t *findJobscriptInClients(Job_t *job)
 
 /************************** Data collection **************************/
 
-/** System's clock granularity. Set via @ref setClockTicks(). */
-static int clockTicks = -1;
+/** System's clock granularity. Set upon first call of @ref updateClntData() */
+static int clockTicks = 0;
+
+/** System's page size. Set upon first call of @ref updateClntData() */
+static int pageSize = 0;
 
 /**
  * @brief Update clients accounting data
@@ -126,14 +131,14 @@ static int clockTicks = -1;
  *
  * @return No return value
  */
-static void updateAccountData(Client_t *client)
+static void updateClntData(Client_t *client)
 {
     unsigned long rssnew, vsizenew;
     uint64_t cutime, cstime;
-    AccountDataExt_t *accData;
+    AccountDataExt_t *accData = &client->data;
     ProcSnapshot_t *proc = findProcSnapshot(client->pid), pChildren;
     ProcIO_t procIO;
-    uint64_t cputime, maxRssMB = 0;
+    uint64_t cputime;
     int64_t diffCputime;
 
     if (!client->doAccounting) return;
@@ -144,25 +149,45 @@ static void updateAccountData(Client_t *client)
 	return;
     }
 
-    accData = &client->data;
+    if (!clockTicks) {
+	/* determine system's clock ticks */
+	clockTicks = sysconf(_SC_CLK_TCK);
+	if (clockTicks < 1) {
+	    mlog("%s: reading clock ticks failed\n", __func__);
+	    clockTicks = 0;
+	    return;
+	}
+    }
+
+    if (!pageSize) {
+	/* determine system's page size */
+	pageSize = sysconf(_SC_PAGESIZE);
+	if (pageSize < 1) {
+	    mlog("%s: reading page size failed\n", __func__);
+	    pageSize = 0;
+	    return;
+	}
+    }
+
     if (!accData->session) accData->session = proc->session;
     if (!accData->pgroup) accData->pgroup = proc->pgrp;
+    if (!accData->pageSize) accData->pageSize = pageSize;
 
-    /* get infos for all children  */
+    /* collect data for all descendants */
     getDescendantData(client->pid, &pChildren);
-    rssnew = proc->mem + pChildren.mem;
-    vsizenew = proc->vmem + pChildren.vmem;
 
     /* save cutime and cstime in seconds */
     cutime = (proc->cutime + pChildren.cutime) / clockTicks;
     cstime = (proc->cstime + pChildren.cstime) / clockTicks;
 
     /* set rss (resident set size) */
+    rssnew = (proc->mem + pChildren.mem) * accData->pageSize / 1024;
     if (rssnew > accData->maxRss) accData->maxRss = rssnew;
     accData->avgRssTotal += rssnew;
     accData->avgRssCount++;
 
     /* set virtual mem */
+    vsizenew = (proc->vmem + pChildren.vmem) / 1024;
     if (vsizenew > accData->maxVsize) accData->maxVsize = vsizenew;
     accData->avgVsizeTotal += vsizenew;
     accData->avgVsizeCount++;
@@ -212,14 +237,12 @@ static void updateAccountData(Client_t *client)
     }
     if (!cputime) accData->cpuFreq = getCpuFreq(proc->cpu);
 
-    maxRssMB = (accData->maxRss * (pageSize / (1024)) / 1024);
-
     mdbg(PSACC_LOG_COLLECT, "%s: tid '%s' rank '%i' cutime: '%lu' cstime: '%lu'"
-	 " session '%i' mem '%lu MB' vmem '%lu MB' threads '%lu' "
+	 " session '%i' mem '%lu kB' vmem '%lu kB' threads '%lu' "
 	 "majflt '%lu' cpu '%u' cpuFreq '%lu'\n", __func__,
 	 PSC_printTID(client->taskid),
 	 client->rank, accData->cutime, accData->cstime, accData->session,
-	 maxRssMB, accData->maxVsize / (1024 * 1024), accData->maxThreads,
+	 accData->maxRss, accData->maxVsize, accData->maxThreads,
 	 accData->totMajflt, proc->cpu, accData->cpuFreq);
 }
 
@@ -240,22 +263,21 @@ static void updateAccountData(Client_t *client)
  */
 void addClientToAggData(Client_t *client, AccountDataExt_t *aggData)
 {
-    uint64_t maxRss, maxVsize, tmp;
+    AccountDataExt_t *cData = &client->data;
+    uint64_t maxRss, maxVsize, CPUtime;
     double dtmp;
 
-    if (!client->data.pageSize) client->data.pageSize = pageSize;
-
-    maxRss =  client->data.maxRss * (client->data.pageSize / 1024);
-    maxVsize = client->data.maxVsize / 1024;
+    maxRss = cData->maxRss;
+    maxVsize = cData->maxVsize;
 
     /* sum up for maxima totals */
-    aggData->maxThreadsTotal += client->data.maxThreads;
+    aggData->maxThreadsTotal += cData->maxThreads;
     aggData->maxRssTotal += maxRss;
     aggData->maxVsizeTotal += maxVsize;
 
     /* maxima per client */
-    if (aggData->maxThreads < client->data.maxThreads) {
-	aggData->maxThreads = client->data.maxThreads;
+    if (aggData->maxThreads < cData->maxThreads) {
+	aggData->maxThreads = cData->maxThreads;
     }
 
     if (aggData->maxRss < maxRss) {
@@ -269,59 +291,53 @@ void addClientToAggData(Client_t *client, AccountDataExt_t *aggData)
     }
 
     /* calculate averages per client if data available */
-    if (client->data.avgThreadsCount > 0) {
+    if (cData->avgThreadsCount > 0) {
 	aggData->avgThreadsTotal +=
-	    client->data.avgThreadsTotal / client->data.avgThreadsCount;
+	    cData->avgThreadsTotal / cData->avgThreadsCount;
 	aggData->avgThreadsCount++;
     }
-    if (client->data.avgVsizeCount > 0) {
-	aggData->avgVsizeTotal +=
-	    client->data.avgVsizeTotal / (client->data.avgVsizeCount * 1024);
+    if (cData->avgVsizeCount > 0) {
+	aggData->avgVsizeTotal += cData->avgVsizeTotal / cData->avgVsizeCount;
 	aggData->avgVsizeCount++;
     }
-    if (client->data.avgRssCount > 0) {
-	aggData->avgRssTotal +=
-			(client->data.avgRssTotal * client->data.pageSize)
-			    / (client->data.avgRssCount * 1024);
+    if (cData->avgRssCount > 0) {
+	aggData->avgRssTotal += cData->avgRssTotal / cData->avgRssCount;
 	aggData->avgRssCount++;
     }
 
-    aggData->cutime += client->data.cutime;
-    aggData->cstime += client->data.cstime;
+    aggData->cutime += cData->cutime;
+    aggData->cstime += cData->cstime;
 
-    aggData->cputime += client->data.cputime;
-    aggData->pageSize = client->data.pageSize;
+    aggData->cputime += cData->cputime;
+    aggData->pageSize = cData->pageSize;
 
-    aggData->rusage.ru_utime.tv_sec += client->data.rusage.ru_utime.tv_sec;
-    aggData->rusage.ru_utime.tv_usec += client->data.rusage.ru_utime.tv_usec;
-    aggData->rusage.ru_stime.tv_sec += client->data.rusage.ru_stime.tv_sec;
-    aggData->rusage.ru_stime.tv_usec += client->data.rusage.ru_stime.tv_usec;
+    timeradd(&aggData->rusage.ru_utime, &cData->rusage.ru_utime,
+	     &aggData->rusage.ru_utime);
+    timeradd(&aggData->rusage.ru_stime, &cData->rusage.ru_stime,
+	     &aggData->rusage.ru_stime);
 
     /* min cputime */
-    tmp = client->data.rusage.ru_utime.tv_sec +
-		client->data.rusage.ru_stime.tv_sec;
+    CPUtime = cData->rusage.ru_utime.tv_sec + cData->rusage.ru_stime.tv_sec;
     if (!aggData->numTasks) {
-	aggData->minCputime = tmp;
+	aggData->minCputime = CPUtime;
 	aggData->taskIds[ACCID_MIN_CPU] = client->taskid;
-    } else if (aggData->minCputime > tmp) {
-	aggData->minCputime = tmp;
+    } else if (CPUtime < aggData->minCputime) {
+	aggData->minCputime = CPUtime;
 	aggData->taskIds[ACCID_MIN_CPU] = client->taskid;
     }
 
     /* total cputime */
-    aggData->totCputime +=
-		client->data.rusage.ru_utime.tv_sec +
-		client->data.rusage.ru_stime.tv_sec;
+    aggData->totCputime += CPUtime;
 
     /* major page faults */
-    aggData->totMajflt += client->data.totMajflt;
-    if (client->data.totMajflt > aggData->maxMajflt) {
-	aggData->maxMajflt = client->data.totMajflt;
+    aggData->totMajflt += cData->totMajflt;
+    if (cData->totMajflt > aggData->maxMajflt) {
+	aggData->maxMajflt = cData->totMajflt;
 	aggData->taskIds[ACCID_MAX_PAGES] = client->taskid;
     }
 
     /* disc read */
-    dtmp = (double) client->data.totDiskRead / (double)1048576;
+    dtmp = (double)cData->totDiskRead / (1024*1024);
     aggData->totDiskRead += dtmp;
     if (dtmp > aggData->maxDiskRead) {
 	aggData->maxDiskRead = dtmp;
@@ -329,7 +345,7 @@ void addClientToAggData(Client_t *client, AccountDataExt_t *aggData)
     }
 
     /* disc write */
-    dtmp = (double) client->data.totDiskWrite / (double)1048576;
+    dtmp = (double)cData->totDiskWrite / (1024*1024);
     aggData->totDiskWrite += dtmp;
     if (dtmp > aggData->maxDiskWrite) {
 	aggData->maxDiskWrite = dtmp;
@@ -339,16 +355,14 @@ void addClientToAggData(Client_t *client, AccountDataExt_t *aggData)
     aggData->numTasks++;
 
     /* cpu freq */
-    aggData->cpuFreq += client->data.cpuFreq;
+    aggData->cpuFreq += cData->cpuFreq;
 
-    mdbg(PSACC_LOG_AGGREGATE, "%s: client '%s' maxThreads '%lu' maxVsize '%lu' "
-	    "maxRss '%lu' cutime '%lu' cstime '%lu' cputime '%lu' avg cpuFreq "
-	    "'%.2fG'\n", __func__, PSC_printTID(client->taskid),
-	    client->data.maxThreads, client->data.maxVsize,
-	    client->data.maxRss, client->data.cutime, client->data.cstime,
-	    client->data.cputime,
-	    ((double) aggData->cpuFreq / (double) aggData->numTasks) /
-	    (double) 1048576);
+    mdbg(PSACC_LOG_AGGREGATE, "%s: client '%s' maxThreads '%lu' maxVsize '%lu'"
+	 " maxRss '%lu' cutime '%lu' cstime '%lu' cputime '%lu' avg cpuFreq "
+	 " '%.2fG'\n", __func__, PSC_printTID(client->taskid),
+	 cData->maxThreads, cData->maxVsize, cData->maxRss,
+	 cData->cutime, cData->cstime, cData->cputime,
+	 (double) aggData->cpuFreq / aggData->numTasks / (1024*1024));
 }
 
 /**
@@ -373,30 +387,30 @@ static void addAggData(AccountDataExt_t *srcData, AccountDataExt_t *destData)
     /* calculate averages per client if data available */
     if (srcData->avgThreadsCount > 0) {
 	destData->avgThreadsTotal += srcData->avgThreadsTotal;
-	destData->avgThreadsCount += srcData->numTasks;
+	destData->avgThreadsCount += srcData->avgThreadsCount;
     }
     if (srcData->avgVsizeCount > 0) {
 	destData->avgVsizeTotal += srcData->avgVsizeTotal;
-	destData->avgVsizeCount += srcData->numTasks;
+	destData->avgVsizeCount += srcData->avgVsizeCount;
     }
     if (srcData->avgRssCount > 0) {
 	destData->avgRssTotal += srcData->avgRssTotal;
-	destData->avgRssCount += srcData->numTasks;
+	destData->avgRssCount += srcData->avgRssCount;
     }
 
     /* max threads */
-    if (destData->maxThreads < srcData->maxThreads) {
+    if (srcData->maxThreads > destData->maxThreads) {
 	destData->maxThreads = srcData->maxThreads;
     }
 
     /* max rss */
-    if (destData->maxRss < srcData->maxRss) {
+    if (srcData->maxRss > destData->maxRss) {
 	destData->maxRss = srcData->maxRss;
 	destData->taskIds[ACCID_MAX_RSS] = srcData->taskIds[ACCID_MAX_RSS];
     }
 
     /* max vsize */
-    if (destData->maxVsize < srcData->maxVsize) {
+    if (srcData->maxVsize > destData->maxVsize) {
 	destData->maxVsize = srcData->maxVsize;
 	destData->taskIds[ACCID_MAX_VSIZE] = srcData->taskIds[ACCID_MAX_VSIZE];
     }
@@ -413,7 +427,7 @@ static void addAggData(AccountDataExt_t *srcData, AccountDataExt_t *destData)
     if (srcData->totDiskRead > destData->maxDiskRead) {
 	destData->maxDiskRead = srcData->totDiskRead;
 	destData->taskIds[ACCID_MAX_DISKREAD] =
-			srcData->taskIds[ACCID_MAX_DISKREAD];
+	    srcData->taskIds[ACCID_MAX_DISKREAD];
     }
 
     /* disc write */
@@ -421,23 +435,23 @@ static void addAggData(AccountDataExt_t *srcData, AccountDataExt_t *destData)
     if (srcData->totDiskWrite > destData->maxDiskWrite) {
 	destData->maxDiskWrite = srcData->totDiskWrite;
 	destData->taskIds[ACCID_MAX_DISKWRITE] =
-			srcData->taskIds[ACCID_MAX_DISKWRITE];
+	    srcData->taskIds[ACCID_MAX_DISKWRITE];
     }
 
     destData->cutime += srcData->cutime;
     destData->cstime += srcData->cstime;
     destData->cputime += srcData->cputime;
 
-    destData->rusage.ru_utime.tv_sec += srcData->rusage.ru_utime.tv_sec;
-    destData->rusage.ru_utime.tv_usec += srcData->rusage.ru_utime.tv_usec;
-    destData->rusage.ru_stime.tv_sec += srcData->rusage.ru_stime.tv_sec;
-    destData->rusage.ru_stime.tv_usec += srcData->rusage.ru_stime.tv_usec;
+    timeradd(&destData->rusage.ru_utime, &srcData->rusage.ru_utime,
+	     &destData->rusage.ru_utime);
+    timeradd(&destData->rusage.ru_stime, &srcData->rusage.ru_stime,
+	     &destData->rusage.ru_stime);
 
     /* min cputime */
     if (!destData->numTasks) {
 	destData->minCputime = srcData->minCputime;
 	destData->taskIds[ACCID_MIN_CPU] = srcData->taskIds[ACCID_MIN_CPU];
-    } else if (destData->minCputime > srcData->minCputime) {
+    } else if (srcData->minCputime < destData->minCputime) {
 	destData->minCputime = srcData->minCputime;
 	destData->taskIds[ACCID_MIN_CPU] = srcData->taskIds[ACCID_MIN_CPU];
     }
@@ -721,7 +735,7 @@ void updateClients(Job_t *job)
     list_for_each(pos, &clientList) {
 	Client_t *client = list_entry(pos, Client_t, next);
 	if (!client->doAccounting) continue;
-	if (!job || client->job == job) updateAccountData(client);
+	if (!job || client->job == job) updateClntData(client);
     }
 
     if (globalCollectMode) {
@@ -790,12 +804,10 @@ char *listClients(char *buf, size_t *bufSize, bool detailed)
 	str2Buf(line, &buf, bufSize);
 
 	if (detailed) {
-	    snprintf(line, sizeof(line), "max mem '%zu'\n",
-		     c->data.maxRss * pageSize);
+	    snprintf(line, sizeof(line), "max mem '%zu'\n", c->data.maxRss);
 	    str2Buf(line, &buf, bufSize);
 
-	    snprintf(line, sizeof(line), "max vmem '%zu'\n",
-		     c->data.maxVsize);
+	    snprintf(line, sizeof(line), "max vmem '%zu'\n", c->data.maxVsize);
 	    str2Buf(line, &buf, bufSize);
 
 	    snprintf(line, sizeof(line), "cutime '%zu'\n", c->data.cutime);
@@ -816,9 +828,4 @@ char *listClients(char *buf, size_t *bufSize, bool detailed)
     }
 
     return buf;
-}
-
-void setClockTicks(int clkTics)
-{
-    clockTicks = clkTics;
 }

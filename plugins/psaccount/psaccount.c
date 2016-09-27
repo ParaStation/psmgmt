@@ -132,14 +132,13 @@ int initialize(void)
 	}
     }
 
-    /* determine system's clock ticks */
+    /* check if system's clock ticks can be determined */
     if ((clockTicks = sysconf(_SC_CLK_TCK)) < 1) {
 	mlog("%s: reading clock ticks failed\n", __func__);
 	return 1;
     }
-    setClockTicks(clockTicks);
 
-    /* read system page size */
+    /* check if system's page size can be determined */
     if ((pageSize = sysconf(_SC_PAGESIZE)) < 1) {
 	mlog("%s: reading page size failed\n", __func__);
 	return 1;

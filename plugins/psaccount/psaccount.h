@@ -11,7 +11,4 @@
 #ifndef __PS_ACCOUNT_MAIN
 #define __PS_ACCOUNT_MAIN
 
-/** the linux system page size */
-extern int pageSize;
-
 #endif

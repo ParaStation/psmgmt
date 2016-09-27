@@ -23,7 +23,6 @@
 #include "psaccountlog.h"
 #include "psaccountclient.h"
 #include "psaccountjob.h"
-#include "psaccount.h"
 #include "psaccountproc.h"
 #include "psaccountconfig.h"
 #include "psaccounthistory.h"
@@ -399,7 +398,7 @@ void sendAggData(PStask_ID_t logger, AccountDataExt_t *aggData)
     addUint64ToMsg(aggData->cstime, &data);
     addUint64ToMsg(aggData->cputime, &data);
     addUint64ToMsg(aggData->minCputime, &data);
-    addUint64ToMsg(pageSize, &data);
+    addUint64ToMsg(aggData->pageSize, &data);
     addUint32ToMsg(aggData->numTasks, &data);
 
     addUint64ToMsg(aggData->maxMajflt, &data);
