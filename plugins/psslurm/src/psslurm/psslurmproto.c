@@ -513,11 +513,13 @@ void handleLaunchTasks(Slurm_Msg_t *sMsg)
 
     /* add allocation */
     if (!(job = findJobById(step->jobid))) {
-	alloc = addAllocation(step->jobid, step->cred->jobNumHosts,
-		step->cred->jobHostlist, &step->env,
-		&step->spankenv, step->uid, step->gid, step->username);
-	/* first received step does *not* have to be step 0 */
-	alloc->state = JOB_PROLOGUE;
+	if (!(alloc = findAlloc(step->jobid))) {
+	    alloc = addAllocation(step->jobid, step->cred->jobNumHosts,
+		    step->cred->jobHostlist, &step->env,
+		    &step->spankenv, step->uid, step->gid, step->username);
+	    /* first received step does *not* have to be step 0 */
+	    alloc->state = JOB_PROLOGUE;
+	}
     }
 
     if ((acctType = getConfValueC(&SlurmConfig, "JobAcctGatherType"))) {
