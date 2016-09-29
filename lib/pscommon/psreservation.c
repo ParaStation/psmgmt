@@ -234,19 +234,19 @@ void PSrsrvtn_gc(void)
 {
     list_t *c, *tmp;
     unsigned int i;
-    int first = 1;
+    bool first = true;
 
     PSC_log(PSC_LOG_TASK, "%s()\n", __func__);
-
-    if (!PSrsrvtn_gcRequired()) return;
 
     list_for_each_safe(c, tmp, &chunkList) {
 	res_chunk_t *chunk = list_entry(c, res_chunk_t, next);
 	int unused = 0;
 
+	if (!PSrsrvtn_gcRequired()) break;
+
 	/* always keep the first one */
 	if (first) {
-	    first = 0;
+	    first = false;
 	    continue;
 	}
 
@@ -255,8 +255,6 @@ void PSrsrvtn_gc(void)
 	}
 
 	if (unused > RESERVATION_CHUNK/2) freeChunk(chunk);
-
-	if (!PSrsrvtn_gcRequired()) break;
     }
 }
 
