@@ -36,9 +36,6 @@ int requiredAPI = 114;
 plugin_dep_t dependencies[] = {
     { .name = NULL, .version = 0 } };
 
-/** System's page size */
-int pageSize = -1;
-
 /** the ID of the main timer */
 static int mainTimerID = -1;
 
@@ -99,7 +96,6 @@ int initialize(void)
 {
     int poll, debugMask;
     struct utsname uts;
-    int clockTicks;
     char configfn[200];
 
     /* init logging facility */
@@ -129,13 +125,13 @@ int initialize(void)
     }
 
     /* check if system's clock ticks can be determined */
-    if ((clockTicks = sysconf(_SC_CLK_TCK)) < 1) {
+    if (sysconf(_SC_CLK_TCK) < 1) {
 	mlog("%s: reading clock ticks failed\n", __func__);
 	return 1;
     }
 
     /* check if system's page size can be determined */
-    if ((pageSize = sysconf(_SC_PAGESIZE)) < 1) {
+    if (sysconf(_SC_PAGESIZE) < 1) {
 	mlog("%s: reading page size failed\n", __func__);
 	return 1;
     }
@@ -146,11 +142,6 @@ int initialize(void)
 	return 1;
     }
 
-    /* register periodic timer */
-    if ((poll = PSIDnodes_acctPollI(PSC_getMyID())) > 0) {
-	mainTimer.tv_sec = poll;
-    }
-
     if (!initAccComm()) return 1;
 
     if (!Timer_isInitialized()) {
@@ -159,8 +150,11 @@ int initialize(void)
 	Timer_init(NULL);
     }
 
-    if ((mainTimerID = Timer_register(&mainTimer, periodicMain)) == -1) {
-	mlog("registering main timer failed\n");
+    /* register periodic timer */
+    poll = PSIDnodes_acctPollI(PSC_getMyID());
+    if (poll >= 0) setMainTimer(poll ? poll : 30);
+    if (mainTimerID == -1) {
+	mlog("registering main timer for poll = %d failed\n", poll);
 	return 1;
     }
 
