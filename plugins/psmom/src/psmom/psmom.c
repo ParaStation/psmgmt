@@ -33,6 +33,7 @@
 #include "psidhook.h"
 #include "plugin.h"
 #include "pluginhelper.h"
+#include "pluginfrag.h"
 
 #include "psaccounthandles.h"
 
@@ -652,6 +653,9 @@ int initialize(void)
     /* create master socket */
     openMasterSock();
 
+    /* We'll use fragmented messages between different psmoms */
+    initFragComm();
+
     /* register inter psmom msg */
     PSID_registerMsg(PSP_CC_PSMOM, (handlerFunc_t) handlePSMsg);
 
@@ -778,6 +782,7 @@ void cleanup(void)
     clearSSHList();
     clearAuthList();
     if (memoryDebug) fclose(memoryDebug);
+    finalizeFragComm();
 
     mlog("...Bye.\n");
 }
