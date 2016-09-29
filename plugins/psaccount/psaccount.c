@@ -56,7 +56,7 @@ static void setMainTimer(int sec);
 static void periodicMain(void)
 {
     static int cleanup = 0;
-    int poll;
+    int poll = PSIDnodes_acctPollI(PSC_getMyID());
 
     /* cleanup old jobs */
     if (cleanup++ == 4) {
@@ -64,6 +64,11 @@ static void periodicMain(void)
 	cleanupClients();
 	cleanup = 0;
     }
+
+    /* check if config changed */
+    if (poll >= 0 && poll != mainTimer.tv_sec) setMainTimer(poll ? poll : 30);
+
+    if (!poll) return;
 
     /* update proc snapshot */
     if ((haveActiveClients())) {
@@ -73,12 +78,6 @@ static void periodicMain(void)
 	updateClients(NULL);
     }
 
-    /* check if config changed */
-    if ((poll = PSIDnodes_acctPollI(PSC_getMyID())) > 0) {
-	if (poll != mainTimer.tv_sec) {
-	    setMainTimer(poll);
-	}
-    }
 }
 
 /**
@@ -90,9 +89,8 @@ static void periodicMain(void)
  */
 static void setMainTimer(int sec)
 {
-    if (mainTimerID != -1) {
-	Timer_remove(mainTimerID);
-    }
+    if (mainTimerID != -1) Timer_remove(mainTimerID);
+
     mainTimer.tv_sec = sec;
     mainTimerID = Timer_register(&mainTimer, periodicMain);
 }
