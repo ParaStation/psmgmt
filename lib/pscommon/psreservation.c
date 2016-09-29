@@ -35,7 +35,7 @@ typedef struct {
 } res_chunk_t;
 
 /**
- * Pool of reservation strucures ready to use. Initialized by @ref
+ * Pool of reservation structures ready to use. Initialized by @ref
  * incFreeList(). To get a buffer from this pool, use @ref
  * Psrsrvtn_get(), to put it back into it use @ref Psrsrvtn_put().
  */
