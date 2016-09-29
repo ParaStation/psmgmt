@@ -21,6 +21,9 @@
 #include <inttypes.h>
 #include <errno.h>
 
+#include "psidutil.h"
+#include "psidhook.h"
+
 #include "pluginconfig.h"
 #include "pluginmalloc.h"
 #include "psaccountlog.h"
@@ -28,6 +31,232 @@
 #include "psaccountclient.h"
 
 #include "psaccountproc.h"
+
+/**
+ * Number of proc snapshot structures allocated at once. Ensure this
+ * chunk is larger than 128 kB to force it into mmap()ed memory
+ */
+#define PROC_CHUNK (int)((128*1024)/sizeof(ProcSnapshot_t) + 1)
+
+/**
+ * Single chunk of proc snapshot structures allocated at once within
+ * incFreeList()
+ */
+typedef struct {
+    list_t next;                      /**< Use to put into chunkList */
+    ProcSnapshot_t procs[PROC_CHUNK]; /**< the proc snapshot structures */
+} proc_chunk_t;
+
+/**
+ * Pool of proc snapshot structures ready to use. Initialized by @ref
+ * incFreeList(). To get a buffer from this pool, use @ref getProc(),
+ * to put it back into it use @ref putProc().
+ */
+static LIST_HEAD(procFreeList);
+
+/** List of chunks of proc snapshot structures */
+static LIST_HEAD(chunkList);
+
+/** Number of  proc snapshot structures currently in use */
+static unsigned int usedProcs = 0;
+
+/** Total number of  proc snapshot structures currently available */
+static unsigned int availProcs = 0;
+
+/**
+ * @brief Increase proc snapshot structures
+ *
+ * Increase the number of available proc snapshot structures. For that,
+ * a chunk of @ref PROC_CHUNK proc snapshot structures is
+ * allocated. All proc snapshot structures are appended to the list of
+ * free proc snapshot structures @ref procFreeList. Additionally, the
+ * chunk is registered within @ref chunkList. Chunks might be released
+ * within @ref proc_gc() as soon as enough proc snapshot structures
+ * are available again.
+ *
+ * @return On success, true is returned. Or false if allocating the
+ * required memory failed. In the latter case errno is set appropriately.
+ */
+static bool incFreeList(void)
+{
+    proc_chunk_t *chunk = malloc(sizeof(*chunk));
+    unsigned int i;
+
+    if (!chunk) return false;
+
+    list_add_tail(&chunk->next, &chunkList);
+
+    for (i=0; i<PROC_CHUNK; i++) {
+	chunk->procs[i].state = PROC_UNUSED;
+	list_add_tail(&chunk->procs[i].next, &procFreeList);
+    }
+
+    availProcs += PROC_CHUNK;
+    mdbg(PSACC_LOG_PROC, "%s: now used %d.\n", __func__, availProcs);
+
+    return 1;
+}
+
+static ProcSnapshot_t *getProc(void)
+{
+    ProcSnapshot_t *p;
+
+    if (list_empty(&procFreeList)) {
+	mdbg(PSACC_LOG_PROC, "%s: no more elements\n", __func__);
+	if (!incFreeList()) {
+	    mlog("%s: no memory\n", __func__);
+	    return NULL;
+	}
+    }
+
+    /* get list's first usable element */
+    p = list_entry(procFreeList.next, ProcSnapshot_t, next);
+    if (p->state != PROC_UNUSED) {
+	mlog("%s: %s proc snapshot. Never be here.\n", __func__,
+	     (p->state == PROC_USED) ? "USED" : "DRAINED");
+	return NULL;
+    }
+
+    list_del(&p->next);
+
+    INIT_LIST_HEAD(&p->next);
+    p->state = PROC_USED;
+
+    usedProcs++;
+
+    return p;
+}
+
+static void putProc(ProcSnapshot_t *p)
+{
+    p->state = PROC_UNUSED;
+    list_add_tail(&p->next, &procFreeList);
+
+    usedProcs--;
+}
+
+/**
+ * @brief Free a chunk of proc snapshot structures
+ *
+ * Free the chunk of proc snapshot structures @a chunk. For that, all
+ * empty proc snapshot structures from this chunk are removed from @ref
+ * procFreeList and marked as drained. All proc snapshot structures still
+ * in use are replaced by using other free proc snapshot structure from
+ * @ref procFreeList.
+ *
+ * Once all proc snapshot structures of the chunk are empty, the whole
+ * chunk is free()ed.
+ *
+ * @param chunk The chunk of proc snapshot structures to free
+ *
+ * @return No return value
+ */
+static void freeChunk(proc_chunk_t *chunk)
+{
+    unsigned int i;
+
+    if (!chunk) return;
+
+    /* First round: remove proc snapshot structs from procFreeList */
+    for (i=0; i<PROC_CHUNK; i++) {
+	if (chunk->procs[i].state == PROC_UNUSED) {
+	    list_del(&chunk->procs[i].next);
+	    chunk->procs[i].state = PROC_DRAINED;
+	}
+    }
+
+    /* Second round: now copy and release all used proc snapshot structs */
+    for (i=0; i<PROC_CHUNK; i++) {
+	ProcSnapshot_t *old = &chunk->procs[i], *new;
+
+	if (old->state == PROC_DRAINED) continue;
+
+	new = getProc();
+	if (!new) {
+	    mlog("%s: new is NULL\n", __func__);
+	    return;
+	}
+
+	/* copy proc snapshot struct's content */
+	new->uid = old->uid;
+	new->pid = old->pid;
+	new->ppid = old->ppid;
+	new->pgrp = old->pgrp;
+	new->session = old->session;
+	new->cutime = old->cutime;
+	new->cstime = old->cstime;
+	new->threads = old->threads;
+	new->vmem = old->vmem;
+	new->mem = old->mem;
+	new->majflt = old->majflt;
+	new->cpu = old->cpu;
+
+	/* tweak the list */
+	__list_add(&new->next, old->next.prev, old->next.next);
+
+	old->state = PROC_DRAINED;
+
+	usedProcs--;
+    }
+
+    /* Now that the chunk is completely empty, free() it */
+    list_del(&chunk->next);
+    free(chunk);
+    availProcs -= PROC_CHUNK;
+    mdbg(PSACC_LOG_PROC, "%s: now used %d.\n", __func__, availProcs);
+}
+
+static bool gcRequired(void)
+{
+    mdbg(PSACC_LOG_PROC, "%s()\n", __func__);
+
+    return ((int)usedProcs < ((int)availProcs - PROC_CHUNK)/2);
+}
+
+static void proc_gc(void)
+{
+    list_t *c, *tmp;
+    unsigned int i;
+    bool first = true;
+
+    mdbg(PSACC_LOG_PROC, "%s()\n", __func__);
+
+    list_for_each_safe(c, tmp, &chunkList) {
+	proc_chunk_t *chunk = list_entry(c, proc_chunk_t, next);
+	int unused = 0;
+
+	if (!gcRequired()) break;
+
+	/* always keep the first one */
+	if (first) {
+	    first = false;
+	    continue;
+	}
+
+	for (i=0; i<PROC_CHUNK; i++) {
+	    if (chunk->procs[i].state != PROC_USED) unused++;
+	}
+
+	if (unused > PROC_CHUNK/2) freeChunk(chunk);
+    }
+}
+
+static int clearMem(void *dummy)
+{
+    list_t *c, *tmp;
+
+    list_for_each_safe(c, tmp, &chunkList) {
+	proc_chunk_t *chunk = list_entry(c, proc_chunk_t, next);
+
+	list_del(&chunk->next);
+	free(chunk);
+    }
+    availProcs = 0;
+
+    return 0;
+}
+
+/* ---------------------------------------------------------------------- */
 
 #define PROC_CPU_INFO	"/proc/cpuinfo"
 #define SYS_CPU_FREQ	"/sys/devices/system/cpu/cpu%d/cpufreq/cpuinfo_cur_freq"
@@ -415,9 +644,8 @@ bool readProcStat(pid_t pid, ProcStat_t *pS)
  */
 static ProcSnapshot_t *addProc(pid_t pid, ProcStat_t *pS)
 {
-    ProcSnapshot_t *proc;
+    ProcSnapshot_t *proc = getProc();
 
-    proc = umalloc(sizeof(*proc));
     if (!proc) return NULL;
     proc->uid = pS->uid;
     proc->pid = pid;
@@ -447,7 +675,7 @@ static void clearAllProcSnapshots(void)
     list_for_each_safe(pos, tmp, &procList) {
 	ProcSnapshot_t *proc = list_entry(pos, ProcSnapshot_t, next);
 	list_del(&proc->next);
-	ufree(proc);
+	putProc(proc);
     }
 }
 
@@ -579,10 +807,16 @@ void initProc(void)
 {
     cpuCount = getCPUCount();
     if (cpuCount) initCpuFreq();
+    PSID_registerLoopAct(proc_gc);
+    PSIDhook_add(PSIDHOOK_CLEARMEM, clearMem);
 }
 
 void finalizeProc(void)
 {
     clearAllProcSnapshots();
     clearCpuFreq();
+
+    clearMem(NULL);
+    PSID_unregisterLoopAct(proc_gc);
+    PSIDhook_del(PSIDHOOK_CLEARMEM, clearMem);
 }

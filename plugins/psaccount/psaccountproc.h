@@ -16,6 +16,13 @@
 #include "list.h"
 #include "psaccounttypes.h"
 
+/** Internal state of ProcSnapshot_t structure */
+typedef enum {
+    PROC_USED,                /**< In use */
+    PROC_UNUSED,              /**< Unused and ready for re-use */
+    PROC_DRAINED,             /**< Unused and ready for discard */
+} ProcSnapshot_state_t;
+
 /** Snapshot of a process' entry in the /proc filesystem */
 typedef struct {
     list_t next;              /**< used to put into list */
@@ -31,6 +38,7 @@ typedef struct {
     unsigned long mem;        /**< Process' resident set size */
     unsigned long majflt;     /**< Process' major page faults */
     uint16_t cpu;             /**< Last CPU the process last executed on */
+    ProcSnapshot_state_t state; /**< flag internal state of structure */
 } ProcSnapshot_t;
 
 /** Some I/O resources consumed by a process */
