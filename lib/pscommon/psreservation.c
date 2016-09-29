@@ -12,6 +12,7 @@ static char vcid[] __attribute__((used)) =
     "$Id$";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
+#include <stdbool.h>
 #include <stdlib.h>
 
 #include "pscommon.h"
@@ -61,15 +62,16 @@ static unsigned int availRess = 0;
  * within @ref PSrsrvtn_gc() as soon as enough reservation structures
  * are available again.
  *
- * return On success, 1 is returned. Or 0 if allocating the required
- * memory failed. In the latter case errno is set appropriately.
+ * @return On success, true is returned. Or false if allocating the
+ * required memory failed. In the latter case errno is set
+ * appropriately.
  */
-static int incFreeList(void)
+static bool incFreeList(void)
 {
     res_chunk_t *chunk = malloc(sizeof(*chunk));
     unsigned int i;
 
-    if (!chunk) return 0;
+    if (!chunk) return false;
 
     list_add_tail(&chunk->next, &chunkList);
 
@@ -81,7 +83,7 @@ static int incFreeList(void)
     availRess += RESERVATION_CHUNK;
     PSC_log(PSC_LOG_TASK, "%s: now used %d.\n", __func__, availRess);
 
-    return 1;
+    return true;
 }
 
 PSrsrvtn_t *PSrsrvtn_get(void)
@@ -258,7 +260,7 @@ void PSrsrvtn_gc(void)
     }
 }
 
-int PSrsrvtn_gcRequired(void)
+bool PSrsrvtn_gcRequired(void)
 {
     PSC_log(PSC_LOG_TASK, "%s()\n", __func__);
 
