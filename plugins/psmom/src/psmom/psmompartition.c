@@ -176,11 +176,11 @@ static void partitionDone(PStask_t *task)
 
 int handleCreatePart(void *msg)
 {
+    int enforceBatch = getConfValueI(&config, "ENFORCE_BATCH_START");
     PStask_t *task;
     DDBufferMsg_t *inmsg = msg;
     Job_t *job = NULL;
     pid_t mPid;
-    int enforceBatch;
 
     mPid = PSC_getPID(inmsg->header.sender);
 
@@ -193,7 +193,6 @@ int handleCreatePart(void *msg)
     }
 
     /* enforce regulations from the batchsystem */
-    getConfParamI("ENFORCE_BATCH_START", &enforceBatch);
     if (!enforceBatch) return 1;
 
     /* find task */
@@ -254,11 +253,9 @@ error:
 
 int handleCreatePartNL(void *msg)
 {
-    int enforceBatch;
+    int enforceBatch = getConfValueI(&config, "ENFORCE_BATCH_START");
     PStask_t *task;
     DDBufferMsg_t *inmsg = (DDBufferMsg_t *) msg;
-
-    getConfParamI("ENFORCE_BATCH_START", &enforceBatch);
 
     /* everyone is allowed to start, nothing to do for us here */
     if (!enforceBatch) return 1;

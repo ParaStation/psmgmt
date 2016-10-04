@@ -1,18 +1,11 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2011-2013 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2011-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
- */
-/**
- * $Id$
- *
- * \author
- * Michael Rauh <rauh@par-tec.com>
- *
  */
 
 #include <stdlib.h>
@@ -169,6 +162,12 @@ void setEnvVars()
     return;
 }
 
+static bool environmentVisitor(char *key, char *value, const void *info)
+{
+    if (!strcmp(key, "JOB_ENV")) addEnv(value);
+    return false;
+}
+
 void setupPBSEnv(Job_t *job, int interactive)
 {
     int portRM, end = 0;
@@ -294,7 +293,7 @@ void setupPBSEnv(Job_t *job, int interactive)
 	/* set umask */
 	oldmask = umask(0133);
 
-	nodefiles = getConfParamC("DIR_NODE_FILES");
+	nodefiles = getConfValueC(&config, "DIR_NODE_FILES");
 	snprintf(filename, sizeof(filename), "%s/%s", nodefiles, job->hashname);
 
 	if (stat(filename, &statbuf) == -1) {
@@ -354,7 +353,7 @@ void setupPBSEnv(Job_t *job, int interactive)
     addEnv("PBS_TASKNUM=1");
     addEnv("PBS_VNODENUM=0");
 
-    getConfParamI("PORT_RM", &portRM);
+    portRM = getConfValueI(&config, "PORT_RM");
     snprintf(name, sizeof(name), "PBS_MOMPORT=%i", portRM);
     addEnv(name);
 
@@ -372,7 +371,7 @@ void setupPBSEnv(Job_t *job, int interactive)
 	/* set umask */
 	oldmask = umask(0133);
 
-	nodefiles = getConfParamC("DIR_NODE_FILES");
+	nodefiles = getConfValueC(&config, "DIR_NODE_FILES");
 	snprintf(filename, sizeof(filename), "%s/%sgpu", nodefiles, job->id);
 
 	if (stat(filename, &statbuf) == -1) {
@@ -402,7 +401,8 @@ void setupPBSEnv(Job_t *job, int interactive)
     }
 
     /* setup tmp dir */
-    if ((confTmpDir = getConfParam("DIR_TEMP"))) {
+    confTmpDir = getConfValueC(&config, "DIR_TEMP");
+    if (confTmpDir) {
 	char tmpDir[400];
 
 	snprintf(tmpDir, sizeof(tmpDir), "%s/%s", confTmpDir, job->hashname);
@@ -411,16 +411,5 @@ void setupPBSEnv(Job_t *job, int interactive)
     }
 
     /* set additional env vars from config */
-    if (!(list_empty(&ConfigList.list))) {
-	struct list_head *pos;
-	Config_t *config;
-
-	list_for_each(pos, &ConfigList.list) {
-	    if (!(config = list_entry(pos, Config_t, list))) break;
-
-	    if (!(strcmp(config->key, "JOB_ENV"))) {
-		addEnv(config->value);
-	    }
-	}
-    }
+    traverseConfig(&config, environmentVisitor, NULL);
 }

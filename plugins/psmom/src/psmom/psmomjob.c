@@ -7,13 +7,6 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-/**
- * $Id$
- *
- * \author
- * Michael Rauh <rauh@par-tec.com>
- *
- */
 
 #define _GNU_SOURCE
 #include <stdlib.h>
@@ -63,7 +56,7 @@ void setJobObitTimer(Job_t *job)
     /* timer already in place */
     if (jobObitTimerID != -1) return;
 
-    getConfParamI("TIME_OBIT_RESEND", &Time);
+    Time = getConfValueI(&config, "TIME_OBIT_RESEND");
     Timer.tv_sec = Time;
     if ((jobObitTimerID = Timer_register(&Timer, obitWaitingJobs)) == -1) {
 	mlog("%s: registering job obit timer failed\n", __func__);

@@ -83,16 +83,16 @@ void switchUser(char *username, struct passwd *spasswd, int saveEnv)
 
     /* change the gid */
     if ((setgid(spasswd->pw_gid)) < 0) {
-        mlog("%s: setgid(%i) failed : %s\n", __func__, spasswd->pw_gid,
+	mlog("%s: setgid(%i) failed : %s\n", __func__, spasswd->pw_gid,
 		strerror(errno));
-        exit(1);
+	exit(1);
     }
 
     /* change the uid */
     if ((setuid(spasswd->pw_uid)) < 0) {
 	mlog("%s: setuid(%i) failed : %s\n", __func__, spasswd->pw_uid,
 		strerror(errno));
-        exit(1);
+	exit(1);
     }
 
     /* change to job working directory */
@@ -392,17 +392,14 @@ void setResourceLimits(Job_t *job)
     struct list_head *pos;
     struct rlimit limit;
     Data_Entry_t *next, *data;
-    char *limits;
+    char *limits = getConfValueC(&config, "RLIMITS_HARD");
 
     /* set default hard rlimits */
-    if ((limits = getConfParam("RLIMITS_HARD"))) {
-	setDefaultResLimits(limits, 0);
-    }
+    if (limits) setDefaultResLimits(limits, 0);
 
     /* set default soft rlimits */
-    if ((limits = getConfParam("RLIMITS_SOFT"))) {
-	setDefaultResLimits(limits, 1);
-    }
+    limits = getConfValueC(&config, "RLIMITS_SOFT");
+    if (limits) setDefaultResLimits(limits, 1);
 
     data = &job->data;
 
@@ -485,10 +482,10 @@ int sendPElogueStart(Job_t *job, bool prologue)
     int32_t timeout, type;
 
     if (prologue) {
-	getConfParamI("TIMEOUT_PROLOGUE", &timeout);
+	timeout = getConfValueI(&config, "TIMEOUT_PROLOGUE");
 	type = PSP_PSMOM_PROLOGUE_START;
     } else {
-	getConfParamI("TIMEOUT_EPILOGUE", &timeout);
+	timeout = getConfValueI(&config, "TIMEOUT_EPILOGUE");
 	type = PSP_PSMOM_EPILOGUE_START;
     }
 
@@ -663,8 +660,8 @@ void afterJobCleanup(char *user)
 	delSSHSessions(user);
 
 	/* find all leftover user daemons and warn/kill them */
-	getConfParamI("KILL_USER_DAEMONS", &killDaemons);
-	getConfParamI("WARN_USER_DAEMONS", &warnDaemons);
+	killDaemons = getConfValueI(&config, "KILL_USER_DAEMONS");
+	warnDaemons = getConfValueI(&config, "WARN_USER_DAEMONS");
 
 	if (killDaemons || warnDaemons) {
 	    if (!(spasswd = getpwnam(user))) {

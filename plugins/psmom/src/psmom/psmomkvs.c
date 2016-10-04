@@ -800,29 +800,30 @@ static char *showStatistic(char *buf, size_t *bufSize)
 }
 
 /**
- * @brief Show current configuration.
+ * @brief Show current configuration
  *
- * @param buf The buffer to write the information to.
+ * Print the current configuration of the plugin to the buffer @a buf
+ * of current length @a length. The buffer might be dynamically
+ * extended if required.
  *
- * @param bufSize The size of the buffer.
+ * @param buf Buffer to write information to
+ *
+ * @param bufSize Size of the buffer
  *
  * @return Returns the buffer with the updated configuration information.
  */
 static char *showConfig(char *buf, size_t *bufSize)
 {
-    char empty[] = "";
+    int maxKeyLen = getMaxKeyLen(confDef);
     int i;
 
     str2Buf("\n", &buf, bufSize);
 
-    for (i=0; i<configValueCount; i++) {
-	char *name, *val;
+    for (i = 0; confDef[i].name; i++) {
+	char *name = confDef[i].name, line[160];
+	char *val = getConfValueC(&config, name);
 
-	name = CONFIG_VALUES[i].name;
-	if (!(val = getConfParamC(name))) {
-	    val = empty;
-	}
-	snprintf(line, sizeof(line), "%21s = %s\n", name, val);
+	snprintf(line, sizeof(line), "%*s = %s\n", maxKeyLen+2, name, val);
 	str2Buf(line, &buf, bufSize);
     }
 
@@ -894,13 +895,13 @@ static char *showVirtualKeys(char *buf, size_t *bufSize, int example)
 
 char *set(char *key, char *value)
 {
+    const ConfDef_t *thisConfDef = getConfigDef(key, confDef);
     char *buf = NULL, line[1024];
     size_t bufSize = 0;
-    int ret;
-    Config_t *conf;
 
     /* search in config for given key */
-    if ((findConfigDef(key))) {
+    if (thisConfDef) {
+	int verRes = verifyConfigEntry(confDef, key, value);
 
 	if (!(strcmp(key, "PBS_SERVER"))) {
 	    return NULL;
@@ -923,35 +924,25 @@ char *set(char *key, char *value)
 	    maskLogger(mask);
 	}
 
-	if ((ret = verfiyConfOption(key, value)) != 0) {
-	    if (ret == 1) {
+	if (verRes) {
+	    if (verRes == 1) {
 		str2Buf("\nInvalid key '", &buf, &bufSize);
 		str2Buf(key, &buf, &bufSize);
 		str2Buf("' for cmd set : use 'plugin help psmom' foor help.\n",
 			&buf, &bufSize);
-	    } else if (ret == 2) {
+	    } else if (verRes == 2) {
 		str2Buf("\nThe key '", &buf, &bufSize);
 		str2Buf(key, &buf, &bufSize);
 		str2Buf("' for cmd set has to be numeric.\n", &buf, &bufSize);
 	    }
-	    return buf;
-	}
-
-	/* save new config value */
-	if ((conf = getConfObject(key))) {
-	    if (conf->value) ufree(conf->value);
-	    conf->value = ustrdup(value);
 	} else {
-	    addConfig(key, value);
+	    /* save new config value */
+	    addConfigEntry(&config, key, value);
+
+	    snprintf(line, sizeof(line), "\nsaved '%s = %s'\n", key, value);
+	    str2Buf(line, &buf, &bufSize);
 	}
-
-	snprintf(line, sizeof(line), "\nsaved '%s = %s'\n", key, value);
-	str2Buf(line, &buf, &bufSize);
-	return buf;
-    }
-
-    /* add virtual set commands */
-    if (!(strcmp(key, "statistic"))) {
+    } else if (!(strcmp(key, "statistic"))) {
 	if (!(strcmp(value, "0"))) {
 	    stat_batchJobs = 0;
 	    stat_interJobs = 0;
@@ -968,12 +959,11 @@ char *set(char *key, char *value)
 	    stat_numNodes = 0;
 	    stat_numProcs = 0;
 
-	    return str2Buf("\nReset statistics\n", &buf, &bufSize);
+	    str2Buf("\nReset statistics\n", &buf, &bufSize);
+	} else {
+	    str2Buf("\nInvalid statistic command\n", &buf, &bufSize);
 	}
-	return str2Buf("\nInvalid statistic command\n", &buf, &bufSize);
-    }
-
-    if (!(strcmp(key, "memdebug"))) {
+    } else if (!(strcmp(key, "memdebug"))) {
 	if (memoryDebug) fclose(memoryDebug);
 
 	if ((memoryDebug = fopen(value, "w+"))) {
@@ -983,19 +973,17 @@ char *set(char *key, char *value)
 	    str2Buf("\nmemory logging to '", &buf, &bufSize);
 	    str2Buf(value, &buf, &bufSize);
 	    str2Buf("'\n", &buf, &bufSize);
-	    return buf;
 	} else {
 	    str2Buf("\nopening file '", &buf, &bufSize);
 	    str2Buf(value, &buf, &bufSize);
 	    str2Buf("' for writing failed\n", &buf, &bufSize);
-	    return buf;
 	}
+    } else {
+	str2Buf("\nInvalid key '", &buf, &bufSize);
+	str2Buf(key, &buf, &bufSize);
+	str2Buf("' for cmd set : use 'plugin help psmom' for help.\n", &buf,
+		&bufSize);
     }
-
-    str2Buf("\nInvalid key '", &buf, &bufSize);
-    str2Buf(key, &buf, &bufSize);
-    str2Buf("' for cmd set : use 'plugin help psmom' for help.\n", &buf,
-	    &bufSize);
 
     return buf;
 }
@@ -1004,37 +992,23 @@ char *unset(char *key)
 {
     char *buf = NULL;
     size_t bufSize = 0;
-    const ConfDef_t *confDef;
-    Config_t *conf;
 
-    /* search in config for given key */
-    if ((conf = getConfObject(key))) {
-
-	if ((confDef = findConfigDef(key)) && confDef->def) {
-	    /* reset the config object to its default value */
-	    if (conf->value) ufree(conf->value);
-	    conf->value = ustrdup(confDef->def);
-	} else {
-	   /* delete the config object */
-	    delConfig(conf);
-	}
-	return buf;
-    }
-
-    if (!(strcmp(key, "memdebug"))) {
+    if (getConfValueC(&config, key)) {
+	unsetConfigEntry(&config, confDef, key);
+    } else if (!(strcmp(key, "memdebug"))) {
 	if (memoryDebug) {
 	    finalizePluginLogger();
 	    fclose(memoryDebug);
 	    memoryDebug = NULL;
 	    initPluginLogger(NULL, psmomlogfile);
 	}
-	return str2Buf("Stopped memory debugging\n", &buf, &bufSize);
+	str2Buf("Stopped memory debugging\n", &buf, &bufSize);
+    } else {
+	str2Buf("\nInvalid key '", &buf, &bufSize);
+	str2Buf(key, &buf, &bufSize);
+	str2Buf("' for cmd unset : use 'plugin help psmom' for help.\n",
+		&buf, &bufSize);
     }
-
-    str2Buf("\nInvalid key '", &buf, &bufSize);
-    str2Buf(key, &buf, &bufSize);
-    str2Buf("' for cmd unset : use 'plugin help psmom' for help.\n",
-	    &buf, &bufSize);
 
     return buf;
 }
@@ -1042,8 +1016,8 @@ char *unset(char *key)
 char *help(void)
 {
     char *buf = NULL;
-    char type[10];
     size_t bufSize = 0;
+    int maxKeyLen = getMaxKeyLen(confDef);
     int i;
 
     str2Buf("\nThe psmom is a complete replacement of the Torque pbs_mom."
@@ -1052,10 +1026,11 @@ char *help(void)
 	    " the batch system.\n", &buf, &bufSize);
 
     str2Buf("\n# configuration options #\n\n", &buf, &bufSize);
-    for (i=0; i<configValueCount; i++) {
-	snprintf(type, sizeof(type), "<%s>", CONFIG_VALUES[i].type);
-	snprintf(line, sizeof(line), "%21s\t%8s    %s\n", CONFIG_VALUES[i].name,
-		    type, CONFIG_VALUES[i].desc);
+    for (i = 0; confDef[i].name; i++) {
+	char type[10], line[160];
+	snprintf(type, sizeof(type), "<%s>", confDef[i].type);
+	snprintf(line, sizeof(line), "%*s %8s  %s\n", maxKeyLen+2,
+		 confDef[i].name, type, confDef[i].desc);
 	str2Buf(line, &buf, &bufSize);
     }
 
@@ -1087,7 +1062,8 @@ char *show(char *key)
     }
 
     /* search in config for given key */
-    if ((tmp = getConfParam(key))) {
+    tmp = getConfValueC(&config, key);
+    if (tmp) {
 	str2Buf(key, &buf, &bufSize);
 	str2Buf(" = ", &buf, &bufSize);
 	str2Buf(tmp, &buf, &bufSize);

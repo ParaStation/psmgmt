@@ -370,17 +370,17 @@ static void setNCpus()
 static void setFsSize()
 {
     struct statfs st;
-    char *param;
-    static int report = 1;
+    char *param = getConfValueC(&config, "REPORT_FS_SIZE");
+    static bool report = true;
 
     if (!report) return;
 
-    if ((param = getConfParam("REPORT_FS_SIZE"))) {
-	if ((statfs(param, &st)) == -1) {
+    if (param) {
+	if (statfs(param, &st) == -1) {
 	    mlog("%s: statfs(%s) failed : %s, invalid REPORT_FS_SIZE?\n",
 		__func__, param, strerror(errno));
 	    setEntry(&infoData.list, "size", "", "size=");
-	    report = 0;
+	    report = false;
 	    return;
 	}
 
@@ -400,9 +400,8 @@ static void setFsSize()
  */
 static void setOpsys()
 {
-    char *param;
-
-    if ((param = getConfParam("SET_OPSYS"))) {
+    char *param = getConfValueC(&config, "SET_OPSYS");
+    if (param) {
 	snprintf(buffer, sizeof(buffer), "opsys=%s", param);
 	setEntry(&staticInfoData.list, "opsys", "", buffer);
     } else {
@@ -420,9 +419,8 @@ static void setOpsys()
  */
 static void setArch()
 {
-    char *param;
-
-    if ((param = getConfParam("SET_ARCH"))) {
+    char *param = getConfValueC(&config, "SET_ARCH");
+    if (param) {
 	snprintf(buffer, sizeof(buffer), "arch=%s", param);
 	setEntry(&staticInfoData.list, "arch", "", buffer);
     }
