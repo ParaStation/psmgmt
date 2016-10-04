@@ -122,7 +122,9 @@ handlerFunc_t oldSpawnReqHandler = NULL;
 char name[] = "psmom";
 int version = 58;
 int requiredAPI = 109;
-plugin_dep_t dependencies[2];
+plugin_dep_t dependencies[] = {
+    { .name = "psaccount", .version = 26 },
+    { .name = NULL, .version = 0 } };
 
 /** the process id of the main psmom process */
 static pid_t mainPid = -1;
@@ -161,9 +163,9 @@ static void cleanupJobs(void)
  * Check if we have running jobs left and initialize the shutdown
  * sequence.
  *
- * @return returns 1 on success and 0 on error.
+ * @return Return true on success and false on error
  */
-static int shutdownJobs()
+static bool shutdownJobs()
 {
     struct timeval cleanupTimer = {1,0};
 
@@ -176,14 +178,14 @@ static int shutdownJobs()
 							cleanupJobs)) == -1) {
 	    mlog("registering cleanup timer failed\n");
 	}
-	return 0;
+	return false;
     }
 
     /* all jobs are gone */
     if (doUnload) {
 	PSIDplugin_unload("psmom");
     }
-    return 1;
+    return true;
 }
 
 /**
@@ -203,21 +205,6 @@ static void saveConfigValues()
 
     /* torque protocol version */
     torqueVer = getConfValueI(&config, "TORQUE_VERSION");
-}
-
-void startPsmom()
-{
-    /* we depend on the psaccount plugin */
-    dependencies[0].name = "psaccount";
-    dependencies[0].version = 26;
-    dependencies[1].name = NULL;
-    dependencies[1].version = 0;
-}
-
-void stopPsmom()
-{
-    /* release the logger */
-    logger_finalize(psmomlogger);
 }
 
 static bool initAccountingFunc()
@@ -785,4 +772,5 @@ void cleanup(void)
     finalizeFragComm();
 
     mlog("...Bye.\n");
+    logger_finalize(psmomlogger);
 }
