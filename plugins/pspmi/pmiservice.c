@@ -1,32 +1,19 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2013-2015 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2013-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-/**
- * $Id$
- *
- * \author
- * Michael Rauh <rauh@par-tec.com>
- * Stephan Krempel <krempel@par-tec.com>
- *
- */
 
-#include <stdio.h>
-#include <stdlib.h>
+#include <string.h>
 
 #include "pscommon.h"
-#include "pluginmalloc.h"
 #include "psprotocol.h"
-#include "psidtask.h"
 #include "psidforwarder.h"
-#include "psipartition.h"
 
-#include "pmiforwarder.h"
 #include "pmilog.h"
 
 #include "pmiservice.h"
@@ -63,7 +50,7 @@ static int sendEnv(DDTypedBufferMsg_t *msg, char **env, size_t *len)
 
     msg->header.len = sizeof(msg->header) + sizeof(msg->type);
 
-    while (1) {
+    while (true) {
 	if (off) msg->type = PSP_SPAWN_ENVCNTD;
 
 	*len = PStask_encodeEnv(msg->buf, sizeof(msg->buf), env, &num, &off);
@@ -189,7 +176,7 @@ static int sendTask(DDTypedBufferMsg_t *msg, PStask_t *task)
     return 0;
 }
 
-int sendSpawnMessage(PStask_t *task)
+bool sendSpawnMessage(PStask_t *task)
 {
     DDTypedBufferMsg_t msg;
     size_t len;
@@ -230,38 +217,9 @@ int sendSpawnMessage(PStask_t *task)
 
     PStask_delete(task);
 
-    return 1;
+    return true;
 
  error:
     PStask_delete(task);
-    return 0;
-
+    return false;
 }
-
-#if 0
-/* Add a additional search path.
- *
- * @param oldPath Pointer to the original PATH variable.
- *
- * @param addPath Pointer to the path to add.
- *
- * @param env Pointer to the environment pointer.
- *
- * @return No return value.
- */
-static void setPath(char *oldPath, char *addPath, char **env)
-{
-    size_t len;
-
-    if (!oldPath || !addPath) {
-	elog("%s: invalid path\n", __func__);
-	return;
-    }
-
-    len = strlen(oldPath) + strlen(addPath) +2;
-    *env = umalloc(len);
-
-    snprintf(*env, len, "%s:%s", oldPath, addPath);
-}
-#endif
-
