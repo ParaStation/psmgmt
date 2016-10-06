@@ -362,7 +362,6 @@ plugins/pspmi/pmikvs.h \
 plugins/pspmi/pmilog.c \
 plugins/pspmi/pmilog.h \
 plugins/pspmi/pmimain.c \
-plugins/pspmi/pmimain.h \
 plugins/pspmi/pmiprovider.c \
 plugins/pspmi/pmiprovider.h \
 plugins/pspmi/pmiservice.c \

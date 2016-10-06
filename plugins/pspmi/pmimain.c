@@ -7,17 +7,8 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-/**
- * $Id$
- *
- * \author
- * Michael Rauh <rauh@par-tec.com>
- * Stephan Krempel <krempel@par-tec.com>
- *
- */
 
 #include <stdio.h>
-#include <stdlib.h>
 #include <dlfcn.h>
 
 #include "plugin.h"
@@ -29,40 +20,25 @@
 #include "pmiforwarder.h"
 #include "pmispawn.h"
 #include "pmiclient.h"
-#include "pmiservice.h"
 #include "pmikvs.h"
-
-#include "pmimain.h"
-
-/** the debug mask */
-static int debugMask = 0;
 
 /** psid plugin requirements */
 char name[] = "pspmi";
 int version = 4;
 int requiredAPI = 110;
-plugin_dep_t dependencies[2];
-
-/* pmi init */
-void startPMI(void)
-{
-    /* we depend on psaccount */
-    dependencies[0].name = "psaccount";
-    dependencies[0].version = 24;
-    dependencies[1].name = NULL;
-    dependencies[1].version = 0;
-}
+plugin_dep_t dependencies[] = {
+    { .name = "psaccount", .version = 24 },
+    { .name = NULL, .version = 0 } };
 
 int initialize(void)
 {
-    void *pluginHandle = NULL;
+    void *handle = PSIDplugin_getHandle("psaccount");
 
     /* init the logger */
     initLogger(NULL);
 
     /* set debug mask */
-//    debugMask = PSPMI_LOG_RECV | PSPMI_LOG_VERBOSE;
-    maskLogger(debugMask);
+    // maskLogger(PSPMI_LOG_RECV | PSPMI_LOG_VERBOSE);
 
     /* register needed hooks */
     PSIDhook_add(PSIDHOOK_EXEC_FORWARDER, handleForwarderSpawn);
@@ -76,14 +52,14 @@ int initialize(void)
     PSIDhook_add(PSIDHOOK_FRWRD_CC_ERROR, handleCCError);
 
     /* get psaccount function handles */
-    if (!(pluginHandle = PSIDplugin_getHandle("psaccount"))) {
+    if (!handle) {
 	psAccountSwitchAccounting = NULL;
 	mlog("%s: getting psaccount handle failed\n", __func__);
     } else {
-	if (!(psAccountSwitchAccounting = dlsym(pluginHandle,
-		"psAccountSwitchAccounting"))) {
+	psAccountSwitchAccounting = dlsym(handle, "psAccountSwitchAccounting");
+	if (psAccountSwitchAccounting) {
 	    mlog("%s: loading function psAccountSwitchAccounting() failed\n",
-		    __func__);
+		 __func__);
 	}
     }
 
@@ -92,9 +68,7 @@ int initialize(void)
     return 0;
 }
 
-
-
-void stopPMI(void)
+void cleanup(void)
 {
     /* remove registered hooks */
     PSIDhook_del(PSIDHOOK_EXEC_FORWARDER, handleForwarderSpawn);
@@ -108,4 +82,6 @@ void stopPMI(void)
     PSIDhook_del(PSIDHOOK_FRWRD_CC_ERROR, handleCCError);
 
     if (memoryDebug) fclose(memoryDebug);
+
+    logger_finalize(pmilogger);
 }
