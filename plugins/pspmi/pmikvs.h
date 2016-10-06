@@ -7,26 +7,13 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-/**
- * $Id$
- *
- * \author
- * Michael Rauh <rauh@par-tec.com>
- *
- */
 
 #ifndef __PS_PMI__KVS
 #define __PS_PMI__KVS
 
+#include <stdio.h>
+
 /* file handle for memory debug output */
 extern FILE *memoryDebug;
 
-char *set(char *key, char *value);
-
-char *show(char *key);
-
-char *unset(char *key);
-
-char *help(void);
-
-#endif
+#endif  /* __PS_PMI__KVS */

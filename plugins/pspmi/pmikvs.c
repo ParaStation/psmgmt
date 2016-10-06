@@ -8,15 +8,15 @@
  * file.
  */
 
-#include <stdlib.h>
-#include <stdio.h>
 #include <string.h>
+
+#include "plugin.h"
 
 #include "pluginlog.h"
 #include "pluginmalloc.h"
-#include "plugin.h"
 
 #include "pmilog.h"
+
 #include "pmikvs.h"
 
 FILE *memoryDebug = NULL;
@@ -26,29 +26,28 @@ char *set(char *key, char *value)
     char *buf = NULL;
     size_t bufSize = 0;
 
-    if (key && !(strcmp(key, "memdebug"))) {
+    if (key && !strcmp(key, "memdebug")) {
 	if (memoryDebug) fclose(memoryDebug);
 
-	if ((memoryDebug = fopen(value, "w+"))) {
+	memoryDebug = fopen(value, "w+");
+	if (memoryDebug) {
 	    finalizePluginLogger();
 	    initPluginLogger(NULL, memoryDebug);
 	    maskPluginLogger(PLUGIN_LOG_MALLOC);
 	    str2Buf("\nmemory logging to '", &buf, &bufSize);
 	    str2Buf(value, &buf, &bufSize);
 	    str2Buf("'\n", &buf, &bufSize);
-	    return buf;
 	} else {
 	    str2Buf("\nopening file '", &buf, &bufSize);
 	    str2Buf(value, &buf, &bufSize);
 	    str2Buf("' for writing failed\n", &buf, &bufSize);
-	    return buf;
 	}
+    } else {
+	str2Buf("\nInvalid key '", &buf, &bufSize);
+	str2Buf(key ? key : "<empty>", &buf, &bufSize);
+	str2Buf("' for cmd set : use 'plugin help pspmi' for help.\n", &buf,
+		&bufSize);
     }
-
-    str2Buf("\nInvalid key '", &buf, &bufSize);
-    str2Buf(key ? key : "<empty>", &buf, &bufSize);
-    str2Buf("' for cmd set : use 'plugin help pspmi' for help.\n", &buf,
-	    &bufSize);
     return buf;
 }
 
@@ -69,20 +68,20 @@ char *unset(char *key)
     char *buf = NULL;
     size_t bufSize = 0;
 
-    if (key && !(strcmp(key, "memdebug"))) {
+    if (key && !strcmp(key, "memdebug")) {
 	if (memoryDebug) {
 	    finalizePluginLogger();
 	    fclose(memoryDebug);
 	    memoryDebug = NULL;
 	    initPluginLogger(NULL, pmilogfile);
 	}
-	return str2Buf("Stopped memory debugging\n", &buf, &bufSize);
+	str2Buf("Stopped memory debugging\n", &buf, &bufSize);
+    } else {
+	str2Buf("\nInvalid key '", &buf, &bufSize);
+	str2Buf(key ? key : "<empty>", &buf, &bufSize);
+	str2Buf("' for cmd unset : use 'plugin help pspmi' for help.\n", &buf,
+		&bufSize);
     }
-
-    str2Buf("\nInvalid key '", &buf, &bufSize);
-    str2Buf(key ? key : "<empty>", &buf, &bufSize);
-    str2Buf("' for cmd unset : use 'plugin help pspmi' for help.\n", &buf,
-	    &bufSize);
 
     return buf;
 }
