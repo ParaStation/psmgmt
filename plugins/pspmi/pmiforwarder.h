@@ -7,13 +7,6 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-/**
- * $Id$
- *
- * \author
- * Michael Rauh <rauh@par-tec.com>
- *
- */
 
 #ifndef __PS_PMI_FORWARDER
 #define __PS_PMI_FORWARDER
@@ -77,4 +70,4 @@ int getClientStatus(void *data);
  */
 PStask_t *getChildTask(void);
 
-#endif
+#endif  /* __PS_PMI_FORWARDER */
