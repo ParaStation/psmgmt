@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2013-2014 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2013-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -80,7 +80,7 @@ static void closePMIclientSocket(void)
     }
 }
 
-PStask_t *getChildTask()
+PStask_t *getChildTask(void)
 {
     return childTask;
 }
@@ -126,6 +126,10 @@ static int readFromPMIClient(int fd, void *data)
     if (mmBuffer) {
 	mmBufferSize = mmBufferUsed + PMIU_MAXLINE + 1;
 	mmBuffer = urealloc(mmBuffer, mmBufferSize);
+	if (!mmBuffer) {
+	    elog("%s: failed to allocate message buffer\n", __func__);
+	    goto readFromPMIClient_error;
+	}
 	recvBuf = mmBuffer + mmBufferUsed;
 	msgBuf = mmBuffer;
 	msgBufUsed = mmBufferUsed;
@@ -288,7 +292,7 @@ static int acceptPMIClient(int fd, void *data)
     closePMIlistenSocket();
 
     /* init the PMI interface */
-    if ((pmi_init(pmiClientSock, childTask->rank, childTask->loggertid))) {
+    if ((pmi_init(pmiClientSock, childTask))) {
 	pmiType = PMI_DISABLED;
 	return 0;
     }
@@ -347,8 +351,7 @@ int setupPMIsockets(void *data)
     switch (pmiType) {
 	case PMI_OVER_UNIX:
 	    /* init the PMI interface */
-	    if ((pmi_init(pmiClientSock, childTask->rank,
-				    childTask->loggertid))) {
+	    if ((pmi_init(pmiClientSock, childTask))) {
 		pmiType = PMI_DISABLED;
 		return -1;
 	    }

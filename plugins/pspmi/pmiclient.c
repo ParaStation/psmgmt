@@ -30,15 +30,20 @@ static char vcid[] __attribute__((used)) =
 
 #include "pscommon.h"
 #include "pluginmalloc.h"
+#include "pluginstrv.h"
 #include "kvs.h"
 #include "kvscommon.h"
 #include "pslog.h"
 #include "list.h"
 #include "selector.h"
 #include "psidforwarder.h"
+#include "psaccounthandles.h"
+
 #include "pmilog.h"
+#include "pmiforwarder.h"
 #include "pmiservice.h"
 #include "pmiprovider.h"
+#include "pmiclientspawn.h"
 
 #include "pmiclient.h"
 
@@ -47,6 +52,13 @@ static char vcid[] __attribute__((used)) =
 #define PMI_VERSION 1
 #define PMI_SUBVERSION 1
 #define UPDATE_HEAD sizeof(uint8_t) + sizeof(uint32_t)
+
+#define MPIEXEC_BINARY BINDIR "/mpiexec"
+
+#define DEBUG_ENV 0
+#if DEBUG_ENV
+extern char **environ;
+#endif
 
 typedef struct {
     char *Name;
@@ -122,6 +134,9 @@ static PStask_ID_t predtid = -1;
 /** The successor task ID of the current job */
 static PStask_ID_t succtid = -1;
 
+/** Our childs task ID */
+static PStask_ID_t childtid = -1;
+
 /** Flag to indicate if the successor is ready to receive update messages */
 static int isSuccReady = 0;
 
@@ -143,11 +158,11 @@ static int spawnChildCount = 0;
 /** The number of successful spawned children */
 static int spawnChildSuccess = 0;
 
-/** Buffer to store the spawn request for later processing */
-static char **spawnBuffer = NULL;
+/** Buffer to collect multiple spawn requests */
+static SpawnRequest_t *spawnBuffer = NULL;
 
-/** Number of spawn blocks stored in spawnBuffer */
-static int totalSpawns = 0;
+/** SpawnRequest to be handled when logger returned service rank */
+static SpawnRequest_t *pendingSpawnRequest = NULL;
 
 /** Count the number of kvs_put messages from mpi client */
 static int32_t putCount = 0;
@@ -156,6 +171,29 @@ static int32_t barrierCount = 0;
 
 static int32_t globalPutCount = 0;
 
+/* spawn functions */
+static int p_Spawn(char *msgBuffer);
+static int doSpawn(SpawnRequest_t *req);
+static int fillSpawnTaskWithMpiexec(SpawnRequest_t *req, int usize,
+	PStask_t *task);
+
+/** hook to choose how to spawn new processes */
+int (*fillSpawnTaskFunction)(SpawnRequest_t *req,
+	int usize, PStask_t *task) = NULL;
+int (*defaultFillSpawnTaskFunction)(SpawnRequest_t *req, int usize,
+	PStask_t *task)	= fillSpawnTaskWithMpiexec;
+
+void psPmiSetFillSpawnTaskFunction(
+	int (*spawnFunc)(SpawnRequest_t *req, int usize, PStask_t *task)) {
+    mdbg(PSPMI_LOG_VERBOSE, "Setting specific PMI fill spawn task function\n");
+    fillSpawnTaskFunction = spawnFunc;
+}
+
+void psPmiResetFillSpawnTaskFunction(void) {
+    mdbg(PSPMI_LOG_VERBOSE, "Resetting PMI fill spawn task function to"
+	    " default\n");
+    fillSpawnTaskFunction = defaultFillSpawnTaskFunction;
+}
 
 /**
  * @brief Send a KVS message to a task id.
@@ -603,6 +641,7 @@ void leaveKVS(int used)
     }
 }
 
+
 /**
  * @brief Finalize the PMI.
  *
@@ -931,493 +970,6 @@ static int p_Lookup_Name(char *msgBuffer)
 }
 
 /**
- * @brief Build up argv and argc from a PMI spawn request.
- *
- * @param msgBuffer The buffer with the PMI spawn message.
- *
- * @param argc Pointer which will receive the argument count.
- *
- * @return Returns a pointer to the build argv or NULL on error.
- */
-static char **getSpawnArgs(char *msgBuffer, int *argc)
-{
-    char *execname, *nextval, **argv;
-    char numArgs[50];
-    int addArgs = 0, maxargc = 2, i;
-
-    /* setup argv */
-    if (!(getpmiv("argcnt", msgBuffer, numArgs, sizeof(numArgs)))) {
-	elog("%s(r%i): missing argc argument\n", __func__, rank);
-	return NULL;
-    }
-
-    if ((addArgs = atoi(numArgs)) > PMI_SPAWN_MAX_ARGUMENTS) {
-	elog("%s(r%i): too many arguments (%i)\n", __func__, rank, addArgs);
-	return NULL;
-    }
-
-    if (addArgs < 0) {
-	elog("%s(r%i): invalid argument count (%i)\n", __func__, rank, addArgs);
-	return NULL;
-    }
-
-    maxargc += addArgs;
-    argv = umalloc((maxargc) * sizeof(char *));
-
-    for (i=0; i<maxargc; i++) argv[i] = NULL;
-
-    /* add the executalbe as argv[0] */
-    if (!(execname = getpmivm("execname", msgBuffer))) {
-	ufree(argv);
-	elog("%s(r%i): invalid executable name\n", __func__, rank);
-	return NULL;
-    }
-    argv[(*argc)++] = execname;
-
-    /* add additional arguments */
-    for (i=1; i<=addArgs; i++) {
-	snprintf(buffer, sizeof(buffer), "arg%i", i);
-	if ((nextval = getpmivm(buffer, msgBuffer))) {
-	    argv[(*argc)++] = nextval;
-	} else {
-	    for (i=0; i<*argc; i++) ufree(argv[i]);
-	    ufree(argv);
-	    *argc = 0;
-	    elog("%s(r%i): extracting arguments failed\n", __func__, rank);
-	    return NULL;
-	}
-    }
-
-    return argv;
-}
-
-/**
- * @brief Extract preput values and keys from a PMI spawn request and return
- *        them prepared to pass by environment.
- *
- * @param msgBuffer The buffer with the PMI spawn message.
- *
- * @param envc Pointer which will receive the preputs count.
- *
- * @return Returns an array of strings representing key-value-pairs in the
- *         format "__PMI_<KEY>=<VALUE>" or NULL on error.
- */
-static char **getSpawnPreputAsEnv(char *msgBuffer, int *envc)
-{
-    char numPreput[50];
-    char nextkey[PMI_KEYLEN_MAX], nextvalue[PMI_VALLEN_MAX];
-    char **envv;
-    int count, i;
-
-    if (!(getpmiv("preput_num", msgBuffer, numPreput, sizeof(numPreput)))) {
-	elog("%s(r%i): missing preput count\n", __func__, rank);
-	return NULL;
-    }
-
-    count = 0;
-    *envc = atoi(numPreput);
-    envv = umalloc(sizeof(char *) * ( *envc * 2 + 1));
-
-    snprintf(buffer, sizeof(buffer), "__PMI_preput_num=%i", *envc);
-    envv[count++] = ustrdup(buffer);
-
-    for (i=0; i< *envc; i++) {
-	int esize;
-
-	snprintf(buffer, sizeof(buffer), "preput_key_%i", i);
-	if (!(getpmiv(buffer, msgBuffer, nextkey, sizeof(nextkey)))) {
-	    elog("%s(r%i): invalid preput key '%s'\n", __func__, rank, buffer);
-	    goto preput_error;
-	}
-	esize = 6 + strlen(buffer) + 1 + strlen(nextkey) + 1;
-	envv[count] = umalloc(esize);
-	snprintf(envv[count++], esize, "__PMI_%s=%s", buffer, nextkey);
-
-	snprintf(buffer, sizeof(buffer), "preput_val_%i", i);
-	if (!(getpmiv(buffer, msgBuffer, nextvalue, sizeof(nextvalue)))) {
-	    elog("%s(r%i): invalid preput value '%s'\n", __func__, rank,
-		    buffer);
-	    goto preput_error;
-	}
-	esize = 6 + strlen(buffer) + 1 + strlen(nextvalue) + 1;
-	envv[count] = umalloc(esize);
-	snprintf(envv[count++], esize, "__PMI_%s=%s", buffer, nextvalue);
-    }
-    *envc = count;
-
-    return envv;
-
-preput_error:
-    for (i=0; i<count; i++) ufree(envv[i]);
-    ufree(envv);
-    return NULL;
-}
-
-/**
- * @brief Spawn one or more processes.
- *
- * We first need the next rank for the new service process to
- * start. Only the logger knows that. So we ask it and buffer
- * the spawn request to wait for an answer.
- *
- * In case of spawn_multi, all spawn messages are collected here
- * and the request to the logger is triggered after the collection
- * is completed.
- *
- * @param msgBuffer Buffer which holds the PMI spawn message.
- *
- * @return Returns 0 for success and 1 on error.
- */
-static int p_Spawn(char *msgBuffer)
-{
-
-    char totSpawns[50], spawnsSoFar[50];
-    int totspawns, spawnssofar;
-
-    static int s_total = 0;
-    static int s_count = 0;
-
-    if (!(getpmiv("totspawns", msgBuffer, totSpawns, sizeof(totSpawns)))) {
-	elog("%s(r%i): invalid totspawns argument\n", __func__, rank);
-	PMI_send("cmd=spawn_result rc=-1\n");
-	return 1;
-    }
-    totspawns = atoi(totSpawns);
-
-    if (!(getpmiv("spawnssofar", msgBuffer, spawnsSoFar,
-		     sizeof(spawnsSoFar)))) {
-	elog("%s(r%i): invalid spawnssofar argument\n", __func__, rank);
-	PMI_send("cmd=spawn_result rc=-1\n");
-	return 1;
-    }
-    spawnssofar = atoi(spawnsSoFar);
-
-    if (spawnssofar == 1) {
-	s_total = totspawns;
-
-	/* check if spawn buffer is already in use */
-	if (spawnBuffer) {
-	    elog("%s(r%i): spawn buffer should be empty, another spawn in"
-		    " progress?\n", __func__, rank);
-	    critErr();
-	    PMI_send("cmd=spawn_result rc=-1\n");
-	    return 0;
-	}
-
-	/* create spawn buffer */
-	if (!(spawnBuffer = (char**)umalloc(s_total * sizeof(char*)))) {
-	    elog("%s(r%i): out of memory\n", __func__, rank);
-	    critErr();
-	    PMI_send("cmd=spawn_result rc=-1\n");
-	    exit(1);
-	}
-    }
-    else if (s_total != totspawns) {
-	elog("%s(r%i): totalspawns argument does not match previous"
-		" message\n",  __func__, rank);
-	critErr();
-	PMI_send("cmd=spawn_result rc=-1\n");
-	return 0;
-    }
-
-#if 0
-    elog("Adding spawn %d/%d to buffer\n", spawnssofar, totspawns);
-#endif
-
-    /* save message in spawn buffer for later */
-    if (!(spawnBuffer[s_count++] = ustrdup(msgBuffer))) {
-	elog("%s(r%i): out of memory\n", __func__, rank);
-	critErr();
-	PMI_send("cmd=spawn_result rc=-1\n");
-	exit(1);
-    }
-
-    if (s_count < s_total) {
-	/* another part of the multi spawn request is missing */
-	return 0;
-    }
-
-    /* collection complete */
-    totalSpawns = s_total;
-    s_total = 0;
-    s_count = 0;
-
-    /* get next service rank from logger */
-    PSLog_write(loggertid, SERV_TID, NULL, 0);
-
-    /* wait for logger to answer */
-    return 0;
-}
-
-/**
- * @brief TODO soft spawn
- *
-static int getSoftArgList(char *soft, int **softList)
-{
-    const char delimiters[] =", \n";
-    char *triplet, *saveptr;
-    int start, end, mult, tcount, ecount = 0;
-
-    triplet = strtok_r(soft, delimiters, &saveptr);
-
-    while (triplet != NULL) {
-	tcount = sscanf(triplet, "%i:%i:%i", &start, &end, &mult);
-
-	switch (tcount) {
-	    case 1:
-		/ add start /
-
-	    case 2:
-		/ add range start - end /
-
-	    case 3:
-		/ add start + mult until end /
-
-	    default:
-		/ error /
-		return 0;
-	}
-
-	triplet = strtok_r(NULL, delimiters, &saveptr);
-    }
-
-    / sort the array /
-    //qsort(sList, ecount, sizeof(int), compInt);
-
-    return ecount;
-}
-*/
-
-/**
- * @brief Parse the spawn request and start a new service process.
- *
- * The service process will spawn itself again to start a spawner process
- * which will then spawn the requested executable. The first service process
- * will then turn into a new KVS provider for the new spawned PMI group.
- *
- * The new spawned children will have their own MPI_COMM_WOLRD and
- * therefore a separate KVS, separate PMI barriers and a separate
- * daisy chain to communicate.
- *
- * @param spawnBuffer The buffered spawn request from the MPI client.
- *
- * @param totalSpawns Number of blocks in the spawn request.
- *                    (== length of spawnBuffer)
- *
- * @param serviceRank The next valid rank for a new service process.
- *
- * @return Returns 0 on success and 1 on error.
- */
-static int tryPMISpawn(char *spawnBuffer[], int totalSpawns, int serviceRank)
-{
-    char nextkey[PMI_KEYLEN_MAX];
-    char numInfo[50];
-    int i, j, infos;
-    const char delm[] = "\n";
-
-    char *nps[totalSpawns];
-    char **argvs[totalSpawns], **envvs[totalSpawns];
-    int argcs[totalSpawns], envcs[totalSpawns];
-    char *wdirs[totalSpawns], *tpps[totalSpawns], *ntypes[totalSpawns];
-    char *paths[totalSpawns];
-    bool noParricide = false;
-
-    setPMIDelim(delm);
-
-    if (!spawnBuffer) return 0;
-
-#if 0
-    elog("%s: dump:\n", __func__);
-    for (i=0; i<totalSpawns; i++) {
-	elog("%s\n", spawnBuffer[i]);
-    }
-#endif
-
-    /* allocate vectors */
-/*
-    nps = (char **)umalloc(totalSpawns * sizeof(int));
-    argvs = (char **)umalloc(totalSpawns * sizeof(char*));
-    envvs = (char **)umalloc(totalSpawns * sizeof(char*));
-    argcs = (int *)umalloc(totalSpawns * sizeof(int));
-    envcs = (int *)umalloc(totalSpawns * sizeof(int));
-    wdirs = (char **)umalloc(totalSpawns * sizeof(char*));
-    ntypes = (char **)umalloc(totalSpawns * sizeof(char*));
-    paths = (char **)umalloc(totalSpawns * sizeof(char*));
-*/
-
-    for (i=0; i<totalSpawns; i++) {
-
-	nps[i] = NULL;
-	argvs[i] = envvs[i] = NULL;
-	argcs[i] = envcs[i] = 0;
-	wdirs[i] = tpps[i] = ntypes[i] = paths[i] = NULL;
-
-	/* get the number of processes to spawn */
-	if (!(nps[i] = getpmivm("nprocs", spawnBuffer[i]))) {
-	    elog("%s(r%i): getting number of processes to spawn failed\n",
-		    __func__, rank);
-	    totalSpawns = i+1;
-	    goto spawn_error;
-	}
-
-	/* setup argv and argc for processes to spawn */
-	if (!(argvs[i] = getSpawnArgs(spawnBuffer[i], &argcs[i]))) {
-	    totalSpawns = i+1;
-	    goto spawn_error;
-	}
-
-	/* extract preput values and keys
-	 *
-	 * We will transport this kv-pairs using the spawn
-	 * environment. When our children are starting the pmi_init()
-	 * call will add them to their local KVS. */
-	if (!(envvs[i] = getSpawnPreputAsEnv(spawnBuffer[i], &envcs[i]))) {
-	    totalSpawns = i+1;
-	    goto spawn_error;
-	}
-
-	/* extract info values and keys
-	 *
-	 * These info variables are implementation dependend and can
-	 * be used for e.g. process placement. All unsupported values
-	 * will be silently ignored.
-	 *
-	 * ParaStation will support:
-	 *
-	 *  - wdir: The working directory of the spawned processes
-	 *  - arch/nodetype: The type of nodes to be used
-	 *  - path: The directory were to search for the executable
-	 *  - tpp: Threads per process
-	 *
-	 * TODO:
-	 *
-	 *  - soft:
-	 *	    - if not all processes could be started the spawn is still
-	 *		considered successful
-	 *	    - ignore negative values and >maxproc
-	 *	    - format = list of triplets
-	 *		+ list 1,3,4,5,8
-	 *		+ triplets a:b:c where a:b range c= multiplicator
-	 *		+ 0:8:2 means 0,2,4,6,8
-	 *		+ 0:8:2,7 means 0,2,4,6,7,8
-	 *		+ 0:2 means 0,1,2
-	 */
-	if (!(getpmiv("info_num", spawnBuffer[i], numInfo, sizeof(numInfo)))) {
-	    elog("%s(r%i): missing info count\n", __func__, rank);
-	    totalSpawns = i+1;
-	    goto spawn_error;
-	}
-	infos = atoi(numInfo);
-
-	for (j=0; j<infos; j++) {
-	    snprintf(buffer, sizeof(buffer), "info_key_%i", j);
-	    if (!(getpmiv(buffer, spawnBuffer[i], nextkey, sizeof(nextkey)))) {
-		elog("%s(r%i): invalid info variable\n", __func__, rank);
-		totalSpawns = i+1;
-		goto spawn_error;
-	    }
-
-	    snprintf(buffer, sizeof(buffer), "info_val_%i", j);
-	    if (!strcmp(nextkey, "wdir")) {
-		wdirs[i] = getpmivm(buffer, spawnBuffer[i]);
-	    }
-	    if (!strcmp(nextkey, "tpp")) {
-		if (!tpps[i]) {
-		    tpps[i] = getpmivm(buffer, spawnBuffer[i]);
-		}
-	    }
-	    if (!strcmp(nextkey, "nodetype") || !strcmp(nextkey, "arch")) {
-		if (!ntypes[i]) {
-		    ntypes[i] = getpmivm(buffer, spawnBuffer[i]);
-		}
-	    }
-	    if (!strcmp(nextkey, "path")) {
-		paths[i] = getpmivm(buffer, spawnBuffer[i]);
-	    }
-
-	    /* TODO soft spawn
-	    if (!strcmp(nextkey, "soft")) {
-		char *soft;
-		int *count, *sList;
-
-		soft = getpmivm(buffer, spawnBuffer);
-		sList = getSoftArgList(soft, &count);
-
-		ufree(soft);
-	    }
-	    */
-
-	    if (!strcmp(nextkey, "parricide")) {
-		if (!strcmp(getpmivm(buffer, spawnBuffer[i]), "disabled")) {
-		    noParricide = true;
-		} else if (!strcmp(getpmivm(buffer, spawnBuffer[i]),
-				   "enabled")) {
-		    noParricide = false;
-		}
-	    }
-	}
-    }
-
-    /* reset tracking */
-    spawnChildSuccess = 0;
-    spawnChildCount = 0;
-    for (i=0; i<totalSpawns; i++) {
-	spawnChildCount += atoi(nps[i]);
-    }
-
-    /* setup new KVS name */
-    snprintf(buffer, sizeof(buffer), "PMI_KVS_TMP=pshost_%i_%i",
-		PSC_getMyTID(), kvs_next++);
-
-    /* spawn a service process which spawns the KVS provider and the new
-     * children */
-    if (!(spawnService(spawnChildCount, nps, argvs, argcs, envvs, envcs,
-		       wdirs, tpps, ntypes, paths, totalSpawns, universe_size,
-		       serviceRank, buffer, noParricide))) {
-	goto spawn_error;
-    }
-
-    setPMIDelim(NULL);
-    return 0;
-
-spawn_error:
-    /* if jumped here due to an error, totalSpawns is set to number of the
-       spawn block handled while the error occurred */
-
-    for (i=0; i<totalSpawns; i++) {
-	for (j=0; j<argcs[i]; j++) {
-	    if (argvs[i] && argvs[i][j]) ufree(argvs[i][j]);
-	}
-	ufree(argvs[i]);
-
-	for (j=0; j<envcs[i]; j++) {
-	    if (envvs[i] && envvs[i][j]) ufree(envvs[i][j]);
-	}
-	ufree(envvs[i]);
-
-	if (nps[i]) ufree(nps[i]);
-	if (wdirs[i]) ufree(wdirs[i]);
-	if (ntypes[i]) ufree(ntypes[i]);
-	if (paths[i]) ufree(paths[i]);
-    }
-
-/*
-    ufree(nps);
-    ufree(argvs);
-    ufree(envvs);
-    ufree(argcs);
-    ufree(envcs);
-    ufree(wdirs);
-    ufree(ntypes);
-    ufree(paths);
-*/
-
-    setPMIDelim(NULL);
-    PMI_send("cmd=spawn_result rc=-1\n");
-    return 1;
-}
-
-/**
  * @brief Get a key-value pair by index.
  *
  * Get a key-value pair by specific index from key value space.
@@ -1514,9 +1066,11 @@ static int p_Init(char *msgBuffer)
 	elog("%s(r%i): unsupported PMI version received: version=%i,"
 		" subversion=%i\n", __func__, rank, atoi(pmiversion),
 		atoi(pmisubversion));
-	return critErr();
+	return 1;
     }
     pmi_init_client = 1;
+
+    if (psAccountSwitchAccounting) psAccountSwitchAccounting(childtid, 1);
 
     /* tell provider that the MPI client was initialized */
     ptr = buffer;
@@ -1723,19 +1277,27 @@ static int setPreputValues()
     return 0;
 }
 
-int pmi_init(int pmisocket, int pRank, PStask_ID_t logger)
+int pmi_init(int pmisocket, PStask_t *childTask)
 {
     char *envPtr, *env_kvs_name, *ptr;
     size_t len;
 
-    rank = pRank;
+#if DEBUG_ENV
+    int i = 0;
+    while(environ[i]) {
+	mlog("%d: %s\n", i, environ[i++]);
+    }
+#endif
+
+    rank = childTask->rank;
     if (!(ptr = getenv("PMI_RANK"))) {
 	elog("%s(r%i): invalid PMI rank environment\n", __func__, rank);
 	return 1;
     }
     pmiRank = atoi(ptr);
     pmisock = pmisocket;
-    loggertid = logger;
+    loggertid = childTask->loggertid;
+    childtid = childTask->tid;
 
     if (!(ptr = getenv("PMI_APPNUM"))) {
 	elog("%s(r%i): invalid PMI APPNUM environment\n", __func__, rank);
@@ -1749,8 +1311,8 @@ int pmi_init(int pmisocket, int pRank, PStask_ID_t logger)
     }
 
     mdbg(PSPMI_LOG_VERBOSE, "%s:(r%i): pmiRank '%i' pmisock '%i' logger '%i'"
-	 " spawned '%s' myTid '%s'\n", __func__, rank, pmiRank, pmisock, logger,
-	 getenv("PMI_SPAWNED"), PSC_printTID(PSC_getMyTID()));
+	 " spawned '%s' myTid '%s'\n", __func__, rank, pmiRank, pmisock,
+	 loggertid, getenv("PMI_SPAWNED"), PSC_printTID(PSC_getMyTID()));
 
     INIT_LIST_HEAD(&uBufferList.list);
 
@@ -1819,6 +1381,8 @@ int pmi_init(int pmisocket, int pRank, PStask_ID_t logger)
 	PStask_ID_t parent;
 	int32_t res = 1;
 
+	mdbg(PSPMI_LOG_VERBOSE, "PMI_SPAWNED is set, contact parents.\n");
+
 	if (!(ptr = getenv("__PMI_SPAWN_PARENT"))) {
 	    elog("%s(r%i): error getting my PMI parent\n", __func__, rank);
 	    return critErr();
@@ -1832,6 +1396,14 @@ int pmi_init(int pmisocket, int pRank, PStask_ID_t logger)
 	addKVSInt32(&ptr, &len, &rank);
 	addKVSInt32(&ptr, &len, &pmiRank);
 	sendKvsMsg(__func__, parent, buffer, len);
+    }
+
+    /* set default spawn handler */
+    mdbg(PSPMI_LOG_VERBOSE, "Setting PMI default fill spawn task function to"
+	    " fillSpawnTaskWithMpiexec()\n");
+    defaultFillSpawnTaskFunction = fillSpawnTaskWithMpiexec;
+    if (fillSpawnTaskFunction == NULL) {
+	psPmiResetFillSpawnTaskFunction();
     }
 
     return 0;
@@ -2041,6 +1613,10 @@ static void handleKVScacheUpdate(PSLog_Msg_t *msg, char *ptr, int lastUpdateMsg)
     /* forward to successor */
     if (isSuccReady && succtid != providertid) sendKvstoSucc(msg->buf, msgSize);
 
+    if (lastUpdateMsg) {
+	if (psAccountSwitchAccounting) psAccountSwitchAccounting(childtid, 1);
+    }
+
     /* wait with the update until we got the barrier_in from local MPI client */
     if (!gotBarrierIn) return;
 
@@ -2159,6 +1735,857 @@ void setKVSProviderTID(PStask_ID_t ptid)
     providertid = ptid;
 }
 
+/* ************************************************************************* *
+ *                           MPI Spawn Handling                              *
+ * ************************************************************************* */
+
+/**
+ * @brief Extracts the arguments from PMI spawn request.
+ *
+ * @param msgBuffer The buffer with the PMI spawn message.
+ *
+ * @param argv String vector to add the extracted arguments to.
+ *
+ * @return Returns 0 on success, -1 on error.
+ */
+static int getSpawnArgs(char *msgBuffer, strv_t *args)
+{
+    char *execname, *nextval;
+    char numArgs[50];
+    int addArgs = 0, i;
+    size_t j;
+
+    /* setup argv */
+    if (!(getpmiv("argcnt", msgBuffer, numArgs, sizeof(numArgs)))) {
+	mlog("%s(r%i): missing argc argument\n", __func__, rank);
+	return -1;
+    }
+
+    if ((addArgs = atoi(numArgs)) > PMI_SPAWN_MAX_ARGUMENTS) {
+	mlog("%s(r%i): too many arguments (%i)\n", __func__, rank, addArgs);
+	return -1;
+    }
+
+    if (addArgs < 0) {
+	mlog("%s(r%i): invalid argument count (%i)\n", __func__, rank, addArgs);
+	return -1;
+    }
+
+    /* add the executable as argv[0] */
+    if (!(execname = getpmivm("execname", msgBuffer))) {
+	mlog("%s(r%i): invalid executable name\n", __func__, rank);
+	return -1;
+    }
+    strvAdd(args, execname);
+
+    /* add additional arguments */
+    for (i = 1; i <= addArgs; i++) {
+	snprintf(buffer, sizeof(buffer), "arg%i", i);
+	if ((nextval = getpmivm(buffer, msgBuffer))) {
+	    strvAdd(args, nextval);
+	} else {
+	    for (j = 0; j < args->count; j++) ufree(args->strings[j]);
+	    mlog("%s(r%i): extracting arguments failed\n", __func__, rank);
+	    return -1;
+	}
+    }
+
+    return 0;
+}
+
+/**
+ * @brief Extract preput values and keys from a PMI spawn request.
+ *
+ * @param msgBuffer The buffer with the PMI spawn message.
+ *
+ * @param preputc Where to store the number preput key-value-pairs.
+ *
+ * @param preputv Where to store the pointer to the array of key-value-pairs.
+ *
+ * @return Returns 0 on success, -1 on error.
+ */
+static int getSpawnPreput(char *msgBuffer, int *preputc, KVP_t **preputv)
+{
+    char numPreput[50];
+    char nextkey[PMI_KEYLEN_MAX], nextvalue[PMI_VALLEN_MAX];
+    int count, i;
+
+    if (!(getpmiv("preput_num", msgBuffer, numPreput, sizeof(numPreput)))) {
+	mlog("%s(r%i): missing preput count\n", __func__, rank);
+	return -1;
+    }
+
+    *preputc = atoi(numPreput);
+
+    if (*preputc == 0) return 0;
+
+    *preputv = umalloc(*preputc * sizeof(KVP_t));
+
+    count = 0;
+
+    for (i = 0; i < *preputc; i++) {
+	snprintf(buffer, sizeof(buffer), "preput_key_%i", i);
+	if (!(getpmiv(buffer, msgBuffer, nextkey, sizeof(nextkey)))) {
+	    mlog("%s(r%i): invalid preput key '%s'\n", __func__, rank, buffer);
+	    goto preput_error;
+	}
+
+	snprintf(buffer, sizeof(buffer), "preput_val_%i", i);
+	if (!(getpmiv(buffer, msgBuffer, nextvalue, sizeof(nextvalue)))) {
+	    mlog("%s(r%i): invalid preput value '%s'\n", __func__, rank,
+		    buffer);
+	    goto preput_error;
+	}
+
+	preputv[count]->key = ustrdup(nextkey);
+	preputv[count++]->value = ustrdup(nextvalue);
+    }
+    *preputc = count;
+
+    return 0;
+
+preput_error:
+    for (i = 0; i < count; i++) {
+	ufree(preputv[i]->key);
+	ufree(preputv[i]->value);
+    }
+    ufree(preputv);
+    return -1;
+}
+
+/**
+ * @brief Extract info values and keys from a PMI spawn request.
+ *
+ * @param msgBuffer The buffer with the PMI spawn message.
+ *
+ * @param infoc     Where to store the number info key-value-pairs.
+ *
+ * @param infov     Where to store the pointer to the array of key-value-pairs.
+ *
+ * @return Returns 0 on success, -1 on error.
+ */
+static int getSpawnInfo(char *msgBuffer, int *infoc, KVP_t **infov)
+{
+    char numInfo[50];
+    char nextkey[PMI_KEYLEN_MAX], nextvalue[PMI_VALLEN_MAX];
+    int count, i;
+
+    if (!(getpmiv("info_num", msgBuffer, numInfo, sizeof(numInfo)))) {
+	mlog("%s(r%i): missing info count\n", __func__, rank);
+	return -1;
+    }
+
+    *infoc = atoi(numInfo);
+
+    if (*infoc == 0) return 0;
+
+    *infov = umalloc(*infoc * sizeof(KVP_t));
+
+    count = 0;
+    for (i=0; i < *infoc; i++) {
+	snprintf(buffer, sizeof(buffer), "info_key_%i", i);
+	if (!(getpmiv(buffer, msgBuffer, nextkey, sizeof(nextkey)))) {
+	    mlog("%s(r%i): invalid info key '%s'\n", __func__, rank, buffer);
+	    goto info_error;
+	}
+
+	snprintf(buffer, sizeof(buffer), "info_val_%i", i);
+	if (!(getpmiv(buffer, msgBuffer, nextvalue, sizeof(nextvalue)))) {
+	    mlog("%s(r%i): invalid preput value '%s'\n", __func__, rank,
+		    buffer);
+	    goto info_error;
+	}
+
+	infov[count]->key = ustrdup(nextkey);
+	infov[count++]->value = ustrdup(nextvalue);
+    }
+    *infoc = count;
+
+    return 0;
+
+info_error:
+    for (i=0; i<count; i++) {
+	ufree(infov[i]->key);
+	ufree(infov[i]->value);
+    }
+    ufree(infov);
+    return -1;
+}
+
+/* *
+ * @brief TODO soft spawn
+ *
+static int getSoftArgList(char *soft, int **softList)
+{
+    const char delimiters[] =", \n";
+    char *triplet, *saveptr;
+    int start, end, mult, tcount, ecount = 0;
+
+    triplet = strtok_r(soft, delimiters, &saveptr);
+
+    while (triplet != NULL) {
+	tcount = sscanf(triplet, "%i:%i:%i", &start, &end, &mult);
+
+	switch (tcount) {
+	    case 1:
+		/ add start /
+
+	    case 2:
+		/ add range start - end /
+
+	    case 3:
+		/ add start + mult until end /
+
+	    default:
+		/ error /
+		return 0;
+	}
+
+	triplet = strtok_r(NULL, delimiters, &saveptr);
+    }
+
+    / sort the array /
+    //qsort(sList, ecount, sizeof(int), compInt);
+
+    return ecount;
+}
+*/
+
+/**
+ * @brief Parse spawn request messages.
+ *
+ * @param msgBuffer  PMI spawn request message
+ *
+ * @param spawn      Pointer to the struct to be filled with spawn data.
+ *
+ * @return  Returns 0 on success, 1 on error.
+ */
+static int parseSpawnRequestMsg(char *msgBuffer, SingleSpawn_t *spawn)
+{
+    char *tmpstr;
+    const char delm[] = "\n";
+
+    strv_t args;
+
+    setPMIDelim(delm);
+
+    if (!msgBuffer) return 1;
+
+#if 0
+    elog("%s: dump:\n", __func__);
+    for (i=0; i<totalSpawns; i++) {
+	elog("%s\n", spawnBuffer[i]);
+    }
+#endif
+
+    /* get the number of processes to spawn */
+    if (!(tmpstr = getpmivm("nprocs", msgBuffer))) {
+	mlog("%s(r%i): getting number of processes to spawn failed\n",
+		__func__, rank);
+	goto parse_error;
+    }
+    spawn->np = atoi(tmpstr);
+    ufree(tmpstr);
+
+    /* setup argv for processes to spawn */
+    strvInit(&args, NULL, 0);
+    if (getSpawnArgs(msgBuffer, &args)) {
+	strvDestroy(&args);
+	goto parse_error;
+    }
+    spawn->argv = args.strings;
+    spawn->argc = args.count;
+
+    /* extract preput keys and values */
+    if (getSpawnPreput(msgBuffer, &spawn->preputc,
+	       &spawn->preputv) != 0) {
+	goto parse_error;
+    }
+
+    /* extract info keys and values */
+    if (getSpawnInfo(msgBuffer, &spawn->infoc, &spawn->infov)
+	    != 0) {
+	goto parse_error;
+    }
+
+    setPMIDelim(NULL);
+
+    return 0;
+
+parse_error:
+    setPMIDelim(NULL);
+    return 1;
+}
+
+/**
+ * @brief Prepare preput keys and values to pass by environment.
+ *
+ * Generates an array of strings representing the preput key-value-pairs in the
+ * format "__PMI_<KEY>=<VALUE>" and one variable "__PMI_preput_num=<COUNT>"
+ *
+ * @param preputc  Number of key value pairs.
+ *
+ * @param preputv  Array of key value pairs.
+ *
+ * @param envc     Where to store the number environment variable definitions.
+ *
+ * @param envv     Where to store the pointer to the array of definitions.
+ */
+static void addSpawnPreputToEnv(int preputc, KVP_t *preputv, strv_t *env)
+{
+    int i;
+    char *tmpstr;
+
+    snprintf(buffer, sizeof(buffer), "__PMI_preput_num=%i", preputc);
+    strvAdd(env, ustrdup(buffer));
+
+    for (i = 0; i < preputc; i++) {
+	int esize;
+
+	snprintf(buffer, sizeof(buffer), "preput_key_%i", i);
+	esize = 6 + strlen(buffer) + 1 + strlen(preputv[i].key) + 1;
+	tmpstr = umalloc(esize);
+	snprintf(tmpstr, esize, "__PMI_%s=%s", buffer, preputv[i].key);
+	strvAdd(env, tmpstr);
+
+	snprintf(buffer, sizeof(buffer), "preput_val_%i", i);
+	esize = 6 + strlen(buffer) + 1 + strlen(preputv[i].value) + 1;
+	tmpstr = umalloc(esize);
+	snprintf(tmpstr, esize, "__PMI_%s=%s", buffer, preputv[i].value);
+	strvAdd(env, tmpstr);
+    }
+}
+
+/*
+ *  fills the passed task structure to spawn processes using mpiexec
+ *
+ *  @param req    spawn request
+ *  
+ *  @param usize  universe size
+ *
+ *  @param task   task structure to adjust
+ *
+ *  @return 1 on success, 0 on error (currently unused)
+ */
+int fillSpawnTaskWithMpiexec(SpawnRequest_t *req, int usize, PStask_t *task) {
+
+    int totalSpawns, i, j, len;
+
+    char *tmpstr;
+    SingleSpawn_t *spawn;
+    KVP_t *info;
+    strv_t args, env;
+
+    char noParricide = 0;
+
+    totalSpawns = req->totalSpawns;
+
+    spawn = &(req->spawns[0]);
+
+    /* put preput key-value-pairs into environment
+     *
+     * We will transport this kv-pairs using the spawn environment. When
+     * our children are starting the pmi_init() call will add them to their
+     * local KVS.
+     *
+     * Only the values of the first single spawn are used. */
+    strvInit(&env, task->environ, task->envSize);
+    addSpawnPreputToEnv(spawn->preputc, spawn->preputv, &env);
+
+    ufree(task->environ);
+    task->environ = env.strings;
+    task->envSize = env.count;
+
+
+    /* build arguments:
+     * mpiexec -u <UNIVERSE_SIZE> -np <NP> -d <WDIR> -p <PATH> \
+     *  --nodetype=<NODETYPE> --tpp=<TPP> <BINARY> ... */
+    strvInit(&args, NULL, 0);
+
+    strvAdd(&args, ustrdup(MPIEXEC_BINARY));
+    strvAdd(&args, ustrdup("-u"));
+
+    snprintf(buffer, sizeof(buffer), "%d", usize);
+    strvAdd(&args, ustrdup(buffer));
+
+
+    for (i = 0; i < totalSpawns; i++) {
+
+	/* set the number of processes to spawn */
+	strvAdd(&args, ustrdup("-np"));
+	snprintf(buffer, sizeof(buffer), "%d", spawn->np);
+	strvAdd(&args, ustrdup(buffer));
+
+	/* extract info values and keys
+	 *
+	 * These info variables are implementation dependend and can
+	 * be used for e.g. process placement. All unsupported values
+	 * will be silently ignored.
+	 *
+	 * ParaStation will support:
+	 *
+	 *  - wdir: The working directory of the spawned processes
+	 *  - arch/nodetype: The type of nodes to be used
+	 *  - path: The directory were to search for the executable
+	 *  - tpp: Threads per process
+	 *  - parricide: Flag to not kill process upon relative's unexpected
+	 *               death.
+	 *
+	 * TODO:
+	 *
+	 *  - soft:
+	 *	    - if not all processes could be started the spawn is still
+	 *		considered successful
+	 *	    - ignore negative values and >maxproc
+	 *	    - format = list of triplets
+	 *		+ list 1,3,4,5,8
+	 *		+ triplets a:b:c where a:b range c= multiplicator
+	 *		+ 0:8:2 means 0,2,4,6,8
+	 *		+ 0:8:2,7 means 0,2,4,6,7,8
+	 *		+ 0:2 means 0,1,2
+	 */
+	for (j = 0; j < spawn->infoc; j++) {
+	    info = &(spawn->infov[j]);
+
+	    if (!strcmp(info->key, "wdir")) {
+		strvAdd(&args, ustrdup("-d"));
+		strvAdd(&args, ustrdup(info->value));
+	    }
+	    if (!strcmp(info->key, "tpp")) {
+		len = strlen(info->value) + 7;
+		tmpstr = umalloc(len * sizeof(char));
+		snprintf(tmpstr, len, "--tpp=%s", info->value);
+		strvAdd(&args, tmpstr);
+	    }
+	    if (!strcmp(info->key, "nodetype") || !strcmp(info->key, "arch")) {
+		len = strlen(info->value) + 12;
+		tmpstr = umalloc(len * sizeof(char));
+		snprintf(tmpstr, len, "--nodetype=%s", info->value);
+		strvAdd(&args, tmpstr);
+	    }
+	    if (!strcmp(info->key, "path")) {
+		strvAdd(&args, ustrdup("-p"));
+		strvAdd(&args, ustrdup(info->value));
+	    }
+
+	    /* TODO soft spawn
+	    if (!strcmp(info->key, "soft")) {
+		char *soft;
+		int *count, *sList;
+
+		soft = info->value;
+		sList = getSoftArgList(soft, &count);
+
+		ufree(soft);
+	    }
+	    */
+
+	    if (!strcmp(info->key, "parricide")) {
+		if (!strcmp(info->value, "disabled")) {
+		    noParricide = 1;
+		} else if (!strcmp(info->value, "enabled")) {
+		    noParricide = 0;
+		}
+	    }
+	}
+
+	/* add binary and argument from spawn request */
+	for (j = 0; j < spawn->argc; j++) {
+	    strvAdd(&args, ustrdup(spawn->argv[j]));
+	}
+
+	/* add separating colon */
+	if (i < totalSpawns-1) {
+	    strvAdd(&args, ustrdup(":"));
+	}
+    }
+
+    task->argv = args.strings;
+    task->argc = args.count;
+
+    task->noParricide = noParricide;
+
+    return 1;
+}
+
+/**
+ * @brief Parse the spawn request and start a new service process.
+ *
+ * The service process will spawn itself again to start a spawner process
+ * which will then spawn the requested executable. The first service process
+ * will then turn into a new KVS provider for the new spawned PMI group.
+ *
+ * The new spawned children will have their own MPI_COMM_WORLD and
+ * therefore a separate KVS, separate PMI barriers and a separate
+ * daisy chain to communicate.
+ *
+ * @param req          The spawn request from the MPI client.
+ *
+ * @param universeSize MPI universe size.
+ *
+ * @param serviceRank  The next valid rank for a new service process.
+ *
+ * @param totalProcs   Pointer where to store the total number of processes
+ *                     to be spawned.
+ *
+ * @return Returns 1 on success and 0 on error.
+ */
+static int tryPMISpawn(SpawnRequest_t *req, int universeSize,
+		int serviceRank, int *totalProcs)
+{
+    PStask_t *myTask, *task;
+    int i, rc;
+    char *cur, buffer[1024];
+    strv_t env;
+
+    if (!req) {
+	mlog("%s: no spawn request (THIS SHOULD NEVER HAPPEN!!!)\n", __func__);
+	return 0;
+    }
+
+    if (!(myTask = getChildTask())) {
+	mlog("%s: cannot find my child's task structure\n", __func__);
+	return 0;
+    }
+
+#if 0
+    mlog("Child Task environment:\n");
+    for (i = 0; i < myTask->envSize; i++) {
+	if (myTask->environ[i] == NULL) {
+	    mlog("!!! NULL pointer in child task environment !!!\n");
+	    continue;
+	}
+	mlog(" %d: %s\n", i, myTask->environ[i]);
+    }
+#endif
+
+    if (!(task = PStask_new())) {
+	mlog("%s: cannot create a new task\n", __func__);
+	return 0;
+    }
+
+    /* copy data from my task */
+    task->uid = myTask->uid;
+    task->gid = myTask->gid;
+    task->aretty = myTask->aretty;
+    task->loggertid = myTask->loggertid;
+    task->ptid = myTask->tid;
+    task->group = TG_KVS;
+    task->rank = serviceRank -1;
+    task->winsize = myTask->winsize;
+    task->termios = myTask->termios;
+
+    /* set work dir */
+    if (myTask->workingdir) {
+	task->workingdir = ustrdup(myTask->workingdir);
+    } else {
+	task->workingdir = NULL;
+    }
+
+    /* build environment */
+    strvInit(&env, NULL, 0);
+    for (i=0; myTask->environ[i]; i++) {
+	cur = myTask->environ[i];
+
+	/* skip troublesome old env vars */
+	if (!(strncmp(cur, "__KVS_PROVIDER_TID=", 17))) continue;
+	if (!(strncmp(cur, "PMI_ENABLE_SOCKP=", 17))) continue;
+	if (!(strncmp(cur, "PMI_RANK=", 9))) continue;
+	if (!(strncmp(cur, "PMI_PORT=", 9))) continue;
+	if (!(strncmp(cur, "PMI_FD=", 7))) continue;
+	if (!(strncmp(cur, "PMI_KVS_TMP=", 12))) continue;
+	if (!(strncmp(cur, "OMP_NUM_THREADS=", 16))) continue;
+#if 0
+	if (path && !(strncmp(cur, "PATH", 4))) {
+	    setPath(cur, path, &task->environ[i++]);
+	    continue;
+	}
+#endif
+
+	strvAdd(&env, ustrdup(cur));
+    }
+    task->environ = env.strings;
+    task->envSize = env.count;
+
+    /* calc totalProcs */
+    *totalProcs = 0;
+    for (i = 0; i < req->totalSpawns; i++) {
+	*totalProcs += req->spawns[i].np;
+    }
+
+    /* interchangable function to fill actual spawn command into task */
+    rc = fillSpawnTaskFunction(req, universeSize, task);
+
+    if (rc == -1) {
+	/* function to fill the spawn task tells us she is not responsible */
+	mlog("%s(r%i): Falling back to default PMI fill spawn task"
+		" function.\n", __func__, rank);
+	rc = defaultFillSpawnTaskFunction(req, universeSize, task);
+    }
+
+    if (rc != 1) {
+	elog("Error with spawning processes.\n");
+	mlog("%s(r%i): Error in PMI fill spawn task function.\n", __func__,
+		rank);
+	PStask_delete(task);
+	return 0;
+    }
+
+    /* add additional env vars */
+    strvInit(&env, task->environ, task->envSize);
+
+    snprintf(buffer, sizeof(buffer), "PMI_KVS_TMP=pshost_%i_%i",
+		PSC_getMyTID(), kvs_next++);  /* setup new KVS name */
+    strvAdd(&env, ustrdup(buffer));
+    if (debug) elog("%s(r%i): Set %s\n", __func__, rank, buffer);
+
+    snprintf(buffer, sizeof(buffer), "__PMI_SPAWN_SERVICE_RANK=%i",
+		serviceRank - 2);
+    strvAdd(&env, ustrdup(buffer));
+    if (debug) elog("%s(r%i): Set %s\n", __func__, rank, buffer);
+
+    snprintf(buffer, sizeof(buffer), "__PMI_SPAWN_PARENT=%i", PSC_getMyTID());
+    strvAdd(&env, ustrdup(buffer));
+    if (debug) elog("%s(r%i): Set %s\n", __func__, rank, buffer);
+
+    strvAdd(&env, ustrdup("SERVICE_KVS_PROVIDER=1"));
+    strvAdd(&env, ustrdup("PMI_SPAWNED=1"));
+
+    snprintf(buffer, sizeof(buffer), "PMI_SIZE=%d", *totalProcs);
+    strvAdd(&env, ustrdup(buffer));
+    if (debug) elog("%s(r%i): Set %s\n", __func__, rank, buffer);
+
+    snprintf(buffer, sizeof(buffer), "__PMI_NO_PARRICIDE=%i",
+	     task->noParricide);
+    strvAdd(&env, ustrdup(buffer));
+    if (debug) elog("%s(r%i): Set %s\n", __func__, rank, buffer);
+
+    ufree(task->environ);
+    task->environ = env.strings;
+    task->envSize = env.count;
+
+    if (debug) {
+	elog("%s(r%i): Executing '", __func__, rank);
+	for (i=0; i<task->argc; i++) elog(" %s", task->argv[i]);
+	elog("'\n");
+    }
+    mlog("%s(r%i): Executing '", __func__, rank);
+    for (i=0; i<task->argc; i++) mlog(" %s", task->argv[i]);
+    mlog("'\n");
+
+#if 0
+    mlog("Task environment:\n");
+    for (i = 0; i < task->envSize; i++) {
+	if (task->environ[i] == NULL) {
+	    mlog("!!! NULL pointer in task environment !!!\n");
+	    continue;
+	}
+	mlog(" %d: %s\n", i, task->environ[i]);
+    }
+#endif
+
+    return sendSpawnMessage(task);
+}
+
+/**
+ * @brief Spawn one or more processes.
+ *
+ * Parses the spawn message and calls doSpawn().
+ *
+ * In case of spawn_multi, all spawn messages are collected here
+ * and doSpawn() is called after the collection is completed.
+ *
+ * @param msgBuffer Buffer which holds the PMI spawn message.
+ *
+ * @return Returns 0 for success, 1 on normal error 
+ *          and 2 on critical error and 3 on fatal error.
+ */
+int handleSpawnRequest(char *msgBuffer)
+{
+
+    char totSpawns[50], spawnsSoFar[50];
+    int totspawns, spawnssofar, ret;
+
+    static int s_total = 0;
+    static int s_count = 0;
+
+    if (!(getpmiv("totspawns", msgBuffer, totSpawns, sizeof(totSpawns)))) {
+	mlog("%s(r%i): invalid totspawns argument\n", __func__, rank);
+	return 1;
+    }
+    totspawns = atoi(totSpawns);
+
+    if (!(getpmiv("spawnssofar", msgBuffer, spawnsSoFar,
+		     sizeof(spawnsSoFar)))) {
+	mlog("%s(r%i): invalid spawnssofar argument\n", __func__, rank);
+	return 1;
+    }
+    spawnssofar = atoi(spawnsSoFar);
+
+    if (spawnssofar == 1) {
+	s_total = totspawns;
+
+	/* check if spawn buffer is already in use */
+	if (spawnBuffer) {
+	    mlog("%s(r%i): spawn buffer should be empty, another spawn in"
+		    " progress?\n", __func__, rank);
+	    return 2;
+	}
+
+	/* create spawn buffer */
+	if (!(spawnBuffer = initSpawnRequest(s_total))) {
+	    mlog("%s(r%i): out of memory\n", __func__, rank);
+	    return 3;
+	}
+    }
+    else if (s_total != totspawns) {
+	mlog("%s(r%i): totalspawns argument does not match previous"
+		" message\n",  __func__, rank);
+	return 2;
+    }
+
+    if (debug) {
+        elog("%s(r%i): Adding spawn %d/%d to buffer\n", __func__, rank,
+		spawnssofar, totspawns);
+    }
+
+    if (parseSpawnRequestMsg(msgBuffer, &(spawnBuffer->spawns[s_count]))) {
+	mlog("%s(r%i): failed to parse spawn message '%s'\n",  __func__, rank,
+		msgBuffer);
+	return 1;
+    }
+
+    if (spawnBuffer->spawns[s_count].np == 0) {
+	mlog("%s(r%i): spawn %d/%d has (np == 0) set, cancel spawning.\n",
+		__func__, rank, s_count, spawnBuffer->totalSpawns);
+	elog("Rank %i: Spawn %d/%d has (np == 0) set, cancel spawning.\n",
+		rank, s_count, spawnBuffer->totalSpawns);
+    }
+
+    s_count++;
+
+    if (s_count < s_total) {
+	/* another part of the multi spawn request is missing */
+	return 0;
+    }
+
+    /* collection complete */
+    s_total = 0;
+    s_count = 0;
+
+    /* do spawn */
+    ret = doSpawn(spawnBuffer);
+
+    freeSpawnRequest(spawnBuffer);
+    spawnBuffer = NULL;
+
+    if (ret) {
+	mlog("%s(r%i): doSpawn() returned with %d\n",  __func__, rank, ret);
+	return 1;
+    }
+
+    return 0;
+}
+
+/**
+ * @brief Spawn one or more processes.
+ *
+ * This function is only a wrapper around handleSpawnRequest.
+ * It unifies the error handling.
+ *
+ * @param msgBuffer Buffer which holds the PMI spawn message.
+ *
+ * @return Returns 0 for success and 1 on error.
+ */
+static int p_Spawn(char *msgBuffer)
+{
+    int ret;
+
+    ret = handleSpawnRequest(msgBuffer);
+
+    switch(ret) {
+	case 1:
+	    PMI_send("cmd=spawn_result rc=-1\n");
+	    return 1;
+	case 2:
+	    PMI_send("cmd=spawn_result rc=-1\n");
+	    critErr();
+	    return 1;
+	case 3:
+	    PMI_send("cmd=spawn_result rc=-1\n");
+	    critErr();
+	    exit(1);
+    }
+
+    return 0;
+}
+
+/**
+ * @brief Spawn one or more processes.
+ *
+ * We first need the next rank for the new service process to
+ * start. Only the logger knows that. So we ask it and buffer
+ * the spawn request to wait for an answer.
+ *
+ * @param req  Spawn request data structure.
+ *
+ * @return Returns 0 for success and 1 on error.
+ */
+static int doSpawn(SpawnRequest_t *req) {
+
+    pendingSpawnRequest = copySpawnRequest(req);
+
+    mlog("%s(r%i): trying to do %d spawns\n", __func__, rank,
+	    pendingSpawnRequest->totalSpawns);
+
+    /* get next service rank from logger */
+    if (PSLog_write(loggertid, SERV_TID, NULL, 0) < 0) {
+	mlog("%s(r%i): Writing to logger failed.\n", __func__, rank);
+	return 1;
+    }
+
+    /* wait for logger to answer */
+    return 0;
+}
+
+/**
+ * @brief Extract the next service rank and try to continue spawning.
+ *
+ * @param msg The message from the logger to handle.
+ *
+ * @return No return value.
+ */
+static void handleServiceInfo(PSLog_Msg_t *msg)
+{
+    char *ptr = msg->buf;
+    int serviceRank, totalProcs;
+
+    serviceRank = *(int32_t *) ptr;
+    //ptr += sizeof(int32_t);
+
+    if (!pendingSpawnRequest) {
+	mlog("%s(r%i): spawning failed, no spawn request set\n", __func__,
+		rank);
+	PMI_send("cmd=spawn_result rc=-1\n");
+	return;
+    }
+
+    /* try to do the spawn */
+    if (tryPMISpawn(pendingSpawnRequest, universe_size, serviceRank,
+		    &totalProcs)) {
+        /* reset tracking */
+	spawnChildSuccess = 0;
+	spawnChildCount = totalProcs;
+    }
+    else {
+	PMI_send("cmd=spawn_result rc=-1\n");
+    }
+
+    /* cleanup */
+    freeSpawnRequest(pendingSpawnRequest);
+    pendingSpawnRequest = NULL;
+}
+
 /**
  * @brief Handle a spawn result message from my children.
  *
@@ -2176,7 +2603,8 @@ static void handleChildSpawnRes(PSLog_Msg_t *msg, char *ptr)
     spawnChildSuccess++;
 
     if (!(getKVSInt32(&ptr))) {
-	elog("%s(r%i): spawning processes failed\n", __func__, rank);
+	mlog("%s(r%i): spawning processes failed\n", __func__, rank);
+	elog("Rank %i: Spawning processes failed\n", rank);
 
 	spawnChildSuccess = 0;
 	PMI_send("cmd=spawn_result rc=-1\n");
@@ -2187,7 +2615,7 @@ static void handleChildSpawnRes(PSLog_Msg_t *msg, char *ptr)
     cPmiRank = getKVSInt32(&ptr);
 
     if (debug) {
-	elog("%s(r%i): success from %s, rank '%i' pmiRank '%i'\n", __func__,
+	mlog("%s(r%i): success from %s, rank '%i' pmiRank '%i'\n", __func__,
 	    rank, PSC_printTID(msg->sender), cRank, cPmiRank);
     }
 
@@ -2195,37 +2623,6 @@ static void handleChildSpawnRes(PSLog_Msg_t *msg, char *ptr)
 	spawnChildSuccess = spawnChildCount = 0;
 	PMI_send("cmd=spawn_result rc=0\n");
     }
-}
-
-/**
- * @brief Extract the next service rank and try to continue spawning.
- *
- * @param msg The message from the logger to handle.
- *
- * @return No return value.
- */
-static void handleServiceInfo(PSLog_Msg_t *msg)
-{
-    char *ptr = msg->buf;
-    int serviceRank, i;
-
-    serviceRank = *(int32_t *) ptr;
-    //ptr += sizeof(int32_t);
-
-    if (!spawnBuffer) {
-	elog("%s(%i): spawning failed, no spawn buffer set\n", __func__, rank);
-	PMI_send("cmd=spawn_result rc=-1\n");
-	return;
-    }
-
-    /* try to do the spawn */
-    tryPMISpawn(spawnBuffer, totalSpawns, serviceRank);
-
-    /* cleanup */
-    for (i=0; i<totalSpawns; i++) ufree(spawnBuffer[i]);
-    ufree(spawnBuffer);
-    spawnBuffer = NULL;
-    totalSpawns = 0;
 }
 
 /**
@@ -2294,7 +2691,7 @@ int handlePSlogMessage(void *vmsg)
 	    handleServiceExit(msg);
 	    break;
 	default:
-	    elog("%s(%i): got unexpected PSLog message '%s'\n", __func__, rank,
+	    elog("%s(r%i): got unexpected PSLog message '%s'\n", __func__, rank,
 		   PSLog_printMsgType(msg->type));
     }
     return 0;

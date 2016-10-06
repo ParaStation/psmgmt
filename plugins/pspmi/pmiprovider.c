@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2013 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2013-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -29,12 +29,12 @@ static int providerSocket = -1;
 /* socket used by the psidforwarder */
 static int kvsForwarderSocket = -1;
 
-void closeKVSForwarderSock()
+void closeKVSForwarderSock(void)
 {
     close(kvsForwarderSocket);
 }
 
-void setupKVSProviderComm()
+void setupKVSProviderComm(void)
 {
     int socketfds[2];
     char env[50];
