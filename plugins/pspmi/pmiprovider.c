@@ -7,20 +7,16 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-/**
- * $Id$
- *
- * \author
- * Michael Rauh <rauh@par-tec.com>
- *
- */
+
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/socket.h>
-#include <errno.h>
 #include <unistd.h>
+#include <errno.h>
+#include <sys/types.h>
+#include <sys/socket.h>
 
 #include "pmilog.h"
+
 #include "pmiprovider.h"
 
 /* socket used by the kvsprovider */
