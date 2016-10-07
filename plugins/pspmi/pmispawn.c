@@ -1,18 +1,11 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2013 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2013-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
- */
-/**
- * $Id$
- *
- * \author
- * Michael Rauh <rauh@par-tec.com>
- *
  */
 
 #include <stdio.h>
@@ -48,10 +41,10 @@ static PMItype_t pmiType;
  */
 static int init_PMISocket(void)
 {
-    int res, sock;
     struct sockaddr_in saClient;
+    int res, sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 
-    if ((sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)) <0) {
+    if (sock < 0) {
 	int eno = errno;
 	mwarn(eno, "%s: create PMI socket failed", __func__);
 	errno = eno;
@@ -74,7 +67,8 @@ static int init_PMISocket(void)
     }
 
     /* set socket to listen state */
-    if ((res = listen(sock, 5)) == -1) {
+    res = listen(sock, 5);
+    if (res == -1) {
 	int eno = errno;
 	mwarn(eno, "%s: listen on PMIsock failed", __func__);
 	errno = eno;
@@ -137,16 +131,13 @@ static PMItype_t preparePMI(int *forwarderSock)
     PMItype_t pmiType = PMI_DISABLED;
     int pmiEnableTcp = 0;
     int pmiEnableSockp = 0;
-    char *envstr;
+    char *envstr = getenv("PMI_ENABLE_TCP");
 
     /* check if PMI should be started */
-    if ((envstr = getenv("PMI_ENABLE_TCP"))) {
-	pmiEnableTcp = atoi(envstr);
-    }
+    if (envstr) pmiEnableTcp = atoi(envstr);
 
-    if ((envstr = getenv("PMI_ENABLE_SOCKP"))) {
-	pmiEnableSockp = atoi(envstr);
-    }
+    envstr = getenv("PMI_ENABLE_SOCKP");
+    if (envstr) pmiEnableSockp = atoi(envstr);
 
     /* only one option is allowed */
     if (pmiEnableSockp && pmiEnableTcp) {
@@ -163,7 +154,8 @@ static PMItype_t preparePMI(int *forwarderSock)
     if (pmiEnableTcp) {
 	char cPMI_PORT[50];
 
-	if ((*forwarderSock = init_PMISocket()) < 0) {
+	*forwarderSock = init_PMISocket();
+	if (*forwarderSock < 0) {
 	    mwarn(errno, "%s: create PMI/TCP socket failed", __func__);
 	    return PMI_FAILED;
 	}
@@ -195,10 +187,10 @@ static PMItype_t preparePMI(int *forwarderSock)
 int handleClientSpawn(void *data)
 {
     PStask_t *task = data;
-    char *env;
 
     /* cleanup child environment */
     if (task->group == TG_ANY) {
+	char *env = getenv("__PMI_preput_num");
 
 	/* close the forwarder socket in the client process */
 	if (pmiType == PMI_OVER_UNIX) close(forwarderSock);
@@ -208,7 +200,7 @@ int handleClientSpawn(void *data)
 	unsetenv("PMI_KVS_TMP");
 	unsetenv("__PMI_SPAWN_PARENT");
 
-	if ((env = getenv("__PMI_preput_num"))) {
+	if (env) {
 	    int i, num = atoi(env);
 	    char buf[100];
 
@@ -232,9 +224,8 @@ int handleForwarderSpawn(void *data)
     PStask_t *task = data;
 
     if (task->group == TG_ANY) {
-	if ((pmiType = preparePMI(&forwarderSock)) == PMI_FAILED) {
-	    return -1;
-	}
+	pmiType = preparePMI(&forwarderSock);
+	if (pmiType == PMI_FAILED) return -1;
 
 	setConnectionInfo(pmiType, forwarderSock);
     } else if (task->group == TG_KVS) {

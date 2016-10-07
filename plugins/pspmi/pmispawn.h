@@ -7,14 +7,6 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-/**
- * $Id$
- *
- * \author
- * Michael Rauh <rauh@par-tec.com>
- *
- */
-
 #ifndef __PS_PMI_SPAWN
 #define __PS_PMI_SPAWN
 
@@ -34,4 +26,4 @@ int handleForwarderSpawn(void *data);
  */
 int handleClientSpawn(void *data);
 
-#endif
+#endif  /* __PS_PMI_SPAWN */
