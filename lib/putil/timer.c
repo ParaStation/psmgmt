@@ -272,7 +272,7 @@ void Timer_init(FILE* logfile)
     sigemptyset(&sa.sa_mask);
     sa.sa_flags = 0;
     if (sigaction(SIGALRM, &sa, 0)==-1) {
-	logger_exit(logger, errno, "%s: unable to set sigHandler", __func__);
+	logger_exit(logger, errno, "%s: unable to reset sigHandler", __func__);
     }
 
     /* Free all old timers, if any */
