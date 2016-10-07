@@ -7,20 +7,8 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-/**
- * $Id$
- *
- * \author
- * Michael Rauh <rauh@par-tec.com>
- * Stephan Krempel <krempel@par-tec.com
- *
- */
 
-#ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__((used)) =
-    "$Id$";
-#endif /* DOXYGEN_SHOULD_SKIP_THIS */
-
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -84,10 +72,10 @@ typedef struct {
 static Update_Buffer_t uBufferList;
 
 /** Flag to check if the pmi_init() was called successful */
-static int is_init = 0;
+static bool is_init = false;
 
 /** Flag to check if initialisation between us and client was ok */
-static int pmi_init_client = 0;
+static bool pmi_init_client = false;
 
 /** Counter of the next KVS name */
 static int kvs_next = 0;
@@ -96,10 +84,10 @@ static int kvs_next = 0;
 static char myKVSname[PMI_KVSNAME_MAX];
 
 /** If set debug output is generated */
-static int debug = 0;
+static bool debug = false;
 
 /** If set KVS debug output is generated */
-static int debug_kvs = 0;
+static bool debug_kvs = false;
 
 /** The size of the MPI universe set from mpiexec */
 static int universe_size = 0;
@@ -134,20 +122,20 @@ static PStask_ID_t predtid = -1;
 /** The successor task ID of the current job */
 static PStask_ID_t succtid = -1;
 
-/** Our childs task ID */
+/** Our child's task ID */
 static PStask_ID_t childtid = -1;
 
 /** Flag to indicate if the successor is ready to receive update messages */
-static int isSuccReady = 0;
+static bool isSuccReady = false;
 
 /** Flag to check if we got the local barrier_in msg */
-static int gotBarrierIn = 0;
+static bool gotBarrierIn = false;
 
 /** Flag to check if we got the daisy barrier_in msg */
-static int gotDaisyBarrierIn = 0;
+static bool gotDaisyBarrierIn = false;
 
 /** Flag to indicate if we should start the daisy barrier */
-static int startDaisyBarrier = 0;
+static bool startDaisyBarrier = false;
 
 /** Generic message buffer */
 static char buffer[1024];
@@ -476,7 +464,7 @@ static void checkDaisyBarrier()
     size_t len = 0;
 
     if (gotBarrierIn && isSuccReady && gotDaisyBarrierIn) {
-	gotDaisyBarrierIn = 0;
+	gotDaisyBarrierIn = false;
 	barrierCount++;
 	globalPutCount += putCount;
 
@@ -489,7 +477,7 @@ static void checkDaisyBarrier()
     if (gotBarrierIn && isSuccReady && startDaisyBarrier) {
 	barrierCount  = 1;
 	globalPutCount = putCount;
-	startDaisyBarrier = 0;
+	startDaisyBarrier = false;
 
 	setKVSCmd(&ptr, &len, DAISY_BARRIER_IN);
 	addKVSInt32(&ptr, &len, &barrierCount);
@@ -554,7 +542,7 @@ static void parseUpdateMessage(char *pmiLine, int lastUpdateMsg, int updateIdx)
 	size_t len = 0;
 
 	/* we got all update msg, so we can release the waiting MPI client */
-	gotBarrierIn = 0;
+	gotBarrierIn = false;
 	snprintf(buffer, sizeof(buffer), "cmd=barrier_out\n");
 	PMI_send(buffer);
 
@@ -591,10 +579,10 @@ static int p_Barrier_In(char *msgBuffer)
     list_t *pos, *tmp;
     char *ptr = buffer;
 
-    gotBarrierIn = 1;
+    gotBarrierIn = true;
 
     /* if we are the first in chain, send starting barrier msg */
-    if (pmiRank == 0) startDaisyBarrier = 1;
+    if (pmiRank == 0) startDaisyBarrier = true;
     checkDaisyBarrier();
 
     /* update local KVS cache with buffered update */
@@ -640,7 +628,6 @@ void leaveKVS(int used)
 	sendKvstoProvider(buffer, len);
     }
 }
-
 
 /**
  * @brief Finalize the PMI.
@@ -1068,9 +1055,9 @@ static int p_Init(char *msgBuffer)
 		atoi(pmisubversion));
 	return 1;
     }
-    pmi_init_client = 1;
+    pmi_init_client = true;
 
-    if (psAccountSwitchAccounting) psAccountSwitchAccounting(childtid, 1);
+    if (psAccountSwitchAccounting) psAccountSwitchAccounting(childtid, true);
 
     /* tell provider that the MPI client was initialized */
     ptr = buffer;
@@ -1323,13 +1310,12 @@ int pmi_init(int pmisocket, PStask_t *childTask)
 
     /* set debug mode */
     if ((envPtr = getenv("PMI_DEBUG")) && atoi(envPtr) > 0) {
-	debug = atoi(envPtr);
-	debug_kvs = debug;
+	debug_kvs = debug = true;
     } else if ((envPtr = getenv("PMI_DEBUG_CLIENT"))) {
-	debug = atoi(envPtr);
+	debug = (atoi(envPtr) > 0);
     }
     if ((envPtr = getenv("PMI_DEBUG_KVS"))) {
-	debug_kvs = atoi(envPtr);
+	debug_kvs = (atoi(envPtr) > 0);
     }
 
     /* set the MPI universe size */
@@ -1347,7 +1333,7 @@ int pmi_init(int pmisocket, PStask_t *childTask)
 		    env_kvs_name);
     }
 
-    is_init = 1;
+    is_init = true;
     updateMsgCount = 0;
 
     /* set my KVS name */
@@ -1461,7 +1447,7 @@ int handlePMIclientMsg(char *msg)
     char cmd[PMI_VALLEN_MAX];
     char reply[PMIU_MAXLINE];
 
-    if (is_init != 1) {
+    if (!is_init) {
 	elog("%s(r%i): you must call pmi_init first, msg '%s'\n",
 		__func__, rank, msg);
 	return critErr();
@@ -1515,9 +1501,7 @@ int handlePMIclientMsg(char *msg)
 */
 void pmi_finalize(void)
 {
-    if (pmi_init_client) {
-	PMI_send("cmd=finalize_ack\n");
-    }
+    if (pmi_init_client) PMI_send("cmd=finalize_ack\n");
 }
 
 /**
@@ -1613,8 +1597,8 @@ static void handleKVScacheUpdate(PSLog_Msg_t *msg, char *ptr, int lastUpdateMsg)
     /* forward to successor */
     if (isSuccReady && succtid != providertid) sendKvstoSucc(msg->buf, msgSize);
 
-    if (lastUpdateMsg) {
-	if (psAccountSwitchAccounting) psAccountSwitchAccounting(childtid, 1);
+    if (lastUpdateMsg && psAccountSwitchAccounting) {
+	psAccountSwitchAccounting(childtid, true);
     }
 
     /* wait with the update until we got the barrier_in from local MPI client */
@@ -1639,7 +1623,7 @@ static void handleDaisyBarrierOut(PSLog_Msg_t *msg)
     }
 
     /* Forward msg from provider to client */
-    gotBarrierIn = 0;
+    gotBarrierIn = false;
     snprintf(buffer, sizeof(buffer), "cmd=barrier_out\n");
     PMI_send(buffer);
 }
@@ -1659,7 +1643,7 @@ static void handleDaisyBarrierIn(char *ptr)
 
     barrierCount = getKVSInt32(&ptr);
     globalPutCount = getKVSInt32(&ptr);
-    gotDaisyBarrierIn = 1;
+    gotDaisyBarrierIn = true;
     checkDaisyBarrier();
 }
 
@@ -1680,7 +1664,7 @@ static void handleSuccReady(char *mbuf)
     succtid = getKVSInt32(&mbuf);
     //elog("s(r%i): succ:%i pmiRank:%i providertid:%i\n", rank, succtid,
     //	    pmiRank, providertid);
-    isSuccReady = 1;
+    isSuccReady = true;
     checkDaisyBarrier();
 
     /* forward buffered messages */
@@ -2060,7 +2044,7 @@ static void addSpawnPreputToEnv(int preputc, KVP_t *preputv, strv_t *env)
  *  fills the passed task structure to spawn processes using mpiexec
  *
  *  @param req    spawn request
- *  
+ *
  *  @param usize  universe size
  *
  *  @param task   task structure to adjust
@@ -2397,8 +2381,8 @@ static int tryPMISpawn(SpawnRequest_t *req, int universeSize,
  *
  * @param msgBuffer Buffer which holds the PMI spawn message.
  *
- * @return Returns 0 for success, 1 on normal error 
- *          and 2 on critical error and 3 on fatal error.
+ * @return Returns 0 for success, 1 on normal error, 2 on critical
+ * error, and 3 on fatal error.
  */
 int handleSpawnRequest(char *msgBuffer)
 {
@@ -2445,7 +2429,7 @@ int handleSpawnRequest(char *msgBuffer)
     }
 
     if (debug) {
-        elog("%s(r%i): Adding spawn %d/%d to buffer\n", __func__, rank,
+	elog("%s(r%i): Adding spawn %d/%d to buffer\n", __func__, rank,
 		spawnssofar, totspawns);
     }
 
@@ -2573,7 +2557,7 @@ static void handleServiceInfo(PSLog_Msg_t *msg)
     /* try to do the spawn */
     if (tryPMISpawn(pendingSpawnRequest, universe_size, serviceRank,
 		    &totalProcs)) {
-        /* reset tracking */
+	/* reset tracking */
 	spawnChildSuccess = 0;
 	spawnChildCount = totalProcs;
     }

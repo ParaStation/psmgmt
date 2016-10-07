@@ -7,13 +7,6 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-/**
- * $Id$
- *
- * \author
- * Michael Rauh <rauh@par-tec.com>
- *
- */
 
 #ifndef __PS_PMI_CLIENT
 #define __PS_PMI_CLIENT
@@ -119,4 +112,4 @@ int handleCCError(void *data);
  */
 void leaveKVS(int used);
 
-#endif
+#endif  /* __PS_PMI_CLIENT */
