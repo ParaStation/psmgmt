@@ -71,7 +71,7 @@ int initialize(void)
     }
 
     initScriptList();
-    initFraqComm();
+    initFragComm();
 
     /* register psexec msg */
     PSID_registerMsg(PSP_CC_PLUG_PSEXEC, (handlerFunc_t) handlePsExecMsg);
@@ -97,7 +97,7 @@ void cleanup(void)
     /* unregister msg drop handler */
     PSID_clearDropper(PSP_CC_PLUG_PSSLURM);
 
-    finalizeFraqComm();
+    finalizeFragComm();
 
     mlog("...Bye.\n");
 }

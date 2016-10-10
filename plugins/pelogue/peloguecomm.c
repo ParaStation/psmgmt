@@ -706,7 +706,7 @@ static void handleDroppedStartMsg(DDTypedBufferMsg_t *msg)
     ptr += sizeof(PS_Frag_Msg_Header_t);
 
     /* ignore follow up messages */
-    if (rhead->msgNum) return;
+    if (rhead->fragNum) return;
 
     /* get plugin */
     getString(&ptr, plugin, sizeof(plugin));

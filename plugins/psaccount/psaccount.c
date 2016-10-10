@@ -143,7 +143,7 @@ int initialize(void)
     initJobList();
     initHist();
     initProcList();
-    initFraqComm();
+    initFragComm();
 
     /* init the config facility */
     snprintf(configfn, sizeof(configfn), "%s/%s", PLUGINDIR, PSACCOUNT_CONFIG);
@@ -242,5 +242,5 @@ void cleanup(void)
     clearHist();
     clearConfig();
     clearCpuFreq();
-    finalizeFraqComm();
+    finalizeFragComm();
 }

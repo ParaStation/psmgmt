@@ -180,7 +180,7 @@ int initialize(void)
     initConfig();
     initJobList();
     initChildList();
-    initFraqComm();
+    initFragComm();
 
     /* register pelogue msg */
     PSID_registerMsg(PSP_CC_PLUG_PELOGUE, (handlerFunc_t) handlePelogueMsg);
@@ -251,7 +251,7 @@ void cleanup(void)
     clearJobList();
     clearChildList();
     clearConfig();
-    finalizeFraqComm();
+    finalizeFragComm();
 
     mlog("...Bye.\n");
 }

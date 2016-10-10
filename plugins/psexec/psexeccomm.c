@@ -279,7 +279,7 @@ static void handleDroppedExecMsg(DDTypedBufferMsg_t *msg)
     ptr += sizeof(PS_Frag_Msg_Header_t);
 
     /* ignore follow up messages */
-    if (rhead->msgNum) return;
+    if (rhead->fragNum) return;
 
     /* extract id */
     getUint16(&ptr, &uID);

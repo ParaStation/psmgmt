@@ -961,7 +961,7 @@ static void saveForwardError(DDTypedBufferMsg_t *msg)
     ptr += sizeof(PS_Frag_Msg_Header_t);
 
     /* ignore follow up messages */
-    if (rhead->msgNum) return;
+    if (rhead->fragNum) return;
 
     /* socket */
     getInt16(&ptr, &socket);

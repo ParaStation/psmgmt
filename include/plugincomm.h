@@ -45,9 +45,6 @@ typedef struct {
     uint32_t bufUsed;
 } PS_DataBuffer_t;
 
-typedef void PS_DataBuffer_func_t(DDTypedBufferMsg_t *msg,
-				    PS_DataBuffer_t *data);
-
 void freeDataBuffer(PS_DataBuffer_t *data);
 
 /**

@@ -537,7 +537,7 @@ int initialize(void)
     if (!(initPluginHandles())) goto INIT_ERROR;
     if (!(initLimits())) goto INIT_ERROR;
     if (!(initEnvFilter())) goto INIT_ERROR;
-    if (!(initFraqComm())) goto INIT_ERROR;
+    if (!(initFragComm())) goto INIT_ERROR;
 
     /* set collect mode in psaccount */
     psAccountSetGlobalCollect(1);
@@ -592,7 +592,7 @@ int initialize(void)
 
 INIT_ERROR:
     unregisterHooks(0);
-    finalizeFraqComm();  /* needed for unregister hooks */
+    finalizeFragComm();  /* needed for unregister hooks */
     return 1;
 }
 
@@ -657,7 +657,7 @@ void cleanup(void)
     freeConfig(&SlurmConfig);
     freeConfig(&SlurmGresConfig);
     freeEnvFilter();
-    finalizeFraqComm();
+    finalizeFragComm();
 
     mlog("...Bye.\n");
 }

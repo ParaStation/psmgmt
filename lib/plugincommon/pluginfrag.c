@@ -7,20 +7,12 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-/**
- * $Id$
- *
- * \author
- * Michael Rauh <rauh@par-tec.com>
- *
- */
 
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
 #include <time.h>
 #include <errno.h>
-#include <stdbool.h>
 
 #include "psidcomm.h"
 #include "psidhook.h"
@@ -29,39 +21,82 @@
 
 #include "pluginfrag.h"
 
+/** Structure used to collect a message's fragments */
 typedef struct {
-    uint64_t dataLeft;
-    uint16_t msgCount;
-    char *dataPtr;
-    PS_DataBuffer_t data;
-    PS_Frag_Msg_Header_t *fhead;
+    uint64_t dataLeft;           /**< Amount of data still expected */
+    uint16_t fragXpct;           /**< Expected sequence number */
+    char *dataPtr;               /**< Pointer to next write position in data */
+    PS_DataBuffer_t data;        /**< Buffer holding received payload */
+    PS_Frag_Msg_Header_t fhead;  /**< Messages meta-information */
 } PS_Frag_Recv_Buffer_t;
 
+/**
+ * Temporary receive buffers used to collect fragments of a
+ * message. One per node.
+ */
+static PS_Frag_Recv_Buffer_t **recvBuffers = NULL;
+
+/**
+ * Flag debug information. Set if __PSSLURM_LOG_FRAG_MSG found to be
+ * set within the environment upon initFragComm()
+ */
+static bool debug = false;
+
+/**
+ * Custom function used by @ref __sendFragMsg() to actually send
+ * fragments. Set via @ref setFragMsgFunc().
+ */
 static Send_Msg_Func_t *sendPSMsg = NULL;
-
-static PS_Frag_Recv_Buffer_t **recvBuffers;
-
-static bool isInit = 0;
 
 void setFragMsgFunc(Send_Msg_Func_t *func)
 {
     sendPSMsg = func;
 }
 
+/**
+ * @brief Cleanup a recvBuffer
+ *
+ * Cleanup the receive buffer @a recvBuffer.
+ *
+ * @param recvBuffer Buffer to clean up
+ *
+ * @return No return value
+ */
 static void freeRecvBuffer(PS_Frag_Recv_Buffer_t *recvBuffer)
 {
     if (!recvBuffer) return;
 
     freeDataBuffer(&recvBuffer->data);
-    ufree(recvBuffer->fhead);
     ufree(recvBuffer);
 }
 
+/**
+ * @brief Callback on downed node
+ *
+ * This callback is called if the hosting daemon detects that a remote
+ * node went down. It aims to cleanup all now useless data structures,
+ * i.e. all incomplete messages to be received from the node that went
+ * down.
+ *
+ * This function is intended to be registered to the
+ * PSIDHOOK_NODE_DOWN hook of the hosting daemon.
+ *
+ * @param nodeID ParaStation ID of the node that went down
+ *
+ * @return Always return 1 to make the calling hook-handler happy
+ */
 static int handleNodeDown(void *nodeID)
 {
-    PSnodes_ID_t id;
+    if (!nodeID) return 1;
 
-    id = *((PSnodes_ID_t *) nodeID);
+    PSnodes_ID_t id = *(PSnodes_ID_t *)nodeID;
+
+    PSnodes_ID_t nrOfNodes = PSC_getNrOfNodes();
+
+    if (id < 0 || id >= nrOfNodes) {
+	pluginlog("%s: invalid node id %i\n", __func__, id);
+	return 1;
+    }
 
     if (recvBuffers[id]) {
 	pluginlog("%s: freeing recv buffer for node '%i'\n", __func__, id);
@@ -72,10 +107,19 @@ static int handleNodeDown(void *nodeID)
     return 1;
 }
 
-static void cleanupFraqComm(void)
+/**
+ * @brief Cleanup receive buffers
+ *
+ * Cleanup all receive buffers independent of their internal state.
+ *
+ * @return No return value
+ */
+static void cleanupFragComm(void)
 {
     PSnodes_ID_t nrOfNodes = PSC_getNrOfNodes();
     int i;
+
+    if (!recvBuffers) return;
 
     if (nrOfNodes < 1) {
 	pluginlog("%s: invalid nrOfNodes %i\n", __func__, nrOfNodes);
@@ -84,18 +128,19 @@ static void cleanupFraqComm(void)
 
     for (i=0; i<nrOfNodes; i++) freeRecvBuffer(recvBuffers[i]);
     ufree(recvBuffers);
+    recvBuffers = NULL;
 }
 
-int initFraqComm(void)
+bool initFragComm(void)
 {
     PSnodes_ID_t nrOfNodes = PSC_getNrOfNodes();
     int i;
 
-    if (isInit) return 1;
+    if (recvBuffers) return true;
 
     if (nrOfNodes < 1) {
 	pluginlog("%s: invalid nrOfNodes %i\n", __func__, nrOfNodes);
-	return 0;
+	return false;
     }
 
     recvBuffers = umalloc(sizeof(PS_Frag_Recv_Buffer_t *) * nrOfNodes);
@@ -103,58 +148,57 @@ int initFraqComm(void)
 
     if (!(PSIDhook_add(PSIDHOOK_NODE_DOWN, handleNodeDown))) {
 	pluginlog("register 'PSIDHOOK_NODE_DOWN' failed\n");
-	cleanupFraqComm();
-	return 0;
+	cleanupFragComm();
+	return false;
     }
 
-    isInit = 1;
-    return 1;
+    if (getenv("__PSSLURM_LOG_FRAG_MSG")) debug = true;
+
+    return true;
 }
 
-void finalizeFraqComm(void)
+void finalizeFragComm(void)
 {
-    if (!isInit) return;
+    if (!recvBuffers) return;
 
-    /* free memory */
-    cleanupFraqComm();
+    /* free all memory */
+    cleanupFragComm();
 
     if (!(PSIDhook_del(PSIDHOOK_NODE_DOWN, handleNodeDown))) {
 	pluginlog("unregister 'PSIDHOOK_NODE_DOWN' failed\n");
     }
-
-    isInit = 0;
 }
 
-int __recvFragMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_func_t *func,
-		    const char *caller, const int line)
+bool __recvFragMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_func_t *func,
+		   const char *caller, const int line)
 {
     PS_Frag_Msg_Header_t *rhead;
     PS_Frag_Recv_Buffer_t *recvBuf;
     PSnodes_ID_t srcNode = PSC_getID(msg->header.sender);
     uint64_t toCopy;
     char *ptr;
-    int cleanup = 0;
+    bool cleanup = false;
 
-    if (!isInit) {
-	pluginlog("%s:(%s:%i): please call initFraqComm() first\n",
+    if (!recvBuffers) {
+	pluginlog("%s:(%s:%i): please call initFragComm() first\n",
 		    __func__, caller, line);
-	if (!(initFraqComm())) return 0;
+	if (!initFragComm()) return false;
     }
 
     if (!msg) {
 	pluginlog("%s(%s:%i): invalid msg\n", __func__, caller, line);
-	return 0;
+	return false;
     }
 
     if (!func) {
 	pluginlog("%s(%s:%i): invalid callback function\n", __func__,
-		    caller, line);
-	return 0;
+		  caller, line);
+	return false;
     }
 
-    if (srcNode > PSC_getNrOfNodes() -1) {
+    if (srcNode < 0 || srcNode >= PSC_getNrOfNodes()) {
 	pluginlog("%s: invalid sender node '%i'\n", __func__, srcNode);
-	return 0;
+	return false;
     }
 
     ptr = msg->buf;
@@ -163,10 +207,10 @@ int __recvFragMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_func_t *func,
     rhead = (PS_Frag_Msg_Header_t *) ptr;
     ptr += sizeof(PS_Frag_Msg_Header_t);
 
-    if (getenv("__PSSLURM_LOG_FRAG_MSG")) {
-	pluginlog("%s: msgCount '%u' msgNum '%u' totalSize '%lu' uID '%u'\n",
-		    __func__, rhead->msgCount, rhead->msgNum,
-		    rhead->totalSize, rhead->uID);
+    if (debug) {
+	pluginlog("%s: fragCount '%u' fragNum '%u' totSize '%lu' uID '%u'\n",
+		  __func__, rhead->fragCnt, rhead->fragNum, rhead->totSize,
+		  rhead->uID);
     }
 
     /* init node receive buffer */
@@ -176,50 +220,51 @@ int __recvFragMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_func_t *func,
     }
     recvBuf = recvBuffers[srcNode];
 
-
     /* do some sanity checks */
-    if (recvBuf->msgCount != rhead->msgNum) {
-	pluginlog("%s(%s:%i): mismatching msg count, last '%i' new '%i'\n",
-		    __func__, caller, line, recvBuf->msgCount, rhead->msgNum);
-	cleanup = 1;
-    }
-    recvBuf->msgCount++;
-
-    if (recvBuf->fhead) {
-	if (recvBuf->fhead->uID != rhead->uID) {
-	    pluginlog("%s(%s:%i): mismatching uniq ID, last '%i' new '%i'\n",
-			__func__, caller, line, recvBuf->fhead->uID,
-			rhead->uID);
-	    cleanup = 1;
-	}
-	if (recvBuf->fhead->totalSize != rhead->totalSize) {
-	    pluginlog("%s(%s:%i): mismatching data size, last '%lu' "
-			"new '%lu' \n", __func__, caller, line,
-			recvBuf->fhead->totalSize, rhead->totalSize);
-	    cleanup = 1;
-	}
+    if (recvBuf->fragXpct != rhead->fragNum) {
+	pluginlog("%s(%s:%i): unexpected fragment %i (expected %i)\n",
+		    __func__, caller, line, rhead->fragNum, recvBuf->fragXpct);
+	cleanup = true;
     }
 
-    if (!recvBuf->data.buf && rhead->msgNum != 0) {
-	pluginlog("%s(%s:%i): invalid msg number '%i', dropping msg\n",
-		    __func__, caller, line, rhead->msgNum);
-	cleanup = 1;
+    if (!recvBuf->fragXpct) {
+	/* First fragment: store meta-data for later cross-check */
+	memcpy(&recvBuf->fhead, rhead, sizeof(PS_Frag_Msg_Header_t));
+    } else {
+	if (recvBuf->fhead.uID != rhead->uID) {
+	    pluginlog("%s(%s:%i): mismatching uniq ID: %i (expected %i)\n",
+		      __func__, caller, line, rhead->uID, recvBuf->fhead.uID);
+	    cleanup = true;
+	}
+	if (recvBuf->fhead.totSize != rhead->totSize) {
+	    pluginlog("%s(%s:%i): mismatching total size %lu (expected %lu)\n",
+		      __func__, caller, line, rhead->totSize,
+		      recvBuf->fhead.totSize);
+	    cleanup = true;
+	}
+    }
+    recvBuf->fragXpct++;
+
+    if (!recvBuf->data.buf) {
+	if (!rhead->fragNum) {
+	/* first fragment */
+	    recvBuf->data.buf = umalloc(rhead->totSize);
+	    recvBuf->data.bufSize = rhead->totSize;
+	    recvBuf->data.bufUsed = 0;
+	    recvBuf->dataLeft = rhead->totSize;
+	    recvBuf->dataPtr= recvBuf->data.buf;
+	} else {
+	    pluginlog("%s(%s:%i): dropping invalid fragment %i\n",
+		      __func__, caller, line, rhead->fragNum);
+	    cleanup = true;
+	}
     }
 
     /* cleanup old data on error */
     if (cleanup) goto ERROR;
 
-    /* save the data */
-    if (!recvBuf->data.buf) {
-	recvBuf->data.buf = umalloc(rhead->totalSize);
-	recvBuf->dataLeft = rhead->totalSize;
-	recvBuf->dataPtr = recvBuf->data.buf;
-	recvBuf->data.bufSize = rhead->totalSize;
-	recvBuf->data.bufUsed = 0;
-    }
-
     toCopy = msg->header.len - sizeof(msg->header) - sizeof(msg->type) -
-		sizeof(PS_Frag_Msg_Header_t) - 1;
+	sizeof(PS_Frag_Msg_Header_t);
 
     if (toCopy > recvBuf->dataLeft) {
 	pluginlog("%s(%s:%i): buffer too small, toCopy '%lu' dataLeft '%lu'\n",
@@ -227,51 +272,48 @@ int __recvFragMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_func_t *func,
 	goto ERROR;
     }
 
-    if (getenv("__PSSLURM_LOG_FRAG_MSG")) {
-	pluginlog("%s: toCopy:%lu dataLeft:%lu rhead->msgNum:%i\n", __func__,
-		    toCopy, recvBuf->dataLeft, rhead->msgNum);
+    if (debug) {
+	pluginlog("%s: toCopy:%lu dataLeft:%lu fragNum:%i\n", __func__, toCopy,
+		  recvBuf->dataLeft, rhead->fragNum);
     }
     memcpy(recvBuf->dataPtr, ptr, toCopy);
     recvBuf->dataPtr += toCopy;
     recvBuf->dataLeft -= toCopy;
+    recvBuf->data.bufUsed += toCopy;
 
     /* last message fragment ? */
-    if (rhead->msgNum + 1 == rhead->msgCount) {
-
+    if (recvBuf->fragXpct == recvBuf->fhead.fragCnt) {
 	/* invoke callback */
 	msg->buf[0] = '\0';
-	recvBuf->data.bufUsed = rhead->totalSize;
 	func(msg, &recvBuf->data);
 
 	/* cleanup data */
 	freeRecvBuffer(recvBuffers[srcNode]);
 	recvBuffers[srcNode] = NULL;
-	return 1;
     }
 
-    /* more message to come, save meta information */
-    if (recvBuf->fhead == NULL) {
-	recvBuf->fhead = umalloc(sizeof(PS_Frag_Msg_Header_t));
-	memcpy(recvBuf->fhead, rhead, sizeof(PS_Frag_Msg_Header_t));
-    }
-
-    return 1;
+    return true;
 
 ERROR:
     freeRecvBuffer(recvBuffers[srcNode]);
     recvBuffers[srcNode] = NULL;
-    return 0;
+    return false;
 
 }
 
-int __sendFragMsg(PS_DataBuffer_t *data, PStask_ID_t dest, int16_t headType,
+int __sendFragMsg(PS_DataBuffer_t *data, PStask_ID_t dest, int16_t RDPType,
 		    int32_t msgType, const char *caller, const int line)
 {
-    DDTypedBufferMsg_t msg;
+    DDTypedBufferMsg_t msg = (DDTypedBufferMsg_t) {
+	.header = (DDMsg_t) {
+	    .type = RDPType,
+	    .sender = PSC_getMyTID(),
+	    .dest = dest,
+	    .len = sizeof(msg.header) + sizeof(msg.type) },
+	.type = msgType };
     PS_Frag_Msg_Header_t fhead;
-    char *msgPtr, *dataPtr;
-    int i, res = 0, count = 0, extLog = 0;
-    uint64_t bufSize, toCopy, dataLeft;
+    char *dataPtr;
+    size_t bufSize = BufTypedMsgSize - sizeof(PS_Frag_Msg_Header_t), dataLeft;
     struct timespec tp;
 
     if (!data) {
@@ -279,18 +321,6 @@ int __sendFragMsg(PS_DataBuffer_t *data, PStask_ID_t dest, int16_t headType,
 	return -1;
     }
 
-    extLog = getenv("__PSSLURM_LOG_FRAG_MSG") ? 1 : 0;
-
-    msg = (DDTypedBufferMsg_t) {
-       .header = (DDMsg_t) {
-       .sender = PSC_getMyTID(),
-       .dest = dest,
-       .type = headType,
-       .len = sizeof(msg.header) },
-       .type = msgType,
-       .buf = {'\0'} };
-
-    bufSize = BufTypedMsgSize - sizeof(PS_Frag_Msg_Header_t) - 1;
     dataPtr = data->buf;
     dataLeft = data->bufUsed;
 
@@ -300,64 +330,53 @@ int __sendFragMsg(PS_DataBuffer_t *data, PStask_ID_t dest, int16_t headType,
     } else {
 	fhead.uID = (uint8_t) time(NULL);
     }
-    fhead.msgCount = ceil((float) data->bufUsed / bufSize);
-    fhead.totalSize = data->bufUsed;
+    fhead.fragCnt = (data->bufUsed - 1) / bufSize + 1;
+    fhead.totSize = data->bufUsed;
 
-    if (fhead.msgCount <=0) {
+    if (fhead.fragCnt <=0) {
 	pluginlog("%s: no messages to send\n", __func__);
     }
 
-    if (extLog) {
-	pluginlog("%s(%s:%i): msgCount '%u' totalSize '%lu' uID '%u'\n",
-		    __func__, caller, line, fhead.msgCount, fhead.totalSize,
-		    fhead.uID);
+    if (debug) {
+	pluginlog("%s(%s:%i): totalFragments '%u' totalSize '%lu' uID '%u'\n",
+		  __func__, caller, line, fhead.fragCnt, fhead.totSize,
+		  fhead.uID);
     }
 
-    for (i=0; i<fhead.msgCount; i++) {
-	msgPtr = msg.buf;
-	msg.header.len = sizeof(msg.header);
-	msg.header.len += sizeof(msg.type);
-	msg.header.len++;
+    for (fhead.fragNum = 0; fhead.fragNum < fhead.fragCnt; fhead.fragNum++) {
+	size_t chunk = (dataLeft > bufSize) ? bufSize : dataLeft;
+	msg.header.len = sizeof(msg.header) + sizeof(msg.type);
 
 	/* add fragmentation header */
-	toCopy = (bufSize > dataLeft) ? dataLeft : bufSize;
-	fhead.msgNum = i;
-
-	*(PS_Frag_Msg_Header_t *)msgPtr = fhead;
-	msgPtr += sizeof(PS_Frag_Msg_Header_t);
-	msg.header.len += sizeof(PS_Frag_Msg_Header_t);
+	PSP_putTypedMsgBuf(&msg, __func__, "fragHdr", &fhead, sizeof(fhead));
 
 	/* add data */
-	memcpy(msgPtr, dataPtr, toCopy);
-	msg.header.len += toCopy;
+	PSP_putTypedMsgBuf(&msg, __func__, "data", dataPtr, chunk);
 
-	if (extLog) {
-	    pluginlog("%s: send(%s) msg(%i): bufSize:%lu origBufSize:%lu "
-		    "dataLen:%lu " "dataLeft:%lu header.len:%u\n", __func__,
-		    caller, i+1, bufSize, BufTypedMsgSize, toCopy, dataLeft,
-		    msg.header.len);
+	dataPtr += chunk;
+	dataLeft -= chunk;
+
+	if (debug) {
+	    pluginlog("%s: send(%s) frag(%i): bufSize:%lu origBufSize:%lu "
+		      "dataLen:%lu " "dataLeft:%lu header.len:%u\n", __func__,
+		      caller, fhead.fragNum+1, bufSize, BufTypedMsgSize, chunk,
+		      dataLeft,	msg.header.len);
 	}
 
-	if (!sendPSMsg) {
-	    res = sendMsg(&msg);
-	} else {
+	int res;
+	if (sendPSMsg) {
 	    res = sendPSMsg(&msg);
+	} else {
+	    res = sendMsg(&msg);
 	}
-
 	if (res == -1 && errno != EWOULDBLOCK) {
 	    pluginwarn(errno, "%s(%s:%i): %s failed, msg '%i/%i' dataLeft "
-			"'%lu'", __func__, caller, line,
-			sendPSMsg ? "sendPSMsg()" : "sendMsg()",
-			i+1, fhead.msgCount, dataLeft);
+		       "'%lu'", __func__, caller, line,
+		       sendPSMsg ? "sendPSMsg()" : "sendMsg()",
+		       fhead.fragNum+1, fhead.fragCnt, dataLeft);
 	    return -1;
 	}
-
-	count += res;
-	dataPtr += toCopy;
-	dataLeft -= toCopy;
-
-	if (dataLeft <= 0) break;
     }
 
-    return count;
+    return fhead.totSize;
 }
