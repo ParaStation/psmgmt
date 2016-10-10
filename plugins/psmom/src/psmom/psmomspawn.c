@@ -7,13 +7,6 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-/**
- * $Id$
- *
- * \author
- * Michael Rauh <rauh@par-tec.com>
- *
- */
 
 #define _GNU_SOURCE
 #include <stdlib.h>
@@ -509,7 +502,7 @@ int sendPElogueStart(Job_t *job, bool prologue)
     addStringToMsg(job->id, &data);
 
     /* add start time */
-    addTimeToMsg(&job->start_time, &data);
+    addTimeToMsg(job->start_time, &data);
 
     /* add users job name */
     if (!(jobUserName = getJobDetail(&job->data, "Job_Name", NULL))) {
@@ -541,7 +534,7 @@ int sendPElogueStart(Job_t *job, bool prologue)
     addStringToMsg(queue, &data);
 
     /* add timeout */
-    addInt32ToMsg(&timeout, &data);
+    addInt32ToMsg(timeout, &data);
 
     /* add session id */
     snprintf(buf, sizeof(buf), "%d", job->sid);
@@ -562,7 +555,7 @@ int sendPElogueStart(Job_t *job, bool prologue)
     addStringToMsg(res_used, &data);
 
     /* add exit status */
-    addInt32ToMsg(&job->jobscriptExit, &data);
+    addInt32ToMsg(job->jobscriptExit, &data);
 
     /* add gpu infos */
     gpu = getJobDetail(&job->data, "exec_gpus", NULL);

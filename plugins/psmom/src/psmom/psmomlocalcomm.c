@@ -269,16 +269,16 @@ static void handle_Local_PAM_Request(ComHandle_t *com)
     ptr = buf;
 
     /* get ssh pid */
-    getPidFromMsgBuf(&ptr, &pid);
+    getPid(&ptr, &pid);
 
     /* get ssh sid */
-    getPidFromMsgBuf(&ptr, &sid);
+    getPid(&ptr, &sid);
 
     /* get pam username */
-    getStringFromMsgBuf(&ptr, user, sizeof(user));
+    getString(&ptr, user, sizeof(user));
 
     /* get pam rhost */
-    getStringFromMsgBuf(&ptr, rhost, sizeof(rhost));
+    getString(&ptr, rhost, sizeof(rhost));
 
     mlog("%s: got pam request pid: '%i' sid: '%i' user: '%s' rhost: '%s'\n",
 	__func__, pid, sid, user, rhost);
@@ -298,7 +298,7 @@ static void handle_Local_PAM_Request(ComHandle_t *com)
     }
 
     /* add result */
-    addInt32ToMsg(&res, &data);
+    addInt32ToMsg(res, &data);
 
     /* add pam username */
     addStringToMsg(user, &data);

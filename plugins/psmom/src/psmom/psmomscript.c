@@ -80,42 +80,34 @@ int checkPELogueFileStats(char *filename, int root)
 
 void signalPElogue(Job_t *job, char *signal, char *reason)
 {
-    PStask_ID_t myTID = PSC_getMyTID();
-    DDTypedBufferMsg_t msg;
-    char *ptr, *finishPtr;
+    DDTypedBufferMsg_t msg = (DDTypedBufferMsg_t) {
+	.header = (DDMsg_t) {
+	    .type = PSP_CC_PSMOM,
+	    .sender = PSC_getMyTID(),
+	    .dest = PSC_getMyTID(),
+	    .len = sizeof(msg.header) + sizeof(msg.type)},
+	.type = PSP_PSMOM_PELOGUE_SIGNAL};
+    int32_t *finishPtr;
     int i, id;
 
-    /* signal PElogue on all nodes */
-    msg = (DDTypedBufferMsg_t) {
-       .header = (DDMsg_t) {
-       .type = PSP_CC_PSMOM,
-       .sender = PSC_getMyTID(),
-       .dest = PSC_getMyTID(),
-       .len = sizeof(msg.header) },
-       .buf = {'\0'} };
-
-    msg.type = PSP_PSMOM_PELOGUE_SIGNAL;
-    msg.header.len += sizeof(msg.type);
-    msg.header.sender = myTID;
-
-    ptr = msg.buf;
-    addStringToMsgBuf(&msg, &ptr, job->id);
-    addStringToMsgBuf(&msg, &ptr, signal);
+    addStringToMsgBuf(&msg, job->id);
+    addStringToMsgBuf(&msg, signal);
 
     /* add space for finish flag */
-    addInt32ToMsgBuf(&msg, &ptr, 1);
-    finishPtr = ptr - sizeof(int32_t);
+    finishPtr = (int32_t *) (msg.buf + (msg.header.len - sizeof(msg.header)
+					- sizeof(msg.type)));
+    addInt32ToMsgBuf(&msg, 1);
 
-    addStringToMsgBuf(&msg, &ptr, reason);
+    addStringToMsgBuf(&msg, reason);
 
     for (i=0; i<job->nrOfUniqueNodes; i++) {
 	id = job->nodes[i].id;
 
 	/* add the individual pelogue finish flag */
 	if (job->state == JOB_PROLOGUE) {
-	    *(int32_t *) finishPtr = job->nodes[i].prologue;
+	    *finishPtr = job->nodes[i].prologue;
 	} else {
-	    *(int32_t *) finishPtr = job->nodes[i].epilogue;
+	    *finishPtr = job->nodes[i].epilogue;
 	}
 	msg.header.dest = PSC_getTID(id, 0);
 
@@ -455,17 +447,17 @@ void handlePELogueSignal(DDTypedBufferMsg_t *msg)
     ptr = msg->buf;
 
     /* get jobid */
-    getStringFromMsgBuf(&ptr, jobid, sizeof(jobid));
+    getString(&ptr, jobid, sizeof(jobid));
 
     /* get signal */
-    getStringFromMsgBuf(&ptr, signal, sizeof(signal));
+    getString(&ptr, signal, sizeof(signal));
     if (!(isignal = string2Signal(signal))) {
 	mlog("%s: got invalid signal '%s'\n", __func__, signal);
 	return;
     }
 
     /* get the finish/slient flag */
-    getInt32FromMsgBuf(&ptr, &finish);
+    getInt32(&ptr, &finish);
 
     /* find job */
     if (!(child = findChildByJobid(jobid, PSMOM_CHILD_PROLOGUE))) {
@@ -479,7 +471,7 @@ void handlePELogueSignal(DDTypedBufferMsg_t *msg)
     }
 
     /* get the reason for sending the signal */
-    getStringFromMsgBuf(&ptr, reason, sizeof(reason));
+    getString(&ptr, reason, sizeof(reason));
 
     /* save the signal we are about to send */
     if (isignal == SIGTERM || isignal == SIGKILL) {
@@ -539,7 +531,7 @@ void handlePELogueFinish(DDTypedBufferMsg_t *msg, char *msgData)
     peType = prologue ? "prologue" : "epilogue";
 
     /* get jobid */
-    getStringFromMsgBuf(&ptr, buf, sizeof(buf));
+    getString(&ptr, buf, sizeof(buf));
 
     if ((job = findJobById(buf)) == NULL) {
 	if (!(isJobIDinHistory(buf))) {
@@ -550,7 +542,7 @@ void handlePELogueFinish(DDTypedBufferMsg_t *msg, char *msgData)
     }
 
     /* get job start_time */
-    getTimeFromMsgBuf(&ptr, &job_start);
+    getTime(&ptr, &job_start);
 
     if (job->start_time != job_start) {
 	/* msg is for previous job, ignore */
@@ -560,7 +552,7 @@ void handlePELogueFinish(DDTypedBufferMsg_t *msg, char *msgData)
     }
 
     /* get result */
-    getInt32FromMsgBuf(&ptr, &res);
+    getInt32(&ptr, &res);
 
     if ((nodeEntry = findJobNodeEntry(job, nodeId))) {
 	if (prologue) {
@@ -571,12 +563,12 @@ void handlePELogueFinish(DDTypedBufferMsg_t *msg, char *msgData)
     }
 
     /* get signal flag */
-    getInt32FromMsgBuf(&ptr, &signalFlag);
+    getInt32(&ptr, &signalFlag);
 
     /* on error get errmsg */
     if (res != 0) {
 
-	getStringFromMsgBuf(&ptr, buf, sizeof(buf));
+	getString(&ptr, buf, sizeof(buf));
 
 	/* suppress error message if we have killed the pelogue by request */
 	if (!signalFlag) {
@@ -637,9 +629,7 @@ static void PElogueTimeoutAction(char *server, char *jobid, int prologue,
  */
 static int callbackPElogue(int fd, PSID_scriptCBInfo_t *info)
 {
-    DDTypedBufferMsg_t msgRes;
     int32_t exit_status, signalFlag = 0;
-    char *ptr;
     PElogue_Data_t *data;
     char errMsg[300] = {'\0'};
     Child_t *child;
@@ -672,12 +662,12 @@ static int callbackPElogue(int fd, PSID_scriptCBInfo_t *info)
     }
 
     /* prepare result msg */
-    msgRes = (DDTypedBufferMsg_t) {
-       .header = (DDMsg_t) {
-       .type = PSP_CC_PSMOM,
-       .sender = PSC_getMyTID(),
-       .dest = data->mainMom,
-       .len = sizeof(msgRes.header) },
+    DDTypedBufferMsg_t msgRes = (DDTypedBufferMsg_t) {
+	.header = (DDMsg_t) {
+	    .type = PSP_CC_PSMOM,
+	    .sender = PSC_getMyTID(),
+	    .dest = data->mainMom,
+	    .len = sizeof(msgRes.header) + sizeof(msgRes.type)},
        .buf = {'\0'} };
 
     if (data->prologue) {
@@ -710,29 +700,27 @@ static int callbackPElogue(int fd, PSID_scriptCBInfo_t *info)
 	    removeDir(data->tmpDir, 1);
 	}
     }
-    msgRes.header.len += sizeof(msgRes.type);
-    ptr = msgRes.buf;
 
     /* add jobid */
-    addStringToMsgBuf(&msgRes, &ptr, data->jobid);
+    addStringToMsgBuf(&msgRes, data->jobid);
 
     /* add start_time */
-    addTimeToMsgBuf(&msgRes, &ptr, &data->start_time);
+    addTimeToMsgBuf(&msgRes, data->start_time);
 
     /* add result */
-    addInt32ToMsgBuf(&msgRes, &ptr, exit_status);
+    addInt32ToMsgBuf(&msgRes, exit_status);
 
     /* add signal flag */
-    addInt32ToMsgBuf(&msgRes, &ptr, signalFlag);
+    addInt32ToMsgBuf(&msgRes, signalFlag);
 
     /* add error msg */
     if (exit_status != 0) {
 	if ((strlen(errMsg) <= 0)) {
 	    mlog("%s: exit without error msg for '%s'\n", __func__,
 		data->jobid);
-	    addStringToMsgBuf(&msgRes, &ptr, "no error msg received");
+	    addStringToMsgBuf(&msgRes, "no error msg received");
 	} else {
-	    addStringToMsgBuf(&msgRes, &ptr, errMsg);
+	    addStringToMsgBuf(&msgRes, errMsg);
 	}
     }
 
@@ -886,32 +874,29 @@ void monitorPELogueTimeout(Job_t *job)
     }
 }
 
-void handlePELogueStart(DDTypedBufferMsg_t *msg, char *msgData)
+void handlePELogueStart(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *msgData)
 {
+    DDTypedBufferMsg_t msgRes = (DDTypedBufferMsg_t) {
+	.header = (DDMsg_t) {
+	    .type = PSP_CC_PSMOM,
+	    .sender = PSC_getMyTID(),
+	    .dest = msg->header.sender,
+	    .len = sizeof(msgRes.header) + sizeof(msgRes.type)},
+	.buf = {'\0'} };
     char *ptr, ctype[20], buf[300], tmpDir[400] = { '\0' };
     char *dirScripts, *jobid, *confTmpDir;
     int32_t exit;
     int itype, disPE;
     PElogue_Data_t *data;
-    DDTypedBufferMsg_t msgRes;
     time_t job_start;
     pid_t pid;
     struct stat statbuf;
-    int prologue = msg->type == PSP_PSMOM_PROLOGUE_START ? 1 : 0;
+    bool prologue = msg->type == PSP_PSMOM_PROLOGUE_START ? true : false;
 
-    /* prepare result msg */
-    msgRes = (DDTypedBufferMsg_t) {
-       .header = (DDMsg_t) {
-       .type = PSP_CC_PSMOM,
-       .sender = PSC_getMyTID(),
-       .dest = msg->header.sender,
-       .len = sizeof(msgRes.header) },
-       .buf = {'\0'} };
-
-    ptr = msgData;
+    ptr = msgData->buf;
 
     /* fetch job hashname */
-    getStringFromMsgBuf(&ptr, buf, sizeof(buf));
+    getString(&ptr, buf, sizeof(buf));
 
     /* set temp dir using hashname */
     if ((confTmpDir = getConfParam("DIR_TEMP"))) {
@@ -919,7 +904,7 @@ void handlePELogueStart(DDTypedBufferMsg_t *msg, char *msgData)
     }
 
     /* fetch username */
-    getStringFromMsgBuf(&ptr, buf, sizeof(buf));
+    getString(&ptr, buf, sizeof(buf));
 
     if (prologue) {
 	snprintf(ctype, sizeof(ctype), "%s", "prologue");
@@ -954,8 +939,6 @@ void handlePELogueStart(DDTypedBufferMsg_t *msg, char *msgData)
 	}
     }
 
-    msgRes.header.len += sizeof(msgRes.type);
-
     getConfParamI("DISABLE_PELOGUE", &disPE);
 
     if (disPE == 1) {
@@ -964,20 +947,19 @@ void handlePELogueStart(DDTypedBufferMsg_t *msg, char *msgData)
 	exit = 0;
 
 	/* get jobid from received msg */
-	jobid = getStringFromMsgBufM(&ptr);
+	jobid = getStringM(&ptr);
 
 	/* get start_time */
-	getTimeFromMsgBuf(&ptr, &job_start);
+	getTime(&ptr, &job_start);
 
 	/* add jobid */
-	ptr = msgRes.buf;
-	addStringToMsgBuf(&msgRes, &ptr, jobid);
+	addStringToMsgBuf(&msgRes, jobid);
 
 	/* add start_time */
-	addTimeToMsgBuf(&msgRes, &ptr, &job_start);
+	addTimeToMsgBuf(&msgRes, job_start);
 
 	/* add result */
-	addInt32ToMsgBuf(&msgRes, &ptr, exit);
+	addInt32ToMsgBuf(&msgRes, exit);
 
 	sendMsg(&msgRes);
 	ufree(jobid);
@@ -1006,20 +988,20 @@ void handlePELogueStart(DDTypedBufferMsg_t *msg, char *msgData)
     data->dirScripts = ustrdup(dirScripts);
 
     /* set pelogue data structure */
-    data->jobid = getStringFromMsgBufM(&ptr);
-    getTimeFromMsgBuf(&ptr, &data->start_time);
-    data->jobname = getStringFromMsgBufM(&ptr);
-    data->user = getStringFromMsgBufM(&ptr);
-    data->group = getStringFromMsgBufM(&ptr);
-    data->limits = getStringFromMsgBufM(&ptr);
-    data->queue = getStringFromMsgBufM(&ptr);
-    getInt32FromMsgBuf(&ptr, &data->timeout);
-    data->sessid = getStringFromMsgBufM(&ptr);
-    data->nameExt = getStringFromMsgBufM(&ptr);
-    data->resources_used = getStringFromMsgBufM(&ptr);
-    getInt32FromMsgBuf(&ptr, &data->exit);
-    data->gpus = getStringFromMsgBufM(&ptr);
-    data->server = getStringFromMsgBufM(&ptr);
+    data->jobid = getStringM(&ptr);
+    getTime(&ptr, &data->start_time);
+    data->jobname = getStringM(&ptr);
+    data->user = getStringM(&ptr);
+    data->group = getStringM(&ptr);
+    data->limits = getStringM(&ptr);
+    data->queue = getStringM(&ptr);
+    getInt32(&ptr, &data->timeout);
+    data->sessid = getStringM(&ptr);
+    data->nameExt = getStringM(&ptr);
+    data->resources_used = getStringM(&ptr);
+    getInt32(&ptr, &data->exit);
+    data->gpus = getStringM(&ptr);
+    data->server = getStringM(&ptr);
     data->tmpDir = (confTmpDir != NULL) ? ustrdup(tmpDir) : NULL;
 
     if (!data->frontend) {
@@ -1040,14 +1022,13 @@ void handlePELogueStart(DDTypedBufferMsg_t *msg, char *msgData)
 	exit = -2;
 
 	/* add jobid */
-	ptr = msgRes.buf;
-	addStringToMsgBuf(&msgRes, &ptr, data->jobid);
+	addStringToMsgBuf(&msgRes, data->jobid);
 
 	/* add start_time */
-	addTimeToMsgBuf(&msgRes, &ptr, &data->start_time);
+	addTimeToMsgBuf(&msgRes, data->start_time);
 
 	/* add result */
-	addInt32ToMsgBuf(&msgRes, &ptr, exit);
+	addInt32ToMsgBuf(&msgRes, exit);
 
 	sendMsg(&msgRes);
 

@@ -7,13 +7,6 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-/**
- * $Id$
- *
- * \author
- * Michael Rauh <rauh@par-tec.com>
- *
- */
 
 #include <stdbool.h>
 #include <stdio.h>
@@ -40,6 +33,7 @@
 #include "psidhook.h"
 #include "plugin.h"
 #include "pluginhelper.h"
+#include "pluginfrag.h"
 
 #include "psmomscript.h"
 #include "psmomcomm.h"
@@ -610,6 +604,9 @@ int initialize(void)
     /* save local config values */
     saveConfigValues();
 
+    /* psmom's communication ignores byte-order */
+    setByteOrder(false);
+
     /* test if all needed directories are there */
     if (validateDirs()) return 1;
 
@@ -674,6 +671,9 @@ int initialize(void)
 
     /* create master socket */
     openMasterSock();
+
+    /* We'll use fragmented messages between different psmoms */
+    initFragComm();
 
     /* register inter psmom msg */
     PSID_registerMsg(PSP_CC_PSMOM, (handlerFunc_t) handlePSMsg);
@@ -801,6 +801,7 @@ void cleanup(void)
     clearSSHList();
     clearAuthList();
     if (memoryDebug) fclose(memoryDebug);
+    finalizeFragComm();
 
     mlog("...Bye.\n");
 }

@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2013 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2015 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -122,6 +122,7 @@ typedef struct {
     time_t PElogue_start;
     time_t start_time;	    /* the time were the job started */
     time_t end_time;	    /* the time were the job terminated */
+    PStask_t *resDelegate;  /* task struct holding resources used as delegate */
     struct list_head list;  /* the job list header */
 } Job_t;
 
