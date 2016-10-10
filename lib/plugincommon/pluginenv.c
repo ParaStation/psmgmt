@@ -7,13 +7,6 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-/**
- * $Id$
- *
- * \author
- * Michael Rauh <rauh@par-tec.com>
- *
- */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -40,9 +33,23 @@ void __envDestroy(env_t *env, const char *func, const int line)
 	__ufree(env->vars[i], func, line);
     }
     __ufree(env->vars, func, line);
+    env->vars = NULL;
+    env->cnt = env->size = 0;
 }
 
-static int envIndex(env_t *env, const char *name, uint32_t *idx)
+/**
+ * @brief Find key in environment
+ *
+ * Find the key @a name in the environment @a env and return its index.
+ *
+ * @param env Environment to search
+ *
+ * @param name Key of the entry to lookup
+ *
+ * @return If an entry with key @a name exists, its index is
+ * returned. Otherwise -1 is returned.
+ */
+static int getIndex(env_t *env, const char *name)
 {
     size_t len;
     uint32_t i;
@@ -52,11 +59,10 @@ static int envIndex(env_t *env, const char *name, uint32_t *idx)
     len = strlen(name);
     for (i=0; i<env->cnt; i++) {
 	if (!(strncmp(name, env->vars[i], len)) && (env->vars[i][len] == '=')){
-	    *idx = i;
-	    return 1;
+	    return i;
 	}
     }
-    return 0;
+    return -1;
 }
 
 void envInit(env_t *env)
@@ -66,59 +72,57 @@ void envInit(env_t *env)
 
 void __envUnset(env_t *env, const char *name, const char *func, const int line)
 {
-    uint32_t idx = 0;
+    int idx = getIndex(env, name);
 
-    if (!(envIndex(env, name, &idx))) return;
+    if (idx == -1) return;
     __envUnsetIndex(env, idx, func, line);
 }
 
-static int envDoSet(env_t *env, char *envstring, const char *func,
+static bool envDoSet(env_t *env, char *envstring, const char *func,
 			const int line)
 {
-    if (!env || !envstring) return -1;
+    if (!env || !envstring) return false;
 
-    if (env->size < env->cnt + 2) {
+    if (env->cnt + 1 >= env->size) {
 	env->size += 10;
 	env->vars = (char **) __urealloc(env->vars, env->size * sizeof(char *),
 					func, line);
     }
     env->vars[env->cnt] = envstring;
     env->cnt++;
-    env->vars[env->cnt] = NULL;
 
-    return 0;
+    return true;
 }
 
 char *envGet(env_t *env, const char *name)
 {
-    uint32_t idx = 0;
+    int idx = getIndex(env, name);
 
-    if (!(envIndex(env, name, &idx))) return NULL;
+    if (idx == -1) return NULL;
     return strchr(env->vars[idx], '=') + 1;
 }
 
 char *envGetIndex(env_t *env, uint32_t idx)
 {
-    if (idx+1 > env->cnt) return NULL;
+    if (idx >= env->cnt) return NULL;
     return env->vars[idx];
 }
 
-int envGetUint32(env_t *env, const char *name, uint32_t *val)
+bool envGetUint32(env_t *env, const char *name, uint32_t *val)
 {
-    char *valc;
+    char *valc = envGet(env, name);
 
-    if ((valc = envGet(env, name))) {
-	if ((sscanf(valc, "%u", val)) == 1) return 1;
-    }
-    return 0;
+    if (valc && sscanf(valc, "%u", val) == 1) return true;
+
+    return false;
 }
 
-int __envSet(env_t *env, const char *name, const char *val, const char *func,
-		const int line)
+bool __envSet(env_t *env, const char *name, const char *val, const char *func,
+	      const int line)
 {
     char *tmp;
 
-    if (!name || strchr(name, '=')) return -1;
+    if (!name || strchr(name, '=')) return false;
     if (!val) val = "";
 
     __envUnset(env, name, func, line);
@@ -132,14 +136,15 @@ int __envSet(env_t *env, const char *name, const char *val, const char *func,
     return envDoSet(env, tmp, func, line);
 }
 
-int __envPut(env_t *env, const char *envstring, const char *func, const int line)
+bool __envPut(env_t *env, const char *envstring, const char *func,
+	      const int line)
 {
     char *value;
     size_t len;
     uint32_t i;
 
-    if (!envstring) return -1;
-    if (!(value = strchr(envstring, '='))) return -1;
+    if (!envstring) return false;
+    if (!(value = strchr(envstring, '='))) return false;
 
     len = strlen(envstring) - strlen(value);
     for (i=0; i<env->cnt; i++) {
@@ -147,7 +152,7 @@ int __envPut(env_t *env, const char *envstring, const char *func, const int line
 	     (env->vars[i][len] == '=')) {
 	    ufree(env->vars[i]);
 	    env->vars[i] = __ustrdup(envstring, func, line);
-	    return 0;
+	    return true;
 	}
     }
 
@@ -177,7 +182,7 @@ static void envSetFilter(env_t *env, const char *envstring, char **filter,
 }
 
 void __envClone(env_t *env, env_t *clone, char **filter, const char *func,
-		    const int line)
+		const int line)
 {
     uint32_t i;
 

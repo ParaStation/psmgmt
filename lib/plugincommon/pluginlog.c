@@ -1,29 +1,16 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2013-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-/**
- * $Id$
- *
- * \author
- * Michael Rauh <rauh@par-tec.com>
- *
- */
 
 #include "pluginlog.h"
 
 logger_t *pluginlogger = NULL;
-
-int isPluginLoggerInitialized(void)
-{
-    if (!pluginlogger) return 0;
-    return 1;
-}
 
 void initPluginLogger(char *name, FILE *logfile)
 {
@@ -32,6 +19,11 @@ void initPluginLogger(char *name, FILE *logfile)
     } else {
 	pluginlogger = logger_init(name, logfile);
     }
+}
+
+bool isPluginLoggerInitialized(void)
+{
+    return !!pluginlogger;
 }
 
 void maskPluginLogger(int32_t mask)
