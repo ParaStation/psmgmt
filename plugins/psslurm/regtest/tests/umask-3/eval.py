@@ -2,7 +2,6 @@
 
 import sys
 import os
-import re
 
 sys.path.append("/".join(os.path.abspath(os.path.dirname(sys.argv[0])).split('/')[0:-2] + ["lib"]))
 from testsuite import *
@@ -14,8 +13,7 @@ for p in helper.partitions():
 
 	lines = [x for x in helper.job_stdout_lines(p) if x != "Submitted batch job %s" % helper.job_id(p)]
 
-	if len(lines) > 0:
-		test.check(not re.match(r'PMI_SIZE=.*', lines[0]), p)
+	test.check(lines[0] == lines[1], p)
 
 test.quit()
 

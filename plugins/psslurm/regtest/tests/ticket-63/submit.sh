@@ -14,13 +14,16 @@ if ! [[ "x" == "x${PSTEST_ACCOUNT}" ]]; then
 	SRUN="${SRUN} --account ${PSTEST_ACCOUNT}"
 fi
 
+ULIMA=1384
+ULIMB=1723
+
 ulimit -u
 
-ulimit -u 4096
+ulimit -u ${ULIMA}
 ulimit -u
 ${SRUN} -N 1 -n 1 --propagate=NPROC ./ulimit.sh
 
-ulimit -u 2048
+ulimit -u ${ULIMB}
 ulimit -u
 ${SRUN} -N 1 -n 1 --propagate=NPROC ./ulimit.sh
 
