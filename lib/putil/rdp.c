@@ -87,15 +87,12 @@ typedef enum {
     ACTIVE       /**< connection is up */
 } RDPState_t;
 
-/** The possible RDP message types. RDP_SYNNACK type is just kept for
- * backward compatibility and not sent any more. It will disappear
- * soon. */
+/** The possible RDP message types. */
 #define RDP_DATA     0x1  /**< regular data message */
 #define RDP_SYN      0x2  /**< synchronization message */
 #define RDP_ACK      0x3  /**< explicit acknowledgment */
 #define RDP_SYNACK   0x4  /**< first acknowledgment */
 #define RDP_NACK     0x5  /**< negative acknowledgment */
-#define RDP_SYNNACK  0x6  /**< NACK to reestablish broken connection */
 
 static struct {
     int id;
@@ -106,7 +103,6 @@ static struct {
     { RDP_ACK,     "RDP_ACK"    },
     { RDP_SYNACK,  "RDP_SYNACK" },
     { RDP_NACK,    "RDP_NACK"   },
-    { RDP_SYNNACK, "RDP_SYNNACK"},
     {0,NULL}
 };
 
@@ -1296,7 +1292,6 @@ static void updateState(rdphdr_t *hdr, int node)
 	    /* New Connection */
 	    switch (hdr->type) {
 	    case RDP_SYN:
-	    case RDP_SYNNACK:
 		closeConnection(node, 1, 0);
 		cp->state = SYN_RECVD;
 		cp->frameExpected = hdr->seqno;
@@ -1547,7 +1542,6 @@ static void handleControlPacket(rdphdr_t *hdr, int node)
 	break;
     case RDP_SYN:
     case RDP_SYNACK:
-    case RDP_SYNNACK:
 	updateState(hdr, node);
 	break;
     default:

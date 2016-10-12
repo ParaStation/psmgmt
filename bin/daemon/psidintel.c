@@ -10,7 +10,7 @@
  * Part of this code is based on examples with:
  * Copyright (c) 2005 Intel Corporation
  * All Rights Reserved
- * 
+ *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 static char vcid[] __attribute__((used)) =

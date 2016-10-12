@@ -6,9 +6,6 @@
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
- *
- * Authors:     Michael Rauh <rauh@par-tec.com>
- *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 static char vcid[] __attribute__((used)) =
@@ -23,10 +20,10 @@ static char vcid[] __attribute__((used)) =
 #include <string.h>
 #include <unistd.h>
 #include <sys/time.h>
-#include <readline/readline.h>
 
 #include "list.h"
 #include "pslog.h"
+#include "linenoise.h"
 #include "psilogger.h"
 #include "psiloggerclient.h"
 
@@ -457,8 +454,8 @@ static void printLine(int outfd, char *line, int mcount, int start,
 
     if (enableGDB) {
 	if (!strncmp(line, "(gdb)\r", 6)) {
-	    rl_set_prompt(GDBprompt);
-	    rl_forced_update_display();
+	    linenoiseSetPrompt(GDBprompt);
+	    linenoiseForcedUpdateDisplay();
 	    GDBcmdEcho = false;
 	    return;
 	}
@@ -948,8 +945,8 @@ void displayCachedOutput(bool flush)
 		printLine(val->outfd, val->line, mcount, i, saveBufInd);
 	    } else {
 		if (enableGDB && !strncmp(val->line, "(gdb)\r", 6)) {
-		    rl_set_prompt(GDBprompt);
-		    rl_forced_update_display();
+		    linenoiseSetPrompt(GDBprompt);
+		    linenoiseForcedUpdateDisplay();
 		    GDBcmdEcho = false;
 		} else if (enableGDB && GDBcmdEcho) {
 		    GDBcmdEcho = false;

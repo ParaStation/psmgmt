@@ -193,7 +193,7 @@ char *PSP_printInfo(PSP_Info_t infotype)
     }
 }
 
-size_t PSP_strLen(char *str)
+size_t PSP_strLen(const char *str)
 {
     return str ? strlen(str) + 1 : 0;
 }
@@ -210,11 +210,12 @@ static bool doPutMsgBuf(DDBufferMsg_t *msg, const char *callName,
 	return false;
     }
 
+    /* msg->header.len might be 0 on first call */
+    if (!msg->header.len) msg->header.len = sizeof(msg->header);
     off = msg->header.len - sizeof(msg->header);
     if (typed && !off) {
 	/* First item to add: adapt len and offset for type member */
-	size_t t_off = offsetof(DDTypedBufferMsg_t, buf)
-	    - offsetof(DDTypedBufferMsg_t, type);
+	size_t t_off = offsetof(DDTypedBufferMsg_t, buf) - sizeof(msg->header);
 	off += t_off;
 	msg->header.len += t_off;
     }
@@ -277,8 +278,7 @@ static bool doGetMsgBuf(DDBufferMsg_t *msg, size_t *used, const char *callName,
     }
 
     u = *used;
-    if (typed) u += offsetof(DDTypedBufferMsg_t, buf)
-		   - offsetof(DDTypedBufferMsg_t, type);
+    if (typed) u += offsetof(DDTypedBufferMsg_t, buf) - sizeof(msg->header);
 
     avail = msg->header.len - sizeof(msg->header);
     if (size > avail - u) {

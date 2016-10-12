@@ -196,7 +196,7 @@ unsigned long stringTimeToSec(char *wtime)
 }
 
 void __printBinaryData(char *data, size_t len, char *tag,
-			const char *func, const int line)
+		       const char *func, const int line)
 {
     size_t i;
 
@@ -206,19 +206,9 @@ void __printBinaryData(char *data, size_t len, char *tag,
 	return;
     }
 
-    if (tag) {
-	pluginlog("%s: %s len '%zu' '", func, tag, len);
-    } else {
-	pluginlog("%s: len '%zu' '", func, len);
-    }
-
+    pluginlog("%s: %s len %zu '", func, tag ? tag : "", len);
     for (i=0; i<len; i++) {
-	if (i!=len -1) {
-	    pluginlog("%02x ", (unsigned char) data[i]);
-	} else {
-	    pluginlog("%02x", (unsigned char) data[i]);
-	}
+	pluginlog("%s%02x", i ? " " : "", (unsigned char) data[i]);
     }
-
     pluginlog("'\n");
 }

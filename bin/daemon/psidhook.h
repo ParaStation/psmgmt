@@ -112,9 +112,9 @@ typedef enum {
 				be send, otherwise only the connection will
 				be closed. */
     PSIDHOOK_FRWRD_CLIENT_STAT,/**< Ask all plugins if we are ready to release
-				the child. Also used by psslurm to execute task
-			        epilog at sister nodes, therefor passes the
-				client task structure. */
+				the child. Since psslurm uses this to execute
+				task's epilogue at sister nodes, the client's
+				task structure is passed as arg. */
     PSIDHOOK_FRWRD_SPAWNRES,  /**< A result msg to a spawn request. Arg is a
 				pointer to the msg. Used by pspmi to handle the
 				result of spawning new service processes. */
@@ -145,6 +145,8 @@ typedef enum {
     PSIDHOOK_FRWRD_DSOCK,     /**< In forwarder's init() function, arg is a
 				 pointer to the daemon socket. */
     PSIDHOOK_JAIL_CHILD,      /**< Jail child into cgroup, arg points to pid */
+    PSIDHOOK_CLEARMEM,        /**< Release memory after forking before handling
+				 other tasks, e.g. becoming a forwarder.  */
     PSIDHOOK_LAST,            /**< This has to be the last one */
 } PSIDhook_t;
 

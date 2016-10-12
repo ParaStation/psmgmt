@@ -7,8 +7,6 @@
 # as defined in the file LICENSE.QPL included in the packaging of this
 # file.
 #
-# Author:	Thomas Moschny <moschny@par-tec.com>
-#
 
 include $(top_srcdir)/common.am
 
@@ -39,7 +37,7 @@ libpskvs = $(top_builddir)/lib/pskvs/libpskvs.la
 
 psiadmin_SOURCES = admin/psiadmin.c admin/psiadmin.h admin/commands.c	\
 	admin/commands.h admin/adminparser.c admin/adminparser.h
-psiadmin_LDADD = $(libputil) $(libpse) $(POPT_LIBS) $(RL_LIBS)
+psiadmin_LDADD = $(libputil) $(libpse) $(POPT_LIBS)
 
 psid_SOURCES = daemon/psidaccount.c daemon/psidaccount.h		\
 	daemon/psidamd.c daemon/psidamd.h daemon/psid.c daemon/psid.h	\
@@ -67,7 +65,7 @@ psid_LDADD = $(libputil) $(libpscommon) $(libpslog) -lutil	\
 psilogger_SOURCES = logger/psilogger.c logger/psilogger.h	\
 	logger/psiloggermerge.c logger/psiloggermerge.h		\
 	logger/psiloggerclient.c logger/psiloggerclient.h
-psilogger_LDADD = $(libputil) $(libpscommon) $(libpslog) $(RL_LIBS)
+psilogger_LDADD = $(libputil) $(libpscommon) $(libpslog)
 
 mlisten_LDADD = $(POPT_LIBS)
 
@@ -90,7 +88,8 @@ test_pse_LDADD = $(libpse) $(POPT_LIBS)
 test_config_SOURCES = test_config.c daemon/psidnodes.c			\
 	daemon/psidnodes.h daemon/psidscripts.c daemon/psidscripts.h	\
 	daemon/psidutil.c daemon/psidutil.h
-test_config_LDADD = $(libputil) $(libpse) $(POPT_LIBS) $(glib2_LIBS) $(psconfig_LIBS)
+test_config_LDADD = $(libputil) $(libpse) $(POPT_LIBS) $(glib2_LIBS)	\
+	$(psconfig_LIBS)
 
 pssh_LDADD = $(libpse) $(POPT_LIBS)
 

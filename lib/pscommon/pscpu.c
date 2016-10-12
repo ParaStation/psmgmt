@@ -124,9 +124,9 @@ char *PSCPU_print_part(PSCPU_set_t set, size_t num)
     unsigned int i;
 
     snprintf(setStr, sizeof(setStr), "0x");
-    for (i=(num+1)/2; i>0; i--) {
+    for (i=(num+1)/sizeof(PSCPU_mask_t); i>0; i--) {
 	snprintf(setStr+strlen(setStr), sizeof(setStr)-strlen(setStr),
-		 "%04hx", set[i-1]);
+		 "%0*hx", (int)sizeof(PSCPU_mask_t) * 2, set[i-1]);
     }
 
     return setStr;

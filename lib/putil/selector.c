@@ -309,6 +309,7 @@ static void freeChunk(sel_chunk_t *chunk)
 
     /* Now that the chunk is completely empty, free() it */
     list_del(&chunk->next);
+    free(chunk);
     availSelectors -= SELECTOR_CHUNK;
     logger_print(logger, SELECTOR_LOG_VERB, "%s: now used %d.\n", __func__,
 		 availSelectors);
@@ -525,6 +526,12 @@ recheck:
 		rc = epoll_ctl(epollFD, EPOLL_CTL_MOD, fd, &ev);
 		goto recheck;
 	    }
+	    break;
+	case EPERM:
+	    logger_warn(logger, fd ? -1 : SELECTOR_LOG_VERB, errno,
+			"%s: epoll_ctl(%d) normal file?", __func__, fd);
+	    return -1;
+	    break;
 	default:
 	    logger_warn(logger, fd ? -1 : SELECTOR_LOG_VERB, errno,
 			"%s: epoll_ctl(%d)", __func__, fd);

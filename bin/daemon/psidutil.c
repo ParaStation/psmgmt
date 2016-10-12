@@ -42,7 +42,7 @@ static char vcid[] __attribute__((used)) =
 
 #include "psidutil.h"
 
-config_t *config = NULL;
+config_t *PSID_config = NULL;
 
 logger_t *PSID_logger;
 
@@ -139,23 +139,24 @@ void PSID_resetSigs(void)
 void PSID_readConfigFile(FILE* logfile, char *configfile)
 {
     /* Parse the configfile */
-    config = parseConfig(logfile, PSID_getDebugMask(), configfile);
-    if (! config) {
+    PSID_config = parseConfig(logfile, PSID_getDebugMask(), configfile);
+    if (! PSID_config) {
 #ifdef BUILD_WITHOUT_PSCONFIG
 	PSID_log(-1, "%s: parsing of <%s> failed\n", __func__, configfile);
 #else
-	PSID_log(-1, "%s: reading configuration from psconfig failed\n", __func__);
+	PSID_log(-1, "%s: reading configuration from psconfig failed\n",
+		 __func__);
 #endif
 
 	PSID_finalizeLogs();
 	exit(1);
     }
-    config->logfile = logfile;
+    PSID_config->logfile = logfile;
 
     /* Set correct debugging mask if given in config-file */
-    if (config->logMask && !PSID_getDebugMask()) {
-	PSID_setDebugMask(config->logMask);
-	PSC_setDebugMask(config->logMask);
+    if (PSID_config->logMask && !PSID_getDebugMask()) {
+	PSID_setDebugMask(PSID_config->logMask);
+	PSC_setDebugMask(PSID_config->logMask);
     }
 
     /* Try to find out if node is configured */
@@ -259,7 +260,7 @@ static int handleMasterSock(int fd, void *info)
 	return -1;
     }
 
-    registerClient(ssock, -1, NULL);
+    PSIDclient_register(ssock, -1, NULL);
 
     PSID_log(PSID_LOG_CLIENT | PSID_LOG_VERB,
 	     "%s: new socket is %d\n", __func__, ssock);

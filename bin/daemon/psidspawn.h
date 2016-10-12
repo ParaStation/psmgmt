@@ -98,7 +98,7 @@ void PSIDspawn_cleanupByNode(PSnodes_ID_t node);
  * called in the main loop. Nevertheless, they will not be found any
  * longer by @ref PStasklist_find().
  *
- * @param tid Task ID of the initiatin process
+ * @param tid Task ID of the initiating process
  *
  * @return No return value
  */

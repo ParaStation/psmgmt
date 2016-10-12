@@ -11,13 +11,6 @@
  * @file mpiexec.c Replacement of the standard mpiexec command provided by
  * MPIch in order to start such applications within a ParaStation
  * cluster.
- *
- * $Id$
- *
- * \author
- * Michael Rauh <rauh@par-tec.com>
- * Stephan Krempel <krempel@par-tec.com>
- *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 static char vcid[] __attribute__((used)) =
@@ -91,6 +84,7 @@ static int gdb_noargs = 0;
 /** run child processes on synthetic CPUs provided by the
  * Valgrind core (memcheck tool) */
 static int valgrind = 0;
+static int memcheck = 0;
 /** profile child processes on synthetic CPUs provided by the
  * Valgrind core (callgrind tool) */
 static int callgrind = 0;
@@ -1713,12 +1707,14 @@ static void setupPSIDEnv(int verbose)
     }
 
     if (valgrind) {
-	setenv("PSI_USE_VALGRIND", "1", 1);
-	setPSIEnv("PSI_USE_VALGRIND", "1", 1);
+	char level[2];
+	snprintf(level, sizeof(level), "%d", valgrind);
+	setenv("PSI_USE_VALGRIND", level, 1);
+	setPSIEnv("PSI_USE_VALGRIND", level, 1);
 	if (!callgrind) {
 	     if (verbose) {
-		 printf("PSI_USE_VALGRIND=1 : Running on Valgrind core(s)"
-			" (memcheck tool)\n");
+		 printf("PSI_USE_VALGRIND=%d : Running on Valgrind core(s)"
+			" (memcheck tool)\n", valgrind);
 		  if (!mergeout) {
 		       printf("(You can use '-merge' for merging output of all "
 			      "Valgrind cores)\n");
@@ -2349,6 +2345,8 @@ static void checkSanity(char *argv[])
 
     if (callgrind) {
 	 valgrind = 1;
+    } else if(memcheck) {
+	 valgrind = 2;
     }
 
     if (gdb && valgrind) {
@@ -2479,13 +2477,13 @@ static struct poptOption poptMpiexecComp[] = {
       &gdb, 0, "debug processes with gdb", NULL},
     { "valgrind", '\0',
       POPT_ARG_NONE | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
-      &valgrind, 0, "debug processes with Valgrind (memcheck tool)", NULL},
+      &valgrind, 0, "debug processes with Valgrind", NULL},
     { "memcheck", '\0',
       POPT_ARG_NONE | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
-      &valgrind, 0, "debug processes with Valgrind (memcheck tool)", NULL},
+      &memcheck, 0, "debug processes with Valgrind (leak-check=full)", NULL},
     { "callgrind", '\0',
       POPT_ARG_NONE | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
-      &callgrind, 0, "profile processes with Valgrind (callgrind tool)", NULL},
+      &callgrind, 0, "profile processes with Callgrind (a Valgrind tool)", NULL},
     { "gdba", '\0',
       POPT_ARG_NONE | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
       &gdba, 0, "attach to debug processes with gdb (ignored)", NULL},
@@ -2781,11 +2779,11 @@ static struct poptOption poptOtherOptions[] = {
     { "gdb", '\0', POPT_ARG_NONE,
       &gdb, 0, "debug processes with gdb", NULL},
     { "valgrind", '\0', POPT_ARG_NONE,
-      &valgrind, 0, "debug processes with Valgrind (memcheck tool)", NULL},
+      &valgrind, 0, "debug processes with Valgrind", NULL},
     { "memcheck", '\0', POPT_ARG_NONE,
-      &valgrind, 0, "debug processes with Valgrind (memcheck tool)", NULL},
+      &memcheck, 0, "debug processes with Valgrind (leak-check=full)", NULL},
     { "callgrind", '\0', POPT_ARG_NONE,
-      &callgrind, 0, "profile processes with Valgrind (callgrind tool)", NULL},
+      &callgrind, 0, "profile processes with Callgrind (a Valgrind tool)", NULL},
     { "noargs", '\0', POPT_ARG_NONE,
       &gdb_noargs, 0, "don't call gdb with --args", NULL},
     { "verbose", 'v', POPT_ARG_NONE,
@@ -3153,8 +3151,10 @@ static void setupVALGRIND(void)
 	     /* Use Callgrind Tool */
 	     new_argv[new_argc++] = VALGRIND_COMMAND_CALLGRIND;
 	} else {
-	     /* Default: Memcheck Tool */
-	     new_argv[new_argc++] = VALGRIND_COMMAND_MEMCHECK;
+	     /* Memcheck Tool / leak-check=full? */
+	     if (valgrind==2) {
+		  new_argv[new_argc++] = VALGRIND_COMMAND_MEMCHECK;
+	     }
 	}
 
 	for (i=0; i<exec[0].argc; i++) {

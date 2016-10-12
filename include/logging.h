@@ -1,21 +1,17 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2005-2013 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
 /**
- * \file
+ * @file
  * ParaStation logging facility used within RDP, MCast, psid etc.
  *
  * $Id$
- *
- * \author
- * Norbert Eicker <eicker@par-tec.com>
- *
  */
 #ifndef __LOGGING_H
 #define __LOGGING_H
@@ -114,7 +110,7 @@ char* logger_getTag(logger_t* logger);
  * @see logger_getTag(), logger_print(), logger_vprint(),
  * logger_warn(), logger_exit()
  */
-void logger_setTag(logger_t* logger, char* tag);
+void logger_setTag(logger_t* logger, const char* tag);
 
 /**
  * @brief Query the time-flag.
@@ -216,7 +212,7 @@ void logger_setWaitNLFlag(logger_t* logger, int flag);
  * @see logger_print(), logger_vprint(), logger_warn(), logger_exit(),
  * logger_finalize()
  */
-logger_t* logger_init(char* tag, FILE *logfile);
+logger_t* logger_init(const char* tag, FILE *logfile);
 
 /**
  * @brief Finalize logger facility

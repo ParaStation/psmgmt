@@ -86,16 +86,16 @@ void PSID_shutdown(void)
 	PSIDhook_call(PSIDHOOK_SHUTDOWN, NULL);
 	PSID_disableMasterSock();
     case 1:
-	killAllClients(SIGTERM, 0);
+	PSIDclient_killAll(SIGTERM, 0);
 	break;
     case 2:
-	killAllClients(SIGKILL, 0);
+	PSIDclient_killAll(SIGKILL, 0);
 	break;
     case 3:
-	killAllClients(SIGTERM, 1);
+	PSIDclient_killAll(SIGTERM, 1);
 	break;
     case 4:
-	killAllClients(SIGKILL, 1);
+	PSIDclient_killAll(SIGKILL, 1);
 	break;
     case 5:
 	PSIDplugin_setUnloadTmout(2);
@@ -109,7 +109,7 @@ void PSID_shutdown(void)
 	    phase--;
 	    break;
 	}
-	if (!config->useMCast) {
+	if (!PSID_config->useMCast) {
 	    releaseStatusTimer();
 	} else {
 	    exitMCast();
@@ -159,13 +159,13 @@ void PSID_reset(void)
 	daemonState |= PSID_STATE_RESET;
 	PSID_registerLoopAct(PSID_reset);
     case 1:
-	num = killAllClients(SIGTERM, 0);
+	num = PSIDclient_killAll(SIGTERM, 0);
 	break;
     case 2:
-	num = killAllClients(SIGKILL, 0);
+	num = PSIDclient_killAll(SIGKILL, 0);
 	break;
     case 3:
-	num = killAllClients(SIGTERM, 0);
+	num = PSIDclient_killAll(SIGTERM, 0);
 	if (num) {
 	    PSID_log(-1, "%s: still %d clients in phase %d. Continue\n",
 		     __func__, num, phase);

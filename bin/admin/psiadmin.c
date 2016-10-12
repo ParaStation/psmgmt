@@ -2,27 +2,24 @@
  * ParaStation
  *
  * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2014 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
 /**
- * \file
+ * @file
  * psiadmin: ParaStation Administration Tool
  *
  * $Id$
- *
- * \author
- * Norbert Eicker <eicker@par-tec.com>
- *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 static char vcid[] __attribute__((used)) =
     "$Id$";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -34,13 +31,12 @@ static char vcid[] __attribute__((used)) =
 #include <termios.h> /* Just to prevent a warning */
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <readline/readline.h>
-#include <readline/history.h>
 #include <popt.h>
 
 #include "parser.h"
 #include "psprotocol.h"
 #include "pscommon.h"
+#include "linenoise.h"
 #include "psi.h"
 
 #include "commands.h"
@@ -49,18 +45,62 @@ static char vcid[] __attribute__((used)) =
 
 char psiadmversion[] = "$Revision$";
 
+logger_t *PSIadm_logger = NULL;
+
+/**
+ * @brief Initialize psiadmin's logging facility
+ *
+ * Initialize psiadmin's logging facility. This is mainly a wrapper to
+ * @ref logger_init().
+ *
+ * @param logfile File to use for logging. If NULL, use stderr for any
+ * output.
+ *
+ * @param tag Tag to be used to mark each line of output
+ *
+ * @return No return value
+ *
+ * @see logger_init(), PSIadm_finalizeLogs()
+ */
+static void PSIadm_initLogs(FILE *logfile, const char *tag)
+{
+    if (!tag) tag = "psiadmin";
+    if (!logfile) logfile = stderr;
+    PSIadm_logger = logger_init(tag, logfile);
+    if (!PSIadm_logger) {
+	fprintf(logfile, "%s: Failed to initialize logger\n", tag);
+	exit(1);
+    }
+}
+
+/**
+ * @brief Finalize psiadmin's logging facility
+ *
+ * Finalize psiadmin's logging facility. This is mainly a wrapper to
+ * @ref logger_finalize().
+ *
+ * @return No return value.
+ *
+ * @see PSIadm_initLogs(), logger_finalize()
+ */
+static void PSIadm_finalizeLogs(void)
+{
+    logger_finalize(PSIadm_logger);
+    PSIadm_logger = NULL;
+}
+
 /*
  * Print version info
  */
 static void printVersion(void)
 {
-    fprintf(stderr, "psiadmin %s\b \b\b\n", psiadmversion+11);
+    printf("psiadmin %s\b \b\b\n", psiadmversion+11);
 }
 
 static void doReset(void)
 {
     if (geteuid()) {
-	printf("Insufficient privilege for resetting\n");
+	PSIadm_log(-1, "Insufficient privilege for resetting\n");
 	exit(-1);
     }
     printf("Initiating RESET.\n");
@@ -71,12 +111,21 @@ static void doReset(void)
     printf("Trying to reconnect.\n");
 }
 
-/* Get line from stdin. Read on, if line ends with '\\' */
-static char *nextline(int silent)
+/* Get line from file or stdin. Read on, if line ends with '\\' */
+static char *nextline(FILE *inFile, bool silent)
 {
     char *line = NULL;
     do {
-	char *tmp = readline(silent ? NULL : (line ? ">" : "PSIadmin>"));
+	char *tmp = NULL;
+	if (inFile == stdin) {
+	    tmp = linenoise(silent ? NULL : (line ? ">" : "PSIadmin>"));
+	} else {
+	    size_t len;
+	    if (getline(&tmp, &len, inFile) < 0) {
+		free(tmp);
+		tmp = NULL;
+	    }
+	}
 
 	if (!tmp) break;
 	if (!line) {
@@ -110,21 +159,19 @@ static char *homedir(void)
 
 #define RCNAME ".psiadminrc"
 
-static int handleRCfile(const char *progname)
+static int handleRCfile(bool echo)
 {
     FILE *rcfile = fopen(RCNAME, "r");
 
     if (!rcfile && errno != ENOENT) {
-	char *errstr = strerror(errno);
-	fprintf(stderr, "%s: %s: %s\n",
-		progname, RCNAME, errstr ? errstr : "UNKNOWN");
+	PSIadm_warn(-1, errno, "%s: %s", __func__, RCNAME);
 	return -1;
     }
     if (!rcfile) {
 	char *rcname, *home = homedir();
 
 	if (!home) {
-	    fprintf(stderr, "%s: no homedir?\n", progname);
+	    PSIadm_log(-1, "%s: no homedir?\n", __func__);
 	    return -1;
 	}
 
@@ -132,124 +179,107 @@ static int handleRCfile(const char *progname)
 	rcfile = fopen(rcname, "r");
 
 	if (!rcfile && errno != ENOENT) {
-	    char *errstr = strerror(errno);
-	    fprintf(stderr, "%s: %s: %s\n",
-		    progname, rcname, errstr ? errstr : "UNKNOWN");
-	    free(rcname);
+	    PSIadm_warn(-1, errno, "%s: %s", __func__, rcname);
 	    return -1;
 	}
 	free(rcname);
     }
 
     if (rcfile) {
-	int done = 0;
-	rl_instream = rcfile;
+	bool done = false;
 
 	while (!done) {
-	    char *line = nextline(1);
+	    char *line = nextline(rcfile, true);
+	    if (!line) break;
 
-	    if (line && *line) {
+	    if (*line) {
 		parser_removeComment(line);
+		if (echo) printf("%s", line);
 		done = parseLine(line);
 	    }
-	    if (line)
-		free(line);
-	    else
-		break;
+	    free(line);
 	}
-	rl_instream = stdin;
 	fclose(rcfile);
     }
 
     return 0;
 }
 
+static void getHistoryLen(void)
+{
+    char *env = getenv("PSIADM_HISTFILESIZE"), *tail;
+    int historyLen = 200;
+    if (!env) return;
+
+    unsigned long size = strtoul(env, &tail, 0);
+
+    if (*tail) {
+	PSIadm_log(-1, "%s: '%s' invalid, INT_MAX.\n", __func__, env);
+	historyLen = INT_MAX;
+    } else if (size != (unsigned long)(int)size) {
+	PSIadm_log(-1, "%s: '%s' too large, use INT_MAX.\n", __func__, env);
+	historyLen = INT_MAX;
+    } else {
+	historyLen = (int)size;
+    }
+    linenoiseHistorySetMaxLen(historyLen);
+}
+
 #define HISTNAME ".psiadm_history"
 
-static char *histname = NULL;
-static int histfilesize = 200;
+static char *histName = NULL;
 
-static int handleHistFile(const char *progname)
+static bool readHistoryFile(void)
 {
-    char *env;
+    char *env = getenv("PSIADM_HISTFILE");
     struct stat statbuf;
     FILE *file = NULL;
 
-    if ((env = getenv("PSIADM_HISTFILE"))) {
-	histname = strdup(env);
-    }
+    if (env) histName = strdup(env);
 
-    if (!histname) {
+    if (!histName) {
 	char *home = homedir();
 	if (!home) {
-	    fprintf(stderr, "%s: no homedir?\n", progname);
-	    return -1;
+	    PSIadm_log(-1, "%s: no homedir?\n", __func__);
+	    return false;
 	}
-	histname = PSC_concat(home, "/", HISTNAME, NULL);
+	histName = PSC_concat(home, "/", HISTNAME, NULL);
     }
 
-    if ((env = getenv("PSIADM_HISTFILESIZE"))) {
-	char *tail;
-	unsigned long size = strtoul(env, &tail, 0);
-
-	if (*tail) {
-	    fprintf(stderr,
-		    "%s: '%s' is not a valid number, use infinity (0).\n",
-		    progname, env);
-	    histfilesize = 0;
-	} else {
-	    if (size != (unsigned long)(int)size) {
-		fprintf(stderr,
-			"%s: '%s' is too large, use INT_MAX.\n",
-			progname, env);
-		histfilesize = INT_MAX;
-	    } else {
-		histfilesize = (int)size;
-	    }
-	}
-    }
-
-    if ((stat(histname, &statbuf) < 0) && !(file = fopen(histname, "a"))) {
-	char *errstr = strerror(errno);
-	fprintf(stderr, "%s: cannot create history file '%s': %s\n",
-		progname, histname, errstr ? errstr : "UNKNOWN");
+    if ((stat(histName, &statbuf) < 0) && !(file = fopen(histName, "a"))) {
+	PSIadm_warn(-1, errno, "%s: cannot create history file '%s'",
+		    __func__, histName);
     }
     if (file) fclose(file);
 
-    if (read_history(histname)) {
-	char *errstr = strerror(errno);
-	fprintf(stderr, "%s: cannot read history file %s: %s\n",
-		progname, histname, errstr ? errstr : "UNKNOWN");
-	return -1;
+    if (linenoiseHistoryLoad(histName)) {
+	PSIadm_warn(-1, errno, "%s: cannot read history file '%s'",
+		    __func__, histName);
+	return false;
     }
-    return 0;
+    return true;
 }
 
-static int saveHistFile(const char *progname)
+static void saveHistoryFile(void)
 {
-    if (histname) {
-	if (write_history(histname)) {
-	    char *errstr = strerror(errno);
-	    fprintf(stderr, "%s: cannot write history file %s: %s\n",
-		    progname, histname, errstr ? errstr : "UNKNOWN");
-	    return -1;
-	} else if (histfilesize) {
-	    if (history_truncate_file(histname, histfilesize)) {
-		char *errstr = strerror(errno);
-		fprintf(stderr, "%s: cannot truncate history file %s: %s\n",
-			progname, histname, errstr ? errstr : "UNKNOWN");
-	    }
-	}
-	free(histname);
+    if (!histName) return;
+
+    if (linenoiseHistorySave(histName)) {
+	PSIadm_warn(-1, errno, "cannot write history file '%s'", histName);
+	return;
     }
-    return 0;
+
+    free(histName);
+    histName = NULL;
 }
 
 int main(int argc, const char **argv)
 {
     char *copt = NULL, *progfile = NULL;
     int echo=0, noinit=0, quiet=0, reset=0, no_start=0, start_all=0, version=0;
-    int rc, done=0;
+    int rc;
+    FILE *cmdStream = stdin;
+    bool done = false;
 
     poptContext optCon;   /* context for parsing command-line options */
 
@@ -293,12 +323,15 @@ int main(int argc, const char **argv)
 	return 0;
     }
 
+    PSIadm_initLogs(NULL, argv[0]);
+
     if (reset) doReset();
 
     if (no_start) setenv("__PSI_DONT_START_DAEMON", "", 1);
 
     if (!PSI_initClient(TG_ADMIN)) {
-	fprintf(stderr,"can't contact my own daemon.\n");
+	PSIadm_log(-1, "cannot contact my own daemon.\n");
+	PSIadm_finalizeLogs();
 	exit(-1);
     }
 
@@ -313,67 +346,59 @@ int main(int argc, const char **argv)
     if (copt) {
 	parseLine(copt);
 	parserRelease();
+	PSIadm_finalizeLogs();
 	return 0;
     }
 
     /* Read the startup file */
     if (!noinit) {
-	int ret = handleRCfile(argv[0]);
+	int ret = handleRCfile(!progfile || echo);
 	if (ret) {
 	    parserRelease();
+	    PSIadm_finalizeLogs();
 	    return ret;
 	}
     }
 
     if (progfile) {
 	/* Program-file processing */
-	rl_instream = fopen(progfile, "r");
+	cmdStream = fopen(progfile, "r");
 
-	if (!rl_instream) {
-	    char *errstr = strerror(errno);
-	    fprintf(stderr, "%s: %s: %s\n",
-		    argv[0], progfile, errstr ? errstr : "UNKNOWN");
+	if (!cmdStream) {
+	    PSIadm_warn(-1, errno, "%s", progfile);
 	    parserRelease();
+	    PSIadm_finalizeLogs();
 	    return -1;
 	}
-	quiet = 1;
+	quiet = true;
     } else {
 	/* Interactive mode */
-	using_history();
-	handleHistFile(argv[0]);
+	getHistoryLen();
+	readHistoryFile();
 
-	rl_readline_name = "PSIadmin";
-	rl_attempted_completion_function = completeLine;
+	linenoiseSetCompletionCallback(completeLine);
     }
 
     while (!done) {
-	char *line = nextline(quiet);
+	char *line = nextline(cmdStream, quiet);
+	if (!line) break;
 
-	if (line && *line) {
-	    if (echo) printf("%s\n", line);
-
+	if (*line) {
+	    if (echo) printf("%s", line);
 	    parser_removeComment(line);
-
-	    if (!progfile) {
-		HIST_ENTRY *last = history_get(history_length);
-		if (!last || strcmp(last->line, line)) {
-		    add_history(line);
-		}
-	    }
-
+	    if (!progfile) linenoiseHistoryAdd(line);
 	    done = parseLine(line);
 	}
-	if (line)
-	    free(line);
-	else
-	    break;
+	free(line);
     }
 
     if (!quiet) printf("PSIadmin: Goodbye\n");
 
-    if (!progfile) saveHistFile(argv[0]);
+    if (!progfile) saveHistoryFile();
 
     parserRelease();
+
+    PSIadm_finalizeLogs();
 
     return 0;
 }

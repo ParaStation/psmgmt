@@ -13,10 +13,6 @@
  * psilogger: Log-daemon for ParaStation I/O forwarding facility
  *
  * $Id$
- *
- * @author
- * Norbert Eicker <eicker@par-tec.com>
- *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 static char vcid[] __attribute__((used)) =
@@ -36,8 +32,6 @@ static char vcid[] __attribute__((used)) =
 #include <sys/resource.h>
 #include <sys/wait.h>
 #include <signal.h>
-#include <readline/readline.h>
-#include <readline/history.h>
 #include <limits.h>
 
 #include "pscommon.h"
@@ -45,11 +39,12 @@ static char vcid[] __attribute__((used)) =
 #include "psprotocol.h"
 #include "pslog.h"
 #include "selector.h"
+#include "timer.h"
+#include "linenoise.h"
 #include "psiloggermerge.h"
 #include "psiloggerclient.h"
 
 #include "psilogger.h"
-#include "timer.h"
 
 int usize = 0;
 
@@ -60,7 +55,7 @@ bool enableGDB = false;
 bool useValgrind = false;
 
 /** Scan output for Valgrind PID patterns?  Set from PSI_USE_VALGRIND */
-static int rawIO = false;
+static bool rawIO = false;
 
 /** Display source and length of each message? Set from PSI_SOURCEPRINTF */
 static bool prependSource = false;
@@ -74,8 +69,7 @@ static int numService = 0;
 /** Verbosity of Forwarders. Set from PSI_FORWARDERDEBUG */
 static bool forw_verbose = false;
 
-/**
- * Flag display of usage info. Set from PSI_USAGE */
+/** Flag display of usage info. Set from PSI_USAGE */
 static bool showUsage = false;
 
 /** Number of maximum connected forwarders during runtime */
@@ -184,7 +178,7 @@ char GDBprompt[128];
  *
  * @return No return value.
  */
-static void readGDBInput(char *line)
+static void readGDBInput(const char *line)
 {
     char buf[1000];
     size_t len;
@@ -193,12 +187,10 @@ static void readGDBInput(char *line)
 
     /* add the newline again */
     snprintf(buf, sizeof(buf), "%s\n", line);
+    PSIlog_stdout(-1, "\n");
 
     /*add to history */
-    HIST_ENTRY *last = history_get(history_length);
-    if (line && line[0] != '\0' && (!last || strcmp(last->line, line))) {
-	add_history(line);
-    }
+    if (line[0]) linenoiseHistoryAdd(line);
 
     /* check for input changing cmd */
     len = strlen(buf);
@@ -206,21 +198,21 @@ static void readGDBInput(char *line)
 	/* remove trailing garbage */
 	buf[len-1] = '\0';
 
-	PSIlog_log(-1, "Changing input dest to: %s", buf);
+	PSIlog_stdout(-1, "Changing input dest to: %s", buf);
 
 	setupDestList(buf);
-	PSIlog_log(-1, " -> [%s]\n", getDestStr(128));
+	PSIlog_stdout(-1, " -> [%s]\n", getDestStr(128));
 
 	/* modify readline's prompt */
 	snprintf(GDBprompt, sizeof(GDBprompt), "[%s]: (gdb) ", getDestStr(128));
-	rl_set_prompt(GDBprompt);
+	linenoiseSetPrompt(GDBprompt);
 	return;
     }
 
     forwardInputStr(buf, len);
     /* Expect command's echo */
     GDBcmdEcho = true;
-    rl_set_prompt("");
+    linenoiseSetPrompt("");
 
     PSIlog_log(PSILOG_LOG_VERB, "%s: %zd bytes\n", __func__, len);
 }
@@ -621,7 +613,7 @@ static bool newrequest(PSLog_Msg_t *msg)
 
     if (enableGDB) {
 	snprintf(GDBprompt, sizeof(GDBprompt), "[%s]: (gdb) ", getDestStr(128));
-	rl_set_prompt(GDBprompt);
+	linenoiseSetPrompt(GDBprompt);
     }
 
     maxConnected++;
@@ -645,7 +637,7 @@ static bool newrequest(PSLog_Msg_t *msg)
  * @brief Forward input to client.
  *
  * Read input data from the file descriptor @a std_in and forward it
- * to the forwarder(s) with ParaStation task IDs in forwardInputTID.
+ * to all forwarder(s) that are expected to receive input.
  *
  * @param std_in File descriptor to read STDIN data from.
  *
@@ -653,8 +645,8 @@ static bool newrequest(PSLog_Msg_t *msg)
  */
 static void forwardInput(int std_in)
 {
-    char buf[1000];
-    size_t len;
+    char buf[1024];
+    ssize_t len;
 
     len = read(std_in, buf, sizeof(buf)>SSIZE_MAX ? SSIZE_MAX : sizeof(buf));
     switch (len) {
@@ -982,11 +974,44 @@ static void sendAcctData(void)
     sendDaemonMsg((DDMsg_t *)&msg);
 }
 
+/**
+ * @brief Forward input from regular file to client.
+ *
+ * Read input data from the file descriptor @a fd which is assumed to
+ * be a regular file and forward it to all forwarder(s) that are
+ * expected to receive input.
+ *
+ * @param fd File descriptor to read STDIN data from.
+ *
+ * @return No return value.
+ */
+static void forwardInputFile(int fd)
+{
+    char buf[1024>SSIZE_MAX ? SSIZE_MAX : 1024];
+    ssize_t len;
+
+    do {
+	len = read(fd, buf, sizeof(buf));
+	switch (len) {
+	case -1:
+	    PSIlog_warn(-1, errno, "%s: read()", __func__);
+	    close(fd);
+	    break;
+	case 0:
+	    close(fd);
+	default:
+	    forwardInputStr(buf, len);
+
+	    PSIlog_log(PSILOG_LOG_VERB, "%s: %zd bytes\n", __func__, len);
+	}
+    } while (len > 0);
+}
+
 static int readFromStdin(int fd, void *data)
 {
     /* if we debug with gdb, use readline callback for stdin */
     if (enableGDB) {
-	rl_callback_read_char();
+	linenoiseReadChar();
     } else {
 	forwardInput(fd);
     }
@@ -1007,7 +1032,13 @@ static void handleCCMsg(PSLog_Msg_t *msg)
 	if (newrequest(msg) && maxConnected >= np + numService) {
 	    timeoutval = MIN_WAIT;
 	    if (allActiveThere() && !stdinHandled) {
-		Selector_register(STDIN_FILENO, readFromStdin, NULL);
+		if (Selector_register(STDIN_FILENO, readFromStdin, NULL) < 0) {
+		    /*
+		     * Selector registration failed; stdin might be a
+		     * regular file
+		     */
+		    forwardInputFile(STDIN_FILENO);
+		}
 		/* If STDIN get's closed, don't re-add it to the selector */
 		stdinHandled = true;
 	    }
@@ -1287,7 +1318,7 @@ static void loop(void)
 	PSIlog_stderr(-1, "\n");
 	PSIlog_log(-1, "done\n");
     }
-    if (enableGDB) rl_callback_handler_remove();
+    if (enableGDB) linenoiseRemoveHandlerCallback();
 
     return;
 }
@@ -1434,10 +1465,10 @@ int main( int argc, char**argv)
 
     if (getenv("PSI_ENABLE_GDB")) {
 	enableGDB = true;
-	rl_callback_handler_install(NULL, (rl_vcpfunc_t*)readGDBInput);
+	linenoiseSetHandlerCallback(NULL, readGDBInput);
 	PSIlog_log(PSILOG_LOG_VERB, "Enabling gdb functions.\n");
 	snprintf(GDBprompt, sizeof(GDBprompt), "[%s]: (gdb) ", getDestStr(128));
-	rl_set_prompt(GDBprompt);
+	linenoiseSetPrompt(GDBprompt);
     }
 
     initClients(-2, np ? np-1 : 0);

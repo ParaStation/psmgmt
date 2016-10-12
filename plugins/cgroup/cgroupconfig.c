@@ -13,7 +13,7 @@
 
 #include "cgroupconfig.h"
 
-const ConfDef_t cgConfDef[] =
+const ConfDef_t confDef[] =
 {
     { "CGROUP_ROOT", false, "path", "/sys/fs/cgroup/",
       "Root directory of all cgroups" },
@@ -28,7 +28,7 @@ const ConfDef_t cgConfDef[] =
     { NULL, false, NULL, NULL, NULL},
 };
 
-LIST_HEAD(cgroupConfig);
+LIST_HEAD(config);
 
 static bool verifyVisitor(char *key, char *value, const void *info)
 {
@@ -52,11 +52,11 @@ static bool verifyVisitor(char *key, char *value, const void *info)
 
 void initCgConfig(char *cfgName)
 {
-    if (parseConfigFile(cfgName, &cgroupConfig) < 0) {
+    if (parseConfigFile(cfgName, &config) < 0) {
 	cglog(-1, "%s: failed to open '%s'\n", __func__, cfgName);
     }
 
-    traverseConfig(&cgroupConfig, verifyVisitor, cgConfDef);
+    traverseConfig(&config, verifyVisitor, confDef);
 
-    setConfigDefaults(&cgroupConfig, cgConfDef);
+    setConfigDefaults(&config, confDef);
 }

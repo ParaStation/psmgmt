@@ -10,6 +10,8 @@
 #ifndef __PSIADMIN_H
 #define __PSIADMIN_H
 
+#include "logging.h"
+
 #ifdef __cplusplus
 extern "C" {
 #if 0
@@ -18,6 +20,40 @@ extern "C" {
 #endif
 
 extern char psiadmversion[];
+
+/** Logger used for error messages within psiadmin. */
+extern logger_t *PSIadm_logger;
+
+/**
+ * Print log messages via psiadmins's logging facility
+ *
+ * This is a wrapper to @ref logger_print().
+ *
+ * @see logger_print()
+ */
+#define PSIadm_log(...) if (PSIadm_logger)	\
+	logger_print(PSIadm_logger, __VA_ARGS__)
+
+/**
+ * Print warn messages via psiadmin's logging facility
+ *
+ * This is a wrapper to @ref logger_warn().
+ *
+ * @see logger_warn()
+ */
+#define PSIadm_warn(...) if (PSIadm_logger)	\
+	logger_warn(PSIadm_logger, __VA_ARGS__)
+
+/**
+ * Print warn messages via psiadmin's logging facility and exit
+ *
+ * This is a wrapper to @ref logger_exit().
+ *
+ * @see logger_exit()
+ */
+#define PSIadm_exit(...) if (PSIadm_logger) {		\
+	logger_exit(PSIadm_logger, __VA_ARGS__);	\
+    }
 
 #ifdef __cplusplus
 }/* extern "C" */

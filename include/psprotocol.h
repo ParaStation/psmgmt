@@ -557,7 +557,7 @@ char *PSP_printInfo(PSP_Info_t infotype);
  * @return The length of the string including the terminating '\0'
  * character is returned. Or 0, if @a str is NULL.
  */
-size_t PSP_strLen(char *str);
+size_t PSP_strLen(const char *str);
 
 /**
  * @brief Put data into message buffer

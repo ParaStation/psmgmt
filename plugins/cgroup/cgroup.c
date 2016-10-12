@@ -18,8 +18,10 @@
 #include <sys/stat.h>
 
 #include "plugin.h"
+#include "timer.h"
 #include "psidhook.h"
 #include "psidplugin.h"
+#include "psidutil.h"
 
 #include "pluginmalloc.h"
 #include "pluginlog.h"
@@ -76,6 +78,7 @@ static bool enforceLimit(char *name, long limit)
 
     return true;
 }
+
 static bool enforceAllLimits(void)
 {
     return enforceLimit("memory.limit_in_bytes", memLim)
@@ -152,6 +155,15 @@ static int jailProcess(void *info)
     return 0;
 }
 
+/**
+ * Cleanup processes jailed in cgroup
+ *
+ * Cleanup all processes currently jailed in the cgroup. For this,
+ * SIGKILL is sent to each process found in the cgroup's tasks file.
+ *
+ * @return Return the number of signals sent, i.e. the number of
+ * processes still resident in the cgroup. Or -1 if an error occurred.
+ */
 static int cleanupProcesses(void)
 {
     int pid, cnt = 0;
@@ -208,28 +220,28 @@ int initialize(void)
     initCgConfig(configFile);
 
     /* adapt the debug mask */
-    debugMask = getConfValueI(&cgroupConfig, "DEBUG_MASK");
+    debugMask = getConfValueI(&config, "DEBUG_MASK");
     maskCgLogger(debugMask);
     cglog(CG_LOG_VERBOSE, "%s: debugMask set to %#x\n", __func__, debugMask);
 
-    cgroupRoot = ustrdup(getConfValueC(&cgroupConfig, "CGROUP_ROOT"));
+    cgroupRoot = ustrdup(getConfValueC(&config, "CGROUP_ROOT"));
     if (!cgroupRoot) {
 	cglog(-1, "%s: CGROUP_ROOT not found in '%s'\n", __func__, configFile);
 	return 1;
     }
     cglog(CG_LOG_VERBOSE, "%s: cgroupRoot set to '%s'\n", __func__, cgroupRoot);
 
-    cgroupName = ustrdup(getConfValueC(&cgroupConfig, "CGROUP_NAME"));
+    cgroupName = ustrdup(getConfValueC(&config, "CGROUP_NAME"));
     if (!cgroupName) {
 	cglog(-1, "%s: CGROUP_NAME not found in '%s'\n", __func__, configFile);
 	return 1;
     }
     cglog(CG_LOG_VERBOSE, "%s: cgroupName set to '%s'\n", __func__, cgroupName);
 
-    memLim = getConfValueL(&cgroupConfig, "MEM_LIMIT");
+    memLim = getConfValueL(&config, "MEM_LIMIT");
     cglog(CG_LOG_VERBOSE, "%s: memLim set to %ld\n", __func__, memLim);
 
-    memSwLim = getConfValueL(&cgroupConfig, "MEMSW_LIMIT");
+    memSwLim = getConfValueL(&config, "MEMSW_LIMIT");
     cglog(CG_LOG_VERBOSE, "%s: memSwLim set to %ld\n", __func__, memSwLim);
 
     if (!initCgroup()) return 1;
@@ -248,9 +260,19 @@ INIT_ERROR:
     return 1;
 }
 
+/** Timer used to finalize the plugin */
+static int cgTimer = -1;
+
 void finalize(void)
 {
-    if (!cleanupProcesses()) PSIDplugin_unload(name);
+    if (cleanupProcesses() <= 0) {
+	PSIDplugin_unload(name);
+    } else if (cgTimer == -1) {
+	/* Wait 2 seconds, then try again */
+	struct timeval timeout = {2, 0};
+
+	cgTimer = Timer_register(&timeout, finalize);
+    }
 }
 
 void cleanup(void)
@@ -259,8 +281,12 @@ void cleanup(void)
 	cgwarn(-1, errno, "%s: rmdir(%s)", __func__, myCgroup);
     }
 
+    if (cgTimer > -1) {
+	Timer_remove(cgTimer);
+	cgTimer = -1;
+    }
     unregisterHooks(true);
-    freeConfig(&cgroupConfig);
+    freeConfig(&config);
     if (cgroupRoot) ufree(cgroupRoot);
     if (cgroupName) ufree(cgroupName);
     if (myCgroup) ufree(myCgroup);
@@ -273,18 +299,20 @@ char *help(void)
 {
     char *buf = NULL;
     size_t bufSize = 0;
-    int maxKeyLen = getMaxKeyLen(cgConfDef);
+    int maxKeyLen = getMaxKeyLen(confDef);
     int i;
 
-    str2Buf("\nSimple plugin to jail all psid's client processes into"
-	    " a single cgroup\n\n", &buf, &bufSize);
-    str2Buf("\n# configuration options #\n\n", &buf, &bufSize);
+    str2Buf("\tJail all psid's client processes into a single cgroup\n\n",
+	    &buf, &bufSize);
+    str2Buf("\tcgroup's status is displayed under key 'status'\n\n",
+	    &buf, &bufSize);
+    str2Buf("# configuration options #\n", &buf, &bufSize);
 
-    for (i = 0; cgConfDef[i].name; i++) {
+    for (i = 0; confDef[i].name; i++) {
 	char type[10], line[160];
-	snprintf(type, sizeof(type), "<%s>", cgConfDef[i].type);
+	snprintf(type, sizeof(type), "<%s>", confDef[i].type);
 	snprintf(line, sizeof(line), "%*s %10s  %s\n",
-		 maxKeyLen, cgConfDef[i].name, type, cgConfDef[i].desc);
+		 maxKeyLen+2, confDef[i].name, type, confDef[i].desc);
 	str2Buf(line, &buf, &bufSize);
     }
 
@@ -293,29 +321,29 @@ char *help(void)
 
 char *set(char *key, char *val)
 {
-    const ConfDef_t *thisConfDef = getConfigDef(key, cgConfDef);
+    const ConfDef_t *thisConfDef = getConfigDef(key, confDef);
 
     if (!thisConfDef) return ustrdup("\nUnknown option\n");
 
-    if (verifyConfigEntry(cgConfDef, key, val))
+    if (verifyConfigEntry(confDef, key, val))
 	return ustrdup("\nIllegal value\n");
 
     if (!strcmp(key, "MEM_LIMIT")) {
-	addConfigEntry(&cgroupConfig, key, val);
-	memLim = getConfValueL(&cgroupConfig, key);
+	addConfigEntry(&config, key, val);
+	memLim = getConfValueL(&config, key);
 	cglog(CG_LOG_VERBOSE, "%s: memLim set to %ld\n", __func__, memLim);
 
 	enforceAllLimits();
     } else if (!strcmp(key, "MEMSW_LIMIT")) {
-	addConfigEntry(&cgroupConfig, key, val);
-	memSwLim = getConfValueL(&cgroupConfig, key);
+	addConfigEntry(&config, key, val);
+	memSwLim = getConfValueL(&config, key);
 	cglog(CG_LOG_VERBOSE, "%s: memSwLim set to %ld\n", __func__, memSwLim);
 
 	enforceAllLimits();
     } else if (!strcmp(key, "DEBUG_MASK")) {
 	int dbgMask;
-	addConfigEntry(&cgroupConfig, key, val);
-	dbgMask = getConfValueI(&cgroupConfig, key);
+	addConfigEntry(&config, key, val);
+	dbgMask = getConfValueI(&config, key);
 	maskCgLogger(dbgMask);
 	cglog(CG_LOG_VERBOSE, "%s: debugMask set to %#x\n", __func__, dbgMask);
     } else {
@@ -328,21 +356,21 @@ char *set(char *key, char *val)
 char *unset(char *key)
 {
     if (!strcmp(key, "MEM_LIMIT")) {
-	unsetConfigEntry(&cgroupConfig, cgConfDef, key);
-	memLim = getConfValueL(&cgroupConfig, key);
+	unsetConfigEntry(&config, confDef, key);
+	memLim = getConfValueL(&config, key);
 	cglog(CG_LOG_VERBOSE, "%s: memLim set to %ld\n", __func__, memLim);
 
 	enforceAllLimits();
     } else if (!strcmp(key, "MEMSW_LIMIT")) {
-	unsetConfigEntry(&cgroupConfig, cgConfDef, key);
-	memSwLim = getConfValueL(&cgroupConfig, key);
+	unsetConfigEntry(&config, confDef, key);
+	memSwLim = getConfValueL(&config, key);
 	cglog(CG_LOG_VERBOSE, "%s: memSwLim set to %ld\n", __func__, memSwLim);
 
 	enforceAllLimits();
     } else if (!strcmp(key, "DEBUG_MASK")) {
 	int dbgMask;
-	unsetConfigEntry(&cgroupConfig, cgConfDef, key);
-	dbgMask = getConfValueI(&cgroupConfig, key);
+	unsetConfigEntry(&config, confDef, key);
+	dbgMask = getConfValueI(&config, key);
 	maskCgLogger(dbgMask);
 	cglog(CG_LOG_VERBOSE, "%s: debugMask set to %#x\n", __func__, dbgMask);
     } else {
@@ -352,6 +380,90 @@ char *unset(char *key)
     return NULL;
 }
 
+
+static void showLimit(char *name, char **buf, size_t *bufSize)
+{
+    size_t limit;
+
+    str2Buf("\t", buf, bufSize);
+    str2Buf(name, buf, bufSize);
+    str2Buf(" = ", buf, bufSize);
+
+    if (!myCgroup) {
+	str2Buf("<unknown cgroup>\n", buf, bufSize);
+	return;
+    }
+
+    char fName[PATH_MAX];
+    snprintf(fName, sizeof(fName), "%s/%s", myCgroup, name);
+
+    FILE *fp = fopen(fName, "r");
+    if (!fp) {
+	str2Buf("<unknown limit>\n", buf, bufSize);
+	return;
+    }
+    int ret;
+    if ((ret=fscanf(fp, "%zi", &limit)) != 1) {
+	str2Buf("<unknown>", buf, bufSize);
+    } else {
+	char limitStr[32];
+
+	snprintf(limitStr, sizeof(limitStr), "%zd", limit);
+	str2Buf(limitStr, buf, bufSize);
+    }
+    fclose(fp);
+
+    str2Buf("\n", buf, bufSize);
+}
+
+static void showPIDs(char **buf, size_t *bufSize)
+{
+    FILE *fp;
+    bool none = true;
+    int pid;
+
+    str2Buf("\tjailed pids = ", buf, bufSize);
+    if (!tasksFile || !(fp = fopen(tasksFile, "r")) ) {
+	str2Buf(" <unknown>", buf, bufSize);
+	return;
+    }
+
+    while (fscanf(fp, "%i", &pid) != -1) {
+	char pidStr[16];
+
+	snprintf(pidStr, sizeof(pidStr), "%s%d", none ? "" : " ", pid);
+	str2Buf(pidStr, buf, bufSize);
+	none = false;
+    }
+    fclose(fp);
+    if (none) str2Buf(" <none>", buf, bufSize);
+
+    str2Buf("\n", buf, bufSize);
+}
+
+/**
+ * @brief Show status
+ *
+ * Provide an overview on the current status of the cgroup. This
+ * includes information on the active settings of the memory resources
+ * and the processes jailed into the cgroup.
+ *
+ * @param buf Buffer to write the information to
+ *
+ * @param bufSize Current size of the buffer
+ *
+ * @return Returns the buffer with the requested information.
+ */
+static char *showStatus(char **buf, size_t *bufSize)
+{
+    str2Buf("\n", buf, bufSize);
+    showLimit("memory.limit_in_bytes", buf, bufSize);
+    showLimit("memory.memsw.limit_in_bytes", buf, bufSize);
+    showPIDs(buf, bufSize);
+
+    return *buf;
+}
+
 char *show(char *key)
 {
     char *buf = NULL, *val;
@@ -359,18 +471,20 @@ char *show(char *key)
 
     if (!key) {
 	/* Show the whole configuration */
-	int maxKeyLen = getMaxKeyLen(cgConfDef);
+	int maxKeyLen = getMaxKeyLen(confDef);
 	int i;
 
 	str2Buf("\n", &buf, &bufSize);
-	for (i = 0; cgConfDef[i].name; i++) {
-	    char *name = cgConfDef[i].name, line[160];
-	    val = getConfValueC(&cgroupConfig, name);
+	for (i = 0; confDef[i].name; i++) {
+	    char *name = confDef[i].name, line[160];
+	    val = getConfValueC(&config, name);
 
-	    snprintf(line, sizeof(line), "%*s = %s\n", maxKeyLen, name, val);
+	    snprintf(line, sizeof(line), "%*s = %s\n", maxKeyLen+2, name, val);
 	    str2Buf(line, &buf, &bufSize);
 	}
-    } else if ((val = getConfValueC(&cgroupConfig, key))) {
+    } else if (!(strcmp(key, "status"))) {
+	return showStatus(&buf, &bufSize);
+    } else if ((val = getConfValueC(&config, key))) {
 	str2Buf("\n", &buf, &bufSize);
 	str2Buf(key, &buf, &bufSize);
 	str2Buf(" = ", &buf, &bufSize);

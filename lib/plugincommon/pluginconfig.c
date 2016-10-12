@@ -53,6 +53,7 @@ static int doParseConfigFile(char *fName, Config_t *conf,
 
 	pluginlog("%s: error opening config cwd:%s file:%s\n", funcName, cwd,
 		  fName);
+	if (cwd) free(cwd);
 	return -1;
     }
 

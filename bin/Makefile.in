@@ -23,8 +23,6 @@
 # as defined in the file LICENSE.QPL included in the packaging of this
 # file.
 #
-# Author:	Thomas Moschny <moschny@par-tec.com>
-#
 
 #
 # ParaStation
@@ -170,8 +168,7 @@ psaccounter_DEPENDENCIES = $(libpse) $(am__DEPENDENCIES_1)
 am_psiadmin_OBJECTS = admin/psiadmin.$(OBJEXT) \
 	admin/commands.$(OBJEXT) admin/adminparser.$(OBJEXT)
 psiadmin_OBJECTS = $(am_psiadmin_OBJECTS)
-psiadmin_DEPENDENCIES = $(libputil) $(libpse) $(am__DEPENDENCIES_1) \
-	$(am__DEPENDENCIES_1)
+psiadmin_DEPENDENCIES = $(libputil) $(libpse) $(am__DEPENDENCIES_1)
 am_psid_OBJECTS = daemon/psidaccount.$(OBJEXT) \
 	daemon/psidamd.$(OBJEXT) daemon/psid.$(OBJEXT) \
 	daemon/psidclient.$(OBJEXT) daemon/psidcomm.$(OBJEXT) \
@@ -197,8 +194,7 @@ am_psilogger_OBJECTS = logger/psilogger.$(OBJEXT) \
 	logger/psiloggermerge.$(OBJEXT) \
 	logger/psiloggerclient.$(OBJEXT)
 psilogger_OBJECTS = $(am_psilogger_OBJECTS)
-psilogger_DEPENDENCIES = $(libputil) $(libpscommon) $(libpslog) \
-	$(am__DEPENDENCIES_1)
+psilogger_DEPENDENCIES = $(libputil) $(libpscommon) $(libpslog)
 psispawn_SOURCES = psispawn.c
 psispawn_OBJECTS = psispawn.$(OBJEXT)
 psispawn_DEPENDENCIES = $(libpsi)
@@ -502,7 +498,7 @@ libpskvs = $(top_builddir)/lib/pskvs/libpskvs.la
 psiadmin_SOURCES = admin/psiadmin.c admin/psiadmin.h admin/commands.c	\
 	admin/commands.h admin/adminparser.c admin/adminparser.h
 
-psiadmin_LDADD = $(libputil) $(libpse) $(POPT_LIBS) $(RL_LIBS)
+psiadmin_LDADD = $(libputil) $(libpse) $(POPT_LIBS)
 psid_SOURCES = daemon/psidaccount.c daemon/psidaccount.h		\
 	daemon/psidamd.c daemon/psidamd.h daemon/psid.c daemon/psid.h	\
 	daemon/psidclient.c daemon/psidclient.h daemon/psidcomm.c	\
@@ -531,7 +527,7 @@ psilogger_SOURCES = logger/psilogger.c logger/psilogger.h	\
 	logger/psiloggermerge.c logger/psiloggermerge.h		\
 	logger/psiloggerclient.c logger/psiloggerclient.h
 
-psilogger_LDADD = $(libputil) $(libpscommon) $(libpslog) $(RL_LIBS)
+psilogger_LDADD = $(libputil) $(libpscommon) $(libpslog)
 mlisten_LDADD = $(POPT_LIBS)
 psmstart_LDADD = $(libpse) $(POPT_LIBS)
 mpirun_chp4_LDADD = $(libpse) $(POPT_LIBS)
@@ -546,7 +542,9 @@ test_config_SOURCES = test_config.c daemon/psidnodes.c			\
 	daemon/psidnodes.h daemon/psidscripts.c daemon/psidscripts.h	\
 	daemon/psidutil.c daemon/psidutil.h
 
-test_config_LDADD = $(libputil) $(libpse) $(POPT_LIBS) $(glib2_LIBS) $(psconfig_LIBS)
+test_config_LDADD = $(libputil) $(libpse) $(POPT_LIBS) $(glib2_LIBS)	\
+	$(psconfig_LIBS)
+
 pssh_LDADD = $(libpse) $(POPT_LIBS)
 psaccounter_SOURCES = accounter/psaccounter.c
 psaccounter_CPPFLAGS = $(AM_CPPFLAGS) -DLOCALSTATEDIR=\"$(localstatedir)\"

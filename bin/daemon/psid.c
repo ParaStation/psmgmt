@@ -9,14 +9,8 @@
  * file.
  */
 /**
- * \file
+ * @file
  * psid: ParaStation Daemon
- *
- * $Id$
- *
- * \author
- * Norbert Eicker <eicker@par-tec.com>
- *
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 static char vcid[] __attribute__((used)) =
@@ -221,7 +215,7 @@ static void RDPCallBack(int msgid, void *buf)
  *
  * @param info Dummy pointer to extra info. Ignored.
  *
- * @return Always returs 0
+ * @return Always returns 0
  */
 static int handleSIGCHLD(int fd, void *info)
 {
@@ -255,7 +249,8 @@ static int handleSIGCHLD(int fd, void *info)
 	tid = PSC_getTID(-1, pid);
 
 	task = PStasklist_find(&managedTasks, tid);
-	if (task) {
+	if (task && task->group != TG_DELEGATE) {
+	    /* delegates are handled explicitly in psmom/psslurm */
 	    if (!task->killat) {
 		task->killat = time(NULL) + 10;
 	    }
@@ -264,8 +259,7 @@ static int handleSIGCHLD(int fd, void *info)
 		Selector_enable(task->fd);
 	    } else {
 		/* task not connected, remove from tasklist */
-		/* delegates are handled explicitly in psmom/psslurm */
-		if (task->group != TG_DELEGATE) PStask_cleanup(tid);
+		PStask_cleanup(tid);
 	    }
 	}
     }
@@ -282,7 +276,7 @@ static int handleSIGCHLD(int fd, void *info)
  *
  * @param info Dummy pointer to extra info. Ignored.
  *
- * @return Always returs 0
+ * @return Always returns 0
  */
 static int handleSIGUSR1(int fd, void *info)
 {
@@ -328,7 +322,7 @@ static void printMallocInfo(void)
  *
  * @param info Dummy pointer to extra info. Ignored.
  *
- * @return Always returs 0
+ * @return Always returns 0
  */
 static int handleSIGUSR2(int fd, void *info)
 {
@@ -527,6 +521,9 @@ void PSID_clearMem(void)
     //PSIDnodes_clearMem(); @todo Disabled for the time being -> Discuss with MR
     RDP_clearMem();
 
+    /* Now call all cleanup functions registered by plugins */
+    PSIDhook_call(PSIDHOOK_CLEARMEM, NULL);
+
     malloc_trim(0);
 }
 
@@ -711,31 +708,31 @@ int main(int argc, const char *argv[])
 	PSID_log(-1, "My IP is %s\n", inet_ntoa(*(struct in_addr *) &addr));
     }
 
-    if (!logfile && config->logDest!=LOG_DAEMON) {
+    if (!logfile && PSID_config->logDest!=LOG_DAEMON) {
 	PSID_log(-1, "Changing logging dest from LOG_DAEMON to %s\n",
-		 config->logDest==LOG_KERN ? "LOG_KERN":
-		 config->logDest==LOG_LOCAL0 ? "LOG_LOCAL0" :
-		 config->logDest==LOG_LOCAL1 ? "LOG_LOCAL1" :
-		 config->logDest==LOG_LOCAL2 ? "LOG_LOCAL2" :
-		 config->logDest==LOG_LOCAL3 ? "LOG_LOCAL3" :
-		 config->logDest==LOG_LOCAL4 ? "LOG_LOCAL4" :
-		 config->logDest==LOG_LOCAL5 ? "LOG_LOCAL5" :
-		 config->logDest==LOG_LOCAL6 ? "LOG_LOCAL6" :
-		 config->logDest==LOG_LOCAL7 ? "LOG_LOCAL7" :
+		 PSID_config->logDest==LOG_KERN ? "LOG_KERN":
+		 PSID_config->logDest==LOG_LOCAL0 ? "LOG_LOCAL0" :
+		 PSID_config->logDest==LOG_LOCAL1 ? "LOG_LOCAL1" :
+		 PSID_config->logDest==LOG_LOCAL2 ? "LOG_LOCAL2" :
+		 PSID_config->logDest==LOG_LOCAL3 ? "LOG_LOCAL3" :
+		 PSID_config->logDest==LOG_LOCAL4 ? "LOG_LOCAL4" :
+		 PSID_config->logDest==LOG_LOCAL5 ? "LOG_LOCAL5" :
+		 PSID_config->logDest==LOG_LOCAL6 ? "LOG_LOCAL6" :
+		 PSID_config->logDest==LOG_LOCAL7 ? "LOG_LOCAL7" :
 		 "UNKNOWN");
 	closelog();
 
-	openlog("psid", LOG_PID|LOG_CONS, config->logDest);
+	openlog("psid", LOG_PID|LOG_CONS, PSID_config->logDest);
 	printWelcome();
     }
 
     /* call startupScript, if any */
-    if (config->startupScript && *config->startupScript) {
-	int ret = PSID_execScript(config->startupScript, NULL, NULL, NULL);
+    if (PSID_config->startupScript && *PSID_config->startupScript) {
+	int ret = PSID_execScript(PSID_config->startupScript, NULL, NULL, NULL);
 
 	if (ret > 1) {
 	    PSID_log(-1, "startup script '%s' failed. Exiting...\n",
-		     config->startupScript);
+		     PSID_config->startupScript);
 	    PSID_finalizeLogs();
 	    exit(1);
 	}
@@ -751,17 +748,17 @@ int main(int argc, const char *argv[])
 	signal(SIGABRT, sighandler);
 	signal(SIGBUS, sighandler);
     }
-    if (config->coreDir) {
-	if (chdir(config->coreDir) < 0) {
+    if (PSID_config->coreDir) {
+	if (chdir(PSID_config->coreDir) < 0) {
 	    PSID_warn(-1, errno, "Unable to chdir() to coreDirectory '%s'",
-		      config->coreDir);
+		      PSID_config->coreDir);
 	}
     }
 
     PSIDnodes_setProtoV(PSC_getMyID(), PSProtocolVersion);
     PSIDnodes_setDmnProtoV(PSC_getMyID(), PSDaemonProtocolVersion);
     PSIDnodes_setHWStatus(PSC_getMyID(), 0);
-    PSIDnodes_setKillDelay(PSC_getMyID(), config->killDelay);
+    PSIDnodes_setKillDelay(PSC_getMyID(), PSID_config->killDelay);
 
     /* Bring node up with correct numbers of CPUs */
     declareNodeAlive(PSC_getMyID(), PSID_getPhysCPUs(), PSID_getVirtCPUs());
@@ -770,7 +767,7 @@ int main(int argc, const char *argv[])
     PSID_initStarttime();
 
     /* initialize various modules */
-    initComm();  /* This has to be first since it gives msgHandler hash */
+    PSIDcomm_init();  /* This has to be first since it gives msgHandler hash */
 
     PSIDclient_init();
     initState();
@@ -790,7 +787,7 @@ int main(int argc, const char *argv[])
     /* Now we start all the hardware -- this might include the accounter */
     PSID_log(PSID_LOG_HW, "%s: starting up the hardware\n", __func__);
     PSID_startAllHW();
-    PSIDnodes_setAcctPollI(PSC_getMyID(), config->acctPollInterval);
+    PSIDnodes_setAcctPollI(PSC_getMyID(), PSID_config->acctPollInterval);
 
     /*
      * Prepare hostlist to initialize RDP and MCast
@@ -808,29 +805,31 @@ int main(int argc, const char *argv[])
 	    hostlist[i] = PSIDnodes_getAddr(i);
 	}
 
-	if (config->useMCast) {
+	if (PSID_config->useMCast) {
 	    /* Initialize MCast */
 	    int MCastSock = initMCast(PSC_getNrOfNodes(),
-				      config->MCastGroup, config->MCastPort,
+				      PSID_config->MCastGroup,
+				      PSID_config->MCastPort,
 				      logfile, hostlist,
 				      PSC_getMyID(), MCastCallBack);
 	    if (MCastSock<0) {
 		PSID_exit(errno, "Error while trying initMCast");
 	    }
-	    setDeadLimitMCast(config->deadInterval);
+	    setDeadLimitMCast(PSID_config->deadInterval);
 
 	    PSID_log(-1, "MCast and ");
 	} else {
-	    setStatusTimeout(config->statusTimeout);
-	    setMaxStatBCast(config->statusBroadcasts);
-	    setDeadLimit(config->deadLimit);
-	    setTmOutRDP(config->RDPTimeout);
+	    setStatusTimeout(PSID_config->statusTimeout);
+	    setMaxStatBCast(PSID_config->statusBroadcasts);
+	    setDeadLimit(PSID_config->deadLimit);
+	    setTmOutRDP(PSID_config->RDPTimeout);
 	}
 
 	/* Initialize RDP */
 	RDPSocket = RDP_init(PSC_getNrOfNodes(),
-			     PSIDnodes_getAddr(PSC_getMyID()), config->RDPPort,
-			     logfile, hostlist, PSIDRDP_handleMsg, RDPCallBack);
+			     PSIDnodes_getAddr(PSC_getMyID()),
+			     PSID_config->RDPPort, logfile, hostlist,
+			     PSIDRDP_handleMsg, RDPCallBack);
 	if (RDPSocket<0) {
 	    PSID_exit(errno, "Error while trying initRDP");
 	}
@@ -852,10 +851,10 @@ int main(int argc, const char *argv[])
     }
 
     PSID_log(-1, "SelectTime=%d sec    DeadInterval=%d\n",
-	     config->selectTime, config->deadInterval);
+	     PSID_config->selectTime, PSID_config->deadInterval);
 
     /* Trigger status stuff, if necessary */
-    if (config->useMCast) {
+    if (PSID_config->useMCast) {
 	declareMaster(PSC_getMyID());
     } else {
 	int id = 0;
@@ -870,7 +869,7 @@ int main(int argc, const char *argv[])
      * Main loop
      */
     while (1) {
-	int res = Swait(config->selectTime * 1000);
+	int res = Swait(PSID_config->selectTime * 1000);
 
 	if (res < 0) PSID_warn(-1, errno, "Error while Swait()");
 

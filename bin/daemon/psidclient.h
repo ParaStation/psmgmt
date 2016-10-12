@@ -9,14 +9,8 @@
  * file.
  */
 /**
- * \file
+ * @file
  * Functions for client handling within the ParaStation daemon
- *
- * $Id$
- *
- * \author
- * Norbert Eicker <eicker@par-tec.com>
- *
  */
 #ifndef __PSIDCLIENT_H
 #define __PSIDCLIENT_H
@@ -48,8 +42,8 @@ void PSIDclient_init(void);
  * task structure @a task to be connected via the file descriptor @a
  * fd. Usually the clients connection is not actually established when
  * this function is called , i.e. the protocol is not set up correctly
- * yet. Thus isEstablishedClient() will return 0 for this @a fd. In
- * order to change this, use setEstablishedClient().
+ * yet. Thus PSID_client_isEstablished() will return 0 for this @a
+ * fd. In order to change this, use PSIDclient_setEstablished().
  *
  * @param fd The file descriptor the client is connected through.
  *
@@ -59,9 +53,9 @@ void PSIDclient_init(void);
  *
  * @return No return value.
  *
- * @see isEstablishedClient(), setEstablishedClient()
+ * @see PSIDclient_isEstablished(), PSIDclient_setEstablished()
  */
-void registerClient(int fd, PStask_ID_t tid, PStask_t *task);
+void PSIDclient_register(int fd, PStask_ID_t tid, PStask_t *task);
 
 /**
  * @brief Get a clients task ID.
@@ -73,7 +67,7 @@ void registerClient(int fd, PStask_ID_t tid, PStask_t *task);
  * @return On success, i.e. if a client is connected to @a fd, the
  * clients task ID is given. Otherwise -1 is returned.
  */
-PStask_ID_t getClientTID(int fd);
+PStask_ID_t PSIDclient_getTID(int fd);
 
 /**
  * @brief Get a clients task structure.
@@ -85,7 +79,7 @@ PStask_ID_t getClientTID(int fd);
  * @return On success, i.e. if a client is connected to @a fd, the
  * clients task structure is given. Otherwise NULL is returned.
  */
-PStask_t *getClientTask(int fd);
+PStask_t *PSIDclient_getTask(int fd);
 
 /**
  * @brief Establish client's connection.
@@ -99,9 +93,9 @@ PStask_t *getClientTask(int fd);
  *
  * @return No return value.
  *
- * @see isEstablishedClient()
+ * @see PSIDclient_isEstablished()
  */
- void setEstablishedClient(int fd);
+ void PSIDclient_setEstablished(int fd);
 
 /**
  * @brief Test if client's connection is established.
@@ -115,9 +109,9 @@ PStask_t *getClientTask(int fd);
  * @return If the client's connection is already established, 1 is
  * returned, or otherwise 0.
  *
- * @see setEstablishedClient()
+ * @see PSIDclient_setEstablished()
  */
-int isEstablishedClient(int fd);
+int PSIDclient_isEstablished(int fd);
 
 /**
  * @brief Signal a received SENDSTOPACK
@@ -176,7 +170,7 @@ int PSIDclient_send(DDMsg_t *msg);
  *
  * @see errno(3)
  */
-int recvClient(int fd, DDMsg_t *msg, size_t size);
+int PSIDclient_recv(int fd, DDMsg_t *msg, size_t size);
 
 /**
  * @brief Delete client.
@@ -192,7 +186,7 @@ int recvClient(int fd, DDMsg_t *msg, size_t size);
  *
  * @see closeConnection()
  */
-void deleteClient(int fd);
+void PSIDclient_delete(int fd);
 
 /**
  * @brief Kill all clients
@@ -209,7 +203,7 @@ void deleteClient(int fd);
  *
  * @return The number of clients the signal was delivered to.
  */
-int killAllClients(int sig, int killAdminTasks);
+int PSIDclient_killAll(int sig, int killAdminTasks);
 
 /**
  * @brief Memory cleanup

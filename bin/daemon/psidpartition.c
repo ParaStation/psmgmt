@@ -414,7 +414,7 @@ static void jobSuspended(PSpart_request_t *req)
 	PSID_log(-1, "%s: Unable to dequeue request %s\n",
 		 __func__, PSC_printTID(req->tid));
     }
-    if (config->freeOnSuspend) {
+    if (PSID_config->freeOnSuspend) {
 	unregisterReq(req);
 	req->freed = true;
     }
@@ -474,9 +474,9 @@ void cleanupRequests(PSnodes_ID_t node)
 }
 
 /**
- * @brief Cleanup the request queues.
+ * @brief Cleanup request queues
  *
- * Cleanup the two queues used for storing requests.
+ * Cleanup the queues used for storing requests.
  *
  * The queues to handle are @ref pendReq for all pending requests,
  * @ref runReq for all running requests, and @ref regisReq for
@@ -627,7 +627,7 @@ int send_TASKSUSPEND(PStask_ID_t tid)
  * if requested.
  *
  * If the resources of a task are actually freed upon suspension is
- * steered by the @ref freeOnSuspend member of the @ref config
+ * steered by the @ref freeOnSuspend member of the @ref PSID_config
  * structure. This can be modified on the one hand by the
  * 'freeOnSuspend' keyword within the daemon's configuration file or
  * on the other hand during run-time by the 'set freeOnSuspend'
@@ -682,7 +682,7 @@ int send_TASKRESUME(PStask_ID_t tid)
  * corresponding task during startup.
  *
  * If the resources of a task were actually freed upon suspension is
- * steered by the @ref freeOnSuspend member of the @ref config
+ * steered by the @ref freeOnSuspend member of the @ref PSID_config
  * structure. This can be modified on the one hand by the
  * 'freeOnSuspend' keyword within the daemon's configuration file or
  * on the other hand during run-time by the 'set freeOnSuspend'
@@ -1334,7 +1334,7 @@ static unsigned int getNormalPart(PSpart_request_t *request,
  * containing the number of CPUs indexed by the node's ParaStation ID.
  *
  * @param candSlots The process distribution to create. This has to be
- * a array of size @ref PSC_getNrOfNodes() initialized with all
+ * an array of size @ref PSC_getNrOfNodes() initialized with all
  * 0. Upon return it will contain the number of processes allocated to
  * each node indexed by the node's ParaStation ID.
  *
@@ -2488,7 +2488,7 @@ static void msg_GETPART(DDBufferMsg_t *inmsg)
 
     /* Set the default sorting strategy if necessary */
     if (req->sort == PART_SORT_DEFAULT) {
-	req->sort = config->nodesSort;
+	req->sort = PSID_config->nodesSort;
     }
 
     if (req->num) {
@@ -5227,7 +5227,7 @@ static void msg_PROVIDETASKSL(DDBufferMsg_t *inmsg)
 	    return;
 	}
 	if (req->suspended) {
-	    if (config->freeOnSuspend) {
+	    if (PSID_config->freeOnSuspend) {
 		req->freed = true;
 	    } else {
 		registerReq(req);

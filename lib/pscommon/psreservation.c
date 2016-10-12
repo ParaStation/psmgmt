@@ -12,6 +12,7 @@ static char vcid[] __attribute__((used)) =
     "$Id$";
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
+#include <stdbool.h>
 #include <stdlib.h>
 
 #include "pscommon.h"
@@ -35,7 +36,7 @@ typedef struct {
 } res_chunk_t;
 
 /**
- * Pool of reservation strucures ready to use. Initialized by @ref
+ * Pool of reservation structures ready to use. Initialized by @ref
  * incFreeList(). To get a buffer from this pool, use @ref
  * Psrsrvtn_get(), to put it back into it use @ref Psrsrvtn_put().
  */
@@ -61,15 +62,16 @@ static unsigned int availRess = 0;
  * within @ref PSrsrvtn_gc() as soon as enough reservation structures
  * are available again.
  *
- * return On success, 1 is returned. Or 0 if allocating the required
- * memory failed. In the latter case errno is set appropriately.
+ * @return On success, true is returned. Or false if allocating the
+ * required memory failed. In the latter case errno is set
+ * appropriately.
  */
-static int incFreeList(void)
+static bool incFreeList(void)
 {
     res_chunk_t *chunk = malloc(sizeof(*chunk));
     unsigned int i;
 
-    if (!chunk) return 0;
+    if (!chunk) return false;
 
     list_add_tail(&chunk->next, &chunkList);
 
@@ -81,7 +83,7 @@ static int incFreeList(void)
     availRess += RESERVATION_CHUNK;
     PSC_log(PSC_LOG_TASK, "%s: now used %d.\n", __func__, availRess);
 
-    return 1;
+    return true;
 }
 
 PSrsrvtn_t *PSrsrvtn_get(void)
@@ -232,19 +234,19 @@ void PSrsrvtn_gc(void)
 {
     list_t *c, *tmp;
     unsigned int i;
-    int first = 1;
+    bool first = true;
 
     PSC_log(PSC_LOG_TASK, "%s()\n", __func__);
-
-    if (!PSrsrvtn_gcRequired()) return;
 
     list_for_each_safe(c, tmp, &chunkList) {
 	res_chunk_t *chunk = list_entry(c, res_chunk_t, next);
 	int unused = 0;
 
+	if (!PSrsrvtn_gcRequired()) break;
+
 	/* always keep the first one */
 	if (first) {
-	    first = 0;
+	    first = false;
 	    continue;
 	}
 
@@ -253,12 +255,10 @@ void PSrsrvtn_gc(void)
 	}
 
 	if (unused > RESERVATION_CHUNK/2) freeChunk(chunk);
-
-	if (!PSrsrvtn_gcRequired()) break;
     }
 }
 
-int PSrsrvtn_gcRequired(void)
+bool PSrsrvtn_gcRequired(void)
 {
     PSC_log(PSC_LOG_TASK, "%s()\n", __func__);
 

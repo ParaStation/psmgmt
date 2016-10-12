@@ -10,12 +10,6 @@
 /**
  * @file
  * Helper structures and functions to put resevations into lists.
- *
- * $Id$
- *
- * @author
- * Norbert Eicker <eicker@par-tec.com>
- *
  */
 #ifndef __PSRESERVATION_H
 #define __PSRESERVATION_H
@@ -127,12 +121,12 @@ void PSrsrvtn_gc(void);
  * sufficiently many unused reservation structures are available to
  * free().
  *
- * @return If enough reservation structure to free() are available, 1 is
- * returned. Otherwise 0 is given back.
+ * @return If enough reservation structure to free() are available,
+ * true is returned. Otherwise false is given back.
  *
  * @see Psreservation_gc()
  */
-int PSrsrvtn_gcRequired(void);
+bool PSrsrvtn_gcRequired(void);
 
 /**
  * @brief Print statistics
