@@ -209,9 +209,9 @@ void freeDataBuffer(PS_DataBuffer_t *data)
  *
  * @param data Pointer to the actual data buffer.
  *
- * @return No return value.
+ * @return Returns 1 on success and 0 on error..
  */
-static void growBuffer(size_t len, PS_DataBuffer_t *data, const char *caller,
+static int growBuffer(size_t len, PS_DataBuffer_t *data, const char *caller,
 			const int line)
 {
     if (data->buf == NULL) {
@@ -221,10 +221,13 @@ static void growBuffer(size_t len, PS_DataBuffer_t *data, const char *caller,
     }
 
     while (data->bufUsed + len > data->bufSize) {
+	if (data->bufSize + BufTypedMsgSize  > UINT32_MAX) return 0;
 	data->buf = __urealloc(data->buf, data->bufSize + BufTypedMsgSize,
 				caller, line);
 	data->bufSize += BufTypedMsgSize;
     }
+
+    return 1;
 }
 
 int __addStringArrayToMsg(char **array, const uint32_t len,
@@ -251,13 +254,18 @@ int __addDataToMsg(const void *buf, uint32_t bufLen, PS_DataBuffer_t *data,
 		    const char *caller, const int line)
 {
     char *ptr;
+    int ret;
 
     if (!data) {
 	pluginlog("%s: invalid data from '%s'\n", __func__, caller);
 	return 0;
     }
 
-    growBuffer(sizeof(uint8_t) + sizeof(uint32_t) + bufLen, data, caller, line);
+    ret = growBuffer(sizeof(uint8_t) + sizeof(uint32_t) + bufLen,
+		    data, caller, line);
+    if (!ret) {
+	pluginlog("%s: growing buffer for '%s' failed\n", __func__, caller);
+    }
     ptr = data->buf + data->bufUsed;
 
     /* add data type */
@@ -285,6 +293,7 @@ int __addStringToMsg(const char *string, PS_DataBuffer_t *data,
 {
     size_t len;
     char *ptr;
+    int ret;
 
     if (!data) {
 	pluginlog("%s: invalid data from '%s'\n", __func__, caller);
@@ -293,7 +302,11 @@ int __addStringToMsg(const char *string, PS_DataBuffer_t *data,
 
     len = (!string) ? 0 : strlen(string) +1;
 
-    growBuffer(sizeof(uint8_t) + sizeof(uint32_t) + len, data, caller, line);
+    ret = growBuffer(sizeof(uint8_t) + sizeof(uint32_t) + len,
+		    data, caller, line);
+    if (!ret) {
+	pluginlog("%s: growing buffer for '%s' failed\n", __func__, caller);
+    }
     ptr = data->buf + data->bufUsed;
 
     /* add data type */
@@ -320,13 +333,17 @@ int __addUint8ToMsg(const uint8_t val, PS_DataBuffer_t *data,
 		    const char *caller, const int line)
 {
     char *ptr;
+    int ret;
 
     if (!data) {
 	pluginlog("%s: invalid data from '%s'\n", __func__, caller);
 	return 0;
     }
 
-    growBuffer(sizeof(uint8_t) + sizeof(uint8_t), data, caller, line);
+    ret = growBuffer(sizeof(uint8_t) + sizeof(uint8_t), data, caller, line);
+    if (!ret) {
+	pluginlog("%s: growing buffer for '%s' failed\n", __func__, caller);
+    }
     ptr = data->buf + data->bufUsed;
 
     /* add data type */
@@ -346,13 +363,17 @@ int __addUint16ToMsg(const uint16_t val, PS_DataBuffer_t *data,
 		    const char *caller, const int line)
 {
     char *ptr;
+    int ret;
 
     if (!data) {
 	pluginlog("%s: invalid data from '%s'\n", __func__, caller);
 	return 0;
     }
 
-    growBuffer(sizeof(uint8_t) + sizeof(uint16_t), data, caller, line);
+    ret = growBuffer(sizeof(uint8_t) + sizeof(uint16_t), data, caller, line);
+    if (!ret) {
+	pluginlog("%s: growing buffer for '%s' failed\n", __func__, caller);
+    }
     ptr = data->buf + data->bufUsed;
 
     /* add data type */
@@ -372,13 +393,17 @@ int __addUint32ToMsg(const uint32_t val, PS_DataBuffer_t *data,
 		    const char *caller, const int line)
 {
     char *ptr;
+    int ret;
 
     if (!data) {
 	pluginlog("%s: invalid data from '%s'\n", __func__, caller);
 	return 0;
     }
 
-    growBuffer(sizeof(uint8_t) + sizeof(uint32_t), data, caller, line);
+    ret = growBuffer(sizeof(uint8_t) + sizeof(uint32_t), data, caller, line);
+    if (!ret) {
+	pluginlog("%s: growing buffer for '%s' failed\n", __func__, caller);
+    }
     ptr = data->buf + data->bufUsed;
 
     /* add data type */
@@ -398,13 +423,17 @@ int __addUint64ToMsg(const uint64_t val, PS_DataBuffer_t *data,
 		    const char *caller, const int line)
 {
     char *ptr;
+    int ret;
 
     if (!data) {
 	pluginlog("%s: invalid data from '%s'\n", __func__, caller);
 	return 0;
     }
 
-    growBuffer(sizeof(uint8_t) + sizeof(uint64_t), data, caller, line);
+    ret = growBuffer(sizeof(uint8_t) + sizeof(uint64_t), data, caller, line);
+    if (!ret) {
+	pluginlog("%s: growing buffer for '%s' failed\n", __func__, caller);
+    }
     ptr = data->buf + data->bufUsed;
 
     /* add data type */
@@ -424,6 +453,7 @@ int __addDoubleToMsg(double val, PS_DataBuffer_t *data,
 		    const char *caller, const int line)
 {
     char *ptr;
+    int ret;
 
     union {
 	double d;
@@ -437,7 +467,10 @@ int __addDoubleToMsg(double val, PS_DataBuffer_t *data,
 
     uval.d = (val * FLOAT_CONVERT);
 
-    growBuffer(sizeof(uint8_t) + sizeof(uint64_t), data, caller, line);
+    ret = growBuffer(sizeof(uint8_t) + sizeof(uint64_t), data, caller, line);
+    if (!ret) {
+	pluginlog("%s: growing buffer for '%s' failed\n", __func__, caller);
+    }
     ptr = data->buf + data->bufUsed;
 
     /* add data type */
@@ -457,13 +490,17 @@ int __addInt16ToMsg(const int16_t val, PS_DataBuffer_t *data,
 		    const char *caller, const int line)
 {
     char *ptr;
+    int ret;
 
     if (!data) {
 	pluginlog("%s: invalid data from '%s'\n", __func__, caller);
 	return 0;
     }
 
-    growBuffer(sizeof(uint8_t) + sizeof(int16_t), data, caller, line);
+    ret = growBuffer(sizeof(uint8_t) + sizeof(int16_t), data, caller, line);
+    if (!ret) {
+	pluginlog("%s: growing buffer for '%s' failed\n", __func__, caller);
+    }
     ptr = data->buf + data->bufUsed;
 
     /* add data type */
@@ -483,13 +520,17 @@ int __addInt32ToMsg(const int32_t val, PS_DataBuffer_t *data,
 		    const char *caller, const int line)
 {
     char *ptr;
+    int ret;
 
     if (!data) {
 	pluginlog("%s: invalid data from '%s'\n", __func__, caller);
 	return 0;
     }
 
-    growBuffer(sizeof(uint8_t) + sizeof(int32_t), data, caller, line);
+    ret = growBuffer(sizeof(uint8_t) + sizeof(int32_t), data, caller, line);
+    if (!ret) {
+	pluginlog("%s: growing buffer for '%s' failed\n", __func__, caller);
+    }
     ptr = data->buf + data->bufUsed;
 
     /* add data type */
@@ -611,6 +652,7 @@ int __addTimeToMsg(const time_t *time, PS_DataBuffer_t *data,
 {
     char *ptr;
     time_t tmp;
+    int ret;
 
     if (!time) {
 	pluginlog("%s: invalid time from '%s'\n", __func__, caller);
@@ -622,7 +664,10 @@ int __addTimeToMsg(const time_t *time, PS_DataBuffer_t *data,
 	return 0;
     }
 
-    growBuffer(sizeof(uint8_t) + sizeof(uint64_t), data, caller, line);
+    ret = growBuffer(sizeof(uint8_t) + sizeof(uint64_t), data, caller, line);
+    if (!ret) {
+	pluginlog("%s: growing buffer for '%s' failed\n", __func__, caller);
+    }
     ptr = data->buf + data->bufUsed;
 
     /* add data type */
@@ -643,6 +688,7 @@ int __addMemToMsg(void *mem, uint32_t memLen, PS_DataBuffer_t *data,
 		    const char *caller, const int line)
 {
     void *ptr;
+    int ret;
 
     if (!data) {
 	pluginlog("%s: invalid data buffer from '%s'\n", __func__, caller);
@@ -654,7 +700,11 @@ int __addMemToMsg(void *mem, uint32_t memLen, PS_DataBuffer_t *data,
 	return 0;
     }
 
-    growBuffer(sizeof(uint8_t) + sizeof(uint32_t) + memLen, data, caller, line);
+    ret = growBuffer(sizeof(uint8_t) + sizeof(uint32_t) + memLen,
+		    data, caller, line);
+    if (!ret) {
+	pluginlog("%s: growing buffer for '%s' failed\n", __func__, caller);
+    }
     ptr = data->buf + data->bufUsed;
 
     /* add data type */
@@ -674,13 +724,17 @@ int __addPidToMsg(const pid_t pid, PS_DataBuffer_t *data,
 		    const char *caller, const int line)
 {
     char *ptr;
+    int ret;
 
     if (!data) {
 	pluginlog("%s: invalid data from '%s'\n", __func__, caller);
 	return 0;
     }
 
-    growBuffer(sizeof(uint8_t) + sizeof(pid_t), data, caller, line);
+    ret = growBuffer(sizeof(uint8_t) + sizeof(pid_t), data, caller, line);
+    if (!ret) {
+	pluginlog("%s: growing buffer for '%s' failed\n", __func__, caller);
+    }
     ptr = data->buf + data->bufUsed;
 
     /* add data type */

@@ -43,6 +43,8 @@
 
 #define RING_BUFFER_LEN 1024
 
+#define MAX_LINE_BUF_LENGTH 1024*1024
+
 typedef struct {
     PS_DataBuffer_t out;
     PS_DataBuffer_t err;
@@ -242,7 +244,7 @@ static void handleBufferedMsg(char *msg, uint32_t len, PS_DataBuffer_t *buffer,
 
     nl = len ? memrchr(msg, '\n', len) : NULL;
 
-    if (nl || !len) {
+    if (nl || !len || buffer->bufUsed + len > MAX_LINE_BUF_LENGTH) {
 	if (buffer->bufUsed) {
 	    writeLabelIOmsg(buffer->buf, buffer->bufUsed, taskid, type,
 			fwdata, step, lrank);
