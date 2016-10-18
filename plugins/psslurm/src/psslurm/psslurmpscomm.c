@@ -1234,7 +1234,7 @@ void handleSpawnFailed(DDErrorMsg_t *msg)
 	    msg->request, msg->error);
 
     if (!(getJobIDbyForwarderMsg(msg, &forwarder, &jobid, &stepid))) {
-	goto FORWARD_SPAWN_MSG;
+	goto FORWARD_SPAWN_FAILED_MSG;
     }
 
     if ((step = findStepById(jobid, stepid))) {
@@ -1261,8 +1261,8 @@ void handleSpawnFailed(DDErrorMsg_t *msg)
 	step->exitCode = 0x200;
     }
 
-FORWARD_SPAWN_MSG:
-    if (oldSpawnHandler) oldSpawnHandler((DDBufferMsg_t *) msg);
+FORWARD_SPAWN_FAILED_MSG:
+    if (oldSpawnFailedHandler) oldSpawnFailedHandler((DDBufferMsg_t *) msg);
 }
 
 void handleCCMsg(PSLog_Msg_t *msg)
