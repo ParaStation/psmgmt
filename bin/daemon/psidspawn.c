@@ -1891,8 +1891,9 @@ static void msg_SPAWNREQUEST(DDBufferMsg_t *msg)
 /**
  * List of all tasks waiting to get spawned, i.e. waiting for last
  * environment packets to come in.
+ * Public for plugins to allow delaying of spawn messages.
  */
-static LIST_HEAD(spawnTasks);
+LIST_HEAD(spawnTasks);
 
 /**
  * @brief Clone environment from sibling task.
