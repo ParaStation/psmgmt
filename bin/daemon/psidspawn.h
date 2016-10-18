@@ -29,6 +29,14 @@ extern "C" {
 #endif
 #endif
 
+/**
+ * List of all tasks waiting to get spawned, i.e. waiting for last
+ * environment packets to come in.
+ * Public for plugins to allow delaying of spawn messages.
+ */
+extern list_t spawnTasks;
+
+
 #ifdef CPU_ZERO
 /**
  * @brief Map CPUs
