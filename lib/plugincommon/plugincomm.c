@@ -78,7 +78,9 @@ void setFDblock(int fd, bool block)
 /**
  * @brief Grow the data buffer if needed.
  *
- * Grow the data buffer @a data by @a len bytes.
+ * Grow the data buffer @a data such that @a len additional bytes fit
+ * into the buffer. Buffers will grow by multiples of @ref
+ * BufTypedMsgSize and never grow beyond @ref UINT32_MAX.
  *
  * @a caller and @a line are passed to the corresponding allocation
  * functions @ref __umalloc() and __urealloc() in order to create
@@ -92,22 +94,21 @@ void setFDblock(int fd, bool block)
  *
  * @param line Line number where this function is called
  *
- * @return No return value
+ * @return Return true on success and false on error
  */
-static void growDataBuffer(size_t len, PS_DataBuffer_t *data,
+static bool growDataBuffer(size_t len, PS_DataBuffer_t *data,
 			   const char *caller, const int line)
 {
-    if (data->buf == NULL) {
-	data->buf = __umalloc(BufTypedMsgSize, caller, line);
-	data->bufSize = BufTypedMsgSize;
-	data->bufUsed = 0;
-    }
+    if (!data->buf) data->bufSize = data->bufUsed = 0;
 
-    while (data->bufUsed + len > data->bufSize) {
-	data->buf = __urealloc(data->buf, data->bufSize + BufTypedMsgSize,
-			       caller, line);
-	data->bufSize += BufTypedMsgSize;
-    }
+    size_t newLen = (!len) ? (data->bufSize ? data->bufSize: BufTypedMsgSize) :
+	((data->bufUsed + len - 1) / BufTypedMsgSize + 1) * BufTypedMsgSize;
+    if (newLen > UINT32_MAX) return false;
+
+    data->buf = __urealloc(data->buf, newLen, caller, line);
+    data->bufSize = newLen;
+
+    return true;
 }
 
 void freeDataBuffer(PS_DataBuffer_t *data)
@@ -401,7 +402,11 @@ bool addToBuf(const void *val, const uint32_t size, PS_DataBuffer_t *data,
 	return false;
     }
 
-    growDataBuffer(growth, data, caller, line);
+    if (!growDataBuffer(growth, data, caller, line)) {
+	pluginlog("%s: growing buffer failed from '%s' at %d\n", __func__,
+		  caller, line);
+	return false;
+    }
     ptr = data->buf + data->bufUsed;
 
     /* add data type */
