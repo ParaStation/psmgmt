@@ -57,7 +57,7 @@ int initialize(void)
 	mlog("%s: getting psaccount handle failed\n", __func__);
     } else {
 	psAccountSwitchAccounting = dlsym(handle, "psAccountSwitchAccounting");
-	if (psAccountSwitchAccounting) {
+	if (!psAccountSwitchAccounting) {
 	    mlog("%s: loading function psAccountSwitchAccounting() failed\n",
 		 __func__);
 	}
