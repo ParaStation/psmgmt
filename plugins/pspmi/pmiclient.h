@@ -11,23 +11,11 @@
 #ifndef __PS_PMI_CLIENT
 #define __PS_PMI_CLIENT
 
+/** @doctodo */
 #define PMI_FINALIZED 55
 
 #include "pslog.h"
 #include "pmiclientspawn.h"
-
-/**
- * @brief Set spawn function (symbol to be loaded in other modules)
- *
- * @param spawnFunc  function to use
- */
-void psPmiSetFillSpawnTaskFunction(
-	int (*spawnFunc)(SpawnRequest_t *req, int usize, PStask_t *task));
-
-/**
- * @brief Reset spawn function (symbol to be loaded in other modules)
- */
-void psPmiResetFillSpawnTaskFunction(void);
 
 /**
  * @brief Handle a new PMI message from the local MPI client.
@@ -111,5 +99,28 @@ int handleCCError(void *data);
  * @return No return value.
  */
 void leaveKVS(int used);
+
+/** @doctodo */
+typedef int (fillerFunc_t)(SpawnRequest_t *req, int usize, PStask_t *task);
+
+/**
+ * @brief Set spawn function (symbol to be loaded in other modules)
+ *
+ * @doctodo
+ *
+ * @param spawnFunc  function to use
+ *
+ * @return No return value
+ */
+void psPmiSetFillSpawnTaskFunction(fillerFunc_t spawnFunc);
+
+/**
+ * @brief Reset spawn function (symbol to be loaded in other modules)
+ *
+ * @doctodo
+ *
+ * @return No return value
+ */
+void psPmiResetFillSpawnTaskFunction(void);
 
 #endif  /* __PS_PMI_CLIENT */
