@@ -265,6 +265,7 @@ int __addDataToMsg(const void *buf, uint32_t bufLen, PS_DataBuffer_t *data,
 		    data, caller, line);
     if (!ret) {
 	pluginlog("%s: growing buffer for '%s' failed\n", __func__, caller);
+	return 0;
     }
     ptr = data->buf + data->bufUsed;
 
@@ -306,6 +307,7 @@ int __addStringToMsg(const char *string, PS_DataBuffer_t *data,
 		    data, caller, line);
     if (!ret) {
 	pluginlog("%s: growing buffer for '%s' failed\n", __func__, caller);
+	return 0;
     }
     ptr = data->buf + data->bufUsed;
 
@@ -343,6 +345,7 @@ int __addUint8ToMsg(const uint8_t val, PS_DataBuffer_t *data,
     ret = growBuffer(sizeof(uint8_t) + sizeof(uint8_t), data, caller, line);
     if (!ret) {
 	pluginlog("%s: growing buffer for '%s' failed\n", __func__, caller);
+	return 0;
     }
     ptr = data->buf + data->bufUsed;
 
@@ -373,6 +376,7 @@ int __addUint16ToMsg(const uint16_t val, PS_DataBuffer_t *data,
     ret = growBuffer(sizeof(uint8_t) + sizeof(uint16_t), data, caller, line);
     if (!ret) {
 	pluginlog("%s: growing buffer for '%s' failed\n", __func__, caller);
+	return 0;
     }
     ptr = data->buf + data->bufUsed;
 
@@ -403,6 +407,7 @@ int __addUint32ToMsg(const uint32_t val, PS_DataBuffer_t *data,
     ret = growBuffer(sizeof(uint8_t) + sizeof(uint32_t), data, caller, line);
     if (!ret) {
 	pluginlog("%s: growing buffer for '%s' failed\n", __func__, caller);
+	return 0;
     }
     ptr = data->buf + data->bufUsed;
 
@@ -433,6 +438,7 @@ int __addUint64ToMsg(const uint64_t val, PS_DataBuffer_t *data,
     ret = growBuffer(sizeof(uint8_t) + sizeof(uint64_t), data, caller, line);
     if (!ret) {
 	pluginlog("%s: growing buffer for '%s' failed\n", __func__, caller);
+	return 0;
     }
     ptr = data->buf + data->bufUsed;
 
@@ -470,6 +476,7 @@ int __addDoubleToMsg(double val, PS_DataBuffer_t *data,
     ret = growBuffer(sizeof(uint8_t) + sizeof(uint64_t), data, caller, line);
     if (!ret) {
 	pluginlog("%s: growing buffer for '%s' failed\n", __func__, caller);
+	return 0;
     }
     ptr = data->buf + data->bufUsed;
 
@@ -500,6 +507,7 @@ int __addInt16ToMsg(const int16_t val, PS_DataBuffer_t *data,
     ret = growBuffer(sizeof(uint8_t) + sizeof(int16_t), data, caller, line);
     if (!ret) {
 	pluginlog("%s: growing buffer for '%s' failed\n", __func__, caller);
+	return 0;
     }
     ptr = data->buf + data->bufUsed;
 
@@ -530,6 +538,7 @@ int __addInt32ToMsg(const int32_t val, PS_DataBuffer_t *data,
     ret = growBuffer(sizeof(uint8_t) + sizeof(int32_t), data, caller, line);
     if (!ret) {
 	pluginlog("%s: growing buffer for '%s' failed\n", __func__, caller);
+	return 0;
     }
     ptr = data->buf + data->bufUsed;
 
@@ -667,6 +676,7 @@ int __addTimeToMsg(const time_t *time, PS_DataBuffer_t *data,
     ret = growBuffer(sizeof(uint8_t) + sizeof(uint64_t), data, caller, line);
     if (!ret) {
 	pluginlog("%s: growing buffer for '%s' failed\n", __func__, caller);
+	return 0;
     }
     ptr = data->buf + data->bufUsed;
 
@@ -704,6 +714,7 @@ int __addMemToMsg(void *mem, uint32_t memLen, PS_DataBuffer_t *data,
 		    data, caller, line);
     if (!ret) {
 	pluginlog("%s: growing buffer for '%s' failed\n", __func__, caller);
+	return 0;
     }
     ptr = data->buf + data->bufUsed;
 
@@ -734,6 +745,7 @@ int __addPidToMsg(const pid_t pid, PS_DataBuffer_t *data,
     ret = growBuffer(sizeof(uint8_t) + sizeof(pid_t), data, caller, line);
     if (!ret) {
 	pluginlog("%s: growing buffer for '%s' failed\n", __func__, caller);
+	return 0;
     }
     ptr = data->buf + data->bufUsed;
 
