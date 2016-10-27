@@ -50,17 +50,17 @@ extern char **environ;
 #endif
 
 typedef struct {
-    char *msg;		    /* The KVS update message */
-    size_t len;		    /* The size of the message */
-    int isSuccReady;	    /* Flag if the successor was ready */
-    int gotBarrierIn;	    /* Flag if we got the barrier from the MPI client */
-    int lastUpdate;	    /* Flag if the update is complete (last msg) */
-    int updateIndex;	    /* Index to distinguish update messages */
-    struct list_head list;
+    list_t next;         /**< Used to put into uBufferList */
+    char *msg;           /**< Actual KVS update message */
+    size_t len;          /**< Size of the update message */
+    bool isSuccReady;    /**< Flag if the successor was ready */
+    bool gotBarrierIn;   /**< Flag if we got the barrier from the MPI client */
+    bool lastUpdate;     /**< Flag if the update is complete (last msg) */
+    int updateIndex;     /**< Index to distinguish update messages */
 } Update_Buffer_t;
 
 /** A list of buffers holding KVS update data */
-static Update_Buffer_t uBufferList;
+static LIST_HEAD(uBufferList);
 
 /** Flag to check if the pmi_init() was called successful */
 static bool initialized = false;
@@ -219,7 +219,7 @@ static void sendKvstoSucc(char *msg, size_t len)
  * If something goes wrong in the startup phase with PMI, the child
  * and therefore the whole job can hang infinite. So we have to kill it.
  *
- * @return No return value
+ * @return Always return 1
  */
 static int critErr()
 {
@@ -269,15 +269,14 @@ static int critErr()
  */
 static int do_send(char *msg, int offset, int len)
 {
+    char *errStr;
     int n, i;
 
-    if (!len || !msg) {
-	return 0;
-    }
+    if (!len || !msg) return 0;
 
-    for (n=offset, i=1; (n<len) && (i>0);) {
+    for (n = offset, i = 1; (n < len) && (i > 0);) {
 	i = send(pmisock, &msg[n], len-n, 0);
-	if (i<=0) {
+	if (i <= 0) {
 	    switch (errno) {
 	    case EINTR:
 		break;
@@ -285,12 +284,10 @@ static int do_send(char *msg, int offset, int len)
 		return n;
 		break;
 	    default:
-		{
-		char *errstr = strerror(errno);
-		elog("%s(r%i): got error %d on PMI socket: %s\n",
-			  __func__, rank, errno, errstr ? errstr : "UNKNOWN");
-	    return i;
-		}
+		errStr = strerror(errno);
+		elog("%s(r%i): got error %d on PMI socket: %s\n", __func__,
+		     rank, errno, errStr ? errStr : "UNKNOWN");
+		return i;
 	    }
 	} else {
 	    n+=i;
@@ -325,7 +322,7 @@ static int __PMI_send(char *msg, const char *caller, const int line)
     if (debug) elog("%s(r%i): %s", __func__, rank, msg);
 
     /* try to send msg, repeat it PMI_RESEND times */
-    for (i =0; (written < len) && (i< PMI_RESEND); i++) {
+    for (i = 0; (written < len) && (i < PMI_RESEND); i++) {
 	written = do_send(msg, written, len);
     }
 
@@ -370,7 +367,7 @@ int handleSpawnRes(void *vmsg)
 static void deluBufferEntry(Update_Buffer_t *uBuf)
 {
     ufree(uBuf->msg);
-    list_del(&uBuf->list);
+    list_del(&uBuf->next);
     ufree(uBuf);
 }
 
@@ -466,13 +463,13 @@ static void checkDaisyBarrier()
  *
  * @param pmiLine The update message to parse
  *
- * @param lastUpdateMsg Flag to indicate if this is the last update message
+ * @param lastUpdate Flag to indicate this message completes the update
  *
  * @param updateIdx Integer to identify the update phase
  *
  * @return No return value
  */
-static void parseUpdateMessage(char *pmiLine, int lastUpdateMsg, int updateIdx)
+static void parseUpdateMessage(char *pmiLine, bool lastUpdate, int updateIdx)
 {
     char vname[PMI_KEYLEN_MAX];
     char *nextvalue, *saveptr;
@@ -484,7 +481,7 @@ static void parseUpdateMessage(char *pmiLine, int lastUpdateMsg, int updateIdx)
 
     while (nextvalue != NULL) {
 	/* extract next key/value pair */
-	char *value = strchr(nextvalue, '=') +1;
+	char *value = strchr(nextvalue, '=') + 1;
 	if (!value) {
 	    elog("%s(r%i): invalid kvs update" " received\n", __func__, rank);
 	    critErr();
@@ -505,7 +502,7 @@ static void parseUpdateMessage(char *pmiLine, int lastUpdateMsg, int updateIdx)
     }
     updateMsgCount++;
 
-    if (lastUpdateMsg) {
+    if (lastUpdate) {
 	char *ptr = buffer;
 	size_t len = 0;
 
@@ -548,12 +545,12 @@ static int p_Barrier_In(char *msg)
     gotBarrierIn = true;
 
     /* if we are the first in chain, send starting barrier msg */
-    if (pmiRank == 0) startDaisyBarrier = true;
+    if (!pmiRank) startDaisyBarrier = true;
     checkDaisyBarrier();
 
     /* update local KVS cache with buffered update */
-    list_for_each_safe(pos, tmp, &uBufferList.list) {
-	Update_Buffer_t *uBuf = list_entry(pos, Update_Buffer_t, list);
+    list_for_each_safe(pos, tmp, &uBufferList) {
+	Update_Buffer_t *uBuf = list_entry(pos, Update_Buffer_t, next);
 	if (!uBuf->gotBarrierIn) {
 	    char pmiLine[PMIU_MAXLINE];
 	    size_t len, pLen;
@@ -572,7 +569,7 @@ static int p_Barrier_In(char *msg)
 
 	    parseUpdateMessage(pmiLine, uBuf->lastUpdate, uBuf->updateIndex);
 
-	    uBuf->gotBarrierIn = 1;
+	    uBuf->gotBarrierIn = true;
 	    if (uBuf->isSuccReady) deluBufferEntry(uBuf);
 	}
     }
@@ -680,7 +677,7 @@ static int p_Destroy_Kvs(char *msg)
     /* get parameter from msg */
     getpmiv("kvsname", msg, kvsname, sizeof(kvsname));
 
-    if (kvsname[0] == 0) {
+    if (!kvsname[0]) {
 	elog("%s(r%i): got invalid msg\n", __func__, rank);
 	PMI_send("cmd=kvs_destroyed rc=-1\n");
 	return 1;
@@ -722,10 +719,9 @@ static int p_Put(char *msg)
     getpmiv("value", msg, value, sizeof(value));
 
     /* check msg */
-    if (kvsname[0] == 0 || key[0] == 0 || value[0] == 0) {
-	if (debug_kvs) {
-	    elog( "%s(r%i): received invalid PMI put msg\n", __func__, rank);
-	}
+    if (!kvsname[0] || !key[0] || !value[0]) {
+	if (debug_kvs) elog( "%s(r%i): received invalid PMI put msg\n",
+			     __func__, rank);
 	PMI_send("cmd=put_result rc=-1 msg=error_invalid_put_msg\n");
 	return 1;
     }
@@ -773,10 +769,9 @@ static int p_Get(char *msg)
     getpmiv("key", msg, key, sizeof(key));
 
     /* check msg */
-    if (kvsname[0] == 0 || key[0] == 0) {
-	if (debug_kvs) {
-	    elog("%s(r%i): received invalid PMI get cmd\n", __func__, rank);
-	}
+    if (!kvsname[0] || !key[0]) {
+	if (debug_kvs) elog("%s(r%i): received invalid PMI get cmd\n",
+			    __func__, rank);
 	PMI_send("cmd=get_result rc=-1 msg=error_invalid_get_msg\n");
 	return 1;
     }
@@ -832,7 +827,7 @@ static int p_Publish_Name(char *msg)
     getpmiv("port", msg, port, sizeof(port));
 
     /* check msg */
-    if (port[0] == 0 || service[0] == 0) {
+    if (!port[0] || !service[0]) {
 	elog("%s(r%i): received invalid publish_name msg\n", __func__, rank);
 	return 1;
     }
@@ -864,7 +859,7 @@ static int p_Unpublish_Name(char *msg)
     getpmiv("service", msg, service, sizeof(service));
 
     /* check msg*/
-    if (service[0] == 0) {
+    if (!service[0]) {
 	elog("%s(r%i): received invalid unpublish_name msg\n", __func__, rank);
     }
 
@@ -894,7 +889,7 @@ static int p_Lookup_Name(char *msg)
     getpmiv("service", msg, service, sizeof(service));
 
     /* check msg*/
-    if (service[0] == 0) {
+    if (!service[0]) {
 	elog("%s(r%i): received invalid lookup_name msg\n", __func__, rank);
     }
 
@@ -927,11 +922,9 @@ static int p_GetByIdx(char *msg)
     getpmiv("kvsname", msg, kvsname, sizeof(msg));
 
     /* check msg */
-    if (idx[0] == 0 || kvsname[0] == 0) {
-	if (debug_kvs) {
-	    elog("%s(r%i): received invalid PMI getbiyidx msg\n",
-		 __func__, rank);
-	}
+    if (!idx[0] || !kvsname[0]) {
+	if (debug_kvs) elog("%s(r%i): received invalid PMI getbiyidx msg\n",
+			    __func__, rank);
 	snprintf(reply, sizeof(reply),
 		 "getbyidx_results rc=-1 reason=invalid_getbyidx_msg\n");
 	PMI_send(reply);
@@ -986,7 +979,7 @@ static int p_Init(char *msg)
     getpmiv("pmi_subversion", msg, pmisubversion, sizeof(pmisubversion));
 
     /* check msg */
-    if (pmiversion[0] == 0 || pmisubversion[0] == 0) {
+    if (!pmiversion[0] || !pmisubversion[0]) {
 	elog("%s(r%i): received invalid PMI init cmd\n", __func__, rank);
 	return critErr();
     }
@@ -1096,7 +1089,7 @@ static int p_InitAck(char *msg)
 
     getpmiv("pmiid", msg, client_id, sizeof(client_id));
 
-    if (client_id[0] == 0) {
+    if (!client_id[0]) {
 	elog("%s(r%i): empty pmiid from MPI client\n", __func__, rank);
 	return critErr();
     }
@@ -1135,7 +1128,7 @@ static int p_Execution_Problem(char *msg)
     getpmiv("reason", msg, exec, sizeof(exec));
     getpmiv("exec", msg, reason, sizeof(reason));
 
-    if (exec[0] == 0 || reason[0] == 0) {
+    if (!exec[0] || !reason[0]) {
 	elog("%s(r%i): received invalid PMI execution problem msg\n",
 	     __func__, rank);
 	return 1;
@@ -1157,7 +1150,7 @@ static int setPreputValues()
 
     preNum = atoi(env);
 
-    for (i=0; i< preNum; i++) {
+    for (i = 0; i < preNum; i++) {
 	char *key, *value;
 	snprintf(buffer, sizeof(buffer), "__PMI_preput_key_%i", i);
 	key = getenv(buffer);
@@ -1210,7 +1203,7 @@ int pmi_init(int pmisocket, PStask_t *childTask)
 	return 1;
     }
     appnum = atoi(env);
-    if(appnum < 0) {
+    if (appnum < 0) {
 	elog("%s(r%i): invalid PMI APPNUM parameter %s\n", __func__, rank, env);
 	return 1;
     }
@@ -1220,7 +1213,7 @@ int pmi_init(int pmisocket, PStask_t *childTask)
     mdbg(PSPMI_LOG_VERBOSE, " spawned '%s' myTid %s\n",
 	 getenv("PMI_SPAWNED"), PSC_printTID(PSC_getMyTID()));
 
-    INIT_LIST_HEAD(&uBufferList.list);
+    INIT_LIST_HEAD(&uBufferList);
 
     if (pmisocket < 1) {
 	elog("%s(r%i): invalid PMI socket %i\n", __func__, rank, pmisocket);
@@ -1341,15 +1334,14 @@ void pmi_finalize(void)
  * @param barrierIn Flag to indicate if this update has to be sent to
  * the local MPI client
  *
- * @param lastUpdate If this flag is set to 1 then the update is complete
- * with this message
+ * @param lastUpdate Flag to indicate this message completes the update
  *
  * @param strLen The length of the update payload
  *
  * @return No return value
  */
-static void bufferCacheUpdate(char *msg, size_t msgLen, int isSuccReady,
-			      int barrierIn, int lastUpdate, size_t strLen,
+static void bufferCacheUpdate(char *msg, size_t msgLen, bool isSuccReady,
+			      bool barrierIn, bool lastUpdate, size_t strLen,
 			      int updateIndex)
 {
     Update_Buffer_t *uBuf;
@@ -1364,7 +1356,7 @@ static void bufferCacheUpdate(char *msg, size_t msgLen, int isSuccReady,
     uBuf->lastUpdate = lastUpdate;
     uBuf->updateIndex = updateIndex;
 
-    list_add_tail(&(uBuf->list), &uBufferList.list);
+    list_add_tail(&(uBuf->next), &uBufferList);
 }
 
 /**
@@ -1374,12 +1366,11 @@ static void bufferCacheUpdate(char *msg, size_t msgLen, int isSuccReady,
  *
  * @param ptr Pointer to the update payload
  *
- * @param lastUpdateMsg If this flag is set to 1 then the update is complete
- * with this message
+ * @param lastUpdate Flag to indicate this message completes the update
  *
  * @return No return value
  */
-static void handleKVScacheUpdate(PSLog_Msg_t *msg, char *ptr, int lastUpdateMsg)
+static void handleKVScacheUpdate(PSLog_Msg_t *msg, char *ptr, bool lastUpdate)
 {
     char pmiLine[PMIU_MAXLINE];
     int len, msgSize, updateIndex;
@@ -1390,7 +1381,7 @@ static void handleKVScacheUpdate(PSLog_Msg_t *msg, char *ptr, int lastUpdateMsg)
     len = getKVSString(&ptr, pmiLine, sizeof(pmiLine));
     if (len < 0) {
 	elog("%s(%i): invalid update len %i index %i last %i\n", __func__,
-	     rank, len, updateIndex, lastUpdateMsg);
+	     rank, len, updateIndex, lastUpdate);
 	critErr();
 	return;
     }
@@ -1408,11 +1399,11 @@ static void handleKVScacheUpdate(PSLog_Msg_t *msg, char *ptr, int lastUpdateMsg)
     /* we need to buffer the message for later */
     if (len > 0 && (!isSuccReady || !gotBarrierIn)) {
 	bufferCacheUpdate(msg->buf, msgSize, isSuccReady, gotBarrierIn,
-			  lastUpdateMsg, len, updateIndex);
+			  lastUpdate, len, updateIndex);
     }
 
     /* sanity check */
-    if (lastUpdateMsg && !gotBarrierIn) {
+    if (lastUpdate && !gotBarrierIn) {
 	elog("%s:(r%i): got last update message, but I have no barrier_in\n",
 	     __func__, rank);
 	critErr();
@@ -1421,7 +1412,7 @@ static void handleKVScacheUpdate(PSLog_Msg_t *msg, char *ptr, int lastUpdateMsg)
     /* forward to successor */
     if (isSuccReady && succtid != providertid) sendKvstoSucc(msg->buf, msgSize);
 
-    if (lastUpdateMsg && psAccountSwitchAccounting) {
+    if (lastUpdate && psAccountSwitchAccounting) {
 	psAccountSwitchAccounting(childtid, true);
     }
 
@@ -1429,7 +1420,7 @@ static void handleKVScacheUpdate(PSLog_Msg_t *msg, char *ptr, int lastUpdateMsg)
     if (!gotBarrierIn) return;
 
     /* update the local KVS */
-    parseUpdateMessage(pmiLine, lastUpdateMsg, updateIndex);
+    parseUpdateMessage(pmiLine, lastUpdate, updateIndex);
 }
 
 /**
@@ -1491,8 +1482,8 @@ static void handleSuccReady(char *mbuf)
     checkDaisyBarrier();
 
     /* forward buffered messages */
-    list_for_each_safe(pos, tmp, &uBufferList.list) {
-	Update_Buffer_t *uBuf = list_entry(pos, Update_Buffer_t, list);
+    list_for_each_safe(pos, tmp, &uBufferList) {
+	Update_Buffer_t *uBuf = list_entry(pos, Update_Buffer_t, next);
 	if (!uBuf->isSuccReady) {
 
 	    if (succtid != providertid) {
@@ -1514,7 +1505,7 @@ static void handleSuccReady(char *mbuf)
 	    }
 
 	    if (succtid != providertid) sendKvstoSucc(uBuf->msg, uBuf->len);
-	    uBuf->isSuccReady = 1;
+	    uBuf->isSuccReady = true;
 
 	    if (uBuf->gotBarrierIn) deluBufferEntry(uBuf);
 	}
@@ -1629,7 +1620,7 @@ static bool getSpawnKVPs(char *msg, char *name, int *kvpc, KVP_t **kvpv)
 
     *kvpv = umalloc(*kvpc * sizeof(KVP_t));
 
-    for (i=0; i < *kvpc; i++) {
+    for (i = 0; i < *kvpc; i++) {
 	char nextkey[PMI_KEYLEN_MAX], nextvalue[PMI_VALLEN_MAX];
 	snprintf(buffer, sizeof(buffer), "%s_key_%i", name, i);
 	if (!getpmiv(buffer, msg, nextkey, sizeof(nextkey))) {
@@ -2160,7 +2151,7 @@ static bool tryPMISpawn(SpawnRequest_t *req, int universeSize,
 
     /* build environment */
     strvInit(&env, NULL, 0);
-    for (i=0; myTask->environ[i]; i++) {
+    for (i = 0; myTask->environ[i]; i++) {
 	cur = myTask->environ[i];
 
 	/* skip troublesome old env vars */
@@ -2240,11 +2231,11 @@ static bool tryPMISpawn(SpawnRequest_t *req, int universeSize,
 
     if (debug) {
 	elog("%s(r%i): Executing '", __func__, rank);
-	for (i=0; i<task->argc; i++) elog(" %s", task->argv[i]);
+	for (i = 0; i < task->argc; i++) elog(" %s", task->argv[i]);
 	elog("'\n");
     }
     mlog("%s(r%i): Executing '", __func__, rank);
-    for (i=0; i<task->argc; i++) mlog(" %s", task->argv[i]);
+    for (i = 0; i < task->argc; i++) mlog(" %s", task->argv[i]);
     mlog("'\n");
 
 #if 0
@@ -2355,10 +2346,10 @@ static void handleKVSMessage(PSLog_Msg_t *msg)
 	    critErr();
 	    break;
 	case UPDATE_CACHE:
-	    handleKVScacheUpdate(msg, ptr, 0);
+	    handleKVScacheUpdate(msg, ptr, false);
 	    break;
 	case UPDATE_CACHE_FINISH:
-	    handleKVScacheUpdate(msg, ptr, 1);
+	    handleKVScacheUpdate(msg, ptr, true);
 	    break;
 	case DAISY_SUCC_READY:
 	    handleSuccReady(ptr);
@@ -2484,14 +2475,14 @@ int handlePMIclientMsg(char *msg)
     if (debug) elog("%s(r%i): got %s\n", __func__, rank, msg);
 
     /* find PMI cmd */
-    for (i=0; pmi_commands[i].Name; i++) {
+    for (i = 0; pmi_commands[i].Name; i++) {
 	if (!strcmp(cmd, pmi_commands[i].Name)) {
 	    return pmi_commands[i].fpFunc(msg);
 	}
     }
 
     /* find short PMI cmd */
-    for (i=0; pmi_short_commands[i].Name; i++) {
+    for (i = 0; pmi_short_commands[i].Name; i++) {
 	if (!strcmp(cmd, pmi_short_commands[i].Name)) {
 	    return pmi_short_commands[i].fpFunc();
 	}
