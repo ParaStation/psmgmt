@@ -112,20 +112,21 @@ PSnodes_ID_t getNodeIDbyName(char *host)
 const char *getHostnameByNodeId(PSnodes_ID_t id)
 {
     in_addr_t nAddr;
-    char *nName = NULL, *ptr;
-    struct hostent *hp;
+    char *nName = NULL, buf[NI_MAXHOST];
 
     /* identify and set hostname */
     nAddr = PSIDnodes_getAddr(id);
 
-    if (nAddr == INADDR_ANY) {
-	nName = NULL;
-    } else {
-	hp = gethostbyaddr(&nAddr, sizeof(nAddr), AF_INET);
-
-	if (hp) {
-	    if ((ptr = strchr (hp->h_name, '.'))) *ptr = '\0';
-	    nName = hp->h_name;
+    if (nAddr != INADDR_ANY) {
+	struct sockaddr_in addr = {
+	    .sin_family = AF_INET,
+	    .sin_port = 0,
+	    .sin_addr = { .s_addr = nAddr } };
+	if (!getnameinfo((struct sockaddr *)&addr, sizeof(addr),
+			 buf, sizeof(buf), NULL, 0, NI_NAMEREQD)) {
+	    char *ptr = strchr (buf, '.');
+	    if (ptr) *ptr = '\0';
+	    nName = buf;
 	}
     }
 

@@ -532,8 +532,7 @@ static int stateChangeEnv(void *info)
 {
     int nID = -1;
     in_addr_t nAddr;
-    char *nName;
-    char val[16];
+    char *nName, buf[NI_MAXHOST];
 
     if (info) {
 	stateChangeInfo_t *i = info;
@@ -541,8 +540,8 @@ static int stateChangeEnv(void *info)
     }
     if (nID < 0 || nID >= PSC_getNrOfNodes()) nID = -1;
 
-    snprintf(val, sizeof(val), "%d", nID);
-    setenv("NODE_ID", val, 1);
+    snprintf(buf, sizeof(buf), "%d", nID);
+    setenv("NODE_ID", buf, 1);
 
     if (nID < 0) return 0;
 
@@ -551,12 +550,15 @@ static int stateChangeEnv(void *info)
     if (nAddr == INADDR_ANY) {
 	nName = "<unknown>";
     } else {
-	struct hostent *hp = gethostbyaddr(&nAddr, sizeof(nAddr), AF_INET);
-
-	if (!hp) {
+	struct sockaddr_in addr = {
+	    .sin_family = AF_INET,
+	    .sin_port = 0,
+	    .sin_addr = { .s_addr = nAddr } };
+	if (getnameinfo((struct sockaddr *)&addr, sizeof(addr),
+			buf, sizeof(buf), NULL, 0, NI_NAMEREQD)) {
 	    nName = "<unknown>";
 	} else {
-	    nName = hp->h_name;
+	    nName = buf;
 	}
     }
     setenv("NODE_NAME", nName, 1);

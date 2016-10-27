@@ -2,7 +2,7 @@
 # ParaStation
 #
 # Copyright (C) 2003-2004 ParTec AG, Karlsruhe
-# Copyright (C) 2005-2015 ParTec Cluster Competence Center GmbH, Munich
+# Copyright (C) 2005-2016 ParTec Cluster Competence Center GmbH, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -130,7 +130,7 @@ HWType	{ ethernet p4sock }
 # - NODE_NAME: The hostname of the node that appeared. The actual
 # value is the IP address implicitly defined in the Nodes-section of
 # this file resolved to the official name of the host using
-# gethostbyaddr().
+# getnameinfo().
 #
 # - NODE_ID: The ParaStation ID of the node that appeared.
 #
@@ -153,7 +153,7 @@ HWType	{ ethernet p4sock }
 # - NODE_NAME: The hostname of the node that disappeared. The actual
 # value is the IP address implicitly defined in the Nodes-section of
 # this file resolved to the official name of the host using
-# gethostbyaddr().
+# getnameinfo().
 #
 # - NODE_ID: The ParaStation ID of the node that disappeared.
 #
