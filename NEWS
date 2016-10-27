@@ -5,6 +5,24 @@ Copyright (C) 2010-2016 ParTec Cluster Competence Center GmbH, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 5.0.53:
+===============
+Bugfixes:
+ - Merge bugfix from psslurm-devel with some changes (jrt:#6067)
+
+Enhancements:
+ - Make spawnTasks public for use within plugins
+ - Introduce PSIDHOOK_CLEARMEM
+ - Allow cleanup of futile spawn information (jrt:#5792)
+ - Replace obsolete gethostbyaddr() by getnameinfo() (#2589)
+ - Replace obsoletet gethostbyname() by getaddrinfo() again (#654)
+ - Don't let psidclient and psidcomm spoil the global namespace
+ - Initialize fragmentation layer explicitely in psmom
+
+Additional changes:
+ - More booleanization
+
+
 Version 5.0.52:
 ===============
 Bugfixes:
