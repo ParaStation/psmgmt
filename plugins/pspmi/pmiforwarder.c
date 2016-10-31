@@ -355,7 +355,6 @@ int setupPMIsockets(void *data)
 	break;
     case PMI_DISABLED:
 	/* nothing for me to do */
-	pmiType = PMI_DISABLED;
 	break;
     default:
 	elog("%s: invalid PMI type: %i\n", __func__, pmiType);

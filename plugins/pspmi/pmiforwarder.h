@@ -13,13 +13,7 @@
 
 #include "pstask.h"
 
-/** Connection type of pmi */
-typedef enum {
-    PMI_DISABLED = 0,
-    PMI_OVER_TCP,
-    PMI_OVER_UNIX,
-    PMI_FAILED,
-} PMItype_t;
+#include "pmitypes.h"
 
 /**
  * @brief Set the pmi connection information.

@@ -17,6 +17,7 @@
 #include <errno.h>
 #include <netinet/in.h>
 
+#include "pmitypes.h"
 #include "pmiforwarder.h"
 #include "pmilog.h"
 #include "pmiprovider.h"

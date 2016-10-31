@@ -11,10 +11,11 @@
 #ifndef __PS_PMI_CLIENT
 #define __PS_PMI_CLIENT
 
-/** @doctodo */
+/** Magic value to indicate proper finalization of PMI */
 #define PMI_FINALIZED 55
 
 #include "pslog.h"
+#include "pmitypes.h"
 #include "pmiclientspawn.h"
 
 /**
@@ -30,97 +31,68 @@
 int handlePMIclientMsg(char *msg);
 
 /**
- * @brief Init the PMI interface.
+ * @brief Initialize the PMI interface
  *
- * This must be the first call before calling any other PMI functions.
+ * This must be the first call to the PMI module before calling any
+ * other PMI functions.
  *
- * @param childTask The task structure of the forwarders child.
+ * @param childTask The task structure of the forwarders child
  *
- * @return Returns 0 on success and 1 on errors.
+ * @return Returns 0 on success and 1 on errors
  */
 int pmi_init(int pmisocket, PStask_t *childTask);
 
 /**
- * @brief Set the KVS provider task ID.
+ * @brief Set the KVS provider's task ID
  *
- * @param ptid The task ID to set.
+ * Set the task ID of the PMI module's internal KVS provider to @a
+ * tid.
  *
- * @return No return value.
+ * @param tid Task ID to set
+ *
+ * @return No return value
  */
 void setKVSProviderTID(PStask_ID_t ptid);
 
 /**
- * @brief Handle a KVS message from logger.
+ * @brief Send finalize_ack to the MPI client
  *
- * @param vmsg The pslog KVS message to handle.
+ * Finalize is called by the forwarder if the daemon has released
+ * the MPI client. This message allows the MPI client to exit. (??)
  *
- * @return Always returns 0.
- */
-int handlePSlogMessage(void *vmsg);
-
-/**
- * @brief Send finalize_ack to the MPI client.
- *
- * Finalize is called by the forwarder if the deamon has released
- * the MPI client. This message allows the MPI client to exit.
- *
- * @return No return value.
+ * @return No return value
  */
 void pmi_finalize(void);
 
 /**
- * @brief Handle a spawn result message.
+ * @brief Tell the kvsprovider we are leaving
  *
- * Used to handle the result message when a new service process is spawned. This
- * is the case when a PMI spawn call is handled.
- *
- * @param vmsg The message to handle.
- *
- * @return Always returns 0.
- */
-int handleSpawnRes(void *vmsg);
-
-/**
- * @brief Handle a CC_ERROR message.
- *
- * The KVS now lives in a separate service process. When sending to this service
- * process failes a CC_ERROR message is generated and must be handled by the
- * plugin.
- *
- * @param data The message to handle.
- *
- * @return Always returns 0.
- */
-int handleCCError(void *data);
-
-/**
- * @brief Tell the kvsprovider we are leaving.
- *
- * @return No return value.
+ * @return No return value
  */
 void leaveKVS(int used);
 
-/** @doctodo */
-typedef int (fillerFunc_t)(SpawnRequest_t *req, int usize, PStask_t *task);
+psPmiSetFillSpawnTaskFunction_t psPmiSetFillSpawnTaskFunction;
+
+psPmiResetFillSpawnTaskFunction_t psPmiResetFillSpawnTaskFunction;
 
 /**
- * @brief Set spawn function (symbol to be loaded in other modules)
+ * @brief Initialize the client module
  *
- * @doctodo
- *
- * @param spawnFunc  function to use
+ * Initialize the client module of the pspmi plugin.
  *
  * @return No return value
  */
-void psPmiSetFillSpawnTaskFunction(fillerFunc_t spawnFunc);
+void initClient(void);
 
 /**
- * @brief Reset spawn function (symbol to be loaded in other modules)
+ * @brief Finalize the client module
  *
- * @doctodo
+ * Finalize the client module the pspmi plugin. This includes
+ * free()ing all dynamic memory not used any longer.
  *
  * @return No return value
  */
-void psPmiResetFillSpawnTaskFunction(void);
+void finalizeClient(void);
+
 
 #endif  /* __PS_PMI_CLIENT */

@@ -46,10 +46,9 @@ int initialize(void)
 
     PSIDhook_add(PSIDHOOK_FRWRD_INIT, setupPMIsockets);
     PSIDhook_add(PSIDHOOK_FRWRD_RESCLIENT, releasePMIClient);
-    PSIDhook_add(PSIDHOOK_FRWRD_KVS, handlePSlogMessage);
-    PSIDhook_add(PSIDHOOK_FRWRD_SPAWNRES, handleSpawnRes);
     PSIDhook_add(PSIDHOOK_FRWRD_CLIENT_STAT, getClientStatus);
-    PSIDhook_add(PSIDHOOK_FRWRD_CC_ERROR, handleCCError);
+
+    initClient();
 
     /* get psaccount function handles */
     if (!handle) {
@@ -76,10 +75,7 @@ void cleanup(void)
 
     PSIDhook_del(PSIDHOOK_FRWRD_INIT, setupPMIsockets);
     PSIDhook_del(PSIDHOOK_FRWRD_RESCLIENT, releasePMIClient);
-    PSIDhook_del(PSIDHOOK_FRWRD_KVS, handlePSlogMessage);
-    PSIDhook_del(PSIDHOOK_FRWRD_SPAWNRES, handleSpawnRes);
     PSIDhook_del(PSIDHOOK_FRWRD_CLIENT_STAT, getClientStatus);
-    PSIDhook_del(PSIDHOOK_FRWRD_CC_ERROR, handleCCError);
 
     if (memoryDebug) fclose(memoryDebug);
 

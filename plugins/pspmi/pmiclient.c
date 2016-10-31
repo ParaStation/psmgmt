@@ -25,6 +25,7 @@
 #include "list.h"
 #include "selector.h"
 #include "psidforwarder.h"
+#include "psidhook.h"
 #include "psaccounthandles.h"
 
 #include "pmilog.h"
@@ -335,7 +336,19 @@ static int __PMI_send(char *msg, const char *caller, const int line)
     return 0;
 }
 
-int handleSpawnRes(void *vmsg)
+/**
+ * @brief Handle spawn result message
+ *
+ * Handle the spawn results message contained in @a vmsg. Such message
+ * is expected upon the creation of a new service process used to
+ * actually realize the PMI spawn that was triggered by the PMI
+ * client.
+ *
+ * @param vmsg Message to handle
+ *
+ * @return Always returns 0
+ */
+static int handleSpawnRes(void *vmsg)
 {
     DDBufferMsg_t *answer = vmsg;
 
@@ -1512,7 +1525,19 @@ static void handleSuccReady(char *mbuf)
     }
 }
 
-int handleCCError(void *data)
+
+/**
+ * @brief Handle a CC_ERROR message
+ *
+ * Since the actual KVS lives within its own service process, sending
+ * changes to the key-value store might fail. This function handles
+ * the resulting CC_ERROR messages to be passed in @a data.
+ *
+ * @param data Message to handle
+ *
+ * @return Always returns 0
+ */
+static int handleCCError(void *data)
 {
     PSLog_Msg_t *msg = data;
 
@@ -1744,7 +1769,7 @@ static bool doSpawn(SpawnRequest_t *req)
  * @return Returns 0 for success, 1 on normal error, 2 on critical
  * error, and 3 on fatal error
  */
-int handleSpawnRequest(char *msg)
+static int handleSpawnRequest(char *msg)
 {
     char buf[50];
     int totSpawns, spawnsSoFar;
@@ -1951,7 +1976,7 @@ static void addPreputToEnv(int preputc, KVP_t *preputv, strv_t *env)
  *
  *  @return 1 on success, 0 on error (currently unused)
  */
-int fillWithMpiexec(SpawnRequest_t *req, int usize, PStask_t *task)
+static int fillWithMpiexec(SpawnRequest_t *req, int usize, PStask_t *task)
 {
     SingleSpawn_t *spawn;
     KVP_t *info;
@@ -2498,7 +2523,17 @@ int handlePMIclientMsg(char *msg)
     return critErr();
 }
 
-int handlePSlogMessage(void *vmsg)
+/**
+ * @brief Handle a KVS message from logger
+ *
+ * Handle the KVS message @a vmsg. The message is received from the
+ * job's logger within a pslog message.
+ *
+ * @param vmsg KVS message to handle in a pslog container
+ *
+ * @return Always returns 0
+ */
+static int handlePSlogMessage(void *vmsg)
 {
     PSLog_Msg_t *msg = vmsg;
 
@@ -2529,4 +2564,18 @@ void psPmiResetFillSpawnTaskFunction(void)
 {
     mdbg(PSPMI_LOG_VERBOSE, "Reset PMI fill spawn task function\n");
     fillTaskFunction = fillWithMpiexec;
+}
+
+void initClient(void)
+{
+    PSIDhook_add(PSIDHOOK_FRWRD_KVS, handlePSlogMessage);
+    PSIDhook_add(PSIDHOOK_FRWRD_SPAWNRES, handleSpawnRes);
+    PSIDhook_add(PSIDHOOK_FRWRD_CC_ERROR, handleCCError);
+}
+
+void finalizeClient(void)
+{
+    PSIDhook_del(PSIDHOOK_FRWRD_KVS, handlePSlogMessage);
+    PSIDhook_del(PSIDHOOK_FRWRD_SPAWNRES, handleSpawnRes);
+    PSIDhook_del(PSIDHOOK_FRWRD_CC_ERROR, handleCCError);
 }
