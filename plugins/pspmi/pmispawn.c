@@ -11,16 +11,17 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <errno.h>
 #include <sys/types.h>
 #include <sys/socket.h>
-#include <strings.h>
-#include <errno.h>
 #include <netinet/in.h>
+
+#include "psidhook.h"
 
 #include "pmitypes.h"
 #include "pmiforwarder.h"
+#include "pmiclient.h"
 #include "pmilog.h"
-#include "pmiprovider.h"
 
 #include "pmispawn.h"
 
@@ -29,6 +30,9 @@ static int forwarderSock = -1;
 
 /** the type of the PMI connection */
 static PMItype_t pmiType;
+
+/* socket connecting the KVS provider's forwarder to the provider */
+static int kvsProviderSock = -1;
 
 /**
  * @brief Set up a new PMI TCP socket and start listening for new connections.
@@ -40,7 +44,7 @@ static PMItype_t pmiType;
  * returned. In case of an error, -1 is returned and errno is set
  * appropriately.
  */
-static int init_PMISocket(void)
+static int setupPMISock(void)
 {
     struct sockaddr_in saClient;
     int res, sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
@@ -56,7 +60,6 @@ static int init_PMISocket(void)
     saClient.sin_family = AF_INET;
     saClient.sin_addr.s_addr = INADDR_ANY;
     saClient.sin_port = htons(0);
-    bzero(&(saClient.sin_zero), 8);
 
     /* bind the socket */
     res = bind(sock, (struct sockaddr *)&saClient, sizeof(saClient));
@@ -90,20 +93,18 @@ static int init_PMISocket(void)
  *
  * @return No return value
  */
-static void get_PMI_PORT(int PMISock, char *cPMI_PORT, int size )
+static void setPMI_PORT(int PMISock, char *cPMI_PORT, int size )
 {
     struct sockaddr_in addr;
-    socklen_t len;
+    socklen_t len = sizeof(addr);
 
     /* get the PMI port */
-    len = sizeof(addr);
-    bzero(&(addr), 8);
     if (getsockname(PMISock,(struct sockaddr*)&addr,&len) == -1) {
 	mwarn(errno, "%s: getsockname(pmisock)", __func__);
 	exit(1);
     }
 
-    snprintf(cPMI_PORT,size,"127.0.0.1:%i", ntohs(addr.sin_port));
+    snprintf(cPMI_PORT, size, "127.0.0.1:%i", ntohs(addr.sin_port));
 }
 
 /**
@@ -155,14 +156,14 @@ static PMItype_t preparePMI(int *forwarderSock)
     if (pmiEnableTcp) {
 	char cPMI_PORT[50];
 
-	*forwarderSock = init_PMISocket();
+	*forwarderSock = setupPMISock();
 	if (*forwarderSock < 0) {
 	    mwarn(errno, "%s: create PMI/TCP socket failed", __func__);
 	    return PMI_FAILED;
 	}
 	pmiType = PMI_OVER_TCP;
 
-	get_PMI_PORT(*forwarderSock, cPMI_PORT, sizeof(cPMI_PORT));
+	setPMI_PORT(*forwarderSock, cPMI_PORT, sizeof(cPMI_PORT));
 	setenv("PMI_PORT", cPMI_PORT, 1);
     }
 
@@ -185,7 +186,69 @@ static PMItype_t preparePMI(int *forwarderSock)
     return pmiType;
 }
 
-int handleClientSpawn(void *data)
+static void setupKVSProviderComm(void)
+{
+    int socketfds[2];
+    char env[50];
+
+    /* setup communication between psidforwarder and KVS provider */
+    if (socketpair(PF_UNIX, SOCK_STREAM, 0, socketfds)<0) {
+	mwarn(errno, "%s: socketpair()", __func__);
+	return;
+    }
+
+    /* forwarder's side */
+    kvsProviderSock = socketfds[0];
+    /* also pass info into the client module for control there */
+    setKVSProviderSock(kvsProviderSock);
+
+    /* pass information on the other side to the KVS provider */
+    snprintf(env, sizeof(env), "%d", socketfds[1]);
+    setenv("__PMI_PROVIDER_FD", env, 1);
+}
+
+/**
+ * @brief Prepare PMI environment for forwarders
+ *
+ * Prepare the field for the forwarder to handle all PMI requests of
+ * its client accordingly. @a data points of to the task structure of
+ * the client to be spawned.
+ *
+ * @param data Pointer to the clients task structure
+ *
+ * @return Always returns 0
+ */
+static int handleForwarderSpawn(void *data)
+{
+    PStask_t *task = data;
+
+    if (task->group == TG_ANY) {
+	pmiType = preparePMI(&forwarderSock);
+	if (pmiType == PMI_FAILED) return -1;
+
+	setConnectionInfo(pmiType, forwarderSock);
+    } else if (task->group == TG_KVS) {
+	setupKVSProviderComm();
+    }
+
+    return 0;
+}
+
+/**
+ * @brief Prepare PMI environment for clients
+ *
+ * Prepare the field for the client process. This closes file
+ * descriptors not needed any more and cleans the environment from
+ * variables dedicated to the forwarder process.
+ *
+ * The client task is described by the task structure @a data is
+ * pointing to.
+ *
+ * @param data Pointer to the client's task structure
+ *
+ * @return Always returns 0
+ */
+static int handleClientSpawn(void *data)
 {
     PStask_t *task = data;
 
@@ -214,24 +277,21 @@ int handleClientSpawn(void *data)
 	    unsetenv("__PMI_preput_num");
 	}
     } else if (task->group == TG_KVS) {
-	closeKVSForwarderSock();
+	/* close forwarder's side of the socketpair */
+	close(kvsProviderSock);
     }
 
     return 0;
 }
 
-int handleForwarderSpawn(void *data)
+void initSpawn(void)
 {
-    PStask_t *task = data;
+    PSIDhook_add(PSIDHOOK_EXEC_FORWARDER, handleForwarderSpawn);
+    PSIDhook_add(PSIDHOOK_EXEC_CLIENT, handleClientSpawn);
+}
 
-    if (task->group == TG_ANY) {
-	pmiType = preparePMI(&forwarderSock);
-	if (pmiType == PMI_FAILED) return -1;
-
-	setConnectionInfo(pmiType, forwarderSock);
-    } else if (task->group == TG_KVS) {
-	setupKVSProviderComm();
-    }
-
-    return 0;
+void finalizeSpawn(void)
+{
+    PSIDhook_del(PSIDHOOK_EXEC_FORWARDER, handleForwarderSpawn);
+    PSIDhook_del(PSIDHOOK_EXEC_CLIENT, handleClientSpawn);
 }

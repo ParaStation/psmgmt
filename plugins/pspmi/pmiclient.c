@@ -31,7 +31,6 @@
 #include "pmilog.h"
 #include "pmiforwarder.h"
 #include "pmiservice.h"
-#include "pmiprovider.h"
 #include "pmiclientspawn.h"
 
 #include "pmiclient.h"
@@ -105,8 +104,11 @@ static SOCKET pmisock = -1;
 /** The logger task ID of the current job */
 static PStask_ID_t loggertid = -1;
 
-/** The provider task ID of the current job */
-static PStask_ID_t providertid = -1;
+/** The KVS provider's task ID within the current job */
+static PStask_ID_t kvsProvTID = -1;
+
+/** Socket to the local KVS provider, if any */
+static PStask_ID_t kvsProvSock = -1;
 
 /** The predecessor task ID of the current job */
 static PStask_ID_t predtid = -1;
@@ -191,7 +193,7 @@ static void sendKvsMsg(const char *func, PStask_ID_t tid, char *msg, size_t len)
  */
 static void sendKvstoProvider(char *msg, size_t len)
 {
-    sendKvsMsg(__func__, providertid, msg, len);
+    sendKvsMsg(__func__, kvsProvTID, msg, len);
 }
 
 /**
@@ -525,7 +527,7 @@ static void parseUpdateMessage(char *pmiLine, bool lastUpdate, int updateIdx)
 	PMI_send(buffer);
 
 	/* if we are the last in the chain we acknowledge the provider */
-	if (succtid == providertid) {
+	if (succtid == kvsProvTID) {
 	    setKVSCmd(&ptr, &len, UPDATE_CACHE_FINISH);
 	    addKVSInt32(&ptr, &len, &updateMsgCount);
 	    addKVSInt32(&ptr, &len, &updateIdx);
@@ -1423,7 +1425,7 @@ static void handleKVScacheUpdate(PSLog_Msg_t *msg, char *ptr, bool lastUpdate)
     }
 
     /* forward to successor */
-    if (isSuccReady && succtid != providertid) sendKvstoSucc(msg->buf, msgSize);
+    if (isSuccReady && succtid != kvsProvTID) sendKvstoSucc(msg->buf, msgSize);
 
     if (lastUpdate && psAccountSwitchAccounting) {
 	psAccountSwitchAccounting(childtid, true);
@@ -1445,7 +1447,7 @@ static void handleKVScacheUpdate(PSLog_Msg_t *msg, char *ptr, bool lastUpdate)
  */
 static void handleDaisyBarrierOut(PSLog_Msg_t *msg)
 {
-    if (succtid != providertid) {
+    if (succtid != kvsProvTID) {
 	/* forward to next client */
 	sendKvstoSucc(msg->buf, sizeof(uint8_t));
     }
@@ -1463,7 +1465,7 @@ static void handleDaisyBarrierOut(PSLog_Msg_t *msg)
  */
 static void handleDaisyBarrierIn(char *ptr)
 {
-    if (predtid == providertid) {
+    if (predtid == kvsProvTID) {
 	elog("%s(r%i): received daisy_barrier_in from provider\n", __func__,
 	     rank);
 	return;
@@ -1490,7 +1492,7 @@ static void handleSuccReady(char *mbuf)
 
     succtid = getKVSInt32(&mbuf);
     //elog("s(r%i): succ:%i pmiRank:%i providertid:%i\n", rank, succtid,
-    //	    pmiRank, providertid);
+    //	    pmiRank, kvsProvTID);
     isSuccReady = true;
     checkDaisyBarrier();
 
@@ -1499,7 +1501,7 @@ static void handleSuccReady(char *mbuf)
 	Update_Buffer_t *uBuf = list_entry(pos, Update_Buffer_t, next);
 	if (!uBuf->isSuccReady) {
 
-	    if (succtid != providertid) {
+	    if (succtid != kvsProvTID) {
 		char *ptr;
 		char pmiLine[PMIU_MAXLINE];
 		size_t len, pLen;
@@ -1517,7 +1519,7 @@ static void handleSuccReady(char *mbuf)
 		}
 	    }
 
-	    if (succtid != providertid) sendKvstoSucc(uBuf->msg, uBuf->len);
+	    if (succtid != kvsProvTID) sendKvstoSucc(uBuf->msg, uBuf->len);
 	    uBuf->isSuccReady = true;
 
 	    if (uBuf->gotBarrierIn) deluBufferEntry(uBuf);
@@ -1541,7 +1543,7 @@ static int handleCCError(void *data)
 {
     PSLog_Msg_t *msg = data;
 
-    if (msg->header.sender == providertid) return 1;
+    if (msg->header.sender == kvsProvTID) return 1;
 
     /*
     mlog("%s(r%i): got cc error message from %s type %s\n", __func__, rank,
@@ -1551,9 +1553,14 @@ static int handleCCError(void *data)
     return 0;
 }
 
-void setKVSProviderTID(PStask_ID_t ptid)
+void setKVSProviderTID(PStask_ID_t tid)
 {
-    providertid = ptid;
+    kvsProvTID = tid;
+}
+
+void setKVSProviderSock(int fd)
+{
+    kvsProvSock = fd;
 }
 
 /* ************************************************************************* *
@@ -2521,6 +2528,15 @@ int handlePMIclientMsg(char *msg)
     PMI_send(reply);
 
     return critErr();
+}
+
+void handleServiceExit(PSLog_Msg_t *msg)
+{
+    if (kvsProvSock == -1) return;
+
+    /* closing of the fd will trigger the kvsprovider to exit */
+    close(kvsProvSock);
+    kvsProvSock = -1;
 }
 
 /**

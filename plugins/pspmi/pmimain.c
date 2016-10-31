@@ -41,8 +41,7 @@ int initialize(void)
     // maskLogger(PSPMI_LOG_RECV | PSPMI_LOG_VERBOSE);
 
     /* register needed hooks */
-    PSIDhook_add(PSIDHOOK_EXEC_FORWARDER, handleForwarderSpawn);
-    PSIDhook_add(PSIDHOOK_EXEC_CLIENT, handleClientSpawn);
+    initSpawn();
 
     PSIDhook_add(PSIDHOOK_FRWRD_INIT, setupPMIsockets);
     PSIDhook_add(PSIDHOOK_FRWRD_RESCLIENT, releasePMIClient);
@@ -70,12 +69,14 @@ int initialize(void)
 void cleanup(void)
 {
     /* remove registered hooks */
-    PSIDhook_del(PSIDHOOK_EXEC_FORWARDER, handleForwarderSpawn);
-    PSIDhook_del(PSIDHOOK_EXEC_CLIENT, handleClientSpawn);
+
+    finalizeSpawn();
 
     PSIDhook_del(PSIDHOOK_FRWRD_INIT, setupPMIsockets);
     PSIDhook_del(PSIDHOOK_FRWRD_RESCLIENT, releasePMIClient);
     PSIDhook_del(PSIDHOOK_FRWRD_CLIENT_STAT, getClientStatus);
+
+    finalizeClient();
 
     if (memoryDebug) fclose(memoryDebug);
 

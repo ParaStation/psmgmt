@@ -45,14 +45,29 @@ int pmi_init(int pmisocket, PStask_t *childTask);
 /**
  * @brief Set the KVS provider's task ID
  *
- * Set the task ID of the PMI module's internal KVS provider to @a
- * tid.
+ * Pass information on the KVS provider's task ID into the client
+ * module. Further requests on KVS will be passed to the KVS provider
+ * identified by the task ID @a tid.
  *
  * @param tid Task ID to set
  *
  * @return No return value
  */
-void setKVSProviderTID(PStask_ID_t ptid);
+void setKVSProviderTID(PStask_ID_t tid);
+
+/**
+ * @brief Set the KVS provider's socket
+ *
+ * Pass information on the file descriptor connecting the KVS
+ * provider's forwarder to the actual provider into the client
+ * module. The file descriptor @a fd will be closed upon request in
+ * order to stop the actual KVS provider.
+ *
+ * @param fd File descriptor to register
+ *
+ * @return No return value
+ */
+void setKVSProviderSock(int fd);
 
 /**
  * @brief Send finalize_ack to the MPI client

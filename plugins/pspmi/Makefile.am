@@ -24,11 +24,10 @@ plugin_LTLIBRARIES = pspmi.la
 
 libplugincommon = $(top_builddir)/lib/plugincommon/libplugincommon.la
 
-pspmi_la_SOURCES = pmiclient.c pmiclient.h pmiforwarder.c	\
-	pmiforwarder.h pmilog.c pmilog.h pmimain.c pmispawn.c	\
-	pmispawn.h pmiservice.c pmiservice.h pmiprovider.c	\
-	pmiprovider.h pmikvs.h pmikvs.c pmiclientspawn.c	\
-	pmiclientspawn.h pmitypes.h pspmihandles.h
+pspmi_la_SOURCES = pmiclient.c pmiclient.h pmiforwarder.c		\
+	pmiforwarder.h pmilog.c pmilog.h pmimain.c pmispawn.c		\
+	pmispawn.h pmiservice.c pmiservice.h pmikvs.h pmikvs.c		\
+	pmiclientspawn.c pmiclientspawn.h pmitypes.h pspmihandles.h
 
 pspmi_la_CPPFLAGS = $(AM_CPPFLAGS) -DPLUGINDIR=\"$(plugindir)\" \
 	-DBINDIR=\"$(bindir)\"
