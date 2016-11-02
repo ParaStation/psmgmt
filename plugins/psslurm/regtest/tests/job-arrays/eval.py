@@ -17,14 +17,18 @@ for p in helper.partitions():
 			test.check("0:0" == os.environ["PSTEST_SCONTROL_%s_%d_EXIT_CODE" % (P, i)], p)
 			test.check("COMPLETED" == os.environ["PSTEST_SCONTROL_%s_%d_JOB_STATE" % (P, i)], p)
 
-			test.check(i == int(os.environ["PSTEST_SCONTROL_%s_%d_ARRAY_TASK_ID" % (P, i)]), p)
+			taskid = os.environ["PSTEST_SCONTROL_%s_%d_ARRAY_TASK_ID" % (P, i)]
+			# In Slurm 14.03 the ith job has task id i. In Slurm 16.05 the ith job in the list has
+			# task id (n - i), i.e., the order is reverseed. We accept either one as long as there
+			# is no chaos.
+			test.check(int(taskid) in [i, (2 - i)], p)
 
 			test.check(os.path.isfile(os.environ["PSTEST_SCONTROL_%s_%d_STD_OUT" % (P, i)]), p)
 			test.check(os.path.isfile(os.environ["PSTEST_SCONTROL_%s_%d_STD_ERR" % (P, i)]), p)
 
-			test.check(re.match(r'.*slurm-%s_%d.out' % (os.environ["PSTEST_SCONTROL_%s_%d_ARRAY_JOB_ID" % (P, i)], i), \
+			test.check(re.match(r'.*slurm-%s_%s.out' % (os.environ["PSTEST_SCONTROL_%s_%d_ARRAY_JOB_ID" % (P, i)], taskid), \
 			                                        os.environ["PSTEST_SCONTROL_%s_%d_STD_OUT" % (P, i)]), p)
-			test.check(re.match(r'.*slurm-%s_%d.out' % (os.environ["PSTEST_SCONTROL_%s_%d_ARRAY_JOB_ID" % (P, i)], i), \
+			test.check(re.match(r'.*slurm-%s_%s.out' % (os.environ["PSTEST_SCONTROL_%s_%d_ARRAY_JOB_ID" % (P, i)], taskid), \
 			                                        os.environ["PSTEST_SCONTROL_%s_%d_STD_ERR" % (P, i)]), p)
 
 		test.check(os.environ["PSTEST_SCONTROL_%s_0_JOB_ID" % P] != \

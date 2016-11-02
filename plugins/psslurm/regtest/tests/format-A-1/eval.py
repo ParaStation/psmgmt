@@ -20,7 +20,10 @@ for p in helper.partitions():
 			jobid  = os.environ["PSTEST_SCONTROL_%s_%d_ARRAY_JOB_ID" % (P, i)]
 			taskid = os.environ["PSTEST_SCONTROL_%s_%d_ARRAY_TASK_ID" % (P, i)]
 
-			test.check(i == int(taskid), p)
+			# In Slurm 14.03 the ith job has task id i. In Slurm 16.05 the ith job in the list has
+			# task id (n - i), i.e., the order is reverseed. We accept either one as long as there
+			# is no chaos.
+			test.check(int(taskid) in [i, (2 - i)], p)
 
 			out = os.environ["PSTEST_SCONTROL_%s_%d_STD_OUT" % (P, i)]
 			err = os.environ["PSTEST_SCONTROL_%s_%d_STD_ERR" % (P, i)]
@@ -32,8 +35,8 @@ for p in helper.partitions():
 			test.check(os.path.isfile(out), p)
 			test.check(os.path.isfile(err), p)
 
-			test.check(re.match(r'.*slurm-%s-x-%d.out' % (os.environ["PSTEST_SCONTROL_%s_%d_ARRAY_JOB_ID" % (P, i)], i), out), p)
-			test.check(re.match(r'.*slurm-%s-x-%d.err' % (os.environ["PSTEST_SCONTROL_%s_%d_ARRAY_JOB_ID" % (P, i)], i), err), p)
+			test.check(re.match(r'.*slurm-%s-x-%s.out' % (os.environ["PSTEST_SCONTROL_%s_%d_ARRAY_JOB_ID" % (P, i)], taskid), out), p)
+			test.check(re.match(r'.*slurm-%s-x-%s.err' % (os.environ["PSTEST_SCONTROL_%s_%d_ARRAY_JOB_ID" % (P, i)], taskid), err), p)
 
 			lines = [x for x in map(lambda z: z.strip(), open(out, "r").read().split("\n")) \
 			             if len(x) > 0 and not re.match(r'Submitted.*', x)]

@@ -2,6 +2,7 @@
 import os
 import re
 import subprocess
+import time
 
 import testsuite.test as test
 
@@ -160,20 +161,51 @@ def pretty_print_dict(d):
 def pretty_print_env():
 	pretty_print_dict(os.environ)
 
+
+def _waitForDatabaseUpdate(timeout, jobId):
+	start = time.time()
+
+	while 1:
+		if time.time() - start >= timeout:
+			raise Exception("Timeout reached")
+
+		cmd = ["sacct", "-o", "End", "-P", "-X", "-n", "-j", jobId]
+		q   = subprocess.Popen(cmd, \
+		                     stdout = subprocess.PIPE, \
+		                     stderr = subprocess.PIPE)
+
+		o, e = q.communicate()
+		x    = q.wait()
+
+		if x:
+			raise Exception("sacct failed: (%d, %s, %s)" % (x, o, e))
+
+		if "Unknown" == o.strip() or 0 == len(o.strip()):
+			time.sleep(1)
+		else:
+			break
+
 #
 # Get the sacct record of the job. The function returns an array of dictionaries
 def job_sacct_record(part):
 	try:
-		cmd = ["sacct", "-o", "ALL", "-P", "-j", os.environ["PSTEST_SCONTROL_%s_JOB_ID" % part.upper()]]
+		jobId = os.environ["PSTEST_SCONTROL_%s_JOB_ID" % part.upper()]
 
-		q = subprocess.Popen(cmd, \
+		# Make sure that the database entries have been updated by the controllor daemon.
+		_waitForDatabaseUpdate(120, jobId)
+
+		cmd = ["sacct", "-o", "ALL", "-P", "-j", jobId]
+		q   = subprocess.Popen(cmd, \
 		                     stdout = subprocess.PIPE, \
 		                     stderr = subprocess.PIPE)
 
-		x, _ = q.communicate()
-		q.wait()
+		o, e = q.communicate()
+		x    = q.wait()
 
-		lines = x.split('\n')   # Important: Do not strip here
+		if x:
+			raise Exception("sacct failed: (%d, %s, %s)" % (x, o, e))
+
+		lines = o.split('\n')   # Important: Do not strip here
 		keys  = lines[0].split("|")
 
 		sacct = []

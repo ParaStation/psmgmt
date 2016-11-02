@@ -23,6 +23,8 @@ Some tests reference the {{{expect}}} scripts from the Slurm test suite. These
 tests assume that the {{{expect}}} folder from the Slurm source code is placed
 in the root directory of this test suite. Alternatively, the environment variable
 {{{SLURM_TESTSUTE}}} can be set to point to the {{{expect}}} folder.
+Use {{{upstream/download.py}}} to download the {{{expect}}} folder and apply 
+fixes from {{{upstream/patches}}}.
 
 == Running the test suite ==
 
