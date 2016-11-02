@@ -12,7 +12,6 @@
 #include <dlfcn.h>
 
 #include "plugin.h"
-#include "psidhook.h"
 #include "psidplugin.h"
 #include "psaccounthandles.h"
 
@@ -40,13 +39,9 @@ int initialize(void)
     /* set debug mask */
     // maskLogger(PSPMI_LOG_RECV | PSPMI_LOG_VERBOSE);
 
-    /* register needed hooks */
+    /* initialize all modules */
     initSpawn();
-
-    PSIDhook_add(PSIDHOOK_FRWRD_INIT, setupPMIsockets);
-    PSIDhook_add(PSIDHOOK_FRWRD_RESCLIENT, releasePMIClient);
-    PSIDhook_add(PSIDHOOK_FRWRD_CLIENT_STAT, getClientStatus);
-
+    initForwarder();
     initClient();
 
     /* get psaccount function handles */
@@ -69,13 +64,8 @@ int initialize(void)
 void cleanup(void)
 {
     /* remove registered hooks */
-
     finalizeSpawn();
-
-    PSIDhook_del(PSIDHOOK_FRWRD_INIT, setupPMIsockets);
-    PSIDhook_del(PSIDHOOK_FRWRD_RESCLIENT, releasePMIClient);
-    PSIDhook_del(PSIDHOOK_FRWRD_CLIENT_STAT, getClientStatus);
-
+    finalizeForwarder();
     finalizeClient();
 
     if (memoryDebug) fclose(memoryDebug);

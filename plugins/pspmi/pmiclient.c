@@ -83,7 +83,10 @@ static bool debug_kvs = false;
 /** The size of the MPI universe set from mpiexec */
 static int universe_size = 0;
 
-/** The parastation rank of the connected MPI client */
+/** Task structure describing the connected MPI client to serve */
+static PStask_t *cTask = NULL;
+
+/** PS rank of the connected MPI client. This is redundant to cTask->rank */
 static int rank = -1;
 
 /** The PMI rank of the connected MPI client */
@@ -101,9 +104,6 @@ static char kvs_name_prefix[PMI_KVSNAME_MAX];
 /** The socket which is connected to the MPI client */
 static SOCKET pmisock = -1;
 
-/** The logger task ID of the current job */
-static PStask_ID_t loggertid = -1;
-
 /** The KVS provider's task ID within the current job */
 static PStask_ID_t kvsProvTID = -1;
 
@@ -115,9 +115,6 @@ static PStask_ID_t predtid = -1;
 
 /** The successor task ID of the current job */
 static PStask_ID_t succtid = -1;
-
-/** Our child's task ID */
-static PStask_ID_t childtid = -1;
 
 /** Flag to indicate if the successor is ready to receive update messages */
 static bool isSuccReady = false;
@@ -1017,7 +1014,7 @@ static int p_Init(char *msg)
     }
     pmi_init_client = true;
 
-    if (psAccountSwitchAccounting) psAccountSwitchAccounting(childtid, true);
+    if (psAccountSwitchAccounting) psAccountSwitchAccounting(cTask->tid, true);
 
     /* tell provider that the MPI client was initialized */
     ptr = buffer;
@@ -1201,7 +1198,8 @@ int pmi_init(int pmisocket, PStask_t *childTask)
     while(environ[i]) mlog("%d: %s\n", i, environ[i++]);
 #endif
 
-    rank = childTask->rank;
+    cTask = childTask;
+    rank = cTask->rank;
     env = getenv("PMI_RANK");
     if (!env) {
 	elog("%s(r%i): invalid PMI rank environment\n", __func__, rank);
@@ -1209,8 +1207,6 @@ int pmi_init(int pmisocket, PStask_t *childTask)
     }
     pmiRank = atoi(env);
     pmisock = pmisocket;
-    loggertid = childTask->loggertid;
-    childtid = childTask->tid;
 
     env = getenv("PMI_APPNUM");
     if (!env) {
@@ -1224,7 +1220,7 @@ int pmi_init(int pmisocket, PStask_t *childTask)
     }
 
     mdbg(PSPMI_LOG_VERBOSE, "%s:(r%i): pmiRank %i pmisock %i logger %s",
-	 __func__, rank, pmiRank, pmisock, PSC_printTID(loggertid));
+	 __func__, rank, pmiRank, pmisock, PSC_printTID(cTask->loggertid));
     mdbg(PSPMI_LOG_VERBOSE, " spawned '%s' myTid %s\n",
 	 getenv("PMI_SPAWNED"), PSC_printTID(PSC_getMyTID()));
 
@@ -1428,7 +1424,7 @@ static void handleKVScacheUpdate(PSLog_Msg_t *msg, char *ptr, bool lastUpdate)
     if (isSuccReady && succtid != kvsProvTID) sendKvstoSucc(msg->buf, msgSize);
 
     if (lastUpdate && psAccountSwitchAccounting) {
-	psAccountSwitchAccounting(childtid, true);
+	psAccountSwitchAccounting(cTask->tid, true);
     }
 
     /* wait with the update until we got the barrier_in from local MPI client */
@@ -1755,7 +1751,7 @@ static bool doSpawn(SpawnRequest_t *req)
     mlog("%s(r%i): trying to do %d spawns\n", __func__, rank, pendSpawn->num);
 
     /* get next service rank from logger */
-    if (PSLog_write(loggertid, SERV_TID, NULL, 0) < 0) {
+    if (PSLog_write(cTask->loggertid, SERV_TID, NULL, 0) < 0) {
 	mlog("%s(r%i): Writing to logger failed.\n", __func__, rank);
 	return false;
     }
@@ -2142,7 +2138,7 @@ static int fillWithMpiexec(SpawnRequest_t *req, int usize, PStask_t *task)
 static bool tryPMISpawn(SpawnRequest_t *req, int universeSize,
 			int serviceRank, int *totalProcs)
 {
-    PStask_t *myTask = getChildTask(), *task;
+    PStask_t *task;
     int i, rc;
     char *cur, buffer[1024];
     strv_t env;
@@ -2152,7 +2148,7 @@ static bool tryPMISpawn(SpawnRequest_t *req, int universeSize,
 	return false;
     }
 
-    if (!myTask) {
+    if (!cTask) {
 	mlog("%s: cannot find my child's task structure\n", __func__);
 	return false;
     }
@@ -2164,27 +2160,27 @@ static bool tryPMISpawn(SpawnRequest_t *req, int universeSize,
     }
 
     /* copy data from my task */
-    task->uid = myTask->uid;
-    task->gid = myTask->gid;
-    task->aretty = myTask->aretty;
-    task->loggertid = myTask->loggertid;
-    task->ptid = myTask->tid;
+    task->uid = cTask->uid;
+    task->gid = cTask->gid;
+    task->aretty = cTask->aretty;
+    task->loggertid = cTask->loggertid;
+    task->ptid = cTask->tid;
     task->group = TG_KVS;
     task->rank = serviceRank -1;
-    task->winsize = myTask->winsize;
-    task->termios = myTask->termios;
+    task->winsize = cTask->winsize;
+    task->termios = cTask->termios;
 
     /* set work dir */
-    if (myTask->workingdir) {
-	task->workingdir = ustrdup(myTask->workingdir);
+    if (cTask->workingdir) {
+	task->workingdir = ustrdup(cTask->workingdir);
     } else {
 	task->workingdir = NULL;
     }
 
     /* build environment */
     strvInit(&env, NULL, 0);
-    for (i = 0; myTask->environ[i]; i++) {
-	cur = myTask->environ[i];
+    for (i = 0; cTask->environ[i]; i++) {
+	cur = cTask->environ[i];
 
 	/* skip troublesome old env vars */
 	if (!strncmp(cur, "__KVS_PROVIDER_TID=", 19)) continue;

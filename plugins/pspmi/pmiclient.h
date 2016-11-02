@@ -7,6 +7,12 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
+/**
+ * @file
+ * Core functionality of PMI. This part lives within the forwarder and
+ * is responsible for handling PMI messages received from the client
+ * process.
+ */
 
 #ifndef __PS_PMI_CLIENT
 #define __PS_PMI_CLIENT

@@ -21,6 +21,7 @@
 #include "pscommon.h"
 #include "kvscommon.h"
 #include "psidforwarder.h"
+#include "psidhook.h"
 #include "pmiclient.h"
 #include "pmilog.h"
 #include "pluginmalloc.h"
@@ -70,11 +71,6 @@ static void closePMIclientSocket(void)
 	close(pmiClientSock);
 	pmiClientSock = -1;
     }
-}
-
-PStask_t *getChildTask(void)
-{
-    return childTask;
 }
 
 /**
@@ -293,7 +289,14 @@ static int acceptPMIClient(int fd, void *data)
     return 0;
 }
 
-int getClientStatus(void *data)
+/**
+ * @brief Get the pmi status.
+ *
+ * @param data Unsed parameter.
+ *
+ * @return Returns the status of the pmi connection.
+ */
+static int getClientStatus(void *data)
 {
     return pmiStatus;
 }
@@ -314,7 +317,17 @@ void setConnectionInfo(PMItype_t type, int sock)
     }
 }
 
-int setupPMIsockets(void *data)
+/**
+ * @brief Init the pmi interface.
+ *
+ * Init the pmi interface and start listening for new connection from
+ * the mpi client.
+ *
+ * @param data Pointer to the task structure of the child.
+ *
+ * @return Returns 0 on success and -1 on error.
+ */
+static int setupPMIsockets(void *data)
 {
     PStask_ID_t providertid = -1;
     childTask = data;
@@ -365,7 +378,14 @@ int setupPMIsockets(void *data)
     return 0;
 }
 
-int releasePMIClient(void *data)
+/**
+ * @brief Release the mpi client.
+ *
+ * @param data When this flag is set to 1 pmi_finalize() will be called.
+ *
+ * @return Always returns 0.
+ */
+static int releasePMIClient(void *data)
 {
     int *res = data;
 
@@ -382,4 +402,17 @@ int releasePMIClient(void *data)
     closePMIclientSocket();
     return 0;
 }
-/* vim: set ts=8 sw=4 tw=0 sts=4 noet :*/
+
+void initForwarder(void)
+{
+    PSIDhook_add(PSIDHOOK_FRWRD_INIT, setupPMIsockets);
+    PSIDhook_add(PSIDHOOK_FRWRD_RESCLIENT, releasePMIClient);
+    PSIDhook_add(PSIDHOOK_FRWRD_CLIENT_STAT, getClientStatus);
+}
+
+void finalizeForwarder(void)
+{
+    PSIDhook_del(PSIDHOOK_FRWRD_INIT, setupPMIsockets);
+    PSIDhook_del(PSIDHOOK_FRWRD_RESCLIENT, releasePMIClient);
+    PSIDhook_del(PSIDHOOK_FRWRD_CLIENT_STAT, getClientStatus);
+}
