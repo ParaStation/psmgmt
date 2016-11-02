@@ -307,43 +307,38 @@ static void getNodeIDbyHost(char *host, PSnodes_ID_t *nodeID)
  *
  * @return Returns a pointer holding the requested hostname.
  */
-static char *getHostbyNodeID(PSnodes_ID_t *nodeID)
+static char *getHostByNodeID(PSnodes_ID_t nodeID)
 {
-#define MAX_HOSTNAME_LEN 64
-
-    struct hostent *hostName;
-    struct in_addr senderIP;
-    int ret, maxlen;
-    u_int32_t hostaddr;
-    char *tmp, hostname[MAX_HOSTNAME_LEN];
+    in_addr_t nodeIP;
+    struct sockaddr_in nodeAddr;
+    int rc;
+    static char nodeName[NI_MAXHOST];
 
     /* get ip-address of node */
-    ret = PSI_infoUInt(-1, PSP_INFO_NODE, nodeID, &hostaddr, 0);
-    if (ret || (hostaddr == INADDR_ANY)) {
-	fprintf(stderr, "%s: getting node info for nodeID '%i' failed, "
-		"errno:%i ret:%i\n", __func__, *nodeID, errno, ret);
+    rc = PSI_infoUInt(-1, PSP_INFO_NODE, &nodeID, &nodeIP, 0);
+    if (rc || nodeIP == INADDR_ANY) {
+	fprintf(stderr, "%s: getting node info for node ID %i failed, "
+		"errno:%i ret:%i\n", __func__, nodeID, errno, rc);
 	exit(EXIT_FAILURE);
     }
 
     /* get hostname */
-    senderIP.s_addr = hostaddr;
-    maxlen = MAX_HOSTNAME_LEN - 1;
-    hostName =
-	gethostbyaddr(&senderIP.s_addr, sizeof(senderIP.s_addr), AF_INET);
-
-    if (hostName) {
-	strncpy(hostname, hostName->h_name, maxlen);
-	if ((tmp = strchr(hostname, '.'))) {
-	    tmp[0] = '\0';
-	}
+    nodeAddr = (struct sockaddr_in) {
+	.sin_family = AF_INET,
+	.sin_port = 0,
+	.sin_addr = { .s_addr = nodeIP } };
+    rc = getnameinfo((struct sockaddr *)&nodeAddr, sizeof(nodeAddr), nodeName,
+		     sizeof(nodeName), NULL, 0, NI_NAMEREQD | NI_NOFQDN);
+    if (rc) {
+	char *dotName = inet_ntoa(nodeAddr.sin_addr);
+	fprintf(stderr, "%s: couldn't resolve hostname for %s: %s\n",
+		__func__, dotName, gai_strerror(rc));
+	return dotName;
     } else {
-	strncpy(hostname, inet_ntoa(senderIP), maxlen);
-	fprintf(stderr, "%s: couldn't resolve hostname from ip:%s\n",
-		__func__, inet_ntoa(senderIP));
+	char *ptr = strchr (nodeName, '.');
+	if (ptr) *ptr = '\0';
+	return nodeName;
     }
-
-    hostname[maxlen] = '\0';
-    return strdup(hostname);
 }
 
 /**
@@ -1228,7 +1223,7 @@ static void getUniqHosts(PSnodes_ID_t *uniqNodes, int numUniqNodes)
     uniqHosts = umalloc((numUniqNodes + 1) * sizeof(char *), __func__);
 
     for (i=0; i< numUniqNodes; i++) {
-	uniqHosts[i] = getHostbyNodeID(&uniqNodes[i]);
+	uniqHosts[i] = strdup(getHostByNodeID(uniqNodes[i]));
 	numUniqHosts++;
     }
     uniqHosts[numUniqNodes] = NULL;
@@ -1407,7 +1402,6 @@ static void sendPMIFail(void)
 static int startProcs(int np, char *wd, int verbose)
 {
     int i, ret = 0, off = 0;
-    char *hostname = NULL;
     PSnodes_ID_t *nodeList;
     int nlSize = np*sizeof(*nodeList);
 
@@ -1470,11 +1464,9 @@ static int startProcs(int np, char *wd, int verbose)
 
 	if (ompidebug) {
 	    for (i=0; i< np; i++) {
-		hostname = getHostbyNodeID(&nodeList[i]);
 		fprintf(stderr, "%s: rank '%i' opmi-nodeID '%i' ps-nodeID '%i'"
 			" node '%s'\n", __func__, i, jobLocalNodeIDs[i],
-			nodeList[i], hostname);
-		free(hostname);
+			nodeList[i], getHostByNodeID(nodeList[i]));
 	    }
 	}
     }

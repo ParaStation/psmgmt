@@ -36,11 +36,13 @@ int removeDir(char *directory, int root);
 PSnodes_ID_t getNodeIDbyName(char *host);
 
 /**
- * @brief Get the hostname from a PS nodeID.
+ * @brief Get the hostname from a PS node ID
  *
- * @param id The nodeID to lookup the hostname for.
+ * Get the hostname belonging to the PS node ID @a id.
  *
- * @return Returns the requested hostname or NULL on error.
+ * @param id Node ID to lookup
+ *
+ * @return Returns the requested hostname or NULL on error
  */
 const char *getHostnameByNodeId(PSnodes_ID_t id);
 

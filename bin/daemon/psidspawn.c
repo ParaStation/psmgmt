@@ -1888,11 +1888,6 @@ static void msg_SPAWNREQUEST(DDBufferMsg_t *msg)
     }
 }
 
-/**
- * List of all tasks waiting to get spawned, i.e. waiting for last
- * environment packets to come in.
- * Public for plugins to allow delaying of spawn messages.
- */
 LIST_HEAD(spawnTasks);
 
 /**

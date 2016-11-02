@@ -220,27 +220,43 @@ static inline int getExclusiveFlags(void)
     return getFullList(&exclList, PSP_INFO_LIST_EXCLUSIVE, sizeof(int8_t));
 }
 
-static char * nodeString(PSnodes_ID_t node)
+static char *resolveNode(PSnodes_ID_t node)
+{
+    in_addr_t nodeIP;
+    struct sockaddr_in nodeAddr;
+    int rc;
+    static char nodeStr[NI_MAXHOST];
+
+    /* get ip-address of node */
+    rc = PSI_infoUInt(-1, PSP_INFO_NODE, &node, &nodeIP, 0);
+    if (rc || nodeIP == INADDR_ANY) {
+	snprintf(nodeStr, sizeof(nodeStr), "<unknown>(%d)", node);
+	return nodeStr;
+    }
+
+    /* get hostname */
+    nodeAddr = (struct sockaddr_in) {
+	.sin_family = AF_INET,
+	.sin_port = 0,
+	.sin_addr = { .s_addr = nodeIP } };
+    rc = getnameinfo((struct sockaddr *)&nodeAddr, sizeof(nodeAddr), nodeStr,
+		     sizeof(nodeStr), NULL, 0, NI_NAMEREQD | NI_NOFQDN);
+    if (rc) {
+	snprintf(nodeStr, sizeof(nodeStr), "%s", inet_ntoa(nodeAddr.sin_addr));
+    } else {
+	char *ptr = strchr (nodeStr, '.');
+	if (ptr) *ptr = '\0';
+    }
+
+    return nodeStr;
+}
+
+static char *nodeString(PSnodes_ID_t node)
 {
     static char nodeStr[128];
 
     if (paramHostname) {
-	struct in_addr hostaddr;
-	struct hostent *hp;
-	char *ptr;
-	int err = PSI_infoUInt(-1, PSP_INFO_NODE, &node, &hostaddr.s_addr, 0);
-	if (err || (hostaddr.s_addr == INADDR_ANY)) {
-	    snprintf(nodeStr, sizeof(nodeStr), "<unknown>(%d)", node);
-	    return nodeStr;
-	}
-
-	hp = gethostbyaddr(&hostaddr.s_addr, sizeof(hostaddr.s_addr), AF_INET);
-	if (hp) {
-	    if ((ptr = strchr(hp->h_name, '.'))) *ptr = '\0';
-	    return hp->h_name;
-	} else {
-	    snprintf(nodeStr, sizeof(nodeStr), "%s", inet_ntoa(hostaddr));
-	}
+	return resolveNode(node);
     } else {
 	snprintf(nodeStr, sizeof(nodeStr), "%4d", node);
     }
@@ -520,40 +536,22 @@ void PSIADM_SomeStat(char *nl, char mode)
     if (! getHostStatus()) return;
 
     for (node=0; node<PSC_getNrOfNodes(); node++) {
-	int printIt = 0;
+	bool printIt = false;
 
 	if (nl && !nl[node]) continue;
 
 	switch (mode) {
 	case 'u':
-	    if (hostStatus.list[node]) printIt = 1;
+	    if (hostStatus.list[node]) printIt = true;
 	    break;
 	case 'd':
-	    if (!hostStatus.list[node]) printIt = 1;
+	    if (!hostStatus.list[node]) printIt = true;
 	    break;
 	default:
 	    printf("Unknown mode '%c'\n", mode);
 	    return;
 	}
-	if (printIt) {
-	    u_int32_t hostaddr;
-	    struct hostent *hp;
-	    char *ptr;
-	    int err = PSI_infoUInt(-1, PSP_INFO_NODE, &node, &hostaddr, 0);
-	    if (err || (hostaddr == INADDR_ANY)) {
-		printf(" <unknown>(id %d)", node);
-		continue;
-	    }
-
-	    hp = gethostbyaddr(&hostaddr, sizeof(hostaddr), AF_INET);
-	    if (!hp) {
-		printf(" <unknown>(id %d)", node);
-		continue;
-	    }
-
-	    if ((ptr = strchr (hp->h_name, '.'))) *ptr = '\0';
-	    printf("%s\n", hp->h_name);
-	}
+	if (printIt) printf("%s\n", resolveNode(node));
     }
 }
 
@@ -1940,28 +1938,9 @@ void PSIADM_Resolve(char *nl)
     PSnodes_ID_t node;
 
     for (node=0; node<PSC_getNrOfNodes(); node++) {
-	struct in_addr hostaddr;
-	struct hostent *hp;
-	char *ptr;
-	int err;
+	if (nl && !nl[node]) continue;
 
-	if ((nl && !nl[node])) continue;
-
-	printf("%4d\t", node);
-	err = PSI_infoUInt(-1, PSP_INFO_NODE, &node, &hostaddr.s_addr, 0);
-	if (err || (hostaddr.s_addr == INADDR_ANY)) {
-	    printf("<unknown>\n");
-	    continue;
-	}
-
-	hp = gethostbyaddr(&hostaddr.s_addr, sizeof(hostaddr.s_addr), AF_INET);
-	if (hp) {
-	    if ((ptr = strchr (hp->h_name, '.'))) *ptr = '\0';
-	    printf("%s\n", hp->h_name);
-	} else {
-	    printf("%s\n", inet_ntoa(hostaddr));
-	}
-
+	printf("%4d\t%s\n", node, resolveNode(node));
     }
 }
 

@@ -13,16 +13,16 @@
 #include <sys/stat.h>
 #include <dirent.h>
 #include <string.h>
-#include <netdb.h>
 #include <signal.h>
-#include <errno.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netdb.h>
 
+#include "pscommon.h"
 #include "psidnodes.h"
 #include "pluginlog.h"
 
 #include "pluginhelper.h"
-
-extern int h_errno; /* errno for gethostbyname from netdb.h */
 
 int removeDir(char *directory, int root)
 {
@@ -57,43 +57,76 @@ int removeDir(char *directory, int root)
 
 PSnodes_ID_t getNodeIDbyName(char *host)
 {
-    struct hostent *hp;
-    struct in_addr sin_addr;
-    PSnodes_ID_t node;
+    PSnodes_ID_t nodeID = -1;
+    struct addrinfo hints;
+    struct addrinfo *result, *rp;
+    int rc;
 
-    if (!host) return -1;
+    memset(&hints, 0, sizeof(struct addrinfo));
+    hints.ai_family = AF_UNSPEC;    /* Allow IPv4 or IPv6 */
+    hints.ai_socktype = SOCK_DGRAM; /* Datagram socket */
+    hints.ai_flags = 0;
+    hints.ai_protocol = 0;          /* Any protocol */
+    hints.ai_canonname = NULL;
+    hints.ai_addr = NULL;
+    hints.ai_next = NULL;
 
-    if (!(hp = gethostbyname(host))) {
-	pluginlog("%s: gethostbyname failed for '%s' : %s", __func__, host,
-		    hstrerror(h_errno));
+    rc = getaddrinfo(host, NULL, &hints, &result);
+    if (rc) {
+	pluginlog("%s: unknown host %s: %s\n", __func__, host,
+		  gai_strerror(rc));
 	return -1;
     }
 
-    memcpy(&sin_addr, hp->h_addr_list[0], hp->h_length);
-    if ((node = PSIDnodes_lookupHost(sin_addr.s_addr)) == -1) {
-	pluginlog("%s: lookup host '%s' failed\n", __func__, host);
+    /* try each address returned by getaddrinfo() until a node ID is
+       successfully resolved */
+    for (rp = result; rp != NULL; rp = rp->ai_next) {
+	struct sockaddr_in *saddr;
+	switch (rp->ai_family) {
+	case AF_INET:
+	    saddr = (struct sockaddr_in *)rp->ai_addr;
+	    nodeID = PSIDnodes_lookupHost(saddr->sin_addr.s_addr);
+	    break;
+	case AF_INET6:
+	    /* ignore -- don't handle IPv6 yet */
+	    nodeID = -1;
+	    break;
+	}
+
+	if (nodeID >= 0 && nodeID < PSC_getNrOfNodes()) break;
+    }
+    freeaddrinfo(result);
+
+    if (nodeID < 0) {
+	pluginlog("%s: cannot get PS_ID for host %s\n", __func__, host);
+	return -1;
+    } else if (nodeID >= PSC_getNrOfNodes()) {
+	pluginlog("%s: PS_ID %d for host %s out of range\n", __func__,
+		  nodeID, host);
+	return -1;
     }
 
-    return node;
+    return nodeID;
 }
 
 const char *getHostnameByNodeId(PSnodes_ID_t id)
 {
     in_addr_t nAddr;
-    char *nName = NULL, *ptr;
-    struct hostent *hp;
+    char *nName = NULL, buf[NI_MAXHOST];
 
     /* identify and set hostname */
     nAddr = PSIDnodes_getAddr(id);
 
-    if (nAddr == INADDR_ANY) {
-	nName = NULL;
-    } else {
-	hp = gethostbyaddr(&nAddr, sizeof(nAddr), AF_INET);
-
-	if (hp) {
-	    if ((ptr = strchr (hp->h_name, '.'))) *ptr = '\0';
-	    nName = hp->h_name;
+    if (nAddr != INADDR_ANY) {
+	struct sockaddr_in addr = {
+	    .sin_family = AF_INET,
+	    .sin_port = 0,
+	    .sin_addr = { .s_addr = nAddr } };
+	if (!getnameinfo((struct sockaddr *)&addr, sizeof(addr),
+			 buf, sizeof(buf), NULL, 0, NI_NAMEREQD)) {
+	    char *ptr = strchr (buf, '.');
+	    if (ptr) *ptr = '\0';
+	    nName = buf;
 	}
     }
 

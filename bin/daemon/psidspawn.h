@@ -36,7 +36,6 @@ extern "C" {
  */
 extern list_t spawnTasks;
 
-
 #ifdef CPU_ZERO
 /**
  * @brief Map CPUs

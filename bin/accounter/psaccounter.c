@@ -8,15 +8,8 @@
  * file.
  */
 /**
- * \file
+ * @file
  * psaccounter: ParaStation accounting daemon
- *
- * $Id$
- *
- * \author
- * Michael Rauh <rauh@par-tec.com>
- * Norbert Eicker <eicker@par-tec.com>
- * Ralph Krotz <krotz@par-tec.com>
  */
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 static char vcid[] __attribute__ ((used)) =
@@ -1650,21 +1643,20 @@ static void daemonize(const char *cmd)
     /* Let PSI and PSC log via syslog. Call it before PSI_initClient() */
     PSI_initLog(NULL);
 }
+
 /**
-* @brief Retrive node information.
-*
-* Retrive information (nodeID, ip-address) from all nodes
-* in the cluster.
-*
-* @return No return value.
-*/
+ * @brief Retrive node information.
+ *
+ * Retrive information (nodeID, ip-address) from all nodes in the
+ * cluster.
+ *
+ * @return No return value.
+ */
 static void getNodeInformation(void)
 {
-    int n, ret, maxlen;
-    struct in_addr senderIP;
-    struct hostent *hostName;
     PSP_Option_t opt = PSP_OP_DAEMONPROTOVERSION;
     PSP_Optval_t val;
+    int n, rc;
 
     /* get number of nodes */
     if (PSI_infoInt(-1, PSP_INFO_NROFNODES, NULL, &nrOfNodes, 0)) {
@@ -1675,44 +1667,45 @@ static void getNodeInformation(void)
     accNodes = umalloc(sizeof(Acc_Nodes_t) * nrOfNodes ,__func__);
 
     for (n=0; n<nrOfNodes; n++) {
-	accNodes[n].protoVersion = 0;
+	struct sockaddr_in nodeAddr;
 
 	/* set node id */
 	accNodes[n].node = n;
 
 	/* get ip-address of node */
-	ret = PSI_infoUInt(-1, PSP_INFO_NODE, &n, &accNodes[n].hostaddr, 0);
-	if (ret || (accNodes[n].hostaddr == INADDR_ANY)) {
+	rc = PSI_infoUInt(-1, PSP_INFO_NODE, &n, &accNodes[n].hostaddr, 0);
+	if (rc || accNodes[n].hostaddr == INADDR_ANY) {
 	    alog("%s: getting node info failed, errno:%i\n", __func__, errno);
 	    exit(EXIT_FAILURE);
 	}
 
 	/* get hostname */
-	senderIP.s_addr = accNodes[n].hostaddr;
-	maxlen = MAX_HOSTNAME_LEN - 1;
-	hostName =
-	    gethostbyaddr(&senderIP.s_addr, sizeof(senderIP.s_addr), AF_INET);
-	if (hostName) {
-	    strncpy(accNodes[n].hostname, hostName->h_name, maxlen);
-	} else {
-	    strncpy(accNodes[n].hostname, inet_ntoa(senderIP), maxlen);
-	    alog("%s: couldn't resolve hostname from ip:%s\n",
-		 __func__, inet_ntoa(senderIP));
+	nodeAddr = (struct sockaddr_in) {
+	    .sin_family = AF_INET,
+	    .sin_port = 0,
+	    .sin_addr = { .s_addr = accNodes[n].hostaddr } };
+	rc = getnameinfo((struct sockaddr *)&nodeAddr, sizeof(nodeAddr),
+			 accNodes[n].hostname, sizeof(accNodes[n].hostname),
+			 NULL, 0, NI_NAMEREQD | NI_NOFQDN);
+	if (rc) {
+	    snprintf(accNodes[n].hostname, sizeof(accNodes[n].hostname),
+		     "%s", inet_ntoa(nodeAddr.sin_addr));
+	    alog("%s: couldn't resolve hostname from ip:%s\n", __func__,
+		 inet_ntoa(nodeAddr.sin_addr));
 	}
-	accNodes[n].hostname[maxlen] = '\0';
 
 	/* get daemon protocoll version */
-	if ((PSI_infoOption(n, 1, &opt, &val, 0)) == -1 ) {
+	if (PSI_infoOption(n, 1, &opt, &val, 0) == -1 ) {
 	    if (debug & 0x010) {
 		alog("%s: error getting protocol version for node:%s\n",
 		     __func__, accNodes[n].hostname);
 	    }
-	    val = 0;
+	    accNodes[n].protoVersion = 0;
 	} else {
 	    accNodes[n].protoVersion = val;
 
 	    /* make sure we have at least protocol version 406 */
-	    if (val < 406) {
+	    if (accNodes[n].protoVersion < 406) {
 		alog("%s: need deamon protocol >= 406, please update "
 		     "node:%i\n", __func__, n);
 		exit(EXIT_FAILURE);
@@ -1721,7 +1714,8 @@ static void getNodeInformation(void)
 
 	if (debug & 0x100) {
 	    alog("%s: hostname:%s ip:%s nodeid:%i protocol:%i\n", __func__,
-		 accNodes[n].hostname, inet_ntoa(senderIP), n, val);
+		 accNodes[n].hostname, inet_ntoa(nodeAddr.sin_addr), n,
+		 accNodes[n].protoVersion);
 	}
     }
 }

@@ -18,10 +18,9 @@ noinst_LTLIBRARIES = libplugincommon.la
 
 libpscommon = $(top_builddir)/lib/pscommon/libpscommon.la
 
-libplugincommon_la_SOURCES = plugincomm.c pluginfrag.c pluginlog.c \
-	pluginlog.h pluginmalloc.c pluginhelper.c pluginforwarder.c \
-	pluginhostlist.c pluginconfig.c pluginpartition.c pluginpty.c \
-	pluginenv.c pluginstrv.c
+libplugincommon_la_SOURCES = plugincomm.c pluginconfig.c pluginfrag.c \
+	pluginhelper.c pluginlog.c pluginlog.h pluginmalloc.c pluginforwarder.c \
+	pluginpty.c pluginpartition.c pluginhostlist.c pluginenv.c pluginstrv.c
 
 libplugincommon_la_CPPFLAGS = $(AM_CPPFLAGS) -DLOCALSTATEDIR=\"$(localstatedir)\"
 
