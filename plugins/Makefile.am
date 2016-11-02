@@ -7,9 +7,7 @@
 # as defined in the file LICENSE.QPL included in the packaging of this
 # file.
 #
-# Author:	Thomas Moschny <moschny@par-tec.com>
-#
 
 include $(top_srcdir)/common.am
 
-SUBDIRS = psaccount psresport pspmi psmom cgroup
+SUBDIRS = cgroup psaccount psexec psresport pspmi psmom

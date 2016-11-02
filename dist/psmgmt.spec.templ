@@ -208,17 +208,19 @@ exit 0
 %{_libdir}/libpsi.so*
 %exclude %{_libdir}/libpsi.la
 %dir %{_plugindir}
-%{_plugindir}/psaccount.so
-%exclude %{_plugindir}/psaccount.la
-%config(noreplace) %{_plugindir}/psaccount.conf
-%{_plugindir}/psresport.so
-%exclude %{_plugindir}/psresport.la
-%config(noreplace) %{_plugindir}/psresport.conf
-%{_plugindir}/pspmi.so
-%exclude %{_plugindir}/pspmi.la
 %{_plugindir}/cgroup.so
 %exclude %{_plugindir}/cgroup.la
 %config(noreplace) %{_plugindir}/cgroup.conf
+%{_plugindir}/psaccount.so
+%exclude %{_plugindir}/psaccount.la
+%config(noreplace) %{_plugindir}/psaccount.conf
+%{_plugindir}/psexec.so
+%exclude %{_plugindir}/psexec.la
+%{_plugindir}/pspmi.so
+%exclude %{_plugindir}/pspmi.la
+%{_plugindir}/psresport.so
+%exclude %{_plugindir}/psresport.la
+%config(noreplace) %{_plugindir}/psresport.conf
 %config(missingok,noreplace) %{_sysconfdir}/profile.d/psmgmt.sh
 %config(missingok,noreplace) %{_sysconfdir}/profile.d/psmgmt.csh
 %if !0%{?disable_systemd}
