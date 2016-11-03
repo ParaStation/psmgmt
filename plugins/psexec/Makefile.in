@@ -23,8 +23,6 @@
 # as defined in the file LICENSE.QPL included in the packaging of this
 # file.
 #
-# Author:	Michael Rauh <rauh@par-tec.com>
-#
 
 #
 # ParaStation
@@ -361,7 +359,7 @@ top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 unitdir = @unitdir@
 AM_CPPFLAGS = -I$(top_srcdir)/include -DNDEBUG \
-	-I$(top_srcdir)/bin/daemon -I$(srcdir)/../include
+	-I$(top_srcdir)/bin/daemon
 subst_verbose = $(subst_verbose_$(V))
 subst_verbose_ = $(subst_verbose_$(AM_DEFAULT_VERBOSITY))
 subst_verbose_0 = @echo "  SUBST   " $(@F);
@@ -391,8 +389,9 @@ configdir = $(prefix)/config
 scriptsdir = $(prefix)/scripts
 plugin_LTLIBRARIES = psexec.la
 libplugincommon = $(top_builddir)/lib/plugincommon/libplugincommon.la
-psexec_la_SOURCES = psexec.c psexec.h psexeclog.c psexeclog.h psexecscripts.c psexecscripts.h \
-			psexeccomm.c psexeccomm.h psexecinter.c psexecinter.h psexechandles.h
+psexec_la_SOURCES = psexec.c psexeclog.c psexeclog.h psexecscripts.c	\
+	psexecscripts.h psexeccomm.c psexeccomm.h psexecinter.c		\
+	psexecinter.h psexechandles.h
 
 psexec_la_CPPFLAGS = $(AM_CPPFLAGS) -DLOCALSTATEDIR=\"$(localstatedir)\"
 psexec_la_LIBADD = $(libplugincommon)

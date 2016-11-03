@@ -278,7 +278,6 @@ plugins/psaccount/psaccountproc.h \
 plugins/psexec/Makefile.am \
 plugins/psexec/Makefile.in \
 plugins/psexec/psexec.c \
-plugins/psexec/psexec.h \
 plugins/psexec/psexeccomm.c \
 plugins/psexec/psexeccomm.h \
 plugins/psexec/psexechandles.h \

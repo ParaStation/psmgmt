@@ -7,66 +7,34 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-/**
- * $Id$
- *
- * \author
- * Michael Rauh <rauh@par-tec.com>
- *
- */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <errno.h>
 #include <unistd.h>
-#include <string.h>
 
 #include "plugin.h"
-#include "pluginmalloc.h"
-#include "pluginhelper.h"
-#include "plugincomm.h"
 #include "pluginfrag.h"
 
 #include "pspluginprotocol.h"
-#include "pscommon.h"
-#include "psidscripts.h"
-#include "psidutil.h"
-#include "selector.h"
 #include "psidcomm.h"
 
 #include "psexeclog.h"
 #include "psexecscripts.h"
 #include "psexeccomm.h"
 
-#include "psexec.h"
-
 /** psid plugin requirements */
 char name[] = "psexec";
 int version = 1;
 int requiredAPI = 109;
-plugin_dep_t dependencies[1];
-
-void startPsexec(void)
-{
-    /* we have no dependencies */
-    dependencies[0].name = NULL;
-    dependencies[0].version = 0;
-}
-
-void stopPsexec(void)
-{
-    /* release the logger */
-    logger_finalize(psexeclogger);
-}
+plugin_dep_t dependencies[] = {
+    { .name = NULL, .version = 0 } };
 
 int initialize(void)
 {
     /* init the logger (log to syslog) */
-    initLogger("psexec", NULL);
+    initLogger(NULL);
 
     /* we need to have root privileges */
-    if (getuid() != 0) {
-	fprintf(stderr, "%s: psexec must have root privileges\n", __func__);
+    if (getuid()) {
+	mlog("%s: psexec must have root privileges\n", __func__);
 	return 1;
     }
 
@@ -83,14 +51,11 @@ int initialize(void)
     return 0;
 }
 
-void finalize(void)
+void cleanup(void)
 {
     /* make sure all processes are gone */
     clearScriptList();
-}
 
-void cleanup(void)
-{
     /* unregister psexec msg */
     PSID_clearMsg(PSP_CC_PLUG_PSEXEC);
 
@@ -100,4 +65,7 @@ void cleanup(void)
     finalizeFragComm();
 
     mlog("...Bye.\n");
+
+    /* release the logger */
+    logger_finalize(psexeclogger);
 }

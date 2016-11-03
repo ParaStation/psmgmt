@@ -7,30 +7,17 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-/**
- * $Id$
- *
- * \author
- * Michael Rauh <rauh@par-tec.com>
- *
- */
 
-#include <stdlib.h>
-#include <stdio.h>
-
-#include "logging.h"
 #include "pluginlog.h"
 
 #include "psexeclog.h"
 
 logger_t *psexeclogger = NULL;
-FILE *psexeclogfile = NULL;
 
-void initLogger(char *name, FILE *logfile)
+void initLogger(FILE *logfile)
 {
-    psexeclogger = logger_init(name, logfile);
+    psexeclogger = logger_init("psexec", logfile);
     initPluginLogger(NULL, logfile);
-    psexeclogfile = logfile;
 }
 
 void maskLogger(int32_t mask)
