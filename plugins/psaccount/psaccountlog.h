@@ -40,7 +40,7 @@ typedef enum {
  *
  * Init psaccount plugin's logging facility. If the filehandle @a
  * logfile is different from NULL, the corresponding file will be used
- * for logging. Otherwise the syslog facilityis used.
+ * for logging. Otherwise the syslog facility is used.
  *
  * @param logfile File to use for logging
  *
