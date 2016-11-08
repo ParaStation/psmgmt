@@ -441,47 +441,47 @@ bool addToBuf(const void *val, const uint32_t size, PS_DataBuffer_t *data,
 	      PS_DataType_t type, const char *caller, const int line);
 
 #define addInt8ToMsg(val, data) { int8_t _x = val;		\
-	addToBuf(&_x, sizeof(int8_t), data, PSDATA_INT8,	\
+	addToBuf(&_x, sizeof(_x), data, PSDATA_INT8,		\
 		 __func__, __LINE__); }
 
 #define addInt16ToMsg(val, data) { int16_t _x = val;		\
-	addToBuf(&_x, sizeof(int16_t), data, PSDATA_INT16,	\
+	addToBuf(&_x, sizeof(_x), data, PSDATA_INT16,		\
 		 __func__, __LINE__); }
 
 #define addInt32ToMsg(val, data) { int32_t _x = val;		\
-	addToBuf(&_x, sizeof(int32_t), data, PSDATA_INT32,	\
+	addToBuf(&_x, sizeof(_x), data, PSDATA_INT32,		\
 		 __func__, __LINE__); }
 
 #define addInt64ToMsg(val, data) { int64_t _x = val;		\
-	addToBuf(&_x, sizeof(int64_t), data, PSDATA_INT64,	\
+	addToBuf(&_x, sizeof(_x), data, PSDATA_INT64,		\
 		 __func__, __LINE__); }
 
 #define addUint8ToMsg(val, data) { uint8_t _x = val;		\
-	addToBuf(&_x, sizeof(uint8_t), data, PSDATA_UINT8,	\
+	addToBuf(&_x, sizeof(_x), data, PSDATA_UINT8,		\
 		 __func__, __LINE__); }
 
 #define addUint16ToMsg(val, data) { uint16_t _x = val;		\
-	addToBuf(&_x, sizeof(uint16_t), data, PSDATA_UINT16,	\
+	addToBuf(&_x, sizeof(_x), data, PSDATA_UINT16,		\
 		 __func__, __LINE__); }
 
 #define addUint32ToMsg(val, data) { uint32_t _x = val;		\
-	addToBuf(&_x, sizeof(uint32_t), data, PSDATA_UINT32,	\
+	addToBuf(&_x, sizeof(_x), data, PSDATA_UINT32,		\
 		 __func__, __LINE__); }
 
 #define addUint64ToMsg(val, data) { uint64_t _x = val;		\
-	addToBuf(&_x, sizeof(uint64_t), data, PSDATA_UINT64,	\
+	addToBuf(&_x, sizeof(_x), data, PSDATA_UINT64,		\
 		 __func__, __LINE__); }
 
 #define addDoubleToMsg(val, data) { double _x = val;		\
-	addToBuf(&_x, sizeof(double), data, PSDATA_DOUBLE,	\
+	addToBuf(&_x, sizeof(_x), data, PSDATA_DOUBLE,		\
 		 __func__, __LINE__); }
 
 #define addTimeToMsg(val, data) { time_t _x = val;		\
-	addToBuf(&_x, sizeof(time_t), data, PSDATA_TIME,	\
+	addToBuf(&_x, sizeof(_x), data, PSDATA_TIME,		\
 		 __func__, __LINE__); }
 
 #define addPidToMsg(val, data) { pid_t _x = val;		\
-	addToBuf(&_x, sizeof(pid_t), data, PSDATA_PID,		\
+	addToBuf(&_x, sizeof(_x), data, PSDATA_PID,		\
 		 __func__, __LINE__); }
 
 #define addMemToMsg(mem, len, data)				\
@@ -581,10 +581,10 @@ bool addToMsgBuf(DDTypedBufferMsg_t *msg, void *val, uint32_t size,
     addToMsgBuf(msg, str, PSP_strLen(str), PSDATA_STRING, __func__)
 
 #define addTimeToMsgBuf(msg, time) { time_t _x = time;			\
-	addToMsgBuf(msg, &_x, sizeof(time_t), PSDATA_TIME, __func__); }
+	addToMsgBuf(msg, &_x, sizeof(_x), PSDATA_TIME, __func__); }
 
 #define addInt32ToMsgBuf(msg, val) { int32_t _x = val;			\
-	addToMsgBuf(msg, &_x, sizeof(int32_t), PSDATA_INT32, __func__); }
+	addToMsgBuf(msg, &_x, sizeof(_x), PSDATA_INT32, __func__); }
 
 
 #endif  /* __PLUGIN_LIB_COMM */
