@@ -529,7 +529,7 @@ bool addArrayToBuf(const void *val, const uint32_t num, PS_DataBuffer_t *data,
 		   const char *caller, const int line);
 
 #define addUint16ArrayToMsg(val, num, data)				\
-    addArrayToBuf(val, num, data, PSDATA_UINT32, sizeof(uint16_t),	\
+    addArrayToBuf(val, num, data, PSDATA_UINT16, sizeof(uint16_t),	\
 		  __func__, __LINE__)
 
 #define addUint32ArrayToMsg(val, num, data)				\
@@ -537,7 +537,7 @@ bool addArrayToBuf(const void *val, const uint32_t num, PS_DataBuffer_t *data,
 		  __func__, __LINE__)
 
 #define addInt16ArrayToMsg(val, num, data)				\
-    addArrayToBuf(val, num, data, PSDATA_INT32, sizeof(int16_t),	\
+    addArrayToBuf(val, num, data, PSDATA_INT16, sizeof(int16_t),	\
 		  __func__, __LINE__)
 
 #define addInt32ArrayToMsg(val, num, data)				\
