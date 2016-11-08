@@ -38,7 +38,6 @@ int initialize(void)
 	return 1;
     }
 
-    initScriptList();
     initFragComm();
 
     /* register psexec msg */
