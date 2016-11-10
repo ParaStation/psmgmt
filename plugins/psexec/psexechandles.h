@@ -7,28 +7,15 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-/**
- * $Id$
- *
- * \author
- * Michael Rauh <rauh@par-tec.com>
- *
- */
 
-#ifndef __PSEXEC__HANDELS
-#define __PSEXEC__HANDELS
+#ifndef __PSEXEC__HANDLES
+#define __PSEXEC__HANDLES
 
-#include <stdint.h>
+#include "psexectypes.h"
 
-#include "pluginenv.h"
-#include "pstask.h"
-#include "psexecscripts.h"
+psExecStartScript_t *psExecStartScript;
 
-int (*psExecStartScript)(uint32_t, char *, env_t *, PSnodes_ID_t,
-			psExec_Script_CB_t *);
+psExecSendScriptStart_t *psExecSendScriptStart;
+psExecStartLocalScript_t *psExecStartLocalScript;
 
-int (*psExecSendScriptStart)(uint16_t, PSnodes_ID_t);
-
-int (*psExecStartLocalScript)(uint16_t);
-
-#endif
+#endif  /* __PSEXEC__HANDLES */

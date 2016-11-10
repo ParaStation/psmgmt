@@ -23,7 +23,7 @@
 /** Structure holding all information on a given script to execute */
 typedef struct {
     list_t next;            /**< used to put into list of script */
-    uint32_t id;            /**< ID helping to identify  callback reason */
+    uint32_t id;            /**< ID helping to identify callback reason */
     uint16_t uID;           /**< node-local unique ID */
     pid_t pid;              /**< process id of running script or 0 */
     env_t env;              /**< environment as seen by the script */
