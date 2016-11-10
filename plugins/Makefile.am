@@ -11,3 +11,7 @@
 include $(top_srcdir)/common.am
 
 SUBDIRS = cgroup psaccount psexec psresport pspmi psmom
+
+if MUNGE_ENABLED
+SUBDIRS += psmunge
+endif

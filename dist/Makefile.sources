@@ -371,6 +371,13 @@ plugins/psmom/src/psmom/psmomssh.c \
 plugins/psmom/src/psmom/psmomssh.h \
 plugins/psmom/src/psmom/psmomtcp.c \
 plugins/psmom/src/psmom/psmomtcp.h \
+plugins/psmunge/Makefile.am \
+plugins/psmunge/Makefile.in \
+plugins/psmunge/psmunge.c \
+plugins/psmunge/psmunge.h \
+plugins/psmunge/psmungehandles.h \
+plugins/psmunge/psmungelog.c \
+plugins/psmunge/psmungelog.h \
 plugins/pspmi/Makefile.am \
 plugins/pspmi/Makefile.in \
 plugins/pspmi/pmiclient.c \

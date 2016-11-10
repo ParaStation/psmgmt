@@ -47,6 +47,9 @@ dist-hook:
 if BUILD_WITHOUT_PSCONFIG
   AM_CONFIGARGS = -without psconfig
 endif
+if !MUNGE_ENABLED
+  AM_CONFIGARGS = -without munge
+endif
 
 .PHONY: tar rpm srpm tag version
 tar rpm srpm tag version:

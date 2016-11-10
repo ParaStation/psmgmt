@@ -60,6 +60,12 @@ AC_ARG_WITH([pamdir], [AS_HELP_STRING([--with-pamdir=DIR],
   [pamdir=/lib/security])
 AC_SUBST([pamdir])
 
+AC_CHECK_LIB([munge], [munge_encode],
+  [AC_SUBST([MUNGE_LIBS], [-lmunge])
+   AC_DEFINE([HAVE_MUNGE_DEVEL])
+   [ munge_enabled=true ] ])
+AM_CONDITIONAL([MUNGE_ENABLED], [test "x$munge_enabled" = xtrue])
+
 AC_ARG_ENABLE([psconfig], [AS_HELP_STRING([--disable-psconfig],
   [build without psconfig support])])
 AM_CONDITIONAL([BUILD_WITHOUT_PSCONFIG], [test "x$enable_psconfig" = xno])
@@ -127,6 +133,7 @@ AC_CONFIG_FILES(plugins/psmom/src/include/Makefile)
 AC_CONFIG_FILES(plugins/psmom/src/pam/Makefile)
 AC_CONFIG_FILES(plugins/psmom/src/pbs/Makefile)
 AC_CONFIG_FILES(plugins/psmom/src/psmom/Makefile)
+AC_CONFIG_FILES(plugins/psmunge/Makefile)
 AC_CONFIG_FILES(plugins/pspmi/Makefile)
 AC_CONFIG_FILES(plugins/psresport/Makefile)
 AC_CONFIG_FILES(scripts/Makefile)

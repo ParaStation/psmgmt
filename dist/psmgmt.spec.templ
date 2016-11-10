@@ -1,6 +1,7 @@
 # -*- rpm-spec -*-
 %{?_without_psconfig: %global disable_psconfig 1}
 %{?_without_systemd: %global disable_systemd 1}
+%{?_without_munge: %global disable_munge 1}
 
 %if ( 0%{?rhel} && 0%{?rhel} < 7 ) || %(pkg-config --exists systemd; echo $?) != 0
 %global disable_systemd 1
@@ -216,6 +217,10 @@ exit 0
 %config(noreplace) %{_plugindir}/psaccount.conf
 %{_plugindir}/psexec.so
 %exclude %{_plugindir}/psexec.la
+%if !0%{?disable_munge}
+%{_plugindir}/psmunge.so
+%exclude %{_plugindir}/psmunge.la
+%endif
 %{_plugindir}/pspmi.so
 %exclude %{_plugindir}/pspmi.la
 %{_plugindir}/psresport.so

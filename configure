@@ -652,6 +652,9 @@ PKG_CONFIG_PATH
 PKG_CONFIG
 BUILD_WITHOUT_PSCONFIG_FALSE
 BUILD_WITHOUT_PSCONFIG_TRUE
+MUNGE_ENABLED_FALSE
+MUNGE_ENABLED_TRUE
+MUNGE_LIBS
 pamdir
 PAM_ENABLED_FALSE
 PAM_ENABLED_TRUE
@@ -12201,6 +12204,59 @@ fi
 
 
 
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for munge_encode in -lmunge" >&5
+$as_echo_n "checking for munge_encode in -lmunge... " >&6; }
+if ${ac_cv_lib_munge_munge_encode+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lmunge  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char munge_encode ();
+int
+main ()
+{
+return munge_encode ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_munge_munge_encode=yes
+else
+  ac_cv_lib_munge_munge_encode=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_munge_munge_encode" >&5
+$as_echo "$ac_cv_lib_munge_munge_encode" >&6; }
+if test "x$ac_cv_lib_munge_munge_encode" = xyes; then :
+  MUNGE_LIBS=-lmunge
+
+   $as_echo "#define HAVE_MUNGE_DEVEL 1" >>confdefs.h
+
+    munge_enabled=true
+fi
+
+ if test "x$munge_enabled" = xtrue; then
+  MUNGE_ENABLED_TRUE=
+  MUNGE_ENABLED_FALSE='#'
+else
+  MUNGE_ENABLED_TRUE='#'
+  MUNGE_ENABLED_FALSE=
+fi
+
+
 # Check whether --enable-psconfig was given.
 if test "${enable_psconfig+set}" = set; then :
   enableval=$enable_psconfig;
@@ -12885,6 +12941,8 @@ ac_config_files="$ac_config_files plugins/psmom/src/pbs/Makefile"
 
 ac_config_files="$ac_config_files plugins/psmom/src/psmom/Makefile"
 
+ac_config_files="$ac_config_files plugins/psmunge/Makefile"
+
 ac_config_files="$ac_config_files plugins/pspmi/Makefile"
 
 ac_config_files="$ac_config_files plugins/psresport/Makefile"
@@ -13075,6 +13133,10 @@ Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${PAM_ENABLED_TRUE}" && test -z "${PAM_ENABLED_FALSE}"; then
   as_fn_error $? "conditional \"PAM_ENABLED\" was never defined.
+Usually this means the macro was only invoked conditionally." "$LINENO" 5
+fi
+if test -z "${MUNGE_ENABLED_TRUE}" && test -z "${MUNGE_ENABLED_FALSE}"; then
+  as_fn_error $? "conditional \"MUNGE_ENABLED\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${BUILD_WITHOUT_PSCONFIG_TRUE}" && test -z "${BUILD_WITHOUT_PSCONFIG_FALSE}"; then
@@ -13973,6 +14035,7 @@ do
     "plugins/psmom/src/pam/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/psmom/src/pam/Makefile" ;;
     "plugins/psmom/src/pbs/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/psmom/src/pbs/Makefile" ;;
     "plugins/psmom/src/psmom/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/psmom/src/psmom/Makefile" ;;
+    "plugins/psmunge/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/psmunge/Makefile" ;;
     "plugins/pspmi/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/pspmi/Makefile" ;;
     "plugins/psresport/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/psresport/Makefile" ;;
     "scripts/Makefile") CONFIG_FILES="$CONFIG_FILES scripts/Makefile" ;;
