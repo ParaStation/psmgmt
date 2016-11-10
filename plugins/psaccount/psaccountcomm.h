@@ -20,7 +20,7 @@
  * register an alternative handler for accounting messages of type
  * PSP_CD_ACCOUNT and PSP_CC_PLUG_ACCOUNT.
  *
- * @Return On success true is returned. Or false in case of an error
+ * @return On success true is returned. Or false in case of an error
  */
 bool initAccComm(void);
 
@@ -30,7 +30,7 @@ bool initAccComm(void);
  * Finalize the plugin's communication layer. This will unregister the
  * handlers for accounting messages registered by @ref initAccComm().
  *
- * @Return No return value
+ * @return No return value
  */
 void finalizeAccComm(void);
 
