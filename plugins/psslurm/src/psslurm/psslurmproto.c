@@ -223,9 +223,16 @@ static void readStepIOoptions(Step_t *step, char **ptr)
 
 	/* buffered I/O = default (unbufferd = RAW) */
 	getUint8(ptr, &step->bufferedIO);
+#ifdef SLURM_PROTOCOL_1605
+	/* flag now stands for unbuffered IO */
+	step->bufferedIO = !step->bufferedIO;
+#endif
 
 	/* label I/O = sourceprintf */
 	getUint8(ptr, &step->labelIO);
+
+	mdbg(PSSLURM_LOG_IO, "%s: bufferedIO '%i' labelIO '%i'\n", __func__,
+		step->bufferedIO, step->labelIO);
 
 	/* I/O Ports */
 	getUint16(ptr, &step->numIOPort);
