@@ -15,38 +15,51 @@
 #include <stdint.h>
 #include <sys/types.h>
 
+#include "list_t.h"
+#include "pluginenv.h"
+#include "pstaskid.h"
 #include "psexectypes.h"
-#include "psnodes.h"
+
+/** Structure holding all information on a given script to execute */
+typedef struct {
+    list_t next;            /**< used to put into list of script */
+    uint32_t id;            /**< ID helping to identify  callback reason */
+    uint16_t uID;           /**< node-local unique ID */
+    pid_t pid;              /**< process id of running script or 0 */
+    env_t env;              /**< environment as seen by the script */
+    PStask_ID_t initiator;  /**< task ID or -1 for local delegate */
+    psExec_Script_CB_t *cb; /**< callback called upon script's finalization */
+    char *execName;         /**< script's filename relative to SCRIPT_DIR */
+} Script_t;
 
 /**
  * @brief Add script information
  *
- * @doctodo
+ * Create a new script information filled with the caller provided ID
+ * @a id, the name of the script to execute @a execName and the
+ * callback @a cb to be executed upon finalization of the script's
+ * execution. Furthermore add this to the list of script information.
  *
- * @param pid
+ * @a id will be presented as the first argument to the callback @a cb
+ * in order to help the caller of this function to identify the reason
+ * for the callback.
  *
- * @return
+ * @param id ID helping the caller to identify the callback reason
+ *
+ * @param exec Filename of the script to execute
+ *
+ * @param cb Callback executed on finalization of the script
+ *
+ * @return On success the new script information is returned or NULL
+ * in case of error,i.e. insufficient memory.
  */
-Script_t *addScript(uint32_t id, pid_t pid, PSnodes_ID_t clnt, char *execName);
-
-/**
- * @brief Find script information by its process ID
- *
- * Lookup the script information identified by its process ID @a pid
- * in the list of script information and return a pointer to the
- * corresponding structure.
- *
- * @param pid Process ID used to identify the script information
- *
- * @return Pointer to the script information structure or NULL
- */
-Script_t *findScript(pid_t pid);
+Script_t *addScript(uint32_t id, char *execName, psExec_Script_CB_t *cb);
 
 /**
  * @brief Find script information by its unique ID
  *
- * Lookup the script information identified by its unique ID @a uID in
- * the list of script information and return a pointer to the
+ * Look up the script information identified by its unique ID @a uID
+ * in the list of script information and return a pointer to the
  * corresponding structure.
  *
  * @param uID Unique ID used to identify the script information
@@ -56,28 +69,16 @@ Script_t *findScript(pid_t pid);
 Script_t *findScriptByuID(uint16_t uID);
 
 /**
- * @brief Delete script information identified by process ID
+ * @brief Delete script information
  *
- * Delete the script information identified by its process ID @a pid
- * from the list of script information and free all related memory.
+ * Delete the script information @a script from the list of script
+ * information and free all related memory.
  *
- * @param pid Process ID used to identify the script information
- *
- * @return Return true on success or false if the script was not found
- */
-bool deleteScript(pid_t pid);
-
-/**
- * @brief Delete script information identified by unique ID
- *
- * Delete the script information identified by its unique ID @a uID
- * from the list of script information and free all related memory.
- *
- * @param uID Unique ID used to identify the script information
+ * @param script Script information to delete
  *
  * @return Return true on success or false if the script was not found
  */
-bool deleteScriptByuID(uint16_t uID);
+bool deleteScript(Script_t *script);
 
 /**
  * @brief Eliminate all script information
@@ -88,6 +89,5 @@ bool deleteScriptByuID(uint16_t uID);
  * @return No return value
  */
 void clearScriptList(void);
-
 
 #endif  /* __PSEXEC__SCRIPTS */

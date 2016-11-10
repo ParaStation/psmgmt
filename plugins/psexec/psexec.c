@@ -14,7 +14,6 @@
 #include "pluginfrag.h"
 
 #include "pspluginprotocol.h"
-#include "psidcomm.h"
 
 #include "psexeclog.h"
 #include "psexecscripts.h"
@@ -39,12 +38,7 @@ int initialize(void)
     }
 
     initFragComm();
-
-    /* register psexec msg */
-    PSID_registerMsg(PSP_CC_PLUG_PSEXEC, (handlerFunc_t) handlePsExecMsg);
-
-    /* register handler for dropped msgs */
-    PSID_registerDropper(PSP_CC_PLUG_PSEXEC, (handlerFunc_t) handleDroppedMsg);
+    initComm();
 
     mlog("(%i) successfully started\n", version);
     return 0;
@@ -54,13 +48,7 @@ void cleanup(void)
 {
     /* make sure all processes are gone */
     clearScriptList();
-
-    /* unregister psexec msg */
-    PSID_clearMsg(PSP_CC_PLUG_PSEXEC);
-
-    /* unregister msg drop handler */
-    PSID_clearDropper(PSP_CC_PLUG_PSSLURM);
-
+    finalizeComm();
     finalizeFragComm();
 
     mlog("...Bye.\n");
