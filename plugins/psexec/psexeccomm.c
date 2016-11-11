@@ -172,6 +172,7 @@ static int callbackLocalScript(int fd, PSID_scriptCBInfo_t *info)
 	int rc = script->cb(script->id, exit, PSC_getMyID(), script->uID);
 	if (rc == PSEXEC_CONT) return 0;
     }
+    script->pid = 0;
     deleteScript(script);
 
     return 0;
@@ -207,6 +208,7 @@ static int callbackScript(int fd, PSID_scriptCBInfo_t *info)
     sendScriptResult(script, exit);
 
     /* cleanup */
+    script->pid = 0;
     deleteScript(script);
 
     return 0;
