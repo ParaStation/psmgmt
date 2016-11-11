@@ -8,8 +8,8 @@
  * file.
  */
 
-#ifndef __PS_MUNGE_LOG
-#define __PS_MUNGE_LOG
+#ifndef __PSMUNGE_LOG
+#define __PSMUNGE_LOG
 
 #include "logging.h"
 
@@ -50,4 +50,4 @@ void initLogger(FILE *logfile);
  */
 void maskLogger(int32_t mask);
 
-#endif  /* __PS_MUNGE_LOG */
+#endif  /* __PSMUNGE_LOG */

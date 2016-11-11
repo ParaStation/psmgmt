@@ -7,8 +7,6 @@
 # as defined in the file LICENSE.QPL included in the packaging of this
 # file.
 #
-# Author:	Michael Rauh <rauh@par-tec.com>
-#
 
 include $(top_srcdir)/common.am
 
@@ -19,7 +17,7 @@ plugin_LTLIBRARIES = psmunge.la
 
 libplugincommon = $(top_builddir)/lib/plugincommon/libplugincommon.la
 
-psmunge_la_SOURCES = psmunge.c psmunge.h psmungelog.c psmungelog.h \
-			psmungehandles.h
+psmunge_la_SOURCES = psmunge.c psmungelog.c psmungelog.h	\
+	psmungetypes.h psmungeinter.h psmungeinter.c psmungehandles.h
 
 psmunge_la_LIBADD = -lmunge $(libplugincommon)
