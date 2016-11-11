@@ -17,7 +17,7 @@
 #
 # ParaStation
 #
-# Copyright (C) 2014 ParTec Cluster Competence Center GmbH, Munich
+# Copyright (C) 2014-2016 ParTec Cluster Competence Center GmbH, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -360,7 +360,7 @@ top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 unitdir = @unitdir@
 AM_CPPFLAGS = -I$(top_srcdir)/include -DNDEBUG \
-	-I$(top_srcdir)/bin/daemon -I$(srcdir)/../include
+	-I$(top_srcdir)/bin/daemon
 subst_verbose = $(subst_verbose_$(V))
 subst_verbose_ = $(subst_verbose_$(AM_DEFAULT_VERBOSITY))
 subst_verbose_0 = @echo "  SUBST   " $(@F);

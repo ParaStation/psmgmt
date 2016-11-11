@@ -1,18 +1,11 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
- */
-/**
- * $Id$
- *
- * \author
- * Michael Rauh <rauh@par-tec.com>
- *
  */
 
 #ifndef __PS_MUNGE_LOG
@@ -21,19 +14,40 @@
 #include "logging.h"
 
 extern logger_t *psmungelogger;
-extern FILE *psmungelogfile;
 
-#define mlog(...) if (psmungelogger) logger_print(psmungelogger, -1, __VA_ARGS__)
-#define mwarn(...) if (psmungelogger) logger_warn(psmungelogger, -1, __VA_ARGS__)
+#define mlog(...) if (psmungelogger) logger_print(psmungelogger,-1, __VA_ARGS__)
+#define mwarn(...) if (psmungelogger) logger_warn(psmungelogger,-1, __VA_ARGS__)
 #define mdbg(...) if (psmungelogger) logger_print(psmungelogger, __VA_ARGS__)
 
-void initLogger(char *name, FILE *logfile);
-void maskLogger(int32_t mask);
-
+/** Various types of logging levels for more verbose logging */
 typedef enum {
-    PSMUNGE_LOG_DEBUG    =	0x000010, /**< Debug */
-    PSMUNGE_LOG_WARN     =	0x000020, /**< Warnings */
+    PSMUNGE_LOG_DEBUG    = 0x000010, /**< Debug */
+    PSMUNGE_LOG_WARN     = 0x000020, /**< Warnings */
 } PSMUNGE_log_types_t;
 
+/**
+ * @brief Init logging facility
+ *
+ * Init psmunge plugin's logging facility. If the filehandle @a logfile
+ * is different from NULL, the corresponding file will be used for
+ * logging. Otherwise the syslog facility is used.
+ *
+ * @param logfile File to use for logging
+ *
+ * @return No return value
+ */
+void initLogger(FILE *logfile);
 
-#endif
+/**
+ * @brief Set logger's debug mask
+ *
+ * Set the logger's debug mask to @a mask. @a mask is expected to be a
+ * bit-field of type @ref PSMUNGE_log_types_t.
+ *
+ * @param mask Bit-field of type @ref PSMUNGE_log_types_t
+ *
+ * @return No return value
+ */
+void maskLogger(int32_t mask);
+
+#endif  /* __PS_MUNGE_LOG */

@@ -1,74 +1,40 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014 - 2015 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-/**
- * $Id$
- *
- * \author
- * Michael Rauh <rauh@par-tec.com>
- *
- */
 
-#include <stdio.h>
 #include <stdlib.h>
-#include <errno.h>
 #include <unistd.h>
 #include <munge.h>
-#include <string.h>
+#include <sys/types.h>
 
 #include "plugin.h"
-#include "pluginmalloc.h"
 #include "pluginhelper.h"
 
 #include "psmungelog.h"
 
 #include "psmunge.h"
 
-munge_ctx_t defEncCtx;
-munge_ctx_t defDecCtx;
-
-static int isInit = 0;
+munge_ctx_t defEncCtx = NULL;
+munge_ctx_t defDecCtx = NULL;
 
 /** psid plugin requirements */
 char name[] = "psmunge";
 int version = 3;
 int requiredAPI = 109;
-plugin_dep_t dependencies[1];
+plugin_dep_t dependencies[] = {
+    { .name = NULL, .version = 0 } };
 
-void startPsmunge()
+static int mungeEncCtx(char **cred, munge_ctx_t ctx, const void *buf, int len)
 {
-    /* we have no dependencies */
-    dependencies[0].name = NULL;
-    dependencies[0].version = 0;
-}
+    munge_err_t err = munge_encode(cred, ctx, buf, len);
 
-void stopPsmunge()
-{
-    /* release the logger */
-    logger_finalize(psmungelogger);
-}
-
-int mungeEncode(char **cred)
-{
-    return mungeEncodeCtx(cred, defEncCtx, NULL, 0);
-}
-
-int mungeEncodeBuf(char **cred, const void *buf, int len)
-{
-    return mungeEncodeCtx(cred, defEncCtx, buf, len);
-}
-
-int mungeEncodeCtx(char **cred, munge_ctx_t ctx, const void *buf, int len)
-{
-    munge_err_t err;
-
-    if ((err = munge_encode(cred, ctx, buf, len)) != EMUNGE_SUCCESS) {
+    if (err != EMUNGE_SUCCESS) {
 	mlog("%s: encode failed: %s\n", __func__, munge_strerror(err));
 	return 0;
     }
@@ -76,45 +42,44 @@ int mungeEncodeCtx(char **cred, munge_ctx_t ctx, const void *buf, int len)
     return 1;
 }
 
-int mungeDecode(const char *cred, uid_t *uid, gid_t *gid)
+int mungeEncode(char **cred)
 {
-    return mungeDecodeCtx(cred, defDecCtx, NULL, 0, uid, gid);
+    return mungeEncCtx(cred, defEncCtx, NULL, 0);
 }
 
-int mungeDecodeBuf(const char *cred, void **buf, int *len,
-		    uid_t *uid, gid_t *gid)
+int mungeEncodeBuf(char **cred, const void *buf, int len)
 {
-    return mungeDecodeCtx(cred, defDecCtx, buf, len, uid, gid);
+    return mungeEncCtx(cred, defEncCtx, buf, len);
 }
 
-void mungeLogCredTime(munge_ctx_t ctx)
+static void mungeLogCredTime(munge_ctx_t ctx)
 {
     munge_err_t err;
     time_t dTime, eTime;
 
     err = munge_ctx_get(ctx, MUNGE_OPT_ENCODE_TIME, &eTime);
     if (err != EMUNGE_SUCCESS) {
-	mlog("%s: getting encode time failed: %s\n",
-		__func__, munge_strerror(err));
+	mlog("%s: getting encode time failed: %s\n", __func__,
+	     munge_strerror(err));
     } else {
 	mlog("%s: encode time '%s'\n", __func__, printTime(eTime));
     }
 
     err = munge_ctx_get(ctx, MUNGE_OPT_DECODE_TIME, &dTime);
     if (err != EMUNGE_SUCCESS) {
-	mlog("%s: getting decode time failed: %s\n",
-		__func__, munge_strerror(err));
+	mlog("%s: getting decode time failed: %s\n", __func__,
+	     munge_strerror(err));
     } else {
 	mlog("%s: decode time '%s'\n", __func__, printTime(dTime));
     }
 }
 
-int mungeDecodeCtx(const char *cred, munge_ctx_t ctx, void **buf,
-		    int *len, uid_t *uid, gid_t *gid)
+static int mungeDecCtx(const char *cred, munge_ctx_t ctx, void **buf, int *len,
+		       uid_t *uid, gid_t *gid)
 {
-    munge_err_t err;
+    munge_err_t err = munge_decode(cred, ctx, buf, len, uid, gid);
 
-    if ((err = munge_decode(cred, ctx, buf, len, uid, gid)) != EMUNGE_SUCCESS) {
+    if (err != EMUNGE_SUCCESS) {
 	mlog("%s: decode failed: %s\n", __func__, munge_strerror(err));
 	if (err == EMUNGE_CRED_EXPIRED) mungeLogCredTime(ctx);
 	return 0;
@@ -123,14 +88,27 @@ int mungeDecodeCtx(const char *cred, munge_ctx_t ctx, void **buf,
     return 1;
 }
 
+int mungeDecode(const char *cred, uid_t *uid, gid_t *gid)
+{
+    return mungeDecCtx(cred, defDecCtx, NULL, 0, uid, gid);
+}
+
+int mungeDecodeBuf(const char *cred, void **buf, int *len,
+		   uid_t *uid, gid_t *gid)
+{
+    return mungeDecCtx(cred, defDecCtx, buf, len, uid, gid);
+}
+
 static int initDefaultContext()
 {
-    if (!(defEncCtx = munge_ctx_create())) {
+    defEncCtx = munge_ctx_create();
+    if (!defEncCtx) {
 	mlog("%s: creating encoding context failed\n", __func__);
 	return 0;
     }
 
-    if (!(defDecCtx = munge_ctx_create())) {
+    defDecCtx = munge_ctx_create();
+    if (!defDecCtx) {
 	munge_ctx_destroy(defEncCtx);
 	mlog("%s: creating decoding context failed\n", __func__);
 	return 0;
@@ -147,12 +125,14 @@ static int initDefaultContext()
 	return 0;
     }
 
-    if (munge_ctx_set(defEncCtx, MUNGE_OPT_ZIP_TYPE, MUNGE_ZIP_BZLIB) != EMUNGE_SUCCESS) {
+    if (munge_ctx_set(defEncCtx, MUNGE_OPT_ZIP_TYPE, MUNGE_ZIP_BZLIB)
+	!= EMUNGE_SUCCESS) {
 	mlog("%s: setting munge zip failed\n", __func__);
 	return 0;
     }
 
-    if (munge_ctx_set(defEncCtx, MUNGE_OPT_CIPHER_TYPE, MUNGE_CIPHER_NONE) != EMUNGE_SUCCESS) {
+    if (munge_ctx_set(defEncCtx, MUNGE_OPT_CIPHER_TYPE, MUNGE_CIPHER_NONE)
+	!= EMUNGE_SUCCESS) {
 	mlog("%s: setting munge zip failed\n", __func__);
 	return 0;
     }
@@ -168,43 +148,38 @@ int initialize(void)
     gid_t gid;
 
     /* init the logger (log to syslog) */
-    initLogger("psmunge", NULL);
+    initLogger(NULL);
 
     /* we need to have root privileges */
     if (getuid() != 0) {
-	fprintf(stderr, "%s: psmunge must have root privileges\n", __func__);
+	mlog("%s: psmunge requires root privileges\n", __func__);
 	return 1;
     }
 
-    if (!(initDefaultContext())) return 1;
+    if (!initDefaultContext()) return 1;
 
     /* test munge functionality */
-    if (!(mungeEncode(&cred))) goto INIT_ERROR;
-    if (!(mungeDecode(cred, &uid, &gid))) goto INIT_ERROR;
+    if (!mungeEncode(&cred)) goto INIT_ERROR;
+    if (!mungeDecode(cred, &uid, &gid)) goto INIT_ERROR;
     free(cred);
 
-    isInit = 1;
     mlog("(%i) successfully started\n", version);
     return 0;
 
 INIT_ERROR:
-    munge_ctx_destroy(defEncCtx);
-    munge_ctx_destroy(defDecCtx);
+    if (defEncCtx) munge_ctx_destroy(defEncCtx);
+    if (defDecCtx) munge_ctx_destroy(defDecCtx);
     return 1;
-}
-
-void finalize(void)
-{
-
 }
 
 void cleanup(void)
 {
-    if (!isInit) return;
-
     /* free all malloced memory */
-    munge_ctx_destroy(defEncCtx);
-    munge_ctx_destroy(defDecCtx);
+    if (defEncCtx) munge_ctx_destroy(defEncCtx);
+    if (defDecCtx) munge_ctx_destroy(defDecCtx);
 
     mlog("...Bye.\n");
+
+    /* release the logger */
+    logger_finalize(psmungelogger);
 }
