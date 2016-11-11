@@ -351,7 +351,7 @@ bool initComm(void)
     return true;
 }
 
-void finalizeAccComm(void)
+void finalizeComm(void)
 {
     PSID_clearMsg(PSP_CC_PLUG_PSEXEC);
     PSID_clearDropper(PSP_CC_PLUG_PSSLURM);
