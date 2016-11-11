@@ -38,7 +38,7 @@ typedef enum {
 
 #define SCRIPT_DIR LOCALSTATEDIR "/spool/parastation/scripts"
 
-static int sendScriptResult(Script_t *script, int32_t res)
+int sendScriptResult(Script_t *script, int32_t res)
 {
     PS_DataBuffer_t data = { .buf = NULL };
     int ret;

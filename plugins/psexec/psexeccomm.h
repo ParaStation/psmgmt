@@ -44,6 +44,20 @@ int sendExecScript(Script_t *script, PSnodes_ID_t dest);
 int startLocalScript(Script_t *script);
 
 /**
+ * @brief Send result to initiator
+ *
+ * Send the exit code @a res to the initiator of the script @a script
+ * if any.
+ *
+ * @param script Description of script to provide the exit-code for
+ *
+ * @return If an initiator was found and a message was sent
+ * successfully, the total number of bytes sent to the destination
+ * node is returned. Or -1 otherwise.
+ */
+int sendScriptResult(Script_t *script, int32_t res);
+
+/**
  * @brief Initialize communication layer
  *
  * Initialize the plugin's communication layer. This will mainly

@@ -17,6 +17,7 @@
 #include "pluginmalloc.h"
 #include "pluginenv.h"
 #include "psidscripts.h"
+#include "psexeccomm.h"
 #include "psexeclog.h"
 
 #include "psexecscripts.h"
@@ -96,6 +97,7 @@ void clearScriptList(void)
 	if (script->pid) {
 	    kill(script->pid, SIGKILL);
 	    PSID_cancelCB(script->pid);
+	    if (script->initiator != -1) sendScriptResult(script, -1);
 	}
 	doDeleteScript(script);
     }
