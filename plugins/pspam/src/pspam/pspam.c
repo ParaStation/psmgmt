@@ -258,7 +258,7 @@ INIT_ERROR:
     return 1;
 }
 
-void finalize(void)
+void cleanup(void)
 {
     /* close master socket */
     if (masterSock > -1 && Selector_isRegistered(masterSock)) {
@@ -270,9 +270,6 @@ void finalize(void)
     /* kill all leftover ssh sessions */
     clearSSHList();
     clearUserList();
-}
 
-void cleanup(void)
-{
     mlog("...Bye.\n");
 }

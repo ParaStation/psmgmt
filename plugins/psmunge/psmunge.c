@@ -193,11 +193,6 @@ INIT_ERROR:
     return 1;
 }
 
-void finalize(void)
-{
-
-}
-
 void cleanup(void)
 {
     if (!isInit) return;

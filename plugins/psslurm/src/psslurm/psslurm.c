@@ -96,7 +96,7 @@ void startPsslurm(void)
     dependencies[1].name = "psaccount";
     dependencies[1].version = 25;
     dependencies[2].name = "pelogue";
-    dependencies[2].version = 5;
+    dependencies[2].version = 6;
     dependencies[3].name = "pspam";
     dependencies[3].version = 3;
     dependencies[4].name = "psexec";
@@ -315,6 +315,13 @@ static int regPElogueHandles()
     if (!(psPelogueAddPluginConfig = dlsym(pluginHandle,
 	    "psPelogueAddPluginConfig"))) {
 	mlog("%s: loading function psPelogueAddPluginConfig() failed\n",
+		__func__);
+	return 0;
+    }
+
+    if (!(psPelogueDelPluginConfig = dlsym(pluginHandle,
+	    "psPelogueDelPluginConfig"))) {
+	mlog("%s: loading function psPelogueDelPluginConfig() failed\n",
 		__func__);
 	return 0;
     }
@@ -591,14 +598,10 @@ int initialize(void)
     return 0;
 
 INIT_ERROR:
+    psPelogueDelPluginConfig("psslurm");
     unregisterHooks(0);
     finalizeFragComm();  /* needed for unregister hooks */
     return 1;
-}
-
-void finalize(void)
-{
-
 }
 
 static void cleanupJobs()
@@ -636,15 +639,28 @@ static void shutdownJobs()
 							cleanupJobs)) == -1) {
 	    mlog("registering cleanup timer failed\n");
 	}
+	return;
     }
+
+    /* all jobs are gone */
+    PSIDplugin_unload("psslurm");
+}
+
+void finalize(void)
+{
+    /* TODO: kill all jobs */
+    shutdownJobs();
 }
 
 void cleanup(void)
 {
     if (!isInit) return;
 
-    /* TODO: kill all jobs */
-    shutdownJobs();
+    /* free config in pelogue plugin */
+    psPelogueDelPluginConfig("psslurm");
+
+    /* unregister timer */
+    if (cleanupTimerID != -1) Timer_remove(cleanupTimerID);
 
     /* remove all registered hooks and msg handler */
     unregisterHooks(1);

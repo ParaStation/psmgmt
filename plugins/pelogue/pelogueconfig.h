@@ -93,4 +93,6 @@ void clearConfig(void);
 
 int addPluginConfig(const char *name, Config_t *config);
 
+int delPluginConfig(const char *name);
+
 #endif

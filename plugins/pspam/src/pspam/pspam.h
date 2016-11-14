@@ -40,13 +40,6 @@ void __attribute__ ((destructor)) stopPspam(void);
 int initialize(void);
 
 /**
- * @brief Prepare and beginn shutdown.
- *
- * @return No return value.
- */
-void finalize(void);
-
-/**
  * @brief Free left memory, final cleanup.
  *
  * After this function we will be unloaded.

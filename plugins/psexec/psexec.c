@@ -33,6 +33,7 @@
 #include "psidutil.h"
 #include "selector.h"
 #include "psidcomm.h"
+#include "psidplugin.h"
 
 #include "psexeclog.h"
 #include "psexecscripts.h"
@@ -87,6 +88,8 @@ void finalize(void)
 {
     /* make sure all processes are gone */
     clearScriptList();
+
+    PSIDplugin_unload("psexec");
 }
 
 void cleanup(void)

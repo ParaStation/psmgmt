@@ -31,6 +31,11 @@ int psPelogueAddPluginConfig(char * name, Config_t *configList)
     return addPluginConfig(name, configList);
 }
 
+int psPelogueDelPluginConfig(char * name)
+{
+    return delPluginConfig(name);
+}
+
 int psPelogueAddJob(const char *plugin, const char *jobid, uid_t uid,
 			gid_t gid, int nrOfNodes, PSnodes_ID_t *nodes,
 			Pelogue_JobCb_Func_t *pluginCallback)

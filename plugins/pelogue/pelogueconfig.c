@@ -40,6 +40,13 @@ static int isInit = 0;
 
 static pluginConfList_t pluginConfList[MAX_SUPPORTED_PLUGINS];
 
+static void clearConfigEntry(int i)
+{
+    ufree(pluginConfList[i].name);
+    pluginConfList[i].name = NULL;
+    pluginConfList[i].conf = NULL;
+}
+
 int initConfig(void)
 {
     int i;
@@ -62,11 +69,7 @@ void clearConfig(void)
     if (!isInit) return;
 
     for (i=0; i<MAX_SUPPORTED_PLUGINS; i++) {
-	if (pluginConfList[i].name) {
-	    ufree(pluginConfList[i].name);
-	    pluginConfList[i].name = NULL;
-	    pluginConfList[i].conf = NULL;
-	}
+	if (pluginConfList[i].name) clearConfigEntry(i);
     }
 
     isInit = 0;
@@ -212,12 +215,27 @@ int addPluginConfig(const char *name, Config_t *config)
 	    pluginConfList[i].conf = config;
 
 	    if (!testPluginConf(name)) {
-		ufree(pluginConfList[i].name);
-		pluginConfList[i].name = NULL;
-		pluginConfList[i].conf = NULL;
+		clearConfigEntry(i);
 		return 0;
 	    }
 
+	    return 1;
+	}
+    }
+
+    return 0;
+}
+
+int delPluginConfig(const char *name)
+{
+    int i;
+
+    if (!isInit || name) return 0;
+
+    for (i=0; i<MAX_SUPPORTED_PLUGINS; i++) {
+	if (pluginConfList[i].name &&
+	    !(strcmp(pluginConfList[i].name, name))) {
+	    clearConfigEntry(i);
 	    return 1;
 	}
     }

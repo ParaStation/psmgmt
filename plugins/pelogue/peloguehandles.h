@@ -25,6 +25,8 @@
 
 int (*psPelogueAddPluginConfig)(char *, Config_t *);
 
+int (*psPelogueDelPluginConfig)(char *);
+
 int (*psPelogueAddJob)(const char *, const char *, uid_t, gid_t, int,
 			PSnodes_ID_t *, Pelogue_JobCb_Func_t *pluginCallback);
 

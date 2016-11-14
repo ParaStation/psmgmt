@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -54,7 +54,7 @@ static int obitTime = 10;
 
 /** psid plugin requirements */
 char name[] = "pelogue";
-int version = 5;
+int version = 6;
 int requiredAPI = 114;
 plugin_dep_t dependencies[2];
 
@@ -90,6 +90,9 @@ static void cleanupJobs(void)
 	mlog("sending SIGKILL to %i remaining jobs\n", njobs);
 	signalJobs(SIGKILL, "shutdown");
     }
+
+    /* all jobs are gone */
+    PSIDplugin_unload("pelogue");
 }
 
 static void shutdownJobs(void)
@@ -107,7 +110,11 @@ static void shutdownJobs(void)
 							cleanupJobs)) == -1) {
 	    mlog("registering cleanup timer failed\n");
 	}
+	return;
     }
+
+    /* all jobs are gone */
+    PSIDplugin_unload("pelogue");
 }
 
 static int handleShutdown(void *data)
