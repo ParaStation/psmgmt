@@ -511,7 +511,7 @@ int tcpConnect(char *addr, char *port)
 #define TCP_CONNECTION_RETRYS 10
 
     struct addrinfo *result, *rp;
-    int sock = -1, ret, reConnect = 0, err;
+    int sock = -1, ret, reConnect = 0, err, connectFailed;
 
 TCP_RECONNECT:
 
@@ -539,16 +539,27 @@ TCP_RECONNECT:
 	    continue;
 	}
 
-	if ((connect(sock, rp->ai_addr, rp->ai_addrlen)) == -1) {
+	/* NOTE: This is only suitable for systems implementing connect() in
+	 *       Linux style and will fail on systems implementing it the
+	 *       Solaris way (meaning a subsequent connect after EINTR does
+	 *       not block but immediately return with EALREADY) */
+	connectFailed = 0;
+	while (connect(sock, rp->ai_addr, rp->ai_addrlen) == -1
+			&& errno != EISCONN) {
 	    err = errno;
 	    if (errno != EINTR) {
+		connectFailed = 1;
 		mwarn(errno, "%s: connect failed, port '%s' addr '%s' ",
 			__func__, port, addr);
+		break;
 	    }
-	    close(sock);
-	    continue;
+        }
+
+	if (!connectFailed) {
+	    break;
 	}
-	break;
+
+	close(sock);
     }
     freeaddrinfo(result);
 
