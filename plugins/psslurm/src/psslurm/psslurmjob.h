@@ -390,7 +390,7 @@ void clearAllocList(void);
 PS_Tasks_t *addTask(struct list_head *list, PStask_ID_t childTID,
 			PStask_ID_t forwarderTID, PStask_t *forwarder,
 			PStask_group_t childGroup, int32_t rank);
-void signalTasks(uint32_t jobid, uid_t uid, PS_Tasks_t *tasks, int signal,
+int signalTasks(uint32_t jobid, uid_t uid, PS_Tasks_t *tasks, int signal,
 		    int32_t group);
 PS_Tasks_t *findTaskByRank(struct list_head *taskList, int32_t rank);
 PS_Tasks_t *findTaskByForwarder(struct list_head *taskList, PStask_ID_t fwTID);

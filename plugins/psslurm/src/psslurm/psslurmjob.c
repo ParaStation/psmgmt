@@ -672,7 +672,7 @@ int deleteJob(uint32_t jobid)
     return 1;
 }
 
-void signalTasks(uint32_t jobid, uid_t uid, PS_Tasks_t *tasks, int signal,
+int signalTasks(uint32_t jobid, uid_t uid, PS_Tasks_t *tasks, int signal,
 		    int32_t group)
 {
     list_t *pos, *tmp;
@@ -681,7 +681,7 @@ void signalTasks(uint32_t jobid, uid_t uid, PS_Tasks_t *tasks, int signal,
     int count = 0;
 
     list_for_each_safe(pos, tmp, &tasks->list) {
-	if (!(task = list_entry(pos, PS_Tasks_t, list))) return;
+	if (!(task = list_entry(pos, PS_Tasks_t, list))) return count;
 
 	if ((child = PStasklist_find(&managedTasks, task->childTID))) {
 	    if (group > -1 && child->group != (PStask_group_t) group) continue;
@@ -702,6 +702,8 @@ void signalTasks(uint32_t jobid, uid_t uid, PS_Tasks_t *tasks, int signal,
 	mlog("%s: killed %i processes with signal '%i' of job '%u'\n", __func__,
 	    count, signal, jobid);
     }
+
+    return count;
 }
 
 int signalStep(Step_t *step, int signal)
@@ -714,7 +716,7 @@ int signalStep(Step_t *step, int signal)
 
     /* if we are not the mother superior we just signal all our local tasks */
     if (step->nodes[0] != PSC_getMyID()) {
-	signalTasks(step->jobid, step->uid, &step->tasks, signal, group);
+	ret = signalTasks(step->jobid, step->uid, &step->tasks, signal, group);
 	return ret;
     }
 
@@ -724,7 +726,7 @@ int signalStep(Step_t *step, int signal)
 	    if (step->fwdata) {
 		sendStartGraceTime(step->fwdata);
 	    }
-	    signalTasks(step->jobid, step->uid, &step->tasks, signal, group);
+	    ret = signalTasks(step->jobid, step->uid, &step->tasks, signal, group);
 	    send_PS_SignalTasks(step, signal, group);
 	    break;
 	case SIGWINCH:
@@ -736,12 +738,12 @@ int signalStep(Step_t *step, int signal)
 	    if (step->fwdata) {
 		ret = signalForwarderChild(step->fwdata, signal);
 	    } else {
-		signalTasks(step->jobid, step->uid, &step->tasks, signal, group);
+		ret = signalTasks(step->jobid, step->uid, &step->tasks, signal, group);
 		send_PS_SignalTasks(step, signal, group);
 	    }
 	    break;
 	default:
-	    signalTasks(step->jobid, step->uid, &step->tasks, signal, group);
+	    ret = signalTasks(step->jobid, step->uid, &step->tasks, signal, group);
 	    send_PS_SignalTasks(step, signal, group);
     }
 
@@ -774,7 +776,7 @@ int signalStepsByJobid(uint32_t jobid, int signal)
 	if (!(step = list_entry(pos, Step_t, list))) break;
 
 	if (step->jobid == jobid && step->state != JOB_COMPLETE) {
-	    count += signalStep(step, signal);
+	    if (signalStep(step, signal)) count++;
 	}
     }
     return count;
@@ -909,8 +911,10 @@ int signalJob(Job_t *job, int signal, char *reason)
 
     switch (job->state) {
 	case JOB_RUNNING:
-	    signalForwarderChild(job->fwdata, signal);
-	    count++;
+	    if (signal != SIGTERM || !count) {
+	      signalForwarderChild(job->fwdata, signal);
+	      count++;
+	    }
 	    break;
     }
 
