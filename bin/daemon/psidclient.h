@@ -17,13 +17,7 @@
 
 #include "psprotocol.h"
 #include "pstask.h"
-
-#ifdef __cplusplus
-extern "C" {
-#if 0
-} /* <- just for emacs indentation */
-#endif
-#endif
+#include "selector.h"
 
 /**
  * @brief Initialize clients structures.
@@ -89,13 +83,29 @@ PStask_t *PSIDclient_getTask(int fd);
  * sent an initial packet which has been successfully tested on right
  * protocol version etc.
  *
- * @param fd The file descriptor the client is connected through.
+ * If @a handler is different from NULL, this function will be used as
+ * a callback for all incoming data on @a fd. Otherwise a default
+ * handler is used that expects PSP messages and applies the default
+ * message multiplexer @ref PSID_handleMsg() to all incoming messages.
+ *
+ * The message handler gets the file descriptor as its first argument
+ * and might use @ref PSIDclient_getTID() to identify the sending
+ * client. @a info will be passed as the second argument to the
+ * message handler in order to retrive additional information on this
+ * client.
+ *
+ * @param fd File descriptor the client is connected through
+ *
+ * @param handler Alternative handler for incoming data on @a fd
+ *
+ * @param info Extra information to be passed to @a handler in order
+ * to identify the source of incoming data
  *
  * @return No return value.
  *
  * @see PSIDclient_isEstablished()
  */
- void PSIDclient_setEstablished(int fd);
+void PSIDclient_setEstablished(int fd, Selector_CB_t handler, void *info);
 
 /**
  * @brief Test if client's connection is established.
@@ -238,9 +248,5 @@ void PSIDclient_clearMem(void);
  * and errno is set appropriately.
  */
 int PSIDclient_setMax(int max);
-
-#ifdef __cplusplus
-}/* extern "C" */
-#endif
 
 #endif /* __PSIDCLIENT_H */
