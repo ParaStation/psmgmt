@@ -8,11 +8,6 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-#ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__((used)) =
-    "$Id$";
-#endif /* DOXYGEN_SHOULD_SKIP_THIS */
-
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -127,6 +122,8 @@ int PStask_init(PStask_t* task)
     task->spawnNum = 0;
     task->delegate = NULL;
     task->injectedEnv = 0;
+    task->sigChldCB = NULL;
+    task->info = NULL;
     task->resPorts = NULL;
 
     INIT_LIST_HEAD(&task->signalSender);
@@ -202,6 +199,7 @@ int PStask_reinit(PStask_t* task)
     delReservationList(&task->resRequests);
 
     if (task->spawnNodes) free(task->spawnNodes);
+    if (task->info) free(task->info);
     if (task->resPorts) free(task->resPorts);
 
     delSigList(&task->signalSender);
@@ -416,6 +414,7 @@ PStask_t* PStask_clone(PStask_t* task)
     clone->spawnNum = task->spawnNum;
     clone->delegate = task->delegate;
     clone->injectedEnv = task->injectedEnv;
+    /* Ignore sigChldCB and info */
 
     cloneSigList(&clone->signalSender, &task->signalSender);
     cloneSigList(&clone->signalReceiver, &task->signalReceiver);
