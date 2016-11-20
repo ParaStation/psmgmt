@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2009-2011 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2009-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -10,24 +10,11 @@
 /**
  * @file
  * Helper functions for plugin handling.
- *
- * $Id$
- *
- * @author
- * Norbert Eicker <eicker@par-tec.com>
- *
  */
 #ifndef __PSIDPLUGIN_H
 #define __PSIDPLUGIN_H
 
 #include "pstask.h"
-
-#ifdef __cplusplus
-extern "C" {
-#if 0
-} /* <- just for emacs indentation */
-#endif
-#endif
 
 /**
  * @brief Initialize plugin stuff
@@ -48,7 +35,7 @@ void initPlugins(void);
  * seconds.
  *
  * Forcefully unloading a plugin has to be triggered
- * explicitely. Currently this requires to send a corresponding
+ * explicitly. Currently this requires to send a corresponding
  * message (PSP_PLUGIN_FORCEREMOVE) to the daemon.
  *
  * @return The timeout in seconds
@@ -62,7 +49,7 @@ int PSIDplugin_getUnloadTmout(void);
  * seconds.
  *
  * Forcefully unloading a plugin has to be triggered
- * explicitely. Currently this requires to send a corresponding
+ * explicitly. Currently this requires to send a corresponding
  * message (PSP_PLUGIN_FORCEREMOVE) to the daemon.
  *
  * @param tmout The timeout to set in seconds
@@ -119,7 +106,7 @@ void *PSIDplugin_getHandle(char *name);
  * affected, if the plugin is still triggered by another plugin
  * depending on it. Basically, this function just removes the
  * self-trigger of the plugin, i.e. a trigger of the plugin pointing
- * to itself, if the plugin was loaded explicitely. If this was the
+ * to itself, if the plugin was loaded explicitly. If this was the
  * plugin's last trigger, further measures will be taken in order to
  * actually unload the plugin @a name.
  *
@@ -134,7 +121,7 @@ void *PSIDplugin_getHandle(char *name);
  * If no @a finalize method is exposed by the plugin @a name, calling
  * this function behaves exactly like calling @ref
  * PSIDplugin_unload(). Thus, the plugin will be marked to be unloaded
- * immediately, if it is no longer required by other plugins depending
+ * immediately if it is no longer required by other plugins depending
  * on it.
  *
  * @param name The name of the plugin to be finalized.
@@ -195,9 +182,5 @@ void PSIDplugin_forceUnloadAll(void);
  * @return The version number of the plugin API.
  */
 int PSIDplugin_getAPIversion(void);
-
-#ifdef __cplusplus
-}/* extern "C" */
-#endif
 
 #endif  /* __PSIDPLUGIN_H */
