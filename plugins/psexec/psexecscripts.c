@@ -7,117 +7,98 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-/**
- * $Id$
- *
- * \author
- * Michael Rauh <rauh@par-tec.com>
- *
- */
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <list.h>
 #include <signal.h>
+#include <errno.h>
 
-#include "psexeclog.h"
+#include "list.h"
 #include "pluginmalloc.h"
+#include "pluginenv.h"
+#include "psidscripts.h"
+#include "psexeccomm.h"
+#include "psexeclog.h"
 
 #include "psexecscripts.h"
 
+static LIST_HEAD(scriptList);
 
-void initScriptList(void)
+/** node-local unique ID of the next script to register */
+static uint16_t nextUID = 42;
+
+Script_t *addScript(uint32_t id, char *execName, psExec_Script_CB_t *cb)
 {
-    INIT_LIST_HEAD(&ScriptList.list);
+    Script_t *script = umalloc(sizeof(*script));
+
+    if (!script) {
+	mwarn(errno, "%s", __func__);
+	return NULL;
+    }
+
+    script->id = id;
+    script->pid = 0;
+    script->initiator = -1;
+    script->cb = cb;
+    script->execName = ustrdup(execName);
+    envInit(&script->env);
+    script->uID = nextUID++;
+    list_add_tail(&script->next, &scriptList);
+
+    return script;
 }
 
+/**
+ * @brief Delete script information
+ *
+ * Remove the script information @a script from the list and free()
+ * all related memory.
+ *
+ * @param script Script information to delete
+ *
+ * @return No return value
+ */
 static void doDeleteScript(Script_t *script)
 {
     ufree(script->execName);
     envDestroy(&script->env);
-    list_del(&script->list);
+    list_del(&script->next);
     ufree(script);
-}
-
-int deleteScript(pid_t pid)
-{
-    Script_t *script;
-
-    if (pid >0) kill(pid, SIGKILL);
-
-    if (!(script = findScript(pid))) return 0;
-
-    doDeleteScript(script);
-    return 1;
-}
-
-int deleteScriptByuID(uint16_t uID)
-{
-    Script_t *script;
-
-    if (!(script = findScriptByuID(uID))) return 0;
-
-    doDeleteScript(script);
-    return 1;
-}
-
-void clearScriptList(void)
-{
-    list_t *pos, *tmp;
-    Script_t *script;
-
-    list_for_each_safe(pos, tmp, &ScriptList.list) {
-	if (!(script = list_entry(pos, Script_t, list))) return;
-
-	deleteScript(script->pid);
-    }
 }
 
 Script_t *findScriptByuID(uint16_t uID)
 {
-    list_t *pos, *tmp;
-    Script_t *script;
+    list_t *s;
+    list_for_each(s, &scriptList) {
+	Script_t *script = list_entry(s, Script_t, next);
 
-    list_for_each_safe(pos, tmp, &ScriptList.list) {
-	if (!(script = list_entry(pos, Script_t, list))) return NULL;
-
-	if (script->uID == uID) return script;
+	/* check for script->pid to ensure we return a local delegate */
+	if (script->uID == uID && !script->pid) return script;
     }
     return NULL;
 }
 
-Script_t *findScript(pid_t pid)
+bool deleteScript(Script_t *script)
 {
-    list_t *pos, *tmp;
-    Script_t *script;
-
-    list_for_each_safe(pos, tmp, &ScriptList.list) {
-	if (!(script = list_entry(pos, Script_t, list))) return NULL;
-
-	if (script->pid == pid) return script;
+    if (!script) return false;
+    if (script->pid) {
+	kill(script->pid, SIGKILL);
+	PSID_cancelCB(script->pid);
     }
-    return NULL;
+    doDeleteScript(script);
+    return true;
 }
 
-Script_t *addScript(uint32_t id, pid_t pid, PSnodes_ID_t origin, char *execName)
+void clearScriptList(void)
 {
-    struct timespec tp;
-    Script_t *script;
-
-    script = (Script_t *) umalloc(sizeof(Script_t));
-    script->id = id;
-    script->pid = pid;
-    script->origin = origin;
-    script->cb = NULL;
-    script->execName = ustrdup(execName);
-    envInit(&script->env);
-
-    if (!(clock_gettime(CLOCK_REALTIME, &tp))) {
-	script->uID = (uint16_t) tp.tv_nsec;
-    } else {
-	script->uID = (uint16_t) time(NULL);
+    list_t *s, *tmp;
+    list_for_each_safe(s, tmp, &scriptList) {
+	Script_t *script = list_entry(s, Script_t, next);
+	if (script->pid) {
+	    kill(script->pid, SIGKILL);
+	    PSID_cancelCB(script->pid);
+	    if (script->initiator != -1) sendScriptResult(script, -1);
+	}
+	doDeleteScript(script);
     }
-
-    list_add_tail(&(script->list), &ScriptList.list);
-    return script;
 }

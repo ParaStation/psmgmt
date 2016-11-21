@@ -7,57 +7,44 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-/**
- * $Id$
- *
- * \author
- * Michael Rauh <rauh@par-tec.com>
- *
- */
 
-#include <stdio.h>
 #include <stdlib.h>
 
+#include "psexecscripts.h"
 #include "psexeccomm.h"
-#include "psexeclog.h"
 
 #include "psexecinter.h"
 
 int psExecStartScript(uint32_t id, char *execName, env_t *env,
-			PSnodes_ID_t dest, psExec_Script_CB_t *cb)
+		      PSnodes_ID_t dest, psExec_Script_CB_t *cb)
 {
-    Script_t *script;
+    Script_t *script = addScript(id, execName, cb);
     int ret;
 
-    script = addScript(id, -1, -1, execName);
-    script->cb = cb;
+    /* equip local delegate */
     envClone(env, &script->env, NULL);
 
-    ret = sendScriptExec(script, dest);
+    ret = sendExecScript(script, dest);
 
-    if (ret == -1) {
-	deleteScriptByuID(script->uID);
-    }
+    if (ret == -1) deleteScript(script);
 
     return ret;
 }
 
-int psExecSendScriptStart(uint16_t scriptID, PSnodes_ID_t dest)
+int psExecSendScriptStart(uint16_t uID, PSnodes_ID_t dest)
 {
-    Script_t *script;
+    Script_t *script = findScriptByuID(uID);
 
-    if ((script = findScriptByuID(scriptID))) {
-	return sendScriptExec(script, dest);
-    }
-    return  -1;
+    if (!script) return -1;
+
+    return sendExecScript(script, dest);
 }
 
-int psExecStartLocalScript(uint16_t scriptID)
+int psExecStartLocalScript(uint16_t uID)
 {
-    Script_t *script;
+    Script_t *script = findScriptByuID(uID);
 
-    if ((script = findScriptByuID(scriptID))) {
-	return startLocalScript(script);
-    }
-    return  -1;
+    if (!script) return -1;
+
+    return startLocalScript(script);
 }

@@ -7,26 +7,19 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-/**
- * $Id$
- *
- * \author
- * Michael Rauh <rauh@par-tec.com>
- *
- */
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <errno.h>
+#include <string.h>
 #include <unistd.h>
+#include <limits.h>
 
-#include "plugin.h"
 #include "pluginmalloc.h"
-#include "pluginhelper.h"
 #include "plugincomm.h"
 #include "pluginfrag.h"
 #include "pspluginprotocol.h"
 #include "pscommon.h"
+#include "psidcomm.h"
 #include "psidscripts.h"
 #include "psidutil.h"
 #include "selector.h"
@@ -37,29 +30,39 @@
 
 #include "psexeccomm.h"
 
+/** Types of messages sent between psexec plugins */
+typedef enum {
+    PSP_EXEC_SCRIPT = 10,   /**< Initiate remote execution of script */
+    PSP_EXEC_SCRIPT_RES,    /**< Result of remotely executed script */
+} PSP_PSEXEC_t;
+
 #define SCRIPT_DIR LOCALSTATEDIR "/spool/parastation/scripts"
 
-static int sendScriptResult(uint16_t uID, int32_t res, PSnodes_ID_t dest)
+int sendScriptResult(Script_t *script, int32_t res)
 {
     PS_DataBuffer_t data = { .buf = NULL };
     int ret;
 
-    /* add uID */
-    addUint16ToMsg(uID, &data);
+    if (script->initiator == -1) {
+	mlog("%s: id %i uID %u: no initiator\n", __func__, script->id,
+	     script->uID);
+	return -1;
+    }
 
+    /* add uID */
+    addUint16ToMsg(script->id, &data);
     /* add res */
     addInt32ToMsg(res, &data);
 
     /* send the messages */
-    ret = sendFragMsg(&data, PSC_getTID(dest, 0), PSP_CC_PLUG_PSEXEC,
-			PSP_EXEC_SCRIPT_RES);
-
+    ret = sendFragMsg(&data, script->initiator, PSP_CC_PLUG_PSEXEC,
+		      PSP_EXEC_SCRIPT_RES);
     ufree(data.buf);
 
     return ret;
 }
 
-int sendScriptExec(Script_t *script, PSnodes_ID_t dest)
+int sendExecScript(Script_t *script, PSnodes_ID_t dest)
 {
     PS_DataBuffer_t data = { .buf = NULL };
     uint32_t i;
@@ -68,12 +71,11 @@ int sendScriptExec(Script_t *script, PSnodes_ID_t dest)
 
     /* add uID */
     addUint16ToMsg(script->uID, &data);
-
     /* add executable */
     addStringToMsg(script->execName, &data);
 
     /* add env */
-    mlog("%s: name '%s' dest '%i'\n", __func__, script->execName, dest);
+    mlog("%s: name '%s' dest %i\n", __func__, script->execName, dest);
     addUint32ToMsg(env->cnt, &data);
     for (i=0; i<env->cnt; i++) {
 	addStringToMsg(envGetIndex(env, i), &data);
@@ -81,64 +83,42 @@ int sendScriptExec(Script_t *script, PSnodes_ID_t dest)
 
     /* send the messages */
     ret = sendFragMsg(&data, PSC_getTID(dest, 0), PSP_CC_PLUG_PSEXEC,
-			PSP_EXEC_SCRIPT);
+		      PSP_EXEC_SCRIPT);
 
     ufree(data.buf);
 
     return ret;
 }
 
-static int getScriptCBData(int fd, PSID_scriptCBInfo_t *info, int32_t *exit,
-    char *errMsg, size_t errMsgLen, size_t *errLen)
+static bool getScriptCBData(int fd, PSID_scriptCBInfo_t *info, int32_t *exit,
+			    char *errMsg, size_t errMsgLen, size_t *errLen)
 {
-    int iofd = -1;
-
     /* get exit status */
-    PSID_readall(fd, exit, sizeof(int32_t));
+    PSID_readall(fd, exit, sizeof(*exit));
     Selector_remove(fd);
     close(fd);
 
-    /* get stdout/stderr output / pid of child */
-    if (info) {
-	if (!info->info) {
-	    mlog("%s: info missing\n", __func__);
-	    return 1;
-	}
-	if ((iofd = info->iofd)) {
-	    if ((*errLen = PSID_readall(iofd, errMsg, errMsgLen)) > 0) {
-		//mlog("got error: '%s'\n", errMsg);
-	    }
-	    errMsg[*errLen] = '\0';
-	    close(iofd);
-	} else {
-	    mlog("%s: invalid iofd\n", __func__);
-	    errMsg[0] = '\0';
-	}
-    } else {
+    /* get stdout/stderr output */
+    if (!info) {
 	mlog("%s: invalid info data\n", __func__);
-	return 1;
+	return false;
     }
-    return 0;
-}
 
-static int callbackScript(int fd, PSID_scriptCBInfo_t *info)
-{
-    char errMsg[1024];
-    int32_t exit;
-    size_t errLen = 0;
-    Script_t *script = info->info;
+    if (!info->iofd) {
+	mlog("%s: invalid iofd\n", __func__);
+	errMsg[0] = '\0';
+    }
+    *errLen = PSID_readall(info->iofd, errMsg, errMsgLen);
+    // if (*errLen > 0) mlog("got error: '%s'\n", errMsg);
+    errMsg[*errLen] = '\0';
+    close(info->iofd);
 
-    getScriptCBData(fd, info, &exit, errMsg, sizeof(errMsg), &errLen);
+    if (!info->info) {
+	mlog("%s: info missing\n", __func__);
+	return false;
+    }
 
-    mlog("%s: finish, exit '%i' id '%u'\n", __func__, exit, script->uID);
-
-    /* send result */
-    sendScriptResult(script->uID, exit, script->origin);
-
-    /* cleanup */
-    deleteScript(script->pid);
-
-    return 0;
+    return true;
 }
 
 static int prepEnv(void *info)
@@ -155,86 +135,113 @@ static int prepEnv(void *info)
     return 0;
 }
 
+static bool execScript(Script_t *script, PSID_scriptCB_t cb)
+{
+    PStask_ID_t initiator = script->initiator;
+    char exePath[PATH_MAX];
+    int ret;
+
+    snprintf(exePath, sizeof(exePath), "%s/%s", SCRIPT_DIR, script->execName);
+
+    mlog("%s: uID %u exec %s", __func__, script->uID, exePath);
+    if (initiator != -1) {
+	mlog(" envc %u initiator %s", script->env.cnt, PSC_printTID(initiator));
+    }
+    mlog("\n");
+    ret = PSID_execScript(exePath, prepEnv, cb, script);
+    if (ret == -1) return false;
+
+    script->pid = ret;
+
+    return true;
+}
+
 static int callbackLocalScript(int fd, PSID_scriptCBInfo_t *info)
 {
+    Script_t *script = info ? info->info : NULL;
     char errMsg[1024];
     int32_t exit;
     size_t errLen = 0;
-    Script_t *script = info->info;
-    int ret;
 
     getScriptCBData(fd, info, &exit, errMsg, sizeof(errMsg), &errLen);
+    if (!script) return 0;
 
-    mlog("%s: finish, exit '%i' id '%u'\n", __func__, exit, script->uID);
+    mlog("%s: id %i uID %u exit %i\n", __func__, script->id, script->uID, exit);
 
     if (script->cb) {
-	ret = script->cb(script->id, exit, PSC_getMyID(), script->uID);
-	if (ret == 2) return 0;
+	int rc = script->cb(script->id, exit, PSC_getMyID(), script->uID);
+	if (rc == PSEXEC_CONT) return 0;
     }
-    deleteScriptByuID(script->uID);
+    script->pid = 0;
+    deleteScript(script);
 
     return 0;
 }
 
 int startLocalScript(Script_t *script)
 {
-    char exePath[256];
-    int ret;
+    if (execScript(script, callbackLocalScript)) return 0;
 
-    snprintf(exePath, sizeof(exePath), "%s/%s", SCRIPT_DIR, script->execName);
-
-    mlog("%s: uID '%u' exec '%s'\n", __func__, script->uID, exePath);
-    ret = PSID_execScript(exePath, prepEnv, callbackLocalScript, script);
-    if (ret == -1) {
-	if (script->cb) {
-	    ret = script->cb(script->id, -2, PSC_getMyID(), script->uID);
-	    if (ret == 2) return 0;
-	}
-	deleteScriptByuID(script->uID);
-	return -1;
-    } else {
-	script->pid = ret;
+    if (script->cb) {
+	int rc = script->cb(script->id, -2, PSC_getMyID(), script->uID);
+	if (rc == PSEXEC_CONT) return 0;
     }
+    deleteScript(script);
+
+    return -1;
+}
+
+static int callbackScript(int fd, PSID_scriptCBInfo_t *info)
+{
+    Script_t *script = info ? info->info : NULL;
+    char errMsg[1024];
+    int32_t exit;
+    size_t errLen = 0;
+
+    getScriptCBData(fd, info, &exit, errMsg, sizeof(errMsg), &errLen);
+    if (!script) return 0;
+
+    mlog("%s: initiator %s id %i exit %i\n", __func__,
+	 PSC_printTID(script->initiator), script->id, exit);
+
+    /* send result */
+    sendScriptResult(script, exit);
+
+    /* cleanup */
+    script->pid = 0;
+    deleteScript(script);
+
     return 0;
 }
 
 static void handleExecScript(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 {
     char *ptr = data->buf;
-    char exePath[256], exe[100], buf[1024];
+    char exe[128];
     uint32_t i, envc;
     uint16_t uID;
     Script_t *script;
-    int ret;
 
-    /* uID */
+    /* remote uID */
     getUint16(&ptr, &uID);
-
     /* executable name */
     getString(&ptr, exe, sizeof(exe));
-    snprintf(exePath, sizeof(exePath), "%s/%s", SCRIPT_DIR, exe);
 
     /* get new script struct */
-    script = addScript(uID, -1, PSC_getID(msg->header.sender), exe);
-    script->uID = uID;
+    script = addScript(uID, exe, NULL);
+    script->initiator = msg->header.sender;
 
     /* env */
     getUint32(&ptr, &envc);
-
     for (i=0; i<envc; i++) {
+	char buf[1024];
 	getString(&ptr, buf, sizeof(buf));
 	envPut(&script->env, buf);
     }
 
-    /* start the script */
-    mlog("%s: uID '%u' exec '%s' envc '%u' remote '%s'\n", __func__,
-	    uID, exePath, envc, PSC_printTID(msg->header.sender));
-    ret = PSID_execScript(exePath, prepEnv, callbackScript, script);
-    if (ret == -1) {
-	sendScriptResult(uID, -2, msg->header.sender);
-	deleteScriptByuID(uID);
-    } else {
-	script->pid = ret;
+    if (!execScript(script, callbackScript)) {
+	sendScriptResult(script, -2);
+	deleteScript(script);
     }
 }
 
@@ -244,35 +251,34 @@ static void handleExecScriptRes(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     uint16_t uID;
     int32_t res;
     Script_t *script;
-    int ret;
 
     /* uID */
     getUint16(&ptr, &uID);
-
     /* exit code */
     getInt32(&ptr, &res);
 
     /* callback */
-    if (!(script = findScriptByuID(uID))) {
-	mlog("%s: script for uID '%u' not found\n", __func__, uID);
-    } else {
-	mlog("%s: uID: %u id '%u' res: %i\n", __func__, uID, script->id, res);
-	if (script->cb) {
-	    ret = script->cb(script->id, res, PSC_getID(msg->header.sender),
-			script->uID);
-	    if (ret == 2) return;
-	}
-	deleteScriptByuID(uID);
+    script = findScriptByuID(uID);
+    if (!script) {
+	mlog("%s: no script for uID %u\n", __func__, uID);
+	return;
     }
+
+    mlog("%s: id %i uID %u res %i\n", __func__, script->id, uID, res);
+    if (script->cb) {
+	PSnodes_ID_t remote = PSC_getID(msg->header.sender);
+	int rc = script->cb(script->id, res, remote, script->uID);
+	if (rc == PSEXEC_CONT) return;
+    }
+    deleteScript(script);
 }
 
-static void handleDroppedExecMsg(DDTypedBufferMsg_t *msg)
+static void dropExecMsg(DDTypedBufferMsg_t *msg)
 {
     Script_t *script;
     uint16_t uID;
     char *ptr = msg->buf;
     PS_Frag_Msg_Header_t *rhead;
-    int ret;
 
     /* fragmented message header */
     rhead = (PS_Frag_Msg_Header_t *) ptr;
@@ -281,66 +287,74 @@ static void handleDroppedExecMsg(DDTypedBufferMsg_t *msg)
     /* ignore follow up messages */
     if (rhead->fragNum) return;
 
-    /* extract id */
+    /* uID */
     getUint16(&ptr, &uID);
 
     /* return result to callback */
-    if (!(script = findScriptByuID(uID))) {
-	mlog("%s: script for uID '%u' not found\n", __func__, uID);
-    } else {
-	mlog("%s: uID '%u'\n", __func__, uID);
-	if (script->cb) {
-	    ret = script->cb(script->id, -3, PSC_getID(msg->header.dest),
-			    script->uID);
-	    if (ret == 2) return;
-	}
-	deleteScriptByuID(uID);
+    script = findScriptByuID(uID);
+    if (!script) {
+	mlog("%s: no script for uID %u\n", __func__, uID);
+	return;
+    }
+
+    mlog("%s: uID %u\n", __func__, uID);
+    if (script->cb) {
+	PSnodes_ID_t remote = PSC_getID(msg->header.dest);
+	int rc = script->cb(script->id, -3, remote, script->uID);
+	if (rc == PSEXEC_CONT) return;
+    }
+    deleteScript(script);
+}
+
+static void handlePsExecMsg(DDTypedBufferMsg_t *msg)
+{
+    char cover[128];
+
+    snprintf(cover, sizeof(cover), "[%s->", PSC_printTID(msg->header.sender));
+    snprintf(cover+strlen(cover), sizeof(cover)-strlen(cover), "%s]",
+	     PSC_printTID(msg->header.dest));
+
+    mdbg(PSEXEC_LOG_COMM, "%s: type %i %s\n", __func__, msg->type, cover);
+
+    switch (msg->type) {
+    case PSP_EXEC_SCRIPT:
+	recvFragMsg(msg, handleExecScript);
+	break;
+    case PSP_EXEC_SCRIPT_RES:
+	recvFragMsg(msg, handleExecScriptRes);
+	break;
+    default:
+	mlog("%s: unknown type %i %s\n", __func__, msg->type, cover);
     }
 }
 
-void handleDroppedMsg(DDTypedBufferMsg_t *msg)
+static void dropPsExecMsg(DDTypedBufferMsg_t *msg)
 {
-    const char *hname;
-    PSnodes_ID_t nodeId;
-
-    /* get hostname for message destination */
-    nodeId = PSC_getID(msg->header.dest);
-    hname = getHostnameByNodeId(nodeId);
-
-    mlog("%s: msg type '%i' to host '%s(%i)' got dropped\n", __func__,
-	    msg->type, hname, nodeId);
+    mlog("%s: type %i to %s\n", __func__, msg->type,
+	 PSC_printTID(msg->header.dest));
 
     switch (msg->type) {
-	case PSP_EXEC_SCRIPT:
-	    handleDroppedExecMsg(msg);
-	    break;
-	case PSP_EXEC_SCRIPT_RES:
-	    /* nothing we can do here */
-	    break;
-	default:
-	    mlog("%s: unknown msg type '%i'\n", __func__, msg->type);
+    case PSP_EXEC_SCRIPT:
+	dropExecMsg(msg);
+	break;
+    case PSP_EXEC_SCRIPT_RES:
+	/* nothing we can do here */
+	break;
+    default:
+	mlog("%s: unknown msg type %i\n", __func__, msg->type);
     }
 }
 
-void handlePsExecMsg(DDTypedBufferMsg_t *msg)
+bool initComm(void)
 {
-    char sender[100], dest[100];
+    PSID_registerMsg(PSP_CC_PLUG_PSEXEC, (handlerFunc_t) handlePsExecMsg);
+    PSID_registerDropper(PSP_CC_PLUG_PSEXEC, (handlerFunc_t) dropPsExecMsg);
 
-    strncpy(sender, PSC_printTID(msg->header.sender), sizeof(sender));
-    strncpy(dest, PSC_printTID(msg->header.dest), sizeof(dest));
+    return true;
+}
 
-    mdbg(PSEXEC_LOG_COMM, "%s: new msg type: '%i' [%s->%s]\n", __func__,
-	msg->type, sender, dest);
-
-    switch (msg->type) {
-	case PSP_EXEC_SCRIPT:
-	    recvFragMsg(msg, handleExecScript);
-	    break;
-	case PSP_EXEC_SCRIPT_RES:
-	    recvFragMsg(msg, handleExecScriptRes);
-	    break;
-	default:
-	    mlog("%s: received unknown msg type:%i [%s -> %s]\n", __func__,
-		msg->type, sender, dest);
-    }
+void finalizeComm(void)
+{
+    PSID_clearMsg(PSP_CC_PLUG_PSEXEC);
+    PSID_clearDropper(PSP_CC_PLUG_PSSLURM);
 }

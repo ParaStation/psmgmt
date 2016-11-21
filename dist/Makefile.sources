@@ -305,7 +305,6 @@ plugins/psexec/psexecinter.h \
 plugins/psexec/psexeclog.h \
 plugins/psexec/psexecscripts.h \
 plugins/psexec/Makefile.in \
-plugins/psexec/psexec.h \
 plugins/psexec/psexeccomm.h \
 plugins/psexec/psexecinter.c \
 plugins/psexec/psexeclog.c \

@@ -23,8 +23,6 @@
 # as defined in the file LICENSE.QPL included in the packaging of this
 # file.
 #
-# Author:	Michael Rauh <rauh@par-tec.com>
-#
 
 #
 # ParaStation
@@ -116,11 +114,9 @@ target_triplet = @target@
 subdir = plugins/psexec
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/m4/ax_check_compile_flag.m4 \
-	$(top_srcdir)/m4/ax_check_library.m4 \
 	$(top_srcdir)/m4/libtool.m4 $(top_srcdir)/m4/ltoptions.m4 \
 	$(top_srcdir)/m4/ltsugar.m4 $(top_srcdir)/m4/ltversion.m4 \
-	$(top_srcdir)/m4/lt~obsolete.m4 \
-	$(top_srcdir)/m4/ps_search_libs.m4 $(top_srcdir)/configure.ac
+	$(top_srcdir)/m4/lt~obsolete.m4 $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 DIST_COMMON = $(srcdir)/Makefile.am $(am__DIST_COMMON)
@@ -274,8 +270,6 @@ MAINT = @MAINT@
 MAKEINFO = @MAKEINFO@
 MANIFEST_TOOL = @MANIFEST_TOOL@
 MKDIR_P = @MKDIR_P@
-MUNGE_CPPFLAGS = @MUNGE_CPPFLAGS@
-MUNGE_LDFLAGS = @MUNGE_LDFLAGS@
 NM = @NM@
 NMEDIT = @NMEDIT@
 NUMA_LIBS = @NUMA_LIBS@
@@ -297,7 +291,6 @@ PKG_CONFIG_LIBDIR = @PKG_CONFIG_LIBDIR@
 PKG_CONFIG_PATH = @PKG_CONFIG_PATH@
 POPT_LIBS = @POPT_LIBS@
 RANLIB = @RANLIB@
-RL_LIBS = @RL_LIBS@
 SED = @SED@
 SET_MAKE = @SET_MAKE@
 SHELL = @SHELL@
@@ -366,7 +359,7 @@ top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 unitdir = @unitdir@
 AM_CPPFLAGS = -I$(top_srcdir)/include -DNDEBUG \
-	-I$(top_srcdir)/bin/daemon -I$(srcdir)/../include
+	-I$(top_srcdir)/bin/daemon
 subst_verbose = $(subst_verbose_$(V))
 subst_verbose_ = $(subst_verbose_$(AM_DEFAULT_VERBOSITY))
 subst_verbose_0 = @echo "  SUBST   " $(@F);
@@ -394,11 +387,11 @@ configdir = $(prefix)/config
 
 # dito
 scriptsdir = $(prefix)/scripts
-slurmdir = $(libdir)/slurm
 plugin_LTLIBRARIES = psexec.la
 libplugincommon = $(top_builddir)/lib/plugincommon/libplugincommon.la
-psexec_la_SOURCES = psexec.c psexec.h psexeclog.c psexeclog.h psexecscripts.c psexecscripts.h \
-			psexeccomm.c psexeccomm.h psexecinter.c psexecinter.h psexechandles.h
+psexec_la_SOURCES = psexec.c psexeclog.c psexeclog.h psexecscripts.c	\
+	psexecscripts.h psexeccomm.c psexeccomm.h psexecinter.c		\
+	psexecinter.h psexechandles.h
 
 psexec_la_CPPFLAGS = $(AM_CPPFLAGS) -DLOCALSTATEDIR=\"$(localstatedir)\"
 psexec_la_LIBADD = $(libplugincommon)
