@@ -60,18 +60,11 @@ AC_ARG_WITH([pamdir], [AS_HELP_STRING([--with-pamdir=DIR],
   [pamdir=/lib/security])
 AC_SUBST([pamdir])
 
-AX_CHECK_LIBRARY([MUNGE], [munge.h], [munge],
-  [ munge_enabled=true ], [])
+AC_CHECK_LIB([munge], [munge_encode],
+  [AC_SUBST([MUNGE_LIBS], [-lmunge])
+   AC_DEFINE([HAVE_MUNGE_DEVEL])
+   [ munge_enabled=true ] ])
 AM_CONDITIONAL([MUNGE_ENABLED], [test "x$munge_enabled" = xtrue])
-
-PS_SEARCH_LIBS([initscr], [ncurses curses], [RL_LIBS], [],
-  [AC_MSG_ERROR([please install the (n)curses devel package])])
-
-PS_SEARCH_LIBS([readline], [readline], [RL_LIBS], [],
-  [AC_MSG_ERROR([please install the readline devel package])])
-
-PS_SEARCH_LIBS([using_history], [history], [RL_LIBS], [],
-  [AC_MSG_ERROR([please install the readline devel package])])
 
 AC_ARG_ENABLE([psconfig], [AS_HELP_STRING([--disable-psconfig],
   [build without psconfig support])])
@@ -139,6 +132,7 @@ AC_CONFIG_FILES(lib/pskvs/Makefile)
 AC_CONFIG_FILES(lib/pslog/Makefile)
 AC_CONFIG_FILES(lib/putil/Makefile)
 AC_CONFIG_FILES(plugins/Makefile)
+AC_CONFIG_FILES(plugins/cgroup/Makefile)
 AC_CONFIG_FILES(plugins/pelogue/Makefile)
 AC_CONFIG_FILES(plugins/psaccount/Makefile)
 AC_CONFIG_FILES(plugins/psexec/Makefile)
@@ -153,7 +147,6 @@ AC_CONFIG_FILES(plugins/psslurm/Makefile)
 AC_CONFIG_FILES(plugins/psslurm/doc/Makefile)
 AC_CONFIG_FILES(plugins/psslurm/src/common/Makefile)
 AC_CONFIG_FILES(plugins/psslurm/src/psslurm/Makefile)
-AC_CONFIG_FILES(plugins/cgroup/Makefile)
 AC_CONFIG_FILES(scripts/Makefile)
 AC_CONFIG_FILES(tests/plugins/Makefile)
 AC_CONFIG_FILES(tests/functional/Makefile)

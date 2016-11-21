@@ -1,6 +1,7 @@
 # -*- rpm-spec -*-
 %{?_without_psconfig: %global disable_psconfig 1}
 %{?_without_systemd: %global disable_systemd 1}
+%{?_without_munge: %global disable_munge 1}
 %{?_with_slurm1605: %global enable_slurm1605 1}
 
 %if ( 0%{?rhel} && 0%{?rhel} < 7 ) || %(pkg-config --exists systemd; echo $?) != 0
@@ -204,29 +205,31 @@ exit 0
 %{_libdir}/libpsi.so*
 %exclude %{_libdir}/libpsi.la
 %dir %{_plugindir}
+%{_plugindir}/cgroup.so
+%exclude %{_plugindir}/cgroup.la
+%config(noreplace) %{_plugindir}/cgroup.conf
 %{_plugindir}/psaccount.so
 %exclude %{_plugindir}/psaccount.la
 %config(noreplace) %{_plugindir}/psaccount.conf
+%{_plugindir}/psexec.so
+%exclude %{_plugindir}/psexec.la
+%if !0%{?disable_munge}
+%{_plugindir}/psmunge.so
+%exclude %{_plugindir}/psmunge.la
+%endif
+%{_plugindir}/pspmi.so
+%exclude %{_plugindir}/pspmi.la
 %{_plugindir}/psresport.so
 %exclude %{_plugindir}/psresport.la
 %config(noreplace) %{_plugindir}/psresport.conf
-%{_plugindir}/pspmi.so
-%exclude %{_plugindir}/pspmi.la
 %{_plugindir}/pelogue.so
 %exclude %{_plugindir}/pelogue.la
-%{_plugindir}/psmunge.so
-%exclude %{_plugindir}/psmunge.la
 %{_plugindir}/pspam.so
 %exclude %{_plugindir}/pspam.la
 %{_plugindir}/psslurm.so
 %exclude %{_plugindir}/psslurm.la
-%{_plugindir}/psexec.so
-%exclude %{_plugindir}/psexec.la
 %{_pamdir}/pam_pspam.so
 %exclude %{_pamdir}/pam_pspam.la
-%{_plugindir}/cgroup.so
-%exclude %{_plugindir}/cgroup.la
-%config(noreplace) %{_plugindir}/cgroup.conf
 %config(missingok,noreplace) %{_sysconfdir}/profile.d/psmgmt.sh
 %config(missingok,noreplace) %{_sysconfdir}/profile.d/psmgmt.csh
 %if !0%{?disable_systemd}

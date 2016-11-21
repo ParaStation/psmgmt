@@ -270,6 +270,7 @@ MAINT = @MAINT@
 MAKEINFO = @MAKEINFO@
 MANIFEST_TOOL = @MANIFEST_TOOL@
 MKDIR_P = @MKDIR_P@
+MUNGE_LIBS = @MUNGE_LIBS@
 NM = @NM@
 NMEDIT = @NMEDIT@
 NUMA_LIBS = @NUMA_LIBS@
@@ -387,6 +388,7 @@ configdir = $(prefix)/config
 
 # dito
 scriptsdir = $(prefix)/scripts
+slurmdir = $(libdir)/slurm
 plugin_LTLIBRARIES = psexec.la
 libplugincommon = $(top_builddir)/lib/plugincommon/libplugincommon.la
 psexec_la_SOURCES = psexec.c psexeclog.c psexeclog.h psexecscripts.c	\

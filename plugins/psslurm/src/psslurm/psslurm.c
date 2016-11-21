@@ -364,18 +364,18 @@ static int initPluginHandles()
 	return 0;
     }
 
-    if (!(psMungeEncode = dlsym(pluginHandle, "mungeEncode"))) {
-	mlog("%s: loading function mungeEncode() failed\n", __func__);
+    if (!(psMungeEncode = dlsym(pluginHandle, "psMungeEncode"))) {
+	mlog("%s: loading function psMungeEncode() failed\n", __func__);
 	return 0;
     }
 
-    if (!(psMungeDecode = dlsym(pluginHandle, "mungeDecode"))) {
-	mlog("%s: loading function mungeDecode() failed\n", __func__);
+    if (!(psMungeDecode = dlsym(pluginHandle, "psMungeDecode"))) {
+	mlog("%s: loading function psMungeDecode() failed\n", __func__);
 	return 0;
     }
 
-    if (!(psMungeDecodeBuf = dlsym(pluginHandle, "mungeDecodeBuf"))) {
-	mlog("%s: loading function mungeDecodeBuf() failed\n", __func__);
+    if (!(psMungeDecodeBuf = dlsym(pluginHandle, "psMungeDecodeBuf"))) {
+	mlog("%s: loading function psMungeDecodeBuf() failed\n", __func__);
 	return 0;
     }
 

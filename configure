@@ -654,11 +654,9 @@ PKG_CONFIG_PATH
 PKG_CONFIG
 BUILD_WITHOUT_PSCONFIG_FALSE
 BUILD_WITHOUT_PSCONFIG_TRUE
-RL_LIBS
 MUNGE_ENABLED_FALSE
 MUNGE_ENABLED_TRUE
-MUNGE_LDFLAGS
-MUNGE_CPPFLAGS
+MUNGE_LIBS
 pamdir
 PAM_ENABLED_FALSE
 PAM_ENABLED_TRUE
@@ -815,8 +813,6 @@ LIBS
 CPPFLAGS
 LT_SYS_LIBRARY_PATH
 CPP
-MUNGE_CPPFLAGS
-MUNGE_LDFLAGS
 PKG_CONFIG
 PKG_CONFIG_PATH
 PKG_CONFIG_LIBDIR
@@ -1487,10 +1483,6 @@ Some influential environment variables:
   LT_SYS_LIBRARY_PATH
               User-defined run-time library search path.
   CPP         C preprocessor
-  MUNGE_CPPFLAGS
-              C preprocessor flags for MUNGE headers
-  MUNGE_LDFLAGS
-              linker flags for MUNGE libraries
   PKG_CONFIG  path to pkg-config utility
   PKG_CONFIG_PATH
               directories to add to pkg-config's search path
@@ -1845,97 +1837,6 @@ $as_echo "$ac_res" >&6; }
   eval $as_lineno_stack; ${as_lineno_stack:+:} unset as_lineno
 
 } # ac_fn_c_check_func
-
-# ac_fn_c_check_header_mongrel LINENO HEADER VAR INCLUDES
-# -------------------------------------------------------
-# Tests whether HEADER exists, giving a warning if it cannot be compiled using
-# the include files in INCLUDES and setting the cache variable VAR
-# accordingly.
-ac_fn_c_check_header_mongrel ()
-{
-  as_lineno=${as_lineno-"$1"} as_lineno_stack=as_lineno_stack=$as_lineno_stack
-  if eval \${$3+:} false; then :
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for $2" >&5
-$as_echo_n "checking for $2... " >&6; }
-if eval \${$3+:} false; then :
-  $as_echo_n "(cached) " >&6
-fi
-eval ac_res=\$$3
-	       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
-$as_echo "$ac_res" >&6; }
-else
-  # Is the header compilable?
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking $2 usability" >&5
-$as_echo_n "checking $2 usability... " >&6; }
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-$4
-#include <$2>
-_ACEOF
-if ac_fn_c_try_compile "$LINENO"; then :
-  ac_header_compiler=yes
-else
-  ac_header_compiler=no
-fi
-rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_header_compiler" >&5
-$as_echo "$ac_header_compiler" >&6; }
-
-# Is the header present?
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking $2 presence" >&5
-$as_echo_n "checking $2 presence... " >&6; }
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-#include <$2>
-_ACEOF
-if ac_fn_c_try_cpp "$LINENO"; then :
-  ac_header_preproc=yes
-else
-  ac_header_preproc=no
-fi
-rm -f conftest.err conftest.i conftest.$ac_ext
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_header_preproc" >&5
-$as_echo "$ac_header_preproc" >&6; }
-
-# So?  What about this header?
-case $ac_header_compiler:$ac_header_preproc:$ac_c_preproc_warn_flag in #((
-  yes:no: )
-    { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: $2: accepted by the compiler, rejected by the preprocessor!" >&5
-$as_echo "$as_me: WARNING: $2: accepted by the compiler, rejected by the preprocessor!" >&2;}
-    { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: $2: proceeding with the compiler's result" >&5
-$as_echo "$as_me: WARNING: $2: proceeding with the compiler's result" >&2;}
-    ;;
-  no:yes:* )
-    { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: $2: present but cannot be compiled" >&5
-$as_echo "$as_me: WARNING: $2: present but cannot be compiled" >&2;}
-    { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: $2:     check for missing prerequisite headers?" >&5
-$as_echo "$as_me: WARNING: $2:     check for missing prerequisite headers?" >&2;}
-    { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: $2: see the Autoconf documentation" >&5
-$as_echo "$as_me: WARNING: $2: see the Autoconf documentation" >&2;}
-    { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: $2:     section \"Present But Cannot Be Compiled\"" >&5
-$as_echo "$as_me: WARNING: $2:     section \"Present But Cannot Be Compiled\"" >&2;}
-    { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: $2: proceeding with the compiler's result" >&5
-$as_echo "$as_me: WARNING: $2: proceeding with the compiler's result" >&2;}
-( $as_echo "## ---------------------------------- ##
-## Report this to support@par-tec.com ##
-## ---------------------------------- ##"
-     ) | sed "s/^/$as_me: WARNING:     /" >&2
-    ;;
-esac
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for $2" >&5
-$as_echo_n "checking for $2... " >&6; }
-if eval \${$3+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  eval "$3=\$ac_header_compiler"
-fi
-eval ac_res=\$$3
-	       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
-$as_echo "$ac_res" >&6; }
-fi
-  eval $as_lineno_stack; ${as_lineno_stack:+:} unset as_lineno
-
-} # ac_fn_c_check_header_mongrel
 cat >config.log <<_ACEOF
 This file contains any messages produced by compilers while
 running configure, to aid debugging if configure makes a mistake.
@@ -12308,31 +12209,9 @@ fi
 
 
 
-
-
-
-
-  if ${ax_cv_have_MUNGE+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  save_CPPFLAGS="$CPPFLAGS"
-     save_LDFLAGS="$LDFLAGS"
-     save_LIBS="$LIBS"
-
-     if test "x$MUNGE_CPPFLAGS" != "x"; then :
-  CPPFLAGS="$CPPFLAGS $MUNGE_CPPFLAGS"
-fi
-
-     if test "x$MUNGE_LDFLAGS" != "x"; then :
-  LDFLAGS="$LDFLAGS $MUNGE_LDFLAGS"
-fi
-
-     ac_fn_c_check_header_mongrel "$LINENO" "munge.h" "ac_cv_header_munge_h" "$ac_includes_default"
-if test "x$ac_cv_header_munge_h" = xyes; then :
-
-       { $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -lmunge" >&5
-$as_echo_n "checking for main in -lmunge... " >&6; }
-if ${ac_cv_lib_munge_main+:} false; then :
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for munge_encode in -lmunge" >&5
+$as_echo_n "checking for munge_encode in -lmunge... " >&6; }
+if ${ac_cv_lib_munge_munge_encode+:} false; then :
   $as_echo_n "(cached) " >&6
 else
   ac_check_lib_save_LIBS=$LIBS
@@ -12340,48 +12219,38 @@ LIBS="-lmunge  $LIBS"
 cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
 
-
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char munge_encode ();
 int
 main ()
 {
-return main ();
+return munge_encode ();
   ;
   return 0;
 }
 _ACEOF
 if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_munge_main=yes
+  ac_cv_lib_munge_munge_encode=yes
 else
-  ac_cv_lib_munge_main=no
+  ac_cv_lib_munge_munge_encode=no
 fi
 rm -f core conftest.err conftest.$ac_objext \
     conftest$ac_exeext conftest.$ac_ext
 LIBS=$ac_check_lib_save_LIBS
 fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_munge_main" >&5
-$as_echo "$ac_cv_lib_munge_main" >&6; }
-if test "x$ac_cv_lib_munge_main" = xyes; then :
-  ax_cv_have_MUNGE=yes
-else
-  ax_cv_have_MUNGE=no
-fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_munge_munge_encode" >&5
+$as_echo "$ac_cv_lib_munge_munge_encode" >&6; }
+if test "x$ac_cv_lib_munge_munge_encode" = xyes; then :
+  MUNGE_LIBS=-lmunge
 
+   $as_echo "#define HAVE_MUNGE_DEVEL 1" >>confdefs.h
 
-else
-  ax_cv_have_MUNGE=no
-fi
-
-
-
-     CPPFLAGS="$save_CPPFLAGS"
-     LDFLAGS="$save_LDFLAGS"
-     LIBS="$save_LIBS"
-
-fi
-
-
-  if test "$ax_cv_have_MUNGE" = "yes"; then :
-   munge_enabled=true
+    munge_enabled=true
 fi
 
  if test "x$munge_enabled" = xtrue; then
@@ -12391,204 +12260,6 @@ else
   MUNGE_ENABLED_TRUE='#'
   MUNGE_ENABLED_FALSE=
 fi
-
-
-  ps_search_libs_save_LIBS="$LIBS"
-  LIBS="${RL_LIBS}"
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for library containing initscr" >&5
-$as_echo_n "checking for library containing initscr... " >&6; }
-if ${ac_cv_search_initscr+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  ac_func_search_save_LIBS=$LIBS
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-char initscr ();
-int
-main ()
-{
-return initscr ();
-  ;
-  return 0;
-}
-_ACEOF
-for ac_lib in '' ncurses curses; do
-  if test -z "$ac_lib"; then
-    ac_res="none required"
-  else
-    ac_res=-l$ac_lib
-    LIBS="-l$ac_lib  $ac_func_search_save_LIBS"
-  fi
-  if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_search_initscr=$ac_res
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext
-  if ${ac_cv_search_initscr+:} false; then :
-  break
-fi
-done
-if ${ac_cv_search_initscr+:} false; then :
-
-else
-  ac_cv_search_initscr=no
-fi
-rm conftest.$ac_ext
-LIBS=$ac_func_search_save_LIBS
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_search_initscr" >&5
-$as_echo "$ac_cv_search_initscr" >&6; }
-ac_res=$ac_cv_search_initscr
-if test "$ac_res" != no; then :
-  test "$ac_res" = "none required" || LIBS="$ac_res $LIBS"
-      RL_LIBS="$LIBS"
-
-
-else
-  as_fn_error $? "please install the (n)curses devel package" "$LINENO" 5
-fi
-
-  LIBS="$ps_search_libs_save_LIBS"
-
-
-
-  ps_search_libs_save_LIBS="$LIBS"
-  LIBS="${RL_LIBS}"
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for library containing readline" >&5
-$as_echo_n "checking for library containing readline... " >&6; }
-if ${ac_cv_search_readline+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  ac_func_search_save_LIBS=$LIBS
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-char readline ();
-int
-main ()
-{
-return readline ();
-  ;
-  return 0;
-}
-_ACEOF
-for ac_lib in '' readline; do
-  if test -z "$ac_lib"; then
-    ac_res="none required"
-  else
-    ac_res=-l$ac_lib
-    LIBS="-l$ac_lib  $ac_func_search_save_LIBS"
-  fi
-  if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_search_readline=$ac_res
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext
-  if ${ac_cv_search_readline+:} false; then :
-  break
-fi
-done
-if ${ac_cv_search_readline+:} false; then :
-
-else
-  ac_cv_search_readline=no
-fi
-rm conftest.$ac_ext
-LIBS=$ac_func_search_save_LIBS
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_search_readline" >&5
-$as_echo "$ac_cv_search_readline" >&6; }
-ac_res=$ac_cv_search_readline
-if test "$ac_res" != no; then :
-  test "$ac_res" = "none required" || LIBS="$ac_res $LIBS"
-      RL_LIBS="$LIBS"
-
-
-else
-  as_fn_error $? "please install the readline devel package" "$LINENO" 5
-fi
-
-  LIBS="$ps_search_libs_save_LIBS"
-
-
-
-  ps_search_libs_save_LIBS="$LIBS"
-  LIBS="${RL_LIBS}"
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for library containing using_history" >&5
-$as_echo_n "checking for library containing using_history... " >&6; }
-if ${ac_cv_search_using_history+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  ac_func_search_save_LIBS=$LIBS
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-char using_history ();
-int
-main ()
-{
-return using_history ();
-  ;
-  return 0;
-}
-_ACEOF
-for ac_lib in '' history; do
-  if test -z "$ac_lib"; then
-    ac_res="none required"
-  else
-    ac_res=-l$ac_lib
-    LIBS="-l$ac_lib  $ac_func_search_save_LIBS"
-  fi
-  if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_search_using_history=$ac_res
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext
-  if ${ac_cv_search_using_history+:} false; then :
-  break
-fi
-done
-if ${ac_cv_search_using_history+:} false; then :
-
-else
-  ac_cv_search_using_history=no
-fi
-rm conftest.$ac_ext
-LIBS=$ac_func_search_save_LIBS
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_search_using_history" >&5
-$as_echo "$ac_cv_search_using_history" >&6; }
-ac_res=$ac_cv_search_using_history
-if test "$ac_res" != no; then :
-  test "$ac_res" = "none required" || LIBS="$ac_res $LIBS"
-      RL_LIBS="$LIBS"
-
-
-else
-  as_fn_error $? "please install the readline devel package" "$LINENO" 5
-fi
-
-  LIBS="$ps_search_libs_save_LIBS"
-
 
 
 # Check whether --enable-psconfig was given.
@@ -13278,6 +12949,8 @@ ac_config_files="$ac_config_files lib/putil/Makefile"
 
 ac_config_files="$ac_config_files plugins/Makefile"
 
+ac_config_files="$ac_config_files plugins/cgroup/Makefile"
+
 ac_config_files="$ac_config_files plugins/pelogue/Makefile"
 
 ac_config_files="$ac_config_files plugins/psaccount/Makefile"
@@ -13305,8 +12978,6 @@ ac_config_files="$ac_config_files plugins/psslurm/doc/Makefile"
 ac_config_files="$ac_config_files plugins/psslurm/src/common/Makefile"
 
 ac_config_files="$ac_config_files plugins/psslurm/src/psslurm/Makefile"
-
-ac_config_files="$ac_config_files plugins/cgroup/Makefile"
 
 ac_config_files="$ac_config_files scripts/Makefile"
 
@@ -14391,6 +14062,7 @@ do
     "lib/pslog/Makefile") CONFIG_FILES="$CONFIG_FILES lib/pslog/Makefile" ;;
     "lib/putil/Makefile") CONFIG_FILES="$CONFIG_FILES lib/putil/Makefile" ;;
     "plugins/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/Makefile" ;;
+    "plugins/cgroup/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/cgroup/Makefile" ;;
     "plugins/pelogue/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/pelogue/Makefile" ;;
     "plugins/psaccount/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/psaccount/Makefile" ;;
     "plugins/psexec/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/psexec/Makefile" ;;
@@ -14405,7 +14077,6 @@ do
     "plugins/psslurm/doc/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/psslurm/doc/Makefile" ;;
     "plugins/psslurm/src/common/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/psslurm/src/common/Makefile" ;;
     "plugins/psslurm/src/psslurm/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/psslurm/src/psslurm/Makefile" ;;
-    "plugins/cgroup/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/cgroup/Makefile" ;;
     "scripts/Makefile") CONFIG_FILES="$CONFIG_FILES scripts/Makefile" ;;
     "tests/plugins/Makefile") CONFIG_FILES="$CONFIG_FILES tests/plugins/Makefile" ;;
     "tests/functional/Makefile") CONFIG_FILES="$CONFIG_FILES tests/functional/Makefile" ;;
