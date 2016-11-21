@@ -81,12 +81,12 @@ static int mungeDecCtx(const char *cred, munge_ctx_t ctx, void **buf, int *len,
     return 1;
 }
 
-int mungeDecode(const char *cred, uid_t *uid, gid_t *gid)
+int psMungeDecode(const char *cred, uid_t *uid, gid_t *gid)
 {
     return mungeDecCtx(cred, defDecCtx, NULL, 0, uid, gid);
 }
 
-int mungeDecodeBuf(const char *cred, void **buf, int *len,
+int psMungeDecodeBuf(const char *cred, void **buf, int *len,
 		   uid_t *uid, gid_t *gid)
 {
     return mungeDecCtx(cred, defDecCtx, buf, len, uid, gid);
