@@ -8,10 +8,6 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-
-static char vcid[] __attribute__ ((used)) =
-    "$Id$";
-
 #include <stdio.h>
 #include <unistd.h>
 #include <string.h>
@@ -175,37 +171,60 @@ int PSLog_read(PSLog_Msg_t *msg, struct timeval *timeout)
 const char *PSLog_printMsgType(PSLog_msg_t type)
 {
     switch(type) {
-	case INITIALIZE:
-	    return "INITIALIZE";
-	case STDIN:
-	    return "STDIN:";
-	case STDOUT:
-	    return "STDOUT";
-	case STDERR:
-	    return "STDERR";
-	case USAGE:
-	    return "USAGE";
-	case FINALIZE:
-	    return "FINALIZE";
-	case EXIT:
-	    return "EXIT";
-	case STOP:
-	    return "STOP";
-	case CONT:
-	    return "CONT";
-	case WINCH:
-	    return "WINCH";
-	case X11:
-	    return "X11";
-	case KVS:
-	    return "KVS";
-	case SIGNAL:
-	    return "SIGNAL";
-	case SERV_TID:
-	    return "SERV_TID";
-	case SERV_EXT:
-	    return "SERV_EXT";
-	}
+    case INITIALIZE:
+	return "INITIALIZE";
+    case STDIN:
+	return "STDIN:";
+    case STDOUT:
+	return "STDOUT";
+    case STDERR:
+	return "STDERR";
+    case USAGE:
+	return "USAGE";
+    case FINALIZE:
+	return "FINALIZE";
+    case EXIT:
+	return "EXIT";
+    case STOP:
+	return "STOP";
+    case CONT:
+	return "CONT";
+    case WINCH:
+	return "WINCH";
+    case X11:
+	return "X11";
+    case KVS:
+	return "KVS";
+    case SIGNAL:
+	return "SIGNAL";
+    case SERV_TID:
+	return "SERV_TID";
+    case SERV_EXT:
+	return "SERV_EXT";
+
+    case PLGN_SIGNAL:
+	return "PLGN_SIGNAL";
+    case PLGN_DEBUG:
+	return "PLGN_DEBUG";
+    case PLGN_FINISH:
+	return "PLGN_FINISH";
+    case PLGN_CHILD:
+	return "PLGN_CHILD";
+    case PLGN_CLOSE:
+	return "PLGN_CLOSE";
+    case PLGN_REQ_ACCNT:
+	return "PLGN_REQ_ACCNT";
+    case PLGN_FORK_FAILED:
+	return "PLGN_FORK_FAILED";
+    case PLGN_SIG_CHILD:
+	return "PLGN_SIG_CHILD";
+    case PLGN_FRWRD_MSG:
+	return "PLGN_FRWRD_MSG";
+    case PLGN_SHUTDOWN:
+	return "PLGN_SHUTDOWN";
+    case PLGN_GRACE_START:
+	return "PLGN_GRACE_START";
+    }
 
     return "UNKNOWN";
 }

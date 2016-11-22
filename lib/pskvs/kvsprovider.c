@@ -6,16 +6,7 @@
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
- *
- * Authors: Michael Rauh <rauh@par-tec.com>
- *
  */
-#ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__((used)) =
-    "$Id$";
-#endif /* DOXYGEN_SHOULD_SKIP_THIS */
-
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -368,8 +359,8 @@ static void sendKvsMsg(PStask_ID_t tid, char *buffer, size_t len)
     }
     */
 
-    memcpy(msg.buf, buffer, 1048);
-    if ((PSI_sendMsg(&msg)) == -1) {
+    memcpy(msg.buf, buffer, sizeof(msg.buf));
+    if (PSI_sendMsg(&msg) == -1) {
 	mwarn(errno, "%s: sending msg failed", __func__);
     }
 }

@@ -11,12 +11,6 @@
 /**
  * @file
  * pslog: Forwarding protocol for ParaStation I/O forwarding facility
- *
- * $Id$
- *
- * @author
- * Norbert Eicker <eicker@par-tec.com>
- *
  */
 #ifndef __PSLOGMSG_H
 #define __PSLOGMSG_H
@@ -24,13 +18,6 @@
 #include <sys/time.h>
 
 #include "psprotocol.h"
-
-#ifdef __cplusplus
-extern "C" {
-#if 0
-} /* <- just for emacs indentation */
-#endif
-#endif
 
 /** Type of the message. */
 typedef enum {
@@ -49,6 +36,19 @@ typedef enum {
     SIGNAL,     /**< lg -> fw Forward signal to client of forwarder */
     SERV_TID,	/**< fw -> lg (and lg -> fw) Get min service rank */
     SERV_EXT,   /**< lg -> fw Forward service exit msg to client of fw */
+    PLGN_SIGNAL = 32, /**< */
+    PLGN_DEBUG,       /**< */
+    PLGN_FINISH,      /**< */
+    PLGN_CHILD,       /**< */
+    PLGN_CLOSE,       /**< */
+    PLGN_REQ_ACCNT,   /**< */
+    PLGN_FORK_FAILED, /**< */
+    PLGN_SIG_CHILD,   /**< */
+    PLGN_FRWRD_MSG,   /**< */
+    PLGN_SHUTDOWN,    /**< */
+    PLGN_GRACE_START, /**< */
+    /* LAST = 64 */  /**< all numbers beyond this might be used privately,
+       e.g. between plugins and their own forwarders */
 } PSLog_msg_t;
 
 /** Untyped Buffer Message. Used for all communication. */
@@ -189,10 +189,5 @@ int PSLog_read(PSLog_Msg_t *msg, struct timeval *timeout);
  * error.
  */
 const char *PSLog_printMsgType(PSLog_msg_t type);
-
-
-#ifdef __cplusplus
-}/* extern "C" */
-#endif
 
 #endif /* __PSLOG_H */
