@@ -8,11 +8,6 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-#ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__((used)) =
-    "$Id$";
-#endif /* DOXYGEN_SHOULD_SKIP_THIS */
-
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -753,6 +748,7 @@ void PSIADM_ProcStat(int count, int full, char *nl)
 	    if (taskInfo[numTasks].group==TG_KVS && !full) continue;
 	    if (taskInfo[numTasks].group==TG_ACCOUNT && !full) continue;
 	    if (taskInfo[numTasks].group==TG_DELEGATE && !full) continue;
+	    if (taskInfo[numTasks].group==TG_PLUGINFW && !full) continue;
 	    numTasks++;
 	    if (numTasks*sizeof(*taskInfo) >= tiList.actSize) {
 		if (extendList(&tiList, tiList.actSize * 2, __func__)) {
@@ -788,6 +784,7 @@ void PSIADM_ProcStat(int count, int full, char *nl)
 		   taskInfo[task].group==TG_SERVICE_SIG ? "(S)" :
 		   taskInfo[task].group==TG_ACCOUNT ? "(C)" :
 		   taskInfo[task].group==TG_DELEGATE ? "(D)" :
+		   taskInfo[task].group==TG_PLUGINFW ? "(P)" :
 		   " ");
 
 	    {

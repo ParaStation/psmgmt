@@ -29,23 +29,43 @@ void PStask_printStat(void)
     PSrsrvtn_printStat();
 }
 
-char* PStask_printGrp(PStask_group_t tg)
+const char* PStask_printGrp(PStask_group_t tg)
 {
-    return (tg==TG_ANY) ? "TG_ANY" :
-	(tg==TG_ADMIN) ? "TG_ADMIN" :
-	(tg==TG_RESET) ? "TG_RESET" :
-	(tg==TG_LOGGER) ? "TG_LOGGER" :
-	(tg==TG_FORWARDER) ? "TG_FORWARDER" :
-	(tg==TG_SPAWNER) ? "TG_SPAWNER" :
-	(tg==TG_GMSPAWNER) ? "TG_GMSPAWNER" :
-	(tg==TG_MONITOR) ? "TG_MONITOR" :
-	(tg==TG_PSCSPAWNER) ? "TG_PSCSPAWNER" :
-	(tg==TG_ADMINTASK) ? "TG_ADMINTASK" :
-	(tg==TG_SERVICE) ? "TG_SERVICE" :
-	(tg==TG_SERVICE_SIG) ? "TG_SERVICE_SIG" :
-	(tg==TG_KVS) ? "TG_KVS" :
-	(tg==TG_DELEGATE) ? "TG_DELEGATE" :
-	"UNKNOWN";
+    switch (tg) {
+    case TG_ANY:
+	return "TG_ANY";
+    case TG_ADMIN:
+	return "TG_ADMIN";
+    case TG_RESET:
+	return "TG_RESET";
+    case TG_LOGGER:
+	return "TG_LOGGER";
+    case TG_FORWARDER:
+	return "TG_FORWARDER";
+    case TG_SPAWNER:
+	return "TG_SPAWNER";
+    case TG_GMSPAWNER:
+	return "TG_GMSPAWNER";
+    case TG_ACCOUNT:
+	return "TG_ACCOUNT";
+    case TG_MONITOR:
+	return "TG_MONITOR";
+    case TG_PSCSPAWNER:
+	return "TG_PSCSPAWNER";
+    case TG_ADMINTASK:
+	return "TG_ADMINTASK";
+    case TG_SERVICE:
+	return "TG_SERVICE";
+    case TG_SERVICE_SIG:
+	return "TG_SERVICE_SIG";
+    case TG_KVS:
+	return "TG_KVS";
+    case TG_DELEGATE:
+	return "TG_DELEGATE";
+    case TG_PLUGINFW:
+	return "TG_PLUGINFW";
+    }
+    return "UNKNOWN";
 }
 
 PStask_t* PStask_new(void)

@@ -9,20 +9,12 @@
  */
 /**
  * @file
- * Basic types for ParaStation tasks.
- *
+ * Basic types for ParaStation tasks
  */
 #ifndef __PSTASKID_H
 #define __PSTASKID_H
 
 #include <stdint.h>
-
-#ifdef __cplusplus
-extern "C" {
-#if 0
-} /* <- just for emacs indentation */
-#endif
-#endif
 
 /** Type to store unique task IDs in */
 typedef int32_t PStask_ID_t;
@@ -33,7 +25,7 @@ typedef enum {
     TG_ADMIN,       /**< taskgroup for psiadmin (and GUI client) */
     TG_RESET,       /**< normal task */
     TG_LOGGER,      /**< special task, the logger */
-    TG_FORWARDER,   /**< special task, the forwarder */
+    TG_FORWARDER,   /**< special task, psid's forwarder to control clients */
     TG_SPAWNER,     /**< special task, the spawner (helper to spawn p4 jobs) */
     TG_GMSPAWNER,   /**< special task, the gmspawner (helper to spawn GM) */
     TG_MONITOR,     /**< special task that monitors the daemon. Don't kill */
@@ -45,11 +37,8 @@ typedef enum {
     TG_SERVICE_SIG, /**< service task, used by mpirun_openib to spawn
 		     * procs; will receive SIGTERM on child's termination */
     TG_KVS,         /**< special task, the KVS used by the PMI interface */
-    TG_DELEGATE,    /**< special task used to hold resources */
+    TG_DELEGATE,    /**< special task, used to hold resources */
+    TG_PLUGINFW,    /**< forwarders started and controlled by plugins */
 } PStask_group_t;
-
-#ifdef __cplusplus
-}/* extern "C" */
-#endif
 
 #endif  /* __PSTASKID_H */

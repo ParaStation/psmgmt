@@ -38,7 +38,7 @@
  *
  * @return The name of the PStask_group or "UNKNOWN".
  */
-char *PStask_printGrp(PStask_group_t taskgroup);
+const char* PStask_printGrp(PStask_group_t taskgroup);
 
 /**
  * @brief Print statistics
