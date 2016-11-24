@@ -1184,24 +1184,29 @@ FORWARD:
     if (oldCCMsgHandler) oldCCMsgHandler((DDBufferMsg_t *) msg);
 }
 
-static int getJobIDbyForwarderMsg(DDErrorMsg_t *msg, PStask_t **fwPtr,
-				    uint32_t *jobid, uint32_t *stepid)
+/**
+ * Get job ID and step ID from the environment in a task structure.
+ *
+ * @task      task structure
+ *
+ * @jobid     return pointer for the job ID
+ *
+ * @stepid    return pointer for the step ID
+ */
+static int getJobIDbyTask(PStask_t *task,
+					uint32_t *jobid, uint32_t *stepid)
 {
-    PStask_t *forwarder;
     char *ptr, *sjobid = NULL, *sstepid = NULL;
     int32_t i=0;
 
-    forwarder = PStasklist_find(&managedTasks, msg->header.sender);
-    if (!forwarder) return 0;
+    if (!task->environ) {
+	mlog("%s: environ == NULL in task structure of task '%s' rank '%d'\n",
+		__func__, PSC_printTID(task->tid), task->rank);
+	return 0;
+    }
 
-    /*
-    mlog("%s: forwarder '%s' rank '%i'\n", __func__,
-	    PSC_printTID(forwarder->tid), forwarder->rank);
-    mlog("%s: child '%s' group '%i'\n", __func__,
-	    PSC_printTID(msg->request), forwarder->childGroup);
-    */
 
-    ptr = forwarder->environ[i];
+    ptr = task->environ[i];
     while (ptr) {
 	if (!(strncmp(ptr, "SLURM_JOBID=", 12))) {
 	    sjobid = ptr+12;
@@ -1210,14 +1215,66 @@ static int getJobIDbyForwarderMsg(DDErrorMsg_t *msg, PStask_t **fwPtr,
 	    sstepid = ptr+13;
 	}
 	if (sjobid && sstepid) break;
-	ptr = forwarder->environ[++i];
+	ptr = task->environ[++i];
     }
 
-    if (!sjobid || !sstepid) return 0;
+    if (!sjobid || !sstepid) {
+	if (!sjobid) {
+	    mlog("%s: could not find job id in environment of task '%s'"
+		    " rank '%d'\n", __func__, PSC_printTID(task->tid),
+		    task->rank);
+	}
+
+	if (!sstepid) {
+	    mlog("%s: could not find step id in environment of task '%s'"
+		    " rank '%d'\n", __func__, PSC_printTID(task->tid),
+		    task->rank);
+	}
+	return 0;
+    }
 
     *jobid = atoi(sjobid);
     *stepid = atoi(sstepid);
+
+    return 1;
+}
+
+/**
+ * Get job ID and step ID from forwarder message header.
+ * As a side effect returns the forwarder task.
+ *
+ * @header    the header of the message
+ *
+ * @fwPtr     return pointer to store the forwarder task
+ *
+ * @jobid     return pointer for the job ID
+ *
+ * @stepid    return pointer for the step ID
+ */
+static int getJobIDbyForwarderMsgHeader(DDMsg_t *header, PStask_t **fwPtr,
+					uint32_t *jobid, uint32_t *stepid)
+{
+    PStask_t *forwarder;
+
+    forwarder = PStasklist_find(&managedTasks, header->sender);
+    if (!forwarder) {
+	mlog("%s: could not find forwarder task for sender '%s'\n",
+		__func__, PSC_printTID(header->sender));
+	return 0;
+    }
+
+    /*
+    mlog("%s: forwarder '%s' rank '%i'\n", __func__,
+	    PSC_printTID(forwarder->tid), forwarder->rank);
+    */
+
     *fwPtr = forwarder;
+
+    if (!getJobIDbyTask(forwarder, jobid, stepid)) {
+	mlog("%s: could not find jobid/stepid in forwarder task for sender"
+		" '%s'\n", __func__, PSC_printTID(header->sender));
+	return 0;
+    }
 
     return 1;
 }
@@ -1233,7 +1290,8 @@ void handleSpawnFailed(DDErrorMsg_t *msg)
 	    __func__, PSC_printTID(msg->header.sender),
 	    msg->request, msg->error);
 
-    if (!(getJobIDbyForwarderMsg(msg, &forwarder, &jobid, &stepid))) {
+    if (!(getJobIDbyForwarderMsgHeader(&(msg->header), &forwarder, &jobid,
+					&stepid))) {
 	goto FORWARD_SPAWN_FAILED_MSG;
     }
 
@@ -1297,7 +1355,8 @@ void handleChildBornMsg(DDErrorMsg_t *msg)
     Step_t *step;
     PS_Tasks_t *task = NULL;
 
-    if (!(getJobIDbyForwarderMsg(msg, &forwarder, &jobid, &stepid))) {
+    if (!(getJobIDbyForwarderMsgHeader(&(msg->header), &forwarder, &jobid,
+					&stepid))) {
 	goto FORWARD_CHILD_BORN;
     }
 
