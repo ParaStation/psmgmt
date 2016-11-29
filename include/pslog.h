@@ -10,7 +10,7 @@
  */
 /**
  * @file
- * pslog: Forwarding protocol for ParaStation I/O forwarding facility
+ * pslog: Forwarding protocol for ParaStation I/O forwarding facilities
  */
 #ifndef __PSLOGMSG_H
 #define __PSLOGMSG_H
@@ -36,17 +36,12 @@ typedef enum {
     SIGNAL,     /**< lg -> fw Forward signal to client of forwarder */
     SERV_TID,	/**< fw -> lg (and lg -> fw) Get min service rank */
     SERV_EXT,   /**< lg -> fw Forward service exit msg to client of fw */
-    PLGN_SIGNAL = 32, /**< */
-    PLGN_DEBUG,       /**< */
-    PLGN_FINISH,      /**< */
-    PLGN_CHILD,       /**< */
-    PLGN_CLOSE,       /**< */
-    PLGN_REQ_ACCNT,   /**< */
-    PLGN_FORK_FAILED, /**< */
-    PLGN_SIG_CHILD,   /**< */
-    PLGN_FRWRD_MSG,   /**< */
-    PLGN_SHUTDOWN,    /**< */
-    PLGN_GRACE_START, /**< */
+    PLGN_CHILD = 32,  /**< fw -> plgn Child is ready */
+    PLGN_SIGNAL_CHLD, /**< plgn -> fw Signal child */
+    PLGN_START_GRACE, /**< plgn -> fw Start child's grace period */
+    PLGN_SHUTDOWN,    /**< plgn -> fw Shutdown child */
+    PLGN_SIGNAL,      /**< used by psmom ?? */
+    PLGN_REQ_ACCNT,   /**< used by psmom ?? */
     /* LAST = 64 */  /**< all numbers beyond this might be used privately,
        e.g. between plugins and their own forwarders */
 } PSLog_msg_t;

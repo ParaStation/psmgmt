@@ -202,28 +202,18 @@ const char *PSLog_printMsgType(PSLog_msg_t type)
     case SERV_EXT:
 	return "SERV_EXT";
 
-    case PLGN_SIGNAL:
-	return "PLGN_SIGNAL";
-    case PLGN_DEBUG:
-	return "PLGN_DEBUG";
-    case PLGN_FINISH:
-	return "PLGN_FINISH";
     case PLGN_CHILD:
 	return "PLGN_CHILD";
-    case PLGN_CLOSE:
-	return "PLGN_CLOSE";
-    case PLGN_REQ_ACCNT:
-	return "PLGN_REQ_ACCNT";
-    case PLGN_FORK_FAILED:
-	return "PLGN_FORK_FAILED";
-    case PLGN_SIG_CHILD:
-	return "PLGN_SIG_CHILD";
-    case PLGN_FRWRD_MSG:
-	return "PLGN_FRWRD_MSG";
+    case PLGN_SIGNAL_CHLD:
+	return "PLGN_SIGNAL_CHLD";
+    case PLGN_START_GRACE:
+	return "PLGN_START_GRACE";
     case PLGN_SHUTDOWN:
 	return "PLGN_SHUTDOWN";
-    case PLGN_GRACE_START:
-	return "PLGN_GRACE_START";
+    case PLGN_SIGNAL:
+	return "PLGN_SIGNAL";
+    case PLGN_REQ_ACCNT:
+	return "PLGN_REQ_ACCNT";
     }
 
     return "UNKNOWN";
