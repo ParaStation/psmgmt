@@ -77,7 +77,11 @@ void destroyForwarderData(Forwarder_Data_t *data);
 
 int startForwarder(Forwarder_Data_t *data);
 int signalForwarderChild(Forwarder_Data_t *data, int signal);
-void sendFWMsg(int fd, PS_DataBuffer_t *data);
+
+#define sendFWMsg(fd, data) __sendFWMsg(fd, data, __func__, __LINE__)
+void __sendFWMsg(int fd, PS_DataBuffer_t *data,
+		    const char *func, const int line);
+
 void forwardMsgtoMother(DDMsg_t *msg);
 void shutdownForwarder(Forwarder_Data_t *data);
 void sendStartGraceTime(Forwarder_Data_t *data);

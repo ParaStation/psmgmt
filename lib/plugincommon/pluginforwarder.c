@@ -158,12 +158,14 @@ static int recvFWMsg(int fd, int32_t *cmd, char **buf, char **ptr)
     return 1;
 }
 
-void sendFWMsg(int fd, PS_DataBuffer_t *data)
+void __sendFWMsg(int fd, PS_DataBuffer_t *data, const char *func,
+		    const int line)
 {
     uint32_t len = data->bufUsed;
 
     if (fd < 0) {
-	pluginlog("%s: invalid fd '%d'\n", __func__, fd);
+	pluginlog("%s: invalid fd '%d' for '%s:%u'\n", __func__, fd, func,
+		line);
 	return;
     }
 
