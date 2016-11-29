@@ -18,11 +18,32 @@
 #ifndef __PS_SLURM_PSCOMM
 #define __PS_SLURM_PSCOMM
 
+#include "list.h"
+
 #include "psprotocol.h"
 #include "pslog.h"
 #include "psslurmjob.h"
 
 #include "psslurmcomm.h"
+
+/**
+ * Release message of type PSP_SPAWN_END buffered for a specific jobstep.
+ * This means to call the original handler for the message and is done after
+ *  the corresponding step has been created.
+ *
+ * @param  jobid   JodID
+ * @param  stepid  StepID
+ */
+void releaseBufferedSpawnEndMsgs(uint32_t jobid, uint32_t stepid);
+
+/**
+ * Cleanup all pending messages of type PSP_SPAWN_END for a specific jobstep.
+ * This is done as part of the cleanup if a step failed.
+ *
+ * @param  jobid   JodID
+ * @param  stepid  StepID
+ */
+void cleanupSpawnEndMsgList(uint32_t jobid, uint32_t stepid);
 
 int handleCreatePart(void *msg);
 
@@ -52,6 +73,8 @@ void send_PS_ForwardRes(Slurm_Msg_t *msg, PS_DataBuffer_t *body);
 void handleCCMsg(PSLog_Msg_t *msg);
 
 void handleSpawnFailed(DDErrorMsg_t *msg);
+
+void handleSpawnReq(DDTypedBufferMsg_t *msg);
 
 void setNodeOffline(env_t *env, uint32_t id, PSnodes_ID_t dest,
 			const char *host, char *reason);

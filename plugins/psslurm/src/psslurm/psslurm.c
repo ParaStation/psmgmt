@@ -82,6 +82,7 @@ PSnodes_ID_t slurmBackupController;
 handlerFunc_t oldChildBornHandler = NULL;
 handlerFunc_t oldCCMsgHandler = NULL;
 handlerFunc_t oldSpawnFailedHandler = NULL;
+handlerFunc_t oldSpawnReqHandler = NULL;
 
 /** psid plugin requirements */
 char name[] = "psslurm";
@@ -140,6 +141,11 @@ static void unregisterHooks(int verbose)
 			(handlerFunc_t) oldSpawnFailedHandler);
     }
 
+    if (oldSpawnReqHandler) {
+	PSID_registerMsg(PSP_CD_SPAWNREQ,
+			(handlerFunc_t) oldSpawnReqHandler);
+    }
+
     /* unregister msg drop handler */
     PSID_clearDropper(PSP_CC_PLUG_PSSLURM);
 
@@ -190,6 +196,9 @@ static int registerHooks()
 
     oldSpawnFailedHandler = PSID_registerMsg(PSP_CD_SPAWNFAILED,
 					    (handlerFunc_t) handleSpawnFailed);
+
+    oldSpawnReqHandler = PSID_registerMsg(PSP_CD_SPAWNREQ,
+					    (handlerFunc_t) handleSpawnReq);
 
     /* register handler for dropped msgs */
     PSID_registerDropper(PSP_CC_PLUG_PSSLURM, (handlerFunc_t) handleDroppedMsg);

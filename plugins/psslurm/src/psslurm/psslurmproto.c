@@ -51,6 +51,7 @@
 #include "peloguehandles.h"
 #include "pspamhandles.h"
 #include "psidnodes.h"
+#include "psidspawn.h"
 
 #include "psslurmproto.h"
 
@@ -593,6 +594,8 @@ void handleLaunchTasks(Slurm_Msg_t *sMsg)
 	    sendSlurmRC(sMsg, SLURM_SUCCESS);
 	}
     }
+
+    releaseBufferedSpawnEndMsgs(jobid, stepid);
 }
 
 static void handleSignalTasks(Slurm_Msg_t *sMsg)
@@ -1793,6 +1796,10 @@ static void handleTerminateReq(Slurm_Msg_t *sMsg)
     } else if (alloc && !alloc->firstKillRequest) {
 	alloc->firstKillRequest = time(NULL);
     }
+
+    /* remove all unfinished spawn requests */
+    PSIDspawn_cleanupBySpawner(PSC_getMyTID());
+    cleanupSpawnEndMsgList(jobid, stepid);
 
     switch (sMsg->head.type) {
 	case REQUEST_KILL_PREEMPTED:

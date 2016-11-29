@@ -30,6 +30,7 @@ extern uid_t slurmUserID;
 extern handlerFunc_t oldChildBornHandler;
 extern handlerFunc_t oldCCMsgHandler;
 extern handlerFunc_t oldSpawnFailedHandler;
+extern handlerFunc_t oldSpawnReqHandler;
 extern int confAccPollTime;
 
 extern PSnodes_ID_t slurmController;
