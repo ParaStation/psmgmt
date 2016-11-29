@@ -1,341 +1,246 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014 - 2015 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-/**
- * $Id$
- *
- * \author
- * Michael Rauh <rauh@par-tec.com>
- *
- */
 
 #include <stdlib.h>
-#include <stdio.h>
-#include <syslog.h>
-#include <sys/socket.h>
-#include <sys/un.h>
+#include <string.h>
 #include <errno.h>
 #include <signal.h>
-#include <stdbool.h>
+#include <syslog.h>
 #include <unistd.h>
+#include <sys/socket.h>
+#include <sys/un.h>
+#include <sys/types.h>
 #include <sys/resource.h>
 #include <sys/wait.h>
-#include <sys/stat.h>
 #include <sys/signalfd.h>
 
+#include "pscommon.h"
 #include "selector.h"
 #include "timer.h"
-#include "pscommon.h"
 #include "psidutil.h"
-#include "psidscripts.h"
 #include "plugincomm.h"
 #include "pluginhelper.h"
 #include "pluginmalloc.h"
 #include "pluginlog.h"
+#include "psidclient.h"
 #include "psidcomm.h"
+#include "psidspawn.h"
 
 #include "pluginforwarder.h"
 
+/** Default grace time before sending SIGKILL */
 #define DEFAULT_GRACE_TIME 3
 
-#define TEMP_SOCKET_NAME LOCALSTATEDIR "/run/psmgmt-plugin"
 
-/** pid of the running forwarder child */
-static pid_t child_pid = -1;
+/* ----- Data handling (used in mother but data passed to forwarder) ----- */
 
-/** session id of the running forwarder child */
-static pid_t child_sid = -1;
-
-/** unix pipe to recognize signals in sleeping in select() */
-static int signalFD;
-
-/** control channel between forwarder and child */
-static int controlFDs[2];
-
-static int motherSock = -1;
-
-static Forwarder_Data_t *fwdata = NULL;
-
-static char *jobstring = NULL;
-
-/** flag which will be set to 1 if the first kill phase started */
-static bool killAllChildren = 0;
-
-/** flag which indicates of a SIGKILL was already send */
-static bool sentHardKill = 0;
-
-/** flag for sigchild */
-static bool sigChild = 0;
-
-/** timeout flag set to true if the walltime limit is reached */
-static bool job_timeout = 0;
-
-static char logBuf[1024];
-
-static int connect2Mother(char *listenSocketName)
+Forwarder_Data_t *ForwarderData_new(void)
 {
-    struct sockaddr_un sa;
+    Forwarder_Data_t *fw;
 
-    if (!listenSocketName) return 0;
+    fw = calloc(sizeof(*fw), 1);
+    if (!fw) return fw;
 
-    /* don't use stdin/stdout/stderr */
-    while (motherSock < 3) {
-	if ((motherSock = socket(PF_UNIX, SOCK_STREAM, 0)) == -1) {
-	    pluginwarn(errno, "%s: socket() failed: ", __func__);
-	    return 0;
-	}
-    }
+    fw->childRerun = 1;
+    fw->tid = -1;
+    fw->stdIn[0] = -1;
+    fw->stdIn[1] = -1;
+    fw->stdOut[0] = -1;
+    fw->stdOut[1] = -1;
+    fw->stdErr[0] = -1;
+    fw->stdErr[1] = -1;
 
-    memset(&sa, 0, sizeof(sa));
-    sa.sun_family = AF_UNIX;
-    strncpy(sa.sun_path, listenSocketName, sizeof(sa.sun_path));
-
-CONNECT_AGAIN:
-
-    if ((connect(motherSock, (struct sockaddr*) &sa, sizeof(sa))) < 0) {
-	if (errno == EINTR) goto CONNECT_AGAIN;
-	pluginwarn(errno, "%s: connect(%i) to %s failed: ", __func__,
-		motherSock, listenSocketName);
-	return 0;
-    }
-
-    plugindbg(PLUGIN_LOG_FW, "%s: fd '%i'\n", __func__, motherSock);
-
-    return motherSock;
+    return fw;
 }
 
-static int reConnect(int fd)
+void ForwarderData_delete(Forwarder_Data_t *fw)
 {
-    pluginlog("%s: lost connection to mother psid, reconnecting\n",
-	    __func__);
+    if (!fw) return;
 
-    Selector_remove(fd);
-    close(fd);
-    motherSock = -1;
-
-    if (!(connect2Mother(fwdata->listenSocketName))) {
-	pluginlog("%s: re-connecting to mother failed, killing child\n",
-		__func__);
-
-	if (child_pid> 0) kill(child_pid, SIGKILL);
-	return 0;
-    }
-
-    return 1;
+    if (fw->pTitle) free(fw->pTitle);
+    if (fw->jobID) free(fw->jobID);
+    free(fw);
 }
 
-static int recvFWMsg(int fd, int32_t *cmd, char **buf, char **ptr)
+/* ----------------------- Stuff used in forwarder ----------------------- */
+
+/** Description of the local forwarder */
+static Forwarder_Data_t *fwData = NULL;
+
+/** Description of the local task */
+static PStask_t *fwTask;
+
+/** Flag to be set to true when first kill phase is started */
+static bool killAllChildren = false;
+
+/** Flag indicating if SIGKTERM was already send */
+static bool sendHardKill = false;
+
+/** Flag indicating SIGCHLD was received */
+static bool sigChild = false;
+
+/** Flag indication child's walltime limit is reached */
+static bool jobTimeout = false;
+
+int sendMsgToMother(PSLog_Msg_t *msg)
 {
-    int32_t count, len;
-
-    *buf = NULL;
-
-    if (!(count = doReadP(fd, &len, sizeof(len))) || count != sizeof(len)) {
-	pluginlog("%s: socket '%i': reading len failed, len '%i' count '%i'\n",
-		    __func__, fd, len, count);
-	return 0;
-    }
-
-    *buf = umalloc(len);
-
-    if (!(count = doReadP(fd, *buf, len)) || count != len) {
-	pluginlog("%s: socket '%i': reading msg failed, len '%i' count '%i'\n",
-		    __func__, fd, len, count);
-	ufree(*buf);
-	*buf = NULL;
-	return 0;
-    }
-
-    *ptr = *buf;
-    getInt32(ptr, cmd);
-
-    return 1;
+    return doWriteP(fwTask->fd, msg, msg->header.len);
 }
 
-void sendFWMsg(int fd, PS_DataBuffer_t *data)
+static void handleGraceTime(Forwarder_Data_t *fw)
 {
-    uint32_t len = data->bufUsed;
+    int grace = fw->graceTime ? fw->graceTime : DEFAULT_GRACE_TIME;
 
-    if (fd < 0) {
-	pluginlog("%s: invalid fd '%d'\n", __func__, fd);
-	return;
-    }
-
-    doWriteP(fd, &len, sizeof(len));
-    doWriteP(fd, data->buf, data->bufUsed);
-}
-
-static void startGraceTime()
-{
-    int grace;
-
-    grace = fwdata->graceTime ? fwdata->graceTime : DEFAULT_GRACE_TIME;
-
-    killAllChildren = 1;
+    killAllChildren = true;
     alarm(grace);
 }
 
-static void killForwarderChild(int signal, char *reason)
+static void killForwarderChild(Forwarder_Data_t *fw, int sig, char *reason)
 {
-    int grace;
-    char buffer[512];
+    if (!fw) fw = fwData;
+    int grace = fw->graceTime ? fw->graceTime : DEFAULT_GRACE_TIME;
 
-    if (child_sid < 1 || child_pid < 1) return;
+    if (fw->cSid < 1 || fw->cPid < 1) return;
 
-    grace = fwdata->graceTime ? fwdata->graceTime : DEFAULT_GRACE_TIME;
+    pluginlog("%s: signal %u to sid %i (job %s) grace %i%s%s\n", __func__,
+	      sig, fw->cSid, fw->jobID ? fw->jobID : "<?>", grace,
+	      reason ? " reason " : "", reason ? reason : "");
 
-    if (reason) {
-	snprintf(buffer, sizeof(buffer), ", reason: %s", reason);
-    } else {
-	buffer[0] = '\0';
-    }
+    if (fw->cPid <= 0) return;
 
-    snprintf(logBuf, sizeof(logBuf), "signal '%u' to sid '%i' %sgrace time '%i'"
-		" sec%s\n", signal, child_sid, jobstring, grace,
-		buffer);
-
-    if (signal == SIGTERM) {
+    if (sig == SIGTERM) {
 	/* let children beeing debugged continue */
-	kill(child_pid, SIGCONT);
-
-	if (child_pid > 0 && !(kill(child_pid, signal))) {
-	    killAllChildren = 1;
+	kill(fw->cPid, SIGCONT);
+	if (!kill(fw->cPid, sig)) {
+	    killAllChildren = true;
 	    alarm(grace);
 	}
     } else {
-	if (child_pid > 0) kill(child_pid, signal);
+	kill(fw->cPid, sig);
     }
 }
 
-static void handleLocalShutdown()
+static void handleLocalShutdown(Forwarder_Data_t *fw)
 {
-    if (child_sid < 1) {
-	sigChild = 1;
+    if (fw->cSid < 1) {
+	sigChild = true;
 	Selector_startOver();
     } else {
-	killForwarderChild(SIGTERM, NULL);
+	killForwarderChild(fw, SIGTERM, NULL);
     }
 }
 
-static int handleMotherMsg(int fd, void *info)
+static int handleMthrSock(int fd, void *info)
 {
-    int32_t cmd, signal;
-    char *ptr, *buf = NULL;
+    Forwarder_Data_t *fw = info;
+    DDBufferMsg_t msg; /* ensure we'll have enough space */
+    PSLog_Msg_t *lmsg = (PSLog_Msg_t *)&msg;
+    size_t used = PSLog_headerSize; /* ensure we use the correct offset */
+    int32_t signal;
 
-    if (!(recvFWMsg(fd, &cmd, &buf, &ptr))) {
-	if (reConnect(fd)) {
-	    Selector_register(motherSock, handleMotherMsg, NULL);
-	}
+    if (!recvMsg(fd, (DDMsg_t*)&msg, sizeof(msg))) {
+	handleLocalShutdown(fw);
 	return 0;
     }
 
-    if (fwdata->hookMotherMsg) {
-	if ((fwdata->hookMotherMsg(fwdata, ptr, cmd))) {
-	    ufree(buf);
-	    return 0;
-	}
+    if (fw->handleMthrMsg && fw->handleMthrMsg(lmsg, fw)) return 0;
+
+    switch(lmsg->type) {
+    case PLGN_SIGNAL_CHLD:
+	PSP_getMsgBuf(&msg, &used, __func__, "signal", &signal, sizeof(signal));
+	killForwarderChild(fw, signal, NULL);
+	break;
+    case PLGN_START_GRACE:
+	handleGraceTime(fw);
+	break;
+    case PLGN_SHUTDOWN:
+	handleLocalShutdown(fw);
+	break;
+    default:
+	pluginlog("%s: invalid cmd %i from %s\n", __func__, lmsg->type,
+		  PSC_printTID(lmsg->header.sender));
     }
 
-    switch(cmd) {
-	case CMD_LOCAL_SIGNAL_CHILD:
-	    getInt32(&ptr, &signal);
-	    killForwarderChild(signal, NULL);
-	    break;
-	case CMD_LOCAL_GRACE_START:
-	    startGraceTime();
-	    break;
-	case CMD_LOCAL_SHUTDOWN:
-	    handleLocalShutdown();
-	    break;
-	default:
-	    pluginlog("%s: invalid cmd '%i' from '%i'\n", __func__, cmd, fd);
-    }
-
-    ufree(buf);
     return 0;
 }
 
-static void sendForwarderHello(int32_t forwarderID)
-{
-    PS_DataBuffer_t data = { .buf = NULL};
-
-    if (motherSock < 0) {
-	pluginlog("%s: no connection to my mother\n", __func__);
-	return;
-    }
-
-    addInt32ToMsg(CMD_LOCAL_HELLO, &data);
-    addInt32ToMsg(forwarderID, &data);
-    sendFWMsg(motherSock, &data);
-    ufree(data.buf);
-}
-
 /**
- * @brief Signal handler to break out of Sselect() when a signal arrives.
+ * @brief Signal handler for SIGCHLD
  *
- * @param fd The file descriptor were to wakup messages was written to.
+ * Handle SIGCHLD signals delivered via a signalfd. @fd is the actual
+ * file descriptor used to deliver the actual signal, @a info is
+ * ignored and just provided for compatibility with the Selector
+ * facility. This function is basically used to escape from Swait()
+ * when a signal arrives. For this @ref Selector_startOver() is called
+ * within this function.
  *
- * @param info Not used, required by selector facility.
+ * @param fd File descriptor used to deliver the signal
  *
- * @return Always return 1 to stop Sselect().
+ * @param info Not used, required by selector facility
+ *
+ * @return Always return 0
  */
 static int handleSignalFd(int fd, void *info)
 {
-    sigChild = 1;
+    sigChild = true;
     Selector_startOver();
     return 0;
 }
 
 /**
- * @brief Handle various signals.
+ * @brief Forwarder's signal handler
  *
- * @param sig The signal to handle.
+ * Handle various signals that might be received by a forwarder
+ * process. Currently this includes SIGTERM, SIGALRM, and SIGPIPE.
  *
- * @return No return value.
+ * @param sig Signal to handle
+ *
+ * @return No return value
  */
 static void signalHandler(int sig)
 {
     signal(sig, signalHandler);
 
     switch (sig) {
-	case SIGTERM:
-	    if (sentHardKill) return;
+    case SIGTERM:
+	if (sendHardKill) return;
 
-	    /* kill the child */
-	    killForwarderChild(SIGTERM, "received SIGTERM");
-	    break;
-	case SIGALRM:
-	    /* reset possible alarms */
-	    alarm(0);
+	/* kill the child */
+	killForwarderChild(fwData, SIGTERM, "received SIGTERM");
+	break;
+    case SIGALRM:
+	/* reset possible alarms */
+	alarm(0);
 
-	    if (killAllChildren) {
-		/* second kill phase, do it the hard way now */
-		snprintf(logBuf, sizeof(logBuf), "signal 'SIGKILL' to sid "
-			    "'%i'%s\n", child_sid, jobstring);
-		if (child_sid > 0) fwdata->killSession(child_sid, SIGKILL);
-		sentHardKill = 1;
-	    } else {
-		job_timeout = 1;
-		killForwarderChild(SIGTERM, "timeout");
-	    }
-	    break;
+	if (killAllChildren && fwData->cSid > 0) {
+	    /* second kill phase, do it the hard way now */
+	    pluginlog("%s: SIGKILL to sid %i (job %s)\n", __func__,
+		      fwData->cSid, fwData->jobID ? fwData->jobID : "<?>");
+	    fwData->killSession(fwData->cSid, SIGKILL);
+	    sendHardKill = true;
+	} else {
+	    jobTimeout = true;
+	    killForwarderChild(fwData, SIGTERM, "timeout");
+	}
+	break;
     case SIGPIPE:
-	snprintf(logBuf, sizeof(logBuf), "got sigpipe\n");
+	pluginlog("%s: SIGPIPE\n", __func__);
 	break;
     }
 }
 
-static int initForwarder()
+static bool initForwarder(int motherFD, Forwarder_Data_t *fw)
 {
+    int signalFD;
     sigset_t mask;
 
-    logBuf[0] = '\0';
     Selector_init(NULL);
     Timer_init(NULL);
 
@@ -344,9 +249,9 @@ static int initForwarder()
     signal(SIGPIPE, signalHandler);
 
     /* overwrite proc title */
-    if (fwdata->pTitle) {
-	PSC_setProcTitle(PSID_argc, (char ** )PSID_argv, fwdata->pTitle, 0);
-	initPluginLogger(fwdata->pTitle, NULL);
+    if (fw->pTitle) {
+	PSC_setProcTitle(PSID_argc, (char ** )PSID_argv, fw->pTitle, 0);
+	initPluginLogger(fw->pTitle, NULL);
     } else {
 	initPluginLogger("psidfw", NULL);
     }
@@ -355,65 +260,68 @@ static int initForwarder()
     closelog();
     openlog("psid", LOG_PID|LOG_CONS, LOG_DAEMON);
 
-    if (!(connect2Mother(fwdata->listenSocketName))) {
-	pluginlog("%s: connecting to mother psid failed\n", __func__);
-	return 0;
-    }
-    Selector_register(motherSock, handleMotherMsg, NULL);
-
-    sendForwarderHello(fwdata->forwarderID);
+    Selector_register(motherFD, handleMthrSock, fw);
 
     blockSignal(SIGALRM, 1);
-
-    /* open control fds */
-    if ((socketpair(PF_UNIX, SOCK_STREAM, 0, controlFDs)) <0) {
-	pluginwarn(errno, "%s: open control socket failed:", __func__);
-	return 0;
-    }
 
     sigemptyset(&mask);
     sigaddset(&mask, SIGCHLD);
     blockSignal(SIGCHLD, 1);
     signalFD = signalfd(-1, &mask, 0);
     if (signalFD == -1) {
-	pluginwarn(errno, "%s: signalfd() failed:", __func__);
-	return 0;
+	pluginwarn(errno, "%s: signalfd()", __func__);
+	return false;
     }
-    if ((Selector_register(signalFD, handleSignalFd, NULL)) != 0) {
-	pluginwarn(errno, "%s: register signalFD '%u' () failed:",
-		    __func__, signalFD);
-	return 0;
+    if (Selector_register(signalFD, handleSignalFd, NULL)) {
+	pluginwarn(errno, "%s: Selector_register(signalFD)", __func__);
+	return false;
     }
 
-    return 1;
+    return true;
 }
 
 /**
- * @brief Tell my mother that forking the child failed.
+ * @brief Initialize a child process.
+ *
+ * Initialize a child process and move it to its own session. The
+ * child's forwarder process waits to received the session ID via the
+ * controlling file descriptor @a controlFD. The intended shape of the
+ * forwarder process and its child is described within the forwarder
+ * structure @a fw.
+ *
+ * @param controlFD File descriptor to submit the session ID
+ *
+ * @param fw Forwarder structure describing the forwarder and its child
  *
  * @return No return value.
  */
-static void sendForkFailed()
+static void initChild(int controlFD, Forwarder_Data_t *fw)
 {
-    PS_DataBuffer_t data = { .buf = NULL};
+    int written, fd, maxFD = sysconf(_SC_OPEN_MAX);
 
-    if (motherSock < 0) {
-	pluginlog("%s: no connection to my mother\n", __func__);
-	return;
+    /* needed or ioctl(TIOCSCTTY) will fail! */
+    fw->cSid = setsid();
+    if (fw->cSid == -1) {
+	pluginlog("%s: setsid() failed\n", __func__);
+	exit(1);
     }
 
-    addInt32ToMsg(CMD_LOCAL_FORK_FAILED, &data);
-    sendFWMsg(motherSock, &data);
-    ufree(data.buf);
-}
+    /* send sid to forwarder */
+    written = doWriteF(controlFD, &fw->cSid, sizeof(fw->cSid));
+    if (written != sizeof(pid_t)) {
+	pluginlog("%s: failed writing child's sid\n", __func__);
+	exit(1);
+    }
 
-/**
- * @brief Reset changed signal mask and hanlder.
- *
- * @return No return value.
- */
-static void resetSignalHandling()
-{
+    /* close all fd, except for stdout, stderr */
+    for (fd=0; fd<maxFD; fd++) {
+	if (fd == fw->stdIn[0] || fd == fw->stdOut[0] ||
+	    fd == fw->stdErr[0] || fd == fw->stdOut[1] ||
+	    fd == fw->stdErr[1] || fd == fw->stdIn[1]) continue;
+	if (fd == STDOUT_FILENO || fd == STDERR_FILENO) continue;
+	close(fd);
+    }
+
     /* restore sighandler */
     signal(SIGALRM, SIG_DFL);
     signal(SIGTERM, SIG_DFL);
@@ -426,101 +334,30 @@ static void resetSignalHandling()
 }
 
 /**
- * @brief Initialize a child process.
+ * @brief Forwarder's main loop
  *
- * Initialize a child process and move it to its own session.
+ * Main loop to be exectued for the forwarder described by the
+ * structure @a fw.
  *
- * @return No return value.
- */
-static void initChild(int fwpid)
-{
-    PS_DataBuffer_t data = { .buf = NULL};
-    int fd, maxFD;
-
-    maxFD = sysconf(_SC_OPEN_MAX) > 1024 ? 1024 : sysconf(_SC_OPEN_MAX);
-
-    /* needed or ioctl(TIOCSCTTY) will fail! */
-    if ((child_sid = setsid()) == -1) {
-	pluginlog("%s: setsid() failed\n", __func__);
-	exit(1);
-    }
-
-    /* add header */
-    addInt32ToMsg(CMD_LOCAL_CHILD_START, &data);
-
-    /* add pid of the forwarder itself */
-    addPidToMsg(fwpid, &data);
-
-    /* add pid of the forwarders child */
-    addPidToMsg(getpid(), &data);
-
-    /* add sid of the forwarders child */
-    addPidToMsg(child_sid, &data);
-
-    sendFWMsg(motherSock, &data);
-    ufree(data.buf);
-
-    /* close connection to mother */
-    close(motherSock);
-
-    /* send sid to forwarder */
-    if ((doWriteF(controlFDs[1], &child_sid,
-	    sizeof(pid_t))) != sizeof(pid_t)) {
-	pluginlog("%s: failed writing childs sid\n", __func__);
-	exit(1);
-    }
-
-    /* close all fd, except for stdout, stderr */
-    for (fd=0; fd<maxFD; fd++) {
-	if (fd == fwdata->stdIn[0] || fd == fwdata->stdOut[0] ||
-	    fd == fwdata->stdErr[0] || fd == fwdata->stdOut[1] ||
-	    fd == fwdata->stdErr[1] || fd == fwdata->stdIn[1]) continue;
-	if (fd == STDOUT_FILENO || fd == STDERR_FILENO) continue;
-	close(fd);
-    }
-
-    resetSignalHandling();
-}
-
-static void doLog()
-{
-    if (logBuf[0] != '\0') {
-	pluginlog("%s", logBuf);
-	logBuf[0] = '\0';
-    }
-}
-
-/**
- * @brief Main loop for all forwarders.
+ * @param fw Forwarder structure to be handled
  *
  * @return No return value.
  */
-static void forwarderLoop()
+static void forwarderLoop(Forwarder_Data_t *fw)
 {
     /* set timeout */
-    if (fwdata->timeoutChild > 0) {
-	alarm(fwdata->timeoutChild);
-    }
+    if (fw->timeoutChild > 0) alarm(fw->timeoutChild);
 
     /* enable signals again */
     blockSignal(SIGALRM, 0);
 
-    while (1) {
-	/* check for really short jobs */
-	if (sigChild) break;
-
-	if (Sselect(FD_SETSIZE, NULL, NULL, NULL, NULL) < 0) {
-	    if (errno != EINTR) {
-		pluginlog("%s: select error : %s\n", __func__, strerror(errno));
-		Selector_checkFDs();
-		killForwarderChild(SIGKILL, "Sselect error");
-		break;
-	    }
-	    doLog();
-	    if (sigChild) break;
+    while (!sigChild) {
+	if (Swait(-1) < 0  &&  errno != EINTR) {
+	    pluginwarn(errno, "%s: select()", __func__);
+	    killForwarderChild(fw, SIGKILL, "Swait() error");
+	    break;
 	}
     }
-    doLog();
 }
 
 /**
@@ -529,589 +366,306 @@ static void forwarderLoop()
  *
  * @return No return value.
  */
-static void forwarderExit()
+static void forwarderExit(Forwarder_Data_t *fw)
 {
-    PS_DataBuffer_t data = { .buf = NULL };
-
     blockSignal(SIGALRM, 1);
     blockSignal(SIGCHLD, 1);
     blockSignal(SIGTERM, 1);
-    doLog();
 
     /* reset possible alarms */
     alarm(0);
 
     /* make sure all children are dead */
-    if (child_sid > 0) fwdata->killSession(child_sid, SIGKILL);
-
-    /* request connection close */
-    if (motherSock < 0) {
-	pluginlog("%s: communication handle invalid\n", __func__);
-    } else {
-	addInt32ToMsg(CMD_LOCAL_CLOSE, &data);
-	sendFWMsg(motherSock, &data);
-	ufree(data.buf);
-    }
+    if (fw->cSid > 0) fw->killSession(fw->cSid, SIGKILL);
 }
 
-static int execForwarder(void *info)
+static void sendChildInfo(Forwarder_Data_t *fw)
 {
-    fwdata = info;
-    char tmp[200];
-    int ret, status = 0, i, fwpid = getpid();
+    PSLog_Msg_t msg = (PSLog_Msg_t) {
+	.header = (DDMsg_t) {
+	    .type = PSP_CC_MSG,
+	    .dest = PSC_getTID(-1,0),
+	    .sender = PSC_getMyTID(),
+	    .len = sizeof(msg) - sizeof(msg.buf) },
+	.version = PLUGINFW_PROTO_VERSION,
+	.type = PLGN_CHILD,
+	.sender = -1};
+
+    PSP_putMsgBuf((DDBufferMsg_t*)&msg, __func__, "childPID",
+		  &fw->cPid, sizeof(fw->cPid));
+    PSP_putMsgBuf((DDBufferMsg_t*)&msg, __func__, "childSID",
+		  &fw->cSid, sizeof(fw->cSid));
+
+    sendMsgToMother(&msg);
+}
+
+static void execForwarder(int motherFD, PStask_t *task)
+{
+    fwTask = task;
+    Forwarder_Data_t *fw = task->info;
+    fwData = fw;
+    int status = 0, i;
     struct rusage rusage;
-    struct timeval mytv={0,100};
 
-    if (fwdata->jobid) {
-	snprintf(tmp, sizeof(tmp), "job '%s' ", fwdata->jobid);
-	jobstring = ustrdup(tmp);
-    } else {
-	jobstring = ustrdup("");
+    fwTask->fd = motherFD;
+
+    if (!initForwarder(motherFD, fw)) {
+	pluginlog("%s: initForwarder failed", __func__);
+	exit(1);
     }
 
-    if (!initForwarder()) return -1;
-    if (fwdata->hookFWInit) {
-	if ((ret = fwdata->hookFWInit(fwdata)) < 0) {
-	    return ret;
+    if (fw->hookFWInit && fw->hookFWInit(fw) < 0) {
+	pluginlog("%s: hookFWInit failed", __func__);
+	exit(1);
+    }
+
+    for (i=1; fw->childFunc && i<=fw->childRerun; i++) {
+	int controlFDs[2];
+
+	/* open control fds */
+	if (socketpair(PF_UNIX, SOCK_STREAM, 0, controlFDs) < 0) {
+	    pluginwarn(errno, "%s: socketpair(controlFDs)", __func__);
+	    break;
 	}
-    }
 
-    for (i=1; i<=fwdata->childRerun; i++) {
+	/* fork child */
+	fw->cPid = fork();
+	if (fw->cPid  < 0) {
+	    pluginwarn(errno, "%s: fork()", __func__);
+	    exit(3);
+	} else if (!fw->cPid) {
+	    /* newly spawned child */
+	    close(controlFDs[0]);
+	    initChild(controlFDs[1], fw);
+	    fw->childFunc(fw, i);
 
-	if (fwdata->childFunc) {
-	    /* fork child */
-	    if ((child_pid = fork()) < 0) {
-		pluginwarn(errno, "%s: unable to fork my child: ", __func__);
-		sendForkFailed();
-		return -3;
-	    } else if (child_pid == 0) {
-
-		initChild(fwpid);
-
-		fwdata->childFunc(fwdata, i);
-
-		/* never reached */
-		exit(1);
-	    }
-
+	    /* never reached */
+	    exit(1);
+	} else {
 	    /* read sid of child */
-	    if ((doReadP(controlFDs[0], &child_sid, sizeof(pid_t))
-			!= sizeof(pid_t))) {
+	    close(controlFDs[1]);
+	    int read = doReadP(controlFDs[0], &fw->cSid, sizeof(pid_t));
+	    close(controlFDs[0]);
+	    if (read != sizeof(pid_t)) {
 		pluginlog("%s: reading childs sid failed\n", __func__);
-		if (child_pid > 0) kill(SIGKILL, child_pid);
+		if (fw->cPid > 0) kill(SIGKILL, fw->cPid);
 	    }
+
+	    sendChildInfo(fw);
 	}
-	close(controlFDs[0]);
-	close(controlFDs[1]);
 
-	fwdata->childPid = child_pid;
-	if (fwdata->hookLoop) fwdata->hookLoop(fwdata);
-	forwarderLoop();
+	if (fw->hookLoop) fw->hookLoop(fw);
+	forwarderLoop(fw);
 
-	if (fwdata->childFunc) {
-	    if ((wait4(child_pid, &status, 0, &rusage)) == -1) {
-		pluginlog("%s: waitpid for %d failed\n", __func__,
-		    child_pid);
+	if (fw->childFunc) {
+	    int res = wait4(fw->cPid, &status, 0, &rusage);
+	    if (res == -1) {
+		pluginwarn(errno, "%s: wait4(%d)", __func__, fw->cPid);
 		status = 1;
 	    }
 	}
 
+	/* cancel timeout */
 	alarm(0);
 
 	/* make sure we handled all data, after child is gone */
-	Sselect(FD_SETSIZE, NULL, NULL, NULL, &mytv);
+	Swait(1);
 
 	/* check for timeout */
-	if (job_timeout) {
-	    pluginlog("%s: child timed out (%i sec)\n", __func__,
-		fwdata->timeoutChild);
+	if (jobTimeout) {
+	    pluginlog("%s: child timed out\n", __func__);
 	    status = -4;
 	}
 
-	if (status != 0) break;
+	if (status) break;
     }
-    if (fwdata->hookFinalize) fwdata->hookFinalize(fwdata);
+    if (fw->hookFinalize) fw->hookFinalize(fw);
 
     /* cleanup */
-    forwarderExit();
-
-    return status;
+    forwarderExit(fw);
 }
 
-static int getScriptCBData(int fd, PSID_scriptCBInfo_t *info, int32_t *exit,
-    char *errMsg, size_t errMsgLen, size_t *errLen)
+/* ----------------- Functions to be executed in mother ------------------ */
+
+static void sigChldCB(int estatus, PStask_t *task)
 {
-    int iofd = -1;
+    Forwarder_Data_t *fw = task->info;
 
-    /* get exit status */
-    PSID_readall(fd, exit, sizeof(int32_t));
-    Selector_remove(fd);
-    close(fd);
+    plugindbg(PLUGIN_LOG_FW, "%s: forwarder", __func__);
+    if (fw) plugindbg(PLUGIN_LOG_FW, " %s (jobID %s)", fw->pTitle,
+		      fw->jobID ? fw->jobID : "<?>");
+    plugindbg(PLUGIN_LOG_FW, " TID %s returns %d\n",
+	      PSC_printTID(task->tid), estatus);
 
-    /* get stdout/stderr output / pid of child */
-    if (info) {
-	if (!info->info) {
-	    pluginlog("%s: info missing\n", __func__);
-	    return 1;
-	}
-	if ((iofd = info->iofd)) {
-	    if ((*errLen = PSID_readall(iofd, errMsg, errMsgLen)) > 0) {
-		//mlog("got error: '%s'\n", errMsg);
-	    }
-	    errMsg[*errLen] = '\0';
-	    close(iofd);
-	} else {
-	    pluginlog("%s: invalid iofd\n", __func__);
-	    errMsg[0] = '\0';
-	}
+    if (fw && fw->callback) fw->callback(estatus, fw);
+
+    if (task->fd == -1) {
+	ForwarderData_delete(fw);
+	task->info = NULL;
     } else {
-	pluginlog("%s: invalid info data\n", __func__);
-	return 1;
+	/* sigChldCB to be removed from task in caller */
+	/* wait for connection to close */
     }
-    return 0;
 }
 
-static void closeListenSocket(Forwarder_Data_t *data)
+static void handleChildStart(Forwarder_Data_t *fw, PSLog_Msg_t *msg)
 {
-    if (data->listenSocket >-1) {
-	if (Selector_isRegistered(data->listenSocket)) {
-	    Selector_remove(data->listenSocket);
+    size_t used = sizeof(*msg) - sizeof(msg->header) - sizeof(msg->buf);
+
+    PSP_getMsgBuf((DDBufferMsg_t *)msg, &used, __func__, "childPID",
+		  &fw->cPid, sizeof(fw->cPid));
+    PSP_getMsgBuf((DDBufferMsg_t *)msg, &used, __func__, "childSID",
+		  &fw->cSid, sizeof(fw->cSid));
+
+    if (fw->hookChild) {
+	fw->hookChild(fw, PSC_getPID(msg->header.sender), fw->cPid, fw->cSid);
+    }
+
+    plugindbg(PLUGIN_LOG_FW, "%s: fwTID %s childPid %i childSid %i\n", __func__,
+	      PSC_printTID(msg->header.sender), fw->cPid, fw->cSid);
+}
+
+/**
+ * @brief Handle socket connected to a forwarder
+ *
+ * Handle the socket @a fd connected to a forwarder. @a info is
+ * expected to point to the task structure describing the forwarder to
+ * receive a message from.
+ *
+ * @param fd Socket connected to a forwarder
+ *
+ * @param info Pointer to the task structure descrining the forwarder
+ *
+ * @return Always return 0
+ */
+static int handleFwSock(int fd, void *info)
+{
+    DDBufferMsg_t msg; /* ensure we'll have enough space */
+    PSLog_Msg_t *lmsg = (PSLog_Msg_t *)&msg;
+    PStask_t *task = info;
+    Forwarder_Data_t *fw = task->info;
+
+    if (!recvMsg(fd, (DDMsg_t*)&msg, sizeof(msg))) {
+	if (!task->sigChldCB) {
+	    /* SIGCHLD already received */
+	    ForwarderData_delete(fw);
+	    task->info = NULL;
 	}
-	close(data->listenSocket);
-	data->listenSocket = -1;
-    }
-    unlink(data->listenSocketName);
-}
-
-static void closeControlSocket(Forwarder_Data_t *data)
-{
-    if (data->controlSocket >-1) {
-	if (Selector_isRegistered(data->controlSocket)) {
-	    Selector_remove(data->controlSocket);
-	}
-	close(data->controlSocket);
-	data->controlSocket = -1;
-    }
-}
-
-static int callbackForwarder(int fd, PSID_scriptCBInfo_t *info)
-{
-    char errMsg[1024];
-    int32_t exit;
-    size_t errLen = 0;
-    Forwarder_Data_t *data = info->info;
-
-    /* remove connect timer */
-    if (data->timeoutConnectId > 0) {
-	if (Timer_remove(data->timeoutConnectId) == -1) {
-	    pluginlog("%s: removing connect timer failed\n", __func__);
-	}
-	data->timeoutConnectId = -1;
-    }
-
-    getScriptCBData(fd, info, &exit, errMsg, sizeof(errMsg), &errLen);
-
-    if (!exit && data->forwarderError == 1) {
-	snprintf(errMsg, sizeof(errMsg),
-		    "%s", "reading from forwarder failed\n");
-	errLen = strlen(errMsg);
-	exit = data->forwarderError;
-    }
-
-    plugindbg(PLUGIN_LOG_FW, "%s: fd '%i' listenSock '%i' controlsock '%i' "
-		"forwarderPid '%i'\n", __func__, fd, data->listenSocket,
-		data->controlSocket, data->forwarderPid);
-
-    if (data && data->callback) {
-	data->callback(exit, errMsg, errLen, info->info);
-    }
-
-    destroyForwarderData(data);
-    ufree(info);
-
-    return 0;
-}
-
-static void handle_FW_Hello(Forwarder_Data_t *data, char *ptr)
-{
-    int32_t id;
-
-    if (!(getInt32(&ptr, &id))) {
-	pluginlog("%s: reading forwarder id failed\n", __func__);
-	closeControlSocket(data);
-	return;
-    }
-
-    /* make sure the forwarder is who he claims to be */
-    if (data->forwarderID != id) {
-	pluginlog("%s: invalid forwarder id '%i'\n", __func__, id);
-	closeControlSocket(data);
-	return;
-    }
-
-    /* remove connect timer */
-    if (data->timeoutConnectId > 0) {
-	if (Timer_remove(data->timeoutConnectId) == -1) {
-	    pluginlog("%s: removing connect timer failed\n", __func__);
-	}
-	data->timeoutConnectId = -1;
-    }
-}
-
-static void handle_FW_Close(Forwarder_Data_t *data, char *ptr)
-{
-    closeControlSocket(data);
-}
-
-static void handle_FW_Child_Start(Forwarder_Data_t *data, char *ptr)
-{
-    pid_t forwarderPid;
-
-    /* pid of the forwarder itself */
-    getPid(&ptr, &forwarderPid);
-
-    if (forwarderPid != data->forwarderPid) {
-	pluginlog("%s: got invalid forwarder pid '%i:%i'\n", __func__,
-	    forwarderPid, data->forwarderPid);
-    }
-
-    /* pid of the forwarders child */
-    getPid(&ptr, &data->childPid);
-
-    /* sid of the forwarders child */
-    getPid(&ptr, &data->childSid);
-
-    if (data->hookChildStart) {
-	data->hookChildStart(data, forwarderPid, data->childPid,
-				data->childSid);
-    }
-
-    plugindbg(PLUGIN_LOG_FW, "%s: fwPid '%i' childPid '%i'  childSid '%i'\n",
-		__func__, data->forwarderPid, data->childPid, data->childSid);
-}
-
-static void handle_FW_Fork_Failed(Forwarder_Data_t *data, char *ptr)
-{
-    closeControlSocket(data);
-}
-
-static void handle_Forward_Msg(Forwarder_Data_t *data, char *ptr)
-{
-    DDMsg_t *msg = getDataM(&ptr, NULL);
-
-    if ((sendMsg(msg)) == -1 && errno != EWOULDBLOCK) {
-	pluginwarn(errno, "%s: sending msg failed ", __func__);
-    }
-    ufree(msg);
-}
-
-static int handleControlSocket(int fd, void *info)
-{
-    char *ptr, *buf = NULL;
-    Forwarder_Data_t *fwdata = info;
-    int32_t cmd;
-
-    if (!(recvFWMsg(fd, &cmd, &buf, &ptr))) {
-	pluginlog("%s: reading from forwarder failed\n", __func__);
-	fwdata->forwarderError = 1;
-	fwdata->controlSocket = fd;
-	closeControlSocket(fwdata);
+	PSIDclient_delete(fd);
 	return 0;
     }
 
-    if (fwdata->hookForwarderMsg) {
-	if ((fwdata->hookForwarderMsg(fwdata, ptr, cmd))) {
-	    ufree(buf);
-	    return 0;
-	}
+    if (fw->handleFwMsg && fw->handleFwMsg(lmsg, fw)) return 0;
+
+    switch (lmsg->type) {
+    case STDIN:
+    case FINALIZE:
+	sendMsg(lmsg);
+	break;
+    case PLGN_CHILD:
+	handleChildStart(fw, lmsg);
+	break;
+    default:
+	pluginlog("%s: invalid cmd %i from %s\n", __func__, lmsg->type,
+		  PSC_printTID(lmsg->header.sender));
     }
-
-    switch(cmd) {
-	case CMD_LOCAL_HELLO:
-	    handle_FW_Hello(fwdata, ptr);
-	    break;
-	case CMD_LOCAL_CLOSE:
-	    handle_FW_Close(fwdata, ptr);
-	    break;
-	case CMD_LOCAL_CHILD_START:
-	    handle_FW_Child_Start(fwdata, ptr);
-	    break;
-	case CMD_LOCAL_FORK_FAILED:
-	    handle_FW_Fork_Failed(fwdata, ptr);
-	    break;
-	case CMD_LOCAL_FORWARD_MSG:
-	    handle_Forward_Msg(fwdata, ptr);
-	    break;
-	default:
-	    pluginlog("%s: invalid local cmd '%i' from '%i', closing "
-			"connection\n", __func__, cmd, fd);
-	    closeControlSocket(fwdata);
-    }
-
-    ufree(buf);
-    return 0;
-}
-
-static int handleListenSocket(int fd, void *info)
-{
-    Forwarder_Data_t *data = info;
-
-    unsigned int clientlen;
-    struct sockaddr_in SAddr;
-
-    /* accept new connection */
-    clientlen = sizeof(SAddr);
-
-    if ((data->controlSocket = accept(fd, (void *)&SAddr, &clientlen)) == -1) {
-	pluginlog("%s error accepting new local connection\n", __func__);
-	return 0;
-    }
-
-    plugindbg(PLUGIN_LOG_FW, "%s: accepting new local client '%i' for "
-		"forwarder '%i'\n", __func__, data->controlSocket,
-		data->forwarderPid);
-    Selector_register(data->controlSocket, handleControlSocket, data);
 
     return 0;
 }
 
-static int openListenSocket(Forwarder_Data_t *data)
+bool startForwarder(Forwarder_Data_t *fw)
 {
-    struct sockaddr_un sa;
-    char *tmpName, buf[50];
-    int opt = 1;
-
-    if (data->listenSocketName) {
-	pluginlog("%s: listenSocket already in use '%s'.", __func__,
-		    data->listenSocketName);
-	return -1;
+    if (!fw) {
+	pluginlog("%s: no forwarder defined\n", __func__);
+	return false;
+    }
+    if (!fw->killSession) {
+	pluginlog("%s: no killSessions() given\n", __func__);
+	return false;
     }
 
-    snprintf(buf, sizeof(buf), "%s-XXXXXX", TEMP_SOCKET_NAME);
-    if (!(tmpName = mkdtemp(buf))) {
-	pluginwarn(errno, "%s: mkdtemp(%s) failed", __func__, buf);
-	return -1;
-    }
-    data->listenSocketName = ustrdup(tmpName);
+    PStask_t *task = PStask_new();
 
-    if ((data->listenSocket = socket(PF_UNIX, SOCK_STREAM, 0)) == -1) {
-	pluginwarn(errno, "%s:", __func__);
-	return -1;
-    }
-
-    memset(&sa, 0, sizeof(sa));
-    sa.sun_family = AF_UNIX;
-    strncpy(sa.sun_path, data->listenSocketName, sizeof(sa.sun_path));
-
-    if ((setsockopt(data->listenSocket, SOL_SOCKET, SO_REUSEADDR,
-	    &opt, sizeof(opt))) < 0 ) {
-	pluginwarn(errno, "%s: setsockopt failed, socket:%i ", __func__,
-		data->listenSocket);
-    }
-
-    /*
-     * bind the socket to the right address
-     */
-    rmdir(data->listenSocketName);
-    if (bind(data->listenSocket, (struct sockaddr *)&sa, sizeof(sa)) < 0) {
-	pluginwarn(errno, "%s: bind failed :", __func__);
-	close(data->listenSocket);
-	data->listenSocket = -1;
-	return -1;
-    }
-    chmod(sa.sun_path, S_IRWXU);
-
-    if (listen(data->listenSocket, 20) < 0) {
-	pluginwarn(errno, "Error while trying to listen");
-	close(data->listenSocket);
-	data->listenSocket = -1;
-	return -1;
-    }
-
-    /* register the selector */
-    Selector_register(data->listenSocket, handleListenSocket, data);
-
-    plugindbg(PLUGIN_LOG_FW, "%s: Local Service Port (%d) created.\n",
-	__func__, data->listenSocket);
-
-    return 1;
-}
-
-Forwarder_Data_t *getNewForwarderData(void)
-{
-    Forwarder_Data_t *data;
-
-    data = umalloc(sizeof(Forwarder_Data_t));
-
-    data->pTitle = NULL;
-    data->jobid = NULL;
-    data->listenSocketName = NULL;
-    data->userData = NULL;
-    data->killSession = NULL;
-    data->callback = NULL;
-    data->childFunc = NULL;
-    data->hookLoop = NULL;
-    data->hookFWInit = NULL;
-    data->hookHandleSignal = NULL;
-    data->hookMotherMsg = NULL;
-    data->hookForwarderMsg = NULL;
-    data->hookChildStart = NULL;
-    data->hookFinalize = NULL;
-    data->logName = "forwarder";
-
-    data->childRerun = 1;
-    data->timeoutChild = 0;
-    data->timeoutConnect = 10;
-    data->timeoutConnectId = -1;
-    data->graceTime = 0;
-    data->forwarderID = -1;
-    data->listenSocket = -1;
-    data->forwarderError = 0;
-    data->controlSocket = -1;
-    data->childPid = 0;
-    data->childSid = 0;
-    data->forwarderPid = 0;
-    data->stdIn[0] = -1;
-    data->stdIn[1] = -1;
-    data->stdOut[0] = -1;
-    data->stdOut[1] = -1;
-    data->stdErr[0] = -1;
-    data->stdErr[1] = -1;
-
-    return data;
-}
-
-void destroyForwarderData(Forwarder_Data_t *data)
-{
-    if (!data) return;
-
-    /* close all leftover sockets */
-    closeListenSocket(data);
-    closeControlSocket(data);
-
-    ufree(data->pTitle);
-    ufree(data->jobid);
-    ufree(data->listenSocketName);
-    data->callback = NULL;
-    ufree(data);
-}
-
-static void handleConnectTimeout(int timerId, void *fwdata)
-{
-    Forwarder_Data_t *data = fwdata;
-
-    if (data->forwarderPid) {
-	pluginlog("%s: forwarder '%i' did not connect back in '%i' seconds\n",
-		    __func__, data->forwarderPid, data->timeoutConnect);
-
-	kill(SIGKILL, data->forwarderPid);
-	data->timeoutConnectId = -1;
-    }
-    Timer_remove(timerId);
-}
-
-void sendMsgtoMother(PS_DataBuffer_t *data)
-{
-    sendFWMsg(motherSock, data);
-}
-
-void forwardMsgtoMother(DDMsg_t *msg)
-{
-    PS_DataBuffer_t data = { .buf = NULL };
-
-    addInt32ToMsg(CMD_LOCAL_FORWARD_MSG, &data);
-    addDataToMsg(msg, msg->len, &data);
-    sendFWMsg(motherSock, &data);
-
-    ufree(data.buf);
-}
-
-void sendStartGraceTime(Forwarder_Data_t *data)
-{
-    PS_DataBuffer_t buffer = { .buf = NULL};
-
-    if (data->controlSocket > -1) {
-	addInt32ToMsg(CMD_LOCAL_GRACE_START, &buffer);
-	sendFWMsg(data->controlSocket, &buffer);
-	ufree(buffer.buf);
-    }
-}
-
-int signalForwarderChild(Forwarder_Data_t *data, int signal)
-{
-    PS_DataBuffer_t buffer = { .buf = NULL};
-
-    if (data->childSid > 0) {
-	data->killSession(data->childSid, signal);
-	pluginlog("%s: child session id '%i' signal '%i'\n",
-		    __func__, data->childSid, signal);
-
-	if ((signal == SIGTERM || signal == SIGKILL) &&
-		data->forwarderPid > 0) {
-	    if (signal == SIGKILL) signal = SIGTERM;
-	    kill(data->forwarderPid, signal);
-	}
-	return 1;
-    } else if (data->controlSocket > -1) {
-	addInt32ToMsg(CMD_LOCAL_SIGNAL_CHILD, &buffer);
-	addInt32ToMsg(signal, &buffer);
-	sendFWMsg(data->controlSocket, &buffer);
-	ufree(buffer.buf);
-
-	return 1;
-    } else {
-	pluginlog("%s: cannot signal forwarder, missing infos\n", __func__);
-    }
-    return 0;
-}
-
-void shutdownForwarder(Forwarder_Data_t *data)
-{
-    PS_DataBuffer_t buffer = { .buf = NULL};
-
-    if (!data) return;
-
-    if (data->controlSocket > -1) {
-	addInt32ToMsg(CMD_LOCAL_SHUTDOWN, &buffer);
-	sendFWMsg(data->controlSocket, &buffer);
-	ufree(buffer.buf);
-    }
-}
-
-int startForwarder(Forwarder_Data_t *data)
-{
-    if (!data->killSession) {
-	pluginlog("%s: invalid killSessions() function pointer\n", __func__);
-	return 1;
-    }
-
-    if (data->forwarderID == -1) {
-	data->forwarderID = (int32_t) getpid() * rand() * time(NULL);
-    }
-
-    /* make sure the forwarder connects back to us */
-    if (data->timeoutConnect > 0) {
-	struct timeval timer = {0, 0};
-
-	timer.tv_sec = data->timeoutConnect;
-
-	if ((data->timeoutConnectId = Timer_registerEnhanced(&timer,
-		handleConnectTimeout, data)) == -1) {
-	    pluginlog("%s: register child connect timer failed\n", __func__);
-	    return 1;
-	}
-    }
-
-    /* create listen socket */
-    if (openListenSocket(data) == -1) return 1;
+    task->group = TG_PLUGINFW;
+    task->ptid = PSC_getMyTID();
+    task->uid = getuid();
+    task->gid = getgid();
+    task->info = fw;
+    task->argc = 1 + !!fw->jobID;
+    task->argv = umalloc(task->argc * sizeof(*task->argv));
+    task->argv[0] = strdup(fw->pTitle);
+    if (fw->jobID) task->argv[1] = strdup(fw->jobID);
+    task->sigChldCB = sigChldCB;
 
     /* start the new forwarder */
-    if ((data->forwarderPid = PSID_execFunc(execForwarder, NULL,
-	    callbackForwarder, data)) == -1) {
-	pluginlog("%s: exec forwarder failed\n", __func__);
-	closeListenSocket(data);
-	return 1;
+    if (PSIDspawn_localTask(task, execForwarder, handleFwSock)) {
+	pluginlog("%s: creating forwarder %s failed\n", __func__, fw->pTitle);
+	task->info = NULL;
+	PStask_delete(task);
+	return false;
     }
 
-    return 0;
+    return true;
+}
+
+bool signalForwarderChild(Forwarder_Data_t *fw, int sig)
+{
+    if (fw->cSid > 0) {
+	fw->killSession(fw->cSid, sig);
+	pluginlog("%s: session %i signal %i\n", __func__, fw->cSid, sig);
+
+	/* Trigger the forwarder itself, too */
+	if ((sig == SIGTERM || sig == SIGKILL) && fw->tid > 0) {
+	    kill(PSC_getPID(fw->tid), SIGTERM);
+	}
+	return true;
+    } else if (fw->tid != -1) {
+	PSLog_Msg_t msg = (PSLog_Msg_t) {
+	    .header = (DDMsg_t) {
+		.type = PSP_CC_MSG,
+		.dest = fw->tid,
+		.sender = PSC_getMyTID(),
+		.len = sizeof(msg) - sizeof(msg.buf) },
+	    .version = PLUGINFW_PROTO_VERSION,
+	    .type = PLGN_SIGNAL_CHLD,
+	    .sender = -1};
+
+	PSP_putMsgBuf((DDBufferMsg_t*)&msg, __func__, "sig", &sig, sizeof(sig));
+
+	sendMsg(&msg);
+	return true;
+    } else {
+	pluginlog("%s: unable to signal forwarder\n", __func__);
+    }
+    return false;
+}
+
+void startGraceTime(Forwarder_Data_t *data)
+{
+    PSLog_Msg_t msg = (PSLog_Msg_t) {
+	.header = (DDMsg_t) {
+	    .type = PSP_CC_MSG,
+	    .dest = PSC_getTID(-1,0),
+	    .sender = PSC_getMyTID(),
+	    .len = sizeof(msg) - sizeof(msg.buf) },
+	.version = PLUGINFW_PROTO_VERSION,
+	.type = PLGN_START_GRACE,
+	.sender = -1};
+
+    sendMsg(&msg);
+}
+
+void shutdownForwarder(Forwarder_Data_t *fw)
+{
+    PSLog_Msg_t msg = (PSLog_Msg_t) {
+	.header = (DDMsg_t) {
+	    .type = PSP_CC_MSG,
+	    .dest = fw->tid,
+	    .sender = PSC_getMyTID(),
+	    .len = sizeof(msg) - sizeof(msg.buf) },
+	.version = PLUGINFW_PROTO_VERSION,
+	.type = PLGN_SHUTDOWN,
+	.sender = -1};
+
+    sendMsg(&msg);
 }
