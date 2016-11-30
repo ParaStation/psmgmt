@@ -1,0 +1,23 @@
+/*
+ * ParaStation
+ *
+ * Copyright (C) 2013 ParTec Cluster Competence Center GmbH, Munich
+ *
+ * This file may be distributed under the terms of the Q Public License
+ * as defined in the file LICENSE.QPL included in the packaging of this
+ * file.
+ */
+/**
+ * $Id$
+ *
+ * \author
+ * Michael Rauh <rauh@par-tec.com>
+ *
+ */
+
+#ifndef __PELOGUE__FORWARDER
+#define __PELOGUE__FORWARDER
+
+void execPElogueScript(void *datap, int rerun);
+
+#endif
