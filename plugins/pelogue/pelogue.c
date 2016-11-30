@@ -7,13 +7,6 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-/**
- * $Id$
- *
- * \author
- * Michael Rauh <rauh@par-tec.com>
- *
- */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -31,8 +24,9 @@
 #include "peloguechild.h"
 
 #include "pspluginprotocol.h"
-#include "psidplugin.h"
+#include "psidcomm.h"
 #include "psidhook.h"
+#include "psidplugin.h"
 #include "plugin.h"
 #include "timer.h"
 #include "psaccounthandles.h"
@@ -56,21 +50,9 @@ static int obitTime = 10;
 char name[] = "pelogue";
 int version = 6;
 int requiredAPI = 114;
-plugin_dep_t dependencies[2];
-
-void startPelogue(void)
-{
-    dependencies[0].name = "psaccount";
-    dependencies[0].version = 21;
-    dependencies[1].name = NULL;
-    dependencies[1].version = 0;
-}
-
-void stopPelogue(void)
-{
-    /* release the logger */
-    logger_finalize(peloguelogger);
-}
+plugin_dep_t dependencies[] = {
+    { .name = "psaccount", .version = 21 },
+    { .name = NULL, .version = 0 } };
 
 static void cleanupJobs(void)
 {
@@ -261,4 +243,7 @@ void cleanup(void)
     finalizeFragComm();
 
     mlog("...Bye.\n");
+
+    /* release the logger */
+    logger_finalize(peloguelogger);
 }
