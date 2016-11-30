@@ -21,6 +21,17 @@
 #include <errno.h>
 #include <pwd.h>
 
+#include "pscommon.h"
+#include "timer.h"
+#include "selector.h"
+#include "psidutil.h"
+#include "psidtask.h"
+#include "psidpartition.h"
+#include "pluginhelper.h"
+#include "pluginmalloc.h"
+
+#include "psaccounthandles.h"
+
 #include "psmomspawn.h"
 #include "psmomlog.h"
 #include "psmomjob.h"
@@ -33,20 +44,9 @@
 #include "psmomforwarder.h"
 #include "psmomjobinfo.h"
 #include "psmom.h"
-#include "pluginhelper.h"
-#include "pluginmalloc.h"
 #include "psmomconv.h"
 #include "psmomlocalcomm.h"
-#include "psmompsaccfunc.h"
 #include "psmomkvs.h"
-
-#include "pscommon.h"
-#include "timer.h"
-#include "selector.h"
-#include "psidutil.h"
-
-#include "psidtask.h"
-#include "psidpartition.h"
 
 #include "psmomscript.h"
 
@@ -482,7 +482,7 @@ void handlePELogueSignal(DDTypedBufferMsg_t *msg)
     if (child->c_sid != -1) {
 	mlog("signal '%s (%i)' to pelogue '%s' - reason '%s' - sid '%i'\n",
 		signal, isignal, jobid, reason, child->c_sid);
-	psAccountsendSignal2Session(child->c_sid, isignal);
+	psAccountSignalSession(child->c_sid, isignal);
     } else if (child->c_pid != -1) {
 	mlog("signal '%s (%i)' to pelogue '%s' - reason '%s' - pid '%i'\n",
 		signal, isignal, jobid, reason, child->c_pid);

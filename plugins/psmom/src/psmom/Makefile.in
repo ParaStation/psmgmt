@@ -23,8 +23,6 @@
 # as defined in the file LICENSE.QPL included in the packaging of this
 # file.
 #
-# Author:	Michael Rauh <rauh@par-tec.com>
-#
 
 #
 # ParaStation
@@ -376,7 +374,8 @@ top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 unitdir = @unitdir@
 AM_CPPFLAGS = -I$(top_srcdir)/include -DNDEBUG \
-	-I$(top_srcdir)/bin/daemon -I$(srcdir)/../include
+	-I$(top_srcdir)/bin/daemon -I$(srcdir)/../include \
+	-I$(top_srcdir)/$(psaccount_dir)
 subst_verbose = $(subst_verbose_$(V))
 subst_verbose_ = $(subst_verbose_$(AM_DEFAULT_VERBOSITY))
 subst_verbose_0 = @echo "  SUBST   " $(@F);
@@ -404,6 +403,7 @@ configdir = $(prefix)/config
 
 # dito
 scriptsdir = $(prefix)/scripts
+psaccount_dir := plugins/psaccount
 plugin_LTLIBRARIES = psmom.la
 libpbs = $(top_builddir)/plugins/psmom/src/pbs/libpbs.la
 libpsi = $(top_builddir)/lib/psi/libpsi.la
@@ -417,7 +417,7 @@ psmom_la_SOURCES = Makefile.am psmomacc.c \
 	psmomjobinfo.c psmomjobinfo.h psmomkvs.c psmomkvs.h psmomlist.c \
 	psmomlist.h psmomlocalcomm.c psmomlocalcomm.h psmomlog.c psmomlog.h \
 	psmompartition.c psmompartition.h psmompbsserver.c psmompbsserver.h \
-	psmomproto.c psmomproto.h psmompsaccfunc.h psmompscomm.c \
+	psmomproto.c psmomproto.h psmompscomm.c \
 	psmompscomm.h psmomrecover.c psmomrecover.h psmomrpp.c psmomrpp.h \
 	psmomscript.c psmomscript.h psmomsignal.c psmomsignal.h psmomspawn.c \
 	psmomspawn.h psmomssh.c psmomssh.h psmomtcp.c psmomtcp.h

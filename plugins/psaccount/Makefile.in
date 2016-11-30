@@ -17,13 +17,11 @@
 #
 # ParaStation
 #
-# Copyright (C) 2012 ParTec Cluster Competence Center GmbH, Munich
+# Copyright (C) 2012-2016 ParTec Cluster Competence Center GmbH, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
 # file.
-#
-# Author:	Thomas Moschny <moschny@par-tec.com>
 #
 
 #
@@ -156,8 +154,7 @@ am__installdirs = "$(DESTDIR)$(plugindir)"
 LTLIBRARIES = $(plugin_LTLIBRARIES)
 psaccount_la_DEPENDENCIES = $(libplugincommon)
 am_psaccount_la_OBJECTS = psaccount_la-psaccount.lo \
-	psaccount_la-psaccountclient.lo \
-	psaccount_la-psaccountcollect.lo psaccount_la-psaccountcomm.lo \
+	psaccount_la-psaccountclient.lo psaccount_la-psaccountcomm.lo \
 	psaccount_la-psaccountinter.lo psaccount_la-psaccountjob.lo \
 	psaccount_la-psaccountkvs.lo psaccount_la-psaccountlog.lo \
 	psaccount_la-psaccountproc.lo psaccount_la-psaccountconfig.lo \
@@ -396,13 +393,13 @@ configdir = $(prefix)/config
 scriptsdir = $(prefix)/scripts
 plugin_LTLIBRARIES = psaccount.la
 libplugincommon = $(top_builddir)/lib/plugincommon/libplugincommon.la
-psaccount_la_SOURCES = psaccount.c psaccountclient.c psaccountclient.h  \
-	 psaccountcollect.c psaccountcollect.h psaccountcomm.c 		\
-	 psaccountcomm.h psaccount.h psaccountinter.c psaccountinter.h  \
-	 psaccountjob.c	psaccountjob.h psaccountkvs.c psaccountkvs.h    \
-	 psaccountlog.c	psaccountlog.h psaccountproc.c psaccountproc.h  \
-	 psaccountconfig.c psaccountconfig.h psaccounthistory.h 	\
-	 psaccounthistory.c
+psaccount_la_SOURCES = psaccount.c psaccountclient.c			\
+	psaccountclient.h psaccountcomm.c psaccountcomm.h		\
+	psaccountinter.c psaccountinter.h psaccountjob.c		\
+	psaccountjob.h psaccountkvs.c psaccountkvs.h psaccountlog.c	\
+	psaccountlog.h psaccountproc.c psaccountproc.h			\
+	psaccountconfig.c psaccountconfig.h psaccounthistory.h		\
+	psaccounthistory.c psaccounthandles.h psaccounttypes.h
 
 psaccount_la_CPPFLAGS = $(AM_CPPFLAGS) -DPLUGINDIR=\"$(plugindir)\"
 psaccount_la_LIBADD = $(libplugincommon)
@@ -487,7 +484,6 @@ distclean-compile:
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psaccount_la-psaccount.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psaccount_la-psaccountclient.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psaccount_la-psaccountcollect.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psaccount_la-psaccountcomm.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psaccount_la-psaccountconfig.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psaccount_la-psaccounthistory.Plo@am__quote@
@@ -534,13 +530,6 @@ psaccount_la-psaccountclient.lo: psaccountclient.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='psaccountclient.c' object='psaccount_la-psaccountclient.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(psaccount_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o psaccount_la-psaccountclient.lo `test -f 'psaccountclient.c' || echo '$(srcdir)/'`psaccountclient.c
-
-psaccount_la-psaccountcollect.lo: psaccountcollect.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(psaccount_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT psaccount_la-psaccountcollect.lo -MD -MP -MF $(DEPDIR)/psaccount_la-psaccountcollect.Tpo -c -o psaccount_la-psaccountcollect.lo `test -f 'psaccountcollect.c' || echo '$(srcdir)/'`psaccountcollect.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/psaccount_la-psaccountcollect.Tpo $(DEPDIR)/psaccount_la-psaccountcollect.Plo
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='psaccountcollect.c' object='psaccount_la-psaccountcollect.lo' libtool=yes @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(psaccount_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o psaccount_la-psaccountcollect.lo `test -f 'psaccountcollect.c' || echo '$(srcdir)/'`psaccountcollect.c
 
 psaccount_la-psaccountcomm.lo: psaccountcomm.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(psaccount_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT psaccount_la-psaccountcomm.lo -MD -MP -MF $(DEPDIR)/psaccount_la-psaccountcomm.Tpo -c -o psaccount_la-psaccountcomm.lo `test -f 'psaccountcomm.c' || echo '$(srcdir)/'`psaccountcomm.c

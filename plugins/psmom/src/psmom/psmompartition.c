@@ -12,9 +12,8 @@
 #include <string.h>
 #include <errno.h>
 
-#include "psmomjob.h"
-#include "psmomlog.h"
-#include "psmom.h"
+#include "pstask.h"
+#include "list.h"
 #include "pscommon.h"
 #include "psidtask.h"
 #include "psidcomm.h"
@@ -22,15 +21,18 @@
 #include "psidnodes.h"
 #include "psidpartition.h"
 #include "psdaemonprotocol.h"
-#include "psmompsaccfunc.h"
+#include "pluginpartition.h"
+
+#include "psaccounthandles.h"
+
+#include "psmomjob.h"
+#include "psmomlog.h"
+#include "psmom.h"
 #include "psmomjobinfo.h"
 
 #include "psmompscomm.h"
 #include "psmomconfig.h"
-#include "pluginpartition.h"
 
-#include "pstask.h"
-#include "list.h"
 
 #include "psmompartition.h"
 
@@ -64,7 +66,7 @@ static Job_t *findJobforPID(pid_t pid)
 	if ((findJobCookie(job->cookie, pid))) {
 	    /* try to find our job cookie in the environment */
 	    return job;
-	} else if ((psAccountisChildofParent(job->pid, pid))) {
+	} else if (psAccountIsDescendant(job->pid, pid)) {
 	    return job;
 	}
     }

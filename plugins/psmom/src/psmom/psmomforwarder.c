@@ -25,6 +25,19 @@
 #include <syslog.h>
 #include <sys/resource.h>
 
+#include "psidutil.h"
+#include "psidhook.h"
+#include "pscommon.h"
+#include "selector.h"
+#include "timer.h"
+
+#include "pluginhelper.h"
+#include "pluginmalloc.h"
+#include "pluginlog.h"
+#include "pluginpty.h"
+
+#include "psaccounthandles.h"
+
 #include "psmom.h"
 #include "psmomspawn.h"
 #include "psmomlog.h"
@@ -36,18 +49,7 @@
 #include "psmomconv.h"
 #include "psmomsignal.h"
 #include "psmominteractive.h"
-#include "psmompsaccfunc.h"
 #include "psmomenv.h"
-#include "pluginhelper.h"
-#include "pluginmalloc.h"
-#include "pluginlog.h"
-#include "pluginpty.h"
-
-#include "psidutil.h"
-#include "psidhook.h"
-#include "pscommon.h"
-#include "selector.h"
-#include "timer.h"
 
 #ifdef PAM_DEVEL_AVAIL
   #include <security/pam_appl.h>
@@ -222,7 +224,7 @@ void killForwarderChild(char *reason)
 		reason);
     }
 
-    if ((psAccountsendSignal2Session(forwarder_child_sid, SIGTERM)) > 0) {
+    if ((psAccountSignalSession(forwarder_child_sid, SIGTERM)) > 0) {
 	killAllChildren = 1;
 	alarm(obitTime);
     }
@@ -242,11 +244,11 @@ static void sendForwarderChildExit(struct rusage *rusg, int status)
     uint64_t cputime;
 
     /* wait for all children to exit */
-    if ((psAccountsendSignal2Session(forwarder_child_sid, SIGTERM)) > 0) {
+    if ((psAccountSignalSession(forwarder_child_sid, SIGTERM)) > 0) {
 	if (!killAllChildren) killForwarderChild(NULL);
 	sleep(2);
 
-	while ((psAccountsendSignal2Session(forwarder_child_sid, SIGTERM)) > 0) {
+	while ((psAccountSignalSession(forwarder_child_sid, SIGTERM)) > 0) {
 	    if (sentHardKill) break;
 	    sleep(2);
 	}
@@ -278,7 +280,7 @@ static void handleLocalSignal()
     ReadDigitUI(com, &sig);
     mlog("%s: signal '%s (%i)' to '%i' and all children\n",
 		__func__, signal2String(sig), sig, forwarder_child_pid);
-    psAccountsendSignal2Session(forwarder_child_sid, sig);
+    psAccountSignalSession(forwarder_child_sid, sig);
 }
 
 /**
@@ -345,7 +347,7 @@ static void forwarderExit()
     alarm(0);
 
     /* make sure all children are dead */
-    psAccountsendSignal2Session(forwarder_child_sid, SIGKILL);
+    psAccountSignalSession(forwarder_child_sid, SIGKILL);
 
     /* restore sighandler */
     resetSignalHandling();
@@ -400,7 +402,7 @@ static void signalHandler(int sig)
 		/* second kill phase, do it the hard way now */
 		mlog("signal 'SIGKILL' to sid '%i' job" " '%s'\n",
 			forwarder_child_sid, jobid);
-		psAccountsendSignal2Session(forwarder_child_sid, SIGKILL);
+		psAccountSignalSession(forwarder_child_sid, SIGKILL);
 		killAllChildren = 0;
 		sentHardKill = 1;
 	    } else {

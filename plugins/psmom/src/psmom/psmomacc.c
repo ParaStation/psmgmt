@@ -1,18 +1,11 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2012-2013 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2012-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
- */
-/**
- * $Id$
- *
- * \author
- * Michael Rauh <rauh@par-tec.com>
- *
  */
 
 #include <stdlib.h>
@@ -21,9 +14,10 @@
 #include <time.h>
 #include <inttypes.h>
 
+#include "psaccounthandles.h"
+
 #include "psmomjob.h"
 #include "psmomlog.h"
-#include "psmompsaccfunc.h"
 
 #include "psmomacc.h"
 
@@ -179,31 +173,31 @@ static void setJobMemUsage(Job_t *job, uint64_t mem, uint64_t vmem)
 
     if (mem > job->res.mem) {
 	job->res.mem = mem;
-	snprintf(memory, sizeof(memory), "%" PRIu64 "kb", mem / 1024);
+	snprintf(memory, sizeof(memory), "%" PRIu64 "kb", mem);
 	setEntry(&job->status.list, "resources_used", "mem", memory);
     }
 
     if (vmem > job->res.vmem) {
 	job->res.vmem = vmem;
-	snprintf(memory, sizeof(memory), "%" PRIu64 "kb", vmem / 1024);
+	snprintf(memory, sizeof(memory), "%" PRIu64 "kb", vmem);
 	setEntry(&job->status.list, "resources_used", "vmem", memory);
     }
 }
 
 void fetchAccInfo(Job_t *job)
 {
-    psaccAccountInfo_t accInfo;
+    AccountDataExt_t accData;
 
     if (job->pid == -1) return;
 
     mdbg(PSMOM_LOG_ACC, "%s: requesting job info for '%i'\n", __func__,
 			    job->pid);
-    psAccountGetJobInfo(job->pid, &accInfo);
+    psAccountGetDataByJob(job->pid, &accData);
 
-    calcJobPollCpuTime(job, accInfo.stime, accInfo.utime);
-    addJobWaitCpuTime(job, accInfo.cputime);
+    calcJobPollCpuTime(job, accData.cstime, accData.cutime);
+    addJobWaitCpuTime(job, accData.totCputime);
     setJobCpuTime(job);
-    setJobMemUsage(job, accInfo.mem, accInfo.vmem);
+    setJobMemUsage(job, accData.maxRssTotal, accData.maxVsizeTotal);
     setJobWalltime(job);
 }
 

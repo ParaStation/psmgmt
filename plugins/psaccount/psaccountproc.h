@@ -1,187 +1,244 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2011 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
- *
- * Authors:     Michael Rauh <rauh@par-tec.com>
- *
  */
 
 #ifndef __PS_ACCOUNT_PROC
 #define __PS_ACCOUNT_PROC
 
+#include <stdbool.h>
+
 #include "list.h"
+#include "psaccounttypes.h"
 
+/** Internal state of ProcSnapshot_t structure */
+typedef enum {
+    PROC_USED,                /**< In use */
+    PROC_UNUSED,              /**< Unused and ready for re-use */
+    PROC_DRAINED,             /**< Unused and ready for discard */
+} ProcSnapshot_state_t;
+
+/** Snapshot of a process' entry in the /proc filesystem */
 typedef struct {
-    pid_t session;
-    uid_t uid;
-    struct list_head list;
-} Session_Info_t;
+    list_t next;              /**< used to put into list */
+    uid_t uid;                /**< Process' user ID */
+    pid_t pid;                /**< Process' process ID */
+    pid_t ppid;               /**< Process' parent process ID */
+    pid_t pgrp;               /**< Process' process group ID */
+    pid_t session;            /**< Process' session ID */
+    unsigned long cutime;     /**< Time process has consumed in user space */
+    unsigned long cstime;     /**< Time process has consumed for system calls */
+    unsigned long threads;    /**< Process' number of threads */
+    unsigned long vmem;       /**< Process' virtual memory */
+    unsigned long mem;        /**< Process' resident set size */
+    unsigned long majflt;     /**< Process' major page faults */
+    uint16_t cpu;             /**< Last CPU the process last executed on */
+    ProcSnapshot_state_t state; /**< flag internal state of structure */
+} ProcSnapshot_t;
 
+/** Some I/O resources consumed by a process */
 typedef struct {
-    pid_t ppid;
-    pid_t pgroup;
-    pid_t session;
-    char state[1];
-    uint64_t ctime;
-    uint64_t stime;
-    uint64_t cutime;
-    uint64_t cstime;
-    uint64_t threads;
-    uint64_t vmem;
-    uint64_t mem;
-    uid_t uid;
-} ProcStat_t;
-
-typedef struct {
-    uid_t uid;
-    pid_t pid;
-    pid_t ppid;
-    pid_t pgroup;
-    pid_t session;
-    unsigned long cutime;
-    unsigned long cstime;
-    unsigned long threads;
-    unsigned long vmem;
-    unsigned long mem;
-    char *cmdline;
-    struct list_head list;
-} Proc_Snapshot_t;
-
-extern Proc_Snapshot_t ProcList;
-
-extern Session_Info_t SessionList;
+    uint64_t diskRead;        /**< # bytes read */
+    uint64_t diskWrite;       /**< # bytes written */
+    uint64_t readBytes;       /**< # bytes read from disk */
+    uint64_t writeBytes;      /**< # bytes written to disk */
+} ProcIO_t;
 
 /**
- * @brief Initialize the proc list.
+ * @brief Initialize the proc module
  *
- * @return No return value.
+ * Initialize the proc module of the psaccount plugin.
+ *
+ * @return No return value
  */
-void initProcList(void);
+void initProc(void);
 
 /**
- * @brief Collect all data from every related child process.
+ * @brief Finalize the proc module
  *
- * Collect all data from every related child process. It will
- * use the /proc snapshot which should be updated before calling
- * this function.
+ * Finalize the proc module the psaccount plugin. This includes
+ * free()ing all dynamic memory not used any longer.
  *
- * @param pid The pid of the child to get the data for.
- *
- * @return Returns a proc snapshot structure which contains the
- * accounting data for the requested pid. The snapshot will be
- * allocated using malloc() and should be freed after usage.
+ * @return No return value
  */
-Proc_Snapshot_t *getAllChildrenData(pid_t pid);
+void finalizeProc(void);
 
 /**
- * @brief Create a snapshot of the /proc filesystem.
+ * @brief Collect resource data from all descendant processes
  *
- * Create a snapshot of the /proc filesystem. This snapshot will
- * be used to calculate every accounting data for processes which
- * are monitored. This way the expensive task of /proc file reading
- * will only be done once.
+ * Collect resource data from all descendant processs of the process @a
+ * pid. This will utilize the /proc snapshot which shall be updated
+ * before calling this function in order to guarantee up to date
+ * data. The resource data is collected in the ProcSnapshot_t
+ * structure @a res is pointing to.
  *
- * @return No return value.
+ * @param pid PID of the process to get the data for
+ *
+ * @param res Pointer to a ProcSnapshot_t structure to collect data
+ *
+ * @return No return value
  */
-void updateProcSnapshot(int extended);
+void getDescendantData(pid_t pid, ProcSnapshot_t *res);
 
 /**
- * @brief Find a proc snapshot identified by the pid.
+ * @brief Create new snapshot of the /proc filesystem.
  *
- * @param pid The pid of the snapshot.
+ * Create a new snapshot of the /proc filesystem. This snapshot will
+ * be used to calculate all accounting data for processes to be
+ * monitored. The aim is to reduce the overhead of traversing /proc.
  *
- * @return Returns the found snapshot or 0 on error.
+ * @return No return value
  */
-Proc_Snapshot_t *findProcSnapshot(pid_t pid);
+void updateProcSnapshot(void);
 
 /**
- * @brief Test if a pid is the parent of an other pid.
+ * @brief Find proc snapshot
  *
- * @param parent The pid of the parent process.
+ * Find the snapshot of the process identified by the pid.
  *
- * @param child The pid of the child process.
+ * @param pid PID of the requested process
  *
- * @return Returns 1 if the second pid is a child of the
- * first pid, otherwise 0 is returned.
+ * @return Return a pointer to the corresponding snapshot or NULL if
+ * no snapshot was found
  */
-int isChildofParent(pid_t parent, pid_t child);
+ProcSnapshot_t *findProcSnapshot(pid_t pid);
 
 /**
- * @brief Delete all proc snapshots.
+ * @brief Test kinship of processes
  *
- * @return No return value.
+ * Test if @a parent is actually an ancestor process of @a child
+ *
+ * @param parent PID of the ancestor process
+ *
+ * @param child PID of the descendant process
+ *
+ * @return Returns true if @a child is the PID is a descendant of the
+ * process with PID @a parent; otherwise false is returned
  */
-void clearAllProcSnapshots(void);
+bool isDescendant(pid_t parent, pid_t child);
 
 /**
- * @brief Provide information about currently active sessions.
+ * @brief Provide information on active sessions
  *
- * @param count Will be set to the number of active sessions in the system.
+ * Provide information on sessions currently active. Upon return @a
+ * count will contain the number of active session in the system, @a
+ * buf will hold a list of these sessions, and @a userCount provides
+ * the number f active users in the system. @a size is used to provide
+ * information on the size of @a buf.
  *
- * @param buf The buffer to write the information to.
+ * @param count Number of active sessions in the system upon return
  *
- * @param bufsize The size of the buffer.
+ * @param buf Buffer used to store a list of sessions
  *
- * @param userCount Will be set to the number of active users in the system.
+ * @param size Size of @ref buf
  *
- * @return No return value.
+ * @param userCount Number of active users in the system upon return
+ *
+ * @return No return value
  */
-void getSessionInformation(int *count, char *buf, size_t bufsize, int *userCount);
+void getSessionInfo(int *count, char *buf, size_t size, int *userCount);
 
 /**
- * @brief Send a signal to a pid and all its children.
+ * @brief Send signal to process and all descendants
  *
- * @param mypid The pid of myself.
+ * Send the signal @a sig to the process @a child and all its
+ * descendants. At the same time it is ensured that the signal will
+ * not be sent to the process @a mypid. This is to ensure that a
+ * process will not kill itself by accident. Beyond that the not only
+ * the processes itself are killed but also the corresponding process
+ * group @a pgrp unless it is 0. In the latter case the process group
+ * of the process itself as determined by psaccount will receive the
+ * signal.
  *
- * @param child The pid of the child to send the signal to.
+ * @param mypid My own PID to protect myself
  *
- * @param pgroup The pgroup of the child to send the signal to.
+ * @param child PID of the process to receive the first signal
  *
- * @param sig The signal to send.
+ * @param pgrp Process group to also receive the signal
  *
- * @return No return value.
+ * @param sig Signal to send
+ *
+ * @return Total number of signals sent
  */
-int sendSignal2AllChildren(pid_t mypid, pid_t child, pid_t pgroup, int sig);
+int signalChildren(pid_t mypid, pid_t child, pid_t pgroup, int sig);
 
 /**
- * @brief Send a signal to a session.
+ * @brief Send signal to session
  *
- * @param session The session ID to send the signal to.
+ * Send the signal @a sig to all processes being part of the session
+ * identified by @a session and all their descendants.
  *
- * @param sig The signal to send.
+ * @param session Session ID to receive the signal
  *
- * @return Returns the number of children which the signal
- * was sent to.
+ * @param sig Signal to send.
+ *
+ * @return total number of signals sent
  */
-int sendSignal2Session(pid_t session, int sig);
+int signalSession(pid_t session, int sig);
 
 /**
- * @brief Find all daemon processes for the specified user.
+ * @brief Find daemon processes for the specified user
  *
- * @param userId The user ID of the daemons to find.
+ * Find all processes of the user with ID @a uid being found in a
+ * daemonized state. If the @a warn flag is set, a series of messages
+ * is sent to the plugin's log. If the @a kill flag is set, each
+ * daemonized process found is killed.
  *
- * @param kill If set to 1 the found daemons will be terminated.
+ * @param uid User ID of the daemons to find
  *
- * @param warn If set to 1 a log message for each daemon will be generated.
+ * @param kill Flag killing the found daemons
  *
- * @return No return value.
+ * @param warn Flag generating a log message for each daemon
+ *
+ * @return No return value
  */
-void findDaemonProcesses(uid_t userId, int kill, int warn);
+void findDaemonProcesses(uid_t uid, bool kill, bool warn);
 
 /**
- * @brief Read selected informations from /proc/pid/stat.
+ * @brief Read selected information from /proc/<pid>/stat
  *
- * @param pid The pid to read the info for.
+ * Read selected information from /proc/<pid>/stat for a given process
+ * identified by its PID @a pid. Information is stored in a structure
+ * of type ProcStat_t @a pS is pointing to.
  *
- * @param pS A pointer to a ProcStat_t structure to save the result in.
+ * @param pid PID to collect data for
  *
- * @return Returns 1 on success and 0 on error.
+ * @param pS Pointer to a ProcStat_t structure used to store results
+ *
+ * @return Returns true on success and false in the case of an error
  */
-int readProcStatInfo(pid_t pid, ProcStat_t *pS);
+bool readProcStat(pid_t pid, ProcStat_t *pS);
 
-#endif
+
+/**
+ * @brief Read selected information from /proc/<pid>/io
+ *
+ * Read selected information from /proc/<pid>/io for a given process
+ * identified by its PID @a pid. Information is stored in a structure
+ * of type ProcIO_t @a io is pointing to.
+ *
+ * @param pid PID of the process to get information for
+ *
+ * @param io Pointer to a ProcIO_t structure used to store results
+ *
+ * @return Returns true on success and false in the case of an error
+ */
+bool readProcIO(pid_t pid, ProcIO_t *io);
+
+/**
+ * @brief Get CPU frequency
+ *
+ * Get the frequency of the CPU identified by @a cpuID.
+ *
+ * @param cpuID ID of the CPU to get the frequency for
+ *
+ * @return Actual frequency of the CPU
+ */
+int getCpuFreq(int cpuID);
+
+#endif  /* __PS_ACCOUNT_PROC */

@@ -12,6 +12,16 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "pscommon.h"
+
+#include "pluginhelper.h"
+#include "pluginmalloc.h"
+#include "psidtask.h"
+#include "pluginlog.h"
+#include "plugin.h"
+
+#include "psaccounthandles.h"
+
 #include "psmomjob.h"
 #include "psmomconfig.h"
 #include "psmom.h"
@@ -22,14 +32,6 @@
 #include "psmomlocalcomm.h"
 #include "psmomssh.h"
 #include "psmomjobinfo.h"
-#include "pluginhelper.h"
-#include "pluginmalloc.h"
-#include "psidtask.h"
-#include "pluginlog.h"
-#include "plugin.h"
-
-#include "pscommon.h"
-#include "psmompsaccfunc.h"
 
 #include "psmomkvs.h"
 
@@ -626,7 +628,7 @@ static char *showAllowedPid(char *key, char *buf, size_t *bufSize)
 
     /* try to find the logger using the account client list */
     if (!(task = PStasklist_find(&managedTasks, PSC_getTID(-1, pid)))) {
-	psAccLogger = psAccountgetLoggerByClientPID(pid);
+	psAccLogger = psAccountGetLoggerByClient(pid);
     } else {
 	psAccLogger = task->loggertid;
     }
