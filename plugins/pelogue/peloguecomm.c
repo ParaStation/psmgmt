@@ -105,7 +105,7 @@ int sendPElogueStart(Job_t *job, bool prologue, env_t *env)
 
     /* add start time */
     job->start_time = time(NULL);
-    addTimeToMsg(&job->start_time, &data);
+    addTimeToMsg(job->start_time, &data);
 
     /* add environment */
     addInt32ToMsg(env->cnt, &data);
@@ -163,13 +163,12 @@ static void destroyPElogueData(PElogue_Data_t *pedata)
     ufree(pedata);
 }
 
-int fwCallback(int32_t wstat, char *errMsg, size_t errLen, void *data)
+int fwCallback(int32_t wstat, Forwarder_Data_t *fwdata)
 {
     DDTypedBufferMsg_t msgRes;
-    Forwarder_Data_t *fwdata = data;
     PElogue_Data_t *pedata = fwdata->userData;
     Child_t *child = pedata->child;
-    char *ptr, errBuf[50];
+    char errBuf[50];
     int ret, exit_status, signalFlag;
 
     signalFlag = child->signalFlag;
@@ -189,11 +188,6 @@ int fwCallback(int32_t wstat, char *errMsg, size_t errLen, void *data)
     pedata->exit = exit_status;
     PSIDhook_call(PSIDHOOK_PELOGUE_FINISH, pedata);
 
-    /* log error locally and forward to mother superior */
-    if (errLen > 0 && errMsg[0] != '\0' && strlen(errMsg) > 0) {
-	mlog("job '%s': %s", fwdata->jobid, errMsg);
-    }
-
     /* pelogue timed out, let local plugin decide to take some action, e.g. set
      * my node offline*/
     if (exit_status == -4) {
@@ -201,7 +195,7 @@ int fwCallback(int32_t wstat, char *errMsg, size_t errLen, void *data)
     }
 
     if (!(deleteChild(pedata->plugin, pedata->jobid))) {
-	mlog("%s: deleting child '%s' failed\n", __func__, fwdata->jobid);
+	mlog("%s: deleting child '%s' failed\n", __func__, fwdata->jobID);
     }
 
     /* send result to mother superior */
@@ -244,33 +238,28 @@ int fwCallback(int32_t wstat, char *errMsg, size_t errLen, void *data)
 			pedata->gid);
     }
     msgRes.header.len += sizeof(msgRes.type);
-    ptr = msgRes.buf;
 
     /* add plugin */
-    addStringToMsgBuf(&msgRes, &ptr, pedata->plugin);
+    addStringToMsgBuf(&msgRes, pedata->plugin);
 
     /* add jobid */
-    addStringToMsgBuf(&msgRes, &ptr, pedata->jobid);
+    addStringToMsgBuf(&msgRes, pedata->jobid);
 
     /* add start_time */
-    addTimeToMsgBuf(&msgRes, &ptr, &pedata->start_time);
+    addTimeToMsgBuf(&msgRes, pedata->start_time);
 
     /* add result */
-    addInt32ToMsgBuf(&msgRes, &ptr, exit_status);
+    addInt32ToMsgBuf(&msgRes, exit_status);
 
     /* add signal flag */
-    addInt32ToMsgBuf(&msgRes, &ptr, signalFlag);
+    addInt32ToMsgBuf(&msgRes, signalFlag);
 
     /* add error msg */
     if (exit_status != 0) {
-	if (errLen <= 0) {
-	    snprintf(errBuf, sizeof(errBuf), "exit [%i]", exit_status);
-	    addStringToMsgBuf(&msgRes, &ptr, errBuf);
-	} else {
-	    addStringToMsgBuf(&msgRes, &ptr, errMsg);
-	}
+	snprintf(errBuf, sizeof(errBuf), "exit [%i]", exit_status);
+	addStringToMsgBuf(&msgRes, errBuf);
     } else {
-	addStringToMsgBuf(&msgRes, &ptr, "");
+	addStringToMsgBuf(&msgRes, "");
     }
 
     ret = sendMsg(&msgRes);
@@ -293,7 +282,7 @@ static void handlePELogueStart(DDTypedBufferMsg_t *msg,
 {
     char *ptr = recvData->buf, ctype[20], fname[100], *tmp, *dirScripts;
     int32_t envSize;
-    int i, disPE, timeout, conTimeout;
+    int i, disPE, timeout;
     PELOGUE_child_types_t itype;
     PElogue_Data_t *data;
     DDTypedBufferMsg_t msgRes;
@@ -370,14 +359,13 @@ static void handlePELogueStart(DDTypedBufferMsg_t *msg,
 	getTime(&ptr, &job_start);
 
 	/* add jobid */
-	ptr = msgRes.buf;
-	addStringToMsgBuf(&msgRes, &ptr, data->jobid);
+	addStringToMsgBuf(&msgRes, data->jobid);
 
 	/* add start_time */
-	addTimeToMsgBuf(&msgRes, &ptr, &job_start);
+	addTimeToMsgBuf(&msgRes, job_start);
 
 	/* add result */
-	addInt32ToMsgBuf(&msgRes, &ptr, exitVal);
+	addInt32ToMsgBuf(&msgRes, exitVal);
 
 	if ((sendMsg(&msgRes)) == -1 && errno != EWOULDBLOCK) {
 	    mwarn(errno, "%s: sendMsg() to '%s' failed ", __func__,
@@ -423,38 +411,31 @@ static void handlePELogueStart(DDTypedBufferMsg_t *msg,
 	*/
     }
 
-    fwdata = getNewForwarderData();
+    fwdata = ForwarderData_new();
     snprintf(fname, sizeof(fname), "%sforwarder", data->plugin);
     fwdata->pTitle = ustrdup(fname);
-    fwdata->jobid = ustrdup(data->jobid);
+    fwdata->jobID = ustrdup(data->jobid);
     fwdata->userData = data;
     fwdata->graceTime = 3;
-    fwdata->sigHandler = NULL;
-    fwdata->killSession = psAccountsendSignal2Session;
+    fwdata->killSession = psAccountSignalSession;
     fwdata->callback = fwCallback;
     fwdata->childRerun = 1;
     fwdata->childFunc = execPElogueScript;
     fwdata->timeoutChild = timeout;
 
-    conTimeout = getConfParamI(data->plugin, "TIMEOUT_CHILD_CONNECT");
-    if (conTimeout > 0) {
-	fwdata->timeoutConnect = conTimeout;
-    }
-
-    if ((startForwarder(fwdata)) != 0) {
+    if (!startForwarder(fwdata)) {
 	int32_t exitVal = -2;
 
 	mlog("%s: exec '%s'-script failed\n", __func__, ctype);
 
-	ptr = msgRes.buf;
-	addStringToMsgBuf(&msgRes, &ptr, data->plugin);
-	addStringToMsgBuf(&msgRes, &ptr, data->jobid);
+	addStringToMsgBuf(&msgRes, data->plugin);
+	addStringToMsgBuf(&msgRes, data->jobid);
 
 	/* add start_time */
-	addTimeToMsgBuf(&msgRes, &ptr, &data->start_time);
+	addTimeToMsgBuf(&msgRes, data->start_time);
 
 	/* add result */
-	addInt32ToMsgBuf(&msgRes, &ptr, exitVal);
+	addInt32ToMsgBuf(&msgRes, exitVal);
 
 	if ((sendMsg(&msgRes)) == -1 && errno != EWOULDBLOCK) {
 	    mwarn(errno, "%s: sendMsg() to '%s' failed ", __func__,
@@ -585,17 +566,17 @@ static void handlePELogueSignal(DDTypedBufferMsg_t *msg)
     }
 
     /* send the signal */
-    if (fwdata->childSid != -1) {
+    if (fwdata->cSid > 0) {
 	mlog("signal '%i' to pelogue '%s' - reason '%s' - sid '%i'\n",
-		signal, jobid, reason, fwdata->childSid);
-	psAccountsendSignal2Session(fwdata->childSid, signal);
-    } else if (fwdata->childPid != -1) {
+		signal, jobid, reason, fwdata->cSid);
+	psAccountSignalSession(fwdata->cSid, signal);
+    } else if (fwdata->cPid > 0) {
 	mlog("signal '%i' to pelogue '%s' - reason '%s' - pid '%i'\n",
-		signal, jobid, reason, fwdata->childPid);
-	kill(fwdata->childPid, signal);
+		signal, jobid, reason, fwdata->cPid);
+	kill(fwdata->cPid, signal);
     } else if ((signal == SIGTERM || signal == SIGKILL) &&
-		fwdata->forwarderPid != -1) {
-	kill(fwdata->forwarderPid, SIGTERM);
+		fwdata->tid != -1) {
+	kill(PSC_getPID(fwdata->tid), SIGTERM);
     } else {
 	mlog("%s: not sending signal '%i' to job '%s' : "
 		"invalid forwarder data\n", __func__, signal, jobid);

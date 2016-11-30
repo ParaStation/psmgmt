@@ -20,6 +20,7 @@
 
 #include <stdbool.h>
 
+#include "list.h"
 #include "pluginforwarder.h"
 #include "pluginenv.h"
 

@@ -166,7 +166,7 @@ static int setRootHome(void)
 
 int initialize(void)
 {
-    void *accHandle = NULL;
+    void *accHandle = PSIDplugin_getHandle("psaccount");
     static struct timeval time_now;
 
     /* init the logger (log to syslog) */
@@ -196,14 +196,14 @@ int initialize(void)
     PSID_registerDropper(PSP_CC_PLUG_PELOGUE, (handlerFunc_t) handleDroppedMsg);
 
     /* get psaccount function handles */
-    if (!(accHandle = PSIDplugin_getHandle("psaccount"))) {
+    if (!accHandle) {
 	mlog("%s: getting psaccount handle failed\n", __func__);
 	goto INIT_ERROR;
     }
 
-    if (!(psAccountsendSignal2Session = dlsym(accHandle,
-	    "psAccountsendSignal2Session"))) {
-	mlog("%s: loading function psAccountsendSignal2Session() failed\n",
+    psAccountSignalSession = dlsym(accHandle, "psAccountSignalSession");
+    if (!psAccountSignalSession) {
+	mlog("%s: loading function psAccountSignalSession() failed\n",
 		__func__);
 	goto INIT_ERROR;
     }

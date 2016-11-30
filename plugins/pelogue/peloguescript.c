@@ -78,8 +78,7 @@ void signalPElogue(Job_t *job, int signal, char *reason)
 {
     PStask_ID_t myTID = PSC_getMyTID();
     DDTypedBufferMsg_t msg;
-    char *ptr, *finishPtr;
-    int i, id;
+    int i, id, templLen;
 
     /* signal PElogue on all nodes */
     msg = (DDTypedBufferMsg_t) {
@@ -94,26 +93,25 @@ void signalPElogue(Job_t *job, int signal, char *reason)
     msg.header.len += sizeof(msg.type);
     msg.header.sender = myTID;
 
-    ptr = msg.buf;
-    addStringToMsgBuf(&msg, &ptr, job->plugin);
-    addStringToMsgBuf(&msg, &ptr, job->id);
-    addInt32ToMsgBuf(&msg, &ptr, signal);
+    addStringToMsgBuf(&msg, job->plugin);
+    addStringToMsgBuf(&msg, job->id);
+    addInt32ToMsgBuf(&msg, signal);
 
-    /* add space for finish flag */
-    addInt32ToMsgBuf(&msg, &ptr, 1);
-    finishPtr = ptr - sizeof(int32_t);
-
-    addStringToMsgBuf(&msg, &ptr, reason);
+    /* store len so far */
+    templLen = msg.header.len;
 
     for (i=0; i<job->nrOfNodes; i++) {
-	id = job->nodes[i].id;
+	/* restore the template */
+	msg.header.len = templLen;
 
+	id = job->nodes[i].id;
 	/* add the individual pelogue finish flag */
 	if (job->state == JOB_PROLOGUE) {
-	    *(int32_t *) finishPtr = job->nodes[i].prologue;
+	    addInt32ToMsgBuf(&msg, job->nodes[i].prologue);
 	} else {
-	    *(int32_t *) finishPtr = job->nodes[i].epilogue;
+	    addInt32ToMsgBuf(&msg, job->nodes[i].epilogue);
 	}
+	addStringToMsgBuf(&msg, reason);
 	msg.header.dest = PSC_getTID(id, 0);
 
 	mdbg(PELOGUE_LOG_PSIDCOM, "%s: send to %i [%i->%i]\n", __func__, id,

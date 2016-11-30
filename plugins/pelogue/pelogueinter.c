@@ -18,6 +18,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "pscommon.h"
+
 #include "peloguejob.h"
 #include "peloguecomm.h"
 #include "peloguelog.h"

@@ -45,8 +45,6 @@ void handleDroppedMsg(DDTypedBufferMsg_t *msg);
 
 int sendPElogueStart(Job_t *job, bool prologue, env_t *env);
 
-int fwCallback(int32_t wstat, char *errMsg, size_t errLen, void *data);
-
 int handleNodeDown(void *nodeID);
 
 #endif

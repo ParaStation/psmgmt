@@ -10,7 +10,7 @@
 
 include $(top_srcdir)/common.am
 
-SUBDIRS = cgroup psaccount psexec psresport pspmi psmom
+SUBDIRS = cgroup pelogue psaccount psexec psmom pspmi psresport
 
 if MUNGE_ENABLED
 SUBDIRS += psmunge
