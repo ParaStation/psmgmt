@@ -137,6 +137,7 @@ include/plugin.h \
 include/plugincomm.h \
 include/pluginconfig.h \
 include/pluginenv.h \
+include/pluginforwarder.h \
 include/pluginfrag.h \
 include/pluginhelper.h \
 include/pluginhostlist.h \
@@ -181,6 +182,7 @@ lib/plugincommon/plugincomm.c \
 lib/plugincommon/pluginconfig.c \
 lib/plugincommon/pluginenv.c \
 lib/plugincommon/pluginfrag.c \
+lib/plugincommon/pluginforwarder.c \
 lib/plugincommon/pluginhelper.c \
 lib/plugincommon/pluginhostlist.c \
 lib/plugincommon/pluginlog.c \
