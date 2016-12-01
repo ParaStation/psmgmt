@@ -152,7 +152,7 @@ int initialize(void)
     static struct timeval time_now;
 
     /* init the logger (log to syslog) */
-    initLogger("pelogue", NULL);
+    initLogger(NULL);
 
     /*
     FILE *lfile = fopen("/tmp/malloc", "w+");
