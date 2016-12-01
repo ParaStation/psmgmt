@@ -341,10 +341,9 @@ int handleForwarderInit(void * data)
     PStask_t *task = data;
     Step_t *step;
     int status;
-
     pid_t child = PSC_getPID(task->tid);
 
-    if (task->rank <0) return 0;
+    if (task->rank <0 || task->group != TG_ANY) return 0;
 
     if ((step = findStepByEnv(task->environ, NULL, NULL))) {
 
@@ -379,13 +378,14 @@ int handleForwarderClientStatus(void * data)
 {
     PStask_t *task = data;
     Step_t *step;
-
     pid_t childpid;
     char *argv[2];
     char buffer[4096], *taskEpilogue;
     int status, grace;
     size_t i;
     time_t t;
+
+    if (task->rank <0 || task->group != TG_ANY) return 0;
 
     if (!(step = findStepByEnv(task->environ, NULL, NULL))) {
 	mlog("%s: rank '%i' failed to find my step\n", __func__, task->rank);
@@ -485,7 +485,7 @@ int handleExecClientUser(void *data)
     int i;
     uint32_t jobid = 0;
 
-    if (task->rank <0) return 0;
+    if (task->rank <0 || task->group != TG_ANY) return 0;
 
     /* unset MALLOC_CHECK_ set by psslurm */
     unsetenv("MALLOC_CHECK_");
