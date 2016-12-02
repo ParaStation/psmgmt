@@ -26,4 +26,8 @@ void verboseMemPinningOutput(Step_t *step, PStask_t *task);
 
 void doMemBind(Step_t *step, PStask_t *task);
 
+char *genCPUbindString(Step_t *step);
+
+char *genMemBindString(Step_t *step);
+
 #endif

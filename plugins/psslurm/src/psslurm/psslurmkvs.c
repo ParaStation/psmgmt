@@ -24,6 +24,7 @@
 #include "psslurmconfig.h"
 #include "psslurmlog.h"
 #include "psslurmjob.h"
+#include "psslurmpin.h"
 #include "psidtask.h"
 
 #include "psslurmkvs.h"
@@ -244,7 +245,7 @@ static char *showSteps(char *buf, size_t *bufSize, int all)
     list_t *pos, *tmp;
     Step_t *step;
     struct tm *ts;
-    char start[50];
+    char start[50], *ptr;
 
     if (list_empty(&StepList.list)) {
 	return str2Buf("\nNo current steps.\n", &buf, bufSize);
@@ -261,24 +262,24 @@ static char *showSteps(char *buf, size_t *bufSize, int all)
 		    step->stepid);
 	str2Buf(line, &buf, bufSize);
 
-	snprintf(line, sizeof(line), "user '%s'\n", step->username);
+	snprintf(line, sizeof(line), "user: '%s' uid: '%u' gid: '%u'\n",
+		    step->username, step->uid, step->gid);
 	str2Buf(line, &buf, bufSize);
 
-	snprintf(line, sizeof(line), "# nodes '%u'\n", step->nrOfNodes);
+	snprintf(line, sizeof(line), "%u nodes: '%s'\n", step->nrOfNodes,
+		    step->slurmNodes);
 	str2Buf(line, &buf, bufSize);
 
-	snprintf(line, sizeof(line), "nodes '%s'\n", step->slurmNodes);
-	str2Buf(line, &buf, bufSize);
-
-	snprintf(line, sizeof(line), "step state '%s'\n",
+	snprintf(line, sizeof(line), "step state: '%s'\n",
 		    strJobState(step->state));
 	str2Buf(line, &buf, bufSize);
 
-	snprintf(line, sizeof(line), "tpp '%u'\n", step->tpp);
+	snprintf(line, sizeof(line), "tpp: '%u' numHwThreads: '%u'\n",
+		    step->tpp, step->numHwThreads);
 	str2Buf(line, &buf, bufSize);
 
 	if (step->fwdata) {
-	    snprintf(line, sizeof(line), "step pid '%u'\n",
+	    snprintf(line, sizeof(line), "step pid: '%u'\n",
 			step->fwdata->childPid);
 	    str2Buf(line, &buf, bufSize);
 	}
@@ -287,7 +288,17 @@ static char *showSteps(char *buf, size_t *bufSize, int all)
 	ts = localtime(&step->start_time);
 	strftime(start, sizeof(start), "%Y-%m-%d %H:%M:%S", ts);
 
-	snprintf(line, sizeof(line), "start time '%s'\n", start);
+	snprintf(line, sizeof(line), "start time: '%s'\n", start);
+	str2Buf(line, &buf, bufSize);
+
+	ptr = genCPUbindString(step);
+	snprintf(line, sizeof(line), "cpuBind: '%s'\n", ptr);
+	ufree(ptr);
+	str2Buf(line, &buf, bufSize);
+
+	ptr = genMemBindString(step);
+	snprintf(line, sizeof(line), "memBind: '%s'\n", ptr);
+	ufree(ptr);
 	str2Buf(line, &buf, bufSize);
 
 	str2Buf("-\n\n", &buf, bufSize);
@@ -457,7 +468,7 @@ char *help(void)
 	i++;
     }
 
-    str2Buf("\nuse show [clients|dclients|jobs|config]\n", &buf, &bufSize);
+    showVirtualKeys(&buf, &bufSize, 1);
 
     return buf;
 }

@@ -1284,4 +1284,107 @@ void doMemBind(Step_t *step, PStask_t *task) {
 }
 #endif
 
+char *genCPUbindString(Step_t *step)
+{
+    char *string;
+    int len = 0;
+
+    string = (char *) umalloc(sizeof(char) * (25 + strlen(step->cpuBind) + 1));
+    *string = '\0';
+
+    if (step->cpuBindType & CPU_BIND_VERBOSE) {
+	strcpy(string, "verbose");
+	len += 7;
+    } else {
+	strcpy(string, "quiet");
+	len += 5;
+    }
+
+    if (step->cpuBindType & CPU_BIND_TO_THREADS) {
+	strcpy(string+len, ",threads");
+	len += 8;
+    } else if (step->cpuBindType & CPU_BIND_TO_CORES) {
+	strcpy(string+len, ",cores");
+	len += 6;
+    } else if (step->cpuBindType & CPU_BIND_TO_SOCKETS) {
+	strcpy(string+len, ",sockets");
+	len += 8;
+    } else if (step->cpuBindType & CPU_BIND_TO_LDOMS) {
+	strcpy(string+len, ",ldoms");
+	len += 6;
+    } else if (step->cpuBindType & CPU_BIND_TO_BOARDS) {
+	strcpy(string+len, ",boards");
+	len += 7;
+    }
+
+    if (step->cpuBindType & CPU_BIND_NONE) {
+	strcpy(string+len, ",none");
+	len += 5;
+    } else if (step->cpuBindType & CPU_BIND_RANK) {
+	strcpy(string+len, ",rank");
+	len += 5;
+    } else if (step->cpuBindType & CPU_BIND_MAP) {
+	strcpy(string+len, ",map_cpu:");
+	len += 9;
+    } else if (step->cpuBindType & CPU_BIND_MASK) {
+	strcpy(string+len, ",mask_cpu:");
+	len += 10;
+    } else if (step->cpuBindType & CPU_BIND_LDRANK) {
+	strcpy(string+len, ",rank_ldom");
+	len += 10;
+    } else if (step->cpuBindType & CPU_BIND_LDMAP) {
+	strcpy(string+len, ",map_ldom");
+	len += 9;
+    } else if (step->cpuBindType & CPU_BIND_LDMASK) {
+	strcpy(string+len, ",mask_ldom");
+	len += 10;
+    }
+
+    if (step->cpuBindType & (CPU_BIND_MAP | CPU_BIND_MASK)) {
+	strcpy(string+len, step->cpuBind);
+    }
+
+    return string;
+}
+
+char *genMemBindString(Step_t *step)
+{
+    char *string;
+    int len = 0;
+
+    string = (char *) umalloc(sizeof(char) * (25 + strlen(step->memBind) + 1));
+    *string = '\0';
+
+    if (step->memBindType & MEM_BIND_VERBOSE) {
+	strcpy(string, "verbose");
+	len += 7;
+    } else {
+	strcpy(string, "quiet");
+	len += 5;
+    }
+
+    if (step->memBindType & MEM_BIND_NONE) {
+	strcpy(string+len, ",none");
+	len += 5;
+    } else if (step->memBindType & MEM_BIND_RANK) {
+	strcpy(string+len, ",rank");
+	len += 5;
+    } else if (step->memBindType & MEM_BIND_MAP) {
+	strcpy(string+len, ",map_mem:");
+	len += 9;
+    } else if (step->memBindType & MEM_BIND_MASK) {
+	strcpy(string+len, ",mask_mem:");
+	len += 10;
+    } else if (step->memBindType & MEM_BIND_LOCAL) {
+	strcpy(string+len, ",local");
+	len += 6;
+    }
+
+    if (step->memBindType & (MEM_BIND_MAP | MEM_BIND_MASK)) {
+	strcpy(string+len, step->memBind);
+    }
+
+    return string;
+}
+
 /* vim: set ts=8 sw=4 tw=0 sts=4 noet :*/
