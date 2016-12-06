@@ -7,13 +7,6 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-/**
- * $Id$
- *
- * \author
- * Michael Rauh <rauh@par-tec.com>
- *
- */
 
 #ifndef __PELOGUE__TYPES
 #define __PELOGUE__TYPES
@@ -30,13 +23,13 @@ typedef enum {
 } PELOGUE_child_types_t;
 
 typedef struct {
+    list_t next;
     Forwarder_Data_t *fwdata;
-    PELOGUE_child_types_t type;	    /* type of the forwarder (e.g. interactive) */
-    struct timeval start_time;	    /* the start time of the forwarder */
-    char *jobid;		    /* the PBS jobid */
-    char *plugin;		    /* the name of the plugin */
+    PELOGUE_child_types_t type;	 /* type of the forwarder (e.g. interactive) */
+    struct timeval start_time;	 /* the start time of the forwarder */
+    char *jobid;		 /* the PBS jobid */
+    char *plugin;		 /* the name of the plugin */
     int signalFlag;
-    struct list_head list;
 } Child_t;
 
 typedef struct {
@@ -64,4 +57,4 @@ typedef struct {
 
 typedef void Pelogue_JobCb_Func_t (char *, int, int, PElogue_Res_List_t *);
 
-#endif
+#endif  /* __PELOGUE__TYPES */

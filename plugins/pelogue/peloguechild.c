@@ -7,64 +7,34 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-/**
- * $Id$
- *
- * \author
- * Michael Rauh <rauh@par-tec.com>
- *
- */
 
 #include <stdlib.h>
-#include <stdio.h>
-#include <sys/time.h>
-#include <time.h>
-#include <signal.h>
 #include <string.h>
-
-#include "peloguelog.h"
-#include "pelogueconfig.h"
+#include <sys/time.h>
 
 #include "pluginmalloc.h"
-#include "timer.h"
 
 #include "peloguechild.h"
 
-void initChildList(void)
-{
-    INIT_LIST_HEAD(&ChildList.list);
-}
+static LIST_HEAD(childList);
 
-void clearChildList(void)
-{
-    list_t *pos, *tmp;
-    Child_t *child;
-
-    list_for_each_safe(pos, tmp, &ChildList.list) {
-	if (!(child = list_entry(pos, Child_t, list))) return;
-
-	deleteChild(child->plugin, child->jobid);
-    }
-}
-
-char *childType2String(int type)
+char *childType2String(PELOGUE_child_types_t type)
 {
     switch (type) {
-	case PELOGUE_CHILD_PROLOGUE:
-	    return "PROLOGUE";
-	case PELOGUE_CHILD_EPILOGUE:
-	    return "EPILOGUE";
+    case PELOGUE_CHILD_PROLOGUE:
+	return "PROLOGUE";
+    case PELOGUE_CHILD_EPILOGUE:
+	return "EPILOGUE";
+    default:
+	return NULL;
     }
-    return NULL;
 }
 
 Child_t *findChild(const char *plugin, const char *jobid)
 {
-    list_t *pos, *tmp;
-    Child_t *child;
-
-    list_for_each_safe(pos, tmp, &ChildList.list) {
-	if (!(child = list_entry(pos, Child_t, list))) return NULL;
+    list_t *c;
+    list_for_each(c, &childList) {
+	Child_t *child = list_entry(c, Child_t, next);
 
 	if (!(strcmp(child->plugin, plugin) &&
 	    !(strcmp(child->jobid, jobid)))) {
@@ -75,33 +45,47 @@ Child_t *findChild(const char *plugin, const char *jobid)
 }
 
 Child_t *addChild(const char *plugin, char *jobid, Forwarder_Data_t *fwdata,
-		    PELOGUE_child_types_t type)
+		  PELOGUE_child_types_t type)
 {
-    Child_t *child;
+    Child_t *child = malloc(sizeof(*child));
 
-    child = (Child_t *) umalloc(sizeof(Child_t));
-    child->jobid = ustrdup(jobid);
-    child->plugin = ustrdup(plugin);
-    child->type = type;
-    child->signalFlag = 0;
-    child->fwdata = fwdata;
+    if (child) {
+	child->jobid = ustrdup(jobid);
+	child->plugin = ustrdup(plugin);
+	child->type = type;
+	child->signalFlag = 0;
+	child->fwdata = fwdata;
+	gettimeofday(&child->start_time, 0);
 
-    gettimeofday(&child->start_time, 0);
-
-    list_add_tail(&(child->list), &ChildList.list);
+	list_add_tail(&child->next, &childList);
+    }
     return child;
 }
 
-int deleteChild(const char *plugin, const char *jobid)
+static void doDeleteChild(Child_t *child)
 {
-    Child_t *child;
+    if (child->plugin) free(child->plugin);
+    if (child->jobid) free(child->jobid);
+    list_del(&child->next);
+    free(child);
+}
 
-    if (!(child = findChild(plugin, jobid))) return 0;
+bool deleteChild(const char *plugin, const char *jobid)
+{
+    Child_t *child = findChild(plugin, jobid);
 
-    ufree(child->plugin);
-    ufree(child->jobid);
+    if (!child) return false;
 
-    list_del(&child->list);
-    ufree(child);
-    return 1;
+    doDeleteChild(child);
+
+    return true;
+}
+
+void clearChildList(void)
+{
+    list_t *c, *tmp;
+    list_for_each_safe(c, tmp, &childList) {
+	Child_t *child = list_entry(c, Child_t, next);
+	doDeleteChild(child);
+    }
 }

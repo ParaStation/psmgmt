@@ -7,34 +7,13 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-/**
- * $Id$
- *
- * \author
- * Michael Rauh <rauh@par-tec.com>
- *
- */
 
-#ifndef PS_PELOGUE_CHILD
-#define PS_PELOGUE_CHILD
+#ifndef __PELOGUE_CHILD
+#define __PELOGUE_CHILD
+
+#include <stdbool.h>
 
 #include "peloguetypes.h"
-
-#include "list.h"
-#include "pluginforwarder.h"
-
-#include "peloguechild.h"
-
-
-/** the list head of the child list */
-Child_t ChildList;
-
-/**
- * @brief Initialize the child list.
- *
- * @return No return value.
- */
-void initChildList(void);
 
 /**
  * @brief Convert a child type to string.
@@ -43,7 +22,7 @@ void initChildList(void);
  *
  * @return Returns the requested type as string or NULL on error.
  */
-char *childType2String(int type);
+char *childType2String(PELOGUE_child_types_t type);
 
 /**
  * @brief Delete all children.
@@ -71,9 +50,9 @@ Child_t *addChild(const char *plugin, char *jobid, Forwarder_Data_t *fwdata,
  *
  * @param pid The pid of the child to delete.
  *
- * @return Returns 0 on error and 1 on success.
+ * @return Returns false on error and true on success.
  */
-int deleteChild(const char *plugin, const char *jobid);
+bool deleteChild(const char *plugin, const char *jobid);
 
 /**
  * @brief Find a child which is identified by its pid.
@@ -84,4 +63,4 @@ int deleteChild(const char *plugin, const char *jobid);
  */
 Child_t *findChild(const char *plugin, const char *jobid);
 
-#endif
+#endif  /* __PELOGUE_CHILD */

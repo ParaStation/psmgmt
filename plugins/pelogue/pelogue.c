@@ -168,7 +168,6 @@ int initialize(void)
 
     initConfig();
     initJobList();
-    initChildList();
     initFragComm();
 
     /* register pelogue msg */
