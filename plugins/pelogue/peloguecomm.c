@@ -7,13 +7,6 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-/**
- * $Id$
- *
- * \author
- * Michael Rauh <rauh@par-tec.com>
- *
- */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -585,13 +578,13 @@ static void handlePELogueSignal(DDTypedBufferMsg_t *msg)
 
 void handlePelogueMsg(DDTypedBufferMsg_t *msg)
 {
-    char sender[100], dest[100];
+    char cover[128];
 
-    strncpy(sender, PSC_printTID(msg->header.sender), sizeof(sender));
-    strncpy(dest, PSC_printTID(msg->header.dest), sizeof(dest));
+    snprintf(cover, sizeof(cover), "[%s->", PSC_printTID(msg->header.sender));
+    snprintf(cover+strlen(cover), sizeof(cover)-strlen(cover), "%s]",
+	     PSC_printTID(msg->header.dest));
 
-    mdbg(PELOGUE_LOG_COMM, "%s: new msg type: '%i' [%s->%s]\n", __func__,
-	msg->type, sender, dest);
+    mdbg(PELOGUE_LOG_COMM, "%s: type: %i %s\n", __func__, msg->type, cover);
 
     switch (msg->type) {
 	case PSP_PROLOGUE_START:
@@ -610,8 +603,7 @@ void handlePelogueMsg(DDTypedBufferMsg_t *msg)
 	    handlePELogueSignal(msg);
 	    break;
 	default:
-	    mlog("%s: received unknown msg type:%i [%s -> %s]\n", __func__,
-		msg->type, sender, dest);
+	    mlog("%s: onknown type %i %s\n", __func__, msg->type, cover);
     }
 }
 
