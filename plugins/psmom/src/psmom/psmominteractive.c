@@ -60,7 +60,7 @@ static int term_stdin = -1;
  *
  * @return No return value.
  */
-static void terminateQsubSession()
+static void terminateQsubSession(void)
 {
     /* close connection to qsub */
     closeQsubConnection();

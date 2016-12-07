@@ -32,7 +32,7 @@ void __attribute__ ((constructor)) startPMI(void);
  */
 void __attribute__ ((destructor)) stopPMI(void);
 
-void PluginInitialize();
-void PluginFinalize();
+void PluginInitialize(void);
+void PluginFinalize(void);
 
 #endif

@@ -112,7 +112,7 @@ char *getEnvValue(char *name)
 /**
  * @brief Count the entries in the environment list.
  */
-static int countEnv()
+static int countEnv(void)
 {
     Env_t *env;
     struct list_head *pos;

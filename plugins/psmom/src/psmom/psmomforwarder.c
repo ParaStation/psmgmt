@@ -119,7 +119,7 @@ char *fwType2Str(int type)
  *
  * @return No return value.
  */
-static void doForwarderChildStart()
+static void doForwarderChildStart(void)
 {
     /* close childs control fd */
     close(controlFDs[1]);
@@ -156,7 +156,7 @@ static void doForwarderChildStart()
     wDoSend(com);
 }
 
-static void verifyTempDir()
+static void verifyTempDir(void)
 {
     struct stat st;
     char *dir;
@@ -175,7 +175,7 @@ static void verifyTempDir()
  *
  * @return No return value.
  */
-static void initChild()
+static void initChild(void)
 {
     /* close forwarders control fd */
     close(controlFDs[0]);
@@ -273,7 +273,7 @@ static void sendForwarderChildExit(struct rusage *rusg, int status)
  *
  * @return No return value.
  */
-static void handleLocalSignal()
+static void handleLocalSignal(void)
 {
     unsigned int sig;
 
@@ -288,7 +288,7 @@ static void handleLocalSignal()
  *
  * @return No return value.
  */
-static void sendForwarderHello()
+static void sendForwarderHello(void)
 {
     if (!com) {
 	fprintf(stderr, "%s: communication handle invalid\n", __func__);
@@ -306,7 +306,7 @@ static void sendForwarderHello()
  *
  * @return No return value.
  */
-static void sendForkFailed()
+static void sendForkFailed(void)
 {
     if (!com) {
 	fprintf(stderr, "%s: communication handle invalid\n", __func__);
@@ -322,7 +322,7 @@ static void sendForkFailed()
  *
  * @return No return value.
  */
-static void resetSignalHandling()
+static void resetSignalHandling(void)
 {
     /* restore sighandler */
     signal(SIGALRM, SIG_DFL);
@@ -341,7 +341,7 @@ static void resetSignalHandling()
  *
  * @return No return value.
  */
-static void forwarderExit()
+static void forwarderExit(void)
 {
     /* reset possible alarms */
     alarm(0);
@@ -366,7 +366,7 @@ static void forwarderExit()
  *
  * @return No return value.
  */
-static void stopForwarderLoop()
+static void stopForwarderLoop(void)
 {
     int res = 1;
 
@@ -434,7 +434,7 @@ static void signalHandler(int sig)
  *
  * @return No return value.
  */
-static void forwarderLoop()
+static void forwarderLoop(void)
 {
     /* set timeout */
     if (timeout > 0) {

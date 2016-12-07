@@ -163,7 +163,7 @@ static void cleanupJobs(void)
  *
  * @return returns 1 on success and 0 on error.
  */
-static int shutdownJobs()
+static int shutdownJobs(void)
 {
     struct timeval cleanupTimer = {1,0};
 
@@ -191,7 +191,7 @@ static int shutdownJobs()
 *
 * @return No return value.
 */
-static void saveConfigValues()
+static void saveConfigValues(void)
 {
     getConfParamI("TIME_OBIT", &obitTime);
     getConfParamI("DEBUG_MASK", &debugMask);
@@ -220,7 +220,7 @@ void stopPsmom()
     logger_finalize(psmomlogger);
 }
 
-static bool initAccountingFunc()
+static bool initAccountingFunc(void)
 {
     void *accHandle = PSIDplugin_getHandle("psaccount");
 
@@ -312,7 +312,7 @@ static bool initAccountingFunc()
  *
  * @return No return value.
  */
-static void cleanupLogs()
+static void cleanupLogs(void)
 {
     int cleanJob, cleanNodes, cleanTemp;
     char *dir = NULL;
@@ -345,7 +345,7 @@ static void cleanupLogs()
  *
  * @return Returns 1 on success and 0 on error.
  */
-static int setupTorqueVersionSupport()
+static int setupTorqueVersionSupport(void)
 {
     switch (torqueVer) {
 	case 2:
@@ -391,7 +391,7 @@ static int handleShutdown(void *data)
  *
  * @return Returns 1 on error and 0 on success.
  */
-static int validateScripts()
+static int validateScripts(void)
 {
     struct stat st;
     char *script, *dir, filename[400];
@@ -455,7 +455,7 @@ static int validateScripts()
  *
  * @return Returns 1 on error and 0 on success.
  */
-static int validateDirs()
+static int validateDirs(void)
 {
     struct stat st;
     char *dir;
@@ -506,7 +506,7 @@ static int validateDirs()
     return 0;
 }
 
-static int setRootHome()
+static int setRootHome(void)
 {
     struct passwd *spasswd;
 

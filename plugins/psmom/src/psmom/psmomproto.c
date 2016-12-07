@@ -94,7 +94,7 @@ int updateServerState(ComHandle_t *com)
  *
  * @return Returns always 0.
  */
-static int handle_IS_NULL()
+static int handle_IS_NULL(void)
 {
     mdbg(PSMOM_LOG_PIS, "%s:\n", __func__);
     return 0;

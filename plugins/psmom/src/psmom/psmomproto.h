@@ -45,7 +45,7 @@ int ReadTM(ComHandle_t *com, int *cmd);
 
 int sendTMJobTermination(Job_t *job);
 int send_TM_Error(ComHandle_t *com, int32_t err_code, char *err_msg, int clear);
-void updateInfoStruct();
+void updateInfoStruct(void);
 int updateServerState(ComHandle_t *com);
 
 /**

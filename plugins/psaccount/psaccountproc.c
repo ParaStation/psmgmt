@@ -269,7 +269,7 @@ static int cpuCount = 0;
 
 static bool cpuGovEnabled = false;
 
-static int getCPUCount()
+static int getCPUCount(void)
 {
     int count = 0;
     char buf[256];
@@ -288,7 +288,7 @@ static int getCPUCount()
     return count;
 }
 
-static void initCpuFreq()
+static void initCpuFreq(void)
 {
     FILE *fd;
     char buf[256], *tmp, *sfreq;
@@ -342,7 +342,7 @@ static void initCpuFreq()
     }
 }
 
-static void updateCpuFreq()
+static void updateCpuFreq(void)
 {
     FILE *fd;
     int i;
