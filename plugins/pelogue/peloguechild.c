@@ -16,6 +16,7 @@
 
 #include "peloguechild.h"
 
+/** List of all children */
 static LIST_HEAD(childList);
 
 char *childType2String(PELOGUE_child_types_t type)
