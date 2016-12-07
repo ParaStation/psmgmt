@@ -26,6 +26,7 @@
 #include "pscommon.h"
 #include "psidcomm.h"
 #include "psidspawn.h"
+#include "psidpartition.h"
 #include "pluginenv.h"
 #include "psidtask.h"
 #include "plugincomm.h"
@@ -133,6 +134,52 @@ void cleanupSpawnEndMsgList(uint32_t jobid, uint32_t stepid) {
     }
 }
 
+static void grantPartRequest(PStask_t *task)
+{
+    DDTypedMsg_t msg = (DDTypedMsg_t) {
+	.header = (DDMsg_t) {
+	    .type = PSP_CD_PARTITIONRES,
+	    .dest = task ? task->tid : 0,
+	    .sender = PSC_getMyTID(),
+	    .len = sizeof(msg) },
+	.type = 0};
+
+    if (!task || !task->request) return;
+
+    /* generate slots from hw threads and register partition to master psid */
+    PSIDpart_register(task);
+
+    /* Cleanup the actual request not required any longer (see jrt:#5879) */
+    PSpart_delReq(task->request);
+    task->request = NULL;
+
+    /* Send result to requester */
+    if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
+	mwarn(errno, "%s: sendMsg(%s) failed",__func__,PSC_printTID(task->tid));
+    }
+}
+
+static void rejectPartRequest(PStask_ID_t dest, PStask_t *task)
+{
+    DDTypedMsg_t msg = (DDTypedMsg_t) {
+	.header = (DDMsg_t) {
+	    .type = PSP_CD_PARTITIONRES,
+	    .dest = dest,
+	    .sender = PSC_getMyTID(),
+	    .len = sizeof(msg) },
+	.type = errno };
+
+    if (task && task->request) {
+	PSpart_delReq(task->request);
+	task->request = NULL;
+    }
+
+    if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
+	mwarn(errno, "%s: sendMsg(%s) failed", __func__, PSC_printTID(dest));
+    }
+}
+
+
 int handleCreatePart(void *msg)
 {
     DDBufferMsg_t *inmsg = (DDBufferMsg_t *) msg;
@@ -170,21 +217,28 @@ int handleCreatePart(void *msg)
 	    PSC_printTID(task->tid), step->jobid, step->stepid,
 	    step->numHwThreads);
 
-    /* answer request */
-    grantPartitionRequest(step->hwThreads, step->numHwThreads,
-			    inmsg->header.sender, task);
+    task->partThrds = malloc(step->numHwThreads * sizeof(*task->partThrds));
+    if (!task->partThrds) {
+	errno = ENOMEM;
+	goto error;
+    }
+    memcpy(task->partThrds, step->hwThreads,
+	   step->numHwThreads * sizeof(*task->partThrds));
+    task->totalThreads = step->numHwThreads;
+
+    /* further preparations of the task structure */
+    task->options |= PART_OPT_EXACT;
+    task->partition = NULL;
+    task->usedThreads = 0;
+    task->activeChild = 0;
+    task->partitionSize = 0;
+
+    if (!task->request->num) grantPartRequest(task);
+
     return 0;
 
-    error:
-    {
-	if (task && task->request) {
-	    PSpart_delReq(task->request);
-	    task->request = NULL;
-	}
-
-	rejectPartitionRequest(inmsg->header.sender);
-	return 0;
-    }
+error:
+    rejectPartRequest(inmsg->header.sender, task);
 
     return 0;
 }
@@ -208,26 +262,26 @@ int handleCreatePartNL(void *msg)
     }
 
     /* find step */
-    if ((findStepByPid(PSC_getPID(inmsg->header.sender)))) {
-	return 0;
-    } else {
+    if (!findStepByPid(PSC_getPID(inmsg->header.sender))) {
 	/* admin users can start mpiexec direct */
-	if ((isPSAdminUser(task->uid, task->gid))) return 1;
-
-	/* for batch users we send the nodelist before */
-	return 0;
+	if (isPSAdminUser(task->uid, task->gid)) return 1;
+	errno = EACCES;
+	goto error;
     }
 
-    error:
-    {
-	if (task && task->request) {
-	    PSpart_delReq(task->request);
-	    task->request = NULL;
-	}
+    /* at least take notice of the number of nodes in this chunk */
+    task->request->numGot += *(int16_t *)inmsg->buf;
 
-	rejectPartitionRequest(inmsg->header.sender);
-	return 0;
-    }
+    /* request complete -> activate the partition */
+    if (task->request->numGot == task->request->num) grantPartRequest(task);
+
+    /* message fully handled */
+    return 0;
+
+error:
+    rejectPartRequest(inmsg->header.sender, task);
+
+    return 0;
 }
 
 void send_PS_JobLaunch(Job_t *job)
