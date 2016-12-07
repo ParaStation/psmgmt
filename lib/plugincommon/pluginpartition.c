@@ -8,18 +8,8 @@
  * file.
  */
 
-#include <stdlib.h>
-#include <string.h>
-#include <errno.h>
-
-#include "psidnodes.h"
-#include "psidcomm.h"
-#include "psidpartition.h"
-
 #include "pscommon.h"
-#include "psprotocol.h"
-
-#include "pluginlog.h"
+#include "psidnodes.h"
 
 #include "pluginpartition.h"
 
@@ -32,59 +22,4 @@ bool isPSAdminUser(uid_t uid, gid_t gid)
 	return false;
     }
     return true;
-}
-
-void grantPartitionRequest(PSpart_HWThread_t *hwThreads, uint32_t numHWthreads,
-			   PStask_ID_t dest, PStask_t *task)
-{
-    PSpart_HWThread_t *threads = malloc(numHWthreads * sizeof(*threads));
-
-    if (!threads) {
-	errno = ENOMEM;
-	rejectPartitionRequest(dest);
-	return;
-    }
-    memcpy(threads, hwThreads, numHWthreads * sizeof(*threads));
-
-    /* save the request in the task structure */
-    task->options |= PART_OPT_EXACT;
-    task->partition = NULL;
-    task->usedThreads = 0;
-    task->activeChild = 0;
-    task->partitionSize = 0;
-    task->partThrds = threads;
-    task->totalThreads = numHWthreads;
-
-    /* generate slots from hw threads and register partition to master psid */
-    PSIDpart_register(task);
-
-    /* send OK to waiting mpiexec */
-    DDTypedMsg_t msg = (DDTypedMsg_t) {
-	.header = (DDMsg_t) {
-	    .type = PSP_CD_PARTITIONRES,
-	    .dest = dest,
-	    .sender = PSC_getMyTID(),
-	    .len = sizeof(msg) },
-	.type = 0 };
-
-    if ((sendMsg(&msg)) == -1 && errno != EWOULDBLOCK) {
-	pluginwarn(errno, "%s: sendMsg() to '%s' failed", __func__,
-		   PSC_printTID(msg.header.dest));
-    }
-}
-
-void rejectPartitionRequest(PStask_ID_t dest)
-{
-    DDTypedMsg_t msg = (DDTypedMsg_t) {
-	.header = (DDMsg_t) {
-	    .type = PSP_CD_PARTITIONRES,
-	    .dest = dest,
-	    .sender = PSC_getMyTID(),
-	    .len = sizeof(msg) },
-	.type = errno };
-
-    if ((sendMsg(&msg)) == -1 && errno != EWOULDBLOCK) {
-	pluginwarn(errno, "%s: sendMsg() to '%s' failed", __func__,
-		   PSC_printTID(msg.header.dest));
-    }
 }
