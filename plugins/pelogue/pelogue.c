@@ -8,6 +8,7 @@
  * file.
  */
 
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
@@ -70,7 +71,7 @@ static void cleanupJobs(void)
 
     if (obitTime == obitTimeCounter) {
 	mlog("sending SIGKILL to %i remaining jobs\n", njobs);
-	signalJobs(SIGKILL, "shutdown");
+	signalAllJobs(SIGKILL, "shutdown");
     }
 
     /* all jobs are gone */
@@ -86,7 +87,7 @@ static void shutdownJobs(void)
     if (countJobs() > 0) {
 	mlog("sending SIGTERM to %i remaining jobs\n", countJobs());
 
-	signalJobs(SIGTERM, "shutdown");
+	signalAllJobs(SIGTERM, "shutdown");
 
 	if ((cleanupTimerID = Timer_register(&cleanupTimer,
 							cleanupJobs)) == -1) {
@@ -115,7 +116,7 @@ static int handleShutdown(void *data)
  *
  * @return No return value.
  */
-static void unregisterHooks(int verbose)
+static void unregisterHooks(bool verbose)
 {
     /* unregister pelogue msg */
     PSID_clearMsg(PSP_CC_PLUG_PELOGUE);
@@ -124,32 +125,31 @@ static void unregisterHooks(int verbose)
     PSID_clearDropper(PSP_CC_PLUG_PELOGUE);
 
     /* unregister hooks */
-    if (!(PSIDhook_del(PSIDHOOK_NODE_DOWN, handleNodeDown))) {
+    if (!PSIDhook_del(PSIDHOOK_NODE_DOWN, handleNodeDown)) {
 	if (verbose) mlog("unregister 'PSIDHOOK_NODE_DOWN' failed\n");
     }
 
-    if (!(PSIDhook_del(PSIDHOOK_SHUTDOWN, handleShutdown))) {
+    if (!PSIDhook_del(PSIDHOOK_SHUTDOWN, handleShutdown)) {
 	if (verbose) mlog("unregister 'PSIDHOOK_SHUTDOWN' failed\n");
     }
 }
 
-static int setRootHome(void)
+static bool setRootHome(void)
 {
-    struct passwd *spasswd;
+    struct passwd *spasswd = getpwnam("root");
 
-    if (!(spasswd = getpwnam("root"))) {
+    if (!spasswd) {
 	mlog("%s: getpwnam(root) failed\n", __func__);
-	return 0;
+	return false;
     }
 
     snprintf(rootHome, sizeof(rootHome), "%s", spasswd->pw_dir);
-    return 1;
+    return true;
 }
 
 int initialize(void)
 {
     void *accHandle = PSIDplugin_getHandle("psaccount");
-    static struct timeval time_now;
 
     /* init the logger (log to syslog) */
     initLogger(NULL);
@@ -167,7 +167,6 @@ int initialize(void)
     }
 
     initConfig();
-    initJobList();
     initFragComm();
 
     /* register pelogue msg */
@@ -190,12 +189,12 @@ int initialize(void)
     }
 
     /* register needed hooks */
-    if (!(PSIDhook_add(PSIDHOOK_NODE_DOWN, handleNodeDown))) {
+    if (!PSIDhook_add(PSIDHOOK_NODE_DOWN, handleNodeDown)) {
 	mlog("register 'PSIDHOOK_NODE_DOWN' failed\n");
 	goto INIT_ERROR;
     }
 
-    if (!(PSIDhook_add(PSIDHOOK_SHUTDOWN, handleShutdown))) {
+    if (!PSIDhook_add(PSIDHOOK_SHUTDOWN, handleShutdown)) {
 	mlog("register 'PSIDHOOK_SHUTDOWN' failed\n");
 	goto INIT_ERROR;
     }
@@ -207,9 +206,6 @@ int initialize(void)
 	Timer_init(NULL);
     }
 
-    gettimeofday(&time_now, NULL);
-    srand(time_now.tv_usec);
-
     setRootHome();
 
     maskLogger(PELOGUE_LOG_PROCESS | PELOGUE_LOG_WARN);
@@ -218,7 +214,7 @@ int initialize(void)
     return 0;
 
 INIT_ERROR:
-    unregisterHooks(0);
+    unregisterHooks(false);
     return 1;
 }
 
@@ -233,7 +229,7 @@ void cleanup(void)
     /* TODO: kill all remaining children */
 
     /* remove all registered hooks and msg handler */
-    unregisterHooks(1);
+    unregisterHooks(true);
 
     /* TODO free all malloced memory */
     clearJobList();

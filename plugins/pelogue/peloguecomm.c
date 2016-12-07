@@ -624,46 +624,41 @@ static char *msg2Str(PSP_PELOGUE_t type)
     return NULL;
 }
 
-int handleNodeDown(void *nodeID)
+static bool nodeDownVisitor(Job_t *job, const void *info)
 {
-    list_t *pos, *tmp;
-    Job_t *job;
-    PSnodes_ID_t id;
+    PSnodes_ID_t id = *(PSnodes_ID_t *)info;
     int i;
-    const char *hname = NULL;
 
-    id = *((PSnodes_ID_t *) nodeID);
+    if (job->state != JOB_PROLOGUE && job->state != JOB_EPILOGUE) return false;
+    if (!findChild(job->plugin, job->id)) return false;
 
-    /* check if the node which has gone down is a part of a local job */
-    list_for_each_safe(pos, tmp, &JobList.list) {
-	if (!(job = list_entry(pos, Job_t, list))) break;
-	if (job->state != JOB_PROLOGUE && job->state != JOB_EPILOGUE) continue;
-	if (!(findChild(job->plugin, job->id))) continue;
+    for (i=0; i<job->nrOfNodes; i++) {
+	if (job->nodes[i].id == id) {
+	    const char *hname = getHostnameByNodeId(id);
 
-	for (i=0; i<job->nrOfNodes; i++) {
-	    if (job->nodes[i].id == id) {
-		hname = getHostnameByNodeId(id);
+	    mlog("%s: node %s(%i) running job '%s' jstate '%s' is down\n",
+		 __func__, hname, id, job->id, jobState2String(job->state));
 
-		mlog("%s: node '%s(%i)' which is running job '%s' "
-			"jstate '%s' is down\n", __func__, hname, id,
-			job->id, jobState2String(job->state));
-
-		if (job->state == JOB_PROLOGUE) {
-		    job->nodes[i].prologue = 2;
-		    job->state = JOB_CANCEL_PROLOGUE;
-		} else {
-		    job->nodes[i].epilogue = 2;
-		    job->state = JOB_CANCEL_EPILOGUE;
-		}
-
-		/* stop pelogue scripts on all nodes */
-		signalPElogue(job, SIGTERM, "node down");
-		stopPElogueExecution(job);
-		return 1;
+	    if (job->state == JOB_PROLOGUE) {
+		job->nodes[i].prologue = 2;
+		job->state = JOB_CANCEL_PROLOGUE;
+	    } else {
+		job->nodes[i].epilogue = 2;
+		job->state = JOB_CANCEL_EPILOGUE;
 	    }
+
+	    /* stop pelogue scripts on all nodes */
+	    signalPElogue(job, SIGTERM, "node down");
+	    stopPElogueExecution(job);
+	    break;
 	}
     }
+    return false;
+}
 
+int handleNodeDown(void *nodeID)
+{
+    traverseJobs(nodeDownVisitor, nodeID);
     return 1;
 }
 
@@ -693,8 +688,7 @@ static void handleDroppedStartMsg(DDTypedBufferMsg_t *msg)
 	return;
     }
 
-    job->state = PSP_PROLOGUE_START ?
-	JOB_CANCEL_PROLOGUE : JOB_CANCEL_EPILOGUE;
+    job->state = PSP_PROLOGUE_START ? JOB_CANCEL_PROLOGUE : JOB_CANCEL_EPILOGUE;
     stopPElogueExecution(job);
 }
 

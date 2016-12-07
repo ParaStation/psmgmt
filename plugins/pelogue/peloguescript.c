@@ -66,7 +66,7 @@ int checkPELogueFileStats(char *filename, int root)
 
 void removePELogueTimeout(Job_t *job)
 {
-    if (!isValidJobPointer(job)) return;
+    if (!checkJobPtr(job)) return;
 
     if (job->pelogueMonitorId != -1) {
 	Timer_remove(job->pelogueMonitorId);
@@ -134,8 +134,7 @@ void PElogueExit(Job_t *job, int status, bool prologue)
     epExit = (prologue) ? &job->prologueExit : &job->epilogueExit;
 
     if (*track < 0) {
-	mlog("%s: %s tracking error for job '%s'\n", __func__, peType,
-		job->id);
+	mlog("%s: %s tracking error for job %s\n", __func__, peType, job->id);
 	return;
     }
 
@@ -173,7 +172,7 @@ void PElogueExit(Job_t *job, int status, bool prologue)
 
 void stopPElogueExecution(Job_t *job)
 {
-    if (isValidJobPointer(job)) {
+    if (checkJobPtr(job)) {
 	removePELogueTimeout(job);
 	job->pluginCallback(job->id, -4, 1, job->nodes);
     }
@@ -199,7 +198,7 @@ static void handlePELogueTimeout(int timerId, void *data)
     Timer_remove(timerId);
 
     /* job could be already deleted */
-    if (!isValidJobPointer(job)) return;
+    if (!checkJobPtr(job)) return;
 
     /* don't break job if it got re-queued */
     if (timerId != job->pelogueMonitorId) {
@@ -208,9 +207,8 @@ static void handlePELogueTimeout(int timerId, void *data)
     }
     job->pelogueMonitorId = -1;
 
-    mlog("%s: global %s timeout for job '%s', stopping job using SIGKILL\n",
-	    __func__, job->state == JOB_PROLOGUE ? "prologue" : "epilogue",
-	    job->id);
+    mlog("%s: global %s timeout for job %s, send SIGKILL\n", __func__,
+	 job->state == JOB_PROLOGUE ? "prologue" : "epilogue", job->id);
 
     str2Buf("missing nodeID(s): ", &buf, &buflen);
 
@@ -257,8 +255,8 @@ void monitorPELogueTimeout(Job_t *job)
     grace = getConfParamI(job->plugin, "TIMEOUT_PE_GRACE");
 
     if (timeout < 0 || grace < 0) {
-	mlog("%s: invalid pe timeout '%i' or grace time '%i'\n", __func__,
-		timeout, grace);
+	mlog("%s: invalid pe timeout %i or grace time %i\n", __func__,
+	     timeout, grace);
 
     }
 
