@@ -220,7 +220,7 @@ static void sendKvstoSucc(char *msg, size_t len)
  *
  * @return Always return 1
  */
-static int critErr()
+static int critErr(void)
 {
     /* close connection */
     if (pmisock > -1) {
@@ -433,7 +433,7 @@ static int p_Get_Appnum(void)
  *
  * @return No return value
  */
-static void checkDaisyBarrier()
+static void checkDaisyBarrier(void)
 {
     char *ptr = buffer;
     size_t len = 0;
@@ -609,7 +609,7 @@ void leaveKVS(int used)
  *
  * @return Returns PMI_FINALIZED
  * */
-static int p_Finalize()
+static int p_Finalize(void)
 {
     leaveKVS(0);
 
@@ -623,7 +623,7 @@ static int p_Finalize()
  *
  * @return Always returns 0
  */
-static int p_Get_My_Kvsname()
+static int p_Get_My_Kvsname(void)
 {
     char reply[PMIU_MAXLINE];
 
