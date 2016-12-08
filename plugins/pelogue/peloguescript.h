@@ -1,22 +1,15 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2013 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2013-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-/**
- * $Id$
- *
- * \author
- * Michael Rauh <rauh@par-tec.com>
- *
- */
 
-#ifndef PS_PELOGUE_SCRIPT
-#define PS_PELOGUE_SCRIPT
+#ifndef __PELOGUE_SCRIPT
+#define __PELOGUE_SCRIPT
 
 #include <stdbool.h>
 #include "psidscripts.h"
@@ -39,8 +32,6 @@ int prepScriptEnv(void *info);
 void PElogueExit(Job_t *job, int status, bool prologue);
 void monitorPELogueTimeout(Job_t *job);
 
-void signalPElogue(Job_t *job, int signal, char *reason);
-void stopPElogueExecution(Job_t *job);
 void removePELogueTimeout(Job_t *job);
 
 #endif

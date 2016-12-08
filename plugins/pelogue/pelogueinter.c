@@ -98,15 +98,14 @@ int psPelogueStartPE(const char *plugin, const char *jobid, bool prologue,
 int psPelogueSignalPE(const char *plugin, const char *jobid, int signal,
 			char *reason)
 {
-    Job_t *job;
+    Job_t *job = findJobByJobId(plugin, jobid);
 
-    if (!(job = findJobByJobId(plugin, jobid))) {
-	mlog("%s: job '%s' for plugin '%s' not found\n", __func__, jobid,
-		plugin);
+    if (!job) {
+	mlog("%s: no job %s for plugin %s\n", __func__, jobid, plugin);
 	return 0;
     }
 
-    signalPElogue(job, signal, reason);
+    sendPElogueSignal(job, signal, reason);
 
     return 1;
 }

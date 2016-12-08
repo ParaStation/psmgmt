@@ -102,7 +102,7 @@ Job_t *findJobByJobId(const char *plugin, const char *jobid);
 int countJobs(void);
 
 /**
- * @brief Signal whole job
+ * @brief Signal all jobs
  *
  * Send the signal @a sig to all pelogues associated to all the jobs
  * currently registered. @a reason is mentioned within the
@@ -181,5 +181,16 @@ typedef bool JobVisitor_t(Job_t *job, const void *info);
  * false is returned.
  */
 bool traverseJobs(JobVisitor_t visitor, const void *info);
+
+/**
+ * @brief Stop execution of job's pelogues
+ *
+ * Stop the execution of all pelogues associated to the job @a job.
+ *
+ * @param job Job identifying the pelogues to stop
+ *
+ * @return No return value
+ */
+void stopJobExecution(Job_t *job);
 
 #endif  /* __PELOGUE_JOB */

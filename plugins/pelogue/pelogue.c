@@ -18,12 +18,6 @@
 #include <pwd.h>
 #include <signal.h>
 
-#include "peloguelog.h"
-#include "peloguecomm.h"
-#include "peloguescript.h"
-#include "pelogueconfig.h"
-#include "peloguechild.h"
-
 #include "pspluginprotocol.h"
 #include "psidcomm.h"
 #include "psidhook.h"
@@ -35,6 +29,13 @@
 #include "pluginfrag.h"
 #include "pluginlog.h"
 #include "pluginfrag.h"
+#include "pluginhelper.h"
+
+#include "peloguelog.h"
+#include "peloguecomm.h"
+#include "peloguescript.h"
+#include "pelogueconfig.h"
+#include "peloguechild.h"
 
 #include "pelogue.h"
 
@@ -98,6 +99,44 @@ static void shutdownJobs(void)
 
     /* all jobs are gone */
     PSIDplugin_unload("pelogue");
+}
+
+static bool nodeDownVisitor(Job_t *job, const void *info)
+{
+    PSnodes_ID_t id = *(PSnodes_ID_t *)info;
+    int i;
+
+    if (job->state != JOB_PROLOGUE && job->state != JOB_EPILOGUE) return false;
+    if (!findChild(job->plugin, job->id)) return false;
+
+    for (i=0; i<job->nrOfNodes; i++) {
+	if (job->nodes[i].id == id) {
+	    const char *hname = getHostnameByNodeId(id);
+
+	    mlog("%s: node %s(%i) running job '%s' jstate '%s' is down\n",
+		 __func__, hname, id, job->id, jobState2String(job->state));
+
+	    if (job->state == JOB_PROLOGUE) {
+		job->nodes[i].prologue = 2;
+		job->state = JOB_CANCEL_PROLOGUE;
+	    } else {
+		job->nodes[i].epilogue = 2;
+		job->state = JOB_CANCEL_EPILOGUE;
+	    }
+
+	    /* stop pelogue scripts on all nodes */
+	    sendPElogueSignal(job, SIGTERM, "node down");
+	    stopJobExecution(job);
+	    break;
+	}
+    }
+    return false;
+}
+
+static int handleNodeDown(void *nodeID)
+{
+    traverseJobs(nodeDownVisitor, nodeID);
+    return 1;
 }
 
 static int handleShutdown(void *data)

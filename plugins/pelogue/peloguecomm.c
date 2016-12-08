@@ -15,6 +15,18 @@
 #include <unistd.h>
 #include <signal.h>
 
+#include "pscommon.h"
+#include "pspluginprotocol.h"
+#include "psidcomm.h"
+#include "psidhook.h"
+#include "psidscripts.h"
+#include "psaccounthandles.h"
+#include "pluginfrag.h"
+#include "pluginmalloc.h"
+#include "pluginhelper.h"
+#include "pluginforwarder.h"
+#include "plugincomm.h"
+
 #include "peloguelog.h"
 #include "pelogueconfig.h"
 #include "peloguechild.h"
@@ -24,38 +36,21 @@
 #include "pelogueforwarder.h"
 #include "peloguekvs.h"
 
-#include "pspluginprotocol.h"
-#include "pscommon.h"
-#include "psidcomm.h"
-#include "psidhook.h"
-#include "psidscripts.h"
-#include "psaccounthandles.h"
-#include "pluginfrag.h"
-#include "pluginmalloc.h"
-#include "pluginhelper.h"
-#include "pluginforwarder.h"
-
 #include "peloguecomm.h"
 
 static void sendFragMsgToHostList(Job_t *job, PS_DataBuffer_t *data,
-				    int32_t type, int myself)
+				  int32_t type)
 {
-    PStask_ID_t myTID = PSC_getMyTID(), dest;
     int i;
-
     for (i=0; i<job->nrOfNodes; i++) {
+	PStask_ID_t dest = PSC_getTID(job->nodes[i].id, 0);
 
-	if ((dest = PSC_getTID(job->nodes[i].id, 0)) == -1) {
-	    mlog("%s: skipping invalid node id '%u'\n", __func__,
-		    job->nodes[i].id);
+	if (dest == -1) {
+	    mlog("%s: skipping invalid node %u\n", __func__, job->nodes[i].id);
 	    continue;
 	}
 
-	/* skip sending to myself if requested */
-	if (!myself && myTID == dest) continue;
-
-	mdbg(PELOGUE_LOG_PSIDCOM, "%s: send to %i [%i->%i]\n", __func__,
-		job->nodes[i].id, myTID, dest);
+	mdbg(PELOGUE_LOG_PSIDCOM, "%s: to %i\n", __func__, PSC_getID(dest));
 	sendFragMsg(data, dest, PSP_CC_PLUG_PELOGUE, type);
     }
 }
@@ -63,46 +58,28 @@ static void sendFragMsgToHostList(Job_t *job, PS_DataBuffer_t *data,
 int sendPElogueStart(Job_t *job, bool prologue, env_t *env)
 {
     PS_DataBuffer_t data = { .buf = NULL};
-    int32_t timeout, type;
+    int32_t timeout;
     uint32_t i;
 
     if (prologue) {
 	timeout = getConfParamI(job->plugin, "TIMEOUT_PROLOGUE");
-	type = PSP_PROLOGUE_START;
 	job->state = JOB_PROLOGUE;
     } else {
 	timeout = getConfParamI(job->plugin, "TIMEOUT_EPILOGUE");
-	type = PSP_EPILOGUE_START;
 	job->state = JOB_EPILOGUE;
     }
 
-    /* add PElogue data structure */
-
-    /* add plugin */
     addStringToMsg(job->plugin, &data);
-
-    /* add job id */
     addStringToMsg(job->id, &data);
-
-    /* add user id */
     addInt32ToMsg(job->uid, &data);
-
-    /* add group id */
     addInt32ToMsg(job->gid, &data);
-
-    /* add timeout */
     addInt32ToMsg(timeout, &data);
-
-    /* add scriptname */
     addStringToMsg(job->scriptname, &data);
 
-    /* add start time */
     job->start_time = time(NULL);
     addTimeToMsg(job->start_time, &data);
 
-    /* add environment */
     addInt32ToMsg(env->cnt, &data);
-
     for (i=0; i<env->cnt; i++) {
 	addStringToMsg(env->vars[i], &data);
     }
@@ -111,10 +88,52 @@ int sendPElogueStart(Job_t *job, bool prologue, env_t *env)
     monitorPELogueTimeout(job);
 
     /* send the message to all hosts in the job */
-    sendFragMsgToHostList(job, &data, type, 1);
+    sendFragMsgToHostList(job, &data,
+			  prologue ? PSP_PROLOGUE_START : PSP_EPILOGUE_START);
     ufree(data.buf);
 
     return 1;
+}
+
+void sendPElogueSignal(Job_t *job, int sig, char *reason)
+{
+    DDTypedBufferMsg_t msg = (DDTypedBufferMsg_t) {
+	.header = (DDMsg_t) {
+	    .type = PSP_CC_PLUG_PELOGUE,
+	    .sender = PSC_getMyTID(),
+	    .dest = -1,
+	    .len = sizeof(msg.header) + sizeof(msg.type) },
+	.type = PSP_PELOGUE_SIGNAL,
+	.buf = {'\0'} };
+    int i, templLen;
+
+    addStringToMsgBuf(&msg, job->plugin);
+    addStringToMsgBuf(&msg, job->id);
+    addInt32ToMsgBuf(&msg, sig);
+
+    /* store len so far */
+    templLen = msg.header.len;
+
+    for (i=0; i<job->nrOfNodes; i++) {
+	PSnodes_ID_t node = job->nodes[i].id;
+
+	/* restore the template */
+	msg.header.len = templLen;
+
+	/* add the individual pelogue finish flag */
+	if (job->state == JOB_PROLOGUE) {
+	    addInt32ToMsgBuf(&msg, job->nodes[i].prologue);
+	} else {
+	    addInt32ToMsgBuf(&msg, job->nodes[i].epilogue);
+	}
+	addStringToMsgBuf(&msg, reason);
+
+	msg.header.dest = PSC_getTID(node, 0);
+	mdbg(PELOGUE_LOG_PSIDCOM, "%s: send to %i\n", __func__, node);
+	if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
+	    mwarn(errno, "%s: sendMsg() to %i failed", __func__, node);
+	}
+    }
 }
 
 static void manageTempDir(const char *plugin, const char *jobid, int create,
@@ -193,16 +212,15 @@ int fwCallback(int32_t wstat, Forwarder_Data_t *fwdata)
 
     /* send result to mother superior */
     msgRes = (DDTypedBufferMsg_t) {
-       .header = (DDMsg_t) {
-       .type = PSP_CC_PLUG_PELOGUE,
-       .sender = PSC_getMyTID(),
-       .dest = pedata->mainPelogue,
-       .len = sizeof(msgRes.header) },
-       .buf = {'\0'} };
+	.header = (DDMsg_t) {
+	    .type = PSP_CC_PLUG_PELOGUE,
+	    .sender = PSC_getMyTID(),
+	    .dest = pedata->mainPelogue,
+	    .len = sizeof(msgRes.header) + sizeof(msgRes.type) },
+	.type = pedata->prologue ? PSP_PROLOGUE_FINISH : PSP_EPILOGUE_FINISH,
+	.buf = {'\0'} };
 
     if (pedata->prologue) {
-	msgRes.type = PSP_PROLOGUE_FINISH;
-
 	/* add to statistic */
 	if (pedata->frontend){
 	    if (exit_status != 0) {
@@ -224,13 +242,10 @@ int fwCallback(int32_t wstat, Forwarder_Data_t *fwdata)
 			    pedata->gid);
 	}
     } else {
-	msgRes.type = PSP_EPILOGUE_FINISH;
-
 	/* delete temp directory in epilogue */
 	manageTempDir(pedata->plugin, pedata->jobid, 0, pedata->uid,
 			pedata->gid);
     }
-    msgRes.header.len += sizeof(msgRes.type);
 
     /* add plugin */
     addStringToMsgBuf(&msgRes, pedata->plugin);
@@ -624,44 +639,6 @@ static char *msg2Str(PSP_PELOGUE_t type)
     return NULL;
 }
 
-static bool nodeDownVisitor(Job_t *job, const void *info)
-{
-    PSnodes_ID_t id = *(PSnodes_ID_t *)info;
-    int i;
-
-    if (job->state != JOB_PROLOGUE && job->state != JOB_EPILOGUE) return false;
-    if (!findChild(job->plugin, job->id)) return false;
-
-    for (i=0; i<job->nrOfNodes; i++) {
-	if (job->nodes[i].id == id) {
-	    const char *hname = getHostnameByNodeId(id);
-
-	    mlog("%s: node %s(%i) running job '%s' jstate '%s' is down\n",
-		 __func__, hname, id, job->id, jobState2String(job->state));
-
-	    if (job->state == JOB_PROLOGUE) {
-		job->nodes[i].prologue = 2;
-		job->state = JOB_CANCEL_PROLOGUE;
-	    } else {
-		job->nodes[i].epilogue = 2;
-		job->state = JOB_CANCEL_EPILOGUE;
-	    }
-
-	    /* stop pelogue scripts on all nodes */
-	    signalPElogue(job, SIGTERM, "node down");
-	    stopPElogueExecution(job);
-	    break;
-	}
-    }
-    return false;
-}
-
-int handleNodeDown(void *nodeID)
-{
-    traverseJobs(nodeDownVisitor, nodeID);
-    return 1;
-}
-
 static void handleDroppedStartMsg(DDTypedBufferMsg_t *msg)
 {
     PS_Frag_Msg_Header_t *rhead;
@@ -689,7 +666,7 @@ static void handleDroppedStartMsg(DDTypedBufferMsg_t *msg)
     }
 
     job->state = PSP_PROLOGUE_START ? JOB_CANCEL_PROLOGUE : JOB_CANCEL_EPILOGUE;
-    stopPElogueExecution(job);
+    stopJobExecution(job);
 }
 
 void handleDroppedMsg(DDTypedBufferMsg_t *msg)

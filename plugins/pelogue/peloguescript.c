@@ -26,12 +26,8 @@
 #include "peloguelog.h"
 #include "pelogueconfig.h"
 
-#include "psidcomm.h"
-#include "pscommon.h"
-#include "plugincomm.h"
 #include "pluginmalloc.h"
 #include "pluginhelper.h"
-#include "pspluginprotocol.h"
 #include "timer.h"
 
 #include "peloguescript.h"
@@ -74,55 +70,6 @@ void removePELogueTimeout(Job_t *job)
     }
 }
 
-void signalPElogue(Job_t *job, int signal, char *reason)
-{
-    PStask_ID_t myTID = PSC_getMyTID();
-    DDTypedBufferMsg_t msg;
-    int i, id, templLen;
-
-    /* signal PElogue on all nodes */
-    msg = (DDTypedBufferMsg_t) {
-       .header = (DDMsg_t) {
-       .type = PSP_CC_PLUG_PELOGUE,
-       .sender = PSC_getMyTID(),
-       .dest = PSC_getMyTID(),
-       .len = sizeof(msg.header) },
-       .buf = {'\0'} };
-
-    msg.type = PSP_PELOGUE_SIGNAL;
-    msg.header.len += sizeof(msg.type);
-    msg.header.sender = myTID;
-
-    addStringToMsgBuf(&msg, job->plugin);
-    addStringToMsgBuf(&msg, job->id);
-    addInt32ToMsgBuf(&msg, signal);
-
-    /* store len so far */
-    templLen = msg.header.len;
-
-    for (i=0; i<job->nrOfNodes; i++) {
-	/* restore the template */
-	msg.header.len = templLen;
-
-	id = job->nodes[i].id;
-	/* add the individual pelogue finish flag */
-	if (job->state == JOB_PROLOGUE) {
-	    addInt32ToMsgBuf(&msg, job->nodes[i].prologue);
-	} else {
-	    addInt32ToMsgBuf(&msg, job->nodes[i].epilogue);
-	}
-	addStringToMsgBuf(&msg, reason);
-	msg.header.dest = PSC_getTID(id, 0);
-
-	mdbg(PELOGUE_LOG_PSIDCOM, "%s: send to %i [%i->%i]\n", __func__, id,
-		msg.header.sender, msg.header.dest);
-	if ((sendMsg(&msg)) == -1 && errno != EWOULDBLOCK) {
-	    mwarn(errno, "%s: sendMsg() to '%s' failed ", __func__,
-		    PSC_printTID(msg.header.sender));
-	}
-    }
-}
-
 void PElogueExit(Job_t *job, int status, bool prologue)
 {
     char *peType;
@@ -161,20 +108,12 @@ void PElogueExit(Job_t *job, int status, bool prologue)
 	 * SIGTERM will force the forwarder for PElogue scripts
 	 * to kill the script. */
 	if (job->signalFlag != SIGTERM && job->signalFlag != SIGKILL) {
-	    signalPElogue(job, SIGTERM, reason);
+	    sendPElogueSignal(job, SIGTERM, reason);
 	}
     }
 
     if (status != 0 && (status > *epExit || status < 0)) {
 	*epExit = status;
-    }
-}
-
-void stopPElogueExecution(Job_t *job)
-{
-    if (checkJobPtr(job)) {
-	removePELogueTimeout(job);
-	job->pluginCallback(job->id, -4, 1, job->nodes);
     }
 }
 
@@ -238,8 +177,8 @@ static void handlePELogueTimeout(int timerId, void *data)
     mlog("%s: %s\n", __func__, buf);
     ufree(buf);
 
-    signalPElogue(job, SIGKILL, "global pelogue timeout");
-    stopPElogueExecution(job);
+    sendPElogueSignal(job, SIGKILL, "global pelogue timeout");
+    stopJobExecution(job);
 }
 
 void monitorPELogueTimeout(Job_t *job)

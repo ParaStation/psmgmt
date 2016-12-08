@@ -7,13 +7,6 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-/**
- * $Id$
- *
- * \author
- * Michael Rauh <rauh@par-tec.com>
- *
- */
 
 #ifndef __PELOGUE__COMM
 #define __PELOGUE__COMM
@@ -45,6 +38,22 @@ void handleDroppedMsg(DDTypedBufferMsg_t *msg);
 
 int sendPElogueStart(Job_t *job, bool prologue, env_t *env);
 
-int handleNodeDown(void *nodeID);
+/**
+ * @brief Signal job's pelogues
+ *
+ * Send the signal @a sig to all pelogues associated to the
+ * job @a job. @a reason is mentioned within the corresponding log
+ * messages.
+ *
+ * In order to deliver the signal messages will be sent to the pelogue
+ * plugins of all involved nodes.
+ *
+ * @param sig Signal to send to the job's pelogues
+ *
+ * @param reason Reason to be mentioned in the logs
+ *
+ * @return No return value
+ */
+void sendPElogueSignal(Job_t *job, int sig, char *reason);
 
-#endif
+#endif  /* __PELOGUE__COMM */

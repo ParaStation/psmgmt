@@ -14,6 +14,7 @@
 
 #include "pluginmalloc.h"
 
+#include "peloguecomm.h"
 #include "peloguescript.h"
 
 #include "peloguejob.h"
@@ -175,8 +176,16 @@ void signalAllJobs(int signal, char *reason)
     list_for_each_safe(j, tmp, &jobList) { // @todo _safe required?
 	Job_t *job = list_entry(j, Job_t, next);
 
-	signalPElogue(job, signal, reason);
+	sendPElogueSignal(job, signal, reason);
     }
+}
+
+void stopJobExecution(Job_t *job)
+{
+    if (!checkJobPtr(job)) return;
+
+    removePELogueTimeout(job);
+    job->pluginCallback(job->id, -4, 1, job->nodes);
 }
 
 bool checkJobPtr(Job_t *jobPtr)
