@@ -465,46 +465,42 @@ static void handlePELogueStart(DDTypedBufferMsg_t *msg,
 static void handlePELogueFinish(DDTypedBufferMsg_t *msg, char *msgData)
 {
     PSnodes_ID_t nodeId = PSC_getID(msg->header.sender);
-    char *ptr, plugin[100], buf[300], peType[100];
+    char *ptr, plugin[100], buf[300], peType[32];
     Job_t *job;
     int32_t res = 1, signalFlag = 0;
     time_t job_start;
     PElogue_Res_List_t *nodeEntry;
-    int prologue = msg->type == PSP_PROLOGUE_FINISH ? 1 : 0;
+    bool prologue = msg->type == PSP_PROLOGUE_FINISH ? true : false;
 
     ptr = msg->buf;
     snprintf(peType, sizeof(peType), "%s %s",
-		nodeId == PSC_getMyID() ? "local" : "remote",
-		prologue ? "prologue" : "epilogue");
+	     nodeId == PSC_getMyID() ? "local" : "remote",
+	     prologue ? "prologue" : "epilogue");
 
-    /* get plugin */
     getString(&ptr, plugin, sizeof(plugin));
-
-    /* get jobid */
     getString(&ptr, buf, sizeof(buf));
 
-    if (!(job = findJobByJobId(plugin, buf))) {
-	if (!(isJobIDinHistory(buf))) {
-	    mdbg(PELOGUE_LOG_WARN, "%s: '%s' finish message for unknown"
-		    " job '%s', ignoring it\n", __func__, peType, buf);
+    job = findJobByJobId(plugin, buf);
+    if (!job)  {
+	if (!jobIDInHistory(buf)) {
+	    mdbg(PELOGUE_LOG_WARN, "%s: ignore %s finish message for unknown"
+		 " job %s\n", __func__, peType, buf);
 	}
 	return;
     }
 
-    /* get job start_time */
     getTime(&ptr, &job_start);
-
     if (job->start_time != job_start) {
 	/* msg is for previous job, ignore */
-	mdbg(PELOGUE_LOG_WARN, "%s: received '%s' finish from previous"
-	    " job '%s', ignoring it\n", __func__, peType, job->id);
+	mdbg(PELOGUE_LOG_WARN, "%s: ignore %s finish from previous job %s\n",
+	     __func__, peType, job->id);
 	return;
     }
 
-    /* get result */
     getInt32(&ptr, &res);
-
-    if ((nodeEntry = findJobNodeEntry(job, nodeId))) {
+    nodeEntry = findJobNodeEntry(job, nodeId);
+    // @todo setJobNodeEntry(job, node, prologue res)
+    if (nodeEntry) {
 	if (prologue) {
 	    nodeEntry->prologue = res;
 	} else {
@@ -512,26 +508,18 @@ static void handlePELogueFinish(DDTypedBufferMsg_t *msg, char *msgData)
 	}
     }
 
-    /* get signal flag */
     getInt32(&ptr, &signalFlag);
-
     /* on error get errmsg */
-    if (res != 0) {
-
+    if (res) {
 	getString(&ptr, buf, sizeof(buf));
 
 	/* suppress error message if we have killed the pelogue by request */
-	if (!signalFlag) {
-	    mlog("%s: '%s' for job '%s' node '%s(%i)' failed: %s\n", __func__,
-		    peType, job->id, getHostnameByNodeId(nodeId), nodeId, buf);
-	} else {
-	    mdbg(PELOGUE_LOG_WARN, "%s: '%s' for job '%s' node '%s(%i)' "
-		    "failed: %s\n", __func__, peType, job->id,
-		    getHostnameByNodeId(nodeId), nodeId, buf);
-	}
+	mdbg(signalFlag ? PELOGUE_LOG_WARN : -1,
+	     "%s: %s for job %s failed on node %s(%i): %s\n", __func__, peType,
+	     job->id, getHostnameByNodeId(nodeId), nodeId, buf);
     }
 
-    PElogueExit(job, res, prologue);
+    finishJobPElogue(job, res, prologue);
 }
 
 static void handlePELogueSignal(DDTypedBufferMsg_t *msg)

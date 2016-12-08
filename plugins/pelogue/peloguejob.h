@@ -72,19 +72,6 @@ void *addJob(const char *plugin, const char *jobid, uid_t uid, gid_t gid,
 	     Pelogue_JobCb_Func_t *pluginCallback);
 
 /**
- * @brief Check validity of job
- *
- * Check if the pointer @a jobPtr actually points to a valid job,
- * i.e. if the corresponding job still exists.
- *
- * @param jobPtr Pointer to check
- *
- * @return If an according job is found, true is returned. Otherwise
- * false is returned.
- */
-bool checkJobPtr(Job_t *jobPtr);
-
-/**
  * @brief Find job by its job ID
  *
  * @doctodo
@@ -96,36 +83,7 @@ bool checkJobPtr(Job_t *jobPtr);
  */
 Job_t *findJobByJobId(const char *plugin, const char *jobid);
 
-/**
- * @doctodo
- */
-int countJobs(void);
-
-/**
- * @brief Signal all jobs
- *
- * Send the signal @a sig to all pelogues associated to all the jobs
- * currently registered. @a reason is mentioned within the
- * corresponding log messages.
- *
- * @param sig Signal to send to the whole job's pelogues
- *
- * @param reason Reason to be mentioned in the logs
- *
- * @return No return value
- */
-void signalAllJobs(int sig, char *reason);
-
-/**
- * @brief Delete a job
- *
- * Delete the job structure @a job
- *
- * @param job Job structure to be deleted
- *
- * @return Return true if the job was deleted of false otherwise
- */
-bool deleteJob(Job_t *job);
+PElogue_Res_List_t *findJobNodeEntry(Job_t *job, PSnodes_ID_t id);
 
 /**
  * @brief Find a jobid in the job history.
@@ -134,16 +92,25 @@ bool deleteJob(Job_t *job);
  *
  * @return Returns true if the job was found in the history or false otherwise
  */
-bool isJobIDinHistory(char *jobid);
-
-PElogue_Res_List_t *findJobNodeEntry(Job_t *job, PSnodes_ID_t id);
+bool jobIDInHistory(char *jobid);
 
 /**
- * @brief Delete all jobs.
- *
- * @return No return value.
+ * @doctodo
  */
-void clearJobList(void);
+int countJobs(void);
+
+/**
+ * @brief Check validity of job
+ *
+ * Check if the pointer @a jobPtr actually points to a valid job,
+ * i.e. if the corresponding job still exists.
+ *
+ * @param jobPtr Pointer to check
+ *
+ * @return If an according job is found, true is returned. Otherwise
+ * false is returned.
+ */
+bool checkJobPtr(Job_t *jobPtr);
 
 /**
  * @brief Visitor function
@@ -183,6 +150,39 @@ typedef bool JobVisitor_t(Job_t *job, const void *info);
 bool traverseJobs(JobVisitor_t visitor, const void *info);
 
 /**
+ * @brief Delete a job
+ *
+ * Delete the job structure @a job
+ *
+ * @param job Job structure to be deleted
+ *
+ * @return Return true if the job was deleted of false otherwise
+ */
+bool deleteJob(Job_t *job);
+
+/**
+ * @brief Delete all jobs.
+ *
+ * @return No return value.
+ */
+void clearJobList(void);
+
+/**
+ * @brief Signal all jobs
+ *
+ * Send the signal @a sig to all pelogues associated to all the jobs
+ * currently registered. @a reason is mentioned within the
+ * corresponding log messages.
+ *
+ * @param sig Signal to send to the whole job's pelogues
+ *
+ * @param reason Reason to be mentioned in the logs
+ *
+ * @return No return value
+ */
+void signalAllJobs(int sig, char *reason);
+
+/**
  * @brief Stop execution of job's pelogues
  *
  * Stop the execution of all pelogues associated to the job @a job.
@@ -192,5 +192,22 @@ bool traverseJobs(JobVisitor_t visitor, const void *info);
  * @return No return value
  */
 void stopJobExecution(Job_t *job);
+
+/**
+ * @brief Tell job that pelogue has finished
+ *
+ * Tell the job @a job that one pelogue has finished with returning @a
+ * status. If the flag @a prologue is true, the finished pelogue
+ * actually is a prologue. Otherwise it's a epilogue.
+ *
+ * @param job Job to modify
+ *
+ * @param status Exit value of the finished pelogue
+ *
+ * @param prologue Flag marking pelogue to be a prologue
+ *
+ * @return No return value
+ */
+void finishJobPElogue(Job_t *job, int status, bool prologue);
 
 #endif  /* __PELOGUE_JOB */

@@ -11,9 +11,11 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <signal.h>
 
 #include "pluginmalloc.h"
 
+#include "peloguelog.h"
 #include "peloguecomm.h"
 #include "peloguescript.h"
 
@@ -117,7 +119,7 @@ PElogue_Res_List_t *findJobNodeEntry(Job_t *job, PSnodes_ID_t id)
     return NULL;
 }
 
-bool isJobIDinHistory(char *jobid)
+bool jobIDInHistory(char *jobid)
 {
     int i;
 
@@ -138,6 +140,32 @@ int countJobs(void)
     return count;
 }
 
+bool checkJobPtr(Job_t *jobPtr)
+{
+    list_t *j;
+
+    if (!jobPtr) return false;
+
+    list_for_each(j, &jobList) {
+	Job_t *job = list_entry(j, Job_t, next);
+	if (job == jobPtr) return true;
+    }
+
+    return false;
+}
+
+bool traverseJobs(JobVisitor_t visitor, const void *info)
+{
+    list_t *j;
+
+    list_for_each(j, &jobList) {
+	Job_t *job = list_entry(j, Job_t, next);
+
+	if (visitor(job, info)) return true;
+    }
+
+    return false;
+}
 
 static void doDeleteJob(Job_t *job)
 {
@@ -188,29 +216,45 @@ void stopJobExecution(Job_t *job)
     job->pluginCallback(job->id, -4, 1, job->nodes);
 }
 
-bool checkJobPtr(Job_t *jobPtr)
+void finishJobPElogue(Job_t *job, int status, bool prologue)
 {
-    list_t *j;
+    char *peType = prologue ? "prologue" : "epilogue";
+    int track  = prologue ? job->prologueTrack : job->epilogueTrack;
+    int exit = prologue ? job->prologueExit : job->epilogueExit;
 
-    if (!jobPtr) return false;
-
-    list_for_each(j, &jobList) {
-	Job_t *job = list_entry(j, Job_t, next);
-	if (job == jobPtr) return true;
+    if (track < 0) {
+	mlog("%s: %s tracking error for job %s\n", __func__, peType, job->id);
+	return;
     }
 
-    return false;
-}
+    track--;
 
-bool traverseJobs(JobVisitor_t visitor, const void *info)
-{
-    list_t *j;
+    /* check if PElogue was running on all hosts */
+    if (!track) {
+	if (!exit) exit = status;
 
-    list_for_each(j, &jobList) {
-	Job_t *job = list_entry(j, Job_t, next);
+	/* stop monitoring the PELouge script for timeout */
+	removePELogueTimeout(job);
+	job->pluginCallback(job->id, exit, 0, job->nodes);
+    } else if (status && !exit) {
+	char *reason = prologue ? "prologue failed" : "epilogue failed";
 
-	if (visitor(job, info)) return true;
+	/* update job state */
+	job->state = prologue ? JOB_CANCEL_PROLOGUE : JOB_CANCEL_EPILOGUE;
+
+	/* Cancel the PElogue scripts on all hosts. The signal
+	 * SIGTERM will force the forwarder for PElogue scripts
+	 * to kill the script. */
+	if (job->signalFlag != SIGTERM && job->signalFlag != SIGKILL) {
+	    sendPElogueSignal(job, SIGTERM, reason);
+	}
     }
 
-    return false;
+    if (status && (status > exit || status < 0)) {
+	if (prologue) {
+	    job->prologueExit = status;
+	} else {
+	    job->epilogueExit = status;
+	}
+    }
 }

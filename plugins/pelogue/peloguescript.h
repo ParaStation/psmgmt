@@ -29,7 +29,6 @@ int checkPELogueFileStats(char *filename, int root);
 int callbackPElogue(int fd, PSID_scriptCBInfo_t *info);
 int prepScriptEnv(void *info);
 
-void PElogueExit(Job_t *job, int status, bool prologue);
 void monitorPELogueTimeout(Job_t *job);
 
 void removePELogueTimeout(Job_t *job);

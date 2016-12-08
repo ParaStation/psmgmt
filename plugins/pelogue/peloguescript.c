@@ -7,14 +7,6 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-/**
- * $Id$
- *
- * \author
- * Michael Rauh <rauh@par-tec.com>
- *
- */
-
 #include <stdlib.h>
 #include <stdio.h>
 #include <sys/stat.h>
@@ -67,53 +59,6 @@ void removePELogueTimeout(Job_t *job)
     if (job->pelogueMonitorId != -1) {
 	Timer_remove(job->pelogueMonitorId);
 	job->pelogueMonitorId = -1;
-    }
-}
-
-void PElogueExit(Job_t *job, int status, bool prologue)
-{
-    char *peType;
-    int *track;
-    int *epExit;
-
-    peType = prologue ? "prologue" : "epilogue";
-    track = (prologue) ? &job->prologueTrack : &job->epilogueTrack;
-    epExit = (prologue) ? &job->prologueExit : &job->epilogueExit;
-
-    if (*track < 0) {
-	mlog("%s: %s tracking error for job %s\n", __func__, peType, job->id);
-	return;
-    }
-
-    *track = *track -1;
-
-    /* check if PElogue was running on all hosts */
-    if (!(*track)) {
-	if (*epExit == 0) {
-	    *epExit = status;
-	}
-
-	/* stop monitoring the PELouge script for timeout */
-	removePELogueTimeout(job);
-	job->pluginCallback(job->id, *epExit, 0, job->nodes);
-
-    } else if (status != 0 && *epExit == 0) {
-	char *reason;
-
-	/* update job state */
-	job->state = (prologue) ? JOB_CANCEL_PROLOGUE : JOB_CANCEL_EPILOGUE;
-	reason = (prologue) ? "prologue failed" : "epilogue failed";
-
-	/* Cancel the PElogue scripts on all hosts. The signal
-	 * SIGTERM will force the forwarder for PElogue scripts
-	 * to kill the script. */
-	if (job->signalFlag != SIGTERM && job->signalFlag != SIGKILL) {
-	    sendPElogueSignal(job, SIGTERM, reason);
-	}
-    }
-
-    if (status != 0 && (status > *epExit || status < 0)) {
-	*epExit = status;
     }
 }
 
