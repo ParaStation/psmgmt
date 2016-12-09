@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2002-2003 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2015 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -14,27 +14,14 @@
  * applications that need to use independent timers in a transparent
  * way. Within ParaStation this is used by the MCast and RDP
  * modules. Additionally, various plugins make use of this.
- *
- *
- * $Id$
- *
- * @author
- * Norbert Eicker <eicker@par-tec.com>
- *
  */
 #ifndef __TIMER_H
 #define __TIMER_H
 
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <sys/time.h>
-
-#ifdef __cplusplus
-extern "C" {
-#if 0
-} /* <- just for emacs indentation */
-#endif
-#endif
 
 /**
  * The minimum timeout handled by this module in milli-seconds.
@@ -197,16 +184,16 @@ int Timer_remove(int id);
  * Timer_remove() usually saves resources compared to blocking a timer
  * for an undefined period.
  *
- * @param id The unique ID used to identify the timer.
+ * @param id Unique ID used to identify the timer
  *
- * @param block On 0, the timer will be unblocked. On other values, it will
- *        be blocked.
+ * @param block On false the timer will be unblocked while on true it
+ *        will be blocked
  *
- * @return If the timer was blocked before, 1 will be returned. If the timer
- * was not blocked, 0 will be returned. If an error occurred, -1 will be
- * returned.
+ * @return If the timer was blocked before, 1 will be returned. If
+ * the timer was not blocked, 0 will be returned. If an error
+ * occurred, -1 will be returned.
  */
-int Timer_block(int id, int block);
+int Timer_block(int id, bool block);
 
 /**
  * @brief Handle elapsed timers
@@ -234,9 +221,5 @@ int Timer_block(int id, int block);
  * @return No return value.
  */
 void Timer_handleSignals(void);
-
-#ifdef __cplusplus
-}/* extern "C" */
-#endif
 
 #endif /* __TIMER_H */
