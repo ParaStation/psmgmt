@@ -14,9 +14,11 @@
 #include <signal.h>
 
 #include "pluginmalloc.h"
+#include "timer.h"
 
 #include "peloguelog.h"
 #include "peloguecomm.h"
+#include "pelogueconfig.h"
 #include "peloguescript.h"
 
 #include "peloguejob.h"
@@ -65,21 +67,22 @@ void *addJob(const char *plugin, const char *jobid, uid_t uid, gid_t gid,
     job->uid = uid;
     job->gid = gid;
     job->nrOfNodes = nrOfNodes;
-    job->scriptname = NULL;
-    job->pluginCallback = pluginCallback;
     job->signalFlag = 0;
     job->prologueTrack = -1;
     job->prologueExit = 0;
     job->epilogueTrack = -1;
     job->epilogueExit = 0;
+    job->monitorId = -1;
+    job->scriptname = NULL;
+    job->pluginCallback = pluginCallback;
 
     job->nodes = umalloc(sizeof(PElogue_Res_List_t *) * nrOfNodes +
 			 sizeof(PElogue_Res_List_t) * nrOfNodes);
 
     for (i=0; i<job->nrOfNodes; i++) {
 	job->nodes[i].id = nodes[i];
-	job->nodes[i].prologue = -1;
-	job->nodes[i].epilogue = -1;
+	job->nodes[i].prologue = PELOGUE_PENDING;
+	job->nodes[i].epilogue = PELOGUE_PENDING;
     }
 
     /* add job to job history */
@@ -107,16 +110,25 @@ Job_t *findJobById(const char *plugin, const char *jobid)
     return NULL;
 }
 
-PElogue_Res_List_t *findJobNodeEntry(Job_t *job, PSnodes_ID_t id)
+bool setJobNodeStatus(Job_t *job, PSnodes_ID_t node, bool prologue,
+		      PElogueState_t status)
 {
     int i;
 
-    if (!job || !job->nodes) return NULL;
+    if (!checkJobPtr(job)) return false;
+    if (!job->nodes) return false;
 
     for (i=0; i<job->nrOfNodes; i++) {
-	if (job->nodes[i].id == id) return &job->nodes[i];
+	if (job->nodes[i].id == node) {
+	    if (prologue) {
+		job->nodes[i].prologue = status;
+	    } else {
+		job->nodes[i].epilogue = status;
+	    }
+	    return true;
+	}
     }
-    return NULL;
+    return false;
 }
 
 bool jobIDInHistory(char *jobid)
@@ -167,10 +179,20 @@ bool traverseJobs(JobVisitor_t visitor, const void *info)
     return false;
 }
 
+static void cancelJobMonitor(Job_t *job)
+{
+    if (!checkJobPtr(job)) return;
+
+    if (job->monitorId != -1) {
+	Timer_remove(job->monitorId);
+	job->monitorId = -1;
+    }
+}
+
 static void doDeleteJob(Job_t *job)
 {
     /* make sure pelogue timeout monitoring is gone */
-    removePELogueTimeout(job);
+    cancelJobMonitor(job);
 
     if (job->id) free(job->id);
     if (job->plugin) free(job->plugin);
@@ -208,35 +230,27 @@ void signalAllJobs(int signal, char *reason)
     }
 }
 
-void stopJobExecution(Job_t *job)
-{
-    if (!checkJobPtr(job)) return;
-
-    removePELogueTimeout(job);
-    job->pluginCallback(job->id, -4, 1, job->nodes);
-}
-
 void finishJobPElogue(Job_t *job, int status, bool prologue)
 {
     char *peType = prologue ? "prologue" : "epilogue";
-    int track  = prologue ? job->prologueTrack : job->epilogueTrack;
-    int exit = prologue ? job->prologueExit : job->epilogueExit;
+    int *track = prologue ? &job->prologueTrack : &job->epilogueTrack;
+    int *exit = prologue ? &job->prologueExit : &job->epilogueExit;
 
-    if (track < 0) {
+    (*track) -= 1;
+
+    if (*track < 0) {
 	mlog("%s: %s tracking error for job %s\n", __func__, peType, job->id);
 	return;
     }
 
-    track--;
-
     /* check if PElogue was running on all hosts */
-    if (!track) {
-	if (!exit) exit = status;
+    if (!*track) {
+	if (!*exit) *exit = status;
 
 	/* stop monitoring the PELouge script for timeout */
-	removePELogueTimeout(job);
-	job->pluginCallback(job->id, exit, 0, job->nodes);
-    } else if (status && !exit) {
+	cancelJobMonitor(job);
+	job->pluginCallback(job->id, *exit, 0, job->nodes);
+    } else if (status && !*exit) {
 	char *reason = prologue ? "prologue failed" : "epilogue failed";
 
 	/* update job state */
@@ -250,11 +264,99 @@ void finishJobPElogue(Job_t *job, int status, bool prologue)
 	}
     }
 
-    if (status && (status > exit || status < 0)) {
+    if (status && (status > *exit || status < 0)) {
 	if (prologue) {
 	    job->prologueExit = status;
 	} else {
 	    job->epilogueExit = status;
 	}
     }
+}
+
+/**
+ * @brief Callback handler for a job's PElogue timeout
+ *
+ * This callback is called after a job's timeout is expired. While the
+ * first argument @a timerID will hold the ID of the expired timer the
+ * second argument @a info will point to the structure describing the
+ * job whose pelogues timed out
+ *
+ * @param timerId ID of the expired timer
+ *
+ * @param data Pointer to the corresponding job
+ *
+ * @return No return value
+ */
+static void handleJobTimeout(int timerId, void *info)
+{
+    Job_t *job = info;
+    int i, count = 0;
+
+    /* don't call myself again */
+    Timer_remove(timerId);
+
+    /* job could be already deleted */
+    if (!checkJobPtr(job)) return;
+
+    /* don't break job if it got re-queued */
+    if (timerId != job->monitorId) {
+	mlog("%s: timer of old job, skipping it\n", __func__);
+	return;
+    }
+    job->monitorId = -1;
+
+    mlog("%s: global %s timeout for job %s, send SIGKILL\n", __func__,
+	 job->state == JOB_PROLOGUE ? "prologue" : "epilogue", job->id);
+
+    mlog("%s: pending nodeID(s): ", __func__);
+
+    for (i=0; i<job->nrOfNodes; i++) {
+	PElogueState_t *status = (job->state == JOB_PROLOGUE) ?
+	    &job->nodes[i].prologue : &job->nodes[i].epilogue;
+	if (*status == PELOGUE_PENDING) {
+	    mlog("%s%i", count ? "," : "", job->nodes[i].id);
+	    count++;
+	    *status = PELOGUE_TIMEDOUT;
+	}
+    }
+    mlog("\n");
+
+    sendPElogueSignal(job, SIGKILL, "global pelogue timeout");
+    cancelJob(job);
+}
+
+void startJobMonitor(Job_t *job)
+{
+    struct timeval timer = {1,0};
+    int timeout, grace;
+
+    if (job->state == JOB_PROLOGUE) {
+	timeout = getConfParamI(job->plugin, "TIMEOUT_PROLOGUE");
+    } else {
+	timeout = getConfParamI(job->plugin, "TIMEOUT_EPILOGUE");
+    }
+    grace = getConfParamI(job->plugin, "TIMEOUT_PE_GRACE");
+
+    if (timeout < 0 || grace < 0) {
+	mlog("%s: invalid pe timeout %i or grace time %i\n", __func__,
+	     timeout, grace);
+    }
+
+    /* timeout monitoring disabled */
+    if (!timeout) return;
+
+    timer.tv_sec = timeout + (2 * grace);
+
+    job->monitorId = Timer_registerEnhanced(&timer, handleJobTimeout, job);
+    if (job->monitorId == -1) {
+	mlog("%s: monitor registration failed for job %s\n", __func__, job->id);
+    }
+}
+
+void cancelJob(Job_t *job)
+{
+    if (!checkJobPtr(job)) return;
+
+    cancelJobMonitor(job);
+    job->pluginCallback(job->id, -4, 1, job->nodes);
 }

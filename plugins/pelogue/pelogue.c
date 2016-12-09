@@ -7,7 +7,6 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -117,16 +116,16 @@ static bool nodeDownVisitor(Job_t *job, const void *info)
 		 __func__, hname, id, job->id, jobState2String(job->state));
 
 	    if (job->state == JOB_PROLOGUE) {
-		job->nodes[i].prologue = 2;
+		job->nodes[i].prologue = PELOGUE_TIMEDOUT;
 		job->state = JOB_CANCEL_PROLOGUE;
 	    } else {
-		job->nodes[i].epilogue = 2;
+		job->nodes[i].epilogue = PELOGUE_TIMEDOUT;
 		job->state = JOB_CANCEL_EPILOGUE;
 	    }
 
 	    /* stop pelogue scripts on all nodes */
 	    sendPElogueSignal(job, SIGTERM, "node down");
-	    stopJobExecution(job);
+	    cancelJob(job);
 	    break;
 	}
     }

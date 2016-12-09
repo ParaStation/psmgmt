@@ -11,10 +11,6 @@
 #ifndef __PELOGUE_SCRIPT
 #define __PELOGUE_SCRIPT
 
-#include <stdbool.h>
-#include "psidscripts.h"
-#include "peloguejob.h"
-
 /**
  * @brief Verify correct permissions of pelogue scripts.
  *
@@ -25,12 +21,5 @@
  * @return Returns 1 on success or an error code <0 on failure.
  */
 int checkPELogueFileStats(char *filename, int root);
-
-int callbackPElogue(int fd, PSID_scriptCBInfo_t *info);
-int prepScriptEnv(void *info);
-
-void monitorPELogueTimeout(Job_t *job);
-
-void removePELogueTimeout(Job_t *job);
 
 #endif

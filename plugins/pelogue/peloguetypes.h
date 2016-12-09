@@ -49,10 +49,17 @@ typedef struct {
     time_t start_time;
 } PElogue_Data_t;
 
+typedef enum {
+    PELOGUE_PENDING = 1,
+    PELOGUE_DONE,
+    PELOGUE_FAILED,
+    PELOGUE_TIMEDOUT,
+} PElogueState_t;
+
 typedef struct {
-    int prologue;
-    int epilogue;
     PSnodes_ID_t id;
+    PElogueState_t prologue;
+    PElogueState_t epilogue;
 } PElogue_Res_List_t;
 
 typedef void Pelogue_JobCb_Func_t (char *, int, int, PElogue_Res_List_t *);

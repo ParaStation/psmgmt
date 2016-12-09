@@ -28,21 +28,21 @@ typedef enum {
 
 typedef struct {
     list_t next;          /**< used to put into list */
+    char *plugin;
     char *id;             /**< batch system's job ID */
     uid_t uid;            /**< job owner's user id  */
     gid_t gid;            /**< job owner's group id */
     pid_t pid;            /**< pid of the running child (e.g. jobscript) */
     pid_t sid;            /**< sid of the running child */
     PElogue_Res_List_t *nodes; /**< all participating nodes in the job */
+    int nrOfNodes;        /**< size of @ref nodes */
     int prologueTrack;    /**< track how many prologue scripts has finished */
     int prologueExit;     /**< the max exit code of all prologue scripts */
     int epilogueTrack;    /**< track how many epilogue scripts has finished */
     int epilogueExit;     /**< the max exit code of all epilogue scripts */
-    int pelogueMonitorId; /**< timer id of the pelogue monitor */
-    int nrOfNodes;
+    int monitorId;        /**< timer id of the pelogue monitor */
     int signalFlag;
     int state;
-    char *plugin;
     Pelogue_JobCb_Func_t *pluginCallback;
     char *scriptname;
     time_t PElogue_start;
@@ -74,16 +74,38 @@ void *addJob(const char *plugin, const char *jobid, uid_t uid, gid_t gid,
 /**
  * @brief Find job by its job ID
  *
- * @doctodo
+ * Find a job by the name of the registrating plugin @a plugin and its
+ * job ID @a jobid.
  *
- * @param id The id of the job to find.
+ * @param plugin Name of the plugin that registered the job to find
  *
- * @return Returns a pointer to the job or NULL if the
- * job was not found.
+ * @param jobid ID of the job to find
+ *
+ * @return Returns a pointer to the job or NULL if the job was not
+ * found
  */
 Job_t *findJobByJobId(const char *plugin, const char *jobid);
 
-PElogue_Res_List_t *findJobNodeEntry(Job_t *job, PSnodes_ID_t id);
+/**
+ * @brief Set job's node status
+ *
+ * Set the status of a pelogue on the node @a node within the job @a
+ * job to @a status. If the flag @a prologue is true, the prologue
+ * status will be set. Otherwise the epilogue status is set.
+ *
+ * @param job The job to modify
+ *
+ * @param node The node within job to be modified
+ *
+ * @param prologue Flag to indicate modification of prologue or
+ * epilogue
+ *
+ * @param status New status to be set
+ *
+ * @return If the status was set, true is returned or false otherwise
+ */
+bool setJobNodeStatus(Job_t *job, PSnodes_ID_t node, bool prologue,
+		      PElogueState_t status);
 
 /**
  * @brief Find a jobid in the job history.
@@ -95,7 +117,12 @@ PElogue_Res_List_t *findJobNodeEntry(Job_t *job, PSnodes_ID_t id);
 bool jobIDInHistory(char *jobid);
 
 /**
- * @doctodo
+ * @brief Count number of jobs
+ *
+ * Determine the current number of jobs within the list of all
+ * registered jobs and return the corresponding number.
+ *
+ * @return Return the number of jobs registered
  */
 int countJobs(void);
 
@@ -183,15 +210,22 @@ void clearJobList(void);
 void signalAllJobs(int sig, char *reason);
 
 /**
- * @brief Stop execution of job's pelogues
+ * @brief Start to monitor a job
  *
- * Stop the execution of all pelogues associated to the job @a job.
+ * Start to monitor the job @a job. This will register a timer
+ * determined that expires according to the jobs configuration
+ * parameters TIMEOUT_PROLOGUE or TIMEOUT_EPILOGUE respectively and
+ * TIMEOUT_PE_GRACE. Once the timer expires the job state will be
+ * investigated if any pelogues are still pending. If this is the
+ * case, the timer itself will be canceled, signals will be sent to
+ * cancel pending pelogues, and finally the whole job will be canceled
+ * in order to trigger the callback to the registrator.
  *
- * @param job Job identifying the pelogues to stop
+ * @param job The job to monitor
  *
  * @return No return value
  */
-void stopJobExecution(Job_t *job);
+void startJobMonitor(Job_t *job);
 
 /**
  * @brief Tell job that pelogue has finished
@@ -209,5 +243,21 @@ void stopJobExecution(Job_t *job);
  * @return No return value
  */
 void finishJobPElogue(Job_t *job, int status, bool prologue);
+
+/**
+ * @brief Cancel job's execution
+ *
+ * Cancel the execution of the job @a job.
+ *
+ * This will just stop the job's monitor and execute its callback in
+ * order to trigger the registrator. No pending pelogues will be
+ * signaled or canceld. This has to be done via a separate call to
+ * @ref sendPElogueSignal() if required.
+ *
+ * @param job Job identifying the pelogues to stop
+ *
+ * @return No return value
+ */
+void cancelJob(Job_t *job);
 
 #endif  /* __PELOGUE_JOB */
