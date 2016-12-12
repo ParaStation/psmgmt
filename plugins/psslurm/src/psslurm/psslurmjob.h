@@ -186,9 +186,9 @@ typedef struct {
     int stdInOpt;
     int stdOutOpt;
     int stdErrOpt;
-    char *stdOut;
-    char *stdIn;
-    char *stdErr;
+    char *stdOut;		/* redirect stdout to this file */
+    char *stdIn;		/* redirect stdin from this file */
+    char *stdErr;		/* redirect stderr to this file */
     int32_t stdOutRank;
     int32_t stdErrRank;
     int32_t stdInRank;
@@ -260,9 +260,9 @@ typedef struct {
     uint16_t *cpusPerNode;
     uint32_t *cpuCountReps;
     char *cwd;
-    char *stdOut;
-    char *stdIn;
-    char *stdErr;
+    char *stdOut;	    /* redirect stdout to this file */
+    char *stdIn;	    /* redirect stdin from this file */
+    char *stdErr;	    /* redirect stderr to this file */
     char *jobscript;
     char *hostname;
     char *checkpoint;

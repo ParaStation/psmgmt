@@ -622,10 +622,26 @@ static void setupStepIO(Forwarder_Data_t *fwdata, Step_t *step)
 			__func__, fwdata->stdErr[0]);
 		exit(1);
 	    }
-	    if ((dup2(fwdata->stdIn[0], STDIN_FILENO)) == -1) {
-		mwarn(errno, "%s: stdin dup2(%u) failed: ",
-			__func__, fwdata->stdIn[0]);
-		exit(1);
+	    if (step->stdInRank == -1 && step->stdIn &&
+	       strlen(step->stdIn) > 0) {
+		/* input is redirected from file and not connected to psidfw! */
+
+		int fd;
+		if ((fd = open("/dev/null", O_RDONLY)) == -1) {
+		    mwarn(errno, "%s: open /dev/null failed :", __func__);
+		    exit(1);
+		}
+		if ((dup2(fd, STDIN_FILENO)) == -1) {
+		    mwarn(errno, "%s: dup2(%i) '/dev/null' failed :",
+			    __func__, fd);
+		    exit(1);
+		}
+	    } else {
+		if ((dup2(fwdata->stdIn[0], STDIN_FILENO)) == -1) {
+		    mwarn(errno, "%s: stdin dup2(%u) failed: ",
+			    __func__, fwdata->stdIn[0]);
+		    exit(1);
+		}
 	    }
 	}
 

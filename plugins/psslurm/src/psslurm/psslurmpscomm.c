@@ -1223,6 +1223,7 @@ static void handleCC_IO_Msg(PSLog_Msg_t *msg)
     return;
 
 OLD_MSG_HANDLER:
+
     if (oldCCMsgHandler) oldCCMsgHandler((DDBufferMsg_t *) msg);
 }
 
@@ -1265,15 +1266,38 @@ static void handleCC_INIT_Msg(PSLog_Msg_t *msg)
 
 static void handleCC_STDIN_Msg(PSLog_Msg_t *msg)
 {
-    int count;
+    int msgLen;
+    Step_t *step;
+    PStask_t *task;
 
-    /* don't let the logger close stdins of the forwarders */
-    count = msg->header.len - PSLog_headerSize;
-    if (!count) return;
+    msgLen = msg->header.len - PSLog_headerSize;
 
-    mdbg(PSSLURM_LOG_IO, "%s: sender: %d dest '%s' count:%u\n",
-	    __func__, msg->sender, PSC_printTID(msg->header.dest),
-	    count);
+    mdbg(PSSLURM_LOG_IO, "%s: src '%s' ", __func__,
+	    PSC_printTID(msg->header.sender));
+    mdbg(PSSLURM_LOG_IO, "dest '%s' data len '%u'\n",
+	    PSC_printTID(msg->header.dest),
+	    msgLen);
+
+    if (!(step = findStepByLogger(msg->header.sender))) {
+	if ((task = PStasklist_find(&managedTasks, msg->header.sender))) {
+	    /* allow mpiexec jobs from admin users to pass */
+	    if ((isPSAdminUser(task->uid, task->gid))) goto OLD_MSG_HANDLER;
+	}
+
+	mlog("%s: step for stdin msg from logger '%s' not found\n", __func__,
+		PSC_printTID(msg->header.sender));
+	goto OLD_MSG_HANDLER;
+    }
+
+    /* don't let the logger close stdin of the psidfw */
+    if (!msgLen) return;
+
+    if (step->stdInRank == -1 && step->stdIn && strlen(step->stdIn) > 0) {
+	/* input is redirected from file and not connected to psidfw! */
+	return;
+    }
+
+OLD_MSG_HANDLER:
 
     if (oldCCMsgHandler) oldCCMsgHandler((DDBufferMsg_t *) msg);
 }
