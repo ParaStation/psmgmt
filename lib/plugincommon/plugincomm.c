@@ -128,12 +128,12 @@ int __doWrite(int fd, void *buffer, size_t toWrite, const char *func,
 {
     static time_t lastLog = 0;
     char *ptr = buffer;
-    ssize_t ret = 0;
     size_t written = 0;
     int retries = 0;
 
     while ((written < toWrite) && (infinite || retries++ <= MAX_RETRY)) {
-	if ((ret = write(fd, ptr + written, toWrite - written)) == -1) {
+	ssize_t ret = write(fd, ptr + written, toWrite - written);
+	if (ret == -1) {
 	    int eno = errno;
 	    if (eno == EINTR || eno == EAGAIN) continue;
 
@@ -161,14 +161,14 @@ int __doReadExt(int fd, void *buffer, size_t toRead, size_t *numRead,
 {
     static time_t lastLog = 0;
     char *ptr = buffer;
-    ssize_t num = 0;
     int retries = 0;
 
     *numRead = 0;
     if (pedantic) setFDblock(fd, 0);
 
     while ((*numRead < toRead) && (retries++ <= MAX_RETRY)) {
-	if ((num = read(fd, ptr + *numRead, toRead - *numRead)) < 0) {
+	ssize_t num = read(fd, ptr + *numRead, toRead - *numRead);
+	if (num < 0) {
 	    int eno = errno;
 	    if (eno == EINTR || eno == EAGAIN) continue;
 
@@ -259,7 +259,7 @@ bool getFromBuf(char **ptr, void *val, PS_DataType_t type,
 	return false;
     }
 
-    if (!(verifyTypeInfo(ptr, type, caller, line))) return false;
+    if (!verifyTypeInfo(ptr, type, caller, line)) return false;
 
     memcpy(val, *ptr, size);
     if (byteOrder) {
@@ -323,7 +323,7 @@ void *getMemFromBuf(char **ptr, char *data, size_t dataSize, size_t *len,
 	return NULL;
     }
 
-    if (!(verifyTypeInfo(ptr, type, caller, line))) return NULL;
+    if (!verifyTypeInfo(ptr, type, caller, line)) return NULL;
 
     /* data length */
     l = *(uint32_t *) *ptr;
@@ -348,6 +348,8 @@ void *getMemFromBuf(char **ptr, char *data, size_t dataSize, size_t *len,
 	memcpy(data, *ptr, l);
 	if (type == PSDATA_STRING) data[l-1] = '\0';
 	*ptr += l;
+    } else if (type == PSDATA_STRING) {
+	data[0] = '\0';
     }
 
     return data;
