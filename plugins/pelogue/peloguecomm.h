@@ -32,8 +32,6 @@ typedef enum {
 
 void handlePelogueMsg(DDTypedBufferMsg_t *msg);
 
-void handleIntMsg(DDTypedBufferMsg_t *msg);
-
 void handleDroppedMsg(DDTypedBufferMsg_t *msg);
 
 int sendPElogueStart(Job_t *job, bool prologue, env_t *env);

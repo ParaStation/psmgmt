@@ -53,6 +53,42 @@ static void sendFragMsgToHostList(Job_t *job, PS_DataBuffer_t *data,
     }
 }
 
+static void manageTempDir(const char *plugin, const char *jobid, bool create,
+			  uid_t uid, gid_t gid)
+{
+    char *confTmpDir = getConfParamC(plugin, "DIR_TEMP"), tmpDir[400] = {'\0'};
+    struct stat statbuf;
+
+    /* set temp dir using hashname */
+    if (confTmpDir) {
+	snprintf(tmpDir, sizeof(tmpDir), "%s/%s", confTmpDir, jobid);
+    }
+
+    if (create) {
+	if (confTmpDir && (stat(tmpDir, &statbuf) == -1)) {
+	    if (mkdir(tmpDir, S_IRWXU) == -1) {
+		mdbg(PELOGUE_LOG_WARN, "%s: mkdir (%s): %s\n", __func__,
+		     tmpDir, strerror(errno));
+	    } else if (chown(tmpDir, uid, gid) == -1) {
+		mwarn(errno, "%s: chown(%s)", __func__, tmpDir);
+	    }
+	}
+    } else {
+	/* delete temp directory in epilogue */
+	if (confTmpDir) removeDir(tmpDir, 1);
+    }
+}
+
+static void destroyPElogueData(PElogue_Data_t *pedata)
+{
+    envDestroy(&pedata->env);
+    ufree(pedata->jobid);
+    ufree(pedata->plugin);
+    ufree(pedata->scriptname);
+    ufree(pedata->dirScripts);
+    ufree(pedata);
+}
+
 int sendPElogueStart(Job_t *job, bool prologue, env_t *env)
 {
     PS_DataBuffer_t data = { .buf = NULL};
@@ -93,157 +129,9 @@ int sendPElogueStart(Job_t *job, bool prologue, env_t *env)
     return 1;
 }
 
-void sendPElogueSignal(Job_t *job, int sig, char *reason)
-{
-    DDTypedBufferMsg_t msg = (DDTypedBufferMsg_t) {
-	.header = (DDMsg_t) {
-	    .type = PSP_CC_PLUG_PELOGUE,
-	    .sender = PSC_getMyTID(),
-	    .dest = -1,
-	    .len = sizeof(msg.header) + sizeof(msg.type) },
-	.type = PSP_PELOGUE_SIGNAL,
-	.buf = {'\0'} };
-    int i;
+static int fwCallback(int32_t wstat, Forwarder_Data_t *fwdata);
 
-    addStringToMsgBuf(&msg, job->plugin);
-    addStringToMsgBuf(&msg, job->id);
-    addInt32ToMsgBuf(&msg, sig);
-    addStringToMsgBuf(&msg, reason);
-
-    for (i=0; i<job->nrOfNodes; i++) {
-	PSnodes_ID_t node = job->nodes[i].id;
-	PElogueState_t status = (job->state == JOB_PROLOGUE) ?
-	    job->nodes[i].prologue : job->nodes[i].epilogue;
-	if (status != PELOGUE_PENDING) continue;
-
-	msg.header.dest = PSC_getTID(node, 0);
-	mdbg(PELOGUE_LOG_PSIDCOM, "%s: send to %i\n", __func__, node);
-	if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
-	    mwarn(errno, "%s: sendMsg() to %i failed", __func__, node);
-	}
-    }
-}
-
-static void manageTempDir(const char *plugin, const char *jobid, bool create,
-			  uid_t uid, gid_t gid)
-{
-    char *confTmpDir = getConfParamC(plugin, "DIR_TEMP"), tmpDir[400] = {'\0'};
-    struct stat statbuf;
-
-    /* set temp dir using hashname */
-    if (confTmpDir) {
-	snprintf(tmpDir, sizeof(tmpDir), "%s/%s", confTmpDir, jobid);
-    }
-
-    if (create) {
-	if (confTmpDir && (stat(tmpDir, &statbuf) == -1)) {
-	    if (mkdir(tmpDir, S_IRWXU) == -1) {
-		mdbg(PELOGUE_LOG_WARN, "%s: mkdir (%s): %s\n", __func__,
-		     tmpDir, strerror(errno));
-	    } else if (chown(tmpDir, uid, gid) == -1) {
-		mwarn(errno, "%s: chown(%s)", __func__, tmpDir);
-	    }
-	}
-    } else {
-	/* delete temp directory in epilogue */
-	if (confTmpDir) removeDir(tmpDir, 1);
-    }
-}
-
-static void destroyPElogueData(PElogue_Data_t *pedata)
-{
-    envDestroy(&pedata->env);
-    ufree(pedata->jobid);
-    ufree(pedata->plugin);
-    ufree(pedata->scriptname);
-    ufree(pedata->dirScripts);
-    ufree(pedata);
-}
-
-int fwCallback(int32_t wstat, Forwarder_Data_t *fwdata)
-{
-    DDTypedBufferMsg_t msg;
-    PElogue_Data_t *pedata = fwdata->userData;
-    Child_t *child = pedata->child;
-    int ret, exit_status, signalFlag;
-
-    signalFlag = child->signalFlag;
-
-    if (WIFEXITED(wstat)) {
-	exit_status = WEXITSTATUS(wstat);
-    } else if (WIFSIGNALED(wstat)) {
-	exit_status = WTERMSIG(wstat) + 0x100;
-    } else {
-	exit_status = 1;
-    }
-
-    /* let other plugins get information about completed pelogue */
-    pedata->exit = exit_status;
-    PSIDhook_call(PSIDHOOK_PELOGUE_FINISH, pedata);
-
-    if (!deleteChild(pedata->plugin, pedata->jobid)) {
-	mlog("%s: deleting child '%s' failed\n", __func__, fwdata->jobID);
-    }
-
-    if (pedata->prologue) {
-	/* add to statistic */
-	if (pedata->frontend){
-	    if (exit_status != 0) {
-		stat_failedlProlog++;
-	    } else {
-		stat_lProlog++;
-	    }
-	} else {
-	    if (exit_status != 0) {
-		stat_failedrProlog++;
-	    } else {
-		stat_rProlog++;
-	    }
-	}
-
-	/* delete temp directory if prologue failed */
-	if (exit_status != 0) {
-	    manageTempDir(pedata->plugin, pedata->jobid, false, pedata->uid,
-			  pedata->gid);
-	}
-    } else {
-	/* delete temp directory in epilogue */
-	manageTempDir(pedata->plugin, pedata->jobid, false, pedata->uid,
-		      pedata->gid);
-    }
-
-    /* send result to mother superior */
-    msg = (DDTypedBufferMsg_t) {
-	.header = (DDMsg_t) {
-	    .type = PSP_CC_PLUG_PELOGUE,
-	    .sender = PSC_getMyTID(),
-	    .dest = pedata->mainPelogue,
-	    .len = sizeof(msg.header) + sizeof(msg.type) },
-	.type = pedata->prologue ? PSP_PROLOGUE_FINISH : PSP_EPILOGUE_FINISH,
-	.buf = {'\0'} };
-
-    addStringToMsgBuf(&msg, pedata->plugin);
-    addStringToMsgBuf(&msg, pedata->jobid);
-    addTimeToMsgBuf(&msg, pedata->start_time);
-    addInt32ToMsgBuf(&msg, exit_status);
-    addInt32ToMsgBuf(&msg, signalFlag);
-
-    mlog("%s: local %s exit %i job %s to %s\n", __func__,
-	 pedata->prologue ? "prologue" : "epilogue", exit_status,
-	 pedata->jobid, PSC_printTID(pedata->mainPelogue));
-
-    ret = sendMsg(&msg);
-    if (ret == -1 && errno != EWOULDBLOCK) {
-	mwarn(errno, "%s: sendMsg()", __func__);
-    }
-
-    /* cleanup */
-    destroyPElogueData(pedata);
-
-    return 0;
-}
-
-static void handlePELogueStart(DDTypedBufferMsg_t *imsg, PS_DataBuffer_t *rData)
+static void handlePElogueStart(DDTypedBufferMsg_t *imsg, PS_DataBuffer_t *rData)
 {
     char *ptr = rData->buf, ctype[20], fname[100], *tmp, *dirScripts;
     int32_t envSize;
@@ -359,7 +247,164 @@ static void handlePELogueStart(DDTypedBufferMsg_t *imsg, PS_DataBuffer_t *rData)
 	    __func__, ctype, data->plugin, data->jobid);
 }
 
-static void handlePELogueFinish(DDTypedBufferMsg_t *msg, char *msgData)
+void sendPElogueSignal(Job_t *job, int sig, char *reason)
+{
+    DDTypedBufferMsg_t msg = (DDTypedBufferMsg_t) {
+	.header = (DDMsg_t) {
+	    .type = PSP_CC_PLUG_PELOGUE,
+	    .sender = PSC_getMyTID(),
+	    .dest = -1,
+	    .len = sizeof(msg.header) + sizeof(msg.type) },
+	.type = PSP_PELOGUE_SIGNAL,
+	.buf = {'\0'} };
+    int i;
+
+    addStringToMsgBuf(&msg, job->plugin);
+    addStringToMsgBuf(&msg, job->id);
+    addInt32ToMsgBuf(&msg, sig);
+    addStringToMsgBuf(&msg, reason);
+
+    for (i=0; i<job->nrOfNodes; i++) {
+	PSnodes_ID_t node = job->nodes[i].id;
+	PElogueState_t status = (job->state == JOB_PROLOGUE) ?
+	    job->nodes[i].prologue : job->nodes[i].epilogue;
+	if (status != PELOGUE_PENDING) continue;
+
+	msg.header.dest = PSC_getTID(node, 0);
+	mdbg(PELOGUE_LOG_PSIDCOM, "%s: send to %i\n", __func__, node);
+	if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
+	    mwarn(errno, "%s: sendMsg() to %i failed", __func__, node);
+	}
+    }
+}
+
+static void handlePElogueSignal(DDTypedBufferMsg_t *msg)
+{
+    char *ptr = msg->buf;
+    char plugin[JOB_NAME_LEN], jobid[JOB_NAME_LEN], reason[100];
+    int32_t signal;
+    Child_t *child;
+    Forwarder_Data_t *fwdata;
+
+    getString(&ptr, plugin, sizeof(plugin));
+    getString(&ptr, jobid, sizeof(jobid));
+    getInt32(&ptr, &signal);
+    getString(&ptr, reason, sizeof(reason));
+
+    /* find job */
+    child = findChild(plugin, jobid);
+    if (!child) {
+	mdbg(PELOGUE_LOG_WARN, "%s: No child for job %s\n", __func__, jobid);
+	return;
+    }
+    fwdata = child->fwdata;
+
+    /* save the signal we are about to send */
+    if (signal == SIGTERM || signal == SIGKILL) {
+	child->signalFlag = signal;
+    }
+
+    /* send the signal */
+    if (fwdata->cSid > 0) {
+	mlog("signal '%i' to pelogue '%s' - reason '%s' - sid '%i'\n",
+		signal, jobid, reason, fwdata->cSid);
+	psAccountSignalSession(fwdata->cSid, signal);
+    } else if (fwdata->cPid > 0) {
+	mlog("signal '%i' to pelogue '%s' - reason '%s' - pid '%i'\n",
+		signal, jobid, reason, fwdata->cPid);
+	kill(fwdata->cPid, signal);
+    } else if ( (signal == SIGTERM || signal == SIGKILL) && fwdata->tid != -1) {
+	kill(PSC_getPID(fwdata->tid), SIGTERM);
+    } else {
+	mlog("%s: not sending signal '%i' to job '%s' : "
+		"invalid forwarder data\n", __func__, signal, jobid);
+    }
+}
+
+static int fwCallback(int32_t wstat, Forwarder_Data_t *fwdata)
+{
+    DDTypedBufferMsg_t msg;
+    PElogue_Data_t *pedata = fwdata->userData;
+    Child_t *child = pedata->child;
+    int ret, exit_status, signalFlag;
+
+    signalFlag = child->signalFlag;
+
+    if (WIFEXITED(wstat)) {
+	exit_status = WEXITSTATUS(wstat);
+    } else if (WIFSIGNALED(wstat)) {
+	exit_status = WTERMSIG(wstat) + 0x100;
+    } else {
+	exit_status = 1;
+    }
+
+    /* let other plugins get information about completed pelogue */
+    pedata->exit = exit_status;
+    PSIDhook_call(PSIDHOOK_PELOGUE_FINISH, pedata);
+
+    if (!deleteChild(pedata->plugin, pedata->jobid)) {
+	mlog("%s: deleting child '%s' failed\n", __func__, fwdata->jobID);
+    }
+
+    if (pedata->prologue) {
+	/* add to statistic */
+	if (pedata->frontend){
+	    if (exit_status != 0) {
+		stat_failedlProlog++;
+	    } else {
+		stat_lProlog++;
+	    }
+	} else {
+	    if (exit_status != 0) {
+		stat_failedrProlog++;
+	    } else {
+		stat_rProlog++;
+	    }
+	}
+
+	/* delete temp directory if prologue failed */
+	if (exit_status != 0) {
+	    manageTempDir(pedata->plugin, pedata->jobid, false, pedata->uid,
+			  pedata->gid);
+	}
+    } else {
+	/* delete temp directory in epilogue */
+	manageTempDir(pedata->plugin, pedata->jobid, false, pedata->uid,
+		      pedata->gid);
+    }
+
+    /* send result to mother superior */
+    msg = (DDTypedBufferMsg_t) {
+	.header = (DDMsg_t) {
+	    .type = PSP_CC_PLUG_PELOGUE,
+	    .sender = PSC_getMyTID(),
+	    .dest = pedata->mainPelogue,
+	    .len = sizeof(msg.header) + sizeof(msg.type) },
+	.type = pedata->prologue ? PSP_PROLOGUE_FINISH : PSP_EPILOGUE_FINISH,
+	.buf = {'\0'} };
+
+    addStringToMsgBuf(&msg, pedata->plugin);
+    addStringToMsgBuf(&msg, pedata->jobid);
+    addTimeToMsgBuf(&msg, pedata->start_time);
+    addInt32ToMsgBuf(&msg, exit_status);
+    addInt32ToMsgBuf(&msg, signalFlag);
+
+    mlog("%s: local %s exit %i job %s to %s\n", __func__,
+	 pedata->prologue ? "prologue" : "epilogue", exit_status,
+	 pedata->jobid, PSC_printTID(pedata->mainPelogue));
+
+    ret = sendMsg(&msg);
+    if (ret == -1 && errno != EWOULDBLOCK) {
+	mwarn(errno, "%s: sendMsg()", __func__);
+    }
+
+    /* cleanup */
+    destroyPElogueData(pedata);
+
+    return 0;
+}
+
+static void handlePElogueFinish(DDTypedBufferMsg_t *msg, char *msgData)
 {
     PSnodes_ID_t node = PSC_getID(msg->header.sender);
     char *ptr = msg->buf, plugin[JOB_NAME_LEN], jobid[JOB_NAME_LEN], peType[32];
@@ -407,49 +452,6 @@ static void handlePELogueFinish(DDTypedBufferMsg_t *msg, char *msgData)
     finishJobPElogue(job, res, prologue);
 }
 
-static void handlePELogueSignal(DDTypedBufferMsg_t *msg)
-{
-    char *ptr = msg->buf;
-    char plugin[JOB_NAME_LEN], jobid[JOB_NAME_LEN], reason[100];
-    int32_t signal;
-    Child_t *child;
-    Forwarder_Data_t *fwdata;
-
-    getString(&ptr, plugin, sizeof(plugin));
-    getString(&ptr, jobid, sizeof(jobid));
-    getInt32(&ptr, &signal);
-    getString(&ptr, reason, sizeof(reason));
-
-    /* find job */
-    child = findChild(plugin, jobid);
-    if (!child) {
-	mdbg(PELOGUE_LOG_WARN, "%s: No child for job %s\n", __func__, jobid);
-	return;
-    }
-    fwdata = child->fwdata;
-
-    /* save the signal we are about to send */
-    if (signal == SIGTERM || signal == SIGKILL) {
-	child->signalFlag = signal;
-    }
-
-    /* send the signal */
-    if (fwdata->cSid > 0) {
-	mlog("signal '%i' to pelogue '%s' - reason '%s' - sid '%i'\n",
-		signal, jobid, reason, fwdata->cSid);
-	psAccountSignalSession(fwdata->cSid, signal);
-    } else if (fwdata->cPid > 0) {
-	mlog("signal '%i' to pelogue '%s' - reason '%s' - pid '%i'\n",
-		signal, jobid, reason, fwdata->cPid);
-	kill(fwdata->cPid, signal);
-    } else if ( (signal == SIGTERM || signal == SIGKILL) && fwdata->tid != -1) {
-	kill(PSC_getPID(fwdata->tid), SIGTERM);
-    } else {
-	mlog("%s: not sending signal '%i' to job '%s' : "
-		"invalid forwarder data\n", __func__, signal, jobid);
-    }
-}
-
 void handlePelogueMsg(DDTypedBufferMsg_t *msg)
 {
     char cover[128];
@@ -463,14 +465,14 @@ void handlePelogueMsg(DDTypedBufferMsg_t *msg)
     switch (msg->type) {
     case PSP_PROLOGUE_START:
     case PSP_EPILOGUE_START:
-	recvFragMsg(msg, handlePELogueStart);
+	recvFragMsg(msg, handlePElogueStart);
 	break;
     case PSP_PROLOGUE_FINISH:
     case PSP_EPILOGUE_FINISH:
-	handlePELogueFinish(msg, NULL);
+	handlePElogueFinish(msg, NULL);
 	break;
     case PSP_PELOGUE_SIGNAL:
-	handlePELogueSignal(msg);
+	handlePElogueSignal(msg);
 	break;
     default:
 	mlog("%s: unknown type %i %s\n", __func__, msg->type, cover);
