@@ -339,6 +339,23 @@ static struct {
     int remEpiFail;
 } PEstat = { 0, 0, 0, 0, 0, 0, 0, 0 };
 
+static void updateStatistics(PElogue_Data_t *pedata)
+{
+    if (pedata->prologue) {
+	if (pedata->frontend) {
+	    if (pedata->exit) PEstat.locProFail++; else PEstat.locProSucc++;
+	} else {
+	    if (pedata->exit) PEstat.remProFail++; else PEstat.remProSucc++;
+	}
+    } else {
+	if (pedata->frontend) {
+	    if (pedata->exit) PEstat.locEpiFail++; else PEstat.locEpiSucc++;
+	} else {
+	    if (pedata->exit) PEstat.remEpiFail++; else PEstat.remEpiSucc++;
+	}
+    }
+}
+
 char *printCommStatistics(char *buf, size_t *bufSize)
 {
     char line[160];
@@ -366,58 +383,9 @@ char *printCommStatistics(char *buf, size_t *bufSize)
     return buf;
 }
 
-static int fwCallback(int32_t wstat, Forwarder_Data_t *fwdata)
+static void sendPElogueFinish(PElogue_Data_t *pedata, int signalFlag)
 {
-    DDTypedBufferMsg_t msg;
-    PElogue_Data_t *pedata = fwdata->userData;
-    Child_t *child = pedata->child;
-    int ret, exit_status, signalFlag;
-
-    signalFlag = child->signalFlag;
-
-    if (WIFEXITED(wstat)) {
-	exit_status = WEXITSTATUS(wstat);
-    } else if (WIFSIGNALED(wstat)) {
-	exit_status = WTERMSIG(wstat) + 0x100;
-    } else {
-	exit_status = 1;
-    }
-
-    /* let other plugins get information about completed pelogue */
-    pedata->exit = exit_status;
-    PSIDhook_call(PSIDHOOK_PELOGUE_FINISH, pedata);
-
-    if (!deleteChild(pedata->plugin, pedata->jobid)) {
-	mlog("%s: deleting child '%s' failed\n", __func__, fwdata->jobID);
-    }
-
-    /* Update statistic */
-    if (pedata->prologue) {
-	if (pedata->frontend) {
-	    if (!exit_status) PEstat.locProSucc++; else PEstat.locProFail++;
-	} else {
-	    if (!exit_status) PEstat.remProSucc++; else PEstat.remProFail++;
-	}
-
-	/* delete temp directory if prologue failed */
-	if (exit_status) {
-	    manageTempDir(pedata->plugin, pedata->jobid, false, pedata->uid,
-			  pedata->gid);
-	}
-    } else {
-	if (pedata->frontend) {
-	    if (!exit_status) PEstat.locEpiSucc++; else PEstat.locEpiFail++;
-	} else {
-	    if (!exit_status) PEstat.remEpiSucc++; else PEstat.remEpiFail++;
-	}
-
-	/* delete temp directory in epilogue */
-	manageTempDir(pedata->plugin, pedata->jobid, false, pedata->uid,
-		      pedata->gid);
-    }
-
-    /* send result to mother superior */
-    msg = (DDTypedBufferMsg_t) {
+    DDTypedBufferMsg_t msg = (DDTypedBufferMsg_t) {
 	.header = (DDMsg_t) {
 	    .type = PSP_CC_PLUG_PELOGUE,
 	    .sender = PSC_getMyTID(),
@@ -425,21 +393,56 @@ static int fwCallback(int32_t wstat, Forwarder_Data_t *fwdata)
 	    .len = sizeof(msg.header) + sizeof(msg.type) },
 	.type = pedata->prologue ? PSP_PROLOGUE_FINISH : PSP_EPILOGUE_FINISH,
 	.buf = {'\0'} };
+    int ret;
 
     addStringToMsgBuf(&msg, pedata->plugin);
     addStringToMsgBuf(&msg, pedata->jobid);
     addTimeToMsgBuf(&msg, pedata->start_time);
-    addInt32ToMsgBuf(&msg, exit_status);
+    addInt32ToMsgBuf(&msg, pedata->exit);
     addInt32ToMsgBuf(&msg, signalFlag);
-
-    mlog("%s: local %s exit %i job %s to %s\n", __func__,
-	 pedata->prologue ? "prologue" : "epilogue", exit_status,
-	 pedata->jobid, PSC_printTID(pedata->mainPelogue));
 
     ret = sendMsg(&msg);
     if (ret == -1 && errno != EWOULDBLOCK) {
 	mwarn(errno, "%s: sendMsg()", __func__);
     }
+}
+
+static int fwCallback(int32_t wstat, Forwarder_Data_t *fwdata)
+{
+    PElogue_Data_t *pedata = fwdata->userData;
+    Child_t *child = pedata->child;
+    int exitStatus, signalFlag = child->signalFlag;
+
+    if (WIFEXITED(wstat)) {
+	exitStatus = WEXITSTATUS(wstat);
+    } else if (WIFSIGNALED(wstat)) {
+	exitStatus = WTERMSIG(wstat) + 0x100;
+    } else {
+	exitStatus = 1;
+    }
+
+    /* let other plugins get information about completed pelogue */
+    pedata->exit = exitStatus;
+    PSIDhook_call(PSIDHOOK_PELOGUE_FINISH, pedata);
+
+    if (!deleteChild(pedata->plugin, pedata->jobid)) {
+	mlog("%s: deleting child '%s' failed\n", __func__, fwdata->jobID);
+    }
+
+    updateStatistics(pedata);
+
+    if (!pedata->prologue || pedata->exit) {
+	/* delete temp directory in epilogue or if prologue failed */
+	manageTempDir(pedata->plugin, pedata->jobid, false, pedata->uid,
+		      pedata->gid);
+    }
+
+    mlog("%s: local %s exit %i job %s to %s\n", __func__,
+	 pedata->prologue ? "prologue" : "epilogue", pedata->exit,
+	 pedata->jobid, PSC_printTID(pedata->mainPelogue));
+
+    /* send result to mother superior */
+    sendPElogueFinish(pedata, signalFlag);
 
     /* cleanup */
     destroyPElogueData(pedata);
