@@ -14,9 +14,14 @@ for p in helper.partitions():
 	test.check("0:1"     == helper.job_exit_code(p), p)
 
 	sacct = helper.job_sacct_record(p)
-	test.check(1 == len(sacct), p)
 
-	d = sacct[0]
+	# Version 14.03: One line
+	if helper.slurm_version().startswith("14.03"):
+		test.check(1 == len(sacct), p)
+	else:
+		test.check(2 == len(sacct), p)
+
+	d = sacct[-1]
 	
 	print("%s:" % p)
 	helper.pretty_print_dict(d)

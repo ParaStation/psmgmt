@@ -1,7 +1,0 @@
-{
-	"type": "batch",
-	"submit": null,
-	"eval": "eval.py",
-	"fproc": "run.py",
-	"monitor_hz": 10
-}

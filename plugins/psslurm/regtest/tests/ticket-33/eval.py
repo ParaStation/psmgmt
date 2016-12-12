@@ -9,8 +9,11 @@ from testsuite import *
 helper.pretty_print_env()
 
 for p in helper.partitions():
-	test.check("2" == helper.fproc_exit_code(p), p)
+	exp = "130"	# 128 (signaled) + 2
+	if helper.slurm_version().startswith("14.03"):
+		exp = "2"
 
+	test.check(exp == helper.fproc_exit_code(p), p)
 
 test.quit()
 

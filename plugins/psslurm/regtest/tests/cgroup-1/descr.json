@@ -1,6 +1,6 @@
 {
 	"type": "batch",
-	"submit": "srun -n |@P/2| --kill-on-bad-exit=1 -t 3 fail.py",
+	"submit": "sbatch -N 1 -n 1 -t 1 submit.sh",
 	"eval": ["eval.py"],
 	"fproc": null,
 	"monitor_hz": 10

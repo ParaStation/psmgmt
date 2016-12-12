@@ -9,9 +9,12 @@ from testsuite import *
 helper.pretty_print_env()
 
 for p in helper.partitions():
-	test.check("0:1" == helper.job_exit_code(p), p)
-	test.check("15"  == helper.submit_exit_code(p), p)
+	exp = "143"	# 128 (signaled) + 15
+	if helper.slurm_version().startswith("14.03"):
+		exp = "15"
 
+	test.check("0:1" == helper.job_exit_code(p), p)
+	test.check(exp   == helper.submit_exit_code(p), p)
 
 test.quit()
 

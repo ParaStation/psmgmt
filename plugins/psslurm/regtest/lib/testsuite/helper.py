@@ -6,6 +6,10 @@ import time
 
 import testsuite.test as test
 
+#
+# Get the slurm version
+def slurm_version():
+	return os.environ["PSTEST_SLURM_VERSION"]
 
 #
 # Get the list of partitions

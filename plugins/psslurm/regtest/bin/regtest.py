@@ -107,7 +107,7 @@ def snd(x):
 def query_slurm_version():
 	p       = popen(["squeue", "-V"], stdout = subprocess.PIPE)
 	version = p.communicate()[0].split()[1]
-	if 1 != p.wait():
+	if 0 != p.wait():
 		raise Exception("Failed to retrieve version")
 
 	return version
@@ -980,6 +980,7 @@ def exec_eval_command(test, partinfo, stats):
 	env = os.environ.copy()
 	env["LANG"] = "C"
 
+	env["PSTEST_SLURM_VERSION"] = query_slurm_version()
 	env["PSTEST_PARTITIONS"] = " ".join(test["partitions"])
 	env["PSTEST_TESTKEY"] = test["key"]
 	env["PSTEST_OUTDIR"]  = test["outdir"]
@@ -1227,7 +1228,8 @@ def perform_test(thread, testdir, testkey, opts, partinfo):
 			result = FAIL
 		else:
 			result = OK
-	except:
+	except Exception as ex:
+		log("%s: Caught exception \"%s\"" % (test["key"], str(ex)))
 		pass
 
 	if opts.cleanup and (result in [CANCELED, RESUNAVAIL, OK]):
