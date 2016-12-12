@@ -92,7 +92,9 @@ int psPelogueStartPE(const char *plugin, const char *jobid, bool prologue,
     } else {
 	job->epilogueTrack = job->nrOfNodes;
     }
-    return sendPElogueStart(job, prologue, env);
+    sendPElogueStart(job, prologue, env);
+
+    return 1;
 }
 
 int psPelogueSignalPE(const char *plugin, const char *jobid, int signal,

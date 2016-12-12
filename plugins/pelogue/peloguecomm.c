@@ -36,6 +36,16 @@
 
 #include "peloguecomm.h"
 
+#define JOB_NAME_LEN	    256
+
+typedef enum {
+    PSP_PROLOGUE_START,	    /**< prologue script start */
+    PSP_PROLOGUE_FINISH,    /**< result from prologue */
+    PSP_EPILOGUE_START,	    /**< epilogue script start */
+    PSP_EPILOGUE_FINISH,    /**< result from epilogue script */
+    PSP_PELOGUE_SIGNAL,	    /**< send a signal to a PElogue script */
+} PSP_PELOGUE_t;
+
 static void sendFragMsgToHostList(Job_t *job, PS_DataBuffer_t *data,
 				  int32_t type)
 {
@@ -89,7 +99,7 @@ static void destroyPElogueData(PElogue_Data_t *pedata)
     ufree(pedata);
 }
 
-int sendPElogueStart(Job_t *job, bool prologue, env_t *env)
+void sendPElogueStart(Job_t *job, bool prologue, env_t *env)
 {
     PS_DataBuffer_t data = { .buf = NULL};
     int32_t timeout;
@@ -125,8 +135,6 @@ int sendPElogueStart(Job_t *job, bool prologue, env_t *env)
     sendFragMsgToHostList(job, &data,
 			  prologue ? PSP_PROLOGUE_START : PSP_EPILOGUE_START);
     ufree(data.buf);
-
-    return 1;
 }
 
 static int fwCallback(int32_t wstat, Forwarder_Data_t *fwdata);
@@ -452,7 +460,7 @@ static void handlePElogueFinish(DDTypedBufferMsg_t *msg, char *msgData)
     finishJobPElogue(job, res, prologue);
 }
 
-void handlePelogueMsg(DDTypedBufferMsg_t *msg)
+static void handlePElogueMsg(DDTypedBufferMsg_t *msg)
 {
     char cover[128];
 
@@ -497,7 +505,7 @@ static char *msg2Str(PSP_PELOGUE_t type)
     }
 }
 
-static void handleDroppedStartMsg(DDTypedBufferMsg_t *msg)
+static void dropPElogueStartMsg(DDTypedBufferMsg_t *msg)
 {
     char *ptr = msg->buf;
     PS_Frag_Msg_Header_t *rhead = (PS_Frag_Msg_Header_t *)ptr;
@@ -526,7 +534,30 @@ static void handleDroppedStartMsg(DDTypedBufferMsg_t *msg)
     cancelJob(job);
 }
 
-void handleDroppedMsg(DDTypedBufferMsg_t *msg)
+static void dropPElogueSignalMsg(DDTypedBufferMsg_t *msg)
+{
+    char plugin[JOB_NAME_LEN], jobid[JOB_NAME_LEN];
+    bool prologue = msg->type == PSP_PROLOGUE_START;
+    Job_t *job;
+    char *ptr = msg->buf;
+
+
+    getString(&ptr, plugin, sizeof(plugin));
+    getString(&ptr, jobid, sizeof(jobid));
+
+    job = findJobByJobId(plugin, jobid);
+    if (!job) {
+	mlog("%s: plugin '%s' job '%s' not found\n", __func__, plugin, jobid);
+	return;
+    }
+
+    job->state = prologue ? JOB_CANCEL_PROLOGUE : JOB_CANCEL_EPILOGUE;
+    setJobNodeStatus(job, PSC_getID(msg->header.dest), prologue,
+		     PELOGUE_TIMEDOUT);
+    cancelJob(job);
+}
+
+static void dropPElogueMsg(DDTypedBufferMsg_t *msg)
 {
     PSnodes_ID_t node = PSC_getID(msg->header.dest);
     const char *hname = getHostnameByNodeId(node);
@@ -537,16 +568,30 @@ void handleDroppedMsg(DDTypedBufferMsg_t *msg)
     switch (msg->type) {
     case PSP_PROLOGUE_START:
     case PSP_EPILOGUE_START:
-	handleDroppedStartMsg(msg);
+	dropPElogueStartMsg(msg);
 	break;
     case PSP_PROLOGUE_FINISH:
     case PSP_EPILOGUE_FINISH:
 	/* nothing we can do here */
 	break;
     case PSP_PELOGUE_SIGNAL:
-	// @todo This shall lead to a timeouted pelogue
+	dropPElogueSignalMsg(msg);
 	break;
     default:
 	mlog("%s: unknown msg type %i\n", __func__, msg->type);
     }
+}
+
+bool initComm(void)
+{
+    PSID_registerMsg(PSP_CC_PLUG_PELOGUE, (handlerFunc_t) handlePElogueMsg);
+    PSID_registerDropper(PSP_CC_PLUG_PELOGUE, (handlerFunc_t) dropPElogueMsg);
+
+    return true;
+}
+
+void finalizeComm(void)
+{
+    PSID_clearMsg(PSP_CC_PLUG_PELOGUE);
+    PSID_clearDropper(PSP_CC_PLUG_PELOGUE);
 }

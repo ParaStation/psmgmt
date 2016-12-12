@@ -13,28 +13,29 @@
 
 #include <stdbool.h>
 
-#include "psprotocol.h"
 #include "pluginenv.h"
-#include "peloguechild.h"
-#include "peloguetypes.h"
-
 #include "peloguejob.h"
 
-#define JOB_NAME_LEN	    256
-
-typedef enum {
-    PSP_PROLOGUE_START,	    /**< prologue script start */
-    PSP_PROLOGUE_FINISH,    /**< result from prologue */
-    PSP_EPILOGUE_START,	    /**< epilogue script start */
-    PSP_EPILOGUE_FINISH,    /**< result from epilogue script */
-    PSP_PELOGUE_SIGNAL,	    /**< send a signal to a PElogue script */
-} PSP_PELOGUE_t;
-
-void handlePelogueMsg(DDTypedBufferMsg_t *msg);
-
-void handleDroppedMsg(DDTypedBufferMsg_t *msg);
-
-int sendPElogueStart(Job_t *job, bool prologue, env_t *env);
+/**
+ * @brief Start job's pelogues
+ *
+ * Tell all nodes associated to the job @a job to start a
+ * corresponding prologue or epilogue depending on the flag @a
+ * prologue. The environment @a env will be used on the target node in
+ * order to run the pelogue.
+ *
+ * In order to trigger the start messages will be sent to the pelogue
+ * plugins of all involved nodes.
+ *
+ * @param job Job to be handled
+ *
+ * @param prologue Flag to mark the start of prologue or epilogue
+ *
+ * @param env Environment to use on the target node for the pelogue
+ *
+ * @return No return value
+ */
+void sendPElogueStart(Job_t *job, bool prologue, env_t *env);
 
 /**
  * @brief Signal job's pelogues
@@ -46,6 +47,8 @@ int sendPElogueStart(Job_t *job, bool prologue, env_t *env);
  * In order to deliver the signal messages will be sent to the pelogue
  * plugins of all involved nodes.
  *
+ * @param job Job to be handled
+ *
  * @param sig Signal to send to the job's pelogues
  *
  * @param reason Reason to be mentioned in the logs
@@ -53,5 +56,26 @@ int sendPElogueStart(Job_t *job, bool prologue, env_t *env);
  * @return No return value
  */
 void sendPElogueSignal(Job_t *job, int sig, char *reason);
+
+/**
+ * @brief Initialize communication layer
+ *
+ * Initialize the plugin's communication layer. This will mainly
+ * register handler and dropper for messages of type
+ * PSP_CC_PLUG_PELOGUE.
+ *
+ * @return On success true is returned. Or false in case of an error
+ */
+bool initComm(void);
+
+/**
+ * @brief Finalize communication layer
+ *
+ * Finalize the plugin's communication layer. This will unregister the
+ * handler and dropper registered by @ref initComm().
+ *
+ * @return No return value
+ */
+void finalizeComm(void);
 
 #endif  /* __PELOGUE__COMM */

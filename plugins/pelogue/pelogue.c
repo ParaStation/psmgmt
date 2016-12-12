@@ -18,7 +18,6 @@
 #include <signal.h>
 
 #include "pspluginprotocol.h"
-#include "psidcomm.h"
 #include "psidhook.h"
 #include "psidplugin.h"
 #include "plugin.h"
@@ -156,11 +155,7 @@ static int handleShutdown(void *data)
  */
 static void unregisterHooks(bool verbose)
 {
-    /* unregister pelogue msg */
-    PSID_clearMsg(PSP_CC_PLUG_PELOGUE);
-
-    /* unregister msg drop handler */
-    PSID_clearDropper(PSP_CC_PLUG_PELOGUE);
+    finalizeComm();
 
     /* unregister hooks */
     if (!PSIDhook_del(PSIDHOOK_NODE_DOWN, handleNodeDown)) {
@@ -206,12 +201,7 @@ int initialize(void)
 
     initConfig();
     initFragComm();
-
-    /* register pelogue msg */
-    PSID_registerMsg(PSP_CC_PLUG_PELOGUE, (handlerFunc_t) handlePelogueMsg);
-
-    /* register handler for dropped msgs */
-    PSID_registerDropper(PSP_CC_PLUG_PELOGUE, (handlerFunc_t) handleDroppedMsg);
+    initComm();
 
     /* get psaccount function handles */
     if (!accHandle) {
