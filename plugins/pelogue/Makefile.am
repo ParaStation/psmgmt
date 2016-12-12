@@ -23,8 +23,7 @@ pelogue_la_SOURCES = pelogue.c pelogue.h peloguelog.c peloguelog.h \
 	peloguecomm.c peloguecomm.h pelogueconfig.c pelogueconfig.h \
 	peloguechild.c peloguechild.h peloguescript.c peloguescript.h \
 	peloguejob.c peloguejob.h pelogueinter.c pelogueinter.h \
-	pelogueforwarder.c pelogueforwarder.h peloguekvs.c peloguekvs.h \
-	peloguehandles.h
+	pelogueforwarder.c pelogueforwarder.h peloguekvs.c peloguehandles.h
 
 pelogue_la_LIBADD = $(libplugincommon)
 

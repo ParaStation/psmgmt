@@ -32,12 +32,13 @@
 #include "peloguescript.h"
 #include "peloguejob.h"
 #include "pelogueforwarder.h"
-#include "peloguekvs.h"
 
 #include "peloguecomm.h"
 
-#define JOB_NAME_LEN	    256
+/** Size of job- and plugin-names */
+#define JOB_NAME_LEN 256
 
+/** Various message types used in between pelogue plugins */
 typedef enum {
     PSP_PROLOGUE_START,	    /**< prologue script start */
     PSP_PROLOGUE_FINISH,    /**< result from prologue */
@@ -326,6 +327,45 @@ static void handlePElogueSignal(DDTypedBufferMsg_t *msg)
     }
 }
 
+/** Some counters for basic pelogue statistics */
+static struct {
+    int locProSucc;
+    int locProFail;
+    int remProSucc;
+    int remProFail;
+    int locEpiSucc;
+    int locEpiFail;
+    int remEpiSucc;
+    int remEpiFail;
+} PEstat = { 0, 0, 0, 0, 0, 0, 0, 0 };
+
+char *printCommStatistics(char *buf, size_t *bufSize)
+{
+    char line[160];
+
+    snprintf(line, sizeof(line), "\nprologue statistics (success/failed):\n");
+    str2Buf(line, &buf, bufSize);
+
+    snprintf(line, sizeof(line), "\tlocal: (%d/%d)\n",
+	     PEstat.locProSucc, PEstat.locProFail);
+    str2Buf(line, &buf, bufSize);
+    snprintf(line, sizeof(line), "\tremote: (%d/%d)\n\n",
+	     PEstat.remProSucc, PEstat.remProFail);
+    str2Buf(line, &buf, bufSize);
+
+    snprintf(line, sizeof(line), "epilogue statistics (success/failed):\n");
+    str2Buf(line, &buf, bufSize);
+
+    snprintf(line, sizeof(line), "\tlocal: (%d/%d)\n",
+	     PEstat.locEpiSucc, PEstat.locEpiFail);
+    str2Buf(line, &buf, bufSize);
+    snprintf(line, sizeof(line), "\tremote: (%d/%d)\n\n",
+	     PEstat.remEpiSucc, PEstat.remEpiFail);
+    str2Buf(line, &buf, bufSize);
+
+    return buf;
+}
+
 static int fwCallback(int32_t wstat, Forwarder_Data_t *fwdata)
 {
     DDTypedBufferMsg_t msg;
@@ -351,28 +391,26 @@ static int fwCallback(int32_t wstat, Forwarder_Data_t *fwdata)
 	mlog("%s: deleting child '%s' failed\n", __func__, fwdata->jobID);
     }
 
+    /* Update statistic */
     if (pedata->prologue) {
-	/* add to statistic */
-	if (pedata->frontend){
-	    if (exit_status != 0) {
-		stat_failedlProlog++;
-	    } else {
-		stat_lProlog++;
-	    }
+	if (pedata->frontend) {
+	    if (!exit_status) PEstat.locProSucc++; else PEstat.locProFail++;
 	} else {
-	    if (exit_status != 0) {
-		stat_failedrProlog++;
-	    } else {
-		stat_rProlog++;
-	    }
+	    if (!exit_status) PEstat.remProSucc++; else PEstat.remProFail++;
 	}
 
 	/* delete temp directory if prologue failed */
-	if (exit_status != 0) {
+	if (exit_status) {
 	    manageTempDir(pedata->plugin, pedata->jobid, false, pedata->uid,
 			  pedata->gid);
 	}
     } else {
+	if (pedata->frontend) {
+	    if (!exit_status) PEstat.locEpiSucc++; else PEstat.locEpiFail++;
+	} else {
+	    if (!exit_status) PEstat.remEpiSucc++; else PEstat.remEpiFail++;
+	}
+
 	/* delete temp directory in epilogue */
 	manageTempDir(pedata->plugin, pedata->jobid, false, pedata->uid,
 		      pedata->gid);

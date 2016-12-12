@@ -1,13 +1,12 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2013 - 2015 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2013-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-
 #ifndef __PELOGUE__COMM
 #define __PELOGUE__COMM
 
@@ -56,6 +55,20 @@ void sendPElogueStart(Job_t *job, bool prologue, env_t *env);
  * @return No return value
  */
 void sendPElogueSignal(Job_t *job, int sig, char *reason);
+
+/**
+ * @brief Print statistics on pelogues
+ *
+ * Put information on plugin's success statistics into the buffer @a
+ * buf. Upon return @a bufSize indicates the current size of @a buf.
+ *
+ * @param buf Buffer to write all information to
+ *
+ * @param bufSize Size of the buffer
+ *
+ * @return Pointer to buffer with updated statistics information
+ */
+char *printCommStatistics(char *buf, size_t *bufSize);
 
 /**
  * @brief Initialize communication layer

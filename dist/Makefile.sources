@@ -271,7 +271,6 @@ plugins/pelogue/pelogueinter.h \
 plugins/pelogue/peloguejob.c \
 plugins/pelogue/peloguejob.h \
 plugins/pelogue/peloguekvs.c \
-plugins/pelogue/peloguekvs.h \
 plugins/pelogue/peloguelog.c \
 plugins/pelogue/peloguelog.h \
 plugins/pelogue/peloguescript.c \
