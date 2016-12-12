@@ -463,7 +463,7 @@ static void handlePElogueFinish(DDTypedBufferMsg_t *msg, char *msgData)
     getString(&ptr, plugin, sizeof(plugin));
     getString(&ptr, jobid, sizeof(jobid));
 
-    job = findJobByJobId(plugin, jobid);
+    job = findJobById(plugin, jobid);
     if (!job) {
 	if (!jobIDInHistory(jobid)) {
 	    mdbg(PELOGUE_LOG_WARN, "%s: ignore %s finish message for unknown"
@@ -557,7 +557,7 @@ static void dropPElogueStartMsg(DDTypedBufferMsg_t *msg)
     getString(&ptr, plugin, sizeof(plugin));
     getString(&ptr, jobid, sizeof(jobid));
 
-    job = findJobByJobId(plugin, jobid);
+    job = findJobById(plugin, jobid);
     if (!job) {
 	mlog("%s: plugin '%s' job '%s' not found\n", __func__, plugin, jobid);
 	return;
@@ -580,7 +580,7 @@ static void dropPElogueSignalMsg(DDTypedBufferMsg_t *msg)
     getString(&ptr, plugin, sizeof(plugin));
     getString(&ptr, jobid, sizeof(jobid));
 
-    job = findJobByJobId(plugin, jobid);
+    job = findJobById(plugin, jobid);
     if (!job) {
 	mlog("%s: plugin '%s' job '%s' not found\n", __func__, plugin, jobid);
 	return;

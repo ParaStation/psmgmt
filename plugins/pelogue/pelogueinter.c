@@ -7,33 +7,21 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-/**
- * $Id$
- *
- * \author
- * Michael Rauh <rauh@par-tec.com>
- *
- */
-
-#include <stdio.h>
-#include <stdlib.h>
-
 #include "pscommon.h"
 
 #include "peloguejob.h"
 #include "peloguecomm.h"
 #include "peloguelog.h"
-#include "peloguescript.h"
 
 #include "pelogueinter.h"
 
 
-int psPelogueAddPluginConfig(char * name, Config_t *configList)
+int psPelogueAddPluginConfig(char *name, Config_t *configList)
 {
     return addPluginConfig(name, configList);
 }
 
-int psPelogueDelPluginConfig(char * name)
+int psPelogueDelPluginConfig(char *name)
 {
     return delPluginConfig(name);
 }
@@ -69,9 +57,9 @@ int psPelogueAddJob(const char *plugin, const char *jobid, uid_t uid,
 
 void psPelogueDeleteJob(const char *plugin, const char *jobid)
 {
-    Job_t *job;
+    Job_t *job = findJobById(plugin, jobid);
 
-    if (!(job = findJobByJobId(plugin, jobid))) return;
+    if (!job) return;
 
     deleteJob(job);
 }
@@ -79,9 +67,9 @@ void psPelogueDeleteJob(const char *plugin, const char *jobid)
 int psPelogueStartPE(const char *plugin, const char *jobid, bool prologue,
 			env_t *env)
 {
-    Job_t *job;
+    Job_t *job = findJobById(plugin, jobid);
 
-    if (!(job = findJobByJobId(plugin, jobid))) {
+    if (!job) {
 	mlog("%s: job '%s' for plugin '%s' not found\n", __func__, jobid,
 		plugin);
 	return 0;
@@ -100,7 +88,7 @@ int psPelogueStartPE(const char *plugin, const char *jobid, bool prologue,
 int psPelogueSignalPE(const char *plugin, const char *jobid, int signal,
 			char *reason)
 {
-    Job_t *job = findJobByJobId(plugin, jobid);
+    Job_t *job = findJobById(plugin, jobid);
 
     if (!job) {
 	mlog("%s: no job %s for plugin %s\n", __func__, jobid, plugin);

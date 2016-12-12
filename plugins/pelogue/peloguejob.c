@@ -55,7 +55,7 @@ void *addJob(const char *plugin, const char *jobid, uid_t uid, gid_t gid,
 	     int nrOfNodes, PSnodes_ID_t *nodes,
 	     Pelogue_JobCb_Func_t *pluginCallback)
 {
-    Job_t *job = findJobByJobId(plugin, jobid);
+    Job_t *job = findJobById(plugin, jobid);
     int i = 0;
 
     if (!plugin || !jobid || !nodes || !pluginCallback) return NULL;

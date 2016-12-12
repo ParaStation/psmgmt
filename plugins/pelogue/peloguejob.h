@@ -83,7 +83,7 @@ void *addJob(const char *plugin, const char *jobid, uid_t uid, gid_t gid,
  * @return Returns a pointer to the job or NULL if the job was not
  * found
  */
-Job_t *findJobByJobId(const char *plugin, const char *jobid);
+Job_t *findJobById(const char *plugin, const char *jobid);
 
 /**
  * @brief Set job's node status

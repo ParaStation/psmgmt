@@ -7,23 +7,17 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-/**
- * $Id$
- *
- * \author
- * Michael Rauh <rauh@par-tec.com>
- *
- */
-
-#ifndef __PELOGUE__INTER
-#define __PELOGUE__INTER
+#ifndef __PELOGUE_INTER
+#define __PELOGUE_INTER
 
 #include <stdbool.h>
+#include <sys/types.h>
 
+#include "psnodes.h"
 #include "pluginenv.h"
 #include "pelogueconfig.h"
 
-int psPelogueAddPluginConfig(char * name, Config_t *configList);
+int psPelogueAddPluginConfig(char *name, Config_t *configList);
 
 int psPelogueAddJob(const char *plugin, const char *jobid, uid_t uid,
 			gid_t gid, int nrOfNodes, PSnodes_ID_t *nodes,
@@ -37,4 +31,4 @@ int psPelogueSignalPE(const char *plugin, const char *jobid, int signal,
 
 void psPelogueDeleteJob(const char *plugin, const char *jobid);
 
-#endif
+#endif  /* __PELOGUE__INTER */
