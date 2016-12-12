@@ -41,7 +41,6 @@ typedef struct {
     int32_t timeout;
     int32_t exit;
     env_t env;
-    char *scriptname;
     Child_t *child;
     uid_t uid;
     gid_t gid;

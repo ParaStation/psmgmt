@@ -44,7 +44,6 @@ typedef struct {
     int signalFlag;
     int state;
     Pelogue_JobCb_Func_t *pluginCallback;
-    char *scriptname;
     time_t PElogue_start;
     time_t start_time;	  /**< the time when job started */
 } Job_t;

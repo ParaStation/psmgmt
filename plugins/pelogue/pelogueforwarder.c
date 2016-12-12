@@ -230,30 +230,9 @@ static int runPElogueScript(PElogue_Data_t *data, char *scriptname, int root)
  * @return No return value.
  */
 static void setPElogueName(char *script, PElogue_Data_t *data, char *buf,
-    size_t bufSize)
+			   size_t bufSize)
 {
-    struct stat sb;
-    char path[300], par[50] = { '\0' };
-
-    if (!data->frontend) {
-	snprintf(par, sizeof(par), ".parallel");
-    }
-
-    if (!strlen(data->scriptname)) {
-	snprintf(buf, bufSize, "%s%s", script, par);
-	return;
-    }
-
-    /* use extended script name */
-    snprintf(buf, bufSize, "%s%s.%s", script, par, data->scriptname);
-    snprintf(path, sizeof(path), "%s/%s", data->dirScripts, buf);
-
-    if ((stat(path, &sb)) != -1) {
-	return;
-    }
-
-    /* if the choosen script does not exist, fallback to standard script */
-    snprintf(buf, bufSize, "%s%s", script, par);
+    snprintf(buf, bufSize, "%s%s", script, !data->frontend ? ".parallel" : "");
 }
 
 void execPElogueScript(void *datap, int rerun)
@@ -264,15 +243,10 @@ void execPElogueScript(void *datap, int rerun)
     char name[50];
 
     for (i=0; i<data->env.cnt; i++) {
-	if ((data->env.vars[i])) putenv(data->env.vars[i]);
+	if (data->env.vars[i]) putenv(data->env.vars[i]);
     }
 
     if (data->prologue) {
-	/*
-	mdbg(PSMOM_LOG_PELOGUE, "Running prologue script(s) [max %li sec]\n",
-		data->timeout);
-	*/
-
 	if (rerun == 1) {
 	    /* prologue (root) */
 	    setPElogueName("prologue", data, name, sizeof(name));
@@ -282,14 +256,7 @@ void execPElogueScript(void *datap, int rerun)
 	    setPElogueName("prologue.user", data, name, sizeof(name));
 	    runPElogueScript(data, name, 0);
 	}
-
-	//mdbg(PSMOM_LOG_PELOGUE, "Running prologue script(s) finished\n");
     } else {
-	/*
-	mdbg(PSMOM_LOG_PELOGUE, "Running epilogue script(s) [max %li sec]\n",
-		data->timeout);
-	*/
-
 	if (rerun == 1) {
 	    /* epilogue (root) */
 	    setPElogueName("epilogue", data, name, sizeof(name));
@@ -299,6 +266,5 @@ void execPElogueScript(void *datap, int rerun)
 	    setPElogueName("epilogue.user", data, name, sizeof(name));
 	    runPElogueScript(data, name, 0);
 	}
-	//mdbg(PSMOM_LOG_PELOGUE, "Running epilogue script(s) finished\n");
     }
 }

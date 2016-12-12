@@ -73,7 +73,6 @@ void *addJob(const char *plugin, const char *jobid, uid_t uid, gid_t gid,
     job->epilogueTrack = -1;
     job->epilogueExit = 0;
     job->monitorId = -1;
-    job->scriptname = NULL;
     job->pluginCallback = pluginCallback;
 
     job->nodes = umalloc(sizeof(PElogue_Res_List_t *) * nrOfNodes +
@@ -197,7 +196,6 @@ static void doDeleteJob(Job_t *job)
     if (job->id) free(job->id);
     if (job->plugin) free(job->plugin);
     if (job->nodes) free(job->nodes);
-    if (job->scriptname) free(job->scriptname);
 
     list_del(&job->next);
     free(job);

@@ -94,7 +94,6 @@ static void destroyPElogueData(PElogue_Data_t *pedata)
     envDestroy(&pedata->env);
     ufree(pedata->jobid);
     ufree(pedata->plugin);
-    ufree(pedata->scriptname);
     ufree(pedata->dirScripts);
     ufree(pedata);
 }
@@ -118,7 +117,6 @@ void sendPElogueStart(Job_t *job, bool prologue, env_t *env)
     addInt32ToMsg(job->uid, &data);
     addInt32ToMsg(job->gid, &data);
     addInt32ToMsg(timeout, &data);
-    addStringToMsg(job->scriptname, &data);
 
     job->start_time = time(NULL);
     addTimeToMsg(job->start_time, &data);
@@ -158,7 +156,6 @@ static void handlePElogueStart(DDTypedBufferMsg_t *imsg, PS_DataBuffer_t *rData)
     getInt32(&ptr, (int32_t *)&data->uid);
     getInt32(&ptr, (int32_t *)&data->gid);
     getInt32(&ptr, &timeout);
-    data->scriptname = getStringM(&ptr);
     getTime(&ptr, &data->start_time);
 
     /* create/destroy temp dir */
