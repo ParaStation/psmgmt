@@ -22,9 +22,9 @@ static LIST_HEAD(childList);
 char *childType2String(PELOGUE_child_types_t type)
 {
     switch (type) {
-    case PELOGUE_CHILD_PROLOGUE:
+    case PELOGUE_PROLOGUE:
 	return "PROLOGUE";
-    case PELOGUE_CHILD_EPILOGUE:
+    case PELOGUE_EPILOGUE:
 	return "EPILOGUE";
     default:
 	return NULL;

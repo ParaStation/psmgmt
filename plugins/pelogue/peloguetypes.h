@@ -7,7 +7,6 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-
 #ifndef __PELOGUE__TYPES
 #define __PELOGUE__TYPES
 
@@ -18,8 +17,8 @@
 #include "pluginenv.h"
 
 typedef enum {
-    PELOGUE_CHILD_PROLOGUE = 1,
-    PELOGUE_CHILD_EPILOGUE,
+    PELOGUE_PROLOGUE = 1,
+    PELOGUE_EPILOGUE,
 } PELOGUE_child_types_t;
 
 typedef struct {
