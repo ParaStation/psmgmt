@@ -19,15 +19,15 @@
 
 int psPelogueAddPluginConfig(char *name, Config_t *configList);
 
-int psPelogueAddJob(const char *plugin, const char *jobid, uid_t uid,
-			gid_t gid, int nrOfNodes, PSnodes_ID_t *nodes,
-			Pelogue_JobCb_Func_t *pluginCallback);
+int psPelogueAddJob(const char *plugin, const char *jobid, uid_t uid, gid_t gid,
+		    int nrOfNodes, PSnodes_ID_t *nodes,
+		    Pelogue_JobCb_Func_t *pluginCallback);
 
 int psPelogueStartPE(const char *plugin, const char *jobid, bool prologue,
-			env_t *env);
+		     env_t *env);
 
 int psPelogueSignalPE(const char *plugin, const char *jobid, int signal,
-			char *reason);
+		      char *reason);
 
 void psPelogueDeleteJob(const char *plugin, const char *jobid);
 

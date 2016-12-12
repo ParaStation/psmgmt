@@ -15,7 +15,6 @@
 
 #include "pelogueinter.h"
 
-
 int psPelogueAddPluginConfig(char *name, Config_t *configList)
 {
     return addPluginConfig(name, configList);
@@ -26,9 +25,9 @@ int psPelogueDelPluginConfig(char *name)
     return delPluginConfig(name);
 }
 
-int psPelogueAddJob(const char *plugin, const char *jobid, uid_t uid,
-			gid_t gid, int nrOfNodes, PSnodes_ID_t *nodes,
-			Pelogue_JobCb_Func_t *pluginCallback)
+int psPelogueAddJob(const char *plugin, const char *jobid, uid_t uid, gid_t gid,
+		    int nrOfNodes, PSnodes_ID_t *nodes,
+		    Pelogue_JobCb_Func_t *pluginCallback)
 {
     if (nrOfNodes > PSC_getNrOfNodes()) {
 	mlog("%s: invalid nrOfNodes '%u'\n", __func__, nrOfNodes);
@@ -65,7 +64,7 @@ void psPelogueDeleteJob(const char *plugin, const char *jobid)
 }
 
 int psPelogueStartPE(const char *plugin, const char *jobid, bool prologue,
-			env_t *env)
+		     env_t *env)
 {
     Job_t *job = findJobById(plugin, jobid);
 
@@ -86,7 +85,7 @@ int psPelogueStartPE(const char *plugin, const char *jobid, bool prologue,
 }
 
 int psPelogueSignalPE(const char *plugin, const char *jobid, int signal,
-			char *reason)
+		      char *reason)
 {
     Job_t *job = findJobById(plugin, jobid);
 
