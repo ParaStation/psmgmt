@@ -863,7 +863,7 @@ int openSlurmdSocket(int port)
     }
 
     /* set socket to listen state */
-    if ((res = listen(sock, 5)) == -1) {
+    if ((res = listen(sock, SOMAXCONN)) == -1) {
         mwarn(errno, "%s: listen failed, socket:%i port:%i ", __func__,
 	    sock, port);
         return -1;
