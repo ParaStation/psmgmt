@@ -49,7 +49,7 @@ static int obitTime = 10;
 /** psid plugin requirements */
 char name[] = "pelogue";
 int version = 6;
-int requiredAPI = 114;
+int requiredAPI = 116;
 plugin_dep_t dependencies[] = {
     { .name = "psaccount", .version = 21 },
     { .name = NULL, .version = 0 } };

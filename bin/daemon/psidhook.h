@@ -10,30 +10,11 @@
 /**
  * @file
  * Handling of hooks within the ParaStation daemon.
- *
- * $Id$
- *
- * @author
- * Norbert Eicker <eicker@par-tec.com>
- * Michael Rauh <rauh@par-tec.com>
- *
  */
 #ifndef __PSIDHOOK_H
 #define __PSIDHOOK_H
 
 #include "pstask.h"
-
-#ifdef __cplusplus
-extern "C" {
-#if 0
-} /* <- just for emacs indentation */
-#endif
-#endif
-
-
-#ifdef __cplusplus
-}/* extern "C" */
-#endif
 
 /**
  * @brief Hook function to execute.
@@ -139,9 +120,15 @@ typedef enum {
 				Arg is a pointer of type PSrsrvtn_dynRes_t which
 				contains the reservation id and the actual slot
 				to be released. */
+    PSIDHOOK_PELOGUE_PREPARE, /** Prepare argument vector and environment of a
+				prologue/epilogue script. Used by batch-system
+				plugins in order to provide the script the
+				expected aarguments and environment. Arg is
+				pointer to PElogue_Data_t */
     PSIDHOOK_PELOGUE_FINISH,  /** The result of a prologue/epilogue run
 				executed by the pelogue plugin can be inspected.
-				Used by the psslurm plugin. */
+				Used by the psslurm plugin. Arg is pointer to
+				PElogue_Data_t */
     PSIDHOOK_FRWRD_DSOCK,     /**< In forwarder's init() function, arg is a
 				 pointer to the daemon socket. */
     PSIDHOOK_JAIL_CHILD,      /**< Jail child into cgroup, arg points to pid */
