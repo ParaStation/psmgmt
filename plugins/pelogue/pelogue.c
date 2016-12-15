@@ -57,19 +57,19 @@ plugin_dep_t dependencies[] = {
 static void cleanupJobs(void)
 {
     static int obitTimeCounter = 0;
-    int njobs;
+    int numJobs = countJobs();
 
     /* check if we are waiting for jobs to exit */
     obitTimeCounter++;
 
-    if ((njobs = countJobs()) == 0) {
+    if (!numJobs) {
 	Timer_remove(cleanupTimerID);
 	cleanupTimerID = -1;
 	return;
     }
 
     if (obitTime == obitTimeCounter) {
-	mlog("sending SIGKILL to %i remaining jobs\n", njobs);
+	mlog("sending SIGKILL to %i remaining jobs\n", numJobs);
 	signalAllJobs(SIGKILL, "shutdown");
     }
 
@@ -88,10 +88,9 @@ static void shutdownJobs(void)
 
 	signalAllJobs(SIGTERM, "shutdown");
 
-	if ((cleanupTimerID = Timer_register(&cleanupTimer,
-							cleanupJobs)) == -1) {
-	    mlog("registering cleanup timer failed\n");
-	}
+	cleanupTimerID = Timer_register(&cleanupTimer, cleanupJobs);
+	if (cleanupTimerID == -1) mlog("registering cleanup timer failed\n");
+
 	return;
     }
 
@@ -243,6 +242,7 @@ int initialize(void)
 
 INIT_ERROR:
     unregisterHooks(false);
+    finalizeFragComm();
     return 1;
 }
 
@@ -254,15 +254,10 @@ void finalize(void)
 
 void cleanup(void)
 {
-    /* TODO: kill all remaining children */
-
-    /* remove all registered hooks and msg handler */
-    unregisterHooks(true);
-
-    /* TODO free all malloced memory */
-    clearJobList();
     clearChildList();
+    clearJobList();
     clearConfig();
+    unregisterHooks(true);
     finalizeFragComm();
 
     mlog("...Bye.\n");
