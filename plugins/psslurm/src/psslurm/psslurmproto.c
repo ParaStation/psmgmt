@@ -2332,9 +2332,20 @@ int addSlurmAccData(uint8_t accType, pid_t childPid, PStask_ID_t loggerTID,
 	for (i=0; i<6; i++) {
 	    addUint64ToMsg(0, data);
 	}
-	for (i=0; i<8; i++) {
+	for (i=0; i<5; i++) {
 	    addUint32ToMsg(0, data);
 	}
+#ifdef SLURM_PROTOCOL_1605
+	addDoubleToMsg(0, data);
+#else
+	addUint32ToMsg(0, data);
+#endif
+	addUint32ToMsg(0, data);
+#ifdef SLURM_PROTOCOL_1605
+	addUint64ToMsg(0, data);
+#else
+	addUint32ToMsg(0, data);
+#endif
 	for (i=0; i<4; i++) {
 	    addDoubleToMsg(0, data);
 	}
