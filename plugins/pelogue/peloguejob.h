@@ -34,7 +34,7 @@ typedef struct {
     gid_t gid;            /**< job owner's group id */
     pid_t pid;            /**< pid of the running child (e.g. jobscript) */
     pid_t sid;            /**< sid of the running child */
-    PElogue_Res_List_t *nodes; /**< all participating nodes in the job */
+    PElogueResList_t *nodes; /**< all participating nodes in the job */
     int nrOfNodes;        /**< size of @ref nodes */
     int prologueTrack;    /**< track how many prologue scripts has finished */
     int prologueExit;     /**< the max exit code of all prologue scripts */

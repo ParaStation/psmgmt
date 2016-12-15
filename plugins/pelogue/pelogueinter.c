@@ -63,8 +63,8 @@ void psPelogueDeleteJob(const char *plugin, const char *jobid)
     deleteJob(job);
 }
 
-int psPelogueStartPE(const char *plugin, const char *jobid, bool prologue,
-		     env_t *env)
+int psPelogueStartPE(const char *plugin, const char *jobid, PElogueType_t type,
+		     int rounds, env_t *env)
 {
     Job_t *job = findJobById(plugin, jobid);
 
@@ -73,13 +73,14 @@ int psPelogueStartPE(const char *plugin, const char *jobid, bool prologue,
 		plugin);
 	return 0;
     }
-    job->state = prologue ? JOB_PROLOGUE : JOB_EPILOGUE;
-    if (prologue) {
+    if (type == PELOGUE_PROLOGUE) {
+	job->state = JOB_PROLOGUE;
 	job->prologueTrack = job->nrOfNodes;
     } else {
+	job->state = JOB_EPILOGUE;
 	job->epilogueTrack = job->nrOfNodes;
     }
-    sendPElogueStart(job, prologue, env);
+    sendPElogueStart(job, type, rounds, env);
 
     return 1;
 }

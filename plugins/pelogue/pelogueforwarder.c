@@ -1,22 +1,15 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2013 - 2014 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2013-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-/**
- * $Id$
- *
- * \author
- * Michael Rauh <rauh@par-tec.com>
- *
- */
-
 #include <stdlib.h>
 #include <stdio.h>
+#include <limits.h>
 #include <string.h>
 #include <sys/types.h>
 #include <sys/time.h>
@@ -28,12 +21,13 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 
+#include "pscommon.h"
+#include "pluginmalloc.h"
+
 #include "peloguecomm.h"
 #include "peloguelog.h"
 #include "peloguescript.h"
 #include "pelogue.h"
-
-#include "pluginmalloc.h"
 
 #include "pelogueforwarder.h"
 
@@ -48,8 +42,8 @@
  *  @param root If true we start the script as root, else we start a user
  *	PElog script.
  */
-static void startPElogue(int prologue, PElogue_Data_t *data, char *filename,
-			    int root)
+static void startPElogue(int prologue, PElogueChild_t *data, char *filename,
+			 int root)
 {
     char hname[1024];
     char *argv[100];
@@ -178,29 +172,29 @@ static void startPElogue(int prologue, PElogue_Data_t *data, char *filename,
  *
  * @return Returns 0 on success or on exit code indicating the error.
  */
-static int runPElogueScript(PElogue_Data_t *data, char *scriptname, int root)
+static int runPElogueScript(PElogueChild_t *child, char *scriptname, int root)
 {
     int fstat;
-    char filename[300];
+    char fname[PATH_MAX];
 
-    snprintf(filename, sizeof(filename), "%s/%s", data->dirScripts, scriptname);
+    snprintf(fname, sizeof(fname), "%s/%s", child->dirScripts, scriptname);
 
-    if ((fstat = checkPELogueFileStats(filename, root)) == 1) {
+    if ((fstat = checkPELogueFileStats(fname, root)) == 1) {
 
 	/* TODO DEBUG MSG
-	mdbg(-1, "%s: executing '%s'\n", __func__, filename);
+	mdbg(-1, "%s: executing '%s'\n", __func__, fname);
 	*/
 
 	/* redirect stdout and stderr */
 	dup2(open("/dev/null", 0), STDOUT_FILENO);
 	dup2(open("/dev/null", 0), STDERR_FILENO);
 
-	startPElogue(data->prologue, data, filename, root);
+	startPElogue(child->type == PELOGUE_PROLOGUE, child, fname, root);
 	exit(0);
 
 	/*
 	if (status != 0) {
-	    fprintf(stdout, "'%s' as '%s' failed, exit:%d\n", filename,
+	    fprintf(stdout, "'%s' as '%s' failed, exit:%d\n", fname,
 		    root ? "root" : "user", status);
 	    return status;
 	}
@@ -209,7 +203,7 @@ static int runPElogueScript(PElogue_Data_t *data, char *scriptname, int root)
 	/* if the prologue file not exists, all is okay */
 	exit(0);
     } else {
-	fprintf(stdout, "permisson error for '%s' as '%s'\n", filename,
+	fprintf(stdout, "permisson error for '%s' as '%s'\n", fname,
 		root ? "root" : "user");
 	exit(1);
     }
@@ -221,7 +215,7 @@ static int runPElogueScript(PElogue_Data_t *data, char *scriptname, int root)
  *
  * @param script The name of the pelogue script.
  *
- * @param data A pointer to the PElogue_Data structure.
+ * @param par Flag to add '.parallel' to the name
  *
  * @param buf The buffer which will receive the requested absolute filename.
  *
@@ -229,42 +223,42 @@ static int runPElogueScript(PElogue_Data_t *data, char *scriptname, int root)
  *
  * @return No return value.
  */
-static void setPElogueName(char *script, PElogue_Data_t *data, char *buf,
-			   size_t bufSize)
+static void setPElogueName(char *script, bool par, char *buf, size_t bufSize)
 {
-    snprintf(buf, bufSize, "%s%s", script, !data->frontend ? ".parallel" : "");
+    snprintf(buf, bufSize, "%s%s", script, par ? ".parallel" : "");
 }
 
-void execPElogueScript(void *datap, int rerun)
+void execPElogueScript(void *info, int rerun)
 {
-    Forwarder_Data_t *fwdata = datap;
-    PElogue_Data_t *data = fwdata->userData;
+    Forwarder_Data_t *fwdata = info;
+    PElogueChild_t *child = fwdata->userData;
+    bool frntnd = child->mainPElogue == PSC_getMyID();
     uint32_t i;
     char name[50];
 
-    for (i=0; i<data->env.cnt; i++) {
-	if (data->env.vars[i]) putenv(data->env.vars[i]);
+    for (i=0; i<child->env.cnt; i++) {
+	if (child->env.vars[i]) putenv(child->env.vars[i]);
     }
 
-    if (data->prologue) {
+    if (child->type == PELOGUE_PROLOGUE) {
 	if (rerun == 1) {
 	    /* prologue (root) */
-	    setPElogueName("prologue", data, name, sizeof(name));
-	    runPElogueScript(data, name, 1);
+	    setPElogueName("prologue", !frntnd, name, sizeof(name));
+	    runPElogueScript(child, name, 1);
 	} else {
 	    /* prologue.user (user) */
-	    setPElogueName("prologue.user", data, name, sizeof(name));
-	    runPElogueScript(data, name, 0);
+	    setPElogueName("prologue.user", !frntnd, name, sizeof(name));
+	    runPElogueScript(child, name, 0);
 	}
     } else {
 	if (rerun == 1) {
 	    /* epilogue (root) */
-	    setPElogueName("epilogue", data, name, sizeof(name));
-	    runPElogueScript(data, name, 1);
+	    setPElogueName("epilogue", !frntnd, name, sizeof(name));
+	    runPElogueScript(child, name, 1);
 	} else {
 	    /* epilogue.user (user) */
-	    setPElogueName("epilogue.user", data, name, sizeof(name));
-	    runPElogueScript(data, name, 0);
+	    setPElogueName("epilogue.user", !frntnd, name, sizeof(name));
+	    runPElogueScript(child, name, 0);
 	}
     }
 }

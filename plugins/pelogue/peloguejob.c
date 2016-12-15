@@ -75,9 +75,7 @@ void *addJob(const char *plugin, const char *jobid, uid_t uid, gid_t gid,
     job->monitorId = -1;
     job->pluginCallback = pluginCallback;
 
-    job->nodes = umalloc(sizeof(PElogue_Res_List_t *) * nrOfNodes +
-			 sizeof(PElogue_Res_List_t) * nrOfNodes);
-
+    job->nodes = umalloc(sizeof(*job->nodes) * nrOfNodes);
     for (i=0; i<job->nrOfNodes; i++) {
 	job->nodes[i].id = nodes[i];
 	job->nodes[i].prologue = PELOGUE_PENDING;

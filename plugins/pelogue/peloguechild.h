@@ -22,45 +22,59 @@
  *
  * @return Returns the requested type as string or NULL on error.
  */
-char *childType2String(PELOGUE_child_types_t type);
+char *childType2String(PElogueType_t type);
 
 /**
- * @brief Delete all children.
+ * @brief Add a new child
+ *
+ * Add a new child of type @a type associated to the plugin @a plugin
+ * and the job ID @a jobid.
+ *
+ * @param plugin Name of the plugin responsible for this child
+ *
+ * @param jobid Job ID responsible for starting this child
+ *
+ * @param type The type of the child to create
+  *
+ * @return Returns a pointer the newly created child or NULL on error
+ */
+PElogueChild_t *addChild(char *plugin, char *jobid, PElogueType_t type);
+
+/**
+ * @brief Find child identified by plugin and job ID
+ *
+ * Find a child in the list of childs identified by the associated
+ * plugin @a plugin and its job ID @a jobid.
+ *
+ * @param plugin Name of the plugin responsible for this child
+ *
+ * @param jobid Job ID responsible for starting this child
+ *
+ * @return Returns a pointer to the child requested or NULL on error
+ */
+PElogueChild_t *findChild(const char *plugin, const char *jobid);
+
+/**
+ * @brief Delete child
+ *
+ * Delete the child @a child. This includes detaching from the
+ * corresponding forwarder and freeing all memory.
+ *
+ * @param child Pointer to the child to delete
+ *
+ * @return Returns true on success and false on error
+ */
+bool deleteChild(PElogueChild_t *child);
+
+/**
+ * @brief Delete all children
+ *
+ * Delete all children in the list of children. This includes killing
+ * all associated forwarders.
  *
  * @return No return value.
  */
 void clearChildList(void);
 
-/**
- * @brief Add a new child.
- *
- * @param pid The process pid of the child to add.
- *
- * @param type The type of the child.
- *
- * @param jobid The corresponding jobid of the child.
- *
- * @return Returns a pointer the new created child structure or NULL on error.
- */
-Child_t *addChild(const char *plugin, char *jobid, Forwarder_Data_t *fwdata,
-		    PELOGUE_child_types_t type);
-
-/**
- * @brief Delete a child which is identified by its pid.
- *
- * @param pid The pid of the child to delete.
- *
- * @return Returns false on error and true on success.
- */
-bool deleteChild(const char *plugin, const char *jobid);
-
-/**
- * @brief Find a child which is identified by its pid.
- *
- * @param pid The pid of the child to find.
- *
- * @return Returns a pointer to the child requested or NULL on error.
- */
-Child_t *findChild(const char *plugin, const char *jobid);
 
 #endif  /* __PELOGUE_CHILD */

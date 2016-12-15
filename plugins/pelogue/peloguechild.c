@@ -7,19 +7,16 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-
 #include <stdlib.h>
 #include <string.h>
-#include <sys/time.h>
-
-#include "pluginmalloc.h"
+#include <signal.h>
 
 #include "peloguechild.h"
 
 /** List of all children */
 static LIST_HEAD(childList);
 
-char *childType2String(PELOGUE_child_types_t type)
+char *childType2String(PElogueType_t type)
 {
     switch (type) {
     case PELOGUE_PROLOGUE:
@@ -31,53 +28,60 @@ char *childType2String(PELOGUE_child_types_t type)
     }
 }
 
-Child_t *findChild(const char *plugin, const char *jobid)
+PElogueChild_t *addChild(char *plugin, char *jobid, PElogueType_t type)
 {
-    list_t *c;
-    list_for_each(c, &childList) {
-	Child_t *child = list_entry(c, Child_t, next);
-
-	if (!(strcmp(child->plugin, plugin) &&
-	    !(strcmp(child->jobid, jobid)))) {
-	    return child;
-	}
-    }
-    return NULL;
-}
-
-Child_t *addChild(const char *plugin, char *jobid, Forwarder_Data_t *fwdata,
-		  PELOGUE_child_types_t type)
-{
-    Child_t *child = malloc(sizeof(*child));
+    PElogueChild_t *child = malloc(sizeof(*child));
 
     if (child) {
-	child->jobid = ustrdup(jobid);
-	child->plugin = ustrdup(plugin);
+	child->plugin = plugin;
+	child->jobid = jobid;
 	child->type = type;
+	child->mainPElogue = -1;
+	child->dirScripts = NULL;
+	child->timeout = 0;
+	child->rounds = 1;
+	envInit(&child->env);
+	child->uid = 0;
+	child->gid = 0;
+	child->startTime = 0;
+	child->fwData = NULL;
 	child->signalFlag = 0;
-	child->fwdata = fwdata;
-	gettimeofday(&child->start_time, 0);
+	child->exit = 0;
 
 	list_add_tail(&child->next, &childList);
     }
     return child;
 }
 
-static void doDeleteChild(Child_t *child)
+PElogueChild_t *findChild(const char *plugin, const char *jobid)
 {
-    if (child->plugin) free(child->plugin);
-    if (child->jobid) free(child->jobid);
-    list_del(&child->next);
-    free(child);
+    list_t *c;
+    list_for_each(c, &childList) {
+	PElogueChild_t *child = list_entry(c, PElogueChild_t, next);
+
+	if (!strcmp(child->plugin, plugin) && !strcmp(child->jobid, jobid)) {
+	    return child;
+	}
+    }
+    return NULL;
 }
 
-bool deleteChild(const char *plugin, const char *jobid)
+bool deleteChild(PElogueChild_t *child)
 {
-    Child_t *child = findChild(plugin, jobid);
-
     if (!child) return false;
 
-    doDeleteChild(child);
+    if (child->plugin) free(child->plugin);
+    if (child->jobid) free(child->jobid);
+    if (child->dirScripts) free(child->dirScripts);
+    envDestroy(&child->env);
+    if (child->fwData) {
+	/* detach from forwarder */
+	child->fwData->callback = NULL;
+	child->fwData->userData = NULL;
+    }
+
+    list_del(&child->next);
+    free(child);
 
     return true;
 }
@@ -86,7 +90,10 @@ void clearChildList(void)
 {
     list_t *c, *tmp;
     list_for_each_safe(c, tmp, &childList) {
-	Child_t *child = list_entry(c, Child_t, next);
-	doDeleteChild(child);
+	PElogueChild_t *child = list_entry(c, PElogueChild_t, next);
+	if (child->fwData && child->fwData->killSession) {
+	    child->fwData->killSession(child->fwData->cSid, SIGKILL);
+	}
+	deleteChild(child);
     }
 }
