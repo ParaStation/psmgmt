@@ -13,6 +13,8 @@
 #include <stdbool.h>
 
 #include "pluginenv.h"
+
+#include "peloguechild.h"
 #include "peloguejob.h"
 
 /**
@@ -72,20 +74,6 @@ void sendPElogueSignal(Job_t *job, int sig, char *reason);
  * @return No return value
  */
 void sendPElogueFinish(PElogueChild_t *child);
-
-/**
- * @brief Print statistics on pelogues
- *
- * Put information on plugin's success statistics into the buffer @a
- * buf. Upon return @a bufSize indicates the current size of @a buf.
- *
- * @param buf Buffer to write all information to
- *
- * @param bufSize Size of the buffer
- *
- * @return Pointer to buffer with updated statistics information
- */
-char *printCommStatistics(char *buf, size_t *bufSize);
 
 /**
  * @brief Initialize communication layer

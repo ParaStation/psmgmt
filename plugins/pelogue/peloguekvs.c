@@ -8,7 +8,7 @@
  * file.
  */
 #include "pluginmalloc.h"
-#include "peloguecomm.h"
+#include "peloguechild.h"
 
 #include "plugin.h"
 
@@ -17,7 +17,7 @@ char *show(char *key)
     char *buf = NULL;
     size_t bufSize = 0;
 
-    return printCommStatistics(buf, &bufSize);
+    return printChildStatistics(buf, &bufSize);
 }
 
 char *help(void)

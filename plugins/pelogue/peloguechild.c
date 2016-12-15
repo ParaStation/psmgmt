@@ -7,9 +7,30 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
+#include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
+#include <errno.h>
+#include <limits.h>
 #include <string.h>
 #include <signal.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+
+#include "list.h"
+#include "pscommon.h"
+#include "pluginenv.h"
+#include "pluginforwarder.h"
+#include "pluginhelper.h"
+#include "pluginmalloc.h"
+#include "psidhook.h"
+#include "psaccounthandles.h"
+
+#include "peloguecomm.h"
+#include "pelogueconfig.h"
+#include "peloguelog.h"
+#include "pelogueforwarder.h"
 
 #include "peloguechild.h"
 
@@ -56,6 +77,7 @@ PElogueChild_t *addChild(char *plugin, char *jobid, PElogueType_t type)
 PElogueChild_t *findChild(const char *plugin, const char *jobid)
 {
     list_t *c;
+    if (!plugin || !jobid) return NULL;
     list_for_each(c, &childList) {
 	PElogueChild_t *child = list_entry(c, PElogueChild_t, next);
 
@@ -64,6 +86,169 @@ PElogueChild_t *findChild(const char *plugin, const char *jobid)
 	}
     }
     return NULL;
+}
+
+/** Some counters for basic pelogue statistics */
+static struct {
+    int locProSucc;
+    int locProFail;
+    int remProSucc;
+    int remProFail;
+    int locEpiSucc;
+    int locEpiFail;
+    int remEpiSucc;
+    int remEpiFail;
+} PEstat = { 0, 0, 0, 0, 0, 0, 0, 0 };
+
+static void updateStatistics(PElogueChild_t *child)
+{
+    if (child->type == PELOGUE_PROLOGUE) {
+	if (child->mainPElogue == PSC_getMyID()) {
+	    if (child->exit) PEstat.locProFail++; else PEstat.locProSucc++;
+	} else {
+	    if (child->exit) PEstat.remProFail++; else PEstat.remProSucc++;
+	}
+    } else {
+	if (child->mainPElogue == PSC_getMyID()) {
+	    if (child->exit) PEstat.locEpiFail++; else PEstat.locEpiSucc++;
+	} else {
+	    if (child->exit) PEstat.remEpiFail++; else PEstat.remEpiSucc++;
+	}
+    }
+}
+
+static void manageTempDir(const PElogueChild_t *child, bool create)
+{
+    char *confTmpDir = getConfParamC(child->plugin, "DIR_TEMP");
+    char tmpDir[PATH_MAX];
+    struct stat statbuf;
+
+    /* set temp dir using hashname */
+    if (!confTmpDir) return;
+
+    snprintf(tmpDir, sizeof(tmpDir), "%s/%s", confTmpDir, child->jobid);
+
+    if (create) {
+	if (stat(tmpDir, &statbuf) == -1) {
+	    if (mkdir(tmpDir, S_IRWXU) == -1) {
+		mdbg(PELOGUE_LOG_WARN, "%s: mkdir (%s): %s\n", __func__,
+		     tmpDir, strerror(errno));
+	    } else if (chown(tmpDir, child->uid, child->gid) == -1) {
+		mwarn(errno, "%s: chown(%s)", __func__, tmpDir);
+	    }
+	}
+    } else {
+	/* delete temp directory in epilogue */
+	removeDir(tmpDir, 1);
+    }
+}
+
+static int fwCallback(int32_t wstat, Forwarder_Data_t *fwData)
+{
+    PElogueChild_t *child = fwData->userData;
+    int exitStatus;
+
+    if (!child) return 0;
+
+    if (WIFEXITED(wstat)) {
+	exitStatus = WEXITSTATUS(wstat);
+    } else if (WIFSIGNALED(wstat)) {
+	exitStatus = WTERMSIG(wstat) + 0x100;
+    } else {
+	exitStatus = 1;
+    }
+
+    /* let other plugins get information about completed pelogue */
+    child->exit = exitStatus;
+    PSIDhook_call(PSIDHOOK_PELOGUE_FINISH, child);
+
+    updateStatistics(child);
+
+    if (child->type == PELOGUE_PROLOGUE && child->exit) {
+	/* delete temp directory in epilogue or if prologue failed */
+	manageTempDir(child, false);
+    }
+
+    mlog("%s: local %s exit %i job %s to node %d\n", __func__,
+	 child->type == PELOGUE_PROLOGUE ? "prologue" : "epilogue", child->exit,
+	 child->jobid, child->mainPElogue);
+
+    /* send result to mother superior */
+    sendPElogueFinish(child);
+
+    /* cleanup */
+    if (!deleteChild(child)) {
+	mlog("%s: deleting child '%s' failed\n", __func__, fwData->jobID);
+    }
+    /* fwData will be cleaned up within pluginforwarder */
+
+    return 0;
+}
+
+void startChild(PElogueChild_t *child)
+{
+    char ctype[20], fname[100];
+    bool prlg = child->type == PELOGUE_PROLOGUE;
+    bool frntnd = child->mainPElogue == PSC_getMyID();
+
+    /* create/destroy temp dir */
+    manageTempDir(child, prlg);
+
+    child->fwData = ForwarderData_new();
+    snprintf(fname, sizeof(fname), "%sforwarder", child->plugin);
+    child->fwData->pTitle = ustrdup(fname);
+    child->fwData->jobID = ustrdup(child->jobid);
+    child->fwData->userData = child;
+    child->fwData->graceTime = 3;
+    child->fwData->killSession = psAccountSignalSession;
+    child->fwData->callback = fwCallback;
+    child->fwData->childRerun = child->rounds;
+    child->fwData->childFunc = execPElogueScript;
+    child->fwData->timeoutChild = child->timeout;
+
+    snprintf(ctype, sizeof(ctype), "%s %s", frntnd ? "local" : "remote",
+	     prlg ? "prologue" : "epilogue");
+
+    if (!startForwarder(child->fwData)) {
+	mlog("%s: exec %s-script failed\n", __func__, ctype);
+
+	child->exit = -2;
+	sendPElogueFinish(child);
+
+	ForwarderData_delete(child->fwData);
+	deleteChild(child);
+
+	return;
+    }
+
+    mdbg(PELOGUE_LOG_PROCESS, "%s: %s for job %s:%s started\n", __func__,
+	 ctype, child->plugin, child->jobid);
+}
+
+void signalChild(PElogueChild_t *child, int signal, char *reason)
+{
+    Forwarder_Data_t *fwData = child->fwData;
+
+    /* save the signal we are about to send */
+    if (signal == SIGTERM || signal == SIGKILL) {
+	child->signalFlag = signal;
+    }
+
+    /* send the signal */
+    if (fwData->cSid > 0) {
+	mlog("%s: signal %i to pelogue '%s' - reason '%s' - sid %i\n", __func__,
+	     signal, child->jobid, reason, fwData->cSid);
+	fwData->killSession(fwData->cSid, signal);
+    } else if (fwData->cPid > 0) {
+	mlog("%s: signal %i to pelogue '%s' - reason '%s' - pid %i\n", __func__,
+	     signal, child->jobid, reason, fwData->cPid);
+	kill(fwData->cPid, signal);
+    } else if ((signal == SIGTERM || signal == SIGKILL) && fwData->tid != -1) {
+	kill(PSC_getPID(fwData->tid), SIGTERM);
+    } else {
+	mlog("%s: invalid forwarder data for signal %i to job '%s'\n", __func__,
+	     signal, child->jobid);
+    }
 }
 
 bool deleteChild(PElogueChild_t *child)
@@ -96,4 +281,31 @@ void clearChildList(void)
 	}
 	deleteChild(child);
     }
+}
+
+char *printChildStatistics(char *buf, size_t *bufSize)
+{
+    char line[160];
+
+    snprintf(line, sizeof(line), "\nprologue statistics (success/failed):\n");
+    str2Buf(line, &buf, bufSize);
+
+    snprintf(line, sizeof(line), "\tlocal: (%d/%d)\n",
+	     PEstat.locProSucc, PEstat.locProFail);
+    str2Buf(line, &buf, bufSize);
+    snprintf(line, sizeof(line), "\tremote: (%d/%d)\n\n",
+	     PEstat.remProSucc, PEstat.remProFail);
+    str2Buf(line, &buf, bufSize);
+
+    snprintf(line, sizeof(line), "epilogue statistics (success/failed):\n");
+    str2Buf(line, &buf, bufSize);
+
+    snprintf(line, sizeof(line), "\tlocal: (%d/%d)\n",
+	     PEstat.locEpiSucc, PEstat.locEpiFail);
+    str2Buf(line, &buf, bufSize);
+    snprintf(line, sizeof(line), "\tremote: (%d/%d)\n\n",
+	     PEstat.remEpiSucc, PEstat.remEpiFail);
+    str2Buf(line, &buf, bufSize);
+
+    return buf;
 }

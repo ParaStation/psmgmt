@@ -55,6 +55,33 @@ PElogueChild_t *addChild(char *plugin, char *jobid, PElogueType_t type);
 PElogueChild_t *findChild(const char *plugin, const char *jobid);
 
 /**
+ * @brief Start execution of child
+ *
+ * Start execution of the pelogue described by @a child.
+ *
+ * @param child Description of pelogue to start
+ *
+ * @return No return value
+ */
+void startChild(PElogueChild_t *child);
+
+/**
+ * @brief Signal child
+ *
+ * Send the signal @a signal to the pelogue describer by @a child. @a
+ * reason is used to explain this action in the logs.
+ *
+ * @param child Description of pelogue to signal
+ *
+ * @param signal Signal to send
+ *
+ * @param reason Explanation to be put into the logs
+ *
+ * @return No return value
+ */
+void signalChild(PElogueChild_t *child, int signal, char *reason);
+
+/**
  * @brief Delete child
  *
  * Delete the child @a child. This includes detaching from the
@@ -72,9 +99,24 @@ bool deleteChild(PElogueChild_t *child);
  * Delete all children in the list of children. This includes killing
  * all associated forwarders.
  *
- * @return No return value.
+ * @return No return value
  */
 void clearChildList(void);
+
+/**
+ * @brief Print statistics on pelogues
+ *
+ * Put information on plugin's success statistics of running pelogues
+ * into the buffer @a buf. Upon return @a bufSize indicates the
+ * current size of @a buf.
+ *
+ * @param buf Buffer to write all information to
+ *
+ * @param bufSize Size of the buffer
+ *
+ * @return Pointer to buffer with updated statistics information
+ */
+char *printChildStatistics(char *buf, size_t *bufSize);
 
 
 #endif  /* __PELOGUE_CHILD */
