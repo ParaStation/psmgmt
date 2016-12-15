@@ -28,7 +28,7 @@ typedef enum {
 
 typedef struct {
     list_t next;          /**< used to put into list */
-    char *plugin;
+    char *plugin;         /**< name of the registering plugin */
     char *id;             /**< batch system's job ID */
     uid_t uid;            /**< job owner's user id  */
     gid_t gid;            /**< job owner's group id */

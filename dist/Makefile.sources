@@ -256,7 +256,6 @@ plugins/cgroup/cgrouplog.h \
 plugins/pelogue/Makefile.am \
 plugins/pelogue/Makefile.in \
 plugins/pelogue/pelogue.c \
-plugins/pelogue/pelogue.h \
 plugins/pelogue/peloguechild.c \
 plugins/pelogue/peloguechild.h \
 plugins/pelogue/peloguecomm.c \

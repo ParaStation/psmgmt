@@ -12,10 +12,12 @@
 #include <unistd.h>
 #include <errno.h>
 #include <limits.h>
-#include <string.h>
+#include <pwd.h>
 #include <signal.h>
+#include <string.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <sys/utsname.h>
 #include <sys/wait.h>
 
 #include "list.h"
@@ -49,16 +51,53 @@ char *childType2String(PElogueType_t type)
     }
 }
 
+static char *rootHome = NULL;
+
+static bool setRootHome(void)
+{
+    struct passwd *spasswd = getpwnam("root");
+
+    if (!spasswd) {
+	mwarn(errno, "%s: getpwnam(root)", __func__);
+	return false;
+    }
+    rootHome = ustrdup(spasswd->pw_dir);
+    return true;
+}
+
+static char *hostName = NULL;
+
+static bool setHostName(void)
+{
+    struct utsname utsBuf;
+
+    if (uname(&utsBuf) < 0) {
+	mwarn(errno, "%s: uname()", __func__);
+	return false;
+    }
+    hostName = ustrdup(utsBuf.nodename);
+    return true;
+}
+
+
 PElogueChild_t *addChild(char *plugin, char *jobid, PElogueType_t type)
 {
     PElogueChild_t *child = malloc(sizeof(*child));
 
     if (child) {
+	if ((!rootHome && !setRootHome()) || (!hostName && !setHostName())) {
+	    free(child);
+	    return NULL;
+	}
+
 	child->plugin = plugin;
 	child->jobid = jobid;
 	child->type = type;
 	child->mainPElogue = -1;
-	child->dirScripts = NULL;
+	child->scriptDir = NULL;
+	child->tmpDir = NULL;
+	child->rootHome = rootHome;
+	child->hostName = hostName;
 	child->timeout = 0;
 	child->rounds = 1;
 	envInit(&child->env);
@@ -66,6 +105,7 @@ PElogueChild_t *addChild(char *plugin, char *jobid, PElogueType_t type)
 	child->gid = 0;
 	child->startTime = 0;
 	child->fwData = NULL;
+	child->argv = NULL;
 	child->signalFlag = 0;
 	child->exit = 0;
 
@@ -117,14 +157,13 @@ static void updateStatistics(PElogueChild_t *child)
     }
 }
 
-static void manageTempDir(const PElogueChild_t *child, bool create)
+static void manageTempDir(PElogueChild_t *child, bool create)
 {
     char *confTmpDir = getConfParamC(child->plugin, "DIR_TEMP");
     char tmpDir[PATH_MAX];
     struct stat statbuf;
 
-    /* set temp dir using hashname */
-    if (!confTmpDir) return;
+    if (!confTmpDir || !strlen(confTmpDir)) return;
 
     snprintf(tmpDir, sizeof(tmpDir), "%s/%s", confTmpDir, child->jobid);
 
@@ -133,13 +172,18 @@ static void manageTempDir(const PElogueChild_t *child, bool create)
 	    if (mkdir(tmpDir, S_IRWXU) == -1) {
 		mdbg(PELOGUE_LOG_WARN, "%s: mkdir (%s): %s\n", __func__,
 		     tmpDir, strerror(errno));
-	    } else if (chown(tmpDir, child->uid, child->gid) == -1) {
-		mwarn(errno, "%s: chown(%s)", __func__, tmpDir);
+	    } else {
+		if (chown(tmpDir, child->uid, child->gid) == -1) {
+		    mwarn(errno, "%s: chown(%s)", __func__, tmpDir);
+		}
+		child->tmpDir = ustrdup(tmpDir);
 	    }
 	}
-    } else {
+    } else if (child->tmpDir) {
 	/* delete temp directory in epilogue */
-	removeDir(tmpDir, 1);
+	removeDir(child->tmpDir, 1);
+	free(child->tmpDir);
+	child->tmpDir = NULL;
     }
 }
 
@@ -257,12 +301,21 @@ bool deleteChild(PElogueChild_t *child)
 
     if (child->plugin) free(child->plugin);
     if (child->jobid) free(child->jobid);
-    if (child->dirScripts) free(child->dirScripts);
+    if (child->scriptDir) free(child->scriptDir);
+    if (child->tmpDir) free(child->tmpDir);
     envDestroy(&child->env);
     if (child->fwData) {
 	/* detach from forwarder */
 	child->fwData->callback = NULL;
 	child->fwData->userData = NULL;
+    }
+    if (child->argv) {
+	int i = 0;
+	while (child->argv[i]) {
+	    free(child->argv[i]);
+	    i++;
+	}
+	free(child->argv);
     }
 
     list_del(&child->next);
@@ -280,6 +333,14 @@ void clearChildList(void)
 	    child->fwData->killSession(child->fwData->cSid, SIGKILL);
 	}
 	deleteChild(child);
+    }
+    if (rootHome) {
+	free(rootHome);
+	rootHome = NULL;
+    }
+    if (hostName) {
+	free(hostName);
+	hostName = NULL;
     }
 }
 

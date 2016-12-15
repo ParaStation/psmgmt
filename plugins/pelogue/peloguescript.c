@@ -13,13 +13,11 @@
 
 #include "peloguescript.h"
 
-int checkPELogueFileStats(char *filename, int root)
+int checkPELogueFileStats(char *filename, bool root)
 {
     struct stat statbuf;
 
-    if (stat(filename, &statbuf) == -1) {
-	return -1;
-    }
+    if (stat(filename, &statbuf) == -1) return -1;
 
     if (root) {
 	/* readable and executable by root and NOT writable by anyone

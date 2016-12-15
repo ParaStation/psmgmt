@@ -8,14 +8,11 @@
  * file.
  */
 #include <stdbool.h>
-#include <stdio.h>
 #include <stdlib.h>
-#include <errno.h>
 #include <unistd.h>
-#include <sys/stat.h>
 #include <dlfcn.h>
-#include <pwd.h>
 #include <signal.h>
+#include <sys/types.h>
 
 #include "pspluginprotocol.h"
 #include "psidhook.h"
@@ -25,20 +22,12 @@
 #include "psaccounthandles.h"
 
 #include "pluginfrag.h"
-#include "pluginlog.h"
-#include "pluginfrag.h"
 #include "pluginhelper.h"
 
 #include "peloguelog.h"
 #include "peloguecomm.h"
-#include "peloguescript.h"
 #include "pelogueconfig.h"
 #include "peloguechild.h"
-
-#include "pelogue.h"
-
-/** set to the home directory of root */
-char rootHome[100];
 
 /** the job cleanup timer */
 static int cleanupTimerID = -1;
@@ -166,19 +155,6 @@ static void unregisterHooks(bool verbose)
     }
 }
 
-static bool setRootHome(void)
-{
-    struct passwd *spasswd = getpwnam("root");
-
-    if (!spasswd) {
-	mlog("%s: getpwnam(root) failed\n", __func__);
-	return false;
-    }
-
-    snprintf(rootHome, sizeof(rootHome), "%s", spasswd->pw_dir);
-    return true;
-}
-
 int initialize(void)
 {
     void *accHandle = PSIDplugin_getHandle("psaccount");
@@ -186,15 +162,9 @@ int initialize(void)
     /* init the logger (log to syslog) */
     initLogger(NULL);
 
-    /*
-    FILE *lfile = fopen("/tmp/malloc", "w+");
-    initPluginLogger(NULL, lfile);
-    maskPluginLogger(PLUGIN_LOG_MALLOC);
-    */
-
     /* we need to have root privileges */
     if (getuid() != 0) {
-	fprintf(stderr, "%s: pelogue must have root privileges\n", __func__);
+	mlog("%s: pelogue must have root privileges\n", __func__);
 	return 1;
     }
 
@@ -232,8 +202,6 @@ int initialize(void)
 	    " it\n");
 	Timer_init(NULL);
     }
-
-    setRootHome();
 
     maskLogger(PELOGUE_LOG_PROCESS | PELOGUE_LOG_WARN);
 

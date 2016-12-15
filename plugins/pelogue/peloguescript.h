@@ -11,6 +11,8 @@
 #ifndef __PELOGUE_SCRIPT
 #define __PELOGUE_SCRIPT
 
+#include <stdbool.h>
+
 /**
  * @brief Verify correct permissions of pelogue scripts.
  *
@@ -20,6 +22,6 @@
  *
  * @return Returns 1 on success or an error code <0 on failure.
  */
-int checkPELogueFileStats(char *filename, int root);
+int checkPELogueFileStats(char *filename, bool root);
 
 #endif

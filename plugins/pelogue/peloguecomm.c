@@ -125,7 +125,7 @@ static void handlePElogueStart(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
     }
 
     /* the scripts directory */
-    child->dirScripts = ustrdup(getConfParamC(plugin, "DIR_SCRIPTS"));
+    child->scriptDir = ustrdup(getConfParamC(plugin, "DIR_SCRIPTS"));
 
     if (getConfParamI(plugin, "DISABLE_PELOGUE") == 1) {
 	mlog("%s: fixmeeee!!!\n", __func__);
