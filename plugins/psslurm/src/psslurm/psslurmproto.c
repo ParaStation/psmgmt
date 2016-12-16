@@ -1829,8 +1829,20 @@ static void handleTerminateReq(Slurm_Msg_t *sMsg)
 
 static void handleNetworkCallerID(Slurm_Msg_t *sMsg)
 {
+    /* IN: */
+    /* ip source */
+    /* ip dest */
+    /* port source */
+    /* port dest */
+    /* af */
+
     mlog("%s: implement me!\n", __func__);
     sendSlurmRC(sMsg, ESLURM_NOT_SUPPORTED);
+
+    /* OUT: */
+    /* job id */
+    /* return code */
+    /* node name */
 }
 
 static void handleRespMessageComposite(Slurm_Msg_t *sMsg)
@@ -2021,7 +2033,6 @@ int handleSlurmdMsg(Slurm_Msg_t *sMsg)
 	case REQUEST_FORWARD_DATA:
 	    handleForwardData(sMsg);
 	    break;
-	/* new */
 	case REQUEST_NETWORK_CALLERID:
 	    handleNetworkCallerID(sMsg);
 	    break;
