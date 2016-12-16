@@ -9,6 +9,7 @@
  */
 #include "pscommon.h"
 
+#include "pelogueconfig.h"
 #include "peloguejob.h"
 #include "peloguecomm.h"
 #include "peloguelog.h"
@@ -26,17 +27,16 @@ bool psPelogueDelPluginConfig(char *name)
 }
 
 bool psPelogueAddJob(const char *plugin, const char *jobid, uid_t uid,
-		     gid_t gid, int nrOfNodes, PSnodes_ID_t *nodes,
-		     Pelogue_JobCb_Func_t *pluginCallback)
+		     gid_t gid, int numNodes, PSnodes_ID_t *nodes,
+		     PElogueJobCb_t *cb)
 {
-    if (nrOfNodes > PSC_getNrOfNodes()) {
-	mlog("%s: invalid nrOfNodes '%u'\n", __func__, nrOfNodes);
+    if (numNodes > PSC_getNrOfNodes()) {
+	mlog("%s: invalid numNodes '%u'\n", __func__, numNodes);
 	return false;
     }
 
     if (!plugin || !jobid) {
-	mlog("%s: invalid plugin '%s' or jobid '%s'\n", __func__,
-	     plugin, jobid);
+	mlog("%s: invalid plugin %s or jobid %s\n", __func__, plugin, jobid);
 	return false;
     }
 
@@ -45,12 +45,46 @@ bool psPelogueAddJob(const char *plugin, const char *jobid, uid_t uid,
 	return false;
     }
 
-    if (!pluginCallback) {
+    if (!cb) {
 	mlog("%s: invalid plugin callback\n", __func__);
 	return false;
     }
 
-    addJob(plugin, jobid, uid, gid, nrOfNodes, nodes, pluginCallback);
+    return !!addJob(plugin, jobid, uid, gid, numNodes, nodes, cb);
+}
+
+bool psPelogueStartPE(const char *plugin, const char *jobid, PElogueType_t type,
+		      int rounds, env_t *env)
+{
+    Job_t *job = findJobById(plugin, jobid);
+
+    if (!job) {
+	mlog("%s: no job %s for plugin %s\n", __func__, jobid, plugin);
+	return false;
+    }
+    if (type == PELOGUE_PROLOGUE) {
+	job->state = JOB_PROLOGUE;
+	job->prologueTrack = job->numNodes;
+    } else {
+	job->state = JOB_EPILOGUE;
+	job->epilogueTrack = job->numNodes;
+    }
+    sendPElogueStart(job, type, rounds, env);
+
+    return true;
+}
+
+bool psPelogueSignalPE(const char *plugin, const char *jobid, int sig,
+		      char *reason)
+{
+    Job_t *job = findJobById(plugin, jobid);
+
+    if (!job) {
+	mlog("%s: no job %s for plugin %s\n", __func__, jobid, plugin);
+	return false;
+    }
+    sendPElogueSignal(job, sig, reason);
+
     return true;
 }
 
@@ -58,44 +92,5 @@ void psPelogueDeleteJob(const char *plugin, const char *jobid)
 {
     Job_t *job = findJobById(plugin, jobid);
 
-    if (!job) return;
-
-    deleteJob(job);
-}
-
-int psPelogueStartPE(const char *plugin, const char *jobid, PElogueType_t type,
-		     int rounds, env_t *env)
-{
-    Job_t *job = findJobById(plugin, jobid);
-
-    if (!job) {
-	mlog("%s: job '%s' for plugin '%s' not found\n", __func__, jobid,
-		plugin);
-	return 0;
-    }
-    if (type == PELOGUE_PROLOGUE) {
-	job->state = JOB_PROLOGUE;
-	job->prologueTrack = job->nrOfNodes;
-    } else {
-	job->state = JOB_EPILOGUE;
-	job->epilogueTrack = job->nrOfNodes;
-    }
-    sendPElogueStart(job, type, rounds, env);
-
-    return 1;
-}
-
-int psPelogueSignalPE(const char *plugin, const char *jobid, int signal,
-		      char *reason)
-{
-    Job_t *job = findJobById(plugin, jobid);
-
-    if (!job) {
-	mlog("%s: no job %s for plugin %s\n", __func__, jobid, plugin);
-	return 0;
-    }
-
-    sendPElogueSignal(job, signal, reason);
-
-    return 1;
+    if (job) deleteJob(job);
 }

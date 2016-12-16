@@ -95,7 +95,7 @@ static bool nodeDownVisitor(Job_t *job, const void *info)
     if (job->state != JOB_PROLOGUE && job->state != JOB_EPILOGUE) return false;
     if (!findChild(job->plugin, job->id)) return false;
 
-    for (i=0; i<job->nrOfNodes; i++) {
+    for (i=0; i<job->numNodes; i++) {
 	if (job->nodes[i].id == id) {
 	    const char *hname = getHostnameByNodeId(id);
 

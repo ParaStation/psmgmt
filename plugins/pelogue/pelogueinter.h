@@ -10,27 +10,14 @@
 #ifndef __PELOGUE_INTER
 #define __PELOGUE_INTER
 
-#include <sys/types.h>
+#include "peloguetypes.h"
 
-#include "psnodes.h"
-#include "pluginenv.h"
-#include "pelogueconfig.h"
+psPelogueAddPluginConfig_t psPelogueAddPluginConfig;
+psPelogueDelPluginConfig_t psPelogueDelPluginConfig;
 
-bool psPelogueAddPluginConfig(char *name, Config_t *configList);
+psPelogueAddJob_t psPelogueAddJob;
+psPelogueStartPE_t psPelogueStartPE;
+psPelogueSignalPE_t psPelogueSignalPE;
+psPelogueDeleteJob_t psPelogueDeleteJob;
 
-bool psPelogueDelPluginConfig(char *name);
-
-bool psPelogueAddJob(const char *plugin, const char *jobid, uid_t uid,
-		     gid_t gid, int nrOfNodes, PSnodes_ID_t *nodes,
-		     Pelogue_JobCb_Func_t *pluginCallback);
-
-int psPelogueStartPE(const char *plugin, const char *jobid, PElogueType_t type,
-		     int rounds, env_t *env);
-
-int psPelogueSignalPE(const char *plugin, const char *jobid, int signal,
-		      char *reason);
-
-void psPelogueDeleteJob(const char *plugin, const char *jobid);
-
-
-#endif  /* __PELOGUE__INTER */
+#endif  /* __PELOGUE_INTER */

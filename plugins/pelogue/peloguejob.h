@@ -34,16 +34,16 @@ typedef struct {
     pid_t pid;            /**< pid of the running child (e.g. jobscript) */
     pid_t sid;            /**< session id of the running child */
     PElogueResList_t *nodes; /**< all participating nodes in the job */
-    int nrOfNodes;        /**< size of @ref nodes */
+    int numNodes;         /**< size of @ref nodes */
     int prologueTrack;    /**< track how many prologue scripts has finished */
     int prologueExit;     /**< the max exit code of all prologue scripts */
     int epilogueTrack;    /**< track how many epilogue scripts has finished */
     int epilogueExit;     /**< the max exit code of all epilogue scripts */
     int monitorId;        /**< timer id of the pelogue monitor */
-    int signalFlag;
-    int state;
-    Pelogue_JobCb_Func_t *pluginCallback;
-    time_t PElogue_start;
+    int signalFlag;       /**< signal recently sent to job's pelogues */
+    JobState_t state;     /**< current state of the job */
+    PElogueJobCb_t *cb;   /**< callback on finalization of pelogue execution */
+    time_t PElogue_start; /**< start time of pelogue execution */
     time_t start_time;	  /**< the time when job started */
 } Job_t;
 
@@ -59,15 +59,35 @@ typedef struct {
 char *jobState2String(JobState_t state);
 
 /**
- * @brief Add a new job.
+ * @brief Add job
  *
- * @param jobid The id of the job.
+ * Add a job identified by the job ID @a jobid that is associated to
+ * the plugin @a plugin. @a plugin will be used to identify a
+ * corresponding configuration during handling. The job might use the
+ * user ID @a uid and the group ID @a gid for execution of part of the
+ * initiated pelogues. pelogues will be executed on a total of @a
+ * nrOfNodes nodes given by the array of node id @a nodes. Upon
+ * finalization of a pelogue execution the callback @a cb will be
+ * called.
  *
- * @return Returns the new created job structure.
+ * @param plugin Name of the plugin the job is associated to
+ *
+ * @param jobid ID of the job to create
+ *
+ * @param uid User ID part of the pelogues might use
+ *
+ * @param gid Group ID part of the pelogues might use
+ *
+ * @param numNodes Number of nodes pelogue are executed on. Size of @ref nodes.
+ *
+ * @param nodes Array of node ID pelogues are executed on
+ *
+ * @param cb Callback called on finalization of a pelogue run
+ *
+ * @return Returns the newly created job structure or NULL on error
  */
 void *addJob(const char *plugin, const char *jobid, uid_t uid, gid_t gid,
-	     int nrOfNodes, PSnodes_ID_t *nodes,
-	     Pelogue_JobCb_Func_t *pluginCallback);
+	     int numNodes, PSnodes_ID_t *nodes, PElogueJobCb_t *cb);
 
 /**
  * @brief Find job by its job ID
@@ -175,7 +195,7 @@ typedef bool JobVisitor_t(Job_t *job, const void *info);
 bool traverseJobs(JobVisitor_t visitor, const void *info);
 
 /**
- * @brief Delete a job
+ * @brief Delete job
  *
  * Delete the job structure @a job
  *

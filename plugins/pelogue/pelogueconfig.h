@@ -90,7 +90,7 @@ char *getPluginConfValueC(const char *plugin, char *key);
  * Remove the configuration identified by the tag @a name from pelogue
  * plugin's repository.
  *
- * @param plugin Tag marking the configuration to be removed
+ * @param name Tag marking the configuration to be removed
  *
  * @return Return true if the configuration was found and removed or
  * false otherwise
@@ -102,7 +102,7 @@ bool delPluginConfig(const char *name);
  *
  * Remove all configurations from pelogue plugin's repository.
  *
- * @return No return value.
+ * @return No return value
  */
 void clearAllPluginConfigs(void);
 

@@ -52,41 +52,49 @@ char *jobState2String(JobState_t state)
 }
 
 void *addJob(const char *plugin, const char *jobid, uid_t uid, gid_t gid,
-	     int nrOfNodes, PSnodes_ID_t *nodes,
-	     Pelogue_JobCb_Func_t *pluginCallback)
+	     int numNodes, PSnodes_ID_t *nodes, PElogueJobCb_t *cb)
 {
     Job_t *job = findJobById(plugin, jobid);
     int i = 0;
 
-    if (!plugin || !jobid || !nodes || !pluginCallback) return NULL;
+    if (!plugin || !jobid || !nodes || !cb) return NULL;
 
     if (job) deleteJob(job);
-    job = umalloc(sizeof(*job));
-    job->plugin = ustrdup(plugin);
-    job->id = ustrdup(jobid);
-    job->uid = uid;
-    job->gid = gid;
-    job->nrOfNodes = nrOfNodes;
-    job->signalFlag = 0;
-    job->prologueTrack = -1;
-    job->prologueExit = 0;
-    job->epilogueTrack = -1;
-    job->epilogueExit = 0;
-    job->monitorId = -1;
-    job->pluginCallback = pluginCallback;
+    job = malloc(sizeof(*job));
+    if (job) {
+	job->plugin = ustrdup(plugin);
+	job->id = ustrdup(jobid);
+	job->uid = uid;
+	job->gid = gid;
+	job->numNodes = numNodes;
+	job->signalFlag = 0;
+	job->prologueTrack = -1;
+	job->prologueExit = 0;
+	job->epilogueTrack = -1;
+	job->epilogueExit = 0;
+	job->monitorId = -1;
+	job->cb = cb;
 
-    job->nodes = umalloc(sizeof(*job->nodes) * nrOfNodes);
-    for (i=0; i<job->nrOfNodes; i++) {
-	job->nodes[i].id = nodes[i];
-	job->nodes[i].prologue = PELOGUE_PENDING;
-	job->nodes[i].epilogue = PELOGUE_PENDING;
+	job->nodes = umalloc(sizeof(*job->nodes) * numNodes);
+	if (job->nodes) {
+	    for (i=0; i<job->numNodes; i++) {
+		job->nodes[i].id = nodes[i];
+		job->nodes[i].prologue = PELOGUE_PENDING;
+		job->nodes[i].epilogue = PELOGUE_PENDING;
+	    }
+
+	    /* add job to job history */
+	    strncpy(jobHistory[jobHistIndex++], jobid, sizeof(jobHistory[0]));
+	    if (jobHistIndex >= JOB_HISTORY_SIZE) jobHistIndex = 0;
+
+	    list_add_tail(&job->next, &jobList);
+	} else {
+	    if (job->plugin) free(job->plugin);
+	    if (job->id) free(job->id);
+	    free(job);
+	    job = NULL;
+	}
     }
-
-    /* add job to job history */
-    strncpy(jobHistory[jobHistIndex++], jobid, sizeof(jobHistory[0]));
-    if (jobHistIndex >= JOB_HISTORY_SIZE) jobHistIndex = 0;
-
-    list_add_tail(&job->next, &jobList);
 
     return job;
 }
@@ -115,7 +123,7 @@ bool setJobNodeStatus(Job_t *job, PSnodes_ID_t node, bool prologue,
     if (!checkJobPtr(job)) return false;
     if (!job->nodes) return false;
 
-    for (i=0; i<job->nrOfNodes; i++) {
+    for (i=0; i<job->numNodes; i++) {
 	if (job->nodes[i].id == node) {
 	    if (prologue) {
 		job->nodes[i].prologue = status;
@@ -218,8 +226,8 @@ void clearJobList(void)
 
 void signalAllJobs(int signal, char *reason)
 {
-    list_t *j, *tmp;
-    list_for_each_safe(j, tmp, &jobList) { // @todo _safe required?
+    list_t *j;
+    list_for_each(j, &jobList) {
 	Job_t *job = list_entry(j, Job_t, next);
 
 	sendPElogueSignal(job, signal, reason);
@@ -245,7 +253,7 @@ void finishJobPElogue(Job_t *job, int status, bool prologue)
 
 	/* stop monitoring the PELouge script for timeout */
 	cancelJobMonitor(job);
-	job->pluginCallback(job->id, *exit, 0, job->nodes);
+	job->cb(job->id, *exit, false, job->nodes);
     } else if (status && !*exit) {
 	char *reason = prologue ? "prologue failed" : "epilogue failed";
 
@@ -256,6 +264,7 @@ void finishJobPElogue(Job_t *job, int status, bool prologue)
 	 * SIGTERM will force the forwarder for PElogue scripts
 	 * to kill the script. */
 	if (job->signalFlag != SIGTERM && job->signalFlag != SIGKILL) {
+	    job->signalFlag = SIGTERM;
 	    sendPElogueSignal(job, SIGTERM, reason);
 	}
     }
@@ -306,7 +315,7 @@ static void handleJobTimeout(int timerId, void *info)
 
     mlog("%s: pending nodeID(s): ", __func__);
 
-    for (i=0; i<job->nrOfNodes; i++) {
+    for (i=0; i<job->numNodes; i++) {
 	PElogueState_t *status = (job->state == JOB_PROLOGUE) ?
 	    &job->nodes[i].prologue : &job->nodes[i].epilogue;
 	if (*status == PELOGUE_PENDING) {
@@ -354,5 +363,5 @@ void cancelJob(Job_t *job)
     if (!checkJobPtr(job)) return;
 
     cancelJobMonitor(job);
-    job->pluginCallback(job->id, -4, 1, job->nodes);
+    job->cb(job->id, -4, true, job->nodes);
 }

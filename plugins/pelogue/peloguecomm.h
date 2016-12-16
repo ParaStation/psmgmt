@@ -21,20 +21,19 @@
  * @brief Start job's pelogues
  *
  * Tell all nodes associated to the job @a job to start a
- * corresponding prologue or epilogue depending on the flag @a
- * prologue. The environment @a env will be used on the target node in
- * order to run the pelogue. The pelogue will be started @a rounds
- * times in order to enable for different types of pelogues
- * (e.g. prologue and prologue.user in PBS type of RMS). To actually
- * start the specific pelogue for a given round
- * PSIDHOOK_PELOGUE_PREPARE shall be used.
+ * corresponding prologue or epilogue depending on the type @a type.
+ * The environment @a env will be used on the target node in order to
+ * run the pelogue. The pelogue will be started @a rounds times in
+ * order to enable for different types of pelogues (e.g. prologue and
+ * prologue.user in PBS type of RMS). To actually start the specific
+ * pelogue for a given round PSIDHOOK_PELOGUE_PREPARE shall be used.
  *
  * In order to trigger the start according messages will be sent to
  * the pelogue plugins of all involved nodes.
  *
  * @param job Job to be handled
  *
- * @param prologue Flag to mark the start of prologue or epilogue
+ * @param type Type of pelogue to start
  *
  * @param rounds Number of times the pelogue shall be started
  *
@@ -42,7 +41,7 @@
  *
  * @return No return value
  */
-void sendPElogueStart(Job_t *job, bool prologue, int rounds, env_t *env);
+void sendPElogueStart(Job_t *job, PElogueType_t type, int rounds, env_t *env);
 
 /**
  * @brief Signal job's pelogues

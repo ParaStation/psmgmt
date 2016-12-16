@@ -39,7 +39,7 @@ static void sendFragMsgToHostList(Job_t *job, PS_DataBuffer_t *data,
 				  int32_t type)
 {
     int i;
-    for (i=0; i<job->nrOfNodes; i++) {
+    for (i=0; i<job->numNodes; i++) {
 	PStask_ID_t dest = PSC_getTID(job->nodes[i].id, 0);
 
 	if (dest == -1) {
@@ -52,18 +52,23 @@ static void sendFragMsgToHostList(Job_t *job, PS_DataBuffer_t *data,
     }
 }
 
-void sendPElogueStart(Job_t *job, bool prologue, int rounds, env_t *env)
+void sendPElogueStart(Job_t *job, PElogueType_t type, int rounds, env_t *env)
 {
     PS_DataBuffer_t data = { .buf = NULL};
-    int32_t timeout;
+    int32_t timeout, msgType;
     uint32_t i;
 
-    if (prologue) {
+    if (type == PELOGUE_PROLOGUE) {
 	timeout = getPluginConfValueI(job->plugin, "TIMEOUT_PROLOGUE");
 	job->state = JOB_PROLOGUE;
-    } else {
+	msgType = PSP_PROLOGUE_START;
+    } else if (type == PELOGUE_EPILOGUE) {
 	timeout = getPluginConfValueI(job->plugin, "TIMEOUT_EPILOGUE");
 	job->state = JOB_EPILOGUE;
+	msgType = PSP_EPILOGUE_START;
+    } else {
+	mlog("%s: unkown pelogue type %d\n", __func__, type);
+	return;
     }
 
     addStringToMsg(job->plugin, &data);
@@ -85,8 +90,7 @@ void sendPElogueStart(Job_t *job, bool prologue, int rounds, env_t *env)
     startJobMonitor(job);
 
     /* send the message to all hosts in the job */
-    sendFragMsgToHostList(job, &data,
-			  prologue ? PSP_PROLOGUE_START : PSP_EPILOGUE_START);
+    sendFragMsgToHostList(job, &data, msgType);
     ufree(data.buf);
 }
 
@@ -156,7 +160,7 @@ void sendPElogueSignal(Job_t *job, int sig, char *reason)
     addInt32ToMsgBuf(&msg, sig);
     addStringToMsgBuf(&msg, reason);
 
-    for (i=0; i<job->nrOfNodes; i++) {
+    for (i=0; i<job->numNodes; i++) {
 	PSnodes_ID_t node = job->nodes[i].id;
 	PElogueState_t status = (job->state == JOB_PROLOGUE) ?
 	    job->nodes[i].prologue : job->nodes[i].epilogue;
@@ -168,6 +172,7 @@ void sendPElogueSignal(Job_t *job, int sig, char *reason)
 	    mwarn(errno, "%s: sendMsg() to %i failed", __func__, node);
 	}
     }
+    job->signalFlag = sig;
 }
 
 static void handlePElogueSignal(DDTypedBufferMsg_t *msg)
