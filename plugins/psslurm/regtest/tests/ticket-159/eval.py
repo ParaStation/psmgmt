@@ -10,7 +10,7 @@ from testsuite import *
 helper.pretty_print_env()
 
 for p in helper.partitions():
-	test.check(re.match("[1-9]:0", helper.job_exit_code(p)), p)
+	test.check(re.match("[1-9]+:0", helper.job_exit_code(p)), p)
 
 	rx = re.compile(r'.*unable to change directory to work directory.*', re.MULTILINE | re.DOTALL)
 	err = helper.job_stderr(p)
