@@ -7,7 +7,6 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-
 #ifndef __PELOGUE_JOB
 #define __PELOGUE_JOB
 
@@ -33,7 +32,7 @@ typedef struct {
     uid_t uid;            /**< job owner's user id  */
     gid_t gid;            /**< job owner's group id */
     pid_t pid;            /**< pid of the running child (e.g. jobscript) */
-    pid_t sid;            /**< sid of the running child */
+    pid_t sid;            /**< session id of the running child */
     PElogueResList_t *nodes; /**< all participating nodes in the job */
     int nrOfNodes;        /**< size of @ref nodes */
     int prologueTrack;    /**< track how many prologue scripts has finished */
@@ -73,7 +72,7 @@ void *addJob(const char *plugin, const char *jobid, uid_t uid, gid_t gid,
 /**
  * @brief Find job by its job ID
  *
- * Find a job by the name of the registrating plugin @a plugin and its
+ * Find a job by the name of the registering plugin @a plugin and its
  * job ID @a jobid.
  *
  * @param plugin Name of the plugin that registered the job to find
@@ -218,7 +217,7 @@ void signalAllJobs(int sig, char *reason);
  * investigated if any pelogues are still pending. If this is the
  * case, the timer itself will be canceled, signals will be sent to
  * cancel pending pelogues, and finally the whole job will be canceled
- * in order to trigger the callback to the registrator.
+ * in order to trigger the callback to the registering instance.
  *
  * @param job The job to monitor
  *
@@ -249,8 +248,8 @@ void finishJobPElogue(Job_t *job, int status, bool prologue);
  * Cancel the execution of the job @a job.
  *
  * This will just stop the job's monitor and execute its callback in
- * order to trigger the registrator. No pending pelogues will be
- * signaled or canceld. This has to be done via a separate call to
+ * order to trigger the registering instance. No pending pelogues will
+ * be signaled or canceled. This has to be done via a separate call to
  * @ref sendPElogueSignal() if required.
  *
  * @param job Job identifying the pelogues to stop

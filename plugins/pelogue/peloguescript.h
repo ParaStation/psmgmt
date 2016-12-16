@@ -7,7 +7,6 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-
 #ifndef __PELOGUE_SCRIPT
 #define __PELOGUE_SCRIPT
 
@@ -15,6 +14,8 @@
 
 /**
  * @brief Verify correct permissions of pelogue scripts.
+ *
+ * @doctodo
  *
  * @param filename The filename to verfiy.
  *
@@ -24,4 +25,4 @@
  */
 int checkPELogueFileStats(char *filename, bool root);
 
-#endif
+#endif  /* __PELOGUE_SCRIPT */

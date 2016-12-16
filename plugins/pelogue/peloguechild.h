@@ -7,7 +7,6 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-
 #ifndef __PELOGUE_CHILD
 #define __PELOGUE_CHILD
 
@@ -43,7 +42,7 @@ PElogueChild_t *addChild(char *plugin, char *jobid, PElogueType_t type);
 /**
  * @brief Find child identified by plugin and job ID
  *
- * Find a child in the list of childs identified by the associated
+ * Find a child in the list of children identified by the associated
  * plugin @a plugin and its job ID @a jobid.
  *
  * @param plugin Name of the plugin responsible for this child
@@ -117,6 +116,5 @@ void clearChildList(void);
  * @return Pointer to buffer with updated statistics information
  */
 char *printChildStatistics(char *buf, size_t *bufSize);
-
 
 #endif  /* __PELOGUE_CHILD */

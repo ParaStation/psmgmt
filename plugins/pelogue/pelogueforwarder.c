@@ -7,26 +7,19 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-#include <stdlib.h>
+#include <stdbool.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
 #include <limits.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/time.h>
-#include <sys/resource.h>
-#include <sys/wait.h>
-#include <unistd.h>
-#include <errno.h>
-#include <unistd.h>
 #include <fcntl.h>
 #include <sys/stat.h>
+#include <sys/types.h>
 
 #include "pscommon.h"
-#include "pluginmalloc.h"
+#include "pluginforwarder.h"
 #include "psidhook.h"
 
-#include "peloguecomm.h"
-#include "peloguelog.h"
 #include "peloguescript.h"
 #include "peloguetypes.h"
 
@@ -91,10 +84,9 @@ static void execPElogue(PElogueChild_t *child, char *filename, bool root)
     if (child->argv) execvp(child->argv[0], child->argv);
 }
 
-void execPElogueScript(void *info, int rerun)
+void execPElogueScript(Forwarder_Data_t *fwData, int rerun)
 {
-    Forwarder_Data_t *fwdata = info;
-    PElogueChild_t *child = fwdata->userData;
+    PElogueChild_t *child = fwData->userData;
     char fName[PATH_MAX];
     bool root = rerun == 1;
     uint32_t i;
