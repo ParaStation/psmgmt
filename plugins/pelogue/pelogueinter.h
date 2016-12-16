@@ -16,11 +16,13 @@
 #include "pluginenv.h"
 #include "pelogueconfig.h"
 
-int psPelogueAddPluginConfig(char *name, Config_t *configList);
+bool psPelogueAddPluginConfig(char *name, Config_t *configList);
 
-int psPelogueAddJob(const char *plugin, const char *jobid, uid_t uid, gid_t gid,
-		    int nrOfNodes, PSnodes_ID_t *nodes,
-		    Pelogue_JobCb_Func_t *pluginCallback);
+bool psPelogueDelPluginConfig(char *name);
+
+bool psPelogueAddJob(const char *plugin, const char *jobid, uid_t uid,
+		     gid_t gid, int nrOfNodes, PSnodes_ID_t *nodes,
+		     Pelogue_JobCb_Func_t *pluginCallback);
 
 int psPelogueStartPE(const char *plugin, const char *jobid, PElogueType_t type,
 		     int rounds, env_t *env);
@@ -29,5 +31,6 @@ int psPelogueSignalPE(const char *plugin, const char *jobid, int signal,
 		      char *reason);
 
 void psPelogueDeleteJob(const char *plugin, const char *jobid);
+
 
 #endif  /* __PELOGUE__INTER */

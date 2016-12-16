@@ -59,10 +59,10 @@ void sendPElogueStart(Job_t *job, bool prologue, int rounds, env_t *env)
     uint32_t i;
 
     if (prologue) {
-	timeout = getConfParamI(job->plugin, "TIMEOUT_PROLOGUE");
+	timeout = getPluginConfValueI(job->plugin, "TIMEOUT_PROLOGUE");
 	job->state = JOB_PROLOGUE;
     } else {
-	timeout = getConfParamI(job->plugin, "TIMEOUT_EPILOGUE");
+	timeout = getPluginConfValueI(job->plugin, "TIMEOUT_EPILOGUE");
 	job->state = JOB_EPILOGUE;
     }
 
@@ -125,9 +125,9 @@ static void handlePElogueStart(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
     }
 
     /* the scripts directory */
-    child->scriptDir = ustrdup(getConfParamC(plugin, "DIR_SCRIPTS"));
+    child->scriptDir = ustrdup(getPluginConfValueC(plugin, "DIR_SCRIPTS"));
 
-    if (getConfParamI(plugin, "DISABLE_PELOGUE") == 1) {
+    if (getPluginConfValueI(plugin, "DISABLE_PELOGUE") == 1) {
 	mlog("%s: fixmeeee!!!\n", __func__);
 	child->exit = -42;
 	sendPElogueFinish(child);

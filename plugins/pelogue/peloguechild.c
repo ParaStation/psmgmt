@@ -159,7 +159,7 @@ static void updateStatistics(PElogueChild_t *child)
 
 static void manageTempDir(PElogueChild_t *child, bool create)
 {
-    char *confTmpDir = getConfParamC(child->plugin, "DIR_TEMP");
+    char *confTmpDir = getPluginConfValueC(child->plugin, "DIR_TEMP");
     char tmpDir[PATH_MAX];
     struct stat statbuf;
 

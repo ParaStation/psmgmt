@@ -327,11 +327,11 @@ void startJobMonitor(Job_t *job)
     int timeout, grace;
 
     if (job->state == JOB_PROLOGUE) {
-	timeout = getConfParamI(job->plugin, "TIMEOUT_PROLOGUE");
+	timeout = getPluginConfValueI(job->plugin, "TIMEOUT_PROLOGUE");
     } else {
-	timeout = getConfParamI(job->plugin, "TIMEOUT_EPILOGUE");
+	timeout = getPluginConfValueI(job->plugin, "TIMEOUT_EPILOGUE");
     }
-    grace = getConfParamI(job->plugin, "TIMEOUT_PE_GRACE");
+    grace = getPluginConfValueI(job->plugin, "TIMEOUT_PE_GRACE");
 
     if (timeout < 0 || grace < 0) {
 	mlog("%s: invalid pe timeout %i or grace time %i\n", __func__,

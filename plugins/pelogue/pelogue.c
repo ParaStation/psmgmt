@@ -168,7 +168,7 @@ int initialize(void)
 	return 1;
     }
 
-    initConfig();
+    initPluginConfigs();
     initFragComm();
     initComm();
 
@@ -224,7 +224,7 @@ void cleanup(void)
 {
     clearChildList();
     clearJobList();
-    clearConfig();
+    clearAllPluginConfigs();
     unregisterHooks(true);
     finalizeFragComm();
 

@@ -15,43 +15,43 @@
 
 #include "pelogueinter.h"
 
-int psPelogueAddPluginConfig(char *name, Config_t *configList)
+bool psPelogueAddPluginConfig(char *name, Config_t *configList)
 {
     return addPluginConfig(name, configList);
 }
 
-int psPelogueDelPluginConfig(char *name)
+bool psPelogueDelPluginConfig(char *name)
 {
     return delPluginConfig(name);
 }
 
-int psPelogueAddJob(const char *plugin, const char *jobid, uid_t uid, gid_t gid,
-		    int nrOfNodes, PSnodes_ID_t *nodes,
-		    Pelogue_JobCb_Func_t *pluginCallback)
+bool psPelogueAddJob(const char *plugin, const char *jobid, uid_t uid,
+		     gid_t gid, int nrOfNodes, PSnodes_ID_t *nodes,
+		     Pelogue_JobCb_Func_t *pluginCallback)
 {
     if (nrOfNodes > PSC_getNrOfNodes()) {
 	mlog("%s: invalid nrOfNodes '%u'\n", __func__, nrOfNodes);
-	return 1;
+	return false;
     }
 
     if (!plugin || !jobid) {
 	mlog("%s: invalid plugin '%s' or jobid '%s'\n", __func__,
-		plugin, jobid);
-	return 1;
+	     plugin, jobid);
+	return false;
     }
 
     if (!nodes) {
 	mlog("%s: invalid nodes\n", __func__);
-	return 1;
+	return false;
     }
 
     if (!pluginCallback) {
 	mlog("%s: invalid plugin callback\n", __func__);
-	return 1;
+	return false;
     }
 
     addJob(plugin, jobid, uid, gid, nrOfNodes, nodes, pluginCallback);
-    return 0;
+    return true;
 }
 
 void psPelogueDeleteJob(const char *plugin, const char *jobid)
