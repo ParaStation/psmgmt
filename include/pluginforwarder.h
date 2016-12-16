@@ -7,7 +7,6 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-
 #ifndef __PLUGIN_LIB_FORWARDER
 #define __PLUGIN_LIB_FORWARDER
 
@@ -41,15 +40,15 @@ typedef struct __fwData__ {
 			   /**< Method to kill forwarder and all its children */
     int (*callback)(int32_t, Forwarder_Data_t *);
 			   /**< Callback invoked upon forwarder's termination */
-    void (*childFunc)(void *, int);
+    void (*childFunc)(Forwarder_Data_t *, int);
 			   /**< Child function forked by forwarder */
-    int (*hookFWInit)(void *);
+    int (*hookFWInit)(Forwarder_Data_t *);
 			   /**< Called within forwarder upon initialization */
-    void (*hookLoop)(void *);
+    void (*hookLoop)(Forwarder_Data_t *);
 			   /**< Called within forwarder before entering loop */
-    void (*hookChild)(void *, pid_t, pid_t, pid_t);
+    void (*hookChild)(Forwarder_Data_t *, pid_t, pid_t, pid_t);
 			   /**< Called within mother when child is ready */
-    void (*hookFinalize)(void *);
+    void (*hookFinalize)(Forwarder_Data_t *);
 			   /**< Called within forwarder upon finalization */
     int (*handleMthrMsg)(PSLog_Msg_t *, Forwarder_Data_t *);
 			   /**< Additional forwarder-msgs handled by mother */
