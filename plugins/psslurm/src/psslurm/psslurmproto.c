@@ -1833,12 +1833,6 @@ static void handleNetworkCallerID(Slurm_Msg_t *sMsg)
     sendSlurmRC(sMsg, ESLURM_NOT_SUPPORTED);
 }
 
-static void handleMessageComposite(Slurm_Msg_t *sMsg)
-{
-    mlog("%s: implement me!\n", __func__);
-    sendSlurmRC(sMsg, ESLURM_NOT_SUPPORTED);
-}
-
 static void handleRespMessageComposite(Slurm_Msg_t *sMsg)
 {
     mlog("%s: implement me!\n", __func__);
@@ -2032,7 +2026,8 @@ int handleSlurmdMsg(Slurm_Msg_t *sMsg)
 	    handleNetworkCallerID(sMsg);
 	    break;
 	case MESSAGE_COMPOSITE:
-	    handleMessageComposite(sMsg);
+	    mlog("%s: This should never happen\n", __func__);
+	    sendSlurmRC(sMsg, ESLURM_NOT_SUPPORTED);
 	    break;
 	case RESPONSE_MESSAGE_COMPOSITE:
 	    handleRespMessageComposite(sMsg);
