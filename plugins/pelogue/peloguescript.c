@@ -8,8 +8,8 @@
  * file.
  */
 #include <unistd.h>
-#include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/types.h>
 
 #include "peloguescript.h"
 
@@ -22,9 +22,7 @@ int checkPELogueFileStats(char *filename, bool root)
     if (root) {
 	/* readable and executable by root and NOT writable by anyone
 	 * besides root */
-	if (statbuf.st_uid != 0) {
-	    return -2;
-	}
+	if (statbuf.st_uid != 0) return -2;
 	if (!S_ISREG(statbuf.st_mode) ||
 	    ((statbuf.st_mode & (S_IRUSR | S_IXUSR)) != (S_IRUSR | S_IXUSR)) ||
 	    (statbuf.st_mode & (S_IWGRP | S_IWOTH))) {

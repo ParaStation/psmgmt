@@ -13,15 +13,22 @@
 #include <stdbool.h>
 
 /**
- * @brief Verify correct permissions of pelogue scripts.
+ * @brief Verify permissions of pelogue script
  *
- * @doctodo
+ * Verify the correct permissions of the pelogue script contained in
+ * @a filename. If @a root is true, this function checks for root's
+ * permission to read and execute this file and that no other users
+ * are allowed to modify it. Otherwise it checks for allowance to read
+ * and execute this file for root and other users.
  *
- * @param filename The filename to verfiy.
+ * @param filename Pelogue file to verify
  *
- * @param root True if only root be able to execute the script.
+ * @param root Flag to check only for root's permissions
  *
- * @return Returns 1 on success or an error code <0 on failure.
+ * @return Returns 1 on success, i.e. if the permission are set as
+ * stated above. If the file is non-existing or stat() fails, -1 is
+ * returned. If the file does not match the checked permissions, -2 is
+ * returned.
  */
 int checkPELogueFileStats(char *filename, bool root);
 
