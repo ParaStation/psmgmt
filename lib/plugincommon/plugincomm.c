@@ -7,1220 +7,513 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-/**
- * $Id$
- *
- * \author
- * Michael Rauh <rauh@par-tec.com>
- *
- */
 
-#include <stdlib.h>
-#include <stdio.h>
+#include <stdbool.h>
 #include <unistd.h>
-#include <errno.h>
 #include <fcntl.h>
+#include <errno.h>
+#include <time.h>
+#include <string.h>
+#include <arpa/inet.h>
 
 #include "pluginmalloc.h"
 #include "pluginlog.h"
-#include "psidcomm.h"
 
 #include "plugincomm.h"
 
-#  define UINT64_SWAP_LE_BE(val)      ((uint64_t) (                           \
-        (((uint64_t) (val) &                                                  \
-          (uint64_t) (0x00000000000000ffU)) << 56) |                          \
-        (((uint64_t) (val) &                                                  \
-          (uint64_t) (0x000000000000ff00U)) << 40) |                          \
-        (((uint64_t) (val) &                                                  \
-          (uint64_t) (0x0000000000ff0000U)) << 24) |                          \
-        (((uint64_t) (val) &                                                  \
-          (uint64_t) (0x00000000ff000000U)) <<  8) |                          \
-        (((uint64_t) (val)                  >>  8) &                          \
-          (uint64_t) (0x00000000ff000000U))        |                          \
-        (((uint64_t) (val)                  >> 24) &                          \
-          (uint64_t) (0x0000000000ff0000U))        |                          \
-        (((uint64_t) (val)                  >> 40) &                          \
-          (uint64_t) (0x000000000000ff00U))        |                          \
-        (((uint64_t) (val)                  >> 56) &                          \
-          (uint64_t) (0x00000000000000ffU)) ))
+#define UINT64_SWAP_LE_BE(val) ((uint64_t) (				\
+    (((uint64_t) (val) & (uint64_t) (0x00000000000000ffU)) << 56)	\
+    | (((uint64_t) (val) & (uint64_t) (0x000000000000ff00U)) << 40)	\
+    | (((uint64_t) (val) & (uint64_t) (0x0000000000ff0000U)) << 24)	\
+    | (((uint64_t) (val) & (uint64_t) (0x00000000ff000000U)) <<  8)	\
+    | (((uint64_t) (val) >>  8) & (uint64_t) (0x00000000ff000000U))	\
+    | (((uint64_t) (val) >> 24) & (uint64_t) (0x0000000000ff0000U))	\
+    | (((uint64_t) (val) >> 40) & (uint64_t) (0x000000000000ff00U))	\
+    | (((uint64_t) (val) >> 56) & (uint64_t) (0x00000000000000ffU)) ))
 
 #if SLURM_BIGENDIAN
-# define HTON_int64(x)    ((int64_t)  (x))
-# define NTOH_int64(x)    ((int64_t)  (x))
-# define HTON_uint64(x)   ((uint64_t) (x))
-# define NTOH_uint64(x)   ((uint64_t) (x))
+# define HTON64(x)   ((uint64_t) (x))
+# define NTOH64(x)   ((uint64_t) (x))
 #else
-# define HTON_int64(x)    ((int64_t) UINT64_SWAP_LE_BE (x))
-# define NTOH_int64(x)    ((int64_t) UINT64_SWAP_LE_BE (x))
-# define HTON_uint64(x)   UINT64_SWAP_LE_BE (x)
-# define NTOH_uint64(x)   UINT64_SWAP_LE_BE (x)
+# define HTON64(x)        UINT64_SWAP_LE_BE (x)
+# define NTOH64(x)        UINT64_SWAP_LE_BE (x)
 #endif
 
 #define FLOAT_CONVERT 1000000
 
-static int debug = 0;
+/** Flag output of debug information */
+static bool debug = false;
 
-static int byteOrder = 1;
+/** Flag byte-order conversation */
+static bool byteOrder = true;
 
-static int typeInfo = 0;
+/** Flag insertion of type information into actual messages */
+static bool typeInfo = false;
 
-void setFDblock(int fd, int block)
+bool setByteOrder(bool flag)
 {
-    int flags;
+    bool old = byteOrder;
+    byteOrder = flag;
+    return old;
+}
 
-    flags = fcntl(fd, F_GETFL, 0);
-    if (!block) {
-	fcntl(fd, F_SETFL, flags | O_NONBLOCK);
-    } else {
+bool setTypeInfo(bool flag)
+{
+    bool old = typeInfo;
+    typeInfo = flag;
+    return old;
+}
+
+void setFDblock(int fd, bool block)
+{
+    int flags = fcntl(fd, F_GETFL, 0);
+
+    if (block) {
 	fcntl(fd, F_SETFL, flags & (~O_NONBLOCK));
+    } else {
+	fcntl(fd, F_SETFL, flags | O_NONBLOCK);
     }
 }
 
-int setByteOrder(int val)
+/**
+ * @brief Grow the data buffer if needed.
+ *
+ * Grow the data buffer @a data such that @a len additional bytes fit
+ * into the buffer. Buffers will grow by multiples of @ref
+ * BufTypedMsgSize and never grow beyond @ref UINT32_MAX.
+ *
+ * @a caller and @a line are passed to the corresponding allocation
+ * functions @ref __umalloc() and __urealloc() in order to create
+ * debug messages if required.
+ *
+ * @param len Number of additional bytes needed
+ *
+ * @param data Pointer to the data buffer to grow
+ *
+ * @param caller Function name of the calling function
+ *
+ * @param line Line number where this function is called
+ *
+ * @return Return true on success and false on error
+ */
+static bool growDataBuffer(size_t len, PS_DataBuffer_t *data,
+			   const char *caller, const int line)
 {
-    int old = byteOrder;
-    byteOrder = val;
-    return old;
-}
+    if (!data->buf) data->bufSize = data->bufUsed = 0;
 
-int setTypeInfo(int val)
-{
-    int old = typeInfo;
-    typeInfo = val;
-    return old;
-}
+    size_t newLen = (!len) ? (data->bufSize ? data->bufSize: BufTypedMsgSize) :
+	((data->bufUsed + len - 1) / BufTypedMsgSize + 1) * BufTypedMsgSize;
+    if (newLen > UINT32_MAX) return false;
 
-static void addDataType(char **ptr, PS_DataType_t type)
-{
-    *(uint8_t *) *ptr = type;
-    *ptr += sizeof(uint8_t);
-}
+    data->buf = __urealloc(data->buf, newLen, caller, line);
+    data->bufSize = newLen;
 
-static int verifyTypeInfo(char **ptr, PS_DataType_t expectedType,
-			    const char *caller)
-{
-    uint8_t type;
-
-    if (!typeInfo) return 1;
-
-    type = *(uint8_t *) *ptr;
-    *ptr += sizeof(uint8_t);
-
-    if (type != expectedType) {
-	if (debug) {
-	    pluginlog("%s(%s): error got type '%i' should be '%i'\n",
-			__func__, caller, type, expectedType);
-	}
-	return 0;
-    }
-    return 1;
-}
-
-#define MAX_RETRY 20
-int __doWrite(int fd, void *buffer, size_t towrite, const char *func,
-			int pedantic, int fini)
-{
-    ssize_t ret = 0;
-    size_t written = 0;
-    char *ptr = buffer;
-    int retry = 0;
-    static time_t lastLog = 0;
-
-    while (1) {
-	if ((ret = write(fd, ptr + written, towrite - written)) == -1) {
-	    if (errno == EINTR || errno == EAGAIN) continue;
-
-	    if (lastLog == time(NULL)) return -1;
-	    pluginlog("%s (%s): write to fd '%i' failed (%i): %s\n", __func__,
-		    func, fd, errno, strerror(errno));
-	    lastLog = time(NULL);
-	    return -1;
-	}
-	if (!pedantic) return ret;
-
-	written += ret;
-	if (!ret) return ret;
-	if (written >= towrite) break;
-	if (!fini) {
-	    if (retry++ >MAX_RETRY) return -1;
-	}
-    }
-    return written;
-}
-
-int __doRead(int fd, void *buffer, size_t toread, const char *func,
-		int pedantic)
-{
-    size_t ret;
-
-    return __doReadExt(fd, buffer, toread, &ret, func, pedantic);
-}
-
-int __doReadExt(int fd, void *buffer, size_t toread, size_t *ret,
-		    const char *func, int pedantic)
-{
-    ssize_t size = 0, left;
-    char *ptr;
-    int retry = 0;
-    static time_t lastLog = 0;
-
-    *ret = 0;
-    if (pedantic) setFDblock(fd, 0);
-
-    ptr = buffer;
-    left = toread;
-    while (1) {
-	if ((size = read(fd, ptr, left)) < 0) {
-	    if (errno == EINTR || errno == EAGAIN) continue;
-
-	    if (lastLog == time(NULL)) return -1;
-	    pluginlog("%s (%s): read from fd '%i' failed (%i): %s\n", __func__,
-		    func, fd, errno, strerror(errno));
-	    lastLog = time(NULL);
-	    return -1;
-	}
-	if (!pedantic) return size;
-
-	ptr += size;
-	*ret += size;
-	left -= size;
-	if (*ret == toread) break;
-	if (!*ret) return 0;
-	if (retry++ >MAX_RETRY) return -1;
-    }
-
-    return *ret;
+    return true;
 }
 
 void freeDataBuffer(PS_DataBuffer_t *data)
 {
     if (!data) return;
 
-    ufree(data->buf);
+    if (data->buf) ufree(data->buf);
     data->buf = NULL;
     data->bufUsed = data->bufSize = 0;
 }
 
-/**
- * @brief Grow the data buffer if needed.
- *
- * @param len The additional size needed.
- *
- * @param data Pointer to the actual data buffer.
- *
- * @return Returns 1 on success and 0 on error..
- */
-static int growBuffer(size_t len, PS_DataBuffer_t *data, const char *caller,
-			const int line)
+/** Maximum number of retries within @ref __doWrite() and __doRead() */
+#define MAX_RETRY 20
+
+int __doWrite(int fd, void *buffer, size_t toWrite, const char *func,
+	      bool pedantic, bool infinite)
 {
-    if (data->buf == NULL) {
-	data->buf = __umalloc(BufTypedMsgSize, caller, line);
-	data->bufSize = BufTypedMsgSize;
-	data->bufUsed = 0;
-    }
-
-    while (data->bufUsed + len > data->bufSize) {
-	if (data->bufSize + BufTypedMsgSize  > UINT32_MAX) return 0;
-	data->buf = __urealloc(data->buf, data->bufSize + BufTypedMsgSize,
-				caller, line);
-	data->bufSize += BufTypedMsgSize;
-    }
-
-    return 1;
-}
-
-int __addStringArrayToMsg(char **array, const uint32_t len,
-			    PS_DataBuffer_t *data, const char *caller,
-			    const int line)
-{
-    uint32_t i;
-
-    if (!data) {
-	pluginlog("%s: invalid data from '%s'\n", __func__, caller);
-	return 0;
-    }
-
-    if (!( __addUint32ToMsg(len, data, caller, line))) return 0;
-
-    for (i=0; i<len; i++) {
-	if (!(__addStringToMsg(array[i], data, caller, line))) return 0;
-    }
-
-    return 1;
-}
-
-int __addDataToMsg(const void *buf, uint32_t bufLen, PS_DataBuffer_t *data,
-		    const char *caller, const int line)
-{
-    char *ptr;
-    int ret;
-
-    if (!data) {
-	pluginlog("%s: invalid data from '%s'\n", __func__, caller);
-	return 0;
-    }
-
-    ret = growBuffer(sizeof(uint8_t) + sizeof(uint32_t) + bufLen,
-		    data, caller, line);
-    if (!ret) {
-	pluginlog("%s: growing buffer for '%s' failed\n", __func__, caller);
-	return 0;
-    }
-    ptr = data->buf + data->bufUsed;
-
-    /* add data type */
-    if (typeInfo) {
-	addDataType(&ptr, PSDATA_DATA);
-	data->bufUsed +=sizeof(uint8_t);
-    }
-
-    /* data length */
-    *(uint32_t *) ptr = byteOrder ? htonl(bufLen) : bufLen;
-    ptr += sizeof(uint32_t);
-    data->bufUsed += sizeof(uint32_t);
-
-    /* add the data */
-    if (bufLen > 0) {
-	memcpy(ptr, buf, bufLen);
-	data->bufUsed += bufLen;
-    }
-
-    return 1;
-}
-
-int __addStringToMsg(const char *string, PS_DataBuffer_t *data,
-			const char *caller, const int line)
-{
-    size_t len;
-    char *ptr;
-    int ret;
-
-    if (!data) {
-	pluginlog("%s: invalid data from '%s'\n", __func__, caller);
-	return 0;
-    }
-
-    len = (!string) ? 0 : strlen(string) +1;
-
-    ret = growBuffer(sizeof(uint8_t) + sizeof(uint32_t) + len,
-		    data, caller, line);
-    if (!ret) {
-	pluginlog("%s: growing buffer for '%s' failed\n", __func__, caller);
-	return 0;
-    }
-    ptr = data->buf + data->bufUsed;
-
-    /* add data type */
-    if (typeInfo) {
-	addDataType(&ptr, PSDATA_STRING);
-	data->bufUsed +=sizeof(uint8_t);
-    }
-
-    /* string length */
-    *(uint32_t *) ptr = byteOrder ? htonl(len) : len;
-    ptr += sizeof(uint32_t);
-    data->bufUsed += sizeof(uint32_t);
-
-    /* add string itself */
-    if (len > 0) {
-	memcpy(ptr, string, len);
-	data->bufUsed += len;
-    }
-
-    return 1;
-}
-
-int __addUint8ToMsg(const uint8_t val, PS_DataBuffer_t *data,
-		    const char *caller, const int line)
-{
-    char *ptr;
-    int ret;
-
-    if (!data) {
-	pluginlog("%s: invalid data from '%s'\n", __func__, caller);
-	return 0;
-    }
-
-    ret = growBuffer(sizeof(uint8_t) + sizeof(uint8_t), data, caller, line);
-    if (!ret) {
-	pluginlog("%s: growing buffer for '%s' failed\n", __func__, caller);
-	return 0;
-    }
-    ptr = data->buf + data->bufUsed;
-
-    /* add data type */
-    if (typeInfo) {
-	addDataType(&ptr, PSDATA_UINT8);
-	data->bufUsed += sizeof(uint8_t);
-    }
-
-    /* add data */
-    *(uint8_t *) ptr = val;
-    data->bufUsed += sizeof(uint8_t);
-
-    return 1;
-}
-
-int __addUint16ToMsg(const uint16_t val, PS_DataBuffer_t *data,
-		    const char *caller, const int line)
-{
-    char *ptr;
-    int ret;
-
-    if (!data) {
-	pluginlog("%s: invalid data from '%s'\n", __func__, caller);
-	return 0;
-    }
-
-    ret = growBuffer(sizeof(uint8_t) + sizeof(uint16_t), data, caller, line);
-    if (!ret) {
-	pluginlog("%s: growing buffer for '%s' failed\n", __func__, caller);
-	return 0;
-    }
-    ptr = data->buf + data->bufUsed;
-
-    /* add data type */
-    if (typeInfo) {
-	addDataType(&ptr, PSDATA_UINT16);
-	data->bufUsed += sizeof(uint8_t);
-    }
-
-    /* add result */
-    *(uint16_t *) ptr = byteOrder ? htons(val) : val;
-    data->bufUsed += sizeof(uint16_t);
-
-    return 1;
-}
-
-int __addUint32ToMsg(const uint32_t val, PS_DataBuffer_t *data,
-		    const char *caller, const int line)
-{
-    char *ptr;
-    int ret;
-
-    if (!data) {
-	pluginlog("%s: invalid data from '%s'\n", __func__, caller);
-	return 0;
-    }
-
-    ret = growBuffer(sizeof(uint8_t) + sizeof(uint32_t), data, caller, line);
-    if (!ret) {
-	pluginlog("%s: growing buffer for '%s' failed\n", __func__, caller);
-	return 0;
-    }
-    ptr = data->buf + data->bufUsed;
-
-    /* add data type */
-    if (typeInfo) {
-	addDataType(&ptr, PSDATA_UINT32);
-	data->bufUsed += sizeof(uint8_t);
-    }
-
-    /* add result */
-    *(uint32_t *) ptr = byteOrder ? htonl(val) : val;
-    data->bufUsed += sizeof(uint32_t);
-
-    return 1;
-}
-
-int __addUint64ToMsg(const uint64_t val, PS_DataBuffer_t *data,
-		    const char *caller, const int line)
-{
-    char *ptr;
-    int ret;
-
-    if (!data) {
-	pluginlog("%s: invalid data from '%s'\n", __func__, caller);
-	return 0;
-    }
-
-    ret = growBuffer(sizeof(uint8_t) + sizeof(uint64_t), data, caller, line);
-    if (!ret) {
-	pluginlog("%s: growing buffer for '%s' failed\n", __func__, caller);
-	return 0;
-    }
-    ptr = data->buf + data->bufUsed;
-
-    /* add data type */
-    if (typeInfo) {
-	addDataType(&ptr, PSDATA_UINT64);
-	data->bufUsed += sizeof(uint8_t);
-    }
-
-    /* add result */
-    *(uint64_t *) ptr = byteOrder ? HTON_uint64(val) : val;
-    data->bufUsed += sizeof(uint64_t);
-
-    return 1;
-}
-
-int __addDoubleToMsg(double val, PS_DataBuffer_t *data,
-		    const char *caller, const int line)
-{
-    char *ptr;
-    int ret;
-
-    union {
-	double d;
-	uint64_t u;
-    } uval;
-
-    if (!data) {
-	pluginlog("%s: invalid data from '%s'\n", __func__, caller);
-	return 0;
-    }
-
-    uval.d = (val * FLOAT_CONVERT);
-
-    ret = growBuffer(sizeof(uint8_t) + sizeof(uint64_t), data, caller, line);
-    if (!ret) {
-	pluginlog("%s: growing buffer for '%s' failed\n", __func__, caller);
-	return 0;
-    }
-    ptr = data->buf + data->bufUsed;
-
-    /* add data type */
-    if (typeInfo) {
-	addDataType(&ptr, PSDATA_DOUBLE);
-	data->bufUsed += sizeof(uint8_t);
-    }
-
-    /* add result */
-    *(uint64_t *) ptr = byteOrder ? HTON_uint64(uval.u) : uval.u;
-    data->bufUsed += sizeof(uint64_t);
-
-    return 1;
-}
-
-int __addInt16ToMsg(const int16_t val, PS_DataBuffer_t *data,
-		    const char *caller, const int line)
-{
-    char *ptr;
-    int ret;
-
-    if (!data) {
-	pluginlog("%s: invalid data from '%s'\n", __func__, caller);
-	return 0;
-    }
-
-    ret = growBuffer(sizeof(uint8_t) + sizeof(int16_t), data, caller, line);
-    if (!ret) {
-	pluginlog("%s: growing buffer for '%s' failed\n", __func__, caller);
-	return 0;
-    }
-    ptr = data->buf + data->bufUsed;
-
-    /* add data type */
-    if (typeInfo) {
-	addDataType(&ptr, PSDATA_INT16);
-	data->bufUsed += sizeof(uint8_t);
-    }
-
-    /* add result */
-    *(int16_t *) ptr = val;
-    data->bufUsed += sizeof(int16_t);
-
-    return 1;
-}
-
-int __addInt32ToMsg(const int32_t val, PS_DataBuffer_t *data,
-		    const char *caller, const int line)
-{
-    char *ptr;
-    int ret;
-
-    if (!data) {
-	pluginlog("%s: invalid data from '%s'\n", __func__, caller);
-	return 0;
-    }
-
-    ret = growBuffer(sizeof(uint8_t) + sizeof(int32_t), data, caller, line);
-    if (!ret) {
-	pluginlog("%s: growing buffer for '%s' failed\n", __func__, caller);
-	return 0;
-    }
-    ptr = data->buf + data->bufUsed;
-
-    /* add data type */
-    if (typeInfo) {
-	*(uint8_t *)ptr = PSDATA_INT32;
-	ptr += sizeof(uint8_t);
-	data->bufUsed += sizeof(uint8_t);
-    }
-
-    /* add result */
-    *(int32_t *) ptr = val;
-    data->bufUsed += sizeof(int32_t);
-
-    return 1;
-}
-
-int __addUint16ArrayToMsg(const uint16_t *val, const uint32_t len,
-			    PS_DataBuffer_t *data, const char *caller,
-			    const int line)
-{
-    uint32_t i;
-
-    if (!data) {
-	pluginlog("%s: invalid data from '%s'\n", __func__, caller);
-	return 0;
-    }
-
-    if (!val) {
-	pluginlog("%s: invalid value ptr from '%s'\n", __func__, caller);
-	return 0;
-    }
-
-    if (!( __addUint32ToMsg(len, data, caller, line))) return 0;
-
-    for (i=0; i<len; i++) {
-	__addUint16ToMsg(val[i], data, caller, line);
-    }
-
-    return 1;
-}
-
-int __addUint32ArrayToMsg(const uint32_t *val, const uint32_t len,
-			    PS_DataBuffer_t *data, const char *caller,
-			    const int line)
-{
-    uint32_t i;
-
-    if (!data) {
-	pluginlog("%s: invalid data from '%s'\n", __func__, caller);
-	return 0;
-    }
-
-    if (!val) {
-	pluginlog("%s: invalid value ptr from '%s'\n", __func__, caller);
-	return 0;
-    }
-
-    if (!( __addUint32ToMsg(len, data, caller, line))) return 0;
-
-    for (i=0; i<len; i++) {
-	__addUint32ToMsg(val[i], data, caller, line);
-    }
-
-    return 1;
-}
-
-int __addInt16ArrayToMsg(const int16_t *val, const uint32_t len,
-			    PS_DataBuffer_t *data, const char *caller,
-			    const int line)
-{
-    uint32_t i;
-
-    if (!data) {
-	pluginlog("%s: invalid data from '%s'\n", __func__, caller);
-	return 0;
-    }
-
-    if (!val) {
-	pluginlog("%s: invalid value ptr from '%s'\n", __func__, caller);
-	return 0;
-    }
-
-    if (!( __addUint32ToMsg(len, data, caller, line))) return 0;
-
-    for (i=0; i<len; i++) {
-	__addInt16ToMsg(val[i], data, caller, line);
-    }
-
-    return 1;
-}
-
-int __addInt32ArrayToMsg(const int32_t *val, const uint32_t len,
-			    PS_DataBuffer_t *data, const char *caller,
-			    const int line)
-{
-    uint32_t i;
-
-    if (!data) {
-	pluginlog("%s: invalid data from '%s'\n", __func__, caller);
-	return 0;
-    }
-
-    if (!val) {
-	pluginlog("%s: invalid value ptr from '%s'\n", __func__, caller);
-	return 0;
-    }
-
-    if (!( __addUint32ToMsg(len, data, caller, line))) return 0;
-
-    for (i=0; i<len; i++) {
-	__addInt32ToMsg(val[i], data, caller, line);
-    }
-
-    return 1;
-}
-
-int __addTimeToMsg(const time_t *time, PS_DataBuffer_t *data,
-		    const char *caller, const int line)
-{
-    char *ptr;
-    time_t tmp;
-    int ret;
-
-    if (!time) {
-	pluginlog("%s: invalid time from '%s'\n", __func__, caller);
-	return 0;
-    }
-
-    if (!data) {
-	pluginlog("%s: invalid data buffer from '%s'\n", __func__, caller);
-	return 0;
-    }
-
-    ret = growBuffer(sizeof(uint8_t) + sizeof(uint64_t), data, caller, line);
-    if (!ret) {
-	pluginlog("%s: growing buffer for '%s' failed\n", __func__, caller);
-	return 0;
-    }
-    ptr = data->buf + data->bufUsed;
-
-    /* add data type */
-    if (typeInfo) {
-	*(uint8_t *)ptr = PSDATA_TIME;
-	ptr += sizeof(uint8_t);
-	data->bufUsed += sizeof(uint8_t);
-    }
-
-    tmp = byteOrder ? HTON_int64(*time) : *time;
-    *(int64_t *) ptr = tmp;
-    data->bufUsed += sizeof(int64_t);
-
-    return 1;
-}
-
-int __addMemToMsg(void *mem, uint32_t memLen, PS_DataBuffer_t *data,
-		    const char *caller, const int line)
-{
-    void *ptr;
-    int ret;
-
-    if (!data) {
-	pluginlog("%s: invalid data buffer from '%s'\n", __func__, caller);
-	return 0;
-    }
-
-    if (!mem) {
-	pluginlog("%s: invalid memory ptr from '%s'\n", __func__, caller);
-	return 0;
-    }
-
-    ret = growBuffer(sizeof(uint8_t) + sizeof(uint32_t) + memLen,
-		    data, caller, line);
-    if (!ret) {
-	pluginlog("%s: growing buffer for '%s' failed\n", __func__, caller);
-	return 0;
-    }
-    ptr = data->buf + data->bufUsed;
-
-    /* add data type */
-    if (typeInfo) {
-	*(uint8_t *)ptr = PSDATA_MEM;
-	ptr += sizeof(uint8_t);
-	data->bufUsed += sizeof(uint8_t);
-    }
-
-    memcpy(ptr, mem, memLen);
-    data->bufUsed += memLen;
-
-    return 1;
-}
-
-int __addPidToMsg(const pid_t pid, PS_DataBuffer_t *data,
-		    const char *caller, const int line)
-{
-    char *ptr;
-    int ret;
-
-    if (!data) {
-	pluginlog("%s: invalid data from '%s'\n", __func__, caller);
-	return 0;
-    }
-
-    ret = growBuffer(sizeof(uint8_t) + sizeof(pid_t), data, caller, line);
-    if (!ret) {
-	pluginlog("%s: growing buffer for '%s' failed\n", __func__, caller);
-	return 0;
-    }
-    ptr = data->buf + data->bufUsed;
-
-    /* add data type */
-    if (typeInfo) {
-	*(uint8_t *)ptr = PSDATA_PID;
-	ptr += sizeof(uint8_t);
-	data->bufUsed += sizeof(uint8_t);
-    }
-
-    *(pid_t *) ptr = pid;
-    data->bufUsed += sizeof(pid_t);
-
-    return 1;
-}
-
-int __addStringToMsgBuf(DDTypedBufferMsg_t *msg, char **ptr,
-    const char *string, const char *caller)
-{
-    size_t len;
-
-    if (!*ptr) {
-	pluginlog("%s: invalid ptr from '%s'\n", __func__, caller);
-	return 0;
-    }
-
-    if (!msg) {
-	pluginlog("%s: invalid msg ptr from '%s'\n", __func__, caller);
-	return 0;
-    }
-
-    len = (!string) ? 0 : strlen(string) +1;
-
-    /* add data type */
-    if (typeInfo) {
-	*(uint8_t *) *ptr = PSDATA_STRING;
-	*ptr += sizeof(uint8_t);
-	msg->header.len += sizeof(uint8_t);
-    }
-
-    /* string length */
-    *(uint32_t *) *ptr = byteOrder ? htonl(len) : len;
-    *ptr += sizeof(uint32_t);
-    msg->header.len += sizeof(uint32_t);
-
-    if (msg->header.len + len> BufTypedMsgSize) {
-	pluginlog("%s: message buffer to small from '%s'!\n", __func__, caller);
-	return 0;
-    }
-
-    /* add string itself */
-    if (len > 0) {
-	memcpy(*ptr, string, len);
-	*ptr += len;
-	msg->header.len += len;
-    }
-
-    /*
-    pluginlog("adding buffer '%s' len '%zu'\n", string, len);
-    */
-    return 1;
-}
-
-int __addTimeToMsgBuf(DDTypedBufferMsg_t *msg, char **ptr,
-				time_t *time, const char *caller)
-{
-    time_t tmp;
-
-    if (!time) {
-	pluginlog("%s: invalid time from '%s'\n", __func__, caller);
-	return 0;
-    }
-
-    if (!*ptr) {
-	pluginlog("%s: invalid ptr from '%s'\n", __func__, caller);
-	return 0;
-    }
-
-    if (!msg) {
-	pluginlog("%s: invalid msg ptr from '%s'\n", __func__, caller);
-	return 0;
-    }
-
-    if ((msg->header.len + sizeof(int64_t)) > BufTypedMsgSize) {
-	pluginlog("%s: message buffer to small from '%s'\n", __func__, caller);
-	return 0;
-    }
-
-    /* add data type */
-    if (typeInfo) {
-	*(uint8_t *) *ptr = PSDATA_TIME;
-	*ptr += sizeof(uint8_t);
-	msg->header.len += sizeof(uint8_t);
-    }
-
-    tmp = byteOrder ? HTON_int64(*time) : *time;
-    *(int64_t *) *ptr = tmp;
-    *ptr += sizeof(int64_t);
-    msg->header.len += sizeof(int64_t);
-
-    return 1;
-}
-int __addInt32ToMsgBuf(DDTypedBufferMsg_t *msg, char **ptr,
-			int32_t val, const char *caller)
-{
-    if (!msg) {
-	pluginlog("%s: invalid msg from '%s'\n", __func__, caller);
-	return 0;
-    }
-
-    if (!*ptr) {
-	pluginlog("%s: invalid ptr from '%s'\n", __func__, caller);
-	return 0;
-    }
-
-    /* add data type */
-    if (typeInfo) {
-	addDataType(ptr, PSDATA_INT32);
-	msg->header.len += sizeof(uint8_t);
-    }
-
-    /* add result */
-    *(int32_t *) *ptr = val;
-    *ptr += sizeof(int32_t);
-    msg->header.len += sizeof(int32_t);
-
-    return 1;
-}
-
-static int checkGetParam(char **ptr, void *val, const char *func,
-			    const char *caller, const int line)
-{
-    if (!*ptr) {
-	pluginlog("%s: invalid ptr from '%s'\n", func, caller);
-	return 0;
-    }
-
-    if (!val) {
-	pluginlog("%s: invalid value from '%s'\n", func, caller);
-	return 0;
-    }
-
-    return 1;
-}
-
-int __getUint8(char **ptr, uint8_t *val, const char *caller,
-			    const int line)
-{
-    if (!(checkGetParam(ptr, val, __func__, caller, line))) return 0;
-    if (!(verifyTypeInfo(ptr, PSDATA_UINT8, caller))) return 0;
-
-    *val = *(uint8_t *) *ptr;
-    *ptr += sizeof(uint8_t);
-    return 1;
-}
-
-int __getUint16(char **ptr, uint16_t *val, const char *caller,
-			    const int line)
-{
-    if (!(checkGetParam(ptr, val, __func__, caller, line))) return 0;
-    if (!(verifyTypeInfo(ptr, PSDATA_UINT16, caller))) return 0;
-
-    *val = *(uint16_t *) *ptr;
-    *val = byteOrder ? ntohs(*val) : *val;
-    *ptr += sizeof(uint16_t);
-    return 1;
-}
-
-int __getUint32(char **ptr, uint32_t *val, const char *caller,
-			    const int line)
-{
-    if (!(checkGetParam(ptr, val, __func__, caller, line))) return 0;
-    if (!(verifyTypeInfo(ptr, PSDATA_UINT32, caller))) return 0;
-
-    *val = *(uint32_t *) *ptr;
-    *val = byteOrder ? ntohl(*val) : *val;
-    *ptr += sizeof(uint32_t);
-    return 1;
-}
-
-int __getUint64(char **ptr, uint64_t *val, const char *caller,
-			    const int line)
-{
-    if (!(checkGetParam(ptr, val, __func__, caller, line))) return 0;
-    if (!(verifyTypeInfo(ptr, PSDATA_UINT64, caller))) return 0;
-
-    *val = *(uint64_t *) *ptr;
-    *val = byteOrder ? NTOH_uint64(*val) : *val;
-    *ptr += sizeof(uint64_t);
-    return 1;
-}
-
-int __getDouble(char **ptr, double *val, const char *caller,
-			    const int line)
-{
-    union {
-	double d;
-	uint64_t u;
-    } uval;
-
-    if (!(checkGetParam(ptr, val, __func__, caller, line))) return 0;
-    if (!(verifyTypeInfo(ptr, PSDATA_DOUBLE, caller))) return 0;
-
-    uval.u = *(uint64_t *) *ptr;
-    *ptr += sizeof(uint64_t);
-
-    uval.u = byteOrder ? NTOH_uint64(uval.u) : uval.u;
-    *val = uval.d / FLOAT_CONVERT;
-    return 1;
-}
-
-int __getInt8(char **ptr, int8_t *val, const char *caller,
-			    const int line)
-{
-    if (!(checkGetParam(ptr, val, __func__, caller, line))) return 0;
-    if (!(verifyTypeInfo(ptr, PSDATA_INT8, caller))) return 0;
-
-    *val = *(int8_t *) *ptr;
-    *ptr += sizeof(int8_t);
-    return 1;
-}
-
-int __getInt16(char **ptr, int16_t *val, const char *caller,
-			    const int line)
-{
-    if (!(checkGetParam(ptr, val, __func__, caller, line))) return 0;
-    if (!(verifyTypeInfo(ptr, PSDATA_INT16, caller))) return 0;
-
-    *val = *(int16_t *) *ptr;
-    *ptr += sizeof(int16_t);
-    return 1;
-}
-
-int __getInt32(char **ptr, int32_t *val, const char *caller,
-			    const int line)
-{
-    if (!(checkGetParam(ptr, val, __func__, caller, line))) return 0;
-    if (!(verifyTypeInfo(ptr, PSDATA_INT32, caller))) return 0;
-
-    *val = *(int32_t *) *ptr;
-    *ptr += sizeof(int32_t);
-    return 1;
-}
-
-int __getInt64(char **ptr, int64_t *val, const char *caller,
-			    const int line)
-{
-    if (!(checkGetParam(ptr, val, __func__, caller, line))) return 0;
-    if (!(verifyTypeInfo(ptr, PSDATA_INT64, caller))) return 0;
-
-    *val = *(int64_t *) *ptr;
-    *ptr += sizeof(int64_t);
-    return 1;
-}
-
-int __getUint16Array(char **ptr, uint16_t **val, uint32_t *len,
-			const char *caller, const int line)
-{
-    uint32_t i;
-
-    if (!( __getUint32(ptr, len, caller, line))) return 0;
-
-    if (*len <= 0) return 1;
-    *val = __umalloc(sizeof(uint16_t) * *len, caller, line);
-
-    for (i=0; i<*len; i++) {
-	__getUint16(ptr, &(*val)[i], caller, line);
-    }
-
-    return 1;
-}
-
-int __getUint32Array(char **ptr, uint32_t **val, uint32_t *len,
-			const char *caller, const int line)
-{
-    uint32_t i;
-
-    if (!( __getUint32(ptr, len, caller, line))) return 0;
-
-    if (*len <= 0) return 1;
-    *val = __umalloc(sizeof(uint32_t) * *len, caller, line);
-
-    for (i=0; i<*len; i++) {
-	__getUint32(ptr, &(*val)[i], caller, line);
-    }
-
-    return 1;
-}
-
-int __getInt16Array(char **ptr, int16_t **val, uint32_t *len,
-			const char *caller, const int line)
-{
-    uint32_t i;
-
-    if (!( __getUint32(ptr, len, caller, line))) return 0;
-
-    if (*len <= 0) return 1;
-    *val = __umalloc(sizeof(int16_t) * *len, caller, line);
-
-    for (i=0; i<*len; i++) {
-	__getInt16(ptr, &(*val)[i], caller, line);
-    }
-
-    return 1;
-}
-
-int __getInt32Array(char **ptr, int32_t **val, uint32_t *len,
-			const char *caller, const int line)
-{
-    uint32_t i;
-
-    if (!( __getUint32(ptr, len, caller, line))) return 0;
-
-    if (*len <= 0) return 1;
-    *val = __umalloc(sizeof(int32_t) * *len, caller, line);
-
-    for (i=0; i<*len; i++) {
-	__getInt32(ptr, &(*val)[i], caller, line);
-    }
-
-    return 1;
-}
-
-int __getTime(char **ptr, time_t *time, const char *caller, const int line)
-{
-    if (!(checkGetParam(ptr, time, __func__, caller, line))) return 0;
-    if (!(verifyTypeInfo(ptr, PSDATA_TIME, caller))) return 0;
-
-    *time = *(int64_t *) *ptr;
-    *time = byteOrder ? NTOH_int64(*time) : *time;
-    *ptr += sizeof(int64_t);
-
-    return 1;
-}
-
-int __getPid(char **ptr, pid_t *pid, const char *caller, const int line)
-{
-    if (!(checkGetParam(ptr, pid, __func__, caller, line))) return 0;
-    if (!(verifyTypeInfo(ptr, PSDATA_PID, caller))) return 0;
-
-    *pid = *(pid_t *) *ptr;
-    *ptr += sizeof(pid_t);
-
-    return 1;
-}
-
-char *__getStringM(char **ptr, const char *caller, const int line)
-{
-    size_t len;
-    return __getStringML(ptr, &len, caller, line);
-}
-
-char *__getStringML(char **ptr, size_t *len, const char *caller, const int line)
-{
-    char *data;
-
-    if (!*ptr) {
-	if (debug) {
-	    pluginlog("%s: invalid ptr from '%s'\n", __func__, caller);
+    static time_t lastLog = 0;
+    char *ptr = buffer;
+    size_t written = 0;
+    int retries = 0;
+
+    while ((written < toWrite) && (infinite || retries++ <= MAX_RETRY)) {
+	ssize_t ret = write(fd, ptr + written, toWrite - written);
+	if (ret == -1) {
+	    int eno = errno;
+	    if (eno == EINTR || eno == EAGAIN) continue;
+
+	    time_t now = time(NULL);
+	    if (lastLog == now) return -1;
+
+	    pluginwarn(eno, "%s (%s): write(%i) failed", __func__, func, fd);
+	    lastLog = now;
+	    return -1;
+	} else if (!ret) {
+	    return ret;
 	}
+	if (!pedantic) return ret;
+
+	written += ret;
+    }
+
+    if (written < toWrite) return -1;
+
+    return written;
+}
+
+int __doReadExt(int fd, void *buffer, size_t toRead, size_t *numRead,
+		const char *func, bool pedantic)
+{
+    static time_t lastLog = 0;
+    char *ptr = buffer;
+    int retries = 0;
+
+    *numRead = 0;
+    if (pedantic) setFDblock(fd, 0);
+
+    while ((*numRead < toRead) && (retries++ <= MAX_RETRY)) {
+	ssize_t num = read(fd, ptr + *numRead, toRead - *numRead);
+	if (num < 0) {
+	    int eno = errno;
+	    if (eno == EINTR || eno == EAGAIN) continue;
+
+	    time_t now = time(NULL);
+	    if (lastLog == now) return -1;
+
+	    pluginwarn(eno, "%s (%s): read(%i) failed", __func__, func, fd);
+	    lastLog = now;
+	    return -1;
+	} else if (!num) {
+	    return num;
+	}
+	if (!pedantic) return num;
+
+	*numRead += num;
+    }
+
+    if (*numRead < toRead) return -1;
+
+    return *numRead;
+}
+
+int __doRead(int fd, void *buffer, size_t toRead, const char *func,
+	     bool pedantic)
+{
+    size_t read;
+
+    return __doReadExt(fd, buffer, toRead, &read, func, pedantic);
+}
+
+/******************** fetching data  ********************/
+
+/**
+ * @brief Verify type info
+ *
+ * Verify the type information of the next data available at @a
+ * ptr. If the type is identical to the one provided in @a
+ * expectedType true is returned. At the same time @a ptr is modified
+ * such that it points behind the checked type information.
+ *
+ * If the global @ref typeInfo flag is false, no action is taken und
+ * true is returned.
+ *
+ * @param ptr Pointer to the next data available. Modified in the
+ * course of fetching the actual type information.
+ *
+ * @param expectedType Type that is expected.
+ *
+ * @param caller Function name of the calling function
+ *
+ * @param line Line number where this function is called
+ *
+ * @return If the type of the available data is identical to @a
+ * expectedType true is returned. Otherwise false is returned. If
+ * type-checking is switched of, i.e. @ref typeInfo is false, true is
+ * returned.
+ */
+static bool verifyTypeInfo(char **ptr, PS_DataType_t expectedType,
+			   const char *caller, const int line)
+{
+    uint8_t type;
+
+    if (!typeInfo) return true;
+
+    type = *(uint8_t *) *ptr;
+    *ptr += sizeof(uint8_t);
+
+    if (type != expectedType) {
+	if (debug) {
+	    pluginlog("%s(%s@%d): error got type '%i' should be '%i'\n",
+		      __func__, caller, line, type, expectedType);
+	}
+	return false;
+    }
+    return true;
+}
+
+bool getFromBuf(char **ptr, void *val, PS_DataType_t type,
+		size_t size, const char *caller, const int line)
+{
+    if (!*ptr) {
+	pluginlog("%s: invalid ptr from '%s' at %d\n", __func__, caller, line);
+	return false;
+    }
+
+    if (!val) {
+	pluginlog("%s: invalid val from '%s' at %d\n", __func__, caller, line);
+	return false;
+    }
+
+    if (!verifyTypeInfo(ptr, type, caller, line)) return false;
+
+    memcpy(val, *ptr, size);
+    if (byteOrder) {
+	switch (size) {
+	case 1:
+	    break;
+	case 2:
+	    *(uint16_t*)val = ntohs(*(uint16_t*)val);
+	    break;
+	case 4:
+	    *(uint32_t*)val = ntohl(*(uint32_t*)val);
+	    break;
+	case 8:
+	    *(uint64_t*)val = NTOH64(*(uint64_t*)val);
+	    break;
+	default:
+	    pluginlog("%s(%s@%d): unknown conversion for size %zd\n",
+		      __func__, caller, line, size);
+	}
+    }
+    *ptr += size;
+
+    return true;
+}
+
+bool getArrayFromBuf(char **ptr, void **val, uint32_t *len,
+		     PS_DataType_t type, size_t size,
+		     const char *caller, const int line)
+{
+    uint32_t i;
+
+    if (!getFromBuf(ptr, len, PSDATA_UINT32, sizeof(*len), caller, line))
+	return false;
+
+    if (*len <= 0) return true;
+    *val = __umalloc(size * *len, caller, line);
+
+    for (i = 0; i < *len; i++) {
+	getFromBuf(ptr, *val + i*size, type, size, caller, line);
+    }
+
+    return true;
+}
+
+void *getMemFromBuf(char **ptr, char *data, size_t dataSize, size_t *len,
+		    PS_DataType_t type, const char *caller, const int line)
+{
+    uint32_t l;
+
+    if (dataSize && !data) {
+	pluginlog("%s: invalid buffer from '%s' at %d'\n", __func__,
+		  caller, line);
+	return NULL;
+    }
+    if (data) data[0] = '\0';
+
+
+    if (!*ptr) {
+	if (debug) pluginlog("%s: invalid ptr from '%s' at %d'\n", __func__,
+			     caller, line);
 	return NULL;
     }
 
-    if (!(verifyTypeInfo(ptr, PSDATA_STRING, caller))) return NULL;
+    if (!verifyTypeInfo(ptr, type, caller, line)) return NULL;
 
-    /* string length */
-    *len = *(uint32_t *) *ptr;
-    *len = byteOrder ? ntohl(*len) : *len;
+    /* data length */
+    l = *(uint32_t *) *ptr;
     *ptr += sizeof(uint32_t);
 
-    data = __umalloc(*len, caller, line);
+    if (byteOrder) l = ntohl(l);
+    if (len) *len = l;
 
-    /* extract the string */
-    if (*len > 0) {
-	memcpy(data, *ptr, *len);
-	*ptr += *len;
+    if (data) {
+	if (l >= dataSize) {
+	    /* buffer to small */
+	    pluginlog("%s: buffer (%zu) to small for message (%u) from '%s'"
+		      " at %d\n", __func__, dataSize, l, caller, line);
+	    return NULL;
+	}
     } else {
+	data = __umalloc(l, caller, line);
+    }
+
+    /* extract data */
+    if (l > 0) {
+	memcpy(data, *ptr, l);
+	if (type == PSDATA_STRING) data[l-1] = '\0';
+	*ptr += l;
+    } else if (type == PSDATA_STRING) {
 	data[0] = '\0';
     }
 
     return data;
 }
 
-void *__getDataM(void **ptr, uint32_t *len, const char *caller, const int line)
-{
-    void *data;
-
-    if (!*ptr) {
-	if (debug) {
-	    pluginlog("%s: invalid ptr from '%s'\n", __func__, caller);
-	}
-	return NULL;
-    }
-
-    if (!(verifyTypeInfo((char **)ptr, PSDATA_DATA, caller))) return NULL;
-
-    /* data length */
-    *len = *(uint32_t *) *ptr;
-    *len = byteOrder ? ntohl(*len) : *len;
-    *ptr += sizeof(uint32_t);
-
-    data = __umalloc(*len, caller, line);
-
-    /* extract the string */
-    if (*len > 0) {
-	memcpy(data, *ptr, *len);
-	*ptr += *len;
-    }
-
-    return data;
-}
-
-int __getStringArrayM(char **ptr, char ***array, uint32_t *len,
+bool __getStringArrayM(char **ptr, char ***array, uint32_t *len,
 			const char *caller, const int line)
 {
     uint32_t i = 0;
 
     *array = NULL;
-    if (!( __getUint32(ptr, len, caller, line))) return 0;
+    if (!getFromBuf(ptr, len, PSDATA_UINT32, sizeof(*len), caller, line))
+	return false;
 
-    if (!*len) return 1;
+    if (!*len) return true;
 
     *array = __umalloc(sizeof(char *) * (*len + 1), caller, line);
 
     for (i=0; i<*len; i++) {
-	(*array)[i] = __getStringM(ptr, caller, line);
+	(*array)[i] = getMemFromBuf(ptr, NULL, 0, NULL, PSDATA_STRING,
+				    caller, line);
     }
 
     (*array)[*len] = NULL;
 
-    return 1;
+    return true;
 }
 
-char *__getString(char **ptr, char *buf, size_t buflen,
-		    const char *caller, const int line)
+/******************** adding data  ********************/
+
+static void addDataType(void **ptr, PS_DataType_t type)
 {
-    size_t len;
+    *(uint8_t *) *ptr = type;
+    *ptr += sizeof(uint8_t);
+}
 
-    if (!buf) {
-	pluginlog("%s: invalid buffer from '%s:%i'\n", __func__, caller, line);
-	return NULL;
+bool addToBuf(const void *val, const uint32_t size, PS_DataBuffer_t *data,
+	      PS_DataType_t type, const char *caller, const int line)
+{
+    void *ptr;
+    bool hasLen = (type == PSDATA_STRING || type == PSDATA_DATA);
+    size_t growth = (typeInfo ? sizeof(uint8_t) : 0)
+	+ (hasLen ? sizeof(uint32_t) : 0) + size;
+
+    if (!data) {
+	pluginlog("%s: invalid data from '%s' at %d\n", __func__, caller, line);
+	return false;
     }
-    buf[0] = '\0';
 
-    if (!*ptr) {
-	if (debug) {
-	    pluginlog("%s: invalid ptr from '%s:%i'\n", __func__, caller, line);
+    if (!val && type != PSDATA_STRING) {
+	pluginlog("%s: invalid val from '%s' at %d\n", __func__, caller, line);
+	return false;
+    }
+
+    if (!growDataBuffer(growth, data, caller, line)) {
+	pluginlog("%s: growing buffer failed from '%s' at %d\n", __func__,
+		  caller, line);
+	return false;
+    }
+    ptr = data->buf + data->bufUsed;
+
+    /* add data type */
+    if (typeInfo) {
+	addDataType(&ptr, type);
+	data->bufUsed += sizeof(uint8_t);
+    }
+
+    /* add data length if required */
+    if (hasLen) {
+	*(uint32_t *) ptr = byteOrder ? htonl(size) : size;
+	ptr += sizeof(uint32_t);
+	data->bufUsed += sizeof(uint32_t);
+    }
+
+    /* add data */
+    memcpy(ptr, val, size);
+    if (byteOrder && !hasLen && type != PSDATA_MEM) {
+	switch (size) {
+	case 1:
+	    break;
+	case 2:
+	    *(uint16_t*)ptr = htons(*(uint16_t*)ptr);
+	    break;
+	case 4:
+	    *(uint32_t*)ptr = htonl(*(uint32_t*)ptr);
+	    break;
+	case 8:
+	    *(uint64_t*)ptr = HTON64(*(uint64_t*)ptr);
+	    break;
+	default:
+	    pluginlog("%s(%s@%d): unknown conversion for size %d\n",
+		      __func__, caller, line, size);
 	}
-	return NULL;
+    }
+    data->bufUsed += size;
+
+    return true;
+}
+
+bool addArrayToBuf(const void *val, const uint32_t num, PS_DataBuffer_t *data,
+		   PS_DataType_t type, size_t size,
+		   const char *caller, const int line)
+{
+    uint32_t i;
+
+    if (!data) {
+	pluginlog("%s: invalid data from '%s' at %d\n", __func__, caller, line);
+	return false;
+    }
+    if (!val) {
+	pluginlog("%s: invalid val from '%s' at %d\n", __func__, caller, line);
+	return false;
     }
 
-    if (!(verifyTypeInfo(ptr, PSDATA_STRING, caller))) return NULL;
+    if (!addToBuf(&num, sizeof(num), data, PSDATA_UINT32, caller, line))
+	return false;
 
-    /* string length */
-    len = *(uint32_t *) *ptr;
-    len = byteOrder ? ntohl(len) : len;
-    *ptr += sizeof(uint32_t);
-
-    //pluginlog("reading buffer len '%i'\n", len);
-
-    /* buffer to small */
-    if (len > buflen) {
-	pluginlog("%s: buffer (%zu) to small for message (%zu) from '%s:%i'\n",
-		__func__, buflen, len, caller, line);
-	return NULL;
+    for (i = 0; i < num; i++) {
+	addToBuf(val + i*size, size, data, type, caller, line);
     }
 
-    /* extract the string */
-    if (len > 0) {
-	memcpy(buf, *ptr, len);
-	buf[len] = '\0';
-	*ptr += len;
-    } else {
-	buf[0] = '\0';
+    return true;
+}
+
+
+/******************** adding to messages  *********************/
+
+bool addToMsgBuf(DDTypedBufferMsg_t *msg, void *val, uint32_t size,
+		 PS_DataType_t type, const char *caller)
+{
+    if (!msg) {
+	pluginlog("%s: invalid msg ptr from %s\n", __func__, caller);
+	return false;
     }
 
-    return buf;
+    /* add data type */
+    if (typeInfo) {
+	uint8_t t = type;
+	PSP_putTypedMsgBuf(msg, caller, "type", &t, sizeof(t));
+    }
+
+    /* add data length if required */
+    if (type == PSDATA_STRING) {
+	uint32_t len = (byteOrder ? htonl(size) : size);
+	PSP_putTypedMsgBuf(msg, caller, "len", &len, sizeof(len));
+    }
+
+    if (msg->header.len + size > BufTypedMsgSize) {
+	pluginlog("%s: message buffer to small from %s\n", __func__, caller);
+	return false;
+    }
+
+    switch (type) {
+    case PSDATA_STRING:
+	break;
+    case PSDATA_TIME:
+	if (byteOrder) *(uint64_t *)val = HTON64(*(uint64_t *)val);
+	break;
+    case PSDATA_INT32:
+	if (byteOrder) *(int32_t *)val = htonl(*(int32_t *)val);
+	break;
+    default:
+	pluginlog("%s: unsupported type %d from %s\n", __func__, type, caller);
+    }
+
+    return PSP_putTypedMsgBuf(msg, caller, "val", val, size);
 }
