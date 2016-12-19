@@ -839,7 +839,7 @@ void forwardSlurmMsg(Slurm_Msg_t *sMsg, Connection_Forward_t *fw)
 
     /* add forward information */
     addInt16ToMsg(sMsg->sock, &msg);
-    addTimeToMsg(&sMsg->recvTime, &msg);
+    addTimeToMsg(sMsg->recvTime, &msg);
 
     /* copy header */
     addUint16ToMsg(sMsg->head.version, &msg);
@@ -902,7 +902,7 @@ void send_PS_ForwardRes(Slurm_Msg_t *sMsg, PS_DataBuffer_t *body)
     /* socket */
     addInt16ToMsg(sMsg->sock, &msg);
     /* receive time */
-    addTimeToMsg(&sMsg->recvTime, &msg);
+    addTimeToMsg(sMsg->recvTime, &msg);
     /* message type */
     addUint16ToMsg(sMsg->head.type, &msg);
 

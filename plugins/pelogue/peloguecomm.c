@@ -105,7 +105,7 @@ int sendPElogueStart(Job_t *job, bool prologue, env_t *env)
 
     /* add start time */
     job->start_time = time(NULL);
-    addTimeToMsg(&job->start_time, &data);
+    addTimeToMsg(job->start_time, &data);
 
     /* add environment */
     addInt32ToMsg(env->cnt, &data);
@@ -169,7 +169,7 @@ int fwCallback(int32_t wstat, char *errMsg, size_t errLen, void *data)
     Forwarder_Data_t *fwdata = data;
     PElogue_Data_t *pedata = fwdata->userData;
     Child_t *child = pedata->child;
-    char *ptr, errBuf[50];
+    char errBuf[50];
     int ret, exit_status, signalFlag;
 
     signalFlag = child->signalFlag;
@@ -244,33 +244,32 @@ int fwCallback(int32_t wstat, char *errMsg, size_t errLen, void *data)
 			pedata->gid);
     }
     msgRes.header.len += sizeof(msgRes.type);
-    ptr = msgRes.buf;
 
     /* add plugin */
-    addStringToMsgBuf(&msgRes, &ptr, pedata->plugin);
+    addStringToMsgBuf(&msgRes, pedata->plugin);
 
     /* add jobid */
-    addStringToMsgBuf(&msgRes, &ptr, pedata->jobid);
+    addStringToMsgBuf(&msgRes, pedata->jobid);
 
     /* add start_time */
-    addTimeToMsgBuf(&msgRes, &ptr, &pedata->start_time);
+    addTimeToMsgBuf(&msgRes, pedata->start_time);
 
     /* add result */
-    addInt32ToMsgBuf(&msgRes, &ptr, exit_status);
+    addInt32ToMsgBuf(&msgRes, exit_status);
 
     /* add signal flag */
-    addInt32ToMsgBuf(&msgRes, &ptr, signalFlag);
+    addInt32ToMsgBuf(&msgRes, signalFlag);
 
     /* add error msg */
     if (exit_status != 0) {
 	if (errLen <= 0) {
 	    snprintf(errBuf, sizeof(errBuf), "exit [%i]", exit_status);
-	    addStringToMsgBuf(&msgRes, &ptr, errBuf);
+	    addStringToMsgBuf(&msgRes, errBuf);
 	} else {
-	    addStringToMsgBuf(&msgRes, &ptr, errMsg);
+	    addStringToMsgBuf(&msgRes, errMsg);
 	}
     } else {
-	addStringToMsgBuf(&msgRes, &ptr, "");
+	addStringToMsgBuf(&msgRes, "");
     }
 
     ret = sendMsg(&msgRes);
@@ -297,7 +296,6 @@ static void handlePELogueStart(DDTypedBufferMsg_t *msg,
     PELOGUE_child_types_t itype;
     PElogue_Data_t *data;
     DDTypedBufferMsg_t msgRes;
-    time_t job_start;
     int prologue = msg->type == PSP_PROLOGUE_START ? 1 : 0;
     Forwarder_Data_t *fwdata;
 
@@ -360,30 +358,10 @@ static void handlePELogueStart(DDTypedBufferMsg_t *msg,
     disPE = getConfParamI(data->plugin, "DISABLE_PELOGUE");
 
     if (disPE == 1) {
-	int32_t exitVal = 0;
 	mlog("%s: fixmeeee!!!\n", __func__);
 	exit(1);
 
 	/* no PElogue scripts to run */
-
-	/* get start_time */
-	getTime(&ptr, &job_start);
-
-	/* add jobid */
-	ptr = msgRes.buf;
-	addStringToMsgBuf(&msgRes, &ptr, data->jobid);
-
-	/* add start_time */
-	addTimeToMsgBuf(&msgRes, &ptr, &job_start);
-
-	/* add result */
-	addInt32ToMsgBuf(&msgRes, &ptr, exitVal);
-
-	if ((sendMsg(&msgRes)) == -1 && errno != EWOULDBLOCK) {
-	    mwarn(errno, "%s: sendMsg() to '%s' failed ", __func__,
-		    PSC_printTID(msgRes.header.sender));
-	}
-
 	return;
     }
 
@@ -446,15 +424,14 @@ static void handlePELogueStart(DDTypedBufferMsg_t *msg,
 
 	mlog("%s: exec '%s'-script failed\n", __func__, ctype);
 
-	ptr = msgRes.buf;
-	addStringToMsgBuf(&msgRes, &ptr, data->plugin);
-	addStringToMsgBuf(&msgRes, &ptr, data->jobid);
+	addStringToMsgBuf(&msgRes, data->plugin);
+	addStringToMsgBuf(&msgRes, data->jobid);
 
 	/* add start_time */
-	addTimeToMsgBuf(&msgRes, &ptr, &data->start_time);
+	addTimeToMsgBuf(&msgRes, data->start_time);
 
 	/* add result */
-	addInt32ToMsgBuf(&msgRes, &ptr, exitVal);
+	addInt32ToMsgBuf(&msgRes, exitVal);
 
 	if ((sendMsg(&msgRes)) == -1 && errno != EWOULDBLOCK) {
 	    mwarn(errno, "%s: sendMsg() to '%s' failed ", __func__,

@@ -265,8 +265,8 @@ static void handlePrintChildMsg(void *data, char *ptr)
     Forwarder_Data_t *fwdata = data;
     Step_t *step = fwdata->userData;
     uint8_t type;
-    uint32_t taskid;
-    uint32_t len, lrank, i;
+    uint32_t taskid, lrank, i;
+    size_t len;
     char *msg = NULL;
     static IO_Msg_Buf_t *lineBuf;
     int32_t myNodeID = step->myNodeIndex;
@@ -275,7 +275,7 @@ static void handlePrintChildMsg(void *data, char *ptr)
     /* read message */
     getUint8(&ptr, &type);
     getUint32(&ptr, &taskid);
-    msg = getDataM((void **)&ptr, &len);
+    msg = getDataM(&ptr, &len);
 
     /* get local rank from taskid */
     if ((lrank = getLocalRankID(taskid, step, myNodeID)) == (uint32_t )-1) {
@@ -393,9 +393,9 @@ static void handleFWfinalize(void *data, char *ptr)
     Step_t *step = fwdata->userData;
     PSLog_Msg_t *msg;
     PS_Tasks_t *task;
-    uint32_t len;
+    size_t len;
 
-    msg = getDataM((void **)&ptr, &len);
+    msg = getDataM(&ptr, &len);
 
     if (!step->pty) {
 	/* close stdout/stderr */
@@ -493,9 +493,9 @@ static void handleInfoTasks(void *data, char *ptr)
     Forwarder_Data_t *fwdata = data;
     Step_t *step = fwdata->userData;
     PS_Tasks_t *task;
-    uint32_t len;
+    size_t len;
 
-    task = getDataM((void **)&ptr, &len);
+    task = getDataM(&ptr, &len);
     list_add_tail(&(task->list), &step->tasks.list);
 
     /*

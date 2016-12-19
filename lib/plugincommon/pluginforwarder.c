@@ -797,10 +797,11 @@ static void handle_FW_Fork_Failed(Forwarder_Data_t *data, char *ptr)
     closeControlSocket(data);
 }
 
-static void handle_Forward_Msg(Forwarder_Data_t *data, void *ptr)
+static void handle_Forward_Msg(Forwarder_Data_t *data, void *info)
 {
     DDMsg_t *msg = NULL;
-    uint32_t len;
+    char *ptr = info;
+    size_t len;
 
     msg = getDataM(&ptr, &len);
 

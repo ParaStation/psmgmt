@@ -994,7 +994,7 @@ static void handleAcctGatherUpdate(Slurm_Msg_t *sMsg)
     for (i=0; i<5; i++) {
 	addUint32ToMsg(0, &msg);
     }
-    addTimeToMsg(&now, &msg);
+    addTimeToMsg(now, &msg);
 #endif
 
     sendSlurmReply(sMsg, RESPONSE_ACCT_GATHER_UPDATE, &msg);
@@ -1026,7 +1026,7 @@ static void handleAcctGatherEnergy(Slurm_Msg_t *sMsg)
     for (i=0; i<5; i++) {
 	addUint32ToMsg(0, &msg);
     }
-    addTimeToMsg(&now, &msg);
+    addTimeToMsg(now, &msg);
 #endif
 
     sendSlurmReply(sMsg, RESPONSE_ACCT_GATHER_ENERGY, &msg);
@@ -2116,9 +2116,9 @@ void sendNodeRegStatus(uint32_t status, int protoVersion)
     }
 
     /* timestamp */
-    addTimeToMsg(&now, &msg);
+    addTimeToMsg(now, &msg);
     /* slurmd_start_time */
-    addTimeToMsg(&start_time, &msg);
+    addTimeToMsg(start_time, &msg);
     /* status */
     addUint32ToMsg(status, &msg);
 #ifdef SLURM_PROTOCOL_1605
@@ -2207,7 +2207,7 @@ void sendNodeRegStatus(uint32_t status, int protoVersion)
     addUint32ToMsg(0, &msg);
 #endif
     now = 0;
-    addTimeToMsg(&now, &msg);
+    addTimeToMsg(now, &msg);
 
     /* version string */
     if (!initVersion) {

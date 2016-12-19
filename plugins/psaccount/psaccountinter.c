@@ -36,7 +36,6 @@ int globalCollectMode = 0;
 int psAccountSwitchAccounting(PStask_ID_t clientTID, int enable)
 {
     DDTypedBufferMsg_t msg;
-    char *ptr = msg.buf;
 
     /* send the messages */
     msg = (DDTypedBufferMsg_t) {
@@ -50,7 +49,7 @@ int psAccountSwitchAccounting(PStask_ID_t clientTID, int enable)
     msg.type = (enable) ? PSP_ACCOUNT_ENABLE_UPDATE : PSP_ACCOUNT_DISABLE_UPDATE;
     msg.header.len += sizeof(msg.type);
 
-    addInt32ToMsgBuf(&msg, &ptr, clientTID);
+    addInt32ToMsgBuf(&msg, clientTID);
 
     return doWriteP(daemonSock, &msg, msg.header.len);
 }
@@ -367,10 +366,10 @@ void sendAggregatedData(AccountDataExt_t *aggData, PStask_ID_t loggerTID)
     addInt32ToMsg(aggData->taskIds[ACCID_MAX_DISKREAD], &data);
     addInt32ToMsg(aggData->taskIds[ACCID_MAX_DISKWRITE], &data);
 
-    addTimeToMsg(&aggData->rusage.ru_utime.tv_sec, &data);
-    addTimeToMsg(&aggData->rusage.ru_utime.tv_usec, &data);
-    addTimeToMsg(&aggData->rusage.ru_stime.tv_sec, &data);
-    addTimeToMsg(&aggData->rusage.ru_stime.tv_usec, &data);
+    addTimeToMsg(aggData->rusage.ru_utime.tv_sec, &data);
+    addTimeToMsg(aggData->rusage.ru_utime.tv_usec, &data);
+    addTimeToMsg(aggData->rusage.ru_stime.tv_sec, &data);
+    addTimeToMsg(aggData->rusage.ru_stime.tv_usec, &data);
 
     sendFragMsg(&data, PSC_getTID(loggerNode, 0), PSP_CC_PLUG_ACCOUNT,
 		    PSP_ACCOUNT_AGG_DATA_UPDATE);
