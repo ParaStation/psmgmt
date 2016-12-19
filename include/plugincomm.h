@@ -353,19 +353,19 @@ bool getArrayFromBuf(char **ptr, void **val, uint32_t *len, PS_DataType_t type,
 		     size_t size, const char *caller, const int line);
 
 #define getUint16Array(ptr, val, len)					\
-    getArrayFromBuf(ptr, val, len, PSDATA_UINT16, sizeof(uint16_t),	\
+    getArrayFromBuf(ptr, (void **)val, len, PSDATA_UINT16, sizeof(uint16_t), \
 		    __func__, __LINE__)
 
 #define getUint32Array(ptr, val, len)					\
-    getArrayFromBuf(ptr, val, len, PSDATA_UINT32, sizeof(uint32_t),	\
+    getArrayFromBuf(ptr, (void **)val, len, PSDATA_UINT32, sizeof(uint32_t), \
 		    __func__, __LINE__)
 
 #define getInt16Array(ptr, val, len)					\
-    getArrayFromBuf(ptr, val, len, PSDATA_INT16, sizeof(int16_t),	\
+    getArrayFromBuf(ptr, (void **)val, len, PSDATA_INT16, sizeof(int16_t), \
 		    __func__, __LINE__)
 
 #define getInt32Array(ptr, val, len)					\
-    getArrayFromBuf(ptr, val, len, PSDATA_INT32, sizeof(int32_t),	\
+    getArrayFromBuf(ptr, (void **)val, len, PSDATA_INT32, sizeof(int32_t), \
 		    __func__, __LINE__)
 
 
