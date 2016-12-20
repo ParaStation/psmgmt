@@ -463,7 +463,8 @@ CALLBACK:
     resetConnection(sock);
 
     if (error) {
-	mlog("%s: closeConnection(%d)\n", __func__, sock);
+	mdbg(ret ? -1 : PSSLURM_LOG_COMM, "%s: closeConnection(%d)\n",
+	     __func__, sock);
 	closeConnection(sock);
     }
 
