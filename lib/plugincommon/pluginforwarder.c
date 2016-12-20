@@ -136,7 +136,7 @@ static int recvFWMsg(int fd, int32_t *cmd, char **buf, char **ptr)
 
     *buf = NULL;
 
-    if (!(count = doReadP(fd, &len, sizeof(len))) || count != sizeof(len)) {
+    if (!(count = doRead(fd, &len, sizeof(len))) || count != sizeof(len)) {
 	pluginlog("%s: socket '%i': reading len failed, len '%i' count '%i'\n",
 		    __func__, fd, len, count);
 	return 0;
@@ -144,7 +144,7 @@ static int recvFWMsg(int fd, int32_t *cmd, char **buf, char **ptr)
 
     *buf = umalloc(len);
 
-    if (!(count = doReadP(fd, *buf, len)) || count != len) {
+    if (!(count = doRead(fd, *buf, len)) || count != len) {
 	pluginlog("%s: socket '%i': reading msg failed, len '%i' count '%i'\n",
 		    __func__, fd, len, count);
 	ufree(*buf);
@@ -597,7 +597,7 @@ static int execForwarder(void *info)
 	    }
 
 	    /* read sid of child */
-	    if ((doReadP(controlFDs[0], &child_sid, sizeof(pid_t))
+	    if ((doRead(controlFDs[0], &child_sid, sizeof(pid_t))
 			!= sizeof(pid_t))) {
 		pluginlog("%s: reading childs sid failed\n", __func__);
 		if (child_pid > 0) kill(SIGKILL, child_pid);
