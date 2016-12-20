@@ -370,16 +370,18 @@ static int readSlurmMsg(int sock, void *param)
 
     if (!dBuf->bufSize) {
 	/* new request, we need to read the size first */
-	ret = doReadP(sock, &msglen, sizeof(msglen));
+	/* Shall be safe to do first a blocking read() inside a selector */
+	ret = doRead(sock, &msglen, sizeof(msglen));
 	if (ret != sizeof(msglen)) {
-	    if (!ret) {
+	    if (ret < 0) {
+		mwarn(errno, "%s: doRead(%d)\n", __func__, sock);
+	    } else if (!ret) {
 		mdbg(PSSLURM_LOG_COMM, "%s: closing connection, empty message "
 		     "len on sock %i\n", __func__, sock);
-		error = 1;
-		goto CALLBACK;
+	    } else {
+		mlog("%s: invalid message len %u, expect %zu\n", __func__, ret,
+		     sizeof(msglen));
 	    }
-	    mlog("%s: invalid message len %u, expect %zu\n", __func__, ret,
-		 sizeof(msglen));
 	    error = 1;
 	    goto CALLBACK;
 	}
@@ -403,7 +405,7 @@ static int readSlurmMsg(int sock, void *param)
     ret = doReadExtP(sock, ptr, toRead, &size);
 
     if (ret < 0) {
-	if (size > 0) {
+	if (size > 0 || errno == EAGAIN || errno == EINTR) {
 	    /* not all data arrived yet, lets try again later */
 	    dBuf->bufUsed += size;
 	    mdbg(PSSLURM_LOG_COMM, "%s: we try later for sock %u read %zu\n",
@@ -893,12 +895,13 @@ static int handleSrunPTYMsg(int sock, void *data)
     mlog("%s: got pty message for step '%u:%u'\n", __func__,
 	    step->jobid, step->stepid);
 
-    ret = doReadP(sock, buffer, sizeof(buffer));
+    /* Shall be safe to do first a blocking read() inside a selector */
+    ret = doRead(sock, buffer, sizeof(buffer));
     if (ret <= 0) {
 	if (ret < 0) {
-	    mwarn(errno, "%s: doReadP()", __func__);
+	    mwarn(errno, "%s: doRead()", __func__);
 	}
-	mlog("%s: closing pty connection\n", __func__);
+	mlog("%s: close pty connection\n", __func__);
 	closeConnection(sock);
 	return 0;
     }
@@ -963,15 +966,18 @@ int handleSrunMsg(int sock, void *data)
 {
     Step_t *step = data;
     char *ptr, buffer[1024];
-    int ret, headSize, readnow, fd = -1;
-    size_t toread;
+    int ret, headSize = 3 * sizeof(uint16_t) + sizeof(uint32_t), fd = -1;
     uint16_t type, gtid, ltid, i;
     uint32_t length, myTaskIdsLen;
     uint32_t *myTaskIds;
 
-    headSize = sizeof(uint32_t) + 3 * sizeof(uint16_t);
-    ret = doReadP(sock, buffer, headSize);
+    /* Shall be safe to do first a blocking read() inside a selector */
+    ret = doRead(sock, buffer, headSize);
     if (ret <= 0) {
+	if (ret < 0) {
+	    mwarn(errno, "%s: doRead()", __func__);
+	}
+	mlog("%s: close srun connection\n", __func__);
 	closeConnection(sock);
 	return 0;
     }
@@ -1026,10 +1032,11 @@ int handleSrunMsg(int sock, void *data)
 	if (!step->pty) closeConnection(fd);
     } else {
 	/* foward stdin message to forwarders */
-	toread = length;
-	while (toread > 0) {
-	    readnow = (toread > (int) sizeof(buffer)) ? sizeof(buffer) : toread;
-	    ret = doRead(sock, buffer, readnow);
+	size_t left = length;
+	while (left > 0) {
+	    size_t readNow = (left > sizeof(buffer)) ? sizeof(buffer) : left;
+	    /* @todo This shall be non-blocking! */
+	    ret = doRead(sock, buffer, readNow);
 	    if (ret <= 0) {
 		mlog("%s: reading body failed\n", __func__);
 		break;
@@ -1038,18 +1045,20 @@ int handleSrunMsg(int sock, void *data)
 	    if (step->pty) {
 		if (step->nodes[0] == PSC_getMyID()) doWriteP(fd, buffer, ret);
 	    } else {
-		if (type == SLURM_IO_STDIN) {
+		switch (type) {
+		case SLURM_IO_STDIN:
 		    forwardInputMsg(step, gtid, buffer, ret);
-		} else if (type == SLURM_IO_ALLSTDIN) {
+		    break;
+		case SLURM_IO_ALLSTDIN:
 		    for (i=0; i<myTaskIdsLen; i++) {
 			forwardInputMsg(step, myTaskIds[i], buffer, ret);
 		    }
-		} else {
+		    break;
+		default:
 		    mlog("%s: got unsupported I/O type '%u'\n", __func__, type);
 		}
 	    }
-
-	    toread -= ret;
+	    left -= ret;
 	}
     }
 
