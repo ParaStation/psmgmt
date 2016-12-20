@@ -1112,13 +1112,14 @@ static void handleFileBCast(Slurm_Msg_t *sMsg)
 	bcast->username = ustrdup(job->username);
     }
 
-    /*
-    mlog("%s: jobid '%u' blockNum '%u' lastBlock '%u' force '%u' modes '%u', "
-	    "user '%s' " "uid '%u' gid '%u' fileName '%s' blockLen '%u'\n",
-	    __func__, bcast->jobid, bcast->blockNumber, bcast->lastBlock,
-	    bcast->force, bcast->modes, bcast->username, bcast->uid, bcast->gid,
-	    bcast->fileName, bcast->blockLen);
-    */
+    mdbg(PSSLURM_LOG_PROTO, "%s: jobid %u blockNum %u lastBlock %u force %u"
+	 " modes %u, user '%s' uid %u gid %u fileName '%s' blockLen %u\n",
+	 __func__, bcast->jobid, bcast->blockNumber, bcast->lastBlock,
+	 bcast->force, bcast->modes, bcast->username, bcast->uid, bcast->gid,
+	 bcast->fileName, bcast->blockLen);
+    if (logger_getMask(psslurmlogger) & PSSLURM_LOG_PROTO) {
+	printBinaryData(bcast->block, bcast->blockLen, "bcast->block");
+    }
 
     if (bcast->blockNumber == 1) {
 	mlog("%s: jobid '%u' file '%s' user '%s'\n", __func__, bcast->jobid,
