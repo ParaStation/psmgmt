@@ -1930,7 +1930,7 @@ int handleSlurmdMsg(Slurm_Msg_t *sMsg)
 	    (sMsg->head.addr & 0xff000000) >> 24,
 	    sMsg->head.port);
 
-    if (!(testSlurmVersion(sMsg->head.version, sMsg->head.type))) {
+    if (!testSlurmVersion(sMsg->head.version, sMsg->head.type)) {
 	sendSlurmRC(sMsg, SLURM_PROTOCOL_VERSION_ERROR);
 	return 0;
     }

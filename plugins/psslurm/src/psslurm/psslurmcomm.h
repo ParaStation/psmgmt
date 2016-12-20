@@ -7,16 +7,8 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-/**
- * $Id$
- *
- * \author
- * Michael Rauh <rauh@par-tec.com>
- *
- */
-
-#ifndef __PS_SLURM_COMM
-#define __PS_SLURM_COMM
+#ifndef __PSSLURM_COMM
+#define __PSSLURM_COMM
 
 #include "psslurmjob.h"
 #include "plugincomm.h"
@@ -32,24 +24,7 @@ typedef struct {
     Slurm_Msg_Header_t head;
 } Connection_Forward_t;
 
-typedef struct {
-    PS_DataBuffer_t data;
-    Connection_CB_t *cb;
-    int error;
-    int sock;
-    time_t recvTime;
-    Connection_Forward_t fw;
-    struct list_head list;  /* the list header */
-} Connection_t;
-
-/* list which holds all jobs */
-Connection_t ConnectionList;
-
 void initConnectionList(void);
-Connection_t *addConnection(int socket, Connection_CB_t *cb);
-Connection_t *findConnection(int socket);
-Connection_t *findConnectionEx(int socket, time_t recvTime);
-void closeConnection(int socket);
 void clearConnections(void);
 
 void initSlurmMsg(Slurm_Msg_t *msg);
@@ -70,7 +45,7 @@ void closeSlurmdSocket(void);
 const char *msgType2String(int type);
 #define getBitString(ptr, bits) __getBitString(ptr, bits, __func__, __LINE__)
 void __getBitString(char **ptr, char **bitStr, const char *func,
-				const int line);
+		    const int line);
 int tcpConnect(char *addr, char *port);
 int tcpConnectU(uint32_t addr, uint16_t port);
 void getSockInfo(int socket, uint32_t *addr, uint16_t *port);
@@ -80,12 +55,12 @@ int srunOpenIOConnection(Step_t *step, int sock, char *sig);
 int srunOpenPTY(Step_t *step);
 void srunEnableIO(Step_t *step);
 int srunSendIO(uint16_t type, uint32_t taskid, Step_t *step,
-                char *buf, uint32_t bufLen);
+	       char *buf, uint32_t bufLen);
 int srunSendIOSock(uint16_t type, uint32_t taskid, int sock,
-                char *buf, uint32_t bufLen, int *error);
+		   char *buf, uint32_t bufLen, int *error);
 int srunSendMsg(int sock, Step_t *step, slurm_msg_type_t type,
 		PS_DataBuffer_t *body);
 int handleSrunMsg(int sock, void *data);
 void closeAllStepConnections(Step_t *step);
 
-#endif
+#endif  /* __PSSLURM_COMM */
