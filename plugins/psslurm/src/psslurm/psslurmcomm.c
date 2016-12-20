@@ -408,6 +408,7 @@ static int readSlurmMsg(int sock, void *param)
 	    return 0;
 	}
 	/* read error */
+	mwarn(errno, "%s: doReadExtP()", __func__);
 	error = 1;
 	goto CALLBACK;
 
