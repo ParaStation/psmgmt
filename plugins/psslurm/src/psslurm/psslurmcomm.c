@@ -212,6 +212,8 @@ static void closeConnection(int socket)
 {
     Connection_t *con = findConnection(socket);
 
+    mdbg(PSSLURM_LOG_COMM, "%s(%d)\n", __func__, socket);
+
     /* close the connection */
     if (Selector_isRegistered(socket)) Selector_remove(socket);
     close(socket);
@@ -283,10 +285,11 @@ void __saveForwardedMsgRes(Slurm_Msg_t *sMsg, PS_DataBuffer_t *data,
 	return;
     }
 
-    if (!(con = findConnectionEx(sMsg->sock, sMsg->recvTime))) {
-	mlog("%s: connection source '%s' socket '%i' recvTime '%zu' type '%s' "
-		"not found\n", __func__, PSC_printTID(sMsg->source), sMsg->sock,
-		sMsg->recvTime, msgType2String(sMsg->head.type));
+    con = findConnectionEx(sMsg->sock, sMsg->recvTime);
+    if (!con) {
+	mlog("%s: no connection to %s socket %i recvTime %zu type %s\n",
+	     __func__, PSC_printTID(sMsg->source), sMsg->sock, sMsg->recvTime,
+	     msgType2String(sMsg->head.type));
 	return;
     }
 
@@ -359,7 +362,7 @@ static int readSlurmMsg(int sock, void *param)
 	return 0;
     }
 
-    if (dBuf->bufSize && (dBuf->bufSize == dBuf->bufUsed)) {
+    if (dBuf->bufSize && dBuf->bufSize == dBuf->bufUsed) {
 	mlog("%s: data buffer for sock %i already in use, resetting\n",
 	     __func__, sock);
 	resetConnection(sock);
@@ -408,14 +411,14 @@ static int readSlurmMsg(int sock, void *param)
 	    return 0;
 	}
 	/* read error */
-	mwarn(errno, "%s: doReadExtP()", __func__);
+	mwarn(errno, "%s: doReadExtP(%d, toRead %zd, size %zd)", __func__, sock,
+	      toRead, size);
 	error = 1;
 	goto CALLBACK;
 
     } else if (!ret) {
 	/* connection reset */
-	mdbg(PSSLURM_LOG_COMM, "%s: connection reset on sock %i\n", __func__,
-	     sock);
+	mlog("%s: connection reset on sock %i\n", __func__, sock);
 	error = 1;
 	goto CALLBACK;
     } else {
@@ -482,7 +485,7 @@ static int handleSlurmctldReply(Slurm_Msg_t *sMsg)
     char **ptr;
     uint32_t rc;
 
-    if (!(testMungeAuth(&sMsg->ptr, &sMsg->head))) return 0;
+    if (!testMungeAuth(&sMsg->ptr, &sMsg->head)) return 0;
 
     ptr = &sMsg->ptr;
     getUint32(ptr, &rc);
@@ -515,7 +518,7 @@ int tcpConnect(char *addr, char *port)
 #define TCP_CONNECTION_RETRYS 10
 
     struct addrinfo *result, *rp;
-    int sock = -1, ret, reConnect = 0, err, connectFailed;
+    int sock = -1, ret, reConnect = 0, err;
 
 TCP_RECONNECT:
 
@@ -524,22 +527,23 @@ TCP_RECONNECT:
     /* workaround for psid SIGCHLD malloc deadlock */
 
     /* set up the sockaddr structure */
-    if ((ret = getaddrinfo(addr, port, NULL, &result)) != 0) {
+    ret = getaddrinfo(addr, port, NULL, &result);
+    if (ret) {
 	mlog("%s: getaddrinfo(%s:%s) failed : %s\n", __func__,
-		addr, port, gai_strerror(ret));
+	     addr, port, gai_strerror(ret));
 	return -1;
     }
 
     if (!reConnect) {
-	mdbg(PSSLURM_LOG_COMM, "%s: to %s port:%s\n",
-		__func__, addr, port);
+	mdbg(PSSLURM_LOG_COMM, "%s: to %s port:%s\n", __func__, addr, port);
     }
 
-    for (rp = result; rp != NULL; rp = rp->ai_next) {
-	if ((sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0) {
+    for (rp = result; rp; rp = rp->ai_next) {
+	bool connectFailed = false;
+	sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+	if (sock < 0) {
 	    err = errno;
-	    mwarn(errno, "%s: socket failed, port '%s' addr '%s' ", __func__,
-		    port, addr);
+	    mwarn(errno, "%s: socket(addr %s port %s)", __func__, addr, port);
 	    continue;
 	}
 
@@ -547,34 +551,31 @@ TCP_RECONNECT:
 	 *       Linux style and will fail on systems implementing it the
 	 *       Solaris way (meaning a subsequent connect after EINTR does
 	 *       not block but immediately return with EALREADY) */
-	connectFailed = 0;
 	while (connect(sock, rp->ai_addr, rp->ai_addrlen) == -1
-			&& errno != EISCONN) {
+	       && errno != EISCONN) {
 	    err = errno;
 	    if (errno != EINTR) {
-		connectFailed = 1;
-		mwarn(errno, "%s: connect failed, port '%s' addr '%s' ",
-			__func__, port, addr);
+		connectFailed = true;
+		mwarn(errno, "%s: connect(addr %s port %s)", __func__,
+		      addr, port);
 		break;
 	    }
 	}
 
-	if (!connectFailed) {
-	    break;
-	}
+	if (!connectFailed) break;
 
 	close(sock);
     }
     freeaddrinfo(result);
 
-    if (rp == NULL) {
+    if (!rp) {
 	if (err == EISCONN && reConnect < TCP_CONNECTION_RETRYS) {
 	    close(sock);
 	    reConnect++;
 	    goto TCP_RECONNECT;
 	}
 	mwarn(err, "%s: failed(%i) addr '%s' port '%s' ", __func__,
-	    err, addr, port);
+	      err, addr, port);
 	close(sock);
 	return -1;
     }
@@ -597,19 +598,20 @@ static int connect2Slurmctld()
     /* need polling or slurmctld can run into problems ??
      * but polling is not good inside a psid plugin ....
      */
-    if ((sock = tcpConnect(addr, port)) < 0) {
+    sock = tcpConnect(addr, port);
+    if (sock < 0) {
 	/* try backup controller */
-	if ((addr = getConfValueC(&SlurmConfig, "BackupController"))) {
+	addr = getConfValueC(&SlurmConfig, "BackupController");
+	if (!addr) return sock;
 
-	    if (addr[0] == '"') addr++;
-	    len = strlen(addr);
-	    if (addr[len-1] == '"') addr[len-1] = '\0';
-	    mlog("%s: connect to %s\n", __func__, addr);
+	if (addr[0] == '"') addr++;
+	len = strlen(addr);
+	if (addr[len-1] == '"') addr[len-1] = '\0';
+	mlog("%s: connect to %s\n", __func__, addr);
 
-	    if ((sock = tcpConnect(addr, port)) < 0) return sock;
-	} else {
-	    return sock;
-	}
+	sock = tcpConnect(addr, port);
+
+	if (sock < 0) return sock;
     }
     mdbg(PSSLURM_LOG_IO | PSSLURM_LOG_IO_VERB,
 	 "%s: connect to %s socket %i\n", __func__, addr, sock);
@@ -716,7 +718,8 @@ int sendSlurmMsgEx(int sock, Slurm_Msg_Header_t *head, PS_DataBuffer_t *body)
 
     /* connect to slurmctld */
     if (sock < 0) {
-	if ((sock = connect2Slurmctld())<0) {
+	sock = connect2Slurmctld();
+	if (sock < 0) {
 	    /* TODO */
 	    mlog("%s: fixme: need to retry later!!!\n", __func__);
 	    return 0;
@@ -759,13 +762,15 @@ int sendSlurmMsgEx(int sock, Slurm_Msg_Header_t *head, PS_DataBuffer_t *body)
 
     /* send the message */
     msgLen = htonl(data.bufUsed);
-    if ((ret = doWriteP(sock, &msgLen, sizeof(msgLen))) < 1) {
+    ret = doWriteP(sock, &msgLen, sizeof(msgLen));
+    if (ret < 1) {
 	ufree(data.buf);
 	return ret;
     }
-
     mdbg(PSSLURM_LOG_COMM, "%s: wrote len: %u\n", __func__, ret);
-    if ((ret = doWriteP(sock, data.buf, data.bufUsed)) < 1) {
+
+    ret = doWriteP(sock, data.buf, data.bufUsed);
+    if (ret < 1) {
 	ufree(data.buf);
 	return ret;
     }
@@ -775,8 +780,7 @@ int sendSlurmMsgEx(int sock, Slurm_Msg_Header_t *head, PS_DataBuffer_t *body)
     return 1;
 }
 
-void __getBitString(char **ptr, char **bitStr, const char *func,
-				const int line)
+void __getBitString(char **ptr, char **bitStr, const char *func, const int line)
 {
     uint32_t len;
 
@@ -889,7 +893,11 @@ static int handleSrunPTYMsg(int sock, void *data)
     mlog("%s: got pty message for step '%u:%u'\n", __func__,
 	    step->jobid, step->stepid);
 
-    if ((ret = doReadP(sock, buffer, sizeof(buffer))) <= 0) {
+    ret = doReadP(sock, buffer, sizeof(buffer));
+    if (ret <= 0) {
+	if (ret < 0) {
+	    mwarn(errno, "%s: doReadP()", __func__);
+	}
 	mlog("%s: closing pty connection\n", __func__);
 	closeConnection(sock);
 	return 0;
@@ -908,8 +916,8 @@ static int handleSrunPTYMsg(int sock, void *data)
     }
     if (step->fwdata && killChild(step->fwdata->childPid, SIGWINCH)) {
 	if (errno == ESRCH) return 0;
-	mlog("%s: error sending SIGWINCH to '%i'\n", __func__,
-	step->fwdata->childPid);
+	mlog("%s: error sending SIGWINCH to %i\n", __func__,
+	     step->fwdata->childPid);
     }
     return 0;
 }
@@ -920,9 +928,9 @@ static int forwardInputMsg(Step_t *step, uint16_t rank, char *buf, int bufLen)
     int n = 0;
     size_t c = bufLen;
     PSLog_Msg_t msg;
-    PS_Tasks_t *task;
+    PS_Tasks_t *task = findTaskByRank(&step->tasks.list, rank);
 
-    if (!(task = findTaskByRank(&step->tasks.list, rank))) {
+    if (!task) {
 	mlog("%s: task for rank '%u' of step '%u:%u' not found\n", __func__,
 		rank, step->jobid, step->stepid);
 	return -1;
@@ -943,7 +951,7 @@ static int forwardInputMsg(Step_t *step, uint16_t rank, char *buf, int bufLen)
 	     rank, n, PSLog_headerSize + n, PSC_printTID(task->forwarderTID));
 	mdbg(PSSLURM_LOG_IO_VERB, "%s: '%.*s'\n", __func__, n, msg.buf);
 	n = msg.header.len = PSLog_headerSize + n;
-	forwardMsgtoMother((DDMsg_t *) &msg);
+	forwardMsgtoMother((DDMsg_t *)&msg);
 	c -= n - PSLog_headerSize;
 	ptr += n - PSLog_headerSize;
     } while (c > 0);
@@ -962,7 +970,8 @@ int handleSrunMsg(int sock, void *data)
     uint32_t *myTaskIds;
 
     headSize = sizeof(uint32_t) + 3 * sizeof(uint16_t);
-    if ((ret = doReadP(sock, buffer, headSize)) <= 0) {
+    ret = doReadP(sock, buffer, headSize);
+    if (ret <= 0) {
 	closeConnection(sock);
 	return 0;
     }
@@ -1020,7 +1029,8 @@ int handleSrunMsg(int sock, void *data)
 	toread = length;
 	while (toread > 0) {
 	    readnow = (toread > (int) sizeof(buffer)) ? sizeof(buffer) : toread;
-	    if ((ret = doRead(sock, buffer, readnow)) <= 0) {
+	    ret = doRead(sock, buffer, readnow);
+	    if (ret <= 0) {
 		mlog("%s: reading body failed\n", __func__);
 		break;
 	    }
@@ -1048,7 +1058,7 @@ int handleSrunMsg(int sock, void *data)
 
 int srunOpenControlConnection(Step_t *step)
 {
-    char port[256];
+    char port[32];
     int sock;
 
     if (step->numSrunPorts <= 0) {
@@ -1057,10 +1067,11 @@ int srunOpenControlConnection(Step_t *step)
     }
 
     snprintf(port, sizeof(port), "%u",
-		step->srunPorts[step->myNodeIndex % step->numSrunPorts]);
-    if ((sock = tcpConnect(inet_ntoa(step->srun.sin_addr), port)) <0) {
+	     step->srunPorts[step->myNodeIndex % step->numSrunPorts]);
+    sock = tcpConnect(inet_ntoa(step->srun.sin_addr), port);
+    if (sock < 0) {
 	mlog("%s: connection to srun '%s:%s' failed\n", __func__,
-		inet_ntoa(step->srun.sin_addr), port);
+	     inet_ntoa(step->srun.sin_addr), port);
 	return -1;
     }
 
@@ -1132,14 +1143,15 @@ int srunOpenIOConnection(Step_t *step, int sock, char *sig)
 	snprintf(port, sizeof(port), "%u",
 		    step->IOPort[nodeID % step->numIOPort]);
 
-	if ((sock = tcpConnect(inet_ntoa(step->srun.sin_addr), port)) <0) {
+	sock = tcpConnect(inet_ntoa(step->srun.sin_addr), port);
+	if (sock < 0) {
 	    mlog("%s: connection to srun '%s:%s' failed\n", __func__,
-		    inet_ntoa(step->srun.sin_addr), port);
+		 inet_ntoa(step->srun.sin_addr), port);
 	    return 0;
 	}
 
 	mlog("%s: addr '%s:%s' sock '%u'\n", __func__,
-		inet_ntoa(step->srun.sin_addr), port, sock);
+	     inet_ntoa(step->srun.sin_addr), port, sock);
 
 
 	step->srunIOMsg.sock = sock;
@@ -1165,7 +1177,7 @@ int srunOpenIOConnection(Step_t *step, int sock, char *sig)
     }
 
     /* stderr obj count */
-    if (step->pty || ((step->stdOut && strlen(step->stdOut) >0)) ||
+    if (step->pty || (step->stdOut && strlen(step->stdOut) > 0) ||
 	(step->stdErrRank == -1 && step->stdErr && strlen(step->stdErr) > 0)) {
 	/* stderr uses stdout in pty mode */
 	addUint32ToMsg(0, &data);
@@ -1207,7 +1219,7 @@ void srunEnableIO(Step_t *step)
 	}
     }
 
-    if ((Selector_register(step->srunIOMsg.sock, handleSrunMsg, step)) == -1) {
+    if (Selector_register(step->srunIOMsg.sock, handleSrunMsg, step) == -1) {
 	mlog("%s: Selector_register(%i) srun I/O socket failed\n", __func__,
 		step->srunIOMsg.sock);
     }
