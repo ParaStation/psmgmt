@@ -399,7 +399,7 @@ bool addToBuf(const void *val, const uint32_t size, PS_DataBuffer_t *data,
 	return false;
     }
 
-    if (!val && type != PSDATA_STRING) {
+    if (!val && (!hasLen || size)) {
 	pluginlog("%s: invalid val from '%s' at %d\n", __func__, caller, line);
 	return false;
     }
@@ -425,7 +425,7 @@ bool addToBuf(const void *val, const uint32_t size, PS_DataBuffer_t *data,
     }
 
     /* add data */
-    memcpy(ptr, val, size);
+    if (size) memcpy(ptr, val, size);
     if (byteOrder && !hasLen && type != PSDATA_MEM) {
 	switch (size) {
 	case 1:
