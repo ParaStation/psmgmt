@@ -1058,6 +1058,7 @@ static void handleFileBCast(Slurm_Msg_t *sMsg)
     BCast_t *bcast;
     Job_t *job;
     Alloc_t *alloc;
+    size_t len;
 
     bcast = addBCast(sMsg->sock);
 
@@ -1083,7 +1084,10 @@ static void handleFileBCast(Slurm_Msg_t *sMsg)
     getUint32(ptr, &bcast->blockOffset);
     getUint64(ptr, &bcast->fileSize);
 #endif
-    bcast->block = getStringM(ptr);
+    bcast->block = getDataM(ptr, &len);
+    if (bcast->blockLen != len) {
+	mlog("%s: blockLen mismatch: %d/%zd\n", __func__, bcast->blockLen, len);
+    }
 
     if (!(checkBCastCred(ptr, bcast))) {
 	if (!errno) {
