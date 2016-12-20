@@ -77,7 +77,7 @@ static int handlePamRequest(int sock, void *empty)
     PS_DataBuffer_t data = { .buf = NULL};
     User_t *pamUser;
 
-    if ((ret = doReadP(sock, &msgLen, sizeof(msgLen))) != sizeof(msgLen)) {
+    if ((ret = doRead(sock, &msgLen, sizeof(msgLen))) != sizeof(msgLen)) {
 	if (ret != 0) {
 	    mlog("%s: reading msgLen for request failed\n", __func__);
 	}
@@ -85,7 +85,8 @@ static int handlePamRequest(int sock, void *empty)
     }
 
     buf = umalloc(msgLen);
-    if ((doReadP(sock, buf, msgLen) != msgLen)) {
+    /* @todo This shall be non-blocking! */
+    if ((doRead(sock, buf, msgLen) != msgLen)) {
 	mlog("%s: reading request failed\n" , __func__);
 	goto CLEANUP;
     }
