@@ -7,7 +7,6 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-
 #ifndef __PLUGIN_LIB_COMM
 #define __PLUGIN_LIB_COMM
 
@@ -143,8 +142,9 @@ int __doWrite(int fd, void *buffer, size_t toWrite, const char *func,
  * reported in @a numRead. Reading will be retried up to 20 times on
  * minor errors until all data was read if the @a pedantic flag is set
  * to true. Otherwise, the function will return as soon as the first
- * read() fails. In all cases @a numRead will reflect the number of
- * bytes read so far.
+ * read() fails. Nevertheless, in the latter case read() will be done
+ * in a blocking fashion. In all cases @a numRead will reflect the
+ * number of bytes read so far.
  *
  * @param fd File descriptor to read from
  *
@@ -156,11 +156,12 @@ int __doWrite(int fd, void *buffer, size_t toWrite, const char *func,
  *
  * @param func Funtion name of the calling function
  *
- * @param pedantic Flag to be pedantic
+ * @param pedantic Flag to be pedantic. If false, read() will be
+ * called in a blocking fashion.
  *
  * @return Returns the number of bytes read, 0 if the file descriptor
  * closed or -1 on error. In the latter cases the number of bytes read
- * anyhow is reported in @a numRead
+ * anyhow is reported in @a numRead.
  */
 int __doReadExt(int fd, void *buffer, size_t toRead, size_t *numRead,
 		const char *func, bool pedantic);
@@ -188,10 +189,11 @@ int __doReadExt(int fd, void *buffer, size_t toRead, size_t *numRead,
  *
  * @param func Funtion name of the calling function
  *
- * @param pedantic Flag to be pedantic
+ * @param pedantic Flag to be pedantic. If false, read() will be
+ * called in a blocking fashion.
  *
  * @return Returns the number of bytes read, 0 if the file descriptor
- * closed or -1 on error.
+ * closed or -1 on error
  */
 int __doRead(int fd, void *buffer, size_t toRead, const char *func,
 	     bool pedantic);

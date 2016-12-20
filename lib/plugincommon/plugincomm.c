@@ -164,7 +164,7 @@ int __doReadExt(int fd, void *buffer, size_t toRead, size_t *numRead,
     int retries = 0;
 
     *numRead = 0;
-    if (pedantic) setFDblock(fd, 0);
+    setFDblock(fd, !pedantic);
 
     while ((*numRead < toRead) && (retries++ <= MAX_RETRY)) {
 	ssize_t num = read(fd, ptr + *numRead, toRead - *numRead);
@@ -358,7 +358,7 @@ void *getMemFromBuf(char **ptr, char *data, size_t dataSize, size_t *len,
 bool __getStringArrayM(char **ptr, char ***array, uint32_t *len,
 			const char *caller, const int line)
 {
-    uint32_t i = 0;
+    uint32_t i;
 
     *array = NULL;
     if (!getFromBuf(ptr, len, PSDATA_UINT32, sizeof(*len), caller, line))
@@ -368,7 +368,7 @@ bool __getStringArrayM(char **ptr, char ***array, uint32_t *len,
 
     *array = __umalloc(sizeof(char *) * (*len + 1), caller, line);
 
-    for (i=0; i<*len; i++) {
+    for (i = 0; i < *len; i++) {
 	(*array)[i] = getMemFromBuf(ptr, NULL, 0, NULL, PSDATA_STRING,
 				    caller, line);
     }
