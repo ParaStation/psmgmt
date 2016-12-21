@@ -8,30 +8,31 @@
  * file.
  */
 /**
- * $Id$
- *
- * \author
- * Michael Rauh <rauh@par-tec.com>
- *
+ * @file
+ * This part actually lives within the daemon and prepares the field
+ * for the forwarder where most of the work happens.
  */
-
 #ifndef __PS_PMI_SPAWN
 #define __PS_PMI_SPAWN
 
-/**
- * @brief Prepare the PMI environment.
- *
- * @param data Pointer to the PStask structure of the client.
- *
- * @return Always returns 0.
- */
-int handleForwarderSpawn(void *data);
+#include "pslog.h"
 
 /**
- * @brief Close the PMI forwarder socket in the client process.
+ * @brief Initialize the spawn module
  *
- * @return Always returns 0.
+ * Initialize the spawn module of the pspmi plugin.
+ *
+ * @return No return value
  */
-int handleClientSpawn(void *data);
+void initSpawn(void);
 
-#endif
+/**
+ * @brief Finalize the spawn module
+ *
+ * Finalize the spawn module the pspmi plugin.
+ *
+ * @return No return value
+ */
+void finalizeSpawn(void);
+
+#endif  /* __PS_PMI_SPAWN */

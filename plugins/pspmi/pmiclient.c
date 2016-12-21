@@ -7,20 +7,8 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-/**
- * $Id$
- *
- * \author
- * Michael Rauh <rauh@par-tec.com>
- * Stephan Krempel <krempel@par-tec.com
- *
- */
 
-#ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__((used)) =
-    "$Id$";
-#endif /* DOXYGEN_SHOULD_SKIP_THIS */
-
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -37,12 +25,12 @@ static char vcid[] __attribute__((used)) =
 #include "list.h"
 #include "selector.h"
 #include "psidforwarder.h"
+#include "psidhook.h"
 #include "psaccounthandles.h"
 
 #include "pmilog.h"
 #include "pmiforwarder.h"
 #include "pmiservice.h"
-#include "pmiprovider.h"
 #include "pmiclientspawn.h"
 
 #include "pmiclient.h"
@@ -55,39 +43,30 @@ static char vcid[] __attribute__((used)) =
 
 #define MPIEXEC_BINARY BINDIR "/mpiexec"
 
+/* Set this to 1 to enable additional debug output describing the environment */
 #define DEBUG_ENV 0
 #if DEBUG_ENV
 extern char **environ;
 #endif
 
 typedef struct {
-    char *Name;
-    int (*fpFunc)(char *msgBuffer);
-} PMI_Msg;
-
-typedef struct {
-    char *Name;
-    int (*fpFunc)(void);
-} PMI_shortMsg;
-
-typedef struct {
-    char *msg;		    /* The KVS update message */
-    size_t len;		    /* The size of the message */
-    int isSuccReady;	    /* Flag if the successor was ready */
-    int gotBarrierIn;	    /* Flag if we got the barrier from the MPI client */
-    int lastUpdate;	    /* Flag if the update is complete (last msg) */
-    int updateIndex;	    /* Index to distinguish update messages */
-    struct list_head list;
+    list_t next;         /**< Used to put into uBufferList */
+    char *msg;           /**< Actual KVS update message */
+    size_t len;          /**< Size of the update message */
+    bool isSuccReady;    /**< Flag if the successor was ready */
+    bool gotBarrierIn;   /**< Flag if we got the barrier from the MPI client */
+    bool lastUpdate;     /**< Flag if the update is complete (last msg) */
+    int updateIndex;     /**< Index to distinguish update messages */
 } Update_Buffer_t;
 
 /** A list of buffers holding KVS update data */
-static Update_Buffer_t uBufferList;
+static LIST_HEAD(uBufferList);
 
 /** Flag to check if the pmi_init() was called successful */
-static int is_init = 0;
+static bool initialized = false;
 
 /** Flag to check if initialisation between us and client was ok */
-static int pmi_init_client = 0;
+static bool pmi_init_client = false;
 
 /** Counter of the next KVS name */
 static int kvs_next = 0;
@@ -96,15 +75,18 @@ static int kvs_next = 0;
 static char myKVSname[PMI_KVSNAME_MAX];
 
 /** If set debug output is generated */
-static int debug = 0;
+static bool debug = false;
 
 /** If set KVS debug output is generated */
-static int debug_kvs = 0;
+static bool debug_kvs = false;
 
 /** The size of the MPI universe set from mpiexec */
 static int universe_size = 0;
 
-/** The parastation rank of the connected MPI client */
+/** Task structure describing the connected MPI client to serve */
+static PStask_t *cTask = NULL;
+
+/** PS rank of the connected MPI client. This is redundant to cTask->rank */
 static int rank = -1;
 
 /** The PMI rank of the connected MPI client */
@@ -122,11 +104,11 @@ static char kvs_name_prefix[PMI_KVSNAME_MAX];
 /** The socket which is connected to the MPI client */
 static SOCKET pmisock = -1;
 
-/** The logger task ID of the current job */
-static PStask_ID_t loggertid = -1;
+/** The KVS provider's task ID within the current job */
+static PStask_ID_t kvsProvTID = -1;
 
-/** The provider task ID of the current job */
-static PStask_ID_t providertid = -1;
+/** Socket to the local KVS provider, if any */
+static PStask_ID_t kvsProvSock = -1;
 
 /** The predecessor task ID of the current job */
 static PStask_ID_t predtid = -1;
@@ -134,20 +116,17 @@ static PStask_ID_t predtid = -1;
 /** The successor task ID of the current job */
 static PStask_ID_t succtid = -1;
 
-/** Our childs task ID */
-static PStask_ID_t childtid = -1;
-
 /** Flag to indicate if the successor is ready to receive update messages */
-static int isSuccReady = 0;
+static bool isSuccReady = false;
 
 /** Flag to check if we got the local barrier_in msg */
-static int gotBarrierIn = 0;
+static bool gotBarrierIn = false;
 
 /** Flag to check if we got the daisy barrier_in msg */
-static int gotDaisyBarrierIn = 0;
+static bool gotDaisyBarrierIn = false;
 
 /** Flag to indicate if we should start the daisy barrier */
-static int startDaisyBarrier = 0;
+static bool startDaisyBarrier = false;
 
 /** Generic message buffer */
 static char buffer[1024];
@@ -161,8 +140,8 @@ static int spawnChildSuccess = 0;
 /** Buffer to collect multiple spawn requests */
 static SpawnRequest_t *spawnBuffer = NULL;
 
-/** SpawnRequest to be handled when logger returned service rank */
-static SpawnRequest_t *pendingSpawnRequest = NULL;
+/** SpawnRequest to be handled when logger returns service rank */
+static SpawnRequest_t *pendSpawn = NULL;
 
 /** Count the number of kvs_put messages from mpi client */
 static int32_t putCount = 0;
@@ -172,39 +151,18 @@ static int32_t barrierCount = 0;
 static int32_t globalPutCount = 0;
 
 /* spawn functions */
-static int p_Spawn(char *msgBuffer);
-static int doSpawn(SpawnRequest_t *req);
-static int fillSpawnTaskWithMpiexec(SpawnRequest_t *req, int usize,
-	PStask_t *task);
-
-/** hook to choose how to spawn new processes */
-int (*fillSpawnTaskFunction)(SpawnRequest_t *req,
-	int usize, PStask_t *task) = NULL;
-int (*defaultFillSpawnTaskFunction)(SpawnRequest_t *req, int usize,
-	PStask_t *task)	= fillSpawnTaskWithMpiexec;
-
-void psPmiSetFillSpawnTaskFunction(
-	int (*spawnFunc)(SpawnRequest_t *req, int usize, PStask_t *task)) {
-    mdbg(PSPMI_LOG_VERBOSE, "Setting specific PMI fill spawn task function\n");
-    fillSpawnTaskFunction = spawnFunc;
-}
-
-void psPmiResetFillSpawnTaskFunction(void) {
-    mdbg(PSPMI_LOG_VERBOSE, "Resetting PMI fill spawn task function to"
-	    " default\n");
-    fillSpawnTaskFunction = defaultFillSpawnTaskFunction;
-}
+static fillerFunc_t *fillTaskFunction = NULL;
 
 /**
- * @brief Send a KVS message to a task id.
+ * @brief Send a KVS message to a task id
  *
- * @param func Pointer to name name of the calling function.
+ * @param func Pointer to name name of the calling function
  *
- * @param msg Pointer to the message to send.
+ * @param msg Pointer to the message to send
  *
- * @param len The size of the message to send.
+ * @param len The size of the message to send
  *
- * @return No return value.
+ * @return No return value
  */
 static void sendKvsMsg(const char *func, PStask_ID_t tid, char *msg, size_t len)
 {
@@ -213,8 +171,8 @@ static void sendKvsMsg(const char *func, PStask_ID_t tid, char *msg, size_t len)
 
 	cmd = *(int8_t *) msg;
 	if (cmd == PUT) {
-	    elog("%s(r%i): pslog_write cmd '%s' len '%zu' dest:'%s'\n",
-		    func, rank, PSKVScmdToString(cmd), len, PSC_printTID(tid));
+	    elog("%s(r%i): pslog_write cmd %s len %zu dest: %s\n",
+		 func, rank, PSKVScmdToString(cmd), len, PSC_printTID(tid));
 	}
     }
 
@@ -222,17 +180,17 @@ static void sendKvsMsg(const char *func, PStask_ID_t tid, char *msg, size_t len)
 }
 
 /**
- * @brief Send a KVS message to provider.
+ * @brief Send a KVS message to provider
  *
- * @param msg Pointer to the message to send.
+ * @param msg Pointer to the message to send
  *
- * @param len The size of the message to send.
+ * @param len The size of the message to send
  *
- * @return No return value.
+ * @return No return value
  */
 static void sendKvstoProvider(char *msg, size_t len)
 {
-    sendKvsMsg(__func__, providertid, msg, len);
+    sendKvsMsg(__func__, kvsProvTID, msg, len);
 }
 
 /**
@@ -243,11 +201,11 @@ static void sendKvstoProvider(char *msg, size_t len)
  * the message will be send to the provider in order to signal successful
  * delivery to all clients.
  *
- * @param msg Pointer to the message to send.
+ * @param msg Pointer to the message to send
  *
- * @param len The size of the message to send.
+ * @param len The size of the message to send
  *
- * @return No return value.
+ * @return No return value
  */
 static void sendKvstoSucc(char *msg, size_t len)
 {
@@ -255,21 +213,19 @@ static void sendKvstoSucc(char *msg, size_t len)
 }
 
 /**
- * @brief Handle critical error.
+ * @brief Handle critical error
  *
  * To handle a critical error close the connection and kill the child.
  * If something goes wrong in the startup phase with PMI, the child
  * and therefore the whole job can hang infinite. So we have to kill it.
  *
- * @return No return value.
+ * @return Always return 1
  */
 static int critErr()
 {
     /* close connection */
     if (pmisock > -1) {
-	if ((Selector_isRegistered(pmisock))) {
-	    Selector_remove(pmisock);
-	}
+	if (Selector_isRegistered(pmisock)) Selector_remove(pmisock);
 	close(pmisock);
 	pmisock = -1;
     }
@@ -291,18 +247,18 @@ static int critErr()
 }
 
 /**
- * @brief Write to the PMI socket.
+ * @brief Write to the PMI socket
  *
  * Write the message @a msg to the PMI socket file-descriptor,
  * starting at by @a offset of the message. It is expected that the
  * previos parts of the message were sent in earlier calls to this
  * function.
  *
- * @param msg The message to transmit.
+ * @param msg The message to transmit
  *
- * @param offset Number of bytes sent in earlier calls.
+ * @param offset Number of bytes sent in earlier calls
  *
- * @param len The size of the message to transmit.
+ * @param len The size of the message to transmit
  *
  * @return On success, the total number of bytes written is returned,
  * i.e. usually this is the length of @a msg. If the @ref stdinSock
@@ -313,15 +269,14 @@ static int critErr()
  */
 static int do_send(char *msg, int offset, int len)
 {
+    char *errStr;
     int n, i;
 
-    if (!len || !msg) {
-	return 0;
-    }
+    if (!len || !msg) return 0;
 
-    for (n=offset, i=1; (n<len) && (i>0);) {
+    for (n = offset, i = 1; (n < len) && (i > 0);) {
 	i = send(pmisock, &msg[n], len-n, 0);
-	if (i<=0) {
+	if (i <= 0) {
 	    switch (errno) {
 	    case EINTR:
 		break;
@@ -329,27 +284,26 @@ static int do_send(char *msg, int offset, int len)
 		return n;
 		break;
 	    default:
-		{
-		char *errstr = strerror(errno);
-		elog("%s(r%i): got error %d on PMI socket: %s\n",
-			  __func__, rank, errno, errstr ? errstr : "UNKNOWN");
-	    return i;
-		}
+		errStr = strerror(errno);
+		elog("%s(r%i): got error %d on PMI socket: %s\n", __func__,
+		     rank, errno, errStr ? errStr : "UNKNOWN");
+		return i;
 	    }
-	} else
+	} else {
 	    n+=i;
+	}
     }
     return n;
 }
 
 /**
- * @brief Send a PMI message to the MPI client.
+ * @brief Send a PMI message to the MPI client
  *
  * Send a message to the connected MPI client.
  *
- * @param msg Buffer with the PMI message to send.
+ * @param msg Buffer with the PMI message to send
  *
- * @return Returns 1 on error, 0 on success.
+ * @return Returns 1 on error, 0 on success
  */
 #define PMI_send(msg) __PMI_send(msg, __func__, __LINE__)
 static int __PMI_send(char *msg, const char *caller, const int line)
@@ -358,30 +312,42 @@ static int __PMI_send(char *msg, const char *caller, const int line)
     int i, written = 0;
 
     len = strlen(msg);
-    if (!(len && msg[len - 1] == '\n')) {
+    if (!len || msg[len - 1] != '\n') {
 	/* assert */
 	elog("%s(r%i): missing '\\n' in PMI msg '%s' from %s:%i\n",
-		__func__, rank, msg, caller, line);
+	     __func__, rank, msg, caller, line);
 	return critErr();
     }
 
     if (debug) elog("%s(r%i): %s", __func__, rank, msg);
 
     /* try to send msg, repeat it PMI_RESEND times */
-    for (i =0; (written < len) && (i< PMI_RESEND); i++) {
+    for (i = 0; (written < len) && (i < PMI_RESEND); i++) {
 	written = do_send(msg, written, len);
     }
 
     if (written < len) {
 	elog("%s(r%i): failed sending %s from %s:%i\n", __func__, rank, msg,
-	    caller, line);
+	     caller, line);
 	return critErr();
     }
 
     return 0;
 }
 
-int handleSpawnRes(void *vmsg)
+/**
+ * @brief Handle spawn result message
+ *
+ * Handle the spawn results message contained in @a vmsg. Such message
+ * is expected upon the creation of a new service process used to
+ * actually realize the PMI spawn that was triggered by the PMI
+ * client.
+ *
+ * @param vmsg Message to handle
+ *
+ * @return Always returns 0
+ */
+static int handleSpawnRes(void *vmsg)
 {
     DDBufferMsg_t *answer = vmsg;
 
@@ -392,47 +358,45 @@ int handleSpawnRes(void *vmsg)
 	    break;
 	case PSP_CD_SPAWNSUCCESS:
 	    /* wait for result of the spawner process */
-	    if (debug) {
-		elog("%s(r%i): spawning service process successful\n",
-			__func__, rank);
-	    }
+	    if (debug) elog("%s(r%i): spawning service process successful\n",
+			    __func__, rank);
 	    break;
 	default:
-	    elog("%s(r%i): unexpect answer '%s'\n", __func__, rank,
-		PSP_printMsg(answer->header.type));
+	    elog("%s(r%i): unexpect answer %s\n", __func__, rank,
+		 PSP_printMsg(answer->header.type));
     }
 
     return 0;
 }
 
 /**
- * @brief Delete a update buffer entry.
+ * @brief Delete a update buffer entry
  *
- * @param uBuf The update buffer entry to delete.
+ * @param uBuf The update buffer entry to delete
  *
- * @return No return value.
+ * @return No return value
  */
 static void deluBufferEntry(Update_Buffer_t *uBuf)
 {
     ufree(uBuf->msg);
-    list_del(&uBuf->list);
+    list_del(&uBuf->next);
     ufree(uBuf);
 }
 
 /**
- * @brief Return the MPI universe size.
+ * @brief Return the MPI universe size
  *
  * Return the size of the MPI universe.
  *
- * @param msgBuffer The buffer which contains the PMI msg to handle.
+ * @param msg Buffer containing the PMI msg to handle
  *
- * @return Always returns 0.
+ * @return Always returns 0
  */
-static int p_Get_Universe_Size(char *msgBuffer)
+static int p_Get_Universe_Size(char *msg)
 {
     char reply[PMIU_MAXLINE];
     snprintf(reply, sizeof(reply), "cmd=universe_size size=%i\n",
-	   universe_size);
+	     universe_size);
 
     PMI_send(reply);
 
@@ -440,7 +404,7 @@ static int p_Get_Universe_Size(char *msgBuffer)
 }
 
 /**
- * @brief Return the application number.
+ * @brief Return the application number
  *
  * Returns the application number which defines the order the
  * application was started. This appnum parameter is set by mpiexec
@@ -448,7 +412,7 @@ static int p_Get_Universe_Size(char *msgBuffer)
  * The appnum number is increased by mpiexec when different executables
  * are started by a single call to mpiexec (see MPI_APPNUM).
  *
- * @return Application number (MPI_APPNUM) as set by mpiexec.
+ * @return Application number (MPI_APPNUM) as set by mpiexec
  */
 static int p_Get_Appnum(void)
 {
@@ -461,14 +425,14 @@ static int p_Get_Appnum(void)
 }
 
 /**
- * @brief Check if we can forward the daisy barrier.
+ * @brief Check if we can forward the daisy barrier
  *
  * Check if we can forward the daisy barrier. We have to wait for the
  * daisy barrier from the previous rank and from the local MPI client.
  *
  * If we are the first in the daisy chain we start the barrier.
  *
- * @return No return value.
+ * @return No return value
  */
 static void checkDaisyBarrier()
 {
@@ -476,7 +440,7 @@ static void checkDaisyBarrier()
     size_t len = 0;
 
     if (gotBarrierIn && isSuccReady && gotDaisyBarrierIn) {
-	gotDaisyBarrierIn = 0;
+	gotDaisyBarrierIn = false;
 	barrierCount++;
 	globalPutCount += putCount;
 
@@ -489,7 +453,7 @@ static void checkDaisyBarrier()
     if (gotBarrierIn && isSuccReady && startDaisyBarrier) {
 	barrierCount  = 1;
 	globalPutCount = putCount;
-	startDaisyBarrier = 0;
+	startDaisyBarrier = false;
 
 	setKVSCmd(&ptr, &len, DAISY_BARRIER_IN);
 	addKVSInt32(&ptr, &len, &barrierCount);
@@ -499,7 +463,7 @@ static void checkDaisyBarrier()
 }
 
 /**
- * @brief Parse a KVS update message from ther provider.
+ * @brief Parse a KVS update message from ther provider
  *
  * Parse a KVS update message from the provider. Save all received key-value
  * pairs into the local KVS space. All get requests from the local MPI client
@@ -509,18 +473,18 @@ static void checkDaisyBarrier()
  * If we are the last client in the chain, we need to tell the provider that the
  * update was successful completed.
  *
- * @param pmiLine The update message to parse.
+ * @param pmiLine The update message to parse
  *
- * @param lastUpdateMsg Flag to indicate if this is the last update message.
+ * @param lastUpdate Flag to indicate this message completes the update
  *
- * @param updateIdx Integer to identify the update phase.
+ * @param updateIdx Integer to identify the update phase
  *
- * @return No return value.
+ * @return No return value
  */
-static void parseUpdateMessage(char *pmiLine, int lastUpdateMsg, int updateIdx)
+static void parseUpdateMessage(char *pmiLine, bool lastUpdate, int updateIdx)
 {
     char vname[PMI_KEYLEN_MAX];
-    char *nextvalue, *saveptr, *value;
+    char *nextvalue, *saveptr;
     const char delimiters[] =" \n";
     size_t len;
 
@@ -529,7 +493,8 @@ static void parseUpdateMessage(char *pmiLine, int lastUpdateMsg, int updateIdx)
 
     while (nextvalue != NULL) {
 	/* extract next key/value pair */
-	if (!(value = strchr(nextvalue, '=') +1)) {
+	char *value = strchr(nextvalue, '=') + 1;
+	if (!value) {
 	    elog("%s(r%i): invalid kvs update" " received\n", __func__, rank);
 	    critErr();
 	    return;
@@ -549,17 +514,17 @@ static void parseUpdateMessage(char *pmiLine, int lastUpdateMsg, int updateIdx)
     }
     updateMsgCount++;
 
-    if (lastUpdateMsg) {
+    if (lastUpdate) {
 	char *ptr = buffer;
 	size_t len = 0;
 
 	/* we got all update msg, so we can release the waiting MPI client */
-	gotBarrierIn = 0;
+	gotBarrierIn = false;
 	snprintf(buffer, sizeof(buffer), "cmd=barrier_out\n");
 	PMI_send(buffer);
 
 	/* if we are the last in the chain we acknowledge the provider */
-	if (succtid == providertid) {
+	if (succtid == kvsProvTID) {
 	    setKVSCmd(&ptr, &len, UPDATE_CACHE_FINISH);
 	    addKVSInt32(&ptr, &len, &updateMsgCount);
 	    addKVSInt32(&ptr, &len, &updateIdx);
@@ -570,7 +535,7 @@ static void parseUpdateMessage(char *pmiLine, int lastUpdateMsg, int updateIdx)
 }
 
 /**
- * @brief Hanlde a PMI barrier_in request from the local MPI client.
+ * @brief Hanlde a PMI barrier_in request from the local MPI client
  *
  * The MPI client has to wait until all clients have entered barrier.
  * A barrier is typically used to syncronize the local KVS space.
@@ -581,47 +546,42 @@ static void parseUpdateMessage(char *pmiLine, int lastUpdateMsg, int updateIdx)
  * Also we can start updating the local KVS space with received KVS update
  * messages.
  *
- * @param msgBuffer The buffer which contains the PMI barrier_in msg.
+ * @param msg Buffer containing the PMI barrier_in msg
  *
- * @return Always returns 0.
+ * @return Always returns 0
  */
-static int p_Barrier_In(char *msgBuffer)
+static int p_Barrier_In(char *msg)
 {
-    Update_Buffer_t *uBuf;
     list_t *pos, *tmp;
-    char *ptr = buffer;
 
-    gotBarrierIn = 1;
+    gotBarrierIn = true;
 
     /* if we are the first in chain, send starting barrier msg */
-    if (pmiRank == 0) startDaisyBarrier = 1;
+    if (!pmiRank) startDaisyBarrier = true;
     checkDaisyBarrier();
 
     /* update local KVS cache with buffered update */
-    if (list_empty(&uBufferList.list)) return 0;
-
-    list_for_each_safe(pos, tmp, &uBufferList.list) {
-	if ((uBuf = list_entry(pos, Update_Buffer_t, list)) == NULL) return 0;
+    list_for_each_safe(pos, tmp, &uBufferList) {
+	Update_Buffer_t *uBuf = list_entry(pos, Update_Buffer_t, next);
 	if (!uBuf->gotBarrierIn) {
-
 	    char pmiLine[PMIU_MAXLINE];
 	    size_t len, pLen;
 
 	    /* skip cmd */
-	    ptr = uBuf->msg + UPDATE_HEAD;
+	    char *ptr = uBuf->msg + UPDATE_HEAD;
 
 	    len = getKVSString(&ptr, pmiLine, sizeof(pmiLine));
 	    pLen = uBuf->len - (UPDATE_HEAD) - sizeof(uint16_t);
 
 	    if (strlen(pmiLine) != len || len != pLen) {
 		elog("%s(r%i): invalid update len:%zu strlen:%zu bufLen:%zu\n",
-			__func__, rank, len, strlen(pmiLine), pLen);
+		     __func__, rank, len, strlen(pmiLine), pLen);
 		critErr();
 	    }
 
 	    parseUpdateMessage(pmiLine, uBuf->lastUpdate, uBuf->updateIndex);
 
-	    uBuf->gotBarrierIn = 1;
+	    uBuf->gotBarrierIn = true;
 	    if (uBuf->isSuccReady) deluBufferEntry(uBuf);
 	}
     }
@@ -641,15 +601,14 @@ void leaveKVS(int used)
     }
 }
 
-
 /**
- * @brief Finalize the PMI.
+ * @brief Finalize the PMI
  *
  * Returns PMI_FINALIZED to notice the forwarder that the
  * child has successful finished execution. The forwarder will release
  * the child and then call pmi_finalize() to allow the child to exit.
  *
- * @return Returns PMI_FINALIZED.
+ * @return Returns PMI_FINALIZED
  * */
 static int p_Finalize()
 {
@@ -659,11 +618,11 @@ static int p_Finalize()
 }
 
 /**
- * @brief Return the default KVS name.
+ * @brief Return the default KVS name
  *
  * Returns the default KVS name.
  *
- * @return Always returns 0.
+ * @return Always returns 0
  */
 static int p_Get_My_Kvsname()
 {
@@ -676,14 +635,14 @@ static int p_Get_My_Kvsname()
 }
 
 /**
- * @brief Creates a new KVS.
+ * @brief Creates a new KVS
  *
  * Not supported by hydra anymore. Seems nobody using it. Disabled to make new
  * KVS implementation more straighforward.
  *
  * Creates a new key value space.
  *
- * @return Returns 0 for success and 1 on error.
+ * @return Returns 0 for success and 1 on error
  */
 static int p_Create_Kvs(void)
 {
@@ -704,23 +663,22 @@ static int p_Create_Kvs(void)
     }
 
     /* return succes to client */
-    snprintf(kvsmsg, sizeof(kvsmsg), "cmd=newkvs kvsname=%s\n",
-		kvsname);
+    snprintf(kvsmsg, sizeof(kvsmsg), "cmd=newkvs kvsname=%s\n",	kvsname);
     PMI_send(kvsmsg);
     return 0;
 }
 
 /**
- * @brief Delete a KVS.
+ * @brief Delete a KVS
  *
  * Not supported by hydra anymore. Seems nobody using it. Disabled to make new
  * KVS implementation more straighforward.
  *
- * @param msgBuffer The buffer which contains the PMI msg to handle.
+ * @param msg Buffer containing the PMI msg to handle
  *
- * @return Returns 0 for success and 1 on error.
+ * @return Returns 0 for success and 1 on error
  */
-static int p_Destroy_Kvs(char *msgBuffer)
+static int p_Destroy_Kvs(char *msg)
 {
     char kvsname[PMI_KVSNAME_MAX];
 
@@ -729,9 +687,9 @@ static int p_Destroy_Kvs(char *msgBuffer)
     return 0;
 
     /* get parameter from msg */
-    getpmiv("kvsname", msgBuffer, kvsname, sizeof(kvsname));
+    getpmiv("kvsname", msg, kvsname, sizeof(kvsname));
 
-    if (kvsname[0] == 0) {
+    if (!kvsname[0]) {
 	elog("%s(r%i): got invalid msg\n", __func__, rank);
 	PMI_send("cmd=kvs_destroyed rc=-1\n");
 	return 1;
@@ -753,31 +711,29 @@ static int p_Destroy_Kvs(char *msgBuffer)
 }
 
 /**
- * @brief Put a key/value pair into the KVS.
+ * @brief Put a key/value pair into the KVS
  *
  * The key is save into the local KVS and instantly send to provider
  * to be saved in the global KVS.
  *
- * @param msgBuffer The buffer which contains the PMI msg to handle.
+ * @param msg Buffer containing the PMI msg to handle
  *
- * @return Returns 0 for success and 1 on error.
+ * @return Returns 0 for success and 1 on error
  */
-static int p_Put(char *msgBuffer)
+static int p_Put(char *msg)
 {
     char kvsname[PMI_KVSNAME_MAX], key[PMI_KEYLEN_MAX], value[PMI_VALLEN_MAX];
     char *ptr = buffer;
     size_t len = 0;
 
-    getpmiv("kvsname", msgBuffer, kvsname, sizeof(kvsname));
-    getpmiv("key", msgBuffer, key, sizeof(key));
-    getpmiv("value", msgBuffer, value, sizeof(value));
+    getpmiv("kvsname", msg, kvsname, sizeof(kvsname));
+    getpmiv("key", msg, key, sizeof(key));
+    getpmiv("value", msg, value, sizeof(value));
 
     /* check msg */
-    if (kvsname[0] == 0 || key[0] == 0 || value[0] == 0) {
-	if (debug_kvs) {
-	    elog( "%s(r%i): received invalid PMI put msg\n",
-		    __func__, rank);
-	}
+    if (!kvsname[0] || !key[0] || !value[0]) {
+	if (debug_kvs) elog( "%s(r%i): received invalid PMI put msg\n",
+			     __func__, rank);
 	PMI_send("cmd=put_result rc=-1 msg=error_invalid_put_msg\n");
 	return 1;
     }
@@ -785,10 +741,10 @@ static int p_Put(char *msgBuffer)
     putCount++;
 
     /* save to local KVS */
-    if ((kvs_put(kvsname, key, value))) {
+    if (kvs_put(kvsname, key, value)) {
 	if (debug_kvs) {
 	    elog("%s(r%i): error while put key:%s value:%s to kvs:%s \n",
-		    __func__, rank, key, value, kvsname);
+		 __func__, rank, key, value, kvsname);
 	}
 	PMI_send("cmd=put_result rc=-1 msg=error_in_kvs\n");
 	return 1;
@@ -807,52 +763,49 @@ static int p_Put(char *msgBuffer)
 }
 
 /**
- * @brief The MPI client reads a key/value pair from local KVS.
+ * @brief The MPI client reads a key/value pair from local KVS
  *
  * Read a value from the local KVS.
  *
- * @param msgBuffer The buffer which contains the PMI msg to handle.
+ * @param msg Buffer containing the PMI msg to handle
  *
- * @return Returns 0 for success and 1 on error.
+ * @return Returns 0 for success and 1 on error
  */
-static int p_Get(char *msgBuffer)
+static int p_Get(char *msg)
 {
     char reply[PMIU_MAXLINE], kvsname[PMI_KVSNAME_MAX], key[PMI_KEYLEN_MAX];
     char *value;
 
     /* extract parameters */
-    getpmiv("kvsname", msgBuffer, kvsname, sizeof(kvsname));
-    getpmiv("key", msgBuffer, key, sizeof(key));
+    getpmiv("kvsname", msg, kvsname, sizeof(kvsname));
+    getpmiv("key", msg, key, sizeof(key));
 
     /* check msg */
-    if (kvsname[0] == 0 || key[0] == 0) {
-	if (debug_kvs) {
-	    elog("%s(r%i): received invalid PMI get cmd\n", __func__, rank);
-	}
+    if (!kvsname[0] || !key[0]) {
+	if (debug_kvs) elog("%s(r%i): received invalid PMI get cmd\n",
+			    __func__, rank);
 	PMI_send("cmd=get_result rc=-1 msg=error_invalid_get_msg\n");
 	return 1;
     }
 
     /* get value from KVS */
-    if (!(value = kvs_get(kvsname, key))) {
-	char *env;
-
+    value = kvs_get(kvsname, key);
+    if (!value) {
 	/* check for mvapich process mapping */
-	env = getenv("__PMI_PROCESS_MAPPING");
-	if (env && !(strcmp(key, "PMI_process_mapping"))) {
+	char *env = getenv("__PMI_PROCESS_MAPPING");
+	if (env && !strcmp(key, "PMI_process_mapping")) {
 	    snprintf(reply, sizeof(reply), "cmd=get_result rc=%i value=%s\n",
-		    PMI_SUCCESS, env);
+		     PMI_SUCCESS, env);
 	    PMI_send(reply);
 	    return 0;
 	}
 
 	if (debug_kvs) {
 	    elog("%s(r%i): get on non exsisting kvs key:%s\n", __func__,
-		    rank, key);
+		 rank, key);
 	}
 	snprintf(reply, sizeof(reply),
-		 "cmd=get_result rc=%i msg=error_value_not_found\n",
-		 PMI_ERROR);
+		 "cmd=get_result rc=%i msg=error_value_not_found\n", PMI_ERROR);
 	PMI_send(reply);
 	return 1;
     }
@@ -866,36 +819,33 @@ static int p_Get(char *msgBuffer)
 }
 
 /**
- * @brief Publish a service.
+ * @brief Publish a service
  *
  * Make a service public even for processes which are not
  * connected over PMI.
  *
  * Not implemented (yet).
  *
- * @param msgBuffer The buffer which contains the PMI msg to handle.
+ * @param msg Buffer containing the PMI msg to handle
  *
- * @return Returns 0 for success and 1 on error.
+ * @return Returns 0 for success and 1 on error
  */
-static int p_Publish_Name(char *msgBuffer)
+static int p_Publish_Name(char *msg)
 {
     char service[PMI_VALLEN_MAX], port[PMI_VALLEN_MAX];
     char reply[PMIU_MAXLINE];
 
-    getpmiv("service", msgBuffer, service, sizeof(service));
-    getpmiv("port", msgBuffer, port, sizeof(port));
+    getpmiv("service", msg, service, sizeof(service));
+    getpmiv("port", msg, port, sizeof(port));
 
     /* check msg */
-    if (port[0] == 0 || service[0] == 0) {
-	elog("%s(r%i): received invalid publish_name msg\n",
-		__func__, rank);
+    if (!port[0] || !service[0]) {
+	elog("%s(r%i): received invalid publish_name msg\n", __func__, rank);
 	return 1;
     }
 
-    if (debug) {
-	elog("%s(r%i): received publish name request for service:%s, "
-		"port:%s\n", __func__, rank, service, port);
-    }
+    if (debug) elog("%s(r%i): received publish name request for service:%s, "
+		    "port:%s\n", __func__, rank, service, port);
 
     snprintf(reply, sizeof(reply), "cmd=publish_result info=%s\n",
 	     "not_implemented_yet\n" );
@@ -905,31 +855,28 @@ static int p_Publish_Name(char *msgBuffer)
 }
 
 /**
- * @brief Unpublish a service.
+ * @brief Unpublish a service
  *
  * Not implemented (yet).
  *
- * @param msgBuffer The buffer which contains the PMI msg to handle.
+ * @param msg Buffer containing the PMI msg to handle
  *
- * @return Returns 0 for success and 1 on error.
+ * @return Returns 0 for success and 1 on error
  */
-static int p_Unpublish_Name(char *msgBuffer)
+static int p_Unpublish_Name(char *msg)
 {
     char service[PMI_VALLEN_MAX];
     char reply[PMIU_MAXLINE];
 
-    getpmiv("service", msgBuffer, service, sizeof(service));
+    getpmiv("service", msg, service, sizeof(service));
 
     /* check msg*/
-    if (service[0] == 0) {
-	elog("%s(r%i): received invalid unpublish_name msg\n",
-		__func__, rank);
+    if (!service[0]) {
+	elog("%s(r%i): received invalid unpublish_name msg\n", __func__, rank);
     }
 
-    if (debug) {
-	elog("%s(r%i): received unpublish name request for service:%s\n",
-		__func__, rank, service);
-    }
+    if (debug) elog("%s(r%i): received unpublish name request for service:%s\n",
+		    __func__, rank, service);
     snprintf(reply, sizeof(reply), "cmd=unpublish_result info=%s\n",
 	     "not_implemented_yet\n" );
     PMI_send(reply);
@@ -938,30 +885,28 @@ static int p_Unpublish_Name(char *msgBuffer)
 }
 
 /**
- * @brief Lookup a service name.
+ * @brief Lookup a service name
  *
  * Not implemented (yet).
  *
- * @param msgBuffer The buffer which contains the PMI msg to handle.
+ * @param msg Buffer containing the PMI msg to handle
  *
- * @return Returns 0 for success and 1 on error.
+ * @return Returns 0 for success and 1 on error
  */
-static int p_Lookup_Name(char *msgBuffer)
+static int p_Lookup_Name(char *msg)
 {
     char service[PMI_VALLEN_MAX];
     char reply[PMIU_MAXLINE];
 
-    getpmiv("service",msgBuffer,service,sizeof(service));
+    getpmiv("service", msg, service, sizeof(service));
 
     /* check msg*/
-    if (service[0] == 0) {
+    if (!service[0]) {
 	elog("%s(r%i): received invalid lookup_name msg\n", __func__, rank);
     }
 
-    if (debug) {
-	elog("%s(r%i): received lookup name request for service:%s\n",
-		__func__, rank, service);
-    }
+    if (debug) elog("%s(r%i): received lookup name request for service:%s\n",
+		    __func__, rank, service);
     snprintf(reply, sizeof(reply), "cmd=lookup_result info=%s\n",
 	     "not_implemented_yet\n" );
     PMI_send(reply);
@@ -970,30 +915,28 @@ static int p_Lookup_Name(char *msgBuffer)
 }
 
 /**
- * @brief Get a key-value pair by index.
+ * @brief Get a key-value pair by index
  *
  * Get a key-value pair by specific index from key value space.
  *
- * @param msgBuffer The buffer which contains the PMI msg to handle.
+ * @param msg Buffer containing the PMI msg to handle
  *
- * @return Returns 0 for success and 1 on error.
+ * @return Returns 0 for success and 1 on error
  */
-static int p_GetByIdx(char *msgBuffer)
+static int p_GetByIdx(char *msg)
 {
     char reply[PMIU_MAXLINE];
     char idx[PMI_VALLEN_MAX], kvsname[PMI_KVSNAME_MAX];
-    char *value, *ret, name[PMI_KEYLEN_MAX];
+    char *ret, name[PMI_KEYLEN_MAX];
     int index, len;
 
-    getpmiv("idx", msgBuffer, idx, sizeof(msgBuffer));
-    getpmiv("kvsname", msgBuffer, kvsname, sizeof(msgBuffer));
+    getpmiv("idx", msg, idx, sizeof(msg));
+    getpmiv("kvsname", msg, kvsname, sizeof(msg));
 
     /* check msg */
-    if (idx[0] == 0 || kvsname[0] == 0) {
-	if (debug_kvs) {
-	    elog("%s(r%i): received invalid PMI getbiyidx msg\n",
-		    __func__, rank);
-	}
+    if (!idx[0] || !kvsname[0]) {
+	if (debug_kvs) elog("%s(r%i): received invalid PMI getbiyidx msg\n",
+			    __func__, rank);
 	snprintf(reply, sizeof(reply),
 		 "getbyidx_results rc=-1 reason=invalid_getbyidx_msg\n");
 	PMI_send(reply);
@@ -1002,10 +945,11 @@ static int p_GetByIdx(char *msgBuffer)
 
     index = atoi(idx);
     /* find and return the value */
-    if ((ret = kvs_getbyidx(kvsname, index))) {
-	if (!(value = strchr(ret,'=') + 1)) {
-	    elog("%s(r%i): error in local key value space\n",
-		    __func__, rank);
+    ret = kvs_getbyidx(kvsname, index);
+    if (ret) {
+	char *value = strchr(ret, '=') + 1;
+	if (!value) {
+	    elog("%s(r%i): error in local key value space\n", __func__, rank);
 	    return critErr();
 	}
 	len = strlen(ret) - strlen(value) - 1;
@@ -1025,7 +969,7 @@ static int p_GetByIdx(char *msgBuffer)
 }
 
 /**
- * @brief Init the local PMI communication.
+ * @brief Init the local PMI communication
  *
  * Init the PMI communication, mainly to be sure both sides
  * are using the same protocol versions.
@@ -1033,21 +977,21 @@ static int p_GetByIdx(char *msgBuffer)
  * The init process is monitored by the provider to make sure all MPI clients
  * are started successfully in time.
  *
- * @param msgBuffer The buffer which contains the PMI msg to handle.
+ * @param msg Buffer containing the PMI msg to handle
  *
- * @return Returns 0 for success and 1 on error.
+ * @return Returns 0 for success and 1 on error
  */
-static int p_Init(char *msgBuffer)
+static int p_Init(char *msg)
 {
     char reply[PMIU_MAXLINE], pmiversion[20], pmisubversion[20];
     char *ptr;
     size_t len;
 
-    getpmiv("pmi_version", msgBuffer, pmiversion, sizeof(pmiversion));
-    getpmiv("pmi_subversion", msgBuffer, pmisubversion, sizeof(pmisubversion));
+    getpmiv("pmi_version", msg, pmiversion, sizeof(pmiversion));
+    getpmiv("pmi_subversion", msg, pmisubversion, sizeof(pmisubversion));
 
     /* check msg */
-    if (pmiversion[0] == 0 || pmisubversion[0] == 0) {
+    if (!pmiversion[0] || !pmisubversion[0]) {
 	elog("%s(r%i): received invalid PMI init cmd\n", __func__, rank);
 	return critErr();
     }
@@ -1068,9 +1012,9 @@ static int p_Init(char *msgBuffer)
 		atoi(pmisubversion));
 	return 1;
     }
-    pmi_init_client = 1;
+    pmi_init_client = true;
 
-    if (psAccountSwitchAccounting) psAccountSwitchAccounting(childtid, 1);
+    if (psAccountSwitchAccounting) psAccountSwitchAccounting(cTask->tid, true);
 
     /* tell provider that the MPI client was initialized */
     ptr = buffer;
@@ -1082,11 +1026,11 @@ static int p_Init(char *msgBuffer)
 }
 
 /**
- * @brief Get KVS maxes values.
+ * @brief Get KVS maxes values
  *
  * Get the maximal size of the kvsname, keylen and values.
  *
- * @return Always returns 0.
+ * @return Always returns 0
  */
 static int p_Get_Maxes()
 {
@@ -1100,7 +1044,7 @@ static int p_Get_Maxes()
 }
 
 /**
- * @brief Intel MPI 3.0 Extension.
+ * @brief Intel MPI 3.0 Extension
  *
  * PMI extension in Intel MPI since version 3.0, just to recognize it.
  *
@@ -1118,14 +1062,12 @@ static int p_Get_Maxes()
  *	    <hostname> node; if the list is the last in the response, it must be
  *	    followed a blank space
  *
- * @return Returns 0 for success and 1 on error.
+ * @return Returns 0 for success and 1 on error
  */
 static int p_Get_Rank2Hosts(void)
 {
     char reply[PMIU_MAXLINE];
-    if (debug) {
-	elog("%s(r%i): got get_rank2hosts request\n", __func__, rank);
-    }
+    if (debug) elog("%s(r%i): got get_rank2hosts request\n", __func__, rank);
 
     snprintf(reply, sizeof(reply), "cmd=put_ranks2hosts 0 0\n");
     PMI_send(reply);
@@ -1134,41 +1076,39 @@ static int p_Get_Rank2Hosts(void)
 }
 
 /**
- * @brief Authenticate the client.
+ * @brief Authenticate the client
  *
  * Use a handshake to authenticate the MPI client. Note that it is not
  * mandatory for the MPI client to authenticate itself. Hydra continous even
  * with incorrect authentification.
  *
- * @param msgBuffer The buffer which contains the PMI
- * msg to handle.
+ * @param msg Buffer containing the PMI msg to handle
  *
- * @return Returns 0 for success and 1 on error.
+ * @return Returns 0 for success and 1 on error
  */
-static int p_InitAck(char *msgBuffer)
+static int p_InitAck(char *msg)
 {
     char *pmi_id, client_id[PMI_KEYLEN_MAX], reply[PMIU_MAXLINE];
 
-    if (debug) {
-	elog("%s(r%i): received PMI initack msg:%s\n",
-		__func__, rank, msgBuffer);
-    }
+    if (debug) elog("%s(r%i): received PMI initack msg:%s\n", __func__,
+		    rank, msg);
 
-    if (!(pmi_id = getenv("PMI_ID"))) {
+    pmi_id = getenv("PMI_ID");
+    if (!pmi_id) {
 	elog("%s(r%i): no PMI_ID is set\n", __func__, rank);
 	return critErr();
     }
 
-    getpmiv("pmiid", msgBuffer, client_id, sizeof(client_id));
+    getpmiv("pmiid", msg, client_id, sizeof(client_id));
 
-    if (client_id[0] == 0) {
+    if (!client_id[0]) {
 	elog("%s(r%i): empty pmiid from MPI client\n", __func__, rank);
 	return critErr();
     }
 
-    if (!!(strcmp(pmi_id, client_id))) {
+    if (!!strcmp(pmi_id, client_id)) {
 	elog("%s(r%i): invalid pmi_id '%s' from MPI client should be '%s'\n",
-		__func__, rank, client_id, pmi_id);
+	     __func__, rank, client_id, pmi_id);
 	return critErr();
     }
 
@@ -1184,86 +1124,57 @@ static int p_InitAck(char *msgBuffer)
 }
 
 /**
- * @brief Handle a execution problem message.
+ * @brief Handle a execution problem message
  *
  * The execution problem message is sent BEFORE client actually
  * starts, so even before PMI init.
  *
- * @param msgBuffer The buffer which contains the PMI msg to handle.
+ * @param msg Buffer containing the PMI msg to handle
  *
- * @return Returns 0 for success and 1 on error.
+ * @return Returns 0 for success and 1 on error
  */
-static int p_Execution_Problem(char *msgBuffer)
+static int p_Execution_Problem(char *msg)
 {
     char exec[PMI_VALLEN_MAX], reason[PMI_VALLEN_MAX];
 
-    getpmiv("reason",msgBuffer,exec,sizeof(exec));
-    getpmiv("exec",msgBuffer,reason,sizeof(reason));
+    getpmiv("reason", msg, exec, sizeof(exec));
+    getpmiv("exec", msg, reason, sizeof(reason));
 
-    if (exec[0] == 0 || reason[0] == 0) {
+    if (!exec[0] || !reason[0]) {
 	elog("%s(r%i): received invalid PMI execution problem msg\n",
-		__func__, rank);
+	     __func__, rank);
 	return 1;
     }
 
-    elog("%s(r%i): execution problem: exec=%s, reason=%s\n",
-	    __func__, rank, exec, reason);
+    elog("%s(r%i): execution problem: exec=%s, reason=%s\n", __func__,
+	 rank, exec, reason);
 
     critErr();
     return 0;
 }
 
-static const PMI_Msg pmi_commands[] =
-{
-	{ "put",			&p_Put			},
-	{ "get",			&p_Get			},
-	{ "barrier_in",			&p_Barrier_In		},
-	{ "init",			&p_Init			},
-	{ "spawn",			&p_Spawn		},
-	{ "get_universe_size",		&p_Get_Universe_Size	},
-	{ "initack",			&p_InitAck		},
-	{ "lookup_name",		&p_Lookup_Name		},
-	{ "execution_problem",		&p_Execution_Problem	},
-	{ "getbyidx",			&p_GetByIdx		},
-	{ "publish_name",		&p_Publish_Name		},
-	{ "unpublish_name",		&p_Unpublish_Name	},
-	{ "destroy_kvs",		&p_Destroy_Kvs		},
-};
-
-static const PMI_shortMsg pmi_short_commands[] =
-{
-	{ "get_maxes",			&p_Get_Maxes		},
-	{ "get_appnum",			&p_Get_Appnum		},
-	{ "finalize",			&p_Finalize		},
-	{ "get_my_kvsname",		&p_Get_My_Kvsname	},
-	{ "get_ranks2hosts",		&p_Get_Rank2Hosts	},
-	{ "create_kvs",			&p_Create_Kvs		},
-};
-
-static const int pmi_com_count = sizeof(pmi_commands)/sizeof(pmi_commands[0]);
-static const int pmi_short_com_count =
-    sizeof(pmi_short_commands)/sizeof(pmi_short_commands[0]);
-
-
 static int setPreputValues()
 {
-    char *env, *key, *value;
+    char *env = getenv("__PMI_preput_num");
     int i, preNum;
 
-    if (!(env = getenv("__PMI_preput_num"))) return 0;
+    if (!env) return 0;
 
     preNum = atoi(env);
 
-    for (i=0; i< preNum; i++) {
+    for (i = 0; i < preNum; i++) {
+	char *key, *value;
 	snprintf(buffer, sizeof(buffer), "__PMI_preput_key_%i", i);
-	if (!(key = getenv(buffer))) {
-	    elog("%s(r%i): invalid preput key '%i'\n", __func__, rank, i);
+	key = getenv(buffer);
+	if (!key) {
+	    elog("%s(r%i): invalid preput key %i\n", __func__, rank, i);
 	    return critErr();
 	}
 
 	snprintf(buffer, sizeof(buffer), "__PMI_preput_val_%i", i);
-	if (!(value = getenv(buffer))) {
-	    elog("%s(r%i): invalid preput value '%i'\n", __func__, rank, i);
+	value = getenv(buffer);
+	if (!value) {
+	    elog("%s(r%i): invalid preput value %i\n", __func__, rank, i);
 	    return critErr();
 	}
 
@@ -1279,83 +1190,84 @@ static int setPreputValues()
 
 int pmi_init(int pmisocket, PStask_t *childTask)
 {
-    char *envPtr, *env_kvs_name, *ptr;
+    char *ptr, *env;
     size_t len;
 
 #if DEBUG_ENV
     int i = 0;
-    while(environ[i]) {
-	mlog("%d: %s\n", i, environ[i++]);
-    }
+    while(environ[i]) mlog("%d: %s\n", i, environ[i++]);
 #endif
 
-    rank = childTask->rank;
-    if (!(ptr = getenv("PMI_RANK"))) {
+    cTask = childTask;
+    rank = cTask->rank;
+    env = getenv("PMI_RANK");
+    if (!env) {
 	elog("%s(r%i): invalid PMI rank environment\n", __func__, rank);
 	return 1;
     }
-    pmiRank = atoi(ptr);
+    pmiRank = atoi(env);
     pmisock = pmisocket;
-    loggertid = childTask->loggertid;
-    childtid = childTask->tid;
 
-    if (!(ptr = getenv("PMI_APPNUM"))) {
+    env = getenv("PMI_APPNUM");
+    if (!env) {
 	elog("%s(r%i): invalid PMI APPNUM environment\n", __func__, rank);
 	return 1;
     }
-    appnum = atoi(ptr);
-    if(appnum < 0) {
-	elog("%s(r%i): invalid PMI APPNUM parameter: %d\n", __func__,
-	     rank, appnum);
+    appnum = atoi(env);
+    if (appnum < 0) {
+	elog("%s(r%i): invalid PMI APPNUM parameter %s\n", __func__, rank, env);
 	return 1;
     }
 
-    mdbg(PSPMI_LOG_VERBOSE, "%s:(r%i): pmiRank '%i' pmisock '%i' logger '%i'"
-	 " spawned '%s' myTid '%s'\n", __func__, rank, pmiRank, pmisock,
-	 loggertid, getenv("PMI_SPAWNED"), PSC_printTID(PSC_getMyTID()));
+    mdbg(PSPMI_LOG_VERBOSE, "%s:(r%i): pmiRank %i pmisock %i logger %s",
+	 __func__, rank, pmiRank, pmisock, PSC_printTID(cTask->loggertid));
+    mdbg(PSPMI_LOG_VERBOSE, " spawned '%s' myTid %s\n",
+	 getenv("PMI_SPAWNED"), PSC_printTID(PSC_getMyTID()));
 
-    INIT_LIST_HEAD(&uBufferList.list);
+    INIT_LIST_HEAD(&uBufferList);
 
     if (pmisocket < 1) {
-	elog("%s(r%i): invalid PMI socket '%i'\n", __func__, rank, pmisocket);
+	elog("%s(r%i): invalid PMI socket %i\n", __func__, rank, pmisocket);
 	return 1;
     }
 
     /* set debug mode */
-    if ((envPtr = getenv("PMI_DEBUG")) && atoi(envPtr) > 0) {
-	debug = atoi(envPtr);
-	debug_kvs = debug;
-    } else if ((envPtr = getenv("PMI_DEBUG_CLIENT"))) {
-	debug = atoi(envPtr);
+    env = getenv("PMI_DEBUG");
+    if (env && atoi(env) > 0) {
+	debug_kvs = debug = true;
+    } else {
+	env = getenv("PMI_DEBUG_CLIENT");
+	if (env) debug = (atoi(env) > 0);
     }
-    if ((envPtr = getenv("PMI_DEBUG_KVS"))) {
-	debug_kvs = atoi(envPtr);
-    }
+    env = getenv("PMI_DEBUG_KVS");
+    if (env) debug_kvs = (atoi(env) > 0);
 
     /* set the MPI universe size */
-    if ((envPtr = getenv("PMI_UNIVERSE_SIZE"))) {
-	universe_size = atoi(envPtr);
+    env = getenv("PMI_UNIVERSE_SIZE");
+    if (env) {
+	universe_size = atoi(env);
     } else {
 	universe_size = 1;
     }
 
     /* set the name of the KVS space */
-    if (!(env_kvs_name = getenv("PMI_KVS_TMP"))) {
-	strncpy(kvs_name_prefix, "kvs_root", sizeof(kvs_name_prefix) -1);
+    env = getenv("PMI_KVS_TMP");
+    if (env) {
+	snprintf(kvs_name_prefix, sizeof(kvs_name_prefix), "kvs_%s", env);
     } else {
-	snprintf(kvs_name_prefix, sizeof(kvs_name_prefix), "kvs_%s",
-		    env_kvs_name);
+	strncpy(kvs_name_prefix, "kvs_root", sizeof(kvs_name_prefix) -1);
     }
 
-    is_init = 1;
+    initialized = true;
     updateMsgCount = 0;
 
     /* set my KVS name */
-    if (!(env_kvs_name = getenv("PMI_KVSNAME"))) {
-	snprintf(myKVSname, sizeof(myKVSname), "%s_%i", kvs_name_prefix,
-		    kvs_next++);
+    env = getenv("PMI_KVSNAME");
+    if (env) {
+	strcpy(myKVSname, env);
     } else {
-	strcpy(myKVSname, env_kvs_name);
+	snprintf(myKVSname, sizeof(myKVSname), "%s_%i", kvs_name_prefix,
+		 kvs_next++);
     }
 
     /* create local KVS space */
@@ -1374,20 +1286,21 @@ int pmi_init(int pmisocket, PStask_t *childTask)
     sendKvstoProvider(buffer, len);
 
     /* add preput values from PMI spawn */
-    if ((setPreputValues())) return 1;
+    if (setPreputValues()) return 1;
 
     /* tell my PMI parent I am alive */
-    if ((getenv("PMI_SPAWNED"))) {
+    if (getenv("PMI_SPAWNED")) {
 	PStask_ID_t parent;
 	int32_t res = 1;
 
 	mdbg(PSPMI_LOG_VERBOSE, "PMI_SPAWNED is set, contact parents.\n");
 
-	if (!(ptr = getenv("__PMI_SPAWN_PARENT"))) {
+	env = getenv("__PMI_SPAWN_PARENT");
+	if (!env) {
 	    elog("%s(r%i): error getting my PMI parent\n", __func__, rank);
 	    return critErr();
 	}
-	parent = atoi(ptr);
+	parent = atoi(env);
 
 	ptr = buffer;
 	len = 0;
@@ -1400,150 +1313,47 @@ int pmi_init(int pmisocket, PStask_t *childTask)
 
     /* set default spawn handler */
     mdbg(PSPMI_LOG_VERBOSE, "Setting PMI default fill spawn task function to"
-	    " fillSpawnTaskWithMpiexec()\n");
-    defaultFillSpawnTaskFunction = fillSpawnTaskWithMpiexec;
-    if (fillSpawnTaskFunction == NULL) {
-	psPmiResetFillSpawnTaskFunction();
-    }
+	 " fillWithMpiexec()\n");
+    if (!fillTaskFunction) psPmiResetFillSpawnTaskFunction();
 
     return 0;
 }
 
 /**
- * @brief Extract the PMI command.
- *
- * Parse a PMI message and return the command.
- *
- * @param msg The message to parse.
- *
- * @param cmdbuf The buffer which receives the extracted command.
- *
- * @param bufsize The size of the cmd buffer.
- *
- * @return Returns 1 for success, 0 on errors.
- */
-static int extractPMIcmd(char *msg, char *cmdbuf, int bufsize)
-{
-    const char delimiters[] =" \n";
-    char *msgCopy, *cmd, *saveptr;
-
-    if (!msg || strlen(msg) < 5) {
-	elog("%s(r%i): invalid PMI msg '%s' received\n", __func__, rank, msg);
-	return !critErr();
-    }
-
-    msgCopy = ustrdup(msg);
-    cmd = strtok_r(msgCopy, delimiters, &saveptr);
-
-    while ( cmd != NULL ) {
-	if (!strncmp(cmd,"cmd=", 4)) {
-	    cmd += 4;
-	    strncpy(cmdbuf, cmd, bufsize);
-	    ufree(msgCopy);
-	    return 1;
-	}
-	if (!strncmp(cmd,"mcmd=", 5)) {
-	    cmd += 5;
-	    strncpy(cmdbuf, cmd, bufsize);
-	    ufree(msgCopy);
-	    return 1;
-	}
-	cmd = strtok_r(NULL, delimiters, &saveptr);
-    }
-
-    ufree(msgCopy);
-    return 0;
-}
-
-int handlePMIclientMsg(char *msg)
-{
-    int i;
-    char cmd[PMI_VALLEN_MAX];
-    char reply[PMIU_MAXLINE];
-
-    if (is_init != 1) {
-	elog("%s(r%i): you must call pmi_init first, msg '%s'\n",
-		__func__, rank, msg);
-	return critErr();
-    }
-
-    if (!msg) {
-	elog("%s(r%i): invalid PMI msg\n", __func__, rank);
-	return critErr();
-    }
-
-    if (!extractPMIcmd(msg, cmd, sizeof(cmd)) || strlen(cmd) <2) {
-	elog("%s(r%i): invalid PMI cmd received, msg was '%s'\n",
-		__func__, rank, msg);
-	return critErr();
-    }
-
-    if (debug) {
-	elog("%s(r%i): got %s\n", __func__, rank, msg);
-    }
-
-    /* find PMI cmd */
-    for (i=0; i< pmi_com_count; i++) {
-	if (!strcmp(cmd,pmi_commands[i].Name)) {
-		return pmi_commands[i].fpFunc(msg);
-	}
-    }
-
-    /* find short PMI cmd */
-    for (i=0; i< pmi_short_com_count; i++) {
-	if (!strcmp(cmd,pmi_short_commands[i].Name)) {
-		return pmi_short_commands[i].fpFunc();
-	}
-    }
-
-    /* cmd not found */
-    elog("%s(r%i): unsupported PMI cmd received '%s'\n", __func__, rank, cmd);
-
-    snprintf(reply, sizeof(reply),
-	     "cmd=%s rc=%i info=not_supported_cmd\n", cmd, PMI_ERROR);
-    PMI_send(reply);
-
-    return critErr();
-}
-
-/**
-* @brief Release the PMI client.
+* @brief Release the PMI client
 *
 * Finalize the PMI connection and release the MPI client.
 *
-* @return No return value.
+* @return No return value
 */
 void pmi_finalize(void)
 {
-    if (pmi_init_client) {
-	PMI_send("cmd=finalize_ack\n");
-    }
+    if (pmi_init_client) PMI_send("cmd=finalize_ack\n");
 }
 
 /**
  * @brief Buffer an update message until both the local MPI client and our
- * successor is ready.
+ * successor is ready
  *
- * @param msg The message to buffer.
+ * @param msg The message to buffer
  *
- * @param msgLen The len of the message.
+ * @param msgLen The len of the message
  *
- * @param isSuccReady Flag to indicate if we need to forward the message to our
- * successor.
+ * @param isSuccReady Flag to indicate if this message has to be
+ * forwarded to the successor
  *
- * @param barrierIn Flag to indicate if we need to send this update to the local
- * MPI client.
+ * @param barrierIn Flag to indicate if this update has to be sent to
+ * the local MPI client
  *
- * @param lastUpdate If this flag is set to 1 then the update is complete
- * with this message.
+ * @param lastUpdate Flag to indicate this message completes the update
  *
- * @param strLen The length of the update payload.
+ * @param strLen The length of the update payload
  *
- * @return No return value.
+ * @return No return value
  */
-static void bufferCacheUpdate(char *msg, size_t msgLen, int isSuccReady,
-				int barrierIn, int lastUpdate, size_t strLen,
-				int updateIndex)
+static void bufferCacheUpdate(char *msg, size_t msgLen, bool isSuccReady,
+			      bool barrierIn, bool lastUpdate, size_t strLen,
+			      int updateIndex)
 {
     Update_Buffer_t *uBuf;
 
@@ -1557,22 +1367,21 @@ static void bufferCacheUpdate(char *msg, size_t msgLen, int isSuccReady,
     uBuf->lastUpdate = lastUpdate;
     uBuf->updateIndex = updateIndex;
 
-    list_add_tail(&(uBuf->list), &uBufferList.list);
+    list_add_tail(&(uBuf->next), &uBufferList);
 }
 
 /**
- * @brief Handle a KVS update message from the provider.
+ * @brief Handle a KVS update message from the provider
  *
- * @param msg The message to handle.
+ * @param msg The message to handle
  *
- * @param ptr Pointer to the update payload.
+ * @param ptr Pointer to the update payload
  *
- * @param lastUpdateMsg If this flag is set to 1 then the update is complete
- * with this message.
+ * @param lastUpdate Flag to indicate this message completes the update
  *
- * @return No return value.
+ * @return No return value
  */
-static void handleKVScacheUpdate(PSLog_Msg_t *msg, char *ptr, int lastUpdateMsg)
+static void handleKVScacheUpdate(PSLog_Msg_t *msg, char *ptr, bool lastUpdate)
 {
     char pmiLine[PMIU_MAXLINE];
     int len, msgSize, updateIndex;
@@ -1580,9 +1389,10 @@ static void handleKVScacheUpdate(PSLog_Msg_t *msg, char *ptr, int lastUpdateMsg)
     updateIndex = getKVSInt32(&ptr);
 
     /* get the PMI update message */
-    if ((len = getKVSString(&ptr, pmiLine, sizeof(pmiLine))) < 0) {
-	elog("%s(%i): invalid update len '%i' index '%i' last'%i'\n", __func__,
-		rank, len, updateIndex, lastUpdateMsg);
+    len = getKVSString(&ptr, pmiLine, sizeof(pmiLine));
+    if (len < 0) {
+	elog("%s(%i): invalid update len %i index %i last %i\n", __func__,
+	     rank, len, updateIndex, lastUpdate);
 	critErr();
 	return;
     }
@@ -1600,97 +1410,94 @@ static void handleKVScacheUpdate(PSLog_Msg_t *msg, char *ptr, int lastUpdateMsg)
     /* we need to buffer the message for later */
     if (len > 0 && (!isSuccReady || !gotBarrierIn)) {
 	bufferCacheUpdate(msg->buf, msgSize, isSuccReady, gotBarrierIn,
-			    lastUpdateMsg, len, updateIndex);
+			  lastUpdate, len, updateIndex);
     }
 
     /* sanity check */
-    if (lastUpdateMsg && !gotBarrierIn) {
+    if (lastUpdate && !gotBarrierIn) {
 	elog("%s:(r%i): got last update message, but I have no barrier_in\n",
-		__func__, rank);
+	     __func__, rank);
 	critErr();
     }
 
     /* forward to successor */
-    if (isSuccReady && succtid != providertid) sendKvstoSucc(msg->buf, msgSize);
+    if (isSuccReady && succtid != kvsProvTID) sendKvstoSucc(msg->buf, msgSize);
 
-    if (lastUpdateMsg) {
-	if (psAccountSwitchAccounting) psAccountSwitchAccounting(childtid, 1);
+    if (lastUpdate && psAccountSwitchAccounting) {
+	psAccountSwitchAccounting(cTask->tid, true);
     }
 
     /* wait with the update until we got the barrier_in from local MPI client */
     if (!gotBarrierIn) return;
 
     /* update the local KVS */
-    parseUpdateMessage(pmiLine, lastUpdateMsg, updateIndex);
+    parseUpdateMessage(pmiLine, lastUpdate, updateIndex);
 }
 
 /**
- * @brief Hanlde a KVS barrier out message.
+ * @brief Hanlde a KVS barrier out message
  *
  * Release the waiting MPI client from the barrier.
  *
- * @return No return value.
+ * @return No return value
  */
 static void handleDaisyBarrierOut(PSLog_Msg_t *msg)
 {
-    if (succtid != providertid) {
+    if (succtid != kvsProvTID) {
 	/* forward to next client */
 	sendKvstoSucc(msg->buf, sizeof(uint8_t));
     }
 
     /* Forward msg from provider to client */
-    gotBarrierIn = 0;
+    gotBarrierIn = false;
     snprintf(buffer, sizeof(buffer), "cmd=barrier_out\n");
     PMI_send(buffer);
 }
 
 /**
- * @brief Set a new daisy barrier.
+ * @brief Set a new daisy barrier
  *
- * @return No return value.
+ * @return No return value
  */
 static void handleDaisyBarrierIn(char *ptr)
 {
-    if (predtid == providertid) {
-	elog("%s(r%i): received daisy_barrier_in from provider\n",
-		__func__, rank);
+    if (predtid == kvsProvTID) {
+	elog("%s(r%i): received daisy_barrier_in from provider\n", __func__,
+	     rank);
 	return;
     }
 
     barrierCount = getKVSInt32(&ptr);
     globalPutCount = getKVSInt32(&ptr);
-    gotDaisyBarrierIn = 1;
+    gotDaisyBarrierIn = true;
     checkDaisyBarrier();
 }
 
 /**
- * @brief Our successor is now ready to receive messages.
+ * @brief Our successor is now ready to receive messages
  *
  * The successor finished its initialize phase with the provider and
  * is now ready to receive PMI messages from us. We can now forward
  * all buffered barrier/update messages.
  *
- * @return No return value.
+ * @return No return value
  */
 static void handleSuccReady(char *mbuf)
 {
     list_t *pos, *tmp;
-    Update_Buffer_t *uBuf;
 
     succtid = getKVSInt32(&mbuf);
     //elog("s(r%i): succ:%i pmiRank:%i providertid:%i\n", rank, succtid,
-    //	    pmiRank, providertid);
-    isSuccReady = 1;
+    //	    pmiRank, kvsProvTID);
+    isSuccReady = true;
     checkDaisyBarrier();
 
     /* forward buffered messages */
-    if (list_empty(&uBufferList.list)) return;
-
-    list_for_each_safe(pos, tmp, &uBufferList.list) {
-	if ((uBuf = list_entry(pos, Update_Buffer_t, list)) == NULL) return;
+    list_for_each_safe(pos, tmp, &uBufferList) {
+	Update_Buffer_t *uBuf = list_entry(pos, Update_Buffer_t, next);
 	if (!uBuf->isSuccReady) {
 
-	    if (succtid != providertid) {
+	    if (succtid != kvsProvTID) {
 		char *ptr;
 		char pmiLine[PMIU_MAXLINE];
 		size_t len, pLen;
@@ -1702,37 +1509,54 @@ static void handleSuccReady(char *mbuf)
 		/* sanity check */
 		if (strlen(pmiLine) != len || len != pLen) {
 		    elog("%s(r%i): invalid update msg len:%zu strlen:%zu "
-			    "bufLen:%zu\n", __func__, rank, len,
-			    strlen(pmiLine), pLen);
+			 "bufLen:%zu\n", __func__, rank, len,
+			 strlen(pmiLine), pLen);
 		    critErr();
 		}
 	    }
 
-	    if (succtid != providertid) sendKvstoSucc(uBuf->msg, uBuf->len);
-	    uBuf->isSuccReady = 1;
+	    if (succtid != kvsProvTID) sendKvstoSucc(uBuf->msg, uBuf->len);
+	    uBuf->isSuccReady = true;
 
 	    if (uBuf->gotBarrierIn) deluBufferEntry(uBuf);
 	}
     }
 }
 
-int handleCCError(void *data)
+
+/**
+ * @brief Handle a CC_ERROR message
+ *
+ * Since the actual KVS lives within its own service process, sending
+ * changes to the key-value store might fail. This function handles
+ * the resulting CC_ERROR messages to be passed in @a data.
+ *
+ * @param data Message to handle
+ *
+ * @return Always returns 0
+ */
+static int handleCCError(void *data)
 {
     PSLog_Msg_t *msg = data;
 
-    if (msg->header.sender == providertid) return 1;
+    if (msg->header.sender == kvsProvTID) return 1;
 
     /*
-    mlog("%s(r%i): got cc error message from '%s' type '%s'\n", __func__, rank,
+    mlog("%s(r%i): got cc error message from %s type %s\n", __func__, rank,
 	    PSC_printTID(msg->header.sender), PSLog_printMsgType(msg->type));
     */
 
     return 0;
 }
 
-void setKVSProviderTID(PStask_ID_t ptid)
+void setKVSProviderTID(PStask_ID_t tid)
 {
-    providertid = ptid;
+    kvsProvTID = tid;
+}
+
+void setKVSProviderSock(int fd)
+{
+    kvsProvSock = fd;
 }
 
 /* ************************************************************************* *
@@ -1740,176 +1564,330 @@ void setKVSProviderTID(PStask_ID_t ptid)
  * ************************************************************************* */
 
 /**
- * @brief Extracts the arguments from PMI spawn request.
+ * @brief Extracts the arguments from PMI spawn request
  *
- * @param msgBuffer The buffer with the PMI spawn message.
+ * @param msg Buffer containing the PMI spawn message
  *
- * @param argv String vector to add the extracted arguments to.
+ * @param argv String vector to add the extracted arguments to
  *
- * @return Returns 0 on success, -1 on error.
+ * @return Returns true on success and false on error
  */
-static int getSpawnArgs(char *msgBuffer, strv_t *args)
+static bool getSpawnArgs(char *msg, strv_t *args)
 {
-    char *execname, *nextval;
+    char *execname;
     char numArgs[50];
     int addArgs = 0, i;
-    size_t j;
 
     /* setup argv */
-    if (!(getpmiv("argcnt", msgBuffer, numArgs, sizeof(numArgs)))) {
+    if (!getpmiv("argcnt", msg, numArgs, sizeof(numArgs))) {
 	mlog("%s(r%i): missing argc argument\n", __func__, rank);
-	return -1;
+	return false;
     }
 
-    if ((addArgs = atoi(numArgs)) > PMI_SPAWN_MAX_ARGUMENTS) {
+    addArgs = atoi(numArgs);
+    if (addArgs > PMI_SPAWN_MAX_ARGUMENTS) {
 	mlog("%s(r%i): too many arguments (%i)\n", __func__, rank, addArgs);
-	return -1;
-    }
-
-    if (addArgs < 0) {
+	return false;
+    } else if (addArgs < 0) {
 	mlog("%s(r%i): invalid argument count (%i)\n", __func__, rank, addArgs);
-	return -1;
+	return false;
     }
 
     /* add the executable as argv[0] */
-    if (!(execname = getpmivm("execname", msgBuffer))) {
+    execname = getpmivm("execname", msg);
+    if (!execname) {
 	mlog("%s(r%i): invalid executable name\n", __func__, rank);
-	return -1;
+	return false;
     }
     strvAdd(args, execname);
 
     /* add additional arguments */
     for (i = 1; i <= addArgs; i++) {
+	char *nextval;
 	snprintf(buffer, sizeof(buffer), "arg%i", i);
-	if ((nextval = getpmivm(buffer, msgBuffer))) {
+	nextval = getpmivm(buffer, msg);
+	if (nextval) {
 	    strvAdd(args, nextval);
 	} else {
+	    size_t j;
 	    for (j = 0; j < args->count; j++) ufree(args->strings[j]);
 	    mlog("%s(r%i): extracting arguments failed\n", __func__, rank);
-	    return -1;
+	    return false;
 	}
     }
 
-    return 0;
+    return true;
 }
 
 /**
- * @brief Extract preput values and keys from a PMI spawn request.
+ * @brief Extract key-value pairs from PMI spawn request
  *
- * @param msgBuffer The buffer with the PMI spawn message.
+ * @param msg Buffer containing the PMI spawn message
  *
- * @param preputc Where to store the number preput key-value-pairs.
+ * @param name Identifier for the key-value pairs to extract
  *
- * @param preputv Where to store the pointer to the array of key-value-pairs.
+ * @param kvpc Where to store the number key-value pairs
  *
- * @return Returns 0 on success, -1 on error.
+ * @param kvpv Where to store the array of key-value pairs
+ *
+ * @return Returns true on success, false on error
  */
-static int getSpawnPreput(char *msgBuffer, int *preputc, KVP_t **preputv)
+static bool getSpawnKVPs(char *msg, char *name, int *kvpc, KVP_t **kvpv)
 {
-    char numPreput[50];
-    char nextkey[PMI_KEYLEN_MAX], nextvalue[PMI_VALLEN_MAX];
+    char numKVP[50];
     int count, i;
 
-    if (!(getpmiv("preput_num", msgBuffer, numPreput, sizeof(numPreput)))) {
-	mlog("%s(r%i): missing preput count\n", __func__, rank);
-	return -1;
+    snprintf(buffer, sizeof(buffer), "%s_num", name);
+    if (!getpmiv(buffer, msg, numKVP, sizeof(numKVP))) {
+	mlog("%s(r%i): missing %s count\n", __func__, rank, name);
+	return false;
     }
+    *kvpc = atoi(numKVP);
 
-    *preputc = atoi(numPreput);
+    if (!*kvpc) return true;
 
-    if (*preputc == 0) return 0;
+    *kvpv = umalloc(*kvpc * sizeof(KVP_t));
 
-    *preputv = umalloc(*preputc * sizeof(KVP_t));
-
-    count = 0;
-
-    for (i = 0; i < *preputc; i++) {
-	snprintf(buffer, sizeof(buffer), "preput_key_%i", i);
-	if (!(getpmiv(buffer, msgBuffer, nextkey, sizeof(nextkey)))) {
-	    mlog("%s(r%i): invalid preput key '%s'\n", __func__, rank, buffer);
-	    goto preput_error;
+    for (i = 0; i < *kvpc; i++) {
+	char nextkey[PMI_KEYLEN_MAX], nextvalue[PMI_VALLEN_MAX];
+	snprintf(buffer, sizeof(buffer), "%s_key_%i", name, i);
+	if (!getpmiv(buffer, msg, nextkey, sizeof(nextkey))) {
+	    mlog("%s(r%i): invalid %s key %s\n", __func__, rank, name, buffer);
+	    goto kvp_error;
 	}
 
-	snprintf(buffer, sizeof(buffer), "preput_val_%i", i);
-	if (!(getpmiv(buffer, msgBuffer, nextvalue, sizeof(nextvalue)))) {
-	    mlog("%s(r%i): invalid preput value '%s'\n", __func__, rank,
-		    buffer);
-	    goto preput_error;
+	snprintf(buffer, sizeof(buffer), "%s_val_%i", name, i);
+	if (!getpmiv(buffer, msg, nextvalue, sizeof(nextvalue))) {
+	    mlog("%s(r%i): invalid %s val %s\n", __func__, rank, name, buffer);
+	    goto kvp_error;
 	}
 
-	preputv[count]->key = ustrdup(nextkey);
-	preputv[count++]->value = ustrdup(nextvalue);
+	kvpv[i]->key = ustrdup(nextkey);
+	kvpv[i]->value = ustrdup(nextvalue);
     }
-    *preputc = count;
+    return true;
 
-    return 0;
-
-preput_error:
+kvp_error:
+    count = i;
     for (i = 0; i < count; i++) {
-	ufree(preputv[i]->key);
-	ufree(preputv[i]->value);
+	ufree(kvpv[i]->key);
+	ufree(kvpv[i]->value);
     }
-    ufree(preputv);
-    return -1;
+    ufree(kvpv);
+    return false;
 }
 
 /**
- * @brief Extract info values and keys from a PMI spawn request.
+ * @brief Parse spawn request messages
  *
- * @param msgBuffer The buffer with the PMI spawn message.
+ * @param msg Buffer containing the PMI spawn request message
  *
- * @param infoc     Where to store the number info key-value-pairs.
+ * @param spawn Pointer to the struct to be filled with spawn data
  *
- * @param infov     Where to store the pointer to the array of key-value-pairs.
- *
- * @return Returns 0 on success, -1 on error.
+ * @return Returns true on success, false on error
  */
-static int getSpawnInfo(char *msgBuffer, int *infoc, KVP_t **infov)
+static bool parseSpawnReq(char *msg, SingleSpawn_t *spawn)
 {
-    char numInfo[50];
-    char nextkey[PMI_KEYLEN_MAX], nextvalue[PMI_VALLEN_MAX];
-    int count, i;
+    const char delm[] = "\n";
+    strv_t args;
+    char *tmpStr;
 
-    if (!(getpmiv("info_num", msgBuffer, numInfo, sizeof(numInfo)))) {
-	mlog("%s(r%i): missing info count\n", __func__, rank);
-	return -1;
+    if (!msg) return false;
+
+    setPMIDelim(delm);
+
+    /* get the number of processes to spawn */
+    tmpStr = getpmivm("nprocs", msg);
+    if (!tmpStr) {
+	mlog("%s(r%i): getting number of processes to spawn failed\n",
+	     __func__, rank);
+	goto parse_error;
+    }
+    spawn->np = atoi(tmpStr);
+    ufree(tmpStr);
+
+    /* setup argv for processes to spawn */
+    strvInit(&args, NULL, 0);
+    if (!getSpawnArgs(msg, &args)) {
+	strvDestroy(&args);
+	goto parse_error;
+    }
+    spawn->argv = args.strings;
+    spawn->argc = args.count;
+
+    /* extract preput keys and values */
+    if (!getSpawnKVPs(msg, "preput", &spawn->preputc, &spawn->preputv)) {
+	goto parse_error;
     }
 
-    *infoc = atoi(numInfo);
-
-    if (*infoc == 0) return 0;
-
-    *infov = umalloc(*infoc * sizeof(KVP_t));
-
-    count = 0;
-    for (i=0; i < *infoc; i++) {
-	snprintf(buffer, sizeof(buffer), "info_key_%i", i);
-	if (!(getpmiv(buffer, msgBuffer, nextkey, sizeof(nextkey)))) {
-	    mlog("%s(r%i): invalid info key '%s'\n", __func__, rank, buffer);
-	    goto info_error;
-	}
-
-	snprintf(buffer, sizeof(buffer), "info_val_%i", i);
-	if (!(getpmiv(buffer, msgBuffer, nextvalue, sizeof(nextvalue)))) {
-	    mlog("%s(r%i): invalid preput value '%s'\n", __func__, rank,
-		    buffer);
-	    goto info_error;
-	}
-
-	infov[count]->key = ustrdup(nextkey);
-	infov[count++]->value = ustrdup(nextvalue);
+    /* extract info keys and values */
+    if (!getSpawnKVPs(msg, "info", &spawn->infoc, &spawn->infov)) {
+	goto parse_error;
     }
-    *infoc = count;
+
+    setPMIDelim(NULL);
+    return true;
+
+parse_error:
+    setPMIDelim(NULL);
+    return false;
+}
+
+/**
+ * @brief Spawn one or more processes
+ *
+ * We first need the next rank for the new service process to
+ * start. Only the logger knows that. So we ask it and buffer
+ * the spawn request to wait for an answer.
+ *
+ * @param req Spawn request data structure
+ *
+ * @return Returns true on success and false on error
+ */
+static bool doSpawn(SpawnRequest_t *req)
+{
+    pendSpawn = copySpawnRequest(req);
+
+    mlog("%s(r%i): trying to do %d spawns\n", __func__, rank, pendSpawn->num);
+
+    /* get next service rank from logger */
+    if (PSLog_write(cTask->loggertid, SERV_TID, NULL, 0) < 0) {
+	mlog("%s(r%i): Writing to logger failed.\n", __func__, rank);
+	return false;
+    }
+
+    return true;
+}
+
+/**
+ * @brief Spawn one or more processes
+ *
+ * Parses the spawn message and calls doSpawn().
+ *
+ * In case of spawn_multi, all spawn messages are collected here
+ * and doSpawn() is called after the collection is completed.
+ *
+ * @param msg Buffer containing the PMI spawn message
+ *
+ * @return Returns 0 for success, 1 on normal error, 2 on critical
+ * error, and 3 on fatal error
+ */
+static int handleSpawnRequest(char *msg)
+{
+    char buf[50];
+    int totSpawns, spawnsSoFar;
+    bool ret;
+
+    static int s_total = 0;
+    static int s_count = 0;
+
+    if (!getpmiv("totspawns", msg, buf, sizeof(buf))) {
+	mlog("%s(r%i): invalid totspawns argument\n", __func__, rank);
+	return 1;
+    }
+    totSpawns = atoi(buf);
+
+    if (!getpmiv("spawnssofar", msg, buf, sizeof(buf))) {
+	mlog("%s(r%i): invalid spawnssofar argument\n", __func__, rank);
+	return 1;
+    }
+    spawnsSoFar = atoi(buf);
+
+    if (spawnsSoFar == 1) {
+	s_total = totSpawns;
+
+	/* check if spawn buffer is already in use */
+	if (spawnBuffer) {
+	    mlog("%s(r%i): spawn buffer should be empty, another spawn in"
+		 " progress?\n", __func__, rank);
+	    return 2;
+	}
+
+	/* create spawn buffer */
+	spawnBuffer = initSpawnRequest(s_total);
+	if (!spawnBuffer) {
+	    mlog("%s(r%i): out of memory\n", __func__, rank);
+	    return 3;
+	}
+    } else if (s_total != totSpawns) {
+	mlog("%s(r%i): totalspawns argument does not match previous message\n",
+	     __func__, rank);
+	return 2;
+    }
+
+    if (debug) elog("%s(r%i): Adding spawn %d/%d to buffer\n", __func__, rank,
+		    spawnsSoFar, totSpawns);
+
+    if (!parseSpawnReq(msg, &(spawnBuffer->spawns[s_count]))) {
+	mlog("%s(r%i): failed to parse spawn message '%s'\n",  __func__, rank,
+	     msg);
+	return 1;
+    }
+
+    if (!spawnBuffer->spawns[s_count].np) {
+	mlog("%s(r%i): spawn %d/%d has (np == 0) set, cancel spawning.\n",
+	     __func__, rank, s_count, spawnBuffer->num);
+	elog("Rank %i: Spawn %d/%d has (np == 0) set, cancel spawning.\n",
+	     rank, s_count, spawnBuffer->num);
+    }
+
+    s_count++;
+
+    if (s_count < s_total) {
+	/* another part of the multi spawn request is missing */
+	return 0;
+    }
+
+    /* collection complete */
+    s_total = 0;
+    s_count = 0;
+
+    /* do spawn */
+    ret = doSpawn(spawnBuffer);
+
+    freeSpawnRequest(spawnBuffer);
+    spawnBuffer = NULL;
+
+    if (!ret) {
+	mlog("%s(r%i): doSpawn() failed\n",  __func__, rank);
+	return 1;
+    }
+
+    /* wait for logger to answer */
+    return 0;
+}
+
+/**
+ * @brief Spawn one or more processes
+ *
+ * This function is only a wrapper around handleSpawnRequest to unify
+ * error handling.
+ *
+ * @param msg Buffer containing the PMI spawn message
+ *
+ * @return Returns 0 for success and 1 on error
+ */
+static int p_Spawn(char *msg)
+{
+    int ret;
+
+    ret = handleSpawnRequest(msg);
+
+    switch(ret) {
+	case 1:
+	    PMI_send("cmd=spawn_result rc=-1\n");
+	    return 1;
+	case 2:
+	    PMI_send("cmd=spawn_result rc=-1\n");
+	    critErr();
+	    return 1;
+	case 3:
+	    PMI_send("cmd=spawn_result rc=-1\n");
+	    critErr();
+	    exit(1);
+    }
 
     return 0;
-
-info_error:
-    for (i=0; i<count; i++) {
-	ufree(infov[i]->key);
-	ufree(infov[i]->value);
-    }
-    ufree(infov);
-    return -1;
 }
 
 /* *
@@ -1952,86 +1930,20 @@ static int getSoftArgList(char *soft, int **softList)
 */
 
 /**
- * @brief Parse spawn request messages.
- *
- * @param msgBuffer  PMI spawn request message
- *
- * @param spawn      Pointer to the struct to be filled with spawn data.
- *
- * @return  Returns 0 on success, 1 on error.
- */
-static int parseSpawnRequestMsg(char *msgBuffer, SingleSpawn_t *spawn)
-{
-    char *tmpstr;
-    const char delm[] = "\n";
-
-    strv_t args;
-
-    setPMIDelim(delm);
-
-    if (!msgBuffer) return 1;
-
-#if 0
-    elog("%s: dump:\n", __func__);
-    for (i=0; i<totalSpawns; i++) {
-	elog("%s\n", spawnBuffer[i]);
-    }
-#endif
-
-    /* get the number of processes to spawn */
-    if (!(tmpstr = getpmivm("nprocs", msgBuffer))) {
-	mlog("%s(r%i): getting number of processes to spawn failed\n",
-		__func__, rank);
-	goto parse_error;
-    }
-    spawn->np = atoi(tmpstr);
-    ufree(tmpstr);
-
-    /* setup argv for processes to spawn */
-    strvInit(&args, NULL, 0);
-    if (getSpawnArgs(msgBuffer, &args)) {
-	strvDestroy(&args);
-	goto parse_error;
-    }
-    spawn->argv = args.strings;
-    spawn->argc = args.count;
-
-    /* extract preput keys and values */
-    if (getSpawnPreput(msgBuffer, &spawn->preputc,
-	       &spawn->preputv) != 0) {
-	goto parse_error;
-    }
-
-    /* extract info keys and values */
-    if (getSpawnInfo(msgBuffer, &spawn->infoc, &spawn->infov)
-	    != 0) {
-	goto parse_error;
-    }
-
-    setPMIDelim(NULL);
-
-    return 0;
-
-parse_error:
-    setPMIDelim(NULL);
-    return 1;
-}
-
-/**
- * @brief Prepare preput keys and values to pass by environment.
+ * @brief Prepare preput keys and values to pass by environment
  *
  * Generates an array of strings representing the preput key-value-pairs in the
  * format "__PMI_<KEY>=<VALUE>" and one variable "__PMI_preput_num=<COUNT>"
  *
- * @param preputc  Number of key value pairs.
+ * @param preputc Number of key value pairs
  *
- * @param preputv  Array of key value pairs.
+ * @param preputv Array of key value pairs
  *
- * @param envc     Where to store the number environment variable definitions.
+ * @param envv Where to store the pointer to the array of definitions
  *
- * @param envv     Where to store the pointer to the array of definitions.
+ * @return No return value
  */
-static void addSpawnPreputToEnv(int preputc, KVP_t *preputv, strv_t *env)
+static void addPreputToEnv(int preputc, KVP_t *preputv, strv_t *env)
 {
     int i;
     char *tmpstr;
@@ -2056,29 +1968,25 @@ static void addSpawnPreputToEnv(int preputc, KVP_t *preputv, strv_t *env)
     }
 }
 
-/*
+/**
  *  fills the passed task structure to spawn processes using mpiexec
  *
- *  @param req    spawn request
- *  
- *  @param usize  universe size
+ *  @param req spawn request
  *
- *  @param task   task structure to adjust
+ *  @param usize universe size
+ *
+ *  @param task task structure to adjust
  *
  *  @return 1 on success, 0 on error (currently unused)
  */
-int fillSpawnTaskWithMpiexec(SpawnRequest_t *req, int usize, PStask_t *task) {
-
-    int totalSpawns, i, j, len;
-
-    char *tmpstr;
+static int fillWithMpiexec(SpawnRequest_t *req, int usize, PStask_t *task)
+{
     SingleSpawn_t *spawn;
     KVP_t *info;
     strv_t args, env;
-
-    char noParricide = 0;
-
-    totalSpawns = req->totalSpawns;
+    bool noParricide = false;
+    char *tmpstr;
+    int i, j, len;
 
     spawn = &(req->spawns[0]);
 
@@ -2090,12 +1998,11 @@ int fillSpawnTaskWithMpiexec(SpawnRequest_t *req, int usize, PStask_t *task) {
      *
      * Only the values of the first single spawn are used. */
     strvInit(&env, task->environ, task->envSize);
-    addSpawnPreputToEnv(spawn->preputc, spawn->preputv, &env);
+    addPreputToEnv(spawn->preputc, spawn->preputv, &env);
 
     ufree(task->environ);
     task->environ = env.strings;
     task->envSize = env.count;
-
 
     /* build arguments:
      * mpiexec -u <UNIVERSE_SIZE> -np <NP> -d <WDIR> -p <PATH> \
@@ -2108,9 +2015,7 @@ int fillSpawnTaskWithMpiexec(SpawnRequest_t *req, int usize, PStask_t *task) {
     snprintf(buffer, sizeof(buffer), "%d", usize);
     strvAdd(&args, ustrdup(buffer));
 
-
-    for (i = 0; i < totalSpawns; i++) {
-
+    for (i = 0; i < req->num; i++) {
 	/* set the number of processes to spawn */
 	strvAdd(&args, ustrdup("-np"));
 	snprintf(buffer, sizeof(buffer), "%d", spawn->np);
@@ -2182,9 +2087,9 @@ int fillSpawnTaskWithMpiexec(SpawnRequest_t *req, int usize, PStask_t *task) {
 
 	    if (!strcmp(info->key, "parricide")) {
 		if (!strcmp(info->value, "disabled")) {
-		    noParricide = 1;
+		    noParricide = true;
 		} else if (!strcmp(info->value, "enabled")) {
-		    noParricide = 0;
+		    noParricide = false;
 		}
 	    }
 	}
@@ -2195,7 +2100,7 @@ int fillSpawnTaskWithMpiexec(SpawnRequest_t *req, int usize, PStask_t *task) {
 	}
 
 	/* add separating colon */
-	if (i < totalSpawns-1) {
+	if (i < req->num - 1) {
 	    strvAdd(&args, ustrdup(":"));
 	}
     }
@@ -2209,7 +2114,7 @@ int fillSpawnTaskWithMpiexec(SpawnRequest_t *req, int usize, PStask_t *task) {
 }
 
 /**
- * @brief Parse the spawn request and start a new service process.
+ * @brief Parse the spawn request and start a new service process
  *
  * The service process will spawn itself again to start a spawner process
  * which will then spawn the requested executable. The first service process
@@ -2219,84 +2124,74 @@ int fillSpawnTaskWithMpiexec(SpawnRequest_t *req, int usize, PStask_t *task) {
  * therefore a separate KVS, separate PMI barriers and a separate
  * daisy chain to communicate.
  *
- * @param req          The spawn request from the MPI client.
+ * @param req The spawn request from the MPI client
  *
- * @param universeSize MPI universe size.
+ * @param universeSize MPI universe size
  *
- * @param serviceRank  The next valid rank for a new service process.
+ * @param serviceRank The next valid rank for a new service process
  *
- * @param totalProcs   Pointer where to store the total number of processes
- *                     to be spawned.
+ * @param totalProcs Pointer where to store the total number of
+ * processes to be spawned
  *
- * @return Returns 1 on success and 0 on error.
+ * @return Returns true on success and false on error
  */
-static int tryPMISpawn(SpawnRequest_t *req, int universeSize,
-		int serviceRank, int *totalProcs)
+static bool tryPMISpawn(SpawnRequest_t *req, int universeSize,
+			int serviceRank, int *totalProcs)
 {
-    PStask_t *myTask, *task;
+    PStask_t *task;
     int i, rc;
     char *cur, buffer[1024];
     strv_t env;
 
     if (!req) {
 	mlog("%s: no spawn request (THIS SHOULD NEVER HAPPEN!!!)\n", __func__);
-	return 0;
+	return false;
     }
 
-    if (!(myTask = getChildTask())) {
+    if (!cTask) {
 	mlog("%s: cannot find my child's task structure\n", __func__);
-	return 0;
+	return false;
     }
 
-#if 0
-    mlog("Child Task environment:\n");
-    for (i = 0; i < myTask->envSize; i++) {
-	if (myTask->environ[i] == NULL) {
-	    mlog("!!! NULL pointer in child task environment !!!\n");
-	    continue;
-	}
-	mlog(" %d: %s\n", i, myTask->environ[i]);
-    }
-#endif
-
-    if (!(task = PStask_new())) {
+    task = PStask_new();
+    if (!task) {
 	mlog("%s: cannot create a new task\n", __func__);
-	return 0;
+	return false;
     }
 
     /* copy data from my task */
-    task->uid = myTask->uid;
-    task->gid = myTask->gid;
-    task->aretty = myTask->aretty;
-    task->loggertid = myTask->loggertid;
-    task->ptid = myTask->tid;
+    task->uid = cTask->uid;
+    task->gid = cTask->gid;
+    task->aretty = cTask->aretty;
+    task->loggertid = cTask->loggertid;
+    task->ptid = cTask->tid;
     task->group = TG_KVS;
     task->rank = serviceRank -1;
-    task->winsize = myTask->winsize;
-    task->termios = myTask->termios;
+    task->winsize = cTask->winsize;
+    task->termios = cTask->termios;
 
     /* set work dir */
-    if (myTask->workingdir) {
-	task->workingdir = ustrdup(myTask->workingdir);
+    if (cTask->workingdir) {
+	task->workingdir = ustrdup(cTask->workingdir);
     } else {
 	task->workingdir = NULL;
     }
 
     /* build environment */
     strvInit(&env, NULL, 0);
-    for (i=0; myTask->environ[i]; i++) {
-	cur = myTask->environ[i];
+    for (i = 0; cTask->environ[i]; i++) {
+	cur = cTask->environ[i];
 
 	/* skip troublesome old env vars */
-	if (!(strncmp(cur, "__KVS_PROVIDER_TID=", 17))) continue;
-	if (!(strncmp(cur, "PMI_ENABLE_SOCKP=", 17))) continue;
-	if (!(strncmp(cur, "PMI_RANK=", 9))) continue;
-	if (!(strncmp(cur, "PMI_PORT=", 9))) continue;
-	if (!(strncmp(cur, "PMI_FD=", 7))) continue;
-	if (!(strncmp(cur, "PMI_KVS_TMP=", 12))) continue;
-	if (!(strncmp(cur, "OMP_NUM_THREADS=", 16))) continue;
+	if (!strncmp(cur, "__KVS_PROVIDER_TID=", 19)) continue;
+	if (!strncmp(cur, "PMI_ENABLE_SOCKP=", 17)) continue;
+	if (!strncmp(cur, "PMI_RANK=", 9)) continue;
+	if (!strncmp(cur, "PMI_PORT=", 9)) continue;
+	if (!strncmp(cur, "PMI_FD=", 7)) continue;
+	if (!strncmp(cur, "PMI_KVS_TMP=", 12)) continue;
+	if (!strncmp(cur, "OMP_NUM_THREADS=", 16)) continue;
 #if 0
-	if (path && !(strncmp(cur, "PATH", 4))) {
+	if (path && !strncmp(cur, "PATH", 4)) {
 	    setPath(cur, path, &task->environ[i++]);
 	    continue;
 	}
@@ -2309,24 +2204,23 @@ static int tryPMISpawn(SpawnRequest_t *req, int universeSize,
 
     /* calc totalProcs */
     *totalProcs = 0;
-    for (i = 0; i < req->totalSpawns; i++) {
+    for (i = 0; i < req->num; i++) {
 	*totalProcs += req->spawns[i].np;
     }
 
     /* interchangable function to fill actual spawn command into task */
-    rc = fillSpawnTaskFunction(req, universeSize, task);
+    rc = fillTaskFunction(req, universeSize, task);
 
     if (rc == -1) {
-	/* function to fill the spawn task tells us she is not responsible */
-	mlog("%s(r%i): Falling back to default PMI fill spawn task"
-		" function.\n", __func__, rank);
-	rc = defaultFillSpawnTaskFunction(req, universeSize, task);
+	/* function to fill the spawn task tells us not to be responsible */
+	mlog("%s(r%i): Falling back to default PMI fill spawn function.\n",
+	     __func__, rank);
+	rc = fillWithMpiexec(req, universeSize, task);
     }
 
     if (rc != 1) {
 	elog("Error with spawning processes.\n");
-	mlog("%s(r%i): Error in PMI fill spawn task function.\n", __func__,
-		rank);
+	mlog("%s(r%i): Error in PMI fill spawn function.\n", __func__, rank);
 	PStask_delete(task);
 	return 0;
     }
@@ -2335,12 +2229,12 @@ static int tryPMISpawn(SpawnRequest_t *req, int universeSize,
     strvInit(&env, task->environ, task->envSize);
 
     snprintf(buffer, sizeof(buffer), "PMI_KVS_TMP=pshost_%i_%i",
-		PSC_getMyTID(), kvs_next++);  /* setup new KVS name */
+	     PSC_getMyTID(), kvs_next++);  /* setup new KVS name */
     strvAdd(&env, ustrdup(buffer));
     if (debug) elog("%s(r%i): Set %s\n", __func__, rank, buffer);
 
     snprintf(buffer, sizeof(buffer), "__PMI_SPAWN_SERVICE_RANK=%i",
-		serviceRank - 2);
+	     serviceRank - 2);
     strvAdd(&env, ustrdup(buffer));
     if (debug) elog("%s(r%i): Set %s\n", __func__, rank, buffer);
 
@@ -2355,8 +2249,7 @@ static int tryPMISpawn(SpawnRequest_t *req, int universeSize,
     strvAdd(&env, ustrdup(buffer));
     if (debug) elog("%s(r%i): Set %s\n", __func__, rank, buffer);
 
-    snprintf(buffer, sizeof(buffer), "__PMI_NO_PARRICIDE=%i",
-	     task->noParricide);
+    snprintf(buffer, sizeof(buffer), "__PMI_NO_PARRICIDE=%i",task->noParricide);
     strvAdd(&env, ustrdup(buffer));
     if (debug) elog("%s(r%i): Set %s\n", __func__, rank, buffer);
 
@@ -2366,11 +2259,11 @@ static int tryPMISpawn(SpawnRequest_t *req, int universeSize,
 
     if (debug) {
 	elog("%s(r%i): Executing '", __func__, rank);
-	for (i=0; i<task->argc; i++) elog(" %s", task->argv[i]);
+	for (i = 0; i < task->argc; i++) elog(" %s", task->argv[i]);
 	elog("'\n");
     }
     mlog("%s(r%i): Executing '", __func__, rank);
-    for (i=0; i<task->argc; i++) mlog(" %s", task->argv[i]);
+    for (i = 0; i < task->argc; i++) mlog(" %s", task->argv[i]);
     mlog("'\n");
 
 #if 0
@@ -2388,213 +2281,45 @@ static int tryPMISpawn(SpawnRequest_t *req, int universeSize,
 }
 
 /**
- * @brief Spawn one or more processes.
+ * @brief Extract the next service rank and try to continue spawning
  *
- * Parses the spawn message and calls doSpawn().
+ * @param msg Logger message to handle
  *
- * In case of spawn_multi, all spawn messages are collected here
- * and doSpawn() is called after the collection is completed.
- *
- * @param msgBuffer Buffer which holds the PMI spawn message.
- *
- * @return Returns 0 for success, 1 on normal error 
- *          and 2 on critical error and 3 on fatal error.
- */
-int handleSpawnRequest(char *msgBuffer)
-{
-
-    char totSpawns[50], spawnsSoFar[50];
-    int totspawns, spawnssofar, ret;
-
-    static int s_total = 0;
-    static int s_count = 0;
-
-    if (!(getpmiv("totspawns", msgBuffer, totSpawns, sizeof(totSpawns)))) {
-	mlog("%s(r%i): invalid totspawns argument\n", __func__, rank);
-	return 1;
-    }
-    totspawns = atoi(totSpawns);
-
-    if (!(getpmiv("spawnssofar", msgBuffer, spawnsSoFar,
-		     sizeof(spawnsSoFar)))) {
-	mlog("%s(r%i): invalid spawnssofar argument\n", __func__, rank);
-	return 1;
-    }
-    spawnssofar = atoi(spawnsSoFar);
-
-    if (spawnssofar == 1) {
-	s_total = totspawns;
-
-	/* check if spawn buffer is already in use */
-	if (spawnBuffer) {
-	    mlog("%s(r%i): spawn buffer should be empty, another spawn in"
-		    " progress?\n", __func__, rank);
-	    return 2;
-	}
-
-	/* create spawn buffer */
-	if (!(spawnBuffer = initSpawnRequest(s_total))) {
-	    mlog("%s(r%i): out of memory\n", __func__, rank);
-	    return 3;
-	}
-    }
-    else if (s_total != totspawns) {
-	mlog("%s(r%i): totalspawns argument does not match previous"
-		" message\n",  __func__, rank);
-	return 2;
-    }
-
-    if (debug) {
-        elog("%s(r%i): Adding spawn %d/%d to buffer\n", __func__, rank,
-		spawnssofar, totspawns);
-    }
-
-    if (parseSpawnRequestMsg(msgBuffer, &(spawnBuffer->spawns[s_count]))) {
-	mlog("%s(r%i): failed to parse spawn message '%s'\n",  __func__, rank,
-		msgBuffer);
-	return 1;
-    }
-
-    if (spawnBuffer->spawns[s_count].np == 0) {
-	mlog("%s(r%i): spawn %d/%d has (np == 0) set, cancel spawning.\n",
-		__func__, rank, s_count, spawnBuffer->totalSpawns);
-	elog("Rank %i: Spawn %d/%d has (np == 0) set, cancel spawning.\n",
-		rank, s_count, spawnBuffer->totalSpawns);
-    }
-
-    s_count++;
-
-    if (s_count < s_total) {
-	/* another part of the multi spawn request is missing */
-	return 0;
-    }
-
-    /* collection complete */
-    s_total = 0;
-    s_count = 0;
-
-    /* do spawn */
-    ret = doSpawn(spawnBuffer);
-
-    freeSpawnRequest(spawnBuffer);
-    spawnBuffer = NULL;
-
-    if (ret) {
-	mlog("%s(r%i): doSpawn() returned with %d\n",  __func__, rank, ret);
-	return 1;
-    }
-
-    return 0;
-}
-
-/**
- * @brief Spawn one or more processes.
- *
- * This function is only a wrapper around handleSpawnRequest.
- * It unifies the error handling.
- *
- * @param msgBuffer Buffer which holds the PMI spawn message.
- *
- * @return Returns 0 for success and 1 on error.
- */
-static int p_Spawn(char *msgBuffer)
-{
-    int ret;
-
-    ret = handleSpawnRequest(msgBuffer);
-
-    switch(ret) {
-	case 1:
-	    PMI_send("cmd=spawn_result rc=-1\n");
-	    return 1;
-	case 2:
-	    PMI_send("cmd=spawn_result rc=-1\n");
-	    critErr();
-	    return 1;
-	case 3:
-	    PMI_send("cmd=spawn_result rc=-1\n");
-	    critErr();
-	    exit(1);
-    }
-
-    return 0;
-}
-
-/**
- * @brief Spawn one or more processes.
- *
- * We first need the next rank for the new service process to
- * start. Only the logger knows that. So we ask it and buffer
- * the spawn request to wait for an answer.
- *
- * @param req  Spawn request data structure.
- *
- * @return Returns 0 for success and 1 on error.
- */
-static int doSpawn(SpawnRequest_t *req) {
-
-    pendingSpawnRequest = copySpawnRequest(req);
-
-    mlog("%s(r%i): trying to do %d spawns\n", __func__, rank,
-	    pendingSpawnRequest->totalSpawns);
-
-    /* get next service rank from logger */
-    if (PSLog_write(loggertid, SERV_TID, NULL, 0) < 0) {
-	mlog("%s(r%i): Writing to logger failed.\n", __func__, rank);
-	return 1;
-    }
-
-    /* wait for logger to answer */
-    return 0;
-}
-
-/**
- * @brief Extract the next service rank and try to continue spawning.
- *
- * @param msg The message from the logger to handle.
- *
- * @return No return value.
+ * @return No return value
  */
 static void handleServiceInfo(PSLog_Msg_t *msg)
 {
-    char *ptr = msg->buf;
-    int serviceRank, totalProcs;
+    int totalProcs, serviceRank = *(int32_t *)msg->buf;
 
-    serviceRank = *(int32_t *) ptr;
-    //ptr += sizeof(int32_t);
-
-    if (!pendingSpawnRequest) {
-	mlog("%s(r%i): spawning failed, no spawn request set\n", __func__,
-		rank);
+    if (!pendSpawn) {
+	mlog("%s(r%i): spawn failed, no spawn request set\n", __func__, rank);
 	PMI_send("cmd=spawn_result rc=-1\n");
 	return;
     }
 
     /* try to do the spawn */
-    if (tryPMISpawn(pendingSpawnRequest, universe_size, serviceRank,
-		    &totalProcs)) {
-        /* reset tracking */
+    if (tryPMISpawn(pendSpawn, universe_size, serviceRank, &totalProcs)) {
+	/* reset tracking */
 	spawnChildSuccess = 0;
 	spawnChildCount = totalProcs;
-    }
-    else {
+    } else {
 	PMI_send("cmd=spawn_result rc=-1\n");
     }
 
     /* cleanup */
-    freeSpawnRequest(pendingSpawnRequest);
-    pendingSpawnRequest = NULL;
+    freeSpawnRequest(pendSpawn);
+    pendSpawn = NULL;
 }
 
 /**
- * @brief Handle a spawn result message from my children.
+ * @brief Handle a spawn result message from my children
  *
  * New spawned processes will send this success message when pmi_init() is
  * called in their forwarder.
  *
- * @param msg The message to handle.
+ * @param msg Message to handle
  *
- * @return No return value.
+ * @return No return value
  */
 static void handleChildSpawnRes(PSLog_Msg_t *msg, char *ptr)
 {
@@ -2602,7 +2327,7 @@ static void handleChildSpawnRes(PSLog_Msg_t *msg, char *ptr)
 
     spawnChildSuccess++;
 
-    if (!(getKVSInt32(&ptr))) {
+    if (!getKVSInt32(&ptr)) {
 	mlog("%s(r%i): spawning processes failed\n", __func__, rank);
 	elog("Rank %i: Spawning processes failed\n", rank);
 
@@ -2614,10 +2339,8 @@ static void handleChildSpawnRes(PSLog_Msg_t *msg, char *ptr)
     cRank = getKVSInt32(&ptr);
     cPmiRank = getKVSInt32(&ptr);
 
-    if (debug) {
-	mlog("%s(r%i): success from %s, rank '%i' pmiRank '%i'\n", __func__,
-	    rank, PSC_printTID(msg->sender), cRank, cPmiRank);
-    }
+    if (debug) mlog("%s(r%i): success from %s, rank %i pmiRank %i\n", __func__,
+		    rank, PSC_printTID(msg->sender), cRank, cPmiRank);
 
     if (spawnChildSuccess == spawnChildCount) {
 	spawnChildSuccess = spawnChildCount = 0;
@@ -2626,11 +2349,11 @@ static void handleChildSpawnRes(PSLog_Msg_t *msg, char *ptr)
 }
 
 /**
- * @brief Handle a KVS message.
+ * @brief Handle a KVS message
  *
- * @param msg The message to handle.
+ * @param msg Message to handle
  *
- * @return No return value.
+ * @return No return value
  */
 static void handleKVSMessage(PSLog_Msg_t *msg)
 {
@@ -2641,20 +2364,20 @@ static void handleKVSMessage(PSLog_Msg_t *msg)
     cmd = getKVSCmd(&ptr);
 
     if (debug_kvs) {
-	elog("%s(r%i): cmd '%s'\n", __func__, rank, PSKVScmdToString(cmd));
+	elog("%s(r%i): cmd %s\n", __func__, rank, PSKVScmdToString(cmd));
     }
 
     switch(cmd) {
 	case NOT_AVAILABLE:
 	    elog("%s(r%i): global KVS is not available, exiting\n",
-		    __func__, rank);
+		 __func__, rank);
 	    critErr();
 	    break;
 	case UPDATE_CACHE:
-	    handleKVScacheUpdate(msg, ptr, 0);
+	    handleKVScacheUpdate(msg, ptr, false);
 	    break;
 	case UPDATE_CACHE_FINISH:
-	    handleKVScacheUpdate(msg, ptr, 1);
+	    handleKVScacheUpdate(msg, ptr, true);
 	    break;
 	case DAISY_SUCC_READY:
 	    handleSuccReady(ptr);
@@ -2669,14 +2392,160 @@ static void handleKVSMessage(PSLog_Msg_t *msg)
 	    handleChildSpawnRes(msg, ptr);
 	    break;
 	default:
-	    elog("%s(r%i): got unknown KVS msg '%s:%i' from '%s'\n", __func__,
-		    rank, PSKVScmdToString(cmd), cmd,
-		    PSC_printTID(msg->header.sender));
+	    elog("%s(r%i): got unknown KVS msg %s:%i from %s\n", __func__, rank,
+		 PSKVScmdToString(cmd), cmd, PSC_printTID(msg->header.sender));
 	    critErr();
     }
 }
 
-int handlePSlogMessage(void *vmsg)
+/**
+ * @brief Extract the PMI command
+ *
+ * Parse a PMI message and return the command.
+ *
+ * @param msg Message to parse
+ *
+ * @param cmdbuf Buffer which receives the extracted command
+ *
+ * @param bufsize Size of @ref cmdbuf
+ *
+ * @return Returns true for success, false on errors
+ */
+static bool extractPMIcmd(char *msg, char *cmdbuf, int bufsize)
+{
+    const char delimiters[] =" \n";
+    char *msgCopy, *cmd, *saveptr;
+
+    if (!msg || strlen(msg) < 5) {
+	elog("%s(r%i): invalid PMI msg '%s' received\n", __func__, rank, msg);
+	return !critErr();
+    }
+
+    msgCopy = ustrdup(msg);
+    cmd = strtok_r(msgCopy, delimiters, &saveptr);
+
+    while (cmd) {
+	if (!strncmp(cmd, "cmd=", 4)) {
+	    cmd += 4;
+	    strncpy(cmdbuf, cmd, bufsize);
+	    ufree(msgCopy);
+	    return true;
+	}
+	if (!strncmp(cmd, "mcmd=", 5)) {
+	    cmd += 5;
+	    strncpy(cmdbuf, cmd, bufsize);
+	    ufree(msgCopy);
+	    return true;
+	}
+	cmd = strtok_r(NULL, delimiters, &saveptr);
+    }
+
+    ufree(msgCopy);
+    return false;
+}
+
+static const struct {
+    char *Name;
+    int (*fpFunc)(char *msg);
+}  pmi_commands[] = {
+    { "put",                p_Put },
+    { "get",                p_Get },
+    { "barrier_in",         p_Barrier_In },
+    { "init",               p_Init },
+    { "spawn",              p_Spawn },
+    { "get_universe_size",  p_Get_Universe_Size },
+    { "initack",            p_InitAck },
+    { "lookup_name",        p_Lookup_Name },
+    { "execution_problem",  p_Execution_Problem },
+    { "getbyidx",           p_GetByIdx },
+    { "publish_name",       p_Publish_Name },
+    { "unpublish_name",     p_Unpublish_Name },
+    { "destroy_kvs",        p_Destroy_Kvs },
+    { NULL,                 NULL }
+};
+
+static const struct {
+    char *Name;
+    int (*fpFunc)(void);
+} pmi_short_commands[] = {
+    { "get_maxes",       p_Get_Maxes },
+    { "get_appnum",      p_Get_Appnum },
+    { "finalize",        p_Finalize },
+    { "get_my_kvsname",  p_Get_My_Kvsname },
+    { "get_ranks2hosts", p_Get_Rank2Hosts },
+    { "create_kvs",      p_Create_Kvs },
+    { NULL,              NULL }
+};
+
+int handlePMIclientMsg(char *msg)
+{
+    int i;
+    char cmd[PMI_VALLEN_MAX];
+    char reply[PMIU_MAXLINE];
+
+    if (!initialized) {
+	elog("%s(r%i): you must call pmi_init first, msg '%s'\n", __func__,
+	     rank, msg);
+	return critErr();
+    }
+
+    if (!msg) {
+	elog("%s(r%i): invalid PMI msg\n", __func__, rank);
+	return critErr();
+    }
+
+    if (!extractPMIcmd(msg, cmd, sizeof(cmd)) || strlen(cmd) <2) {
+	elog("%s(r%i): invalid PMI cmd received, msg was '%s'\n", __func__,
+	     rank, msg);
+	return critErr();
+    }
+
+    if (debug) elog("%s(r%i): got %s\n", __func__, rank, msg);
+
+    /* find PMI cmd */
+    for (i = 0; pmi_commands[i].Name; i++) {
+	if (!strcmp(cmd, pmi_commands[i].Name)) {
+	    return pmi_commands[i].fpFunc(msg);
+	}
+    }
+
+    /* find short PMI cmd */
+    for (i = 0; pmi_short_commands[i].Name; i++) {
+	if (!strcmp(cmd, pmi_short_commands[i].Name)) {
+	    return pmi_short_commands[i].fpFunc();
+	}
+    }
+
+    /* cmd not found */
+    elog("%s(r%i): unsupported PMI cmd received '%s'\n", __func__, rank, cmd);
+
+    snprintf(reply, sizeof(reply), "cmd=%s rc=%i info=not_supported_cmd\n",
+	     cmd, PMI_ERROR);
+    PMI_send(reply);
+
+    return critErr();
+}
+
+void handleServiceExit(PSLog_Msg_t *msg)
+{
+    if (kvsProvSock == -1) return;
+
+    /* closing of the fd will trigger the kvsprovider to exit */
+    close(kvsProvSock);
+    kvsProvSock = -1;
+}
+
+/**
+ * @brief Handle a KVS message from logger
+ *
+ * Handle the KVS message @a vmsg. The message is received from the
+ * job's logger within a pslog message.
+ *
+ * @param vmsg KVS message to handle in a pslog container
+ *
+ * @return Always returns 0
+ */
+static int handlePSlogMessage(void *vmsg)
 {
     PSLog_Msg_t *msg = vmsg;
 
@@ -2691,9 +2560,34 @@ int handlePSlogMessage(void *vmsg)
 	    handleServiceExit(msg);
 	    break;
 	default:
-	    elog("%s(r%i): got unexpected PSLog message '%s'\n", __func__, rank,
-		   PSLog_printMsgType(msg->type));
+	    elog("%s(r%i): got unexpected PSLog message %s\n", __func__, rank,
+		 PSLog_printMsgType(msg->type));
     }
     return 0;
 }
-/* vim: set ts=8 sw=4 tw=0 sts=4 noet :*/
+
+void psPmiSetFillSpawnTaskFunction(fillerFunc_t spawnFunc)
+{
+    mdbg(PSPMI_LOG_VERBOSE, "Set specific PMI fill spawn task function\n");
+    fillTaskFunction = spawnFunc;
+}
+
+void psPmiResetFillSpawnTaskFunction(void)
+{
+    mdbg(PSPMI_LOG_VERBOSE, "Reset PMI fill spawn task function\n");
+    fillTaskFunction = fillWithMpiexec;
+}
+
+void initClient(void)
+{
+    PSIDhook_add(PSIDHOOK_FRWRD_KVS, handlePSlogMessage);
+    PSIDhook_add(PSIDHOOK_FRWRD_SPAWNRES, handleSpawnRes);
+    PSIDhook_add(PSIDHOOK_FRWRD_CC_ERROR, handleCCError);
+}
+
+void finalizeClient(void)
+{
+    PSIDhook_del(PSIDHOOK_FRWRD_KVS, handlePSlogMessage);
+    PSIDhook_del(PSIDHOOK_FRWRD_SPAWNRES, handleSpawnRes);
+    PSIDhook_del(PSIDHOOK_FRWRD_CC_ERROR, handleCCError);
+}

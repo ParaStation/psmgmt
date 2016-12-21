@@ -7,26 +7,13 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-/**
- * $Id$
- *
- * \author
- * Michael Rauh <rauh@par-tec.com>
- *
- */
 
 #ifndef __PS_PMI_FORWARDER
 #define __PS_PMI_FORWARDER
 
 #include "pstask.h"
 
-/** Connection type of pmi */
-typedef enum {
-    PMI_DISABLED = 0,
-    PMI_OVER_TCP,
-    PMI_OVER_UNIX,
-    PMI_FAILED,
-} PMItype_t;
+#include "pmitypes.h"
 
 /**
  * @brief Set the pmi connection information.
@@ -40,41 +27,22 @@ typedef enum {
 void setConnectionInfo(PMItype_t type, int sock);
 
 /**
- * @brief Init the pmi interface.
+ * @brief Initialize the forwarder module
  *
- * Init the pmi interface and start listening for new connection from
- * the mpi client.
+ * Initialize the forwarder module of the pspmi plugin.
  *
- * @param data Pointer to the task structure of the child.
- *
- * @return Returns 0 on success and -1 on error.
+ * @return No return value
  */
-int setupPMIsockets(void *data);
+void initForwarder(void);
 
 /**
- * @brief Release the mpi client.
+ * @brief Finalize the forwarder module
  *
- * @param data When this flag is set to 1 pmi_finalize() will be called.
+ * Finalize the forwarder module the pspmi plugin.
  *
- * @return Always returns 0.
+ * @return No return value
  */
-int releasePMIClient(void *data);
+void finalizeForwarder(void);
 
-/**
- * @brief Get the pmi status.
- *
- * @param data Unsed parameter.
- *
- * @return Returns the status of the pmi connection.
- */
-int getClientStatus(void *data);
 
-/**
- * @brief Get the task structure of the PMI client.
- *
- * @return Returns a pointer to the requested task structure
- * or NULL on error.
- */
-PStask_t *getChildTask(void);
-
-#endif
+#endif  /* __PS_PMI_FORWARDER */
