@@ -81,7 +81,7 @@ static int fillCmdForSingleSpawn(SpawnRequest_t *req, int usize,
     SingleSpawn_t *spawn;
     KVP_t *info;
 
-    if (req->totalSpawns != 1) {
+    if (req->num != 1) {
 	return 0;
     }
 
@@ -177,7 +177,7 @@ static int fillCmdForMultiSpawn(SpawnRequest_t *req, int usize,
 
     SingleSpawn_t *spawn;
 
-    totalSpawns = req->totalSpawns;
+    totalSpawns = req->num;
 
     /* create multi-prog file */
     sprintf(filebuf, "/tmp/psslurm-spawn.%d.XXXXXX", getpid());
@@ -279,7 +279,7 @@ int fillSpawnTaskWithSrun(SpawnRequest_t *req, int usize, PStask_t *task) {
 	return -1;
     }
 
-    totalSpawns = req->totalSpawns;
+    totalSpawns = req->num;
 
     /* *** build environment *** */
     envInit(&newenv);
