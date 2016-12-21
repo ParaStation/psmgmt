@@ -7,7 +7,6 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-
 #include <string.h>
 
 #include "pluginmalloc.h"
@@ -43,11 +42,14 @@ bool psAccountGetDataByJob(pid_t jobscript, AccountDataExt_t *accData)
 
 int psAccountSignalChildren(pid_t mypid, pid_t child, pid_t pgroup, int sig)
 {
+    mdbg(PSACC_LOG_SIGNAL, "%s(mypid %d child %d pgroup %d sig %d)\n", __func__,
+	 mypid, child, pgroup, sig);
     return signalChildren(mypid, child, pgroup, sig);
 }
 
 int psAccountSignalSession(pid_t session, int sig)
 {
+    mdbg(PSACC_LOG_SIGNAL, "%s(session %d sig %d)\n", __func__, session, sig);
     return signalSession(session, sig);
 }
 
@@ -67,7 +69,9 @@ void psAccountGetSessionInfos(int *count, char *buf, size_t bufsize,
 
 void psAccountFindDaemonProcs(uid_t uid, bool kill, bool warn)
 {
-    findDaemonProcesses(uid, kill, warn);
+    mdbg(PSACC_LOG_SIGNAL, "%s(uid %d kill %d warn %d)\n", __func__,
+	 uid, kill, warn);
+    findDaemonProcs(uid, kill, warn);
 }
 
 bool psAccountReadProcStat(pid_t pid, ProcStat_t *pS)

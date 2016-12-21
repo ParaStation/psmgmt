@@ -7,7 +7,6 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-
 #ifndef __PS_ACCOUNT_LOG
 #define __PS_ACCOUNT_LOG
 
@@ -33,6 +32,7 @@ typedef enum {
     PSACC_LOG_COLLECT       = 0x000200,	/**< client collect */
     PSACC_LOG_AGGREGATE     = 0x000400, /**< aggregated data */
     PSACC_LOG_ACC_SWITCH    = 0x000800, /**< enable/disable acct by pspmi */
+    PSACC_LOG_SIGNAL        = 0x001000, /**< signal delivery */
 } PSAccount_log_types_t;
 
 /**

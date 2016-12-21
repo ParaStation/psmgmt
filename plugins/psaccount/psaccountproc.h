@@ -7,7 +7,6 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-
 #ifndef __PS_ACCOUNT_PROC
 #define __PS_ACCOUNT_PROC
 
@@ -197,7 +196,7 @@ int signalSession(pid_t session, int sig);
  *
  * @return No return value
  */
-void findDaemonProcesses(uid_t uid, bool kill, bool warn);
+void findDaemonProcs(uid_t uid, bool kill, bool warn);
 
 /**
  * @brief Read selected information from /proc/<pid>/stat

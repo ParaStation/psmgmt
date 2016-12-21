@@ -7,7 +7,6 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
@@ -54,6 +53,9 @@ typedef struct {
  */
 static LIST_HEAD(procFreeList);
 
+/** List of all known processes cached from /proc */
+static LIST_HEAD(procList);
+
 /** List of chunks of proc snapshot structures */
 static LIST_HEAD(chunkList);
 
@@ -92,7 +94,7 @@ static bool incFreeList(void)
     }
 
     availProcs += PROC_CHUNK;
-    mdbg(PSACC_LOG_PROC, "%s: now used %d.\n", __func__, availProcs);
+    mdbg(PSACC_LOG_PROC, "%s: new total %d\n", __func__, availProcs);
 
     return 1;
 }
@@ -203,7 +205,7 @@ static void freeChunk(proc_chunk_t *chunk)
     list_del(&chunk->next);
     free(chunk);
     availProcs -= PROC_CHUNK;
-    mdbg(PSACC_LOG_PROC, "%s: now used %d.\n", __func__, availProcs);
+    mdbg(PSACC_LOG_PROC, "%s: new total %d\n", __func__, availProcs);
 }
 
 static bool gcRequired(void)
@@ -261,8 +263,6 @@ static int clearMem(void *dummy)
 #define PROC_CPU_INFO	"/proc/cpuinfo"
 #define SYS_CPU_FREQ	"/sys/devices/system/cpu/cpu%d/cpufreq/cpuinfo_cur_freq"
 
-static LIST_HEAD(procList);
-
 static int *cpuFreq = NULL;
 
 static int cpuCount = 0;
@@ -273,15 +273,15 @@ static int getCPUCount(void)
 {
     int count = 0;
     char buf[256];
-    FILE *fd;
+    FILE *fd = fopen(PROC_CPU_INFO, "r");
 
-    if (!(fd = fopen(PROC_CPU_INFO, "r"))) {
+    if (!fd) {
 	mlog("%s: open '%s' failed\n", __func__, PROC_CPU_INFO);
 	return 0;
     }
 
-    while ((fgets(buf, sizeof(buf), fd))) {
-	if (!(strncmp(buf, "processor", 9))) count++;
+    while (fgets(buf, sizeof(buf), fd)) {
+	if (!strncmp(buf, "processor", 9)) count++;
     }
     fclose(fd);
 
@@ -290,7 +290,6 @@ static int getCPUCount(void)
 
 static void initCpuFreq(void)
 {
-    FILE *fd;
     char buf[256], *tmp, *sfreq;
     struct stat sbuf;
     int freq, i;
@@ -299,16 +298,16 @@ static void initCpuFreq(void)
 
     snprintf(buf, sizeof(buf), SYS_CPU_FREQ, 0);
 
-    if ((stat(buf, &sbuf)) == -1) {
-	if (!(fd = fopen(PROC_CPU_INFO, "r"))) {
+    if (stat(buf, &sbuf) == -1) {
+	FILE *fd = fopen(PROC_CPU_INFO, "r");
+	if (!fd) {
 	    cpuCount = 0;
 	    ufree(cpuFreq);
 	    return;
 	}
 
-	while ((fgets(buf, sizeof(buf), fd))) {
-	    if (!(strncmp(buf, "cpu MHz", 7)) ||
-		!(strncmp(buf, "cpu GHz", 7))) {
+	while (fgets(buf, sizeof(buf), fd)) {
+	    if (!strncmp(buf, "cpu MHz", 7) || !strncmp(buf, "cpu GHz", 7)) {
 		break;
 	    }
 	}
@@ -324,7 +323,7 @@ static void initCpuFreq(void)
 	i = strlen(sfreq);
 	sfreq[i-2] = '\0';
 
-	if ((sscanf(sfreq, "%d", &freq)) != 1) {
+	if (sscanf(sfreq, "%d", &freq) != 1) {
 	    cpuCount = 0;
 	    ufree(cpuFreq);
 	    fclose(fd);
@@ -344,19 +343,19 @@ static void initCpuFreq(void)
 
 static void updateCpuFreq(void)
 {
-    FILE *fd;
     int i;
     char buf[256];
 
     for (i=0; i<cpuCount; i++) {
 	snprintf(buf, sizeof(buf), SYS_CPU_FREQ, i);
+	FILE *fd = fopen(buf, "r");
 
-	if (!(fd = fopen(buf, "r"))) {
+	if (!fd) {
 	    mwarn(errno, "%s: fopen(%s) failed : ", __func__, buf);
 	    continue;
 	}
 
-	if ((fscanf(fd, "%d", &cpuFreq[i])) != 1) {
+	if (fscanf(fd, "%d", &cpuFreq[i]) != 1) {
 	    mwarn(errno, "%s: fscanf(%s) failed : ", __func__, buf);
 	}
 
@@ -379,9 +378,9 @@ static void clearCpuFreq(void)
 
 ProcSnapshot_t *findProcSnapshot(pid_t pid)
 {
-    list_t *pos;
-    list_for_each(pos, &procList) {
-	ProcSnapshot_t *proc = list_entry(pos, ProcSnapshot_t, next);
+    list_t *p;
+    list_for_each(p, &procList) {
+	ProcSnapshot_t *proc = list_entry(p, ProcSnapshot_t, next);
 	if (proc->pid == pid) return proc;
     }
 
@@ -401,10 +400,9 @@ ProcSnapshot_t *findProcSnapshot(pid_t pid)
  */
 static void doKill(pid_t child, pid_t pgroup, int sig)
 {
-    /*
-    mlog("%s: killing child '%i' pgroup '%i' sig '%i'\n", __func__, child,
-	    pgroup, sig);
-    */
+    mdbg(PSACC_LOG_SIGNAL, "%s(child %d pgroup %d sig %d)\n", __func__,
+	 child, pgroup, sig);
+
     if (pgroup > 0) killpg(pgroup, sig);
     kill(child, sig);
 }
@@ -412,13 +410,13 @@ static void doKill(pid_t child, pid_t pgroup, int sig)
 int signalChildren(pid_t mypid, pid_t child, pid_t pgrp, int sig)
 {
     int sendCount = 0;
-    list_t *pos;
+    list_t *p;
 
     /* never send signal to myself */
     if (child == mypid) return 0;
 
-    list_for_each(pos, &procList) {
-	ProcSnapshot_t *childProc = list_entry(pos, ProcSnapshot_t, next);
+    list_for_each(p, &procList) {
+	ProcSnapshot_t *childProc = list_entry(p, ProcSnapshot_t, next);
 	int myPgrp = (pgrp > 0) ? childProc->pgrp : pgrp;
 	if (childProc->ppid == child) {
 	    sendCount += signalChildren(mypid, childProc->pid, myPgrp, sig);
@@ -434,7 +432,7 @@ int signalSession(pid_t session, int sig)
 {
     pid_t mypid = getpid();
     int sendCount = 0;
-    list_t *pos;
+    list_t *p;
 
     /* don't kill zombies */
     if (session < 1) return 0;
@@ -442,8 +440,8 @@ int signalSession(pid_t session, int sig)
     /* we need up2date information */
     updateProcSnapshot();
 
-    list_for_each(pos, &procList) {
-	ProcSnapshot_t *childProc = list_entry(pos, ProcSnapshot_t, next);
+    list_for_each(p, &procList) {
+	ProcSnapshot_t *childProc = list_entry(p, ProcSnapshot_t, next);
 	pid_t child = childProc->pid;
 
 	if (childProc->session == session) {
@@ -456,19 +454,19 @@ int signalSession(pid_t session, int sig)
     return sendCount;
 }
 
-void findDaemonProcesses(uid_t uid, bool kill, bool warn)
+void findDaemonProcs(uid_t uid, bool kill, bool warn)
 {
     pid_t mypid = getpid();
-    list_t *pos;
+    list_t *p;
 
     /* we need up2date information */
     updateProcSnapshot();
 
-    list_for_each(pos, &procList) {
-	ProcSnapshot_t *childProc = list_entry(pos, ProcSnapshot_t, next);
+    list_for_each(p, &procList) {
+	ProcSnapshot_t *childProc = list_entry(p, ProcSnapshot_t, next);
 
 	if (childProc->uid == uid && childProc->ppid == 1) {
-	    if (warn) mlog("found %sdaemon process: pid '%i' uid '%i'\n",
+	    if (warn) mlog("found %sdaemon process: pid %i uid %i\n",
 			   kill ? "and kill " : "", childProc->pid, uid);
 	    if (kill) signalChildren(mypid, childProc->pid,
 				     childProc->pgrp, SIGKILL);
@@ -484,14 +482,12 @@ static bool isDescendantSnap(pid_t parent, pid_t child)
 
     procChild = findProcSnapshot(child);
     if (!procChild) {
-	//mlog("%s: child %i  not found in snapshot\n", __func__, child);
+	mdbg(PSACC_LOG_PROC, "%s: child %i not found\n", __func__, child);
 	return false;
     }
 
     if (procChild->ppid == parent) return true;
 
-    //mlog("%s: child(%i)->parent %i not parent %i\n", __func__,
-    //		procChild->pid, procChild->ppid, parent);
     return isDescendantSnap(parent, procChild->ppid);
 }
 
@@ -563,11 +559,9 @@ bool readProcIO(pid_t pid, ProcIO_t *io)
 	return false;
     }
 
-    /*
-    mlog("%s: io stat: rChar '%zu' wChar '%zu' read_byes '%zu' writeBytes "
-	    "'%zu'\n", __func__, io->rChar, io->wChar, io->readBytes,
-	    io->writeBytes);
-    */
+    mdbg(PSACC_LOG_PROC, "%s: io stat: diskRead %zu diskWrite %zu readBytes %zu"
+	 " writeBytes %zu\n", __func__, io->diskRead, io->diskWrite,
+	 io->readBytes, io->writeBytes);
     fclose(fd);
     return true;
 }
@@ -671,9 +665,9 @@ static ProcSnapshot_t *addProc(pid_t pid, ProcStat_t *pS)
  */
 static void clearAllProcSnapshots(void)
 {
-    list_t *pos, *tmp;
-    list_for_each_safe(pos, tmp, &procList) {
-	ProcSnapshot_t *proc = list_entry(pos, ProcSnapshot_t, next);
+    list_t *p, *tmp;
+    list_for_each_safe(p, tmp, &procList) {
+	ProcSnapshot_t *proc = list_entry(p, ProcSnapshot_t, next);
 	list_del(&proc->next);
 	putProc(proc);
     }
@@ -684,14 +678,14 @@ static void clearAllProcSnapshots(void)
 void getSessionInfo(int *count, char *buf, size_t size, int *userCount)
 {
     uid_t users[MAX_USER];
-    list_t *pos;
+    list_t *p;
 
     buf[0] = '\0';
     *count = 0;
     *userCount = 0;
 
-    list_for_each(pos, &procList) {
-	ProcSnapshot_t *proc = list_entry(pos, ProcSnapshot_t, next);
+    list_for_each(p, &procList) {
+	ProcSnapshot_t *proc = list_entry(p, ProcSnapshot_t, next);
 	char sessStr[50];
 	int i;
 
@@ -730,9 +724,9 @@ void getSessionInfo(int *count, char *buf, size_t size, int *userCount)
  */
 static void collectDescendantData(pid_t pid, ProcSnapshot_t *res)
 {
-    list_t *pos;
-    list_for_each(pos, &procList) {
-	ProcSnapshot_t *childProc = list_entry(pos, ProcSnapshot_t, next);
+    list_t *p;
+    list_for_each(p, &procList) {
+	ProcSnapshot_t *childProc = list_entry(p, ProcSnapshot_t, next);
 
 	if (childProc->ppid == pid) {
 	    res->mem += childProc->mem;
@@ -772,16 +766,15 @@ void getDescendantData(pid_t pid, ProcSnapshot_t *res)
 
 void updateProcSnapshot(void)
 {
-    DIR *dir;
+    DIR *dir = opendir("/proc/");
     struct dirent *dent;
-    pid_t pid = -1;
     ProcStat_t pS;
     bool ignoreRoot = getConfValueI(&config, "IGNORE_ROOT_PROCESSES");
 
     /* clear all previous proc entrys */
     clearAllProcSnapshots();
 
-    if (!(dir = opendir("/proc/"))) {
+    if (!dir) {
 	mlog("%s: open /proc failed\n", __func__);
 	return;
     }
@@ -789,10 +782,11 @@ void updateProcSnapshot(void)
     if (cpuGovEnabled) updateCpuFreq();
 
     rewinddir(dir);
-    while ((dent = readdir(dir)) != NULL) {
-	if ((pid = atoi(dent->d_name)) <= 0) {
-	    mdbg(PSACC_LOG_PROC, "%s: pid '%i' too small for d_name '%s'\n",
-		__func__, pid, dent->d_name);
+    while ((dent = readdir(dir))) {
+	pid_t pid = atoi(dent->d_name);
+	if (pid <= 0) {
+	    mdbg(PSACC_LOG_PROC, "%s: pid %i too small for d_name '%s'\n",
+		 __func__, pid, dent->d_name);
 	    continue;
 	}
 
