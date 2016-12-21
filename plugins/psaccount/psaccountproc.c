@@ -254,6 +254,7 @@ static int clearMem(void *dummy)
 	free(chunk);
     }
     availProcs = 0;
+    INIT_LIST_HEAD(&procList);
 
     return 0;
 }
