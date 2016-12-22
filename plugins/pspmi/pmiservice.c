@@ -7,31 +7,16 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-/**
- * $Id$
- *
- * \author
- * Michael Rauh <rauh@par-tec.com>
- * Stephan Krempel <krempel@par-tec.com>
- *
- */
 
-#include <stdio.h>
-#include <stdlib.h>
+#include <string.h>
 
 #include "pscommon.h"
-#include "pluginmalloc.h"
 #include "psprotocol.h"
-#include "psidtask.h"
 #include "psidforwarder.h"
-#include "psipartition.h"
 
-#include "pmiforwarder.h"
 #include "pmilog.h"
 
 #include "pmiservice.h"
-
-#define MPIEXEC_BINARY BINDIR "/mpiexec"
 
 /**
  * @brief Send environment
@@ -65,7 +50,7 @@ static int sendEnv(DDTypedBufferMsg_t *msg, char **env, size_t *len)
 
     msg->header.len = sizeof(msg->header) + sizeof(msg->type);
 
-    while (1) {
+    while (true) {
 	if (off) msg->type = PSP_SPAWN_ENVCNTD;
 
 	*len = PStask_encodeEnv(msg->buf, sizeof(msg->buf), env, &num, &off);
@@ -191,7 +176,7 @@ static int sendTask(DDTypedBufferMsg_t *msg, PStask_t *task)
     return 0;
 }
 
-static int sendSpawnMessage(PStask_t *task)
+bool sendSpawnMessage(PStask_t *task)
 {
     DDTypedBufferMsg_t msg;
     size_t len;
@@ -232,187 +217,9 @@ static int sendSpawnMessage(PStask_t *task)
 
     PStask_delete(task);
 
-    return 1;
+    return true;
 
  error:
     PStask_delete(task);
-    return 0;
-
-}
-
-#if 0
-/* Add a additional search path.
- *
- * @param oldPath Pointer to the original PATH variable.
- *
- * @param addPath Pointer to the path to add.
- *
- * @param env Pointer to the environment pointer.
- *
- * @return No return value.
- */
-static void setPath(char *oldPath, char *addPath, char **env)
-{
-    size_t len;
-
-    if (!oldPath || !addPath) {
-	elog("%s: invalid path\n", __func__);
-	return;
-    }
-
-    len = strlen(oldPath) + strlen(addPath) +2;
-    *env = umalloc(len);
-
-    snprintf(*env, len, "%s:%s", oldPath, addPath);
-}
-#endif
-
-int spawnService(int np, char *nps[], char **c_argvs[], int c_argcs[],
-		 char **c_envvs[], int c_envcs[], char *wdirs[], char *tpps[],
-		 char *nTypes[], char *paths[], int ts, int usize,
-		 int serviceRank, char *kvsTmp, bool noParricide)
-{
-    PStask_t *myTask, *task;
-    int envc = 0, argc = 0, i, j;
-    size_t maxargc, len;
-    char *next, buffer[1024];
-
-    if (!(myTask = getChildTask())) {
-	elog("%s: cannot find my child's task structure\n", __func__);
-	return 0;
-    }
-
-    if (!(task = PStask_new())) {
-	elog("%s: cannot create a new task\n", __func__);
-	return 0;
-    }
-
-    /* copy data from my task */
-    task->uid = myTask->uid;
-    task->gid = myTask->gid;
-    task->aretty = myTask->aretty;
-    task->loggertid = myTask->loggertid;
-    task->ptid = myTask->tid;
-    task->group = TG_KVS;
-    task->rank = serviceRank -1;
-    task->winsize = myTask->winsize;
-    task->termios = myTask->termios;
-    task->noParricide = noParricide;
-
-    /* set work dir */
-    if (myTask->workingdir) {
-	task->workingdir = ustrdup(myTask->workingdir);
-    } else {
-	task->workingdir = NULL;
-    }
-
-    /* calc max number of arguments to be passed to mpiexec */
-    maxargc = 3; /* "mpiexec -u <UNIVERSE_SIZE>" */
-    for (i=0; i<ts; i++) {
-	/* -np <NP> -d <WDIR> -p <PATH> --nodetype=<NODETYPE> --tpp=<TPP> \
-	   <BINARY> ... */
-	maxargc += c_argcs[i] + 9;
-    }
-    /* separating colons */
-    maxargc += ts-1;
-
-    /* build arguments */
-    snprintf(buffer, sizeof(buffer), "%d", usize);
-
-    task->argv = umalloc(maxargc * sizeof(char *));
-
-    task->argv[argc++] = ustrdup(MPIEXEC_BINARY);
-    task->argv[argc++] = ustrdup("-u");
-    task->argv[argc++] = ustrdup(buffer);
-
-    for (i=0; i<ts; i++) {
-	task->argv[argc++] = ustrdup("-np");
-	task->argv[argc++] = ustrdup(nps[i]);
-	if (wdirs[i]) {
-	    task->argv[argc++] = ustrdup("-d");
-	    task->argv[argc++] = ustrdup(wdirs[i]);
-	}
-	if (paths[i]) {
-	    task->argv[argc++] = ustrdup("-p");
-	    task->argv[argc++] = ustrdup(paths[i]);
-	}
-	if (tpps[i]) {
-	    len = strlen(tpps[i]) + 7;
-	    task->argv[argc] = umalloc(len * sizeof(char));
-	    snprintf(task->argv[argc++], len, "--tpp=%s", tpps[i]);
-	}
-	if (nTypes[i]) {
-	    len = strlen(nTypes[i]) + 12;
-	    task->argv[argc] = umalloc(len * sizeof(char));
-	    snprintf(task->argv[argc++], len, "--nodetype=%s", nTypes[i]);
-	}
-
-	for (j=0; j<c_argcs[i]; j++) {
-	    task->argv[argc++] = c_argvs[i][j];
-	}
-
-	/* add separating colon */
-	if (i<ts-1) task->argv[argc++] = ustrdup(":");
-    }
-
-    task->argv[argc] = NULL;
-    task->argc = argc;
-
-    /* build environment */
-    task->environ = umalloc((myTask->envSize + c_envcs[0] + 7  + 1)
-			    * sizeof(char *));
-    i=0;
-    for (envc=0; myTask->environ[envc]; envc++) {
-	next = myTask->environ[envc];
-
-	/* skip troublesome old env vars */
-	if (!(strncmp(next, "__KVS_PROVIDER_TID=", 17))) continue;
-	if (!(strncmp(next, "PMI_ENABLE_SOCKP=", 17))) continue;
-	if (!(strncmp(next, "PMI_RANK=", 9))) continue;
-	if (!(strncmp(next, "PMI_PORT=", 9))) continue;
-	if (!(strncmp(next, "PMI_FD=", 7))) continue;
-	if (!(strncmp(next, "PMI_KVS_TMP=", 12))) continue;
-	if (!(strncmp(next, "OMP_NUM_THREADS=", 16))) continue;
-#if 0
-	if (path && !(strncmp(next, "PATH", 4))) {
-	    setPath(next, path, &task->environ[i++]);
-	    continue;
-	}
-#endif
-
-	task->environ[i] = ustrdup(myTask->environ[envc]);
-	if (!myTask->environ[envc +1]) break;
-	i++;
-    }
-    envc = i;
-
-    for (i=0; i<c_envcs[0]; i++) {
-	task->environ[envc++] = ustrdup(c_envvs[0][i]);
-    }
-
-    /* add additional env vars */
-    task->environ[envc++] = ustrdup(kvsTmp);
-    snprintf(buffer, sizeof(buffer), "__PMI_SPAWN_SERVICE_RANK=%i",
-		serviceRank -2);
-    task->environ[envc++] = ustrdup(buffer);
-    snprintf(buffer, sizeof(buffer), "__PMI_SPAWN_PARENT=%i", PSC_getMyTID());
-    task->environ[envc++] = ustrdup(buffer);
-    task->environ[envc++] = ustrdup("SERVICE_KVS_PROVIDER=1");
-    task->environ[envc++] = ustrdup("PMI_SPAWNED=1");
-    snprintf(buffer, sizeof(buffer), "PMI_SIZE=%d", np);
-    task->environ[envc++] = ustrdup(buffer);
-
-    snprintf(buffer, sizeof(buffer), "__PMI_NO_PARRICIDE=%i", noParricide);
-    task->environ[envc++] = ustrdup(buffer);
-
-    task->environ[envc] = NULL;
-    task->envSize = envc;
-
-#if 0
-    elog("Executing:");
-    for (i=0; i<task->argc; i++) elog(" %s", task->argv[i]);
-    elog("\n");
-#endif
-
-    return sendSpawnMessage(task);
+    return false;
 }

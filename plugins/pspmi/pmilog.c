@@ -12,7 +12,6 @@
 
 #include "pmilog.h"
 
-
 logger_t *pmilogger = NULL;
 FILE *pmilogfile = NULL;
 
