@@ -117,7 +117,7 @@ static LIST_HEAD(pluginList);
  *
  * 115: added PSIDHOOK_JAIL_CHILD
  *
- * 115: added PSIDHOOK_PELOGUE_PREPARE
+ * 116: added PSIDHOOK_PELOGUE_PREPARE
  */
 static int pluginAPIVersion = 116;
 
