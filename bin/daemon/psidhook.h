@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2013-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2013-2017 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -123,17 +123,17 @@ typedef enum {
     PSIDHOOK_PELOGUE_PREPARE, /** Prepare argument vector and environment of a
 				prologue/epilogue script. Used by batch-system
 				plugins in order to provide the script the
-				expected aarguments and environment. Arg is
-				pointer to PElogue_Data_t */
+				expected arguments and environment. Arg is
+				pointer to PElogueChild_t */
     PSIDHOOK_PELOGUE_FINISH,  /** The result of a prologue/epilogue run
 				executed by the pelogue plugin can be inspected.
 				Used by the psslurm plugin. Arg is pointer to
-				PElogue_Data_t */
+				PElogueChild_t */
     PSIDHOOK_FRWRD_DSOCK,     /**< In forwarder's init() function, arg is a
-				 pointer to the daemon socket. */
+				pointer to the daemon socket. */
     PSIDHOOK_JAIL_CHILD,      /**< Jail child into cgroup, arg points to pid */
     PSIDHOOK_CLEARMEM,        /**< Release memory after forking before handling
-				 other tasks, e.g. becoming a forwarder.  */
+				other tasks, e.g. becoming a forwarder.  */
     PSIDHOOK_LAST,            /**< This has to be the last one */
 } PSIDhook_t;
 
