@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2012-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2012-2017 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -492,7 +492,7 @@ bool addToMsgBuf(DDTypedBufferMsg_t *msg, void *val, uint32_t size,
     }
 
     /* add data length if required */
-    if (type == PSDATA_STRING) {
+    if (type == PSDATA_STRING || type == PSDATA_DATA) {
 	uint32_t len = (byteOrder ? htonl(size) : size);
 	PSP_putTypedMsgBuf(msg, caller, "len", &len, sizeof(len));
     }
@@ -504,12 +504,19 @@ bool addToMsgBuf(DDTypedBufferMsg_t *msg, void *val, uint32_t size,
 
     switch (type) {
     case PSDATA_STRING:
+    case PSDATA_DATA:
 	break;
     case PSDATA_TIME:
 	if (byteOrder) *(uint64_t *)val = HTON64(*(uint64_t *)val);
 	break;
     case PSDATA_INT32:
 	if (byteOrder) *(int32_t *)val = htonl(*(int32_t *)val);
+	break;
+    case PSDATA_UINT16:
+	if (byteOrder) *(uint16_t *)val = htons(*(uint16_t *)val);
+	break;
+    case PSDATA_UINT32:
+	if (byteOrder) *(uint32_t *)val = htonl(*(uint32_t *)val);
 	break;
     default:
 	pluginlog("%s: unsupported type %d from %s\n", __func__, type, caller);

@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2012-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2012-2017 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -582,11 +582,23 @@ bool addToMsgBuf(DDTypedBufferMsg_t *msg, void *val, uint32_t size,
 #define addStringToMsgBuf(msg, str)					\
     addToMsgBuf(msg, str, PSP_strLen(str), PSDATA_STRING, __func__)
 
+#define addDataToMsgBuf(msg, data, len)			\
+    addToMsgBuf(msg, data, len, PSDATA_DATA, __func__)
+
 #define addTimeToMsgBuf(msg, time) { time_t _x = time;			\
 	addToMsgBuf(msg, &_x, sizeof(_x), PSDATA_TIME, __func__); }
 
 #define addInt32ToMsgBuf(msg, val) { int32_t _x = val;			\
 	addToMsgBuf(msg, &_x, sizeof(_x), PSDATA_INT32, __func__); }
+
+#define addUint8ToMsgBuf(msg, val) { uint8_t _x = val;			\
+	addToMsgBuf(msg, &_x, sizeof(_x), PSDATA_UINT8, __func__); }
+
+#define addUint16ToMsgBuf(msg, val) { uint16_t _x = val;		\
+	addToMsgBuf(msg, &_x, sizeof(_x), PSDATA_UINT16, __func__); }
+
+#define addUint32ToMsgBuf(msg, val) { uint32_t _x = val;		\
+	addToMsgBuf(msg, &_x, sizeof(_x), PSDATA_UINT32, __func__); }
 
 
 #endif  /* __PLUGIN_LIB_COMM */
