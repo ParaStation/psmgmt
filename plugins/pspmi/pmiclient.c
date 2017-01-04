@@ -7,7 +7,6 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -1014,7 +1013,7 @@ static int p_Init(char *msg)
     }
     pmi_init_client = true;
 
-    if (psAccountSwitchAccounting) psAccountSwitchAccounting(cTask->tid, true);
+    if (psAccountSwitchAccounting) psAccountSwitchAccounting(cTask->tid, false);
 
     /* tell provider that the MPI client was initialized */
     ptr = buffer;
