@@ -1,13 +1,12 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2017 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-
 #ifndef __PS_ACCOUNT_CLIENT
 #define __PS_ACCOUNT_CLIENT
 
@@ -153,9 +152,12 @@ void clearAllClients(void);
  * @brief Update client's accounting data
  *
  * Update all client's account data for a job. If job is NULL, all
- * clients will be updated.
+ * clients will be updated. From time to time (in fact after calling
+ * this function FORWARD_INTERVAL times) aggregated data is forwarded
+ * to the logger's node.
  *
- * @param job Job to identify the clients to update
+ * @param job Job to identify the clients to update or NULL for all
+ * clients
  *
  * @return No return value
  */

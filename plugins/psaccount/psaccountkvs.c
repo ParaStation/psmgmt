@@ -1,13 +1,12 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2012-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2012-2017 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-
 #include <string.h>
 
 #include "pluginlog.h"
@@ -66,22 +65,22 @@ char *show(char *key)
     }
 
     /* show current clients */
-    if (!(strcmp(key, "clients"))) {
+    if (!strcmp(key, "clients")) {
 	return listClients(buf, &bufSize, false);
     }
 
     /* show current clients in detail */
-    if (!(strcmp(key, "dclients"))) {
+    if (!strcmp(key, "dclients")) {
 	return listClients(buf, &bufSize, true);
     }
 
     /* show current jobs */
-    if (!(strcmp(key, "jobs"))) {
+    if (!strcmp(key, "jobs")) {
 	return listJobs(buf, &bufSize);
     }
 
     /* show current config */
-    if (!(strcmp(key, "config"))) {
+    if (!strcmp(key, "config")) {
 	return showConfig(buf, &bufSize);
     }
 
@@ -120,10 +119,10 @@ char *set(char *key, char *val)
 	    snprintf(line, sizeof(line), "\nsaved '%s = %s'\n", key, val);
 	    str2Buf(line, &buf, &bufSize);
 	}
-    } else if (!(strcmp(key, "memdebug"))) {
+    } else if (!strcmp(key, "memdebug")) {
 	if (memoryDebug) fclose(memoryDebug);
-
-	if ((memoryDebug = fopen(val, "w+"))) {
+	memoryDebug = fopen(val, "w+");
+	if (memoryDebug) {
 	    finalizePluginLogger();
 	    initPluginLogger(NULL, memoryDebug);
 	    maskPluginLogger(PLUGIN_LOG_MALLOC);
@@ -153,7 +152,7 @@ char *unset(char *key)
     /* search in config for given key */
     if (getConfValueC(&config, key)) {
 	unsetConfigEntry(&config, confDef, key);
-    } else if (!(strcmp(key, "memdebug"))) {
+    } else if (!strcmp(key, "memdebug")) {
 	if (memoryDebug) {
 	    finalizePluginLogger();
 	    fclose(memoryDebug);

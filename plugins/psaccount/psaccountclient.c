@@ -1,13 +1,12 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2017 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -45,9 +44,9 @@ static const char* clientType2Str(PS_Acct_job_types_t type)
 
 Client_t *findClientByTID(PStask_ID_t clientTID)
 {
-    list_t *pos;
-    list_for_each(pos, &clientList) {
-	Client_t *client = list_entry(pos, Client_t, next);
+    list_t *c;
+    list_for_each(c, &clientList) {
+	Client_t *client = list_entry(c, Client_t, next);
 	if (client->taskid == clientTID) return client;
     }
     return NULL;
@@ -55,9 +54,9 @@ Client_t *findClientByTID(PStask_ID_t clientTID)
 
 Client_t *findClientByPID(pid_t clientPID)
 {
-    list_t *pos;
-    list_for_each(pos, &clientList) {
-	Client_t *client = list_entry(pos, Client_t, next);
+    list_t *c;
+    list_for_each(c, &clientList) {
+	Client_t *client = list_entry(c, Client_t, next);
 	if (client->pid == clientPID) return client;
     }
     return NULL;
@@ -78,13 +77,13 @@ Client_t *findClientByPID(pid_t clientPID)
  */
 static Client_t *findJobscriptByLogger(PStask_ID_t logger)
 {
-    list_t *pos;
-    list_for_each(pos, &clientList) {
-	Client_t *client = list_entry(pos, Client_t, next);
+    list_t *c;
+    list_for_each(c, &clientList) {
+	Client_t *client = list_entry(c, Client_t, next);
 
 	if (client->type == ACC_CHILD_JOBSCRIPT) {
 	    /* check if the jobscript is a parent of logger */
-	    if ((isDescendant(client->pid, PSC_getPID(logger)))) {
+	    if (isDescendant(client->pid, PSC_getPID(logger))) {
 		client->logger = logger;
 		return client;
 	    } else {
@@ -100,9 +99,9 @@ static Client_t *findJobscriptByLogger(PStask_ID_t logger)
 
 Client_t *findJobscriptInClients(Job_t *job)
 {
-    list_t *pos;
-    list_for_each(pos, &clientList) {
-	Client_t *client = list_entry(pos, Client_t, next);
+    list_t *c;
+    list_for_each(c, &clientList) {
+	Client_t *client = list_entry(c, Client_t, next);
 
 	if (client->job == job && client->type == ACC_CHILD_PSIDCHILD) {
 	    Client_t *js = findJobscriptByLogger(client->logger);
@@ -471,10 +470,10 @@ void setAggData(PStask_ID_t tid, PStask_ID_t logger, AccountDataExt_t *data)
 {
     Client_t *client;
     bool found = false;
-    list_t *pos;
+    list_t *c;
 
-    list_for_each(pos, &clientList) {
-	client = list_entry(pos, Client_t, next);
+    list_for_each(c, &clientList) {
+	client = list_entry(c, Client_t, next);
 	if (client->taskid == tid &&  client->logger == logger) {
 	    found = true;
 	    break;
@@ -492,9 +491,9 @@ void setAggData(PStask_ID_t tid, PStask_ID_t logger, AccountDataExt_t *data)
 
 void finishAggData(PStask_ID_t tid, PStask_ID_t logger)
 {
-    list_t *pos;
-    list_for_each(pos, &clientList) {
-	Client_t *client = list_entry(pos, Client_t, next);
+    list_t *c;
+    list_for_each(c, &clientList) {
+	Client_t *client = list_entry(c, Client_t, next);
 	if (client->taskid == tid && client->logger == logger) {
 	    client->endTime = time(NULL);
 	    break;
@@ -504,14 +503,14 @@ void finishAggData(PStask_ID_t tid, PStask_ID_t logger)
 
 void getPidsByLogger(PStask_ID_t logger, pid_t **pids, uint32_t *count)
 {
-    list_t *pos;
+    list_t *c;
     uint32_t index = 0;
 
     *count = 0;
     *pids = NULL;
 
-    list_for_each(pos, &clientList) {
-	Client_t *client = list_entry(pos, Client_t, next);
+    list_for_each(c, &clientList) {
+	Client_t *client = list_entry(c, Client_t, next);
 	if (client->logger == logger && client->type == ACC_CHILD_PSIDCHILD) {
 	    (*count)++;
 	}
@@ -521,8 +520,8 @@ void getPidsByLogger(PStask_ID_t logger, pid_t **pids, uint32_t *count)
 
     *pids = umalloc(sizeof(pid_t) * *count);
 
-    list_for_each(pos, &clientList) {
-	Client_t *client = list_entry(pos, Client_t, next);
+    list_for_each(c, &clientList) {
+	Client_t *client = list_entry(c, Client_t, next);
 	if (client->logger == logger && client->type == ACC_CHILD_PSIDCHILD) {
 	    if (index == *count) break;
 	    (*pids)[index++] = client->pid;
@@ -534,15 +533,15 @@ PStask_ID_t getLoggerByClientPID(pid_t pid)
 {
     ProcStat_t pS;
     bool psOK = false;
-    list_t *pos;
+    list_t *c;
 
     if (list_empty(&clientList)) return -1;
 
     if (readProcStat(pid, &pS)) psOK = true;
 
     /* try to find the pid in the acc children */
-    list_for_each(pos, &clientList) {
-	Client_t *client = list_entry(pos, Client_t, next);
+    list_for_each(c, &clientList) {
+	Client_t *client = list_entry(c, Client_t, next);
 
 	/* try pid */
 	if (client->pid == pid) return client->logger;
@@ -561,8 +560,8 @@ PStask_ID_t getLoggerByClientPID(pid_t pid)
     }
 
     /* try all grand-children now */
-    list_for_each(pos, &clientList) {
-	Client_t *client = list_entry(pos, Client_t, next);
+    list_for_each(c, &clientList) {
+	Client_t *client = list_entry(c, Client_t, next);
 	if (isDescendant(client->pid, pid)) return client->logger;
     }
 
@@ -572,10 +571,10 @@ PStask_ID_t getLoggerByClientPID(pid_t pid)
 bool aggregateDataByLogger(PStask_ID_t logger, AccountDataExt_t *accData)
 {
     int res = false;
-    list_t *pos;
+    list_t *c;
 
-    list_for_each(pos, &clientList) {
-	Client_t *client = list_entry(pos, Client_t, next);
+    list_for_each(c, &clientList) {
+	Client_t *client = list_entry(c, Client_t, next);
 	if (client->logger == logger && client->type != ACC_CHILD_JOBSCRIPT) {
 	    if (client->type == ACC_CHILD_PSIDCHILD) {
 		addClientToAggData(client, accData);
@@ -635,18 +634,18 @@ bool deleteClient(PStask_ID_t tid)
 
 void deleteClientsByLogger(PStask_ID_t loggerTID)
 {
-    list_t *pos, *tmp;
-    list_for_each_safe(pos, tmp, &clientList) {
-	Client_t *client = list_entry(pos, Client_t, next);
+    list_t *c, *tmp;
+    list_for_each_safe(c, tmp, &clientList) {
+	Client_t *client = list_entry(c, Client_t, next);
 	if (client->logger == loggerTID) doDeleteClient(client);
     }
 }
 
 bool haveActiveClients(void)
 {
-    list_t *pos;
-    list_for_each(pos, &clientList) {
-	Client_t *client = list_entry(pos, Client_t, next);
+    list_t *c;
+    list_for_each(c, &clientList) {
+	Client_t *client = list_entry(c, Client_t, next);
 	if (client->doAccounting) return true;
     }
     return false;
@@ -654,21 +653,21 @@ bool haveActiveClients(void)
 
 void clearAllClients(void)
 {
-    list_t *pos, *tmp;
-    list_for_each_safe(pos, tmp, &clientList) {
-	Client_t *client = list_entry(pos, Client_t, next);
+    list_t *c, *tmp;
+    list_for_each_safe(c, tmp, &clientList) {
+	Client_t *client = list_entry(c, Client_t, next);
 	doDeleteClient(client);
     }
 }
 
 void cleanupClients(void)
 {
-    list_t *pos, *tmp;
+    list_t *c, *tmp;
     time_t now = time(NULL);
     int grace = getConfValueI(&config, "TIME_CLIENT_GRACE");
 
-    list_for_each_safe(pos, tmp, &clientList) {
-	Client_t *client = list_entry(pos, Client_t, next);
+    list_for_each_safe(c, tmp, &clientList) {
+	Client_t *client = list_entry(c, Client_t, next);
 
 	if (client->doAccounting || !client->endTime) continue;
 	if (findJobByLogger(client->logger)) continue;
@@ -685,12 +684,12 @@ void forwardAggData(void)
 {
     AccountDataExt_t aggData;
     PStask_ID_t loggerTIDs[MAX_JOBS_PER_NODE];
-    list_t *pos;
+    list_t *c;
     int i, numJobs = 0;
 
     /* extract uniq logger TIDs */
-    list_for_each(pos, &clientList) {
-	Client_t *client = list_entry(pos, Client_t, next);
+    list_for_each(c, &clientList) {
+	Client_t *client = list_entry(c, Client_t, next);
 	if (client->doAccounting) {
 	    for (i=0; i<numJobs; i++) {
 		if (loggerTIDs[i] == client->logger) break;
@@ -709,8 +708,8 @@ void forwardAggData(void)
 
 	/* aggreagate accounting data on a per logger basis */
 	memset(&aggData, 0, sizeof(AccountDataExt_t));
-	list_for_each(pos, &clientList) {
-	    Client_t *client = list_entry(pos, Client_t, next);
+	list_for_each(c, &clientList) {
+	    Client_t *client = list_entry(c, Client_t, next);
 	    if (client->logger == loggerTIDs[i] && client->doAccounting) {
 		addClientToAggData(client, &aggData);
 	    }
@@ -724,10 +723,10 @@ void forwardAggData(void)
 void updateClients(Job_t *job)
 {
     static int updateCount = 0;
-    list_t *pos;
+    list_t *c;
 
-    list_for_each(pos, &clientList) {
-	Client_t *client = list_entry(pos, Client_t, next);
+    list_for_each(c, &clientList) {
+	Client_t *client = list_entry(c, Client_t, next);
 	if (!client->doAccounting) continue;
 	if (!job || client->job == job) updateClntData(client);
     }
@@ -754,8 +753,8 @@ void switchClientUpdate(PStask_ID_t clientTID, bool enable)
 
 char *listClients(char *buf, size_t *bufSize, bool detailed)
 {
-    char line[160];
-    list_t *pos;
+    char l[160];
+    list_t *c;
 
     if (list_empty(&clientList)) {
 	return str2Buf("\nNo current clients.\n", &buf, bufSize);
@@ -763,58 +762,59 @@ char *listClients(char *buf, size_t *bufSize, bool detailed)
 
     str2Buf("\nclients:\n", &buf, bufSize);
 
-    list_for_each(pos, &clientList) {
-	Client_t *c = list_entry(pos, Client_t, next);
+    list_for_each(c, &clientList) {
+	Client_t *cl = list_entry(c, Client_t, next);
 
-	snprintf(line, sizeof(line), "taskID %s\n", PSC_printTID(c->taskid));
-	str2Buf(line, &buf, bufSize);
-
-	snprintf(line, sizeof(line), "rank %i\n", c->rank);
-	str2Buf(line, &buf, bufSize);
-
-	snprintf(line, sizeof(line), "logger %s\n", PSC_printTID(c->logger));
-	str2Buf(line, &buf, bufSize);
-
-	snprintf(line, sizeof(line), "account %i\n", c->doAccounting);
-	str2Buf(line, &buf, bufSize);
-
-	snprintf(line, sizeof(line), "type '%s'\n", clientType2Str(c->type));
-	str2Buf(line, &buf, bufSize);
-
-	snprintf(line, sizeof(line), "uid %i\n", c->uid);
-	str2Buf(line, &buf, bufSize);
-
-	snprintf(line, sizeof(line), "gid %i\n", c->gid);
-	str2Buf(line, &buf, bufSize);
-
-	snprintf(line, sizeof(line), "page size %zu\n", c->data.pageSize);
-	str2Buf(line, &buf, bufSize);
-
-	snprintf(line, sizeof(line), "start time %s", ctime(&c->startTime));
-	str2Buf(line, &buf, bufSize);
-
-	snprintf(line, sizeof(line), "end time %s",
-		 c->endTime ? ctime(&c->endTime) : "-\n");
-	str2Buf(line, &buf, bufSize);
+	snprintf(l, sizeof(l), "taskID %s\n", PSC_printTID(cl->taskid));
+	str2Buf(l, &buf, bufSize);
+	snprintf(l, sizeof(l), "rank %i\n", cl->rank);
+	str2Buf(l, &buf, bufSize);
+	snprintf(l, sizeof(l), "logger %s\n", PSC_printTID(cl->logger));
+	str2Buf(l, &buf, bufSize);
+	snprintf(l, sizeof(l), "account %i\n", cl->doAccounting);
+	str2Buf(l, &buf, bufSize);
+	snprintf(l, sizeof(l), "type '%s'\n", clientType2Str(cl->type));
+	str2Buf(l, &buf, bufSize);
+	snprintf(l, sizeof(l), "uid %i\n", cl->uid);
+	str2Buf(l, &buf, bufSize);
+	snprintf(l, sizeof(l), "gid %i\n", cl->gid);
+	str2Buf(l, &buf, bufSize);
+	snprintf(l, sizeof(l), "page size %zu\n", cl->data.pageSize);
+	str2Buf(l, &buf, bufSize);
+	snprintf(l, sizeof(l), "start time %s", ctime(&cl->startTime));
+	str2Buf(l, &buf, bufSize);
+	snprintf(l, sizeof(l), "end time %s",
+		 cl->endTime ? ctime(&cl->endTime) : "-\n");
+	str2Buf(l, &buf, bufSize);
 
 	if (detailed) {
-	    snprintf(line, sizeof(line), "max mem %zukB\n", c->data.maxRss);
-	    str2Buf(line, &buf, bufSize);
-
-	    snprintf(line, sizeof(line), "max vmem %zukB\n", c->data.maxVsize);
-	    str2Buf(line, &buf, bufSize);
-
-	    snprintf(line, sizeof(line), "cutime %zu\n", c->data.cutime);
-	    str2Buf(line, &buf, bufSize);
-
-	    snprintf(line, sizeof(line), "cstime %zu\n", c->data.cstime);
-	    str2Buf(line, &buf, bufSize);
-
-	    snprintf(line, sizeof(line), "max threads %zu\n",
-		     c->data.maxThreads);
-	    str2Buf(line, &buf, bufSize);
+	    snprintf(l, sizeof(l), "max mem %zukB\n", cl->data.maxRss);
+	    str2Buf(l, &buf, bufSize);
+	    snprintf(l, sizeof(l), "max vmem %zukB\n", cl->data.maxVsize);
+	    str2Buf(l, &buf, bufSize);
+	    snprintf(l, sizeof(l), "cutime %zu\n", cl->data.cutime);
+	    str2Buf(l, &buf, bufSize);
+	    snprintf(l, sizeof(l), "cstime %zu\n", cl->data.cstime);
+	    str2Buf(l, &buf, bufSize);
+	    snprintf(l, sizeof(l), "CPU time %zu\n", cl->data.totCputime);
+	    str2Buf(l, &buf, bufSize);
+	    snprintf(l, sizeof(l), "max threads %zu\n", cl->data.maxThreads);
+	    str2Buf(l, &buf, bufSize);
+	    snprintf(l, sizeof(l), "numTask %u\n", cl->data.numTasks);
+	    str2Buf(l, &buf, bufSize);
+	    snprintf(l, sizeof(l), "Vsize %zu\n", cl->data.avgVsizeTotal);
+	    str2Buf(l, &buf, bufSize);
+	    snprintf(l, sizeof(l), "#Vsize %zu\n",cl->data.avgVsizeCount);
+	    str2Buf(l, &buf, bufSize);
+	    snprintf(l, sizeof(l), "Rss %zu\n", cl->data.avgRssTotal);
+	    str2Buf(l, &buf, bufSize);
+	    snprintf(l, sizeof(l), "#Rss %zu\n", cl->data.avgRssCount);
+	    str2Buf(l, &buf, bufSize);
+	    snprintf(l, sizeof(l), "Threads %zu\n", cl->data.avgThreadsTotal);
+	    str2Buf(l, &buf, bufSize);
+	    snprintf(l, sizeof(l), "#Threads %zu\n", cl->data.avgThreadsCount);
+	    str2Buf(l, &buf, bufSize);
 	}
-
 	str2Buf("-\n", &buf, bufSize);
     }
 

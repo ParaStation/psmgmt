@@ -1,13 +1,12 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2017 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-
 #include <stddef.h>
 #include <time.h>
 
@@ -78,14 +77,11 @@ static void sendAggDataFinish(PStask_ID_t logger);
  *
  * @param msg The message to handle.
  *
- * @param remote If set to 1 the msg has been forwarded from an
- * other node. If set to 0 the msg is from our local node.
- *
  * @return No return value.
  */
 static void handleAccountEnd(DDTypedBufferMsg_t *msg)
 {
-    PStask_ID_t logger, childTID;
+    PStask_ID_t sender = msg->header.sender, logger, childTID;
     PSnodes_ID_t childNode;
     Client_t *client;
     Job_t *job;
@@ -93,12 +89,15 @@ static void handleAccountEnd(DDTypedBufferMsg_t *msg)
     uint64_t avgRss, avgVsize, avgThrds, dummy;
     size_t used = 0;
 
+    mdbg(PSACC_LOG_ACC_MSG, "%s(%s)\n", __func__, PSC_printTID(sender));
+
     PSP_getTypedMsgBuf(msg, &used, __func__, "logger", &logger, sizeof(logger));
 
     /* end msg from logger */
-    if (msg->header.sender == logger) {
+    if (sender == logger) {
 	/* find the job */
-	if (!(job = findJobByLogger(logger))) {
+	job = findJobByLogger(logger);
+	if (!job) {
 	    mlog("%s: job for logger %s not found\n", __func__,
 		 PSC_printTID(logger));
 	} else {
@@ -109,14 +108,6 @@ static void handleAccountEnd(DDTypedBufferMsg_t *msg)
 		mdbg(PSACC_LOG_VERBOSE, "%s: logger %s exited, but %i"
 		     " children are still alive\n", __func__,
 		     PSC_printTID(logger), job->nrOfChilds - job->childsExit);
-	    } else {
-		/* psmom does not need the job, we can delete it */
-		/* but psslurm does need it! */ // @todo check this with psmom
-		/*
-		if (!job->jobscript) {
-		    deleteJob(job->logger);
-		}
-		*/
 	    }
 	}
 	return;
@@ -131,18 +122,22 @@ static void handleAccountEnd(DDTypedBufferMsg_t *msg)
     PSP_getTypedMsgBuf(msg, &used, __func__, "pid", &child, sizeof(child));
 
     /* calculate childs TaskID */
-    childNode = PSC_getID(msg->header.sender);
+    childNode = PSC_getID(sender);
     childTID = PSC_getTID(childNode, child);
 
     /* find the child exiting */
-    if (!(client = findClientByTID(childTID))) {
-	if (!(findHist(logger))) {
+    client = findClientByTID(childTID);
+    if (!client) {
+	if (!findHist(logger)) {
 	    mlog("%s: end msg for unknown client %s from %s\n", __func__,
-		 PSC_printTID(childTID), PSC_printTID(msg->header.sender));
+		 PSC_printTID(childTID), PSC_printTID(sender));
 	}
 	return;
     }
-
+    if (client->logger != logger) {
+	mlog("%s: logger mismatch (%s/", __func__, PSC_printTID(logger));
+	mlog("%s)\n", PSC_printTID(client->logger));
+    }
     /* stop accounting of dead child */
     client->doAccounting = false;
     client->endTime = time(NULL);
@@ -201,7 +196,8 @@ static void handleAccountEnd(DDTypedBufferMsg_t *msg)
 	 getAccountMsgType(msg->type));
 
     /* find the job */
-    if (!(job = findJobByLogger(client->logger))) {
+    job = findJobByLogger(client->logger);
+    if (!job) {
 	mlog("%s: job for child %i not found\n", __func__, child);
     } else {
 	job->childsExit++;
@@ -335,8 +331,7 @@ static void handlePSMsg(DDTypedBufferMsg_t *msg)
 		     PSC_printTID(msg->header.sender));
 	}
 	mdbg(PSACC_LOG_VERBOSE, "%s: msg type %s sender %s\n", __func__,
-	     getAccountMsgType(msg->type),
-	   PSC_printTID(msg->header.sender));
+	     getAccountMsgType(msg->type), PSC_printTID(msg->header.sender));
     }
 
     /* forward msg to accounting daemons */
@@ -420,15 +415,18 @@ void sendAggData(PStask_ID_t logger, AccountDataExt_t *aggData)
 
     ufree(data.buf);
 
-    mdbg(PSACC_LOG_UPDATE_MSG, "%s: to %i maxThreadsTot %zu maxVsizeTot %zu"
-	 " maxRsstot %zu maxThreads %zu maxVsize %zu maxRss %zu numTasks %u"
-	 " avgThreadsTotal %zu avgThreadsCount %zu avgVsizeTotal %zu"
-	 " avgVsizeCount %zu avgRssTotal %zu avgRssCount %zu\n", __func__,
+    mdbg(PSACC_LOG_UPDATE_MSG, "%s: to %i maxThreadsTot %lu maxVsizeTot %lu"
+	 " maxRsstot %lu maxThreads %lu maxVsize %lu maxRss %lu numTasks %u"
+	 " avgThreadsTotal %lu avgThreadsCount %lu avgVsizeTotal %lu"
+	 " avgVsizeCount %lu avgRssTotal %lu avgRssCount %lu cutime %lu"
+	 " cstime %lu minCputime %lu totCputime %lu\n", __func__,
 	 loggerNode, aggData->maxThreadsTotal, aggData->maxVsizeTotal,
 	 aggData->maxRssTotal, aggData->maxThreads, aggData->maxVsize,
 	 aggData->maxRss, aggData->numTasks, aggData->avgThreadsTotal,
 	 aggData->avgThreadsCount, aggData->avgVsizeTotal,
-	 aggData->avgVsizeCount, aggData->avgRssTotal, aggData->avgRssCount);
+	 aggData->avgVsizeCount, aggData->avgRssTotal, aggData->avgRssCount,
+	 aggData->cutime, aggData->cstime, aggData->minCputime,
+	 aggData->totCputime);
 }
 
 static void handleAggDataUpdate(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
@@ -489,8 +487,8 @@ static void handleAggDataUpdate(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 
     setAggData(msg->header.sender, logger, &aggData);
 
-    mdbg(PSACC_LOG_UPDATE_MSG, "%s: from %s maxThreadsTot %zu maxVsizeTot %zu"
-	 " maxRsstot %zu maxThreads %zu maxVsize %zu maxRss %zu numTasks %u\n",
+    mdbg(PSACC_LOG_UPDATE_MSG, "%s: from %s maxThreadsTot %lu maxVsizeTot %lu"
+	 " maxRsstot %lu maxThreads %lu maxVsize %lu maxRss %lu numTasks %u\n",
 	 __func__, PSC_printTID(msg->header.sender), aggData.maxThreadsTotal,
 	 aggData.maxVsizeTotal, aggData.maxRssTotal, aggData.maxThreads,
 	 aggData.maxVsize, aggData.maxRss, aggData.numTasks);
@@ -588,7 +586,7 @@ bool initAccComm(void)
     origHandler = PSID_registerMsg(PSP_CD_ACCOUNT, (handlerFunc_t) handlePSMsg);
     PSID_registerMsg(PSP_CC_PLUG_ACCOUNT, (handlerFunc_t) handleInterAccount);
 
-    if (!(PSIDhook_add(PSIDHOOK_FRWRD_DSOCK, setDaemonSock))) {
+    if (!PSIDhook_add(PSIDHOOK_FRWRD_DSOCK, setDaemonSock)) {
 	mlog("register 'PSIDHOOK_FRWRD_DSOCK' failed\n");
 	return false;
     }
@@ -602,7 +600,7 @@ void finalizeAccComm(void)
 
     PSID_clearMsg(PSP_CC_PLUG_ACCOUNT);
 
-    if (!(PSIDhook_del(PSIDHOOK_FRWRD_DSOCK, setDaemonSock))) {
+    if (!PSIDhook_del(PSIDHOOK_FRWRD_DSOCK, setDaemonSock)) {
 	mlog("unregister 'PSIDHOOK_FRWRD_DSOCK' failed\n");
     }
 }
