@@ -154,7 +154,8 @@ void clearAllClients(void);
  * Update all client's account data for a job. If job is NULL, all
  * clients will be updated. From time to time (in fact after calling
  * this function FORWARD_INTERVAL times) aggregated data is forwarded
- * to the logger's node.
+ * to the logger's node. Neverthless, forwarding is done anyhow if @a
+ * job is different from NULL.
  *
  * @param job Job to identify the clients to update or NULL for all
  * clients
@@ -270,16 +271,27 @@ void setAggData(PStask_ID_t tid, PStask_ID_t logger, AccountDataExt_t *data);
 void finishAggData(PStask_ID_t tid, PStask_ID_t logger);
 
 /**
- * @brief Forward aggregated accounting data
+ * @brief Forward aggregated accounting data for job
  *
- * Forward all aggregated accounting data to its corresponding
- * destination. Accounting data is aggregated on a per logger
- * basis. In a second step the aggregated data is forwarded to the
- * nodes hosting the logger processes.
+ * Forward the aggregated accounting data for the job @a job to its
+ * corresponding destination. Accounting data is aggregated on a per
+ * logger basis for all clients that have accounting enabled. If the
+ * flag @a force is true, also clients with accounting disabled will
+ * be included. This might make sense for the final update of the
+ * resource data when all actual client processes are already gone.
+ *
+ * In a second step the aggregated data is forwarded to the nodes
+ * hosting the logger process.
+ *
+ * @param job The job structure identifying the data to aggregate and
+ * forward
+ *
+ * @param force Flag to force inclusion of clients that are already
+ * out of active accounting.
  *
  * @return No return value
  */
-void forwardAggData(void);
+void forwardJobData(Job_t *job, bool force);
 
 /**
  * @brief Switch client's update behavior

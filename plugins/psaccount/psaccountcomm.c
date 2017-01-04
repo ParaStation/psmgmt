@@ -203,8 +203,8 @@ static void handleAccountEnd(DDTypedBufferMsg_t *msg)
 	job->childsExit++;
 	if (job->childsExit >= job->nrOfChilds) {
 	    /* all children exited */
-	    if (globalCollectMode) {
-		forwardAggData();
+	    if (globalCollectMode && PSC_getID(logger) != PSC_getMyID()) {
+		forwardJobData(job, true);
 		sendAggDataFinish(logger);
 	    }
 

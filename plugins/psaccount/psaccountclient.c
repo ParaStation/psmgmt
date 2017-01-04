@@ -680,44 +680,25 @@ void cleanupClients(void)
     }
 }
 
-void forwardAggData(void)
+void forwardJobData(Job_t *job, bool force)
 {
     AccountDataExt_t aggData;
-    PStask_ID_t loggerTIDs[MAX_JOBS_PER_NODE];
+    PStask_ID_t logger = job->logger;
     list_t *c;
-    int i, numJobs = 0;
 
-    /* extract uniq logger TIDs */
+    if (PSC_getID(logger) == PSC_getMyID()) return;
+
+    /* aggreagate accounting data on a per logger basis */
+    memset(&aggData, 0, sizeof(AccountDataExt_t));
     list_for_each(c, &clientList) {
 	Client_t *client = list_entry(c, Client_t, next);
-	if (client->doAccounting) {
-	    for (i=0; i<numJobs; i++) {
-		if (loggerTIDs[i] == client->logger) break;
-	    }
-	    if (i == numJobs) loggerTIDs[numJobs++] = client->logger;
-	    if (numJobs == MAX_JOBS_PER_NODE) {
-		mlog("%s: MAX_JOBS_PER_NODE exceeded. Truncating aggregation\n",
-		     __func__);
-		break;
-	    }
+	if (client->logger == logger && (client->doAccounting || force)) {
+	    addClientToAggData(client, &aggData);
 	}
     }
 
-    for (i=0; i<numJobs; i++) {
-	if (PSC_getID(loggerTIDs[i]) == PSC_getMyID()) continue;
-
-	/* aggreagate accounting data on a per logger basis */
-	memset(&aggData, 0, sizeof(AccountDataExt_t));
-	list_for_each(c, &clientList) {
-	    Client_t *client = list_entry(c, Client_t, next);
-	    if (client->logger == loggerTIDs[i] && client->doAccounting) {
-		addClientToAggData(client, &aggData);
-	    }
-	}
-
-	/* send the update */
-	if (aggData.numTasks) sendAggData(loggerTIDs[i], &aggData);
-    }
+    /* send the update */
+    if (aggData.numTasks) sendAggData(logger, &aggData);
 }
 
 void updateClients(Job_t *job)
@@ -733,9 +714,10 @@ void updateClients(Job_t *job)
 
     if (globalCollectMode) {
 	int forwInterval = getConfValueI(&config, "FORWARD_INTERVAL");
-
-	if (++updateCount >= forwInterval) {
-	    forwardAggData();
+	if (job) {
+	    forwardJobData(job, false);
+	} else if (++updateCount >= forwInterval) {
+	    forwardAllData();
 	    updateCount = 0;
 	}
     }

@@ -65,12 +65,12 @@ Job_t *addJob(PStask_ID_t loggerTID)
 
 void deleteJob(PStask_ID_t loggerTID)
 {
-    Job_t *job;
+    Job_t *job = findJobByLogger(loggerTID);
 
     /* delete all children */
     deleteClientsByLogger(loggerTID);
 
-    while ((job = findJobByLogger(loggerTID))) {
+    if (job) {
 	list_del(&job->next);
 	if (job->jobid) ufree(job->jobid);
 	ufree(job);
@@ -102,8 +102,7 @@ void cleanupJobs(void)
 
 	/* check timeout */
 	if (job->endTime + (60 * grace) < now) {
-	    mdbg(PSACC_LOG_VERBOSE, "%s: %s\n", __func__,
-		 PSC_printTID(job->logger));
+	    mlog("%s: %s\n", __func__, PSC_printTID(job->logger));
 	    deleteJob(job->logger);
 	}
     }
@@ -221,9 +220,23 @@ bool getDataByJob(pid_t js, AccountDataExt_t *accData)
     if (job) aggregateDataByJobscript(js, accData);
 
     /* add the jobscript */
+    uint64_t minCputime = accData->minCputime;
     addClientToAggData(jsClient, accData);
+    accData->minCputime = minCputime;
 
     return true;
+}
+
+void forwardAllData(void)
+{
+    list_t *j;
+    list_for_each(j, &jobList) {
+	Job_t *job = list_entry(j, Job_t, next);
+
+	if (job->logger == -1) continue;
+
+	forwardJobData(job, false);
+    }
 }
 
 char *listJobs(char *buf, size_t *bufSize)
