@@ -1,13 +1,12 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2007-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2007-2017 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -1014,7 +1013,7 @@ static int p_Init(char *msg)
     }
     pmi_init_client = true;
 
-    if (psAccountSwitchAccounting) psAccountSwitchAccounting(cTask->tid, true);
+    if (psAccountSwitchAccounting) psAccountSwitchAccounting(cTask->tid, false);
 
     /* tell provider that the MPI client was initialized */
     ptr = buffer;
