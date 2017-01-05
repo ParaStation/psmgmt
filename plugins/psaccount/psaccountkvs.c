@@ -118,6 +118,11 @@ char *set(char *key, char *val)
 
 	    snprintf(line, sizeof(line), "\nsaved '%s = %s'\n", key, val);
 	    str2Buf(line, &buf, &bufSize);
+
+	    if (!strcmp(key, "DEBUG_MASK")) {
+		int debugMask = getConfValueI(&config, "DEBUG_MASK");
+		maskLogger(debugMask);
+	    }
 	}
     } else if (!strcmp(key, "memdebug")) {
 	if (memoryDebug) fclose(memoryDebug);
