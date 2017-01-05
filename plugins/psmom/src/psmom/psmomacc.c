@@ -1,13 +1,12 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2012-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2012-2017 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -190,9 +189,25 @@ void fetchAccInfo(Job_t *job)
 
     if (job->pid == -1) return;
 
-    mdbg(PSMOM_LOG_ACC, "%s: requesting job info for '%i'\n", __func__,
-			    job->pid);
+    mdbg(PSMOM_LOG_ACC, "%s: request for job-pid %i\n", __func__, job->pid);
     psAccountGetDataByJob(job->pid, &accData);
+
+    uint64_t avgVsize = accData.avgVsizeCount ?
+	accData.avgVsizeTotal / accData.avgVsizeCount : 0;
+    uint64_t avgRss = accData.avgRssCount ?
+	accData.avgRssTotal / accData.avgRssCount : 0;
+
+    mdbg(PSMOM_LOG_ACC, "%s: account data for pid %d: maxVsize %zu maxRss %zu"
+	 " pageSize %lu utime %lu.%06lu stime %lu.%06lu num_tasks %u"
+	 " avgVsize %lu avgRss %lu minCPUtime %lu totCPUtime %lu"
+	 " maxRssTotal %lu maxVsizeTotal %lu avg cpufrq %.2fG\n", __func__,
+	 job->pid, accData.maxVsize, accData.maxRss, accData.pageSize,
+	 accData.rusage.ru_utime.tv_sec, accData.rusage.ru_utime.tv_usec,
+	 accData.rusage.ru_stime.tv_sec, accData.rusage.ru_stime.tv_usec,
+	 accData.numTasks, avgVsize, avgRss,
+	 accData.minCputime, accData.totCputime,
+	 accData.maxRssTotal, accData.maxVsizeTotal,
+	 (double) accData.cpuFreq / ((double) accData.numTasks * 1048576));
 
     calcJobPollCpuTime(job, accData.cstime, accData.cutime);
     addJobWaitCpuTime(job, accData.totCputime);
