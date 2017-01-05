@@ -122,7 +122,9 @@ handlerFunc_t oldSpawnReqHandler = NULL;
 char name[] = "psmom";
 int version = 58;
 int requiredAPI = 109;
-plugin_dep_t dependencies[2];
+plugin_dep_t dependencies[] = {
+    { .name = "psaccount", .version = 26 },
+    { .name = NULL, .version = 0 } };
 
 /** the process id of the main psmom process */
 static pid_t mainPid = -1;
@@ -161,9 +163,9 @@ static void cleanupJobs(void)
  * Check if we have running jobs left and initialize the shutdown
  * sequence.
  *
- * @return returns 1 on success and 0 on error.
+ * @return Return true on success and false on error
  */
-static int shutdownJobs(void)
+static bool shutdownJobs(void)
 {
     struct timeval cleanupTimer = {1,0};
 
@@ -176,14 +178,14 @@ static int shutdownJobs(void)
 							cleanupJobs)) == -1) {
 	    mlog("registering cleanup timer failed\n");
 	}
-	return 0;
+	return false;
     }
 
     /* all jobs are gone */
     if (doUnload) {
 	PSIDplugin_unload("psmom");
     }
-    return 1;
+    return true;
 }
 
 /**
@@ -193,31 +195,16 @@ static int shutdownJobs(void)
 */
 static void saveConfigValues(void)
 {
-    getConfParamI("TIME_OBIT", &obitTime);
-    getConfParamI("DEBUG_MASK", &debugMask);
+    obitTime = getConfValueI(&config, "TIME_OBIT");
+    debugMask = getConfValueI(&config, "DEBUG_MASK");
 
     /* network configuration */
-    getConfParamI("PORT_MOM", &momPort);
-    getConfParamI("PORT_RM", &rmPort);
-    getConfParamI("PORT_SERVER", &serverPort);
+    momPort = getConfValueI(&config, "PORT_MOM");
+    rmPort = getConfValueI(&config, "PORT_RM");
+    serverPort = getConfValueI(&config, "PORT_SERVER");
 
     /* torque protocol version */
-    getConfParamI("TORQUE_VERSION", &torqueVer);
-}
-
-void startPsmom()
-{
-    /* we depend on the psaccount plugin */
-    dependencies[0].name = "psaccount";
-    dependencies[0].version = 26;
-    dependencies[1].name = NULL;
-    dependencies[1].version = 0;
-}
-
-void stopPsmom()
-{
-    /* release the logger */
-    logger_finalize(psmomlogger);
+    torqueVer = getConfValueI(&config, "TORQUE_VERSION");
 }
 
 static bool initAccountingFunc(void)
@@ -319,29 +306,28 @@ static bool initAccountingFunc(void)
  */
 static void cleanupLogs(void)
 {
-    int cleanJob, cleanNodes, cleanTemp;
+    bool cleanJob, cleanNodes, cleanTemp;
     char *dir = NULL;
 
     /* cleanup jobscript files */
-    getConfParamI("CLEAN_JOBS_FILES", &cleanJob);
+    cleanJob = getConfValueI(&config, "CLEAN_JOBS_FILES");
     if (cleanJob) {
-	dir = getConfParamC("DIR_JOB_FILES");
+	dir = getConfValueC(&config, "DIR_JOB_FILES");
 	removeDir(dir, 0);
     }
 
     /* cleanup node files */
-    getConfParamI("CLEAN_NODE_FILES", &cleanNodes);
+    cleanNodes = getConfValueI(&config, "CLEAN_NODE_FILES");
     if (cleanNodes) {
-	dir = getConfParamC("DIR_NODE_FILES");
+	dir = getConfValueC(&config, "DIR_NODE_FILES");
 	removeDir(dir, 0);
     }
 
     /* cleanup temp (scratch) dir */
-    getConfParamI("CLEAN_TEMP_DIR", &cleanTemp);
+    cleanTemp = getConfValueI(&config, "CLEAN_TEMP_DIR");
     if (cleanTemp) {
-	if ((dir = getConfParamC("DIR_TEMP"))) {
-	    removeDir(dir, 0);
-	}
+	dir = getConfValueC(&config, "DIR_TEMP");
+	if (dir) removeDir(dir, 0);
     }
 }
 
@@ -401,53 +387,55 @@ static int validateScripts(void)
     struct stat st;
     char *script, *dir, filename[400];
 
-    if ((script = getConfParamC("BACKUP_SCRIPT"))) {
-	if ((stat(script, &st)) == -1) {
+    script = getConfValueC(&config, "BACKUP_SCRIPT");
+    if (script) {
+	if (stat(script, &st) == -1) {
 	    mwarn(errno, "%s: invalid backup script '%s'", __func__, script);
 	    return 1;
 	}
 
-	if (((st.st_mode & S_IFREG) != S_IFREG) ||
-		((st.st_mode & S_IXUSR) != S_IXUSR)) {
+	if ((st.st_mode & S_IFREG) != S_IFREG
+	    || (st.st_mode & S_IXUSR) != S_IXUSR) {
 	    mlog("%s: invalid permissions for backup script '%s'\n",
-		    __func__, script);
+		 __func__, script);
 	    return 1;
 	}
     }
 
-    if ((script = getConfParamC("TIMEOUT_SCRIPT"))) {
-	if ((stat(script, &st)) == -1) {
+    script = getConfValueC(&config, "TIMEOUT_SCRIPT");
+    if (script) {
+	if (stat(script, &st) == -1) {
 	    mwarn(errno, "%s: invalid timeout script '%s'", __func__, script);
 	    return 1;
 	}
 
-	if (((st.st_mode & S_IFREG) != S_IFREG) ||
-		((st.st_mode & S_IXUSR) != S_IXUSR)) {
+	if ((st.st_mode & S_IFREG) != S_IFREG
+	    || (st.st_mode & S_IXUSR) != S_IXUSR) {
 	    mlog("%s: invalid permissions for timeout script '%s'\n",
-		    __func__, script);
+		 __func__, script);
 	    return 1;
 	}
     }
 
     /* validate prologue/epilogue scripts */
-    dir = getConfParamC("DIR_SCRIPTS");
+    dir = getConfValueC(&config, "DIR_SCRIPTS");
     snprintf(filename, sizeof(filename), "%s/prologue", dir);
-    if ((checkPELogueFileStats(filename, 1)) == -2) {
+    if (checkPELogueFileStats(filename, 1) == -2) {
 	mlog("%s: invalid permissions for '%s'\n", __func__, filename);
 	return 1;
     }
     snprintf(filename, sizeof(filename), "%s/prologue.parallel", dir);
-    if ((checkPELogueFileStats(filename, 1)) == -2) {
+    if (checkPELogueFileStats(filename, 1) == -2) {
 	mlog("%s: invalid permissions for '%s'\n", __func__, filename);
 	return 1;
     }
     snprintf(filename, sizeof(filename), "%s/epilogue", dir);
-    if ((checkPELogueFileStats(filename, 1)) == -2) {
+    if (checkPELogueFileStats(filename, 1) == -2) {
 	mlog("%s: invalid permissions for '%s'\n", __func__, filename);
 	return 1;
     }
     snprintf(filename, sizeof(filename), "%s/epilogue.parallel", dir);
-    if ((checkPELogueFileStats(filename, 1)) == -2) {
+    if (checkPELogueFileStats(filename, 1) == -2) {
 	mlog("%s: invalid permissions for '%s'\n", __func__, filename);
 	return 1;
     }
@@ -465,49 +453,48 @@ static int validateDirs(void)
     struct stat st;
     char *dir;
 
-    dir = getConfParamC("DIR_JOB_FILES");
-    if ((stat(dir, &st)) == -1 || ((st.st_mode & S_IFDIR) != S_IFDIR)) {
+    dir = getConfValueC(&config, "DIR_JOB_FILES");
+    if (stat(dir, &st) == -1 || (st.st_mode & S_IFDIR) != S_IFDIR) {
 	mwarn(errno, "%s: invalid job dir '%s'", __func__, dir);
 	return 1;
     }
 
-    dir = getConfParamC("DIR_NODE_FILES");
-    if ((stat(dir, &st)) == -1 || ((st.st_mode & S_IFDIR) != S_IFDIR)) {
+    dir = getConfValueC(&config, "DIR_NODE_FILES");
+    if (stat(dir, &st) == -1 || (st.st_mode & S_IFDIR) != S_IFDIR) {
 	mwarn(errno, "%s: invalid node files dir '%s'", __func__, dir);
 	return 1;
     }
 
-    if ((dir = getConfParamC("DIR_TEMP"))) {
-	if ((stat(dir, &st)) == -1 || ((st.st_mode & S_IFDIR) != S_IFDIR)) {
-	    mwarn(errno, "%s: invalid temp dir '%s'", __func__, dir);
-	    return 1;
-	}
+    dir = getConfValueC(&config, "DIR_TEMP");
+    if (dir && (stat(dir, &st) == -1 || (st.st_mode & S_IFDIR) != S_IFDIR)) {
+	mwarn(errno, "%s: invalid temp dir '%s'", __func__, dir);
+	return 1;
     }
 
-    dir = getConfParamC("DIR_JOB_ACCOUNT");
-    if ((stat(dir, &st)) == -1 || ((st.st_mode & S_IFDIR) != S_IFDIR)) {
+    dir = getConfValueC(&config, "DIR_JOB_ACCOUNT");
+    if (stat(dir, &st) == -1 || (st.st_mode & S_IFDIR) != S_IFDIR) {
 	mwarn(errno, "%s: invalid account dir '%s'", __func__, dir);
 	return 1;
     }
 
-    dir = getConfParamC("DIR_SCRIPTS");
-    if ((stat(dir, &st)) == -1 || ((st.st_mode & S_IFDIR) != S_IFDIR)) {
+    dir = getConfValueC(&config, "DIR_SCRIPTS");
+    if (stat(dir, &st) == -1 || (st.st_mode & S_IFDIR) != S_IFDIR) {
 	mwarn(errno, "%s: invalid scripts dir '%s'", __func__, dir);
 	return 1;
     }
 
     dir = DEFAULT_DIR_JOB_UNDELIVERED;
-    if ((stat(dir, &st)) == -1 || ((st.st_mode & S_IFDIR) != S_IFDIR)) {
+    if (stat(dir, &st) == -1 || (st.st_mode & S_IFDIR) != S_IFDIR) {
 	mwarn(errno, "%s: invalid undelivered dir '%s'", __func__, dir);
 	return 1;
     }
 
-    if ((dir = getConfParamC("DIR_LOCAL_BACKUP"))) {
-	if ((stat(dir, &st)) == -1 || ((st.st_mode & S_IFDIR) != S_IFDIR)) {
-	    mwarn(errno, "%s: invalid backup dir '%s'", __func__, dir);
-	    return 1;
-	}
+    dir = getConfValueC(&config, "DIR_LOCAL_BACKUP");
+    if (dir && (stat(dir, &st) == -1 || (st.st_mode & S_IFDIR) != S_IFDIR)) {
+	mwarn(errno, "%s: invalid backup dir '%s'", __func__, dir);
+	return 1;
     }
+
     return 0;
 }
 
@@ -750,7 +737,7 @@ void cleanup(void)
 
     if (!isInit) {
 	/* free config values */
-	clearConfig();
+	freeConfig(&config);
 	return;
     }
 
@@ -760,7 +747,7 @@ void cleanup(void)
     }
 
     /* free config values */
-    clearConfig();
+    freeConfig(&config);
 
     /* set collect mode in psaccount */
     if (psAccountSetGlobalCollect) psAccountSetGlobalCollect(false);
@@ -790,4 +777,5 @@ void cleanup(void)
     finalizeFragComm();
 
     mlog("...Bye.\n");
+    logger_finalize(psmomlogger);
 }
