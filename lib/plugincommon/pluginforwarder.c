@@ -699,12 +699,12 @@ bool signalForwarderChild(Forwarder_Data_t *fw, int sig)
     return false;
 }
 
-void startGraceTime(Forwarder_Data_t *data)
+void startGraceTime(Forwarder_Data_t *fw)
 {
     PSLog_Msg_t msg = (PSLog_Msg_t) {
 	.header = (DDMsg_t) {
 	    .type = PSP_CC_MSG,
-	    .dest = PSC_getTID(-1,0),
+	    .dest = fw->tid,
 	    .sender = PSC_getMyTID(),
 	    .len = PSLog_headerSize },
 	.version = PLUGINFW_PROTO_VERSION,
