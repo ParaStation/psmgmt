@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2017 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -75,7 +75,7 @@ typedef void PStask_sigChldCB_t(int status, PStask_t *task);
 
 /** Task structure */
 /* Members marked with C are (un)packed by PStask_encode()/PStask_decode() */
-typedef struct __task__ {
+struct __task__ {
     list_t next;                   /**< used to put into managedTasks, etc. */
     /*C*/ PStask_ID_t tid;         /**< unique task identifier */
     /*C*/ PStask_ID_t ptid;        /**< unique identifier of parent task */
@@ -153,7 +153,7 @@ typedef struct __task__ {
     list_t signalReceiver;         /**< Tasks which want to receive signals */
     list_t assignedSigs;           /**< Tasks assigned to send signals */
     uint16_t *resPorts;		   /**< Reserved Ports for OpenMPI startup */
-} PStask_t;
+} /* PStask_t */;
 
 /**
  * @brief Create a new task structure.
