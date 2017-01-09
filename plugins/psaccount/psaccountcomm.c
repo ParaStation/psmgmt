@@ -134,7 +134,7 @@ static void handleAccountEnd(DDTypedBufferMsg_t *msg)
 	}
 	return;
     }
-    if (client->logger != logger) {
+    if (client->type != ACC_CHILD_JOBSCRIPT && client->logger != logger) {
 	mlog("%s: logger mismatch (%s/", __func__, PSC_printTID(logger));
 	mlog("%s)\n", PSC_printTID(client->logger));
     }
@@ -150,6 +150,13 @@ static void handleAccountEnd(DDTypedBufferMsg_t *msg)
 		       &client->walltime, sizeof(client->walltime));
     PSP_getTypedMsgBuf(msg, &used, __func__, "status",
 		       &client->status, sizeof(client->status));
+
+    mdbg(PSACC_LOG_VERBOSE, "%s: child rank %i pid %i logger %s uid %i"
+	 " gid %i msg type %s finished\n", __func__, client->rank, child,
+	 PSC_printTID(client->logger), client->uid, client->gid,
+	 getAccountMsgType(msg->type));
+
+    if (client->type == ACC_CHILD_JOBSCRIPT) return; /* drop message */
 
     /* Now add further information to the message */
     msg->header.len = offsetof(DDTypedBufferMsg_t, buf) + used;
@@ -189,11 +196,6 @@ static void handleAccountEnd(DDTypedBufferMsg_t *msg)
 	avgThrds = client->data.avgThreadsTotal / client->data.avgThreadsCount;
     }
     PSP_putTypedMsgBuf(msg, __func__, "avgThrds", &avgThrds, sizeof(avgThrds));
-
-    mdbg(PSACC_LOG_VERBOSE, "%s: child rank %i pid %i logger %s uid %i"
-	 " gid %i msg type %s finished\n", __func__, client->rank, child,
-	 PSC_printTID(client->logger), client->uid, client->gid,
-	 getAccountMsgType(msg->type));
 
     /* find the job */
     job = findJobByLogger(client->logger);
