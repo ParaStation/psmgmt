@@ -624,6 +624,7 @@ static int handleFwSock(int fd, void *info)
 	break;
     case PLGN_ACCOUNT:
 	PSID_handleMsg((DDBufferMsg_t *) &lmsg->buf);
+	break;
     default:
 	pluginlog("%s: invalid cmd %i from %s\n", __func__, lmsg->type,
 		  PSC_printTID(lmsg->header.sender));
