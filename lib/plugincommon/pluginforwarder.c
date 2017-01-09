@@ -496,7 +496,7 @@ static void execForwarder(int motherFD, PStask_t *task)
 	} else {
 	    /* read sid of child */
 	    close(controlFDs[1]);
-	    int read = doReadP(controlFDs[0], &fw->cSid, sizeof(pid_t));
+	    int read = doRead(controlFDs[0], &fw->cSid, sizeof(pid_t));
 	    close(controlFDs[0]);
 	    if (read != sizeof(pid_t)) {
 		pluginlog("%s: reading childs sid failed\n", __func__);
