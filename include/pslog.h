@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2016 Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2017 Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -40,6 +40,7 @@ typedef enum {
     PLGN_SIGNAL_CHLD, /**< plgn -> fw Signal child */
     PLGN_START_GRACE, /**< plgn -> fw Start child's grace period */
     PLGN_SHUTDOWN,    /**< plgn -> fw Shutdown child */
+    PLGN_ACCOUNT,     /**< fw -> plgn Resources used by child */
     PLGN_SIGNAL,      /**< used by psmom ?? */
     PLGN_REQ_ACCNT,   /**< used by psmom ?? */
     /* LAST = 64 */  /**< all numbers beyond this might be used privately,

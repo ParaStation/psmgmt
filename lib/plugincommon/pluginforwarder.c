@@ -14,12 +14,13 @@
 #include <signal.h>
 #include <syslog.h>
 #include <unistd.h>
-#include <sys/socket.h>
-#include <sys/un.h>
-#include <sys/types.h>
 #include <sys/resource.h>
-#include <sys/wait.h>
 #include <sys/signalfd.h>
+#include <sys/socket.h>
+#include <sys/time.h>
+#include <sys/types.h>
+#include <sys/un.h>
+#include <sys/wait.h>
 
 #include "pscommon.h"
 #include "selector.h"
@@ -88,6 +89,8 @@ static bool sigChild = false;
 
 /** Flag indication child's walltime limit is reached */
 static bool jobTimeout = false;
+
+static struct timeval childStart;
 
 int sendMsgToMother(PSLog_Msg_t *msg)
 {
@@ -386,7 +389,7 @@ static void sendChildInfo(Forwarder_Data_t *fw)
 	    .type = PSP_CC_MSG,
 	    .dest = PSC_getTID(-1,0),
 	    .sender = PSC_getMyTID(),
-	    .len = sizeof(msg) - sizeof(msg.buf) },
+	    .len = PSLog_headerSize },
 	.version = PLUGINFW_PROTO_VERSION,
 	.type = PLGN_CHILD,
 	.sender = -1};
@@ -395,6 +398,55 @@ static void sendChildInfo(Forwarder_Data_t *fw)
 		  &fw->cPid, sizeof(fw->cPid));
     PSP_putMsgBuf((DDBufferMsg_t*)&msg, __func__, "childSID",
 		  &fw->cSid, sizeof(fw->cSid));
+
+    sendMsgToMother(&msg);
+}
+
+static void sendAccInfo(Forwarder_Data_t *fw, int32_t status,
+			struct rusage *rusage)
+{
+    PSLog_Msg_t msg = (PSLog_Msg_t) {
+	.header = (DDMsg_t) {
+	    .type = PSP_CC_MSG,
+	    .dest = PSC_getTID(-1,0),
+	    .sender = PSC_getMyTID(),
+	    .len = PSLog_headerSize },
+	.version = PLUGINFW_PROTO_VERSION,
+	.type = PLGN_ACCOUNT,
+	.sender = -1};
+    DDTypedBufferMsg_t *accMsg = (DDTypedBufferMsg_t *)&msg.buf;
+    PStask_ID_t logger = -1; /* ignored in psaccount */
+    int32_t rank = -1 /* ignored in psaccount */, ext = 0;
+    uid_t uid = -1; /* ignored in psaccount */
+    gid_t gid = -1; /* ignored in psaccount */
+    struct timeval now, wTime;
+    uint64_t pSize = sysconf(_SC_PAGESIZE) < 0 ? 0 : sysconf(_SC_PAGESIZE);
+
+    *accMsg = (DDTypedBufferMsg_t) {
+	.header = (DDMsg_t) {
+	    .type = PSP_CD_ACCOUNT,
+	    .sender = PSC_getMyTID(),
+	    .dest = PSC_getTID(-1, 0),
+	    .len = sizeof(msg.header) + sizeof(msg.type)},
+	.type = PSP_ACCOUNT_END,
+	.buf = {'\0'} };
+
+    PSP_putTypedMsgBuf(accMsg, __func__, "loggerTID", &logger, sizeof(logger));
+    PSP_putTypedMsgBuf(accMsg, __func__, "rank", &rank, sizeof(rank));
+    PSP_putTypedMsgBuf(accMsg, __func__, "uid", &uid, sizeof(uid));
+    PSP_putTypedMsgBuf(accMsg, __func__, "gid", &gid, sizeof(gid));
+    PSP_putTypedMsgBuf(accMsg, __func__, "cPID", &fw->cPid, sizeof(fw->cPid));
+    PSP_putTypedMsgBuf(accMsg, __func__, "rusage", rusage, sizeof(*rusage));
+    PSP_putTypedMsgBuf(accMsg, __func__, "pagesize", &pSize, sizeof(pSize));
+
+    /* walltime used by child */
+    gettimeofday(&now, NULL);
+    timersub(&now, &childStart, &wTime);
+    PSP_putTypedMsgBuf(accMsg, __func__, "walltime", &wTime, sizeof(wTime));
+
+    PSP_putTypedMsgBuf(accMsg, __func__, "status", &status, sizeof(status));
+    PSP_putTypedMsgBuf(accMsg, __func__, "extended flag", &ext, sizeof(ext));
+    msg.header.len += accMsg->header.len;
 
     sendMsgToMother(&msg);
 }
@@ -448,8 +500,9 @@ static void execForwarder(int motherFD, PStask_t *task)
 	    close(controlFDs[0]);
 	    if (read != sizeof(pid_t)) {
 		pluginlog("%s: reading childs sid failed\n", __func__);
-		if (fw->cPid > 0) kill(SIGKILL, fw->cPid);
+		kill(SIGKILL, fw->cPid);
 	    }
+	    gettimeofday(&childStart, NULL);
 
 	    sendChildInfo(fw);
 	}
@@ -462,6 +515,8 @@ static void execForwarder(int motherFD, PStask_t *task)
 	    if (res == -1) {
 		pluginwarn(errno, "%s: wait4(%d)", __func__, fw->cPid);
 		status = 1;
+	    } else if (fw->accounted) {
+		sendAccInfo(fw, status, &rusage);
 	    }
 	}
 
@@ -512,7 +567,7 @@ static void sigChldCB(int estatus, PStask_t *task)
 
 static void handleChildStart(Forwarder_Data_t *fw, PSLog_Msg_t *msg)
 {
-    size_t used = sizeof(*msg) - sizeof(msg->header) - sizeof(msg->buf);
+    size_t used = PSLog_headerSize - sizeof(msg->header);
 
     PSP_getMsgBuf((DDBufferMsg_t *)msg, &used, __func__, "childPID",
 		  &fw->cPid, sizeof(fw->cPid));
@@ -567,6 +622,8 @@ static int handleFwSock(int fd, void *info)
     case PLGN_CHILD:
 	handleChildStart(fw, lmsg);
 	break;
+    case PLGN_ACCOUNT:
+	PSID_handleMsg((DDBufferMsg_t *) &lmsg->buf);
     default:
 	pluginlog("%s: invalid cmd %i from %s\n", __func__, lmsg->type,
 		  PSC_printTID(lmsg->header.sender));
@@ -627,7 +684,7 @@ bool signalForwarderChild(Forwarder_Data_t *fw, int sig)
 		.type = PSP_CC_MSG,
 		.dest = fw->tid,
 		.sender = PSC_getMyTID(),
-		.len = sizeof(msg) - sizeof(msg.buf) },
+		.len = PSLog_headerSize },
 	    .version = PLUGINFW_PROTO_VERSION,
 	    .type = PLGN_SIGNAL_CHLD,
 	    .sender = -1};
@@ -649,7 +706,7 @@ void startGraceTime(Forwarder_Data_t *data)
 	    .type = PSP_CC_MSG,
 	    .dest = PSC_getTID(-1,0),
 	    .sender = PSC_getMyTID(),
-	    .len = sizeof(msg) - sizeof(msg.buf) },
+	    .len = PSLog_headerSize },
 	.version = PLUGINFW_PROTO_VERSION,
 	.type = PLGN_START_GRACE,
 	.sender = -1};
@@ -664,7 +721,7 @@ void shutdownForwarder(Forwarder_Data_t *fw)
 	    .type = PSP_CC_MSG,
 	    .dest = fw->tid,
 	    .sender = PSC_getMyTID(),
-	    .len = sizeof(msg) - sizeof(msg.buf) },
+	    .len = PSLog_headerSize },
 	.version = PLUGINFW_PROTO_VERSION,
 	.type = PLGN_SHUTDOWN,
 	.sender = -1};

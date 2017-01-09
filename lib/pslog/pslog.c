@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2017 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -210,6 +210,8 @@ const char *PSLog_printMsgType(PSLog_msg_t type)
 	return "PLGN_START_GRACE";
     case PLGN_SHUTDOWN:
 	return "PLGN_SHUTDOWN";
+    case PLGN_ACCOUNT:
+	return "PLGN_ACCOUNT";
     case PLGN_SIGNAL:
 	return "PLGN_SIGNAL";
     case PLGN_REQ_ACCNT:
