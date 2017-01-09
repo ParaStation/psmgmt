@@ -503,6 +503,7 @@ bool addToMsgBuf(DDTypedBufferMsg_t *msg, void *val, uint32_t size,
     }
 
     switch (type) {
+    case PSDATA_UINT8:
     case PSDATA_STRING:
     case PSDATA_DATA:
 	break;
