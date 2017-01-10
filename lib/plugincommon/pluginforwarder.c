@@ -664,6 +664,7 @@ bool startForwarder(Forwarder_Data_t *fw)
 	PStask_delete(task);
 	return false;
     }
+    fw->tid = task->tid;
 
     return true;
 }
