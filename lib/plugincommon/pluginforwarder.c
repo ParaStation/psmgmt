@@ -471,40 +471,42 @@ static void execForwarder(int motherFD, PStask_t *task)
 	exit(1);
     }
 
-    for (i=1; fw->childFunc && i<=fw->childRerun; i++) {
-	int controlFDs[2];
+    for (i = 1; i <= fw->childRerun; i++) {
+	if (fw->childFunc) {
+	    int controlFDs[2];
 
-	/* open control fds */
-	if (socketpair(PF_UNIX, SOCK_STREAM, 0, controlFDs) < 0) {
-	    pluginwarn(errno, "%s: socketpair(controlFDs)", __func__);
-	    break;
-	}
-
-	/* fork child */
-	fw->cPid = fork();
-	if (fw->cPid  < 0) {
-	    pluginwarn(errno, "%s: fork()", __func__);
-	    exit(3);
-	} else if (!fw->cPid) {
-	    /* newly spawned child */
-	    close(controlFDs[0]);
-	    initChild(controlFDs[1], fw);
-	    fw->childFunc(fw, i);
-
-	    /* never reached */
-	    exit(1);
-	} else {
-	    /* read sid of child */
-	    close(controlFDs[1]);
-	    int read = doRead(controlFDs[0], &fw->cSid, sizeof(pid_t));
-	    close(controlFDs[0]);
-	    if (read != sizeof(pid_t)) {
-		pluginlog("%s: reading childs sid failed\n", __func__);
-		kill(SIGKILL, fw->cPid);
+	    /* open control fds */
+	    if (socketpair(PF_UNIX, SOCK_STREAM, 0, controlFDs) < 0) {
+		pluginwarn(errno, "%s: socketpair(controlFDs)", __func__);
+		break;
 	    }
-	    gettimeofday(&childStart, NULL);
 
-	    sendChildInfo(fw);
+	    /* fork child */
+	    fw->cPid = fork();
+	    if (fw->cPid  < 0) {
+		pluginwarn(errno, "%s: fork()", __func__);
+		exit(3);
+	    } else if (!fw->cPid) {
+		/* newly spawned child */
+		close(controlFDs[0]);
+		initChild(controlFDs[1], fw);
+		fw->childFunc(fw, i);
+
+		/* never reached */
+		exit(1);
+	    } else {
+		/* read sid of child */
+		close(controlFDs[1]);
+		int read = doRead(controlFDs[0], &fw->cSid, sizeof(pid_t));
+		close(controlFDs[0]);
+		if (read != sizeof(pid_t)) {
+		    pluginlog("%s: reading childs sid failed\n", __func__);
+		    kill(SIGKILL, fw->cPid);
+		}
+		gettimeofday(&childStart, NULL);
+
+		sendChildInfo(fw);
+	    }
 	}
 
 	if (fw->hookLoop) fw->hookLoop(fw);
