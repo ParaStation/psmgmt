@@ -451,6 +451,24 @@ static void sendAccInfo(Forwarder_Data_t *fw, int32_t status,
     sendMsgToMother(&msg);
 }
 
+static void sendExitInfo(int32_t estatus)
+{
+    PSLog_Msg_t msg = (PSLog_Msg_t) {
+	.header = (DDMsg_t) {
+	    .type = PSP_CC_MSG,
+	    .dest = PSC_getTID(-1,0),
+	    .sender = PSC_getMyTID(),
+	    .len = PSLog_headerSize },
+	.version = PLUGINFW_PROTO_VERSION,
+	.type = PLGN_EXIT,
+	.sender = -1};
+
+    PSP_putMsgBuf((DDBufferMsg_t*)&msg, __func__, "exit status",
+		  &estatus, sizeof(estatus));
+
+    sendMsgToMother(&msg);
+}
+
 static void execForwarder(int motherFD, PStask_t *task)
 {
     fwTask = task;
@@ -520,6 +538,7 @@ static void execForwarder(int motherFD, PStask_t *task)
 	    } else if (fw->accounted) {
 		sendAccInfo(fw, status, &rusage);
 	    }
+	    sendExitInfo(status);
 	}
 
 	/* cancel timeout */
@@ -584,6 +603,16 @@ static void handleChildStart(Forwarder_Data_t *fw, PSLog_Msg_t *msg)
 	      PSC_printTID(msg->header.sender), fw->cPid, fw->cSid);
 }
 
+static void handleChildExit(Forwarder_Data_t *fw, PSLog_Msg_t *msg)
+{
+    size_t used = PSLog_headerSize - sizeof(msg->header);
+
+    PSP_getMsgBuf((DDBufferMsg_t *)msg, &used, __func__, "exit status",
+		  &fw->estatus, sizeof(fw->estatus));
+
+    plugindbg(PLUGIN_LOG_FW, "%s: estatus %i\n", __func__, fw->estatus);
+}
+
 /**
  * @brief Handle socket connected to a forwarder
  *
@@ -626,6 +655,9 @@ static int handleFwSock(int fd, void *info)
 	break;
     case PLGN_ACCOUNT:
 	PSID_handleMsg((DDBufferMsg_t *) &lmsg->buf);
+	break;
+    case PLGN_EXIT:
+	handleChildExit(fw, lmsg);
 	break;
     default:
 	pluginlog("%s: invalid cmd %i from %s\n", __func__, lmsg->type,
