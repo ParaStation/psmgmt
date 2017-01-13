@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2007-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2007-2017 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -10,10 +10,7 @@
 /**
  * @file
  * psilogger.h: Log-daemon for ParaStation I/O forwarding facility
- *
- * $Id$
  */
-
 #ifndef __PSILOGGER_H
 #define __PSILOGGER_H
 
@@ -23,13 +20,6 @@
 #include "pslog.h"
 #include "pstask.h"
 #include "logging.h"
-
-#ifdef __cplusplus
-extern "C" {
-#if 0
-} /* <- just for emacs indentation */
-#endif
-#endif
 
 /** A logger used within psilogger. This one is used for stdout stuff */
 extern logger_t *PSIlog_stdoutLogger;
@@ -49,7 +39,7 @@ extern int np;
 /** Flag special input handling for parallel GDB. Set from PSI_ENABLE_GDB */
 extern bool enableGDB;
 
-/** The prompt used by parallel GDB mode's readline routines */
+/** The prompt used by parallel GDB mode's linenoise routines */
 extern char GDBprompt[128];
 
 /**
@@ -279,9 +269,5 @@ void addToFDSet(int fd);
  * @return No return value.
  */
 void remFromFDSet(int fd);
-
-#ifdef __cplusplus
-}/* extern "C" */
-#endif
 
 #endif /* __PSILOGGER_H */
