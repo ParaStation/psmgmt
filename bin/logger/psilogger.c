@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2017 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -11,14 +11,7 @@
 /**
  * @file
  * psilogger: Log-daemon for ParaStation I/O forwarding facility
- *
- * $Id$
  */
-#ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__((used)) =
-    "$Id$";
-#endif /* DOXYGEN_SHOULD_SKIP_THIS */
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -169,14 +162,15 @@ bool GDBcmdEcho = false;
 
 char GDBprompt[128];
 
-
 /**
- * @brief This function will be called from
- * readline if the gdb debugging mode is enabled
+ * @brief Read line for GDB mode
  *
- * @param line The line read from STDIN.
+ * Helper function to be called from linenoise if the gdb debugging
+ * mode is enabled. It handles the @a line determined by linenoise.
  *
- * @return No return value.
+ * @param line The line read from STDIN
+ *
+ * @return No return value
  */
 static void readGDBInput(const char *line)
 {
@@ -203,7 +197,7 @@ static void readGDBInput(const char *line)
 	setupDestList(buf);
 	PSIlog_stdout(-1, " -> [%s]\n", getDestStr(128));
 
-	/* modify readline's prompt */
+	/* modify linenoise's prompt */
 	snprintf(GDBprompt, sizeof(GDBprompt), "[%s]: (gdb) ", getDestStr(128));
 	linenoiseSetPrompt(GDBprompt);
 	return;
@@ -1009,7 +1003,7 @@ static void forwardInputFile(int fd)
 
 static int readFromStdin(int fd, void *data)
 {
-    /* if we debug with gdb, use readline callback for stdin */
+    /* if we debug with gdb, use linenoise's callback for stdin */
     if (enableGDB) {
 	linenoiseReadChar();
     } else {
