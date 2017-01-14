@@ -41,7 +41,10 @@ typedef enum {
     PLGN_START_GRACE, /**< plgn -> fw Start child's grace period */
     PLGN_SHUTDOWN,    /**< plgn -> fw Shutdown child */
     PLGN_ACCOUNT,     /**< fw -> plgn Resources used by child */
+    PLGN_CODE,        /**< fw -> plgn Child hook exit code */
     PLGN_EXIT,        /**< fw -> plgn Child exit status */
+    PLGN_FIN,         /**< fw -> plgn Forwarder going to finalize */
+    PLGN_FIN_ACK,     /**< plgn -> fw ACK finalization */
     PLGN_SIGNAL,      /**< used by psmom ?? */
     PLGN_REQ_ACCNT,   /**< used by psmom ?? */
     /* LAST = 64 */  /**< all numbers beyond this might be used privately,

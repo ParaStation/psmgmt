@@ -212,8 +212,14 @@ const char *PSLog_printMsgType(PSLog_msg_t type)
 	return "PLGN_SHUTDOWN";
     case PLGN_ACCOUNT:
 	return "PLGN_ACCOUNT";
+    case PLGN_CODE:
+	return "PLGN_CODE";
     case PLGN_EXIT:
 	return "PLGN_EXIT";
+    case PLGN_FIN:
+	return "PLGN_FIN";
+    case PLGN_FIN_ACK:
+	return "PLGN_FIN_ACK";
     case PLGN_SIGNAL:
 	return "PLGN_SIGNAL";
     case PLGN_REQ_ACCNT:

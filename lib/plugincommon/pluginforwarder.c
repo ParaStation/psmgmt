@@ -140,6 +140,11 @@ static void handleLocalShutdown(Forwarder_Data_t *fw)
     }
 }
 
+static void handleFinACK(Forwarder_Data_t *fw)
+{
+    Selector_startOver();
+}
+
 static int handleMthrSock(int fd, void *info)
 {
     Forwarder_Data_t *fw = info;
@@ -165,6 +170,9 @@ static int handleMthrSock(int fd, void *info)
 	break;
     case PLGN_SHUTDOWN:
 	handleLocalShutdown(fw);
+	break;
+    case PLGN_FIN_ACK:
+	handleFinACK(fw);
 	break;
     default:
 	pluginlog("%s: invalid cmd %i from %s\n", __func__, lmsg->type,
@@ -451,6 +459,24 @@ static void sendAccInfo(Forwarder_Data_t *fw, int32_t status,
     sendMsgToMother(&msg);
 }
 
+static void sendCodeInfo(int32_t ecode)
+{
+    PSLog_Msg_t msg = (PSLog_Msg_t) {
+	.header = (DDMsg_t) {
+	    .type = PSP_CC_MSG,
+	    .dest = PSC_getTID(-1,0),
+	    .sender = PSC_getMyTID(),
+	    .len = PSLog_headerSize },
+	.version = PLUGINFW_PROTO_VERSION,
+	.type = PLGN_CODE,
+	.sender = -1};
+
+    PSP_putMsgBuf((DDBufferMsg_t*)&msg, __func__, "exit code",
+		  &ecode, sizeof(ecode));
+
+    sendMsgToMother(&msg);
+}
+
 static void sendExitInfo(int32_t estatus)
 {
     PSLog_Msg_t msg = (PSLog_Msg_t) {
@@ -469,6 +495,21 @@ static void sendExitInfo(int32_t estatus)
     sendMsgToMother(&msg);
 }
 
+static void sendFin(void)
+{
+    PSLog_Msg_t msg = (PSLog_Msg_t) {
+	.header = (DDMsg_t) {
+	    .type = PSP_CC_MSG,
+	    .dest = PSC_getTID(-1,0),
+	    .sender = PSC_getMyTID(),
+	    .len = PSLog_headerSize },
+	.version = PLUGINFW_PROTO_VERSION,
+	.type = PLGN_FIN,
+	.sender = -1};
+
+    sendMsgToMother(&msg);
+}
+
 static void execForwarder(int motherFD, PStask_t *task)
 {
     fwTask = task;
@@ -480,13 +521,17 @@ static void execForwarder(int motherFD, PStask_t *task)
     fwTask->fd = motherFD;
 
     if (!initForwarder(motherFD, fw)) {
-	pluginlog("%s: initForwarder failed", __func__);
+	pluginlog("%s: initForwarder failed\n", __func__);
 	exit(1);
     }
 
-    if (fw->hookFWInit && fw->hookFWInit(fw) < 0) {
-	pluginlog("%s: hookFWInit failed", __func__);
-	exit(1);
+    if (fw->hookFWInit) {
+	int ret = fw->hookFWInit(fw);
+	if (ret < 0) {
+	    pluginlog("%s: hookFWInit failed with %d\n", __func__, ret);
+	    sendCodeInfo(ret);
+	    exit(-1);
+	}
     }
 
     for (i = 1; i <= fw->childRerun; i++) {
@@ -540,13 +585,6 @@ static void execForwarder(int motherFD, PStask_t *task)
 	    }
 	    sendExitInfo(status);
 	}
-
-	/* cancel timeout */
-	alarm(0);
-
-	/* make sure we handled all data, after child is gone */
-	Swait(1);
-
 	/* check for timeout */
 	if (jobTimeout) {
 	    pluginlog("%s: child timed out\n", __func__);
@@ -555,6 +593,15 @@ static void execForwarder(int motherFD, PStask_t *task)
 
 	if (status) break;
     }
+
+    /* cancel timeout */
+    alarm(0);
+
+    sendFin();
+
+    /* make sure handling all data, after child is gone + wait for FinACK */
+    Swait(1);
+
     if (fw->hookFinalize) fw->hookFinalize(fw);
 
     /* cleanup */
@@ -603,6 +650,16 @@ static void handleChildStart(Forwarder_Data_t *fw, PSLog_Msg_t *msg)
 	      PSC_printTID(msg->header.sender), fw->cPid, fw->cSid);
 }
 
+static void handleChildCode(Forwarder_Data_t *fw, PSLog_Msg_t *msg)
+{
+    size_t used = PSLog_headerSize - sizeof(msg->header);
+
+    PSP_getMsgBuf((DDBufferMsg_t *)msg, &used, __func__, "exit code",
+		  &fw->ecode, sizeof(fw->ecode));
+
+    plugindbg(PLUGIN_LOG_FW, "%s: ecode %i\n", __func__, fw->ecode);
+}
+
 static void handleChildExit(Forwarder_Data_t *fw, PSLog_Msg_t *msg)
 {
     size_t used = PSLog_headerSize - sizeof(msg->header);
@@ -611,6 +668,24 @@ static void handleChildExit(Forwarder_Data_t *fw, PSLog_Msg_t *msg)
 		  &fw->estatus, sizeof(fw->estatus));
 
     plugindbg(PLUGIN_LOG_FW, "%s: estatus %i\n", __func__, fw->estatus);
+}
+
+static void handleChildFin(PStask_ID_t sender)
+{
+    PSLog_Msg_t msg = (PSLog_Msg_t) {
+	.header = (DDMsg_t) {
+	    .type = PSP_CC_MSG,
+	    .dest = sender,
+	    .sender = PSC_getMyTID(),
+	    .len = PSLog_headerSize },
+	.version = PLUGINFW_PROTO_VERSION,
+	.type = PLGN_FIN_ACK,
+	.sender = -1};
+
+    sendMsg(&msg);
+
+    plugindbg(PLUGIN_LOG_FW, "%s: %s finalized\n", __func__,
+	      PSC_printTID(sender));
 }
 
 /**
@@ -656,8 +731,14 @@ static int handleFwSock(int fd, void *info)
     case PLGN_ACCOUNT:
 	PSID_handleMsg((DDBufferMsg_t *) &lmsg->buf);
 	break;
+    case PLGN_CODE:
+	handleChildCode(fw, lmsg);
+	break;
     case PLGN_EXIT:
 	handleChildExit(fw, lmsg);
+	break;
+    case PLGN_FIN:
+	handleChildFin(msg.header.sender);
 	break;
     default:
 	pluginlog("%s: invalid cmd %i from %s\n", __func__, lmsg->type,
