@@ -1,13 +1,11 @@
 #
 # ParaStation
 #
-# Copyright (C) 2012-2016 ParTec Cluster Competence Center GmbH, Munich
+# Copyright (C) 2012-2017 ParTec Cluster Competence Center GmbH, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
 # file.
-#
-# Author:	Thomas Moschny <moschny@par-tec.com>
 #
 
 AC_PREREQ([2.68])
@@ -135,6 +133,10 @@ AC_CONFIG_FILES(plugins/psmom/src/pam/Makefile)
 AC_CONFIG_FILES(plugins/psmom/src/pbs/Makefile)
 AC_CONFIG_FILES(plugins/psmom/src/psmom/Makefile)
 AC_CONFIG_FILES(plugins/psmunge/Makefile)
+AC_CONFIG_FILES(plugins/pspam/Makefile)
+AC_CONFIG_FILES(plugins/pspam/doc/Makefile)
+AC_CONFIG_FILES(plugins/pspam/src/module/Makefile)
+AC_CONFIG_FILES(plugins/pspam/src/pspam/Makefile)
 AC_CONFIG_FILES(plugins/pspmi/Makefile)
 AC_CONFIG_FILES(plugins/psresport/Makefile)
 AC_CONFIG_FILES(scripts/Makefile)

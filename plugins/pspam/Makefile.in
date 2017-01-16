@@ -17,11 +17,13 @@
 #
 # ParaStation
 #
-# Copyright (C) 2012-2017 ParTec Cluster Competence Center GmbH, Munich
+# Copyright (C) 2014 ParTec Cluster Competence Center GmbH, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
 # file.
+#
+# Author:	Michael Rauh <rauh@par-tec.com>
 #
 
 #
@@ -110,8 +112,8 @@ POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
 target_triplet = @target@
-@MUNGE_ENABLED_TRUE@am__append_1 = psmunge
-subdir = plugins
+@PAM_ENABLED_TRUE@am__append_1 = src/module
+subdir = plugins/pspam
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/m4/ax_check_compile_flag.m4 \
 	$(top_srcdir)/m4/libtool.m4 $(top_srcdir)/m4/ltoptions.m4 \
@@ -177,8 +179,7 @@ am__define_uniq_tagged_files = \
   done | $(am__uniquify_input)`
 ETAGS = etags
 CTAGS = ctags
-DIST_SUBDIRS = cgroup pelogue psaccount psexec psmom pspmi psresport \
-	psmunge
+DIST_SUBDIRS = doc src/pspam src/module
 am__DIST_COMMON = $(srcdir)/Makefile.in $(top_srcdir)/common.am
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 am__relativize = \
@@ -369,8 +370,7 @@ configdir = $(prefix)/config
 
 # dito
 scriptsdir = $(prefix)/scripts
-SUBDIRS = cgroup pelogue psaccount psexec psmom pspmi psresport \
-	$(am__append_1)
+SUBDIRS = doc src/pspam $(am__append_1)
 all: all-recursive
 
 .SUFFIXES:
@@ -383,9 +383,9 @@ $(srcdir)/Makefile.in: @MAINTAINER_MODE_TRUE@ $(srcdir)/Makefile.am $(top_srcdir
 	      exit 1;; \
 	  esac; \
 	done; \
-	echo ' cd $(top_srcdir) && $(AUTOMAKE) --foreign plugins/Makefile'; \
+	echo ' cd $(top_srcdir) && $(AUTOMAKE) --foreign plugins/pspam/Makefile'; \
 	$(am__cd) $(top_srcdir) && \
-	  $(AUTOMAKE) --foreign plugins/Makefile
+	  $(AUTOMAKE) --foreign plugins/pspam/Makefile
 Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
 	@case '$?' in \
 	  *config.status*) \
