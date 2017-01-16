@@ -1,34 +1,19 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2017 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-/**
- * $Id$
- *
- * \author
- * Michael Rauh <rauh@par-tec.com>
- *
- */
+#ifndef __PSMOM_PSCOMM
+#define __PSMOM_PSCOMM
 
-#ifndef __PS_MOM_PSCOMM
-#define __PS_MOM_PSCOMM
+#include "pspluginprotocol.h"
 
-#include <stdbool.h>
-
-#include "psprotocol.h"
-#include "psidcomm.h"
-#include "pscommon.h"
-#include "psmomjob.h"
 #include "plugincomm.h"
-
-#define PSMOM_PSCOMM_VERSION 101
-
-#define PSP_CC_PSMOM 0x0200  /**< psmom message */
+#include "psmomjob.h"
 
 typedef enum {
     PSP_PSMOM_VERSION = 0x0010,	    /**< req psmom version information */
@@ -44,15 +29,6 @@ typedef enum {
 } PSP_PSMOM_t;
 
 /**
- * @brief Get the string name for a PSP message type.
- *
- * @param type The message type to convert.
- *
- * @return Returns the requested string or NULL on error.
- */
-char *pspMsgType2Str(PSP_PSMOM_t type);
-
-/**
  * @brief Update remote job information.
  *
  * Send information about new started parallel processes to all nodes involed.
@@ -63,33 +39,15 @@ char *pspMsgType2Str(PSP_PSMOM_t type);
  */
 void sendJobUpdate(Job_t *job);
 
-/**
- * @brief Handle a received PS DDTypedBuffer message.
- *
- * This is the main message switch for PS messages.
- *
- * @param msg The message to handle.
- *
- * @return No return value.
- */
-void handlePSMsg(DDTypedBufferMsg_t *msg);
-
-/**
- * @brief Handle a dropped message.
- *
- * @param msg The message to handle.
- *
- * @return No return value.
- */
-void handleDroppedMsg(DDTypedBufferMsg_t *msg);
-
 void sendFragMsgToHostList(Job_t *job, PS_DataBuffer_t *data, int32_t type,
-			    int myself);
-
-void sendPSMsgToHostList(Job_t *job, DDTypedBufferMsg_t *msg, int myself);
+			   int myself);
 
 void sendPSmomVersion(Job_t *job);
 
 void sendJobInfo(Job_t *job, int start);
 
-#endif
+void initPSComm(void);
+
+void finalizePSComm(void);
+
+#endif /* __PSMOM_PSCOMM */

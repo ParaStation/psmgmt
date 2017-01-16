@@ -7,7 +7,6 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/stat.h>
@@ -83,7 +82,7 @@ void signalPElogue(Job_t *job, char *signal, char *reason)
 {
     DDTypedBufferMsg_t msg = (DDTypedBufferMsg_t) {
 	.header = (DDMsg_t) {
-	    .type = PSP_CC_PSMOM,
+	    .type = PSP_CC_PLUG_PSMOM,
 	    .sender = PSC_getMyTID(),
 	    .dest = PSC_getMyTID(),
 	    .len = sizeof(msg.header) + sizeof(msg.type)},
@@ -664,7 +663,7 @@ static int callbackPElogue(int fd, PSID_scriptCBInfo_t *info)
     /* prepare result msg */
     DDTypedBufferMsg_t msgRes = (DDTypedBufferMsg_t) {
 	.header = (DDMsg_t) {
-	    .type = PSP_CC_PSMOM,
+	    .type = PSP_CC_PLUG_PSMOM,
 	    .sender = PSC_getMyTID(),
 	    .dest = data->mainMom,
 	    .len = sizeof(msgRes.header) + sizeof(msgRes.type)},
@@ -878,7 +877,7 @@ void handlePELogueStart(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *msgData)
 {
     DDTypedBufferMsg_t msgRes = (DDTypedBufferMsg_t) {
 	.header = (DDMsg_t) {
-	    .type = PSP_CC_PSMOM,
+	    .type = PSP_CC_PLUG_PSMOM,
 	    .sender = PSC_getMyTID(),
 	    .dest = msg->header.sender,
 	    .len = sizeof(msgRes.header) + sizeof(msgRes.type)},

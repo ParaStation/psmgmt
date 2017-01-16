@@ -174,17 +174,15 @@ static bool shutdownJobs(void)
 	mlog("sending SIGTERM to %i remaining jobs\n", countJobs());
 	signalAllJobs(SIGTERM, "shutdown");
 
-	if ((cleanupTimerID = Timer_register(&cleanupTimer,
-							cleanupJobs)) == -1) {
+	cleanupTimerID = Timer_register(&cleanupTimer, cleanupJobs);
+	if (cleanupTimerID == -1) {
 	    mlog("registering cleanup timer failed\n");
 	}
 	return false;
     }
 
     /* all jobs are gone */
-    if (doUnload) {
-	PSIDplugin_unload("psmom");
-    }
+    if (doUnload) PSIDplugin_unload("psmom");
     return true;
 }
 
@@ -538,9 +536,9 @@ static int validateDirs(void)
 
 static int setRootHome(void)
 {
-    struct passwd *spasswd;
+    struct passwd *spasswd = getpwnam("root");
 
-    if (!(spasswd = getpwnam("root"))) {
+    if (!spasswd) {
 	mlog("%s: getpwnam(root) failed\n", __func__);
 	return 0;
     }
@@ -559,31 +557,25 @@ static int setRootHome(void)
  */
 static void unregisterHooks(int verbose)
 {
-    /* unregister psmom msg */
-    PSID_clearMsg(PSP_CC_PSMOM);
-
-    /* unregister msg drop handler */
-    PSID_clearDropper(PSP_CC_PSMOM);
-
     /* restore old SPAWNREQ handler */
     if (oldSpawnReqHandler) {
 	PSID_registerMsg(PSP_CD_SPAWNREQ, (handlerFunc_t) oldSpawnReqHandler);
     }
 
     /* unregister hooks */
-    if (!(PSIDhook_del(PSIDHOOK_NODE_DOWN, handleNodeDown))) {
+    if (!PSIDhook_del(PSIDHOOK_NODE_DOWN, handleNodeDown)) {
 	if (verbose) mlog("unregister 'PSIDHOOK_NODE_DOWN' failed\n");
     }
 
-    if (!(PSIDhook_del(PSIDHOOK_CREATEPART, handleCreatePart))) {
+    if (!PSIDhook_del(PSIDHOOK_CREATEPART, handleCreatePart)) {
 	if (verbose) mlog("unregister 'PSIDHOOK_CREATEPART' failed\n");
     }
 
-    if (!(PSIDhook_del(PSIDHOOK_CREATEPARTNL, handleCreatePartNL))) {
+    if (!PSIDhook_del(PSIDHOOK_CREATEPARTNL, handleCreatePartNL)) {
 	if (verbose) mlog("unregister 'PSIDHOOK_CREATEPARTNL' failed\n");
     }
 
-    if (!(PSIDhook_del(PSIDHOOK_SHUTDOWN, handleShutdown))) {
+    if (!PSIDhook_del(PSIDHOOK_SHUTDOWN, handleShutdown)) {
 	if (verbose) mlog("unregister 'PSIDHOOK_SHUTDOWN' failed\n");
     }
 }
@@ -651,7 +643,8 @@ int initialize(void)
     maskLogger(debugMask);
 
     /* read pwnam buffer value */
-    if ((pwBufferSize = sysconf(_SC_GETPW_R_SIZE_MAX)) < 1) {
+    pwBufferSize = sysconf(_SC_GETPW_R_SIZE_MAX);
+    if (pwBufferSize < 1) {
 	mlog("%s: getting pw buffer size failed, using 1024\n",
 		__func__);
 	pwBufferSize = 1024;
@@ -660,24 +653,20 @@ int initialize(void)
     /* cleanup left over log files */
     cleanupLogs();
 
-    /* save the home directory of root */
-    if (!(setRootHome())) {
-	return 1;
-    }
+    /* save root's home directory */
+    if (!setRootHome()) return 1;
 
     /* setup torque version support */
-    if (!(setupTorqueVersionSupport())) {
-	return 1;
-    }
+    if (!setupTorqueVersionSupport()) return 1;
 
     /* init the tcp communication layer */
-    if ((wBind(momPort, TCP_PROTOCOL)) < 0) {
+    if (wBind(momPort, TCP_PROTOCOL) < 0) {
 	mlog("Listen on tcp port %d failed\n", momPort);
 	return 1;
     }
 
     /* init the rpp communication layer */
-    if ((wBind(rmPort, RPP_PROTOCOL)) < 0) {
+    if (wBind(rmPort, RPP_PROTOCOL) < 0) {
 	mlog("listen on rpp port %d failed\n", rmPort);
 	return 1;
     }
@@ -687,46 +676,40 @@ int initialize(void)
 
     /* We'll use fragmented messages between different psmoms */
     initFragComm();
-
-    /* register inter psmom msg */
-    PSID_registerMsg(PSP_CC_PSMOM, (handlerFunc_t) handlePSMsg);
-
-    /* register handler for dropped msgs */
-    PSID_registerDropper(PSP_CC_PSMOM, (handlerFunc_t) handleDroppedMsg);
+    initPSComm();
 
     oldSpawnReqHandler = PSID_registerMsg(PSP_CD_SPAWNREQ,
-				(handlerFunc_t) handlePSSpawnReq);
+					  (handlerFunc_t) handlePSSpawnReq);
 
     /* register needed hooks */
-    if (!(PSIDhook_add(PSIDHOOK_NODE_DOWN, handleNodeDown))) {
+    if (!PSIDhook_add(PSIDHOOK_NODE_DOWN, handleNodeDown)) {
 	mlog("register 'PSIDHOOK_NODE_DOWN' failed\n");
 	goto INIT_ERROR;
     }
 
-    if (!(PSIDhook_add(PSIDHOOK_CREATEPART, handleCreatePart))) {
+    if (!PSIDhook_add(PSIDHOOK_CREATEPART, handleCreatePart)) {
 	mlog("register 'PSIDHOOK_CREATEPART' failed\n");
 	goto INIT_ERROR;
     }
 
-    if (!(PSIDhook_add(PSIDHOOK_CREATEPARTNL, handleCreatePartNL))) {
+    if (!PSIDhook_add(PSIDHOOK_CREATEPARTNL, handleCreatePartNL)) {
 	mlog("register 'PSIDHOOK_CREATEPARTNL' failed\n");
 	goto INIT_ERROR;
     }
 
-    if (!(PSIDhook_add(PSIDHOOK_SHUTDOWN, handleShutdown))) {
+    if (!PSIDhook_add(PSIDHOOK_SHUTDOWN, handleShutdown)) {
 	mlog("register 'PSIDHOOK_SHUTDOWN' failed\n");
 	goto INIT_ERROR;
     }
 
     /* make sure timer facility is ready */
     if (!Timer_isInitialized()) {
-	mdbg(PSMOM_LOG_WARN, "timer facility not ready, trying to initialize"
-	    " it\n");
+	mdbg(PSMOM_LOG_WARN, "timer facility not yet ready\n");
 	Timer_init(NULL);
     }
 
     /* connect to the pbs server(s) */
-    if ((openServerConnections())) {
+    if (openServerConnections()) {
 	goto INIT_ERROR;
     }
 
@@ -743,6 +726,7 @@ int initialize(void)
 
 INIT_ERROR:
     unregisterHooks(0);
+    finalizePSComm();
     return 1;
 }
 
@@ -796,6 +780,7 @@ void cleanup(void)
 
     /* remove all registered hooks and msg handler */
     unregisterHooks(1);
+    finalizePSComm();
 
     /* close local comm socket */
     closeMasterSock();
