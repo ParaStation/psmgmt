@@ -1,7 +1,7 @@
 #                                                       -*- Makefile -*-
 # ParaStation
 #
-# Copyright (C) 2012-2016 ParTec Cluster Competence Center GmbH, Munich
+# Copyright (C) 2012-2017 ParTec Cluster Competence Center GmbH, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -407,21 +407,21 @@ plugins/pspam/Makefile.in \
 plugins/pspam/doc/Makefile.am \
 plugins/pspam/doc/Makefile.in \
 plugins/pspam/doc/pspam.pam \
-plugins/pspam/src/module/Makefile.am \
-plugins/pspam/src/module/Makefile.in \
-plugins/pspam/src/module/pam_module.c \
-plugins/pspam/src/pspam/Makefile.am \
-plugins/pspam/src/pspam/Makefile.in \
-plugins/pspam/src/pspam/pspam.c \
-plugins/pspam/src/pspam/pspam.h \
-plugins/pspam/src/pspam/pspamdef.h \
-plugins/pspam/src/pspam/pspamhandles.h \
-plugins/pspam/src/pspam/pspamlog.c \
-plugins/pspam/src/pspam/pspamlog.h \
-plugins/pspam/src/pspam/pspamssh.c \
-plugins/pspam/src/pspam/pspamssh.h \
-plugins/pspam/src/pspam/pspamuser.c \
-plugins/pspam/src/pspam/pspamuser.h \
+plugins/pspam/module/Makefile.am \
+plugins/pspam/module/Makefile.in \
+plugins/pspam/module/pam_module.c \
+plugins/pspam/pspam/Makefile.am \
+plugins/pspam/pspam/Makefile.in \
+plugins/pspam/pspam/pspam.c \
+plugins/pspam/pspam/pspam.h \
+plugins/pspam/pspam/pspamdef.h \
+plugins/pspam/pspam/pspamhandles.h \
+plugins/pspam/pspam/pspamlog.c \
+plugins/pspam/pspam/pspamlog.h \
+plugins/pspam/pspam/pspamssh.c \
+plugins/pspam/pspam/pspamssh.h \
+plugins/pspam/pspam/pspamuser.c \
+plugins/pspam/pspam/pspamuser.h \
 plugins/pspmi/Makefile.am \
 plugins/pspmi/Makefile.in \
 plugins/pspmi/pmiclient.c \

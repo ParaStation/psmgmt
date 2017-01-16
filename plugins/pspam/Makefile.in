@@ -17,13 +17,11 @@
 #
 # ParaStation
 #
-# Copyright (C) 2014 ParTec Cluster Competence Center GmbH, Munich
+# Copyright (C) 2014-2017 ParTec Cluster Competence Center GmbH, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
 # file.
-#
-# Author:	Michael Rauh <rauh@par-tec.com>
 #
 
 #
@@ -112,7 +110,7 @@ POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
 target_triplet = @target@
-@PAM_ENABLED_TRUE@am__append_1 = src/module
+@PAM_ENABLED_TRUE@am__append_1 = module
 subdir = plugins/pspam
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/m4/ax_check_compile_flag.m4 \
@@ -179,7 +177,7 @@ am__define_uniq_tagged_files = \
   done | $(am__uniquify_input)`
 ETAGS = etags
 CTAGS = ctags
-DIST_SUBDIRS = doc src/pspam src/module
+DIST_SUBDIRS = doc pspam module
 am__DIST_COMMON = $(srcdir)/Makefile.in $(top_srcdir)/common.am
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 am__relativize = \
@@ -370,7 +368,7 @@ configdir = $(prefix)/config
 
 # dito
 scriptsdir = $(prefix)/scripts
-SUBDIRS = doc src/pspam $(am__append_1)
+SUBDIRS = doc pspam $(am__append_1)
 all: all-recursive
 
 .SUFFIXES:
