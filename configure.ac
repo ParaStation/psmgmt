@@ -50,13 +50,15 @@ AC_CHECK_LIB([pam], [pam_open_session],
    [ pam_enabled=true ] ])
 AM_CONDITIONAL([PAM_ENABLED], [test "x$pam_enabled" = xtrue])
 
-AC_ARG_WITH([pamdir], [AS_HELP_STRING([--with-pamdir=DIR],
-  [specify pam plugin dir])],
-  AS_IF([test "x$withval" = xyes -o "x$withval" = no],
-	[AC_MSG_ERROR([missing arg to --with-pamdir])],
-	[pamdir="$withval"]),
-  [pamdir=/lib/security])
-AC_SUBST([pamdir])
+AM_COND_IF([PAM_ENABLED], [
+  AC_ARG_WITH([pamdir], [AS_HELP_STRING([--with-pamdir=DIR],
+    [specify pam plugin dir])],
+    AS_IF([test "x$withval" = xyes -o "x$withval" = no],
+	  [AC_MSG_ERROR([missing arg to --with-pamdir])],
+	  [pamdir="$withval"]),
+    [pamdir=/lib/security])
+  AC_SUBST([pamdir])
+], [])
 
 AC_CHECK_LIB([munge], [munge_encode],
   [AC_SUBST([MUNGE_LIBS], [-lmunge])

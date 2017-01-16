@@ -12190,6 +12190,8 @@ else
 fi
 
 
+if test -z "$PAM_ENABLED_TRUE"; then :
+
 
 # Check whether --with-pamdir was given.
 if test "${with_pamdir+set}" = set; then :
@@ -12203,6 +12205,8 @@ else
 fi
 
 
+
+fi
 
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for munge_encode in -lmunge" >&5
 $as_echo_n "checking for munge_encode in -lmunge... " >&6; }
