@@ -249,6 +249,10 @@ static int handleSIGCHLD(int fd, void *info)
 	    if (!task->killat) {
 		task->killat = time(NULL) + 10;
 	    }
+	    if (task->sigChldCB) {
+		task->sigChldCB(estatus, task);
+		task->sigChldCB = NULL;
+	    }
 	    if (task->fd != -1) {
 		/* Make sure we get all pending messages */
 		Selector_enable(task->fd);

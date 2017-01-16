@@ -8,11 +8,6 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-#ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__((used)) =
-    "$Id$";
-#endif /* DOXYGEN_SHOULD_SKIP_THIS */
-
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -34,23 +29,43 @@ void PStask_printStat(void)
     PSrsrvtn_printStat();
 }
 
-char* PStask_printGrp(PStask_group_t tg)
+const char* PStask_printGrp(PStask_group_t tg)
 {
-    return (tg==TG_ANY) ? "TG_ANY" :
-	(tg==TG_ADMIN) ? "TG_ADMIN" :
-	(tg==TG_RESET) ? "TG_RESET" :
-	(tg==TG_LOGGER) ? "TG_LOGGER" :
-	(tg==TG_FORWARDER) ? "TG_FORWARDER" :
-	(tg==TG_SPAWNER) ? "TG_SPAWNER" :
-	(tg==TG_GMSPAWNER) ? "TG_GMSPAWNER" :
-	(tg==TG_MONITOR) ? "TG_MONITOR" :
-	(tg==TG_PSCSPAWNER) ? "TG_PSCSPAWNER" :
-	(tg==TG_ADMINTASK) ? "TG_ADMINTASK" :
-	(tg==TG_SERVICE) ? "TG_SERVICE" :
-	(tg==TG_SERVICE_SIG) ? "TG_SERVICE_SIG" :
-	(tg==TG_KVS) ? "TG_KVS" :
-	(tg==TG_DELEGATE) ? "TG_DELEGATE" :
-	"UNKNOWN";
+    switch (tg) {
+    case TG_ANY:
+	return "TG_ANY";
+    case TG_ADMIN:
+	return "TG_ADMIN";
+    case TG_RESET:
+	return "TG_RESET";
+    case TG_LOGGER:
+	return "TG_LOGGER";
+    case TG_FORWARDER:
+	return "TG_FORWARDER";
+    case TG_SPAWNER:
+	return "TG_SPAWNER";
+    case TG_GMSPAWNER:
+	return "TG_GMSPAWNER";
+    case TG_ACCOUNT:
+	return "TG_ACCOUNT";
+    case TG_MONITOR:
+	return "TG_MONITOR";
+    case TG_PSCSPAWNER:
+	return "TG_PSCSPAWNER";
+    case TG_ADMINTASK:
+	return "TG_ADMINTASK";
+    case TG_SERVICE:
+	return "TG_SERVICE";
+    case TG_SERVICE_SIG:
+	return "TG_SERVICE_SIG";
+    case TG_KVS:
+	return "TG_KVS";
+    case TG_DELEGATE:
+	return "TG_DELEGATE";
+    case TG_PLUGINFW:
+	return "TG_PLUGINFW";
+    }
+    return "UNKNOWN";
 }
 
 PStask_t* PStask_new(void)
@@ -127,6 +142,8 @@ int PStask_init(PStask_t* task)
     task->spawnNum = 0;
     task->delegate = NULL;
     task->injectedEnv = 0;
+    task->sigChldCB = NULL;
+    task->info = NULL;
     task->resPorts = NULL;
 
     INIT_LIST_HEAD(&task->signalSender);
@@ -202,6 +219,7 @@ int PStask_reinit(PStask_t* task)
     delReservationList(&task->resRequests);
 
     if (task->spawnNodes) free(task->spawnNodes);
+    if (task->info) free(task->info);
     if (task->resPorts) free(task->resPorts);
 
     delSigList(&task->signalSender);
@@ -416,6 +434,7 @@ PStask_t* PStask_clone(PStask_t* task)
     clone->spawnNum = task->spawnNum;
     clone->delegate = task->delegate;
     clone->injectedEnv = task->injectedEnv;
+    /* Ignore sigChldCB and info */
 
     cloneSigList(&clone->signalSender, &task->signalSender);
     cloneSigList(&clone->signalReceiver, &task->signalReceiver);

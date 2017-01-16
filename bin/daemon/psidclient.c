@@ -8,11 +8,6 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-#ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__((used)) =
-    "$Id$";
-#endif /* DOXYGEN_SHOULD_SKIP_THIS */
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -172,10 +167,10 @@ static int handleClientMsg(int fd, void *info)
     return 0;
 }
 
-void PSIDclient_setEstablished(int fd)
+void PSIDclient_setEstablished(int fd, Selector_CB_t handler, void *info)
 {
     Selector_remove(fd);
-    Selector_register(fd, handleClientMsg, NULL);
+    Selector_register(fd, handler ? handler : handleClientMsg, info);
 
     clients[fd].flags &= ~INITIALCONTACT;
 }
@@ -1004,7 +999,7 @@ static void msg_CLIENTCONNECT(int fd, DDBufferMsg_t *bufmsg)
 
 	if (msg->group==TG_RESET && !uid) PSID_reset();
     } else {
-	PSIDclient_setEstablished(fd);
+	PSIDclient_setEstablished(fd, handleClientMsg, NULL);
 	task->protocolVersion = msg->version;
 
 	outmsg.type = PSC_getMyID();

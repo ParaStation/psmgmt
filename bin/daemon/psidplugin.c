@@ -116,8 +116,10 @@ static LIST_HEAD(pluginList);
  * 114: added PSIDHOOK_PELOGUE_FINISH and PSIDHOOK_FRWRD_DSOCK
  *
  * 115: added PSIDHOOK_JAIL_CHILD
+ *
+ * 116: added PSIDHOOK_PELOGUE_PREPARE
  */
-static int pluginAPIVersion = 115;
+static int pluginAPIVersion = 116;
 
 
 /** Grace period between finalize and unload on forcefully unloads */

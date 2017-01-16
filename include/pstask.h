@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2017 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -11,12 +11,6 @@
 /**
  * @file
  * User-functions for interaction with ParaStation tasks.
- *
- * $Id$
- *
- * @author
- * Norbert Eicker <eicker@par-tec.com>
- *
  */
 #ifndef __PSTASK_H
 #define __PSTASK_H
@@ -35,13 +29,6 @@
 #include "psnodes.h"
 #include "pscpu.h"
 
-#ifdef __cplusplus
-extern "C" {
-#if 0
-} /* <- just for emacs indentation */
-#endif
-#endif
-
 /**
  * @brief Get the name of a PStask_group.
  *
@@ -51,7 +38,7 @@ extern "C" {
  *
  * @return The name of the PStask_group or "UNKNOWN".
  */
-char *PStask_printGrp(PStask_group_t taskgroup);
+const char* PStask_printGrp(PStask_group_t taskgroup);
 
 /**
  * @brief Print statistics
@@ -66,9 +53,29 @@ void PStask_printStat(void);
 #include "pspartition.h"
 #include "psreservation.h"
 
+/* forward declaration */
+typedef struct __task__ PStask_t;
+
+/**
+ * @brief Signal callback
+ *
+ * Callback to be executed upon SIGCHLD received from the
+ * corresponding process. @a status will contain the exit status of
+ * the process that triggered sending the SIGCHLD. @a task points to
+ * the task structure describing this process.
+ *
+ * @param status Exit status determined via waitpid()
+ *
+ * @param task Task structure describing the process SIGCHLD was
+ * received from
+ *
+ * @return No return value
+ */
+typedef void PStask_sigChldCB_t(int status, PStask_t *task);
+
 /** Task structure */
 /* Members marked with C are (un)packed by PStask_encode()/PStask_decode() */
-typedef struct __task__ {
+struct __task__ {
     list_t next;                   /**< used to put into managedTasks, etc. */
     /*C*/ PStask_ID_t tid;         /**< unique task identifier */
     /*C*/ PStask_ID_t ptid;        /**< unique identifier of parent task */
@@ -136,15 +143,17 @@ typedef struct __task__ {
     PSpart_slot_t *spawnNodes;     /**< Nodes the task can spawn to */
     int32_t spawnNodesSize;        /**< Current size of @ref spawnNodes */
     int32_t spawnNum;              /**< Amount of content of @ref spawnNodes */
-    struct __task__ *delegate;     /**< Delegate holding resources */
+    PStask_t *delegate;            /**< Delegate holding resources */
     int injectedEnv;               /**< Flag an injected environment into the
 				      current spawn. Used by psmom, etc. */
+    PStask_sigChldCB_t *sigChldCB; /**< Callback to be executed on SIGCHLD */
+    void *info;                    /**< Generic info to be used by initiator */
 
     list_t signalSender;           /**< Tasks which sent signals */
     list_t signalReceiver;         /**< Tasks which want to receive signals */
     list_t assignedSigs;           /**< Tasks assigned to send signals */
     uint16_t *resPorts;		   /**< Reserved Ports for OpenMPI startup */
-} PStask_t;
+} /* PStask_t */;
 
 /**
  * @brief Create a new task structure.
@@ -556,9 +565,5 @@ int PStask_decodeEnvAppend(char *buffer, PStask_t *task);
  * @return The new reservation ID
  */
 PSrsrvtn_ID_t PStask_getNextResID(PStask_t *task);
-
-#ifdef __cplusplus
-}/* extern "C" */
-#endif
 
 #endif  /* __PSTASK_H */

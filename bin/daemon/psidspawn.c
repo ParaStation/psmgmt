@@ -8,11 +8,6 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-#ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__((used)) =
-    "$Id$";
-#endif /* DOXYGEN_SHOULD_SKIP_THIS */
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -873,18 +868,27 @@ static void restoreLimits(void)
  * UID, GID and the current working directory are set up correctly. If
  * no working directory is provided within @a task, the corresponding
  * user's home directory is used. After some tests on the existence
- * and accessibility of the executable to call the forwarder is
- * signaled via the control-channel passwd withing task->fd to
- * register the child process within the local daemon. As soon as the
- * forwarder acknowledges the registration finally the executable is
- * called via @ref myexecv().
+ * and accessibility of the executable to call, the forwarder is
+ * signaled via the control-channel within task->fd to register the
+ * child process within the local daemon. As soon as the forwarder
+ * acknowledges the registration finally the executable is called via
+ * @ref myexecv().
  *
- * Error-messages are sent to stderr. It is the task of the calling
- * function to provide an environment to forward this message to the
- * end-user of this function.
+ * Since this function is typically called from within a fork()ed
+ * process, possible errors cannot be signaled via a return
+ * value. Thus the control-channel within task->fd is used, a file
+ * descriptor building one end of a pipe. The calling process has to
+ * listen to the other end. If some data appears on this channel, it
+ * is a strong signal that something failed during setting up the
+ * client process. Actually the datum passed back is the current @ref
+ * errno within the function set by the failing library call.
  *
- * @param task The task structure describing the client process to set
- * up.
+ * Further error-messages are sent to stderr. It is the task of
+ * the calling function to provide an environment to forward this
+ * message to the end-user of this function.
+ *
+ * @param task The task structure describing the client process to be
+ * set up.
  *
  * @return No return value.
  *
@@ -1088,9 +1092,9 @@ static int openChannel(PStask_t *task, int *fds, int fileNo)
  * this sandbox. The client process is described within the task
  * structure @a task.
  *
- * The forwarder will be connected to the local daemon from the very
- * beginning, i.e. it is not reconnecting. Therefor one end of a
- * socketpair of type Unix is needed in order to setup this
+ * The forwarder is connected to the local daemon from the very
+ * beginning, i.e. it is not reconnecting. For this one end of a
+ * socketpair of type UNIX stream is used in order to setup this
  * connection. The corresponding file descriptor has to be passed
  * within the @a daemonfd argument.
  *
@@ -1107,22 +1111,17 @@ static int openChannel(PStask_t *task, int *fds, int fileNo)
  * the calling function to provide an environment to forward this
  * message to the end-user of this function.
  *
- * @param task The task structure describing the client process to set
- * up.
+ * @param daemonfd File descriptor representing one end of a UNIX
+ * stream socketpair used as a connection to the local daemon
  *
- * @param daemonfd File descriptor representing one end of a Unix
- * socketpair used as a connection between forwarder and daemon.
- *
- * @param cntrlCh The control-channel the calling process should
- * listen to. This file-descriptor has to be one end of a pipe. The
- * calling process listens to the other end in order to detect
- * problems.
+ * @param task Task structure describing the client process to set
+ * up
  *
  * @return No return value.
  *
  * @see fork(), errno
  */
-static void execForwarder(PStask_t *task, int daemonfd)
+static void execForwarder(int daemonfd, PStask_t *task)
 {
     pid_t pid;
     int stdinfds[2], stdoutfds[2], stderrfds[2] = {-1, -1}, controlfds[2];
@@ -1458,34 +1457,42 @@ static void sendAcctChild(PStask_t *task)
 }
 
 /**
- * @brief Build sandbox and spawn process within.
+ * @brief Build sandbox and spawn process within
  *
- * Build a new sandbox and spawn the process described by @a client
- * within. In order to do this, first of all a forwarder is created
- * that sets up a sandbox for the client process to run in. The the
- * actual client process is started within this sandbox.
+ * Build a new sandbox and use @a creator to setup the actual process
+ * described by @a task. This function is expected to take all
+ * necessary measure to detach from the daemon and to actually create
+ * the process. This might include further calls of fork().
  *
- * All necessary information determined during start up of the
- * forwarder and client process is stored within the corresponding
- * task structures. For the forwarder this includes the task ID and
- * the file descriptor connecting the local daemon to the
- * forwarder. For the client only the task ID is stored.
+ * The new sandbox is connected to the local daemon via a UNIX stream
+ * socketpair. One end of the socketpair will be passed to @a creator,
+ * the other end is registered within @a task. All other file
+ * descriptors (besides stdin/stdout/stderr) within the new sandbox
+ * will be closed.
  *
- * @param forwarder Task structure describing the forwarder process to
- * create.
+ * All information only to be determined during start up of the
+ * process are stored upon return within the task structures. This
+ * includes the task ID and the file descriptor connecting the local
+ * daemon to the process.
  *
- * @param client Task structure describing the actual client process
- * to create.
+ * @param creator Actual mechanism to create the process
+ *
+ * @param task Task structure describing the process to create
  *
  * @return On success, 0 is returned. If something went wrong, a value
  * different from 0 is returned. This value might be interpreted as an
  * errno describing the problem that occurred during the spawn.
  */
-static int buildSandboxAndStart(PStask_t *task)
+static int buildSandboxAndStart(PSIDspawn_creator_t *creator, PStask_t *task)
 {
     int socketfds[2];     /* sockets for communication with forwarder */
     pid_t pid;            /* forwarder's pid */
     int i, eno;
+
+    if (!creator) {
+	PSID_warn(-1, EINVAL, "%s: no creator", __func__);
+	return EINVAL;
+    }
 
     if (PSID_getDebugMask() & PSID_LOG_SPAWN) {
 	char tasktxt[128];
@@ -1541,7 +1548,7 @@ static int buildSandboxAndStart(PStask_t *task)
 	PSC_setDaemonFlag(0);
 	PSC_resetMyTID();
 
-	execForwarder(task, socketfds[1]);
+	creator(socketfds[1], task);
     }
 
     /* this is the parent process */
@@ -1778,7 +1785,7 @@ static int spawnTask(PStask_t *task)
     if (!task) return EINVAL;
 
     /* now try to start the task */
-    err = buildSandboxAndStart(task);
+    err = buildSandboxAndStart(execForwarder, task);
 
     if (!err) {
 	/* prepare forwarder task */
@@ -1789,7 +1796,7 @@ static int spawnTask(PStask_t *task)
 	PStasklist_enqueue(&managedTasks, task);
 	/* The forwarder is already connected and established */
 	PSIDclient_register(task->fd, task->tid, task);
-	PSIDclient_setEstablished(task->fd);
+	PSIDclient_setEstablished(task->fd, NULL, NULL);
 	/* Tell everybody about the new forwarder task */
 	incJobs(1, 0);
     } else {
@@ -2857,6 +2864,34 @@ static void checkObstinateTasks(void)
 	}
     }
 
+}
+
+int PSIDspawn_localTask(PStask_t *task, PSIDspawn_creator_t creator,
+			Selector_CB_t *msgHandler)
+{
+    int err;
+
+    if (!task || !creator) return EINVAL;
+
+    /* now try to start the task */
+    err = buildSandboxAndStart(creator, task);
+
+    if (!err) {
+	/* prepare and enqueue task */
+	task->protocolVersion = PSProtocolVersion;
+	/* No signals expected to be sent, thus, release immediately */
+	task->released = true;
+	PStasklist_enqueue(&managedTasks, task);
+	/* The newly created process is already connected and established */
+	PSIDclient_register(task->fd, task->tid, task);
+	PSIDclient_setEstablished(task->fd, msgHandler, task);
+	/* Tell everybody about the new forwarder task */
+	incJobs(1, 0);
+    } else {
+	PSID_warn(-1, err, "%s: buildSandboxAndStart()", __func__);
+    }
+
+    return err;
 }
 
 void PSIDspawn_init(void)

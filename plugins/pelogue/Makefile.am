@@ -1,0 +1,32 @@
+#
+# ParaStation
+#
+# Copyright (C) 2013-2016 ParTec Cluster Competence Center GmbH, Munich
+#
+# This file may be distributed under the terms of the Q Public License
+# as defined in the file LICENSE.QPL included in the packaging of this
+# file.
+#
+
+include $(top_srcdir)/common.am
+
+psaccount_dir := plugins/psaccount
+
+AM_LDFLAGS += -avoid-version -module
+AM_CPPFLAGS += -I$(top_srcdir)/bin/daemon -I$(top_srcdir)/$(psaccount_dir)
+
+plugin_LTLIBRARIES = pelogue.la
+
+libplugincommon = $(top_builddir)/lib/plugincommon/libplugincommon.la
+
+pelogue_la_SOURCES = pelogue.c peloguelog.c peloguelog.h		\
+	peloguecomm.c peloguecomm.h pelogueconfig.c pelogueconfig.h	\
+	peloguechild.c peloguechild.h peloguescript.c peloguescript.h	\
+	peloguejob.c peloguejob.h pelogueinter.c pelogueinter.h		\
+	pelogueforwarder.c pelogueforwarder.h peloguekvs.c		\
+	peloguehandles.h
+
+pelogue_la_LIBADD = $(libplugincommon)
+
+install-exec-local:
+	$(INSTALL) -d $(DESTDIR)$(localstatedir)/spool/parastation/scripts
