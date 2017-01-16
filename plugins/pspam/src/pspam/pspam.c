@@ -170,18 +170,23 @@ static int handleMasterSocket(int sock, void *empty)
 
 static int initPluginHandles()
 {
-    void *pluginHandle = NULL;
+    void *pluginHandle = PSIDplugin_getHandle("psaccount");
 
     /* get psaccount function handles */
-    if (!(pluginHandle = PSIDplugin_getHandle("psaccount"))) {
+    if (!pluginHandle) {
 	mlog("%s: getting psaccount handle failed\n", __func__);
 	return 0;
     }
 
-    if (!(psAccountsendSignal2Session = dlsym(pluginHandle,
-	    "psAccountsendSignal2Session"))) {
-	mlog("%s: loading function psAccountsendSignal2Session() failed\n",
-		__func__);
+    psAccountSignalSession = dlsym(pluginHandle, "psAccountSignalSession");
+    if (!psAccountSignalSession) {
+	mlog("%s: loading function psAccountSignalSession() failed\n",__func__);
+	return 0;
+    }
+
+    psAccountIsDescendant = dlsym(pluginHandle, "psAccountIsDescendant");
+    if (!psAccountIsDescendant) {
+	mlog("%s: loading function psAccountIsDescendant() failed\n", __func__);
 	return 0;
     }
 

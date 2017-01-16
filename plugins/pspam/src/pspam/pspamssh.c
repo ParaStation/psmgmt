@@ -80,8 +80,8 @@ void delSSHSessions(char *user)
 	*/
 
 	/* kill ssh session */
-	psAccountsendSignal2Session(ssh->sid, SIGTERM);
-	psAccountsendSignal2Session(ssh->sid, SIGKILL);
+	psAccountSignalSession(ssh->sid, SIGTERM);
+	psAccountSignalSession(ssh->sid, SIGKILL);
 
 
 	if (ssh->user) ufree(ssh->user);
@@ -112,7 +112,7 @@ SSHSession_t *findSSHSessionforPID(pid_t pid)
 	if (!(ssh = list_entry(pos, SSHSession_t, list))) return NULL;
 
 	/* checking for pgroup or session does not make sense for SSH logins */
-	if ((ssh->pid == pid || psAccountisChildofParent(ssh->pid, pid))) {
+	if ((ssh->pid == pid || psAccountIsDescendant(ssh->pid, pid))) {
 	    return ssh;
 	}
     }
