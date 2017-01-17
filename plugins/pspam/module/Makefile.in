@@ -153,7 +153,7 @@ am__uninstall_files_from_dir = { \
 am__installdirs = "$(DESTDIR)$(pamdir)"
 LTLIBRARIES = $(pam_LTLIBRARIES)
 pam_pspam_la_DEPENDENCIES = $(libpscommon) $(plugincommon_objs)
-am_pam_pspam_la_OBJECTS = pam_pspam_la-pam_module.lo
+am_pam_pspam_la_OBJECTS = pam_module.lo
 pam_pspam_la_OBJECTS = $(am_pam_pspam_la_OBJECTS)
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
@@ -357,7 +357,8 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 unitdir = @unitdir@
-AM_CPPFLAGS = -I$(top_srcdir)/include -DNDEBUG
+AM_CPPFLAGS = -I$(top_srcdir)/include -DNDEBUG \
+	-I$(top_srcdir)/plugins/pspam/include
 subst_verbose = $(subst_verbose_$(V))
 subst_verbose_ = $(subst_verbose_$(AM_DEFAULT_VERBOSITY))
 subst_verbose_0 = @echo "  SUBST   " $(@F);
@@ -391,7 +392,6 @@ plugincommon_objs = $(top_builddir)/lib/plugincommon/plugincomm.lo \
 	$(top_builddir)/lib/plugincommon/pluginlog.lo
 libpscommon = $(top_builddir)/lib/pscommon/libpscommon.la
 pam_pspam_la_SOURCES = pam_module.c
-pam_pspam_la_CPPFLAGS = $(AM_CPPFLAGS) -DLOCALSTATEDIR=\"$(localstatedir)\"
 pam_pspam_la_LIBADD = -lpam $(libpscommon) $(plugincommon_objs)
 all: all-am
 
@@ -472,7 +472,7 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pam_pspam_la-pam_module.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pam_module.Plo@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	$(AM_V_CC)depbase=`echo $@ | sed 's|[^/]*$$|$(DEPDIR)/&|;s|\.o$$||'`;\
@@ -497,13 +497,6 @@ distclean-compile:
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='$<' object='$@' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LTCOMPILE) -c -o $@ $<
-
-pam_pspam_la-pam_module.lo: pam_module.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(pam_pspam_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT pam_pspam_la-pam_module.lo -MD -MP -MF $(DEPDIR)/pam_pspam_la-pam_module.Tpo -c -o pam_pspam_la-pam_module.lo `test -f 'pam_module.c' || echo '$(srcdir)/'`pam_module.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/pam_pspam_la-pam_module.Tpo $(DEPDIR)/pam_pspam_la-pam_module.Plo
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='pam_module.c' object='pam_pspam_la-pam_module.lo' libtool=yes @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(pam_pspam_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o pam_pspam_la-pam_module.lo `test -f 'pam_module.c' || echo '$(srcdir)/'`pam_module.c
 
 mostlyclean-libtool:
 	-rm -f *.lo

@@ -1,13 +1,12 @@
 /*
  *               ParaStation
  *
- * Copyright (C) 2011-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2011-2017 ParTec Cluster Competence Center GmbH, Munich
  *
- * \author
- * Michael Rauh <rauh@par-tec.com>
- *
+ * This file may be distributed under the terms of the Q Public License
+ * as defined in the file LICENSE.QPL included in the packaging of this
+ * file.
  */
-
 #define _GNU_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
@@ -21,6 +20,8 @@
 #include <sys/un.h>
 #include <errno.h>
 
+#include "pspamcommon.h"
+
 #include "plugincomm.h"
 
 /* needed for static modules but also recommended for shared modules */
@@ -30,7 +31,6 @@
 #define PAM_SM_SESSION
 
 #define UNIX_RESEND  5
-#define masterSocketName LOCALSTATEDIR "/run/pspam.sock"
 
 #include <security/pam_modules.h>
 #include <security/_pam_macros.h>
@@ -118,7 +118,7 @@ static int isAuthorizedUser(const char *username)
     return 0;
 }
 
-static int openPspamConnection()
+static int openPspamConnection(char *sockname)
 {
     int sock;
     struct sockaddr_un sa;
@@ -129,7 +129,12 @@ static int openPspamConnection()
 
     memset(&sa, 0, sizeof(sa));
     sa.sun_family = AF_UNIX;
-    strncpy(sa.sun_path, masterSocketName, sizeof(sa.sun_path));
+    if (sockname[0] == '\0') {
+	sa.sun_path[0] = '\0';
+	strncpy(sa.sun_path+1, sockname+1, sizeof(sa.sun_path)-1);
+    } else {
+	strncpy(sa.sun_path, sockname, sizeof(sa.sun_path));
+    }
 
     if ((connect(sock, (struct sockaddr*) &sa, sizeof(sa))) < 0) {
 	return -1;
@@ -208,7 +213,7 @@ static int hasRunningBatchJob(const char *username, const char *rhost)
     pid_t pid;
     PS_DataBuffer_t data = { .buf = NULL};
 
-    if ((sock = openPspamConnection()) == -1) {
+    if ((sock = openPspamConnection(pspamSocketName)) == -1) {
 	elog("connection to local pspam failed : %s",
 		strerror(errno));
 	return 0;

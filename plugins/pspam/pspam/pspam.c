@@ -34,6 +34,8 @@
 #include "pluginpartition.h"
 #include "psaccounthandles.h"
 
+#include "pspamcommon.h"
+
 #include "pspamlog.h"
 #include "pspamssh.h"
 #include "pspamuser.h"
@@ -41,7 +43,6 @@
 
 #include "pspam.h"
 
-#define masterSocketName LOCALSTATEDIR "/run/pspam.sock"
 #define USER_NAME_LEN	    100
 #define HOST_NAME_LEN	    1024
 
@@ -242,7 +243,7 @@ int initialize(void)
 	return 1;
     }
 
-    if ((masterSock = listenUnixSocket(masterSocketName)) == -1) {
+    if ((masterSock = listenUnixSocket(pspamSocketName)) == -1) {
 	mlog("%s: pspam already loaded?\n", __func__);
 	goto INIT_ERROR;
     }
@@ -271,7 +272,6 @@ void cleanup(void)
 	Selector_remove(masterSock);
     }
     close(masterSock);
-    unlink(masterSocketName);
 
     /* kill all leftover ssh sessions */
     clearSSHList();
