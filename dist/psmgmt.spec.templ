@@ -40,6 +40,9 @@ Requires(post): systemd
 Requires(preun): systemd
 Requires(postun): systemd
 %endif # with_systemd
+%if !0%{?disable_munge}
+BuildRequires: munge-devel
+%endif
 
 
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
