@@ -236,7 +236,7 @@ static int listenUnixSocket(char *socketName)
 int initialize(void)
 {
     /* init the logger (log to syslog) */
-    initLogger("pspam", NULL);
+    initLogger(NULL);
 
     initSSHList();
 
@@ -283,4 +283,7 @@ void cleanup(void)
     clearUserList();
 
     mlog("...Bye.\n");
+
+    /* release the logger */
+    logger_finalize(pspamlogger);
 }
