@@ -14,6 +14,15 @@
 #ifndef __PSPAM_COMMON
 #define __PSPAM_COMMON
 
+/** abstract socket name the pspam plugin is listening to */
 #define pspamSocketName "\0pspam.sock"
+
+/** Result of the pspam plugin analysis on allowance to access */
+typedef enum {
+    PSPAM_DENY = 0,   /**< No specific allowance -> deny access */
+    PSPAM_BATCH,      /**< Running batch-job -> grant access */
+    PSPAM_ADMIN_USER, /**< Admin user -> grant access */
+    PSPAM_PROLOG,     /**< Prologue still running -> deny access */
+} PSPAMResult_t;
 
 #endif /* __PSPAM_COMMON */

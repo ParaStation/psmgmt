@@ -43,7 +43,7 @@
 
 #include "pspam.h"
 
-#define USER_NAME_LEN	    100
+#define USER_NAME_LEN	    128
 #define HOST_NAME_LEN	    1024
 
 /** psid plugin requirements */
@@ -71,7 +71,8 @@ static int handlePamRequest(int sock, void *empty)
 {
     char user[USER_NAME_LEN], rhost[HOST_NAME_LEN];
     char *ptr, *buf = NULL;
-    int32_t msgLen, res = 0;
+    int32_t msgLen;
+    PSPAMResult_t res = PSPAM_DENY;
     int ret;
     pid_t pid, sid;
     struct passwd *spasswd;
@@ -108,24 +109,26 @@ static int handlePamRequest(int sock, void *empty)
     mlog("%s: got pam request pid: '%i' sid: '%i' user: '%s' rhost: '%s'\n",
 	__func__, pid, sid, user, rhost);
 
-    /* test if user is an PS admin */
-    if (!(spasswd = getpwnam(user))) {
-	mlog("%s: getpwnam failed for '%s' failed\n", __func__, user);
-    } else {
-	if (isPSAdminUser(spasswd->pw_uid, spasswd->pw_gid)) {
-	    res = 2;
-	}
-    }
+    errno = 0;
+    spasswd = getpwnam(user);
+    if (!spasswd && errno) mwarn(errno, "%s: getpwnam(%s)", __func__, user);
 
-    /* test if the user has running jobs */
-    if (!res && (pamUser = findUser(user, NULL))) {
+    pamUser = findUser(user, NULL);
+
+    /* Determine user's allowance */
+    if (spasswd && isPSAdminUser(spasswd->pw_uid, spasswd->pw_gid)) {
+	res = PSPAM_ADMIN_USER;
+    } else if (pamUser) {
 	if (pamUser->state == PSPAM_PROLGOUE) {
-	    res = 3;
+	    res = PSPAM_PROLOG;
 	} else {
-	    res = 1;
+	    res = PSPAM_BATCH;
 	    addSSHSession(user, rhost, pid, sid);
 	}
     }
+
+    /* add placeholder */
+    addInt32ToMsg(msgLen, &data);
 
     /* add result */
     addInt32ToMsg(res, &data);
@@ -135,6 +138,9 @@ static int handlePamRequest(int sock, void *empty)
 
     /* add pam rhost */
     addStringToMsg(rhost, &data);
+
+    /* add correct msg len (without length) at placeholder */
+    *(int32_t *)data.buf = data.bufUsed - sizeof(int32_t);
 
     mlog("%s: sending pam reply, user '%s' rhost '%s' res '%i'\n", __func__,
 	    user, rhost, res);
