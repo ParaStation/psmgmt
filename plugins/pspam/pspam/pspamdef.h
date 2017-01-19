@@ -21,6 +21,6 @@
 typedef enum {
     PSPAM_JOB,
     PSPAM_PROLGOUE,
-} PSPAM_state_t;
+} PSPAMState_t;
 
 #endif

@@ -239,7 +239,6 @@ int initialize(void)
     initLogger("pspam", NULL);
 
     initSSHList();
-    initUserList();
 
     if (!(initPluginHandles())) goto INIT_ERROR;
 
