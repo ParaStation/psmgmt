@@ -10,7 +10,7 @@
 #ifndef __PSPAM_TYPES
 #define __PSPAM_TYPES
 
-/** Phases a user's job might be in */
+/** Phases a user's job is currently in */
 typedef enum {
     PSPAM_STATE_PROLOGUE,   /**< Job still in prologue phase */
     PSPAM_STATE_JOB,        /**< Job entered actual execution stage */
@@ -20,47 +20,47 @@ typedef enum {
  * @brief Register user
  *
  * Register a new user identified by the username @a username and the
- * registering plugin @a plugin. The new user's initial jobstate is
- * set to @a state.
+ * job ID @a jobID. The new user's initial jobstate is set to @a
+ * state.
  *
  * @param username Name of the user to register
  *
- * @param plugin Name of the registering plugin
+ * @param jobID ID of the job the user is running
  *
  * @param state Current state of the user's job
  *
  * @return No return value
  */
-typedef void (psPamAddUser_t)(char *username, char *plugin, PSPAMState_t state);
+typedef void (psPamAddUser_t)(char *username, char *jobID, PSPAMState_t state);
 
 /**
  * @brief Set user's jobstate
  *
- * Set jobstate of the user identified by the username @a username and
- * the registering plugin @a plugin to @a state.
+ * Set jobstate of the user job identified by the username @a username
+ * and the job ID @a jobID to @a state.
  *
  * @param username Name of the user whose jobstate to update
  *
- * @param plugin Name of the expected registering plugin
+ * @param jobID ID of the job to be updated
  *
  * @param state Updated state of the user's job
  *
  * @return No return value
  */
-typedef void (psPamSetState_t)(char *username, char *plugin, PSPAMState_t state);
+typedef void (psPamSetState_t)(char *username, char *jobID, PSPAMState_t state);
 
 /**
  * @brief Delete user
  *
  * Delete the user identified by the username @a username and the
- * registering plugin @a plugin.
+ * job ID @a jobID.
  *
  * @param username Name of the user to delete
  *
- * @param plugin Name of the registering plugin
+ * @param jobID ID of the job to be removed
  *
  * @return No return value
  */
-typedef void (psPamDeleteUser_t)(char *username, char *plugin);
+typedef void (psPamDeleteUser_t)(char *username, char *jobID);
 
 #endif /* __PSPAM_TYPES */

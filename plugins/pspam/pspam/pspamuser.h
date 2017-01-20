@@ -19,73 +19,73 @@
 typedef struct {
     list_t next;        /**< used to put into list of users */
     char *name;         /**< username of the registered user */
-    char *plugin;       /**< name of the plugin registering the user */
-    PSPAMState_t state; /**< current state the user's job is in */
+    char *jobID;        /**< name of the job the user is running */
+    PSPAMState_t state; /**< current state the user's job */
 } User_t;
 
 /**
  * @brief Register user
  *
  * Register a new user identified by the username @a username and the
- * registering plugin @a plugin. The new user's jobstate is set to @a
+ * job ID @a jobID. The new user's initial jobstate is set to @a
  * state.
  *
  * @param username Name of the user to register
  *
- * @param plugin Name of the registering plugin
+ * @param jobID ID of the job the user is running
  *
  * @param state Current state of the user's job
  *
  * @return If a new user was added or a corresponding user entry
  * already exists true is returned. Otherwise false is returned.
  */
-bool addUser(char *username, char *plugin, PSPAMState_t state);
+bool addUser(char *username, char *jobID, PSPAMState_t state);
 
 /**
  * @brief Find user
  *
- * Find the user identified by the username @a username and the
- * registering plugin @a plugin. If plugin is NULL users registered by
- * any plugin might be returned.
+ * Find the user identified by the username @a username and the job ID
+ * @a jobID. If @a jobID is NULL only @a username will be taken into
+ * account, i.e. users registered with any @a jobID might be returned.
  *
  * @param username Name of the user to find
  *
- * @param plugin Name of the registering plugin to search for or NULL
- * to match users registered by any plugin.
+ * @param jobID ID of the job the user is running or NULL to match
+ * users registered with any job ID.
  *
  * @return Return a pointer to the found user structure or NULL
  */
-User_t *findUser(char *username, char *plugin);
+User_t *findUser(char *username, char *jobID);
 
 /**
  * @brief Set user's jobstate
  *
- * Set jobstate of the user identified by the username @a username and
- * the registering plugin @a plugin to @a state.
+ * Set jobstate of the user job identified by the username @a username
+ * and the job ID @a jobID to @a state.
  *
  * @param username Name of the user whose jobstate to update
  *
- * @param plugin Name of the expected registering plugin
+ * @param jobID ID of the job to be updated
  *
  * @param state Updated state of the user's job
  *
  * @return No return value
  */
-void setState(char *username, char *plugin, PSPAMState_t state);
+void setState(char *username, char *jobID, PSPAMState_t state);
 
 /**
  * @brief Delete user
  *
  * Delete the user identified by the username @a username and the
- * registering plugin @a plugin.
+ * job ID @a jobID.
  *
  * @param username Name of the user to delete
  *
- * @param plugin Name of the registering plugin
+ * @param jobID ID of the job to be removed
  *
  * @return No return value
  */
-void deleteUser(char *username, char *plugin);
+void deleteUser(char *username, char *jobID);
 
 /**
  * @brief Clear all users

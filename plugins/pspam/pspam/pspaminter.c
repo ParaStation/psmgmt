@@ -11,17 +11,17 @@
 
 #include "pspaminter.h"
 
-void psPamAddUser(char *username, char *plugin, PSPAMState_t state)
+void psPamAddUser(char *username, char *jobID, PSPAMState_t state)
 {
-    addUser(username, plugin, state);
+    addUser(username, jobID, state);
 }
 
-void psPamSetState(char *username, char *plugin, PSPAMState_t state)
+void psPamSetState(char *username, char *jobID, PSPAMState_t state)
 {
-    setState(username, plugin, state);
+    setState(username, jobID, state);
 }
 
-void psPamDeleteUser(char *username, char *plugin)
+void psPamDeleteUser(char *username, char *jobID)
 {
-    deleteUser(username, plugin);
+    deleteUser(username, jobID);
 }

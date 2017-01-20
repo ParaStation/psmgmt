@@ -19,11 +19,9 @@
 /** List holding all users */
 static LIST_HEAD(userList);
 
-void initUserList(void) {}
-
-bool addUser(char *username, char *plugin, PSPAMState_t state)
+bool addUser(char *username, char *jobID, PSPAMState_t state)
 {
-    User_t *user = findUser(username, plugin);
+    User_t *user = findUser(username, jobID);
 
     if (user) return true;
 
@@ -35,8 +33,8 @@ bool addUser(char *username, char *plugin, PSPAMState_t state)
 	free(user);
 	return false;
     }
-    user->plugin = ustrdup(plugin);
-    if (!user->plugin) {
+    user->jobID = ustrdup(jobID);
+    if (!user->jobID) {
 	free(user->name);
 	free(user);
 	return false;
@@ -47,7 +45,7 @@ bool addUser(char *username, char *plugin, PSPAMState_t state)
     return true;
 }
 
-User_t *findUser(char *username, char *plugin)
+User_t *findUser(char *username, char *jobID)
 {
     list_t *u;
 
@@ -55,7 +53,7 @@ User_t *findUser(char *username, char *plugin)
 
     list_for_each(u, &userList) {
 	User_t *user = list_entry(u, User_t, next);
-	if (plugin && strcmp(user->plugin, plugin)) continue;
+	if (jobID && strcmp(user->jobID, jobID)) continue;
 	if (!strcmp(user->name, username)) return user;
     }
     return NULL;
@@ -66,25 +64,25 @@ static void doDelete(User_t *user)
     if (!user) return;
 
     free(user->name);
-    free(user->plugin);
+    free(user->jobID);
     list_del(&user->next);
     free(user);
 }
 
-void setState(char *username, char *plugin, PSPAMState_t state)
+void setState(char *username, char *jobID, PSPAMState_t state)
 {
-    User_t *user = findUser(username, plugin);
+    User_t *user = findUser(username, jobID);
 
-    if (!plugin || !user) return;
+    if (!jobID || !user) return;
 
     user->state = state;
 }
 
-void deleteUser(char *username, char *plugin)
+void deleteUser(char *username, char *jobID)
 {
-    User_t *user = findUser(username, plugin);
+    User_t *user = findUser(username, jobID);
 
-    if (!plugin || !user) return;
+    if (!jobID || !user) return;
 
     doDelete(user);
 
