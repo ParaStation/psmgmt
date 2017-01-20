@@ -23,9 +23,9 @@
 #include "selector.h"
 
 #include "pspamcommon.h"
-#include "pspamdef.h"
 #include "pspamlog.h"
 #include "pspamssh.h"
+#include "pspamtypes.h"
 #include "pspamuser.h"
 
 #include "pspamcomm.h"
@@ -88,7 +88,7 @@ static int handlePamRequest(int sock, void *empty)
     if (spasswd && isPSAdminUser(spasswd->pw_uid, spasswd->pw_gid)) {
 	res = PSPAM_ADMIN_USER;
     } else if (pamUser) {
-	if (pamUser->state == PSPAM_PROLGOUE) {
+	if (pamUser->state == PSPAM_STATE_PROLOGUE) {
 	    res = PSPAM_PROLOG;
 	} else {
 	    res = PSPAM_BATCH;

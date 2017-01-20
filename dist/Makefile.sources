@@ -416,12 +416,14 @@ plugins/pspam/pspam/Makefile.in \
 plugins/pspam/pspam/pspam.c \
 plugins/pspam/pspam/pspamcomm.c \
 plugins/pspam/pspam/pspamcomm.h \
-plugins/pspam/pspam/pspamdef.h \
 plugins/pspam/pspam/pspamhandles.h \
+plugins/pspam/pspam/pspaminter.c \
+plugins/pspam/pspam/pspaminter.h \
 plugins/pspam/pspam/pspamlog.c \
 plugins/pspam/pspam/pspamlog.h \
 plugins/pspam/pspam/pspamssh.c \
 plugins/pspam/pspam/pspamssh.h \
+plugins/pspam/pspam/pspamtypes.h \
 plugins/pspam/pspam/pspamuser.c \
 plugins/pspam/pspam/pspamuser.h \
 plugins/pspmi/Makefile.am \

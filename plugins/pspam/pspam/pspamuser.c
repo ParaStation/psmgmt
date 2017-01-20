@@ -71,7 +71,7 @@ static void doDelete(User_t *user)
     free(user);
 }
 
-void setState(char *username, char *plugin, int state)
+void setState(char *username, char *plugin, PSPAMState_t state)
 {
     User_t *user = findUser(username, plugin);
 
@@ -99,19 +99,4 @@ void clearUserList(void)
 	User_t *user = list_entry(u, User_t, next);
 	doDelete(user);
     }
-}
-
-void psPamAddUser(char *username, char *plugin, int state)
-{
-    addUser(username, plugin, state);
-}
-
-void psPamDeleteUser(char *username, char *plugin)
-{
-    deleteUser(username, plugin);
-}
-
-void psPamSetState(char *username, char *plugin, int state)
-{
-    setState(username, plugin, state);
 }

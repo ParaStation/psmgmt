@@ -20,8 +20,8 @@ plugin_LTLIBRARIES = pspam.la
 libplugincommon = $(top_builddir)/lib/plugincommon/libplugincommon.la
 libpscommon = $(top_builddir)/lib/pscommon/libpscommon.la
 
-pspam_la_SOURCES = pspam.c pspamcomm.c pspamcomm.h pspamdef.h	\
-	pspamlog.c pspamlog.h pspamssh.c pspamssh.h pspamuser.c	\
-	pspamuser.h pspamhandles.h
+pspam_la_SOURCES = pspam.c pspamcomm.c pspamcomm.h pspamhandles.h	\
+	pspaminter.c pspaminter.h pspamlog.c pspamlog.h pspamssh.c	\
+	pspamssh.h pspamtypes.h pspamuser.c pspamuser.h
 
 pspam_la_LIBADD = $(libplugincommon) $(libpscommon)

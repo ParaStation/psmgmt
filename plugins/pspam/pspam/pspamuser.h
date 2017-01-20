@@ -13,7 +13,7 @@
 #include <stdbool.h>
 
 #include "list.h"
-#include "pspamdef.h"
+#include "pspamtypes.h"
 
 /** Structure holding all information concerning a specifig user */
 typedef struct {
@@ -71,7 +71,7 @@ User_t *findUser(char *username, char *plugin);
  *
  * @return No return value
  */
-void setState(char *username, char *plugin, int state);
+void setState(char *username, char *plugin, PSPAMState_t state);
 
 /**
  * @brief Delete user
@@ -95,9 +95,5 @@ void deleteUser(char *username, char *plugin);
  * @return No return value
  */
 void clearUserList(void);
-
-void psPamAddUser(char *username, char *plugin, int state);
-void psPamDeleteUser(char *username, char *plugin);
-void psPamSetState(char *username, char *plugin, int state);
 
 #endif /* __PSPAM_USER */
