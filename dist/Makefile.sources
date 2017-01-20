@@ -414,7 +414,8 @@ plugins/pspam/module/pam_module.c \
 plugins/pspam/pspam/Makefile.am \
 plugins/pspam/pspam/Makefile.in \
 plugins/pspam/pspam/pspam.c \
-plugins/pspam/pspam/pspam.h \
+plugins/pspam/pspam/pspamcomm.c \
+plugins/pspam/pspam/pspamcomm.h \
 plugins/pspam/pspam/pspamdef.h \
 plugins/pspam/pspam/pspamhandles.h \
 plugins/pspam/pspam/pspamlog.c \

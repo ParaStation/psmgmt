@@ -153,7 +153,8 @@ am__uninstall_files_from_dir = { \
 am__installdirs = "$(DESTDIR)$(plugindir)"
 LTLIBRARIES = $(plugin_LTLIBRARIES)
 pspam_la_DEPENDENCIES = $(libplugincommon) $(libpscommon)
-am_pspam_la_OBJECTS = pspam.lo pspamlog.lo pspamssh.lo pspamuser.lo
+am_pspam_la_OBJECTS = pspam.lo pspamcomm.lo pspamlog.lo pspamssh.lo \
+	pspamuser.lo
 pspam_la_OBJECTS = $(am_pspam_la_OBJECTS)
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
@@ -390,8 +391,9 @@ scriptsdir = $(prefix)/scripts
 plugin_LTLIBRARIES = pspam.la
 libplugincommon = $(top_builddir)/lib/plugincommon/libplugincommon.la
 libpscommon = $(top_builddir)/lib/pscommon/libpscommon.la
-pspam_la_SOURCES = pspam.c pspam.h pspamlog.c pspamlog.h pspamssh.c	\
-	pspamssh.h pspamuser.c pspamuser.h pspamhandles.h
+pspam_la_SOURCES = pspam.c pspamcomm.c pspamcomm.h pspamdef.h	\
+	pspamlog.c pspamlog.h pspamssh.c pspamssh.h pspamuser.c	\
+	pspamuser.h pspamhandles.h
 
 pspam_la_LIBADD = $(libplugincommon) $(libpscommon)
 all: all-am
@@ -474,6 +476,7 @@ distclean-compile:
 	-rm -f *.tab.c
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pspam.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pspamcomm.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pspamlog.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pspamssh.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pspamuser.Plo@am__quote@
