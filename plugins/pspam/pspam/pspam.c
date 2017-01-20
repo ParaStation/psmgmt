@@ -123,7 +123,7 @@ static int handlePamRequest(int sock, void *empty)
 	    res = PSPAM_PROLOG;
 	} else {
 	    res = PSPAM_BATCH;
-	    addSSHSession(user, rhost, pid, sid);
+	    addSession(user, rhost, pid, sid);
 	}
     }
 
@@ -238,8 +238,6 @@ int initialize(void)
     /* init the logger (log to syslog) */
     initLogger(NULL);
 
-    initSSHList();
-
     if (!(initPluginHandles())) goto INIT_ERROR;
 
     /* we need to have root privileges */
@@ -279,7 +277,7 @@ void cleanup(void)
     close(masterSock);
 
     /* kill all leftover ssh sessions */
-    clearSSHList();
+    clearSessionList();
     clearUserList();
 
     mlog("...Bye.\n");

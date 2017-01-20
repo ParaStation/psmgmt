@@ -1,83 +1,68 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2011-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2011-2017 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-/**
- * $Id$
- *
- * \author
- * Michael Rauh <rauh@par-tec.com>
- *
- */
+#ifndef __PSPAM_SSH
+#define __PSPAM_SSH
 
-#ifndef __PS_PAM_SSH
-#define __PS_PAM_SSH
-
-#include "list.h"
-
-typedef struct {
-    char *user;		    /* username of the job owner */
-    char *rhost;	    /* remote host of the user connected to us */
-    pid_t pid;		    /* pid of the SSH forwarder */
-    pid_t sid;		    /* session ID of the SSH forwarder */
-    time_t start_time;	    /* time when the ssh session was started */
-    struct list_head list;  /* the SSH list header */
-} SSHSession_t;
-
-/* list which holds all ssh sessions */
-SSHSession_t SSHList;
+#include <stdbool.h>
+#include <sys/types.h>
 
 /**
- * @brief Initialize the ssh list.
+ * @brief Add new SSH session
  *
- * @return No return value.
+ * Add a new SSH session identified by the username @a user, the
+ * remote host @a rhost, its process ID @a sshPid and its session ID
+ * @a sshSid.
+ *
+ * @param user Name of the user a session shall be added for
+ *
+ * @param rhost (Remote) host the SSH session was started from
+ *
+ * @param sshPid Process ID of the SSH session to add
+ *
+ * @param sshSID Session ID of the SSH session to add
+ *
+ * @return If a new SSH session was added true is returned. Otherwise
+ * false is returned.
  */
-void initSSHList(void);
+bool addSession(char *user, char *rhost, pid_t sshPid, pid_t sshSid);
 
 /**
- * @brief Terminate all ssh clients and free all memory.
+ * @brief Remove SSH session
  *
- * @return No return value.
+ * Remove the SSH session identified by the username @a user, the
+ * remote host @a rhost, and its process ID @a sshPid.
+ *
+ * @param user Name of the user identifying the session to remove
+ *
+ * @param rhost (Remote) host the SSH session to remove was started from
+ *
+ * @param sshPid Process ID of the SSH session to remove
+ *
+ * @return No return value
  */
-void clearSSHList(void);
+void rmSession(char *user, char *rhost, pid_t sshPid);
 
 /**
- * @brief Add a new SSH session.
+ * @brief Terminate a user's SSH sessions and free the memory
  *
- * @param user The name of the user.
+ * @param user Name of the user to terminate SSH session for
  *
- * @param rhost The remote(starter) host of the SSH session.
- *
- * @param sshPid The pid of the SSH session.
- *
- * @param sshSID The sid of the SSH session.
- *
- * @return Returns the created SSH session.
+ * @return No return value
  */
-SSHSession_t *addSSHSession(char *user, char *rhost, pid_t sshPid,
-			    pid_t sshSid);
+void killSessions(char *user);
 
 /**
- * @brief Terminate a SSH session and free the memory.
+ * @brief Terminate all ssh clients and free all memory
  *
- * @param user The user to terminate the SSH session for.
- *
- * @return No return value.
+ * @return No return value
  */
-void delSSHSessions(char *user);
+void clearSessionList(void);
 
-/**
- * @brief Try to find a SSH session for a pid.
- *
- * @param pid The pid to identify the SSH session.
- *
- * @return Returns found SSH session or NULL otherwise.
- */
-SSHSession_t *findSSHSessionforPID(pid_t pid);
-
-#endif
+#endif /* __PSPAM_SSH */

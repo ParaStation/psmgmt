@@ -1,20 +1,12 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2011-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2011-2017 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-/**
- * $Id$
- *
- * \author
- * Michael Rauh <rauh@par-tec.com>
- *
- */
-
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -27,94 +19,104 @@
 
 #include "pspamssh.h"
 
+#include "list.h"
 
-void initSSHList(void)
+/** Structure holding all information concerning a specific ssh session */
+typedef struct {
+    list_t next;       /**< used to put into list of sessions */
+    char *user;        /**< username of the ssh-session owner */
+    char *rhost;       /**< remote host the ssh-session came from */
+    pid_t pid;         /**< pid of the SSH forwarder */
+    pid_t sid;         /**< session ID of the SSH forwarder */
+    time_t startTime;  /**< time when the ssh-session was started */
+} Session_t;
+
+/* list holding all ssh sessions */
+LIST_HEAD(sshList);
+
+bool addSession(char *user, char *rhost, pid_t sshPid, pid_t sshSid)
 {
-    INIT_LIST_HEAD(&SSHList.list);
-}
+    Session_t *ssh = malloc(sizeof(*ssh));
+    if (!ssh) return false;
 
-SSHSession_t *addSSHSession(char *user, char *rhost, pid_t sshPid, pid_t sshSid)
-{
-    SSHSession_t *ssh;
-
-    ssh = (SSHSession_t *) umalloc(sizeof(SSHSession_t));
     ssh->user = ustrdup(user);
+    if (!ssh->user) {
+	free(ssh);
+	return false;
+    }
+
     ssh->rhost = ustrdup(rhost);
+    if (!ssh->rhost) {
+	free(ssh->user);
+	free(ssh);
+	return false;
+    }
+
     ssh->pid = sshPid;
     ssh->sid = sshSid;
-    ssh->start_time = time(NULL);
+    ssh->startTime = time(NULL);
 
-    list_add_tail(&(ssh->list), &SSHList.list);
+    list_add_tail(&ssh->next, &sshList);
 
-    return ssh;
+    return true;
 }
 
-static SSHSession_t *findSSHSession(char *user)
+static Session_t *findSession(char *user, char *rhost, pid_t sshPid)
 {
-    list_t *pos, *tmp;
-    SSHSession_t *ssh;
-
-    list_for_each_safe(pos, tmp, &SSHList.list) {
-	if (!(ssh = list_entry(pos, SSHSession_t, list))) return NULL;
-	if (user && !strcmp(ssh->user, user)) {
-	    return ssh;
-	}
+    list_t *s;
+    list_for_each(s, &sshList) {
+	Session_t *ssh = list_entry(s, Session_t, next);
+	if (user && !strcmp(ssh->user, user)
+	    && rhost && !strcmp(ssh->rhost, rhost)
+	    && ssh->pid == sshPid) return ssh;
     }
     return NULL;
 }
 
-void delSSHSessions(char *user)
+static void doDelete(Session_t *ssh)
 {
-    SSHSession_t *ssh;
+    if (!ssh) return;
 
-    while ((ssh = findSSHSession(user))) {
+    free(ssh->user);
+    free(ssh->rhost);
+    list_del(&ssh->next);
+    free(ssh);
+}
 
-	/* Kill all SSH processes. We can't kill the complete session or pgroup,
-	 * since on CENTOS the SSH forwarders will have the same one as the root
-	 * SSH process (#1730)
-	 *
-	 * not always working with Suse (#1795)
-	 *
-	psAccountSignalAllChildren(getpid(), ssh->pid, -1, SIGTERM);
-	psAccountSignalAllChildren(getpid(), ssh->pid, -1, SIGKILL);
-	*/
+void rmSession(char *user, char *rhost, pid_t sshPid)
+{
+    Session_t *ssh = findSession(user, rhost, sshPid);
 
-	/* kill ssh session */
-	psAccountSignalSession(ssh->sid, SIGTERM);
-	psAccountSignalSession(ssh->sid, SIGKILL);
+    if (ssh) doDelete(ssh);
+}
 
+static void doExtinct(Session_t *ssh)
+{
+    if (!ssh) return;
 
-	if (ssh->user) ufree(ssh->user);
-	if (ssh->rhost) ufree(ssh->rhost);
+    /* kill ssh session */
+    psAccountSignalSession(ssh->sid, SIGTERM);
+    psAccountSignalSession(ssh->sid, SIGKILL);
 
-	list_del(&ssh->list);
-	ufree(ssh);
+    doDelete(ssh);
+}
+
+void killSessions(char *user)
+{
+    list_t *s, *tmp;
+    if (!user) return;
+
+    list_for_each_safe(s, tmp, &sshList) {
+	Session_t *ssh = list_entry(s, Session_t, next);
+	if (!strcmp(ssh->user, user)) doExtinct(ssh);
     }
 }
 
-void clearSSHList(void)
+void clearSessionList(void)
 {
-    list_t *pos, *tmp;
-    SSHSession_t *ssh;
-
-    list_for_each_safe(pos, tmp, &SSHList.list) {
-	if (!(ssh = list_entry(pos, SSHSession_t, list))) return;
-	delSSHSessions(ssh->user);
+    list_t *s, *tmp;
+    list_for_each_safe(s, tmp, &sshList) {
+	Session_t *ssh = list_entry(s, Session_t, next);
+	doExtinct(ssh);
     }
-}
-
-SSHSession_t *findSSHSessionforPID(pid_t pid)
-{
-    list_t *pos, *tmp;
-    SSHSession_t *ssh;
-
-    list_for_each_safe(pos, tmp, &SSHList.list) {
-	if (!(ssh = list_entry(pos, SSHSession_t, list))) return NULL;
-
-	/* checking for pgroup or session does not make sense for SSH logins */
-	if ((ssh->pid == pid || psAccountIsDescendant(ssh->pid, pid))) {
-	    return ssh;
-	}
-    }
-    return NULL;
 }

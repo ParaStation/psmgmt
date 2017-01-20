@@ -88,7 +88,7 @@ void deleteUser(char *username, char *plugin)
 
     doDelete(user);
 
-    if (!findUser(username, NULL)) delSSHSessions(username);
+    if (!findUser(username, NULL)) killSessions(username);
 }
 
 void clearUserList(void)
