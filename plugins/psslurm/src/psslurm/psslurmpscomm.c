@@ -1,19 +1,11 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2017 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
- */
-/**
- * $Id$
- *
- * \author
- * Michael Rauh <rauh@par-tec.com>
- * Stephan Krempel <krempel@par-tec.com>
- *
  */
 
 #include <stdio.h>
@@ -893,7 +885,7 @@ void forwardSlurmMsg(Slurm_Msg_t *sMsg, Connection_Forward_t *fw)
 	    sMsg->head.forward, fw->head.nodeList, fw->head.timeout);
 }
 
-void send_PS_ForwardRes(Slurm_Msg_t *sMsg, PS_DataBuffer_t *body)
+void send_PS_ForwardRes(Slurm_Msg_t *sMsg)
 {
     PS_DataBuffer_t msg = { .buf = NULL };
 
@@ -906,7 +898,7 @@ void send_PS_ForwardRes(Slurm_Msg_t *sMsg, PS_DataBuffer_t *body)
     /* message type */
     addUint16ToMsg(sMsg->head.type, &msg);
 
-    addMemToMsg(body->buf, body->bufUsed, &msg);
+    addMemToMsg(sMsg->data->buf, sMsg->data->bufUsed, &msg);
 
     sendFragMsg(&msg, sMsg->source, PSP_CC_PLUG_PSSLURM, PSP_FORWARD_SMSG_RES);
     ufree(msg.buf);
@@ -950,9 +942,9 @@ static void handleFWslurmMsgRes(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     uint32_t len = data->bufUsed;
     int16_t socket;
 
-    initSlurmMsgHead(&sMsg.head);
-    sMsg.data = NULL;
+    initSlurmMsg(&sMsg);
     sMsg.source = msg->header.sender;
+    sMsg.data = &body;
 
     /* socket */
     getInt16(&ptr, &socket);
@@ -965,7 +957,7 @@ static void handleFWslurmMsgRes(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     len -=  (2 * sizeof(uint16_t)) + sizeof (int64_t);
     addMemToMsg(ptr, len, &body);
 
-    saveForwardedMsgRes(&sMsg, &body, SLURM_SUCCESS);
+    saveForwardedMsgRes(&sMsg, SLURM_SUCCESS);
     ufree(body.buf);
 }
 
@@ -1085,8 +1077,8 @@ static void saveForwardError(DDTypedBufferMsg_t *msg)
     int16_t socket;
     PS_Frag_Msg_Header_t *rhead;
 
-    initSlurmMsgHead(&sMsg.head);
-    sMsg.data = NULL;
+    initSlurmMsg(&sMsg);
+    sMsg.data = &data;
     sMsg.source = msg->header.dest;
     sMsg.head.type = RESPONSE_FORWARD_FAILED;
 
@@ -1103,7 +1095,7 @@ static void saveForwardError(DDTypedBufferMsg_t *msg)
     /* receive time */
     getTime(&ptr, &sMsg.recvTime);
 
-    saveForwardedMsgRes(&sMsg, &data, SLURM_COMMUNICATIONS_CONNECTION_ERROR);
+    saveForwardedMsgRes(&sMsg, SLURM_COMMUNICATIONS_CONNECTION_ERROR);
 }
 
 void handleDroppedMsg(DDTypedBufferMsg_t *msg)

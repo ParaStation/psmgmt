@@ -1,18 +1,11 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2017 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
- */
-/**
- * $Id$
- *
- * \author
- * Michael Rauh <rauh@par-tec.com>
- *
  */
 
 #ifndef __PS_SLURM_GRES
@@ -58,13 +51,12 @@ typedef struct {
 
 Gres_Conf_t GresConfList;
 
+Gres_Cred_t* getGresCred();
 void initGresConf(void);
 void clearGresConf(void);
 Gres_Conf_t *addGresConf(char *name, char *count, char *file, char *cpus);
 void addGresData(PS_DataBuffer_t *msg, int version);
-int getGresJobCred(Gres_Cred_t *gresList, char **ptr, uint32_t jobid,
-		    uint32_t stepid, uid_t uid);
-void clearGresCred(Gres_Cred_t *gresList);
+void freeGresCred(Gres_Cred_t *gresList);
 Gres_Cred_t * findGresCred(Gres_Cred_t *gresList, uint32_t id, int job);
 
 #endif

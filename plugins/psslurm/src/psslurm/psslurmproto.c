@@ -1,18 +1,11 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2017 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
- */
-/**
- * $Id$
- *
- * \author
- * Michael Rauh <rauh@par-tec.com>
- *
  */
 
 #include <stdio.h>
@@ -74,7 +67,8 @@ static void sendPing(Slurm_Msg_t *sMsg)
 	addUint32ToMsg(freemem, &msg);
     }
 
-    sendSlurmReply(sMsg, RESPONSE_PING_SLURMD, &msg);
+    sMsg->data = &msg;
+    sendSlurmReply(sMsg, RESPONSE_PING_SLURMD);
     ufree(msg.buf);
 }
 
@@ -402,8 +396,8 @@ void handleLaunchTasks(Slurm_Msg_t *sMsg)
     /* accel bind type */
     getUint16(ptr, &step->accelBindType);
 #endif
-    /* job creditials */
-    step->cred = getJobCred(&step->gres, ptr, version, 1);
+    /* job credentials */
+    step->cred = extractJobCred(&step->gres, ptr, 1);
 
     /* tasks to launch / global task ids */
     readStepTaskIds(step, ptr);
@@ -513,7 +507,7 @@ void handleLaunchTasks(Slurm_Msg_t *sMsg)
     getUint32(ptr, &tmp);
 
     /* verify job credential */
-    if (!(checkStepCred(step))) {
+    if (!(verifyStepData(step))) {
 	sendSlurmRC(sMsg, ESLURMD_INVALID_JOB_CREDENTIAL);
 	deleteStep(step->jobid, step->stepid);
 	return;
@@ -634,7 +628,7 @@ static void handleSignalTasks(Slurm_Msg_t *sMsg)
     uid = job ? job->uid : step->uid;
 
     /* check permissions */
-    if (!(checkAuthorizedUser(sMsg->head.uid, uid))) {
+    if (!(verifyUserId(sMsg->head.uid, uid))) {
 	mlog("%s: request from invalid user '%u'\n", __func__, sMsg->head.uid);
 	sendSlurmRC(sMsg, ESLURM_USER_ID_MISSING);
 	return;
@@ -756,7 +750,8 @@ static void sendReattchReply(Step_t *step, Slurm_Msg_t *sMsg, uint32_t rc)
 	/* no executable names */
     }
 
-    sendSlurmReply(sMsg, RESPONSE_REATTACH_TASKS, &reply);
+    sMsg->data = &reply;
+    sendSlurmReply(sMsg, RESPONSE_REATTACH_TASKS);
 
     ufree(reply.buf);
 }
@@ -769,7 +764,7 @@ static void handleReattachTasks(Slurm_Msg_t *sMsg)
     uint16_t numIOports, numCtlPorts;
     uint16_t *ioPorts = NULL, *ctlPorts = NULL;
     JobCred_t *cred = NULL;
-    Gres_Cred_t gres;
+    Gres_Cred_t *gres = NULL;
 
     getUint32(ptr, &jobid);
     getUint32(ptr, &stepid);
@@ -782,7 +777,7 @@ static void handleReattachTasks(Slurm_Msg_t *sMsg)
     }
 
     /* check permissions */
-    if (!(checkAuthorizedUser(sMsg->head.uid, step->uid))) {
+    if (!(verifyUserId(sMsg->head.uid, step->uid))) {
 	mlog("%s: request from invalid user '%u' step '%u:%u'\n", __func__,
 		sMsg->head.uid, jobid, stepid);
 	rc = ESLURM_USER_ID_MISSING;
@@ -824,12 +819,13 @@ static void handleReattachTasks(Slurm_Msg_t *sMsg)
     }
 
     /* job credential including I/O key */
-    if (!(cred = getJobCred(&gres, ptr, sMsg->head.version, 0))) {
+    if (!(cred = extractJobCred(&gres, ptr, 0))) {
 	mlog("%s: invalid credential for step '%u:%u'\n", __func__,
 		jobid, stepid);
 	rc = ESLURM_INVALID_JOB_CREDENTIAL;
 	goto SEND_REPLY;
     }
+    freeGresCred(gres);
 
     if (strlen(cred->sig) +1 != SLURM_IO_KEY_SIZE) {
 	mlog("%s: invalid I/O key size '%zu'\n", __func__,
@@ -847,7 +843,7 @@ SEND_REPLY:
 
     sendReattchReply(step, sMsg, rc);
 
-    deleteJobCred(cred);
+    freeJobCred(cred);
     ufree(ioPorts);
     ufree(ctlPorts);
 }
@@ -879,7 +875,7 @@ static void handleSignalJob(Slurm_Msg_t *sMsg)
     uid = step ? step->uid : job->uid;
 
     /* check permissions */
-    if (!(checkAuthorizedUser(sMsg->head.uid, uid))) {
+    if (!(verifyUserId(sMsg->head.uid, uid))) {
 	mlog("%s: request from invalid user '%u' job '%u'\n", __func__,
 		sMsg->head.uid, jobid);
 	sendSlurmRC(sMsg, ESLURM_USER_ID_MISSING);
@@ -997,7 +993,8 @@ static void handleAcctGatherUpdate(Slurm_Msg_t *sMsg)
     addTimeToMsg(now, &msg);
 #endif
 
-    sendSlurmReply(sMsg, RESPONSE_ACCT_GATHER_UPDATE, &msg);
+    sMsg->data = &msg;
+    sendSlurmReply(sMsg, RESPONSE_ACCT_GATHER_UPDATE);
     ufree(msg.buf);
 }
 
@@ -1029,7 +1026,8 @@ static void handleAcctGatherEnergy(Slurm_Msg_t *sMsg)
     addTimeToMsg(now, &msg);
 #endif
 
-    sendSlurmReply(sMsg, RESPONSE_ACCT_GATHER_ENERGY, &msg);
+    sMsg->data = &msg;
+    sendSlurmReply(sMsg, RESPONSE_ACCT_GATHER_ENERGY);
     ufree(msg.buf);
 }
 
@@ -1045,7 +1043,9 @@ static void handleJobId(Slurm_Msg_t *sMsg)
     if ((step = findStepByTaskPid(pid))) {
 	addUint32ToMsg(step->jobid, &msg);
 	addUint32ToMsg(SLURM_SUCCESS, &msg);
-	sendSlurmReply(sMsg, RESPONSE_JOB_ID, &msg);
+
+	sMsg->data = &msg;
+	sendSlurmReply(sMsg, RESPONSE_JOB_ID);
 	ufree(msg.buf);
     } else {
 	sendSlurmRC(sMsg, ESLURM_INVALID_JOB_ID);
@@ -1089,7 +1089,7 @@ static void handleFileBCast(Slurm_Msg_t *sMsg)
 	mlog("%s: blockLen mismatch: %d/%zd\n", __func__, bcast->blockLen, len);
     }
 
-    if (!(checkBCastCred(ptr, bcast))) {
+    if (!(extractBCastCred(ptr, bcast))) {
 	if (!errno) {
 	    sendSlurmRC(sMsg, ESLURM_AUTH_CRED_INVALID);
 	} else {
@@ -1159,7 +1159,7 @@ static void handleStepStat(Slurm_Msg_t *sMsg)
     }
 
     /* check permissions */
-    if (!(checkAuthorizedUser(sMsg->head.uid, step->uid))) {
+    if (!(verifyUserId(sMsg->head.uid, step->uid))) {
 	mlog("%s: request from invalid user '%u'\n", __func__, sMsg->head.uid);
 	sendSlurmRC(sMsg, ESLURM_USER_ID_MISSING);
 	return;
@@ -1178,7 +1178,8 @@ static void handleStepStat(Slurm_Msg_t *sMsg)
     /* add step pids */
     addSlurmPids(step->loggerTID, &msg);
 
-    sendSlurmReply(sMsg, RESPONSE_JOB_STEP_STAT, &msg);
+    sMsg->data = &msg;
+    sendSlurmReply(sMsg, RESPONSE_JOB_STEP_STAT);
     ufree(msg.buf);
 }
 
@@ -1199,7 +1200,7 @@ static void handleStepPids(Slurm_Msg_t *sMsg)
     }
 
     /* check permissions */
-    if (!(checkAuthorizedUser(sMsg->head.uid, step->uid))) {
+    if (!(verifyUserId(sMsg->head.uid, step->uid))) {
 	mlog("%s: request from invalid user '%u'\n", __func__, sMsg->head.uid);
 	sendSlurmRC(sMsg, ESLURM_USER_ID_MISSING);
 	return;
@@ -1208,7 +1209,8 @@ static void handleStepPids(Slurm_Msg_t *sMsg)
     /* add step pids */
     addSlurmPids(step->loggerTID, &msg);
 
-    sendSlurmReply(sMsg, RESPONSE_JOB_STEP_PIDS, &msg);
+    sMsg->data = &msg;
+    sendSlurmReply(sMsg, RESPONSE_JOB_STEP_PIDS);
     ufree(msg.buf);
 }
 
@@ -1241,7 +1243,7 @@ static void handleJobNotify(Slurm_Msg_t *sMsg)
     }
 
     /* check permissions */
-    if (!(checkAuthorizedUser(sMsg->head.uid, step->uid))) {
+    if (!(verifyUserId(sMsg->head.uid, step->uid))) {
 	mlog("%s: request from invalid user '%u'\n", __func__, sMsg->head.uid);
 	sendSlurmRC(sMsg, ESLURM_USER_ID_MISSING);
 	return;
@@ -1443,10 +1445,10 @@ static void handleBatchJobLaunch(Slurm_Msg_t *sMsg)
     /* TODO use job mem ?limit? uint32_t */
     getUint32(ptr, &job->memLimit);
 
-    job->cred = getJobCred(&job->gres, ptr, sMsg->head.version, 1);
+    job->cred = extractJobCred(&job->gres, ptr, 1);
 
     /* verify job credential */
-    if (!(checkJobCred(job))) {
+    if (!(verifyJobData(job))) {
 	sendSlurmRC(sMsg, ESLURMD_INVALID_JOB_CREDENTIAL);
 	deleteJob(job->jobid);
 	return;
@@ -1940,7 +1942,7 @@ int handleSlurmdMsg(Slurm_Msg_t *sMsg)
 	return 0;
     }
 
-    if (!(testMungeAuth(&sMsg->ptr, &sMsg->head))) goto MSG_ERROR_CLEANUP;
+    if (!(extractSlurmAuth(&sMsg->ptr, &sMsg->head))) goto MSG_ERROR_CLEANUP;
 
     switch (sMsg->head.type) {
 	case REQUEST_LAUNCH_PROLOG:
@@ -2229,20 +2231,20 @@ void sendNodeRegStatus(uint32_t status, int protoVersion)
 }
 
 int __sendSlurmReply(Slurm_Msg_t *sMsg, slurm_msg_type_t type,
-		    PS_DataBuffer_t *body, const char *func, const int line)
+			const char *func, const int line)
 {
     int ret = 1;
 
     sMsg->head.type = type;
     if (sMsg->source == -1) {
 	if (!sMsg->head.forward) {
-	    ret = sendSlurmMsg(sMsg->sock, type, body);
+	    ret = sendSlurmMsg(sMsg->sock, type, sMsg->data);
 	} else {
-	    __saveForwardedMsgRes(sMsg, body, SLURM_SUCCESS, func, line);
+	    __saveForwardedMsgRes(sMsg, SLURM_SUCCESS, func, line);
 	}
     } else {
 	/* forwarded message */
-	send_PS_ForwardRes(sMsg, body);
+	send_PS_ForwardRes(sMsg);
     }
 
     return ret;
@@ -2255,11 +2257,10 @@ int __sendSlurmRC(Slurm_Msg_t *sMsg, uint32_t rc, const char *func,
     int ret = 1;
 
     addUint32ToMsg(rc, &body);
-    ret = __sendSlurmReply(sMsg, RESPONSE_SLURM_RC, &body, func, line);
+    sMsg->data = &body;
+    ret = __sendSlurmReply(sMsg, RESPONSE_SLURM_RC, func, line);
 
-    if (!sMsg->head.forward) {
-	freeSlurmMsg(sMsg);
-    }
+    if (!sMsg->head.forward) freeSlurmMsg(sMsg);
 
     if (ret < 1) {
 	mlog("%s: sending rc '%u' for '%s:%u' failed\n", __func__, rc,

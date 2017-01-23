@@ -1,19 +1,11 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2017 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
- */
-/**
- * $Id$
- *
- * \author
- * Michael Rauh <rauh@par-tec.com>
- * Stephan Krempel <krempel@par-tec.com>
- *
  */
 
 #include <stdio.h>
@@ -780,14 +772,14 @@ static void stepForwarderLoop(void *data)
 	return;
     }
 
-    if (!srunOpenIOConnection(step, 0, step->cred->sig)) {
-	mlog("%s: srun connect failed\n", __func__);
+    if (srunOpenIOConnection(step, step->cred->sig) == -1) {
+	mlog("%s: open srun I/O connection failed\n", __func__);
 	return;
     }
 
     if (step->pty) {
 	/* open additiional pty connection to srun */
-	if ((srunOpenPTY(step)) < 0) {
+	if ((srunOpenPTYConnection(step)) < 0) {
 	    /* Not working with current srun 14.03 anyway */
 	}
 
@@ -1013,12 +1005,12 @@ static void stepFWIOloop(void *data)
     if (step->userManagedIO) return;
 
     if (!step->IOPort) {
-	mlog("%s: no IO Ports\n", __func__);
+	mlog("%s: no I/O Ports\n", __func__);
 	return;
     }
 
-    if (!srunOpenIOConnection(step, 0, step->cred->sig)) {
-	mlog("%s: srun connect failed\n", __func__);
+    if (srunOpenIOConnection(step, step->cred->sig) == -1) {
+	mlog("%s: open srun I/O connection failed\n", __func__);
 	return;
     }
 

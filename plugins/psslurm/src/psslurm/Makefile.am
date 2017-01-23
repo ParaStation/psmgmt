@@ -1,7 +1,7 @@
 #
 # ParaStation
 #
-# Copyright (C) 2014-2016 ParTec Cluster Competence Center GmbH, Munich
+# Copyright (C) 2014-2017 ParTec Cluster Competence Center GmbH, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -43,7 +43,8 @@ psslurm_la_SOURCES = psslurm.c psslurm.h psslurmlog.c psslurmlog.h \
 	psslurmjobinfo.c psslurmjobinfo.h psslurmlimits.c psslurmlimits.h \
 	psslurmmultiprog.c psslurmmultiprog.h psslurmgres.c psslurmgres.h \
 	psslurmpin.c psslurmpin.h psslurmio.c psslurmio.h psslurmpelogue.h \
-	psslurmpelogue.c psslurmkvs.h psslurmkvs.c psslurmspawn.c psslurmspawn.h
+	psslurmpelogue.c psslurmkvs.h psslurmkvs.c psslurmspawn.c psslurmspawn.h \
+	psslurmpack.h psslurmpack.c
 
 psslurm_la_CPPFLAGS = $(AM_CPPFLAGS) -DPLUGINDIR=\"$(plugindir)\" \
 	-DLOCALSTATEDIR=\"$(localstatedir)\" -DBINDIR=\"$(bindir)\"

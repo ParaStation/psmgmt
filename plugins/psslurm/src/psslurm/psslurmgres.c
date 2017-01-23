@@ -1,18 +1,11 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2017 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
- */
-/**
- * $Id$
- *
- * \author
- * Michael Rauh <rauh@par-tec.com>
- *
  */
 
 #include <stdio.h>
@@ -232,7 +225,7 @@ void clearGresConf(void)
     }
 }
 
-static Gres_Cred_t* getGresCred()
+Gres_Cred_t* getGresCred()
 {
     Gres_Cred_t *gres;
 
@@ -255,14 +248,16 @@ Gres_Cred_t * findGresCred(Gres_Cred_t *gresList, uint32_t id, int job)
     return NULL;
 }
 
-void clearGresCred(Gres_Cred_t *gresList)
+void freeGresCred(Gres_Cred_t *gresList)
 {
     list_t *pos, *tmp;
     Gres_Cred_t *gres;
     unsigned int i;
 
+    if (!gresList) return;
+
     list_for_each_safe(pos, tmp, &(gresList->list)) {
-	if (!(gres = list_entry(pos, Gres_Cred_t, list))) return;
+	if (!(gres = list_entry(pos, Gres_Cred_t, list))) break;
 
 	if (gres->bitAlloc) {
 	    for (i=0; i<gres->nodeCount; i++) {
@@ -286,164 +281,6 @@ void clearGresCred(Gres_Cred_t *gresList)
 	list_del(&gres->list);
 	ufree(gres);
     }
-}
 
-static Gres_Cred_t *getJobCredData(char **ptr, int index)
-{
-    Gres_Cred_t *gres;
-    uint32_t magic;
-    uint8_t more;
-    unsigned int i;
-
-    gres = getGresCred();
-    gres->job = 1;
-
-    getUint32(ptr, &magic);
-    getUint32(ptr, &gres->id);
-#ifdef SLURM_PROTOCOL_1605
-    getUint64(ptr, &gres->countAlloc);
-    gres->typeModel = getStringM(ptr);
-#else
-    getUint32(ptr, &gres->countAlloc);
-#endif
-    getUint32(ptr, &gres->nodeCount);
-
-    if (magic != GRES_MAGIC) {
-	mlog("%s: gres job magic error '%u' : '%u'\n", __func__, magic,
-		GRES_MAGIC);
-	clearGresCred(gres);
-	return NULL;
-    }
-
-    mdbg(PSSLURM_LOG_GRES, "%s: index '%i' pluginID '%u' "
-#ifdef SLURM_PROTOCOL_1605
-	    "gresCountAlloc '%lu' nodeCount '%u'\n", __func__, index,
-#else
-	    "gresCountAlloc '%u' nodeCount '%u'\n", __func__, index,
-#endif
-	    gres->id, gres->countAlloc, gres->nodeCount);
-
-    /* bit allocation */
-    getUint8(ptr, &more);
-    if (more) {
-	gres->bitAlloc = umalloc(sizeof(char *) * gres->nodeCount);
-	for (i=0; i<gres->nodeCount; i++) {
-	    getBitString(ptr, &(gres->bitAlloc)[i]);
-	    mdbg(PSSLURM_LOG_GRES, "%s: node '%u' bit_alloc "
-		    "'%s'\n", __func__, i,
-		    gres->bitAlloc[i]);
-	}
-    }
-
-    /* bit step allocation */
-    getUint8(ptr, &more);
-    if (more) {
-	gres->bitStepAlloc = umalloc(sizeof(char *) * gres->nodeCount);
-	for (i=0; i<gres->nodeCount; i++) {
-	    getBitString(ptr, &(gres->bitStepAlloc)[i]);
-	    mdbg(PSSLURM_LOG_GRES, "%s: node '%u' bit_step_alloc '%s'\n",
-		    __func__, i, gres->bitStepAlloc[i]);
-	}
-    }
-
-    /* count step allocation */
-    getUint8(ptr, &more);
-    if (more) {
-#ifdef SLURM_PROTOCOL_1605
-	gres->countStepAlloc = umalloc(sizeof(uint64_t) * gres->nodeCount);
-	for (i=0; i<gres->nodeCount; i++) {
-	    getUint64(ptr, &(gres->countStepAlloc)[i]);
-	    mdbg(PSSLURM_LOG_GRES, "%s: node '%u' gres_cnt_step_alloc "
-		    "'%lu'\n", __func__, i, gres->countStepAlloc[i]);
-	}
-#else
-	gres->countStepAlloc = umalloc(sizeof(uint32_t) * gres->nodeCount);
-	for (i=0; i<gres->nodeCount; i++) {
-	    getUint32(ptr, &(gres->countStepAlloc)[i]);
-	    mdbg(PSSLURM_LOG_GRES, "%s: node '%u' gres_cnt_step_alloc "
-		    "'%u'\n", __func__, i, gres->countStepAlloc[i]);
-	}
-#endif
-    }
-
-    return gres;
-}
-
-static Gres_Cred_t *getStepCredData(char **ptr, int index)
-{
-    Gres_Cred_t *gres;
-    uint32_t magic;
-    uint8_t more;
-    unsigned int i;
-
-    gres = getGresCred();
-    gres->job = 0;
-
-    getUint32(ptr, &magic);
-    getUint32(ptr, &gres->id);
-#ifdef SLURM_PROTOCOL_1605
-    getUint64(ptr, &gres->countAlloc);
-#else
-    getUint32(ptr, &gres->countAlloc);
-#endif
-    getUint32(ptr, &gres->nodeCount);
-    getBitString(ptr, &gres->nodeInUse);
-
-    if (magic != GRES_MAGIC) {
-	mlog("%s: magic error: '%u' : '%u'\n", __func__, magic,
-		GRES_MAGIC);
-	clearGresCred(gres);
-	return NULL;
-    }
-
-#ifdef SLURM_PROTOCOL_1605
-    mdbg(PSSLURM_LOG_GRES, "%s: index '%i' pluginID '%u' gresCountAlloc '%lu'"
-#else
-    mdbg(PSSLURM_LOG_GRES, "%s: index '%i' pluginID '%u' gresCountAlloc '%u'"
-#endif
-	    " nodeCount '%u' nodeInUse '%s'\n", __func__, index, gres->id,
-	    gres->countAlloc, gres->nodeCount, gres->nodeInUse);
-
-    /* bit allocation */
-    getUint8(ptr, &more);
-    if (more) {
-	gres->bitAlloc = umalloc(sizeof(char *) * gres->nodeCount);
-	for (i=0; i<gres->nodeCount; i++) {
-	    getBitString(ptr, &(gres->bitAlloc)[i]);
-	    mdbg(PSSLURM_LOG_GRES, "%s: node '%u' bit_alloc '%s'\n", __func__,
-		    i, gres->bitAlloc[i]);
-	}
-    }
-
-    return gres;
-}
-
-int getGresJobCred(Gres_Cred_t *gresList, char **ptr, uint32_t jobid,
-		    uint32_t stepid, uid_t uid)
-{
-    uint16_t count;
-    unsigned int i;
-    Gres_Cred_t *gres;
-
-    /* extract gres job data */
-    getUint16(ptr, &count);
-    mdbg(PSSLURM_LOG_GRES, "%s: job data: id '%u:%u' uid '%u' gres job "
-	    "count '%u'\n", __func__, jobid, stepid,  uid, count);
-
-    for (i=0; i<count; i++) {
-	if (!(gres = getJobCredData(ptr, i))) continue;
-	list_add_tail(&(gres->list), &(gresList->list));
-    }
-
-    /* extract gres step data */
-    getUint16(ptr, &count);
-    mdbg(PSSLURM_LOG_GRES, "%s: step data: id '%u:%u' uid '%u' gres step "
-	    "count '%u'\n", __func__, jobid, stepid,  uid, count);
-
-    for (i=0; i<count; i++) {
-	if (!(gres = getStepCredData(ptr, i))) continue;
-	list_add_tail(&(gres->list), &(gresList->list));
-    }
-
-    return 1;
+    ufree(gresList);
 }

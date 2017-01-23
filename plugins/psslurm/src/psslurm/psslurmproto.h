@@ -1,18 +1,11 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014 - 2015 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2017 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
- */
-/**
- * $Id$
- *
- * \author
- * Michael Rauh <rauh@par-tec.com>
- *
  */
 
 #ifndef __PS_SLURM_PROTO
@@ -30,10 +23,10 @@ int getSlurmMsgHeader(Slurm_Msg_t *sMsg, Connection_Forward_t *fw);
 int __sendSlurmRC(Slurm_Msg_t *sMsg, uint32_t rc,
 		    const char *func, const int line);
 
-#define sendSlurmReply(sMsg, type, body) \
-		    __sendSlurmReply(sMsg, type, body, __func__, __LINE__)
 int __sendSlurmReply(Slurm_Msg_t *sMsg, slurm_msg_type_t type,
-		    PS_DataBuffer_t *body, const char *func, const int line);
+			const char *func, const int line);
+#define sendSlurmReply(sMsg, type) \
+		    __sendSlurmReply(sMsg, type, __func__, __LINE__)
 
 int writeJobscript(Job_t *job, char *script);
 int handleSlurmdMsg(Slurm_Msg_t *msg);

@@ -1,18 +1,11 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2017 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
- */
-/**
- * $Id$
- *
- * \author
- * Michael Rauh <rauh@par-tec.com>
- *
  */
 
 #include <stdio.h>
@@ -301,7 +294,7 @@ void setSlurmJobEnv(Job_t *job)
     }
 
     /* gres "gpu" plugin */
-    if ((gres = findGresCred(&job->gres, GRES_PLUGIN_GPU, 1))) {
+    if ((gres = findGresCred(job->gres, GRES_PLUGIN_GPU, 1))) {
 	range2List(NULL, gres->bitAlloc[0], &list, &listSize, &count);
 	envSet(&job->env, "CUDA_VISIBLE_DEVICES", list);
 	envSet(&job->env, "GPU_DEVICE_ORDINAL", list);
@@ -309,7 +302,7 @@ void setSlurmJobEnv(Job_t *job)
     }
 
     /* gres "mic" plugin */
-    if ((gres = findGresCred(&job->gres, GRES_PLUGIN_MIC, 1))) {
+    if ((gres = findGresCred(job->gres, GRES_PLUGIN_MIC, 1))) {
 	range2List(NULL, gres->bitAlloc[0], &list, &listSize, &count);
 	envSet(&job->env, "OFFLOAD_DEVICES", list);
 	ufree(list);
@@ -465,7 +458,7 @@ void setRankEnv(int32_t rank, Step_t *step)
 
     if ((int32_t) localNodeId != -1) {
 	/* gres "gpu" plugin */
-	if ((gres = findGresCred(&step->gres, GRES_PLUGIN_GPU, 0))) {
+	if ((gres = findGresCred(step->gres, GRES_PLUGIN_GPU, 0))) {
 	    if (gres->bitAlloc[localNodeId]) {
 		range2List(NULL, gres->bitAlloc[localNodeId], &list,
 			    &listSize, &count);
@@ -479,7 +472,7 @@ void setRankEnv(int32_t rank, Step_t *step)
 	}
 
 	/* gres "mic" plugin */
-	if ((gres = findGresCred(&step->gres, GRES_PLUGIN_MIC, 0))) {
+	if ((gres = findGresCred(step->gres, GRES_PLUGIN_MIC, 0))) {
 	    if (gres->bitAlloc[localNodeId]) {
 		range2List(NULL, gres->bitAlloc[localNodeId], &list,
 			    &listSize, &count);

@@ -1,12 +1,13 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2017 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
@@ -26,6 +27,7 @@
 #include "psslurmio.h"
 #include "psslurmenv.h"
 #include "psslurmpscomm.h"
+#include "psslurmpack.h"
 
 #include "plugincomm.h"
 #include "pluginconfig.h"
@@ -229,8 +231,6 @@ static void closeConnection(int socket)
     }
 }
 
-void initConnectionList(void) {}
-
 void clearConnections(void)
 {
     list_t *c, *tmp;
@@ -243,11 +243,9 @@ void clearConnections(void)
 
 void initSlurmMsg(Slurm_Msg_t *sMsg)
 {
+    memset(sMsg, 0, sizeof(Slurm_Msg_t));
     sMsg->sock = -1;
-    sMsg->data = NULL;
-    sMsg->ptr = NULL;
     sMsg->source = -1;
-    sMsg->recvTime = 0;
     initSlurmMsgHead(&sMsg->head);
 }
 
@@ -259,15 +257,13 @@ void freeSlurmMsg(Slurm_Msg_t *sMsg)
 	    closeConnection(sMsg->sock);
 	    sMsg->sock = -1;
 	}
-    } else {
-	/* do we need to send result ??? */
     }
 
     initSlurmMsg(sMsg);
 }
 
-void __saveForwardedMsgRes(Slurm_Msg_t *sMsg, PS_DataBuffer_t *data,
-			    uint32_t error, const char *func, const int line)
+void __saveForwardedMsgRes(Slurm_Msg_t *sMsg, uint32_t error, const char *func,
+			    const int line)
 {
     Connection_t *con;
     Connection_Forward_t *fw;
@@ -275,21 +271,18 @@ void __saveForwardedMsgRes(Slurm_Msg_t *sMsg, PS_DataBuffer_t *data,
     uint16_t i, saved = 0;
     PSnodes_ID_t srcNode;
 
-    if (!sMsg) {
-	mlog("%s: invalid sMsg ptr\n", __func__);
-	return;
-    }
-
-    if (!data) {
-	mlog("%s: invalid data ptr\n", __func__);
+    if (!sMsg || !sMsg->data) {
+	mlog("%s: invalid %s from '%s' at '%i'\n", __func__,
+		(!sMsg ? "sMsg" : "data"), func, line);
 	return;
     }
 
     con = findConnectionEx(sMsg->sock, sMsg->recvTime);
     if (!con) {
-	mlog("%s: no connection to %s socket %i recvTime %zu type %s\n",
-	     __func__, PSC_printTID(sMsg->source), sMsg->sock, sMsg->recvTime,
-	     msgType2String(sMsg->head.type));
+	mlog("%s: no connection to %s socket %i recvTime %zu type %s"
+		"caller '%s' at '%i'\n", __func__, PSC_printTID(sMsg->source),
+		sMsg->sock, sMsg->recvTime, msgType2String(sMsg->head.type),
+		func, line);
 	return;
     }
 
@@ -298,14 +291,16 @@ void __saveForwardedMsgRes(Slurm_Msg_t *sMsg, PS_DataBuffer_t *data,
     srcNode = PSC_getID(sMsg->source);
 
     if (srcNode == PSC_getMyID()) {
+	/* save local processed message */
 	fw->head.type = sMsg->head.type;
-	addMemToMsg(data->buf, data->bufUsed, &fw->body);
+	addMemToMsg(sMsg->data->buf, sMsg->data->bufUsed, &fw->body);
     } else {
+	/* save message from other node */
 	for (i=0; i<fw->head.forward; i++) {
 	    fwdata = &fw->head.fwdata[i];
 	    if (fwdata->node == srcNode) {
-		mlog("%s: result for node '%i' already saved\n",
-			__func__, srcNode);
+		mlog("%s: result for node '%i' already saved, caller '%s' "
+			"line '%i'\n", __func__, srcNode, func, line);
 		fw->res--;
 		return;
 	    }
@@ -313,15 +308,15 @@ void __saveForwardedMsgRes(Slurm_Msg_t *sMsg, PS_DataBuffer_t *data,
 		fwdata->error = error;
 		fwdata->type = sMsg->head.type;
 		fwdata->node = srcNode;
-		addMemToMsg(data->buf, data->bufUsed, &fwdata->body);
+		addMemToMsg(sMsg->data->buf, sMsg->data->bufUsed, &fwdata->body);
 		fw->head.returnList++;
 		saved = 1;
 		break;
 	    }
 	}
 	if (!saved) {
-	    mlog("%s: could not save messages result for '%s'\n", __func__,
-		    PSC_printTID(sMsg->source));
+	    mlog("%s: error saving result for src '%s' caller '%s' at '%i'\n",
+		    __func__, PSC_printTID(sMsg->source), func, line);
 	}
     }
 
@@ -331,20 +326,37 @@ void __saveForwardedMsgRes(Slurm_Msg_t *sMsg, PS_DataBuffer_t *data,
 	    PSC_printTID(sMsg->source), sMsg->sock, sMsg->recvTime);
 
     if (fw->res == fw->nodesCount + 1) {
+	/* all answers collected */
 	mdbg(PSSLURM_LOG_FWD, "%s: forward '%s' complete, sending answer\n",
 		__func__, msgType2String(sMsg->head.type));
 
 	fw->head.forward = 0;
 
 	if (!fw->body.buf || !fw->body.bufUsed) {
-	    mlog("%s: invalid local data, dropping msg\n", __func__);
+	    mlog("%s: invalid local data, dropping msg from caller '%s' "
+		    "at '%i'\n", __func__, func, line);
 	    closeConnection(con->sock);
 	    return;
 	}
 	sendSlurmMsgEx(con->sock, &fw->head, &fw->body);
-
 	closeConnection(con->sock);
     }
+}
+
+static bool getSockInfo(int socket, uint32_t *addr, uint16_t *port)
+{
+    struct sockaddr_in sock_addr;
+    socklen_t len = sizeof(sock_addr);
+
+    if (getpeername(socket, (struct sockaddr*)&sock_addr, &len) == -1) {
+	mwarn(errno, "%s: getpeername for socket %i failed: ",
+		__func__, socket);
+	return false;
+    }
+    *addr = sock_addr.sin_addr.s_addr;
+    *port = sock_addr.sin_port;
+
+    return true;
 }
 
 static int readSlurmMsg(int sock, void *param)
@@ -488,7 +500,7 @@ static int handleSlurmctldReply(Slurm_Msg_t *sMsg)
     char **ptr;
     uint32_t rc;
 
-    if (!testMungeAuth(&sMsg->ptr, &sMsg->head)) return 0;
+    if (!extractSlurmAuth(&sMsg->ptr, &sMsg->head)) return 0;
 
     ptr = &sMsg->ptr;
     getUint32(ptr, &rc);
@@ -526,8 +538,6 @@ int tcpConnect(char *addr, char *port)
 TCP_RECONNECT:
 
     err = errno = 0;
-
-    /* workaround for psid SIGCHLD malloc deadlock */
 
     /* set up the sockaddr structure */
     ret = getaddrinfo(addr, port, NULL, &result);
@@ -648,89 +658,49 @@ void freeSlurmMsgHead(Slurm_Msg_Header_t *head)
     ufree(head->fwdata);
 }
 
-int sendSlurmMsg(int sock, slurm_msg_type_t type, PS_DataBuffer_t *body)
+int __sendSlurmMsg(int sock, slurm_msg_type_t type, PS_DataBuffer_t *body,
+		    const char *caller, const int line)
 {
     Slurm_Msg_Header_t head;
 
     initSlurmMsgHead(&head);
     head.type = type;
 
-    return sendSlurmMsgEx(sock, &head, body);
+    return __sendSlurmMsgEx(sock, &head, body, caller, line);
 }
 
-static void addSlurmHeader(Slurm_Msg_Header_t *head, uint32_t bodyLen,
-			    PS_DataBuffer_t *data)
-{
-    uint32_t i;
-    const char *hn;
-
-    /* protocol version */
-    addUint16ToMsg(head->version, data);
-    /* flags */
-    addUint16ToMsg(head->flags, data);
-#ifdef SLURM_PROTOCOL_1605
-    /* index */
-    addUint16ToMsg(head->index, data);
-#endif
-    /* type */
-    addUint16ToMsg(head->type, data);
-    /* body len */
-    addUint32ToMsg(bodyLen, data);
-
-    /* forward */
-    addUint16ToMsg(head->forward, data);
-    if (head->forward > 0) {
-	/* nodelist */
-	addStringToMsg(head->nodeList, data);
-	/* timeout */
-	addUint32ToMsg(head->timeout, data);
-#ifdef SLURM_PROTOCOL_1605
-	/* tree width */
-	addUint16ToMsg(head->treeWidth, data);
-#endif
-    }
-
-    /* return list */
-    addUint16ToMsg(head->returnList, data);
-    for (i=0; i<head->returnList; i++) {
-	/* error */
-	addUint32ToMsg(head->fwdata[i].error, data);
-
-	/* msg type */
-	addUint16ToMsg(head->fwdata[i].type, data);
-
-	/* nodename */
-	hn = getHostnameByNodeId(head->fwdata[i].node);
-	addStringToMsg(hn, data);
-
-	/* msg body */
-	addMemToMsg(head->fwdata[i].body.buf,
-		head->fwdata[i].body.bufUsed, data);
-    }
-
-    /* addr/port */
-    addUint32ToMsg(head->addr, data);
-    addUint16ToMsg(head->port, data);
-}
-
-int sendSlurmMsgEx(int sock, Slurm_Msg_Header_t *head, PS_DataBuffer_t *body)
+int __sendSlurmMsgEx(int sock, Slurm_Msg_Header_t *head, PS_DataBuffer_t *body,
+		    const char *caller, const int line)
 {
     PS_DataBuffer_t data = { .buf = NULL };
     uint32_t msgLen, lastBufLen = 0;
-    int ret;
+    int ret = 0, written;
+
+    if (!head) {
+	mlog("%s: invalid header from '%s' at '%i'\n", __func__, caller, line);
+	return -1;
+    }
+
+    if (!body) {
+	mlog("%s: invalid body from '%s' at '%i'\n", __func__, caller, line);
+	return -1;
+    }
 
     /* connect to slurmctld */
     if (sock < 0) {
 	sock = connect2Slurmctld();
 	if (sock < 0) {
 	    /* TODO */
-	    mlog("%s: fixme: need to retry later!!!\n", __func__);
-	    return 0;
+	    mlog("%s: fixme: need to retry later! caller '%s' at '%i'\n",
+		    __func__, caller, line);
+	    return -1;
 	}
     }
 
     /* add message header */
-    addSlurmHeader(head, body->bufUsed, &data);
+    head->bodyLen = body->bufUsed;
+    packSlurmHeader(&data, head);
+
     mdbg(PSSLURM_LOG_COMM, "%s: added slurm header (%i) : body len :%i\n",
 	    __func__, data.bufUsed, body->bufUsed);
 
@@ -765,22 +735,30 @@ int sendSlurmMsgEx(int sock, Slurm_Msg_Header_t *head, PS_DataBuffer_t *body)
 
     /* send the message */
     msgLen = htonl(data.bufUsed);
-    ret = doWriteP(sock, &msgLen, sizeof(msgLen));
-    if (ret < 1) {
+    written = doWriteP(sock, &msgLen, sizeof(msgLen));
+    if (written != sizeof(msgLen)) {
+	mlog("%s: writing message len '%i' failed, written '%i' caller '%s' "
+		"at '%i'\n", __func__, msgLen, written, caller, line);
 	ufree(data.buf);
-	return ret;
+	return -1;
     }
+    ret += written;
     mdbg(PSSLURM_LOG_COMM, "%s: wrote len: %u\n", __func__, ret);
 
-    ret = doWriteP(sock, data.buf, data.bufUsed);
-    if (ret < 1) {
+    written = doWriteP(sock, data.buf, data.bufUsed);
+    if (written == -1 || written != (int) data.bufUsed) {
+	mlog("%s: writing message with lenght '%i' failed, written '%i' "
+		"caller '%s' line '%i'\n", __func__, data.bufUsed, written,
+		caller, line);
 	ufree(data.buf);
-	return ret;
+	return -1;
     }
-    mdbg(PSSLURM_LOG_COMM, "%s: wrote data: %u\n", __func__, ret);
+    ret += written;
+    mdbg(PSSLURM_LOG_COMM, "%s: wrote data: %u for caller '%s' at '%i'\n",
+	    __func__, ret, caller, line);
 
     ufree(data.buf);
-    return 1;
+    return ret;
 }
 
 void __getBitString(char **ptr, char **bitStr, const char *func, const int line)
@@ -967,73 +945,66 @@ int handleSrunMsg(int sock, void *data)
 {
     Step_t *step = data;
     char *ptr, buffer[1024];
-    int ret, headSize = 3 * sizeof(uint16_t) + sizeof(uint32_t), fd = -1;
-    uint16_t type, gtid, ltid, i;
-    uint32_t length, myTaskIdsLen;
-    uint32_t *myTaskIds;
+    int ret, fd = -1;
+    Slurm_IO_Header_t *ioh = NULL;
+    uint16_t i;
+    uint32_t myTaskIdsLen, *myTaskIds;
 
     /* Shall be safe to do first a blocking read() inside a selector */
-    ret = doRead(sock, buffer, headSize);
+    ret = doRead(sock, buffer, SLURM_IO_HEAD_SIZE);
     if (ret <= 0) {
 	if (ret < 0) {
 	    mwarn(errno, "%s: doRead()", __func__);
 	}
 	mlog("%s: close srun connection\n", __func__);
-	closeConnection(sock);
-	return 0;
+	goto ERROR;
     }
     ptr = buffer;
 
     if (!step->fwdata) {
 	mlog("%s: no forwarder running for step '%u:%u'\n", __func__,
 		step->jobid, step->stepid);
-	closeConnection(sock);
-	return 0;
+	goto ERROR;
     }
     fd = (step->pty) ? step->fwdata->stdOut[1] : step->fwdata->stdIn[1];
-
-    /* type */
-    getUint16(&ptr, &type);
-    /* global taskid */
-    getUint16(&ptr, &gtid);
-    /* local taskid */
-    getUint16(&ptr, &ltid);
-    /* length */
-    getUint32(&ptr, &length);
-
     myTaskIdsLen = step->globalTaskIdsLen[step->myNodeIndex];
     myTaskIds = step->globalTaskIds[step->myNodeIndex];
 
+    if (!unpackSlurmIOHeader(&ptr, &ioh)) {
+	mlog("%s: unpack slurm I/O header failed\n", __func__);
+	goto ERROR;
+    }
+
     mdbg(PSSLURM_LOG_IO | PSSLURM_LOG_IO_VERB,
 	 "%s: step %u:%u stdin %d type %u length %u gtid %u ltid %u pty %u"
-	 " myTIDsLen %u\n", __func__, step->jobid, step->stepid, fd, type,
-	 length, gtid, ltid, step->pty, myTaskIdsLen);
+	 " myTIDsLen %u\n", __func__, step->jobid, step->stepid, fd, ioh->type,
+	 ioh->len, ioh->gtid, ioh->ltid, step->pty, myTaskIdsLen);
 
-    if (type == SLURM_IO_CONNECTION_TEST) {
-	if (length != 0) {
+    if (ioh->type == SLURM_IO_CONNECTION_TEST) {
+	if (ioh->len != 0) {
 	    mlog("%s: invalid connection test, length '%u'\n", __func__,
-		    length);
+		    ioh->len);
 	}
 	srunSendIO(SLURM_IO_CONNECTION_TEST, 0, step, NULL, 0);
-    } else if (!length) {
+    } else if (!ioh->len) {
 	/* forward eof to all forwarders */
 	mlog("%s: got eof of stdin '%d'\n", __func__, fd);
 
-	if (type == SLURM_IO_STDIN) {
-	    forwardInputMsg(step, gtid, NULL, 0);
-	} else if (type == SLURM_IO_ALLSTDIN) {
+	if (ioh->type == SLURM_IO_STDIN) {
+	    forwardInputMsg(step, ioh->gtid, NULL, 0);
+	} else if (ioh->type == SLURM_IO_ALLSTDIN) {
 	    for (i=0; i<myTaskIdsLen; i++) {
 		forwardInputMsg(step, myTaskIds[i], NULL, 0);
 	    }
 	} else {
-	    mlog("%s: got unsupported I/O type '%u'\n", __func__, type);
+	    mlog("%s: got unsupported I/O type '%u'\n", __func__, ioh->type);
 	}
 
 	/* close loggers stdin */
 	if (!step->pty) closeConnection(fd);
     } else {
 	/* foward stdin message to forwarders */
-	size_t left = length;
+	size_t left = ioh->len;
 	while (left > 0) {
 	    size_t readNow = (left > sizeof(buffer)) ? sizeof(buffer) : left;
 	    /* @todo This shall be non-blocking! */
@@ -1046,9 +1017,9 @@ int handleSrunMsg(int sock, void *data)
 	    if (step->pty) {
 		if (step->nodes[0] == PSC_getMyID()) doWriteP(fd, buffer, ret);
 	    } else {
-		switch (type) {
+		switch (ioh->type) {
 		case SLURM_IO_STDIN:
-		    forwardInputMsg(step, gtid, buffer, ret);
+		    forwardInputMsg(step, ioh->gtid, buffer, ret);
 		    break;
 		case SLURM_IO_ALLSTDIN:
 		    for (i=0; i<myTaskIdsLen; i++) {
@@ -1056,13 +1027,20 @@ int handleSrunMsg(int sock, void *data)
 		    }
 		    break;
 		default:
-		    mlog("%s: got unsupported I/O type '%u'\n", __func__, type);
+		    mlog("%s: got unsupported I/O type '%u'\n", __func__,
+			ioh->type);
 		}
 	    }
 	    left -= ret;
 	}
     }
 
+    ufree(ioh);
+    return 0;
+
+ERROR:
+    ufree(ioh);
+    closeConnection(sock);
     return 0;
 }
 
@@ -1085,7 +1063,7 @@ int srunOpenControlConnection(Step_t *step)
 	return -1;
     }
 
-    setFDblock(sock, 0);
+    setFDblock(sock, false);
 
     mdbg(PSSLURM_LOG_IO | PSSLURM_LOG_IO_VERB,
 	 "%s: new srun connection %i\n", __func__, sock);
@@ -1113,7 +1091,7 @@ int srunSendMsg(int sock, Step_t *step, slurm_msg_type_t type,
     return sendSlurmMsg(sock, type, body);
 }
 
-int srunOpenPTY(Step_t *step)
+int srunOpenPTYConnection(Step_t *step)
 {
     int sock;
     char *port = envGet(&step->env, "SLURM_PTY_PORT");
@@ -1132,7 +1110,7 @@ int srunOpenPTY(Step_t *step)
 	 inet_ntoa(step->srun.sin_addr), port);
     step->srunPTYMsg.sock = sock;
 
-    setFDblock(sock, 0);
+    setFDblock(sock, false);
 
     if (Selector_register(sock, handleSrunPTYMsg, step) == -1) {
 	mlog("%s: Selector_register(%i) failed\n", __func__, sock);
@@ -1141,33 +1119,40 @@ int srunOpenPTY(Step_t *step)
     return sock;
 }
 
-int srunOpenIOConnection(Step_t *step, int sock, char *sig)
+int srunOpenIOConnectionEx(Step_t *step, uint32_t addr, uint16_t port,
+			    char *sig)
 {
     PS_DataBuffer_t data = { .buf = NULL };
-    char port[100];
     PSnodes_ID_t nodeID = step->myNodeIndex;
     uint32_t i;
+    int sock;
 
-    if (sock <= 0) {
-	/* open connection to waiting srun */
-	snprintf(port, sizeof(port), "%u",
+    /* open I/O connection to srun */
+    if (!addr) {
+	char sport[100];
+	snprintf(sport, sizeof(sport), "%u",
 		    step->IOPort[nodeID % step->numIOPort]);
 
-	sock = tcpConnect(inet_ntoa(step->srun.sin_addr), port);
+	sock = tcpConnect(inet_ntoa(step->srun.sin_addr), sport);
 	if (sock < 0) {
 	    mlog("%s: connection to srun '%s:%s' failed\n", __func__,
-		 inet_ntoa(step->srun.sin_addr), port);
-	    return 0;
+		 inet_ntoa(step->srun.sin_addr), sport);
+	    return -1;
 	}
 
 	mlog("%s: addr '%s:%s' sock '%u'\n", __func__,
-	     inet_ntoa(step->srun.sin_addr), port, sock);
-
+	     inet_ntoa(step->srun.sin_addr), sport, sock);
 
 	step->srunIOMsg.sock = sock;
+    } else {
+	if ((sock = tcpConnectU(addr, port)) <0) {
+	    mlog("%s: connection to srun '%u:%u' failed\n", __func__,
+		    addr, port);
+	    return -1;
+	}
     }
 
-    setFDblock(sock, 0);
+    setFDblock(sock, false);
 
     addUint16ToMsg(IO_PROTOCOL_VERSION, &data);
     /* nodeid */
@@ -1207,7 +1192,7 @@ int srunOpenIOConnection(Step_t *step, int sock, char *sig)
     doWriteP(sock, data.buf, data.bufUsed);
     ufree(data.buf);
 
-    return 1;
+    return sock;
 }
 
 void srunEnableIO(Step_t *step)
@@ -1236,15 +1221,20 @@ void srunEnableIO(Step_t *step)
     enabled = 1;
 }
 
-int srunSendIO(uint16_t type, uint32_t taskid, Step_t *step,
-	       char *buf, uint32_t bufLen)
+int srunSendIO(uint16_t type, uint16_t taskid, Step_t *step, char *buf,
+		uint32_t bufLen)
 {
     int ret, error;
+    Slurm_IO_Header_t ioh = {
+	.type = type,
+	.gtid = taskid,
+	.ltid = (uint16_t)NO_VAL,
+	.len = bufLen
+    };
 
-    ret = srunSendIOSock(type, taskid, step->srunIOMsg.sock, buf,
-			    bufLen, &error);
+    ret = srunSendIOEx(step->srunIOMsg.sock, &ioh, buf, &error);
 
-    if (ret < 0 ) {
+    if (ret < 0) {
 	switch (error) {
 	    case ECONNRESET:
 	    case EPIPE:
@@ -1258,67 +1248,48 @@ int srunSendIO(uint16_t type, uint32_t taskid, Step_t *step,
     return ret;
 }
 
-int srunSendIOSock(uint16_t type, uint32_t taskid, int sock,
-		   char *buf, uint32_t bufLen, int *error)
+int srunSendIOEx(int sock, Slurm_IO_Header_t *iohead, char *buf, int *error)
 {
     PS_DataBuffer_t data = { .buf = NULL };
     int ret = 0, once = 1;
-    int32_t len, towrite, written;
-    uint16_t headLen;
+    int32_t towrite, written = 0;
+    Slurm_IO_Header_t ioh;
 
-    if (bufLen > 0) {
+    if (sock < 0) return -1;
+
+    if (iohead->len > 0) {
 	mdbg(PSSLURM_LOG_IO | PSSLURM_LOG_IO_VERB,
-	     "%s: msg '%.*s'\n", __func__, bufLen, buf);
+	     "%s: msg '%.*s'\n", __func__, iohead->len, buf);
     }
 
-    if (sock == -1) return -1;
-
-    towrite = bufLen;
-    written = 0;
-    errno = 0;
+    towrite = iohead->len;
+    errno = *error = 0;
+    memcpy(&ioh, iohead, sizeof(Slurm_IO_Header_t));
 
     while (once || towrite > 0) {
-	len = towrite > 1000 ? 1000 : towrite;
+	ioh.len = towrite > 1000 ? 1000 : towrite;
 
-	/* type (stdout/stderr) */
-	addUint16ToMsg(type, &data);
-	/* global taskid */
-	addUint16ToMsg(taskid, &data);
-	/* local taskid (unused) */
-	addUint16ToMsg((uint16_t)NO_VAL, &data);
-	/* msg length */
-	addUint32ToMsg(len, &data);
-
-	headLen = data.bufUsed;
-	if (len>0) addMemToMsg(buf + written, len, &data);
+	packSlurmIOMsg(&data, &ioh, buf + written);
 	ret = doWriteF(sock, data.buf, data.bufUsed);
+
 	data.bufUsed = once = 0;
 
-	if (ret < 0) break;
+	if (ret < 0) {
+	    *error = errno;
+	    ufree(data.buf);
+	    return -1;
+	}
 	if (!ret) continue;
 
-	ret -= headLen;
+	ret -= SLURM_IO_HEAD_SIZE;
 	written += ret;
 	towrite -= ret;
-	mdbg(PSSLURM_LOG_IO | PSSLURM_LOG_IO_VERB,
-	     "%s: fd '%i' ret :%i written :%i towrite: %i\n",
-	     __func__, sock, ret, written, towrite);
+	mdbg(PSSLURM_LOG_IO | PSSLURM_LOG_IO_VERB, "%s: fd '%i' ret :%i written"
+		" :%i towrite: %i\n", __func__, sock, ret, written, towrite);
     }
 
-    *error = errno;
     ufree(data.buf);
-
-    return ret;
-}
-
-void getSockInfo(int socket, uint32_t *addr, uint16_t *port)
-{
-    struct sockaddr_in sock_addr;
-    socklen_t len = sizeof(sock_addr);
-
-    getpeername(socket, (struct sockaddr*)&sock_addr, &len);
-    *addr = sock_addr.sin_addr.s_addr;
-    *port = sock_addr.sin_port;
+    return written;
 }
 
 void closeAllStepConnections(Step_t *step)
@@ -1350,15 +1321,14 @@ void handleBrokenConnection(PSnodes_ID_t nodeID)
 	for (i=0; i<fw->nodesCount; i++) {
 	    if (fw->nodes[i] == nodeID) {
 
-		initSlurmMsgHead(&sMsg.head);
-		sMsg.data = NULL;
+		initSlurmMsg(&sMsg);
 		sMsg.source = PSC_getTID(nodeID, 0);
 		sMsg.head.type = RESPONSE_FORWARD_FAILED;
 		sMsg.sock = con->sock;
 		sMsg.recvTime = con->recvTime;
+		sMsg.data = &data;
 
-		saveForwardedMsgRes(&sMsg, &data,
-					SLURM_COMMUNICATIONS_CONNECTION_ERROR);
+		saveForwardedMsgRes(&sMsg, SLURM_COMMUNICATIONS_CONNECTION_ERROR);
 		mlog("%s: forwarded message error for node '%i' saved\n",
 			__func__, nodeID);
 	    }

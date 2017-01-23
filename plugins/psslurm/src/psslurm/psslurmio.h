@@ -1,18 +1,11 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2015-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2015-2017 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
- */
-/**
- * $Id$
- *
- * \author
- * Michael Rauh <rauh@par-tec.com>
- *
  */
 
 #ifndef __PS_SLURM_IO
@@ -22,6 +15,15 @@
 #include "psslurmjob.h"
 
 #define MAX_SATTACH_SOCKETS 30
+
+#define SLURM_IO_HEAD_SIZE 3 * sizeof(uint16_t) + sizeof(uint32_t)
+
+typedef struct {
+    uint16_t type;  /* type */
+    uint16_t gtid;  /* global task ID */
+    uint16_t ltid;  /* local task ID */
+    uint32_t len;   /* data length */
+} Slurm_IO_Header_t;
 
 void writeIOmsg(char *msg, uint32_t msgLen, uint32_t taskid,
 			uint8_t type, Forwarder_Data_t *fwdata, Step_t *step,

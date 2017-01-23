@@ -1,18 +1,11 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2017 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
- */
-/**
- * $Id$
- *
- * \author
- * Michael Rauh <rauh@par-tec.com>
- *
  */
 
 #ifndef __PS_PSSLURM_JOB
@@ -122,6 +115,7 @@ typedef struct {
     uint64_t fileSize;
     time_t atime;
     time_t mtime;
+    time_t expTime;
     char *block;
     char *username;
     Slurm_Msg_t msg;
@@ -143,7 +137,7 @@ typedef struct {
     gid_t gid;			/* group of the step owner */
     char *partition;		/* name of the slurm partition */
     JobCred_t *cred;		/* job/step creditials */
-    Gres_Cred_t gres;		/* gres informations */
+    Gres_Cred_t *gres;		/* general resource informations */
     PSnodes_ID_t *nodes;	/* all participating nodes in the step */
     uint32_t nrOfNodes;
     char *slurmNodes;		/* slurm compressed hostlist */
@@ -247,7 +241,7 @@ typedef struct {
     PStask_ID_t mother;
     char *partition;
     JobCred_t *cred;	    /* job/step creditials */
-    Gres_Cred_t gres;
+    Gres_Cred_t *gres;	    /* general resource informations */
     char **argv;
     uint32_t argc;
     env_t env;

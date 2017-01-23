@@ -386,6 +386,7 @@ configdir = $(prefix)/config
 
 # dito
 scriptsdir = $(prefix)/scripts
+slurmdir = $(libdir)/slurm
 plugin_LTLIBRARIES = psmunge.la
 libplugincommon = $(top_builddir)/lib/plugincommon/libplugincommon.la
 psmunge_la_SOURCES = psmunge.c psmungelog.c psmungelog.h	\

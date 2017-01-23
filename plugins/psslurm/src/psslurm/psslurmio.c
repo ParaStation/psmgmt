@@ -1,18 +1,11 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2015-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2015-2017 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
- */
-/**
- * $Id$
- *
- * \author
- * Michael Rauh <rauh@par-tec.com>
- *
  */
 
 #define _GNU_SOURCE
@@ -92,14 +85,16 @@ void initStepIO(Step_t *step)
 static void forward2Sattach(char *msg, uint32_t msgLen, uint32_t taskid,
 			    uint8_t type)
 {
-    int i, ret, stype, error;
+    int i, ret, error;
+    Slurm_IO_Header_t ioh;
 
-    stype = (type == STDOUT) ?  SLURM_IO_STDOUT : SLURM_IO_STDERR;
+    ioh.type = (type == STDOUT) ?  SLURM_IO_STDOUT : SLURM_IO_STDERR;
+    ioh.gtid = taskid;
+    ioh.len = msgLen;
 
     for (i=0; i<MAX_SATTACH_SOCKETS; i++) {
 	if (sattachSockets[i] != -1) {
-	    ret = srunSendIOSock(stype, taskid, sattachSockets[i], msg,
-				    msgLen, &error);
+	    ret = srunSendIOEx(sattachSockets[i], &ioh, msg, &error);
 	    if (ret <0) {
 		if (Selector_isRegistered(sattachSockets[i])) {
 		    Selector_remove(sattachSockets[i]);
@@ -146,8 +141,8 @@ static void msg2Buffer(char *msg, uint32_t msgLen, uint32_t taskid,
 }
 
 void writeIOmsg(char *msg, uint32_t msgLen, uint32_t taskid,
-			uint8_t type, Forwarder_Data_t *fwdata, Step_t *step,
-			uint32_t lrank)
+		uint8_t type, Forwarder_Data_t *fwdata, Step_t *step,
+		uint32_t lrank)
 {
     void *msgPtr;
 
@@ -305,7 +300,8 @@ static void handlePrintChildMsg(void *data, char *ptr)
 
     /* handle unbuffered IO */
 #ifdef SLURM_PROTOCOL_1605
-    if (type == STDERR || (!step->labelIO && !step->bufferedIO) || step->pty) {
+    if (type == STDERR || (!step->labelIO && !step->bufferedIO)
+	|| step->pty) {
 #else
     if ((!step->labelIO && !step->bufferedIO) || step->pty) {
 #endif
@@ -325,13 +321,9 @@ static void handlePrintChildMsg(void *data, char *ptr)
 	initBuf = 1;
     }
 
-    if (type == STDOUT) {
-	handleBufferedMsg(msg, len, &lineBuf[lrank].out, fwdata, step,
-			    taskid, type, lrank);
-    } else {
-	handleBufferedMsg(msg, len, &lineBuf[lrank].err, fwdata, step,
-			    taskid, type, lrank);
-    }
+   handleBufferedMsg(msg, len,
+		    type == STDOUT ?  &lineBuf[lrank].out : &lineBuf[lrank].err,
+		    fwdata, step, taskid, type, lrank);
 
     ufree(msg);
 }
@@ -420,29 +412,24 @@ static void handleReattachTasks(void *data, char *ptr)
     Forwarder_Data_t *fwdata = data;
     Step_t *step = fwdata->userData;
     uint16_t ioPort, ctlPort;
-    uint32_t ioAddr;
+    uint32_t ioAddr, index = ringBufStart;
     char *sig;
     int sock, i, ret, sockIndex = 0, error;
-
-    uint32_t index = ringBufStart;
     RingMsgBuffer_t *rBuf;
-
 
     getUint32(&ptr, &ioAddr);
     getUint16(&ptr, &ioPort);
     getUint16(&ptr, &ctlPort);
     sig = getStringM(&ptr);
 
-    if ((sock = tcpConnectU(ioAddr, ioPort)) <0) {
-	mlog("%s: connection to srun '%u:%u' failed\n", __func__,
+    if ((sock = srunOpenIOConnectionEx(step, ioAddr, ioPort, sig)) == -1) {
+	mlog("%s: I/O connection to srun '%u:%u' failed\n", __func__,
 		ioAddr, ioPort);
 	return;
     }
 
     mdbg(PSSLURM_LOG_IO, "%s: opened connection to '%u:%u' ctlPort '%u'\n",
 	    __func__, ioAddr, ioPort, ctlPort);
-
-    srunOpenIOConnection(step, sock, sig);
 
     for (i=0; i<MAX_SATTACH_SOCKETS; i++) {
 	if (sattachSockets[i] == -1) {
@@ -463,12 +450,16 @@ static void handleReattachTasks(void *data, char *ptr)
 
     /* send previous buffered output */
     for (i=0; i<RING_BUFFER_LEN; i++) {
+	Slurm_IO_Header_t ioh;
+
 	rBuf = &ringBuf[index];
 	if (!rBuf->msg) break;
 
-	ret = srunSendIOSock(rBuf->type, rBuf->taskid,
-				sattachSockets[sockIndex], rBuf->msg,
-				rBuf->msgLen, &error);
+	ioh.type = rBuf->type;
+	ioh.gtid = rBuf->taskid;
+	ioh.len = rBuf->msgLen;
+	ret = srunSendIOEx(sattachSockets[sockIndex], &ioh, rBuf->msg, &error);
+
 	if (ret < 0) {
 	    mlog("%s: sending IO failed\n", __func__);
 	    close(sattachSockets[sockIndex]);

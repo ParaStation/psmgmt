@@ -1,18 +1,11 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2017 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
- */
-/**
- * $Id$
- *
- * \author
- * Michael Rauh <rauh@par-tec.com>
- *
  */
 
 #include <stdlib.h>
@@ -69,7 +62,6 @@ Job_t *addJob(uint32_t jobid)
     job->state = JOB_INIT;
     job->start_time = time(0);
     INIT_LIST_HEAD(&job->tasks.list);
-    INIT_LIST_HEAD(&job->gres.list);
     envInit(&job->env);
     envInit(&job->spankenv);
 
@@ -155,7 +147,6 @@ Step_t *addStep(uint32_t jobid, uint32_t stepid)
     step->start_time = time(0);
 
     INIT_LIST_HEAD(&step->tasks.list);
-    INIT_LIST_HEAD(&step->gres.list);
     envInit(&step->env);
     envInit(&step->spankenv);
     initSlurmMsg(&step->srunIOMsg);
@@ -571,7 +562,7 @@ int deleteStep(uint32_t jobid, uint32_t stepid)
     ufree(step->hwThreads);
 
     clearTasks(&step->tasks.list);
-    clearGresCred(&step->gres);
+    freeGresCred(step->gres);
 
     if (step->fwdata) {
 	if (step->fwdata->childPid) killChild(step->fwdata->childPid, SIGKILL);
@@ -580,7 +571,7 @@ int deleteStep(uint32_t jobid, uint32_t stepid)
 	}
     }
 
-    deleteJobCred(step->cred);
+    freeJobCred(step->cred);
 
     for (i=0; i<step->nrOfNodes; i++) {
 	ufree(step->globalTaskIds[i]);
@@ -619,7 +610,7 @@ int deleteJob(uint32_t jobid)
 	if (job->jobscript) unlink(job->jobscript);
 
 	deleteAlloc(job->jobid);
-	clearGresCred(&job->gres);
+	freeGresCred(job->gres);
 
 	/* tell sisters the job is finished */
 	if (job->nodes && job->nodes[0] == PSC_getMyID()) {
@@ -660,7 +651,7 @@ int deleteJob(uint32_t jobid)
     ufree(job->argv);
 
     clearTasks(&job->tasks.list);
-    deleteJobCred(job->cred);
+    freeJobCred(job->cred);
 
     envDestroy(&job->env);
     envDestroy(&job->spankenv);

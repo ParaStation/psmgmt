@@ -1,18 +1,11 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2017 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
- */
-/**
- * $Id$
- *
- * \author
- * Michael Rauh <rauh@par-tec.com>
- *
  */
 
 #ifndef __PS_SLURM_PSCOMM
@@ -68,7 +61,7 @@ void send_PS_JobState(uint32_t jobid, PStask_ID_t dest);
 
 void forwardSlurmMsg(Slurm_Msg_t *sMsg, Connection_Forward_t *fw);
 
-void send_PS_ForwardRes(Slurm_Msg_t *msg, PS_DataBuffer_t *body);
+void send_PS_ForwardRes(Slurm_Msg_t *msg);
 
 void handleCCMsg(PSLog_Msg_t *msg);
 
