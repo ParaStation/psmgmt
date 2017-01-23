@@ -1664,6 +1664,11 @@ static void handleAbortReq(Slurm_Msg_t *sMsg, uint32_t jobid, uint32_t stepid)
 
     if (!job && !alloc) {
 	mlog("%s: job '%u' not found\n", __func__, jobid);
+
+	/* make sure every step is really gone */
+	signalStepsByJobid(jobid, SIGKILL);
+	killForwarderByJobid(jobid);
+
 	sendEpilogueComplete(jobid, SLURM_SUCCESS);
 	return;
     }
