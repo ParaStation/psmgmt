@@ -1664,6 +1664,7 @@ static void handleAbortReq(Slurm_Msg_t *sMsg, uint32_t jobid, uint32_t stepid)
 
     if (!job && !alloc) {
 	mlog("%s: job '%u' not found\n", __func__, jobid);
+	sendEpilogueComplete(jobid, SLURM_SUCCESS);
 	return;
     }
 
@@ -1817,7 +1818,6 @@ static void handleTerminateReq(Slurm_Msg_t *sMsg)
 	    return;
 	case REQUEST_ABORT_JOB:
 	    handleAbortReq(sMsg, jobid, stepid);
-	    sendSlurmRC(sMsg, SLURM_SUCCESS);
 	    return;
 	case REQUEST_TERMINATE_JOB:
 	    if (!job && !alloc) {
