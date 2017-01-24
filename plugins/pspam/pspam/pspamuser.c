@@ -110,3 +110,25 @@ const char *state2Str( PSPAMState_t state)
 	return "unknown";
     }
 }
+
+char *listUsers(char *buf, size_t *bufSize)
+{
+    char l[160];
+    list_t *u;
+
+    if (list_empty(&userList)) {
+	return str2Buf("\nNo current users.\n", &buf, bufSize);
+    }
+
+    str2Buf("\nusers:\n", &buf, bufSize);
+
+    list_for_each(u, &userList) {
+	User_t *user = list_entry(u, User_t, next);
+
+	snprintf(l, sizeof(l), "\t%.16s%.32s %s\n", user->name, user->jobID,
+		 state2Str(user->state));
+	str2Buf(l, &buf, bufSize);
+    }
+
+    return buf;
+}

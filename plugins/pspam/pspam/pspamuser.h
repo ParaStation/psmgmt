@@ -107,4 +107,18 @@ void clearUserList(void);
  */
 const char *state2Str( PSPAMState_t state);
 
+/**
+ * @brief List current users
+ *
+ * List current users and put all information into the buffer @a
+ * buf. Upon return @a bufSize indicates the current size of @a buf.
+ *
+ * @param buf Buffer to write all information to
+ *
+ * @param bufSize Size of the buffer
+ *
+ * @return Pointer to buffer with updated user information
+ */
+char *listUsers(char *buf, size_t *bufSize);
+
 #endif /* __PSPAM_USER */

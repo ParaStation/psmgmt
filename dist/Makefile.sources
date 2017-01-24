@@ -419,6 +419,7 @@ plugins/pspam/pspam/pspamcomm.h \
 plugins/pspam/pspam/pspamhandles.h \
 plugins/pspam/pspam/pspaminter.c \
 plugins/pspam/pspam/pspaminter.h \
+plugins/pspam/pspam/pspamkvs.c \
 plugins/pspam/pspam/pspamlog.c \
 plugins/pspam/pspam/pspamlog.h \
 plugins/pspam/pspam/pspamssh.c \

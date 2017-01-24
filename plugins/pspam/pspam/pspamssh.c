@@ -138,3 +138,25 @@ void clearSessionList(void)
 	doExtinct(ssh);
     }
 }
+
+char *listSessions(char *buf, size_t *bufSize)
+{
+    char l[160];
+    list_t *s;
+
+    if (list_empty(&sshList)) {
+	return str2Buf("\nNo current sessions.\n", &buf, bufSize);
+    }
+
+    str2Buf("\nsessions:\n", &buf, bufSize);
+
+    list_for_each(s, &sshList) {
+	Session_t *ssh = list_entry(s, Session_t, next);
+
+	snprintf(l, sizeof(l), "\t%.16s%.32s %6d %6d %s\n", ssh->user,
+		 ssh->rhost, ssh->pid, ssh->sid, ctime(&ssh->startTime));
+	str2Buf(l, &buf, bufSize);
+    }
+
+    return buf;
+}
