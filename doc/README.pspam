@@ -1,0 +1,99 @@
+psmgmt README.pspam -- Remarks on PAM setup for pspam
+
+Copyright (C) 2017 ParTec Cluster Competence Center GmbH, Munich
+
+Please send bug reports, questions and suggestions to <support@par-tec.com>
+
+
+INTRODUCTION
+
+The pspam plugin of the ParaStation daemon in combination with PAM's
+pam_pspam module enables dynamic granting of access to compute-nodes.
+Here the basic assumption is that users are only allowed to access a
+cluster's node via ssh if they have running jobs on theses nodes. As
+soon as their last job on a given node has finished execution, all
+ssh-connection will be terminated.
+
+Please note that the pspam functionality is only available in
+combination with the psslurm and psmom plugins. These plugins will
+access the pspam plugin and take the required measures to register and
+unregister batch-jobs.
+
+In order to activate this functionality two prerequisites have to be met:
+1. The pspam plugin has to be loaded.
+2. The pam_pspam module has to be configured in PAM
+
+The first prerequisite is resolved automatically, since the pspam
+plugin is marked as a dependency of both, psmom and psslurm. The
+second one requires some configuration effort towards PAM.
+
+From a high level point of view the mechanism works as follows:
+ - The local sshd asks PAM if access to the node shall be granted
+ - PAM utilizes multiple plugins in order to answer this question
+ - pam_pspam is one of the plugins asked (if configured appropriately)
+ - pam_pspam connects to the local pspam plugin to decide on the request
+ - The pspam plugin sends an appropriate answer to pam_pspam
+ - pam_pspam forwards the answer to PAM
+ - PAM presents the answer (in combination with other) to sshd
+
+
+PAM CONFIGURATION
+
+PAM is configured via multiple configuration files located in the
+/etc/pam.d directory. Each file represents a service provided by
+PAM. Throughout this document emphasis will lie solely on the sshd
+service used by a node's local sshd in order to identify a user's
+allowance to access the node. Of course pam_pspam might be used for
+other services, too.
+
+Each line in a service's configuration file consists of four tokens:
+
+ type control module-path module-arguments
+
+An example line for the pspam module looks as follows:
+
+session [module_unknown=ignore success=ok new_authtok_reqd=ok \
+	ignore=ignore default=bad]  pam_pspam.so auth_users=root,partec
+
+Let's discuss the single tokens:
+
+
+<type>=session
+
+It is advised to use pam_pspam in 'session' management group. When
+this group is executed by sshd authentication has finished and a
+rudimentary connection has been established. This provides the
+opportunity to forward some information to the user on why the attempt
+to access the node has failed.
+
+
+<control>=[module_unknown=ignore success=ok new_authtok_reqd=ok \
+	ignore=ignore default=bad]
+
+The control used here consists of a combination of the standard
+controls provided by the 'required' control of the simple (historical)
+syntax in combination with 'module_unknown=ignore'. The latter helps
+to prevent the lock out of administrators if the psmgmt RPM is
+uninstalled and therefore the pam_pspam module is missing.
+
+
+<module-path>=pam_pspam.so
+
+Since the pam_pspam module is installed in the system's default module
+location it is sufficient to use just its filename here.
+
+
+<module-arguments>=auth_users=root,partec
+
+module-arguments are passed to the PAM module and will be evaluated
+there. the pam_pspam module can handle the following arguments:
+
+ - auth_users: The argument holds a comma-separated list of
+   usernames. Users listed here are allowed to access the node
+   independently of running jobs.
+
+ - verbose: Make pam_pspam more verbose. Only values up to 4 are
+   meaningful. Default is 0.
+
+ - quiet: Flag to suppress message explaining why access is
+   denied. The default is 0, i.e. not suppressing messages.

@@ -12190,6 +12190,8 @@ else
 fi
 
 
+if test -z "$PAM_ENABLED_TRUE"; then :
+
 
 # Check whether --with-pamdir was given.
 if test "${with_pamdir+set}" = set; then :
@@ -12203,6 +12205,8 @@ else
 fi
 
 
+
+fi
 
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for munge_encode in -lmunge" >&5
 $as_echo_n "checking for munge_encode in -lmunge... " >&6; }
@@ -12944,6 +12948,14 @@ ac_config_files="$ac_config_files plugins/psmom/src/pbs/Makefile"
 ac_config_files="$ac_config_files plugins/psmom/src/psmom/Makefile"
 
 ac_config_files="$ac_config_files plugins/psmunge/Makefile"
+
+ac_config_files="$ac_config_files plugins/pspam/Makefile"
+
+ac_config_files="$ac_config_files plugins/pspam/include/Makefile"
+
+ac_config_files="$ac_config_files plugins/pspam/module/Makefile"
+
+ac_config_files="$ac_config_files plugins/pspam/pspam/Makefile"
 
 ac_config_files="$ac_config_files plugins/pspmi/Makefile"
 
@@ -14039,6 +14051,10 @@ do
     "plugins/psmom/src/pbs/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/psmom/src/pbs/Makefile" ;;
     "plugins/psmom/src/psmom/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/psmom/src/psmom/Makefile" ;;
     "plugins/psmunge/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/psmunge/Makefile" ;;
+    "plugins/pspam/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/pspam/Makefile" ;;
+    "plugins/pspam/include/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/pspam/include/Makefile" ;;
+    "plugins/pspam/module/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/pspam/module/Makefile" ;;
+    "plugins/pspam/pspam/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/pspam/pspam/Makefile" ;;
     "plugins/pspmi/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/pspmi/Makefile" ;;
     "plugins/psresport/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/psresport/Makefile" ;;
     "scripts/Makefile") CONFIG_FILES="$CONFIG_FILES scripts/Makefile" ;;

@@ -1,13 +1,11 @@
 #
 # ParaStation
 #
-# Copyright (C) 2012-2016 ParTec Cluster Competence Center GmbH, Munich
+# Copyright (C) 2012-2017 ParTec Cluster Competence Center GmbH, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
 # file.
-#
-# Author:	Thomas Moschny <moschny@par-tec.com>
 #
 
 include $(top_srcdir)/common.am
@@ -45,10 +43,13 @@ dist-hook:
 # ---- proxy to dist/Makefile
 #
 if BUILD_WITHOUT_PSCONFIG
-  AM_CONFIGARGS = -without psconfig
+  AM_CONFIGARGS := $(AM_CONFIGARGS) -without psconfig
 endif
 if !MUNGE_ENABLED
-  AM_CONFIGARGS = -without munge
+  AM_CONFIGARGS := $(AM_CONFIGARGS) -without munge
+endif
+if !PAM_ENABLED
+  AM_CONFIGARGS := $(AM_CONFIGARGS) -without pam
 endif
 
 .PHONY: tar rpm srpm tag version

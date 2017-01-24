@@ -2,6 +2,7 @@
 %{?_without_psconfig: %global disable_psconfig 1}
 %{?_without_systemd: %global disable_systemd 1}
 %{?_without_munge: %global disable_munge 1}
+%{?_without_pam: %global disable_pam 1}
 
 %if ( 0%{?rhel} && 0%{?rhel} < 7 ) || %(pkg-config --exists systemd; echo $?) != 0
 %global disable_systemd 1
@@ -25,7 +26,9 @@ Requires:  psconfig >= 1.0, glib2 >= 2.22.5
 BuildRequires:	psconfig-dev
 %endif
 BuildRequires:	popt-devel
+%if !0%{?disable_pam}
 BuildRequires:	pam-devel
+%endif
 %if 0%{?suse_version}
 BuildRequires:	libnuma-devel
 %else
@@ -178,6 +181,7 @@ exit 0
 %doc doc/psconfig
 %doc doc/systemd
 %doc doc/README.cgroup
+%doc doc/README.pspam
 %{_bindir}/mlisten
 %{_bindir}/mpiexec
 %{_bindir}/psaccounter
@@ -225,6 +229,12 @@ exit 0
 %if !0%{?disable_munge}
 %{_plugindir}/psmunge.so
 %exclude %{_plugindir}/psmunge.la
+%endif
+%{_plugindir}/pspam.so
+%exclude %{_plugindir}/pspam.la
+%if !0%{?disable_pam}
+%{_pamdir}/pam_pspam.so
+%exclude %{_pamdir}/pam_pspam.la
 %endif
 %{_plugindir}/pspmi.so
 %exclude %{_plugindir}/pspmi.la
@@ -280,8 +290,10 @@ exit 0
 %doc plugins/psmom/ChangeLog-History
 %doc plugins/psmom/LICENSE.OpenPBS
 %doc plugins/psmom/README
+%if !0%{?disable_pam}
 %{_pamdir}/pam_psmom.so
 %exclude %{_pamdir}/pam_psmom.la
+%endif
 %config(noreplace) /etc/pam.d/psmom
 %{_plugindir}/psmom.so
 %exclude %{_plugindir}/psmom.la

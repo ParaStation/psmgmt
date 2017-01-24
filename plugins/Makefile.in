@@ -17,7 +17,7 @@
 #
 # ParaStation
 #
-# Copyright (C) 2012-2016 ParTec Cluster Competence Center GmbH, Munich
+# Copyright (C) 2012-2017 ParTec Cluster Competence Center GmbH, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -177,8 +177,8 @@ am__define_uniq_tagged_files = \
   done | $(am__uniquify_input)`
 ETAGS = etags
 CTAGS = ctags
-DIST_SUBDIRS = cgroup pelogue psaccount psexec psmom pspmi psresport \
-	psmunge
+DIST_SUBDIRS = cgroup pelogue psaccount psexec psmom pspam pspmi \
+	psresport psmunge
 am__DIST_COMMON = $(srcdir)/Makefile.in $(top_srcdir)/common.am
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 am__relativize = \
@@ -369,7 +369,7 @@ configdir = $(prefix)/config
 
 # dito
 scriptsdir = $(prefix)/scripts
-SUBDIRS = cgroup pelogue psaccount psexec psmom pspmi psresport \
+SUBDIRS = cgroup pelogue psaccount psexec psmom pspam pspmi psresport \
 	$(am__append_1)
 all: all-recursive
 

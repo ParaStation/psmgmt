@@ -11,14 +11,17 @@
 include $(top_srcdir)/common.am
 
 AM_LDFLAGS += -avoid-version -module
-AM_CPPFLAGS += -I$(top_srcdir)/bin/daemon
+AM_CPPFLAGS += -I$(top_srcdir)/bin/daemon		\
+		-I$(top_srcdir)/plugins/psaccount	\
+		-I$(top_srcdir)/plugins/pspam/include
 
-plugin_LTLIBRARIES = psmunge.la
+plugin_LTLIBRARIES = pspam.la
 
 libplugincommon = $(top_builddir)/lib/plugincommon/libplugincommon.la
 libpscommon = $(top_builddir)/lib/pscommon/libpscommon.la
 
-psmunge_la_SOURCES = psmunge.c psmungelog.c psmungelog.h	\
-	psmungetypes.h psmungeinter.h psmungeinter.c psmungehandles.h
+pspam_la_SOURCES = pspam.c pspamcomm.c pspamcomm.h pspamhandles.h	\
+	pspaminter.c pspaminter.h pspamkvs.c pspamlog.c pspamlog.h	\
+	pspamssh.c pspamssh.h pspamtypes.h pspamuser.c pspamuser.h
 
-psmunge_la_LIBADD = -lmunge $(libplugincommon) $(libpscommon)
+pspam_la_LIBADD = $(libplugincommon) $(libpscommon)

@@ -1,13 +1,11 @@
 #
 # ParaStation
 #
-# Copyright (C) 2012-2016 ParTec Cluster Competence Center GmbH, Munich
+# Copyright (C) 2012-2017 ParTec Cluster Competence Center GmbH, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
 # file.
-#
-# Author:	Thomas Moschny <moschny@par-tec.com>
 #
 
 AC_PREREQ([2.68])
@@ -52,13 +50,15 @@ AC_CHECK_LIB([pam], [pam_open_session],
    [ pam_enabled=true ] ])
 AM_CONDITIONAL([PAM_ENABLED], [test "x$pam_enabled" = xtrue])
 
-AC_ARG_WITH([pamdir], [AS_HELP_STRING([--with-pamdir=DIR],
-  [specify pam plugin dir])],
-  AS_IF([test "x$withval" = xyes -o "x$withval" = no],
-	[AC_MSG_ERROR([missing arg to --with-pamdir])],
-	[pamdir="$withval"]),
-  [pamdir=/lib/security])
-AC_SUBST([pamdir])
+AM_COND_IF([PAM_ENABLED], [
+  AC_ARG_WITH([pamdir], [AS_HELP_STRING([--with-pamdir=DIR],
+    [specify pam plugin dir])],
+    AS_IF([test "x$withval" = xyes -o "x$withval" = no],
+	  [AC_MSG_ERROR([missing arg to --with-pamdir])],
+	  [pamdir="$withval"]),
+    [pamdir=/lib/security])
+  AC_SUBST([pamdir])
+], [])
 
 AC_CHECK_LIB([munge], [munge_encode],
   [AC_SUBST([MUNGE_LIBS], [-lmunge])
@@ -135,6 +135,10 @@ AC_CONFIG_FILES(plugins/psmom/src/pam/Makefile)
 AC_CONFIG_FILES(plugins/psmom/src/pbs/Makefile)
 AC_CONFIG_FILES(plugins/psmom/src/psmom/Makefile)
 AC_CONFIG_FILES(plugins/psmunge/Makefile)
+AC_CONFIG_FILES(plugins/pspam/Makefile)
+AC_CONFIG_FILES(plugins/pspam/include/Makefile)
+AC_CONFIG_FILES(plugins/pspam/module/Makefile)
+AC_CONFIG_FILES(plugins/pspam/pspam/Makefile)
 AC_CONFIG_FILES(plugins/pspmi/Makefile)
 AC_CONFIG_FILES(plugins/psresport/Makefile)
 AC_CONFIG_FILES(scripts/Makefile)
