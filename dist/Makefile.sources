@@ -404,9 +404,6 @@ plugins/psmunge/psmungelog.h \
 plugins/psmunge/psmungetypes.h \
 plugins/pspam/Makefile.am \
 plugins/pspam/Makefile.in \
-plugins/pspam/doc/Makefile.am \
-plugins/pspam/doc/Makefile.in \
-plugins/pspam/doc/pspam.pam \
 plugins/pspam/include/Makefile.am \
 plugins/pspam/include/Makefile.in \
 plugins/pspam/include/pspamcommon.h \

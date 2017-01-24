@@ -10,7 +10,7 @@
 
 include $(top_srcdir)/common.am
 
-SUBDIRS = doc include pspam
+SUBDIRS = include pspam
 
 if PAM_ENABLED
 SUBDIRS += module

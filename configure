@@ -12951,8 +12951,6 @@ ac_config_files="$ac_config_files plugins/psmunge/Makefile"
 
 ac_config_files="$ac_config_files plugins/pspam/Makefile"
 
-ac_config_files="$ac_config_files plugins/pspam/doc/Makefile"
-
 ac_config_files="$ac_config_files plugins/pspam/include/Makefile"
 
 ac_config_files="$ac_config_files plugins/pspam/module/Makefile"
@@ -14054,7 +14052,6 @@ do
     "plugins/psmom/src/psmom/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/psmom/src/psmom/Makefile" ;;
     "plugins/psmunge/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/psmunge/Makefile" ;;
     "plugins/pspam/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/pspam/Makefile" ;;
-    "plugins/pspam/doc/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/pspam/doc/Makefile" ;;
     "plugins/pspam/include/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/pspam/include/Makefile" ;;
     "plugins/pspam/module/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/pspam/module/Makefile" ;;
     "plugins/pspam/pspam/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/pspam/pspam/Makefile" ;;
