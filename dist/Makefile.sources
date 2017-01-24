@@ -407,6 +407,8 @@ plugins/pspam/Makefile.in \
 plugins/pspam/doc/Makefile.am \
 plugins/pspam/doc/Makefile.in \
 plugins/pspam/doc/pspam.pam \
+plugins/pspam/include/Makefile.am \
+plugins/pspam/include/Makefile.in \
 plugins/pspam/include/pspamcommon.h \
 plugins/pspam/module/Makefile.am \
 plugins/pspam/module/Makefile.in \
