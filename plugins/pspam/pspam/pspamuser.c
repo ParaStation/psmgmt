@@ -98,3 +98,15 @@ void clearUserList(void)
 	doDelete(user);
     }
 }
+
+const char *state2Str( PSPAMState_t state)
+{
+    switch(state) {
+    case PSPAM_STATE_PROLOGUE:
+	return "PSPAM_STATE_PROLOGUE";
+    case PSPAM_STATE_JOB:
+	return "PSPAM_STATE_JOB";
+    default:
+	return "unknown";
+    }
+}

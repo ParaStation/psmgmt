@@ -96,4 +96,15 @@ void deleteUser(char *username, char *jobID);
  */
 void clearUserList(void);
 
+/**
+ * @brief Convert state to string
+ *
+ * Convert the state @a state to a string constant.
+ *
+ * @param state State to convert
+ *
+ * @return Returns the requested state as string
+ */
+const char *state2Str( PSPAMState_t state);
+
 #endif /* __PSPAM_USER */
