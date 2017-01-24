@@ -61,13 +61,31 @@ bool addSession(char *user, char *rhost, pid_t sshPid, pid_t sshSid)
     return true;
 }
 
+/**
+ * @brief Find a session
+ *
+ * Find the session with user ID @a sshPid owned by user @a user
+ * coming from the remote host @a rhost in the list of sessions. If @a
+ * rhost is NULL sessions coming from any remote host might be
+ * returned.
+ *
+ * @param user User owning the session to find
+ *
+ * @param rhost Remote host the session was initiated from. Any remote
+ * host is accepted if NULL
+ *
+ * @param sshPid Process ID of the session the find
+ *
+ * @return If a session was found, a pointer to this session is
+ * returned. Or NULL otherwise.
+ */
 static Session_t *findSession(char *user, char *rhost, pid_t sshPid)
 {
     list_t *s;
     list_for_each(s, &sshList) {
 	Session_t *ssh = list_entry(s, Session_t, next);
 	if (user && !strcmp(ssh->user, user)
-	    && rhost && !strcmp(ssh->rhost, rhost)
+	    && (!rhost || !strcmp(ssh->rhost, rhost))
 	    && ssh->pid == sshPid) return ssh;
     }
     return NULL;
@@ -83,9 +101,9 @@ static void doDelete(Session_t *ssh)
     free(ssh);
 }
 
-void rmSession(char *user, char *rhost, pid_t sshPid)
+void rmSession(char *user, pid_t sshPid)
 {
-    Session_t *ssh = findSession(user, rhost, sshPid);
+    Session_t *ssh = findSession(user, NULL, sshPid);
 
     if (ssh) doDelete(ssh);
 }

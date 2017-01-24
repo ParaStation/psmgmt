@@ -195,37 +195,17 @@ static int writeToPspam(int sock, void *buf, size_t toWrite)
  *
  * @param toWrite Size of the buffer @a buf
  *
- * @return On success, i.e. if the whole message was read and stored
- * in a buffer of sufficient size, true is returned. Otherwise false
- * is returned.
+ * @return On success, i.e. if the whole message was read, true is
+ * returned. Otherwise false is returned.
  */
 static bool readFromPspam(int sock, void *buf, size_t len)
 {
-    int32_t msgLen;
-
-    int read = doRead(sock, &msgLen, sizeof(msgLen));
-
-    if (read != sizeof(msgLen)) {
-	if (read < 0) {
-	    elog("error while doRead(msgLen): %s", strerror(errno));
-	} else {
-	    elog("doRead(msgLen) returns %d", read);
-	}
-	return false;
-    }
-
-    msgLen -= sizeof(msgLen);
-    if (msgLen > (int)len) {
-	elog("buffer too small (%zi/%i)", len, msgLen);
-	return false;
-    }
-
-    read = doRead(sock, buf, msgLen);
-    if (read != msgLen) {
+    ssize_t read = doRead(sock, buf, len);
+    if (read != (ssize_t)len) {
 	if (read < 0) {
 	    elog("error while doRead(buf): %s", strerror(errno));
 	} else {
-	    elog("insufficient data (%i/%i)", read, msgLen);
+	    elog("insufficient data (%zi/%zi)", read, len);
 	}
 	return false;
     }
@@ -241,7 +221,7 @@ static bool readFromPspam(int sock, void *buf, size_t len)
  * plugin will be accesses in order figure out if the user currently
  * has a running batch-job on the node or is marked as an adminuser.
  *
- * Access might be denied (i.e. PSPAM_DENY is returned) if the
+ * Access might be denied (i.e. PSPAM_RES_DENY is returned) if the
  * communication to the pspam plugin fails or some problem in the
  * answer is detected. Otherwise pspam plugin's decision is returned.
  *
@@ -250,25 +230,26 @@ static bool readFromPspam(int sock, void *buf, size_t len)
  * @param rhost Hostname the user is coming from
  *
  * @return pspam plugin's decision is returned unless the
- * communication to the plugin failed. In the latter case PSPAM_DENY is
- * returned (which might be a proper answer of the pspam plugin, too).
+ * communication to the plugin failed. In the latter case
+ * PSPAM_RES_DENY is returned (which might be a proper answer of the
+ * pspam plugin, too).
  */
 static PSPAMResult_t checkPsPamAllowance(const char *uName, const char *rhost)
 {
-    char recvUser[200], recvRHost[200], buf[512];
-    char *ptr;
-    int32_t msgLen = 0;
-    PSPAMResult_t res;
     int sock = openConnection(pspamSocketName);
+    PSPAMResult_t res;
     PS_DataBuffer_t data = { .buf = NULL};
+    int written;
 
     if (sock == -1) {
 	elog("connection to local plugin failed: %s", strerror(errno));
-	return PSPAM_DENY;
+	return PSPAM_RES_DENY;
     }
 
-    /* add placeholder */
-    addInt32ToMsg(msgLen, &data);
+    /* add length placeholder */
+    addInt32ToMsg(0, &data);
+    /* add command */
+    addInt32ToMsg(PSPAM_CMD_SESS_OPEN, &data);
     /* add ssh pid */
     addPidToMsg(getpid(), &data);
     /* add ssh sid */
@@ -281,43 +262,25 @@ static PSPAMResult_t checkPsPamAllowance(const char *uName, const char *rhost)
     /* add correct msg len (without length) at placeholder */
     *(int32_t *)data.buf = data.bufUsed - sizeof(int32_t);
 
-    if (writeToPspam(sock, data.buf, data.bufUsed) != (int)data.bufUsed) {
-	elog("sending pspam auth request failed");
-	return PSPAM_DENY;
-    }
+    written = writeToPspam(sock, data.buf, data.bufUsed);
     free(data.buf);
+    if (written != (int)data.bufUsed) {
+	elog("sending pspam auth request failed");
+	return PSPAM_RES_DENY;
+    }
 
     if (verbose > 2) {
 	ilog("sending req(%i): %s@%s pid %u", sock, uName, rhost, getpid());
     }
 
-    if (!readFromPspam(sock, buf, sizeof(buf))) {
+    if (!readFromPspam(sock, &res, sizeof(res))) {
 	close(sock);
-	return PSPAM_DENY;
+	return PSPAM_RES_DENY;
     }
     close(sock);
 
-    ptr = buf;
-
-    /* get result */
-    getInt32(&ptr, &res);
-
-    /* get username */
-    getString(&ptr, recvUser, sizeof(recvUser));
-    if (strcmp(recvUser, uName)) {
-	elog("invalid reply: user '%s' should be '%s'", recvUser, uName);
-	return PSPAM_DENY;
-    }
-
-    /* get remote host */
-    getString(&ptr, recvRHost, sizeof(recvRHost));
-    if (strcmp(recvRHost, rhost)) {
-	elog("invalid reply: rhost '%s' should be '%s'", recvRHost, rhost);
-	return PSPAM_DENY;
-    }
-
     if (verbose > 2) {
-	ilog("reply(%i): %s@%s res %u", sock, recvUser, recvRHost, res);
+	ilog("reply(%i): %s@%s res %u", sock, uName, rhost, res);
     }
     return res;
 }
@@ -339,7 +302,6 @@ static PSPAMResult_t checkPsPamAllowance(const char *uName, const char *rhost)
  */
 static int checkAllowance(const char *uName, const char *rhost)
 {
-
     PSPAMResult_t res;
 
     /* check if the user is in the authorized user list */
@@ -354,34 +316,34 @@ static int checkAllowance(const char *uName, const char *rhost)
     res = checkPsPamAllowance(uName, rhost);
 
     switch (res) {
-    case PSPAM_BATCH:
-    case PSPAM_ADMIN_USER:
+    case PSPAM_RES_BATCH:
+    case PSPAM_RES_ADMIN_USER:
 	if (verbose > 1) {
 	    ilog("grant access to %s@%s (%s)", uName, rhost,
-		 (res == PSPAM_BATCH) ? "running batch job" : "ps admin user");
+		 (res == PSPAM_RES_BATCH) ? "batch job" : "ps admin user");
 	}
 	return PAM_SUCCESS;
-    case PSPAM_DENY:
-    case PSPAM_PROLOG:
+    case PSPAM_RES_DENY:
+    case PSPAM_RES_PROLOG:
 	if (verbose > 0) {
 	    ilog("deny access to %s@%s (%s)", uName, rhost,
-		 (res == PSPAM_PROLOG) ? "prologue running" : "no job");
+		 (res == PSPAM_RES_PROLOG) ? "prologue" : "no job");
 	}
     }
 
     if (!quiet) {
-	char hName[HOST_NAME_MAX];
+	char hName[HOSTNAME_LEN];
 
 	if (gethostname(hName, sizeof(hName)) == -1) {
 	    strncpy(hName, "this node", sizeof(hName));
 	}
 
 	switch (res) {
-	case PSPAM_DENY:
+	case PSPAM_RES_DENY:
 	    pam_prompt(pamH, PAM_TEXT_INFO, NULL, "\npspam: user '%s' without"
 		       " running jobs on %s, access denied.\n",	uName, hName);
 	    break;
-	case PSPAM_PROLOG:
+	case PSPAM_RES_PROLOG:
 	    pam_prompt(pamH, PAM_TEXT_INFO, NULL, "\npspam: prologue running on"
 		       " %s, access denied.\n", hName);
 	    break;
@@ -391,6 +353,54 @@ static int checkAllowance(const char *uName, const char *rhost)
     }
 
     return PAM_AUTH_ERR;
+}
+
+/**
+ * @brief Tell pspam plugin about exiting session
+ *
+ * Tell the pspam plugin about exiting the session of user @a uName
+ * coming from remote host @a rhost.
+ *
+ * @param uName Username of the user to leave
+ *
+ * @param rhost Hostname the user was coming from
+ *
+ * @return No return value
+ */
+void informPlugin(const char *uName, const char *rhost)
+{
+    int sock = openConnection(pspamSocketName);
+    PS_DataBuffer_t data = { .buf = NULL};
+    int written;
+
+    if (sock == -1) {
+	elog("connection to local plugin failed: %s", strerror(errno));
+	return;
+    }
+
+    /* add length placeholder */
+    addInt32ToMsg(0, &data);
+    /* add command */
+    addInt32ToMsg(PSPAM_CMD_SESS_CLOSE, &data);
+    /* add ssh pid */
+    addPidToMsg(getpid(), &data);
+    /* add username */
+    addStringToMsg(uName, &data);
+
+    /* add correct msg len (without length) at placeholder */
+    *(int32_t *)data.buf = data.bufUsed - sizeof(int32_t);
+
+    written = writeToPspam(sock, data.buf, data.bufUsed);
+    free(data.buf);
+    if (written != (int)data.bufUsed) {
+	elog("sending pspam close request failed");
+	return;
+    }
+
+    if (verbose > 2) {
+	ilog("close: %s@%s pid %u", uName, rhost, getpid());
+    }
+
 }
 
 PAM_EXTERN int
@@ -432,7 +442,26 @@ pam_sm_open_session(pam_handle_t *pamh, int flags, int argc, const char **argv)
 PAM_EXTERN int
 pam_sm_close_session(pam_handle_t *pamh, int flags, int argc, const char **argv)
 {
-    return PAM_IGNORE;
+    const char *uName, *rhost;
+    int ret;
+
+    pamH = pamh;
+
+    /* parse module options */
+    ret = parseModuleOptions(argc, argv);
+    if (ret != PAM_SUCCESS) return ret;
+
+    /* get session infos */
+    pam_get_user(pamH, &uName, NULL);
+    pam_get_item(pamH, PAM_RHOST, (const void **) &rhost);
+
+    /* only tell pspam plugin if user is not in the authorized user list */
+    if (!isAuthorizedUser(uName)) informPlugin(uName, rhost);
+
+    /* free allocated memory */
+    if (authUsers) free(authUsers);
+
+    return PAM_SUCCESS;
 }
 
 PAM_EXTERN int

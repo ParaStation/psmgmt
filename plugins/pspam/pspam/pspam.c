@@ -25,7 +25,7 @@
 
 /** psid plugin requirements */
 char name[] = "pspam";
-int version = 3;
+int version = 4;
 int requiredAPI = 109;
 plugin_dep_t dependencies[] = {
     { .name = "psaccount", .version = 21 },

@@ -36,18 +36,16 @@ bool addSession(char *user, char *rhost, pid_t sshPid, pid_t sshSid);
 /**
  * @brief Remove SSH session
  *
- * Remove the SSH session identified by the username @a user, the
- * remote host @a rhost, and its process ID @a sshPid.
+ * Remove the SSH session identified by the username @a user, and its
+ * process ID @a sshPid.
  *
  * @param user Name of the user identifying the session to remove
- *
- * @param rhost (Remote) host the SSH session to remove was started from
  *
  * @param sshPid Process ID of the SSH session to remove
  *
  * @return No return value
  */
-void rmSession(char *user, char *rhost, pid_t sshPid);
+void rmSession(char *user, pid_t sshPid);
 
 /**
  * @brief Terminate a user's SSH sessions and free the memory

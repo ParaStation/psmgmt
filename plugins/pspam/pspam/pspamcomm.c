@@ -33,50 +33,26 @@
 /** socket plugin is listening on to be accesses from PAM module */
 static int masterSock = -1;
 
-#define USER_NAME_LEN	    128
-#define HOST_NAME_LEN	    1024
-
-static int handlePamRequest(int sock, void *empty)
+static PSPAMResult_t handleOpenRequest(char *msgBuf)
 {
-    char user[USER_NAME_LEN], rhost[HOST_NAME_LEN];
-    char *ptr, *buf = NULL;
-    int32_t msgLen;
-    PSPAMResult_t res = PSPAM_DENY;
-    int ret;
+    char user[USERNAME_LEN], rhost[HOSTNAME_LEN];
     pid_t pid, sid;
     struct passwd *spasswd;
-    PS_DataBuffer_t data = { .buf = NULL};
     User_t *pamUser;
-
-    if ((ret = doRead(sock, &msgLen, sizeof(msgLen))) != sizeof(msgLen)) {
-	if (ret != 0) {
-	    mlog("%s: reading msgLen for request failed\n", __func__);
-	}
-	goto CLEANUP;
-    }
-
-    buf = umalloc(msgLen);
-    /* @todo This shall be non-blocking! */
-    if (doRead(sock, buf, msgLen) != msgLen) {
-	mlog("%s: reading request failed\n" , __func__);
-	goto CLEANUP;
-    }
-    ptr = buf;
+    PSPAMResult_t res = PSPAM_RES_DENY;
+    char *ptr = msgBuf;
 
     /* get ssh pid */
     getPid(&ptr, &pid);
-
     /* get ssh sid */
     getPid(&ptr, &sid);
-
     /* get pam username */
     getString(&ptr, user, sizeof(user));
-
     /* get pam rhost */
     getString(&ptr, rhost, sizeof(rhost));
 
-    mlog("%s: got pam request pid: '%i' sid: '%i' user: '%s' rhost: '%s'\n",
-	__func__, pid, sid, user, rhost);
+    mlog("%s: got pam request user: '%s' pid: %i sid: %i rhost: '%s'\n",
+	 __func__, user, pid, sid, rhost);
 
     errno = 0;
     spasswd = getpwnam(user);
@@ -86,41 +62,83 @@ static int handlePamRequest(int sock, void *empty)
 
     /* Determine user's allowance */
     if (spasswd && isPSAdminUser(spasswd->pw_uid, spasswd->pw_gid)) {
-	res = PSPAM_ADMIN_USER;
+	res = PSPAM_RES_ADMIN_USER;
     } else if (pamUser) {
 	if (pamUser->state == PSPAM_STATE_PROLOGUE) {
-	    res = PSPAM_PROLOG;
+	    res = PSPAM_RES_PROLOG;
 	} else {
-	    res = PSPAM_BATCH;
+	    res = PSPAM_RES_BATCH;
 	    addSession(user, rhost, pid, sid);
 	}
     }
 
-    /* add placeholder */
-    addInt32ToMsg(msgLen, &data);
+    mlog("%s: reply to user '%s' rhost '%s': %i\n", __func__, user, rhost, res);
 
-    /* add result */
-    addInt32ToMsg(res, &data);
+    return res;
+}
 
-    /* add pam username */
-    addStringToMsg(user, &data);
+static void handleCloseRequest(char *msgBuf)
+{
+    char user[USERNAME_LEN];
+    char *ptr = msgBuf;
+    pid_t pid;
 
-    /* add pam rhost */
-    addStringToMsg(rhost, &data);
+    /* get ssh pid */
+    getPid(&ptr, &pid);
+    /* get pam username */
+    getString(&ptr, user, sizeof(user));
 
-    /* add correct msg len (without length) at placeholder */
-    *(int32_t *)data.buf = data.bufUsed - sizeof(int32_t);
+    mlog("%s: got pam close of user: '%s' pid: %i\n", __func__, user, pid);
+    rmSession(user, pid);
+}
 
-    mlog("%s: sending pam reply, user '%s' rhost '%s' res '%i'\n", __func__,
-	    user, rhost, res);
+#define BUF_SIZE (USERNAME_LEN + HOSTNAME_LEN + 20 /* CMD, PID, SID, 2*SIZE*/)
 
-    doWriteP(sock, data.buf, data.bufUsed);
+static int handlePamRequest(int sock, void *empty)
+{
+    char *ptr, buf[BUF_SIZE];
+    int32_t msgLen;
+    PSPAMCmd_t cmd;
+    PSPAMResult_t res;
+    int ret;
+
+    ret = doRead(sock, &msgLen, sizeof(msgLen));
+    if (ret != sizeof(msgLen)) {
+	if (ret != 0) {
+	    mlog("%s: reading msgLen for request failed\n", __func__);
+	}
+	goto CLEANUP;
+    }
+
+    if (msgLen > BUF_SIZE) {
+	mlog("%s: message too large (%d/%d)\n", __func__, msgLen, BUF_SIZE);
+	goto CLEANUP;
+    }
+
+    if (doRead(sock, buf, msgLen) != msgLen) {
+	mlog("%s: reading request failed\n" , __func__);
+	goto CLEANUP;
+    }
+
+    ptr = buf;
+
+    /* get command */
+    getInt32(&ptr, &cmd);
+
+    switch (cmd) {
+    case PSPAM_CMD_SESS_OPEN:
+	res = handleOpenRequest(ptr);
+	doWriteP(sock, &res, sizeof(res));
+	break;
+    case PSPAM_CMD_SESS_CLOSE:
+	handleCloseRequest(ptr);
+	/* no answer here */
+	break;
+    }
 
 CLEANUP:
     if (Selector_isRegistered(sock)) Selector_remove(sock);
     close(sock);
-    ufree(buf);
-    ufree(data.buf);
 
     return 0;
 }
@@ -142,7 +160,7 @@ static int handleMasterSocket(int sock, void *empty)
     return 0;
 }
 
-static int listenUnixSocket(char *sName)
+static int setupPAMSock(char *sName)
 {
     struct sockaddr_un sa;
     int sock = -1, opt = 1;
@@ -166,12 +184,14 @@ static int listenUnixSocket(char *sName)
     }
     if (bind(sock, (struct sockaddr *)&sa, sizeof(sa)) < 0) {
 	mwarn(errno, "%s: bind(%s%s)", __func__, sName[0] ? "":"\\0", pSName);
+	close(sock);
 	return -1;
     }
     if (sName[0]) chmod(sa.sun_path, S_IRWXU);
 
     if (listen(sock, 20) < 0) {
 	mwarn(errno, "%s: listen(%s%s)", __func__, sName[0] ? "":"\\0", pSName);
+	close(sock);
 	return -1;
     }
 
@@ -180,7 +200,7 @@ static int listenUnixSocket(char *sName)
 
 bool initComm(void)
 {
-    masterSock = listenUnixSocket(pspamSocketName);
+    masterSock = setupPAMSock(pspamSocketName);
     if (masterSock == -1) {
 	mlog("%s: pspam already loaded?\n", __func__);
 	return false;
