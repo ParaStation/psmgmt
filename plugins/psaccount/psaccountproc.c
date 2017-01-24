@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2017 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -525,10 +525,9 @@ bool isDescendant(pid_t parent, pid_t child)
 bool readProcIO(pid_t pid, ProcIO_t *io)
 {
     FILE *fd;
-    char buf[200];
+    char fileName[128];
     struct stat sbuf;
-
-    memset(io, 0, sizeof(*io));
+    int ret, eno;
 
     /* format string of /proc/<pid>/io */
     static char io_format[] =
@@ -545,34 +544,38 @@ bool readProcIO(pid_t pid, ProcIO_t *io)
 		    "%*[^:]: "
 		    "%"PRIu64" ";    /* write_bytes */
 
-    snprintf(buf, sizeof(buf), "/proc/%i/io", pid);
+    memset(io, 0, sizeof(*io));
 
-    if (stat(buf, &sbuf) == -1) return false;
+    snprintf(fileName, sizeof(fileName), "/proc/%i/io", pid);
+    if (stat(fileName, &sbuf) == -1) return false;
 
-    fd = fopen(buf,"r");
+    fd = fopen(fileName,"r");
     if (!fd) {
-	mlog("%s: open '%s' failed\n", __func__, buf);
+	mlog("%s: open '%s' failed\n", __func__, fileName);
 	return false;
     }
 
-    if (fscanf(fd, io_format, &io->diskRead, &io->diskWrite, &io->readBytes,
-	       &io->writeBytes) != 4) {
-	fclose(fd);
+    ret = fscanf(fd, io_format, &io->diskRead, &io->diskWrite, &io->readBytes,
+		 &io->writeBytes);
+    eno = errno;
+    fclose(fd);
+    if (ret != 4) {
+	mwarn(eno, "%s: fscanf()", __func__);
 	return false;
     }
 
     mdbg(PSACC_LOG_PROC, "%s: io stat: diskRead %zu diskWrite %zu readBytes %zu"
 	 " writeBytes %zu\n", __func__, io->diskRead, io->diskWrite,
 	 io->readBytes, io->writeBytes);
-    fclose(fd);
     return true;
 }
 
 bool readProcStat(pid_t pid, ProcStat_t *pS)
 {
     FILE *fd;
-    char buf[200];
+    char fileName[128];
     struct stat sbuf;
+    int ret, eno;
 
     /* format string of /proc/<pid>/stat */
     static char stat_format[] =
@@ -609,27 +612,40 @@ bool readProcStat(pid_t pid, ProcStat_t *pS)
 		    "%*lu "	    /* policy (kernel 2.5.19) */
 		    "%*llu";	    /* delayacct_blkio_ticks (kernel 2.6.18) */
 
-    snprintf(buf, sizeof(buf), "/proc/%i/stat", pid);
+    pS->state[0] = '\0';
 
-    if (stat(buf, &sbuf) == -1) return false;
+    snprintf(fileName, sizeof(fileName), "/proc/%i/stat", pid);
+    if (stat(fileName, &sbuf) == -1) return false;
+
+    fd = fopen(fileName,"r");
+    if (!fd) {
+	mlog("%s: open '%s' failed\n", __func__, fileName);
+	return false;
+    }
+
+    ret = fscanf(fd, stat_format, pS->state, &pS->ppid, &pS->pgrp,
+		 &pS->session, &pS->majflt, &pS->cmajflt, &pS->utime,
+		 &pS->stime, &pS->cutime, &pS->cstime, &pS->threads,
+		 &pS->vmem, &pS->mem, &pS->cpu);
+    eno = errno;
+    fclose(fd);
+    if (ret != 14) {
+	mwarn(eno, "%s: fscanf()", __func__);
+	return false;
+    }
+
+    return true;
+}
+
+bool readProcUID(pid_t pid, ProcStat_t *pS)
+{
+    char fileName[128];
+    struct stat sbuf;
+
+    snprintf(fileName, sizeof(fileName), "/proc/%i/task", pid);
+    if (stat(fileName, &sbuf) == -1) return false;
     pS->uid = sbuf.st_uid;
 
-    fd = fopen(buf,"r");
-    if (!fd) {
-	mlog("%s: open '%s' failed\n", __func__, buf);
-	return false;
-    }
-
-    pS->state[0] = '\0';
-    if (fscanf(fd, stat_format, pS->state, &pS->ppid, &pS->pgrp,
-	       &pS->session, &pS->majflt, &pS->cmajflt, &pS->utime,
-	       &pS->stime, &pS->cutime, &pS->cstime, &pS->threads,
-	       &pS->vmem, &pS->mem, &pS->cpu) != 14) {
-	fclose(fd);
-	return false;
-    }
-
-    fclose(fd);
     return true;
 }
 
@@ -792,7 +808,8 @@ void updateProcSnapshot(void)
 	    continue;
 	}
 
-	if (readProcStat(pid, &pS) && (!ignoreRoot || pS.uid)) {
+	if (readProcStat(pid, &pS) && readProcUID(pid, &pS)
+	    && (!ignoreRoot || pS.uid)) {
 	    addProc(pid, &pS);
 	}
     }
