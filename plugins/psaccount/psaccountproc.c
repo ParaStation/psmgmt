@@ -809,7 +809,7 @@ void updateProcSnapshot(void)
 	}
 
 	if (readProcStat(pid, &pS) && readProcUID(pid, &pS)
-	    && (!ignoreRoot || pS.uid)) {
+	    && (!ignoreRoot || pS.uid) && pS.state[0] != 'Z') {
 	    addProc(pid, &pS);
 	}
     }
