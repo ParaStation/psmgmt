@@ -7,21 +7,14 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-/**
- * $Id$
- *
- * \author
- * Michael Rauh <rauh@par-tec.com>
- *
- */
-
-#define _GNU_SOURCE
-#include <stdlib.h>
 #include <stdio.h>
-#include <string.h>
+#include <stdlib.h>
 #include <unistd.h>
-#include <sys/stat.h>
 #include <errno.h>
+#include <limits.h>
+#include <string.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 
 #include "peloguelog.h"
 #include "peloguescript.h"
@@ -31,106 +24,60 @@
 
 #define MAX_SUPPORTED_PLUGINS 10
 
-typedef struct {
-    Config_t *conf;
+static bool initialized = false;
+
+static struct {
     char *name;
-} pluginConfList_t;
+    Config_t *conf;
+} pluginConfList[MAX_SUPPORTED_PLUGINS];
 
-static int isInit = 0;
-
-static pluginConfList_t pluginConfList[MAX_SUPPORTED_PLUGINS];
-
-static void clearConfigEntry(int i)
-{
-    ufree(pluginConfList[i].name);
-    pluginConfList[i].name = NULL;
-    pluginConfList[i].conf = NULL;
-}
-
-int initConfig(void)
+void initPluginConfigs(void)
 {
     int i;
 
-    if (isInit) return 1;
+    if (initialized) return;
 
     for (i=0; i<MAX_SUPPORTED_PLUGINS; i++) {
-	pluginConfList[i].conf = NULL;
 	pluginConfList[i].name = NULL;
+	pluginConfList[i].conf = NULL;
     }
 
-    isInit = 1;
-    return 1;
-}
-
-void clearConfig(void)
-{
-    int i;
-
-    if (!isInit) return;
-
-    for (i=0; i<MAX_SUPPORTED_PLUGINS; i++) {
-	if (pluginConfList[i].name) clearConfigEntry(i);
-    }
-
-    isInit = 0;
+    initialized = true;
 }
 
 static Config_t *getPluginConfig(const char *plugin)
 {
-    int i;
-
-    if (!isInit) {
+    if (!plugin) {
+	mlog("%s: no plugin given\n", __func__);
+    } else if (!initialized) {
 	mlog("%s: configuration not initialized\n", __func__);
-	return NULL;
-    }
-
-    for (i=0; i<MAX_SUPPORTED_PLUGINS; i++) {
-	if (pluginConfList[i].name &&
-	    !(strcmp(pluginConfList[i].name, plugin))) {
-	    return pluginConfList[i].conf;
+    } else {
+	int i;
+	for (i=0; i<MAX_SUPPORTED_PLUGINS; i++) {
+	    if (pluginConfList[i].name &&
+		!(strcmp(pluginConfList[i].name, plugin))) {
+		return pluginConfList[i].conf;
+	    }
 	}
+	mlog("%s: no config for plugin %s\n", __func__, plugin);
     }
-
-    mlog("%s: no config found for plugin '%s'\n", __func__, plugin);
     return NULL;
 }
 
-long getConfParamL(const char *plugin, char *key)
+int getPluginConfValueI(const char *plugin, char *key)
 {
-    Config_t *config;
+    Config_t *config = getPluginConfig(plugin);
 
-    if (!key) return -1;
-    if (!(config = getPluginConfig(plugin))) return -1;
-
-    return getConfValueL(config, key);
-}
-
-int getConfParamI(const char *plugin, char *key)
-{
-    Config_t *config;
-
-    if (!key) return -1;
-    if (!(config = getPluginConfig(plugin))) return -1;
+    if (!key || !config) return -1;
 
     return getConfValueI(config, key);
 }
 
-unsigned int getConfParamU(const char *plugin, char *key)
+char *getPluginConfValueC(const char *plugin, char *key)
 {
-    Config_t *config;
+    Config_t *config = getPluginConfig(plugin);
 
-    if (!key) return -1;
-    if (!(config = getPluginConfig(plugin))) return -1;
-
-    return getConfValueU(config, key);
-}
-
-char *getConfParamC(const char *plugin, char *key)
-{
-    Config_t *config;
-
-    if (!key) return NULL;
-    if (!(config = getPluginConfig(plugin))) return NULL;
+    if (!key || !config) return NULL;
 
     return getConfValueC(config, key);
 }
@@ -138,107 +85,122 @@ char *getConfParamC(const char *plugin, char *key)
 /**
  * @brief Test if all configured scripts are existing.
  *
- * @return Returns 1 on error and 0 on success.
+ * @return Returns true on success or false on error
  */
-static int validateScripts(char *scriptDir)
+static bool validateScripts(char *scriptDir)
 {
-    char filename[400];
+    char filename[PATH_MAX];
 
     snprintf(filename, sizeof(filename), "%s/prologue", scriptDir);
-    if ((checkPELogueFileStats(filename, 1)) == -2) {
-	mlog("%s: invalid permissions for '%s'\n", __func__, filename);
-	return 0;
+    if (checkPELogueFileStats(filename, true /* root */) == -2) {
+	mlog("%s: invalid permissions for %s\n", __func__, filename);
+	return false;
     }
     snprintf(filename, sizeof(filename), "%s/prologue.parallel", scriptDir);
-    if ((checkPELogueFileStats(filename, 1)) == -2) {
-	mlog("%s: invalid permissions for '%s'\n", __func__, filename);
-	return 0;
+    if (checkPELogueFileStats(filename, true /* root */) == -2) {
+	mlog("%s: invalid permissions for %s\n", __func__, filename);
+	return false;
     }
     snprintf(filename, sizeof(filename), "%s/epilogue", scriptDir);
-    if ((checkPELogueFileStats(filename, 1)) == -2) {
-	mlog("%s: invalid permissions for '%s'\n", __func__, filename);
-	return 0;
+    if (checkPELogueFileStats(filename, true /* root */) == -2) {
+	mlog("%s: invalid permissions for %s\n", __func__, filename);
+	return false;
     }
     snprintf(filename, sizeof(filename), "%s/epilogue.parallel", scriptDir);
-    if ((checkPELogueFileStats(filename, 1)) == -2) {
-	mlog("%s: invalid permissions for '%s'\n", __func__, filename);
-	return 0;
+    if (checkPELogueFileStats(filename, true /* root */) == -2) {
+	mlog("%s: invalid permissions for %s\n", __func__, filename);
+	return false;
     }
 
-    return 1;
+    return true;
 }
 
 /**
- * @brief Test if all needed directories are existing.
+ * @brief Test existence of directory
  *
- * @return Returns 1 on error and 0 on success.
+ * Test if the directory @a dir exists
+ *
+ * @param dir Name of the directory to test
+ *
+ * @return Returns true if the directory exists or false otherwise
  */
-static int validateDirs(char *scriptDir)
+static bool validateDirs(char *dir)
 {
     struct stat st;
 
-    if ((stat(scriptDir, &st)) == -1 || ((st.st_mode & S_IFDIR) != S_IFDIR)) {
-	mwarn(errno, "%s: invalid scripts dir '%s'", __func__, scriptDir);
-	return 0;
+    if (stat(dir, &st) == -1 || (st.st_mode & S_IFDIR) != S_IFDIR) {
+	mwarn(errno, "%s: invalid script-directory %s", __func__, dir);
+	return false;
     }
 
-    return 1;
+    return true;
 }
 
-static int testPluginConf(const char *name)
+static bool checkPluginConfig(Config_t *config)
 {
-    char *scriptDir;
+    char *scriptDir = getConfValueC(config, "DIR_SCRIPTS");
 
-    if (!(scriptDir = getConfParamC(name, "DIR_SCRIPTS"))) {
-	mlog("%s: invalid scripts dir from plugin '%s'\n", __func__, name);
-	return 0;
+    if (!scriptDir) {
+	mlog("%s: invalid scripts directory\n", __func__);
+	return false;
     }
 
-    /* test if all needed directories are there */
-    if (!validateDirs(scriptDir)) return 0;
-
-    /* test if all configured scripts exists and have the correct permissions */
-    if (!validateScripts(scriptDir)) return 0;
-
-    return 1;
+    return validateDirs(scriptDir) && validateScripts(scriptDir);
 }
 
-int addPluginConfig(const char *name, Config_t *config)
+bool addPluginConfig(const char *name, Config_t *config)
 {
     int i;
 
-    if (!name || !config) return 0;
+    if (!name || !config) return false;
+    if (!checkPluginConfig(config)) {
+	mlog("%s: plugin '%s' provides invalid config\n", __func__, name);
+	return false;
+    }
 
     for (i=0; i<MAX_SUPPORTED_PLUGINS; i++) {
 	if (!pluginConfList[i].name) {
 	    pluginConfList[i].name = ustrdup(name);
 	    pluginConfList[i].conf = config;
 
-	    if (!testPluginConf(name)) {
-		clearConfigEntry(i);
-		return 0;
-	    }
-
-	    return 1;
+	    return true;
 	}
     }
-
-    return 0;
+    mlog("%s: pluginConfList full\n", __func__);
+    return false;
 }
 
-int delPluginConfig(const char *name)
+static void clearConfigEntry(int i)
+{
+    if (pluginConfList[i].name) free(pluginConfList[i].name);
+    pluginConfList[i].name = NULL;
+    pluginConfList[i].conf = NULL;
+}
+
+bool delPluginConfig(const char *name)
 {
     int i;
-
-    if (!isInit || name) return 0;
+    if (!initialized || !name) return false;
 
     for (i=0; i<MAX_SUPPORTED_PLUGINS; i++) {
 	if (pluginConfList[i].name &&
 	    !(strcmp(pluginConfList[i].name, name))) {
 	    clearConfigEntry(i);
-	    return 1;
+	    return true;
 	}
     }
+    return false;
+}
 
-    return 0;
+void clearAllPluginConfigs(void)
+{
+    int i;
+
+    if (!initialized) return;
+
+    for (i=0; i<MAX_SUPPORTED_PLUGINS; i++) {
+	if (pluginConfList[i].name) clearConfigEntry(i);
+    }
+
+    initialized = false;
 }

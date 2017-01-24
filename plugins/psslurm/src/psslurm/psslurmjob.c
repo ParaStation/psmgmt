@@ -303,7 +303,7 @@ void clearBCastByJobid(uint32_t jobid)
 	if (!(bcast = list_entry(pos, BCast_t, list))) return;
 	if (bcast->jobid == jobid) {
 	    if (bcast->fwdata) {
-		killChild(bcast->fwdata->forwarderPid, SIGKILL);
+		killChild(PSC_getPID(bcast->fwdata->tid), SIGKILL);
 	    } else {
 		deleteBCast(bcast);
 	    }
@@ -381,7 +381,7 @@ Step_t *findStepByPid(pid_t pid)
 
     list_for_each(pos, &StepList.list) {
 	if (!(step = list_entry(pos, Step_t, list))) return NULL;
-	if (step->fwdata && step->fwdata->childPid == pid) return step;
+	if (step->fwdata && step->fwdata->cPid == pid) return step;
     }
     return NULL;
 }
@@ -565,9 +565,9 @@ int deleteStep(uint32_t jobid, uint32_t stepid)
     freeGresCred(step->gres);
 
     if (step->fwdata) {
-	if (step->fwdata->childPid) killChild(step->fwdata->childPid, SIGKILL);
-	if (step->fwdata->forwarderPid) {
-	    killChild(step->fwdata->forwarderPid, SIGKILL);
+	if (step->fwdata->cPid) killChild(step->fwdata->cPid, SIGKILL);
+	if (step->fwdata->tid != -1) {
+	    killChild(PSC_getPID(step->fwdata->tid), SIGKILL);
 	}
     }
 
@@ -619,8 +619,8 @@ int deleteJob(uint32_t jobid)
 	}
 
 	if (job->fwdata) {
-	    killChild(job->fwdata->childPid, SIGKILL);
-	    killChild(job->fwdata->forwarderPid, SIGKILL);
+	    killChild(job->fwdata->cPid, SIGKILL);
+	    killChild(PSC_getPID(job->fwdata->tid), SIGKILL);
 	}
     }
 
@@ -715,7 +715,7 @@ int signalStep(Step_t *step, int signal)
 	case SIGTERM:
 	case SIGKILL:
 	    if (step->fwdata) {
-		sendStartGraceTime(step->fwdata);
+		startGraceTime(step->fwdata);
 	    }
 	    ret = signalTasks(step->jobid, step->uid, &step->tasks, signal, group);
 	    send_PS_SignalTasks(step, signal, group);
@@ -785,7 +785,7 @@ int killForwarderByJobid(uint32_t jobid)
 
 	if (step->jobid == jobid) {
 	    if (step->fwdata) {
-		kill(step->fwdata->forwarderPid, SIGKILL);
+		kill(PSC_getPID(step->fwdata->tid), SIGKILL);
 		count++;
 	    }
 	}
@@ -796,7 +796,7 @@ int killForwarderByJobid(uint32_t jobid)
 
 	if (job->jobid == jobid) {
 	    if (job->fwdata) {
-		kill(job->fwdata->forwarderPid, SIGKILL);
+		kill(PSC_getPID(job->fwdata->tid), SIGKILL);
 		count++;
 	    }
 	}

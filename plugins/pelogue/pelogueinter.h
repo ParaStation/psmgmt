@@ -7,34 +7,17 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-/**
- * $Id$
- *
- * \author
- * Michael Rauh <rauh@par-tec.com>
- *
- */
+#ifndef __PELOGUE_INTER
+#define __PELOGUE_INTER
 
-#ifndef __PELOGUE__INTER
-#define __PELOGUE__INTER
+#include "peloguetypes.h"
 
-#include <stdbool.h>
+psPelogueAddPluginConfig_t psPelogueAddPluginConfig;
+psPelogueDelPluginConfig_t psPelogueDelPluginConfig;
 
-#include "pluginenv.h"
-#include "pelogueconfig.h"
+psPelogueAddJob_t psPelogueAddJob;
+psPelogueStartPE_t psPelogueStartPE;
+psPelogueSignalPE_t psPelogueSignalPE;
+psPelogueDeleteJob_t psPelogueDeleteJob;
 
-int psPelogueAddPluginConfig(char * name, Config_t *configList);
-
-int psPelogueAddJob(const char *plugin, const char *jobid, uid_t uid,
-			gid_t gid, int nrOfNodes, PSnodes_ID_t *nodes,
-			Pelogue_JobCb_Func_t *pluginCallback);
-
-int psPelogueStartPE(const char *plugin, const char *jobid, bool prologue,
-			env_t *env);
-
-int psPelogueSignalPE(const char *plugin, const char *jobid, int signal,
-			char *reason);
-
-void psPelogueDeleteJob(const char *plugin, const char *jobid);
-
-#endif
+#endif  /* __PELOGUE_INTER */

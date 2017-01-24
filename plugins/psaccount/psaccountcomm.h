@@ -6,57 +6,65 @@
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
- *
- * Authors:     Michael Rauh <rauh@par-tec.com>
- *
  */
 
 #ifndef __PS_ACCOUNT_COMM
 #define __PS_ACCOUNT_COMM
 
-#include "psidcomm.h"
+#include "psaccounttypes.h"
 
 /**
- * @brief Parse all accounting messages.
+ * @brief Initialize communication layer
  *
- * This function will receive all accounting messages
- * created by the psid daemon(s). The relevant messages
- * for extended accounting will be process here.
- * All message will be forwarded to the accounting
- * daemon(s) after processing.
+ * Initialize the plugin's communication layer. This will mainly
+ * register an alternative handler for accounting messages of type
+ * PSP_CD_ACCOUNT and PSP_CC_PLUG_ACCOUNT.
  *
- * @param msg The message to handle.
- *
- * @return No return value.
+ * @return On success true is returned. Or false in case of an error
  */
-void handlePSMsg(DDTypedBufferMsg_t *msg);
+bool initAccComm(void);
 
 /**
- * @brief Handle a PSP_ACCOUNT_CHILD message.
+ * @brief Finalize communication layer
  *
- * This message is sent if a new child is started.
+ * Finalize the plugin's communication layer. This will unregister the
+ * handlers for accounting messages registered by @ref initAccComm().
  *
- * @param msg The message to handle.
- *
- * @return No return value.
+ * @return No return value
  */
-void handleAccountChild(DDTypedBufferMsg_t *msg);
+void finalizeAccComm(void);
 
 /**
- * @brief Handle a PSP_ACCOUNT_END message.
+ * @brief Switch accounting for client
  *
- * This function will add extended accounting information to a
- * account end message.
+ * Switch accounting for the client identified by @a clientTID on or
+ * off depending on the flag @a enable by. This is done by sending a
+ * message to the local daemon.
  *
- * @param msg The message to handle.
+ * This function enables PMI in the forwarder processes to switch
+ * accounting for the corresponding client on or off.
  *
- * @param remote If set to 1 the msg has been forwarded from an
- * other node. If set to 0 the msg is from our local node.
+ * @param clientTID Task ID identifying the client to manipulate
  *
- * @return No return value.
+ * @param enable Flag determining the desired state
+ *
+ * @return Number of bytes written to the daemon or -1 on error
  */
-void handleAccountEnd(DDTypedBufferMsg_t *msg);
+int switchAccounting(PStask_ID_t clientTID, bool enable);
 
-extern int jobTimerID;
+/**
+ * @brief Send aggregated data
+ *
+ * Send aggregated data on resource usage of a distinct job collected
+ * in @a aggData. The job is identified by its logger's task ID @a
+ * logger.
+ *
+ * @param logger Task ID of the job's logger for identification
+ *
+ * @param aggData Aggregated data on resources used by the job
+ *
+ * @return No return value
+ */
+void sendAggData(PStask_ID_t logger, AccountDataExt_t *aggData);
 
-#endif
+#endif  /* __PS_ACCOUNT_COMM */

@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2016 Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2017 Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -10,13 +10,7 @@
  */
 /**
  * @file
- * pslog: Forwarding protocol for ParaStation I/O forwarding facility
- *
- * $Id$
- *
- * @author
- * Norbert Eicker <eicker@par-tec.com>
- *
+ * pslog: Forwarding protocol for ParaStation I/O forwarding facilities
  */
 #ifndef __PSLOGMSG_H
 #define __PSLOGMSG_H
@@ -24,13 +18,6 @@
 #include <sys/time.h>
 
 #include "psprotocol.h"
-
-#ifdef __cplusplus
-extern "C" {
-#if 0
-} /* <- just for emacs indentation */
-#endif
-#endif
 
 /** Type of the message. */
 typedef enum {
@@ -49,6 +36,19 @@ typedef enum {
     SIGNAL,     /**< lg -> fw Forward signal to client of forwarder */
     SERV_TID,	/**< fw -> lg (and lg -> fw) Get min service rank */
     SERV_EXT,   /**< lg -> fw Forward service exit msg to client of fw */
+    PLGN_CHILD = 32,  /**< fw -> plgn Child is ready */
+    PLGN_SIGNAL_CHLD, /**< plgn -> fw Signal child */
+    PLGN_START_GRACE, /**< plgn -> fw Start child's grace period */
+    PLGN_SHUTDOWN,    /**< plgn -> fw Shutdown child */
+    PLGN_ACCOUNT,     /**< fw -> plgn Resources used by child */
+    PLGN_CODE,        /**< fw -> plgn Child hook exit code */
+    PLGN_EXIT,        /**< fw -> plgn Child exit status */
+    PLGN_FIN,         /**< fw -> plgn Forwarder going to finalize */
+    PLGN_FIN_ACK,     /**< plgn -> fw ACK finalization */
+    PLGN_SIGNAL,      /**< used by psmom ?? */
+    PLGN_REQ_ACCNT,   /**< used by psmom ?? */
+    /* LAST = 64 */  /**< all numbers beyond this might be used privately,
+       e.g. between plugins and their own forwarders */
 } PSLog_msg_t;
 
 /** Untyped Buffer Message. Used for all communication. */
@@ -189,10 +189,5 @@ int PSLog_read(PSLog_Msg_t *msg, struct timeval *timeout);
  * error.
  */
 const char *PSLog_printMsgType(PSLog_msg_t type);
-
-
-#ifdef __cplusplus
-}/* extern "C" */
-#endif
 
 #endif /* __PSLOG_H */

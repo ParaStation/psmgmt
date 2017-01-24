@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2009-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2009-2017 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -119,8 +119,10 @@ static LIST_HEAD(pluginList);
  * 114: added PSIDHOOK_PELOGUE_FINISH and PSIDHOOK_FRWRD_DSOCK
  *
  * 115: added PSIDHOOK_JAIL_CHILD
+ *
+ * 116: added PSIDHOOK_PELOGUE_PREPARE
  */
-static int pluginAPIVersion = 115;
+static int pluginAPIVersion = 116;
 
 
 /** Grace period between finalize and unload on forcefully unloads */
@@ -359,6 +361,7 @@ static plugin_t * remDepend(plugin_t *plugin, plugin_t *depend)
 static void printRefList(char *buf, size_t size, list_t *refList)
 {
     list_t *p;
+    if (buf && size > 0) buf[0] = '\0';
 
     list_for_each(p, refList) {
 	plugin_ref_t *ref = list_entry(p, plugin_ref_t, next);
@@ -1655,6 +1658,30 @@ static void handlePlugins(void)
     }
 }
 
+/**
+ * @brief Dummy loop action
+ *
+ * Dummy function used as a guarding loop action to @ref
+ * handlePlugins().
+ *
+ * Background is that @ref handlePlugins() might implicitly remove
+ * loop actions from the corresponding list. Such loop actions were
+ * registered by a plugin (e.g. psaccount) that was unloaded and might
+ * have been the next one after @ref handlePlugins() in the list of
+ * loop actions with a certain probability. Thus, removing this loop
+ * action will break the list_for_each_safe in @ref
+ * PSID_handleLoopActions() leading to undefined behavior of the psid
+ * -- most probably just running into a segmentation fault.
+ *
+ * By adding this dummy function as a loop action right after @ref
+ * handlePlugins() we ensure that its successor in the list will never
+ * be removed.
+ *
+ * @return No return value
+ */
+static void handlePluginsGuard(void)
+{}
+
 void initPlugins(void)
 {
     /* Register msg-handlers for plugin load/unload */
@@ -1664,6 +1691,7 @@ void initPlugins(void)
     PSID_registerDropper(PSP_CD_PLUGIN, drop_PLUGIN);
 
     PSID_registerLoopAct(handlePlugins);
+    PSID_registerLoopAct(handlePluginsGuard);
 
     /* Handle list of plugins found in the configuration file */
     if (!list_empty(&PSID_config->plugins)) {

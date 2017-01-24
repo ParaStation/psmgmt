@@ -184,6 +184,7 @@ lib/plugincommon/pluginconfig.c \
 lib/plugincommon/pluginenv.c \
 lib/plugincommon/pluginforwarder.c \
 lib/plugincommon/pluginfrag.c \
+lib/plugincommon/pluginforwarder.c \
 lib/plugincommon/pluginhelper.c \
 lib/plugincommon/pluginhostlist.c \
 lib/plugincommon/pluginlog.c \
@@ -265,14 +266,12 @@ plugins/pelogue/pelogueconfig.c \
 plugins/pelogue/pelogueconfig.h \
 plugins/pelogue/pelogueforwarder.c \
 plugins/pelogue/pelogueforwarder.h \
-plugins/pelogue/pelogue.h \
 plugins/pelogue/peloguehandles.h \
 plugins/pelogue/pelogueinter.c \
 plugins/pelogue/pelogueinter.h \
 plugins/pelogue/peloguejob.c \
 plugins/pelogue/peloguejob.h \
 plugins/pelogue/peloguekvs.c \
-plugins/pelogue/peloguekvs.h \
 plugins/pelogue/peloguelog.c \
 plugins/pelogue/peloguelog.h \
 plugins/pelogue/peloguescript.c \
@@ -281,11 +280,8 @@ plugins/pelogue/peloguetypes.h \
 plugins/psaccount/Makefile.am \
 plugins/psaccount/Makefile.in \
 plugins/psaccount/psaccount.c \
-plugins/psaccount/psaccount.h \
 plugins/psaccount/psaccountclient.c \
 plugins/psaccount/psaccountclient.h \
-plugins/psaccount/psaccountcollect.c \
-plugins/psaccount/psaccountcollect.h \
 plugins/psaccount/psaccountcomm.c \
 plugins/psaccount/psaccountcomm.h \
 plugins/psaccount/psaccountconfig.c \

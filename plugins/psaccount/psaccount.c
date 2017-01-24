@@ -1,29 +1,21 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2017 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
- *
- * Authors:     Michael Rauh <rauh@par-tec.com>
- *
  */
-
 #include <stdio.h>
-#include <stdlib.h>
-#include <sys/utsname.h>
 #include <string.h>
-#include <errno.h>
+#include <sys/utsname.h>
 #include <unistd.h>
 
-#include "psaccountcollect.h"
 #include "psaccountlog.h"
 #include "psaccountproc.h"
 #include "psaccountcomm.h"
 #include "psaccountjob.h"
-#include "psaccountinter.h"
 #include "psaccountclient.h"
 #include "psaccountconfig.h"
 #include "psaccounthistory.h"
@@ -32,37 +24,57 @@
 #include "timer.h"
 #include "plugin.h"
 #include "psidnodes.h"
-#include "psidutil.h"
-#include "psidhook.h"
-#include "pluginmalloc.h"
 #include "pluginfrag.h"
-
-#include "psaccount.h"
 
 #define PSACCOUNT_CONFIG "psaccount.conf"
 
 /** psid plugin requirements */
 char name[] = "psaccount";
-int version = 25;
+int version = 26;
 int requiredAPI = 114;
-plugin_dep_t dependencies[1];
-
-/** the linux system clock ticks */
-int clockTicks = -1;
-
-/** the linux system page size */
-int pageSize = -1;
-
-int daemonSock = -1;
-
-/** save default handler for accouting msgs */
-handlerFunc_t oldAccountHandler = NULL;
+plugin_dep_t dependencies[] = {
+    { .name = NULL, .version = 0 } };
 
 /** the ID of the main timer */
 static int mainTimerID = -1;
 
 /** the main timer which calls periodicMain() to do all the work */
 static struct timeval mainTimer = {30,0};
+
+/* Forward declaration */
+static void setMainTimer(int sec);
+
+/**
+ * @brief Main loop doing all the work.
+ *
+ * @return No return value.
+ */
+static void periodicMain(void)
+{
+    static int cleanup = 0;
+    int poll = PSIDnodes_acctPollI(PSC_getMyID());
+
+    /* cleanup old jobs */
+    if (cleanup++ == 4) {
+	cleanupJobs();
+	cleanupClients();
+	cleanup = 0;
+    }
+
+    /* check if config changed */
+    if (poll >= 0 && poll != mainTimer.tv_sec) setMainTimer(poll ? poll : 30);
+
+    if (!poll) return;
+
+    /* update proc snapshot */
+    if (haveActiveClients()) {
+	updateProcSnapshot();
+
+	/* update all accounting data */
+	updateClients(NULL);
+    }
+
+}
 
 /**
  * @brief Update the main timer configuration.
@@ -73,60 +85,10 @@ static struct timeval mainTimer = {30,0};
  */
 static void setMainTimer(int sec)
 {
-    if (mainTimerID != -1) {
-	Timer_remove(mainTimerID);
-    }
+    if (mainTimerID != -1) Timer_remove(mainTimerID);
+
     mainTimer.tv_sec = sec;
     mainTimerID = Timer_register(&mainTimer, periodicMain);
-}
-
-void periodicMain(void)
-{
-    static int cleanup = 0;
-    int poll;
-
-    /* cleanup old jobs */
-    if (cleanup++ == 4) {
-	cleanupJobs();
-	cleanupClients();
-	cleanup = 0;
-    }
-
-    /* update proc snapshot */
-    if ((haveActiveAccClients())) {
-	updateProcSnapshot(0);
-
-	/* update all accounting data */
-	updateAllAccClients(NULL);
-    }
-
-    /* check if config changed */
-    if ((poll = PSIDnodes_acctPollI(PSC_getMyID())) > 0) {
-	if (poll != mainTimer.tv_sec) {
-	    setMainTimer(poll);
-	}
-    }
-}
-
-void accountStart(void)
-{
-    /* we have no dependencies */
-    dependencies[0].name = NULL;
-    dependencies[0].version = 0;
-}
-
-void accountStop(void)
-{
-    /* nothing to do here */
-}
-
-static int setDaemonSock(void *dsock)
-{
-    int *sock = dsock;
-
-    daemonSock = *sock;
-
-    return 0;
 }
 
 int initialize(void)
@@ -139,19 +101,15 @@ int initialize(void)
     initLogger(false);
 
     /* init all lists */
-    initAccClientList();
-    initJobList();
-    initHist();
-    initProcList();
+    initProc();
     initFragComm();
 
     /* init the config facility */
     snprintf(configfn, sizeof(configfn), "%s/%s", PLUGINDIR, PSACCOUNT_CONFIG);
-
-    if (!(initConfig(configfn))) return 1;
+    if (!initConfig(configfn)) return 1;
 
     /* init logging facility */
-    getConfParamI("DEBUG_MASK", &debugMask);
+    debugMask = getConfValueI(&config, "DEBUG_MASK");
     maskLogger(debugMask);
 
     /* read plattform version */
@@ -165,14 +123,14 @@ int initialize(void)
 	}
     }
 
-    /* read system clock ticks */
-    if ((clockTicks = sysconf(_SC_CLK_TCK)) < 1) {
+    /* check if system's clock ticks can be determined */
+    if (sysconf(_SC_CLK_TCK) < 1) {
 	mlog("%s: reading clock ticks failed\n", __func__);
 	return 1;
     }
 
-    /* read system page size */
-    if ((pageSize = sysconf(_SC_PAGESIZE)) < 1) {
+    /* check if system's page size can be determined */
+    if (sysconf(_SC_PAGESIZE) < 1) {
 	mlog("%s: reading page size failed\n", __func__);
 	return 1;
     }
@@ -183,15 +141,7 @@ int initialize(void)
 	return 1;
     }
 
-    if (!(PSIDhook_add(PSIDHOOK_FRWRD_DSOCK, setDaemonSock))) {
-	mlog("register 'PSIDHOOK_FRWRD_DSOCK' failed\n");
-	return 1;
-    }
-
-    /* register periodic timer */
-    if ((poll = PSIDnodes_acctPollI(PSC_getMyID())) > 0) {
-	mainTimer.tv_sec = poll;
-    }
+    if (!initAccComm()) return 1;
 
     if (!Timer_isInitialized()) {
 	mdbg(PSACC_LOG_VERBOSE, "timer facility not ready, trying to initialize"
@@ -199,18 +149,16 @@ int initialize(void)
 	Timer_init(NULL);
     }
 
-    if ((mainTimerID = Timer_register(&mainTimer, periodicMain)) == -1) {
-	mlog("registering main timer failed\n");
+    /* register periodic timer */
+    poll = PSIDnodes_acctPollI(PSC_getMyID());
+    if (poll >= 0) setMainTimer(poll ? poll : 30);
+    if (mainTimerID == -1) {
+	mlog("registering main timer for poll = %d failed\n", poll);
 	return 1;
     }
 
-    /* register account msg */
-    oldAccountHandler = PSID_registerMsg(PSP_CD_ACCOUNT,
-					    (handlerFunc_t) handlePSMsg);
-    PSID_registerMsg(PSP_CC_PLUG_ACCOUNT, (handlerFunc_t) handleInterAccount);
-
     /* update proc snapshot */
-    updateProcSnapshot(0);
+    updateProcSnapshot();
 
     mlog("(%i) successfully started\n", version);
     return 0;
@@ -220,27 +168,15 @@ void cleanup(void)
 {
     /* remove all timer */
     Timer_remove(mainTimerID);
-    if (jobTimerID != -1) Timer_remove(jobTimerID);
 
-    if (!(PSIDhook_del(PSIDHOOK_FRWRD_DSOCK, setDaemonSock))) {
-	mlog("unregister 'PSIDHOOK_FRWRD_DSOCK' failed\n");
-    }
-
-    /* unregister account msg */
-    PSID_clearMsg(PSP_CC_PLUG_ACCOUNT);
-    PSID_clearMsg(PSP_CD_ACCOUNT);
-    if (oldAccountHandler) {
-	PSID_registerMsg(PSP_CD_ACCOUNT, oldAccountHandler);
-    }
+    finalizeAccComm();
 
     if (memoryDebug) fclose(memoryDebug);
 
     /* cleanup allocated lists/memory */
-    clearAllJobs();
-    clearAllAccClients();
-    clearAllProcSnapshots();
-    clearHist();
-    clearConfig();
-    clearCpuFreq();
+    finalizeJobs();
+    clearAllClients();
+    finalizeProc();
+    freeConfig(&config);
     finalizeFragComm();
 }

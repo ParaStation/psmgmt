@@ -8,11 +8,6 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-#ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__((used)) =
-    "$Id$";
-#endif /* DOXYGEN_SHOULD_SKIP_THIS */
-
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -479,7 +474,8 @@ void PStask_cleanup(PStask_ID_t tid)
     /* Make sure we get all pending messages */
     if (task->fd != -1) Selector_enable(task->fd);
 
-    if (PSID_emptySigList(&task->childList) && !task->delegate) {
+    if (PSID_emptySigList(&task->childList) && !task->delegate
+	&& !task->sigChldCB) {
 	/* Mark task as deleted; will be actually removed in main loop */
 	task->deleted = true;
     }

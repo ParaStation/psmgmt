@@ -1,41 +1,41 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2017 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
- *
- * Authors:     Michael Rauh <rauh@par-tec.com>
- *
  */
+#include <stddef.h>
+#include <time.h>
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
+#include "timer.h"
+#include "pscommon.h"
+#include "psprotocol.h"
+#include "pspluginprotocol.h"
+#include "pluginmalloc.h"
+#include "pluginfrag.h"
+#include "psidcomm.h"
+#include "psidhook.h"
 
 #include "psaccountlog.h"
 #include "psaccountclient.h"
 #include "psaccountjob.h"
-#include "psaccount.h"
-#include "psaccountinter.h"
 #include "psaccountproc.h"
 #include "psaccountconfig.h"
 #include "psaccounthistory.h"
 
-#include "timer.h"
-#include "pscommon.h"
-#include "psidaccount.h"
-#include "pluginmalloc.h"
-
 #include "psaccountcomm.h"
 
-/** timer ID to monitor the startup of a new job */
-int jobTimerID = -1;
+/** Socket connected to the local daemon */
+static int daemonSock = -1;
 
-/** timer value to monitor the startup of a new job */
-static struct timeval jobTimer = {1,0};
+/**
+ * Standard handler for accouting msgs (initialized during
+ * registration of our private handler)
+ */
+static handlerFunc_t origHandler = NULL;
 
 /**
  * @brief Convert the int acc msg type to string.
@@ -45,143 +45,133 @@ static struct timeval jobTimer = {1,0};
  * @return Returns the found string msg type or
      * NULL on error.
  */
-static char *getAccountMsgType(int type)
+static const char *getAccountMsgType(int type)
 {
     switch (type) {
-	case PSP_ACCOUNT_QUEUE:
-	    return "QUEUE";
-	case PSP_ACCOUNT_DELETE:
-	    return "DELETE";
-	case PSP_ACCOUNT_SLOTS:
-	    return "SLOTS";
-	case PSP_ACCOUNT_START:
-	    return "START";
-	case PSP_ACCOUNT_LOG:
+    case PSP_ACCOUNT_QUEUE:
+	return "QUEUE";
+    case PSP_ACCOUNT_DELETE:
+	return "DELETE";
+    case PSP_ACCOUNT_SLOTS:
+	return "SLOTS";
+    case PSP_ACCOUNT_START:
+	return "START";
+    case PSP_ACCOUNT_LOG:
 	    return "LOG";
-	case PSP_ACCOUNT_CHILD:
-	    return "CHILD";
-	case PSP_ACCOUNT_END:
-	    return "END";
+    case PSP_ACCOUNT_CHILD:
+	return "CHILD";
+    case PSP_ACCOUNT_END:
+	return "END";
+    default:
+	return "UNKNOWN";
     }
-    return "UNKNOWN";
 }
 
-void handleAccountEnd(DDTypedBufferMsg_t *msg)
+static void sendAggDataFinish(PStask_ID_t logger);
+
+/**
+ * @brief Handle a PSP_ACCOUNT_END message.
+ *
+ * This function will add extended accounting information to a
+ * account end message.
+ *
+ * @param msg The message to handle.
+ *
+ * @return No return value.
+ */
+static void handleAccountEnd(DDTypedBufferMsg_t *msg)
 {
-    char *ptr;
-    PStask_ID_t logger, childID;
+    PStask_ID_t sender = msg->header.sender, logger, childTID;
     PSnodes_ID_t childNode;
     Client_t *client;
     Job_t *job;
     pid_t child;
-    uint64_t avgRss;
-    uint64_t avgVsize;
-    uint64_t avgThreads;
+    uint64_t avgRss, avgVsize, avgThrds, dummy;
+    size_t used = 0;
 
-    ptr = msg->buf;
+    mdbg(PSACC_LOG_ACC_MSG, "%s(%s)\n", __func__, PSC_printTID(sender));
 
-    /* Task(logger) Id */
-    logger = *(PStask_ID_t *) ptr;
-    ptr += sizeof(PStask_ID_t);
+    PSP_getTypedMsgBuf(msg, &used, __func__, "logger", &logger, sizeof(logger));
 
     /* end msg from logger */
-    if (msg->header.sender == logger) {
+    if (sender == logger) {
 	/* find the job */
-	if (!(job = findJobByLogger(logger))) {
-	    mlog("%s: job for logger '%s' not found\n", __func__,
-		    PSC_printTID(logger));
+	job = findJobByLogger(logger);
+	if (!job) {
+	    mlog("%s: job for logger %s not found\n", __func__,
+		 PSC_printTID(logger));
 	} else {
 	    job->endTime = time(NULL);
-	    job->complete = 1;
+	    job->complete = true;
 
 	    if (job->childsExit < job->nrOfChilds) {
-		mdbg(PSACC_LOG_VERBOSE, "%s: logger '%s' exited, but '%i' "
-			"children are still alive\n", __func__,
-			PSC_printTID(logger),
-			(job->nrOfChilds - job->childsExit));
-		job->grace = 1;
-	    } else {
-		/* psmom does not need the job, we can delete it */
-		/* but psslurm does need it! */
-		/*
-		if (!job->jobscript) {
-		    deleteJob(job->logger);
-		}
-		*/
+		mdbg(PSACC_LOG_VERBOSE, "%s: logger %s exited, but %i"
+		     " children are still alive\n", __func__,
+		     PSC_printTID(logger), job->nrOfChilds - job->childsExit);
 	    }
 	}
 	return;
     }
 
-    /* skip rank */
-    ptr += sizeof(int32_t);
-
-    /* skip uid */
-    ptr += sizeof(uid_t);
-
-    /* skip gid */
-    ptr += sizeof(gid_t);
-
-    /* pid */
-    child = *(pid_t *) ptr;
-    ptr += sizeof(pid_t);
+    PSP_getTypedMsgBuf(msg, &used, __func__, "rank(skipped)", &dummy,
+		       sizeof(int32_t));
+    PSP_getTypedMsgBuf(msg, &used, __func__, "uid(skipped)", &dummy,
+		       sizeof(uid_t));
+    PSP_getTypedMsgBuf(msg, &used, __func__, "gid(skipped)", &dummy,
+		       sizeof(gid_t));
+    PSP_getTypedMsgBuf(msg, &used, __func__, "pid", &child, sizeof(child));
 
     /* calculate childs TaskID */
-    childNode = PSC_getID(msg->header.sender);
-    childID = PSC_getTID(childNode, child);
+    childNode = PSC_getID(sender);
+    childTID = PSC_getTID(childNode, child);
 
     /* find the child exiting */
-    if (!(client = findAccClientByClientTID(childID))) {
-	if (!(findHist(logger))) {
-	    mlog("%s: end msg for unknown client '%s' from '%s'\n", __func__,
-		PSC_printTID(childID), PSC_printTID(msg->header.sender));
+    client = findClientByTID(childTID);
+    if (!client) {
+	if (!findHist(logger)) {
+	    mlog("%s: end msg for unknown client %s from %s\n", __func__,
+		 PSC_printTID(childTID), PSC_printTID(sender));
 	}
 	return;
     }
-
+    if (client->type != ACC_CHILD_JOBSCRIPT && client->logger != logger) {
+	mlog("%s: logger mismatch (%s/", __func__, PSC_printTID(logger));
+	mlog("%s)\n", PSC_printTID(client->logger));
+    }
     /* stop accounting of dead child */
     client->doAccounting = false;
     client->endTime = time(NULL);
 
-    /* actual rusage structure */
-    memcpy(&client->data.rusage, ptr, sizeof(client->data.rusage));
-    ptr += sizeof(client->data.rusage);
+    PSP_getTypedMsgBuf(msg, &used, __func__, "rusage",
+		       &client->data.rusage, sizeof(client->data.rusage));
+    PSP_getTypedMsgBuf(msg, &used, __func__, "pageSize",
+		       &client->data.pageSize, sizeof(client->data.pageSize));
+    PSP_getTypedMsgBuf(msg, &used, __func__, "walltime",
+		       &client->walltime, sizeof(client->walltime));
+    PSP_getTypedMsgBuf(msg, &used, __func__, "status",
+		       &client->status, sizeof(client->status));
 
-    /* pagesize */
-    client->data.pageSize = *(uint64_t *) ptr;
-    ptr += sizeof(uint64_t);
+    mdbg(PSACC_LOG_VERBOSE, "%s: child rank %i pid %i logger %s uid %i"
+	 " gid %i msg type %s finished\n", __func__, client->rank, child,
+	 PSC_printTID(client->logger), client->uid, client->gid,
+	 getAccountMsgType(msg->type));
 
-    /* walltime used by child */
-    memcpy(&client->walltime, ptr, sizeof(client->walltime));
-    ptr += sizeof(client->walltime);
+    if (client->type == ACC_CHILD_JOBSCRIPT) return; /* drop message */
 
-    /* child's return status */
-    client->status = *(int32_t *) ptr;
-    ptr += sizeof(int32_t);
+    /* Now add further information to the message */
+    msg->header.len = offsetof(DDTypedBufferMsg_t, buf) + used;
 
-    /* set extended info flag */
-    *(uint32_t *)ptr = 1;
-    ptr += sizeof(int32_t);
-
-    /* add size of max used mem */
-    *(uint64_t *)ptr = (uint64_t) client->data.maxRss;
-    ptr += sizeof(uint64_t);
-    msg->header.len += sizeof(uint64_t);
-
-    /* add size of max used vmem */
-    *(uint64_t *)ptr = client->data.maxVsize;
-    ptr += sizeof(uint64_t);
-    msg->header.len += sizeof(uint64_t);
-
-    /* add number of max threads */
-    *(uint32_t *)ptr = client->data.maxThreads;
-    ptr += sizeof(uint32_t);
-    msg->header.len += sizeof(uint32_t);
-
-    /* add session id of job */
-    *(int32_t *)ptr = client->data.session;
-    ptr += sizeof(int32_t);
-    msg->header.len += sizeof(uint32_t);
+    uint32_t one = 1;
+    PSP_putTypedMsgBuf(msg, __func__, "extended info", &one, sizeof(one));
+    PSP_putTypedMsgBuf(msg, __func__, "maxRss", &client->data.maxRss,
+		       sizeof(client->data.maxRss));
+    PSP_putTypedMsgBuf(msg, __func__, "maxVsize", &client->data.maxVsize,
+		       sizeof(client->data.maxVsize));
+    uint32_t myMaxThreads = client->data.maxThreads;
+    PSP_putTypedMsgBuf(msg, __func__, "maxThreads", &myMaxThreads,
+		       sizeof(myMaxThreads));
+    PSP_putTypedMsgBuf(msg, __func__, "session", &client->data.session,
+		       sizeof(client->data.session));
 
     /* add size of average used mem */
     if (client->data.avgRssTotal < 1 || client->data.avgRssCount < 1) {
@@ -189,9 +179,7 @@ void handleAccountEnd(DDTypedBufferMsg_t *msg)
     } else {
 	avgRss = client->data.avgRssTotal / client->data.avgRssCount;
     }
-    *(uint64_t *)ptr = (uint64_t) avgRss;
-    ptr += sizeof(uint64_t);
-    msg->header.len += sizeof(uint64_t);
+    PSP_putTypedMsgBuf(msg, __func__, "avgRss", &avgRss, sizeof(avgRss));
 
     /* add size of average used vmem */
     if (client->data.avgVsizeTotal < 1 || client->data.avgVsizeCount < 1) {
@@ -199,42 +187,33 @@ void handleAccountEnd(DDTypedBufferMsg_t *msg)
     } else {
 	avgVsize = client->data.avgVsizeTotal / client->data.avgVsizeCount;
     }
-    *(uint64_t *)ptr = (uint64_t) avgVsize;
-    ptr += sizeof(uint64_t);
-    msg->header.len += sizeof(uint64_t);
+    PSP_putTypedMsgBuf(msg, __func__, "avgVsize", &avgVsize, sizeof(avgVsize));
 
     /* add number of average threads */
     if (client->data.avgThreadsTotal < 1 || client->data.avgThreadsCount < 1) {
-	avgThreads = 0;
+	avgThrds = 0;
     } else {
-	avgThreads =
-		client->data.avgThreadsTotal / client->data.avgThreadsCount;
+	avgThrds = client->data.avgThreadsTotal / client->data.avgThreadsCount;
     }
-    *(uint64_t *)ptr = (uint64_t) avgThreads;
-    //ptr += sizeof(uint64_t);
-    msg->header.len += sizeof(uint64_t);
-
-    mdbg(PSACC_LOG_VERBOSE, "%s: child rank '%i' pid '%i' logger '%s' uid '%i' "
-	    "gid '%i' msg type '%s' finished\n", __func__, client->rank,  child,
-	PSC_printTID(client->logger), client->uid, client->gid,
-	getAccountMsgType(msg->type));
+    PSP_putTypedMsgBuf(msg, __func__, "avgThrds", &avgThrds, sizeof(avgThrds));
 
     /* find the job */
-    if (!(job = findJobByLogger(client->logger))) {
-	mlog("%s: job for child '%i' not found\n", __func__, child);
+    job = findJobByLogger(client->logger);
+    if (!job) {
+	mlog("%s: job for child %i not found\n", __func__, child);
     } else {
 	job->childsExit++;
 	if (job->childsExit >= job->nrOfChilds) {
 	    /* all children exited */
-	    if (globalCollectMode) {
-		forwardAggData();
+	    if (globalCollectMode && PSC_getID(logger) != PSC_getMyID()) {
+		forwardJobData(job, true);
 		sendAggDataFinish(logger);
 	    }
 
-	    job->complete = 1;
+	    job->complete = true;
 	    job->endTime = time(NULL);
 	    mdbg(PSACC_LOG_VERBOSE, "%s: job complete [%i:%i]\n", __func__,
-		job->childsExit, job->nrOfChilds);
+		 job->childsExit, job->nrOfChilds);
 
 	    if (PSC_getID(job->logger) != PSC_getMyID()) {
 		deleteJob(job->logger);
@@ -257,163 +236,80 @@ static void handleAccountLog(DDTypedBufferMsg_t *msg)
 {
     PStask_ID_t logger;
     Job_t *job;
-    char *ptr;
+    size_t used = 0;
 
-    ptr = msg->buf;
-
-    /* Task(logger) Id */
-    logger = *(PStask_ID_t *) ptr;
-    ptr += sizeof(PStask_ID_t);
+    PSP_getTypedMsgBuf(msg, &used, __func__, "logger", &logger, sizeof(logger));
 
     /* get job */
-    if (!(job = findJobByLogger(logger))) {
-	job = addJob(logger);
-    }
+    job = findJobByLogger(logger);
+    if (!job) job = addJob(logger);
 
-    /* skip rank */
-    ptr += sizeof(int32_t);
+    uint64_t dummy;
+    PSP_getTypedMsgBuf(msg, &used, __func__, "rank(skipped)", &dummy,
+		       sizeof(int32_t));
+    PSP_getTypedMsgBuf(msg, &used, __func__, "uid(skipped)", &dummy,
+		       sizeof(uid_t));
+    PSP_getTypedMsgBuf(msg, &used, __func__, "gid(skipped)", &dummy,
+		       sizeof(gid_t));
+    PSP_getTypedMsgBuf(msg, &used, __func__, "total children (skipped)", &dummy,
+		       sizeof(int32_t));
 
-    /* skip uid */
-    ptr += sizeof(uid_t);
-
-    /* skip gid */
-    ptr += sizeof(gid_t);
-
-    /* total number of children connected to logger */
-    job->totalChilds = *(int32_t *)ptr;
-    ptr += sizeof(int32_t);
-
-    /* service process will not be accounted */
-    job->totalChilds--;
-
-    /* set up job id */
-    if (!job->jobid) {
-	job->jobid = ustrdup(ptr);
-    }
+    /* set the job ID */
+    if (!job->jobid) job->jobid = ustrdup(msg->buf+used);
 }
 
 /**
- * @brief Monitor the startup of a job.
+ * @brief Handle a PSP_ACCOUNT_CHILD message.
  *
- * Monitor the startup of a job. If the job start is complete, start
- * an immediate update of the accounting data, so we have a least
- * some data on very short jobs. We can't poll the accounting data
- * in the startup phase or we will disturbe the job too much.
+ * This message is sent when a new child is started.
+ *
+ * @param msg The message to handle.
  *
  * @return No return value.
  */
-static void monitorJobStarted(void)
+static void handleAccountChild(DDTypedBufferMsg_t *msg)
 {
-    list_t *pos, *tmp;
     Job_t *job;
-    int starting = 0, update = 0, grace = 0;
-    Client_t *js;
-
-    if (list_empty(&JobList.list)) return;
-
-    getConfParamI("TIME_JOBSTART_WAIT", &grace);
-
-    list_for_each_safe(pos, tmp, &JobList.list) {
-	if ((job = list_entry(pos, Job_t, list)) == NULL) break;
-
-	if (job->lastChildStart > 0) {
-	    starting++;
-	    if (time(NULL) >= job->lastChildStart + grace) {
-		job->lastChildStart = 0;
-
-		/* update all accounting data */
-		if (!update) {
-		    updateProcSnapshot(0);
-		    update = 1;
-		}
-		updateAllAccClients(job);
-
-		/* try to find the missing jobscript */
-		if (!job->jobscript) {
-
-		    if ((js = findJobscriptInClients(job))) {
-			mdbg(PSACC_LOG_VERBOSE, "%s: found jobscript pid "
-				"'%i'\n", __func__, js->pid);
-			job->jobscript = js->pid;
-			if (!job->jobid && js->jobid) {
-			    job->jobid = ustrdup(js->jobid);
-			}
-		    }
-		}
-	    }
-	}
-    }
-
-    if (!starting && jobTimerID > 0) {
-	Timer_remove(jobTimerID);
-	jobTimerID = -1;
-    }
-}
-
-void handleAccountChild(DDTypedBufferMsg_t *msg)
-{
-    char *ptr;
     Client_t *client;
-    Job_t *job;
     PStask_ID_t logger;
     uid_t uid;
     gid_t gid;
     int32_t rank;
+    size_t used = 0;
 
-    ptr = msg->buf;
-
-    /* TaskID of the logger */
-    logger = *(PStask_ID_t *) ptr;
-    ptr += sizeof(PStask_ID_t);
+    /* logger's task ID */
+    PSP_getTypedMsgBuf(msg, &used, __func__, "logger", &logger, sizeof(logger));
 
     /* get job information */
-    if (!(job = findJobByLogger(logger))) {
-	job = addJob(logger);
-    }
+    job = findJobByLogger(logger);
+    if (!job) job = addJob(logger);
 
-    /* rank */
-    rank = *(int32_t *) ptr;
-    ptr += sizeof(int32_t);
+    PSP_getTypedMsgBuf(msg, &used, __func__, "rank", &rank, sizeof(rank));
+    PSP_getTypedMsgBuf(msg, &used, __func__, "uid", &uid, sizeof(uid));
+    PSP_getTypedMsgBuf(msg, &used, __func__, "gid", &gid, sizeof(gid));
 
-    /* uid */
-    uid = *(uid_t *) ptr;
-    ptr += sizeof(uid_t);
+    client = addClient(msg->header.sender, ACC_CHILD_PSIDCHILD);
 
-    /* gid */
-    gid = *(gid_t *) ptr;
-    ptr += sizeof(gid_t);
+    bool triggerMonitor = !job->latestChildStart;
+    job->latestChildStart = time(NULL);
+    if (triggerMonitor) triggerJobStartMonitor();
 
-    client = addAccClient(msg->header.sender, ACC_CHILD_PSIDCHILD);
+    if (!findHist(logger)) saveHist(logger);
 
-    /* save start time to trigger next update */
-    if (job->lastChildStart < 1 && jobTimerID == -1) {
-	getConfParamL("TIME_JOBSTART_POLL", &jobTimer.tv_usec);
-	jobTimerID = Timer_register(&jobTimer, monitorJobStarted);
-    }
-
-    if (!(findHist(logger))) saveHist(logger);
-
-    job->lastChildStart = time(NULL);
     job->nrOfChilds++;
     client->logger = logger;
     client->uid = uid;
     client->gid = gid;
     client->job = job;
     client->rank = rank;
-
-    /*
-       mdbg(-1, "%s: new %s: tid '%s' logger:%i"
-       " uid:%i gid:%i \n", __func__, getAccountMsgType(msg->type),
-       PSC_printTID(msg->header.sender), logger, uid, gid);
-       */
 }
 
-void handlePSMsg(DDTypedBufferMsg_t *msg)
+static void handlePSMsg(DDTypedBufferMsg_t *msg)
 {
     if (msg->header.dest == PSC_getMyTID()) {
-        /* message for me, let's get infos and forward to all accounters */
+	/* message for me, let's get infos and forward to all accounters */
 
-	mdbg(PSACC_LOG_ACC_MSG, "%s: got msg '%s'\n", __func__,
+	mdbg(PSACC_LOG_ACC_MSG, "%s: got msg %s\n", __func__,
 	     getAccountMsgType(msg->type));
 
 	switch (msg->type) {
@@ -433,14 +329,280 @@ void handlePSMsg(DDTypedBufferMsg_t *msg)
 		handleAccountEnd(msg);
 		break;
 	    default:
-		mlog("%s: invalid msg type '%i' sender '%s'\n", __func__,
-		    msg->type, PSC_printTID(msg->header.sender));
+		mlog("%s: invalid msg type %i sender %s\n", __func__, msg->type,
+		     PSC_printTID(msg->header.sender));
 	}
-	mdbg(PSACC_LOG_VERBOSE, "%s: msg type '%s' sender '%s'\n",
-	   __func__, getAccountMsgType(msg->type),
-	   PSC_printTID(msg->header.sender));
+	mdbg(PSACC_LOG_VERBOSE, "%s: msg type %s sender %s\n", __func__,
+	     getAccountMsgType(msg->type), PSC_printTID(msg->header.sender));
     }
 
     /* forward msg to accounting daemons */
-    oldAccountHandler((DDBufferMsg_t *) msg);
+    if (origHandler) origHandler((DDBufferMsg_t *) msg);
+}
+
+/*************** Messages between psaccount plugins ***************/
+
+/** Message types used between psaccount plugins */
+typedef enum {
+    PSP_ACCOUNT_FORWARD_START = 0x00000,
+    PSP_ACCOUNT_FORWARD_END,
+    PSP_ACCOUNT_DATA_UPDATE,
+    PSP_ACCOUNT_ENABLE_UPDATE,
+    PSP_ACCOUNT_DISABLE_UPDATE,
+    PSP_ACCOUNT_AGG_DATA_UPDATE,
+    PSP_ACCOUNT_AGG_DATA_FINISH,
+} PSP_PSAccount_t;
+
+static void handleSwitchUpdate(DDTypedBufferMsg_t *msg, bool enable)
+{
+    PStask_ID_t client;
+    size_t used = 0;
+
+    PSP_getTypedMsgBuf(msg, &used, __func__, "client", &client, sizeof(client));
+    switchClientUpdate(client, enable);
+}
+
+void sendAggData(PStask_ID_t logger, AccountDataExt_t *aggData)
+{
+    PS_DataBuffer_t data = { .buf = NULL };
+    PSnodes_ID_t loggerNode = PSC_getID(logger);
+
+    /* add logger TaskID */
+    addInt32ToMsg(logger, &data);
+
+    addUint64ToMsg(aggData->maxThreadsTotal, &data);
+    addUint64ToMsg(aggData->maxVsizeTotal, &data);
+    addUint64ToMsg(aggData->maxRssTotal, &data);
+    addUint64ToMsg(aggData->maxThreads, &data);
+    addUint64ToMsg(aggData->maxVsize, &data);
+    addUint64ToMsg(aggData->maxRss, &data);
+
+    addUint64ToMsg(aggData->avgThreadsTotal, &data);
+    addUint64ToMsg(aggData->avgThreadsCount, &data);
+    addUint64ToMsg(aggData->avgVsizeTotal, &data);
+    addUint64ToMsg(aggData->avgVsizeCount, &data);
+    addUint64ToMsg(aggData->avgRssTotal, &data);
+    addUint64ToMsg(aggData->avgRssCount, &data);
+
+    addUint64ToMsg(aggData->cutime, &data);
+    addUint64ToMsg(aggData->cstime, &data);
+    addUint64ToMsg(aggData->minCputime, &data);
+    addUint64ToMsg(aggData->pageSize, &data);
+    addUint32ToMsg(aggData->numTasks, &data);
+
+    addUint64ToMsg(aggData->maxMajflt, &data);
+    addUint64ToMsg(aggData->totMajflt, &data);
+    addUint64ToMsg(aggData->totCputime, &data);
+    addUint64ToMsg(aggData->cpuFreq, &data);
+
+    addDoubleToMsg(aggData->maxDiskRead, &data);
+    addDoubleToMsg(aggData->totDiskRead, &data);
+    addDoubleToMsg(aggData->maxDiskWrite, &data);
+    addDoubleToMsg(aggData->totDiskWrite, &data);
+
+    addInt32ToMsg(aggData->taskIds[ACCID_MAX_VSIZE], &data);
+    addInt32ToMsg(aggData->taskIds[ACCID_MAX_RSS], &data);
+    addInt32ToMsg(aggData->taskIds[ACCID_MAX_PAGES], &data);
+    addInt32ToMsg(aggData->taskIds[ACCID_MIN_CPU], &data);
+    addInt32ToMsg(aggData->taskIds[ACCID_MAX_DISKREAD], &data);
+    addInt32ToMsg(aggData->taskIds[ACCID_MAX_DISKWRITE], &data);
+
+    addTimeToMsg(aggData->rusage.ru_utime.tv_sec, &data);
+    addTimeToMsg(aggData->rusage.ru_utime.tv_usec, &data);
+    addTimeToMsg(aggData->rusage.ru_stime.tv_sec, &data);
+    addTimeToMsg(aggData->rusage.ru_stime.tv_usec, &data);
+
+    sendFragMsg(&data, PSC_getTID(loggerNode, 0), PSP_CC_PLUG_ACCOUNT,
+		PSP_ACCOUNT_AGG_DATA_UPDATE);
+
+    ufree(data.buf);
+
+    mdbg(PSACC_LOG_UPDATE_MSG, "%s: to %i maxThreadsTot %lu maxVsizeTot %lu"
+	 " maxRsstot %lu maxThreads %lu maxVsize %lu maxRss %lu numTasks %u"
+	 " avgThreadsTotal %lu avgThreadsCount %lu avgVsizeTotal %lu"
+	 " avgVsizeCount %lu avgRssTotal %lu avgRssCount %lu cutime %lu"
+	 " cstime %lu minCputime %lu totCputime %lu\n", __func__,
+	 loggerNode, aggData->maxThreadsTotal, aggData->maxVsizeTotal,
+	 aggData->maxRssTotal, aggData->maxThreads, aggData->maxVsize,
+	 aggData->maxRss, aggData->numTasks, aggData->avgThreadsTotal,
+	 aggData->avgThreadsCount, aggData->avgVsizeTotal,
+	 aggData->avgVsizeCount, aggData->avgRssTotal, aggData->avgRssCount,
+	 aggData->cutime, aggData->cstime, aggData->minCputime,
+	 aggData->totCputime);
+}
+
+static void handleAggDataUpdate(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
+{
+    char *ptr = data->buf;
+    AccountDataExt_t aggData;
+    PStask_ID_t logger;
+
+    /* get logger's task ID */
+    getInt32(&ptr, &logger);
+
+    if (!findJobByLogger(logger)) {
+	mlog("%s: update unknown logger %s\n", __func__, PSC_printTID(logger));
+	return;
+    }
+
+    getUint64(&ptr, &aggData.maxThreadsTotal);
+    getUint64(&ptr, &aggData.maxVsizeTotal);
+    getUint64(&ptr, &aggData.maxRssTotal);
+    getUint64(&ptr, &aggData.maxThreads);
+    getUint64(&ptr, &aggData.maxVsize);
+    getUint64(&ptr, &aggData.maxRss);
+
+    getUint64(&ptr, &aggData.avgThreadsTotal);
+    getUint64(&ptr, &aggData.avgThreadsCount);
+    getUint64(&ptr, &aggData.avgVsizeTotal);
+    getUint64(&ptr, &aggData.avgVsizeCount);
+    getUint64(&ptr, &aggData.avgRssTotal);
+    getUint64(&ptr, &aggData.avgRssCount);
+
+    getUint64(&ptr, &aggData.cutime);
+    getUint64(&ptr, &aggData.cstime);
+    getUint64(&ptr, &aggData.minCputime);
+    getUint64(&ptr, &aggData.pageSize);
+    getUint32(&ptr, &aggData.numTasks);
+
+    getUint64(&ptr, &aggData.maxMajflt);
+    getUint64(&ptr, &aggData.totMajflt);
+    getUint64(&ptr, &aggData.totCputime);
+    getUint64(&ptr, &aggData.cpuFreq);
+
+    getDouble(&ptr, &aggData.maxDiskRead);
+    getDouble(&ptr, &aggData.totDiskRead);
+    getDouble(&ptr, &aggData.maxDiskWrite);
+    getDouble(&ptr, &aggData.totDiskWrite);
+
+    getInt32(&ptr, &aggData.taskIds[ACCID_MAX_VSIZE]);
+    getInt32(&ptr, &aggData.taskIds[ACCID_MAX_RSS]);
+    getInt32(&ptr, &aggData.taskIds[ACCID_MAX_PAGES]);
+    getInt32(&ptr, &aggData.taskIds[ACCID_MIN_CPU]);
+    getInt32(&ptr, &aggData.taskIds[ACCID_MAX_DISKREAD]);
+    getInt32(&ptr, &aggData.taskIds[ACCID_MAX_DISKWRITE]);
+
+    getTime(&ptr, &aggData.rusage.ru_utime.tv_sec);
+    getTime(&ptr, &aggData.rusage.ru_utime.tv_usec);
+    getTime(&ptr, &aggData.rusage.ru_stime.tv_sec);
+    getTime(&ptr, &aggData.rusage.ru_stime.tv_usec);
+
+    setAggData(msg->header.sender, logger, &aggData);
+
+    mdbg(PSACC_LOG_UPDATE_MSG, "%s: from %s maxThreadsTot %lu maxVsizeTot %lu"
+	 " maxRsstot %lu maxThreads %lu maxVsize %lu maxRss %lu numTasks %u\n",
+	 __func__, PSC_printTID(msg->header.sender), aggData.maxThreadsTotal,
+	 aggData.maxVsizeTotal, aggData.maxRssTotal, aggData.maxThreads,
+	 aggData.maxVsize, aggData.maxRss, aggData.numTasks);
+}
+
+/**
+ * @brief Finish data aggregation
+ *
+ * Trigger to set the @ref endTime in the remote resource aggregation
+ * identified by the job's logger task ID @a logger. This is achieved
+ * by sending a corresponding PSP_ACCOUNT_AGG_DATA_FINISH message to
+ * the logger's node.
+ *
+ * @param logger Task ID of the job's logger for identification
+ *
+ * @return No return value
+ */
+static void sendAggDataFinish(PStask_ID_t logger)
+{
+    PS_DataBuffer_t data = { .buf = NULL };
+
+    /* add logger TaskID */
+    addInt32ToMsg(logger, &data);
+
+    sendFragMsg(&data, PSC_getTID(PSC_getID(logger), 0), PSP_CC_PLUG_ACCOUNT,
+		PSP_ACCOUNT_AGG_DATA_FINISH);
+
+    ufree(data.buf);
+}
+
+static void handleAggDataFinish(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
+{
+    PStask_ID_t logger;
+    char *ptr = data->buf;
+
+    /* get logger's task ID */
+    getInt32(&ptr, &logger);
+
+    finishAggData(msg->header.sender, logger);
+}
+
+static void handleInterAccount(DDTypedBufferMsg_t *msg)
+{
+    switch (msg->type) {
+    case PSP_ACCOUNT_ENABLE_UPDATE:
+	handleSwitchUpdate(msg, true);
+	break;
+    case PSP_ACCOUNT_DISABLE_UPDATE:
+	handleSwitchUpdate(msg, false);
+	break;
+    case PSP_ACCOUNT_AGG_DATA_UPDATE:
+	recvFragMsg(msg, handleAggDataUpdate);
+	break;
+    case PSP_ACCOUNT_AGG_DATA_FINISH:
+	recvFragMsg(msg, handleAggDataFinish);
+	break;
+    /* obsolete, to be removed */
+    case PSP_ACCOUNT_FORWARD_START:
+    case PSP_ACCOUNT_DATA_UPDATE:
+    case PSP_ACCOUNT_FORWARD_END:
+	mlog("%s: got obsolete msg %i\n", __func__, msg->type);
+	break;
+    default:
+	mlog("%s: unknown msg type %i received form %s\n", __func__, msg->type,
+	     PSC_printTID(msg->header.sender));
+    }
+}
+
+int switchAccounting(PStask_ID_t clientTID, bool enable)
+{
+    DDTypedBufferMsg_t msg = (DDTypedBufferMsg_t) {
+	.header = (DDMsg_t) {
+	    .type = PSP_CC_PLUG_ACCOUNT,
+	    .sender = PSC_getMyTID(),
+	    .dest = PSC_getTID(PSC_getMyID(), 0),
+	    .len = sizeof(msg.header) + sizeof(msg.type)},
+	.type = enable ? PSP_ACCOUNT_ENABLE_UPDATE : PSP_ACCOUNT_DISABLE_UPDATE,
+	.buf = {'\0'} };
+
+    /* send the messages */
+    PSP_putTypedMsgBuf(&msg, __func__, "client", &clientTID, sizeof(clientTID));
+
+    return doWriteP(daemonSock, &msg, msg.header.len);
+}
+
+static int setDaemonSock(void *dsock)
+{
+    daemonSock = *(int *)dsock;
+
+    return 0;
+}
+
+bool initAccComm(void)
+{
+    origHandler = PSID_registerMsg(PSP_CD_ACCOUNT, (handlerFunc_t) handlePSMsg);
+    PSID_registerMsg(PSP_CC_PLUG_ACCOUNT, (handlerFunc_t) handleInterAccount);
+
+    if (!PSIDhook_add(PSIDHOOK_FRWRD_DSOCK, setDaemonSock)) {
+	mlog("register 'PSIDHOOK_FRWRD_DSOCK' failed\n");
+	return false;
+    }
+    return true;
+}
+
+void finalizeAccComm(void)
+{
+    PSID_clearMsg(PSP_CD_ACCOUNT);
+    if (origHandler) PSID_registerMsg(PSP_CD_ACCOUNT, origHandler);
+
+    PSID_clearMsg(PSP_CC_PLUG_ACCOUNT);
+
+    if (!PSIDhook_del(PSIDHOOK_FRWRD_DSOCK, setDaemonSock)) {
+	mlog("unregister 'PSIDHOOK_FRWRD_DSOCK' failed\n");
+    }
 }

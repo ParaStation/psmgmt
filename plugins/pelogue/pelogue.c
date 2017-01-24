@@ -7,44 +7,27 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-/**
- * $Id$
- *
- * \author
- * Michael Rauh <rauh@par-tec.com>
- *
- */
-
-#include <stdio.h>
+#include <stdbool.h>
 #include <stdlib.h>
-#include <errno.h>
 #include <unistd.h>
-#include <sys/stat.h>
 #include <dlfcn.h>
-#include <pwd.h>
 #include <signal.h>
-
-#include "peloguelog.h"
-#include "peloguecomm.h"
-#include "peloguescript.h"
-#include "pelogueconfig.h"
-#include "peloguechild.h"
+#include <sys/types.h>
 
 #include "pspluginprotocol.h"
-#include "psidplugin.h"
 #include "psidhook.h"
+#include "psidplugin.h"
 #include "plugin.h"
 #include "timer.h"
 #include "psaccounthandles.h"
 
 #include "pluginfrag.h"
-#include "pluginlog.h"
-#include "pluginfrag.h"
+#include "pluginhelper.h"
 
-#include "pelogue.h"
-
-/** set to the home directory of root */
-char rootHome[100];
+#include "peloguelog.h"
+#include "peloguecomm.h"
+#include "pelogueconfig.h"
+#include "peloguechild.h"
 
 /** the job cleanup timer */
 static int cleanupTimerID = -1;
@@ -55,40 +38,28 @@ static int obitTime = 10;
 /** psid plugin requirements */
 char name[] = "pelogue";
 int version = 6;
-int requiredAPI = 114;
-plugin_dep_t dependencies[2];
-
-void startPelogue(void)
-{
-    dependencies[0].name = "psaccount";
-    dependencies[0].version = 21;
-    dependencies[1].name = NULL;
-    dependencies[1].version = 0;
-}
-
-void stopPelogue(void)
-{
-    /* release the logger */
-    logger_finalize(peloguelogger);
-}
+int requiredAPI = 116;
+plugin_dep_t dependencies[] = {
+    { .name = "psaccount", .version = 21 },
+    { .name = NULL, .version = 0 } };
 
 static void cleanupJobs(void)
 {
     static int obitTimeCounter = 0;
-    int njobs;
+    int numJobs = countJobs();
 
     /* check if we are waiting for jobs to exit */
     obitTimeCounter++;
 
-    if ((njobs = countJobs()) == 0) {
+    if (!numJobs) {
 	Timer_remove(cleanupTimerID);
 	cleanupTimerID = -1;
 	return;
     }
 
     if (obitTime == obitTimeCounter) {
-	mlog("sending SIGKILL to %i remaining jobs\n", njobs);
-	signalJobs(SIGKILL, "shutdown");
+	mlog("sending SIGKILL to %i remaining jobs\n", numJobs);
+	signalAllJobs(SIGKILL, "shutdown");
     }
 
     /* all jobs are gone */
@@ -104,17 +75,54 @@ static void shutdownJobs(void)
     if (countJobs() > 0) {
 	mlog("sending SIGTERM to %i remaining jobs\n", countJobs());
 
-	signalJobs(SIGTERM, "shutdown");
+	signalAllJobs(SIGTERM, "shutdown");
 
-	if ((cleanupTimerID = Timer_register(&cleanupTimer,
-							cleanupJobs)) == -1) {
-	    mlog("registering cleanup timer failed\n");
-	}
+	cleanupTimerID = Timer_register(&cleanupTimer, cleanupJobs);
+	if (cleanupTimerID == -1) mlog("registering cleanup timer failed\n");
+
 	return;
     }
 
     /* all jobs are gone */
     PSIDplugin_unload("pelogue");
+}
+
+static bool nodeDownVisitor(Job_t *job, const void *info)
+{
+    PSnodes_ID_t id = *(PSnodes_ID_t *)info;
+    int i;
+
+    if (job->state != JOB_PROLOGUE && job->state != JOB_EPILOGUE) return false;
+    if (!findChild(job->plugin, job->id)) return false;
+
+    for (i=0; i<job->numNodes; i++) {
+	if (job->nodes[i].id == id) {
+	    const char *hname = getHostnameByNodeId(id);
+
+	    mlog("%s: node %s(%i) running job '%s' jstate '%s' is down\n",
+		 __func__, hname, id, job->id, jobState2String(job->state));
+
+	    if (job->state == JOB_PROLOGUE) {
+		job->nodes[i].prologue = PELOGUE_TIMEDOUT;
+		job->state = JOB_CANCEL_PROLOGUE;
+	    } else {
+		job->nodes[i].epilogue = PELOGUE_TIMEDOUT;
+		job->state = JOB_CANCEL_EPILOGUE;
+	    }
+
+	    /* stop pelogue scripts on all nodes */
+	    sendPElogueSignal(job, SIGTERM, "node down");
+	    cancelJob(job);
+	    break;
+	}
+    }
+    return false;
+}
+
+static int handleNodeDown(void *nodeID)
+{
+    traverseJobs(nodeDownVisitor, nodeID);
+    return 1;
 }
 
 static int handleShutdown(void *data)
@@ -133,88 +141,57 @@ static int handleShutdown(void *data)
  *
  * @return No return value.
  */
-static void unregisterHooks(int verbose)
+static void unregisterHooks(bool verbose)
 {
-    /* unregister pelogue msg */
-    PSID_clearMsg(PSP_CC_PLUG_PELOGUE);
-
-    /* unregister msg drop handler */
-    PSID_clearDropper(PSP_CC_PLUG_PELOGUE);
+    finalizeComm();
 
     /* unregister hooks */
-    if (!(PSIDhook_del(PSIDHOOK_NODE_DOWN, handleNodeDown))) {
+    if (!PSIDhook_del(PSIDHOOK_NODE_DOWN, handleNodeDown)) {
 	if (verbose) mlog("unregister 'PSIDHOOK_NODE_DOWN' failed\n");
     }
 
-    if (!(PSIDhook_del(PSIDHOOK_SHUTDOWN, handleShutdown))) {
+    if (!PSIDhook_del(PSIDHOOK_SHUTDOWN, handleShutdown)) {
 	if (verbose) mlog("unregister 'PSIDHOOK_SHUTDOWN' failed\n");
     }
 }
 
-static int setRootHome(void)
-{
-    struct passwd *spasswd;
-
-    if (!(spasswd = getpwnam("root"))) {
-	mlog("%s: getpwnam(root) failed\n", __func__);
-	return 0;
-    }
-
-    snprintf(rootHome, sizeof(rootHome), "%s", spasswd->pw_dir);
-    return 1;
-}
-
 int initialize(void)
 {
-    void *accHandle = NULL;
-    static struct timeval time_now;
+    void *accHandle = PSIDplugin_getHandle("psaccount");
 
     /* init the logger (log to syslog) */
-    initLogger("pelogue", NULL);
-
-    /*
-    FILE *lfile = fopen("/tmp/malloc", "w+");
-    initPluginLogger(NULL, lfile);
-    maskPluginLogger(PLUGIN_LOG_MALLOC);
-    */
+    initLogger(NULL);
 
     /* we need to have root privileges */
     if (getuid() != 0) {
-	fprintf(stderr, "%s: pelogue must have root privileges\n", __func__);
+	mlog("%s: pelogue must have root privileges\n", __func__);
 	return 1;
     }
 
-    initConfig();
-    initJobList();
-    initChildList();
+    initPluginConfigs();
     initFragComm();
-
-    /* register pelogue msg */
-    PSID_registerMsg(PSP_CC_PLUG_PELOGUE, (handlerFunc_t) handlePelogueMsg);
-
-    /* register handler for dropped msgs */
-    PSID_registerDropper(PSP_CC_PLUG_PELOGUE, (handlerFunc_t) handleDroppedMsg);
+    initComm();
 
     /* get psaccount function handles */
-    if (!(accHandle = PSIDplugin_getHandle("psaccount"))) {
+    if (!accHandle) {
 	mlog("%s: getting psaccount handle failed\n", __func__);
 	goto INIT_ERROR;
     }
 
-    if (!(psAccountsendSignal2Session = dlsym(accHandle,
-	    "psAccountsendSignal2Session"))) {
-	mlog("%s: loading function psAccountsendSignal2Session() failed\n",
+    psAccountSignalSession = dlsym(accHandle, "psAccountSignalSession");
+    if (!psAccountSignalSession) {
+	mlog("%s: loading function psAccountSignalSession() failed\n",
 		__func__);
 	goto INIT_ERROR;
     }
 
     /* register needed hooks */
-    if (!(PSIDhook_add(PSIDHOOK_NODE_DOWN, handleNodeDown))) {
+    if (!PSIDhook_add(PSIDHOOK_NODE_DOWN, handleNodeDown)) {
 	mlog("register 'PSIDHOOK_NODE_DOWN' failed\n");
 	goto INIT_ERROR;
     }
 
-    if (!(PSIDhook_add(PSIDHOOK_SHUTDOWN, handleShutdown))) {
+    if (!PSIDhook_add(PSIDHOOK_SHUTDOWN, handleShutdown)) {
 	mlog("register 'PSIDHOOK_SHUTDOWN' failed\n");
 	goto INIT_ERROR;
     }
@@ -226,18 +203,14 @@ int initialize(void)
 	Timer_init(NULL);
     }
 
-    gettimeofday(&time_now, NULL);
-    srand(time_now.tv_usec);
-
-    setRootHome();
-
     maskLogger(PELOGUE_LOG_PROCESS | PELOGUE_LOG_WARN);
 
     mlog("(%i) successfully started\n", version);
     return 0;
 
 INIT_ERROR:
-    unregisterHooks(0);
+    unregisterHooks(false);
+    finalizeFragComm();
     return 1;
 }
 
@@ -249,16 +222,14 @@ void finalize(void)
 
 void cleanup(void)
 {
-    /* TODO: kill all remaining children */
-
-    /* remove all registered hooks and msg handler */
-    unregisterHooks(1);
-
-    /* TODO free all malloced memory */
-    clearJobList();
     clearChildList();
-    clearConfig();
+    clearJobList();
+    clearAllPluginConfigs();
+    unregisterHooks(true);
     finalizeFragComm();
 
     mlog("...Bye.\n");
+
+    /* release the logger */
+    logger_finalize(peloguelogger);
 }

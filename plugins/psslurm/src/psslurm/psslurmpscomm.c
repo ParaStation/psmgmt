@@ -1300,8 +1300,7 @@ static void handleCC_Finalize_Msg(PSLog_Msg_t *msg)
     PS_Tasks_t *task;
     PStask_t *psidTask;
 
-    if (PSC_getMyID() != PSC_getID(msg->header.sender) ||
-	(msg->sender < 0)) {
+    if (PSC_getMyID() != PSC_getID(msg->header.sender) || msg->sender < 0) {
 	goto FORWARD;
     }
 
@@ -1536,6 +1535,7 @@ FORWARD_SPAWN_REQ_MSG:
 
 void handleCCMsg(PSLog_Msg_t *msg)
 {
+    mdbg(PSSLURM_LOG_IO, "%s: %s\n", __func__, PSLog_printMsgType(msg->type));
     switch (msg->type) {
 	case STDOUT:
 	case STDERR:

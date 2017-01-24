@@ -178,9 +178,9 @@ static int initPluginHandles()
 	return 0;
     }
 
-    if (!(psAccountsendSignal2Session = dlsym(pluginHandle,
-	    "psAccountsendSignal2Session"))) {
-	mlog("%s: loading function psAccountsendSignal2Session() failed\n",
+    if (!(psAccountSignalSession = dlsym(pluginHandle,
+	    "psAccountSignalSession"))) {
+	mlog("%s: loading function psAccountSignalSession() failed\n",
 		__func__);
 	return 0;
     }

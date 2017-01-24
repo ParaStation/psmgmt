@@ -7,92 +7,103 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-/**
- * $Id$
- *
- * \author
- * Michael Rauh <rauh@par-tec.com>
- *
- */
+#ifndef __PELOGUE_CONFIG
+#define __PELOGUE_CONFIG
 
-#ifndef __PS_PELOGUE_CONFIG
-#define __PS_PELOGUE_CONFIG
-
-#include "list.h"
+#include <stdbool.h>
 
 #include "pluginconfig.h"
 
-extern const ConfDef_t CONFIG_VALUES[];
-extern const int configValueCount;
-
 /**
- * @brief Parse a configuration file and save the result.
+ * @brief Initialize configuration repository
+ *
+ * Initialize pelogue plugin's repository holding plugin
+ * configurations. This function has to be called before adding any
+ * configuration via @ref addPluginConfig().
+ *
+ * @return No return value
  */
-int initConfig(void);
+void initPluginConfigs(void);
 
 /**
-* @brief Read a config parameter as signed int.
-*
-* @param name The name of the parameter to read.
-*
-* @return Returns the config value or -1 on error.
-*/
-int getConfParamI(const char *plugin, char *key);
-
-/**
-* @brief Read a config parameter as signed long.
-*
-* @param key The name of the parameter to read.
-*
-* @return Returns the value or -1 on error.
-*/
-long getConfParamL(const char *plugin, char *key);
-
-/**
-* @brief Read a config parameter as unsigned int.
-*
-* @param key The name of the parameter to read.
-*
-* @return Returns the value or -1 on error.
-*/
-unsigned int getConfParamU(const char *plugin, char *key);
-
-/**
-* @brief Read a config parameter as char.
-*
-* @param key The name of the parameter to read.
-*
-* @return Returns the value or NULL on error.
-*/
-char *getConfParamC(const char *plugin, char *key);
-
-/**
- * @brief Find a config definition.
+ * @brief Add configuration
  *
- * @name The name of the definition to find.
+ * Add the configuration @a config to pelogue plugin's repository. The
+ * configuration is tagged with @a name for future reference in
+ * e.g. @ref getPluginConfValueI() or @ref getPluginConfValueC(). By
+ * convention a plugin shall use its own name for tagging a
+ * configuration.
  *
- * @return Returns the requested object or NULL on error.
+ * While adding the configuration a check for the existence of a
+ * parameter DIR_SCRIPTS is made. Furthermore the existence of the
+ * referred directory and the scripts 'prologue', 'prologue.parallel',
+ * 'epilogue', and 'epilogue.parallel' therein is enforced. Otherwise
+ * the operation will not succeed.
+ *
+ * Up to MAX_SUPPORTED_PLUGINS configuration might be added.
+ *
+ * @param name Name tag of the configuration to register
+ *
+ * @param config The configuration to add to the repository
+ *
+ * @return On success true is returned or false in case of error
  */
-const ConfDef_t *findConfigDef(char *name);
+bool addPluginConfig(const char *name, Config_t *config);
 
 /**
- * @brief Delete a config object.
+ * @brief Get value as integer
  *
- * @conf A pointer to the config object to delete.
+ * Get the value of the entry identified by the key @a key from the
+ * configuration identified by @a plugin. The value is returned as an
+ * integer. If no entry was found or conversion into an integer failed
+ * -1 is returned.
  *
- * @return No return value.
+ * @param plugin Tag marking the configuration to be searched
+ *
+ * @param key Key identifying the entry
+ *
+ * @return If a corresponding entry is found and its value can be
+ * converted to an integer, this value is returned. Otherwise -1 is
+ * returned.
  */
-void delConfig(Config_t *conf);
+int getPluginConfValueI(const char *plugin, char *key);
 
 /**
- * @brief Free all memory used by the config objects.
+ * @brief Get value as character array
  *
- * @return No return value.
+ * Get the value of the entry identified by the key @a key from the
+ * configuration identified by @a plugin. The value is returned as the
+ * original character array.
+ *
+ * @param plugin Tag marking the configuration to be searched
+ *
+ * @param key Key identifying the entry
+ *
+ * @return If a corresponding entry is found, a pointer to the value's
+ * character array is returned. Otherwise NULL is returned.
  */
-void clearConfig(void);
+char *getPluginConfValueC(const char *plugin, char *key);
 
-int addPluginConfig(const char *name, Config_t *config);
+/**
+ * @brief Remove configuration
+ *
+ * Remove the configuration identified by the tag @a name from pelogue
+ * plugin's repository.
+ *
+ * @param name Tag marking the configuration to be removed
+ *
+ * @return Return true if the configuration was found and removed or
+ * false otherwise
+ */
+bool delPluginConfig(const char *name);
 
-int delPluginConfig(const char *name);
+/**
+ * @brief Remove all configurations
+ *
+ * Remove all configurations from pelogue plugin's repository.
+ *
+ * @return No return value
+ */
+void clearAllPluginConfigs(void);
 
-#endif
+#endif  /* __PELOGUE_CONFIG */

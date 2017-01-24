@@ -76,7 +76,7 @@ Implemented:
  *
  * @return No return value.
  */
-static void setNetload()
+static void setNetload(void)
 {
     FILE *fp;
     unsigned long long allBytes;
@@ -130,7 +130,7 @@ static void setNetload()
  *
  * @return No return value.
  */
-static void setSessions()
+static void setSessions(void)
 {
     char buf[500];
     int count, userCount;
@@ -152,7 +152,7 @@ static void setSessions()
  *
  * @return No return value.
  */
-static void setJobs()
+static void setJobs(void)
 {
     char *jobstring = NULL;
 
@@ -173,7 +173,7 @@ static void setJobs()
  *
  * @return No return value.
  */
-static void setMemory()
+static void setMemory(void)
 {
     FILE *fp;
     char *line = NULL;
@@ -258,7 +258,7 @@ static void setMemory()
  *
  * @return No return value.
  */
-static void setLoad()
+static void setLoad(void)
 {
     FILE *fp;
     float avgLoad;
@@ -311,7 +311,7 @@ void setPsmomState(char *state)
  *
  * @return No return value.
  */
-static void setUname()
+static void setUname(void)
 {
     size_t len;
     struct utsname name;
@@ -339,7 +339,7 @@ static void setUname()
  *
  * @return No return value.
  */
-static void setNCpus()
+static void setNCpus(void)
 {
     size_t count = 0;
     char next[100];
@@ -372,7 +372,7 @@ static void setNCpus()
  *
  * @return No return value.
  */
-static void setFsSize()
+static void setFsSize(void)
 {
     struct statfs st;
     char *param;
@@ -403,7 +403,7 @@ static void setFsSize()
  *
  * @return No return value.
  */
-static void setOpsys()
+static void setOpsys(void)
 {
     char *param;
 
@@ -423,7 +423,7 @@ static void setOpsys()
  *
  * @return No return value.
  */
-static void setArch()
+static void setArch(void)
 {
     char *param;
 
@@ -438,7 +438,7 @@ static void setArch()
  *
  * @return No return value.
  */
-static void setVersion()
+static void setVersion(void)
 {
     char ver[50];
 
@@ -452,7 +452,7 @@ static void setVersion()
  *
  * @return No return value.
  */
-static void setVarAttr()
+static void setVarAttr(void)
 {
     setEntry(&staticInfoData.list, "varattr", "", "varattr=");
 }

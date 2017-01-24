@@ -673,7 +673,7 @@ static void handleSignalTasks(Slurm_Msg_t *sMsg)
 	if (job) {
 	    /* signal jobscript only, not all corresponding steps */
 	    if (job->state == JOB_RUNNING && job->fwdata) {
-		killChild(job->fwdata->childPid, signal);
+		killChild(job->fwdata->cPid, signal);
 	    }
 	}
 	signalStepsByJobid(jobid, signal);
@@ -686,7 +686,7 @@ static void handleSignalTasks(Slurm_Msg_t *sMsg)
 	if (stepid == SLURM_BATCH_SCRIPT) {
 	    /* signal jobscript only, not all corresponding steps */
 	    if (job->state == JOB_RUNNING && job->fwdata) {
-		killChild(job->fwdata->childPid, signal);
+		killChild(job->fwdata->cPid, signal);
 	    }
 	} else {
 	    signalStep(step, signal);
@@ -887,7 +887,7 @@ static void handleSignalJob(Slurm_Msg_t *sMsg)
 		jobid, signal);
 	/* signal only job, not all corresponding steps */
 	if (job->state == JOB_RUNNING && job->fwdata) {
-	    killChild(job->fwdata->forwarderPid, signal);
+	    killChild(PSC_getPID(job->fwdata->tid), signal);
 	}
     } else if (job) {
 	mlog("%s: send job '%u' signal '%u'\n", __func__,
@@ -2326,7 +2326,8 @@ int addSlurmAccData(uint8_t accType, pid_t childPid, PStask_ID_t loggerTID,
 			uint32_t nrOfNodes)
 {
     AccountDataExt_t accData;
-    int i, res = 0;
+    bool res = false;
+    int i;
     uint64_t avgVsize = 0, avgRss = 0;
 
     if (!accType) {
@@ -2337,7 +2338,7 @@ int addSlurmAccData(uint8_t accType, pid_t childPid, PStask_ID_t loggerTID,
     addUint8ToMsg(1, data);
 
     if (childPid) {
-	res = psAccountGetJobData(childPid, &accData);
+	res = psAccountGetDataByJob(childPid, &accData);
     } else {
 	res = psAccountGetDataByLogger(loggerTID, &accData);
     }
@@ -2490,7 +2491,7 @@ void sendStepExit(Step_t *step, int exit_status)
     }
 
     /* account data */
-    childPid = (step->fwdata) ? step->fwdata->childPid : 1;
+    childPid = (step->fwdata) ? step->fwdata->cPid : 1;
     addSlurmAccData(step->accType, 0, PSC_getTID(-1, childPid),
 		    &body, step->nodes, step->nrOfNodes);
 
@@ -2672,8 +2673,7 @@ int sendTaskPids(Step_t *step)
     uint32_t countPIDS = 0, countGTIDS = 0;
     char *ptrCount, *ptrPIDS, *ptrGTIDS;
     int sock = -1;
-    list_t *pos, *tmp;
-    PS_Tasks_t *task = NULL;
+    list_t *t;
 
     /* return code */
     addUint32ToMsg(SLURM_SUCCESS, &body);
@@ -2689,8 +2689,8 @@ int sendTaskPids(Step_t *step)
     ptrPIDS = body.buf + body.bufUsed;
     addUint32ToMsg(0, &body);
 
-    list_for_each_safe(pos, tmp, &step->tasks.list) {
-	if (!(task = list_entry(pos, PS_Tasks_t, list))) break;
+    list_for_each(t, &step->tasks.list) {
+	PS_Tasks_t *task = list_entry(t, PS_Tasks_t, list);
 	if (task->childRank <0) continue;
 
 	addUint32ToMsg(PSC_getPID(task->childTID), &body);
@@ -2701,8 +2701,8 @@ int sendTaskPids(Step_t *step)
     ptrGTIDS = body.buf + body.bufUsed;
     addUint32ToMsg(0, &body);
 
-    list_for_each_safe(pos, tmp, &step->tasks.list) {
-	if (!(task = list_entry(pos, PS_Tasks_t, list))) break;
+    list_for_each(t, &step->tasks.list) {
+	PS_Tasks_t *task = list_entry(t, PS_Tasks_t, list);
 	if (task->childRank <0) continue;
 
 	addUint32ToMsg(task->childRank, &body);
@@ -2724,7 +2724,7 @@ int sendTaskPids(Step_t *step)
     /* send the message to srun */
     if ((sock = srunOpenControlConnection(step)) != -1) {
 	setFDblock(sock, 1);
-	if ((sendSlurmMsg(sock, RESPONSE_LAUNCH_TASKS, &body)) < 1) {
+	if (sendSlurmMsg(sock, RESPONSE_LAUNCH_TASKS, &body) < 1) {
 	    mlog("%s: send RESPONSE_LAUNCH_TASKS failed step '%u:%u'\n",
 		    __func__, step->jobid, step->stepid);
 	}
@@ -2754,8 +2754,13 @@ void sendJobExit(Job_t *job, uint32_t status)
     id = atoi(job->id);
 
     /* batch job */
-    addSlurmAccData(job->accType, job->fwdata->childPid, 0, &body,
-			job->nodes, job->nrOfNodes);
+    if (!job->fwdata) {
+	/* No data available */
+	addSlurmAccData(0, 0, 0, &body, job->nodes, job->nrOfNodes);
+    } else {
+	addSlurmAccData(job->accType, job->fwdata->cPid, 0, &body, job->nodes,
+			job->nrOfNodes);
+    }
     /* jobid */
     addUint32ToMsg(id, &body);
     /* jobscript exit code */

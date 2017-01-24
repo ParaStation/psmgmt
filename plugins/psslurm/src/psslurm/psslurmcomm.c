@@ -896,10 +896,9 @@ static int handleSrunPTYMsg(int sock, void *data)
     if (ioctl(step->stdOut[1], TIOCSWINSZ, &ws)) {
 	mwarn(errno, "%s: ioctl(TIOCSWINSZ): ", __func__);
     }
-    if (step->fwdata && killChild(step->fwdata->childPid, SIGWINCH)) {
+    if (step->fwdata && killChild(step->fwdata->cPid, SIGWINCH)) {
 	if (errno == ESRCH) return 0;
-	mlog("%s: error sending SIGWINCH to %i\n", __func__,
-	     step->fwdata->childPid);
+	mwarn(errno, "%s: send SIGWINCH to %i", __func__, step->fwdata->cPid);
     }
     return 0;
 }
@@ -907,10 +906,17 @@ static int handleSrunPTYMsg(int sock, void *data)
 static int forwardInputMsg(Step_t *step, uint16_t rank, char *buf, int bufLen)
 {
     char *ptr = buf;
-    int n = 0;
     size_t c = bufLen;
-    PSLog_Msg_t msg;
     PS_Tasks_t *task = findTaskByRank(&step->tasks.list, rank);
+    PSLog_Msg_t msg = (PSLog_Msg_t) {
+	.header = (DDMsg_t) {
+	    .type = PSP_CC_MSG,
+	    .dest = task ? task->forwarderTID : -1,
+	    .sender = PSC_getMyTID(),
+	    .len = PSLog_headerSize },
+       .version = 2,
+       .type = STDIN,
+       .sender = -1};
 
     if (!task) {
 	mlog("%s: task for rank '%u' of step '%u:%u' not found\n", __func__,
@@ -918,27 +924,20 @@ static int forwardInputMsg(Step_t *step, uint16_t rank, char *buf, int bufLen)
 	return -1;
     }
 
-    msg.header.type = PSP_CC_MSG;
-    msg.header.sender = PSC_getTID(-1, getpid());
-    msg.version = 2;
-    msg.type = STDIN;
-    msg.sender = -1;
-    msg.header.dest = task->forwarderTID;
-
     do {
-	n = (c > sizeof(msg.buf)) ? sizeof(msg.buf) : c;
+	int n = (c > sizeof(msg.buf)) ? sizeof(msg.buf) : c;
 	if (n) memcpy(msg.buf, ptr, n);
 	mdbg(PSSLURM_LOG_IO | PSSLURM_LOG_IO_VERB,
 	     "%s: rank %u len %u msg.header.len %u to %s\n", __func__,
 	     rank, n, PSLog_headerSize + n, PSC_printTID(task->forwarderTID));
 	mdbg(PSSLURM_LOG_IO_VERB, "%s: '%.*s'\n", __func__, n, msg.buf);
-	n = msg.header.len = PSLog_headerSize + n;
-	forwardMsgtoMother((DDMsg_t *)&msg);
-	c -= n - PSLog_headerSize;
-	ptr += n - PSLog_headerSize;
+	msg.header.len = PSLog_headerSize + n;
+	sendMsgToMother(&msg);
+	c -= n;
+	ptr += n;
     } while (c > 0);
 
-    return n;
+    return bufLen;
 }
 
 int handleSrunMsg(int sock, void *data)

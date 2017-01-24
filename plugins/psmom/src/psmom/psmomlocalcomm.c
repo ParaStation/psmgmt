@@ -322,7 +322,7 @@ int closeLocalConnetion(int fd)
     return 0;
 }
 
-static void handle_Local_Fork_Failed()
+static void handle_Local_Fork_Failed(void)
 {
     handleFailedSpawn();
 }

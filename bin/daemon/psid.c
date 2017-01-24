@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2017 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -12,11 +12,6 @@
  * @file
  * psid: ParaStation Daemon
  */
-#ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__((used)) =
-    "$Id$";
-#endif /* DOXYGEN_SHOULD_SKIP_THIS */
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -253,6 +248,10 @@ static int handleSIGCHLD(int fd, void *info)
 	    /* delegates are handled explicitly in psmom/psslurm */
 	    if (!task->killat) {
 		task->killat = time(NULL) + 10;
+	    }
+	    if (task->sigChldCB) {
+		task->sigChldCB(estatus, task);
+		task->sigChldCB = NULL;
 	    }
 	    if (task->fd != -1) {
 		/* Make sure we get all pending messages */
@@ -759,6 +758,7 @@ int main(int argc, const char *argv[])
     PSIDnodes_setDmnProtoV(PSC_getMyID(), PSDaemonProtocolVersion);
     PSIDnodes_setHWStatus(PSC_getMyID(), 0);
     PSIDnodes_setKillDelay(PSC_getMyID(), PSID_config->killDelay);
+    PSIDnodes_setAcctPollI(PSC_getMyID(), PSID_config->acctPollInterval);
 
     /* Bring node up with correct numbers of CPUs */
     declareNodeAlive(PSC_getMyID(), PSID_getPhysCPUs(), PSID_getVirtCPUs());
@@ -787,7 +787,6 @@ int main(int argc, const char *argv[])
     /* Now we start all the hardware -- this might include the accounter */
     PSID_log(PSID_LOG_HW, "%s: starting up the hardware\n", __func__);
     PSID_startAllHW();
-    PSIDnodes_setAcctPollI(PSC_getMyID(), PSID_config->acctPollInterval);
 
     /*
      * Prepare hostlist to initialize RDP and MCast

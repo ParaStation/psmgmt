@@ -1,9 +1,21 @@
 psmgmt NEWS -- history of user-visible changes.
 
-Copyright (C) 2010-2016 ParTec Cluster Competence Center GmbH, Munich
+Copyright (C) 2010-2017 ParTec Cluster Competence Center GmbH, Munich
 
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
+*************************************************************************
+*************************************************************************
+**                                                                     **
+**  Remark: psmgmt 5.0.54 changes the default behavior of psaccount.   **
+**  From now on accountpoll = 0 will be considered again, i.e. no      **
+**  polling on used resources will take place if accountpoll is set    **
+**  to 0. Since 0 is the default setting this change might break the   **
+**  expected behavior of resource accounting. Therefore, the system's  **
+**  settings for accountpoll shall be reconsidered.                    **
+**                                                                     **
+*************************************************************************
+*************************************************************************
 
 Version 5.0.53:
 ===============

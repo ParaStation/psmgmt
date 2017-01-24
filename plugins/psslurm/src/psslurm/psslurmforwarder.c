@@ -58,14 +58,12 @@
 
 #define MPIEXEC_BINARY BINDIR "/mpiexec"
 
-static int jobCallback(int32_t exit_status, char *errMsg,
-			size_t errLen, void *data)
+static int jobCallback(int32_t exit_status, Forwarder_Data_t *fw)
 {
-    Forwarder_Data_t *fwdata = data;
-    Job_t *job = fwdata->userData;
+    Job_t *job = fw->userData;
 
-    mlog("%s: job '%s' finished, exit '%u'\n", __func__, job->id,
-	    exit_status);
+    mlog("%s: job '%s' finished, exit %i / %i\n", __func__, job->id,
+	 exit_status, fw->estatus);
     if (!findJobById(job->jobid)) {
 	mlog("%s: job '%u' not found\n", __func__, job->jobid);
 	return 0;
@@ -79,8 +77,8 @@ static int jobCallback(int32_t exit_status, char *errMsg,
     job->state = JOB_COMPLETE;
     mdbg(PSSLURM_LOG_JOB, "%s: job '%u' in '%s'\n", __func__,
 	    job->jobid, strJobState(job->state));
-    sendJobExit(job, exit_status);
-    psAccountDelJob(PSC_getTID(-1, fwdata->childPid));
+    sendJobExit(job, fw->estatus);
+    psAccountDelJob(PSC_getTID(-1, fw->cPid));
 
     /* run epilogue now */
     if (job->terminate && job->nodes) {
@@ -97,11 +95,9 @@ static int jobCallback(int32_t exit_status, char *errMsg,
     return 0;
 }
 
-static int stepFWIOcallback(int32_t exit_status, char *errMsg,
-			    size_t errLen, void *data)
+static int stepFWIOcallback(int32_t exit_status, Forwarder_Data_t *fw)
 {
-    Forwarder_Data_t *fwdata = data;
-    Step_t *step = fwdata->userData;
+    Step_t *step = fw->userData;
 
     if (!findStepById(step->jobid, step->stepid)) {
 	mlog("%s: step '%u:%u' not found\n", __func__, step->jobid,
@@ -124,21 +120,17 @@ static int stepFWIOcallback(int32_t exit_status, char *errMsg,
     return 0;
 }
 
-static int stepCallback(int32_t exit_status, char *errMsg,
-			size_t errLen, void *data)
+static int stepCallback(int32_t exit_status, Forwarder_Data_t *fw)
 {
-    Forwarder_Data_t *fwdata = data;
-    Step_t *step = fwdata->userData;
+    Step_t *step = fw->userData;
     Alloc_t *alloc;
 
-    if (errLen >0) mlog("%s: %s", __func__, errMsg);
-
-    mlog("%s: step '%u:%u' state '%s' finished, exit '%i'\n", __func__,
-	step->jobid, step->stepid, strJobState(step->state), exit_status);
+    mlog("%s: step %u:%u state '%s' finished, exit %i / %i\n", __func__,
+	 step->jobid, step->stepid, strJobState(step->state), exit_status,
+	 fw->estatus);
 
     if (!findStepById(step->jobid, step->stepid)) {
-	mlog("%s: step '%u:%u' not found\n", __func__, step->jobid,
-		step->stepid);
+	mlog("%s: step %u:%u not found\n", __func__, step->jobid, step->stepid);
 	return 0;
     }
 
@@ -149,7 +141,7 @@ static int stepCallback(int32_t exit_status, char *errMsg,
 
     if (step->state == JOB_PRESTART) {
 	/* spawn failed */
-	if (exit_status == ESCRIPT_CHDIR_FAILED * -1) {
+	if (fw->ecode == - ESCRIPT_CHDIR_FAILED) {
 	    sendSlurmRC(&step->srunControlMsg, ESCRIPT_CHDIR_FAILED);
 	} else {
 	    sendSlurmRC(&step->srunControlMsg, SLURM_ERROR);
@@ -163,10 +155,10 @@ static int stepCallback(int32_t exit_status, char *errMsg,
 	if (step->exitCode != -1) {
 	    sendStepExit(step, step->exitCode);
 	} else {
-	    if (WIFSIGNALED(exit_status)) {
-		sendStepExit(step, WTERMSIG(exit_status));
+	    if (WIFSIGNALED(fw->estatus)) {
+		sendStepExit(step, WTERMSIG(fw->estatus));
 	    } else {
-		sendStepExit(step, exit_status);
+		sendStepExit(step, fw->estatus);
 	    }
 	}
     }
@@ -174,7 +166,7 @@ static int stepCallback(int32_t exit_status, char *errMsg,
     step->state = JOB_COMPLETE;
     mdbg(PSSLURM_LOG_JOB, "%s: step '%u:%u' in '%s'\n", __func__,
 	    step->jobid, step->stepid, strJobState(step->state));
-    psAccountDelJob(PSC_getTID(-1, fwdata->childPid));
+    psAccountDelJob(PSC_getTID(-1, fw->cPid));
 
     if ((alloc = findAlloc(step->jobid)) &&
 	alloc->state == JOB_RUNNING &&
@@ -192,13 +184,11 @@ static int stepCallback(int32_t exit_status, char *errMsg,
     return 0;
 }
 
-static int bcastCallback(int32_t exit_status, char *errMsg, size_t errLen,
-			    void *data)
+static int bcastCallback(int32_t exit_status, Forwarder_Data_t *fw)
 {
-    Forwarder_Data_t *fwdata = data;
-    BCast_t *bcast = fwdata->userData;
+    BCast_t *bcast = fw->userData;
 
-    sendSlurmRC(&bcast->msg, WEXITSTATUS(exit_status));
+    sendSlurmRC(&bcast->msg, WEXITSTATUS(fw->estatus));
 
     bcast->fwdata = NULL;
     if (bcast->lastBlock) {
@@ -249,9 +239,8 @@ void switchUser(char *username, uid_t uid, gid_t gid, char *cwd)
     }
 }
 
-static void execBatchJob(void *data, int rerun)
+static void execBatchJob(Forwarder_Data_t *fwdata, int rerun)
 {
-    Forwarder_Data_t *fwdata = data;
     Job_t *job = fwdata->userData;
     char buf[128];
 
@@ -658,9 +647,8 @@ static int isPMIdisabled(Step_t *step)
     return 0;
 }
 
-static void execJobStep(void *data, int rerun)
+static void execJobStep(Forwarder_Data_t *fwdata, int rerun)
 {
-    Forwarder_Data_t *fwdata = data;
     Step_t *step = fwdata->userData;
     unsigned int i;
     strv_t argV;
@@ -727,9 +715,8 @@ static void execJobStep(void *data, int rerun)
     execve(argV.strings[0], argV.strings, step->env.vars);
 }
 
-static int stepForwarderInit(void *data)
+static int stepForwarderInit(Forwarder_Data_t *fwdata)
 {
-    Forwarder_Data_t *fwdata = data;
     Step_t *step = fwdata->userData;
     step->fwdata = fwdata;
 
@@ -737,7 +724,7 @@ static int stepForwarderInit(void *data)
     if (step->cwd && chdir(step->cwd) == -1) {
 	mlog("%s: chdir to '%s' failed : %s\n", __func__, step->cwd,
 		strerror(errno));
-	return -1 * ESCRIPT_CHDIR_FAILED;
+	return - ESCRIPT_CHDIR_FAILED;
     }
 
    /* open stderr/stdout/stdin fds */
@@ -757,9 +744,8 @@ static int stepForwarderInit(void *data)
     return 1;
 }
 
-static void stepForwarderLoop(void *data)
+static void stepForwarderLoop(Forwarder_Data_t *fwdata)
 {
-    Forwarder_Data_t *fwdata = data;
     Step_t *step = fwdata->userData;
 
     initStepIO(step);
@@ -799,16 +785,15 @@ static void stepForwarderLoop(void *data)
     }
 }
 
-static void handleChildStartJob(void *data, pid_t fw, pid_t childPid,
-				pid_t childSid)
+static void handleChildStartJob(Forwarder_Data_t *fwdata, pid_t fw,
+				pid_t childPid, pid_t childSid)
 {
     psAccountRegisterJob(childPid, NULL);
 }
 
-static void handleChildStartStep(void *data, pid_t fw, pid_t childPid,
-				pid_t childSid)
+static void handleChildStartStep(Forwarder_Data_t *fwdata, pid_t fw,
+				 pid_t childPid, pid_t childSid)
 {
-    Forwarder_Data_t *fwdata = data;
     Step_t *step = fwdata->userData;
 
     psAccountRegisterJob(childPid, NULL);
@@ -831,26 +816,27 @@ int execUserStep(Step_t *step)
     mlog("%s: %u:%u grace %u\n", __func__, step->jobid, step->stepid, grace);
     if (grace < 3) grace = 30;
 
-    fwdata = getNewForwarderData();
+    fwdata = ForwarderData_new();
 
     snprintf(jobid, sizeof(jobid), "%u.%u", step->jobid, step->stepid);
     snprintf(fname, sizeof(fname), "psslurm-step:%s", jobid);
     fwdata->pTitle = ustrdup(fname);
 
-    fwdata->jobid = ustrdup(jobid);
+    fwdata->jobID = ustrdup(jobid);
     fwdata->userData = step;
     fwdata->graceTime = grace;
-    fwdata->killSession = psAccountsendSignal2Session;
+    fwdata->accounted = true;
+    fwdata->killSession = psAccountSignalSession;
     fwdata->callback = stepCallback;
     fwdata->childFunc = execJobStep;
     fwdata->hookLoop = stepForwarderLoop;
     fwdata->hookFWInit = stepForwarderInit;
-    fwdata->hookMotherMsg = stepForwarderMsg;
-    fwdata->hookForwarderMsg = hookFWmsg;
-    fwdata->hookChildStart = handleChildStartStep;
+    fwdata->handleMthrMsg = stepForwarderMsg;
+    fwdata->handleFwMsg = hookFWmsg;
+    fwdata->hookChild = handleChildStartStep;
     fwdata->hookFinalize = stepFinalize;
 
-    if ((startForwarder(fwdata)) != 0) {
+    if (!startForwarder(fwdata)) {
 	mlog("%s: starting forwarder for step '%u:%u' failed\n", __func__,
 		step->jobid, step->stepid);
 	return 0;
@@ -868,20 +854,21 @@ int execUserJob(Job_t *job)
     grace = getConfValueI(&SlurmConfig, "KillWait");
     if (grace < 3) grace = 30;
 
-    fwdata = getNewForwarderData();
+    fwdata = ForwarderData_new();
 
     snprintf(fname, sizeof(fname), "psslurm-job:%s", job->id);
     fwdata->pTitle = ustrdup(fname);
 
-    fwdata->jobid = ustrdup(job->id);
+    fwdata->jobID = ustrdup(job->id);
     fwdata->userData = job;
     fwdata->graceTime = grace;
-    fwdata->killSession = psAccountsendSignal2Session;
+    fwdata->accounted = true;
+    fwdata->killSession = psAccountSignalSession;
     fwdata->callback = jobCallback;
     fwdata->childFunc = execBatchJob;
-    fwdata->hookChildStart = handleChildStartJob;
+    fwdata->hookChild = handleChildStartJob;
 
-    if ((startForwarder(fwdata)) != 0) {
+    if (!startForwarder(fwdata)) {
 	mlog("%s: starting forwarder for job '%s' failed\n", __func__, job->id);
 	return 0;
     }
@@ -893,9 +880,8 @@ int execUserJob(Job_t *job)
     return 1;
 }
 
-static void execBCast(void *data, int rerun)
+static void execBCast(Forwarder_Data_t *fwdata, int rerun)
 {
-    Forwarder_Data_t *fwdata = data;
     BCast_t *bcast = fwdata->userData;
     int flags = 0, fd, left, ret;
     struct utimbuf times;
@@ -970,20 +956,20 @@ int execUserBCast(BCast_t *bcast)
     grace = getConfValueI(&SlurmConfig, "KillWait");
     if (grace < 3) grace = 30;
 
-    fwdata = getNewForwarderData();
+    fwdata = ForwarderData_new();
 
     snprintf(jobid, sizeof(jobid), "%u", bcast->jobid);
     snprintf(fname, sizeof(fname), "psslurm-bcast:%s", jobid);
     fwdata->pTitle = ustrdup(fname);
 
-    fwdata->jobid = ustrdup(jobid);
+    fwdata->jobID = ustrdup(jobid);
     fwdata->userData = bcast;
     fwdata->graceTime = grace;
-    fwdata->killSession = psAccountsendSignal2Session;
+    fwdata->killSession = psAccountSignalSession;
     fwdata->callback = bcastCallback;
     fwdata->childFunc = execBCast;
 
-    if ((startForwarder(fwdata)) != 0) {
+    if (!startForwarder(fwdata)) {
 	mlog("%s: starting forwarder for bcast '%u' failed\n",
 		__func__, bcast->jobid);
 	return 0;
@@ -993,9 +979,8 @@ int execUserBCast(BCast_t *bcast)
     return 1;
 }
 
-static void stepFWIOloop(void *data)
+static void stepFWIOloop(Forwarder_Data_t *fwdata)
 {
-    Forwarder_Data_t *fwdata = data;
     Step_t *step = fwdata->userData;
     step->fwdata = fwdata;
 
@@ -1028,23 +1013,23 @@ int execStepFWIO(Step_t *step)
     mlog("%s: grace %u\n", __func__, grace);
     if (grace < 3) grace = 30;
 
-    fwdata = getNewForwarderData();
+    fwdata = ForwarderData_new();
 
     snprintf(jobid, sizeof(jobid), "%u.%u", step->jobid, step->stepid);
     snprintf(fname, sizeof(fname), "psslurm-step:%s", jobid);
     fwdata->pTitle = ustrdup(fname);
 
-    fwdata->jobid = ustrdup(jobid);
+    fwdata->jobID = ustrdup(jobid);
     fwdata->userData = step;
     fwdata->graceTime = grace;
-    fwdata->killSession = psAccountsendSignal2Session;
+    fwdata->killSession = psAccountSignalSession;
     fwdata->hookLoop = stepFWIOloop;
-    fwdata->hookMotherMsg = stepForwarderMsg;
-    fwdata->hookForwarderMsg = hookFWmsg;
+    fwdata->handleMthrMsg = stepForwarderMsg;
+    fwdata->handleFwMsg = hookFWmsg;
     fwdata->callback = stepFWIOcallback;
     fwdata->hookFinalize = stepFinalize;
 
-    if ((startForwarder(fwdata)) != 0) {
+    if (!startForwarder(fwdata)) {
 	mlog("%s: starting forwarder for step '%u:%u' failed\n",
 		__func__, step->jobid, step->stepid);
 	return 0;

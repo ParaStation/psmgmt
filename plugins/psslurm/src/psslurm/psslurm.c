@@ -250,9 +250,9 @@ static int regPsAccountHandles()
 	return 0;
     }
 
-    if (!(psAccountsendSignal2Session = dlsym(pluginHandle,
-	    "psAccountsendSignal2Session"))) {
-	mlog("%s: loading function psAccountsendSignal2Session() failed\n",
+    if (!(psAccountSignalSession = dlsym(pluginHandle,
+	    "psAccountSignalSession"))) {
+	mlog("%s: loading function psAccountSignalSession() failed\n",
 		__func__);
 	return 0;
     }
@@ -278,8 +278,9 @@ static int regPsAccountHandles()
         return 0;
     }
 
-    if (!(psAccountGetJobData = dlsym(pluginHandle, "psAccountGetJobData"))) {
-        mlog("%s: loading function psAccountGetJobData() failed\n", __func__);
+    if (!(psAccountGetDataByJob = dlsym(pluginHandle,
+	    "psAccountGetDataByJob"))) {
+        mlog("%s: loading function psAccountGetDataByJob() failed\n", __func__);
         return 0;
     }
 
@@ -549,8 +550,13 @@ int initialize(void)
     if (!(initEnvFilter())) goto INIT_ERROR;
     if (!(initFragComm())) goto INIT_ERROR;
 
+    /* we want to have periodic updates on used resources */
+    if (!PSIDnodes_acctPollI(PSC_getMyID())) {
+	PSIDnodes_setAcctPollI(PSC_getMyID(), 30);
+    }
+
     /* set collect mode in psaccount */
-    psAccountSetGlobalCollect(1);
+    psAccountSetGlobalCollect(true);
 
     psPelogueAddPluginConfig("psslurm", &Config);
 
@@ -667,6 +673,9 @@ void cleanup(void)
 
     /* remove all registered hooks and msg handler */
     unregisterHooks(1);
+
+    /* reset collect mode in psaccount */
+    if (psAccountSetGlobalCollect) psAccountSetGlobalCollect(false);
 
     /* free all malloced memory */
     clearJobList();

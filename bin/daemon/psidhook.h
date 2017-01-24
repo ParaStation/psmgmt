@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2013-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2013-2017 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -10,30 +10,11 @@
 /**
  * @file
  * Handling of hooks within the ParaStation daemon.
- *
- * $Id$
- *
- * @author
- * Norbert Eicker <eicker@par-tec.com>
- * Michael Rauh <rauh@par-tec.com>
- *
  */
 #ifndef __PSIDHOOK_H
 #define __PSIDHOOK_H
 
 #include "pstask.h"
-
-#ifdef __cplusplus
-extern "C" {
-#if 0
-} /* <- just for emacs indentation */
-#endif
-#endif
-
-
-#ifdef __cplusplus
-}/* extern "C" */
-#endif
 
 /**
  * @brief Hook function to execute.
@@ -139,14 +120,20 @@ typedef enum {
 				Arg is a pointer of type PSrsrvtn_dynRes_t which
 				contains the reservation id and the actual slot
 				to be released. */
+    PSIDHOOK_PELOGUE_PREPARE, /** Prepare argument vector and environment of a
+				prologue/epilogue script. Used by batch-system
+				plugins in order to provide the script the
+				expected arguments and environment. Arg is
+				pointer to PElogueChild_t */
     PSIDHOOK_PELOGUE_FINISH,  /** The result of a prologue/epilogue run
 				executed by the pelogue plugin can be inspected.
-				Used by the psslurm plugin. */
+				Used by the psslurm plugin. Arg is pointer to
+				PElogueChild_t */
     PSIDHOOK_FRWRD_DSOCK,     /**< In forwarder's init() function, arg is a
-				 pointer to the daemon socket. */
+				pointer to the daemon socket. */
     PSIDHOOK_JAIL_CHILD,      /**< Jail child into cgroup, arg points to pid */
     PSIDHOOK_CLEARMEM,        /**< Release memory after forking before handling
-				 other tasks, e.g. becoming a forwarder.  */
+				other tasks, e.g. becoming a forwarder.  */
     PSIDHOOK_LAST,            /**< This has to be the last one */
 } PSIDhook_t;
 

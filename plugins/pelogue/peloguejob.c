@@ -7,20 +7,18 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-/**
- * $Id$
- *
- * \author
- * Michael Rauh <rauh@par-tec.com>
- *
- */
 
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <signal.h>
 
 #include "pluginmalloc.h"
+#include "timer.h"
 
+#include "peloguelog.h"
+#include "peloguecomm.h"
+#include "pelogueconfig.h"
 #include "peloguescript.h"
 
 #include "peloguejob.h"
@@ -32,63 +30,83 @@ static char jobHistory[JOB_HISTORY_SIZE][JOB_HISTORY_ID_LEN];
 
 static int jobHistIndex = 0;
 
-void initJobList(void)
+/** List of all jobs */
+static LIST_HEAD(jobList);
+
+char *jobState2String(JobState_t state)
 {
-    INIT_LIST_HEAD(&JobList.list);
+    switch (state) {
+    case JOB_QUEUED:
+	return "QUEUED";
+    case JOB_PROLOGUE:
+	return "PROLOGUE";
+    case JOB_EPILOGUE:
+	return "EPILOGUE";
+    case JOB_CANCEL_PROLOGUE:
+	return "CANCEL_PROLOGUE";
+    case JOB_CANCEL_EPILOGUE:
+	return "CANCEL_EPILOGUE";
+    default:
+	return NULL;
+    }
 }
 
 void *addJob(const char *plugin, const char *jobid, uid_t uid, gid_t gid,
-		int nrOfNodes, PSnodes_ID_t *nodes,
-		Pelogue_JobCb_Func_t *pluginCallback)
+	     int numNodes, PSnodes_ID_t *nodes, PElogueJobCb_t *cb)
 {
-    Job_t *job;
+    Job_t *job = findJobById(plugin, jobid);
     int i = 0;
 
-    if (!plugin || !jobid || !nodes || !pluginCallback) return NULL;
+    if (!plugin || !jobid || !nodes || !cb) return NULL;
 
-    if ((job = findJobByJobId(plugin, jobid))) deleteJob(job);
+    if (job) deleteJob(job);
+    job = malloc(sizeof(*job));
+    if (job) {
+	job->plugin = ustrdup(plugin);
+	job->id = ustrdup(jobid);
+	job->uid = uid;
+	job->gid = gid;
+	job->numNodes = numNodes;
+	job->signalFlag = 0;
+	job->prologueTrack = -1;
+	job->prologueExit = 0;
+	job->epilogueTrack = -1;
+	job->epilogueExit = 0;
+	job->monitorId = -1;
+	job->cb = cb;
 
-    job = (Job_t *) umalloc(sizeof(Job_t));
-    job->plugin = ustrdup(plugin);
-    job->id = ustrdup(jobid);
-    job->uid = uid;
-    job->gid = gid;
-    job->nrOfNodes = nrOfNodes;
-    job->scriptname = NULL;
-    job->pluginCallback = pluginCallback;
-    job->signalFlag = 0;
-    job->prologueTrack = -1;
-    job->prologueExit = 0;
-    job->epilogueTrack = -1;
-    job->epilogueExit = 0;
+	job->nodes = umalloc(sizeof(*job->nodes) * numNodes);
+	if (job->nodes) {
+	    for (i=0; i<job->numNodes; i++) {
+		job->nodes[i].id = nodes[i];
+		job->nodes[i].prologue = PELOGUE_PENDING;
+		job->nodes[i].epilogue = PELOGUE_PENDING;
+	    }
 
-    job->nodes = umalloc(sizeof(PElogue_Res_List_t *) * nrOfNodes +
-			    sizeof(PElogue_Res_List_t) * nrOfNodes);
+	    /* add job to job history */
+	    strncpy(jobHistory[jobHistIndex++], jobid, sizeof(jobHistory[0]));
+	    if (jobHistIndex >= JOB_HISTORY_SIZE) jobHistIndex = 0;
 
-    for (i=0; i<job->nrOfNodes; i++) {
-	job->nodes[i].id = nodes[i];
-	job->nodes[i].prologue = -1;
-	job->nodes[i].epilogue = -1;
+	    list_add_tail(&job->next, &jobList);
+	} else {
+	    if (job->plugin) free(job->plugin);
+	    if (job->id) free(job->id);
+	    free(job);
+	    job = NULL;
+	}
     }
-
-    /* add job to job history */
-    strncpy(jobHistory[jobHistIndex++], jobid, sizeof(jobHistory[0]));
-    if (jobHistIndex >= JOB_HISTORY_SIZE) jobHistIndex = 0;
-
-    list_add_tail(&(job->list), &JobList.list);
 
     return job;
 }
 
-Job_t *findJobByJobId(const char *plugin, const char *jobid)
+Job_t *findJobById(const char *plugin, const char *jobid)
 {
-    list_t *pos, *tmp;
-    Job_t *job;
+    list_t *j;
 
     if (!plugin || !jobid) return NULL;
 
-    list_for_each_safe(pos, tmp, &JobList.list) {
-	if (!(job = list_entry(pos, Job_t, list))) return NULL;
+    list_for_each(j, &jobList) {
+	Job_t *job = list_entry(j, Job_t, next);
 
 	if (!strcmp(job->plugin, plugin) && !strcmp(job->id, jobid)) {
 	    return job;
@@ -97,117 +115,253 @@ Job_t *findJobByJobId(const char *plugin, const char *jobid)
     return NULL;
 }
 
-PElogue_Res_List_t *findJobNodeEntry(Job_t *job, PSnodes_ID_t id)
+bool setJobNodeStatus(Job_t *job, PSnodes_ID_t node, bool prologue,
+		      PElogueState_t status)
 {
     int i;
 
-    if (!job || !job->nodes) return NULL;
+    if (!checkJobPtr(job)) return false;
+    if (!job->nodes) return false;
 
-    for (i=0; i<job->nrOfNodes; i++) {
-	if (job->nodes[i].id == id) return &job->nodes[i];
+    for (i=0; i<job->numNodes; i++) {
+	if (job->nodes[i].id == node) {
+	    if (prologue) {
+		job->nodes[i].prologue = status;
+	    } else {
+		job->nodes[i].epilogue = status;
+	    }
+	    return true;
+	}
     }
-    return NULL;
+    return false;
 }
 
-int isJobIDinHistory(char *jobid)
+bool jobIDInHistory(char *jobid)
 {
     int i;
 
-    if (!jobid) return 0;
+    if (!jobid) return false;
 
     for (i=0; i<JOB_HISTORY_SIZE; i++) {
-	if (!(strncmp(jobid, jobHistory[i], JOB_HISTORY_ID_LEN))) return 1;
+	if (!strncmp(jobid, jobHistory[i], JOB_HISTORY_ID_LEN)) return true;
     }
-    return 0;
+    return false;
 }
 
 int countJobs(void)
 {
-    struct list_head *pos;
-    Job_t *job;
-    int count=0;
+    int count = 0;
+    list_t *j;
 
-    list_for_each(pos, &JobList.list) {
-	if (!(job = list_entry(pos, Job_t, list))) break;
-	count++;
-    }
+    list_for_each(j, &jobList) count++;
     return count;
 }
 
-int deleteJob(Job_t *job)
+bool checkJobPtr(Job_t *jobPtr)
 {
-    if (!(isValidJobPointer(job))) return 0;
+    list_t *j;
 
+    if (!jobPtr) return false;
+
+    list_for_each(j, &jobList) {
+	Job_t *job = list_entry(j, Job_t, next);
+	if (job == jobPtr) return true;
+    }
+
+    return false;
+}
+
+bool traverseJobs(JobVisitor_t visitor, const void *info)
+{
+    list_t *j;
+
+    list_for_each(j, &jobList) {
+	Job_t *job = list_entry(j, Job_t, next);
+
+	if (visitor(job, info)) return true;
+    }
+
+    return false;
+}
+
+static void cancelJobMonitor(Job_t *job)
+{
+    if (!checkJobPtr(job)) return;
+
+    if (job->monitorId != -1) {
+	Timer_remove(job->monitorId);
+	job->monitorId = -1;
+    }
+}
+
+static void doDeleteJob(Job_t *job)
+{
     /* make sure pelogue timeout monitoring is gone */
-    removePELogueTimeout(job);
+    cancelJobMonitor(job);
 
-    ufree(job->id);
-    ufree(job->plugin);
-    ufree(job->nodes);
-    ufree(job->scriptname);
-    job->id = job->plugin = NULL;
-    job->nrOfNodes = 0;
+    if (job->id) free(job->id);
+    if (job->plugin) free(job->plugin);
+    if (job->nodes) free(job->nodes);
 
-    list_del(&job->list);
-    ufree(job);
+    list_del(&job->next);
+    free(job);
+}
 
-    return 1;
+bool deleteJob(Job_t *job)
+{
+    if (!checkJobPtr(job)) return false;
+    doDeleteJob(job);
+
+    return true;
 }
 
 void clearJobList(void)
 {
-    list_t *pos, *tmp;
-    Job_t *job;
-
-    list_for_each_safe(pos, tmp, &JobList.list) {
-	if (!(job = list_entry(pos, Job_t, list))) return;
-
-	deleteJob(job);
+    list_t *j, *tmp;
+    list_for_each_safe(j, tmp, &jobList) {
+	Job_t *job = list_entry(j, Job_t, next);
+	doDeleteJob(job);
     }
 }
 
-char *jobState2String(JobState_t state)
+void signalAllJobs(int signal, char *reason)
 {
-    switch (state) {
-	case JOB_QUEUED:
-	    return "QUEUED";
-	case JOB_RUNNING:
-	    return "RUNNING";
-	case JOB_PROLOGUE:
-	    return "PROLOGUE";
-	case JOB_EPILOGUE:
-	    return "EPILOGUE";
-	case JOB_CANCEL_PROLOGUE:
-	    return "CANCEL_PROLOGUE";
-	case JOB_CANCEL_EPILOGUE:
-	    return "CANCEL_EPILOGUE";
-    }
-    return NULL;
-}
+    list_t *j;
+    list_for_each(j, &jobList) {
+	Job_t *job = list_entry(j, Job_t, next);
 
-void signalJobs(int signal, char *reason)
-{
-    list_t *pos, *tmp;
-    Job_t *job;
-
-    list_for_each_safe(pos, tmp, &JobList.list) {
-	if (!(job = list_entry(pos, Job_t, list))) return;
-
-	signalPElogue(job, signal, reason);
+	sendPElogueSignal(job, signal, reason);
     }
 }
 
-int isValidJobPointer(Job_t *jobPtr)
+void finishJobPElogue(Job_t *job, int status, bool prologue)
 {
-    list_t *pos, *tmp;
-    Job_t *job;
+    char *peType = prologue ? "prologue" : "epilogue";
+    int *track = prologue ? &job->prologueTrack : &job->epilogueTrack;
+    int *exit = prologue ? &job->prologueExit : &job->epilogueExit;
 
-    if (!jobPtr) return 0;
+    (*track) -= 1;
 
-    list_for_each_safe(pos, tmp, &JobList.list) {
-	if (!(job = list_entry(pos, Job_t, list))) break;
-	if (job == jobPtr) return 1;
+    if (*track < 0) {
+	mlog("%s: %s tracking error for job %s\n", __func__, peType, job->id);
+	return;
     }
 
-    return 0;
+    /* check if PElogue was running on all hosts */
+    if (!*track) {
+	if (!*exit) *exit = status;
+
+	/* stop monitoring the PELouge script for timeout */
+	cancelJobMonitor(job);
+	job->cb(job->id, *exit, false, job->nodes);
+    } else if (status && !*exit) {
+	char *reason = prologue ? "prologue failed" : "epilogue failed";
+
+	/* update job state */
+	job->state = prologue ? JOB_CANCEL_PROLOGUE : JOB_CANCEL_EPILOGUE;
+
+	/* Cancel the PElogue scripts on all hosts. The signal
+	 * SIGTERM will force the forwarder for PElogue scripts
+	 * to kill the script. */
+	if (job->signalFlag != SIGTERM && job->signalFlag != SIGKILL) {
+	    job->signalFlag = SIGTERM;
+	    sendPElogueSignal(job, SIGTERM, reason);
+	}
+    }
+
+    if (status && (status > *exit || status < 0)) {
+	if (prologue) {
+	    job->prologueExit = status;
+	} else {
+	    job->epilogueExit = status;
+	}
+    }
+}
+
+/**
+ * @brief Callback handler for a job's PElogue timeout
+ *
+ * This callback is called after a job's timeout is expired. While the
+ * first argument @a timerID will hold the ID of the expired timer the
+ * second argument @a info will point to the structure describing the
+ * job whose pelogues timed out
+ *
+ * @param timerId ID of the expired timer
+ *
+ * @param data Pointer to the corresponding job
+ *
+ * @return No return value
+ */
+static void handleJobTimeout(int timerId, void *info)
+{
+    Job_t *job = info;
+    int i, count = 0;
+
+    /* don't call myself again */
+    Timer_remove(timerId);
+
+    /* job could be already deleted */
+    if (!checkJobPtr(job)) return;
+
+    /* don't break job if it got re-queued */
+    if (timerId != job->monitorId) {
+	mlog("%s: timer of old job, skipping it\n", __func__);
+	return;
+    }
+    job->monitorId = -1;
+
+    mlog("%s: global %s timeout for job %s, send SIGKILL\n", __func__,
+	 job->state == JOB_PROLOGUE ? "prologue" : "epilogue", job->id);
+
+    mlog("%s: pending nodeID(s): ", __func__);
+
+    for (i=0; i<job->numNodes; i++) {
+	PElogueState_t *status = (job->state == JOB_PROLOGUE) ?
+	    &job->nodes[i].prologue : &job->nodes[i].epilogue;
+	if (*status == PELOGUE_PENDING) {
+	    mlog("%s%i", count ? "," : "", job->nodes[i].id);
+	    count++;
+	    *status = PELOGUE_TIMEDOUT;
+	}
+    }
+    mlog("\n");
+
+    sendPElogueSignal(job, SIGKILL, "global pelogue timeout");
+    cancelJob(job);
+}
+
+void startJobMonitor(Job_t *job)
+{
+    struct timeval timer = {1,0};
+    int timeout, grace;
+
+    if (job->state == JOB_PROLOGUE) {
+	timeout = getPluginConfValueI(job->plugin, "TIMEOUT_PROLOGUE");
+    } else {
+	timeout = getPluginConfValueI(job->plugin, "TIMEOUT_EPILOGUE");
+    }
+    grace = getPluginConfValueI(job->plugin, "TIMEOUT_PE_GRACE");
+
+    if (timeout < 0 || grace < 0) {
+	mlog("%s: invalid pe timeout %i or grace time %i\n", __func__,
+	     timeout, grace);
+    }
+
+    /* timeout monitoring disabled */
+    if (!timeout) return;
+
+    timer.tv_sec = timeout + (2 * grace);
+
+    job->monitorId = Timer_registerEnhanced(&timer, handleJobTimeout, job);
+    if (job->monitorId == -1) {
+	mlog("%s: monitor registration failed for job %s\n", __func__, job->id);
+    }
+}
+
+void cancelJob(Job_t *job)
+{
+    if (!checkJobPtr(job)) return;
+
+    cancelJobMonitor(job);
+    job->cb(job->id, -4, true, job->nodes);
 }

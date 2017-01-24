@@ -8,14 +8,9 @@
  * file.
  */
 
-#include <stdlib.h>
-#include <stdio.h>
-
-#include "logging.h"
 #include "pluginlog.h"
 
 #include "psaccountlog.h"
-
 
 logger_t *psaccountlogger = NULL;
 FILE *psaccountlogfile = NULL;

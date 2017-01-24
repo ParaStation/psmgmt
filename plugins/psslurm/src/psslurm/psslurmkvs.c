@@ -1,20 +1,13 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2016-2017 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-/**
- * $Id$
- *
- * \author
- * Michael Rauh <rauh@par-tec.com>
- *
- */
-
+#include <stdbool.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -42,10 +35,9 @@ static char line[256];
  */
 static char *showJobs(char *buf, size_t *bufSize)
 {
-    list_t *pos, *tmp;
-    Job_t *job;
     struct tm *ts;
     char start[50];
+    list_t *j;
 
     if (list_empty(&JobList.list)) {
 	return str2Buf("\nNo current jobs.\n", &buf, bufSize);
@@ -53,16 +45,16 @@ static char *showJobs(char *buf, size_t *bufSize)
 
     str2Buf("\njobs:\n\n", &buf, bufSize);
 
-    list_for_each_safe(pos, tmp, &JobList.list) {
-	if ((job = list_entry(pos, Job_t, list)) == NULL) break;
+    list_for_each(j, &JobList.list) {
+	Job_t *job = list_entry(j, Job_t, list);
 
-	snprintf(line, sizeof(line), "- jobid '%u' -\n", job->jobid);
+	snprintf(line, sizeof(line), "- jobid %u -\n", job->jobid);
 	str2Buf(line, &buf, bufSize);
 
 	snprintf(line, sizeof(line), "user '%s'\n", job->username);
 	str2Buf(line, &buf, bufSize);
 
-	snprintf(line, sizeof(line), "# nodes '%u'\n", job->nrOfNodes);
+	snprintf(line, sizeof(line), "# nodes %u\n", job->nrOfNodes);
 	str2Buf(line, &buf, bufSize);
 
 	snprintf(line, sizeof(line), "nodes '%s'\n", job->slurmNodes);
@@ -72,12 +64,11 @@ static char *showJobs(char *buf, size_t *bufSize)
 	str2Buf(line, &buf, bufSize);
 
 	snprintf(line, sizeof(line), "job state '%s'\n",
-		    strJobState(job->state));
+		 strJobState(job->state));
 	str2Buf(line, &buf, bufSize);
 
 	if (job->fwdata) {
-	    snprintf(line, sizeof(line), "job pid '%u'\n",
-			job->fwdata->childPid);
+	    snprintf(line, sizeof(line), "job pid %u\n", job->fwdata->cPid);
 	    str2Buf(line, &buf, bufSize);
 	}
 
@@ -105,10 +96,9 @@ static char *showJobs(char *buf, size_t *bufSize)
  */
 static char *showAllocations(char *buf, size_t *bufSize)
 {
-    list_t *pos, *tmp;
-    Alloc_t *alloc;
     struct tm *ts;
     char start[50];
+    list_t *a;
 
     if (list_empty(&AllocList.list)) {
 	return str2Buf("\nNo current allocations.\n", &buf, bufSize);
@@ -116,23 +106,23 @@ static char *showAllocations(char *buf, size_t *bufSize)
 
     str2Buf("\nallocations:\n\n", &buf, bufSize);
 
-    list_for_each_safe(pos, tmp, &AllocList.list) {
-	if ((alloc = list_entry(pos, Alloc_t, list)) == NULL) break;
+    list_for_each(a, &AllocList.list) {
+	Alloc_t *alloc = list_entry(a, Alloc_t, list);
 
-	snprintf(line, sizeof(line), "- jobid '%u' -\n", alloc->jobid);
+	snprintf(line, sizeof(line), "- jobid %u -\n", alloc->jobid);
 	str2Buf(line, &buf, bufSize);
 
 	snprintf(line, sizeof(line), "user '%s'\n", alloc->username);
 	str2Buf(line, &buf, bufSize);
 
-	snprintf(line, sizeof(line), "# nodes '%u'\n", alloc->nrOfNodes);
+	snprintf(line, sizeof(line), "# nodes %u\n", alloc->nrOfNodes);
 	str2Buf(line, &buf, bufSize);
 
 	snprintf(line, sizeof(line), "nodes '%s'\n", alloc->slurmNodes);
 	str2Buf(line, &buf, bufSize);
 
 	snprintf(line, sizeof(line), "alloc state '%s'\n",
-		    strJobState(alloc->state));
+		 strJobState(alloc->state));
 	str2Buf(line, &buf, bufSize);
 
 	/* format start time */
@@ -157,13 +147,11 @@ static char *showAllocations(char *buf, size_t *bufSize)
  *
  * @return Returns the buffer with the updated information.
  */
-static char *showHWthreads(char *buf, size_t *bufSize, int all)
+static char *showHWthreads(char *buf, size_t *bufSize, bool all)
 {
-    list_t *pos, *tmp;
-    Step_t *step;
     uint32_t i;
     PSnodes_ID_t lastNode = -1;
-    PStask_t *task;
+    list_t *s;
 
     if (list_empty(&StepList.list)) {
 	return str2Buf("\nNo current HW threads.\n", &buf, bufSize);
@@ -171,14 +159,14 @@ static char *showHWthreads(char *buf, size_t *bufSize, int all)
 
     str2Buf("\nHW threads:\n\n", &buf, bufSize);
 
-    list_for_each_safe(pos, tmp, &StepList.list) {
-	if ((step = list_entry(pos, Step_t, list)) == NULL) break;
+    list_for_each(s, &StepList.list) {
+	Step_t *step = list_entry(s, Step_t, list);
 
 	if (step->state == JOB_COMPLETE && !all) continue;
 
-	snprintf(line, sizeof(line), "- stepid '%u:%u' threads '%u' core "
-		    "map '%s'-\n", step->jobid, step->stepid,
-		    step->numHwThreads, step->cred->stepCoreBitmap);
+	snprintf(line, sizeof(line), "- stepid %u:%u threads %u core "
+		 "map '%s'-\n", step->jobid, step->stepid, step->numHwThreads,
+		 step->cred->stepCoreBitmap);
 	str2Buf(line, &buf, bufSize);
 
 	if (!step->hwThreads) {
@@ -190,7 +178,7 @@ static char *showHWthreads(char *buf, size_t *bufSize, int all)
 	for (i=0; i<step->numHwThreads; i++) {
 	    if (lastNode != step->hwThreads[i].node) {
 		snprintf(line, sizeof(line), "\nnode %i: ",
-			    step->hwThreads[i].node);
+			 step->hwThreads[i].node);
 		str2Buf(line, &buf, bufSize);
 	    }
 	    lastNode = step->hwThreads[i].node;
@@ -199,18 +187,18 @@ static char *showHWthreads(char *buf, size_t *bufSize, int all)
 	    str2Buf(line, &buf, bufSize);
 	}
 
-	if (step->fwdata && step->fwdata->childPid != 0) {
-	    task = PStasklist_find(&managedTasks,
-				    PSC_getTID(-1, step->fwdata->childPid));
+	if (step->fwdata && step->fwdata->cPid != 0) {
+	    PStask_ID_t cTID = PSC_getTID(-1, step->fwdata->cPid);
+	    PStask_t *task = PStasklist_find(&managedTasks, cTID);
 	    if (task) {
-		snprintf(line, sizeof(line), "\n\npsid threads for logger %i:",
-			    step->fwdata->childPid);
+		snprintf(line, sizeof(line), "\n\npsid threads for logger %s:",
+			 PSC_printTID(cTID));
 		str2Buf(line, &buf, bufSize);
 
 		for (i=0; i<task->totalThreads; i++) {
 		    if (lastNode != task->partThrds[i].node) {
 			snprintf(line, sizeof(line), "\nnode %i: ",
-				    task->partThrds[i].node);
+				 task->partThrds[i].node);
 			str2Buf(line, &buf, bufSize);
 		    }
 		    lastNode = task->partThrds[i].node;
@@ -220,7 +208,7 @@ static char *showHWthreads(char *buf, size_t *bufSize, int all)
 		}
 	    } else {
 		snprintf(line, sizeof(line), "\n\nno psid threads for "
-			    "logger %i:", step->fwdata->childPid);
+			 "logger %s:", PSC_printTID(cTID));
 		str2Buf(line, &buf, bufSize);
 	    }
 	}
@@ -240,12 +228,11 @@ static char *showHWthreads(char *buf, size_t *bufSize, int all)
  *
  * @return Returns the buffer with the updated step information.
  */
-static char *showSteps(char *buf, size_t *bufSize, int all)
+static char *showSteps(char *buf, size_t *bufSize, bool all)
 {
-    list_t *pos, *tmp;
-    Step_t *step;
     struct tm *ts;
     char start[50], *ptr;
+    list_t *s;
 
     if (list_empty(&StepList.list)) {
 	return str2Buf("\nNo current steps.\n", &buf, bufSize);
@@ -253,34 +240,33 @@ static char *showSteps(char *buf, size_t *bufSize, int all)
 
     str2Buf("\nsteps:\n\n", &buf, bufSize);
 
-    list_for_each_safe(pos, tmp, &StepList.list) {
-	if ((step = list_entry(pos, Step_t, list)) == NULL) break;
+    list_for_each(s, &StepList.list) {
+	Step_t *step = list_entry(s, Step_t, list);
 
 	if (step->state == JOB_COMPLETE && !all) continue;
 
-	snprintf(line, sizeof(line), "- stepid '%u:%u' -\n", step->jobid,
-		    step->stepid);
+	snprintf(line, sizeof(line), "- stepid %u:%u -\n", step->jobid,
+		 step->stepid);
 	str2Buf(line, &buf, bufSize);
 
-	snprintf(line, sizeof(line), "user: '%s' uid: '%u' gid: '%u'\n",
-		    step->username, step->uid, step->gid);
+	snprintf(line, sizeof(line), "user: '%s' uid: %u gid: %u\n",
+		 step->username, step->uid, step->gid);
 	str2Buf(line, &buf, bufSize);
 
 	snprintf(line, sizeof(line), "%u nodes: '%s'\n", step->nrOfNodes,
-		    step->slurmNodes);
+		 step->slurmNodes);
 	str2Buf(line, &buf, bufSize);
 
 	snprintf(line, sizeof(line), "step state: '%s'\n",
-		    strJobState(step->state));
+		 strJobState(step->state));
 	str2Buf(line, &buf, bufSize);
 
-	snprintf(line, sizeof(line), "tpp: '%u' numHwThreads: '%u'\n",
-		    step->tpp, step->numHwThreads);
+	snprintf(line, sizeof(line), "tpp: %u numHwThreads: %u\n",
+		 step->tpp, step->numHwThreads);
 	str2Buf(line, &buf, bufSize);
 
 	if (step->fwdata) {
-	    snprintf(line, sizeof(line), "step pid: '%u'\n",
-			step->fwdata->childPid);
+	    snprintf(line, sizeof(line), "step pid: %u\n", step->fwdata->cPid);
 	    str2Buf(line, &buf, bufSize);
 	}
 
@@ -318,19 +304,15 @@ static char *showSteps(char *buf, size_t *bufSize, int all)
  */
 static char *showConfig(char *buf, size_t *bufSize)
 {
-    char empty[] = "";
-    char *name, *val;
     int i = 0;
 
     str2Buf("\n", &buf, bufSize);
 
     while (CONFIG_VALUES[i].name != NULL) {
-        name = CONFIG_VALUES[i].name;
-        if (!(val = getConfValueC(&Config, name))) {
-            val = empty;
-        }
-        snprintf(line, sizeof(line), "%21s = %s\n", name, val);
-        str2Buf(line, &buf, bufSize);
+	char *name = CONFIG_VALUES[i].name;
+	char *val = getConfValueC(&Config, name);
+	snprintf(line, sizeof(line), "%21s = %s\n", name, val ? val:"<empty>");
+	str2Buf(line, &buf, bufSize);
 	i++;
     }
 
@@ -346,94 +328,65 @@ static char *showConfig(char *buf, size_t *bufSize)
  *
  * @return Returns the buffer with the updated forwarder information.
  */
-static void showVirtualKeys(char **buf, size_t *bufSize, int example)
+static char *showVirtualKeys(char *buf, size_t *bufSize, bool example)
 {
-    char *msg;
+    str2Buf("\n# available keys #\n\n", &buf, bufSize);
+    str2Buf("     config\tshow current configuration\n", &buf, bufSize);
+    str2Buf("       jobs\tshow all jobs\n", &buf, bufSize);
+    str2Buf("allocations\tshow all allocations\n", &buf, bufSize);
+    str2Buf("      steps\tshow running steps\n", &buf, bufSize);
+    str2Buf("     asteps\tshow all steps\n", &buf, bufSize);
+    str2Buf(" ahwThreads\tshow all hwThreads\n", &buf, bufSize);
 
-    str2Buf("\n# available keys #\n\n", buf, bufSize);
-
-    snprintf(line, sizeof(line), "%12s\t%s\n", "config",
-	    "show current configuration");
-    str2Buf(line, buf, bufSize);
-
-    snprintf(line, sizeof(line), "%12s\t%s\n", "jobs",
-	    "show all jobs");
-    str2Buf(line, buf, bufSize);
-
-    snprintf(line, sizeof(line), "%12s\t%s\n", "allocations",
-	    "show all allocations");
-    str2Buf(line, buf, bufSize);
-
-    snprintf(line, sizeof(line), "%12s\t%s\n", "steps",
-	    "show running steps");
-    str2Buf(line, buf, bufSize);
-
-    snprintf(line, sizeof(line), "%12s\t%s\n", "asteps",
-	    "show all steps");
-    str2Buf(line, buf, bufSize);
-
-    snprintf(line, sizeof(line), "%12s\t%s\n", "hwThreads",
-	    "show active hwThreads");
-    str2Buf(line, buf, bufSize);
-
-    snprintf(line, sizeof(line), "%12s\t%s\n", "ahwThreads",
-	    "show all hwThreads");
-    str2Buf(line, buf, bufSize);
-
-    if (example) {
-	msg = "\nExample:\nUse 'plugin show psslurm key jobs'\n";
-	str2Buf(msg, buf, bufSize);
-    }
+    if (example) str2Buf("\nExample:\nUse 'plugin show psslurm key jobs'\n",
+			 &buf, bufSize);
+    return buf;
 }
 
 char *set(char *key, char *value)
 {
     char *buf = NULL;
     size_t bufSize = 0;
-    int ret;
 
     /* search in config for given key */
-    if ((getConfigDef(key, CONFIG_VALUES))) {
+    if (getConfigDef(key, CONFIG_VALUES)) {
+	int ret = verifyConfigEntry(CONFIG_VALUES, key, value);
+	if (ret) {
+	    switch (ret) {
+	    case 1:
+		str2Buf("\nInvalid key '", &buf, &bufSize);
+		str2Buf(key, &buf, &bufSize);
+		str2Buf("' for cmd set : use 'plugin help psslurm' for help.\n",
+			&buf, &bufSize);
+		break;
+	    case 2:
+		str2Buf("\nThe key '", &buf, &bufSize);
+		str2Buf(key, &buf, &bufSize);
+		str2Buf("' for cmd set has to be numeric.\n", &buf, &bufSize);
+	    }
+	    return buf;
+	}
 
-        if ((ret = verifyConfigEntry(CONFIG_VALUES, key, value)) != 0) {
-            if (ret == 1) {
-                str2Buf("\nInvalid key '", &buf, &bufSize);
-                str2Buf(key, &buf, &bufSize);
-                str2Buf("' for cmd set : use 'plugin help psslurm' "
-                                "for help.\n", &buf, &bufSize);
-            } else if (ret == 2) {
-                str2Buf("\nThe key '", &buf, &bufSize);
-                str2Buf(key, &buf, &bufSize);
-                str2Buf("' for cmd set has to be numeric.\n", &buf,
-                                &bufSize);
-            }
-            return buf;
-        }
-
-	if (!(strcmp(key, "DEBUG_MASK"))) {
+	if (!strcmp(key, "DEBUG_MASK")) {
 	    int32_t mask;
 
-	    if ((sscanf(value, "%i", &mask)) != 1) {
-		return str2Buf("\nInvalid debug mask: not a number\n", &buf,
-			&bufSize);
+	    if (sscanf(value, "%i", &mask) != 1) {
+		return str2Buf("\nInvalid debug mask: NAN\n", &buf, &bufSize);
 	    }
 	    maskLogger(mask);
 	}
 
-        /* save new config value */
+	/* save new config value */
 	addConfigEntry(&Config, key, value);
 
 	snprintf(line, sizeof(line), "\nsaved '%s = %s'\n", key, value);
-        str2Buf(line, &buf, &bufSize);
-        return buf;
+	return str2Buf(line, &buf, &bufSize);
     }
 
     str2Buf("\nInvalid key '", &buf, &bufSize);
     str2Buf(key, &buf, &bufSize);
-    str2Buf("' for cmd set : use 'plugin help psslurm' for help.\n",
-		    &buf, &bufSize);
-
-    return buf;
+    return str2Buf("' for cmd set : use 'plugin help psslurm' for help.\n",
+		   &buf, &bufSize);
 }
 
 char *unset(char *key)
@@ -468,9 +421,7 @@ char *help(void)
 	i++;
     }
 
-    showVirtualKeys(&buf, &bufSize, 1);
-
-    return buf;
+    return showVirtualKeys(buf, &bufSize, true);
 }
 
 char *show(char *key)
@@ -478,15 +429,11 @@ char *show(char *key)
     char *buf = NULL, *tmp;
     size_t bufSize = 0;
 
-    if (!key) {
-	/* show all virtual keys */
-	showVirtualKeys(&buf, &bufSize, 1);
-
-	return buf;
-    }
+    if (!key) return showVirtualKeys(buf, &bufSize, true);
 
     /* search in config for given key */
-    if ((tmp = getConfValueC(&Config, key))) {
+    tmp = getConfValueC(&Config, key);
+    if (tmp) {
 	str2Buf(key, &buf, &bufSize);
 	str2Buf(" = ", &buf, &bufSize);
 	str2Buf(tmp, &buf, &bufSize);
@@ -496,44 +443,28 @@ char *show(char *key)
     }
 
     /* show current config */
-    if (!(strcmp(key, "config"))) {
-	return showConfig(buf, &bufSize);
-    }
+    if (!strcmp(key, "config")) return showConfig(buf, &bufSize);
 
     /* show current jobs */
-    if (!(strcmp(key, "jobs"))) {
-	return showJobs(buf, &bufSize);
-    }
+    if (!strcmp(key, "jobs")) return showJobs(buf, &bufSize);
 
     /* show current allocations */
-    if (!(strcmp(key, "allocations"))) {
-	return showAllocations(buf, &bufSize);
-    }
+    if (!strcmp(key, "allocations")) return showAllocations(buf, &bufSize);
 
     /* show running current steps */
-    if (!(strcmp(key, "steps"))) {
-	return showSteps(buf, &bufSize, 0);
-    }
+    if (!strcmp(key, "steps")) return showSteps(buf, &bufSize, false);
 
     /* show all current steps */
-    if (!(strcmp(key, "asteps"))) {
-	return showSteps(buf, &bufSize, 1);
-    }
+    if (!strcmp(key, "asteps")) return showSteps(buf, &bufSize, true);
 
     /* show running HW threads */
-    if (!(strcmp(key, "hwThreads"))) {
-	return showHWthreads(buf, &bufSize, 0);
-    }
+    if (!strcmp(key, "hwThreads")) return showHWthreads(buf, &bufSize, false);
 
     /* show all HW threads */
-    if (!(strcmp(key, "ahwThreads"))) {
-	return showHWthreads(buf, &bufSize, 1);
-    }
+    if (!strcmp(key, "ahwThreads")) return showHWthreads(buf, &bufSize, true);
 
     str2Buf("\nInvalid key '", &buf, &bufSize);
     str2Buf(key, &buf, &bufSize);
     str2Buf("'\n", &buf, &bufSize);
-    showVirtualKeys(&buf, &bufSize, 0);
-
-    return buf;
+    return showVirtualKeys(buf, &bufSize, false);
 }

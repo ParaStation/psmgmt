@@ -1,13 +1,12 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2017 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -31,6 +30,7 @@
 #include "pbsdef.h"
 #include "psidplugin.h"
 #include "psidhook.h"
+#include "psidnodes.h"
 #include "plugin.h"
 #include "pluginhelper.h"
 #include "pluginfrag.h"
@@ -315,6 +315,11 @@ static int initAccountingFunc()
 	mlog("%s: loading function psAccountreadProcStatInfo() failed\n",
 		__func__);
 	return 1;
+    }
+
+    /* we want to have periodic updates on used resources */
+    if (!PSIDnodes_acctPollI(PSC_getMyID())) {
+	PSIDnodes_setAcctPollI(PSC_getMyID(), 30);
     }
 
     /* set collect mode in psaccount */
@@ -777,7 +782,7 @@ void cleanup(void)
     clearConfig();
 
     /* set collect mode in psaccount */
-    if (psAccountSetGlobalCollect) psAccountSetGlobalCollect(0);
+    if (psAccountSetGlobalCollect) psAccountSetGlobalCollect(false);
 
     mlog("shutdown communication\n");
 
