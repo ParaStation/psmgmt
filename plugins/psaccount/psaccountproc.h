@@ -56,7 +56,8 @@ typedef struct {
     uint64_t majflt;   /**< # of major pagefaults triggered by process */
     uint64_t cmajflt;  /**< # of major pagefaults triggered by descendants  */
     uint16_t cpu;      /**< CPU the process was scheduled on lately */
-    uid_t uid;         /**< process' user ID */
+    uid_t uid;         /**< process' user ID (owner of /proc/<PID>/task) */
+    uid_t loginUid;    /**< process' user ID (from /proc/<PID>/loginuid) */
 } ProcStat_t;
 
 /** Some I/O resources consumed by a process */

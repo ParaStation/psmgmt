@@ -639,13 +639,31 @@ bool readProcStat(pid_t pid, ProcStat_t *pS)
 
 bool readProcUID(pid_t pid, ProcStat_t *pS)
 {
+    FILE *fd;
     char fileName[128];
     struct stat sbuf;
+    int ret, eno;
 
     snprintf(fileName, sizeof(fileName), "/proc/%i/task", pid);
     if (stat(fileName, &sbuf) == -1) return false;
     pS->uid = sbuf.st_uid;
 
+    snprintf(fileName, sizeof(fileName), "/proc/%i/loginuid", pid);
+    if (stat(fileName, &sbuf) == -1) return false;
+
+    fd = fopen(fileName,"r");
+    if (!fd) {
+	mlog("%s: open '%s' failed\n", __func__, fileName);
+	return false;
+    }
+
+    ret = fscanf(fd, "%u", &pS->loginUid);
+    eno = errno;
+    fclose(fd);
+    if (ret != 1) {
+	mwarn(eno, "%s: fscanf()", __func__);
+	return false;
+    }
     return true;
 }
 
@@ -809,7 +827,8 @@ void updateProcSnapshot(void)
 	}
 
 	if (readProcStat(pid, &pS) && readProcUID(pid, &pS)
-	    && (!ignoreRoot || pS.uid) && pS.state[0] != 'Z') {
+	    && (!ignoreRoot || pS.uid) && pS.loginUid != (uid_t)-1
+	    && pS.state[0] != 'Z') {
 	    addProc(pid, &pS);
 	}
     }
