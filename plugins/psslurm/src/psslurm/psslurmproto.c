@@ -2175,8 +2175,12 @@ void sendNodeRegStatus(uint32_t status, int protoVersion)
 	addUint32ToMsg(info.uptime, &msg);
     }
 
-    /* hash_val TODO calc correct hash value */
-    addUint32ToMsg(NO_VAL, &msg);
+    /* hash value of the SLURM config file */
+    if (getConfValueI(&Config, "DISABLE_CONFIG_HASH") == 1) {
+	addUint32ToMsg(NO_VAL, &msg);
+    } else {
+	addUint32ToMsg(configHash, &msg);
+    }
 
     /* cpu load / free mem */
     if (haveSysInfo < 0) {

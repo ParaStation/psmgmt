@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2017 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -12,6 +12,7 @@
 #define __PLUGIN_LIB_CONFIG
 
 #include <stdbool.h>
+#include <stdint.h>
 
 #include "list.h"
 
@@ -31,32 +32,26 @@ typedef list_t Config_t;
  *
  * @param conf Configuration ready for further use
  *
- * @return Upon success the number of configuration entries found in
- * the file is returned. Or -1 if an error occurred.
-*/
-int parseConfigFile(char *filename, Config_t *conf);
-
-/**
- * @brief Fetch configuration from a file
+ * @param trimQuotes Flag to unquote each configuration value
  *
- * Parse the configuration form the file named by @a filename and
- * store it into @a conf. @a conf is assumed to be empty. If @a conf
- * already holds valid configuration, some memory might get
- * leaked. Therefore previous configurations shall be destructed via
- * @ref freeConfig().
+ * @param hash Flag to compute hash value for config file
  *
- * Main difference compared to @ref parseConfigFile() is that each
- * configuration value gets unquoted.
- *
- * @param filename Name of the configuration file to be handled
- *
- * @param conf Configuration ready for further use
+ * @param caller Function name of the calling function
  *
  * @return Upon success the number of configuration entries found in
  * the file is returned. Or -1 if an error occurred.
 */
-int parseConfigFileQ(char *filename, Config_t *conf);
+int parseConfigFileEx(char *filename, Config_t *conf, bool trimQuotes,
+		      uint32_t *hash, const char *caller);
 
+#define parseConfigFile(filename, conf) \
+    parseConfigFileEx(filename, conf, false, NULL, __func__)
+
+#define parseConfigFileQ(filename, conf) \
+    parseConfigFileEx(filename, conf, true, NULL, __func__)
+
+#define parseConfigFileHQ(filename, conf, hash) \
+    parseConfigFileEx(filename, conf, true, hash, __func__)
 
 /**
  * @brief Free complete configuration

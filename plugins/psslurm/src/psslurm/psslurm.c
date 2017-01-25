@@ -69,6 +69,9 @@ uid_t slurmUserID = 495;
 
 time_t start_time;
 
+/** hash value of the SLURM config file */
+uint32_t configHash;
+
 PSnodes_ID_t slurmController;
 PSnodes_ID_t slurmBackupController;
 
@@ -536,7 +539,7 @@ int initialize(void)
     }
 
     /* init the configuration */
-    if (!(initConfig(PSSLURM_CONFIG_FILE))) {
+    if (!(initConfig(PSSLURM_CONFIG_FILE, &configHash))) {
 	mlog("%s: init of the configuration failed\n", __func__);
 	return 1;
     }
