@@ -51,8 +51,8 @@ static PSPAMResult_t handleOpenRequest(char *msgBuf)
     /* get pam rhost */
     getString(&ptr, rhost, sizeof(rhost));
 
-    mlog("%s: got pam request user: '%s' pid: %i sid: %i rhost: '%s'\n",
-	 __func__, user, pid, sid, rhost);
+    mdbg(PSPAM_LOG_DEBUG, "%s: got pam request user: '%s' pid: %i sid: %i"
+	 " rhost: '%s'\n", __func__, user, pid, sid, rhost);
 
     errno = 0;
     spasswd = getpwnam(user);
@@ -72,7 +72,8 @@ static PSPAMResult_t handleOpenRequest(char *msgBuf)
 	}
     }
 
-    mlog("%s: reply to user '%s' rhost '%s': %i\n", __func__, user, rhost, res);
+    mdbg(PSPAM_LOG_DEBUG, "%s: reply to user '%s' rhost '%s': %i\n", __func__,
+	 user, rhost, res);
 
     return res;
 }
@@ -88,7 +89,8 @@ static void handleCloseRequest(char *msgBuf)
     /* get pam username */
     getString(&ptr, user, sizeof(user));
 
-    mlog("%s: got pam close of user: '%s' pid: %i\n", __func__, user, pid);
+    mdbg(PSPAM_LOG_DEBUG, "%s: got pam close of user: '%s' pid: %i\n", __func__,
+	 user, pid);
     rmSession(user, pid);
 }
 
@@ -207,7 +209,7 @@ bool initComm(void)
     }
 
     if (Selector_register(masterSock, handleMasterSocket, NULL) == -1) {
-	mlog("%s: registering socket '%i' failed\n", __func__, masterSock);
+	mlog("%s: Selector_register(%i) failed\n", __func__, masterSock);
 	return false;
     }
 
