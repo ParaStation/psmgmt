@@ -29,6 +29,8 @@ LDFLAGS="$LDFLAGS -Wl,--enable-new-dtags"
 # AM_CFLAGS (see below), so change the default to "-g" only
 CFLAGS="${CFLAGS-"-g"}"
 
+AC_PROG_LN_S
+
 AC_PROG_CC
 AM_PROG_CC_C_O
 
@@ -131,7 +133,6 @@ AC_CONFIG_FILES(plugins/psexec/Makefile)
 AC_CONFIG_FILES(plugins/psmom/Makefile)
 AC_CONFIG_FILES(plugins/psmom/doc/Makefile)
 AC_CONFIG_FILES(plugins/psmom/src/include/Makefile)
-AC_CONFIG_FILES(plugins/psmom/src/pam/Makefile)
 AC_CONFIG_FILES(plugins/psmom/src/pbs/Makefile)
 AC_CONFIG_FILES(plugins/psmom/src/psmom/Makefile)
 AC_CONFIG_FILES(plugins/psmunge/Makefile)

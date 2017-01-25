@@ -292,7 +292,6 @@ exit 0
 %doc plugins/psmom/README
 %if !0%{?disable_pam}
 %{_pamdir}/pam_psmom.so
-%exclude %{_pamdir}/pam_psmom.la
 %endif
 %config(noreplace) /etc/pam.d/psmom
 %{_plugindir}/psmom.so

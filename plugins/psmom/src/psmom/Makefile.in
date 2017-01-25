@@ -984,6 +984,8 @@ install-exec-local:
 	$(INSTALL) -d $(DESTDIR)$(localstatedir)/spool/parastation/account
 	$(INSTALL) -d $(DESTDIR)$(localstatedir)/spool/parastation/backup
 	$(INSTALL) -d $(DESTDIR)$(localstatedir)/spool/parastation/scripts
+	$(INSTALL) -d $(DESTDIR)$(pamdir)
+	(cd $(DESTDIR)$(pamdir) && $(LN_S) pam_pspam.so pam_psmom.so)
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.

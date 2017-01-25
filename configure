@@ -674,7 +674,6 @@ ac_ct_AR
 AR
 DLLTOOL
 OBJDUMP
-LN_S
 NM
 ac_ct_DUMPBIN
 DUMPBIN
@@ -701,6 +700,7 @@ CPPFLAGS
 LDFLAGS
 CFLAGS
 CC
+LN_S
 MAINT
 MAINTAINER_MODE_FALSE
 MAINTAINER_MODE_TRUE
@@ -2967,6 +2967,18 @@ LDFLAGS="$LDFLAGS -Wl,--enable-new-dtags"
 # AM_CFLAGS (see below), so change the default to "-g" only
 CFLAGS="${CFLAGS-"-g"}"
 
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking whether ln -s works" >&5
+$as_echo_n "checking whether ln -s works... " >&6; }
+LN_S=$as_ln_s
+if test "$LN_S" = "ln -s"; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no, using $LN_S" >&5
+$as_echo "no, using $LN_S" >&6; }
+fi
+
+
 ac_ext=c
 ac_cpp='$CPP $CPPFLAGS'
 ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
@@ -4718,17 +4730,6 @@ else
 fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: $lt_cv_nm_interface" >&5
 $as_echo "$lt_cv_nm_interface" >&6; }
-
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking whether ln -s works" >&5
-$as_echo_n "checking whether ln -s works... " >&6; }
-LN_S=$as_ln_s
-if test "$LN_S" = "ln -s"; then
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
-$as_echo "yes" >&6; }
-else
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no, using $LN_S" >&5
-$as_echo "no, using $LN_S" >&6; }
-fi
 
 # find the maximum length of command line arguments
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking the maximum length of command line arguments" >&5
@@ -12941,8 +12942,6 @@ ac_config_files="$ac_config_files plugins/psmom/doc/Makefile"
 
 ac_config_files="$ac_config_files plugins/psmom/src/include/Makefile"
 
-ac_config_files="$ac_config_files plugins/psmom/src/pam/Makefile"
-
 ac_config_files="$ac_config_files plugins/psmom/src/pbs/Makefile"
 
 ac_config_files="$ac_config_files plugins/psmom/src/psmom/Makefile"
@@ -14047,7 +14046,6 @@ do
     "plugins/psmom/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/psmom/Makefile" ;;
     "plugins/psmom/doc/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/psmom/doc/Makefile" ;;
     "plugins/psmom/src/include/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/psmom/src/include/Makefile" ;;
-    "plugins/psmom/src/pam/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/psmom/src/pam/Makefile" ;;
     "plugins/psmom/src/pbs/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/psmom/src/pbs/Makefile" ;;
     "plugins/psmom/src/psmom/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/psmom/src/psmom/Makefile" ;;
     "plugins/psmunge/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/psmunge/Makefile" ;;
