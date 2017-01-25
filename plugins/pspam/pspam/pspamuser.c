@@ -11,8 +11,9 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "pspamssh.h"
 #include "pluginmalloc.h"
+#include "pspamlog.h"
+#include "pspamssh.h"
 
 #include "pspamuser.h"
 
@@ -73,7 +74,10 @@ void setState(char *username, char *jobID, PSPAMState_t state)
 {
     User_t *user = findUser(username, jobID);
 
-    if (!jobID || !user) return;
+    if (!jobID || !user) {
+	if (jobID) mlog("%s: no entry for %s/%s\n", __func__, username, jobID);
+	return;
+    }
 
     user->state = state;
 }
@@ -82,7 +86,11 @@ void deleteUser(char *username, char *jobID)
 {
     User_t *user = findUser(username, jobID);
 
-    if (!jobID || !user) return;
+    if (!jobID || !user) {
+	if (jobID) mdbg(PSPAM_LOG_DEBUG, "%s: no entry for %s/%s\n", __func__,
+			username, jobID);
+	return;
+    }
 
     doDelete(user);
 
@@ -99,7 +107,7 @@ void clearUserList(void)
     }
 }
 
-const char *state2Str( PSPAMState_t state)
+const char *state2Str(PSPAMState_t state)
 {
     switch(state) {
     case PSPAM_STATE_PROLOGUE:
@@ -125,7 +133,7 @@ char *listUsers(char *buf, size_t *bufSize)
     list_for_each(u, &userList) {
 	User_t *user = list_entry(u, User_t, next);
 
-	snprintf(l, sizeof(l), "\t%.16s%.32s %s\n", user->name, user->jobID,
+	snprintf(l, sizeof(l), "%12s %24s %s\n", user->name, user->jobID,
 		 state2Str(user->state));
 	str2Buf(l, &buf, bufSize);
     }
