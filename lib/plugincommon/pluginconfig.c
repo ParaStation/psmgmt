@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2017 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -36,8 +36,29 @@ static void doAddConfigEntry(Config_t *conf, char *key, char *value)
     list_add_tail(&(obj->next), conf);
 }
 
-static int doParseConfigFile(char *fName, Config_t *conf,
-			     const char *funcName, bool trimQuotes)
+static void computeHash(uint32_t *hash, char *line)
+{
+    int idx, i, len;
+
+    if (!hash) return;
+
+    len = strlen(line);
+    for (i = 0; i < len; i++) {
+	(*hash) = ( (*hash) ^ line[i] << 8 );
+
+	for (idx = 0; idx < 8; ++idx) {
+	    if ((*hash) & 0x8000) {
+		(*hash) <<= 1;
+		(*hash) = (*hash) ^ 4129;
+	    } else {
+		(*hash) <<= 1;
+	    }
+	}
+    }
+}
+
+int parseConfigFileEx(char *filename, Config_t *conf, bool trimQuotes,
+		      uint32_t *hash, const char *caller)
 {
     FILE *fp;
     char *linebuf = NULL;
@@ -48,17 +69,19 @@ static int doParseConfigFile(char *fName, Config_t *conf,
     /* init config list */
     INIT_LIST_HEAD(conf);
 
-    if (!(fp = fopen(fName, "r"))) {
+    if (!(fp = fopen(filename, "r"))) {
 	char *cwd = getcwd(NULL, 0);
 
-	pluginlog("%s: error opening config cwd:%s file:%s\n", funcName, cwd,
-		  fName);
+	pluginlog("%s: error opening config cwd:%s file:%s\n", caller, cwd,
+		  filename);
 	if (cwd) free(cwd);
 	return -1;
     }
 
     while ((read = getline(&linebuf, &len, fp)) != -1) {
 	char *line = linebuf, *key, *val, *tmp;
+
+	if (hash && read) computeHash(hash, line);
 
 	/* skip comments and empty lines */
 	if (!read || line[0] == '\n' || line[0] == '#' || line[0] == '\0') {
@@ -90,16 +113,6 @@ static int doParseConfigFile(char *fName, Config_t *conf,
     fclose(fp);
 
     return count;
-}
-
-int parseConfigFile(char *filename, Config_t *conf)
-{
-    return doParseConfigFile(filename, conf, __func__, false);
-}
-
-int parseConfigFileQ(char *filename, Config_t *conf)
-{
-    return doParseConfigFile(filename, conf, __func__, true);
 }
 
 static ConfObj_t *findConfObj(Config_t *conf, char *key)
