@@ -18,12 +18,14 @@
 
 char *show(char *key)
 {
-    char *buf = NULL;
+    char *buf = NULL, l[80];
     size_t bufSize = 0;
 
     if (!key) {
-	str2Buf("use key [users|sessions|debug]\n", &buf, &bufSize);
-	return buf;
+	snprintf(l, sizeof(l),
+		 "\nuse 'plugin %s %s key [users|sessions|debug]'\n",
+		 name, __func__);
+	return str2Buf(l, &buf, &bufSize);
     }
 
     /* show current users */
@@ -32,42 +34,37 @@ char *show(char *key)
     }
 
     /* show current sessions */
-    if (!strcmp(key, "dclients")) {
+    if (!strcmp(key, "sessions")) {
 	return listSessions(buf, &bufSize);
     }
 
     /* show current config */
     if (!strcmp(key, "debug")) {
-	char l[80];
-	snprintf(l, sizeof(l), "\t%.16x\n", logger_getMask(pspamlogger));
+	snprintf(l, sizeof(l), "\t0x%.4x\n", logger_getMask(pspamlogger));
 	return str2Buf(l, &buf, &bufSize);
     }
-
-    str2Buf("invalid key, use [users|sessions|debug]\n", &buf, &bufSize);
-    return buf;
+    snprintf(l, sizeof(l), "\ninvalid key %s (users, sessions, debug)\n", key);
+    return str2Buf(l, &buf, &bufSize);
 }
 
 char *set(char *key, char *val)
 {
-    char *buf = NULL;
+    char *buf = NULL, l[80];
     size_t bufSize = 0;
 
     if (!strcmp(key, "debug")) {
-	char l[80];
 	int debugMask;
 
 	if ((sscanf(val, "%i", &debugMask)) != 1) {
-	    snprintf(l, sizeof(l), "\tdebugmask %s not a number\n", val);
+	    snprintf(l, sizeof(l), "\ndebugmask '%s' not a number\n", val);
 	} else {
 	    maskLogger(debugMask);
-	    snprintf(l, sizeof(l), "\tdebugMask now %x\n", debugMask);
+	    snprintf(l, sizeof(l), "\tdebugMask now 0x%.4x\n", debugMask);
 	}
 	str2Buf(l, &buf, &bufSize);
     } else {
-	str2Buf("\nInvalid key '", &buf, &bufSize);
-	str2Buf(key, &buf, &bufSize);
-	str2Buf("' for cmd set : use 'plugin help pspam' for help.\n",
-		&buf, &bufSize);
+	snprintf(l, sizeof(l), "\ninvalid key %s (debug)\n", key);
+	str2Buf(l, &buf, &bufSize);
     }
 
     return buf;
