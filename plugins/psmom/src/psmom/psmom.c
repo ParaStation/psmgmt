@@ -36,6 +36,7 @@
 #include "pluginfrag.h"
 
 #include "psaccounthandles.h"
+#include "pspamhandles.h"
 
 #include "psmomscript.h"
 #include "psmomcomm.h"
@@ -124,6 +125,7 @@ int version = 58;
 int requiredAPI = 109;
 plugin_dep_t dependencies[] = {
     { .name = "psaccount", .version = 26 },
+    { .name = "pspam", .version = 4 },
     { .name = NULL, .version = 0 } };
 
 /** the process id of the main psmom process */
@@ -292,6 +294,37 @@ static bool initAccountingFunc(void)
 
     /* set collect mode in psaccount */
     psAccountSetGlobalCollect(true);
+
+    return true;
+}
+
+static bool initPsPAMFunc(void)
+{
+    void *pspamHandle = PSIDplugin_getHandle("pspam");
+
+    /* get psaccount function handles */
+    if (!pspamHandle) {
+	mlog("%s: getting pspam handle failed\n", __func__);
+	return false;
+    }
+
+    psPamAddUser = dlsym(pspamHandle, "psPamAddUser");
+    if (!psPamAddUser) {
+	mlog("%s: loading function psPamAddUser() failed\n", __func__);
+	return false;
+    }
+
+    psPamSetState = dlsym(pspamHandle, "psPamSetState");
+    if (!psPamSetState) {
+	mlog("%s: loading function psPamSetState() failed\n", __func__);
+	return false;
+    }
+
+    psPamDeleteUser = dlsym(pspamHandle, "psPamDeleteUser");
+    if (!psPamDeleteUser) {
+	mlog("%s: loading function psPamDeleteUser() failed\n", __func__);
+	return false;
+    }
 
     return true;
 }
@@ -588,6 +621,11 @@ int initialize(void)
 
     if (!initAccountingFunc()) {
 	fprintf(stderr, "%s: init accounting functions failed\n", __func__);
+	return 1;
+    }
+
+    if (!initPsPAMFunc()) {
+	fprintf(stderr, "%s: init pspam functions failed\n", __func__);
 	return 1;
     }
 

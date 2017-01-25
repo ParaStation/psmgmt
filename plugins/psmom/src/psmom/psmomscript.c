@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2017 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -31,6 +31,7 @@
 #include "pluginmalloc.h"
 
 #include "psaccounthandles.h"
+#include "pspamhandles.h"
 
 #include "psmomspawn.h"
 #include "psmomlog.h"
@@ -883,8 +884,7 @@ void handlePELogueStart(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *msgData)
 	    .len = sizeof(msgRes.header) + sizeof(msgRes.type)},
 	.buf = {'\0'} };
     char *ptr, ctype[20], buf[300], tmpDir[400] = { '\0' };
-    char *dirScripts, *jobid, *confTmpDir;
-    int32_t exit;
+    char *dirScripts, *confTmpDir;
     int itype, disPE;
     PElogue_Data_t *data;
     time_t job_start;
@@ -937,18 +937,20 @@ void handlePELogueStart(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *msgData)
 	}
     }
 
-	disPE = getConfValueI(&config, "DISABLE_PELOGUE");
+    disPE = getConfValueI(&config, "DISABLE_PELOGUE");
 
     if (disPE == 1) {
-
 	/* no PElogue scripts to run */
-	exit = 0;
+	char *jobid;
+	int32_t exit = 0;
 
 	/* get jobid from received msg */
 	jobid = getStringM(&ptr);
 
 	/* get start_time */
 	getTime(&ptr, &job_start);
+
+	if (prologue) psPamAddUser(buf, jobid, PSPAM_STATE_PROLOGUE);
 
 	/* add jobid */
 	addStringToMsgBuf(&msgRes, jobid);
@@ -1002,6 +1004,8 @@ void handlePELogueStart(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *msgData)
     data->server = getStringM(&ptr);
     data->tmpDir = (confTmpDir != NULL) ? ustrdup(tmpDir) : NULL;
 
+    if (prologue) psPamAddUser(data->user, data->jobid, PSPAM_STATE_PROLOGUE);
+
     if (!data->frontend) {
 	PSnodes_ID_t id = PSC_getID(msg->header.sender);
 	mdbg(PSMOM_LOG_JOB, "remote %s for job '%s' ms '%s(%i)' is starting\n",
@@ -1014,10 +1018,10 @@ void handlePELogueStart(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *msgData)
     /* spawn child to prevent the pelogue script from blocking
      * the psmom/psid */
     if ((pid = PSID_execFunc(execPElogueForwarder, prepScriptEnv,
-	callbackPElogue, data)) == -1) {
+			     callbackPElogue, data)) == -1) {
+	int32_t exit = -2;
 
 	mlog("%s: exec '%s'-script failed\n", __func__, ctype);
-	exit = -2;
 
 	/* add jobid */
 	addStringToMsgBuf(&msgRes, data->jobid);
@@ -1133,10 +1137,13 @@ int handleNodeDown(void *nodeID)
 			id, jobinfo->id);
 		strncpy(user, jobinfo->user, sizeof(user));
 
+		/* cleanup leftover ssh processes */
+		psPamDeleteUser(jobinfo->user, jobinfo->id);
+
 		/* remove remote job */
 		delJobInfo(jobinfo->id);
 
-		/* cleanup leftover ssh/daemon processes */
+		/* cleanup leftover daemon processes */
 		afterJobCleanup(user);
 	    }
 	}

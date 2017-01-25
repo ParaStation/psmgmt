@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2011-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2011-2017 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -20,6 +20,7 @@
 
 #include "pluginhelper.h"
 #include "pluginmalloc.h"
+#include "pspamhandles.h"
 #include "psmomlog.h"
 #include "psmomspawn.h"
 #include "psmomkvs.h"
@@ -50,9 +51,12 @@ void checkJobInfoTimeouts()
 
 	    user = ustrdup(job->user);
 
+	    /* cleanup leftover ssh sessions */
+	    psPamDeleteUser(job->user, job->id);
+
 	    delJobInfo(job->id);
 
-	    /* cleanup leftover ssh/daemon processes */
+	    /* cleanup leftover daemon processes */
 	    afterJobCleanup(user);
 
 	    ufree(user);

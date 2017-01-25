@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2017 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -36,6 +36,7 @@
 #include "pluginmalloc.h"
 
 #include "psaccounthandles.h"
+#include "pspamhandles.h"
 
 #include "pbsdef.h"
 #include "psmomlog.h"
@@ -774,6 +775,7 @@ static int callbackJob(int fd, PSID_scriptCBInfo_t *info)
     sendJobInfo(job, 0);
 
     /* cleanup leftover ssh/daemon processes */
+    psPamDeleteUser(job->user, job->id);
     afterJobCleanup(job->user);
 
     /* reset process information */
@@ -856,6 +858,7 @@ void startInteractiveJob(Job_t *job, ComHandle_t *com)
     }
 
     job->state = JOB_RUNNING;
+    psPamSetState(job->user, job->id, PSPAM_STATE_JOB);
 
     /* tell other nodes the job is starting */
     sendJobInfo(job, 1);

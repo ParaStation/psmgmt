@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2017 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -27,6 +27,7 @@
 #include "pluginpartition.h"
 
 #include "psaccounthandles.h"
+#include "pspamhandles.h"
 
 #include "psmom.h"
 #include "psmomlog.h"
@@ -180,6 +181,7 @@ static void handle_Local_Child_Start(ComHandle_t *com)
 	    /* set batch job to running state */
 	    if (forwarder_type == FORWARDER_JOBSCRIPT) {
 		job->state = JOB_RUNNING;
+		psPamSetState(job->user, job->id, PSPAM_STATE_JOB);
 	    }
 	}
     }

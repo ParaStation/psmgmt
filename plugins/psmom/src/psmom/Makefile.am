@@ -1,7 +1,7 @@
 #
 # ParaStation
 #
-# Copyright (C) 2013-2016 ParTec Cluster Competence Center GmbH, Munich
+# Copyright (C) 2013-2017 ParTec Cluster Competence Center GmbH, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -11,10 +11,11 @@
 include $(top_srcdir)/common.am
 
 psaccount_dir := plugins/psaccount
+pspam_dir := plugins/pspam/pspam
 
 AM_LDFLAGS += -avoid-version -module
 AM_CPPFLAGS += -I$(top_srcdir)/bin/daemon -I$(srcdir)/../include \
-		-I$(top_srcdir)/$(psaccount_dir)
+		-I$(top_srcdir)/$(psaccount_dir) -I$(top_srcdir)/$(pspam_dir)
 
 plugin_LTLIBRARIES = psmom.la
 

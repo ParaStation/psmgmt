@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2017 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -18,6 +18,8 @@
 #include "pluginfrag.h"
 #include "pluginhelper.h"
 #include "pluginmalloc.h"
+
+#include "pspamhandles.h"
 
 #include "psmomlog.h"
 #include "psmomscript.h"
@@ -370,6 +372,7 @@ static void handleJobInfo(DDTypedBufferMsg_t *msg)
 	checkJobInfoTimeouts();
 
 	addJobInfo(jobid, username, msg->header.sender, timeout, cookie);
+	psPamSetState(username, jobid, PSPAM_STATE_JOB);
     } else {
 	mdbg(PSMOM_LOG_VERBOSE, "%s: job '%s' user '%s' is finished\n",
 		__func__, jobid, username);
@@ -377,6 +380,7 @@ static void handleJobInfo(DDTypedBufferMsg_t *msg)
 	delJobInfo(jobid);
 
 	/* cleanup leftover ssh/daemon processes */
+	psPamDeleteUser(username, jobid);
 	afterJobCleanup(username);
     }
 }
