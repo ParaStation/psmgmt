@@ -153,7 +153,7 @@ static void cleanupJobs(void)
 
     if (obitTime == obitTimeCounter) {
 	mlog("sending SIGKILL to %i remaining jobs\n", countJobs());
-	sendSignaltoJob(NULL, SIGKILL, "shutdown");
+	signalAllJobs(SIGKILL, "shutdown");
     }
 }
 
@@ -172,7 +172,7 @@ static bool shutdownJobs(void)
     mlog("shutdown jobs\n");
     if (countJobs() >0) {
 	mlog("sending SIGTERM to %i remaining jobs\n", countJobs());
-	sendSignaltoJob(NULL, SIGTERM, "shutdown");
+	signalAllJobs(SIGTERM, "shutdown");
 
 	if ((cleanupTimerID = Timer_register(&cleanupTimer,
 							cleanupJobs)) == -1) {
@@ -639,7 +639,6 @@ int initialize(void)
 
     /* init all data lists */
     initComList();
-    initJobList();
     initAuthList();
     initInfoList();
     initChildList();
@@ -784,7 +783,7 @@ void cleanup(void)
 
     /* make sure all left forwarders and children are gone */
     if (countJobs() > 0) {
-	sendSignaltoJob(NULL, SIGKILL, "shutdown");
+	signalAllJobs(SIGKILL, "shutdown");
     }
 
     /* free config values */

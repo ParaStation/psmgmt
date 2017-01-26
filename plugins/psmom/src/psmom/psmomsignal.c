@@ -1,13 +1,12 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2017 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-
 #include <stdlib.h>
 #include <stdio.h>
 #include <sys/types.h>
@@ -38,8 +37,11 @@
 
 #include "psmomsignal.h"
 
-static struct sigTable sig_Table[] =
-{
+struct sigTable {
+    char *sigName;
+    char *sigStrNum;
+    int sigNum;
+} sig_Table[] = {
     { "SIGHUP",	    "1",    SIGHUP },
     { "SIGINT",	    "2",    SIGINT },
     { "SIGQUIT",    "3",    SIGQUIT },
@@ -106,16 +108,7 @@ char *signal2String(int signal)
     return NULL;
 }
 
-/**
- * @brief Send a signal to a job using various ways.
- *
- * @param job A pointer to the job structure to send the signal to.
- *
- * @param signal The signal to send.
- *
- * @return Returns 0 on success and 1 on error.
- */
-static int doSendSignal(Job_t *job, int signal, char *reason)
+bool signalJob(Job_t *job, int signal, char *reason)
 {
     ComHandle_t *comForward;
     Child_t *child;
@@ -150,29 +143,8 @@ static int doSendSignal(Job_t *job, int signal, char *reason)
 	    kill(child->pid, signal);
 	}
     } else {
-	return 1;
+	return false;
     }
 
-    return 0;
-}
-
-int sendSignaltoJob(Job_t *job, int signal, char *reason)
-{
-    struct list_head *pos;
-    int ret = 0, tmp;
-
-    /* send to all jobs */
-    if (!job) {
-	if (list_empty(&JobList.list)) return 1;
-
-	list_for_each(pos, &JobList.list) {
-	    if ((job = list_entry(pos, Job_t, list)) == NULL) return 0;
-	    tmp = doSendSignal(job, signal, reason);
-	    if (tmp > ret) ret = tmp;
-	}
-    } else {
-	return doSendSignal(job, signal, reason);
-    }
-
-    return ret;
+    return true;
 }

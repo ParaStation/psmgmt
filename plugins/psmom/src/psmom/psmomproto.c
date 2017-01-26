@@ -1254,9 +1254,9 @@ static int handle_TM_BSignalJob(ComHandle_t *com)
 		mdbg(PSMOM_LOG_VERBOSE, "%s: job '%s' signal '%s' pid:'%i'\n",
 		    __func__, jobid, signal, job->pid);
 
-		if ((sendSignaltoJob(job, sig, "PBS server"))) {
+		if (!signalJob(job, sig, "PBS server")) {
 		    mlog("%s: signal '%s' to job '%s' failed\n",
-			__func__, signal, job->id);
+			 __func__, signal, job->id);
 		    return send_TM_Error(com, PBSE_SYSTEM,
 					 "system error occurred", 1);
 		}

@@ -1,46 +1,46 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2017 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-
-#define _GNU_SOURCE
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <signal.h>
-#include <stdbool.h>
 #include <unistd.h>
 #include <inttypes.h>
 
 #include "pluginhelper.h"
 #include "pluginmalloc.h"
-#include "list.h"
 #include "timer.h"
 #include "selector.h"
 #include "psidtask.h"
 #include "psidpartition.h"
 
-#include "pscommon.h"
+#include "psaccounthandles.h"
+
 #include "psmomlog.h"
-#include "psmomcomm.h"
 #include "psmomconfig.h"
 #include "psmomproto.h"
 #include "psmomscript.h"
 #include "psmomkvs.h"
 #include "psmomjobinfo.h"
+#include "psmomsignal.h"
 
 #include "psmomjob.h"
 
-#define JOB_HISTORY_SIZE 10
-#define JOB_HISTORY_ID_LEN 20
+/** List of all known (local) jobs */
+static LIST_HEAD(jobList);
 
 /** Timer id for obitting jobs */
 int jobObitTimerID = -1;
+
+#define JOB_HISTORY_SIZE 10
+#define JOB_HISTORY_ID_LEN 20
 
 static char jobHistory[JOB_HISTORY_SIZE][JOB_HISTORY_ID_LEN];
 
@@ -66,31 +66,28 @@ void setJobObitTimer(Job_t *job)
 
 void obitWaitingJobs(void)
 {
-    struct list_head *pos;
-    Job_t *job;
+    list_t *j;
     int err_count = 0;
 
-    if (list_empty(&JobList.list)) {
+    if (list_empty(&jobList)) {
 	/* no jobs, nothing to do here */
 	Timer_remove(jobObitTimerID);
 	jobObitTimerID = -1;
 	return;
     };
 
-    list_for_each(pos, &JobList.list) {
-	if ((job = list_entry(pos, Job_t, list)) == NULL) break;
+    list_for_each(j, &jobList) {
+	Job_t *job = list_entry(j, Job_t, next);
 
 	if (job->state == JOB_WAIT_OBIT) {
 
 	    /* request additional job information from the server */
 	    if (job->recovered && job->recoverTrack <= 3 &&
-		    !(getJobDetail(&job->data, "Variable_List", NULL))) {
+		!(getJobDetail(&job->data, "Variable_List", NULL))) {
 
-		if (!(requestJobInformation(job))) {
-		    if (job->recoverTrack == 3) {
-			mlog("%s: requesting recover info for job '%s'"
-			    "failed.\n", __func__, job->id);
-		    }
+		if (!requestJobInformation(job) && job->recoverTrack == 3) {
+		    mlog("%s: requesting recover info for job '%s' failed.\n",
+			 __func__, job->id);
 		}
 
 		job->recoverTrack++;
@@ -102,9 +99,7 @@ void obitWaitingJobs(void)
 		__func__, job->id);
 
 	    /* try to obit the job */
-	    if ((sendTMJobTermination(job))) {
-		err_count++;
-	    }
+	    if (sendTMJobTermination(job)) err_count++;
 	}
     }
 
@@ -115,62 +110,40 @@ void obitWaitingJobs(void)
     }
 }
 
-Job_t JobList;
-
-void initJobList()
-{
-    INIT_LIST_HEAD(&JobList.list);
-}
-
-/**
- * @brief Count the number of jobs.
- *
- * @return Returns the number of jobs.
- */
 int countJobs()
 {
-    struct list_head *pos;
-    Job_t *job;
     int count=0;
+    list_t *j;
+    list_for_each(j, &jobList) {
+	Job_t *job = list_entry(j, Job_t, next);
 
-    if (list_empty(&JobList.list)) return 0;
-
-    list_for_each(pos, &JobList.list) {
-	if (!(job = list_entry(pos, Job_t, list))) break;
-
-	if (job->recovered == 0) {
-	    count++;
-	}
+	if (job->recovered == 0) count++;
     }
+
     return count;
 }
 
 char *getJobString()
 {
-    list_t *pos, *tmp;
-    Job_t *job;
-    char *jobstring = NULL;
+    char *jStr = NULL;
+    list_t *j;
+    list_for_each(j, &jobList) {
+	Job_t *job = list_entry(j, Job_t, next);
 
-    if (list_empty(&JobList.list)) return NULL;
-
-    list_for_each_safe(pos, tmp, &JobList.list) {
-	if (!(job = list_entry(pos, Job_t, list))) break;
-
-	if (job) {
-	    if (!jobstring) {
-		if (!(jobstring = ustrdup(job->id))) {
-		    mlog("%s: out of memory!\n", __func__);
-		    exit(1);
-		}
-	    } else {
-		jobstring = urealloc(jobstring, strlen(jobstring) +
-			strlen(job->id) + 2);
-		strcat(jobstring, " ");
-		strcat(jobstring, job->id);
+	if (!jStr) {
+	    jStr = ustrdup(job->id);
+	    if (!jStr) {
+		mlog("%s: out of memory!\n", __func__);
+		exit(1);
 	    }
+	} else {
+	    jStr = urealloc(jStr, strlen(jStr) + strlen(job->id) + 2);
+	    strcat(jStr, " ");
+	    strcat(jStr, job->id);
 	}
     }
-    return jobstring;
+
+    return jStr;
 }
 
 /**
@@ -180,53 +153,36 @@ char *getJobString()
  * job was not found.
  */
 static Job_t *findJob(char *id, char *user, pid_t pid, JobState_t state,
-			char *shortId, pid_t logger)
+		      char *shortId, pid_t logger)
 {
-    struct list_head *pos;
-    Job_t *job;
+    list_t *j;
+    list_for_each(j, &jobList) {
+	Job_t *job = list_entry(j, Job_t, next);
 
-    if (list_empty(&JobList.list)) return NULL;
+	if (id && !strcmp(job->id, id)) return job;
 
-    list_for_each(pos, &JobList.list) {
-	if (!(job = list_entry(pos, Job_t, list))) return NULL;
+	if (user && !strcmp(job->user, user)) {
+	    if (!state || state == job->state) return job;
+	}
 
-	if (id) {
-	    if (!strcmp(job->id, id)) {
-		return job;
-	    }
-	}
-	if (user) {
-	    if (!strcmp(job->user, user)) {
-		if (state != 0) {
-		    if (state == job->state) return job;
-		} else {
-		    return job;
-		}
-	    }
-	}
-	if (pid > -1) {
-	    if (job->pid == pid) {
-		return job;
-	    }
-	}
+	if (pid > -1 && job->pid == pid) return job;
+
 	if (shortId) {
 	    size_t slen1, slen2, slen;
-	    char *sjob;
+	    char *sjob = strchr(job->id, '.');
 
-	    if (!(sjob = strchr(job->id, '.'))) continue;
+	    if (!sjob) continue;
 	    slen1 = strlen(job->id) - strlen(sjob);
 	    slen2 = strlen(shortId);
 
 	    slen = (slen2 > slen1) ? slen2 : slen1;
 
-	    if (!strncmp(job->id, shortId, slen)) {
-		return job;
-	    }
+	    if (!strncmp(job->id, shortId, slen)) return job;
 	}
-	if (logger > -1) {
-	    if (logger == job->mpiexec) return job;
-	}
+
+	if (logger > -1 && logger == job->mpiexec) return job;
     }
+
     return NULL;
 }
 
@@ -257,19 +213,40 @@ Job_t *findJobByLogger(pid_t logger)
 
 Job_t *findJobByCom(ComHandle_t *com, Job_Conn_type_t type)
 {
-    struct list_head *pos;
-    Job_t *job;
+    list_t *j;
+    list_for_each(j, &jobList) {
+	Job_t *job = list_entry(j, Job_t, next);
+	if (findJobConn(job, type, com)) return job;
+    }
 
-    if (list_empty(&JobList.list)) return NULL;
+    return NULL;
+}
 
-    list_for_each(pos, &JobList.list) {
-	if ((job = list_entry(pos, Job_t, list)) == NULL) {
-	    return NULL;
-	}
-	if ((findJobConn(job, type, com)) != NULL) {
+Job_t *findJobforPID(pid_t pid)
+{
+    list_t *j;
+
+    if (pid < 0) {
+	mlog("%s: got invalid pid %i\n", __func__, pid);
+	return NULL;
+    }
+
+    list_for_each(j, &jobList) {
+	Job_t *job = list_entry(j, Job_t, next);
+
+	/* skip jobs in wrong jobstate */
+	if (job->state != JOB_RUNNING) continue;
+
+	if (job->mpiexec == pid) return job;
+
+	if (findJobCookie(job->cookie, pid)) {
+	    /* try to find our job cookie in the environment */
+	    return job;
+	} else if (psAccountIsDescendant(job->pid, pid)) {
 	    return job;
 	}
     }
+
     return NULL;
 }
 
@@ -306,14 +283,13 @@ Job_t *addJob(char *jobid, char *server)
 {
     char cookie[25], sessid[25];
     char *jobnum;
-    Job_t *job;
+    Job_t *job = umalloc(sizeof(*job));
 
     if (!jobid || !server) {
 	mlog ("%s: invalid jobid or server\n", __func__);
 	return NULL;
     }
 
-    job = (Job_t *) umalloc(sizeof(Job_t));
     job->id = ustrdup(jobid);
     job->hashname = NULL;
     job->server = ustrdup(server);
@@ -365,7 +341,8 @@ Job_t *addJob(char *jobid, char *server)
     job->cookie = ustrdup(cookie);
 
     /* calc uniq session id */
-    if (!(jobnum = strchr(jobid, '.'))) {
+    jobnum = strchr(jobid, '.');
+    if (!jobnum) {
 	snprintf(sessid, sizeof(sessid), "%10s", cookie);
     } else {
 	jobnum[0] = '\0';
@@ -379,7 +356,7 @@ Job_t *addJob(char *jobid, char *server)
     strncpy(jobHistory[jobHistIndex++], jobid, sizeof(jobHistory[0]));
     if (jobHistIndex >= JOB_HISTORY_SIZE) jobHistIndex = 0;
 
-    list_add_tail(&(job->list), &JobList.list);
+    list_add_tail(&job->next, &jobList);
 
     return job;
 }
@@ -396,16 +373,15 @@ Job_t *addJob(char *jobid, char *server)
 */
 Task_t *createTask(Job_t *job)
 {
-    Task_t *task;
+    Task_t *task = umalloc(sizeof(*task));
 
-    task = (Task_t *) umalloc(sizeof(Task_t));
     task->pid = 0;
     task->argc = 0;
     task->event = 0;
     task->nodeNr = 0;
     task->env = NULL;
 
-    list_add_tail(&(task->list), &job->tasks.list);
+    list_add_tail(&task->list, &job->tasks.list);
 
     return task;
 }
@@ -466,45 +442,17 @@ int getJobDetailGlue(Data_Entry_t *data, char *name, char *buf, int buflen)
     return 1;
 }
 
-void clearJobList()
-{
-    list_t *pos, *tmp;
-    Job_t *job;
-
-    if (list_empty(&JobList.list)) return;
-
-    list_for_each_safe(pos, tmp, &JobList.list) {
-	if ((job = list_entry(pos, Job_t, list)) == NULL) {
-	    return;
-	}
-	deleteJob(job->id);
-    }
-}
-
 static void closeAllJobConnections(Job_t *job)
 {
-    Job_Conn_t *con;
-    list_t *pos, *tmp;
-
-    if (list_empty(&job->connections.list)) return;
-
-    list_for_each_safe(pos, tmp, &job->connections.list) {
-	if ((con = list_entry(pos, Job_Conn_t, list)) == NULL) break;
-
-	if (!strcmp(job->id, con->jobid)) {
-	    closeJobConn(con);
-	}
+    list_t *c, *tmp;
+    list_for_each_safe(c, tmp, &job->connections.list) {
+	Job_Conn_t *con = list_entry(c, Job_Conn_t, list);
+	if (!strcmp(job->id, con->jobid)) closeJobConn(con);
     }
 }
 
-int deleteJob(char *jobid)
+static void doDelete(Job_t *job)
 {
-    Job_t *job;
-
-    if ((job = findJobById(jobid)) == NULL) {
-	return 0;
-    }
-
     /* make sure pelogue timeout monitoring is gone */
     removePELogueTimeout(job);
 
@@ -535,10 +483,8 @@ int deleteJob(char *jobid)
 	ufree(job->cookie);
 	job->cookie = NULL;
     }
-    if (job->pwbuf) {
-	ufree(job->pwbuf);
-    }
-    ufree(job->nodes);
+    if (job->pwbuf) ufree(job->pwbuf);
+    if (job->nodes) ufree(job->nodes);
 
     if (job->resDelegate) {
 	list_t *t;
@@ -559,9 +505,27 @@ int deleteJob(char *jobid)
     /* delete tasks when TM interface is correct implemented
      * and tasks are possible */
 
-    list_del(&job->list);
+    list_del(&job->next);
     ufree(job);
-    return 1;
+}
+
+bool deleteJob(char *jobid)
+{
+    Job_t *job = findJobById(jobid);
+
+    if (!job) return false;
+
+    doDelete(job);
+    return true;
+}
+
+void clearJobList()
+{
+    list_t *j, *tmp;
+    list_for_each_safe(j, tmp, &jobList) {
+	Job_t *job = list_entry(j, Job_t, next);
+	doDelete(job);
+    }
 }
 
 Job_Node_List_t *findJobNodeEntry(Job_t *job, PSnodes_ID_t id)
@@ -645,9 +609,7 @@ int setNodeInfos(Job_t *job)
 
 Job_Conn_t *addJobConn(Job_t *job, ComHandle_t *com, Job_Conn_type_t type)
 {
-    Job_Conn_t *con;
-
-    con = (Job_Conn_t *) umalloc(sizeof(Job_Conn_t));
+    Job_Conn_t *con = umalloc(sizeof(*con));
 
     con->com = com;
     con->sock = com->socket;
@@ -659,7 +621,7 @@ Job_Conn_t *addJobConn(Job_t *job, ComHandle_t *com, Job_Conn_type_t type)
 
     if (!com->jobid) com->jobid = ustrdup(job->id);
 
-    list_add_tail(&(con->list), &job->connections.list);
+    list_add_tail(&con->list, &job->connections.list);
 
     return con;
 }
@@ -675,11 +637,9 @@ void addJobConnF(Job_Conn_t *con, ComHandle_t *com)
 
 ComHandle_t *getJobCom(Job_t *job, Job_Conn_type_t type)
 {
-    Job_Conn_t *con;
+    Job_Conn_t *con = findJobConn(job, type, NULL);
 
-    if (!(con = findJobConn(job, type, NULL))) {
-	return NULL;
-    }
+    if (!con) return NULL;
 
     if (!isValidComHandle(con->com)) {
 	mlog("%s: removing invalid job con handle\n", __func__);
@@ -692,42 +652,26 @@ ComHandle_t *getJobCom(Job_t *job, Job_Conn_type_t type)
 
 Job_Conn_t *getJobConn(Job_t *job, Job_Conn_type_t type)
 {
-    Job_Conn_t *con;
-
-    if (!(con = findJobConn(job, type, NULL))) {
-	return NULL;
-    }
-    return con;
+    return findJobConn(job, type, NULL);
 }
 
 Job_Conn_t *getJobConnByCom(ComHandle_t *com, Job_Conn_type_t type)
 {
-    Job_Conn_t *con;
-    struct list_head *pos;
-    Job_t *job;
-
-    if (list_empty(&JobList.list)) return NULL;
-
-    list_for_each(pos, &JobList.list) {
-	if ((job = list_entry(pos, Job_t, list)) == NULL) {
-	    return NULL;
-	}
-	if ((con = findJobConn(job, type, com)) != NULL) {
-	    return con;
-	}
+    list_t *j;
+    list_for_each(j, &jobList) {
+	Job_t *job = list_entry(j, Job_t, next);
+	Job_Conn_t *con = findJobConn(job, type, com);
+	if (con) return con;
     }
+
     return NULL;
 }
 
 Job_Conn_t *findJobConn(Job_t *job, Job_Conn_type_t type, ComHandle_t *com)
 {
-    Job_Conn_t *con;
-    list_t *pos, *tmp;
-
-    if (list_empty(&job->connections.list)) return NULL;
-
-    list_for_each_safe(pos, tmp, &job->connections.list) {
-	if ((con = list_entry(pos, Job_Conn_t, list)) == NULL) break;
+    list_t *c, *tmp;
+    list_for_each_safe(c, tmp, &job->connections.list) {
+	Job_Conn_t *con = list_entry(c, Job_Conn_t, list);
 
 	if (!isValidComHandle(con->com)) {
 	    mlog("%s: removing invalid con handle\n", __func__);
@@ -736,7 +680,7 @@ Job_Conn_t *findJobConn(Job_t *job, Job_Conn_type_t type, ComHandle_t *com)
 	    continue;
 	}
 	if (!con->jobid) continue;
-	if (!(!strcmp(con->jobid, job->id))) continue;
+	if (!!strcmp(con->jobid, job->id)) continue;
 
 	if (com == NULL && con->type == type) return con;
 	if (con->com == com && con->type == type) return con;
@@ -820,4 +764,154 @@ int hasRunningJobs(char *user)
     }
 
     return 0;
+}
+
+char *listJobs(char *buf, size_t *bufSize)
+{
+    char line[160];
+    list_t *j;
+
+    if (list_empty(&jobList)) {
+	return str2Buf("\nCurrently no jobs.\n", &buf, bufSize);
+    }
+
+    snprintf(line, sizeof(line), "\n%26s %8s %8s %6s %10s %10s %20s %20s\n",
+	     "JobId", "State", "Procs", "Nodes", "User", "TaskID",
+	     "Startttime", "Timeout");
+    str2Buf(line, &buf, bufSize);
+
+    list_for_each(j, &jobList) {
+	Job_t *job = list_entry(j, Job_t, next);
+	char start[50], timeout[50], logger[15], procs[8], nodes[6];
+	struct tm *ts;
+	long secTimeout;
+
+	/* format start time */
+	ts = localtime(&job->start_time);
+	strftime(start, sizeof(start), "%Y-%m-%d %H:%M:%S", ts);
+
+	/* format timeout */
+	secTimeout = stringTimeToSec(getJobDetail(&job->data, "Resource_List",
+		    "walltime"));
+
+	formatTimeout(job->start_time, secTimeout, timeout, sizeof(timeout));
+
+	if (job->mpiexec == -1) {
+	    strncpy(logger, "-", sizeof(logger));
+	} else {
+	    snprintf(logger, sizeof(logger), "[%i:%i]", PSC_getID(-1),
+			job->mpiexec);
+	}
+
+	snprintf(procs, sizeof(procs), "%i", job->nrOfNodes);
+	snprintf(nodes, sizeof(nodes), "%i", job->nrOfUniqueNodes);
+
+	snprintf(line, sizeof(line), "%26s %8s %8s %6s %10s %10s %20s %20s\n",
+		 job->id, jobState2String(job->state), procs, nodes, job->user,
+		 logger, start, timeout);
+
+	str2Buf(line, &buf, bufSize);
+    }
+
+    return buf;
+}
+
+bool showAllowedJobPid(pid_t pid, pid_t sid, PStask_ID_t psAccLogger,
+		       char **reason)
+{
+    list_t *j;
+    list_for_each(j, &jobList) {
+	Job_t *job = list_entry(j, Job_t, next);
+
+	/* skip jobs in wrong jobstate */
+	if (job->state == JOB_CANCEL_PROLOGUE ||
+	    job->state == JOB_CANCEL_EPILOGUE ||
+	    job->state == JOB_CANCEL_INTERACTIVE ||
+	    job->state == JOB_WAIT_OBIT ||
+	    job->state == JOB_QUEUED) continue;
+
+	/* is a child of the jobscript? */
+	if (job->pid == pid) {
+	    *reason = "LOCAL_PID";
+	    return true;
+	}
+
+	/* try sid of jobscript child */
+	if (sid > 0 && job->sid == sid) {
+	    *reason = "LOCAL_SID";
+	    return true;
+	}
+
+	/* check if the child is from a known logger */
+	if (psAccLogger == PSC_getTID(-1, job->mpiexec)) {
+	    *reason = "LOCAL_LOGGER";
+	    return true;
+	}
+
+	/* try to find the job cookie in the environment */
+	if (findJobCookie(job->cookie, pid)) {
+	    *reason = "LOCAL_ENV";
+	    return true;
+	}
+    }
+
+    return false;
+}
+
+void cleanJobByNode(PSnodes_ID_t id)
+{
+    const char *hname = getHostnameByNodeId(id);
+    list_t *j, *tmp;
+    list_for_each_safe(j, tmp, &jobList) {
+	Job_t *job = list_entry(j, Job_t, next);
+	int i;
+
+	if (job->state != JOB_PROLOGUE && job->state != JOB_EPILOGUE
+	    && job->state != JOB_RUNNING  && job->state != JOB_CANCEL_PROLOGUE
+	    && job->state == JOB_CANCEL_EPILOGUE) continue;
+
+	for (i=0; i<job->nrOfUniqueNodes; i++) {
+	    if (job->nodes[i].id != id) continue;
+
+	    mlog("%s: node %s(%i) died: job '%s' jstate '%s' affected \n",
+		 __func__, hname, id, job->id, jobState2String(job->state));
+
+	    /* tell the PBS server that the node is down */
+	    if (hname) setPBSNodeState(job->server, NULL, "down", hname);
+
+	    if (job->state == JOB_PROLOGUE ||
+		job->state == JOB_EPILOGUE ||
+		job->state == JOB_CANCEL_PROLOGUE ||
+		job->state == JOB_CANCEL_EPILOGUE) {
+
+		/* stop pelogue scripts on all nodes */
+		signalPElogue(job, "SIGTERM", "node down");
+		stopPElogueExecution(job);
+	    } else if (job->state == JOB_RUNNING) {
+		char *ft = getJobDetail(&job->data, "fault_tolerant", NULL);
+		if (ft && (!strcmp(ft, "True") || !strcmp(ft, "true"))) {
+		    continue;
+		} else {
+		    /* kill the job */
+		    mlog("%s: job '%s' is not fault tolerant, killing job\n",
+			 __func__, job->id);
+		    signalJob(job, SIGTERM, "node down");
+		    signalJob(job, SIGKILL, "node down");
+		}
+	    }
+	}
+    }
+}
+
+bool signalAllJobs(int signal, char *reason)
+{
+    bool ret = true;
+    list_t *j;
+    list_for_each(j, &jobList) {
+	Job_t *job = list_entry(j, Job_t, next);
+	bool tmp = signalJob(job, signal, reason);
+	if (!tmp) ret = tmp;
+    }
+
+    return ret;
 }

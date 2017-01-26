@@ -7,7 +7,6 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -233,73 +232,6 @@ static char *showJob(Job_t *job, char *buf, size_t *bufSize)
 }
 
 /**
- * @brief Save information about all known jobs into a buffer.
- *
- * @param buf The buffer to save the information to.
- *
- * @param bufSize A pointer to the current size of the buffer.
- *
- * @return Returns the buffer with the updated job information.
- */
-static char *showJobs(char *buf, size_t *bufSize)
-{
-    struct list_head *pos;
-    Job_t *job;
-    char start[50], timeout[50], logger[15], procs[8], nodes[6];
-    struct tm *ts;
-    long secTimeout;
-
-    if (list_empty(&JobList.list)) {
-	return str2Buf("\nCurrently no jobs.\n", &buf, bufSize);
-    }
-
-    snprintf(line, sizeof(line), "\n%26s %8s %8s %6s %10s %10s %20s %20s\n",
-		"JobId", "State", "Procs", "Nodes", "User", "TaskID",
-		"Startttime", "Timeout");
-    str2Buf(line, &buf, bufSize);
-
-    list_for_each(pos, &JobList.list) {
-	if ((job = list_entry(pos, Job_t, list)) == NULL) {
-	    return buf;
-	}
-
-	/* format start time */
-	ts = localtime(&job->start_time);
-	strftime(start, sizeof(start), "%Y-%m-%d %H:%M:%S", ts);
-
-	/* format timeout */
-	secTimeout = stringTimeToSec(getJobDetail(&job->data, "Resource_List",
-		    "walltime"));
-
-	formatTimeout(job->start_time, secTimeout, timeout, sizeof(timeout));
-
-	if (job->mpiexec == -1) {
-	    strncpy(logger, "-", sizeof(logger));
-	} else {
-	    snprintf(logger, sizeof(logger), "[%i:%i]", PSC_getID(-1),
-			job->mpiexec);
-	}
-
-	snprintf(procs, sizeof(procs), "%i", job->nrOfNodes);
-	snprintf(nodes, sizeof(nodes), "%i", job->nrOfUniqueNodes);
-
-	snprintf(line, sizeof(line), "%26s %8s %8s %6s %10s %10s %20s %20s\n",
-			job->id,
-			jobState2String(job->state),
-			procs,
-			nodes,
-			job->user,
-			logger,
-			start,
-			timeout);
-
-	str2Buf(line, &buf, bufSize);
-    }
-
-    return buf;
-}
-
-/**
  * @brief Show psmom state information.
  *
  * @param buf The buffer to write the information to.
@@ -505,7 +437,6 @@ static char *showAllowedPid(char *key, char *buf, size_t *bufSize)
     list_t *pos, *tmp;
     pid_t pid, sid;
     int found = 0;
-    Job_t *job = NULL;
     PStask_ID_t psAccLogger;
     PStask_t *task;
     Child_t *child;
@@ -545,47 +476,7 @@ static char *showAllowedPid(char *key, char *buf, size_t *bufSize)
     }
 
     /* check for local job */
-    if (!list_empty(&JobList.list)) {
-
-	list_for_each_safe(pos, tmp, &JobList.list) {
-	    if ((job = list_entry(pos, Job_t, list)) == NULL) continue;
-
-	    /* skip jobs in wrong jobstate */
-	    if (job->state == JOB_CANCEL_PROLOGUE ||
-		job->state == JOB_CANCEL_EPILOGUE ||
-		job->state == JOB_CANCEL_INTERACTIVE ||
-		job->state == JOB_WAIT_OBIT ||
-		job->state == JOB_QUEUED) continue;
-
-	    /* is a child of the jobscript? */
-	    if (job->pid == pid) {
-		found = 1;
-		reason = "LOCAL_PID";
-		goto FINISH;
-	    }
-
-	    /* try sid of jobscript child */
-	    if (sid > 0 && job->sid == sid) {
-		found = 1;
-		reason = "LOCAL_SID";
-		goto FINISH;
-	    }
-
-	    /* check if the child is from a known logger */
-	    if (psAccLogger == PSC_getTID(-1, job->mpiexec)) {
-		found = 1;
-		reason = "LOCAL_LOGGER";
-		goto FINISH;
-	    }
-
-	    /* try to find the job cookie in the environment */
-	    if ((findJobCookie(job->cookie, pid))) {
-		found = 1;
-		reason = "LOCAL_ENV";
-		goto FINISH;
-	    }
-	}
-    }
+    found = showAllowedJobPid(pid, sid, psAccLogger, &reason);
 
     /* check for remote job */
     found = showAllowedJobInfoPid(pid, psAccLogger, &reason);
@@ -959,42 +850,42 @@ char *show(char *key)
     /* search for "virtual" values for given key */
 
     /* show current remote jobs */
-    if (!(strcmp(key, "rjobs"))) {
+    if (!strcmp(key, "rjobs")) {
 	return listJobInfos(buf, &bufSize);
     }
 
     /* show running forwarders */
-    if (!(strcmp(key, "forwarder"))) {
+    if (!strcmp(key, "forwarder")) {
 	return showForwarder(buf, &bufSize);
     }
 
     /* show current connections */
-    if (!(strcmp(key, "connections"))) {
+    if (!strcmp(key, "connections")) {
 	return showConnectionState(buf, &bufSize);
     }
 
     /* show state information */
-    if (!(strcmp(key, "state"))) {
+    if (!strcmp(key, "state")) {
 	return showState(buf, &bufSize);
     }
 
     /* show current jobs */
-    if (!(strcmp(key, "jobs"))) {
-	return showJobs(buf, &bufSize);
+    if (!strcmp(key, "jobs")) {
+	return listJobs(buf, &bufSize);
     }
 
     /* show current config */
-    if (!(strcmp(key, "config"))) {
+    if (!strcmp(key, "config")) {
 	return showConfig(buf, &bufSize);
     }
 
     /* show statistic */
-    if (!(strcmp(key, "statistic"))) {
+    if (!strcmp(key, "statistic")) {
 	return showStatistic(buf, &bufSize);
     }
 
     /* check for allowed pid */
-    if (!(strncmp(key, "allowed_", 8))) {
+    if (!strncmp(key, "allowed_", 8)) {
 	return showAllowedPid(key, buf, &bufSize);
     }
 

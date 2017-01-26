@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2017 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -35,44 +35,6 @@
 
 
 #include "psmompartition.h"
-
-/**
- * @brief Test if a pid belongs to a local running job.
- *
- * @param pid The pid to test.
- *
- * @return Returns the identified job or NULL on error.
- */
-static Job_t *findJobforPID(pid_t pid)
-{
-    Job_t *job;
-    list_t *pos, *tmp;
-
-    if (pid < 0) {
-	mlog("%s: got invalid pid '%i'\n", __func__, pid);
-	return NULL;
-    }
-
-    if (list_empty(&JobList.list)) return NULL;
-
-    list_for_each_safe(pos, tmp, &JobList.list) {
-	if ((job = list_entry(pos, Job_t, list)) == NULL) continue;
-
-	/* skip jobs in wrong jobstate */
-	if (job->state != JOB_RUNNING) continue;
-
-	if (job->mpiexec == pid) return job;
-
-	if ((findJobCookie(job->cookie, pid))) {
-	    /* try to find our job cookie in the environment */
-	    return job;
-	} else if (psAccountIsDescendant(job->pid, pid)) {
-	    return job;
-	}
-    }
-
-    return NULL;
-}
 
 void handlePSSpawnReq(DDTypedBufferMsg_t *msg)
 {

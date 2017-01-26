@@ -1,28 +1,14 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2013 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2017 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-/**
- * $Id$
- *
- * \author
- * Michael Rauh <rauh@par-tec.com>
- *
- */
-
-#ifndef __PS_MOM_SIGNAL
-#define __PS_MOM_SIGNAL
-
-struct sigTable {
-    char *sigName;
-    char *sigStrNum;
-    int sigNum;
-};
+#ifndef __PSMOM_SIGNAL
+#define __PSMOM_SIGNAL
 
 /**
  * @brief Convert a signal string into a signal number.
@@ -43,20 +29,14 @@ int string2Signal(char *signal);
 char *signal2String(int signal);
 
 /**
- * @brief Send a signal to one or more jobs.
+ * @brief Send a signal to a job using various ways.
  *
- * The signal must be send to the corresponding forwarder of
- * the job, which will then send the signal to the appropriate processes.
- *
- * @param job The job to send the signal to or
- * NULL to send the signal to all jobs.
+ * @param job A pointer to the job structure to send the signal to.
  *
  * @param signal The signal to send.
  *
- * @param reason The reason why the signal should be sent.
- *
- * @return Returns 1 on error and 0 on success.
+ * @return Returns true on success and false on error.
  */
-int sendSignaltoJob(Job_t *job, int signal, char *reason);
+bool signalJob(Job_t *job, int signal, char *reason);
 
-#endif
+#endif /* __PSMOM_SIGNAL */

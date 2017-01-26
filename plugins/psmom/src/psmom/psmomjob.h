@@ -1,23 +1,29 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2017 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
 
-#ifndef __PS_MOM_JOB
-#define __PS_MOM_JOB
+#ifndef __PSMOM_JOB
+#define __PSMOM_JOB
 
+#include <stdbool.h>
+#include <stdint.h>
+#include <time.h>
+#include <sys/types.h>
 #include <pwd.h>
-#include <netinet/in.h>
 
 #include "list.h"
+#include "pscommon.h"
+#include "psnodes.h"
+#include "pstask.h"
+
 #include "psmomlist.h"
 #include "psmomcomm.h"
-#include "pscommon.h"
 
 typedef enum {
     JOB_INIT   = 0x0001,
@@ -52,7 +58,7 @@ typedef struct {
     int argc;
     char **argv;
     char *env;
-    struct list_head list;
+    list_t list;
 } Task_t;
 
 typedef enum {
@@ -80,6 +86,7 @@ typedef struct {
 } Job_Node_List_t;
 
 typedef struct {
+    list_t next;            /**< used to put into list */
     char *id;		    /* the PBS jobid */
     char *hashname;	    /* filesystem compatible jobid */
     char *server;	    /* pbs_server address for the job */
@@ -116,15 +123,9 @@ typedef struct {
     time_t start_time;	    /* the time were the job started */
     time_t end_time;	    /* the time were the job terminated */
     PStask_t *resDelegate;  /* task struct holding resources used as delegate */
-    struct list_head list;  /* the job list header */
 } Job_t;
 
-/* list which holds all jobs */
-extern Job_t JobList;
-
 extern int jobObitTimerID;
-
-void initJobList(void);
 
 /**
  * @brief Delete all jobs.
@@ -219,15 +220,72 @@ Job_t *findJobByLogger(pid_t logger);
 Job_t *findJobByCom(ComHandle_t *com, Job_Conn_type_t type);
 
 /**
+ * @brief Test if a pid belongs to a local running job.
+ *
+ * @param pid The pid to test.
+ *
+ * @return Returns the identified job or NULL on error.
+ */
+Job_t *findJobforPID(pid_t pid);
+
+/**
  * @brief Delete a job.
  *
  * @param jobid The id of the job to delete.
  *
- * @return returns 0 on error and 1 on success.
+ * @return returns false on error and true on success.
  */
-int deleteJob(char *jobname);
+bool deleteJob(char *jobname);
 
+/**
+ * @brief Count the number of jobs.
+ *
+ * @return Returns the number of jobs.
+ */
 int countJobs(void);
+
+/**
+ * @brief Save information about all known jobs into a buffer.
+ *
+ * @param buf The buffer to save the information to.
+ *
+ * @param bufSize A pointer to the current size of the buffer.
+ *
+ * @return Returns the buffer with the updated job information.
+ */
+char *listJobs(char *buf, size_t *bufSize);
+
+/**
+ * @brief Check PID for allowance
+ *
+ * Check if the process with ID @a pid is allowed to run on the local
+ * node due to the fact that it is part of a local job.
+ *
+ * @param pid Process ID of the process to check
+ *
+ * @param psAccLogger Logger associated to the process as determined
+ * via psaccount
+ *
+ * @param reason Pointer to be update by the function with the reason
+ * for allowance of this process
+ *
+ * @return Return true of the process is allowed to run on the local
+ * node due to some local process. Otherwise false is returned.
+ */
+bool showAllowedJobPid(pid_t pid, pid_t sid, PStask_ID_t psAccLogger,
+		       char **reason);
+
+/**
+ * @brief Clean job info
+ *
+ * Clean all job info involved with remote node @a id. This also calls
+ * various cleanup actions of internal states.
+ *
+ * @param id Node ID of the remote node that died
+ *
+ * @return No return value.
+ */
+void cleanJobByNode(PSnodes_ID_t id);
 
 /**
  * @brief Convert a job state into its string representation.
@@ -310,4 +368,18 @@ int closeJobConnByJob(Job_t *job, Job_Conn_type_t type, ComHandle_t *com);
  */
 int isJobIDinHistory(char *jobid);
 
-#endif
+/**
+ * @brief Send a signal to one or more jobs.
+ *
+ * The signal must be send to the corresponding forwarder of
+ * the job, which will then send the signal to the appropriate processes.
+ *
+ * @param signal The signal to send.
+ *
+ * @param reason The reason why the signal should be sent.
+ *
+ * @return Returns false on error and true on success.
+ */
+bool signalAllJobs(int signal, char *reason);
+
+#endif /* __PSMOM_JOB */

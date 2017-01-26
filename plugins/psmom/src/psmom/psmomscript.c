@@ -1059,72 +1059,14 @@ void handlePELogueStart(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *msgData)
 
 int handleNodeDown(void *nodeID)
 {
-    list_t *pos, *tmp;
-    Job_t *job;
-    PSnodes_ID_t id;
-    int i;
-
-    id = *((PSnodes_ID_t *) nodeID);
+    PSnodes_ID_t node = *(PSnodes_ID_t *) nodeID;
 
     /* check if the node which has gone down is a part of a local job */
-    if (!list_empty(&JobList.list)) {
-	list_for_each_safe(pos, tmp, &JobList.list) {
-	    if ((job = list_entry(pos, Job_t, list)) == NULL) continue;
-
-	    if (job->state == JOB_PROLOGUE ||
-		job->state == JOB_EPILOGUE ||
-		job->state == JOB_RUNNING  ||
-		job->state == JOB_CANCEL_PROLOGUE  ||
-		job->state == JOB_CANCEL_EPILOGUE) {
-
-		for (i=0; i<job->nrOfUniqueNodes; i++) {
-		    if (job->nodes[i].id == id) {
-
-			const char *hname = NULL;
-
-			hname = getHostnameByNodeId(id);
-
-			mlog("%s: node '%s(%i)' which is running job '%s' "
-				"jstate '%s' is down\n", __func__, hname, id,
-				job->id, jobState2String(job->state));
-
-			/* tell the PBS server that the node is down */
-			if (hname) {
-			    setPBSNodeState(job->server, NULL, "down", hname);
-			}
-
-			if (job->state == JOB_PROLOGUE ||
-			    job->state == JOB_EPILOGUE ||
-			    job->state == JOB_CANCEL_PROLOGUE ||
-			    job->state == JOB_CANCEL_EPILOGUE) {
-
-			    /* stop pelogue scripts on all nodes */
-			    signalPElogue(job, "SIGTERM", "node down");
-			    stopPElogueExecution(job);
-			} else if (job->state == JOB_RUNNING) {
-			    char *ft;
-
-			    ft = getJobDetail(&job->data, "fault_tolerant", NULL);
-
-			    if (ft && (!strcmp(ft, "True") || !strcmp(ft, "true"))) {
-				continue;
-			    } else {
-				/* kill the job */
-				mlog("%s: job '%s' is not fault tolerant, "
-					"killing job\n", __func__, job->id);
-				sendSignaltoJob(job, SIGTERM, "node down");
-				sendSignaltoJob(job, SIGKILL, "node down");
-			    }
-			}
-		    }
-		}
-	    }
-	}
-    }
+    cleanJobByNode(node);
 
     /* check if the node which has gone down is a mother superior
      * from a remote job */
-    cleanJobInfoByNode(id);
+    cleanJobInfoByNode(node);
 
     return 1;
 }
