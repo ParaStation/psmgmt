@@ -56,7 +56,7 @@ FILE *memoryDebug = NULL;
 /* line buffer */
 static char line[1024];
 
-static void formatTimeout(long start, long timeout, char *buf, size_t bufsize)
+void formatTimeout(long start, long timeout, char *buf, size_t bufsize)
 {
     struct tm *ts;
 
@@ -229,53 +229,6 @@ static char *showJob(Job_t *job, char *buf, size_t *bufSize)
 	str2Buf(line, &buf, bufSize);
     }
 
-    return buf;
-}
-
-/**
- * @brief Save information about all known remote jobs.
- *
- * @param buf The buffer to save the information to.
- *
- * @param bufSize A pointer to the current size of the buffer.
- *
- * @return Returns the buffer with the updated remote job information.
- */
-static char *showRemoteJobs(char *buf, size_t *bufSize)
-{
-    list_t *pos, *tmp;
-    JobInfo_t *job;
-    char start[50], timeout[50], nodeId[10];
-    struct tm *ts;
-
-    if (list_empty(&JobInfoList.list)) {
-	return str2Buf("\nNo current remote jobs.\n", &buf, bufSize);
-    }
-
-    snprintf(line, sizeof(line), "\n%26s  %9s  %6s  %15s  %15s\n",
-		"JobId", "User", "NId", "Starttime", "Timeout");
-    str2Buf(line, &buf, bufSize);
-
-    list_for_each_safe(pos, tmp, &JobInfoList.list) {
-	if ((job = list_entry(pos, JobInfo_t, list)) == NULL) break;
-
-	/* format start time */
-	ts = localtime(&job->start_time);
-	strftime(start, sizeof(start), "%Y-%m-%d %H:%M:%S", ts);
-
-	formatTimeout(job->start_time, job->timeout, timeout, sizeof(timeout));
-
-	snprintf(nodeId, sizeof(nodeId), "%i", PSC_getID(job->tid));
-
-	snprintf(line, sizeof(line), "%26s  %9s  %6s  %15s  %15s\n",
-		job->id,
-		job->user,
-		nodeId,
-		start,
-		timeout);
-
-	str2Buf(line, &buf, bufSize);
-    }
     return buf;
 }
 
@@ -553,7 +506,6 @@ static char *showAllowedPid(char *key, char *buf, size_t *bufSize)
     pid_t pid, sid;
     int found = 0;
     Job_t *job = NULL;
-    JobInfo_t *jInfo;
     PStask_ID_t psAccLogger;
     PStask_t *task;
     Child_t *child;
@@ -636,26 +588,8 @@ static char *showAllowedPid(char *key, char *buf, size_t *bufSize)
     }
 
     /* check for remote job */
-    if (!list_empty(&JobInfoList.list)) {
-
-	list_for_each_safe(pos, tmp, &JobInfoList.list) {
-	    if ((jInfo = list_entry(pos, JobInfo_t, list)) == NULL) continue;
-
-	    /* check if the child is from a known logger */
-	    if (psAccLogger == jInfo->logger) {
-		found = 1;
-		reason = "REMOTE_LOGGER";
-		goto FINISH;
-	    }
-
-	    /* try to find the job cookie in the environment */
-	    if ((findJobCookie(jInfo->cookie, pid))) {
-		found = 1;
-		reason = "REMOTE_ENV";
-		goto FINISH;
-	    }
-	}
-    }
+    found = showAllowedJobInfoPid(pid, psAccLogger, &reason);
+    if (found) goto FINISH;
 
     /* check if the child is from an SSH session */
     if (psPamFindSessionForPID(pid)) {
@@ -1026,7 +960,7 @@ char *show(char *key)
 
     /* show current remote jobs */
     if (!(strcmp(key, "rjobs"))) {
-	return showRemoteJobs(buf, &bufSize);
+	return listJobInfos(buf, &bufSize);
     }
 
     /* show running forwarders */

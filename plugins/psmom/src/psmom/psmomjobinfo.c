@@ -7,49 +7,35 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-/**
- * $Id$
- *
- * \author
- * Michael Rauh <rauh@par-tec.com>
- *
- */
-
-#include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 
+#include "pscommon.h"
 #include "pluginhelper.h"
 #include "pluginmalloc.h"
+
 #include "pspamhandles.h"
+
+#include "psmomjob.h"
+#include "psmomkvs.h"
 #include "psmomlog.h"
 #include "psmomspawn.h"
-#include "psmomkvs.h"
 
 #include "psmomjobinfo.h"
 
-JobInfo_t JobInfoList;
-
-void initJobInfoList()
-{
-    INIT_LIST_HEAD(&JobInfoList.list);
-}
+/** List of all known job info */
+static LIST_HEAD(jobInfoList);
 
 void checkJobInfoTimeouts()
 {
-    list_t *pos, *tmp;
-    JobInfo_t *job;
-    char *user = NULL;
-
-    if (list_empty(&JobInfoList.list)) return;
-
-    list_for_each_safe(pos, tmp, &JobInfoList.list) {
-	if ((job = list_entry(pos, JobInfo_t, list)) == NULL) return;
+    list_t *j, *tmp;
+    list_for_each_safe(j, tmp, &jobInfoList) {
+	JobInfo_t *job = list_entry(j, JobInfo_t, next);
 
 	if (job->timeout > 0 && job->start_time + job->timeout < time(NULL)) {
-	    mlog("%s: removing JobInfo '%s', reason: timeout\n", __func__,
-		    job->id);
+	    char *user = ustrdup(job->user);
 
-	    user = ustrdup(job->user);
+	    mlog("%s: remove JobInfo '%s' due to timeout\n", __func__, job->id);
 
 	    /* cleanup leftover ssh sessions */
 	    psPamDeleteUser(job->user, job->id);
@@ -65,11 +51,10 @@ void checkJobInfoTimeouts()
 }
 
 JobInfo_t *addJobInfo(char *id, char *user, PStask_ID_t tid, char *timeout,
-			char *cookie)
+		      char *cookie)
 {
-    JobInfo_t *job;
+    JobInfo_t *job = umalloc(sizeof(*job));
 
-    job = (JobInfo_t *) umalloc(sizeof(JobInfo_t));
     job->id = ustrdup(id);
     job->user = ustrdup(user);
     job->tid = tid;
@@ -84,7 +69,7 @@ JobInfo_t *addJobInfo(char *id, char *user, PStask_ID_t tid, char *timeout,
 
     stat_remoteJobs++;
 
-    list_add_tail(&(job->list), &JobInfoList.list);
+    list_add_tail(&job->next, &jobInfoList);
 
     return job;
 }
@@ -100,27 +85,16 @@ JobInfo_t *addJobInfo(char *id, char *user, PStask_ID_t tid, char *timeout,
  */
 static JobInfo_t *findJobInfo(char *id, char *user, PStask_ID_t logger)
 {
-    struct list_head *pos;
-    JobInfo_t *job;
+    list_t *j;
 
-    if (list_empty(&JobInfoList.list)) return NULL;
+    list_for_each(j, &jobInfoList) {
+	JobInfo_t *job = list_entry(j, JobInfo_t, next);
 
-    list_for_each(pos, &JobInfoList.list) {
-	if ((job = list_entry(pos, JobInfo_t, list)) == NULL) {
-	    return NULL;
-	}
+	if (id && !strcmp(job->id, id)) return job;
 
-	if (id) {
-	    if (!strcmp(job->id, id)) return job;
-	}
+	if (user && !strcmp(job->user, user)) return job;
 
-	if (user) {
-	    if (!strcmp(job->user, user)) return job;
-	}
-
-	if (logger > 0) {
-	    if (job->logger == logger) return job;
-	}
+	if (logger > 0 && job->logger == logger) return job;
     }
     return NULL;
 }
@@ -140,35 +114,113 @@ JobInfo_t *findJobInfoByLogger(PStask_ID_t logger)
     return findJobInfo(NULL, NULL, logger);
 }
 
-int delJobInfo(char *id)
+static void doDelete(JobInfo_t *job)
 {
-    JobInfo_t *job;
-
-    if (!(job = findJobInfoById(id))) {
-	return 0;
-    }
-
     ufree(job->id);
     ufree(job->user);
     ufree(job->cookie);
 
-    list_del(&job->list);
+    list_del(&job->next);
     ufree(job);
+}
 
-    return 1;
+bool delJobInfo(char *id)
+{
+    JobInfo_t *job = findJobInfoById(id);
+
+    if (!job) return false;
+
+    doDelete(job);
+
+    return true;
 }
 
 void clearJobInfoList()
 {
-    list_t *pos, *tmp;
-    JobInfo_t *job;
+    list_t *j, *tmp;
 
-    if (list_empty(&JobInfoList.list)) return;
+    list_for_each_safe(j, tmp, &jobInfoList) {
+	JobInfo_t *job = list_entry(j, JobInfo_t, next);
 
-    list_for_each_safe(pos, tmp, &JobInfoList.list) {
-	if ((job = list_entry(pos, JobInfo_t, list)) == NULL) {
-	    return;
+	doDelete(job);
+    }
+}
+
+char *listJobInfos(char *buf, size_t *bufSize)
+{
+    char line[160];
+    list_t *j;
+
+    if (list_empty(&jobInfoList)) {
+	return str2Buf("\nNo current remote jobs.\n", &buf, bufSize);
+    }
+
+    snprintf(line, sizeof(line), "\n%26s  %9s  %6s  %15s  %15s\n",
+		"JobId", "User", "NId", "Starttime", "Timeout");
+    str2Buf(line, &buf, bufSize);
+
+    list_for_each(j, &jobInfoList) {
+	JobInfo_t *job = list_entry(j, JobInfo_t, next);
+	char start[50], timeout[50], nodeId[10];
+
+	/* format start time */
+	struct tm *ts = localtime(&job->start_time);
+	strftime(start, sizeof(start), "%Y-%m-%d %H:%M:%S", ts);
+
+	formatTimeout(job->start_time, job->timeout, timeout, sizeof(timeout));
+
+	snprintf(nodeId, sizeof(nodeId), "%i", PSC_getID(job->tid));
+
+	snprintf(line, sizeof(line), "%26s  %9s  %6s  %15s  %15s\n",
+		 job->id, job->user, nodeId, start, timeout);
+
+	str2Buf(line, &buf, bufSize);
+    }
+    return buf;
+}
+
+bool showAllowedJobInfoPid(pid_t pid, PStask_ID_t psAccLogger, char **reason)
+{
+    list_t *j;
+    list_for_each(j, &jobInfoList) {
+	JobInfo_t *job = list_entry(j, JobInfo_t, next);
+
+	/* check if child is from a known logger */
+	if (psAccLogger == job->logger) {
+	    *reason = "REMOTE_LOGGER";
+	    return true;
 	}
-	delJobInfo(job->id);
+	/* try to find the job cookie in the environment */
+	if (findJobCookie(job->cookie, pid)) {
+	    *reason = "REMOTE_ENV";
+	    return true;
+	}
+    }
+
+    return false;
+}
+
+void cleanJobInfoByNode(PSnodes_ID_t id)
+{
+    list_t *j, *tmp;
+    list_for_each_safe(j, tmp, &jobInfoList) {
+	JobInfo_t *job = list_entry(j, JobInfo_t, next);
+
+	if (PSC_getID(job->tid) != id) continue;
+
+	char *user = ustrdup(job->user);
+
+	mlog("%s: node %i died, clear remote job %s\n", __func__, id, job->id);
+
+	/* cleanup leftover ssh processes */
+	psPamDeleteUser(job->user, job->id);
+
+	/* remove remote job */
+	doDelete(job);
+
+	/* cleanup leftover daemon processes */
+	afterJobCleanup(user);
+
+	ufree(user);
     }
 }

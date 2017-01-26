@@ -1061,7 +1061,6 @@ int handleNodeDown(void *nodeID)
 {
     list_t *pos, *tmp;
     Job_t *job;
-    JobInfo_t *jobinfo;
     PSnodes_ID_t id;
     int i;
 
@@ -1125,29 +1124,7 @@ int handleNodeDown(void *nodeID)
 
     /* check if the node which has gone down is a mother superior
      * from a remote job */
-    if (!list_empty(&JobInfoList.list)) {
-	list_for_each_safe(pos, tmp, &JobInfoList.list) {
-
-	    if ((jobinfo = list_entry(pos, JobInfo_t, list)) == NULL) continue;
-
-	    if (PSC_getID(jobinfo->tid) == id) {
-		char user[USER_NAME_LEN];
-
-		mlog("%s: node '%i' died, removing remote job '%s'\n", __func__,
-			id, jobinfo->id);
-		strncpy(user, jobinfo->user, sizeof(user));
-
-		/* cleanup leftover ssh processes */
-		psPamDeleteUser(jobinfo->user, jobinfo->id);
-
-		/* remove remote job */
-		delJobInfo(jobinfo->id);
-
-		/* cleanup leftover daemon processes */
-		afterJobCleanup(user);
-	    }
-	}
-    }
+    cleanJobInfoByNode(id);
 
     return 1;
 }

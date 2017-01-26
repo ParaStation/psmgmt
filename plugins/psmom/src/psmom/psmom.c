@@ -117,7 +117,6 @@ char rootHome[100];
 
 handlerFunc_t oldSpawnReqHandler = NULL;
 
-
 /** psid plugin requirements */
 char name[] = "psmom";
 int version = 58;
@@ -645,7 +644,6 @@ int initialize(void)
     initInfoList();
     initChildList();
     initServerList();
-    initJobInfoList();
     initEnvList();
 
     isInit = 1;
