@@ -124,7 +124,7 @@ int version = 58;
 int requiredAPI = 109;
 plugin_dep_t dependencies[] = {
     { .name = "psaccount", .version = 26 },
-    { .name = "pspam", .version = 4 },
+    { .name = "pspam", .version = 5 },
     { .name = NULL, .version = 0 } };
 
 /** the process id of the main psmom process */
