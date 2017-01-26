@@ -27,7 +27,6 @@
 #include "psmomproto.h"
 #include "psmom.h"
 #include "psmomjobinfo.h"
-#include "psmomssh.h"
 #include "psmompbsserver.h"
 
 #include "psidcomm.h"

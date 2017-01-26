@@ -40,7 +40,6 @@
 #include "psmomcollect.h"
 #include "psmomacc.h"
 #include "psmominteractive.h"
-#include "psmomssh.h"
 #include "psmompartition.h"
 #include "psmomproto.h"
 
@@ -256,68 +255,6 @@ static void handle_Local_Close(ComHandle_t *com)
     wClose(com);
 }
 
-static void handle_Local_PAM_Request(ComHandle_t *com)
-{
-    char user[USER_NAME_LEN], rhost[HOST_NAME_LEN], buf[800];
-    char *ptr;
-    int32_t res = 0;
-    pid_t pid, sid;
-    struct passwd *spasswd;
-    PS_DataBuffer_t data = { .buf = NULL};
-
-    if ((wReadAll(com, buf, sizeof(buf))) < 0) {
-	mlog("%s: error reading pam request\n", __func__);
-	return;
-    }
-
-    ptr = buf;
-
-    /* get ssh pid */
-    getPid(&ptr, &pid);
-
-    /* get ssh sid */
-    getPid(&ptr, &sid);
-
-    /* get pam username */
-    getString(&ptr, user, sizeof(user));
-
-    /* get pam rhost */
-    getString(&ptr, rhost, sizeof(rhost));
-
-    mlog("%s: got pam request pid: '%i' sid: '%i' user: '%s' rhost: '%s'\n",
-	__func__, pid, sid, user, rhost);
-
-    /* test if user is an PS admin */
-    if (!(spasswd = getpwnam(user))) {
-	mlog("%s: getpwnam failed for '%s' failed\n", __func__, user);
-    } else {
-	if (isPSAdminUser(spasswd->pw_uid, spasswd->pw_gid)) {
-	    res = 2;
-	}
-    }
-
-    /* test if the user has running jobs */
-    if (!res && (res = hasRunningJobs(user))) {
-	addSSHSession(user, rhost, pid, sid);
-    }
-
-    /* add result */
-    addInt32ToMsg(res, &data);
-
-    /* add pam username */
-    addStringToMsg(user, &data);
-
-    /* add pam rhost */
-    addStringToMsg(rhost, &data);
-
-    mlog("%s: sending pam reply, user '%s' rhost '%s' res '%i'\n", __func__,
-	    user, rhost, res);
-
-    wWrite(com, data.buf, data.bufUsed);
-    wDoSend(com);
-    wClose(com);
-}
-
 int closeLocalConnetion(int fd)
 {
     if (fd == masterSocket) return -1;
@@ -383,9 +320,6 @@ static int handleLocalConnection(int fd, void *info)
 	    break;
 	case CMD_LOCAL_CHILD_EXIT:
 	    handle_Local_Child_Exit(com);
-	    break;
-	case CMD_LOCAL_PAM_SSH_REQ:
-	    handle_Local_PAM_Request(com);
 	    break;
 	case CMD_LOCAL_REQUEST_ACCOUNT:
 	    handle_Local_Request_Account(com);

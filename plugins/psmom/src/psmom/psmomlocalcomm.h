@@ -1,22 +1,14 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2013 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2017 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-/**
- * $Id$
- *
- * \author
- * Michael Rauh <rauh@par-tec.com>
- *
- */
-
-#ifndef __PS_MOM_LOCAL_COMM
-#define __PS_MOM_LOCAL_COMM
+#ifndef __PSMOM_LOCALCOMM
+#define __PSMOM_LOCALCOMM
 
 #include "psmomdef.h"
 
@@ -39,8 +31,6 @@ typedef enum {
     CMD_LOCAL_CHILD_START,
     CMD_LOCAL_CHILD_EXIT,
     CMD_LOCAL_CLOSE,
-    CMD_LOCAL_PAM_SSH_REQ,
-    CMD_LOCAL_PAM_SSH_REPLY,
     CMD_LOCAL_REQUEST_ACCOUNT,
     CMD_LOCAL_FORK_FAILED
 } LocalCommandType_t;
@@ -55,4 +45,4 @@ int closeLocalConnetion(int fd);
 void openMasterSock(void);
 void closeMasterSock(void);
 
-#endif
+#endif /* __PSMOM_LOCALCOMM */

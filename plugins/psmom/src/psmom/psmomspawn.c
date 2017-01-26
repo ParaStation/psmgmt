@@ -48,7 +48,6 @@
 #include "psmomforwarder.h"
 #include "psmomproto.h"
 #include "psmomconv.h"
-#include "psmomssh.h"
 #include "psmomenv.h"
 #include "psmompbsserver.h"
 #include "psmomcollect.h"
@@ -652,17 +651,11 @@ static int callbackCopyScript(int fd, PSID_scriptCBInfo_t *info)
 
 void afterJobCleanup(char *user)
 {
-    struct passwd *spasswd;
-    int  killDaemons, warnDaemons;
-
-    if (!(hasRunningJobs(user))) {
-
-	/* kill all ssh sessions if the user has no more jobs running */
-	delSSHSessions(user);
-
+    if (!hasRunningJobs(user)) {
 	/* find all leftover user daemons and warn/kill them */
-	killDaemons = getConfValueI(&config, "KILL_USER_DAEMONS");
-	warnDaemons = getConfValueI(&config, "WARN_USER_DAEMONS");
+	int killDaemons = getConfValueI(&config, "KILL_USER_DAEMONS");
+	int warnDaemons = getConfValueI(&config, "WARN_USER_DAEMONS");
+	struct passwd *spasswd;
 
 	if (killDaemons || warnDaemons) {
 	    if (!(spasswd = getpwnam(user))) {

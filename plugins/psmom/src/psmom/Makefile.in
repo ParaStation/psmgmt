@@ -169,7 +169,7 @@ am_psmom_la_OBJECTS = psmom_la-psmomacc.lo psmom_la-psmom.lo \
 	psmom_la-psmompscomm.lo psmom_la-psmomrecover.lo \
 	psmom_la-psmomrpp.lo psmom_la-psmomscript.lo \
 	psmom_la-psmomsignal.lo psmom_la-psmomspawn.lo \
-	psmom_la-psmomssh.lo psmom_la-psmomtcp.lo
+	psmom_la-psmomtcp.lo
 psmom_la_OBJECTS = $(am_psmom_la_OBJECTS)
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
@@ -409,19 +409,20 @@ plugin_LTLIBRARIES = psmom.la
 libpbs = $(top_builddir)/plugins/psmom/src/pbs/libpbs.la
 libpsi = $(top_builddir)/lib/psi/libpsi.la
 libplugincommon = $(top_builddir)/lib/plugincommon/libplugincommon.la
-psmom_la_SOURCES = Makefile.am psmomacc.c \
-	psmomacc.h psmom.c psmomchild.c psmomchild.h psmomauth.c \
-	psmomauth.h psmomcollect.c psmomcollect.h psmomcomm.c psmomcomm.h \
-	psmomconfig.c psmomconfig.h psmomconv.c psmomconv.h \
-	psmomenv.c psmomenv.h psmomforwarder.c psmomforwarder.h psmom.h \
-	psmominteractive.c psmominteractive.h psmomjob.c psmomjob.h \
-	psmomjobinfo.c psmomjobinfo.h psmomkvs.c psmomkvs.h psmomlist.c \
-	psmomlist.h psmomlocalcomm.c psmomlocalcomm.h psmomlog.c psmomlog.h \
-	psmompartition.c psmompartition.h psmompbsserver.c psmompbsserver.h \
-	psmomproto.c psmomproto.h psmompscomm.c \
-	psmompscomm.h psmomrecover.c psmomrecover.h psmomrpp.c psmomrpp.h \
-	psmomscript.c psmomscript.h psmomsignal.c psmomsignal.h psmomspawn.c \
-	psmomspawn.h psmomssh.c psmomssh.h psmomtcp.c psmomtcp.h
+psmom_la_SOURCES = Makefile.am psmomacc.c psmomacc.h psmom.c		\
+	psmomchild.c psmomchild.h psmomauth.c psmomauth.h		\
+	psmomcollect.c psmomcollect.h psmomcomm.c psmomcomm.h		\
+	psmomconfig.c psmomconfig.h psmomconv.c psmomconv.h		\
+	psmomenv.c psmomenv.h psmomforwarder.c psmomforwarder.h		\
+	psmom.h psmominteractive.c psmominteractive.h psmomjob.c	\
+	psmomjob.h psmomjobinfo.c psmomjobinfo.h psmomkvs.c		\
+	psmomkvs.h psmomlist.c psmomlist.h psmomlocalcomm.c		\
+	psmomlocalcomm.h psmomlog.c psmomlog.h psmompartition.c		\
+	psmompartition.h psmompbsserver.c psmompbsserver.h		\
+	psmomproto.c psmomproto.h psmompscomm.c psmompscomm.h		\
+	psmomrecover.c psmomrecover.h psmomrpp.c psmomrpp.h		\
+	psmomscript.c psmomscript.h psmomsignal.c psmomsignal.h		\
+	psmomspawn.c psmomspawn.h psmomtcp.c psmomtcp.h
 
 psmom_la_CPPFLAGS = $(AM_CPPFLAGS) -DPLUGINDIR=\"$(plugindir)\" \
 	-DLOCALSTATEDIR=\"$(localstatedir)\"
@@ -533,7 +534,6 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psmom_la-psmomscript.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psmom_la-psmomsignal.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psmom_la-psmomspawn.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psmom_la-psmomssh.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psmom_la-psmomtcp.Plo@am__quote@
 
 .c.o:
@@ -741,13 +741,6 @@ psmom_la-psmomspawn.lo: psmomspawn.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='psmomspawn.c' object='psmom_la-psmomspawn.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(psmom_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o psmom_la-psmomspawn.lo `test -f 'psmomspawn.c' || echo '$(srcdir)/'`psmomspawn.c
-
-psmom_la-psmomssh.lo: psmomssh.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(psmom_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT psmom_la-psmomssh.lo -MD -MP -MF $(DEPDIR)/psmom_la-psmomssh.Tpo -c -o psmom_la-psmomssh.lo `test -f 'psmomssh.c' || echo '$(srcdir)/'`psmomssh.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/psmom_la-psmomssh.Tpo $(DEPDIR)/psmom_la-psmomssh.Plo
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='psmomssh.c' object='psmom_la-psmomssh.lo' libtool=yes @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(psmom_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o psmom_la-psmomssh.lo `test -f 'psmomssh.c' || echo '$(srcdir)/'`psmomssh.c
 
 psmom_la-psmomtcp.lo: psmomtcp.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(psmom_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT psmom_la-psmomtcp.lo -MD -MP -MF $(DEPDIR)/psmom_la-psmomtcp.Tpo -c -o psmom_la-psmomtcp.lo `test -f 'psmomtcp.c' || echo '$(srcdir)/'`psmomtcp.c

@@ -45,7 +45,6 @@
 #include "psmomchild.h"
 #include "psmomlocalcomm.h"
 #include "psmompbsserver.h"
-#include "psmomssh.h"
 #include "psmomrecover.h"
 
 #include "psi.h"

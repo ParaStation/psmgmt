@@ -53,7 +53,6 @@
 #include "psmompartition.h"
 #include "psmompbsserver.h"
 #include "psmomjobinfo.h"
-#include "psmomssh.h"
 #include "psmomrecover.h"
 #include "psmomenv.h"
 #include "psmomkvs.h"
@@ -323,6 +322,13 @@ static bool initPsPAMFunc(void)
     psPamDeleteUser = dlsym(pspamHandle, "psPamDeleteUser");
     if (!psPamDeleteUser) {
 	mlog("%s: loading function psPamDeleteUser() failed\n", __func__);
+	return false;
+    }
+
+    psPamFindSessionForPID = dlsym(pspamHandle, "psPamFindSessionForPID");
+    if (!psPamFindSessionForPID) {
+	mlog("%s: loading function psPamFindSessionForPID() failed\n",
+	     __func__);
 	return false;
     }
 
@@ -640,7 +646,6 @@ int initialize(void)
     initChildList();
     initServerList();
     initJobInfoList();
-    initSSHList();
     initEnvList();
 
     isInit = 1;
@@ -809,7 +814,6 @@ void cleanup(void)
     clearDataList(&infoData.list);
     clearDataList(&staticInfoData.list);
     clearJobInfoList();
-    clearSSHList();
     clearAuthList();
     if (memoryDebug) fclose(memoryDebug);
     finalizeFragComm();

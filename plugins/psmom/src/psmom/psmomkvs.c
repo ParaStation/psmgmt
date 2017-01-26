@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2011-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2011-2017 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -21,6 +21,7 @@
 #include "plugin.h"
 
 #include "psaccounthandles.h"
+#include "pspamhandles.h"
 
 #include "psmomjob.h"
 #include "psmomconfig.h"
@@ -30,7 +31,6 @@
 #include "psmomcollect.h"
 #include "psmomcomm.h"
 #include "psmomlocalcomm.h"
-#include "psmomssh.h"
 #include "psmomjobinfo.h"
 
 #include "psmomkvs.h"
@@ -43,7 +43,6 @@ uint32_t stat_successInterJobs = 0;
 uint32_t stat_failedBatchJobs = 0;
 uint32_t stat_failedInterJobs = 0;
 uint32_t stat_remoteJobs = 0;
-uint32_t stat_SSHLogins = 0;
 uint32_t stat_lPrologue = 0;
 uint32_t stat_rPrologue = 0;
 uint32_t stat_failedrPrologue = 0;
@@ -451,46 +450,6 @@ static char *showConnectionState(char *buf, size_t *bufSize)
 }
 
 /**
- * @brief Show current ssh logins.
- *
- * @param buf The buffer to write the information to.
- *
- * @param bufSize The size of the buffer.
- *
- * @return Returns the buffer with the updated ssh login information.
- */
-static char *showSSHLogins(char *buf, size_t *bufSize)
-{
-    struct tm *ts;
-    list_t *pos, *tmp;
-    SSHSession_t *ssh;
-    char start[50];
-
-    if (list_empty(&SSHList.list)) {
-	return str2Buf("\nNo current ssh logins.\n", &buf, bufSize);
-    }
-
-    snprintf(line, sizeof(line), "\n%9s\t%12s\t#Jobs\tPid\tSid\tStarttime\n",
-		"User", "RHost");
-    str2Buf(line, &buf, bufSize);
-
-    list_for_each_safe(pos, tmp, &SSHList.list) {
-	if ((ssh = list_entry(pos, SSHSession_t, list)) == NULL) break;
-
-	/* format start time */
-	ts = localtime(&ssh->start_time);
-	strftime(start, sizeof(start), "%Y-%m-%d %H:%M:%S", ts);
-
-	snprintf(line, sizeof(line), "%9s\t%12s\t%i\t%i\t%i\t%s\n", ssh->user,
-		    ssh->rhost, hasRunningJobs(ssh->user), ssh->pid,
-		    ssh->sid, start);
-	str2Buf(line, &buf, bufSize);
-    }
-
-    return buf;
-}
-
-/**
  * @brief Show current forwarders.
  *
  * @param buf The buffer to write the information to.
@@ -699,7 +658,7 @@ static char *showAllowedPid(char *key, char *buf, size_t *bufSize)
     }
 
     /* check if the child is from an SSH session */
-    if ((findSSHSessionforPID(pid))) {
+    if (psPamFindSessionForPID(pid)) {
 	found = 1;
 	reason = "SSH";
     }
@@ -789,9 +748,6 @@ static char *showStatistic(char *buf, size_t *bufSize)
 		stat_remoteJobs);
     str2Buf(line, &buf, bufSize);
 
-    snprintf(line, sizeof(line), "ssh sessions\t\t\t%u\n", stat_SSHLogins);
-    str2Buf(line, &buf, bufSize);
-
     snprintf(line, sizeof(line), "psmom start time\t\t%s\n",
 		ctime(&stat_startTime));
     str2Buf(line, &buf, bufSize);
@@ -877,11 +833,6 @@ static char *showVirtualKeys(char *buf, size_t *bufSize, int example)
 	    "show statistic");
     str2Buf(line, &buf, bufSize);
 
-    snprintf(line, sizeof(line), "%12s\t%s\n", "ssh",
-	    "show all ssh logins/sessions");
-    str2Buf(line, &buf, bufSize);
-
-
     if (example) {
 	msg = "\nExample:\nUse 'plugin psmom show 1001.frontend' or"
 	    " 'plugin show psmom 1001'\nto display detailed job information"
@@ -951,7 +902,6 @@ char *set(char *key, char *value)
 	    stat_failedBatchJobs = 0;
 	    stat_failedInterJobs = 0;
 	    stat_remoteJobs = 0;
-	    stat_SSHLogins = 0;
 	    stat_lPrologue = 0;
 	    stat_rPrologue = 0;
 	    stat_failedrPrologue = 0;
@@ -1077,11 +1027,6 @@ char *show(char *key)
     /* show current remote jobs */
     if (!(strcmp(key, "rjobs"))) {
 	return showRemoteJobs(buf, &bufSize);
-    }
-
-    /* show SSH sessions (logins) */
-    if (!(strcmp(key, "ssh"))) {
-	return showSSHLogins(buf, &bufSize);
     }
 
     /* show running forwarders */

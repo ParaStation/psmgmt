@@ -330,9 +330,6 @@ plugins/psmom/src/include/pbsdef.h \
 plugins/psmom/src/include/pbserror.h \
 plugins/psmom/src/include/pbsrpp.h \
 plugins/psmom/src/include/psmomdef.h \
-plugins/psmom/src/pam/Makefile.am \
-plugins/psmom/src/pam/Makefile.in \
-plugins/psmom/src/pam/pam_psmom.c \
 plugins/psmom/src/pbs/Makefile.am \
 plugins/psmom/src/pbs/Makefile.in \
 plugins/psmom/src/pbs/pbsrpp.c \
@@ -390,8 +387,6 @@ plugins/psmom/src/psmom/psmomsignal.c \
 plugins/psmom/src/psmom/psmomsignal.h \
 plugins/psmom/src/psmom/psmomspawn.c \
 plugins/psmom/src/psmom/psmomspawn.h \
-plugins/psmom/src/psmom/psmomssh.c \
-plugins/psmom/src/psmom/psmomssh.h \
 plugins/psmom/src/psmom/psmomtcp.c \
 plugins/psmom/src/psmom/psmomtcp.h \
 plugins/psmunge/Makefile.am \
