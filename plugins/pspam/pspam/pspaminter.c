@@ -7,8 +7,9 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-#include "pspamuser.h"
 #include "pspamlog.h"
+#include "pspamssh.h"
+#include "pspamuser.h"
 
 #include "pspaminter.h"
 
@@ -30,4 +31,10 @@ void psPamDeleteUser(char *username, char *jobID)
 {
     mdbg(PSPAM_LOG_DEBUG, "%s(%s, %s)\n", __func__, username, jobID);
     deleteUser(username, jobID);
+}
+
+bool psPamFindSessionForPID(pid_t pid)
+{
+    mdbg(PSPAM_LOG_DEBUG, "%s(%d)\n", __func__, pid);
+    return findSessionForPID(pid);
 }

@@ -10,6 +10,9 @@
 #ifndef __PSPAM_TYPES
 #define __PSPAM_TYPES
 
+#include <stdbool.h>
+#include <sys/types.h>
+
 /** Phases a user's job is currently in */
 typedef enum {
     PSPAM_STATE_PROLOGUE,   /**< Job still in prologue phase */
@@ -62,5 +65,18 @@ typedef void (psPamSetState_t)(char *username, char *jobID, PSPAMState_t state);
  * @return No return value
  */
 typedef void (psPamDeleteUser_t)(char *username, char *jobID);
+
+/**
+ * @brief Search for SSH session PID belongs to
+ *
+ * Identify if the process with ID @a pid belongs to a SSH session
+ * registered within pspam.
+ *
+ * @param pid Process ID of the process the check
+ *
+ * @return If a session was found, true is returned. Otherwise false
+ * is returned.
+ */
+typedef bool (psPamFindSessionForPID_t)(pid_t pid);
 
 #endif /* __PSPAM_TYPES */

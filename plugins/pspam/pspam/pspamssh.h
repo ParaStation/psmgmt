@@ -34,6 +34,19 @@
 bool addSession(char *user, char *rhost, pid_t sshPid, pid_t sshSid);
 
 /**
+ * @brief Search for SSH session PID belongs to
+ *
+ * Identify if the process with ID @a pid belongs to a SSH session
+ * registered within pspam.
+ *
+ * @param pid Process ID of the process the check
+ *
+ * @return If a session was found, true is returned. Otherwise false
+ * is returned.
+ */
+bool findSessionForPID(pid_t pid);
+
+/**
  * @brief Remove SSH session
  *
  * Remove the SSH session identified by the username @a user, and its

@@ -25,5 +25,6 @@
 psPamAddUser_t *psPamAddUser;
 psPamSetState_t *psPamSetState;
 psPamDeleteUser_t *psPamDeleteUser;
+psPamFindSessionForPID_t *psPamFindSessionForPID;
 
 #endif

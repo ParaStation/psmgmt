@@ -47,6 +47,12 @@ static bool initPluginHandles()
 	return false;
     }
 
+    psAccountIsDescendant = dlsym(pluginHandle, "psAccountIsDescendant");
+    if (!psAccountIsDescendant) {
+	mlog("%s: loading function psAccountIsDescendant() failed\n",__func__);
+	return false;
+    }
+
     return true;
 }
 

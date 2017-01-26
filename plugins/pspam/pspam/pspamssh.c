@@ -91,6 +91,18 @@ static Session_t *findSession(char *user, char *rhost, pid_t sshPid)
     return NULL;
 }
 
+bool findSessionForPID(pid_t pid)
+{
+    list_t *s;
+    list_for_each(s, &sshList) {
+	Session_t *ssh = list_entry(s, Session_t, next);
+	if (ssh->pid == pid || psAccountIsDescendant(ssh->pid, pid)) {
+	    return true;
+	}
+    }
+    return false;
+}
+
 static void doDelete(Session_t *ssh)
 {
     if (!ssh) return;
