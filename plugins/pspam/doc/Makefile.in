@@ -309,7 +309,6 @@ configdir = $(prefix)/config
 
 # dito
 scriptsdir = $(prefix)/scripts
-slurmdir = $(libdir)/slurm
 EXTRA_DIST = pspam.pam
 CLEANFILES = pspam.pam
 all: all-am

@@ -7,8 +7,6 @@
 # as defined in the file LICENSE.QPL included in the packaging of this
 # file.
 #
-# Author:	Michael Rauh <rauh@par-tec.com>
-#
 
 include $(top_srcdir)/common.am
 
@@ -34,6 +32,7 @@ plugin_LTLIBRARIES = psslurm.la
 
 libplugincommon = $(top_builddir)/lib/plugincommon/libplugincommon.la
 libslurmcommon = $(top_builddir)/$(psslurm_dir)/common/libslurmcommon.la
+libpscommon = $(top_builddir)/lib/pscommon/libpscommon.la
 
 psslurm_la_SOURCES = psslurm.c psslurm.h psslurmlog.c psslurmlog.h \
 	psslurmpscomm.c psslurmpscomm.h psslurmconfig.c psslurmconfig.h \
@@ -50,7 +49,7 @@ psslurm_la_CPPFLAGS = $(AM_CPPFLAGS) -DPLUGINDIR=\"$(plugindir)\" \
 	-DLOCALSTATEDIR=\"$(localstatedir)\" -DBINDIR=\"$(bindir)\"
 
 psslurm_la_LIBADD = $(libpsi) $(libplugincommon) $(libslurmcommon) \
-		    $(NUMA_LIBS)
+		    $(libpscommon) $(NUMA_LIBS)
 
 install-exec-local:
 	$(INSTALL) -d $(DESTDIR)$(localstatedir)/spool/parastation/jobs

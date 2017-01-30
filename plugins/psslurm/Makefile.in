@@ -369,7 +369,6 @@ configdir = $(prefix)/config
 
 # dito
 scriptsdir = $(prefix)/scripts
-slurmdir = $(libdir)/slurm
 SUBDIRS = doc src/common src/psslurm
 all: all-recursive
 

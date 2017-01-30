@@ -359,7 +359,6 @@ configdir = $(prefix)/config
 
 # dito
 scriptsdir = $(prefix)/scripts
-slurmdir = $(libdir)/slurm
 noinst_LTLIBRARIES = libpslog.la
 libpslog_la_SOURCES = pslog.c
 all: all-am

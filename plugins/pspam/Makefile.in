@@ -370,7 +370,6 @@ configdir = $(prefix)/config
 
 # dito
 scriptsdir = $(prefix)/scripts
-slurmdir = $(libdir)/slurm
 SUBDIRS = doc src/pspam $(am__append_1)
 all: all-recursive
 

@@ -360,7 +360,6 @@ configdir = $(prefix)/config
 
 # dito
 scriptsdir = $(prefix)/scripts
-slurmdir = $(libdir)/slurm
 noinst_LTLIBRARIES = libputil.la
 libputil_la_SOURCES = config_parsing.c env.c hardware.c mcast.c \
 	parser.c psdaemonprotocol.c psstrings.c rdp.c selector.c \

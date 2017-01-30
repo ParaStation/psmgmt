@@ -359,7 +359,6 @@ configdir = $(prefix)/config
 
 # dito
 scriptsdir = $(prefix)/scripts
-slurmdir = $(libdir)/slurm
 noinst_LTLIBRARIES = libslurmcommon.la
 libslurmcommon_la_SOURCES = psslurmmsg.c psslurmmsg.h slurmcommon.h slurmerrno.h slurmmsg.h
 all: all-am

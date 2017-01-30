@@ -17,7 +17,7 @@
 #
 # ParaStation
 #
-# Copyright (C) 2016 ParTec Cluster Competence Center GmbH, Munich
+# Copyright (C) 2016-2017 ParTec Cluster Competence Center GmbH, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -152,7 +152,7 @@ am__uninstall_files_from_dir = { \
   }
 am__installdirs = "$(DESTDIR)$(plugindir)"
 LTLIBRARIES = $(plugin_LTLIBRARIES)
-cgroup_la_DEPENDENCIES = $(libplugincommon)
+cgroup_la_DEPENDENCIES = $(libplugincommon) $(libpscommon)
 am_cgroup_la_OBJECTS = cgroup_la-cgroup.lo cgroup_la-cgroupconfig.lo \
 	cgroup_la-cgrouplog.lo
 cgroup_la_OBJECTS = $(am_cgroup_la_OBJECTS)
@@ -387,14 +387,14 @@ configdir = $(prefix)/config
 
 # dito
 scriptsdir = $(prefix)/scripts
-slurmdir = $(libdir)/slurm
 plugin_LTLIBRARIES = cgroup.la
 libplugincommon = $(top_builddir)/lib/plugincommon/libplugincommon.la
+libpscommon = $(top_builddir)/lib/pscommon/libpscommon.la
 cgroup_la_SOURCES = cgroup.c cgroupconfig.c cgroupconfig.h cgrouplog.c \
 	cgrouplog.h
 
 cgroup_la_CPPFLAGS = $(AM_CPPFLAGS) -DPLUGINDIR=\"$(plugindir)\"
-cgroup_la_LIBADD = $(libplugincommon)
+cgroup_la_LIBADD = $(libplugincommon) $(libpscommon)
 all: all-am
 
 .SUFFIXES:

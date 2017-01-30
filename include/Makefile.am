@@ -1,13 +1,11 @@
 #
 # ParaStation
 #
-# Copyright (C) 2012-2015 ParTec Cluster Competence Center GmbH, Munich
+# Copyright (C) 2012-2016 ParTec Cluster Competence Center GmbH, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
 # file.
-#
-# Author:	Thomas Moschny <moschny@par-tec.com>
 #
 
 include $(top_srcdir)/common.am
@@ -22,6 +20,6 @@ noinst_HEADERS = env.h hardware.h kvscommon.h kvs.h mcast.h parser.h	\
 	psbyteorder.h psilog.h pslog.h pspartition.h psstrings.h	\
 	rdp.h psipartition.h psparamspace.h kvsprovider.h		\
 	pluginmalloc.h pluginfrag.h plugincomm.h pluginlog.h		\
-	psprotocolenv.h pluginconfig.h	pluginhelper.h pluginstrv.h     \
-	pluginpty.h pluginpartition.h pluginhostlist.h pluginenv.h  	\
-	linenoise.h pspluginprotocol.h pluginforwarder.h
+	psprotocolenv.h pluginconfig.h pluginhelper.h pluginstrv.h	\
+	pluginpty.h pluginpartition.h pluginhostlist.h pluginenv.h	\
+	pluginforwarder.h linenoise.h pspluginprotocol.h
