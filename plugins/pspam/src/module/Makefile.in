@@ -388,7 +388,6 @@ configdir = $(prefix)/config
 
 # dito
 scriptsdir = $(prefix)/scripts
-slurmdir = $(libdir)/slurm
 pam_LTLIBRARIES = pam_pspam.la
 plugincommon_objs = $(top_builddir)/lib/plugincommon/plugincomm.lo \
 	$(top_builddir)/lib/plugincommon/pluginmalloc.lo \

@@ -7,7 +7,6 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -221,7 +220,7 @@ static void sendKvstoSucc(char *msg, size_t len)
  *
  * @return Always return 1
  */
-static int critErr()
+static int critErr(void)
 {
     /* close connection */
     if (pmisock > -1) {
@@ -434,7 +433,7 @@ static int p_Get_Appnum(void)
  *
  * @return No return value
  */
-static void checkDaisyBarrier()
+static void checkDaisyBarrier(void)
 {
     char *ptr = buffer;
     size_t len = 0;
@@ -610,7 +609,7 @@ void leaveKVS(int used)
  *
  * @return Returns PMI_FINALIZED
  * */
-static int p_Finalize()
+static int p_Finalize(void)
 {
     leaveKVS(0);
 
@@ -624,7 +623,7 @@ static int p_Finalize()
  *
  * @return Always returns 0
  */
-static int p_Get_My_Kvsname()
+static int p_Get_My_Kvsname(void)
 {
     char reply[PMIU_MAXLINE];
 
@@ -1014,7 +1013,7 @@ static int p_Init(char *msg)
     }
     pmi_init_client = true;
 
-    if (psAccountSwitchAccounting) psAccountSwitchAccounting(cTask->tid, true);
+    if (psAccountSwitchAccounting) psAccountSwitchAccounting(cTask->tid, false);
 
     /* tell provider that the MPI client was initialized */
     ptr = buffer;

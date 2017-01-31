@@ -369,7 +369,6 @@ configdir = $(prefix)/config
 
 # dito
 scriptsdir = $(prefix)/scripts
-slurmdir = $(libdir)/slurm
 SUBDIRS = pscommon putil pslog psi pse pskvs plugincommon
 all: all-recursive
 

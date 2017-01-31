@@ -7,11 +7,8 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-#ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__((used)) =
-    "$Id$";
-#endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -60,9 +57,9 @@ typedef struct {
     keyFunc_t *show;         /**< Show plugin's internal state */
     int version;             /**< Actual version */
     int distance;            /**< Distance from origin on force */
-    int cleared;             /**< Flag plugin ready to finalize on force */
-    int finalized;           /**< Flag call of plugin's finalize() method */
-    int unload;              /**< Flag plugin to become unloaded */
+    bool cleared;            /**< Flag plugin ready to finalize on force */
+    bool finalized;          /**< Flag call of plugin's finalize() method */
+    bool unload;             /**< Flag plugin to become unloaded */
     struct timeval load;     /**< Time when plugin was loaded */
     struct timeval grace;    /**< Grace period before forcefully unload */
 } plugin_t;
@@ -445,9 +442,9 @@ static plugin_t * newPlugin(void *handle, char *name, int version)
     }
 
     plugin->distance = 0;
-    plugin->cleared = 0;
-    plugin->finalized = 0;
-    plugin->unload = 0;
+    plugin->cleared = false;
+    plugin->finalized = false;
+    plugin->unload = false;
     timerclear(&plugin->grace);
 
     return plugin;
@@ -696,7 +693,7 @@ static plugin_t * loadPlugin(char *name, int minVer, plugin_t * trigger)
 		     __func__, deps->name, deps->version);
 	    d = loadPlugin(deps->name, deps->version, plugin);
 	    if (!d || addRef(&plugin->depends, d) < 0) {
-		plugin->finalized = 1;
+		plugin->finalized = true;
 		unloadPlugin(plugin);
 		return NULL;
 	    }
@@ -708,7 +705,7 @@ static plugin_t * loadPlugin(char *name, int minVer, plugin_t * trigger)
 	int ret = plugin->initialize();
 
 	if (ret) {
-	    plugin->finalized = 1;
+	    plugin->finalized = true;
 	    unloadPlugin(plugin);
 	    return NULL;
 	}
@@ -822,7 +819,7 @@ static int unloadPlugin(plugin_t *plugin)
 
     if (plugin->cleanup) plugin->cleanup();
 
-    plugin->unload = 1;
+    plugin->unload = true;
 
     return 0;
 }
@@ -876,7 +873,7 @@ static int finalizePlugin(plugin_t *plugin)
 	return 0;
     }
 
-    plugin->finalized = 1;
+    plugin->finalized = true;
 
     if (!plugin->finalize) return unloadPlugin(plugin);
 
@@ -894,7 +891,7 @@ static int finalizePlugin(plugin_t *plugin)
 }
 
 /** Flag detection of loops in the dependency-graph of the plugins */
-static int depLoopDetect = 0;
+static bool depLoopDetect = false;
 
 /**
  * @brief Walk dependency graph
@@ -947,7 +944,7 @@ static int walkDepGraph(plugin_t *plugin, int distance)
     if (plugin->unload) {
 	PSID_log(PSID_LOG_PLUGIN, "%s: %s ready for unload\n", __func__,
 		 plugin->name);
-	plugin->cleared = 1;
+	plugin->cleared = true;
 	return 0;
     }
 
@@ -974,7 +971,7 @@ static int walkDepGraph(plugin_t *plugin, int distance)
 	    gettimeofday(&now, NULL);
 	    timeradd(&now, &grace, &plugin->grace);
 	}
-	plugin->cleared = 1;
+	plugin->cleared = true;
 
 	return 0;
     }
@@ -989,11 +986,11 @@ static int walkDepGraph(plugin_t *plugin, int distance)
 		 plugin->name);
 	PSIDplugin_finalize(plugin->name);
 
-	plugin->cleared = 1;
+	plugin->cleared = true;
 
 	return 0;
     } else {
-	int cleared = 1;
+	bool cleared = true;
 	list_for_each(t, &plugin->triggers) {
 	    plugin_ref_t *ref = list_entry(t, plugin_ref_t, next);
 
@@ -1007,7 +1004,7 @@ static int walkDepGraph(plugin_t *plugin, int distance)
 	}
 
 	plugin->cleared = cleared;
-	if (!cleared) depLoopDetect = 1;
+	if (!cleared) depLoopDetect = true;
     }
 
     return 0;
@@ -1085,7 +1082,7 @@ static int forceUnloadPlugin(char *name)
     if (!plugin) return -1;
 
     do {
-	depLoopDetect = 0;
+	depLoopDetect = false;
 
 	walkDepGraph(plugin, 1);
 
@@ -1107,7 +1104,7 @@ static int forceUnloadPlugin(char *name)
 		remDepend(ref->plugin, victim);
 		remTrigger(victim, ref->plugin);
 	    }
-	    victim->cleared = 1;
+	    victim->cleared = true;
 	}
 	rounds++;
     } while (depLoopDetect);

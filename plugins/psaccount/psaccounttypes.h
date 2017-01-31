@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2017 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -66,25 +66,6 @@ typedef struct {
     PStask_ID_t taskIds[6];
     struct rusage rusage;      /**< resource usage collect upon client's dead */
 } AccountDataExt_t;
-
-/** Resource usage of individual processes */
-typedef struct {
-    pid_t ppid;        /**< parent process ID */
-    pid_t pgrp;        /**< process group */
-    pid_t session;     /**< session ID */
-    char state[1];     /**< process' state (R,S,D,Z or T) */
-    uint64_t utime;    /**< user time consumed by process */
-    uint64_t stime;    /**< system time consumed by process */
-    uint64_t cutime;   /**< user time consumed by process' descendants */
-    uint64_t cstime;   /**< system time consumed by process' descendants */
-    uint64_t threads;  /**< process' number of threads */
-    uint64_t vmem;     /**< process' virtual address space */
-    uint64_t mem;      /**< process' RSS */
-    uint64_t majflt;   /**< # of major pagefaults triggered by process */
-    uint64_t cmajflt;  /**< # of major pagefaults triggered by descendants  */
-    uint16_t cpu;      /**< CPU the process was scheduled on lately */
-    uid_t uid;         /**< process' user ID */
-} ProcStat_t;
 
 /**
  * @brief Register batch jobscript
@@ -284,20 +265,6 @@ typedef PStask_ID_t(psAccountGetLoggerByClient_t)(pid_t pid);
  */
 typedef void(psAccountGetPidsByLogger_t)(PStask_ID_t logger, pid_t **pids,
 					 uint32_t *cnt);
-
-/**
- * @brief Read selected information from /proc/pid/stat.
- *
- * Get selected information concerning the process @a pid direct from
- * the /proc filesystem and store them to @a pS.
- *
- * @param pid Process ID to read the info for
- *
- * @param pS Pointer to ProcStat_t structure to store result in
- *
- * @return Returns true on success and false on error.
- */
-typedef bool(psAccountReadProcStat_t)(pid_t pid, ProcStat_t *pS);
 
 /**
  * @brief Find all daemon processes of a specific user

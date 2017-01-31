@@ -2,17 +2,13 @@
  * ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2013 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-#ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__((used)) =
-    "$Id$";
-#endif /* DOXYGEN_SHOULD_SKIP_THIS */
-
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -29,7 +25,8 @@ static char vcid[] __attribute__((used)) =
 
 /**
  * The unique ID of the next timer to register. Set by @ref
- * Timer_init() to 0, thus negativ value signal uninitialized module.
+ * Timer_init() to 1, thus negativ value signals an uninitialized
+ * module.
  */
 static int nextID = -1;
 
@@ -48,13 +45,13 @@ typedef struct {
     int calls;                     /**< Counter for timeouts. */
     int period;                    /**< When do we have to call the
 				      timeoutHandler()? */
-    int enhanced;                  /**< Enhanced handler expecting the ID */
+    bool enhanced;                 /**< Enhanced handler expecting the ID */
     handler_t timeoutHandler;      /**< Handler called, if signal received. */
     void *info;                    /**< Pointer to be passed to enh. handler */
-    int sigBlocked;                /**< Flag to block this timer.
+    bool sigBlocked;               /**< Flag to block this timer.
 				      Set by blockTimer(). */
-    int sigPending;                /**< A blocked signal is pending. */
-    int deleted;                   /**< Timer is actually deleted */
+    bool sigPending;               /**< A blocked signal is pending. */
+    bool deleted;                  /**< Timer is actually deleted */
 } Timer_t;
 
 /** The logger used by the Timer facility */
@@ -137,7 +134,7 @@ static void sigHandler(int sig)
 	if (timer->deleted) continue;
 	timer->calls = (timer->calls + 1) % timer->period;
 	if (!timer->calls) {
-	    timer->sigPending = 1;
+	    timer->sigPending = true;
 	}
     }
 }
@@ -210,26 +207,26 @@ static int deleteTimer(Timer_t *timer)
 }
 
 /** Flag set while in Timer_handleSignals() */
-static int inTimerHandling = 0;
+static bool inTimerHandling = false;
 
 void Timer_handleSignals(void)
 {
     list_t *t, *tmp;
 
-    inTimerHandling = 1;
+    inTimerHandling = true;
 
     list_for_each_safe(t, tmp, &timerList) {
 	Timer_t *timer = list_entry(t, Timer_t, next);
 	if (timer->sigPending && !timer->deleted
 	    && !timer->sigBlocked && timer->timeoutHandler.stdHandler) {
-	    timer->sigBlocked = 1;
+	    timer->sigBlocked = true;
 	    if (timer->enhanced) {
 		timer->timeoutHandler.enhHandler(timer->id, timer->info);
 	    } else {
 		timer->timeoutHandler.stdHandler();
 	    }
-	    timer->sigBlocked = 0;
-	    timer->sigPending = 0;
+	    timer->sigBlocked = false;
+	    timer->sigPending = false;
 	    timer->calls = 0;
 	}
 	if (timer->deleted) {
@@ -237,7 +234,7 @@ void Timer_handleSignals(void)
 	}
     }
 
-    inTimerHandling = 0;
+    inTimerHandling = false;
 }
 
 int32_t Timer_getDebugMask(void)
@@ -293,7 +290,7 @@ int Timer_isInitialized(void)
 }
 
 static int Timer_doRegister(struct timeval *timeout, handler_t handler,
-			    int enhanced, void *info)
+			    bool enhanced, void *info)
 {
     sigset_t sigset;
     Timer_t *new;
@@ -319,8 +316,8 @@ static int Timer_doRegister(struct timeval *timeout, handler_t handler,
 	.enhanced = enhanced,
 	.timeoutHandler = handler,
 	.info = info,
-	.sigBlocked = 0,
-	.sigPending = 0 };
+	.sigBlocked = false,
+	.sigPending = false };
 
     /* Block SIGALRM, while we fiddle around with the timers */
     sigemptyset(&sigset);
@@ -369,7 +366,7 @@ int Timer_register(struct timeval *timeout, void (*timeoutHandler)(void))
 
     handler.stdHandler = timeoutHandler;
 
-    return Timer_doRegister(timeout, handler, 0, NULL);
+    return Timer_doRegister(timeout, handler, false, NULL);
 }
 
 int Timer_registerEnhanced(struct timeval* timeout,
@@ -379,7 +376,7 @@ int Timer_registerEnhanced(struct timeval* timeout,
 
     handler.enhHandler = timeoutHandler;
 
-    return Timer_doRegister(timeout, handler, 1, info);
+    return Timer_doRegister(timeout, handler, true, info);
 }
 
 /** Cache the latest searched timer */
@@ -425,14 +422,14 @@ int Timer_remove(int id)
     }
 
     if (timer == timerCache) timerCache = NULL;
-    timer->deleted = 1;
+    timer->deleted = true;
 
     if (!inTimerHandling) return deleteTimer(timer);
 
     return 0;
 }
 
-int Timer_block(int id, int block)
+int Timer_block(int id, bool block)
 {
     Timer_t *timer = findTimer(id);
     int wasBlocked;
@@ -452,9 +449,9 @@ int Timer_block(int id, int block)
 		timer->timeoutHandler.stdHandler();
 	    }
 	}
-	timer->sigPending = 0;
+	timer->sigPending = false;
     }
-    timer->sigBlocked = block;
+    timer->sigBlocked = !!block;
 
     return wasBlocked;
 }

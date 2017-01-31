@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2009-2012 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2009-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -20,22 +20,9 @@
  * Wiki in detail it makes more sense to use the functionality
  * provided by the functions @ref initialize(), @ref finalize() and
  * @ref cleanup().
- *
- * $Id$
- *
- * @author
- * Norbert Eicker <eicker@par-tec.com>
- *
  */
 #ifndef _PLUGIN_H_
 #define _PLUGIN_H_
-
-#ifdef __cplusplus
-extern "C" {
-#if 0
-} /* <- just for emacs indentation */
-#endif
-#endif
 
 /** Name of the plugin */
 extern char name[];
@@ -105,6 +92,12 @@ int initialize(void);
  *
  * If initialization of the plugin failed (as signaled by a
  * return-value different from 0), this function will not be called.
+ *
+ * If a plugin does not expose this symbol, calling @ref
+ * PSIDplugin_finalize() referring this plugin behaves exactly like
+ * calling @ref PSIDplugin_unload(). Thus, the plugin will be marked
+ * to be unloaded immediately if it is no longer required by other
+ * plugins depending on it.
  *
  * @return No return value.
  */
@@ -206,9 +199,5 @@ char * unset(char *key);
  * no such text exists.
  */
 char * show(char *key);
-
-#ifdef __cplusplus
-}/* extern "C" */
-#endif
 
 #endif /* _PLUGIN_H_ */

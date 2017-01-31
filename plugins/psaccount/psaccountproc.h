@@ -40,6 +40,25 @@ typedef struct {
     ProcSnapshot_state_t state; /**< flag internal state of structure */
 } ProcSnapshot_t;
 
+/** Resource usage of individual processes directly from /proc/<PID>/stat */
+typedef struct {
+    pid_t ppid;        /**< parent process ID */
+    pid_t pgrp;        /**< process group */
+    pid_t session;     /**< session ID */
+    char state[1];     /**< process' state (R,S,D,Z or T) */
+    uint64_t utime;    /**< user time consumed by process */
+    uint64_t stime;    /**< system time consumed by process */
+    uint64_t cutime;   /**< user time consumed by process' descendants */
+    uint64_t cstime;   /**< system time consumed by process' descendants */
+    uint64_t threads;  /**< process' number of threads */
+    uint64_t vmem;     /**< process' virtual address space */
+    uint64_t mem;      /**< process' RSS */
+    uint64_t majflt;   /**< # of major pagefaults triggered by process */
+    uint64_t cmajflt;  /**< # of major pagefaults triggered by descendants  */
+    uint16_t cpu;      /**< CPU the process was scheduled on lately */
+    uid_t uid;         /**< process' user ID */
+} ProcStat_t;
+
 /** Some I/O resources consumed by a process */
 typedef struct {
     uint64_t diskRead;        /**< # bytes read */

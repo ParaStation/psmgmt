@@ -477,7 +477,6 @@ configdir = $(prefix)/config
 
 # dito
 scriptsdir = $(prefix)/scripts
-slurmdir = $(libdir)/slurm
 PKG_VER := $(shell ${top_srcdir}/scripts/vcversion -r $(top_srcdir) --fmt version -n)
 PKG_REL := $(shell ${top_srcdir}/scripts/vcversion -r $(top_srcdir) --fmt release -n)
 noinst_HEADERS = admin/helpmsgs.c

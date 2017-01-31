@@ -573,7 +573,6 @@ configdir = $(prefix)/config
 
 # dito
 scriptsdir = $(prefix)/scripts
-slurmdir = $(libdir)/slurm
 libpscommon = $(top_builddir)/lib/pscommon/libpscommon.la
 libputil = $(top_builddir)/lib/putil/libputil.la
 libpsi = $(top_builddir)/lib/psi/libpsi.la

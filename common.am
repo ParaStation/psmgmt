@@ -43,5 +43,3 @@ configdir = $(prefix)/config
 
 # dito
 scriptsdir = $(prefix)/scripts
-
-slurmdir = $(libdir)/slurm

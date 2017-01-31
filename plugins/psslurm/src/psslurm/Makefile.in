@@ -17,13 +17,11 @@
 #
 # ParaStation
 #
-# Copyright (C) 2014-2016 ParTec Cluster Competence Center GmbH, Munich
+# Copyright (C) 2014-2017 ParTec Cluster Competence Center GmbH, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
 # file.
-#
-# Author:	Michael Rauh <rauh@par-tec.com>
 #
 
 #
@@ -156,7 +154,7 @@ am__installdirs = "$(DESTDIR)$(plugindir)"
 LTLIBRARIES = $(plugin_LTLIBRARIES)
 am__DEPENDENCIES_1 =
 psslurm_la_DEPENDENCIES = $(libplugincommon) $(libslurmcommon) \
-	$(am__DEPENDENCIES_1)
+	$(libpscommon) $(am__DEPENDENCIES_1)
 am_psslurm_la_OBJECTS = psslurm_la-psslurm.lo psslurm_la-psslurmlog.lo \
 	psslurm_la-psslurmpscomm.lo psslurm_la-psslurmconfig.lo \
 	psslurm_la-psslurmjob.lo psslurm_la-psslurmforwarder.lo \
@@ -404,7 +402,6 @@ configdir = $(prefix)/config
 
 # dito
 scriptsdir = $(prefix)/scripts
-slurmdir = $(libdir)/slurm
 psslurm_dir := plugins/psslurm/src
 psaccount_dir := plugins/psaccount
 pelogue_dir := plugins/pelogue
@@ -415,6 +412,7 @@ pspmi_dir := plugins/pspmi
 plugin_LTLIBRARIES = psslurm.la
 libplugincommon = $(top_builddir)/lib/plugincommon/libplugincommon.la
 libslurmcommon = $(top_builddir)/$(psslurm_dir)/common/libslurmcommon.la
+libpscommon = $(top_builddir)/lib/pscommon/libpscommon.la
 psslurm_la_SOURCES = psslurm.c psslurm.h psslurmlog.c psslurmlog.h \
 	psslurmpscomm.c psslurmpscomm.h psslurmconfig.c psslurmconfig.h \
 	psslurmjob.c psslurmjob.h psslurmforwarder.c psslurmforwarder.h \
@@ -430,7 +428,7 @@ psslurm_la_CPPFLAGS = $(AM_CPPFLAGS) -DPLUGINDIR=\"$(plugindir)\" \
 	-DLOCALSTATEDIR=\"$(localstatedir)\" -DBINDIR=\"$(bindir)\"
 
 psslurm_la_LIBADD = $(libpsi) $(libplugincommon) $(libslurmcommon) \
-		    $(NUMA_LIBS)
+		    $(libpscommon) $(NUMA_LIBS)
 
 all: all-am
 

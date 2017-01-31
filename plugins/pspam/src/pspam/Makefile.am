@@ -21,6 +21,7 @@ AM_CPPFLAGS += -I$(top_srcdir)/bin/daemon -I$(srcdir)/../include \
 plugin_LTLIBRARIES = pspam.la
 
 libplugincommon = $(top_builddir)/lib/plugincommon/libplugincommon.la
+libpscommon = $(top_builddir)/lib/pscommon/libpscommon.la
 
 pspam_la_SOURCES = pspam.c pspam.h pspamlog.c pspamlog.h pspamssh.c pspamssh.h \
 			pspamuser.c pspamuser.h pspamhandles.h
@@ -28,4 +29,4 @@ pspam_la_SOURCES = pspam.c pspam.h pspamlog.c pspamlog.h pspamssh.c pspamssh.h \
 pspam_la_CPPFLAGS = $(AM_CPPFLAGS) -DPLUGINDIR=\"$(plugindir)\" \
         -DLOCALSTATEDIR=\"$(localstatedir)\"
 
-pspam_la_LIBADD = $(libplugincommon)
+pspam_la_LIBADD = $(libplugincommon) $(libpscommon)

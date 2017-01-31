@@ -359,7 +359,6 @@ configdir = $(prefix)/config
 
 # dito
 scriptsdir = $(prefix)/scripts
-slurmdir = $(libdir)/slurm
 libputil = $(top_builddir)/lib/putil/libputil.la
 libpslog = $(top_builddir)/lib/pslog/libpslog.la
 noinst_LTLIBRARIES = libpskvs.la

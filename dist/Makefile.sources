@@ -158,7 +158,6 @@ include/psienv.h \
 include/psiinfo.h \
 include/psilog.h \
 include/psipartition.h \
-include/pspluginprotocol.h \
 include/psispawn.h \
 include/pslog.h \
 include/psnodes.h \
@@ -182,7 +181,6 @@ lib/plugincommon/Makefile.in \
 lib/plugincommon/plugincomm.c \
 lib/plugincommon/pluginconfig.c \
 lib/plugincommon/pluginenv.c \
-lib/plugincommon/pluginforwarder.c \
 lib/plugincommon/pluginfrag.c \
 lib/plugincommon/pluginforwarder.c \
 lib/plugincommon/pluginhelper.c \

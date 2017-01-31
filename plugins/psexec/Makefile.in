@@ -17,7 +17,7 @@
 #
 # ParaStation
 #
-# Copyright (C) 2016 ParTec Cluster Competence Center GmbH, Munich
+# Copyright (C) 2016-2017 ParTec Cluster Competence Center GmbH, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -152,7 +152,7 @@ am__uninstall_files_from_dir = { \
   }
 am__installdirs = "$(DESTDIR)$(plugindir)"
 LTLIBRARIES = $(plugin_LTLIBRARIES)
-psexec_la_DEPENDENCIES = $(libplugincommon)
+psexec_la_DEPENDENCIES = $(libplugincommon) $(libpscommon)
 am_psexec_la_OBJECTS = psexec_la-psexec.lo psexec_la-psexeclog.lo \
 	psexec_la-psexecscripts.lo psexec_la-psexeccomm.lo \
 	psexec_la-psexecinter.lo
@@ -388,15 +388,15 @@ configdir = $(prefix)/config
 
 # dito
 scriptsdir = $(prefix)/scripts
-slurmdir = $(libdir)/slurm
 plugin_LTLIBRARIES = psexec.la
 libplugincommon = $(top_builddir)/lib/plugincommon/libplugincommon.la
+libpscommon = $(top_builddir)/lib/pscommon/libpscommon.la
 psexec_la_SOURCES = psexec.c psexeclog.c psexeclog.h psexecscripts.c	\
 	psexecscripts.h psexeccomm.c psexeccomm.h psexecinter.c		\
 	psexecinter.h psexechandles.h
 
 psexec_la_CPPFLAGS = $(AM_CPPFLAGS) -DLOCALSTATEDIR=\"$(localstatedir)\"
-psexec_la_LIBADD = $(libplugincommon)
+psexec_la_LIBADD = $(libplugincommon) $(libpscommon)
 all: all-am
 
 .SUFFIXES:
