@@ -36,29 +36,36 @@ static void doAddConfigEntry(Config_t *conf, char *key, char *value)
     list_add_tail(&(obj->next), conf);
 }
 
-static void computeHash(uint32_t *hash, char *line)
+/** Pointer to hash accumulator */
+static uint32_t *configHashAcc = NULL;
+
+static void updateHash(uint32_t *hashAcc, char *line)
 {
-    int idx, i, len;
+    int i, len = strlen(line);
 
-    if (!hash) return;
+    if (!hashAcc) return;
 
-    len = strlen(line);
     for (i = 0; i < len; i++) {
-	(*hash) = ( (*hash) ^ line[i] << 8 );
+	int idx;
+	*hashAcc = *hashAcc ^ line[i] << 8;
 
-	for (idx = 0; idx < 8; ++idx) {
-	    if ((*hash) & 0x8000) {
-		(*hash) <<= 1;
-		(*hash) = (*hash) ^ 4129;
+	for (idx = 0; idx < 8; idx++) {
+	    if (*hashAcc & 0x8000) {
+		*hashAcc <<= 1;
+		*hashAcc = *hashAcc ^ 4129;
 	    } else {
-		(*hash) <<= 1;
+		*hashAcc <<= 1;
 	    }
 	}
     }
 }
 
-int parseConfigFileEx(char *filename, Config_t *conf, bool trimQuotes,
-		      uint32_t *hash, const char *caller)
+void registerConfigHashAccumulator(uint32_t *hashAcc)
+{
+    configHashAcc = hashAcc;
+}
+
+int parseConfigFile(char *filename, Config_t *conf, bool trimQuotes)
 {
     FILE *fp;
     char *linebuf = NULL;
@@ -72,7 +79,7 @@ int parseConfigFileEx(char *filename, Config_t *conf, bool trimQuotes,
     if (!(fp = fopen(filename, "r"))) {
 	char *cwd = getcwd(NULL, 0);
 
-	pluginlog("%s: error opening config cwd:%s file:%s\n", caller, cwd,
+	pluginlog("%s: error opening config cwd:%s file:%s\n", __func__, cwd,
 		  filename);
 	if (cwd) free(cwd);
 	return -1;
@@ -81,7 +88,7 @@ int parseConfigFileEx(char *filename, Config_t *conf, bool trimQuotes,
     while ((read = getline(&linebuf, &len, fp)) != -1) {
 	char *line = linebuf, *key, *val, *tmp;
 
-	if (hash && read) computeHash(hash, line);
+	if (configHashAcc && read) updateHash(configHashAcc, line);
 
 	/* skip comments and empty lines */
 	if (!read || line[0] == '\n' || line[0] == '#' || line[0] == '\0') {

@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2017 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -137,7 +137,7 @@ static bool verifyVisitor(char *key, char *value, const void *info)
 
 bool initConfig(char *cfgName)
 {
-    if (parseConfigFile(cfgName, &config) < 0) {
+    if (parseConfigFile(cfgName, &config, false /* trimQuotes */) < 0) {
 	mlog("%s: failed to open '%s'\n", __func__, cfgName);
 	return false;
     }
