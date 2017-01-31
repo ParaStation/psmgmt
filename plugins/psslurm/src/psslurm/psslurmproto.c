@@ -2510,21 +2510,25 @@ static void doSendTaskExit(Step_t *step, PS_Tasks_t *task, int exitCode,
 			    uint32_t *count, int *ctlPort, int *ctlAddr)
 {
     PS_DataBuffer_t body = { .buf = NULL };
-    char *ptrNumProcs, *ptrNumTIDs;
     struct list_head *pos;
-    uint32_t exitCount = 0;
+    uint32_t exitCount = 0, exitCount2 = 0;
     int i, sock;
 
     /* exit status */
     addUint32ToMsg(exitCode, &body);
 
     /* number of processes exited */
-    ptrNumProcs = body.buf + body.bufUsed;
-    addUint32ToMsg(0, &body);
+    list_for_each(pos, &step->tasks.list) {
+	if (!(task = list_entry(pos, PS_Tasks_t, list))) break;
+	if (task->sentExit || task->childRank < 0) continue;
+	if (task->exitCode == exitCode) {
+	    exitCount++;
+	}
+    }
+    addUint32ToMsg(exitCount, &body);
 
     /* task ids of processes (array) */
-    ptrNumTIDs = body.buf + body.bufUsed;
-    addUint32ToMsg(0, &body);
+    addUint32ToMsg(exitCount, &body);
 
     list_for_each(pos, &step->tasks.list) {
 	if (!(task = list_entry(pos, PS_Tasks_t, list))) break;
@@ -2532,20 +2536,25 @@ static void doSendTaskExit(Step_t *step, PS_Tasks_t *task, int exitCode,
 	if (task->exitCode == exitCode) {
 	    addUint32ToMsg(task->childRank, &body);
 	    task->sentExit = 1;
-	    exitCount++;
+	    exitCount2++;
 	    /*
 	    mlog("%s: tasks childRank:%i exit:%i exitCount:%i\n", __func__,
 		    task->childRank, task->exitCode, exitCount);
 	    */
 	}
     }
-    *(uint32_t *) ptrNumProcs = htonl(exitCount);
-    *(uint32_t *) ptrNumTIDs = htonl(exitCount);
     *count += exitCount;
 
     if (exitCount < 1) {
 	mlog("%s: failed to find tasks for exitCode '%i'\n", __func__,
 		exitCode);
+	ufree(body.buf);
+	return;
+    }
+
+    if (exitCount != exitCount2) {
+	mlog("%s: mismatching exit count '%i:%i'\n", __func__,
+		exitCount, exitCount2);
 	ufree(body.buf);
 	return;
     }
@@ -2674,8 +2683,7 @@ void sendLaunchTasksFailed(Step_t *step, uint32_t error)
 int sendTaskPids(Step_t *step)
 {
     PS_DataBuffer_t body = { .buf = NULL };
-    uint32_t countPIDS = 0, countGTIDS = 0;
-    char *ptrCount, *ptrPIDS, *ptrGTIDS;
+    uint32_t countPIDS = 0, countPIDS2 = 0, countGTIDS2 = 0, countGTIDS = 0;
     int sock = -1;
     list_t *t;
 
@@ -2686,44 +2694,45 @@ int sendTaskPids(Step_t *step)
     addStringToMsg(getConfValueC(&Config, "SLURM_HOSTNAME"), &body);
 
     /* count of pids */
-    ptrCount = body.buf + body.bufUsed;
-    addUint32ToMsg(0, &body);
+    list_for_each(t, &step->tasks.list) {
+	PS_Tasks_t *task = list_entry(t, PS_Tasks_t, list);
+	if (task->childRank <0) continue;
+	countPIDS++;
+    }
+    addUint32ToMsg(countPIDS, &body);
 
     /* local pids */
-    ptrPIDS = body.buf + body.bufUsed;
-    addUint32ToMsg(0, &body);
+    addUint32ToMsg(countPIDS, &body);
 
     list_for_each(t, &step->tasks.list) {
 	PS_Tasks_t *task = list_entry(t, PS_Tasks_t, list);
 	if (task->childRank <0) continue;
-
 	addUint32ToMsg(PSC_getPID(task->childTID), &body);
-	countPIDS++;
+	countPIDS2++;
     }
 
     /* task ids of processes (array) */
-    ptrGTIDS = body.buf + body.bufUsed;
-    addUint32ToMsg(0, &body);
+    list_for_each(t, &step->tasks.list) {
+	PS_Tasks_t *task = list_entry(t, PS_Tasks_t, list);
+	if (task->childRank <0) continue;
+	countGTIDS++;
+    }
+    addUint32ToMsg(countGTIDS, &body);
 
     list_for_each(t, &step->tasks.list) {
 	PS_Tasks_t *task = list_entry(t, PS_Tasks_t, list);
 	if (task->childRank <0) continue;
-
 	addUint32ToMsg(task->childRank, &body);
-	countGTIDS++;
+	countGTIDS2++;
     }
 
-    if (countPIDS != countGTIDS) {
+    if (countPIDS != countGTIDS || countPIDS != countPIDS2
+	|| countGTIDS != countGTIDS2) {
 	mlog("%s: mismatching PID '%u' and GTID '%u' count\n", __func__,
 		countPIDS, countGTIDS);
 	ufree(body.buf);
 	return 0;
     }
-
-    /* correct pid/tid count */
-    *(uint32_t *) ptrCount = htonl(countPIDS);
-    *(uint32_t *) ptrPIDS = htonl(countPIDS);
-    *(uint32_t *) ptrGTIDS = htonl(countPIDS);
 
     /* send the message to srun */
     if ((sock = srunOpenControlConnection(step)) != -1) {
