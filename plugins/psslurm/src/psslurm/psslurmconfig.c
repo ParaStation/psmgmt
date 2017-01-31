@@ -291,7 +291,7 @@ static int verifySlurmConf()
 
 int initConfig(char *filename, uint32_t *hash)
 {
-    char *slurmConfFile;
+    char *confFile;
     struct stat sbuf;
     Slurm_Conf_Info sinfo = { .gres = 0 };
 
@@ -301,21 +301,25 @@ int initConfig(char *filename, uint32_t *hash)
     }
 
     /* parse plugin config file */
-    if ((parseConfigFile(filename, &Config)) < 0) return 0;
+    if (parseConfigFile(filename, &Config, false /*trimQuotes*/) < 0) return 0;
     setConfigDefaults(&Config, CONFIG_VALUES);
-    if ((verifyConfig(&Config, CONFIG_VALUES)) != 0) return 0;
+    if (verifyConfig(&Config, CONFIG_VALUES) != 0) return 0;
 
     /* parse slurm config file */
-    if (!(slurmConfFile = getConfValueC(&Config, "SLURM_CONF"))) return 0;
-    if (parseConfigFileHQ(slurmConfFile, &SlurmConfig, hash) < 0) return 0;
+    if (!(confFile = getConfValueC(&Config, "SLURM_CONF"))) return 0;
+    registerConfigHashAccumulator(hash);
+    if (parseConfigFile(confFile, &SlurmConfig, true /*trimQuotes*/) < 0)
+	return 0;
+    registerConfigHashAccumulator(NULL);
     if (traverseConfig(&SlurmConfig, parseSlurmConf, &sinfo)) return 0;
     if (!(verifySlurmConf())) return 0;
 
     /* parse optional slurm gres config file */
     sinfo.gres = 1;
-    if (!(slurmConfFile = getConfValueC(&Config, "SLURM_GRES_CONF"))) return 0;
-    if (stat(slurmConfFile, &sbuf) == -1) return 1;
-    if (parseConfigFileQ(slurmConfFile, &SlurmGresTmp) < 0) return 0;
+    if (!(confFile = getConfValueC(&Config, "SLURM_GRES_CONF"))) return 0;
+    if (stat(confFile, &sbuf) == -1) return 1;
+    if (parseConfigFile(confFile, &SlurmGresTmp, true /*trimQuotes*/) < 0)
+	return 0;
 
     INIT_LIST_HEAD(&SlurmGresConfig);
     if (traverseConfig(&SlurmGresTmp, parseSlurmConf, &sinfo)) return 0;

@@ -26,32 +26,43 @@ typedef list_t Config_t;
  * store it into @a conf. @a conf is assumed to be empty. If @a conf
  * already holds valid configuration, some memory might get
  * leaked. Therefore previous configurations shall be destructed via
- * @ref freeConfig().
+ * @ref freeConfig(). If the flag @a trimQuotes is true, each
+ * configuration value gets unquoted before being put into the
+ * configuration.
+ *
+ * As a side-effect hash accumulation of the configuration might be
+ * conducted if a hash accumulator was registered before via @ref
+ * registerConfigHashAccumulator().
  *
  * @param filename Name of the configuration file to be handled
  *
  * @param conf Configuration ready for further use
  *
- * @param trimQuotes Flag to unquote each configuration value
- *
- * @param hash Flag to compute hash value for config file
- *
- * @param caller Function name of the calling function
- *
+ * @param trimQuotes Flag to unquote each configuration value before
+ * putting it into @a conf
+  *
  * @return Upon success the number of configuration entries found in
  * the file is returned. Or -1 if an error occurred.
 */
-int parseConfigFileEx(char *filename, Config_t *conf, bool trimQuotes,
-		      uint32_t *hash, const char *caller);
+int parseConfigFile(char *filename, Config_t *conf, bool trimQuotes);
 
-#define parseConfigFile(filename, conf) \
-    parseConfigFileEx(filename, conf, false, NULL, __func__)
-
-#define parseConfigFileQ(filename, conf) \
-    parseConfigFileEx(filename, conf, true, NULL, __func__)
-
-#define parseConfigFileHQ(filename, conf, hash) \
-    parseConfigFileEx(filename, conf, true, hash, __func__)
+/**
+ * @brief Register a hash accumulator
+ *
+ * Register a hash accumulator @a hashAcc ready to collect the hash of
+ * a configuration file during the call of @ref parseConfigFile().
+ *
+ * Since subsequent calls of @ref parseConfigFile() would do further
+ * changes to the hash accumulator it shall be unregistered by
+ * registering a new hash accumulator or by disabling hash
+ * accumulation via calling this function with a NULL argument.
+ *
+ * @param hashAcc Ready prepared hash accumulator to register or NULL
+ * to disable hash accumulation.
+ *
+ * @return No return value
+ */
+void registerConfigHashAccumulator(uint32_t *hashAcc);
 
 /**
  * @brief Free complete configuration
