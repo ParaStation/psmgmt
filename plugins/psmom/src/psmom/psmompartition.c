@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2017 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -12,9 +12,8 @@
 #include <string.h>
 #include <errno.h>
 
-#include "psmomjob.h"
-#include "psmomlog.h"
-#include "psmom.h"
+#include "pstask.h"
+#include "list.h"
 #include "pscommon.h"
 #include "psidtask.h"
 #include "psidcomm.h"
@@ -22,55 +21,20 @@
 #include "psidnodes.h"
 #include "psidpartition.h"
 #include "psdaemonprotocol.h"
-#include "psmompsaccfunc.h"
+#include "pluginpartition.h"
+
+#include "psaccounthandles.h"
+
+#include "psmomjob.h"
+#include "psmomlog.h"
+#include "psmom.h"
 #include "psmomjobinfo.h"
 
 #include "psmompscomm.h"
 #include "psmomconfig.h"
-#include "pluginpartition.h"
 
-#include "pstask.h"
-#include "list.h"
 
 #include "psmompartition.h"
-
-/**
- * @brief Test if a pid belongs to a local running job.
- *
- * @param pid The pid to test.
- *
- * @return Returns the identified job or NULL on error.
- */
-static Job_t *findJobforPID(pid_t pid)
-{
-    Job_t *job;
-    list_t *pos, *tmp;
-
-    if (pid < 0) {
-	mlog("%s: got invalid pid '%i'\n", __func__, pid);
-	return NULL;
-    }
-
-    if (list_empty(&JobList.list)) return NULL;
-
-    list_for_each_safe(pos, tmp, &JobList.list) {
-	if ((job = list_entry(pos, Job_t, list)) == NULL) continue;
-
-	/* skip jobs in wrong jobstate */
-	if (job->state != JOB_RUNNING) continue;
-
-	if (job->mpiexec == pid) return job;
-
-	if ((findJobCookie(job->cookie, pid))) {
-	    /* try to find our job cookie in the environment */
-	    return job;
-	} else if ((psAccountisChildofParent(job->pid, pid))) {
-	    return job;
-	}
-    }
-
-    return NULL;
-}
 
 void handlePSSpawnReq(DDTypedBufferMsg_t *msg)
 {
@@ -174,11 +138,11 @@ static void partitionDone(PStask_t *task)
 
 int handleCreatePart(void *msg)
 {
+    int enforceBatch = getConfValueI(&config, "ENFORCE_BATCH_START");
     PStask_t *task;
     DDBufferMsg_t *inmsg = msg;
     Job_t *job = NULL;
     pid_t mPid;
-    int enforceBatch;
 
     mPid = PSC_getPID(inmsg->header.sender);
 
@@ -191,7 +155,6 @@ int handleCreatePart(void *msg)
     }
 
     /* enforce regulations from the batchsystem */
-    getConfParamI("ENFORCE_BATCH_START", &enforceBatch);
     if (!enforceBatch) return 1;
 
     /* find task */
@@ -252,11 +215,9 @@ error:
 
 int handleCreatePartNL(void *msg)
 {
-    int enforceBatch;
+    int enforceBatch = getConfValueI(&config, "ENFORCE_BATCH_START");
     PStask_t *task;
     DDBufferMsg_t *inmsg = (DDBufferMsg_t *) msg;
-
-    getConfParamI("ENFORCE_BATCH_START", &enforceBatch);
 
     /* everyone is allowed to start, nothing to do for us here */
     if (!enforceBatch) return 1;

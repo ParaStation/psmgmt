@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2017 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -25,6 +25,19 @@
 #include <syslog.h>
 #include <sys/resource.h>
 
+#include "psidutil.h"
+#include "psidhook.h"
+#include "pscommon.h"
+#include "selector.h"
+#include "timer.h"
+
+#include "pluginhelper.h"
+#include "pluginmalloc.h"
+#include "pluginlog.h"
+#include "pluginpty.h"
+
+#include "psaccounthandles.h"
+
 #include "psmom.h"
 #include "psmomspawn.h"
 #include "psmomlog.h"
@@ -36,18 +49,7 @@
 #include "psmomconv.h"
 #include "psmomsignal.h"
 #include "psmominteractive.h"
-#include "psmompsaccfunc.h"
 #include "psmomenv.h"
-#include "pluginhelper.h"
-#include "pluginmalloc.h"
-#include "pluginlog.h"
-#include "pluginpty.h"
-
-#include "psidutil.h"
-#include "psidhook.h"
-#include "pscommon.h"
-#include "selector.h"
-#include "timer.h"
 
 #ifdef PAM_DEVEL_AVAIL
   #include <security/pam_appl.h>
@@ -157,12 +159,10 @@ static void doForwarderChildStart(void)
 static void verifyTempDir(void)
 {
     struct stat st;
-    char *dir;
+    char *dir = getConfValueC(&config, "DIR_TEMP");
 
-    if ((dir = getConfParam("DIR_TEMP"))) {
-	if (stat(dir, &st) != 0) {
-	    mwarn(errno, "%s: stat for TEMP DIR '%s' failed : ", __func__, dir);
-	}
+    if (dir && stat(dir, &st) != 0) {
+	mwarn(errno, "%s: stat for TEMP DIR '%s' failed : ", __func__, dir);
     }
 }
 
@@ -202,10 +202,10 @@ void killForwarderChild(char *reason)
     switch (forwarder_type) {
 	case FORWARDER_INTER:
 	case FORWARDER_JOBSCRIPT:
-	    getConfParamI("TIME_OBIT", &obitTime);
+	    obitTime = getConfValueI(&config, "TIME_OBIT");
 	    break;
 	case FORWARDER_PELOGUE:
-	    getConfParamI("TIMEOUT_PE_GRACE", &obitTime);
+	    obitTime = getConfValueI(&config, "TIMEOUT_PE_GRACE");
 	    break;
 	case FORWARDER_COPY:
 	    obitTime = 3;
@@ -222,7 +222,7 @@ void killForwarderChild(char *reason)
 		reason);
     }
 
-    if ((psAccountsendSignal2Session(forwarder_child_sid, SIGTERM)) > 0) {
+    if ((psAccountSignalSession(forwarder_child_sid, SIGTERM)) > 0) {
 	killAllChildren = 1;
 	alarm(obitTime);
     }
@@ -242,11 +242,11 @@ static void sendForwarderChildExit(struct rusage *rusg, int status)
     uint64_t cputime;
 
     /* wait for all children to exit */
-    if ((psAccountsendSignal2Session(forwarder_child_sid, SIGTERM)) > 0) {
+    if ((psAccountSignalSession(forwarder_child_sid, SIGTERM)) > 0) {
 	if (!killAllChildren) killForwarderChild(NULL);
 	sleep(2);
 
-	while ((psAccountsendSignal2Session(forwarder_child_sid, SIGTERM)) > 0) {
+	while ((psAccountSignalSession(forwarder_child_sid, SIGTERM)) > 0) {
 	    if (sentHardKill) break;
 	    sleep(2);
 	}
@@ -278,7 +278,7 @@ static void handleLocalSignal(void)
     ReadDigitUI(com, &sig);
     mlog("%s: signal '%s (%i)' to '%i' and all children\n",
 		__func__, signal2String(sig), sig, forwarder_child_pid);
-    psAccountsendSignal2Session(forwarder_child_sid, sig);
+    psAccountSignalSession(forwarder_child_sid, sig);
 }
 
 /**
@@ -345,7 +345,7 @@ static void forwarderExit(void)
     alarm(0);
 
     /* make sure all children are dead */
-    psAccountsendSignal2Session(forwarder_child_sid, SIGKILL);
+    psAccountSignalSession(forwarder_child_sid, SIGKILL);
 
     /* restore sighandler */
     resetSignalHandling();
@@ -400,7 +400,7 @@ static void signalHandler(int sig)
 		/* second kill phase, do it the hard way now */
 		mlog("signal 'SIGKILL' to sid '%i' job" " '%s'\n",
 			forwarder_child_sid, jobid);
-		psAccountsendSignal2Session(forwarder_child_sid, SIGKILL);
+		psAccountSignalSession(forwarder_child_sid, SIGKILL);
 		killAllChildren = 0;
 		sentHardKill = 1;
 	    } else {
@@ -509,6 +509,7 @@ static int handleSignalFd(int fd, void *info)
     int res;
 
     doRead(fd, &res, sizeof(res));
+    Selector_startOver();
     return 1;
 }
 
@@ -637,6 +638,37 @@ static int expandWords(wordexp_t *fExpr, char *words)
     return 1;
 }
 
+static bool rewriteCopyVisitor(char *key, char *value, const void *info)
+{
+    char *dest = *(char **)info, *reEnd = strchr(value, ' ');
+    size_t lenStart, lenEnd;
+
+    if (strcmp(key, "COPY_REWRITE")) return false;
+
+    if (!reEnd) {
+	mlog("%s: invalid rewrite option '%s'\n", __func__, value);
+	return false;
+    }
+    reEnd++;
+
+    lenEnd = strlen(reEnd);
+    lenStart = strlen(value) - (lenEnd + 1);
+
+    if (!strncmp(value, dest, lenStart)) {
+	char *tmp = dest + lenStart;
+	char *newDest = umalloc(lenEnd + strlen(tmp) + 1);
+
+	strcpy(newDest, reEnd);
+	strcat(newDest, tmp);
+	newDest[lenEnd + strlen(tmp)] = '\0';
+	mdbg(PSMOM_LOG_VERBOSE, "rewrite: dest:%s to new dest:%s\n",
+	     dest, newDest);
+	*(char **)info = newDest;
+	return true;
+    }
+    return false;
+}
+
 /**
  * @brief Rewrite the copy destination when request in configuration.
  *
@@ -646,42 +678,10 @@ static int expandWords(wordexp_t *fExpr, char *words)
  */
 static char *rewriteCopyDest(char *dest)
 {
-    size_t lenStart, lenEnd;
-    char *newDest, *tmp, *reEnd;
+    char *myDest = dest;
 
-    if (!(list_empty(&ConfigList.list))) {
-	struct list_head *pos;
-	Config_t *config;
+    if (traverseConfig(&config, rewriteCopyVisitor, &myDest)) return myDest;
 
-	list_for_each(pos, &ConfigList.list) {
-	    if (!(config = list_entry(pos, Config_t, list))) break;
-
-	    if (!(strcmp(config->key, "COPY_REWRITE"))) {
-		if (!(reEnd = strchr(config->value, ' '))) {
-		    mlog("%s: invalid rewrite option '%s'\n", __func__,
-			    config->value);
-		    continue;
-		}
-		reEnd++;
-
-		lenEnd = strlen(reEnd);
-		lenStart = strlen(config->value) - (lenEnd + 1);
-
-		if (!(strncmp(config->value, dest, lenStart))) {
-
-		    tmp = dest + lenStart;
-		    newDest = umalloc(lenEnd + strlen(tmp) + 1);
-
-		    strcpy(newDest, reEnd);
-		    strcat(newDest, tmp);
-		    newDest[lenEnd + strlen(tmp)] = '\0';
-		    mdbg(PSMOM_LOG_VERBOSE, "rewrite: dest:%s to new dest:%s\n",
-			    dest, newDest);
-		    return newDest;
-		}
-	    }
-	}
-    }
     return NULL;
 }
 
@@ -701,9 +701,9 @@ static int copyFile(char *src, char *dest, char *opt)
     int cp_status = -1, cp_wstat;
     struct rusage cp_rusage;
 
-    cmd_cp = getConfParamC("CMD_COPY");
+    cmd_cp = getConfValueC(&config, "CMD_COPY");
     if (!opt) {
-	opt_cp = getConfParamC("OPT_COPY");
+	opt_cp = getConfValueC(&config, "OPT_COPY");
     } else {
 	opt_cp = opt;
     }
@@ -755,7 +755,7 @@ int execCopyForwarder(void *info)
 	return 1;
     }
 
-    getConfParamL("TIMEOUT_COPY", &timeout);
+    timeout = getConfValueL(&config, "TIMEOUT_COPY");
 
     if ((forwarder_child_pid = fork()) < 0) {
 	fprintf(stdout, "%s: unable to fork copy process : %s\n", __func__,
@@ -781,7 +781,7 @@ int execCopyForwarder(void *info)
 	switchUser(job->user, &job->passwd, 1);
 
 	/* get some config options */
-	spoolDir = getConfParamC("DIR_SPOOL");
+	spoolDir = getConfValueC(&config, "DIR_SPOOL");
 
 	/* copy all files */
 	for (i=0; i<data->count; i++) {
@@ -940,7 +940,7 @@ static void startPElogue(int prologue, PElogue_Data_t *data, char *filename,
      * ($4)  PBS_JOBNAME    : mom_test
      * ($5)  PBS_SESSION_ID : 31813
      * ($6)  PBS_LIMITS	    : neednodes=1:ppn=2,nodes=1:ppn=2,walltime=00:00:10
-     * ($7)  PBS_RESOURCES : cput=00:00:05,mem=23700kb,vmem=36720kb,walltime=00:00:05
+     * ($7)  PBS_RESOURCES  : cput=00:00:05,mem=23700kb,vmem=36720kb,walltime=00:00:05
      * ($8)  PBS_QUEUE	    : batch
      * ($9)  PBS_ACCOUNT    :
      * ($10) PBS_EXIT	    : 0
@@ -1158,7 +1158,7 @@ static void startPAMSession(const char *user)
     int ret, disabled;
     pam_handle_t *pamh;
 
-    getConfParamI("DISABLE_PAM", &disabled);
+    disabled = getConfValueI(&config, "DISABLE_PAM");
     if (disabled) return;
 
     if ((ret = pam_start(service_name, user, &conversation, &pamh))
@@ -1524,7 +1524,8 @@ static int runPElogueScript(PElogue_Data_t *data, char *filename, int root)
 		    root ? "root" : "user");
 
 	    /* start timeout script */
-	    if ((timeoutScript = getConfParamC("TIMEOUT_SCRIPT"))) {
+	    timeoutScript = getConfValueC(&config, "TIMEOUT_SCRIPT");
+	    if (timeoutScript) {
 		spawnTimeoutScript(timeoutScript, data, filename);
 	    }
 	    return -4;
@@ -1656,8 +1657,9 @@ static int setOutputStreams(Job_t *job, char *outLog, size_t outLen,
     char out[500], error[500];
 
     /* get dirs */
-    spoolDir = getConfParamC("DIR_SPOOL");
-    if (!(homeDir = getEnvValue("HOME"))) {
+    spoolDir = getConfValueC(&config, "DIR_SPOOL");
+    homeDir = getEnvValue("HOME");
+    if (!homeDir) {
 	mlog("%s: invalid home dir\n", __func__);
 	return 0;
     }
@@ -1775,13 +1777,14 @@ static void backupJob(char *backupScript, Job_t *job, char *outLog,
     struct tm *ts;
     size_t len;
 
-    if (!(localBackupDir = getConfParamC("DIR_LOCAL_BACKUP"))) {
+    localBackupDir = getConfValueC(&config, "DIR_LOCAL_BACKUP");
+    if (!localBackupDir) {
 	mlog("%s: invalid local backup dir '%s'\n", __func__, localBackupDir);
 	return;
     }
 
-    opt = getConfParamC("OPT_BACKUP_COPY");
-    spoolFiles = getConfParamC("DIR_SPOOL");
+    opt = getConfValueC(&config, "OPT_BACKUP_COPY");
+    spoolFiles = getConfValueC(&config, "DIR_SPOOL");
     len = strlen(spoolFiles);
 
     /* copy stdout */
@@ -1806,21 +1809,21 @@ static void backupJob(char *backupScript, Job_t *job, char *outLog,
     }
 
     /* copy nodefile */
-    nodeFiles = getConfParamC("DIR_NODE_FILES");
+    nodeFiles = getConfValueC(&config, "DIR_NODE_FILES");
     snprintf(src, sizeof(src), "%s/%s", nodeFiles, job->hashname);
     snprintf(dest, sizeof(dest), "%s/%s.NODES", localBackupDir, job->hashname);
     setenv("PSMOM_BACKUP_NODES", dest, 1);
     copyFile(src ,dest, opt);
 
     /* copy accountfile */
-    accFiles = getConfParamC("DIR_JOB_ACCOUNT");
+    accFiles = getConfValueC(&config, "DIR_JOB_ACCOUNT");
     snprintf(src, sizeof(src), "%s/%s", accFiles, job->hashname);
     snprintf(dest, sizeof(dest), "%s/%s.ACC", localBackupDir, job->hashname);
     setenv("PSMOM_BACKUP_ACCOUNT", dest, 1);
     copyFile(src ,dest, opt);
 
     /* copy jobscript */
-    jobFiles = getConfParamC("DIR_JOB_FILES");
+    jobFiles = getConfValueC(&config, "DIR_JOB_FILES");
     snprintf(src, sizeof(src), "%s/%s", jobFiles, job->hashname);
     snprintf(dest, sizeof(dest), "%s/%s.JOBSCRIPT", localBackupDir,
 		job->hashname);
@@ -1872,7 +1875,7 @@ static void backupJob(char *backupScript, Job_t *job, char *outLog,
 	    int timeout = 0;
 
 	    /* monitor backup process with a timeout */
-	    getConfParamI("TIMEOUT_BACKUP", &timeout);
+	    timeout = getConfValueI(&config, "TIMEOUT_BACKUP");
 	    if (timeout > 0) {
 		signal(SIGALRM, backupTimeout);
 		alarm(timeout);
@@ -1978,8 +1981,8 @@ int execJobscriptForwarder(void *info)
 	switchUser(job->user, &job->passwd, 1);
 
 	/* set umask for job output/error files */
-	if ((opt_mask = getJobDetail(&job->data, "umask", NULL))) {
-
+	opt_mask = getJobDetail(&job->data, "umask", NULL);
+	if (opt_mask) {
 	    /* switch to umask choosen by user via qsub -W umask option */
 	    if ((sscanf(opt_mask, "%i", &mask)) != 1) {
 		mlog("%s: invalid umask from qsub: %s\n", __func__,
@@ -1989,7 +1992,7 @@ int execJobscriptForwarder(void *info)
 	    /* make sure copyout is successful */
 	    mask = mask & 0377;
 	    old_mask = umask(mask);
-	} else if ((opt_mask = getConfParam("JOB_UMASK"))) {
+	} else if ((opt_mask = getConfValueC(&config, "JOB_UMASK"))) {
 	    if (opt_mask[0] == '0') {
 		if ((sscanf(opt_mask, "%o", &mask)) != 1) {
 		    mlog("%s: invalid umask from config: %s\n", __func__,
@@ -2068,16 +2071,15 @@ int execJobscriptForwarder(void *info)
     }
 
     /* write accounting data to stderr */
-    getConfParamI("LOG_ACCOUNT_RECORDS", &logAccount);
+    logAccount = getConfValueI(&config, "LOG_ACCOUNT_RECORDS");
     if ((logAccount || getEnvValue("PSMOM_LOG_ACCOUNT"))
 	&& !getEnvValue("PSMOM_DIS_ACCOUNT")) {
 	writeAccData(errLog, status);
     }
 
     /* backup job files */
-    if ((backupScript = getConfParamC("BACKUP_SCRIPT"))) {
-	backupJob(backupScript, job, outLog, errLog);
-    }
+    backupScript = getConfValueC(&config, "BACKUP_SCRIPT");
+    if (backupScript) backupJob(backupScript, job, outLog, errLog);
 
     sendForwarderChildExit(&rusage, status);
 

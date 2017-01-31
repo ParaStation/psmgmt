@@ -1,16 +1,26 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2011-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2011-2017 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+
+#include "pscommon.h"
+
+#include "pluginhelper.h"
+#include "pluginmalloc.h"
+#include "psidtask.h"
+#include "pluginlog.h"
+#include "plugin.h"
+
+#include "psaccounthandles.h"
+#include "pspamhandles.h"
 
 #include "psmomjob.h"
 #include "psmomconfig.h"
@@ -20,16 +30,7 @@
 #include "psmomcollect.h"
 #include "psmomcomm.h"
 #include "psmomlocalcomm.h"
-#include "psmomssh.h"
 #include "psmomjobinfo.h"
-#include "pluginhelper.h"
-#include "pluginmalloc.h"
-#include "psidtask.h"
-#include "pluginlog.h"
-#include "plugin.h"
-
-#include "pscommon.h"
-#include "psmompsaccfunc.h"
 
 #include "psmomkvs.h"
 
@@ -41,7 +42,6 @@ uint32_t stat_successInterJobs = 0;
 uint32_t stat_failedBatchJobs = 0;
 uint32_t stat_failedInterJobs = 0;
 uint32_t stat_remoteJobs = 0;
-uint32_t stat_SSHLogins = 0;
 uint32_t stat_lPrologue = 0;
 uint32_t stat_rPrologue = 0;
 uint32_t stat_failedrPrologue = 0;
@@ -55,7 +55,7 @@ FILE *memoryDebug = NULL;
 /* line buffer */
 static char line[1024];
 
-static void formatTimeout(long start, long timeout, char *buf, size_t bufsize)
+void formatTimeout(long start, long timeout, char *buf, size_t bufsize)
 {
     struct tm *ts;
 
@@ -232,120 +232,6 @@ static char *showJob(Job_t *job, char *buf, size_t *bufSize)
 }
 
 /**
- * @brief Save information about all known remote jobs.
- *
- * @param buf The buffer to save the information to.
- *
- * @param bufSize A pointer to the current size of the buffer.
- *
- * @return Returns the buffer with the updated remote job information.
- */
-static char *showRemoteJobs(char *buf, size_t *bufSize)
-{
-    list_t *pos, *tmp;
-    JobInfo_t *job;
-    char start[50], timeout[50], nodeId[10];
-    struct tm *ts;
-
-    if (list_empty(&JobInfoList.list)) {
-	return str2Buf("\nNo current remote jobs.\n", &buf, bufSize);
-    }
-
-    snprintf(line, sizeof(line), "\n%26s  %9s  %6s  %15s  %15s\n",
-		"JobId", "User", "NId", "Starttime", "Timeout");
-    str2Buf(line, &buf, bufSize);
-
-    list_for_each_safe(pos, tmp, &JobInfoList.list) {
-	if ((job = list_entry(pos, JobInfo_t, list)) == NULL) break;
-
-	/* format start time */
-	ts = localtime(&job->start_time);
-	strftime(start, sizeof(start), "%Y-%m-%d %H:%M:%S", ts);
-
-	formatTimeout(job->start_time, job->timeout, timeout, sizeof(timeout));
-
-	snprintf(nodeId, sizeof(nodeId), "%i", PSC_getID(job->tid));
-
-	snprintf(line, sizeof(line), "%26s  %9s  %6s  %15s  %15s\n",
-		job->id,
-		job->user,
-		nodeId,
-		start,
-		timeout);
-
-	str2Buf(line, &buf, bufSize);
-    }
-    return buf;
-}
-
-/**
- * @brief Save information about all known jobs into a buffer.
- *
- * @param buf The buffer to save the information to.
- *
- * @param bufSize A pointer to the current size of the buffer.
- *
- * @return Returns the buffer with the updated job information.
- */
-static char *showJobs(char *buf, size_t *bufSize)
-{
-    struct list_head *pos;
-    Job_t *job;
-    char start[50], timeout[50], logger[15], procs[8], nodes[6];
-    struct tm *ts;
-    long secTimeout;
-
-    if (list_empty(&JobList.list)) {
-	return str2Buf("\nCurrently no jobs.\n", &buf, bufSize);
-    }
-
-    snprintf(line, sizeof(line), "\n%26s %8s %8s %6s %10s %10s %20s %20s\n",
-		"JobId", "State", "Procs", "Nodes", "User", "TaskID",
-		"Startttime", "Timeout");
-    str2Buf(line, &buf, bufSize);
-
-    list_for_each(pos, &JobList.list) {
-	if ((job = list_entry(pos, Job_t, list)) == NULL) {
-	    return buf;
-	}
-
-	/* format start time */
-	ts = localtime(&job->start_time);
-	strftime(start, sizeof(start), "%Y-%m-%d %H:%M:%S", ts);
-
-	/* format timeout */
-	secTimeout = stringTimeToSec(getJobDetail(&job->data, "Resource_List",
-		    "walltime"));
-
-	formatTimeout(job->start_time, secTimeout, timeout, sizeof(timeout));
-
-	if (job->mpiexec == -1) {
-	    strncpy(logger, "-", sizeof(logger));
-	} else {
-	    snprintf(logger, sizeof(logger), "[%i:%i]", PSC_getID(-1),
-			job->mpiexec);
-	}
-
-	snprintf(procs, sizeof(procs), "%i", job->nrOfNodes);
-	snprintf(nodes, sizeof(nodes), "%i", job->nrOfUniqueNodes);
-
-	snprintf(line, sizeof(line), "%26s %8s %8s %6s %10s %10s %20s %20s\n",
-			job->id,
-			jobState2String(job->state),
-			procs,
-			nodes,
-			job->user,
-			logger,
-			start,
-			timeout);
-
-	str2Buf(line, &buf, bufSize);
-    }
-
-    return buf;
-}
-
-/**
  * @brief Show psmom state information.
  *
  * @param buf The buffer to write the information to.
@@ -442,46 +328,6 @@ static char *showConnectionState(char *buf, size_t *bufSize)
 
 	snprintf(line, sizeof(line), "%i\t%s\t%20s\t%20s\t%s\n", com->socket,
 		protocolType2String(com->type), local, remote, info);
-	str2Buf(line, &buf, bufSize);
-    }
-
-    return buf;
-}
-
-/**
- * @brief Show current ssh logins.
- *
- * @param buf The buffer to write the information to.
- *
- * @param bufSize The size of the buffer.
- *
- * @return Returns the buffer with the updated ssh login information.
- */
-static char *showSSHLogins(char *buf, size_t *bufSize)
-{
-    struct tm *ts;
-    list_t *pos, *tmp;
-    SSHSession_t *ssh;
-    char start[50];
-
-    if (list_empty(&SSHList.list)) {
-	return str2Buf("\nNo current ssh logins.\n", &buf, bufSize);
-    }
-
-    snprintf(line, sizeof(line), "\n%9s\t%12s\t#Jobs\tPid\tSid\tStarttime\n",
-		"User", "RHost");
-    str2Buf(line, &buf, bufSize);
-
-    list_for_each_safe(pos, tmp, &SSHList.list) {
-	if ((ssh = list_entry(pos, SSHSession_t, list)) == NULL) break;
-
-	/* format start time */
-	ts = localtime(&ssh->start_time);
-	strftime(start, sizeof(start), "%Y-%m-%d %H:%M:%S", ts);
-
-	snprintf(line, sizeof(line), "%9s\t%12s\t%i\t%i\t%i\t%s\n", ssh->user,
-		    ssh->rhost, hasRunningJobs(ssh->user), ssh->pid,
-		    ssh->sid, start);
 	str2Buf(line, &buf, bufSize);
     }
 
@@ -591,8 +437,6 @@ static char *showAllowedPid(char *key, char *buf, size_t *bufSize)
     list_t *pos, *tmp;
     pid_t pid, sid;
     int found = 0;
-    Job_t *job = NULL;
-    JobInfo_t *jInfo;
     PStask_ID_t psAccLogger;
     PStask_t *task;
     Child_t *child;
@@ -626,78 +470,20 @@ static char *showAllowedPid(char *key, char *buf, size_t *bufSize)
 
     /* try to find the logger using the account client list */
     if (!(task = PStasklist_find(&managedTasks, PSC_getTID(-1, pid)))) {
-	psAccLogger = psAccountgetLoggerByClientPID(pid);
+	psAccLogger = psAccountGetLoggerByClient(pid);
     } else {
 	psAccLogger = task->loggertid;
     }
 
     /* check for local job */
-    if (!list_empty(&JobList.list)) {
-
-	list_for_each_safe(pos, tmp, &JobList.list) {
-	    if ((job = list_entry(pos, Job_t, list)) == NULL) continue;
-
-	    /* skip jobs in wrong jobstate */
-	    if (job->state == JOB_CANCEL_PROLOGUE ||
-		job->state == JOB_CANCEL_EPILOGUE ||
-		job->state == JOB_CANCEL_INTERACTIVE ||
-		job->state == JOB_WAIT_OBIT ||
-		job->state == JOB_QUEUED) continue;
-
-	    /* is a child of the jobscript? */
-	    if (job->pid == pid) {
-		found = 1;
-		reason = "LOCAL_PID";
-		goto FINISH;
-	    }
-
-	    /* try sid of jobscript child */
-	    if (sid > 0 && job->sid == sid) {
-		found = 1;
-		reason = "LOCAL_SID";
-		goto FINISH;
-	    }
-
-	    /* check if the child is from a known logger */
-	    if (psAccLogger == PSC_getTID(-1, job->mpiexec)) {
-		found = 1;
-		reason = "LOCAL_LOGGER";
-		goto FINISH;
-	    }
-
-	    /* try to find the job cookie in the environment */
-	    if ((findJobCookie(job->cookie, pid))) {
-		found = 1;
-		reason = "LOCAL_ENV";
-		goto FINISH;
-	    }
-	}
-    }
+    found = showAllowedJobPid(pid, sid, psAccLogger, &reason);
 
     /* check for remote job */
-    if (!list_empty(&JobInfoList.list)) {
-
-	list_for_each_safe(pos, tmp, &JobInfoList.list) {
-	    if ((jInfo = list_entry(pos, JobInfo_t, list)) == NULL) continue;
-
-	    /* check if the child is from a known logger */
-	    if (psAccLogger == jInfo->logger) {
-		found = 1;
-		reason = "REMOTE_LOGGER";
-		goto FINISH;
-	    }
-
-	    /* try to find the job cookie in the environment */
-	    if ((findJobCookie(jInfo->cookie, pid))) {
-		found = 1;
-		reason = "REMOTE_ENV";
-		goto FINISH;
-	    }
-	}
-    }
+    found = showAllowedJobInfoPid(pid, psAccLogger, &reason);
+    if (found) goto FINISH;
 
     /* check if the child is from an SSH session */
-    if ((findSSHSessionforPID(pid))) {
+    if (psPamFindSessionForPID(pid)) {
 	found = 1;
 	reason = "SSH";
     }
@@ -787,9 +573,6 @@ static char *showStatistic(char *buf, size_t *bufSize)
 		stat_remoteJobs);
     str2Buf(line, &buf, bufSize);
 
-    snprintf(line, sizeof(line), "ssh sessions\t\t\t%u\n", stat_SSHLogins);
-    str2Buf(line, &buf, bufSize);
-
     snprintf(line, sizeof(line), "psmom start time\t\t%s\n",
 		ctime(&stat_startTime));
     str2Buf(line, &buf, bufSize);
@@ -798,29 +581,30 @@ static char *showStatistic(char *buf, size_t *bufSize)
 }
 
 /**
- * @brief Show current configuration.
+ * @brief Show current configuration
  *
- * @param buf The buffer to write the information to.
+ * Print the current configuration of the plugin to the buffer @a buf
+ * of current length @a length. The buffer might be dynamically
+ * extended if required.
  *
- * @param bufSize The size of the buffer.
+ * @param buf Buffer to write information to
+ *
+ * @param bufSize Size of the buffer
  *
  * @return Returns the buffer with the updated configuration information.
  */
 static char *showConfig(char *buf, size_t *bufSize)
 {
-    char empty[] = "";
+    int maxKeyLen = getMaxKeyLen(confDef);
     int i;
 
     str2Buf("\n", &buf, bufSize);
 
-    for (i=0; i<configValueCount; i++) {
-	char *name, *val;
+    for (i = 0; confDef[i].name; i++) {
+	char *name = confDef[i].name, line[160];
+	char *val = getConfValueC(&config, name);
 
-	name = CONFIG_VALUES[i].name;
-	if (!(val = getConfParamC(name))) {
-	    val = empty;
-	}
-	snprintf(line, sizeof(line), "%21s = %s\n", name, val);
+	snprintf(line, sizeof(line), "%*s = %s\n", maxKeyLen+2, name, val);
 	str2Buf(line, &buf, bufSize);
     }
 
@@ -874,11 +658,6 @@ static char *showVirtualKeys(char *buf, size_t *bufSize, int example)
 	    "show statistic");
     str2Buf(line, &buf, bufSize);
 
-    snprintf(line, sizeof(line), "%12s\t%s\n", "ssh",
-	    "show all ssh logins/sessions");
-    str2Buf(line, &buf, bufSize);
-
-
     if (example) {
 	msg = "\nExample:\nUse 'plugin psmom show 1001.frontend' or"
 	    " 'plugin show psmom 1001'\nto display detailed job information"
@@ -892,13 +671,13 @@ static char *showVirtualKeys(char *buf, size_t *bufSize, int example)
 
 char *set(char *key, char *value)
 {
+    const ConfDef_t *thisConfDef = getConfigDef(key, confDef);
     char *buf = NULL, line[1024];
     size_t bufSize = 0;
-    int ret;
-    Config_t *conf;
 
     /* search in config for given key */
-    if ((findConfigDef(key))) {
+    if (thisConfDef) {
+	int verRes = verifyConfigEntry(confDef, key, value);
 
 	if (!(strcmp(key, "PBS_SERVER"))) {
 	    return NULL;
@@ -921,35 +700,25 @@ char *set(char *key, char *value)
 	    maskLogger(mask);
 	}
 
-	if ((ret = verfiyConfOption(key, value)) != 0) {
-	    if (ret == 1) {
+	if (verRes) {
+	    if (verRes == 1) {
 		str2Buf("\nInvalid key '", &buf, &bufSize);
 		str2Buf(key, &buf, &bufSize);
 		str2Buf("' for cmd set : use 'plugin help psmom' foor help.\n",
 			&buf, &bufSize);
-	    } else if (ret == 2) {
+	    } else if (verRes == 2) {
 		str2Buf("\nThe key '", &buf, &bufSize);
 		str2Buf(key, &buf, &bufSize);
 		str2Buf("' for cmd set has to be numeric.\n", &buf, &bufSize);
 	    }
-	    return buf;
-	}
-
-	/* save new config value */
-	if ((conf = getConfObject(key))) {
-	    if (conf->value) ufree(conf->value);
-	    conf->value = ustrdup(value);
 	} else {
-	    addConfig(key, value);
+	    /* save new config value */
+	    addConfigEntry(&config, key, value);
+
+	    snprintf(line, sizeof(line), "\nsaved '%s = %s'\n", key, value);
+	    str2Buf(line, &buf, &bufSize);
 	}
-
-	snprintf(line, sizeof(line), "\nsaved '%s = %s'\n", key, value);
-	str2Buf(line, &buf, &bufSize);
-	return buf;
-    }
-
-    /* add virtual set commands */
-    if (!(strcmp(key, "statistic"))) {
+    } else if (!(strcmp(key, "statistic"))) {
 	if (!(strcmp(value, "0"))) {
 	    stat_batchJobs = 0;
 	    stat_interJobs = 0;
@@ -958,7 +727,6 @@ char *set(char *key, char *value)
 	    stat_failedBatchJobs = 0;
 	    stat_failedInterJobs = 0;
 	    stat_remoteJobs = 0;
-	    stat_SSHLogins = 0;
 	    stat_lPrologue = 0;
 	    stat_rPrologue = 0;
 	    stat_failedrPrologue = 0;
@@ -966,12 +734,11 @@ char *set(char *key, char *value)
 	    stat_numNodes = 0;
 	    stat_numProcs = 0;
 
-	    return str2Buf("\nReset statistics\n", &buf, &bufSize);
+	    str2Buf("\nReset statistics\n", &buf, &bufSize);
+	} else {
+	    str2Buf("\nInvalid statistic command\n", &buf, &bufSize);
 	}
-	return str2Buf("\nInvalid statistic command\n", &buf, &bufSize);
-    }
-
-    if (!(strcmp(key, "memdebug"))) {
+    } else if (!(strcmp(key, "memdebug"))) {
 	if (memoryDebug) fclose(memoryDebug);
 
 	if ((memoryDebug = fopen(value, "w+"))) {
@@ -981,19 +748,17 @@ char *set(char *key, char *value)
 	    str2Buf("\nmemory logging to '", &buf, &bufSize);
 	    str2Buf(value, &buf, &bufSize);
 	    str2Buf("'\n", &buf, &bufSize);
-	    return buf;
 	} else {
 	    str2Buf("\nopening file '", &buf, &bufSize);
 	    str2Buf(value, &buf, &bufSize);
 	    str2Buf("' for writing failed\n", &buf, &bufSize);
-	    return buf;
 	}
+    } else {
+	str2Buf("\nInvalid key '", &buf, &bufSize);
+	str2Buf(key, &buf, &bufSize);
+	str2Buf("' for cmd set : use 'plugin help psmom' for help.\n", &buf,
+		&bufSize);
     }
-
-    str2Buf("\nInvalid key '", &buf, &bufSize);
-    str2Buf(key, &buf, &bufSize);
-    str2Buf("' for cmd set : use 'plugin help psmom' for help.\n", &buf,
-	    &bufSize);
 
     return buf;
 }
@@ -1002,37 +767,23 @@ char *unset(char *key)
 {
     char *buf = NULL;
     size_t bufSize = 0;
-    const ConfDef_t *confDef;
-    Config_t *conf;
 
-    /* search in config for given key */
-    if ((conf = getConfObject(key))) {
-
-	if ((confDef = findConfigDef(key)) && confDef->def) {
-	    /* reset the config object to its default value */
-	    if (conf->value) ufree(conf->value);
-	    conf->value = ustrdup(confDef->def);
-	} else {
-	   /* delete the config object */
-	    delConfig(conf);
-	}
-	return buf;
-    }
-
-    if (!(strcmp(key, "memdebug"))) {
+    if (getConfValueC(&config, key)) {
+	unsetConfigEntry(&config, confDef, key);
+    } else if (!(strcmp(key, "memdebug"))) {
 	if (memoryDebug) {
 	    finalizePluginLogger();
 	    fclose(memoryDebug);
 	    memoryDebug = NULL;
 	    initPluginLogger(NULL, psmomlogfile);
 	}
-	return str2Buf("Stopped memory debugging\n", &buf, &bufSize);
+	str2Buf("Stopped memory debugging\n", &buf, &bufSize);
+    } else {
+	str2Buf("\nInvalid key '", &buf, &bufSize);
+	str2Buf(key, &buf, &bufSize);
+	str2Buf("' for cmd unset : use 'plugin help psmom' for help.\n",
+		&buf, &bufSize);
     }
-
-    str2Buf("\nInvalid key '", &buf, &bufSize);
-    str2Buf(key, &buf, &bufSize);
-    str2Buf("' for cmd unset : use 'plugin help psmom' for help.\n",
-	    &buf, &bufSize);
 
     return buf;
 }
@@ -1040,8 +791,8 @@ char *unset(char *key)
 char *help(void)
 {
     char *buf = NULL;
-    char type[10];
     size_t bufSize = 0;
+    int maxKeyLen = getMaxKeyLen(confDef);
     int i;
 
     str2Buf("\nThe psmom is a complete replacement of the Torque pbs_mom."
@@ -1050,10 +801,11 @@ char *help(void)
 	    " the batch system.\n", &buf, &bufSize);
 
     str2Buf("\n# configuration options #\n\n", &buf, &bufSize);
-    for (i=0; i<configValueCount; i++) {
-	snprintf(type, sizeof(type), "<%s>", CONFIG_VALUES[i].type);
-	snprintf(line, sizeof(line), "%21s\t%8s    %s\n", CONFIG_VALUES[i].name,
-		    type, CONFIG_VALUES[i].desc);
+    for (i = 0; confDef[i].name; i++) {
+	char type[10], line[160];
+	snprintf(type, sizeof(type), "<%s>", confDef[i].type);
+	snprintf(line, sizeof(line), "%*s %8s  %s\n", maxKeyLen+2,
+		 confDef[i].name, type, confDef[i].desc);
 	str2Buf(line, &buf, &bufSize);
     }
 
@@ -1085,7 +837,8 @@ char *show(char *key)
     }
 
     /* search in config for given key */
-    if ((tmp = getConfParam(key))) {
+    tmp = getConfValueC(&config, key);
+    if (tmp) {
 	str2Buf(key, &buf, &bufSize);
 	str2Buf(" = ", &buf, &bufSize);
 	str2Buf(tmp, &buf, &bufSize);
@@ -1097,47 +850,42 @@ char *show(char *key)
     /* search for "virtual" values for given key */
 
     /* show current remote jobs */
-    if (!(strcmp(key, "rjobs"))) {
-	return showRemoteJobs(buf, &bufSize);
-    }
-
-    /* show SSH sessions (logins) */
-    if (!(strcmp(key, "ssh"))) {
-	return showSSHLogins(buf, &bufSize);
+    if (!strcmp(key, "rjobs")) {
+	return listJobInfos(buf, &bufSize);
     }
 
     /* show running forwarders */
-    if (!(strcmp(key, "forwarder"))) {
+    if (!strcmp(key, "forwarder")) {
 	return showForwarder(buf, &bufSize);
     }
 
     /* show current connections */
-    if (!(strcmp(key, "connections"))) {
+    if (!strcmp(key, "connections")) {
 	return showConnectionState(buf, &bufSize);
     }
 
     /* show state information */
-    if (!(strcmp(key, "state"))) {
+    if (!strcmp(key, "state")) {
 	return showState(buf, &bufSize);
     }
 
     /* show current jobs */
-    if (!(strcmp(key, "jobs"))) {
-	return showJobs(buf, &bufSize);
+    if (!strcmp(key, "jobs")) {
+	return listJobs(buf, &bufSize);
     }
 
     /* show current config */
-    if (!(strcmp(key, "config"))) {
+    if (!strcmp(key, "config")) {
 	return showConfig(buf, &bufSize);
     }
 
     /* show statistic */
-    if (!(strcmp(key, "statistic"))) {
+    if (!strcmp(key, "statistic")) {
 	return showStatistic(buf, &bufSize);
     }
 
     /* check for allowed pid */
-    if (!(strncmp(key, "allowed_", 8))) {
+    if (!strncmp(key, "allowed_", 8)) {
 	return showAllowedPid(key, buf, &bufSize);
     }
 

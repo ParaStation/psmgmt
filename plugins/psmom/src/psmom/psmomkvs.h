@@ -1,22 +1,14 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2011-2013 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2011-2017 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-/**
- * $Id$
- *
- * \author
- * Michael Rauh <rauh@par-tec.com>
- *
- */
-
-#ifndef __PS_MOM_KVS
-#define __PS_MOM_KVS
+#ifndef __PSMOM_KVS
+#define __PSMOM_KVS
 
 /* count started batch jobs */
 extern uint32_t stat_batchJobs;
@@ -66,4 +58,14 @@ extern time_t stat_startTime;
 /* file handle for memory debug output */
 extern FILE *memoryDebug;
 
-#endif
+/**
+ * @brief Pretty print time information
+ *
+ * Pretty print time information based on the times start and timeout
+ * and store it to the buffer @a buf of size @a bufsize.
+ *
+ * @return No return value
+ */
+void formatTimeout(long start, long timeout, char *buf, size_t bufsize);
+
+#endif /* __PSMOM_KVS */

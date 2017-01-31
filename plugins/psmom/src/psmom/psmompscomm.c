@@ -1,13 +1,12 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2017 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-
 #include <stdlib.h>
 #include <stdio.h>
 #include <netdb.h>
@@ -19,13 +18,14 @@
 #include "pluginhelper.h"
 #include "pluginmalloc.h"
 
+#include "pspamhandles.h"
+
 #include "psmomlog.h"
 #include "psmomscript.h"
 #include "psmomjob.h"
 #include "psmomproto.h"
 #include "psmom.h"
 #include "psmomjobinfo.h"
-#include "psmomssh.h"
 #include "psmompbsserver.h"
 
 #include "psidcomm.h"
@@ -35,31 +35,7 @@
 
 #include "psmompscomm.h"
 
-void sendPSmomVersion(Job_t *job)
-{
-    DDTypedBufferMsg_t msg;
-    char *ptr;
-
-    msg = (DDTypedBufferMsg_t) {
-       .header = (DDMsg_t) {
-       .type = PSP_CC_PSMOM,
-       .sender = PSC_getMyTID(),
-       .dest = PSC_getMyTID(),
-       .len = sizeof(msg.header) },
-       .buf = {'\0'} };
-
-    msg.type = PSP_PSMOM_VERSION;
-    msg.header.len += sizeof(msg.type);
-
-    ptr = msg.buf;
-
-    /* stay on the basics */
-    *(int32_t *) ptr = PSMOM_PSCOMM_VERSION;
-    //ptr += sizeof(int32_t);
-    msg.header.len += sizeof(int32_t);
-
-    sendPSMsgToHostList(job, &msg, 0);
-}
+#define PSMOM_PSCOMM_VERSION 101
 
 void sendFragMsgToHostList(Job_t *job, PS_DataBuffer_t *data, int32_t type,
 			    int myself)
@@ -77,11 +53,11 @@ void sendFragMsgToHostList(Job_t *job, PS_DataBuffer_t *data, int32_t type,
 
 	mdbg(PSMOM_LOG_PSCOM, "%s: send to %i [%i->%i]\n", __func__, id,
 		myTID, dest);
-	sendFragMsg(data, dest, PSP_CC_PSMOM, type);
+	sendFragMsg(data, dest, PSP_CC_PLUG_PSMOM, type);
     }
 }
 
-void sendPSMsgToHostList(Job_t *job, DDTypedBufferMsg_t *msg, int myself)
+static void sendPSMsgToHostList(Job_t *job, DDTypedBufferMsg_t *msg, int myself)
 {
     int i, id;
     PStask_ID_t myTID = PSC_getMyTID();
@@ -100,6 +76,22 @@ void sendPSMsgToHostList(Job_t *job, DDTypedBufferMsg_t *msg, int myself)
 		msg->header.sender, msg->header.dest);
 	sendMsg(msg);
     }
+}
+
+void sendPSmomVersion(Job_t *job)
+{
+    int32_t ver = PSMOM_PSCOMM_VERSION;
+    DDTypedBufferMsg_t msg = (DDTypedBufferMsg_t) {
+	.header = (DDMsg_t) {
+	    .type = PSP_CC_PLUG_PSMOM,
+	    .sender = PSC_getMyTID(),
+	    .dest = PSC_getMyTID(),
+	    .len = sizeof(msg.header) + sizeof(msg.type) },
+	.type = PSP_PSMOM_VERSION,
+	.buf = {'\0'} };
+    PSP_putTypedMsgBuf(&msg, __func__, "proto version", &ver, sizeof(ver));
+
+    sendPSMsgToHostList(job, &msg, 0);
 }
 
 static void shutMyselfDown(char *reason)
@@ -137,17 +129,14 @@ static void handleShutdownReq(DDTypedBufferMsg_t *msg)
 
 static void handleVersion(DDTypedBufferMsg_t *msg)
 {
-    char *ptr;
+    size_t used = 0;
     int32_t version;
-    char note[100];
 
-    ptr = msg->buf;
-
-    /* get version information */
-    version = *(int32_t *) ptr;
-    //ptr += sizeof(int32_t);
+    PSP_getTypedMsgBuf(msg, &used, __func__, "proto version",
+		       &version, sizeof(version));
 
     if (version != PSMOM_PSCOMM_VERSION) {
+	char note[100];
 	mlog("%s: incompatible psmom version '%i - %i' on mother superior '%i'"
 		", shutting myself down\n", __func__, version,
 		PSMOM_PSCOMM_VERSION, PSC_getID(msg->header.sender));
@@ -155,13 +144,19 @@ static void handleVersion(DDTypedBufferMsg_t *msg)
 	snprintf(note, sizeof(note), "incompatible psmom comm version to node"
 		    " '%i'", PSC_getID(msg->header.sender));
 	shutMyselfDown(note);
-	return;
     }
 }
 
-char *pspMsgType2Str(PSP_PSMOM_t type)
+/**
+ * @brief Get the string name for a PSP message type.
+ *
+ * @param type The message type to convert.
+ *
+ * @return Returns the requested string or NULL on error.
+ */
+static char *pspMsgType2Str(PSP_PSMOM_t type)
 {
-    switch(type) {
+    switch (type) {
 	case PSP_PSMOM_VERSION:
 	    return "VERSION";
 	case PSP_PSMOM_SHUTDOWN:
@@ -184,97 +179,97 @@ char *pspMsgType2Str(PSP_PSMOM_t type)
     return NULL;
 }
 
-void handleDroppedMsg(DDTypedBufferMsg_t *msg)
+/**
+ * @brief Drop a message.
+ *
+ * @param msg The message to drop
+ *
+ * @return No return value.
+ */
+static void dropPSMsg(DDTypedBufferMsg_t *msg)
 {
-    Job_t *job;
-    char *ptr, buf[300];
-    const char *hname;
-    PSnodes_ID_t nodeId;
-
-    /* get hostname for message destination */
-    nodeId = PSC_getID(msg->header.dest);
-    hname = getHostnameByNodeId(nodeId);
+    PSnodes_ID_t nodeId = PSC_getID(msg->header.dest);
+    const char *hname = getHostnameByNodeId(nodeId);
 
     mlog("%s: msg type '%s (%i)' to host '%s(%i)' got dropped\n", __func__,
-	    pspMsgType2Str(msg->type), msg->type, hname, nodeId);
-    ptr = msg->buf;
+	 pspMsgType2Str(msg->type), msg->type, hname, nodeId);
 
     switch (msg->type) {
-	case PSP_PSMOM_PROLOGUE_START:
-	    /* hashname */
-	    getString(&ptr, buf, sizeof(buf));
-	    /* user */
-	    getString(&ptr, buf, sizeof(buf));
-	    /* jobid */
-	    getString(&ptr, buf, sizeof(buf));
+	char *ptr = msg->buf, buf[300];
+	Job_t *job;
+    case PSP_PSMOM_PROLOGUE_START:
+	/* hashname */
+	getString(&ptr, buf, sizeof(buf));
+	/* user */
+	getString(&ptr, buf, sizeof(buf));
+	/* jobid */
+	getString(&ptr, buf, sizeof(buf));
 
-	    /* ignore broken jobids */
-	    if (strlen(buf) < 2) break;
+	/* ignore broken jobids */
+	if (strlen(buf) < 2) break;
 
-	    if (!(job = findJobById(buf))) {
-		mlog("%s: job '%s' for prologue_start not found\n", __func__,
-			buf);
-		break;
-	    }
-
-	    job->state = JOB_CANCEL_PROLOGUE;
-	    stopPElogueExecution(job);
+	job = findJobById(buf);
+	if (!job) {
+	    mlog("%s: job '%s' for prologue_start not found\n", __func__, buf);
 	    break;
-	case PSP_PSMOM_EPILOGUE_START:
-	    getString(&ptr, buf, sizeof(buf));
+	}
 
-	    /* ignore broken jobids */
-	    if (strlen(buf) < 2) break;
+	job->state = JOB_CANCEL_PROLOGUE;
+	stopPElogueExecution(job);
+	break;
+    case PSP_PSMOM_EPILOGUE_START:
+	getString(&ptr, buf, sizeof(buf));
 
-	    if (!(job = findJobById(buf))) {
-		mlog("%s: job '%s' for epilogue_start not found\n", __func__,
-			buf);
-		break;
-	    }
+	/* ignore broken jobids */
+	if (strlen(buf) < 2) break;
 
-	    job->state = JOB_CANCEL_EPILOGUE;
-	    stopPElogueExecution(job);
+	job = findJobById(buf);
+	if (!job) {
+	    mlog("%s: job '%s' for epilogue_start not found\n", __func__, buf);
 	    break;
-	case PSP_PSMOM_VERSION:
-	    getString(&ptr, buf, sizeof(buf));
+	}
 
-	    /* ignore broken jobids */
-	    if (strlen(buf) < 2) break;
+	job->state = JOB_CANCEL_EPILOGUE;
+	stopPElogueExecution(job);
+	break;
+    case PSP_PSMOM_VERSION:
+	getString(&ptr, buf, sizeof(buf));
 
-	    if (!(job = findJobById(buf))) {
-		mlog("%s: job '%s' for 'version request' not found\n", __func__,
-			buf);
-		break;
-	    }
+	/* ignore broken jobids */
+	if (strlen(buf) < 2) break;
 
-	    stopPElogueExecution(job);
+	job = findJobById(buf);
+	if (!job) {
+	    mlog("%s: no job '%s' for version request\n", __func__, buf);
 	    break;
-	case PSP_PSMOM_SHUTDOWN:
-	    mlog("%s: cannot shutdown nodes with wrong psmom version\n",
-		    __func__);
-	    break;
-	case PSP_PSMOM_PROLOGUE_FINISH:
-	case PSP_PSMOM_EPILOGUE_FINISH:
-	case PSP_PSMOM_PELOGUE_SIGNAL:
-	case PSP_PSMOM_JOB_UPDATE:
-	case PSP_PSMOM_JOB_INFO:
-	    /* nothing left to do */
-	    break;
-	default:
-	    mlog("%s: unknown msg type:%i\n", __func__, msg->type);
+	}
+
+	stopPElogueExecution(job);
+	break;
+    case PSP_PSMOM_SHUTDOWN:
+	mlog("%s: cannot shutdown nodes with wrong psmom version\n", __func__);
+	break;
+    case PSP_PSMOM_PROLOGUE_FINISH:
+    case PSP_PSMOM_EPILOGUE_FINISH:
+    case PSP_PSMOM_PELOGUE_SIGNAL:
+    case PSP_PSMOM_JOB_UPDATE:
+    case PSP_PSMOM_JOB_INFO:
+	/* nothing left to do */
+	break;
+    default:
+	mlog("%s: unknown msg type %i\n", __func__, msg->type);
     }
-    return;
 }
 
 void sendJobUpdate(Job_t *job)
 {
     DDTypedBufferMsg_t msg = (DDTypedBufferMsg_t) {
 	.header = (DDMsg_t) {
-	    .type = PSP_CC_PSMOM,
+	    .type = PSP_CC_PLUG_PSMOM,
 	    .sender = PSC_getMyTID(),
 	    .dest = PSC_getMyTID(),
-	    .len = sizeof(msg.header) + sizeof(msg.type)},
-	.type = PSP_PSMOM_JOB_UPDATE};
+	    .len = sizeof(msg.header) + sizeof(msg.type) },
+	.type = PSP_PSMOM_JOB_UPDATE };
 
     /* add jobid */
     addStringToMsgBuf(&msg, job->id);
@@ -289,11 +284,11 @@ void sendJobInfo(Job_t *job, int start)
 {
     DDTypedBufferMsg_t msg = (DDTypedBufferMsg_t) {
 	.header = (DDMsg_t) {
-	    .type = PSP_CC_PSMOM,
+	    .type = PSP_CC_PLUG_PSMOM,
 	    .sender = PSC_getMyTID(),
 	    .dest = PSC_getMyTID(),
-	    .len = sizeof(msg.header) + sizeof(msg.type)},
-	.type = PSP_PSMOM_JOB_INFO};
+	    .len = sizeof(msg.header) + sizeof(msg.type) },
+	.type = PSP_PSMOM_JOB_INFO };
 
     /* add info type */
     addInt32ToMsgBuf(&msg, start);
@@ -317,11 +312,9 @@ void sendJobInfo(Job_t *job, int start)
 static void handleJobUpdate(DDTypedBufferMsg_t *msg)
 {
     char jobid[JOB_NAME_LEN] = {'\0'};
-    char *ptr;
+    char *ptr = msg->buf;
     JobInfo_t *jInfo;
     int32_t loggerPID, node;
-
-    ptr = msg->buf;
 
     /* get jobid */
     getString(&ptr, jobid, sizeof(jobid));
@@ -342,10 +335,8 @@ static void handleJobInfo(DDTypedBufferMsg_t *msg)
 {
     char jobid[JOB_NAME_LEN] = {'\0'}, username[USER_NAME_LEN] = {'\0'};
     char timeout[100] = {'\0'}, cookie[100] = {'\0'};
-    char *ptr;
-    int32_t start = 0;
-
-    ptr = msg->buf;
+    char *ptr = msg->buf;
+    int32_t start;
 
     /* get info type (start/stop) */
     getInt32(&ptr, &start);
@@ -370,6 +361,7 @@ static void handleJobInfo(DDTypedBufferMsg_t *msg)
 	checkJobInfoTimeouts();
 
 	addJobInfo(jobid, username, msg->header.sender, timeout, cookie);
+	psPamSetState(username, jobid, PSPAM_STATE_JOB);
     } else {
 	mdbg(PSMOM_LOG_VERBOSE, "%s: job '%s' user '%s' is finished\n",
 		__func__, jobid, username);
@@ -377,19 +369,29 @@ static void handleJobInfo(DDTypedBufferMsg_t *msg)
 	delJobInfo(jobid);
 
 	/* cleanup leftover ssh/daemon processes */
+	psPamDeleteUser(username, jobid);
 	afterJobCleanup(username);
     }
 }
 
-void handlePSMsg(DDTypedBufferMsg_t *msg)
+/**
+ * @brief Handle a received PS DDTypedBuffer message.
+ *
+ * This is the main message switch for PS messages.
+ *
+ * @param msg The message to handle.
+ *
+ * @return No return value.
+ */
+static void handlePSMsg(DDTypedBufferMsg_t *msg)
 {
-    char sender[100], dest[100];
+    char cover[128];
 
-    strncpy(sender, PSC_printTID(msg->header.sender), sizeof(sender));
-    strncpy(dest, PSC_printTID(msg->header.dest), sizeof(dest));
+    snprintf(cover, sizeof(cover), "[%s->", PSC_printTID(msg->header.sender));
+    snprintf(cover+strlen(cover), sizeof(cover)-strlen(cover), "%s]",
+	     PSC_printTID(msg->header.dest));
 
-    mdbg(PSMOM_LOG_PSCOM, "%s: new msg type: '%i' [%s->%s]\n", __func__,
-	msg->type, sender, dest);
+    mdbg(PSMOM_LOG_PSCOM, "%s(%i) %s\n", __func__, msg->type, cover);
 
     switch (msg->type) {
 	case PSP_PSMOM_PROLOGUE_START:
@@ -420,10 +422,24 @@ void handlePSMsg(DDTypedBufferMsg_t *msg)
 	    handleJobUpdate(msg);
 	    break;
 	default:
-	    mlog("%s: received unknown msg type:%i [%s -> %s]\n", __func__,
-		msg->type, sender, dest);
+	    mlog("%s: unknown msg type %i %s\n", __func__, msg->type, cover);
     }
-
-    return;
 }
 
+void initPSComm(void)
+{
+    /* register inter psmom msg */
+    PSID_registerMsg(PSP_CC_PLUG_PSMOM, (handlerFunc_t) handlePSMsg);
+
+    /* register handler for dropped msgs */
+    PSID_registerDropper(PSP_CC_PLUG_PSMOM, (handlerFunc_t) dropPSMsg);
+}
+
+void finalizePSComm(void)
+{
+    /* unregister psmom msg */
+    PSID_clearMsg(PSP_CC_PLUG_PSMOM);
+
+    /* unregister msg drop handler */
+    PSID_clearDropper(PSP_CC_PLUG_PSMOM);
+}

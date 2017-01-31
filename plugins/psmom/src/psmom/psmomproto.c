@@ -1,18 +1,11 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2013 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2017 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
- */
-/**
- * $Id$
- *
- * \author
- * Michael Rauh <rauh@par-tec.com>
- *
  */
 
 #include <stdio.h>
@@ -32,6 +25,9 @@
 
 #include "timer.h"
 
+#include "psaccounthandles.h"
+#include "pspamhandles.h"
+
 #include "pbsdef.h"
 #include "psmomcomm.h"
 #include "psmomconv.h"
@@ -49,8 +45,6 @@
 #include "psmomchild.h"
 #include "psmomlocalcomm.h"
 #include "psmompbsserver.h"
-#include "psmompsaccfunc.h"
-#include "psmomssh.h"
 #include "psmomrecover.h"
 
 #include "psi.h"
@@ -447,7 +441,7 @@ Data_Entry_t *getPBSNodeState(char *server, const char *host)
 	hostname = host;
     }
 
-    getConfParamI("PORT_SERVER", &serverPort);
+    serverPort = getConfValueI(&config, "PORT_SERVER");
 
     if (!(serv = findServerByrAddr(server))) {
 	mlog("%s: server object for addr '%s' not found\n", __func__,
@@ -526,7 +520,7 @@ int setPBSNodeState(char *server, char *note, char *state, const char *host)
 	hostname = host;
     }
 
-    getConfParamI("PORT_SERVER", &serverPort);
+    serverPort = getConfValueI(&config, "PORT_SERVER");
 
     if (!(serv = findServerByrAddr(server))) {
 	mlog("%s: server object for addr '%s' not found\n", __func__,
@@ -645,7 +639,7 @@ int sendTMJobTermination(Job_t *job)
 	updateJobInfo(job);
     }
 
-    getConfParamI("PORT_SERVER", &serverPort);
+    serverPort = getConfValueI(&config, "PORT_SERVER");
 
     if ((doSendObit(job, job->server, serverPort))) {
 	obitSuccess = 1;
@@ -1021,7 +1015,7 @@ static int handle_TM_Bjobscript(ComHandle_t *com)
 
     /* set jobscript filename */
     if (!job->jobscript) {
-	jobfiles = getConfParamC("DIR_JOB_FILES");
+	jobfiles = getConfValueC(&config, "DIR_JOB_FILES");
 	snprintf(buf, sizeof(buf), "%s/%s", jobfiles, job->hashname);
 	job->jobscript = ustrdup(buf);
     }
@@ -1123,13 +1117,12 @@ static int handle_TM_PCommit(ComHandle_t *com)
 int requestJobInformation(Job_t *job)
 {
     int serverPort;
-
     ComHandle_t *com;
 
     mdbg(PSMOM_LOG_PTM, "%s: Requesting job info for %s\n", __func__,
 	    job->id);
 
-    getConfParamI("PORT_SERVER", &serverPort);
+    serverPort = getConfValueI(&config, "PORT_SERVER");
 
     if (!(com = wConnect(serverPort, job->server, TCP_PROTOCOL))) {
 	mlog("%s: failed sending job status request for '%s' from '%s'\n",
@@ -1261,9 +1254,9 @@ static int handle_TM_BSignalJob(ComHandle_t *com)
 		mdbg(PSMOM_LOG_VERBOSE, "%s: job '%s' signal '%s' pid:'%i'\n",
 		    __func__, jobid, signal, job->pid);
 
-		if ((sendSignaltoJob(job, sig, "PBS server"))) {
+		if (!signalJob(job, sig, "PBS server")) {
 		    mlog("%s: signal '%s' to job '%s' failed\n",
-			__func__, signal, job->id);
+			 __func__, signal, job->id);
 		    return send_TM_Error(com, PBSE_SYSTEM,
 					 "system error occurred", 1);
 		}
@@ -1466,8 +1459,8 @@ int jobCleanup(Job_t *job, int save)
     /* make sure all children are dead */
     while ((child = findChildByJobid(job->id, -1)) != NULL) {
 	if (child->c_sid > 0) {
-	    psAccountsendSignal2Session(child->c_sid, SIGTERM);
-	    psAccountsendSignal2Session(child->c_sid, SIGKILL);
+	    psAccountSignalSession(child->c_sid, SIGTERM);
+	    psAccountSignalSession(child->c_sid, SIGKILL);
 	} else {
 	    mlog("%s: can't kill child, session id missing\n", __func__);
 	}
@@ -1475,6 +1468,7 @@ int jobCleanup(Job_t *job, int save)
     }
 
     /* cleanup leftover ssh/daemon processes */
+    psPamDeleteUser(job->user, job->id);
     afterJobCleanup(job->user);
 
     /* close leftover file descriptors */
@@ -1483,17 +1477,17 @@ int jobCleanup(Job_t *job, int save)
     }
 
     /* delete jobscript file */
-    getConfParamI("CLEAN_JOBS_FILES", &cleanJob);
+    cleanJob = getConfValueI(&config, "CLEAN_JOBS_FILES");
     if (cleanJob) {
-	dir = getConfParamC("DIR_JOB_FILES");
+	dir = getConfValueC(&config, "DIR_JOB_FILES");
 	snprintf(buf, sizeof(buf), "%s/%s", dir, job->hashname);
 	unlink(buf);
     }
 
     /* delete node file */
-    getConfParamI("CLEAN_NODE_FILES", &cleanNodes);
+    cleanNodes = getConfValueI(&config, "CLEAN_NODE_FILES");
     if (cleanNodes) {
-	dir = getConfParamC("DIR_NODE_FILES");
+	dir = getConfValueC(&config, "DIR_NODE_FILES");
 	snprintf(buf, sizeof(buf), "%s/%s", dir, job->hashname);
 	unlink(buf);
 	snprintf(buf, sizeof(buf), "%s/%sgpu", dir, job->hashname);
@@ -1501,7 +1495,7 @@ int jobCleanup(Job_t *job, int save)
     }
 
     /* handle account informations */
-    dir = getConfParamC("DIR_JOB_ACCOUNT");
+    dir = getConfValueC(&config, "DIR_JOB_ACCOUNT");
     snprintf(buf, sizeof(buf), "%s/%s", dir, job->hashname);
     if (save) {
 	char savePath[100];
@@ -1514,7 +1508,7 @@ int jobCleanup(Job_t *job, int save)
     }
 
     /* handle job output/error files */
-    dir = getConfParamC("DIR_SPOOL");
+    dir = getConfValueC(&config, "DIR_SPOOL");
     if (save) {
 	char savePath[100];
 
@@ -2055,7 +2049,7 @@ static int handle_TM_message(ComHandle_t *com)
     }
 
     /* special tm interface */
-    getConfParamI("PORT_RM", &rmPort);
+    rmPort = getConfValueI(&config, "PORT_RM");
     if (com->type == TCP_PROTOCOL && com->localPort == rmPort) {
 	/* currently disabled */
 	wClose(com);

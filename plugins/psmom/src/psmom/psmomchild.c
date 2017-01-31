@@ -1,18 +1,11 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2013 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
- */
-/**
- * $Id$
- *
- * \author
- * Michael Rauh <rauh@par-tec.com>
- *
  */
 
 #include <stdlib.h>
@@ -127,7 +120,6 @@ static void handleChildTimeout(int timerId, void *data)
     struct timeval childTimer = {0, 0};
     Child_t *child = data;
     int id;
-    long grace;
 
     Timer_remove(timerId);
     child->childMonitorId = -1;
@@ -152,11 +144,10 @@ static void handleChildTimeout(int timerId, void *data)
     child->killFlag = 1;
 
     /* set timer for hard killing via SIGKILL */
-    getConfParamL("TIMEOUT_CHILD_GRACE", &grace);
-    childTimer.tv_sec = grace;
+    childTimer.tv_sec = getConfValueL(&config, "TIMEOUT_CHILD_GRACE");
 
-    if ((id = Timer_registerEnhanced(&childTimer, handleChildTimeout,
-		    child)) == -1) {
+    id = Timer_registerEnhanced(&childTimer, handleChildTimeout, child);
+    if (id == -1) {
 	mlog("%s: register child monitor timer failed\n", __func__);
 	child->childMonitorId = -1;
 	kill(child->pid, SIGKILL);
@@ -166,11 +157,11 @@ static void handleChildTimeout(int timerId, void *data)
 
     /* log it */
     if (child->c_pid == -1) {
-	mlog("%s: %s child for job '%s' : re-connect timeout, sending SIGTERM\n",
-	    __func__, childType2String(child->type), child->jobid);
+	mlog("%s: %s child for job %s: re-connect timeout, sending SIGTERM\n",
+	     __func__, childType2String(child->type), child->jobid);
     } else {
-	mlog("%s: %s child for job '%s' : walltime timeout, sending SIGTERM\n",
-	    __func__, childType2String(child->type), child->jobid);
+	mlog("%s: %s child for job %s: walltime timeout, sending SIGTERM\n",
+	     __func__, childType2String(child->type), child->jobid);
     }
 
     kill(child->pid, SIGTERM);
@@ -179,7 +170,7 @@ static void handleChildTimeout(int timerId, void *data)
 void setChildTimeout(Child_t *child, time_t timeout, int addGrace)
 {
     struct timeval childTimer = {1,0};
-    int id, grace;
+    int id;
 
     if (child->childMonitorId != -1) {
 	Timer_remove(child->childMonitorId);
@@ -193,14 +184,15 @@ void setChildTimeout(Child_t *child, time_t timeout, int addGrace)
 
     /* get child grace time */
     if (addGrace) {
+	int grace = 0;
 	switch (child->type) {
 	    case PSMOM_CHILD_PROLOGUE:
 	    case PSMOM_CHILD_EPILOGUE:
-		getConfParamI("TIMEOUT_PE_GRACE", &grace);
+		grace = getConfValueI(&config, "TIMEOUT_PE_GRACE");
 		break;
 	    case PSMOM_CHILD_JOBSCRIPT:
 	    case PSMOM_CHILD_INTERACTIVE:
-		getConfParamI("TIME_OBIT", &grace);
+		grace = getConfValueI(&config, "TIME_OBIT");
 		break;
 	    case PSMOM_CHILD_COPY:
 		grace = 3;
@@ -211,8 +203,8 @@ void setChildTimeout(Child_t *child, time_t timeout, int addGrace)
 	childTimer.tv_sec += (3 * grace);
     }
 
-    if ((id = Timer_registerEnhanced(&childTimer, handleChildTimeout,
-		    child)) == -1) {
+    id = Timer_registerEnhanced(&childTimer, handleChildTimeout, child);
+    if (id == -1) {
 	mlog("%s: register child monitor timer failed\n", __func__);
 	child->childMonitorId = -1;
     } else {
@@ -240,7 +232,7 @@ Child_t *addChild(pid_t pid, PSMOM_child_types_t type, char *jobid)
     gettimeofday(&child->start_time, 0);
 
     /* monitor every forwarder */
-    getConfParamL("TIMEOUT_CHILD_CONNECT", &conTimeout);
+    conTimeout = getConfValueL(&config, "TIMEOUT_CHILD_CONNECT");
     setChildTimeout(child, conTimeout, 0);
 
     list_add_tail(&(child->list), &ChildList.list);

@@ -17,13 +17,11 @@
 #
 # ParaStation
 #
-# Copyright (C) 2013-2014 ParTec Cluster Competence Center GmbH, Munich
+# Copyright (C) 2013-2017 ParTec Cluster Competence Center GmbH, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
 # file.
-#
-# Author:	Michael Rauh <rauh@par-tec.com>
 #
 
 #
@@ -113,7 +111,6 @@ POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
 target_triplet = @target@
-@PAM_ENABLED_TRUE@am__append_1 = src/pam
 subdir = plugins/psmom
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/m4/ax_check_compile_flag.m4 \
@@ -182,7 +179,7 @@ am__define_uniq_tagged_files = \
   done | $(am__uniquify_input)`
 ETAGS = etags
 CTAGS = ctags
-DIST_SUBDIRS = doc src/include src/pbs src/psmom src/pam
+DIST_SUBDIRS = $(SUBDIRS)
 am__DIST_COMMON = $(srcdir)/Makefile.in $(top_srcdir)/common.am README
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 am__relativize = \
@@ -256,6 +253,7 @@ MAINT = @MAINT@
 MAKEINFO = @MAKEINFO@
 MANIFEST_TOOL = @MANIFEST_TOOL@
 MKDIR_P = @MKDIR_P@
+MUNGE_LIBS = @MUNGE_LIBS@
 NM = @NM@
 NMEDIT = @NMEDIT@
 NUMA_LIBS = @NUMA_LIBS@
@@ -372,7 +370,7 @@ configdir = $(prefix)/config
 
 # dito
 scriptsdir = $(prefix)/scripts
-SUBDIRS = doc src/include src/pbs src/psmom $(am__append_1)
+SUBDIRS = doc src/include src/pbs src/psmom
 dist_noinst_DATA = LICENSE.OpenPBS README ChangeLog-History
 all: all-recursive
 

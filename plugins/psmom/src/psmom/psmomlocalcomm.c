@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2017 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -22,22 +22,24 @@
 #include <sys/wait.h>
 #include <pwd.h>
 
+#include "selector.h"
+#include "pluginmalloc.h"
+#include "pluginpartition.h"
+
+#include "psaccounthandles.h"
+#include "pspamhandles.h"
+
 #include "psmom.h"
 #include "psmomlog.h"
 #include "psmomcomm.h"
 #include "psmomconv.h"
-#include "selector.h"
-#include "pluginmalloc.h"
-#include "pluginpartition.h"
 #include "psmomforwarder.h"
 #include "psmomchild.h"
 #include "psmomscript.h"
 #include "psmompscomm.h"
 #include "psmomcollect.h"
 #include "psmomacc.h"
-#include "psmompsaccfunc.h"
 #include "psmominteractive.h"
-#include "psmomssh.h"
 #include "psmompartition.h"
 #include "psmomproto.h"
 
@@ -178,6 +180,7 @@ static void handle_Local_Child_Start(ComHandle_t *com)
 	    /* set batch job to running state */
 	    if (forwarder_type == FORWARDER_JOBSCRIPT) {
 		job->state = JOB_RUNNING;
+		psPamSetState(job->user, job->id, PSPAM_STATE_JOB);
 	    }
 	}
     }
@@ -185,7 +188,7 @@ static void handle_Local_Child_Start(ComHandle_t *com)
     /* register jobscript in the accounting plugin */
     if ((forwarder_type == FORWARDER_JOBSCRIPT ||
 	forwarder_type == FORWARDER_INTER ) && job) {
-	psAccountRegisterMOMJob(childpid, job->id);
+	psAccountRegisterJob(childpid, job->id);
     }
 
     mdbg(PSMOM_LOG_PROCESS, "%s: new child '%i' type '%i' started\n",
@@ -249,68 +252,6 @@ static void handle_Local_Close(ComHandle_t *com)
 {
     mdbg(PSMOM_LOG_LOCAL, "%s: closing local connection '%i'"
 	    " on request\n", __func__, com->socket);
-    wClose(com);
-}
-
-static void handle_Local_PAM_Request(ComHandle_t *com)
-{
-    char user[USER_NAME_LEN], rhost[HOST_NAME_LEN], buf[800];
-    char *ptr;
-    int32_t res = 0;
-    pid_t pid, sid;
-    struct passwd *spasswd;
-    PS_DataBuffer_t data = { .buf = NULL};
-
-    if ((wReadAll(com, buf, sizeof(buf))) < 0) {
-	mlog("%s: error reading pam request\n", __func__);
-	return;
-    }
-
-    ptr = buf;
-
-    /* get ssh pid */
-    getPid(&ptr, &pid);
-
-    /* get ssh sid */
-    getPid(&ptr, &sid);
-
-    /* get pam username */
-    getString(&ptr, user, sizeof(user));
-
-    /* get pam rhost */
-    getString(&ptr, rhost, sizeof(rhost));
-
-    mlog("%s: got pam request pid: '%i' sid: '%i' user: '%s' rhost: '%s'\n",
-	__func__, pid, sid, user, rhost);
-
-    /* test if user is an PS admin */
-    if (!(spasswd = getpwnam(user))) {
-	mlog("%s: getpwnam failed for '%s' failed\n", __func__, user);
-    } else {
-	if (isPSAdminUser(spasswd->pw_uid, spasswd->pw_gid)) {
-	    res = 2;
-	}
-    }
-
-    /* test if the user has running jobs */
-    if (!res && (res = hasRunningJobs(user))) {
-	addSSHSession(user, rhost, pid, sid);
-    }
-
-    /* add result */
-    addInt32ToMsg(res, &data);
-
-    /* add pam username */
-    addStringToMsg(user, &data);
-
-    /* add pam rhost */
-    addStringToMsg(rhost, &data);
-
-    mlog("%s: sending pam reply, user '%s' rhost '%s' res '%i'\n", __func__,
-	    user, rhost, res);
-
-    wWrite(com, data.buf, data.bufUsed);
-    wDoSend(com);
     wClose(com);
 }
 
@@ -379,9 +320,6 @@ static int handleLocalConnection(int fd, void *info)
 	    break;
 	case CMD_LOCAL_CHILD_EXIT:
 	    handle_Local_Child_Exit(com);
-	    break;
-	case CMD_LOCAL_PAM_SSH_REQ:
-	    handle_Local_PAM_Request(com);
 	    break;
 	case CMD_LOCAL_REQUEST_ACCOUNT:
 	    handle_Local_Request_Account(com);

@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2017 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -25,10 +25,21 @@
 #include <netdb.h>
 #include <sys/wait.h>
 
-#include "pbsdef.h"
-#include "psmomlog.h"
+#include "timer.h"
+#include "psidscripts.h"
+#include "pscommon.h"
+#include "psprotocol.h"
+#include "psnodes.h"
+#include "psidcomm.h"
+
 #include "pluginhelper.h"
 #include "pluginmalloc.h"
+
+#include "psaccounthandles.h"
+#include "pspamhandles.h"
+
+#include "pbsdef.h"
+#include "psmomlog.h"
 #include "psmomconfig.h"
 #include "psmom.h"
 #include "psmompscomm.h"
@@ -37,17 +48,8 @@
 #include "psmomforwarder.h"
 #include "psmomproto.h"
 #include "psmomconv.h"
-#include "psmompsaccfunc.h"
-#include "psmomssh.h"
 #include "psmomenv.h"
 #include "psmompbsserver.h"
-
-#include "timer.h"
-#include "psidscripts.h"
-#include "pscommon.h"
-#include "psprotocol.h"
-#include "psnodes.h"
-#include "psidcomm.h"
 #include "psmomcollect.h"
 #include "psmomacc.h"
 #include "psmomkvs.h"
@@ -81,16 +83,16 @@ void switchUser(char *username, struct passwd *spasswd, int saveEnv)
 
     /* change the gid */
     if ((setgid(spasswd->pw_gid)) < 0) {
-        mlog("%s: setgid(%i) failed : %s\n", __func__, spasswd->pw_gid,
+	mlog("%s: setgid(%i) failed : %s\n", __func__, spasswd->pw_gid,
 		strerror(errno));
-        exit(1);
+	exit(1);
     }
 
     /* change the uid */
     if ((setuid(spasswd->pw_uid)) < 0) {
 	mlog("%s: setuid(%i) failed : %s\n", __func__, spasswd->pw_uid,
 		strerror(errno));
-        exit(1);
+	exit(1);
     }
 
     /* change to job working directory */
@@ -390,17 +392,14 @@ void setResourceLimits(Job_t *job)
     struct list_head *pos;
     struct rlimit limit;
     Data_Entry_t *next, *data;
-    char *limits;
+    char *limits = getConfValueC(&config, "RLIMITS_HARD");
 
     /* set default hard rlimits */
-    if ((limits = getConfParam("RLIMITS_HARD"))) {
-	setDefaultResLimits(limits, 0);
-    }
+    if (limits) setDefaultResLimits(limits, 0);
 
     /* set default soft rlimits */
-    if ((limits = getConfParam("RLIMITS_SOFT"))) {
-	setDefaultResLimits(limits, 1);
-    }
+    limits = getConfValueC(&config, "RLIMITS_SOFT");
+    if (limits) setDefaultResLimits(limits, 1);
 
     data = &job->data;
 
@@ -483,10 +482,10 @@ int sendPElogueStart(Job_t *job, bool prologue)
     int32_t timeout, type;
 
     if (prologue) {
-	getConfParamI("TIMEOUT_PROLOGUE", &timeout);
+	timeout = getConfValueI(&config, "TIMEOUT_PROLOGUE");
 	type = PSP_PSMOM_PROLOGUE_START;
     } else {
-	getConfParamI("TIMEOUT_EPILOGUE", &timeout);
+	timeout = getConfValueI(&config, "TIMEOUT_EPILOGUE");
 	type = PSP_PSMOM_EPILOGUE_START;
     }
 
@@ -652,17 +651,11 @@ static int callbackCopyScript(int fd, PSID_scriptCBInfo_t *info)
 
 void afterJobCleanup(char *user)
 {
-    struct passwd *spasswd;
-    int  killDaemons, warnDaemons;
-
-    if (!(hasRunningJobs(user))) {
-
-	/* kill all ssh sessions if the user has no more jobs running */
-	delSSHSessions(user);
-
+    if (!hasRunningJobs(user)) {
 	/* find all leftover user daemons and warn/kill them */
-	getConfParamI("KILL_USER_DAEMONS", &killDaemons);
-	getConfParamI("WARN_USER_DAEMONS", &warnDaemons);
+	int killDaemons = getConfValueI(&config, "KILL_USER_DAEMONS");
+	int warnDaemons = getConfValueI(&config, "WARN_USER_DAEMONS");
+	struct passwd *spasswd;
 
 	if (killDaemons || warnDaemons) {
 	    if (!(spasswd = getpwnam(user))) {
@@ -769,12 +762,13 @@ static int callbackJob(int fd, PSID_scriptCBInfo_t *info)
     fetchAccInfo(job);
 
     /* stop accounting of the job */
-    psAccountUnregisterMOMJob(job->pid);
+    psAccountUnregisterJob(job->pid);
 
     /* tell other nodes the job is finished */
     sendJobInfo(job, 0);
 
     /* cleanup leftover ssh/daemon processes */
+    psPamDeleteUser(job->user, job->id);
     afterJobCleanup(job->user);
 
     /* reset process information */
@@ -857,6 +851,7 @@ void startInteractiveJob(Job_t *job, ComHandle_t *com)
     }
 
     job->state = JOB_RUNNING;
+    psPamSetState(job->user, job->id, PSPAM_STATE_JOB);
 
     /* tell other nodes the job is starting */
     sendJobInfo(job, 1);

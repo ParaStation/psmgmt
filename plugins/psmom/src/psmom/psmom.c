@@ -35,6 +35,9 @@
 #include "pluginhelper.h"
 #include "pluginfrag.h"
 
+#include "psaccounthandles.h"
+#include "pspamhandles.h"
+
 #include "psmomscript.h"
 #include "psmomcomm.h"
 #include "psmomjob.h"
@@ -48,10 +51,8 @@
 #include "psmompscomm.h"
 #include "psmomlocalcomm.h"
 #include "psmompartition.h"
-#include "psmompsaccfunc.h"
 #include "psmompbsserver.h"
 #include "psmomjobinfo.h"
-#include "psmomssh.h"
 #include "psmomrecover.h"
 #include "psmomenv.h"
 #include "psmomkvs.h"
@@ -116,12 +117,14 @@ char rootHome[100];
 
 handlerFunc_t oldSpawnReqHandler = NULL;
 
-
 /** psid plugin requirements */
 char name[] = "psmom";
 int version = 58;
 int requiredAPI = 109;
-plugin_dep_t dependencies[2];
+plugin_dep_t dependencies[] = {
+    { .name = "psaccount", .version = 26 },
+    { .name = "pspam", .version = 5 },
+    { .name = NULL, .version = 0 } };
 
 /** the process id of the main psmom process */
 static pid_t mainPid = -1;
@@ -150,7 +153,7 @@ static void cleanupJobs(void)
 
     if (obitTime == obitTimeCounter) {
 	mlog("sending SIGKILL to %i remaining jobs\n", countJobs());
-	sendSignaltoJob(NULL, SIGKILL, "shutdown");
+	signalAllJobs(SIGKILL, "shutdown");
     }
 }
 
@@ -160,29 +163,27 @@ static void cleanupJobs(void)
  * Check if we have running jobs left and initialize the shutdown
  * sequence.
  *
- * @return returns 1 on success and 0 on error.
+ * @return Return true on success and false on error
  */
-static int shutdownJobs()
+static bool shutdownJobs(void)
 {
     struct timeval cleanupTimer = {1,0};
 
     mlog("shutdown jobs\n");
     if (countJobs() >0) {
 	mlog("sending SIGTERM to %i remaining jobs\n", countJobs());
-	sendSignaltoJob(NULL, SIGTERM, "shutdown");
+	signalAllJobs(SIGTERM, "shutdown");
 
-	if ((cleanupTimerID = Timer_register(&cleanupTimer,
-							cleanupJobs)) == -1) {
+	cleanupTimerID = Timer_register(&cleanupTimer, cleanupJobs);
+	if (cleanupTimerID == -1) {
 	    mlog("registering cleanup timer failed\n");
 	}
-	return 0;
+	return false;
     }
 
     /* all jobs are gone */
-    if (doUnload) {
-	PSIDplugin_unload("psmom");
-    }
-    return 1;
+    if (doUnload) PSIDplugin_unload("psmom");
+    return true;
 }
 
 /**
@@ -190,131 +191,96 @@ static int shutdownJobs()
 *
 * @return No return value.
 */
-static void saveConfigValues()
+static void saveConfigValues(void)
 {
-    getConfParamI("TIME_OBIT", &obitTime);
-    getConfParamI("DEBUG_MASK", &debugMask);
+    obitTime = getConfValueI(&config, "TIME_OBIT");
+    debugMask = getConfValueI(&config, "DEBUG_MASK");
 
     /* network configuration */
-    getConfParamI("PORT_MOM", &momPort);
-    getConfParamI("PORT_RM", &rmPort);
-    getConfParamI("PORT_SERVER", &serverPort);
+    momPort = getConfValueI(&config, "PORT_MOM");
+    rmPort = getConfValueI(&config, "PORT_RM");
+    serverPort = getConfValueI(&config, "PORT_SERVER");
 
     /* torque protocol version */
-    getConfParamI("TORQUE_VERSION", &torqueVer);
+    torqueVer = getConfValueI(&config, "TORQUE_VERSION");
 }
 
-void startPsmom()
+static bool initAccountingFunc(void)
 {
-    /* we depend on the psaccount plugin */
-    dependencies[0].name = "psaccount";
-    dependencies[0].version = 21;
-    dependencies[1].name = NULL;
-    dependencies[1].version = 0;
-}
-
-void stopPsmom()
-{
-    /* release the logger */
-    logger_finalize(psmomlogger);
-}
-
-
-void (*psAccountRegisterMOMJob)(pid_t, char *) = NULL;
-void (*psAccountUnregisterMOMJob)(pid_t) = NULL;
-void (*psAccountSetGlobalCollect)(int) = NULL;
-void (*psAccountGetSessionInfos)(int *, char *, size_t, int *) = NULL;
-int (*psAccountsendSignal2Session)(pid_t, int) = NULL;
-int (*psAccountSignalAllChildren)(pid_t, pid_t, pid_t, int) = NULL;
-void (*psAccountGetJobInfo)(pid_t, psaccAccountInfo_t *) = NULL;
-int (*psAccountisChildofParent)(pid_t, pid_t) = NULL;
-void (*psAccountFindDaemonProcs)(uid_t, int, int) = NULL;
-PStask_ID_t (*psAccountgetLoggerByClientPID)(pid_t) = NULL;
-int (*psAccountreadProcStatInfo)(pid_t, psaccProcStat_t *) = NULL;
-
-static int initAccountingFunc()
-{
-    void *accHandle = NULL;
+    void *accHandle = PSIDplugin_getHandle("psaccount");
 
     /* get psaccount function handles */
-    if (!(accHandle = PSIDplugin_getHandle("psaccount"))) {
+    if (!accHandle) {
 	mlog("%s: getting psaccount handle failed\n", __func__);
-	return 1;
+	return false;
     }
 
-    if (!(psAccountSetGlobalCollect = dlsym(accHandle,
-	    "psAccountSetGlobalCollect"))) {
+    psAccountSetGlobalCollect = dlsym(accHandle, "psAccountSetGlobalCollect");
+    if (!psAccountSetGlobalCollect) {
 	mlog("%s: loading function psAccountSetGlobalCollect() failed\n",
-		__func__);
-	return 1;
+	     __func__);
+	return false;
     }
 
-    if (!(psAccountRegisterMOMJob = dlsym(accHandle,
-	    "psAccountRegisterMOMJob"))) {
-	mlog("%s: loading function psAccountRegisterMOMJob() failed\n",
-		__func__);
-	return 1;
+    psAccountRegisterJob = dlsym(accHandle, "psAccountRegisterJob");
+    if (!psAccountRegisterJob) {
+	mlog("%s: loading function psAccountRegisterJob() failed\n", __func__);
+	return false;
     }
 
-    if (!(psAccountUnregisterMOMJob = dlsym(accHandle,
-	    "psAccountUnregisterMOMJob"))) {
-	mlog("%s: loading function psAccountUnregisterMOMJob() failed\n",
-		__func__);
-	return 1;
+    psAccountUnregisterJob = dlsym(accHandle, "psAccountUnregisterJob");
+    if (!psAccountUnregisterJob) {
+	mlog("%s: loading function psAccountUnregisterJob() failed\n",
+	     __func__);
+	return false;
     }
 
-    if (!(psAccountGetSessionInfos = dlsym(accHandle,
-	    "psAccountGetSessionInfos"))) {
+    psAccountGetSessionInfos = dlsym(accHandle, "psAccountGetSessionInfos");
+    if (!psAccountGetSessionInfos) {
 	mlog("%s: loading function psAccountGetSessionInfos() failed\n",
-		__func__);
-	return 1;
+	     __func__);
+	return false;
     }
 
-    if (!(psAccountsendSignal2Session = dlsym(accHandle,
-	    "psAccountsendSignal2Session"))) {
-	mlog("%s: loading function psAccountsendSignal2Session() failed\n",
-		__func__);
-	return 1;
+    psAccountSignalSession = dlsym(accHandle, "psAccountSignalSession");
+    if (!psAccountSignalSession) {
+	mlog("%s: loading function psAccountSignalSession() failed\n",
+	     __func__);
+	return false;
     }
 
-    if (!(psAccountSignalAllChildren = dlsym(accHandle,
-	    "psAccountSignalAllChildren"))) {
-	mlog("%s: loading function psAccountSignalAllChildren() failed\n",
-		__func__);
-	return 1;
+    psAccountSignalChildren = dlsym(accHandle, "psAccountSignalChildren");
+    if (!psAccountSignalChildren) {
+	mlog("%s: loading function psAccountSignalChildren() failed\n",
+	     __func__);
+	return false;
     }
 
-    if (!(psAccountGetJobInfo = dlsym(accHandle, "psAccountGetJobInfo"))) {
-	mlog("%s: loading function psAccountGetJobInfo() failed\n", __func__);
-	return 1;
+    psAccountGetDataByJob = dlsym(accHandle, "psAccountGetDataByJob");
+    if (!psAccountGetDataByJob) {
+	mlog("%s: loading function psAccountGetDataByJob() failed\n", __func__);
+	return false;
     }
 
-    if (!(psAccountisChildofParent = dlsym(accHandle,
-					    "psAccountisChildofParent"))) {
-	mlog("%s: loading function psAccountisChildofParent() failed\n",
-		__func__);
-	return 1;
+    psAccountIsDescendant = dlsym(accHandle, "psAccountIsDescendant");
+    if (!psAccountIsDescendant) {
+	mlog("%s: loading function psAccountIsDescendant() failed\n",
+	     __func__);
+	return false;
     }
 
-    if (!(psAccountFindDaemonProcs = dlsym(accHandle,
-					    "psAccountFindDaemonProcs"))) {
+    psAccountFindDaemonProcs = dlsym(accHandle, "psAccountFindDaemonProcs");
+    if (!psAccountFindDaemonProcs) {
 	mlog("%s: loading function psAccountFindDaemonProcs() failed\n",
-		__func__);
-	return 1;
+	     __func__);
+	return false;
     }
 
-    if (!(psAccountgetLoggerByClientPID = dlsym(accHandle,
-					    "psAccountgetLoggerByClientPID"))) {
-	mlog("%s: loading function psAccountgetLoggerByClientPID() failed\n",
+    psAccountGetLoggerByClient = dlsym(accHandle,"psAccountGetLoggerByClient");
+    if (!psAccountGetLoggerByClient) {
+	mlog("%s: loading function psAccountGetLoggerByClient() failed\n",
 		__func__);
-	return 1;
-    }
-
-    if (!(psAccountreadProcStatInfo = dlsym(accHandle,
-					    "psAccountreadProcStatInfo"))) {
-	mlog("%s: loading function psAccountreadProcStatInfo() failed\n",
-		__func__);
-	return 1;
+	return false;
     }
 
     /* we want to have periodic updates on used resources */
@@ -323,9 +289,47 @@ static int initAccountingFunc()
     }
 
     /* set collect mode in psaccount */
-    psAccountSetGlobalCollect(1);
+    psAccountSetGlobalCollect(true);
 
-    return 0;
+    return true;
+}
+
+static bool initPsPAMFunc(void)
+{
+    void *pspamHandle = PSIDplugin_getHandle("pspam");
+
+    /* get psaccount function handles */
+    if (!pspamHandle) {
+	mlog("%s: getting pspam handle failed\n", __func__);
+	return false;
+    }
+
+    psPamAddUser = dlsym(pspamHandle, "psPamAddUser");
+    if (!psPamAddUser) {
+	mlog("%s: loading function psPamAddUser() failed\n", __func__);
+	return false;
+    }
+
+    psPamSetState = dlsym(pspamHandle, "psPamSetState");
+    if (!psPamSetState) {
+	mlog("%s: loading function psPamSetState() failed\n", __func__);
+	return false;
+    }
+
+    psPamDeleteUser = dlsym(pspamHandle, "psPamDeleteUser");
+    if (!psPamDeleteUser) {
+	mlog("%s: loading function psPamDeleteUser() failed\n", __func__);
+	return false;
+    }
+
+    psPamFindSessionForPID = dlsym(pspamHandle, "psPamFindSessionForPID");
+    if (!psPamFindSessionForPID) {
+	mlog("%s: loading function psPamFindSessionForPID() failed\n",
+	     __func__);
+	return false;
+    }
+
+    return true;
 }
 
 /**
@@ -336,31 +340,30 @@ static int initAccountingFunc()
  *
  * @return No return value.
  */
-static void cleanupLogs()
+static void cleanupLogs(void)
 {
-    int cleanJob, cleanNodes, cleanTemp;
+    bool cleanJob, cleanNodes, cleanTemp;
     char *dir = NULL;
 
     /* cleanup jobscript files */
-    getConfParamI("CLEAN_JOBS_FILES", &cleanJob);
+    cleanJob = getConfValueI(&config, "CLEAN_JOBS_FILES");
     if (cleanJob) {
-	dir = getConfParamC("DIR_JOB_FILES");
+	dir = getConfValueC(&config, "DIR_JOB_FILES");
 	removeDir(dir, 0);
     }
 
     /* cleanup node files */
-    getConfParamI("CLEAN_NODE_FILES", &cleanNodes);
+    cleanNodes = getConfValueI(&config, "CLEAN_NODE_FILES");
     if (cleanNodes) {
-	dir = getConfParamC("DIR_NODE_FILES");
+	dir = getConfValueC(&config, "DIR_NODE_FILES");
 	removeDir(dir, 0);
     }
 
     /* cleanup temp (scratch) dir */
-    getConfParamI("CLEAN_TEMP_DIR", &cleanTemp);
+    cleanTemp = getConfValueI(&config, "CLEAN_TEMP_DIR");
     if (cleanTemp) {
-	if ((dir = getConfParamC("DIR_TEMP"))) {
-	    removeDir(dir, 0);
-	}
+	dir = getConfValueC(&config, "DIR_TEMP");
+	if (dir) removeDir(dir, 0);
     }
 }
 
@@ -369,7 +372,7 @@ static void cleanupLogs()
  *
  * @return Returns 1 on success and 0 on error.
  */
-static int setupTorqueVersionSupport()
+static int setupTorqueVersionSupport(void)
 {
     switch (torqueVer) {
 	case 2:
@@ -415,58 +418,60 @@ static int handleShutdown(void *data)
  *
  * @return Returns 1 on error and 0 on success.
  */
-static int validateScripts()
+static int validateScripts(void)
 {
     struct stat st;
     char *script, *dir, filename[400];
 
-    if ((script = getConfParamC("BACKUP_SCRIPT"))) {
-	if ((stat(script, &st)) == -1) {
+    script = getConfValueC(&config, "BACKUP_SCRIPT");
+    if (script) {
+	if (stat(script, &st) == -1) {
 	    mwarn(errno, "%s: invalid backup script '%s'", __func__, script);
 	    return 1;
 	}
 
-	if (((st.st_mode & S_IFREG) != S_IFREG) ||
-		((st.st_mode & S_IXUSR) != S_IXUSR)) {
+	if ((st.st_mode & S_IFREG) != S_IFREG
+	    || (st.st_mode & S_IXUSR) != S_IXUSR) {
 	    mlog("%s: invalid permissions for backup script '%s'\n",
-		    __func__, script);
+		 __func__, script);
 	    return 1;
 	}
     }
 
-    if ((script = getConfParamC("TIMEOUT_SCRIPT"))) {
-	if ((stat(script, &st)) == -1) {
+    script = getConfValueC(&config, "TIMEOUT_SCRIPT");
+    if (script) {
+	if (stat(script, &st) == -1) {
 	    mwarn(errno, "%s: invalid timeout script '%s'", __func__, script);
 	    return 1;
 	}
 
-	if (((st.st_mode & S_IFREG) != S_IFREG) ||
-		((st.st_mode & S_IXUSR) != S_IXUSR)) {
+	if ((st.st_mode & S_IFREG) != S_IFREG
+	    || (st.st_mode & S_IXUSR) != S_IXUSR) {
 	    mlog("%s: invalid permissions for timeout script '%s'\n",
-		    __func__, script);
+		 __func__, script);
 	    return 1;
 	}
     }
 
     /* validate prologue/epilogue scripts */
-    dir = getConfParamC("DIR_SCRIPTS");
+    dir = getConfValueC(&config, "DIR_SCRIPTS");
     snprintf(filename, sizeof(filename), "%s/prologue", dir);
-    if ((checkPELogueFileStats(filename, 1)) == -2) {
+    if (checkPELogueFileStats(filename, 1) == -2) {
 	mlog("%s: invalid permissions for '%s'\n", __func__, filename);
 	return 1;
     }
     snprintf(filename, sizeof(filename), "%s/prologue.parallel", dir);
-    if ((checkPELogueFileStats(filename, 1)) == -2) {
+    if (checkPELogueFileStats(filename, 1) == -2) {
 	mlog("%s: invalid permissions for '%s'\n", __func__, filename);
 	return 1;
     }
     snprintf(filename, sizeof(filename), "%s/epilogue", dir);
-    if ((checkPELogueFileStats(filename, 1)) == -2) {
+    if (checkPELogueFileStats(filename, 1) == -2) {
 	mlog("%s: invalid permissions for '%s'\n", __func__, filename);
 	return 1;
     }
     snprintf(filename, sizeof(filename), "%s/epilogue.parallel", dir);
-    if ((checkPELogueFileStats(filename, 1)) == -2) {
+    if (checkPELogueFileStats(filename, 1) == -2) {
 	mlog("%s: invalid permissions for '%s'\n", __func__, filename);
 	return 1;
     }
@@ -479,62 +484,61 @@ static int validateScripts()
  *
  * @return Returns 1 on error and 0 on success.
  */
-static int validateDirs()
+static int validateDirs(void)
 {
     struct stat st;
     char *dir;
 
-    dir = getConfParamC("DIR_JOB_FILES");
-    if ((stat(dir, &st)) == -1 || ((st.st_mode & S_IFDIR) != S_IFDIR)) {
+    dir = getConfValueC(&config, "DIR_JOB_FILES");
+    if (stat(dir, &st) == -1 || (st.st_mode & S_IFDIR) != S_IFDIR) {
 	mwarn(errno, "%s: invalid job dir '%s'", __func__, dir);
 	return 1;
     }
 
-    dir = getConfParamC("DIR_NODE_FILES");
-    if ((stat(dir, &st)) == -1 || ((st.st_mode & S_IFDIR) != S_IFDIR)) {
+    dir = getConfValueC(&config, "DIR_NODE_FILES");
+    if (stat(dir, &st) == -1 || (st.st_mode & S_IFDIR) != S_IFDIR) {
 	mwarn(errno, "%s: invalid node files dir '%s'", __func__, dir);
 	return 1;
     }
 
-    if ((dir = getConfParamC("DIR_TEMP"))) {
-	if ((stat(dir, &st)) == -1 || ((st.st_mode & S_IFDIR) != S_IFDIR)) {
-	    mwarn(errno, "%s: invalid temp dir '%s'", __func__, dir);
-	    return 1;
-	}
+    dir = getConfValueC(&config, "DIR_TEMP");
+    if (dir && (stat(dir, &st) == -1 || (st.st_mode & S_IFDIR) != S_IFDIR)) {
+	mwarn(errno, "%s: invalid temp dir '%s'", __func__, dir);
+	return 1;
     }
 
-    dir = getConfParamC("DIR_JOB_ACCOUNT");
-    if ((stat(dir, &st)) == -1 || ((st.st_mode & S_IFDIR) != S_IFDIR)) {
+    dir = getConfValueC(&config, "DIR_JOB_ACCOUNT");
+    if (stat(dir, &st) == -1 || (st.st_mode & S_IFDIR) != S_IFDIR) {
 	mwarn(errno, "%s: invalid account dir '%s'", __func__, dir);
 	return 1;
     }
 
-    dir = getConfParamC("DIR_SCRIPTS");
-    if ((stat(dir, &st)) == -1 || ((st.st_mode & S_IFDIR) != S_IFDIR)) {
+    dir = getConfValueC(&config, "DIR_SCRIPTS");
+    if (stat(dir, &st) == -1 || (st.st_mode & S_IFDIR) != S_IFDIR) {
 	mwarn(errno, "%s: invalid scripts dir '%s'", __func__, dir);
 	return 1;
     }
 
     dir = DEFAULT_DIR_JOB_UNDELIVERED;
-    if ((stat(dir, &st)) == -1 || ((st.st_mode & S_IFDIR) != S_IFDIR)) {
+    if (stat(dir, &st) == -1 || (st.st_mode & S_IFDIR) != S_IFDIR) {
 	mwarn(errno, "%s: invalid undelivered dir '%s'", __func__, dir);
 	return 1;
     }
 
-    if ((dir = getConfParamC("DIR_LOCAL_BACKUP"))) {
-	if ((stat(dir, &st)) == -1 || ((st.st_mode & S_IFDIR) != S_IFDIR)) {
-	    mwarn(errno, "%s: invalid backup dir '%s'", __func__, dir);
-	    return 1;
-	}
+    dir = getConfValueC(&config, "DIR_LOCAL_BACKUP");
+    if (dir && (stat(dir, &st) == -1 || (st.st_mode & S_IFDIR) != S_IFDIR)) {
+	mwarn(errno, "%s: invalid backup dir '%s'", __func__, dir);
+	return 1;
     }
+
     return 0;
 }
 
-static int setRootHome()
+static int setRootHome(void)
 {
-    struct passwd *spasswd;
+    struct passwd *spasswd = getpwnam("root");
 
-    if (!(spasswd = getpwnam("root"))) {
+    if (!spasswd) {
 	mlog("%s: getpwnam(root) failed\n", __func__);
 	return 0;
     }
@@ -553,31 +557,25 @@ static int setRootHome()
  */
 static void unregisterHooks(int verbose)
 {
-    /* unregister psmom msg */
-    PSID_clearMsg(PSP_CC_PSMOM);
-
-    /* unregister msg drop handler */
-    PSID_clearDropper(PSP_CC_PSMOM);
-
     /* restore old SPAWNREQ handler */
     if (oldSpawnReqHandler) {
 	PSID_registerMsg(PSP_CD_SPAWNREQ, (handlerFunc_t) oldSpawnReqHandler);
     }
 
     /* unregister hooks */
-    if (!(PSIDhook_del(PSIDHOOK_NODE_DOWN, handleNodeDown))) {
+    if (!PSIDhook_del(PSIDHOOK_NODE_DOWN, handleNodeDown)) {
 	if (verbose) mlog("unregister 'PSIDHOOK_NODE_DOWN' failed\n");
     }
 
-    if (!(PSIDhook_del(PSIDHOOK_CREATEPART, handleCreatePart))) {
+    if (!PSIDhook_del(PSIDHOOK_CREATEPART, handleCreatePart)) {
 	if (verbose) mlog("unregister 'PSIDHOOK_CREATEPART' failed\n");
     }
 
-    if (!(PSIDhook_del(PSIDHOOK_CREATEPARTNL, handleCreatePartNL))) {
+    if (!PSIDhook_del(PSIDHOOK_CREATEPARTNL, handleCreatePartNL)) {
 	if (verbose) mlog("unregister 'PSIDHOOK_CREATEPARTNL' failed\n");
     }
 
-    if (!(PSIDhook_del(PSIDHOOK_SHUTDOWN, handleShutdown))) {
+    if (!PSIDhook_del(PSIDHOOK_SHUTDOWN, handleShutdown)) {
 	if (verbose) mlog("unregister 'PSIDHOOK_SHUTDOWN' failed\n");
     }
 }
@@ -618,8 +616,13 @@ int initialize(void)
     /* test if all configured scripts exists and have the correct permissions */
     if (validateScripts()) return 1;
 
-    if ((initAccountingFunc())) {
+    if (!initAccountingFunc()) {
 	fprintf(stderr, "%s: init accounting functions failed\n", __func__);
+	return 1;
+    }
+
+    if (!initPsPAMFunc()) {
+	fprintf(stderr, "%s: init pspam functions failed\n", __func__);
 	return 1;
     }
 
@@ -628,13 +631,10 @@ int initialize(void)
 
     /* init all data lists */
     initComList();
-    initJobList();
     initAuthList();
     initInfoList();
     initChildList();
     initServerList();
-    initJobInfoList();
-    initSSHList();
     initEnvList();
 
     isInit = 1;
@@ -643,7 +643,8 @@ int initialize(void)
     maskLogger(debugMask);
 
     /* read pwnam buffer value */
-    if ((pwBufferSize = sysconf(_SC_GETPW_R_SIZE_MAX)) < 1) {
+    pwBufferSize = sysconf(_SC_GETPW_R_SIZE_MAX);
+    if (pwBufferSize < 1) {
 	mlog("%s: getting pw buffer size failed, using 1024\n",
 		__func__);
 	pwBufferSize = 1024;
@@ -652,24 +653,20 @@ int initialize(void)
     /* cleanup left over log files */
     cleanupLogs();
 
-    /* save the home directory of root */
-    if (!(setRootHome())) {
-	return 1;
-    }
+    /* save root's home directory */
+    if (!setRootHome()) return 1;
 
     /* setup torque version support */
-    if (!(setupTorqueVersionSupport())) {
-	return 1;
-    }
+    if (!setupTorqueVersionSupport()) return 1;
 
     /* init the tcp communication layer */
-    if ((wBind(momPort, TCP_PROTOCOL)) < 0) {
+    if (wBind(momPort, TCP_PROTOCOL) < 0) {
 	mlog("Listen on tcp port %d failed\n", momPort);
 	return 1;
     }
 
     /* init the rpp communication layer */
-    if ((wBind(rmPort, RPP_PROTOCOL)) < 0) {
+    if (wBind(rmPort, RPP_PROTOCOL) < 0) {
 	mlog("listen on rpp port %d failed\n", rmPort);
 	return 1;
     }
@@ -679,46 +676,40 @@ int initialize(void)
 
     /* We'll use fragmented messages between different psmoms */
     initFragComm();
-
-    /* register inter psmom msg */
-    PSID_registerMsg(PSP_CC_PSMOM, (handlerFunc_t) handlePSMsg);
-
-    /* register handler for dropped msgs */
-    PSID_registerDropper(PSP_CC_PSMOM, (handlerFunc_t) handleDroppedMsg);
+    initPSComm();
 
     oldSpawnReqHandler = PSID_registerMsg(PSP_CD_SPAWNREQ,
-				(handlerFunc_t) handlePSSpawnReq);
+					  (handlerFunc_t) handlePSSpawnReq);
 
     /* register needed hooks */
-    if (!(PSIDhook_add(PSIDHOOK_NODE_DOWN, handleNodeDown))) {
+    if (!PSIDhook_add(PSIDHOOK_NODE_DOWN, handleNodeDown)) {
 	mlog("register 'PSIDHOOK_NODE_DOWN' failed\n");
 	goto INIT_ERROR;
     }
 
-    if (!(PSIDhook_add(PSIDHOOK_CREATEPART, handleCreatePart))) {
+    if (!PSIDhook_add(PSIDHOOK_CREATEPART, handleCreatePart)) {
 	mlog("register 'PSIDHOOK_CREATEPART' failed\n");
 	goto INIT_ERROR;
     }
 
-    if (!(PSIDhook_add(PSIDHOOK_CREATEPARTNL, handleCreatePartNL))) {
+    if (!PSIDhook_add(PSIDHOOK_CREATEPARTNL, handleCreatePartNL)) {
 	mlog("register 'PSIDHOOK_CREATEPARTNL' failed\n");
 	goto INIT_ERROR;
     }
 
-    if (!(PSIDhook_add(PSIDHOOK_SHUTDOWN, handleShutdown))) {
+    if (!PSIDhook_add(PSIDHOOK_SHUTDOWN, handleShutdown)) {
 	mlog("register 'PSIDHOOK_SHUTDOWN' failed\n");
 	goto INIT_ERROR;
     }
 
     /* make sure timer facility is ready */
     if (!Timer_isInitialized()) {
-	mdbg(PSMOM_LOG_WARN, "timer facility not ready, trying to initialize"
-	    " it\n");
+	mdbg(PSMOM_LOG_WARN, "timer facility not yet ready\n");
 	Timer_init(NULL);
     }
 
     /* connect to the pbs server(s) */
-    if ((openServerConnections())) {
+    if (openServerConnections()) {
 	goto INIT_ERROR;
     }
 
@@ -735,6 +726,7 @@ int initialize(void)
 
 INIT_ERROR:
     unregisterHooks(0);
+    finalizePSComm();
     return 1;
 }
 
@@ -769,17 +761,17 @@ void cleanup(void)
 
     if (!isInit) {
 	/* free config values */
-	clearConfig();
+	freeConfig(&config);
 	return;
     }
 
     /* make sure all left forwarders and children are gone */
     if (countJobs() > 0) {
-	sendSignaltoJob(NULL, SIGKILL, "shutdown");
+	signalAllJobs(SIGKILL, "shutdown");
     }
 
     /* free config values */
-    clearConfig();
+    freeConfig(&config);
 
     /* set collect mode in psaccount */
     if (psAccountSetGlobalCollect) psAccountSetGlobalCollect(false);
@@ -788,6 +780,7 @@ void cleanup(void)
 
     /* remove all registered hooks and msg handler */
     unregisterHooks(1);
+    finalizePSComm();
 
     /* close local comm socket */
     closeMasterSock();
@@ -803,10 +796,10 @@ void cleanup(void)
     clearDataList(&infoData.list);
     clearDataList(&staticInfoData.list);
     clearJobInfoList();
-    clearSSHList();
     clearAuthList();
     if (memoryDebug) fclose(memoryDebug);
     finalizeFragComm();
 
     mlog("...Bye.\n");
+    logger_finalize(psmomlogger);
 }

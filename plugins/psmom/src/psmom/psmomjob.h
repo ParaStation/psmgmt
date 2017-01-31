@@ -1,30 +1,29 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2015 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2017 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-/**
- * $Id$
- *
- * \author
- * Michael Rauh <rauh@par-tec.com>
- *
- */
 
-#ifndef __PS_MOM_JOB
-#define __PS_MOM_JOB
+#ifndef __PSMOM_JOB
+#define __PSMOM_JOB
 
+#include <stdbool.h>
+#include <stdint.h>
+#include <time.h>
+#include <sys/types.h>
 #include <pwd.h>
-#include <netinet/in.h>
 
 #include "list.h"
+#include "pscommon.h"
+#include "psnodes.h"
+#include "pstask.h"
+
 #include "psmomlist.h"
 #include "psmomcomm.h"
-#include "pscommon.h"
 
 typedef enum {
     JOB_INIT   = 0x0001,
@@ -36,7 +35,7 @@ typedef enum {
     JOB_CANCEL_PROLOGUE,    /* prologue failed and is canceled */
     JOB_CANCEL_EPILOGUE,    /* epilouge failed and is canceled */
     JOB_CANCEL_INTERACTIVE, /* an interactive job failed and is canceled */
-    JOB_WAIT_OBIT,	    /* send job obit failed, try it periodically again */
+    JOB_WAIT_OBIT,	    /* send job obit failed, try again periodically */
     JOB_EXIT		    /* the job is exiting */
 } JobState_t;
 
@@ -59,12 +58,12 @@ typedef struct {
     int argc;
     char **argv;
     char *env;
-    struct list_head list;
+    list_t list;
 } Task_t;
 
 typedef enum {
-    JOB_CON_FORWARD,		/* local connection between the forwarder and the psmom */
-    JOB_CON_X11_CLIENT, 	/* connection between qsub and x11 client */
+    JOB_CON_FORWARD,      /* local connection between forwarder and psmom */
+    JOB_CON_X11_CLIENT,   /* connection between qsub and x11 client */
     JOB_CON_X11_LISTEN
 } Job_Conn_type_t;
 
@@ -87,10 +86,11 @@ typedef struct {
 } Job_Node_List_t;
 
 typedef struct {
+    list_t next;            /**< used to put into list */
     char *id;		    /* the PBS jobid */
     char *hashname;	    /* filesystem compatible jobid */
     char *server;	    /* pbs_server address for the job */
-    char *jobscript;	    /* filename of the jobscript, empty for interactive jobs */
+    char *jobscript;	    /* filename of jobscript, empty if interactive */
     char *cookie;	    /* uniq job cookie for job recognition */
     char *user;		    /* username of the job owner */
     struct passwd passwd;   /* passwd information from the job owner */
@@ -100,12 +100,12 @@ typedef struct {
     pid_t mpiexec;	    /* the pid of the last mpiexec/psilogger process */
     Data_Entry_t data;	    /* job information received from torque server */
     Data_Entry_t status;    /* status information as string e.g. walltime */
-    Task_t tasks;	    /* information about additional tasks e.g. (interactive) */
+    Task_t tasks;	    /* info on additional tasks e.g. (interactive) */
     Resources_t res;	    /* all used resources (walltime, mem, cputime) */
-    JobState_t state;	    /* the state of the job e.g. prologue, running,..  */
+    JobState_t state;	    /* state of the job e.g. prologue, running,..  */
     Job_Conn_t connections; /* structure with all job related connections */
     Job_Node_List_t *nodes; /* all participating nodes in the job */
-    int update;		    /* flag to save the request of an initial job update */
+    int update;		    /* flag to save request of an initial job update */
     int nrOfNodes;	    /* number of participating nodes */
     int nrOfUniqueNodes;    /* number of participating unique nodes */
     int prologueTrack;	    /* track how many prologue scripts has finished */
@@ -114,24 +114,18 @@ typedef struct {
     int epilogueExit;	    /* the max exit code of all epilogue scripts */
     int jobscriptExit;	    /* the exit code of the jobscript */
     int qsubPort;	    /* save the qsub port for interactive jobs */
-    int recovered;	    /* set to true if the job was recovered and not running */
-    int recoverTrack;	    /* track how many times job recover infos were requested */
+    int recovered;	    /* true if job was recovered and not running */
+    int recoverTrack;	    /* track number of requests on job recover infos */
     int pelogueMonitorId;   /* timer id of the pelogue monitor */
-    int signalFlag;	    /* set to the last signal received from PBS server */
-    char *pelogueMonStr;    /* pointer to the jobid use by the pelogue timeout */
+    int signalFlag;	    /* set to last signal received from PBS server */
+    char *pelogueMonStr;    /* pointer to jobid use by the pelogue timeout */
     time_t PElogue_start;
     time_t start_time;	    /* the time were the job started */
     time_t end_time;	    /* the time were the job terminated */
     PStask_t *resDelegate;  /* task struct holding resources used as delegate */
-    struct list_head list;  /* the job list header */
 } Job_t;
 
-/* list which holds all jobs */
-extern Job_t JobList;
-
 extern int jobObitTimerID;
-
-void initJobList(void);
 
 /**
  * @brief Delete all jobs.
@@ -226,15 +220,72 @@ Job_t *findJobByLogger(pid_t logger);
 Job_t *findJobByCom(ComHandle_t *com, Job_Conn_type_t type);
 
 /**
+ * @brief Test if a pid belongs to a local running job.
+ *
+ * @param pid The pid to test.
+ *
+ * @return Returns the identified job or NULL on error.
+ */
+Job_t *findJobforPID(pid_t pid);
+
+/**
  * @brief Delete a job.
  *
  * @param jobid The id of the job to delete.
  *
- * @return returns 0 on error and 1 on success.
+ * @return returns false on error and true on success.
  */
-int deleteJob(char *jobname);
+bool deleteJob(char *jobname);
 
+/**
+ * @brief Count the number of jobs.
+ *
+ * @return Returns the number of jobs.
+ */
 int countJobs(void);
+
+/**
+ * @brief Save information about all known jobs into a buffer.
+ *
+ * @param buf The buffer to save the information to.
+ *
+ * @param bufSize A pointer to the current size of the buffer.
+ *
+ * @return Returns the buffer with the updated job information.
+ */
+char *listJobs(char *buf, size_t *bufSize);
+
+/**
+ * @brief Check PID for allowance
+ *
+ * Check if the process with ID @a pid is allowed to run on the local
+ * node due to the fact that it is part of a local job.
+ *
+ * @param pid Process ID of the process to check
+ *
+ * @param psAccLogger Logger associated to the process as determined
+ * via psaccount
+ *
+ * @param reason Pointer to be update by the function with the reason
+ * for allowance of this process
+ *
+ * @return Return true of the process is allowed to run on the local
+ * node due to some local process. Otherwise false is returned.
+ */
+bool showAllowedJobPid(pid_t pid, pid_t sid, PStask_ID_t psAccLogger,
+		       char **reason);
+
+/**
+ * @brief Clean job info
+ *
+ * Clean all job info involved with remote node @a id. This also calls
+ * various cleanup actions of internal states.
+ *
+ * @param id Node ID of the remote node that died
+ *
+ * @return No return value.
+ */
+void cleanJobByNode(PSnodes_ID_t id);
 
 /**
  * @brief Convert a job state into its string representation.
@@ -317,4 +368,18 @@ int closeJobConnByJob(Job_t *job, Job_Conn_type_t type, ComHandle_t *com);
  */
 int isJobIDinHistory(char *jobid);
 
-#endif
+/**
+ * @brief Send a signal to one or more jobs.
+ *
+ * The signal must be send to the corresponding forwarder of
+ * the job, which will then send the signal to the appropriate processes.
+ *
+ * @param signal The signal to send.
+ *
+ * @param reason The reason why the signal should be sent.
+ *
+ * @return Returns false on error and true on success.
+ */
+bool signalAllJobs(int signal, char *reason);
+
+#endif /* __PSMOM_JOB */

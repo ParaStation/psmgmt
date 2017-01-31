@@ -1,13 +1,12 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2017 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/stat.h>
@@ -21,6 +20,18 @@
 #include <errno.h>
 #include <pwd.h>
 
+#include "pscommon.h"
+#include "timer.h"
+#include "selector.h"
+#include "psidutil.h"
+#include "psidtask.h"
+#include "psidpartition.h"
+#include "pluginhelper.h"
+#include "pluginmalloc.h"
+
+#include "psaccounthandles.h"
+#include "pspamhandles.h"
+
 #include "psmomspawn.h"
 #include "psmomlog.h"
 #include "psmomjob.h"
@@ -33,20 +44,9 @@
 #include "psmomforwarder.h"
 #include "psmomjobinfo.h"
 #include "psmom.h"
-#include "pluginhelper.h"
-#include "pluginmalloc.h"
 #include "psmomconv.h"
 #include "psmomlocalcomm.h"
-#include "psmompsaccfunc.h"
 #include "psmomkvs.h"
-
-#include "pscommon.h"
-#include "timer.h"
-#include "selector.h"
-#include "psidutil.h"
-
-#include "psidtask.h"
-#include "psidpartition.h"
 
 #include "psmomscript.h"
 
@@ -82,7 +82,7 @@ void signalPElogue(Job_t *job, char *signal, char *reason)
 {
     DDTypedBufferMsg_t msg = (DDTypedBufferMsg_t) {
 	.header = (DDMsg_t) {
-	    .type = PSP_CC_PSMOM,
+	    .type = PSP_CC_PLUG_PSMOM,
 	    .sender = PSC_getMyTID(),
 	    .dest = PSC_getMyTID(),
 	    .len = sizeof(msg.header) + sizeof(msg.type)},
@@ -482,7 +482,7 @@ void handlePELogueSignal(DDTypedBufferMsg_t *msg)
     if (child->c_sid != -1) {
 	mlog("signal '%s (%i)' to pelogue '%s' - reason '%s' - sid '%i'\n",
 		signal, isignal, jobid, reason, child->c_sid);
-	psAccountsendSignal2Session(child->c_sid, isignal);
+	psAccountSignalSession(child->c_sid, isignal);
     } else if (child->c_pid != -1) {
 	mlog("signal '%s (%i)' to pelogue '%s' - reason '%s' - pid '%i'\n",
 		signal, isignal, jobid, reason, child->c_pid);
@@ -605,8 +605,7 @@ static void PElogueTimeoutAction(char *server, char *jobid, int prologue,
     struct tm *ts;
     time_t now;
 
-    getConfParamI("OFFLINE_PELOGUE_TIMEOUT", &offline);
-
+    offline = getConfValueI(&config, "OFFLINE_PELOGUE_TIMEOUT");
     if (!offline) return;
 
     mlog("%s: %s for job '%s' timed out, setting node '%s' offline\n", __func__,
@@ -664,7 +663,7 @@ static int callbackPElogue(int fd, PSID_scriptCBInfo_t *info)
     /* prepare result msg */
     DDTypedBufferMsg_t msgRes = (DDTypedBufferMsg_t) {
 	.header = (DDMsg_t) {
-	    .type = PSP_CC_PSMOM,
+	    .type = PSP_CC_PLUG_PSMOM,
 	    .sender = PSC_getMyTID(),
 	    .dest = data->mainMom,
 	    .len = sizeof(msgRes.header) + sizeof(msgRes.type)},
@@ -855,11 +854,11 @@ void monitorPELogueTimeout(Job_t *job)
     char *jobid;
 
     if (job->state == JOB_PROLOGUE) {
-	getConfParamI("TIMEOUT_PROLOGUE", &timeout);
+	timeout = getConfValueI(&config, "TIMEOUT_PROLOGUE");
     } else {
-	getConfParamI("TIMEOUT_EPILOGUE", &timeout);
+	timeout = getConfValueI(&config, "TIMEOUT_EPILOGUE");
     }
-    getConfParamI("TIMEOUT_PE_GRACE", &grace);
+    grace = getConfValueI(&config, "TIMEOUT_PE_GRACE");
 
     pelogueTimer.tv_sec = timeout + (2 * grace);
     jobid = ustrdup(job->id);
@@ -878,14 +877,13 @@ void handlePELogueStart(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *msgData)
 {
     DDTypedBufferMsg_t msgRes = (DDTypedBufferMsg_t) {
 	.header = (DDMsg_t) {
-	    .type = PSP_CC_PSMOM,
+	    .type = PSP_CC_PLUG_PSMOM,
 	    .sender = PSC_getMyTID(),
 	    .dest = msg->header.sender,
 	    .len = sizeof(msgRes.header) + sizeof(msgRes.type)},
 	.buf = {'\0'} };
     char *ptr, ctype[20], buf[300], tmpDir[400] = { '\0' };
-    char *dirScripts, *jobid, *confTmpDir;
-    int32_t exit;
+    char *dirScripts, *confTmpDir;
     int itype, disPE;
     PElogue_Data_t *data;
     time_t job_start;
@@ -899,9 +897,8 @@ void handlePELogueStart(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *msgData)
     getString(&ptr, buf, sizeof(buf));
 
     /* set temp dir using hashname */
-    if ((confTmpDir = getConfParam("DIR_TEMP"))) {
-	snprintf(tmpDir, sizeof(tmpDir), "%s/%s", confTmpDir, buf);
-    }
+    confTmpDir = getConfValueC(&config, "DIR_TEMP");
+    if (confTmpDir) snprintf(tmpDir, sizeof(tmpDir), "%s/%s", confTmpDir, buf);
 
     /* fetch username */
     getString(&ptr, buf, sizeof(buf));
@@ -939,18 +936,20 @@ void handlePELogueStart(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *msgData)
 	}
     }
 
-    getConfParamI("DISABLE_PELOGUE", &disPE);
+    disPE = getConfValueI(&config, "DISABLE_PELOGUE");
 
     if (disPE == 1) {
-
 	/* no PElogue scripts to run */
-	exit = 0;
+	char *jobid;
+	int32_t exit = 0;
 
 	/* get jobid from received msg */
 	jobid = getStringM(&ptr);
 
 	/* get start_time */
 	getTime(&ptr, &job_start);
+
+	if (prologue) psPamAddUser(buf, jobid, PSPAM_STATE_PROLOGUE);
 
 	/* add jobid */
 	addStringToMsgBuf(&msgRes, jobid);
@@ -968,7 +967,7 @@ void handlePELogueStart(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *msgData)
     }
 
     /* collect all data and start the script */
-    dirScripts = getConfParamC("DIR_SCRIPTS");
+    dirScripts = getConfValueC(&config, "DIR_SCRIPTS");
     data = umalloc(sizeof(PElogue_Data_t));
 
     /* build up data struct */
@@ -1004,6 +1003,8 @@ void handlePELogueStart(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *msgData)
     data->server = getStringM(&ptr);
     data->tmpDir = (confTmpDir != NULL) ? ustrdup(tmpDir) : NULL;
 
+    if (prologue) psPamAddUser(data->user, data->jobid, PSPAM_STATE_PROLOGUE);
+
     if (!data->frontend) {
 	PSnodes_ID_t id = PSC_getID(msg->header.sender);
 	mdbg(PSMOM_LOG_JOB, "remote %s for job '%s' ms '%s(%i)' is starting\n",
@@ -1016,10 +1017,10 @@ void handlePELogueStart(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *msgData)
     /* spawn child to prevent the pelogue script from blocking
      * the psmom/psid */
     if ((pid = PSID_execFunc(execPElogueForwarder, prepScriptEnv,
-	callbackPElogue, data)) == -1) {
+			     callbackPElogue, data)) == -1) {
+	int32_t exit = -2;
 
 	mlog("%s: exec '%s'-script failed\n", __func__, ctype);
-	exit = -2;
 
 	/* add jobid */
 	addStringToMsgBuf(&msgRes, data->jobid);
@@ -1057,92 +1058,14 @@ void handlePELogueStart(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *msgData)
 
 int handleNodeDown(void *nodeID)
 {
-    list_t *pos, *tmp;
-    Job_t *job;
-    JobInfo_t *jobinfo;
-    PSnodes_ID_t id;
-    int i;
-
-    id = *((PSnodes_ID_t *) nodeID);
+    PSnodes_ID_t node = *(PSnodes_ID_t *) nodeID;
 
     /* check if the node which has gone down is a part of a local job */
-    if (!list_empty(&JobList.list)) {
-	list_for_each_safe(pos, tmp, &JobList.list) {
-	    if ((job = list_entry(pos, Job_t, list)) == NULL) continue;
-
-	    if (job->state == JOB_PROLOGUE ||
-		job->state == JOB_EPILOGUE ||
-		job->state == JOB_RUNNING  ||
-		job->state == JOB_CANCEL_PROLOGUE  ||
-		job->state == JOB_CANCEL_EPILOGUE) {
-
-		for (i=0; i<job->nrOfUniqueNodes; i++) {
-		    if (job->nodes[i].id == id) {
-
-			const char *hname = NULL;
-
-			hname = getHostnameByNodeId(id);
-
-			mlog("%s: node '%s(%i)' which is running job '%s' "
-				"jstate '%s' is down\n", __func__, hname, id,
-				job->id, jobState2String(job->state));
-
-			/* tell the PBS server that the node is down */
-			if (hname) {
-			    setPBSNodeState(job->server, NULL, "down", hname);
-			}
-
-			if (job->state == JOB_PROLOGUE ||
-			    job->state == JOB_EPILOGUE ||
-			    job->state == JOB_CANCEL_PROLOGUE ||
-			    job->state == JOB_CANCEL_EPILOGUE) {
-
-			    /* stop pelogue scripts on all nodes */
-			    signalPElogue(job, "SIGTERM", "node down");
-			    stopPElogueExecution(job);
-			} else if (job->state == JOB_RUNNING) {
-			    char *ft;
-
-			    ft = getJobDetail(&job->data, "fault_tolerant", NULL);
-
-			    if (ft && (!strcmp(ft, "True") || !strcmp(ft, "true"))) {
-				continue;
-			    } else {
-				/* kill the job */
-				mlog("%s: job '%s' is not fault tolerant, "
-					"killing job\n", __func__, job->id);
-				sendSignaltoJob(job, SIGTERM, "node down");
-				sendSignaltoJob(job, SIGKILL, "node down");
-			    }
-			}
-		    }
-		}
-	    }
-	}
-    }
+    cleanJobByNode(node);
 
     /* check if the node which has gone down is a mother superior
      * from a remote job */
-    if (!list_empty(&JobInfoList.list)) {
-	list_for_each_safe(pos, tmp, &JobInfoList.list) {
-
-	    if ((jobinfo = list_entry(pos, JobInfo_t, list)) == NULL) continue;
-
-	    if (PSC_getID(jobinfo->tid) == id) {
-		char user[USER_NAME_LEN];
-
-		mlog("%s: node '%i' died, removing remote job '%s'\n", __func__,
-			id, jobinfo->id);
-		strncpy(user, jobinfo->user, sizeof(user));
-
-		/* remove remote job */
-		delJobInfo(jobinfo->id);
-
-		/* cleanup leftover ssh/daemon processes */
-		afterJobCleanup(user);
-	    }
-	}
-    }
+    cleanJobInfoByNode(node);
 
     return 1;
 }

@@ -1,18 +1,11 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2013 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
- */
-/**
- * $Id$
- *
- * \author
- * Michael Rauh <rauh@par-tec.com>
- *
  */
 
 #define _GNU_SOURCE
@@ -29,11 +22,12 @@
 #include "list.h"
 #include "psmomlog.h"
 #include "pluginmalloc.h"
+
+#include "psaccounthandles.h"
+
 #include "psmomjob.h"
 #include "psmomconfig.h"
 #include "psmom.h"
-
-#include "psmompsaccfunc.h"
 
 #include "psmomcollect.h"
 
@@ -45,30 +39,30 @@
 static char buffer[1000];
 /*
 Not implemented:
-**              idletime        seconds of idle time -> watch dev tty's for date entrys
+**      idletime        seconds of idle time -> watch dev tty's for date entrys
 
 Obsolete?
-**              pids            list of pids in a session
-**              quota           quota information (sizes in kb)
+**      pids            list of pids in a session
+**      quota           quota information (sizes in kb)
 
 Implemented:
  * psmom
-**              walltime        wall clock time for a job
-**              loadave         current load average # for busy check # sprintf(ret_string, "%.2f") loadavg
-**              ncpus           number of cpus
-**              totmem          total memory size in KB
-**              availmem        available memory size in KB
-**              physmem         physical memory size in KB
-**              netload         number of bytes transferred for all interfaces (read /proc/net/dev)
-**              size            size of a file or filesystem
+**      walltime        wall clock time for a job
+**      loadave         current load average # for busy check # format: "%.2f"
+**      ncpus           number of cpus
+**      totmem          total memory size in KB
+**      availmem        available memory size in KB
+**      physmem         physical memory size in KB
+**      netload         # bytes transferred on all interfaces (/proc/net/dev)
+**      size            size of a file or filesystem
 
  * psaccount plugin
-**              cput            cpu time for a pid or session
-**              mem             memory size for a pid or session in KB
-**              resi            resident memory size for a pid or session in KB
-**              sessions        list of sessions in the system
-**              nsessions       number of sessions in the system
-**              nusers          number of users in the system
+**      cput            cpu time for a pid or session
+**      mem             memory size for a pid or session in KB
+**      resi            resident memory size for a pid or session in KB
+**      sessions        list of sessions in the system
+**      nsessions       number of sessions in the system
+**      nusers          number of users in the system
 */
 
 /**
@@ -86,7 +80,8 @@ static void setNetload(void)
     char *line = NULL;
     char interface[50];
     size_t len = 0;
-    static char net_format[] = "%*[ ]%30[^:]: %lu %*lu %*d %*d %*d %*d %*d %*d %lu %*lu %*d %*d %*d %*d %*d %*d";
+    static char net_format[] = "%*[ ]%30[^:]: %lu %*lu %*d %*d %*d"
+	" %*d %*d %*d %lu %*lu %*d %*d %*d %*d %*d %*d";
 
     if (readError) return;
 
@@ -375,17 +370,17 @@ static void setNCpus(void)
 static void setFsSize(void)
 {
     struct statfs st;
-    char *param;
-    static int report = 1;
+    char *param = getConfValueC(&config, "REPORT_FS_SIZE");
+    static bool report = true;
 
     if (!report) return;
 
-    if ((param = getConfParam("REPORT_FS_SIZE"))) {
-	if ((statfs(param, &st)) == -1) {
+    if (param) {
+	if (statfs(param, &st) == -1) {
 	    mlog("%s: statfs(%s) failed : %s, invalid REPORT_FS_SIZE?\n",
 		__func__, param, strerror(errno));
 	    setEntry(&infoData.list, "size", "", "size=");
-	    report = 0;
+	    report = false;
 	    return;
 	}
 
@@ -405,9 +400,8 @@ static void setFsSize(void)
  */
 static void setOpsys(void)
 {
-    char *param;
-
-    if ((param = getConfParam("SET_OPSYS"))) {
+    char *param = getConfValueC(&config, "SET_OPSYS");
+    if (param) {
 	snprintf(buffer, sizeof(buffer), "opsys=%s", param);
 	setEntry(&staticInfoData.list, "opsys", "", buffer);
     } else {
@@ -425,9 +419,8 @@ static void setOpsys(void)
  */
 static void setArch(void)
 {
-    char *param;
-
-    if ((param = getConfParam("SET_ARCH"))) {
+    char *param = getConfValueC(&config, "SET_ARCH");
+    if (param) {
 	snprintf(buffer, sizeof(buffer), "arch=%s", param);
 	setEntry(&staticInfoData.list, "arch", "", buffer);
     }

@@ -1,18 +1,11 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2011-2013 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2011-2016 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
- */
-/**
- * $Id$
- *
- * \author
- * Michael Rauh <rauh@par-tec.com>
- *
  */
 
 #include <stdio.h>
@@ -209,12 +202,13 @@ int openServerConnections()
     Server_t *serv;
     struct sockaddr_in* lAddr;
 
-    if (!(allServers = getConfParam("PBS_SERVER"))) {
+    allServers = getConfValueC(&config, "PBS_SERVER");
+    if (!allServers) {
 	mlog("%s: PBS server not configured, cannot continue\n", __func__);
 	return 1;
     }
 
-    getConfParamI("PORT_SERVER", &serverPort);
+    serverPort = getConfValueI(&config, "PORT_SERVER");
 
     copy = ustrdup(allServers);
     next = strtok_r(copy, delimiters, &toksave);
@@ -246,7 +240,7 @@ int openServerConnections()
     ufree(copy);
 
     /* check peridically if server connection is still in place */
-    getConfParamI("TIME_KEEP_ALIVE", &keepAliveTime);
+    keepAliveTime = getConfValueI(&config, "TIME_KEEP_ALIVE");
 
     if (keepAliveTime > 0) {
 	Timer.tv_sec = 30;
@@ -267,7 +261,7 @@ int openServerConnections()
     }
 
     /* send periodic update messages (also used as keep alive) to all servers */
-    getConfParamI("TIME_UPDATE", &Time);
+    Time = getConfValueI(&config, "TIME_UPDATE");
     Timer.tv_sec = Time;
     Timer.tv_usec = 0;
     if ((serverUpdateID = Timer_register(&Timer, sendStatusUpdate)) == -1) {
