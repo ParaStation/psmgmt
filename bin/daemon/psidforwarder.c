@@ -560,8 +560,6 @@ static int doWrite(PSLog_Msg_t *msg, int offset)
     int count = msg->header.len - PSLog_headerSize;
     int stdinSock = childTask->stdin_fd;
 
-    if (stdinSock <0) return 0;
-
     if (!count) {
 	/* close clients stdin */
 	shutdown(stdinSock, SHUT_WR);
