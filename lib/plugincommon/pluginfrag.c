@@ -302,7 +302,7 @@ ERROR:
 }
 
 int __sendFragMsg(PS_DataBuffer_t *data, PStask_ID_t dest, int16_t RDPType,
-		    int32_t msgType, const char *caller, const int line)
+		  int32_t msgType, const char *caller, const int line)
 {
     DDTypedBufferMsg_t msg = (DDTypedBufferMsg_t) {
 	.header = (DDMsg_t) {
