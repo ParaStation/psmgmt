@@ -118,7 +118,7 @@ Alloc_t *addAllocation(uint32_t jobid, uint32_t nrOfNodes, char *slurmNodes,
     list_add_tail(&(alloc->list), &AllocList.list);
 
     /* add user in pam for ssh access */
-    psPamAddUser(alloc->username, "psslurm", PSPAM_PROLGOUE);
+    psPamAddUser(alloc->username, "psslurm", PSPAM_STATE_PROLOGUE);
 
     return alloc;
 }

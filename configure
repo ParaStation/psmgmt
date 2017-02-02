@@ -676,7 +676,6 @@ ac_ct_AR
 AR
 DLLTOOL
 OBJDUMP
-LN_S
 NM
 ac_ct_DUMPBIN
 DUMPBIN
@@ -703,6 +702,7 @@ CPPFLAGS
 LDFLAGS
 CFLAGS
 CC
+LN_S
 MAINT
 MAINTAINER_MODE_FALSE
 MAINTAINER_MODE_TRUE
@@ -2972,6 +2972,18 @@ LDFLAGS="$LDFLAGS -Wl,--enable-new-dtags"
 # AM_CFLAGS (see below), so change the default to "-g" only
 CFLAGS="${CFLAGS-"-g"}"
 
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking whether ln -s works" >&5
+$as_echo_n "checking whether ln -s works... " >&6; }
+LN_S=$as_ln_s
+if test "$LN_S" = "ln -s"; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no, using $LN_S" >&5
+$as_echo "no, using $LN_S" >&6; }
+fi
+
+
 ac_ext=c
 ac_cpp='$CPP $CPPFLAGS'
 ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
@@ -4723,17 +4735,6 @@ else
 fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: $lt_cv_nm_interface" >&5
 $as_echo "$lt_cv_nm_interface" >&6; }
-
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking whether ln -s works" >&5
-$as_echo_n "checking whether ln -s works... " >&6; }
-LN_S=$as_ln_s
-if test "$LN_S" = "ln -s"; then
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
-$as_echo "yes" >&6; }
-else
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no, using $LN_S" >&5
-$as_echo "no, using $LN_S" >&6; }
-fi
 
 # find the maximum length of command line arguments
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking the maximum length of command line arguments" >&5
@@ -12195,6 +12196,8 @@ else
 fi
 
 
+if test -z "$PAM_ENABLED_TRUE"; then :
+
 
 # Check whether --with-pamdir was given.
 if test "${with_pamdir+set}" = set; then :
@@ -12208,6 +12211,8 @@ else
 fi
 
 
+
+fi
 
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for munge_encode in -lmunge" >&5
 $as_echo_n "checking for munge_encode in -lmunge... " >&6; }
@@ -12971,11 +12976,11 @@ ac_config_files="$ac_config_files plugins/psmunge/Makefile"
 
 ac_config_files="$ac_config_files plugins/pspam/Makefile"
 
-ac_config_files="$ac_config_files plugins/pspam/doc/Makefile"
+ac_config_files="$ac_config_files plugins/pspam/include/Makefile"
 
-ac_config_files="$ac_config_files plugins/pspam/src/module/Makefile"
+ac_config_files="$ac_config_files plugins/pspam/module/Makefile"
 
-ac_config_files="$ac_config_files plugins/pspam/src/pspam/Makefile"
+ac_config_files="$ac_config_files plugins/pspam/pspam/Makefile"
 
 ac_config_files="$ac_config_files plugins/pspmi/Makefile"
 
@@ -14083,9 +14088,9 @@ do
     "plugins/psmom/src/psmom/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/psmom/src/psmom/Makefile" ;;
     "plugins/psmunge/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/psmunge/Makefile" ;;
     "plugins/pspam/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/pspam/Makefile" ;;
-    "plugins/pspam/doc/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/pspam/doc/Makefile" ;;
-    "plugins/pspam/src/module/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/pspam/src/module/Makefile" ;;
-    "plugins/pspam/src/pspam/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/pspam/src/pspam/Makefile" ;;
+    "plugins/pspam/include/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/pspam/include/Makefile" ;;
+    "plugins/pspam/module/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/pspam/module/Makefile" ;;
+    "plugins/pspam/pspam/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/pspam/pspam/Makefile" ;;
     "plugins/pspmi/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/pspmi/Makefile" ;;
     "plugins/psresport/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/psresport/Makefile" ;;
     "plugins/psslurm/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/psslurm/Makefile" ;;
