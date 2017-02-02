@@ -90,13 +90,13 @@ The psmgmt-mpilegacy package includes additional MPI starters for
 legacy implementations of the MPI version 1 standard.
 
 %package psmom
-Summary:   The MOM Plugin for the ParaStation process management
+Summary:   The MOM plugin of the ParaStation process management
 Group:     Productivity/Clustering/Computing
-Requires:  psmgmt = %{version}
+Requires:  psmgmt%{?enable_slurm1605:-slurm1605} = %{version}
 Obsoletes: psmom <= 5.2.10-20
 
 %description psmom
-The ParaStation MOM is a complete replacement of the pbs_mom.  No other
+The ParaStation MOM is a complete replacement of the pbs_mom. No other
 daemon is necessary to integrate compute nodes into a Torque batch system.
 
 

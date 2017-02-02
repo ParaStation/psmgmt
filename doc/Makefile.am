@@ -12,6 +12,6 @@ include $(top_srcdir)/common.am
 
 dist_plugin_DATA = psresport.conf psaccount.conf cgroup.conf
 
-dist_noinst_DATA = parastation.conf.tmpl README.cgroup
+dist_noinst_DATA = parastation.conf.tmpl README.cgroup README.pspam
 
 EXTRA_DIST = MessageTypes psconfig systemd
