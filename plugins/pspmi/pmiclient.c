@@ -1031,7 +1031,7 @@ static int p_Init(char *msg)
  *
  * @return Always returns 0
  */
-static int p_Get_Maxes()
+static int p_Get_Maxes(void)
 {
     char reply[PMIU_MAXLINE];
     snprintf(reply, sizeof(reply),
@@ -1152,7 +1152,7 @@ static int p_Execution_Problem(char *msg)
     return 0;
 }
 
-static int setPreputValues()
+static int setPreputValues(void)
 {
     char *env = getenv("__PMI_preput_num");
     int i, preNum;
