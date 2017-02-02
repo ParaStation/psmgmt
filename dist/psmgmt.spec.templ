@@ -23,7 +23,7 @@ Packager:  support@par-tec.de
 Source0:   psmgmt-%{version}-%{release}.tar.gz
 %if !0%{?disable_psconfig}
 Requires:  psconfig >= 1.0, glib2 >= 2.22.5
-BuildRequires:	psconfig-dev
+BuildRequires:	psconfig-dev, glib2-devel
 %endif
 BuildRequires:	popt-devel
 %if !0%{?disable_pam}
@@ -89,13 +89,13 @@ The psmgmt-mpilegacy package includes additional MPI starters for
 legacy implementations of the MPI version 1 standard.
 
 %package psmom
-Summary:   The MOM Plugin for the ParaStation process management
+Summary:   The MOM plugin of the ParaStation process management
 Group:     Productivity/Clustering/Computing
 Requires:  psmgmt = %{version}
 Obsoletes: psmom <= 5.2.10-20
 
 %description psmom
-The ParaStation MOM is a complete replacement of the pbs_mom.  No other
+The ParaStation MOM is a complete replacement of the pbs_mom. No other
 daemon is necessary to integrate compute nodes into a Torque batch system.
 
 
