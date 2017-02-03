@@ -1069,8 +1069,8 @@ static void handleAccEndMsg(char *msgptr, char *chead, PStask_ID_t sender)
 	    ptr += sizeof(uint32_t);
 
 	    /* session id */
-	    if (!job->session) job->session = *(int32_t *) ptr;
-	    ptr += sizeof(int32_t);
+	    if (!job->session) job->session = *(pid_t *) ptr;
+	    ptr += sizeof(pid_t);
 
 	    /* size of average used mem */
 	    avgrss = *(uint64_t *) ptr;
