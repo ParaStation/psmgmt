@@ -1,4 +1,12 @@
-# -*- rpm-spec -*-
+#                                                       -*- rpm-spec -*-
+# ParaStation
+#
+# Copyright (C) 2005-2017 ParTec Cluster Competence Center GmbH, Munich
+#
+# This file may be distributed under the terms of the Q Public License
+# as defined in the file LICENSE.QPL included in the packaging of this
+# file.
+#
 %{?_without_psconfig: %global disable_psconfig 1}
 %{?_without_systemd: %global disable_systemd 1}
 %{?_without_munge: %global disable_munge 1}
@@ -74,7 +82,7 @@ The ParaStation Process Management Layer.
 %package devel
 Summary:   Development files for ParaStation process management
 Group:     Productivity/Clustering/Computing
-Requires:  psmgmt%{?enable_slurm1605:-slurm1605} = %{version}
+Requires:  %{name} = %{version}
 
 %description devel
 The psmgmt-devel package includes additional header files necessary
@@ -83,7 +91,7 @@ for developing plugins of the ParaStation Process Management daemon.
 %package mpilegacy
 Summary:   Legacy MPI-starters for ParaStation process management
 Group:     Productivity/Clustering/Computing
-Requires:  psmgmt%{?enable_slurm1605:-slurm1605} = %{version}
+Requires:  %{name} = %{version}
 
 %description mpilegacy
 The psmgmt-mpilegacy package includes additional MPI starters for
@@ -92,7 +100,7 @@ legacy implementations of the MPI version 1 standard.
 %package psmom
 Summary:   The MOM plugin of the ParaStation process management
 Group:     Productivity/Clustering/Computing
-Requires:  psmgmt%{?enable_slurm1605:-slurm1605} = %{version}
+Requires:  %{name} = %{version}
 Obsoletes: psmom <= 5.2.10-20
 
 %description psmom
