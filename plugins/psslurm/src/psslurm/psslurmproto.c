@@ -1794,8 +1794,8 @@ static void handleTerminateReq(Slurm_Msg_t *sMsg)
 	return;
     }
 
-    mlog("%s: jobid '%u:%u' slurm_jobstate '%u' uid '%u' type '%i'\n", __func__,
-	    jobid, stepid, jobstate, uid, sMsg->head.type);
+    mlog("%s: jobid '%u:%u' state '%u' uid '%u' type '%s'\n", __func__,
+	    jobid, stepid, jobstate, uid, msgType2String(sMsg->head.type));
 
     /* restore account freq */
     PSIDnodes_setAcctPollI(PSC_getMyID(), confAccPollTime);

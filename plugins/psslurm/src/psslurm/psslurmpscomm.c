@@ -1155,6 +1155,51 @@ void handleDroppedMsg(DDTypedBufferMsg_t *msg)
     }
 }
 
+static void forwardToSrunProxy(Step_t *step, PSLog_Msg_t *lmsg)
+{
+    PSLog_Msg_t msg = (PSLog_Msg_t) {
+	.header = (DDMsg_t) {
+	    .type = PSP_CC_MSG,
+	    .dest = step->fwdata ? step->fwdata->tid : -1,
+	    .sender = lmsg->header.sender,
+	    .len = PSLog_headerSize },
+	.version = PLUGINFW_PROTO_VERSION,
+	.type = CMD_PRINT_CHILD_MSG,
+	.sender = -1};
+    const size_t chunkSize = sizeof(msg.buf) - sizeof(uint8_t)
+	- sizeof(uint32_t) - sizeof(uint32_t) /* len field */;
+    char *buf = lmsg->buf;
+    size_t msgLen = lmsg->header.len - PSLog_headerSize;
+    size_t left = msgLen;
+    int taskid = lmsg->sender;
+
+    /* might happen if forwarder is already gone */
+    if (!step->fwdata) return;
+
+    /* connection to srun broke */
+    if (step->ioCon > 2) return;
+
+    if (step->ioCon == 2) {
+	mlog("%s: I/O connection for step '%u:%u' is broken\n", __func__,
+	     step->jobid, step->stepid);
+	step->ioCon = 3;
+    }
+
+    /* if msg from service rank, let it seem like it comes from first task */
+    if (taskid < 0) taskid = step->globalTaskIds[step->myNodeIndex][0];
+
+    do {
+	size_t chunk = left > chunkSize ? chunkSize : left;
+	msg.header.len = PSLog_headerSize;
+	addUint8ToMsgBuf((DDTypedBufferMsg_t*)&msg, lmsg->type);
+	addUint32ToMsgBuf((DDTypedBufferMsg_t*)&msg, taskid);
+	addDataToMsgBuf((DDTypedBufferMsg_t*)&msg, buf + msgLen-left, chunk);
+
+	sendMsg(&msg);
+	left -= chunk;
+    } while (left);
+}
+
 static void handleCC_IO_Msg(PSLog_Msg_t *msg)
 {
     Step_t *step = NULL;
@@ -1209,8 +1254,7 @@ static void handleCC_IO_Msg(PSLog_Msg_t *msg)
 	goto OLD_MSG_HANDLER;
     }
 
-    printChildMessage(step, msg->buf, msg->header.len - PSLog_headerSize,
-			msg->type, msg->sender);
+    forwardToSrunProxy(step, msg);
 
     return;
 
@@ -1299,6 +1343,7 @@ static void handleCC_Finalize_Msg(PSLog_Msg_t *msg)
     Step_t *step = NULL;
     PS_Tasks_t *task;
     PStask_t *psidTask;
+    static PStask_ID_t lastDest = -1;
 
     if (PSC_getMyID() != PSC_getID(msg->header.sender) || msg->sender < 0) {
 	goto FORWARD;
@@ -1310,8 +1355,13 @@ static void handleCC_Finalize_Msg(PSLog_Msg_t *msg)
 	    if ((isPSAdminUser(psidTask->uid, psidTask->gid))) goto FORWARD;
 	}
 
-	mlog("%s: step for CC msg with logger '%s' not found\n", __func__,
-		PSC_printTID(msg->header.dest));
+	if (msg->header.dest != lastDest) {
+	    mlog("%s: step for CC msg with logger '%s' not found\n", __func__,
+		    PSC_printTID(msg->header.dest));
+	    mlog("%s: suppressing similar messages for logger '%s'\n", __func__,
+		    PSC_printTID(msg->header.dest));
+	    lastDest = msg->header.dest;
+	}
 	goto FORWARD;
     }
 
