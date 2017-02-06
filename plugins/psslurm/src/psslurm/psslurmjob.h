@@ -401,4 +401,13 @@ void shutdownStepForwarder(uint32_t jobid);
 int killForwarderByJobid(uint32_t jobid);
 int killChild(pid_t pid, int signal);
 
+/**
+ * @brief Convert a integer jobid to string
+ *
+ * @param jobid The jobid to convert
+ *
+ * @return Returns the converted jobid as string
+ */
+char *strJobID(uint32_t jobid);
+
 #endif

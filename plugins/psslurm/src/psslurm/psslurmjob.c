@@ -118,7 +118,7 @@ Alloc_t *addAllocation(uint32_t jobid, uint32_t nrOfNodes, char *slurmNodes,
     list_add_tail(&(alloc->list), &AllocList.list);
 
     /* add user in pam for ssh access */
-    psPamAddUser(alloc->username, "psslurm", PSPAM_STATE_PROLOGUE);
+    psPamAddUser(alloc->username, strJobID(jobid), PSPAM_STATE_PROLOGUE);
 
     return alloc;
 }
@@ -510,7 +510,7 @@ int deleteAlloc(uint32_t jobid)
 		alloc->nrOfNodes, alloc->nodes);
     }
 
-    psPamDeleteUser(alloc->username, "psslurm");
+    psPamDeleteUser(alloc->username, strJobID(jobid));
 
     ufree(alloc->nodes);
     ufree(alloc->slurmNodes);
@@ -602,7 +602,7 @@ int deleteJob(uint32_t jobid)
 
     mdbg(PSSLURM_LOG_JOB, "%s: '%u'\n", __func__, jobid);
     clearBCastByJobid(jobid);
-    psPamDeleteUser(job->username, "psslurm");
+    psPamDeleteUser(job->username, strJobID(jobid));
 
     /* cleanup local job */
     if (!job->mother) {
@@ -965,4 +965,13 @@ char *strJobState(JobState_t state)
     }
 
     return NULL;
+}
+
+char *strJobID(uint32_t jobid)
+{
+    static char sJobID[128];
+
+    snprintf(sJobID, sizeof(sJobID), "%u", jobid);
+
+    return sJobID;
 }

@@ -1504,7 +1504,7 @@ static void handleBatchJobLaunch(Slurm_Msg_t *sMsg)
     sendSlurmRC(sMsg, SLURM_SUCCESS);
 
     /* add user in pam for ssh access */
-    psPamAddUser(job->username, "psslurm", PSPAM_STATE_PROLOGUE);
+    psPamAddUser(job->username, strJobID(jobid), PSPAM_STATE_PROLOGUE);
 
     /* forward job info to other nodes in the job */
     send_PS_JobLaunch(job);
