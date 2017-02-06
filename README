@@ -10,11 +10,11 @@ git log --topo-order --pretty=format:\
 
 3. Condense ChangeLog's changes into NEWS file.
 
-4. Commit these changes using the message "New version (psmgmt-5.0.z)".
+4. Commit these changes using the message "New version (psmgmt-5.1.x)".
 
 5. Tag the new release using:
-git tag -a -m "Tagging <new-tag>." <new-tag>
-   where <new-tag> is of the form x.y.z-0
+git tag -a -m "Tagging <new-tag>" <new-tag>
+   where <new-tag> is of the form 5.1.x
 
 6. Push the newly tagged commits upstream using:
 git push --tags; git push
