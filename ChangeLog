@@ -1,3 +1,1183 @@
+Version psmgmt-5.0.54:
+======================
+------------------------------------------------------------------------
+d752d57 | Norbert Eicker | Fri, 3 Feb 2017 17:20:16 +0100
+
+Let mpiexec provide appnum independently of PMI
+
+------------------------------------------------------------------------
+52f9149 | Michael Rauh | Fri, 19 Aug 2016 11:18:35 +0200
+
+Bugfix: don't set PMI_APPNUM if PMI is disabled.
+
+------------------------------------------------------------------------
+2c13447 | Norbert Eicker | Fri, 3 Feb 2017 16:11:43 +0100
+
+Fix and simplify spec file
+
+------------------------------------------------------------------------
+2e2422a | Norbert Eicker | Thu, 2 Feb 2017 17:13:22 +0100
+
+Add psmgmt.vipsconfig to documentation
+
+------------------------------------------------------------------------
+6d97e17 | Norbert Eicker | Thu, 2 Feb 2017 14:38:26 +0100
+
+Fix RPM build dependency and description typos
+
+------------------------------------------------------------------------
+68c883e | Norbert Eicker | Wed, 1 Feb 2017 19:30:25 +0100
+
+Minor changes to unify between master and psslurm-devel
+
+------------------------------------------------------------------------
+a6ddeb2 | Norbert Eicker | Wed, 1 Feb 2017 19:13:05 +0100
+
+Merge .gitignore from psslurm-devel
+
+------------------------------------------------------------------------
+489f905 | Norbert Eicker | Tue, 31 Jan 2017 17:23:39 +0100
+
+Rework pluginconfig's hash accumulation API
+
+------------------------------------------------------------------------
+87d8431 | Michael Rauh | Wed, 25 Jan 2017 15:12:01 +0100
+
+Compute configuration hash value (PCT:#254)
+
+ - This contains the non-psslurm part only and wait for cleanup
+
+------------------------------------------------------------------------
+cfcb304 | Norbert Eicker | Mon, 16 Jan 2017 11:23:53 +0100
+
+Streamline psmompscomm
+
+Conflicts:
+	plugins/psmom/src/psmom/psmomssh.h
+
+------------------------------------------------------------------------
+0b34fdc | Norbert Eicker | Thu, 26 Jan 2017 19:18:17 +0100
+
+Streamline psmomjob
+
+------------------------------------------------------------------------
+9471b59 | Norbert Eicker | Thu, 26 Jan 2017 14:05:36 +0100
+
+Streamline psmomjobinfo
+
+------------------------------------------------------------------------
+6ebac99 | Norbert Eicker | Thu, 26 Jan 2017 09:47:12 +0100
+
+Push pspam's version due to recent changes
+
+------------------------------------------------------------------------
+7a67ad2 | Norbert Eicker | Thu, 26 Jan 2017 09:43:41 +0100
+
+Get rid of pam_psmom sources and handles in psmom
+
+------------------------------------------------------------------------
+b5b7274 | Norbert Eicker | Thu, 26 Jan 2017 09:42:16 +0100
+
+Enhancement: New API function psPamFindSessionForPID()
+
+------------------------------------------------------------------------
+a5da5d3 | Norbert Eicker | Wed, 25 Jan 2017 17:58:40 +0100
+
+Disable build of now useless PAM module pam_psmom.so
+
+ - For the time being this is replaced by a symlink to pam_pspam.so
+
+------------------------------------------------------------------------
+45322d7 | Norbert Eicker | Wed, 25 Jan 2017 17:32:54 +0100
+
+Enable use of pspam within psmom
+
+ - This renders pam_psmom basically useless
+
+------------------------------------------------------------------------
+70dbd28 | Norbert Eicker | Wed, 25 Jan 2017 17:29:34 +0100
+
+Fine-tune pspamkvs output
+
+------------------------------------------------------------------------
+0f5095c | Norbert Eicker | Wed, 25 Jan 2017 17:27:42 +0100
+
+Suppress debug messages per default in pspamcomm
+
+------------------------------------------------------------------------
+8951eee | Norbert Eicker | Wed, 25 Jan 2017 10:12:48 +0100
+
+Add error messages to pspamuser
+
+------------------------------------------------------------------------
+ef3cebb | Norbert Eicker | Tue, 24 Jan 2017 18:23:06 +0100
+
+Merge branch 'pspam'
+
+------------------------------------------------------------------------
+315f036 | Norbert Eicker | Tue, 24 Jan 2017 18:18:32 +0100
+
+Add README explaining pspam and its configuration
+
+------------------------------------------------------------------------
+6724efe | Norbert Eicker | Tue, 24 Jan 2017 16:43:59 +0100
+
+Get rid of pspam's unused subdirectory doc
+
+------------------------------------------------------------------------
+0c64011 | Norbert Eicker | Tue, 24 Jan 2017 16:36:08 +0100
+
+Add Makefile to pspam/include for completeness
+
+------------------------------------------------------------------------
+d6aca69 | Norbert Eicker | Tue, 24 Jan 2017 16:13:44 +0100
+
+Enhancement: Add KVS functionality to pspam
+
+------------------------------------------------------------------------
+efc2f4d | Norbert Eicker | Tue, 24 Jan 2017 13:13:39 +0100
+
+Add some debug to pspam's API
+
+------------------------------------------------------------------------
+e6bbca0 | Norbert Eicker | Tue, 24 Jan 2017 12:14:38 +0100
+
+Bugfix: Prevent pspam from killing random processes
+
+------------------------------------------------------------------------
+aa5a695 | Norbert Eicker | Fri, 20 Jan 2017 15:07:56 +0100
+
+Enhancement: Use job ID instead of plugin name
+
+ - User shall be identified by their job ID instead of the registering
+   plugin
+ - This enables support for shared nodes but requires changes in
+   psslurm/psmom
+
+------------------------------------------------------------------------
+ed3e4f9 | Norbert Eicker | Fri, 20 Jan 2017 14:39:32 +0100
+
+Reorganize pspam according to #2580
+
+------------------------------------------------------------------------
+fabcd6a | Norbert Eicker | Fri, 20 Jan 2017 11:03:42 +0100
+
+Streamline pspam
+
+ - This includes extracting communication functionality into pspamcomm
+
+------------------------------------------------------------------------
+d44db41 | Norbert Eicker | Fri, 20 Jan 2017 10:02:43 +0100
+
+Streamline pspamssh
+
+------------------------------------------------------------------------
+7ca133c | Norbert Eicker | Thu, 19 Jan 2017 18:33:27 +0100
+
+Streamline pspamlog
+
+------------------------------------------------------------------------
+3cc2369 | Norbert Eicker | Thu, 19 Jan 2017 14:17:40 +0100
+
+Streamline pspamuser
+
+------------------------------------------------------------------------
+da9cfb1 | Norbert Eicker | Thu, 19 Jan 2017 13:19:45 +0100
+
+Streamline PAM module
+
+ - This includes improving the protocol to the pspam plugin
+ - Move more common protocol-definitions to pspamcommon.h
+
+------------------------------------------------------------------------
+82d650e | Norbert Eicker | Tue, 17 Jan 2017 12:40:24 +0100
+
+Improve connection between pspam and PAM plugin
+
+ - Put socket into the abstract namespace
+ - Move common definitions into a shared header file
+
+------------------------------------------------------------------------
+750c8ee | Norbert Eicker | Tue, 17 Jan 2017 00:13:45 +0100
+
+Streamline various plugin Makefiles
+
+------------------------------------------------------------------------
+335ce58 | Norbert Eicker | Mon, 16 Jan 2017 22:06:28 +0100
+
+Allow building RPMs even if pam-devel is missing
+
+------------------------------------------------------------------------
+1420f28 | Norbert Eicker | Mon, 16 Jan 2017 22:02:04 +0100
+
+Flatten pspam's directory tree
+
+------------------------------------------------------------------------
+7b82d81 | Norbert Eicker | Mon, 16 Jan 2017 22:01:14 +0100
+
+Bugfix: Enable RPM build by adding missed files
+
+------------------------------------------------------------------------
+7480645 | Norbert Eicker | Mon, 16 Jan 2017 15:20:10 +0100
+
+Adapt pspam to psaccount's API changes
+
+------------------------------------------------------------------------
+fde0342 | Norbert Eicker | Mon, 16 Jan 2017 12:06:59 +0100
+
+Merge pspam plugin from psslurm-devel as is
+
+ - plugin still disabled from compilation due to incompatibility with
+   new psaccount plugin
+
+------------------------------------------------------------------------
+6b57953 | Norbert Eicker | Tue, 24 Jan 2017 11:38:08 +0100
+
+Bugfix: Help psmomforwarder to escape loop on SIGCHLD
+
+------------------------------------------------------------------------
+d86ab40 | Norbert Eicker | Tue, 24 Jan 2017 11:36:57 +0100
+
+Let psaccount ignore procs with loginuid -1
+
+------------------------------------------------------------------------
+981b33c | Norbert Eicker | Tue, 24 Jan 2017 11:14:42 +0100
+
+Remove unused psAccountReadProcStat from psaccount's API
+
+------------------------------------------------------------------------
+94ba2fb | Norbert Eicker | Tue, 24 Jan 2017 11:05:12 +0100
+
+Let psaccount ignore zombie processes
+
+------------------------------------------------------------------------
+bf33503 | Norbert Eicker | Tue, 24 Jan 2017 10:46:32 +0100
+
+Bugfix: Determine UID more reliably in psaccount
+
+ - /proc/<PID>/state is not always owned by user
+ - Use owner of /proc/<PID>/task instead
+
+------------------------------------------------------------------------
+8c182dd | Thomas Moschny | Wed, 18 Jan 2017 12:20:44 +0100
+
+(Re-)add missing build requirement.
+
+------------------------------------------------------------------------
+45544d1 | Norbert Eicker | Mon, 16 Jan 2017 11:26:33 +0100
+
+Merge branch 'pluginforwarder'
+
+------------------------------------------------------------------------
+0f20543 | Norbert Eicker | Sat, 14 Jan 2017 22:24:45 +0100
+
+Bugfix: More improvements to pluginforwarder
+
+ - Also pass hook's errorcode to mother
+ - Ensure mother has recognized childs status and errorcode before
+   exiting the pluginforwarder
+
+------------------------------------------------------------------------
+b2df432 | Norbert Eicker | Thu, 12 Jan 2017 09:39:47 +0100
+
+Bugfix: Ensure pluginforwarder's child's exit is reported correctly
+
+------------------------------------------------------------------------
+67b29fc | Norbert Eicker | Wed, 11 Jan 2017 18:54:31 +0100
+
+Bugfix: Ensure to start forwarder's loop even without child
+
+------------------------------------------------------------------------
+f826c24 | Norbert Eicker | Tue, 10 Jan 2017 13:24:53 +0100
+
+Bugfix: Actually store forwarder's TID on creation
+
+------------------------------------------------------------------------
+a4a8c79 | Norbert Eicker | Mon, 9 Jan 2017 20:59:35 +0100
+
+Bugfix: Omit false error message in pluginforwarder
+
+------------------------------------------------------------------------
+009fe48 | Norbert Eicker | Mon, 9 Jan 2017 20:23:44 +0100
+
+Bugfix: Send PLGN_START_GRACE not to myself
+
+------------------------------------------------------------------------
+99c3370 | Norbert Eicker | Mon, 9 Jan 2017 19:44:19 +0100
+
+Bugfix: Wait for child's sid indefinitely in forwarder
+
+------------------------------------------------------------------------
+7000ec9 | Norbert Eicker | Mon, 9 Jan 2017 18:39:58 +0100
+
+Fix compile error with gcc not supporting C11
+
+------------------------------------------------------------------------
+2a9fd60 | Norbert Eicker | Mon, 9 Jan 2017 14:58:31 +0100
+
+Allow accounting of pluginforwarder's child
+
+------------------------------------------------------------------------
+02512fd | Norbert Eicker | Tue, 3 Jan 2017 00:47:49 +0100
+
+Propagate forwarder's exit status
+
+------------------------------------------------------------------------
+d023c62 | Norbert Eicker | Tue, 3 Jan 2017 00:34:38 +0100
+
+Fix documentation comments
+
+------------------------------------------------------------------------
+807ec5f | Norbert Eicker | Mon, 2 Jan 2017 09:38:51 +0100
+
+Bugfix: PSIDspawn_localTask() prototype also needs selector.h
+
+------------------------------------------------------------------------
+9af5985 | Norbert Eicker | Mon, 2 Jan 2017 09:27:45 +0100
+
+Fix typo
+
+------------------------------------------------------------------------
+b78eaaa | Norbert Eicker | Sat, 31 Dec 2016 16:14:13 +0100
+
+Fix typo in documentation comment
+
+------------------------------------------------------------------------
+442e4f3 | Norbert Eicker | Fri, 16 Dec 2016 15:27:45 +0100
+
+Reorganize pelogue according to #2580
+
+------------------------------------------------------------------------
+38b56d5 | Norbert Eicker | Fri, 16 Dec 2016 10:37:27 +0100
+
+Streamline peloguescript
+
+------------------------------------------------------------------------
+5d5ab5d | Norbert Eicker | Fri, 16 Dec 2016 10:27:44 +0100
+
+Streamline pelogueforwarder and fix various typos
+
+------------------------------------------------------------------------
+262ffde | Norbert Eicker | Fri, 16 Dec 2016 10:09:48 +0100
+
+pluginforwarder API improvements
+
+ - State that various pluginforwarder functions actually get a
+   Forwarder_Data_t argument
+
+------------------------------------------------------------------------
+cee3f9f | Norbert Eicker | Fri, 16 Dec 2016 09:44:06 +0100
+
+Streamline and booleanize pelogueconfig
+
+------------------------------------------------------------------------
+cb143d1 | Norbert Eicker | Thu, 15 Dec 2016 18:10:01 +0100
+
+Refactor pelogueforwarder
+
+------------------------------------------------------------------------
+463c061 | Norbert Eicker | Thu, 15 Dec 2016 14:13:35 +0100
+
+Some cleanup of pelogue.c
+
+------------------------------------------------------------------------
+4c64aa3 | Norbert Eicker | Thu, 15 Dec 2016 14:12:29 +0100
+
+Move all child-specific methods from peloguecomm to peloguechild
+
+------------------------------------------------------------------------
+7ecdf54 | Norbert Eicker | Thu, 15 Dec 2016 12:38:13 +0100
+
+Reorganize child handling
+
+ - Merge Child_t and PElogue_Data_t into common PElogueChild_t struct
+ - Major renaming of types visible from external
+ - Split peloguecomm's methods
+
+------------------------------------------------------------------------
+013d9f8 | Norbert Eicker | Wed, 14 Dec 2016 19:17:45 +0100
+
+Add PSIDHOOK_PELOGUE_PREPARE
+
+ - Push plugin API version, too
+ - pelogue plugin will use that
+
+------------------------------------------------------------------------
+5e4098a | Norbert Eicker | Mon, 12 Dec 2016 23:03:59 +0100
+
+Split up fwCallback()
+
+------------------------------------------------------------------------
+1ed3b8e | Norbert Eicker | Mon, 12 Dec 2016 22:01:14 +0100
+
+More streamlining of pelogueinter
+
+------------------------------------------------------------------------
+8f2e976 | Norbert Eicker | Mon, 12 Dec 2016 21:56:43 +0100
+
+Actually rename findJobByJobId() to findJobById()
+
+------------------------------------------------------------------------
+8940f64 | Norbert Eicker | Mon, 12 Dec 2016 21:39:21 +0100
+
+Add statistics functionality to pelogue
+
+ - Add actual functionality to peloguecomm
+ - Make it available through plugin's 'show' directive
+ - Also add very basic 'help' directive
+
+------------------------------------------------------------------------
+f1387fe | Norbert Eicker | Mon, 12 Dec 2016 19:03:26 +0100
+
+Get rid of the unused scriptname attribute
+
+------------------------------------------------------------------------
+61302cf | Norbert Eicker | Mon, 12 Dec 2016 18:55:19 +0100
+
+Reorganize peloguecomm even more. Add docu.
+
+------------------------------------------------------------------------
+a20166e | Norbert Eicker | Mon, 12 Dec 2016 18:26:33 +0100
+
+Reorganize peloguecomm
+
+------------------------------------------------------------------------
+6f74da8 | Norbert Eicker | Mon, 12 Dec 2016 18:20:51 +0100
+
+Streamline peloguecomm
+
+------------------------------------------------------------------------
+5344e54 | Norbert Eicker | Fri, 9 Dec 2016 18:47:25 +0100
+
+More cleanup of peloguescript
+
+ - Move monitorPELogueTimeout() to startJobMonitor() in peloguejob.c
+ - Move removePELogueTimeout() to cancelJobMonitor() in peloguejob.c
+ - Introduce setJobNodeStatus() as replacement for findJobNodeEntry()
+ - Rework status handling of pelogues
+
+------------------------------------------------------------------------
+3f8ecf0 | Norbert Eicker | Thu, 8 Dec 2016 20:48:29 +0100
+
+More cleanup of peloguescript
+
+     - Move PElogueExit() to finishJobPElogue() in peloguejob.c
+     - More renaming
+
+------------------------------------------------------------------------
+ccac072 | Norbert Eicker | Thu, 8 Dec 2016 17:08:19 +0100
+
+Start cleanup peloguescript
+
+ - Move signalPElogue() to sendPElogueSignal() in peloguecomm.c
+ - Move stopPElogueExecution() to stopJobExecution() in peloguejob.c
+
+------------------------------------------------------------------------
+2cd8ab0 | Norbert Eicker | Wed, 7 Dec 2016 18:53:05 +0100
+
+Start to streamline peloguejob
+
+------------------------------------------------------------------------
+b35c5e0 | Norbert Eicker | Wed, 7 Dec 2016 13:53:48 +0100
+
+Add some docu
+
+------------------------------------------------------------------------
+56a655d | Norbert Eicker | Tue, 6 Dec 2016 11:19:48 +0100
+
+Ensure \0 terminated strings
+
+------------------------------------------------------------------------
+96d9367 | Norbert Eicker | Tue, 6 Dec 2016 11:09:12 +0100
+
+Streamline peloguechild
+
+------------------------------------------------------------------------
+5003fde | Norbert Eicker | Thu, 1 Dec 2016 21:30:49 +0100
+
+Streamline peloguelog
+
+------------------------------------------------------------------------
+48e33e5 | Norbert Eicker | Wed, 30 Nov 2016 18:37:46 +0100
+
+Initial cleanup of pelogue.c
+
+------------------------------------------------------------------------
+4b53e16 | Norbert Eicker | Wed, 30 Nov 2016 17:56:37 +0100
+
+Cleanup pelogue's Makefile
+
+------------------------------------------------------------------------
+2b38b79 | Norbert Eicker | Wed, 30 Nov 2016 17:17:36 +0100
+
+Bugfix: Fix buildsystem to re-enable RPM build
+
+------------------------------------------------------------------------
+d3b4139 | Norbert Eicker | Wed, 30 Nov 2016 13:45:40 +0100
+
+Adapt pelogue to API changes
+
+ - now it at lest compiles again. Waiting for more changes to come.
+
+------------------------------------------------------------------------
+7c3b059 | Norbert Eicker | Wed, 30 Nov 2016 08:12:21 +0100
+
+Merge pelogue plugin from psslurm-devel as is
+
+ - plugin still disabled from compilation due to incompatibility with
+   new pluginforwarder
+
+------------------------------------------------------------------------
+f2ea9a0 | Norbert Eicker | Tue, 29 Nov 2016 19:35:19 +0100
+
+Major rewrite of pluginforwarder
+
+ - Use PSLog_Msg_t for communication to mother
+ - Utilize PSIDspawn_localTask() to create forwarder process
+ - Major changes to the interface
+ - This will save two file descriptors per forwarder in the mother
+   process
+
+------------------------------------------------------------------------
+7efe88c | Norbert Eicker | Tue, 29 Nov 2016 08:00:53 +0100
+
+Remove unused pslog message types
+
+------------------------------------------------------------------------
+2f0e343 | Norbert Eicker | Wed, 23 Nov 2016 13:27:06 +0100
+
+Introduce new task-group TG_PLUGINFW
+
+------------------------------------------------------------------------
+354cb44 | Norbert Eicker | Tue, 22 Nov 2016 18:41:55 +0100
+
+Enable pslog for use by plugins and their forwarders
+
+------------------------------------------------------------------------
+ad7e95b | Norbert Eicker | Sun, 20 Nov 2016 21:29:17 +0100
+
+Add PSIDspawn_localTask()
+
+------------------------------------------------------------------------
+4ef3289 | Norbert Eicker | Sun, 20 Nov 2016 21:26:52 +0100
+
+Actually enable sigChldCB if any
+
+------------------------------------------------------------------------
+09928cb | Norbert Eicker | Sun, 20 Nov 2016 21:03:43 +0100
+
+Add sigChldCB and info attributes to PStask_t
+
+------------------------------------------------------------------------
+dab7c1d | Norbert Eicker | Sun, 13 Nov 2016 01:40:42 +0100
+
+Merge pluginforwarder from psslurm-devel as is
+
+ - Requires minor changes to compile without warning
+
+------------------------------------------------------------------------
+51807f1 | Norbert Eicker | Fri, 13 Jan 2017 16:49:04 +0100
+
+Update references to libreadline to linenoise
+
+------------------------------------------------------------------------
+70d5b27 | Norbert Eicker | Mon, 9 Jan 2017 20:41:01 +0100
+
+Bugfix: Drop ACCOUNT_END message for jobscript
+
+------------------------------------------------------------------------
+e2c1d07 | Norbert Eicker | Mon, 9 Jan 2017 20:01:09 +0100
+
+Bugfix: Actually support addUint8ToMsgBuf()
+
+------------------------------------------------------------------------
+43cb90c | Norbert Eicker | Mon, 9 Jan 2017 19:43:36 +0100
+
+Bugfix: Omit leading garbage in printRefList()
+
+------------------------------------------------------------------------
+438906f | Norbert Eicker | Mon, 9 Jan 2017 16:09:13 +0100
+
+Changes after Thomas' review
+
+------------------------------------------------------------------------
+76d1f99 | Norbert Eicker | Sat, 7 Jan 2017 00:59:53 +0100
+
+Bugfix: Fix one error found by clang's scan-build
+
+------------------------------------------------------------------------
+dbef937 | Norbert Eicker | Fri, 6 Jan 2017 14:41:46 +0100
+
+First proposal for release procedure in git times
+
+------------------------------------------------------------------------
+3d86fee | Norbert Eicker | Thu, 5 Jan 2017 01:55:19 +0100
+
+Enhancement: Allow changing psaccount's debug-mask during runtime
+
+------------------------------------------------------------------------
+cda3e3d | Norbert Eicker | Thu, 5 Jan 2017 01:19:08 +0100
+
+Merge branch 'psmom'
+
+Conflicts:
+	plugins/psmom/src/psmom/psmom.c
+
+------------------------------------------------------------------------
+8090142 | Norbert Eicker | Tue, 4 Oct 2016 22:01:49 +0200
+
+Get rid of constructor and destructor in psmom
+
+------------------------------------------------------------------------
+eda64dc | Norbert Eicker | Tue, 4 Oct 2016 21:54:44 +0200
+
+Streamline psmomconfig.c by utilizing plugincommon
+
+------------------------------------------------------------------------
+fdaced4 | Norbert Eicker | Thu, 5 Jan 2017 01:14:11 +0100
+
+Provide more debug on accounting from psmom
+
+------------------------------------------------------------------------
+cf7022a | Norbert Eicker | Thu, 5 Jan 2017 00:56:35 +0100
+
+Bugfix: Various critical fixes for psaccount
+
+ - Ensure that a job's first accounting update is always sent
+ - Ensure that the last update is sent even though all clients are
+   disabled
+ - Don't let the jobscript resources spoil the minCputime value
+ - Get rid of an useless limitation when forwarding aggregated data
+
+------------------------------------------------------------------------
+5019a6f | Norbert Eicker | Wed, 4 Jan 2017 23:40:15 +0100
+
+Another round of streamlining of psaccount
+
+ - Add some more debug output, too
+
+------------------------------------------------------------------------
+d4cd340 | Norbert Eicker | Wed, 4 Jan 2017 17:00:38 +0100
+
+psmom requires periodic resource updates from psaccount
+
+------------------------------------------------------------------------
+e3e95c8 | Norbert Eicker | Wed, 4 Jan 2017 16:54:16 +0100
+
+Bugfix: Fix one issue introduced in ea10c832
+
+ - PMI shall disable accounting temporarily during the initial update of the
+   KVS. This worked before but broke in ea10c832.
+
+------------------------------------------------------------------------
+6adbb15 | Norbert Eicker | Wed, 4 Jan 2017 11:18:15 +0100
+
+Document yet another bit in psaccount's debug mask
+
+------------------------------------------------------------------------
+7a73ab0 | Norbert Eicker | Tue, 3 Jan 2017 00:43:06 +0100
+
+Extend plugincomm's API
+
+ - Functions to add are addDataToMsgBuf(), addUint8ToMsgBuf(),
+   addUint16ToMsgBuf(), and addUint32ToMsgBuf().
+
+------------------------------------------------------------------------
+4ce7ae1 | Norbert Eicker | Thu, 22 Dec 2016 23:56:35 +0100
+
+Bugfix: make psaccount usable within forwarders -- part2
+
+------------------------------------------------------------------------
+771902a | Norbert Eicker | Thu, 22 Dec 2016 18:02:03 +0100
+
+Merge branch 'pspmi'
+
+Conflicts:
+	plugins/pspmi/pmiclient.c
+	plugins/pspmi/pmimain.h
+
+------------------------------------------------------------------------
+29d3600 | Norbert Eicker | Wed, 2 Nov 2016 13:45:48 +0100
+
+More streamlining
+
+ - Get rid of unnecessary getChildTask()
+ - Information hiding for pmiforwarder
+ - More docu comments
+
+------------------------------------------------------------------------
+9a099d8 | Norbert Eicker | Mon, 31 Oct 2016 19:51:06 +0100
+
+Continue streamlining
+
+ - Restructure the code to refect where which part runs
+ - Start information hiding for pmispawn
+ - pmiprovider.[ch] turned out to be obsolete
+
+------------------------------------------------------------------------
+6cbe113 | Norbert Eicker | Mon, 31 Oct 2016 18:12:58 +0100
+
+More streamlining
+
+ - Reorganize pspmihandles.h according to #2580
+ - Introduce pmitypes.h to collect all common type info
+ - Start information hiding in pmiclient
+
+------------------------------------------------------------------------
+6ea592b | Norbert Eicker | Thu, 27 Oct 2016 18:55:31 +0200
+
+More streamlining of pmiclient
+
+------------------------------------------------------------------------
+2a9640f | Norbert Eicker | Tue, 25 Oct 2016 00:25:24 +0200
+
+Major streamlining of pmiclient and pmiclientspawn
+
+------------------------------------------------------------------------
+a271431 | Norbert Eicker | Tue, 25 Oct 2016 00:20:38 +0200
+
+Fix bug introduced while streamlining pmimain
+
+------------------------------------------------------------------------
+751f44e | Norbert Eicker | Fri, 7 Oct 2016 19:16:57 +0200
+
+Streamline pmispawn
+
+------------------------------------------------------------------------
+eae9369 | Norbert Eicker | Fri, 7 Oct 2016 18:18:01 +0200
+
+Streamline and booleanize pmiclient
+
+------------------------------------------------------------------------
+430ec27 | Norbert Eicker | Thu, 6 Oct 2016 18:39:39 +0200
+
+Streamline pmiforwarder
+
+------------------------------------------------------------------------
+34464f8 | Norbert Eicker | Thu, 6 Oct 2016 14:02:54 +0200
+
+Streamline pmiprovider
+
+------------------------------------------------------------------------
+6a4b81c | Norbert Eicker | Thu, 6 Oct 2016 13:57:05 +0200
+
+Streamline pmimain
+
+------------------------------------------------------------------------
+fecdf01 | Norbert Eicker | Thu, 6 Oct 2016 13:28:18 +0200
+
+Streamline pmikvs
+
+------------------------------------------------------------------------
+4adbd56 | Norbert Eicker | Thu, 6 Oct 2016 12:50:11 +0200
+
+Streamline pmilog
+
+------------------------------------------------------------------------
+8003e66 | Norbert Eicker | Thu, 6 Oct 2016 12:37:01 +0200
+
+Streamline and booleanize pmiservice
+
+------------------------------------------------------------------------
+ae99edc | Norbert Eicker | Thu, 6 Oct 2016 09:03:29 +0200
+
+Merge pspmi changes from psslurm-devel as is
+
+------------------------------------------------------------------------
+0c7d31d | Norbert Eicker | Thu, 22 Dec 2016 17:15:05 +0100
+
+Fix insecure history file creation for linenoise
+
+ - This patch stems from linenoise upstream repo and was contributed
+   there by Chris Lamb (@lamby)
+ - See https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=832460
+
+------------------------------------------------------------------------
+267930f | Norbert Eicker | Wed, 21 Dec 2016 22:50:12 +0100
+
+Bugfix: make psaccount usable within forwarders
+
+------------------------------------------------------------------------
+793a576 | Norbert Eicker | Wed, 21 Dec 2016 22:48:57 +0100
+
+Add more debug plus streamlining to psaccount
+
+------------------------------------------------------------------------
+9697ea3 | Norbert Eicker | Tue, 20 Dec 2016 15:43:25 +0100
+
+Bugfix: Allow NULL as buf in addDataToMsg()
+
+------------------------------------------------------------------------
+0f7814a | Norbert Eicker | Tue, 20 Dec 2016 12:48:54 +0100
+
+Enhance doRead[Ext][P]'s behavior
+
+ - Actually switch back and forth between blocking and non-blocking
+   read()s when changing the pedantic flag
+
+------------------------------------------------------------------------
+9b24315 | Norbert Eicker | Mon, 19 Dec 2016 11:36:55 +0100
+
+Help suppress warning when using get*Array()
+
+------------------------------------------------------------------------
+0e875fe | Norbert Eicker | Mon, 12 Dec 2016 19:27:09 +0100
+
+Bugfix: Allow to receive 0-length strings in plugincomm
+
+------------------------------------------------------------------------
+6a9a6dd | Norbert Eicker | Fri, 9 Dec 2016 13:44:08 +0100
+
+Booleanize and cleanup timer
+
+------------------------------------------------------------------------
+1736f64 | Thomas Moschny | Thu, 8 Dec 2016 09:42:53 +0100
+
+Make linenoise's internal functions static.
+
+------------------------------------------------------------------------
+77029dd | Thomas Moschny | Wed, 7 Dec 2016 21:37:01 +0100
+
+Fix a bunch of incorrect prototypes.
+
+------------------------------------------------------------------------
+e1dad02 | Norbert Eicker | Wed, 7 Dec 2016 13:30:27 +0100
+
+Merge fix for jrt:#5879 from psslurm-devel
+
+------------------------------------------------------------------------
+76d2f76 | Norbert Eicker | Thu, 1 Dec 2016 21:16:26 +0100
+
+Bugfix: Prevent crash when unloading certain plugins
+
+------------------------------------------------------------------------
+a540bc7 | Norbert Eicker | Wed, 30 Nov 2016 09:21:06 +0100
+
+Merge branch 'psaccount'
+
+Conflicts:
+	dist/Makefile.sources
+
+------------------------------------------------------------------------
+f5f3082 | Norbert Eicker | Thu, 3 Nov 2016 08:34:08 +0100
+
+Fix typo in comment
+
+------------------------------------------------------------------------
+fac101a | Norbert Eicker | Thu, 10 Nov 2016 16:35:04 +0100
+
+Fix typos in documentation comments
+
+------------------------------------------------------------------------
+1fc4bb3 | Norbert Eicker | Thu, 29 Sep 2016 17:57:42 +0200
+
+Merge branch 'master' into psaccount
+
+------------------------------------------------------------------------
+176999b | Norbert Eicker | Thu, 29 Sep 2016 17:56:39 +0200
+
+Remove some now obsolete variables from psaccount
+
+------------------------------------------------------------------------
+d16a372 | Norbert Eicker | Thu, 29 Sep 2016 17:02:03 +0200
+
+Allow to switch off account polling again
+
+------------------------------------------------------------------------
+41195a4 | Norbert Eicker | Thu, 29 Sep 2016 12:43:54 +0200
+
+Use pre-allocated structs to store /proc snapshot
+
+------------------------------------------------------------------------
+9bad436 | Norbert Eicker | Tue, 27 Sep 2016 17:58:32 +0200
+
+Remove the now obsolete psaccount.h
+
+------------------------------------------------------------------------
+33d8f1b | Norbert Eicker | Tue, 27 Sep 2016 17:10:37 +0200
+
+More streamlining of psaccount
+
+ - Remove obsolete member cputime from AccountDataExt_t
+ - More nicer output
+
+------------------------------------------------------------------------
+1ed2aa7 | Norbert Eicker | Tue, 27 Sep 2016 16:07:54 +0200
+
+Nicer output for "plugin show psaccount key dclients"
+
+------------------------------------------------------------------------
+776506e | Norbert Eicker | Tue, 27 Sep 2016 13:11:24 +0200
+
+Fix adaptation to psaccount's API changes
+
+------------------------------------------------------------------------
+bef4bcc | Norbert Eicker | Tue, 27 Sep 2016 13:10:38 +0200
+
+Rework psaccount's data aggregation
+
+------------------------------------------------------------------------
+ebe25d9 | Norbert Eicker | Tue, 27 Sep 2016 12:53:27 +0200
+
+More docu on members of AccountDataExt_t
+
+------------------------------------------------------------------------
+2efe5ed | Norbert Eicker | Mon, 26 Sep 2016 16:37:35 +0200
+
+Merge branch 'master' into psaccount
+
+------------------------------------------------------------------------
+8e00f2f | Norbert Eicker | Fri, 23 Sep 2016 18:23:43 +0200
+
+Fix psmom's adaption to psaccount's API changes
+
+------------------------------------------------------------------------
+e1f0e68 | Norbert Eicker | Wed, 21 Sep 2016 10:59:01 +0200
+
+Rename readProcStatInfo to readProcStat
+
+------------------------------------------------------------------------
+787304a | Norbert Eicker | Mon, 19 Sep 2016 13:06:15 +0200
+
+Push psaccount's version
+
+ - Push psaccount's API version to reflect recent changes
+ - Make psmom requiring the most recent version of psaccount
+
+------------------------------------------------------------------------
+d90f367 | Norbert Eicker | Wed, 14 Sep 2016 18:19:15 +0200
+
+Add more documentation comments
+
+------------------------------------------------------------------------
+4023af5 | Norbert Eicker | Wed, 14 Sep 2016 18:11:38 +0200
+
+Bugfix: Sum up maximum threads correctly
+
+------------------------------------------------------------------------
+bed920d | Norbert Eicker | Wed, 14 Sep 2016 17:36:49 +0200
+
+Add memtest.py to psmom's regression tests
+
+------------------------------------------------------------------------
+a76d6d2 | Norbert Eicker | Wed, 14 Sep 2016 17:33:43 +0200
+
+Adapt psmom to psaccount's new API
+
+------------------------------------------------------------------------
+ba2a712 | Norbert Eicker | Wed, 14 Sep 2016 15:56:17 +0200
+
+Streamline psaccountinter/psaccounthandles
+
+ - Add docu to all external functions in psaccounttypes
+ - Fix types and naming in psaccount's external API
+ - Reorganize psaccounthandles according to #2580
+
+------------------------------------------------------------------------
+b1cf826 | Norbert Eicker | Wed, 14 Sep 2016 08:27:52 +0200
+
+Streamline psaccountlog.c
+
+------------------------------------------------------------------------
+471823e | Norbert Eicker | Wed, 14 Sep 2016 08:26:11 +0200
+
+Streamline psaccountkvs.c
+
+------------------------------------------------------------------------
+2f0e784 | Norbert Eicker | Wed, 14 Sep 2016 08:21:58 +0200
+
+Merge psaccountcollect.c into psaccountclient.c
+
+------------------------------------------------------------------------
+3866694 | Norbert Eicker | Wed, 14 Sep 2016 08:05:03 +0200
+
+Streamline psaccounthistory.c
+
+------------------------------------------------------------------------
+f85489a | Norbert Eicker | Tue, 13 Sep 2016 23:10:35 +0200
+
+Streamline psaccountjob.c
+
+ - Hide the joblist from the outside world
+ - This requires some reorganization of psaccountinter, psaccountkvs, etc.
+
+------------------------------------------------------------------------
+13072f5 | Norbert Eicker | Tue, 13 Sep 2016 22:21:29 +0200
+
+Remove obsolete AccountData_t from psaccounttypes.h
+
+------------------------------------------------------------------------
+411b15f | Norbert Eicker | Tue, 13 Sep 2016 22:13:07 +0200
+
+Streamline psaccountinter.c
+
+ - Move all aggregation related stuff to psaccountclient.c
+ - Move all communication related stuff to psaccountcomm.c
+
+------------------------------------------------------------------------
+615264d | Norbert Eicker | Tue, 13 Sep 2016 21:15:14 +0200
+
+Streamline psaccountkvs.c
+
+ - Generate information on clients directly in psaccountclients.c
+
+------------------------------------------------------------------------
+7bcca6c | Norbert Eicker | Tue, 13 Sep 2016 20:58:35 +0200
+
+Streamline psaccountproc.c
+
+     - Add IGNORE_ROOT_PROCESSES configuration (default is true)
+     - Don't store session information separately
+     - Ignore root's processes by default
+
+------------------------------------------------------------------------
+c70c2d7 | Norbert Eicker | Tue, 13 Sep 2016 20:40:01 +0200
+
+Streamline psaccountconfig.c by utilizing plugincommon
+
+------------------------------------------------------------------------
+3c4ca49 | Norbert Eicker | Tue, 13 Sep 2016 20:28:53 +0200
+
+Streamline psaccountcomm.c
+
+------------------------------------------------------------------------
+365e9be | Norbert Eicker | Tue, 13 Sep 2016 20:28:25 +0200
+
+Streamline psaccountcollect.c
+
+------------------------------------------------------------------------
+78ab79c | Norbert Eicker | Tue, 13 Sep 2016 20:00:43 +0200
+
+Streamline psaccountclient.c
+
+------------------------------------------------------------------------
+0a66496 | Norbert Eicker | Tue, 13 Sep 2016 19:17:24 +0200
+
+Streamline psaccount.c
+
+------------------------------------------------------------------------
+9a6b734 | Norbert Eicker | Tue, 13 Sep 2016 19:05:10 +0200
+
+Adapt psaccount to plugincommon's API changes
+
+------------------------------------------------------------------------
+01e9013 | Norbert Eicker | Tue, 13 Sep 2016 19:01:42 +0200
+
+Merge psaccount changes from psslurm-devel as is
+
+ - This one breaks building psaccount due to API changes in
+   plugincommon.
+ - Also the interplay between psaccount and psmom is temporarily broken.
+
+------------------------------------------------------------------------
+eb2c0a5 | Norbert Eicker | Tue, 29 Nov 2016 13:31:20 +0100
+
+Bugfix: Let mpiexec propagate PSI_TPP (#2594)
+
+------------------------------------------------------------------------
+09640dd | Norbert Eicker | Mon, 21 Nov 2016 14:38:15 +0100
+
+Ticket #2580 requires psMungeDecode()/psMungeDecodeBuf()
+
+------------------------------------------------------------------------
+04d3c9e | Norbert Eicker | Fri, 11 Nov 2016 17:57:20 +0100
+
+Reorganize psmunge according to #2580
+
+------------------------------------------------------------------------
+05e3548 | Norbert Eicker | Fri, 11 Nov 2016 16:47:19 +0100
+
+Streamline psmunge
+
+------------------------------------------------------------------------
+13c654c | Norbert Eicker | Fri, 11 Nov 2016 00:39:59 +0100
+
+Merge psmunge from psslurm-devel as is
+
+ - This requires the adaptation of configure.ac and the spec file in
+   order to be flexible on creating RPMs. Depending on the availability
+   of munge-devel the RPM will include the psmunge plugin (or not)
+
+------------------------------------------------------------------------
+ee6711c | Norbert Eicker | Fri, 11 Nov 2016 09:55:14 +0100
+
+Avoid unnecessary kill() when deleting script
+
+------------------------------------------------------------------------
+cd3ffd5 | Norbert Eicker | Fri, 11 Nov 2016 08:56:44 +0100
+
+Bugfix: Provide correct finalization of psexeccomm
+
+------------------------------------------------------------------------
+dfdaa13 | Norbert Eicker | Fri, 11 Nov 2016 08:56:28 +0100
+
+Release initiators during plugin unload
+
+------------------------------------------------------------------------
+5efd875 | Norbert Eicker | Thu, 10 Nov 2016 18:56:24 +0100
+
+Reorganize psexechandles.h according to #2580
+
+------------------------------------------------------------------------
+4ae837d | Norbert Eicker | Thu, 10 Nov 2016 17:02:18 +0100
+
+Major reorganization and cleanup of psexeccomm
+
+ - Cancel all callback upon exit
+ - Ensure all strings are \0 terminated
+ - Make unique ID actually unique
+ - Avoid deleting the wrong script due to unique ID clashes
+ - Eliminate unsused functionality from psexecscripts
+ - Add documentation
+
+------------------------------------------------------------------------
+20bc76c | Norbert Eicker | Tue, 8 Nov 2016 18:58:38 +0100
+
+Fix indentation
+
+------------------------------------------------------------------------
+c7d054c | Norbert Eicker | Tue, 8 Nov 2016 10:32:24 +0100
+
+Streamline and document psexecscripts
+
+------------------------------------------------------------------------
+d01186b | Norbert Eicker | Thu, 3 Nov 2016 08:58:29 +0100
+
+Simplify psexec.c and psexeclog
+
+------------------------------------------------------------------------
+75d5a05 | Norbert Eicker | Thu, 3 Nov 2016 08:56:53 +0100
+
+Minor simplification
+
+------------------------------------------------------------------------
+85003ac | Norbert Eicker | Wed, 2 Nov 2016 19:35:07 +0100
+
+Merge psexec from psslurm-devel as is.
+
+------------------------------------------------------------------------
+fef98b4 | Norbert Eicker | Sun, 20 Nov 2016 09:16:52 +0100
+
+Modernize psid's plugin handling
+
+ - Booleanize psidplugin
+ - Add remark to documentation
+
+------------------------------------------------------------------------
+0dfd330 | Norbert Eicker | Tue, 8 Nov 2016 18:10:00 +0100
+
+Avoid redundant type information
+
+------------------------------------------------------------------------
+f2d8d5f | Norbert Eicker | Tue, 8 Nov 2016 18:01:54 +0100
+
+Bugfix: Fix type information in plugincomm
+
+  - addUint16ArrayToMsg() and addInt16ArrayToMsg() are affected
+
+------------------------------------------------------------------------
+
+
 Version psmgmt-5.0.53:
 ======================
 ------------------------------------------------------------------------
