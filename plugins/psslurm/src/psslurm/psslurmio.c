@@ -17,6 +17,7 @@
 #include <stdint.h>
 #include <fcntl.h>
 #include <sys/stat.h>
+#include <sys/prctl.h>
 
 #include "psslurmjob.h"
 #include "psslurmforwarder.h"
@@ -964,10 +965,13 @@ void redirectStepIO(Forwarder_Data_t *fwdata, Step_t *step)
 
     if (seteuid(0) == -1) {
 	mwarn(errno, "%s: seteuid(0) failed: ", __func__);
-    };
+    }
     if (setgid(0) == -1) {
 	mwarn(errno, "%s: setgid(0) failed: ", __func__);
-    };
+    }
+    if (prctl(PR_SET_DUMPABLE, 1) == -1) {
+	mwarn(errno, "%s: prctl(PR_SET_DUMPABLE) failed: ", __func__);
+    }
 }
 
 void redirectStepIO2(Forwarder_Data_t *fwdata, Step_t *step)
@@ -1066,10 +1070,13 @@ void redirectStepIO2(Forwarder_Data_t *fwdata, Step_t *step)
 
     if (seteuid(0) == -1) {
 	mwarn(errno, "%s: seteuid(0) failed: ", __func__);
-    };
+    }
     if (setgid(0) == -1) {
 	mwarn(errno, "%s: setgid(0) failed: ", __func__);
-    };
+    }
+    if (prctl(PR_SET_DUMPABLE, 1) == -1) {
+	mwarn(errno, "%s: prctl(PR_SET_DUMPABLE) failed: ", __func__);
+    }
 }
 
 void sendEnableSrunIO(Step_t *step)
