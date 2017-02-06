@@ -11,11 +11,68 @@ Please send bug reports, questions and suggestions to <support@par-tec.com>
 **  From now on accountpoll = 0 will be considered again, i.e. no      **
 **  polling on used resources will take place if accountpoll is set    **
 **  to 0. Since 0 is the default setting this change might break the   **
-**  expected behavior of resource accounting. Therefore, the system's  **
-**  settings for accountpoll shall be reconsidered.                    **
+**  expected behavior of resource accounting. Nevertheless, psmom      **
+**  (and also psslurm) will overrule this setting on startup.          **
+**  The system's  settings for accountpoll shall be reconsidered,      **
+**  anyhow.                                                            **
 **                                                                     **
 *************************************************************************
 *************************************************************************
+
+Version 5.0.54:
+===============
+Bugfixes:
+ - Let mpiexec propagate PSI_TPP (#2594)
+ - Various critical fixes for psaccount
+   - Ensure that a job's first accounting update is always sent
+   - Ensure that the last update is sent even though all clients are disabled
+   - Don't let the jobscript resources spoil the minCputime value
+   - Get rid of an useless limitation when forwarding aggregated data
+ - Allow accounting of pluginforwarder's child
+ - Prevent pspam from killing random processes
+ - Determine UID more reliably in psaccount
+ - Help psmomforwarder to escape loop on SIGCHLD
+ - Don't set PMI_APPNUM if PMI is disabled (merge from psslurm)
+ - Ensure \0 terminated strings at several places
+ - Omit leading garbage in printRefList() (visible during shutdown)
+ - Ensure PMI actually disables accounting temporarily during initial KVS update
+ - Prevent psid from crashing when unloading certain plugins
+ - Make psaccount summing up maximum threads correctly
+
+Enhancements:
+ - Compute configuration hash value once psslurm is merged (PCT:#254)
+ - Let mpiexec provide appnum independently of PMI in PSI_APPNUM
+ - Merge psaccount, psexec, pspam, and pelogue plugins from psslurm
+   - This includes major refactorings
+ - Reorganize all plugins according to #2580
+ - Enable pspam to support shared nodes
+ - pspam has a KVS interface now
+ - New pspam API function psPamFindSessionForPID() as required by psmom
+ - Replaces psmom's according functionality by pspam
+ - psaccount can ignore procs with loginuid -1 or uid 0, zombies, etc.
+   - Ignoring root processes configurable via IGNORE_ROOT_PROCESSES
+ - Allow changing psaccount's debug-mask during runtime
+ - pelogue has a KVS interface now that also provides some statistics info
+ - Introduce new task-group TG_PLUGINFW
+ - Replace libreadline by improved version of linenoise
+
+Additional changes:
+ - Fix and simplify spec file
+ - Add psmgmt.vipsconfig to documentation
+ - Merge .gitignore from psslurm-devel
+ - Partly refactoring of psmom
+ - psmom's pam_psmom.so is replaced by a symlink to pam_pspam.so
+ - Allow building RPMs even if pam-devel is missing
+ - Add PSIDHOOK_PELOGUE_PREPARE hook
+ - Merge major parts of the plugincommon library
+   - Incl. pluginforwarder, plugincomm
+   - Major refactoring of merged parts allowing for better scalability, etc.
+ - Make psaccount using pre-allocated structs to store /proc snapshot
+ - Rework psaccount's data aggregation
+ - Allow NULL as buf in addDataToMsg()
+ - Allow to receive 0-length strings in plugincomm
+ - Add PSIDspawn_localTask() to be used by pelogue, pluginforwarder, etc.
+
 
 Version 5.0.53:
 ===============
