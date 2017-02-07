@@ -40,6 +40,12 @@ static struct {
     { RLIMIT_DATA    , "__PSI_DATASIZE" },
     { RLIMIT_AS      , "__PSI_ASSIZE" },
     { RLIMIT_NOFILE  , "__PSI_NOFILE" },
+    { RLIMIT_STACK   , "__PSI_STACKSIZE" },
+    { RLIMIT_FSIZE   , "__PSI_FSIZE" },
+    { RLIMIT_CPU     , "__PSI_CPU" },
+    { RLIMIT_NPROC   , "__PSI_NPROC" },
+    { RLIMIT_RSS     , "__PSI_RSS" },
+    { RLIMIT_MEMLOCK , "__PSI_MEMLOCK" },
     {0,NULL}
 };
 

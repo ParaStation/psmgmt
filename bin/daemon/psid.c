@@ -455,7 +455,6 @@ static void initSigHandlers(void)
     signal(SIGQUIT  ,sighandler);
     signal(SIGILL   ,sighandler);
     signal(SIGTRAP  ,sighandler);
-    signal(SIGFPE   ,sighandler);
     signal(SIGPIPE  ,sighandler);
     signal(SIGTERM  ,sighandler);
     signal(SIGCONT  ,sighandler);
@@ -746,6 +745,7 @@ int main(int argc, const char *argv[])
 	signal(SIGSEGV, sighandler);
 	signal(SIGABRT, sighandler);
 	signal(SIGBUS, sighandler);
+	signal(SIGFPE   ,sighandler);
     }
     if (PSID_config->coreDir) {
 	if (chdir(PSID_config->coreDir) < 0) {
