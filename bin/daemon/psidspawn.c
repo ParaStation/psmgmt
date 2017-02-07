@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2017 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -1895,7 +1895,22 @@ static void msg_SPAWNREQUEST(DDBufferMsg_t *msg)
     }
 }
 
+/**
+ * List of tasks waiting to get spawned, i.e. waiting for last
+ * environment packets to come in.
+ */
 LIST_HEAD(spawnTasks);
+
+/**
+ * List of tasks delayed to get spawned. They shall be started later
+ * via @ref PSIDspawn_startDelayedTasks().
+ */
+LIST_HEAD(delayedTasks);
+
+PStask_t *PSIDspawn_findSpawnee(PStask_ID_t ptid)
+{
+    return PStasklist_find(&spawnTasks, ptid);
+}
 
 /**
  * @brief Clone environment from sibling task.
@@ -2117,7 +2132,7 @@ static void msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
 	return;
     }
 
-    task = PStasklist_find(&spawnTasks, msg->header.sender);
+    task = PSIDspawn_findSpawnee(msg->header.sender);
     if (task) answer.request = task->rank;
 
     switch (msg->type) {
@@ -2259,7 +2274,11 @@ static void msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
 	    }
 	    return;
 	}
-	usedBytes = PStask_decodeEnv(msg->buf, task);
+	if (msg->header.len > sizeof(msg->header) + sizeof(msg->type)) {
+	    usedBytes = PStask_decodeEnv(msg->buf, task);
+	} else {
+	    usedBytes = 0;
+	}
 	break;
     case PSP_SPAWN_ENVCNTD:
 	if (!task) {
@@ -2337,6 +2356,50 @@ static void drop_SPAWNREQ(DDBufferMsg_t *msg)
     sendMsg(&errmsg);
 }
 
+void PSIDspawn_startDelayedTasks(PSIDspawn_filter_t filter, void *info)
+{
+    list_t *t, *tmp;
+    list_for_each_safe(t, tmp, &delayedTasks) {
+	PStask_t *task = list_entry(t, PStask_t, next);
+	char tasktxt[128];
+	DDErrorMsg_t answer = {
+	    .header = {
+		.type = PSP_CD_SPAWNFAILED,
+		.sender = PSC_getMyTID(),
+		.dest = task->tid,
+		.len = sizeof(answer) },
+	    .error = 0,
+	    .request = task->rank};
+
+	if (task->deleted) continue;
+	if (filter && !filter(task, info)) continue;
+
+	PStask_snprintf(tasktxt, sizeof(tasktxt), task);
+	PSID_log(PSID_LOG_SPAWN, "%s: Spawning %s\n", __func__, tasktxt);
+
+	PStasklist_dequeue(task);
+	answer.error = spawnTask(task);
+
+	if (answer.error) {
+	    /* send only on failure. success reported by forwarder */
+	    sendMsg(&answer);
+	}
+    }
+}
+
+void PSIDspawn_cleanupDelayedTasks(PSIDspawn_filter_t filter, void *info)
+{
+    list_t *t;
+    list_for_each(t, &delayedTasks) {
+	PStask_t *task = list_entry(t, PStask_t, next);
+
+	if (task->deleted) continue;
+	if (filter && !filter(task, info)) continue;
+
+	task->deleted = true;
+    }
+}
+
 void PSIDspawn_cleanupByNode(PSnodes_ID_t node)
 {
     list_t *t;
@@ -2344,6 +2407,10 @@ void PSIDspawn_cleanupByNode(PSnodes_ID_t node)
     PSID_log(PSID_LOG_SPAWN, "%s(%d)\n", __func__, node);
 
     list_for_each(t, &spawnTasks) {
+	PStask_t *task = list_entry(t, PStask_t, next);
+	if (PSC_getID(task->tid) == node) task->deleted = true;
+    }
+    list_for_each(t, &delayedTasks) {
 	PStask_t *task = list_entry(t, PStask_t, next);
 	if (PSC_getID(task->tid) == node) task->deleted = true;
     }
@@ -2358,6 +2425,22 @@ void PSIDspawn_cleanupBySpawner(PStask_ID_t tid)
     list_for_each(t, &spawnTasks) {
 	PStask_t *task = list_entry(t, PStask_t, next);
 	if (task->tid == tid) task->deleted = true;
+    }
+    list_for_each(t, &delayedTasks) {
+	PStask_t *task = list_entry(t, PStask_t, next);
+	if (task->deleted) continue;
+	if (task->tid == tid) {
+	    DDErrorMsg_t answer = {
+		.header = {
+		    .type = PSP_CD_SPAWNFAILED,
+		    .sender = PSC_getMyTID(),
+		    .dest = task->tid,
+		    .len = sizeof(answer) },
+		.error = ECHILD,
+		.request = task->rank};
+	    task->deleted = true;
+	    sendMsg(&answer);
+	}
     }
 }
 
@@ -2377,6 +2460,14 @@ static void cleanupSpawnTasks(void)
     PSID_log(PSID_LOG_VERB, "%s()\n", __func__);
 
     list_for_each_safe(t, tmp, &spawnTasks) {
+	PStask_t *task = list_entry(t, PStask_t, next);
+
+	if (task->deleted) {
+	    PStasklist_dequeue(task);
+	    PStask_delete(task);
+	}
+    }
+    list_for_each_safe(t, tmp, &delayedTasks) {
 	PStask_t *task = list_entry(t, PStask_t, next);
 
 	if (task->deleted) {
