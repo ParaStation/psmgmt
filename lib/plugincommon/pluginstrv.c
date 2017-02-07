@@ -45,9 +45,9 @@ void __strvInit(strv_t *strv, char **initstrv, size_t initcount,
 void __strvAdd(strv_t *strv, char *str, const char *func, const int line)
 {
     assert(strv && strv->strings);
-    assert(strv->size > strv->count);
+    assert(strv->size >= strv->count);
 
-    if (strv->count == strv->size - 2) {
+    if (strv->count == strv->size - 1) {
 	strv->size += VECTOR_CHUNK_SIZE;
 	strv->strings = __urealloc(strv->strings, strv->size * sizeof(char *),
 				   func, line);

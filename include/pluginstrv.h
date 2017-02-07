@@ -21,8 +21,8 @@
 /** String vector to be handled by strv* functions */
 typedef struct {
     char **strings;    /**< Array of strings */
-    size_t count;      /**< Current size */
-    size_t size;       /**< Current maximum size (do not use) */
+    size_t count;      /**< Current number of strings in array */
+    size_t size;       /**< Current maximum size incl. NULL (do not use) */
 } strv_t;
 
 /**
