@@ -3216,6 +3216,8 @@ int main(int argc, char *argv[], char** envp)
     if (!envstr) envstr = getenv("OMP_NUM_THREADS");
     if (envstr) {
 	envtpp = strtol(envstr, NULL, 0);
+	/* Propagate explicitely since PSI_* is not */
+	setPSIEnv("PSI_TPP", envstr, 1);
     }
 
     /* Initialzie daemon connection */
