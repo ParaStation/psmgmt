@@ -52,7 +52,7 @@ SpawnRequest_t *copySpawnRequest(SpawnRequest_t *req) {
 
 	if (old->argv) {
 	    new->argc = old->argc;
-	    new->argv = umalloc(new->argc * sizeof(new->argc));
+	    new->argv = umalloc(new->argc * sizeof(char *));
 	    for (j = 0; j < old->argc; j++) {
 		new->argv[j] = ustrdup(old->argv[j]);
 	    }
