@@ -48,84 +48,6 @@
 
 #include "psslurmpscomm.h"
 
-/* message buffer */
-typedef struct {
-    struct list_head next;
-    uint32_t jobid;
-    uint32_t stepid;
-    PStask_t *forwarder;
-    DDTypedBufferMsg_t *msg;
-} MsgBuffer_t;
-
-/* List to buffer spawn request end messages until matching step is created */
-static LIST_HEAD(SpawnEndMsgList);
-
-/* release all buffered spawn end messages matching jobid and stepid */
-void releaseBufferedSpawnEndMsgs(uint32_t jobid, uint32_t stepid) {
-    struct list_head *pos, *tmp;
-    MsgBuffer_t *msgBuf;
-
-    /* double check if the step is ready now */
-    if (!(findStepById(jobid, stepid))) {
-	/* this is a serious problem and should never happen */
-	mlog("%s: SERIOUS: Called for step %d:%d that cannot be found.\n",
-		__func__, jobid, stepid);
-	return;
-    }
-
-    list_for_each_safe(pos, tmp, &SpawnEndMsgList) {
-
-	if (!(msgBuf = list_entry(pos, MsgBuffer_t, next))) {
-	   mlog("%s: Found null entry in SpawnEndMsgList\n", __func__);
-	   continue;
-	}
-
-	if (msgBuf->jobid == jobid && msgBuf->stepid == stepid) {
-	    list_del(pos);
-
-	    mlog("%s: Releasing spawn request end message for step %d:%d\n",
-		    __func__, jobid, stepid);
-	    /* call original handler now */
-	    if (oldSpawnReqHandler) {
-		oldSpawnReqHandler((DDBufferMsg_t *)msgBuf->msg);
-	    } else {
-		mlog("%s: No original handler for Spawn Requests found.\n",
-			__func__);
-	    }
-
-	    ufree(msgBuf->msg);
-	    ufree(msgBuf);
-	}
-    }
-}
-
-/* remove remaining buffered spawn end messages matching jobid and stepid */
-void cleanupSpawnEndMsgList(uint32_t jobid, uint32_t stepid) {
-    struct list_head *pos, *tmp;
-    MsgBuffer_t *msgBuf;
-
-    list_for_each_safe(pos, tmp, &SpawnEndMsgList) {
-
-	if (!(msgBuf = list_entry(pos, MsgBuffer_t, next))) {
-	    mlog("%s: Removing null entry in SpawnEndMsgList.\n", __func__);
-	    list_del(pos);
-	    continue;
-	}
-
-	if (msgBuf->jobid != jobid || msgBuf->stepid != stepid) {
-	    ufree(msgBuf->msg);
-	    ufree(msgBuf);
-	    continue;
-	}
-
-	mlog("%s: Removing entry in SpawnEndMsgList for job %d step %d.\n",
-		__func__, jobid, stepid);
-	list_del(pos);
-	ufree(msgBuf->msg);
-	ufree(msgBuf);
-    }
-}
-
 static void grantPartRequest(PStask_t *task)
 {
     DDTypedMsg_t msg = (DDTypedMsg_t) {
@@ -1392,8 +1314,7 @@ FORWARD:
  *
  * @stepid    return pointer for the step ID
  */
-static int getJobIDbyTask(PStask_t *task,
-					uint32_t *jobid, uint32_t *stepid)
+static int getJobIDbyTask(PStask_t *task, uint32_t *jobid, uint32_t *stepid)
 {
     char *ptr, *sjobid = NULL, *sstepid = NULL;
     int32_t i=0;
@@ -1522,9 +1443,56 @@ FORWARD_SPAWN_FAILED_MSG:
     if (oldSpawnFailedHandler) oldSpawnFailedHandler((DDBufferMsg_t *) msg);
 }
 
+typedef struct {
+    uint32_t jobid;
+    uint32_t stepid;
+} JobStepInfo_t;
+
+static bool filter(PStask_t *task, void *info)
+{
+    JobStepInfo_t *jsInfo = info;
+    uint32_t jobid, stepid;
+
+    /* get jobid and stepid from received environment */
+    if (!getJobIDbyTask(task, &jobid, &stepid)) {
+	mlog("%s: no slurm ids found in spawnee environment from %s\n",
+	     __func__, PSC_printTID(task->tid));
+	return false;
+    }
+
+    if (info && jsInfo->jobid == jobid && jsInfo->stepid == stepid) return true;
+
+    return false;
+}
+
+void releaseDelayedSpawns(uint32_t jobid, uint32_t stepid) {
+    JobStepInfo_t jsInfo = {
+	.jobid = jobid,
+	.stepid = stepid, };
+
+    /* double check if the step is ready now */
+    if (!findStepById(jobid, stepid)) {
+	/* this is a serious problem and should never happen */
+	mlog("%s: SERIOUS: Called for step %d:%d that cannot be found.\n",
+	     __func__, jobid, stepid);
+	return;
+    }
+
+    PSIDspawn_startDelayedTasks(filter, &jsInfo);
+}
+
+/* remove remaining buffered spawn end messages matching jobid and stepid */
+void cleanupDelayedSpawns(uint32_t jobid, uint32_t stepid) {
+    JobStepInfo_t jsInfo = {
+	.jobid = jobid,
+	.stepid = stepid, };
+
+    PSIDspawn_cleanupDelayedTasks(filter, &jsInfo);
+}
+
 void handleSpawnReq(DDTypedBufferMsg_t *msg)
 {
-    PStask_t *forwarder = NULL;
+    PStask_t *spawnee;
     uint32_t jobid, stepid;
     Step_t *step = NULL;
     size_t usedBytes;
@@ -1536,45 +1504,39 @@ void handleSpawnReq(DDTypedBufferMsg_t *msg)
     }
 
     /* try to find task structure */
-    forwarder = PStasklist_find(&spawnTasks, msg->header.sender);
-    if (!forwarder) {
-	mlog("%s: cannot find forwarder task for sender '%s' in spawnTasks\n",
-		__func__, PSC_printTID(msg->header.sender));
+    spawnee = PSIDspawn_findSpawnee(msg->header.sender);
+    if (!spawnee) {
+	mlog("%s: cannot find spawnee for sender %s\n", __func__,
+	     PSC_printTID(msg->header.sender));
 	goto FORWARD_SPAWN_REQ_MSG;
     }
 
     /* PSP_SPAWN_END message can contain parts of the environment */
-    usedBytes = PStask_decodeEnv(msg->buf, forwarder);
+    usedBytes = PStask_decodeEnv(msg->buf, spawnee);
+    msg->header.len -= usedBytes; /* HACK: Don't apply env-tail twice */
 
-    if (msg->header.len-sizeof(msg->header)-sizeof(msg->type) != usedBytes) {
-	mlog("%s: problem decoding task %s type %d used %ld of %ld\n",
-		 __func__, PSC_printTID(msg->header.sender), msg->type,
-		 (long) usedBytes,
-		 (long) msg->header.len-sizeof(msg->header)-sizeof(msg->type));
+    if (msg->header.len - sizeof(msg->header) - sizeof(msg->type)) {
+	mlog("%s: problem decoding task %s type %d used %zd remain %zd\n",
+	     __func__, PSC_printTID(spawnee->tid), msg->type,
+	     usedBytes, msg->header.len-sizeof(msg->header)-sizeof(msg->type));
 	goto FORWARD_SPAWN_REQ_MSG;
     }
 
     /* get jobid and stepid from received environment */
-    if (!(getJobIDbyTask(forwarder, &jobid, &stepid))) {
-	mlog("%s: no slurm ids found in spawn request end message from '%s'\n",
-		__func__, PSC_printTID(msg->header.sender));
+    if (!getJobIDbyTask(spawnee, &jobid, &stepid)) {
+	mlog("%s: no slurm IDs found in spawnee's environment from %s\n",
+	     __func__, PSC_printTID(spawnee->tid));
 	goto FORWARD_SPAWN_REQ_MSG;
     }
 
     /* try to find step */
-    if (!(step = findStepById(jobid, stepid))) {
+    step = findStepById(jobid, stepid);
+    if (!step) {
 	/* if the step is not already created, buffer the spawn end msg */
-	mlog("%s: buffering spawn request end message from '%s' due to missing"
-		" step '%u:%u'\n", __func__, PSC_printTID(msg->header.sender),
-		jobid, stepid);
+	mlog("%s: delay spawnee from %s due to missing step %u:%u\n",
+	     __func__, PSC_printTID(msg->header.sender), jobid, stepid);
 
-	MsgBuffer_t *buffer = umalloc(sizeof(MsgBuffer_t));
-	buffer->jobid = jobid;
-	buffer->stepid = stepid;
-	buffer->forwarder = forwarder;
-	buffer->msg = umalloc(sizeof(DDBufferMsg_t));
-	memcpy(buffer->msg, msg, sizeof(DDBufferMsg_t));
-	list_add_tail(&(buffer->next), &SpawnEndMsgList);
+	PSIDspawn_delayTask(spawnee);
 
 	return;
     }

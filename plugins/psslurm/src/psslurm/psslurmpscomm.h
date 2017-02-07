@@ -20,23 +20,22 @@
 #include "psslurmcomm.h"
 
 /**
- * Release message of type PSP_SPAWN_END buffered for a specific jobstep.
- * This means to call the original handler for the message and is done after
- *  the corresponding step has been created.
+ * Release delayed spawns buffered for a specific jobstep. This is
+ * done once the corresponding step has been created.
  *
  * @param  jobid   JodID
  * @param  stepid  StepID
  */
-void releaseBufferedSpawnEndMsgs(uint32_t jobid, uint32_t stepid);
+void releaseDelayedSpawns(uint32_t jobid, uint32_t stepid);
 
 /**
- * Cleanup all pending messages of type PSP_SPAWN_END for a specific jobstep.
+ * Cleanup all delayed spawns for a specific jobstep.
  * This is done as part of the cleanup if a step failed.
  *
  * @param  jobid   JodID
  * @param  stepid  StepID
  */
-void cleanupSpawnEndMsgList(uint32_t jobid, uint32_t stepid);
+void cleanupDelayedSpawns(uint32_t jobid, uint32_t stepid);
 
 int handleCreatePart(void *msg);
 

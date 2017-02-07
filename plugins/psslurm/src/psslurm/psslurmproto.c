@@ -589,7 +589,7 @@ void handleLaunchTasks(Slurm_Msg_t *sMsg)
 	}
     }
 
-    releaseBufferedSpawnEndMsgs(jobid, stepid);
+    releaseDelayedSpawns(jobid, stepid);
 }
 
 static void handleSignalTasks(Slurm_Msg_t *sMsg)
@@ -1812,7 +1812,7 @@ static void handleTerminateReq(Slurm_Msg_t *sMsg)
 
     /* remove all unfinished spawn requests */
     PSIDspawn_cleanupBySpawner(PSC_getMyTID());
-    cleanupSpawnEndMsgList(jobid, stepid);
+    cleanupDelayedSpawns(jobid, stepid);
 
     switch (sMsg->head.type) {
 	case REQUEST_KILL_PREEMPTED:

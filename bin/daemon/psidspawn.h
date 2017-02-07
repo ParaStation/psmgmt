@@ -15,19 +15,13 @@
 #ifndef __PSIDSPAWN_H
 #define __PSIDSPAWN_H
 
+#include <stdbool.h>
 #define __USE_GNU
 #include <sched.h>
 #undef __USE_GNU
 
 #include "pscpu.h"
 #include "selector.h"
-
-/**
- * List of all tasks waiting to get spawned, i.e. waiting for last
- * environment packets to come in.
- * Public for plugins to allow delaying of spawn messages.
- */
-extern list_t spawnTasks;
 
 #ifdef CPU_ZERO
 /**
@@ -105,6 +99,92 @@ void PSIDspawn_cleanupByNode(PSnodes_ID_t node);
 void PSIDspawn_cleanupBySpawner(PStask_ID_t tid);
 
 /**
+ * @brief Find task waiting to be spawned
+ *
+ * Find a task structure waiting for completion in the corresponding
+ * list of tasks. This task structure will describe a task to be
+ * spawned once completed. Task structures are identified by the task
+ * ID of the parent task requesting the spawn.
+ *
+ * @param ptid Task ID of the parent task
+ *
+ * @return Return a pointer to the task structure or NULL if no
+ * corresponding task was found
+ */
+PStask_t *PSIDspawn_findSpawnee(PStask_ID_t ptid);
+
+/**
+ * @brief Delay actual start of task
+ *
+ * Delay the start of the task described within the task structure @a
+ * task. Delayed tasks might be started via @ref
+ * PSIDspawn_startDelayedTasks(). The initiator of this delay is also
+ * responsible for cleaning up the list of delayed tasks via @ref
+ * PSIDspawn_cleanupDelayedTasks() if no late start was triggered.
+ *
+ * @param task Task structure describing the task to be delayed
+ *
+ * @return No return value
+ */
+void PSIDspawn_delayTask(PStask_t *task);
+
+/**
+ * @brief Filter delayed tasks
+ *
+ * Prototype of a filter to trigger or suppress a specific action on
+ * delayed tasks. Filters are intended to be used by @ref
+ * PSIDspawn_startDelayedTasks() or @ref
+ * PSIDspawn_cleanupDelayedTasks() and will be called for each task
+ * structure found in the list of delayed task. Decision shall be made
+ * with regard to additional information to be passed via @a info.
+ *
+ * @param task Task structure to check for specific action
+ *
+ * @param info Extra information passed via the @a info argument of
+ * @ref PSIDspawn_startDelayedTasks() or @ref
+ * PSIDspawn_cleanupDelayedTasks()
+ *
+ * @return Boolean value to trigger or suppress the requested action
+ * on the given task structure
+ */
+typedef bool PSIDspawn_filter_t(PStask_t *task, void *info);
+
+/**
+ * @brief Start delayed tasks
+ *
+ * Actually start tasks that were delayed via @ref
+ * PSIDspawn_delayTask(). If @a filter is given, for each task found
+ * in the list of delayed tasks filter is called with @a info as a
+ * second argument. The task is started only if @a filter returns
+ * true for this task.
+ *
+ * @param filter Filter to be called for each task found in the list
+ * of delayed tasks
+ *
+ * @param info Extra argument to be passed to @a filter
+ *
+ * @return No return value
+ */
+void PSIDspawn_startDelayedTasks(PSIDspawn_filter_t filter, void *info);
+
+/**
+ * @brief Cleanup delayed tasks
+ *
+ * Cleanup tasks that were delayed via @ref PSIDspawn_delayTask(). If
+ * @a filter is given, for each task found in the list of delayed
+ * tasks filter is called with @a info as a second argument. The task
+ * is deleted only if @a filter returns true for this task.
+ *
+ * @param filter Filter to be called for each task found in the list
+ * of delayed tasks
+ *
+ * @param info Extra argument to be passed to @a filter
+ *
+ * @return No return value
+ */
+void PSIDspawn_cleanupDelayedTasks(PSIDspawn_filter_t filter, void *info);
+
+/**
  * @brief Handler to execute local task
  *
  * Prototype of a handler to execute a local task described by the
@@ -119,7 +199,7 @@ void PSIDspawn_cleanupBySpawner(PStask_ID_t tid);
  *
  * @return No return value
  */
-typedef void (PSIDspawn_creator_t)(int fd, PStask_t *task);
+typedef void PSIDspawn_creator_t(int fd, PStask_t *task);
 
 /**
  * @brief Spawn local task
