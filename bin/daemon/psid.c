@@ -454,7 +454,7 @@ static void initSigHandlers(void)
     signal(SIGINT   ,sighandler);
     signal(SIGQUIT  ,sighandler);
     signal(SIGILL   ,sighandler);
-//    signal(SIGTRAP  ,sighandler);
+    signal(SIGTRAP  ,sighandler);
     signal(SIGPIPE  ,sighandler);
     signal(SIGTERM  ,sighandler);
     signal(SIGCONT  ,sighandler);
