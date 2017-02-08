@@ -56,4 +56,7 @@ install-exec-local:
 	$(INSTALL) -d $(DESTDIR)$(localstatedir)/spool/parastation/backup
 	$(INSTALL) -d $(DESTDIR)$(localstatedir)/spool/parastation/scripts
 	$(INSTALL) -d $(DESTDIR)$(pamdir)
-	(cd $(DESTDIR)$(pamdir) && $(LN_S) pam_pspam.so pam_psmom.so)
+	$(LN_S) pam_pspam.so $(DESTDIR)$(pamdir)/pam_psmom.so
+
+uninstall-local:
+	$(RM) $(DESTDIR)$(pamdir)/pam_psmom.so
