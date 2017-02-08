@@ -325,7 +325,6 @@ static char *getMyGTIDsForNode(uint32_t **globalTaskIds,
     return buf;
 }
 
-
 static void setBindingEnvVars(Step_t *step)
 {
     char *val;
@@ -405,10 +404,15 @@ void setRankEnv(int32_t rank, Step_t *step)
     Alloc_t *alloc;
     Job_t *job;
 
+    /* remove unwanted variables */
+    unsetenv("PSI_INPUTDEST");
+
     /* we need the DISPLAY variable set by psslurm */
     display = getenv("DISPLAY");
 
+    /* set environment variables from user */
     for (count=0; count<step->env.cnt; count++) {
+	/* protect selected variables from changes */
 	if (!(strncmp(step->env.vars[count], "SLURM_RLIMIT_", 13))) continue;
 	if (!(strncmp(step->env.vars[count], "SLURM_UMASK=", 12))) continue;
 	if (!(strncmp(step->env.vars[count], "PWD=", 4))) continue;

@@ -1108,7 +1108,6 @@ static void setupCommonEnv(int np)
 
     /* Reduce environment footprint for actual processes */
     unsetPSIEnv("__PSI_EXPORTS");
-    unsetPSIEnv("PSI_INPUTDEST");
 }
 
 /**
