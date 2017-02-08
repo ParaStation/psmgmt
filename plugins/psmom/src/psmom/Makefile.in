@@ -943,7 +943,7 @@ ps: ps-am
 
 ps-am:
 
-uninstall-am: uninstall-pluginLTLIBRARIES
+uninstall-am: uninstall-local uninstall-pluginLTLIBRARIES
 
 .MAKE: install-am install-strip
 
@@ -960,7 +960,7 @@ uninstall-am: uninstall-pluginLTLIBRARIES
 	installcheck-am installdirs maintainer-clean \
 	maintainer-clean-generic mostlyclean mostlyclean-compile \
 	mostlyclean-generic mostlyclean-libtool pdf pdf-am ps ps-am \
-	tags tags-am uninstall uninstall-am \
+	tags tags-am uninstall uninstall-am uninstall-local \
 	uninstall-pluginLTLIBRARIES
 
 .PRECIOUS: Makefile
@@ -978,7 +978,10 @@ install-exec-local:
 	$(INSTALL) -d $(DESTDIR)$(localstatedir)/spool/parastation/backup
 	$(INSTALL) -d $(DESTDIR)$(localstatedir)/spool/parastation/scripts
 	$(INSTALL) -d $(DESTDIR)$(pamdir)
-	(cd $(DESTDIR)$(pamdir) && $(LN_S) pam_pspam.so pam_psmom.so)
+	$(LN_S) pam_pspam.so $(DESTDIR)$(pamdir)/pam_psmom.so
+
+uninstall-local:
+	$(RM) $(DESTDIR)$(pamdir)/pam_psmom.so
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.
