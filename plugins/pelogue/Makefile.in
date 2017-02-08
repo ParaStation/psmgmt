@@ -398,7 +398,7 @@ pelogue_la_SOURCES = pelogue.c peloguelog.c peloguelog.h		\
 	peloguechild.c peloguechild.h peloguescript.c peloguescript.h	\
 	peloguejob.c peloguejob.h pelogueinter.c pelogueinter.h		\
 	pelogueforwarder.c pelogueforwarder.h peloguekvs.c		\
-	peloguehandles.h
+	peloguehandles.h peloguetypes.h
 
 pelogue_la_LIBADD = $(libplugincommon) $(libpscommon)
 all: all-am
