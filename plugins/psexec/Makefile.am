@@ -20,7 +20,7 @@ libpscommon = $(top_builddir)/lib/pscommon/libpscommon.la
 
 psexec_la_SOURCES = psexec.c psexeclog.c psexeclog.h psexecscripts.c	\
 	psexecscripts.h psexeccomm.c psexeccomm.h psexecinter.c		\
-	psexecinter.h psexechandles.h
+	psexecinter.h psexechandles.h psexectypes.h
 
 psexec_la_CPPFLAGS = $(AM_CPPFLAGS) -DLOCALSTATEDIR=\"$(localstatedir)\"
 psexec_la_LIBADD = $(libplugincommon) $(libpscommon)
