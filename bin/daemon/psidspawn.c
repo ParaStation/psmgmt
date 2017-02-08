@@ -2356,6 +2356,18 @@ static void drop_SPAWNREQ(DDBufferMsg_t *msg)
     sendMsg(&errmsg);
 }
 
+void PSIDspawn_delayTask(PStask_t *task)
+{
+    if (list_empty(&task->next)) {
+	char tasktxt[128];
+	PStask_snprintf(tasktxt, sizeof(tasktxt), task);
+	PSID_log(-1, "%s: Unenqueued task %s\n", __func__, tasktxt);
+	return;
+    }
+    PStasklist_dequeue(task);
+    PStasklist_enqueue(&delayedTasks, task);
+}
+
 void PSIDspawn_startDelayedTasks(PSIDspawn_filter_t filter, void *info)
 {
     list_t *t, *tmp;
