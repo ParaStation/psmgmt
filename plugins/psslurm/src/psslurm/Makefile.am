@@ -34,16 +34,18 @@ libplugincommon = $(top_builddir)/lib/plugincommon/libplugincommon.la
 libslurmcommon = $(top_builddir)/$(psslurm_dir)/common/libslurmcommon.la
 libpscommon = $(top_builddir)/lib/pscommon/libpscommon.la
 
-psslurm_la_SOURCES = psslurm.c psslurm.h psslurmlog.c psslurmlog.h \
-	psslurmpscomm.c psslurmpscomm.h psslurmconfig.c psslurmconfig.h \
-	psslurmjob.c psslurmjob.h psslurmforwarder.c psslurmforwarder.h \
-	psslurmcomm.c psslurmcomm.h psslurmauth.c psslurmauth.h \
-	psslurmproto.c psslurmproto.h psslurmenv.c psslurmenv.h \
-	psslurmjobinfo.c psslurmjobinfo.h psslurmlimits.c psslurmlimits.h \
-	psslurmmultiprog.c psslurmmultiprog.h psslurmgres.c psslurmgres.h \
-	psslurmpin.c psslurmpin.h psslurmio.c psslurmio.h psslurmpelogue.h \
-	psslurmpelogue.c psslurmkvs.h psslurmkvs.c psslurmspawn.c psslurmspawn.h \
-	psslurmpack.h psslurmpack.c
+psslurm_la_SOURCES = psslurm.c psslurm.h psslurmlog.c psslurmlog.h	\
+	psslurmpscomm.c psslurmpscomm.h psslurmconfig.c			\
+	psslurmconfig.h psslurmjob.c psslurmjob.h psslurmforwarder.c	\
+	psslurmforwarder.h psslurmcomm.c psslurmcomm.h psslurmauth.c	\
+	psslurmauth.h psslurmproto.c psslurmproto.h psslurmenv.c	\
+	psslurmenv.h psslurmjobinfo.c psslurmjobinfo.h			\
+	psslurmlimits.c psslurmlimits.h psslurmmultiprog.c		\
+	psslurmmultiprog.h psslurmgres.c psslurmgres.h psslurmpin.c	\
+	psslurmpin.h psslurmio.c psslurmio.h psslurmpelogue.h		\
+	psslurmpelogue.c psslurmkvs.h psslurmkvs.c psslurmspawn.c	\
+	psslurmspawn.h psslurmpack.h psslurmpack.c			\
+	psslurmtypes. psslurminter.c psslurminter.h psslurmhandles.h
 
 psslurm_la_CPPFLAGS = $(AM_CPPFLAGS) -DPLUGINDIR=\"$(plugindir)\" \
 	-DLOCALSTATEDIR=\"$(localstatedir)\" -DBINDIR=\"$(bindir)\"

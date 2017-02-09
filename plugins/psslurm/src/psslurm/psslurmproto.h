@@ -7,9 +7,10 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-#ifndef __PS_SLURM_PROTO
-#define __PS_SLURM_PROTO
+#ifndef __PSSLURM_PROTO
+#define __PSSLURM_PROTO
 
+#include "psslurmtypes.h"
 #include "psslurmjob.h"
 #include "psslurmcomm.h"
 
@@ -43,9 +44,6 @@ void addSlurmPids(PStask_ID_t loggerTID, PS_DataBuffer_t *data);
 int getSlurmNodeID(PSnodes_ID_t psNodeID, PSnodes_ID_t *nodes,
 		    uint32_t nrOfNodes);
 uint32_t getLocalRankID(uint32_t rank, Step_t *step, uint32_t nodeId);
-
-/** Handler type for SLURMd messages */
-typedef void(*slurmdHandlerFunc_t)(Slurm_Msg_t *);
 
 /**
  * @brief Register message handler function
@@ -98,4 +96,4 @@ void initSlurmdProto(void);
 
 void clearSlurmdProto(void);
 
-#endif /* __PS_SLURM_PROTO */
+#endif /* __PSSLURM_PROTO */

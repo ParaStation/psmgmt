@@ -464,6 +464,7 @@ plugins/psslurm/src/common/slurmerrno.h \
 plugins/psslurm/src/common/slurmmsg.h \
 plugins/psslurm/src/psslurm/Makefile.am \
 plugins/psslurm/src/psslurm/Makefile.in \
+plugins/psslurm/src/psslurm/psslurm.h \
 plugins/psslurm/src/psslurm/psslurmauth.c \
 plugins/psslurm/src/psslurm/psslurmauth.h \
 plugins/psslurm/src/psslurm/psslurm.c \
@@ -477,7 +478,9 @@ plugins/psslurm/src/psslurm/psslurmforwarder.c \
 plugins/psslurm/src/psslurm/psslurmforwarder.h \
 plugins/psslurm/src/psslurm/psslurmgres.c \
 plugins/psslurm/src/psslurm/psslurmgres.h \
-plugins/psslurm/src/psslurm/psslurm.h \
+plugins/psslurm/src/psslurm/psslurmhandles.h \
+plugins/psslurm/src/psslurm/psslurminter.c \
+plugins/psslurm/src/psslurm/psslurminter.h \
 plugins/psslurm/src/psslurm/psslurmio.c \
 plugins/psslurm/src/psslurm/psslurmio.h \
 plugins/psslurm/src/psslurm/psslurmjob.c \
@@ -504,6 +507,7 @@ plugins/psslurm/src/psslurm/psslurmpscomm.c \
 plugins/psslurm/src/psslurm/psslurmpscomm.h \
 plugins/psslurm/src/psslurm/psslurmspawn.c \
 plugins/psslurm/src/psslurm/psslurmspawn.h \
+plugins/psslurm/src/psslurm/psslurmtypes.h \
 scripts/.gdbinit \
 scripts/Makefile.am \
 scripts/Makefile.in \

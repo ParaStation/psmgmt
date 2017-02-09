@@ -1,5 +1,13 @@
-#ifndef __PS_SLURM_MESSAGE
-#define __PS_SLURM_MESSAGE
+#ifndef __PSSLURM_MESSAGE
+#define __PSSLURM_MESSAGE
+
+#include <stdint.h>
+#include <time.h>
+#include <sys/types.h>
+
+#include "psnodes.h"
+#include "pstaskid.h"
+#include "plugincomm.h"
 
 typedef enum {
     REQUEST_NODE_REGISTRATION_STATUS = 1001,
@@ -235,4 +243,4 @@ typedef struct {
     time_t recvTime;
 } Slurm_Msg_t;
 
-#endif
+#endif /* __PSSLURM_MESSAGE */
