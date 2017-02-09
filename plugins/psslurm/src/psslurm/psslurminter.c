@@ -12,12 +12,24 @@
 
 #include "psslurminter.h"
 
-slurmdHandlerFunc_t psSlurmRegisterMsg(int msgType, slurmdHandlerFunc_t handler)
+slurmdHandlerFunc_t psSlurmRegMsgHandler(int msgType,
+					 slurmdHandlerFunc_t handler)
 {
     return registerSlurmdMsg(msgType, handler);
 }
 
-slurmdHandlerFunc_t psSlurmClearMsg(int msgType)
+slurmdHandlerFunc_t psSlurmClrMsgHandler(int msgType)
 {
     return clearSlurmdMsg(msgType);
+}
+
+
+Slurm_Msg_t * psSlurmDupMsg(Slurm_Msg_t *msg)
+{
+    return dupSlurmMsg(msg);
+}
+
+void psSlurmReleaseMsg(Slurm_Msg_t *msg)
+{
+    releaseSlurmMsg(msg);
 }

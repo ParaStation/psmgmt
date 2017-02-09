@@ -21,7 +21,10 @@
 
 /* For documentation of the specific funtions refer to psslurmtypes.h */
 
-psSlurmRegisterMsg_t *psSlurmRegisterMsg;
-psSlurmClearMsg_t *psSlurmClearMsg;
+psSlurmRegMsgHandler_t *psSlurmRegMsgHandler;
+psSlurmClrMsgHandler_t *psSlurmClrMsgHandler;
+
+psSlurmDupMsg_t *psSlurmDupMsg;
+psSlurmReleaseMsg_t *psSlurmReleaseMsg;
 
 #endif /* __PSSLURM_HANDLES */

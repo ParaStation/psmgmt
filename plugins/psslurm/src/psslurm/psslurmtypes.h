@@ -31,8 +31,8 @@ typedef void(*slurmdHandlerFunc_t)(Slurm_Msg_t *);
  * the corresponding function pointer is returned. If this is the
  * first handler registered for this message-type, NULL is returned.
  */
-typedef slurmdHandlerFunc_t psSlurmRegisterMsg_t(int msgType,
-						 slurmdHandlerFunc_t handler);
+typedef slurmdHandlerFunc_t psSlurmRegMsgHandler_t(int msgType,
+						   slurmdHandlerFunc_t handler);
 
 /**
  * @brief Unregister message handler function
@@ -48,6 +48,39 @@ typedef slurmdHandlerFunc_t psSlurmRegisterMsg_t(int msgType,
  * registered or the message-type was unknown before, NULL is
  * returned.
   */
-typedef slurmdHandlerFunc_t psSlurmClearMsg_t (int msgType);
+typedef slurmdHandlerFunc_t psSlurmClrMsgHandler_t(int msgType);
+
+/**
+ * @brief Duplicate SLURM message
+ *
+ * Create a duplicate of the SLURM message @a msg and return a pointer
+ * to it. All data buffers @a msg is referring to are duplicated,
+ * too. In order to cleanup the duplicate appropriately @ref
+ * psSlurmReleaseMsg() shall be called when the duplicate is no longer
+ * needed.
+ *
+ * @param msg SLURM messages to duplicate
+ *
+ * @return Upon success a pointer to the duplicate message is
+ * returned. Or NULL in case of error.
+ */
+typedef Slurm_Msg_t * psSlurmDupMsg_t(Slurm_Msg_t *msg);
+
+/**
+ * @brief Release a duplicate SLURM message
+ *
+ * Release the duplicate SLURM message @a msg. This will also release
+ * all data buffers @a sMsg is referring to. @a msg has to be created
+ * by @ref psSlurmDupMsg().
+ *
+ * @warning If @a msg is not the results of a call to @ref
+ * psSlurmDupMsg() the result is undefined and might lead to major
+ * memory inconsistencies.
+ *
+ * @param msg SLURM messages to release
+ *
+ * @return No return value
+ */
+typedef void psSlurmReleaseMsg_t(Slurm_Msg_t *msg);
 
 #endif /* __PSSLURM_TYPES */
