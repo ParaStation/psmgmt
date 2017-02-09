@@ -96,6 +96,20 @@ void setFDblock(int fd, bool block);
 void freeDataBuffer(PS_DataBuffer_t *data);
 
 /**
+ * @brief Duplicate data buffer
+ *
+ * Duplicate the data buffer @a data and return a pointer to the copy
+ * of this data buffer. For this not only the actual buffer but also
+ * all administrative information is replicated.
+ *
+ * @param data Data buffer to be duplicated
+ *
+ * @return On success, a pointer to the copy of the data buffer is
+ * returned. Or NULL in case of error.
+ */
+PS_DataBuffer_t * dupDataBuffer(PS_DataBuffer_t *data);
+
+/**
  * @brief Write data to file descriptor
  *
  * Write data from @a buffer to the file descripter @a fd. A total of
