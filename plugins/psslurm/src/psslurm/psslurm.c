@@ -82,7 +82,7 @@ handlerFunc_t oldSpawnReqHandler = NULL;
 
 /** psid plugin requirements */
 char name[] = "psslurm";
-int version = 114;
+int version = 115;
 int requiredAPI = 114;
 plugin_dep_t dependencies[7];
 
@@ -547,6 +547,8 @@ int initialize(void)
     /* set various config options */
     setConfOpt();
 
+    initSlurmdProto();
+
     if (!(registerHooks())) goto INIT_ERROR;
     if (!(initPluginHandles())) goto INIT_ERROR;
     if (!(initLimits())) goto INIT_ERROR;
@@ -684,6 +686,7 @@ void cleanup(void)
     clearJobList();
     clearGresConf();
     clearConnections();
+    clearSlurmdProto();
     freeConfig(&Config);
     freeConfig(&SlurmConfig);
     freeConfig(&SlurmGresConfig);

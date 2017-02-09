@@ -1931,6 +1931,42 @@ static int testSlurmVersion(uint32_t version, uint32_t cmd)
     return 1;
 }
 
+static void handleNodeRegStat(Slurm_Msg_t *sMsg)
+{
+    sendPing(sMsg);
+    sendNodeRegStatus(SLURM_SUCCESS, sMsg->head.version);
+}
+
+static void handleInvalid(Slurm_Msg_t *sMsg)
+{
+    mlog("%s: got invalid %s request\n", __func__,
+	 msgType2String(sMsg->head.type));
+
+    switch (sMsg->head.type) {
+    case REQUEST_SUSPEND:
+	break;
+    case REQUEST_COMPLETE_BATCH_SCRIPT:
+    case REQUEST_STEP_COMPLETE:
+    case REQUEST_STEP_COMPLETE_AGGR:
+	sendSlurmRC(sMsg, SLURM_ERROR);
+	break;
+    case MESSAGE_COMPOSITE:
+	sendSlurmRC(sMsg, ESLURM_NOT_SUPPORTED);
+	break;
+    default:
+	break;
+    }
+}
+
+typedef struct {
+    list_t next;
+    int msgType;
+    slurmdHandlerFunc_t handler;
+} msgHandler_t;
+
+static LIST_HEAD(msgList);
+
+
 int handleSlurmdMsg(Slurm_Msg_t *sMsg)
 {
     mdbg(PSSLURM_LOG_PROTO, "%s: msg(%i): %s, version '%u' "
@@ -1947,123 +1983,147 @@ int handleSlurmdMsg(Slurm_Msg_t *sMsg)
 	return 0;
     }
 
-    if (!(extractSlurmAuth(&sMsg->ptr, &sMsg->head))) goto MSG_ERROR_CLEANUP;
-
-    switch (sMsg->head.type) {
-	case REQUEST_LAUNCH_PROLOG:
-	    handleLaunchProlog(sMsg);
-	    break;
-	case REQUEST_BATCH_JOB_LAUNCH:
-	    handleBatchJobLaunch(sMsg);
-	    break;
-	case REQUEST_LAUNCH_TASKS:
-	    handleLaunchTasks(sMsg);
-	    break;
-	case REQUEST_SIGNAL_TASKS:
-	case REQUEST_TERMINATE_TASKS:
-	    handleSignalTasks(sMsg);
-	    break;
-	case REQUEST_CHECKPOINT_TASKS:
-	    handleCheckpointTasks(sMsg);
-	    break;
-	case REQUEST_REATTACH_TASKS:
-	    handleReattachTasks(sMsg);
-	    break;
-	case REQUEST_KILL_PREEMPTED:
-	case REQUEST_KILL_TIMELIMIT:
-	case REQUEST_ABORT_JOB:
-	case REQUEST_TERMINATE_JOB:
-	    handleTerminateReq(sMsg);
-	    break;
-	case REQUEST_SUSPEND:
-	    mlog("%s: got invalid '%s' request\n", __func__,
-		    msgType2String(REQUEST_SUSPEND));
-	    break;
-	case REQUEST_SUSPEND_INT:
-	    handleSuspendInt(sMsg);
-	    break;
-	case REQUEST_SIGNAL_JOB:
-	    handleSignalJob(sMsg);
-	    break;
-	case REQUEST_COMPLETE_BATCH_SCRIPT:
-	    /* should not happen, since we don't have a slurmstepd */
-	    mlog("%s: got invalid '%s' request\n", __func__,
-		    msgType2String(REQUEST_COMPLETE_BATCH_SCRIPT));
-	    goto MSG_ERROR_CLEANUP;
-	case REQUEST_UPDATE_JOB_TIME:
-	    handleUpdateJobTime(sMsg);
-	    break;
-	case REQUEST_SHUTDOWN:
-	    handleShutdown(sMsg);
-	    break;
-	case REQUEST_RECONFIGURE:
-	    handleReconfigure(sMsg);
-	    break;
-	case REQUEST_REBOOT_NODES:
-	    handleRebootNodes(sMsg);
-	    break;
-	case REQUEST_NODE_REGISTRATION_STATUS:
-	    sendPing(sMsg);
-	    sendNodeRegStatus(SLURM_SUCCESS, sMsg->head.version);
-	    break;
-	case REQUEST_PING:
-	    sendPing(sMsg);
-	    break;
-	case REQUEST_HEALTH_CHECK:
-	    handleHealthCheck(sMsg);
-	    break;
-	case REQUEST_ACCT_GATHER_UPDATE:
-	    handleAcctGatherUpdate(sMsg);
-	    break;
-	case REQUEST_ACCT_GATHER_ENERGY:
-	    handleAcctGatherEnergy(sMsg);
-	    break;
-	case REQUEST_JOB_ID:
-	    handleJobId(sMsg);
-	    break;
-	case REQUEST_FILE_BCAST:
-	    handleFileBCast(sMsg);
-	    break;
-	case REQUEST_STEP_COMPLETE:
-	case REQUEST_STEP_COMPLETE_AGGR:
-	    /* should not happen, since we don't have a slurmstepd */
-	    mlog("%s: got invalid '%s' request\n", __func__,
-		    msgType2String(sMsg->head.type));
-	    goto MSG_ERROR_CLEANUP;
-	case REQUEST_JOB_STEP_STAT:
-	    handleStepStat(sMsg);
-	    break;
-	case REQUEST_JOB_STEP_PIDS:
-	    handleStepPids(sMsg);
-	    break;
-	case REQUEST_DAEMON_STATUS:
-	    handleDaemonStatus(sMsg);
-	    break;
-	case REQUEST_JOB_NOTIFY:
-	    handleJobNotify(sMsg);
-	    break;
-	case REQUEST_FORWARD_DATA:
-	    handleForwardData(sMsg);
-	    break;
-	case REQUEST_NETWORK_CALLERID:
-	    handleNetworkCallerID(sMsg);
-	    break;
-	case MESSAGE_COMPOSITE:
-	    mlog("%s: This should never happen\n", __func__);
-	    sendSlurmRC(sMsg, ESLURM_NOT_SUPPORTED);
-	    break;
-	case RESPONSE_MESSAGE_COMPOSITE:
-	    handleRespMessageComposite(sMsg);
-	    break;
-	default:
-	    goto MSG_ERROR_CLEANUP;
+    if (!extractSlurmAuth(&sMsg->ptr, &sMsg->head)) {
+	sendSlurmRC(sMsg, SLURM_ERROR);
+	return 0;
     }
 
-    return 0;
+    list_t *h;
+    list_for_each (h, &msgList) {
+	msgHandler_t *msgHandler = list_entry(h, msgHandler_t, next);
 
-MSG_ERROR_CLEANUP:
+	if (msgHandler->msgType == sMsg->head.type) {
+	    if (msgHandler->handler) msgHandler->handler(sMsg);
+	    return 0;
+	}
+    }
+
     sendSlurmRC(sMsg, SLURM_ERROR);
     return 0;
+}
+
+slurmdHandlerFunc_t registerSlurmdMsg(int msgType, slurmdHandlerFunc_t handler)
+{
+    msgHandler_t *newHandler;
+    list_t *h;
+
+    list_for_each(h, &msgList) {
+	msgHandler_t *msgHandler = list_entry(h, msgHandler_t, next);
+
+	if (msgHandler->msgType == msgType) {
+	    /* found old handler */
+	    slurmdHandlerFunc_t oldHandler = msgHandler->handler;
+	    msgHandler->handler = handler;
+	    return oldHandler;
+	}
+    }
+
+    newHandler = umalloc(sizeof(*newHandler));
+
+    newHandler->msgType = msgType;
+    newHandler->handler = handler;
+
+    list_add_tail(&newHandler->next, &msgList);
+
+    return NULL;
+}
+
+slurmdHandlerFunc_t clearSlurmdMsg(int msgType)
+{
+    list_t *h;
+    list_for_each (h, &msgList) {
+	msgHandler_t *msgHandler = list_entry(h, msgHandler_t, next);
+
+	if (msgHandler->msgType == msgType) {
+	    /* found handler */
+	    slurmdHandlerFunc_t handler = msgHandler->handler;
+	    list_del(&msgHandler->next);
+	    free(msgHandler);
+	    return handler;
+	}
+    }
+
+    return NULL;
+}
+
+void initSlurmdProto(void)
+{
+    registerSlurmdMsg(REQUEST_LAUNCH_PROLOG, handleLaunchProlog);
+    registerSlurmdMsg(REQUEST_BATCH_JOB_LAUNCH, handleBatchJobLaunch);
+    registerSlurmdMsg(REQUEST_LAUNCH_TASKS, handleLaunchTasks);
+    registerSlurmdMsg(REQUEST_SIGNAL_TASKS, handleSignalTasks);
+    registerSlurmdMsg(REQUEST_TERMINATE_TASKS, handleSignalTasks);
+    registerSlurmdMsg(REQUEST_CHECKPOINT_TASKS, handleCheckpointTasks);
+    registerSlurmdMsg(REQUEST_REATTACH_TASKS, handleReattachTasks);
+    registerSlurmdMsg(REQUEST_KILL_PREEMPTED, handleTerminateReq);
+    registerSlurmdMsg(REQUEST_KILL_TIMELIMIT, handleTerminateReq);
+    registerSlurmdMsg(REQUEST_ABORT_JOB, handleTerminateReq);
+    registerSlurmdMsg(REQUEST_TERMINATE_JOB, handleTerminateReq);
+    registerSlurmdMsg(REQUEST_SUSPEND, handleInvalid);
+    registerSlurmdMsg(REQUEST_SUSPEND_INT, handleSuspendInt);
+    registerSlurmdMsg(REQUEST_SIGNAL_JOB, handleSignalJob);
+    registerSlurmdMsg(REQUEST_COMPLETE_BATCH_SCRIPT, handleInvalid);
+    registerSlurmdMsg(REQUEST_UPDATE_JOB_TIME, handleUpdateJobTime);
+    registerSlurmdMsg(REQUEST_SHUTDOWN, handleShutdown);
+    registerSlurmdMsg(REQUEST_RECONFIGURE, handleReconfigure);
+    registerSlurmdMsg(REQUEST_REBOOT_NODES, handleRebootNodes);
+    registerSlurmdMsg(REQUEST_NODE_REGISTRATION_STATUS, handleNodeRegStat);
+    registerSlurmdMsg(REQUEST_PING, sendPing);
+    registerSlurmdMsg(REQUEST_HEALTH_CHECK, handleHealthCheck);
+    registerSlurmdMsg(REQUEST_ACCT_GATHER_UPDATE, handleAcctGatherUpdate);
+    registerSlurmdMsg(REQUEST_ACCT_GATHER_ENERGY, handleAcctGatherEnergy);
+    registerSlurmdMsg(REQUEST_JOB_ID, handleJobId);
+    registerSlurmdMsg(REQUEST_FILE_BCAST, handleFileBCast);
+    registerSlurmdMsg(REQUEST_STEP_COMPLETE, handleInvalid);
+    registerSlurmdMsg(REQUEST_STEP_COMPLETE_AGGR, handleInvalid);
+    registerSlurmdMsg(REQUEST_JOB_STEP_STAT, handleStepStat);
+    registerSlurmdMsg(REQUEST_JOB_STEP_PIDS, handleStepPids);
+    registerSlurmdMsg(REQUEST_DAEMON_STATUS, handleDaemonStatus);
+    registerSlurmdMsg(REQUEST_JOB_NOTIFY, handleJobNotify);
+    registerSlurmdMsg(REQUEST_FORWARD_DATA, handleForwardData);
+    registerSlurmdMsg(REQUEST_NETWORK_CALLERID, handleNetworkCallerID);
+    registerSlurmdMsg(MESSAGE_COMPOSITE, handleInvalid);
+    registerSlurmdMsg(RESPONSE_MESSAGE_COMPOSITE, handleRespMessageComposite);
+}
+
+void clearSlurmdProto(void)
+{
+    clearSlurmdMsg(REQUEST_LAUNCH_PROLOG);
+    clearSlurmdMsg(REQUEST_BATCH_JOB_LAUNCH);
+    clearSlurmdMsg(REQUEST_LAUNCH_TASKS);
+    clearSlurmdMsg(REQUEST_SIGNAL_TASKS);
+    clearSlurmdMsg(REQUEST_TERMINATE_TASKS);
+    clearSlurmdMsg(REQUEST_CHECKPOINT_TASKS);
+    clearSlurmdMsg(REQUEST_REATTACH_TASKS);
+    clearSlurmdMsg(REQUEST_KILL_PREEMPTED);
+    clearSlurmdMsg(REQUEST_KILL_TIMELIMIT);
+    clearSlurmdMsg(REQUEST_ABORT_JOB);
+    clearSlurmdMsg(REQUEST_TERMINATE_JOB);
+    clearSlurmdMsg(REQUEST_SUSPEND);
+    clearSlurmdMsg(REQUEST_SUSPEND_INT);
+    clearSlurmdMsg(REQUEST_SIGNAL_JOB);
+    clearSlurmdMsg(REQUEST_COMPLETE_BATCH_SCRIPT);
+    clearSlurmdMsg(REQUEST_UPDATE_JOB_TIME);
+    clearSlurmdMsg(REQUEST_SHUTDOWN);
+    clearSlurmdMsg(REQUEST_RECONFIGURE);
+    clearSlurmdMsg(REQUEST_REBOOT_NODES);
+    clearSlurmdMsg(REQUEST_NODE_REGISTRATION_STATUS);
+    clearSlurmdMsg(REQUEST_PING);
+    clearSlurmdMsg(REQUEST_HEALTH_CHECK);
+    clearSlurmdMsg(REQUEST_ACCT_GATHER_UPDATE);
+    clearSlurmdMsg(REQUEST_ACCT_GATHER_ENERGY);
+    clearSlurmdMsg(REQUEST_JOB_ID);
+    clearSlurmdMsg(REQUEST_FILE_BCAST);
+    clearSlurmdMsg(REQUEST_STEP_COMPLETE);
+    clearSlurmdMsg(REQUEST_STEP_COMPLETE_AGGR);
+    clearSlurmdMsg(REQUEST_JOB_STEP_STAT);
+    clearSlurmdMsg(REQUEST_JOB_STEP_PIDS);
+    clearSlurmdMsg(REQUEST_DAEMON_STATUS);
+    clearSlurmdMsg(REQUEST_JOB_NOTIFY);
+    clearSlurmdMsg(REQUEST_FORWARD_DATA);
+    clearSlurmdMsg(REQUEST_NETWORK_CALLERID);
+    clearSlurmdMsg(MESSAGE_COMPOSITE);
+    clearSlurmdMsg(RESPONSE_MESSAGE_COMPOSITE);
 }
 
 static uint32_t getNodeMem()

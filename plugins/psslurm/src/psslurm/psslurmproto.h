@@ -7,7 +7,6 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-
 #ifndef __PS_SLURM_PROTO
 #define __PS_SLURM_PROTO
 
@@ -29,7 +28,6 @@ int __sendSlurmReply(Slurm_Msg_t *sMsg, slurm_msg_type_t type,
 		    __sendSlurmReply(sMsg, type, __func__, __LINE__)
 
 int writeJobscript(Job_t *job, char *script);
-int handleSlurmdMsg(Slurm_Msg_t *msg);
 
 int sendTaskPids(Step_t *step);
 void sendLaunchTasksFailed(Step_t *step, uint32_t error);
@@ -46,6 +44,58 @@ int getSlurmNodeID(PSnodes_ID_t psNodeID, PSnodes_ID_t *nodes,
 		    uint32_t nrOfNodes);
 uint32_t getLocalRankID(uint32_t rank, Step_t *step, uint32_t nodeId);
 
-void handleLaunchTasks(Slurm_Msg_t *sMsg);
+/** Handler type for SLURMd messages */
+typedef void(*slurmdHandlerFunc_t)(Slurm_Msg_t *);
 
-#endif
+/**
+ * @brief Register message handler function
+ *
+ * Register the function @a handler to handle all messages of type @a
+ * msgType. If @a handler is NULL, all messages of type @a msgType
+ * will be silently ignored in the future.
+ *
+ * @param msgType The message-type to handle.
+ *
+ * @param handler The function to call whenever a message of type @a
+ * msgType has to be handled.
+ *
+ * @return If a handler for this message-type was registered before,
+ * the corresponding function pointer is returned. If this is the
+ * first handler registered for this message-type, NULL is returned.
+ */
+slurmdHandlerFunc_t registerSlurmdMsg(int msgType, slurmdHandlerFunc_t handler);
+
+/**
+ * @brief Unregister message handler function
+ *
+ * Unregister the message-type @a msgType such that it will not be
+ * handled in the future. This includes end of silent ignore of this
+ * message-type.
+ *
+ * @param msgType The message-type not to handle any longer.
+ *
+ * @return If a handler for this message-type was registered before,
+ * the corresponding function pointer is returned. If no handler was
+ * registered or the message-type was unknown before, NULL is
+ * returned.
+  */
+slurmdHandlerFunc_t clearSlurmdMsg(int msgType);
+
+/**
+ * @brief Central protocol switch.
+ *
+ * Handle the message @a msg according to its message-type. The
+ * handler associated to the message-type might be registered via @ref
+ * registerSlurmdMsg() and unregistered via @ref clearSlurmdMsg().
+ *
+ * @param msg The message to handle.
+ *
+ * @return Always return 0
+ */
+int handleSlurmdMsg(Slurm_Msg_t *msg);
+
+void initSlurmdProto(void);
+
+void clearSlurmdProto(void);
+
+#endif /* __PS_SLURM_PROTO */
