@@ -7,7 +7,6 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-
 #ifndef __PSSLURM_COMM
 #define __PSSLURM_COMM
 
@@ -47,6 +46,39 @@ void initSlurmMsg(Slurm_Msg_t *msg);
  * @param sMsg The message to free
  */
 void freeSlurmMsg(Slurm_Msg_t *sMsg);
+
+/**
+ * @brief Duplicate SLURM message
+ *
+ * Create a duplicate of the SLURM message @a sMsg and return a
+ * pointer to it. All data buffers @a sMsg is referring to are
+ * duplicated, too. In order to cleanup the duplicate appropriately
+ * @ref releaseSlurmMsg() shall be called when the duplicate is not
+ * needed any longer.
+ *
+ * @param sMsg SLURM messages to duplicate
+ *
+ * @return Upon success a pointer to the duplicate message is
+ * returned. Or NULL in case of error.
+ */
+Slurm_Msg_t * dupSlurmMsg(Slurm_Msg_t *sMsg);
+
+/**
+ * @brief Release a duplicate SLURM message
+ *
+ * Release the duplicate SLURM message @a sMsg. This will also release
+ * all data buffers @a sMsg is referring to. @a sMsg has to be created
+ * by @ref dupSlurmMsg().
+ *
+ * @warning If @a sMsg is not the results of a call to @ref
+ * dupSlurmMsg() the result is undefined and might lead to major
+ * memory inconsistencies.
+ *
+ * @param sMsg SLURM messages to release
+ *
+ * @return No return value
+ */
+void releaseSlurmMsg(Slurm_Msg_t *sMsg);
 
 /**
  * @brief Initialize a Slurm message header

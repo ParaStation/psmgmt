@@ -364,7 +364,8 @@ static int readSlurmMsg(int sock, void *param)
     Connection_t *con = param;
     PS_DataBuffer_t *dBuf = &con->data;
     uint32_t msglen = 0;
-    int ret, error = 0;
+    int ret;
+    bool error = false;
     size_t size = 0, toRead;
     char *ptr;
 
@@ -394,7 +395,7 @@ static int readSlurmMsg(int sock, void *param)
 		mlog("%s: invalid message len %u, expect %zu\n", __func__, ret,
 		     sizeof(msglen));
 	    }
-	    error = 1;
+	    error = true;
 	    goto CALLBACK;
 	}
 
@@ -402,7 +403,7 @@ static int readSlurmMsg(int sock, void *param)
 	if (msglen > MAX_MSG_SIZE) {
 	    mlog("%s: msg too big %u (max %u)\n", __func__, msglen,
 		 MAX_MSG_SIZE);
-	    error = 1;
+	    error = true;
 	    goto CALLBACK;
 	}
 
@@ -427,13 +428,13 @@ static int readSlurmMsg(int sock, void *param)
 	/* read error */
 	mwarn(errno, "%s: doReadExtP(%d, toRead %zd, size %zd)", __func__, sock,
 	      toRead, size);
-	error = 1;
+	error = true;
 	goto CALLBACK;
 
     } else if (!ret) {
 	/* connection reset */
 	mlog("%s: connection reset on sock %i\n", __func__, sock);
-	error = 1;
+	error = true;
 	goto CALLBACK;
     } else {
 	/* all data red successful */
@@ -481,6 +482,52 @@ CALLBACK:
     }
 
     return 0;
+}
+
+Slurm_Msg_t * dupSlurmMsg(Slurm_Msg_t *sMsg)
+{
+    Slurm_Msg_t *dupMsg = umalloc(sizeof(*dupMsg));
+
+    if (!dupMsg) return NULL;
+
+    initSlurmMsg(dupMsg);
+    dupMsg->sock = sMsg->sock;
+    dupMsg->data = dupDataBuffer(sMsg->data);
+    dupMsg->ptr = dupMsg->data->buf + (sMsg->ptr - sMsg->data->buf);
+    dupMsg->recvTime = sMsg->recvTime;
+
+    dupMsg->head.version = sMsg->head.version;
+    dupMsg->head.flags = sMsg->head.flags;
+    dupMsg->head.type = sMsg->head.type;
+    dupMsg->head.bodyLen = sMsg->head.bodyLen;
+    dupMsg->head.forward = sMsg->head.forward;
+    dupMsg->head.returnList = sMsg->head.returnList;
+    dupMsg->head.addr = sMsg->head.addr;
+    dupMsg->head.port = sMsg->head.port;
+    dupMsg->head.timeout = sMsg->head.timeout;
+#ifdef SLURM_PROTOCOL_1605
+    dupMsg->head.index = sMsg->head.index;
+    dupMsg->head.treeWidth = sMsg->head.treeWidth;
+#endif
+
+    if (sMsg->head.nodeList) {
+	dupMsg->head.nodeList = strdup(sMsg->head.nodeList);
+    }
+
+    return dupMsg;
+}
+
+void releaseSlurmMsg(Slurm_Msg_t *sMsg)
+{
+    if (!sMsg) return;
+
+    if (sMsg->data) {
+	if (sMsg->data->buf) ufree(sMsg->data->buf);
+	ufree(sMsg->data);
+    }
+    if (sMsg->head.nodeList) ufree(sMsg->head.nodeList);
+
+    ufree(sMsg);
 }
 
 static int registerSlurmMessage(int sock, Connection_CB_t *cb)
