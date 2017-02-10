@@ -7,7 +7,6 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
@@ -83,7 +82,7 @@ handlerFunc_t oldSpawnReqHandler = NULL;
 /** psid plugin requirements */
 char name[] = "psslurm";
 int version = 115;
-int requiredAPI = 114;
+int requiredAPI = 117;
 plugin_dep_t dependencies[7];
 
 void startPsslurm(void)

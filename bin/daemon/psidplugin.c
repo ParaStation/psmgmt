@@ -7,7 +7,6 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -118,8 +117,10 @@ static LIST_HEAD(pluginList);
  * 115: added PSIDHOOK_JAIL_CHILD
  *
  * 116: added PSIDHOOK_PELOGUE_PREPARE
+ *
+ * 117: added PSIDspawn_localTask()
  */
-static int pluginAPIVersion = 116;
+static int pluginAPIVersion = 117;
 
 
 /** Grace period between finalize and unload on forcefully unloads */
