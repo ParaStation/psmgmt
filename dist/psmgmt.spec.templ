@@ -107,6 +107,16 @@ Obsoletes: psmom <= 5.2.10-20
 The ParaStation MOM is a complete replacement of the pbs_mom. No other
 daemon is necessary to integrate compute nodes into a Torque batch system.
 
+%package psslurm
+Summary:   The Slurm plugin of the ParaStation process management
+Group:     Productivity/Clustering/Computing
+Requires:  %{name} = %{version}
+
+%description psslurm
+The ParaStation Slurm plugin is a complete replacement of the slurmd on
+compute nodes. No other daemon is necessary to integrate compute nodes into
+a Slurm batch system.
+
 
 %if 0%{?suse_version}
 %debug_package
@@ -188,9 +198,6 @@ exit 0
 %doc NEWS
 %doc VERSION.psmgmt
 %doc doc/parastation.conf.tmpl
-%doc %{_docdir}/psmgmt/psslurm-epilogue.example
-%doc %{_docdir}/psmgmt/psslurm-prologue.example
-%doc %{_docdir}/psmgmt/psslurm.conf.template
 %doc doc/psconfig
 %doc doc/systemd
 %doc doc/README.cgroup
@@ -254,8 +261,6 @@ exit 0
 %{_plugindir}/psresport.so
 %exclude %{_plugindir}/psresport.la
 %config(noreplace) %{_plugindir}/psresport.conf
-%{_plugindir}/psslurm.so
-%exclude %{_plugindir}/psslurm.la
 %config(missingok,noreplace) %{_sysconfdir}/profile.d/psmgmt.sh
 %config(missingok,noreplace) %{_sysconfdir}/profile.d/psmgmt.csh
 %if !0%{?disable_systemd}
@@ -268,14 +273,6 @@ exit 0
 %endif
 %ghost %config(missingok,noreplace) /etc/parastation.conf
 %attr(770,root,root) %{_localstatedir}/log/psaccounter
-%dir %{_spooldir}
-%dir %{_spooldir}/jobs
-%dir %{_spooldir}/nodefiles
-%attr(1777,root,root) %{_spooldir}/temp
-%attr(1777,root,root) %{_spooldir}/undelivered
-%attr(750,root,root) %{_spooldir}/account
-%attr(750,root,root) %{_spooldir}/backup
-%attr(751,root,root) %{_spooldir}/scripts
 
 %files devel
 %defattr(-,root,root,-)
@@ -320,6 +317,22 @@ exit 0
 %{_plugindir}/psmom.so
 %exclude %{_plugindir}/psmom.la
 %config(noreplace) %{_plugindir}/psmom.conf
+%dir %{_spooldir}
+%dir %{_spooldir}/jobs
+%dir %{_spooldir}/nodefiles
+%attr(1777,root,root) %{_spooldir}/temp
+%attr(1777,root,root) %{_spooldir}/undelivered
+%attr(750,root,root) %{_spooldir}/account
+%attr(750,root,root) %{_spooldir}/backup
+%attr(751,root,root) %{_spooldir}/scripts
+
+%files psslurm
+%defattr(-,root,root,-)
+%doc plugins/psslurm/doc/psslurm-epilogue.example
+%doc plugins/psslurm/doc/psslurm-prologue.example
+%doc plugins/psslurm/doc/psslurm.conf.template
+%{_plugindir}/psslurm.so
+%exclude %{_plugindir}/psslurm.la
 %dir %{_spooldir}
 %dir %{_spooldir}/jobs
 %dir %{_spooldir}/nodefiles
