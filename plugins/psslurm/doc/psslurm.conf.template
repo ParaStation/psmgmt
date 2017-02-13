@@ -1,0 +1,31 @@
+#
+#  Configuration file for ParaStation psslurm plugin
+#
+
+# Set various soft resources limits (comma separated list, unlimited = -1)
+#RLIMITS_SOFT = RLIMIT_CORE=0,RLIMIT_NOFILE=1024
+
+# Set various hard resources limits (comma separated list, unlimited = -1)
+#RLIMITS_HARD = RLIMIT_CORE=-1
+
+# Set default membind type (string, values: {none|local}, default: local)
+#MEMBIND_DEFAULT = local
+
+# Enable libc malloc checking (1 = enabled, 0 = disabled)
+#MALLOC_CHECK = 0
+
+# Positive filter which will allow forwarding of selected environment
+# variables to prologue/epilogue.
+#PELOGUE_ENV_FILTER = SLURM_*
+
+# Directory to store jobscripts.
+#DIR_JOB_FILES = /var/spool/parastation/jobs
+
+# Distribute mpiexec service processes at startup
+#DIST_START = 1
+
+# Set the psslurm debug mask
+#DEBUG_MASK = 0x020000
+
+# Set the plugin library debug mask
+#PLUGIN_DEBUG_MASK = 0x000040

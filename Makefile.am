@@ -51,6 +51,9 @@ endif
 if !PAM_ENABLED
   AM_CONFIGARGS := $(AM_CONFIGARGS) -without pam
 endif
+if SLURM_PROTOCOL_1605
+  AM_CONFIGARGS := $(AM_CONFIGARGS) -with slurm1605
+endif
 
 .PHONY: tar rpm srpm tag version
 tar rpm srpm tag version:

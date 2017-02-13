@@ -120,6 +120,18 @@ void freeDataBuffer(PS_DataBuffer_t *data)
     data->bufUsed = data->bufSize = 0;
 }
 
+PS_DataBuffer_t * dupDataBuffer(PS_DataBuffer_t *data)
+{
+    PS_DataBuffer_t *dup = malloc(sizeof(*dup));
+
+    dup->buf = umalloc(data->bufSize);
+    memcpy(dup->buf, data->buf, data->bufSize);
+    dup->bufSize = data->bufSize;
+    dup->bufUsed = data->bufUsed;
+
+    return dup;
+}
+
 /** Maximum number of retries within @ref __doWrite() and __doRead() */
 #define MAX_RETRY 20
 

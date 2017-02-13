@@ -158,6 +158,14 @@ static int handleMthrSock(int fd, void *info)
 	return 0;
     }
 
+    if (msg.header.type == PSP_CC_ERROR) return 0; /* ignore */
+
+    if (msg.header.type != PSP_CC_MSG) {
+	pluginlog("%s: unexpected message %s from %s (type %d)\n", __func__,
+		  PSP_printMsg(msg.header.type),
+		  PSC_printTID(msg.header.sender), lmsg->type);
+    }
+
     if (fw->handleMthrMsg && fw->handleMthrMsg(lmsg, fw)) return 0;
 
     switch(lmsg->type) {

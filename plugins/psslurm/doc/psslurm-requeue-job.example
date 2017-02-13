@@ -1,0 +1,19 @@
+#!/bin/bash
+
+PATH=$PATH:/opt/parastation/bin:/opt/parastation/sbin
+
+TIMEOUT=5
+
+PSTOUT="pstimeout -k $TIMEOUT $TIMEOUT"
+
+requeueFlag=$($PSTOUT scontrol show job "$SLURM_JOBID" |awk '/Requeue=/ { gsub(".*Requeue=",""); gsub(" .*",""); print $0; }')
+
+[ "$requeueFlag" = 0 ] && {
+    $PSTOUT scontrol update JobId="$SLURM_JOBID" "Requeue=1" || exit 1
+}
+
+$PSTOUT scontrol requeue "$SLURM_JOBID" || exit 1
+
+[ "$requeueFlag" = 0 ] && {
+    $PSTOUT scontrol update JobId="$SLURM_JOBID" "Requeue=0" || exit 1
+}

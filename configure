@@ -639,6 +639,8 @@ LIBOBJS
 HAVE_SYSTEMD_FALSE
 HAVE_SYSTEMD_TRUE
 unitdir
+SLURM_PROTOCOL_1605_FALSE
+SLURM_PROTOCOL_1605_TRUE
 TESTPLUGINS_ENABLED_FALSE
 TESTPLUGINS_ENABLED_TRUE
 AM_LDFLAGS
@@ -798,6 +800,7 @@ enable_libtool_lock
 with_pamdir
 enable_psconfig
 enable_testplugins
+enable_slurm_proto_1605
 with_unitdir
 '
       ac_precious_vars='build_alias
@@ -1452,6 +1455,8 @@ Optional Features:
   --disable-libtool-lock  avoid locking (might break parallel builds)
   --disable-psconfig      build without psconfig support
   --enable-testplugins    build test plugins
+  --enable-slurm_proto_1605
+                          enable slurm protocol 16.05 support
 
 Optional Packages:
   --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
@@ -12750,6 +12755,27 @@ else
 fi
 
 
+# Check whether --enable-slurm_proto_1605 was given.
+if test "${enable_slurm_proto_1605+set}" = set; then :
+  enableval=$enable_slurm_proto_1605;
+fi
+
+ if test "x$enable_slurm_proto_1605" = xyes; then
+  SLURM_PROTOCOL_1605_TRUE=
+  SLURM_PROTOCOL_1605_FALSE='#'
+else
+  SLURM_PROTOCOL_1605_TRUE='#'
+  SLURM_PROTOCOL_1605_FALSE=
+fi
+
+
+if test -z "$SLURM_PROTOCOL_1605_TRUE"; then :
+
+  { $as_echo "$as_me:${as_lineno-$LINENO}: Building with slurm protocol 16.05 support" >&5
+$as_echo "$as_me: Building with slurm protocol 16.05 support" >&6;}
+  AM_CFLAGS="$AM_CFLAGS -DSLURM_PROTOCOL_1605"
+fi
+
 
 
 
@@ -12960,6 +12986,14 @@ ac_config_files="$ac_config_files plugins/pspmi/Makefile"
 
 ac_config_files="$ac_config_files plugins/psresport/Makefile"
 
+ac_config_files="$ac_config_files plugins/psslurm/Makefile"
+
+ac_config_files="$ac_config_files plugins/psslurm/doc/Makefile"
+
+ac_config_files="$ac_config_files plugins/psslurm/src/common/Makefile"
+
+ac_config_files="$ac_config_files plugins/psslurm/src/psslurm/Makefile"
+
 ac_config_files="$ac_config_files scripts/Makefile"
 
 ac_config_files="$ac_config_files tests/plugins/Makefile"
@@ -13158,6 +13192,10 @@ Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${TESTPLUGINS_ENABLED_TRUE}" && test -z "${TESTPLUGINS_ENABLED_FALSE}"; then
   as_fn_error $? "conditional \"TESTPLUGINS_ENABLED\" was never defined.
+Usually this means the macro was only invoked conditionally." "$LINENO" 5
+fi
+if test -z "${SLURM_PROTOCOL_1605_TRUE}" && test -z "${SLURM_PROTOCOL_1605_FALSE}"; then
+  as_fn_error $? "conditional \"SLURM_PROTOCOL_1605\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${HAVE_SYSTEMD_TRUE}" && test -z "${HAVE_SYSTEMD_FALSE}"; then
@@ -14055,6 +14093,10 @@ do
     "plugins/pspam/pspam/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/pspam/pspam/Makefile" ;;
     "plugins/pspmi/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/pspmi/Makefile" ;;
     "plugins/psresport/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/psresport/Makefile" ;;
+    "plugins/psslurm/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/psslurm/Makefile" ;;
+    "plugins/psslurm/doc/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/psslurm/doc/Makefile" ;;
+    "plugins/psslurm/src/common/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/psslurm/src/common/Makefile" ;;
+    "plugins/psslurm/src/psslurm/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/psslurm/src/psslurm/Makefile" ;;
     "scripts/Makefile") CONFIG_FILES="$CONFIG_FILES scripts/Makefile" ;;
     "tests/plugins/Makefile") CONFIG_FILES="$CONFIG_FILES tests/plugins/Makefile" ;;
     "tests/functional/Makefile") CONFIG_FILES="$CONFIG_FILES tests/functional/Makefile" ;;

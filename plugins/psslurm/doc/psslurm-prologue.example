@@ -1,0 +1,49 @@
+#!/bin/bash
+#
+# Batch prologue script - slurm + psslurm
+#
+# Prologue script arguments: none
+
+## adapt governor settings
+## set core to performance, no downscaling of frequencies, if requested
+#  for file in /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor
+#  do
+#  	echo performance > ${file}
+#  done
+#  logger -t performance "$SLURM_JOBID requested performance"
+
+# start the ParaStation Healthchecker
+#
+# log to syslog: [-l]
+#
+# defined preactions: see /etc/parastation/healthcheck/testsets/prologue/preactions
+#        postactions: see /etc/parastation/healthcheck/testsets/prologue/actions
+OLD_PATH=$PATH
+export PATH=/sbin:/bin:/usr/sbin:/usr/bin:/opt/parastation/bin
+/opt/parastation/bin/pshealthcheck --no-update -l prologue &>/tmp/pshealthcheck_prologue.out
+PSHC_EXIT="$?"
+PATH=$OLD_PATH
+
+# ignore warnings so far...
+if [ "$PSHC_EXIT" -eq "0" ] || [ "$PSHC_EXIT" -eq "1" ]; then
+    exit 0
+fi
+
+# Slurm: don't requeue job if this isn't a job and not a prologue
+if [ -n "$SLURM_STEP_ID" -o "$PELOGUE" != prologue ]; then
+    exit $PSHC_EXIT
+fi
+
+# we have a job and the prologue failed!
+requeueFlag=$(scontrol show job $SLURM_JOBID |awk '/Requeue=/ { gsub(".*Requeue=",""); gsub(" .*",""); print $0; }')
+drainedFlag=$(scontrol show node $HOSTNAME |awk '/State=/ { gsub(".*State=",""); gsub(" .*",""); print $0; }')
+
+[[ "$drainedFlag" =~ DRAIN ]] ||
+	scontrol update NodeName=$HOSTNAME State=DRAIN "Healthcheck returned $PSHC_EXIT"
+[ "$requeueFlag" = 0 ] &&
+	scontrol update JobId=$SLURM_JOBID "Requeue=1"
+scontrol requeue $SLURM_JOBID
+[ "$requeueFlag" = 0 ] &&
+	scontrol update JobId=$SLURM_JOBID "Requeue=0"
+
+exit 2
