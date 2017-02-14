@@ -2,17 +2,12 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2015 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2017 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-#ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__((used)) =
-    "$Id$";
-#endif /* DOXYGEN_SHOULD_SKIP_THIS */
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -476,6 +471,7 @@ int PSI_infoList(PSnodes_ID_t node, PSP_Info_t what, const void *param,
 	.buf = { 0 } };
     PSP_Info_t type;
     size_t recvd = 0;
+    char *bufPtr = buf;
 
     switch (what) {
     case PSP_INFO_LIST_HOSTSTATUS:
@@ -522,7 +518,7 @@ int PSI_infoList(PSnodes_ID_t node, PSP_Info_t what, const void *param,
     do {
 	size_t chunk = size;
 	if (chunk) {
-	    type = receiveInfo(buf+recvd, &chunk, verbose);
+	    type = receiveInfo(bufPtr + recvd, &chunk, verbose);
 	} else {
 	    type = receiveInfo(NULL, &chunk, verbose);
 	}
@@ -596,6 +592,7 @@ int PSI_infoQueueNext(PSP_Info_t what, void *buf, size_t size, int verbose)
 {
     PSP_Info_t type;
     size_t recvd = 0;
+    char *bufPtr = buf;
 
     switch (what) {
     case PSP_INFO_QUEUE_ALLTASK:
@@ -614,7 +611,7 @@ int PSI_infoQueueNext(PSP_Info_t what, void *buf, size_t size, int verbose)
     do {
 	size_t chunk = size;
 	if (chunk) {
-	    type = receiveInfo(buf+recvd, &chunk, verbose);
+	    type = receiveInfo(bufPtr + recvd, &chunk, verbose);
 	} else {
 	    type = receiveInfo(NULL, &chunk, verbose);
 	}

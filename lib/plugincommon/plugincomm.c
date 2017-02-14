@@ -7,7 +7,6 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-
 #include <stdbool.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -466,6 +465,7 @@ bool addArrayToBuf(const void *val, const uint32_t num, PS_DataBuffer_t *data,
 		   const char *caller, const int line)
 {
     uint32_t i;
+    const char *valPtr = val;
 
     if (!data) {
 	pluginlog("%s: invalid data from '%s' at %d\n", __func__, caller, line);
@@ -480,7 +480,7 @@ bool addArrayToBuf(const void *val, const uint32_t num, PS_DataBuffer_t *data,
 	return false;
 
     for (i = 0; i < num; i++) {
-	addToBuf(val + i*size, size, data, type, caller, line);
+	addToBuf(valPtr + i*size, size, data, type, caller, line);
     }
 
     return true;

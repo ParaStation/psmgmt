@@ -14,7 +14,7 @@ git log --topo-order --pretty=format:\
 
 5. Tag the new release using:
 git tag -a -m "Tagging <new-tag>" <new-tag>
-   where <new-tag> is of the form 5.1.x
+   where <new-tag> is of the form 5.1.x-0
 
 6. Push the newly tagged commits upstream using:
 git push --tags; git push
