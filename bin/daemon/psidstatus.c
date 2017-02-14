@@ -2,17 +2,12 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2017 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-#ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__((used)) =
-    "$Id$";
-#endif /* DOXYGEN_SHOULD_SKIP_THIS */
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -58,7 +53,7 @@ static char vcid[] __attribute__((used)) =
 static PSID_Jobs_t myJobs = { .normal = 0, .total = 0 };
 
 /** Total number of nodes connected. Needed for keep-alive pings */
-static int totalNodes = 0;
+static int totNodes = 0;
 
 /**
  * @brief Get load information from kernel.
@@ -301,12 +296,7 @@ static void handleMasterTasks(void)
 }
 
 /**
- * @brief Send status ping.
- *
- * Send a status ping.
- *
- * For masters with protocol versions before 334 some entries might be
- * not correctly aligned. This is fixed in later versions.
+ * @brief Send status ping
  *
  * @return No return value.
  */
@@ -319,46 +309,15 @@ static void sendRDPPing(void)
 	    .dest = PSC_getTID(getMasterID(), 0),
 	    .len = sizeof(msg.header) },
 	.buf = {'\0'} };
-    char *ptr = msg.buf;
+    PSID_Load_t load = getLoad();
+    PSID_Mem_t mem = getMem();
 
     PSID_log(PSID_LOG_STATUS, "%s to %d\n", __func__, getMasterID());
 
-    if (PSIDnodes_getProtoV(getMasterID()) < 334) {
-	*(PSID_Jobs_t *)ptr = myJobs;
-	ptr += sizeof(PSID_Jobs_t);
-	msg.header.len += sizeof(PSID_Jobs_t);
-
-	*(PSID_Load_t *)ptr = getLoad();
-	ptr += sizeof(PSID_Load_t);
-	msg.header.len += sizeof(PSID_Load_t);
-
-	*(int *)ptr = totalNodes;
-	ptr += sizeof(int);
-	msg.header.len += sizeof(int);
-
-	*(PSID_Mem_t *)ptr = getMem();
-	//ptr += sizeof(PSID_Mem_t);
-	msg.header.len += sizeof(PSID_Mem_t);
-    } else {
-	*(PSID_Jobs_t *)ptr = myJobs;
-	ptr += sizeof(PSID_Jobs_t);
-	msg.header.len += sizeof(PSID_Jobs_t);
-	/* Now we are on a 64-bit boundary */
-
-	*(PSID_Load_t *)ptr = getLoad();
-	ptr += sizeof(PSID_Load_t);
-	msg.header.len += sizeof(PSID_Load_t);
-	/* Load_t contains doubles -> still on 64-bit */
-
-	*(PSID_Mem_t *)ptr = getMem();
-	ptr += sizeof(PSID_Mem_t);
-	msg.header.len += sizeof(PSID_Mem_t);
-	/* Load_t contains uint64_t -> still on 64-bit */
-
-	*(int *)ptr = totalNodes;
-	//ptr += sizeof(int);
-	msg.header.len += sizeof(int);
-    }
+    PSP_putMsgBuf(&msg, __func__, "myJobs", &myJobs, sizeof(myJobs));
+    PSP_putMsgBuf(&msg, __func__, "load", &load, sizeof(load));
+    PSP_putMsgBuf(&msg, __func__, "mem", &mem, sizeof(mem));
+    PSP_putMsgBuf(&msg, __func__, "totNodes", &totNodes, sizeof(totNodes));
 
     sendMsg(&msg);
     if (getMasterID() == PSC_getMyID()) handleMasterTasks();
@@ -623,7 +582,7 @@ void declareNodeDead(PSnodes_ID_t id, int sendDeadnode, int silent)
 	     "%s: node %d goes down. Will %ssend PSP_DD_DEAD_NODE messages\n",
 	     __func__, id, sendDeadnode ? "" : "not ");
 
-    totalNodes--;
+    totNodes--;
     PSIDnodes_bringDown(id);
     PSIDnodes_setPhysCPUs(id, 0);
     PSIDnodes_setVirtCPUs(id, 0);
@@ -717,7 +676,7 @@ void declareNodeAlive(PSnodes_ID_t id, int physCPUs, int virtCPUs)
     }
 
     if (!wasUp) {
-	totalNodes++;
+	totNodes++;
     }
     PSIDnodes_bringUp(id);
     PSIDnodes_setPhysCPUs(id, physCPUs);
@@ -1180,46 +1139,26 @@ static void msg_DEADNODE(DDBufferMsg_t *msg)
  */
 static void msg_LOAD(DDBufferMsg_t *msg)
 {
-    char *ptr = msg->buf;
-    PSnodes_ID_t client = PSC_getID(msg->header.sender);
-
     if (PSC_getMyID() != getMasterID()) {
 	send_MASTERIS(PSC_getID(msg->header.sender));
     } else if (clientStat) { /* Ignore msg during on-going shutdown */
+	PSnodes_ID_t client = PSC_getID(msg->header.sender);
+	size_t used = 0;
 	int clientNodes;
 
-	if (PSIDnodes_getProtoV(client) < 334) {
-	    clientStat[client].jobs = *(PSID_Jobs_t *)ptr;
-	    ptr += sizeof(PSID_Jobs_t);
-
-	    clientStat[client].load = *(PSID_Load_t *)ptr;
-	    ptr += sizeof(PSID_Load_t);
-
-	    clientNodes = *(int *)ptr;
-	    ptr += sizeof(int);
-
-	    if (((void *)ptr - (void *)msg) < msg->header.len) {
-		clientStat[client].mem = *(PSID_Mem_t *)ptr;
-		//ptr += sizeof(PSID_Mem_t);
-	    }
-	} else {
-	    clientStat[client].jobs = *(PSID_Jobs_t *)ptr;
-	    ptr += sizeof(PSID_Jobs_t);
-
-	    clientStat[client].load = *(PSID_Load_t *)ptr;
-	    ptr += sizeof(PSID_Load_t);
-
-	    clientStat[client].mem = *(PSID_Mem_t *)ptr;
-	    ptr += sizeof(PSID_Mem_t);
-
-	    clientNodes = *(int *)ptr;
-	    //ptr += sizeof(int);
-	}
+	PSP_getMsgBuf(msg, &used, __func__, "jobs", &clientStat[client].jobs,
+		      sizeof(clientStat[client].jobs));
+	PSP_getMsgBuf(msg, &used, __func__, "load", &clientStat[client].load,
+		      sizeof(clientStat[client].load));
+	PSP_getMsgBuf(msg, &used, __func__, "mem", &clientStat[client].mem,
+		      sizeof(clientStat[client].mem));
+	PSP_getMsgBuf(msg, &used, __func__, "totNodes", &clientNodes,
+		      sizeof(clientNodes));
 
 	gettimeofday(&clientStat[client].lastPing, NULL);
 	clientStat[client].missCounter = 0;
 
-	if (clientNodes != totalNodes) {
+	if (clientNodes != totNodes) {
 	    clientStat[client].wrongClients++;
 
 	    if (clientStat[client].wrongClients > MAX_WRONG_CLIENTS) {
