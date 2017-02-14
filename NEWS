@@ -4,6 +4,26 @@ Copyright (C) 2010-2017 ParTec Cluster Competence Center GmbH, Munich
 
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
+Version 5.1.0:
+==============
+Bugfixes:
+ - pluginforwarder shall ignore PSP_CC_ERROR messages
+ - Fix delayed spawns waiting for step (#6354)
+ - Fix memory allocation in pluginstrv
+ - Fix memory allocation in PMI spawn handling
+
+Enhancements:
+ - New function dupDataBuffer()
+ - Remove PSI_INPUTDEST in rank environment instead of mpiexec
+
+Additional changes:
+ - Merge most recent version of psslurm plugin from psslurm-devel
+ - Allow psmgmt RPM to replace psmgmt-slurm1605
+ - Move psslurm plugin into its own sub-RPM
+ - Push plugin API version to 117 for PSIDspawn_localTask()
+ - Add new testplugin to delay SLURM messages
+
+
 *************************************************************************
 *************************************************************************
 **                                                                     **

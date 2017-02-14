@@ -1,3 +1,143 @@
+Version psmgmt-5.1.0:
+=====================
+------------------------------------------------------------------------
+2669bf1 | Norbert Eicker | Tue, 14 Feb 2017 12:27:34 +0100
+
+Refine Obsoletes entry in RPMs spec file
+
+------------------------------------------------------------------------
+4228fe8 | Norbert Eicker | Tue, 14 Feb 2017 11:45:43 +0100
+
+Put psslurm's ChangeLog history into separate file
+
+------------------------------------------------------------------------
+149e54f | Norbert Eicker | Tue, 14 Feb 2017 09:58:06 +0100
+
+Bugfix: More fixes for delayed tasks (jrt:#6354)
+
+ - Also lookup delayedTasks when cloning environment from siblings
+ - Enqueue directly to delayed task to circumvent check for identity
+
+------------------------------------------------------------------------
+8481032 | Norbert Eicker | Tue, 14 Feb 2017 09:44:19 +0100
+
+Bugfix: Make delaySlurmMsg test plugin actually work
+
+------------------------------------------------------------------------
+15d8665 | Norbert Eicker | Mon, 13 Feb 2017 23:07:32 +0100
+
+Allow psmgmt RPM to replace psmgmt-slurm1605
+
+------------------------------------------------------------------------
+f82945c | Norbert Eicker | Mon, 13 Feb 2017 22:32:38 +0100
+
+Move psslurm plugin into its own sub-RPM
+
+------------------------------------------------------------------------
+15d9d90 | Norbert Eicker | Mon, 13 Feb 2017 21:59:20 +0100
+
+Revert Slurm 16.05 support logic
+
+ - Slurm 16.05 is the default from now on
+ - To get 14.03 support use configure's --disable-slurm_1605 argument
+ - The RPM naming scheme is change appropriately, i.e. psmgmt supports
+   Slurm 16.05 while psmgmt-slurm1403 support Slurm 14.03
+
+------------------------------------------------------------------------
+25ff25b | Norbert Eicker | Mon, 13 Feb 2017 18:46:56 +0100
+
+Merge branch 'psslurm-devel'
+
+------------------------------------------------------------------------
+98538ed | Norbert Eicker | Mon, 13 Feb 2017 16:53:05 +0100
+
+Bugfix: pluginforwarder shall ignore PSP_CC_ERROR messages
+
+ - Provide additional warning if unexpected messages are received
+
+------------------------------------------------------------------------
+7d20c7a | Norbert Eicker | Fri, 10 Feb 2017 09:52:01 +0100
+
+Push plugin API version to 117 for PSIDspawn_localTask()
+
+------------------------------------------------------------------------
+fd13663 | Norbert Eicker | Thu, 9 Feb 2017 23:33:46 +0100
+
+Add new testplugin to delay SLURM messages
+
+------------------------------------------------------------------------
+b608a90 | Norbert Eicker | Thu, 9 Feb 2017 23:20:47 +0100
+
+Enhancement: New function dupDataBuffer()
+
+------------------------------------------------------------------------
+c107bca | Thomas Moschny | Wed, 8 Feb 2017 22:47:08 +0100
+
+Fix and simplify the pam_psmom.so symlink generation.
+
+------------------------------------------------------------------------
+a7f65e3 | Thomas Moschny | Wed, 8 Feb 2017 22:42:49 +0100
+
+Fix 'make distcheck'.
+
+------------------------------------------------------------------------
+fdca1e7 | Thomas Moschny | Wed, 8 Feb 2017 22:34:59 +0100
+
+Do not include the the psconfig sample file twice (it's in the psconfig subdir).
+
+------------------------------------------------------------------------
+2297b27 | Michael Rauh | Wed, 8 Feb 2017 11:51:59 +0100
+
+Remove PSI_INPUTDEST in rank environment instead of mpiexec
+
+------------------------------------------------------------------------
+f74913c | Norbert Eicker | Wed, 8 Feb 2017 11:33:43 +0100
+
+Actually implement PSIDspawn_delayTask()
+
+------------------------------------------------------------------------
+bbb75bf | Norbert Eicker | Wed, 8 Feb 2017 11:10:29 +0100
+
+More equalization between master and psslurm-devel
+
+------------------------------------------------------------------------
+e5fdb1d | Norbert Eicker | Tue, 7 Feb 2017 18:43:40 +0100
+
+Equalize between psslurm-devel and master
+
+------------------------------------------------------------------------
+e4d6e3e | Norbert Eicker | Tue, 7 Feb 2017 17:29:01 +0100
+
+Bugfix: Fix delayed spawns waiting for step (#6354)
+
+------------------------------------------------------------------------
+c5522f0 | Stephan Krempel | Tue, 7 Feb 2017 13:01:02 +0100
+
+Fix memory allocation in pluginstrv
+
+------------------------------------------------------------------------
+1b17a4e | Norbert Eicker | Tue, 7 Feb 2017 11:30:02 +0100
+
+Streamline pmiclientspawn again
+
+------------------------------------------------------------------------
+7db88f2 | Stephan Krempel | Tue, 7 Feb 2017 10:20:20 +0100
+
+Fix memory allocation in PMI spawn handling
+
+------------------------------------------------------------------------
+813bd7d | Norbert Eicker | Mon, 6 Feb 2017 12:05:42 +0100
+
+Prepare for 5.1.x releases
+
+------------------------------------------------------------------------
+be4e1de | Norbert Eicker | Mon, 6 Feb 2017 11:53:41 +0100
+
+New version (psmgmt-5.0.54)
+
+------------------------------------------------------------------------
+
+
 Version psmgmt-5.0.54:
 ======================
 ------------------------------------------------------------------------
