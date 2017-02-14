@@ -50,9 +50,9 @@ void releaseMsgs(void)
 
     if (delayTimer > -1) {
 	Timer_remove(delayTimer);
-	PSID_log(-1, "%s: delete timer %d\n", name, delayTimer);
 	delayTimer = -1;
     }
+    PSID_log(-1, "%s: %s now\n", name, __func__);
 
     /* pass steps to handler */
     list_for_each_safe(m, tmp, &msgList) {
@@ -66,13 +66,17 @@ void releaseMsgs(void)
 
 void delaySlurmMsg(Slurm_Msg_t *sMsg)
 {
-    msgContainer_t *mCnt = malloc(sizeof(*mCnt));
-    mCnt->msg = psSlurmDupMsg(sMsg);
-    list_add_tail(&mCnt->next, &msgList);
+    if (delayTimer == -1) delayTimer = Timer_register(&timeout, releaseMsgs);
 
     if (delayTimer == -1) {
-	delayTimer = Timer_register(&timeout, releaseMsgs);
-	PSID_log(-1, "%s: timer %d\n", name, delayTimer);
+	PSID_log(-1, "%s: Cannot delay message, deliver immediately\n", name);
+	if (origHandler) origHandler(sMsg);
+    } else {
+	msgContainer_t *mCnt = malloc(sizeof(*mCnt));
+	mCnt->msg = psSlurmDupMsg(sMsg);
+	list_add_tail(&mCnt->next, &msgList);
+	PSID_log(-1, "%s: Delay message of type %d by %ld msec\n", name,
+		 MSG_TYPE, 1000 * timeout.tv_sec +  timeout.tv_usec / 1000);
     }
 }
 
@@ -88,7 +92,7 @@ int initialize(void)
     void *handle = PSIDplugin_getHandle("psslurm");
 
     /* get psslurm function handles */
-    if (handle) {
+    if (!handle) {
 	PSID_log(-1, "%s: getting psslurm handle failed\n", __func__);
 	return 1;
     }
