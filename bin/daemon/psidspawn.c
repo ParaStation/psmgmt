@@ -1938,6 +1938,20 @@ static void cloneEnvFromTasks(PStask_t *task)
 	    break;
 	}
     }
+    if (!sibling) {
+	/* No sibling yet, maybe they are delayed */
+	list_for_each(t, &delayedTasks) {
+	    PStask_t *tt = list_entry(t, PStask_t, next);
+	    if (tt->deleted) continue;
+
+	    if (tt->loggertid == task->loggertid && tt->ptid == task->ptid
+		&& tt->environ && tt->rank >= 0) {
+		sibling = tt;
+		break;
+	    }
+	}
+    }
+
 
     if (!sibling) {
 	PSID_log(-1, "%s: No sibling for task '%s' rank '%i' ", __func__,
@@ -2365,7 +2379,7 @@ void PSIDspawn_delayTask(PStask_t *task)
 	return;
     }
     PStasklist_dequeue(task);
-    PStasklist_enqueue(&delayedTasks, task);
+    list_add_tail(&task->next, &delayedTasks);
 }
 
 void PSIDspawn_startDelayedTasks(PSIDspawn_filter_t filter, void *info)
