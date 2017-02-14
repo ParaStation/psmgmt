@@ -312,10 +312,10 @@ plugins/psexec/psexeclog.h \
 plugins/psexec/psexecscripts.c \
 plugins/psexec/psexecscripts.h \
 plugins/psexec/psexectypes.h \
-plugins/psmom/Makefile.am \
-plugins/psmom/Makefile.in \
 plugins/psmom/ChangeLog-History \
 plugins/psmom/LICENSE.OpenPBS \
+plugins/psmom/Makefile.am \
+plugins/psmom/Makefile.in \
 plugins/psmom/README \
 plugins/psmom/doc/Makefile.am \
 plugins/psmom/doc/Makefile.in \
@@ -448,6 +448,7 @@ plugins/psresport/psresportconfig.c \
 plugins/psresport/psresportconfig.h \
 plugins/psresport/psresportlog.c \
 plugins/psresport/psresportlog.h \
+plugins/psslurm/ChangeLog-History \
 plugins/psslurm/Makefile.am \
 plugins/psslurm/Makefile.in \
 plugins/psslurm/doc/Makefile.am \
