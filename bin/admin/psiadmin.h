@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2016-2017 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -11,15 +11,6 @@
 #define __PSIADMIN_H
 
 #include "logging.h"
-
-#ifdef __cplusplus
-extern "C" {
-#if 0
-} /* <- just for emacs indentation */
-#endif
-#endif
-
-extern char psiadmversion[];
 
 /** Logger used for error messages within psiadmin. */
 extern logger_t *PSIadm_logger;
@@ -54,9 +45,5 @@ extern logger_t *PSIadm_logger;
 #define PSIadm_exit(...) if (PSIadm_logger) {		\
 	logger_exit(PSIadm_logger, __VA_ARGS__);	\
     }
-
-#ifdef __cplusplus
-}/* extern "C" */
-#endif
 
 #endif /* __PSIADMIN_H */

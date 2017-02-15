@@ -2,17 +2,12 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2017 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-#ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__((used)) =
-    "$Id$";
-#endif /* DOXYGEN_SHOULD_SKIP_THIS */
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -36,8 +31,6 @@ static char vcid[] __attribute__((used)) =
 #include "psiadmin.h"
 
 #include "helpmsgs.c"
-
-static char parserversion[] = "$Revision$";
 
 static char *defaultNL = NULL;
 
@@ -2388,21 +2381,15 @@ static int versionCommand(char *token)
 
     printf("PSIADMIN: ParaStation administration tool\n");
     printf("Copyright (C) 1996-2004 ParTec AG, Karlsruhe\n");
-    printf("Copyright (C) 2005-2016 ParTec Cluster Competence Center GmbH,"
+    printf("Copyright (C) 2005-2017 ParTec Cluster Competence Center GmbH,"
 	   " Munich\n");
     printf("\n");
-    printf("PSIADMIN:   %s\b/ %s\b/ %s\b \b\b\n", psiadmversion+11,
-	   commandsversion+11, parserversion+11);
     printf("PSProtocol: %d\n", PSProtocolVersion);
-    printf("RPM:        %s-%s\n", VERSION_psmgmt, RELEASE_psmgmt);
-
-    err = PSI_infoString(-1, PSP_INFO_DAEMONVER, NULL, tmp, sizeof(tmp), 0);
-    if (err) strcpy(tmp, "$Revision: unknown$");
-    printf("PSID:       %s\b \n", tmp+11);
+    printf("PSIADMIN:   %s-%s\n", VERSION_psmgmt, RELEASE_psmgmt);
 
     err = PSI_infoString(-1, PSP_INFO_RPMREV, NULL, tmp, sizeof(tmp), 0);
     if (err) strcpy(tmp, "unknown");
-    printf("RPM:        %s\n", tmp);
+    printf("PSID:       %s\n", tmp);
     return 0;
 
  error:

@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2017 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -38,8 +38,6 @@
 #include "psiadmin.h"
 
 #include "commands.h"
-
-char commandsversion[] = "$Revision$";
 
 /* @todo PSI_sendMsg(): Wrapper, control if sendMsg was successful or exit */
 
@@ -1383,29 +1381,22 @@ void PSIADM_VersionStat(char *nl)
 
     if (! getHostStatus()) return;
 
-    printf("%4s\t%8s %16s %6s\n", "Node", "psid  ", "RPM     ", "Protocols");
+    printf("%4s\t%-36s %6s\n", "Node", "psid version", "Protocols");
     for (node=0; node<PSC_getNrOfNodes(); node++) {
 	if (nl && !nl[node]) continue;
 
 	printf("%s\t", nodeString(node));
 	if (hostStatus.list[node]) {
-	    char psidver[100], rpmrev[100];
+	    char versionStr[128];
 	    PSP_Optval_t optVal[2];
 	    PSP_Option_t optType[] = { PSP_OP_PROTOCOLVERSION,
 				       PSP_OP_DAEMONPROTOVERSION };
 	    int err;
 
-	    psidver[0] = rpmrev[0] = '\0';
-	    err = PSI_infoString(node, PSP_INFO_DAEMONVER, NULL,
-				 psidver, sizeof(psidver), 0);
-	    if (err || strlen(psidver) < 11) {
-	      strcpy(psidver, "$Revision: unknown$");
-	    }
+	    versionStr[0] = '\0';
 	    err = PSI_infoString(node, PSP_INFO_RPMREV, NULL,
-				 rpmrev, sizeof(rpmrev), 0);
-	    if (err) strcpy(rpmrev, "unknown");
-
-	    printf("%8s\b  %16s ", psidver+11, rpmrev);
+				 versionStr, sizeof(versionStr), 0);
+	    printf("%-36s ", !err ? versionStr : "unknown");
 
 	    err = PSI_infoOption(node, 2, optType, optVal, 1);
 	    if (err != -1) {
