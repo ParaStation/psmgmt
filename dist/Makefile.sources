@@ -30,7 +30,6 @@ bin/admin/helpmsgs.c \
 bin/admin/psiadmin.c \
 bin/admin/psiadmin.h \
 bin/daemon/psid.c \
-bin/daemon/psid.h \
 bin/daemon/psidaccount.c \
 bin/daemon/psidaccount.h \
 bin/daemon/psidamd.c \

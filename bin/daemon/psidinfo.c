@@ -2,17 +2,12 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2017 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-#ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__((used)) =
-    "$Id$";
-#endif /* DOXYGEN_SHOULD_SKIP_THIS */
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -37,8 +32,6 @@ static char vcid[] __attribute__((used)) =
 #include "psidenv.h"
 
 #include "psidinfo.h"
-#include "psid.h"
-
 
 /**
  * @brief Handle a PSP_CD_INFOREQUEST message.
@@ -357,7 +350,7 @@ static void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 	    msg.header.len += strlen(msg.buf)+1;
 	    break;
 	case PSP_INFO_DAEMONVER:
-	    strncpy(msg.buf, psid_cvsid, sizeof(msg.buf));
+	    strncpy(msg.buf, "           no info ", sizeof(msg.buf));
 	    msg.buf[sizeof(msg.buf)-1] = '\0';
 	    msg.header.len += strlen(msg.buf)+1;
 	    break;

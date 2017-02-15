@@ -63,9 +63,6 @@
 #include "psidenv.h"
 #include "psidhook.h"
 #include "psidflowcontrol.h"
-#include "psid.h"
-
-char psid_cvsid[] = "$Revision$";
 
 /**
  * @brief MCast callback handler
@@ -528,13 +525,13 @@ void PSID_clearMem(void)
 /**
  * @brief Print version info.
  *
- * Print version info of the current psid.c CVS revision number to stderr.
+ * Print version info of the current psid.c revision number to stderr.
  *
  * @return No return value.
  */
 static void printVersion(void)
 {
-    fprintf(stderr, "psid %s\b \n", psid_cvsid+11);
+    fprintf(stderr, "psid %s-%s\n", VERSION_psmgmt, RELEASE_psmgmt);
 }
 
 #define FORKMAGIC 4711

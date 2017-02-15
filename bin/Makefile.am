@@ -1,7 +1,7 @@
 #
 # ParaStation
 #
-# Copyright (C) 2012-2016 ParTec Cluster Competence Center GmbH, Munich
+# Copyright (C) 2012-2017 ParTec Cluster Competence Center GmbH, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -40,7 +40,7 @@ psiadmin_SOURCES = admin/psiadmin.c admin/psiadmin.h admin/commands.c	\
 psiadmin_LDADD = $(libputil) $(libpse) $(POPT_LIBS)
 
 psid_SOURCES = daemon/psidaccount.c daemon/psidaccount.h		\
-	daemon/psidamd.c daemon/psidamd.h daemon/psid.c daemon/psid.h	\
+	daemon/psidamd.c daemon/psidamd.h daemon/psid.c			\
 	daemon/psidclient.c daemon/psidclient.h daemon/psidcomm.c	\
 	daemon/psidcomm.h daemon/psidenv.c daemon/psidenv.h		\
 	daemon/psidforwarder.c daemon/psidforwarder.h			\
@@ -49,14 +49,14 @@ psid_SOURCES = daemon/psidaccount.c daemon/psidaccount.h		\
 	daemon/psidmsgbuf.c daemon/psidmsgbuf.h daemon/psidnodes.c	\
 	daemon/psidnodes.h daemon/psidoption.c daemon/psidoption.h	\
 	daemon/psidpartition.c daemon/psidpartition.h			\
-	daemon/psidplugin.c daemon/psidplugin.h				\
-	daemon/psidppc.c daemon/psidppc.h daemon/psidrdp.c		\
-	daemon/psidrdp.h daemon/psidscripts.c daemon/psidscripts.h	\
-	daemon/psidsignal.c daemon/psidsignal.h daemon/psidspawn.c	\
-	daemon/psidspawn.h daemon/psidstate.c daemon/psidstate.h	\
-	daemon/psidstatus.c daemon/psidstatus.h daemon/psidtask.c	\
-	daemon/psidtask.h daemon/psidtimer.h daemon/psidutil.c		\
-	daemon/psidutil.h daemon/psidintel.c daemon/psidintel.h		\
+	daemon/psidplugin.c daemon/psidplugin.h daemon/psidppc.c	\
+	daemon/psidppc.h daemon/psidrdp.c daemon/psidrdp.h		\
+	daemon/psidscripts.c daemon/psidscripts.h daemon/psidsignal.c	\
+	daemon/psidsignal.h daemon/psidspawn.c daemon/psidspawn.h	\
+	daemon/psidstate.c daemon/psidstate.h daemon/psidstatus.c	\
+	daemon/psidstatus.h daemon/psidtask.c daemon/psidtask.h		\
+	daemon/psidtimer.h daemon/psidutil.c daemon/psidutil.h		\
+	daemon/psidintel.c daemon/psidintel.h				\
 	daemon/psidflowcontrol.c daemon/psidflowcontrol.h
 psid_LDFLAGS = $(AM_LDFLAGS) $(glib2_LIBS) -export-dynamic
 psid_LDADD = $(libputil) $(libpscommon) $(libpslog) -lutil	\
