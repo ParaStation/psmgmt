@@ -2305,9 +2305,6 @@ static void msg_CREATEPART(DDBufferMsg_t *inmsg)
     task->request->uid = task->uid;
     task->request->gid = task->gid;
     task->request->start = task->started.tv_sec;
-    if (task->protocolVersion < 337) {
-	task->request->tpp = 1;
-    }
     if (task->request->tpp < 1) {
 	PSID_log(-1, "%s: Invalid TPP %d\n", __func__, task->request->tpp);
 	errno = EINVAL;

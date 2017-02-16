@@ -383,56 +383,7 @@ static void msg_SIGNAL(DDSignalMsg_t *msg)
 	if (!sender) {
 	    PSID_log(-1, "%s: sender %s not found\n",
 		     __func__, PSC_printTID(msg->header.sender));
-	} else if (sender->protocolVersion < 325
-		   && sender->group != TG_LOGGER) {
-
-	    /* Client uses old protocol. Map to new one. */
-	    static DDSignalMsg_t newMsg;
-
-	    newMsg.header.type = msg->header.type;
-	    newMsg.header.sender = msg->header.sender;
-	    newMsg.header.dest = msg->header.dest;
-	    newMsg.header.len = sizeof(newMsg);
-	    newMsg.signal = msg->signal;
-	    newMsg.param = msg->param;
-	    newMsg.pervasive = 0;
-	    newMsg.answer = 0;
-
-	    msg = &newMsg;
-	} else if (sender->protocolVersion < 328
-		   && sender->group != TG_LOGGER) {
-
-	    /* Client uses old protocol. Map to new one. */
-	    static DDSignalMsg_t newMsg;
-
-	    newMsg.header.type = msg->header.type;
-	    newMsg.header.sender = msg->header.sender;
-	    newMsg.header.dest = msg->header.dest;
-	    newMsg.header.len = sizeof(newMsg);
-	    newMsg.signal = msg->signal;
-	    newMsg.param = msg->param;
-	    newMsg.pervasive = *(int *)&msg->pervasive;
-	    newMsg.answer = 0;
-
-	    msg = &newMsg;
-	} else if (sender->protocolVersion < 333
-		   && sender->group != TG_LOGGER) {
-
-	    /* Client uses old protocol. Map to new one. */
-	    static DDSignalMsg_t newMsg;
-
-	    newMsg.header.type = msg->header.type;
-	    newMsg.header.sender = msg->header.sender;
-	    newMsg.header.dest = msg->header.dest;
-	    newMsg.header.len = sizeof(newMsg);
-	    newMsg.signal = msg->signal;
-	    newMsg.param = msg->param;
-	    newMsg.pervasive = msg->pervasive;
-	    newMsg.answer = 0;
-
-	    msg = &newMsg;
 	}
-
     }
 
     if (PSC_getID(msg->header.dest)==PSC_getMyID()) {

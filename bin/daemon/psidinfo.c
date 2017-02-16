@@ -91,22 +91,6 @@ static void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 		    PSID_log(-1, "%s: requester %s not found\n",
 			     funcStr, PSC_printTID(inmsg->header.sender));
 		    inmsg = (DDTypedBufferMsg_t *)&msg;
-		} else {
-		    /* Test for protocol changes */
-		    if (requester->protocolVersion < 329) {
-			switch (inmsg->type) {
-			case PSP_INFO_LIST_VIRTCPUS:
-			case PSP_INFO_LIST_PHYSCPUS:
-			case PSP_INFO_LIST_HWSTATUS:
-			case PSP_INFO_LIST_LOAD:
-			case PSP_INFO_LIST_ALLJOBS:
-			case PSP_INFO_LIST_NORMJOBS:
-			    inmsg = (DDTypedBufferMsg_t *)&msg;
-			    break;
-			default:
-			    ;
-			}
-		    }
 		}
 	    }
 	    /* transfer to remote daemon */
@@ -313,94 +297,78 @@ static void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 		}
 	    }
 
-	    if (requester && requester->protocolVersion < 329) {
+	    const size_t chunkSize = 1024;
+	    PSID_NodeStatus_t status;
+	    PSID_Mem_t memory;
+	    size_t size = 0;
+	    unsigned int idx = 0;
+	    for (node=0; node<PSC_getNrOfNodes(); node++) {
 		switch (inmsg->type) {
 		case PSP_INFO_LIST_HOSTSTATUS:
-		    for (node=0; node<PSC_getNrOfNodes(); node++) {
-			msg.buf[node] = PSIDnodes_isUp(node);
-		    }
-		    msg.header.len += sizeof(*msg.buf) * PSC_getNrOfNodes();
+		    ((char *)msg.buf)[idx] = PSIDnodes_isUp(node);
+		    size = sizeof(char);
+		    break;
+		case PSP_INFO_LIST_VIRTCPUS:
+		    ((uint16_t *)msg.buf)[idx] = PSIDnodes_getVirtCPUs(node);
+		    size = sizeof(uint16_t);
+		    break;
+		case PSP_INFO_LIST_PHYSCPUS:
+		    ((uint16_t *)msg.buf)[idx] = PSIDnodes_getPhysCPUs(node);
+		    size = sizeof(uint16_t);
+		    break;
+		case PSP_INFO_LIST_HWSTATUS:
+		    ((uint32_t *)msg.buf)[idx] = PSIDnodes_getHWStatus(node);
+		    size = sizeof(uint32_t);
+		    break;
+		case PSP_INFO_LIST_LOAD:
+		    status = getStatusInfo(node);
+		    ((float *)msg.buf)[3*idx+0] = status.load.load[0];
+		    ((float *)msg.buf)[3*idx+1] = status.load.load[1];
+		    ((float *)msg.buf)[3*idx+2] = status.load.load[2];
+		    size = 3*sizeof(float);
+		    break;
+		case PSP_INFO_LIST_MEMORY:
+		    memory = getMemoryInfo(node);
+		    ((uint64_t *)msg.buf)[2*idx+0] = memory.total;
+		    ((uint64_t *)msg.buf)[2*idx+1] = memory.free;
+		    size = 2*sizeof(uint64_t);
+		    break;
+		case PSP_INFO_LIST_ALLJOBS:
+		    status = getStatusInfo(node);
+		    ((uint16_t *)msg.buf)[idx] = status.jobs.total;
+		    size = sizeof(uint16_t);
+		    break;
+		case PSP_INFO_LIST_NORMJOBS:
+		    status = getStatusInfo(node);
+		    ((uint16_t *)msg.buf)[idx] = status.jobs.normal;
+		    size = sizeof(uint16_t);
+		    break;
+		case PSP_INFO_LIST_ALLOCJOBS:
+		    ((uint16_t *)msg.buf)[idx] = getAssignedThreads(node);
+		    size = sizeof(uint16_t);
+		    break;
+		case PSP_INFO_LIST_EXCLUSIVE:
+		    ((int8_t *)msg.buf)[idx] = getIsExclusive(node);
+		    size = sizeof(int8_t);
 		    break;
 		default:
 		    msg.type = PSP_INFO_UNKNOWN;
+		    size = 0;
 		}
-	    } else {
-		const size_t chunkSize = 1024;
-		PSID_NodeStatus_t status;
-		PSID_Mem_t memory;
-		size_t size = 0;
-		unsigned int idx = 0;
-		for (node=0; node<PSC_getNrOfNodes(); node++) {
-		    switch (inmsg->type) {
-		    case PSP_INFO_LIST_HOSTSTATUS:
-			((char *)msg.buf)[idx] = PSIDnodes_isUp(node);
-			size = sizeof(char);
-			break;
-		    case PSP_INFO_LIST_VIRTCPUS:
-			((uint16_t *)msg.buf)[idx] =
-			    PSIDnodes_getVirtCPUs(node);
-			size = sizeof(uint16_t);
-			break;
-		    case PSP_INFO_LIST_PHYSCPUS:
-			((uint16_t *)msg.buf)[idx] =
-			    PSIDnodes_getPhysCPUs(node);
-			size = sizeof(uint16_t);
-			break;
-		    case PSP_INFO_LIST_HWSTATUS:
-			((uint32_t *)msg.buf)[idx] =
-			    PSIDnodes_getHWStatus(node);
-			size = sizeof(uint32_t);
-			break;
-		    case PSP_INFO_LIST_LOAD:
-			status = getStatusInfo(node);
-			((float *)msg.buf)[3*idx+0] = status.load.load[0];
-			((float *)msg.buf)[3*idx+1] = status.load.load[1];
-			((float *)msg.buf)[3*idx+2] = status.load.load[2];
-			size = 3*sizeof(float);
-			break;
-		    case PSP_INFO_LIST_MEMORY:
-			memory = getMemoryInfo(node);
-			((uint64_t *)msg.buf)[2*idx+0] = memory.total;
-			((uint64_t *)msg.buf)[2*idx+1] = memory.free;
-			size = 2*sizeof(uint64_t);
-			break;
-		    case PSP_INFO_LIST_ALLJOBS:
-			status = getStatusInfo(node);
-			((uint16_t *)msg.buf)[idx] = status.jobs.total;
-			size = sizeof(uint16_t);
-			break;
-		    case PSP_INFO_LIST_NORMJOBS:
-			status = getStatusInfo(node);
-			((uint16_t *)msg.buf)[idx] = status.jobs.normal;
-			size = sizeof(uint16_t);
-			break;
-		    case PSP_INFO_LIST_ALLOCJOBS:
-			((uint16_t *)msg.buf)[idx] = getAssignedThreads(node);
-			size = sizeof(uint16_t);
-			break;
-		    case PSP_INFO_LIST_EXCLUSIVE:
-			((int8_t *)msg.buf)[idx] = getIsExclusive(node);
-			size = sizeof(int8_t);
-			break;
-		    default:
-			msg.type = PSP_INFO_UNKNOWN;
-			size = 0;
-		    }
-		    idx++;
-		    if (size && (idx*size >= chunkSize)) {
-			msg.header.len += idx * size;
-			sendMsg(&msg);
-			msg.header.len -= idx * size;
-			idx=0;
-		    }
-		}
-		if (idx) {
+		idx++;
+		if (size && (idx*size >= chunkSize)) {
 		    msg.header.len += idx * size;
 		    sendMsg(&msg);
 		    msg.header.len -= idx * size;
+		    idx=0;
 		}
-		msg.type = PSP_INFO_LIST_END;
 	    }
+	    if (idx) {
+		msg.header.len += idx * size;
+		sendMsg(&msg);
+		msg.header.len -= idx * size;
+	    }
+	    msg.type = PSP_INFO_LIST_END;
 	    break;
 	}
 	case PSP_INFO_LIST_PARTITION:
