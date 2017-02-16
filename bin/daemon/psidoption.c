@@ -2,17 +2,12 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2017 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-#ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__((used)) =
-    "$Id$";
-#endif /* DOXYGEN_SHOULD_SKIP_THIS */
-
 #include <stdio.h>
 #include <unistd.h>
 #include <errno.h>
@@ -91,8 +86,8 @@ void send_OPTIONS(PSnodes_ID_t destnode)
     }
 
     send_acct_OPTIONS(PSC_getTID(destnode, 0), 0);
-    send_GUID_OPTIONS(PSC_getTID(destnode, 0), PSIDNODES_USER, 0);
-    send_GUID_OPTIONS(PSC_getTID(destnode, 0), PSIDNODES_GROUP, 0);
+    send_GUID_OPTIONS(PSC_getTID(destnode, 0), PSIDNODES_USER);
+    send_GUID_OPTIONS(PSC_getTID(destnode, 0), PSIDNODES_GROUP);
 }
 
 static PSIDnodes_gu_t getGU(PSP_Option_t opt)
@@ -408,98 +403,6 @@ static void msg_SETOPTION(DDOptionMsg_t *msg)
 		} else {
 		    PSIDnodes_setProcs(PSC_getID(msg->header.sender),
 				       msg->opt[i].value);
-		}
-		break;
-	    case PSP_OP_UIDLIMIT:
-		if (PSC_getPID(msg->header.sender)) {
-		    DDOptionMsg_t info = {
-			.header = {
-			    .type = PSP_CD_SETOPTION,
-			    .sender = PSC_getMyTID(),
-			    .dest = 0,
-			    .len = sizeof(info) },
-			.count = 1,
-			.opt = {{ .option = msg->opt[i].option,
-				  .value = msg->opt[i].value }} };
-
-		    PSIDnodes_setGUID(PSC_getMyID(), PSIDNODES_USER,
-				     (PSIDnodes_guid_t){.u=msg->opt[i].value});
-
-		    /* Info all nodes about my UIDLIMIT */
-		    broadcastMsg(&info);
-		} else {
-		    PSIDnodes_setGUID(PSC_getID(msg->header.sender),
-				      PSIDNODES_USER,
-				     (PSIDnodes_guid_t){.u=msg->opt[i].value});
-		}
-		break;
-	    case PSP_OP_ADMINUID:
-		if (PSC_getPID(msg->header.sender)) {
-		    DDOptionMsg_t info = {
-			.header = {
-			    .type = PSP_CD_SETOPTION,
-			    .sender = PSC_getMyTID(),
-			    .dest = 0,
-			    .len = sizeof(info) },
-			.count = 1,
-			.opt = {{ .option = msg->opt[i].option,
-				  .value = msg->opt[i].value }} };
-
-		    PSIDnodes_setGUID(PSC_getMyID(), PSIDNODES_ADMUSER,
-				     (PSIDnodes_guid_t){.u=msg->opt[i].value});
-
-		    /* Info all nodes about my ADMINUID */
-		    broadcastMsg(&info);
-		} else {
-		    PSIDnodes_setGUID(PSC_getID(msg->header.sender),
-				      PSIDNODES_ADMUSER,
-				     (PSIDnodes_guid_t){.u=msg->opt[i].value});
-		}
-		break;
-	    case PSP_OP_GIDLIMIT:
-		if (PSC_getPID(msg->header.sender)) {
-		    DDOptionMsg_t info = {
-			.header = {
-			    .type = PSP_CD_SETOPTION,
-			    .sender = PSC_getMyTID(),
-			    .dest = 0,
-			    .len = sizeof(info) },
-			.count = 1,
-			.opt = {{ .option = msg->opt[i].option,
-				  .value = msg->opt[i].value }} };
-
-		    PSIDnodes_setGUID(PSC_getMyID(), PSIDNODES_GROUP,
-				     (PSIDnodes_guid_t){.g=msg->opt[i].value});
-
-		    /* Info all nodes about my GIDLIMIT */
-		    broadcastMsg(&info);
-		} else {
-		    PSIDnodes_setGUID(PSC_getID(msg->header.sender),
-				      PSIDNODES_GROUP,
-				     (PSIDnodes_guid_t){.g=msg->opt[i].value});
-		}
-		break;
-	    case PSP_OP_ADMINGID:
-		if (PSC_getPID(msg->header.sender)) {
-		    DDOptionMsg_t info = {
-			.header = {
-			    .type = PSP_CD_SETOPTION,
-			    .sender = PSC_getMyTID(),
-			    .dest = 0,
-			    .len = sizeof(info) },
-			.count = 1,
-			.opt = {{ .option = msg->opt[i].option,
-				  .value = msg->opt[i].value }} };
-
-		    PSIDnodes_setGUID(PSC_getMyID(), PSIDNODES_ADMGROUP,
-				     (PSIDnodes_guid_t){.g=msg->opt[i].value});
-
-		    /* Info all nodes about my ADMINGID */
-		    broadcastMsg(&info);
-		} else {
-		    PSIDnodes_setGUID(PSC_getID(msg->header.sender),
-				      PSIDNODES_ADMGROUP,
-				     (PSIDnodes_guid_t){.g=msg->opt[i].value});
 		}
 		break;
 	    case PSP_OP_SET_UID:
@@ -927,32 +830,12 @@ static void msg_GETOPTION(DDOptionMsg_t *msg)
 	    case PSP_OP_PROCLIMIT:
 		msg->opt[out].value = PSIDnodes_getProcs(PSC_getMyID());
 		break;
-	    case PSP_OP_UIDLIMIT:
-		send_GUID_OPTIONS(msg->header.sender, PSIDNODES_USER, 1);
-		/* Do not send option again */
-		out--;
-		break;
-	    case PSP_OP_GIDLIMIT:
-		send_GUID_OPTIONS(msg->header.sender, PSIDNODES_GROUP, 1);
-		/* Do not send option again */
-		out--;
-		break;
-	    case PSP_OP_ADMINUID:
-		send_GUID_OPTIONS(msg->header.sender, PSIDNODES_ADMUSER, 1);
-		/* Do not send option again */
-		out--;
-		break;
-	    case PSP_OP_ADMINGID:
-		send_GUID_OPTIONS(msg->header.sender, PSIDNODES_ADMGROUP, 1);
-		/* Do not send option again */
-		out--;
-		break;
 	    case PSP_OP_UID:
 	    case PSP_OP_GID:
 	    case PSP_OP_ADMUID:
 	    case PSP_OP_ADMGID:
 		guType = getGU(msg->opt[in].option);
-		send_GUID_OPTIONS(msg->header.sender, guType, 0);
+		send_GUID_OPTIONS(msg->header.sender, guType);
 		/* Do not send option again */
 		out--;
 		break;

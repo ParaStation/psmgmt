@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2015 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2017 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -12,12 +12,6 @@
  * @file
  * Functions for handling the various information about the nodes
  * within the ParaStation daemon
- *
- * $Id$
- *
- * @author
- * Norbert Eicker <eicker@par-tec.com>
- *
  */
 #ifndef __PSIDNODES_H
 #define __PSIDNODES_H
@@ -26,13 +20,6 @@
 
 #include "psnodes.h"
 #include "pstask.h"
-
-#ifdef __cplusplus
-extern "C" {
-#if 0
-} /* <- just for emacs indentation */
-#endif
-#endif
 
 /**
  * @brief Initialize the PSIDnodes module.
@@ -503,12 +490,7 @@ int PSIDnodes_testGUID(PSnodes_ID_t id,
  *
  * Send an option list of all user/group ID of type @a what to @a
  * dest. Depending on the destination @a dest, the type of GUIDs @a
- * what and the value of the compatibility flag @a compat different
- * types of options are used to actually send.
- *
- * If the compatibility flag @a compat is set, only the first entry of
- * the list of GUIDs is sent using one of the corresponding old (and
- * deprecated) option types.
+ * what different types of options are used to actually send.
  *
  * If the destination task is another ParaStation daemon,
  * PSP_OP_SET_[GUID] and one or more PSP_OP_ADD_[GUID] options are
@@ -520,12 +502,9 @@ int PSIDnodes_testGUID(PSnodes_ID_t id,
  *
  * @param what The type of GUID info to send.
  *
- * @param compat Flag compatibility mode. Only the first GUID in the
- * list will be sent.
- *
  * @return No return value.
  */
-void send_GUID_OPTIONS(PStask_ID_t dest, PSIDnodes_gu_t what, int compat);
+void send_GUID_OPTIONS(PStask_ID_t dest, PSIDnodes_gu_t what);
 
 /**
  * @brief Set the maximum number of processes of a node.
@@ -880,10 +859,5 @@ int PSIDnodes_maxStatTry(PSnodes_ID_t id);
  * @return No return value.
  */
 void PSIDnodes_clearMem(void);
-
-
-#ifdef __cplusplus
-}/* extern "C" */
-#endif
 
 #endif  /* __PSIDNODES_H */

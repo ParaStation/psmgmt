@@ -69,12 +69,8 @@ typedef enum {
     PSP_OP_HWSTATUS = 0x0001,     /**< Hardware status */
     PSP_OP_PROTOCOLVERSION,       /**< Node's PSProtocol version */
     PSP_OP_PROCLIMIT = 0x0003,    /**< Maximum number of processes */
-    PSP_OP_UIDLIMIT,              /**< uid the node is restricted to
-				     @deprecated */
     PSP_OP_PSIDDEBUG = 0x0005,    /**< psid's debug level */
     PSP_OP_PSIDSELECTTIME,        /**< Time (sec) in psid's select() */
-    PSP_OP_GIDLIMIT,              /**< gid the node is restricted to
-				     @deprecated */
     PSP_OP_MASTER = 0x0008,       /**< current master of the cluster */
     PSP_OP_DAEMONPROTOVERSION,    /**< Node's PSDaemonProtocol version */
     PSP_OP_PLUGINAPIVERSION,      /**< Node's version of the plugin API */
@@ -105,17 +101,11 @@ typedef enum {
     PSP_OP_RDPSTATISTICS,         /**< Status of RDP statistics */
 
     PSP_OP_FREEONSUSP = 0x0038,   /**< Free suspended job's resources? */
-    PSP_OP_HANDLEOLD,             /**< Notice old binaries? @deprecated */
     PSP_OP_NODESSORT = 0x003a,    /**< Sorting strategy for nodes */
     PSP_OP_OVERBOOK,              /**< (Dis-)Allow overbooking this node */
     PSP_OP_STARTER,               /**< (Dis-)Allow starting from this node */
     PSP_OP_RUNJOBS,               /**< (Dis-)Allow running on this node */
     PSP_OP_EXCLUSIVE,             /**< (Dis-)Allow assign node exclusively */
-
-    PSP_OP_ADMINUID = 0x0040,     /**< user allowed starting admin
-				     jobs, i.e. unaccounted jobs @deprecated */
-    PSP_OP_ADMINGID,              /**< group allowed starting admin
-				     jobs, i.e. unaccounted jobs @deprecated */
 
     PSP_OP_PINPROCS = 0x0048,     /**< Process-pinning is used on this node */
     PSP_OP_BINDMEM,               /**< Memory-binding is used on this node */

@@ -2,17 +2,12 @@
  * ParaStation
  *
  * Copyright (C) 2003 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2017 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-#ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__((used)) =
-    "$Id$";
-#endif /* DOXYGEN_SHOULD_SKIP_THIS */
-
 #include <stdlib.h>
 #include <errno.h>
 #include <netinet/in.h>
@@ -27,7 +22,6 @@ static char vcid[] __attribute__((used)) =
 #include "psidcomm.h"
 
 #include "psidnodes.h"
-
 
 /** Number of nodes currently handled. Adapted within PSIDnodes_grow() */
 static PSnodes_ID_t numNodes = -1;
@@ -866,7 +860,7 @@ int PSIDnodes_testGUID(PSnodes_ID_t id,
     return 0;
 }
 
-void send_GUID_OPTIONS(PStask_ID_t dest, PSIDnodes_gu_t what, int compat)
+void send_GUID_OPTIONS(PStask_ID_t dest, PSIDnodes_gu_t what)
 {
     DDOptionMsg_t msg = {
 	.header = {
@@ -884,8 +878,7 @@ void send_GUID_OPTIONS(PStask_ID_t dest, PSIDnodes_gu_t what, int compat)
     case PSIDNODES_USER:
 	PSID_log(PSID_LOG_VERB, " %s", "PSIDNODES_USER");
 	if (PSC_getPID(dest)) {
-	    msg.opt[(int) msg.count].option = option =
-		compat ? PSP_OP_UIDLIMIT : PSP_OP_UID;
+	    msg.opt[(int) msg.count].option = option = PSP_OP_UID;
 	} else {
 	    msg.opt[(int) msg.count].option = PSP_OP_SET_UID;
 	    option = PSP_OP_ADD_UID;
@@ -894,8 +887,7 @@ void send_GUID_OPTIONS(PStask_ID_t dest, PSIDnodes_gu_t what, int compat)
     case PSIDNODES_GROUP:
 	PSID_log(PSID_LOG_VERB, " %s", "PSIDNODES_GROUP");
 	if (PSC_getPID(dest)) {
-	    msg.opt[(int) msg.count].option = option =
-		compat ? PSP_OP_GIDLIMIT : PSP_OP_GID;
+	    msg.opt[(int) msg.count].option = option = PSP_OP_GID;
 	} else {
 	    msg.opt[(int) msg.count].option = PSP_OP_SET_GID;
 	    option = PSP_OP_ADD_GID;
@@ -904,8 +896,7 @@ void send_GUID_OPTIONS(PStask_ID_t dest, PSIDnodes_gu_t what, int compat)
     case PSIDNODES_ADMUSER:
 	PSID_log(PSID_LOG_VERB, " %s", "PSIDNODES_ADMUSER");
 	if (PSC_getPID(dest)) {
-	    msg.opt[(int) msg.count].option = option =
-		compat ? PSP_OP_ADMINUID : PSP_OP_ADMUID;
+	    msg.opt[(int) msg.count].option = option = PSP_OP_ADMUID;
 	} else {
 	    msg.opt[(int) msg.count].option = PSP_OP_SET_ADMUID;
 	    option = PSP_OP_ADD_ADMUID;
@@ -914,8 +905,7 @@ void send_GUID_OPTIONS(PStask_ID_t dest, PSIDnodes_gu_t what, int compat)
     case PSIDNODES_ADMGROUP:
 	PSID_log(PSID_LOG_VERB, " %s", "PSIDNODES_ADMGROUP");
 	if (PSC_getPID(dest)) {
-	    msg.opt[(int) msg.count].option = option =
-		compat ? PSP_OP_ADMINGID : PSP_OP_ADMGID;
+	    msg.opt[(int) msg.count].option = option = PSP_OP_ADMGID;
 	} else {
 	    msg.opt[(int) msg.count].option = PSP_OP_SET_ADMGID;
 	    option = PSP_OP_ADD_ADMGID;
@@ -943,7 +933,6 @@ void send_GUID_OPTIONS(PStask_ID_t dest, PSIDnodes_gu_t what, int compat)
 	    return;
 	}
 	msg.count++;
-	if (compat) break;
 	if (msg.count == DDOptionMsgMax) {
 	    if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
 		PSID_warn(-1, errno, "%s: sendMsg()", __func__);
@@ -951,12 +940,10 @@ void send_GUID_OPTIONS(PStask_ID_t dest, PSIDnodes_gu_t what, int compat)
 	    msg.count = 0;
 	}
     }
+    msg.opt[(int) msg.count].option = PSP_OP_LISTEND;
+    msg.opt[(int) msg.count].value = 0;
+    msg.count++;
 
-    if (!compat) {
-	msg.opt[(int) msg.count].option = PSP_OP_LISTEND;
-	msg.opt[(int) msg.count].value = 0;
-	msg.count++;
-    }
     if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
 	PSID_warn(-1, errno, "%s: sendMsg()", __func__);
     }
