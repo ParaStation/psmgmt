@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2015 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2017 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -12,12 +12,6 @@
  * @file
  * psiinfo: Functions for information retrieving from ParaStation
  * daemon
- *
- * $Id$
- *
- * @author
- * Norbert Eicker <eicker@par-tec.com>
- *
  */
 #ifndef __PSIINFO_H
 #define __PSIINFO_H
@@ -27,13 +21,6 @@
 #include "psnodes.h"
 #include "pstask.h"
 #include "psprotocol.h"
-
-#ifdef __cplusplus
-extern "C" {
-#if 0
-} /* <- just for emacs indentation */
-#endif
-#endif
 
 /**
  * @brief Retrieve integer information.
@@ -378,20 +365,6 @@ int PSI_infoNodeID(PSnodes_ID_t node, PSP_Info_t what, const void *param,
  * this one excludes tasks representing admin, logger, forwared
  * etc. processes. A node's number of normal jobs is provided as a @c
  * uint16_t. No further parameters needed.
- *
- * - PSP_INFO_LIST_ALLTASKS requests a list of all tasks on the
- * designated node @a node. All the information about a single task is
- * returned within a @ref PSP_taskInfo_t structure. Upon return @a buf
- * will hold an array of @ref PSP_taskInfo_t structures. No further
- * parameters needed.
- *
- * - PSP_INFO_LIST_NORMTASKS requests a list of all normal tasks on
- * the designated node @a node. Normal tasks are those with task group
- * TG_ANY, i.e. in contrast to all tasks this one excludes tasks
- * representing admin, logger, forwared etc. processes. All the
- * information about a single task is returned within a @ref
- * PSP_taskInfo_t structure. Upon return @a buf will hold an array of
- * @ref PSP_taskInfo_t structures. No further parameters needed.
  *
  * - PSP_INFO_LIST_ALLOCJOBS requests the total number of allocated
  * jobs of all nodes within the ParaStation cluster. Allocated jobs

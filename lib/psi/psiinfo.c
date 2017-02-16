@@ -99,8 +99,6 @@ static PSP_Info_t receiveInfo(void *buf, size_t *size, int verbose)
 	case PSP_INFO_LIST_MEMORY:
 	case PSP_INFO_LIST_ALLJOBS:
 	case PSP_INFO_LIST_NORMJOBS:
-	case PSP_INFO_LIST_ALLTASKS:
-	case PSP_INFO_LIST_NORMTASKS:
 	case PSP_INFO_LIST_ALLOCJOBS:
 	case PSP_INFO_LIST_EXCLUSIVE:
 	case PSP_INFO_LIST_PARTITION:
@@ -482,8 +480,6 @@ int PSI_infoList(PSnodes_ID_t node, PSP_Info_t what, const void *param,
     case PSP_INFO_LIST_MEMORY:
     case PSP_INFO_LIST_ALLJOBS:
     case PSP_INFO_LIST_NORMJOBS:
-    case PSP_INFO_LIST_ALLTASKS:
-    case PSP_INFO_LIST_NORMTASKS:
     case PSP_INFO_LIST_ALLOCJOBS:
     case PSP_INFO_LIST_EXCLUSIVE:
     case PSP_INFO_LIST_RESPORTS:

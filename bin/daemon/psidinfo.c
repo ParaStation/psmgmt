@@ -107,16 +107,6 @@ static void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 			    ;
 			}
 		    }
-		    if (requester->protocolVersion > 327) {
-			switch (inmsg->type) {
-			case PSP_INFO_NODELIST:
-			case PSP_INFO_PARTITION:
-			    inmsg = (DDTypedBufferMsg_t *)&msg;
-			    break;
-			default:
-			    ;
-			}
-		    }
 		}
 	    }
 	    /* transfer to remote daemon */
@@ -143,88 +133,6 @@ static void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 	int err=0;
 
 	switch((PSP_Info_t) inmsg->type) {
-	case PSP_INFO_LIST_TASKS:
-	    if (PSC_getPID(inmsg->header.dest)) {
-		/* request info for a special task */
-		PStask_t *task = PStasklist_find(&managedTasks,
-						 inmsg->header.dest);
-		if (task) {
-		    PSP_taskInfo_t *taskinfo = (PSP_taskInfo_t *)msg.buf;
-		    taskinfo->tid = task->tid;
-		    taskinfo->ptid = task->ptid;
-		    taskinfo->loggertid = task->loggertid;
-		    taskinfo->uid = task->uid;
-		    taskinfo->group = task->group;
-		    taskinfo->rank = task->rank;
-		    taskinfo->connected = (task->fd != -1);
-
-		    msg.header.len += sizeof(PSP_taskInfo_t);
-		    sendMsg(&msg);
-		    msg.header.len -= sizeof(PSP_taskInfo_t);
-		}
-	    } else {
-		/* request info for all tasks */
-		list_t *t;
-		list_for_each(t, &managedTasks) {
-		    PStask_t *task = list_entry(t, PStask_t, next);
-		    PSP_taskInfo_t *taskinfo = (PSP_taskInfo_t *)msg.buf;
-		    if (task->deleted) continue;
-		    taskinfo->tid = task->tid;
-		    taskinfo->ptid = task->ptid;
-		    taskinfo->loggertid = task->loggertid;
-		    taskinfo->uid = task->uid;
-		    taskinfo->group = task->group;
-		    taskinfo->rank = task->rank;
-		    taskinfo->connected = (task->fd != -1);
-
-		    msg.header.len += sizeof(PSP_taskInfo_t);
-		    sendMsg(&msg);
-		    msg.header.len -= sizeof(PSP_taskInfo_t);
-		}
-	    }
-
-	    /*
-	     * send a EndOfList Sign
-	     */
-	    msg.type = PSP_INFO_LIST_END;
-	    break;
-	case PSP_INFO_LIST_NORMTASKS:
-	case PSP_INFO_LIST_ALLTASKS:
-	{
-	    /* request info for all normal tasks */
-	    PSP_taskInfo_t *taskinfo = (PSP_taskInfo_t *)msg.buf;
-	    list_t *t;
-	    list_for_each(t, &managedTasks) {
-		PStask_t *task = list_entry(t, PStask_t, next);
-		if (task->deleted) continue;
-		if ((PSP_Info_t) inmsg->type == PSP_INFO_LIST_NORMTASKS && (
-			task->group == TG_FORWARDER
-			|| task->group == TG_SPAWNER
-			|| task->group == TG_GMSPAWNER
-			|| task->group == TG_PSCSPAWNER
-			|| task->group == TG_MONITOR
-			|| task->group == TG_SERVICE
-			|| task->group == TG_SERVICE_SIG
-			|| task->group == TG_KVS )) continue;
-		taskinfo->tid = task->tid;
-		taskinfo->ptid = task->ptid;
-		taskinfo->loggertid = task->loggertid;
-		taskinfo->uid = task->uid;
-		taskinfo->group = task->group;
-		taskinfo->rank = task->rank;
-		taskinfo->connected = (task->fd != -1);
-
-		msg.header.len += sizeof(PSP_taskInfo_t);
-		sendMsg(&msg);
-		msg.header.len -= sizeof(PSP_taskInfo_t);
-	    }
-
-	    /*
-	     * send a EndOfList Sign
-	     */
-	    msg.type = PSP_INFO_LIST_END;
-	    break;
-	}
 	case PSP_INFO_COUNTHEADER:
 	case PSP_INFO_COUNTSTATUS:
 	    PSID_getCounter(inmsg);
@@ -259,89 +167,6 @@ static void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 		*(in_addr_t *)msg.buf = INADDR_ANY;
 	    }
 	    msg.header.len += sizeof(in_addr_t);
-	    break;
-	}
-	case PSP_INFO_NODELIST:
-	case PSP_INFO_PARTITION:
-	{
-	    int i, j;
-	    unsigned int hwType;
-	    PStask_t *req = NULL;
-	    static NodelistEntry_t *nodelist = NULL;
-	    static int nodelistlen = 0;
-	    int maxNodes =
-		(256 < PSC_getNrOfNodes()) ? 256 : PSC_getNrOfNodes();
-	    /* Limit these requests to 256 nodes due to message length */
-
-	    if ((! PSID_config->useMCast) && (PSC_getMyID() != getMasterID())) {
-		/* Handled by master node -> forward */
-		inmsg->header.dest = PSC_getTID(getMasterID(), 0);
-		msg_INFOREQUEST(inmsg);
-		return;
-	    }
-
-	    if (PSC_getID(inmsg->header.sender) == PSC_getMyID()) {
-		req = PStasklist_find(&managedTasks, inmsg->header.sender);
-
-		if (!req) {
-		    PSID_log(-1, "%s: requester %s not found\n",
-			     funcStr, PSC_printTID(inmsg->header.sender));
-		    err = 1;
-		    break;
-		}
-	    }
-
-	    if (req && req->protocolVersion >= 328) {
-		msg.type = PSP_INFO_UNKNOWN;
-		break;
-	    }
-
-	    if (nodelistlen < maxNodes) {
-		nodelistlen = maxNodes;
-		nodelist = realloc(nodelist, nodelistlen * sizeof(*nodelist));
-	    }
-
-	    hwType = *(unsigned int *) inmsg->buf;
-
-	    for (i=0, j=0; i<PSC_getNrOfNodes() && j<maxNodes; i++) {
-		PSID_NodeStatus_t status = getStatusInfo(i);
-
-		if ((inmsg->type == PSP_INFO_NODELIST)
-		    || ((!hwType || PSIDnodes_getHWStatus(i) & hwType)
-			&& (PSIDnodes_testGUID(i, PSIDNODES_USER,
-					       (PSIDnodes_guid_t){.u=req->uid})
-			    || !req->uid)
-			&& (PSIDnodes_getProcs(i) == PSNODES_ANYPROC
-			    || PSIDnodes_getProcs(i) > status.jobs.normal)
-			&& (PSIDnodes_testGUID(i, PSIDNODES_GROUP,
-					       (PSIDnodes_guid_t){.g=req->gid})
-			    || !req->gid)
-			&& PSIDnodes_runJobs(i))) {
-
-		    nodelist[j].id = i;
-		    nodelist[j].up = PSIDnodes_isUp(i);
-		    nodelist[j].numCPU = PSIDnodes_getVirtCPUs(i);
-		    nodelist[j].hwStatus = PSIDnodes_getHWStatus(i);
-
-		    nodelist[j].load[0] = status.load.load[0];
-		    nodelist[j].load[1] = status.load.load[1];
-		    nodelist[j].load[2] = status.load.load[2];
-		    nodelist[j].totalJobs = status.jobs.total;
-		    nodelist[j].normalJobs = status.jobs.normal;
-		    nodelist[j].maxJobs = PSIDnodes_getProcs(i);
-
-		    j++;
-		}
-	    }
-
-	    if (j<maxNodes) {
-		nodelist[j].id = -1;
-		j++;
-	    }
-
-	    memcpy(msg.buf, nodelist, j * sizeof(*nodelist));
-	    msg.header.len += j * sizeof(*nodelist);
-
 	    break;
 	}
 	case PSP_INFO_INSTDIR:

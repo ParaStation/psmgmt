@@ -174,10 +174,6 @@ typedef enum {
 
     PSP_INFO_HOST,                /**< ParaStation ID from IP */
     PSP_INFO_NODE,                /**< IP from ParaStation ID */
-    PSP_INFO_NODELIST,            /**< Up to date nodelist @deprecated */
-    PSP_INFO_PARTITION,           /**< Nodelist according limits @deprecated */
-
-    PSP_INFO_LIST_TASKS,          /**< info about tasks @deprecated */
     PSP_INFO_LIST_END = 0x0009,   /**< end of list info replies */
 
     PSP_INFO_LIST_HOSTSTATUS,     /**< Complete status of all cluster nodes */
@@ -204,9 +200,7 @@ typedef enum {
     PSP_INFO_LIST_LOAD,           /**< List of load average values */
     PSP_INFO_LIST_ALLJOBS,        /**< List of job numbers (all jobs) */
     PSP_INFO_LIST_NORMJOBS,       /**< List of job numbers (normal jobs) */
-    PSP_INFO_LIST_ALLTASKS,       /**< List of all tasks @deprecated */
-    PSP_INFO_LIST_NORMTASKS,      /**< List of normal tasks  @deprecated */
-    PSP_INFO_LIST_ALLOCJOBS,      /**< List of allocated job slots (per node)*/
+    PSP_INFO_LIST_ALLOCJOBS = 0x1f,/**< List of allocated job slots (per node)*/
     PSP_INFO_LIST_EXCLUSIVE,      /**< List of flags of exclusive allocation */
 
     PSP_INFO_CMDLINE,             /**< Task's command line (if available) */
@@ -231,8 +225,7 @@ typedef enum {
     PSP_INFO_QUEUE_ENVS,          /**< Queue of environment entries */
     PSP_INFO_RDPCONNSTATUS,       /**< Info on RDP connections */
     PSP_INFO_LIST_RESPORTS,       /**< Reserved ports for OpenMPI startup */
-    PSP_INFO_LIST_GETNODES,       /**< @obsolete */
-    PSP_INFO_LIST_RESNODES,       /**< Get a reservation's node-list */
+    PSP_INFO_LIST_RESNODES = 0x0032, /**< Get a reservation's node-list */
 } PSP_Info_t;
 
 /** Messages concerning spawning of tasks. */
@@ -460,7 +453,8 @@ typedef struct {
 } DDSignalMsg_t;
 
 /**
- * Types describing the content of PSP_INFO_LIST_TASKS responses.
+ * Type describing the content of PSP_INFO_QUEUE_ALLTASK and
+ * PSP_INFO_QUEUE_NORMTASK responses.
  */
 typedef struct {
     PStask_ID_t tid;       /**< tasks unique identifier */
@@ -471,23 +465,6 @@ typedef struct {
     int32_t rank;          /**< rank of the task within process group */
     int32_t connected;     /**< flag if task has connected the daemon */
 } PSP_taskInfo_t;
-
-
-/**
- * Type describing the content of PSP_INFO_NODELIST and PSP_INFO_PARTITION
- * responses for clients prior to PSprotocolVersion 328. Later client
- * should not send requests of this type.
- */
-typedef struct {
-    int id;                /**< ID of this node */
-    short up;              /**< Flag if node is up */
-    short numCPU;          /**< Number of CPUs in this node */
-    unsigned int hwStatus; /**< HW available on this node */
-    float load[3];         /**< load on this node */
-    short totalJobs;       /**< number of jobs */
-    short normalJobs;      /**< number of jobs without logger, admin, etc.) */
-    short maxJobs;         /**< maximum number of "normal" jobs */
-} NodelistEntry_t;
 
 /**
  * @brief Generate a string describing the message type.
