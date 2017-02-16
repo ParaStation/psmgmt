@@ -984,104 +984,6 @@ void PSIADM_EnvStat(char *key, char *nl)
     }
 }
 
-static void printNodes(int num, PSnodes_ID_t *nodes, int width, int offset)
-{
-    int i=0, pos=0;
-    int myWidth = (width<20) ? 20 : width;
-    char range[128];
-
-    printf(" ");
-    while (i < num) {
-	PSnodes_ID_t cur = nodes[i], loopCur;
-	int rep = 0, loopStep=0, loopRep;
-
-	while(i<num && nodes[i] == cur) {
-	    rep++;
-	    i++;
-	}
-	snprintf(range, sizeof(range), "%d", cur);
-	if (nodes[i] == cur+1 || nodes[i] == cur-1) loopStep = nodes[i] - cur;
-
-	loopCur = cur + loopStep;
-	while (i<num && nodes[i]==loopCur) {
-	    int j=i;
-	    loopRep = 0;
-
-	    while(j<num && nodes[j] == loopCur) {
-		loopRep++;
-		j++;
-	    }
-	    if (loopRep != rep) break;
-	    i=j;
-	    loopCur += loopStep;
-	}
-	if (loopCur != cur+loopStep) {
-	    snprintf(range+strlen(range), sizeof(range)-strlen(range),
-		     "-%d", loopCur-loopStep);
-	}
-	if (rep>1) {
-	    snprintf(range+strlen(range), sizeof(range)-strlen(range),
-		     "(#%d)", rep);
-	}
-	pos+=strlen(range)+1;
-	if (pos > myWidth) {
-	    printf("\n%*s", offset, "");
-	    pos = strlen(range)+1;
-	}
-	printf("%s%s", range, (i < num) ? "," : "");
-    }
-}
-
-static void printOldSlots(int num, PSpart_oldSlot_t *slots, int width,
-			  int offset)
-{
-    int i=0, pos=0;
-    int myWidth = (width<20) ? 20 : width;
-    char range[128];
-
-    printf(" ");
-    while (i < num) {
-	PSnodes_ID_t cur = slots[i].node, loopCur;
-	int rep = 0, loopStep=0, loopRep;
-
-	while(i<num && slots[i].node == cur) {
-	    rep++;
-	    i++;
-	}
-	snprintf(range, sizeof(range), "%d", cur);
-	if (slots[i].node == cur+1 || slots[i].node == cur-1)
-	    loopStep = slots[i].node - cur;
-
-	loopCur = cur + loopStep;
-	while (i<num && slots[i].node==loopCur) {
-	    int j=i;
-	    loopRep = 0;
-
-	    while(j<num && slots[j].node == loopCur) {
-		loopRep++;
-		j++;
-	    }
-	    if (loopRep != rep) break;
-	    i=j;
-	    loopCur += loopStep;
-	}
-	if (loopCur != cur+loopStep) {
-	    snprintf(range+strlen(range), sizeof(range)-strlen(range),
-		     "-%d", loopCur-loopStep);
-	}
-	if (rep>1) {
-	    snprintf(range+strlen(range), sizeof(range)-strlen(range),
-		     "(%d)", rep);
-	}
-	pos+=strlen(range)+1;
-	if (pos > myWidth) {
-	    printf("\n%*s", offset, "");
-	    pos = strlen(range)+1;
-	}
-	printf("%s%s", range, (i < num) ? "," : "");
-    }
-}
-
 static void printSlots(int num, PSpart_slot_t *slots, int width, int offset)
 {
     int i=0, pos=0;
@@ -1133,7 +1035,7 @@ static void printSlots(int num, PSpart_slot_t *slots, int width, int offset)
     }
 }
 
-static int getMasterProtocolVersion(int daemonProto)
+static int getMasterProtocolVersion(bool daemonProto)
 {
     PSnodes_ID_t master = -1;
     PSP_Option_t opt = PSP_OP_MASTER;
@@ -1224,8 +1126,8 @@ void PSIADM_JobStat(PStask_ID_t task, PSpart_list_t opt)
     char buf[sizeof(PStask_ID_t)
 	     +sizeof(PSpart_list_t)
 	     +sizeof(PSpart_request_t)];
-    int recvd, masterPSPversion = getMasterProtocolVersion(0);
-    int found = 0, masterDaemonPSPversion = getMasterProtocolVersion(1);
+    int recvd;
+    int found = 0, masterDaemonPSPversion = getMasterProtocolVersion(true);
     PStask_ID_t rootTID, parentTID;
     PSpart_request_t *req;
 
@@ -1268,9 +1170,7 @@ void PSIADM_JobStat(PStask_ID_t task, PSpart_list_t opt)
 	len += sizeof(PSpart_list_t);
 
 	len += PSpart_decodeReq(buf + len, req, masterDaemonPSPversion);
-	if (masterDaemonPSPversion < 401) {
-	    req->tpp = 1;
-	} else if (len != recvd) {
+	if (len != recvd) {
 	    printf("Wrong number of bytes received (used %ld vs. rcvd %ld)!\n",
 		   (long)len, (long)recvd);
 	    break;
@@ -1295,19 +1195,9 @@ void PSIADM_JobStat(PStask_ID_t task, PSpart_list_t opt)
 
 	    recvd=PSI_infoQueueNext(what, slotBuf, slotBufSize, 1);
 
-	    if (masterPSPversion < 334) {
-		itemSize = sizeof(PSnodes_ID_t);
-	    } else if (masterDaemonPSPversion < 401) {
-		itemSize = sizeof(PSpart_oldSlot_t);
-	    } else {
-		itemSize = sizeof(PSnodes_ID_t);
-		if (masterDaemonPSPversion < 408) {
-		    itemSize += PSCPU_bytesForCPUs(32);
-		} else {
-		    itemSize += *(uint16_t *)slotBuf;
-		    recvd -= sizeof(uint16_t);
-		}
-	    }
+	    itemSize = sizeof(PSnodes_ID_t);
+	    itemSize += *(uint16_t *)slotBuf;
+	    recvd -= sizeof(uint16_t);
 
 	    if ((unsigned int)recvd != req->num * itemSize) {
 		printf("Message lost. Suppress node-list\n");
@@ -1330,37 +1220,26 @@ void PSIADM_JobStat(PStask_ID_t task, PSpart_list_t opt)
 	    printf(" %5d", req->uid);
 	    printf(" %5d", req->gid);
 	    if (req->num) {
-		if (masterPSPversion < 334) {
-		    printNodes(req->num, (PSnodes_ID_t*)slotBuf, width-47, 47);
-		} else if (masterDaemonPSPversion < 401) {
-		    printOldSlots(req->num, (PSpart_oldSlot_t *) slotBuf,
-				  width-47, 47);
-		} else {
-		    size_t nBytes, myBytes = PSCPU_bytesForCPUs(PSCPU_MAX);
-		    char *ptr = slotBuf;
-		    int n;
-		    if (masterDaemonPSPversion < 408) {
-			nBytes = PSCPU_bytesForCPUs(32);
-		    } else {
-			nBytes = *(uint16_t *)ptr;
-			ptr +=  sizeof(uint16_t);
-		    }
-		    if (nBytes > myBytes) {
-			printf("warning: slots might be truncated");
-		    }
-		    for (n = 0; n < req->num; n++) {
-			slots[n].node = *(PSnodes_ID_t *)ptr;
-			ptr += sizeof(PSnodes_ID_t);
+		size_t nBytes, myBytes = PSCPU_bytesForCPUs(PSCPU_MAX);
+		char *ptr = slotBuf;
+		int n;
 
-			PSCPU_clrAll(slots[n].CPUset);
-			PSCPU_inject(slots[n].CPUset, ptr, nBytes);
-			ptr += nBytes;
-		    }
-		    printSlots(req->num, slots, width-47, 47);
+		nBytes = *(uint16_t *)ptr;
+		ptr +=  sizeof(uint16_t);
+
+		if (nBytes > myBytes) {
+		    printf("warning: slots might be truncated");
 		}
+		for (n = 0; n < req->num; n++) {
+		    slots[n].node = *(PSnodes_ID_t *)ptr;
+		    ptr += sizeof(PSnodes_ID_t);
+
+		    PSCPU_clrAll(slots[n].CPUset);
+		    PSCPU_inject(slots[n].CPUset, ptr, nBytes);
+		    ptr += nBytes;
+		}
+		printSlots(req->num, slots, width-47, 47);
 		printf("\n");
-	    } else if (masterDaemonPSPversion < 407) {
-		printf(" unknown\n");
 	    } else {
 		time_t startTime = req->start;
 		printf(" %s", req->start ? ctime(&startTime) : "unknown\n");

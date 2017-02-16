@@ -2,17 +2,12 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2017 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-#ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__((used)) =
-    "$Id$";
-#endif /* DOXYGEN_SHOULD_SKIP_THIS */
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -657,7 +652,6 @@ static void msg_NEWCHILD(DDErrorMsg_t *msg)
 	    .sender = msg->header.dest,
 	    .len = sizeof(answer) },
 	.signal = -1 };
-    int senderVersion = PSIDnodes_getDmnProtoV(PSC_getID(msg->header.sender));
 
     if (!task) {
 	PSID_log(PSID_LOG_SIGNAL, "%s(%s): no task\n", __func__,
@@ -674,7 +668,7 @@ static void msg_NEWCHILD(DDErrorMsg_t *msg)
 	    /* RELEASE already received */
 	    PSID_log(PSID_LOG_SIGNAL, "%s: inherit released child %s\n",
 		     __func__, PSC_printTID(msg->request));
-	} else if (msg->error || senderVersion < 405) {
+	} else if (msg->error) {
 	    PSID_setSignal(&task->assignedSigs, msg->request, -1);
 	}
 	if (PSID_getSignalByTID(&task->deadBefore, msg->request)) {

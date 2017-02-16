@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2017 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -19,13 +19,6 @@
 #include "psnodes.h"
 #include "pstask.h"
 #include "psreservation.h"
-
-#ifdef __cplusplus
-extern "C" {
-#if 0
-} /* <- just for emacs indentation */
-#endif
-#endif
 
 /**
  * @brief Initialize partition stuff
@@ -370,9 +363,5 @@ int PSIDpart_contSlts(PSpart_slot_t *slot, unsigned int nSlots, PStask_t *task);
  */
 int PSIDpart_extendRes(PStask_ID_t tid, PSrsrvtn_ID_t resID,
 		       uint32_t got, PSpart_slot_t *slots);
-
-#ifdef __cplusplus
-}/* extern "C" */
-#endif
 
 #endif  /* __PSIDPARTITION_H */

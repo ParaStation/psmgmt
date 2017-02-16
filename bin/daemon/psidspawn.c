@@ -1969,8 +1969,7 @@ static void msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
 
     if (PSC_getID(msg->header.dest) != PSC_getMyID()) {
 	/* request for a remote site. */
-	int destDmnPSPver = PSIDnodes_getDmnProtoV(PSC_getID(msg->header.dest));
-	int sendLOC = 0;
+	bool sendLOC = false;
 
 	if (!PSIDnodes_isUp(PSC_getID(msg->header.dest))) {
 	    answer.error = EHOSTDOWN;
@@ -1991,12 +1990,11 @@ static void msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
 		PSID_log(-1, "%s: rank %d exhausted\n", __func__, rank);
 		answer.error = EADDRINUSE;
 	    } else {
-		sendLOC = 1;
+		sendLOC = true;
 	    }
 
 	    if (!sendLOC) {
 		sendMsg(&answer);
-
 		return;
 	    }
 	}
@@ -2022,29 +2020,18 @@ static void msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
 	    PSCPU_set_t *rankSet = &ptask->spawnNodes[rank].CPUset;
 	    PSnodes_ID_t destID = PSC_getID(locMsg.header.dest);
 
-	    if (destDmnPSPver < 401) {
-		short numCPUs = PSIDnodes_getPhysCPUs(destID);
-		int16_t cpu = PSCPU_first(*rankSet, numCPUs);
-		PSP_putTypedMsgBuf(&locMsg, __func__, "cpu", &cpu, sizeof(cpu));
-	    } else if (destDmnPSPver < 408) {
-		size_t nBytes = PSCPU_bytesForCPUs(32);
-		PSCPU_set_t setBuf;
-		PSCPU_extract(setBuf, *rankSet, nBytes);
-		PSP_putTypedMsgBuf(&locMsg, __func__, "CPUset", setBuf, nBytes);
-	    } else {
-		PSCPU_set_t setBuf;
-		short numCPUs = PSIDnodes_getVirtCPUs(destID);
-		uint16_t nBytes = PSCPU_bytesForCPUs(numCPUs);
+	    PSCPU_set_t setBuf;
+	    short numCPUs = PSIDnodes_getVirtCPUs(destID);
+	    uint16_t nBytes = PSCPU_bytesForCPUs(numCPUs);
 
-		PSP_putTypedMsgBuf(&locMsg, __func__, "nBytes", &nBytes,
-				   sizeof(nBytes));
+	    PSP_putTypedMsgBuf(&locMsg, __func__, "nBytes", &nBytes,
+			       sizeof(nBytes));
 
-		PSCPU_extract(setBuf, *rankSet, nBytes);
-		PSP_putTypedMsgBuf(&locMsg, __func__, "CPUset", setBuf, nBytes);
+	    PSCPU_extract(setBuf, *rankSet, nBytes);
+	    PSP_putTypedMsgBuf(&locMsg, __func__, "CPUset", setBuf, nBytes);
 
-		/* Invalidate this entry */
-		PSCPU_clrAll(*rankSet);
-	    }
+	    /* Invalidate this entry */
+	    PSCPU_clrAll(*rankSet);
 
 	    PSID_log(PSID_LOG_SPAWN, "%s: send PSP_SPAWN_LOC to node %d\n",
 		     __func__, PSC_getID(locMsg.header.dest));
@@ -2112,62 +2099,46 @@ static void msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
 	return;
 	break;
     case PSP_SPAWN_LOC:
-    {
-	int srcDmnPSPver =
-	    PSIDnodes_getDmnProtoV(PSC_getID(msg->header.sender));
-
 	if (!task) {
 	    PSID_log(-1, "%s: PSP_SPAWN_LOC from %s: task not found\n",
 		     __func__, PSC_printTID(msg->header.sender));
 	    return;
 	}
-	if (srcDmnPSPver < 401) {
-	    PSCPU_setCPU(task->CPUset, *(int16_t *)msg->buf);
-	    usedBytes = sizeof(int16_t);
-	} else {
-	    size_t nBytes, myBytes = PSCPU_bytesForCPUs(PSCPU_MAX);
-	    char *ptr = msg->buf;
 
-	    if (srcDmnPSPver < 408) {
-		nBytes = PSCPU_bytesForCPUs(32);
-		usedBytes = 0;
-	    } else {
-		nBytes = *(uint16_t *)ptr;
-		ptr += sizeof(uint16_t);
-		usedBytes = sizeof(uint16_t);
-	    }
+	uint16_t nBytes, myBytes = PSCPU_bytesForCPUs(PSCPU_MAX);
+	PSCPU_set_t setBuf;
+	usedBytes = 0;
 
-	    if (nBytes > myBytes) {
-		PSID_log(-1,  "%s: PSP_SPAWN_LOC from %s: expecting %zd CPUs\n",
-			 __func__, PSC_printTID(msg->header.sender), nBytes*8);
-	    }
+	PSP_getTypedMsgBuf(msg, &usedBytes, __func__, "nBytes", &nBytes,
+			   sizeof(nBytes));
 
-	    PSCPU_clrAll(task->CPUset);
-	    PSCPU_inject(task->CPUset, ptr, nBytes);
-	    // ptr += nBytes;
-	    usedBytes += nBytes;
+	if (nBytes > myBytes) {
+	    PSID_log(-1, "%s: PSP_SPAWN_LOC from %s: expecting %d CPUs\n",
+		     __func__, PSC_printTID(msg->header.sender), nBytes*8);
 	}
+
+	PSP_getTypedMsgBuf(msg, &usedBytes, __func__, "CPUset", setBuf, nBytes);
+	PSCPU_clrAll(task->CPUset);
+	PSCPU_inject(task->CPUset, setBuf, nBytes);
 	break;
-    }
     case PSP_SPAWN_WDIRCNTD:
 	if (!task) {
 	    PSID_log(-1, "%s: PSP_SPAWN_WDIRCNTD from %s: task not found\n",
 		     __func__, PSC_printTID(msg->header.sender));
 	    return;
 	}
-	{
-	    size_t newLen = task->workingdir ? strlen(task->workingdir) : 0;
-	    newLen += strlen(msg->buf) + 1;
 
-	    task->workingdir = realloc(task->workingdir, newLen);
-	    if (!task->workingdir) {
-		PSID_warn(-1, errno, "%s: realloc(task->workingdir)", __func__);
-		return;
-	    }
-	    strcpy(task->workingdir + strlen(task->workingdir), msg->buf);
+	size_t newLen = task->workingdir ? strlen(task->workingdir) : 0;
+	newLen += strlen(msg->buf) + 1;
 
-	    usedBytes = strlen(msg->buf) + 1;
+	task->workingdir = realloc(task->workingdir, newLen);
+	if (!task->workingdir) {
+	    PSID_warn(-1, errno, "%s: realloc(task->workingdir)", __func__);
+	    return;
 	}
+	strcpy(task->workingdir + strlen(task->workingdir), msg->buf);
+
+	usedBytes = strlen(msg->buf) + 1;
 	break;
     case PSP_SPAWN_ARG:
 	if (!task) {
@@ -2484,11 +2455,6 @@ static void msg_SPAWNFAILED(DDErrorMsg_t *msg)
     PSID_log(PSID_LOG_SPAWN, " error = %d sending to parent %s\n", msg->error,
 	     PSC_printTID(msg->header.dest));
 
-    /* Make sure an old initiator does not get extended messages */
-    if (PSIDnodes_getDmnProtoV(PSC_getID(msg->header.dest)) < 404) {
-	msg->header.len = sizeof(*msg);
-    }
-
     if (PSC_getID(msg->header.sender) == PSC_getMyID()) {
 	/* Forwader will disappear immediately, release it. */
 	PStask_t *task = PStasklist_find(&managedTasks, msg->header.sender);
@@ -2798,10 +2764,8 @@ static void msg_CHILDDEAD(DDErrorMsg_t *msg)
 	PSID_log(PSID_LOG_SPAWN, "%s: task %s not found\n", __func__,
 		 PSC_printTID(msg->request));
     } else {
-	int destDmnPSPver = PSIDnodes_getDmnProtoV(PSC_getID(task->loggertid));
-	if (destDmnPSPver > 409
-	    && !(task->group == TG_SERVICE || task->group == TG_SERVICE_SIG
-		 || task->group == TG_ADMINTASK || task->group == TG_KVS) ) {
+	if (task->group != TG_SERVICE && task->group != TG_SERVICE_SIG
+	    && task->group != TG_ADMINTASK && task->group != TG_KVS) {
 	    /** Create and send PSP_DD_CHILDRESREL message */
 	    DDBufferMsg_t resRelMsg = (DDBufferMsg_t) {
 		.header = (DDMsg_t) {
