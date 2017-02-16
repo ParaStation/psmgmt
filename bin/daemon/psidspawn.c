@@ -1809,103 +1809,16 @@ static int spawnTask(PStask_t *task)
 }
 
 /**
- * @brief Handle a PSP_CD_SPAWNREQUEST message.
- *
- * Handle the message @a msg of type PSP_CD_SPAWNREQUEST. These are
- * replaced by PSP_CD_SPAWNREQ messages in later versions of the
- * protocol. For reasons of compatibility the old requests are still
- * supported.
- *
- * Spawn a process as described with @a msg. Therefor a @ref PStask_t
- * structure is extracted from @a msg. If called on the node of the
- * initiating task, various tests are undertaken in order to determine
- * the spawn to be allowed. If all tests pass, the message is
- * forwarded to the target-node where the process to spawn is created.
- *
- * @param msg Pointer to the message to handle.
- *
- * @return No return value.
- */
-static void msg_SPAWNREQUEST(DDBufferMsg_t *msg)
-{
-    PStask_t *task;
-    DDErrorMsg_t answer;
-
-    char tasktxt[128];
-
-    task = PStask_new();
-
-    PStask_decodeFull(msg->buf, task);
-
-    PStask_snprintf(tasktxt, sizeof(tasktxt), task);
-    PSID_log(PSID_LOG_SPAWN, "%s: from %s msglen %d task %s\n", __func__,
-	     PSC_printTID(msg->header.sender), msg->header.len, tasktxt);
-
-    answer.header.dest = msg->header.sender;
-    answer.header.sender = PSC_getMyTID();
-    answer.header.len = sizeof(answer);
-    answer.request = task->rank;
-
-    /* If message is from my node, test if everything is okay */
-    if (PSC_getID(msg->header.sender)==PSC_getMyID()) {
-	answer.error = checkRequest(msg->header.sender, task);
-
-	if (answer.error) {
-	    PStask_delete(task);
-
-	    answer.header.type = PSP_CD_SPAWNFAILED;
-	    sendMsg(&answer);
-
-	    return;
-	}
-    }
-
-    if (PSC_getID(msg->header.dest) == PSC_getMyID()) {
-	answer.error = spawnTask(task);
-
-	if (answer.error) {
-	    /* send only on failure. success reported by forwarder */
-	    answer.header.type = PSP_CD_SPAWNFAILED;
-	    sendMsg(&answer);
-	}
-    } else {
-	/* request for a remote site. */
-	PStask_delete(task);
-
-	if (!PSIDnodes_isUp(PSC_getID(msg->header.dest))) {
-	    answer.header.type = PSP_CD_SPAWNFAILED;
-	    answer.header.sender = msg->header.dest;
-	    answer.error = EHOSTDOWN;
-	    sendMsg(&answer);
-
-	    return;
-	}
-
-	PSID_log(PSID_LOG_SPAWN, "%s: forwarding to node %d\n",
-		 __func__, PSC_getID(msg->header.dest));
-
-	if (sendMsg(msg) < 0) {
-	    answer.header.type = PSP_CD_SPAWNFAILED;
-	    answer.header.sender = msg->header.dest;
-	    answer.error = errno;
-
-	    sendMsg(&answer);
-	}
-
-    }
-}
-
-/**
  * List of tasks waiting to get spawned, i.e. waiting for last
  * environment packets to come in.
  */
-LIST_HEAD(spawnTasks);
+static LIST_HEAD(spawnTasks);
 
 /**
  * List of tasks delayed to get spawned. They shall be started later
  * via @ref PSIDspawn_startDelayedTasks().
  */
-LIST_HEAD(delayedTasks);
+static LIST_HEAD(delayedTasks);
 
 PStask_t *PSIDspawn_findSpawnee(PStask_ID_t ptid)
 {
@@ -1988,8 +1901,7 @@ static void cloneEnvFromTasks(PStask_t *task)
 /**
  * @brief Handle a PSP_CD_SPAWNREQ message.
  *
- * Handle the message @a msg of type PSP_CD_SPAWNREQ. These replace
- * the PSP_CD_SPAWNREQUEST messages of earlier protocol versions.
+ * Handle the message @a msg of type PSP_CD_SPAWNREQ.
  *
  * Spawn a process as described within a series of messages. Depending
  * on the subtype of the current message @a msg, either the @ref
@@ -3015,7 +2927,6 @@ void PSIDspawn_init(void)
 {
     PSID_log(PSID_LOG_VERB, "%s()\n", __func__);
 
-    PSID_registerMsg(PSP_CD_SPAWNREQUEST, msg_SPAWNREQUEST);
     PSID_registerMsg(PSP_CD_SPAWNREQ, (handlerFunc_t) msg_SPAWNREQ);
     PSID_registerMsg(PSP_CD_SPAWNSUCCESS, (handlerFunc_t) msg_SPAWNSUCCESS);
     PSID_registerMsg(PSP_CD_SPAWNFAILED, (handlerFunc_t) msg_SPAWNFAILED);
@@ -3024,7 +2935,6 @@ void PSIDspawn_init(void)
     PSID_registerMsg(PSP_DD_CHILDBORN, (handlerFunc_t) msg_CHILDBORN);
     PSID_registerMsg(PSP_DD_CHILDACK, (handlerFunc_t) PSIDclient_send);
 
-    PSID_registerDropper(PSP_CD_SPAWNREQUEST, drop_SPAWNREQ);
     PSID_registerDropper(PSP_CD_SPAWNREQ, drop_SPAWNREQ);
 
     PSID_registerLoopAct(checkObstinateTasks);

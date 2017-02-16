@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2017 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -11,12 +11,6 @@
 /**
  * @file
  * ParaStation client-daemon high-level protocol.
- *
- * $Id$
- *
- * @author
- * Norbert Eicker <eicker@par-tec.com>
- *
  */
 #ifndef __PSPROTOCOL_H
 #define __PSPROTOCOL_H
@@ -26,13 +20,6 @@
 #include <sys/types.h>
 #include "psnodes.h"
 #include "pstaskid.h"
-
-#ifdef __cplusplus
-extern "C" {
-#if 0
-} /* <- just for emacs indentation */
-#endif
-#endif
 
 /** Unique version number of the high-level protocol */
 #define PSProtocolVersion 340
@@ -259,8 +246,6 @@ typedef enum {
 } PSP_Info_t;
 
 /** Messages concerning spawning of tasks. */
-#define PSP_CD_SPAWNREQUEST      0x0020  /**< Request to spawn a process
-					      @deprecated */
 #define PSP_CD_SPAWNSUCCESS      0x0021  /**< Reply on successful spawn */
 #define PSP_CD_SPAWNFAILED       0x0022  /**< Reply on failed spawn */
 #define PSP_CD_SPAWNFINISH       0x0023  /**< Reply after successful end of
@@ -779,9 +764,5 @@ bool PSP_tryPutTypedMsgBuf(DDTypedBufferMsg_t *msg, const char *funcName,
 bool PSP_getTypedMsgBuf(DDTypedBufferMsg_t *msg, size_t *used,
 			const char *funcName, const char *dataName,
 			void *data, size_t size);
-
-#ifdef __cplusplus
-}/* extern "C" */
-#endif
 
 #endif /* __PSPROTOCOL_H */

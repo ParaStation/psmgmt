@@ -1,17 +1,13 @@
 *
 * ParaStation
 *
-* Copyright (C) 2006-2014 ParTec Cluster Competence Center GmbH, Munich
+* Copyright (C) 2006-2017 ParTec Cluster Competence Center GmbH, Munich
 *
 * This file may be distributed under the terms of the Q Public License
 * as defined in the file LICENSE.QPL included in the packaging of this
 * file.
 *
-* Authors:      Norbert Eicker <eicker@par-tec.com>
-*
 * ParaStation's types of messages and their maximum size.
-*
-* $Id$
 *
 
 Structure of IP message:
@@ -53,7 +49,7 @@ typedef struct {
     short type;           /**< packet type */			2
     unsigned short len;   /**< message length */		2
     int seqno;            /**< Sequence number of packet */	4
-    int ackno;            /**< Sequence number of ack */ 	4
+    int ackno;            /**< Sequence number of ack */	4
     int connid;           /**< Connection Identifier */		4
 } rdphdr_t;
 + payload
@@ -65,7 +61,7 @@ Structure of DDMsg*_t:
 typedef struct {
     int16_t type;          /**< msg type */				2
     int16_t len;           /**< total length of the message */		2
-    PStask_ID_t sender;    /**< sender of the message */    		4
+    PStask_ID_t sender;    /**< sender of the message */		4
     PStask_ID_t dest;      /**< final destination of the message */	4
 } DDMsg_t;
 + payload
@@ -123,11 +119,6 @@ PSP_CD_INFORESPONSE		DDTypedBufferMsg_t	4 + 8 + 32 (from PSpart_encodeReq)
 							4 + (length HW name)
 							4 + 1024 (list chunks)
 
-PSP_CD_SPAWNREQUEST		DDBufferMsg_t		PStask_encode()
-							20 + 60 (termios) + 8 (winsizE) + 20
-							+ workingdir
-							+ argv
-							+ environment
 PSP_CD_SPAWNSUCCESS		DDErrorMsg_t		8
 PSP_CD_SPAWNFAILED		DDErrorMsg_t		8
 PSP_CD_SPAWNFINISH		DDErrorMsg_t		8
@@ -153,7 +144,7 @@ PSP_CD_PLUGINRES		DDTypedMsg_t		4
 
 PSP_CD_CREATEPART		DDBufferMsg_t		32 (from PSpart_encodeReq)
 PSP_CD_CREATEPARTNL		DDBufferMsg_t		2 + NODES_CHUNK*2 (= 514)
-PSP_CD_PARTITIONRES		DDTypedMsg_t		4		
+PSP_CD_PARTITIONRES		DDTypedMsg_t		4
 PSP_CD_GETNODES			DDBufferMsg_t		4
 PSP_CD_NODESRES			DDBufferMsg_t		4 + NODES_CHUNK*2 (= 516)
 PSP_CD_GETRANKNODE		DDBufferMsg_t		4

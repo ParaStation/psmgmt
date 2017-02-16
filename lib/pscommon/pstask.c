@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2017 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -507,77 +507,6 @@ static struct {
 } tmpTask;
 
 static char someStr[256];
-
-int PStask_decodeFull(char *buffer, PStask_t *task)
-{
-    int msglen, len, count, i;
-
-    PStask_snprintf(someStr, sizeof(someStr), task);
-    PSC_log(PSC_LOG_TASK, "%s(%p, task(%s))\n", __func__, buffer, someStr);
-
-    if (!task)
-	return 0;
-
-    PStask_reinit(task);
-
-    /* unpack buffer */
-    msglen = sizeof(tmpTask);
-    memcpy(&tmpTask, buffer, sizeof(tmpTask));
-
-    task->tid = tmpTask.tid;
-    task->ptid = tmpTask.ptid;
-    task->uid = tmpTask.uid;
-    task->gid = tmpTask.gid;
-    task->aretty = tmpTask.aretty;
-    task->termios = tmpTask.termios;
-    task->winsize = tmpTask.winsize;
-    task->group = tmpTask.group;
-    task->rank = tmpTask.rank;
-    task->loggertid = tmpTask.loggertid;
-    task->argc = tmpTask.argc;
-
-    len = strlen(&buffer[msglen]);
-
-    if (len) task->workingdir = strdup(&buffer[msglen]);
-    msglen += len+1;
-
-    /* Get the arguments */
-    task->argv = (char**)malloc(sizeof(char*)*(task->argc+1));
-    for (i=0; i<task->argc; i++) {
-	task->argv[i] = strdup(&buffer[msglen]);
-	msglen += strlen(&buffer[msglen])+1;
-    }
-    task->argv[task->argc] = NULL;
-
-    /* Get number of environment variables */
-    count = 0;
-    len = msglen;
-    while (strlen(&buffer[len])) {
-	count ++;
-	len += strlen(&buffer[len])+1;
-    }
-
-    if (count) {
-	task->environ = (char**)malloc((count+1)*sizeof(char*));
-	task->envSize = count+1;
-    }
-    if (task->environ) {
-	i = 0;
-	while (strlen(&buffer[msglen])) {
-	    task->environ[i] = strdup(&buffer[msglen]);
-	    msglen += strlen(&buffer[msglen])+1;
-	    i++;
-	}
-	task->environ[i] = NULL;
-	msglen++;
-    }
-
-    PStask_snprintf(someStr, sizeof(someStr), task);
-    PSC_log(PSC_LOG_TASK, " received task = (%s)\n", someStr);
-    PSC_log(PSC_LOG_TASK, "%s returns %d\n", __func__, msglen);
-
-    return msglen;
-}
 
 size_t PStask_encodeTask(char *buffer, size_t size, PStask_t *task, char **off)
 {

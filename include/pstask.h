@@ -243,29 +243,6 @@ PStask_t *PStask_clone(PStask_t *task);
 void PStask_snprintf(char *txt, size_t size, PStask_t *task);
 
 /**
- * @brief Decode a task structure.
- *
- * Deprecated function. This is just included for
- * backward-compatibility of the daemon.
- *
- * Decode a task structure encoded by @ref PStask_encodeFull() and
- * stored within @a buffer and write it to the task structure @a task
- * is pointing to.
- *
- * @param buffer The buffer the encoded task structure is stored in.
- *
- * @param task The task structure to write to.
- *
- * @return The number of characters within @a buffer used in order to
- * decode the task structure.
- *
- * @deprecated Included for backward-compatibility. To be removed soon.
- *
- * @see PStask_encodeFull()
- */
-int PStask_decodeFull(char *buffer, PStask_t *task);
-
-/**
  * @brief Encode a task structure.
  *
  * Encode the task structure @a task into the buffer @a buffer of
