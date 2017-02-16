@@ -2059,9 +2059,7 @@ static void msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
 	task = PStask_new();
 	PStask_decodeTask(msg->buf, task);
 	task->tid = msg->header.sender;
-	if (PSIDnodes_getProtoV(PSC_getID(msg->header.sender)) > 339) {
-	    task->argc = 0;           /* determine from argv later */
-	}
+	task->argc = 0;           /* determine from argv later */
 
 	/* Check if we have to and can copy the location */
 	if (task->group == TG_SERVICE || task->group == TG_SERVICE_SIG
@@ -2146,11 +2144,7 @@ static void msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
 		     __func__, PSC_printTID(msg->header.sender));
 	    return;
 	}
-	if (PSIDnodes_getProtoV(PSC_getID(msg->header.sender)) < 340) {
-	    usedBytes = PStask_decodeArgs(msg->buf, task);
-	} else {
-	    usedBytes = PStask_decodeArgv(msg->buf, task);
-	}
+	usedBytes = PStask_decodeArgv(msg->buf, task);
 	break;
     case PSP_SPAWN_ARGCNTD:
 	if (!task) {

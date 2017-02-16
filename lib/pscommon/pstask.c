@@ -600,46 +600,6 @@ int PStask_decodeTask(char *buffer, PStask_t *task)
     return msglen;
 }
 
-int PStask_decodeArgs(char *buffer, PStask_t *task)
-{
-    int msglen=0, i;
-
-    if (!task) {
-	PSC_log(-1, "%s: task is NULL\n", __func__);
-	return 0;
-    }
-
-    if (PSC_getDebugMask() & PSC_LOG_TASK) {
-	snprintfStruct(someStr, sizeof(someStr), task);
-	PSC_log(PSC_LOG_TASK, "%s(%p, task(%s))\n", __func__, buffer, someStr);
-    }
-
-    /* Get the arguments */
-    task->argv = (char**)malloc(sizeof(char*)*(task->argc+1));
-    if (! task->argv) {
-	PSC_warn(-1, errno, "%s: malloc()", __func__);
-	return 0;
-    }
-    for (i=0; i<task->argc; i++) {
-	task->argv[i] = strdup(&buffer[msglen]);
-	if (! task->argv[i]) {
-	    PSC_warn(-1, errno, "%s: strdup(%d)", __func__, i);
-	    return 0;
-	}
-	msglen += strlen(&buffer[msglen])+1;
-    }
-    task->argv[task->argc] = NULL;
-
-    if (PSC_getDebugMask() & PSC_LOG_TASK) {
-	snprintfStrV(someStr, sizeof(someStr), task->argv);
-	PSC_log(PSC_LOG_TASK, " received argv = (%s)\n", someStr);
-	PSC_log(PSC_LOG_TASK, "%s returns %d\n", __func__, msglen);
-    }
-
-    return msglen;
-}
-
-
 /**
  * @brief Encode string-vector
  *

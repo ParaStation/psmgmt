@@ -304,27 +304,6 @@ size_t PStask_encodeTask(char *buffer, size_t size, PStask_t *task,
 int PStask_decodeTask(char *buffer, PStask_t *task);
 
 /**
- * @brief Decode argv part of task structure.
- *
- * Deprecated function. This is just included for
- * backward-compatibility of the daemon.
- *
- * Decode the argv-part of a task structure encoded by
- * PStask_encodeArgs() and stored within @a buffer and write it to the
- * task structure @a task is pointing to.
- *
- * @param buffer The buffer the encoded argv-part is stored in.
- *
- * @param task The task structure to write to.
- *
- * @return The number of chars within @a buffer used in order to
- * decode the argv-part of the task structure.
- *
- * @deprecated Included for backward-compatibility. To be removed soon.
- */
-int PStask_decodeArgs(char *buffer, PStask_t *task);
-
-/**
  * @brief Encode argv part of task structure.
  *
  * Encode the argument-vector @a argv into the buffer @a buffer of

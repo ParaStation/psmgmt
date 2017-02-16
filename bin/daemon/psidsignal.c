@@ -1087,14 +1087,9 @@ static void msg_RELEASE(DDSignalMsg_t *msg)
 {
     PStask_ID_t registrarTid = msg->header.sender;
     PStask_ID_t tid = msg->header.dest;
-    int PSPver = PSIDnodes_getProtoV(PSC_getID(msg->header.sender));
 
     PSID_log(PSID_LOG_SIGNAL, "%s(%s)", __func__, PSC_printTID(tid));
     PSID_log(PSID_LOG_SIGNAL, " registrar %s\n", PSC_printTID(registrarTid));
-
-    if (PSC_getID(registrarTid) == PSC_getMyID()) {
-	if (PSPver < 338) msg->answer = 1;
-    }
 
     if (PSC_getID(tid) != PSC_getMyID()) {
 	/* receiving task (task to release) is remote, send a message */
@@ -1282,7 +1277,6 @@ static void msg_WHODIED(DDSignalMsg_t *msg)
 static void drop_RELEASE(DDBufferMsg_t *msg)
 {
     DDSignalMsg_t sigmsg;
-    int PSPver = PSIDnodes_getProtoV(PSC_getID(msg->header.sender));
 
     sigmsg.header.type = (msg->header.type==PSP_CD_RELEASE) ?
 	PSP_CD_RELEASERES : PSP_CD_NOTIFYDEADRES;
@@ -1295,7 +1289,7 @@ static void drop_RELEASE(DDBufferMsg_t *msg)
     sigmsg.pervasive = 0;
 
     if (msg->header.type == PSP_CD_NOTIFYDEAD
-	|| PSPver < 338 || ((DDSignalMsg_t *)msg)->answer) {
+	|| ((DDSignalMsg_t *)msg)->answer) {
 	if (msg->header.type == PSP_CD_RELEASE) {
 	    msg_RELEASERES(&sigmsg);
 	} else {
