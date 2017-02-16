@@ -17,18 +17,6 @@
 #
 # ParaStation
 #
-# Copyright (C) 2012 ParTec Cluster Competence Center GmbH, Munich
-#
-# This file may be distributed under the terms of the Q Public License
-# as defined in the file LICENSE.QPL included in the packaging of this
-# file.
-#
-# Author:	Thomas Moschny <moschny@par-tec.com>
-#
-
-#
-# ParaStation
-#
 # Copyright (C) 2012-2016 ParTec Cluster Competence Center GmbH, Munich
 #
 # This file may be distributed under the terms of the Q Public License
@@ -113,7 +101,7 @@ build_triplet = @build@
 host_triplet = @host@
 target_triplet = @target@
 check_PROGRAMS = test_logging$(EXEEXT) test_paramspace$(EXEEXT) \
-	test_psicomm$(EXEEXT)
+	test_psicomm$(EXEEXT) listInfoTypes$(EXEEXT)
 TESTS = test_logging$(EXEEXT) test_paramspace$(EXEEXT)
 subdir = tests/functional
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
@@ -127,13 +115,16 @@ DIST_COMMON = $(srcdir)/Makefile.am $(am__DIST_COMMON)
 mkinstalldirs = $(install_sh) -d
 CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
-am_test_logging_OBJECTS = test_logging.$(OBJEXT)
-test_logging_OBJECTS = $(am_test_logging_OBJECTS)
-test_logging_DEPENDENCIES = $(libpscommon)
+am_listInfoTypes_OBJECTS = listInfoTypes.$(OBJEXT)
+listInfoTypes_OBJECTS = $(am_listInfoTypes_OBJECTS)
+listInfoTypes_DEPENDENCIES = $(libpscommon)
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
 am__v_lt_0 = --silent
 am__v_lt_1 = 
+am_test_logging_OBJECTS = test_logging.$(OBJEXT)
+test_logging_OBJECTS = $(am_test_logging_OBJECTS)
+test_logging_DEPENDENCIES = $(libpscommon)
 am_test_paramspace_OBJECTS = test_paramspace.$(OBJEXT)
 test_paramspace_OBJECTS = $(am_test_paramspace_OBJECTS)
 test_paramspace_DEPENDENCIES = $(libpscommon) $(libputil)
@@ -174,10 +165,10 @@ AM_V_CCLD = $(am__v_CCLD_@AM_V@)
 am__v_CCLD_ = $(am__v_CCLD_@AM_DEFAULT_V@)
 am__v_CCLD_0 = @echo "  CCLD    " $@;
 am__v_CCLD_1 = 
-SOURCES = $(test_logging_SOURCES) $(test_paramspace_SOURCES) \
-	$(test_psicomm_SOURCES)
-DIST_SOURCES = $(test_logging_SOURCES) $(test_paramspace_SOURCES) \
-	$(test_psicomm_SOURCES)
+SOURCES = $(listInfoTypes_SOURCES) $(test_logging_SOURCES) \
+	$(test_paramspace_SOURCES) $(test_psicomm_SOURCES)
+DIST_SOURCES = $(listInfoTypes_SOURCES) $(test_logging_SOURCES) \
+	$(test_paramspace_SOURCES) $(test_psicomm_SOURCES)
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
@@ -414,6 +405,16 @@ ACLOCAL = @ACLOCAL@
 AMTAR = @AMTAR@
 AM_CFLAGS = @AM_CFLAGS@
 AM_DEFAULT_VERBOSITY = @AM_DEFAULT_VERBOSITY@
+
+#
+# ParaStation
+#
+# Copyright (C) 2012-2017 ParTec Cluster Competence Center GmbH, Munich
+#
+# This file may be distributed under the terms of the Q Public License
+# as defined in the file LICENSE.QPL included in the packaging of this
+# file.
+#
 AM_LDFLAGS = @AM_LDFLAGS@ -avoid-version -module
 AR = @AR@
 AUTOCONF = @AUTOCONF@
@@ -582,6 +583,8 @@ test_paramspace_SOURCES = test_paramspace.c
 test_paramspace_LDADD = $(libpscommon) $(libputil)
 test_psicomm_SOURCES = test_psicomm.c
 test_psicomm_LDADD = $(libpsi)
+listInfoTypes_SOURCES = listInfoTypes.c
+listInfoTypes_LDADD = $(libpscommon)
 all: all-am
 
 .SUFFIXES:
@@ -626,6 +629,10 @@ clean-checkPROGRAMS:
 	echo " rm -f" $$list; \
 	rm -f $$list
 
+listInfoTypes$(EXEEXT): $(listInfoTypes_OBJECTS) $(listInfoTypes_DEPENDENCIES) $(EXTRA_listInfoTypes_DEPENDENCIES) 
+	@rm -f listInfoTypes$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(listInfoTypes_OBJECTS) $(listInfoTypes_LDADD) $(LIBS)
+
 test_logging$(EXEEXT): $(test_logging_OBJECTS) $(test_logging_DEPENDENCIES) $(EXTRA_test_logging_DEPENDENCIES) 
 	@rm -f test_logging$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(test_logging_OBJECTS) $(test_logging_LDADD) $(LIBS)
@@ -644,6 +651,7 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/listInfoTypes.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_logging.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_paramspace.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_psicomm.Po@am__quote@
