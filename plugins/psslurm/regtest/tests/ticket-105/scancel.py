@@ -62,7 +62,7 @@ jobid = os.environ["PSTEST_JOB_ID"]
 while 1:
 	tmp = query_scontrol(jobid)
 
-	if "PENDING" == tmp["JobState"]:
+	if tmp["JobState"] in ["PENDING", "CONFIGURING"]:
 		time.sleep(0.1)
 		continue
 
