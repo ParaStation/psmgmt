@@ -19,7 +19,7 @@ AM_CPPFLAGS += -I$(top_srcdir)/bin/daemon -I$(srcdir)/../include \
 
 plugin_LTLIBRARIES = psmom.la
 
-libpbs = $(top_builddir)/plugins/psmom/src/pbs/libpbs.la
+libpbs = $(top_builddir)/plugins/psmom/pbs/libpbs.la
 libpsi = $(top_builddir)/lib/psi/libpsi.la
 libplugincommon = $(top_builddir)/lib/plugincommon/libplugincommon.la
 

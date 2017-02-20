@@ -112,7 +112,7 @@ build_triplet = @build@
 host_triplet = @host@
 target_triplet = @target@
 @PAM_ENABLED_TRUE@am__append_1 = -lpam
-subdir = plugins/psmom/src/psmom
+subdir = plugins/psmom/psmom
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/m4/ax_check_compile_flag.m4 \
 	$(top_srcdir)/m4/libtool.m4 $(top_srcdir)/m4/ltoptions.m4 \
@@ -406,7 +406,7 @@ scriptsdir = $(prefix)/scripts
 psaccount_dir := plugins/psaccount
 pspam_dir := plugins/pspam/pspam
 plugin_LTLIBRARIES = psmom.la
-libpbs = $(top_builddir)/plugins/psmom/src/pbs/libpbs.la
+libpbs = $(top_builddir)/plugins/psmom/pbs/libpbs.la
 libpsi = $(top_builddir)/lib/psi/libpsi.la
 libplugincommon = $(top_builddir)/lib/plugincommon/libplugincommon.la
 psmom_la_SOURCES = Makefile.am psmomacc.c psmomacc.h psmom.c		\
@@ -442,9 +442,9 @@ $(srcdir)/Makefile.in: @MAINTAINER_MODE_TRUE@ $(srcdir)/Makefile.am $(top_srcdir
 	      exit 1;; \
 	  esac; \
 	done; \
-	echo ' cd $(top_srcdir) && $(AUTOMAKE) --foreign plugins/psmom/src/psmom/Makefile'; \
+	echo ' cd $(top_srcdir) && $(AUTOMAKE) --foreign plugins/psmom/psmom/Makefile'; \
 	$(am__cd) $(top_srcdir) && \
-	  $(AUTOMAKE) --foreign plugins/psmom/src/psmom/Makefile
+	  $(AUTOMAKE) --foreign plugins/psmom/psmom/Makefile
 Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
 	@case '$?' in \
 	  *config.status*) \

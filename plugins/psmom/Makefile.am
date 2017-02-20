@@ -7,9 +7,8 @@
 # as defined in the file LICENSE.QPL included in the packaging of this
 # file.
 #
-
 include $(top_srcdir)/common.am
 
-SUBDIRS = doc src/include src/pbs src/psmom
+SUBDIRS = doc include pbs psmom
 
 dist_noinst_DATA = LICENSE.OpenPBS README ChangeLog-History
