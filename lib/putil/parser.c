@@ -2,17 +2,12 @@
  * ParaStation
  *
  * Copyright (C) 2002-2003 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2013 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2017 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-#ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__((used)) =
-    "$Id$";
-#endif /* DOXYGEN_SHOULD_SKIP_THIS */
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -304,15 +299,6 @@ int parser_error(char *token)
 }
 
 void parser_comment(parser_log_key_t key, char *format, ...)
-{
-    va_list ap;
-
-    va_start(ap, format);
-    logger_vprint(logger, key, format, ap);
-    va_end(ap);
-}
-
-void parser_commentCont(parser_log_key_t key, char *format, ...)
 {
     va_list ap;
 

@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2002-2003 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2013 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2017 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -11,22 +11,9 @@
 /**
  * @file
  * General parser utility for ParaStation daemon and admin
- *
- * $Id$
- *
- * @author
- * Norbert Eicker <eicker@par-tec.com>
- *
  */
 #ifndef __PARSING_H
 #define __PARSING_H
-
-#ifdef __cplusplus
-extern "C" {
-#if 0
-} /* <- just for emacs indentation */
-#endif
-#endif
 
 #include <stdio.h>
 #include <netinet/in.h>
@@ -313,50 +300,6 @@ void parser_comment(parser_log_key_t key, char* format, ...)
 __attribute__((format(printf,2,3)));
 
 /**
- * @brief Continue a comment.
- *
- * Deprecated function. This is just included for
- * backward-compatibility. Since pre-pending of the line-info is now
- * done via tags it is save to continue comments via @ref
- * parser_comment() without spoiling the output with additional
- * line-information.
- *
- * Print out a comment concerning actual parsing. The @a comment will
- * *not* be prepended by any information, thus this function may act
- * as an continuation of a comment started via @ref parser_comment().
- *
- * This is a wrapper to @ref logger_print().
- *
- * The message is only put out if either:
- *
- * - the key @a key bitwise or'ed with @a parser's current debug-mask
- * set via @ref setDebugMask() is different form zero, or
- *
- * - the key @a key is -1.
- *
- * Thus all messages with @a key set to -1 are put out always,
- * independently of the choice of @a parser's mask. Therefor critical
- * messages of general interest should be but out with @a key st to
- * this value.
- *
- * @param key The key to use in order to decide if anything is put out.
- *
- * @param format The format to be used in order to produce output. The
- * syntax used is according to the one defined for the @ref printf()
- * family of functions from the C standard. This string will also
- * define the further parameters to be expected.
- *
- * @return No return value.
- *
- * @deprecated Included for backward-compatibility. To be removed soon.
- *
- * @see logger_print(), parser_getDebugLevel(),
- * parser_setDebugLevel(), parser_comment()
- */
-void parser_commentCont(parser_log_key_t key, char* format, ...)
-    __attribute__((format(printf,2,3),deprecated));
-
-/**
  * @brief Print a warn-messages and exit.
  *
  * Print a message like from @ref logger_warn(), but gives this
@@ -550,9 +493,5 @@ int parser_parseOn(char* line, parser_t* parser);
  * @return No return value.
  */
 void parser_finalize(void);
-
-#ifdef __cplusplus
-}/* extern "C" */
-#endif
 
 #endif /* __PARSING_H */

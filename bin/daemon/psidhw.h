@@ -1,33 +1,20 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2006-2011 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2006-2017 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
 /**
- * \file
+ * @file
  * Functions handling the communication hardware
- *
- * $Id$
- *
- * \author
- * Norbert Eicker <eicker@par-tec.com>
- *
  */
 #ifndef __PSIDHW_H
 #define __PSIDHW_H
 
 #include "psprotocol.h"
-
-#ifdef __cplusplus
-extern "C" {
-#if 0
-} /* <- just for emacs indentation */
-#endif
-#endif
 
 /**
  * @brief Initialize hardware stuff
@@ -97,34 +84,6 @@ void PSID_stopAllHW(void);
 void PSID_getCounter(DDTypedBufferMsg_t *inmsg);
 
 /**
- * @brief Set hardware parameter.
- *
- * This function is actually doing nothing.
- *
- * @warning Deprecated. Was used for Myrinet-support within
- * ParaStation 3. Don't use this.
- *
- * @deprecated Was used for Myrinet-support within ParaStation 3.
- *
- * @return No return value.
- */
-void PSID_setParam(int hw, PSP_Option_t option, PSP_Optval_t value)
-    __attribute__((deprecated));
-
-/**
- * @brief Get hardware parameter.
- *
- * @warning Deprecated. Was used for Myrinet-support within
- * ParaStation 3. Don't use this.
- *
- * @deprecated Was used for Myrinet-support within ParaStation 3.
- *
- * @return Will always return -1.
- */
-PSP_Optval_t PSID_getParam(int hw, PSP_Option_t option)
-    __attribute__((deprecated));
-
-/**
  * @brief Get number of virtual CPUs.
  *
  * Determine the number of virtual CPUs. This is done via a call to
@@ -154,9 +113,5 @@ long PSID_getVirtCPUs(void);
  * @return On success, the number of physical CPUs is returned.
  */
 long PSID_getPhysCPUs(void);
-
-#ifdef __cplusplus
-}/* extern "C" */
-#endif
 
 #endif /* __PSIDHW_H */

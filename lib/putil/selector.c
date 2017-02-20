@@ -759,9 +759,6 @@ void Selector_startOver(void)
     startOver = 1;
 }
 
-void Selector_checkFDs(void)
-{}
-
 #define NUM_EVENTS 20
 
 int Sselect(int n, fd_set  *readfds,  fd_set  *writefds, fd_set *exceptfds,

@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2014 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2017 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -11,12 +11,6 @@
 /**
  * @file
  * ParaStation Programming Environment
- *
- * $Id$
- *
- * @author
- * Norbert Eicker <eicker@par-tec.com>
- *
  */
 #ifndef __PSE_H
 #define __PSE_H
@@ -25,13 +19,6 @@
 #include <sys/types.h>
 
 #include "psnodes.h"
-
-#ifdef __cplusplus
-extern "C" {
-#if 0
-} /* <- just for emacs indentation */
-#endif
-#endif
 
 /**
  * @brief Initialize PSE.
@@ -107,55 +94,6 @@ int PSE_getSize(void);
  * @see PSE_getSize(), PSE_spawnMaster(), PSE_spawnTasks()
  * */
 int PSE_getRank(void);
-
-/**
- * @brief Deprecated form of PSE_initialize().
- *
- * Initializes PSE, the ParaStation Programming Environment. You have
- * to call this function before using any other function contained in
- * PSE. Otherwise the behavior of any other PSE function is
- * undetermined.
- *
- * PSE is initialized and the aspired size of the process group is set
- * to @a NP.
- *
- * @param NP The aspired size of the process group.
- *
- * @param rank On return, @a rank contains the actual rank of the
- * process.
- *
- * @warning Deprecated form of @ref PSE_initialize(). Don't use this.
- *
- * @deprecated Better use @ref PSE_initialize() to initialize and @ref
- * PSE_getRank() to get the actual rank.
- *
- * @see PSE_initialize(), PSE_getRank()
- * */
-void PSE_init(int NP, int *rank)
-    __attribute__((deprecated));
-
-/**
- * @brief Register to the parents task. Deprecated!
- *
- * Register the actual process to the parents task, so it's notified
- * thru a SIGTERM when the parent dies.
- *
- * If the registration to the parent fails, it is assumed that the
- * parent already has died. An error message is generated and the
- * process exits.
- *
- * @return No return value.
- *
- * @warning All registration actions are done automatically within the
- * daemon processes now. Thus the current implementation this function
- * does nothing and the use of this function is deprecated.
- *
- * @deprecated All registration actions are done automatically within
- * the daemon processes now. Thus calling this function is not
- * necessary any longer.
- */
-void PSE_registerToParent(void)
-    __attribute__((deprecated));
 
 /**
  * @brief Set UID for spawns
@@ -569,9 +507,5 @@ void PSE_finalize(void);
  * @see PSE_finalize(), exit(2)
  * */
 void PSE_abort(int code);
-
-#ifdef __cplusplus
-}/* extern "C" */
-#endif
 
 #endif /* __PSE_H */

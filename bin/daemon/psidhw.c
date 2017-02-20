@@ -1,17 +1,12 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2006-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2006-2017 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-#ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__((used)) =
-    "$Id$";
-#endif /* DOXYGEN_SHOULD_SKIP_THIS */
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -494,16 +489,6 @@ void PSID_getCounter(DDTypedBufferMsg_t *inmsg)
     }
 
     sendMsg(&msg);
-}
-
-void PSID_setParam(int hw, PSP_Option_t type, PSP_Optval_t value)
-{
-    return;
-}
-
-PSP_Optval_t PSID_getParam(int hw, PSP_Option_t type)
-{
-    return -1;
 }
 
 /**

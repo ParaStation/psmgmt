@@ -2,28 +2,24 @@
  * ParaStation
  *
  * Copyright (C) 2003 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2017 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
 /**
- * @file ParaStation Selector facility. This is a simple select
- * multiplexer for applications that need to handle special message
- * without disturbing a select() call in a transparent way. Within
- * ParaStation this is used by the MCast, RDP and PSIDstatus
- * modules. Additionally, various plugins make use of this.
+ * @file ParaStation Selector facility.
+ *
+ * This is a simple select multiplexer for applications that need to
+ * handle special message without disturbing a select() call in a
+ * transparent way. Within ParaStation this is used by the MCast, RDP
+ * and PSIDstatus modules and also to handle forwarder and client
+ * connections. Additionally, various plugins make use of this.
  *
  * In fact the facility is based internally on the more recent
  * epoll(7) I/O event notification facility but keeps select()
  * semantics for compatibility reasons.
- *
- * $Id$
- *
- * @author
- * Norbert Eicker <eicker@par-tec.com>
- *
  */
 #ifndef __SELECTOR_H
 #define __SELECTOR_H
@@ -32,13 +28,6 @@
 #include <stdint.h>
 #include <sys/types.h>
 #include <sys/time.h>
-
-#ifdef __cplusplus
-extern "C" {
-#if 0
-} /* <- just for emacs indentation */
-#endif
-#endif
 
 /**
  * @brief (Re-)Initialize the Selector module.
@@ -321,20 +310,6 @@ int Selector_enable(int fd);
 int Selector_isActive(int fd);
 
 /**
- * @brief Checks file-descriptors after select() has failed.
- *
- * Detailed checking of the file-descriptors in the list of selectors
- * on validity after a select(2) call has failed. Thus all file
- * descriptors within the list are examined and handled if necessary.
- *
- * @deprecated This mechanism is obsolete since epoll(7) is used in
- * the meantime and in fact is a no-op. To be removed soon.
- *
- * @return No return value.
- */
-void Selector_checkFDs(void);
-
-/**
  * @brief select() replacement that handles registered file-descriptors.
  *
  * Waits for a number of file-descriptors to change status. If the status
@@ -448,9 +423,5 @@ int Selector_gcRequired(void);
  * @return No return value.
  */
 void Selector_printStat(void);
-
-#ifdef __cplusplus
-}/* extern "C" */
-#endif
 
 #endif /* __SELECTOR_H */
