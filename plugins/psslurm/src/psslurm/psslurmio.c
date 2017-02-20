@@ -534,7 +534,7 @@ int stepForwarderMsg(PSLog_Msg_t *msg, Forwarder_Data_t *fwData)
     return 1;
 }
 
-void sendBrokeIOcon(void)
+void sendBrokeIOcon(Step_t *step)
 {
     PSLog_Msg_t msg = (PSLog_Msg_t) {
 	.header = (DDMsg_t) {
@@ -545,12 +545,22 @@ void sendBrokeIOcon(void)
 	.version = PLUGINFW_PROTO_VERSION,
 	.type = CMD_BROKE_IO_CON,
 	.sender = -1};
+
+    addUint32ToMsgBuf((DDTypedBufferMsg_t*)&msg, step->jobid);
+    addUint32ToMsgBuf((DDTypedBufferMsg_t*)&msg, step->stepid);
     sendMsgToMother(&msg);
 }
 
-static void handleBrokeIOcon(Forwarder_Data_t *fwData)
+static void handleBrokeIOcon(char *ptr)
 {
-    Step_t *step = fwData->userData;
+    Step_t *step;
+    uint32_t jobid, stepid;
+
+    getUint32(&ptr, &jobid);
+    getUint32(&ptr, &stepid);
+
+    /* step might already be deleted */
+    if (!(step = findStepById(jobid, stepid))) return;
 
     if (step->ioCon < 2) step->ioCon = 2;
 }
@@ -560,7 +570,7 @@ int hookFWmsg(PSLog_Msg_t *msg, Forwarder_Data_t *fwData)
     PSSLURM_Fw_Cmds_t type = msg->type;
     switch (type) {
     case CMD_BROKE_IO_CON:
-	handleBrokeIOcon(fwData);
+	handleBrokeIOcon(msg->buf);
 	break;
     default:
 	mdbg(PSSLURM_LOG_IO_VERB, "%s: Unhandled type %d\n", __func__, type);

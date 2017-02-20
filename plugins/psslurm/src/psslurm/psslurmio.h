@@ -51,6 +51,6 @@ void sendFWtaskInfo(Forwarder_Data_t *fwdata, PS_Tasks_t *task);
 void initStepIO(Step_t *step);
 void sendStepTimeout(Forwarder_Data_t *fwdata);
 int hookFWmsg(PSLog_Msg_t *msg, Forwarder_Data_t *fwData);
-void sendBrokeIOcon(void);
+void sendBrokeIOcon(Step_t *step);
 
 #endif

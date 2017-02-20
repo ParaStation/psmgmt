@@ -1285,7 +1285,7 @@ int srunSendIO(uint16_t type, uint16_t taskid, Step_t *step, char *buf,
 	    case ECONNRESET:
 	    case EPIPE:
 	    case EBADF:
-		sendBrokeIOcon();
+		sendBrokeIOcon(step);
 		freeSlurmMsg(&step->srunIOMsg);
 		break;
 	}
