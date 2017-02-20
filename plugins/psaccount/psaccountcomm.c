@@ -344,9 +344,9 @@ static void handlePSMsg(DDTypedBufferMsg_t *msg)
 
 /** Message types used between psaccount plugins */
 typedef enum {
-    PSP_ACCOUNT_FORWARD_START = 0x00000,
-    PSP_ACCOUNT_FORWARD_END,
-    PSP_ACCOUNT_DATA_UPDATE,
+    PSP_ACCOUNT_FORWARD_START = 0x00000, /**< @obsolete */
+    PSP_ACCOUNT_FORWARD_END,             /**< @obsolete */
+    PSP_ACCOUNT_DATA_UPDATE,             /**< @obsolete */
     PSP_ACCOUNT_ENABLE_UPDATE,
     PSP_ACCOUNT_DISABLE_UPDATE,
     PSP_ACCOUNT_AGG_DATA_UPDATE,

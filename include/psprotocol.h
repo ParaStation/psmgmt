@@ -114,24 +114,20 @@ typedef enum {
     PSP_OP_CPUMAP,                /**< request full CPU-map (returns list)*/
     PSP_OP_ALLOWUSERMAP,          /**< allow user to influence CPU-mapping */
 
-    PSP_OP_SET_UID = 0x0050,      /**< set an exclusive user
-				     (obsoletes PSP_OP_UIDLIMIT) */
+    PSP_OP_SET_UID = 0x0050,      /**< set an exclusive user */
     PSP_OP_ADD_UID,               /**< add a new exclusive user */
     PSP_OP_REM_UID,               /**< remove an exclusive user */
     PSP_OP_UID,                   /**< list of exclusive users */
-    PSP_OP_SET_GID,               /**< set an exclusive group
-				     (obsoletes PSP_OP_GIDLIMIT) */
+    PSP_OP_SET_GID,               /**< set an exclusive group */
     PSP_OP_ADD_GID,               /**< add a new exclusive group */
     PSP_OP_REM_GID,               /**< remove an exclusive group */
     PSP_OP_GID,                   /**< list of exclusive groups */
     /* admin users/groups are allowed to start unaccounted jobs */
-    PSP_OP_SET_ADMUID,            /**< set an admin user
-				     (obsoletes PSP_OP_ADMINUID) */
+    PSP_OP_SET_ADMUID,            /**< set an admin user */
     PSP_OP_ADD_ADMUID,            /**< add a new admin user */
     PSP_OP_REM_ADMUID,            /**< remove an admin user */
     PSP_OP_ADMUID,                /**< list of admin users */
-    PSP_OP_SET_ADMGID,            /**< set an admin group
-				     (obsoletes PSP_OP_ADMINGID) */
+    PSP_OP_SET_ADMGID,            /**< set an admin group */
     PSP_OP_ADD_ADMGID,            /**< add a new admin group */
     PSP_OP_REM_ADMGID,            /**< remove an admin group */
     PSP_OP_ADMGID,                /**< list of admin groups */
