@@ -7,7 +7,6 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdarg.h>
@@ -70,7 +69,7 @@ static pid_t backup_pid = -1;
 static bool job_timeout = 0;
 
 /** flag for sigchild */
-static bool sigChild = 0;
+static bool sigChild = false;
 
 /** flag which will be set to 1 if the first kill phase started */
 static bool killAllChildren = 0;
@@ -414,7 +413,7 @@ static void signalHandler(int sig)
 	    }
 	    break;
 	case SIGCHLD:
-	    sigChild = 1;
+	    sigChild = true;
 	    stopForwarderLoop();
 	    break;
 	case SIGPIPE:
@@ -443,15 +442,10 @@ static void forwarderLoop(void)
     blockSignal(SIGCHLD, 0);
     blockSignal(SIGALRM, 0);
 
-    while (1) {
+    while (!sigChild) {
 	/* check for really short jobs */
-	if (sigChild) return;
-
-	if (Sselect(0, NULL, NULL, NULL, NULL) < 0) {
-	    if (errno != EINTR) {
-		mlog("%s: select error : %s\n", __func__, strerror(errno));
-	    }
-	    if (sigChild) return;
+	if (Swait(-1) < 0) {
+	    if (errno && errno != EINTR) mwarn(errno, "%s: Swait()", __func__);
 	}
     }
 }
