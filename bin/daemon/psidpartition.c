@@ -2241,7 +2241,7 @@ static void sendAcctQueueMsg(PStask_t *task)
 	    .type = PSP_CD_ACCOUNT,
 	    .dest = PSC_getMyTID(),
 	    .sender = task->tid,
-	    .len = sizeof(msg) + sizeof(msg.type) },
+	    .len = sizeof(msg.header) + sizeof(msg.type) },
 	.type = PSP_ACCOUNT_QUEUE};
 
     PSP_putTypedMsgBuf(&msg, __func__, "TID", &task->tid, sizeof(task->tid));
