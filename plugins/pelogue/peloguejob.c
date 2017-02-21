@@ -173,9 +173,8 @@ bool checkJobPtr(Job_t *jobPtr)
 
 bool traverseJobs(JobVisitor_t visitor, const void *info)
 {
-    list_t *j;
-
-    list_for_each(j, &jobList) {
+    list_t *j, *tmp;
+    list_for_each_safe(j, tmp, &jobList) {
 	Job_t *job = list_entry(j, Job_t, next);
 
 	if (visitor(job, info)) return true;
