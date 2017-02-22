@@ -1,3 +1,143 @@
+Version psmgmt-5.1.1:
+=====================
+------------------------------------------------------------------------
+e15c27d | Norbert Eicker | Wed, 22 Feb 2017 08:29:47 +0100
+
+Bugfix: Grab correct exit code for pelogue scripts
+
+------------------------------------------------------------------------
+993a61f | Norbert Eicker | Wed, 22 Feb 2017 08:27:28 +0100
+
+Flag pluginfowarder's returns validity
+
+ - pluginfowarder's estatus and ecode validity cannot be determined by
+   their value only
+
+------------------------------------------------------------------------
+ebf8edd | Norbert Eicker | Tue, 21 Feb 2017 22:52:56 +0100
+
+Fix pelogue's traverseJobs() (jrt:#6405)
+
+ - While traversing the list of jobs the current job might get deleted
+   within the job's callback.
+
+------------------------------------------------------------------------
+62e26bb | Norbert Eicker | Tue, 21 Feb 2017 17:47:59 +0100
+
+Fix yet another typo introduced in 0f7b887ad1990a
+
+------------------------------------------------------------------------
+d499075 | Michael Rauh | Tue, 21 Feb 2017 16:49:50 +0100
+
+Fix stack corruption introduced in 0f7b887ad1990a
+
+------------------------------------------------------------------------
+c6975e3 | Michael Rauh | Mon, 20 Feb 2017 14:26:19 +0100
+
+Fix segfault in psslurm when I/O connections breaks (JRT:#6396)
+
+------------------------------------------------------------------------
+771a599 | Norbert Eicker | Mon, 20 Feb 2017 10:27:45 +0100
+
+Flatten psmom's directory tree
+
+------------------------------------------------------------------------
+827e248 | Norbert Eicker | Mon, 20 Feb 2017 10:13:23 +0100
+
+Update documentation on obsolete stuff
+
+------------------------------------------------------------------------
+2735b36 | Norbert Eicker | Mon, 20 Feb 2017 09:56:29 +0100
+
+Mark Sselect() as deprecated
+
+------------------------------------------------------------------------
+7a92ba3 | Norbert Eicker | Mon, 20 Feb 2017 09:31:59 +0100
+
+Remove various functions marked as deprecated
+
+------------------------------------------------------------------------
+81e616e | Dorian Krause | Fri, 17 Feb 2017 09:08:04 +0100
+
+Bug fix for ticket-105 and sstat-1
+
+Accept CONFIGURING as a valid JobState.
+
+------------------------------------------------------------------------
+8b70253 | Norbert Eicker | Thu, 16 Feb 2017 17:42:00 +0100
+
+Drop more support for protocols prior to 340
+
+------------------------------------------------------------------------
+957a761 | Norbert Eicker | Thu, 16 Feb 2017 17:29:42 +0100
+
+Add new testtool to list all info types in protocol
+
+------------------------------------------------------------------------
+41b6b60 | Norbert Eicker | Thu, 16 Feb 2017 17:25:04 +0100
+
+Drop support for various option types in protocol
+
+ - All info marked as deprecated for more than 10 years
+
+------------------------------------------------------------------------
+2e01858 | Norbert Eicker | Thu, 16 Feb 2017 16:37:20 +0100
+
+Drop support for various option types in protocol
+
+ - All option marked as deprecated for at least 2 years, i.e. prior to
+   psmgmt-5.0.47
+
+------------------------------------------------------------------------
+b1a376b | Norbert Eicker | Thu, 16 Feb 2017 16:17:43 +0100
+
+Drop support for protocols prior to 340
+
+ - Version 340 was introduced in February 2011 and released in
+   psmgmt-5.0.31
+
+------------------------------------------------------------------------
+0f7b887 | Norbert Eicker | Thu, 16 Feb 2017 16:06:24 +0100
+
+Drop support for daemon protocols prior to 410
+
+ - Version 410 was introduced in November 2014 and released in
+   psmgmt-5.0.47
+
+------------------------------------------------------------------------
+0601771 | Norbert Eicker | Thu, 16 Feb 2017 10:21:05 +0100
+
+Drop support for PSP_CD_SPAWNREQUEST message
+
+ - This type of message is deprecated and not sent since 2006
+
+------------------------------------------------------------------------
+47f18dc | Norbert Eicker | Wed, 15 Feb 2017 18:28:08 +0100
+
+Adapt psid version infos to missing SVN revs
+
+------------------------------------------------------------------------
+3ccb5a0 | Norbert Eicker | Wed, 15 Feb 2017 18:16:40 +0100
+
+Adapt psiadmin version infos to missing SVN revs
+
+------------------------------------------------------------------------
+1d559ac | Norbert Eicker | Tue, 14 Feb 2017 18:09:45 +0100
+
+Remove pointer arithmetics clang complains about
+
+------------------------------------------------------------------------
+8960457 | Norbert Eicker | Tue, 14 Feb 2017 18:05:41 +0100
+
+Use PSP_putMsgBuf() / PSP_getMsgBuf() for RDP pings
+
+ - Drop support for ancient protocol versions
+ - As a side-effect remove some pointer arithmetics clang complains
+   about
+
+------------------------------------------------------------------------
+
+
 Version psmgmt-5.1.0:
 =====================
 ------------------------------------------------------------------------

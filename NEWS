@@ -4,6 +4,26 @@ Copyright (C) 2010-2017 ParTec Cluster Competence Center GmbH, Munich
 
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
+
+Version 5.1.1:
+==============
+Bugfixes:
+ - Grab correct exit code for pelogue scripts (jrt:#6406)
+ - Fix pelogue's traverseJobs() (jrt:#6405)
+ - Fix segfault in psslurm when I/O connections breaks (jrt:#6396)
+
+Enhancements:
+ - Adapt psid version information to missing SVN revs
+ - Adapt psiadmin version information to missing SVN revs
+ - Add new test tool to list all info types in protocol
+
+Additional changes:
+ - pluginfowarder's estatus and ecode validity now flagged
+ - Major code cleanup dropping ancient protocol versions
+ - Mark Sselect() as deprecated
+ - Flatten psmom's directory tree
+
+
 Version 5.1.0:
 ==============
 Bugfixes:
