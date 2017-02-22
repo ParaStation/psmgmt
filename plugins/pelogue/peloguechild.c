@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2013-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2013-2017 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -187,19 +187,24 @@ static void manageTempDir(PElogueChild_t *child, bool create)
     }
 }
 
-static int fwCallback(int32_t wstat, Forwarder_Data_t *fwData)
+static int fwCallback(int32_t forwStatus, Forwarder_Data_t *fwData)
 {
     PElogueChild_t *child = fwData->userData;
-    int exitStatus;
+    int exitStatus = 1;
 
     if (!child) return 0;
 
-    if (WIFEXITED(wstat)) {
-	exitStatus = WEXITSTATUS(wstat);
-    } else if (WIFSIGNALED(wstat)) {
-	exitStatus = WTERMSIG(wstat) + 0x100;
-    } else {
-	exitStatus = 1;
+    if (fwData->exitRcvd) {
+	int pelogueStatus = fwData->estatus;
+	if (WIFEXITED(pelogueStatus)) {
+	    exitStatus = WEXITSTATUS(pelogueStatus);
+	} else if (WIFSIGNALED(pelogueStatus)) {
+	    exitStatus = WTERMSIG(pelogueStatus) + 0x100;
+	}
+    } else if (WIFEXITED(forwStatus)) {
+	exitStatus = WEXITSTATUS(forwStatus);
+    } else if (WIFSIGNALED(forwStatus)) {
+	exitStatus = WTERMSIG(forwStatus) + 0x100;
     }
 
     /* let other plugins get information about completed pelogue */
