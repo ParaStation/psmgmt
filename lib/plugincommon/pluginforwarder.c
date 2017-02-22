@@ -7,7 +7,6 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
@@ -51,6 +50,8 @@ Forwarder_Data_t *ForwarderData_new(void)
 
     fw->childRerun = 1;
     fw->tid = -1;
+    fw->exitRcvd = false;
+    fw->codeRcvd = false;
     fw->stdIn[0] = -1;
     fw->stdIn[1] = -1;
     fw->stdOut[0] = -1;
@@ -664,6 +665,7 @@ static void handleChildCode(Forwarder_Data_t *fw, PSLog_Msg_t *msg)
 
     PSP_getMsgBuf((DDBufferMsg_t *)msg, &used, __func__, "exit code",
 		  &fw->ecode, sizeof(fw->ecode));
+    fw->codeRcvd = true;
 
     plugindbg(PLUGIN_LOG_FW, "%s: ecode %i\n", __func__, fw->ecode);
 }
@@ -674,6 +676,7 @@ static void handleChildExit(Forwarder_Data_t *fw, PSLog_Msg_t *msg)
 
     PSP_getMsgBuf((DDBufferMsg_t *)msg, &used, __func__, "exit status",
 		  &fw->estatus, sizeof(fw->estatus));
+    fw->exitRcvd = true;
 
     plugindbg(PLUGIN_LOG_FW, "%s: estatus %i\n", __func__, fw->estatus);
 }

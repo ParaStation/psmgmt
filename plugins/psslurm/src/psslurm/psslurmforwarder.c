@@ -7,7 +7,6 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -141,7 +140,7 @@ static int stepCallback(int32_t exit_status, Forwarder_Data_t *fw)
 
     if (step->state == JOB_PRESTART) {
 	/* spawn failed */
-	if (fw->ecode == - ESCRIPT_CHDIR_FAILED) {
+	if (fw->codeRcvd && fw->ecode == - ESCRIPT_CHDIR_FAILED) {
 	    sendSlurmRC(&step->srunControlMsg, ESCRIPT_CHDIR_FAILED);
 	} else {
 	    sendSlurmRC(&step->srunControlMsg, SLURM_ERROR);
