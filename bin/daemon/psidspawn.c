@@ -1085,6 +1085,44 @@ static int openChannel(PStask_t *task, int *fds, int fileNo)
 }
 
 /**
+ * @brief Log /proc/@a pid/stat
+ *
+ * Try to read content of the file /proc/<pid>/stat for <pid> @a pid
+ * and log it to PSID_log.
+ *
+ * @param pid Process ID of the process to stat
+ *
+ * @return No return value
+ */
+static void statPID(pid_t pid)
+{
+    FILE *statFile;
+    struct stat sbuf;
+    char fileName[128], *statLine = NULL;
+    size_t len;
+
+    snprintf(fileName, sizeof(fileName), "/proc/%i/stat", pid);
+    if (stat(fileName, &sbuf) == -1) {
+	PSID_warn(-1, errno, "%s(%d): stat()", __func__, pid);
+	return;
+    }
+
+    statFile = fopen(fileName,"r");
+    if (!statFile) {
+	PSID_warn(-1, errno, "%s(%d): fopen(%s)", __func__, pid, fileName);
+	return;
+    }
+
+    if (getline(&statLine, &len, statFile) < 0) {
+	PSID_warn(-1, errno, "%s(%d): getline(%s)", __func__, pid, fileName);
+	return;
+    }
+
+    PSID_log(-1, "%s(%d): %s", __func__, pid, statLine);
+    if (statLine) free(statLine);
+}
+
+/**
  * @brief Create forwarder sandbox
  *
  * This function sets up a forwarder sandbox. Afterwards @ref
@@ -1371,6 +1409,7 @@ static void execForwarder(int daemonfd, PStask_t *task)
 	} else if (!ret) {
 	    PSID_log(-1, "%s: select(%d) timed out\n", __func__, task->fd);
 	    eno = ETIME;
+	    statPID(pid);
 	    break;
 	} else {
 	    break;
@@ -1379,6 +1418,7 @@ static void execForwarder(int daemonfd, PStask_t *task)
     } while (timercmp(&start, &end, <));
 
     if (eno) goto error;
+    statPID(pid); // @todo
 
 restart:
     if ((ret=read(task->fd, &eno, sizeof(eno))) < 0) {
