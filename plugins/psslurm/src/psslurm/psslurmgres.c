@@ -45,7 +45,6 @@ static uint32_t getGresId(char *name)
 
 void addGresData(PS_DataBuffer_t *msg, int version)
 {
-    char *countPtr;
     int count=0, cpus;
     struct list_head *pos;
     Gres_Conf_t *gres;
@@ -56,9 +55,8 @@ void addGresData(PS_DataBuffer_t *msg, int version)
     /* add slurm version */
     addUint16ToMsg(version, &data);
 
-    /* space for gres record count */
-    countPtr = data.buf + data.bufUsed;
-    addUint16ToMsg(0, &data);
+    list_for_each(pos, &GresConfList.list) count++;
+    addUint16ToMsg(count, &data);
 
     list_for_each(pos, &GresConfList.list) {
 	if (!(gres = list_entry(pos, Gres_Conf_t, list))) break;
@@ -77,11 +75,7 @@ void addGresData(PS_DataBuffer_t *msg, int version)
 #ifdef SLURM_PROTOCOL_1605
 	addStringToMsg(gres->type, &data);
 #endif
-	count++;
     }
-
-    /* update gres count */
-    *(uint16_t *) countPtr = htons(count);
 
     /* gres info size */
     addUint32ToMsg(data.bufUsed, msg);
