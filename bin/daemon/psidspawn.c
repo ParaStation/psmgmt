@@ -1369,7 +1369,7 @@ static void execForwarder(int daemonfd, PStask_t *task)
 		break;
 	    }
 	} else if (!ret) {
-	    PSID_log(-1, "%s: select() timed out\n", __func__);
+	    PSID_log(-1, "%s: select(%d) timed out\n", __func__, task->fd);
 	    eno = ETIME;
 	    break;
 	} else {
