@@ -15,6 +15,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <sys/stat.h>
+#include <ctype.h>
 
 #include "psidnodes.h"
 #include "pluginenv.h"
@@ -214,12 +215,80 @@ static char * getTasksPerNode(uint16_t tasksPerNode[], uint32_t nrOfNodes) {
     return buffer;
 }
 
+/**
+ * @brief Convert a hex bitstring to a comma separated list.
+ *
+ * @param bitstr The bitstring to convert
+ *
+ * @para list The list holding the result
+ *
+ * @param listSize The size of the list
+ *
+ * @return Returns true on success otherwise false
+ */
+static bool hexBitstr2List(char *bitstr, char **list, size_t *listSize)
+{
+    size_t len;
+    int32_t next, count = 1;
+
+    if (!bitstr) {
+	mlog("%s: invalid bitstring\n", __func__);
+	return false;
+    }
+
+    if (!strncmp(bitstr, "0x", 2)) bitstr += 2;
+    len = strlen(bitstr);
+
+    while (len--) {
+	char tmp[1024];
+	next = (int32_t) bitstr[len];
+
+	if (!isxdigit(next)) return false;
+
+	if (isdigit(next)) {
+	    next -= '0';
+	} else {
+	    next = toupper(next);
+	    next -= 'A' - 10;
+	}
+
+	if (next & 1) {
+	    if (*listSize) str2Buf(",", list, listSize);
+	    snprintf(tmp, sizeof(tmp), "%u", count);
+	    str2Buf(tmp, list, listSize);
+	}
+	count++;
+
+	if (next & 2) {
+	    if (*listSize) str2Buf(",", list, listSize);
+	    snprintf(tmp, sizeof(tmp), "%u", count);
+	    str2Buf(tmp, list, listSize);
+	}
+	count++;
+
+	if (next & 4) {
+	    if (*listSize) str2Buf(",", list, listSize);
+	    snprintf(tmp, sizeof(tmp), "%u", count);
+	    str2Buf(tmp, list, listSize);
+	}
+	count++;
+
+	if (next & 8) {
+	    if (*listSize) str2Buf(",", list, listSize);
+	    snprintf(tmp, sizeof(tmp), "%u", count);
+	    str2Buf(tmp, list, listSize);
+	}
+	count++;
+    }
+
+    return true;
+}
+
 void setSlurmJobEnv(Job_t *job)
 {
     char tmp[1024], *cpus = NULL, *list = NULL;
     Gres_Cred_t *gres;
     size_t listSize = 0;
-    uint32_t count = 0;
     uint16_t *tasksPerNode;
 
     /* MISSING BATCH VARS:
@@ -295,17 +364,31 @@ void setSlurmJobEnv(Job_t *job)
 
     /* gres "gpu" plugin */
     if ((gres = findGresCred(job->gres, GRES_PLUGIN_GPU, 1))) {
+#ifdef SLURM_PROTOCOL_1605
+	hexBitstr2List(gres->bitAlloc[0], &list, &listSize);
+#else
+	uint32_t count = 0;
 	range2List(NULL, gres->bitAlloc[0], &list, &listSize, &count);
+#endif
 	envSet(&job->env, "CUDA_VISIBLE_DEVICES", list);
 	envSet(&job->env, "GPU_DEVICE_ORDINAL", list);
 	ufree(list);
+	list = NULL;
+	listSize = 0;
     }
 
     /* gres "mic" plugin */
     if ((gres = findGresCred(job->gres, GRES_PLUGIN_MIC, 1))) {
+#ifdef SLURM_PROTOCOL_1605
+	hexBitstr2List(gres->bitAlloc[0], &list, &listSize);
+#else
+	uint32_t count = 0;
 	range2List(NULL, gres->bitAlloc[0], &list, &listSize, &count);
+#endif
 	envSet(&job->env, "OFFLOAD_DEVICES", list);
 	ufree(list);
+	list = NULL;
+	listSize = 0;
     }
 }
 
@@ -464,11 +547,17 @@ void setRankEnv(int32_t rank, Step_t *step)
 	/* gres "gpu" plugin */
 	if ((gres = findGresCred(step->gres, GRES_PLUGIN_GPU, 0))) {
 	    if (gres->bitAlloc[localNodeId]) {
+#ifdef SLURM_PROTOCOL_1605
+		hexBitstr2List(gres->bitAlloc[localNodeId], &list, &listSize);
+#else
 		range2List(NULL, gres->bitAlloc[localNodeId], &list,
 			    &listSize, &count);
+#endif
 		setenv("CUDA_VISIBLE_DEVICES", list, 1);
 		setenv("GPU_DEVICE_ORDINAL", list, 1);
 		ufree(list);
+		list = NULL;
+		listSize = 0;
 	    } else {
 		mlog("%s: invalid gpu gres bitAlloc for local nodeID '%u'\n",
 			__func__, localNodeId);
@@ -478,10 +567,16 @@ void setRankEnv(int32_t rank, Step_t *step)
 	/* gres "mic" plugin */
 	if ((gres = findGresCred(step->gres, GRES_PLUGIN_MIC, 0))) {
 	    if (gres->bitAlloc[localNodeId]) {
+#ifdef SLURM_PROTOCOL_1605
+		hexBitstr2List(gres->bitAlloc[localNodeId], &list, &listSize);
+#else
 		range2List(NULL, gres->bitAlloc[localNodeId], &list,
 			    &listSize, &count);
+#endif
 		setenv("OFFLOAD_DEVICES", list, 1);
 		ufree(list);
+		list = NULL;
+		listSize = 0;
 	    } else {
 		mlog("%s: invalid mic gres bitAlloc for local nodeID '%u'\n",
 			__func__, localNodeId);
