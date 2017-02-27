@@ -1418,7 +1418,6 @@ static void execForwarder(int daemonfd, PStask_t *task)
     } while (timercmp(&start, &end, <));
 
     if (eno) goto error;
-    statPID(pid); // @todo
 
 restart:
     if ((ret=read(task->fd, &eno, sizeof(eno))) < 0) {
