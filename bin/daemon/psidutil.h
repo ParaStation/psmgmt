@@ -2,39 +2,27 @@
  * ParaStation
  *
  * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2017 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
 /**
- * \file
+ * @file
  * Utilities for the ParaStation daemon
- *
- * $Id$
- *
- * \author
- * Norbert Eicker <eicker@par-tec.com>
- *
  */
 #ifndef __PSIDUTIL_H
 #define __PSIDUTIL_H
 
 #include <stdio.h>
 #include <time.h>
+#include <sys/types.h>
 
 #include "psprotocol.h"
 #include "logging.h"
 #include "config_parsing.h"
 #include "pscommon.h"
-
-#ifdef __cplusplus
-extern "C" {
-#if 0
-} /* <- just for emacs indentation */
-#endif
-#endif
 
 /** The logger we use inside PSID */
 extern logger_t *PSID_logger;
@@ -482,8 +470,15 @@ void PSID_handleLoopActions(void);
  */
 void PSID_clearMem(void);
 
-#ifdef __cplusplus
-}/* extern "C" */
-#endif
+/**
+ * @brief Set process' loginuid
+ *
+ * Set the loginuid of the current process to @a uid.
+ *
+ * @param uid User ID to register as loginuid
+ *
+ * @return No return value
+ */
+void PSID_adjustLoginUID(uid_t uid);
 
 #endif /* __PSIDUTIL_H */

@@ -1203,6 +1203,9 @@ static void execForwarder(int daemonfd, PStask_t *task)
 	if ((eno = openChannel(task, stdinfds, STDIN_FILENO))) goto error;
     }
 
+    /* Ensure processes use correct loginuid */
+    PSID_adjustLoginUID(task->uid);
+
     /* init the process manager sockets */
     if ((PSIDhook_call(PSIDHOOK_EXEC_FORWARDER, task)) == -1) {
 	eno = EINVAL;
