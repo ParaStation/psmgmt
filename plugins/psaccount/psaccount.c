@@ -9,7 +9,7 @@
  */
 #include <stdio.h>
 #include <string.h>
-#include <sys/stat.h>
+#include <errno.h>
 #include <sys/types.h>
 #include <sys/utsname.h>
 #include <unistd.h>
@@ -26,6 +26,7 @@
 #include "timer.h"
 #include "plugin.h"
 #include "psidnodes.h"
+#include "psidutil.h"
 #include "pluginfrag.h"
 
 #define PSACCOUNT_CONFIG "psaccount.conf"
@@ -33,27 +34,9 @@
 /** psid plugin requirements */
 char name[] = "psaccount";
 int version = 26;
-int requiredAPI = 114;
+int requiredAPI = 118;
 plugin_dep_t dependencies[] = {
     { .name = NULL, .version = 0 } };
-
-static void adjustLoginUID(void)
-{
-    FILE *fd;
-    char fileName[128];
-    struct stat sbuf;
-
-    snprintf(fileName, sizeof(fileName), "/proc/%i/loginuid", getpid());
-    if (stat(fileName, &sbuf) == -1) return;
-
-    fd = fopen(fileName,"w");
-    if (!fd) {
-	mlog("%s: open '%s' failed\n", __func__, fileName);
-	return;
-    }
-    fprintf(fd, "%d", getuid());
-    fclose(fd);
-}
 
 /** the ID of the main timer */
 static int mainTimerID = -1;
@@ -134,13 +117,11 @@ int initialize(void)
 
     /* read plattform version */
     if (uname(&uts)) {
-	mlog("%s: uname failed\n", __func__);
+	mwarn(errno, "%s: uname()", __func__);
 	return 1;
-    } else {
-	if (!!strcmp(uts.sysname, "Linux")) {
+    } else if (!!strcmp(uts.sysname, "Linux")) {
 	mlog("%s: accounting will only work on Linux platforms\n", __func__);
-	    return 1;
-	}
+	return 1;
     }
 
     /* check if system's clock ticks can be determined */
@@ -169,7 +150,7 @@ int initialize(void)
 	Timer_init(NULL);
     }
 
-    adjustLoginUID();
+    PSID_adjustLoginUID(getuid());
 
     /* register periodic timer */
     poll = PSIDnodes_acctPollI(PSC_getMyID());
