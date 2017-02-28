@@ -212,6 +212,29 @@ static void sendKvstoSucc(char *msg, size_t len)
 }
 
 /**
+ * @brief Terminate the Job
+ *
+ * Send first TERM and then KILL signal to all the job's processes.
+ *
+ * @return No return value.
+ */
+static void terminateJob(void)
+{
+    DDSignalMsg_t msg;
+
+    msg.header.type = PSP_CD_SIGNAL;
+    msg.header.sender = PSC_getMyTID();
+    msg.header.dest = PSC_getMyTID();
+    msg.header.len = sizeof(msg);
+    msg.signal = -1;
+    msg.param = getuid();
+    msg.pervasive = 1;
+    msg.answer = 0;
+
+    sendDaemonMsg((DDMsg_t *)&msg);
+}
+
+/**
  * @brief Handle critical error
  *
  * To handle a critical error close the connection and kill the child.
@@ -229,19 +252,8 @@ static int critErr(void)
 	pmisock = -1;
     }
 
-    /* kill the child */
-    DDSignalMsg_t msg;
+    terminateJob();
 
-    msg.header.type = PSP_CD_SIGNAL;
-    msg.header.sender = PSC_getMyTID();
-    msg.header.dest = PSC_getMyTID();
-    msg.header.len = sizeof(msg);
-    msg.signal = -1;
-    msg.param = getuid();
-    msg.pervasive = 1;
-    msg.answer = 0;
-
-    sendDaemonMsg((DDMsg_t *)&msg);
     return 1;
 }
 
@@ -629,6 +641,21 @@ static int p_Get_My_Kvsname(void)
 
     snprintf(reply, sizeof(reply), "cmd=my_kvsname kvsname=%s\n", myKVSname);
     PMI_send(reply);
+
+    return 0;
+}
+
+/**
+ * @brief Abort the job
+ *
+ * Abort the current job. No PMI answer is required.
+ *
+ * @return Always returns 0
+ */
+static int p_Abort(void)
+{
+    elog("%s(r%i): aborting on users request\n", __func__, rank);
+    terminateJob();
 
     return 0;
 }
@@ -2473,6 +2500,7 @@ static const struct {
     { "get_my_kvsname",  p_Get_My_Kvsname },
     { "get_ranks2hosts", p_Get_Rank2Hosts },
     { "create_kvs",      p_Create_Kvs },
+    { "abort",		 p_Abort },
     { NULL,              NULL }
 };
 
