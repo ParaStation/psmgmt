@@ -51,7 +51,7 @@ psslurm_la_CPPFLAGS = $(AM_CPPFLAGS) -DPLUGINDIR=\"$(plugindir)\" \
 	-DLOCALSTATEDIR=\"$(localstatedir)\" -DBINDIR=\"$(bindir)\"
 
 psslurm_la_LIBADD = $(libpsi) $(libplugincommon) $(libslurmcommon) \
-		    $(libpscommon) $(NUMA_LIBS)
+		    $(libpscommon) $(NUMA_LIBS) -lm
 
 install-exec-local:
 	$(INSTALL) -d $(DESTDIR)$(localstatedir)/spool/parastation/jobs

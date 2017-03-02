@@ -7,6 +7,10 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
+
+#define _GNU_SOURCE
+#include <fenv.h>
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
@@ -509,6 +513,31 @@ static int getControllerIDs()
     return 1;
 }
 
+/**
+ * @brief Enable libc FPE exception traps
+ *
+ * Enable the FE_DIVBYZERO, FE_INVALID, FE_OVERFLOW,
+ * FE_UNDERFLOW libc exception traps.
+ */
+static void enableFPEexceptions(void)
+{
+    int ret;
+
+    if (!(getConfValueI(&Config, "ENABLE_FPE_EXCEPTION"))) return;
+
+    ret = feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW | FE_UNDERFLOW);
+
+    if (ret == -1) {
+	mlog("%s: feenableexcept() failed\n", __func__);
+    } else {
+	mlog("%s: old exception mask: %s %s %s %s\n", __func__,
+	     ret & FE_DIVBYZERO ? "FE_DIVBYZERO :" : "",
+	     ret & FE_INVALID ? "FE_INVALID :" : "",
+	     ret & FE_OVERFLOW ? "FE_OVERFLOW :" : "",
+	     ret & FE_UNDERFLOW ? "FE_UNDERFLOW" : "");
+    }
+}
+
 int initialize(void)
 {
     int ctlPort;
@@ -547,6 +576,8 @@ int initialize(void)
     setConfOpt();
 
     initSlurmdProto();
+
+    enableFPEexceptions();
 
     if (!(registerHooks())) goto INIT_ERROR;
     if (!(initPluginHandles())) goto INIT_ERROR;

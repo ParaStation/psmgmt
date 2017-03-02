@@ -111,6 +111,10 @@ const ConfDef_t CONFIG_VALUES[] =
 	"bool",
 	"0",
 	"Disable transmission of SLURM config hash" },
+    { "ENABLE_FPE_EXCEPTION", 1,
+	"bool",
+	"0",
+	"Enable libc FPE exception traps" },
     { NULL, 0, NULL, NULL, NULL },
 };
 
