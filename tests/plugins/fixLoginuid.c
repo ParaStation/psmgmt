@@ -52,12 +52,6 @@ int initialize(void)
     return 0;
 }
 
-
-void finalize(void)
-{
-    PSIDplugin_unload(name);
-}
-
 char * help(void)
 {
     return strdup("\tFix loginuid settings of main psid.\n");
