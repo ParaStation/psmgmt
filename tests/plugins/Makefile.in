@@ -162,6 +162,9 @@ am__v_lt_1 =
 dyn_resources_la_LIBADD =
 dyn_resources_la_SOURCES = dyn_resources.c
 dyn_resources_la_OBJECTS = dyn_resources.lo
+fixLoginuid_la_LIBADD =
+fixLoginuid_la_SOURCES = fixLoginuid.c
+fixLoginuid_la_OBJECTS = fixLoginuid.lo
 no_flowcontrol_la_LIBADD =
 no_flowcontrol_la_SOURCES = no_flowcontrol.c
 no_flowcontrol_la_OBJECTS = no_flowcontrol.lo
@@ -226,12 +229,12 @@ AM_V_CCLD = $(am__v_CCLD_@AM_V@)
 am__v_CCLD_ = $(am__v_CCLD_@AM_DEFAULT_V@)
 am__v_CCLD_0 = @echo "  CCLD    " $@;
 am__v_CCLD_1 = 
-SOURCES = delaySlurmMsg.c dyn_resources.c no_flowcontrol.c plugin1.c \
-	plugin2.c plugin3.c plugin4.c plugin5.c plugin6.c plugin7.c \
-	plugin8.c plugin9.c
-DIST_SOURCES = delaySlurmMsg.c dyn_resources.c no_flowcontrol.c \
-	plugin1.c plugin2.c plugin3.c plugin4.c plugin5.c plugin6.c \
-	plugin7.c plugin8.c plugin9.c
+SOURCES = delaySlurmMsg.c dyn_resources.c fixLoginuid.c \
+	no_flowcontrol.c plugin1.c plugin2.c plugin3.c plugin4.c \
+	plugin5.c plugin6.c plugin7.c plugin8.c plugin9.c
+DIST_SOURCES = delaySlurmMsg.c dyn_resources.c fixLoginuid.c \
+	no_flowcontrol.c plugin1.c plugin2.c plugin3.c plugin4.c \
+	plugin5.c plugin6.c plugin7.c plugin8.c plugin9.c
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
@@ -425,7 +428,8 @@ configdir = $(prefix)/config
 scriptsdir = $(prefix)/scripts
 pkglib_LTLIBRARIES = plugin1.la plugin2.la plugin3.la plugin4.la	\
 	plugin5.la plugin6.la plugin7.la plugin8.la plugin9.la		\
-	no_flowcontrol.la dyn_resources.la delaySlurmMsg.la
+	no_flowcontrol.la dyn_resources.la delaySlurmMsg.la		\
+	fixLoginuid.la
 
 delaySlurmMsg_la_CPPFLAGS = $(AM_CPPFLAGS)		\
 	-I$(top_srcdir)/plugins/psslurm/src/psslurm	\
@@ -507,6 +511,9 @@ delaySlurmMsg.la: $(delaySlurmMsg_la_OBJECTS) $(delaySlurmMsg_la_DEPENDENCIES) $
 dyn_resources.la: $(dyn_resources_la_OBJECTS) $(dyn_resources_la_DEPENDENCIES) $(EXTRA_dyn_resources_la_DEPENDENCIES) 
 	$(AM_V_CCLD)$(LINK) -rpath $(pkglibdir) $(dyn_resources_la_OBJECTS) $(dyn_resources_la_LIBADD) $(LIBS)
 
+fixLoginuid.la: $(fixLoginuid_la_OBJECTS) $(fixLoginuid_la_DEPENDENCIES) $(EXTRA_fixLoginuid_la_DEPENDENCIES) 
+	$(AM_V_CCLD)$(LINK) -rpath $(pkglibdir) $(fixLoginuid_la_OBJECTS) $(fixLoginuid_la_LIBADD) $(LIBS)
+
 no_flowcontrol.la: $(no_flowcontrol_la_OBJECTS) $(no_flowcontrol_la_DEPENDENCIES) $(EXTRA_no_flowcontrol_la_DEPENDENCIES) 
 	$(AM_V_CCLD)$(LINK) -rpath $(pkglibdir) $(no_flowcontrol_la_OBJECTS) $(no_flowcontrol_la_LIBADD) $(LIBS)
 
@@ -545,6 +552,7 @@ distclean-compile:
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/delaySlurmMsg_la-delaySlurmMsg.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/dyn_resources.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/fixLoginuid.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/no_flowcontrol.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/plugin1.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/plugin2.Plo@am__quote@
