@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2017 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -18,13 +18,6 @@
 #include <sys/types.h>
 
 #include "psprotocol.h"
-
-#ifdef __cplusplus
-extern "C" {
-#if 0
-} /* <- just for emacs indentation */
-#endif
-#endif
 
 /**
  * @brief Initialize communication stuff
@@ -76,7 +69,7 @@ int sendMsg(void *msg);
  *
  *
  * @return On success, the number of bytes received is returned, or -1 if
- * an error occured. In the latter case errno will be set appropriately.
+ * an error occurred. In the latter case errno is set appropriately.
  *
  * @see recvRDP(), PSIDclient_recv()
  */
@@ -90,8 +83,8 @@ int recvMsg(int fd, DDMsg_t *msg, size_t size);
  *
  * @param msg The message to broadcast.
  *
- * @return The number of remote daemons the messages is broadcasted to
- * successfully is returned.
+ * @return The number of remote daemons the message was successfully
+ * transmitted to is returned.
  *
  * @see sendMsg()
  */
@@ -149,7 +142,7 @@ handlerFunc_t PSID_clearMsg(int msgType);
  * @param msg The message to handle.
  *
  * @return On success, i.e. if it was possible to handle the message,
- * 1 is returned, or 0 otherwise.
+ * true is returned, or false otherwise.
  *
  * @see PSID_registerMsg(), PSID_clearMsg()
  */
@@ -178,7 +171,7 @@ handlerFunc_t PSID_registerDropper(int msgType, handlerFunc_t dropper);
 /**
  * @brief Unregister message dropper function
  *
- * Un-register the message-type @a msgType such that dropping this type
+ * Unregister the message-type @a msgType such that dropping this type
  * of message with be done silently in the future. This is identical
  * in registering the NULL dropper to this message-type.
  *
@@ -212,9 +205,5 @@ handlerFunc_t PSID_clearDropper(int msgType);
  * @see PSID_registerDropper(), PSID_clearDropper()
  */
 int PSID_dropMsg(DDBufferMsg_t *msg);
-
-#ifdef __cplusplus
-}/* extern "C" */
-#endif
 
 #endif /* __PSIDCOMM_H */

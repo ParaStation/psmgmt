@@ -2,17 +2,13 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2017 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-#ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__((used)) =
-    "$Id$";
-#endif /* DOXYGEN_SHOULD_SKIP_THIS */
-
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
@@ -54,34 +50,32 @@ static msgHandlerHash_t msgHash;
 /** Hash of message-types requiring special treatment while dropping */
 static msgHandlerHash_t dropHash;
 
-/** Flag to mark initialization of @ref msgHash */
-static int hashesInitialized = 0;
+/** Flag to mark initialization of @ref msgHash and @ref dropHash */
+static bool hashesInitialized = false;
 
 /**
- * @brief Initialize the @ref msgHash
+ * @brief Initialize @ref msgHash and @ref dropHash
  *
- * Initialize the hash storing all the message-handlers used to handle
- * messages sent to the local daemon.
+ * Initialize the hashes storing all the message-handlers and droppers
+ * used to handle and drop messages sent to the local daemon.
  *
  * @return No return value.
  */
 static void initMsgHash(void)
 {
     int h;
-
     for (h=0; h<HASH_SIZE; h++) INIT_LIST_HEAD(&msgHash[h]);
     for (h=0; h<HASH_SIZE; h++) INIT_LIST_HEAD(&dropHash[h]);
 
-    hashesInitialized = 1;
+    hashesInitialized = true;
 }
 
 handlerFunc_t PSID_registerMsg(int msgType, handlerFunc_t handler)
 {
-    struct list_head *h;
+    list_t *h;
     msgHandler_t *newHandler;
 
-    if (! hashesInitialized)
-	PSID_exit(EPERM, "%s: hash not initialized", __func__);
+    if (!hashesInitialized) PSID_exit(EPERM, "%s: not initialized", __func__);
 
     list_for_each (h, &msgHash[msgType%HASH_SIZE]) {
 	msgHandler_t *msgHandler = list_entry(h, msgHandler_t, next);
@@ -110,8 +104,7 @@ handlerFunc_t PSID_registerDropper(int msgType, handlerFunc_t dropper)
     msgHandler_t *newDropper;
     handlerFunc_t oldDropper;
 
-    if (! hashesInitialized)
-	PSID_exit(EPERM, "%s: hash not initialized", __func__);
+    if (!hashesInitialized) PSID_exit(EPERM, "%s: not initialized", __func__);
 
     oldDropper = PSID_clearDropper(msgType);
 
@@ -128,7 +121,7 @@ handlerFunc_t PSID_registerDropper(int msgType, handlerFunc_t dropper)
 
 static handlerFunc_t clearHandler(int msgType, msgHandlerHash_t hash)
 {
-    struct list_head *h;
+    list_t *h;
 
     if (!hash) return NULL;
 
@@ -149,16 +142,14 @@ static handlerFunc_t clearHandler(int msgType, msgHandlerHash_t hash)
 
 handlerFunc_t PSID_clearMsg(int msgType)
 {
-    if (! hashesInitialized)
-	PSID_exit(EPERM, "%s: hash not initialized", __func__);
+    if (!hashesInitialized) PSID_exit(EPERM, "%s: not initialized", __func__);
 
     return clearHandler(msgType, msgHash);
 }
 
 handlerFunc_t PSID_clearDropper(int msgType)
 {
-    if (! hashesInitialized)
-	PSID_exit(EPERM, "%s: hash not initialized", __func__);
+    if (!hashesInitialized) PSID_exit(EPERM, "%s: not initialized", __func__);
 
     return clearHandler(msgType, dropHash);
 }
@@ -323,10 +314,9 @@ int broadcastMsg(void *amsg)
 
 int PSID_dropMsg(DDBufferMsg_t *msg)
 {
-    struct list_head *d;
+    list_t *d;
 
-    if (! hashesInitialized)
-	PSID_exit(EPERM, "%s: hash not initialized", __func__);
+    if (!hashesInitialized) PSID_exit(EPERM, "%s: not initialized", __func__);
 
     if (!msg) {
 	PSID_log(-1, "%s: msg is NULL\n", __func__);
@@ -334,7 +324,7 @@ int PSID_dropMsg(DDBufferMsg_t *msg)
 	return -1;
     }
 
-    if(msg->header.type < 0) {
+    if (msg->header.type < 0) {
 	PSID_log(-1, "%s: illegal msgtype %d\n", __func__, msg->header.type);
 	errno = EINVAL;
 	return -1;
@@ -361,10 +351,9 @@ int PSID_dropMsg(DDBufferMsg_t *msg)
 
 int PSID_handleMsg(DDBufferMsg_t *msg)
 {
-    struct list_head *h;
+    list_t *h;
 
-    if (! hashesInitialized)
-	PSID_exit(EPERM, "%s: hash not initialized", __func__);
+    if (!hashesInitialized) PSID_exit(EPERM, "%s: not initialized", __func__);
 
     if (!msg) {
 	PSID_log(-1, "%s: msg is NULL\n", __func__);
@@ -372,7 +361,7 @@ int PSID_handleMsg(DDBufferMsg_t *msg)
 	return 0;
     }
 
-    if(msg->header.type < 0) {
+    if (msg->header.type < 0) {
 	PSID_log(-1, "%s: Illegal msgtype %d\n", __func__, msg->header.type);
 	errno = EINVAL;
 	return 0;
