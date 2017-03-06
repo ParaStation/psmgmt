@@ -581,8 +581,8 @@ static void msg_RELEASERES(DDSignalMsg_t *msg);
  *
  * Handle the message @a msg of type PSP_DD_NEWCHILD.
  *
- * This kind of message is send to a task's parent task in order to
- * pass over a child. From now on the receiving task will handle its
+ * This kind of message is sent to a task's parent in order to pass
+ * over a child. From now on the receiving task will handle its
  * grandchild as its own child, i.e. it will send and expect signals
  * if one of the corresponding processes dies.
  *
@@ -640,7 +640,7 @@ static void msg_NEWCHILD(DDErrorMsg_t *msg)
  *
  * Handle the message @a msg of type PSP_DD_NEWPARENT.
  *
- * This kind of message is send to a task's child in order to update
+ * This kind of message is sent to a task's child in order to update
  * the information concerning the parent task. From now on the
  * receiving task will handle its grandparent as its own parent,
  * i.e. it will send and expect signals if one of the corresponding
@@ -676,7 +676,7 @@ static void msg_NEWPARENT(DDErrorMsg_t *msg)
     } else {
 	PSID_log(PSID_LOG_SIGNAL, "%s: %s: parent",
 		 __func__, PSC_printTID(task->tid));
-	PSID_log(PSID_LOG_SIGNAL, " %s died;", PSC_printTID(task->ptid));
+	PSID_log(PSID_LOG_SIGNAL, " %s released;", PSC_printTID(task->ptid));
 	PSID_log(PSID_LOG_SIGNAL, " new parent is %s\n",
 		 PSC_printTID(msg->request));
 
