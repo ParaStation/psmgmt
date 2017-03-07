@@ -5,6 +5,23 @@ Copyright (C) 2010-2017 ParTec Cluster Competence Center GmbH, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 5.1.2:
+==============
+Bugfixes:
+ - Fix segfault in broken connection handling (jrt:#6428)
+ - Set psid's loginuid to fix accounting (jrt:#6429)
+ - Bitstrings are packed in hex format since Slurm 16.05 (jrt:#6426)
+ - Fix memory corruption in psslurm gres processing
+
+Enhancements:
+ - Add psslurm-option 'ENABLE_FPE_EXCEPTION' to trap FPE instantly (jrt:#6290)
+ - Add support for PMI 'abort' command (jrt:#6427)
+ - Give client processes and their forwarders correct loginuid
+
+Additional changes:
+ - Make PSID_adjustLoginUID() part of psid's offical interface
+
+
 Version 5.1.1:
 ==============
 Bugfixes:

@@ -1,3 +1,106 @@
+Version psmgmt-5.1.2:
+=====================
+------------------------------------------------------------------------
+0e50ac2 | Norbert Eicker | Tue, 7 Mar 2017 17:07:54 +0100
+
+Cleanup psslurmcomm
+
+ - Streamline various log messages
+ - Rename saveForwardedMsgRes() to saveFrwrdMsgRes()
+
+------------------------------------------------------------------------
+2441fd3 | Stephan Krempel | Tue, 7 Mar 2017 10:39:09 +0100
+
+psslurm: fix segfault in broken connection handling
+
+Fixes jrt:#6428
+
+------------------------------------------------------------------------
+89783b4 | Stephan Krempel | Tue, 7 Mar 2017 10:37:34 +0100
+
+psslurm: better error output in message forwarding
+
+------------------------------------------------------------------------
+3cb5030 | Norbert Eicker | Mon, 6 Mar 2017 12:41:19 +0100
+
+Fix typos in docu comments
+
+------------------------------------------------------------------------
+f8aa4b6 | Norbert Eicker | Fri, 3 Mar 2017 14:09:21 +0100
+
+Minor cleanup and streamlining of psidcomm
+
+------------------------------------------------------------------------
+8eb6c9d | Norbert Eicker | Thu, 2 Mar 2017 15:39:21 +0100
+
+Allow to unload hotfix-plugin in any case
+
+------------------------------------------------------------------------
+e06ca9a | Michael Rauh | Thu, 2 Mar 2017 15:21:24 +0100
+
+Added psslurm option 'ENABLE_FPE_EXCEPTION' to trap FPE instantly (JRT:#6290)
+
+------------------------------------------------------------------------
+bdc86c8 | Norbert Eicker | Thu, 2 Mar 2017 15:01:06 +0100
+
+Add hotfix plugin for jrt:#6429
+
+------------------------------------------------------------------------
+45cd1d8 | Norbert Eicker | Tue, 28 Feb 2017 11:24:16 +0100
+
+Let psaccount use psid's loginuid adjustment
+
+------------------------------------------------------------------------
+b16dd85 | Norbert Eicker | Tue, 28 Feb 2017 11:21:06 +0100
+
+More adjusting of loginuid
+
+ - Give client processes and their forwarders correct loginuid
+ - Make PSID_adjustLoginUID() part of psid's offical interface
+
+------------------------------------------------------------------------
+4543cb4 | Michael Rauh | Tue, 28 Feb 2017 10:30:50 +0100
+
+Added support for PMI 'abort' command (JRT:#6427)
+
+------------------------------------------------------------------------
+f9a47c4 | Norbert Eicker | Mon, 27 Feb 2017 22:56:10 +0100
+
+Bugfix: Set psid's loginuid to fix accounting (jrt:#6429)
+
+------------------------------------------------------------------------
+641fc36 | Michael Rauh | Mon, 27 Feb 2017 10:08:26 +0100
+
+Merge branch 'master' of git.ccc:/psmgmt
+
+------------------------------------------------------------------------
+f26df2a | Norbert Eicker | Fri, 24 Feb 2017 17:21:27 +0100
+
+Remove test remnant
+
+------------------------------------------------------------------------
+bb080c7 | Michael Rauh | Fri, 24 Feb 2017 16:48:32 +0100
+
+Bitstrings are packed in hex format since Slurm 16.05 (JRT:#6426)
+
+------------------------------------------------------------------------
+bc503df | Norbert Eicker | Thu, 23 Feb 2017 18:18:31 +0100
+
+Add debug to inspect problems like (jrt:#6414)
+
+------------------------------------------------------------------------
+65b3f71 | Norbert Eicker | Thu, 23 Feb 2017 16:39:28 +0100
+
+Improved debug output
+
+------------------------------------------------------------------------
+cb79980 | Michael Rauh | Thu, 23 Feb 2017 10:11:33 +0100
+
+Fix memory corruption in psslurm gres processing
+
+------------------------------------------------------------------------
+
+
 Version psmgmt-5.1.1:
 =====================
 ------------------------------------------------------------------------
