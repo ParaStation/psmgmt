@@ -160,11 +160,11 @@ int __sendSlurmMsgEx(int sock, Slurm_Msg_Header_t *head, PS_DataBuffer_t *body,
  *
  * @param line Line number where this function is called
  */
-void __saveForwardedMsgRes(Slurm_Msg_t *sMsg, uint32_t error, const char *func,
-			    const int line);
+void __saveFrwrdMsgRes(Slurm_Msg_t *sMsg, uint32_t error, const char *func,
+		       const int line);
 
-#define saveForwardedMsgRes(sMsg, error) \
-    __saveForwardedMsgRes(sMsg, error, __func__, __LINE__);
+#define saveFrwrdMsgRes(sMsg, error) \
+    __saveFrwrdMsgRes(sMsg, error, __func__, __LINE__);
 
 /**
  * @brief Handle a broken connection

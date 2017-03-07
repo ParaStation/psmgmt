@@ -879,7 +879,7 @@ static void handleFWslurmMsgRes(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     len -=  (2 * sizeof(uint16_t)) + sizeof (int64_t);
     addMemToMsg(ptr, len, &body);
 
-    saveForwardedMsgRes(&sMsg, SLURM_SUCCESS);
+    saveFrwrdMsgRes(&sMsg, SLURM_SUCCESS);
     ufree(body.buf);
 }
 
@@ -1017,7 +1017,7 @@ static void saveForwardError(DDTypedBufferMsg_t *msg)
     /* receive time */
     getTime(&ptr, &sMsg.recvTime);
 
-    saveForwardedMsgRes(&sMsg, SLURM_COMMUNICATIONS_CONNECTION_ERROR);
+    saveFrwrdMsgRes(&sMsg, SLURM_COMMUNICATIONS_CONNECTION_ERROR);
 }
 
 void handleDroppedMsg(DDTypedBufferMsg_t *msg)
