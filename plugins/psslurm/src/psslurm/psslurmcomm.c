@@ -1380,9 +1380,13 @@ void handleBrokenConnection(PSnodes_ID_t nodeID)
 		sMsg.recvTime = con->recvTime;
 		sMsg.data = &data;
 
-		saveForwardedMsgRes(&sMsg, SLURM_COMMUNICATIONS_CONNECTION_ERROR);
+		saveForwardedMsgRes(&sMsg,
+					SLURM_COMMUNICATIONS_CONNECTION_ERROR);
 		mlog("%s: forwarded message error for node '%i' saved\n",
 			__func__, nodeID);
+
+		/* assuming nodes[] contains each node id only once */
+		break;
 	    }
 	}
     }
