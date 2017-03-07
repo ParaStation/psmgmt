@@ -293,7 +293,10 @@ void __saveForwardedMsgRes(Slurm_Msg_t *sMsg, uint32_t error, const char *func,
     if (srcNode == PSC_getMyID()) {
 	/* save local processed message */
 	fw->head.type = sMsg->head.type;
-	addMemToMsg(sMsg->data->buf, sMsg->data->bufUsed, &fw->body);
+	if (!addMemToMsg(sMsg->data->buf, sMsg->data->bufUsed, &fw->body)) {
+	    mlog("%s: error saving local result, caller '%s' at '%i'\n",
+		    __func__, func, line);
+	}
     } else {
 	/* save message from other node */
 	for (i=0; i<fw->head.forward; i++) {
@@ -308,14 +311,17 @@ void __saveForwardedMsgRes(Slurm_Msg_t *sMsg, uint32_t error, const char *func,
 		fwdata->error = error;
 		fwdata->type = sMsg->head.type;
 		fwdata->node = srcNode;
-		addMemToMsg(sMsg->data->buf, sMsg->data->bufUsed, &fwdata->body);
+		if (!addMemToMsg(sMsg->data->buf, sMsg->data->bufUsed,
+					&fwdata->body)) {
+			break;
+		}
 		fw->head.returnList++;
 		saved = 1;
 		break;
 	    }
 	}
 	if (!saved) {
-	    mlog("%s: error saving result for src '%s' caller '%s' at '%i'\n",
+	    mlog("%s: error saving result for src '%s', caller '%s' at '%i'\n",
 		    __func__, PSC_printTID(sMsg->source), func, line);
 	}
     }
@@ -1357,7 +1363,7 @@ void handleBrokenConnection(PSnodes_ID_t nodeID)
     Connection_Forward_t *fw;
     uint32_t i;
     Slurm_Msg_t sMsg;
-    PS_DataBuffer_t data = { .buf = NULL };
+    PS_DataBuffer_t data = { .buf = "", .bufSize = 0, .bufUsed = 0 };
 
     list_for_each_safe(c, tmp, &connectionList) {
 	Connection_t *con = list_entry(c, Connection_t, next);
@@ -1381,3 +1387,5 @@ void handleBrokenConnection(PSnodes_ID_t nodeID)
 	}
     }
 }
+
+/* vim: set ts=8 sw=4 tw=0 sts=4 noet:*/
