@@ -353,7 +353,7 @@ void PSID_sendSignalsToRelatives(PStask_t *task)
 }
 
 /**
- * @brief Handle a PSP_CD_SIGNAL message.
+ * @brief Handle PSP_CD_SIGNAL message
  *
  * Handle the message @a msg of type PSP_CD_SIGNAL.
  *
@@ -366,9 +366,9 @@ void PSID_sendSignalsToRelatives(PStask_t *task)
  * signal is also forwarded to all child processes of the receiving
  * process, local or remote.
  *
- * @param msg Pointer to the message to handle.
+ * @param msg Pointer to the message to handle
  *
- * @return No return value.
+ * @return No return value
  */
 static void msg_SIGNAL(DDSignalMsg_t *msg)
 {
@@ -402,16 +402,16 @@ static void msg_SIGNAL(DDSignalMsg_t *msg)
 }
 
 /**
- * @brief Drop a PSP_CD_SIGNAL message.
+ * @brief Drop PSP_CD_SIGNAL message
  *
  * Drop the message @a msg of type PSP_CD_SIGNAL.
  *
  * Since the sending process waits for a reaction to its request a
  * corresponding answer is created.
  *
- * @param msg Pointer to the message to drop.
+ * @param msg Pointer to the message to drop
  *
- * @return No return value.
+ * @return No return value
  */
 static void drop_SIGNAL(DDBufferMsg_t *msg)
 {
@@ -430,7 +430,7 @@ static void drop_SIGNAL(DDBufferMsg_t *msg)
 }
 
 /**
- * @brief Handle a PSP_CD_NOTIFYDEAD message.
+ * @brief Handle PSP_CD_NOTIFYDEAD message
  *
  * Handle the message @a msg of type PSP_CD_NOTIFYDEAD.
  *
@@ -444,9 +444,9 @@ static void drop_SIGNAL(DDBufferMsg_t *msg)
  * back to the requester within a answering PSP_CD_NOTIFYDEADRES
  * message.
  *
- * @param msg Pointer to the message to handle.
+ * @param msg Pointer to the message to handle
  *
- * @return No return value.
+ * @return No return value
  */
 static void msg_NOTIFYDEAD(DDSignalMsg_t *msg)
 {
@@ -527,7 +527,7 @@ static void msg_NOTIFYDEAD(DDSignalMsg_t *msg)
 }
 
 /**
- * @brief Handle a PSP_CD_NOTIFYDEADRES message.
+ * @brief Handle PSP_CD_NOTIFYDEADRES message
  *
  * Handle the message @a msg of type PSP_CD_NOTIFYDEADRES.
  *
@@ -537,9 +537,9 @@ static void msg_NOTIFYDEAD(DDSignalMsg_t *msg)
  * Furthermore this client task will be marked to expect the
  * corresponding signal.
  *
- * @param msg Pointer to the message to handle.
+ * @param msg Pointer to the message to handle
  *
- * @return No return value.
+ * @return No return value
  */
 static void msg_NOTIFYDEADRES(DDSignalMsg_t *msg)
 {
@@ -577,7 +577,7 @@ static void msg_NOTIFYDEADRES(DDSignalMsg_t *msg)
 static void msg_RELEASERES(DDSignalMsg_t *msg);
 
 /**
- * @brief Handle a PSP_DD_NEWCHILD message.
+ * @brief Handle PSP_DD_NEWCHILD message
  *
  * Handle the message @a msg of type PSP_DD_NEWCHILD.
  *
@@ -589,9 +589,9 @@ static void msg_RELEASERES(DDSignalMsg_t *msg);
  * In all cases adequate PSP_CD_RELEASERES message are send to the
  * task requesting passing over their child.
  *
- * @param msg Pointer to the message to handle.
+ * @param msg Pointer to the message to handle
  *
- * @return No return value.
+ * @return No return value
  */
 static void msg_NEWCHILD(DDErrorMsg_t *msg)
 {
@@ -636,7 +636,7 @@ static void msg_NEWCHILD(DDErrorMsg_t *msg)
 }
 
 /**
- * @brief Handle a PSP_DD_NEWPARENT message.
+ * @brief Handle PSP_DD_NEWPARENT message
  *
  * Handle the message @a msg of type PSP_DD_NEWPARENT.
  *
@@ -649,9 +649,9 @@ static void msg_NEWCHILD(DDErrorMsg_t *msg)
  * In all cases adequate PSP_CD_RELEASERES message are send to the
  * task requesting passing over their child.
  *
- * @param msg Pointer to the message to handle.
+ * @param msg Pointer to the message to handle
  *
- * @return No return value.
+ * @return No return value
  */
 static void msg_NEWPARENT(DDErrorMsg_t *msg)
 {
@@ -710,16 +710,16 @@ static void msg_NEWPARENT(DDErrorMsg_t *msg)
 }
 
 /**
- * @brief Drop a PSP_DD_NEWCHILD or PSP_DD_NEWPARENT message.
+ * @brief Drop PSP_DD_NEWCHILD or PSP_DD_NEWPARENT message
  *
  * Drop the message @a msg of type PSP_DD_NEWCHILD or PSP_DD_NEWPARENT.
  *
  * Since the requesting daemon waits for a reaction to its request a
  * corresponding answer is created.
  *
- * @param msg Pointer to the message to drop.
+ * @param msg Pointer to the message to drop
  *
- * @return No return value.
+ * @return No return value
  */
 static void drop_NEWRELATIVE(DDBufferMsg_t *msg)
 {
@@ -739,7 +739,7 @@ static void drop_NEWRELATIVE(DDBufferMsg_t *msg)
 static void msg_RELEASE(DDSignalMsg_t *msg);
 
 /**
- * @brief Remove signal from task.
+ * @brief Remove signal from task
  *
  * Remove the signal @a sig which should be sent to the task with
  * unique task ID @a receiver from the one with unique task ID @a
@@ -748,16 +748,16 @@ static void msg_RELEASE(DDSignalMsg_t *msg);
  * Each signal can be identified uniquely via giving the unique task
  * IDs of the sending and receiving process plus the signal to send.
  *
- * @param sigSndr The task ID of the task which should send the signal
- * in case of an exit.
+ * @param sigSndr Task ID of the task which should send the signal
+ * in case of an exit
  *
- * @param sigRcvr The task ID of the task which should have received
- * the signal to remove.
+ * @param sigRcvr Task ID of the task which should have received
+ * the signal to remove
  *
- * @param sig The signal to be removed.
+ * @param sig The signal to be removed
  *
  * @param answer Flag to expect answer. Used if release is forwarded
- * to parent process
+ * to parent process.
  *
  * @return On success, 0 is returned or an @a errno on error. In the
  * special case of forwarding the release request to a new parent, -1
@@ -828,7 +828,7 @@ static int releaseSignal(PStask_ID_t sigSndr, PStask_ID_t sigRcvr, int sig,
 }
 
 /**
- * @brief Release a task.
+ * @brief Release task
  *
  * Release the task described by the structure @a task. Thus the
  * daemon expects this task to disappear and will not send the
@@ -836,16 +836,16 @@ static int releaseSignal(PStask_ID_t sigSndr, PStask_ID_t sigRcvr, int sig,
  *
  * Nevertheless explicitly registered signal will be sent.
  *
- * Usually this results in un-registering from the parent and
+ * Usually this results in unregistering from the parent and
  * inheriting all the children to the parent. This is done by sending
  * an amount of PSP_CD_RELEASE, PSP_CD_NEWPARENT and PSP_CD_NEWCHILD
  * messages and expecting the corresponding answers. However, if the
  * @ref releaseAnswer flag within the task-structure @a task is not
  * set, no answers are expected.
  *
- * @param task Task structure of the task to release.
+ * @param task Task structure of the task to release
  *
- * @return On success, 0 is returned or an @a errno on error.
+ * @return On success, 0 is returned or an @a errno on error
  *
  * @see errno(3)
  */
@@ -964,7 +964,7 @@ static int releaseTask(PStask_t *task)
 /**
  * @brief De-register task from parent
  *
- * De-register the task @a task from its parent task.
+ * Unregister the task @a task from its parent task.
  *
  * @Note This has to be done *after* all children are inherited.
  *
@@ -1007,7 +1007,7 @@ static bool deregisterFromParent(PStask_t *task)
 }
 
 /**
- * @brief Handle a PSP_CD_RELEASE message.
+ * @brief Handle PSP_CD_RELEASE message
  *
  * Handle the message @a msg of type PSP_CD_RELEASE.
  *
@@ -1030,9 +1030,9 @@ static bool deregisterFromParent(PStask_t *task)
  * task requesting the release if the answer flag withing the message
  * @a msg is set.
  *
- * @param msg Pointer to the message to handle.
+ * @param msg Pointer to the message to handle
  *
- * @return No return value.
+ * @return No return value
  */
 static void msg_RELEASE(DDSignalMsg_t *msg)
 {
@@ -1099,7 +1099,7 @@ static void msg_RELEASE(DDSignalMsg_t *msg)
 }
 
 /**
- * @brief Handle a PSP_CD_RELEASERES message.
+ * @brief Handle PSP_CD_RELEASERES message
  *
  * Handle the message @a msg of type PSP_CD_RELEASERES.
  *
@@ -1113,9 +1113,9 @@ static void msg_RELEASE(DDSignalMsg_t *msg)
  * Furthermore this client task will be marked to not expect the
  * corresponding signal any longer.
  *
- * @param msg Pointer to the message to handle.
+ * @param msg Pointer to the message to handle
  *
- * @return No return value.
+ * @return No return value
  */
 static void msg_RELEASERES(DDSignalMsg_t *msg)
 {
@@ -1175,7 +1175,7 @@ static void msg_RELEASERES(DDSignalMsg_t *msg)
 }
 
 /**
- * @brief Handle a PSP_CD_WHODIED message.
+ * @brief Handle a PSP_CD_WHODIED message
  *
  * Handle the message @a msg of type PSP_CD_WHODIED.
  *
@@ -1185,9 +1185,9 @@ static void msg_RELEASERES(DDSignalMsg_t *msg)
  * up within this function. The result is sent back to the requester
  * within a answering PSP_CD_WHODIED message.
  *
- * @param msg Pointer to the message to handle.
+ * @param msg Pointer to the message to handle
  *
- * @return No return value.
+ * @return No return value
  */
 static void msg_WHODIED(DDSignalMsg_t *msg)
 {
@@ -1214,16 +1214,16 @@ static void msg_WHODIED(DDSignalMsg_t *msg)
 }
 
 /**
- * @brief Drop a PSP_CD_RELEASE or PSP_CD_NOTIFYDEAD message.
+ * @brief Drop PSP_CD_RELEASE or PSP_CD_NOTIFYDEAD message
  *
  * Drop the message @a msg of type PSP_CD_RELEASE or PSP_CD_NOTIFYDEAD.
  *
  * Since the requesting process waits for a reaction to its request a
  * corresponding answer is created.
  *
- * @param msg Pointer to the message to drop.
+ * @param msg Pointer to the message to drop
  *
- * @return No return value.
+ * @return No return value
  */
 static void drop_RELEASE(DDBufferMsg_t *msg)
 {
