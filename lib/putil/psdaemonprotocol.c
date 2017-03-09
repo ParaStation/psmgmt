@@ -2,17 +2,12 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2015 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2017 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-#ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__((used)) =
-    "$Id$";
-#endif /* DOXYGEN_SHOULD_SKIP_THIS */
-
 #include <stdio.h>
 
 #include "psdaemonprotocol.h"
@@ -41,6 +36,11 @@ static struct {
 
     { PSP_DD_NEWCHILD         , "PSP_DD_NEWCHILD"         },
     { PSP_DD_NEWPARENT        , "PSP_DD_NEWPARENT"        },
+    { PSP_DD_NEWANCESTOR      , "PSP_DD_NEWANCESTOR"      },
+    { PSP_DD_ADOPTCHILDSET    , "PSP_DD_ADOPTCHILDSET"    },
+    { PSP_DD_ADOPTFAILED      , "PSP_DD_ADOPTFAILED"      },
+    { PSP_DD_INHERITDONE      , "PSP_DD_INHERITDONE"      },
+    { PSP_DD_INHERITFAILED    , "PSP_DD_INHERITFAILED"    },
 
     { PSP_DD_GETPART          , "PSP_DD_GETPART"          },
     { PSP_DD_GETPARTNL        , "PSP_DD_GETPARTNL"        },
