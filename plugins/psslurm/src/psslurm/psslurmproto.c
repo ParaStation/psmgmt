@@ -1924,8 +1924,9 @@ static int testSlurmVersion(uint32_t version, uint32_t cmd)
 	    version >= SLURM_2_5_PROTOCOL_VERSION) {
 	    return 1;
 	}
-	mlog("%s: slurm protocol '%u' < '%s' not supported\n", __func__,
-		version, SLURM_CUR_PROTOCOL_VERSION_STR);
+	mlog("%s: slurm protocol '%u' < '%s' not supported, cmd(%i) '%s'\n",
+	     __func__, version, SLURM_CUR_PROTOCOL_VERSION_STR, cmd,
+	     msgType2String(cmd));
 	return 0;
     }
     return 1;
