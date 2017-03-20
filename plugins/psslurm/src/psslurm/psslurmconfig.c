@@ -319,13 +319,13 @@ int initConfig(char *filename, uint32_t *hash)
     if (!(verifySlurmConf())) return 0;
 
     /* parse optional slurm gres config file */
+    INIT_LIST_HEAD(&SlurmGresConfig);
     sinfo.gres = 1;
     if (!(confFile = getConfValueC(&Config, "SLURM_GRES_CONF"))) return 0;
     if (stat(confFile, &sbuf) == -1) return 1;
     if (parseConfigFile(confFile, &SlurmGresTmp, true /*trimQuotes*/) < 0)
 	return 0;
 
-    INIT_LIST_HEAD(&SlurmGresConfig);
     if (traverseConfig(&SlurmGresTmp, parseSlurmConf, &sinfo)) return 0;
     freeConfig(&SlurmGresTmp);
 
