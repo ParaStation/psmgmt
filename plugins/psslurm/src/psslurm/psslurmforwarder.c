@@ -42,6 +42,7 @@
 #include "pluginpty.h"
 #include "pluginmalloc.h"
 #include "pluginhelper.h"
+#include "pluginpartition.h"
 #include "pluginforwarder.h"
 #include "pluginstrv.h"
 #include "selector.h"
@@ -278,11 +279,12 @@ static void execBatchJob(Forwarder_Data_t *fwdata, int rerun)
  *
  * jobid_out and stepid_out are set to the used values if not NULL.
  */
-#define findStepByEnv(environ, jobid_out, stepid_out) \
-	    __findStepByEnv(environ, jobid_out, stepid_out, __func__, __LINE__)
+#define findStepByEnv(environ, jobid_out, stepid_out, isAdmin) \
+	    __findStepByEnv(environ, jobid_out, stepid_out, isAdmin, \
+			    __func__, __LINE__)
 static Step_t * __findStepByEnv(char **environ, uint32_t *jobid_out,
-				uint32_t *stepid_out, const char *func,
-				const int line) {
+				uint32_t *stepid_out, bool isAdmin,
+				const char *func, const int line) {
     int count = 0;
     char *ptr;
     uint32_t jobid = 0, stepid = SLURM_BATCH_SCRIPT;
@@ -302,7 +304,6 @@ static Step_t * __findStepByEnv(char **environ, uint32_t *jobid_out,
 	if (!(strncmp(ptr, "SLURM_JOBID=", 12))) {
 	    sscanf(ptr+12, "%u", &jobid);
 	}
-
 	ptr = environ[count++];
     }
 
@@ -310,7 +311,10 @@ static Step_t * __findStepByEnv(char **environ, uint32_t *jobid_out,
     if (stepid_out) *stepid_out = stepid;
 
     if (!(step = findStepById(jobid, stepid))) {
-	mlog("%s: step '%u:%u' not found\n", __func__, jobid, stepid);
+	if (!isAdmin) {
+	    mlog("%s: step '%u:%u' not found for '%s:%i'\n", __func__,
+		 jobid, stepid, func, line);
+	}
     }
 
     return step;
@@ -322,10 +326,12 @@ int handleForwarderInit(void * data)
     Step_t *step;
     int status;
     pid_t child = PSC_getPID(task->tid);
+    bool isAdmin;
 
     if (task->rank <0 || task->group != TG_ANY) return 0;
+    isAdmin = isPSAdminUser(task->uid, task->gid);
 
-    if ((step = findStepByEnv(task->environ, NULL, NULL))) {
+    if ((step = findStepByEnv(task->environ, NULL, NULL, isAdmin))) {
 
 	initSpawnFacility(step);
 
@@ -345,7 +351,10 @@ int handleForwarderInit(void * data)
 	    }
 	}
     } else {
-	mlog("%s: rank '%i' failed to find my step\n", __func__, task->rank);
+	if (!isAdmin) {
+	    mlog("%s: rank '%i' failed to find my step\n",
+		 __func__, task->rank);
+	}
     }
 
     /* override spawn task filling function in pspmi */
@@ -364,11 +373,16 @@ int handleForwarderClientStatus(void * data)
     int status, grace;
     size_t i;
     time_t t;
+    bool isAdmin;
 
     if (task->rank <0 || task->group != TG_ANY) return 0;
+    isAdmin = isPSAdminUser(task->uid, task->gid);
 
-    if (!(step = findStepByEnv(task->environ, NULL, NULL))) {
-	mlog("%s: rank '%i' failed to find my step\n", __func__, task->rank);
+    if (!(step = findStepByEnv(task->environ, NULL, NULL, isAdmin))) {
+	if (!isAdmin) {
+	    mlog("%s: rank '%i' failed to find my step\n",
+		    __func__, task->rank);
+	}
 	return 0;
     }
 
@@ -464,13 +478,15 @@ int handleExecClientUser(void *data)
     Step_t *step;
     int i;
     uint32_t jobid = 0;
+    bool isAdmin;
 
     if (task->rank <0 || task->group != TG_ANY) return 0;
+    isAdmin = isPSAdminUser(task->uid, task->gid);
 
     /* unset MALLOC_CHECK_ set by psslurm */
     unsetenv("MALLOC_CHECK_");
 
-    if ((step = findStepByEnv(task->environ, &jobid, NULL))) {
+    if ((step = findStepByEnv(task->environ, &jobid, NULL, isAdmin))) {
 	if (!(redirectIORank(step, task->rank))) return -1;
 
 	/* stop child after exec */
@@ -489,7 +505,10 @@ int handleExecClientUser(void *data)
 	doMemBind(step, task);
 	verboseMemPinningOutput(step, task);
     } else {
-	mlog("%s: rank '%i' failed to find my step\n", __func__, task->rank);
+	if (!isAdmin) {
+	    mlog("%s: rank '%i' failed to find my step\n",
+		 __func__, task->rank);
+	}
     }
 
     /* clean up environment */

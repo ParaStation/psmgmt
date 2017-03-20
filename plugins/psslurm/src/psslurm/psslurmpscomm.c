@@ -111,7 +111,7 @@ int handleCreatePart(void *msg)
     /* find step */
     if (!(step = findStepByPid(PSC_getPID(inmsg->header.sender)))) {
 	/* admin user can always pass */
-	if ((isPSAdminUser(task->uid, task->gid))) return 1;
+	if (isPSAdminUser(task->uid, task->gid)) return 1;
 
 	mlog("%s: step for sender '%s' not found\n", __func__,
 		PSC_printTID(inmsg->header.sender));
@@ -1131,11 +1131,11 @@ static void handleCC_IO_Msg(PSLog_Msg_t *msg)
     if (!(step = findStepByLogger(msg->header.dest))) {
 	if (PSC_getMyID() == PSC_getID(msg->header.sender)) {
 	    if ((task = PStasklist_find(&managedTasks, msg->header.sender))) {
-		if ((isPSAdminUser(task->uid, task->gid))) goto OLD_MSG_HANDLER;
+		if (isPSAdminUser(task->uid, task->gid)) goto OLD_MSG_HANDLER;
 	    }
 	} else {
 	    if ((task = PStasklist_find(&managedTasks, msg->header.dest))) {
-		if ((isPSAdminUser(task->uid, task->gid))) goto OLD_MSG_HANDLER;
+		if (isPSAdminUser(task->uid, task->gid)) goto OLD_MSG_HANDLER;
 	    }
 	}
 
@@ -1239,7 +1239,7 @@ static void handleCC_STDIN_Msg(PSLog_Msg_t *msg)
     if (!(step = findStepByLogger(msg->header.sender))) {
 	if ((task = PStasklist_find(&managedTasks, msg->header.sender))) {
 	    /* allow mpiexec jobs from admin users to pass */
-	    if ((isPSAdminUser(task->uid, task->gid))) goto OLD_MSG_HANDLER;
+	    if (isPSAdminUser(task->uid, task->gid)) goto OLD_MSG_HANDLER;
 	}
 
 	mlog("%s: step for stdin msg from logger '%s' not found\n", __func__,
@@ -1274,7 +1274,7 @@ static void handleCC_Finalize_Msg(PSLog_Msg_t *msg)
     if (!(step = findStepByLogger(msg->header.dest))) {
 
 	if ((psidTask = PStasklist_find(&managedTasks, msg->header.sender))) {
-	    if ((isPSAdminUser(psidTask->uid, psidTask->gid))) goto FORWARD;
+	    if (isPSAdminUser(psidTask->uid, psidTask->gid)) goto FORWARD;
 	}
 
 	if (msg->header.dest != lastDest) {
@@ -1325,7 +1325,6 @@ static int getJobIDbyTask(PStask_t *task, uint32_t *jobid, uint32_t *stepid)
 	return 0;
     }
 
-
     ptr = task->environ[i];
     while (ptr) {
 	if (!(strncmp(ptr, "SLURM_JOBID=", 12))) {
@@ -1339,6 +1338,9 @@ static int getJobIDbyTask(PStask_t *task, uint32_t *jobid, uint32_t *stepid)
     }
 
     if (!sjobid || !sstepid) {
+	/* admin users may start jobs directly via mpiexec */
+	if (isPSAdminUser(task->uid, task->gid)) return 0;
+
 	if (!sjobid) {
 	    mlog("%s: could not find job id in environment of task '%s'"
 		    " rank '%d'\n", __func__, PSC_printTID(task->tid),
@@ -1391,8 +1393,11 @@ static int getJobIDbyForwarderMsgHeader(DDMsg_t *header, PStask_t **fwPtr,
     *fwPtr = forwarder;
 
     if (!getJobIDbyTask(forwarder, jobid, stepid)) {
-	mlog("%s: could not find jobid/stepid in forwarder task for sender"
-		" '%s'\n", __func__, PSC_printTID(header->sender));
+	/* admin users may start jobs directly via mpiexec */
+	if (!(isPSAdminUser(forwarder->uid, forwarder->gid))) {
+	    mlog("%s: could not find jobid/stepid in forwarder task for sender"
+		    " '%s'\n", __func__, PSC_printTID(header->sender));
+	}
 	return 0;
     }
 
@@ -1524,8 +1529,11 @@ void handleSpawnReq(DDTypedBufferMsg_t *msg)
 
     /* get jobid and stepid from received environment */
     if (!getJobIDbyTask(spawnee, &jobid, &stepid)) {
-	mlog("%s: no slurm IDs found in spawnee's environment from %s\n",
-	     __func__, PSC_printTID(spawnee->tid));
+	/* admin users may start jobs directly via mpiexec */
+	if (!(isPSAdminUser(spawnee->uid, spawnee->gid))) {
+	    mlog("%s: no slurm IDs found in spawnee's environment from %s\n",
+		 __func__, PSC_printTID(spawnee->tid));
+	}
 	goto FORWARD_SPAWN_REQ_MSG;
     }
 
