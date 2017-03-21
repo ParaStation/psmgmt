@@ -279,7 +279,7 @@ void __saveFrwrdMsgRes(Slurm_Msg_t *sMsg, uint32_t error, const char *func,
 
     con = findConnectionEx(sMsg->sock, sMsg->recvTime);
     if (!con) {
-	mlog("%s: no connection to %s socket %i recvTime %zu type %scaller %s"
+	mlog("%s: no connection to %s socket %i recvTime %zu type %s caller %s"
 	     " at %i\n", __func__, PSC_printTID(sMsg->source), sMsg->sock,
 	     sMsg->recvTime, msgType2String(sMsg->head.type), func, line);
 	return;
@@ -310,9 +310,12 @@ void __saveFrwrdMsgRes(Slurm_Msg_t *sMsg, uint32_t error, const char *func,
 		fwdata->error = error;
 		fwdata->type = sMsg->head.type;
 		fwdata->node = srcNode;
-		if (!addMemToMsg(sMsg->data->buf, sMsg->data->bufUsed,
-				 &fwdata->body)) {
-		    break;
+		if (sMsg->data->bufUsed) {
+		    if (!addMemToMsg(sMsg->data->buf, sMsg->data->bufUsed,
+				     &fwdata->body)) {
+			mlog("%s: saving error failed, caller %s at %i\n",
+			     __func__, func, line);
+		    }
 		}
 		fw->head.returnList++;
 		saved = 1;

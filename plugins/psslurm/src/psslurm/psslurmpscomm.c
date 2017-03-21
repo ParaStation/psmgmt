@@ -1061,7 +1061,6 @@ void handleDroppedMsg(DDTypedBufferMsg_t *msg)
 		deleteAlloc(jobid);
 	    }
 	    break;
-
 	case PSP_FORWARD_SMSG:
 	    saveForwardError(msg);
 	    break;
@@ -1070,6 +1069,7 @@ void handleDroppedMsg(DDTypedBufferMsg_t *msg)
 	case PSP_JOB_EXIT:
 	case PSP_JOB_STATE_RES:
 	case PSP_SIGNAL_TASKS:
+	case PSP_ALLOC_LAUNCH:
 	    /* nothing we can do here */
 	    break;
 	default:

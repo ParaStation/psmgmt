@@ -407,8 +407,10 @@ bool __packSlurmHeader(PS_DataBuffer_t *data, Slurm_Msg_Header_t *head,
 	addStringToMsg(hn, data);
 
 	/* msg body */
-	addMemToMsg(head->fwdata[i].body.buf,
-		head->fwdata[i].body.bufUsed, data);
+	if (head->fwdata[i].body.bufUsed) {
+	    addMemToMsg(head->fwdata[i].body.buf,
+		        head->fwdata[i].body.bufUsed, data);
+	}
     }
 
     /* addr/port */
