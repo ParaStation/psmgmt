@@ -263,7 +263,7 @@ static bool parseSlurmConf(char *key, char *value, const void *info)
     return false;
 }
 
-static int verifySlurmConf()
+static int verifySlurmConf(void)
 {
     if (!getConfValueC(&Config, "SLURM_CPUS")) {
 	mlog("%s: invalid SLURM_CPUS\n", __func__);

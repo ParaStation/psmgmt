@@ -182,7 +182,7 @@ static void unregisterHooks(int verbose)
     }
 }
 
-static int registerHooks()
+static int registerHooks(void)
 {
     /* register psslurm msg */
     PSID_registerMsg(PSP_CC_PLUG_PSSLURM, (handlerFunc_t) handlePsslurmMsg);
@@ -246,7 +246,7 @@ static int registerHooks()
     return 1;
 }
 
-static int regPsAccountHandles()
+static int regPsAccountHandles(void)
 {
     void *pluginHandle = NULL;
 
@@ -313,7 +313,7 @@ static int regPsAccountHandles()
     return 1;
 }
 
-static int regPElogueHandles()
+static int regPElogueHandles(void)
 {
     void *pluginHandle = NULL;
 
@@ -359,7 +359,7 @@ static int regPElogueHandles()
     return 1;
 }
 
-static int initPluginHandles()
+static int initPluginHandles(void)
 {
     void *pluginHandle = NULL;
 
@@ -457,7 +457,7 @@ static int initPluginHandles()
     return 1;
 }
 
-static void setConfOpt()
+static void setConfOpt(void)
 {
     int mask, mCheck;
 
@@ -483,7 +483,7 @@ static void setConfOpt()
     }
 }
 
-static int getControllerIDs()
+static int getControllerIDs(void)
 {
     char *conAddr;
 
@@ -648,7 +648,7 @@ INIT_ERROR:
     return 1;
 }
 
-static void cleanupJobs()
+static void cleanupJobs(void)
 {
     static int obitTimeCounter = 0;
     int njobs;
@@ -668,7 +668,7 @@ static void cleanupJobs()
     }
 }
 
-static void shutdownJobs()
+static void shutdownJobs(void)
 {
     struct timeval cleanupTimer = {1,0};
 

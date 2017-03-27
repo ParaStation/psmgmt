@@ -883,7 +883,7 @@ static char * printCpuMask(pid_t pid) {
     return ret;
 }
 
-static char * printMemMask() {
+static char * printMemMask(void) {
 #ifdef HAVE_LIBNUMA
     struct bitmask *memmask;
     int i, j, p, max, s;

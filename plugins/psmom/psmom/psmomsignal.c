@@ -37,7 +37,7 @@
 
 #include "psmomsignal.h"
 
-struct sigTable {
+static struct sigTable {
     char *sigName;
     char *sigStrNum;
     int sigNum;

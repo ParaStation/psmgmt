@@ -367,7 +367,7 @@ static int checkAllowance(const char *uName, const char *rhost)
  *
  * @return No return value
  */
-void informPlugin(const char *uName, const char *rhost)
+static void informPlugin(const char *uName, const char *rhost)
 {
     int sock = openConnection(pspamSocketName);
     PS_DataBuffer_t data = { .buf = NULL};

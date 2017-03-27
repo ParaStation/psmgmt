@@ -92,7 +92,7 @@ int psMungeDecodeBuf(const char *cred, void **buf, int *len,
     return mungeDecCtx(cred, defDecCtx, buf, len, uid, gid);
 }
 
-static int initDefaultContext()
+static int initDefaultContext(void)
 {
     defEncCtx = munge_ctx_create();
     if (!defEncCtx) {

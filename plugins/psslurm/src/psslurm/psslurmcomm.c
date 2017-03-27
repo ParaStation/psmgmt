@@ -649,7 +649,7 @@ TCP_RECONNECT:
     return sock;
 }
 
-static int connect2Slurmctld()
+static int connect2Slurmctld(void)
 {
     int sock, len;
     char *addr, *port;

@@ -396,7 +396,7 @@ BCast_t *addBCast(int socket);
 BCast_t *findBCast(uint32_t jobid, char *fileName, uint32_t blockNum);
 void deleteBCast(BCast_t *bcast);
 void clearBCastByJobid(uint32_t jobid);
-void clearBCasts();
+void clearBCasts(void);
 void shutdownStepForwarder(uint32_t jobid);
 int killForwarderByJobid(uint32_t jobid);
 int killChild(pid_t pid, int signal);

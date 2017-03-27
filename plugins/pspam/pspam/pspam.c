@@ -31,7 +31,7 @@ plugin_dep_t dependencies[] = {
     { .name = "psaccount", .version = 21 },
     { .name = NULL, .version = 0 } };
 
-static bool initPluginHandles()
+static bool initPluginHandles(void)
 {
     void *pluginHandle = PSIDplugin_getHandle("psaccount");
 
