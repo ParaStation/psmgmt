@@ -40,11 +40,6 @@ int psMungeEncode(char **cred)
     return mungeEncCtx(cred, defEncCtx, NULL, 0);
 }
 
-int psMungeEncodeBuf(char **cred, const void *buf, int len)
-{
-    return mungeEncCtx(cred, defEncCtx, buf, len);
-}
-
 static void mungeLogCredTime(munge_ctx_t ctx)
 {
     munge_err_t err;
