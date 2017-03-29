@@ -114,7 +114,7 @@ doc/README.pspam \
 doc/parastation.conf.tmpl \
 doc/psaccount.conf \
 doc/psresport.conf \
-doc/cgroup.conf \
+doc/cgroup.conf.in \
 doc/psconfig/psmgmt.vipsconfig \
 doc/systemd/psidstarter_socket_d_port.conf \
 doc/systemd/psid_service_d_munge.conf \
