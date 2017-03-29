@@ -13,11 +13,19 @@
 
 #include "cgroupconfig.h"
 
+#ifndef DEFAULT_CGROUP_ROOT
+#define DEFAULT_CGROUP_ROOT "/sys/fs/cgroup/"
+#endif
+
+#ifndef DEFAULT_CGROUP_NAME
+#define DEFAULT_CGROUP_NAME "psmgmtGrp"
+#endif
+
 const ConfDef_t confDef[] =
 {
-    { "CGROUP_ROOT", false, "path", "/sys/fs/cgroup/",
+    { "CGROUP_ROOT", false, "path", DEFAULT_CGROUP_ROOT,
       "Root directory of all cgroups" },
-    { "CGROUP_NAME", false, "string", "psmgmtGrp",
+    { "CGROUP_NAME", false, "string", DEFAULT_CGROUP_NAME,
       "Name of psmgmt's cgroup" },
     { "MEM_LIMIT", true, "num", "-1",
       "Limit of psmgmt's memory cgroup's memory usage" },
