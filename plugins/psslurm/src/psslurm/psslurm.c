@@ -258,7 +258,7 @@ static void unregisterHooks(int verbose)
     }
 }
 
-static int registerHooks()
+static int registerHooks(void)
 {
     /* register psslurm msg */
     PSID_registerMsg(PSP_CC_PLUG_PSSLURM, (handlerFunc_t) handlePsslurmMsg);
@@ -327,7 +327,7 @@ static int registerHooks()
     return 1;
 }
 
-static int regPsAccountHandles()
+static int regPsAccountHandles(void)
 {
     void *pluginHandle = NULL;
 
@@ -394,7 +394,7 @@ static int regPsAccountHandles()
     return 1;
 }
 
-static int regPElogueHandles()
+static int regPElogueHandles(void)
 {
     void *pluginHandle = NULL;
 
@@ -440,7 +440,7 @@ static int regPElogueHandles()
     return 1;
 }
 
-static int initPluginHandles()
+static int initPluginHandles(void)
 {
     void *pluginHandle = NULL;
 
@@ -538,7 +538,7 @@ static int initPluginHandles()
     return 1;
 }
 
-static void setConfOpt()
+static void setConfOpt(void)
 {
     int mask, mCheck;
 
@@ -564,7 +564,7 @@ static void setConfOpt()
     }
 }
 
-static int getControllerIDs()
+static int getControllerIDs(void)
 {
     char *conAddr;
 
@@ -727,6 +727,48 @@ INIT_ERROR:
     unregisterHooks(0);
     finalizeFragComm();  /* needed for unregister hooks */
     return 1;
+}
+
+static void cleanupJobs(void)
+{
+    static int obitTimeCounter = 0;
+    int njobs;
+
+    /* check if we are waiting for jobs to exit */
+    obitTimeCounter++;
+
+    if ((njobs = countJobs()) == 0) {
+	Timer_remove(cleanupTimerID);
+	cleanupTimerID = -1;
+	return;
+    }
+
+    if (obitTime == obitTimeCounter) {
+	mlog("sending SIGKILL to %i remaining jobs\n", njobs);
+	signalJobs(SIGKILL, "shutdown");
+    }
+}
+
+static void shutdownJobs(void)
+{
+    struct timeval cleanupTimer = {1,0};
+
+    mlog("shutdown jobs\n");
+
+    if (countJobs() > 0) {
+	mlog("sending SIGTERM to %i remaining jobs\n", countJobs());
+
+	signalJobs(SIGTERM, "shutdown");
+
+	if ((cleanupTimerID = Timer_register(&cleanupTimer,
+							cleanupJobs)) == -1) {
+	    mlog("registering cleanup timer failed\n");
+	}
+	return;
+    }
+
+    /* all jobs are gone */
+    PSIDplugin_unload("psslurm");
 }
 
 void finalize(void)

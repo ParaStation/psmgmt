@@ -311,7 +311,7 @@ void clearBCastByJobid(uint32_t jobid)
     }
 }
 
-static void clearBCastList()
+static void clearBCastList(void)
 {
     list_t *pos, *tmp;
     BCast_t *bcast;

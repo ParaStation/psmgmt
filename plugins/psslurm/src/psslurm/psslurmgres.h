@@ -51,7 +51,7 @@ typedef struct {
 
 Gres_Conf_t GresConfList;
 
-Gres_Cred_t* getGresCred();
+Gres_Cred_t* getGresCred(void);
 void initGresConf(void);
 void clearGresConf(void);
 Gres_Conf_t *addGresConf(char *name, char *count, char *file, char *cpus);

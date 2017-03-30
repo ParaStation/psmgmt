@@ -637,7 +637,7 @@ bool readProcStat(pid_t pid, ProcStat_t *pS)
     return true;
 }
 
-bool readProcUID(pid_t pid, ProcStat_t *pS)
+static bool readProcUID(pid_t pid, ProcStat_t *pS)
 {
     FILE *fd;
     char fileName[128];

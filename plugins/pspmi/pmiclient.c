@@ -2553,7 +2553,7 @@ int handlePMIclientMsg(char *msg)
     return critErr();
 }
 
-void handleServiceExit(PSLog_Msg_t *msg)
+static void handleServiceExit(PSLog_Msg_t *msg)
 {
     if (kvsProvSock == -1) return;
 

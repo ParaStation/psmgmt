@@ -21,5 +21,7 @@ libpscommon = $(top_builddir)/lib/pscommon/libpscommon.la
 cgroup_la_SOURCES = cgroup.c cgroupconfig.c cgroupconfig.h cgrouplog.c \
 	cgrouplog.h
 
-cgroup_la_CPPFLAGS = $(AM_CPPFLAGS) -DPLUGINDIR=\"$(plugindir)\"
+cgroup_la_CPPFLAGS = $(AM_CPPFLAGS) -DPLUGINDIR=\"$(plugindir)\" \
+	-DDEFAULT_CGROUP_ROOT=\"$(default_cgroup_root)\" \
+	-DDEFAULT_CGROUP_NAME=\"$(default_cgroup_name)\"
 cgroup_la_LIBADD = $(libplugincommon) $(libpscommon)

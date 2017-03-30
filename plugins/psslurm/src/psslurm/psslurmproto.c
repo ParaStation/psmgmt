@@ -339,7 +339,7 @@ static void setAccFreq(char **ptr)
     }
 }
 
-void handleLaunchTasks(Slurm_Msg_t *sMsg)
+static void handleLaunchTasks(Slurm_Msg_t *sMsg)
 {
     Alloc_t *alloc = NULL;
     Job_t *job = NULL;
@@ -2139,7 +2139,7 @@ void clearSlurmdProto(void)
     clearSlurmdMsg(RESPONSE_MESSAGE_COMPOSITE);
 }
 
-static uint32_t getNodeMem()
+static uint32_t getNodeMem(void)
 {
     long pages, pageSize;
 
@@ -2153,7 +2153,7 @@ static uint32_t getNodeMem()
     return (uint32_t)((float) pages * (pageSize / 1024 * 1024));
 }
 
-static uint32_t getTmpDisk()
+static uint32_t getTmpDisk(void)
 {
     struct statfs sbuf;
     float pageSize;

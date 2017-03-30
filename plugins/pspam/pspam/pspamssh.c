@@ -32,7 +32,7 @@ typedef struct {
 } Session_t;
 
 /* list holding all ssh sessions */
-LIST_HEAD(sshList);
+static LIST_HEAD(sshList);
 
 bool addSession(char *user, char *rhost, pid_t sshPid, pid_t sshSid)
 {
