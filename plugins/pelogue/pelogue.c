@@ -32,8 +32,8 @@
 /** the job cleanup timer */
 static int cleanupTimerID = -1;
 
-/** the maximal number of seconds to wait for all jobs to exit. */
-static int obitTime = 10;
+/** Number of seconds to wait for all jobs to end before sending SIGKILL */
+static int obitTime = 2;
 
 /** psid plugin requirements */
 char name[] = "pelogue";
@@ -52,30 +52,18 @@ static void cleanupJobs(void)
     obitTimeCounter++;
 
     if (!numJobs) {
+	/* all jobs are gone */
 	Timer_remove(cleanupTimerID);
 	cleanupTimerID = -1;
+
+	PSIDplugin_unload(name);
+
 	return;
     }
 
-    if (obitTime >= obitTimeCounter) {
+    if (obitTimeCounter >= obitTime) {
 	mlog("sending SIGKILL to %i remaining jobs\n", numJobs);
 	signalAllJobs(SIGKILL, "shutdown");
-    }
-}
-
-static void shutdownJobs(void)
-{
-    struct timeval cleanupTimer = {1,0};
-
-    if (countActiveJobs() > 0) {
-	mlog("sending SIGTERM to %i remaining jobs\n", countActiveJobs());
-
-	signalAllJobs(SIGTERM, "shutdown");
-
-	cleanupTimerID = Timer_register(&cleanupTimer, cleanupJobs);
-	if (cleanupTimerID == -1) mlog("registering cleanup timer failed\n");
-
-	return;
     }
 }
 
@@ -117,14 +105,6 @@ static int handleNodeDown(void *nodeID)
     return 1;
 }
 
-static int handleShutdown(void *data)
-{
-    obitTime = 2;
-    shutdownJobs();
-
-    return 0;
-}
-
 /**
  * @brief Unregister all hooks and message handler.
  *
@@ -140,10 +120,6 @@ static void unregisterHooks(bool verbose)
     /* unregister hooks */
     if (!PSIDhook_del(PSIDHOOK_NODE_DOWN, handleNodeDown)) {
 	if (verbose) mlog("unregister 'PSIDHOOK_NODE_DOWN' failed\n");
-    }
-
-    if (!PSIDhook_del(PSIDHOOK_SHUTDOWN, handleShutdown)) {
-	if (verbose) mlog("unregister 'PSIDHOOK_SHUTDOWN' failed\n");
     }
 }
 
@@ -183,15 +159,9 @@ int initialize(void)
 	goto INIT_ERROR;
     }
 
-    if (!PSIDhook_add(PSIDHOOK_SHUTDOWN, handleShutdown)) {
-	mlog("register 'PSIDHOOK_SHUTDOWN' failed\n");
-	goto INIT_ERROR;
-    }
-
     /* make sure timer facility is ready */
     if (!Timer_isInitialized()) {
-	mdbg(PELOGUE_LOG_WARN, "timer facility not ready, trying to initialize"
-	    " it\n");
+	mdbg(PELOGUE_LOG_WARN, "timer facility not yet ready, try to init\n");
 	Timer_init(NULL);
     }
 
@@ -208,13 +178,22 @@ INIT_ERROR:
 
 void finalize(void)
 {
-    /* kill all running jobs */
-    shutdownJobs();
+    int remJobs = countActiveJobs();
 
-    if (!countActiveJobs()) {
-	/* all active jobs finished */
-	PSIDplugin_unload("pelogue");
+    if (remJobs > 0) {
+	struct timeval cleanupTimer = {1,0};
+
+	mlog("sending SIGTERM to %i remaining jobs\n", remJobs);
+	signalAllJobs(SIGTERM, "shutdown");
+
+	/* re-investigate every second */
+	cleanupTimerID = Timer_register(&cleanupTimer, cleanupJobs);
+	if (cleanupTimerID == -1) mlog("timer registration failed\n");
+
+	return;
     }
+
+    PSIDplugin_unload(name);
 }
 
 void cleanup(void)
