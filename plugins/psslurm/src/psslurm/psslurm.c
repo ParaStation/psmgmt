@@ -729,48 +729,6 @@ INIT_ERROR:
     return 1;
 }
 
-static void cleanupJobs(void)
-{
-    static int obitTimeCounter = 0;
-    int njobs;
-
-    /* check if we are waiting for jobs to exit */
-    obitTimeCounter++;
-
-    if ((njobs = countJobs()) == 0) {
-	Timer_remove(cleanupTimerID);
-	cleanupTimerID = -1;
-	return;
-    }
-
-    if (obitTime == obitTimeCounter) {
-	mlog("sending SIGKILL to %i remaining jobs\n", njobs);
-	signalJobs(SIGKILL, "shutdown");
-    }
-}
-
-static void shutdownJobs(void)
-{
-    struct timeval cleanupTimer = {1,0};
-
-    mlog("shutdown jobs\n");
-
-    if (countJobs() > 0) {
-	mlog("sending SIGTERM to %i remaining jobs\n", countJobs());
-
-	signalJobs(SIGTERM, "shutdown");
-
-	if ((cleanupTimerID = Timer_register(&cleanupTimer,
-							cleanupJobs)) == -1) {
-	    mlog("registering cleanup timer failed\n");
-	}
-	return;
-    }
-
-    /* all jobs are gone */
-    PSIDplugin_unload("psslurm");
-}
-
 void finalize(void)
 {
     unload = 1;
