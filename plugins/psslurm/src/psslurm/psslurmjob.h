@@ -356,6 +356,8 @@ char *strJobState(JobState_t state);
 
 int countJobs(void);
 
+int countAllocs(void);
+
 void addJobInfosToBuffer(PS_DataBuffer_t *buffer);
 int signalJob(Job_t *job, int signal, char *reason);
 int signalJobs(int signal, char *reason);

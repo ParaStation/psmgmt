@@ -1,20 +1,12 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2015-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2015-2017 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-/**
- * $Id$
- *
- * \author
- * Michael Rauh <rauh@par-tec.com>
- *
- */
-
 #ifndef __PS_SLURM_PELOGUE
 #define __PS_SLURM_PELOGUE
 
@@ -30,4 +22,15 @@ int handleTaskPrologue(char *taskPrologue, uint32_t rank,
 int startTaskEpilogues(Step_t *step);
 
 void execTaskEpilogues(void *data, int rerun);
+
+/**
+ * @brief Handle epilogue job callback
+ *
+ * Update the job status and tell the slurmctld and sister
+ * nodes that the epilogue for the job completed.
+ *
+ * @param job The job to handle
+ */
+void handleEpilogueJobCB(Job_t *job);
+
 #endif

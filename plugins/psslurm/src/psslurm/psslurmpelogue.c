@@ -120,11 +120,18 @@ static void cbPElogueAlloc(char *sjobid, int exit_status, bool timeout,
     if (alloc->state == JOB_PROLOGUE) {
 	if (alloc->terminate) {
 	    sendSlurmRC(&step->srunControlMsg, SLURM_ERROR);
-	    alloc->state = JOB_EPILOGUE;
-	    send_PS_AllocState(alloc);
-	    startPElogue(alloc->jobid, alloc->uid, alloc->gid, alloc->username,
-		    alloc->nrOfNodes, alloc->nodes, &alloc->env,
-		    &alloc->spankenv, 1, 0);
+	    if (pluginShutdown) {
+		psPelogueDeleteJob("psslurm", sjobid);
+		alloc->state = step->state = JOB_EXIT;
+		send_PS_AllocState(alloc);
+		deleteAlloc(alloc->jobid);
+	    } else {
+		alloc->state = JOB_EPILOGUE;
+		send_PS_AllocState(alloc);
+		startPElogue(alloc->jobid, alloc->uid, alloc->gid,
+			alloc->username, alloc->nrOfNodes, alloc->nodes,
+			&alloc->env, &alloc->spankenv, 1, 0);
+	    }
 	} else if (exit_status == 0) {
 	    alloc->state = JOB_RUNNING;
 	    send_PS_AllocState(alloc);
@@ -141,6 +148,7 @@ static void cbPElogueAlloc(char *sjobid, int exit_status, bool timeout,
 	    psPelogueDeleteJob("psslurm", sjobid);
 	    mdbg(PSSLURM_LOG_JOB, "%s: step '%u:%u' in '%s'\n", __func__,
 		    step->jobid, step->stepid, strJobState(step->state));
+	    if (pluginShutdown) deleteAlloc(alloc->jobid);
 	}
     } else if (alloc->state == JOB_EPILOGUE) {
 	alloc->state = step->state = JOB_EXIT;
@@ -161,6 +169,25 @@ static void cbPElogueAlloc(char *sjobid, int exit_status, bool timeout,
     } else {
 	mlog("%s: allocation in state '%s', not in pelogue\n", __func__,
 		strJobState(alloc->state));
+    }
+}
+
+void handleEpilogueJobCB(Job_t *job)
+{
+    psPelogueDeleteJob("psslurm", job->id);
+    job->state = JOB_EXIT;
+    mdbg(PSSLURM_LOG_JOB, "%s: job '%u' in '%s'\n", __func__,
+	    job->jobid, strJobState(job->state));
+    sendEpilogueComplete(job->jobid, 0);
+
+    /* tell sisters the job is finished */
+    if (job->nodes && job->nodes[0] == PSC_getMyID()) {
+	send_PS_JobExit(job->jobid, SLURM_BATCH_SCRIPT,
+		job->nrOfNodes, job->nodes);
+    }
+
+    if (job->terminate) {
+	deleteJob(job->jobid);
     }
 }
 
@@ -185,12 +212,17 @@ static void cbPElogueJob(char *jobid, int exit_status, bool timeout,
 
     if (job->state == JOB_PROLOGUE) {
 	if (job->terminate) {
-	    job->state = JOB_EPILOGUE;
-	    mdbg(PSSLURM_LOG_JOB, "%s: job '%u' in '%s'\n", __func__,
-		    job->jobid, strJobState(job->state));
-	    startPElogue(job->jobid, job->uid, job->gid, job->username,
-			    job->nrOfNodes, job->nodes, &job->env,
-			    &job->spankenv, 0, 0);
+	    if (pluginShutdown) {
+		psPelogueDeleteJob("psslurm", job->id);
+		deleteJob(job->jobid);
+	    } else {
+		job->state = JOB_EPILOGUE;
+		mdbg(PSSLURM_LOG_JOB, "%s: job '%u' in '%s'\n", __func__,
+			job->jobid, strJobState(job->state));
+		startPElogue(job->jobid, job->uid, job->gid, job->username,
+				job->nrOfNodes, job->nodes, &job->env,
+				&job->spankenv, 0, 0);
+	    }
 	} else if (exit_status == 0) {
 	    job->state = JOB_PRESTART;
 	    mdbg(PSSLURM_LOG_JOB, "%s: job '%u' in '%s'\n", __func__,
@@ -202,23 +234,10 @@ static void cbPElogueJob(char *jobid, int exit_status, bool timeout,
 	    psPelogueDeleteJob("psslurm", job->id);
 	    mdbg(PSSLURM_LOG_JOB, "%s: job '%u' in '%s'\n", __func__,
 		    job->jobid, strJobState(job->state));
+	    if (pluginShutdown) deleteJob(job->jobid);
 	}
     } else if (job->state == JOB_EPILOGUE) {
-	psPelogueDeleteJob("psslurm", job->id);
-	job->state = JOB_EXIT;
-	mdbg(PSSLURM_LOG_JOB, "%s: job '%u' in '%s'\n", __func__,
-		job->jobid, strJobState(job->state));
-	sendEpilogueComplete(job->jobid, 0);
-
-	/* tell sisters the job is finished */
-	if (job->nodes && job->nodes[0] == PSC_getMyID()) {
-	    send_PS_JobExit(job->jobid, SLURM_BATCH_SCRIPT,
-		    job->nrOfNodes, job->nodes);
-	}
-
-	if (job->terminate) {
-	    deleteJob(job->jobid);
-	}
+	handleEpilogueJobCB(job);
     } else {
 	mlog("%s: job in state '%s' not in pelogue\n", __func__,
 		strJobState(job->state));

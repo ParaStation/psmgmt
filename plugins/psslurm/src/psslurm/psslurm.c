@@ -62,7 +62,7 @@
 static int cleanupTimerID = -1;
 
 /** the maximal number of seconds to wait for all jobs to exit. */
-static int obitTime = 10;
+static int obitTime = 5;
 
 static int isInit = 0;
 
@@ -71,6 +71,10 @@ int confAccPollTime;
 uid_t slurmUserID = 495;
 
 time_t start_time;
+
+static int unload = 0;
+
+bool pluginShutdown = false;
 
 /** hash value of the SLURM config file */
 uint32_t configHash;
@@ -111,6 +115,74 @@ void stopPsslurm(void)
 {
     /* release the logger */
     logger_finalize(psslurmlogger);
+}
+
+static void finalizeDone()
+{
+    /* unregister timer */
+    if (cleanupTimerID != -1) {
+	Timer_remove(cleanupTimerID);
+	cleanupTimerID = -1;
+    }
+
+    closeSlurmdSocket();
+
+    if (unload) PSIDplugin_unload("psslurm");
+}
+
+static void cleanupJobs()
+{
+    static int obitTimeCounter = 0;
+    int jcount = countJobs();
+
+    /* check if we are waiting for jobs to exit */
+    obitTimeCounter++;
+
+    if (!jcount) jcount = countAllocs();
+
+    if (!jcount) {
+	finalizeDone();
+	return;
+    }
+
+    if (obitTime >= obitTimeCounter) {
+	mlog("sending SIGKILL to %i remaining jobs\n", jcount);
+	signalJobs(SIGKILL, "shutdown");
+    }
+}
+
+/**
+ * @brief Handle shutdown of the psid
+ *
+ * This is an early notice that the psid is shutting down.
+ * Hence the cleanup of remaining jobs is started.
+ *
+ * @param data Unused
+ *
+ * @return Always returns 0.
+ */
+static int handleShutdown(void *data)
+{
+    struct timeval cleanupTimer = {1,0};
+    int jcount = countJobs();
+
+    pluginShutdown = true;
+
+    if (!jcount) jcount = countAllocs();
+
+    if (jcount) {
+	mlog("sending SIGTERM to %i remaining jobs\n", jcount);
+	signalJobs(SIGTERM, "shutdown");
+
+	if ((cleanupTimerID = Timer_register(&cleanupTimer,
+	     cleanupJobs)) == -1) {
+	    mlog("registering cleanup timer failed\n");
+	}
+	return 0;
+    }
+
+    finalizeDone();
+    return 0;
 }
 
 /**
@@ -180,6 +252,10 @@ static void unregisterHooks(int verbose)
     if (!(PSIDhook_del(PSIDHOOK_PELOGUE_FINISH, handleLocalPElogueFinish))) {
 	if (verbose) mlog("unregister 'PSIDHOOK_PELOGUE_FINISH' failed\n");
     }
+
+    if (!(PSIDhook_del(PSIDHOOK_SHUTDOWN, handleShutdown))) {
+	if (verbose) mlog("unregister 'PSIDHOOK_SHUTDOWN' failed\n");
+    }
 }
 
 static int registerHooks()
@@ -240,6 +316,11 @@ static int registerHooks()
 
     if (!(PSIDhook_add(PSIDHOOK_PELOGUE_FINISH, handleLocalPElogueFinish))) {
 	mlog("register 'PSIDHOOK_PELOGUE_FINISH' failed\n");
+	return 0;
+    }
+
+    if (!PSIDhook_add(PSIDHOOK_SHUTDOWN, handleShutdown)) {
+	mlog("register 'PSIDHOOK_SHUTDOWN' failed\n");
 	return 0;
     }
 
@@ -648,57 +729,18 @@ INIT_ERROR:
     return 1;
 }
 
-static void cleanupJobs()
-{
-    static int obitTimeCounter = 0;
-    int njobs;
-
-    /* check if we are waiting for jobs to exit */
-    obitTimeCounter++;
-
-    if ((njobs = countJobs()) == 0) {
-	Timer_remove(cleanupTimerID);
-	cleanupTimerID = -1;
-	return;
-    }
-
-    if (obitTime == obitTimeCounter) {
-	mlog("sending SIGKILL to %i remaining jobs\n", njobs);
-	signalJobs(SIGKILL, "shutdown");
-    }
-}
-
-static void shutdownJobs()
-{
-    struct timeval cleanupTimer = {1,0};
-
-    mlog("shutdown jobs\n");
-
-    if (countJobs() > 0) {
-	mlog("sending SIGTERM to %i remaining jobs\n", countJobs());
-
-	signalJobs(SIGTERM, "shutdown");
-
-	if ((cleanupTimerID = Timer_register(&cleanupTimer,
-							cleanupJobs)) == -1) {
-	    mlog("registering cleanup timer failed\n");
-	}
-	return;
-    }
-
-    /* all jobs are gone */
-    PSIDplugin_unload("psslurm");
-}
-
 void finalize(void)
 {
-    /* TODO: kill all jobs */
-    shutdownJobs();
+    unload = 1;
+    handleShutdown(NULL);
 }
 
 void cleanup(void)
 {
     if (!isInit) return;
+
+    /* close all remaining connections */
+    clearConnections();
 
     /* free config in pelogue plugin */
     psPelogueDelPluginConfig("psslurm");
@@ -715,7 +757,6 @@ void cleanup(void)
     /* free all malloced memory */
     clearJobList();
     clearGresConf();
-    clearConnections();
     clearSlurmdProto();
     freeConfig(&Config);
     freeConfig(&SlurmConfig);

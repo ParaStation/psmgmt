@@ -16,6 +16,8 @@
 /* psslurm version number */
 extern int version;
 
+extern bool pluginShutdown;
+
 extern time_t start_time;
 
 extern uid_t slurmUserID;

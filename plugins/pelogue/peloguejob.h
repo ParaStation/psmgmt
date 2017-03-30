@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2017 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -135,14 +135,14 @@ bool setJobNodeStatus(Job_t *job, PSnodes_ID_t node, bool prologue,
 bool jobIDInHistory(char *jobid);
 
 /**
- * @brief Count number of jobs
+ * @brief Count number of active jobs
  *
- * Determine the current number of jobs within the list of all
+ * Determine the current number of active jobs within the list of all
  * registered jobs and return the corresponding number.
  *
- * @return Return the number of jobs registered
+ * @return Return the number of active jobs registered
  */
-int countJobs(void);
+int countActiveJobs(void);
 
 /**
  * @brief Check validity of job

@@ -350,6 +350,12 @@ void handleLaunchTasks(Slurm_Msg_t *sMsg)
     char jobOpt[512], *acctType;
     char **ptr = &sMsg->ptr;
 
+    if (pluginShutdown) {
+	/* don't accept new steps if a shutdown is in progress */
+	sendSlurmRC(sMsg, SLURM_ERROR);
+	return;
+    }
+
     /* jobid/stepid */
     getUint32(ptr, &jobid);
     getUint32(ptr, &stepid);
@@ -1366,6 +1372,12 @@ static void handleBatchJobLaunch(Slurm_Msg_t *sMsg)
     char *script, *acctType, buf[1024];
     char **ptr = &sMsg->ptr;
     uint32_t jobid;
+
+    if (pluginShutdown) {
+	/* don't accept new jobs if a shutdown is in progress */
+	sendSlurmRC(sMsg, SLURM_ERROR);
+	return;
+    }
 
     /* memory cleanup  */
     malloc_trim(200);

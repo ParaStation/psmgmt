@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2017 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -148,12 +148,15 @@ bool jobIDInHistory(char *jobid)
     return false;
 }
 
-int countJobs(void)
+int countActiveJobs(void)
 {
     int count = 0;
     list_t *j;
 
-    list_for_each(j, &jobList) count++;
+    list_for_each(j, &jobList) {
+	Job_t *job = list_entry(j, Job_t, next);
+	if (job->prologueTrack > 0 || job->epilogueTrack > 0) count++;
+    }
     return count;
 }
 

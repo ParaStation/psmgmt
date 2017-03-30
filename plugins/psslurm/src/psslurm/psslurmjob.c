@@ -808,13 +808,9 @@ int killForwarderByJobid(uint32_t jobid)
 int countSteps(void)
 {
     struct list_head *pos;
-    Step_t *step;
     int count=0;
 
-    list_for_each(pos, &StepList.list) {
-	if (!(step = list_entry(pos, Step_t, list))) break;
-	count++;
-    }
+    list_for_each(pos, &StepList.list) count++;
     return count;
 }
 
@@ -837,13 +833,18 @@ int haveRunningSteps(uint32_t jobid)
 int countJobs(void)
 {
     struct list_head *pos;
-    Job_t *job;
     int count=0;
 
-    list_for_each(pos, &JobList.list) {
-	if (!(job = list_entry(pos, Job_t, list))) break;
-	count++;
-    }
+    list_for_each(pos, &JobList.list) count++;
+    return count;
+}
+
+int countAllocs(void)
+{
+    struct list_head *pos;
+    int count=0;
+
+    list_for_each(pos, &AllocList.list) count++;
     return count;
 }
 
@@ -916,12 +917,19 @@ int signalJobs(int signal, char *reason)
 {
     list_t *pos, *tmp;
     Job_t *job;
+    Alloc_t *alloc;
     int count = 0;
 
     list_for_each_safe(pos, tmp, &JobList.list) {
-	if (!(job = list_entry(pos, Job_t, list))) return count;
-	    count += signalJob(job, signal, reason);
+	if (!(job = list_entry(pos, Job_t, list))) break;
+	count += signalJob(job, signal, reason);
     }
+
+    list_for_each_safe(pos, tmp, &AllocList.list) {
+	if (!(alloc = list_entry(pos, Alloc_t, list))) break;
+	count += signalStepsByJobid(alloc->jobid, signal);
+    }
+
     return count;
 }
 

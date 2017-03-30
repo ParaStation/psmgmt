@@ -26,6 +26,7 @@
 #include <sys/wait.h>
 #include <utime.h>
 
+#include "psslurm.h"
 #include "psslurmlog.h"
 #include "psslurmlimits.h"
 #include "psslurmcomm.h"
@@ -80,8 +81,12 @@ static int jobCallback(int32_t exit_status, Forwarder_Data_t *fw)
     sendJobExit(job, fw->estatus);
     psAccountDelJob(PSC_getTID(-1, fw->cPid));
 
-    /* run epilogue now */
-    if (job->terminate && job->nodes) {
+    if (pluginShutdown) {
+	/* shutdown in progress, hence we skip the epilogue */
+	handleEpilogueJobCB(job);
+	deleteJob(job->jobid);
+    } else if (job->terminate && job->nodes) {
+	/* run epilogue now */
 	mlog("%s: starting epilogue for job '%u'\n", __func__, job->jobid);
 	job->state = JOB_EPILOGUE;
 	mdbg(PSSLURM_LOG_JOB, "%s: job '%u' in '%s'\n", __func__,

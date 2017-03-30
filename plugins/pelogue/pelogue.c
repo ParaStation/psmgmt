@@ -46,7 +46,7 @@ plugin_dep_t dependencies[] = {
 static void cleanupJobs(void)
 {
     static int obitTimeCounter = 0;
-    int numJobs = countJobs();
+    int numJobs = countActiveJobs();
 
     /* check if we are waiting for jobs to exit */
     obitTimeCounter++;
@@ -57,23 +57,18 @@ static void cleanupJobs(void)
 	return;
     }
 
-    if (obitTime == obitTimeCounter) {
+    if (obitTime >= obitTimeCounter) {
 	mlog("sending SIGKILL to %i remaining jobs\n", numJobs);
 	signalAllJobs(SIGKILL, "shutdown");
     }
-
-    /* all jobs are gone */
-    PSIDplugin_unload("pelogue");
 }
 
 static void shutdownJobs(void)
 {
     struct timeval cleanupTimer = {1,0};
 
-    mlog("shutdown jobs\n");
-
-    if (countJobs() > 0) {
-	mlog("sending SIGTERM to %i remaining jobs\n", countJobs());
+    if (countActiveJobs() > 0) {
+	mlog("sending SIGTERM to %i remaining jobs\n", countActiveJobs());
 
 	signalAllJobs(SIGTERM, "shutdown");
 
@@ -82,9 +77,6 @@ static void shutdownJobs(void)
 
 	return;
     }
-
-    /* all jobs are gone */
-    PSIDplugin_unload("pelogue");
 }
 
 static bool nodeDownVisitor(Job_t *job, const void *info)
@@ -218,10 +210,18 @@ void finalize(void)
 {
     /* kill all running jobs */
     shutdownJobs();
+
+    if (!countActiveJobs()) {
+	/* all active jobs finished */
+	PSIDplugin_unload("pelogue");
+    }
 }
 
 void cleanup(void)
 {
+    /* unregister timer */
+    if (cleanupTimerID != -1) Timer_remove(cleanupTimerID);
+
     clearChildList();
     clearJobList();
     clearAllPluginConfigs();

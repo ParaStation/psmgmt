@@ -862,8 +862,13 @@ static int acceptSlurmClient(int socket, void *data)
 
 void closeSlurmdSocket(void)
 {
+    if (slurmListenSocket == -1) return;
+
     mdbg(PSSLURM_LOG_COMM, "%s\n", __func__);
-    Selector_remove(slurmListenSocket);
+
+    if (Selector_isRegistered(slurmListenSocket)) {
+	Selector_remove(slurmListenSocket);
+    }
     close(slurmListenSocket);
     slurmListenSocket = -1;
 }
