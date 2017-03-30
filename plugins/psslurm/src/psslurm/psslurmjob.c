@@ -916,17 +916,15 @@ int signalJob(Job_t *job, int signal, char *reason)
 int signalJobs(int signal, char *reason)
 {
     list_t *pos, *tmp;
-    Job_t *job;
-    Alloc_t *alloc;
     int count = 0;
 
     list_for_each_safe(pos, tmp, &JobList.list) {
-	if (!(job = list_entry(pos, Job_t, list))) break;
+	Job_t *job = list_entry(pos, Job_t, list);
 	count += signalJob(job, signal, reason);
     }
 
     list_for_each_safe(pos, tmp, &AllocList.list) {
-	if (!(alloc = list_entry(pos, Alloc_t, list))) break;
+	Alloc_t *alloc = list_entry(pos, Alloc_t, list);
 	count += signalStepsByJobid(alloc->jobid, signal);
     }
 

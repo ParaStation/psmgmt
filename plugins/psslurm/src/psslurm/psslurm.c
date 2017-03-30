@@ -72,8 +72,6 @@ uid_t slurmUserID = 495;
 
 time_t start_time;
 
-static int unload = 0;
-
 bool pluginShutdown = false;
 
 /** hash value of the SLURM config file */
@@ -91,98 +89,38 @@ handlerFunc_t oldSpawnReqHandler = NULL;
 char name[] = "psslurm";
 int version = 116;
 int requiredAPI = 117;
-plugin_dep_t dependencies[7];
+plugin_dep_t dependencies[] = {
+    { .name = "psmunge", .version = 3 },
+    { .name = "psaccount", .version = 25 },
+    { .name = "pelogue", .version = 6 },
+    { .name = "pspam", .version = 3 },
+    { .name = "psexec", .version = 1 },
+    { .name = "pspmi", .version = 4 },
+    { .name = NULL, .version = 0 } };
 
-void startPsslurm(void)
-{
-    dependencies[0].name = "psmunge";
-    dependencies[0].version = 3;
-    dependencies[1].name = "psaccount";
-    dependencies[1].version = 25;
-    dependencies[2].name = "pelogue";
-    dependencies[2].version = 6;
-    dependencies[3].name = "pspam";
-    dependencies[3].version = 3;
-    dependencies[4].name = "psexec";
-    dependencies[4].version = 1;
-    dependencies[5].name = "pspmi";
-    dependencies[5].version = 4;
-    dependencies[6].name = NULL;
-    dependencies[6].version = 0;
-}
-
-void stopPsslurm(void)
-{
-    /* release the logger */
-    logger_finalize(psslurmlogger);
-}
-
-static void finalizeDone()
-{
-    /* unregister timer */
-    if (cleanupTimerID != -1) {
-	Timer_remove(cleanupTimerID);
-	cleanupTimerID = -1;
-    }
-
-    closeSlurmdSocket();
-
-    if (unload) PSIDplugin_unload("psslurm");
-}
-
-static void cleanupJobs()
+static void cleanupJobs(void)
 {
     static int obitTimeCounter = 0;
-    int jcount = countJobs();
+    int jcount = countJobs() + countAllocs();
 
     /* check if we are waiting for jobs to exit */
     obitTimeCounter++;
 
-    if (!jcount) jcount = countAllocs();
-
     if (!jcount) {
-	finalizeDone();
+	/* all jobs and allocs are gone */
+	Timer_remove(cleanupTimerID);
+	cleanupTimerID = -1;
+
+	closeSlurmdSocket();
+	PSIDplugin_unload(name);
+
 	return;
     }
 
-    if (obitTime >= obitTimeCounter) {
+    if (obitTimeCounter >= obitTime) {
 	mlog("sending SIGKILL to %i remaining jobs\n", jcount);
 	signalJobs(SIGKILL, "shutdown");
     }
-}
-
-/**
- * @brief Handle shutdown of the psid
- *
- * This is an early notice that the psid is shutting down.
- * Hence the cleanup of remaining jobs is started.
- *
- * @param data Unused
- *
- * @return Always returns 0.
- */
-static int handleShutdown(void *data)
-{
-    struct timeval cleanupTimer = {1,0};
-    int jcount = countJobs();
-
-    pluginShutdown = true;
-
-    if (!jcount) jcount = countAllocs();
-
-    if (jcount) {
-	mlog("sending SIGTERM to %i remaining jobs\n", jcount);
-	signalJobs(SIGTERM, "shutdown");
-
-	if ((cleanupTimerID = Timer_register(&cleanupTimer,
-	     cleanupJobs)) == -1) {
-	    mlog("registering cleanup timer failed\n");
-	}
-	return 0;
-    }
-
-    finalizeDone();
-    return 0;
 }
 
 /**
@@ -252,10 +190,6 @@ static void unregisterHooks(int verbose)
     if (!(PSIDhook_del(PSIDHOOK_PELOGUE_FINISH, handleLocalPElogueFinish))) {
 	if (verbose) mlog("unregister 'PSIDHOOK_PELOGUE_FINISH' failed\n");
     }
-
-    if (!(PSIDhook_del(PSIDHOOK_SHUTDOWN, handleShutdown))) {
-	if (verbose) mlog("unregister 'PSIDHOOK_SHUTDOWN' failed\n");
-    }
 }
 
 static int registerHooks(void)
@@ -316,11 +250,6 @@ static int registerHooks(void)
 
     if (!(PSIDhook_add(PSIDHOOK_PELOGUE_FINISH, handleLocalPElogueFinish))) {
 	mlog("register 'PSIDHOOK_PELOGUE_FINISH' failed\n");
-	return 0;
-    }
-
-    if (!PSIDhook_add(PSIDHOOK_SHUTDOWN, handleShutdown)) {
-	mlog("register 'PSIDHOOK_SHUTDOWN' failed\n");
 	return 0;
     }
 
@@ -731,8 +660,25 @@ INIT_ERROR:
 
 void finalize(void)
 {
-    unload = 1;
-    handleShutdown(NULL);
+    int jcount = countJobs() + countAllocs();
+
+    pluginShutdown = true;
+
+    if (jcount) {
+	struct timeval cleanupTimer = {1,0};
+
+	mlog("sending SIGTERM to %i remaining jobs\n", jcount);
+	signalJobs(SIGTERM, "shutdown");
+
+	/* re-investigate every second */
+	cleanupTimerID = Timer_register(&cleanupTimer, cleanupJobs);
+	if (cleanupTimerID == -1)  mlog("timer registration failed\n");
+
+	return;
+    }
+
+    closeSlurmdSocket();
+    PSIDplugin_unload(name);
 }
 
 void cleanup(void)
@@ -765,4 +711,7 @@ void cleanup(void)
     finalizeFragComm();
 
     mlog("...Bye.\n");
+
+    /* release the logger */
+    logger_finalize(psslurmlogger);
 }

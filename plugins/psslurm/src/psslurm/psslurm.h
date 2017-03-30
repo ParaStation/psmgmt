@@ -7,7 +7,6 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-
 #ifndef __PSSLURM_MAIN
 #define __PSSLURM_MAIN
 
@@ -16,6 +15,7 @@
 /* psslurm version number */
 extern int version;
 
+/** Flag plugin's shutdown state */
 extern bool pluginShutdown;
 
 extern time_t start_time;
@@ -31,42 +31,5 @@ extern uint32_t configHash;
 
 extern PSnodes_ID_t slurmController;
 extern PSnodes_ID_t slurmBackupController;
-
-/**
- * @brief Constructor for psslurm library.
- *
- * @return No return value.
- */
-void __attribute__ ((constructor)) startPsslurm(void);
-
-/**
- * @brief Destructor for psslurm library.
- *
- * @return No return value.
- */
-void __attribute__ ((destructor)) stopPsslurm(void);
-
-/**
- * @brief Initialize the psslurm plugin.
- *
- * @return Returns 1 on error and 0 on success.
- */
-int initialize(void);
-
-/**
- * @brief Prepare and beginn shutdown.
- *
- * @return No return value.
- */
-void finalize(void);
-
-/**
- * @brief Free left memory, final cleanup.
- *
- * After this function we will be unloaded.
- *
- * @return No return value.
- */
-void cleanup(void);
 
 #endif
