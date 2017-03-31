@@ -46,19 +46,19 @@ char * show(char *key)
 
     char l[128];
 
-    if (!key[0]) {
+    if (!key || !key[0]) {
 	snprintf(l, sizeof(l), "\nUsage: 'plugin show %s key <tid>'\n", name);
 	return strdup(l);
     }
 
-    if (sscanf(key, "%u", &tid) != 1) {
+    if (sscanf(key, "%x", &tid) != 1) {
 	snprintf(l, sizeof(l), "\nkey '%s' not a task ID\n", key);
 	return strdup(l);
     }
 
     task = PStasklist_find(&managedTasks, tid);
     if (!task) {
-	snprintf(l, sizeof(l), "\nno task %s\n", PSC_printTID(tid));
+	snprintf(l, sizeof(l), "\nno task %s for key %s\n", PSC_printTID(tid), key);
 	return strdup(l);
     }
 
@@ -74,7 +74,7 @@ char * show(char *key)
 	for (s=0; s < task->partitionSize; s++) {
 	    PSpart_slot_t *slt = &task->partition[s];
 	    snprintf(l, sizeof(l), "\t%d\t%s\n", slt->node,
-		     PSCPU_print(slt->CPUset));
+		     PSCPU_print_part(slt->CPUset, 32));
 	    str2Buf(l, &buf, &bufSize);
 	}
     } else {
@@ -120,7 +120,7 @@ char * show(char *key)
 	    for (s = 0; s < res->nSlots; s++) {
 		PSpart_slot_t *slt = &res->slots[s];
 		snprintf(l, sizeof(l), "\t%d\t%s\n", slt->node,
-			 PSCPU_print(slt->CPUset));
+			 PSCPU_print_part(slt->CPUset, 32));
 		str2Buf(l, &buf, &bufSize);
 	    }
 	}
@@ -144,7 +144,7 @@ char * set(char *key, char *val)
     PStask_t *task;
     char l[128];
 
-    if (!key[0]) {
+    if (!key || !key[0]) {
 	snprintf(l, sizeof(l), "\nUsage: 'plugin set %s <tid>' to reset"
 		 " resource usage\n", name);
 	return strdup(l);
