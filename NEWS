@@ -5,6 +5,22 @@ Copyright (C) 2010-2017 ParTec Cluster Competence Center GmbH, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 5.1.3:
+==============
+Bugfixes:
+ - Reworked shutdown process of psslurm and pelogue (jrt:#6401)
+ - Fix bug introduced in 89783b4dda7f88b9f5 (jrt:#6536)
+ - Fix segfault on psslurm unloading without a gres configuration
+
+Enhancements:
+ - Allow psid to manage its own cgroup hierarchy, without systemd interfering
+ - Improved error output for invalid slurm protocol version
+ - Suppress warning messages for admin users starting jobs via mpiexec (#2617)
+
+Additional changes:
+ - Change defaults for CGROUP_{ROOT,NAME} if systemd is used (#2566)
+
+
 Version 5.1.2:
 ==============
 Bugfixes:

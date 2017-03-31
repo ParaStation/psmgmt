@@ -1,3 +1,92 @@
+Version psmgmt-5.1.3:
+=====================
+------------------------------------------------------------------------
+8c04060 | Norbert Eicker | Thu, 30 Mar 2017 14:57:54 +0200
+
+Improve shutdown logic of psslurm plugin
+
+------------------------------------------------------------------------
+6948c87 | Norbert Eicker | Thu, 30 Mar 2017 14:52:44 +0200
+
+Improve shutdown logic of pelogue plugin
+
+------------------------------------------------------------------------
+f03ae33 | Michael Rauh | Thu, 30 Mar 2017 11:39:16 +0200
+
+Fix merge error introduced in 9eca02b3733063
+
+------------------------------------------------------------------------
+9eca02b | Michael Rauh | Thu, 30 Mar 2017 11:05:31 +0200
+
+Merge branch 'master' of git.ccc:/psmgmt
+
+------------------------------------------------------------------------
+60c29f6 | Thomas Moschny | Wed, 29 Mar 2017 15:13:20 +0200
+
+Fix source file list.
+
+------------------------------------------------------------------------
+af99c85 | Thomas Moschny | Wed, 29 Mar 2017 14:20:08 +0200
+
+Regenerate autoconf files as needed.
+
+------------------------------------------------------------------------
+d6dd03b | Thomas Moschny | Wed, 29 Mar 2017 14:11:37 +0200
+
+Change defaults for CGROUP_{ROOT,NAME} if systemd is used.
+
+See also #2566.
+
+------------------------------------------------------------------------
+dbcb92a | Thomas Moschny | Wed, 29 Mar 2017 11:36:05 +0200
+
+Allow psid to manage its own cgroup hierarchy, without systemd interfering.
+
+------------------------------------------------------------------------
+9c3aa9c | Thomas Moschny | Mon, 27 Mar 2017 16:40:48 +0200
+
+Remove unused function.
+
+------------------------------------------------------------------------
+e5acb8d | Thomas Moschny | Mon, 27 Mar 2017 16:40:03 +0200
+
+Fix prototype warnings.
+
+------------------------------------------------------------------------
+0ececa8 | Michael Rauh | Thu, 30 Mar 2017 10:59:48 +0200
+
+Reworked shutdown process of psslurm and pelogue. This also fixes
+jrt:#6401
+
+------------------------------------------------------------------------
+c83a62c | Michael Rauh | Tue, 21 Mar 2017 12:13:11 +0100
+
+Bugfix for jrt:#6536 introduced in 89783b4dda7f88b9f5
+
+------------------------------------------------------------------------
+bdd1fe9 | Michael Rauh | Mon, 20 Mar 2017 16:50:36 +0100
+
+Fix segfault on psslurm unloading without a gres configuration
+
+------------------------------------------------------------------------
+4fa2e06 | Michael Rauh | Mon, 20 Mar 2017 11:14:01 +0100
+
+Suppress warning messages for admin users starting jobs
+using mpiexec (pt:#2617)
+
+------------------------------------------------------------------------
+1b244aa | Michael Rauh | Fri, 10 Mar 2017 17:20:15 +0100
+
+Improved error output for invalid slurm protocol version
+
+------------------------------------------------------------------------
+d130b57 | Norbert Eicker | Wed, 8 Mar 2017 08:26:54 +0100
+
+Beautify documentation comments
+
+------------------------------------------------------------------------
+
+
 Version psmgmt-5.1.2:
 =====================
 ------------------------------------------------------------------------
