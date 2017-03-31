@@ -2658,6 +2658,30 @@ static void doSendTaskExit(Step_t *step, PS_Tasks_t *task, int exitCode,
     ufree(body.buf);
 }
 
+/**
+ * @brief Add missing tasks
+ *
+ * Add missing tasks which should be spawned to the task
+ * list of a step. This ensures that srun will get an exit
+ * notification for all tasks of the step, even if the spawn
+ * request from mpiexec never arrived. This might happen e.g.
+ * if the executable does not exist.
+ *
+ * @param step The step to add the tasks for
+ */
+static void addMissingTasks(Step_t *step)
+{
+    uint32_t i;
+    int32_t rank;
+
+    for (i=0; i<step->globalTaskIdsLen[step->localNodeId]; i++) {
+	rank = step->globalTaskIds[step->localNodeId][i];
+	if (!findTaskByRank(&step->tasks.list, rank)) {
+	    addTask(&step->tasks.list, -1, -1, NULL, TG_ANY, rank);
+	}
+    }
+}
+
 void sendTaskExit(Step_t *step, int *ctlPort, int *ctlAddr)
 {
     uint32_t count = 0, taskCount = 0;
@@ -2665,13 +2689,14 @@ void sendTaskExit(Step_t *step, int *ctlPort, int *ctlAddr)
     struct list_head *pos;
     int exitCode;
 
-    list_for_each(pos, &step->tasks.list) {
-	if (!(task = list_entry(pos, PS_Tasks_t, list))) break;
-	if (task->childRank < 0) continue;
-	taskCount++;
-    }
+    addMissingTasks(step);
 
     taskCount = countRegTasks(&step->tasks.list);
+
+    if (taskCount != step->globalTaskIdsLen[step->localNodeId]) {
+	mlog("%s: still missing tasks: %u of %u\n", __func__, taskCount,
+	    step->globalTaskIdsLen[step->localNodeId]);
+    }
 
     while (count < taskCount) {
 	exitCode = -100;

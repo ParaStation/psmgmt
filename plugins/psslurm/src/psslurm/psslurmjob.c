@@ -185,23 +185,20 @@ unsigned int countTasks(struct list_head *taskList)
 
     if (!taskList) return 0;
 
-    list_for_each(pos, taskList) {
-	if (!(list_entry(pos, PS_Tasks_t, list))) break;
-	count++;
-    }
+    list_for_each(pos, taskList) count++;
     return count;
 }
 
 unsigned int countRegTasks(struct list_head *taskList)
 {
-    PS_Tasks_t *task;
     struct list_head *pos;
     unsigned int count = 0;
 
     if (!taskList) return 0;
 
     list_for_each(pos, taskList) {
-	if (!(task = list_entry(pos, PS_Tasks_t, list))) break;
+	PS_Tasks_t *task;
+	task = list_entry(pos, PS_Tasks_t, list);
 	if (task->childRank <0) continue;
 	count++;
     }
