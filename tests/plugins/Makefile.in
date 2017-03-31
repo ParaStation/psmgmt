@@ -159,7 +159,7 @@ AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
 am__v_lt_0 = --silent
 am__v_lt_1 = 
-delegateStat_la_LIBADD =
+delegateStat_la_DEPENDENCIES = $(libplugincommon)
 delegateStat_la_SOURCES = delegateStat.c
 delegateStat_la_OBJECTS = delegateStat.lo
 dyn_resources_la_LIBADD =
@@ -437,6 +437,7 @@ scriptsdir = $(prefix)/scripts
 @HAVE_SYSTEMD_TRUE@default_cgroup_root = /sys/fs/cgroup/
 @HAVE_SYSTEMD_FALSE@default_cgroup_name = psmgmtGrp
 @HAVE_SYSTEMD_TRUE@default_cgroup_name = system.slice/psid.service/descendants
+libplugincommon = $(top_builddir)/lib/plugincommon/libplugincommon.la
 pkglib_LTLIBRARIES = plugin1.la plugin2.la plugin3.la plugin4.la	\
 	plugin5.la plugin6.la plugin7.la plugin8.la plugin9.la		\
 	no_flowcontrol.la dyn_resources.la delaySlurmMsg.la		\
@@ -446,6 +447,7 @@ delaySlurmMsg_la_CPPFLAGS = $(AM_CPPFLAGS)		\
 	-I$(top_srcdir)/plugins/psslurm/src/psslurm	\
 	-I$(top_srcdir)/plugins/psslurm/src/common
 
+delegateStat_la_LIBADD = $(libplugincommon)
 all: all-am
 
 .SUFFIXES:
