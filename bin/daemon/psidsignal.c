@@ -769,7 +769,7 @@ static void msg_NEWANCESTOR(DDErrorMsg_t *msg)
 	    .len = sizeof(answer.header) },
 	.buf = { 0 } };
     list_t *t;
-    size_t emptyLen, oldLen;
+    size_t emptyLen = answer.header.len, oldLen;
     PStask_ID_t nTID = 0;
     int found = 0;
     bool grandParentOK = PSIDnodes_isUp(PSC_getID(msg->request));
