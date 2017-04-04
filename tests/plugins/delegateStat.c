@@ -10,9 +10,12 @@
 #include <stdbool.h>
 #include <stdlib.h>
 
+#include "pscommon.h"
+#include "pscpu.h"
 #include "psidutil.h"
 #include "psidplugin.h"
 #include "psidtask.h"
+#include "psidnodes.h"
 
 #include "plugin.h"
 #include "pluginmalloc.h"
@@ -41,6 +44,7 @@ char * show(char *key)
     size_t bufSize = 0;
     bool resFound = false;
     char l[128];
+    uint16_t nBytes = PSCPU_bytesForCPUs(PSIDnodes_getVirtCPUs(PSC_getMyID()));
 
     if (!key || !key[0]) {
 	snprintf(l, sizeof(l), "\nUsage: 'plugin show %s key <tid>'\n", name);
@@ -72,7 +76,7 @@ char * show(char *key)
 	for (s=0; s < task->partitionSize; s++) {
 	    PSpart_slot_t *slt = &task->partition[s];
 	    snprintf(l, sizeof(l), "\t%d\t%s\n", slt->node,
-		     PSCPU_print_part(slt->CPUset, 16));
+		     PSCPU_print_part(slt->CPUset, nBytes));
 	    str2Buf(l, &buf, &bufSize);
 	}
     } else {
