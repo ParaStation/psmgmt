@@ -21,6 +21,8 @@
 #undef __USE_GNU
 
 #include "pscpu.h"
+#include "psnodes.h"
+#include "pstask.h"
 #include "selector.h"
 
 #ifdef CPU_ZERO

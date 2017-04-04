@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2007-2013 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2007-2017 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -18,12 +18,8 @@
 #ifndef __KVSCOMMON_H
 #define __KVSCOMMON_H
 
-#ifdef __cplusplus
-extern "C" {
-#if 0
-} /* <- just for emacs indentation */
-#endif
-#endif
+#include <stddef.h>
+#include <stdint.h>
 
 /* some pmi definitions */
 #define PMI_SUCCESS 0
@@ -179,9 +175,5 @@ int32_t getKVSInt32(char **ptr);
  * @return No return value.
  */
 void addKVSInt32(char **ptr, size_t *len, int32_t *num);
-
-#ifdef __cplusplus
-}/* extern "C" */
-#endif
 
 #endif  /* __KVSCOMMON_H */

@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2015 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2017 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -21,14 +21,11 @@
 #ifndef __PSIPARTITION_H__
 #define __PSIPARTITION_H__
 
-#include "psnodes.h"
+#include <stdint.h>
 
-#ifdef __cplusplus
-extern "C" {
-#if 0
-} /* <- just for emacs indentation */
-#endif
-#endif
+#include "psnodes.h"
+#include "pspartition.h"
+#include "psreservation.h"
 
 /**
  * The name of the environment variable defining a nodelist from a
@@ -396,9 +393,5 @@ int PSI_getSlots(uint16_t num, PSrsrvtn_ID_t resID, PSnodes_ID_t *nodes);
  * returned. In case of an error -1 is returned.
  */
 int PSI_getRankNode(int32_t rank, PSnodes_ID_t *node);
-
-#ifdef __cplusplus
-}/* extern "C" */
-#endif
 
 #endif /* __PSIPARTITION_H */
