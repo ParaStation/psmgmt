@@ -7,6 +7,7 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
+#include <stdbool.h>
 #include <stdlib.h>
 
 #include "psidutil.h"
@@ -25,11 +26,6 @@ int version = 100;
 plugin_dep_t dependencies[] = {
     { NULL, 0 } };
 
-//int initialize(void){}
-
-//void finalize(void){}
-
-
 char * help(void)
 {
     return strdup("\tPlugin to peek into existing delegate tasks.\n"
@@ -41,9 +37,9 @@ char * show(char *key)
 {
     PStask_ID_t tid;
     PStask_t *task;
-    char *buf = NULL;
+    char *buf = NULL, *end;
     size_t bufSize = 0;
-
+    bool resFound = false;
     char l[128];
 
     if (!key || !key[0]) {
@@ -51,14 +47,16 @@ char * show(char *key)
 	return strdup(l);
     }
 
-    if (sscanf(key, "%x", &tid) != 1) {
+    tid = strtol(key, &end, 0);
+    if (*end) {
 	snprintf(l, sizeof(l), "\nkey '%s' not a task ID\n", key);
 	return strdup(l);
     }
 
     task = PStasklist_find(&managedTasks, tid);
     if (!task) {
-	snprintf(l, sizeof(l), "\nno task %s for key %s\n", PSC_printTID(tid), key);
+	snprintf(l, sizeof(l), "\nno task for key %s (recognized as %s)\n",
+		 key, PSC_printTID(tid));
 	return strdup(l);
     }
 
@@ -74,7 +72,7 @@ char * show(char *key)
 	for (s=0; s < task->partitionSize; s++) {
 	    PSpart_slot_t *slt = &task->partition[s];
 	    snprintf(l, sizeof(l), "\t%d\t%s\n", slt->node,
-		     PSCPU_print_part(slt->CPUset, 32));
+		     PSCPU_print_part(slt->CPUset, 16));
 	    str2Buf(l, &buf, &bufSize);
 	}
     } else {
@@ -82,12 +80,13 @@ char * show(char *key)
     }
 
     /* print partThrds */
-    str2Buf("\nHW threads", &buf, &bufSize);
+    str2Buf("\nHW threads\n", &buf, &bufSize);
     if (task->totalThreads > 0 && task->partThrds) {
 	unsigned int t;
 	PSnodes_ID_t lastNode = -1;
-	snprintf(l, sizeof(l), "%u of %u threads used:\n", task->usedThreads,
+	snprintf(l, sizeof(l), "\t%u of %u threads used:\n", task->usedThreads,
 		 task->totalThreads);
+	str2Buf(l, &buf, &bufSize);
 	for (t=0; t<task->totalThreads; t++) {
 	    PSpart_HWThread_t *hwThrd = &task->partThrds[t];
 	    if (hwThrd->node != lastNode) {
@@ -100,35 +99,29 @@ char * show(char *key)
 	}
 	str2Buf("\n", &buf, &bufSize);
     } else {
-	str2Buf("\n\tnone\n", &buf, &bufSize);
+	str2Buf("\tnone\n", &buf, &bufSize);
     }
 
     /* print reservations */
-    str2Buf("\nReservations\n", &buf, &bufSize);
-    if (list_empty(&task->reservations)) {
-	str2Buf("\tnone\n", &buf, &bufSize);
-    } else {
+    str2Buf("\nAssociated reservations\n", &buf, &bufSize);
+    list_t *t;
+    list_for_each(t, &managedTasks) {
+	PStask_t *tsk = list_entry(t, PStask_t, next);
+	if (tsk->delegate != task) continue;
 	list_t *r;
-	list_for_each(r, &task->reservations) {
+	list_for_each(r, &tsk->reservations) {
 	    PSrsrvtn_t *res = list_entry(r, PSrsrvtn_t, next);
-	    snprintf(l, sizeof(l), "\treservation %d requested by %s holds %d"
-		     " slots (%d used, %d released):\n", res->rid,
-		     PSC_printTID(res->requester), res->nSlots, res->nextSlot,
-		     res->relSlots);
+	    resFound = true;
+	    snprintf(l, sizeof(l), "\treservation %d @ %s", res->rid,
+		     PSC_printTID(tsk->tid));
 	    str2Buf(l, &buf, &bufSize);
-	    int s;
-	    for (s = 0; s < res->nSlots; s++) {
-		PSpart_slot_t *slt = &res->slots[s];
-		snprintf(l, sizeof(l), "\t%d\t%s\n", slt->node,
-			 PSCPU_print_part(slt->CPUset, 32));
-		str2Buf(l, &buf, &bufSize);
-	    }
+	    snprintf(l, sizeof(l), " requested by %s \n\t\tholds %d slots"
+		     " (%d used, %d released):\n", PSC_printTID(res->requester),
+		     res->nSlots, res->nextSlot, res->relSlots);
+	    str2Buf(l, &buf, &bufSize);
 	}
     }
-
-
-    /* print spawnNodes */
-    /* @todo */
+    if (!resFound) str2Buf("\tnone\n", &buf, &bufSize);
 
     /* print pendingReleaseRes */
     snprintf(l, sizeof(l), "\nThere are %d pending RELEASERES messages\n",
@@ -142,6 +135,8 @@ char * set(char *key, char *val)
 {
     PStask_ID_t tid;
     PStask_t *task;
+    char *buf = NULL, *end;
+    size_t bufSize = 0;
     char l[128];
 
     if (!key || !key[0]) {
@@ -150,14 +145,16 @@ char * set(char *key, char *val)
 	return strdup(l);
     }
 
-    if (sscanf(key, "%i", &tid) != 1) {
+    tid = strtol(key, &end, 0);
+    if (*end) {
 	snprintf(l, sizeof(l), "\nkey '%s' not a task ID\n", key);
 	return strdup(l);
     }
 
     task = PStasklist_find(&managedTasks, tid);
     if (!task) {
-	snprintf(l, sizeof(l), "\nno task %s\n", PSC_printTID(tid));
+	snprintf(l, sizeof(l), "\nno task for key %s (recognized as %s)\n",
+		 key, PSC_printTID(tid));
 	return strdup(l);
     }
 
@@ -166,7 +163,27 @@ char * set(char *key, char *val)
 	return strdup(l);
     }
 
-    snprintf(l, sizeof(l), "\n\tNot yet implemented\n");
+    if (task->totalThreads > 0 && task->partThrds) {
+	unsigned int t;
+	snprintf(l, sizeof(l), "\n%u of %u threads used:\n", task->usedThreads,
+		 task->totalThreads);
+	str2Buf(l, &buf, &bufSize);
+	for (t=0; t<task->totalThreads; t++) {
+	    PSpart_HWThread_t *hwThrd = &task->partThrds[t];
+	    if (hwThrd->timesUsed) {
+		snprintf(l, sizeof(l), "\tfree %u thread(s) of %d/%d\n",
+			 hwThrd->timesUsed, hwThrd->node, hwThrd->id);
+		str2Buf(l, &buf, &bufSize);
+		task->usedThreads -= hwThrd->timesUsed;
+		hwThrd->timesUsed = 0;
+	    }
+	}
+	snprintf(l, sizeof(l), "%u of %u threads used\n", task->usedThreads,
+		 task->totalThreads);
+	str2Buf(l, &buf, &bufSize);
+    } else {
+	str2Buf("\nno partition to reset\n", &buf, &bufSize);
+    }
 
-    return strdup(l);
+    return buf;
 }
