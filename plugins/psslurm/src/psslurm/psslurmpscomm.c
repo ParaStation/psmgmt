@@ -1425,11 +1425,11 @@ void handleSpawnFailed(DDErrorMsg_t *msg)
 		forwarder, forwarder->childGroup, forwarder->rank);
 
 	switch (msg->error) {
-	    case 2:
+	    case ENOENT:
 		/* No such file or directory */
 		task->exitCode = 0x200;
 		break;
-	    case 13:
+	    case EACCES:
 		/* Permission denied */
 		task->exitCode = 0x0d00;
 		break;
