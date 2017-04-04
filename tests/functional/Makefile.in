@@ -563,7 +563,8 @@ do_subst = sed \
 	-e 's,[@]scriptsdir[@],$(scriptsdir),g' \
 	-e 's,[@]sysconfdir[@],$(sysconfdir),g' \
 	-e 's,[@]localstatedir[@],$(localstatedir),g' \
-	-e 's,[@]default_cgroup_root[@],$(default_cgroup_root),g'
+	-e 's,[@]default_cgroup_root[@],$(default_cgroup_root),g' \
+	-e 's,[@]default_cgroup_name[@],$(default_cgroup_name),g'
 
 pamconfdir = $(sysconfdir)/pam.d
 
@@ -577,7 +578,7 @@ configdir = $(prefix)/config
 scriptsdir = $(prefix)/scripts
 @HAVE_SYSTEMD_FALSE@default_cgroup_root = /sys/fs/cgroup/
 
-# default paths for the cgroups vary
+# default paths for cgroups
 @HAVE_SYSTEMD_TRUE@default_cgroup_root = /sys/fs/cgroup/
 @HAVE_SYSTEMD_FALSE@default_cgroup_name = psmgmtGrp
 @HAVE_SYSTEMD_TRUE@default_cgroup_name = system.slice/psid.service/descendants
@@ -1073,7 +1074,6 @@ uninstall-am:
 
 .PRECIOUS: Makefile
 
-	-e 's,[@]default_cgroup_name[@],$(default_cgroup_name),g'
 
 %: %.in
 	$(subst_verbose)$(do_subst) < $^ > $@ && chmod --reference $^ $@
