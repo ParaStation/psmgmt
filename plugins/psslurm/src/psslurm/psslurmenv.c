@@ -229,7 +229,7 @@ static char * getTasksPerNode(uint16_t tasksPerNode[], uint32_t nrOfNodes) {
 static bool hexBitstr2List(char *bitstr, char **list, size_t *listSize)
 {
     size_t len;
-    int32_t next, count = 1;
+    int32_t next, count = 0;
 
     if (!bitstr) {
 	mlog("%s: invalid bitstring\n", __func__);
