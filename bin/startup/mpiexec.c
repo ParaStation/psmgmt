@@ -70,8 +70,6 @@ static char msgstr[512];
 /** context for parsing command-line options */
 static poptContext optCon;
 
-/** start admin task which are not accounted */
-static int admin = 0;
 /** set debugging mode and np * gdb to control child processes */
 static int gdb = 0;
 /** don't call gdb with --args option */
@@ -178,7 +176,6 @@ static int timestamp = 0;
 static int interactive = 0;
 static int maxtime = 0;
 static char *sort = NULL;
-static char *login = NULL;
 static char *dest = NULL;
 
 /* debug options */
@@ -280,22 +277,6 @@ static void errExit(char *msg)
 }
 
 /**
- * @brief Retrieve the nodeID for a given host. Exit on error.
- *
- * @param host The name of the host to retrieve the nodeID for.
- *
- * @param nodeID Pointer to a PSnodes_ID which holds the result.
- *
- * @return No return value.
- */
-static void getNodeIDbyHost(char *host, PSnodes_ID_t *nodeID)
-{
-    *nodeID = PSI_resolveNodeID(host);
-
-    if (*nodeID < 0) exit(EXIT_FAILURE);
-}
-
-/**
  * @brief Get the hostname for a node ID.
  *
  * @param nodeID The node ID to get the hostname for.
@@ -337,83 +318,21 @@ static char *getHostByNodeID(PSnodes_ID_t nodeID)
 }
 
 /**
- * @brief Find the first node to start the spawner
- * process on. If the first node can't be found it
- * is set to -1;
- *
- * @param nodeID Pointer to the PSnodes_ID_t structure
- * which receives the result.
- *
- * @return No return value.
- */
-static void getFirstNodeID(PSnodes_ID_t *nodeID)
-{
-    char *nodeparse, *toksave, *parse;
-    char *envnodes, *envhosts;
-    const char delimiters[] ="-, \n";
-    char *end;
-    int node;
-
-    *nodeID = -1;
-
-    envnodes = getenv(ENV_NODE_NODES);
-    envhosts = getenv(ENV_NODE_HOSTS);
-
-    if (envnodes) nodelistStr = envnodes;
-    if (envhosts) hostlistStr = envhosts;
-
-    if (hostlistStr) {
-	parse = strdup(hostlistStr);
-    } else {
-	parse = strdup(nodelistStr);
-    }
-
-    if (!parse) {
-	errExit("Don't know where to start, use '--nodes' or '--hosts' or"
-		" '--hostfile'");
-    }
-
-    if (!(nodeparse = strtok_r(parse, delimiters, &toksave))) {
-	free(parse);
-	return;
-    }
-
-    if (hostlistStr) {
-	getNodeIDbyHost(nodeparse, nodeID);
-    } else {
-	node = strtol(nodeparse, &end, 10);
-	if (nodeparse == end || *end) {
-	    free(parse);
-	    return;
-	}
-	if (node < 0 || node >= PSC_getNrOfNodes()) {
-	    fprintf(stderr, "Node %d out of range\n", node);
-	    exit(EXIT_FAILURE);
-	}
-	*nodeID = node;
-    }
-    free(parse);
-}
-
-/**
  * @brief Setup global environment
  *
  * Setup global environment also shared with the logger -- i.e. the
- * PMI master. The @a admin flag marks admin processes disabling most
- * of the environment. It is assumed that the PMI-part of the logger
- * has to expect @a np clients.
- *
- * @param admin Flag for admin processes
+ * PMI master. It is assumed that the PMI-part of the logger has to
+ * expect @a np clients.
  *
  * @param np Number of clients the PMI-part of the logger expects
  *
  * @return No return value.
  */
-static void setupGlobalEnv(int admin, int np)
+static void setupGlobalEnv(int np)
 {
     char tmp[32];
 
-    if (!admin && (pmienabletcp || pmienablesockp)) {
+    if (pmienabletcp || pmienablesockp) {
 	/* generate PMI auth token */
 	snprintf(tmp, sizeof(tmp), "%i", PSC_getMyTID());
 	setPSIEnv("PMI_ID", tmp, 1);
@@ -604,7 +523,7 @@ static uint32_t getNodeType(char *hardwareList)
  *
  * @return No return value.
  */
-static void createSpawner(int argc, char *argv[], int np, int admin)
+static void createSpawner(int argc, char *argv[], int np)
 {
     int rank = PSE_getRank();
     char cwd[1024], tmp[100];
@@ -617,26 +536,21 @@ static void createSpawner(int argc, char *argv[], int np, int admin)
 	ssize_t cnt;
 	int pSize = usize > np ? usize : np;
 
-	if (!admin) {
-	    if (maxtpp > 1 && !envtpp) {
-		char tmp[32];
-		snprintf(tmp, sizeof(tmp), "%d", maxtpp);
-		setenv("PSI_TPP", tmp, 1);
-	    }
-	    if (PSE_getPartition(pSize)<0) exit(EXIT_FAILURE);
-	    if (!envtpp) {
-		unsetenv("PSI_TPP");
-	    }
-	    startNode = (getenv("__MPIEXEC_DIST_START") ?
-			 getNodeIDbyIndex(1) : PSC_getMyID());
-	    setPSIEnv("__MPIEXEC_DIST_START",
-		      getenv("__MPIEXEC_DIST_START"), 1);
-	} else {
-	    getFirstNodeID(&startNode);
+	if (maxtpp > 1 && !envtpp) {
+	    char tmp[32];
+	    snprintf(tmp, sizeof(tmp), "%d", maxtpp);
+	    setenv("PSI_TPP", tmp, 1);
 	}
+	if (PSE_getPartition(pSize)<0) exit(EXIT_FAILURE);
+	if (!envtpp) {
+	    unsetenv("PSI_TPP");
+	}
+	startNode = (getenv("__MPIEXEC_DIST_START") ?
+		     getNodeIDbyIndex(1) : PSC_getMyID());
+	setPSIEnv("__MPIEXEC_DIST_START", getenv("__MPIEXEC_DIST_START"), 1);
 
 	/* setup the global environment also shared by logger for PMI */
-	setupGlobalEnv(admin, np);
+	setupGlobalEnv(np);
 
 	/* get absolute path to myself */
 	cnt = readlink("/proc/self/exe", cwd, sizeof(cwd));
@@ -1832,11 +1746,9 @@ static void setupPSIDEnv(int verbose)
 	free(val);
     }
 
-    if (!admin) {
-	msg = PSE_checkNodeEnv(nodelistStr, hostlistStr, hostfile, NULL, "--",
-			       verbose);
-	if (msg) errExit(msg);
-    }
+    msg = PSE_checkNodeEnv(nodelistStr, hostlistStr, hostfile, NULL, "--",
+			   verbose);
+    if (msg) errExit(msg);
 
     msg = PSE_checkSortEnv(sort, "--", verbose);
     if (msg) errExit(msg);
@@ -2003,290 +1915,6 @@ static void printHiddenHelp(poptOption opt, int argc, char *argv[],
 }
 
 /**
- * @brief Parse a given hostfile and return the
- * hosts found.
- *
- * @filename Name of the file to parse.
- *
- * @return No return value.
- */
-static void  parseHostfile(char *filename, char *hosts, int size)
-{
-    FILE *fp;
-    char line[1024];
-    const char delimiters[] =", \f\n\r\t\v";
-    char *work, *host;
-    int len;
-
-    if (!(fp = fopen(filename, "r"))) {
-	fprintf(stderr, "%s: cannot open file <%s>\n", __func__, filename);
-	exit(EXIT_FAILURE);
-    }
-
-    while (fgets(line, sizeof(line), fp)) {
-	if (line[0] == '#') continue;
-
-	host = strtok_r(line, delimiters, &work);
-	while (host) {
-	    len = strlen(host);
-	    if ((strncmp(host, "ifhn=", 5)) && len) {
-		if (size - len -1 -1 <0) {
-		    fprintf(stderr, "%s hostfile to large\n", __func__);
-		    exit(EXIT_FAILURE);
-		}
-		if (hosts[0] == '\0') {
-		    strcpy(hosts, host);
-		} else {
-		    strcat(hosts, ",");
-		    strcat(hosts, host);
-		}
-	    }
-	    host = strtok_r(NULL, delimiters, &work);
-	}
-    }
-    fclose(fp);
-}
-
-/**
- * @brief Count the number of processes to start and
- * setup np, parse a hostfile if given and setup the hostlist.
- *
- * @return No return value.
- */
-static void setupAdminEnv(void)
-{
-    char *nodeparse, *toksave, *parse = NULL;
-    const char delimiters[] =", \n";
-    char *envnodes, *envhosts, *envhostsfile;
-    char *envadminhosts;
-    char hosts[1024];
-    int first, last, i;
-
-    hosts[0] = '\0';
-    envnodes = getenv(ENV_NODE_NODES);
-    envhosts = getenv(ENV_NODE_HOSTS);
-    envhostsfile = getenv(ENV_NODE_HOSTFILE);
-    envadminhosts = getenv("PSI_ADMIN_HOSTS");
-
-    if (envnodes) {
-	parse = strdup(envnodes);
-	setPSIEnv(ENV_NODE_NODES, parse, 1);
-    }
-    if (envhosts) {
-	parse = strdup(envhosts);
-	setPSIEnv(ENV_NODE_HOSTS, parse, 1);
-    }
-    if (envadminhosts) {
-	parse = strdup(envadminhosts);
-	hostfile = NULL;
-	envhostsfile = NULL;
-	hostlistStr = strdup(envadminhosts);
-	unsetenv("PSI_ADMIN_HOSTS");
-    }
-
-    if (PSE_getRank() == -1) {
-	if (envhostsfile) {
-	    parseHostfile(envhostsfile, hosts, sizeof(hosts));
-	    hostlistStr = hosts;
-	    unsetPSIEnv(ENV_NODE_HOSTFILE);
-	    unsetenv(ENV_NODE_HOSTFILE);
-	    setPSIEnv("PSI_ADMIN_HOSTS", hosts, 1);
-	} else if (hostfile) {
-	    parseHostfile(hostfile, hosts, sizeof(hosts));
-	    hostlistStr = hosts;
-	    hostfile = NULL;
-	    setPSIEnv("PSI_ADMIN_HOSTS", hosts, 1);
-	}
-    }
-
-    if (!parse && hostlistStr) {
-	parse = strdup(hostlistStr);
-    } else if (!parse && nodelistStr) {
-	parse = strdup(nodelistStr);
-    }
-
-    if (!parse) {
-	errExit("Don't know where to start, use '--nodes' or '--hosts' or "
-		"'--hostfile'");
-    }
-
-    np = 0;
-    first = last = 0;
-    nodeparse = strtok_r(parse, delimiters, &toksave);
-
-    while (nodeparse != NULL) {
-	if (strchr(nodeparse, '-') != NULL) {
-	    if ((sscanf(nodeparse, "%d-%d", &first, &last)) != 2) {
-		fprintf(stderr, "invalid node range\n");
-		exit(EXIT_FAILURE);
-	    }
-	    if (first < 0 || last < 0 || last < first || first == last) {
-		fprintf(stderr, "invalid node range: %i-%i\n", first, last);
-		exit(EXIT_FAILURE);
-	    }
-	    for(i=first; i<=last; i++) np++;
-	} else {
-	    np++;
-	}
-	nodeparse = strtok_r(NULL, delimiters, &toksave);
-    }
-    free(parse);
-}
-
-/**
- * @brief A wrapper for PSE_setupUID to set the
- * UserID for admin task.
- *
- * @param argv Pointer to the arguments of the new process to spawn.
- *
- * @No return value.
- */
-static void setupUID(char *argv[])
-{
-    struct passwd *passwd;
-    uid_t myUid = getuid();
-
-    passwd = getpwnam(login);
-
-    if (!passwd) {
-	fprintf(stderr, "Unknown user '%s'\n", login);
-    } else if (myUid && passwd->pw_uid != myUid) {
-	fprintf(stderr, "Can't start '%s' as %s\n",
-		argv[0], login);
-	exit(EXIT_FAILURE);
-    } else {
-	PSE_setUID(passwd->pw_uid);
-	if (verbose) printf("Run as user '%s' UID %d\n",
-			    passwd->pw_name, passwd->pw_uid);
-    }
-}
-
-/**
- * @brief Spawn admin task.
- *
- * Do the actual spawning and handling of errors.
- *
- * @param nodeID The node to spawn to task to.
- *
- * @param argc The number of arguments for the new process to spawn.
- *
- * @param argv Pointer to the arguments of the new process to spawn.
- *
- * @param verbose Set verbose mode, output whats going on.
- *
- * @param show Only show output, but don't spawn anything.
-*/
-static void doAdminSpawn(PSnodes_ID_t nodeID, int argc, char *argv[],
-						    int verbose, int show)
-{
-    static int rank = 0;
-    int error;
-    PStask_ID_t spawnedProcess = -1;
-
-    if (verbose) {
-	printf("Spawning process %i on node: %i\n", rank, nodeID);
-    }
-
-    if (show) return;
-
-    PSI_spawnAdmin(nodeID, wdir, argc, argv, 1, rank, &error, &spawnedProcess);
-
-    if (error) {
-	fprintf(stderr, "Spawn to node: %i failed!\n", nodeID);
-	exit(10);
-    }
-    rank++;
-}
-
-/**
- * @brief Creates an admin tasks.
- *
- * Creates tasks which are not accounted and can only be
- * run as privileged user.
- *
- * @param login The user name to start the admin processes.
- *
- * @param verbose Set verbose mode, output whats going on.
- *
- * @param show Only show output, but don't spawn anything.
- *
- * @return Returns 0 on success, or errorcode on error.
- */
-static void createAdminTasks(char *login, int verbose, int show)
-{
-    PSnodes_ID_t nodeID;
-    char *nodeparse, *toksave, *parse = NULL;
-    const char delimiters[] =", \n";
-    char *envnodes, *envhosts, **argv;
-    int argc, numNodes = PSC_getNrOfNodes();
-
-    argc = exec[0].argc;
-    argv = exec[0].argv;
-
-    if (login) setupUID(argv);
-
-    envnodes = getenv(ENV_NODE_NODES);
-    envhosts = getenv(ENV_NODE_HOSTS);
-
-    if (envnodes) nodelistStr = envnodes;
-    if (envhosts) hostlistStr = envhosts;
-
-    if (hostlistStr) {
-	parse = hostlistStr;
-    } else {
-	parse = nodelistStr;
-    }
-
-    if (!parse) {
-	errExit("Don't know where to start, use '--nodes' or '--hosts' or "
-		"'--hostfile'");
-    }
-
-    nodeparse = strtok_r(parse, delimiters, &toksave);
-
-    while (nodeparse != NULL) {
-	if (hostlistStr) {
-	    getNodeIDbyHost(nodeparse, &nodeID);
-	} else {
-	    int node = 0, first, last, i;
-	    char *end;
-	    if (strchr(nodeparse, '-') != NULL) {
-		first = last = 0;
-		if ((sscanf(nodeparse, "%d-%d", &first, &last)) != 2) {
-		    fprintf(stderr, "invalid node range\n");
-		    exit(EXIT_FAILURE);
-		}
-		if (first < 0 || last < 0 || last < first || first == last) {
-		    fprintf(stderr, "invalid node range: %i-%i\n", first, last);
-		    exit(EXIT_FAILURE);
-		}
-		if (last >= numNodes) {
-		    fprintf(stderr, "Nodes out of range, exiting\n");
-		    exit(EXIT_FAILURE);
-		}
-		for(i=first; i<=last; i++) {
-		    doAdminSpawn(i, argc, argv, verbose, show);
-		}
-		nodeparse = strtok_r(NULL, delimiters, &toksave);
-		continue;
-	    } else {
-		node = strtol(nodeparse, &end, 10);
-		if (end == nodeparse || *end) {
-			return;
-		}
-		if (node < 0 || node >= numNodes) {
-		    fprintf(stderr, "Node %d out of range\n", node);
-		    exit(EXIT_FAILURE);
-		}
-	    }
-	    nodeID = node;
-	}
-	doAdminSpawn(nodeID, argc, argv, verbose, show);
-	nodeparse = strtok_r(NULL, delimiters, &toksave);
-    }
-}
-
-/**
  * @brief Check Sanity.
  *
  * Perform some sanity checks to handle common
@@ -2298,11 +1926,11 @@ static void createAdminTasks(char *login, int verbose, int show)
  */
 static void checkSanity(char *argv[])
 {
-    if (np == -1 && !admin) {
+    if (np == -1) {
 	errExit("Give at least the -np argument.");
     }
 
-    if (np < 1 && !admin) {
+    if (np < 1) {
 	snprintf(msgstr, sizeof(msgstr), "'-np %d' makes no sense.", np);
 	errExit(msgstr);
     }
@@ -2322,9 +1950,9 @@ static void checkSanity(char *argv[])
 	exit(EXIT_FAILURE);
     }
 
-    if (gdb || admin) {
+    if (gdb) {
 	mergeout = 1;
-	if (!dest || admin) {
+	if (!dest) {
 	    setenv("PSI_INPUTDEST", "all", 1);
 	}
 	if (gdb) {
@@ -2354,18 +1982,6 @@ static void checkSanity(char *argv[])
 
     if (mpichcom && execCount >1) {
 	errExit("colon syntax is only supported with mpi2\n");
-    }
-
-    if (admin) {
-	if (np != -1) errExit("Don't use '-np' and '--admin' together");
-	if (execCount >1) {
-	    errExit("colon syntax is not supported with admin tasks\n");
-	}
-    }
-
-    if (login && !admin) {
-	fprintf(stderr, "the '--login' option is useful with '--admin' only, "
-			"ignoring it.\n");
     }
 
     if (pmienabletcp && pmienablesockp) {
@@ -2619,15 +2235,6 @@ static struct poptOption poptCommonOptions[] = {
     POPT_TABLEEND
 };
 
-static struct poptOption poptPrivilegedOptions[] = {
-    { "admin", 'A', POPT_ARG_NONE,
-      &admin, 0, "start an admin-task which is not accounted", NULL},
-    { "login", 'L', POPT_ARG_STRING,
-      &login, 0, "remote user used to execute command (with --admin only)",
-      "login_name"},
-    POPT_TABLEEND
-};
-
 static struct poptOption poptDebugOptions[] = {
     { "loggerdb", '\0', POPT_ARG_NONE | POPT_ARGFLAG_DOC_HIDDEN,
       &loggerdb, 0, "set debug mode of the logger", "num"},
@@ -2811,8 +2418,6 @@ static struct poptOption optionsTable[] = {
       0, "Communication options:", NULL },
     { NULL, '\0', POPT_ARG_INCLUDE_TABLE, popt_IO_Options, \
       0, "I/O options:", NULL },
-    { NULL, '\0', POPT_ARG_INCLUDE_TABLE, poptPrivilegedOptions, \
-      0, "Privileged options:", NULL },
     { NULL, '\0', POPT_ARG_INCLUDE_TABLE, poptDebugOptions, \
       0, NULL , NULL },
     { NULL, '\0', POPT_ARG_INCLUDE_TABLE, poptAdvancedOptions, \
@@ -2858,7 +2463,7 @@ static void saveNextExecutable(int *sum_np, int argc, const char **argv)
     } else if (gnp > 0) {
 	*sum_np += gnp;
 	exec[execCount].np = gnp;
-    } else if (!admin) {
+    } else {
 	fprintf(stderr, "no -np argument for binary(%i) '%s'\n", execCount+1,
 		argv[0]);
 	exit(1);
@@ -3252,9 +2857,6 @@ int main(int argc, char *argv[], char** envp)
     /* setup the parastation environment */
     setupEnvironment(verbose);
 
-    /* setup the environment for admin tasks */
-    if (admin) setupAdminEnv();
-
     /* Propagate PSI_RARG_PRE_* / check for LSF-Parallel */
 /*     PSI_RemoteArgs(filter_argc-dup_argc, &filter_argv[dup_argc],
  *     &dup_argc, &dup_argv); */
@@ -3266,7 +2868,7 @@ int main(int argc, char *argv[], char** envp)
     PSI_propEnvList("__PSI_EXPORTS");
 
     /* create spawner process and switch to logger */
-    createSpawner(argc, argv, np, admin);
+    createSpawner(argc, argv, np);
 
     /* add command args for controlling gdb */
     if (gdb) setupGDB();
@@ -3277,23 +2879,14 @@ int main(int argc, char *argv[], char** envp)
     /* add command args for MPI1 mode */
     if (mpichcom) setupComp();
 
-    if (admin) {
-	/* spawn admin processes */
-	if (verbose) {
-	    printf("Starting admin task(s)\n");
-	}
-	usleep(200);
-	createAdminTasks(login, verbose, show);
+    /* start the KVS provider */
+    if ((getenv("SERVICE_KVS_PROVIDER"))) {
+	startKVSProvider(argc, argv, envp);
     } else {
-	/* start the KVS provider */
-	if ((getenv("SERVICE_KVS_PROVIDER"))) {
-	    startKVSProvider(argc, argv, envp);
-	} else {
-	    /* start all processes */
-	    if (startProcs(np, wdir, verbose) < 0) {
-		fprintf(stderr, "Unable to start all processes. Aborting.\n");
-		exit(EXIT_FAILURE);
-	    }
+	/* start all processes */
+	if (startProcs(np, wdir, verbose) < 0) {
+	    fprintf(stderr, "Unable to start all processes. Aborting.\n");
+	    exit(EXIT_FAILURE);
 	}
     }
 
