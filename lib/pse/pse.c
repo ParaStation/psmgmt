@@ -361,7 +361,7 @@ char * PSE_checkNodeEnv(char *nodelist, char *hostlist, char *hostfile,
 	} else if (envStr) {
 	    snprintf(msgStr, sizeof(msgStr),
 		     "Don't use %snodes with any of %s, %s, %s or %s set.",
-		     argPrefix, ENV_NODE_NODES,ENV_NODE_HOSTS,
+		     argPrefix, ENV_NODE_NODES, ENV_NODE_HOSTS,
 		     ENV_NODE_HOSTFILE, ENV_NODE_PEFILE);
 	    return msgStr;
 	}
@@ -391,7 +391,7 @@ char * PSE_checkNodeEnv(char *nodelist, char *hostlist, char *hostfile,
 	} else if (envStr) {
 	    snprintf(msgStr, sizeof(msgStr),
 		     "Don't use %shosts with any of %s, %s, %s or %s set.",
-		     argPrefix, ENV_NODE_NODES,ENV_NODE_HOSTS,
+		     argPrefix, ENV_NODE_NODES, ENV_NODE_HOSTS,
 		     ENV_NODE_HOSTFILE, ENV_NODE_PEFILE);
 	    return msgStr;
 	}
@@ -406,7 +406,7 @@ char * PSE_checkNodeEnv(char *nodelist, char *hostlist, char *hostfile,
 	} else if (envStr) {
 	    snprintf(msgStr, sizeof(msgStr),
 		     "Don't use %shostfile with any of %s, %s, %s or %s set.",
-		     argPrefix, ENV_NODE_NODES,ENV_NODE_HOSTS,
+		     argPrefix, ENV_NODE_NODES, ENV_NODE_HOSTS,
 		     ENV_NODE_HOSTFILE, ENV_NODE_PEFILE);
 	    return msgStr;
 	}
@@ -416,7 +416,7 @@ char * PSE_checkNodeEnv(char *nodelist, char *hostlist, char *hostfile,
 	if (envStr) {
 	    snprintf(msgStr, sizeof(msgStr),
 		     "Don't use %spefile with any of %s, %s, %s or %s set.",
-		     argPrefix, ENV_NODE_NODES,ENV_NODE_HOSTS,
+		     argPrefix, ENV_NODE_NODES, ENV_NODE_HOSTS,
 		     ENV_NODE_HOSTFILE, ENV_NODE_PEFILE);
 	    return msgStr;
 	}
