@@ -147,8 +147,9 @@ gmspawner_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 mlisten_SOURCES = mlisten.c
 mlisten_OBJECTS = mlisten.$(OBJEXT)
 mlisten_DEPENDENCIES = $(am__DEPENDENCIES_1)
-mpiexec_SOURCES = mpiexec.c
-mpiexec_OBJECTS = mpiexec-mpiexec.$(OBJEXT)
+am__dirstamp = $(am__leading_dot)dirstamp
+am_mpiexec_OBJECTS = startup/mpiexec-mpiexec.$(OBJEXT)
+mpiexec_OBJECTS = $(am_mpiexec_OBJECTS)
 mpiexec_DEPENDENCIES = $(libpse) $(libpskvs) $(am__DEPENDENCIES_1)
 mpirun_chgm_SOURCES = mpirun_chgm.c
 mpirun_chgm_OBJECTS = mpirun_chgm.$(OBJEXT)
@@ -159,7 +160,6 @@ mpirun_chp4_DEPENDENCIES = $(libpse) $(am__DEPENDENCIES_1)
 mpirun_openib_SOURCES = mpirun_openib.c
 mpirun_openib_OBJECTS = mpirun_openib.$(OBJEXT)
 mpirun_openib_DEPENDENCIES = $(libpse) $(am__DEPENDENCIES_1)
-am__dirstamp = $(am__leading_dot)dirstamp
 am_psaccounter_OBJECTS = accounter/psaccounter-psaccounter.$(OBJEXT)
 psaccounter_OBJECTS = $(am_psaccounter_OBJECTS)
 psaccounter_DEPENDENCIES = $(libpse) $(am__DEPENDENCIES_1)
@@ -248,11 +248,12 @@ AM_V_CCLD = $(am__v_CCLD_@AM_V@)
 am__v_CCLD_ = $(am__v_CCLD_@AM_DEFAULT_V@)
 am__v_CCLD_0 = @echo "  CCLD    " $@;
 am__v_CCLD_1 = 
-SOURCES = gmspawner.c mlisten.c mpiexec.c mpirun_chgm.c mpirun_chp4.c \
-	mpirun_openib.c $(psaccounter_SOURCES) $(psiadmin_SOURCES) \
-	$(psid_SOURCES) $(psilogger_SOURCES) psispawn.c psmstart.c \
-	pssh.c $(test_config_SOURCES) test_pse.c testacct.c
-DIST_SOURCES = gmspawner.c mlisten.c mpiexec.c mpirun_chgm.c \
+SOURCES = gmspawner.c mlisten.c $(mpiexec_SOURCES) mpirun_chgm.c \
+	mpirun_chp4.c mpirun_openib.c $(psaccounter_SOURCES) \
+	$(psiadmin_SOURCES) $(psid_SOURCES) $(psilogger_SOURCES) \
+	psispawn.c psmstart.c pssh.c $(test_config_SOURCES) test_pse.c \
+	testacct.c
+DIST_SOURCES = gmspawner.c mlisten.c $(mpiexec_SOURCES) mpirun_chgm.c \
 	mpirun_chp4.c mpirun_openib.c $(psaccounter_SOURCES) \
 	$(psiadmin_SOURCES) $(psid_SOURCES) $(psilogger_SOURCES) \
 	psispawn.c psmstart.c pssh.c $(test_config_SOURCES) test_pse.c \
@@ -552,6 +553,7 @@ pssh_LDADD = $(libpse) $(POPT_LIBS)
 psaccounter_SOURCES = accounter/psaccounter.c
 psaccounter_CPPFLAGS = $(AM_CPPFLAGS) -DLOCALSTATEDIR=\"$(localstatedir)\"
 psaccounter_LDADD = $(libpse) $(POPT_LIBS)
+mpiexec_SOURCES = startup/mpiexec.c
 mpiexec_CPPFLAGS = $(AM_CPPFLAGS) -DCONFIGDIR=\"$(configdir)\"
 mpiexec_LDADD = $(libpse) $(libpskvs) $(POPT_LIBS)
 testacct_LDADD = $(libpse) $(POPT_LIBS)
@@ -655,6 +657,14 @@ gmspawner$(EXEEXT): $(gmspawner_OBJECTS) $(gmspawner_DEPENDENCIES) $(EXTRA_gmspa
 mlisten$(EXEEXT): $(mlisten_OBJECTS) $(mlisten_DEPENDENCIES) $(EXTRA_mlisten_DEPENDENCIES) 
 	@rm -f mlisten$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(mlisten_OBJECTS) $(mlisten_LDADD) $(LIBS)
+startup/$(am__dirstamp):
+	@$(MKDIR_P) startup
+	@: > startup/$(am__dirstamp)
+startup/$(DEPDIR)/$(am__dirstamp):
+	@$(MKDIR_P) startup/$(DEPDIR)
+	@: > startup/$(DEPDIR)/$(am__dirstamp)
+startup/mpiexec-mpiexec.$(OBJEXT): startup/$(am__dirstamp) \
+	startup/$(DEPDIR)/$(am__dirstamp)
 
 mpiexec$(EXEEXT): $(mpiexec_OBJECTS) $(mpiexec_DEPENDENCIES) $(EXTRA_mpiexec_DEPENDENCIES) 
 	@rm -f mpiexec$(EXEEXT)
@@ -808,13 +818,13 @@ mostlyclean-compile:
 	-rm -f admin/*.$(OBJEXT)
 	-rm -f daemon/*.$(OBJEXT)
 	-rm -f logger/*.$(OBJEXT)
+	-rm -f startup/*.$(OBJEXT)
 
 distclean-compile:
 	-rm -f *.tab.c
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gmspawner-gmspawner.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mlisten.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mpiexec-mpiexec.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mpirun_chgm.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mpirun_chp4.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mpirun_openib.Po@am__quote@
@@ -857,6 +867,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@logger/$(DEPDIR)/psilogger.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@logger/$(DEPDIR)/psiloggerclient.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@logger/$(DEPDIR)/psiloggermerge.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@startup/$(DEPDIR)/mpiexec-mpiexec.Po@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	$(AM_V_CC)depbase=`echo $@ | sed 's|[^/]*$$|$(DEPDIR)/&|;s|\.o$$||'`;\
@@ -896,19 +907,19 @@ gmspawner-gmspawner.obj: gmspawner.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(gmspawner_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o gmspawner-gmspawner.obj `if test -f 'gmspawner.c'; then $(CYGPATH_W) 'gmspawner.c'; else $(CYGPATH_W) '$(srcdir)/gmspawner.c'; fi`
 
-mpiexec-mpiexec.o: mpiexec.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(mpiexec_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT mpiexec-mpiexec.o -MD -MP -MF $(DEPDIR)/mpiexec-mpiexec.Tpo -c -o mpiexec-mpiexec.o `test -f 'mpiexec.c' || echo '$(srcdir)/'`mpiexec.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/mpiexec-mpiexec.Tpo $(DEPDIR)/mpiexec-mpiexec.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='mpiexec.c' object='mpiexec-mpiexec.o' libtool=no @AMDEPBACKSLASH@
+startup/mpiexec-mpiexec.o: startup/mpiexec.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(mpiexec_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT startup/mpiexec-mpiexec.o -MD -MP -MF startup/$(DEPDIR)/mpiexec-mpiexec.Tpo -c -o startup/mpiexec-mpiexec.o `test -f 'startup/mpiexec.c' || echo '$(srcdir)/'`startup/mpiexec.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) startup/$(DEPDIR)/mpiexec-mpiexec.Tpo startup/$(DEPDIR)/mpiexec-mpiexec.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='startup/mpiexec.c' object='startup/mpiexec-mpiexec.o' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(mpiexec_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o mpiexec-mpiexec.o `test -f 'mpiexec.c' || echo '$(srcdir)/'`mpiexec.c
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(mpiexec_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o startup/mpiexec-mpiexec.o `test -f 'startup/mpiexec.c' || echo '$(srcdir)/'`startup/mpiexec.c
 
-mpiexec-mpiexec.obj: mpiexec.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(mpiexec_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT mpiexec-mpiexec.obj -MD -MP -MF $(DEPDIR)/mpiexec-mpiexec.Tpo -c -o mpiexec-mpiexec.obj `if test -f 'mpiexec.c'; then $(CYGPATH_W) 'mpiexec.c'; else $(CYGPATH_W) '$(srcdir)/mpiexec.c'; fi`
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/mpiexec-mpiexec.Tpo $(DEPDIR)/mpiexec-mpiexec.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='mpiexec.c' object='mpiexec-mpiexec.obj' libtool=no @AMDEPBACKSLASH@
+startup/mpiexec-mpiexec.obj: startup/mpiexec.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(mpiexec_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT startup/mpiexec-mpiexec.obj -MD -MP -MF startup/$(DEPDIR)/mpiexec-mpiexec.Tpo -c -o startup/mpiexec-mpiexec.obj `if test -f 'startup/mpiexec.c'; then $(CYGPATH_W) 'startup/mpiexec.c'; else $(CYGPATH_W) '$(srcdir)/startup/mpiexec.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) startup/$(DEPDIR)/mpiexec-mpiexec.Tpo startup/$(DEPDIR)/mpiexec-mpiexec.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='startup/mpiexec.c' object='startup/mpiexec-mpiexec.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(mpiexec_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o mpiexec-mpiexec.obj `if test -f 'mpiexec.c'; then $(CYGPATH_W) 'mpiexec.c'; else $(CYGPATH_W) '$(srcdir)/mpiexec.c'; fi`
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(mpiexec_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o startup/mpiexec-mpiexec.obj `if test -f 'startup/mpiexec.c'; then $(CYGPATH_W) 'startup/mpiexec.c'; else $(CYGPATH_W) '$(srcdir)/startup/mpiexec.c'; fi`
 
 accounter/psaccounter-psaccounter.o: accounter/psaccounter.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(psaccounter_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT accounter/psaccounter-psaccounter.o -MD -MP -MF accounter/$(DEPDIR)/psaccounter-psaccounter.Tpo -c -o accounter/psaccounter-psaccounter.o `test -f 'accounter/psaccounter.c' || echo '$(srcdir)/'`accounter/psaccounter.c
@@ -1074,6 +1085,8 @@ distclean-generic:
 	-rm -f daemon/$(am__dirstamp)
 	-rm -f logger/$(DEPDIR)/$(am__dirstamp)
 	-rm -f logger/$(am__dirstamp)
+	-rm -f startup/$(DEPDIR)/$(am__dirstamp)
+	-rm -f startup/$(am__dirstamp)
 
 maintainer-clean-generic:
 	@echo "This command is intended for maintainers to use"
@@ -1084,7 +1097,7 @@ clean-am: clean-binPROGRAMS clean-generic clean-libtool \
 	clean-noinstPROGRAMS mostlyclean-am
 
 distclean: distclean-am
-	-rm -rf ./$(DEPDIR) accounter/$(DEPDIR) admin/$(DEPDIR) daemon/$(DEPDIR) logger/$(DEPDIR)
+	-rm -rf ./$(DEPDIR) accounter/$(DEPDIR) admin/$(DEPDIR) daemon/$(DEPDIR) logger/$(DEPDIR) startup/$(DEPDIR)
 	-rm -f Makefile
 distclean-am: clean-am distclean-compile distclean-generic \
 	distclean-tags
@@ -1130,7 +1143,7 @@ install-ps-am:
 installcheck-am:
 
 maintainer-clean: maintainer-clean-am
-	-rm -rf ./$(DEPDIR) accounter/$(DEPDIR) admin/$(DEPDIR) daemon/$(DEPDIR) logger/$(DEPDIR)
+	-rm -rf ./$(DEPDIR) accounter/$(DEPDIR) admin/$(DEPDIR) daemon/$(DEPDIR) logger/$(DEPDIR) startup/$(DEPDIR)
 	-rm -f Makefile
 maintainer-clean-am: distclean-am maintainer-clean-generic
 

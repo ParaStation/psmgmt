@@ -89,13 +89,13 @@ bin/logger/psiloggerclient.h \
 bin/logger/psiloggermerge.c \
 bin/logger/psiloggermerge.h \
 bin/mlisten.c \
-bin/mpiexec.c \
 bin/mpirun_chgm.c \
 bin/mpirun_chp4.c \
 bin/mpirun_openib.c \
 bin/psispawn.c \
 bin/psmstart.c \
 bin/pssh.c \
+bin/startup/mpiexec.c \
 bin/testacct.c \
 bin/test_config.c \
 bin/test_pse.c \

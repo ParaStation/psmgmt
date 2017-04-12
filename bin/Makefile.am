@@ -19,7 +19,7 @@ AM_CPPFLAGS += -DRELEASE_psmgmt=\"$(PKG_REL)\"
 bin_PROGRAMS = psiadmin psid psilogger mlisten psmstart mpirun_chp4	\
 	psispawn mpirun_chgm gmspawner mpirun_openib test_pse		\
 	test_config pssh psaccounter mpiexec
-
+# libexec_PROGRAMS = kvsprovider spawner # to be used later
 noinst_PROGRAMS = testacct
 
 noinst_HEADERS = admin/helpmsgs.c
@@ -97,8 +97,10 @@ psaccounter_SOURCES = accounter/psaccounter.c
 psaccounter_CPPFLAGS = $(AM_CPPFLAGS) -DLOCALSTATEDIR=\"$(localstatedir)\"
 psaccounter_LDADD = $(libpse) $(POPT_LIBS)
 
+mpiexec_SOURCES = startup/mpiexec.c
 mpiexec_CPPFLAGS = $(AM_CPPFLAGS) -DCONFIGDIR=\"$(configdir)\"
 mpiexec_LDADD = $(libpse) $(libpskvs) $(POPT_LIBS)
+
 testacct_LDADD = $(libpse) $(POPT_LIBS)
 
 install-exec-local:
