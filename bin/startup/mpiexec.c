@@ -1832,9 +1832,11 @@ static void setupPSIDEnv(int verbose)
 	free(val);
     }
 
-    msg = PSE_checkNodeEnv(nodelistStr, hostlistStr, hostfile, NULL, "--",
-			   verbose);
-    if (msg) errExit(msg);
+    if (!admin) {
+	msg = PSE_checkNodeEnv(nodelistStr, hostlistStr, hostfile, NULL, "--",
+			       verbose);
+	if (msg) errExit(msg);
+    }
 
     msg = PSE_checkSortEnv(sort, "--", verbose);
     if (msg) errExit(msg);
