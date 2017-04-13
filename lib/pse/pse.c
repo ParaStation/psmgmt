@@ -333,8 +333,8 @@ int PSE_getMasterPort(void)
 
 static char msgStr[512];
 
-char * PSE_checkNodeEnv(char *nodelist, char *hostlist, char *hostfile,
-			char *pefile, char *argPrefix, int verbose)
+char * PSE_checkAndSetNodeEnv(char *nodelist, char *hostlist, char *hostfile,
+			      char *pefile, char *argPrefix, bool verbose)
 {
     char *envStr = getenv(ENV_NODE_NODES);
     if (!envStr) envStr = getenv(ENV_NODE_HOSTS);
@@ -427,7 +427,7 @@ char * PSE_checkNodeEnv(char *nodelist, char *hostlist, char *hostfile,
     return NULL;
 }
 
-char * PSE_checkSortEnv(char *sort, char *argPrefix, int verbose)
+char * PSE_checkAndSetSortEnv(char *sort, char *argPrefix, bool verbose)
 {
     char *envStr = getenv(ENV_NODE_SORT);
     if (sort) {

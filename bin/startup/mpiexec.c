@@ -137,9 +137,9 @@ static int usize = 0;
 static mode_t u_mask;
 static char *wdir = NULL;
 static char *gwdir = NULL;
-static char *nodelistStr = NULL;
-static char *hostlistStr = NULL;
-static char *hostfile = NULL;
+static char *nList = NULL;
+static char *hList = NULL;
+static char *hFile = NULL;
 static char *envlist = NULL;
 static char *nodetype = NULL;
 static char *gnodetype = NULL;
@@ -208,8 +208,6 @@ static int comphelp = 0, compusage = 0;
 static int none = 0;
 static int version = 0;
 
-static char versionstring[] = "$Revision$";
-
 /**
  * @brief Malloc with error handling.
  *
@@ -258,9 +256,7 @@ static void *urealloc(void *ptr, size_t size, const char *func)
  */
 static void printVersion(void)
 {
-    fprintf(stderr,
-	    "mpiexec (rev. %s\b\b) \n",
-	      versionstring+11);
+    fprintf(stderr, "mpiexec %s-%s\n", VERSION_psmgmt, RELEASE_psmgmt);
 }
 
 static void errExit(char *msg) __attribute__ ((noreturn));
@@ -1556,17 +1552,17 @@ static void cleanEnv(char *var)
  * @brief Set up the environment to control different options of
  * the psid/logger.
  *
- * @param verbose Set verbose mode (effects only, if called within
+ * @param verbose Flag verbose mode (effects only, if called within
  * root-process)
  *
  * @return No return value.
  */
-static void setupPSIDEnv(int verbose)
+static void setupPSIDEnv(bool verbose)
 {
     char *envstr, *envstr2, *msg, *envusize = NULL;
     char tmp[1024];
     /* HACK: this determines, if we are the root-process */
-    int isRoot = !getenv("__PSI_CORESIZE");
+    bool isRoot = !getenv("__PSI_CORESIZE");
 
     verbose = verbose && isRoot;
 
@@ -1746,11 +1742,11 @@ static void setupPSIDEnv(int verbose)
 	free(val);
     }
 
-    msg = PSE_checkNodeEnv(nodelistStr, hostlistStr, hostfile, NULL, "--",
-			   verbose);
+    // @todo both PSE_checks shall go to checkSanity()
+    msg = PSE_checkAndSetNodeEnv(nList, hList, hFile, NULL, "--", verbose);
     if (msg) errExit(msg);
 
-    msg = PSE_checkSortEnv(sort, "--", verbose);
+    msg = PSE_checkAndSetSortEnv(sort, "--", verbose);
     if (msg) errExit(msg);
 
     if (getenv("PSI_OPENMPI")) {
@@ -2061,7 +2057,7 @@ static struct poptOption poptMpiexecComp[] = {
       &mpichcom, 0, "Enable ParaStation4 compatibility mode", NULL},
     { "machinefile", 'f',
       POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
-      &hostfile, 0, "machinefile to use, equal to hostfile", "<file>"},
+      &hFile, 0, "machinefile to use, equal to hostfile", "<file>"},
     { "1", '\0',
       POPT_ARG_NONE | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
       &none, 0, "override default of trying first (ignored)", NULL},
@@ -2109,7 +2105,7 @@ static struct poptOption poptMpiexecComp[] = {
       &path, 0, "place to look for executables", "<directory>"},
     { "host", '\0',
       POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
-      &hostlistStr, 0, "host to start on", NULL},
+      &hList, 0, "host to start on", NULL},
     { "soft", '\0',
       POPT_ARG_INT | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
       &none, 0, "giving hints instead of a precise number for the number"
@@ -2183,7 +2179,7 @@ static struct poptOption poptMpiexecCompGlobal[] = {
       &path, 0, "place to look for executables", "<directory>"},
     { "ghost", '\0',
       POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
-      &hostlistStr, 0, "host to start on", NULL},
+      &hList, 0, "host to start on", NULL},
     { "gsoft", '\0',
       POPT_ARG_INT | POPT_ARGFLAG_ONEDASH | POPT_ARGFLAG_DOC_HIDDEN,
       &none, 0, "giving hints instead of a precise number for the number"
@@ -2312,14 +2308,14 @@ static struct poptOption poptAdvancedOptions[] = {
 
 static struct poptOption poptExecutionOptions[] = {
     { "nodes", 'N', POPT_ARG_STRING,
-      &nodelistStr, 0, "list of nodes to use: nodelist <3-5,7,11-17>", NULL},
+      &nList, 0, "list of nodes to use: nodelist <3-5,7,11-17>", NULL},
     { "hosts", 'H', POPT_ARG_STRING,
-      &hostlistStr, 0, "list of hosts to use: hostlist <node-01 node-04>",
+      &hList, 0, "list of hosts to use: hostlist <node-01 node-04>",
       NULL},
     { "hostfile", 'f', POPT_ARG_STRING,
-      &hostfile, 0, "hostfile to use", "<file>"},
+      &hFile, 0, "hostfile to use", "<file>"},
     { "machinefile", 'f', POPT_ARG_STRING,
-      &hostfile, 0, "machinefile to use, equal to hostfile", "<file>"},
+      &hFile, 0, "machinefile to use, equal to hostfile", "<file>"},
     { "wait", 'w', POPT_ARG_NONE,
       &wait, 0, "wait for enough resources", NULL},
     { "overbook", 'o', POPT_ARG_NONE,

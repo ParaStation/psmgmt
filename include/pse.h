@@ -15,6 +15,7 @@
 #ifndef __PSE_H
 #define __PSE_H
 
+#include <stdbool.h>
 #include <stdint.h>
 #include <sys/types.h>
 
@@ -178,7 +179,7 @@ void PSE_setHWType(uint32_t hwType);
 int PSE_setHWList(char **hwList);
 
 /**
- * @brief Check arguments and environment on nodes for consistency
+ * @brief Check and set arguments and environment on nodes for consistency
  *
  * Check, if there are inconsistencies between arguments passed to a
  * programm for @a nodelist, @a hostlist, @a hostfile and @a pefile
@@ -189,12 +190,12 @@ int PSE_setHWList(char **hwList);
  * message string that shall be put out in a suitable way. If NULL is
  * returned, no clash is detected and everything shall be fine.
  *
- * Besides doing the actual check, the environment might be modified
- * according to the values of @a nodelist, @a hostlist, @a hostfile
- * and @a pefile.
+ * Besides doing the actual check, the environment of the current
+ * process might be modified according to the values of @a nodelist,
+ * @a hostlist, @a hostfile and @a pefile.
  *
- * If @a verbose is different from 0, some more additional message might
- * be created directly to stderr.
+ * If @a verbose is true, additional message might be sent directly
+ * to stderr.
  *
  * Basically, this function tests, if command-line arguments were
  * given that clash with environment setting leading to some
@@ -211,7 +212,7 @@ int PSE_setHWList(char **hwList);
  *
  * @param argPrefix Argument prefix expected by the program
  *
- * @param verbose Flag to create more verbose messages
+ * @param verbose Flag creation of more verbose messages
  *
  * @return On success, NULL is given back. Otherwise a pointer to a
  * message is given back. This message shall be printed using
@@ -219,8 +220,8 @@ int PSE_setHWList(char **hwList);
  * might be modified to further calls to this function or to
  * PSE_checkSortEnv().
  */
-char * PSE_checkNodeEnv(char *nodelist, char *hostlist, char *hostfile,
-			char *pefile, char *argPrefix, int verbose);
+char * PSE_checkAndSetNodeEnv(char *nodelist, char *hostlist, char *hostfile,
+			      char *pefile, char *argPrefix, bool verbose);
 
 /**
  * @brief Check arguments and environment on sorting for consistency
@@ -237,8 +238,8 @@ char * PSE_checkNodeEnv(char *nodelist, char *hostlist, char *hostfile,
  * Besides doing the actual check, the environment might be modified
  * according to the value of @a sort.
  *
- * If @a verbose is different from 0, some more additional message might
- * be created directly to stderr.
+ * If @a verbose is true, additional message might be sent directly to
+ * stderr.
  *
  * Basically, this function tests, if command-line arguments were
  * given that clash with environment setting leading to some
@@ -248,7 +249,7 @@ char * PSE_checkNodeEnv(char *nodelist, char *hostlist, char *hostfile,
  *
  * @param argPrefix Argument prefix expected by the program
  *
- * @param verbose Flag to create more verbose messages
+ * @param verbose Flag creation of more verbose messages
  *
  * @return On success, NULL is given back. Otherwise a pointer to a
  * message is given back. This message shall be printed using
@@ -256,7 +257,7 @@ char * PSE_checkNodeEnv(char *nodelist, char *hostlist, char *hostfile,
  * might be modified to further calls to this function or to
  * PSE_checkNodeEnv().
  */
-char * PSE_checkSortEnv(char *sort, char *argPrefix, int verbose);
+char * PSE_checkAndSetSortEnv(char *sort, char *argPrefix, bool verbose);
 
 /**
  * @page spawn_strategy Spawning strategy

@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2017 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -11,17 +11,7 @@
 /**
  * @file Replacement for the standard mpirun command provided by MPIch in order
  * to start MPIch/P4 application within a ParaStation cluster.
- *
- * $Id$
- *
- * @author
- * Norbert Eicker <eicker@par-tec.com>
  * */
-#ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__((used)) =
-    "$Id$";
-#endif /* DOXYGEN_SHOULD_SKIP_THIS */
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -41,8 +31,7 @@ static char vcid[] __attribute__((used)) =
  */
 static void printVersion(void)
 {
-    char revision[] = "$Revision$";
-    fprintf(stderr, "mpirun_chp4 %s\b \n", revision+11);
+    fprintf(stderr, "mpirun_chp4 %s-%s\n", VERSION_psmgmt, RELEASE_psmgmt);
 }
 
 #define OTHER_OPTIONS_STR "<command> [options]"
@@ -52,7 +41,7 @@ int main(int argc, const char *argv[])
 {
     int np, dest, version, verbose, local, source, rusage, keep;
     int rank, i, j, rc;
-    char *nodelist, *hostlist, *hostfile, *sort, *envlist, *msg;
+    char *nList, *hList, *hFile, *sort, *envlist, *msg;
     char *PGfile, *pwd, *envstr;
     int dup_argc;
     char **dup_argv;
@@ -70,11 +59,11 @@ int main(int argc, const char *argv[])
 	{ "np", '\0', POPT_ARG_INT | POPT_ARGFLAG_ONEDASH,
 	  &np, 0, "number of processes to start", "num"},
 	{ "nodes", '\0', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH,
-	  &nodelist, 0, "list of nodes to use", "nodelist"},
+	  &nList, 0, "list of nodes to use", "nodelist"},
 	{ "hosts", '\0', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH,
-	  &hostlist, 0, "list of hosts to use", "hostlist"},
+	  &hList, 0, "list of hosts to use", "hostlist"},
 	{ "hostfile", '\0', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH,
-	  &hostfile, 0, "hostfile to use", "hostfile"},
+	  &hFile, 0, "hostfile to use", "hostfile"},
 	{ "sort", '\0', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH,
 	  &sort, 0, "sorting criterium to use", "{proc|load|proc+load|none}"},
 	{ "all-local", '\0', POPT_ARG_NONE | POPT_ARGFLAG_ONEDASH,
@@ -117,7 +106,7 @@ int main(int argc, const char *argv[])
 
 	np = dest = -1;
 	version = verbose = local = source = rusage = keep = 0;
-	nodelist = hostlist = hostfile = sort = envlist = NULL;
+	nList = hList = hFile = sort = envlist = NULL;
 
 	rc = poptGetNextOpt(optCon);
 
@@ -231,14 +220,14 @@ int main(int argc, const char *argv[])
 	}
     }
 
-    msg = PSE_checkNodeEnv(nodelist, hostlist, hostfile, NULL, "-", verbose);
+    msg = PSE_checkAndSetNodeEnv(nList, hList, hFile, NULL, "-", verbose);
     if (msg) {
 	poptPrintUsage(optCon, stderr, 0);
 	fprintf(stderr, "%s\n", msg);
 	exit(1);
     }
 
-    msg = PSE_checkSortEnv(sort, "-", verbose);
+    msg = PSE_checkAndSetSortEnv(sort, "-", verbose);
     if (msg) {
 	poptPrintUsage(optCon, stderr, 0);
 	fprintf(stderr, "%s\n", msg);
