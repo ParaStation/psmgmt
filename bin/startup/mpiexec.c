@@ -47,15 +47,16 @@
 #define VALGRIND_COMMAND_CALLGRIND "--tool=callgrind"
 #define MPI1_NP_OPT "-np"
 
+/** Information on executables to start */
 typedef struct {
-    int np;
-    uint32_t hwType;
-    int ppn;
-    int tpp;
-    PSrsrvtn_ID_t resID;
-    int argc;
-    char **argv;
-    char *wdir;
+    int np;             /**< number of instances to spawn */
+    uint32_t hwType;    /**< hardware type the used node has to support */
+    int ppn;            /**< number of processes per node */
+    int tpp;            /**< number of HW-threads used by a single process */
+    PSrsrvtn_ID_t resID;/**< ID of the reservation holding ressources */
+    int argc;           /**< number of arguments in argv */
+    char **argv;        /**< executable's argument vector */
+    char *wdir;         /**< executable's working directory */
 } Executable_t;
 
 /** Maximum number of executables currently fitting to @ref exec */
@@ -70,10 +71,75 @@ static char msgstr[512];
 /** context for parsing command-line options */
 static poptContext optCon;
 
+/** configuration derived from command line options */
+typedef struct {
+    int uSize;          /**< Universe size of the job to create */
+    int np;             /**< Total number of processes to start */
+    Executable_t *exec; /**< Array w/ description of executables to start */
+    int dryrun;         /**< Flag dryrun, i.e. do not spawn processes */
+    int envall;         /**< Flag to propagate the whole environment */
+    mode_t u_mask;      /**< File mode creation mask to be used */
+    /* Resource options */
+    char *nList;        /**< List of node IDs to use (not required for batch) */
+    char *hList;        /**< List of hosts to use (not required for batch) */
+    char *hFile;        /**< File with hosts to use (not required for batch) */
+    char *sort;         /**< How to sort resource candidates for assignment */
+    int overbook;       /**< Flag to use assigned HW-threads multiple times */
+    int exclusive;      /**< Flag exclusive use resources (HW-threads) */
+    int wait;           /**< Flag to wait for HW-threads to become available */
+    int loopnodesfirst; /**< Flag HW-thread allocation by looping over nodes */
+    int dynamic;        /**< Flag the dynamic extenion of HW-threads */
+    /* Extended modes */
+    int gdb;            /**< Flag debugging mode, i.e. start processes in gdb */
+    int gdb_noargs;     /**< Flag to don't call gdb with --args option */
+    int valgrind;       /**< Flag valgrind mode */
+    int memcheck;       /**< Flag use of valgrind's memcheck tool */
+    int callgrind;      /**< Flag use of valgrind's callgrind tool */
+    /* PMI options */
+    int pmiTCP;         /**< Flag use of TCP sockets to listen for PMI calls */
+    int pmiSock;        /**< Flag use of Unix sockets to listen for PMI calls */
+    int pmiTmout;       /**< Timeout to be used by PMI */
+    int pmiDbg;         /**< Flag debug messages from PMI */
+    int pmiDbgClient;   /**< Flag additional debug from the PMI plugin */
+    int pmiDbgKVS;      /**< Flag additional debug from PMI's key-value space */
+    int pmiDisable;     /**< Flag overall disabling of PMI */
+    /* options going to pscom library */
+    int PSComSndbuf;    /**< PSCom's TCP send-buffer size */
+    int PSComRcvbuf;    /**< PSCom's TCP receive-buffer size */
+    int PSComNoDelay;   /**< PSCom's TCP no delay flag */
+    int PSComSchedYield;/**< PSCom's sched yield flag */
+    int PSComRetry;     /**< PSCom's TCP retry count */
+    int PSComSigQUIT;   /**< Flag to let PSCom dump state info on SIGQUIT */
+    int PSComOnDemand;  /**< Flag PSCom to use on-demand connections */
+    int PSComColl;      /**< Flag PSCom to use enhanced collectives */
+    char *PSComPlgnDir; /**< Hint PSCom to alternative location of plugins */
+    char *PSComDisCom;  /**< Tell PSCom which plugins *not* to use */
+    char *PSComNtwrk;   /**< Tell PSCom which (TCP-)network to use */
+    /* options goint to psmgmt (psid/logger/forwarder) */
+    int sourceprintf;   /**< Flag to prepend info on source of output */
+    int mergeout;       /**< Flag intelligent merging of output */
+    int mergedepth;     /**< Depth of output-merging */
+    int mergetmout;     /**< Timeout for merging output */
+    int rusage;         /**< Flag to give info on used resources upon exit */
+    int timestamp;      /**< Flag to timestamp all output */
+    int interactive;    /**< Flag interactive execution of program to start */
+    int maxtime;        /**< Maximum runtime of program to start */
+    char *dest;         /**< Destination ranks of input */
+    char *accenvlist;   /**< List of environment variables to propagate */
+    char *path;         /**< Search PATH to use within application */
+    /* debug options */
+    int loggerDbg;      /**< Flag debug output from psilogger */
+    int forwarderDbg;   /**< Flag debug output from forwarder */
+    int pscomDbg;       /**< Flag debug output from PSCom */
+    int loggerrawmode;  /**< Flag switching logger to raw-mode */
+    int psiDbg;         /**< Set libpsi's debug mask */
+} Conf_t;
+
 /** set debugging mode and np * gdb to control child processes */
 static int gdb = 0;
 /** don't call gdb with --args option */
 static int gdb_noargs = 0;
+
 /** run child processes on synthetic CPUs provided by the
  * Valgrind core (memcheck tool) */
 static int valgrind = 0;
@@ -82,7 +148,7 @@ static int memcheck = 0;
  * Valgrind core (callgrind tool) */
 static int callgrind = 0;
 /** just print output, don't run anything */
-static int show = 0;
+static int dryrun = 0;
 /** flag to set verbose mode */
 static int verbose = 0;
 /** set mpich 1 compatible mode */
@@ -192,6 +258,7 @@ static int nodelay = 0;
 static int schedyield = 0;
 static int retry = 0;
 static int sigquit = 0;
+// @todo reduce to one flag!!
 static int ondemand = 0;
 static int no_ondemand = 0;
 static int collectives = 0;
@@ -1487,18 +1554,18 @@ static void setupPSCOMEnv(int verbose)
 
     if (collectives) {
 	setPSIEnv("PSP_COLLECTIVES", "1", 1);
-	if (verbose) printf("PSP_COLLECTIVES=1 : Using psmpi2 collectives.\n");
+	if (verbose) printf("PSP_COLLECTIVES=1 : Using psmpi collectives.\n");
     }
 
     if (ondemand) {
 	setPSIEnv("PSP_ONDEMAND", "1", 1);
-	if (verbose) printf("PSP_ONDEMAND=1 : Using psmpi2 ondemand "
+	if (verbose) printf("PSP_ONDEMAND=1 : Using psmpi ondemand "
 	    "connections.\n");
     }
 
     if (no_ondemand) {
 	setPSIEnv("PSP_ONDEMAND", "0", 1);
-	if (verbose) printf("PSP_ONDEMAND=0 : Disabling psmpi2 ondemand "
+	if (verbose) printf("PSP_ONDEMAND=0 : Disabling psmpi ondemand "
 	    "connections.\n");
     }
 
@@ -1704,7 +1771,7 @@ static void setupPSIDEnv(bool verbose)
 	snprintf(tmp, sizeof(tmp), "%d", mergedepth);
 	setenv("PSI_MERGEDEPTH", tmp, 1);
 	if (verbose) printf("PSI_MERGEDEPTH=%d : Setting the merge depth.\n",
-	    mergetmout);
+	    mergedepth);
     }
 
     if (interactive) {
@@ -2251,7 +2318,7 @@ static struct poptOption poptDebugOptions[] = {
     { "sigquit", '\0', POPT_ARG_NONE | POPT_ARGFLAG_DOC_HIDDEN,
       &sigquit, 0, "pscom: output debug information on signal SIGQUIT", NULL},
     { "show", '\0', POPT_ARG_NONE | POPT_ARGFLAG_DOC_HIDDEN,
-      &show, 0, "show command for remote execution but don`t run it", NULL},
+      &dryrun, 0, "show command for remote execution but don`t run it", NULL},
     { "ompidb", '\0', POPT_ARG_NONE | POPT_ARGFLAG_DOC_HIDDEN,
       &ompidebug, 0, "set debug mode of openmpi", "num"},
     POPT_TABLEEND
@@ -2358,11 +2425,11 @@ static struct poptOption poptCommunicationOptions[] = {
     { "retry", 'r', POPT_ARG_INT,
       &retry, 0, "number of connection retries", "num"},
     { "collectives", 'C', POPT_ARG_NONE,
-      &collectives, 0, "enable psmpi2 collectives", NULL},
+      &collectives, 0, "enable psmpi collectives", NULL},
     { "ondemand", 'O', POPT_ARG_NONE,
-      &ondemand, 0, "use psmpi2 \"on demand/dynamic\" connections", NULL},
+      &ondemand, 0, "use psmpi \"on demand/dynamic\" connections", NULL},
     { "no_ondemand", '\0', POPT_ARG_NONE,
-      &no_ondemand, 0, "disable psmpi2 \"on demand/dynamic\" connections",
+      &no_ondemand, 0, "disable psmpi \"on demand/dynamic\" connections",
       NULL},
     POPT_TABLEEND
 };
