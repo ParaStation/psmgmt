@@ -41,10 +41,12 @@
 #define GDB_COMMAND_OPT "-x"
 #define GDB_COMMAND_SILENT "-q"
 #define GDB_COMMAND_ARGS "--args"
+
 #define VALGRIND_COMMAND_EXE "valgrind"
 #define VALGRIND_COMMAND_SILENT "--quiet"
 #define VALGRIND_COMMAND_MEMCHECK "--leak-check=full"
 #define VALGRIND_COMMAND_CALLGRIND "--tool=callgrind"
+
 #define MPI1_NP_OPT "-np"
 
 /** Information on executables to start */
@@ -61,10 +63,6 @@ typedef struct {
 
 /** Maximum number of executables currently fitting to @ref exec */
 static int execMax = 0;
-/** Actual number of executables in @ref exec */
-static int execCount = 0;
-/** Keep information on different executables to start */
-static Executable_t *exec;
 
 /** Space for error messages */
 static char msgstr[512];
@@ -76,62 +74,63 @@ typedef struct {
     int uSize;          /**< Universe size of the job to create */
     int np;             /**< Total number of processes to start */
     Executable_t *exec; /**< Array w/ description of executables to start */
-    int dryrun;         /**< Flag dryrun, i.e. do not spawn processes */
-    int envall;         /**< Flag to propagate the whole environment */
+    int execCount;      /**< Number of valid entries in @ref exec */
+    bool dryrun;        /**< Flag dryrun, i.e. do not spawn processes */
+    bool envall;        /**< Flag to propagate the whole environment */
     mode_t u_mask;      /**< File mode creation mask to be used */
     /* Resource options */
     char *nList;        /**< List of node IDs to use (not required for batch) */
     char *hList;        /**< List of hosts to use (not required for batch) */
     char *hFile;        /**< File with hosts to use (not required for batch) */
     char *sort;         /**< How to sort resource candidates for assignment */
-    int overbook;       /**< Flag to use assigned HW-threads multiple times */
-    int exclusive;      /**< Flag exclusive use resources (HW-threads) */
-    int wait;           /**< Flag to wait for HW-threads to become available */
-    int loopnodesfirst; /**< Flag HW-thread allocation by looping over nodes */
-    int dynamic;        /**< Flag the dynamic extenion of HW-threads */
+    bool overbook;      /**< Flag to use assigned HW-threads multiple times */
+    bool exclusive;     /**< Flag exclusive use resources (HW-threads) */
+    bool wait;          /**< Flag to wait for HW-threads to become available */
+    bool loopnodesfirst;/**< Flag HW-thread allocation by looping over nodes */
+    bool dynamic;       /**< Flag the dynamic extenion of HW-threads */
     /* Extended modes */
-    int gdb;            /**< Flag debugging mode, i.e. start processes in gdb */
-    int gdb_noargs;     /**< Flag to don't call gdb with --args option */
-    int valgrind;       /**< Flag valgrind mode */
-    int memcheck;       /**< Flag use of valgrind's memcheck tool */
-    int callgrind;      /**< Flag use of valgrind's callgrind tool */
+    bool gdb;           /**< Flag debugging mode, i.e. start processes in gdb */
+    bool gdb_noargs;    /**< Flag to don't call gdb with --args option */
+    int valgrind;       /**< Flag valgrind modes */
+    bool memcheck;      /**< Flag use of valgrind's memcheck tool */
+    bool callgrind;     /**< Flag use of valgrind's callgrind tool */
     /* PMI options */
-    int pmiTCP;         /**< Flag use of TCP sockets to listen for PMI calls */
-    int pmiSock;        /**< Flag use of Unix sockets to listen for PMI calls */
+    bool pmiTCP;        /**< Flag use of TCP sockets to listen for PMI calls */
+    bool pmiSock;       /**< Flag use of Unix sockets to listen for PMI calls */
     int pmiTmout;       /**< Timeout to be used by PMI */
-    int pmiDbg;         /**< Flag debug messages from PMI */
-    int pmiDbgClient;   /**< Flag additional debug from the PMI plugin */
-    int pmiDbgKVS;      /**< Flag additional debug from PMI's key-value space */
-    int pmiDisable;     /**< Flag overall disabling of PMI */
+    bool pmiDbg;        /**< Flag debug messages from PMI */
+    bool pmiDbgClient;  /**< Flag additional debug from the PMI plugin */
+    bool pmiDbgKVS;     /**< Flag additional debug from PMI's key-value space */
+    bool pmiDisable;     /**< Flag overall disabling of PMI */
     /* options going to pscom library */
     int PSComSndbuf;    /**< PSCom's TCP send-buffer size */
     int PSComRcvbuf;    /**< PSCom's TCP receive-buffer size */
     int PSComNoDelay;   /**< PSCom's TCP no delay flag */
     int PSComSchedYield;/**< PSCom's sched yield flag */
     int PSComRetry;     /**< PSCom's TCP retry count */
-    int PSComSigQUIT;   /**< Flag to let PSCom dump state info on SIGQUIT */
-    int PSComOnDemand;  /**< Flag PSCom to use on-demand connections */
-    int PSComColl;      /**< Flag PSCom to use enhanced collectives */
+    bool PSComSigQUIT;  /**< Flag to let PSCom dump state info on SIGQUIT */
+    bool PSComOnDemand; /**< Flag PSCom to use on-demand connections */
+    bool PSComColl;     /**< Flag PSCom to use enhanced collectives */
     char *PSComPlgnDir; /**< Hint PSCom to alternative location of plugins */
     char *PSComDisCom;  /**< Tell PSCom which plugins *not* to use */
     char *PSComNtwrk;   /**< Tell PSCom which (TCP-)network to use */
-    /* options goint to psmgmt (psid/logger/forwarder) */
-    int sourceprintf;   /**< Flag to prepend info on source of output */
-    int mergeout;       /**< Flag intelligent merging of output */
+    /* options going to psmgmt (psid/logger/forwarder) */
+    bool sourceprintf;  /**< Flag to prepend info on source of output */
+    bool mergeout;      /**< Flag intelligent merging of output */
     int mergedepth;     /**< Depth of output-merging */
     int mergetmout;     /**< Timeout for merging output */
-    int rusage;         /**< Flag to give info on used resources upon exit */
-    int timestamp;      /**< Flag to timestamp all output */
-    int interactive;    /**< Flag interactive execution of program to start */
+    bool rusage;        /**< Flag to give info on used resources upon exit */
+    bool timestamp;     /**< Flag to timestamp all output */
+    bool interactive;   /**< Flag interactive execution of program to start */
     int maxtime;        /**< Maximum runtime of program to start */
     char *dest;         /**< Destination ranks of input */
     char *accenvlist;   /**< List of environment variables to propagate */
     char *path;         /**< Search PATH to use within application */
     /* debug options */
-    int loggerDbg;      /**< Flag debug output from psilogger */
-    int forwarderDbg;   /**< Flag debug output from forwarder */
-    int pscomDbg;       /**< Flag debug output from PSCom */
-    int loggerrawmode;  /**< Flag switching logger to raw-mode */
+    bool loggerDbg;     /**< Flag debug output from psilogger */
+    bool forwarderDbg;  /**< Flag debug output from forwarder */
+    bool pscomDbg;      /**< Flag debug output from PSCom */
+    bool loggerrawmode; /**< Flag switching logger to raw-mode */
     int psiDbg;         /**< Set libpsi's debug mask */
 } Conf_t;
 
@@ -387,11 +386,11 @@ static char *getHostByNodeID(PSnodes_ID_t nodeID)
  * PMI master. It is assumed that the PMI-part of the logger has to
  * expect @a np clients.
  *
- * @param np Number of clients the PMI-part of the logger expects
+ * @param conf @todo
  *
  * @return No return value.
  */
-static void setupGlobalEnv(int np)
+static void setupGlobalEnv(Conf_t *conf)
 {
     char tmp[32];
 
@@ -402,7 +401,7 @@ static void setupGlobalEnv(int np)
 	setenv("PMI_ID", tmp, 1);
 
 	/* set the size of the job */
-	snprintf(tmp, sizeof(tmp), "%d", np);
+	snprintf(tmp, sizeof(tmp), "%d", conf->np);
 	setPSIEnv("PMI_SIZE", tmp, 1);
 	setenv("PMI_SIZE", tmp, 1);
 
@@ -427,7 +426,7 @@ static void setupGlobalEnv(int np)
     }
 
     /* set the size of the job */
-    snprintf(tmp, sizeof(tmp), "%d", np);
+    snprintf(tmp, sizeof(tmp), "%d", conf->np);
     setPSIEnv("PSI_NP_INFO", tmp, 1);
     setenv("PSI_NP_INFO", tmp, 1);
 }
@@ -443,13 +442,15 @@ static void setupGlobalEnv(int np)
  * specific ranks. In fact, the slots are a form of a compactified
  * list of nodes, i.e. the is just one slot for each physical node.
  *
+ * @param conf @todo
+ *
  * @param index The index to find in the slot-list.
  *
  * @return Returns the requested nodeID or the last nodeID in the
  * slot-list for invalid indexes. In case the slot-list is not
  * available, -1 is returned and thus the local node is adressed.
  */
-static PSnodes_ID_t getNodeIDbyIndex(int index)
+static PSnodes_ID_t getNodeIDbyIndex(Conf_t *conf, int index)
 {
     PSnodes_ID_t lastID;
     int count = 0;
@@ -457,7 +458,7 @@ static PSnodes_ID_t getNodeIDbyIndex(int index)
 
     /* request the complete list of slots */
     if (!slotList) {
-	int numBytes, pSize = usize > np ? usize : np;
+	int numBytes, pSize = conf->uSize > conf->np ? conf->uSize : conf->np;
 
 	slotList = umalloc(pSize*sizeof(slotList), __func__);
 
@@ -485,7 +486,10 @@ static PSnodes_ID_t getNodeIDbyIndex(int index)
     return lastID;
 }
 
-static void startKVSProvider(int argc, char *argv[], char **envp)
+/**
+ * @todo
+ */
+static void startKVSProvider(Conf_t *conf, int argc, char *argv[], char **envp)
 {
     char tmp[1024], pTitle[50];
     int error, ret, sRank = -3;
@@ -517,7 +521,7 @@ static void startKVSProvider(int argc, char *argv[], char **envp)
     pwd = getcwd(tmp, sizeof(tmp));
 
     startNode = (getenv("__MPIEXEC_DIST_START") ?
-		 getNodeIDbyIndex(0) : PSC_getMyID());
+		 getNodeIDbyIndex(conf, 0) : PSC_getMyID());
 
     ret = PSI_spawnService(startNode, pwd, argc, argv, 0, &error,
 	    &spawnedProc, sRank);
@@ -549,6 +553,9 @@ static void startKVSProvider(int argc, char *argv[], char **envp)
     exit(0);
 }
 
+/**
+ * @todo
+ */
 static uint32_t getNodeType(char *hardwareList)
 {
     char *next, *toksave, **hwList = NULL;
@@ -584,9 +591,15 @@ static uint32_t getNodeType(char *hardwareList)
  * @brief Create service process that spawns all other processes and
  * switch to logger.
  *
+ * @param conf @todo
+ *
+ * @param argc @todo
+ *
+ * @param argv @todo
+ *
  * @return No return value.
  */
-static void createSpawner(int argc, char *argv[], int np)
+static void createSpawner(Conf_t *conf, int argc, char *argv[])
 {
     int rank = PSE_getRank();
     char cwd[1024], tmp[100];
@@ -597,7 +610,7 @@ static void createSpawner(int argc, char *argv[], int np)
     if (rank==-1) {
 	int error, spawnedProc, ret;
 	ssize_t cnt;
-	int pSize = usize > np ? usize : np;
+	int pSize = conf->uSize > conf->np ? conf->uSize : conf->np;
 
 	if (maxtpp > 1 && !envtpp) {
 	    char tmp[32];
@@ -609,11 +622,11 @@ static void createSpawner(int argc, char *argv[], int np)
 	    unsetenv("PSI_TPP");
 	}
 	startNode = (getenv("__MPIEXEC_DIST_START") ?
-		     getNodeIDbyIndex(1) : PSC_getMyID());
+		     getNodeIDbyIndex(conf, 1) : PSC_getMyID());
 	setPSIEnv("__MPIEXEC_DIST_START", getenv("__MPIEXEC_DIST_START"), 1);
 
 	/* setup the global environment also shared by logger for PMI */
-	setupGlobalEnv(np);
+	setupGlobalEnv(conf);
 
 	/* get absolute path to myself */
 	cnt = readlink("/proc/self/exe", cwd, sizeof(cwd));
@@ -1095,16 +1108,18 @@ static void setupCommonEnv(int np)
  * per rank basis. These are setup via @ref setupCommonEnv() and @ref
  * setupRankEnv() respectively.
  *
+ * @param conf @todo
+ *
  * @param execNum The unique number of the current executable
  *
  * @return No return value.
  */
-static void setupExecEnv(int execNum)
+static void setupExecEnv(Conf_t *conf, int execNum)
 {
     char tmp[32];
 
     if (OpenMPI) {
-	snprintf(tmp, sizeof(tmp), "%d", exec[execNum].tpp);
+	snprintf(tmp, sizeof(tmp), "%d", conf->exec[execNum].tpp);
 	setPSIEnv("SLURM_CPUS_PER_TASK", tmp, 1);
     }
 
@@ -1363,22 +1378,19 @@ static void sendPMIFail(void)
  * Before processes are actually spawned, the environment including
  * PMI stuff is set up.
  *
- * @param np Size of the job.
- *
- * @param wd The working directory of the spawned processes.
+ * @param conf @todo
  *
  * @param verbose Set verbose mode, output whats going on.
  *
  * @return Returns 0 on success, or -1 on error.
  */
-static int startProcs(int np, char *wd, int verbose)
+static int startProcs(Conf_t *conf, int verbose)
 {
-    int i, ret = 0, off = 0;
-    PSnodes_ID_t *nodeList;
-    int nlSize = np*sizeof(*nodeList);
+    int i, ret = 0, off = 0, np = 0;
+    Executable_t *exec = conf->exec;
 
     /* Create the reservations required later on */
-    for (i=0; i< execCount; i++) {
+    for (i=0; i < conf->execCount; i++) {
 	unsigned int got;
 	PSpart_option_t options = (overbook ? PART_OPT_OVERBOOK : 0)
 	    | (loopnodesfirst ? PART_OPT_NODEFIRST : 0)
@@ -1390,29 +1402,31 @@ static int startProcs(int np, char *wd, int verbose)
 	exec[i].resID = PSI_getReservation(exec[i].np, exec[i].np, exec[i].ppn,
 					   exec[i].tpp, exec[i].hwType,
 					   options, &got);
+	np += got;
 
 	if (!exec[i].resID || (int)got != exec[i].np) {
 	    fprintf(stderr, "%s: Unable to get reservation for app %d %d slots "
 		    "(tpp %d hwType %#x options %#x ppn %d)\n", __func__, i,
 		    exec[i].np, exec[i].tpp, exec[i].hwType, options,
 		    exec[i].ppn);
-	    if ((getenv("PMI_SPAWNED"))) sendPMIFail();
+	    if (getenv("PMI_SPAWNED")) sendPMIFail();
 
 	    return -1;
 	}
     }
 
     /* Collect info on reservations */
-    nodeList = umalloc(nlSize, __func__);
-    for (i=0; i< execCount; i++) {
+    PSnodes_ID_t *nodeList = umalloc(np * sizeof(*nodeList), __func__);
+
+    for (i=0; i < conf->execCount; i++) {
 	int got = PSI_infoList(-1, PSP_INFO_LIST_RESNODES, &exec[i].resID,
-			       nodeList+off, nlSize-off*sizeof(*nodeList), 0);
+			       nodeList+off, (np-off)*sizeof(*nodeList), 0);
 
 	if ((unsigned)got != exec[i].np * sizeof(*nodeList)) {
 	    fprintf(stderr, "%s: Unable to get nodes in reservation %#x for"
 		    "app %d. Got %d expected %zd\n", __func__, exec[i].resID,
 		    i, got, exec[i].np * sizeof(*nodeList));
-	    if ((getenv("PMI_SPAWNED"))) sendPMIFail();
+	    if (getenv("PMI_SPAWNED")) sendPMIFail();
 
 	    return -1;
 	}
@@ -1420,15 +1434,14 @@ static int startProcs(int np, char *wd, int verbose)
     }
 
     if (off != np) {
-	fprintf(stderr, "%s: some nodes are missing (%d/%d)\n", __func__,
-		off, np);
+	fprintf(stderr, "%s: nodes are missing (%d/%d)\n", __func__, off, np);
 	free(nodeList);
 
 	return -1;
     }
 
     /* extract additional node informations (e.g. uniq nodes) */
-    extractNodeInformation(nodeList, np);
+    extractNodeInformation(nodeList, conf->np);
 
     if (OpenMPI) {
 	/* get uniq hostnames from the uniq nodes list */
@@ -1449,13 +1462,13 @@ static int startProcs(int np, char *wd, int verbose)
     verboseRankMsg = verbose;
     PSI_registerRankEnvFunc(setupRankEnv);
 
-    for (i=0; i< execCount; i++) {
-	setupExecEnv(i);
+    for (i = 0; i < conf->execCount; i++) {
+	setupExecEnv(conf, i);
 
 	ret = spawnSingleExecutable(exec[i].np, exec[i].argc, exec[i].argv,
 				    exec[i].wdir, exec[i].resID, verbose);
 	if (ret < 0) {
-	    if ((getenv("PMI_SPAWNED"))) sendPMIFail();
+	    if (getenv("PMI_SPAWNED")) sendPMIFail();
 
 	    break;
 	}
@@ -1983,11 +1996,11 @@ static void printHiddenHelp(poptOption opt, int argc, char *argv[],
  * Perform some sanity checks to handle common
  * mistakes.
  *
- * @param argv Pointer to the arguments of the new process to spawn.
+ * @param conf @todo
  *
  * @return No return value.
  */
-static void checkSanity(char *argv[])
+static void checkSanity(Conf_t *conf)
 {
     if (np == -1) {
 	errExit("Give at least the -np argument.");
@@ -1998,8 +2011,8 @@ static void checkSanity(char *argv[])
 	errExit(msgstr);
     }
 
-    if (!execCount || !exec[0].argc) {
-	printf("%s: execCount:%i\n", __func__, execCount);
+    if (!conf->execCount || !conf->exec[0].argc) {
+	printf("%s: execCount:%i\n", __func__, conf->execCount);
 	errExit("No <command> specified.");
     }
 
@@ -2043,7 +2056,7 @@ static void checkSanity(char *argv[])
 	exit(EXIT_FAILURE);
     }
 
-    if (mpichcom && execCount >1) {
+    if (mpichcom && conf->execCount >1) {
 	errExit("colon syntax is only supported with mpi2\n");
     }
 
@@ -2501,36 +2514,45 @@ static struct poptOption optionsTable[] = {
  *
  * These options include arguments, np and the nodetype.
  *
+ * @param conf @todo
+ *
  * @param argc The number of arguments.
  *
  * @param argv Pointer to the arguments.
  *
  * @return No return value.
  */
-static void saveNextExecutable(int *sum_np, int argc, const char **argv)
+static void saveNextExecutable(Conf_t *conf, int argc, const char **argv)
 {
     int i;
     char *hwTypeStr;
+    Executable_t *exec;
 
-    if (execCount >= execMax) {
+    if (conf->execCount >= execMax) {
+	Executable_t *newExec;
 	execMax += 64;
-	exec = urealloc(exec, execMax * sizeof(*exec), __func__);
+	newExec = realloc(conf->exec, execMax * sizeof(*conf->exec));
+	if (!newExec) {
+	    fprintf(stderr, "%s: realloc(): %m\n", __func__);
+	    exit(EXIT_FAILURE);
+	}
+	conf->exec=newExec;
     }
+    exec = &conf->exec[conf->execCount];
 
     if (argc <= 0 || !argv || !argv[0]) errExit("invalid colon syntax\n");
 
     if (np > 0) {
-	*sum_np += np;
-	exec[execCount].np = np;
+	exec->np = np;
 	np = -1;
     } else if (gnp > 0) {
-	*sum_np += gnp;
-	exec[execCount].np = gnp;
+	exec->np = gnp;
     } else {
-	fprintf(stderr, "no -np argument for binary(%i) '%s'\n", execCount+1,
-		argv[0]);
-	exit(1);
+	fprintf(stderr, "no -np argument for binary %i: '%s'\n",
+		conf->execCount + 1, argv[0]);
+	exit(EXIT_FAILURE);
     }
+    conf->np += exec->np;
 
     if (nodetype) {
 	hwTypeStr = nodetype;
@@ -2540,49 +2562,49 @@ static void saveNextExecutable(int *sum_np, int argc, const char **argv)
     } else {
 	hwTypeStr = NULL;
     }
-    exec[execCount].hwType = hwTypeStr ? getNodeType(hwTypeStr) : 0;
+    exec->hwType = hwTypeStr ? getNodeType(hwTypeStr) : 0;
 
     if (ppn) {
-	exec[execCount].ppn = ppn;
+	exec->ppn = ppn;
 	ppn = 0;
     } else if (gppn) {
-	exec[execCount].ppn = gppn;
+	exec->ppn = gppn;
     } else {
-	exec[execCount].ppn = 0;
+	exec->ppn = 0;
     }
 
     if (tpp) {
-	exec[execCount].tpp = tpp;
+	exec->tpp = tpp;
 	if (tpp > maxtpp) maxtpp = tpp;
 	tpp = 0;
     } else if (gtpp) {
-	exec[execCount].tpp = gtpp;
+	exec->tpp = gtpp;
 	if (gtpp > maxtpp) maxtpp = gtpp;
     } else if (envtpp) {
-	exec[execCount].tpp = envtpp;
+	exec->tpp = envtpp;
 	if (envtpp > maxtpp) maxtpp = envtpp;
     } else {
-	exec[execCount].tpp = 1;
+	exec->tpp = 1;
     }
     if (wdir) {
-	exec[execCount].wdir = wdir;
+	exec->wdir = wdir;
 	wdir = NULL;
     } else if (gwdir) {
-	exec[execCount].wdir = gwdir;
+	exec->wdir = gwdir;
     } else {
-	exec[execCount].wdir = NULL;
+	exec->wdir = NULL;
     }
-    exec[execCount].argc = argc;
-    exec[execCount].argv = umalloc(sizeof(char *) * (argc +1), __func__);
-    for (i=0; i<argc; i++) {
-	exec[execCount].argv[i] = strdup(argv[i]);
-	if (!exec[execCount].argv[i]) {
+    exec->argc = argc;
+    exec->argv = umalloc((argc + 1) * sizeof(*exec->argv), __func__);
+    for (i = 0; i < argc; i++) {
+	exec->argv[i] = strdup(argv[i]);
+	if (!exec->argv[i]) {
 	    fprintf(stderr, "%s: failed to strdup '%s'\n", __func__, argv[i]);
-	    exit(1);
+	    exit(EXIT_FAILURE);
 	}
     }
-    exec[execCount].argv[argc] = NULL;
-    execCount++;
+    exec->argv[argc] = NULL;
+    conf->execCount++;
 }
 
 /**
@@ -2592,14 +2614,15 @@ static void saveNextExecutable(int *sum_np, int argc, const char **argv)
  *
  * @param argv Pointer to the arguments to parse.
  *
- * @return No return value.
+ * @return @todo
 */
-static void parseCmdOptions(int argc, char *argv[])
+static Conf_t * parseCmdOptions(int argc, char *argv[])
 {
     #define OTHER_OPTIONS_STR "[OPTION...] <command> [cmd_options]"
     const char *nextArg, **leftArgv;
     char **dup_argv;
-    int leftArgc, sum_np = 0, dup_argc, rc = 0;
+    int leftArgc, dup_argc, rc = 0;
+    Conf_t *conf = calloc(1, sizeof(*conf));
 
     /* create context for parsing */
     poptDupArgv(argc, (const char **)argv,
@@ -2643,10 +2666,10 @@ PARSE_MPIEXEC_OPT:
     while (leftArgv && (nextArg = leftArgv[leftArgc])) {
 	leftArgc++;
 
-	if (!(strcmp(nextArg, ":"))) {
+	if (!strcmp(nextArg, ":")) {
 
 	    /* save current executable and arguments */
-	    saveNextExecutable(&sum_np, leftArgc-1, leftArgv);
+	    saveNextExecutable(conf, leftArgc-1, leftArgv);
 
 	    /* create new context with leftover args */
 	    dup_argc = 0;
@@ -2667,8 +2690,7 @@ PARSE_MPIEXEC_OPT:
 	}
     }
 
-    if (leftArgv) saveNextExecutable(&sum_np, leftArgc, leftArgv);
-    if (sum_np >0) np = sum_np;
+    if (leftArgv) saveNextExecutable(conf, leftArgc, leftArgv);
 
     /* restore original context for further usage messages */
     poptFreeContext(optCon);
@@ -2683,6 +2705,8 @@ PARSE_MPIEXEC_OPT:
 		 poptStrerror(rc));
 	errExit(msgstr);
     }
+
+    return conf;
 }
 
 /**
@@ -2758,70 +2782,66 @@ static void printHelp(int argc, char *argv[])
 /**
  * @brief Start the debugger gdb in front of the computing processes.
  *
+ * @param conf @todo
+ *
  * @return No return value.
  */
-static void setupGDB(void)
+static void setupGDB(Conf_t *conf)
 {
-    int  x;
+    int  i;
+    for (i = 0; i < conf->execCount; i++) {
+	Executable_t *exec = &conf->exec[i];
+	int newArgc = 0, j;
+	char **newArgv = umalloc((exec->argc+5+1) * sizeof(*newArgv), __func__);
 
-    for (x=0; x<execCount; x++) {
-	int new_argc = 0, i;
-	char **new_argv =
-	    umalloc((exec[x].argc + 5 + 1) * sizeof(char *), __func__);
+	newArgv[newArgc++] = GDB_COMMAND_EXE;
+	newArgv[newArgc++] = GDB_COMMAND_SILENT;
+	newArgv[newArgc++] = GDB_COMMAND_OPT;
+	newArgv[newArgc++] = GDB_COMMAND_FILE;
+	if (!gdb_noargs) newArgv[newArgc++] = GDB_COMMAND_ARGS;
 
-	new_argv[new_argc++] = GDB_COMMAND_EXE;
-	new_argv[new_argc++] = GDB_COMMAND_SILENT;
-	new_argv[new_argc++] = GDB_COMMAND_OPT;
-	new_argv[new_argc++] = GDB_COMMAND_FILE;
-	if (!gdb_noargs) {
-	    new_argv[new_argc++] = GDB_COMMAND_ARGS;
-	}
+	for (j=0; j < exec->argc; j++) newArgv[newArgc++] = exec->argv[j];
+	newArgv[newArgc] = NULL;
 
-	for (i=0; i<exec[x].argc; i++) {
-	    new_argv[new_argc++] = exec[x].argv[i];
-	}
-	new_argv[new_argc] = NULL;
-
-	free(exec[x].argv);
-	exec[x].argv = new_argv;
-	exec[x].argc = new_argc;
+	free(exec->argv);
+	exec->argv = newArgv;
+	exec->argc = newArgc;
     }
 }
 
 /**
  * @brief Start the Valgrind cores in front of the computing processes.
  *
+ * @param conf @todo
+ *
  * @return No return value.
  */
-static void setupVALGRIND(void)
+static void setupVALGRIND(Conf_t *conf)
 {
-    int x;
+    int  i;
+    for (i = 0; i < conf->execCount; i++) {
+	Executable_t *exec = &conf->exec[i];
+	int newArgc = 0, j;
+	char **newArgv = umalloc((exec->argc+3+1) * sizeof(*newArgv), __func__);
 
-    for (x=0; x<execCount; x++) {
-	int new_argc = 0, i;
-	char **new_argv =
-	    umalloc((exec[x].argc + 3 + 1) * sizeof(char *), __func__);
-
-	new_argv[new_argc++] = VALGRIND_COMMAND_EXE;
-	new_argv[new_argc++] = VALGRIND_COMMAND_SILENT;
+	newArgv[newArgc++] = VALGRIND_COMMAND_EXE;
+	newArgv[newArgc++] = VALGRIND_COMMAND_SILENT;
 	if (callgrind) {
-	     /* Use Callgrind Tool */
-	     new_argv[new_argc++] = VALGRIND_COMMAND_CALLGRIND;
+	    /* Use Callgrind Tool */
+	    newArgv[newArgc++] = VALGRIND_COMMAND_CALLGRIND;
 	} else {
 	     /* Memcheck Tool / leak-check=full? */
-	     if (valgrind==2) {
-		  new_argv[new_argc++] = VALGRIND_COMMAND_MEMCHECK;
-	     }
+	    if (valgrind == 2) {
+		newArgv[newArgc++] = VALGRIND_COMMAND_MEMCHECK;
+	    }
 	}
 
-	for (i=0; i<exec[0].argc; i++) {
-	     new_argv[new_argc++] = exec[x].argv[i];
-	}
-	new_argv[new_argc] = NULL;
+	for (j=0; j < exec->argc; j++) newArgv[newArgc++] = exec->argv[j];
+	newArgv[newArgc] = NULL;
 
-	free(exec[x].argv);
-	exec[x].argv = new_argv;
-	exec[x].argc = new_argc;
+	free(exec->argv);
+	exec->argv = newArgv;
+	exec->argc = newArgc;
     }
 }
 
@@ -2830,31 +2850,31 @@ static void setupVALGRIND(void)
  * from mpiexec to the argument list of the mpi-1
  * application.
  *
+ * @param conf @todo
+ *
  * @return No return value.
  */
-static void setupComp(void)
+static void setupComp(Conf_t *conf)
 {
-    int len = 10, new_argc = 0, i;
-    char *cnp;
-    char **new_argv =
-	umalloc((exec[0].argc + 2 + 1) * sizeof(char *), __func__ );
+    Executable_t *exec = &conf->exec[0];
+    int newArgc = 0, i;
+    char cnp[10];
+    char **newArgv = umalloc((exec->argc+2+1) * sizeof(*newArgv), __func__);
 
-    cnp = umalloc(len, __func__);
-    snprintf(cnp, len, "%d", np);
+    snprintf(cnp, sizeof(cnp), "%d", np);
 
-    for (i=0; i<exec[0].argc; i++) {
-	new_argv[new_argc++] = exec[0].argv[i];
+    for (i = 0; i < exec->argc; i++) {
+	newArgv[newArgc++] = exec->argv[i];
     }
 
-    new_argv[new_argc++] = MPI1_NP_OPT;
-    new_argv[new_argc++] = cnp;
-    new_argv[new_argc] = NULL;
+    newArgv[newArgc++] = MPI1_NP_OPT;
+    newArgv[newArgc++] = strdup(cnp);
+    newArgv[newArgc] = NULL;
 
-    free(exec[0].argv);
-    exec[0].argv = new_argv;
-    exec[0].argc = new_argc;
-
-    exec[0].np = 1;
+    free(exec->argv);
+    exec->argv = newArgv;
+    exec->argc = newArgc;
+    exec->np = 1;
 }
 
 /**
@@ -2872,6 +2892,7 @@ static void setSigHandlers(void)
 
 int main(int argc, char *argv[], char** envp)
 {
+    Conf_t *conf;
     char *envstr;
     int ret;
 
@@ -2892,13 +2913,15 @@ int main(int argc, char *argv[], char** envp)
     /* Initialzie daemon connection */
     PSE_initialize();
 
+    conf = malloc(sizeof(*conf));
+
     /* parse command line options */
     parseCmdOptions(argc, argv);
 
     printHelp(argc, argv);
 
     /* some sanity checks */
-    checkSanity(argv);
+    checkSanity(conf);
 
     /* set default PMI connection method to unix socket */
     if (!pmienabletcp && !pmienablesockp) {
@@ -2931,23 +2954,23 @@ int main(int argc, char *argv[], char** envp)
     PSI_propEnvList("__PSI_EXPORTS");
 
     /* create spawner process and switch to logger */
-    createSpawner(argc, argv, np);
+    createSpawner(conf, argc, argv);
 
     /* add command args for controlling gdb */
-    if (gdb) setupGDB();
+    if (gdb) setupGDB(conf);
 
     /* add command args for controlling Valgrind */
-    if (valgrind) setupVALGRIND();
+    if (valgrind) setupVALGRIND(conf);
 
     /* add command args for MPI1 mode */
-    if (mpichcom) setupComp();
+    if (mpichcom) setupComp(conf);
 
     /* start the KVS provider */
     if ((getenv("SERVICE_KVS_PROVIDER"))) {
-	startKVSProvider(argc, argv, envp);
+	startKVSProvider(conf, argc, argv, envp);
     } else {
 	/* start all processes */
-	if (startProcs(np, wdir, verbose) < 0) {
+	if (startProcs(conf, verbose) < 0) {
 	    fprintf(stderr, "Unable to start all processes. Aborting.\n");
 	    exit(EXIT_FAILURE);
 	}
