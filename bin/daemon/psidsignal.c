@@ -95,6 +95,7 @@ int PSID_kill(pid_t pid, int sig, uid_t uid)
 	return -1;
     }
 
+    PSID_blockSig(1, SIGTERM);
     /*
      * fork to a new process to change the userid
      * and get the right errors
@@ -108,6 +109,7 @@ int PSID_kill(pid_t pid, int sig, uid_t uid)
 	int error, fd, maxFD = sysconf(_SC_OPEN_MAX);
 
 	PSID_resetSigs();
+	PSID_blockSig(0, SIGTERM);
 	PSID_blockSig(0, SIGCHLD);
 
 	/* close all fds except the control channel and stdin/stdout/stderr */
@@ -151,6 +153,8 @@ int PSID_kill(pid_t pid, int sig, uid_t uid)
 
     /* close the writing pipe */
     close(cntrlfds[1]);
+
+    PSID_blockSig(0, SIGTERM);
 
     /* check if fork() was successful */
     if (forkPid == -1) {

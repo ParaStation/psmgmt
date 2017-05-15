@@ -1,17 +1,12 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2009-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2009-2017 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-#ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__((used)) =
-    "$Id$";
-#endif /* DOXYGEN_SHOULD_SKIP_THIS */
-
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
@@ -85,6 +80,7 @@ static int doExec(char *script, PSID_scriptFunc_t func, PSID_scriptPrep_t prep,
 	return -1;
     }
 
+    PSID_blockSig(1, SIGTERM);
     pid = fork();
     /* save errno in case of error */
     eno = errno;
@@ -94,6 +90,7 @@ static int doExec(char *script, PSID_scriptFunc_t func, PSID_scriptPrep_t prep,
 	int fd, ret = 0, maxFD = sysconf(_SC_OPEN_MAX);
 
 	PSID_resetSigs();
+	PSID_blockSig(0, SIGTERM);
 	PSID_blockSig(0, SIGCHLD);
 
 	/* close all fds except control channel and connecting socket */
@@ -156,6 +153,8 @@ static int doExec(char *script, PSID_scriptFunc_t func, PSID_scriptPrep_t prep,
 
 	exit(0);
     }
+
+    PSID_blockSig(0, SIGTERM);
 
     close(controlfds[1]);
     close(iofds[1]);
