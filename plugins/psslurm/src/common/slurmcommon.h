@@ -25,15 +25,22 @@
 
 
 /* protocol versions */
-#ifdef SLURM_PROTOCOL_1605
+#ifdef SLURM_PROTOCOL_1702
+ #define SLURM_CUR_VERSION 0x100502
+ #define SLURM_CUR_PROTOCOL_VERSION_STR "17.02"
+ #define SLURM_CUR_PROTOCOL_VERSION  SLURM_17_02_PROTOCOL_VERSION
+ #define MIN_SLURM_PROTO_1605
+#elif SLURM_PROTOCOL_1605
  #define SLURM_CUR_VERSION 0x100502
  #define SLURM_CUR_PROTOCOL_VERSION_STR "16.05"
  #define SLURM_CUR_PROTOCOL_VERSION  SLURM_16_05_PROTOCOL_VERSION
+ #define MIN_SLURM_PROTO_1605
 #else
  #define SLURM_CUR_PROTOCOL_VERSION_STR "14.03"
  #define SLURM_CUR_PROTOCOL_VERSION  SLURM_14_03_PROTOCOL_VERSION
 #endif
 
+#define SLURM_17_02_PROTOCOL_VERSION ((31 << 8) | 0)
 #define SLURM_16_05_PROTOCOL_VERSION ((30 << 8) | 0)
 #define SLURM_15_08_PROTOCOL_VERSION ((29 << 8) | 0)
 #define SLURM_14_11_PROTOCOL_VERSION ((28 << 8) | 0)
@@ -118,7 +125,7 @@ typedef enum mem_bind_type {    /* memory binding type from --mem_bind=... */
  */
 typedef enum task_dist_states {
 	/* NOTE: start SLURM_DIST_CYCLIC at 1 for HP MPI */
-#ifdef SLURM_PROTOCOL_1605
+#ifdef MIN_SLURM_PROTO_1605
 	SLURM_DIST_CYCLIC               = 0x0001,
 	SLURM_DIST_BLOCK                = 0x0002,
 	SLURM_DIST_ARBITRARY            = 0x0003,
@@ -184,7 +191,7 @@ typedef enum task_dist_states {
 #endif /* SLURM_PROTOCOL_1605 */
 } task_dist_states_t;
 
-#ifdef SLURM_PROTOCOL_1605
+#ifdef MIN_SLURM_PROTO_1605
 #define SLURM_DIST_STATE_BASE		0x00FFFF
 #define SLURM_DIST_STATE_FLAGS		0xFF0000
 #define SLURM_DIST_PACK_NODES		0x800000
@@ -212,10 +219,11 @@ typedef enum task_dist_states {
 
 
 /* task flags */
-enum task_flag_vals {
-    TASK_PARALLEL_DEBUG = 0x1,
-    TASK_UNUSED1 = 0x2,
-    TASK_UNUSED2 = 0x4
-};
+#define LAUNCH_PARALLEL_DEBUG   0x00000001
+#define LAUNCH_MULTI_PROG       0x00000002
+#define LAUNCH_PTY              0x00000004
+#define LAUNCH_BUFFERED_IO      0x00000008
+#define LAUNCH_LABEL_IO         0x00000010
+#define LAUNCH_USER_MANAGED_IO  0x00000020
 
 #endif

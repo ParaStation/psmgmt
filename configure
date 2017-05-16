@@ -12782,6 +12782,8 @@ $as_echo "$as_me: Building with slurm protocol 16.05 support" >&6;}
 
 fi
 
+AM_CFLAGS="$AM_CFLAGS -DSLURM_PROTOCOL_1702"
+
 
 
 

@@ -20,6 +20,7 @@
 
 #include "psslurmgres.h"
 #include "slurmmsg.h"
+#include "slurmcommon.h"
 
 #include "pluginforwarder.h"
 #include "plugincomm.h"
@@ -43,8 +44,13 @@ typedef struct {
     uint32_t stepid;
     uid_t uid;
     uint16_t jobCoreSpec;
+#ifdef SLURM_PROTOCOL_1702
+    uint64_t jobMemLimit;
+    uint64_t stepMemLimit;
+#else
     uint32_t jobMemLimit;
     uint32_t stepMemLimit;
+#endif
     char *hostlist;
     time_t ctime;
     uint32_t totalCoreCount;
@@ -102,27 +108,32 @@ typedef struct {
 } RLimits_t;
 
 typedef struct {
-    char *fileName;
+    char *fileName;		/* name of the file */
+#ifdef SLURM_PROTOCOL_1702
+    uint32_t blockNumber;
+    uint64_t blockOffset;
+#else
     uint16_t blockNumber;
+    uint32_t blockOffset;
+#endif
     uint16_t compress;
     uint16_t lastBlock;
-    uint16_t force;	    /* overwrite dest file */
-    uint16_t modes;	    /* access writes */
+    uint16_t force;		/* overwrite destination file */
+    uint16_t modes;		/* access rights */
     uint32_t blockLen;
     uint32_t uncompLen;
-    uint32_t blockOffset;
-    uint32_t jobid;
+    uint32_t jobid;		/* the associated jobid */
     uint64_t fileSize;
     time_t atime;
     time_t mtime;
-    time_t expTime;
+    time_t expTime;		/* expiration time */
     char *block;
     char *username;
     Slurm_Msg_t msg;
     uid_t uid;
     gid_t gid;
     Forwarder_Data_t *fwdata;
-    char *sig;
+    char *sig;			/* credential signature */
     size_t sigLen;
     struct list_head list;
 } BCast_t;
@@ -144,7 +155,7 @@ typedef struct {
     uint32_t myNodeIndex;
     uint32_t jobMemLimit;
     uint32_t stepMemLimit;
-#ifdef SLURM_PROTOCOL_1605
+#ifdef MIN_SLURM_PROTO_1605
     uint32_t taskDist;
 #else
     uint16_t taskDist;
@@ -164,8 +175,7 @@ typedef struct {
     char *cpuBind;
     uint16_t memBindType;
     char *memBind;
-    uint16_t taskFlags;		/* e.g. TASK_PARALLEL_DEBUG (slurmcommon.h) */
-    uint16_t multiProg;
+    uint32_t taskFlags;		/* e.g. TASK_PARALLEL_DEBUG (slurmcommon.h) */
     uint32_t profile;
     RLimits_t limit;		/* rlimits extract from slurm env */
     int state;
@@ -174,6 +184,7 @@ typedef struct {
     uint32_t argc;
     env_t env;
     env_t spankenv;
+    env_t pelogueEnv;
     char *taskProlog;
     char *taskEpilog;
     char *cwd;
@@ -194,13 +205,9 @@ typedef struct {
     Slurm_Msg_t srunControlMsg;
     Slurm_Msg_t srunPTYMsg;
     uint8_t appendMode;		/* stdout/stderr will truncate(=0) / append(=1) */
-    uint8_t pty;
-    uint16_t userManagedIO;
-    uint8_t bufferedIO;
-    uint8_t labelIO;
     uint16_t accType;
     char *nodeAlias;
-#ifdef SLURM_PROTOCOL_1605
+#ifdef MIN_SLURM_PROTO_1605
     uint32_t cpuFreqMin;
     uint32_t cpuFreqMax;
     uint32_t cpuFreqGov;
@@ -226,6 +233,15 @@ typedef struct {
     struct list_head list;	/* the step list header */
     uint32_t pmiSrunPort;
     char *pmiStepNodes;
+    char *acctFreq;
+    uint32_t mpiJobid;
+    uint32_t mpiNnodes;
+    uint32_t mpiNtasks;
+    uint32_t mpiStepfnodeid;
+    uint32_t mpiStepftaskid;
+    uint32_t mpiStepid;
+    uint32_t packJobid;
+    uint32_t packStepid;
 } Step_t;
 
 typedef struct {
@@ -257,13 +273,15 @@ typedef struct {
     char *stdOut;	    /* redirect stdout to this file */
     char *stdIn;	    /* redirect stdin from this file */
     char *stdErr;	    /* redirect stderr to this file */
-    char *jobscript;
+    char *jobscript;	    /* absolute path of the jobscript */
+    char *jsData;	    /* jobscript data */
     char *hostname;
     char *checkpoint;
     char *restart;
     char *account;
     char *qos;
     char *resvName;
+    char *acctFreq;
     int state;
     int signaled;
     uint8_t terminate;
@@ -274,8 +292,13 @@ typedef struct {
     uint8_t appendMode;	    /* stdout/stderr will truncate(=0) / append(=1) */
     uint32_t arrayJobId;
     uint32_t arrayTaskId;
+#ifdef SLURM_PROTOCOL_1702
+    uint64_t memLimit;
+    uint64_t nodeMinMemory; /* minimum memory per node */
+#else
     uint32_t memLimit;
     uint32_t nodeMinMemory; /* minimum memory per node */
+#endif
     uint32_t localNodeId;
     time_t start_time;	    /* the time were the job started */
     char *nodeAlias;
@@ -283,6 +306,10 @@ typedef struct {
     PS_Tasks_t tasks;
     time_t firstKillRequest;
     Forwarder_Data_t *fwdata;
+    uint32_t profile;
+    env_t pelogueEnv;
+    char *resvPorts;
+    uint32_t groupNum;
 } Job_t;
 
 typedef struct {
@@ -358,7 +385,8 @@ int countJobs(void);
 
 int countAllocs(void);
 
-void addJobInfosToBuffer(PS_DataBuffer_t *buffer);
+void getJobInfos(uint32_t *infoCount, uint32_t **jobids, uint32_t **stepids);
+
 int signalJob(Job_t *job, int signal, char *reason);
 int signalJobs(int signal, char *reason);
 
@@ -394,7 +422,7 @@ PS_Tasks_t *findTaskByChildPid(struct list_head *taskList, pid_t childPid);
 unsigned int countTasks(struct list_head *taskList);
 unsigned int countRegTasks(struct list_head *taskList);
 
-BCast_t *addBCast(int socket);
+BCast_t *addBCast();
 BCast_t *findBCast(uint32_t jobid, char *fileName, uint32_t blockNum);
 void deleteBCast(BCast_t *bcast);
 void clearBCastByJobid(uint32_t jobid);

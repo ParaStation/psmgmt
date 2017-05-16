@@ -66,8 +66,8 @@ void ForwarderData_delete(Forwarder_Data_t *fw)
 {
     if (!fw) return;
 
-    if (fw->pTitle) free(fw->pTitle);
-    if (fw->jobID) free(fw->jobID);
+    if (fw->pTitle) ufree(fw->pTitle);
+    if (fw->jobID) ufree(fw->jobID);
     free(fw);
 }
 
@@ -778,7 +778,11 @@ bool startForwarder(Forwarder_Data_t *fw)
     task->gid = getgid();
     task->info = fw;
     task->argc = 1 + !!fw->jobID;
-    task->argv = umalloc(task->argc * sizeof(*task->argv));
+    task->argv = malloc(task->argc * sizeof(*task->argv));
+    if (!task->argv) {
+	pluginlog("%s: out of memory\n", __func__);
+	goto ERROR;
+    }
     task->argv[0] = strdup(fw->pTitle);
     if (fw->jobID) task->argv[1] = strdup(fw->jobID);
     task->sigChldCB = sigChldCB;
@@ -786,13 +790,16 @@ bool startForwarder(Forwarder_Data_t *fw)
     /* start the new forwarder */
     if (PSIDspawn_localTask(task, execForwarder, handleFwSock)) {
 	pluginlog("%s: creating forwarder %s failed\n", __func__, fw->pTitle);
-	task->info = NULL;
-	PStask_delete(task);
-	return false;
+	goto ERROR;
     }
     fw->tid = task->tid;
 
     return true;
+
+ERROR:
+    task->info = NULL;
+    PStask_delete(task);
+    return false;
 }
 
 bool signalForwarderChild(Forwarder_Data_t *fw, int sig)

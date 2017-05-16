@@ -54,8 +54,7 @@ Job_t *addJob(uint32_t jobid)
     deleteJob(jobid);
     snprintf(tmp, sizeof(tmp), "%u", jobid);
 
-    job = (Job_t *) umalloc(sizeof(Job_t));
-    memset(job, 0, sizeof(Job_t));
+    job = (Job_t *) ucalloc(sizeof(Job_t));
 
     job->id = ustrdup(tmp);
     job->jobid = jobid;
@@ -129,12 +128,10 @@ Step_t *addStep(uint32_t jobid, uint32_t stepid)
 
     deleteStep(jobid, stepid);
 
-    step = (Step_t *) umalloc(sizeof(Step_t));
-    memset(step, 0, sizeof(Step_t));
+    step = (Step_t *) ucalloc(sizeof(Step_t));
 
     step->jobid = jobid;
     step->stepid = stepid;
-    step->bufferedIO = 1;
     step->exitCode = -1;
     step->stdOutRank = -1;
     step->stdErrRank = -1;
@@ -149,6 +146,7 @@ Step_t *addStep(uint32_t jobid, uint32_t stepid)
     INIT_LIST_HEAD(&step->tasks.list);
     envInit(&step->env);
     envInit(&step->spankenv);
+    envInit(&step->pelogueEnv);
     initSlurmMsg(&step->srunIOMsg);
     initSlurmMsg(&step->srunControlMsg);
     initSlurmMsg(&step->srunPTYMsg);
@@ -185,23 +183,20 @@ unsigned int countTasks(struct list_head *taskList)
 
     if (!taskList) return 0;
 
-    list_for_each(pos, taskList) {
-	if (!(list_entry(pos, PS_Tasks_t, list))) break;
-	count++;
-    }
+    list_for_each(pos, taskList) count++;
     return count;
 }
 
 unsigned int countRegTasks(struct list_head *taskList)
 {
-    PS_Tasks_t *task;
     struct list_head *pos;
     unsigned int count = 0;
 
     if (!taskList) return 0;
 
     list_for_each(pos, taskList) {
-	if (!(task = list_entry(pos, PS_Tasks_t, list))) break;
+	PS_Tasks_t *task;
+	task = list_entry(pos, PS_Tasks_t, list);
 	if (task->childRank <0) continue;
 	count++;
     }
@@ -268,15 +263,13 @@ PS_Tasks_t *findTaskByChildPid(struct list_head *taskList, pid_t childPid)
 }
 
 
-BCast_t *addBCast(int socket)
+BCast_t *addBCast()
 {
     BCast_t *bcast;
 
-    bcast = (BCast_t *) umalloc(sizeof(BCast_t));
-    memset(bcast, 0, sizeof(BCast_t));
+    bcast = (BCast_t *) ucalloc(sizeof(BCast_t));
 
     initSlurmMsg(&bcast->msg);
-    bcast->msg.sock = socket;
 
     list_add_tail(&(bcast->list), &BCastList.list);
 
@@ -560,6 +553,7 @@ int deleteStep(uint32_t jobid, uint32_t stepid)
     ufree(step->outChannels);
     ufree(step->errChannels);
     ufree(step->hwThreads);
+    ufree(step->acctFreq);
 
     clearTasks(&step->tasks.list);
     freeGresCred(step->gres);
@@ -573,8 +567,12 @@ int deleteStep(uint32_t jobid, uint32_t stepid)
 
     freeJobCred(step->cred);
 
-    for (i=0; i<step->nrOfNodes; i++) {
-	ufree(step->globalTaskIds[i]);
+    if (step->globalTaskIds) {
+	for (i=0; i<step->nrOfNodes; i++) {
+	    if (step->globalTaskIdsLen[i] > 0) {
+		ufree(step->globalTaskIds[i]);
+	    }
+	}
     }
     ufree(step->globalTaskIds);
     ufree(step->globalTaskIdsLen);
@@ -586,6 +584,7 @@ int deleteStep(uint32_t jobid, uint32_t stepid)
 
     envDestroy(&step->env);
     envDestroy(&step->spankenv);
+    envDestroy(&step->pelogueEnv);
 
     list_del(&step->list);
     ufree(step);
@@ -629,6 +628,7 @@ int deleteJob(uint32_t jobid)
     ufree(job->username);
     ufree(job->nodes);
     ufree(job->jobscript);
+    ufree(job->jsData);
     ufree(job->stdOut);
     ufree(job->stdErr);
     ufree(job->stdIn);
@@ -644,6 +644,8 @@ int deleteJob(uint32_t jobid)
     ufree(job->account);
     ufree(job->qos);
     ufree(job->resvName);
+    ufree(job->acctFreq);
+    ufree(job->resvPorts);
 
     for (i=0; i<job->argc; i++) {
 	ufree(job->argv[i]);
@@ -848,49 +850,39 @@ int countAllocs(void)
     return count;
 }
 
-void addJobInfosToBuffer(PS_DataBuffer_t *buffer)
+void getJobInfos(uint32_t *infoCount, uint32_t **jobids, uint32_t **stepids)
 {
     list_t *pos, *tmp;
-    Step_t *step;
-    Job_t *job;
-    uint32_t i, *jobids, *stepids, max, count = 0;
+    uint32_t max, count = 0;
 
     max = countSteps() + countJobs();
-    jobids = umalloc(sizeof(uint32_t) * max);
-    stepids = umalloc(sizeof(uint32_t) * max);
+    *jobids = umalloc(sizeof(uint32_t) * max);
+    *stepids = umalloc(sizeof(uint32_t) * max);
 
     list_for_each_safe(pos, tmp, &JobList.list) {
-	if (!(job = list_entry(pos, Job_t, list))) break;
+	Job_t *job;
+	job = list_entry(pos, Job_t, list);
 	if (count == max) break;
 
 	if (job->state == JOB_EXIT ||
 	    job->state == JOB_COMPLETE) continue;
-	jobids[count] = job->jobid;
-	stepids[count] = SLURM_BATCH_SCRIPT;
+	(*jobids)[count] = job->jobid;
+	(*stepids)[count] = SLURM_BATCH_SCRIPT;
 	count++;
     }
 
     list_for_each_safe(pos, tmp, &StepList.list) {
-	if (!(step = list_entry(pos, Step_t, list))) break;
+	Step_t *step;
+	step = list_entry(pos, Step_t, list);
 	if (count == max) break;
 
 	if (step->state == JOB_EXIT ||
 	    step->state == JOB_COMPLETE) continue;
-	jobids[count] = step->jobid;
-	stepids[count] = step->stepid;
+	(*jobids)[count] = step->jobid;
+	(*stepids)[count] = step->stepid;
 	count++;
     }
-
-    addUint32ToMsg(count, buffer);
-    for (i=0; i<count; i++) {
-	addUint32ToMsg(jobids[i], buffer);
-    }
-    for (i=0; i<count; i++) {
-	addUint32ToMsg(stepids[i], buffer);
-    }
-
-    ufree(jobids);
-    ufree(stepids);
+    *infoCount = count;
 }
 
 int signalJob(Job_t *job, int signal, char *reason)

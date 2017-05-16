@@ -26,7 +26,7 @@
 #include "psslurmauth.h"
 
 #define AUTH_MUNGE_STRING "auth/munge"
-#ifdef SLURM_PROTOCOL_1605
+#ifdef MIN_SLURM_PROTO_1605
  #define AUTH_MUNGE_VERSION SLURM_CUR_VERSION
 #else
  #define AUTH_MUNGE_VERSION 10
@@ -67,14 +67,17 @@ void addSlurmAuth(PS_DataBuffer_t *data)
 
 bool extractSlurmAuth(char **ptr, Slurm_Msg_Header_t *msgHead)
 {
-    Slurm_Auth_t *auth;
+    Slurm_Auth_t *auth = NULL;
     int ret;
 
-    unpackSlurmAuth(ptr, &auth);
+    if (!unpackSlurmAuth(ptr, &auth)) {
+	mlog("%s: unpacking slurm authentication failed\n", __func__);
+	goto ERROR;
+    }
 
     if (!!(strcmp(auth->method, AUTH_MUNGE_STRING))) {
 	mlog("%s: invalid auth munge plugin '%s'\n", __func__, auth->method);
-	return false;
+	goto ERROR;
     }
 
     /* TODO: disable check temporarly
@@ -86,17 +89,21 @@ bool extractSlurmAuth(char **ptr, Slurm_Msg_Header_t *msgHead)
     */
 
     ret = psMungeDecode(auth->cred, &msgHead->uid, &msgHead->gid);
-    freeSlurmAuth(auth);
 
     if (!ret) {
 	mlog("%s: decoding munge credential failed\n", __func__);
-	return false;
+	goto ERROR;
     }
 
     mdbg(PSSLURM_LOG_AUTH, "%s: valid message from user uid '%u' gid '%u'\n",
 	    __func__, msgHead->uid, msgHead->gid);
 
+    freeSlurmAuth(auth);
     return true;
+
+ERROR:
+    freeSlurmAuth(auth);
+    return false;
 }
 
 bool verifyStepData(Step_t *step)
@@ -188,7 +195,10 @@ bool extractBCastCred(char **ptr, BCast_t *bcast)
     BCast_t *firstBCast = NULL;
 
     errno = 0;
-    unpackBCastCred(ptr, bcast, &credEnd);
+    if (!unpackBCastCred(ptr, bcast, &credEnd)) {
+	mlog("%s: unpacking bcast credential failed\n", __func__);
+	goto ERROR;
+    }
     credLen = credEnd - credStart;
 
     if (bcast->blockNumber == 1) {
@@ -228,7 +238,8 @@ bool extractBCastCred(char **ptr, BCast_t *bcast)
 	}
 
 	if (bcast->expTime < time(NULL)) {
-	    mlog("%s: credential expired\n", __func__);
+	    mlog("%s: credential expired: %zu : %zu\n", __func__,
+		 bcast->expTime, time(NULL));
 	    goto ERROR;
 	}
     }
@@ -252,6 +263,7 @@ void freeJobCred(JobCred_t *cred)
     ufree(cred->jobCoreBitmap);
     ufree(cred->stepCoreBitmap);
     ufree(cred->jobHostlist);
+    ufree(cred->jobConstraints);
     ufree(cred->sig);
     ufree(cred);
 }
@@ -259,12 +271,30 @@ void freeJobCred(JobCred_t *cred)
 JobCred_t *extractJobCred(Gres_Cred_t **gres, char **ptr, bool verify)
 {
     char *credStart = *ptr, *credEnd, *sigBuf = NULL;
-    JobCred_t *cred;
+    JobCred_t *cred = NULL;
     int sigBufLen, credLen;
     uid_t sigUid;
     gid_t sigGid;
+    uint32_t i;
 
-    unpackJobCred(ptr, &cred, gres, &credEnd);
+    if (!unpackJobCred(ptr, &cred, gres, &credEnd)) {
+	mlog("%s: unpacking job credential failed\n", __func__);
+	goto ERROR;
+    }
+
+    for (i=0; i<cred->coresPerSocketLen; i++) {
+	mdbg(PSSLURM_LOG_PART, "%s: coresPerSocket '%u'\n", __func__,
+		cred->coresPerSocket[i]);
+    }
+    for (i=0; i<cred->socketsPerNodeLen; i++) {
+	mdbg(PSSLURM_LOG_PART, "%s: socketsPerNode '%u'\n", __func__,
+		cred->socketsPerNode[i]);
+    }
+    for (i=0; i<cred->sockCoreRepCountLen; i++) {
+	mdbg(PSSLURM_LOG_PART, "%s: sockCoreRepCount '%u'\n", __func__,
+		cred->sockCoreRepCount[i]);
+    }
+
     credLen = credEnd - credStart;
 
     if (verify) {
@@ -291,7 +321,11 @@ JobCred_t *extractJobCred(Gres_Cred_t **gres, char **ptr, bool verify)
 	free(sigBuf);
     }
 
+#ifdef SLURM_PROTOCOL_1702
+    mdbg(PSSLURM_LOG_AUTH, "%s: cred len:%u jobMemLimit '%lu' stepMemLimit '%lu' "
+#else
     mdbg(PSSLURM_LOG_AUTH, "%s: cred len:%u jobMemLimit '%u' stepMemLimit '%u' "
+#endif
 	    "hostlist '%s' jobhostlist '%s' ctime '%lu' " "sig '%s'\n",
 	    __func__, credLen, cred->jobMemLimit, cred->stepMemLimit,
 	    cred->hostlist, cred->jobHostlist, cred->ctime, cred->sig);
