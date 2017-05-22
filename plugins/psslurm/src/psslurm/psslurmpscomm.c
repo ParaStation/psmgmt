@@ -800,6 +800,7 @@ void forwardSlurmMsg(Slurm_Msg_t *sMsg, Connection_Forward_t *fw)
 	fw->head.fwdata[i].type = RESPONSE_FORWARD_FAILED;
 	fw->head.fwdata[i].node = -1;
 	fw->head.fwdata[i].body.buf = NULL;
+	fw->head.fwdata[i].body.bufUsed = 0;
     }
 
     mdbg(PSSLURM_LOG_FWD, "%s: forward: type '%s' count '%u' nodelist '%s' "
