@@ -1011,6 +1011,7 @@ static void msg_ADOPTFAILED(DDBufferMsg_t *msg)
 	}
 
 	task = PStasklist_find(&managedTasks, tid);
+	if (!task) continue; /* Task already gone */
 
 	PSID_log(-1, "%s: New parent %s is gone.", __func__,
 		 PSC_printTID(msg->header.sender));
