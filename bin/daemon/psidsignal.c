@@ -1532,9 +1532,9 @@ static void send_RELEASERES(PStask_t *task, PStask_ID_t sender)
 	.signal = -1,
 	.param = task->pendingReleaseErr };
 
-    if (task->pendingReleaseErr) {
-	PSID_log(-1, "%s: forward error = %d to local %s\n", __func__,
-		 msg.param, PSC_printTID(task->tid));
+    if (msg.param) {
+	PSID_warn(-1, msg.param, "%s: forward error = %d to local %s", __func__,
+		  msg.param, PSC_printTID(task->tid));
     } else {
 	PSID_log(PSID_LOG_SIGNAL, "%s: tell local parent %s\n", __func__,
 		 PSC_printTID(task->tid));
