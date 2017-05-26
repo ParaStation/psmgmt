@@ -152,7 +152,8 @@ struct __task__ {
     list_t signalSender;           /**< Tasks which sent signals */
     list_t signalReceiver;         /**< Tasks which want to receive signals */
     list_t assignedSigs;           /**< Tasks assigned to send signals */
-    uint16_t *resPorts;		   /**< Reserved Ports for OpenMPI startup */
+    list_t keptChildren;           /**< Children kept during inheritance */
+    uint16_t *resPorts;            /**< Reserved Ports for OpenMPI startup */
 } /* PStask_t */;
 
 /**

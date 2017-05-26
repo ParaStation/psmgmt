@@ -149,6 +149,7 @@ int PStask_init(PStask_t* task)
     INIT_LIST_HEAD(&task->signalSender);
     INIT_LIST_HEAD(&task->signalReceiver);
     INIT_LIST_HEAD(&task->assignedSigs);
+    INIT_LIST_HEAD(&task->keptChildren);
 
     return 1;
 }
@@ -225,6 +226,7 @@ int PStask_reinit(PStask_t* task)
     delSigList(&task->signalSender);
     delSigList(&task->signalReceiver);
     delSigList(&task->assignedSigs);
+    delSigList(&task->keptChildren);
 
     PStask_init(task);
 
@@ -439,6 +441,7 @@ PStask_t* PStask_clone(PStask_t* task)
     cloneSigList(&clone->signalSender, &task->signalSender);
     cloneSigList(&clone->signalReceiver, &task->signalReceiver);
     cloneSigList(&clone->assignedSigs, &task->assignedSigs);
+    cloneSigList(&clone->keptChildren, &task->keptChildren);
 
     return clone;
 

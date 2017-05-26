@@ -788,8 +788,7 @@ static void msg_NEWANCESTOR(DDErrorMsg_t *msg)
 	PStask_t *task = list_entry(t, PStask_t, next);
 
 	if (task->deleted || task->ptid != msg->header.sender
-	    || task->released) continue;
-
+	    || task->released || task->group == TG_FORWARDER) continue;
 	found++;
 
 	PSID_log(PSID_LOG_SIGNAL, "%s: %s: parent",
@@ -1202,11 +1201,7 @@ static int releaseTask(PStask_t *task)
 			 __func__, PSC_printTID(child));
 
 		/* Child's assigned signal not needed any more */
-		if (assgnd &&
-		    (PSIDnodes_getDmnProtoV(childNode) < 412
-		     || sentToNode[childNode])) {
-		    PSID_removeSignal(&task->assignedSigs, child, sig);
-		}
+		if (assgnd) PSID_removeSignal(&task->assignedSigs, child, -1);
 
 		if (task->group == TG_KVS && task->noParricide) {
 		    /* Avoid inheritance to prevent parricide */
@@ -1257,17 +1252,16 @@ static int releaseTask(PStask_t *task)
 
 			sendMsg(&inheritMsg);
 			sentToNode[childNode] = true;
+			PSID_setSignal(&task->keptChildren, child, -1);
 		    }
 		}
 
-		/* Also remove child's assigned signal */
-		PSID_removeSignal(&task->assignedSigs, child, sig);
+		/* Prepare to get next child */
 		sig = -1;
 	    }
 
 	    /* Remove parent's assigned signal */
 	    PSID_removeSignal(&task->assignedSigs, task->ptid, -1);
-	    sig = -1;
 	}
 
 	/* Don't send any signals to me after release */
@@ -1578,7 +1572,7 @@ static void msg_INHERITDONE(DDBufferMsg_t *msg)
     }
 
     /* remove kept back signal */
-    PSID_removeSignal(&task->assignedSigs, keptChild, -1);
+    PSID_removeSignal(&task->keptChildren, keptChild, -1);
 
     task->pendingReleaseRes--;
     if (task->pendingReleaseRes
@@ -1616,7 +1610,7 @@ static void msg_INHERITFAILED(DDBufferMsg_t *msg)
     }
 
     /* remove kept back signal */
-    PSID_removeSignal(&task->assignedSigs, keptChild, -1);
+    PSID_removeSignal(&task->keptChildren, keptChild, -1);
 
     if (!task->pendingReleaseErr) task->pendingReleaseErr = EACCES;
     PSID_log(-1, "%s: from %s", __func__, PSC_printTID(keptChild));
