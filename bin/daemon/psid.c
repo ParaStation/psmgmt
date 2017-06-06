@@ -610,7 +610,7 @@ int main(int argc, const char *argv[])
     }
 
     /* Save some space in order to modify the cmdline later on */
-    PSC_saveTitleSpace(PSID_argc, (char **)PSID_argv, 1);
+    PSC_saveTitleSpace(PSID_argc, PSID_argv, 1);
 
     if (logfile!=stderr && logfile!=stdout) {
 	/* Daemonize only if neither stdout nor stderr is used for logging */

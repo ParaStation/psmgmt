@@ -1430,7 +1430,7 @@ void PSID_forwarder(PStask_t *task, int daemonfd, int eno)
     snprintf(pTitle, sizeof(pTitle), "psidfw TID[%d:%d] R%d",
 		PSC_getID(childTask->loggertid),
 		PSC_getPID(childTask->loggertid), childTask->rank);
-    PSC_setProcTitle(PSID_argc, (char **)PSID_argv, pTitle, 1);
+    PSC_setProcTitle(PSID_argc, PSID_argv, pTitle, 1);
 
     if (verbose) {
 	PSIDfwd_printMsgf(STDERR, "%s: childTask=%s daemon=%d",

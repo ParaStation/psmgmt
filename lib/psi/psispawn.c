@@ -2,17 +2,12 @@
  * ParaStation
  *
  * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2017 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-#ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__((used)) =
-    "$Id$";
-#endif /* DOXYGEN_SHOULD_SKIP_THIS */
-
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
@@ -643,11 +638,11 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
     task->argc = argc;
 
     if(!valgrind) {
-	 task->argv = (char**)malloc(sizeof(char*)*(task->argc+1));
+	 task->argv = malloc(sizeof(char*)*(task->argc+1));
     }
     else {
 	 /* add 'valgrind' and its parameters before executable: (see below)*/
-	 task->argv = (char**)malloc(sizeof(char*)*(task->argc+4));
+	 task->argv = malloc(sizeof(char*)*(task->argc+4));
     }
 
     if (!task->argv) {

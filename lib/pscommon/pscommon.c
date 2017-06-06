@@ -2,17 +2,12 @@
  * ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2015 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2017 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-#ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__((used)) =
-    "$Id$";
-#endif /* DOXYGEN_SHOULD_SKIP_THIS */
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -439,10 +434,10 @@ static char *titleSpace = NULL;
 /** Available space to store a new title */
 static size_t titleSize = 0;
 
-void PSC_saveTitleSpace(int argc, char **argv, int saveEnv)
+void PSC_saveTitleSpace(int argc, const char **argv, int saveEnv)
 {
     int numEnv = 0, i;
-    char *nextArg; /* will point *behind* the last arg / env */
+    const char *nextArg; /* will point *behind* the last arg / env */
     char **newEnv = NULL;
 
     if (!argc || !argv) return;
@@ -463,7 +458,7 @@ void PSC_saveTitleSpace(int argc, char **argv, int saveEnv)
     }
 
     titleSize = nextArg - argv[0];
-    titleSpace = argv[0];
+    titleSpace = (char *)argv[0];
 
     PSC_log(PSC_LOG_VERB, "%s: found %zd bytes\n", __func__, titleSize);
 
@@ -494,7 +489,7 @@ noSpace:
     PSC_log(-1, "%s: re-adjusted to %zd bytes\n", __func__, titleSize);
 }
 
-int PSC_setProcTitle(int argc, char **argv, char *title, int saveEnv)
+int PSC_setProcTitle(int argc, const char **argv, char *title, int saveEnv)
 {
     PSC_log(PSC_LOG_VERB, "%s\n", __func__);
 

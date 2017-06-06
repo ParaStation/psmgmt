@@ -489,7 +489,8 @@ static PSnodes_ID_t getNodeIDbyIndex(Conf_t *conf, int index)
 /**
  * @todo
  */
-static void startKVSProvider(Conf_t *conf, int argc, char *argv[], char **envp)
+static void startKVSProvider(Conf_t *conf, int argc, const char *argv[],
+			     char **envp)
 {
     char tmp[1024], pTitle[50];
     int error, ret, sRank = -3;
@@ -523,8 +524,8 @@ static void startKVSProvider(Conf_t *conf, int argc, char *argv[], char **envp)
     startNode = (getenv("__MPIEXEC_DIST_START") ?
 		 getNodeIDbyIndex(conf, 0) : PSC_getMyID());
 
-    ret = PSI_spawnService(startNode, pwd, argc, argv, 0, &error,
-	    &spawnedProc, sRank);
+    ret = PSI_spawnService(startNode, pwd, argc, (char **)argv, 0, &error,
+			   &spawnedProc, sRank);
 
     if (ret < 0 || error) {
 	fprintf(stderr, "Could not start spawner process (%s)", argv[0]);
@@ -599,7 +600,7 @@ static uint32_t getNodeType(char *hardwareList)
  *
  * @return No return value.
  */
-static void createSpawner(Conf_t *conf, int argc, char *argv[])
+static void createSpawner(Conf_t *conf, int argc, const char *argv[])
 {
     int rank = PSE_getRank();
     char cwd[1024], tmp[100];
@@ -654,8 +655,8 @@ static void createSpawner(Conf_t *conf, int argc, char *argv[])
 	    setPSIEnv("__PSI_LOGGER_TID", tmp, 1);
 	}
 
-	ret=PSI_spawnService(startNode, pwd, argc, argv, 0, &error,
-				&spawnedProc, 0);
+	ret=PSI_spawnService(startNode, pwd, argc, (char **)argv, 0, &error,
+			     &spawnedProc, 0);
 
 	if (ret < 0 || error) {
 	    fprintf(stderr, "Could not spawn master process (%s)", argv[0]);
@@ -1946,7 +1947,7 @@ static void setupEnvironment(int verbose)
  *
  * @return No return value.
  */
-static void printHiddenUsage(poptOption opt, int argc, char *argv[],
+static void printHiddenUsage(poptOption opt, int argc, const char *argv[],
 			     char *headline)
 {
     poptOption opt2 = opt;
@@ -1957,7 +1958,7 @@ static void printHiddenUsage(poptOption opt, int argc, char *argv[],
     }
 
     poptFreeContext(optCon);
-    optCon = poptGetContext(NULL, argc, (const char **)argv, opt2, 0);
+    optCon = poptGetContext(NULL, argc, argv, opt2, 0);
     fprintf(stdout, "\n%s\n", headline);
     poptPrintUsage(optCon, stdout, 0);
 }
@@ -1974,7 +1975,7 @@ static void printHiddenUsage(poptOption opt, int argc, char *argv[],
  *
  * @return No return value.
  */
-static void printHiddenHelp(poptOption opt, int argc, char *argv[],
+static void printHiddenHelp(poptOption opt, int argc, const char *argv[],
 			    char *headline)
 {
     poptOption opt2 = opt;
@@ -1985,7 +1986,7 @@ static void printHiddenHelp(poptOption opt, int argc, char *argv[],
     }
 
     poptFreeContext(optCon);
-    optCon = poptGetContext(NULL, argc, (const char **)argv, opt2, 0);
+    optCon = poptGetContext(NULL, argc, argv, opt2, 0);
     fprintf(stdout, "\n%s\n", headline);
     poptPrintHelp(optCon, stdout, 0);
 }
@@ -2616,19 +2617,18 @@ static void saveNextExecutable(Conf_t *conf, int argc, const char **argv)
  *
  * @return @todo
 */
-static Conf_t * parseCmdOptions(int argc, char *argv[])
+static Conf_t * parseCmdOptions(int argc, const char *argv[])
 {
     #define OTHER_OPTIONS_STR "[OPTION...] <command> [cmd_options]"
     const char *nextArg, **leftArgv;
-    char **dup_argv;
+    const char **dup_argv;
     int leftArgc, dup_argc, rc = 0;
     Conf_t *conf = calloc(1, sizeof(*conf));
 
     /* create context for parsing */
-    poptDupArgv(argc, (const char **)argv,
-		&dup_argc, (const char ***)&dup_argv);
+    poptDupArgv(argc, argv, &dup_argc, &dup_argv);
 
-    optCon = poptGetContext(NULL, dup_argc, (const char **)dup_argv,
+    optCon = poptGetContext(NULL, dup_argc, dup_argv,
 			    optionsTable, POPT_CONTEXT_POSIXMEHARDER);
     poptSetOtherOptionHelp(optCon, OTHER_OPTIONS_STR);
 
@@ -2681,8 +2681,8 @@ PARSE_MPIEXEC_OPT:
 	    }
 
 	    poptFreeContext(optCon);
-	    optCon = poptGetContext(NULL, dup_argc, (const char **)dup_argv,
-		    optionsTable, POPT_CONTEXT_POSIXMEHARDER);
+	    optCon = poptGetContext(NULL, dup_argc, dup_argv, optionsTable,
+				    POPT_CONTEXT_POSIXMEHARDER);
 	    poptSetOtherOptionHelp(optCon, OTHER_OPTIONS_STR);
 
 	    /* continue parsing of sub mpiexec options */
@@ -2694,8 +2694,8 @@ PARSE_MPIEXEC_OPT:
 
     /* restore original context for further usage messages */
     poptFreeContext(optCon);
-    optCon = poptGetContext(NULL, argc, (const char **)argv,
-			    optionsTable, POPT_CONTEXT_POSIXMEHARDER);
+    optCon = poptGetContext(NULL, argc, argv, optionsTable,
+			    POPT_CONTEXT_POSIXMEHARDER);
     poptSetOtherOptionHelp(optCon, OTHER_OPTIONS_STR);
 
     if (rc < -1) {
@@ -2718,7 +2718,7 @@ PARSE_MPIEXEC_OPT:
  *
  * @return No return value.
  */
-static void printHelp(int argc, char *argv[])
+static void printHelp(int argc, const char *argv[])
 {
     /* output help */
     if (help) {
@@ -2890,7 +2890,7 @@ static void setSigHandlers(void)
     signal(SIGTERM, sighandler);
 }
 
-int main(int argc, char *argv[], char** envp)
+int main(int argc, const char *argv[], char** envp)
 {
     Conf_t *conf;
     char *envstr;
@@ -2913,10 +2913,8 @@ int main(int argc, char *argv[], char** envp)
     /* Initialzie daemon connection */
     PSE_initialize();
 
-    conf = malloc(sizeof(*conf));
-
     /* parse command line options */
-    parseCmdOptions(argc, argv);
+    conf = parseCmdOptions(argc, argv);
 
     printHelp(argc, argv);
 
@@ -2988,5 +2986,8 @@ int main(int argc, char *argv[], char** envp)
     if (verbose) {
 	printf("service process %s finished\n", PSC_printTID(PSC_getMyTID()));
     }
+
+    free(conf);
+
     return 0;
 }

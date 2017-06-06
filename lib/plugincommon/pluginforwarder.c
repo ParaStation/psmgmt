@@ -270,7 +270,7 @@ static bool initForwarder(int motherFD, Forwarder_Data_t *fw)
 
     /* overwrite proc title */
     if (fw->pTitle) {
-	PSC_setProcTitle(PSID_argc, (char ** )PSID_argv, fw->pTitle, 0);
+	PSC_setProcTitle(PSID_argc, PSID_argv, fw->pTitle, 0);
 	initPluginLogger(fw->pTitle, NULL);
     } else {
 	initPluginLogger("psidfw", NULL);
