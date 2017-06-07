@@ -68,17 +68,21 @@ void PSI_RemoteArgs(int Argc,char **Argv,int *RArgc,char ***RArgv);
  * spawned.
  *
  * The registered function is called for each process spawned. The
- * argument is the process's rank. It is expected to return an
- * environment as used internally within libpsi. This is an
- * NULL-terminated array of pointers to char arrays. Each
- * '\0'-terminated character array storing a single environment
- * variable is expected to be of the form <name>=<value>.
+ * first argument is the process's rank, the second argument is a
+ * pointer to additional information that was provided via the @a info
+ * parameter. It is expected to return an environment as used
+ * internally within libpsi. This is an NULL-terminated array of
+ * pointers to char arrays. Each '\0'-terminated character array
+ * storing a single environment variable is expected to be of the form
+ * <name>=<value>.
  *
- * @param func The function to register.
+ * @param func The function to register
+ *
+ * @param info Additional information to be passed to @a func.
  *
  * @return No return value.
  */
-void PSI_registerRankEnvFunc(char **(*func)(int));
+void PSI_registerRankEnvFunc(char **(*func)(int, void *), void *info);
 
 /**
  * @brief Spawn one or more tasks within the cluster.

@@ -1135,7 +1135,7 @@ static void setupExecEnv(Conf_t *conf, int execNum)
 /* Flag, if verbose-option is set */
 static int verboseRankMsg = 0;
 
-static char ** setupRankEnv(int psRank)
+static char ** setupRankEnv(int psRank, void *info)
 {
     static char *env[8];
     char buf[200];
@@ -1461,7 +1461,7 @@ static int startProcs(Conf_t *conf, int verbose)
     setupCommonEnv(np);
 
     verboseRankMsg = verbose;
-    PSI_registerRankEnvFunc(setupRankEnv);
+    PSI_registerRankEnvFunc(setupRankEnv, NULL);
 
     for (i = 0; i < conf->execCount; i++) {
 	setupExecEnv(conf, i);

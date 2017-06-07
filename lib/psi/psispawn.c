@@ -315,13 +315,16 @@ static int sendArgv(DDTypedBufferMsg_t *msg, char **argv)
 }
 
 /** Function called to create per rank environment */
-static char **(*extraEnvFunc)(int) = NULL;
+static char **(*extraEnvFunc)(int, void *) = NULL;
 
-void PSI_registerRankEnvFunc(char **(*func)(int))
+static void *extraEnvInfo = NULL;
+
+void PSI_registerRankEnvFunc(char **(*func)(int, void *), void *info)
 {
     PSI_log(PSI_LOG_SPAWN, "%s(%p)\n", __func__, func);
 
     extraEnvFunc = func;
+    extraEnvInfo = info;
 }
 
 /**
@@ -785,7 +788,7 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
 
 	/* Maybe some variable stuff shall also be sent */
 	if (extraEnvFunc) {
-	    char **extraEnv = extraEnvFunc(rank);
+	    char **extraEnv = extraEnvFunc(rank, extraEnvInfo);
 
 	    if (extraEnv) {
 		if (len) {

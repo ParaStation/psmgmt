@@ -250,7 +250,7 @@ static void setupCommonEnv(int np)
 /* Flag, if verbose-option is set */
 static int verboseRankMsg = 0;
 
-static char ** setupNodeEnv(int i)
+static char ** setupNodeEnv(int i, void *info)
 {
     static char rankItem[32];
     static char *env[] = {rankItem, NULL};
@@ -289,7 +289,7 @@ static int startProcs(int np, int argc, char *argv[], int verbose)
     setupCommonEnv(np);
 
     verboseRankMsg = verbose;
-    PSI_registerRankEnvFunc(setupNodeEnv);
+    PSI_registerRankEnvFunc(setupNodeEnv, NULL);
 
     errors = malloc(sizeof(int) * np);
     if (!errors) {
