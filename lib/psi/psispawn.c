@@ -432,7 +432,7 @@ recv_retry:
     case PSP_CD_SPAWNSUCCESS:
 	rank = errMsg->request - firstRank;
 	/* find the right task request */
-	if (rank && ((rank >= count)
+	if (rank && (rank >= count
 		     || (dstnodes[rank] != PSC_getID(answer.header.sender))
 		     || (tids && tids[rank])
 		     || errors[rank])) {
@@ -814,7 +814,7 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
 	rank++;
 	outstanding_answers++;
 
-	while ((PSI_availMsg() > 0) && outstanding_answers) {
+	while (PSI_availMsg() > 0 && outstanding_answers) {
 	    int r = handleAnswer(firstRank, count, dstnodes, errors, tids);
 	    switch (r) {
 	    case -1:
@@ -1078,7 +1078,7 @@ int PSI_spawnService(PSnodes_ID_t node, char *workdir, int argc, char **argv,
     if (rank >= -1) rank = -2;
 
     group = getSignals ? TG_SERVICE_SIG : TG_SERVICE;
-    if ((getenv("SERVICE_KVS_PROVIDER"))) group = TG_KVS;
+    if (getenv("SERVICE_KVS_PROVIDER")) group = TG_KVS;
 
     ret = dospawn(1, &node, workdir, argc, argv, 0, group, rank, error, tid);
     if (ret != 1) return -1;
