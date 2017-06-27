@@ -19,22 +19,103 @@ void getNodesFromSlurmHL(char *slurmNodes, uint32_t *nrOfNodes,
 			    PSnodes_ID_t **nodes, uint32_t *localId);
 int getSlurmMsgHeader(Slurm_Msg_t *sMsg, Connection_Forward_t *fw);
 
-#define sendSlurmRC(sMsg, rc) __sendSlurmRC(sMsg, rc, __func__, __LINE__)
+/**
+ * @brief Send a Slurm rc message
+ *
+ * Send a Slurm rc (return code) message.
+ *
+ * @param sMsg The rc message to send
+ *
+ * @param rc The return code
+ *
+ * @return Returns -1 on error or a positive number indicating that
+ * the message was either successfully send or stored.
+ */
 int __sendSlurmRC(Slurm_Msg_t *sMsg, uint32_t rc,
 		    const char *func, const int line);
 
+#define sendSlurmRC(sMsg, rc) __sendSlurmRC(sMsg, rc, __func__, __LINE__)
+
+/**
+ * @brief Send a Slurm reply message
+ *
+ * Send a Slurm reply message choosing the appropriate channel. First
+ * the message type is set. Then the message will either be send back
+ * to the root of the forwarding tree. Stored until all forwarding reply
+ * messages are received. Or send to its target destination if forwarding
+ * is disabled for the reply message.
+ *
+ * @param sMsg The reply message to send
+ *
+ * @param type The message type
+ *
+ * @param func Function name of the calling function
+ *
+ * @param line Line number where this function is called
+ *
+ * @return Returns -1 on error or a positive number indicating that
+ * the message was either successfully send or stored.
+ */
 int __sendSlurmReply(Slurm_Msg_t *sMsg, slurm_msg_type_t type,
 			const char *func, const int line);
+
 #define sendSlurmReply(sMsg, type) \
 		    __sendSlurmReply(sMsg, type, __func__, __LINE__)
 
-int writeJobscript(Job_t *job, char *script);
+/**
+ * @brief Save the jobscript to disk
+ *
+ * @param job The job of the jobscript
+ *
+ * @param script The script to write
+ *
+ * @param return Returns true on success and false on error.
+ */
+bool writeJobscript(Job_t *job, char *script);
 
 int sendTaskPids(Step_t *step);
 void sendLaunchTasksFailed(Step_t *step, uint32_t error);
+
+/**
+ * @brief Send a task exit message
+ *
+ * Send one or more task exit message(s) to srun or sattach. If
+ * ctlPort or ctlAddr is NULL a new control connection
+ * to the srun process of the provided step will be
+ * opened.
+ *
+ * @param step The step to send the message for
+ *
+ * @param ctlPort The control port of srun or sattach
+ *
+ * @param ctlAddr The control address of srun or sattach
+ */
 void sendTaskExit(Step_t *step, int *ctlPort, int *ctlAddr);
-void sendStepExit(Step_t *step, int exit_status);
-void sendJobExit(Job_t *job, uint32_t exit);
+
+/**
+ * @brief Send a step complete message
+ *
+ * Send a step complete message to the slurmctld. This message
+ * will be generated for the complete node list of the step and
+ * include the exit status and accounting information.
+ *
+ * @param step The step to send the message for
+ *
+ * @param exit_status The exit status of the step
+ */
+void sendStepExit(Step_t *step, uint32_t exit_status);
+
+/**
+ * @brief Send a batch job complete message
+ *
+ * Send a batch job complete message to the slurmctld.
+ *
+ * @param job The job to send the message for
+ *
+ * @param exit_status The exit status of the job
+ */
+void sendJobExit(Job_t *job, uint32_t exit_status);
+
 void sendEpilogueComplete(uint32_t jobid, uint32_t rc);
 int addSlurmAccData(uint8_t accType, pid_t childPid, PStask_ID_t loggerTID,
 			PS_DataBuffer_t *data, PSnodes_ID_t *nodes,

@@ -50,6 +50,14 @@
 
 #undef DEBUG_MSG_HEADER
 
+/**
+ * @brief Send a ping response
+ *
+ * Send a Slurm ping message including the current system
+ * load and free memory information.
+ *
+ * @param The ping request message
+ */
 static void sendPing(Slurm_Msg_t *sMsg)
 {
     PS_DataBuffer_t msg = { .buf = NULL };
@@ -127,7 +135,7 @@ void getNodesFromSlurmHL(char *slurmNodes, uint32_t *nrOfNodes,
     ufree(hostlist);
 }
 
-int writeJobscript(Job_t *job, char *script)
+bool writeJobscript(Job_t *job, char *script)
 {
     FILE *fp;
     char *jobdir, buf[PATH_BUFFER_LEN];
@@ -140,7 +148,7 @@ int writeJobscript(Job_t *job, char *script)
 
     if (!(fp = fopen(job->jobscript, "a"))) {
 	mlog("%s: open file '%s' failed\n", __func__, job->jobscript);
-	return 0;
+	return false;
     }
 
     while ((written = fprintf(fp, "%s", script)) !=
@@ -148,12 +156,12 @@ int writeJobscript(Job_t *job, char *script)
 	if (errno == EINTR) continue;
 	mlog("%s: writing jobscript '%s' failed : %s\n", __func__,
 		job->jobscript, strerror(errno));
-	return 0;
+	return false;
 	break;
     }
     fclose(fp);
 
-    return 1;
+    return true;
 }
 
 static int needIOReplace(char *ioString, char symbol)
@@ -1037,6 +1045,11 @@ static void handleAcctGatherEnergy(Slurm_Msg_t *sMsg)
     ufree(msg.buf);
 }
 
+/**
+ * @brief Find a step by its task (mpiexec) pid
+ *
+ * @param sMsg The request message
+ */
 static void handleJobId(Slurm_Msg_t *sMsg)
 {
     PS_DataBuffer_t msg = { .buf = NULL };
@@ -2324,7 +2337,7 @@ void sendNodeRegStatus(uint32_t status, int protoVersion)
 	addStringToMsg(verStr, &msg);
     }
 
-    sendSlurmMsg(-1, MESSAGE_NODE_REGISTRATION_STATUS, &msg);
+    sendSlurmMsg(SLURMCTLD_SOCK, MESSAGE_NODE_REGISTRATION_STATUS, &msg);
     ufree(msg.buf);
 }
 
@@ -2333,16 +2346,22 @@ int __sendSlurmReply(Slurm_Msg_t *sMsg, slurm_msg_type_t type,
 {
     int ret = 1;
 
+    /* save the new message type */
     sMsg->head.type = type;
+
     if (sMsg->source == -1) {
 	if (!sMsg->head.forward) {
+	    /* no forwarding active for this message, just send the answer */
 	    ret = sendSlurmMsg(sMsg->sock, type, sMsg->data);
 	} else {
+	    /* we are the root of the forwarding tree, so we save the result
+	     * and wait for all other forwarded messages to return */
 	    __saveFrwrdMsgRes(sMsg, SLURM_SUCCESS, func, line);
 	}
     } else {
-	/* forwarded message */
-	send_PS_ForwardRes(sMsg);
+	/* forwarded message from other psid,
+	 * send result back upward the tree */
+	ret = send_PS_ForwardRes(sMsg);
     }
 
     return ret;
@@ -2564,7 +2583,7 @@ int addSlurmAccData(uint8_t accType, pid_t childPid, PStask_ID_t loggerTID,
     return accData.numTasks;
 }
 
-void sendStepExit(Step_t *step, int exit_status)
+void sendStepExit(Step_t *step, uint32_t exit_status)
 {
     PS_DataBuffer_t body = { .buf = NULL };
     pid_t childPid;
@@ -2591,7 +2610,7 @@ void sendStepExit(Step_t *step, int exit_status)
     mlog("%s: sending REQUEST_STEP_COMPLETE to slurmctld: exit '%u'\n",
 	    __func__, exit_status);
 
-    sendSlurmMsg(-1, REQUEST_STEP_COMPLETE, &body);
+    sendSlurmMsg(SLURMCTLD_SOCK, REQUEST_STEP_COMPLETE, &body);
     ufree(body.buf);
 }
 
@@ -2652,7 +2671,7 @@ static void doSendTaskExit(Step_t *step, PS_Tasks_t *task, int exitCode,
     addUint32ToMsg(step->jobid, &body);
     addUint32ToMsg(step->stepid, &body);
 
-    if (!ctlPort) {
+    if (!ctlPort || !ctlAddr) {
 	mlog("%s: sending MESSAGE_TASK_EXIT '%u:%u' exit '%i'\n",
 		__func__, exitCount, *count,
 		(step->timeout ? 0 : exitCode));
@@ -2730,7 +2749,6 @@ void sendTaskExit(Step_t *step, int *ctlPort, int *ctlAddr)
 	    if (count != taskCount) {
 		mlog("%s: failed to find next exit code, count '%u' "
 			"taskCount '%u'\n", __func__, count, taskCount);
-
 	    }
 	    return;
 	}
@@ -2868,15 +2886,15 @@ int sendTaskPids(Step_t *step)
     return 1;
 }
 
-void sendJobExit(Job_t *job, uint32_t status)
+void sendJobExit(Job_t *job, uint32_t exit_status)
 {
     PS_DataBuffer_t body = { .buf = NULL };
     uint32_t id;
 
-    if (job->signaled) status = 0;
+    if (job->signaled) exit_status = 0;
 
     mlog("%s: REQUEST_COMPLETE_BATCH_SCRIPT: jobid '%s' exit '%u'\n", __func__,
-	    job->id, status);
+	    job->id, exit_status);
 
     id = atoi(job->id);
 
@@ -2891,7 +2909,7 @@ void sendJobExit(Job_t *job, uint32_t status)
     /* jobid */
     addUint32ToMsg(id, &body);
     /* jobscript exit code */
-    addUint32ToMsg(status, &body);
+    addUint32ToMsg(exit_status, &body);
     /* slurm return code, other than 0 the node goes offline */
     addUint32ToMsg(0, &body);
     /* uid of job */
@@ -2899,7 +2917,7 @@ void sendJobExit(Job_t *job, uint32_t status)
     /* mother superior hostname */
     addStringToMsg(job->hostname, &body);
 
-    sendSlurmMsg(-1, REQUEST_COMPLETE_BATCH_SCRIPT, &body);
+    sendSlurmMsg(SLURMCTLD_SOCK, REQUEST_COMPLETE_BATCH_SCRIPT, &body);
     ufree(body.buf);
 }
 
@@ -2916,7 +2934,7 @@ void sendEpilogueComplete(uint32_t jobid, uint32_t rc)
     /* node_name */
     addStringToMsg(getConfValueC(&Config, "SLURM_HOSTNAME"), &body);
 
-    sendSlurmMsg(-1, MESSAGE_EPILOG_COMPLETE, &body);
+    sendSlurmMsg(SLURMCTLD_SOCK, MESSAGE_EPILOG_COMPLETE, &body);
     ufree(body.buf);
 }
 

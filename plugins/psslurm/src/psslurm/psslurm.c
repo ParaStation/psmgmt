@@ -686,7 +686,7 @@ void cleanup(void)
     if (!isInit) return;
 
     /* close all remaining connections */
-    clearConnections();
+    clearSlurmCon();
 
     /* free config in pelogue plugin */
     psPelogueDelPluginConfig("psslurm");
@@ -704,6 +704,7 @@ void cleanup(void)
     clearJobList();
     clearGresConf();
     clearSlurmdProto();
+    clearMsgBuf();
     freeConfig(&Config);
     freeConfig(&SlurmConfig);
     freeConfig(&SlurmGresConfig);

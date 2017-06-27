@@ -134,16 +134,17 @@ PS_DataBuffer_t * dupDataBuffer(PS_DataBuffer_t *data)
 /** Maximum number of retries within @ref __doWrite() and __doRead() */
 #define MAX_RETRY 20
 
-int __doWrite(int fd, void *buffer, size_t toWrite, const char *func,
-	      bool pedantic, bool infinite)
+int __doWriteEx(int fd, void *buffer, size_t toWrite, size_t *written,
+	        const char *func, bool pedantic, bool infinite)
 {
     static time_t lastLog = 0;
     char *ptr = buffer;
-    size_t written = 0;
     int retries = 0;
 
-    while ((written < toWrite) && (infinite || retries++ <= MAX_RETRY)) {
-	ssize_t ret = write(fd, ptr + written, toWrite - written);
+    *written = 0;
+
+    while ((*written < toWrite) && (infinite || retries++ <= MAX_RETRY)) {
+	ssize_t ret = write(fd, ptr + *written, toWrite - *written);
 	if (ret == -1) {
 	    int eno = errno;
 	    if (eno == EINTR || eno == EAGAIN) continue;
@@ -159,12 +160,20 @@ int __doWrite(int fd, void *buffer, size_t toWrite, const char *func,
 	}
 	if (!pedantic) return ret;
 
-	written += ret;
+	*written += ret;
     }
 
-    if (written < toWrite) return -1;
+    if (*written < toWrite) return -1;
 
-    return written;
+    return *written;
+}
+
+int __doWrite(int fd, void *buffer, size_t toWrite, const char *func,
+	      bool pedantic, bool infinite)
+{
+    size_t written;
+
+    return __doWriteEx(fd, buffer, toWrite, &written, func, pedantic, infinite);
 }
 
 int __doReadExt(int fd, void *buffer, size_t toRead, size_t *numRead,

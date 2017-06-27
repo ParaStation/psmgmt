@@ -10,7 +10,7 @@
 #ifndef __PSSLURM_TYPES
 #define __PSSLURM_TYPES
 
-#include "slurmmsg.h"
+#include "psslurmmsg.h"
 
 /** Handler type for SLURMd messages */
 typedef void(*slurmdHandlerFunc_t)(Slurm_Msg_t *);

@@ -19,7 +19,7 @@
 #include "pstask.h"
 
 #include "psslurmgres.h"
-#include "slurmmsg.h"
+#include "psslurmmsg.h"
 
 #include "pluginforwarder.h"
 #include "plugincomm.h"

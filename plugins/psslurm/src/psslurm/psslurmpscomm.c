@@ -48,6 +48,88 @@
 
 #include "psslurmpscomm.h"
 
+typedef enum {
+    PSP_QUEUE = 3,	    /* obsolete */
+    PSP_QUEUE_RES,	    /* obsolete */
+    PSP_START,		    /* obsolete */
+    PSP_START_RES,	    /* obsolete */
+    PSP_DELETE,		    /* obsolete */
+    PSP_DELETE_RES,	    /* obsolete */
+    PSP_PROLOGUE_START,	    /* obsolete */
+    PSP_PROLOGUE_RES,	    /* obsolete */
+    PSP_EPILOGUE_START,	    /* obsolete */
+    PSP_EPILOGUE_RES,	    /* obsolete */
+    PSP_JOB_INFO,	    /* obsolete */
+    PSP_JOB_INFO_RES,	    /* obsolete */
+    PSP_TASK_IDS,	    /* obsolete */
+    PSP_REMOTE_JOB,	    /* obsolete */
+    PSP_SIGNAL_TASKS,
+    PSP_JOB_EXIT,
+    PSP_JOB_LAUNCH,
+    PSP_JOB_STATE_REQ,
+    PSP_JOB_STATE_RES,
+    PSP_FORWARD_SMSG,
+    PSP_FORWARD_SMSG_RES,
+    PSP_LAUNCH_TASKS,	    /* obsolete */
+    PSP_ALLOC_LAUNCH,
+    PSP_ALLOC_STATE,
+} PSP_PSSLURM_t;
+
+char *msg2Str(PSP_PSSLURM_t type)
+{
+    switch(type) {
+	case PSP_QUEUE:
+	    return "QUEUE";
+	case PSP_QUEUE_RES:
+	    return "QUEUE_RES";
+	case PSP_START:
+	    return "START";
+	case PSP_START_RES:
+	    return "START_RES";
+	case PSP_DELETE:
+	    return "DELETE";
+	case PSP_DELETE_RES:
+	    return "DELETE_RES";
+	case PSP_PROLOGUE_START:
+	    return "PROLOGUE_START";
+	case PSP_PROLOGUE_RES:
+	    return "PROLOGUE_RES";
+	case PSP_EPILOGUE_START:
+	    return "EPILOGUE_START";
+	case PSP_EPILOGUE_RES:
+	    return "EPILOGUE_RES";
+	case PSP_JOB_INFO:
+	    return "JOB_INFO";
+	case PSP_JOB_INFO_RES:
+	    return "JOB_INFO_RES";
+	case PSP_TASK_IDS:
+	    return "PSP_TASK_IDS";
+	case PSP_REMOTE_JOB:
+	    return "PSP_REMOTE_JOB";
+	case PSP_SIGNAL_TASKS:
+	    return "PSP_SIGNAL_TASKS";
+	case PSP_JOB_EXIT:
+	    return "PSP_JOB_EXIT";
+	case PSP_JOB_LAUNCH:
+	    return "PSP_JOB_LAUNCH";
+	case PSP_JOB_STATE_REQ:
+	    return "PSP_JOB_STATE_REQ";
+	case PSP_JOB_STATE_RES:
+	    return "PSP_JOB_STATE_RES";
+	case PSP_FORWARD_SMSG:
+	    return "PSP_FORWARD_SMSG";
+	case PSP_FORWARD_SMSG_RES:
+	    return "PSP_FORWARD_SMSG_RES";
+	case PSP_LAUNCH_TASKS:
+	    return "PSP_LAUNCH_TASKS";
+	case PSP_ALLOC_LAUNCH:
+	    return "PSP_ALLOC_LAUNCH";
+	case PSP_ALLOC_STATE:
+	    return "PSP_ALLOC_STATE";
+    }
+    return NULL;
+}
+
 static void grantPartRequest(PStask_t *task)
 {
     DDTypedMsg_t msg = (DDTypedMsg_t) {
@@ -792,6 +874,7 @@ void forwardSlurmMsg(Slurm_Msg_t *sMsg, Connection_Forward_t *fw)
     /* complete the forward header */
     fw->head.forward = sMsg->head.forward;
     fw->head.returnList = sMsg->head.returnList;
+    fw->head.fwSize = sMsg->head.forward;
     fw->head.fwdata =
 	umalloc(sMsg->head.forward * sizeof(Slurm_Forward_Data_t));
 
@@ -808,9 +891,10 @@ void forwardSlurmMsg(Slurm_Msg_t *sMsg, Connection_Forward_t *fw)
 	    sMsg->head.forward, fw->head.nodeList, fw->head.timeout);
 }
 
-void send_PS_ForwardRes(Slurm_Msg_t *sMsg)
+int send_PS_ForwardRes(Slurm_Msg_t *sMsg)
 {
     PS_DataBuffer_t msg = { .buf = NULL };
+    int ret;
 
     /* add forward information */
 
@@ -823,12 +907,15 @@ void send_PS_ForwardRes(Slurm_Msg_t *sMsg)
 
     addMemToMsg(sMsg->data->buf, sMsg->data->bufUsed, &msg);
 
-    sendFragMsg(&msg, sMsg->source, PSP_CC_PLUG_PSSLURM, PSP_FORWARD_SMSG_RES);
+    ret = sendFragMsg(&msg, sMsg->source, PSP_CC_PLUG_PSSLURM,
+		      PSP_FORWARD_SMSG_RES);
     ufree(msg.buf);
 
     mdbg(PSSLURM_LOG_FWD, "%s: type '%s' source '%s' socket '%i' recvTime "
 	    "'%zu'\n", __func__, msgType2String(sMsg->head.type),
 	    PSC_printTID(sMsg->source), sMsg->sock, sMsg->recvTime);
+
+    return ret;
 }
 
 static void handleFWslurmMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)

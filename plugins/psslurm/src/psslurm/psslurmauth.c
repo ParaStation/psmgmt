@@ -38,12 +38,7 @@ bool verifyUserId(uid_t userID, uid_t validID)
     return false;
 }
 
-/**
- * @brief Free a Slurm authentication structure
- *
- * @param auth The authentication structure to free
- */
-static void freeSlurmAuth(Slurm_Auth_t *auth)
+void freeSlurmAuth(Slurm_Auth_t *auth)
 {
     if (!auth) return;
 
@@ -52,7 +47,24 @@ static void freeSlurmAuth(Slurm_Auth_t *auth)
     ufree(auth);
 }
 
-void addSlurmAuth(PS_DataBuffer_t *data)
+Slurm_Auth_t *dupSlurmAuth(Slurm_Auth_t *auth)
+{
+    Slurm_Auth_t *dupAuth;
+
+    if (!auth) {
+	mlog("%s: invalid auth pointer\n", __func__);
+	return NULL;
+    }
+
+    dupAuth = umalloc(sizeof(*auth));
+    dupAuth->method = strdup(auth->method);
+    dupAuth->cred = strdup(auth->cred);
+    dupAuth->version = auth->version;
+
+    return dupAuth;
+}
+
+Slurm_Auth_t *getSlurmAuth(void)
 {
     Slurm_Auth_t *auth;
 
@@ -61,8 +73,7 @@ void addSlurmAuth(PS_DataBuffer_t *data)
     auth->version = AUTH_MUNGE_VERSION;
     psMungeEncode(&auth->cred);
 
-    packSlurmAuth(data, auth);
-    freeSlurmAuth(auth);
+    return auth;
 }
 
 bool extractSlurmAuth(char **ptr, Slurm_Msg_Header_t *msgHead)

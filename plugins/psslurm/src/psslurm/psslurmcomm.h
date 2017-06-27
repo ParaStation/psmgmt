@@ -13,7 +13,10 @@
 #include "psslurmjob.h"
 #include "psslurmio.h"
 #include "plugincomm.h"
-#include "slurmmsg.h"
+#include "psslurmmsg.h"
+#include "psslurmauth.h"
+
+#define SLURMCTLD_SOCK -1
 
 typedef int Connection_CB_t(Slurm_Msg_t *msg);
 
@@ -26,73 +29,18 @@ typedef struct {
 } Connection_Forward_t;
 
 /**
- * @brief Close all connections and free used memory
+ * @brief Close all slurm connections and free used memory
  */
-void clearConnections(void);
+void clearSlurmCon(void);
 
 /**
- * @brief Initialize a Slurm message
+ * @brief Close a slurm connection
  *
- * @param msg The message to initialize
+ * Close a slurm connection and free used memory.
+ *
+ * @param socket The socket for the connection to close
  */
-void initSlurmMsg(Slurm_Msg_t *msg);
-
-/**
- * @brief Free a Slurm message
- *
- * Close the associated connection, free used memory
- * and reset tracking information.
- *
- * @param sMsg The message to free
- */
-void freeSlurmMsg(Slurm_Msg_t *sMsg);
-
-/**
- * @brief Duplicate SLURM message
- *
- * Create a duplicate of the SLURM message @a sMsg and return a
- * pointer to it. All data buffers @a sMsg is referring to are
- * duplicated, too. In order to cleanup the duplicate appropriately
- * @ref releaseSlurmMsg() shall be called when the duplicate is not
- * needed any longer.
- *
- * @param sMsg SLURM messages to duplicate
- *
- * @return Upon success a pointer to the duplicate message is
- * returned. Or NULL in case of error.
- */
-Slurm_Msg_t * dupSlurmMsg(Slurm_Msg_t *sMsg);
-
-/**
- * @brief Release a duplicate SLURM message
- *
- * Release the duplicate SLURM message @a sMsg. This will also release
- * all data buffers @a sMsg is referring to. @a sMsg has to be created
- * by @ref dupSlurmMsg().
- *
- * @warning If @a sMsg is not the results of a call to @ref
- * dupSlurmMsg() the result is undefined and might lead to major
- * memory inconsistencies.
- *
- * @param sMsg SLURM messages to release
- *
- * @return No return value
- */
-void releaseSlurmMsg(Slurm_Msg_t *sMsg);
-
-/**
- * @brief Initialize a Slurm message header
- *
- * @param head The header to initialize
- */
-void initSlurmMsgHead(Slurm_Msg_Header_t *head);
-
-/**
- * @brief Free a Slurm message header
- *
- * @param head The header to free
- */
-void freeSlurmMsgHead(Slurm_Msg_Header_t *head);
+void closeSlurmCon(int socket);
 
 /**
  * @brief Send a Slurm message
@@ -141,13 +89,38 @@ int __sendSlurmMsg(int sock, slurm_msg_type_t type, PS_DataBuffer_t *body,
  *
  * @param line Line number where this function is called
  *
- * @return Returns the number of bytes written or -1 on error
+ * @return Returns the number of bytes written, -1 on error or -2 if
+ * the message was stored and will be send out later
  */
 int __sendSlurmMsgEx(int sock, Slurm_Msg_Header_t *head, PS_DataBuffer_t *body,
 			const char *caller, const int line);
 
 #define sendSlurmMsgEx(sock, head, body) \
     __sendSlurmMsgEx(sock, head, body, __func__, __LINE__)
+
+/**
+ * @brief Send a PS data buffer
+ *
+ * @param sock The socket file descriptor
+ *
+ * @param data The data buffer to send
+ *
+ * @param offset Number of bytes skipped at the beginning of data
+ *
+ * @param written Total number of bytes written upon return
+ *
+ * @param caller Function name of the calling function
+ *
+ * @param line Line number where this function is called
+ *
+ * @return Returns the number of bytes written or -1 on error. In the
+ * latter cases the number of bytes written anyhow is reported in @a written.
+ */
+int __sendDataBuffer(int sock, PS_DataBuffer_t *data, size_t offset,
+		     size_t *written, const char *caller, const int line);
+
+#define sendDataBuffer(sock, data, offset, written) \
+    __sendDataBuffer(sock, data, offset, written, __func__, __LINE__)
 
 /**
  * @brief Save result of a fowarded message
@@ -189,16 +162,6 @@ int openSlurmdSocket(int port);
  * @brief Close Slurm listen socket
  */
 void closeSlurmdSocket(void);
-
-/**
- * @brief Convert a Slurm message type from integer
- * to string representation
- *
- * @param type The message type to convert
- *
- * @return Returns the result or an empty string on error
- */
-const char *msgType2String(int type);
 
 /**
  * @brief Read a bitstring from buffer
@@ -370,5 +333,17 @@ int handleSrunMsg(int sock, void *data);
  * @param step The step to close the connections for
  */
 void closeAllStepConnections(Step_t *step);
+
+/**
+ * @brief Open a new connection to slurmctld
+ *
+ * Open a new connection to the slurmctld. If the connection
+ * can't be established a new connection attempt to the backup
+ * controller is made. On success a selector to the function
+ * handleSlurmctldReply() is registered for the connected socket.
+ *
+ * @return Returns the connected socket or -1 on error.
+ */
+int connect2Slurmctld(void);
 
 #endif  /* __PSSLURM_COMM */
