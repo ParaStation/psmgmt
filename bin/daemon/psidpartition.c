@@ -3091,7 +3091,6 @@ static int releaseThreads(PSpart_slot_t *slot, unsigned int nSlots,
 		}
 		PSCPU_clrCPU(slot[s].CPUset, thrd->id);
 		numToRelease--;
-		break;
 	    }
 	}
     }
@@ -4380,6 +4379,8 @@ void PSIDpart_cleanupRes(PStask_t *task)
 	    }
 	    free(res->slots);
 	    res->slots = NULL;
+	    if (released) PSID_log(PSID_LOG_PART, "%s: %d released\n",
+				   __func__, released);
 	}
 	PSrsrvtn_put(res);
     }

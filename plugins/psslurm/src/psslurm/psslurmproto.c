@@ -1238,8 +1238,16 @@ static void handleTerminateJob(Slurm_Msg_t *sMsg, Job_t *job, int signal)
     /* we wait for mother superior to release the job */
     if (job->mother) {
 	if (job->terminate > 3) {
-	    send_PS_JobState(job->jobid, job->mother);
-	    job->terminate = 1;
+	    if (!job->mother || job->mother == -1) {
+		/* unknown mother superior */
+		mlog("%s: unknown mother superior, releasing job '%u'\n",
+			__func__, job->jobid);
+		sendEpilogueComplete(job->jobid, 0);
+		deleteJob(job->jobid);
+	    } else {
+		send_PS_JobState(job->jobid, job->mother);
+		job->terminate = 1;
+	    }
 	}
 	sendSlurmRC(sMsg, SLURM_SUCCESS);
 	return;
@@ -1305,8 +1313,16 @@ static void handleTerminateAlloc(Slurm_Msg_t *sMsg, Alloc_t *alloc)
     if (alloc->motherSup != PSC_getMyTID()) {
 	shutdownStepForwarder(alloc->jobid);
 	if (alloc->terminate > 3) {
-	    send_PS_JobState(alloc->jobid, PSC_getTID(alloc->motherSup, 0));
-	    alloc->terminate = 1;
+	    if (!alloc->motherSup || alloc->motherSup == -1) {
+		/* unknown mother superior */
+		mlog("%s: unknown mother superior, releasing allocation '%u'\n",
+			__func__, alloc->jobid);
+		sendEpilogueComplete(alloc->jobid, 0);
+		deleteAlloc(alloc->jobid);
+	    } else {
+		send_PS_JobState(alloc->jobid, PSC_getTID(alloc->motherSup, 0));
+		alloc->terminate = 1;
+	    }
 	}
 	sendSlurmRC(sMsg, SLURM_SUCCESS);
 	return;

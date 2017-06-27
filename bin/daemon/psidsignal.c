@@ -95,6 +95,7 @@ int PSID_kill(pid_t pid, int sig, uid_t uid)
 	return -1;
     }
 
+    PSID_blockSig(1, SIGTERM);
     /*
      * fork to a new process to change the userid
      * and get the right errors
@@ -108,6 +109,7 @@ int PSID_kill(pid_t pid, int sig, uid_t uid)
 	int error, fd, maxFD = sysconf(_SC_OPEN_MAX);
 
 	PSID_resetSigs();
+	PSID_blockSig(0, SIGTERM);
 	PSID_blockSig(0, SIGCHLD);
 
 	/* close all fds except the control channel and stdin/stdout/stderr */
@@ -151,6 +153,8 @@ int PSID_kill(pid_t pid, int sig, uid_t uid)
 
     /* close the writing pipe */
     close(cntrlfds[1]);
+
+    PSID_blockSig(0, SIGTERM);
 
     /* check if fork() was successful */
     if (forkPid == -1) {
@@ -736,6 +740,304 @@ static void drop_NEWRELATIVE(DDBufferMsg_t *msg)
     sendMsg(&sigmsg);
 }
 
+/**
+ * @brief Handle PSP_DD_NEWANCESTOR message
+ *
+ * Handle the message @a msg of type PSP_DD_NEWANCESTOR.
+ *
+ * This kind of message is sent to nodes hosting children of an
+ * exiting task in order to pass these children to the task's parent
+ * process (i.e. the children's original grandparent process)). From
+ * now on all tasks on the receiving node that are children of the
+ * sending task will handle its grandparent (passed in @a
+ * msg->request) as its own parent. This includes all signal handling.
+ *
+ * To report the actually changed children to the grandparent process,
+ * one or more messages of type PSP_DD_ADOPTCHILDSET are sent
+ * there. The destination of the original PSP_DD_NEWANCESTOR message
+ * holds the kept back signal at the parent task. Thus, this
+ * information has to be forwarded, too (as the sender of the new
+ * message).
+ *
+ * @param msg Pointer to the message to handle
+ *
+ * @return No return value
+ */
+static void msg_NEWANCESTOR(DDErrorMsg_t *msg)
+{
+    DDBufferMsg_t answer = (DDBufferMsg_t) {
+	.header = (DDMsg_t) {
+	    .type = PSP_DD_ADOPTCHILDSET,
+	    .dest = msg->request,
+	    .sender = msg->header.dest,
+	    .len = sizeof(answer.header) },
+	.buf = { 0 } };
+    list_t *t;
+    size_t emptyLen = answer.header.len, oldLen;
+    PStask_ID_t nTID = 0;
+    int found = 0;
+    bool grandParentOK = PSIDnodes_isUp(PSC_getID(msg->request));
+
+    if (grandParentOK) {
+	PSP_putMsgBuf(&answer, __func__, "parent TID",
+		      &msg->header.sender, sizeof(msg->header.sender));
+	emptyLen = answer.header.len;
+    }
+
+    list_for_each(t, &managedTasks) {
+	PStask_t *task = list_entry(t, PStask_t, next);
+
+	if (task->deleted || task->ptid != msg->header.sender
+	    || task->released || task->group == TG_FORWARDER) continue;
+	found++;
+
+	PSID_log(PSID_LOG_SIGNAL, "%s: %s: parent",
+		 __func__, PSC_printTID(task->tid));
+	PSID_log(PSID_LOG_SIGNAL, " %s released;", PSC_printTID(task->ptid));
+	PSID_log(PSID_LOG_SIGNAL, " new parent is %s\n",
+		 PSC_printTID(msg->request));
+
+	/* Signal from old parent was expected */
+	PSID_removeSignal(&task->assignedSigs, msg->header.sender, -1);
+
+	if (!grandParentOK) {
+	    /* Node is down, deliver signal now */
+	    PSID_sendSignal(task->tid, task->uid, msg->request, -1, 0, 0);
+	    continue;
+	} else {
+	    task->ptid = msg->request;
+	    /* parent will send signal on exit -> include into assignedSigs */
+	    PSID_setSignal(&task->assignedSigs, msg->request, -1);
+
+	    /* Also change forwarder's ptid */
+	    if (task->forwardertid) {
+		PStask_t *forwarder = PStasklist_find(&managedTasks,
+						      task->forwardertid);
+		if (!forwarder) {
+		    PSID_log(-1, "%s(%s): no forwarder\n", __func__,
+			     PSC_printTID(task->tid));
+		} else {
+		    forwarder->ptid = msg->request;
+		}
+	    }
+	}
+
+	oldLen = answer.header.len;
+	if (!PSP_tryPutMsgBuf(&answer, __func__, "TID",
+			      &task->tid, sizeof(task->tid))
+	    || !PSP_tryPutMsgBuf(&answer, __func__, "released",
+				 &task->released, sizeof(task->released))) {
+	    answer.header.len = oldLen;
+	    sendMsg(&answer);
+	    answer.header.len = emptyLen;
+	    PSP_putMsgBuf(&answer, __func__, "TID",
+			  &task->tid, sizeof(task->tid));
+	    PSP_putMsgBuf(&answer, __func__, "released",
+			  &task->released, sizeof(task->released));
+	}
+    }
+
+    if (!found) {
+	PSID_log(PSID_LOG_SIGNAL, "%s(%s): no children found\n", __func__,
+		 PSC_printTID(msg->header.sender));
+    }
+
+    if (grandParentOK) {
+	if (!PSP_tryPutMsgBuf(&answer, __func__, "end", &nTID, sizeof(nTID))) {
+	    sendMsg(&answer);
+	    answer.header.len = emptyLen;
+	    PSP_putMsgBuf(&answer, __func__, "nullTID", &nTID, sizeof(nTID));
+	}
+    } else {
+	answer.header.type = PSP_DD_INHERITFAILED;
+	answer.header.sender = msg->header.dest;
+	answer.header.dest = msg->header.sender;
+    }
+
+    sendMsg(&answer);
+}
+
+/**
+ * @brief Handle PSP_DD_ADOPTCHILDSET message
+ *
+ * Handle the message @a msg of type PSP_DD_ADOPTCHILDSET.
+ *
+ * This kind of message is sent to a set of tasks grandparent process
+ * in order to update the information concerning the list of
+ * children. From now on all tasks included in the message will be
+ * handled as children of the receiving task i.e. it will send and
+ * expect signals if one of the corresponding processes dies.
+ *
+ * This message either results in a PSP_DD_ADOPTFAILED message if the
+ * grandparent is unknown or in a PSP_DD_INHERITDONE message to the
+ * originally passing process. The latter is a child process of the
+ * receiving grandparent process and the parent process of the
+ * inherited grandchildren.
+ *
+ * @param msg Pointer to the message to handle
+ *
+ * @return No return value
+ */
+static void msg_ADOPTCHILDSET(DDBufferMsg_t *msg)
+{
+    PStask_t *task = PStasklist_find(&managedTasks, msg->header.dest);
+    PStask_ID_t child, tid;
+    size_t used = 0;
+    bool lastGrandchild = false;
+
+    if (!task || !PSIDnodes_isUp(PSC_getID(msg->header.sender))) {
+	PSID_log(PSID_LOG_SIGNAL, "%s(%s): no task\n", __func__,
+		 PSC_printTID(msg->header.dest));
+	PSID_dropMsg(msg);
+	return;
+    }
+
+    if (!PSP_getMsgBuf(msg, &used, __func__, "child", &child, sizeof(child))) {
+	PSID_log(-1, "%s: %s: truncated\n", __func__, PSC_printTID(task->tid));
+	return;
+    }
+
+    while (PSP_tryGetMsgBuf(msg, &used, __func__, "tid", &tid, sizeof(tid))) {
+	bool rlsd, deadBefore;
+	if (!tid) {
+	    lastGrandchild = true;
+	    break;
+	}
+	PSP_tryGetMsgBuf(msg, &used, __func__, "released", &rlsd, sizeof(rlsd));
+	deadBefore = !!PSID_getSignalByTID(&task->deadBefore, tid);
+
+	PSID_log(PSID_LOG_SIGNAL, "%s: %s:", __func__, PSC_printTID(task->tid));
+	PSID_log(PSID_LOG_SIGNAL, " new child %s", PSC_printTID(tid));
+	PSID_log(PSID_LOG_SIGNAL, " inherited from %s\n", PSC_printTID(child));
+
+	if (PSID_getSignalByTID(&task->releasedBefore, tid)) {
+	    /* RELEASE already received */
+	    PSID_log(PSID_LOG_SIGNAL, "%s: inherit released child %s\n",
+		     __func__, PSC_printTID(tid));
+	} else if (!rlsd && !deadBefore) {
+	    PSID_setSignal(&task->assignedSigs, tid, -1);
+	}
+	if (deadBefore) {
+	    /* CHILDDEAD already received */
+	    PSID_log(PSID_LOG_SIGNAL, "%s: inherit dead child %s\n",
+		     __func__, PSC_printTID(tid));
+	} else {
+	    PSID_setSignal(&task->childList, tid, -1);
+	}
+    }
+
+    if (lastGrandchild) {
+	DDBufferMsg_t answer = (DDBufferMsg_t) {
+	    .header = (DDMsg_t) {
+		.type = PSP_DD_INHERITDONE,
+		.sender = msg->header.dest,
+		.dest = child,
+		.len = sizeof(answer.header) },
+	    .buf = { 0 } };
+
+	PSP_putMsgBuf(&answer, __func__, "kept child", &msg->header.sender,
+		      sizeof(msg->header.sender));
+
+	sendMsg(&answer);
+    }
+}
+
+/**
+ * @brief Drop PSP_DD_ADOPTCHILDSET message
+ *
+ * Drop the message @a msg of type PSP_DD_ADOPTCHILDSET.
+ *
+ * Since the sending daemon has to adjust its setting and to provide
+ * information to the originally passing process a corresponding
+ * answer is created.
+ *
+ * @param msg Pointer to the message to drop
+ *
+ * @return No return value
+ */
+static void drop_ADOPTCHILDSET(DDBufferMsg_t *msg)
+{
+    PStask_ID_t temp = msg->header.dest;
+
+    msg->header.type = PSP_DD_ADOPTFAILED;
+    msg->header.dest = msg->header.sender;
+    msg->header.sender = temp;
+
+    sendMsg(msg);
+}
+
+/**
+ * @brief Handle PSP_DD_ADOPTFAILED message
+ *
+ * Handle the message @a msg of type PSP_DD_ADOPTFAILED.
+ *
+ * This kind of message is sent whenever a PSP_DD_ADOPTCHILDSET
+ * message is dropped. It is send to the nodes of the processes to be
+ * adopted by the grandparent in order to mark them as orphaned. For
+ * this, corresponding signals are sent to those processes.
+ *
+ * Furthermore, the parent process that orgininally tried to pass its
+ * children to its parent process is updated by a corresponding
+ * message of type PSP_DD_INHERITFAILED.
+ *
+ * @param msg Pointer to the message to handle
+ *
+ * @return No return value
+ */
+static void msg_ADOPTFAILED(DDBufferMsg_t *msg)
+{
+    PStask_ID_t ptid, tid;
+    size_t used = 0;
+
+    if (!PSP_getMsgBuf(msg, &used, __func__, "ptid", &ptid, sizeof(ptid))) {
+	PSID_log(-1, "%s: from %s: truncated\n", __func__,
+		 PSC_printTID(msg->header.sender));
+	return;
+    }
+
+    while (PSP_tryGetMsgBuf(msg, &used, __func__, "tid", &tid, sizeof(tid))) {
+	PStask_t *task;
+
+	if (!tid) {
+	    /* last child received, tell parent */
+	    DDMsg_t answer = {
+		.type = PSP_DD_INHERITFAILED,
+		.sender = msg->header.dest,
+		.dest = ptid,
+		.len = sizeof(answer) };
+	    sendMsg(&answer);
+	    break;
+	}
+
+	task = PStasklist_find(&managedTasks, tid);
+	if (!task) continue; /* Task already gone */
+
+	PSID_log(-1, "%s: New parent %s is gone.", __func__,
+		 PSC_printTID(msg->header.sender));
+	PSID_log(-1, " kill %s\n", PSC_printTID(tid));
+
+	/* Signal from new parent was set to be expected */
+	PSID_removeSignal(&task->assignedSigs, msg->header.sender, -1);
+
+	task->ptid = ptid;
+
+	PSID_sendSignal(task->tid, task->uid, ptid, -1, 0, 0);
+
+	/* Also change back forwarder's ptid */
+	if (task->forwardertid) {
+	    PStask_t *forwarder = PStasklist_find(&managedTasks,
+						  task->forwardertid);
+	    if (!forwarder) {
+		PSID_log(-1, "%s(%s): no forwarder\n", __func__,
+			 PSC_printTID(msg->header.dest));
+	    } else {
+		forwarder->ptid = ptid;
+	    }
+	}
+
+    }
+}
+
 static void msg_RELEASE(DDSignalMsg_t *msg);
 
 /**
@@ -852,6 +1154,21 @@ static int releaseSignal(PStask_ID_t sigSndr, PStask_ID_t sigRcvr, int sig,
 static int releaseTask(PStask_t *task)
 {
     int ret;
+    static bool *sentToNode = NULL;
+    static size_t sTNSize = 0;
+
+    if (sTNSize < (size_t) PSC_getNrOfNodes()) {
+	bool *bak = sentToNode;
+
+	sTNSize = PSC_getNrOfNodes();
+	sentToNode = realloc(sentToNode, sTNSize);
+	if (!sentToNode) {
+	    if (bak) free(bak);
+	    sTNSize = 0;
+	    PSID_warn(-1, ENOMEM, "%s: realloc()", __func__);
+	    return ENOMEM;
+	}
+    }
 
     if (!task) {
 	PSID_log(-1, "%s(): no task\n", __func__);
@@ -870,21 +1187,21 @@ static int releaseTask(PStask_t *task)
 	task->pendingReleaseRes++;
 
 	if (task->ptid) {
-	    DDErrorMsg_t inheritMsg;
-	    inheritMsg.header.sender = task->tid;
-	    inheritMsg.header.len = sizeof(inheritMsg);
-
 	    /* Reorganize children. They are inherited by the parent task */
-	    sig = -1;
+	    PSnodes_ID_t parentNode = PSC_getID(task->ptid);
 
+	    memset(sentToNode, false, sTNSize);
+
+	    sig = -1;
 	    while ((child = PSID_getSignal(&task->childList, &sig))) {
 		bool assgnd = !!PSID_findSignal(&task->assignedSigs, child, -1);
+		PSnodes_ID_t childNode = PSC_getID(child);
 
 		PSID_log(PSID_LOG_TASK|PSID_LOG_SIGNAL, "%s: notify child %s\n",
 			 __func__, PSC_printTID(child));
 
 		/* Child's assigned signal not needed any more */
-		if (assgnd) PSID_removeSignal(&task->assignedSigs, child, sig);
+		if (assgnd) PSID_removeSignal(&task->assignedSigs, child, -1);
 
 		if (task->group == TG_KVS && task->noParricide) {
 		    /* Avoid inheritance to prevent parricide */
@@ -892,35 +1209,59 @@ static int releaseTask(PStask_t *task)
 		    continue;
 		}
 
-		/* Send child new ptid */
-		inheritMsg.header.type = PSP_DD_NEWPARENT;
-		inheritMsg.header.dest = child;
-		inheritMsg.request = task->ptid;
-		task->pendingReleaseRes++;
+		if (PSIDnodes_getDmnProtoV(childNode) < 412
+		    || PSIDnodes_getDmnProtoV(parentNode) < 412) {
 
-		sendMsg(&inheritMsg);
+		    /* Send child new ptid */
+		    DDErrorMsg_t inheritMsg = (DDErrorMsg_t) {
+			.header = {
+			    .type = PSP_DD_NEWPARENT,
+			    .dest = child,
+			    .sender =  task->tid,
+			    .len = sizeof(inheritMsg) },
+			.request = task->ptid,
+			.error = 1 };
 
-		/* Send parent new child */
-		inheritMsg.header.type = PSP_DD_NEWCHILD;
-		inheritMsg.header.dest = task->ptid;
-		inheritMsg.request = child;
-		inheritMsg.error = 0;
-		if (assgnd) {
-		    /* Flag new parent that child is not yet released */
-		    inheritMsg.error = -1;
+		    task->pendingReleaseRes++;
+		    sendMsg(&inheritMsg);
+
+		    /* Send parent new child */
+		    inheritMsg = (DDErrorMsg_t) {
+			.header = {
+			    .type = PSP_DD_NEWCHILD,
+			    .dest =  task->ptid,
+			    .sender =  task->tid,
+			    .len = sizeof(inheritMsg) },
+			.request = child,
+			.error = assgnd ? -1 : 0 /* already released? */ };
+
+		    task->pendingReleaseRes++;
+		    sendMsg(&inheritMsg);
+		} else {
+		    if (!sentToNode[childNode]) {
+			DDErrorMsg_t inheritMsg = (DDErrorMsg_t) {
+			    .header = (DDMsg_t) {
+				.type = PSP_DD_NEWANCESTOR,
+				.sender = task->tid,
+				.dest = child,
+				.len = sizeof(inheritMsg) },
+			    .request = task->ptid,
+			    .error = 0 };
+
+			task->pendingReleaseRes++;
+
+			sendMsg(&inheritMsg);
+			sentToNode[childNode] = true;
+			PSID_setSignal(&task->keptChildren, child, -1);
+		    }
 		}
-		task->pendingReleaseRes++;
 
-		sendMsg(&inheritMsg);
-
-		/* Also remove child's assigned signal */
-		PSID_removeSignal(&task->assignedSigs, child, sig);
+		/* Prepare to get next child */
 		sig = -1;
 	    }
 
 	    /* Remove parent's assigned signal */
 	    PSID_removeSignal(&task->assignedSigs, task->ptid, -1);
-	    sig = -1;
 	}
 
 	/* Don't send any signals to me after release */
@@ -1174,8 +1515,120 @@ static void msg_RELEASERES(DDSignalMsg_t *msg)
     if (task->releaseAnswer) sendMsg(msg);
 }
 
+static void send_RELEASERES(PStask_t *task, PStask_ID_t sender)
+{
+    DDSignalMsg_t msg = (DDSignalMsg_t) {
+	.header = (DDMsg_t) {
+	    .type = PSP_CD_RELEASERES,
+	    .sender = sender,
+	    .dest = task->tid,
+	    .len = sizeof(msg) },
+	.signal = -1,
+	.param = task->pendingReleaseErr };
+
+    if (msg.param) {
+	PSID_warn(-1, msg.param, "%s: forward error = %d to local %s", __func__,
+		  msg.param, PSC_printTID(task->tid));
+    } else {
+	PSID_log(PSID_LOG_SIGNAL, "%s: tell local parent %s\n", __func__,
+		 PSC_printTID(task->tid));
+    }
+
+    /* If task is not connected, origin of RELEASE message was forwarder */
+    if (task->fd == -1) msg.header.dest = task->forwardertid;
+
+    /* send the initiator a result msg */
+    if (task->releaseAnswer) sendMsg(&msg);
+}
+
 /**
- * @brief Handle a PSP_CD_WHODIED message
+ * @brief Handle PSP_DD_INHERITDONE message
+ *
+ * Handle the message @a msg of type PSP_DD_INHERITDONE.
+ *
+ * This kind of message is sent in order to tell the passing
+ * process about the successful adoption of children processes.
+ *
+ * @param msg Pointer to the message to handle
+ *
+ * @return No return value
+ */
+static void msg_INHERITDONE(DDBufferMsg_t *msg)
+{
+    PStask_ID_t tid = msg->header.dest, keptChild;
+    PStask_t *task = PStasklist_find(&managedTasks, tid);
+    size_t used = 0;
+
+    if (!PSP_getMsgBuf(msg, &used, __func__, "kept child", &keptChild,
+		       sizeof(keptChild))) {
+	PSID_log(-1, "%s(%s): truncated\n", __func__, PSC_printTID(tid));
+	return;
+    }
+
+    if (!task) {
+	PSID_log(-1, "%s(%s) for %d: no task\n", __func__, PSC_printTID(tid),
+		 PSC_getID(keptChild));
+	return;
+    }
+
+    /* remove kept back signal */
+    PSID_removeSignal(&task->keptChildren, keptChild, -1);
+
+    task->pendingReleaseRes--;
+    if (task->pendingReleaseRes
+	|| (!task->parentReleased && !deregisterFromParent(task))) {
+	PSID_log(PSID_LOG_SIGNAL, "%s(%s) still %d pending\n",
+		 __func__, PSC_printTID(tid), task->pendingReleaseRes);
+    } else {
+	send_RELEASERES(task, msg->header.sender);
+    }
+}
+
+/**
+ * @brief Handle PSP_DD_INHERITFAILED message
+ *
+ * Handle the message @a msg of type PSP_DD_INHERITFAILED.
+ *
+ * This kind of message is sent whenever passing children to their
+ * grandparent process fails. It is sent to the passingp process in
+ * order to tell that the children processes are finally orphaned and
+ * correspondingly killed.
+ *
+ * @param msg Pointer to the message to handle
+ *
+ * @return No return value
+ */
+static void msg_INHERITFAILED(DDBufferMsg_t *msg)
+{
+    PStask_ID_t tid = msg->header.dest, keptChild = msg->header.sender;
+    PStask_t *task = PStasklist_find(&managedTasks, tid);
+
+    if (!task) {
+	PSID_log(-1, "%s(%s) for %d: no task\n", __func__, PSC_printTID(tid),
+		 PSC_getID(keptChild));
+	return;
+    }
+
+    /* remove kept back signal */
+    PSID_removeSignal(&task->keptChildren, keptChild, -1);
+
+    if (!task->pendingReleaseErr) task->pendingReleaseErr = EACCES;
+    PSID_log(-1, "%s: from %s", __func__, PSC_printTID(keptChild));
+    PSID_log(-1, " for local %s\n", PSC_printTID(tid));
+
+    task->pendingReleaseRes--;
+    if (task->pendingReleaseRes
+	|| (!task->parentReleased && !deregisterFromParent(task))) {
+	PSID_log(PSID_LOG_SIGNAL, "%s(%s) still %d pending\n",
+		 __func__, PSC_printTID(tid), task->pendingReleaseRes);
+	return;
+    } else {
+	send_RELEASERES(task, msg->header.sender);
+    }
+}
+
+/**
+ * @brief Handle PSP_CD_WHODIED message
  *
  * Handle the message @a msg of type PSP_CD_WHODIED.
  *
@@ -1270,14 +1723,20 @@ void initSignal(void)
     PSID_registerMsg(PSP_CD_RELEASERES, (handlerFunc_t) msg_RELEASERES);
     PSID_registerMsg(PSP_CD_SIGNAL, (handlerFunc_t) msg_SIGNAL);
     PSID_registerMsg(PSP_CD_WHODIED, (handlerFunc_t) msg_WHODIED);
-    PSID_registerMsg(PSP_DD_NEWCHILD, (handlerFunc_t) msg_NEWCHILD);
-    PSID_registerMsg(PSP_DD_NEWPARENT, (handlerFunc_t) msg_NEWPARENT);
+    PSID_registerMsg(PSP_DD_NEWCHILD, (handlerFunc_t) msg_NEWCHILD); /* obsol.*/
+    PSID_registerMsg(PSP_DD_NEWPARENT, (handlerFunc_t) msg_NEWPARENT); /* obs.*/
+    PSID_registerMsg(PSP_DD_NEWANCESTOR, (handlerFunc_t) msg_NEWANCESTOR);
+    PSID_registerMsg(PSP_DD_ADOPTCHILDSET, msg_ADOPTCHILDSET);
+    PSID_registerMsg(PSP_DD_ADOPTFAILED, msg_ADOPTFAILED);
+    PSID_registerMsg(PSP_DD_INHERITDONE, msg_INHERITDONE);
+    PSID_registerMsg(PSP_DD_INHERITFAILED, msg_INHERITFAILED);
 
     PSID_registerDropper(PSP_CD_SIGNAL, drop_SIGNAL);
-    PSID_registerDropper(PSP_DD_NEWCHILD, drop_NEWRELATIVE);
-    PSID_registerDropper(PSP_DD_NEWPARENT, drop_NEWRELATIVE);
+    PSID_registerDropper(PSP_DD_NEWCHILD, drop_NEWRELATIVE); /* obsolete */
+    PSID_registerDropper(PSP_DD_NEWPARENT, drop_NEWRELATIVE); /* obsolete */
     PSID_registerDropper(PSP_CD_NOTIFYDEAD, drop_RELEASE);
     PSID_registerDropper(PSP_CD_RELEASE, drop_RELEASE);
+    PSID_registerDropper(PSP_DD_ADOPTCHILDSET, drop_ADOPTCHILDSET);
 
     PSID_registerLoopAct(signalGC);
 }

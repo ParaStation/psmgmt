@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2015 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2017 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -21,14 +21,9 @@
 #ifndef __PARSE_H
 #define __PARSE_H
 
-#include "list.h"
+#include <stdio.h>
 
-#ifdef __cplusplus
-extern "C" {
-#if 0
-} /* <- just for emacs indentation */
-#endif
-#endif
+#include "list.h"
 
 /**
  * Structure to store the daemons configuration read from the
@@ -123,9 +118,5 @@ typedef struct {
  */
 config_t* parseConfig(FILE* logfile, int loglevel, char* configfile);
 config_t* parseOldConfig(FILE* logfile, int loglevel, char* configfile);
-
-#ifdef __cplusplus
-}/* extern "C" */
-#endif
 
 #endif /* __PARSE_H */

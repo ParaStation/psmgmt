@@ -1,3 +1,121 @@
+Version psmgmt-5.1.5:
+=====================
+------------------------------------------------------------------------
+29e292d2 | Norbert Eicker | Fri, 26 May 2017 14:08:29 +0200
+
+Bugfix: Prevent inheritance of forwarder processes (#2629)
+
+ - Inheriting forwarder processes might lead to leftover task structures
+ - Kept references to child tasks must not be stored in assignedSigs list
+
+------------------------------------------------------------------------
+ce8286bd | Norbert Eicker | Tue, 23 May 2017 18:02:42 +0200
+
+Improved logging
+
+------------------------------------------------------------------------
+2a946f7c | Norbert Eicker | Tue, 23 May 2017 17:18:15 +0200
+
+Bugfix: Check that task is still present (#2629)
+
+------------------------------------------------------------------------
+54f2e166 | Michael Rauh | Mon, 22 May 2017 13:14:26 +0200
+
+Don't try to pack empty data if slurm message forwarding fails
+
+------------------------------------------------------------------------
+4b13e88b | Michael Rauh | Thu, 18 May 2017 16:03:53 +0200
+
+Bugfix: Ensure jobs get released if mother superior is unkown (jrt:#6645)
+
+------------------------------------------------------------------------
+bb1b42bf | Norbert Eicker | Mon, 15 May 2017 18:32:09 +0200
+
+Bugfix: Catch rare race-condition
+
+ - If SIGTERM is catched by a child before signal handlers are reset to
+   default psid might loose proper handling of master socket (jrt:#6680)
+
+------------------------------------------------------------------------
+d2434ac7 | Thomas Moschny | Tue, 4 Apr 2017 11:21:56 +0200
+
+IWYU prep: Add missing #includes to make header files self-contained.
+
+Superfluous #includes will be removed later.
+
+------------------------------------------------------------------------
+fea3e78a | Norbert Eicker | Wed, 5 Apr 2017 12:40:58 +0200
+
+Merge branch 'ticket-6426'
+
+------------------------------------------------------------------------
+a5c53710 | Norbert Eicker | Tue, 4 Apr 2017 19:00:05 +0200
+
+Fix one compiler warning
+
+------------------------------------------------------------------------
+e3b0f0cc | Norbert Eicker | Thu, 9 Mar 2017 14:02:23 +0100
+
+First draft of a more scalable passing of children
+
+------------------------------------------------------------------------
+396acfd3 | Norbert Eicker | Tue, 4 Apr 2017 17:25:12 +0200
+
+Further improvements of delegateStat debug plugin
+
+------------------------------------------------------------------------
+88bf250d | Norbert Eicker | Tue, 4 Apr 2017 17:17:55 +0200
+
+Bugfix: Release resources assigned to failed spawns
+
+------------------------------------------------------------------------
+16e3dc25 | Norbert Eicker | Tue, 4 Apr 2017 17:03:06 +0200
+
+Bugfix: Correct release of overcommited resources
+
+------------------------------------------------------------------------
+62d8e0ea | Norbert Eicker | Tue, 4 Apr 2017 16:54:13 +0200
+
+More improvements of delegateStat debug plugin
+
+------------------------------------------------------------------------
+522f49e2 | Norbert Eicker | Tue, 4 Apr 2017 15:59:08 +0200
+
+Replace magic numbers by errno constants
+
+------------------------------------------------------------------------
+6480753b | Michael Rauh | Tue, 4 Apr 2017 14:49:24 +0200
+
+Merge branch 'master' of git.ccc:/psmgmt
+
+------------------------------------------------------------------------
+1e799508 | Norbert Eicker | Fri, 31 Mar 2017 18:11:13 +0200
+
+Bugfixing of delegateStat plugin
+
+------------------------------------------------------------------------
+e151cd5d | Norbert Eicker | Fri, 31 Mar 2017 17:46:03 +0200
+
+Fix delegateStat's dependency on libplugincommon
+
+------------------------------------------------------------------------
+e2d9d401 | Norbert Eicker | Fri, 31 Mar 2017 17:32:40 +0200
+
+Add new plugin to peek into resource delegates
+
+------------------------------------------------------------------------
+d4152ca6 | Michael Rauh | Fri, 31 Mar 2017 16:09:23 +0200
+
+Merge branch 'master' of git.ccc:/psmgmt
+
+------------------------------------------------------------------------
+b38ea36f | Michael Rauh | Fri, 31 Mar 2017 16:07:20 +0200
+
+Ensure srun will get an exit notification for all tasks (#6421)
+
+------------------------------------------------------------------------
+
+
 Version psmgmt-5.1.4:
 =====================
 ------------------------------------------------------------------------

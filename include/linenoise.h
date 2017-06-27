@@ -39,9 +39,7 @@
 #ifndef __LINENOISE_H
 #define __LINENOISE_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+#include <stddef.h>
 
 typedef struct linenoiseCompletions {
   size_t len;
@@ -72,9 +70,5 @@ void linenoiseRemoveHandlerCallback(void);
 void linenoiseSetPrompt(char *);
 void linenoiseReadChar(void);
 int linenoiseForcedUpdateDisplay(void);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif /* __LINENOISE_H */

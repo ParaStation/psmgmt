@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2017 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -11,27 +11,14 @@
 /**
  * @file
  * ParaStation daemon-daemon high-level protocol.
- *
- * $Id$
- *
- * @author
- * Norbert Eicker <eicker@par-tec.com>
- *
  */
 #ifndef __PSDAEMONPROTOCOL_H
 #define __PSDAEMONPROTOCOL_H
 
 #include "psprotocol.h"
 
-#ifdef __cplusplus
-extern "C" {
-#if 0
-} /* <- just for emacs indentation */
-#endif
-#endif
-
 /** Unique version number of the high-level protocol */
-#define PSDaemonProtocolVersion  411
+#define PSDaemonProtocolVersion  412
 
 /** IDs of the various message types */
 
@@ -61,6 +48,18 @@ extern "C" {
 					      inherited from it's child */
 #define PSP_DD_NEWPARENT           0x0119  /**< Tell task about grandparent
 					      since parent died gracefully */
+#define PSP_DD_NEWANCESTOR         0x011A  /**< Tell node about released
+					      parent to inherit children
+					       (obsoletes PSP_OP_NEWPARENT) */
+#define PSP_DD_ADOPTCHILDSET       0x011B  /**< Tell task about a set of
+					      grandchildren to be inherited
+					      (obsoletes PSP_OP_NEWCHILD) */
+#define PSP_DD_ADOPTFAILED         0x011D  /**< Tell children about a failed
+					      adoption */
+#define PSP_DD_INHERITDONE         0x011C  /**< Tell task about a finished
+					      adoption of children */
+#define PSP_DD_INHERITFAILED       0x011E  /**< Tell task about a failed
+					      adoption */
 
 /** Messages between daemon and master */
 #define PSP_DD_GETPART             0x0120  /**< Get partition from master */
@@ -114,9 +113,5 @@ extern "C" {
  * containing @a msgtype if the type is unknown.
  */
 char *PSDaemonP_printMsg(int msgtype);
-
-#ifdef __cplusplus
-}/* extern "C" */
-#endif
 
 #endif /* __PSDAEMONPROTOCOL_H */

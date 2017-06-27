@@ -385,8 +385,8 @@ def submit(part, partinfo, reserv, qos, account, test):
 # in time. If we cannot find it we return None.
 def extract_jobid_if_possible(stdout, stderr):
 	tmp = [re.search(r'.*Submitted batch job ([0-9]+).*', stdout),
-	       re.search(r'.*srun: jobid ([0-9]+).*', stderr),
-	       re.search(r'.*srun: job ([0-9]+).*', stderr),
+	       re.search(r'.*srun: jobid ([0-9]+):.*', stderr),
+	       re.search(r'.*srun: job ([0-9]+) .*', stderr),
 	       re.search(r'.*salloc: Granted job allocation ([0-9]+).*', stderr)]
 	tmp = [z for z in [x.group(1) for x in tmp if x] if z]
 

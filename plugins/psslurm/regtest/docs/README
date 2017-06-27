@@ -1,0 +1,21 @@
+# Copy the utils inside the tests dir
+$ cd psslurm-tests-utils
+$ cp ../psslurm-tests-utils/* .
+
+# Copy from repo the specific version (tag) of Slurm test and apply the patches
+$ python2 upstream/download.py 16-05-8-1
+
+# To run a specific test (check options of reqtest.py e.g. -r --partition --reservation)
+$ python2 ./bin/regtest.py -t faulty-srun-2
+
+# Run all tests 1
+$ python2 ./bin/regtest.py
+
+# Run all tests 2
+# Create a file for the trac password: ~/.trac (username:pass)
+# Or update config-X.json
+$ python2 regtest-psctrac-update.py -C config-j3.json --psslurm-V 5.1.5-0 tickets.json
+
+# Final run with updating trac (in a screen session)
+$ python2 regtest-psctrac-update.py -C config-j3.json --psslurm-V 5.1.5-0 --update-trac tickets.json
+
