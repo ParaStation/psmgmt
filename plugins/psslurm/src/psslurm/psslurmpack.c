@@ -1342,3 +1342,62 @@ bool __unpackReqFileBcast(char **ptr, BCast_t **bcastPtr,
 
     return true;
 }
+
+bool __packSlurmMsg(PS_DataBuffer_t *data, Slurm_Msg_Header_t *head,
+		    PS_DataBuffer_t *body, Slurm_Auth_t *auth,
+		    const char *caller, const int line)
+{
+    uint32_t lastBufLen = 0, msgStart;
+    char *ptr;
+
+    if (!data || !head || !body || !auth) {
+	mlog("%s: invalid param from '%s' at %i\n", __func__,
+	     caller, line);
+	return false;
+    }
+
+    /* add placeholder for the message length */
+    msgStart = data->bufUsed;
+    addUint32ToMsg(0, data);
+
+    /* add message header */
+    head->bodyLen = body->bufUsed;
+    __packSlurmHeader(data, head, caller, line);
+
+    mdbg(PSSLURM_LOG_COMM, "%s: added slurm header (%i) : body len :%i\n",
+	    __func__, data->bufUsed, body->bufUsed);
+
+    if (logger_getMask(psslurmlogger) & PSSLURM_LOG_IO_VERB) {
+	printBinaryData(data->buf + lastBufLen, data->bufUsed - lastBufLen,
+			"msg header");
+	lastBufLen = data->bufUsed;
+    }
+
+    /* add munge auth string, will *not* be counted to msg header body len */
+    __packSlurmAuth(data, auth, caller, line);
+    mdbg(PSSLURM_LOG_COMM, "%s: added slurm auth (%i)\n",
+	    __func__, data->bufUsed);
+
+    if (logger_getMask(psslurmlogger) & PSSLURM_LOG_IO_VERB) {
+	printBinaryData(data->buf + lastBufLen, data->bufUsed - lastBufLen,
+			"slurm auth");
+	lastBufLen = data->bufUsed;
+    }
+
+    /* add the message body */
+    addMemToMsg(body->buf, body->bufUsed, data);
+    mdbg(PSSLURM_LOG_COMM, "%s: added slurm msg body (%i)\n",
+	    __func__, data->bufUsed);
+
+    if (logger_getMask(psslurmlogger) & PSSLURM_LOG_IO_VERB) {
+	printBinaryData(data->buf + lastBufLen, data->bufUsed - lastBufLen,
+			"msg body");
+	lastBufLen = data->bufUsed;
+    }
+
+    /* set real message length without the uint32 for the length itself! */
+    ptr = data->buf + msgStart;
+    *(uint32_t *) ptr = htonl(data->bufUsed - sizeof(uint32_t));
+
+    return true;
+}

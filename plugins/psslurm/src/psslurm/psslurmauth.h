@@ -17,22 +17,23 @@
 #include "plugincomm.h"
 #include "psslurmcomm.h"
 
-typedef struct {
-    char *method;
-    uint32_t version;
-    char *cred;
-} Slurm_Auth_t;
+/**
+ * @brief Generate a Slurm authentication
+ *
+ * Generate and return a Slurm authentication token. Currently only
+ * psmunge is supported as authentication method. The caller is
+ * responsible to free the allocated memory using freeSlurmAuth().
+ */
+Slurm_Auth_t *getSlurmAuth(void);
 
 /**
- * @brief Add Slurm authentication to data buffer
+ * @brief Free a Slurm authentication structure
  *
- * Generate and save a Slurm authentication token to the
- * provided data buffer. Currently only psmunge is supported
- * as authentication method.
- *
- * @param data Data buffer to save data to
+ * @param auth The authentication structure to free
  */
-void addSlurmAuth(PS_DataBuffer_t *data);
+void freeSlurmAuth(Slurm_Auth_t *auth);
+
+Slurm_Auth_t *dupSlurmAuth(Slurm_Auth_t *auth);
 
 /**
  * @brief Extract and verify Slurm authentication

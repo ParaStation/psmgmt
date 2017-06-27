@@ -355,4 +355,31 @@ bool __unpackReqFileBcast(char **ptr, BCast_t **bcastPtr,
 #define unpackReqFileBcast(ptr, bcastPtr) \
     __unpackReqFileBcast(ptr, bcastPtr, __func__, __LINE__)
 
+/**
+ * @brief Pack a Slurm message
+ *
+ * Pack a Slurm message and add it to the provided data
+ *
+ * @param data Data buffer to save data to
+ *
+ * @param head The Slurm head to pack
+ *
+ * @param body The message body to pack
+ *
+ * @param auth The Slurm authentication to pack
+ *
+ * @param caller Function name of the calling function
+ *
+ * @param line Line number where this function is called
+ *
+ * @return On success true is returned or false in case of an
+ * error. If writing was not successful, @a data might be not updated.
+ */
+bool __packSlurmMsg(PS_DataBuffer_t *data, Slurm_Msg_Header_t *head,
+		    PS_DataBuffer_t *body, Slurm_Auth_t *auth,
+		    const char *caller, const int line);
+
+#define packSlurmMsg(data, head, body, auth) \
+    __packSlurmMsg(data, head, body, auth, __func__, __LINE__)
+
 #endif

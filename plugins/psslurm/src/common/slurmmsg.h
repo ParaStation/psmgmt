@@ -1,13 +1,5 @@
-#ifndef __PSSLURM_MESSAGE
-#define __PSSLURM_MESSAGE
-
-#include <stdint.h>
-#include <time.h>
-#include <sys/types.h>
-
-#include "psnodes.h"
-#include "pstaskid.h"
-#include "plugincomm.h"
+#ifndef __SLURM_MESSAGE_TYPE
+#define __SLURM_MESSAGE_TYPE
 
 typedef enum {
     REQUEST_NODE_REGISTRATION_STATUS = 1001,
@@ -207,38 +199,4 @@ typedef enum {
     RESPONSE_MESSAGE_COMPOSITE,
 } slurm_msg_type_t;
 
-typedef struct {
-    uint32_t error;
-    uint16_t type;
-    PSnodes_ID_t node;
-    PS_DataBuffer_t body;
-} Slurm_Forward_Data_t;
-
-typedef struct {
-    uint16_t version;
-    uint16_t flags;
-    uint16_t type;
-    uint32_t bodyLen;
-    uint16_t forward;
-    uint16_t returnList;
-    uint32_t addr;
-    uint16_t port;
-    uint32_t timeout;
-    uint16_t index;
-    uint16_t treeWidth;
-    char *nodeList;
-    Slurm_Forward_Data_t *fwdata;
-    uid_t uid;
-    gid_t gid;
-} Slurm_Msg_Header_t;
-
-typedef struct {
-    Slurm_Msg_Header_t head;
-    int sock;
-    PStask_ID_t source;
-    PS_DataBuffer_t *data;
-    char *ptr;
-    time_t recvTime;
-} Slurm_Msg_t;
-
-#endif /* __PSSLURM_MESSAGE */
+#endif /* __SLURM_MESSAGE_TYPE */

@@ -115,6 +115,18 @@ const ConfDef_t CONFIG_VALUES[] =
 	"bool",
 	"0",
 	"Enable libc FPE exception traps" },
+    { "RECONNECT_MAX_RETRIES", 1,
+	"int",
+	"360",
+	"TCP connection retries for Slurm communication" },
+    { "RECONNECT_TIME", 1,
+	"int",
+	"60",
+	"Time between reconnection retries for Slurm messages" },
+    { "RESEND_TIMEOUT", 1,
+	"int",
+	"300",
+	"Timeout in seconds for resending a Slurm message" },
     { NULL, 0, NULL, NULL, NULL },
 };
 
