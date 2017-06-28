@@ -3154,7 +3154,7 @@ static int createSlots(uint32_t np, uint16_t ppn, uint16_t tpp,
     int dynamic = options & PART_OPT_DYNAMIC;
     int nextMinUsed, minUsed;
     int mod = task->totalThreads + ((overbook || nodeFirst) ? 0 : 1);
-    int nodeTPP = 1, maxTPP = 0;
+    int nodeTPP = 0, maxTPP = 0;
     bool fullRound = false;
     static uint16_t *procsPerNode = NULL;
 
