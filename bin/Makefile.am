@@ -97,7 +97,7 @@ psaccounter_SOURCES = accounter/psaccounter.c
 psaccounter_CPPFLAGS = $(AM_CPPFLAGS) -DLOCALSTATEDIR=\"$(localstatedir)\"
 psaccounter_LDADD = $(libpse) $(POPT_LIBS)
 
-mpiexec_SOURCES = startup/mpiexec.c
+mpiexec_SOURCES = startup/mpiexec.c startup/cloptions.c startup/cloptions.h
 mpiexec_CPPFLAGS = $(AM_CPPFLAGS) -DCONFIGDIR=\"$(configdir)\"
 mpiexec_LDADD = $(libpse) $(libpskvs) $(POPT_LIBS)
 
