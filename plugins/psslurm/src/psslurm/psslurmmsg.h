@@ -184,6 +184,9 @@ Slurm_Msg_Buf_t *saveSlurmMsg(Slurm_Msg_Header_t *head, PS_DataBuffer_t *body,
 /**
  * @brief Delete a Slurm message buffer
  *
+ * Cleanup leftover assosiated timers and selectors and free
+ * used memory.
+ *
  * @param msgBuf The Slurm message to delete
  */
 void deleteMsgBuf(Slurm_Msg_Buf_t *msgBuf);

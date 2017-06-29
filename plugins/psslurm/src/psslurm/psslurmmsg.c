@@ -249,6 +249,16 @@ void deleteMsgBuf(Slurm_Msg_Buf_t *msgBuf)
 {
     if (!msgBuf) return;
 
+    /* remove a registered socket */
+    if (msgBuf->sock != -1 && Selector_isRegistered(msgBuf->sock)) {
+	Selector_vacateWrite(msgBuf->sock);
+    }
+
+    /* remove a registered timer */
+    if (msgBuf->timerID != -1) {
+	Timer_remove(msgBuf->timerID);
+    }
+
     freeSlurmMsgHead(&msgBuf->head);
     freeDataBuffer(msgBuf->body);
     freeSlurmAuth(msgBuf->auth);
@@ -361,17 +371,6 @@ int resendSlurmMsg(int sock, void *msg)
     }
 
 CLEANUP:
-    /* disregard the monitor */
-    if (Selector_isRegistered(sock)) {
-	Selector_vacateWrite(sock);
-    }
-
-    /* make sure timer is gone */
-    if (savedMsg->timerID != -1) {
-	Timer_remove(savedMsg->timerID);
-	savedMsg->timerID = -1;
-    }
-
     deleteMsgBuf(savedMsg);
 
     return 0;
@@ -398,10 +397,6 @@ static void handleReconTimeout(int timerId, void *data)
 		mlog("%s: maximal %i reconnect attempts reached, dropping msg "
 		     "'%s'\n", __func__, savedMsg->conRetry,
 		     msgType2String(savedMsg->head.type));
-
-		/* remove the timer */
-		Timer_remove(timerId);
-		savedMsg->timerID = -1;
 
 		/* drop the saved msg */
 		deleteMsgBuf(savedMsg);
