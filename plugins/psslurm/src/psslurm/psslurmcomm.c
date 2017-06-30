@@ -311,8 +311,8 @@ static int readSlurmMsg(int sock, void *param)
 	    if (size > 0 || errno == EAGAIN || errno == EINTR) {
 		/* not all data arrived yet, lets try again later */
 		dBuf->bufUsed += size;
-		mdbg(PSSLURM_LOG_COMM, "%s: we try later for sock %u read %zu\n",
-		     __func__, sock, size);
+		mdbg(PSSLURM_LOG_COMM, "%s: we try later for sock %u "
+		     "read %zu\n", __func__, sock, size);
 		return 0;
 	    }
 	    /* read error */
@@ -320,10 +320,10 @@ static int readSlurmMsg(int sock, void *param)
 		  sock, toRead, size);
 	    error = true;
 	    goto CALLBACK;
-
 	} else if (!ret) {
 	    /* connection reset */
-	    mlog("%s: connection reset on sock %i\n", __func__, sock);
+	    mdbg(PSSLURM_LOG_COMM, "%s: closing connection, empty message "
+		    "len on sock %i\n", __func__, sock);
 	    error = true;
 	    goto CALLBACK;
 	} else {
