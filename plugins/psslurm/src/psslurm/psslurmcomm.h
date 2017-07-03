@@ -172,16 +172,33 @@ void closeSlurmdSocket(void);
  *
  * @param ptr Data buffer to read from
  *
- * @param bitStr The bit string holding the result
- *
  * @param func Function name of the calling function
  *
  * @param line Line number where this function is called
+ *
+ * @return Returns the result or NULL on error.
  */
-void __getBitString(char **ptr, char **bitStr, const char *func,
-		    const int line);
+char *__getBitString(char **ptr, const char *func, const int line);
 
-#define getBitString(ptr, bits) __getBitString(ptr, bits, __func__, __LINE__)
+#define getBitString(ptr) __getBitString(ptr, __func__, __LINE__)
+
+/**
+ * @brief Convert a hex bitstring to a comma separated list.
+ *
+ * To start with an empty list the caller needs to initialize
+ * list and listSize with zero.The list is grown using @ref __umalloc()
+ * and @ref __urealloc. The caller is responsible to free the memory
+ * using @ref ufree().
+ *
+ * @param bitstr The bitstring to convert
+ *
+ * @para list The list holding the result
+ *
+ * @param listSize The size of the list
+ *
+ * @return Returns true on success otherwise false
+ */
+bool hexBitstr2List(char *bitstr, char **list, size_t *listSize);
 
 /**
  * @brief Open a TCP connection

@@ -24,7 +24,6 @@
 
 #include "psslurmgres.h"
 
-
 void initGresConf(void)
 {
     INIT_LIST_HEAD(&GresConfList.list);
@@ -62,7 +61,7 @@ void addGresData(PS_DataBuffer_t *msg, int version)
 	if (!(gres = list_entry(pos, Gres_Conf_t, list))) break;
 
 	addUint32ToMsg(GRES_MAGIC, &data);
-#ifdef SLURM_PROTOCOL_1605
+#ifdef MIN_SLURM_PROTO_1605
 	addUint64ToMsg(gres->count, &data);
 #else
 	addUint32ToMsg(gres->count, &data);
@@ -72,7 +71,7 @@ void addGresData(PS_DataBuffer_t *msg, int version)
 	addUint32ToMsg(gres->id, &data);
 	addStringToMsg(gres->cpus, &data);
 	addStringToMsg(gres->name, &data);
-#ifdef SLURM_PROTOCOL_1605
+#ifdef MIN_SLURM_PROTO_1605
 	addStringToMsg(gres->type, &data);
 #endif
     }
@@ -165,7 +164,7 @@ Gres_Conf_t *addGresConf(char *name, char *count, char *file, char *cpus)
 
     /* TODO support CPUs in gres */
     gres->cpus = NULL;
-#ifdef SLURM_PROTOCOL_1605
+#ifdef MIN_SLURM_PROTO_1605
     gres->type = NULL;
 #endif
 
@@ -179,7 +178,7 @@ Gres_Conf_t *addGresConf(char *name, char *count, char *file, char *cpus)
 	if (!(setGresCount(gres, count))) goto GRES_ERROR;
     }
 
-#ifdef SLURM_PROTOCOL_1605
+#ifdef MIN_SLURM_PROTO_1605
     mlog("%s: gres conf '%s' count '%lu' file '%s' cpus '%s' "
 #else
     mlog("%s: gres conf '%s' count '%u' file '%s' cpus '%s' "
@@ -194,7 +193,7 @@ GRES_ERROR:
     ufree(gres->name);
     ufree(gres->cpus);
     ufree(gres->file);
-#ifdef SLURM_PROTOCOL_1605
+#ifdef MIN_SLURM_PROTO_1605
     ufree(gres->type);
 #endif
     return NULL;
@@ -210,7 +209,7 @@ void clearGresConf(void)
 	ufree(gres->name);
 	ufree(gres->cpus);
 	ufree(gres->file);
-#ifdef SLURM_PROTOCOL_1605
+#ifdef MIN_SLURM_PROTO_1605
 	ufree(gres->type);
 #endif
 
@@ -223,8 +222,7 @@ Gres_Cred_t* getGresCred()
 {
     Gres_Cred_t *gres;
 
-    gres = (Gres_Cred_t *) umalloc(sizeof(Gres_Cred_t));
-    memset(gres, 0, sizeof(Gres_Cred_t));
+    gres = (Gres_Cred_t *) ucalloc(sizeof(Gres_Cred_t));
     INIT_LIST_HEAD(&gres->list);
 
     return gres;
@@ -269,7 +267,7 @@ void freeGresCred(Gres_Cred_t *gresList)
 
 	ufree(gres->countStepAlloc);
 	ufree(gres->nodeInUse);
-#ifdef SLURM_PROTOCOL_1605
+#ifdef MIN_SLURM_PROTO_1605
 	ufree(gres->typeModel);
 #endif
 	list_del(&gres->list);

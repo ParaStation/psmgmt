@@ -840,7 +840,7 @@ void forwardSlurmMsg(Slurm_Msg_t *sMsg, Connection_Forward_t *fw)
     /* copy header */
     addUint16ToMsg(sMsg->head.version, &msg);
     addUint16ToMsg(sMsg->head.flags, &msg);
-#ifdef SLURM_PROTOCOL_1605
+#ifdef MIN_SLURM_PROTO_1605
     addUint16ToMsg(sMsg->head.index, &msg);
 #endif
     addUint16ToMsg(sMsg->head.type, &msg);

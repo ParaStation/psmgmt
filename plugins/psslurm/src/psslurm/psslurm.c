@@ -57,6 +57,7 @@
 #define PSSLURM_CONFIG_FILE  PLUGINDIR "/psslurm.conf"
 #define PSSLURM_SLURMD_PORT 6818
 #define PSSLURM_SLURMCTLD_PORT 6817
+#define MEMORY_DEBUG 0
 
 /** the job cleanup timer */
 static int cleanupTimerID = -1;
@@ -559,12 +560,13 @@ int initialize(void)
     /* init the logger (log to syslog) */
     initLogger("psslurm", NULL);
 
-    /*
-    FILE *lfile = fopen("/tmp/malloc", "w+");
-    initPluginLogger(NULL, lfile);
-    maskPluginLogger(PLUGIN_LOG_MALLOC);
-    */
-    initPluginLogger("psslurm", NULL);
+    if (MEMORY_DEBUG) {
+	FILE *lfile = fopen("/tmp/malloc", "w+");
+	initPluginLogger(NULL, lfile);
+	maskPluginLogger(PLUGIN_LOG_MALLOC);
+    } else {
+	initPluginLogger("psslurm", NULL);
+    }
 
     /* init all data lists */
     initJobList();

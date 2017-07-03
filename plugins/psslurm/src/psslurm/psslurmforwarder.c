@@ -340,8 +340,7 @@ int handleForwarderInit(void * data)
 
 	initSpawnFacility(step);
 
-	if (step->taskFlags & TASK_PARALLEL_DEBUG) {
-
+	if (step->taskFlags & LAUNCH_PARALLEL_DEBUG) {
 	    waitpid(child, &status, WUNTRACED);
 	    if (!WIFSTOPPED(status)) {
 		mlog("%s: child '%i' not stopped\n", __func__, child);
@@ -495,7 +494,7 @@ int handleExecClientUser(void *data)
 	if (!(redirectIORank(step, task->rank))) return -1;
 
 	/* stop child after exec */
-	if (step->taskFlags & TASK_PARALLEL_DEBUG) {
+	if (step->taskFlags & LAUNCH_PARALLEL_DEBUG) {
 	    if ((ptrace(PTRACE_TRACEME, 0, 0, 0)) == -1) {
 		mwarn(errno, "%s: ptrace() failed: ", __func__);
 		return -1;
@@ -577,7 +576,7 @@ static void setupStepIO(Forwarder_Data_t *fwdata, Step_t *step)
     close(STDERR_FILENO);
     close(STDIN_FILENO);
 
-    if (step->pty) {
+    if (step->taskFlags & LAUNCH_PTY) {
 	/* setup pty */
 	tty_name = ttyname(fwdata->stdOut[0]);
 	close(fwdata->stdOut[1]);
@@ -615,7 +614,7 @@ static void setupStepIO(Forwarder_Data_t *fwdata, Step_t *step)
 	    exit(1);
 	}
     } else {
-	if (!step->userManagedIO) {
+	if (!(step->taskFlags & LAUNCH_USER_MANAGED_IO)) {
 	    if ((dup2(fwdata->stdOut[1], STDOUT_FILENO)) == -1) {
 		mwarn(errno, "%s: stdout dup2(%u) failed: ",
 			__func__, fwdata->stdOut[0]);
@@ -699,13 +698,13 @@ static void execJobStep(Forwarder_Data_t *fwdata, int rerun)
     strvAdd(&argV, ustrdup("-x"));
 
     /* interactive mode */
-    if (step->pty) strvAdd(&argV, ustrdup("-i"));
+    if (step->taskFlags & LAUNCH_PTY) strvAdd(&argV, ustrdup("-i"));
     /* label output */
-    if (step->labelIO) strvAdd(&argV, ustrdup("-l"));
+    if (step->taskFlags & LAUNCH_LABEL_IO) strvAdd(&argV, ustrdup("-l"));
     /* PMI layer support */
     if (isPMIdisabled(step)) strvAdd(&argV, ustrdup("--pmidisable"));
 
-    if (step->multiProg) {
+    if (step->taskFlags & LAUNCH_MULTI_PROG) {
 	setupArgsFromMultiProg(step, fwdata, &argV);
     } else {
 	/* number of processes */
@@ -750,8 +749,8 @@ static int stepForwarderInit(Forwarder_Data_t *fwdata)
 	return - ESCRIPT_CHDIR_FAILED;
     }
 
-   /* open stderr/stdout/stdin fds */
-    if (step->pty) {
+    /* open stderr/stdout/stdin fds */
+    if (step->taskFlags & LAUNCH_PTY) {
 	/* open pty */
 	if ((openpty(&fwdata->stdOut[1], &fwdata->stdOut[0],
 			NULL, NULL, NULL)) == -1) {
@@ -760,7 +759,7 @@ static int stepForwarderInit(Forwarder_Data_t *fwdata)
 	}
     } else {
 	/* user will take care of I/O handling */
-	if (step->userManagedIO) return 1;
+	if (step->taskFlags & LAUNCH_USER_MANAGED_IO) return 1;
 
 	redirectStepIO(fwdata, step);
     }
@@ -774,7 +773,7 @@ static void stepForwarderLoop(Forwarder_Data_t *fwdata)
     initStepIO(step);
 
     /* user will take care of I/O handling */
-    if (step->userManagedIO) return;
+    if (step->taskFlags & LAUNCH_USER_MANAGED_IO) return;
 
     if (!step->IOPort) {
 	mlog("%s: no IO Ports\n", __func__);
@@ -786,7 +785,7 @@ static void stepForwarderLoop(Forwarder_Data_t *fwdata)
 	return;
     }
 
-    if (step->pty) {
+    if (step->taskFlags & LAUNCH_PTY) {
 	/* open additiional pty connection to srun */
 	if ((srunOpenPTYConnection(step)) < 0) {
 	    /* Not working with current srun 14.03 anyway */
@@ -1010,7 +1009,7 @@ static void stepFWIOloop(Forwarder_Data_t *fwdata)
     initStepIO(step);
 
     /* user will take care of I/O handling */
-    if (step->userManagedIO) return;
+    if (step->taskFlags & LAUNCH_USER_MANAGED_IO) return;
 
     if (!step->IOPort) {
 	mlog("%s: no I/O Ports\n", __func__);

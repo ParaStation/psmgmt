@@ -15,7 +15,6 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <sys/stat.h>
-#include <ctype.h>
 
 #include "psidnodes.h"
 #include "pluginenv.h"
@@ -215,75 +214,6 @@ static char * getTasksPerNode(uint16_t tasksPerNode[], uint32_t nrOfNodes) {
     return buffer;
 }
 
-/**
- * @brief Convert a hex bitstring to a comma separated list.
- *
- * @param bitstr The bitstring to convert
- *
- * @para list The list holding the result
- *
- * @param listSize The size of the list
- *
- * @return Returns true on success otherwise false
- */
-static bool hexBitstr2List(char *bitstr, char **list, size_t *listSize)
-{
-    size_t len;
-    int32_t next, count = 0;
-
-    if (!bitstr) {
-	mlog("%s: invalid bitstring\n", __func__);
-	return false;
-    }
-
-    if (!strncmp(bitstr, "0x", 2)) bitstr += 2;
-    len = strlen(bitstr);
-
-    while (len--) {
-	char tmp[1024];
-	next = (int32_t) bitstr[len];
-
-	if (!isxdigit(next)) return false;
-
-	if (isdigit(next)) {
-	    next -= '0';
-	} else {
-	    next = toupper(next);
-	    next -= 'A' - 10;
-	}
-
-	if (next & 1) {
-	    if (*listSize) str2Buf(",", list, listSize);
-	    snprintf(tmp, sizeof(tmp), "%u", count);
-	    str2Buf(tmp, list, listSize);
-	}
-	count++;
-
-	if (next & 2) {
-	    if (*listSize) str2Buf(",", list, listSize);
-	    snprintf(tmp, sizeof(tmp), "%u", count);
-	    str2Buf(tmp, list, listSize);
-	}
-	count++;
-
-	if (next & 4) {
-	    if (*listSize) str2Buf(",", list, listSize);
-	    snprintf(tmp, sizeof(tmp), "%u", count);
-	    str2Buf(tmp, list, listSize);
-	}
-	count++;
-
-	if (next & 8) {
-	    if (*listSize) str2Buf(",", list, listSize);
-	    snprintf(tmp, sizeof(tmp), "%u", count);
-	    str2Buf(tmp, list, listSize);
-	}
-	count++;
-    }
-
-    return true;
-}
-
 void setSlurmJobEnv(Job_t *job)
 {
     char tmp[1024], *cpus = NULL, *list = NULL;
@@ -364,7 +294,7 @@ void setSlurmJobEnv(Job_t *job)
 
     /* gres "gpu" plugin */
     if ((gres = findGresCred(job->gres, GRES_PLUGIN_GPU, 1))) {
-#ifdef SLURM_PROTOCOL_1605
+#ifdef MIN_SLURM_PROTO_1605
 	hexBitstr2List(gres->bitAlloc[0], &list, &listSize);
 #else
 	uint32_t count = 0;
@@ -379,7 +309,7 @@ void setSlurmJobEnv(Job_t *job)
 
     /* gres "mic" plugin */
     if ((gres = findGresCred(job->gres, GRES_PLUGIN_MIC, 1))) {
-#ifdef SLURM_PROTOCOL_1605
+#ifdef MIN_SLURM_PROTO_1605
 	hexBitstr2List(gres->bitAlloc[0], &list, &listSize);
 #else
 	uint32_t count = 0;
@@ -547,7 +477,7 @@ void setRankEnv(int32_t rank, Step_t *step)
 	/* gres "gpu" plugin */
 	if ((gres = findGresCred(step->gres, GRES_PLUGIN_GPU, 0))) {
 	    if (gres->bitAlloc[localNodeId]) {
-#ifdef SLURM_PROTOCOL_1605
+#ifdef MIN_SLURM_PROTO_1605
 		hexBitstr2List(gres->bitAlloc[localNodeId], &list, &listSize);
 #else
 		range2List(NULL, gres->bitAlloc[localNodeId], &list,
@@ -567,7 +497,7 @@ void setRankEnv(int32_t rank, Step_t *step)
 	/* gres "mic" plugin */
 	if ((gres = findGresCred(step->gres, GRES_PLUGIN_MIC, 0))) {
 	    if (gres->bitAlloc[localNodeId]) {
-#ifdef SLURM_PROTOCOL_1605
+#ifdef MIN_SLURM_PROTO_1605
 		hexBitstr2List(gres->bitAlloc[localNodeId], &list, &listSize);
 #else
 		range2List(NULL, gres->bitAlloc[localNodeId], &list,
@@ -673,12 +603,15 @@ void setStepEnv(Step_t *step)
     }
 
     /* unbuffered (raw I/O) mode */
-    if (!step->labelIO && !step->bufferedIO) {
+    if (!(step->taskFlags & LAUNCH_LABEL_IO) &&
+	!(step->taskFlags & LAUNCH_BUFFERED_IO)) {
 	envSet(&step->env, "__PSI_RAW_IO", "1");
 	envSet(&step->env, "__PSI_LOGGER_UNBUFFERED", "1");
     }
 
-    if (!step->pty) envSet(&step->env, "PSI_INPUTDEST", "all");
+    if (!(step->taskFlags & LAUNCH_PTY)) {
+	envSet(&step->env, "PSI_INPUTDEST", "all");
+    }
 
     /* set slurm umask */
     if ((val = envGet(&step->env, "SLURM_UMASK"))) {
@@ -710,8 +643,11 @@ void setBatchEnv(Job_t *job)
     envSet(&job->env, "SLURM_NODEID", "0");
     envSet(&job->env, "SLURM_PROCID", "0");
     envSet(&job->env, "SLURM_LOCALID", "0");
-
+#ifdef SLURM_PROTOCOL_1702
+    snprintf(tmp, sizeof(tmp), "%lu", job->nodeMinMemory);
+#else
     snprintf(tmp, sizeof(tmp), "%u", job->nodeMinMemory);
+#endif
     envSet(&job->env, "SLURM_MEM_PER_NODE", tmp);
 
     snprintf(tmp, sizeof(tmp), "%u", getpid());

@@ -13,6 +13,7 @@
 
 #include "list.h"
 #include "plugincomm.h"
+#include "slurmcommon.h"
 
 #define GRES_PLUGIN_GPU	7696487
 #define GRES_PLUGIN_MIC	6515053
@@ -21,7 +22,7 @@ typedef struct {
     char *name;
     char *cpus;
     char *file;
-#ifdef SLURM_PROTOCOL_1605
+#ifdef MIN_SLURM_PROTO_1605
     char *type;
     uint64_t count;
 #else
@@ -33,7 +34,7 @@ typedef struct {
 
 typedef struct {
     uint32_t id;
-#ifdef SLURM_PROTOCOL_1605
+#ifdef MIN_SLURM_PROTO_1605
     uint64_t countAlloc;
     uint64_t *countStepAlloc;
     char *typeModel;
