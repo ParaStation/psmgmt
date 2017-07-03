@@ -99,15 +99,15 @@ void freeSpawnRequest(SpawnRequest_t *req) {
 	}
 	if (req->spawns[i].preputv) {
 	    for (j = 0; j < req->spawns[i].preputc; j++) {
-		ufree(req->spawns[i].preputv->key);
-		ufree(req->spawns[i].preputv->value);
+		ufree(req->spawns[i].preputv[j].key);
+		ufree(req->spawns[i].preputv[j].value);
 	    }
 	    ufree(req->spawns[i].preputv);
 	}
 	if (req->spawns[i].infov) {
 	    for (j = 0; j < req->spawns[i].infoc; j++) {
-		ufree(req->spawns[i].infov->key);
-		ufree(req->spawns[i].infov->value);
+		ufree(req->spawns[i].infov[j].key);
+		ufree(req->spawns[i].infov[j].value);
 	    }
 	    ufree(req->spawns[i].infov);
 	}
@@ -115,8 +115,8 @@ void freeSpawnRequest(SpawnRequest_t *req) {
 
     if (req->pmienvv) {
 	for (j = 0; j < req->pmienvc; j++) {
-	    ufree(req->pmienvv->key);
-	    ufree(req->pmienvv->value);
+	    ufree(req->pmienvv[j].key);
+	    ufree(req->pmienvv[j].value);
 	}
 	ufree(req->pmienvv);
     }
