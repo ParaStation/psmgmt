@@ -359,6 +359,7 @@ bool __unpackReqFileBcast(char **ptr, BCast_t **bcastPtr,
  * @brief Pack a Slurm message
  *
  * Pack a Slurm message and add it to the provided data
+ * buffer.
  *
  * @param data Data buffer to save data to
  *

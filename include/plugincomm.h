@@ -113,6 +113,50 @@ PS_DataBuffer_t * dupDataBuffer(PS_DataBuffer_t *data);
  * @brief Write data to file descriptor
  *
  * Write data from @a buffer to the file descripter @a fd. A total of
+ * @a toWrite bytes is written. The actual number of bytes written is
+ * reported in @a written. Writing will be retried on minor
+ * errors until all data was written if the @a pedantic flag is set to
+ * true. Otherwise, the function will return as soon as the first
+ * write() fails. In all cases @a written will reflect the
+ * number of bytes written so far.
+ *
+ * Unless @a infinite flags true a total of 20 retries are
+ * undertaken. Otherwise the function will try inifinitely to write
+ * the data.
+ *
+ * @param fd File descriptor to write to
+ *
+ * @param buffer Buffer holding data to write
+ *
+ * @param toWrite Number of bytes to write
+ *
+ * @param written Total number of bytes written upon return
+ *
+ * @param func Funtion name of the calling function
+ *
+ * @param pedantic Flag to be pedantic
+ *
+ * @param infinite Flag to retry infinitely
+ *
+ * @return Returns the number of bytes written or -1 on error. In the
+ * latter cases the number of bytes written anyhow is reported in @a written.
+ */
+int __doWriteEx(int fd, void *buffer, size_t toWrite, size_t *written,
+	        const char *func, bool pedantic, bool infinite);
+
+#define doWriteEx(fd, buffer, toWrite, written) \
+    __doWriteEx(fd, buffer, toWrite, written, __func__, false,  false)
+
+#define doWriteExP(fd, buffer, toWrite, written) \
+    __doWriteEx(fd, buffer, toWrite, written, __func__, true, false)
+
+#define doWriteExF(fd, buffer, toWrite, written) \
+    __doWriteEx(fd, buffer, toWrite, written, __func__, true, true)
+
+/**
+ * @brief Write data to file descriptor
+ *
+ * Write data from @a buffer to the file descripter @a fd. A total of
  * @a toWrite bytes is written. Writing will be retried on minor
  * errors until all data was written if the @a pedantic flag is set to
  * true. Otherwise, the function will return as soon as the first
@@ -121,6 +165,9 @@ PS_DataBuffer_t * dupDataBuffer(PS_DataBuffer_t *data);
  * Unless @a infinite flags true a total of 20 retries are
  * undertaken. Otherwise the function will try inifinitely to write
  * the data.
+ *
+ * This is mainly a wrapper around @ref __doWriteEx() hiding the @a
+ * written parameter.
  *
  * @param fd File descriptor to write to
  *
