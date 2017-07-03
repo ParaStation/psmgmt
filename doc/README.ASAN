@@ -1,0 +1,9 @@
+To enable the address sanitizer use:
+export CFLAGS="%(echo %{optflags}|sed -e 's,-O.,,') \
+       -fstack-protector-all -fsanitize=address -fsanitize-recover=address"
+in psmgmt.spec.tmpl
+
+Furthermore:
+- Use ASAN_OPTIONS=halt_on_error=0 to continue running after error
+- Use ASAN_OPTIONS=suppressions=dist/asan_suppressions to get rid of
+  some warnings

@@ -1,0 +1,4 @@
+interceptor_via_fun:PSC_saveTitleSpace
+# interceptor_via_lib:/usr/lib64/libpopt.so
+interceptor_via_fun:poptGetContext
+interceptor_via_fun:poptGetNextOpt
