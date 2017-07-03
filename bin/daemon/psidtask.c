@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2017 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -313,31 +313,56 @@ int PSID_emptySigList(list_t *sigList)
 
 /****************** TAKSLIST MANIPULATING ROUTINES **********************/
 
-int PStasklist_enqueue(list_t *list, PStask_t *task)
+static int doEnqueue(list_t *list, PStask_t *task, PStask_t *other,
+		     const char *func)
 {
     PStask_t *old;
 
     if (!task) {
-	PSID_log(-1, "%s: no task given\n", __func__);
+	PSID_log(-1, "%s: no task given\n", func);
 	return -1;
     }
 
-    PSID_log(PSID_LOG_TASK, "%s(%p,%s(%p))\n", __func__,
-	     list, PSC_printTID(task->tid), task);
+    PSID_log(PSID_LOG_TASK, "%s(%p", func, list);
+    PSID_log(PSID_LOG_TASK, ",%s(%p)", PSC_printTID(task->tid), task);
+    if (other) PSID_log(PSID_LOG_TASK, ",%s(%p)",
+			PSC_printTID(other->tid), other);
+    PSID_log(PSID_LOG_TASK, ")\n");
 
     old = PStasklist_find(list, task->tid);
     if (old) {
 	char taskStr[128];
 	PStask_snprintf(taskStr, sizeof(taskStr), old);
 
-	PSID_log(-1, "%s: old task found: %s\n", __func__, taskStr);
+	PSID_log(-1, "%s: old task found: %s\n", func, taskStr);
 	PStasklist_dequeue(old);
 	PStask_delete(old);
     }
 
-    list_add_tail(&task->next, list);
+    list_add_tail(&task->next, other ? &other->next : list);
 
     return 0;
+}
+
+int PStasklist_enqueue(list_t *list, PStask_t *task)
+{
+    return doEnqueue(list, task, NULL, __func__);
+}
+
+int PStasklist_enqueueBefore(list_t *list, PStask_t *task, PStask_t *other)
+{
+    if (!other) {
+	PSID_log(-1, "%s: no other task given\n", __func__);
+	return -1;
+    }
+    PStask_t *o = PStasklist_find(list, other->tid);
+    if (!o) {
+	PSID_log(-1, "%s: other task %s(%p) not found in %p\n", __func__,
+		 PSC_printTID(other->tid), other, list);
+	return -1;
+    }
+
+    return doEnqueue(list, task, other, __func__);
 }
 
 void PStasklist_dequeue(PStask_t *task)

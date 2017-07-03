@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2015 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2017 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -11,25 +11,12 @@
 /**
  * @file
  * Functions for interaction with ParaStation tasks within the Daemon
- *
- * $Id$
- *
- * @author
- * Norbert Eicker <eicker@par-tec.com>
- *
  */
 #ifndef __PSIDTASK_H
 #define __PSIDTASK_H
 
 #include "pstask.h"
 #include "pssignal.h"
-
-#ifdef __cplusplus
-extern "C" {
-#if 0
-} /* <- just for emacs indentation */
-#endif
-#endif
 
 /** @defgroup signalstuff Signal handling functions */
 /*\@{*/
@@ -199,17 +186,34 @@ int PSID_emptySigList(list_t *sigList);
 extern list_t managedTasks;
 
 /**
- * @brief Enqueue task in tasklist.
+ * @brief Enqueue task in tasklist
  *
  * Enqueue the task @a task to the tasklist @a list.
  *
- * @param list The list to enqueue @a task to.
+ * @param list List to enqueue @a task to
  *
- * @param task The task to enqueue to @a list.
+ * @param task Task to enqueue to @a list
  *
- * @return On success, 0 is returned or -1 if an error occurred.
+ * @return On success, 0 is returned or -1 if an error occurred
  * */
 int PStasklist_enqueue(list_t *list, PStask_t *task);
+
+/**
+ * @brief Enqueue task in tasklist right before other task
+ *
+ * Enqueue the task @a task to the tasklist @a list right before the
+ * other task @a other.
+ *
+ * @param list List to enqueue @a task to
+ *
+ * @param task Task to enqueue to @a list
+ *
+ * @param task Task marking the position in @a list where @a task
+ * shall be enqueued
+ *
+ * @return On success, 0 is returned or -1 if an error occurred
+ * */
+int PStasklist_enqueueBefore(list_t *list, PStask_t *task, PStask_t *other);
 
 /**
  * @brief Remove task from tasklist.
@@ -274,9 +278,5 @@ void PStask_cleanup(PStask_ID_t tid);
  * @return No return value.
  */
 void PSIDtask_clearMem(void);
-
-#ifdef __cplusplus
-}/* extern "C" */
-#endif
 
 #endif  /* __PSIDTASK_H */

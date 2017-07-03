@@ -2696,7 +2696,7 @@ static void msg_CHILDBORN(DDErrorMsg_t *msg)
     /* Child will get signal from parent. Thus add ptid to assignedSigs */
     PSID_setSignal(&child->assignedSigs, child->ptid, -1);
     /* Enqueue the task right in front of the forwarder */
-    PStasklist_enqueue(&forwarder->next, child);
+    PStasklist_enqueueBefore(&managedTasks, child, forwarder);
     /* Tell everybody about the new task */
     incJobs(1, (child->group==TG_ANY));
 
