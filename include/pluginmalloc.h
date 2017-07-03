@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2012-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2012-2017 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -117,5 +117,24 @@ char *__strn2Buf(char *strSave, size_t lenSave, char **buffer, size_t *bufSize,
 		 const char *func, const int line);
 #define strn2Buf(strSave, lenSave, buffer, bufSize) \
     __strn2Buf(strSave, lenSave, buffer, bufSize, __func__, __LINE__)
+
+/**
+ * @brief calloc() with error handling and logging.
+ *
+ * Call calloc() and handle errors by printing an error message and
+ * calling exit(EXIT_FAILURE).
+ *
+ * In addition to that debug messages are created.
+ *
+ * @param size Size in bytes to allocate
+ *
+ * @param func Function name of the calling function
+ *
+ * @param line Line number where this function is called
+ *
+ * @return Returned is a pointer to the allocated memory.
+ */
+void *__ucalloc(size_t size, const char *func, const int line);
+#define ucalloc(size) __ucalloc(size, __func__, __LINE__)
 
 #endif   /* __PLUGIN_LIB_MALLOC */

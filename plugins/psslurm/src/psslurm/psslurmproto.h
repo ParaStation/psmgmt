@@ -13,6 +13,56 @@
 #include "psslurmtypes.h"
 #include "psslurmjob.h"
 #include "psslurmcomm.h"
+#include "psaccounttypes.h"
+
+typedef struct {
+    uint32_t jobid;
+    uint32_t stepid;
+    uint32_t jobstate;
+    uid_t uid;
+    char *nodes;
+    env_t pelogueEnv;
+    env_t spankEnv;
+    time_t startTime;
+} Req_Terminate_Job_t;
+
+typedef struct {
+    uint32_t cpuload;
+    uint64_t freemem;
+} Resp_Ping_t;
+
+typedef struct {
+    time_t now;
+    time_t startTime;
+    uint32_t status;
+    char *nodeName;
+    char *arch;
+    char *sysname;
+    uint16_t cpus;
+    uint16_t boards;
+    uint16_t sockets;
+    uint16_t coresPerSocket;
+    uint16_t threadsPerCore;
+    uint64_t realMem;
+    uint32_t tmpDisk;
+    uint32_t uptime;
+    uint32_t config;
+    uint32_t cpuload;
+    uint64_t freemem;
+    uint32_t jobInfoCount;
+    uint32_t *jobids;
+    uint32_t *stepids;
+    int protoVersion;
+    char verStr[64];
+} Resp_Node_Reg_Status_t;
+
+typedef struct {
+    AccountDataExt_t *accData;
+    uint8_t type;
+    bool empty;
+    uint32_t nrOfNodes;
+    PSnodes_ID_t *nodes;
+} SlurmAccData_t;
 
 void sendNodeRegStatus(uint32_t status, int protoVersion);
 void getNodesFromSlurmHL(char *slurmNodes, uint32_t *nrOfNodes,
@@ -67,11 +117,9 @@ int __sendSlurmReply(Slurm_Msg_t *sMsg, slurm_msg_type_t type,
  *
  * @param job The job of the jobscript
  *
- * @param script The script to write
- *
  * @param return Returns true on success and false on error.
  */
-bool writeJobscript(Job_t *job, char *script);
+bool writeJobscript(Job_t *job);
 
 int sendTaskPids(Step_t *step);
 void sendLaunchTasksFailed(Step_t *step, uint32_t error);

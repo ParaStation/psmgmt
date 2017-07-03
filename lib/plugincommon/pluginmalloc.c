@@ -104,3 +104,21 @@ char *__strn2Buf(char *strSave, size_t lenSave, char **buffer, size_t *bufSize,
 
     return *buffer;
 }
+
+void *__ucalloc(size_t size, const char *func, const int line)
+{
+    void *ptr;
+
+    if (size < MIN_MALLOC_SIZE) size = MIN_MALLOC_SIZE;
+
+    ptr = calloc(size, 1);
+    if (!ptr) {
+	pluginlog("%s: memory allocation of '%zu' failed\n", func, size);
+	exit(EXIT_FAILURE);
+    }
+
+    plugindbg(PLUGIN_LOG_MALLOC, "umalloc\t%15s\t%i\t%p (%zu)\n", func, line,
+	      ptr, size);
+
+    return ptr;
+}

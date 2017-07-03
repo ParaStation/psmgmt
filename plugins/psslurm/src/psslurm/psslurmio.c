@@ -177,7 +177,7 @@ void writeIOmsg(char *msg, uint32_t msgLen, uint32_t taskid,
 	    doWriteP(fwdata->stdErr[1], msgPtr, msgLen);
 	} else if (step->stdErrOpt == IO_RANK_FILE) {
 	    doWriteP(step->errFDs[lrank], msgPtr, msgLen);
-	} else if (step->pty) {
+	} else if (step->taskFlags & LAUNCH_PTY) {
 	    srunSendIO(SLURM_IO_STDOUT, taskid, step,
 			msgPtr, msgLen);
 	} else {
@@ -207,7 +207,7 @@ static void writeLabelIOmsg(char *msg, uint32_t msgLen, uint32_t taskid,
     char *ptr, *nl;
     uint32_t left, len;
 
-    if (!step->labelIO || !msgLen ||
+    if (!(step->taskFlags & LAUNCH_LABEL_IO) || !msgLen ||
 	(type == STDOUT &&
 	(step->stdOutOpt == IO_SRUN || step->stdOutOpt == IO_SRUN_RANK)) ||
 	(type == STDERR &&
@@ -300,11 +300,14 @@ static void handlePrintChildMsg(Forwarder_Data_t *fwdata, char *ptr)
     }
 
     /* handle unbuffered IO */
-#ifdef SLURM_PROTOCOL_1605
-    if (type == STDERR || (!step->labelIO && !step->bufferedIO)
-	|| step->pty) {
+#ifdef MIN_SLURM_PROTO_1605
+    if (type == STDERR || (!(step->taskFlags & LAUNCH_LABEL_IO)
+	&& !(step->taskFlags & LAUNCH_BUFFERED_IO))
+	|| step->taskFlags & LAUNCH_PTY) {
 #else
-    if ((!step->labelIO && !step->bufferedIO) || step->pty) {
+    if ((!(step->taskFlags & LAUNCH_LABEL_IO) &&
+	!(step->taskFlags & LAUNCH_BUFFERED_IO)) ||
+	step->taskFlags & LAUNCH_PTY) {
 #endif
 	writeIOmsg(msg, len, taskid, type, fwdata, step, lrank);
 	ufree(msg);
@@ -388,7 +391,7 @@ static void handleFWfinalize(Forwarder_Data_t *fwdata, char *ptr)
 
     mdbg(PSSLURM_LOG_IO, "%s from %s\n", __func__, PSC_printTID(sender));
 
-    if (!step->pty) {
+    if (!(step->taskFlags & LAUNCH_PTY)) {
 	/* close stdout/stderr */
 	closeIOchannel(fwdata, msg->sender, STDOUT);
 	closeIOchannel(fwdata, msg->sender, STDERR);
@@ -836,7 +839,7 @@ int redirectIORank(Step_t *step, int rank)
 	}
     }
 
-    if (step->pty && rank >0) {
+    if (step->taskFlags & LAUNCH_PTY && rank >0) {
 	close(STDIN_FILENO);
 	fd = open("/dev/null", O_RDONLY);
 	dup2(fd, STDIN_FILENO);
@@ -1244,7 +1247,7 @@ int handleUserOE(int sock, void *data)
     int32_t size, ret;
     uint16_t type;
 
-    if (step->pty) {
+    if (step->taskFlags & LAUNCH_PTY) {
 	type = (sock == fwdata->stdOut[1]) ? SLURM_IO_STDOUT : SLURM_IO_STDERR;
     } else {
 	type = (sock == fwdata->stdOut[0]) ? SLURM_IO_STDOUT : SLURM_IO_STDERR;
@@ -1267,7 +1270,7 @@ int handleUserOE(int sock, void *data)
 
     /* forward data to srun, size of 0 means EOF for stream */
     if ((ret = srunSendIO(type, 0, step, buf, size)) != (size + 10)) {
-	if (!step->labelIO) {
+	if (!(step->taskFlags & LAUNCH_LABEL_IO)) {
 	    mwarn(errno, "%s: sending IO failed: size:%i ret:%i error:%i ",
 		    __func__, (size +10), ret, errno);
 	}

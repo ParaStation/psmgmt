@@ -1,19 +1,11 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2017 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
- */
-/**
- * $Id$
- *
- * \author
- * Michael Rauh <rauh@par-tec.com>
- * Stephan Krempel <krempel@par-tec.com>
- *
  */
 
 #include <stdio.h>
@@ -79,16 +71,12 @@ static uint8_t *getCPUsForPartition(PSpart_slot_t *slots, Step_t *step)
 	    /* single digit */
 	    if ((sscanf(next, "%i", &max)) != 1) {
 		mlog("%s: invalid core '%s'\n", __func__, next);
-		ufree(cores);
-		ufree(coreMap);
-		return NULL;
+		goto ERROR;
 	    }
 	    if (max >= step->cred->totalCoreCount) {
 		mlog("%s: core '%i' > total core count '%i'\n", __func__, max,
 			step->cred->totalCoreCount);
-		ufree(cores);
-		ufree(coreMap);
-		return NULL;
+		goto ERROR;
 	    }
 	    coreMap[max] = 1;
 
@@ -96,17 +84,13 @@ static uint8_t *getCPUsForPartition(PSpart_slot_t *slots, Step_t *step)
 	    /* range */
 	    if ((sscanf(next, "%i-%i", &min, &max)) != 2) {
 		mlog("%s: invalid core range '%s'\n", __func__, next);
-		ufree(cores);
-		ufree(coreMap);
-		return NULL;
+		goto ERROR;
 	    }
 	    for (i=min; i<=max; i++) {
 		if (i >= step->cred->totalCoreCount) {
 		    mlog("%s: core '%i' > total core count '%i'\n", __func__, i,
 			    step->cred->totalCoreCount);
-		    ufree(cores);
-		    ufree(coreMap);
-		    return NULL;
+		    goto ERROR;
 		}
 		coreMap[i] = 1;
 	    }
@@ -122,8 +106,12 @@ static uint8_t *getCPUsForPartition(PSpart_slot_t *slots, Step_t *step)
     mdbg(PSSLURM_LOG_PART, "'\n");
 
     ufree(cores);
-
     return coreMap;
+
+ERROR:
+    ufree(cores);
+    ufree(coreMap);
+    return NULL;
 }
 
 /*
@@ -685,13 +673,11 @@ int setHWthreads(Step_t *step)
 
     /* generate slotlist */
     slotsSize = step->np;
-    if (!(slots = umalloc(slotsSize * sizeof(PSpart_slot_t)))) {
-	mlog("%s: out of memory\n", __func__);
-	exit(1);
-    }
+    slots = umalloc(slotsSize * sizeof(PSpart_slot_t));
 
     /* get cpus from job credential */
     if (!(coreMap = getCPUsForPartition(slots, step))) {
+	mlog("%s: getting cpus for partition failed\n", __func__);
 	goto error;
     }
 

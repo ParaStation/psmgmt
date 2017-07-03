@@ -17,6 +17,7 @@
 #include <netdb.h>
 #include <unistd.h>
 #include <signal.h>
+#include <ctype.h>
 
 #include "slurmcommon.h"
 #include "psslurmproto.h"
@@ -109,9 +110,8 @@ static Connection_t *addConnection(int socket, Connection_CB_t *cb)
 	return con;
     }
 
-    con = umalloc(sizeof(*con));
+    con = ucalloc(sizeof(*con));
 
-    memset(con, 0, sizeof(Connection_t));
     con->sock = socket;
     con->cb = cb;
     initSlurmMsgHead(&con->fw.head);
@@ -668,32 +668,86 @@ int __sendSlurmMsgEx(int sock, Slurm_Msg_Header_t *head, PS_DataBuffer_t *body,
     return ret;
 }
 
-void __getBitString(char **ptr, char **bitStr, const char *func, const int line)
+char *__getBitString(char **ptr, const char *func, const int line)
 {
     uint32_t len;
+    char *bitStr = NULL;
 
     getUint32(ptr, &len);
 
-    if (len == NO_VAL) {
-	*bitStr = NULL;
-	return;
-    }
+    if (len == NO_VAL) return NULL;
 
     getUint32(ptr, &len);
 
     if (len > MAX_PACK_STR_LEN) {
-	*bitStr = NULL;
 	mlog("%s(%s:%i): invalid str len %i\n", __func__, func, line, len);
-	return;
+	return NULL;
     }
 
     if (len > 0) {
-	*bitStr = umalloc(len);
-	memcpy(*bitStr, *ptr, len);
+	bitStr = umalloc(len);
+	memcpy(bitStr, *ptr, len);
 	*ptr += len;
-    } else {
-	*bitStr = NULL;
     }
+    return bitStr;
+}
+
+bool hexBitstr2List(char *bitstr, char **list, size_t *listSize)
+{
+    size_t len;
+    int32_t next, count = 0;
+
+    if (!bitstr) {
+	mlog("%s: invalid bitstring\n", __func__);
+	return false;
+    }
+
+    if (!strncmp(bitstr, "0x", 2)) bitstr += 2;
+    len = strlen(bitstr);
+
+    while (len--) {
+	char tmp[1024];
+	next = (int32_t) bitstr[len];
+
+	if (!isxdigit(next)) return false;
+
+	if (isdigit(next)) {
+	    next -= '0';
+	} else {
+	    next = toupper(next);
+	    next -= 'A' - 10;
+	}
+
+	if (next & 1) {
+	    if (*listSize) str2Buf(",", list, listSize);
+	    snprintf(tmp, sizeof(tmp), "%u", count);
+	    str2Buf(tmp, list, listSize);
+	}
+	count++;
+
+	if (next & 2) {
+	    if (*listSize) str2Buf(",", list, listSize);
+	    snprintf(tmp, sizeof(tmp), "%u", count);
+	    str2Buf(tmp, list, listSize);
+	}
+	count++;
+
+	if (next & 4) {
+	    if (*listSize) str2Buf(",", list, listSize);
+	    snprintf(tmp, sizeof(tmp), "%u", count);
+	    str2Buf(tmp, list, listSize);
+	}
+	count++;
+
+	if (next & 8) {
+	    if (*listSize) str2Buf(",", list, listSize);
+	    snprintf(tmp, sizeof(tmp), "%u", count);
+	    str2Buf(tmp, list, listSize);
+	}
+	count++;
+    }
+
+    return true;
 }
 
 static int acceptSlurmClient(int socket, void *data)
@@ -858,6 +912,7 @@ int handleSrunMsg(int sock, void *data)
     Slurm_IO_Header_t *ioh = NULL;
     uint16_t i;
     uint32_t myTaskIdsLen, *myTaskIds;
+    bool pty;
 
     /* Shall be safe to do first a blocking read() inside a selector */
     ret = doRead(sock, buffer, SLURM_IO_HEAD_SIZE);
@@ -875,7 +930,8 @@ int handleSrunMsg(int sock, void *data)
 	     step->jobid, step->stepid);
 	goto ERROR;
     }
-    fd = (step->pty) ? step->fwdata->stdOut[1] : step->fwdata->stdIn[1];
+    pty = step->taskFlags & LAUNCH_PTY;
+    fd = pty ? step->fwdata->stdOut[1] : step->fwdata->stdIn[1];
     myTaskIdsLen = step->globalTaskIdsLen[step->myNodeIndex];
     myTaskIds = step->globalTaskIds[step->myNodeIndex];
 
@@ -887,7 +943,7 @@ int handleSrunMsg(int sock, void *data)
     mdbg(PSSLURM_LOG_IO | PSSLURM_LOG_IO_VERB,
 	 "%s: step %u:%u stdin %d type %u length %u gtid %u ltid %u pty %u"
 	 " myTIDsLen %u\n", __func__, step->jobid, step->stepid, fd, ioh->type,
-	 ioh->len, ioh->gtid, ioh->ltid, step->pty, myTaskIdsLen);
+	 ioh->len, ioh->gtid, ioh->ltid, pty, myTaskIdsLen);
 
     if (ioh->type == SLURM_IO_CONNECTION_TEST) {
 	if (ioh->len != 0) {
@@ -909,7 +965,7 @@ int handleSrunMsg(int sock, void *data)
 	}
 
 	/* close loggers stdin */
-	if (!step->pty) closeSlurmCon(fd);
+	if (!pty) closeSlurmCon(fd);
     } else {
 	/* foward stdin message to forwarders */
 	size_t left = ioh->len;
@@ -922,7 +978,7 @@ int handleSrunMsg(int sock, void *data)
 		break;
 	    }
 
-	    if (step->pty) {
+	    if (pty) {
 		if (step->nodes[0] == PSC_getMyID()) doWriteP(fd, buffer, ret);
 	    } else {
 		switch (ioh->type) {
@@ -1066,7 +1122,7 @@ int srunOpenIOConnectionEx(Step_t *step, uint32_t addr, uint16_t port,
 
     /* stdout obj count */
     if (step->stdOutOpt == IO_SRUN || step->stdOutOpt == IO_SRUN_RANK ||
-	step->pty) {
+	step->taskFlags & LAUNCH_PTY) {
 	step->outChannels =
 		umalloc(sizeof(int32_t) * step->globalTaskIdsLen[nodeID]);
 	for (i=0; i<step->globalTaskIdsLen[nodeID]; i++) {
@@ -1078,7 +1134,8 @@ int srunOpenIOConnectionEx(Step_t *step, uint32_t addr, uint16_t port,
     }
 
     /* stderr obj count */
-    if (step->pty || (step->stdOut && strlen(step->stdOut) > 0) ||
+    if (step->taskFlags & LAUNCH_PTY ||
+	(step->stdOut && strlen(step->stdOut) > 0) ||
 	(step->stdErrRank == -1 && step->stdErr && strlen(step->stdErr) > 0)) {
 	/* stderr uses stdout in pty mode */
 	addUint32ToMsg(0, &data);
