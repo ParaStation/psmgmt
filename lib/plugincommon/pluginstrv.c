@@ -39,7 +39,7 @@ void __strvInit(strv_t *strv, char **initstrv, size_t initcount,
 
     if (initstrv) memcpy(strv->strings, initstrv, count * sizeof(char *));
 
-    strv->strings[strv->count] = NULL; /* terminate string */
+    strv->strings[strv->count] = NULL; /* terminate vector */
 }
 
 void __strvAdd(strv_t *strv, char *str, const char *func, const int line)
