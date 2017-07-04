@@ -3071,7 +3071,7 @@ static int releaseThreads(PSpart_slot_t *slot, unsigned int nSlots,
 {
     unsigned int t, s, totalRelease = 0, numToRelease;
 
-    if (!slot || !task || !task->partThrds) return 0;
+    if (!slot || !task || !task->partThrds || !nSlots) return 0;
 
     for (s=0; s<nSlots; s++) totalRelease += PSCPU_getCPUs(slot[s].CPUset,
 							   NULL, PSCPU_MAX);
