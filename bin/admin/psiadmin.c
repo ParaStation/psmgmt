@@ -124,7 +124,7 @@ static char *nextline(FILE *inFile, bool silent)
 	    tmp = NULL;
 	} else {
 	    char *t = line;
-	    line = realloc(line, strlen(line) + strlen(tmp));
+	    line = realloc(line, strlen(line) + strlen(tmp) + 1);
 	    if (!line) {
 		if (t) free(t);
 		break;
@@ -132,7 +132,7 @@ static char *nextline(FILE *inFile, bool silent)
 	    strcpy(line + strlen(line)-1, tmp);
 	}
 	if (tmp) free(tmp);
-    } while (line[strlen(line)-1] == '\\');
+    } while (strlen(line) && line[strlen(line)-1] == '\\');
 
     return line;
 }
