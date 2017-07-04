@@ -1965,7 +1965,7 @@ static void cloneEnvFromTasks(PStask_t *task)
     }
 
     while (sibling->environ[envSize]) envSize++;
-    task->environ = malloc(sizeof(char*) * envSize + 1);
+    task->environ = malloc(sizeof(*task->environ) * (envSize+1));
     if (!task->environ) {
 	PSID_warn(-1, ENOMEM, "%s", __func__);
 	return;
