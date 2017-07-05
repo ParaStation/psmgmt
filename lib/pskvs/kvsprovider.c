@@ -327,13 +327,16 @@ static void testMsg(const char fName[], PSLog_Msg_t *msg)
 }
 
 /**
- * @brief Send a KVS message to a PMI client.
+ * @brief Send KVS message to a PMI client
  *
- * @param tid The Task ID to send the KVS message to.
+ * Send a KVS message to the PMI client with task ID @a tid. The
+ * payload of size @a len is provided within the buffer @a msgBuf.
  *
- * @param msg The message to send.
+ * @param tid Task ID to send the KVS message to.
  *
- * @param len The length of the message to send.
+ * @param msgBuf Message payload to send
+ *
+ * @param len Length of the message payload to send
  *
  * @return No return value.
  */
@@ -369,20 +372,18 @@ static void sendKvsMsg(PStask_ID_t tid, char *msgBuf, size_t len)
  *
  * @return No return value.
  */
-static void sendMsgToKvsSucc(char *msg, size_t len)
+static void sendMsgToKvsSucc(char *msgBuf, size_t len)
 {
-    if (!msg) {
-	mlog("%s: invalid KVS msg: 'null'\n", __func__);
+    if (!msgBuf) {
+	mlog("%s: no payload\n", __func__);
+	return;
+    }
+    if (clients[0].tid == -1) {
+	mlog("%s: daisy-chain unusable: invalid client[0] tid\n", __func__);
 	return;
     }
 
-    if (clients[0].tid != -1) {
-	sendKvsMsg(clients[0].tid, msg, len);
-    } else {
-	mlog("%s: daisy-chain not unusable : invalid client[0] tid\n",
-		    __func__);
-	return;
-    }
+    sendKvsMsg(clients[0].tid, msgBuf, len);
 }
 
 /**
@@ -425,18 +426,20 @@ static void growKvsUpdateIdx(int minNewSize, const char *caller)
  */
 static void sendKvsUpdateToClients(int finish)
 {
-    char kvsmsg[PMIU_MAXLINE] = {'\0'}, nextval[PMI_KEYLEN_MAX + PMI_VALLEN_MAX];
-    char *bufPtr = buffer, *valPtr;
+    char kvsmsg[PMIU_MAXLINE], nextval[PMI_KEYLEN_MAX + PMI_VALLEN_MAX];
     int kvsvalcount, valup, pmiCmd;
-    size_t bufLen = 0, toAdd = 0;
 
     kvsvalcount = kvs_count_values(kvsname);
     valup = 0;
     while (kvsvalcount > valup) {
+	size_t bufLen = 0;
+	char *bufPtr = buffer;
 	kvsmsg[0] = '\0';
 
 	/* add the values to the msg */
 	while (kvsvalcount > valup) {
+	    size_t newLen;
+	    char *valPtr;
 
 	    /* skip already send fields */
 	    if (valup >= kvsIndexSize) {
@@ -447,17 +450,16 @@ static void sendKvsUpdateToClients(int finish)
 		continue;
 	    }
 
-	    if (!(valPtr = kvs_getbyidx(kvsname, valup))) {
-		mlog("%s: invalid KVS index valup '%i' kvsvalcount '%i'\n",
+	    valPtr = kvs_getbyidx(kvsname, valup);
+	    if (!valPtr) {
+		mlog("%s: invalid KVS index valup %i kvsvalcount %i\n",
 			__func__, valup, kvsvalcount);
 		terminateJob(__func__);
 	    }
 	    snprintf(nextval, sizeof(nextval), " %s", valPtr);
 
-	    /* PSLog message can hold 1024 buffer payload */
-	    toAdd = strlen(nextval) + strlen(kvsmsg) + 1;
-
-	    if (toAdd > PMIUPDATE_PAYLOAD || toAdd > sizeof(kvsmsg)) break;
+	    newLen = strlen(kvsmsg) + strlen(nextval) + 1;
+	    if (newLen > PMIUPDATE_PAYLOAD || newLen > sizeof(kvsmsg)) break;
 
 	    strcat(kvsmsg, nextval);
 	    kvsUpdateLen -= strlen(nextval);
@@ -478,8 +480,6 @@ static void sendKvsUpdateToClients(int finish)
 		    finish, kvsvalcount, valup, putCount);
 	}
 
-	bufPtr = buffer;
-	bufLen = 0;
 	setKVSCmd(&bufPtr, &bufLen, pmiCmd);
 	addKVSInt32(&bufPtr, &bufLen, &nextUpdateField);
 	addKVSString(&bufPtr, &bufLen, kvsmsg);
@@ -487,11 +487,7 @@ static void sendKvsUpdateToClients(int finish)
 
 	kvsUpdateTrack[nextUpdateField]++;
 	if (pmiCmd == UPDATE_CACHE_FINISH) {
-	    if (nextUpdateField+1 == KVS_UPDATE_FIELDS) {
-		nextUpdateField = 0;
-	    } else {
-		nextUpdateField++;
-	    }
+	    if (++nextUpdateField == KVS_UPDATE_FIELDS) nextUpdateField = 0;
 	}
 	if (!finish || valup >= kvsIndexSize) break;
     }
