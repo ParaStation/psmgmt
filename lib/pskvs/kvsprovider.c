@@ -337,7 +337,7 @@ static void testMsg(const char fName[], PSLog_Msg_t *msg)
  *
  * @return No return value.
  */
-static void sendKvsMsg(PStask_ID_t tid, char *buffer, size_t len)
+static void sendKvsMsg(PStask_ID_t tid, char *msgBuf, size_t len)
 {
     PSLog_Msg_t msg;
 
@@ -349,17 +349,12 @@ static void sendKvsMsg(PStask_ID_t tid, char *buffer, size_t len)
     msg.sender = -1;
     msg.header.len = (sizeof(msg) - sizeof(msg.buf)) + len;
 
-    /*
-    if (1) {
-	int8_t cmd;
-
-	cmd = *(int8_t *) buffer;
-	mlog("%s(r): cmd '%s' dest:'%i'\n", __func__,
-		PSKVScmdToString(cmd), tid);
+    if (len > sizeof(msg.buf)) {
+	mlog("%s: payload too large\n", __func__);
+	return;
     }
-    */
 
-    memcpy(msg.buf, buffer, sizeof(msg.buf));
+    memcpy(msg.buf, msgBuf, len);
     if (PSI_sendMsg(&msg) == -1) {
 	mwarn(errno, "%s: sending msg failed", __func__);
     }
