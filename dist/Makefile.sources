@@ -97,6 +97,8 @@ bin/psmstart.c \
 bin/pssh.c \
 bin/startup/cloptions.c \
 bin/startup/cloptions.h \
+bin/startup/environment.c \
+bin/startup/environment.h \
 bin/startup/mpiexec.c \
 bin/testacct.c \
 bin/test_config.c \
