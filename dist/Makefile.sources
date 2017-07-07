@@ -95,6 +95,8 @@ bin/mpirun_openib.c \
 bin/psispawn.c \
 bin/psmstart.c \
 bin/pssh.c \
+bin/startup/Makefile.am \
+bin/startup/Makefile.in \
 bin/startup/cloptions.c \
 bin/startup/cloptions.h \
 bin/startup/environment.c \

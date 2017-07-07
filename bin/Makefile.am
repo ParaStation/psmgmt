@@ -10,6 +10,8 @@
 
 include $(top_srcdir)/common.am
 
+SUBDIRS = startup
+
 PKG_VER := $(shell ${top_srcdir}/scripts/vcversion -r $(top_srcdir) --fmt version -n)
 PKG_REL := $(shell ${top_srcdir}/scripts/vcversion -r $(top_srcdir) --fmt release -n)
 
@@ -18,9 +20,7 @@ AM_CPPFLAGS += -DRELEASE_psmgmt=\"$(PKG_REL)\"
 
 bin_PROGRAMS = psiadmin psid psilogger mlisten psmstart mpirun_chp4	\
 	psispawn mpirun_chgm gmspawner mpirun_openib test_pse		\
-	test_config pssh psaccounter mpiexec
-# libexec_PROGRAMS = kvsprovider spawner # to be used later
-pkglibexec_PROGRAMS = spawner
+	test_config pssh psaccounter
 noinst_PROGRAMS = testacct
 
 noinst_HEADERS = admin/helpmsgs.c
@@ -34,7 +34,6 @@ libpsi = $(top_builddir)/lib/psi/libpsi.la
 libputil = $(top_builddir)/lib/putil/libputil.la
 libpscommon = $(top_builddir)/lib/pscommon/libpscommon.la
 libpslog = $(top_builddir)/lib/pslog/libpslog.la
-libpskvs = $(top_builddir)/lib/pskvs/libpskvs.la
 
 psiadmin_SOURCES = admin/psiadmin.c admin/psiadmin.h admin/commands.c	\
 	admin/commands.h admin/adminparser.c admin/adminparser.h
@@ -97,16 +96,6 @@ pssh_LDADD = $(libpse) $(POPT_LIBS)
 psaccounter_SOURCES = accounter/psaccounter.c
 psaccounter_CPPFLAGS = $(AM_CPPFLAGS) -DLOCALSTATEDIR=\"$(localstatedir)\"
 psaccounter_LDADD = $(libpse) $(POPT_LIBS)
-
-mpiexec_SOURCES = startup/mpiexec.c startup/cloptions.c			\
-	startup/cloptions.h startup/environment.c startup/environment.h
-mpiexec_CPPFLAGS = $(AM_CPPFLAGS) -DLIBEXECDIR=\"$(pkglibexecdir)\"
-mpiexec_LDADD = $(libpse) $(libpskvs) $(POPT_LIBS)
-
-spawner_SOURCES = startup/spawner.c startup/cloptions.c			\
-	startup/cloptions.h startup/environment.c startup/environment.h
-spawner_CPPFLAGS = $(AM_CPPFLAGS) -DCONFIGDIR=\"$(configdir)\"
-spawner_LDADD = $(libpse) $(libpskvs) $(POPT_LIBS)
 
 testacct_LDADD = $(libpse) $(POPT_LIBS)
 

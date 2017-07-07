@@ -126,6 +126,7 @@ AM_CONDITIONAL([HAVE_SYSTEMD], [test "x$with_unitdir" != "xno"])
 
 AC_CONFIG_FILES(Makefile)
 AC_CONFIG_FILES(bin/Makefile)
+AC_CONFIG_FILES(bin/startup/Makefile)
 AC_CONFIG_FILES(doc/Makefile)
 AC_CONFIG_FILES(include/Makefile)
 AC_CONFIG_FILES(lib/Makefile)

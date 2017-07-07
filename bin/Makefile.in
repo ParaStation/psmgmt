@@ -116,8 +116,7 @@ bin_PROGRAMS = psiadmin$(EXEEXT) psid$(EXEEXT) psilogger$(EXEEXT) \
 	mlisten$(EXEEXT) psmstart$(EXEEXT) mpirun_chp4$(EXEEXT) \
 	psispawn$(EXEEXT) mpirun_chgm$(EXEEXT) gmspawner$(EXEEXT) \
 	mpirun_openib$(EXEEXT) test_pse$(EXEEXT) test_config$(EXEEXT) \
-	pssh$(EXEEXT) psaccounter$(EXEEXT) mpiexec$(EXEEXT)
-pkglibexec_PROGRAMS = spawner$(EXEEXT)
+	pssh$(EXEEXT) psaccounter$(EXEEXT)
 noinst_PROGRAMS = testacct$(EXEEXT)
 subdir = bin
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
@@ -132,9 +131,8 @@ DIST_COMMON = $(srcdir)/Makefile.am $(include_HEADERS) \
 mkinstalldirs = $(install_sh) -d
 CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
-am__installdirs = "$(DESTDIR)$(bindir)" "$(DESTDIR)$(pkglibexecdir)" \
-	"$(DESTDIR)$(includedir)"
-PROGRAMS = $(bin_PROGRAMS) $(noinst_PROGRAMS) $(pkglibexec_PROGRAMS)
+am__installdirs = "$(DESTDIR)$(bindir)" "$(DESTDIR)$(includedir)"
+PROGRAMS = $(bin_PROGRAMS) $(noinst_PROGRAMS)
 gmspawner_SOURCES = gmspawner.c
 gmspawner_OBJECTS = gmspawner-gmspawner.$(OBJEXT)
 am__DEPENDENCIES_1 =
@@ -149,12 +147,6 @@ gmspawner_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 mlisten_SOURCES = mlisten.c
 mlisten_OBJECTS = mlisten.$(OBJEXT)
 mlisten_DEPENDENCIES = $(am__DEPENDENCIES_1)
-am__dirstamp = $(am__leading_dot)dirstamp
-am_mpiexec_OBJECTS = startup/mpiexec-mpiexec.$(OBJEXT) \
-	startup/mpiexec-cloptions.$(OBJEXT) \
-	startup/mpiexec-environment.$(OBJEXT)
-mpiexec_OBJECTS = $(am_mpiexec_OBJECTS)
-mpiexec_DEPENDENCIES = $(libpse) $(libpskvs) $(am__DEPENDENCIES_1)
 mpirun_chgm_SOURCES = mpirun_chgm.c
 mpirun_chgm_OBJECTS = mpirun_chgm.$(OBJEXT)
 mpirun_chgm_DEPENDENCIES = $(libpse) $(am__DEPENDENCIES_1)
@@ -164,6 +156,7 @@ mpirun_chp4_DEPENDENCIES = $(libpse) $(am__DEPENDENCIES_1)
 mpirun_openib_SOURCES = mpirun_openib.c
 mpirun_openib_OBJECTS = mpirun_openib.$(OBJEXT)
 mpirun_openib_DEPENDENCIES = $(libpse) $(am__DEPENDENCIES_1)
+am__dirstamp = $(am__leading_dot)dirstamp
 am_psaccounter_OBJECTS = accounter/psaccounter-psaccounter.$(OBJEXT)
 psaccounter_OBJECTS = $(am_psaccounter_OBJECTS)
 psaccounter_DEPENDENCIES = $(libpse) $(am__DEPENDENCIES_1)
@@ -206,11 +199,6 @@ psmstart_DEPENDENCIES = $(libpse) $(am__DEPENDENCIES_1)
 pssh_SOURCES = pssh.c
 pssh_OBJECTS = pssh.$(OBJEXT)
 pssh_DEPENDENCIES = $(libpse) $(am__DEPENDENCIES_1)
-am_spawner_OBJECTS = startup/spawner-spawner.$(OBJEXT) \
-	startup/spawner-cloptions.$(OBJEXT) \
-	startup/spawner-environment.$(OBJEXT)
-spawner_OBJECTS = $(am_spawner_OBJECTS)
-spawner_DEPENDENCIES = $(libpse) $(libpskvs) $(am__DEPENDENCIES_1)
 am_test_config_OBJECTS = test_config.$(OBJEXT) \
 	daemon/psidnodes.$(OBJEXT) daemon/psidscripts.$(OBJEXT) \
 	daemon/psidutil.$(OBJEXT)
@@ -257,16 +245,22 @@ AM_V_CCLD = $(am__v_CCLD_@AM_V@)
 am__v_CCLD_ = $(am__v_CCLD_@AM_DEFAULT_V@)
 am__v_CCLD_0 = @echo "  CCLD    " $@;
 am__v_CCLD_1 = 
-SOURCES = gmspawner.c mlisten.c $(mpiexec_SOURCES) mpirun_chgm.c \
-	mpirun_chp4.c mpirun_openib.c $(psaccounter_SOURCES) \
-	$(psiadmin_SOURCES) $(psid_SOURCES) $(psilogger_SOURCES) \
-	psispawn.c psmstart.c pssh.c $(spawner_SOURCES) \
-	$(test_config_SOURCES) test_pse.c testacct.c
-DIST_SOURCES = gmspawner.c mlisten.c $(mpiexec_SOURCES) mpirun_chgm.c \
-	mpirun_chp4.c mpirun_openib.c $(psaccounter_SOURCES) \
-	$(psiadmin_SOURCES) $(psid_SOURCES) $(psilogger_SOURCES) \
-	psispawn.c psmstart.c pssh.c $(spawner_SOURCES) \
-	$(test_config_SOURCES) test_pse.c testacct.c
+SOURCES = gmspawner.c mlisten.c mpirun_chgm.c mpirun_chp4.c \
+	mpirun_openib.c $(psaccounter_SOURCES) $(psiadmin_SOURCES) \
+	$(psid_SOURCES) $(psilogger_SOURCES) psispawn.c psmstart.c \
+	pssh.c $(test_config_SOURCES) test_pse.c testacct.c
+DIST_SOURCES = gmspawner.c mlisten.c mpirun_chgm.c mpirun_chp4.c \
+	mpirun_openib.c $(psaccounter_SOURCES) $(psiadmin_SOURCES) \
+	$(psid_SOURCES) $(psilogger_SOURCES) psispawn.c psmstart.c \
+	pssh.c $(test_config_SOURCES) test_pse.c testacct.c
+RECURSIVE_TARGETS = all-recursive check-recursive cscopelist-recursive \
+	ctags-recursive dvi-recursive html-recursive info-recursive \
+	install-data-recursive install-dvi-recursive \
+	install-exec-recursive install-html-recursive \
+	install-info-recursive install-pdf-recursive \
+	install-ps-recursive install-recursive installcheck-recursive \
+	installdirs-recursive pdf-recursive ps-recursive \
+	tags-recursive uninstall-recursive
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
@@ -300,6 +294,14 @@ am__uninstall_files_from_dir = { \
          $(am__cd) "$$dir" && rm -f $$files; }; \
   }
 HEADERS = $(include_HEADERS) $(noinst_HEADERS)
+RECURSIVE_CLEAN_TARGETS = mostlyclean-recursive clean-recursive	\
+  distclean-recursive maintainer-clean-recursive
+am__recursive_targets = \
+  $(RECURSIVE_TARGETS) \
+  $(RECURSIVE_CLEAN_TARGETS) \
+  $(am__extra_recursive_targets)
+AM_RECURSIVE_TARGETS = $(am__recursive_targets:-recursive=) TAGS CTAGS \
+	distdir
 am__tagged_files = $(HEADERS) $(SOURCES) $(TAGS_FILES) $(LISP)
 # Read a list of newline-separated strings from the standard input,
 # and print each of them once, without duplicates.  Input order is
@@ -319,9 +321,35 @@ am__define_uniq_tagged_files = \
   done | $(am__uniquify_input)`
 ETAGS = etags
 CTAGS = ctags
+DIST_SUBDIRS = $(SUBDIRS)
 am__DIST_COMMON = $(srcdir)/Makefile.in $(top_srcdir)/common.am \
 	$(top_srcdir)/scripts/depcomp
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
+am__relativize = \
+  dir0=`pwd`; \
+  sed_first='s,^\([^/]*\)/.*$$,\1,'; \
+  sed_rest='s,^[^/]*/*,,'; \
+  sed_last='s,^.*/\([^/]*\)$$,\1,'; \
+  sed_butlast='s,/*[^/]*$$,,'; \
+  while test -n "$$dir1"; do \
+    first=`echo "$$dir1" | sed -e "$$sed_first"`; \
+    if test "$$first" != "."; then \
+      if test "$$first" = ".."; then \
+        dir2=`echo "$$dir0" | sed -e "$$sed_last"`/"$$dir2"; \
+        dir0=`echo "$$dir0" | sed -e "$$sed_butlast"`; \
+      else \
+        first2=`echo "$$dir2" | sed -e "$$sed_first"`; \
+        if test "$$first2" = "$$first"; then \
+          dir2=`echo "$$dir2" | sed -e "$$sed_rest"`; \
+        else \
+          dir2="../$$dir2"; \
+        fi; \
+        dir0="$$dir0"/"$$first"; \
+      fi; \
+    fi; \
+    dir1=`echo "$$dir1" | sed -e "$$sed_rest"`; \
+  done; \
+  reldir="$$dir2"
 ACLOCAL = @ACLOCAL@
 AMTAR = @AMTAR@
 AM_CFLAGS = @AM_CFLAGS@
@@ -495,6 +523,7 @@ scriptsdir = $(prefix)/scripts
 @HAVE_SYSTEMD_TRUE@default_cgroup_root = /sys/fs/cgroup/
 @HAVE_SYSTEMD_FALSE@default_cgroup_name = psmgmtGrp
 @HAVE_SYSTEMD_TRUE@default_cgroup_name = system.slice/psid.service/descendants
+SUBDIRS = startup
 PKG_VER := $(shell ${top_srcdir}/scripts/vcversion -r $(top_srcdir) --fmt version -n)
 PKG_REL := $(shell ${top_srcdir}/scripts/vcversion -r $(top_srcdir) --fmt release -n)
 noinst_HEADERS = admin/helpmsgs.c
@@ -507,7 +536,6 @@ libpsi = $(top_builddir)/lib/psi/libpsi.la
 libputil = $(top_builddir)/lib/putil/libputil.la
 libpscommon = $(top_builddir)/lib/pscommon/libpscommon.la
 libpslog = $(top_builddir)/lib/pslog/libpslog.la
-libpskvs = $(top_builddir)/lib/pskvs/libpskvs.la
 psiadmin_SOURCES = admin/psiadmin.c admin/psiadmin.h admin/commands.c	\
 	admin/commands.h admin/adminparser.c admin/adminparser.h
 
@@ -562,18 +590,8 @@ pssh_LDADD = $(libpse) $(POPT_LIBS)
 psaccounter_SOURCES = accounter/psaccounter.c
 psaccounter_CPPFLAGS = $(AM_CPPFLAGS) -DLOCALSTATEDIR=\"$(localstatedir)\"
 psaccounter_LDADD = $(libpse) $(POPT_LIBS)
-mpiexec_SOURCES = startup/mpiexec.c startup/cloptions.c			\
-	startup/cloptions.h startup/environment.c startup/environment.h
-
-mpiexec_CPPFLAGS = $(AM_CPPFLAGS) -DLIBEXECDIR=\"$(pkglibexecdir)\"
-mpiexec_LDADD = $(libpse) $(libpskvs) $(POPT_LIBS)
-spawner_SOURCES = startup/spawner.c startup/cloptions.c			\
-	startup/cloptions.h startup/environment.c startup/environment.h
-
-spawner_CPPFLAGS = $(AM_CPPFLAGS) -DCONFIGDIR=\"$(configdir)\"
-spawner_LDADD = $(libpse) $(libpskvs) $(POPT_LIBS)
 testacct_LDADD = $(libpse) $(POPT_LIBS)
-all: all-am
+all: all-recursive
 
 .SUFFIXES:
 .SUFFIXES: .c .lo .o .obj
@@ -665,55 +683,6 @@ clean-noinstPROGRAMS:
 	list=`for p in $$list; do echo "$$p"; done | sed 's/$(EXEEXT)$$//'`; \
 	echo " rm -f" $$list; \
 	rm -f $$list
-install-pkglibexecPROGRAMS: $(pkglibexec_PROGRAMS)
-	@$(NORMAL_INSTALL)
-	@list='$(pkglibexec_PROGRAMS)'; test -n "$(pkglibexecdir)" || list=; \
-	if test -n "$$list"; then \
-	  echo " $(MKDIR_P) '$(DESTDIR)$(pkglibexecdir)'"; \
-	  $(MKDIR_P) "$(DESTDIR)$(pkglibexecdir)" || exit 1; \
-	fi; \
-	for p in $$list; do echo "$$p $$p"; done | \
-	sed 's/$(EXEEXT)$$//' | \
-	while read p p1; do if test -f $$p \
-	 || test -f $$p1 \
-	  ; then echo "$$p"; echo "$$p"; else :; fi; \
-	done | \
-	sed -e 'p;s,.*/,,;n;h' \
-	    -e 's|.*|.|' \
-	    -e 'p;x;s,.*/,,;s/$(EXEEXT)$$//;$(transform);s/$$/$(EXEEXT)/' | \
-	sed 'N;N;N;s,\n, ,g' | \
-	$(AWK) 'BEGIN { files["."] = ""; dirs["."] = 1 } \
-	  { d=$$3; if (dirs[d] != 1) { print "d", d; dirs[d] = 1 } \
-	    if ($$2 == $$4) files[d] = files[d] " " $$1; \
-	    else { print "f", $$3 "/" $$4, $$1; } } \
-	  END { for (d in files) print "f", d, files[d] }' | \
-	while read type dir files; do \
-	    if test "$$dir" = .; then dir=; else dir=/$$dir; fi; \
-	    test -z "$$files" || { \
-	    echo " $(INSTALL_PROGRAM_ENV) $(LIBTOOL) $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=install $(INSTALL_PROGRAM) $$files '$(DESTDIR)$(pkglibexecdir)$$dir'"; \
-	    $(INSTALL_PROGRAM_ENV) $(LIBTOOL) $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=install $(INSTALL_PROGRAM) $$files "$(DESTDIR)$(pkglibexecdir)$$dir" || exit $$?; \
-	    } \
-	; done
-
-uninstall-pkglibexecPROGRAMS:
-	@$(NORMAL_UNINSTALL)
-	@list='$(pkglibexec_PROGRAMS)'; test -n "$(pkglibexecdir)" || list=; \
-	files=`for p in $$list; do echo "$$p"; done | \
-	  sed -e 'h;s,^.*/,,;s/$(EXEEXT)$$//;$(transform)' \
-	      -e 's/$$/$(EXEEXT)/' \
-	`; \
-	test -n "$$list" || exit 0; \
-	echo " ( cd '$(DESTDIR)$(pkglibexecdir)' && rm -f" $$files ")"; \
-	cd "$(DESTDIR)$(pkglibexecdir)" && rm -f $$files
-
-clean-pkglibexecPROGRAMS:
-	@list='$(pkglibexec_PROGRAMS)'; test -n "$$list" || exit 0; \
-	echo " rm -f" $$list; \
-	rm -f $$list || exit $$?; \
-	test -n "$(EXEEXT)" || exit 0; \
-	list=`for p in $$list; do echo "$$p"; done | sed 's/$(EXEEXT)$$//'`; \
-	echo " rm -f" $$list; \
-	rm -f $$list
 
 gmspawner$(EXEEXT): $(gmspawner_OBJECTS) $(gmspawner_DEPENDENCIES) $(EXTRA_gmspawner_DEPENDENCIES) 
 	@rm -f gmspawner$(EXEEXT)
@@ -722,22 +691,6 @@ gmspawner$(EXEEXT): $(gmspawner_OBJECTS) $(gmspawner_DEPENDENCIES) $(EXTRA_gmspa
 mlisten$(EXEEXT): $(mlisten_OBJECTS) $(mlisten_DEPENDENCIES) $(EXTRA_mlisten_DEPENDENCIES) 
 	@rm -f mlisten$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(mlisten_OBJECTS) $(mlisten_LDADD) $(LIBS)
-startup/$(am__dirstamp):
-	@$(MKDIR_P) startup
-	@: > startup/$(am__dirstamp)
-startup/$(DEPDIR)/$(am__dirstamp):
-	@$(MKDIR_P) startup/$(DEPDIR)
-	@: > startup/$(DEPDIR)/$(am__dirstamp)
-startup/mpiexec-mpiexec.$(OBJEXT): startup/$(am__dirstamp) \
-	startup/$(DEPDIR)/$(am__dirstamp)
-startup/mpiexec-cloptions.$(OBJEXT): startup/$(am__dirstamp) \
-	startup/$(DEPDIR)/$(am__dirstamp)
-startup/mpiexec-environment.$(OBJEXT): startup/$(am__dirstamp) \
-	startup/$(DEPDIR)/$(am__dirstamp)
-
-mpiexec$(EXEEXT): $(mpiexec_OBJECTS) $(mpiexec_DEPENDENCIES) $(EXTRA_mpiexec_DEPENDENCIES) 
-	@rm -f mpiexec$(EXEEXT)
-	$(AM_V_CCLD)$(LINK) $(mpiexec_OBJECTS) $(mpiexec_LDADD) $(LIBS)
 
 mpirun_chgm$(EXEEXT): $(mpirun_chgm_OBJECTS) $(mpirun_chgm_DEPENDENCIES) $(EXTRA_mpirun_chgm_DEPENDENCIES) 
 	@rm -f mpirun_chgm$(EXEEXT)
@@ -868,16 +821,6 @@ psmstart$(EXEEXT): $(psmstart_OBJECTS) $(psmstart_DEPENDENCIES) $(EXTRA_psmstart
 pssh$(EXEEXT): $(pssh_OBJECTS) $(pssh_DEPENDENCIES) $(EXTRA_pssh_DEPENDENCIES) 
 	@rm -f pssh$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(pssh_OBJECTS) $(pssh_LDADD) $(LIBS)
-startup/spawner-spawner.$(OBJEXT): startup/$(am__dirstamp) \
-	startup/$(DEPDIR)/$(am__dirstamp)
-startup/spawner-cloptions.$(OBJEXT): startup/$(am__dirstamp) \
-	startup/$(DEPDIR)/$(am__dirstamp)
-startup/spawner-environment.$(OBJEXT): startup/$(am__dirstamp) \
-	startup/$(DEPDIR)/$(am__dirstamp)
-
-spawner$(EXEEXT): $(spawner_OBJECTS) $(spawner_DEPENDENCIES) $(EXTRA_spawner_DEPENDENCIES) 
-	@rm -f spawner$(EXEEXT)
-	$(AM_V_CCLD)$(LINK) $(spawner_OBJECTS) $(spawner_LDADD) $(LIBS)
 
 test_config$(EXEEXT): $(test_config_OBJECTS) $(test_config_DEPENDENCIES) $(EXTRA_test_config_DEPENDENCIES) 
 	@rm -f test_config$(EXEEXT)
@@ -897,7 +840,6 @@ mostlyclean-compile:
 	-rm -f admin/*.$(OBJEXT)
 	-rm -f daemon/*.$(OBJEXT)
 	-rm -f logger/*.$(OBJEXT)
-	-rm -f startup/*.$(OBJEXT)
 
 distclean-compile:
 	-rm -f *.tab.c
@@ -946,12 +888,6 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@logger/$(DEPDIR)/psilogger.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@logger/$(DEPDIR)/psiloggerclient.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@logger/$(DEPDIR)/psiloggermerge.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@startup/$(DEPDIR)/mpiexec-cloptions.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@startup/$(DEPDIR)/mpiexec-environment.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@startup/$(DEPDIR)/mpiexec-mpiexec.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@startup/$(DEPDIR)/spawner-cloptions.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@startup/$(DEPDIR)/spawner-environment.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@startup/$(DEPDIR)/spawner-spawner.Po@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	$(AM_V_CC)depbase=`echo $@ | sed 's|[^/]*$$|$(DEPDIR)/&|;s|\.o$$||'`;\
@@ -991,48 +927,6 @@ gmspawner-gmspawner.obj: gmspawner.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(gmspawner_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o gmspawner-gmspawner.obj `if test -f 'gmspawner.c'; then $(CYGPATH_W) 'gmspawner.c'; else $(CYGPATH_W) '$(srcdir)/gmspawner.c'; fi`
 
-startup/mpiexec-mpiexec.o: startup/mpiexec.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(mpiexec_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT startup/mpiexec-mpiexec.o -MD -MP -MF startup/$(DEPDIR)/mpiexec-mpiexec.Tpo -c -o startup/mpiexec-mpiexec.o `test -f 'startup/mpiexec.c' || echo '$(srcdir)/'`startup/mpiexec.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) startup/$(DEPDIR)/mpiexec-mpiexec.Tpo startup/$(DEPDIR)/mpiexec-mpiexec.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='startup/mpiexec.c' object='startup/mpiexec-mpiexec.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(mpiexec_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o startup/mpiexec-mpiexec.o `test -f 'startup/mpiexec.c' || echo '$(srcdir)/'`startup/mpiexec.c
-
-startup/mpiexec-mpiexec.obj: startup/mpiexec.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(mpiexec_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT startup/mpiexec-mpiexec.obj -MD -MP -MF startup/$(DEPDIR)/mpiexec-mpiexec.Tpo -c -o startup/mpiexec-mpiexec.obj `if test -f 'startup/mpiexec.c'; then $(CYGPATH_W) 'startup/mpiexec.c'; else $(CYGPATH_W) '$(srcdir)/startup/mpiexec.c'; fi`
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) startup/$(DEPDIR)/mpiexec-mpiexec.Tpo startup/$(DEPDIR)/mpiexec-mpiexec.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='startup/mpiexec.c' object='startup/mpiexec-mpiexec.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(mpiexec_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o startup/mpiexec-mpiexec.obj `if test -f 'startup/mpiexec.c'; then $(CYGPATH_W) 'startup/mpiexec.c'; else $(CYGPATH_W) '$(srcdir)/startup/mpiexec.c'; fi`
-
-startup/mpiexec-cloptions.o: startup/cloptions.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(mpiexec_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT startup/mpiexec-cloptions.o -MD -MP -MF startup/$(DEPDIR)/mpiexec-cloptions.Tpo -c -o startup/mpiexec-cloptions.o `test -f 'startup/cloptions.c' || echo '$(srcdir)/'`startup/cloptions.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) startup/$(DEPDIR)/mpiexec-cloptions.Tpo startup/$(DEPDIR)/mpiexec-cloptions.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='startup/cloptions.c' object='startup/mpiexec-cloptions.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(mpiexec_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o startup/mpiexec-cloptions.o `test -f 'startup/cloptions.c' || echo '$(srcdir)/'`startup/cloptions.c
-
-startup/mpiexec-cloptions.obj: startup/cloptions.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(mpiexec_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT startup/mpiexec-cloptions.obj -MD -MP -MF startup/$(DEPDIR)/mpiexec-cloptions.Tpo -c -o startup/mpiexec-cloptions.obj `if test -f 'startup/cloptions.c'; then $(CYGPATH_W) 'startup/cloptions.c'; else $(CYGPATH_W) '$(srcdir)/startup/cloptions.c'; fi`
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) startup/$(DEPDIR)/mpiexec-cloptions.Tpo startup/$(DEPDIR)/mpiexec-cloptions.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='startup/cloptions.c' object='startup/mpiexec-cloptions.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(mpiexec_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o startup/mpiexec-cloptions.obj `if test -f 'startup/cloptions.c'; then $(CYGPATH_W) 'startup/cloptions.c'; else $(CYGPATH_W) '$(srcdir)/startup/cloptions.c'; fi`
-
-startup/mpiexec-environment.o: startup/environment.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(mpiexec_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT startup/mpiexec-environment.o -MD -MP -MF startup/$(DEPDIR)/mpiexec-environment.Tpo -c -o startup/mpiexec-environment.o `test -f 'startup/environment.c' || echo '$(srcdir)/'`startup/environment.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) startup/$(DEPDIR)/mpiexec-environment.Tpo startup/$(DEPDIR)/mpiexec-environment.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='startup/environment.c' object='startup/mpiexec-environment.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(mpiexec_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o startup/mpiexec-environment.o `test -f 'startup/environment.c' || echo '$(srcdir)/'`startup/environment.c
-
-startup/mpiexec-environment.obj: startup/environment.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(mpiexec_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT startup/mpiexec-environment.obj -MD -MP -MF startup/$(DEPDIR)/mpiexec-environment.Tpo -c -o startup/mpiexec-environment.obj `if test -f 'startup/environment.c'; then $(CYGPATH_W) 'startup/environment.c'; else $(CYGPATH_W) '$(srcdir)/startup/environment.c'; fi`
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) startup/$(DEPDIR)/mpiexec-environment.Tpo startup/$(DEPDIR)/mpiexec-environment.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='startup/environment.c' object='startup/mpiexec-environment.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(mpiexec_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o startup/mpiexec-environment.obj `if test -f 'startup/environment.c'; then $(CYGPATH_W) 'startup/environment.c'; else $(CYGPATH_W) '$(srcdir)/startup/environment.c'; fi`
-
 accounter/psaccounter-psaccounter.o: accounter/psaccounter.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(psaccounter_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT accounter/psaccounter-psaccounter.o -MD -MP -MF accounter/$(DEPDIR)/psaccounter-psaccounter.Tpo -c -o accounter/psaccounter-psaccounter.o `test -f 'accounter/psaccounter.c' || echo '$(srcdir)/'`accounter/psaccounter.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) accounter/$(DEPDIR)/psaccounter-psaccounter.Tpo accounter/$(DEPDIR)/psaccounter-psaccounter.Po
@@ -1046,48 +940,6 @@ accounter/psaccounter-psaccounter.obj: accounter/psaccounter.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='accounter/psaccounter.c' object='accounter/psaccounter-psaccounter.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(psaccounter_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o accounter/psaccounter-psaccounter.obj `if test -f 'accounter/psaccounter.c'; then $(CYGPATH_W) 'accounter/psaccounter.c'; else $(CYGPATH_W) '$(srcdir)/accounter/psaccounter.c'; fi`
-
-startup/spawner-spawner.o: startup/spawner.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(spawner_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT startup/spawner-spawner.o -MD -MP -MF startup/$(DEPDIR)/spawner-spawner.Tpo -c -o startup/spawner-spawner.o `test -f 'startup/spawner.c' || echo '$(srcdir)/'`startup/spawner.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) startup/$(DEPDIR)/spawner-spawner.Tpo startup/$(DEPDIR)/spawner-spawner.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='startup/spawner.c' object='startup/spawner-spawner.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(spawner_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o startup/spawner-spawner.o `test -f 'startup/spawner.c' || echo '$(srcdir)/'`startup/spawner.c
-
-startup/spawner-spawner.obj: startup/spawner.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(spawner_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT startup/spawner-spawner.obj -MD -MP -MF startup/$(DEPDIR)/spawner-spawner.Tpo -c -o startup/spawner-spawner.obj `if test -f 'startup/spawner.c'; then $(CYGPATH_W) 'startup/spawner.c'; else $(CYGPATH_W) '$(srcdir)/startup/spawner.c'; fi`
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) startup/$(DEPDIR)/spawner-spawner.Tpo startup/$(DEPDIR)/spawner-spawner.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='startup/spawner.c' object='startup/spawner-spawner.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(spawner_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o startup/spawner-spawner.obj `if test -f 'startup/spawner.c'; then $(CYGPATH_W) 'startup/spawner.c'; else $(CYGPATH_W) '$(srcdir)/startup/spawner.c'; fi`
-
-startup/spawner-cloptions.o: startup/cloptions.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(spawner_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT startup/spawner-cloptions.o -MD -MP -MF startup/$(DEPDIR)/spawner-cloptions.Tpo -c -o startup/spawner-cloptions.o `test -f 'startup/cloptions.c' || echo '$(srcdir)/'`startup/cloptions.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) startup/$(DEPDIR)/spawner-cloptions.Tpo startup/$(DEPDIR)/spawner-cloptions.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='startup/cloptions.c' object='startup/spawner-cloptions.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(spawner_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o startup/spawner-cloptions.o `test -f 'startup/cloptions.c' || echo '$(srcdir)/'`startup/cloptions.c
-
-startup/spawner-cloptions.obj: startup/cloptions.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(spawner_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT startup/spawner-cloptions.obj -MD -MP -MF startup/$(DEPDIR)/spawner-cloptions.Tpo -c -o startup/spawner-cloptions.obj `if test -f 'startup/cloptions.c'; then $(CYGPATH_W) 'startup/cloptions.c'; else $(CYGPATH_W) '$(srcdir)/startup/cloptions.c'; fi`
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) startup/$(DEPDIR)/spawner-cloptions.Tpo startup/$(DEPDIR)/spawner-cloptions.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='startup/cloptions.c' object='startup/spawner-cloptions.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(spawner_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o startup/spawner-cloptions.obj `if test -f 'startup/cloptions.c'; then $(CYGPATH_W) 'startup/cloptions.c'; else $(CYGPATH_W) '$(srcdir)/startup/cloptions.c'; fi`
-
-startup/spawner-environment.o: startup/environment.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(spawner_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT startup/spawner-environment.o -MD -MP -MF startup/$(DEPDIR)/spawner-environment.Tpo -c -o startup/spawner-environment.o `test -f 'startup/environment.c' || echo '$(srcdir)/'`startup/environment.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) startup/$(DEPDIR)/spawner-environment.Tpo startup/$(DEPDIR)/spawner-environment.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='startup/environment.c' object='startup/spawner-environment.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(spawner_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o startup/spawner-environment.o `test -f 'startup/environment.c' || echo '$(srcdir)/'`startup/environment.c
-
-startup/spawner-environment.obj: startup/environment.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(spawner_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT startup/spawner-environment.obj -MD -MP -MF startup/$(DEPDIR)/spawner-environment.Tpo -c -o startup/spawner-environment.obj `if test -f 'startup/environment.c'; then $(CYGPATH_W) 'startup/environment.c'; else $(CYGPATH_W) '$(srcdir)/startup/environment.c'; fi`
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) startup/$(DEPDIR)/spawner-environment.Tpo startup/$(DEPDIR)/spawner-environment.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='startup/environment.c' object='startup/spawner-environment.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(spawner_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o startup/spawner-environment.obj `if test -f 'startup/environment.c'; then $(CYGPATH_W) 'startup/environment.c'; else $(CYGPATH_W) '$(srcdir)/startup/environment.c'; fi`
 
 mostlyclean-libtool:
 	-rm -f *.lo
@@ -1116,14 +968,61 @@ uninstall-includeHEADERS:
 	files=`for p in $$list; do echo $$p; done | sed -e 's|^.*/||'`; \
 	dir='$(DESTDIR)$(includedir)'; $(am__uninstall_files_from_dir)
 
+# This directory's subdirectories are mostly independent; you can cd
+# into them and run 'make' without going through this Makefile.
+# To change the values of 'make' variables: instead of editing Makefiles,
+# (1) if the variable is set in 'config.status', edit 'config.status'
+#     (which will cause the Makefiles to be regenerated when you run 'make');
+# (2) otherwise, pass the desired values on the 'make' command line.
+$(am__recursive_targets):
+	@fail=; \
+	if $(am__make_keepgoing); then \
+	  failcom='fail=yes'; \
+	else \
+	  failcom='exit 1'; \
+	fi; \
+	dot_seen=no; \
+	target=`echo $@ | sed s/-recursive//`; \
+	case "$@" in \
+	  distclean-* | maintainer-clean-*) list='$(DIST_SUBDIRS)' ;; \
+	  *) list='$(SUBDIRS)' ;; \
+	esac; \
+	for subdir in $$list; do \
+	  echo "Making $$target in $$subdir"; \
+	  if test "$$subdir" = "."; then \
+	    dot_seen=yes; \
+	    local_target="$$target-am"; \
+	  else \
+	    local_target="$$target"; \
+	  fi; \
+	  ($(am__cd) $$subdir && $(MAKE) $(AM_MAKEFLAGS) $$local_target) \
+	  || eval $$failcom; \
+	done; \
+	if test "$$dot_seen" = "no"; then \
+	  $(MAKE) $(AM_MAKEFLAGS) "$$target-am" || exit 1; \
+	fi; test -z "$$fail"
+
 ID: $(am__tagged_files)
 	$(am__define_uniq_tagged_files); mkid -fID $$unique
-tags: tags-am
+tags: tags-recursive
 TAGS: tags
 
 tags-am: $(TAGS_DEPENDENCIES) $(am__tagged_files)
 	set x; \
 	here=`pwd`; \
+	if ($(ETAGS) --etags-include --version) >/dev/null 2>&1; then \
+	  include_option=--etags-include; \
+	  empty_fix=.; \
+	else \
+	  include_option=--include; \
+	  empty_fix=; \
+	fi; \
+	list='$(SUBDIRS)'; for subdir in $$list; do \
+	  if test "$$subdir" = .; then :; else \
+	    test ! -f $$subdir/TAGS || \
+	      set "$$@" "$$include_option=$$here/$$subdir/TAGS"; \
+	  fi; \
+	done; \
 	$(am__define_uniq_tagged_files); \
 	shift; \
 	if test -z "$(ETAGS_ARGS)$$*$$unique"; then :; else \
@@ -1136,7 +1035,7 @@ tags-am: $(TAGS_DEPENDENCIES) $(am__tagged_files)
 	      $$unique; \
 	  fi; \
 	fi
-ctags: ctags-am
+ctags: ctags-recursive
 
 CTAGS: ctags
 ctags-am: $(TAGS_DEPENDENCIES) $(am__tagged_files)
@@ -1149,7 +1048,7 @@ GTAGS:
 	here=`$(am__cd) $(top_builddir) && pwd` \
 	  && $(am__cd) $(top_srcdir) \
 	  && gtags -i $(GTAGS_ARGS) "$$here"
-cscopelist: cscopelist-am
+cscopelist: cscopelist-recursive
 
 cscopelist-am: $(am__tagged_files)
 	list='$(am__tagged_files)'; \
@@ -1198,22 +1097,48 @@ distdir: $(DISTFILES)
 	    || exit 1; \
 	  fi; \
 	done
+	@list='$(DIST_SUBDIRS)'; for subdir in $$list; do \
+	  if test "$$subdir" = .; then :; else \
+	    $(am__make_dryrun) \
+	      || test -d "$(distdir)/$$subdir" \
+	      || $(MKDIR_P) "$(distdir)/$$subdir" \
+	      || exit 1; \
+	    dir1=$$subdir; dir2="$(distdir)/$$subdir"; \
+	    $(am__relativize); \
+	    new_distdir=$$reldir; \
+	    dir1=$$subdir; dir2="$(top_distdir)"; \
+	    $(am__relativize); \
+	    new_top_distdir=$$reldir; \
+	    echo " (cd $$subdir && $(MAKE) $(AM_MAKEFLAGS) top_distdir="$$new_top_distdir" distdir="$$new_distdir" \\"; \
+	    echo "     am__remove_distdir=: am__skip_length_check=: am__skip_mode_fix=: distdir)"; \
+	    ($(am__cd) $$subdir && \
+	      $(MAKE) $(AM_MAKEFLAGS) \
+	        top_distdir="$$new_top_distdir" \
+	        distdir="$$new_distdir" \
+		am__remove_distdir=: \
+		am__skip_length_check=: \
+		am__skip_mode_fix=: \
+	        distdir) \
+	      || exit 1; \
+	  fi; \
+	done
 check-am: all-am
-check: check-am
+check: check-recursive
 all-am: Makefile $(PROGRAMS) $(HEADERS)
-installdirs:
-	for dir in "$(DESTDIR)$(bindir)" "$(DESTDIR)$(pkglibexecdir)" "$(DESTDIR)$(includedir)"; do \
+installdirs: installdirs-recursive
+installdirs-am:
+	for dir in "$(DESTDIR)$(bindir)" "$(DESTDIR)$(includedir)"; do \
 	  test -z "$$dir" || $(MKDIR_P) "$$dir"; \
 	done
-install: install-am
-install-exec: install-exec-am
-install-data: install-data-am
-uninstall: uninstall-am
+install: install-recursive
+install-exec: install-exec-recursive
+install-data: install-data-recursive
+uninstall: uninstall-recursive
 
 install-am: all-am
 	@$(MAKE) $(AM_MAKEFLAGS) install-exec-am install-data-am
 
-installcheck: installcheck-am
+installcheck: installcheck-recursive
 install-strip:
 	if test -z '$(STRIP)'; then \
 	  $(MAKE) $(AM_MAKEFLAGS) INSTALL_PROGRAM="$(INSTALL_STRIP_PROGRAM)" \
@@ -1239,104 +1164,99 @@ distclean-generic:
 	-rm -f daemon/$(am__dirstamp)
 	-rm -f logger/$(DEPDIR)/$(am__dirstamp)
 	-rm -f logger/$(am__dirstamp)
-	-rm -f startup/$(DEPDIR)/$(am__dirstamp)
-	-rm -f startup/$(am__dirstamp)
 
 maintainer-clean-generic:
 	@echo "This command is intended for maintainers to use"
 	@echo "it deletes files that may require special tools to rebuild."
-clean: clean-am
+clean: clean-recursive
 
 clean-am: clean-binPROGRAMS clean-generic clean-libtool \
-	clean-noinstPROGRAMS clean-pkglibexecPROGRAMS mostlyclean-am
+	clean-noinstPROGRAMS mostlyclean-am
 
-distclean: distclean-am
-	-rm -rf ./$(DEPDIR) accounter/$(DEPDIR) admin/$(DEPDIR) daemon/$(DEPDIR) logger/$(DEPDIR) startup/$(DEPDIR)
+distclean: distclean-recursive
+	-rm -rf ./$(DEPDIR) accounter/$(DEPDIR) admin/$(DEPDIR) daemon/$(DEPDIR) logger/$(DEPDIR)
 	-rm -f Makefile
 distclean-am: clean-am distclean-compile distclean-generic \
 	distclean-tags
 
-dvi: dvi-am
+dvi: dvi-recursive
 
 dvi-am:
 
-html: html-am
+html: html-recursive
 
 html-am:
 
-info: info-am
+info: info-recursive
 
 info-am:
 
 install-data-am: install-includeHEADERS
 
-install-dvi: install-dvi-am
+install-dvi: install-dvi-recursive
 
 install-dvi-am:
 
-install-exec-am: install-binPROGRAMS install-exec-local \
-	install-pkglibexecPROGRAMS
+install-exec-am: install-binPROGRAMS install-exec-local
 
-install-html: install-html-am
+install-html: install-html-recursive
 
 install-html-am:
 
-install-info: install-info-am
+install-info: install-info-recursive
 
 install-info-am:
 
 install-man:
 
-install-pdf: install-pdf-am
+install-pdf: install-pdf-recursive
 
 install-pdf-am:
 
-install-ps: install-ps-am
+install-ps: install-ps-recursive
 
 install-ps-am:
 
 installcheck-am:
 
-maintainer-clean: maintainer-clean-am
-	-rm -rf ./$(DEPDIR) accounter/$(DEPDIR) admin/$(DEPDIR) daemon/$(DEPDIR) logger/$(DEPDIR) startup/$(DEPDIR)
+maintainer-clean: maintainer-clean-recursive
+	-rm -rf ./$(DEPDIR) accounter/$(DEPDIR) admin/$(DEPDIR) daemon/$(DEPDIR) logger/$(DEPDIR)
 	-rm -f Makefile
 maintainer-clean-am: distclean-am maintainer-clean-generic
 
-mostlyclean: mostlyclean-am
+mostlyclean: mostlyclean-recursive
 
 mostlyclean-am: mostlyclean-compile mostlyclean-generic \
 	mostlyclean-libtool
 
-pdf: pdf-am
+pdf: pdf-recursive
 
 pdf-am:
 
-ps: ps-am
+ps: ps-recursive
 
 ps-am:
 
-uninstall-am: uninstall-binPROGRAMS uninstall-includeHEADERS \
-	uninstall-pkglibexecPROGRAMS
+uninstall-am: uninstall-binPROGRAMS uninstall-includeHEADERS
 
-.MAKE: install-am install-strip
+.MAKE: $(am__recursive_targets) install-am install-strip
 
-.PHONY: CTAGS GTAGS TAGS all all-am check check-am clean \
-	clean-binPROGRAMS clean-generic clean-libtool \
-	clean-noinstPROGRAMS clean-pkglibexecPROGRAMS cscopelist-am \
-	ctags ctags-am distclean distclean-compile distclean-generic \
-	distclean-libtool distclean-tags distdir dvi dvi-am html \
-	html-am info info-am install install-am install-binPROGRAMS \
-	install-data install-data-am install-dvi install-dvi-am \
-	install-exec install-exec-am install-exec-local install-html \
+.PHONY: $(am__recursive_targets) CTAGS GTAGS TAGS all all-am check \
+	check-am clean clean-binPROGRAMS clean-generic clean-libtool \
+	clean-noinstPROGRAMS cscopelist-am ctags ctags-am distclean \
+	distclean-compile distclean-generic distclean-libtool \
+	distclean-tags distdir dvi dvi-am html html-am info info-am \
+	install install-am install-binPROGRAMS install-data \
+	install-data-am install-dvi install-dvi-am install-exec \
+	install-exec-am install-exec-local install-html \
 	install-html-am install-includeHEADERS install-info \
 	install-info-am install-man install-pdf install-pdf-am \
-	install-pkglibexecPROGRAMS install-ps install-ps-am \
-	install-strip installcheck installcheck-am installdirs \
-	maintainer-clean maintainer-clean-generic mostlyclean \
-	mostlyclean-compile mostlyclean-generic mostlyclean-libtool \
-	pdf pdf-am ps ps-am tags tags-am uninstall uninstall-am \
-	uninstall-binPROGRAMS uninstall-includeHEADERS \
-	uninstall-pkglibexecPROGRAMS
+	install-ps install-ps-am install-strip installcheck \
+	installcheck-am installdirs installdirs-am maintainer-clean \
+	maintainer-clean-generic mostlyclean mostlyclean-compile \
+	mostlyclean-generic mostlyclean-libtool pdf pdf-am ps ps-am \
+	tags tags-am uninstall uninstall-am uninstall-binPROGRAMS \
+	uninstall-includeHEADERS
 
 .PRECIOUS: Makefile
 
