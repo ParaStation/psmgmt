@@ -29,4 +29,4 @@ mpiexec_LDADD = $(libpse) $(libpskvs) $(POPT_LIBS)
 
 spawner_SOURCES = spawner.c cloptions.c cloptions.h environment.c environment.h
 spawner_CPPFLAGS = $(AM_CPPFLAGS) -DCONFIGDIR=\"$(configdir)\"
-spawner_LDADD = $(libpse) $(libpskvs) $(POPT_LIBS)
+spawner_LDADD = $(libpse) $(POPT_LIBS)

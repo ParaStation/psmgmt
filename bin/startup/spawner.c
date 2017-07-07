@@ -12,6 +12,7 @@
  * processes.
  */
 #include <stdbool.h>
+#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -842,30 +843,31 @@ static int spawnSingleExecutable(int np, int argc, char **argv, char *wd,
 
 static void sendPMIFail(void)
 {
-    PSLog_Msg_t lmsg;
-    char *env, *lptr;
-    size_t len = 0;
+    char *env = getenv("__PMI_SPAWN_PARENT");
+    uint8_t cmd = CHILD_SPAWN_RES;
     int32_t res = 0;
 
     /* tell parent the spawn has failed */
-    if (!(env = getenv("__PMI_SPAWN_PARENT"))) {
+    if (!env) {
 	fprintf(stderr, "%s: don't know the spawn parent!\n", __func__);
 	exit(1);
     }
 
-    lmsg.header.type = PSP_CC_MSG;
-    lmsg.header.sender = PSC_getMyTID();
-    lmsg.header.dest = atoi(env);
-    lmsg.version = 2;
-    lmsg.type = KVS;
-    lmsg.sender = -1;
+    PSLog_Msg_t msg = {
+	.header = {
+	    .type = PSP_CC_MSG,
+	    .sender = PSC_getMyTID(),
+	    .dest = atoi(env),
+	    .len = offsetof(PSLog_Msg_t, buf) },
+	.version = 2,
+	.type = KVS,
+	.sender = -1 };
+    DDBufferMsg_t *bmsg = (DDBufferMsg_t *)&msg;
 
-    lptr = lmsg.buf;
-    setKVSCmd(&lptr, &len, CHILD_SPAWN_RES);
-    addKVSInt32(&lptr, &len, &res);
-    lmsg.header.len = (sizeof(lmsg) - sizeof(lmsg.buf)) + len;
+    PSP_putMsgBuf(bmsg, __func__, "cmd", &cmd, sizeof(cmd));
+    PSP_putMsgBuf(bmsg, __func__, "res", &res, sizeof(res));
 
-    PSI_sendMsg((DDMsg_t *)&lmsg);
+    PSI_sendMsg((DDMsg_t *)bmsg);
 }
 
 /**

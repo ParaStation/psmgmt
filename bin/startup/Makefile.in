@@ -139,7 +139,7 @@ am__v_lt_1 =
 am_spawner_OBJECTS = spawner-spawner.$(OBJEXT) \
 	spawner-cloptions.$(OBJEXT) spawner-environment.$(OBJEXT)
 spawner_OBJECTS = $(am_spawner_OBJECTS)
-spawner_DEPENDENCIES = $(libpse) $(libpskvs) $(am__DEPENDENCIES_1)
+spawner_DEPENDENCIES = $(libpse) $(am__DEPENDENCIES_1)
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
 am__v_P_0 = false
@@ -385,7 +385,7 @@ mpiexec_CPPFLAGS = $(AM_CPPFLAGS) -DLIBEXECDIR=\"$(pkglibexecdir)\"
 mpiexec_LDADD = $(libpse) $(libpskvs) $(POPT_LIBS)
 spawner_SOURCES = spawner.c cloptions.c cloptions.h environment.c environment.h
 spawner_CPPFLAGS = $(AM_CPPFLAGS) -DCONFIGDIR=\"$(configdir)\"
-spawner_LDADD = $(libpse) $(libpskvs) $(POPT_LIBS)
+spawner_LDADD = $(libpse) $(POPT_LIBS)
 all: all-am
 
 .SUFFIXES:
