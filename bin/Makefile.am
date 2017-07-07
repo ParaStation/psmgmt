@@ -48,7 +48,7 @@ pssh_LDADD = $(libpse) $(POPT_LIBS)
 psaccounter_CPPFLAGS = $(AM_CPPFLAGS) -DLOCALSTATEDIR=\"$(localstatedir)\"
 psaccounter_LDADD = $(libpse) $(POPT_LIBS)
 
-testacct_LDADD = $(libpse) $(POPT_LIBS)
+testacct_LDADD = $(libpsi) $(POPT_LIBS)
 
 install-exec-local:
 	$(INSTALL) -d $(DESTDIR)$(localstatedir)/log/psaccounter

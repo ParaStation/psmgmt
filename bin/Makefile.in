@@ -170,7 +170,7 @@ test_pse_OBJECTS = test_pse.$(OBJEXT)
 test_pse_DEPENDENCIES = $(libpse) $(am__DEPENDENCIES_1)
 testacct_SOURCES = testacct.c
 testacct_OBJECTS = testacct.$(OBJEXT)
-testacct_DEPENDENCIES = $(libpse) $(am__DEPENDENCIES_1)
+testacct_DEPENDENCIES = $(libpsi) $(am__DEPENDENCIES_1)
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
 am__v_P_0 = false
@@ -471,7 +471,7 @@ test_pse_LDADD = $(libpse) $(POPT_LIBS)
 pssh_LDADD = $(libpse) $(POPT_LIBS)
 psaccounter_CPPFLAGS = $(AM_CPPFLAGS) -DLOCALSTATEDIR=\"$(localstatedir)\"
 psaccounter_LDADD = $(libpse) $(POPT_LIBS)
-testacct_LDADD = $(libpse) $(POPT_LIBS)
+testacct_LDADD = $(libpsi) $(POPT_LIBS)
 all: all-recursive
 
 .SUFFIXES:
