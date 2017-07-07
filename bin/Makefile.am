@@ -20,6 +20,7 @@ bin_PROGRAMS = psiadmin psid psilogger mlisten psmstart mpirun_chp4	\
 	psispawn mpirun_chgm gmspawner mpirun_openib test_pse		\
 	test_config pssh psaccounter mpiexec
 # libexec_PROGRAMS = kvsprovider spawner # to be used later
+pkglibexec_PROGRAMS = spawner
 noinst_PROGRAMS = testacct
 
 noinst_HEADERS = admin/helpmsgs.c
@@ -99,8 +100,13 @@ psaccounter_LDADD = $(libpse) $(POPT_LIBS)
 
 mpiexec_SOURCES = startup/mpiexec.c startup/cloptions.c			\
 	startup/cloptions.h startup/environment.c startup/environment.h
-mpiexec_CPPFLAGS = $(AM_CPPFLAGS) -DCONFIGDIR=\"$(configdir)\"
+mpiexec_CPPFLAGS = $(AM_CPPFLAGS) -DLIBEXECDIR=\"$(pkglibexecdir)\"
 mpiexec_LDADD = $(libpse) $(libpskvs) $(POPT_LIBS)
+
+spawner_SOURCES = startup/spawner.c startup/cloptions.c			\
+	startup/cloptions.h startup/environment.c startup/environment.h
+spawner_CPPFLAGS = $(AM_CPPFLAGS) -DCONFIGDIR=\"$(configdir)\"
+spawner_LDADD = $(libpse) $(libpskvs) $(POPT_LIBS)
 
 testacct_LDADD = $(libpse) $(POPT_LIBS)
 

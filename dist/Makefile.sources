@@ -100,6 +100,7 @@ bin/startup/cloptions.h \
 bin/startup/environment.c \
 bin/startup/environment.h \
 bin/startup/mpiexec.c \
+bin/startup/spawner.c \
 bin/testacct.c \
 bin/test_config.c \
 bin/test_pse.c \
