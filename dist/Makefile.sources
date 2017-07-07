@@ -21,7 +21,8 @@ VERSION \
 aclocal.m4 \
 bin/Makefile.am \
 bin/Makefile.in \
-bin/accounter/psaccounter.c \
+bin/admin/Makefile.am \
+bin/admin/Makefile.in \
 bin/admin/adminparser.c \
 bin/admin/adminparser.h \
 bin/admin/commands.c \
@@ -29,6 +30,8 @@ bin/admin/commands.h \
 bin/admin/helpmsgs.c \
 bin/admin/psiadmin.c \
 bin/admin/psiadmin.h \
+bin/daemon/Makefile.am \
+bin/daemon/Makefile.in \
 bin/daemon/psid.c \
 bin/daemon/psidaccount.c \
 bin/daemon/psidaccount.h \
@@ -81,7 +84,10 @@ bin/daemon/psidtask.h \
 bin/daemon/psidtimer.h \
 bin/daemon/psidutil.c \
 bin/daemon/psidutil.h \
+bin/daemon/test_config.c \
 bin/gmspawner.c \
+bin/logger/Makefile.am \
+bin/logger/Makefile.in \
 bin/logger/psilogger.c \
 bin/logger/psilogger.h \
 bin/logger/psiloggerclient.c \
@@ -92,6 +98,7 @@ bin/mlisten.c \
 bin/mpirun_chgm.c \
 bin/mpirun_chp4.c \
 bin/mpirun_openib.c \
+bin/psaccounter.c \
 bin/psispawn.c \
 bin/psmstart.c \
 bin/pssh.c \
@@ -104,7 +111,6 @@ bin/startup/environment.h \
 bin/startup/mpiexec.c \
 bin/startup/spawner.c \
 bin/testacct.c \
-bin/test_config.c \
 bin/test_pse.c \
 common.am \
 configure \

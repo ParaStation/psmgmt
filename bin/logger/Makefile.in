@@ -111,12 +111,8 @@ POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
 target_triplet = @target@
-bin_PROGRAMS = mlisten$(EXEEXT) psmstart$(EXEEXT) mpirun_chp4$(EXEEXT) \
-	psispawn$(EXEEXT) mpirun_chgm$(EXEEXT) gmspawner$(EXEEXT) \
-	mpirun_openib$(EXEEXT) test_pse$(EXEEXT) pssh$(EXEEXT) \
-	psaccounter$(EXEEXT)
-noinst_PROGRAMS = testacct$(EXEEXT)
-subdir = bin
+bin_PROGRAMS = psilogger$(EXEEXT)
+subdir = bin/logger
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/m4/ax_check_compile_flag.m4 \
 	$(top_srcdir)/m4/libtool.m4 $(top_srcdir)/m4/ltoptions.m4 \
@@ -129,48 +125,15 @@ mkinstalldirs = $(install_sh) -d
 CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
 am__installdirs = "$(DESTDIR)$(bindir)"
-PROGRAMS = $(bin_PROGRAMS) $(noinst_PROGRAMS)
-gmspawner_SOURCES = gmspawner.c
-gmspawner_OBJECTS = gmspawner-gmspawner.$(OBJEXT)
-am__DEPENDENCIES_1 =
-gmspawner_DEPENDENCIES = $(libpsi) $(am__DEPENDENCIES_1)
+PROGRAMS = $(bin_PROGRAMS)
+am_psilogger_OBJECTS = psilogger.$(OBJEXT) psiloggermerge.$(OBJEXT) \
+	psiloggerclient.$(OBJEXT)
+psilogger_OBJECTS = $(am_psilogger_OBJECTS)
+psilogger_DEPENDENCIES = $(libputil) $(libpscommon) $(libpslog)
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
 am__v_lt_0 = --silent
 am__v_lt_1 = 
-gmspawner_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
-	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
-	$(gmspawner_LDFLAGS) $(LDFLAGS) -o $@
-mlisten_SOURCES = mlisten.c
-mlisten_OBJECTS = mlisten.$(OBJEXT)
-mlisten_DEPENDENCIES = $(am__DEPENDENCIES_1)
-mpirun_chgm_SOURCES = mpirun_chgm.c
-mpirun_chgm_OBJECTS = mpirun_chgm.$(OBJEXT)
-mpirun_chgm_DEPENDENCIES = $(libpse) $(am__DEPENDENCIES_1)
-mpirun_chp4_SOURCES = mpirun_chp4.c
-mpirun_chp4_OBJECTS = mpirun_chp4.$(OBJEXT)
-mpirun_chp4_DEPENDENCIES = $(libpse) $(am__DEPENDENCIES_1)
-mpirun_openib_SOURCES = mpirun_openib.c
-mpirun_openib_OBJECTS = mpirun_openib.$(OBJEXT)
-mpirun_openib_DEPENDENCIES = $(libpse) $(am__DEPENDENCIES_1)
-psaccounter_SOURCES = psaccounter.c
-psaccounter_OBJECTS = psaccounter-psaccounter.$(OBJEXT)
-psaccounter_DEPENDENCIES = $(libpse) $(am__DEPENDENCIES_1)
-psispawn_SOURCES = psispawn.c
-psispawn_OBJECTS = psispawn.$(OBJEXT)
-psispawn_DEPENDENCIES = $(libpsi)
-psmstart_SOURCES = psmstart.c
-psmstart_OBJECTS = psmstart.$(OBJEXT)
-psmstart_DEPENDENCIES = $(libpse) $(am__DEPENDENCIES_1)
-pssh_SOURCES = pssh.c
-pssh_OBJECTS = pssh.$(OBJEXT)
-pssh_DEPENDENCIES = $(libpse) $(am__DEPENDENCIES_1)
-test_pse_SOURCES = test_pse.c
-test_pse_OBJECTS = test_pse.$(OBJEXT)
-test_pse_DEPENDENCIES = $(libpse) $(am__DEPENDENCIES_1)
-testacct_SOURCES = testacct.c
-testacct_OBJECTS = testacct.$(OBJEXT)
-testacct_DEPENDENCIES = $(libpse) $(am__DEPENDENCIES_1)
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
 am__v_P_0 = false
@@ -205,33 +168,13 @@ AM_V_CCLD = $(am__v_CCLD_@AM_V@)
 am__v_CCLD_ = $(am__v_CCLD_@AM_DEFAULT_V@)
 am__v_CCLD_0 = @echo "  CCLD    " $@;
 am__v_CCLD_1 = 
-SOURCES = gmspawner.c mlisten.c mpirun_chgm.c mpirun_chp4.c \
-	mpirun_openib.c psaccounter.c psispawn.c psmstart.c pssh.c \
-	test_pse.c testacct.c
-DIST_SOURCES = gmspawner.c mlisten.c mpirun_chgm.c mpirun_chp4.c \
-	mpirun_openib.c psaccounter.c psispawn.c psmstart.c pssh.c \
-	test_pse.c testacct.c
-RECURSIVE_TARGETS = all-recursive check-recursive cscopelist-recursive \
-	ctags-recursive dvi-recursive html-recursive info-recursive \
-	install-data-recursive install-dvi-recursive \
-	install-exec-recursive install-html-recursive \
-	install-info-recursive install-pdf-recursive \
-	install-ps-recursive install-recursive installcheck-recursive \
-	installdirs-recursive pdf-recursive ps-recursive \
-	tags-recursive uninstall-recursive
+SOURCES = $(psilogger_SOURCES)
+DIST_SOURCES = $(psilogger_SOURCES)
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
     *) (install-info --version) >/dev/null 2>&1;; \
   esac
-RECURSIVE_CLEAN_TARGETS = mostlyclean-recursive clean-recursive	\
-  distclean-recursive maintainer-clean-recursive
-am__recursive_targets = \
-  $(RECURSIVE_TARGETS) \
-  $(RECURSIVE_CLEAN_TARGETS) \
-  $(am__extra_recursive_targets)
-AM_RECURSIVE_TARGETS = $(am__recursive_targets:-recursive=) TAGS CTAGS \
-	distdir
 am__tagged_files = $(HEADERS) $(SOURCES) $(TAGS_FILES) $(LISP)
 # Read a list of newline-separated strings from the standard input,
 # and print each of them once, without duplicates.  Input order is
@@ -251,35 +194,9 @@ am__define_uniq_tagged_files = \
   done | $(am__uniquify_input)`
 ETAGS = etags
 CTAGS = ctags
-DIST_SUBDIRS = $(SUBDIRS)
 am__DIST_COMMON = $(srcdir)/Makefile.in $(top_srcdir)/common.am \
 	$(top_srcdir)/scripts/depcomp
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
-am__relativize = \
-  dir0=`pwd`; \
-  sed_first='s,^\([^/]*\)/.*$$,\1,'; \
-  sed_rest='s,^[^/]*/*,,'; \
-  sed_last='s,^.*/\([^/]*\)$$,\1,'; \
-  sed_butlast='s,/*[^/]*$$,,'; \
-  while test -n "$$dir1"; do \
-    first=`echo "$$dir1" | sed -e "$$sed_first"`; \
-    if test "$$first" != "."; then \
-      if test "$$first" = ".."; then \
-        dir2=`echo "$$dir0" | sed -e "$$sed_last"`/"$$dir2"; \
-        dir0=`echo "$$dir0" | sed -e "$$sed_butlast"`; \
-      else \
-        first2=`echo "$$dir2" | sed -e "$$sed_first"`; \
-        if test "$$first2" = "$$first"; then \
-          dir2=`echo "$$dir2" | sed -e "$$sed_rest"`; \
-        else \
-          dir2="../$$dir2"; \
-        fi; \
-        dir0="$$dir0"/"$$first"; \
-      fi; \
-    fi; \
-    dir1=`echo "$$dir1" | sed -e "$$sed_rest"`; \
-  done; \
-  reldir="$$dir2"
 ACLOCAL = @ACLOCAL@
 AMTAR = @AMTAR@
 AM_CFLAGS = @AM_CFLAGS@
@@ -415,9 +332,7 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 unitdir = @unitdir@
-AM_CPPFLAGS = -I$(top_srcdir)/include -DNDEBUG \
-	-DVERSION_psmgmt=\"$(PKG_VER)\" \
-	-DRELEASE_psmgmt=\"$(PKG_REL)\"
+AM_CPPFLAGS = -I$(top_srcdir)/include -DNDEBUG
 subst_verbose = $(subst_verbose_$(V))
 subst_verbose_ = $(subst_verbose_$(AM_DEFAULT_VERBOSITY))
 subst_verbose_0 = @echo "  SUBST   " $(@F);
@@ -453,26 +368,14 @@ scriptsdir = $(prefix)/scripts
 @HAVE_SYSTEMD_TRUE@default_cgroup_root = /sys/fs/cgroup/
 @HAVE_SYSTEMD_FALSE@default_cgroup_name = psmgmtGrp
 @HAVE_SYSTEMD_TRUE@default_cgroup_name = system.slice/psid.service/descendants
-SUBDIRS = admin daemon logger startup
-PKG_VER := $(shell ${top_srcdir}/scripts/vcversion -r $(top_srcdir) --fmt version -n)
-PKG_REL := $(shell ${top_srcdir}/scripts/vcversion -r $(top_srcdir) --fmt release -n)
-libpse = $(top_builddir)/lib/pse/libpse.la
-libpsi = $(top_builddir)/lib/psi/libpsi.la
-mlisten_LDADD = $(POPT_LIBS)
-psmstart_LDADD = $(libpse) $(POPT_LIBS)
-mpirun_chp4_LDADD = $(libpse) $(POPT_LIBS)
-psispawn_LDADD = $(libpsi)
-mpirun_chgm_LDADD = $(libpse) $(POPT_LIBS)
-gmspawner_CPPFLAGS = $(AM_CPPFLAGS) -pthread
-gmspawner_LDFLAGS = $(AM_LDFLAGS) -pthread
-gmspawner_LDADD = $(libpsi) $(POPT_LIBS)
-mpirun_openib_LDADD = $(libpse) $(POPT_LIBS)
-test_pse_LDADD = $(libpse) $(POPT_LIBS)
-pssh_LDADD = $(libpse) $(POPT_LIBS)
-psaccounter_CPPFLAGS = $(AM_CPPFLAGS) -DLOCALSTATEDIR=\"$(localstatedir)\"
-psaccounter_LDADD = $(libpse) $(POPT_LIBS)
-testacct_LDADD = $(libpse) $(POPT_LIBS)
-all: all-recursive
+libputil = $(top_builddir)/lib/putil/libputil.la
+libpscommon = $(top_builddir)/lib/pscommon/libpscommon.la
+libpslog = $(top_builddir)/lib/pslog/libpslog.la
+psilogger_SOURCES = psilogger.c psilogger.h psiloggermerge.c	\
+	psiloggermerge.h psiloggerclient.c psiloggerclient.h
+
+psilogger_LDADD = $(libputil) $(libpscommon) $(libpslog)
+all: all-am
 
 .SUFFIXES:
 .SUFFIXES: .c .lo .o .obj
@@ -485,9 +388,9 @@ $(srcdir)/Makefile.in: @MAINTAINER_MODE_TRUE@ $(srcdir)/Makefile.am $(top_srcdir
 	      exit 1;; \
 	  esac; \
 	done; \
-	echo ' cd $(top_srcdir) && $(AUTOMAKE) --foreign bin/Makefile'; \
+	echo ' cd $(top_srcdir) && $(AUTOMAKE) --foreign bin/logger/Makefile'; \
 	$(am__cd) $(top_srcdir) && \
-	  $(AUTOMAKE) --foreign bin/Makefile
+	  $(AUTOMAKE) --foreign bin/logger/Makefile
 Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
 	@case '$?' in \
 	  *config.status*) \
@@ -556,58 +459,9 @@ clean-binPROGRAMS:
 	echo " rm -f" $$list; \
 	rm -f $$list
 
-clean-noinstPROGRAMS:
-	@list='$(noinst_PROGRAMS)'; test -n "$$list" || exit 0; \
-	echo " rm -f" $$list; \
-	rm -f $$list || exit $$?; \
-	test -n "$(EXEEXT)" || exit 0; \
-	list=`for p in $$list; do echo "$$p"; done | sed 's/$(EXEEXT)$$//'`; \
-	echo " rm -f" $$list; \
-	rm -f $$list
-
-gmspawner$(EXEEXT): $(gmspawner_OBJECTS) $(gmspawner_DEPENDENCIES) $(EXTRA_gmspawner_DEPENDENCIES) 
-	@rm -f gmspawner$(EXEEXT)
-	$(AM_V_CCLD)$(gmspawner_LINK) $(gmspawner_OBJECTS) $(gmspawner_LDADD) $(LIBS)
-
-mlisten$(EXEEXT): $(mlisten_OBJECTS) $(mlisten_DEPENDENCIES) $(EXTRA_mlisten_DEPENDENCIES) 
-	@rm -f mlisten$(EXEEXT)
-	$(AM_V_CCLD)$(LINK) $(mlisten_OBJECTS) $(mlisten_LDADD) $(LIBS)
-
-mpirun_chgm$(EXEEXT): $(mpirun_chgm_OBJECTS) $(mpirun_chgm_DEPENDENCIES) $(EXTRA_mpirun_chgm_DEPENDENCIES) 
-	@rm -f mpirun_chgm$(EXEEXT)
-	$(AM_V_CCLD)$(LINK) $(mpirun_chgm_OBJECTS) $(mpirun_chgm_LDADD) $(LIBS)
-
-mpirun_chp4$(EXEEXT): $(mpirun_chp4_OBJECTS) $(mpirun_chp4_DEPENDENCIES) $(EXTRA_mpirun_chp4_DEPENDENCIES) 
-	@rm -f mpirun_chp4$(EXEEXT)
-	$(AM_V_CCLD)$(LINK) $(mpirun_chp4_OBJECTS) $(mpirun_chp4_LDADD) $(LIBS)
-
-mpirun_openib$(EXEEXT): $(mpirun_openib_OBJECTS) $(mpirun_openib_DEPENDENCIES) $(EXTRA_mpirun_openib_DEPENDENCIES) 
-	@rm -f mpirun_openib$(EXEEXT)
-	$(AM_V_CCLD)$(LINK) $(mpirun_openib_OBJECTS) $(mpirun_openib_LDADD) $(LIBS)
-
-psaccounter$(EXEEXT): $(psaccounter_OBJECTS) $(psaccounter_DEPENDENCIES) $(EXTRA_psaccounter_DEPENDENCIES) 
-	@rm -f psaccounter$(EXEEXT)
-	$(AM_V_CCLD)$(LINK) $(psaccounter_OBJECTS) $(psaccounter_LDADD) $(LIBS)
-
-psispawn$(EXEEXT): $(psispawn_OBJECTS) $(psispawn_DEPENDENCIES) $(EXTRA_psispawn_DEPENDENCIES) 
-	@rm -f psispawn$(EXEEXT)
-	$(AM_V_CCLD)$(LINK) $(psispawn_OBJECTS) $(psispawn_LDADD) $(LIBS)
-
-psmstart$(EXEEXT): $(psmstart_OBJECTS) $(psmstart_DEPENDENCIES) $(EXTRA_psmstart_DEPENDENCIES) 
-	@rm -f psmstart$(EXEEXT)
-	$(AM_V_CCLD)$(LINK) $(psmstart_OBJECTS) $(psmstart_LDADD) $(LIBS)
-
-pssh$(EXEEXT): $(pssh_OBJECTS) $(pssh_DEPENDENCIES) $(EXTRA_pssh_DEPENDENCIES) 
-	@rm -f pssh$(EXEEXT)
-	$(AM_V_CCLD)$(LINK) $(pssh_OBJECTS) $(pssh_LDADD) $(LIBS)
-
-test_pse$(EXEEXT): $(test_pse_OBJECTS) $(test_pse_DEPENDENCIES) $(EXTRA_test_pse_DEPENDENCIES) 
-	@rm -f test_pse$(EXEEXT)
-	$(AM_V_CCLD)$(LINK) $(test_pse_OBJECTS) $(test_pse_LDADD) $(LIBS)
-
-testacct$(EXEEXT): $(testacct_OBJECTS) $(testacct_DEPENDENCIES) $(EXTRA_testacct_DEPENDENCIES) 
-	@rm -f testacct$(EXEEXT)
-	$(AM_V_CCLD)$(LINK) $(testacct_OBJECTS) $(testacct_LDADD) $(LIBS)
+psilogger$(EXEEXT): $(psilogger_OBJECTS) $(psilogger_DEPENDENCIES) $(EXTRA_psilogger_DEPENDENCIES) 
+	@rm -f psilogger$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(psilogger_OBJECTS) $(psilogger_LDADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
@@ -615,17 +469,9 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gmspawner-gmspawner.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mlisten.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mpirun_chgm.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mpirun_chp4.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mpirun_openib.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psaccounter-psaccounter.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psispawn.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psmstart.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pssh.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_pse.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/testacct.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psilogger.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psiloggerclient.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psiloggermerge.Po@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	$(AM_V_CC)depbase=`echo $@ | sed 's|[^/]*$$|$(DEPDIR)/&|;s|\.o$$||'`;\
@@ -651,95 +497,20 @@ distclean-compile:
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LTCOMPILE) -c -o $@ $<
 
-gmspawner-gmspawner.o: gmspawner.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(gmspawner_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT gmspawner-gmspawner.o -MD -MP -MF $(DEPDIR)/gmspawner-gmspawner.Tpo -c -o gmspawner-gmspawner.o `test -f 'gmspawner.c' || echo '$(srcdir)/'`gmspawner.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/gmspawner-gmspawner.Tpo $(DEPDIR)/gmspawner-gmspawner.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='gmspawner.c' object='gmspawner-gmspawner.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(gmspawner_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o gmspawner-gmspawner.o `test -f 'gmspawner.c' || echo '$(srcdir)/'`gmspawner.c
-
-gmspawner-gmspawner.obj: gmspawner.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(gmspawner_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT gmspawner-gmspawner.obj -MD -MP -MF $(DEPDIR)/gmspawner-gmspawner.Tpo -c -o gmspawner-gmspawner.obj `if test -f 'gmspawner.c'; then $(CYGPATH_W) 'gmspawner.c'; else $(CYGPATH_W) '$(srcdir)/gmspawner.c'; fi`
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/gmspawner-gmspawner.Tpo $(DEPDIR)/gmspawner-gmspawner.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='gmspawner.c' object='gmspawner-gmspawner.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(gmspawner_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o gmspawner-gmspawner.obj `if test -f 'gmspawner.c'; then $(CYGPATH_W) 'gmspawner.c'; else $(CYGPATH_W) '$(srcdir)/gmspawner.c'; fi`
-
-psaccounter-psaccounter.o: psaccounter.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(psaccounter_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT psaccounter-psaccounter.o -MD -MP -MF $(DEPDIR)/psaccounter-psaccounter.Tpo -c -o psaccounter-psaccounter.o `test -f 'psaccounter.c' || echo '$(srcdir)/'`psaccounter.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/psaccounter-psaccounter.Tpo $(DEPDIR)/psaccounter-psaccounter.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='psaccounter.c' object='psaccounter-psaccounter.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(psaccounter_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o psaccounter-psaccounter.o `test -f 'psaccounter.c' || echo '$(srcdir)/'`psaccounter.c
-
-psaccounter-psaccounter.obj: psaccounter.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(psaccounter_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT psaccounter-psaccounter.obj -MD -MP -MF $(DEPDIR)/psaccounter-psaccounter.Tpo -c -o psaccounter-psaccounter.obj `if test -f 'psaccounter.c'; then $(CYGPATH_W) 'psaccounter.c'; else $(CYGPATH_W) '$(srcdir)/psaccounter.c'; fi`
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/psaccounter-psaccounter.Tpo $(DEPDIR)/psaccounter-psaccounter.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='psaccounter.c' object='psaccounter-psaccounter.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(psaccounter_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o psaccounter-psaccounter.obj `if test -f 'psaccounter.c'; then $(CYGPATH_W) 'psaccounter.c'; else $(CYGPATH_W) '$(srcdir)/psaccounter.c'; fi`
-
 mostlyclean-libtool:
 	-rm -f *.lo
 
 clean-libtool:
 	-rm -rf .libs _libs
 
-# This directory's subdirectories are mostly independent; you can cd
-# into them and run 'make' without going through this Makefile.
-# To change the values of 'make' variables: instead of editing Makefiles,
-# (1) if the variable is set in 'config.status', edit 'config.status'
-#     (which will cause the Makefiles to be regenerated when you run 'make');
-# (2) otherwise, pass the desired values on the 'make' command line.
-$(am__recursive_targets):
-	@fail=; \
-	if $(am__make_keepgoing); then \
-	  failcom='fail=yes'; \
-	else \
-	  failcom='exit 1'; \
-	fi; \
-	dot_seen=no; \
-	target=`echo $@ | sed s/-recursive//`; \
-	case "$@" in \
-	  distclean-* | maintainer-clean-*) list='$(DIST_SUBDIRS)' ;; \
-	  *) list='$(SUBDIRS)' ;; \
-	esac; \
-	for subdir in $$list; do \
-	  echo "Making $$target in $$subdir"; \
-	  if test "$$subdir" = "."; then \
-	    dot_seen=yes; \
-	    local_target="$$target-am"; \
-	  else \
-	    local_target="$$target"; \
-	  fi; \
-	  ($(am__cd) $$subdir && $(MAKE) $(AM_MAKEFLAGS) $$local_target) \
-	  || eval $$failcom; \
-	done; \
-	if test "$$dot_seen" = "no"; then \
-	  $(MAKE) $(AM_MAKEFLAGS) "$$target-am" || exit 1; \
-	fi; test -z "$$fail"
-
 ID: $(am__tagged_files)
 	$(am__define_uniq_tagged_files); mkid -fID $$unique
-tags: tags-recursive
+tags: tags-am
 TAGS: tags
 
 tags-am: $(TAGS_DEPENDENCIES) $(am__tagged_files)
 	set x; \
 	here=`pwd`; \
-	if ($(ETAGS) --etags-include --version) >/dev/null 2>&1; then \
-	  include_option=--etags-include; \
-	  empty_fix=.; \
-	else \
-	  include_option=--include; \
-	  empty_fix=; \
-	fi; \
-	list='$(SUBDIRS)'; for subdir in $$list; do \
-	  if test "$$subdir" = .; then :; else \
-	    test ! -f $$subdir/TAGS || \
-	      set "$$@" "$$include_option=$$here/$$subdir/TAGS"; \
-	  fi; \
-	done; \
 	$(am__define_uniq_tagged_files); \
 	shift; \
 	if test -z "$(ETAGS_ARGS)$$*$$unique"; then :; else \
@@ -752,7 +523,7 @@ tags-am: $(TAGS_DEPENDENCIES) $(am__tagged_files)
 	      $$unique; \
 	  fi; \
 	fi
-ctags: ctags-recursive
+ctags: ctags-am
 
 CTAGS: ctags
 ctags-am: $(TAGS_DEPENDENCIES) $(am__tagged_files)
@@ -765,7 +536,7 @@ GTAGS:
 	here=`$(am__cd) $(top_builddir) && pwd` \
 	  && $(am__cd) $(top_srcdir) \
 	  && gtags -i $(GTAGS_ARGS) "$$here"
-cscopelist: cscopelist-recursive
+cscopelist: cscopelist-am
 
 cscopelist-am: $(am__tagged_files)
 	list='$(am__tagged_files)'; \
@@ -814,48 +585,22 @@ distdir: $(DISTFILES)
 	    || exit 1; \
 	  fi; \
 	done
-	@list='$(DIST_SUBDIRS)'; for subdir in $$list; do \
-	  if test "$$subdir" = .; then :; else \
-	    $(am__make_dryrun) \
-	      || test -d "$(distdir)/$$subdir" \
-	      || $(MKDIR_P) "$(distdir)/$$subdir" \
-	      || exit 1; \
-	    dir1=$$subdir; dir2="$(distdir)/$$subdir"; \
-	    $(am__relativize); \
-	    new_distdir=$$reldir; \
-	    dir1=$$subdir; dir2="$(top_distdir)"; \
-	    $(am__relativize); \
-	    new_top_distdir=$$reldir; \
-	    echo " (cd $$subdir && $(MAKE) $(AM_MAKEFLAGS) top_distdir="$$new_top_distdir" distdir="$$new_distdir" \\"; \
-	    echo "     am__remove_distdir=: am__skip_length_check=: am__skip_mode_fix=: distdir)"; \
-	    ($(am__cd) $$subdir && \
-	      $(MAKE) $(AM_MAKEFLAGS) \
-	        top_distdir="$$new_top_distdir" \
-	        distdir="$$new_distdir" \
-		am__remove_distdir=: \
-		am__skip_length_check=: \
-		am__skip_mode_fix=: \
-	        distdir) \
-	      || exit 1; \
-	  fi; \
-	done
 check-am: all-am
-check: check-recursive
+check: check-am
 all-am: Makefile $(PROGRAMS)
-installdirs: installdirs-recursive
-installdirs-am:
+installdirs:
 	for dir in "$(DESTDIR)$(bindir)"; do \
 	  test -z "$$dir" || $(MKDIR_P) "$$dir"; \
 	done
-install: install-recursive
-install-exec: install-exec-recursive
-install-data: install-data-recursive
-uninstall: uninstall-recursive
+install: install-am
+install-exec: install-exec-am
+install-data: install-data-am
+uninstall: uninstall-am
 
 install-am: all-am
 	@$(MAKE) $(AM_MAKEFLAGS) install-exec-am install-data-am
 
-installcheck: installcheck-recursive
+installcheck: installcheck-am
 install-strip:
 	if test -z '$(STRIP)'; then \
 	  $(MAKE) $(AM_MAKEFLAGS) INSTALL_PROGRAM="$(INSTALL_STRIP_PROGRAM)" \
@@ -877,103 +622,97 @@ distclean-generic:
 maintainer-clean-generic:
 	@echo "This command is intended for maintainers to use"
 	@echo "it deletes files that may require special tools to rebuild."
-clean: clean-recursive
+clean: clean-am
 
-clean-am: clean-binPROGRAMS clean-generic clean-libtool \
-	clean-noinstPROGRAMS mostlyclean-am
+clean-am: clean-binPROGRAMS clean-generic clean-libtool mostlyclean-am
 
-distclean: distclean-recursive
+distclean: distclean-am
 	-rm -rf ./$(DEPDIR)
 	-rm -f Makefile
 distclean-am: clean-am distclean-compile distclean-generic \
 	distclean-tags
 
-dvi: dvi-recursive
+dvi: dvi-am
 
 dvi-am:
 
-html: html-recursive
+html: html-am
 
 html-am:
 
-info: info-recursive
+info: info-am
 
 info-am:
 
 install-data-am:
 
-install-dvi: install-dvi-recursive
+install-dvi: install-dvi-am
 
 install-dvi-am:
 
-install-exec-am: install-binPROGRAMS install-exec-local
+install-exec-am: install-binPROGRAMS
 
-install-html: install-html-recursive
+install-html: install-html-am
 
 install-html-am:
 
-install-info: install-info-recursive
+install-info: install-info-am
 
 install-info-am:
 
 install-man:
 
-install-pdf: install-pdf-recursive
+install-pdf: install-pdf-am
 
 install-pdf-am:
 
-install-ps: install-ps-recursive
+install-ps: install-ps-am
 
 install-ps-am:
 
 installcheck-am:
 
-maintainer-clean: maintainer-clean-recursive
+maintainer-clean: maintainer-clean-am
 	-rm -rf ./$(DEPDIR)
 	-rm -f Makefile
 maintainer-clean-am: distclean-am maintainer-clean-generic
 
-mostlyclean: mostlyclean-recursive
+mostlyclean: mostlyclean-am
 
 mostlyclean-am: mostlyclean-compile mostlyclean-generic \
 	mostlyclean-libtool
 
-pdf: pdf-recursive
+pdf: pdf-am
 
 pdf-am:
 
-ps: ps-recursive
+ps: ps-am
 
 ps-am:
 
 uninstall-am: uninstall-binPROGRAMS
 
-.MAKE: $(am__recursive_targets) install-am install-strip
+.MAKE: install-am install-strip
 
-.PHONY: $(am__recursive_targets) CTAGS GTAGS TAGS all all-am check \
-	check-am clean clean-binPROGRAMS clean-generic clean-libtool \
-	clean-noinstPROGRAMS cscopelist-am ctags ctags-am distclean \
-	distclean-compile distclean-generic distclean-libtool \
-	distclean-tags distdir dvi dvi-am html html-am info info-am \
-	install install-am install-binPROGRAMS install-data \
-	install-data-am install-dvi install-dvi-am install-exec \
-	install-exec-am install-exec-local install-html \
-	install-html-am install-info install-info-am install-man \
-	install-pdf install-pdf-am install-ps install-ps-am \
-	install-strip installcheck installcheck-am installdirs \
-	installdirs-am maintainer-clean maintainer-clean-generic \
-	mostlyclean mostlyclean-compile mostlyclean-generic \
-	mostlyclean-libtool pdf pdf-am ps ps-am tags tags-am uninstall \
-	uninstall-am uninstall-binPROGRAMS
+.PHONY: CTAGS GTAGS TAGS all all-am check check-am clean \
+	clean-binPROGRAMS clean-generic clean-libtool cscopelist-am \
+	ctags ctags-am distclean distclean-compile distclean-generic \
+	distclean-libtool distclean-tags distdir dvi dvi-am html \
+	html-am info info-am install install-am install-binPROGRAMS \
+	install-data install-data-am install-dvi install-dvi-am \
+	install-exec install-exec-am install-html install-html-am \
+	install-info install-info-am install-man install-pdf \
+	install-pdf-am install-ps install-ps-am install-strip \
+	installcheck installcheck-am installdirs maintainer-clean \
+	maintainer-clean-generic mostlyclean mostlyclean-compile \
+	mostlyclean-generic mostlyclean-libtool pdf pdf-am ps ps-am \
+	tags tags-am uninstall uninstall-am uninstall-binPROGRAMS
 
 .PRECIOUS: Makefile
 
 
 %: %.in
 	$(subst_verbose)$(do_subst) < $^ > $@ && chmod --reference $^ $@
-
-install-exec-local:
-	$(INSTALL) -d $(DESTDIR)$(localstatedir)/log/psaccounter
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.
