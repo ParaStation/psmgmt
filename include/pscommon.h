@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2014 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2017 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -11,12 +11,6 @@
 /**
  * @file
  * Functions used in user-programs and daemon.
- *
- * $Id$
- *
- * @author
- * Norbert Eicker <eicker@par-tec.com>
- *
  */
 #ifndef __PSCOMMON_H
 #define __PSCOMMON_H
@@ -28,13 +22,6 @@
 #include "logging.h"
 #include "psnodes.h"
 #include "pstask.h"
-
-#ifdef __cplusplus
-extern "C" {
-#if 0
-} /* <- just for emacs indentation */
-#endif
-#endif
 
 /** The logger we use inside PSC */
 extern logger_t* PSC_logger;
@@ -441,7 +428,7 @@ char * PSC_concat(const char *str, ...);
  *
  * @see PSC_setProcTitle()
  */
-void PSC_saveTitleSpace(int argc, char **argv, int saveEnv);
+void PSC_saveTitleSpace(int argc, const char **argv, int saveEnv);
 
 /**
  * @brief Set the process title.
@@ -471,7 +458,7 @@ void PSC_saveTitleSpace(int argc, char **argv, int saveEnv);
  *
  * @see PSC_saveTitleSpace()
  */
-int PSC_setProcTitle(int argc, char **argv, char *title, int saveEnv);
+int PSC_setProcTitle(int argc, const char **argv, char *title, int saveEnv);
 
 /**
  * @brief Get screen width.
@@ -497,9 +484,5 @@ int PSC_setProcTitle(int argc, char **argv, char *title, int saveEnv);
  * @see ioctl()
  */
 int PSC_getWidth(void);
-
-#ifdef __cplusplus
-}/* extern "C" */
-#endif
 
 #endif  /* __PSCOMMON_H */

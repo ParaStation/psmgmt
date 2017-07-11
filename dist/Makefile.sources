@@ -89,13 +89,15 @@ bin/logger/psiloggerclient.h \
 bin/logger/psiloggermerge.c \
 bin/logger/psiloggermerge.h \
 bin/mlisten.c \
-bin/mpiexec.c \
 bin/mpirun_chgm.c \
 bin/mpirun_chp4.c \
 bin/mpirun_openib.c \
 bin/psispawn.c \
 bin/psmstart.c \
 bin/pssh.c \
+bin/startup/cloptions.c \
+bin/startup/cloptions.h \
+bin/startup/mpiexec.c \
 bin/testacct.c \
 bin/test_config.c \
 bin/test_pse.c \
@@ -243,7 +245,6 @@ m4/ltoptions.m4 \
 m4/ltsugar.m4 \
 m4/ltversion.m4 \
 m4/lt~obsolete.m4 \
-m4/ps_search_libs.m4 \
 plugins/Makefile.am \
 plugins/Makefile.in \
 plugins/cgroup/Makefile.am \

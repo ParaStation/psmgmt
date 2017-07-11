@@ -1,0 +1,3 @@
+# Might be pattern matching function name, library name or source file
+leak:libpopt.so
+#leak:PSC_saveTitleSpace

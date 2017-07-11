@@ -527,7 +527,7 @@ static int initForwarder(int forwarderType, char *jobname)
     /* overwrite proc title */
     snprintf(pTitle, sizeof(pTitle), "psmom-%s-fw: %s",
 		fwType2Str(forwarderType), jobname);
-    PSC_setProcTitle(PSID_argc, (char ** )PSID_argv, pTitle, 0);
+    PSC_setProcTitle(PSID_argc, PSID_argv, pTitle, 0);
 
     /* Reset connection to syslog */
     closelog();

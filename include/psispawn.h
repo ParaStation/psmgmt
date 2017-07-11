@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 1999-2003 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2014 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2017 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -11,12 +11,6 @@
 /**
  * @file
  * User-functions for spawning of ParaStation tasks.
- *
- * $Id$
- *
- * @author
- * Norbert Eicker <eicker@par-tec.com>
- *
  */
 #ifndef __PSISPAWN_H__
 #define __PSISPAWN_H__
@@ -25,13 +19,6 @@
 
 #include "pstask.h"
 #include "psnodes.h"
-
-#ifdef __cplusplus
-extern "C" {
-#if 0
-} /* <- just for emacs indentation */
-#endif
-#endif
 
 /**
  * @brief Set UID for spawns
@@ -81,17 +68,21 @@ void PSI_RemoteArgs(int Argc,char **Argv,int *RArgc,char ***RArgv);
  * spawned.
  *
  * The registered function is called for each process spawned. The
- * argument is the process's rank. It is expected to return an
- * environment as used internally within libpsi. This is an
- * NULL-terminated array of pointers to char arrays. Each
- * '\0'-terminated character array storing a single environment
- * variable is expected to be of the form <name>=<value>.
+ * first argument is the process's rank, the second argument is a
+ * pointer to additional information that was provided via the @a info
+ * parameter. It is expected to return an environment as used
+ * internally within libpsi. This is an NULL-terminated array of
+ * pointers to char arrays. Each '\0'-terminated character array
+ * storing a single environment variable is expected to be of the form
+ * <name>=<value>.
  *
- * @param func The function to register.
+ * @param func The function to register
+ *
+ * @param info Additional information to be passed to @a func.
  *
  * @return No return value.
  */
-void PSI_registerRankEnvFunc(char **(*func)(int));
+void PSI_registerRankEnvFunc(char **(*func)(int, void *), void *info);
 
 /**
  * @brief Spawn one or more tasks within the cluster.
@@ -605,9 +596,5 @@ char *PSI_createMPIhosts(int num, int local);
  * than 0 representing an errno from within the daemons.
  */
 int PSI_kill(PStask_ID_t tid, short signal, int async);
-
-#ifdef __cplusplus
-}/* extern "C" */
-#endif
 
 #endif /* __PSISPAWN_H */

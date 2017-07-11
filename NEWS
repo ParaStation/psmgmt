@@ -5,7 +5,29 @@ Copyright (C) 2010-2017 ParTec Cluster Competence Center GmbH, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
-Version 5.1.3:
+Version 5.1.6:
+==============
+Bugfixes:
+ - Prevent stuck psid if MPI_Comm_spawn requests wrong HW-type
+ - Rectify pointer issues in pspmi
+ - Fix various potential memory errors found by address sanitizer
+ - Allow psidforwarder to create coredumps again
+
+Enhancements:
+ - Switch to non-blocking read/write for Slurm messages (psc:#255)
+ - Store and resend SLURM messages to slurmctld (jrt:#3389).
+ - Allow to pass extra info to per-node environment creator
+ - First implementation of SLURM's 17.02 protocol in psslurm
+
+Additional changes:
+ - Eliminate obsolete dependency on ps_search_libs.m4
+ - Get rid of SVN revision strings
+ - Remove support of priviledged options from mpiexec
+ - Hide connection reset with debug mask PSSLURM_LOG_COMM
+ - Update regression test suite
+
+
+Version 5.1.5:
 ==============
 Bugfixes:
  - Ensure jobs get released if mother superior is unkown (jrt:#6645)

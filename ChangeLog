@@ -1,3 +1,240 @@
+Version psmgmt-5.1.6:
+=====================
+------------------------------------------------------------------------
+449a60cf | Norbert Eicker | Wed, 28 Jun 2017 14:28:42 +0200
+
+Major reorganization of mpiexec
+
+ - Move all parameters parsed from command-line into a single struct
+ - Command-line parser now in a separate module
+
+------------------------------------------------------------------------
+4e7dba0c | Norbert Eicker | Wed, 28 Jun 2017 14:07:30 +0200
+
+Get rid of obsolete dependency on ps_search_libs.m4
+
+------------------------------------------------------------------------
+713cd20f | Norbert Eicker | Fri, 23 Jun 2017 16:32:51 +0200
+
+Mark PSI_execLogger() as noreturn.
+
+------------------------------------------------------------------------
+3697e830 | Norbert Eicker | Wed, 14 Jun 2017 13:27:18 +0200
+
+Omit useless parenthesis
+
+------------------------------------------------------------------------
+84e088cc | Norbert Eicker | Wed, 7 Jun 2017 10:19:55 +0200
+
+Allow to pass extra info to per-node environment creator
+
+------------------------------------------------------------------------
+a586b157 | Norbert Eicker | Tue, 6 Jun 2017 17:51:49 +0200
+
+More consistent use of argv as const char *[]
+
+------------------------------------------------------------------------
+900c483d | Norbert Eicker | Fri, 5 May 2017 16:42:54 +0200
+
+Start moving parameters into struct
+
+------------------------------------------------------------------------
+4218bd6a | Norbert Eicker | Thu, 13 Apr 2017 22:32:39 +0200
+
+Prepare struct to hold all mpiexec's parameters
+
+------------------------------------------------------------------------
+0aa8fc32 | Norbert Eicker | Thu, 13 Apr 2017 15:17:11 +0200
+
+Streamline all start programs
+
+ - Get rid of SVN revision strings
+ - Rename PSE_checkNodeEnv() -> PSE_checkAndSetNodeEnv()
+ - Rename PSE_checkNodeEnv() -> PSE_checkAndSetSortEnv()
+
+------------------------------------------------------------------------
+9e1df745 | Norbert Eicker | Wed, 12 Apr 2017 21:44:06 +0200
+
+Fix whitespace formatting
+
+------------------------------------------------------------------------
+cb723977 | Norbert Eicker | Wed, 12 Apr 2017 21:40:03 +0200
+
+Remove support of priviledged options
+
+ - --admin and --login was broken for some time anyhow
+ - thus, most probably this was not used at all
+ - implementation was clashing with actual functionality
+ - if this functionality is required at all I propose to have a
+   specialized tool for it
+
+------------------------------------------------------------------------
+ac1c14f2 | Norbert Eicker | Wed, 12 Apr 2017 18:40:37 +0200
+
+Bugfix: mpiexec's --admin option broke
+
+------------------------------------------------------------------------
+a433cffe | Norbert Eicker | Wed, 12 Apr 2017 13:44:13 +0200
+
+Move mpiexec.c into its own subdirectory
+
+------------------------------------------------------------------------
+e3479a24 | Norbert Eicker | Wed, 5 Jul 2017 12:29:11 +0200
+
+Bit of streamlining on KVS provider
+
+------------------------------------------------------------------------
+c0410a79 | Norbert Eicker | Wed, 5 Jul 2017 12:28:29 +0200
+
+Be less sloppy when doing ASan tests
+
+------------------------------------------------------------------------
+892b354c | Norbert Eicker | Wed, 5 Jul 2017 12:24:40 +0200
+
+Bugfix: Avoid potential buffer overflow in kvsprovider
+
+------------------------------------------------------------------------
+2023c697 | Norbert Eicker | Tue, 4 Jul 2017 19:01:49 +0200
+
+Bugfix: Fix two off by one errors in psiadmin
+
+------------------------------------------------------------------------
+ca92260f | Norbert Eicker | Tue, 4 Jul 2017 18:36:36 +0200
+
+Bugfix: Avoid buffer overflow in debug output
+
+------------------------------------------------------------------------
+f279e3ea | Norbert Eicker | Tue, 4 Jul 2017 18:12:33 +0200
+
+Bugfix: Ensure allocated memory is large enough
+
+------------------------------------------------------------------------
+95084014 | Norbert Eicker | Tue, 4 Jul 2017 17:35:38 +0200
+
+Update comments on address sanitizing
+
+------------------------------------------------------------------------
+a839ff0e | Norbert Eicker | Mon, 3 Jul 2017 19:34:16 +0200
+
+Merge remote-tracking branch 'refs/remotes/origin/master'
+
+------------------------------------------------------------------------
+2cbd5404 | Norbert Eicker | Mon, 3 Jul 2017 19:30:50 +0200
+
+Adjust documentation comment
+
+------------------------------------------------------------------------
+294a8db4 | Norbert Eicker | Mon, 3 Jul 2017 19:27:28 +0200
+
+Add some comments on address sanitizing
+
+------------------------------------------------------------------------
+6eb738bc | Norbert Eicker | Mon, 3 Jul 2017 18:40:34 +0200
+
+Merge remote-tracking branch 'refs/remotes/origin/master'
+
+------------------------------------------------------------------------
+65095012 | Michael Rauh | Mon, 3 Jul 2017 16:25:23 +0200
+
+First implementation of the 17.02 protocol.
+Move more pack/unpack code into psslurmpack.
+Minor cleanup.
+
+------------------------------------------------------------------------
+0641b3ab | Norbert Eicker | Mon, 3 Jul 2017 18:36:31 +0200
+
+Bugfix: Rectify pointer issues in pspmi
+
+ - Fix various issues with pointer arithemtics
+ - Fix several double free()
+ - Problems pop up when more then one info is used in
+   MPI_Comm_spawn()
+
+------------------------------------------------------------------------
+30260e2d | Norbert Eicker | Mon, 3 Jul 2017 18:19:10 +0200
+
+Bugfix: Fix potential buffer-overflow
+
+------------------------------------------------------------------------
+cf90fba1 | Michael Rauh | Fri, 30 Jun 2017 13:14:41 +0200
+
+Merge branch 'master' of git.ccc:/psmgmt
+
+------------------------------------------------------------------------
+1d654df2 | Norbert Eicker | Wed, 28 Jun 2017 18:45:04 +0200
+
+Bugfix: allow psidforwarder to create coredumps again
+
+------------------------------------------------------------------------
+57aee36d | Norbert Eicker | Wed, 28 Jun 2017 18:35:09 +0200
+
+Bugfix: prevent stuck psid
+
+ - If no node of matching HW-type is found for MPI_Comm_spawn() psid might
+   get stuck in an endless loop
+
+------------------------------------------------------------------------
+12a980b1 | Michael Rauh | Fri, 30 Jun 2017 12:56:14 +0200
+
+Improved documentation
+
+------------------------------------------------------------------------
+535e1010 | Michael Rauh | Fri, 30 Jun 2017 10:57:27 +0200
+
+Hide connection reset with debug mask PSSLURM_LOG_COMM
+
+------------------------------------------------------------------------
+71a4395f | Michael Rauh | Thu, 29 Jun 2017 16:35:13 +0200
+
+Cleanup associated selector and timer if a message buffer gets deleted
+
+------------------------------------------------------------------------
+8f3714e7 | Michael Rauh | Tue, 27 Jun 2017 17:12:33 +0200
+
+Switch to non-blocking read/write for Slurm messages (psc:#255).
+Store and resend important Slurm messages if the slurmctld
+    is temporally unavailable (jrt:#3389).
+
+------------------------------------------------------------------------
+c1475653 | Michael Rauh | Thu, 8 Jun 2017 10:06:37 +0200
+
+Update regression test suite:
+
+    commit 06512a3f4465b41f8dc96ab025be515c087e55bc (dorian/pstest)
+    Author: Chrysovalantis Paschoulas <c.paschoulas@fz-juelich.de>
+    Date:   Tue Jun 6 10:56:47 2017 +0200
+
+	Fix a bug in jobid extraction logic
+
+	Fixed regular expression used for jobid extraction from the ouput
+	of the job submission in regtest.py.
+
+    commit d1cde69796c178cb4dc7f85e0d54fc933c37ec71
+    Author: Chrysovalantis Paschoulas <c.paschoulas@fz-juelich.de>
+    Date:   Tue Jun 6 10:30:26 2017 +0200
+
+	added some docs
+
+    commit 7f6639718c1763d45cc255c8bafe160f302e5d28
+    Author: Dorian Krause <d.krause@fz-juelich.de>
+    Date:   Mon Jun 5 16:33:35 2017 +0200
+
+	Fix typo in the README
+
+    commit 69d1620f37807038edcee1d83425878e4314bced
+    Author: Dorian Krause <d.krause@fz-juelich.de>
+    Date:   Mon Jun 5 16:30:17 2017 +0200
+
+	Adjust README to Gitlab MD
+
+    commit 8fd83bfcc7b377140665afb2278ba11c382aff68
+    Author: Dorian Krause <d.krause@fz-juelich.de>
+    Date:   Mon Jun 5 16:27:44 2017 +0200
+
+	Update patches
+------------------------------------------------------------------------
+
+
 Version psmgmt-5.1.5:
 =====================
 ------------------------------------------------------------------------

@@ -1688,18 +1688,18 @@ static bool getSpawnKVPs(char *msg, char *name, int *kvpc, KVP_t **kvpv)
 	    goto kvp_error;
 	}
 
-	kvpv[i]->key = ustrdup(nextkey);
-	kvpv[i]->value = ustrdup(nextvalue);
+	(*kvpv)[i].key = ustrdup(nextkey);
+	(*kvpv)[i].value = ustrdup(nextvalue);
     }
     return true;
 
 kvp_error:
     count = i;
     for (i = 0; i < count; i++) {
-	ufree(kvpv[i]->key);
-	ufree(kvpv[i]->value);
+	ufree((*kvpv)[i].key);
+	ufree((*kvpv)[i].value);
     }
-    ufree(kvpv);
+    ufree(*kvpv);
     return false;
 }
 
@@ -1772,6 +1772,11 @@ parse_error:
  */
 static bool doSpawn(SpawnRequest_t *req)
 {
+    if (pendSpawn) {
+	mlog("%s(r%i): anoter spawn is pending\n", __func__, rank);
+	return false;
+    }
+
     pendSpawn = copySpawnRequest(req);
 
     mlog("%s(r%i): trying to do %d spawns\n", __func__, rank, pendSpawn->num);

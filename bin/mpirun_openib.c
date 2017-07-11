@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2007-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2007-2017 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -16,18 +16,7 @@
  * the MVAPICH software package developed by the team members of The
  * Ohio State University's Network-Based Computing Laboratory (NBCL),
  * headed by Professor Dhabaleswar K. (DK) Panda.
- *
- * $Id$
- *
- * \author
- * Norbert Eicker <eicker@par-tec.com>
- *
  */
-#ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__((used)) =
-    "$Id$";
-#endif /* DOXYGEN_SHOULD_SKIP_THIS */
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -78,16 +67,13 @@ static char msgstr[512]; /* Space for error messages */
 #define PARAM_GLOBAL "/etc/mvapich.conf"
 #endif
 
-static char version[] = "$Revision$";
-
 /*
  * Print version info
  */
 static void printVersion(void)
 {
-    fprintf(stderr,
-	    "mpirun_openib psmgmt-%s-%s (rev. %s\b\b) (MVAPIch proto %d)\n",
-	    VERSION_psmgmt, RELEASE_psmgmt, version+11, PMGR_VERSION);
+    fprintf(stderr, "mpirun_openib %s-%s (MVAPIch proto %d)\n",
+	    VERSION_psmgmt, RELEASE_psmgmt, PMGR_VERSION);
 }
 
 
@@ -264,7 +250,7 @@ static void setupCommonEnv(int np)
 /* Flag, if verbose-option is set */
 static int verboseRankMsg = 0;
 
-static char ** setupNodeEnv(int i)
+static char ** setupNodeEnv(int i, void *info)
 {
     static char rankItem[32];
     static char *env[] = {rankItem, NULL};
@@ -303,7 +289,7 @@ static int startProcs(int np, int argc, char *argv[], int verbose)
     setupCommonEnv(np);
 
     verboseRankMsg = verbose;
-    PSI_registerRankEnvFunc(setupNodeEnv);
+    PSI_registerRankEnvFunc(setupNodeEnv, NULL);
 
     errors = malloc(sizeof(int) * np);
     if (!errors) {
@@ -755,7 +741,7 @@ int main(int argc, char *argv[])
 {
     int np, dest, version, verbose, source, rusage;
     int sock, i, rc;
-    char *nodelist, *hostlist, *hostfile, *sort, *envlist, *paramfile;
+    char *nList, *hList, *hFile, *sort, *envlist, *paramfile;
     char *envstr, *msg;
     struct sockaddr_in sockaddr;
     socklen_t sockaddr_len = sizeof(sockaddr);
@@ -775,11 +761,11 @@ int main(int argc, char *argv[])
 	{ "np", '\0', POPT_ARG_INT | POPT_ARGFLAG_ONEDASH,
 	  &np, 0, "number of processes to start", "num"},
 	{ "nodes", '\0', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH,
-	  &nodelist, 0, "list of nodes to use", "nodelist"},
+	  &nList, 0, "list of nodes to use", "nodelist"},
 	{ "hosts", '\0', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH,
-	  &hostlist, 0, "list of hosts to use", "hostlist"},
+	  &hList, 0, "list of hosts to use", "hostlist"},
 	{ "hostfile", '\0', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH,
-	  &hostfile, 0, "hostfile to use", "hostfile"},
+	  &hFile, 0, "hostfile to use", "hostfile"},
 	{ "sort", '\0', POPT_ARG_STRING | POPT_ARGFLAG_ONEDASH,
 	  &sort, 0, "sorting criterium to use", "{proc|load|proc+load|none}"},
 	{ "inputdest", '\0', POPT_ARG_INT | POPT_ARGFLAG_ONEDASH,
@@ -819,7 +805,7 @@ int main(int argc, char *argv[])
 
 	np = dest = -1;
 	version = verbose = source = rusage = 0;
-	nodelist = hostlist = hostfile = sort = envlist = paramfile = NULL;
+	nList = hList = hFile = sort = envlist = paramfile = NULL;
 
 	rc = poptGetNextOpt(optCon);
 
@@ -919,10 +905,10 @@ int main(int argc, char *argv[])
 	if (verbose) printf("Environment variables to be exported: %s\n", val);
     }
 
-    msg = PSE_checkNodeEnv(nodelist, hostlist, hostfile, NULL, "-", verbose);
+    msg = PSE_checkAndSetNodeEnv(nList, hList, hFile, NULL, "-", verbose);
     if (msg) goto errexit;
 
-    msg = PSE_checkSortEnv(sort, "-", verbose);
+    msg = PSE_checkAndSetSortEnv(sort, "-", verbose);
     if (msg) goto errexit;
 
     /* Propagate PSI_RARG_PRE_* / check for LSF-Parallel */

@@ -76,10 +76,6 @@ typedef enum {
     JOB_RUNNING,	    /* the user job is executed */
     JOB_PROLOGUE,	    /* the prologue is executed */
     JOB_EPILOGUE,	    /* the epilogue is executed */
-    JOB_CANCEL_PROLOGUE,    /* prologue failed and is canceled */
-    JOB_CANCEL_EPILOGUE,    /* epilouge failed and is canceled */
-    JOB_CANCEL_INTERACTIVE, /* an interactive job failed and is canceled */
-    JOB_WAIT_OBIT,	    /* send job obit failed, try it periodically again */
     JOB_EXIT,		    /* the job is exiting */
     JOB_COMPLETE,
 } JobState_t;
@@ -392,11 +388,57 @@ int signalJobs(int signal, char *reason);
 Step_t *addStep(uint32_t jobid, uint32_t stepid);
 int deleteStep(uint32_t jobid, uint32_t stepid);
 void clearStepList(uint32_t jobid);
+
+/**
+ * @brief Find a step identified by a jobid
+ *
+ * @param jobid The jobid of the step
+ *
+ * @return Returns the requested step or NULL on error
+ */
 Step_t *findStepByJobid(uint32_t jobid);
-Step_t *findStepByLogger(PStask_ID_t loggerTID);
-Step_t *findStepById(uint32_t jobid, uint32_t stepid);
-Step_t *findStepByPid(pid_t pid);
+
+/**
+ * @brief Find an active step identified by the logger TID
+ *
+ * Find an active step identified by the TaskID of the psilogger.
+ * Steps in the state "completed" or "exit" will be ignored.
+ *
+ * @param loggerTID The task ID of the psilogger
+ *
+ * @return Returns the requested step or NULL on error
+ */
+Step_t *findActiveStepByLogger(PStask_ID_t loggerTID);
+
+/**
+ * @brief Find a step identified by a jobid and stepid
+ *
+ * @param jobid The jobid of the step
+ *
+ * @param stepid The stepid of the step
+ *
+ * @return Returns the requested step or NULL on error
+ */
+Step_t *findStepByStepId(uint32_t jobid, uint32_t stepid);
+
+/**
+ * @brief Find a step identified by the PID of its forwarder
+ *
+ * @param pid The PID of the steps forwarder
+ *
+ * @return Returns the requested step or NULL on error
+ */
+Step_t *findStepByFwPid(pid_t pid);
+
+/**
+ * @brief Find a step identified by the PID of its tasks
+ *
+ * @param pid The PID of a task from the step to find
+ *
+ * @return Returns the requested step or NULL on error
+ */
 Step_t *findStepByTaskPid(pid_t pid);
+
 int countSteps(void);
 int signalStepsByJobid(uint32_t jobid, int signal);
 int signalStep(Step_t *step, int signal);
@@ -415,9 +457,40 @@ PS_Tasks_t *addTask(struct list_head *list, PStask_ID_t childTID,
 			PStask_group_t childGroup, int32_t rank);
 int signalTasks(uint32_t jobid, uid_t uid, PS_Tasks_t *tasks, int signal,
 		    int32_t group);
+
+/**
+ * @brief Find a task identified by its rank
+ *
+ * @param list_head The list of tasks to search
+ *
+ * @param rank The rank of the task to find
+ *
+ * @return Returns the found task or NULL on error
+ */
 PS_Tasks_t *findTaskByRank(struct list_head *taskList, int32_t rank);
+
+/**
+ * @brief Find a task identified by its forwarders TID
+ *
+ * @param list_head The list of tasks to search
+ *
+ * @param fwTID The task ID of the forwarder
+ *
+ * @return Returns the found task or NULL on error
+ */
 PS_Tasks_t *findTaskByForwarder(struct list_head *taskList, PStask_ID_t fwTID);
+
+/**
+ * @brief Find a task identified by its child PID
+ *
+ * @param list_head The list of tasks to search
+ *
+ * @param childPid The PID of the task
+ *
+ * @return Returns the found task or NULL on error
+ */
 PS_Tasks_t *findTaskByChildPid(struct list_head *taskList, pid_t childPid);
+
 unsigned int countTasks(struct list_head *taskList);
 unsigned int countRegTasks(struct list_head *taskList);
 
