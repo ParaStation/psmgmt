@@ -266,7 +266,7 @@ static char *showSteps(char *buf, size_t *bufSize, bool all)
 	str2Buf(line, &buf, bufSize);
 
 	if (step->fwdata) {
-	    snprintf(line, sizeof(line), "step pid: %u\n", step->fwdata->cPid);
+	    snprintf(line, sizeof(line), "step PID: %u\n", step->fwdata->cPid);
 	    str2Buf(line, &buf, bufSize);
 	}
 
@@ -285,6 +285,10 @@ static char *showSteps(char *buf, size_t *bufSize, bool all)
 	ptr = genMemBindString(step);
 	snprintf(line, sizeof(line), "memBind: '%s'\n", ptr);
 	ufree(ptr);
+	str2Buf(line, &buf, bufSize);
+
+	snprintf(line, sizeof(line), "logger TID: %s\n",
+		 PSC_printTID(step->loggerTID));
 	str2Buf(line, &buf, bufSize);
 
 	str2Buf("-\n\n", &buf, bufSize);
