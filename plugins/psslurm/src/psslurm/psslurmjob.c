@@ -213,12 +213,11 @@ static void deleteTask(PS_Tasks_t *task)
 static void clearTasks(struct list_head *taskList)
 {
     list_t *pos, *tmp;
-    PS_Tasks_t *task;
 
     if (!taskList) return;
 
     list_for_each_safe(pos, tmp, taskList) {
-	if (!(task = list_entry(pos, PS_Tasks_t, list))) return;
+	PS_Tasks_t *task = list_entry(pos, PS_Tasks_t, list);
 	deleteTask(task);
     }
 }
@@ -226,11 +225,10 @@ static void clearTasks(struct list_head *taskList)
 PS_Tasks_t *findTaskByRank(struct list_head *taskList, int32_t rank)
 {
     list_t *pos, *tmp;
-    PS_Tasks_t *task = NULL;
 
     if (!taskList) return NULL;
     list_for_each_safe(pos, tmp, taskList) {
-	if (!(task = list_entry(pos, PS_Tasks_t, list))) return NULL;
+	PS_Tasks_t *task = list_entry(pos, PS_Tasks_t, list);
 	if (task->childRank == rank) return task;
     }
     return NULL;
@@ -239,11 +237,10 @@ PS_Tasks_t *findTaskByRank(struct list_head *taskList, int32_t rank)
 PS_Tasks_t *findTaskByForwarder(struct list_head *taskList, PStask_ID_t fwTID)
 {
     list_t *pos, *tmp;
-    PS_Tasks_t *task = NULL;
 
     if (!taskList) return NULL;
     list_for_each_safe(pos, tmp, taskList) {
-	if (!(task = list_entry(pos, PS_Tasks_t, list))) return NULL;
+	PS_Tasks_t *task = list_entry(pos, PS_Tasks_t, list);
 	if (task->forwarderTID == fwTID) return task;
     }
     return NULL;
@@ -252,16 +249,14 @@ PS_Tasks_t *findTaskByForwarder(struct list_head *taskList, PStask_ID_t fwTID)
 PS_Tasks_t *findTaskByChildPid(struct list_head *taskList, pid_t childPid)
 {
     list_t *pos, *tmp;
-    PS_Tasks_t *task = NULL;
 
     if (!taskList) return NULL;
     list_for_each_safe(pos, tmp, taskList) {
-	if (!(task = list_entry(pos, PS_Tasks_t, list))) return NULL;
+	PS_Tasks_t *task = list_entry(pos, PS_Tasks_t, list);
 	if (PSC_getPID(task->childTID) == childPid) return task;
     }
     return NULL;
 }
-
 
 BCast_t *addBCast()
 {
@@ -329,16 +324,13 @@ BCast_t *findBCast(uint32_t jobid, char *fileName, uint32_t blockNum)
     return NULL;
 }
 
-Step_t *findStepById(uint32_t jobid, uint32_t stepid)
+Step_t *findStepByStepId(uint32_t jobid, uint32_t stepid)
 {
     struct list_head *pos;
-    Step_t *step;
 
     list_for_each(pos, &StepList.list) {
-	if (!(step = list_entry(pos, Step_t, list))) return NULL;
-	if (jobid == step->jobid && step->stepid == stepid) {
-	    return step;
-	}
+	Step_t *step = list_entry(pos, Step_t, list);
+	if (jobid == step->jobid && step->stepid == stepid) return step;
     }
     return NULL;
 }
@@ -346,34 +338,32 @@ Step_t *findStepById(uint32_t jobid, uint32_t stepid)
 Step_t *findStepByJobid(uint32_t jobid)
 {
     struct list_head *pos;
-    Step_t *step;
 
     list_for_each(pos, &StepList.list) {
-	if (!(step = list_entry(pos, Step_t, list))) return NULL;
+	Step_t *step = list_entry(pos, Step_t, list);
 	if (jobid == step->jobid) return step;
     }
     return NULL;
 }
 
-Step_t *findStepByLogger(PStask_ID_t loggerTID)
+Step_t *findActiveStepByLogger(PStask_ID_t loggerTID)
 {
     struct list_head *pos;
-    Step_t *step;
 
     list_for_each(pos, &StepList.list) {
-	if (!(step = list_entry(pos, Step_t, list))) return NULL;
+	Step_t *step = list_entry(pos, Step_t, list);
+	if (step->state == JOB_COMPLETE || step->state == JOB_EXIT) continue;
 	if (loggerTID == step->loggerTID) return step;
     }
     return NULL;
 }
 
-Step_t *findStepByPid(pid_t pid)
+Step_t *findStepByFwPid(pid_t pid)
 {
     struct list_head *pos;
-    Step_t *step;
 
     list_for_each(pos, &StepList.list) {
-	if (!(step = list_entry(pos, Step_t, list))) return NULL;
+	Step_t *step = list_entry(pos, Step_t, list);
 	if (step->fwdata && step->fwdata->cPid == pid) return step;
     }
     return NULL;
@@ -382,13 +372,10 @@ Step_t *findStepByPid(pid_t pid)
 Step_t *findStepByTaskPid(pid_t pid)
 {
     struct list_head *pos;
-    Step_t *step;
 
     list_for_each(pos, &StepList.list) {
-	if (!(step = list_entry(pos, Step_t, list))) return NULL;
-	if ((findTaskByChildPid(&step->tasks.list, pid))) {
-	    return step;
-	}
+	Step_t *step = list_entry(pos, Step_t, list);
+	if (findTaskByChildPid(&step->tasks.list, pid)) return step;
     }
 
     return NULL;
@@ -522,7 +509,7 @@ int deleteStep(uint32_t jobid, uint32_t stepid)
     Step_t *step;
     uint32_t i;
 
-    if (!(step = findStepById(jobid, stepid))) return 0;
+    if (!(step = findStepByStepId(jobid, stepid))) return 0;
 
     mdbg(PSSLURM_LOG_JOB, "%s: '%u:%u'\n", __func__, jobid, stepid);
 
@@ -669,12 +656,11 @@ int signalTasks(uint32_t jobid, uid_t uid, PS_Tasks_t *tasks, int signal,
 		    int32_t group)
 {
     list_t *pos, *tmp;
-    PS_Tasks_t *task;
     PStask_t *child;
     int count = 0;
 
     list_for_each_safe(pos, tmp, &tasks->list) {
-	if (!(task = list_entry(pos, PS_Tasks_t, list))) return count;
+	PS_Tasks_t *task = list_entry(pos, PS_Tasks_t, list);
 
 	if ((child = PStasklist_find(&managedTasks, task->childTID))) {
 	    if (group > -1 && child->group != (PStask_group_t) group) continue;
@@ -948,14 +934,6 @@ char *strJobState(JobState_t state)
 	    return "PROLOGUE";
 	case JOB_EPILOGUE:
 	    return "EPILOGUE";
-	case JOB_CANCEL_PROLOGUE:
-	    return "CANCEL_PROLOGUE";
-	case JOB_CANCEL_EPILOGUE:
-	    return "CANCEL_EPILOGUE";
-	case JOB_CANCEL_INTERACTIVE:
-	    return "CANCEL_INTERACTIVE";
-	case JOB_WAIT_OBIT:
-	    return "WAIT_OBIT";
 	case JOB_EXIT:
 	    return "EXIT";
 	case JOB_COMPLETE:

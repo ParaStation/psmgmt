@@ -563,7 +563,7 @@ static void handleBrokeIOcon(char *ptr)
     getUint32(&ptr, &stepid);
 
     /* step might already be deleted */
-    if (!(step = findStepById(jobid, stepid))) return;
+    if (!(step = findStepByStepId(jobid, stepid))) return;
 
     if (step->ioCon < 2) step->ioCon = 2;
 }

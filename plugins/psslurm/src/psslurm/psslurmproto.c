@@ -449,7 +449,7 @@ static void handleSignalTasks(Slurm_Msg_t *sMsg)
 	    return;
 	}
     } else {
-	if (!(step = findStepById(jobid, stepid))) {
+	if (!(step = findStepByStepId(jobid, stepid))) {
 	    mlog("%s: step '%u.%u' to signal not found\n", __func__, jobid,
 		    stepid);
 	    sendSlurmRC(sMsg, ESLURM_INVALID_JOB_ID);
@@ -600,7 +600,7 @@ static void handleReattachTasks(Slurm_Msg_t *sMsg)
     getUint32(ptr, &jobid);
     getUint32(ptr, &stepid);
 
-    if (!(step = findStepById(jobid, stepid))) {
+    if (!(step = findStepByStepId(jobid, stepid))) {
 	mlog("%s: step '%u:%u' to reattach not found\n", __func__,
 		jobid, stepid);
 	rc = ESLURM_INVALID_JOB_ID;
@@ -969,7 +969,7 @@ static void handleStepStat(Slurm_Msg_t *sMsg)
     getUint32(ptr, &jobid);
     getUint32(ptr, &stepid);
 
-    if (!(step = findStepById(jobid, stepid))) {
+    if (!(step = findStepByStepId(jobid, stepid))) {
 	mlog("%s: step '%u.%u' to signal not found\n", __func__, jobid, stepid);
 	sendSlurmRC(sMsg, ESLURM_INVALID_JOB_ID);
 	return;
@@ -1010,7 +1010,7 @@ static void handleStepPids(Slurm_Msg_t *sMsg)
     getUint32(ptr, &jobid);
     getUint32(ptr, &stepid);
 
-    if (!(step = findStepById(jobid, stepid))) {
+    if (!(step = findStepByStepId(jobid, stepid))) {
 	mlog("%s: step '%u.%u' to signal not found\n", __func__, jobid, stepid);
 	sendSlurmRC(sMsg, ESLURM_INVALID_JOB_ID);
 	return;
@@ -1050,7 +1050,7 @@ static void handleJobNotify(Slurm_Msg_t *sMsg)
     if (stepid == SLURM_BATCH_SCRIPT) {
 	step = findStepByJobid(jobid);
     } else {
-	step = findStepById(jobid, stepid);
+	step = findStepByStepId(jobid, stepid);
     }
 
     if (!step) {
@@ -1380,7 +1380,7 @@ static void handleAbortReq(Slurm_Msg_t *sMsg, uint32_t jobid, uint32_t stepid)
     sendSlurmRC(sMsg, SLURM_SUCCESS);
 
     if (stepid != NO_VAL) {
-	if (!(step = findStepById(jobid, stepid))) {
+	if (!(step = findStepByStepId(jobid, stepid))) {
 	    mlog("%s: step '%u:%u' not found\n", __func__, jobid, stepid);
 	    return;
 	}
@@ -1429,7 +1429,7 @@ static void handleKillReq(Slurm_Msg_t *sMsg, uint32_t jobid,
     char buf[512];
 
     if (stepid != NO_VAL) {
-	if (!(step = findStepById(jobid, stepid))) {
+	if (!(step = findStepByStepId(jobid, stepid))) {
 	    mlog("%s: step '%u:%u' not found\n", __func__, jobid, stepid);
 	    goto SEND_SUCCESS;
 	}

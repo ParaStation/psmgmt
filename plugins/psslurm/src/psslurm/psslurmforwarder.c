@@ -104,7 +104,7 @@ static int stepFWIOcallback(int32_t exit_status, Forwarder_Data_t *fw)
 {
     Step_t *step = fw->userData;
 
-    if (!findStepById(step->jobid, step->stepid)) {
+    if (!findStepByStepId(step->jobid, step->stepid)) {
 	mlog("%s: step '%u:%u' not found\n", __func__, step->jobid,
 		step->stepid);
 	return 0;
@@ -134,13 +134,14 @@ static int stepCallback(int32_t exit_status, Forwarder_Data_t *fw)
 	 step->jobid, step->stepid, strJobState(step->state), exit_status,
 	 fw->estatus);
 
-    if (!findStepById(step->jobid, step->stepid)) {
+    if (!findStepByStepId(step->jobid, step->stepid)) {
 	mlog("%s: step %u:%u not found\n", __func__, step->jobid, step->stepid);
 	return 0;
     }
 
     /* make sure all processes are gone */
     signalStep(step, SIGKILL);
+    killChild(step->loggerTID, SIGKILL);
 
     freeSlurmMsg(&step->srunIOMsg);
 
@@ -173,8 +174,8 @@ static int stepCallback(int32_t exit_status, Forwarder_Data_t *fw)
 	    step->jobid, step->stepid, strJobState(step->state));
     psAccountDelJob(PSC_getTID(-1, fw->cPid));
 
-    if ((alloc = findAlloc(step->jobid)) &&
-	alloc->state == JOB_RUNNING &&
+    alloc = findAlloc(step->jobid);
+    if (alloc && alloc->state == JOB_RUNNING &&
 	alloc->terminate &&
 	alloc->motherSup == PSC_getMyTID()) {
 	/* run epilogue now */
@@ -185,6 +186,9 @@ static int stepCallback(int32_t exit_status, Forwarder_Data_t *fw)
 			step->nrOfNodes, step->nodes, &step->env,
 			&step->spankenv, 1, 0);
     }
+
+    if (!alloc) deleteStep(step->jobid, step->stepid);
+
     step->fwdata = NULL;
     return 0;
 }
@@ -315,7 +319,7 @@ static Step_t * __findStepByEnv(char **environ, uint32_t *jobid_out,
     if (jobid_out) *jobid_out = jobid;
     if (stepid_out) *stepid_out = stepid;
 
-    if (!(step = findStepById(jobid, stepid))) {
+    if (!(step = findStepByStepId(jobid, stepid))) {
 	if (!isAdmin) {
 	    mlog("%s: step '%u:%u' not found for '%s:%i'\n", __func__,
 		 jobid, stepid, func, line);

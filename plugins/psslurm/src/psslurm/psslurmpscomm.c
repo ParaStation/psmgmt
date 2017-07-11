@@ -191,7 +191,7 @@ int handleCreatePart(void *msg)
     }
 
     /* find step */
-    if (!(step = findStepByPid(PSC_getPID(inmsg->header.sender)))) {
+    if (!(step = findStepByFwPid(PSC_getPID(inmsg->header.sender)))) {
 	/* admin user can always pass */
 	if (isPSAdminUser(task->uid, task->gid)) return 1;
 
@@ -258,7 +258,7 @@ int handleCreatePartNL(void *msg)
     }
 
     /* find step */
-    if (!findStepByPid(PSC_getPID(inmsg->header.sender))) {
+    if (!findStepByFwPid(PSC_getPID(inmsg->header.sender))) {
 	/* admin users can start mpiexec direct */
 	if (isPSAdminUser(task->uid, task->gid)) return 1;
 	errno = EACCES;
@@ -615,7 +615,7 @@ static void handle_PS_JobExit(DDTypedBufferMsg_t *msg)
 	return;
     }
 
-    if (!(step = findStepById(jobid, stepid))) {
+    if (!(step = findStepByStepId(jobid, stepid))) {
       mlog("%s: step '%u:%u' not found\n", __func__, jobid, stepid);
     } else {
 	step->state = JOB_EXIT;
@@ -811,7 +811,7 @@ static void handle_PS_SignalTasks(DDTypedBufferMsg_t *msg)
     /* get signal */
     getUint32(&ptr, &signal);
 
-    if (!(step = findStepById(jobid, stepid))) {
+    if (!(step = findStepByStepId(jobid, stepid))) {
       mlog("%s: step '%u:%u' to signal not found\n", __func__, jobid, stepid);
       return;
     }
@@ -1216,7 +1216,7 @@ static void handleCC_IO_Msg(PSLog_Msg_t *msg)
     PStask_t *task;
     static PStask_ID_t noLoggerDest = -1;
 
-    if (!(step = findStepByLogger(msg->header.dest))) {
+    if (!(step = findActiveStepByLogger(msg->header.dest))) {
 	if (PSC_getMyID() == PSC_getID(msg->header.sender)) {
 	    if ((task = PStasklist_find(&managedTasks, msg->header.sender))) {
 		if (isPSAdminUser(task->uid, task->gid)) goto OLD_MSG_HANDLER;
@@ -1275,11 +1275,14 @@ OLD_MSG_HANDLER:
 
 static void handleCC_INIT_Msg(PSLog_Msg_t *msg)
 {
-    Step_t *step = NULL;
-    PS_Tasks_t *task = NULL;
+    Step_t *step;
+    PS_Tasks_t *task;
 
+    /* msg->sender == rank of the sending process */
     if (msg->sender == -1) {
-	if ((step = findStepByLogger(msg->header.sender))) {
+	/* message from psilogger to psidforwarder */
+	if (PSC_getID(msg->header.dest) != PSC_getMyID()) return;
+	if ((step = findActiveStepByLogger(msg->header.sender))) {
 
 	    if ((task = findTaskByForwarder(&step->tasks.list,
 						    msg->header.dest))) {
@@ -1289,15 +1292,18 @@ static void handleCC_INIT_Msg(PSLog_Msg_t *msg)
 		if (step->tasksToLaunch[step->myNodeIndex] ==
 			step->fwInitCount) {
 
-		    mdbg(PSSLURM_LOG_IO, "%s: enable srunIO!!!\n", __func__);
+		    mdbg(PSSLURM_LOG_IO, "%s: enable srunIO\n", __func__);
 		    sendEnableSrunIO(step);
 		    step->state = JOB_RUNNING;
 		}
+	    } else {
+		mlog("%s: task for forwarder '%s' not found\n", __func__,
+			PSC_printTID(msg->header.dest));
 	    }
 	}
     } else if (msg->sender >= 0) {
-
-	if ((step = findStepByLogger(msg->header.dest))) {
+	/* message from psidforwarder to psilogger */
+	if ((step = findActiveStepByLogger(msg->header.dest))) {
 
 	    if (PSC_getMyID() == PSC_getID(msg->header.sender)) {
 
@@ -1324,7 +1330,7 @@ static void handleCC_STDIN_Msg(PSLog_Msg_t *msg)
 	    PSC_printTID(msg->header.dest),
 	    msgLen);
 
-    if (!(step = findStepByLogger(msg->header.sender))) {
+    if (!(step = findActiveStepByLogger(msg->header.sender))) {
 	if ((task = PStasklist_find(&managedTasks, msg->header.sender))) {
 	    /* allow mpiexec jobs from admin users to pass */
 	    if (isPSAdminUser(task->uid, task->gid)) goto OLD_MSG_HANDLER;
@@ -1359,7 +1365,7 @@ static void handleCC_Finalize_Msg(PSLog_Msg_t *msg)
 	goto FORWARD;
     }
 
-    if (!(step = findStepByLogger(msg->header.dest))) {
+    if (!(step = findActiveStepByLogger(msg->header.dest))) {
 
 	if ((psidTask = PStasklist_find(&managedTasks, msg->header.sender))) {
 	    if (isPSAdminUser(psidTask->uid, psidTask->gid)) goto FORWARD;
@@ -1508,7 +1514,7 @@ void handleSpawnFailed(DDErrorMsg_t *msg)
 	goto FORWARD_SPAWN_FAILED_MSG;
     }
 
-    if ((step = findStepById(jobid, stepid))) {
+    if ((step = findStepByStepId(jobid, stepid))) {
 	task = addTask(&step->tasks.list, msg->request, forwarder->tid,
 		forwarder, forwarder->childGroup, forwarder->rank);
 
@@ -1566,7 +1572,7 @@ void releaseDelayedSpawns(uint32_t jobid, uint32_t stepid) {
 	.stepid = stepid, };
 
     /* double check if the step is ready now */
-    if (!findStepById(jobid, stepid)) {
+    if (!findStepByStepId(jobid, stepid)) {
 	/* this is a serious problem and should never happen */
 	mlog("%s: SERIOUS: Called for step %d:%d that cannot be found.\n",
 	     __func__, jobid, stepid);
@@ -1628,7 +1634,7 @@ void handleSpawnReq(DDTypedBufferMsg_t *msg)
     }
 
     /* try to find step */
-    step = findStepById(jobid, stepid);
+    step = findStepByStepId(jobid, stepid);
     if (!step) {
 	/* if the step is not already created, buffer the spawn end msg */
 	mlog("%s: delay spawnee from %s due to missing step %u:%u\n",
@@ -1689,7 +1695,7 @@ void handleChildBornMsg(DDErrorMsg_t *msg)
 	addTask(&job->tasks.list, msg->request, forwarder->tid,
 		    forwarder, forwarder->childGroup, forwarder->rank);
     } else {
-	if (!(step = findStepById(jobid, stepid))) {
+	if (!(step = findStepByStepId(jobid, stepid))) {
 	    mlog("%s: step '%u:%u' not found\n", __func__, jobid, stepid);
 	    goto FORWARD_CHILD_BORN;
 	}
