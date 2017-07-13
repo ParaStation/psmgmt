@@ -14,6 +14,7 @@
 #include <errno.h>
 #include <string.h>
 #include <libgen.h>
+#include <limits.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <netdb.h>
@@ -22,10 +23,6 @@
 #include <sys/types.h>
 #include <sys/ioctl.h>
 #include <sys/stat.h>
-
-#ifdef __linux__
-#include <linux/limits.h>
-#endif
 
 #include "pscommon.h"
 #include "psprotocol.h"
@@ -1068,9 +1065,9 @@ int PSI_spawnService(PSnodes_ID_t node, char *workdir, int argc, char **argv,
 	}
 
 	snprintf(newStr, sizeof(newStr), "%ld", oldNum+1);
-	setenv("__PSI_SERVICE_PROCS", newStr, 1);
+	setenv(ENV_NUM_SERVICE_PROCS, newStr, 1);
     } else {
-	setenv("__PSI_SERVICE_PROCS", "1", 1);
+	setenv(ENV_NUM_SERVICE_PROCS, "1", 1);
     }
 
     if (node == -1) node = PSC_getMyID();
