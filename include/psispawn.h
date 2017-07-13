@@ -472,14 +472,15 @@ int PSI_spawnAdmin(PSnodes_ID_t node, char *workdir, int argc, char **argv,
  *
  * Spawn a service task described by the @a argc arguments within @a
  * argv to node @a node. The present working directory of the
- * spawned task will be @a workdir.
+ * spawned task will be @a wDir.
  *
  * The unique task ID of the spawned task will be returned within @a
  * tid. If an error occurred, @a error will contain an errno
  * describing the error.
  *
- * Spawning is done within an allocated a partition, nevertheless,
- * service tasks do not use a slot, but are handled as special tasks.
+ * Spawning in general is done within an allocated a partition,
+ * nevertheless, service tasks do not use a slot, but are handled as
+ * special tasks.
  *
  * The rank of a service process is usually -2. If @a rank is smaller
  * than that, i.e. rank < -2, the rank of the spawned service process
@@ -487,23 +488,28 @@ int PSI_spawnAdmin(PSnodes_ID_t node, char *workdir, int argc, char **argv,
  * processes within a parallel job. This is required to support
  * KVS-providers, etc.
  *
+ * The actual service provided by the spawned task shall be reflected
+ * in the choice of @a taskGroup. Appropriate values of this parameter
+ * are TG_SERVICE, TG_SERVICE_SIG, or TG_KVS.
+ *
  * @param node Node to spawn to.
  *
- * @param workdir Present working directory of the spawned tasks on
- * startup. This might be an absolute or relative path. If @a workdir
- * is a relative path, the content of the PWD environment variable is
- * prepended. If @a workdir is NULL, the content of the PWD
- * environment variable is taken.
+ * @param wDir Present working directory of the spawned tasks on
+ * startup. This might be an absolute or relative path. If @a wDir is
+ * a relative path, the content of the PWD environment variable is
+ * prepended. If @a wDir is NULL, the content of the PWD environment
+ * variable is taken.
+ *
+ * @param taskGroup Task-group of the service task to spawn. This
+ * shall reflect the actual service the spawned task
+ * provides. Appropriate choices for this seem to be TG_SERVICE,
+ * TG_SERVICE_SIG, or TG_KVS.
  *
  * @param argc Number of arguments within @a argv used within the
  * resulting execve() call in order to really spawn the tasks.
  *
  * @param argv Array of argument strings passed to the resulting
  * execve() call in order to finally spawn the task.
- *
- * @param getSignals Flag, if signals are sent to the spawned
- * service-process for each child that has finished operation. This is
- * mainly used by mpirun_openib.
  *
  * @param error Error-code displaying if an error occurred within
  * PSI_spawnAdmin() while spawning the corresponding task.
@@ -517,8 +523,9 @@ int PSI_spawnAdmin(PSnodes_ID_t node, char *workdir, int argc, char **argv,
  * @return On success, 1 is returned, or -1 if an error occurred. Then
  * @a error is set appropriately.
  */
-int PSI_spawnService(PSnodes_ID_t node, char *workdir, int argc, char **argv,
-		     int getSignals, int *error, PStask_ID_t *tid, int rank);
+int PSI_spawnService(PSnodes_ID_t node, PStask_group_t taskGroup, char *wDir,
+		     int argc, char **argv, int *error, PStask_ID_t *tid,
+		     int rank);
 
 /**
  * @brief Create a pg (process group) file for MPIch/P4

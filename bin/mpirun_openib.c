@@ -119,7 +119,8 @@ static void createSpawner(int argc, char *argv[], int np)
 	PSI_infoList(-1, PSP_INFO_LIST_PARTITION, NULL,
 		     nds, np*sizeof(*nds), 0);
 
-	PSI_spawnService(nds[0], NULL, argc, argv, 1, &error, &spawnedProc, 0);
+	PSI_spawnService(nds[0], TG_SERVICE_SIG, NULL, argc, argv, &error,
+			 &spawnedProc, 0);
 
 	free(nds);
 

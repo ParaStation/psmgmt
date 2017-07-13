@@ -1039,12 +1039,12 @@ int PSI_spawnAdmin(PSnodes_ID_t node, char *workdir, int argc, char **argv,
     return 1;
 }
 
-int PSI_spawnService(PSnodes_ID_t node, char *workdir, int argc, char **argv,
-		     int getSignals, int *error, PStask_ID_t *tid, int rank)
+int PSI_spawnService(PSnodes_ID_t node, PStask_group_t taskGroup, char *wDir,
+		     int argc, char **argv, int *error, PStask_ID_t *tid,
+		     int rank)
 {
     int ret;
     char *envStr = getenv(ENV_NUM_SERVICE_PROCS);
-    PStask_group_t group;
 
     PSI_log(PSI_LOG_VERB, "%s(%d)\n", __func__, node);
 
@@ -1074,10 +1074,7 @@ int PSI_spawnService(PSnodes_ID_t node, char *workdir, int argc, char **argv,
 
     if (rank >= -1) rank = -2;
 
-    group = getSignals ? TG_SERVICE_SIG : TG_SERVICE;
-    if (getenv("SERVICE_KVS_PROVIDER")) group = TG_KVS;
-
-    ret = dospawn(1, &node, workdir, argc, argv, 0, group, rank, error, tid);
+    ret = dospawn(1, &node, wDir, argc, argv, 0, taskGroup, rank, error, tid);
     if (ret != 1) return -1;
 
     return 1;

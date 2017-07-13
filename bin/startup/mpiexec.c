@@ -227,8 +227,8 @@ static void execKVSProvider(Conf_t *conf, int argc, const char *argv[],
 
     printf("%s: spawn via %s\n", argv[0], newArgv[0]);
 
-    ret = PSI_spawnService(startNode, pwd, argc, (char **)newArgv, 0, &error,
-			   &spawnedProc, sRank);
+    ret = PSI_spawnService(startNode, TG_SERVICE, pwd, argc, (char **)newArgv,
+			   &error, &spawnedProc, sRank);
 
     if (ret < 0 || error) {
 	fprintf(stderr, "Could not start spawner process (%s)", argv[0]);
@@ -323,8 +323,8 @@ static void createSpawner(Conf_t *conf, int argc, const char *argv[])
 	setPSIEnv("__PSI_LOGGER_TID", buf, 1);
     }
 
-    ret = PSI_spawnService(startNode, pwd, argc, (char **)argv, 0, &error,
-			   &spawnedProc, 0);
+    ret = PSI_spawnService(startNode, TG_KVS, pwd, argc, (char **)argv,
+			   &error, &spawnedProc, 0);
 
     if (ret < 0 || error) {
 	fprintf(stderr, "Could not spawn master process (%s)", argv[0]);
