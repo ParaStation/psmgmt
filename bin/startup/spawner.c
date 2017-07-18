@@ -37,7 +37,7 @@
 #include "kvscommon.h"
 
 #include "cloptions.h"
-#include "environment.h"
+#include "common.h"
 
 #define GDB_COMMAND_EXE "gdb"
 #define GDB_COMMAND_FILE CONFIGDIR "/mpiexec.gdb"
@@ -162,49 +162,6 @@ static char *getHostByNodeID(PSnodes_ID_t nodeID)
 	if (ptr) *ptr = '\0';
 	return nodeName;
     }
-}
-
-static bool verbose = false;
-/**
- * @brief Handle signals
- *
- * Handle the signal @a sig sent to the spawner. For the time being
- * only SIGTERM is handled.
- *
- * @param sig Signal to handle.
- *
- * @return No return value
- */
-static void sighandler(int sig)
-{
-    switch(sig) {
-    case SIGTERM:
-    {
-	if (verbose) fprintf(stderr, "Got sigterm\n");
-	DDSignalMsg_t msg;
-
-	msg.header.type = PSP_CD_WHODIED;
-	msg.header.sender = PSC_getMyTID();
-	msg.header.dest = 0;
-	msg.header.len = sizeof(msg);
-	msg.signal = sig;
-
-	if (PSI_sendMsg(&msg)<0) {
-	    int eno = errno;
-	    fprintf(stderr, "%s: PSI_sendMsg()", __func__);
-	    errno = eno;
-	    perror("");
-	}
-	break;
-    }
-    default:
-	if (verbose) fprintf(stderr, "Got signal %d.\n", sig);
-    }
-
-    fflush(stdout);
-    fflush(stderr);
-
-    signal(sig, sighandler);
 }
 
 /**
@@ -1096,15 +1053,16 @@ int main(int argc, const char *argv[], char** envp)
 
     setlinebuf(stdout);
 
-    /* set sighandlers */
-    signal(SIGTERM, sighandler);
+    setupSighandler(true);
 
     /* Initialzie daemon connection */
     PSE_initialize();
 
     /* parse command line options */
     conf = parseCmdOptions(argc, argv);
-    verbose = conf->verbose; // Used by sighandler()
+
+    /* update sighandler's verbosity */
+    setupSighandler(conf->verbose);
 
     /* setup the parastation environment */
     setupEnvironment(conf);

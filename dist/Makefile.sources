@@ -106,9 +106,10 @@ bin/startup/Makefile.am \
 bin/startup/Makefile.in \
 bin/startup/cloptions.c \
 bin/startup/cloptions.h \
-bin/startup/environment.c \
-bin/startup/environment.h \
+bin/startup/common.c \
+bin/startup/common.h \
 bin/startup/mpiexec.c \
+bin/startup/kvsprovider.c \
 bin/startup/spawner.c \
 bin/testacct.c \
 bin/test_pse.c \

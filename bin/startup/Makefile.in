@@ -36,6 +36,7 @@
 # Author:	Thomas Moschny <moschny@par-tec.com>
 #
 
+
 VPATH = @srcdir@
 am__is_gnu_make = { \
   if test -z '$(MAKELEVEL)'; then \
@@ -112,7 +113,7 @@ build_triplet = @build@
 host_triplet = @host@
 target_triplet = @target@
 bin_PROGRAMS = mpiexec$(EXEEXT)
-pkglibexec_PROGRAMS = spawner$(EXEEXT)
+pkglibexec_PROGRAMS = kvsprovider$(EXEEXT) spawner$(EXEEXT)
 subdir = bin/startup
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/m4/ax_check_compile_flag.m4 \
@@ -125,21 +126,29 @@ DIST_COMMON = $(srcdir)/Makefile.am $(am__DIST_COMMON)
 mkinstalldirs = $(install_sh) -d
 CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
-am__installdirs = "$(DESTDIR)$(bindir)" "$(DESTDIR)$(pkglibexecdir)"
-PROGRAMS = $(bin_PROGRAMS) $(pkglibexec_PROGRAMS)
-am_mpiexec_OBJECTS = mpiexec-mpiexec.$(OBJEXT) \
-	mpiexec-cloptions.$(OBJEXT) mpiexec-environment.$(OBJEXT)
-mpiexec_OBJECTS = $(am_mpiexec_OBJECTS)
-am__DEPENDENCIES_1 =
-mpiexec_DEPENDENCIES = $(libpse) $(libpskvs) $(am__DEPENDENCIES_1)
+LTLIBRARIES = $(noinst_LTLIBRARIES)
+libstartupcommon_la_LIBADD =
+am_libstartupcommon_la_OBJECTS = cloptions.lo common.lo
+libstartupcommon_la_OBJECTS = $(am_libstartupcommon_la_OBJECTS)
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
 am__v_lt_0 = --silent
 am__v_lt_1 = 
-am_spawner_OBJECTS = spawner-spawner.$(OBJEXT) \
-	spawner-cloptions.$(OBJEXT) spawner-environment.$(OBJEXT)
+am__installdirs = "$(DESTDIR)$(bindir)" "$(DESTDIR)$(pkglibexecdir)"
+PROGRAMS = $(bin_PROGRAMS) $(pkglibexec_PROGRAMS)
+am_kvsprovider_OBJECTS = kvsprovider-kvsprovider.$(OBJEXT)
+kvsprovider_OBJECTS = $(am_kvsprovider_OBJECTS)
+am__DEPENDENCIES_1 =
+kvsprovider_DEPENDENCIES = libstartupcommon.la $(libpse) $(libpskvs) \
+	$(am__DEPENDENCIES_1)
+am_mpiexec_OBJECTS = mpiexec-mpiexec.$(OBJEXT)
+mpiexec_OBJECTS = $(am_mpiexec_OBJECTS)
+mpiexec_DEPENDENCIES = libstartupcommon.la $(libpse) \
+	$(am__DEPENDENCIES_1)
+am_spawner_OBJECTS = spawner-spawner.$(OBJEXT)
 spawner_OBJECTS = $(am_spawner_OBJECTS)
-spawner_DEPENDENCIES = $(libpse) $(am__DEPENDENCIES_1)
+spawner_DEPENDENCIES = libstartupcommon.la $(libpse) \
+	$(am__DEPENDENCIES_1)
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
 am__v_P_0 = false
@@ -174,8 +183,10 @@ AM_V_CCLD = $(am__v_CCLD_@AM_V@)
 am__v_CCLD_ = $(am__v_CCLD_@AM_DEFAULT_V@)
 am__v_CCLD_0 = @echo "  CCLD    " $@;
 am__v_CCLD_1 = 
-SOURCES = $(mpiexec_SOURCES) $(spawner_SOURCES)
-DIST_SOURCES = $(mpiexec_SOURCES) $(spawner_SOURCES)
+SOURCES = $(libstartupcommon_la_SOURCES) $(kvsprovider_SOURCES) \
+	$(mpiexec_SOURCES) $(spawner_SOURCES)
+DIST_SOURCES = $(libstartupcommon_la_SOURCES) $(kvsprovider_SOURCES) \
+	$(mpiexec_SOURCES) $(spawner_SOURCES)
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
@@ -378,14 +389,19 @@ scriptsdir = $(prefix)/scripts
 @HAVE_SYSTEMD_TRUE@default_cgroup_name = system.slice/psid.service/descendants
 PKG_VER := $(shell ${top_srcdir}/scripts/vcversion -r $(top_srcdir) --fmt version -n)
 PKG_REL := $(shell ${top_srcdir}/scripts/vcversion -r $(top_srcdir) --fmt release -n)
+noinst_LTLIBRARIES = libstartupcommon.la
+libstartupcommon_la_SOURCES = cloptions.c common.c
 libpse = $(top_builddir)/lib/pse/libpse.la
 libpskvs = $(top_builddir)/lib/pskvs/libpskvs.la
-mpiexec_SOURCES = mpiexec.c cloptions.c	cloptions.h environment.c environment.h
+mpiexec_SOURCES = mpiexec.c
 mpiexec_CPPFLAGS = $(AM_CPPFLAGS) -DLIBEXECDIR=\"$(pkglibexecdir)\"
-mpiexec_LDADD = $(libpse) $(libpskvs) $(POPT_LIBS)
-spawner_SOURCES = spawner.c cloptions.c cloptions.h environment.c environment.h
+mpiexec_LDADD = libstartupcommon.la $(libpse) $(POPT_LIBS)
+kvsprovider_SOURCES = kvsprovider.c
+kvsprovider_CPPFLAGS = $(AM_CPPFLAGS) -DLIBEXECDIR=\"$(pkglibexecdir)\"
+kvsprovider_LDADD = libstartupcommon.la $(libpse) $(libpskvs) $(POPT_LIBS)
+spawner_SOURCES = spawner.c
 spawner_CPPFLAGS = $(AM_CPPFLAGS) -DCONFIGDIR=\"$(configdir)\"
-spawner_LDADD = $(libpse) $(POPT_LIBS)
+spawner_LDADD = libstartupcommon.la $(libpse) $(POPT_LIBS)
 all: all-am
 
 .SUFFIXES:
@@ -420,6 +436,20 @@ $(top_srcdir)/configure: @MAINTAINER_MODE_TRUE@ $(am__configure_deps)
 $(ACLOCAL_M4): @MAINTAINER_MODE_TRUE@ $(am__aclocal_m4_deps)
 	cd $(top_builddir) && $(MAKE) $(AM_MAKEFLAGS) am--refresh
 $(am__aclocal_m4_deps):
+
+clean-noinstLTLIBRARIES:
+	-test -z "$(noinst_LTLIBRARIES)" || rm -f $(noinst_LTLIBRARIES)
+	@list='$(noinst_LTLIBRARIES)'; \
+	locs=`for p in $$list; do echo $$p; done | \
+	      sed 's|^[^/]*$$|.|; s|/[^/]*$$||; s|$$|/so_locations|' | \
+	      sort -u`; \
+	test -z "$$locs" || { \
+	  echo rm -f $${locs}; \
+	  rm -f $${locs}; \
+	}
+
+libstartupcommon.la: $(libstartupcommon_la_OBJECTS) $(libstartupcommon_la_DEPENDENCIES) $(EXTRA_libstartupcommon_la_DEPENDENCIES) 
+	$(AM_V_CCLD)$(LINK)  $(libstartupcommon_la_OBJECTS) $(libstartupcommon_la_LIBADD) $(LIBS)
 install-binPROGRAMS: $(bin_PROGRAMS)
 	@$(NORMAL_INSTALL)
 	@list='$(bin_PROGRAMS)'; test -n "$(bindir)" || list=; \
@@ -519,6 +549,10 @@ clean-pkglibexecPROGRAMS:
 	echo " rm -f" $$list; \
 	rm -f $$list
 
+kvsprovider$(EXEEXT): $(kvsprovider_OBJECTS) $(kvsprovider_DEPENDENCIES) $(EXTRA_kvsprovider_DEPENDENCIES) 
+	@rm -f kvsprovider$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(kvsprovider_OBJECTS) $(kvsprovider_LDADD) $(LIBS)
+
 mpiexec$(EXEEXT): $(mpiexec_OBJECTS) $(mpiexec_DEPENDENCIES) $(EXTRA_mpiexec_DEPENDENCIES) 
 	@rm -f mpiexec$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(mpiexec_OBJECTS) $(mpiexec_LDADD) $(LIBS)
@@ -533,11 +567,10 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mpiexec-cloptions.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mpiexec-environment.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cloptions.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/common.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/kvsprovider-kvsprovider.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mpiexec-mpiexec.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/spawner-cloptions.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/spawner-environment.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/spawner-spawner.Po@am__quote@
 
 .c.o:
@@ -564,6 +597,20 @@ distclean-compile:
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LTCOMPILE) -c -o $@ $<
 
+kvsprovider-kvsprovider.o: kvsprovider.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(kvsprovider_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT kvsprovider-kvsprovider.o -MD -MP -MF $(DEPDIR)/kvsprovider-kvsprovider.Tpo -c -o kvsprovider-kvsprovider.o `test -f 'kvsprovider.c' || echo '$(srcdir)/'`kvsprovider.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/kvsprovider-kvsprovider.Tpo $(DEPDIR)/kvsprovider-kvsprovider.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='kvsprovider.c' object='kvsprovider-kvsprovider.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(kvsprovider_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o kvsprovider-kvsprovider.o `test -f 'kvsprovider.c' || echo '$(srcdir)/'`kvsprovider.c
+
+kvsprovider-kvsprovider.obj: kvsprovider.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(kvsprovider_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT kvsprovider-kvsprovider.obj -MD -MP -MF $(DEPDIR)/kvsprovider-kvsprovider.Tpo -c -o kvsprovider-kvsprovider.obj `if test -f 'kvsprovider.c'; then $(CYGPATH_W) 'kvsprovider.c'; else $(CYGPATH_W) '$(srcdir)/kvsprovider.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/kvsprovider-kvsprovider.Tpo $(DEPDIR)/kvsprovider-kvsprovider.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='kvsprovider.c' object='kvsprovider-kvsprovider.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(kvsprovider_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o kvsprovider-kvsprovider.obj `if test -f 'kvsprovider.c'; then $(CYGPATH_W) 'kvsprovider.c'; else $(CYGPATH_W) '$(srcdir)/kvsprovider.c'; fi`
+
 mpiexec-mpiexec.o: mpiexec.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(mpiexec_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT mpiexec-mpiexec.o -MD -MP -MF $(DEPDIR)/mpiexec-mpiexec.Tpo -c -o mpiexec-mpiexec.o `test -f 'mpiexec.c' || echo '$(srcdir)/'`mpiexec.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/mpiexec-mpiexec.Tpo $(DEPDIR)/mpiexec-mpiexec.Po
@@ -578,34 +625,6 @@ mpiexec-mpiexec.obj: mpiexec.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(mpiexec_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o mpiexec-mpiexec.obj `if test -f 'mpiexec.c'; then $(CYGPATH_W) 'mpiexec.c'; else $(CYGPATH_W) '$(srcdir)/mpiexec.c'; fi`
 
-mpiexec-cloptions.o: cloptions.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(mpiexec_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT mpiexec-cloptions.o -MD -MP -MF $(DEPDIR)/mpiexec-cloptions.Tpo -c -o mpiexec-cloptions.o `test -f 'cloptions.c' || echo '$(srcdir)/'`cloptions.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/mpiexec-cloptions.Tpo $(DEPDIR)/mpiexec-cloptions.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='cloptions.c' object='mpiexec-cloptions.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(mpiexec_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o mpiexec-cloptions.o `test -f 'cloptions.c' || echo '$(srcdir)/'`cloptions.c
-
-mpiexec-cloptions.obj: cloptions.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(mpiexec_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT mpiexec-cloptions.obj -MD -MP -MF $(DEPDIR)/mpiexec-cloptions.Tpo -c -o mpiexec-cloptions.obj `if test -f 'cloptions.c'; then $(CYGPATH_W) 'cloptions.c'; else $(CYGPATH_W) '$(srcdir)/cloptions.c'; fi`
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/mpiexec-cloptions.Tpo $(DEPDIR)/mpiexec-cloptions.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='cloptions.c' object='mpiexec-cloptions.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(mpiexec_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o mpiexec-cloptions.obj `if test -f 'cloptions.c'; then $(CYGPATH_W) 'cloptions.c'; else $(CYGPATH_W) '$(srcdir)/cloptions.c'; fi`
-
-mpiexec-environment.o: environment.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(mpiexec_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT mpiexec-environment.o -MD -MP -MF $(DEPDIR)/mpiexec-environment.Tpo -c -o mpiexec-environment.o `test -f 'environment.c' || echo '$(srcdir)/'`environment.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/mpiexec-environment.Tpo $(DEPDIR)/mpiexec-environment.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='environment.c' object='mpiexec-environment.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(mpiexec_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o mpiexec-environment.o `test -f 'environment.c' || echo '$(srcdir)/'`environment.c
-
-mpiexec-environment.obj: environment.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(mpiexec_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT mpiexec-environment.obj -MD -MP -MF $(DEPDIR)/mpiexec-environment.Tpo -c -o mpiexec-environment.obj `if test -f 'environment.c'; then $(CYGPATH_W) 'environment.c'; else $(CYGPATH_W) '$(srcdir)/environment.c'; fi`
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/mpiexec-environment.Tpo $(DEPDIR)/mpiexec-environment.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='environment.c' object='mpiexec-environment.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(mpiexec_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o mpiexec-environment.obj `if test -f 'environment.c'; then $(CYGPATH_W) 'environment.c'; else $(CYGPATH_W) '$(srcdir)/environment.c'; fi`
-
 spawner-spawner.o: spawner.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(spawner_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT spawner-spawner.o -MD -MP -MF $(DEPDIR)/spawner-spawner.Tpo -c -o spawner-spawner.o `test -f 'spawner.c' || echo '$(srcdir)/'`spawner.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/spawner-spawner.Tpo $(DEPDIR)/spawner-spawner.Po
@@ -619,34 +638,6 @@ spawner-spawner.obj: spawner.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='spawner.c' object='spawner-spawner.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(spawner_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o spawner-spawner.obj `if test -f 'spawner.c'; then $(CYGPATH_W) 'spawner.c'; else $(CYGPATH_W) '$(srcdir)/spawner.c'; fi`
-
-spawner-cloptions.o: cloptions.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(spawner_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT spawner-cloptions.o -MD -MP -MF $(DEPDIR)/spawner-cloptions.Tpo -c -o spawner-cloptions.o `test -f 'cloptions.c' || echo '$(srcdir)/'`cloptions.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/spawner-cloptions.Tpo $(DEPDIR)/spawner-cloptions.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='cloptions.c' object='spawner-cloptions.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(spawner_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o spawner-cloptions.o `test -f 'cloptions.c' || echo '$(srcdir)/'`cloptions.c
-
-spawner-cloptions.obj: cloptions.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(spawner_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT spawner-cloptions.obj -MD -MP -MF $(DEPDIR)/spawner-cloptions.Tpo -c -o spawner-cloptions.obj `if test -f 'cloptions.c'; then $(CYGPATH_W) 'cloptions.c'; else $(CYGPATH_W) '$(srcdir)/cloptions.c'; fi`
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/spawner-cloptions.Tpo $(DEPDIR)/spawner-cloptions.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='cloptions.c' object='spawner-cloptions.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(spawner_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o spawner-cloptions.obj `if test -f 'cloptions.c'; then $(CYGPATH_W) 'cloptions.c'; else $(CYGPATH_W) '$(srcdir)/cloptions.c'; fi`
-
-spawner-environment.o: environment.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(spawner_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT spawner-environment.o -MD -MP -MF $(DEPDIR)/spawner-environment.Tpo -c -o spawner-environment.o `test -f 'environment.c' || echo '$(srcdir)/'`environment.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/spawner-environment.Tpo $(DEPDIR)/spawner-environment.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='environment.c' object='spawner-environment.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(spawner_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o spawner-environment.o `test -f 'environment.c' || echo '$(srcdir)/'`environment.c
-
-spawner-environment.obj: environment.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(spawner_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT spawner-environment.obj -MD -MP -MF $(DEPDIR)/spawner-environment.Tpo -c -o spawner-environment.obj `if test -f 'environment.c'; then $(CYGPATH_W) 'environment.c'; else $(CYGPATH_W) '$(srcdir)/environment.c'; fi`
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/spawner-environment.Tpo $(DEPDIR)/spawner-environment.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='environment.c' object='spawner-environment.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(spawner_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o spawner-environment.obj `if test -f 'environment.c'; then $(CYGPATH_W) 'environment.c'; else $(CYGPATH_W) '$(srcdir)/environment.c'; fi`
 
 mostlyclean-libtool:
 	-rm -f *.lo
@@ -738,7 +729,7 @@ distdir: $(DISTFILES)
 	done
 check-am: all-am
 check: check-am
-all-am: Makefile $(PROGRAMS)
+all-am: Makefile $(LTLIBRARIES) $(PROGRAMS)
 installdirs:
 	for dir in "$(DESTDIR)$(bindir)" "$(DESTDIR)$(pkglibexecdir)"; do \
 	  test -z "$$dir" || $(MKDIR_P) "$$dir"; \
@@ -776,7 +767,8 @@ maintainer-clean-generic:
 clean: clean-am
 
 clean-am: clean-binPROGRAMS clean-generic clean-libtool \
-	clean-pkglibexecPROGRAMS mostlyclean-am
+	clean-noinstLTLIBRARIES clean-pkglibexecPROGRAMS \
+	mostlyclean-am
 
 distclean: distclean-am
 	-rm -rf ./$(DEPDIR)
@@ -848,8 +840,8 @@ uninstall-am: uninstall-binPROGRAMS uninstall-pkglibexecPROGRAMS
 
 .PHONY: CTAGS GTAGS TAGS all all-am check check-am clean \
 	clean-binPROGRAMS clean-generic clean-libtool \
-	clean-pkglibexecPROGRAMS cscopelist-am ctags ctags-am \
-	distclean distclean-compile distclean-generic \
+	clean-noinstLTLIBRARIES clean-pkglibexecPROGRAMS cscopelist-am \
+	ctags ctags-am distclean distclean-compile distclean-generic \
 	distclean-libtool distclean-tags distdir dvi dvi-am html \
 	html-am info info-am install install-am install-binPROGRAMS \
 	install-data install-data-am install-dvi install-dvi-am \

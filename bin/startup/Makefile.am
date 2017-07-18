@@ -17,16 +17,22 @@ AM_CPPFLAGS += -DVERSION_psmgmt=\"$(PKG_VER)\"
 AM_CPPFLAGS += -DRELEASE_psmgmt=\"$(PKG_REL)\"
 
 bin_PROGRAMS = mpiexec
-# libexec_PROGRAMS = kvsprovider spawner # to be used later
-pkglibexec_PROGRAMS = spawner
+pkglibexec_PROGRAMS = kvsprovider spawner
+
+noinst_LTLIBRARIES = libstartupcommon.la
+libstartupcommon_la_SOURCES = cloptions.c common.c
 
 libpse = $(top_builddir)/lib/pse/libpse.la
 libpskvs = $(top_builddir)/lib/pskvs/libpskvs.la
 
-mpiexec_SOURCES = mpiexec.c cloptions.c	cloptions.h environment.c environment.h
+mpiexec_SOURCES = mpiexec.c
 mpiexec_CPPFLAGS = $(AM_CPPFLAGS) -DLIBEXECDIR=\"$(pkglibexecdir)\"
-mpiexec_LDADD = $(libpse) $(libpskvs) $(POPT_LIBS)
+mpiexec_LDADD = libstartupcommon.la $(libpse) $(POPT_LIBS)
 
-spawner_SOURCES = spawner.c cloptions.c cloptions.h environment.c environment.h
+kvsprovider_SOURCES = kvsprovider.c
+kvsprovider_CPPFLAGS = $(AM_CPPFLAGS) -DLIBEXECDIR=\"$(pkglibexecdir)\"
+kvsprovider_LDADD = libstartupcommon.la $(libpse) $(libpskvs) $(POPT_LIBS)
+
+spawner_SOURCES = spawner.c
 spawner_CPPFLAGS = $(AM_CPPFLAGS) -DCONFIGDIR=\"$(configdir)\"
-spawner_LDADD = $(libpse) $(POPT_LIBS)
+spawner_LDADD = libstartupcommon.la $(libpse) $(POPT_LIBS)

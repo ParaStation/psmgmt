@@ -11,15 +11,18 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <signal.h>
 #include <string.h>
 #include <sys/stat.h>
 
 #include "pscommon.h"
 #include "pse.h"
+#include "psi.h"
 #include "psienv.h"
+#include "psiinfo.h"
 #include "psipartition.h"
 
-#include "environment.h"
+#include "common.h"
 
 /**
  * @brief Malloc with error handling.
@@ -448,4 +451,82 @@ void setupEnvironment(Conf_t *conf)
 	setenv("PATH", conf->path, 1);
 	setPSIEnv("PATH", conf->path, 1);
     }
+}
+
+PSnodes_ID_t getIDbyIdx(Conf_t *conf, int index)
+{
+    int numBytes, pSize = conf->uSize > conf->np ? conf->uSize : conf->np;
+    PSnodes_ID_t lastID, *slotList = malloc(pSize * sizeof(*slotList));
+    int count = 0;
+    unsigned int i;
+
+    /* request the complete list of slots */
+    if (!slotList) {
+	fprintf(stderr, "%s: malloc(): %m\n", __func__);
+	exit(EXIT_FAILURE);
+    }
+    numBytes = PSI_infoList(-1, PSP_INFO_LIST_PARTITION, NULL,
+			    slotList, pSize*sizeof(*slotList), 0);
+    if (numBytes < 0) {
+	fprintf(stderr, "%s: PSI_infoList(): %m\n", __func__);
+	exit(EXIT_FAILURE);
+	return -1;
+    }
+
+    lastID = slotList[0];
+    for (i = 0; i < numBytes / sizeof(*slotList) && count < index; i++) {
+	if (lastID != slotList[i]) {
+	   lastID = slotList[i];
+	   count++;
+       }
+    }
+    free(slotList);
+
+    return lastID;
+}
+
+static bool sigVerbose = true;
+
+/**
+ * @brief Handle signals
+ *
+ * Handle the signal @a sig received. For the time being only SIGTERM
+ * is expected.
+ *
+ * @param sig Signal to handle
+ *
+ * @return No return value
+ */
+static void sighandler(int sig)
+{
+    switch(sig) {
+    case SIGTERM:
+	if (sigVerbose) fprintf(stderr, "Got sigterm\n");
+	DDSignalMsg_t msg = {
+	    .header = {
+		.type = PSP_CD_WHODIED,
+		.dest = 0,
+		.sender = PSC_getMyTID(),
+		.len = sizeof(msg) },
+	    .signal = sig };
+
+	if (PSI_sendMsg(&msg) < 0) {
+	    fprintf(stderr, "%s: PSI_sendMsg(): %m\n", __func__);
+	}
+	break;
+    default:
+	if (sigVerbose) fprintf(stderr, "Got signal %d.\n", sig);
+    }
+
+    fflush(stdout);
+    fflush(stderr);
+
+    signal(sig, sighandler);
+}
+
+void setupSighandler(bool verbose)
+{
+    sigVerbose = verbose;
+
+    signal(SIGTERM, sighandler);
 }
