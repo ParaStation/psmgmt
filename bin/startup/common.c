@@ -25,47 +25,6 @@
 #include "common.h"
 
 /**
- * @brief Malloc with error handling.
- *
- * @param size Size in bytes to allocate.
- *
- * @param func Name of the calling function. Used for error-reporting.
- *
- * @return Returned is a pointer to the allocated memory
- */
-static void *umalloc(size_t size, const char *func)
-{
-    void *ptr;
-
-    if (!size) return NULL;
-    if (!(ptr = malloc(size))) {
-	fprintf(stderr, "%s: memory allocation failed\n", func);
-	exit(EXIT_FAILURE);
-    }
-    return ptr;
-}
-
-/**
- * @brief Realloc with error handling.
- *
- * @param ptr Pointer to re-allocate
- *
- * @param size Size in bytes to allocate.
- *
- * @param func Name of the calling function. Used for error-reporting.
- *
- * @return Returned is a pointer to the re-allocated memory
- */
-static void *urealloc(void *ptr, size_t size, const char *func)
-{
-    if (!(ptr = realloc(ptr, size))) {
-	fprintf(stderr, "%s: memory reallocation failed\n", func);
-	exit(EXIT_FAILURE);
-    }
-    return ptr;
-}
-
-/**
  * @brief Set environment for pscom and/or MPI
  *
  * Set up the environment to control different options of the pscom
@@ -411,40 +370,51 @@ void setupEnvironment(Conf_t *conf)
     /* Setup various environment variables depending on passed arguments */
     if (conf->envall && !getenv("__PSI_EXPORTS")) {
 	extern char **environ;
-	char *key, *val, *xprts = NULL;
-	int i, lenval, len, xprtsLen = 0;
+	char *xprts;
+	size_t xprtsLen = 0;
+	int i;
 
+	/* Determine required length of xprts */
 	for (i=0; environ[i] != NULL; i++) {
-	    val = strchr(environ[i], '=');
-	    if(val) {
-		val++;
-		lenval = strlen(val);
-		len = strlen(environ[i]);
-		key = umalloc(len - lenval, __func__);
-		strncpy(key,environ[i], len - lenval -1);
-		key[len - lenval -1] = '\0';
-		if (!getPSIEnv(key)) {
-		    setPSIEnv(key, val, 1);
-
-		    xprtsLen += strlen(key) + 1;
-		    if (!xprts) {
-			xprts = umalloc(xprtsLen, __func__);
-			snprintf(xprts, xprtsLen, "%s", key);
-		    } else {
-			xprts = urealloc(xprts, xprtsLen, __func__);
-			snprintf(xprts + strlen(xprts), xprtsLen, ",%s", key);
-		    }
-		}
-
-		free(key);
+	    char *val = strchr(environ[i], '=');
+	    if (val) {
+		char *key = environ[i];
+		*val = '\0';
+		if (!getPSIEnv(key)) xprtsLen += strlen(key) + 1;
+		*val = '=';
 	    }
 	}
-	setPSIEnv("__PSI_EXPORTS", xprts, 1);
-	free(xprts);
-
-	if (verbose) {
-	    printf("Exporting the whole environment to foreign hosts\n");
+	if (xprtsLen) {
+	    xprts = malloc(xprtsLen);
+	    if (!xprts) {
+		fprintf(stderr, "%s: %m\n", __func__);
+		exit(EXIT_FAILURE);
+	    }
+	    *xprts = '\0';
 	}
+	/* now setup the actual environment */
+	for (i=0; environ[i] != NULL; i++) {
+	    char *val = strchr(environ[i], '=');
+	    if (val) {
+		char *key = environ[i];
+		*val = '\0';
+		if (!getPSIEnv(key)) {
+		    val++;
+		    setPSIEnv(key, val, 1);
+		    if (xprtsLen) snprintf(xprts + strlen(xprts),
+					   xprtsLen - strlen(xprts), "%s%s",
+					   strlen(xprts) ? "," : "", key);
+		    val--;
+		}
+		*val = '=';
+	    }
+	}
+	if (xprtsLen) {
+	    setPSIEnv("__PSI_EXPORTS", xprts, 1);
+	    free(xprts);
+	}
+
+	if (verbose) printf("Exporting the whole environment\n");
     }
 
     if (conf->path) {
