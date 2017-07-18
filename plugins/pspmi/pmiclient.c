@@ -40,8 +40,6 @@
 #define PMI_SUBVERSION 1
 #define UPDATE_HEAD sizeof(uint8_t) + sizeof(uint32_t)
 
-#define MPIEXEC_BINARY BINDIR "/mpiexec"
-
 /* Set this to 1 to enable additional debug output describing the environment */
 #define DEBUG_ENV 0
 #if DEBUG_ENV
@@ -2016,8 +2014,8 @@ static int fillWithMpiexec(SpawnRequest_t *req, int usize, PStask_t *task)
     KVP_t *info;
     strv_t args, env;
     bool noParricide = false;
-    char *tmpstr;
-    int i, j, len;
+    char *tmpStr;
+    int i, j;
 
     spawn = &(req->spawns[0]);
 
@@ -2040,7 +2038,12 @@ static int fillWithMpiexec(SpawnRequest_t *req, int usize, PStask_t *task)
      *  --nodetype=<NODETYPE> --tpp=<TPP> <BINARY> ... */
     strvInit(&args, NULL, 0);
 
-    strvAdd(&args, ustrdup(MPIEXEC_BINARY));
+    tmpStr = getenv("__PSI_MPIEXEC_KVSPROVIDER");
+    if (tmpStr) {
+	strvAdd(&args, ustrdup(tmpStr));
+    } else {
+	strvAdd(&args, ustrdup(LIBEXECDIR "/kvsprovider"));
+    }
     strvAdd(&args, ustrdup("-u"));
 
     snprintf(buffer, sizeof(buffer), "%d", usize);
@@ -2088,16 +2091,16 @@ static int fillWithMpiexec(SpawnRequest_t *req, int usize, PStask_t *task)
 		strvAdd(&args, ustrdup(info->value));
 	    }
 	    if (!strcmp(info->key, "tpp")) {
-		len = strlen(info->value) + 7;
-		tmpstr = umalloc(len * sizeof(char));
-		snprintf(tmpstr, len, "--tpp=%s", info->value);
-		strvAdd(&args, tmpstr);
+		size_t len = strlen(info->value) + 7;
+		tmpStr = umalloc(len);
+		snprintf(tmpStr, len, "--tpp=%s", info->value);
+		strvAdd(&args, tmpStr);
 	    }
 	    if (!strcmp(info->key, "nodetype") || !strcmp(info->key, "arch")) {
-		len = strlen(info->value) + 12;
-		tmpstr = umalloc(len * sizeof(char));
-		snprintf(tmpstr, len, "--nodetype=%s", info->value);
-		strvAdd(&args, tmpstr);
+		size_t len = strlen(info->value) + 12;
+		tmpStr = umalloc(len);
+		snprintf(tmpStr, len, "--nodetype=%s", info->value);
+		strvAdd(&args, tmpStr);
 	    }
 	    if (!strcmp(info->key, "path")) {
 		strvAdd(&args, ustrdup("-p"));
@@ -2273,7 +2276,6 @@ static bool tryPMISpawn(SpawnRequest_t *req, int universeSize,
     strvAdd(&env, ustrdup(buffer));
     if (debug) elog("%s(r%i): Set %s\n", __func__, rank, buffer);
 
-    strvAdd(&env, ustrdup("SERVICE_KVS_PROVIDER=1"));
     strvAdd(&env, ustrdup("PMI_SPAWNED=1"));
 
     snprintf(buffer, sizeof(buffer), "PMI_SIZE=%d", *totalProcs);

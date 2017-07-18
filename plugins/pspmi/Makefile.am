@@ -1,13 +1,12 @@
 #
 # ParaStation
 #
-# Copyright (C) 2013-2016 ParTec Cluster Competence Center GmbH, Munich
+# Copyright (C) 2013-2017 ParTec Cluster Competence Center GmbH, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
 # file.
 #
-
 include $(top_srcdir)/common.am
 
 psaccount_dir := plugins/psaccount
@@ -30,6 +29,6 @@ pspmi_la_SOURCES = pmiclient.c pmiclient.h pmiforwarder.c		\
 	pmiclientspawn.c pmiclientspawn.h pmitypes.h pspmihandles.h
 
 pspmi_la_CPPFLAGS = $(AM_CPPFLAGS) -DPLUGINDIR=\"$(plugindir)\" \
-	-DBINDIR=\"$(bindir)\"
+	-DLIBEXECDIR=\"$(pkglibexecdir)\"
 
 pspmi_la_LIBADD = $(libpskvs) $(libpsi) $(libplugincommon)
