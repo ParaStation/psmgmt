@@ -571,7 +571,6 @@ void removeUserVars(env_t *env)
 
 	if (!strncmp(env->vars[i], "PMI_", 4)) continue;
 	if (!strncmp(env->vars[i], "__PMI_", 6)) continue;
-	if (!strncmp(env->vars[i], "SERVICE_KVS_PROVIDER", 20)) continue;
 	if (!strncmp(env->vars[i], "MEASURE_KVS_PROVIDER", 20)) continue;
 
 	envUnsetIndex(env, i);
