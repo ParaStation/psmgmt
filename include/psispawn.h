@@ -15,6 +15,7 @@
 #ifndef __PSISPAWN_H__
 #define __PSISPAWN_H__
 
+#include <stdbool.h>
 #include <sys/types.h>
 
 #include "pstask.h"
@@ -91,7 +92,7 @@ void PSI_registerRankEnvFunc(char **(*func)(int, void *), void *info);
  * reasons.
  *
  * It is identical to calling @ref PSI_spawnStrict() with all the
- * arguments plus @a strictArgv set to 0.
+ * arguments plus @a strictArgv set to false.
  *
  * @param count Number of tasks to spawn.
  *
@@ -159,7 +160,7 @@ int PSI_spawn(int count, char *workingdir, int argc, char **argv,
  * @see PSI_spawnStrict()
  */
 int PSI_spawnStrict(int count, char *workdir, int argc, char **argv,
-		    int strictArgv, int *errors, PStask_ID_t *tids);
+		    bool strictArgv, int *errors, PStask_ID_t *tids);
 
 /**
  * @brief Spawn one or more tasks within the cluster.
@@ -224,7 +225,7 @@ int PSI_spawnStrict(int count, char *workdir, int argc, char **argv,
  */
 int PSI_spawnStrictHW(int count, uint32_t hwType, uint16_t tpp,
 		      PSpart_option_t options,
-		      char *workdir, int argc, char **argv, int strictArgv,
+		      char *workdir, int argc, char **argv, bool strictArgv,
 		      int *errors, PStask_ID_t *tids);
 
 /**
@@ -277,7 +278,7 @@ int PSI_spawnStrictHW(int count, uint32_t hwType, uint16_t tpp,
  * @see PSI_createPartition() PSI_getRervation(), PSI_getSlots()
  */
 int PSI_spawnRsrvtn(int count, PSrsrvtn_ID_t resID, char *workdir,
-		    int argc, char **argv, int strictArgv,
+		    int argc, char **argv, bool strictArgv,
 		    int *errors, PStask_ID_t *tids);
 
 
@@ -464,7 +465,7 @@ int PSI_spawnSingle(char *workdir, int argc, char **argv,
  * @a error is set appropriately.
  */
 int PSI_spawnAdmin(PSnodes_ID_t node, char *workdir, int argc, char **argv,
-		   int strictArgv, unsigned int rank,
+		   bool strictArgv, unsigned int rank,
 		   int *error, PStask_ID_t *tid);
 
 /**

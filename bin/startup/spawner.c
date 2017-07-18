@@ -774,7 +774,7 @@ static int spawnSingleExecutable(int np, int argc, char **argv, char *wd,
     tids = umalloc(sizeof(PStask_ID_t) * np);
 
     /* spawn client processes */
-    ret = PSI_spawnRsrvtn(np, resID, wd, argc, argv, 1, errors, tids);
+    ret = PSI_spawnRsrvtn(np, resID, wd, argc, argv, true, errors, tids);
 
     /* Analyze result, if necessary */
     if (ret<0) {

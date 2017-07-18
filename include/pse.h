@@ -479,7 +479,7 @@ int PSE_getMasterPort(void);
  * @see PSE_getRank(), exec(2)
  * */
 int PSE_spawnAdmin(PSnodes_ID_t node, unsigned int rank,
-		   int argc, char *argv[], int strictArgv);
+		   int argc, char *argv[], bool strictArgv);
 
 /**
  * @brief Finish the actual process.

@@ -299,7 +299,7 @@ static int startProcs(int np, int argc, char *argv[], int verbose)
     }
 
     /* spawn client processes */
-    ret = PSI_spawnStrict(np, ".", argc, argv, 1, errors, NULL);
+    ret = PSI_spawnStrict(np, ".", argc, argv, true, errors, NULL);
     /* Analyze result, if necessary */
     if (ret<0) {
 	for (i=0; i<np; i++) {
