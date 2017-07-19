@@ -22,6 +22,8 @@ pkglibexec_PROGRAMS = kvsprovider spawner
 noinst_LTLIBRARIES = libstartupcommon.la
 libstartupcommon_la_SOURCES = cloptions.c common.c
 
+noinst_HEADERS = cloptions.h common.h providerloop.h
+
 libpse = $(top_builddir)/lib/pse/libpse.la
 libpskvs = $(top_builddir)/lib/pskvs/libpskvs.la
 
