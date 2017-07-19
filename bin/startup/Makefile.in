@@ -136,7 +136,8 @@ am__v_lt_0 = --silent
 am__v_lt_1 = 
 am__installdirs = "$(DESTDIR)$(bindir)" "$(DESTDIR)$(pkglibexecdir)"
 PROGRAMS = $(bin_PROGRAMS) $(pkglibexec_PROGRAMS)
-am_kvsprovider_OBJECTS = kvsprovider-kvsprovider.$(OBJEXT)
+am_kvsprovider_OBJECTS = kvsprovider-kvsprovider.$(OBJEXT) \
+	kvsprovider-providerloop.$(OBJEXT)
 kvsprovider_OBJECTS = $(am_kvsprovider_OBJECTS)
 am__DEPENDENCIES_1 =
 kvsprovider_DEPENDENCIES = libstartupcommon.la $(libpse) $(libpskvs) \
@@ -396,7 +397,7 @@ libpskvs = $(top_builddir)/lib/pskvs/libpskvs.la
 mpiexec_SOURCES = mpiexec.c
 mpiexec_CPPFLAGS = $(AM_CPPFLAGS) -DLIBEXECDIR=\"$(pkglibexecdir)\"
 mpiexec_LDADD = libstartupcommon.la $(libpse) $(POPT_LIBS)
-kvsprovider_SOURCES = kvsprovider.c
+kvsprovider_SOURCES = kvsprovider.c providerloop.c
 kvsprovider_CPPFLAGS = $(AM_CPPFLAGS) -DLIBEXECDIR=\"$(pkglibexecdir)\"
 kvsprovider_LDADD = libstartupcommon.la $(libpse) $(libpskvs) $(POPT_LIBS)
 spawner_SOURCES = spawner.c
@@ -570,6 +571,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cloptions.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/common.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/kvsprovider-kvsprovider.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/kvsprovider-providerloop.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mpiexec-mpiexec.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/spawner-spawner.Po@am__quote@
 
@@ -610,6 +612,20 @@ kvsprovider-kvsprovider.obj: kvsprovider.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='kvsprovider.c' object='kvsprovider-kvsprovider.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(kvsprovider_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o kvsprovider-kvsprovider.obj `if test -f 'kvsprovider.c'; then $(CYGPATH_W) 'kvsprovider.c'; else $(CYGPATH_W) '$(srcdir)/kvsprovider.c'; fi`
+
+kvsprovider-providerloop.o: providerloop.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(kvsprovider_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT kvsprovider-providerloop.o -MD -MP -MF $(DEPDIR)/kvsprovider-providerloop.Tpo -c -o kvsprovider-providerloop.o `test -f 'providerloop.c' || echo '$(srcdir)/'`providerloop.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/kvsprovider-providerloop.Tpo $(DEPDIR)/kvsprovider-providerloop.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='providerloop.c' object='kvsprovider-providerloop.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(kvsprovider_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o kvsprovider-providerloop.o `test -f 'providerloop.c' || echo '$(srcdir)/'`providerloop.c
+
+kvsprovider-providerloop.obj: providerloop.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(kvsprovider_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT kvsprovider-providerloop.obj -MD -MP -MF $(DEPDIR)/kvsprovider-providerloop.Tpo -c -o kvsprovider-providerloop.obj `if test -f 'providerloop.c'; then $(CYGPATH_W) 'providerloop.c'; else $(CYGPATH_W) '$(srcdir)/providerloop.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/kvsprovider-providerloop.Tpo $(DEPDIR)/kvsprovider-providerloop.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='providerloop.c' object='kvsprovider-providerloop.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(kvsprovider_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o kvsprovider-providerloop.obj `if test -f 'providerloop.c'; then $(CYGPATH_W) 'providerloop.c'; else $(CYGPATH_W) '$(srcdir)/providerloop.c'; fi`
 
 mpiexec-mpiexec.o: mpiexec.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(mpiexec_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT mpiexec-mpiexec.o -MD -MP -MF $(DEPDIR)/mpiexec-mpiexec.Tpo -c -o mpiexec-mpiexec.o `test -f 'mpiexec.c' || echo '$(srcdir)/'`mpiexec.c

@@ -29,7 +29,7 @@ mpiexec_SOURCES = mpiexec.c
 mpiexec_CPPFLAGS = $(AM_CPPFLAGS) -DLIBEXECDIR=\"$(pkglibexecdir)\"
 mpiexec_LDADD = libstartupcommon.la $(libpse) $(POPT_LIBS)
 
-kvsprovider_SOURCES = kvsprovider.c
+kvsprovider_SOURCES = kvsprovider.c providerloop.c
 kvsprovider_CPPFLAGS = $(AM_CPPFLAGS) -DLIBEXECDIR=\"$(pkglibexecdir)\"
 kvsprovider_LDADD = libstartupcommon.la $(libpse) $(libpskvs) $(POPT_LIBS)
 

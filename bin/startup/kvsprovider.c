@@ -27,10 +27,10 @@
 #include "psispawn.h"
 
 #include "kvscommon.h"
-#include "kvsprovider.h"
 
 #include "cloptions.h"
 #include "common.h"
+#include "providerloop.h"
 
 /**
  * @brief Propagate some more environment

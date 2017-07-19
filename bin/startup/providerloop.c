@@ -27,7 +27,7 @@
 #include "selector.h"
 #include "pslog.h"
 
-#include "kvsprovider.h"
+#include "providerloop.h"
 
 /* PSLog buffer size - PMIHEADER */
 #define PMIUPDATE_PAYLOAD (1024 - 7)
