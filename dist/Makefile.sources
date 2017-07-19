@@ -140,6 +140,7 @@ include/env.h \
 include/hardware.h \
 include/kvs.h \
 include/kvscommon.h \
+include/kvslog.h \
 include/kvsprovider.h \
 include/linenoise.h \
 include/list.h \
@@ -231,7 +232,6 @@ lib/pskvs/Makefile.in \
 lib/pskvs/kvs.c \
 lib/pskvs/kvscommon.c \
 lib/pskvs/kvslog.c \
-lib/pskvs/kvslog.h \
 lib/pskvs/kvsprovider.c \
 lib/pslog/Makefile.am \
 lib/pslog/Makefile.in \
