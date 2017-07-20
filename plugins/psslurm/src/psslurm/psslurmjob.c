@@ -590,13 +590,14 @@ int deleteJob(uint32_t jobid)
     clearBCastByJobid(jobid);
     psPamDeleteUser(job->username, strJobID(jobid));
 
+    /* cleanup all corresponding allocations and steps */
+    deleteAlloc(job->jobid);
+    freeGresCred(job->gres);
+
     /* cleanup local job */
     if (!job->mother) {
 
 	if (job->jobscript) unlink(job->jobscript);
-
-	deleteAlloc(job->jobid);
-	freeGresCred(job->gres);
 
 	/* tell sisters the job is finished */
 	if (job->nodes && job->nodes[0] == PSC_getMyID()) {
