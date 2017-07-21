@@ -1,23 +1,14 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2007-2013 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2007-2017 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-/**
- * $Id$
- *
- * \author
- * Michael Rauh <rauh@par-tec.com>
- *
- */
-
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <string.h>
 #include <stdint.h>
 
@@ -29,30 +20,31 @@ static const char *uDelim = NULL;
 const char *PSKVScmdToString(PSKVS_cmd_t cmd)
 {
     switch(cmd) {
-	case PUT:
-	    return "PUT";
-	case DAISY_SUCC_READY:
-	    return "DAISY_SUCC_READY";
-	case DAISY_BARRIER_IN:
-	    return "DAISY_BARRIER_IN";
-	case DAISY_BARRIER_OUT:
-	    return "DAISY_BARRIER_OUT";
-	case UPDATE_CACHE:
-	    return "UPDATE_CACHE";
-	case UPDATE_CACHE_FINISH:
-	    return "UPDATE_CACHE_FINISH";
-	case INIT:
-	    return "INIT";
-	case JOIN:
-	    return "JOIN";
-	case LEAVE:
-	    return "LEAVE";
-	case CHILD_SPAWN_RES:
-	    return "CHILD_SPAWN_RES";
-	case NOT_AVAILABLE:
-	    return "NOT_AVAILABLE";
+    case PUT:
+	return "PUT";
+    case DAISY_SUCC_READY:
+	return "DAISY_SUCC_READY";
+    case DAISY_BARRIER_IN:
+	return "DAISY_BARRIER_IN";
+    case DAISY_BARRIER_OUT:
+	return "DAISY_BARRIER_OUT";
+    case UPDATE_CACHE:
+	return "UPDATE_CACHE";
+    case UPDATE_CACHE_FINISH:
+	return "UPDATE_CACHE_FINISH";
+    case INIT:
+	return "INIT";
+    case JOIN:
+	return "JOIN";
+    case LEAVE:
+	return "LEAVE";
+    case CHILD_SPAWN_RES:
+	return "CHILD_SPAWN_RES";
+    case NOT_AVAILABLE:
+	return "NOT_AVAILABLE";
     }
-    return NULL;
+
+    return "<unknown>";
 }
 
 void setPMIDelim(const char *newDelim)
@@ -63,27 +55,23 @@ void setPMIDelim(const char *newDelim)
 char *getpmivm(char *name, char *vbuffer)
 {
     const char *delim = delimiters;
-    char *cmd, *toksave, *res, *bufcpy, *ret = NULL;
-    int nlen;
+    char *cmd, *toksave, *ret = NULL;
 
     if	(!name || !vbuffer) return NULL;
 
-    if (!(bufcpy = strdup(vbuffer))) {
+    size_t nlen = strlen(name);
+    char *bufcpy = strdup(vbuffer);
+    if (!bufcpy) {
 	fprintf(stderr, "%s: out of memory\n", __func__);
 	exit(0);
     }
 
     if (uDelim) delim = uDelim;
     cmd = strtok_r(bufcpy, delim, &toksave);
-    nlen = strlen(name);
 
-    while (cmd != NULL) {
-    	if (!strncmp(name,cmd,nlen) && cmd[nlen] == '=') {
-	    if (!(res = (cmd + nlen + 1))) {
-		fprintf(stderr, "%s: invalid value\n", __func__);
-	    } else {
-		ret = strdup(res);
-	    }
+    while (cmd) {
+	if (!strncmp(name, cmd, nlen) && cmd[nlen] == '=') {
+	    ret = strdup(cmd + nlen + 1);
 	    break;
 	}
 	cmd = strtok_r(NULL, delim, &toksave);
@@ -93,40 +81,39 @@ char *getpmivm(char *name, char *vbuffer)
     return ret;
 }
 
-int getpmiv(char *name, char *vbuffer, char *pmivalue, size_t vallen)
+bool getpmiv(char *name, char *vbuffer, char *pmivalue, size_t vallen)
 {
     const char *delim = delimiters;
-    char *cmd, *toksave, *res, *bufcpy;
-    int nlen, ret=0;
+    char *cmd, *toksave;
+    int ret = false;
 
-    if	(!name || !vbuffer || !pmivalue  || !vallen) {
-	return 0;
-    }
+    if	(!name || !vbuffer || !pmivalue  || !vallen) return 0;
 
-    if (!(bufcpy = strdup(vbuffer))) {
+    size_t nlen = strlen(name);
+    char *bufcpy = strdup(vbuffer);
+    if (!bufcpy) {
 	fprintf(stderr, "%s: out of memory\n", __func__);
 	exit(0);
     }
 
     if (uDelim) delim = uDelim;
     cmd = strtok_r(bufcpy, delim, &toksave);
-    nlen = strlen(name);
-    pmivalue[0]='\0';
+    *pmivalue = '\0';
 
-    while (cmd != NULL) {
-    	if (!strncmp(name,cmd,nlen) && cmd[nlen] == '=') {
-	    if (!(res = (cmd + nlen + 1))) {
-		fprintf(stderr, "%s: invalid value\n", __func__);
-	    } else if (vallen < strlen(res)) {
+    while (cmd) {
+	if (!strncmp(name, cmd, nlen) && cmd[nlen] == '=') {
+	    char *res = cmd + nlen + 1;
+	    if (vallen < strlen(res)) {
 		fprintf(stderr, "%s: buffer to small\n", __func__);
 	    } else {
-		strncpy(pmivalue,res,vallen);
-		ret = 1;
+		strncpy(pmivalue, res, vallen);
+		ret = true;
 	    }
 	    break;
 	}
-	cmd = strtok_r( NULL, delim, &toksave);
+	cmd = strtok_r(NULL, delim, &toksave);
     }
+
     free(bufcpy);
     return ret;
 }
