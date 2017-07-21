@@ -1132,7 +1132,7 @@ static void initKvsProvider(void)
     }
 
     /* create global KVS */
-    if((kvs_create(kvsname))) {
+    if(!kvs_create(kvsname)) {
 	mlog("%s: Failed to create default KVS\n", __func__);
 	terminateJob(__func__);
     }

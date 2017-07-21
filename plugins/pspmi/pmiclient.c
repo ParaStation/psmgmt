@@ -720,7 +720,7 @@ static int p_Destroy_Kvs(char *msg)
     }
 
     /* destroy KVS */
-    if (kvs_destroy(kvsname)) {
+    if (!kvs_destroy(kvsname)) {
 	elog("%s(r%i): error destroying kvs %s\n", __func__, rank, kvsname);
 	PMI_send("cmd=kvs_destroyed rc=-1\n");
 	return 1;
@@ -1295,7 +1295,7 @@ int pmi_init(int pmisocket, PStask_t *childTask)
     }
 
     /* create local KVS space */
-    if (kvs_create(myKVSname)) {
+    if (!kvs_create(myKVSname)) {
 	elog("%s(r%i): error creating local kvs\n", __func__, rank);
 	return critErr();
     }
