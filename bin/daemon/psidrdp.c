@@ -62,6 +62,11 @@ void clearRDPMsgs(int node)
     int blockedRDP;
     list_t *m, *tmp;
 
+    if (node<0 || node >= PSC_getNrOfNodes()) {
+	PSID_log(-1, "%s: invalid ID %d\n", __func__, node);
+	return;
+    }
+
     /* prevent recursive clearing of node_bufs[node].list */
     if (node_bufs[node].flags & CLOSE) return;
 
