@@ -142,7 +142,7 @@ PS_DataBuffer_t * dupDataBuffer(PS_DataBuffer_t *data);
  * latter cases the number of bytes written anyhow is reported in @a written.
  */
 int __doWriteEx(int fd, void *buffer, size_t toWrite, size_t *written,
-	        const char *func, bool pedantic, bool infinite);
+		const char *func, bool pedantic, bool infinite);
 
 #define doWriteEx(fd, buffer, toWrite, written) \
     __doWriteEx(fd, buffer, toWrite, written, __func__, false,  false)
