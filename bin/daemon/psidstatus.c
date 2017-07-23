@@ -568,14 +568,18 @@ static int stateChangeCB(int fd, PSID_scriptCBInfo_t *cbInfo)
     return 0;
 }
 
-void declareNodeDead(PSnodes_ID_t id, int sendDeadnode, int silent)
+bool declareNodeDead(PSnodes_ID_t id, int sendDeadnode, int silent)
 {
     list_t *t;
 
+    if (id<0 || id>=PSC_getNrOfNodes()) {
+	PSID_log(-1, "%s: id %d out of range\n", __func__, id);
+	return false;
+    }
     if (!PSIDnodes_isUp(id)) {
 	/* Drop messages not yet in the sending window */
 	clearRDPMsgs(id);
-	return;
+	return true;
     }
 
     PSID_log(PSID_LOG_STATUS,
@@ -665,12 +669,13 @@ void declareNodeDead(PSnodes_ID_t id, int sendDeadnode, int silent)
 	&& getMasterID() == PSC_getMyID() && sendDeadnode) {
 	send_DEADNODE(id);
     }
+    return true;
 }
 
 /* Prototype forward declaration */
 static int send_ACTIVENODES(PSnodes_ID_t dest);
 
-void declareNodeAlive(PSnodes_ID_t id, int physCPUs, int virtCPUs)
+bool declareNodeAlive(PSnodes_ID_t id, int physCPUs, int virtCPUs)
 {
     int wasUp = PSIDnodes_isUp(id);
 
@@ -678,12 +683,10 @@ void declareNodeAlive(PSnodes_ID_t id, int physCPUs, int virtCPUs)
 
     if (id<0 || id>=PSC_getNrOfNodes()) {
 	PSID_log(-1, "%s: id %d out of range\n", __func__, id);
-	return;
+	return false;
     }
 
-    if (!wasUp) {
-	totNodes++;
-    }
+    if (!wasUp) totNodes++;
     PSIDnodes_bringUp(id);
     PSIDnodes_setPhysCPUs(id, physCPUs);
     PSIDnodes_setVirtCPUs(id, virtCPUs);
@@ -729,6 +732,7 @@ void declareNodeAlive(PSnodes_ID_t id, int physCPUs, int virtCPUs)
 
 	send_GETTASKS(id);
     }
+    return true;
 }
 
 int send_DAEMONCONNECT(PSnodes_ID_t id)
@@ -781,11 +785,12 @@ static void msg_DAEMONCONNECT(DDBufferMsg_t *msg)
 
     PSID_log(PSID_LOG_STATUS, "%s(%d)\n", __func__, id);
 
-    /*
-     * accept this request and send an ESTABLISH msg back to the requester
-     */
-    declareNodeAlive(id, physCPUs, virtCPUs);
+    if (!declareNodeAlive(id, physCPUs, virtCPUs)) {
+	/* id is out of range -> nothing left to do */
+	return;
+    }
 
+    /* accept this request and send an ESTABLISH msg back to the requester */
     msg->header = (DDMsg_t) {
 	.type = PSP_DD_DAEMONESTABLISHED,
 	.sender = PSC_getMyTID(),
@@ -858,7 +863,10 @@ static void msg_DAEMONESTABLISHED(DDBufferMsg_t *msg)
 
     PSID_log(PSID_LOG_STATUS, "%s(%d)\n", __func__, id);
 
-    declareNodeAlive(id, physCPUs, virtCPUs);
+    if (!declareNodeAlive(id, physCPUs, virtCPUs)) {
+	/* id is out of range -> nothing left to do */
+	return;
+    }
 
     /* Send some info about me to the other node */
     send_OPTIONS(id);
