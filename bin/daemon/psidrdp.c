@@ -232,7 +232,8 @@ int recvRDP(DDMsg_t *msg, size_t size)
     int fromnode = -1;
     int ret = Rrecvfrom(&fromnode, msg, size);
 
-    if (ret >= (int)sizeof(*msg) && PSC_getID(msg->sender) != fromnode) {
+    if (ret >= (int)sizeof(*msg) && !PSC_getPID(msg->sender)
+	&& PSC_getID(msg->sender) != fromnode) {
 	PSID_log(-1, "%s: node %d sends as %d\n", __func__, fromnode,
 		 PSC_getID(msg->sender));
 	errno = ENOTUNIQ;
