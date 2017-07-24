@@ -430,18 +430,18 @@ static void pinToAllSockets(PSCPU_set_t *CPUset, uint32_t cpuCount, int hwThread
  * @param CPUset           <OUT>  Output
  * @param coreMap          <IN>   Map of cores to use (whole partition)
  * @param coreMapIndex     <IN>   Global CPU ID of the first CPU in this node
- *                              (=> Index of @a coreMap)
- * @param socketCount    <IN>   Number of Sockets in this node
- * @param coresPerSocket <IN>   Number of Cores per Socket in this node
+ *                                (=> Index of @a coreMap)
+ * @param socketCount      <IN>   Number of Sockets in this node
+ * @param coresPerSocket   <IN>   Number of Cores per Socket in this node
  * @param cpuCount         <IN>   Number of CPUs in this node (in partition)
- * @param socketCount      <IN>   Number of sockets in this node
  * @param lastCpu          <BOTH> Local CPU ID of the last CPU in this node
  *                                already assigned to a task
  * @param nodeid           <IN>   ID of this node
+ * @param thread           <BOTH> current hardware threads to fill
+ *                                (currently only used for debugging output)
  * @param hwThreads        <IN>   number of threads available per core
  * @param threadsPerTask   <IN>   number of hardware threads to assign to each task
  * @param local_tid        <IN>   local task id (current task on this node)
- * @param oneThreadPerCore <IN>   use only one thread per core
  *
  */
 static void getSocketBinding(PSCPU_set_t *CPUset, uint8_t *coreMap,
@@ -464,12 +464,13 @@ static void getSocketBinding(PSCPU_set_t *CPUset, uint8_t *coreMap,
     mdbg(PSSLURM_LOG_PART, "%s: thread '%i' last_cpu '%i'\n", __func__,
 	    *thread, *lastCpu);
 
-    if (threadsPerTask > coresPerSocket * socketCount) {
+    if (threadsPerTask > coresPerSocket * socketCount * hwThreads) {
 	pinToAllSockets(CPUset, cpuCount, hwThreads);
 	return;
     }
 
-    socketsNeeded = (threadsPerTask + coresPerSocket - 1) / coresPerSocket;
+    socketsNeeded = (threadsPerTask + coresPerSocket * hwThreads - 1) /
+						(coresPerSocket * hwThreads);
     socketsUsed = 1;
 
     // walk through global CPU IDs of the CPUs to use in the local node
@@ -575,56 +576,10 @@ static void setCPUset(PSCPU_set_t *CPUset, uint16_t cpuBindType, char *cpuBindSt
 #if 0
     } else if (cpuBindType & CPU_BIND_LDRANK) {
         /* TODO implement */
-    } else if (tasksPerNode > (cpuCount * hwThreads) ||
-	tasksPerNode < cpuCount ||
-	(cpuCount * hwThreads) % tasksPerNode != 0) {
-	PSCPU_setAll(*CPUset);
-	mdbg(PSSLURM_LOG_PART, "%s: (default) tasksPerNode '%i' cpuCount '%i' "
-		"mod '%i'\n", __func__, tasksPerNode, cpuCount,
-		cpuCount % tasksPerNode);
 #endif
     } else { /* default, CPU_BIND_RANK, CPU_BIND_TO_THREADS */
 	getRankBinding(CPUset, coreMap, coreMapIndex, cpuCount, lastCpu,
 			nodeid, thread, hwThreads, threadsPerTask, local_tid);
-
-#if 0
-    } else {
-	PSCPU_setAll(*CPUset);
-	/* TODO bind correctly: each rank can use multiple cpus!
-	uint32_t cpusPerTask;
-	 *
-	PSCPU_clrAll(*CPUset);
-	cpusPerTask = cpuCount / tasksPerNode;
-	*/
-
-	PSCPU_clrAll(*CPUset);
-	found = 0;
-
-	while (!found) {
-	    localCpuCount = 0;
-	    for (u=coreMapIndex; u<coreMapIndex + cpuCount; u++) {
-		if ((*lastCpu == -1 || *lastCpu < localCpuCount) &&
-			coreMap[u] == 1) {
-		    PSCPU_setCPU(*CPUset,
-			    localCpuCount + (*thread * cpuCount));
-		    mdbg(PSSLURM_LOG_PART, "%s: (default) node '%i' "
-			    "global_cpu '%i' local_cpu '%i' last_cpu '%i'\n",
-			    __func__, nodeid, u,
-			    localCpuCount + (*thread * cpuCount),
-			    *lastCpu);
-		    *lastCpu = localCpuCount;
-		    found = 1;
-		    break;
-		}
-		localCpuCount++;
-	    }
-	    if (!found && *lastCpu == -1) break;
-	    if (found) break;
-	    *lastCpu = -1;
-	    if (*thread < hwThreads) (*thread)++;
-	    if (*thread == hwThreads) *thread = 0;
-	}
-#endif
     }
 }
 
