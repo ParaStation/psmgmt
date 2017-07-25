@@ -2790,6 +2790,7 @@ static void msg_CHILDDEAD(DDErrorMsg_t *msg)
 	    /* No child found. Might already be inherited by parent */
 	    if (task->ptid) {
 		msg->header.dest = task->ptid;
+		msg->header.sender = PSC_getMyTID();
 
 		PSID_log(PSID_LOG_SPAWN,
 			 "%s: forward PSP_DD_CHILDDEAD from %s",
