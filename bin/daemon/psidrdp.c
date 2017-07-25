@@ -234,7 +234,8 @@ int recvRDP(DDMsg_t *msg, size_t size)
 
     if (ret >= (int)sizeof(*msg) && !PSC_getPID(msg->sender)
 	&& PSC_getID(msg->sender) != fromnode) {
-	PSID_log(-1, "%s: node %d sends as %d\n", __func__, fromnode,
+	PSID_log(-1, "%s: node %d sends type %s len %d as %d\n", __func__,
+		 fromnode, PSDaemonP_printMsg(msg->type), msg->len,
 		 PSC_getID(msg->sender));
 	errno = ENOTUNIQ;
 	return -1;
