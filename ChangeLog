@@ -1,3 +1,91 @@
+Version psmgmt-5.1.7:
+=====================
+------------------------------------------------------------------------
+4cd673e2 | Norbert Eicker | Fri, 28 Jul 2017 17:16:02 +0200
+
+Switch off false-flag testing from 1d7d6332047 again
+
+ - Check might lead to further trouble in ressource handling
+
+------------------------------------------------------------------------
+9c40ec2d | Norbert Eicker | Fri, 28 Jul 2017 16:28:01 +0200
+
+Start to booleanize psidnodes
+
+ - Start with isUp
+ - Get rid of now obsolete public PSIDnodes_validID()
+
+------------------------------------------------------------------------
+9e74e5c3 | Norbert Eicker | Fri, 28 Jul 2017 16:26:58 +0200
+
+Unify PS ID range check in PSC_validNode()
+
+------------------------------------------------------------------------
+3861b6ac | Norbert Eicker | Tue, 25 Jul 2017 18:51:32 +0200
+
+Fix sender when forwarding PSP_DD_CHILDDEAD message
+
+------------------------------------------------------------------------
+cd923d4f | Norbert Eicker | Tue, 25 Jul 2017 13:45:02 +0200
+
+Improve error log verbosity
+
+------------------------------------------------------------------------
+4779050f | Norbert Eicker | Sun, 23 Jul 2017 16:33:33 +0200
+
+Bugfix: Remote daemons might forward msgs remote to them
+
+ - This shall fix the consistency checks introduced in 1d7d6332047
+
+------------------------------------------------------------------------
+57af07c3 | Norbert Eicker | Sun, 23 Jul 2017 16:32:49 +0200
+
+Add more consistency checks for node's ParaStation ID
+
+------------------------------------------------------------------------
+1d7d6332 | Norbert Eicker | Fri, 21 Jul 2017 16:57:49 +0200
+
+Enhancement: Check for false flag RDP msg (jrt:#6829)
+
+------------------------------------------------------------------------
+34aeac8f | Norbert Eicker | Fri, 21 Jul 2017 16:05:04 +0200
+
+Prevent illegal nodes in clearRDPMsgs() (jrt:#6829)
+
+------------------------------------------------------------------------
+fd3d4fa8 | Norbert Eicker | Fri, 21 Jul 2017 16:02:00 +0200
+
+Fix whitespace formatting
+
+------------------------------------------------------------------------
+3332a5d6 | Michael Rauh | Thu, 20 Jul 2017 15:19:39 +0200
+
+Bugfix: cleanup steps properly if master superior node disappears
+
+------------------------------------------------------------------------
+50ac4ed4 | Stephan Krempel | Wed, 12 Jul 2017 17:41:07 +0200
+
+Better output on config errors
+
+------------------------------------------------------------------------
+103156cd | Michael Rauh | Tue, 11 Jul 2017 17:32:46 +0200
+
+Added the TID of the psilogger to the psiadmin show steps query of psslurm
+
+------------------------------------------------------------------------
+526c451a | Michael Rauh | Tue, 11 Jul 2017 10:10:49 +0200
+
+Bugfix: don't let reusing PIDs for the psilogger in a single job
+    corrupt psslurms task management (jrt:#6713)
+
+------------------------------------------------------------------------
+a6240760 | Norbert Eicker | Fri, 7 Jul 2017 17:14:40 +0200
+
+Enhancement: More efficient extension of buffers
+
+------------------------------------------------------------------------
+
+
 Version psmgmt-5.1.6:
 =====================
 ------------------------------------------------------------------------
