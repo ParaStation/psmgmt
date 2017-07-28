@@ -57,7 +57,7 @@ void clearRDPMsgs(int node)
     int blockedRDP;
     list_t *m, *tmp;
 
-    if (node<0 || node >= PSC_getNrOfNodes()) {
+    if (!PSC_validNode(node)) {
 	PSID_log(-1, "%s: invalid ID %d\n", __func__, node);
 	return;
     }
@@ -128,7 +128,7 @@ int flushRDPMsgs(int node)
     int blockedRDP, ret = 0;
     list_t *m, *tmp;
 
-    if (node<0 || node >= PSC_getNrOfNodes()) {
+    if (!PSC_validNode(node)) {
 	errno = EINVAL;
 	return -1;
     }
@@ -183,7 +183,7 @@ int sendRDP(DDMsg_t *msg)
     int node = PSC_getID(msg->dest);
     int ret = 0;
 
-    if (node<0 || node >= PSC_getNrOfNodes()) {
+    if (!PSC_validNode(node)) {
 	errno = EHOSTUNREACH;
 	return -1;
     }

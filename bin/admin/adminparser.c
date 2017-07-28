@@ -699,7 +699,7 @@ static int listJobsCommand(char *token)
 	if (parser_getNumber(tid_descr, &tmp)) goto error;
 	task = tmp;
     }
-    if (task && (PSC_getID(task) < 0 || PSC_getID(task) > PSC_getNrOfNodes()
+    if (task && (!PSC_validNode(PSC_getID(task))
 		 || PSC_getPID(task) < 1)) goto error; /* task out of range */
     if (parser_getString()) goto error; /* trailing garbage */
 

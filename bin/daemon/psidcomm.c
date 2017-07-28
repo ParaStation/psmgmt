@@ -180,7 +180,7 @@ int sendMsg(void *amsg)
 	    ret = PSID_handleMsg((DDBufferMsg_t *) msg) - 1;
 	    if (ret) errno = EINVAL;
 	}
-    } else if (PSC_getID(msg->dest)<PSC_getNrOfNodes()) {
+    } else if (PSC_validNode(PSC_getID(msg->dest))) {
 	sender="sendRDP";
 	isRDP = 1;
 	ret = sendRDP(msg);

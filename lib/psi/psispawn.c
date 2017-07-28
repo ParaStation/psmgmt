@@ -725,7 +725,7 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
 
     for (i=0; i<count && !error; i++) {
 	/* check if dstnode is ok */
-	if (dstnodes[i] < 0 || dstnodes[i] >= PSC_getNrOfNodes()) {
+	if (!PSC_validNode(dstnodes[i])) {
 	    errors[i] = ENETUNREACH;
 	    if (tids) tids[i] = -1;
 	    goto error;

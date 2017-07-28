@@ -2,17 +2,12 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2017 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-#ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__((used)) =
-    "$Id$";
-#endif /* DOXYGEN_SHOULD_SKIP_THIS */
-
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
@@ -359,7 +354,7 @@ static int nodelistFromRange(char *range, nodelist_t *nodelist)
 
     first = strtol(start, &end, 0);
     if (*end != '\0') return 0;
-    if (first < 0 || first >= PSC_getNrOfNodes()) {
+    if (!PSC_validNode(first)) {
 	PSI_log(-1, "%s: node %ld out of range\n", __func__, first);
 	return 0;
     }
@@ -367,7 +362,7 @@ static int nodelistFromRange(char *range, nodelist_t *nodelist)
     if (range) {
 	last = strtol(range, &end, 0);
 	if (*end != '\0') return 0;
-	if (last < 0 || last >= PSC_getNrOfNodes()) {
+	if (!PSC_validNode(last)) {
 	    PSI_log(-1, "%s: node %ld out of range\n", __func__, last);
 	    return 0;
 	}

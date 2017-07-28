@@ -483,7 +483,7 @@ static void msg_NOTIFYDEAD(DDSignalMsg_t *msg)
     } else {
 	int id = PSC_getID(tid);
 
-	if (id<0 || id>=PSC_getNrOfNodes()) {
+	if (!PSC_validNode(id)) {
 	    msg->param = EHOSTUNREACH; /* failure */
 	} else if (id==PSC_getMyID()) {
 	    /* task is on my node */
@@ -1155,13 +1155,13 @@ static int releaseTask(PStask_t *task)
 {
     int ret;
     static bool *sentToNode = NULL;
-    static size_t sTNSize = 0;
+    static int sTNSize = 0;
 
-    if (sTNSize < (size_t) PSC_getNrOfNodes()) {
+    if (sTNSize < PSC_getNrOfNodes()) {
 	bool *bak = sentToNode;
 
 	sTNSize = PSC_getNrOfNodes();
-	sentToNode = realloc(sentToNode, sTNSize);
+	sentToNode = realloc(sentToNode, sTNSize * sizeof(*sentToNode));
 	if (!sentToNode) {
 	    if (bak) free(bak);
 	    sTNSize = 0;
@@ -1190,7 +1190,7 @@ static int releaseTask(PStask_t *task)
 	    /* Reorganize children. They are inherited by the parent task */
 	    PSnodes_ID_t parentNode = PSC_getID(task->ptid);
 
-	    memset(sentToNode, false, sTNSize);
+	    memset(sentToNode, false, sTNSize * sizeof(*sentToNode));
 
 	    sig = -1;
 	    while ((child = PSID_getSignal(&task->childList, &sig))) {

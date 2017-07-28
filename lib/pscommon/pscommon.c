@@ -77,6 +77,16 @@ void PSC_setNrOfNodes(PSnodes_ID_t numNodes)
     nrOfNodes = numNodes;
 }
 
+bool PSC_validNode(PSnodes_ID_t id)
+{
+    if (nrOfNodes == -1 || id < 0 || id >= nrOfNodes) {
+	/* id out of Range */
+	return false;
+    }
+
+    return true;
+}
+
 PSnodes_ID_t PSC_getMyID(void)
 {
     return myID;
@@ -289,7 +299,7 @@ static int parseRange(char* list, char* range)
     } else {
 	first = strtol(start, &end, 0);
 	if (*end != '\0') return 0;
-	if (first < 0 || first >= PSC_getNrOfNodes()) {
+	if (!PSC_validNode(first)) {
 	    PSC_log(-1, "node %ld out of range\n", first);
 	    return 0;
 	}

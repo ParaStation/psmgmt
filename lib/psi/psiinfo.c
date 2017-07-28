@@ -810,7 +810,7 @@ PSnodes_ID_t PSI_resolveNodeID(const char *host)
 	    break;
 	}
 
-	if (!rc && nodeID >= 0 && nodeID < PSC_getNrOfNodes()) break;
+	if (!rc && PSC_validNode(nodeID)) break;
     }
 
     freeaddrinfo(result);           /* No longer needed */
@@ -818,7 +818,7 @@ PSnodes_ID_t PSI_resolveNodeID(const char *host)
     if (nodeID < 0) {
 	PSI_log(-1, "Cannot get PS_ID for host '%s'\n", host);
 	return -1;
-    } else if (nodeID >= PSC_getNrOfNodes()) {
+    } else if (!PSC_validNode(nodeID)) {
 	PSI_log(-1, "PS_ID %d for node '%s' out of range\n", nodeID, host);
 	return -1;
     }

@@ -400,8 +400,8 @@ PSID_NodeStatus_t getStatusInfo(PSnodes_ID_t node)
 	if (node == PSC_getMyID()) {
 	    status.jobs = myJobs;
 	    status.load = getLoad();
-	} else if ((PSC_getMyID() != getMasterID())
-	    || (node<0) || (node>PSC_getNrOfNodes()) || !clientStat) {
+	} else if (PSC_getMyID() != getMasterID()
+		   || !PSC_validNode(node) || !clientStat) {
 	    status.jobs = (PSID_Jobs_t) { .normal = -1, .total = -1 };
 	    status.load = (PSID_Load_t) {{ 0.0, 0.0, 0.0}};
 	} else {
@@ -422,8 +422,8 @@ PSID_Mem_t getMemoryInfo(PSnodes_ID_t node)
     } else {
 	if (node == PSC_getMyID()) {
 	    memory = getMem();
-	} else if ((PSC_getMyID() != getMasterID())
-	    || (node<0) || (node>PSC_getNrOfNodes()) || !clientStat) {
+	} else if (PSC_getMyID() != getMasterID()
+		   || !PSC_validNode(node) || !clientStat) {
 	    memory = (PSID_Mem_t) { -1, -1 };
 	} else {
 	    memory = clientStat[node].mem;
@@ -497,7 +497,7 @@ static int stateChangeEnv(void *info)
 	stateChangeInfo_t *i = info;
 	nID = i->id;
     }
-    if (nID < 0 || nID >= PSC_getNrOfNodes()) nID = -1;
+    if (!PSC_validNode(nID)) nID = -1;
 
     snprintf(buf, sizeof(buf), "%d", nID);
     setenv("NODE_ID", buf, 1);
@@ -572,7 +572,7 @@ bool declareNodeDead(PSnodes_ID_t id, int sendDeadnode, int silent)
 {
     list_t *t;
 
-    if (id<0 || id>=PSC_getNrOfNodes()) {
+    if (!PSC_validNode(id)) {
 	PSID_log(-1, "%s: id %d out of range\n", __func__, id);
 	return false;
     }
@@ -681,7 +681,7 @@ bool declareNodeAlive(PSnodes_ID_t id, int physCPUs, int virtCPUs)
 
     PSID_log(PSID_LOG_STATUS, "%s: node %d\n", __func__, id);
 
-    if (id<0 || id>=PSC_getNrOfNodes()) {
+    if (!PSC_validNode(id)) {
 	PSID_log(-1, "%s: id %d out of range\n", __func__, id);
 	return false;
     }
