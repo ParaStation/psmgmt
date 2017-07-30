@@ -232,7 +232,9 @@ int recvRDP(DDMsg_t *msg, size_t size)
     int fromnode = -1;
     int ret = Rrecvfrom(&fromnode, msg, size);
 
-    if (false /* @todo switch this check off */ && ret >= (int)sizeof(*msg)
+    if (ret >= (int)sizeof(*msg)
+	&& (msg->type == PSP_DD_DAEMONCONNECT
+	    || msg->type == PSP_DD_DAEMONESTABLISHED)
 	&& !PSC_getPID(msg->sender) && PSC_getID(msg->sender) != fromnode) {
 	PSID_log(-1, "%s: node %d sends type %s len %d as %d\n", __func__,
 		 fromnode, PSDaemonP_printMsg(msg->type), msg->len,
