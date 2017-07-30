@@ -744,7 +744,7 @@ int send_DAEMONCONNECT(PSnodes_ID_t id)
 	    .dest = PSC_getTID(id, 0),
 	    .len = sizeof(msg.header) },
 	.buf = {'\0'} };
-    int32_t *CPUs = (int32_t *)msg.buf;
+    int32_t tmp;
 
     PSID_log(PSID_LOG_STATUS, "%s(%d)\n", __func__, id);
 
@@ -753,9 +753,11 @@ int send_DAEMONCONNECT(PSnodes_ID_t id)
 	return -1;
     }
 
-    CPUs[0] = PSIDnodes_getPhysCPUs(PSC_getMyID());
-    CPUs[1] = PSIDnodes_getVirtCPUs(PSC_getMyID());
-    msg.header.len += 2 * sizeof(*CPUs);
+    tmp = PSIDnodes_getPhysCPUs(PSC_getMyID());
+    PSP_putMsgBuf(&msg, __func__, "physCPUs", &tmp, sizeof(tmp));
+
+    tmp = PSIDnodes_getVirtCPUs(PSC_getMyID());
+    PSP_putMsgBuf(&msg, __func__, "virtCPUs", &tmp, sizeof(tmp));
 
     return sendMsg(&msg);
 }
@@ -778,17 +780,17 @@ int send_DAEMONCONNECT(PSnodes_ID_t id)
  */
 static void msg_DAEMONCONNECT(DDBufferMsg_t *msg)
 {
-    int id = PSC_getID(msg->header.sender);
-    int32_t *CPUs = (int32_t *) msg->buf;
-    int physCPUs = CPUs[0];
-    int virtCPUs = CPUs[1];
+    PSnodes_ID_t id = PSC_getID(msg->header.sender);
+    int32_t pCPUs, vCPUs, tmp;
+    size_t used = 0;
 
     PSID_log(PSID_LOG_STATUS, "%s(%d)\n", __func__, id);
 
-    if (!declareNodeAlive(id, physCPUs, virtCPUs)) {
-	/* id is out of range -> nothing left to do */
-	return;
-    }
+    PSP_getMsgBuf(msg, &used, __func__, "physCPUs", &pCPUs, sizeof(pCPUs));
+    PSP_getMsgBuf(msg, &used, __func__, "virtCPUs", &vCPUs, sizeof(vCPUs));
+
+    /* id is out of range -> nothing left to do */
+    if (!declareNodeAlive(id, pCPUs, vCPUs)) return;
 
     /* accept this request and send an ESTABLISH msg back to the requester */
     msg->header = (DDMsg_t) {
@@ -797,9 +799,11 @@ static void msg_DAEMONCONNECT(DDBufferMsg_t *msg)
 	.dest = PSC_getTID(id, 0),
 	.len = sizeof(msg->header) };
 
-    CPUs[0] = PSIDnodes_getPhysCPUs(PSC_getMyID());
-    CPUs[1] = PSIDnodes_getVirtCPUs(PSC_getMyID());
-    msg->header.len += 2 * sizeof(*CPUs);
+    tmp = PSIDnodes_getPhysCPUs(PSC_getMyID());
+    PSP_putMsgBuf(msg, __func__, "physCPUs", &tmp, sizeof(tmp));
+
+    tmp = PSIDnodes_getVirtCPUs(PSC_getMyID());
+    PSP_putMsgBuf(msg, __func__, "virtCPUs", &tmp, sizeof(tmp));
 
     if (sendMsg(msg) == -1 && errno != EWOULDBLOCK) {
 	PSID_warn(PSID_LOG_STATUS, errno, "%s: sendMsg()", __func__);
@@ -856,17 +860,17 @@ static void drop_DAEMONCONNECT(DDBufferMsg_t *msg)
  */
 static void msg_DAEMONESTABLISHED(DDBufferMsg_t *msg)
 {
-    int id = PSC_getID(msg->header.sender);
-    int32_t *CPUs = (int32_t *) msg->buf;
-    int physCPUs = CPUs[0];
-    int virtCPUs = CPUs[1];
+    PSnodes_ID_t id = PSC_getID(msg->header.sender);
+    int32_t pCPUs, vCPUs;
+    size_t used = 0;
 
     PSID_log(PSID_LOG_STATUS, "%s(%d)\n", __func__, id);
 
-    if (!declareNodeAlive(id, physCPUs, virtCPUs)) {
-	/* id is out of range -> nothing left to do */
-	return;
-    }
+    PSP_getMsgBuf(msg, &used, __func__, "physCPUs", &pCPUs, sizeof(pCPUs));
+    PSP_getMsgBuf(msg, &used, __func__, "virtCPUs", &vCPUs, sizeof(vCPUs));
+
+    /* id is out of range -> nothing left to do */
+    if (!declareNodeAlive(id, pCPUs, vCPUs)) return;
 
     /* Send some info about me to the other node */
     send_OPTIONS(id);
@@ -885,9 +889,7 @@ int send_DAEMONSHUTDOWN(void)
     for (i=0; i<PSC_getNrOfNodes(); i++) {
 	if (PSIDnodes_isUp(i) && i != PSC_getMyID()) {
 	    msg.dest = PSC_getTID(i, 0);
-	    if (sendMsg(&msg)>=0) {
-		count++;
-	    }
+	    if (sendMsg(&msg) >= 0) count++;
 	    /* Close RDP connection immediately after send */
 	    closeConnRDP(i);
 	}
@@ -928,8 +930,8 @@ int send_MASTERIS(PSnodes_ID_t dest)
 	    .dest = PSC_getTID(dest, 0),
 	    .len = sizeof(msg.header) },
 	.buf = {'\0'} };
-    *(PSnodes_ID_t *)msg.buf = getMasterID();
-    msg.header.len += sizeof(PSnodes_ID_t);
+    PSnodes_ID_t master = getMasterID();
+    PSP_putMsgBuf(&msg, __func__, "master", &master, sizeof(master));
 
     PSID_log(PSID_LOG_STATUS, "%s: tell %s master is %d\n",
 	     __func__, PSC_printTID(msg.header.dest), getMasterID());
@@ -959,14 +961,17 @@ int send_MASTERIS(PSnodes_ID_t dest)
  */
 static void msg_MASTERIS(DDBufferMsg_t *msg)
 {
-    PSnodes_ID_t newMaster = *(PSnodes_ID_t *)msg->buf;
+    size_t used = 0;
+    PSnodes_ID_t newM;
+
+    PSP_getMsgBuf(msg, &used, __func__, "master", &newM, sizeof(newM));
 
     PSID_log(PSID_LOG_STATUS, "%s: %s says master is %d\n", __func__,
-	     PSC_printTID(msg->header.sender), newMaster);
+	     PSC_printTID(msg->header.sender), newM);
 
-    if (newMaster != getMasterID()) {
-	if (newMaster < getMasterID()) {
-	    send_DAEMONCONNECT(newMaster);
+    if (newM != getMasterID()) {
+	if (newM < getMasterID()) {
+	    send_DAEMONCONNECT(newM);
 	} else {
 	    send_MASTERIS(PSC_getID(msg->header.sender));
 	}
@@ -993,35 +998,28 @@ static int send_ACTIVENODES(PSnodes_ID_t dest)
 	    .dest = PSC_getTID(dest, 0),
 	    .len = sizeof(msg.header) },
 	.buf = {'\0'} };
-
-    PSnodes_ID_t node, *nodeBuf = (PSnodes_ID_t *)msg.buf;
-    unsigned int idx = 0;
+    const size_t emptyLen = sizeof(msg.header);
+    PSnodes_ID_t node;
     int total = 0;
 
     if (dest == PSC_getMyID()) return 0;
 
     for (node=0; node<PSC_getNrOfNodes(); node++) {
-	if (PSIDnodes_isUp(node)) {
-	    nodeBuf[idx] = node;
-	    idx++;
-	    if (idx == NODES_CHUNK) {
-		int ret;
-		msg.header.len += idx * sizeof(PSnodes_ID_t);
-		ret = sendMsg(&msg);
-		if (ret<0) {
-		    return ret;
-		} else {
-		    total += ret;
-		}
-		msg.header.len -= idx * sizeof(PSnodes_ID_t);
-		idx=0;
+	if (!PSIDnodes_isUp(node)) continue;
+	if (!PSP_tryPutMsgBuf(&msg, __func__, "node", &node, sizeof(node))) {
+	    int ret = sendMsg(&msg);
+	    if (ret<0) {
+		return ret;
+	    } else {
+		total += ret;
 	    }
+	    msg.header.len = emptyLen;
+	    PSP_putMsgBuf(&msg, __func__, "node", &node, sizeof(node));
 	}
     }
-    if (idx) {
-	int ret;
-	msg.header.len += idx * sizeof(PSnodes_ID_t);
-	ret = sendMsg(&msg);
+
+    if (msg.header.len > emptyLen) {
+	int ret = sendMsg(&msg);
 	if (ret<0) {
 	    return ret;
 	} else {
@@ -1049,30 +1047,25 @@ static int send_ACTIVENODES(PSnodes_ID_t dest)
  */
 static void msg_ACTIVENODES(DDBufferMsg_t *msg)
 {
-    int num = (msg->header.len - sizeof(msg->header)) / sizeof(PSnodes_ID_t);
-    PSnodes_ID_t *nodeBuf = (PSnodes_ID_t *)msg->buf;
-    PSnodes_ID_t senderNode = PSC_getID(msg->header.sender);
+    PSnodes_ID_t sender = PSC_getID(msg->header.sender), node;
     static PSnodes_ID_t firstUntested = 0;
-    int idx;
+    size_t used = 0;
 
-    PSID_log(PSID_LOG_STATUS, "%s: num is %d\n", __func__, num);
-
-    for (idx=0; idx<num; idx++) {
-	PSnodes_ID_t currentNode = nodeBuf[idx], n;
-	PSID_log(PSID_LOG_STATUS,
-		 "%s: %d. is %d\n", __func__, idx, nodeBuf[idx]);
-	if (currentNode == senderNode) {
+    while (PSP_tryGetMsgBuf(msg, &used, __func__, "node", &node, sizeof(node))){
+	PSnodes_ID_t n;
+	PSID_log(PSID_LOG_STATUS, "%s: check %d\n", __func__, node);
+	if (node == sender) {
 	    /* Sender is first active node, all previous nodes are down */
-	    for (n=0; n<currentNode; n++) {
+	    for (n=0; n<node; n++) {
 		if (PSIDnodes_isUp(n)) send_DAEMONCONNECT(n);
 	    }
-	    firstUntested = currentNode+1;
+	    firstUntested = node+1;
 	}
-	for (n=firstUntested; n<currentNode; n++) {
+	for (n=firstUntested; n<node; n++) {
 	    if (PSIDnodes_isUp(n)) send_MASTERIS(n);
 	}
-	if (!PSIDnodes_isUp(currentNode)) send_DAEMONCONNECT(currentNode);
-	firstUntested = currentNode+1;
+	if (!PSIDnodes_isUp(node)) send_DAEMONCONNECT(node);
+	firstUntested = node+1;
     }
 }
 
@@ -1095,9 +1088,8 @@ static int send_DEADNODE(PSnodes_ID_t deadnode)
 	    .dest = 0,
 	    .len = sizeof(msg.header) },
 	.buf = {'\0'} };
-    *(PSnodes_ID_t *)msg.buf = deadnode;
 
-    msg.header.len += sizeof(PSnodes_ID_t);
+    PSP_putMsgBuf(&msg, __func__, "deadnode", &deadnode, sizeof(deadnode));
 
     PSID_log(PSID_LOG_STATUS, "%s(%d)\n", __func__, deadnode);
 
@@ -1126,11 +1118,14 @@ static int send_DEADNODE(PSnodes_ID_t deadnode)
  */
 static void msg_DEADNODE(DDBufferMsg_t *msg)
 {
-    PSnodes_ID_t deadNode = *(PSnodes_ID_t *)msg->buf;
+    PSnodes_ID_t dead;
+    size_t used = 0;
 
-    PSID_log(PSID_LOG_STATUS, "%s(%d)\n", __func__, deadNode);
+    PSP_getMsgBuf(msg, &used, __func__, "deadNode", &dead, sizeof(dead));
 
-    send_DAEMONCONNECT(deadNode);
+    PSID_log(PSID_LOG_STATUS, "%s(%d)\n", __func__, dead);
+
+    send_DAEMONCONNECT(dead);
 }
 
 /**
