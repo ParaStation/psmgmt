@@ -13,7 +13,10 @@ for p in helper.partitions():
 
 	x = float(lines[ 0].split(':')[0])
 	y = float(lines[-1].split(':')[0])
-	z = float(lines[-2].split(':')[0])
+        if helper.slurm_version().startswith("17.02"):
+            z = float(lines[-3].split(':')[0])
+        else:
+	    z = float(lines[-2].split(':')[0])
 
 	test.check(y - x > 20.0, p)
 	test.check(y - z >  8.0, p)

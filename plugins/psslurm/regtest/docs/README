@@ -19,3 +19,12 @@ $ python2 regtest-psctrac-update.py -C config-j3.json --psslurm-V 5.1.5-0 ticket
 # Final run with updating trac (in a screen session)
 $ python2 regtest-psctrac-update.py -C config-j3.json --psslurm-V 5.1.5-0 --update-trac tickets.json
 
+# After changing the psslurm-test, push them so Partec can use the new version
+$ python2 ../psslurm-tests-utils/push.py
+
+# regtest-psctrac-update.py test states:
+- OK or FAIL
+
+** Unexpected failure -> tells you to check and maybe open/close ticket with email
+* Expected -> ticket update but no email
+no stars -> no ticket update

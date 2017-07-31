@@ -13,7 +13,10 @@ for p in helper.partitions():
 	if helper.slurm_version().startswith("14.03"):
 		exp = "15"
 
-	test.check("0:1" == helper.job_exit_code(p), p)
+        if helper.slurm_version().startswith("17.02"):
+            test.check("0:15" == helper.job_exit_code(p), p)
+        else:
+	    test.check("0:1" == helper.job_exit_code(p), p)
 	test.check(exp   == helper.submit_exit_code(p), p)
 
 test.quit()
