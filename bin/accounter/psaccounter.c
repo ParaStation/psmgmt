@@ -166,6 +166,34 @@ static void *umalloc(size_t size, const char *func)
 }
 
 /**
+ * @brief (Un-)Block signal
+ *
+ * Block or unblock the signal @a sig depending on the flag @a
+ * block. If @a block is true, the signal will be blocked. Otherwise
+ * it will be unblocked.
+ *
+ * @param sig Signal to block or unblock
+ *
+ * @param block Flag steering the (un-)blocking of the signal
+ *
+ * @return Flag, if signal was blocked before. I.e. return true if
+ * signal was blocked or false otherwise.
+ */
+static bool blockSig(int sig, bool block)
+{
+    sigset_t set, oldset;
+
+    sigemptyset(&set);
+    sigaddset(&set, sig);
+
+    if (sigprocmask(block ? SIG_BLOCK : SIG_UNBLOCK, &set, &oldset)) {
+	awarn("%s: sigprocmask()", __func__);
+    }
+
+    return !!sigismember(&oldset, sig);
+}
+
+/**
 * @brief Insert incomplete Job to Queue.
 *
 * Insert a job where not all exit messages could be received to
@@ -1279,7 +1307,9 @@ static void handleAcctMsg(DDTypedBufferMsg_t * msg)
 
     /* Create Header for all Msg */
     atime = time(NULL);
+    bool blocked = blockSig(SIGALRM, true);
     ptm = localtime(&atime);
+    blockSig(SIGALRM, blocked);
     strftime(ctime, sizeof(ctime), "%d/%m/%Y %H:%M:%S", ptm);
 
     snprintf(chead, sizeof(chead), "%s;%s;%i", ctime,
@@ -1399,7 +1429,9 @@ static void openAccLogFile(char *arg_logdir)
     int ret;
 
     t = time(NULL);
+    bool blocked = blockSig(SIGALRM, true);
     tmp = localtime(&t);
+    blockSig(SIGALRM, blocked);
     if (!tmp) {
 	alog("%s: localtime failed\n", __func__);
 	exit(EXIT_FAILURE);
