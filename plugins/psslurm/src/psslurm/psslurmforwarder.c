@@ -57,6 +57,8 @@
 
 #define X11_AUTH_CMD "/usr/bin/xauth"
 
+#define MPIEXEC_BINARY BINDIR "/mpiexec"
+
 static int jobCallback(int32_t exit_status, Forwarder_Data_t *fw)
 {
     Job_t *job = fw->userData;
@@ -672,7 +674,7 @@ static void execJobStep(Forwarder_Data_t *fwdata, int rerun)
     Step_t *step = fwdata->userData;
     unsigned int i;
     strv_t argV;
-    char buf[128], *tmpStr;
+    char buf[128];
 
     /* reopen syslog */
     openlog("psid", LOG_PID|LOG_CONS, LOG_DAEMON);
@@ -690,11 +692,15 @@ static void execJobStep(Forwarder_Data_t *fwdata, int rerun)
 
     /* build mpiexec argV */
     strvInit(&argV, NULL, 0);
-    tmpStr = getenv("__PSI_MPIEXEC_KVSPROVIDER");
-    if (tmpStr) {
-	strvAdd(&argV, ustrdup(tmpStr));
+    if (getenv("PMI_SPAWNED")) {
+	char *tmpStr = getenv("__PSI_MPIEXEC_KVSPROVIDER");
+	if (tmpStr) {
+	    strvAdd(&argV, ustrdup(tmpStr));
+	} else {
+	    strvAdd(&argV, ustrdup(LIBEXECDIR "/kvsprovider"));
+	}
     } else {
-	strvAdd(&argV, ustrdup(LIBEXECDIR "/kvsprovider"));
+	strvAdd(&argV, ustrdup(MPIEXEC_BINARY));
     }
 
     /* always export all environment variables */
