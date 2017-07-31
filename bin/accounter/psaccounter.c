@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2006-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2006-2017 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -11,11 +11,6 @@
  * @file
  * psaccounter: ParaStation accounting daemon
  */
-#ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__ ((used)) =
-    "$Id$";
-#endif /* DOXYGEN_SHOULD_SKIP_THIS */
-
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -48,6 +43,7 @@ static char vcid[] __attribute__ ((used)) =
 #include "pstask.h"
 #include "pscpu.h"
 #include "psprotocol.h"
+#include "list.h"
 #include "logging.h"
 
 #define MAX_HOSTNAME_LEN 64
@@ -112,10 +108,10 @@ struct t_node {
 };
 
 /* struct for non responding jobs */
-typedef struct struct_list {
+typedef struct {
     PStask_ID_t job;
-    struct struct_list *next;
-}Joblist_t;
+    list_t next;
+} Joblist_t;
 
 /** display debug output */
 /*
@@ -136,17 +132,18 @@ static int extendedLogging = 0;
 /** set post processing command for accouting log files like gzip */
 static char *logPostProcessing;
 /** structure for syslog */
-static logger_t *alogger;
+static logger_t *alogger = NULL;
 /** log file for debug and error messages */
 static FILE *logfile = NULL;
 /** the number of nodes in the parastation cluster */
 static int nrOfNodes = 0;
 /** store incomplete jobs waiting for missing children */
-static Joblist_t *dJobs;
+static LIST_HEAD(dJobs);
 /** store node information */
 static Acc_Nodes_t *accNodes;
 
 #define alog(...) if (alogger) logger_print(alogger, -1, __VA_ARGS__)
+#define awarn(...) if (alogger) logger_warn(alogger, -1, errno, __VA_ARGS__)
 
 /**
  * @brief Malloc with error handling.
@@ -159,10 +156,10 @@ static Acc_Nodes_t *accNodes;
  */
 static void *umalloc(size_t size, const char *func)
 {
-    void *ptr;
+    void *ptr = malloc(size);
 
-    if (!(ptr = malloc(size))) {
-	alog("%s: memory allocation failed\n", func);
+    if (!ptr) {
+	awarn("%s: malloc()", func);
 	exit(EXIT_FAILURE);
     }
     return ptr;
@@ -178,22 +175,9 @@ static void *umalloc(size_t size, const char *func)
 */
 static void insertdJob(PStask_ID_t Job)
 {
-    if (!dJobs) { /* empty queue */
-	dJobs = umalloc(sizeof(Joblist_t), __func__);
-	dJobs->next = NULL;
-	dJobs->job = Job;
-    } else {
-	Joblist_t *lastJob;
-	lastJob = dJobs;
-	/* find last job */
-	while (lastJob->next != NULL) {
-	    lastJob = lastJob->next;
-	}
-	lastJob->next = umalloc(sizeof(Joblist_t), __func__);
-	lastJob = lastJob->next;
-	lastJob->next = NULL;
-	lastJob->job = Job;
-    }
+    Joblist_t *newJob = umalloc(sizeof(*newJob), __func__);
+    newJob->job = Job;
+    list_add_tail(&newJob->next, &dJobs);
 }
 
 /**
@@ -203,24 +187,15 @@ static void insertdJob(PStask_ID_t Job)
 *
 * @return No return value.
 */
-static int finddJob(PStask_ID_t Job)
+static bool finddJob(PStask_ID_t Job)
 {
-    if (!dJobs) {
-	return 0;
-    } else {
-	Joblist_t *sJob;
-	sJob = dJobs;
-	if (sJob->job == Job) {
-	    return 1;
-	}
-	while (sJob->next != NULL) {
-	    sJob = sJob->next;
-	    if (sJob->job == Job) {
-		return 1;
-	    }
-	}
-	return 0;
+    list_t *j;
+
+    list_for_each(j, &dJobs) {
+	Joblist_t *job = list_entry(j, Joblist_t, next);
+	if (job->job == Job) return true;
     }
+    return false;
 }
 
 /**
@@ -233,18 +208,15 @@ static int finddJob(PStask_ID_t Job)
 */
 static PStask_ID_t getNextdJob(void)
 {
-    if (!dJobs) {
-	return 0;
-    } else {
-	Joblist_t *nextJob;
-	PStask_ID_t jobid;
+    if (list_empty(&dJobs)) return 0;
 
-	nextJob = dJobs;
-	jobid = dJobs->job;
-	dJobs = dJobs->next;
-	free(nextJob);
-	return jobid;
-    }
+    Joblist_t *first = list_entry(dJobs.next, Joblist_t, next);
+    PStask_ID_t jobid = first->job;
+
+    list_del(&first->next);
+    free(first);
+
+    return jobid;
 }
 
 static struct t_node *insertTNode(PStask_ID_t key, Job_t * job,
@@ -419,8 +391,7 @@ static void sig_handler(int sig)
  */
 static void protocolError(char *err, const char *func)
 {
-	alog("%s: protocol error:%s\n",
-	     func, err);
+	alog("%s: protocol error:%s\n", func, err);
 	exit(EXIT_FAILURE);
 }
 
@@ -748,15 +719,11 @@ static void printAccEndMsg(char *chead, PStask_ID_t key)
  */
 static void timer_handler(int sig)
 {
-    PStask_ID_t tid;
-    struct itimerval timer;
-    Job_t *job;
+    PStask_ID_t tid = getNextdJob();
+    if (!tid) return;
 
-    if (!(tid = getNextdJob())) {
-	return;
-    }
-
-    if (!(job = findJob(tid))) {
+    Job_t *job = findJob(tid);
+    if (!job) {
 	alog("%s: couldn't find job: %s\n", __func__, PSC_printTID(tid));
     } else {
 	time_t atime;
@@ -781,8 +748,9 @@ static void timer_handler(int sig)
 	printAccEndMsg(chead, tid);
     }
 
-    /* start timer if jobs pending */
-    if (dJobs) {
+    /* re-start timer if jobs pending */
+    if (!list_empty(&dJobs)) {
+	struct itimerval timer;
 	/* Configure the timer to expire */
 	timer.it_value.tv_sec = ERROR_WAIT_TIME;
 	timer.it_value.tv_usec = 0;
@@ -965,10 +933,10 @@ static void handleAccEndMsg(char *msgptr, char *chead, PStask_ID_t sender)
 
 	/* check if all children terminated */
 	if (job->countExitMsg < job->procStartCount) {
-	    struct itimerval timer;
-
 	    /* wait for children which are still running */
-	    if (!dJobs) {
+	    if (list_empty(&dJobs)) {
+		struct itimerval timer;
+
 		/* set error wait time */
 		timer.it_value.tv_sec = ERROR_WAIT_TIME;
 		timer.it_value.tv_usec = 0;
@@ -1374,7 +1342,6 @@ static void handleAcctMsg(DDTypedBufferMsg_t * msg)
  */
 static void handleSigMsg(DDErrorMsg_t * msg)
 {
-    struct itimerval timer;
     Job_t *job;
 
     if (debug & 0x040) {
@@ -1382,16 +1349,16 @@ static void handleSigMsg(DDErrorMsg_t * msg)
 	if (!errstr) {
 	    errstr = "UNKNOWN";
 	}
-	alog("%s: msg from %s:", __func__,
-	     PSC_printTID(msg->header.sender));
+	alog("%s: msg from %s:", __func__, PSC_printTID(msg->header.sender));
 	alog("task %s: %s\n", PSC_printTID(msg->request), errstr);
     }
     job = findJob(msg->request);
 
     /* check if logger replied */
     if (msg->error == ESRCH && job) {
+	if (list_empty(&dJobs)) {
+	    struct itimerval timer;
 
-	if (!dJobs) {
 	    /* Configure the timer to expire */
 	    timer.it_value.tv_sec = ERROR_WAIT_TIME;
 	    timer.it_value.tv_usec = 0;
@@ -1432,7 +1399,8 @@ static void openAccLogFile(char *arg_logdir)
     int ret;
 
     t = time(NULL);
-    if (!(tmp = localtime(&t))) {
+    tmp = localtime(&t);
+    if (!tmp) {
 	alog("%s: localtime failed\n", __func__);
 	exit(EXIT_FAILURE);
     }
@@ -1554,9 +1522,7 @@ static void loop(char *arg_logdir)
 	    alog("%s: unknown message: %x\n", __func__, msg.header.type);
 	}
 
-	if (logfile) {
-	    fflush(logfile);
-	}
+	if (logfile) fflush(logfile);
     }
 
     PSE_finalize();
@@ -1564,8 +1530,7 @@ static void loop(char *arg_logdir)
 
 static void printVersion(void)
 {
-    char revision[] = "$Revision$";
-    fprintf(stderr, "psaccounter %s\b \n", revision+11);
+    alog("psaccounter %s-%s\n", VERSION_psmgmt, RELEASE_psmgmt);
 }
 
 /**
@@ -1588,7 +1553,7 @@ static void daemonize(const char *cmd)
 
     /* Become a session leader to lose TTY */
     if ((pid = fork()) < 0) {
-	fprintf(stderr, "%s: unable to fork server process\n", __func__);
+	awarn("%s: unable to fork server process 1", __func__);
 	exit(EXIT_FAILURE);
     } else if (pid != 0) { /* parent */
 	exit(EXIT_SUCCESS);
@@ -1600,25 +1565,25 @@ static void daemonize(const char *cmd)
     sigemptyset(&sa.sa_mask);
     sa.sa_flags = 0;
     if (sigaction(SIGHUP, &sa, NULL) < 0) {
-	fprintf(stderr, "%s: can´t ignore SIGHUP\n", __func__);
+	awarn("%s: can´t ignore SIGHUP", __func__);
 	exit(EXIT_FAILURE);
     }
     if ((pid = fork()) < 0) {
-	fprintf(stderr, "%s: unable to fork server process\n", __func__);
+	awarn("%s: unable to fork server process 2", __func__);
 	exit(EXIT_FAILURE);
     } else if (pid != 0) { /* parent */
 	exit(EXIT_SUCCESS);
     }
 
-    /* Change working dir to root */
+    /* Change working dir to /tmp */
     if (chdir("/tmp") < 0) {
-	fprintf(stderr, "%s: unable to change directory to /\n", __func__);
+	awarn("%s: unable to change directory to /tmp", __func__);
 	exit(EXIT_FAILURE);
     }
 
     /* Close all open file descriptors */
     if (getrlimit(RLIMIT_NOFILE, &rl) < 0) {
-	fprintf(stderr, "%s: can´t get file limit\n", __func__);
+	awarn("%s: can´t get file limit", __func__);
 	exit(EXIT_FAILURE);
     }
     if (rl.rlim_max == RLIM_INFINITY) {
@@ -1757,6 +1722,9 @@ int main(int argc, char *argv[])
     signal(SIGINT, sig_handler);
     signal(SIGUSR1, sig_handler);
 
+    /* emergency logger during startup */
+    alogger = logger_init(NULL, stderr);
+
     optCon =
 	poptGetContext(NULL, argc, (const char **) argv, optionsTable, 0);
     rc = poptGetNextOpt(optCon);
@@ -1764,9 +1732,8 @@ int main(int argc, char *argv[])
     if (rc < -1) {
 	/* an error occurred during option processing */
 	poptPrintUsage(optCon, stderr, 0);
-	fprintf(stderr, "%s: %s\n",
-		poptBadOption(optCon, POPT_BADOPTION_NOALIAS),
-		poptStrerror(rc));
+	alog("%s: %s\n", poptBadOption(optCon, POPT_BADOPTION_NOALIAS),
+	     poptStrerror(rc));
 	return 1;
     }
 
@@ -1778,21 +1745,21 @@ int main(int argc, char *argv[])
     /* Become a daemon */
     if (!arg_nodaemon) {
 	daemonize("psaccounter");
+
+	/* re-init logger (use syslog in the meantime) */
+	logger_finalize(alogger);
+	alogger = logger_init("PSACC", NULL);
     }
 
     /* set core dir */
     if (arg_coredir) {
-	if(chdir(arg_coredir) < 0) {
-	    fprintf(stderr, "%s: unable to change directory to %s\n", __func__,
-		    arg_coredir);
+	if (chdir(arg_coredir) < 0) {
+	    awarn("%s: chdir(%s)", __func__, arg_coredir);
 	    exit(EXIT_FAILURE);
 	}
-    } else {
-	if (chdir("/tmp") < 0) {
-	    fprintf(stderr, "%s: unable to change directory to /tmp\n",
-		    __func__);
-	    exit(EXIT_FAILURE);
-	}
+    } else if (chdir("/tmp") < 0) {
+	awarn("%s: chdir(/tmp)", __func__);
+	exit(EXIT_FAILURE);
     }
 
     /* Set umask */
@@ -1813,8 +1780,9 @@ int main(int argc, char *argv[])
 
     /* logging */
     if (arg_logfile && !!strcmp(arg_logfile, "-")) {
-	if (!(logfile = fopen(arg_logfile, "a+"))) {
-	    alog("%s: error opening logfile:%s\n", __func__, arg_logfile);
+	logfile = fopen(arg_logfile, "a+");
+	if (!logfile) {
+	    awarn("%s: fopen(%s)", __func__, arg_logfile);
 	    exit(EXIT_FAILURE);
 	}
     }
@@ -1823,17 +1791,15 @@ int main(int argc, char *argv[])
 	logfile = stdout;
     }
 
-    /* init logger */
+    /* re-init logger again (switch to final logfile) */
+    logger_finalize(alogger);
     alogger = logger_init("PSACC", logfile);
 
-    if (debug) {
-	alog("Enabling debug mask: 0x%x\n", debug);
-    }
+    if (debug) alog("Enabling debug mask: 0x%x\n", debug);
 
     /* init */
     btroot = 0;
     fp = 0;
-    dJobs = 0;
 
     /* get node infos */
     getNodeInformation();
@@ -1843,9 +1809,3 @@ int main(int argc, char *argv[])
 
     return 0;
 }
-
-/*
- * Local Variables:
- *  compile-command: "make psaccounter"
- * End:
- */
