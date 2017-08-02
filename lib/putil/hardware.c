@@ -54,10 +54,12 @@ int HW_add(const char *name)
     if (!name || HW_index(name) != -1) return -1;
 
     if (cnt >= size) {
+	hardware_t *new_hw;
 	size += 5;
-	hw = (hardware_t *)realloc(hw, size * sizeof(hardware_t));
+	new_hw = realloc(hw, size * sizeof(*hw));
 
-	if (!hw) return -1;
+	if (!new_hw) return -1;
+	hw = new_hw;
     }
 
     hw[cnt].name = strdup(name);

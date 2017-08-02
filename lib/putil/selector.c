@@ -366,17 +366,19 @@ void Selector_setDebugMask(int32_t mask)
 int Selector_setMax(int max)
 {
     int oldMax = maxSelectorFD, fd;
+    Selector_t **newSelectors;
 
     if (maxSelectorFD >= max) return 0; /* don't shrink */
 
     maxSelectorFD = max;
 
-    selectors = realloc(selectors, sizeof(*selectors) * maxSelectorFD);
-    if (!selectors) {
+    newSelectors = realloc(selectors, sizeof(*selectors) * maxSelectorFD);
+    if (!newSelectors) {
 	logger_warn(logger, -1, ENOMEM, "%s", __func__);
 	errno = ENOMEM;
 	return -1;
     }
+    selectors = newSelectors;
 
     /* Initialize new selector pointers */
     for (fd = oldMax; fd < maxSelectorFD; fd++) selectors[fd] = NULL;
