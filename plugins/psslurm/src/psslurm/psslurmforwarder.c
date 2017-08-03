@@ -696,7 +696,16 @@ static void execJobStep(Forwarder_Data_t *fwdata, int rerun)
 
     /* build mpiexec argV */
     strvInit(&argV, NULL, 0);
-    strvAdd(&argV, ustrdup(MPIEXEC_BINARY));
+    if (getenv("PMI_SPAWNED")) {
+	char *tmpStr = getenv("__PSI_MPIEXEC_KVSPROVIDER");
+	if (tmpStr) {
+	    strvAdd(&argV, ustrdup(tmpStr));
+	} else {
+	    strvAdd(&argV, ustrdup(LIBEXECDIR "/kvsprovider"));
+	}
+    } else {
+	strvAdd(&argV, ustrdup(MPIEXEC_BINARY));
+    }
 
     /* always export all environment variables */
     strvAdd(&argV, ustrdup("-x"));

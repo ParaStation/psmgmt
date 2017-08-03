@@ -14,6 +14,7 @@
 #include <errno.h>
 #include <string.h>
 #include <libgen.h>
+#include <limits.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <netdb.h>
@@ -22,10 +23,6 @@
 #include <sys/types.h>
 #include <sys/ioctl.h>
 #include <sys/stat.h>
-
-#ifdef __linux__
-#include <linux/limits.h>
-#endif
 
 #include "pscommon.h"
 #include "psprotocol.h"
@@ -52,15 +49,14 @@ void PSI_setUID(uid_t uid)
 
 void PSI_RemoteArgs(int Argc, char **Argv, int *RArgc, char ***RArgv)
 {
-    int new_argc=0;
+    int new_argc = 0;
     char **new_argv;
     char env_name[ sizeof(ENV_NODE_RARG) + 20];
-    int cnt;
+    int cnt = 0;
     int i;
 
     PSI_log(PSI_LOG_VERB, "%s()\n", __func__);
 
-    cnt=0;
     for (;;) {
 	snprintf(env_name, sizeof(env_name), ENV_NODE_RARG, cnt);
 	if (getenv(env_name)) {
@@ -75,13 +71,13 @@ void PSI_RemoteArgs(int Argc, char **Argv, int *RArgc, char ***RArgv)
 	new_argv=malloc(sizeof(char*)*(new_argc+1));
 	new_argv[new_argc]=NULL;
 
-	for (i=0; i<cnt; i++) {
+	for (i = 0; i < cnt; i++) {
 	    snprintf(env_name, sizeof(env_name), ENV_NODE_RARG, i);
 	    new_argv[i] = getenv(env_name);
 	    /* Propagate the environment */
 	    setPSIEnv(env_name, new_argv[i], 1);
 	}
-	for (i=0; i<Argc; i++) {
+	for (i = 0; i < Argc; i++) {
 	    new_argv[i+cnt] = Argv[i];
 	}
 	*RArgc=new_argc;
@@ -142,11 +138,11 @@ static char *mygetwd(const char *ext)
 	strcat(dir, ext ? ext : "");
 
 	/* remove automount directory name. */
-	if (strncmp(dir, "/tmp_mnt", strlen("/tmp_mnt"))==0) {
+	if (!strncmp(dir, "/tmp_mnt", strlen("/tmp_mnt"))) {
 	    temp = dir;
 	    dir = strdup(&temp[strlen("/tmp_mnt")]);
 	    free(temp);
-	} else if (strncmp(dir, "/export", strlen("/export"))==0) {
+	} else if (!strncmp(dir, "/export", strlen("/export"))) {
 	    temp = dir;
 	    dir = strdup(&temp[strlen("/export")]);
 	    free(temp);
@@ -240,7 +236,7 @@ static int sendTask(DDTypedBufferMsg_t *msg, PStask_t *task)
     size_t len = PStask_encodeTask(msg->buf, sizeof(msg->buf), task, &offset);
 
     msg->header.len += len;
-    if (PSI_sendMsg(msg)<0) {
+    if (PSI_sendMsg(msg) < 0) {
 	PSI_warn(-1, errno, "%s: PSI_sendMsg", __func__);
 	return -1;
     }
@@ -262,7 +258,7 @@ static int sendTask(DDTypedBufferMsg_t *msg, PStask_t *task)
 	}
 
 	msg->header.len += len;
-	if (PSI_sendMsg(msg)<0) {
+	if (PSI_sendMsg(msg) < 0) {
 	    PSI_warn(-1, errno, "%s: PSI_sendMsg", __func__);
 	    return -1;
 	}
@@ -304,7 +300,7 @@ static int sendArgv(DDTypedBufferMsg_t *msg, char **argv)
 	len = PStask_encodeArgv(msg->buf, sizeof(msg->buf), argv, &num, &off);
 
 	msg->header.len += len;
-	if (PSI_sendMsg(msg)<0) {
+	if (PSI_sendMsg(msg) < 0) {
 	    PSI_warn(-1, errno, "%s: PSI_sendMsg", __func__);
 	    return -1;
 	}
@@ -368,7 +364,7 @@ static int sendEnv(DDTypedBufferMsg_t *msg, char **env, size_t *len)
 	if (num == -1) {
 	    /* last entry done */
 	    if (msg->type == PSP_SPAWN_ENVCNTD) {
-		if (PSI_sendMsg(msg)<0) {
+		if (PSI_sendMsg(msg) < 0) {
 		    PSI_warn(-1, errno, "%s: PSI_sendMsg(CNTD)", __func__);
 		    return -1;
 		}
@@ -378,7 +374,7 @@ static int sendEnv(DDTypedBufferMsg_t *msg, char **env, size_t *len)
 	    return 0;
 	}
 
-	if (PSI_sendMsg(msg)<0) {
+	if (PSI_sendMsg(msg) < 0) {
 	    PSI_warn(-1, errno, "%s: PSI_sendMsg", __func__);
 	    return -1;
 	}
@@ -414,16 +410,17 @@ static int sendEnv(DDTypedBufferMsg_t *msg, char **env, size_t *len)
  * general error, but answer from known node, 1: no error, 2: ignore
  * message, e.g. from unknown node or answer on "who died" question.
  */
-static int handleAnswer(unsigned int firstRank, int count, PSnodes_ID_t *dstnodes,
-		 int *errors, PStask_ID_t *tids)
+static int handleAnswer(unsigned int firstRank, int count,
+			PSnodes_ID_t *dstnodes, int *errors, PStask_ID_t *tids)
 {
     DDBufferMsg_t answer;
     DDErrorMsg_t *errMsg = (DDErrorMsg_t *)&answer;
     DDSignalMsg_t *sigMsg = (DDSignalMsg_t *)&answer;
-    int rank, fallback = 0;
+    int rank;
+    bool fallback = false;
 
 recv_retry:
-    if (PSI_recvMsg((DDMsg_t *)&answer, sizeof(answer))<0) {
+    if (PSI_recvMsg((DDMsg_t *)&answer, sizeof(answer)) < 0) {
 	PSI_warn(-1, errno, "%s: PSI_recvMsg", __func__);
 	return -1;
     }
@@ -436,12 +433,12 @@ recv_retry:
 		     || (dstnodes[rank] != PSC_getID(answer.header.sender))
 		     || (tids && tids[rank])
 		     || errors[rank])) {
-	    fallback = 1;
+	    fallback = true;
 	}
 
 	if (!rank || fallback) {
-	    for (rank=0; rank<count; rank++) {
-		if (dstnodes[rank]==PSC_getID(answer.header.sender)
+	    for (rank = 0; rank < count; rank++) {
+		if (dstnodes[rank] == PSC_getID(answer.header.sender)
 		    && (!tids || !tids[rank]) && !errors[rank]) {
 		    /*
 		     * We have to test for !errors[i], since daemon on node 0
@@ -457,9 +454,9 @@ recv_retry:
 	    if (tids) tids[rank] = answer.header.sender;
 	}
 
-	if (rank==count) {
-	    if (PSC_getID(answer.header.sender)==PSC_getMyID()
-		&& errMsg->error==EACCES && count==1) {
+	if (rank == count) {
+	    if (PSC_getID(answer.header.sender) == PSC_getMyID()
+		&& errMsg->error == EACCES && count == 1) {
 		/* This might be due to 'starting not allowed' here */
 		errors[0] = errMsg->error;
 		if (tids) tids[0] = answer.header.sender;
@@ -471,7 +468,7 @@ recv_retry:
 	    }
 	}
 
-	if (answer.header.type==PSP_CD_SPAWNFAILED) {
+	if (answer.header.type == PSP_CD_SPAWNFAILED) {
 	    if ((size_t)answer.header.len > sizeof(*errMsg)) {
 		size_t bufUsed = sizeof(*errMsg) - sizeof(answer.header);
 		char *note = answer.buf + bufUsed;
@@ -554,22 +551,22 @@ recv_retry:
  * requests.
  */
 static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
-		   int argc, char **argv, int strictArgv,
+		   int argc, char **argv, bool strictArgv,
 		   PStask_group_t taskGroup,
 		   unsigned int rank, int *errors, PStask_ID_t *tids)
 {
-    int outstanding_answers=0;
+    int outstanding_answers = 0;
     DDTypedBufferMsg_t msg;
     char *mywd;
 
     int i;          /* count variable */
     int ret = 0;    /* return value */
-    int error = 0;  /* error flag */
+    bool error = false;  /* error flag */
     int fd = 0;
     PStask_t* task; /* structure to store the information of the new process */
     unsigned int firstRank = rank;
     char *offset = NULL;
-    int hugeTask = 0, hugeArgv = 0;
+    bool hugeTask = false, hugeArgv = false;
     char *valgrind;
     char *callgrind;
     PSnodes_ID_t lastNode = -1;
@@ -589,9 +586,9 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
 	return -1;
     }
 
-    for (i=0; i<count; i++) errors[i] = 0;
+    for (i = 0; i < count; i++) errors[i] = 0;
 
-    if (tids) for (i=0; i<count; i++) tids[i] = 0;
+    if (tids) for (i = 0; i < count; i++) tids[i] = 0;
 
     /* setup task structure */
     task = PStask_new();
@@ -661,51 +658,52 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
 	    int length;
 
 	    length = readlink("/proc/self/exe", myexec, sizeof(myexec)-1);
-	    if (length<0) {
+	    if (length < 0) {
 		PSI_warn(-1, errno, "%s: readlink", __func__);
 	    } else {
 		myexec[length]='\0';
 	    }
 
-	    task->argv[0]=strdup(myexec);
+	    task->argv[0] = strdup(myexec);
 #else
 	    PSI_log(-1, "%s: Cannot start job from PATH.\n", __func__);
 	    goto error;
 #endif
 	} else {
-	    task->argv[0]=strdup(argv[0]);
+	    task->argv[0] = strdup(argv[0]);
 	}
     }
 
     /* check for valgrind support and whether this is the actual executable: */
-    if( valgrind && (strcmp(basename(argv[0]), "mpiexec") !=0 )
-	&& (strcmp(argv[0], "valgrind") !=0 ) ) {
+    if (valgrind && strcmp(basename(argv[0]), "mpiexec")
+	&& strcmp(basename(argv[0]), "kvsprovider")
+	&& strcmp(basename(argv[0]), "spawner")
+	&& strcmp(argv[0], "valgrind") ) {
 	/* add 'valgrind' and its parameters before the executable name: */
-	 task->argv[3]=strdup(argv[0]);
-	 task->argv[0]=strdup("valgrind");
-	 task->argv[1]=strdup("--quiet");
+	task->argv[3] = strdup(argv[0]);
+	task->argv[0] = strdup("valgrind");
+	task->argv[1] = strdup("--quiet");
 
-	 if (!callgrind) {
-	      if(strcmp(valgrind, "1") == 0) {
-		   task->argv[2]=strdup("--leak-check=no");
-	      } else {
-		   task->argv[2]=strdup("--leak-check=full");
-	      }
-	 } else {
-	      task->argv[2]=strdup("--tool=callgrind");
-	 }
+	if (!callgrind) {
+	    if (!strcmp(valgrind, "1")) {
+		task->argv[2]=strdup("--leak-check=no");
+	    } else {
+		task->argv[2]=strdup("--leak-check=full");
+	    }
+	} else {
+	    task->argv[2]=strdup("--tool=callgrind");
+	}
 
-	 for (i=1;i<task->argc;i++) {
-	      task->argv[i+3]=strdup(argv[i]);
-	      if (!task->argv[i+3]) goto error;
-	 }
-	 task->argc+=3;
+	for (i=1; i < task->argc; i++) {
+	    task->argv[i+3]=strdup(argv[i]);
+	    if (!task->argv[i+3]) goto error;
+	}
+	task->argc+=3;
     } else {
-
-	 for (i=1;i<task->argc;i++) {
-	      task->argv[i]=strdup(argv[i]);
-	      if (!task->argv[i]) goto error;
-	 }
+	for (i=1; i < task->argc; i++) {
+	    task->argv[i]=strdup(argv[i]);
+	    if (!task->argv[i]) goto error;
+	}
     }
     task->argv[task->argc] = NULL;
 
@@ -717,13 +715,13 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
 
     /* test if task can be send */
     PStask_encodeTask(msg.buf, sizeof(msg.buf), task, &offset);
-    if (offset) hugeTask = 1;
+    if (offset) hugeTask = true;
 
     i = 0;
     PStask_encodeArgv(msg.buf, sizeof(msg.buf), task->argv, &i, &offset);
-    if (i != -1) hugeArgv = 1;
+    if (i != -1) hugeArgv = true;
 
-    for (i=0; i<count && !error; i++) {
+    for (i = 0; i < count; i++) {
 	/* check if dstnode is ok */
 	if (!PSC_validNode(dstnodes[i])) {
 	    errors[i] = ENETUNREACH;
@@ -750,12 +748,11 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
     }
 
     /* send actual requests */
-    outstanding_answers=0;
-    for (i=0; i<count && !error; i++) {
+    for (i = 0; i < count && !error; i++) {
 	size_t len = 0;
 
 	msg.header.type = PSP_CD_SPAWNREQ;
-	msg.header.dest = PSC_getTID(dstnodes[i],0);
+	msg.header.dest = PSC_getTID(dstnodes[i], 0);
 	msg.header.sender = PSC_getMyTID();
 	msg.header.len = sizeof(msg.header) + sizeof(msg.type);
 	msg.type = PSP_SPAWN_TASK;
@@ -779,7 +776,7 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
 	    /* Let the new rank use the environment of its sibling */
 	    msg.type = PSP_SPAWN_ENV_CLONE;
 	    msg.header.len = sizeof(msg.header) + sizeof(msg.type);
-	    if (PSI_sendMsg(&msg)<0) {
+	    if (PSI_sendMsg(&msg) < 0) {
 		PSI_warn(-1, errno, "%s: PSI_sendMsg", __func__);
 		goto error;
 	    }
@@ -792,7 +789,7 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
 
 	    if (extraEnv) {
 		if (len) {
-		    if (PSI_sendMsg(&msg)<0) {
+		    if (PSI_sendMsg(&msg) < 0) {
 			PSI_warn(-1, errno, "%s: PSI_sendMsg", __func__);
 			goto error;
 		    }
@@ -805,7 +802,7 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
 	}
 
 	msg.type = PSP_SPAWN_END;
-	if (PSI_sendMsg(&msg)<0) {
+	if (PSI_sendMsg(&msg) < 0) {
 	    PSI_warn(-1, errno, "%s: PSI_sendMsg", __func__);
 	    goto error;
 	}
@@ -821,7 +818,7 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
 		goto error;
 		break;
 	    case 0:
-		error = 1;
+		error = true;
 	    case 1:
 		outstanding_answers--;
 		ret++;
@@ -846,7 +843,7 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
 	    return -1;
 	    break;
 	case 0:
-	    error = 1;
+	    error = true;
 	case 1:
 	    outstanding_answers--;
 	    ret++;
@@ -872,11 +869,11 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
 int PSI_spawn(int count, char *workdir, int argc, char **argv,
 	      int *errors, PStask_ID_t *tids)
 {
-    return PSI_spawnStrict(count, workdir, argc, argv, 0, errors, tids);
+    return PSI_spawnStrict(count, workdir, argc, argv, false, errors, tids);
 }
 
 int PSI_spawnStrict(int count, char *workdir, int argc, char **argv,
-		    int strictArgv, int *errors, PStask_ID_t *tids)
+		    bool strictArgv, int *errors, PStask_ID_t *tids)
 {
     return PSI_spawnStrictHW(count, 0/*hwType*/, 1/*tpp*/, 0/*options*/,
 			     workdir, argc, argv, strictArgv, errors, tids);
@@ -884,7 +881,7 @@ int PSI_spawnStrict(int count, char *workdir, int argc, char **argv,
 
 int PSI_spawnStrictHW(int count, uint32_t hwType, uint16_t tpp,
 		      PSpart_option_t options, char *workdir,
-		      int argc, char **argv, int strictArgv,
+		      int argc, char **argv, bool strictArgv,
 		      int *errors, PStask_ID_t *tids)
 {
     int total = 0;
@@ -897,7 +894,7 @@ int PSI_spawnStrictHW(int count, uint32_t hwType, uint16_t tpp,
 	return -1;
     }
 
-    if (count<=0) return 0;
+    if (count <= 0) return 0;
 
     nodes = malloc(sizeof(*nodes) * NODES_CHUNK);
     if (!nodes) {
@@ -905,8 +902,8 @@ int PSI_spawnStrictHW(int count, uint32_t hwType, uint16_t tpp,
 	return -1;
     }
 
-    while (count>0) {
-	int chunk = (count>NODES_CHUNK) ? NODES_CHUNK : count;
+    while (count > 0) {
+	int chunk = (count > NODES_CHUNK) ? NODES_CHUNK : count;
 	int rank = PSI_getNodes(chunk, hwType, tpp, options, nodes);
 	int i, ret;
 
@@ -917,7 +914,7 @@ int PSI_spawnStrictHW(int count, uint32_t hwType, uint16_t tpp,
 	}
 
 	PSI_log(PSI_LOG_SPAWN, "%s: will spawn to:", __func__);
-	for (i=0; i<chunk; i++) {
+	for (i = 0; i < chunk; i++) {
 	    PSI_log(PSI_LOG_SPAWN, " %2d", nodes[i]);
 	}
 	PSI_log(PSI_LOG_SPAWN, ".\n");
@@ -939,7 +936,7 @@ int PSI_spawnStrictHW(int count, uint32_t hwType, uint16_t tpp,
 }
 
 int PSI_spawnRsrvtn(int count, PSrsrvtn_ID_t resID, char *workdir,
-		    int argc, char **argv, int strictArgv,
+		    int argc, char **argv, bool strictArgv,
 		    int *errors, PStask_ID_t *tids)
 {
     int total = 0, ret = -1;
@@ -952,7 +949,7 @@ int PSI_spawnRsrvtn(int count, PSrsrvtn_ID_t resID, char *workdir,
 	goto exit;
     }
 
-    if (!(count > 0)) return 0;
+    if (count <= 0) return 0;
 
     nodes = malloc(sizeof(*nodes) * NODES_CHUNK);
     if (!nodes) {
@@ -960,8 +957,8 @@ int PSI_spawnRsrvtn(int count, PSrsrvtn_ID_t resID, char *workdir,
 	goto exit;
     }
 
-    while (count>0) {
-	int chunk = (count>NODES_CHUNK) ? NODES_CHUNK : count;
+    while (count > 0) {
+	int chunk = (count > NODES_CHUNK) ? NODES_CHUNK : count;
 	int rank = PSI_getSlots(chunk, resID, nodes);
 	int i, num;
 
@@ -971,7 +968,7 @@ int PSI_spawnRsrvtn(int count, PSrsrvtn_ID_t resID, char *workdir,
 	}
 
 	PSI_log(PSI_LOG_SPAWN, "%s: will spawn to:", __func__);
-	for (i=0; i<chunk; i++) {
+	for (i = 0; i < chunk; i++) {
 	    PSI_log(PSI_LOG_SPAWN, " %2d", nodes[i]);
 	}
 	PSI_log(PSI_LOG_SPAWN, ".\n");
@@ -1015,14 +1012,15 @@ int PSI_spawnSingle(char *workdir, int argc, char **argv,
     PSI_log(PSI_LOG_SPAWN, "%s: will spawn to: %d  rank %d\n",
 	    __func__, node, rank);
 
-    ret = dospawn(1, &node, workdir, argc, argv, 0, TG_ANY, rank, error, tid);
+    ret = dospawn(1, &node, workdir, argc, argv, false, TG_ANY, rank,
+		  error, tid);
     if (ret != 1) return -1;
 
     return rank;
 }
 
 int PSI_spawnAdmin(PSnodes_ID_t node, char *workdir, int argc, char **argv,
-		   int strictArgv, unsigned int rank,
+		   bool strictArgv, unsigned int rank,
 		   int *error, PStask_ID_t *tid)
 {
     int ret;
@@ -1042,12 +1040,12 @@ int PSI_spawnAdmin(PSnodes_ID_t node, char *workdir, int argc, char **argv,
     return 1;
 }
 
-int PSI_spawnService(PSnodes_ID_t node, char *workdir, int argc, char **argv,
-		     int getSignals, int *error, PStask_ID_t *tid, int rank)
+int PSI_spawnService(PSnodes_ID_t node, PStask_group_t taskGroup, char *wDir,
+		     int argc, char **argv, int *error, PStask_ID_t *tid,
+		     int rank)
 {
     int ret;
     char *envStr = getenv(ENV_NUM_SERVICE_PROCS);
-    PStask_group_t group;
 
     PSI_log(PSI_LOG_VERB, "%s(%d)\n", __func__, node);
 
@@ -1068,19 +1066,17 @@ int PSI_spawnService(PSnodes_ID_t node, char *workdir, int argc, char **argv,
 	}
 
 	snprintf(newStr, sizeof(newStr), "%ld", oldNum+1);
-	setenv("__PSI_SERVICE_PROCS", newStr, 1);
+	setenv(ENV_NUM_SERVICE_PROCS, newStr, 1);
     } else {
-	setenv("__PSI_SERVICE_PROCS", "1", 1);
+	setenv(ENV_NUM_SERVICE_PROCS, "1", 1);
     }
 
     if (node == -1) node = PSC_getMyID();
 
     if (rank >= -1) rank = -2;
 
-    group = getSignals ? TG_SERVICE_SIG : TG_SERVICE;
-    if (getenv("SERVICE_KVS_PROVIDER")) group = TG_KVS;
-
-    ret = dospawn(1, &node, workdir, argc, argv, 0, group, rank, error, tid);
+    ret = dospawn(1, &node, wDir, argc, argv, false, taskGroup, rank,
+		  error, tid);
     if (ret != 1) return -1;
 
     return 1;
@@ -1108,7 +1104,8 @@ PStask_ID_t PSI_spawnRank(int rank, char *workdir, int argc, char **argv,
     PSI_log(PSI_LOG_SPAWN, "%s: will spawn to: %d  rank %d\n",
 	    __func__, node, rank);
 
-    ret = dospawn(1, &node, workdir, argc, argv, 0, TG_ANY, rank, error, &tid);
+    ret = dospawn(1, &node, workdir, argc, argv, false, TG_ANY, rank,
+		  error, &tid);
     if (ret != 1) return 0;
 
     return tid;
@@ -1135,7 +1132,8 @@ PStask_ID_t PSI_spawnGMSpawner(int np, char *workdir, int argc, char **argv,
 
     PSI_log(PSI_LOG_SPAWN, "%s: will spawn to: %d", __func__, node);
 
-    ret = dospawn(1, &node, workdir, argc, argv, 0, TG_ANY, np, error, &tid);
+    ret = dospawn(1, &node, workdir, argc, argv, false, TG_ANY, np,
+		  error, &tid);
     if (ret != 1) return 0;
 
     return tid;
@@ -1173,7 +1171,7 @@ char *PSI_createPGfile(int num, const char *prog, int local)
 	}
     }
 
-    for (i=0; i<num; i++) {
+    for (i = 0; i < num; i++) {
 	PSnodes_ID_t node;
 	static struct in_addr hostaddr;
 
@@ -1220,7 +1218,7 @@ char *PSI_createMPIhosts(int num, int local)
 	}
     }
 
-    for (i=0; i<num; i++) {
+    for (i = 0; i < num; i++) {
 	PSnodes_ID_t node;
 	static struct in_addr hostaddr;
 
@@ -1247,27 +1245,27 @@ char *PSI_createMPIhosts(int num, int local)
 
 int PSI_kill(PStask_ID_t tid, short signal, int async)
 {
-    DDSignalMsg_t msg;
+    DDSignalMsg_t msg = {
+	.header = {
+	    .type = PSP_CD_SIGNAL,
+	    .dest = tid,
+	    .sender = PSC_getMyTID(),
+	    .len = sizeof(msg) },
+	msg.signal = signal,
+	msg.param = getuid(),
+	msg.pervasive = 0,
+	msg.answer = 1 };
     DDErrorMsg_t answer;
 
     PSI_log(PSI_LOG_VERB, "%s(%s, %d)\n", __func__, PSC_printTID(tid), signal);
 
-    msg.header.type = PSP_CD_SIGNAL;
-    msg.header.sender = PSC_getMyTID();
-    msg.header.dest = tid;
-    msg.header.len = sizeof(msg);
-    msg.signal = signal;
-    msg.param = getuid();
-    msg.pervasive = 0;
-    msg.answer = 1;
-
-    if (PSI_sendMsg(&msg)<0) {
+    if (PSI_sendMsg(&msg) < 0) {
 	PSI_warn(-1, errno, "%s: PSI_sendMsg", __func__);
 	return -1;
     }
 
     if (!async) {
-	if (PSI_recvMsg((DDMsg_t *)&answer, sizeof(answer))<0) {
+	if (PSI_recvMsg((DDMsg_t *)&answer, sizeof(answer)) < 0) {
 	    PSI_warn(-1, errno, "%s: PSI_recvMsg", __func__);
 	    return -1;
 	}

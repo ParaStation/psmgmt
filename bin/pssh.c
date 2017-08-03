@@ -302,7 +302,7 @@ int main(int argc, const char *argv[])
 	exec_argc = 3;
     }
 
-    PSE_spawnAdmin(nodeID, 0, exec_argc, exec_argv, 1);
+    PSE_spawnAdmin(nodeID, 0, exec_argc, exec_argv, true);
 
     /* Never be here ! */
     exit(1);

@@ -555,12 +555,14 @@ bool readProcIO(pid_t pid, ProcIO_t *io)
 	return false;
     }
 
-    ret = fscanf(fd, io_format, &io->diskRead, &io->diskWrite, &io->readBytes,
-		 &io->writeBytes);
-    eno = errno;
+    do {
+	ret = fscanf(fd, io_format, &io->diskRead, &io->diskWrite,
+		     &io->readBytes, &io->writeBytes);
+	eno = errno;
+    } while (ret == -1 && eno == EINTR);
     fclose(fd);
     if (ret != 4) {
-	mwarn(eno, "%s: fscanf()", __func__);
+	mwarn(eno, "%s: fscanf() returns %d", __func__, ret);
 	return false;
     }
 
@@ -580,7 +582,7 @@ bool readProcStat(pid_t pid, ProcStat_t *pS)
     /* format string of /proc/<pid>/stat */
     static char stat_format[] =
 		    "%*d "	    /* pid */
-		    "(%*[^)]) "	    /* comm */
+		    "(%*[^)]%*[)] " /* comm */
 		    "%c "	    /* state */
 		    "%u "	    /* ppid */
 		    "%u "	    /* pgrp */
@@ -623,14 +625,16 @@ bool readProcStat(pid_t pid, ProcStat_t *pS)
 	return false;
     }
 
-    ret = fscanf(fd, stat_format, pS->state, &pS->ppid, &pS->pgrp,
-		 &pS->session, &pS->majflt, &pS->cmajflt, &pS->utime,
-		 &pS->stime, &pS->cutime, &pS->cstime, &pS->threads,
-		 &pS->vmem, &pS->mem, &pS->cpu);
-    eno = errno;
+    do {
+	ret = fscanf(fd, stat_format, pS->state, &pS->ppid, &pS->pgrp,
+		     &pS->session, &pS->majflt, &pS->cmajflt, &pS->utime,
+		     &pS->stime, &pS->cutime, &pS->cstime, &pS->threads,
+		     &pS->vmem, &pS->mem, &pS->cpu);
+	eno = errno;
+    } while (ret == -1 && eno == EINTR);
     fclose(fd);
     if (ret != 14) {
-	mwarn(eno, "%s: fscanf()", __func__);
+	mwarn(eno, "%s: fscanf(%d) returns %d", __func__, pid, ret);
 	return false;
     }
 
@@ -657,11 +661,13 @@ static bool readProcUID(pid_t pid, ProcStat_t *pS)
 	return false;
     }
 
-    ret = fscanf(fd, "%u", &pS->loginUid);
-    eno = errno;
+    do {
+	ret = fscanf(fd, "%u", &pS->loginUid);
+	eno = errno;
+    } while (ret == -1 && eno == EINTR);
     fclose(fd);
     if (ret != 1) {
-	mwarn(eno, "%s: fscanf()", __func__);
+	mwarn(eno, "%s: fscanf() returns %d", __func__, ret);
 	return false;
     }
     return true;

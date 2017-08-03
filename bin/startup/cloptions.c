@@ -962,6 +962,15 @@ static void checkConsistency(Conf_t *conf)
     if (conf->openMPI && conf->overbook) {
 	errExit("overbooking is unsupported for OpenMPI");
     }
+
+    /* PMI interface consistency */
+    if (conf->pmiDisable || conf->mpichComp) {
+	conf->pmiTCP = false;
+	conf->pmiSock = false;
+    } else if (!conf->pmiTCP && !conf->pmiSock) {
+	/* default PMI connection method is unix socket */
+	conf->pmiSock = true;
+    }
 }
 
 /**

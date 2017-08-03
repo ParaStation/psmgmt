@@ -1,44 +1,27 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2006-2015 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2006-2017 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
 /**
- * \file
- * psaccounter: ParaStation example accounting daemon
- *
- * $Id$
- *
- * \author
- * Norbert Eicker <eicker@par-tec.com>
- * Ralph Krotz <krotz@par-tec.com>
- *
+ * @file psaccounter: ParaStation example accounting daemon
  */
-#ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__((used)) =
-    "$Id$";
-#endif /* DOXYGEN_SHOULD_SKIP_THIS */
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
 #include <errno.h>
-#include <sys/socket.h>
-#include <sys/types.h>
-#include <sys/time.h>
 #include <sys/resource.h>
+#include <sys/time.h>
+#include <sys/types.h>
 #include <sys/wait.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
 
 #include <popt.h>
 
-#include "pse.h"
 #include "psi.h"
 #include "psiinfo.h"
 #include "psispawn.h"
@@ -135,10 +118,10 @@ static void handleEndMsg(DDTypedBufferMsg_t *msg)
 
 	/* total number of children. Only the logger knows this */
 	PSP_getTypedMsgBuf(msg, &used, __func__, "numChild", &numChild,
-		       sizeof(numChild));
+			   sizeof(numChild));
 	/* walltime used by logger */
 	PSP_getTypedMsgBuf(msg, &used, __func__, "wallTm", &wallTm,
-		       sizeof(wallTm));
+			   sizeof(wallTm));
 
 	printf(" num children %d", numChild);
 	printf(" wall %.6f", wallTm.tv_sec + 1.0e-6*wallTm.tv_usec);
@@ -308,10 +291,7 @@ static void loop(void)
 	    printf("Unknown message\n");
 	}
     }
-
-    PSE_finalize();
 }
-
 
 int main(int argc, char *argv[])
 {
@@ -345,10 +325,3 @@ int main(int argc, char *argv[])
 
     return 0;
 }
-
-
-/*
- * Local Variables:
- *  compile-command: "make psaccounter"
- * End:
- */

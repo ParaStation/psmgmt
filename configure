@@ -12938,6 +12938,14 @@ ac_config_files="$ac_config_files Makefile"
 
 ac_config_files="$ac_config_files bin/Makefile"
 
+ac_config_files="$ac_config_files bin/admin/Makefile"
+
+ac_config_files="$ac_config_files bin/daemon/Makefile"
+
+ac_config_files="$ac_config_files bin/logger/Makefile"
+
+ac_config_files="$ac_config_files bin/startup/Makefile"
+
 ac_config_files="$ac_config_files doc/Makefile"
 
 ac_config_files="$ac_config_files include/Makefile"
@@ -14072,6 +14080,10 @@ do
     "libtool") CONFIG_COMMANDS="$CONFIG_COMMANDS libtool" ;;
     "Makefile") CONFIG_FILES="$CONFIG_FILES Makefile" ;;
     "bin/Makefile") CONFIG_FILES="$CONFIG_FILES bin/Makefile" ;;
+    "bin/admin/Makefile") CONFIG_FILES="$CONFIG_FILES bin/admin/Makefile" ;;
+    "bin/daemon/Makefile") CONFIG_FILES="$CONFIG_FILES bin/daemon/Makefile" ;;
+    "bin/logger/Makefile") CONFIG_FILES="$CONFIG_FILES bin/logger/Makefile" ;;
+    "bin/startup/Makefile") CONFIG_FILES="$CONFIG_FILES bin/startup/Makefile" ;;
     "doc/Makefile") CONFIG_FILES="$CONFIG_FILES doc/Makefile" ;;
     "include/Makefile") CONFIG_FILES="$CONFIG_FILES include/Makefile" ;;
     "lib/Makefile") CONFIG_FILES="$CONFIG_FILES lib/Makefile" ;;
