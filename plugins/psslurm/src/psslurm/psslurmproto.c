@@ -103,7 +103,7 @@ static int32_t getMyNodeIndex(PSnodes_ID_t *nodes, uint32_t nrOfNodes)
     return -1;
 }
 
-void getNodesFromSlurmHL(char *slurmNodes, uint32_t *nrOfNodes,
+void getNodesFromSlurmHL(char *slurmHosts, uint32_t *nrOfNodes,
 			    PSnodes_ID_t **nodes, uint32_t *localId)
 {
     const char delimiters[] =", \n";
@@ -112,7 +112,7 @@ void getNodesFromSlurmHL(char *slurmNodes, uint32_t *nrOfNodes,
     int i = 0;
 
     *localId = -1;
-    if (!(hostlist = expandHostList(slurmNodes, nrOfNodes))||
+    if (!(hostlist = expandHostList(slurmHosts, nrOfNodes))||
 	!*nrOfNodes) {
 	mlog("%s: invalid hostlist '%s'\n", __func__, compHL);
 	return;
@@ -309,7 +309,7 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
             step->memBindType, step->memBind);
 
     /* convert slurm hostlist to PSnodes   */
-    getNodesFromSlurmHL(step->slurmNodes, &count, &step->nodes,
+    getNodesFromSlurmHL(step->slurmHosts, &count, &step->nodes,
 			&step->localNodeId);
     if (count != step->nrOfNodes) {
 	mlog("%s: mismatching number of nodes '%u:%u' for step %u:%u\n",
@@ -328,7 +328,7 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
 
     mlog("%s: step '%u:%u' user '%s' np '%u' nodes '%s' N '%u' tpp '%u' exe "
 	 "'%s'\n", __func__, step->jobid, step->stepid, step->username,
-	 step->np, step->slurmNodes, step->nrOfNodes, step->tpp, step->argv[0]);
+	 step->np, step->slurmHosts, step->nrOfNodes, step->tpp, step->argv[0]);
 
     /* add allocation */
     if (!(job = findJobById(step->jobid))) {
@@ -1167,7 +1167,7 @@ static void handleBatchJobLaunch(Slurm_Msg_t *sMsg)
     setAccFreq(job->acctFreq);
 
     /* convert slurm hostlist to PSnodes   */
-    getNodesFromSlurmHL(job->slurmNodes, &job->nrOfNodes, &job->nodes,
+    getNodesFromSlurmHL(job->slurmHosts, &job->nrOfNodes, &job->nodes,
 			&job->localNodeId);
 
     /* verify job credential */
@@ -1199,7 +1199,7 @@ static void handleBatchJobLaunch(Slurm_Msg_t *sMsg)
 
     mlog("%s: job '%u' user '%s' np '%u' nodes '%s' N '%u' tpp '%u' "
 	    "script '%s'\n", __func__, job->jobid, job->username, job->np,
-	    job->slurmNodes, job->nrOfNodes, job->tpp, job->jobscript);
+	    job->slurmHosts, job->nrOfNodes, job->tpp, job->jobscript);
 
     /* sanity check nrOfNodes */
     if (job->nrOfNodes > (uint16_t) PSC_getNrOfNodes()) {

@@ -278,8 +278,8 @@ void setSlurmJobEnv(Job_t *job)
 	envSet(&job->env, "SLURM_ARRAY_TASK_ID", tmp);
     }
 
-    envSet(&job->env, "SLURM_NODELIST", job->slurmNodes);
-    envSet(&job->env, "SLURM_JOB_NODELIST", job->slurmNodes);
+    envSet(&job->env, "SLURM_NODELIST", job->slurmHosts);
+    envSet(&job->env, "SLURM_JOB_NODELIST", job->slurmHosts);
     envSet(&job->env, "SLURM_CHECKPOINT_IMAGE_DIR", job->checkpoint);
 
     if (!job->nodeAlias || !strlen(job->nodeAlias)) {

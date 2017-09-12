@@ -144,9 +144,9 @@ bool verifyStepData(Step_t *step)
 	return false;
     }
 
-    if (!!(strcmp(step->slurmNodes, cred->hostlist))) {
+    if (!!(strcmp(step->slurmHosts, cred->hostlist))) {
 	mlog("%s: mismatching hostlist '%s' - '%s'\n", __func__,
-		step->slurmNodes, cred->hostlist);
+		step->slurmHosts, cred->hostlist);
 	return false;
     }
 
@@ -187,9 +187,9 @@ bool verifyJobData(Job_t *job)
 	return false;
     }
 
-    if (!!(strcmp(job->slurmNodes, cred->jobHostlist))) {
+    if (!!(strcmp(job->slurmHosts, cred->jobHostlist))) {
 	mlog("%s: mismatching hostlist '%s' - '%s'\n", __func__,
-		job->slurmNodes, cred->jobHostlist);
+		job->slurmHosts, cred->jobHostlist);
 	return false;
     }
 

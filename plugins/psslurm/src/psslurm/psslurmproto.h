@@ -65,8 +65,21 @@ typedef struct {
 } SlurmAccData_t;
 
 void sendNodeRegStatus(uint32_t status, int protoVersion);
-void getNodesFromSlurmHL(char *slurmNodes, uint32_t *nrOfNodes,
+
+/**
+ * @brief Convert a Slurm hostlist to PS node IDs
+ *
+ * @param slurmHosts The Slurm hostlist to convert
+ *
+ * @param nrOfNodes The number of converted nodes
+ *
+ * @param nodes The PS nodelist holding the result
+ *
+ * @param localId Will receive the local job node ID
+ */
+void getNodesFromSlurmHL(char *slurmHosts, uint32_t *nrOfNodes,
 			    PSnodes_ID_t **nodes, uint32_t *localId);
+
 int getSlurmMsgHeader(Slurm_Msg_t *sMsg, Connection_Forward_t *fw);
 
 /**

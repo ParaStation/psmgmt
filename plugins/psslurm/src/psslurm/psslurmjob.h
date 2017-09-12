@@ -146,7 +146,7 @@ typedef struct {
     Gres_Cred_t *gres;		/* general resource informations */
     PSnodes_ID_t *nodes;	/* all participating nodes in the step */
     uint32_t nrOfNodes;
-    char *slurmNodes;		/* slurm compressed hostlist */
+    char *slurmHosts;		/* Slurm compressed hostlist (SLURM_NODELIST) */
     uint32_t myNodeIndex;
     uint32_t jobMemLimit;
     uint32_t stepMemLimit;
@@ -248,7 +248,7 @@ typedef struct {
     uid_t uid;		    /* user id of the job owner */
     gid_t gid;		    /* group of the job owner */
     PSnodes_ID_t *nodes;    /* all participating nodes in the job */
-    char *slurmNodes;	    /* slurm compressed hostlist */
+    char *slurmHosts;	    /* Slurm compressed hostlist (SLURM_NODELIST) */
     PStask_ID_t mother;
     char *partition;
     JobCred_t *cred;	    /* job/step creditials */
@@ -313,7 +313,7 @@ typedef struct {
     gid_t gid;
     uint32_t nrOfNodes;
     PSnodes_ID_t *nodes;
-    char *slurmNodes;
+    char *slurmHosts;		/* Slurm compressed hostlist (SLURM_NODELIST) */
     env_t env;
     env_t spankenv;
     uint8_t terminate;
@@ -445,9 +445,10 @@ int signalStep(Step_t *step, int signal);
 
 int haveRunningSteps(uint32_t jobid);
 
-Alloc_t *addAllocation(uint32_t jobid, uint32_t nrOfNodes, char *slurmNodes,
+Alloc_t *addAllocation(uint32_t jobid, uint32_t nrOfNodes, char *slurmHosts,
 			    env_t *env, env_t *spankenv, uid_t uid, gid_t gid,
 			    char *username);
+
 Alloc_t *findAlloc(uint32_t jobid);
 int deleteAlloc(uint32_t jobid);
 void clearAllocList(void);

@@ -73,7 +73,7 @@ Job_t *addJob(uint32_t jobid)
     return job;
 }
 
-Alloc_t *addAllocation(uint32_t jobid, uint32_t nrOfNodes, char *slurmNodes,
+Alloc_t *addAllocation(uint32_t jobid, uint32_t nrOfNodes, char *slurmHosts,
 			    env_t *env, env_t *spankenv, uid_t uid, gid_t gid,
 			    char *username)
 {
@@ -87,14 +87,14 @@ Alloc_t *addAllocation(uint32_t jobid, uint32_t nrOfNodes, char *slurmNodes,
     alloc->uid = uid;
     alloc->gid = gid;
     alloc->terminate = 0;
-    alloc->slurmNodes = ustrdup(slurmNodes);
+    alloc->slurmHosts = ustrdup(slurmHosts);
     alloc->username = ustrdup(username);
     alloc->firstKillRequest = 0;
     alloc->motherSup = -1;
     alloc->start_time = time(0);
 
     /* init nodes */
-    getNodesFromSlurmHL(slurmNodes, &alloc->nrOfNodes, &alloc->nodes,
+    getNodesFromSlurmHL(slurmHosts, &alloc->nrOfNodes, &alloc->nodes,
 			&alloc->localNodeId);
     if (alloc->nrOfNodes != nrOfNodes) {
 	mlog("%s: mismatching nrOfNodes '%u:%u'\n", __func__, nrOfNodes,
@@ -493,7 +493,7 @@ int deleteAlloc(uint32_t jobid)
     psPamDeleteUser(alloc->username, strJobID(jobid));
 
     ufree(alloc->nodes);
-    ufree(alloc->slurmNodes);
+    ufree(alloc->slurmHosts);
     ufree(alloc->username);
     envDestroy(&alloc->env);
     envDestroy(&alloc->spankenv);
@@ -519,7 +519,7 @@ int deleteStep(uint32_t jobid, uint32_t stepid)
 
     ufree(step->srunPorts);
     ufree(step->tasksToLaunch);
-    ufree(step->slurmNodes);
+    ufree(step->slurmHosts);
     ufree(step->nodeAlias);
     ufree(step->nodes);
     ufree(step->cpuBind);
@@ -622,7 +622,7 @@ int deleteJob(uint32_t jobid)
     ufree(job->stdIn);
     ufree(job->cwd);
     ufree(job->hostname);
-    ufree(job->slurmNodes);
+    ufree(job->slurmHosts);
     ufree(job->checkpoint);
     ufree(job->restart);
     ufree(job->nodeAlias);
