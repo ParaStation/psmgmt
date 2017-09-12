@@ -29,5 +29,7 @@ pelogue_la_SOURCES = pelogue.c peloguelog.c peloguelog.h		\
 
 pelogue_la_LIBADD = $(libplugincommon) $(libpscommon)
 
+pelogue_la_CPPFLAGS = $(AM_CPPFLAGS) -DLOCALSTATEDIR=\"$(localstatedir)\"
+
 install-exec-local:
 	$(INSTALL) -d $(DESTDIR)$(localstatedir)/spool/parastation/scripts

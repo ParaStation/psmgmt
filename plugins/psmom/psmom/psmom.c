@@ -29,6 +29,7 @@
 #include "timer.h"
 #include "pbsdef.h"
 #include "psidplugin.h"
+#include "psidcomm.h"
 #include "psidhook.h"
 #include "psidnodes.h"
 #include "plugin.h"
@@ -675,7 +676,7 @@ int initialize(void)
     openMasterSock();
 
     /* We'll use fragmented messages between different psmoms */
-    initFragComm();
+    initFragComm(sendMsg);
     initPSComm();
 
     oldSpawnReqHandler = PSID_registerMsg(PSP_CD_SPAWNREQ,

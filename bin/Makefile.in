@@ -114,7 +114,7 @@ target_triplet = @target@
 bin_PROGRAMS = mlisten$(EXEEXT) psmstart$(EXEEXT) mpirun_chp4$(EXEEXT) \
 	psispawn$(EXEEXT) mpirun_chgm$(EXEEXT) gmspawner$(EXEEXT) \
 	mpirun_openib$(EXEEXT) test_pse$(EXEEXT) pssh$(EXEEXT) \
-	psaccounter$(EXEEXT)
+	psaccounter$(EXEEXT) pspelogue$(EXEEXT)
 noinst_PROGRAMS = testacct$(EXEEXT)
 subdir = bin
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
@@ -162,6 +162,10 @@ psispawn_DEPENDENCIES = $(libpsi)
 psmstart_SOURCES = psmstart.c
 psmstart_OBJECTS = psmstart.$(OBJEXT)
 psmstart_DEPENDENCIES = $(libpse) $(am__DEPENDENCIES_1)
+pspelogue_SOURCES = pspelogue.c
+pspelogue_OBJECTS = pspelogue.$(OBJEXT)
+pspelogue_DEPENDENCIES = $(libplugincommon) $(libpscommon) $(libpsi) \
+	$(am__DEPENDENCIES_1)
 pssh_SOURCES = pssh.c
 pssh_OBJECTS = pssh.$(OBJEXT)
 pssh_DEPENDENCIES = $(libpse) $(am__DEPENDENCIES_1)
@@ -206,11 +210,11 @@ am__v_CCLD_ = $(am__v_CCLD_@AM_DEFAULT_V@)
 am__v_CCLD_0 = @echo "  CCLD    " $@;
 am__v_CCLD_1 = 
 SOURCES = gmspawner.c mlisten.c mpirun_chgm.c mpirun_chp4.c \
-	mpirun_openib.c psaccounter.c psispawn.c psmstart.c pssh.c \
-	test_pse.c testacct.c
+	mpirun_openib.c psaccounter.c psispawn.c psmstart.c \
+	pspelogue.c pssh.c test_pse.c testacct.c
 DIST_SOURCES = gmspawner.c mlisten.c mpirun_chgm.c mpirun_chp4.c \
-	mpirun_openib.c psaccounter.c psispawn.c psmstart.c pssh.c \
-	test_pse.c testacct.c
+	mpirun_openib.c psaccounter.c psispawn.c psmstart.c \
+	pspelogue.c pssh.c test_pse.c testacct.c
 RECURSIVE_TARGETS = all-recursive check-recursive cscopelist-recursive \
 	ctags-recursive dvi-recursive html-recursive info-recursive \
 	install-data-recursive install-dvi-recursive \
@@ -458,6 +462,8 @@ PKG_VER := $(shell ${top_srcdir}/scripts/vcversion -r $(top_srcdir) --fmt versio
 PKG_REL := $(shell ${top_srcdir}/scripts/vcversion -r $(top_srcdir) --fmt release -n)
 libpse = $(top_builddir)/lib/pse/libpse.la
 libpsi = $(top_builddir)/lib/psi/libpsi.la
+libplugincommon = $(top_builddir)/lib/plugincommon/libplugincommon.la
+libpscommon = $(top_builddir)/lib/pscommon/libpscommon.la
 mlisten_LDADD = $(POPT_LIBS)
 psmstart_LDADD = $(libpse) $(POPT_LIBS)
 mpirun_chp4_LDADD = $(libpse) $(POPT_LIBS)
@@ -472,6 +478,7 @@ pssh_LDADD = $(libpse) $(POPT_LIBS)
 psaccounter_CPPFLAGS = $(AM_CPPFLAGS) -DLOCALSTATEDIR=\"$(localstatedir)\"
 psaccounter_LDADD = $(libpse) $(POPT_LIBS)
 testacct_LDADD = $(libpsi) $(POPT_LIBS)
+pspelogue_LDADD = $(libplugincommon) $(libpscommon) $(libpsi) $(POPT_LIBS)
 all: all-recursive
 
 .SUFFIXES:
@@ -597,6 +604,10 @@ psmstart$(EXEEXT): $(psmstart_OBJECTS) $(psmstart_DEPENDENCIES) $(EXTRA_psmstart
 	@rm -f psmstart$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(psmstart_OBJECTS) $(psmstart_LDADD) $(LIBS)
 
+pspelogue$(EXEEXT): $(pspelogue_OBJECTS) $(pspelogue_DEPENDENCIES) $(EXTRA_pspelogue_DEPENDENCIES) 
+	@rm -f pspelogue$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(pspelogue_OBJECTS) $(pspelogue_LDADD) $(LIBS)
+
 pssh$(EXEEXT): $(pssh_OBJECTS) $(pssh_DEPENDENCIES) $(EXTRA_pssh_DEPENDENCIES) 
 	@rm -f pssh$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(pssh_OBJECTS) $(pssh_LDADD) $(LIBS)
@@ -623,6 +634,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psaccounter-psaccounter.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psispawn.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psmstart.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pspelogue.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pssh.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_pse.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/testacct.Po@am__quote@

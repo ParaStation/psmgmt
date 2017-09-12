@@ -28,6 +28,7 @@
 #include "psidpartition.h"
 #include "pluginhelper.h"
 #include "pluginmalloc.h"
+#include "pluginfrag.h"
 
 #include "psaccounthandles.h"
 #include "pspamhandles.h"
@@ -1059,6 +1060,8 @@ void handlePELogueStart(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *msgData)
 int handleNodeDown(void *nodeID)
 {
     PSnodes_ID_t node = *(PSnodes_ID_t *) nodeID;
+
+    nodeDownFragComm(nodeID);
 
     /* check if the node which has gone down is a part of a local job */
     cleanJobByNode(node);

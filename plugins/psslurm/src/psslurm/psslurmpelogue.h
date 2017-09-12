@@ -23,6 +23,8 @@ int startTaskEpilogues(Step_t *step);
 
 void execTaskEpilogues(void *data, int rerun);
 
+void letAllStepsRun(uint32_t jobid);
+
 /**
  * @brief Handle epilogue job callback
  *

@@ -43,6 +43,7 @@
 #include "psidplugin.h"
 #include "psidhook.h"
 #include "psidnodes.h"
+#include "psidcomm.h"
 #include "plugin.h"
 #include "timer.h"
 #include "psaccounthandles.h"
@@ -595,7 +596,7 @@ int initialize(void)
     if (!(initPluginHandles())) goto INIT_ERROR;
     if (!(initLimits())) goto INIT_ERROR;
     if (!(initEnvFilter())) goto INIT_ERROR;
-    if (!(initFragComm())) goto INIT_ERROR;
+    if (!(initFragComm(sendMsg))) goto INIT_ERROR;
 
     /* we want to have periodic updates on used resources */
     if (!PSIDnodes_acctPollI(PSC_getMyID())) {

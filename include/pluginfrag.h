@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2012-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2012-2017 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -27,15 +27,22 @@ typedef struct {
     uint64_t totSize;  /**< Number of bytes in the message */
 } PS_Frag_Msg_Header_t;
 
+/** Prototype of custom sender functions used by @ref setFragMsgFunc() */
+typedef int Send_Msg_Func_t(void *);
+
 /**
  * @brief Initialize the fragmentation layer
  *
  * Initialize the fragmentation layer. For this, all administrative
- * structures are created and initialized.
+ * structures are created and initialized. The sender function @a func
+ * will be called for each fragment to be sent from within @ref __sendFragMsg().
+ * The usual sender function used is the @ref sendMsg() function of the psid.
+ *
+ * @param func The sender function to use
  *
  * @return On success true is returned. Or false in case of an error
  */
-bool initFragComm(void);
+bool initFragComm(Send_Msg_Func_t *func);
 
 /**
  * @brief Finalize the fragmentation layer
@@ -47,13 +54,10 @@ bool initFragComm(void);
  */
 void finalizeFragComm(void);
 
-/** Prototype of custom sender functions used by @ref setFragMsgFunc() */
-typedef int Send_Msg_Func_t(void *);
-
 /**
- * @brief Register custom sender function
+ * @brief Switch custom sender function
  *
- * Register the function @a func as an alternative sender
+ * Switch the function @a func as an alternative sender
  * function. This function will be called for each fragment to be sent
  * from within @ref __sendFragMsg().
  *
@@ -130,8 +134,22 @@ bool __recvFragMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_func_t *func,
 int __sendFragMsg(PS_DataBuffer_t *data, PStask_ID_t dest, int16_t RDPType,
 		  int32_t msgType, const char *caller, const int line);
 
-#define sendFragMsg(data, dest, headType, msgType)			\
-    __sendFragMsg(data, dest, headType, msgType, __func__, __LINE__)
+#define sendFragMsg(data, dest, RDPType, msgType)			\
+    __sendFragMsg(data, dest, RDPType, msgType, __func__, __LINE__)
 
+/**
+ * @brief Handle a downed node
+ *
+ * This function should be called if the hosting daemon detects that a remote
+ * node went down. It aims to cleanup all now useless data structures,
+ * i.e. all incomplete messages to be received from the node that went
+ * down.
+ *
+ * This function is intended to be called in the
+ * PSIDHOOK_NODE_DOWN hook handler of the hosting daemon.
+ *
+ * @param nodeID ParaStation ID of the node that went down
+ */
+void nodeDownFragComm(void *nodeID);
 
 #endif  /* __PLUGIN_LIB_FRAG */

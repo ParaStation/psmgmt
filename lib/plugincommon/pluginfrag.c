@@ -69,30 +69,15 @@ static void freeRecvBuffer(PS_Frag_Recv_Buffer_t *recvBuffer)
     ufree(recvBuffer);
 }
 
-/**
- * @brief Callback on downed node
- *
- * This callback is called if the hosting daemon detects that a remote
- * node went down. It aims to cleanup all now useless data structures,
- * i.e. all incomplete messages to be received from the node that went
- * down.
- *
- * This function is intended to be registered to the
- * PSIDHOOK_NODE_DOWN hook of the hosting daemon.
- *
- * @param nodeID ParaStation ID of the node that went down
- *
- * @return Always return 1 to make the calling hook-handler happy
- */
-static int handleNodeDown(void *nodeID)
+void nodeDownFragComm(void *nodeID)
 {
-    if (!nodeID) return 1;
+    if (!nodeID) return;
 
     PSnodes_ID_t id = *(PSnodes_ID_t *)nodeID;
 
     if (!PSC_validNode(id)) {
 	pluginlog("%s: invalid node id %i\n", __func__, id);
-	return 1;
+	return;
     }
 
     if (recvBuffers[id]) {
@@ -100,8 +85,6 @@ static int handleNodeDown(void *nodeID)
 	freeRecvBuffer(recvBuffers[id]);
 	recvBuffers[id] = NULL;
     }
-
-    return 1;
 }
 
 /**
@@ -128,7 +111,7 @@ static void cleanupFragComm(void)
     recvBuffers = NULL;
 }
 
-bool initFragComm(void)
+bool initFragComm(Send_Msg_Func_t *func)
 {
     PSnodes_ID_t nrOfNodes = PSC_getNrOfNodes();
     int i;
@@ -143,11 +126,7 @@ bool initFragComm(void)
     recvBuffers = umalloc(sizeof(PS_Frag_Recv_Buffer_t *) * nrOfNodes);
     for (i=0; i<nrOfNodes; i++) recvBuffers[i] = NULL;
 
-    if (!(PSIDhook_add(PSIDHOOK_NODE_DOWN, handleNodeDown))) {
-	pluginlog("register 'PSIDHOOK_NODE_DOWN' failed\n");
-	cleanupFragComm();
-	return false;
-    }
+    sendPSMsg = func;
 
     if (getenv("__PSSLURM_LOG_FRAG_MSG")) debug = true;
 
@@ -160,10 +139,6 @@ void finalizeFragComm(void)
 
     /* free all memory */
     cleanupFragComm();
-
-    if (!(PSIDhook_del(PSIDHOOK_NODE_DOWN, handleNodeDown))) {
-	pluginlog("unregister 'PSIDHOOK_NODE_DOWN' failed\n");
-    }
 }
 
 bool __recvFragMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_func_t *func,
@@ -179,7 +154,7 @@ bool __recvFragMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_func_t *func,
     if (!recvBuffers) {
 	pluginlog("%s:(%s:%i): please call initFragComm() first\n",
 		    __func__, caller, line);
-	if (!initFragComm()) return false;
+	return false;
     }
 
     if (!msg) {
@@ -361,11 +336,8 @@ int __sendFragMsg(PS_DataBuffer_t *data, PStask_ID_t dest, int16_t RDPType,
 	}
 
 	int res;
-	if (sendPSMsg) {
-	    res = sendPSMsg(&msg);
-	} else {
-	    res = sendMsg(&msg);
-	}
+	res = sendPSMsg(&msg);
+
 	if (res == -1 && errno != EWOULDBLOCK) {
 	    pluginwarn(errno, "%s(%s:%i): %s failed, msg '%i/%i' dataLeft "
 		       "'%lu'", __func__, caller, line,

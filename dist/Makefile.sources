@@ -101,6 +101,7 @@ bin/mpirun_openib.c \
 bin/psaccounter.c \
 bin/psispawn.c \
 bin/psmstart.c \
+bin/pspelogue.c \
 bin/pssh.c \
 bin/startup/Makefile.am \
 bin/startup/Makefile.in \

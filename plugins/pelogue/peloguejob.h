@@ -45,6 +45,7 @@ typedef struct {
     PElogueJobCb_t *cb;   /**< callback on finalization of pelogue execution */
     time_t PElogue_start; /**< start time of pelogue execution */
     time_t start_time;	  /**< the time when job started */
+    void *info;		  /**< Pointer to additional information passed to cb */
 } Job_t;
 
 /**
@@ -86,8 +87,8 @@ char *jobState2String(JobState_t state);
  *
  * @return Returns the newly created job structure or NULL on error
  */
-void *addJob(const char *plugin, const char *jobid, uid_t uid, gid_t gid,
-	     int numNodes, PSnodes_ID_t *nodes, PElogueJobCb_t *cb);
+Job_t *addJob(const char *plugin, const char *jobid, uid_t uid, gid_t gid,
+	     int numNodes, PSnodes_ID_t *nodes, PElogueJobCb_t *cb, void *info);
 
 /**
  * @brief Find job by its job ID

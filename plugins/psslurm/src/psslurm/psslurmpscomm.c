@@ -1033,6 +1033,8 @@ int handleNodeDown(void *nodeID)
     Step_t *step;
     uint32_t i;
 
+    nodeDownFragComm(nodeID);
+
     node = *((PSnodes_ID_t *) nodeID);
 
     list_for_each_safe(pos, tmp, &JobList.list) {

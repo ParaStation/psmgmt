@@ -17,6 +17,7 @@
 #include "pspluginprotocol.h"
 #include "psidhook.h"
 #include "psidplugin.h"
+#include "psidcomm.h"
 #include "plugin.h"
 #include "timer.h"
 #include "psaccounthandles.h"
@@ -101,6 +102,7 @@ static bool nodeDownVisitor(Job_t *job, const void *info)
 
 static int handleNodeDown(void *nodeID)
 {
+    nodeDownFragComm(nodeID);
     traverseJobs(nodeDownVisitor, nodeID);
     return 1;
 }
@@ -137,7 +139,7 @@ int initialize(void)
     }
 
     initPluginConfigs();
-    initFragComm();
+    initFragComm(sendMsg);
     initComm();
 
     /* get psaccount function handles */

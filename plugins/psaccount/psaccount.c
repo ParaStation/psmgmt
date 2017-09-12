@@ -28,6 +28,8 @@
 #include "psidnodes.h"
 #include "psidutil.h"
 #include "pluginfrag.h"
+#include "psidcomm.h"
+#include "psidhook.h"
 
 #define PSACCOUNT_CONFIG "psaccount.conf"
 
@@ -76,7 +78,6 @@ static void periodicMain(void)
 	/* update all accounting data */
 	updateClients(NULL);
     }
-
 }
 
 /**
@@ -94,6 +95,12 @@ static void setMainTimer(int sec)
     mainTimerID = Timer_register(&mainTimer, periodicMain);
 }
 
+static int handleNodeDown(void *nodeID)
+{
+    nodeDownFragComm(nodeID);
+    return 1;
+}
+
 int initialize(void)
 {
     int poll, debugMask;
@@ -105,7 +112,7 @@ int initialize(void)
 
     /* init all lists */
     initProc();
-    initFragComm();
+    initFragComm(sendMsg);
 
     /* init the config facility */
     snprintf(configfn, sizeof(configfn), "%s/%s", PLUGINDIR, PSACCOUNT_CONFIG);
@@ -114,6 +121,12 @@ int initialize(void)
     /* init logging facility */
     debugMask = getConfValueI(&config, "DEBUG_MASK");
     maskLogger(debugMask);
+
+    /* register needed hooks */
+    if (!PSIDhook_add(PSIDHOOK_NODE_DOWN, handleNodeDown)) {
+	mlog("register 'PSIDHOOK_NODE_DOWN' failed\n");
+	return 1;
+    }
 
     /* read plattform version */
     if (uname(&uts)) {
@@ -171,6 +184,11 @@ void cleanup(void)
 {
     /* remove all timer */
     Timer_remove(mainTimerID);
+
+    /* unregister hooks */
+    if (!PSIDhook_del(PSIDHOOK_NODE_DOWN, handleNodeDown)) {
+	mlog("unregister 'PSIDHOOK_NODE_DOWN' failed\n");
+    }
 
     finalizeAccComm();
 
