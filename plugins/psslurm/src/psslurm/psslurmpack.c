@@ -793,8 +793,8 @@ bool __unpackReqLaunchTasks(char **ptr, Step_t **stepPtr,
 
     /* node alias */
     step->nodeAlias = getStringM(ptr);
-    /* nodelist */
-    step->slurmNodes = getStringM(ptr);
+    /* hostlist */
+    step->slurmHosts = getStringM(ptr);
 
     /* I/O open_mode */
     getUint8(ptr, &step->appendMode);
@@ -926,8 +926,8 @@ bool __unpackReqBatchJobLaunch(char **ptr, Job_t **jobPtr,
     job->nodeAlias = getStringM(ptr);
     /* cpu bind string */
     getString(ptr, buf, sizeof(buf));
-    /* nodelist */
-    job->slurmNodes = getStringM(ptr);
+    /* hostlist */
+    job->slurmHosts = getStringM(ptr);
     /* jobscript */
     job->jsData = getStringM(ptr);
     /* work dir */

@@ -2,37 +2,23 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2009 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2017 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
 /**
- * @file
- * Helper functions for master-node detection and status actions.
- *
- * $Id$
- *
- * @author
- * Norbert Eicker <eicker@par-tec.com>
- *
+ * @file Helper functions for master-node detection and status actions.
  */
 #ifndef __PSIDSTATUS_H
 #define __PSIDSTATUS_H
 
+#include <stdbool.h>
 #include <stdint.h>
 
 #include "psprotocol.h"
 #include "psnodes.h"
-
-#ifdef __cplusplus
-extern "C" {
-#if 0
-} /* <- just for emacs indentation */
-#endif
-#endif
-
 
 /** Structure used for returning info on number of jobs. */
 typedef struct {
@@ -365,9 +351,10 @@ void setMaxStatBCast(int limit);
  *
  * @param silent Flag triggering log-suppression of lost connection
  *
- * @return No return value.
+ * @return If successfull, true is returned. Or false if @id is out of
+ * range.
  */
-void declareNodeDead(PSnodes_ID_t id, int sendDeadnode, int silent);
+bool declareNodeDead(PSnodes_ID_t id, int sendDeadnode, int silent);
 
 /**
  * @brief Declare a node alive.
@@ -380,20 +367,18 @@ void declareNodeDead(PSnodes_ID_t id, int sendDeadnode, int silent);
  * multi core CPUs or CPUs implementing multi threading. An example
  * for the latter case is Intels Hyper-Threading-Technology (HTT).
  *
- * Besides these main tasks furthermore the validity and coverage of
- * the installed license is tested.
+ * @param id The ParaStation ID of the node declared to be alive
  *
- * @param id The ParaStation ID of the node declared to be alive.
+ * @param physCPUs Number of physical CPUs the registered node is
+ * claimed to have
  *
- * @param physCPUs The number of physical CPUs the registered node is
+ * @param virtCPUs Number of virtual CPUs the registered node is
  * claimed to have.
  *
- * @param virtCPUs The number of virtual CPUs the registered node is
- * claimed to have.
- *
- * @return No return value.
+ * @return If successfull, true is returned. Or false if @id is out of
+ * range.
  */
-void declareNodeAlive(PSnodes_ID_t id, int physCPUs, int virtCPUs);
+bool declareNodeAlive(PSnodes_ID_t id, int physCPUs, int virtCPUs);
 
 /**
  * @brief Send a PSP_DD_DAEMONCONNECT message.
@@ -436,9 +421,5 @@ int send_DAEMONSHUTDOWN(void);
  * returned and errno is set appropriately.
  */
 int send_MASTERIS(PSnodes_ID_t dest);
-
-#ifdef __cplusplus
-}/* extern "C" */
-#endif
 
 #endif  /* __PSIDSTATUS_H */

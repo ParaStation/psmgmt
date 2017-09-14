@@ -27,7 +27,7 @@
 #include "selector.h"
 #include "pslog.h"
 
-#include "kvsprovider.h"
+#include "providerloop.h"
 
 /* PSLog buffer size - PMIHEADER */
 #define PMIUPDATE_PAYLOAD (1024 - 7)
@@ -1132,7 +1132,7 @@ static void initKvsProvider(void)
     }
 
     /* create global KVS */
-    if((kvs_create(kvsname))) {
+    if(!kvs_create(kvsname)) {
 	mlog("%s: Failed to create default KVS\n", __func__);
 	terminateJob(__func__);
     }

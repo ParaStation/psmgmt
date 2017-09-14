@@ -764,7 +764,7 @@ unsigned short getAssignedThreads(PSnodes_ID_t node)
 	return 0;
     }
 
-    if (!PSIDnodes_validID(node)) {
+    if (!PSC_validNode(node)) {
 	PSID_log(-1, "%s: node %d out of range\n", __func__, node);
 	return 0;
     }
@@ -779,7 +779,7 @@ bool getIsExclusive(PSnodes_ID_t node)
 	return false;
     }
 
-    if (!PSIDnodes_validID(node)) {
+    if (!PSC_validNode(node)) {
 	PSID_log(-1, "%s: node %d out of range\n", __func__, node);
 	return false;
     }
@@ -819,7 +819,7 @@ bool getIsExclusive(PSnodes_ID_t node)
  */
 static bool nodeOK(PSnodes_ID_t node, PSpart_request_t *req)
 {
-    if (node >= PSC_getNrOfNodes()) {
+    if (!PSC_validNode(node)) {
 	PSID_log(-1, "%s: node %d out of range\n", __func__, node);
 	return false;
     }
@@ -879,7 +879,7 @@ static bool nodeFree(PSnodes_ID_t node, PSpart_request_t *req, int threads)
 {
     char *reason = NULL;
 
-    if (node >= PSC_getNrOfNodes()) {
+    if (!PSC_validNode(node)) {
 	PSID_log(-1, "%s: node %d out of range\n", __func__, node);
 	return false;
     }
@@ -984,7 +984,7 @@ static sortlist_t *getCandidateList(PSpart_request_t *request)
     for (i=0; i<request->num; i++) {
 	PSnodes_ID_t node = request->nodes[i];
 
-	if (!PSIDnodes_validID(node)) {
+	if (!PSC_validNode(node)) {
 	    PSID_log(-1, "%s: node %d out of range\n", __func__, node);
 	    free(list.entry);
 	    errno = EINVAL;

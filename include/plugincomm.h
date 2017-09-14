@@ -142,7 +142,7 @@ PS_DataBuffer_t * dupDataBuffer(PS_DataBuffer_t *data);
  * latter cases the number of bytes written anyhow is reported in @a written.
  */
 int __doWriteEx(int fd, void *buffer, size_t toWrite, size_t *written,
-	        const char *func, bool pedantic, bool infinite);
+		const char *func, bool pedantic, bool infinite);
 
 #define doWriteEx(fd, buffer, toWrite, written) \
     __doWriteEx(fd, buffer, toWrite, written, __func__, false,  false)
@@ -385,25 +385,32 @@ bool getFromBuf(char **ptr, void *val, PS_DataType_t type,
  * describing the length of the actual data element followed by the
  * corresponding number of data items.
  *
+ * If @a data is NULL and @a dataSize is 0, a buffer is dynamically
+ * allocated. It will be big enough to hold all the data-items
+ * announced in the length item within the memory region addressed by
+ * @a ptr. A pointer to the buffer is returned. The caller has to
+ * ensure that this buffer is released if it is no longer needed.
+ *
  * If reading is successful, @a ptr will be updated to point behind
  * the last data read, i.e. prepared to read the next data from it.
  *
  * @param ptr Data buffer to read from
  *
- * @param val Data buffer holding the result on return
+ * @param data Buffer holding the result on return
+ *
+ * @param dataSize Size of the given buffer @a data
  *
  * @param len Number of bytes read from @a ptr into @a data
  *
  * @param type Data type to be expected at @a ptr
  *
- * @param size Number of bytes to read
- *
  * @param caller Function name of the calling function
  *
  * @param line Line number where this function is called
  *
- * @return On success @a data is returned or NULL in case of an
- * error. If reading was not successful, @a ptr might be not updated.
+ * @return On success @a data or the newly allocated buffer is
+ * returned; in case of error NULL is returned. If reading was not
+ * successful, @a ptr might be not updated.
  */
 void *getMemFromBuf(char **ptr, char *data, size_t dataSize, size_t *len,
 		    PS_DataType_t type, const char *caller, const int line);

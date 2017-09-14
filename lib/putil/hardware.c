@@ -2,17 +2,12 @@
  * ParaStation
  *
  * Copyright (C) 2003 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2008 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2017 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-#ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__((used)) =
-    "$Id$";
-#endif /* DOXYGEN_SHOULD_SKIP_THIS */
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -54,10 +49,15 @@ int HW_add(const char *name)
     if (!name || HW_index(name) != -1) return -1;
 
     if (cnt >= size) {
+	hardware_t *new_hw;
 	size += 5;
-	hw = (hardware_t *)realloc(hw, size * sizeof(hardware_t));
+	new_hw = realloc(hw, size * sizeof(*hw));
 
-	if (!hw) return -1;
+	if (!new_hw) {
+	    size -= 5;
+	    return -1;
+	}
+	hw = new_hw;
     }
 
     hw[cnt].name = strdup(name);
@@ -127,19 +127,19 @@ char *HW_printType(const unsigned int hwType)
     if (!hw) snprintf(txt, sizeof(txt), "none ");
 
     while (hw) {
-        if (hw & 1) {
-            char *name = HW_name(index);
+	if (hw & 1) {
+	    char *name = HW_name(index);
 
-            if (name) {
-                snprintf(txt+strlen(txt), sizeof(txt)-strlen(txt),
-                         "%s ", name);
-            } else {
-                snprintf(txt+strlen(txt), sizeof(txt)-strlen(txt), "unknown ");
-            }
-        }
+	    if (name) {
+		snprintf(txt+strlen(txt), sizeof(txt)-strlen(txt),
+			 "%s ", name);
+	    } else {
+		snprintf(txt+strlen(txt), sizeof(txt)-strlen(txt), "unknown ");
+	    }
+	}
 
-        hw >>= 1;
-        index++;
+	hw >>= 1;
+	index++;
     }
 
     txt[strlen(txt)-1] = '\0';

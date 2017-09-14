@@ -278,8 +278,8 @@ void setSlurmJobEnv(Job_t *job)
 	envSet(&job->env, "SLURM_ARRAY_TASK_ID", tmp);
     }
 
-    envSet(&job->env, "SLURM_NODELIST", job->slurmNodes);
-    envSet(&job->env, "SLURM_JOB_NODELIST", job->slurmNodes);
+    envSet(&job->env, "SLURM_NODELIST", job->slurmHosts);
+    envSet(&job->env, "SLURM_JOB_NODELIST", job->slurmHosts);
     envSet(&job->env, "SLURM_CHECKPOINT_IMAGE_DIR", job->checkpoint);
 
     if (!job->nodeAlias || !strlen(job->nodeAlias)) {
@@ -571,7 +571,6 @@ void removeUserVars(env_t *env)
 
 	if (!strncmp(env->vars[i], "PMI_", 4)) continue;
 	if (!strncmp(env->vars[i], "__PMI_", 6)) continue;
-	if (!strncmp(env->vars[i], "SERVICE_KVS_PROVIDER", 20)) continue;
 	if (!strncmp(env->vars[i], "MEASURE_KVS_PROVIDER", 20)) continue;
 
 	envUnsetIndex(env, i);

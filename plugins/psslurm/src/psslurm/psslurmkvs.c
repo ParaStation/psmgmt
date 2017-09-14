@@ -57,7 +57,7 @@ static char *showJobs(char *buf, size_t *bufSize)
 	snprintf(line, sizeof(line), "# nodes %u\n", job->nrOfNodes);
 	str2Buf(line, &buf, bufSize);
 
-	snprintf(line, sizeof(line), "nodes '%s'\n", job->slurmNodes);
+	snprintf(line, sizeof(line), "hosts '%s'\n", job->slurmHosts);
 	str2Buf(line, &buf, bufSize);
 
 	snprintf(line, sizeof(line), "jobscript '%s'\n", job->jobscript);
@@ -118,7 +118,7 @@ static char *showAllocations(char *buf, size_t *bufSize)
 	snprintf(line, sizeof(line), "# nodes %u\n", alloc->nrOfNodes);
 	str2Buf(line, &buf, bufSize);
 
-	snprintf(line, sizeof(line), "nodes '%s'\n", alloc->slurmNodes);
+	snprintf(line, sizeof(line), "hosts '%s'\n", alloc->slurmHosts);
 	str2Buf(line, &buf, bufSize);
 
 	snprintf(line, sizeof(line), "alloc state '%s'\n",
@@ -253,8 +253,8 @@ static char *showSteps(char *buf, size_t *bufSize, bool all)
 		 step->username, step->uid, step->gid);
 	str2Buf(line, &buf, bufSize);
 
-	snprintf(line, sizeof(line), "%u nodes: '%s'\n", step->nrOfNodes,
-		 step->slurmNodes);
+	snprintf(line, sizeof(line), "%u hosts: '%s'\n", step->nrOfNodes,
+		 step->slurmHosts);
 	str2Buf(line, &buf, bufSize);
 
 	snprintf(line, sizeof(line), "step state: '%s'\n",
@@ -266,7 +266,7 @@ static char *showSteps(char *buf, size_t *bufSize, bool all)
 	str2Buf(line, &buf, bufSize);
 
 	if (step->fwdata) {
-	    snprintf(line, sizeof(line), "step pid: %u\n", step->fwdata->cPid);
+	    snprintf(line, sizeof(line), "step PID: %u\n", step->fwdata->cPid);
 	    str2Buf(line, &buf, bufSize);
 	}
 
@@ -285,6 +285,10 @@ static char *showSteps(char *buf, size_t *bufSize, bool all)
 	ptr = genMemBindString(step);
 	snprintf(line, sizeof(line), "memBind: '%s'\n", ptr);
 	ufree(ptr);
+	str2Buf(line, &buf, bufSize);
+
+	snprintf(line, sizeof(line), "logger TID: %s\n",
+		 PSC_printTID(step->loggerTID));
 	str2Buf(line, &buf, bufSize);
 
 	str2Buf("-\n\n", &buf, bufSize);

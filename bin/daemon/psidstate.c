@@ -1,17 +1,12 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2008-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2008-2017 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-#ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__((used)) =
-    "$Id$";
-#endif /* DOXYGEN_SHOULD_SKIP_THIS */
-
 #include <stdlib.h>
 #include <unistd.h>
 #include <errno.h>
@@ -221,7 +216,7 @@ static void msg_DAEMONSTART(DDBufferMsg_t *msg)
     }
 
     if (starter==PSC_getMyID()) {
-	if (node<PSC_getNrOfNodes()) {
+	if (PSC_validNode(node)) {
 	    if (!PSIDnodes_isUp(node)) {
 		in_addr_t addr = PSIDnodes_getAddr(node);
 		if (addr != INADDR_ANY)	PSC_startDaemon(addr);

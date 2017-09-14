@@ -295,7 +295,7 @@ void send_PS_JobLaunch(Job_t *job)
     addStringToMsg(job->username, &data);
 
     /* node list */
-    addStringToMsg(job->slurmNodes, &data);
+    addStringToMsg(job->slurmHosts, &data);
 
     /* send the messages */
     for (i=0; i<job->nrOfNodes; i++) {
@@ -325,7 +325,7 @@ void send_PS_AllocLaunch(Alloc_t *alloc)
 
     /* node list */
     addUint32ToMsg(alloc->nrOfNodes, &data);
-    addStringToMsg(alloc->slurmNodes, &data);
+    addStringToMsg(alloc->slurmHosts, &data);
 
     /* send the messages */
     for (i=0; i<alloc->nrOfNodes; i++) {
@@ -725,8 +725,8 @@ static void handle_PS_JobLaunch(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     job->username = getStringM(&ptr);
 
     /* get nodelist */
-    job->slurmNodes = getStringM(&ptr);
-    getNodesFromSlurmHL(job->slurmNodes, &job->nrOfNodes, &job->nodes,
+    job->slurmHosts = getStringM(&ptr);
+    getNodesFromSlurmHL(job->slurmHosts, &job->nrOfNodes, &job->nodes,
 			&job->localNodeId);
 
     mlog("%s: jobid '%u' user '%s' nodes '%u' from '%s'\n", __func__, jobid,
@@ -736,7 +736,7 @@ static void handle_PS_JobLaunch(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 static void handleAllocLaunch(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 {
     uint32_t jobid, nrOfNodes;
-    char *ptr = data->buf, *username, *slurmNodes;
+    char *ptr = data->buf, *username, *slurmHosts;
     Alloc_t *alloc;
     uid_t uid;
     gid_t gid;
@@ -753,15 +753,15 @@ static void handleAllocLaunch(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 
     /* get nodelist */
     getUint32(&ptr, &nrOfNodes);
-    slurmNodes = getStringM(&ptr);
+    slurmHosts = getStringM(&ptr);
 
-    alloc = addAllocation(jobid, nrOfNodes, slurmNodes,
+    alloc = addAllocation(jobid, nrOfNodes, slurmHosts,
 			    NULL, NULL, uid, gid, username);
     alloc->state = JOB_PROLOGUE;
     alloc->motherSup = msg->header.sender;
 
     ufree(username);
-    ufree(slurmNodes);
+    ufree(slurmHosts);
 
     mlog("%s: jobid '%u' user '%s' nodes '%u' from '%s'\n", __func__, jobid,
 	    alloc->username, alloc->nrOfNodes, PSC_printTID(msg->header.sender));

@@ -16,6 +16,7 @@
 #ifndef __PSIDNODES_H
 #define __PSIDNODES_H
 
+#include <stdbool.h>
 #include <netinet/in.h>
 
 #include "psnodes.h"
@@ -122,17 +123,6 @@ PSnodes_ID_t PSIDnodes_lookupHost(in_addr_t addr);
 in_addr_t PSIDnodes_getAddr(PSnodes_ID_t id);
 
 /**
- * @brief Test ParaStation ID
- *
- * Test the validity of the ParaStation ID @a id.
- *
- * @param id The ParaStation ID to evaluate.
- *
- * @return If @a id is valid, 1 is returned. Or 0 if the ID is out of range.
- */
-int PSIDnodes_validID(PSnodes_ID_t id);
-
-/**
  * @brief Declare a node to be up.
  *
  * Declare the node with ParaStation ID @a id to be up.
@@ -159,12 +149,12 @@ int PSIDnodes_bringDown(PSnodes_ID_t id);
  *
  * Test if the node with ParaStation ID @a id is up.
  *
- * @param id ParaStation ID of the node to look up.
+ * @param id ParaStation ID of the node to look up
  *
- * @return If the node is up, 1 is returned. 0 is returned if an
- * error occurred or the node is down.
+ * @return If the node is up, true is returned; or false if @a id is
+ * out of bound or the node is down
  */
-int PSIDnodes_isUp(PSnodes_ID_t id);
+bool PSIDnodes_isUp(PSnodes_ID_t id);
 
 
 /**

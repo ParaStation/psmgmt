@@ -17,13 +17,11 @@
 #
 # ParaStation
 #
-# Copyright (C) 2013 ParTec Cluster Competence Center GmbH, Munich
+# Copyright (C) 2013-2017 ParTec Cluster Competence Center GmbH, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
 # file.
-#
-# Author:	Michael Rauh <rauh@par-tec.com>
 #
 
 #
@@ -127,7 +125,7 @@ CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
 LTLIBRARIES = $(noinst_LTLIBRARIES)
 libpskvs_la_DEPENDENCIES = $(libputil) $(libpslog)
-am_libpskvs_la_OBJECTS = kvs.lo kvscommon.lo kvslog.lo kvsprovider.lo
+am_libpskvs_la_OBJECTS = kvs.lo kvscommon.lo kvslog.lo
 libpskvs_la_OBJECTS = $(am_libpskvs_la_OBJECTS)
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
@@ -370,7 +368,7 @@ scriptsdir = $(prefix)/scripts
 libputil = $(top_builddir)/lib/putil/libputil.la
 libpslog = $(top_builddir)/lib/pslog/libpslog.la
 noinst_LTLIBRARIES = libpskvs.la
-libpskvs_la_SOURCES = kvs.c kvscommon.c kvslog.c kvsprovider.c kvslog.h
+libpskvs_la_SOURCES = kvs.c kvscommon.c kvslog.c
 libpskvs_la_LIBADD = $(libputil) $(libpslog)
 all: all-am
 
@@ -430,7 +428,6 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/kvs.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/kvscommon.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/kvslog.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/kvsprovider.Plo@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	$(AM_V_CC)depbase=`echo $@ | sed 's|[^/]*$$|$(DEPDIR)/&|;s|\.o$$||'`;\

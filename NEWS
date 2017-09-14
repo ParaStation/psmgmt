@@ -5,6 +5,21 @@ Copyright (C) 2010-2017 ParTec Cluster Competence Center GmbH, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 5.1.7:
+==============
+Bugfixes:
+ - Prevent illegal nodes in clearRDPMsgs() (jrt:#6829)
+ - Reusing PIDs for the psilogger in a single job corrupt psslurms
+   task management (jrt:#6713)
+ - Cleanup steps properly if master superior node disappears
+
+Enhancements:
+ - More efficient extension of buffers
+
+Additional changes:
+ - Unify PS ID range check in PSC_validNode()
+
+
 Version 5.1.6:
 ==============
 Bugfixes:

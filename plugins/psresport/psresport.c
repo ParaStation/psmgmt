@@ -1,13 +1,12 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2012-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2012-2017 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -221,15 +220,15 @@ static void allocNodeField(int node)
  */
 static int isNodePortFree(int node, int index)
 {
-    if (node >= nrOfNodes || node < 0) {
-	mlog("%s: invalid node index '%i' nrOfNodes '%i'\n", __func__,
-		node, nrOfNodes);
+    if (!PSC_validNode(node)) {
+	mlog("%s: invalid node index %i nrOfNodes %i\n", __func__, node,
+	     PSC_getNrOfNodes());
 	return 0;
     }
 
     if (index < 0 || index >= pRangeCount) {
-	mlog("%s: invalid bit field index '%i' nrOfNodes '%i'\n",
-		__func__, index, nrOfNodes);
+	mlog("%s: invalid bit field index %i nrOfNodes %i\n", __func__,
+	     index, PSC_getNrOfNodes());
 	return 0;
     }
 
@@ -291,15 +290,15 @@ static void setPortState(uint16_t *resPorts, int value)
 
 	for (x=0; x<uniqNodeCount; x++) {
 	    node = uniqNodeList[x];
-	    if (node >= nrOfNodes || node < 0) {
-		mlog("%s: skipping invalid node index '%i', nrOfNodes '%i'\n",
-			__func__, node, nrOfNodes);
+	    if (!PSC_validNode(node)) {
+		mlog("%s: skipping invalid node index %i, nrOfNodes %i\n",
+		     __func__, node, PSC_getNrOfNodes());
 		continue;
 	    }
 
 	    if (index < 0 || index >= pRangeCount) {
-		mlog("%s: skipping invalid bit field index '%i', nrOfNodes"
-			" '%i'\n", __func__, index, nrOfNodes);
+		mlog("%s: skipping invalid bit field index %i, nrOfNodes %i\n",
+		     __func__, index, PSC_getNrOfNodes());
 		continue;
 	    }
 
@@ -461,9 +460,9 @@ static void freeEmptyNodeBitmasks(int *uNodeList, uint32_t uNodeCount)
     for (x=0; x<uNodeCount; x++) {
 	node = uNodeList[x];
 
-	if (node >= nrOfNodes || node < 0) {
-	    mlog("%s: invalid node index '%i' nrOfNodes '%i'\n", __func__,
-		    node, nrOfNodes);
+	if (!PSC_validNode(node)) {
+	    mlog("%s: invalid node index %i nrOfNodes %i\n", __func__,
+		 node, PSC_getNrOfNodes());
 	    continue;
 	}
 

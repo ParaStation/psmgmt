@@ -119,7 +119,8 @@ static void createSpawner(int argc, char *argv[], int np)
 	PSI_infoList(-1, PSP_INFO_LIST_PARTITION, NULL,
 		     nds, np*sizeof(*nds), 0);
 
-	PSI_spawnService(nds[0], NULL, argc, argv, 1, &error, &spawnedProc, 0);
+	PSI_spawnService(nds[0], TG_SERVICE_SIG, NULL, argc, argv, &error,
+			 &spawnedProc, 0);
 
 	free(nds);
 
@@ -298,7 +299,7 @@ static int startProcs(int np, int argc, char *argv[], int verbose)
     }
 
     /* spawn client processes */
-    ret = PSI_spawnStrict(np, ".", argc, argv, 1, errors, NULL);
+    ret = PSI_spawnStrict(np, ".", argc, argv, true, errors, NULL);
     /* Analyze result, if necessary */
     if (ret<0) {
 	for (i=0; i<np; i++) {

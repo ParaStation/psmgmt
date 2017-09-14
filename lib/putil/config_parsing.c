@@ -905,7 +905,10 @@ static int getHWent(char *token)
 {
     int idx = HW_index(token);
 
-    if (idx < 0) return parser_error(token);
+    if (idx < 0) {
+	parser_comment(-1, "Hardware type '%s' not available.\n", token);
+	return -1;
+    }
 
     hwtype |= 1<<idx;
 
@@ -2110,6 +2113,10 @@ static int setupLocalNode(void)
 	parser_comment(PARSER_LOG_VERB, "%s: processing config key '%s'\n",
 		       __func__, node_configkey_list[i].key);
 	ret = node_configkey_list[i].handler(node_configkey_list[i].key);
+	if (ret) {
+	    parser_comment(-1, "Processing config key '%s' failed\n",
+		    node_configkey_list[i].key);
+	}
 	allret = ret ? 1 : allret;
     }
     if (allret) return -1;
