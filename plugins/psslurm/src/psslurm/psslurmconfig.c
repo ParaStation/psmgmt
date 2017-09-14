@@ -129,7 +129,7 @@ const ConfDef_t CONFIG_VALUES[] =
 	"Timeout in seconds for resending a Slurm message" },
     { "DISABLE_PROLOGUE", 1,
 	"bool",
-	"1",
+	"0",
 	"Disable the execution of the parallel prologue" },
     { "DISABLE_EPILOGUE", 1,
 	"bool",
