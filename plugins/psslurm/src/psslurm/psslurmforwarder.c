@@ -187,9 +187,12 @@ static int stepCallback(int32_t exit_status, Forwarder_Data_t *fw)
 			&step->spankenv, 1, 0);
     }
 
-    if (!alloc) deleteStep(step->jobid, step->stepid);
+    if (!alloc) {
+	deleteStep(step->jobid, step->stepid);
+    } else {
+	step->fwdata = NULL;
+    }
 
-    step->fwdata = NULL;
     return 0;
 }
 
