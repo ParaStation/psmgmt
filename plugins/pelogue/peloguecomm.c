@@ -127,12 +127,6 @@ static void sendPrologueResp(char *jobid, int exit, bool timeout,
 
     if (!(job = findJobById(rpcInfo->requestor, jobid))) {
 	mlog("%s: could not find job '%s'\n", __func__, jobid);
-    } else {
-	/* delete old configuration */
-	addStringToMsg(rpcInfo->requestor, &config);
-	sendFragMsgToHostList(job, &config, PSP_PLUGIN_CONFIG_DEL);
-	deleteJob(job);
-	ufree(config.buf);
     }
 
     /* jobid */
@@ -144,6 +138,13 @@ static void sendPrologueResp(char *jobid, int exit, bool timeout,
     /* send response */
     sendMsg(&msg);
 
+    if (job) {
+	/* delete old configuration */
+	addStringToMsg(rpcInfo->requestor, &config);
+	sendFragMsgToHostList(job, &config, PSP_PLUGIN_CONFIG_DEL);
+	deleteJob(job);
+	ufree(config.buf);
+    }
     ufree(rpcInfo->requestor);
     ufree(rpcInfo);
 }
