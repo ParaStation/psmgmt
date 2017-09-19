@@ -952,3 +952,15 @@ char *strJobID(uint32_t jobid)
 
     return sJobID;
 }
+
+bool traverseSteps(StepVisitor_t visitor, const void *info)
+{
+    list_t *j, *tmp;
+    list_for_each_safe(j, tmp, &StepList.list) {
+	Step_t *step = list_entry(j, Step_t, list);
+
+	if (visitor(step, info)) return true;
+    }
+
+    return false;
+}

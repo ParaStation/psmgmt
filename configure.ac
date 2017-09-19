@@ -110,6 +110,8 @@ AM_COND_IF([SLURM_PROTOCOL_1403], [
   AM_CFLAGS="$AM_CFLAGS -DSLURM_PROTOCOL_1605"
 ])
 
+AM_CFLAGS="$AM_CFLAGS -DSLURM_PROTOCOL_1702"
+
 PKG_PROG_PKG_CONFIG
 AC_ARG_WITH([unitdir], [AS_HELP_STRING([--with-unitdir=DIR],
   [directory for systemd service files])],,[with_unitdir=auto])

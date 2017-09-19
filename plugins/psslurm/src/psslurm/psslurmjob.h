@@ -218,7 +218,7 @@ typedef struct {
     uint8_t x11forward;
     uint32_t fwInitCount;
     uint32_t numHwThreads;
-    uint8_t timeout;
+    uint8_t timeout;		/* step was cancelled due to time limit */
     uint8_t ioCon;
     uint32_t localNodeId;
     time_t start_time;	        /* the time were the step started */
@@ -305,6 +305,7 @@ typedef struct {
     env_t pelogueEnv;
     char *resvPorts;
     uint32_t groupNum;
+    bool timeout;		/* job was cancelled due to time limit */
 } Job_t;
 
 typedef struct {
@@ -512,5 +513,42 @@ int killChild(pid_t pid, int signal);
  * @return Returns the converted jobid as string
  */
 char *strJobID(uint32_t jobid);
+
+/**
+ * @brief Visitor function
+ *
+ * Visitor function used by @ref traverseSteps() in order to visit
+ * each step currently registered.
+ *
+ * The parameters are as follows: @a step points to the step to
+ * visit. @a info points to the additional information passed to @ref
+ * traverseSteps() in order to be forwarded to each step.
+ *
+ * If the visitor function returns true the traversal will be
+ * interrupted and @ref traverseSteps() will return to its calling
+ * function.
+ */
+typedef bool StepVisitor_t(Step_t *step, const void *info);
+
+/**
+ * @brief Traverse all steps
+ *
+ * Traverse all steps by calling @a visitor for each of the registered
+ * steps. In addition to a pointer to the current step @a info is passed
+ * as additional information to @a visitor.
+ *
+ * If @a visitor returns true, the traversal will be stopped
+ * immediately and true is returned to the calling function.
+ *
+ * @param visitor Visitor function to be called for each step
+ *
+ * @param info Additional information to be passed to @a visitor while
+ * visiting the steps
+ *
+ * @return If the visitor returns true, traversal will be stopped and
+ * true is returned. If no visitor returned true during the traversal
+ * false is returned.
+ */
+bool traverseSteps(StepVisitor_t visitor, const void *info);
 
 #endif
