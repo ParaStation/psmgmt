@@ -34,24 +34,27 @@
 
 #include "psslurmpelogue.h"
 
+bool startStep(Step_t *step, const void *info)
+{
+    uint32_t jobid = *(uint32_t *) info;
+
+    if (step->jobid != jobid) return false;
+
+    step->state = JOB_PRESTART;
+    mdbg(PSSLURM_LOG_JOB, "%s: step '%u:%u' in '%s'\n", __func__,
+	    step->jobid, step->stepid, strJobState(step->state));
+
+    psPamSetState(step->username, strJobID(jobid), PSPAM_STATE_JOB);
+    if (!(execUserStep(step))) {
+	sendSlurmRC(&step->srunControlMsg, ESLURMD_FORK_FAILED);
+    }
+
+    return false;
+}
+
 static void letAllStepsRun(uint32_t jobid)
 {
-    list_t *pos, *tmp;
-    Step_t *step;
-
-    list_for_each_safe(pos, tmp, &StepList.list) {
-	if (!(step = list_entry(pos, Step_t, list))) break;
-	if (step->jobid != jobid) continue;
-
-	step->state = JOB_PRESTART;
-	mdbg(PSSLURM_LOG_JOB, "%s: step '%u:%u' in '%s'\n", __func__,
-		step->jobid, step->stepid, strJobState(step->state));
-
-	psPamSetState(step->username, strJobID(jobid), PSPAM_STATE_JOB);
-	if (!(execUserStep(step))) {
-	    sendSlurmRC(&step->srunControlMsg, ESLURMD_FORK_FAILED);
-	}
-    }
+    traverseSteps(startStep, &jobid);
 }
 
 static void handleFailedPElogue(int prologue, uint32_t nrOfNodes, env_t *env,

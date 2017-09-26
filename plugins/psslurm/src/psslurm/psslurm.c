@@ -569,7 +569,6 @@ int initialize(void)
     }
 
     /* init all data lists */
-    initJobList();
     initGresConf();
 
     /* we need to have root privileges */

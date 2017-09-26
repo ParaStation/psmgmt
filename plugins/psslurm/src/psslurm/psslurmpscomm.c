@@ -1025,54 +1025,58 @@ void handlePsslurmMsg(DDTypedBufferMsg_t *msg)
     }
 }
 
+bool nodeDownJobs(Job_t *job, const void *info)
+{
+    uint32_t i;
+    const PSnodes_ID_t node = *(PSnodes_ID_t *) info;
+
+    for (i=0; i<job->nrOfNodes; i++) {
+	if (job->nodes[i] == node) {
+	    mlog("%s: node '%i' which is running job '%u' "
+		    "state '%u' is down\n", __func__, node,
+		    job->jobid, job->state);
+
+	    if (job->state != JOB_EPILOGUE &&
+		    job->state != JOB_COMPLETE &&
+		    job->state != JOB_EXIT) {
+
+		signalJob(job, SIGKILL, "node failure");
+	    }
+	}
+    }
+    return false;
+}
+
+bool nodeDownSteps(Step_t *step, const void *info)
+{
+    uint32_t i;
+    const PSnodes_ID_t node = *(PSnodes_ID_t *) info;
+
+    for (i=0; i<step->nrOfNodes; i++) {
+	if (step->nodes[i] == node) {
+	    mlog("%s: node '%i' which is running step '%u:%u' "
+		    "state '%u' is down\n", __func__, node,
+		    step->jobid, step->stepid, step->state);
+
+	    if ((!(findJobById(step->jobid))) &&
+		    step->state != JOB_EPILOGUE &&
+		    step->state != JOB_COMPLETE &&
+		    step->state != JOB_EXIT) {
+
+		signalStep(step, SIGKILL);
+	    }
+	}
+    }
+    return false;
+}
+
 int handleNodeDown(void *nodeID)
 {
-    PSnodes_ID_t node;
-    list_t *pos, *tmp;
-    Job_t *job;
-    Step_t *step;
-    uint32_t i;
+    PSnodes_ID_t node = *((PSnodes_ID_t *) nodeID);
 
-    node = *((PSnodes_ID_t *) nodeID);
+    traverseJobs(nodeDownJobs, &node);
 
-    list_for_each_safe(pos, tmp, &JobList.list) {
-	if (!(job = list_entry(pos, Job_t, list))) break;
-
-	for (i=0; i<job->nrOfNodes; i++) {
-	    if (job->nodes[i] == node) {
-		mlog("%s: node '%i' which is running job '%u' "
-			"state '%u' is down\n", __func__, node,
-			job->jobid, job->state);
-
-		if (job->state != JOB_EPILOGUE &&
-			job->state != JOB_COMPLETE &&
-			job->state != JOB_EXIT) {
-
-		    signalJob(job, SIGKILL, "node failure");
-		}
-	    }
-	}
-    }
-
-    list_for_each_safe(pos, tmp, &StepList.list) {
-	if (!(step = list_entry(pos, Step_t, list))) break;
-
-	for (i=0; i<step->nrOfNodes; i++) {
-	    if (step->nodes[i] == node) {
-		mlog("%s: node '%i' which is running step '%u:%u' "
-			"state '%u' is down\n", __func__, node,
-			step->jobid, step->stepid, step->state);
-
-		if ((!(findJobById(step->jobid))) &&
-			step->state != JOB_EPILOGUE &&
-			step->state != JOB_COMPLETE &&
-			step->state != JOB_EXIT) {
-
-		    signalStep(step, SIGKILL);
-		}
-	    }
-	}
-    }
+    traverseSteps(nodeDownSteps, &node);
 
     handleBrokenConnection(node);
 

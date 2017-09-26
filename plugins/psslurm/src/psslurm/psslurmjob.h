@@ -240,6 +240,7 @@ typedef struct {
 } Step_t;
 
 typedef struct {
+    list_t list;	    /* job list */
     char *id;
     uint32_t jobid;
     char *username;	    /* username of job owner */
@@ -297,7 +298,6 @@ typedef struct {
     uint32_t localNodeId;
     time_t start_time;	    /* the time were the job started */
     char *nodeAlias;
-    struct list_head list;  /* the job list header */
     PS_Tasks_t tasks;
     time_t firstKillRequest;
     Forwarder_Data_t *fwdata;
@@ -326,47 +326,46 @@ typedef struct {
     struct list_head list;	/* the allocation list header */
 } Alloc_t;
 
-/* list which holds all jobs */
-Job_t JobList;
-Step_t StepList;
-Alloc_t AllocList;
-BCast_t BCastList;
-
-void initJobList(void);
-
 /**
- * @brief Delete all jobs.
- *
- * @return No return value.
+ * @brief Delete all jobs
  */
 void clearJobList(void);
 
 /**
- * @brief Add a new job.
+ * @brief Add a new job
  *
- * @param jobid The id of the job.
+ * @param jobid The id of the job
  *
- * @return Returns the new created job structure.
+ * @return Returns the newly created job
  */
 Job_t *addJob(uint32_t jobid);
 
 /**
- * @brief Find a job by its job id.
+ * @brief Find a job identified by its job id
  *
- * @param id The id of the job to find.
+ * @param id The id of the job to find
  *
  * @return Returns a pointer to the job or NULL if the
- * job was not found.
+ * job was not found
  */
 Job_t *findJobById(uint32_t jobid);
+
+/**
+ * @brief Find a job identified by its string job id
+ *
+ * @param id The id as string of the job to find
+ *
+ * @return Returns a pointer to the job or NULL if the
+ * job was not found
+ */
 Job_t *findJobByIdC(char *id);
 
 /**
- * @brief Find a jobid in the job history.
+ * @brief Find a jobid in the job history
  *
- * @param jobid The jobid to find.
+ * @param jobid The job id to find
  *
- * @return Returns 1 on success and 0 on error.
+ * @return Returns 1 on success and 0 on error
  */
 int isJobIDinHistory(char *jobid);
 
@@ -383,10 +382,13 @@ int countAllocs(void);
 void getJobInfos(uint32_t *infoCount, uint32_t **jobids, uint32_t **stepids);
 
 int signalJob(Job_t *job, int signal, char *reason);
+
 int signalJobs(int signal, char *reason);
 
 Step_t *addStep(uint32_t jobid, uint32_t stepid);
+
 int deleteStep(uint32_t jobid, uint32_t stepid);
+
 void clearStepList(uint32_t jobid);
 
 /**
@@ -512,5 +514,116 @@ int killChild(pid_t pid, int signal);
  * @return Returns the converted jobid as string
  */
 char *strJobID(uint32_t jobid);
+
+/**
+ * @brief Visitor function
+ *
+ * Visitor function used by @ref traverseSteps() in order to visit
+ * each step currently registered.
+ *
+ * The parameters are as follows: @a step points to the step to
+ * visit. @a info points to the additional information passed to @ref
+ * traverseSteps() in order to be forwarded to each step.
+ *
+ * If the visitor function returns true the traversal will be
+ * interrupted and @ref traverseSteps() will return to its calling
+ * function.
+ */
+typedef bool StepVisitor_t(Step_t *step, const void *info);
+
+/**
+ * @brief Traverse all steps
+ *
+ * Traverse all steps by calling @a visitor for each of the registered
+ * steps. In addition to a pointer to the current step @a info is passed
+ * as additional information to @a visitor.
+ *
+ * If @a visitor returns true, the traversal will be stopped
+ * immediately and true is returned to the calling function.
+ *
+ * @param visitor Visitor function to be called for each step
+ *
+ * @param info Additional information to be passed to @a visitor while
+ * visiting the steps
+ *
+ * @return If the visitor returns true, traversal will be stopped and
+ * true is returned. If no visitor returned true during the traversal
+ * false is returned.
+ */
+bool traverseSteps(StepVisitor_t visitor, const void *info);
+
+/**
+ * @brief Visitor function
+ *
+ * Visitor function used by @ref traverseJobs() in order to visit
+ * each job currently registered.
+ *
+ * The parameters are as follows: @a job points to the job to
+ * visit. @a info points to the additional information passed to @ref
+ * traverseJobs() in order to be forwarded to each job.
+ *
+ * If the visitor function returns true the traversal will be
+ * interrupted and @ref traverseJobs() will return to its calling
+ * function.
+ */
+typedef bool JobVisitor_t(Job_t *job, const void *info);
+
+/**
+ * @brief Traverse all jobs
+ *
+ * Traverse all jobs by calling @a visitor for each of the registered
+ * jobs. In addition to a pointer to the current job @a info is passed
+ * as additional information to @a visitor.
+ *
+ * If @a visitor returns true, the traversal will be stopped
+ * immediately and true is returned to the calling function.
+ *
+ * @param visitor Visitor function to be called for each job
+ *
+ * @param info Additional information to be passed to @a visitor while
+ * visiting the jobs
+ *
+ * @return If the visitor returns true, traversal will be stopped and
+ * true is returned. If no visitor returned true during the traversal
+ * false is returned.
+ */
+bool traverseJobs(JobVisitor_t visitor, const void *info);
+
+/**
+ * @brief Visitor function
+ *
+ * Visitor function used by @ref traverseAllocs() in order to visit
+ * each allocation currently registered.
+ *
+ * The parameters are as follows: @a allocation points to the allocation to
+ * visit. @a info points to the additional information passed to @ref
+ * traverseAllocs() in order to be forwarded to each allocation.
+ *
+ * If the visitor function returns true the traversal will be
+ * interrupted and @ref traverseAllocs() will return to its calling
+ * function.
+ */
+typedef bool AllocVisitor_t(Alloc_t *alloc, const void *info);
+
+/**
+ * @brief Traverse all allocations
+ *
+ * Traverse all allocations by calling @a visitor for each of the registered
+ * allocations. In addition to a pointer to the current allocation @a info is
+ * passed as additional information to @a visitor.
+ *
+ * If @a visitor returns true, the traversal will be stopped
+ * immediately and true is returned to the calling function.
+ *
+ * @param visitor Visitor function to be called for each alloc
+ *
+ * @param info Additional information to be passed to @a visitor while
+ * visiting the allocations
+ *
+ * @return If the visitor returns true, traversal will be stopped and
+ * true is returned. If no visitor returned true during the traversal
+ * false is returned.
+ */
+bool traverseAllocs(AllocVisitor_t visitor, const void *info);
 
 #endif

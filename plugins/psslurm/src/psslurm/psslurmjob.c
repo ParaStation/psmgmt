@@ -33,18 +33,21 @@
 #define JOB_HISTORY_SIZE 10
 #define JOB_HISTORY_ID_LEN 20
 
+/** List of all jobs */
+static LIST_HEAD(JobList);
+
+/** List of all steps */
+static LIST_HEAD(StepList);
+
+/** List of all allocations */
+static LIST_HEAD(AllocList);
+
+/** List of all bcasts */
+static LIST_HEAD(BCastList);
+
 static char jobHistory[JOB_HISTORY_SIZE][JOB_HISTORY_ID_LEN];
 
 static int jobHistIndex = 0;
-
-
-void initJobList(void)
-{
-    INIT_LIST_HEAD(&JobList.list);
-    INIT_LIST_HEAD(&StepList.list);
-    INIT_LIST_HEAD(&AllocList.list);
-    INIT_LIST_HEAD(&BCastList.list);
-}
 
 Job_t *addJob(uint32_t jobid)
 {
@@ -68,7 +71,7 @@ Job_t *addJob(uint32_t jobid)
     strncpy(jobHistory[jobHistIndex++], job->id, sizeof(jobHistory[0]));
     if (jobHistIndex >= JOB_HISTORY_SIZE) jobHistIndex = 0;
 
-    list_add_tail(&(job->list), &JobList.list);
+    list_add_tail(&(job->list), &JobList);
 
     return job;
 }
@@ -114,7 +117,7 @@ Alloc_t *addAllocation(uint32_t jobid, uint32_t nrOfNodes, char *slurmHosts,
 	envInit(&alloc->spankenv);
     }
 
-    list_add_tail(&(alloc->list), &AllocList.list);
+    list_add_tail(&(alloc->list), &AllocList);
 
     /* add user in pam for ssh access */
     psPamAddUser(alloc->username, strJobID(jobid), PSPAM_STATE_PROLOGUE);
@@ -151,7 +154,7 @@ Step_t *addStep(uint32_t jobid, uint32_t stepid)
     initSlurmMsg(&step->srunControlMsg);
     initSlurmMsg(&step->srunPTYMsg);
 
-    list_add_tail(&(step->list), &StepList.list);
+    list_add_tail(&(step->list), &StepList);
 
     return step;
 }
@@ -266,7 +269,7 @@ BCast_t *addBCast()
 
     initSlurmMsg(&bcast->msg);
 
-    list_add_tail(&(bcast->list), &BCastList.list);
+    list_add_tail(&(bcast->list), &BCastList);
 
     return bcast;
 }
@@ -287,7 +290,7 @@ void clearBCastByJobid(uint32_t jobid)
     list_t *pos, *tmp;
     BCast_t *bcast;
 
-    list_for_each_safe(pos, tmp, &BCastList.list) {
+    list_for_each_safe(pos, tmp, &BCastList) {
 	if (!(bcast = list_entry(pos, BCast_t, list))) return;
 	if (bcast->jobid == jobid) {
 	    if (bcast->fwdata) {
@@ -304,7 +307,7 @@ static void clearBCastList(void)
     list_t *pos, *tmp;
     BCast_t *bcast;
 
-    list_for_each_safe(pos, tmp, &BCastList.list) {
+    list_for_each_safe(pos, tmp, &BCastList) {
 	if (!(bcast = list_entry(pos, BCast_t, list))) return;
 	deleteBCast(bcast);
     }
@@ -315,7 +318,7 @@ BCast_t *findBCast(uint32_t jobid, char *fileName, uint32_t blockNum)
     list_t *pos, *tmp;
     BCast_t *bcast;
 
-    list_for_each_safe(pos, tmp, &BCastList.list) {
+    list_for_each_safe(pos, tmp, &BCastList) {
 	if (!(bcast = list_entry(pos, BCast_t, list))) return NULL;
 	if (blockNum > 0 && blockNum != bcast->blockNumber) continue;
 	if (bcast->jobid == jobid &&
@@ -328,7 +331,7 @@ Step_t *findStepByStepId(uint32_t jobid, uint32_t stepid)
 {
     struct list_head *pos;
 
-    list_for_each(pos, &StepList.list) {
+    list_for_each(pos, &StepList) {
 	Step_t *step = list_entry(pos, Step_t, list);
 	if (jobid == step->jobid && step->stepid == stepid) return step;
     }
@@ -339,7 +342,7 @@ Step_t *findStepByJobid(uint32_t jobid)
 {
     struct list_head *pos;
 
-    list_for_each(pos, &StepList.list) {
+    list_for_each(pos, &StepList) {
 	Step_t *step = list_entry(pos, Step_t, list);
 	if (jobid == step->jobid) return step;
     }
@@ -350,7 +353,7 @@ Step_t *findActiveStepByLogger(PStask_ID_t loggerTID)
 {
     struct list_head *pos;
 
-    list_for_each(pos, &StepList.list) {
+    list_for_each(pos, &StepList) {
 	Step_t *step = list_entry(pos, Step_t, list);
 	if (step->state == JOB_COMPLETE || step->state == JOB_EXIT) continue;
 	if (loggerTID == step->loggerTID) return step;
@@ -362,7 +365,7 @@ Step_t *findStepByFwPid(pid_t pid)
 {
     struct list_head *pos;
 
-    list_for_each(pos, &StepList.list) {
+    list_for_each(pos, &StepList) {
 	Step_t *step = list_entry(pos, Step_t, list);
 	if (step->fwdata && step->fwdata->cPid == pid) return step;
     }
@@ -373,7 +376,7 @@ Step_t *findStepByTaskPid(pid_t pid)
 {
     struct list_head *pos;
 
-    list_for_each(pos, &StepList.list) {
+    list_for_each(pos, &StepList) {
 	Step_t *step = list_entry(pos, Step_t, list);
 	if (findTaskByChildPid(&step->tasks.list, pid)) return step;
     }
@@ -394,7 +397,7 @@ Job_t *findJobById(uint32_t jobid)
     struct list_head *pos;
     Job_t *job;
 
-    list_for_each(pos, &JobList.list) {
+    list_for_each(pos, &JobList) {
 	if (!(job = list_entry(pos, Job_t, list))) return NULL;
 
 	if (job->jobid == jobid) return job;
@@ -432,7 +435,7 @@ void clearJobList(void)
     clearAllocList();
     clearBCastList();
 
-    list_for_each_safe(pos, tmp, &JobList.list) {
+    list_for_each_safe(pos, tmp, &JobList) {
 	if (!(job = list_entry(pos, Job_t, list))) break;
 
 	deleteJob(job->jobid);
@@ -444,7 +447,7 @@ void clearAllocList(void)
     list_t *pos, *tmp;
     Alloc_t *alloc;
 
-    list_for_each_safe(pos, tmp, &AllocList.list) {
+    list_for_each_safe(pos, tmp, &AllocList) {
 	if (!(alloc = list_entry(pos, Alloc_t, list))) return;
 
 	deleteAlloc(alloc->jobid);
@@ -456,7 +459,7 @@ void clearStepList(uint32_t jobid)
     list_t *pos, *tmp;
     Step_t *step;
 
-    list_for_each_safe(pos, tmp, &StepList.list) {
+    list_for_each_safe(pos, tmp, &StepList) {
 	if (!(step = list_entry(pos, Step_t, list))) return;
 	if (step->jobid == jobid) deleteStep(step->jobid, step->stepid);
     }
@@ -467,7 +470,7 @@ Alloc_t *findAlloc(uint32_t jobid)
     list_t *pos, *tmp;
     Alloc_t *alloc;
 
-    list_for_each_safe(pos, tmp, &AllocList.list) {
+    list_for_each_safe(pos, tmp, &AllocList) {
 	if (!(alloc = list_entry(pos, Alloc_t, list))) break;
 	if (alloc->jobid == jobid) return alloc;
     }
@@ -735,7 +738,7 @@ void shutdownStepForwarder(uint32_t jobid)
     list_t *pos, *tmp;
     Step_t *step;
 
-    list_for_each_safe(pos, tmp, &StepList.list) {
+    list_for_each_safe(pos, tmp, &StepList) {
 	if (!(step = list_entry(pos, Step_t, list))) break;
 
 	if (step->jobid == jobid) {
@@ -752,7 +755,7 @@ int signalStepsByJobid(uint32_t jobid, int signal)
     Step_t *step;
     int count = 0;
 
-    list_for_each_safe(pos, tmp, &StepList.list) {
+    list_for_each_safe(pos, tmp, &StepList) {
 	if (!(step = list_entry(pos, Step_t, list))) break;
 
 	if (step->jobid == jobid && step->state != JOB_COMPLETE) {
@@ -769,7 +772,7 @@ int killForwarderByJobid(uint32_t jobid)
     Job_t *job;
     int count = 0;
 
-    list_for_each_safe(pos, tmp, &StepList.list) {
+    list_for_each_safe(pos, tmp, &StepList) {
 	if (!(step = list_entry(pos, Step_t, list))) break;
 
 	if (step->jobid == jobid) {
@@ -780,7 +783,7 @@ int killForwarderByJobid(uint32_t jobid)
 	}
     }
 
-    list_for_each_safe(pos, tmp, &JobList.list) {
+    list_for_each_safe(pos, tmp, &JobList) {
 	if (!(job = list_entry(pos, Job_t, list))) break;
 
 	if (job->jobid == jobid) {
@@ -799,7 +802,7 @@ int countSteps(void)
     struct list_head *pos;
     int count=0;
 
-    list_for_each(pos, &StepList.list) count++;
+    list_for_each(pos, &StepList) count++;
     return count;
 }
 
@@ -808,7 +811,7 @@ int haveRunningSteps(uint32_t jobid)
     list_t *pos, *tmp;
     Step_t *step;
 
-    list_for_each_safe(pos, tmp, &StepList.list) {
+    list_for_each_safe(pos, tmp, &StepList) {
 	if (!(step = list_entry(pos, Step_t, list))) break;
 	if (step->jobid == jobid &&
 	    step->state != JOB_COMPLETE &&
@@ -824,7 +827,7 @@ int countJobs(void)
     struct list_head *pos;
     int count=0;
 
-    list_for_each(pos, &JobList.list) count++;
+    list_for_each(pos, &JobList) count++;
     return count;
 }
 
@@ -833,7 +836,7 @@ int countAllocs(void)
     struct list_head *pos;
     int count=0;
 
-    list_for_each(pos, &AllocList.list) count++;
+    list_for_each(pos, &AllocList) count++;
     return count;
 }
 
@@ -846,7 +849,7 @@ void getJobInfos(uint32_t *infoCount, uint32_t **jobids, uint32_t **stepids)
     *jobids = umalloc(sizeof(uint32_t) * max);
     *stepids = umalloc(sizeof(uint32_t) * max);
 
-    list_for_each_safe(pos, tmp, &JobList.list) {
+    list_for_each_safe(pos, tmp, &JobList) {
 	Job_t *job;
 	job = list_entry(pos, Job_t, list);
 	if (count == max) break;
@@ -858,7 +861,7 @@ void getJobInfos(uint32_t *infoCount, uint32_t **jobids, uint32_t **stepids)
 	count++;
     }
 
-    list_for_each_safe(pos, tmp, &StepList.list) {
+    list_for_each_safe(pos, tmp, &StepList) {
 	Step_t *step;
 	step = list_entry(pos, Step_t, list);
 	if (count == max) break;
@@ -897,12 +900,12 @@ int signalJobs(int signal, char *reason)
     list_t *pos, *tmp;
     int count = 0;
 
-    list_for_each_safe(pos, tmp, &JobList.list) {
+    list_for_each_safe(pos, tmp, &JobList) {
 	Job_t *job = list_entry(pos, Job_t, list);
 	count += signalJob(job, signal, reason);
     }
 
-    list_for_each_safe(pos, tmp, &AllocList.list) {
+    list_for_each_safe(pos, tmp, &AllocList) {
 	Alloc_t *alloc = list_entry(pos, Alloc_t, list);
 	count += signalStepsByJobid(alloc->jobid, signal);
     }
@@ -951,4 +954,40 @@ char *strJobID(uint32_t jobid)
     snprintf(sJobID, sizeof(sJobID), "%u", jobid);
 
     return sJobID;
+}
+
+bool traverseSteps(StepVisitor_t visitor, const void *info)
+{
+    list_t *j, *tmp;
+    list_for_each_safe(j, tmp, &StepList) {
+	Step_t *step = list_entry(j, Step_t, list);
+
+	if (visitor(step, info)) return true;
+    }
+
+    return false;
+}
+
+bool traverseJobs(JobVisitor_t visitor, const void *info)
+{
+    list_t *j, *tmp;
+    list_for_each_safe(j, tmp, &JobList) {
+	Job_t *job = list_entry(j, Job_t, list);
+
+	if (visitor(job, info)) return true;
+    }
+
+    return false;
+}
+
+bool traverseAllocs(AllocVisitor_t visitor, const void *info)
+{
+    list_t *j, *tmp;
+    list_for_each_safe(j, tmp, &AllocList) {
+	Alloc_t *alloc = list_entry(j, Alloc_t, list);
+
+	if (visitor(alloc, info)) return true;
+    }
+
+    return false;
 }
