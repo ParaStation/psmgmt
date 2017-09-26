@@ -499,7 +499,6 @@ plugins/psslurm/src/psslurm/psslurmjob.h \
 plugins/psslurm/src/psslurm/psslurmjobinfo.c \
 plugins/psslurm/src/psslurm/psslurmjobinfo.h \
 plugins/psslurm/src/psslurm/psslurmkvs.c \
-plugins/psslurm/src/psslurm/psslurmkvs.h \
 plugins/psslurm/src/psslurm/psslurmlimits.c \
 plugins/psslurm/src/psslurm/psslurmlimits.h \
 plugins/psslurm/src/psslurm/psslurmlog.c \
