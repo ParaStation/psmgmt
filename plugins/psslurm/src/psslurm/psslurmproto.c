@@ -46,6 +46,7 @@
 #include "pspamhandles.h"
 #include "psidnodes.h"
 #include "psidspawn.h"
+#include "psidplugin.h"
 
 #include "psslurmproto.h"
 
@@ -754,6 +755,14 @@ static void handleUpdateJobTime(Slurm_Msg_t *sMsg)
     sendSlurmRC(sMsg, SLURM_SUCCESS);
 }
 
+/**
+ * @brief Handle a shutdown request
+ *
+ * Only psslurm and its dependent plugins will be unloaded.
+ * The psid itself will *not* be terminated.
+ *
+ * @param sMsg The Slurm message to handle
+ */
 static void handleShutdown(Slurm_Msg_t *sMsg)
 {
     /* check permissions */
@@ -762,8 +771,10 @@ static void handleShutdown(Slurm_Msg_t *sMsg)
 	sendSlurmRC(sMsg, ESLURM_USER_ID_MISSING);
 	return;
     }
-
     sendSlurmRC(sMsg, SLURM_SUCCESS);
+
+    mlog("%s: shutdown on request from uid %i\n", __func__, sMsg->head.uid);
+    PSIDplugin_finalize("psslurm");
 }
 
 static void handleReconfigure(Slurm_Msg_t *sMsg)
