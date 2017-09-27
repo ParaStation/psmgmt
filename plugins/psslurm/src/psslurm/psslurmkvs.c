@@ -20,6 +20,8 @@
 #include "psslurmpin.h"
 #include "psidtask.h"
 
+#include "plugin.h"
+
 typedef struct {
     StrBuffer_t strBuf;
     bool all;
