@@ -1401,3 +1401,56 @@ bool __packSlurmMsg(PS_DataBuffer_t *data, Slurm_Msg_Header_t *head,
 
     return true;
 }
+
+bool __packRespDaemonStatus(PS_DataBuffer_t *data, Resp_Daemon_Status_t *stat,
+			    const char *caller, const int line)
+{
+    if (!data) {
+	mlog("%s: invalid data pointer from '%s' at %i\n", __func__,
+		caller, line);
+	return false;
+    }
+
+    if (!stat) {
+	mlog("%s: invalid stat pointer from '%s' at %i\n", __func__,
+		caller, line);
+	return false;
+    }
+
+    /* slurmd_start_time */
+    addTimeToMsg(stat->startTime, data);
+    /* last slurmctld msg */
+    addTimeToMsg(stat->now, data);
+    /* debug */
+    addUint16ToMsg(stat->debug, data);
+    /* cpus */
+    addUint16ToMsg(stat->cpus, data);
+    /* boards */
+    addUint16ToMsg(stat->boards, data);
+    /* sockets */
+    addUint16ToMsg(stat->sockets, data);
+    /* cores */
+    addUint16ToMsg(stat->coresPerSocket, data);
+    /* threads */
+    addUint16ToMsg(stat->threadsPerCore, data);
+    /* real mem */
+#ifdef SLURM_PROTOCOL_1702
+    addUint64ToMsg(stat->realMem, data);
+#else
+    addUint32ToMsg((uint32_t) stat->realMem, data);
+#endif
+    /* tmp disk */
+    addUint32ToMsg(stat->tmpDisk, data);
+    /* pid */
+    addUint32ToMsg(stat->pid, data);
+    /* hostname */
+    addStringToMsg(stat->hostname, data);
+    /* logfile */
+    addStringToMsg(stat->logfile, data);
+    /* step list */
+    addStringToMsg(stat->stepList, data);
+    /* version */
+    addStringToMsg(stat->verStr, data);
+
+    return true;
+}

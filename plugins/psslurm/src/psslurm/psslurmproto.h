@@ -64,6 +64,24 @@ typedef struct {
     PSnodes_ID_t *nodes;
 } SlurmAccData_t;
 
+typedef struct {
+    time_t startTime;
+    time_t now;
+    uint16_t debug;
+    uint16_t cpus;
+    uint16_t boards;
+    uint16_t sockets;
+    uint16_t coresPerSocket;
+    uint16_t threadsPerCore;
+    uint64_t realMem;
+    uint32_t tmpDisk;
+    uint32_t pid;
+    char *hostname;
+    char *logfile;
+    char *stepList;
+    char verStr[64];
+} Resp_Daemon_Status_t;
+
 void sendNodeRegStatus(uint32_t status, int protoVersion);
 
 /**

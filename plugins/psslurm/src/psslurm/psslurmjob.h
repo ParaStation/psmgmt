@@ -626,4 +626,12 @@ typedef bool AllocVisitor_t(Alloc_t *alloc, const void *info);
  */
 bool traverseAllocs(AllocVisitor_t visitor, const void *info);
 
+/**
+ * @brief Get ative steps as string
+ *
+ * @return Returns a string holding all active steps. The caller is
+ * responsible to free the string using @ref ufree().
+ */
+char *getActiveStepList();
+
 #endif

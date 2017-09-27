@@ -1042,10 +1042,101 @@ static void handleStepPids(Slurm_Msg_t *sMsg)
     ufree(msg.buf);
 }
 
+static uint32_t getNodeMem(void)
+{
+    long pages, pageSize;
+
+    if ((pages = sysconf(_SC_PHYS_PAGES))< 0) {
+	return 1;
+    }
+    if ((pageSize = sysconf(_SC_PAGE_SIZE)) < 0) {
+	return 1;
+    }
+
+    return (uint32_t)((float) pages * (pageSize / 1024 * 1024));
+}
+
+static uint32_t getTmpDisk(void)
+{
+    struct statfs sbuf;
+    float pageSize;
+    char tmpDef[] = "/tmp";
+    char *fs;
+    static int report = 1;
+
+    if ((pageSize = sysconf(_SC_PAGE_SIZE)) < 0) {
+	mwarn(errno, "%s: getting _SC_PAGE_SIZE failed: ", __func__);
+	return 1;
+    }
+
+    if (!(fs = getConfValueC(&SlurmConfig, "TmpFS"))) {
+	fs = tmpDef;
+    }
+
+    if ((statfs(fs, &sbuf)) == -1) {
+	if (report) {
+	    mwarn(errno, "%s: statfs(%s) failed: ", __func__, fs);
+	    report = 0;
+	}
+	return 1;
+    }
+    return (uint32_t)((long)sbuf.f_blocks * (pageSize / 1048576.0));
+}
+
+/**
+ * @brief Handle a daemon status request
+ *
+ * This RCP is requested from the "scontrol show slurmd"
+ * command.
+ *
+ * @param sMsg The request to handle
+ */
 static void handleDaemonStatus(Slurm_Msg_t *sMsg)
 {
-    mlog("%s: implement me!\n", __func__);
-    sendSlurmRC(sMsg, ESLURM_NOT_SUPPORTED);
+    Resp_Daemon_Status_t stat;
+    PS_DataBuffer_t msg = { .buf = NULL };
+
+    /* start time */
+    stat.startTime = start_time;
+    /* last slurmctld msg */
+    stat.now = time(NULL);
+    /* debug */
+    stat.debug = getConfValueI(&Config, "DEBUG_MASK");
+    /* cpus */
+    stat.cpus = getConfValueI(&Config, "SLURM_CPUS");
+    /* boards */
+    stat.boards = getConfValueI(&Config, "SLURM_BOARDS");
+    /* sockets */
+    stat.sockets = getConfValueI(&Config, "SLURM_SOCKETS");
+    /* cores */
+    stat.coresPerSocket = getConfValueI(&Config, "SLURM_CORES_PER_SOCKET");
+    /* threads */
+    stat.threadsPerCore = getConfValueI(&Config, "SLURM_THREADS_PER_CORE");
+    /* real mem */
+    stat.realMem = getNodeMem();
+    /* tmp disk */
+    stat.tmpDisk = getTmpDisk();
+    /* pid */
+    stat.pid = getpid();
+    /* hostname */
+    stat.hostname = getConfValueC(&Config, "SLURM_HOSTNAME");
+    /* logfile */
+    stat.logfile = "syslog";
+    /* step list */
+    if (!countSteps()) {
+	stat.stepList = strdup("NONE");
+    } else {
+	stat.stepList = getActiveStepList();
+    }
+    /* version string */
+    snprintf(stat.verStr, sizeof(stat.verStr), "psslurm-%i-p%s", version,
+	    SLURM_CUR_PROTOCOL_VERSION_STR);
+
+    packRespDaemonStatus(&msg, &stat);
+    sendSlurmMsg(sMsg->sock, RESPONSE_SLURMD_STATUS, &msg);
+
+    ufree(stat.stepList);
+    ufree(msg.buf);
 }
 
 static void handleJobNotify(Slurm_Msg_t *sMsg)
@@ -1866,47 +1957,6 @@ void clearSlurmdProto(void)
     clearSlurmdMsg(REQUEST_NETWORK_CALLERID);
     clearSlurmdMsg(MESSAGE_COMPOSITE);
     clearSlurmdMsg(RESPONSE_MESSAGE_COMPOSITE);
-}
-
-static uint32_t getNodeMem(void)
-{
-    long pages, pageSize;
-
-    if ((pages = sysconf(_SC_PHYS_PAGES))< 0) {
-	return 1;
-    }
-    if ((pageSize = sysconf(_SC_PAGE_SIZE)) < 0) {
-	return 1;
-    }
-
-    return (uint32_t)((float) pages * (pageSize / 1024 * 1024));
-}
-
-static uint32_t getTmpDisk(void)
-{
-    struct statfs sbuf;
-    float pageSize;
-    char tmpDef[] = "/tmp";
-    char *fs;
-    static int report = 1;
-
-    if ((pageSize = sysconf(_SC_PAGE_SIZE)) < 0) {
-	mwarn(errno, "%s: getting _SC_PAGE_SIZE failed: ", __func__);
-	return 1;
-    }
-
-    if (!(fs = getConfValueC(&SlurmConfig, "TmpFS"))) {
-	fs = tmpDef;
-    }
-
-    if ((statfs(fs, &sbuf)) == -1) {
-	if (report) {
-	    mwarn(errno, "%s: statfs(%s) failed: ", __func__, fs);
-	    report = 0;
-	}
-	return 1;
-    }
-    return (uint32_t)((long)sbuf.f_blocks * (pageSize / 1048576.0));
 }
 
 void sendNodeRegStatus(uint32_t status, int protoVersion)

@@ -840,6 +840,26 @@ int countAllocs(void)
     return count;
 }
 
+char *getActiveStepList()
+{
+    struct list_head *pos;
+    char strStep[128];
+    StrBuffer_t strBuf = { .buf = NULL, .bufSize = 0 };
+
+    list_for_each(pos, &StepList) {
+	Step_t *step = list_entry(pos, Step_t, list);
+
+	if (step->state == JOB_EXIT ||
+	    step->state == JOB_COMPLETE) continue;
+
+	if (strBuf.bufSize) addStrBuf(", ", &strBuf);
+	snprintf(strStep, sizeof(strStep), "%u.%u", step->jobid, step->stepid);
+	addStrBuf(strStep, &strBuf);
+    }
+
+    return strBuf.buf;
+}
+
 void getJobInfos(uint32_t *infoCount, uint32_t **jobids, uint32_t **stepids)
 {
     list_t *pos, *tmp;
