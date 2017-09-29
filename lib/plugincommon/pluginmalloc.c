@@ -75,6 +75,13 @@ void __ufree(void *ptr, const char *func, const int line)
     free(ptr);
 }
 
+char *__addStrBuf(char *strSave, StrBuffer_t *strBuf, const char *func,
+		  const int line)
+{
+    return __strn2Buf(strSave, strlen(strSave), &strBuf->buf, &strBuf->bufSize,
+		      func, line);
+}
+
 char *__str2Buf(char *strSave, char **buffer, size_t *bufSize, const char *func,
 		const int line)
 {

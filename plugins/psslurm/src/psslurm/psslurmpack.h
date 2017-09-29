@@ -383,4 +383,27 @@ bool __packSlurmMsg(PS_DataBuffer_t *data, Slurm_Msg_Header_t *head,
 #define packSlurmMsg(data, head, body, auth) \
     __packSlurmMsg(data, head, body, auth, __func__, __LINE__)
 
+/**
+ * @brief Pack a daemon status response
+ *
+ * Pack a daemon status response and add it to the provided data
+ * buffer.
+ *
+ * @param data Data buffer to save data to
+ *
+ * @param stat The status structure to pack
+ *
+ * @param caller Function name of the calling function
+ *
+ * @param line Line number where this function is called
+ *
+ * @return On success true is returned or false in case of an
+ * error. If writing was not successful, @a data might be not updated.
+ */
+bool __packRespDaemonStatus(PS_DataBuffer_t *data, Resp_Daemon_Status_t *stat,
+			    const char *caller, const int line);
+
+#define packRespDaemonStatus(data, stat) \
+    __packRespDaemonStatus(data, stat, __func__, __LINE__)
+
 #endif

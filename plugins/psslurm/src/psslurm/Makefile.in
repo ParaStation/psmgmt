@@ -431,10 +431,9 @@ psslurm_la_SOURCES = psslurm.c psslurm.h psslurmlog.c psslurmlog.h	\
 	psslurmlimits.c psslurmlimits.h psslurmmultiprog.c		\
 	psslurmmultiprog.h psslurmgres.c psslurmgres.h psslurmpin.c	\
 	psslurmpin.h psslurmio.c psslurmio.h psslurmpelogue.h		\
-	psslurmpelogue.c psslurmkvs.h psslurmkvs.c psslurmspawn.c	\
-	psslurmspawn.h psslurmpack.h psslurmpack.c			\
-	psslurmtypes.h psslurminter.c psslurminter.h psslurmhandles.h   \
-	psslurmmsg.h psslurmmsg.c
+	psslurmpelogue.c psslurmkvs.c psslurmspawn.c psslurmspawn.h     \
+	psslurmpack.h psslurmpack.c psslurmtypes.h psslurminter.c 	\
+	psslurminter.h psslurmhandles.h  psslurmmsg.h psslurmmsg.c
 
 psslurm_la_CPPFLAGS = $(AM_CPPFLAGS) -DPLUGINDIR=\"$(plugindir)\"	\
 	-DLOCALSTATEDIR=\"$(localstatedir)\"				\
