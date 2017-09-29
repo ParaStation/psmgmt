@@ -167,7 +167,7 @@ int initialize(void)
 	Timer_init(NULL);
     }
 
-    maskLogger(PELOGUE_LOG_PROCESS | PELOGUE_LOG_WARN);
+    maskLogger(PELOGUE_LOG_PROCESS | PELOGUE_LOG_WARN | PELOGUE_LOG_PSPELOGUE);
 
     mlog("(%i) successfully started\n", version);
     return 0;

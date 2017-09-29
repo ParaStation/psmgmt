@@ -85,6 +85,8 @@ char *jobState2String(JobState_t state);
  *
  * @param cb Callback called on finalization of a pelogue run
  *
+ * @param info Additional information to be passed to @a cb.
+ *
  * @return Returns the newly created job structure or NULL on error
  */
 Job_t *addJob(const char *plugin, const char *jobid, uid_t uid, gid_t gid,

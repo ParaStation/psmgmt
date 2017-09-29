@@ -47,28 +47,46 @@ typedef struct {
     PStask_ID_t sender;
 } RPC_Info_t;
 
-static void sendFragMsgToHostList(Job_t *job, PS_DataBuffer_t *data,
+/**
+ * @brief Send a pelogue message to all nodes in a job
+ *
+ * @param job The job to send the message for
+ *
+ * @param data The message data to send
+ *
+ * @param type The message type
+ *
+ * @return Returns 0 on success and -1 on error.
+ */
+static int sendFragMsgToHostList(Job_t *job, PS_DataBuffer_t *data,
 				  int32_t type)
 {
-    int i;
+    int i, res = 0;
+
     for (i=0; i<job->numNodes; i++) {
 	PStask_ID_t dest = PSC_getTID(job->nodes[i].id, 0);
 
 	if (dest == -1) {
 	    mlog("%s: skipping invalid node %u\n", __func__, job->nodes[i].id);
+	    res = -1;
 	    continue;
 	}
 
 	mdbg(PELOGUE_LOG_PSIDCOM, "%s: to %i\n", __func__, PSC_getID(dest));
-	sendFragMsg(data, dest, PSP_CC_PLUG_PELOGUE, type);
+	if ((sendFragMsg(data, dest, PSP_CC_PLUG_PELOGUE, type)) == -1) {
+	    res = -1;
+	}
     }
+
+    return res;
 }
 
-void sendPElogueStart(Job_t *job, PElogueType_t type, int rounds, env_t *env)
+int sendPElogueStart(Job_t *job, PElogueType_t type, int rounds, env_t *env)
 {
     PS_DataBuffer_t data = { .buf = NULL};
     int32_t timeout, msgType;
     uint32_t i;
+    int ret = 0;
 
     if (type == PELOGUE_PROLOGUE) {
 	timeout = getPluginConfValueI(job->plugin, "TIMEOUT_PROLOGUE");
@@ -80,7 +98,7 @@ void sendPElogueStart(Job_t *job, PElogueType_t type, int rounds, env_t *env)
 	msgType = PSP_EPILOGUE_START;
     } else {
 	mlog("%s: unkown pelogue type %d\n", __func__, type);
-	return;
+	return -1;
     }
 
     addStringToMsg(job->plugin, &data);
@@ -102,32 +120,24 @@ void sendPElogueStart(Job_t *job, PElogueType_t type, int rounds, env_t *env)
     startJobMonitor(job);
 
     /* send the message to all hosts in the job */
-    sendFragMsgToHostList(job, &data, msgType);
+    ret = sendFragMsgToHostList(job, &data, msgType);
 
     ufree(data.buf);
+
+    return ret;
 }
 
-static void sendPrologueResp(char *jobid, int exit, bool timeout,
-			     PElogueResList_t *res, void *info)
+static int sendPrologueResp(char *jobid, int exit, bool timeout,
+			    PStask_ID_t dest)
 {
-    RPC_Info_t *rpcInfo = info;
-    PS_DataBuffer_t config = { .buf = NULL };
-    Job_t *job;
-
     DDTypedBufferMsg_t msg = (DDTypedBufferMsg_t) {
 	.header = (DDMsg_t) {
 	    .type = PSP_CC_MSG,
 	    .sender = PSC_getMyTID(),
-	    .dest = rpcInfo->sender,
+	    .dest = dest,
 	    .len = sizeof(msg.header) + sizeof(msg.type) },
 	.type = PSP_PELOGUE_RESP,
         .buf = { 0 } };
-
-    mlog("%s: finished, sending result back\n", __func__);
-
-    if (!(job = findJobById(rpcInfo->requestor, jobid))) {
-	mlog("%s: could not find job '%s'\n", __func__, jobid);
-    }
 
     /* jobid */
     addStringToMsgBuf(&msg, jobid);
@@ -135,8 +145,25 @@ static void sendPrologueResp(char *jobid, int exit, bool timeout,
     addInt32ToMsgBuf(&msg, exit);
     /* timeout */
     addUint8ToMsgBuf(&msg, timeout);
+
     /* send response */
-    sendMsg(&msg);
+    return sendMsg(&msg);
+}
+
+static void CBprologueResp(char *jobid, int exit, bool timeout,
+			     PElogueResList_t *res, void *info)
+{
+    RPC_Info_t *rpcInfo = info;
+    PS_DataBuffer_t config = { .buf = NULL };
+    Job_t *job;
+
+    if (!(job = findJobById(rpcInfo->requestor, jobid))) {
+	mlog("%s: could not find job '%s'\n", __func__, jobid);
+    }
+
+    mdbg(PELOGUE_LOG_PSPELOGUE, "%s: finished, sending result for job %s to "
+	 "%s\n", __func__, jobid, PSC_printTID(rpcInfo->sender));
+    sendPrologueResp(jobid, exit, timeout, rpcInfo->sender);
 
     if (job) {
 	/* delete old configuration */
@@ -158,7 +185,7 @@ static void handlePluginConfigDel(DDTypedBufferMsg_t *msg,
     /* plugin */
     plugin = getStringM(&ptr);
 
-    mlog("%s: deleting plugin conf\n", __func__);
+    mdbg(PELOGUE_LOG_PSPELOGUE, "%s: deleting plugin conf\n", __func__);
     delPluginConfig(plugin);
 }
 
@@ -186,7 +213,7 @@ static void handlePluginConfigAdd(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data
     addConfigEntry(config, "TIMEOUT_PE_GRACE", grace);
     addConfigEntry(config, "DIR_SCRIPTS", SPOOL_DIR "/scripts");
 
-    mlog("%s: adding plugin config\n", __func__);
+    mdbg(PELOGUE_LOG_PSPELOGUE, "%s: adding plugin config\n", __func__);
     addPluginConfig(plugin, config);
 }
 
@@ -201,7 +228,8 @@ static void handlePElogueReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
     uint8_t type;
     RPC_Info_t *info;
     PS_DataBuffer_t config = { .buf = NULL };
-    Job_t *job;
+    Job_t *job = NULL;
+    int ret;
 
     /* requestor name */
     requestor = getStringM(&ptr);
@@ -226,9 +254,12 @@ static void handlePElogueReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
     info->sender = msg->header.sender;
     info->requestor = requestor;
 
+    mdbg(PELOGUE_LOG_PSPELOGUE, "%s: handle request from %s for job %s\n",
+	 __func__, PSC_printTID(msg->header.sender), jobid);
+
     /* add job */
     if (!(job = addJob(requestor, jobid, uid, gid, nrOfNodes, nodes,
-		sendPrologueResp, info))) {
+		CBprologueResp, info))) {
 	mlog("%s: failed to add job %s for %s\n", __func__, jobid, requestor);
 	goto ERROR;
     }
@@ -238,12 +269,14 @@ static void handlePElogueReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
     addStringToMsg(timeout, &config);
     addStringToMsg(grace, &config);
 
-    sendFragMsgToHostList(job, &config, PSP_PLUGIN_CONFIG_ADD);
-
+    ret = sendFragMsgToHostList(job, &config, PSP_PLUGIN_CONFIG_ADD);
     ufree(config.buf);
-    ufree(timeout);
-    ufree(grace);
-    ufree(jobid);
+
+    if (ret == -1) {
+	mlog("%s: sending configuration for job %s to sister nodes failed\n",
+	     __func__, jobid);
+	goto ERROR;
+    }
 
     /* start the pelogue */
     if (type == PELOGUE_PROLOGUE) {
@@ -254,20 +287,29 @@ static void handlePElogueReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 	job->epilogueTrack = job->numNodes;
     }
 
-    sendPElogueStart(job, type, 1, &env);
-    envDestroy(&env);
+    if ((sendPElogueStart(job, type, 1, &env)) == -1) {
+	mlog("%s: sending pelogue start request for job %s failed\n", __func__,
+	     jobid);
+	goto ERROR;
+    }
 
+    ufree(timeout);
+    ufree(grace);
+    ufree(jobid);
+    envDestroy(&env);
     return;
 
 ERROR:
+    /* send error message */
+    sendPrologueResp(jobid, 1, false, msg->header.sender);
+
+    deleteJob(job);
     ufree(info->requestor);
     ufree(info);
     ufree(timeout);
     ufree(grace);
     ufree(jobid);
     envDestroy(&env);
-
-    /* TODO send error message */
 }
 
 static void handlePElogueStart(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
