@@ -517,7 +517,7 @@ static void handleSignalTasks(Slurm_Msg_t *sMsg)
 		stepid, signal);
 	if (stepid == SLURM_BATCH_SCRIPT) {
 	    /* signal jobscript only, not all corresponding steps */
-	    if (job->state == JOB_RUNNING && job->fwdata) {
+	    if (job && job->state == JOB_RUNNING && job->fwdata) {
 		killChild(job->fwdata->cPid, signal);
 	    }
 	} else {
