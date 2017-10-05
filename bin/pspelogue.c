@@ -167,8 +167,6 @@ static void init(const int argc, const char *argv[])
 
 static void timeoutHandler(int sig)
 {
-    /* TODO: do we need to send a cancel msg? */
-
     fprintf(stderr, "%s: timeout(%u) receiving pelogue result\n",
 	   __func__, pelogueTimeout + recvTimeout + graceTime);
     exit(1);
@@ -305,8 +303,7 @@ void sendPElogueReq(char *jobid, char *sUid, char *sGid, uint32_t nrOfNodes,
 	       PSC_printTID(tid), time_start.tv_sec + 1e-6 * time_start.tv_usec);
     }
 
-    ret = sendFragMsg(&msg, PSC_getTID(nodes[0], 0), PSP_CC_PLUG_PELOGUE,
-		      PSP_PELOGUE_REQ);
+    ret = sendFragMsg(&msg, tid, PSP_CC_PLUG_PELOGUE, PSP_PELOGUE_REQ);
     if (ret == -1) {
 	fprintf(stderr, "%s sending pelogue request to %s failed\n", __func__,
 		PSC_printTID(tid));
