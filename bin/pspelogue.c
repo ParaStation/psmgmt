@@ -98,7 +98,6 @@ static struct poptOption optionsTable[] = {
  * @param nrOfNodes The number of converted nodes
  *
  * @param nodes The PS nodelist holding the result
- *
  */
 static void getNodesFromSlurmHL(char *slurmHosts, uint32_t *nrOfNodes,
 				PSnodes_ID_t **nodes)
@@ -173,6 +172,32 @@ static void timeoutHandler(int sig)
 }
 
 /**
+ * @brief Handle a PSP_CD_UNKNOWN response
+ *
+ * @param answer The msg to handle
+ */
+void handleRespUnknown(DDTypedBufferMsg_t *answer)
+{
+    size_t used = 0;
+    PStask_ID_t dest;
+    int16_t type;
+
+    /* original dest */
+    PSP_getMsgBuf((DDBufferMsg_t *) answer, &used, __func__, "dest",
+		  &dest, sizeof(dest));
+
+    /* original type */
+    PSP_getMsgBuf((DDBufferMsg_t *) answer, &used, __func__, "type",
+		  &type, sizeof(type));
+
+    fprintf(stderr, "%s: delivery of message with type %i to %s failed\n",
+	    __func__, type, PSC_printTID(dest));
+
+    fprintf(stderr, "%s: please make sure the plugin 'pelogue' is loaded on"
+	    " node %i\n", __func__, PSC_getID(answer->header.sender));
+}
+
+/**
  * @brief Receive and handle a pelogue response message
  *
  * @param expJobID The expected jobid for the received msg
@@ -204,11 +229,22 @@ static void handlePElogueResult(char *expJobID)
     timersub(&time_now, &time_start, &time_diff);
 
     /* verify msg */
-    if (answer.header.type != PSP_CC_MSG ||
-	answer.type != PSP_PELOGUE_RESP) {
-	fprintf(stderr, "%s: received unexpected msg type %u:%u\n", __func__,
-		answer.header.type, answer.type);
-	exit(1);
+    switch (answer.header.type) {
+	case PSP_CC_MSG:
+	    if (answer.type != PSP_PELOGUE_RESP) {
+		fprintf(stderr, "%s: received unexpected msg type %u:%u\n",
+			__func__, answer.header.type, answer.type);
+		exit(1);
+	    }
+	    break;
+	case PSP_CD_UNKNOWN:
+	    handleRespUnknown(&answer);
+	    exit(1);
+	    break;
+	default:
+	    fprintf(stderr, "%s: received unexpected msg type %u:%u\n",
+		    __func__, answer.header.type, answer.type);
+	    exit(1);
     }
 
     /* jobid */
@@ -299,14 +335,14 @@ void sendPElogueReq(char *jobid, char *sUid, char *sGid, uint32_t nrOfNodes,
     gettimeofday(&time_start, NULL);
 
     if (debug) {
-	printf("%s: sending frag msg to: %s time %f\n", __func__,
+	printf("%s: sending message to %s time %f\n", __func__,
 	       PSC_printTID(tid), time_start.tv_sec + 1e-6 * time_start.tv_usec);
     }
 
     ret = sendFragMsg(&msg, tid, PSP_CC_PLUG_PELOGUE, PSP_PELOGUE_REQ);
     if (ret == -1) {
-	fprintf(stderr, "%s sending pelogue request to %s failed\n", __func__,
-		PSC_printTID(tid));
+	fprintf(stderr, "%s sending of pelogue request to %s failed\n",
+		__func__, PSC_printTID(tid));
 	exit(1);
     }
 }
