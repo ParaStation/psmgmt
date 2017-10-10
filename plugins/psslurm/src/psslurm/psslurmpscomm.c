@@ -175,7 +175,6 @@ static void rejectPartRequest(PStask_ID_t dest, PStask_t *task)
     }
 }
 
-
 int handleCreatePart(void *msg)
 {
     DDBufferMsg_t *inmsg = (DDBufferMsg_t *) msg;

@@ -233,7 +233,8 @@ int sendMsg(void *amsg)
  *
  * Send message if destination is not the local daemon. This helper
  * function is used to forward messages of type PSP_CD_INFORESPONSE,
- * PSP_CD_SIGRES and PSP_CC_ERROR to their final destination.
+ * PSP_CD_SIGRES, PSP_CC_ERROR and PSP_CD_UNKNOWN to their final
+ * destination.
  *
  * @return No return value.
  */
@@ -378,6 +379,22 @@ int PSID_handleMsg(DDBufferMsg_t *msg)
 
     PSID_log(-1, "%s: Wrong msgtype %d (%s)\n", __func__,
 	     msg->header.type, PSDaemonP_printMsg(msg->header.type));
+
+    DDBufferMsg_t err = {
+	.header = {
+	    .type = PSP_CD_UNKNOWN,
+	    .dest = msg->header.sender,
+	    .sender = PSC_getMyTID(),
+	    .len = sizeof(err.header) },
+	.buf = { '\0' }};
+    PSP_putMsgBuf(&err, __func__, "dest", &msg->header.dest,
+		  sizeof(msg->header.dest));
+    PSP_putMsgBuf(&err, __func__, "type", &msg->header.type,
+		  sizeof(msg->header.type));
+    if (sendMsg(&err) == -1 && errno != EWOULDBLOCK) {
+	PSID_warn(-1, errno, "%s: sendMsg()", __func__);
+    }
+
     return 0;
 }
 
@@ -392,4 +409,5 @@ void PSIDcomm_init(void)
     PSID_registerMsg(PSP_CD_INFORESPONSE, condSendMsg);
     PSID_registerMsg(PSP_CD_SIGRES, condSendMsg);
     PSID_registerMsg(PSP_CC_ERROR, condSendMsg);
+    PSID_registerMsg(PSP_CD_UNKNOWN, condSendMsg);
 }

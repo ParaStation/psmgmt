@@ -319,9 +319,10 @@ typedef enum {
 #define PSP_CC_PSI_MSG           0x0082  /**< Rank-routed message. */
 #define PSP_CC_PSI_ERROR         0x0083  /**< Error in rank-routed comm. */
 
-/** Error messages. */
+/** Error messages */
+#define PSP_CD_UNKNOWN           0x00FE  /**< Message reporting unknown types
+					    somewhere in the forwarding chain */
 #define PSP_CD_ERROR             0x00FF  /**< General error message */
-
 
 
     /******************************************************************/

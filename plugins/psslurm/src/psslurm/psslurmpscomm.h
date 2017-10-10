@@ -37,8 +37,22 @@ void releaseDelayedSpawns(uint32_t jobid, uint32_t stepid);
  */
 void cleanupDelayedSpawns(uint32_t jobid, uint32_t stepid);
 
+/**
+ * @brief Handle a create partion message.
+ *
+ * @param msg The message to handle.
+ *
+ * @return Always returns 0.
+ */
 int handleCreatePart(void *msg);
 
+/**
+ * @brief Handle a create partion nodelist message.
+ *
+ * @param msg The message to handle.
+ *
+ * @return Always returns 0.
+ */
 int handleCreatePartNL(void *msg);
 
 int handleNodeDown(void *nodeID);

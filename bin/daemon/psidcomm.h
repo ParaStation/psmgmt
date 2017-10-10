@@ -133,13 +133,18 @@ handlerFunc_t PSID_registerMsg(int msgType, handlerFunc_t handler);
 handlerFunc_t PSID_clearMsg(int msgType);
 
 /**
- * @brief Central protocol switch.
+ * @brief Central protocol switch
  *
  * Handle the message @a msg corresponding to its message-type. The
  * handler associated to the message-type might be registered via @ref
  * PSID_registerMsg() and unregistered via @ref PSID_clearMsg().
  *
- * @param msg The message to handle.
+ * If no handler is found for the given message-type an error-message
+ * of type PSP_CD_UNKNOWN is sent to the original sender of @a
+ * msg. This message will contain the task ID of the destination and
+ * the type of the unhandled message.
+ *
+ * @param msg The message to handle
  *
  * @return On success, i.e. if it was possible to handle the message,
  * true is returned, or false otherwise.

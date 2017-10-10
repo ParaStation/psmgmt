@@ -1392,7 +1392,6 @@ bool __packSlurmMsg(PS_DataBuffer_t *data, Slurm_Msg_Header_t *head,
     if (logger_getMask(psslurmlogger) & PSSLURM_LOG_IO_VERB) {
 	printBinaryData(data->buf + lastBufLen, data->bufUsed - lastBufLen,
 			"msg body");
-	lastBufLen = data->bufUsed;
     }
 
     /* set real message length without the uint32 for the length itself! */

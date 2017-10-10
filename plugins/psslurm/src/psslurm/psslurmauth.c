@@ -293,18 +293,18 @@ JobCred_t *extractJobCred(Gres_Cred_t **gres, char **ptr, bool verify)
 	goto ERROR;
     }
 
+    mdbg(PSSLURM_LOG_PART, "%s:", __func__);
     for (i=0; i<cred->coresPerSocketLen; i++) {
-	mdbg(PSSLURM_LOG_PART, "%s: coresPerSocket '%u'\n", __func__,
-		cred->coresPerSocket[i]);
+	mdbg(PSSLURM_LOG_PART, " coresPerSocket '%u'", cred->coresPerSocket[i]);
     }
     for (i=0; i<cred->socketsPerNodeLen; i++) {
-	mdbg(PSSLURM_LOG_PART, "%s: socketsPerNode '%u'\n", __func__,
-		cred->socketsPerNode[i]);
+	mdbg(PSSLURM_LOG_PART, " socketsPerNode '%u'", cred->socketsPerNode[i]);
     }
     for (i=0; i<cred->sockCoreRepCountLen; i++) {
-	mdbg(PSSLURM_LOG_PART, "%s: sockCoreRepCount '%u'\n", __func__,
+	mdbg(PSSLURM_LOG_PART, " sockCoreRepCount '%u'",
 		cred->sockCoreRepCount[i]);
     }
+    mdbg(PSSLURM_LOG_PART, "\n");
 
     credLen = credEnd - credStart;
 

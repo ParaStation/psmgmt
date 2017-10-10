@@ -59,6 +59,8 @@
 
 #define MPIEXEC_BINARY BINDIR "/mpiexec"
 
+#define DEBUG_MPIEXEC_OPTIONS 0
+
 static int jobCallback(int32_t exit_status, Forwarder_Data_t *fw)
 {
     Job_t *job = fw->userData;
@@ -676,6 +678,21 @@ static int isPMIdisabled(Step_t *step)
     return 0;
 }
 
+static void debugMpiexecStart(char **argv, char **env)
+{
+    int i = 0;
+
+    mlog("%s:", __func__);
+    do {
+	mlog(" %s", argv[i++]);
+    } while (argv[i]);
+    mlog("\n");
+
+    for (i=0; env[i]; i++) {
+	mlog("%s: env[%i] '%s'\n", __func__, i, env[i]);
+    }
+}
+
 static void execJobStep(Forwarder_Data_t *fwdata, int rerun)
 {
     Step_t *step = fwdata->userData;
@@ -747,6 +764,8 @@ static void execJobStep(Forwarder_Data_t *fwdata, int rerun)
     setRlimitsFromEnv(&step->env, 1);
 
     removeUserVars(&step->env);
+
+    if (DEBUG_MPIEXEC_OPTIONS) debugMpiexecStart(argV.strings, step->env.vars);
 
     /* start mpiexec to spawn the parallel job */
     closelog();
