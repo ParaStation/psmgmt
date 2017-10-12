@@ -1453,3 +1453,40 @@ bool __packRespDaemonStatus(PS_DataBuffer_t *data, Resp_Daemon_Status_t *stat,
 
     return true;
 }
+
+bool __packRespLaunchTasks(PS_DataBuffer_t *data, Resp_Launch_Tasks_t *ltasks,
+			    const char *caller, const int line)
+{
+    uint32_t i;
+
+    if (!data) {
+	mlog("%s: invalid data pointer from '%s' at %i\n", __func__,
+		caller, line);
+	return false;
+    }
+
+    if (!ltasks) {
+	mlog("%s: invalid ltasks pointer from '%s' at %i\n", __func__,
+		caller, line);
+	return false;
+    }
+
+    /* return code */
+    addUint32ToMsg(ltasks->returnCode, data);
+    /* node_name */
+    addStringToMsg(ltasks->nodeName, data);
+    /* count of pids */
+    addUint32ToMsg(ltasks->countPIDs, data);
+    /* local pids */
+    addUint32ToMsg(ltasks->countLocalPIDs, data);
+    for (i=0; i<ltasks->countLocalPIDs; i++) {
+	addUint32ToMsg(ltasks->localPIDs[i], data);
+    }
+    /* global task IDs */
+    addUint32ToMsg(ltasks->countGlobalTIDs, data);
+    for (i=0; i<ltasks->countGlobalTIDs; i++) {
+	addUint32ToMsg(ltasks->globalTIDs[i], data);
+    }
+
+    return true;
+}

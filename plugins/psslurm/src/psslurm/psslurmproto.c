@@ -2375,35 +2375,27 @@ void sendLaunchTasksFailed(Step_t *step, uint32_t error)
 {
     PS_DataBuffer_t body = { .buf = NULL };
     int sock = -1;
-    uint32_t i, z;
+    uint32_t i;
+    Resp_Launch_Tasks_t resp;
 
     for (i=0; i<step->nrOfNodes; i++) {
-
 	body.bufUsed = 0;
 	body.buf = NULL;
 
 	/* return code */
-	addUint32ToMsg(error, &body);
+	resp.returnCode = error;
+	/* hostname */
+	resp.nodeName = getHostnameByNodeId(step->nodes[i]);
+	/* count of PIDs */
+	resp.countPIDs = step->globalTaskIdsLen[i];
+	/* local PIDs */
+	resp.countLocalPIDs = step->globalTaskIdsLen[i];
+	resp.localPIDs = step->globalTaskIds[i];
+	/* global task IDs */
+	resp.countGlobalTIDs = step->globalTaskIdsLen[i];
+	resp.globalTIDs = step->globalTaskIds[i];
 
-	/* node_name */
-	addStringToMsg(getHostnameByNodeId(step->nodes[i]), &body);
-
-	/* count of pids */
-	addUint32ToMsg(step->globalTaskIdsLen[i], &body);
-
-	/* local pids */
-	addUint32ToMsg(step->globalTaskIdsLen[i], &body);
-
-	for (z=0; z<step->globalTaskIdsLen[i]; z++) {
-	    addUint32ToMsg(step->globalTaskIds[i][z], &body);
-	}
-
-	/* task ids of processes (array) */
-	addUint32ToMsg(step->globalTaskIdsLen[i], &body);
-
-	for (z=0; z<step->globalTaskIdsLen[i]; z++) {
-	    addUint32ToMsg(step->globalTaskIds[i][z], &body);
-	}
+	packRespLaunchTasks(&body, &resp);
 
 	/* send the message to srun */
 	if ((sock = srunOpenControlConnection(step)) != -1) {
@@ -2418,67 +2410,63 @@ void sendLaunchTasksFailed(Step_t *step, uint32_t error)
 		    __func__, step->jobid, step->stepid);
 	}
 
-	mlog("%s: send RESPONSE_LAUNCH_TASKS step '%u:%u' pids '%u'\n",
-		__func__, step->jobid, step->stepid, step->globalTaskIdsLen[i]);
-
+	mlog("%s: send RESPONSE_LAUNCH_TASKS step '%u:%u' pids '%u' for %s\n",
+		__func__, step->jobid, step->stepid, step->globalTaskIdsLen[i],
+		resp.nodeName);
     }
 
     ufree(body.buf);
 }
 
-int sendTaskPids(Step_t *step)
+void sendTaskPids(Step_t *step)
 {
     PS_DataBuffer_t body = { .buf = NULL };
-    uint32_t countPIDS = 0, countPIDS2 = 0, countGTIDS2 = 0, countGTIDS = 0;
+    uint32_t countPIDs = 0, countLocalPIDs = 0, countGTIDs = 0;
     int sock = -1;
     list_t *t;
+    Resp_Launch_Tasks_t resp;
 
-    /* return code */
-    addUint32ToMsg(SLURM_SUCCESS, &body);
+    resp.returnCode = SLURM_SUCCESS;
+    resp.nodeName = getConfValueC(&Config, "SLURM_HOSTNAME");
 
-    /* node_name */
-    addStringToMsg(getConfValueC(&Config, "SLURM_HOSTNAME"), &body);
-
-    /* count of pids */
+    /* count of PIDs */
     list_for_each(t, &step->tasks.list) {
 	PS_Tasks_t *task = list_entry(t, PS_Tasks_t, list);
 	if (task->childRank <0) continue;
-	countPIDS++;
+	countPIDs++;
     }
-    addUint32ToMsg(countPIDS, &body);
+    resp.countPIDs = countPIDs;
 
-    /* local pids */
-    addUint32ToMsg(countPIDS, &body);
-
-    list_for_each(t, &step->tasks.list) {
-	PS_Tasks_t *task = list_entry(t, PS_Tasks_t, list);
-	if (task->childRank <0) continue;
-	addUint32ToMsg(PSC_getPID(task->childTID), &body);
-	countPIDS2++;
-    }
-
-    /* task ids of processes (array) */
-    list_for_each(t, &step->tasks.list) {
-	PS_Tasks_t *task = list_entry(t, PS_Tasks_t, list);
-	if (task->childRank <0) continue;
-	countGTIDS++;
-    }
-    addUint32ToMsg(countGTIDS, &body);
+    /* local PIDs */
+    resp.localPIDs = umalloc(sizeof(uint32_t) * countPIDs);
 
     list_for_each(t, &step->tasks.list) {
 	PS_Tasks_t *task = list_entry(t, PS_Tasks_t, list);
 	if (task->childRank <0) continue;
-	addUint32ToMsg(task->childRank, &body);
-	countGTIDS2++;
+	if (countLocalPIDs >=countPIDs) break;
+	resp.localPIDs[countLocalPIDs++] = PSC_getPID(task->childTID);
     }
+    resp.countLocalPIDs = countLocalPIDs;
 
-    if (countPIDS != countGTIDS || countPIDS != countPIDS2
-	|| countGTIDS != countGTIDS2) {
+    /* global task IDs */
+    resp.globalTIDs = umalloc(sizeof(uint32_t) * countPIDs);
+
+    list_for_each(t, &step->tasks.list) {
+	PS_Tasks_t *task = list_entry(t, PS_Tasks_t, list);
+	if (task->childRank <0) continue;
+	if (countGTIDs >=countPIDs) break;
+	resp.globalTIDs[countGTIDs++] = task->childRank;
+    }
+    resp.countGlobalTIDs = countGTIDs;
+
+    if (countPIDs != countGTIDs || countPIDs != countLocalPIDs
+	|| countPIDs != countGTIDs) {
 	mlog("%s: mismatching PID '%u' and GTID '%u' count\n", __func__,
-		countPIDS, countGTIDS);
-	ufree(body.buf);
-	return 0;
+		countPIDs, countGTIDs);
+	goto CLEANUP;
     }
+
+    packRespLaunchTasks(&body, &resp);
 
     /* send the message to srun */
     if ((sock = srunOpenControlConnection(step)) != -1) {
@@ -2494,10 +2482,12 @@ int sendTaskPids(Step_t *step)
     }
 
     mlog("%s: send RESPONSE_LAUNCH_TASKS step '%u:%u' pids '%u'\n",
-	    __func__, step->jobid, step->stepid, countPIDS);
-    ufree(body.buf);
+	    __func__, step->jobid, step->stepid, countPIDs);
 
-    return 1;
+CLEANUP:
+    ufree(body.buf);
+    ufree(resp.localPIDs);
+    ufree(resp.globalTIDs);
 }
 
 void sendJobExit(Job_t *job, uint32_t exit_status)
