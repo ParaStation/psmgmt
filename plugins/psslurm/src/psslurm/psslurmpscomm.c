@@ -49,63 +49,20 @@
 #include "psslurmpscomm.h"
 
 typedef enum {
-    PSP_QUEUE = 3,	    /* obsolete */
-    PSP_QUEUE_RES,	    /* obsolete */
-    PSP_START,		    /* obsolete */
-    PSP_START_RES,	    /* obsolete */
-    PSP_DELETE,		    /* obsolete */
-    PSP_DELETE_RES,	    /* obsolete */
-    PSP_PROLOGUE_START,	    /* obsolete */
-    PSP_PROLOGUE_RES,	    /* obsolete */
-    PSP_EPILOGUE_START,	    /* obsolete */
-    PSP_EPILOGUE_RES,	    /* obsolete */
-    PSP_JOB_INFO,	    /* obsolete */
-    PSP_JOB_INFO_RES,	    /* obsolete */
-    PSP_TASK_IDS,	    /* obsolete */
-    PSP_REMOTE_JOB,	    /* obsolete */
-    PSP_SIGNAL_TASKS,
+    PSP_SIGNAL_TASKS = 17,
     PSP_JOB_EXIT,
     PSP_JOB_LAUNCH,
     PSP_JOB_STATE_REQ,
     PSP_JOB_STATE_RES,
     PSP_FORWARD_SMSG,
     PSP_FORWARD_SMSG_RES,
-    PSP_LAUNCH_TASKS,	    /* obsolete */
-    PSP_ALLOC_LAUNCH,
+    PSP_ALLOC_LAUNCH = 25,
     PSP_ALLOC_STATE,
 } PSP_PSSLURM_t;
 
 char *msg2Str(PSP_PSSLURM_t type)
 {
     switch(type) {
-	case PSP_QUEUE:
-	    return "QUEUE";
-	case PSP_QUEUE_RES:
-	    return "QUEUE_RES";
-	case PSP_START:
-	    return "START";
-	case PSP_START_RES:
-	    return "START_RES";
-	case PSP_DELETE:
-	    return "DELETE";
-	case PSP_DELETE_RES:
-	    return "DELETE_RES";
-	case PSP_PROLOGUE_START:
-	    return "PROLOGUE_START";
-	case PSP_PROLOGUE_RES:
-	    return "PROLOGUE_RES";
-	case PSP_EPILOGUE_START:
-	    return "EPILOGUE_START";
-	case PSP_EPILOGUE_RES:
-	    return "EPILOGUE_RES";
-	case PSP_JOB_INFO:
-	    return "JOB_INFO";
-	case PSP_JOB_INFO_RES:
-	    return "JOB_INFO_RES";
-	case PSP_TASK_IDS:
-	    return "PSP_TASK_IDS";
-	case PSP_REMOTE_JOB:
-	    return "PSP_REMOTE_JOB";
 	case PSP_SIGNAL_TASKS:
 	    return "PSP_SIGNAL_TASKS";
 	case PSP_JOB_EXIT:
@@ -120,8 +77,6 @@ char *msg2Str(PSP_PSSLURM_t type)
 	    return "PSP_FORWARD_SMSG";
 	case PSP_FORWARD_SMSG_RES:
 	    return "PSP_FORWARD_SMSG_RES";
-	case PSP_LAUNCH_TASKS:
-	    return "PSP_LAUNCH_TASKS";
 	case PSP_ALLOC_LAUNCH:
 	    return "PSP_ALLOC_LAUNCH";
 	case PSP_ALLOC_STATE:
@@ -1008,16 +963,6 @@ void handlePsslurmMsg(DDTypedBufferMsg_t *msg)
 	case PSP_ALLOC_STATE:
 	    recvFragMsg(msg, handleAllocState);
 	    break;
-	/* obsolete, to be removed */
-	case PSP_PROLOGUE_START:
-	case PSP_EPILOGUE_START:
-	case PSP_QUEUE:
-	case PSP_JOB_INFO:
-	case PSP_DELETE:
-	case PSP_TASK_IDS:
-	case PSP_LAUNCH_TASKS:
-	    mlog("%s: got obsolete msg type '%i'\n", __func__, msg->type);
-	    break;
 	default:
 	    mlog("%s: received unknown msg type:%i [%s -> %s]\n", __func__,
 		msg->type, sender, dest);
@@ -1113,7 +1058,7 @@ static void saveForwardError(DDTypedBufferMsg_t *msg)
 
 void handleDroppedMsg(DDTypedBufferMsg_t *msg)
 {
-    char *ptr, sjobid[300];
+    char *ptr;
     const char *hname;
     PSnodes_ID_t nodeId;
     uint32_t jobid;
@@ -1129,12 +1074,6 @@ void handleDroppedMsg(DDTypedBufferMsg_t *msg)
     ptr = msg->buf;
 
     switch (msg->type) {
-	case PSP_PROLOGUE_RES:
-	case PSP_EPILOGUE_RES:
-	    getString(&ptr, sjobid, sizeof(sjobid));
-
-	    mlog("%s: can't send pelogue result to '%s'\n", __func__, sjobid);
-	    break;
 	case PSP_JOB_STATE_REQ:
 	    getUint32(&ptr, &jobid);
 	    mlog("%s: mother superior is dead, releasing job '%u'\n", __func__,
