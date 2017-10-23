@@ -1652,4 +1652,29 @@ FORWARD_CHILD_BORN:
     if (oldChildBornHandler) oldChildBornHandler((DDBufferMsg_t *) msg);
 }
 
+void handleUnknownMsg(DDBufferMsg_t *msg)
+{
+    size_t used = 0;
+    PStask_ID_t dest;
+    int16_t type;
+
+    /* original dest */
+    PSP_getMsgBuf(msg, &used, __func__, "dest", &dest, sizeof(dest));
+
+    /* original type */
+    PSP_getMsgBuf(msg, &used, __func__, "type", &type, sizeof(type));
+
+    if (type == PSP_CC_PLUG_PSSLURM) {
+	/* psslurm message */
+	mlog("%s: delivery of psslurm message type %i to %s failed\n",
+		__func__, type, PSC_printTID(dest));
+
+	mlog("%s: please make sure the plugin 'psslurm' is loaded on"
+		" node %i\n", __func__, PSC_getID(msg->header.sender));
+	return;
+    }
+
+    if (oldUnkownHandler) oldUnkownHandler(msg);
+}
+
 /* vim: set ts=8 sw=4 tw=0 sts=4 noet:*/

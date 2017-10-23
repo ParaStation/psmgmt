@@ -81,10 +81,20 @@ uint32_t configHash;
 PSnodes_ID_t slurmController;
 PSnodes_ID_t slurmBackupController;
 
+/** Old handler for PSP_DD_CHILDBORN messages */
 handlerFunc_t oldChildBornHandler = NULL;
+
+/** Old handler for PSP_CC_MSG messages */
 handlerFunc_t oldCCMsgHandler = NULL;
+
+/** Old handler for PSP_CD_SPAWNFAILED  messages */
 handlerFunc_t oldSpawnFailedHandler = NULL;
+
+/** Old handler for PSP_CD_SPAWNREQ messages */
 handlerFunc_t oldSpawnReqHandler = NULL;
+
+/** Old handler for PSP_CD_UNKNOWN messages */
+handlerFunc_t oldUnkownHandler = NULL;
 
 /** psid plugin requirements */
 char name[] = "psslurm";
@@ -142,18 +152,27 @@ static void unregisterHooks(int verbose)
 	PSID_registerMsg(PSP_DD_CHILDBORN, (handlerFunc_t) oldChildBornHandler);
     }
 
+    /* unregister PSP_CC_MSG message handler */
     if (oldCCMsgHandler) {
 	PSID_registerMsg(PSP_CC_MSG, (handlerFunc_t) oldCCMsgHandler);
     }
 
+    /* unregister PSP_CD_SPAWNFAILED message handler */
     if (oldSpawnFailedHandler) {
 	PSID_registerMsg(PSP_CD_SPAWNFAILED,
 			(handlerFunc_t) oldSpawnFailedHandler);
     }
 
+    /* unregister PSP_CD_SPAWNREQ message handler */
     if (oldSpawnReqHandler) {
 	PSID_registerMsg(PSP_CD_SPAWNREQ,
 			(handlerFunc_t) oldSpawnReqHandler);
+    }
+
+    /* unregister PSP_CD_UNKNOWN message handler */
+    if (oldUnkownHandler) {
+	PSID_registerMsg(PSP_CD_UNKNOWN,
+			(handlerFunc_t) oldUnkownHandler);
     }
 
     /* unregister msg drop handler */
@@ -195,20 +214,27 @@ static void unregisterHooks(int verbose)
 
 static int registerHooks(void)
 {
-    /* register psslurm msg */
+    /* register psslurm PSP_CC_PLUG_PSSLURM message */
     PSID_registerMsg(PSP_CC_PLUG_PSSLURM, (handlerFunc_t) handlePsslurmMsg);
 
-    /* register various messages */
+    /* register PSP_DD_CHILDBORN message */
     oldChildBornHandler = PSID_registerMsg(PSP_DD_CHILDBORN,
 					    (handlerFunc_t) handleChildBornMsg);
 
+    /* register PSP_CC_MSG message */
     oldCCMsgHandler = PSID_registerMsg(PSP_CC_MSG, (handlerFunc_t) handleCCMsg);
 
+    /* register PSP_CD_SPAWNFAILED message */
     oldSpawnFailedHandler = PSID_registerMsg(PSP_CD_SPAWNFAILED,
 					    (handlerFunc_t) handleSpawnFailed);
 
+    /* register PSP_CD_SPAWNREQ message */
     oldSpawnReqHandler = PSID_registerMsg(PSP_CD_SPAWNREQ,
 					    (handlerFunc_t) handleSpawnReq);
+
+    /* register PSP_CD_UNKNOWN message */
+    oldUnkownHandler = PSID_registerMsg(PSP_CD_UNKNOWN,
+				        (handlerFunc_t) handleUnknownMsg);
 
     /* register handler for dropped msgs */
     PSID_registerDropper(PSP_CC_PLUG_PSSLURM, (handlerFunc_t) handleDroppedMsg);
