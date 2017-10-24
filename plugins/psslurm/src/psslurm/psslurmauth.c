@@ -76,12 +76,12 @@ Slurm_Auth_t *getSlurmAuth(void)
     return auth;
 }
 
-bool extractSlurmAuth(char **ptr, Slurm_Msg_Header_t *msgHead)
+bool extractSlurmAuth(Slurm_Msg_t *sMsg)
 {
     Slurm_Auth_t *auth = NULL;
     int ret;
 
-    if (!unpackSlurmAuth(ptr, &auth)) {
+    if (!unpackSlurmAuth(sMsg, &auth)) {
 	mlog("%s: unpacking slurm authentication failed\n", __func__);
 	goto ERROR;
     }
@@ -99,7 +99,7 @@ bool extractSlurmAuth(char **ptr, Slurm_Msg_Header_t *msgHead)
     }
     */
 
-    ret = psMungeDecode(auth->cred, &msgHead->uid, &msgHead->gid);
+    ret = psMungeDecode(auth->cred, &sMsg->head.uid, &sMsg->head.gid);
 
     if (!ret) {
 	mlog("%s: decoding munge credential failed\n", __func__);
@@ -107,7 +107,7 @@ bool extractSlurmAuth(char **ptr, Slurm_Msg_Header_t *msgHead)
     }
 
     mdbg(PSSLURM_LOG_AUTH, "%s: valid message from user uid '%u' gid '%u'\n",
-	    __func__, msgHead->uid, msgHead->gid);
+	    __func__, sMsg->head.uid, sMsg->head.gid);
 
     freeSlurmAuth(auth);
     return true;
@@ -197,16 +197,16 @@ bool verifyJobData(Job_t *job)
     return true;
 }
 
-bool extractBCastCred(char **ptr, BCast_t *bcast)
+bool extractBCastCred(Slurm_Msg_t *sMsg, BCast_t *bcast)
 {
-    char *credStart = *ptr, *credEnd, *sigBuf = NULL;
+    char *credStart = sMsg->ptr, *credEnd, *sigBuf = NULL;
     int sigBufLen, credLen;
     uid_t sigUid;
     gid_t sigGid;
     BCast_t *firstBCast = NULL;
 
     errno = 0;
-    if (!unpackBCastCred(ptr, bcast, &credEnd)) {
+    if (!unpackBCastCred(sMsg, bcast, &credEnd)) {
 	mlog("%s: unpacking bcast credential failed\n", __func__);
 	goto ERROR;
     }
@@ -279,16 +279,16 @@ void freeJobCred(JobCred_t *cred)
     ufree(cred);
 }
 
-JobCred_t *extractJobCred(Gres_Cred_t **gres, char **ptr, bool verify)
+JobCred_t *extractJobCred(Gres_Cred_t **gres, Slurm_Msg_t *sMsg, bool verify)
 {
-    char *credStart = *ptr, *credEnd, *sigBuf = NULL;
+    char *credStart = sMsg->ptr, *credEnd, *sigBuf = NULL;
     JobCred_t *cred = NULL;
     int sigBufLen, credLen;
     uid_t sigUid;
     gid_t sigGid;
     uint32_t i;
 
-    if (!unpackJobCred(ptr, &cred, gres, &credEnd)) {
+    if (!unpackJobCred(sMsg, &cred, gres, &credEnd)) {
 	mlog("%s: unpacking job credential failed\n", __func__);
 	goto ERROR;
     }

@@ -229,7 +229,6 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
     uint32_t count, i;
     int32_t nodeIndex;
     char *acctType;
-    char **ptr = &sMsg->ptr;
 
     if (pluginShutdown) {
 	/* don't accept new steps if a shutdown is in progress */
@@ -238,7 +237,7 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
     }
 
     /* unpack request */
-    if (!(unpackReqLaunchTasks(ptr, &step))) {
+    if (!(unpackReqLaunchTasks(sMsg, &step))) {
 	mlog("%s: unpacking launch request failed\n", __func__);
 	sendSlurmRC(sMsg, SLURM_ERROR);
 	return;
@@ -651,7 +650,7 @@ static void handleReattachTasks(Slurm_Msg_t *sMsg)
     }
 
     /* job credential including I/O key */
-    if (!(cred = extractJobCred(&gres, ptr, 0))) {
+    if (!(cred = extractJobCred(&gres, sMsg, 0))) {
 	mlog("%s: invalid credential for step '%u:%u'\n", __func__,
 		jobid, stepid);
 	rc = ESLURM_INVALID_JOB_CREDENTIAL;
@@ -901,13 +900,12 @@ static void handleJobId(Slurm_Msg_t *sMsg)
 
 static void handleFileBCast(Slurm_Msg_t *sMsg)
 {
-    char **ptr = &sMsg->ptr;
     BCast_t *bcast = NULL;
     Job_t *job;
     Alloc_t *alloc;
 
     /* unpack request */
-    if (!unpackReqFileBcast(ptr, &bcast)) {
+    if (!unpackReqFileBcast(sMsg, &bcast)) {
 	mlog("%s: unpacking request file bcast failed\n", __func__);
 	sendSlurmRC(sMsg, SLURM_ERROR);
 	return;
@@ -915,7 +913,7 @@ static void handleFileBCast(Slurm_Msg_t *sMsg)
     bcast->msg.sock = sMsg->sock;
 
     /* unpack credential */
-    if (!extractBCastCred(ptr, bcast)) {
+    if (!extractBCastCred(sMsg, bcast)) {
 	mlog("%s: extracting bcast credential failed\n", __func__);
 	if (!errno) {
 	    sendSlurmRC(sMsg, ESLURM_AUTH_CRED_INVALID);
@@ -1220,7 +1218,6 @@ static void handleBatchJobLaunch(Slurm_Msg_t *sMsg)
 {
     Job_t *job;
     char *acctType;
-    char **ptr = &sMsg->ptr;
     uint32_t i;
 
     if (pluginShutdown) {
@@ -1233,7 +1230,7 @@ static void handleBatchJobLaunch(Slurm_Msg_t *sMsg)
     malloc_trim(200);
 
     /* unpack request */
-    if (!(unpackReqBatchJobLaunch(ptr, &job))) {
+    if (!(unpackReqBatchJobLaunch(sMsg, &job))) {
 	mlog("%s: unpacking job launch request failed\n", __func__);
 	sendSlurmRC(sMsg, SLURM_ERROR);
 	return;
@@ -1597,13 +1594,12 @@ SEND_SUCCESS:
 
 static void handleTerminateReq(Slurm_Msg_t *sMsg)
 {
-    char **ptr = &sMsg->ptr;
     Job_t *job;
     Alloc_t *alloc;
     Req_Terminate_Job_t *req = NULL;
 
     /* unpack request */
-    if (!(unpackReqTerminate(ptr, &req))) {
+    if (!(unpackReqTerminate(sMsg, &req))) {
 	mlog("%s: unpack terminate request failed\n", __func__);
 	sendSlurmRC(sMsg, SLURM_ERROR);
 	return;
@@ -1816,7 +1812,7 @@ int handleSlurmdMsg(Slurm_Msg_t *sMsg)
 	return 0;
     }
 
-    if (!extractSlurmAuth(&sMsg->ptr, &sMsg->head)) {
+    if (!extractSlurmAuth(sMsg)) {
 	sendSlurmRC(sMsg, SLURM_ERROR);
 	return 0;
     }

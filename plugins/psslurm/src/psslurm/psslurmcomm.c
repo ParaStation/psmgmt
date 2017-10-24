@@ -437,7 +437,7 @@ static int handleSlurmctldReply(Slurm_Msg_t *sMsg)
     char **ptr;
     uint32_t rc;
 
-    if (!extractSlurmAuth(&sMsg->ptr, &sMsg->head)) return 0;
+    if (!extractSlurmAuth(sMsg)) return 0;
 
     ptr = &sMsg->ptr;
     getUint32(ptr, &rc);

@@ -38,13 +38,14 @@ bool __packSlurmAuth(PS_DataBuffer_t *data, Slurm_Auth_t *auth,
     return true;
 }
 
-bool __unpackSlurmAuth(char **ptr, Slurm_Auth_t **authPtr, const char *caller,
-			const int line)
+bool __unpackSlurmAuth(Slurm_Msg_t *sMsg, Slurm_Auth_t **authPtr,
+		       const char *caller, const int line)
 {
     Slurm_Auth_t *auth;
+    char **ptr = &sMsg->ptr;
 
-    if (!ptr) {
-	mlog("%s: invalid ptr from '%s' at %i\n", __func__, caller, line);
+    if (!sMsg) {
+	mlog("%s: invalid sMsg from '%s' at %i\n", __func__, caller, line);
 	return false;
     }
 
@@ -219,14 +220,16 @@ static void unpackGres(char **ptr, Gres_Cred_t *gresList, uint32_t jobid,
     }
 }
 
-bool __unpackJobCred(char **ptr, JobCred_t **credPtr, Gres_Cred_t **gresPtr,
-		    char **credEnd, const char *caller, const int line)
+bool __unpackJobCred(Slurm_Msg_t *sMsg, JobCred_t **credPtr,
+		     Gres_Cred_t **gresPtr, char **credEnd, const char *caller,
+		     const int line)
 {
     JobCred_t *cred;
     Gres_Cred_t *gres;
+    char **ptr = &sMsg->ptr;
 
-    if (!ptr) {
-	mlog("%s: invalid ptr from '%s' at %i\n", __func__, caller, line);
+    if (!sMsg) {
+	mlog("%s: invalid sMsg from '%s' at %i\n", __func__, caller, line);
 	return false;
     }
 
@@ -347,14 +350,15 @@ ERROR:
     return false;
 }
 
-bool __unpackBCastCred(char **ptr, BCast_t *bcast, char **credEnd,
-			const char *caller, const int line)
+bool __unpackBCastCred(Slurm_Msg_t *sMsg, BCast_t *bcast, char **credEnd,
+		       const char *caller, const int line)
 {
+    char **ptr = &sMsg->ptr;
     time_t ctime;
     char *nodes;
 
-    if (!ptr) {
-	mlog("%s: invalid ptr from '%s' at %i\n", __func__, caller, line);
+    if (!sMsg) {
+	mlog("%s: invalid sMsg from '%s' at %i\n", __func__, caller, line);
 	return false;
     }
 
@@ -486,7 +490,7 @@ bool __packSlurmIOMsg(PS_DataBuffer_t *data, Slurm_IO_Header_t *ioh, char *body,
 }
 
 bool __unpackSlurmIOHeader(char **ptr, Slurm_IO_Header_t **iohPtr,
-			    const char *caller, const int line)
+			   const char *caller, const int line)
 {
     Slurm_IO_Header_t *ioh;
 
@@ -515,10 +519,21 @@ bool __unpackSlurmIOHeader(char **ptr, Slurm_IO_Header_t **iohPtr,
     return true;
 }
 
-bool __unpackReqTerminate(char **ptr, Req_Terminate_Job_t **reqPtr,
-			    const char *caller, const int line)
+bool __unpackReqTerminate(Slurm_Msg_t *sMsg, Req_Terminate_Job_t **reqPtr,
+			  const char *caller, const int line)
 {
     Req_Terminate_Job_t *req;
+    char **ptr = &sMsg->ptr;
+
+    if (!sMsg) {
+	mlog("%s: invalid sMsg from '%s' at %i\n", __func__, caller, line);
+	return false;
+    }
+
+    if (!reqPtr) {
+	mlog("%s: invalid reqPtr from '%s' at %i\n", __func__, caller, line);
+	return false;
+    }
 
     req = ucalloc(sizeof(Req_Terminate_Job_t));
 
@@ -642,16 +657,17 @@ static void unpackStepIOoptions(Step_t *step, char **ptr)
     }
 }
 
-bool __unpackReqLaunchTasks(char **ptr, Step_t **stepPtr,
+bool __unpackReqLaunchTasks(Slurm_Msg_t *sMsg, Step_t **stepPtr,
 			    const char *caller, const int line)
 {
+    char **ptr = &sMsg->ptr;
     Step_t *step;
     uint16_t debug;
     uint32_t jobid, stepid, count, i, tmp;
     char jobOpt[512];
 
-    if (!ptr) {
-	mlog("%s: invalid ptr from '%s' at %i\n", __func__, caller, line);
+    if (!sMsg) {
+	mlog("%s: invalid sMsg from '%s' at %i\n", __func__, caller, line);
 	return false;
     }
 
@@ -724,7 +740,7 @@ bool __unpackReqLaunchTasks(char **ptr, Step_t **stepPtr,
 #endif
 
     /* job credentials */
-    if (!(step->cred = extractJobCred(&step->gres, ptr, 1))) {
+    if (!(step->cred = extractJobCred(&step->gres, sMsg, 1))) {
 	mlog("%s: extracting job credential failed\n", __func__);
 	goto ERROR;
     }
@@ -860,15 +876,16 @@ static void readJobCpuOptions(Job_t *job, char **ptr)
     }
 }
 
-bool __unpackReqBatchJobLaunch(char **ptr, Job_t **jobPtr,
-			    const char *caller, const int line)
+bool __unpackReqBatchJobLaunch(Slurm_Msg_t *sMsg, Job_t **jobPtr,
+			       const char *caller, const int line)
 {
+    char **ptr = &sMsg->ptr;
     Job_t *job;
     uint32_t jobid, tmp, count;
     char buf[1024];
 
-    if (!ptr) {
-	mlog("%s: invalid ptr from '%s' at %i\n", __func__, caller, line);
+    if (!sMsg) {
+	mlog("%s: invalid sMsg from '%s' at %i\n", __func__, caller, line);
 	return false;
     }
 
@@ -964,7 +981,7 @@ bool __unpackReqBatchJobLaunch(char **ptr, Job_t **jobPtr,
 #endif
 
     /* job credential */
-    if (!(job->cred = extractJobCred(&job->gres, ptr, 1))) {
+    if (!(job->cred = extractJobCred(&job->gres, sMsg, 1))) {
 	mlog("%s: extracting job credentail failed\n", __func__);
 	goto ERROR;
     }
@@ -1275,13 +1292,14 @@ bool __packRespNodeRegStatus(PS_DataBuffer_t *data, Resp_Node_Reg_Status_t *stat
     return true;
 }
 
-bool __unpackReqFileBcast(char **ptr, BCast_t **bcastPtr,
-			    const char *caller, const int line)
+bool __unpackReqFileBcast(Slurm_Msg_t *sMsg, BCast_t **bcastPtr,
+			  const char *caller, const int line)
 {
+    char **ptr = &sMsg->ptr;
     BCast_t *bcast;
     size_t len;
 
-    if (!ptr) {
+    if (!sMsg) {
 	mlog("%s: invalid ptr from '%s' at %i\n", __func__, caller, line);
 	return false;
     }
