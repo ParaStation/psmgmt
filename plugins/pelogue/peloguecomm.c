@@ -35,6 +35,9 @@ typedef enum {
     PSP_PELOGUE_SIGNAL,	    /**< send a signal to a PElogue script */
 } PSP_PELOGUE_t;
 
+/** Old handler for PSP_CD_UNKNOWN messages */
+handlerFunc_t oldUnkownHandler = NULL;
+
 static void sendFragMsgToHostList(Job_t *job, PS_DataBuffer_t *data,
 				  int32_t type)
 {
@@ -406,10 +409,37 @@ static void dropPElogueMsg(DDTypedBufferMsg_t *msg)
     }
 }
 
+static void handleUnknownMsg(DDBufferMsg_t *msg)
+{
+    size_t used = 0;
+    PStask_ID_t dest;
+    int16_t type;
+
+    /* original dest */
+    PSP_getMsgBuf(msg, &used, __func__, "dest", &dest, sizeof(dest));
+
+    /* original type */
+    PSP_getMsgBuf(msg, &used, __func__, "type", &type, sizeof(type));
+
+    if (type == PSP_CC_PLUG_PELOGUE) {
+	/* pelogue message */
+	mlog("%s: delivery of pelogue message type %i to %s failed\n",
+		__func__, type, PSC_printTID(dest));
+
+	mlog("%s: please make sure the plugin 'pelogue' is loaded on"
+		" node %i\n", __func__, PSC_getID(msg->header.sender));
+	return;
+    }
+
+    if (oldUnkownHandler) oldUnkownHandler(msg);
+}
+
 bool initComm(void)
 {
     PSID_registerMsg(PSP_CC_PLUG_PELOGUE, (handlerFunc_t) handlePElogueMsg);
     PSID_registerDropper(PSP_CC_PLUG_PELOGUE, (handlerFunc_t) dropPElogueMsg);
+    oldUnkownHandler = PSID_registerMsg(PSP_CD_UNKNOWN,
+				        (handlerFunc_t) handleUnknownMsg);
 
     return true;
 }
@@ -418,4 +448,7 @@ void finalizeComm(void)
 {
     PSID_clearMsg(PSP_CC_PLUG_PELOGUE);
     PSID_clearDropper(PSP_CC_PLUG_PELOGUE);
+    if (oldUnkownHandler) {
+	PSID_registerMsg(PSP_CD_UNKNOWN, (handlerFunc_t) oldUnkownHandler);
+    }
 }
