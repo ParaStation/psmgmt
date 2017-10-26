@@ -27,6 +27,7 @@
 #include "pluginmalloc.h"
 #include "plugincomm.h"
 #include "pspamhandles.h"
+#include "peloguehandles.h"
 
 #include "psslurmjob.h"
 
@@ -81,10 +82,13 @@ Alloc_t *addAllocation(uint32_t jobid, uint32_t nrOfNodes, char *slurmHosts,
 			    char *username)
 {
     Alloc_t *alloc;
+    char tmp[256];
 
     if ((alloc = findAlloc(jobid))) return alloc;
+    snprintf(tmp, sizeof(tmp), "%u", jobid);
 
     alloc = (Alloc_t *) umalloc(sizeof(Alloc_t));
+    alloc->id = ustrdup(tmp);
     alloc->jobid = jobid;
     alloc->state = JOB_QUEUED;
     alloc->uid = uid;
@@ -487,6 +491,9 @@ int deleteAlloc(uint32_t jobid)
 
     if (!(alloc = findAlloc(jobid))) return 0;
 
+    /* free corresponding pelogue job */
+    psPelogueDeleteJob("psslurm", alloc->id);
+
     /* tell sisters the allocation is revoked */
     if (alloc->motherSup == PSC_getMyTID()) {
 	send_PS_JobExit(alloc->jobid, SLURM_BATCH_SCRIPT,
@@ -498,6 +505,7 @@ int deleteAlloc(uint32_t jobid)
     ufree(alloc->nodes);
     ufree(alloc->slurmHosts);
     ufree(alloc->username);
+    ufree(alloc->id);
     envDestroy(&alloc->env);
     envDestroy(&alloc->spankenv);
 
@@ -592,6 +600,9 @@ int deleteJob(uint32_t jobid)
     mdbg(PSSLURM_LOG_JOB, "%s: '%u'\n", __func__, jobid);
     clearBCastByJobid(jobid);
     psPamDeleteUser(job->username, strJobID(jobid));
+
+    /* free corresponding pelogue job */
+    psPelogueDeleteJob("psslurm", job->id);
 
     /* cleanup all corresponding allocations and steps */
     deleteAlloc(job->jobid);

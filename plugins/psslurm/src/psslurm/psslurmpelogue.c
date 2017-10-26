@@ -124,7 +124,6 @@ static void cbPElogueAlloc(char *sjobid, int exit_status, bool timeout,
 	if (alloc->terminate) {
 	    sendSlurmRC(&step->srunControlMsg, SLURM_ERROR);
 	    if (pluginShutdown) {
-		psPelogueDeleteJob("psslurm", sjobid);
 		alloc->state = step->state = JOB_EXIT;
 		send_PS_AllocState(alloc);
 		deleteAlloc(alloc->jobid);
@@ -148,7 +147,6 @@ static void cbPElogueAlloc(char *sjobid, int exit_status, bool timeout,
 	    sendSlurmRC(&step->srunControlMsg, ESLURMD_PROLOG_FAILED);
 	    alloc->state = step->state = JOB_EXIT;
 	    send_PS_AllocState(alloc);
-	    psPelogueDeleteJob("psslurm", sjobid);
 	    mdbg(PSSLURM_LOG_JOB, "%s: step '%u:%u' in '%s'\n", __func__,
 		    step->jobid, step->stepid, strJobState(step->state));
 	    if (pluginShutdown) deleteAlloc(alloc->jobid);
@@ -158,7 +156,6 @@ static void cbPElogueAlloc(char *sjobid, int exit_status, bool timeout,
 	send_PS_AllocState(alloc);
 	mdbg(PSSLURM_LOG_JOB, "%s: step '%u:%u' in '%s'\n", __func__,
 		step->jobid, step->stepid, strJobState(step->state));
-	psPelogueDeleteJob("psslurm", sjobid);
 	sendEpilogueComplete(alloc->jobid, 0);
 
 	if (alloc->motherSup == PSC_getMyTID()) {
@@ -177,7 +174,6 @@ static void cbPElogueAlloc(char *sjobid, int exit_status, bool timeout,
 
 void handleEpilogueJobCB(Job_t *job)
 {
-    psPelogueDeleteJob("psslurm", job->id);
     job->state = JOB_EXIT;
     mdbg(PSSLURM_LOG_JOB, "%s: job '%u' in '%s'\n", __func__,
 	    job->jobid, strJobState(job->state));
@@ -216,7 +212,6 @@ static void cbPElogueJob(char *jobid, int exit_status, bool timeout,
     if (job->state == JOB_PROLOGUE) {
 	if (job->terminate) {
 	    if (pluginShutdown) {
-		psPelogueDeleteJob("psslurm", job->id);
 		deleteJob(job->jobid);
 	    } else {
 		job->state = JOB_EPILOGUE;
@@ -234,7 +229,6 @@ static void cbPElogueJob(char *jobid, int exit_status, bool timeout,
 	    psPamSetState(job->username, strJobID(job->jobid), PSPAM_STATE_JOB);
 	} else {
 	    job->state = JOB_EXIT;
-	    psPelogueDeleteJob("psslurm", job->id);
 	    mdbg(PSSLURM_LOG_JOB, "%s: job '%u' in '%s'\n", __func__,
 		    job->jobid, strJobState(job->state));
 	    if (pluginShutdown) deleteJob(job->jobid);

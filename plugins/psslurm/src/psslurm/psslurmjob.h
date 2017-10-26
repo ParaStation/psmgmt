@@ -241,7 +241,7 @@ typedef struct {
 
 typedef struct {
     list_t list;	    /* job list */
-    char *id;
+    char *id;	            /* jobid as string */
     uint32_t jobid;
     char *username;	    /* username of job owner */
     uint32_t np;	    /* number of processes */
@@ -308,6 +308,7 @@ typedef struct {
 } Job_t;
 
 typedef struct {
+    char *id;	            /* jobid as string */
     uint32_t jobid;
     uid_t uid;
     gid_t gid;

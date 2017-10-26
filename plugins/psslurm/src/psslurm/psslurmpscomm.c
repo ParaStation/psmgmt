@@ -1126,6 +1126,7 @@ static void handleDroppedMsg(DDTypedBufferMsg_t *msg)
 	case PSP_JOB_STATE_RES:
 	case PSP_SIGNAL_TASKS:
 	case PSP_ALLOC_LAUNCH:
+	case PSP_ALLOC_STATE:
 	    /* nothing we can do here */
 	    break;
 	default:
