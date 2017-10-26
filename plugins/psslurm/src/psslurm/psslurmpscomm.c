@@ -1736,29 +1736,39 @@ void finalizePScomm(void)
     /* unregister various messages */
     if (oldChildBornHandler) {
 	PSID_registerMsg(PSP_DD_CHILDBORN, (handlerFunc_t) oldChildBornHandler);
+    } else {
+	PSID_clearMsg(PSP_DD_CHILDBORN);
     }
 
     /* unregister PSP_CC_MSG message handler */
     if (oldCCMsgHandler) {
 	PSID_registerMsg(PSP_CC_MSG, (handlerFunc_t) oldCCMsgHandler);
+    } else {
+	PSID_clearMsg(PSP_CC_MSG);
     }
 
     /* unregister PSP_CD_SPAWNFAILED message handler */
     if (oldSpawnFailedHandler) {
 	PSID_registerMsg(PSP_CD_SPAWNFAILED,
 			(handlerFunc_t) oldSpawnFailedHandler);
+    } else {
+	PSID_clearMsg(PSP_CD_SPAWNFAILED);
     }
 
     /* unregister PSP_CD_SPAWNREQ message handler */
     if (oldSpawnReqHandler) {
 	PSID_registerMsg(PSP_CD_SPAWNREQ,
 			(handlerFunc_t) oldSpawnReqHandler);
+    } else {
+	PSID_clearMsg(PSP_CD_SPAWNREQ);
     }
 
     /* unregister PSP_CD_UNKNOWN message handler */
     if (oldUnkownHandler) {
 	PSID_registerMsg(PSP_CD_UNKNOWN,
 			(handlerFunc_t) oldUnkownHandler);
+    } else {
+	PSID_clearMsg(PSP_CD_UNKNOWN);
     }
 
     /* unregister msg drop handler */

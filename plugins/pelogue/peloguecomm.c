@@ -450,5 +450,7 @@ void finalizeComm(void)
     PSID_clearDropper(PSP_CC_PLUG_PELOGUE);
     if (oldUnkownHandler) {
 	PSID_registerMsg(PSP_CD_UNKNOWN, (handlerFunc_t) oldUnkownHandler);
+    } else {
+	PSID_clearMsg(PSP_CD_UNKNOWN);
     }
 }
