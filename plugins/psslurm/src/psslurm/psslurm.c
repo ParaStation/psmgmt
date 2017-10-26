@@ -39,7 +39,6 @@
 #include "pluginhelper.h"
 #include "pluginfrag.h"
 #include "pspluginprotocol.h"
-#include "psdaemonprotocol.h"
 #include "psidplugin.h"
 #include "psidhook.h"
 #include "psidnodes.h"
@@ -81,21 +80,6 @@ uint32_t configHash;
 PSnodes_ID_t slurmController;
 PSnodes_ID_t slurmBackupController;
 
-/** Old handler for PSP_DD_CHILDBORN messages */
-handlerFunc_t oldChildBornHandler = NULL;
-
-/** Old handler for PSP_CC_MSG messages */
-handlerFunc_t oldCCMsgHandler = NULL;
-
-/** Old handler for PSP_CD_SPAWNFAILED  messages */
-handlerFunc_t oldSpawnFailedHandler = NULL;
-
-/** Old handler for PSP_CD_SPAWNREQ messages */
-handlerFunc_t oldSpawnReqHandler = NULL;
-
-/** Old handler for PSP_CD_UNKNOWN messages */
-handlerFunc_t oldUnkownHandler = NULL;
-
 /** psid plugin requirements */
 char name[] = "psslurm";
 int version = 116;
@@ -135,50 +119,13 @@ static void cleanupJobs(void)
 }
 
 /**
- * @brief Unregister all hooks and message handler.
+ * @brief Unregister all hooks
  *
  * @param verbose If set to true an error message will be displayed
  * when unregistering a hook or a message handle fails.
- *
- * @return No return value.
  */
 static void unregisterHooks(int verbose)
 {
-    /* unregister psslurm msg */
-    PSID_clearMsg(PSP_CC_PLUG_PSSLURM);
-
-    /* unregister various messages */
-    if (oldChildBornHandler) {
-	PSID_registerMsg(PSP_DD_CHILDBORN, (handlerFunc_t) oldChildBornHandler);
-    }
-
-    /* unregister PSP_CC_MSG message handler */
-    if (oldCCMsgHandler) {
-	PSID_registerMsg(PSP_CC_MSG, (handlerFunc_t) oldCCMsgHandler);
-    }
-
-    /* unregister PSP_CD_SPAWNFAILED message handler */
-    if (oldSpawnFailedHandler) {
-	PSID_registerMsg(PSP_CD_SPAWNFAILED,
-			(handlerFunc_t) oldSpawnFailedHandler);
-    }
-
-    /* unregister PSP_CD_SPAWNREQ message handler */
-    if (oldSpawnReqHandler) {
-	PSID_registerMsg(PSP_CD_SPAWNREQ,
-			(handlerFunc_t) oldSpawnReqHandler);
-    }
-
-    /* unregister PSP_CD_UNKNOWN message handler */
-    if (oldUnkownHandler) {
-	PSID_registerMsg(PSP_CD_UNKNOWN,
-			(handlerFunc_t) oldUnkownHandler);
-    }
-
-    /* unregister msg drop handler */
-    PSID_clearDropper(PSP_CC_PLUG_PSSLURM);
-
-    /* unregister hooks */
     if (!(PSIDhook_del(PSIDHOOK_NODE_DOWN, handleNodeDown))) {
 	if (verbose) mlog("unregister 'PSIDHOOK_NODE_DOWN' failed\n");
     }
@@ -212,34 +159,11 @@ static void unregisterHooks(int verbose)
     }
 }
 
+/**
+* @brief Register various hooks
+*/
 static int registerHooks(void)
 {
-    /* register psslurm PSP_CC_PLUG_PSSLURM message */
-    PSID_registerMsg(PSP_CC_PLUG_PSSLURM, (handlerFunc_t) handlePsslurmMsg);
-
-    /* register PSP_DD_CHILDBORN message */
-    oldChildBornHandler = PSID_registerMsg(PSP_DD_CHILDBORN,
-					    (handlerFunc_t) handleChildBornMsg);
-
-    /* register PSP_CC_MSG message */
-    oldCCMsgHandler = PSID_registerMsg(PSP_CC_MSG, (handlerFunc_t) handleCCMsg);
-
-    /* register PSP_CD_SPAWNFAILED message */
-    oldSpawnFailedHandler = PSID_registerMsg(PSP_CD_SPAWNFAILED,
-					    (handlerFunc_t) handleSpawnFailed);
-
-    /* register PSP_CD_SPAWNREQ message */
-    oldSpawnReqHandler = PSID_registerMsg(PSP_CD_SPAWNREQ,
-					    (handlerFunc_t) handleSpawnReq);
-
-    /* register PSP_CD_UNKNOWN message */
-    oldUnkownHandler = PSID_registerMsg(PSP_CD_UNKNOWN,
-				        (handlerFunc_t) handleUnknownMsg);
-
-    /* register handler for dropped msgs */
-    PSID_registerDropper(PSP_CC_PLUG_PSSLURM, (handlerFunc_t) handleDroppedMsg);
-
-    /* register various hooks */
     if (!(PSIDhook_add(PSIDHOOK_NODE_DOWN, handleNodeDown))) {
 	mlog("register 'PSIDHOOK_NODE_DOWN' failed\n");
 	return 0;
@@ -616,6 +540,7 @@ int initialize(void)
 
     enableFPEexceptions();
 
+    initPScomm();
     if (!(registerHooks())) goto INIT_ERROR;
     if (!(initPluginHandles())) goto INIT_ERROR;
     if (!(initLimits())) goto INIT_ERROR;
@@ -720,6 +645,9 @@ void cleanup(void)
 
     /* unregister timer */
     if (cleanupTimerID != -1) Timer_remove(cleanupTimerID);
+
+    /* unregister PS messages */
+    finalizePScomm();
 
     /* remove all registered hooks and msg handler */
     unregisterHooks(1);

@@ -57,27 +57,6 @@ int handleCreatePartNL(void *msg);
 
 int handleNodeDown(void *nodeID);
 
-/**
-* @brief Handle a dropped PSP_CC_PLUG_PSSLURM message
-*
-* @param msg The message to handle
-*/
-void handleDroppedMsg(DDTypedBufferMsg_t *msg);
-
-/**
-* @brief Handle a PSP_CC_PLUG_PSSLURM message
-*
-* @param msg The message to handle
-*/
-void handlePsslurmMsg(DDTypedBufferMsg_t *msg);
-
-/**
-* @brief Handle a PSP_DD_CHILDBORN message
-*
-* @param msg The message to handle
-*/
-void handleChildBornMsg(DDErrorMsg_t *msg);
-
 void send_PS_SignalTasks(Step_t *step, int signal, PStask_group_t group);
 
 void send_PS_JobExit(uint32_t jobid, uint32_t stepid, uint32_t nrOfNodes,
@@ -91,27 +70,6 @@ void forwardSlurmMsg(Slurm_Msg_t *sMsg, Connection_Forward_t *fw);
 
 int send_PS_ForwardRes(Slurm_Msg_t *msg);
 
-/**
-* @brief Handle a PSP_CC_MSG message
-*
-* @param msg The message to handle
-*/
-void handleCCMsg(PSLog_Msg_t *msg);
-
-/**
-* @brief Handle a PSP_CD_SPAWNFAILED message
-*
-* @param msg The message to handle
-*/
-void handleSpawnFailed(DDErrorMsg_t *msg);
-
-/**
-* @brief Handle a PSP_CD_SPAWNREQ message
-*
-* @param msg The message to handle
-*/
-void handleSpawnReq(DDTypedBufferMsg_t *msg);
-
 void setNodeOffline(env_t *env, uint32_t id, PSnodes_ID_t dest,
 			const char *host, char *reason);
 
@@ -122,10 +80,13 @@ void send_PS_AllocLaunch(Alloc_t *alloc);
 void send_PS_AllocState(Alloc_t *alloc);
 
 /**
-* @brief Handle a PSP_CD_UNKNOWN message
-*
-* @param msg The message to handle
+* @brief Register various psid messages
 */
-void handleUnknownMsg(DDBufferMsg_t *msg);
+void initPScomm(void);
+
+/**
+* @brief Unregister various psid messages
+*/
+void finalizePScomm(void);
 
 #endif

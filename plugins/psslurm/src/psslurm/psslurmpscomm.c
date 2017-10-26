@@ -30,6 +30,7 @@
 #include "psexechandles.h"
 #include "psaccounthandles.h"
 #include "psexectypes.h"
+#include "psdaemonprotocol.h"
 
 #include "slurmcommon.h"
 #include "psslurmforwarder.h"
@@ -59,6 +60,21 @@ typedef enum {
     PSP_ALLOC_LAUNCH = 25,
     PSP_ALLOC_STATE,
 } PSP_PSSLURM_t;
+
+/** Old handler for PSP_DD_CHILDBORN messages */
+static handlerFunc_t oldChildBornHandler = NULL;
+
+/** Old handler for PSP_CC_MSG messages */
+static handlerFunc_t oldCCMsgHandler = NULL;
+
+/** Old handler for PSP_CD_SPAWNFAILED  messages */
+static handlerFunc_t oldSpawnFailedHandler = NULL;
+
+/** Old handler for PSP_CD_SPAWNREQ messages */
+static handlerFunc_t oldSpawnReqHandler = NULL;
+
+/** Old handler for PSP_CD_UNKNOWN messages */
+static handlerFunc_t oldUnkownHandler = NULL;
 
 char *msg2Str(PSP_PSSLURM_t type)
 {
@@ -925,7 +941,12 @@ static void handleFWslurmMsgRes(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     ufree(body.buf);
 }
 
-void handlePsslurmMsg(DDTypedBufferMsg_t *msg)
+/**
+* @brief Handle a PSP_CC_PLUG_PSSLURM message
+*
+* @param msg The message to handle
+*/
+static void handlePsslurmMsg(DDTypedBufferMsg_t *msg)
 {
     char sender[100], dest[100];
 
@@ -1056,7 +1077,12 @@ static void saveForwardError(DDTypedBufferMsg_t *msg)
     saveFrwrdMsgRes(&sMsg, SLURM_COMMUNICATIONS_CONNECTION_ERROR);
 }
 
-void handleDroppedMsg(DDTypedBufferMsg_t *msg)
+/**
+* @brief Handle a dropped PSP_CC_PLUG_PSSLURM message
+*
+* @param msg The message to handle
+*/
+static void handleDroppedMsg(DDTypedBufferMsg_t *msg)
 {
     char *ptr;
     const char *hname;
@@ -1440,7 +1466,12 @@ static int getJobIDbyForwarderMsgHeader(DDMsg_t *header, PStask_t **fwPtr,
     return 1;
 }
 
-void handleSpawnFailed(DDErrorMsg_t *msg)
+/**
+* @brief Handle a PSP_CD_SPAWNFAILED message
+*
+* @param msg The message to handle
+*/
+static void handleSpawnFailed(DDErrorMsg_t *msg)
 {
     PStask_t *forwarder = NULL;
     uint32_t jobid, stepid;
@@ -1533,7 +1564,12 @@ void cleanupDelayedSpawns(uint32_t jobid, uint32_t stepid) {
     PSIDspawn_cleanupDelayedTasks(filter, &jsInfo);
 }
 
-void handleSpawnReq(DDTypedBufferMsg_t *msg)
+/**
+* @brief Handle a PSP_CD_SPAWNREQ message
+*
+* @param msg The message to handle
+*/
+static void handleSpawnReq(DDTypedBufferMsg_t *msg)
 {
     PStask_t *spawnee;
     uint32_t jobid, stepid;
@@ -1591,7 +1627,12 @@ FORWARD_SPAWN_REQ_MSG:
     if (oldSpawnReqHandler) oldSpawnReqHandler((DDBufferMsg_t *) msg);
 }
 
-void handleCCMsg(PSLog_Msg_t *msg)
+/**
+* @brief Handle a PSP_CC_MSG message
+*
+* @param msg The message to handle
+*/
+static void handleCCMsg(PSLog_Msg_t *msg)
 {
     mdbg(PSSLURM_LOG_IO, "%s: %s\n", __func__, PSLog_printMsgType(msg->type));
     switch (msg->type) {
@@ -1616,7 +1657,12 @@ void handleCCMsg(PSLog_Msg_t *msg)
     if (oldCCMsgHandler) oldCCMsgHandler((DDBufferMsg_t *) msg);
 }
 
-void handleChildBornMsg(DDErrorMsg_t *msg)
+/**
+* @brief Handle a PSP_DD_CHILDBORN message
+*
+* @param msg The message to handle
+*/
+static void handleChildBornMsg(DDErrorMsg_t *msg)
 {
     PStask_t *forwarder = NULL;
     uint32_t jobid, stepid;
@@ -1652,7 +1698,12 @@ FORWARD_CHILD_BORN:
     if (oldChildBornHandler) oldChildBornHandler((DDBufferMsg_t *) msg);
 }
 
-void handleUnknownMsg(DDBufferMsg_t *msg)
+/**
+* @brief Handle a PSP_CD_UNKNOWN message
+*
+* @param msg The message to handle
+*/
+static void handleUnknownMsg(DDBufferMsg_t *msg)
 {
     size_t used = 0;
     PStask_ID_t dest;
@@ -1675,6 +1726,71 @@ void handleUnknownMsg(DDBufferMsg_t *msg)
     }
 
     if (oldUnkownHandler) oldUnkownHandler(msg);
+}
+
+void finalizePScomm(void)
+{
+    /* unregister psslurm msg */
+    PSID_clearMsg(PSP_CC_PLUG_PSSLURM);
+
+    /* unregister various messages */
+    if (oldChildBornHandler) {
+	PSID_registerMsg(PSP_DD_CHILDBORN, (handlerFunc_t) oldChildBornHandler);
+    }
+
+    /* unregister PSP_CC_MSG message handler */
+    if (oldCCMsgHandler) {
+	PSID_registerMsg(PSP_CC_MSG, (handlerFunc_t) oldCCMsgHandler);
+    }
+
+    /* unregister PSP_CD_SPAWNFAILED message handler */
+    if (oldSpawnFailedHandler) {
+	PSID_registerMsg(PSP_CD_SPAWNFAILED,
+			(handlerFunc_t) oldSpawnFailedHandler);
+    }
+
+    /* unregister PSP_CD_SPAWNREQ message handler */
+    if (oldSpawnReqHandler) {
+	PSID_registerMsg(PSP_CD_SPAWNREQ,
+			(handlerFunc_t) oldSpawnReqHandler);
+    }
+
+    /* unregister PSP_CD_UNKNOWN message handler */
+    if (oldUnkownHandler) {
+	PSID_registerMsg(PSP_CD_UNKNOWN,
+			(handlerFunc_t) oldUnkownHandler);
+    }
+
+    /* unregister msg drop handler */
+    PSID_clearDropper(PSP_CC_PLUG_PSSLURM);
+}
+
+void initPScomm(void)
+{
+    /* register psslurm PSP_CC_PLUG_PSSLURM message */
+    PSID_registerMsg(PSP_CC_PLUG_PSSLURM, (handlerFunc_t) handlePsslurmMsg);
+
+    /* register PSP_DD_CHILDBORN message */
+    oldChildBornHandler = PSID_registerMsg(PSP_DD_CHILDBORN,
+					    (handlerFunc_t) handleChildBornMsg);
+
+    /* register PSP_CC_MSG message */
+    oldCCMsgHandler = PSID_registerMsg(PSP_CC_MSG, (handlerFunc_t) handleCCMsg);
+
+    /* register PSP_CD_SPAWNFAILED message */
+    oldSpawnFailedHandler = PSID_registerMsg(PSP_CD_SPAWNFAILED,
+					    (handlerFunc_t) handleSpawnFailed);
+
+    /* register PSP_CD_SPAWNREQ message */
+    oldSpawnReqHandler = PSID_registerMsg(PSP_CD_SPAWNREQ,
+					    (handlerFunc_t) handleSpawnReq);
+
+    /* register PSP_CD_UNKNOWN message */
+    oldUnkownHandler = PSID_registerMsg(PSP_CD_UNKNOWN,
+				        (handlerFunc_t) handleUnknownMsg);
+
+    /* register handler for dropped msgs */
+    PSID_registerDropper(PSP_CC_PLUG_PSSLURM, (handlerFunc_t) handleDroppedMsg);
 }
 
 /* vim: set ts=8 sw=4 tw=0 sts=4 noet:*/

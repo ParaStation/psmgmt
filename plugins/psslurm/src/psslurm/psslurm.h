@@ -22,21 +22,6 @@ extern time_t start_time;
 
 extern uid_t slurmUserID;
 
-/** Old handler for PSP_DD_CHILDBORN messages */
-extern handlerFunc_t oldChildBornHandler;
-
-/** Old handler for PSP_CC_MSG messages */
-extern handlerFunc_t oldCCMsgHandler;
-
-/** Old handler for PSP_CD_SPAWNFAILED  messages */
-extern handlerFunc_t oldSpawnFailedHandler;
-
-/** Old handler for PSP_CD_SPAWNREQ messages */
-extern handlerFunc_t oldSpawnReqHandler;
-
-/** Old handler for PSP_CD_UNKNOWN messages */
-extern handlerFunc_t oldUnkownHandler;
-
 extern int confAccPollTime;
 extern uint32_t configHash;
 
