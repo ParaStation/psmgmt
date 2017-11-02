@@ -90,19 +90,6 @@ typedef enum {
 } IO_Opt_t;
 
 typedef struct {
-    unsigned long cpu;
-    unsigned long fsize;
-    unsigned long data;
-    unsigned long stack;
-    unsigned long core;
-    unsigned long rss;
-    unsigned long nproc;
-    unsigned long nofile;
-    unsigned long memlock;
-    unsigned long as;
-} RLimits_t;
-
-typedef struct {
     char *fileName;		/* name of the file */
 #ifdef SLURM_PROTOCOL_1702
     uint32_t blockNumber;
@@ -172,7 +159,6 @@ typedef struct {
     char *memBind;
     uint32_t taskFlags;		/* e.g. TASK_PARALLEL_DEBUG (slurmcommon.h) */
     uint32_t profile;
-    RLimits_t limit;		/* rlimits extract from slurm env */
     int state;
     int exitCode;
     char **argv;
@@ -281,7 +267,6 @@ typedef struct {
     int state;
     int signaled;
     uint8_t terminate;
-    RLimits_t limit;
     uint16_t interactive;   /* interactive(1) or batch(0) job */
     uint16_t extended;	    /* full integrated mode */
     uint16_t accType;
