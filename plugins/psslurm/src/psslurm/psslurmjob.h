@@ -21,43 +21,13 @@
 #include "psslurmgres.h"
 #include "psslurmmsg.h"
 #include "psslurmtasks.h"
+#include "psslurmjobcred.h"
 
 #include "pluginforwarder.h"
 #include "plugincomm.h"
 #include "pluginenv.h"
 
 #define MAX_JOBID_LEN 100
-
-
-typedef struct {
-    uint32_t jobid;
-    uint32_t stepid;
-    uid_t uid;
-    uint16_t jobCoreSpec;
-#ifdef SLURM_PROTOCOL_1702
-    uint64_t jobMemLimit;
-    uint64_t stepMemLimit;
-#else
-    uint32_t jobMemLimit;
-    uint32_t stepMemLimit;
-#endif
-    char *hostlist;
-    time_t ctime;
-    uint32_t totalCoreCount;
-    char *jobCoreBitmap;
-    char *stepCoreBitmap;
-    uint16_t coreArraySize;
-    uint16_t *coresPerSocket;
-    uint32_t coresPerSocketLen;
-    uint16_t *socketsPerNode;
-    uint32_t socketsPerNodeLen;
-    uint32_t *sockCoreRepCount;
-    uint32_t sockCoreRepCountLen;
-    uint32_t jobNumHosts;
-    char *jobHostlist;
-    char *sig;
-    char *jobConstraints;
-} JobCred_t;
 
 typedef enum {
     JOB_INIT   = 0x0001,

@@ -496,6 +496,7 @@ plugins/psslurm/src/psslurm/psslurmio.c \
 plugins/psslurm/src/psslurm/psslurmio.h \
 plugins/psslurm/src/psslurm/psslurmjob.c \
 plugins/psslurm/src/psslurm/psslurmjob.h \
+plugins/psslurm/src/psslurm/psslurmjobcred.h \
 plugins/psslurm/src/psslurm/psslurmjobinfo.c \
 plugins/psslurm/src/psslurm/psslurmjobinfo.h \
 plugins/psslurm/src/psslurm/psslurmkvs.c \
