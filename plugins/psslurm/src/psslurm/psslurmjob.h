@@ -20,6 +20,7 @@
 
 #include "psslurmgres.h"
 #include "psslurmmsg.h"
+#include "psslurmtasks.h"
 
 #include "pluginforwarder.h"
 #include "plugincomm.h"
@@ -27,16 +28,6 @@
 
 #define MAX_JOBID_LEN 100
 
-typedef struct {
-    PStask_ID_t childTID;
-    PStask_ID_t forwarderTID;
-    PStask_t *forwarder;
-    PStask_group_t childGroup;
-    int32_t childRank;
-    int exitCode;
-    int sentExit;
-    struct list_head list;
-} PS_Tasks_t;
 
 typedef struct {
     uint32_t jobid;
@@ -441,47 +432,7 @@ Alloc_t *findAlloc(uint32_t jobid);
 int deleteAlloc(uint32_t jobid);
 void clearAllocList(void);
 
-PS_Tasks_t *addTask(struct list_head *list, PStask_ID_t childTID,
-			PStask_ID_t forwarderTID, PStask_t *forwarder,
-			PStask_group_t childGroup, int32_t rank);
-int signalTasks(uint32_t jobid, uid_t uid, PS_Tasks_t *tasks, int signal,
-		    int32_t group);
 
-/**
- * @brief Find a task identified by its rank
- *
- * @param list_head The list of tasks to search
- *
- * @param rank The rank of the task to find
- *
- * @return Returns the found task or NULL on error
- */
-PS_Tasks_t *findTaskByRank(struct list_head *taskList, int32_t rank);
-
-/**
- * @brief Find a task identified by its forwarders TID
- *
- * @param list_head The list of tasks to search
- *
- * @param fwTID The task ID of the forwarder
- *
- * @return Returns the found task or NULL on error
- */
-PS_Tasks_t *findTaskByForwarder(struct list_head *taskList, PStask_ID_t fwTID);
-
-/**
- * @brief Find a task identified by its child PID
- *
- * @param list_head The list of tasks to search
- *
- * @param childPid The PID of the task
- *
- * @return Returns the found task or NULL on error
- */
-PS_Tasks_t *findTaskByChildPid(struct list_head *taskList, pid_t childPid);
-
-unsigned int countTasks(struct list_head *taskList);
-unsigned int countRegTasks(struct list_head *taskList);
 
 BCast_t *addBCast();
 BCast_t *findBCast(uint32_t jobid, char *fileName, uint32_t blockNum);
@@ -490,7 +441,6 @@ void clearBCastByJobid(uint32_t jobid);
 void clearBCasts(void);
 void shutdownStepForwarder(uint32_t jobid);
 int killForwarderByJobid(uint32_t jobid);
-int killChild(pid_t pid, int signal);
 
 /**
  * @brief Convert a integer jobid to string
