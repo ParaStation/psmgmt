@@ -678,13 +678,20 @@ bool __unpackReqLaunchTasks(Slurm_Msg_t *sMsg, Step_t **stepPtr,
     step = addStep(jobid, stepid);
 
 #ifdef SLURM_PROTOCOL_1702
-    /* mpi jobid */
-    getUint32(ptr, &step->mpiJobid);
-    getUint32(ptr, &step->mpiNnodes);
-    getUint32(ptr, &step->mpiNtasks);
-    getUint32(ptr, &step->mpiStepfnodeid);
-    getUint32(ptr, &step->mpiStepftaskid);
-    getUint32(ptr, &step->mpiStepid);
+    /* unused and to be removed in 1711  */
+    uint32_t mpiJobid;
+    uint32_t mpiNnodes;
+    uint32_t mpiNtasks;
+    uint32_t mpiStepfnodeid;
+    uint32_t mpiStepftaskid;
+    uint32_t mpiStepid;
+
+    getUint32(ptr, &mpiJobid);
+    getUint32(ptr, &mpiNnodes);
+    getUint32(ptr, &mpiNtasks);
+    getUint32(ptr, &mpiStepfnodeid);
+    getUint32(ptr, &mpiStepftaskid);
+    getUint32(ptr, &mpiStepid);
 #endif
     /* ntasks */
     getUint32(ptr, &step->np);
@@ -695,10 +702,14 @@ bool __unpackReqLaunchTasks(Slurm_Msg_t *sMsg, Step_t **stepPtr,
     getUint16(ptr, &step->ntasksPerSocket);
 #endif
 #if SLURM_PROTOCOL_1702
+    /* currently unused */
+    uint32_t packJobid;
+    uint32_t packStepid;
+
     /* pack jobid */
-    getUint32(ptr, &step->packJobid);
+    getUint32(ptr, &packJobid);
     /* pack stepid */
-    getUint32(ptr, &step->packStepid);
+    getUint32(ptr, &packStepid);
 #endif
     /* uid */
     getUint32(ptr, &step->uid);

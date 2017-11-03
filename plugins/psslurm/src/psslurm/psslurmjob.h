@@ -167,14 +167,6 @@ typedef struct {
     uint32_t pmiSrunPort;
     char *pmiStepNodes;
     char *acctFreq;
-    uint32_t mpiJobid;
-    uint32_t mpiNnodes;
-    uint32_t mpiNtasks;
-    uint32_t mpiStepfnodeid;
-    uint32_t mpiStepftaskid;
-    uint32_t mpiStepid;
-    uint32_t packJobid;
-    uint32_t packStepid;
 } Step_t;
 
 typedef struct {
