@@ -25,6 +25,15 @@ typedef struct {
     uint32_t len;   /* data length */
 } Slurm_IO_Header_t;
 
+typedef enum {
+    IO_UNDEF = 0x05,	/** I/O not defined */
+    IO_SRUN,		/** I/O via srun */
+    IO_SRUN_RANK,	/** I/O via srun to a single task/rank  */
+    IO_GLOBAL_FILE,	/** I/O to global file */
+    IO_RANK_FILE,	/** separate I/O file per rank */
+    IO_NODE_FILE,	/** separate I/O file per node */
+} IO_Opt_t;
+
 void writeIOmsg(char *msg, uint32_t msgLen, uint32_t taskid,
 			uint8_t type, Forwarder_Data_t *fwdata, Step_t *step,
 			uint32_t lrank);

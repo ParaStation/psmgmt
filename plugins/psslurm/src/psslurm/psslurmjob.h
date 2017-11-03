@@ -71,15 +71,6 @@ typedef enum {
     JOB_COMPLETE,
 } JobState_t;
 
-typedef enum {
-    IO_UNDEF = 0x05,
-    IO_SRUN,
-    IO_SRUN_RANK,
-    IO_GLOBAL_FILE,
-    IO_RANK_FILE,
-    IO_NODE_FILE,
-} IO_Opt_t;
-
 typedef struct {
     char *fileName;		/* name of the file */
 #ifdef SLURM_PROTOCOL_1702
