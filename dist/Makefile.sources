@@ -520,6 +520,8 @@ plugins/psslurm/src/psslurm/psslurmpscomm.c \
 plugins/psslurm/src/psslurm/psslurmpscomm.h \
 plugins/psslurm/src/psslurm/psslurmspawn.c \
 plugins/psslurm/src/psslurm/psslurmspawn.h \
+plugins/psslurm/src/psslurm/psslurmstep.c \
+plugins/psslurm/src/psslurm/psslurmstep.h \
 plugins/psslurm/src/psslurm/psslurmtasks.c \
 plugins/psslurm/src/psslurm/psslurmtasks.h \
 plugins/psslurm/src/psslurm/psslurmtypes.h \

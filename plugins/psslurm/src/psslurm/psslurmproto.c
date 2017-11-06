@@ -1963,6 +1963,7 @@ void sendNodeRegStatus(uint32_t status, int protoVersion)
     int haveSysInfo = 0;
 
     Resp_Node_Reg_Status_t stat;
+    memset(&stat, 0, sizeof(stat));
 
     mlog("%s: host '%s' protoVersion '%u' status '%u'\n", __func__,
 	getConfValueC(&Config, "SLURM_HOSTNAME"), protoVersion, status);
@@ -2024,6 +2025,7 @@ void sendNodeRegStatus(uint32_t status, int protoVersion)
 
     /* job id infos (count, array (jobid/stepid) */
     getJobInfos(&stat.jobInfoCount, &stat.jobids, &stat.stepids);
+    getStepInfos(&stat.jobInfoCount, &stat.jobids, &stat.stepids);
 
     /* protocol version */
     stat.protoVersion = version;
