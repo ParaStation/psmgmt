@@ -254,17 +254,7 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
 
     /* env */
     step->env.size = step->env.cnt;
-    step->pmiSrunPort = 0;
-    step->pmiStepNodes = NULL;
     for (i=0; i<step->env.cnt; i++) {
-	if (!(strncmp("SLURM_PMI2_SRUN_PORT=", step->env.vars[i], 21))) {
-	    envGetUint32(&step->env, "SLURM_PMI2_SRUN_PORT",
-		    &(step->pmiSrunPort));
-	}
-	if (!(strncmp("SLURM_PMI2_STEP_NODES=", step->env.vars[i], 22))) {
-	    step->pmiStepNodes = envGet(&step->env, "SLURM_PMI2_STEP_NODES");
-	}
-
 	mdbg(PSSLURM_LOG_ENV, "%s: env%i: '%s'\n", __func__, i,
 		step->env.vars[i]);
     }
