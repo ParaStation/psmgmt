@@ -294,13 +294,13 @@ JobCred_t *extractJobCred(Gres_Cred_t **gres, Slurm_Msg_t *sMsg, bool verify)
     }
 
     mdbg(PSSLURM_LOG_PART, "%s:", __func__);
-    for (i=0; i<cred->coresPerSocketLen; i++) {
+    for (i=0; i<cred->coreArraySize; i++) {
 	mdbg(PSSLURM_LOG_PART, " coresPerSocket '%u'", cred->coresPerSocket[i]);
     }
-    for (i=0; i<cred->socketsPerNodeLen; i++) {
+    for (i=0; i<cred->coreArraySize; i++) {
 	mdbg(PSSLURM_LOG_PART, " socketsPerNode '%u'", cred->socketsPerNode[i]);
     }
-    for (i=0; i<cred->sockCoreRepCountLen; i++) {
+    for (i=0; i<cred->coreArraySize; i++) {
 	mdbg(PSSLURM_LOG_PART, " sockCoreRepCount '%u'",
 		cred->sockCoreRepCount[i]);
     }
@@ -332,11 +332,7 @@ JobCred_t *extractJobCred(Gres_Cred_t **gres, Slurm_Msg_t *sMsg, bool verify)
 	free(sigBuf);
     }
 
-#ifdef SLURM_PROTOCOL_1702
     mdbg(PSSLURM_LOG_AUTH, "%s: cred len:%u jobMemLimit '%lu' stepMemLimit '%lu' "
-#else
-    mdbg(PSSLURM_LOG_AUTH, "%s: cred len:%u jobMemLimit '%u' stepMemLimit '%u' "
-#endif
 	    "hostlist '%s' jobhostlist '%s' ctime '%lu' " "sig '%s'\n",
 	    __func__, credLen, cred->jobMemLimit, cred->stepMemLimit,
 	    cred->hostlist, cred->jobHostlist, cred->ctime, cred->sig);

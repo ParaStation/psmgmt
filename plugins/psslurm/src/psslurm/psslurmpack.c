@@ -312,23 +312,24 @@ bool __unpackJobCred(Slurm_Msg_t *sMsg, JobCred_t **credPtr,
 	    cred->jobCoreBitmap, cred->stepCoreBitmap);
 
     if (cred->coreArraySize) {
-	getUint16Array(ptr, &cred->coresPerSocket, &cred->coresPerSocketLen);
-	if (cred->coresPerSocketLen != cred->coreArraySize) {
-	    mlog("%s: invalid corePerSocketLen %u should be %u\n", __func__,
-		 cred->coresPerSocketLen, cred->coreArraySize);
-	    goto ERROR;
-	}
-	getUint16Array(ptr, &cred->socketsPerNode, &cred->socketsPerNodeLen);
-	if (cred->socketsPerNodeLen != cred->coreArraySize) {
-	    mlog("%s: invalid socketsPerNodeLen %u should be %u\n", __func__,
-		 cred->socketsPerNodeLen, cred->coreArraySize);
-	    goto ERROR;
-	}
+	uint32_t len;
 
-	getUint32Array(ptr, &cred->sockCoreRepCount, &cred->sockCoreRepCountLen);
-	if (cred->sockCoreRepCountLen != cred->coreArraySize) {
-	    mlog("%s: invalid sockCoreRepCountLen %u should be %u\n", __func__,
-		 cred->sockCoreRepCountLen, cred->coreArraySize);
+	getUint16Array(ptr, &cred->coresPerSocket, &len);
+	if (len != cred->coreArraySize) {
+	    mlog("%s: invalid corePerSocket size %u should be %u\n", __func__,
+		 len, cred->coreArraySize);
+	    goto ERROR;
+	}
+	getUint16Array(ptr, &cred->socketsPerNode, &len);
+	if (len != cred->coreArraySize) {
+	    mlog("%s: invalid socketsPerNode size %u should be %u\n", __func__,
+		 len, cred->coreArraySize);
+	    goto ERROR;
+	}
+	getUint32Array(ptr, &cred->sockCoreRepCount, &len);
+	if (len != cred->coreArraySize) {
+	    mlog("%s: invalid sockCoreRepCount size %u should be %u\n", __func__,
+		 len, cred->coreArraySize);
 	    goto ERROR;
 	}
     }
