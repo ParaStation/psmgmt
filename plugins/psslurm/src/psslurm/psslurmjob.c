@@ -37,9 +37,6 @@
 /** List of all jobs */
 static LIST_HEAD(JobList);
 
-/** List of all bcasts */
-static LIST_HEAD(BCastList);
-
 static char jobHistory[JOB_HISTORY_SIZE][JOB_HISTORY_ID_LEN];
 
 static int jobHistIndex = 0;
@@ -340,70 +337,4 @@ bool traverseJobs(JobVisitor_t visitor, const void *info)
     }
 
     return false;
-}
-
-BCast_t *addBCast()
-{
-    BCast_t *bcast;
-
-    bcast = (BCast_t *) ucalloc(sizeof(BCast_t));
-
-    initSlurmMsg(&bcast->msg);
-
-    list_add_tail(&(bcast->list), &BCastList);
-
-    return bcast;
-}
-
-void deleteBCast(BCast_t *bcast)
-{
-    list_del(&bcast->list);
-    freeSlurmMsg(&bcast->msg);
-    ufree(bcast->username);
-    ufree(bcast->fileName);
-    ufree(bcast->block);
-    ufree(bcast->sig);
-    ufree(bcast);
-}
-
-void clearBCastByJobid(uint32_t jobid)
-{
-    list_t *pos, *tmp;
-    BCast_t *bcast;
-
-    list_for_each_safe(pos, tmp, &BCastList) {
-	if (!(bcast = list_entry(pos, BCast_t, list))) return;
-	if (bcast->jobid == jobid) {
-	    if (bcast->fwdata) {
-		killChild(PSC_getPID(bcast->fwdata->tid), SIGKILL);
-	    } else {
-		deleteBCast(bcast);
-	    }
-	}
-    }
-}
-
-void clearBCastList(void)
-{
-    list_t *pos, *tmp;
-    BCast_t *bcast;
-
-    list_for_each_safe(pos, tmp, &BCastList) {
-	if (!(bcast = list_entry(pos, BCast_t, list))) return;
-	deleteBCast(bcast);
-    }
-}
-
-BCast_t *findBCast(uint32_t jobid, char *fileName, uint32_t blockNum)
-{
-    list_t *pos, *tmp;
-    BCast_t *bcast;
-
-    list_for_each_safe(pos, tmp, &BCastList) {
-	if (!(bcast = list_entry(pos, BCast_t, list))) return NULL;
-	if (blockNum > 0 && blockNum != bcast->blockNumber) continue;
-	if (bcast->jobid == jobid &&
-	    !strcmp(bcast->fileName, fileName)) return bcast;
-    }
-    return NULL;
 }

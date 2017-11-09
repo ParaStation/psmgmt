@@ -16,6 +16,7 @@
 #include "psslurmjob.h"
 #include "plugincomm.h"
 #include "psslurmcomm.h"
+#include "psslurmbcast.h"
 
 /**
  * @brief Generate a Slurm authentication

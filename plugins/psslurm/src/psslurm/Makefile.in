@@ -166,7 +166,8 @@ am_psslurm_la_OBJECTS = psslurm_la-psslurm.lo psslurm_la-psslurmlog.lo \
 	psslurm_la-psslurmpelogue.lo psslurm_la-psslurmkvs.lo \
 	psslurm_la-psslurmspawn.lo psslurm_la-psslurmpack.lo \
 	psslurm_la-psslurminter.lo psslurm_la-psslurmmsg.lo \
-	psslurm_la-psslurmtasks.lo psslurm_la-psslurmstep.lo
+	psslurm_la-psslurmtasks.lo psslurm_la-psslurmstep.lo \
+	psslurm_la-psslurmbcast.lo
 psslurm_la_OBJECTS = $(am_psslurm_la_OBJECTS)
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
@@ -436,7 +437,7 @@ psslurm_la_SOURCES = psslurm.c psslurm.h psslurmlog.c psslurmlog.h	\
 	psslurmpack.h psslurmpack.c psslurmtypes.h psslurminter.c 	\
 	psslurminter.h psslurmhandles.h  psslurmmsg.h psslurmmsg.c      \
 	psslurmtasks.h psslurmtasks.c psslurmjobcred.h psslurmstep.c    \
-	psslurmstep.h
+	psslurmstep.h psslurmbcast.c psslurmbcast.h
 
 psslurm_la_CPPFLAGS = $(AM_CPPFLAGS) -DPLUGINDIR=\"$(plugindir)\"	\
 	-DLOCALSTATEDIR=\"$(localstatedir)\"				\
@@ -526,6 +527,7 @@ distclean-compile:
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psslurm_la-psslurm.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psslurm_la-psslurmauth.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psslurm_la-psslurmbcast.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psslurm_la-psslurmcomm.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psslurm_la-psslurmconfig.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psslurm_la-psslurmenv.Plo@am__quote@
@@ -740,6 +742,13 @@ psslurm_la-psslurmstep.lo: psslurmstep.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='psslurmstep.c' object='psslurm_la-psslurmstep.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(psslurm_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o psslurm_la-psslurmstep.lo `test -f 'psslurmstep.c' || echo '$(srcdir)/'`psslurmstep.c
+
+psslurm_la-psslurmbcast.lo: psslurmbcast.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(psslurm_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT psslurm_la-psslurmbcast.lo -MD -MP -MF $(DEPDIR)/psslurm_la-psslurmbcast.Tpo -c -o psslurm_la-psslurmbcast.lo `test -f 'psslurmbcast.c' || echo '$(srcdir)/'`psslurmbcast.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/psslurm_la-psslurmbcast.Tpo $(DEPDIR)/psslurm_la-psslurmbcast.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='psslurmbcast.c' object='psslurm_la-psslurmbcast.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(psslurm_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o psslurm_la-psslurmbcast.lo `test -f 'psslurmbcast.c' || echo '$(srcdir)/'`psslurmbcast.c
 
 mostlyclean-libtool:
 	-rm -f *.lo

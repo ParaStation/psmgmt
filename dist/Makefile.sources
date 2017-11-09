@@ -478,6 +478,8 @@ plugins/psslurm/src/psslurm/Makefile.in \
 plugins/psslurm/src/psslurm/psslurm.h \
 plugins/psslurm/src/psslurm/psslurmauth.c \
 plugins/psslurm/src/psslurm/psslurmauth.h \
+plugins/psslurm/src/psslurm/psslurmbcast.c \
+plugins/psslurm/src/psslurm/psslurmbcast.h \
 plugins/psslurm/src/psslurm/psslurm.c \
 plugins/psslurm/src/psslurm/psslurmcomm.c \
 plugins/psslurm/src/psslurm/psslurmcomm.h \
