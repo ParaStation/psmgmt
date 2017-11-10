@@ -65,7 +65,7 @@ static int jobCallback(int32_t exit_status, Forwarder_Data_t *fw)
 {
     Job_t *job = fw->userData;
 
-    mlog("%s: job '%s' finished, exit %i / %i\n", __func__, job->id,
+    mlog("%s: job '%u' finished, exit %i / %i\n", __func__, job->jobid,
 	 exit_status, fw->estatus);
     if (!findJobById(job->jobid)) {
 	mlog("%s: job '%u' not found\n", __func__, job->jobid);
@@ -913,10 +913,10 @@ int execUserJob(Job_t *job)
 
     fwdata = ForwarderData_new();
 
-    snprintf(fname, sizeof(fname), "psslurm-job:%s", job->id);
+    snprintf(fname, sizeof(fname), "psslurm-job:%u", job->jobid);
     fwdata->pTitle = ustrdup(fname);
 
-    fwdata->jobID = ustrdup(job->id);
+    fwdata->jobID = ustrdup(strJobID(job->jobid));
     fwdata->userData = job;
     fwdata->graceTime = grace;
     fwdata->accounted = true;
@@ -926,7 +926,8 @@ int execUserJob(Job_t *job)
     fwdata->hookChild = handleChildStartJob;
 
     if (!startForwarder(fwdata)) {
-	mlog("%s: starting forwarder for job '%s' failed\n", __func__, job->id);
+	mlog("%s: starting forwarder for job '%u' failed\n",
+	     __func__, job->jobid);
 	return 0;
     }
 

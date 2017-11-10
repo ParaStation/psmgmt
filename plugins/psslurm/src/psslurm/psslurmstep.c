@@ -385,13 +385,10 @@ Alloc_t *addAllocation(uint32_t jobid, uint32_t nrOfNodes, char *slurmHosts,
 			    char *username)
 {
     Alloc_t *alloc;
-    char tmp[256];
 
     if ((alloc = findAlloc(jobid))) return alloc;
-    snprintf(tmp, sizeof(tmp), "%u", jobid);
 
     alloc = (Alloc_t *) umalloc(sizeof(Alloc_t));
-    alloc->id = ustrdup(tmp);
     alloc->jobid = jobid;
     alloc->state = JOB_QUEUED;
     alloc->uid = uid;
@@ -488,7 +485,7 @@ int deleteAlloc(uint32_t jobid)
     if (!(alloc = findAlloc(jobid))) return 0;
 
     /* free corresponding pelogue job */
-    psPelogueDeleteJob("psslurm", alloc->id);
+    psPelogueDeleteJob("psslurm", strJobID(alloc->jobid));
 
     /* tell sisters the allocation is revoked */
     if (alloc->motherSup == PSC_getMyTID()) {
@@ -501,7 +498,6 @@ int deleteAlloc(uint32_t jobid)
     ufree(alloc->nodes);
     ufree(alloc->slurmHosts);
     ufree(alloc->username);
-    ufree(alloc->id);
     envDestroy(&alloc->env);
     envDestroy(&alloc->spankenv);
 

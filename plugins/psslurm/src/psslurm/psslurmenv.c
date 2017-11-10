@@ -199,8 +199,8 @@ void setSlurmJobEnv(Job_t *job)
     envSet(&job->env, "SLURMD_NODENAME",
 		getConfValueC(&Config, "SLURM_HOSTNAME"));
 
-    envSet(&job->env, "SLURM_JOBID", job->id);
-    envSet(&job->env, "SLURM_JOB_ID", job->id);
+    envSet(&job->env, "SLURM_JOBID", strJobID(job->jobid));
+    envSet(&job->env, "SLURM_JOB_ID", strJobID(job->jobid));
 
     snprintf(tmp, sizeof(tmp), "%u", job->nrOfNodes);
     envSet(&job->env, "SLURM_JOB_NUM_NODES", tmp);

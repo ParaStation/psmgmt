@@ -434,7 +434,7 @@ void requeueBatchJob(Job_t *job, PSnodes_ID_t dest)
 
     envClone(&job->env, &clone, envFilter);
 
-    envSet(&clone, "SLURM_JOBID", job->id);
+    envSet(&clone, "SLURM_JOBID", strJobID(job->jobid));
     psExecStartScript(job->jobid, "psslurm-requeue-job", &clone,
 			dest, callbackRequeueBatchJob);
 

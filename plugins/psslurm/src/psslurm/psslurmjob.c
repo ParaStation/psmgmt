@@ -31,37 +31,24 @@
 
 #include "psslurmjob.h"
 
-#define JOB_HISTORY_SIZE 10
-#define JOB_HISTORY_ID_LEN 20
+#define MAX_JOBID_LENGTH 128
 
 /** List of all jobs */
 static LIST_HEAD(JobList);
 
-static char jobHistory[JOB_HISTORY_SIZE][JOB_HISTORY_ID_LEN];
-
-static int jobHistIndex = 0;
-
 Job_t *addJob(uint32_t jobid)
 {
     Job_t *job;
-    char tmp[256];
 
     deleteJob(jobid);
-    snprintf(tmp, sizeof(tmp), "%u", jobid);
-
     job = (Job_t *) ucalloc(sizeof(Job_t));
 
-    job->id = ustrdup(tmp);
     job->jobid = jobid;
     job->state = JOB_INIT;
     job->start_time = time(0);
     INIT_LIST_HEAD(&job->tasks.list);
     envInit(&job->env);
     envInit(&job->spankenv);
-
-    /* add job to job history */
-    strncpy(jobHistory[jobHistIndex++], job->id, sizeof(jobHistory[0]));
-    if (jobHistIndex >= JOB_HISTORY_SIZE) jobHistIndex = 0;
 
     list_add_tail(&(job->list), &JobList);
 
@@ -101,16 +88,6 @@ PSnodes_ID_t *findJobNodeEntry(Job_t *job, PSnodes_ID_t id)
     return NULL;
 }
 
-int isJobIDinHistory(char *jobid)
-{
-    int i;
-
-    for (i=0; i<JOB_HISTORY_SIZE; i++) {
-	if (!(strncmp(jobid, jobHistory[i], JOB_HISTORY_ID_LEN))) return 1;
-    }
-    return 0;
-}
-
 void clearJobList(void)
 {
     list_t *pos, *tmp;
@@ -138,7 +115,7 @@ int deleteJob(uint32_t jobid)
     psPamDeleteUser(job->username, strJobID(jobid));
 
     /* free corresponding pelogue job */
-    psPelogueDeleteJob("psslurm", job->id);
+    psPelogueDeleteJob("psslurm", strJobID(job->jobid));
 
     /* cleanup all corresponding allocations and steps */
     deleteAlloc(job->jobid);
@@ -162,7 +139,6 @@ int deleteJob(uint32_t jobid)
     }
 
     /* free memory */
-    ufree(job->id);
     ufree(job->username);
     ufree(job->nodes);
     ufree(job->jobscript);
@@ -320,7 +296,7 @@ char *strJobState(JobState_t state)
 
 char *strJobID(uint32_t jobid)
 {
-    static char sJobID[128];
+    static char sJobID[MAX_JOBID_LENGTH];
 
     snprintf(sJobID, sizeof(sJobID), "%u", jobid);
 

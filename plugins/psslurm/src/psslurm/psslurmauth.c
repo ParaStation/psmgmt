@@ -160,7 +160,7 @@ bool verifyJobData(Job_t *job)
     JobCred_t *cred;
 
     if (!(cred = job->cred)) {
-	mlog("%s: no cred for job '%s'\n", __func__, job->id);
+	mlog("%s: no cred for job '%u'\n", __func__, job->jobid);
 	return false;
     }
 

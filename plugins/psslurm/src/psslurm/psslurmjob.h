@@ -29,7 +29,6 @@
 
 typedef struct {
     list_t list;	    /* job list */
-    char *id;	            /* jobid as string */
     uint32_t jobid;
     char *username;	    /* username of job owner */
     uint32_t np;	    /* number of processes */
@@ -127,15 +126,6 @@ Job_t *findJobById(uint32_t jobid);
  * job was not found
  */
 Job_t *findJobByIdC(char *id);
-
-/**
- * @brief Find a jobid in the job history
- *
- * @param jobid The job id to find
- *
- * @return Returns 1 on success and 0 on error
- */
-int isJobIDinHistory(char *jobid);
 
 PSnodes_ID_t *findJobNodeEntry(Job_t *job, PSnodes_ID_t id);
 

@@ -149,7 +149,7 @@ bool writeJobscript(Job_t *job)
 
     /* set jobscript filename */
     jobdir = getConfValueC(&Config, "DIR_JOB_FILES");
-    snprintf(buf, sizeof(buf), "%s/%s", jobdir, job->id);
+    snprintf(buf, sizeof(buf), "%s/%s", jobdir, strJobID(job->jobid));
     job->jobscript = ustrdup(buf);
 
     if (!(fp = fopen(job->jobscript, "a"))) {
@@ -2481,14 +2481,11 @@ CLEANUP:
 void sendJobExit(Job_t *job, uint32_t exit_status)
 {
     PS_DataBuffer_t body = { .buf = NULL };
-    uint32_t id;
 
     if (job->signaled) exit_status = 0;
 
-    mlog("%s: REQUEST_COMPLETE_BATCH_SCRIPT: jobid '%s' exit '%u'\n", __func__,
-	    job->id, exit_status);
-
-    id = atoi(job->id);
+    mlog("%s: REQUEST_COMPLETE_BATCH_SCRIPT: jobid '%u' exit '%u'\n",
+	 __func__, job->jobid, exit_status);
 
     /* batch job */
     if (!job->fwdata) {
@@ -2499,7 +2496,7 @@ void sendJobExit(Job_t *job, uint32_t exit_status)
 			job->nrOfNodes);
     }
     /* jobid */
-    addUint32ToMsg(id, &body);
+    addUint32ToMsg(job->jobid, &body);
     /* jobscript exit code */
     addUint32ToMsg(exit_status, &body);
     /* slurm return code, other than 0 the node goes offline */
