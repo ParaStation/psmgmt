@@ -30,11 +30,9 @@ static LIST_HEAD(AllocList);
 
 Step_t *addStep(uint32_t jobid, uint32_t stepid)
 {
-    Step_t *step;
+    Step_t *step = ucalloc(sizeof(Step_t));
 
     deleteStep(jobid, stepid);
-
-    step = (Step_t *) ucalloc(sizeof(Step_t));
 
     step->jobid = jobid;
     step->stepid = stepid;
@@ -57,17 +55,16 @@ Step_t *addStep(uint32_t jobid, uint32_t stepid)
     initSlurmMsg(&step->srunControlMsg);
     initSlurmMsg(&step->srunPTYMsg);
 
-    list_add_tail(&(step->list), &StepList);
+    list_add_tail(&(step->next), &StepList);
 
     return step;
 }
 
 Step_t *findStepByStepId(uint32_t jobid, uint32_t stepid)
 {
-    struct list_head *pos;
-
-    list_for_each(pos, &StepList) {
-	Step_t *step = list_entry(pos, Step_t, list);
+    list_t *s;
+    list_for_each(s, &StepList) {
+	Step_t *step = list_entry(s, Step_t, next);
 	if (jobid == step->jobid && step->stepid == stepid) return step;
     }
     return NULL;
@@ -75,10 +72,9 @@ Step_t *findStepByStepId(uint32_t jobid, uint32_t stepid)
 
 Step_t *findStepByJobid(uint32_t jobid)
 {
-    struct list_head *pos;
-
-    list_for_each(pos, &StepList) {
-	Step_t *step = list_entry(pos, Step_t, list);
+    list_t *s;
+    list_for_each(s, &StepList) {
+	Step_t *step = list_entry(s, Step_t, next);
 	if (jobid == step->jobid) return step;
     }
     return NULL;
@@ -86,10 +82,9 @@ Step_t *findStepByJobid(uint32_t jobid)
 
 Step_t *findActiveStepByLogger(PStask_ID_t loggerTID)
 {
-    struct list_head *pos;
-
-    list_for_each(pos, &StepList) {
-	Step_t *step = list_entry(pos, Step_t, list);
+    list_t *s;
+    list_for_each(s, &StepList) {
+	Step_t *step = list_entry(s, Step_t, next);
 	if (step->state == JOB_COMPLETE || step->state == JOB_EXIT) continue;
 	if (loggerTID == step->loggerTID) return step;
     }
@@ -98,10 +93,9 @@ Step_t *findActiveStepByLogger(PStask_ID_t loggerTID)
 
 Step_t *findStepByFwPid(pid_t pid)
 {
-    struct list_head *pos;
-
-    list_for_each(pos, &StepList) {
-	Step_t *step = list_entry(pos, Step_t, list);
+    list_t *s;
+    list_for_each(s, &StepList) {
+	Step_t *step = list_entry(s, Step_t, next);
 	if (step->fwdata && step->fwdata->cPid == pid) return step;
     }
     return NULL;
@@ -109,10 +103,9 @@ Step_t *findStepByFwPid(pid_t pid)
 
 Step_t *findStepByTaskPid(pid_t pid)
 {
-    struct list_head *pos;
-
-    list_for_each(pos, &StepList) {
-	Step_t *step = list_entry(pos, Step_t, list);
+    list_t *s;
+    list_for_each(s, &StepList) {
+	Step_t *step = list_entry(s, Step_t, next);
 	if (findTaskByChildPid(&step->tasks.list, pid)) return step;
     }
 
@@ -121,21 +114,19 @@ Step_t *findStepByTaskPid(pid_t pid)
 
 void clearStepList(uint32_t jobid)
 {
-    list_t *pos, *tmp;
-    Step_t *step;
-
-    list_for_each_safe(pos, tmp, &StepList) {
-	if (!(step = list_entry(pos, Step_t, list))) return;
+    list_t *s, *tmp;
+    list_for_each_safe(s, tmp, &StepList) {
+	Step_t *step = list_entry(s, Step_t, next);
 	if (step->jobid == jobid) deleteStep(step->jobid, step->stepid);
     }
 }
 
 int deleteStep(uint32_t jobid, uint32_t stepid)
 {
-    Step_t *step;
+    Step_t *step = findStepByStepId(jobid, stepid);
     uint32_t i;
 
-    if (!(step = findStepByStepId(jobid, stepid))) return 0;
+    if (!step) return 0;
 
     mdbg(PSSLURM_LOG_JOB, "%s: '%u:%u'\n", __func__, jobid, stepid);
 
@@ -199,7 +190,7 @@ int deleteStep(uint32_t jobid, uint32_t stepid)
     envDestroy(&step->spankenv);
     envDestroy(&step->pelogueEnv);
 
-    list_del(&step->list);
+    list_del(&step->next);
     ufree(step);
 
     return 1;
@@ -251,29 +242,21 @@ int signalStep(Step_t *step, int signal)
 
 void shutdownStepForwarder(uint32_t jobid)
 {
-    list_t *pos, *tmp;
-    Step_t *step;
-
-    list_for_each_safe(pos, tmp, &StepList) {
-	if (!(step = list_entry(pos, Step_t, list))) break;
-
-	if (step->jobid == jobid) {
-	    if (step->fwdata) {
-		shutdownForwarder(step->fwdata);
-	    }
-	}
+    list_t *s, *tmp;
+    list_for_each_safe(s, tmp, &StepList) {
+	Step_t *step = list_entry(s, Step_t, next);
+	if (step->jobid == jobid && step->fwdata)
+	    shutdownForwarder(step->fwdata);
     }
 }
 
 int signalStepsByJobid(uint32_t jobid, int signal)
 {
-    list_t *pos, *tmp;
-    Step_t *step;
+    list_t *s, *tmp;
     int count = 0;
 
-    list_for_each_safe(pos, tmp, &StepList) {
-	if (!(step = list_entry(pos, Step_t, list))) break;
-
+    list_for_each_safe(s, tmp, &StepList) {
+	Step_t *step = list_entry(s, Step_t, next);
 	if (step->jobid == jobid && step->state != JOB_COMPLETE) {
 	    if (signalStep(step, signal)) count++;
 	}
@@ -283,37 +266,35 @@ int signalStepsByJobid(uint32_t jobid, int signal)
 
 int countSteps(void)
 {
-    struct list_head *pos;
     int count=0;
+    list_t *s;
+    list_for_each(s, &StepList) count++;
 
-    list_for_each(pos, &StepList) count++;
     return count;
 }
 
-int haveRunningSteps(uint32_t jobid)
+bool haveRunningSteps(uint32_t jobid)
 {
-    list_t *pos, *tmp;
-    Step_t *step;
-
-    list_for_each_safe(pos, tmp, &StepList) {
-	if (!(step = list_entry(pos, Step_t, list))) break;
+    list_t *s;
+    list_for_each(s, &StepList) {
+	Step_t *step = list_entry(s, Step_t, next);
 	if (step->jobid == jobid &&
 	    step->state != JOB_COMPLETE &&
 	    step->state != JOB_EXIT) {
-	    return 1;
+	    return true;
 	}
     }
-    return 0;
+    return false;
 }
 
 char *getActiveStepList()
 {
-    struct list_head *pos;
+    list_t *s;
     char strStep[128];
     StrBuffer_t strBuf = { .buf = NULL, .bufSize = 0 };
 
-    list_for_each(pos, &StepList) {
-	Step_t *step = list_entry(pos, Step_t, list);
+    list_for_each(s, &StepList) {
+	Step_t *step = list_entry(s, Step_t, next);
 
 	if (step->state == JOB_EXIT ||
 	    step->state == JOB_COMPLETE) continue;
@@ -328,9 +309,9 @@ char *getActiveStepList()
 
 bool traverseSteps(StepVisitor_t visitor, const void *info)
 {
-    list_t *j, *tmp;
-    list_for_each_safe(j, tmp, &StepList) {
-	Step_t *step = list_entry(j, Step_t, list);
+    list_t *s, *tmp;
+    list_for_each_safe(s, tmp, &StepList) {
+	Step_t *step = list_entry(s, Step_t, next);
 
 	if (visitor(step, info)) return true;
     }
@@ -340,17 +321,15 @@ bool traverseSteps(StepVisitor_t visitor, const void *info)
 
 int killStepFWbyJobid(uint32_t jobid)
 {
-    list_t *pos, *tmp;
+    list_t *s, *tmp;
     int count = 0;
 
-    list_for_each_safe(pos, tmp, &StepList) {
-	Step_t *step = list_entry(pos, Step_t, list);
+    list_for_each_safe(s, tmp, &StepList) {
+	Step_t *step = list_entry(s, Step_t, next);
 
-	if (step->jobid == jobid) {
-	    if (step->fwdata) {
-		kill(PSC_getPID(step->fwdata->tid), SIGKILL);
-		count++;
-	    }
+	if (step->jobid == jobid && step->fwdata) {
+	    kill(PSC_getPID(step->fwdata->tid), SIGKILL);
+	    count++;
 	}
     }
 
@@ -359,7 +338,7 @@ int killStepFWbyJobid(uint32_t jobid)
 
 void getStepInfos(uint32_t *infoCount, uint32_t **jobids, uint32_t **stepids)
 {
-    list_t *pos, *tmp;
+    list_t *s, *tmp;
     uint32_t max;
     uint32_t count = 0;
 
@@ -367,12 +346,10 @@ void getStepInfos(uint32_t *infoCount, uint32_t **jobids, uint32_t **stepids)
     *jobids = urealloc(*jobids, sizeof(uint32_t) * (*infoCount + max));
     *stepids = urealloc(*stepids, sizeof(uint32_t) * (*infoCount + max));
 
-    list_for_each_safe(pos, tmp, &StepList) {
-	Step_t *step = list_entry(pos, Step_t, list);
+    list_for_each_safe(s, tmp, &StepList) {
+	Step_t *step = list_entry(s, Step_t, next);
 	if (count == max) break;
-
-	if (step->state == JOB_EXIT ||
-	    step->state == JOB_COMPLETE) continue;
+	if (step->state == JOB_EXIT || step->state == JOB_COMPLETE) continue;
 	(*jobids)[count] = step->jobid;
 	(*stepids)[count] = step->stepid;
 	count++;
@@ -384,11 +361,11 @@ Alloc_t *addAllocation(uint32_t jobid, uint32_t nrOfNodes, char *slurmHosts,
 			    env_t *env, env_t *spankenv, uid_t uid, gid_t gid,
 			    char *username)
 {
-    Alloc_t *alloc;
+    Alloc_t *alloc = findAlloc(jobid);
 
-    if ((alloc = findAlloc(jobid))) return alloc;
+    if (alloc) return alloc;
 
-    alloc = (Alloc_t *) umalloc(sizeof(Alloc_t));
+    alloc = umalloc(sizeof(Alloc_t));
     alloc->jobid = jobid;
     alloc->state = JOB_QUEUED;
     alloc->uid = uid;
@@ -421,7 +398,7 @@ Alloc_t *addAllocation(uint32_t jobid, uint32_t nrOfNodes, char *slurmHosts,
 	envInit(&alloc->spankenv);
     }
 
-    list_add_tail(&(alloc->list), &AllocList);
+    list_add_tail(&(alloc->next), &AllocList);
 
     /* add user in pam for ssh access */
     psPamAddUser(alloc->username, strJobID(jobid), PSPAM_STATE_PROLOGUE);
@@ -431,9 +408,9 @@ Alloc_t *addAllocation(uint32_t jobid, uint32_t nrOfNodes, char *slurmHosts,
 
 bool traverseAllocs(AllocVisitor_t visitor, const void *info)
 {
-    list_t *j, *tmp;
-    list_for_each_safe(j, tmp, &AllocList) {
-	Alloc_t *alloc = list_entry(j, Alloc_t, list);
+    list_t *a, *tmp;
+    list_for_each_safe(a, tmp, &AllocList) {
+	Alloc_t *alloc = list_entry(a, Alloc_t, next);
 
 	if (visitor(alloc, info)) return true;
     }
@@ -443,32 +420,27 @@ bool traverseAllocs(AllocVisitor_t visitor, const void *info)
 
 int countAllocs(void)
 {
-    struct list_head *pos;
     int count=0;
+    list_t *a;
+    list_for_each(a, &AllocList) count++;
 
-    list_for_each(pos, &AllocList) count++;
     return count;
 }
 
 void clearAllocList(void)
 {
-    list_t *pos, *tmp;
-    Alloc_t *alloc;
-
-    list_for_each_safe(pos, tmp, &AllocList) {
-	if (!(alloc = list_entry(pos, Alloc_t, list))) return;
-
+    list_t *a, *tmp;
+    list_for_each_safe(a, tmp, &AllocList) {
+	Alloc_t *alloc = list_entry(a, Alloc_t, next);
 	deleteAlloc(alloc->jobid);
     }
 }
 
 Alloc_t *findAlloc(uint32_t jobid)
 {
-    list_t *pos, *tmp;
-    Alloc_t *alloc;
-
-    list_for_each_safe(pos, tmp, &AllocList) {
-	if (!(alloc = list_entry(pos, Alloc_t, list))) break;
+    list_t *a;
+    list_for_each(a, &AllocList) {
+	Alloc_t *alloc = list_entry(a, Alloc_t, next);
 	if (alloc->jobid == jobid) return alloc;
     }
     return NULL;
@@ -501,7 +473,7 @@ int deleteAlloc(uint32_t jobid)
     envDestroy(&alloc->env);
     envDestroy(&alloc->spankenv);
 
-    list_del(&alloc->list);
+    list_del(&alloc->next);
     ufree(alloc);
 
     return 1;
@@ -509,11 +481,10 @@ int deleteAlloc(uint32_t jobid)
 
 int signalAllocations(int signal, char *reason)
 {
-    list_t *pos, *tmp;
     int count = 0;
-
-    list_for_each_safe(pos, tmp, &AllocList) {
-	Alloc_t *alloc = list_entry(pos, Alloc_t, list);
+    list_t *a, *tmp;
+    list_for_each_safe(a, tmp, &AllocList) {
+	Alloc_t *alloc = list_entry(a, Alloc_t, next);
 	count += signalStepsByJobid(alloc->jobid, signal);
     }
 

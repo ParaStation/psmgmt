@@ -7,9 +7,12 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-
 #ifndef __PS_PSSLURM_STEP
 #define __PS_PSSLURM_STEP
+
+#include <stdbool.h>
+#include <stdint.h>
+#include <sys/types.h>
 
 #include "pluginforwarder.h"
 #include "pluginenv.h"
@@ -20,10 +23,11 @@
 #include "psslurmtasks.h"
 
 typedef struct {
+    list_t next;                /**< used to put into some step-lists */
     uint32_t jobid;
     uint32_t stepid;
     uint32_t np;		/* number of processes */
-    uint16_t tpp;		/* cpus per tasks = threads per process (PSI_TPP) */
+    uint16_t tpp;		/* HW-threads per process (PSI_TPP) */
     char *username;		/* username of step owner */
     uid_t uid;			/* user id of the step owner */
     gid_t gid;			/* group of the step owner */
@@ -81,10 +85,10 @@ typedef struct {
     int32_t *errChannels;
     int32_t *outFDs;
     int32_t *errFDs;
-    Slurm_Msg_t srunIOMsg;	/* socket connect to srun to exchange I/O data */
+    Slurm_Msg_t srunIOMsg;     /* socket connect to srun to exchange I/O data */
     Slurm_Msg_t srunControlMsg;
     Slurm_Msg_t srunPTYMsg;
-    uint8_t appendMode;		/* stdout/stderr will truncate(=0) / append(=1) */
+    uint8_t appendMode;	       /* stdout/stderr will truncate(=0)/append(=1) */
     uint16_t accType;
     char *nodeAlias;
 #ifdef MIN_SLURM_PROTO_1605
@@ -106,22 +110,22 @@ typedef struct {
     uint8_t timeout;
     uint8_t ioCon;
     uint32_t localNodeId;
-    time_t start_time;	        /* the time were the step started */
+    time_t start_time;           /* time the step started */
     Forwarder_Data_t *fwdata;
     PSpart_HWThread_t *hwThreads;
     PS_Tasks_t tasks;
-    struct list_head list;	/* the step list header */
     char *acctFreq;
 } Step_t;
 
 typedef struct {
-    char *id;	            /* jobid as string */
+    list_t next;              /**< used to put into some allocation-lists */
+    //char *id;               /* jobid as string */
     uint32_t jobid;
     uid_t uid;
     gid_t gid;
     uint32_t nrOfNodes;
     PSnodes_ID_t *nodes;
-    char *slurmHosts;		/* Slurm compressed hostlist (SLURM_NODELIST) */
+    char *slurmHosts;	      /* Slurm compressed hostlist (SLURM_NODELIST) */
     env_t env;
     env_t spankenv;
     uint8_t terminate;
@@ -129,15 +133,23 @@ typedef struct {
     char *username;
     time_t firstKillRequest;
     PStask_ID_t motherSup;
-    time_t start_time;	        /* the time were the allocation started */
+    time_t start_time;        /**< time the allocation started */
     uint32_t localNodeId;
-    struct list_head list;	/* the allocation list header */
 } Alloc_t;
 
+/**
+ * @doctodo
+ */
 Step_t *addStep(uint32_t jobid, uint32_t stepid);
 
+/**
+ * @doctodo
+ */
 int deleteStep(uint32_t jobid, uint32_t stepid);
 
+/**
+ * @doctodo
+ */
 void clearStepList(uint32_t jobid);
 
 /**
@@ -190,14 +202,29 @@ Step_t *findStepByFwPid(pid_t pid);
  */
 Step_t *findStepByTaskPid(pid_t pid);
 
+/**
+ * @doctodo
+ */
 int countSteps(void);
 
+/**
+ * @doctodo
+ */
 int signalStepsByJobid(uint32_t jobid, int signal);
 
+/**
+ * @doctodo
+ */
 int signalStep(Step_t *step, int signal);
 
-int haveRunningSteps(uint32_t jobid);
+/**
+ * @doctodo
+ */
+bool haveRunningSteps(uint32_t jobid);
 
+/**
+ * @doctodo
+ */
 void shutdownStepForwarder(uint32_t jobid);
 
 /**
@@ -245,13 +272,22 @@ bool traverseSteps(StepVisitor_t visitor, const void *info);
  */
 char *getActiveStepList();
 
+/**
+ * @doctodo
+ */
 int killStepFWbyJobid(uint32_t jobid);
 
+/**
+ * @doctodo
+ */
 void getStepInfos(uint32_t *infoCount, uint32_t **jobids, uint32_t **stepids);
 
+/**
+ * @doctodo
+ */
 Alloc_t *addAllocation(uint32_t jobid, uint32_t nrOfNodes, char *slurmHosts,
-			    env_t *env, env_t *spankenv, uid_t uid, gid_t gid,
-			    char *username);
+		       env_t *env, env_t *spankenv, uid_t uid, gid_t gid,
+		       char *username);
 
 /**
  * @brief Visitor function
@@ -290,14 +326,29 @@ typedef bool AllocVisitor_t(Alloc_t *alloc, const void *info);
  */
 bool traverseAllocs(AllocVisitor_t visitor, const void *info);
 
+/**
+ * @doctodo
+ */
 Alloc_t *findAlloc(uint32_t jobid);
 
+/**
+ * @doctodo
+ */
 int deleteAlloc(uint32_t jobid);
 
+/**
+ * @doctodo
+ */
 void clearAllocList(void);
 
+/**
+ * @doctodo
+ */
 int countAllocs(void);
 
+/**
+ * @doctodo
+ */
 int signalAllocations(int signal, char *reason);
 
 #endif
