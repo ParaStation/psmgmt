@@ -7,7 +7,6 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-
 #include <signal.h>
 
 #include "psslurmtasks.h"
@@ -20,20 +19,18 @@ static LIST_HEAD(BCastList);
 
 BCast_t *addBCast(void)
 {
-    BCast_t *bcast;
-
-    bcast = (BCast_t *) ucalloc(sizeof(BCast_t));
+    BCast_t *bcast = ucalloc(sizeof(BCast_t));
 
     initSlurmMsg(&bcast->msg);
 
-    list_add_tail(&(bcast->list), &BCastList);
+    list_add_tail(&(bcast->next), &BCastList);
 
     return bcast;
 }
 
 void deleteBCast(BCast_t *bcast)
 {
-    list_del(&bcast->list);
+    list_del(&bcast->next);
     freeSlurmMsg(&bcast->msg);
     ufree(bcast->username);
     ufree(bcast->fileName);
@@ -44,10 +41,9 @@ void deleteBCast(BCast_t *bcast)
 
 void clearBCastByJobid(uint32_t jobid)
 {
-    list_t *pos, *tmp;
-
-    list_for_each_safe(pos, tmp, &BCastList) {
-	BCast_t *bcast = list_entry(pos, BCast_t, list);
+    list_t *b, *tmp;
+    list_for_each_safe(b, tmp, &BCastList) {
+	BCast_t *bcast = list_entry(b, BCast_t, next);
 	if (bcast->jobid == jobid) {
 	    if (bcast->fwdata) {
 		killChild(PSC_getPID(bcast->fwdata->tid), SIGKILL);
@@ -60,20 +56,18 @@ void clearBCastByJobid(uint32_t jobid)
 
 void clearBCastList(void)
 {
-    list_t *pos, *tmp;
-
-    list_for_each_safe(pos, tmp, &BCastList) {
-	BCast_t *bcast = list_entry(pos, BCast_t, list);
+    list_t *b, *tmp;
+    list_for_each_safe(b, tmp, &BCastList) {
+	BCast_t *bcast = list_entry(b, BCast_t, next);
 	deleteBCast(bcast);
     }
 }
 
 BCast_t *findBCast(uint32_t jobid, char *fileName, uint32_t blockNum)
 {
-    list_t *pos, *tmp;
-
-    list_for_each_safe(pos, tmp, &BCastList) {
-	BCast_t *bcast = list_entry(pos, BCast_t, list);
+    list_t *b;
+    list_for_each(b, &BCastList) {
+	BCast_t *bcast = list_entry(b, BCast_t, next);
 	if (blockNum > 0 && blockNum != bcast->blockNumber) continue;
 	if (bcast->jobid == jobid &&
 	    !strcmp(bcast->fileName, fileName)) return bcast;
