@@ -28,7 +28,7 @@
 #include "pluginenv.h"
 
 typedef struct {
-    list_t list;	    /* job list */
+    list_t next;            /**< used to put into some job-lists */
     uint32_t jobid;
     char *username;	    /* username of job owner */
     uint32_t np;	    /* number of processes */
@@ -127,20 +127,44 @@ Job_t *findJobById(uint32_t jobid);
  */
 Job_t *findJobByIdC(char *id);
 
+/**
+ * @doctodo
+ */
 PSnodes_ID_t *findJobNodeEntry(Job_t *job, PSnodes_ID_t id);
 
+/**
+ * @doctodo
+ */
 int deleteJob(uint32_t jobid);
 
+/**
+ * @doctodo
+ */
 char *strJobState(JobState_t state);
 
+/**
+ * @doctodo
+ */
 int countJobs(void);
 
+/**
+ * @doctodo
+ */
 void getJobInfos(uint32_t *infoCount, uint32_t **jobids, uint32_t **stepids);
 
+/**
+ * @doctodo
+ */
 int signalJob(Job_t *job, int signal, char *reason);
 
+/**
+ * @doctodo
+ */
 int signalJobs(int signal, char *reason);
 
+/**
+ * @doctodo
+ */
 int killForwarderByJobid(uint32_t jobid);
 
 /**

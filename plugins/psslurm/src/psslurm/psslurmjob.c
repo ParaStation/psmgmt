@@ -7,7 +7,6 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -38,10 +37,9 @@ static LIST_HEAD(JobList);
 
 Job_t *addJob(uint32_t jobid)
 {
-    Job_t *job;
+    Job_t *job = ucalloc(sizeof(Job_t));
 
     deleteJob(jobid);
-    job = (Job_t *) ucalloc(sizeof(Job_t));
 
     job->jobid = jobid;
     job->state = JOB_INIT;
@@ -50,7 +48,7 @@ Job_t *addJob(uint32_t jobid)
     envInit(&job->env);
     envInit(&job->spankenv);
 
-    list_add_tail(&(job->list), &JobList);
+    list_add_tail(&(job->next), &JobList);
 
     return job;
 }
@@ -65,12 +63,9 @@ Job_t *findJobByIdC(char *id)
 
 Job_t *findJobById(uint32_t jobid)
 {
-    struct list_head *pos;
-    Job_t *job;
-
-    list_for_each(pos, &JobList) {
-	if (!(job = list_entry(pos, Job_t, list))) return NULL;
-
+    struct list_head *j;
+    list_for_each(j, &JobList) {
+	Job_t *job = list_entry(j, Job_t, next);
 	if (job->jobid == jobid) return job;
     }
     return NULL;
@@ -90,25 +85,23 @@ PSnodes_ID_t *findJobNodeEntry(Job_t *job, PSnodes_ID_t id)
 
 void clearJobList(void)
 {
-    list_t *pos, *tmp;
-    Job_t *job;
+    list_t *j, *tmp;
 
     clearAllocList();
     clearBCastList();
 
-    list_for_each_safe(pos, tmp, &JobList) {
-	if (!(job = list_entry(pos, Job_t, list))) break;
-
+    list_for_each_safe(j, tmp, &JobList) {
+	Job_t *job = list_entry(j, Job_t, next);
 	deleteJob(job->jobid);
     }
 }
 
 int deleteJob(uint32_t jobid)
 {
-    Job_t *job;
+    Job_t *job = findJobById(jobid);
     unsigned int i;
 
-    if (!(job = findJobById(jobid))) return 0;
+    if (!job) return 0;
 
     mdbg(PSSLURM_LOG_JOB, "%s: '%u'\n", __func__, jobid);
     clearBCastByJobid(jobid);
@@ -172,7 +165,7 @@ int deleteJob(uint32_t jobid)
     envDestroy(&job->env);
     envDestroy(&job->spankenv);
 
-    list_del(&job->list);
+    list_del(&job->next);
     ufree(job);
 
     malloc_trim(200);
@@ -181,20 +174,16 @@ int deleteJob(uint32_t jobid)
 
 int killForwarderByJobid(uint32_t jobid)
 {
-    list_t *pos, *tmp;
-    Job_t *job;
+    list_t *j, *tmp;
     int count = 0;
 
     count += killStepFWbyJobid(jobid);
 
-    list_for_each_safe(pos, tmp, &JobList) {
-	if (!(job = list_entry(pos, Job_t, list))) break;
-
-	if (job->jobid == jobid) {
-	    if (job->fwdata) {
-		kill(PSC_getPID(job->fwdata->tid), SIGKILL);
-		count++;
-	    }
+    list_for_each_safe(j, tmp, &JobList) {
+	Job_t *job = list_entry(j, Job_t, next);
+	if (job->jobid == jobid && job->fwdata) {
+	    kill(PSC_getPID(job->fwdata->tid), SIGKILL);
+	    count++;
 	}
     }
 
@@ -203,28 +192,25 @@ int killForwarderByJobid(uint32_t jobid)
 
 int countJobs(void)
 {
-    struct list_head *pos;
     int count=0;
+    struct list_head *j;
+    list_for_each(j, &JobList) count++;
 
-    list_for_each(pos, &JobList) count++;
     return count;
 }
 
 void getJobInfos(uint32_t *infoCount, uint32_t **jobids, uint32_t **stepids)
 {
-    list_t *pos, *tmp;
-    uint32_t max, count = 0;
+    list_t *j, *tmp;
+    uint32_t max = countJobs(), count = 0;
 
-    max = countJobs();
     *jobids = urealloc(*jobids, sizeof(uint32_t) * (*infoCount + max));
     *stepids = urealloc(*stepids, sizeof(uint32_t) * (*infoCount + max));
 
-    list_for_each_safe(pos, tmp, &JobList) {
-	Job_t *job = list_entry(pos, Job_t, list);
+    list_for_each_safe(j, tmp, &JobList) {
+	Job_t *job = list_entry(j, Job_t, next);
 	if (count == max) break;
-
-	if (job->state == JOB_EXIT ||
-	    job->state == JOB_COMPLETE) continue;
+	if (job->state == JOB_EXIT || job->state == JOB_COMPLETE) continue;
 	(*jobids)[count] = job->jobid;
 	(*stepids)[count] = SLURM_BATCH_SCRIPT;
 	count++;
@@ -255,11 +241,11 @@ int signalJob(Job_t *job, int signal, char *reason)
 
 int signalJobs(int signal, char *reason)
 {
-    list_t *pos, *tmp;
+    list_t *j, *tmp;
     int count = 0;
 
-    list_for_each_safe(pos, tmp, &JobList) {
-	Job_t *job = list_entry(pos, Job_t, list);
+    list_for_each_safe(j, tmp, &JobList) {
+	Job_t *job = list_entry(j, Job_t, next);
 	count += signalJob(job, signal, reason);
     }
 
@@ -307,7 +293,7 @@ bool traverseJobs(JobVisitor_t visitor, const void *info)
 {
     list_t *j, *tmp;
     list_for_each_safe(j, tmp, &JobList) {
-	Job_t *job = list_entry(j, Job_t, list);
+	Job_t *job = list_entry(j, Job_t, next);
 
 	if (visitor(job, info)) return true;
     }
