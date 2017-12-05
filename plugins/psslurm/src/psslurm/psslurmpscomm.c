@@ -1244,17 +1244,15 @@ OLD_MSG_HANDLER:
 
 static void handleCC_INIT_Msg(PSLog_Msg_t *msg)
 {
-    Step_t *step;
-    PS_Tasks_t *task;
-
     /* msg->sender == rank of the sending process */
     if (msg->sender == -1) {
 	/* message from psilogger to psidforwarder */
 	if (PSC_getID(msg->header.dest) != PSC_getMyID()) return;
-	if ((step = findActiveStepByLogger(msg->header.sender))) {
-
-	    if ((task = findTaskByForwarder(&step->tasks.list,
-						    msg->header.dest))) {
+	Step_t *step = findActiveStepByLogger(msg->header.sender);
+	if (step) {
+	    PS_Tasks_t *task = findTaskByForwarder(&step->tasks,
+						   msg->header.dest);
+	    if (task) {
 		if (task->childRank < 0) return;
 		step->fwInitCount++;
 
@@ -1272,14 +1270,12 @@ static void handleCC_INIT_Msg(PSLog_Msg_t *msg)
 	}
     } else if (msg->sender >= 0) {
 	/* message from psidforwarder to psilogger */
-	if ((step = findActiveStepByLogger(msg->header.dest))) {
-
+	Step_t *step = findActiveStepByLogger(msg->header.dest);
+	if (step) {
 	    if (PSC_getMyID() == PSC_getID(msg->header.sender)) {
-
-		if ((task = findTaskByForwarder(&step->tasks.list,
-						    msg->header.sender))) {
-		    verboseCpuPinningOutput(step, task);
-		}
+		PS_Tasks_t *task = findTaskByForwarder(&step->tasks,
+						       msg->header.sender);
+		if (task) verboseCpuPinningOutput(step, task);
 	    }
 	}
     }
@@ -1351,7 +1347,8 @@ static void handleCC_Finalize_Msg(PSLog_Msg_t *msg)
     }
 
     /* save exit code */
-    if (!(task = findTaskByForwarder(&step->tasks.list, msg->header.sender))) {
+    task = findTaskByForwarder(&step->tasks, msg->header.sender);
+    if (!task) {
 	mlog("%s: task for forwarder '%s' not found\n", __func__,
 		PSC_printTID(msg->header.sender));
 	goto FORWARD;
@@ -1476,21 +1473,22 @@ static void handleSpawnFailed(DDErrorMsg_t *msg)
 {
     PStask_t *forwarder = NULL;
     uint32_t jobid, stepid;
-    PS_Tasks_t *task = NULL;
     Step_t *step = NULL;
 
     mwarn(msg->error, "%s: spawn failed: forwarder '%s' rank '%i' errno '%i'",
 	    __func__, PSC_printTID(msg->header.sender),
 	    msg->request, msg->error);
 
-    if (!(getJobIDbyForwarderMsgHeader(&(msg->header), &forwarder, &jobid,
-					&stepid))) {
+    if (!getJobIDbyForwarderMsgHeader(&msg->header, &forwarder, &jobid,
+				      &stepid)) {
 	goto FORWARD_SPAWN_FAILED_MSG;
     }
 
-    if ((step = findStepByStepId(jobid, stepid))) {
-	task = addTask(&step->tasks.list, msg->request, forwarder->tid,
-		forwarder, forwarder->childGroup, forwarder->rank);
+    step = findStepByStepId(jobid, stepid);
+    if (step) {
+	PS_Tasks_t *task = addTask(&step->tasks, msg->request, forwarder->tid,
+				   forwarder, forwarder->childGroup,
+				   forwarder->rank);
 
 	switch (msg->error) {
 	    case ENOENT:
@@ -1667,29 +1665,29 @@ static void handleChildBornMsg(DDErrorMsg_t *msg)
 {
     PStask_t *forwarder = NULL;
     uint32_t jobid, stepid;
-    Job_t *job;
-    Step_t *step;
     PS_Tasks_t *task = NULL;
 
-    if (!(getJobIDbyForwarderMsgHeader(&(msg->header), &forwarder, &jobid,
-					&stepid))) {
+    if (!getJobIDbyForwarderMsgHeader(&(msg->header), &forwarder, &jobid,
+				      &stepid)) {
 	goto FORWARD_CHILD_BORN;
     }
 
     if (stepid == SLURM_BATCH_SCRIPT) {
-	if (!(job = findJobById(jobid))) {
+	Job_t *job = findJobById(jobid);
+	if (!job) {
 	    mlog("%s: job '%u' not found\n", __func__, jobid);
 	    goto FORWARD_CHILD_BORN;
 	}
-	addTask(&job->tasks.list, msg->request, forwarder->tid,
-		    forwarder, forwarder->childGroup, forwarder->rank);
+	addTask(&job->tasks, msg->request, forwarder->tid, forwarder,
+		forwarder->childGroup, forwarder->rank);
     } else {
-	if (!(step = findStepByStepId(jobid, stepid))) {
+	Step_t *step = findStepByStepId(jobid, stepid);
+	if (!step) {
 	    mlog("%s: step '%u:%u' not found\n", __func__, jobid, stepid);
 	    goto FORWARD_CHILD_BORN;
 	}
-	task = addTask(&step->tasks.list, msg->request, forwarder->tid,
-			forwarder, forwarder->childGroup, forwarder->rank);
+	task = addTask(&step->tasks, msg->request, forwarder->tid, forwarder,
+		       forwarder->childGroup, forwarder->rank);
 
 	if (!step->loggerTID) step->loggerTID = forwarder->loggertid;
 	if (step->fwdata) sendFWtaskInfo(step->fwdata, task);

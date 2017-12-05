@@ -7,7 +7,6 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-
 #include <signal.h>
 #include <unistd.h>
 
@@ -19,13 +18,12 @@
 
 #include "psslurmtasks.h"
 
-PS_Tasks_t *addTask(struct list_head *list, PStask_ID_t childTID,
+PS_Tasks_t *addTask(list_t *list, PStask_ID_t childTID,
 		    PStask_ID_t forwarderTID, PStask_t *forwarder,
 		    PStask_group_t childGroup, int32_t rank)
 {
-    PS_Tasks_t *task;
+    PS_Tasks_t *task = umalloc(sizeof(*task));
 
-    task = (PS_Tasks_t *) umalloc(sizeof(PS_Tasks_t));
     task->childTID = childTID;
     task->forwarderTID = forwarderTID;
     task->forwarder = forwarder;
@@ -34,7 +32,7 @@ PS_Tasks_t *addTask(struct list_head *list, PStask_ID_t childTID,
     task->exitCode = 0;
     task->sentExit = 0;
 
-    list_add_tail(&(task->list), list);
+    list_add_tail(&task->next, list);
 
     return task;
 }
@@ -42,80 +40,65 @@ PS_Tasks_t *addTask(struct list_head *list, PStask_ID_t childTID,
 static void deleteTask(PS_Tasks_t *task)
 {
     if (!task) return;
-    list_del(&task->list);
+    list_del(&task->next);
     ufree(task);
 }
 
-void clearTasks(struct list_head *taskList)
+void clearTasks(list_t *taskList)
 {
-    list_t *pos, *tmp;
-
-    if (!taskList) return;
-
-    list_for_each_safe(pos, tmp, taskList) {
-	PS_Tasks_t *task = list_entry(pos, PS_Tasks_t, list);
+    list_t *t, *tmp;
+    list_for_each_safe(t, tmp, taskList) {
+	PS_Tasks_t *task = list_entry(t, PS_Tasks_t, next);
 	deleteTask(task);
     }
 }
 
-PS_Tasks_t *findTaskByRank(struct list_head *taskList, int32_t rank)
+PS_Tasks_t *findTaskByRank(list_t *taskList, int32_t rank)
 {
-    list_t *pos, *tmp;
-
-    if (!taskList) return NULL;
-    list_for_each_safe(pos, tmp, taskList) {
-	PS_Tasks_t *task = list_entry(pos, PS_Tasks_t, list);
+    list_t *t;
+    list_for_each(t, taskList) {
+	PS_Tasks_t *task = list_entry(t, PS_Tasks_t, next);
 	if (task->childRank == rank) return task;
     }
     return NULL;
 }
 
-PS_Tasks_t *findTaskByForwarder(struct list_head *taskList, PStask_ID_t fwTID)
+PS_Tasks_t *findTaskByForwarder(list_t *taskList, PStask_ID_t fwTID)
 {
-    list_t *pos, *tmp;
-
-    if (!taskList) return NULL;
-    list_for_each_safe(pos, tmp, taskList) {
-	PS_Tasks_t *task = list_entry(pos, PS_Tasks_t, list);
+    list_t *t;
+    list_for_each(t, taskList) {
+	PS_Tasks_t *task = list_entry(t, PS_Tasks_t, next);
 	if (task->forwarderTID == fwTID) return task;
     }
     return NULL;
 }
 
-PS_Tasks_t *findTaskByChildPid(struct list_head *taskList, pid_t childPid)
+PS_Tasks_t *findTaskByChildPid(list_t *taskList, pid_t childPid)
 {
-    list_t *pos, *tmp;
-
-    if (!taskList) return NULL;
-    list_for_each_safe(pos, tmp, taskList) {
-	PS_Tasks_t *task = list_entry(pos, PS_Tasks_t, list);
+    list_t *t;
+    list_for_each(t, taskList) {
+	PS_Tasks_t *task = list_entry(t, PS_Tasks_t, next);
 	if (PSC_getPID(task->childTID) == childPid) return task;
     }
     return NULL;
 }
 
-unsigned int countTasks(struct list_head *taskList)
+unsigned int countTasks(list_t *taskList)
 {
-    struct list_head *pos;
     unsigned int count = 0;
-
-    if (!taskList) return 0;
-
-    list_for_each(pos, taskList) count++;
+    list_t *t;
+    list_for_each(t, taskList) count++;
     return count;
 }
 
-unsigned int countRegTasks(struct list_head *taskList)
+unsigned int countRegTasks(list_t *taskList)
 {
-    struct list_head *pos;
     unsigned int count = 0;
+    list_t *t;
 
-    if (!taskList) return 0;
-
-    list_for_each(pos, taskList) {
-	PS_Tasks_t *task;
-	task = list_entry(pos, PS_Tasks_t, list);
-	if (task->childRank <0) continue;
+    list_for_each(t, taskList) {
+	PS_Tasks_t *task = list_entry(t, PS_Tasks_t, next);
+	if (task->childRank < 0) continue;
 	count++;
     }
     return count;
@@ -129,25 +112,24 @@ int killChild(pid_t pid, int signal)
     return kill(pid, signal);
 }
 
-int signalTasks(uint32_t jobid, uid_t uid, PS_Tasks_t *tasks, int signal,
+int signalTasks(uint32_t jobid, uid_t uid, list_t *taskList, int signal,
 		int32_t group)
 {
-    list_t *pos, *tmp;
-    PStask_t *child;
+    list_t *t, *tmp;
     int count = 0;
 
-    list_for_each_safe(pos, tmp, &tasks->list) {
-	PS_Tasks_t *task = list_entry(pos, PS_Tasks_t, list);
-
-	if ((child = PStasklist_find(&managedTasks, task->childTID))) {
+    list_for_each_safe(t, tmp, taskList) {
+	PS_Tasks_t *task = list_entry(t, PS_Tasks_t, next);
+	PStask_t *child = PStasklist_find(&managedTasks, task->childTID);
+	if (child) {
 	    if (group > -1 && child->group != (PStask_group_t) group) continue;
 	    if (child->rank < 0 && signal != SIGKILL) continue;
 
 	    if (child->forwardertid == task->forwarderTID &&
 		child->uid == uid) {
-		mdbg(PSSLURM_LOG_PROCESS, "%s: rank '%i' kill(%i) signal '%i' "
-			"group '%i' job '%u' \n", __func__, child->rank,
-			PSC_getPID(child->tid), signal, child->group, jobid);
+		mdbg(PSSLURM_LOG_PROCESS, "%s: rank %i kill(%i) signal %i "
+		     "group %i job %u \n", __func__, child->rank,
+		     PSC_getPID(child->tid), signal, child->group, jobid);
 		killChild(PSC_getPID(child->tid), signal);
 		count++;
 	    }
@@ -155,8 +137,8 @@ int signalTasks(uint32_t jobid, uid_t uid, PS_Tasks_t *tasks, int signal,
     }
 
     if (count) {
-	mlog("%s: killed %i processes with signal '%i' of job '%u'\n", __func__,
-	    count, signal, jobid);
+	mlog("%s: killed %i processes with signal %i of job %u\n", __func__,
+	     count, signal, jobid);
     }
 
     return count;

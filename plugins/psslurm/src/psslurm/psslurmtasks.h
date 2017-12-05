@@ -7,7 +7,6 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-
 #ifndef __PS_PSSLURM_TASKS
 #define __PS_PSSLURM_TASKS
 
@@ -15,6 +14,7 @@
 #include "pstask.h"
 
 typedef struct {
+    list_t next;                /**< used to put into some task-lists */
     PStask_ID_t childTID;	/** PS task ID of the child */
     PStask_ID_t forwarderTID;	/** PS task ID of the psidforwarder */
     PStask_t *forwarder;	/** PS task structure of the psidforwarder */
@@ -22,7 +22,6 @@ typedef struct {
     int32_t childRank;		/** PS child rank */
     int exitCode;		/** exit code of the child */
     bool sentExit;		/** track the sending of the exit status */
-    struct list_head list;	/** task list header */
 } PS_Tasks_t;
 
 /**
@@ -62,7 +61,7 @@ PS_Tasks_t *addTask(struct list_head *list, PStask_ID_t childTID,
  * @return Returns the number of tasks which actually
  * got signaled
  */
-int signalTasks(uint32_t jobid, uid_t uid, PS_Tasks_t *tasks, int signal,
+int signalTasks(uint32_t jobid, uid_t uid, list_t *taskList, int signal,
 		int32_t group);
 
 /**
@@ -140,4 +139,4 @@ unsigned int countTasks(struct list_head *taskList);
  */
 unsigned int countRegTasks(struct list_head *taskList);
 
-#endif
+#endif  /* __PS_PSSLURM_TASKS */

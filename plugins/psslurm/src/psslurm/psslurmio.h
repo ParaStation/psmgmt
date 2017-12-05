@@ -7,12 +7,12 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-
 #ifndef __PS_SLURM_IO
 #define __PS_SLURM_IO
 
 #include "pslog.h"
 #include "psslurmjob.h"
+#include "psslurmtasks.h"
 
 #define MAX_SATTACH_SOCKETS 30
 
@@ -62,4 +62,4 @@ void sendStepTimeout(Forwarder_Data_t *fwdata);
 int hookFWmsg(PSLog_Msg_t *msg, Forwarder_Data_t *fwData);
 void sendBrokeIOcon(Step_t *step);
 
-#endif
+#endif  /* __PS_SLURM_IO */

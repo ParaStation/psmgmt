@@ -20,7 +20,6 @@
 #include "psslurmjobcred.h"
 #include "psslurmgres.h"
 #include "psslurmmsg.h"
-#include "psslurmtasks.h"
 
 typedef struct {
     list_t next;                /**< used to put into some step-lists */
@@ -113,13 +112,12 @@ typedef struct {
     time_t start_time;           /* time the step started */
     Forwarder_Data_t *fwdata;
     PSpart_HWThread_t *hwThreads;
-    PS_Tasks_t tasks;
+    list_t tasks;
     char *acctFreq;
 } Step_t;
 
 typedef struct {
     list_t next;              /**< used to put into some allocation-lists */
-    //char *id;               /* jobid as string */
     uint32_t jobid;
     uid_t uid;
     gid_t gid;

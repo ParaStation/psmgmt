@@ -44,7 +44,7 @@ Job_t *addJob(uint32_t jobid)
     job->jobid = jobid;
     job->state = JOB_INIT;
     job->start_time = time(0);
-    INIT_LIST_HEAD(&job->tasks.list);
+    INIT_LIST_HEAD(&job->tasks);
     envInit(&job->env);
     envInit(&job->spankenv);
 
@@ -159,7 +159,7 @@ int deleteJob(uint32_t jobid)
     }
     ufree(job->argv);
 
-    clearTasks(&job->tasks.list);
+    clearTasks(&job->tasks);
     freeJobCred(job->cred);
 
     envDestroy(&job->env);

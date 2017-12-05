@@ -871,7 +871,7 @@ static int forwardInputMsg(Step_t *step, uint16_t rank, char *buf, int bufLen)
 {
     char *ptr = buf;
     size_t c = bufLen;
-    PS_Tasks_t *task = findTaskByRank(&step->tasks.list, rank);
+    PS_Tasks_t *task = findTaskByRank(&step->tasks, rank);
     PSLog_Msg_t msg = (PSLog_Msg_t) {
 	.header = (DDMsg_t) {
 	    .type = PSP_CC_MSG,

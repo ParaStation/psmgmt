@@ -7,7 +7,6 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-
 #ifndef __PS_PSSLURM_JOB
 #define __PS_PSSLURM_JOB
 
@@ -19,7 +18,6 @@
 
 #include "psslurmgres.h"
 #include "psslurmmsg.h"
-#include "psslurmtasks.h"
 #include "psslurmjobcred.h"
 #include "psslurmstep.h"
 
@@ -84,7 +82,7 @@ typedef struct {
     uint32_t localNodeId;
     time_t start_time;	    /* the time were the job started */
     char *nodeAlias;
-    PS_Tasks_t tasks;
+    list_t tasks;
     time_t firstKillRequest;
     Forwarder_Data_t *fwdata;
     uint32_t profile;
@@ -213,4 +211,4 @@ typedef bool JobVisitor_t(Job_t *job, const void *info);
  */
 bool traverseJobs(JobVisitor_t visitor, const void *info);
 
-#endif
+#endif  /* __PS_PSSLURM_JOB */

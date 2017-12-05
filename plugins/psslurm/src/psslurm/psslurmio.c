@@ -387,7 +387,7 @@ static void handleFWfinalize(Forwarder_Data_t *fwdata, char *ptr)
     size_t len;
     PSLog_Msg_t *msg = getDataM(&ptr, &len);
     PStask_ID_t sender = msg->header.sender;
-    PS_Tasks_t *task = findTaskByForwarder(&step->tasks.list, sender);
+    PS_Tasks_t *task = findTaskByForwarder(&step->tasks, sender);
 
     mdbg(PSSLURM_LOG_IO, "%s from %s\n", __func__, PSC_printTID(sender));
 
@@ -486,7 +486,7 @@ static void handleInfoTasks(Forwarder_Data_t *fwdata, char *ptr)
     size_t len;
 
     task = getDataM(&ptr, &len);
-    list_add_tail(&(task->list), &step->tasks.list);
+    list_add_tail(&task->next, &step->tasks);
 
     /*
     mlog("%s: got TID '%s' rank '%i' count tasks '%u'\n", __func__,
@@ -495,7 +495,7 @@ static void handleInfoTasks(Forwarder_Data_t *fwdata, char *ptr)
     */
 
     if (step->globalTaskIdsLen[step->myNodeIndex] ==
-	    countRegTasks(&step->tasks.list)) {
+	countRegTasks(&step->tasks)) {
 	sendTaskPids(step);
     }
 }

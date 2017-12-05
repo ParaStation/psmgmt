@@ -47,7 +47,7 @@ Step_t *addStep(uint32_t jobid, uint32_t stepid)
     step->ioCon = 1;
     step->start_time = time(0);
 
-    INIT_LIST_HEAD(&step->tasks.list);
+    INIT_LIST_HEAD(&step->tasks);
     envInit(&step->env);
     envInit(&step->spankenv);
     envInit(&step->pelogueEnv);
@@ -106,7 +106,7 @@ Step_t *findStepByTaskPid(pid_t pid)
     list_t *s;
     list_for_each(s, &StepList) {
 	Step_t *step = list_entry(s, Step_t, next);
-	if (findTaskByChildPid(&step->tasks.list, pid)) return step;
+	if (findTaskByChildPid(&step->tasks, pid)) return step;
     }
 
     return NULL;
@@ -159,7 +159,7 @@ int deleteStep(uint32_t jobid, uint32_t stepid)
     ufree(step->hwThreads);
     ufree(step->acctFreq);
 
-    clearTasks(&step->tasks.list);
+    clearTasks(&step->tasks);
     freeGresCred(step->gres);
 
     if (step->fwdata) {

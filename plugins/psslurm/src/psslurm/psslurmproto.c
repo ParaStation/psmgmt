@@ -529,8 +529,7 @@ static void sendReattchReply(Step_t *step, Slurm_Msg_t *sMsg, uint32_t rc)
     PS_DataBuffer_t reply = { .buf = NULL };
     char *ptrCount;
     uint32_t i, numTasks, countPIDS = 0;
-    struct list_head *pos;
-    PS_Tasks_t *task = NULL;
+    list_t *t;
 
     /* hostname */
     addStringToMsg(getConfValueC(&Config, "SLURM_HOSTNAME"), &reply);
@@ -548,8 +547,8 @@ static void sendReattchReply(Step_t *step, Slurm_Msg_t *sMsg, uint32_t rc)
 	ptrCount = reply.buf + reply.bufUsed;
 	addUint32ToMsg(0, &reply);
 
-	list_for_each(pos, &step->tasks.list) {
-	    if (!(task = list_entry(pos, PS_Tasks_t, list))) break;
+	list_for_each(t, &step->tasks) {
+	    PS_Tasks_t *task = list_entry(t, PS_Tasks_t, next);
 	    if (task->childRank >= 0) {
 		countPIDS++;
 		addUint32ToMsg(PSC_getPID(task->childTID), &reply);
@@ -2216,11 +2215,11 @@ void sendStepExit(Step_t *step, uint32_t exit_status)
     ufree(body.buf);
 }
 
-static void doSendTaskExit(Step_t *step, PS_Tasks_t *task, int exitCode,
-			    uint32_t *count, int *ctlPort, int *ctlAddr)
+static void doSendTaskExit(Step_t *step, int exitCode, uint32_t *count,
+			   int *ctlPort, int *ctlAddr)
 {
     PS_DataBuffer_t body = { .buf = NULL };
-    struct list_head *pos;
+    list_t *t;
     uint32_t exitCount = 0, exitCount2 = 0;
     int i, sock;
 
@@ -2228,8 +2227,8 @@ static void doSendTaskExit(Step_t *step, PS_Tasks_t *task, int exitCode,
     addUint32ToMsg(exitCode, &body);
 
     /* number of processes exited */
-    list_for_each(pos, &step->tasks.list) {
-	if (!(task = list_entry(pos, PS_Tasks_t, list))) break;
+    list_for_each(t, &step->tasks) {
+	PS_Tasks_t *task = list_entry(t, PS_Tasks_t, next);
 	if (task->sentExit || task->childRank < 0) continue;
 	if (task->exitCode == exitCode) {
 	    exitCount++;
@@ -2240,8 +2239,8 @@ static void doSendTaskExit(Step_t *step, PS_Tasks_t *task, int exitCode,
     /* task ids of processes (array) */
     addUint32ToMsg(exitCount, &body);
 
-    list_for_each(pos, &step->tasks.list) {
-	if (!(task = list_entry(pos, PS_Tasks_t, list))) break;
+    list_for_each(t, &step->tasks) {
+	PS_Tasks_t *task = list_entry(t, PS_Tasks_t, next);
 	if (task->sentExit || task->childRank < 0) continue;
 	if (task->exitCode == exitCode) {
 	    addUint32ToMsg(task->childRank, &body);
@@ -2313,8 +2312,8 @@ static void addMissingTasks(Step_t *step)
 
     for (i=0; i<step->globalTaskIdsLen[step->localNodeId]; i++) {
 	rank = step->globalTaskIds[step->localNodeId][i];
-	if (!findTaskByRank(&step->tasks.list, rank)) {
-	    addTask(&step->tasks.list, -1, -1, NULL, TG_ANY, rank);
+	if (!findTaskByRank(&step->tasks, rank)) {
+	    addTask(&step->tasks, -1, -1, NULL, TG_ANY, rank);
 	}
     }
 }
@@ -2322,13 +2321,12 @@ static void addMissingTasks(Step_t *step)
 void sendTaskExit(Step_t *step, int *ctlPort, int *ctlAddr)
 {
     uint32_t count = 0, taskCount = 0;
-    PS_Tasks_t *task;
-    struct list_head *pos;
+    list_t *t;
     int exitCode;
 
     addMissingTasks(step);
 
-    taskCount = countRegTasks(&step->tasks.list);
+    taskCount = countRegTasks(&step->tasks);
 
     if (taskCount != step->globalTaskIdsLen[step->localNodeId]) {
 	mlog("%s: still missing tasks: %u of %u\n", __func__, taskCount,
@@ -2338,8 +2336,8 @@ void sendTaskExit(Step_t *step, int *ctlPort, int *ctlAddr)
     while (count < taskCount) {
 	exitCode = -100;
 
-	list_for_each(pos, &step->tasks.list) {
-	    if (!(task = list_entry(pos, PS_Tasks_t, list))) break;
+	list_for_each(t, &step->tasks) {
+	    PS_Tasks_t *task = list_entry(t, PS_Tasks_t, next);
 	    if (task->childRank < 0) continue;
 	    if (!task->sentExit) {
 		exitCode = task->exitCode;
@@ -2355,7 +2353,7 @@ void sendTaskExit(Step_t *step, int *ctlPort, int *ctlAddr)
 	    return;
 	}
 
-	doSendTaskExit(step, task, exitCode, &count, ctlPort, ctlAddr);
+	doSendTaskExit(step, exitCode, &count, ctlPort, ctlAddr);
     }
 }
 
@@ -2418,8 +2416,8 @@ void sendTaskPids(Step_t *step)
     resp.nodeName = getConfValueC(&Config, "SLURM_HOSTNAME");
 
     /* count of PIDs */
-    list_for_each(t, &step->tasks.list) {
-	PS_Tasks_t *task = list_entry(t, PS_Tasks_t, list);
+    list_for_each(t, &step->tasks) {
+	PS_Tasks_t *task = list_entry(t, PS_Tasks_t, next);
 	if (task->childRank <0) continue;
 	countPIDs++;
     }
@@ -2428,8 +2426,8 @@ void sendTaskPids(Step_t *step)
     /* local PIDs */
     resp.localPIDs = umalloc(sizeof(uint32_t) * countPIDs);
 
-    list_for_each(t, &step->tasks.list) {
-	PS_Tasks_t *task = list_entry(t, PS_Tasks_t, list);
+    list_for_each(t, &step->tasks) {
+	PS_Tasks_t *task = list_entry(t, PS_Tasks_t, next);
 	if (task->childRank <0) continue;
 	if (countLocalPIDs >=countPIDs) break;
 	resp.localPIDs[countLocalPIDs++] = PSC_getPID(task->childTID);
@@ -2439,8 +2437,8 @@ void sendTaskPids(Step_t *step)
     /* global task IDs */
     resp.globalTIDs = umalloc(sizeof(uint32_t) * countPIDs);
 
-    list_for_each(t, &step->tasks.list) {
-	PS_Tasks_t *task = list_entry(t, PS_Tasks_t, list);
+    list_for_each(t, &step->tasks) {
+	PS_Tasks_t *task = list_entry(t, PS_Tasks_t, next);
 	if (task->childRank <0) continue;
 	if (countGTIDs >=countPIDs) break;
 	resp.globalTIDs[countGTIDs++] = task->childRank;
