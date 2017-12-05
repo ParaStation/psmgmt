@@ -41,7 +41,7 @@ typedef struct {
  *
  * @return Returns a pointer to the added task
  */
-PS_Tasks_t *addTask(struct list_head *list, PStask_ID_t childTID,
+PS_Tasks_t *addTask(list_t *list, PStask_ID_t childTID,
 		    PStask_ID_t forwarderTID, PStask_t *forwarder,
 		    PStask_group_t childGroup, int32_t rank);
 
@@ -69,7 +69,7 @@ int signalTasks(uint32_t jobid, uid_t uid, list_t *taskList, int signal,
  *
  * @param taskList The list of tasks to clear
  */
-void clearTasks(struct list_head *taskList);
+void clearTasks(list_t *taskList);
 
 /**
  * @brief Send a signal to child
@@ -88,24 +88,24 @@ int killChild(pid_t pid, int signal);
 /**
  * @brief Find a task identified by its rank
  *
- * @param list_head The list of tasks to search
+ * @param taskList The list of tasks to search
  *
  * @param rank The rank of the task to find
  *
  * @return Returns the found task or NULL on error
  */
-PS_Tasks_t *findTaskByRank(struct list_head *taskList, int32_t rank);
+PS_Tasks_t *findTaskByRank(list_t *taskList, int32_t rank);
 
 /**
  * @brief Find a task identified by its forwarders TID
  *
- * @param list_head The list of tasks to search
+ * @param taskList The list of tasks to search
  *
  * @param fwTID The task ID of the forwarder
  *
  * @return Returns the found task or NULL on error
  */
-PS_Tasks_t *findTaskByForwarder(struct list_head *taskList, PStask_ID_t fwTID);
+PS_Tasks_t *findTaskByForwarder(list_t *taskList, PStask_ID_t fwTID);
 
 /**
  * @brief Find a task identified by its child PID
@@ -116,7 +116,7 @@ PS_Tasks_t *findTaskByForwarder(struct list_head *taskList, PStask_ID_t fwTID);
  *
  * @return Returns the found task or NULL on error
  */
-PS_Tasks_t *findTaskByChildPid(struct list_head *taskList, pid_t childPid);
+PS_Tasks_t *findTaskByChildPid(list_t *taskList, pid_t childPid);
 
 /**
  * @brief Count the number of all tasks in a task-list
@@ -125,7 +125,7 @@ PS_Tasks_t *findTaskByChildPid(struct list_head *taskList, pid_t childPid);
  *
  * @return Returns the number of tasks in the list
  */
-unsigned int countTasks(struct list_head *taskList);
+unsigned int countTasks(list_t *taskList);
 
 /**
  * @brief Count the number of regular tasks in a task-list
@@ -137,6 +137,6 @@ unsigned int countTasks(struct list_head *taskList);
  *
  * @return Returns the number of regular tasks in the list
  */
-unsigned int countRegTasks(struct list_head *taskList);
+unsigned int countRegTasks(list_t *taskList);
 
 #endif  /* __PS_PSSLURM_TASKS */

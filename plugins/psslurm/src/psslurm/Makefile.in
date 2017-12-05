@@ -160,14 +160,13 @@ am_psslurm_la_OBJECTS = psslurm_la-psslurm.lo psslurm_la-psslurmlog.lo \
 	psslurm_la-psslurmjob.lo psslurm_la-psslurmforwarder.lo \
 	psslurm_la-psslurmcomm.lo psslurm_la-psslurmauth.lo \
 	psslurm_la-psslurmproto.lo psslurm_la-psslurmenv.lo \
-	psslurm_la-psslurmjobinfo.lo psslurm_la-psslurmlimits.lo \
-	psslurm_la-psslurmmultiprog.lo psslurm_la-psslurmgres.lo \
-	psslurm_la-psslurmpin.lo psslurm_la-psslurmio.lo \
-	psslurm_la-psslurmpelogue.lo psslurm_la-psslurmkvs.lo \
-	psslurm_la-psslurmspawn.lo psslurm_la-psslurmpack.lo \
-	psslurm_la-psslurminter.lo psslurm_la-psslurmmsg.lo \
-	psslurm_la-psslurmtasks.lo psslurm_la-psslurmstep.lo \
-	psslurm_la-psslurmbcast.lo
+	psslurm_la-psslurmlimits.lo psslurm_la-psslurmmultiprog.lo \
+	psslurm_la-psslurmgres.lo psslurm_la-psslurmpin.lo \
+	psslurm_la-psslurmio.lo psslurm_la-psslurmpelogue.lo \
+	psslurm_la-psslurmkvs.lo psslurm_la-psslurmspawn.lo \
+	psslurm_la-psslurmpack.lo psslurm_la-psslurminter.lo \
+	psslurm_la-psslurmmsg.lo psslurm_la-psslurmtasks.lo \
+	psslurm_la-psslurmstep.lo psslurm_la-psslurmbcast.lo
 psslurm_la_OBJECTS = $(am_psslurm_la_OBJECTS)
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
@@ -429,15 +428,15 @@ psslurm_la_SOURCES = psslurm.c psslurm.h psslurmlog.c psslurmlog.h	\
 	psslurmconfig.h psslurmjob.c psslurmjob.h psslurmforwarder.c	\
 	psslurmforwarder.h psslurmcomm.c psslurmcomm.h psslurmauth.c	\
 	psslurmauth.h psslurmproto.c psslurmproto.h psslurmenv.c	\
-	psslurmenv.h psslurmjobinfo.c psslurmjobinfo.h			\
-	psslurmlimits.c psslurmlimits.h psslurmmultiprog.c		\
-	psslurmmultiprog.h psslurmgres.c psslurmgres.h psslurmpin.c	\
-	psslurmpin.h psslurmio.c psslurmio.h psslurmpelogue.h		\
-	psslurmpelogue.c psslurmkvs.c psslurmspawn.c psslurmspawn.h     \
-	psslurmpack.h psslurmpack.c psslurmtypes.h psslurminter.c 	\
-	psslurminter.h psslurmhandles.h  psslurmmsg.h psslurmmsg.c      \
-	psslurmtasks.h psslurmtasks.c psslurmjobcred.h psslurmstep.c    \
-	psslurmstep.h psslurmbcast.c psslurmbcast.h
+	psslurmenv.h psslurmlimits.c psslurmlimits.h			\
+	psslurmmultiprog.c psslurmmultiprog.h psslurmgres.c		\
+	psslurmgres.h psslurmpin.c psslurmpin.h psslurmio.c		\
+	psslurmio.h psslurmpelogue.h psslurmpelogue.c psslurmkvs.c	\
+	psslurmspawn.c psslurmspawn.h psslurmpack.h psslurmpack.c	\
+	psslurmtypes.h psslurminter.c psslurminter.h psslurmhandles.h	\
+	psslurmmsg.h psslurmmsg.c psslurmtasks.h psslurmtasks.c		\
+	psslurmjobcred.h psslurmstep.c psslurmstep.h psslurmbcast.c	\
+	psslurmbcast.h
 
 psslurm_la_CPPFLAGS = $(AM_CPPFLAGS) -DPLUGINDIR=\"$(plugindir)\"	\
 	-DLOCALSTATEDIR=\"$(localstatedir)\"				\
@@ -536,7 +535,6 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psslurm_la-psslurminter.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psslurm_la-psslurmio.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psslurm_la-psslurmjob.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psslurm_la-psslurmjobinfo.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psslurm_la-psslurmkvs.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psslurm_la-psslurmlimits.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psslurm_la-psslurmlog.Plo@am__quote@
@@ -644,13 +642,6 @@ psslurm_la-psslurmenv.lo: psslurmenv.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='psslurmenv.c' object='psslurm_la-psslurmenv.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(psslurm_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o psslurm_la-psslurmenv.lo `test -f 'psslurmenv.c' || echo '$(srcdir)/'`psslurmenv.c
-
-psslurm_la-psslurmjobinfo.lo: psslurmjobinfo.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(psslurm_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT psslurm_la-psslurmjobinfo.lo -MD -MP -MF $(DEPDIR)/psslurm_la-psslurmjobinfo.Tpo -c -o psslurm_la-psslurmjobinfo.lo `test -f 'psslurmjobinfo.c' || echo '$(srcdir)/'`psslurmjobinfo.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/psslurm_la-psslurmjobinfo.Tpo $(DEPDIR)/psslurm_la-psslurmjobinfo.Plo
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='psslurmjobinfo.c' object='psslurm_la-psslurmjobinfo.lo' libtool=yes @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(psslurm_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o psslurm_la-psslurmjobinfo.lo `test -f 'psslurmjobinfo.c' || echo '$(srcdir)/'`psslurmjobinfo.c
 
 psslurm_la-psslurmlimits.lo: psslurmlimits.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(psslurm_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT psslurm_la-psslurmlimits.lo -MD -MP -MF $(DEPDIR)/psslurm_la-psslurmlimits.Tpo -c -o psslurm_la-psslurmlimits.lo `test -f 'psslurmlimits.c' || echo '$(srcdir)/'`psslurmlimits.c

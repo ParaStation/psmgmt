@@ -63,7 +63,7 @@ Job_t *findJobByIdC(char *id)
 
 Job_t *findJobById(uint32_t jobid)
 {
-    struct list_head *j;
+    list_t *j;
     list_for_each(j, &JobList) {
 	Job_t *job = list_entry(j, Job_t, next);
 	if (job->jobid == jobid) return job;
@@ -193,7 +193,7 @@ int killForwarderByJobid(uint32_t jobid)
 int countJobs(void)
 {
     int count=0;
-    struct list_head *j;
+    list_t *j;
     list_for_each(j, &JobList) count++;
 
     return count;
