@@ -295,6 +295,7 @@ static void initCpuFreq(void)
     char buf[256], *tmp, *sfreq;
     struct stat sbuf;
     int freq, i;
+    int localcount = 0;
 
     cpuFreq = umalloc(sizeof(*cpuFreq) * cpuCount);
 
@@ -309,9 +310,16 @@ static void initCpuFreq(void)
 	}
 
 	while (fgets(buf, sizeof(buf), fd)) {
-	    if (!strncmp(buf, "cpu MHz", 7) || !strncmp(buf, "cpu GHz", 7)) {
-		break;
-	    }
+	  if (strncmp (buf, "processor", 8))
+	    localcount++;
+	  if (!strncmp(buf, "cpu MHz", 7) || !strncmp(buf, "cpu GHz", 7)) {
+	    break;
+	  }
+	}
+	
+	/* did we find anything? */
+	if (feof (fd)) { /* no, we didn't */
+	  break;
 	}
 
 	sfreq = strchr(buf, ':') + 2;
@@ -338,7 +346,7 @@ static void initCpuFreq(void)
 
 	fclose(fd);
 	cpuGovEnabled = false;
-    } else {
+    } else { /* stat == 0, we have a scaling governor */
 	cpuGovEnabled = true;
     }
 }
