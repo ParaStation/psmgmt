@@ -7,7 +7,6 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
@@ -279,7 +278,7 @@ void freeJobCred(JobCred_t *cred)
     ufree(cred);
 }
 
-JobCred_t *extractJobCred(Gres_Cred_t **gres, Slurm_Msg_t *sMsg, bool verify)
+JobCred_t *extractJobCred(list_t *gresList, Slurm_Msg_t *sMsg, bool verify)
 {
     char *credStart = sMsg->ptr, *credEnd, *sigBuf = NULL;
     JobCred_t *cred = NULL;
@@ -288,7 +287,7 @@ JobCred_t *extractJobCred(Gres_Cred_t **gres, Slurm_Msg_t *sMsg, bool verify)
     gid_t sigGid;
     uint32_t i;
 
-    if (!unpackJobCred(sMsg, &cred, gres, &credEnd)) {
+    if (!unpackJobCred(sMsg, &cred, gresList, &credEnd)) {
 	mlog("%s: unpacking job credential failed\n", __func__);
 	goto ERROR;
     }

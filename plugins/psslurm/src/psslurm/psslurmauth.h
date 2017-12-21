@@ -7,12 +7,12 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-
 #ifndef __PS_SLURM_AUTH
 #define __PS_SLURM_AUTH
 
 #include <stdbool.h>
 
+#include "list.h"
 #include "psslurmjob.h"
 #include "plugincomm.h"
 #include "psslurmcomm.h"
@@ -81,9 +81,11 @@ bool verifyJobData(Job_t *job);
  * @brief Extract and verify a job credential
  *
  * Extract and verify a job credential including the embedded
- * gres credential from the provided message pointer.
+ * gres credential from the provided message pointer and add it
+ * to the list of credentials @a gresList.
  *
- * @param gres Pointer to a gres credential structure
+ * @param gresList List of gres credential structures the included
+ * gres credential will be appended to
  *
  * @param sMsg The message to unpack
  *
@@ -91,7 +93,7 @@ bool verifyJobData(Job_t *job);
  *
  * @return Returns the extracted job credential or NULL on error
  */
-JobCred_t *extractJobCred(Gres_Cred_t **gres, Slurm_Msg_t *sMsg, bool verify);
+JobCred_t *extractJobCred(list_t *gresList, Slurm_Msg_t *sMsg, bool verify);
 
 /**
  * @brief Free a job credential
@@ -124,4 +126,4 @@ bool extractBCastCred(Slurm_Msg_t *sMsg, BCast_t *bcast);
  */
 bool verifyUserId(uid_t userID, uid_t validID);
 
-#endif
+#endif /*  __PS_SLURM_AUTH */

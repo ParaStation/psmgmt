@@ -7,7 +7,6 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -250,7 +249,8 @@ void setSlurmJobEnv(Job_t *job)
     }
 
     /* gres "gpu" plugin */
-    if ((gres = findGresCred(job->gres, GRES_PLUGIN_GPU, 1))) {
+    gres = findGresCred(&job->gresList, GRES_PLUGIN_GPU, 1);
+    if (gres) {
 #ifdef MIN_SLURM_PROTO_1605
 	hexBitstr2List(gres->bitAlloc[0], &list, &listSize);
 #else
@@ -265,7 +265,8 @@ void setSlurmJobEnv(Job_t *job)
     }
 
     /* gres "mic" plugin */
-    if ((gres = findGresCred(job->gres, GRES_PLUGIN_MIC, 1))) {
+    gres = findGresCred(&job->gresList, GRES_PLUGIN_MIC, 1);
+    if (gres) {
 #ifdef MIN_SLURM_PROTO_1605
 	hexBitstr2List(gres->bitAlloc[0], &list, &listSize);
 #else
@@ -370,7 +371,6 @@ void setRankEnv(int32_t rank, Step_t *step)
     char tmp[128], *myGTIDs, *list = NULL, *val, *display;
     size_t listSize = 0;
     uint32_t myNodeId = step->myNodeIndex, myLocalId, count = 0, localNodeId;
-    Gres_Cred_t *gres;
     Alloc_t *alloc;
     Job_t *job;
 
@@ -431,8 +431,10 @@ void setRankEnv(int32_t rank, Step_t *step)
     }
 
     if ((int32_t) localNodeId != -1) {
+	Gres_Cred_t *gres;
 	/* gres "gpu" plugin */
-	if ((gres = findGresCred(step->gres, GRES_PLUGIN_GPU, 0))) {
+	gres = findGresCred(&step->gresList, GRES_PLUGIN_GPU, 0);
+	if (gres) {
 	    if (gres->bitAlloc[localNodeId]) {
 #ifdef MIN_SLURM_PROTO_1605
 		hexBitstr2List(gres->bitAlloc[localNodeId], &list, &listSize);
@@ -452,7 +454,8 @@ void setRankEnv(int32_t rank, Step_t *step)
 	}
 
 	/* gres "mic" plugin */
-	if ((gres = findGresCred(step->gres, GRES_PLUGIN_MIC, 0))) {
+	gres = findGresCred(&step->gresList, GRES_PLUGIN_MIC, 0);
+	if (gres) {
 	    if (gres->bitAlloc[localNodeId]) {
 #ifdef MIN_SLURM_PROTO_1605
 		hexBitstr2List(gres->bitAlloc[localNodeId], &list, &listSize);

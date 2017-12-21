@@ -7,7 +7,6 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-
 #include "plugincomm.h"
 #include "pluginhelper.h"
 #include "pluginmalloc.h"
@@ -87,7 +86,7 @@ static Gres_Cred_t *unpackGresStep(char **ptr, uint16_t index)
 
     if (magic != GRES_MAGIC) {
 	mlog("%s: magic error: '%u' : '%u'\n", __func__, magic, GRES_MAGIC);
-	freeGresCred(gres);
+	releaseGresCred(gres);
 	return NULL;
     }
 
@@ -135,7 +134,7 @@ static Gres_Cred_t *unpackGresJob(char **ptr, uint16_t index)
 
     if (magic != GRES_MAGIC) {
 	mlog("%s: magic error '%u' : '%u'\n", __func__, magic, GRES_MAGIC);
-	freeGresCred(gres);
+	releaseGresCred(gres);
 	return NULL;
     }
 
@@ -193,11 +192,10 @@ static Gres_Cred_t *unpackGresJob(char **ptr, uint16_t index)
     return gres;
 }
 
-static void unpackGres(char **ptr, Gres_Cred_t *gresList, uint32_t jobid,
+static void unpackGres(char **ptr, list_t *gresList, uint32_t jobid,
 		uint32_t stepid, uid_t uid)
 {
     uint16_t count, i;
-    Gres_Cred_t *gres;
 
     /* extract gres job data */
     getUint16(ptr, &count);
@@ -205,8 +203,9 @@ static void unpackGres(char **ptr, Gres_Cred_t *gresList, uint32_t jobid,
 	    "count '%u'\n", __func__, jobid, stepid,  uid, count);
 
     for (i=0; i<count; i++) {
-	if (!(gres = unpackGresJob(ptr, i))) continue;
-	list_add_tail(&(gres->list), &(gresList->list));
+	Gres_Cred_t *gres = unpackGresJob(ptr, i);
+	if (!gres) continue;
+	list_add_tail(&gres->next, gresList);
     }
 
     /* extract gres step data */
@@ -215,17 +214,17 @@ static void unpackGres(char **ptr, Gres_Cred_t *gresList, uint32_t jobid,
 	    "count '%u'\n", __func__, jobid, stepid,  uid, count);
 
     for (i=0; i<count; i++) {
-	if (!(gres = unpackGresStep(ptr, i))) continue;
-	list_add_tail(&(gres->list), &(gresList->list));
+	Gres_Cred_t *gres = unpackGresStep(ptr, i);
+	if (!gres) continue;
+	list_add_tail(&gres->next, gresList);
     }
 }
 
 bool __unpackJobCred(Slurm_Msg_t *sMsg, JobCred_t **credPtr,
-		     Gres_Cred_t **gresPtr, char **credEnd, const char *caller,
+		     list_t *gresList, char **credEnd, const char *caller,
 		     const int line)
 {
     JobCred_t *cred;
-    Gres_Cred_t *gres;
     char **ptr = &sMsg->ptr;
 
     if (!sMsg) {
@@ -238,8 +237,8 @@ bool __unpackJobCred(Slurm_Msg_t *sMsg, JobCred_t **credPtr,
 	return false;
     }
 
-    if (!gresPtr) {
-	mlog("%s: invalid gresPtr from '%s' at %i\n", __func__, caller, line);
+    if (!gresList) {
+	mlog("%s: invalid gresList from '%s' at %i\n", __func__, caller, line);
 	return false;
     }
 
@@ -249,7 +248,6 @@ bool __unpackJobCred(Slurm_Msg_t *sMsg, JobCred_t **credPtr,
     }
 
     cred = ucalloc(sizeof(JobCred_t));
-    gres = getGresCred();
 
     /* jobid / stepid */
     getUint32(ptr, &cred->jobid);
@@ -258,7 +256,7 @@ bool __unpackJobCred(Slurm_Msg_t *sMsg, JobCred_t **credPtr,
     getUint32(ptr, &cred->uid);
 
     /* gres job/step allocations */
-    unpackGres(ptr, gres, cred->jobid, cred->stepid, cred->uid);
+    unpackGres(ptr, gresList, cred->jobid, cred->stepid, cred->uid);
 
     /* count of specialized cores */
     getUint16(ptr, &cred->jobCoreSpec);
@@ -341,12 +339,10 @@ bool __unpackJobCred(Slurm_Msg_t *sMsg, JobCred_t **credPtr,
     cred->sig = getStringM(ptr);
 
     *credPtr = cred;
-    *gresPtr = gres;
 
     return true;
 
 ERROR:
-    freeGresCred(gres);
     freeJobCred(cred);
     return false;
 }
@@ -752,7 +748,7 @@ bool __unpackReqLaunchTasks(Slurm_Msg_t *sMsg, Step_t **stepPtr,
 #endif
 
     /* job credentials */
-    if (!(step->cred = extractJobCred(&step->gres, sMsg, 1))) {
+    if (!(step->cred = extractJobCred(&step->gresList, sMsg, 1))) {
 	mlog("%s: extracting job credential failed\n", __func__);
 	goto ERROR;
     }
@@ -993,7 +989,7 @@ bool __unpackReqBatchJobLaunch(Slurm_Msg_t *sMsg, Job_t **jobPtr,
 #endif
 
     /* job credential */
-    if (!(job->cred = extractJobCred(&job->gres, sMsg, 1))) {
+    if (!(job->cred = extractJobCred(&job->gresList, sMsg, 1))) {
 	mlog("%s: extracting job credentail failed\n", __func__);
 	goto ERROR;
     }

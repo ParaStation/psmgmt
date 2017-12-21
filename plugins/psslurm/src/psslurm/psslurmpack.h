@@ -7,7 +7,6 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-
 #ifndef __PS_SLURM_PACK
 #define __PS_SLURM_PACK
 
@@ -91,11 +90,11 @@ bool __unpackSlurmAuth(Slurm_Msg_t *sMsg, Slurm_Auth_t **authPtr,
  * error. If reading was not successful, @a sMsg might be not updated.
  */
 bool __unpackJobCred(Slurm_Msg_t *sMsg, JobCred_t **credPtr,
-		     Gres_Cred_t **gresPtr, char **credEnd, const char *caller,
+		     list_t *gresList, char **credEnd, const char *caller,
 		     const int line);
 
-#define unpackJobCred(sMsg, credPtr, gresPtr, credEnd) \
-    __unpackJobCred(sMsg, credPtr, gresPtr, credEnd, __func__, __LINE__)
+#define unpackJobCred(sMsg, credPtr, gresList, credEnd) \
+    __unpackJobCred(sMsg, credPtr, gresList, credEnd, __func__, __LINE__)
 
 /**
  * @brief Unpack a BCast credential
@@ -430,4 +429,4 @@ bool __packRespLaunchTasks(PS_DataBuffer_t *data, Resp_Launch_Tasks_t *ltasks,
 #define packRespLaunchTasks(data, ltasks) \
     __packRespLaunchTasks(data, ltasks, __func__, __LINE__)
 
-#endif
+#endif  /* __PS_SLURM_PACK */

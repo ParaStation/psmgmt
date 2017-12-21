@@ -7,7 +7,6 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-
 #include <signal.h>
 
 #include "psslurmstep.h"
@@ -36,6 +35,7 @@ Step_t *addStep(uint32_t jobid, uint32_t stepid)
 
     step->jobid = jobid;
     step->stepid = stepid;
+    INIT_LIST_HEAD(&step->gresList);
     step->exitCode = -1;
     step->stdOutRank = -1;
     step->stdErrRank = -1;
@@ -55,7 +55,7 @@ Step_t *addStep(uint32_t jobid, uint32_t stepid)
     initSlurmMsg(&step->srunControlMsg);
     initSlurmMsg(&step->srunPTYMsg);
 
-    list_add_tail(&(step->next), &StepList);
+    list_add_tail(&step->next, &StepList);
 
     return step;
 }
@@ -160,7 +160,7 @@ int deleteStep(uint32_t jobid, uint32_t stepid)
     ufree(step->acctFreq);
 
     clearTasks(&step->tasks);
-    freeGresCred(step->gres);
+    freeGresCred(&step->gresList);
 
     if (step->fwdata) {
 	if (step->fwdata->cPid) killChild(step->fwdata->cPid, SIGKILL);
@@ -398,7 +398,7 @@ Alloc_t *addAllocation(uint32_t jobid, uint32_t nrOfNodes, char *slurmHosts,
 	envInit(&alloc->spankenv);
     }
 
-    list_add_tail(&(alloc->next), &AllocList);
+    list_add_tail(&alloc->next, &AllocList);
 
     /* add user in pam for ssh access */
     psPamAddUser(alloc->username, strJobID(jobid), PSPAM_STATE_PROLOGUE);
