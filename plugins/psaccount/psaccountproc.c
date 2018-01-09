@@ -318,36 +318,35 @@ static void initCpuFreq(void)
 	}
 	
 	/* did we find anything? */
-	if (feof (fd)) { /* no, we didn't */
-	  break;
-	}
+	if (!feof (fd)) { /* yes, we did */
 
-	sfreq = strchr(buf, ':') + 2;
-	tmp = sfreq;
-	while (tmp++) {
+	  sfreq = strchr(buf, ':') + 2;
+	  tmp = sfreq;
+	  while (tmp++) {
 	    if (tmp[0] == '.') {
-		tmp[0] = '0';
-		break;
+	      tmp[0] = '0';
+	      break;
 	    }
-	}
-	i = strlen(sfreq);
-	sfreq[i-2] = '\0';
-
-	if (sscanf(sfreq, "%d", &freq) != 1) {
+	  }
+	  i = strlen(sfreq);
+	  sfreq[i-2] = '\0';
+	  
+	  if (sscanf(sfreq, "%d", &freq) != 1) {
 	    cpuCount = 0;
 	    ufree(cpuFreq);
 	    fclose(fd);
 	    return;
-	}
-
-	for (i=0; i<cpuCount; i++) {
+	  }
+	  
+	  for (i=0; i<cpuCount; i++) {
 	    cpuFreq[i] = freq;
+	  }
+	  
+	  fclose(fd);
+	  cpuGovEnabled = false;
 	}
-
-	fclose(fd);
-	cpuGovEnabled = false;
     } else { /* stat == 0, we have a scaling governor */
-	cpuGovEnabled = true;
+      cpuGovEnabled = true;
     }
 }
 
