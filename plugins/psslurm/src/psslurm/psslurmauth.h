@@ -16,6 +16,7 @@
 #include "psslurmjob.h"
 #include "plugincomm.h"
 #include "psslurmcomm.h"
+#include "psslurmbcast.h"
 
 /**
  * @brief Generate a Slurm authentication
@@ -43,14 +44,12 @@ Slurm_Auth_t *dupSlurmAuth(Slurm_Auth_t *auth);
  * are set in the Slurm message header. Currently only psmunge
  * is supported as authentication method.
  *
- * @param ptr The message to unpack the data from
- *
- * @param msgHead Slurm message header to save data to
+ * @param sMsg The Slurm message to unpack
  *
  * @return On success true is returned or false in case of an
  * error.
  */
-bool extractSlurmAuth(char **ptr, Slurm_Msg_Header_t *msgHead);
+bool extractSlurmAuth(Slurm_Msg_t *sMsg);
 
 /**
  * @brief Verify step information
@@ -86,13 +85,13 @@ bool verifyJobData(Job_t *job);
  *
  * @param gres Pointer to a gres credential structure
  *
- * @param ptr The message to unpack the data from
+ * @param sMsg The message to unpack
  *
  * @param verify If true verify the data using psmunge
  *
  * @return Returns the extracted job credential or NULL on error
  */
-JobCred_t *extractJobCred(Gres_Cred_t **gres, char **ptr, bool verify);
+JobCred_t *extractJobCred(Gres_Cred_t **gres, Slurm_Msg_t *sMsg, bool verify);
 
 /**
  * @brief Free a job credential
@@ -104,14 +103,14 @@ void freeJobCred(JobCred_t *cred);
 /**
  * @brief Extract and verify a BCast credential
  *
- * @param ptr The message to unpack the data from
+ * @param sMsg The message to unpack
  *
  * @param bcast The bcast structure holding the result
  *
  * @return On success true is returned or false in case of an
  * error.
  */
-bool extractBCastCred(char **ptr, BCast_t *bcast);
+bool extractBCastCred(Slurm_Msg_t *sMsg, BCast_t *bcast);
 
 /**
  * @brief Test if the user ID is authorized

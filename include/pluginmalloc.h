@@ -13,6 +13,11 @@
 
 #include <stddef.h>
 
+typedef struct {
+    char *buf;
+    size_t bufSize;
+} StrBuffer_t;
+
 /**
  * @brief malloc() with error handling and logging.
  *
@@ -86,10 +91,35 @@ char *__ustrdup(const char *s1, const char *func, const int line);
 /**
  * @brief Save a string into a buffer that dynamically grows if needed
  *
+ * Copy the string @a strSave into the dynamic buffer @a strBuf is
+ * pointing to. If required, this buffer will be grown using @ref
+ * __umalloc() and @ref __urealloc. The current size of the buffer is
+ * traced internally in bufSize. This is a wrapper to @ref strn2Buf().
+ *
+ * In addition to that debug messages are created.
+ *
+ * @param strSave The string to write to the buffer
+ *
+ * @param strBuf The buffer to write the string to
+ *
+ * @param func Funtion name of the calling function
+ *
+ * @param line Line number where this function is called
+ *
+ * @return Returns a pointer to the buffer.
+ */
+char *__addStrBuf(char *strSave, StrBuffer_t *strBuf, const char *func,
+		  const int line);
+#define addStrBuf(strSave, strBuf) \
+    __addStrBuf(strSave, strBuf, __func__, __LINE__)
+
+/**
+ * @brief Save a string into a buffer that dynamically grows if needed
+ *
  * Copy the string @a strSave into the dynamic buffer @a buffer is
  * pointing to. If required, this buffer will be grown using @ref
  * __umalloc() and @ref __urealloc. The current size of the buffer is
- * traced in @a bufSize.
+ * traced in @a bufSize. This is a wrapper to @ref strn2Buf().
  *
  * In addition to that debug messages are created.
  *
@@ -111,7 +141,28 @@ char *__str2Buf(char *strSave, char **buffer, size_t *bufSize, const char *func,
     __str2Buf(strSave, buffer, bufSize, __func__, __LINE__)
 
 /**
- * @doctodo
+ * @brief Save a string into a buffer that dynamically grows if needed
+ *
+ * Copy @a lenSave number of bytes from the string @a strSave into the dynamic
+ * buffer @a buffer is pointing to. If required, this buffer will be
+ * grown using @ref __umalloc() and @ref __urealloc. The current size of the
+ * buffer is traced in @a bufSize.
+ *
+ * In addition to that debug messages are created.
+ *
+ * @param strSave The string to write to the buffer
+ *
+ * @param lenSave The number of bytes to write to the buffer
+ *
+ * @param buffer The buffer to write the string to
+ *
+ * @param bufSize The current size of the buffer
+ *
+ * @param func Funtion name of the calling function
+ *
+ * @param line Line number where this function is called
+ *
+ * @return Returns a pointer to the buffer.
  */
 char *__strn2Buf(char *strSave, size_t lenSave, char **buffer, size_t *bufSize,
 		 const char *func, const int line);

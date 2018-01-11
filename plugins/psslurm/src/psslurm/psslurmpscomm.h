@@ -37,17 +37,25 @@ void releaseDelayedSpawns(uint32_t jobid, uint32_t stepid);
  */
 void cleanupDelayedSpawns(uint32_t jobid, uint32_t stepid);
 
+/**
+ * @brief Handle a create partition message
+ *
+ * @param msg The message to handle.
+ *
+ * @return Always returns 0.
+ */
 int handleCreatePart(void *msg);
 
+/**
+ * @brief Handle a create partition nodelist message
+ *
+ * @param msg The message to handle.
+ *
+ * @return Always returns 0.
+ */
 int handleCreatePartNL(void *msg);
 
 int handleNodeDown(void *nodeID);
-
-void handleDroppedMsg(DDTypedBufferMsg_t *msg);
-
-void handlePsslurmMsg(DDTypedBufferMsg_t *msg);
-
-void handleChildBornMsg(DDErrorMsg_t *msg);
 
 void send_PS_SignalTasks(Step_t *step, int signal, PStask_group_t group);
 
@@ -62,12 +70,6 @@ void forwardSlurmMsg(Slurm_Msg_t *sMsg, Connection_Forward_t *fw);
 
 int send_PS_ForwardRes(Slurm_Msg_t *msg);
 
-void handleCCMsg(PSLog_Msg_t *msg);
-
-void handleSpawnFailed(DDErrorMsg_t *msg);
-
-void handleSpawnReq(DDTypedBufferMsg_t *msg);
-
 void setNodeOffline(env_t *env, uint32_t id, PSnodes_ID_t dest,
 			const char *host, char *reason);
 
@@ -76,5 +78,15 @@ void requeueBatchJob(Job_t *job, PSnodes_ID_t dest);
 void send_PS_AllocLaunch(Alloc_t *alloc);
 
 void send_PS_AllocState(Alloc_t *alloc);
+
+/**
+* @brief Register various psid messages
+*/
+void initPScomm(void);
+
+/**
+* @brief Unregister various psid messages
+*/
+void finalizePScomm(void);
 
 #endif

@@ -316,10 +316,13 @@ int initConfig(char *filename, uint32_t *hash)
 	return 0;
     }
 
-    /* parse plugin config file */
+    /* parse psslurm config file */
     if (parseConfigFile(filename, &Config, false /*trimQuotes*/) < 0) return 0;
     setConfigDefaults(&Config, CONFIG_VALUES);
-    if (verifyConfig(&Config, CONFIG_VALUES) != 0) return 0;
+    if (verifyConfig(&Config, CONFIG_VALUES) != 0) {
+	mlog("%s: verfiy of %s failed\n", __func__, filename);
+	return 0;
+    }
 
     /* parse slurm config file */
     if (!(confFile = getConfValueC(&Config, "SLURM_CONF"))) return 0;

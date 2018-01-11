@@ -7,12 +7,12 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-
 #ifndef __PS_SLURM_IO
 #define __PS_SLURM_IO
 
 #include "pslog.h"
 #include "psslurmjob.h"
+#include "psslurmtasks.h"
 
 #define MAX_SATTACH_SOCKETS 30
 
@@ -24,6 +24,15 @@ typedef struct {
     uint16_t ltid;  /* local task ID */
     uint32_t len;   /* data length */
 } Slurm_IO_Header_t;
+
+typedef enum {
+    IO_UNDEF = 0x05,	/** I/O not defined */
+    IO_SRUN,		/** I/O via srun */
+    IO_SRUN_RANK,	/** I/O via srun to a single task/rank  */
+    IO_GLOBAL_FILE,	/** I/O to global file */
+    IO_RANK_FILE,	/** separate I/O file per rank */
+    IO_NODE_FILE,	/** separate I/O file per node */
+} IO_Opt_t;
 
 void writeIOmsg(char *msg, uint32_t msgLen, uint32_t taskid,
 			uint8_t type, Forwarder_Data_t *fwdata, Step_t *step,
@@ -53,4 +62,4 @@ void sendStepTimeout(Forwarder_Data_t *fwdata);
 int hookFWmsg(PSLog_Msg_t *msg, Forwarder_Data_t *fwData);
 void sendBrokeIOcon(Step_t *step);
 
-#endif
+#endif  /* __PS_SLURM_IO */

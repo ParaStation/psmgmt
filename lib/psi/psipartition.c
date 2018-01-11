@@ -1167,6 +1167,7 @@ int PSI_getNodes(uint32_t num, uint32_t hwType, uint16_t tpp,
 	return -1;
     }
 
+recv_retry:
     if (PSI_recvMsg((DDMsg_t *)&msg, sizeof(msg))<0) {
 	PSI_warn(-1, errno, "%s: PSI_recvMsg", __func__);
 	return -1;
@@ -1182,6 +1183,10 @@ int PSI_getNodes(uint32_t num, uint32_t hwType, uint16_t tpp,
 	} else {
 	    memcpy(nodes, ptr, num*sizeof(*nodes));
 	}
+	break;
+    case PSP_CD_SENDSTOP:
+    case PSP_CD_SENDCONT:
+	goto recv_retry;
 	break;
     case PSP_CD_ERROR:
 	PSI_warn(-1, ((DDErrorMsg_t*)&msg)->error, "%s: error in command %s",
@@ -1220,6 +1225,7 @@ int PSI_getRankNode(int32_t rank, PSnodes_ID_t *node)
 	return -1;
     }
 
+recv_retry:
     if (PSI_recvMsg((DDMsg_t *)&msg, sizeof(msg))<0) {
 	PSI_warn(-1, errno, "%s: PSI_recvMsg", __func__);
 	return -1;
@@ -1234,6 +1240,10 @@ int PSI_getRankNode(int32_t rank, PSnodes_ID_t *node)
 	} else {
 	    memcpy(node, ptr, sizeof(*node));
 	}
+	break;
+    case PSP_CD_SENDSTOP:
+    case PSP_CD_SENDCONT:
+	goto recv_retry;
 	break;
     case PSP_CD_ERROR:
 	PSI_warn(-1, ((DDErrorMsg_t*)&msg)->error, "%s: error in command %s",
@@ -1368,6 +1378,7 @@ int PSI_getSlots(uint16_t num, PSrsrvtn_ID_t resID, PSnodes_ID_t *nodes)
 	return -1;
     }
 
+recv_retry:
     if (PSI_recvMsg((DDMsg_t *)&msg, sizeof(msg))<0) {
 	PSI_warn(-1, errno, "%s: PSI_recvMsg", __func__);
 	return -1;
@@ -1388,6 +1399,10 @@ int PSI_getSlots(uint16_t num, PSrsrvtn_ID_t resID, PSnodes_ID_t *nodes)
 	} else {
 	    memcpy(nodes, msg.buf + used, num*sizeof(*nodes));
 	}
+	break;
+    case PSP_CD_SENDSTOP:
+    case PSP_CD_SENDCONT:
+	goto recv_retry;
 	break;
     case PSP_CD_ERROR:
 	PSI_warn(-1, ((DDErrorMsg_t*)&msg)->error, "%s: error in command %s",

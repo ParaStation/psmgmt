@@ -20,9 +20,65 @@
 #include "psslurmpin.h"
 #include "psidtask.h"
 
-#include "psslurmkvs.h"
+#include "plugin.h"
+
+typedef struct {
+    StrBuffer_t strBuf;
+    bool all;
+} StepInfo_t;
 
 static char line[256];
+
+/**
+ * @brief Visitor to add information about a job to a buffer
+ *
+ * @param job The job to use
+ *
+ * @param info A StrBuffer structure to save the information
+ *
+ * @return Always returns false to loop throw all jobs
+ */
+static bool addJobInfo(Job_t *job, const void *info)
+{
+    char start[50];
+    struct tm *ts;
+    StrBuffer_t *strBuf = (StrBuffer_t *) info;
+
+    snprintf(line, sizeof(line), "- jobid %u -\n", job->jobid);
+    addStrBuf(line, strBuf);
+
+    snprintf(line, sizeof(line), "user '%s'\n", job->username);
+    addStrBuf(line, strBuf);
+
+    snprintf(line, sizeof(line), "# nodes %u\n", job->nrOfNodes);
+    addStrBuf(line, strBuf);
+
+    snprintf(line, sizeof(line), "hosts '%s'\n", job->slurmHosts);
+    addStrBuf(line, strBuf);
+
+    snprintf(line, sizeof(line), "jobscript '%s'\n", job->jobscript);
+    addStrBuf(line, strBuf);
+
+    snprintf(line, sizeof(line), "job state '%s'\n",
+	    strJobState(job->state));
+    addStrBuf(line, strBuf);
+
+    if (job->fwdata) {
+	snprintf(line, sizeof(line), "job pid %u\n", job->fwdata->cPid);
+	addStrBuf(line, strBuf);
+    }
+
+    /* format start time */
+    ts = localtime(&job->start_time);
+    strftime(start, sizeof(start), "%Y-%m-%d %H:%M:%S", ts);
+
+    snprintf(line, sizeof(line), "start time '%s'\n", start);
+    addStrBuf(line, strBuf);
+
+    addStrBuf("-\n\n", strBuf);
+
+    return false;
+}
 
 /**
  * @brief Show current jobs.
@@ -35,54 +91,63 @@ static char line[256];
  */
 static char *showJobs(char *buf, size_t *bufSize)
 {
-    struct tm *ts;
-    char start[50];
-    list_t *j;
+    StrBuffer_t strBuf;
 
-    if (list_empty(&JobList.list)) {
+    if (!countJobs()) {
 	return str2Buf("\nNo current jobs.\n", &buf, bufSize);
     }
 
     str2Buf("\njobs:\n\n", &buf, bufSize);
 
-    list_for_each(j, &JobList.list) {
-	Job_t *job = list_entry(j, Job_t, list);
+    strBuf.buf = buf;
+    strBuf.bufSize = *bufSize;
+    traverseJobs(addJobInfo, &strBuf);
 
-	snprintf(line, sizeof(line), "- jobid %u -\n", job->jobid);
-	str2Buf(line, &buf, bufSize);
-
-	snprintf(line, sizeof(line), "user '%s'\n", job->username);
-	str2Buf(line, &buf, bufSize);
-
-	snprintf(line, sizeof(line), "# nodes %u\n", job->nrOfNodes);
-	str2Buf(line, &buf, bufSize);
-
-	snprintf(line, sizeof(line), "hosts '%s'\n", job->slurmHosts);
-	str2Buf(line, &buf, bufSize);
-
-	snprintf(line, sizeof(line), "jobscript '%s'\n", job->jobscript);
-	str2Buf(line, &buf, bufSize);
-
-	snprintf(line, sizeof(line), "job state '%s'\n",
-		 strJobState(job->state));
-	str2Buf(line, &buf, bufSize);
-
-	if (job->fwdata) {
-	    snprintf(line, sizeof(line), "job pid %u\n", job->fwdata->cPid);
-	    str2Buf(line, &buf, bufSize);
-	}
-
-	/* format start time */
-	ts = localtime(&job->start_time);
-	strftime(start, sizeof(start), "%Y-%m-%d %H:%M:%S", ts);
-
-	snprintf(line, sizeof(line), "start time '%s'\n", start);
-	str2Buf(line, &buf, bufSize);
-
-	str2Buf("-\n\n", &buf, bufSize);
-    }
-
+    *bufSize = strBuf.bufSize;
     return buf;
+}
+
+/**
+ * @brief Visitor to add information about a allocation to a buffer
+ *
+ * @param alloc The allocation to use
+ *
+ * @param info A StrBuffer structure to save the information
+ *
+ * @return Always returns false to loop throw all allocations
+ */
+static bool addAllocInfo(Alloc_t *alloc, const void *info)
+{
+    struct tm *ts;
+    char start[50];
+    StrBuffer_t *strBuf = (StrBuffer_t *) info;
+
+    snprintf(line, sizeof(line), "- jobid %u -\n", alloc->jobid);
+    addStrBuf(line, strBuf);
+
+    snprintf(line, sizeof(line), "user '%s'\n", alloc->username);
+    addStrBuf(line, strBuf);
+
+    snprintf(line, sizeof(line), "# nodes %u\n", alloc->nrOfNodes);
+    addStrBuf(line, strBuf);
+
+    snprintf(line, sizeof(line), "hosts '%s'\n", alloc->slurmHosts);
+    addStrBuf(line, strBuf);
+
+    snprintf(line, sizeof(line), "alloc state '%s'\n",
+	    strJobState(alloc->state));
+    addStrBuf(line, strBuf);
+
+    /* format start time */
+    ts = localtime(&alloc->start_time);
+    strftime(start, sizeof(start), "%Y-%m-%d %H:%M:%S", ts);
+
+    snprintf(line, sizeof(line), "start time '%s'\n", start);
+    addStrBuf(line, strBuf);
+
+    addStrBuf("-\n\n", strBuf);
+
+    return false;
 }
 
 /**
@@ -96,46 +161,92 @@ static char *showJobs(char *buf, size_t *bufSize)
  */
 static char *showAllocations(char *buf, size_t *bufSize)
 {
-    struct tm *ts;
-    char start[50];
-    list_t *a;
+    StrBuffer_t strBuf;
 
-    if (list_empty(&AllocList.list)) {
+    if (!countAllocs()) {
 	return str2Buf("\nNo current allocations.\n", &buf, bufSize);
     }
 
     str2Buf("\nallocations:\n\n", &buf, bufSize);
 
-    list_for_each(a, &AllocList.list) {
-	Alloc_t *alloc = list_entry(a, Alloc_t, list);
+    strBuf.buf = buf;
+    strBuf.bufSize = *bufSize;
+    traverseAllocs(addAllocInfo, &strBuf);
 
-	snprintf(line, sizeof(line), "- jobid %u -\n", alloc->jobid);
-	str2Buf(line, &buf, bufSize);
-
-	snprintf(line, sizeof(line), "user '%s'\n", alloc->username);
-	str2Buf(line, &buf, bufSize);
-
-	snprintf(line, sizeof(line), "# nodes %u\n", alloc->nrOfNodes);
-	str2Buf(line, &buf, bufSize);
-
-	snprintf(line, sizeof(line), "hosts '%s'\n", alloc->slurmHosts);
-	str2Buf(line, &buf, bufSize);
-
-	snprintf(line, sizeof(line), "alloc state '%s'\n",
-		 strJobState(alloc->state));
-	str2Buf(line, &buf, bufSize);
-
-	/* format start time */
-	ts = localtime(&alloc->start_time);
-	strftime(start, sizeof(start), "%Y-%m-%d %H:%M:%S", ts);
-
-	snprintf(line, sizeof(line), "start time '%s'\n", start);
-	str2Buf(line, &buf, bufSize);
-
-	str2Buf("-\n\n", &buf, bufSize);
-    }
+    *bufSize = strBuf.bufSize;
 
     return buf;
+}
+
+/**
+ * @brief Visitor to add information about a step to a buffer
+ *
+ * @param step The step to use
+ *
+ * @param info A StepInfo structure to save the information
+ *
+ * @return Always returns false to loop throw all steps
+ */
+static bool addHwthreadsInfo(Step_t *step, const void *info)
+{
+    StepInfo_t *stepInfo = (StepInfo_t *) info;
+    StrBuffer_t *strBuf = &stepInfo->strBuf;
+    PSnodes_ID_t lastNode = -1;
+    uint32_t i;
+
+    if (step->state == JOB_COMPLETE && !stepInfo->all) return false;
+
+    snprintf(line, sizeof(line), "- stepid %u:%u threads %u core "
+	    "map '%s'-\n", step->jobid, step->stepid, step->numHwThreads,
+	    step->cred->stepCoreBitmap);
+    addStrBuf(line, strBuf);
+
+    if (!step->hwThreads) {
+	addStrBuf("\nno HW threads\n-\n\n", strBuf);
+	return false;
+    }
+
+    addStrBuf("\npsslurm threads:", strBuf);
+    for (i=0; i<step->numHwThreads; i++) {
+	if (lastNode != step->hwThreads[i].node) {
+	    snprintf(line, sizeof(line), "\nnode %i: ",
+		    step->hwThreads[i].node);
+	    addStrBuf(line, strBuf);
+	}
+	lastNode = step->hwThreads[i].node;
+
+	snprintf(line, sizeof(line), "%i ", step->hwThreads[i].id);
+	addStrBuf(line, strBuf);
+    }
+
+    if (step->fwdata && step->fwdata->cPid != 0) {
+	PStask_ID_t cTID = PSC_getTID(-1, step->fwdata->cPid);
+	PStask_t *task = PStasklist_find(&managedTasks, cTID);
+	if (task) {
+	    snprintf(line, sizeof(line), "\n\npsid threads for logger %s:",
+		    PSC_printTID(cTID));
+	    addStrBuf(line, strBuf);
+
+	    for (i=0; i<task->totalThreads; i++) {
+		if (lastNode != task->partThrds[i].node) {
+		    snprintf(line, sizeof(line), "\nnode %i: ",
+			    task->partThrds[i].node);
+		    addStrBuf(line, strBuf);
+		}
+		lastNode = task->partThrds[i].node;
+
+		snprintf(line, sizeof(line), "%i ", task->partThrds[i].id);
+		addStrBuf(line, strBuf);
+	    }
+	} else {
+	    snprintf(line, sizeof(line), "\n\nno psid threads for "
+		    "logger %s:", PSC_printTID(cTID));
+	    addStrBuf(line, strBuf);
+	}
+    }
+    addStrBuf("\n-\n\n", strBuf);
+
+    return false;
 }
 
 /**
@@ -149,74 +260,92 @@ static char *showAllocations(char *buf, size_t *bufSize)
  */
 static char *showHWthreads(char *buf, size_t *bufSize, bool all)
 {
-    uint32_t i;
-    PSnodes_ID_t lastNode = -1;
-    list_t *s;
 
-    if (list_empty(&StepList.list)) {
+    StepInfo_t stepInfo;
+
+    if (!countSteps()) {
 	return str2Buf("\nNo current HW threads.\n", &buf, bufSize);
     }
 
     str2Buf("\nHW threads:\n\n", &buf, bufSize);
 
-    list_for_each(s, &StepList.list) {
-	Step_t *step = list_entry(s, Step_t, list);
+    stepInfo.all = all;
+    stepInfo.strBuf.buf = buf;
+    stepInfo.strBuf.bufSize = *bufSize;
 
-	if (step->state == JOB_COMPLETE && !all) continue;
+    traverseSteps(addHwthreadsInfo, &stepInfo);
 
-	snprintf(line, sizeof(line), "- stepid %u:%u threads %u core "
-		 "map '%s'-\n", step->jobid, step->stepid, step->numHwThreads,
-		 step->cred->stepCoreBitmap);
-	str2Buf(line, &buf, bufSize);
+    *bufSize = stepInfo.strBuf.bufSize;
+    return buf;
+}
 
-	if (!step->hwThreads) {
-	    str2Buf("\nno HW threads\n-\n\n", &buf, bufSize);
-	    continue;
-	}
+/**
+ * @brief Visitor to add information about a step to a buffer
+ *
+ * @param step The step to use
+ *
+ * @param info A StepInfo structure to save the information
+ *
+ * @return Always returns false to loop throw all steps
+ */
+static bool addStepInfo(Step_t *step, const void *info)
+{
+    StepInfo_t *stepInfo = (StepInfo_t *) info;
+    StrBuffer_t *strBuf = &stepInfo->strBuf;
+    struct tm *ts;
+    char start[50], *ptr;
 
-	str2Buf("\npsslurm threads:", &buf, bufSize);
-	for (i=0; i<step->numHwThreads; i++) {
-	    if (lastNode != step->hwThreads[i].node) {
-		snprintf(line, sizeof(line), "\nnode %i: ",
-			 step->hwThreads[i].node);
-		str2Buf(line, &buf, bufSize);
-	    }
-	    lastNode = step->hwThreads[i].node;
+    if (step->state == JOB_COMPLETE && !stepInfo->all) return false;
 
-	    snprintf(line, sizeof(line), "%i ", step->hwThreads[i].id);
-	    str2Buf(line, &buf, bufSize);
-	}
+    snprintf(line, sizeof(line), "- stepid %u:%u -\n", step->jobid,
+	    step->stepid);
+    addStrBuf(line, strBuf);
 
-	if (step->fwdata && step->fwdata->cPid != 0) {
-	    PStask_ID_t cTID = PSC_getTID(-1, step->fwdata->cPid);
-	    PStask_t *task = PStasklist_find(&managedTasks, cTID);
-	    if (task) {
-		snprintf(line, sizeof(line), "\n\npsid threads for logger %s:",
-			 PSC_printTID(cTID));
-		str2Buf(line, &buf, bufSize);
+    snprintf(line, sizeof(line), "user: '%s' uid: %u gid: %u\n",
+	    step->username, step->uid, step->gid);
+    addStrBuf(line, strBuf);
 
-		for (i=0; i<task->totalThreads; i++) {
-		    if (lastNode != task->partThrds[i].node) {
-			snprintf(line, sizeof(line), "\nnode %i: ",
-				 task->partThrds[i].node);
-			str2Buf(line, &buf, bufSize);
-		    }
-		    lastNode = task->partThrds[i].node;
+    snprintf(line, sizeof(line), "%u hosts: '%s'\n", step->nrOfNodes,
+	    step->slurmHosts);
+    addStrBuf(line, strBuf);
 
-		    snprintf(line, sizeof(line), "%i ", task->partThrds[i].id);
-		    str2Buf(line, &buf, bufSize);
-		}
-	    } else {
-		snprintf(line, sizeof(line), "\n\nno psid threads for "
-			 "logger %s:", PSC_printTID(cTID));
-		str2Buf(line, &buf, bufSize);
-	    }
-	}
+    snprintf(line, sizeof(line), "step state: '%s'\n",
+	    strJobState(step->state));
+    addStrBuf(line, strBuf);
 
-	str2Buf("\n-\n\n", &buf, bufSize);
+    snprintf(line, sizeof(line), "tpp: %u numHwThreads: %u\n",
+	    step->tpp, step->numHwThreads);
+    addStrBuf(line, strBuf);
+
+    if (step->fwdata) {
+	snprintf(line, sizeof(line), "step PID: %u\n", step->fwdata->cPid);
+	addStrBuf(line, strBuf);
     }
 
-    return buf;
+    /* format start time */
+    ts = localtime(&step->start_time);
+    strftime(start, sizeof(start), "%Y-%m-%d %H:%M:%S", ts);
+
+    snprintf(line, sizeof(line), "start time: '%s'\n", start);
+    addStrBuf(line, strBuf);
+
+    ptr = genCPUbindString(step);
+    snprintf(line, sizeof(line), "cpuBind: '%s'\n", ptr);
+    ufree(ptr);
+    addStrBuf(line, strBuf);
+
+    ptr = genMemBindString(step);
+    snprintf(line, sizeof(line), "memBind: '%s'\n", ptr);
+    ufree(ptr);
+    addStrBuf(line, strBuf);
+
+    snprintf(line, sizeof(line), "logger TID: %s\n",
+	    PSC_printTID(step->loggerTID));
+    addStrBuf(line, strBuf);
+
+    addStrBuf("-\n\n", strBuf);
+
+    return false;
 }
 
 /**
@@ -230,70 +359,21 @@ static char *showHWthreads(char *buf, size_t *bufSize, bool all)
  */
 static char *showSteps(char *buf, size_t *bufSize, bool all)
 {
-    struct tm *ts;
-    char start[50], *ptr;
-    list_t *s;
+    StepInfo_t stepInfo;
 
-    if (list_empty(&StepList.list)) {
+    if (!countSteps()) {
 	return str2Buf("\nNo current steps.\n", &buf, bufSize);
     }
 
     str2Buf("\nsteps:\n\n", &buf, bufSize);
 
-    list_for_each(s, &StepList.list) {
-	Step_t *step = list_entry(s, Step_t, list);
+    stepInfo.all = all;
+    stepInfo.strBuf.buf = buf;
+    stepInfo.strBuf.bufSize = *bufSize;
 
-	if (step->state == JOB_COMPLETE && !all) continue;
+    traverseSteps(addStepInfo, &stepInfo);
 
-	snprintf(line, sizeof(line), "- stepid %u:%u -\n", step->jobid,
-		 step->stepid);
-	str2Buf(line, &buf, bufSize);
-
-	snprintf(line, sizeof(line), "user: '%s' uid: %u gid: %u\n",
-		 step->username, step->uid, step->gid);
-	str2Buf(line, &buf, bufSize);
-
-	snprintf(line, sizeof(line), "%u hosts: '%s'\n", step->nrOfNodes,
-		 step->slurmHosts);
-	str2Buf(line, &buf, bufSize);
-
-	snprintf(line, sizeof(line), "step state: '%s'\n",
-		 strJobState(step->state));
-	str2Buf(line, &buf, bufSize);
-
-	snprintf(line, sizeof(line), "tpp: %u numHwThreads: %u\n",
-		 step->tpp, step->numHwThreads);
-	str2Buf(line, &buf, bufSize);
-
-	if (step->fwdata) {
-	    snprintf(line, sizeof(line), "step PID: %u\n", step->fwdata->cPid);
-	    str2Buf(line, &buf, bufSize);
-	}
-
-	/* format start time */
-	ts = localtime(&step->start_time);
-	strftime(start, sizeof(start), "%Y-%m-%d %H:%M:%S", ts);
-
-	snprintf(line, sizeof(line), "start time: '%s'\n", start);
-	str2Buf(line, &buf, bufSize);
-
-	ptr = genCPUbindString(step);
-	snprintf(line, sizeof(line), "cpuBind: '%s'\n", ptr);
-	ufree(ptr);
-	str2Buf(line, &buf, bufSize);
-
-	ptr = genMemBindString(step);
-	snprintf(line, sizeof(line), "memBind: '%s'\n", ptr);
-	ufree(ptr);
-	str2Buf(line, &buf, bufSize);
-
-	snprintf(line, sizeof(line), "logger TID: %s\n",
-		 PSC_printTID(step->loggerTID));
-	str2Buf(line, &buf, bufSize);
-
-	str2Buf("-\n\n", &buf, bufSize);
-    }
-
+    *bufSize = stepInfo.strBuf.bufSize;
     return buf;
 }
 

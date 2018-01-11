@@ -478,6 +478,8 @@ plugins/psslurm/src/psslurm/Makefile.in \
 plugins/psslurm/src/psslurm/psslurm.h \
 plugins/psslurm/src/psslurm/psslurmauth.c \
 plugins/psslurm/src/psslurm/psslurmauth.h \
+plugins/psslurm/src/psslurm/psslurmbcast.c \
+plugins/psslurm/src/psslurm/psslurmbcast.h \
 plugins/psslurm/src/psslurm/psslurm.c \
 plugins/psslurm/src/psslurm/psslurmcomm.c \
 plugins/psslurm/src/psslurm/psslurmcomm.h \
@@ -496,10 +498,8 @@ plugins/psslurm/src/psslurm/psslurmio.c \
 plugins/psslurm/src/psslurm/psslurmio.h \
 plugins/psslurm/src/psslurm/psslurmjob.c \
 plugins/psslurm/src/psslurm/psslurmjob.h \
-plugins/psslurm/src/psslurm/psslurmjobinfo.c \
-plugins/psslurm/src/psslurm/psslurmjobinfo.h \
+plugins/psslurm/src/psslurm/psslurmjobcred.h \
 plugins/psslurm/src/psslurm/psslurmkvs.c \
-plugins/psslurm/src/psslurm/psslurmkvs.h \
 plugins/psslurm/src/psslurm/psslurmlimits.c \
 plugins/psslurm/src/psslurm/psslurmlimits.h \
 plugins/psslurm/src/psslurm/psslurmlog.c \
@@ -520,6 +520,10 @@ plugins/psslurm/src/psslurm/psslurmpscomm.c \
 plugins/psslurm/src/psslurm/psslurmpscomm.h \
 plugins/psslurm/src/psslurm/psslurmspawn.c \
 plugins/psslurm/src/psslurm/psslurmspawn.h \
+plugins/psslurm/src/psslurm/psslurmstep.c \
+plugins/psslurm/src/psslurm/psslurmstep.h \
+plugins/psslurm/src/psslurm/psslurmtasks.c \
+plugins/psslurm/src/psslurm/psslurmtasks.h \
 plugins/psslurm/src/psslurm/psslurmtypes.h \
 scripts/.gdbinit \
 scripts/Makefile.am \

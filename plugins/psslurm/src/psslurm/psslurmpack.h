@@ -51,7 +51,7 @@ bool __packSlurmAuth(PS_DataBuffer_t *data, Slurm_Auth_t *auth,
  * The memory is allocated using umalloc(). The caller is responsible
  * to free the memory using ufree().
  *
- * @param ptr The message to unpack the data from
+ * @param sMsg The Slurm message to unpack
  *
  * @param auth The authentication structure holding the result
  *
@@ -60,13 +60,13 @@ bool __packSlurmAuth(PS_DataBuffer_t *data, Slurm_Auth_t *auth,
  * @param line Line number where this function is called
  *
  * @return On success true is returned or false in case of an
- * error. If reading was not successful, @a ptr might be not updated.
+ * error. If reading was not successful, @a sMsg might be not updated.
  */
-bool __unpackSlurmAuth(char **ptr, Slurm_Auth_t **authPtr, const char *caller,
-			const int line);
+bool __unpackSlurmAuth(Slurm_Msg_t *sMsg, Slurm_Auth_t **authPtr,
+		       const char *caller, const int line);
 
-#define unpackSlurmAuth(ptr, authPtr) \
-    __unpackSlurmAuth(ptr, authPtr, __func__, __LINE__)
+#define unpackSlurmAuth(sMsg, authPtr) \
+    __unpackSlurmAuth(sMsg, authPtr, __func__, __LINE__)
 
 /**
  * @brief Unpack a job credential
@@ -75,7 +75,7 @@ bool __unpackSlurmAuth(char **ptr, Slurm_Auth_t **authPtr, const char *caller,
  * credential. The memory is allocated using umalloc().
  * The caller is responsible to free the memory using ufree().
  *
- * @param ptr The message to unpack the data from
+ * @param sMsg The Slurm message to unpack
  *
  * @param cred The job credential holding the result
  *
@@ -88,13 +88,14 @@ bool __unpackSlurmAuth(char **ptr, Slurm_Auth_t **authPtr, const char *caller,
  * @param line Line number where this function is called
  *
  * @return On success true is returned or false in case of an
- * error. If reading was not successful, @a ptr might be not updated.
+ * error. If reading was not successful, @a sMsg might be not updated.
  */
-bool __unpackJobCred(char **ptr, JobCred_t **credPtr, Gres_Cred_t **gresPtr,
-		    char **credEnd, const char *caller, const int line);
+bool __unpackJobCred(Slurm_Msg_t *sMsg, JobCred_t **credPtr,
+		     Gres_Cred_t **gresPtr, char **credEnd, const char *caller,
+		     const int line);
 
-#define unpackJobCred(ptr, credPtr, gresPtr, credEnd) \
-    __unpackJobCred(ptr, credPtr, gresPtr, credEnd, __func__, __LINE__)
+#define unpackJobCred(sMsg, credPtr, gresPtr, credEnd) \
+    __unpackJobCred(sMsg, credPtr, gresPtr, credEnd, __func__, __LINE__)
 
 /**
  * @brief Unpack a BCast credential
@@ -103,20 +104,20 @@ bool __unpackJobCred(char **ptr, JobCred_t **credPtr, Gres_Cred_t **gresPtr,
  * The memory is allocated using umalloc(). The caller is responsible
  * to free the memory using ufree().
  *
- * @param ptr The message to unpack the data from
+ * @param sMsg The message to unpack
  *
  * @param bcast The bcast credential holding the result
  *
  * @param credEnd Pointer updated to the end of the credential
  *
  * @return On success true is returned or false in case of an
- * error. If reading was not successful, @a ptr might be not updated.
+ * error. If reading was not successful, @a sMsg might be not updated.
  */
-bool __unpackBCastCred(char **ptr, BCast_t *bcast, char **credEnd,
-			const char *caller, const int line);
+bool __unpackBCastCred(Slurm_Msg_t *sMsg, BCast_t *bcast, char **credEnd,
+		       const char *caller, const int line);
 
-#define unpackBCastCred(ptr, bcast, credEnd) \
-    __unpackBCastCred(ptr, bcast, credEnd, __func__, __LINE__)
+#define unpackBCastCred(sMsg, bcast, credEnd) \
+    __unpackBCastCred(sMsg, bcast, credEnd, __func__, __LINE__)
 
 /**
  * @brief Pack a Slurm message header
@@ -185,7 +186,7 @@ bool __packSlurmIOMsg(PS_DataBuffer_t *data, Slurm_IO_Header_t *ioh, char *body,
  * error. If reading was not successful, @a ptr might be not updated.
  */
 bool __unpackSlurmIOHeader(char **ptr, Slurm_IO_Header_t **iohPtr,
-			    const char *caller, const int line);
+			   const char *caller, const int line);
 
 #define unpackSlurmIOHeader(ptr, iohPtr) \
     __unpackSlurmIOHeader(ptr, iohPtr, __func__, __LINE__)
@@ -197,7 +198,7 @@ bool __unpackSlurmIOHeader(char **ptr, Slurm_IO_Header_t **iohPtr,
  * The memory is allocated using umalloc(). The caller is responsible
  * to free the memory using ufree().
  *
- * @param ptr The message to unpack the data from
+ * @param sMsg The message to unpack
  *
  * @param reqPtr The request structure holding the result
  *
@@ -206,13 +207,13 @@ bool __unpackSlurmIOHeader(char **ptr, Slurm_IO_Header_t **iohPtr,
  * @param line Line number where this function is called
  *
  * @return On success true is returned or false in case of an
- * error. If reading was not successful, @a ptr might be not updated.
+ * error. If reading was not successful, @a sMsg might be not updated.
  */
-bool __unpackReqTerminate(char **ptr, Req_Terminate_Job_t **reqPtr,
-			    const char *caller, const int line);
+bool __unpackReqTerminate(Slurm_Msg_t *sMsg, Req_Terminate_Job_t **reqPtr,
+			  const char *caller, const int line);
 
-#define unpackReqTerminate(ptr, reqPtr) \
-    __unpackReqTerminate(ptr, reqPtr, __func__, __LINE__)
+#define unpackReqTerminate(sMsg, reqPtr) \
+    __unpackReqTerminate(sMsg, reqPtr, __func__, __LINE__)
 
 /**
  * @brief Unpack a task launch request
@@ -221,7 +222,7 @@ bool __unpackReqTerminate(char **ptr, Req_Terminate_Job_t **reqPtr,
  * The memory is allocated using umalloc(). The caller is responsible
  * to free the memory using ufree().
  *
- * @param ptr The message to unpack the data from
+ * @param sMsg The message to unpack
  *
  * @param stepPtr The step structure holding the result
  *
@@ -230,13 +231,13 @@ bool __unpackReqTerminate(char **ptr, Req_Terminate_Job_t **reqPtr,
  * @param line Line number where this function is called
  *
  * @return On success true is returned or false in case of an
- * error. If reading was not successful, @a ptr might be not updated.
+ * error. If reading was not successful, @a sMsg might be not updated.
  */
-bool __unpackReqLaunchTasks(char **ptr, Step_t **stepPtr,
+bool __unpackReqLaunchTasks(Slurm_Msg_t *sMsg, Step_t **stepPtr,
 			    const char *caller, const int line);
 
-#define unpackReqLaunchTasks(ptr, stepPtr) \
-    __unpackReqLaunchTasks(ptr, stepPtr, __func__, __LINE__)
+#define unpackReqLaunchTasks(sMsg, stepPtr) \
+    __unpackReqLaunchTasks(sMsg, stepPtr, __func__, __LINE__)
 
 /**
  * @brief Unpack a job launch request
@@ -245,7 +246,7 @@ bool __unpackReqLaunchTasks(char **ptr, Step_t **stepPtr,
  * The memory is allocated using umalloc(). The caller is responsible
  * to free the memory using ufree().
  *
- * @param ptr The message to unpack the data from
+ * @param sMsg The message to unpack
  *
  * @param jobPPtr The job structure holding the result
  *
@@ -254,13 +255,13 @@ bool __unpackReqLaunchTasks(char **ptr, Step_t **stepPtr,
  * @param line Line number where this function is called
  *
  * @return On success true is returned or false in case of an
- * error. If reading was not successful, @a ptr might be not updated.
+ * error. If reading was not successful, @a sMsg might be not updated.
  */
-bool __unpackReqBatchJobLaunch(char **ptr, Job_t **jobPtr,
-			    const char *caller, const int line);
+bool __unpackReqBatchJobLaunch(Slurm_Msg_t *sMsg, Job_t **jobPtr,
+			       const char *caller, const int line);
 
-#define unpackReqBatchJobLaunch(ptr, jobPtr) \
-    __unpackReqBatchJobLaunch(ptr, jobPtr, __func__, __LINE__)
+#define unpackReqBatchJobLaunch(sMsg, jobPtr) \
+    __unpackReqBatchJobLaunch(sMsg, jobPtr, __func__, __LINE__)
 
 /**
  * @brief Pack a ping response
@@ -338,7 +339,7 @@ bool __packRespNodeRegStatus(PS_DataBuffer_t *data, Resp_Node_Reg_Status_t *stat
  * The memory is allocated using umalloc(). The caller is responsible
  * to free the memory using ufree().
  *
- * @param ptr The message to unpack the data from
+ * @param sMsg The message to unpack
  *
  * @param bcastPtr The bcast structure holding the result
  *
@@ -347,13 +348,13 @@ bool __packRespNodeRegStatus(PS_DataBuffer_t *data, Resp_Node_Reg_Status_t *stat
  * @param line Line number where this function is called
  *
  * @return On success true is returned or false in case of an
- * error. If reading was not successful, @a ptr might be not updated.
+ * error. If reading was not successful, @a sMsg might be not updated.
  */
-bool __unpackReqFileBcast(char **ptr, BCast_t **bcastPtr,
-			    const char *caller, const int line);
+bool __unpackReqFileBcast(Slurm_Msg_t *sMsg, BCast_t **bcastPtr,
+			  const char *caller, const int line);
 
-#define unpackReqFileBcast(ptr, bcastPtr) \
-    __unpackReqFileBcast(ptr, bcastPtr, __func__, __LINE__)
+#define unpackReqFileBcast(sMsg, bcastPtr) \
+    __unpackReqFileBcast(sMsg, bcastPtr, __func__, __LINE__)
 
 /**
  * @brief Pack a Slurm message
@@ -382,5 +383,51 @@ bool __packSlurmMsg(PS_DataBuffer_t *data, Slurm_Msg_Header_t *head,
 
 #define packSlurmMsg(data, head, body, auth) \
     __packSlurmMsg(data, head, body, auth, __func__, __LINE__)
+
+/**
+ * @brief Pack a daemon status response
+ *
+ * Pack a daemon status response and add it to the provided data
+ * buffer.
+ *
+ * @param data Data buffer to save data to
+ *
+ * @param stat The status structure to pack
+ *
+ * @param caller Function name of the calling function
+ *
+ * @param line Line number where this function is called
+ *
+ * @return On success true is returned or false in case of an
+ * error. If writing was not successful, @a data might be not updated.
+ */
+bool __packRespDaemonStatus(PS_DataBuffer_t *data, Resp_Daemon_Status_t *stat,
+			    const char *caller, const int line);
+
+#define packRespDaemonStatus(data, stat) \
+    __packRespDaemonStatus(data, stat, __func__, __LINE__)
+
+/**
+ * @brief Pack a launch tasks response
+ *
+ * Pack a launch tasks response and add it to the provided data
+ * buffer.
+ *
+ * @param data Data buffer to save data to
+ *
+ * @param ltasks The launch tasks structure to pack
+ *
+ * @param caller Function name of the calling function
+ *
+ * @param line Line number where this function is called
+ *
+ * @return On success true is returned or false in case of an
+ * error. If writing was not successful, @a data might be not updated.
+ */
+bool __packRespLaunchTasks(PS_DataBuffer_t *data, Resp_Launch_Tasks_t *ltasks,
+			    const char *caller, const int line);
+
+#define packRespLaunchTasks(data, ltasks) \
+    __packRespLaunchTasks(data, ltasks, __func__, __LINE__)
 
 #endif
