@@ -32,7 +32,7 @@ typedef struct {
     gid_t gid;			/* group of the step owner */
     char *partition;		/* name of the slurm partition */
     JobCred_t *cred;		/* job/step creditials */
-    Gres_Cred_t *gres;		/* general resource informations */
+    list_t gresList;		/* general resource informations */
     PSnodes_ID_t *nodes;	/* all participating nodes in the step */
     uint32_t nrOfNodes;
     char *slurmHosts;		/* Slurm compressed hostlist (SLURM_NODELIST) */
@@ -349,4 +349,4 @@ int countAllocs(void);
  */
 int signalAllocations(int signal, char *reason);
 
-#endif
+#endif  /* __PS_PSSLURM_STEP */

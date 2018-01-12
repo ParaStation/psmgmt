@@ -7,7 +7,6 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-
 #define _GNU_SOURCE
 #include <fenv.h>
 
@@ -517,9 +516,6 @@ int initialize(void)
     } else {
 	initPluginLogger("psslurm", NULL);
     }
-
-    /* init all data lists */
-    initGresConf();
 
     /* we need to have root privileges */
     if(getuid() != 0) {

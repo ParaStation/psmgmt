@@ -7,7 +7,6 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
@@ -590,7 +589,7 @@ static void handleReattachTasks(Slurm_Msg_t *sMsg)
     uint16_t numIOports, numCtlPorts;
     uint16_t *ioPorts = NULL, *ctlPorts = NULL;
     JobCred_t *cred = NULL;
-    Gres_Cred_t *gres = NULL;
+    LIST_HEAD(gresList);
 
     getUint32(ptr, &jobid);
     getUint32(ptr, &stepid);
@@ -645,13 +644,14 @@ static void handleReattachTasks(Slurm_Msg_t *sMsg)
     }
 
     /* job credential including I/O key */
-    if (!(cred = extractJobCred(&gres, sMsg, 0))) {
+    cred = extractJobCred(&gresList, sMsg, 0);
+    if (!cred) {
 	mlog("%s: invalid credential for step '%u:%u'\n", __func__,
 		jobid, stepid);
 	rc = ESLURM_INVALID_JOB_CREDENTIAL;
 	goto SEND_REPLY;
     }
-    freeGresCred(gres);
+    freeGresCred(&gresList);
 
     if (strlen(cred->sig) +1 != SLURM_IO_KEY_SIZE) {
 	mlog("%s: invalid I/O key size '%zu'\n", __func__,

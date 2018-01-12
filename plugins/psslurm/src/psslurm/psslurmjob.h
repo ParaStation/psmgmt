@@ -38,7 +38,7 @@ typedef struct {
     PStask_ID_t mother;
     char *partition;
     JobCred_t *cred;	    /* job/step creditials */
-    Gres_Cred_t *gres;	    /* general resource informations */
+    list_t gresList;	    /* general resource informations */
     char **argv;
     uint32_t argc;
     env_t env;

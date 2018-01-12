@@ -42,13 +42,14 @@ Job_t *addJob(uint32_t jobid)
     deleteJob(jobid);
 
     job->jobid = jobid;
+    INIT_LIST_HEAD(&job->gresList);
     job->state = JOB_INIT;
     job->start_time = time(0);
     INIT_LIST_HEAD(&job->tasks);
     envInit(&job->env);
     envInit(&job->spankenv);
 
-    list_add_tail(&(job->next), &JobList);
+    list_add_tail(&job->next, &JobList);
 
     return job;
 }
@@ -112,7 +113,7 @@ int deleteJob(uint32_t jobid)
 
     /* cleanup all corresponding allocations and steps */
     deleteAlloc(job->jobid);
-    freeGresCred(job->gres);
+    freeGresCred(&job->gresList);
 
     /* cleanup local job */
     if (!job->mother) {
