@@ -437,7 +437,7 @@ static int handleSlurmctldReply(Slurm_Msg_t *sMsg)
     char **ptr;
     uint32_t rc;
 
-    if (!extractSlurmAuth(&sMsg->ptr, &sMsg->head)) return 0;
+    if (!extractSlurmAuth(sMsg)) return 0;
 
     ptr = &sMsg->ptr;
     getUint32(ptr, &rc);
@@ -871,7 +871,7 @@ static int forwardInputMsg(Step_t *step, uint16_t rank, char *buf, int bufLen)
 {
     char *ptr = buf;
     size_t c = bufLen;
-    PS_Tasks_t *task = findTaskByRank(&step->tasks.list, rank);
+    PS_Tasks_t *task = findTaskByRank(&step->tasks, rank);
     PSLog_Msg_t msg = (PSLog_Msg_t) {
 	.header = (DDMsg_t) {
 	    .type = PSP_CC_MSG,

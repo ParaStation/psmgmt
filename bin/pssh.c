@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2006-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2006-2017 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -10,17 +10,7 @@
 /**
  * @file Simple wrapper to allow non ParaStation aware programs to be
  * distributed in a cluster.
- *
- * $Id$
- *
- * @author
- * Norbert Eicker <eicker@par-tec.com>
- * */
-#ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__((used)) =
-    "$Id$";
-#endif /* DOXYGEN_SHOULD_SKIP_THIS */
-
+ */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -276,7 +266,7 @@ int main(int argc, const char *argv[])
 
 	if (nodeID < 0) exit(EXIT_FAILURE);
     } else {
-	if (node < 0 || node >= PSC_getNrOfNodes()) {
+	if (!PSC_validNode(node)) {
 	    fprintf(stderr, "Node %d out of range\n", node);
 	    exit(1);
 	}
@@ -312,7 +302,7 @@ int main(int argc, const char *argv[])
 	exec_argc = 3;
     }
 
-    PSE_spawnAdmin(nodeID, 0, exec_argc, exec_argv, 1);
+    PSE_spawnAdmin(nodeID, 0, exec_argc, exec_argv, true);
 
     /* Never be here ! */
     exit(1);

@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2017 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -12,19 +12,14 @@
  * @file
  * test_config: ParaStation configuration validator
  */
-#ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__((used)) =
-    "$Id$";
-#endif /* DOXYGEN_SHOULD_SKIP_THIS */
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <popt.h>
 
-#include "daemon/psidtask.h"
-#include "daemon/psidclient.h"
-#include "daemon/psidcomm.h"
-#include "daemon/psidutil.h"
+#include "psidtask.h"
+#include "psidclient.h"
+#include "psidcomm.h"
+#include "psidutil.h"
 
 #include "logging.h"
 #include "config_parsing.h"

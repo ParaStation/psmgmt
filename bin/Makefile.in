@@ -36,7 +36,6 @@
 # Author:	Thomas Moschny <moschny@par-tec.com>
 #
 
-
 VPATH = @srcdir@
 am__is_gnu_make = { \
   if test -z '$(MAKELEVEL)'; then \
@@ -112,11 +111,10 @@ POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
 target_triplet = @target@
-bin_PROGRAMS = psiadmin$(EXEEXT) psid$(EXEEXT) psilogger$(EXEEXT) \
-	mlisten$(EXEEXT) psmstart$(EXEEXT) mpirun_chp4$(EXEEXT) \
+bin_PROGRAMS = mlisten$(EXEEXT) psmstart$(EXEEXT) mpirun_chp4$(EXEEXT) \
 	psispawn$(EXEEXT) mpirun_chgm$(EXEEXT) gmspawner$(EXEEXT) \
-	mpirun_openib$(EXEEXT) test_pse$(EXEEXT) test_config$(EXEEXT) \
-	pssh$(EXEEXT) psaccounter$(EXEEXT) mpiexec$(EXEEXT)
+	mpirun_openib$(EXEEXT) test_pse$(EXEEXT) pssh$(EXEEXT) \
+	psaccounter$(EXEEXT)
 noinst_PROGRAMS = testacct$(EXEEXT)
 subdir = bin
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
@@ -126,12 +124,11 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/ax_check_compile_flag.m4 \
 	$(top_srcdir)/m4/lt~obsolete.m4 $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
-DIST_COMMON = $(srcdir)/Makefile.am $(include_HEADERS) \
-	$(noinst_HEADERS) $(am__DIST_COMMON)
+DIST_COMMON = $(srcdir)/Makefile.am $(am__DIST_COMMON)
 mkinstalldirs = $(install_sh) -d
 CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
-am__installdirs = "$(DESTDIR)$(bindir)" "$(DESTDIR)$(includedir)"
+am__installdirs = "$(DESTDIR)$(bindir)"
 PROGRAMS = $(bin_PROGRAMS) $(noinst_PROGRAMS)
 gmspawner_SOURCES = gmspawner.c
 gmspawner_OBJECTS = gmspawner-gmspawner.$(OBJEXT)
@@ -147,11 +144,6 @@ gmspawner_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 mlisten_SOURCES = mlisten.c
 mlisten_OBJECTS = mlisten.$(OBJEXT)
 mlisten_DEPENDENCIES = $(am__DEPENDENCIES_1)
-am__dirstamp = $(am__leading_dot)dirstamp
-am_mpiexec_OBJECTS = startup/mpiexec-mpiexec.$(OBJEXT) \
-	startup/mpiexec-cloptions.$(OBJEXT)
-mpiexec_OBJECTS = $(am_mpiexec_OBJECTS)
-mpiexec_DEPENDENCIES = $(libpse) $(libpskvs) $(am__DEPENDENCIES_1)
 mpirun_chgm_SOURCES = mpirun_chgm.c
 mpirun_chgm_OBJECTS = mpirun_chgm.$(OBJEXT)
 mpirun_chgm_DEPENDENCIES = $(libpse) $(am__DEPENDENCIES_1)
@@ -161,39 +153,9 @@ mpirun_chp4_DEPENDENCIES = $(libpse) $(am__DEPENDENCIES_1)
 mpirun_openib_SOURCES = mpirun_openib.c
 mpirun_openib_OBJECTS = mpirun_openib.$(OBJEXT)
 mpirun_openib_DEPENDENCIES = $(libpse) $(am__DEPENDENCIES_1)
-am_psaccounter_OBJECTS = accounter/psaccounter-psaccounter.$(OBJEXT)
-psaccounter_OBJECTS = $(am_psaccounter_OBJECTS)
+psaccounter_SOURCES = psaccounter.c
+psaccounter_OBJECTS = psaccounter-psaccounter.$(OBJEXT)
 psaccounter_DEPENDENCIES = $(libpse) $(am__DEPENDENCIES_1)
-am_psiadmin_OBJECTS = admin/psiadmin.$(OBJEXT) \
-	admin/commands.$(OBJEXT) admin/adminparser.$(OBJEXT)
-psiadmin_OBJECTS = $(am_psiadmin_OBJECTS)
-psiadmin_DEPENDENCIES = $(libputil) $(libpse) $(am__DEPENDENCIES_1)
-am_psid_OBJECTS = daemon/psidaccount.$(OBJEXT) \
-	daemon/psidamd.$(OBJEXT) daemon/psid.$(OBJEXT) \
-	daemon/psidclient.$(OBJEXT) daemon/psidcomm.$(OBJEXT) \
-	daemon/psidenv.$(OBJEXT) daemon/psidforwarder.$(OBJEXT) \
-	daemon/psidhook.$(OBJEXT) daemon/psidhw.$(OBJEXT) \
-	daemon/psidinfo.$(OBJEXT) daemon/psidmsgbuf.$(OBJEXT) \
-	daemon/psidnodes.$(OBJEXT) daemon/psidoption.$(OBJEXT) \
-	daemon/psidpartition.$(OBJEXT) daemon/psidplugin.$(OBJEXT) \
-	daemon/psidppc.$(OBJEXT) daemon/psidrdp.$(OBJEXT) \
-	daemon/psidscripts.$(OBJEXT) daemon/psidsignal.$(OBJEXT) \
-	daemon/psidspawn.$(OBJEXT) daemon/psidstate.$(OBJEXT) \
-	daemon/psidstatus.$(OBJEXT) daemon/psidtask.$(OBJEXT) \
-	daemon/psidutil.$(OBJEXT) daemon/psidintel.$(OBJEXT) \
-	daemon/psidflowcontrol.$(OBJEXT)
-psid_OBJECTS = $(am_psid_OBJECTS)
-psid_DEPENDENCIES = $(libputil) $(libpscommon) $(libpslog) \
-	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
-	$(am__DEPENDENCIES_1)
-psid_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
-	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
-	$(psid_LDFLAGS) $(LDFLAGS) -o $@
-am_psilogger_OBJECTS = logger/psilogger.$(OBJEXT) \
-	logger/psiloggermerge.$(OBJEXT) \
-	logger/psiloggerclient.$(OBJEXT)
-psilogger_OBJECTS = $(am_psilogger_OBJECTS)
-psilogger_DEPENDENCIES = $(libputil) $(libpscommon) $(libpslog)
 psispawn_SOURCES = psispawn.c
 psispawn_OBJECTS = psispawn.$(OBJEXT)
 psispawn_DEPENDENCIES = $(libpsi)
@@ -203,18 +165,12 @@ psmstart_DEPENDENCIES = $(libpse) $(am__DEPENDENCIES_1)
 pssh_SOURCES = pssh.c
 pssh_OBJECTS = pssh.$(OBJEXT)
 pssh_DEPENDENCIES = $(libpse) $(am__DEPENDENCIES_1)
-am_test_config_OBJECTS = test_config.$(OBJEXT) \
-	daemon/psidnodes.$(OBJEXT) daemon/psidscripts.$(OBJEXT) \
-	daemon/psidutil.$(OBJEXT)
-test_config_OBJECTS = $(am_test_config_OBJECTS)
-test_config_DEPENDENCIES = $(libputil) $(libpse) $(am__DEPENDENCIES_1) \
-	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1)
 test_pse_SOURCES = test_pse.c
 test_pse_OBJECTS = test_pse.$(OBJEXT)
 test_pse_DEPENDENCIES = $(libpse) $(am__DEPENDENCIES_1)
 testacct_SOURCES = testacct.c
 testacct_OBJECTS = testacct.$(OBJEXT)
-testacct_DEPENDENCIES = $(libpse) $(am__DEPENDENCIES_1)
+testacct_DEPENDENCIES = $(libpsi) $(am__DEPENDENCIES_1)
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
 am__v_P_0 = false
@@ -249,49 +205,33 @@ AM_V_CCLD = $(am__v_CCLD_@AM_V@)
 am__v_CCLD_ = $(am__v_CCLD_@AM_DEFAULT_V@)
 am__v_CCLD_0 = @echo "  CCLD    " $@;
 am__v_CCLD_1 = 
-SOURCES = gmspawner.c mlisten.c $(mpiexec_SOURCES) mpirun_chgm.c \
-	mpirun_chp4.c mpirun_openib.c $(psaccounter_SOURCES) \
-	$(psiadmin_SOURCES) $(psid_SOURCES) $(psilogger_SOURCES) \
-	psispawn.c psmstart.c pssh.c $(test_config_SOURCES) test_pse.c \
-	testacct.c
-DIST_SOURCES = gmspawner.c mlisten.c $(mpiexec_SOURCES) mpirun_chgm.c \
-	mpirun_chp4.c mpirun_openib.c $(psaccounter_SOURCES) \
-	$(psiadmin_SOURCES) $(psid_SOURCES) $(psilogger_SOURCES) \
-	psispawn.c psmstart.c pssh.c $(test_config_SOURCES) test_pse.c \
-	testacct.c
+SOURCES = gmspawner.c mlisten.c mpirun_chgm.c mpirun_chp4.c \
+	mpirun_openib.c psaccounter.c psispawn.c psmstart.c pssh.c \
+	test_pse.c testacct.c
+DIST_SOURCES = gmspawner.c mlisten.c mpirun_chgm.c mpirun_chp4.c \
+	mpirun_openib.c psaccounter.c psispawn.c psmstart.c pssh.c \
+	test_pse.c testacct.c
+RECURSIVE_TARGETS = all-recursive check-recursive cscopelist-recursive \
+	ctags-recursive dvi-recursive html-recursive info-recursive \
+	install-data-recursive install-dvi-recursive \
+	install-exec-recursive install-html-recursive \
+	install-info-recursive install-pdf-recursive \
+	install-ps-recursive install-recursive installcheck-recursive \
+	installdirs-recursive pdf-recursive ps-recursive \
+	tags-recursive uninstall-recursive
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
     *) (install-info --version) >/dev/null 2>&1;; \
   esac
-am__vpath_adj_setup = srcdirstrip=`echo "$(srcdir)" | sed 's|.|.|g'`;
-am__vpath_adj = case $$p in \
-    $(srcdir)/*) f=`echo "$$p" | sed "s|^$$srcdirstrip/||"`;; \
-    *) f=$$p;; \
-  esac;
-am__strip_dir = f=`echo $$p | sed -e 's|^.*/||'`;
-am__install_max = 40
-am__nobase_strip_setup = \
-  srcdirstrip=`echo "$(srcdir)" | sed 's/[].[^$$\\*|]/\\\\&/g'`
-am__nobase_strip = \
-  for p in $$list; do echo "$$p"; done | sed -e "s|$$srcdirstrip/||"
-am__nobase_list = $(am__nobase_strip_setup); \
-  for p in $$list; do echo "$$p $$p"; done | \
-  sed "s| $$srcdirstrip/| |;"' / .*\//!s/ .*/ ./; s,\( .*\)/[^/]*$$,\1,' | \
-  $(AWK) 'BEGIN { files["."] = "" } { files[$$2] = files[$$2] " " $$1; \
-    if (++n[$$2] == $(am__install_max)) \
-      { print $$2, files[$$2]; n[$$2] = 0; files[$$2] = "" } } \
-    END { for (dir in files) print dir, files[dir] }'
-am__base_list = \
-  sed '$$!N;$$!N;$$!N;$$!N;$$!N;$$!N;$$!N;s/\n/ /g' | \
-  sed '$$!N;$$!N;$$!N;$$!N;s/\n/ /g'
-am__uninstall_files_from_dir = { \
-  test -z "$$files" \
-    || { test ! -d "$$dir" && test ! -f "$$dir" && test ! -r "$$dir"; } \
-    || { echo " ( cd '$$dir' && rm -f" $$files ")"; \
-         $(am__cd) "$$dir" && rm -f $$files; }; \
-  }
-HEADERS = $(include_HEADERS) $(noinst_HEADERS)
+RECURSIVE_CLEAN_TARGETS = mostlyclean-recursive clean-recursive	\
+  distclean-recursive maintainer-clean-recursive
+am__recursive_targets = \
+  $(RECURSIVE_TARGETS) \
+  $(RECURSIVE_CLEAN_TARGETS) \
+  $(am__extra_recursive_targets)
+AM_RECURSIVE_TARGETS = $(am__recursive_targets:-recursive=) TAGS CTAGS \
+	distdir
 am__tagged_files = $(HEADERS) $(SOURCES) $(TAGS_FILES) $(LISP)
 # Read a list of newline-separated strings from the standard input,
 # and print each of them once, without duplicates.  Input order is
@@ -311,9 +251,35 @@ am__define_uniq_tagged_files = \
   done | $(am__uniquify_input)`
 ETAGS = etags
 CTAGS = ctags
+DIST_SUBDIRS = $(SUBDIRS)
 am__DIST_COMMON = $(srcdir)/Makefile.in $(top_srcdir)/common.am \
 	$(top_srcdir)/scripts/depcomp
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
+am__relativize = \
+  dir0=`pwd`; \
+  sed_first='s,^\([^/]*\)/.*$$,\1,'; \
+  sed_rest='s,^[^/]*/*,,'; \
+  sed_last='s,^.*/\([^/]*\)$$,\1,'; \
+  sed_butlast='s,/*[^/]*$$,,'; \
+  while test -n "$$dir1"; do \
+    first=`echo "$$dir1" | sed -e "$$sed_first"`; \
+    if test "$$first" != "."; then \
+      if test "$$first" = ".."; then \
+        dir2=`echo "$$dir0" | sed -e "$$sed_last"`/"$$dir2"; \
+        dir0=`echo "$$dir0" | sed -e "$$sed_butlast"`; \
+      else \
+        first2=`echo "$$dir2" | sed -e "$$sed_first"`; \
+        if test "$$first2" = "$$first"; then \
+          dir2=`echo "$$dir2" | sed -e "$$sed_rest"`; \
+        else \
+          dir2="../$$dir2"; \
+        fi; \
+        dir0="$$dir0"/"$$first"; \
+      fi; \
+    fi; \
+    dir1=`echo "$$dir1" | sed -e "$$sed_rest"`; \
+  done; \
+  reldir="$$dir2"
 ACLOCAL = @ACLOCAL@
 AMTAR = @AMTAR@
 AM_CFLAGS = @AM_CFLAGS@
@@ -487,52 +453,11 @@ scriptsdir = $(prefix)/scripts
 @HAVE_SYSTEMD_TRUE@default_cgroup_root = /sys/fs/cgroup/
 @HAVE_SYSTEMD_FALSE@default_cgroup_name = psmgmtGrp
 @HAVE_SYSTEMD_TRUE@default_cgroup_name = system.slice/psid.service/descendants
+SUBDIRS = admin daemon logger startup
 PKG_VER := $(shell ${top_srcdir}/scripts/vcversion -r $(top_srcdir) --fmt version -n)
 PKG_REL := $(shell ${top_srcdir}/scripts/vcversion -r $(top_srcdir) --fmt release -n)
-noinst_HEADERS = admin/helpmsgs.c
-include_HEADERS = daemon/psidcomm.h daemon/psidhook.h			\
-	daemon/psidnodes.h daemon/psidplugin.h daemon/psidscripts.h	\
-	daemon/psidstatus.h daemon/psidtask.h daemon/psidutil.h
-
 libpse = $(top_builddir)/lib/pse/libpse.la
 libpsi = $(top_builddir)/lib/psi/libpsi.la
-libputil = $(top_builddir)/lib/putil/libputil.la
-libpscommon = $(top_builddir)/lib/pscommon/libpscommon.la
-libpslog = $(top_builddir)/lib/pslog/libpslog.la
-libpskvs = $(top_builddir)/lib/pskvs/libpskvs.la
-psiadmin_SOURCES = admin/psiadmin.c admin/psiadmin.h admin/commands.c	\
-	admin/commands.h admin/adminparser.c admin/adminparser.h
-
-psiadmin_LDADD = $(libputil) $(libpse) $(POPT_LIBS)
-psid_SOURCES = daemon/psidaccount.c daemon/psidaccount.h		\
-	daemon/psidamd.c daemon/psidamd.h daemon/psid.c			\
-	daemon/psidclient.c daemon/psidclient.h daemon/psidcomm.c	\
-	daemon/psidcomm.h daemon/psidenv.c daemon/psidenv.h		\
-	daemon/psidforwarder.c daemon/psidforwarder.h			\
-	daemon/psidhook.c daemon/psidhook.h daemon/psidhw.c		\
-	daemon/psidhw.h daemon/psidinfo.c daemon/psidinfo.h		\
-	daemon/psidmsgbuf.c daemon/psidmsgbuf.h daemon/psidnodes.c	\
-	daemon/psidnodes.h daemon/psidoption.c daemon/psidoption.h	\
-	daemon/psidpartition.c daemon/psidpartition.h			\
-	daemon/psidplugin.c daemon/psidplugin.h daemon/psidppc.c	\
-	daemon/psidppc.h daemon/psidrdp.c daemon/psidrdp.h		\
-	daemon/psidscripts.c daemon/psidscripts.h daemon/psidsignal.c	\
-	daemon/psidsignal.h daemon/psidspawn.c daemon/psidspawn.h	\
-	daemon/psidstate.c daemon/psidstate.h daemon/psidstatus.c	\
-	daemon/psidstatus.h daemon/psidtask.c daemon/psidtask.h		\
-	daemon/psidtimer.h daemon/psidutil.c daemon/psidutil.h		\
-	daemon/psidintel.c daemon/psidintel.h				\
-	daemon/psidflowcontrol.c daemon/psidflowcontrol.h
-
-psid_LDFLAGS = $(AM_LDFLAGS) $(glib2_LIBS) -export-dynamic
-psid_LDADD = $(libputil) $(libpscommon) $(libpslog) -lutil	\
-	-ldl $(POPT_LIBS) $(NUMA_LIBS) $(psconfig_LIBS)
-
-psilogger_SOURCES = logger/psilogger.c logger/psilogger.h	\
-	logger/psiloggermerge.c logger/psiloggermerge.h		\
-	logger/psiloggerclient.c logger/psiloggerclient.h
-
-psilogger_LDADD = $(libputil) $(libpscommon) $(libpslog)
 mlisten_LDADD = $(POPT_LIBS)
 psmstart_LDADD = $(libpse) $(POPT_LIBS)
 mpirun_chp4_LDADD = $(libpse) $(POPT_LIBS)
@@ -543,22 +468,11 @@ gmspawner_LDFLAGS = $(AM_LDFLAGS) -pthread
 gmspawner_LDADD = $(libpsi) $(POPT_LIBS)
 mpirun_openib_LDADD = $(libpse) $(POPT_LIBS)
 test_pse_LDADD = $(libpse) $(POPT_LIBS)
-test_config_SOURCES = test_config.c daemon/psidnodes.c			\
-	daemon/psidnodes.h daemon/psidscripts.c daemon/psidscripts.h	\
-	daemon/psidutil.c daemon/psidutil.h
-
-test_config_LDADD = $(libputil) $(libpse) $(POPT_LIBS) $(glib2_LIBS)	\
-	$(psconfig_LIBS)
-
 pssh_LDADD = $(libpse) $(POPT_LIBS)
-psaccounter_SOURCES = accounter/psaccounter.c
 psaccounter_CPPFLAGS = $(AM_CPPFLAGS) -DLOCALSTATEDIR=\"$(localstatedir)\"
 psaccounter_LDADD = $(libpse) $(POPT_LIBS)
-mpiexec_SOURCES = startup/mpiexec.c startup/cloptions.c startup/cloptions.h
-mpiexec_CPPFLAGS = $(AM_CPPFLAGS) -DCONFIGDIR=\"$(configdir)\"
-mpiexec_LDADD = $(libpse) $(libpskvs) $(POPT_LIBS)
-testacct_LDADD = $(libpse) $(POPT_LIBS)
-all: all-am
+testacct_LDADD = $(libpsi) $(POPT_LIBS)
+all: all-recursive
 
 .SUFFIXES:
 .SUFFIXES: .c .lo .o .obj
@@ -658,20 +572,6 @@ gmspawner$(EXEEXT): $(gmspawner_OBJECTS) $(gmspawner_DEPENDENCIES) $(EXTRA_gmspa
 mlisten$(EXEEXT): $(mlisten_OBJECTS) $(mlisten_DEPENDENCIES) $(EXTRA_mlisten_DEPENDENCIES) 
 	@rm -f mlisten$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(mlisten_OBJECTS) $(mlisten_LDADD) $(LIBS)
-startup/$(am__dirstamp):
-	@$(MKDIR_P) startup
-	@: > startup/$(am__dirstamp)
-startup/$(DEPDIR)/$(am__dirstamp):
-	@$(MKDIR_P) startup/$(DEPDIR)
-	@: > startup/$(DEPDIR)/$(am__dirstamp)
-startup/mpiexec-mpiexec.$(OBJEXT): startup/$(am__dirstamp) \
-	startup/$(DEPDIR)/$(am__dirstamp)
-startup/mpiexec-cloptions.$(OBJEXT): startup/$(am__dirstamp) \
-	startup/$(DEPDIR)/$(am__dirstamp)
-
-mpiexec$(EXEEXT): $(mpiexec_OBJECTS) $(mpiexec_DEPENDENCIES) $(EXTRA_mpiexec_DEPENDENCIES) 
-	@rm -f mpiexec$(EXEEXT)
-	$(AM_V_CCLD)$(LINK) $(mpiexec_OBJECTS) $(mpiexec_LDADD) $(LIBS)
 
 mpirun_chgm$(EXEEXT): $(mpirun_chgm_OBJECTS) $(mpirun_chgm_DEPENDENCIES) $(EXTRA_mpirun_chgm_DEPENDENCIES) 
 	@rm -f mpirun_chgm$(EXEEXT)
@@ -684,112 +584,10 @@ mpirun_chp4$(EXEEXT): $(mpirun_chp4_OBJECTS) $(mpirun_chp4_DEPENDENCIES) $(EXTRA
 mpirun_openib$(EXEEXT): $(mpirun_openib_OBJECTS) $(mpirun_openib_DEPENDENCIES) $(EXTRA_mpirun_openib_DEPENDENCIES) 
 	@rm -f mpirun_openib$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(mpirun_openib_OBJECTS) $(mpirun_openib_LDADD) $(LIBS)
-accounter/$(am__dirstamp):
-	@$(MKDIR_P) accounter
-	@: > accounter/$(am__dirstamp)
-accounter/$(DEPDIR)/$(am__dirstamp):
-	@$(MKDIR_P) accounter/$(DEPDIR)
-	@: > accounter/$(DEPDIR)/$(am__dirstamp)
-accounter/psaccounter-psaccounter.$(OBJEXT):  \
-	accounter/$(am__dirstamp) accounter/$(DEPDIR)/$(am__dirstamp)
 
 psaccounter$(EXEEXT): $(psaccounter_OBJECTS) $(psaccounter_DEPENDENCIES) $(EXTRA_psaccounter_DEPENDENCIES) 
 	@rm -f psaccounter$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(psaccounter_OBJECTS) $(psaccounter_LDADD) $(LIBS)
-admin/$(am__dirstamp):
-	@$(MKDIR_P) admin
-	@: > admin/$(am__dirstamp)
-admin/$(DEPDIR)/$(am__dirstamp):
-	@$(MKDIR_P) admin/$(DEPDIR)
-	@: > admin/$(DEPDIR)/$(am__dirstamp)
-admin/psiadmin.$(OBJEXT): admin/$(am__dirstamp) \
-	admin/$(DEPDIR)/$(am__dirstamp)
-admin/commands.$(OBJEXT): admin/$(am__dirstamp) \
-	admin/$(DEPDIR)/$(am__dirstamp)
-admin/adminparser.$(OBJEXT): admin/$(am__dirstamp) \
-	admin/$(DEPDIR)/$(am__dirstamp)
-
-psiadmin$(EXEEXT): $(psiadmin_OBJECTS) $(psiadmin_DEPENDENCIES) $(EXTRA_psiadmin_DEPENDENCIES) 
-	@rm -f psiadmin$(EXEEXT)
-	$(AM_V_CCLD)$(LINK) $(psiadmin_OBJECTS) $(psiadmin_LDADD) $(LIBS)
-daemon/$(am__dirstamp):
-	@$(MKDIR_P) daemon
-	@: > daemon/$(am__dirstamp)
-daemon/$(DEPDIR)/$(am__dirstamp):
-	@$(MKDIR_P) daemon/$(DEPDIR)
-	@: > daemon/$(DEPDIR)/$(am__dirstamp)
-daemon/psidaccount.$(OBJEXT): daemon/$(am__dirstamp) \
-	daemon/$(DEPDIR)/$(am__dirstamp)
-daemon/psidamd.$(OBJEXT): daemon/$(am__dirstamp) \
-	daemon/$(DEPDIR)/$(am__dirstamp)
-daemon/psid.$(OBJEXT): daemon/$(am__dirstamp) \
-	daemon/$(DEPDIR)/$(am__dirstamp)
-daemon/psidclient.$(OBJEXT): daemon/$(am__dirstamp) \
-	daemon/$(DEPDIR)/$(am__dirstamp)
-daemon/psidcomm.$(OBJEXT): daemon/$(am__dirstamp) \
-	daemon/$(DEPDIR)/$(am__dirstamp)
-daemon/psidenv.$(OBJEXT): daemon/$(am__dirstamp) \
-	daemon/$(DEPDIR)/$(am__dirstamp)
-daemon/psidforwarder.$(OBJEXT): daemon/$(am__dirstamp) \
-	daemon/$(DEPDIR)/$(am__dirstamp)
-daemon/psidhook.$(OBJEXT): daemon/$(am__dirstamp) \
-	daemon/$(DEPDIR)/$(am__dirstamp)
-daemon/psidhw.$(OBJEXT): daemon/$(am__dirstamp) \
-	daemon/$(DEPDIR)/$(am__dirstamp)
-daemon/psidinfo.$(OBJEXT): daemon/$(am__dirstamp) \
-	daemon/$(DEPDIR)/$(am__dirstamp)
-daemon/psidmsgbuf.$(OBJEXT): daemon/$(am__dirstamp) \
-	daemon/$(DEPDIR)/$(am__dirstamp)
-daemon/psidnodes.$(OBJEXT): daemon/$(am__dirstamp) \
-	daemon/$(DEPDIR)/$(am__dirstamp)
-daemon/psidoption.$(OBJEXT): daemon/$(am__dirstamp) \
-	daemon/$(DEPDIR)/$(am__dirstamp)
-daemon/psidpartition.$(OBJEXT): daemon/$(am__dirstamp) \
-	daemon/$(DEPDIR)/$(am__dirstamp)
-daemon/psidplugin.$(OBJEXT): daemon/$(am__dirstamp) \
-	daemon/$(DEPDIR)/$(am__dirstamp)
-daemon/psidppc.$(OBJEXT): daemon/$(am__dirstamp) \
-	daemon/$(DEPDIR)/$(am__dirstamp)
-daemon/psidrdp.$(OBJEXT): daemon/$(am__dirstamp) \
-	daemon/$(DEPDIR)/$(am__dirstamp)
-daemon/psidscripts.$(OBJEXT): daemon/$(am__dirstamp) \
-	daemon/$(DEPDIR)/$(am__dirstamp)
-daemon/psidsignal.$(OBJEXT): daemon/$(am__dirstamp) \
-	daemon/$(DEPDIR)/$(am__dirstamp)
-daemon/psidspawn.$(OBJEXT): daemon/$(am__dirstamp) \
-	daemon/$(DEPDIR)/$(am__dirstamp)
-daemon/psidstate.$(OBJEXT): daemon/$(am__dirstamp) \
-	daemon/$(DEPDIR)/$(am__dirstamp)
-daemon/psidstatus.$(OBJEXT): daemon/$(am__dirstamp) \
-	daemon/$(DEPDIR)/$(am__dirstamp)
-daemon/psidtask.$(OBJEXT): daemon/$(am__dirstamp) \
-	daemon/$(DEPDIR)/$(am__dirstamp)
-daemon/psidutil.$(OBJEXT): daemon/$(am__dirstamp) \
-	daemon/$(DEPDIR)/$(am__dirstamp)
-daemon/psidintel.$(OBJEXT): daemon/$(am__dirstamp) \
-	daemon/$(DEPDIR)/$(am__dirstamp)
-daemon/psidflowcontrol.$(OBJEXT): daemon/$(am__dirstamp) \
-	daemon/$(DEPDIR)/$(am__dirstamp)
-
-psid$(EXEEXT): $(psid_OBJECTS) $(psid_DEPENDENCIES) $(EXTRA_psid_DEPENDENCIES) 
-	@rm -f psid$(EXEEXT)
-	$(AM_V_CCLD)$(psid_LINK) $(psid_OBJECTS) $(psid_LDADD) $(LIBS)
-logger/$(am__dirstamp):
-	@$(MKDIR_P) logger
-	@: > logger/$(am__dirstamp)
-logger/$(DEPDIR)/$(am__dirstamp):
-	@$(MKDIR_P) logger/$(DEPDIR)
-	@: > logger/$(DEPDIR)/$(am__dirstamp)
-logger/psilogger.$(OBJEXT): logger/$(am__dirstamp) \
-	logger/$(DEPDIR)/$(am__dirstamp)
-logger/psiloggermerge.$(OBJEXT): logger/$(am__dirstamp) \
-	logger/$(DEPDIR)/$(am__dirstamp)
-logger/psiloggerclient.$(OBJEXT): logger/$(am__dirstamp) \
-	logger/$(DEPDIR)/$(am__dirstamp)
-
-psilogger$(EXEEXT): $(psilogger_OBJECTS) $(psilogger_DEPENDENCIES) $(EXTRA_psilogger_DEPENDENCIES) 
-	@rm -f psilogger$(EXEEXT)
-	$(AM_V_CCLD)$(LINK) $(psilogger_OBJECTS) $(psilogger_LDADD) $(LIBS)
 
 psispawn$(EXEEXT): $(psispawn_OBJECTS) $(psispawn_DEPENDENCIES) $(EXTRA_psispawn_DEPENDENCIES) 
 	@rm -f psispawn$(EXEEXT)
@@ -803,10 +601,6 @@ pssh$(EXEEXT): $(pssh_OBJECTS) $(pssh_DEPENDENCIES) $(EXTRA_pssh_DEPENDENCIES)
 	@rm -f pssh$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(pssh_OBJECTS) $(pssh_LDADD) $(LIBS)
 
-test_config$(EXEEXT): $(test_config_OBJECTS) $(test_config_DEPENDENCIES) $(EXTRA_test_config_DEPENDENCIES) 
-	@rm -f test_config$(EXEEXT)
-	$(AM_V_CCLD)$(LINK) $(test_config_OBJECTS) $(test_config_LDADD) $(LIBS)
-
 test_pse$(EXEEXT): $(test_pse_OBJECTS) $(test_pse_DEPENDENCIES) $(EXTRA_test_pse_DEPENDENCIES) 
 	@rm -f test_pse$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(test_pse_OBJECTS) $(test_pse_LDADD) $(LIBS)
@@ -817,11 +611,6 @@ testacct$(EXEEXT): $(testacct_OBJECTS) $(testacct_DEPENDENCIES) $(EXTRA_testacct
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
-	-rm -f accounter/*.$(OBJEXT)
-	-rm -f admin/*.$(OBJEXT)
-	-rm -f daemon/*.$(OBJEXT)
-	-rm -f logger/*.$(OBJEXT)
-	-rm -f startup/*.$(OBJEXT)
 
 distclean-compile:
 	-rm -f *.tab.c
@@ -831,47 +620,12 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mpirun_chgm.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mpirun_chp4.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mpirun_openib.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psaccounter-psaccounter.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psispawn.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psmstart.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pssh.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_config.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_pse.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/testacct.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@accounter/$(DEPDIR)/psaccounter-psaccounter.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@admin/$(DEPDIR)/adminparser.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@admin/$(DEPDIR)/commands.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@admin/$(DEPDIR)/psiadmin.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@daemon/$(DEPDIR)/psid.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@daemon/$(DEPDIR)/psidaccount.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@daemon/$(DEPDIR)/psidamd.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@daemon/$(DEPDIR)/psidclient.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@daemon/$(DEPDIR)/psidcomm.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@daemon/$(DEPDIR)/psidenv.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@daemon/$(DEPDIR)/psidflowcontrol.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@daemon/$(DEPDIR)/psidforwarder.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@daemon/$(DEPDIR)/psidhook.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@daemon/$(DEPDIR)/psidhw.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@daemon/$(DEPDIR)/psidinfo.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@daemon/$(DEPDIR)/psidintel.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@daemon/$(DEPDIR)/psidmsgbuf.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@daemon/$(DEPDIR)/psidnodes.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@daemon/$(DEPDIR)/psidoption.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@daemon/$(DEPDIR)/psidpartition.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@daemon/$(DEPDIR)/psidplugin.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@daemon/$(DEPDIR)/psidppc.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@daemon/$(DEPDIR)/psidrdp.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@daemon/$(DEPDIR)/psidscripts.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@daemon/$(DEPDIR)/psidsignal.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@daemon/$(DEPDIR)/psidspawn.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@daemon/$(DEPDIR)/psidstate.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@daemon/$(DEPDIR)/psidstatus.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@daemon/$(DEPDIR)/psidtask.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@daemon/$(DEPDIR)/psidutil.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@logger/$(DEPDIR)/psilogger.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@logger/$(DEPDIR)/psiloggerclient.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@logger/$(DEPDIR)/psiloggermerge.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@startup/$(DEPDIR)/mpiexec-cloptions.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@startup/$(DEPDIR)/mpiexec-mpiexec.Po@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	$(AM_V_CC)depbase=`echo $@ | sed 's|[^/]*$$|$(DEPDIR)/&|;s|\.o$$||'`;\
@@ -911,83 +665,81 @@ gmspawner-gmspawner.obj: gmspawner.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(gmspawner_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o gmspawner-gmspawner.obj `if test -f 'gmspawner.c'; then $(CYGPATH_W) 'gmspawner.c'; else $(CYGPATH_W) '$(srcdir)/gmspawner.c'; fi`
 
-startup/mpiexec-mpiexec.o: startup/mpiexec.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(mpiexec_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT startup/mpiexec-mpiexec.o -MD -MP -MF startup/$(DEPDIR)/mpiexec-mpiexec.Tpo -c -o startup/mpiexec-mpiexec.o `test -f 'startup/mpiexec.c' || echo '$(srcdir)/'`startup/mpiexec.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) startup/$(DEPDIR)/mpiexec-mpiexec.Tpo startup/$(DEPDIR)/mpiexec-mpiexec.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='startup/mpiexec.c' object='startup/mpiexec-mpiexec.o' libtool=no @AMDEPBACKSLASH@
+psaccounter-psaccounter.o: psaccounter.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(psaccounter_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT psaccounter-psaccounter.o -MD -MP -MF $(DEPDIR)/psaccounter-psaccounter.Tpo -c -o psaccounter-psaccounter.o `test -f 'psaccounter.c' || echo '$(srcdir)/'`psaccounter.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/psaccounter-psaccounter.Tpo $(DEPDIR)/psaccounter-psaccounter.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='psaccounter.c' object='psaccounter-psaccounter.o' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(mpiexec_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o startup/mpiexec-mpiexec.o `test -f 'startup/mpiexec.c' || echo '$(srcdir)/'`startup/mpiexec.c
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(psaccounter_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o psaccounter-psaccounter.o `test -f 'psaccounter.c' || echo '$(srcdir)/'`psaccounter.c
 
-startup/mpiexec-mpiexec.obj: startup/mpiexec.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(mpiexec_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT startup/mpiexec-mpiexec.obj -MD -MP -MF startup/$(DEPDIR)/mpiexec-mpiexec.Tpo -c -o startup/mpiexec-mpiexec.obj `if test -f 'startup/mpiexec.c'; then $(CYGPATH_W) 'startup/mpiexec.c'; else $(CYGPATH_W) '$(srcdir)/startup/mpiexec.c'; fi`
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) startup/$(DEPDIR)/mpiexec-mpiexec.Tpo startup/$(DEPDIR)/mpiexec-mpiexec.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='startup/mpiexec.c' object='startup/mpiexec-mpiexec.obj' libtool=no @AMDEPBACKSLASH@
+psaccounter-psaccounter.obj: psaccounter.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(psaccounter_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT psaccounter-psaccounter.obj -MD -MP -MF $(DEPDIR)/psaccounter-psaccounter.Tpo -c -o psaccounter-psaccounter.obj `if test -f 'psaccounter.c'; then $(CYGPATH_W) 'psaccounter.c'; else $(CYGPATH_W) '$(srcdir)/psaccounter.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/psaccounter-psaccounter.Tpo $(DEPDIR)/psaccounter-psaccounter.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='psaccounter.c' object='psaccounter-psaccounter.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(mpiexec_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o startup/mpiexec-mpiexec.obj `if test -f 'startup/mpiexec.c'; then $(CYGPATH_W) 'startup/mpiexec.c'; else $(CYGPATH_W) '$(srcdir)/startup/mpiexec.c'; fi`
-
-startup/mpiexec-cloptions.o: startup/cloptions.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(mpiexec_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT startup/mpiexec-cloptions.o -MD -MP -MF startup/$(DEPDIR)/mpiexec-cloptions.Tpo -c -o startup/mpiexec-cloptions.o `test -f 'startup/cloptions.c' || echo '$(srcdir)/'`startup/cloptions.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) startup/$(DEPDIR)/mpiexec-cloptions.Tpo startup/$(DEPDIR)/mpiexec-cloptions.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='startup/cloptions.c' object='startup/mpiexec-cloptions.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(mpiexec_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o startup/mpiexec-cloptions.o `test -f 'startup/cloptions.c' || echo '$(srcdir)/'`startup/cloptions.c
-
-startup/mpiexec-cloptions.obj: startup/cloptions.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(mpiexec_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT startup/mpiexec-cloptions.obj -MD -MP -MF startup/$(DEPDIR)/mpiexec-cloptions.Tpo -c -o startup/mpiexec-cloptions.obj `if test -f 'startup/cloptions.c'; then $(CYGPATH_W) 'startup/cloptions.c'; else $(CYGPATH_W) '$(srcdir)/startup/cloptions.c'; fi`
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) startup/$(DEPDIR)/mpiexec-cloptions.Tpo startup/$(DEPDIR)/mpiexec-cloptions.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='startup/cloptions.c' object='startup/mpiexec-cloptions.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(mpiexec_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o startup/mpiexec-cloptions.obj `if test -f 'startup/cloptions.c'; then $(CYGPATH_W) 'startup/cloptions.c'; else $(CYGPATH_W) '$(srcdir)/startup/cloptions.c'; fi`
-
-accounter/psaccounter-psaccounter.o: accounter/psaccounter.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(psaccounter_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT accounter/psaccounter-psaccounter.o -MD -MP -MF accounter/$(DEPDIR)/psaccounter-psaccounter.Tpo -c -o accounter/psaccounter-psaccounter.o `test -f 'accounter/psaccounter.c' || echo '$(srcdir)/'`accounter/psaccounter.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) accounter/$(DEPDIR)/psaccounter-psaccounter.Tpo accounter/$(DEPDIR)/psaccounter-psaccounter.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='accounter/psaccounter.c' object='accounter/psaccounter-psaccounter.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(psaccounter_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o accounter/psaccounter-psaccounter.o `test -f 'accounter/psaccounter.c' || echo '$(srcdir)/'`accounter/psaccounter.c
-
-accounter/psaccounter-psaccounter.obj: accounter/psaccounter.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(psaccounter_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT accounter/psaccounter-psaccounter.obj -MD -MP -MF accounter/$(DEPDIR)/psaccounter-psaccounter.Tpo -c -o accounter/psaccounter-psaccounter.obj `if test -f 'accounter/psaccounter.c'; then $(CYGPATH_W) 'accounter/psaccounter.c'; else $(CYGPATH_W) '$(srcdir)/accounter/psaccounter.c'; fi`
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) accounter/$(DEPDIR)/psaccounter-psaccounter.Tpo accounter/$(DEPDIR)/psaccounter-psaccounter.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='accounter/psaccounter.c' object='accounter/psaccounter-psaccounter.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(psaccounter_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o accounter/psaccounter-psaccounter.obj `if test -f 'accounter/psaccounter.c'; then $(CYGPATH_W) 'accounter/psaccounter.c'; else $(CYGPATH_W) '$(srcdir)/accounter/psaccounter.c'; fi`
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(psaccounter_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o psaccounter-psaccounter.obj `if test -f 'psaccounter.c'; then $(CYGPATH_W) 'psaccounter.c'; else $(CYGPATH_W) '$(srcdir)/psaccounter.c'; fi`
 
 mostlyclean-libtool:
 	-rm -f *.lo
 
 clean-libtool:
 	-rm -rf .libs _libs
-install-includeHEADERS: $(include_HEADERS)
-	@$(NORMAL_INSTALL)
-	@list='$(include_HEADERS)'; test -n "$(includedir)" || list=; \
-	if test -n "$$list"; then \
-	  echo " $(MKDIR_P) '$(DESTDIR)$(includedir)'"; \
-	  $(MKDIR_P) "$(DESTDIR)$(includedir)" || exit 1; \
-	fi; \
-	for p in $$list; do \
-	  if test -f "$$p"; then d=; else d="$(srcdir)/"; fi; \
-	  echo "$$d$$p"; \
-	done | $(am__base_list) | \
-	while read files; do \
-	  echo " $(INSTALL_HEADER) $$files '$(DESTDIR)$(includedir)'"; \
-	  $(INSTALL_HEADER) $$files "$(DESTDIR)$(includedir)" || exit $$?; \
-	done
 
-uninstall-includeHEADERS:
-	@$(NORMAL_UNINSTALL)
-	@list='$(include_HEADERS)'; test -n "$(includedir)" || list=; \
-	files=`for p in $$list; do echo $$p; done | sed -e 's|^.*/||'`; \
-	dir='$(DESTDIR)$(includedir)'; $(am__uninstall_files_from_dir)
+# This directory's subdirectories are mostly independent; you can cd
+# into them and run 'make' without going through this Makefile.
+# To change the values of 'make' variables: instead of editing Makefiles,
+# (1) if the variable is set in 'config.status', edit 'config.status'
+#     (which will cause the Makefiles to be regenerated when you run 'make');
+# (2) otherwise, pass the desired values on the 'make' command line.
+$(am__recursive_targets):
+	@fail=; \
+	if $(am__make_keepgoing); then \
+	  failcom='fail=yes'; \
+	else \
+	  failcom='exit 1'; \
+	fi; \
+	dot_seen=no; \
+	target=`echo $@ | sed s/-recursive//`; \
+	case "$@" in \
+	  distclean-* | maintainer-clean-*) list='$(DIST_SUBDIRS)' ;; \
+	  *) list='$(SUBDIRS)' ;; \
+	esac; \
+	for subdir in $$list; do \
+	  echo "Making $$target in $$subdir"; \
+	  if test "$$subdir" = "."; then \
+	    dot_seen=yes; \
+	    local_target="$$target-am"; \
+	  else \
+	    local_target="$$target"; \
+	  fi; \
+	  ($(am__cd) $$subdir && $(MAKE) $(AM_MAKEFLAGS) $$local_target) \
+	  || eval $$failcom; \
+	done; \
+	if test "$$dot_seen" = "no"; then \
+	  $(MAKE) $(AM_MAKEFLAGS) "$$target-am" || exit 1; \
+	fi; test -z "$$fail"
 
 ID: $(am__tagged_files)
 	$(am__define_uniq_tagged_files); mkid -fID $$unique
-tags: tags-am
+tags: tags-recursive
 TAGS: tags
 
 tags-am: $(TAGS_DEPENDENCIES) $(am__tagged_files)
 	set x; \
 	here=`pwd`; \
+	if ($(ETAGS) --etags-include --version) >/dev/null 2>&1; then \
+	  include_option=--etags-include; \
+	  empty_fix=.; \
+	else \
+	  include_option=--include; \
+	  empty_fix=; \
+	fi; \
+	list='$(SUBDIRS)'; for subdir in $$list; do \
+	  if test "$$subdir" = .; then :; else \
+	    test ! -f $$subdir/TAGS || \
+	      set "$$@" "$$include_option=$$here/$$subdir/TAGS"; \
+	  fi; \
+	done; \
 	$(am__define_uniq_tagged_files); \
 	shift; \
 	if test -z "$(ETAGS_ARGS)$$*$$unique"; then :; else \
@@ -1000,7 +752,7 @@ tags-am: $(TAGS_DEPENDENCIES) $(am__tagged_files)
 	      $$unique; \
 	  fi; \
 	fi
-ctags: ctags-am
+ctags: ctags-recursive
 
 CTAGS: ctags
 ctags-am: $(TAGS_DEPENDENCIES) $(am__tagged_files)
@@ -1013,7 +765,7 @@ GTAGS:
 	here=`$(am__cd) $(top_builddir) && pwd` \
 	  && $(am__cd) $(top_srcdir) \
 	  && gtags -i $(GTAGS_ARGS) "$$here"
-cscopelist: cscopelist-am
+cscopelist: cscopelist-recursive
 
 cscopelist-am: $(am__tagged_files)
 	list='$(am__tagged_files)'; \
@@ -1062,22 +814,48 @@ distdir: $(DISTFILES)
 	    || exit 1; \
 	  fi; \
 	done
+	@list='$(DIST_SUBDIRS)'; for subdir in $$list; do \
+	  if test "$$subdir" = .; then :; else \
+	    $(am__make_dryrun) \
+	      || test -d "$(distdir)/$$subdir" \
+	      || $(MKDIR_P) "$(distdir)/$$subdir" \
+	      || exit 1; \
+	    dir1=$$subdir; dir2="$(distdir)/$$subdir"; \
+	    $(am__relativize); \
+	    new_distdir=$$reldir; \
+	    dir1=$$subdir; dir2="$(top_distdir)"; \
+	    $(am__relativize); \
+	    new_top_distdir=$$reldir; \
+	    echo " (cd $$subdir && $(MAKE) $(AM_MAKEFLAGS) top_distdir="$$new_top_distdir" distdir="$$new_distdir" \\"; \
+	    echo "     am__remove_distdir=: am__skip_length_check=: am__skip_mode_fix=: distdir)"; \
+	    ($(am__cd) $$subdir && \
+	      $(MAKE) $(AM_MAKEFLAGS) \
+	        top_distdir="$$new_top_distdir" \
+	        distdir="$$new_distdir" \
+		am__remove_distdir=: \
+		am__skip_length_check=: \
+		am__skip_mode_fix=: \
+	        distdir) \
+	      || exit 1; \
+	  fi; \
+	done
 check-am: all-am
-check: check-am
-all-am: Makefile $(PROGRAMS) $(HEADERS)
-installdirs:
-	for dir in "$(DESTDIR)$(bindir)" "$(DESTDIR)$(includedir)"; do \
+check: check-recursive
+all-am: Makefile $(PROGRAMS)
+installdirs: installdirs-recursive
+installdirs-am:
+	for dir in "$(DESTDIR)$(bindir)"; do \
 	  test -z "$$dir" || $(MKDIR_P) "$$dir"; \
 	done
-install: install-am
-install-exec: install-exec-am
-install-data: install-data-am
-uninstall: uninstall-am
+install: install-recursive
+install-exec: install-exec-recursive
+install-data: install-data-recursive
+uninstall: uninstall-recursive
 
 install-am: all-am
 	@$(MAKE) $(AM_MAKEFLAGS) install-exec-am install-data-am
 
-installcheck: installcheck-am
+installcheck: installcheck-recursive
 install-strip:
 	if test -z '$(STRIP)'; then \
 	  $(MAKE) $(AM_MAKEFLAGS) INSTALL_PROGRAM="$(INSTALL_STRIP_PROGRAM)" \
@@ -1095,109 +873,98 @@ clean-generic:
 distclean-generic:
 	-test -z "$(CONFIG_CLEAN_FILES)" || rm -f $(CONFIG_CLEAN_FILES)
 	-test . = "$(srcdir)" || test -z "$(CONFIG_CLEAN_VPATH_FILES)" || rm -f $(CONFIG_CLEAN_VPATH_FILES)
-	-rm -f accounter/$(DEPDIR)/$(am__dirstamp)
-	-rm -f accounter/$(am__dirstamp)
-	-rm -f admin/$(DEPDIR)/$(am__dirstamp)
-	-rm -f admin/$(am__dirstamp)
-	-rm -f daemon/$(DEPDIR)/$(am__dirstamp)
-	-rm -f daemon/$(am__dirstamp)
-	-rm -f logger/$(DEPDIR)/$(am__dirstamp)
-	-rm -f logger/$(am__dirstamp)
-	-rm -f startup/$(DEPDIR)/$(am__dirstamp)
-	-rm -f startup/$(am__dirstamp)
 
 maintainer-clean-generic:
 	@echo "This command is intended for maintainers to use"
 	@echo "it deletes files that may require special tools to rebuild."
-clean: clean-am
+clean: clean-recursive
 
 clean-am: clean-binPROGRAMS clean-generic clean-libtool \
 	clean-noinstPROGRAMS mostlyclean-am
 
-distclean: distclean-am
-	-rm -rf ./$(DEPDIR) accounter/$(DEPDIR) admin/$(DEPDIR) daemon/$(DEPDIR) logger/$(DEPDIR) startup/$(DEPDIR)
+distclean: distclean-recursive
+	-rm -rf ./$(DEPDIR)
 	-rm -f Makefile
 distclean-am: clean-am distclean-compile distclean-generic \
 	distclean-tags
 
-dvi: dvi-am
+dvi: dvi-recursive
 
 dvi-am:
 
-html: html-am
+html: html-recursive
 
 html-am:
 
-info: info-am
+info: info-recursive
 
 info-am:
 
-install-data-am: install-includeHEADERS
+install-data-am:
 
-install-dvi: install-dvi-am
+install-dvi: install-dvi-recursive
 
 install-dvi-am:
 
 install-exec-am: install-binPROGRAMS install-exec-local
 
-install-html: install-html-am
+install-html: install-html-recursive
 
 install-html-am:
 
-install-info: install-info-am
+install-info: install-info-recursive
 
 install-info-am:
 
 install-man:
 
-install-pdf: install-pdf-am
+install-pdf: install-pdf-recursive
 
 install-pdf-am:
 
-install-ps: install-ps-am
+install-ps: install-ps-recursive
 
 install-ps-am:
 
 installcheck-am:
 
-maintainer-clean: maintainer-clean-am
-	-rm -rf ./$(DEPDIR) accounter/$(DEPDIR) admin/$(DEPDIR) daemon/$(DEPDIR) logger/$(DEPDIR) startup/$(DEPDIR)
+maintainer-clean: maintainer-clean-recursive
+	-rm -rf ./$(DEPDIR)
 	-rm -f Makefile
 maintainer-clean-am: distclean-am maintainer-clean-generic
 
-mostlyclean: mostlyclean-am
+mostlyclean: mostlyclean-recursive
 
 mostlyclean-am: mostlyclean-compile mostlyclean-generic \
 	mostlyclean-libtool
 
-pdf: pdf-am
+pdf: pdf-recursive
 
 pdf-am:
 
-ps: ps-am
+ps: ps-recursive
 
 ps-am:
 
-uninstall-am: uninstall-binPROGRAMS uninstall-includeHEADERS
+uninstall-am: uninstall-binPROGRAMS
 
-.MAKE: install-am install-strip
+.MAKE: $(am__recursive_targets) install-am install-strip
 
-.PHONY: CTAGS GTAGS TAGS all all-am check check-am clean \
-	clean-binPROGRAMS clean-generic clean-libtool \
+.PHONY: $(am__recursive_targets) CTAGS GTAGS TAGS all all-am check \
+	check-am clean clean-binPROGRAMS clean-generic clean-libtool \
 	clean-noinstPROGRAMS cscopelist-am ctags ctags-am distclean \
 	distclean-compile distclean-generic distclean-libtool \
 	distclean-tags distdir dvi dvi-am html html-am info info-am \
 	install install-am install-binPROGRAMS install-data \
 	install-data-am install-dvi install-dvi-am install-exec \
 	install-exec-am install-exec-local install-html \
-	install-html-am install-includeHEADERS install-info \
-	install-info-am install-man install-pdf install-pdf-am \
-	install-ps install-ps-am install-strip installcheck \
-	installcheck-am installdirs maintainer-clean \
-	maintainer-clean-generic mostlyclean mostlyclean-compile \
-	mostlyclean-generic mostlyclean-libtool pdf pdf-am ps ps-am \
-	tags tags-am uninstall uninstall-am uninstall-binPROGRAMS \
-	uninstall-includeHEADERS
+	install-html-am install-info install-info-am install-man \
+	install-pdf install-pdf-am install-ps install-ps-am \
+	install-strip installcheck installcheck-am installdirs \
+	installdirs-am maintainer-clean maintainer-clean-generic \
+	mostlyclean mostlyclean-compile mostlyclean-generic \
+	mostlyclean-libtool pdf pdf-am ps ps-am tags tags-am uninstall \
+	uninstall-am uninstall-binPROGRAMS
 
 .PRECIOUS: Makefile
 

@@ -7,7 +7,6 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-
 #include <stdlib.h>
 #include <stdio.h>
 #include <sys/stat.h>
@@ -93,14 +92,14 @@ PSnodes_ID_t getNodeIDbyName(char *host)
 	    break;
 	}
 
-	if (nodeID >= 0 && nodeID < PSC_getNrOfNodes()) break;
+	if (PSC_validNode(nodeID)) break;
     }
     freeaddrinfo(result);
 
     if (nodeID < 0) {
 	pluginlog("%s: cannot get PS_ID for host %s\n", __func__, host);
 	return -1;
-    } else if (nodeID >= PSC_getNrOfNodes()) {
+    } else if (!PSC_validNode(nodeID)) {
 	pluginlog("%s: PS_ID %d for host %s out of range\n", __func__,
 		  nodeID, host);
 	return -1;

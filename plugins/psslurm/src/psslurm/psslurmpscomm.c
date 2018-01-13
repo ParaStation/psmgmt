@@ -30,6 +30,7 @@
 #include "psexechandles.h"
 #include "psaccounthandles.h"
 #include "psexectypes.h"
+#include "psdaemonprotocol.h"
 
 #include "slurmcommon.h"
 #include "psslurmforwarder.h"
@@ -49,63 +50,35 @@
 #include "psslurmpscomm.h"
 
 typedef enum {
-    PSP_QUEUE = 3,	    /* obsolete */
-    PSP_QUEUE_RES,	    /* obsolete */
-    PSP_START,		    /* obsolete */
-    PSP_START_RES,	    /* obsolete */
-    PSP_DELETE,		    /* obsolete */
-    PSP_DELETE_RES,	    /* obsolete */
-    PSP_PROLOGUE_START,	    /* obsolete */
-    PSP_PROLOGUE_RES,	    /* obsolete */
-    PSP_EPILOGUE_START,	    /* obsolete */
-    PSP_EPILOGUE_RES,	    /* obsolete */
-    PSP_JOB_INFO,	    /* obsolete */
-    PSP_JOB_INFO_RES,	    /* obsolete */
-    PSP_TASK_IDS,	    /* obsolete */
-    PSP_REMOTE_JOB,	    /* obsolete */
-    PSP_SIGNAL_TASKS,
+    PSP_SIGNAL_TASKS = 17,
     PSP_JOB_EXIT,
     PSP_JOB_LAUNCH,
     PSP_JOB_STATE_REQ,
     PSP_JOB_STATE_RES,
     PSP_FORWARD_SMSG,
     PSP_FORWARD_SMSG_RES,
-    PSP_LAUNCH_TASKS,	    /* obsolete */
-    PSP_ALLOC_LAUNCH,
+    PSP_ALLOC_LAUNCH = 25,
     PSP_ALLOC_STATE,
 } PSP_PSSLURM_t;
+
+/** Old handler for PSP_DD_CHILDBORN messages */
+static handlerFunc_t oldChildBornHandler = NULL;
+
+/** Old handler for PSP_CC_MSG messages */
+static handlerFunc_t oldCCMsgHandler = NULL;
+
+/** Old handler for PSP_CD_SPAWNFAILED  messages */
+static handlerFunc_t oldSpawnFailedHandler = NULL;
+
+/** Old handler for PSP_CD_SPAWNREQ messages */
+static handlerFunc_t oldSpawnReqHandler = NULL;
+
+/** Old handler for PSP_CD_UNKNOWN messages */
+static handlerFunc_t oldUnkownHandler = NULL;
 
 char *msg2Str(PSP_PSSLURM_t type)
 {
     switch(type) {
-	case PSP_QUEUE:
-	    return "QUEUE";
-	case PSP_QUEUE_RES:
-	    return "QUEUE_RES";
-	case PSP_START:
-	    return "START";
-	case PSP_START_RES:
-	    return "START_RES";
-	case PSP_DELETE:
-	    return "DELETE";
-	case PSP_DELETE_RES:
-	    return "DELETE_RES";
-	case PSP_PROLOGUE_START:
-	    return "PROLOGUE_START";
-	case PSP_PROLOGUE_RES:
-	    return "PROLOGUE_RES";
-	case PSP_EPILOGUE_START:
-	    return "EPILOGUE_START";
-	case PSP_EPILOGUE_RES:
-	    return "EPILOGUE_RES";
-	case PSP_JOB_INFO:
-	    return "JOB_INFO";
-	case PSP_JOB_INFO_RES:
-	    return "JOB_INFO_RES";
-	case PSP_TASK_IDS:
-	    return "PSP_TASK_IDS";
-	case PSP_REMOTE_JOB:
-	    return "PSP_REMOTE_JOB";
 	case PSP_SIGNAL_TASKS:
 	    return "PSP_SIGNAL_TASKS";
 	case PSP_JOB_EXIT:
@@ -120,8 +93,6 @@ char *msg2Str(PSP_PSSLURM_t type)
 	    return "PSP_FORWARD_SMSG";
 	case PSP_FORWARD_SMSG_RES:
 	    return "PSP_FORWARD_SMSG_RES";
-	case PSP_LAUNCH_TASKS:
-	    return "PSP_LAUNCH_TASKS";
 	case PSP_ALLOC_LAUNCH:
 	    return "PSP_ALLOC_LAUNCH";
 	case PSP_ALLOC_STATE:
@@ -174,7 +145,6 @@ static void rejectPartRequest(PStask_ID_t dest, PStask_t *task)
 	mwarn(errno, "%s: sendMsg(%s) failed", __func__, PSC_printTID(dest));
     }
 }
-
 
 int handleCreatePart(void *msg)
 {
@@ -295,7 +265,7 @@ void send_PS_JobLaunch(Job_t *job)
     addStringToMsg(job->username, &data);
 
     /* node list */
-    addStringToMsg(job->slurmNodes, &data);
+    addStringToMsg(job->slurmHosts, &data);
 
     /* send the messages */
     for (i=0; i<job->nrOfNodes; i++) {
@@ -325,7 +295,7 @@ void send_PS_AllocLaunch(Alloc_t *alloc)
 
     /* node list */
     addUint32ToMsg(alloc->nrOfNodes, &data);
-    addStringToMsg(alloc->slurmNodes, &data);
+    addStringToMsg(alloc->slurmHosts, &data);
 
     /* send the messages */
     for (i=0; i<alloc->nrOfNodes; i++) {
@@ -464,7 +434,7 @@ void requeueBatchJob(Job_t *job, PSnodes_ID_t dest)
 
     envClone(&job->env, &clone, envFilter);
 
-    envSet(&clone, "SLURM_JOBID", job->id);
+    envSet(&clone, "SLURM_JOBID", strJobID(job->jobid));
     psExecStartScript(job->jobid, "psslurm-requeue-job", &clone,
 			dest, callbackRequeueBatchJob);
 
@@ -725,8 +695,8 @@ static void handle_PS_JobLaunch(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     job->username = getStringM(&ptr);
 
     /* get nodelist */
-    job->slurmNodes = getStringM(&ptr);
-    getNodesFromSlurmHL(job->slurmNodes, &job->nrOfNodes, &job->nodes,
+    job->slurmHosts = getStringM(&ptr);
+    getNodesFromSlurmHL(job->slurmHosts, &job->nrOfNodes, &job->nodes,
 			&job->localNodeId);
 
     mlog("%s: jobid '%u' user '%s' nodes '%u' from '%s'\n", __func__, jobid,
@@ -736,7 +706,7 @@ static void handle_PS_JobLaunch(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 static void handleAllocLaunch(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 {
     uint32_t jobid, nrOfNodes;
-    char *ptr = data->buf, *username, *slurmNodes;
+    char *ptr = data->buf, *username, *slurmHosts;
     Alloc_t *alloc;
     uid_t uid;
     gid_t gid;
@@ -753,15 +723,15 @@ static void handleAllocLaunch(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 
     /* get nodelist */
     getUint32(&ptr, &nrOfNodes);
-    slurmNodes = getStringM(&ptr);
+    slurmHosts = getStringM(&ptr);
 
-    alloc = addAllocation(jobid, nrOfNodes, slurmNodes,
+    alloc = addAllocation(jobid, nrOfNodes, slurmHosts,
 			    NULL, NULL, uid, gid, username);
     alloc->state = JOB_PROLOGUE;
     alloc->motherSup = msg->header.sender;
 
     ufree(username);
-    ufree(slurmNodes);
+    ufree(slurmHosts);
 
     mlog("%s: jobid '%u' user '%s' nodes '%u' from '%s'\n", __func__, jobid,
 	    alloc->username, alloc->nrOfNodes, PSC_printTID(msg->header.sender));
@@ -971,7 +941,12 @@ static void handleFWslurmMsgRes(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     ufree(body.buf);
 }
 
-void handlePsslurmMsg(DDTypedBufferMsg_t *msg)
+/**
+* @brief Handle a PSP_CC_PLUG_PSSLURM message
+*
+* @param msg The message to handle
+*/
+static void handlePsslurmMsg(DDTypedBufferMsg_t *msg)
 {
     char sender[100], dest[100];
 
@@ -1009,70 +984,64 @@ void handlePsslurmMsg(DDTypedBufferMsg_t *msg)
 	case PSP_ALLOC_STATE:
 	    recvFragMsg(msg, handleAllocState);
 	    break;
-	/* obsolete, to be removed */
-	case PSP_PROLOGUE_START:
-	case PSP_EPILOGUE_START:
-	case PSP_QUEUE:
-	case PSP_JOB_INFO:
-	case PSP_DELETE:
-	case PSP_TASK_IDS:
-	case PSP_LAUNCH_TASKS:
-	    mlog("%s: got obsolete msg type '%i'\n", __func__, msg->type);
-	    break;
 	default:
 	    mlog("%s: received unknown msg type:%i [%s -> %s]\n", __func__,
 		msg->type, sender, dest);
     }
 }
 
+bool nodeDownJobs(Job_t *job, const void *info)
+{
+    uint32_t i;
+    const PSnodes_ID_t node = *(PSnodes_ID_t *) info;
+
+    for (i=0; i<job->nrOfNodes; i++) {
+	if (job->nodes[i] == node) {
+	    mlog("%s: node '%i' which is running job '%u' "
+		    "state '%u' is down\n", __func__, node,
+		    job->jobid, job->state);
+
+	    if (job->state != JOB_EPILOGUE &&
+		    job->state != JOB_COMPLETE &&
+		    job->state != JOB_EXIT) {
+
+		signalJob(job, SIGKILL, "node failure");
+	    }
+	}
+    }
+    return false;
+}
+
+bool nodeDownSteps(Step_t *step, const void *info)
+{
+    uint32_t i;
+    const PSnodes_ID_t node = *(PSnodes_ID_t *) info;
+
+    for (i=0; i<step->nrOfNodes; i++) {
+	if (step->nodes[i] == node) {
+	    mlog("%s: node '%i' which is running step '%u:%u' "
+		    "state '%u' is down\n", __func__, node,
+		    step->jobid, step->stepid, step->state);
+
+	    if ((!(findJobById(step->jobid))) &&
+		    step->state != JOB_EPILOGUE &&
+		    step->state != JOB_COMPLETE &&
+		    step->state != JOB_EXIT) {
+
+		signalStep(step, SIGKILL);
+	    }
+	}
+    }
+    return false;
+}
+
 int handleNodeDown(void *nodeID)
 {
-    PSnodes_ID_t node;
-    list_t *pos, *tmp;
-    Job_t *job;
-    Step_t *step;
-    uint32_t i;
+    PSnodes_ID_t node = *((PSnodes_ID_t *) nodeID);
 
-    node = *((PSnodes_ID_t *) nodeID);
+    traverseJobs(nodeDownJobs, &node);
 
-    list_for_each_safe(pos, tmp, &JobList.list) {
-	if (!(job = list_entry(pos, Job_t, list))) break;
-
-	for (i=0; i<job->nrOfNodes; i++) {
-	    if (job->nodes[i] == node) {
-		mlog("%s: node '%i' which is running job '%u' "
-			"state '%u' is down\n", __func__, node,
-			job->jobid, job->state);
-
-		if (job->state != JOB_EPILOGUE &&
-			job->state != JOB_COMPLETE &&
-			job->state != JOB_EXIT) {
-
-		    signalJob(job, SIGKILL, "node failure");
-		}
-	    }
-	}
-    }
-
-    list_for_each_safe(pos, tmp, &StepList.list) {
-	if (!(step = list_entry(pos, Step_t, list))) break;
-
-	for (i=0; i<step->nrOfNodes; i++) {
-	    if (step->nodes[i] == node) {
-		mlog("%s: node '%i' which is running step '%u:%u' "
-			"state '%u' is down\n", __func__, node,
-			step->jobid, step->stepid, step->state);
-
-		if ((!(findJobById(step->jobid))) &&
-			step->state != JOB_EPILOGUE &&
-			step->state != JOB_COMPLETE &&
-			step->state != JOB_EXIT) {
-
-		    signalStep(step, SIGKILL);
-		}
-	    }
-	}
-    }
+    traverseSteps(nodeDownSteps, &node);
 
     handleBrokenConnection(node);
 
@@ -1108,9 +1077,14 @@ static void saveForwardError(DDTypedBufferMsg_t *msg)
     saveFrwrdMsgRes(&sMsg, SLURM_COMMUNICATIONS_CONNECTION_ERROR);
 }
 
-void handleDroppedMsg(DDTypedBufferMsg_t *msg)
+/**
+* @brief Handle a dropped PSP_CC_PLUG_PSSLURM message
+*
+* @param msg The message to handle
+*/
+static void handleDroppedMsg(DDTypedBufferMsg_t *msg)
 {
-    char *ptr, sjobid[300];
+    char *ptr;
     const char *hname;
     PSnodes_ID_t nodeId;
     uint32_t jobid;
@@ -1126,12 +1100,6 @@ void handleDroppedMsg(DDTypedBufferMsg_t *msg)
     ptr = msg->buf;
 
     switch (msg->type) {
-	case PSP_PROLOGUE_RES:
-	case PSP_EPILOGUE_RES:
-	    getString(&ptr, sjobid, sizeof(sjobid));
-
-	    mlog("%s: can't send pelogue result to '%s'\n", __func__, sjobid);
-	    break;
 	case PSP_JOB_STATE_REQ:
 	    getUint32(&ptr, &jobid);
 	    mlog("%s: mother superior is dead, releasing job '%u'\n", __func__,
@@ -1158,6 +1126,7 @@ void handleDroppedMsg(DDTypedBufferMsg_t *msg)
 	case PSP_JOB_STATE_RES:
 	case PSP_SIGNAL_TASKS:
 	case PSP_ALLOC_LAUNCH:
+	case PSP_ALLOC_STATE:
 	    /* nothing we can do here */
 	    break;
 	default:
@@ -1275,17 +1244,15 @@ OLD_MSG_HANDLER:
 
 static void handleCC_INIT_Msg(PSLog_Msg_t *msg)
 {
-    Step_t *step;
-    PS_Tasks_t *task;
-
     /* msg->sender == rank of the sending process */
     if (msg->sender == -1) {
 	/* message from psilogger to psidforwarder */
 	if (PSC_getID(msg->header.dest) != PSC_getMyID()) return;
-	if ((step = findActiveStepByLogger(msg->header.sender))) {
-
-	    if ((task = findTaskByForwarder(&step->tasks.list,
-						    msg->header.dest))) {
+	Step_t *step = findActiveStepByLogger(msg->header.sender);
+	if (step) {
+	    PS_Tasks_t *task = findTaskByForwarder(&step->tasks,
+						   msg->header.dest);
+	    if (task) {
 		if (task->childRank < 0) return;
 		step->fwInitCount++;
 
@@ -1303,14 +1270,12 @@ static void handleCC_INIT_Msg(PSLog_Msg_t *msg)
 	}
     } else if (msg->sender >= 0) {
 	/* message from psidforwarder to psilogger */
-	if ((step = findActiveStepByLogger(msg->header.dest))) {
-
+	Step_t *step = findActiveStepByLogger(msg->header.dest);
+	if (step) {
 	    if (PSC_getMyID() == PSC_getID(msg->header.sender)) {
-
-		if ((task = findTaskByForwarder(&step->tasks.list,
-						    msg->header.sender))) {
-		    verboseCpuPinningOutput(step, task);
-		}
+		PS_Tasks_t *task = findTaskByForwarder(&step->tasks,
+						       msg->header.sender);
+		if (task) verboseCpuPinningOutput(step, task);
 	    }
 	}
     }
@@ -1382,7 +1347,8 @@ static void handleCC_Finalize_Msg(PSLog_Msg_t *msg)
     }
 
     /* save exit code */
-    if (!(task = findTaskByForwarder(&step->tasks.list, msg->header.sender))) {
+    task = findTaskByForwarder(&step->tasks, msg->header.sender);
+    if (!task) {
 	mlog("%s: task for forwarder '%s' not found\n", __func__,
 		PSC_printTID(msg->header.sender));
 	goto FORWARD;
@@ -1498,25 +1464,31 @@ static int getJobIDbyForwarderMsgHeader(DDMsg_t *header, PStask_t **fwPtr,
     return 1;
 }
 
-void handleSpawnFailed(DDErrorMsg_t *msg)
+/**
+* @brief Handle a PSP_CD_SPAWNFAILED message
+*
+* @param msg The message to handle
+*/
+static void handleSpawnFailed(DDErrorMsg_t *msg)
 {
     PStask_t *forwarder = NULL;
     uint32_t jobid, stepid;
-    PS_Tasks_t *task = NULL;
     Step_t *step = NULL;
 
     mwarn(msg->error, "%s: spawn failed: forwarder '%s' rank '%i' errno '%i'",
 	    __func__, PSC_printTID(msg->header.sender),
 	    msg->request, msg->error);
 
-    if (!(getJobIDbyForwarderMsgHeader(&(msg->header), &forwarder, &jobid,
-					&stepid))) {
+    if (!getJobIDbyForwarderMsgHeader(&msg->header, &forwarder, &jobid,
+				      &stepid)) {
 	goto FORWARD_SPAWN_FAILED_MSG;
     }
 
-    if ((step = findStepByStepId(jobid, stepid))) {
-	task = addTask(&step->tasks.list, msg->request, forwarder->tid,
-		forwarder, forwarder->childGroup, forwarder->rank);
+    step = findStepByStepId(jobid, stepid);
+    if (step) {
+	PS_Tasks_t *task = addTask(&step->tasks, msg->request, forwarder->tid,
+				   forwarder, forwarder->childGroup,
+				   forwarder->rank);
 
 	switch (msg->error) {
 	    case ENOENT:
@@ -1591,7 +1563,12 @@ void cleanupDelayedSpawns(uint32_t jobid, uint32_t stepid) {
     PSIDspawn_cleanupDelayedTasks(filter, &jsInfo);
 }
 
-void handleSpawnReq(DDTypedBufferMsg_t *msg)
+/**
+* @brief Handle a PSP_CD_SPAWNREQ message
+*
+* @param msg The message to handle
+*/
+static void handleSpawnReq(DDTypedBufferMsg_t *msg)
 {
     PStask_t *spawnee;
     uint32_t jobid, stepid;
@@ -1649,7 +1626,12 @@ FORWARD_SPAWN_REQ_MSG:
     if (oldSpawnReqHandler) oldSpawnReqHandler((DDBufferMsg_t *) msg);
 }
 
-void handleCCMsg(PSLog_Msg_t *msg)
+/**
+* @brief Handle a PSP_CC_MSG message
+*
+* @param msg The message to handle
+*/
+static void handleCCMsg(PSLog_Msg_t *msg)
 {
     mdbg(PSSLURM_LOG_IO, "%s: %s\n", __func__, PSLog_printMsgType(msg->type));
     switch (msg->type) {
@@ -1674,33 +1656,38 @@ void handleCCMsg(PSLog_Msg_t *msg)
     if (oldCCMsgHandler) oldCCMsgHandler((DDBufferMsg_t *) msg);
 }
 
-void handleChildBornMsg(DDErrorMsg_t *msg)
+/**
+* @brief Handle a PSP_DD_CHILDBORN message
+*
+* @param msg The message to handle
+*/
+static void handleChildBornMsg(DDErrorMsg_t *msg)
 {
     PStask_t *forwarder = NULL;
     uint32_t jobid, stepid;
-    Job_t *job;
-    Step_t *step;
     PS_Tasks_t *task = NULL;
 
-    if (!(getJobIDbyForwarderMsgHeader(&(msg->header), &forwarder, &jobid,
-					&stepid))) {
+    if (!getJobIDbyForwarderMsgHeader(&(msg->header), &forwarder, &jobid,
+				      &stepid)) {
 	goto FORWARD_CHILD_BORN;
     }
 
     if (stepid == SLURM_BATCH_SCRIPT) {
-	if (!(job = findJobById(jobid))) {
+	Job_t *job = findJobById(jobid);
+	if (!job) {
 	    mlog("%s: job '%u' not found\n", __func__, jobid);
 	    goto FORWARD_CHILD_BORN;
 	}
-	addTask(&job->tasks.list, msg->request, forwarder->tid,
-		    forwarder, forwarder->childGroup, forwarder->rank);
+	addTask(&job->tasks, msg->request, forwarder->tid, forwarder,
+		forwarder->childGroup, forwarder->rank);
     } else {
-	if (!(step = findStepByStepId(jobid, stepid))) {
+	Step_t *step = findStepByStepId(jobid, stepid);
+	if (!step) {
 	    mlog("%s: step '%u:%u' not found\n", __func__, jobid, stepid);
 	    goto FORWARD_CHILD_BORN;
 	}
-	task = addTask(&step->tasks.list, msg->request, forwarder->tid,
-			forwarder, forwarder->childGroup, forwarder->rank);
+	task = addTask(&step->tasks, msg->request, forwarder->tid, forwarder,
+		       forwarder->childGroup, forwarder->rank);
 
 	if (!step->loggerTID) step->loggerTID = forwarder->loggertid;
 	if (step->fwdata) sendFWtaskInfo(step->fwdata, task);
@@ -1708,6 +1695,111 @@ void handleChildBornMsg(DDErrorMsg_t *msg)
 
 FORWARD_CHILD_BORN:
     if (oldChildBornHandler) oldChildBornHandler((DDBufferMsg_t *) msg);
+}
+
+/**
+* @brief Handle a PSP_CD_UNKNOWN message
+*
+* @param msg The message to handle
+*/
+static void handleUnknownMsg(DDBufferMsg_t *msg)
+{
+    size_t used = 0;
+    PStask_ID_t dest;
+    int16_t type;
+
+    /* original dest */
+    PSP_getMsgBuf(msg, &used, __func__, "dest", &dest, sizeof(dest));
+
+    /* original type */
+    PSP_getMsgBuf(msg, &used, __func__, "type", &type, sizeof(type));
+
+    if (type == PSP_CC_PLUG_PSSLURM) {
+	/* psslurm message */
+	mlog("%s: delivery of psslurm message type %i to %s failed\n",
+		__func__, type, PSC_printTID(dest));
+
+	mlog("%s: please make sure the plugin 'psslurm' is loaded on"
+		" node %i\n", __func__, PSC_getID(msg->header.sender));
+	return;
+    }
+
+    if (oldUnkownHandler) oldUnkownHandler(msg);
+}
+
+void finalizePScomm(void)
+{
+    /* unregister psslurm msg */
+    PSID_clearMsg(PSP_CC_PLUG_PSSLURM);
+
+    /* unregister various messages */
+    if (oldChildBornHandler) {
+	PSID_registerMsg(PSP_DD_CHILDBORN, (handlerFunc_t) oldChildBornHandler);
+    } else {
+	PSID_clearMsg(PSP_DD_CHILDBORN);
+    }
+
+    /* unregister PSP_CC_MSG message handler */
+    if (oldCCMsgHandler) {
+	PSID_registerMsg(PSP_CC_MSG, (handlerFunc_t) oldCCMsgHandler);
+    } else {
+	PSID_clearMsg(PSP_CC_MSG);
+    }
+
+    /* unregister PSP_CD_SPAWNFAILED message handler */
+    if (oldSpawnFailedHandler) {
+	PSID_registerMsg(PSP_CD_SPAWNFAILED,
+			(handlerFunc_t) oldSpawnFailedHandler);
+    } else {
+	PSID_clearMsg(PSP_CD_SPAWNFAILED);
+    }
+
+    /* unregister PSP_CD_SPAWNREQ message handler */
+    if (oldSpawnReqHandler) {
+	PSID_registerMsg(PSP_CD_SPAWNREQ,
+			(handlerFunc_t) oldSpawnReqHandler);
+    } else {
+	PSID_clearMsg(PSP_CD_SPAWNREQ);
+    }
+
+    /* unregister PSP_CD_UNKNOWN message handler */
+    if (oldUnkownHandler) {
+	PSID_registerMsg(PSP_CD_UNKNOWN,
+			(handlerFunc_t) oldUnkownHandler);
+    } else {
+	PSID_clearMsg(PSP_CD_UNKNOWN);
+    }
+
+    /* unregister msg drop handler */
+    PSID_clearDropper(PSP_CC_PLUG_PSSLURM);
+}
+
+void initPScomm(void)
+{
+    /* register psslurm PSP_CC_PLUG_PSSLURM message */
+    PSID_registerMsg(PSP_CC_PLUG_PSSLURM, (handlerFunc_t) handlePsslurmMsg);
+
+    /* register PSP_DD_CHILDBORN message */
+    oldChildBornHandler = PSID_registerMsg(PSP_DD_CHILDBORN,
+					    (handlerFunc_t) handleChildBornMsg);
+
+    /* register PSP_CC_MSG message */
+    oldCCMsgHandler = PSID_registerMsg(PSP_CC_MSG, (handlerFunc_t) handleCCMsg);
+
+    /* register PSP_CD_SPAWNFAILED message */
+    oldSpawnFailedHandler = PSID_registerMsg(PSP_CD_SPAWNFAILED,
+					    (handlerFunc_t) handleSpawnFailed);
+
+    /* register PSP_CD_SPAWNREQ message */
+    oldSpawnReqHandler = PSID_registerMsg(PSP_CD_SPAWNREQ,
+					    (handlerFunc_t) handleSpawnReq);
+
+    /* register PSP_CD_UNKNOWN message */
+    oldUnkownHandler = PSID_registerMsg(PSP_CD_UNKNOWN,
+				        (handlerFunc_t) handleUnknownMsg);
+
+    /* register handler for dropped msgs */
+    PSID_registerDropper(PSP_CC_PLUG_PSSLURM, (handlerFunc_t) handleDroppedMsg);
 }
 
 /* vim: set ts=8 sw=4 tw=0 sts=4 noet:*/

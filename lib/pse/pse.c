@@ -287,7 +287,7 @@ void PSE_spawnTasks(int num, int node, int port, int argc, char *argv[])
 }
 
 int PSE_spawnAdmin(PSnodes_ID_t node, unsigned int rank,
-		   int argc, char *argv[], int strictArgv)
+		   int argc, char *argv[], bool strictArgv)
 {
     PStask_ID_t spawnedProcess = -1;
     int error;

@@ -39,17 +39,20 @@ psslurm_la_SOURCES = psslurm.c psslurm.h psslurmlog.c psslurmlog.h	\
 	psslurmconfig.h psslurmjob.c psslurmjob.h psslurmforwarder.c	\
 	psslurmforwarder.h psslurmcomm.c psslurmcomm.h psslurmauth.c	\
 	psslurmauth.h psslurmproto.c psslurmproto.h psslurmenv.c	\
-	psslurmenv.h psslurmjobinfo.c psslurmjobinfo.h			\
-	psslurmlimits.c psslurmlimits.h psslurmmultiprog.c		\
-	psslurmmultiprog.h psslurmgres.c psslurmgres.h psslurmpin.c	\
-	psslurmpin.h psslurmio.c psslurmio.h psslurmpelogue.h		\
-	psslurmpelogue.c psslurmkvs.h psslurmkvs.c psslurmspawn.c	\
-	psslurmspawn.h psslurmpack.h psslurmpack.c			\
-	psslurmtypes.h psslurminter.c psslurminter.h psslurmhandles.h   \
-	psslurmmsg.h psslurmmsg.c
+	psslurmenv.h psslurmlimits.c psslurmlimits.h			\
+	psslurmmultiprog.c psslurmmultiprog.h psslurmgres.c		\
+	psslurmgres.h psslurmpin.c psslurmpin.h psslurmio.c		\
+	psslurmio.h psslurmpelogue.h psslurmpelogue.c psslurmkvs.c	\
+	psslurmspawn.c psslurmspawn.h psslurmpack.h psslurmpack.c	\
+	psslurmtypes.h psslurminter.c psslurminter.h psslurmhandles.h	\
+	psslurmmsg.h psslurmmsg.c psslurmtasks.h psslurmtasks.c		\
+	psslurmjobcred.h psslurmstep.c psslurmstep.h psslurmbcast.c	\
+	psslurmbcast.h
 
-psslurm_la_CPPFLAGS = $(AM_CPPFLAGS) -DPLUGINDIR=\"$(plugindir)\" \
-	-DLOCALSTATEDIR=\"$(localstatedir)\" -DBINDIR=\"$(bindir)\"
+psslurm_la_CPPFLAGS = $(AM_CPPFLAGS) -DPLUGINDIR=\"$(plugindir)\"	\
+	-DLOCALSTATEDIR=\"$(localstatedir)\"				\
+	-DLIBEXECDIR=\"$(pkglibexecdir)\" -DBINDIR=\"$(bindir)\"
+
 
 psslurm_la_LIBADD = $(libpsi) $(libplugincommon) $(libslurmcommon) \
 		    $(libpscommon) $(NUMA_LIBS) -lm

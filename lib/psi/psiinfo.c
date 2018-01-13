@@ -58,6 +58,7 @@ static PSP_Info_t receiveInfo(void *buf, size_t *size, int verbose)
     DDTypedBufferMsg_t msg;
     PSP_Info_t ret;
 
+recv_retry:
     if (PSI_recvMsg((DDMsg_t *)&msg, sizeof(msg))<0) {
 	PSI_warn(-1, errno, "%s: PSI_recvMsg", __func__);
 	*size = 0;
@@ -156,6 +157,10 @@ static PSP_Info_t receiveInfo(void *buf, size_t *size, int verbose)
 	ret = PSP_INFO_UNKNOWN;
 	break;
     }
+    case PSP_CD_SENDSTOP:
+    case PSP_CD_SENDCONT:
+	goto recv_retry;
+	break;
     default:
 	PSI_log(-1, "%s: received unexpected msgtype '%s'\n",
 		__func__, PSP_printMsg(msg.header.type));
@@ -651,6 +656,7 @@ int PSI_infoOption(PSnodes_ID_t node, int num, PSP_Option_t option[],
 	return -1;
     }
 
+recv_retry:
     if (PSI_recvMsg((DDMsg_t *)&msg, sizeof(msg))<0) {
 	PSI_warn(-1, errno, "%s: PSI_recvMsg", __func__);
 	return -1;
@@ -670,6 +676,10 @@ int PSI_infoOption(PSnodes_ID_t node, int num, PSP_Option_t option[],
 	}
 
 	return msg.count;
+    case PSP_CD_SENDSTOP:
+    case PSP_CD_SENDCONT:
+	goto recv_retry;
+	break;
     case PSP_CD_ERROR:
 	PSI_warn(verbose ? -1 : PSI_LOG_INFO, ((DDErrorMsg_t*)&msg)->error,
 		 "%s: error", __func__);
@@ -708,6 +718,7 @@ int PSI_infoOptionListNext(DDOption_t opts[], int num, int verbose)
     DDOptionMsg_t msg;
     int i;
 
+recv_retry:
     if (PSI_recvMsg((DDMsg_t *)&msg, sizeof(msg))<0) {
 	PSI_warn(-1, errno, "%s: PSI_recvMsg", __func__);
 	return -1;
@@ -727,6 +738,10 @@ int PSI_infoOptionListNext(DDOption_t opts[], int num, int verbose)
 	}
 
 	return msg.count;
+    case PSP_CD_SENDSTOP:
+    case PSP_CD_SENDCONT:
+	goto recv_retry;
+	break;
     case PSP_CD_ERROR:
 	PSI_warn(verbose ? -1 : PSI_LOG_INFO, ((DDErrorMsg_t*)&msg)->error,
 		 "%s: error", __func__);
@@ -810,7 +825,7 @@ PSnodes_ID_t PSI_resolveNodeID(const char *host)
 	    break;
 	}
 
-	if (!rc && nodeID >= 0 && nodeID < PSC_getNrOfNodes()) break;
+	if (!rc && PSC_validNode(nodeID)) break;
     }
 
     freeaddrinfo(result);           /* No longer needed */
@@ -818,7 +833,7 @@ PSnodes_ID_t PSI_resolveNodeID(const char *host)
     if (nodeID < 0) {
 	PSI_log(-1, "Cannot get PS_ID for host '%s'\n", host);
 	return -1;
-    } else if (nodeID >= PSC_getNrOfNodes()) {
+    } else if (!PSC_validNode(nodeID)) {
 	PSI_log(-1, "PS_ID %d for node '%s' out of range\n", nodeID, host);
 	return -1;
     }

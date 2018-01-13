@@ -2,17 +2,12 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2017 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-#ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__((used)) =
-    "$Id$";
-#endif /* DOXYGEN_SHOULD_SKIP_THIS */
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -61,6 +56,11 @@ void clearRDPMsgs(int node)
 {
     int blockedRDP;
     list_t *m, *tmp;
+
+    if (!PSC_validNode(node)) {
+	PSID_log(-1, "%s: invalid ID %d\n", __func__, node);
+	return;
+    }
 
     /* prevent recursive clearing of node_bufs[node].list */
     if (node_bufs[node].flags & CLOSE) return;
@@ -128,7 +128,7 @@ int flushRDPMsgs(int node)
     int blockedRDP, ret = 0;
     list_t *m, *tmp;
 
-    if (node<0 || node >= PSC_getNrOfNodes()) {
+    if (!PSC_validNode(node)) {
 	errno = EINVAL;
 	return -1;
     }
@@ -183,7 +183,7 @@ int sendRDP(DDMsg_t *msg)
     int node = PSC_getID(msg->dest);
     int ret = 0;
 
-    if (node<0 || node >= PSC_getNrOfNodes()) {
+    if (!PSC_validNode(node)) {
 	errno = EHOSTUNREACH;
 	return -1;
     }
@@ -230,8 +230,20 @@ int sendRDP(DDMsg_t *msg)
 int recvRDP(DDMsg_t *msg, size_t size)
 {
     int fromnode = -1;
+    int ret = Rrecvfrom(&fromnode, msg, size);
 
-    return Rrecvfrom(&fromnode, msg, size);
+    if (ret >= (int)sizeof(*msg)
+	&& (msg->type == PSP_DD_DAEMONCONNECT
+	    || msg->type == PSP_DD_DAEMONESTABLISHED)
+	&& !PSC_getPID(msg->sender) && PSC_getID(msg->sender) != fromnode) {
+	PSID_log(-1, "%s: node %d sends type %s len %d as %d\n", __func__,
+		 fromnode, PSDaemonP_printMsg(msg->type), msg->len,
+		 PSC_getID(msg->sender));
+	errno = ENOTUNIQ;
+	return -1;
+    }
+
+    return ret;
 }
 
 void PSIDRDP_handleMsg(int fd)

@@ -135,14 +135,19 @@ bool setJobNodeStatus(Job_t *job, PSnodes_ID_t node, bool prologue,
 bool jobIDInHistory(char *jobid);
 
 /**
- * @brief Count number of active jobs
+ * @brief Count the number of jobs
  *
- * Determine the current number of active jobs within the list of all
- * registered jobs and return the corresponding number.
+ * Determine the number of jobs and return the corresponding number.
+ * If @a active is true only currently running jobs will be counted.
+ *
+ * @param active Count only active jobs
  *
  * @return Return the number of active jobs registered
  */
-int countActiveJobs(void);
+int countJobs(bool active);
+
+#define countActiveJobs() countJobs(true)
+#define countRegJobs() countJobs(false)
 
 /**
  * @brief Check validity of job

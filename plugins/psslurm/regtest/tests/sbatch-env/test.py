@@ -16,7 +16,6 @@ keys = ["SLURM_CHECKPOINT_IMAGE_DIR", \
         "SLURM_JOB_UID", \
         "SLURM_JOB_USER", \
         "SLURM_LOCALID", \
-        "SLURM_MEM_PER_NODE", \
         "SLURM_NNODES", \
         "SLURM_NODE_ALIASES", \
         "SLURM_NODEID", \

@@ -135,7 +135,7 @@ PS_DataBuffer_t * dupDataBuffer(PS_DataBuffer_t *data)
 #define MAX_RETRY 20
 
 int __doWriteEx(int fd, void *buffer, size_t toWrite, size_t *written,
-	        const char *func, bool pedantic, bool infinite)
+		const char *func, bool pedantic, bool infinite)
 {
     static time_t lastLog = 0;
     char *ptr = buffer;
@@ -258,7 +258,7 @@ static bool verifyTypeInfo(char **ptr, PS_DataType_t expectedType,
 
     if (type != expectedType) {
 	if (debug) {
-	    pluginlog("%s(%s@%d): error got type '%i' should be '%i'\n",
+	    pluginlog("%s(%s@%d): error got type %i should be %i\n",
 		      __func__, caller, line, type, expectedType);
 	}
 	return false;
@@ -330,15 +330,13 @@ void *getMemFromBuf(char **ptr, char *data, size_t dataSize, size_t *len,
     uint32_t l;
 
     if (dataSize && !data) {
-	pluginlog("%s: invalid buffer from '%s' at %d'\n", __func__,
+	pluginlog("%s: invalid buffer from '%s' at %d\n", __func__,
 		  caller, line);
 	return NULL;
     }
-    if (data) data[0] = '\0';
-
 
     if (!*ptr) {
-	if (debug) pluginlog("%s: invalid ptr from '%s' at %d'\n", __func__,
+	if (debug) pluginlog("%s: invalid ptr from '%s' at %d\n", __func__,
 			     caller, line);
 	return NULL;
     }

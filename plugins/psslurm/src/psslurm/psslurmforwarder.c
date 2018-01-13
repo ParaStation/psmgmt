@@ -59,11 +59,13 @@
 
 #define MPIEXEC_BINARY BINDIR "/mpiexec"
 
+#define DEBUG_MPIEXEC_OPTIONS 0
+
 static int jobCallback(int32_t exit_status, Forwarder_Data_t *fw)
 {
     Job_t *job = fw->userData;
 
-    mlog("%s: job '%s' finished, exit %i / %i\n", __func__, job->id,
+    mlog("%s: job '%u' finished, exit %i / %i\n", __func__, job->jobid,
 	 exit_status, fw->estatus);
     if (!findJobById(job->jobid)) {
 	mlog("%s: job '%u' not found\n", __func__, job->jobid);
@@ -187,9 +189,12 @@ static int stepCallback(int32_t exit_status, Forwarder_Data_t *fw)
 			&step->spankenv, 1, 0);
     }
 
-    if (!alloc) deleteStep(step->jobid, step->stepid);
+    if (!alloc) {
+	deleteStep(step->jobid, step->stepid);
+    } else {
+	step->fwdata = NULL;
+    }
 
-    step->fwdata = NULL;
     return 0;
 }
 
@@ -673,6 +678,21 @@ static int isPMIdisabled(Step_t *step)
     return 0;
 }
 
+static void debugMpiexecStart(char **argv, char **env)
+{
+    int i = 0;
+
+    mlog("%s:", __func__);
+    do {
+	mlog(" %s", argv[i++]);
+    } while (argv[i]);
+    mlog("\n");
+
+    for (i=0; env[i]; i++) {
+	mlog("%s: env[%i] '%s'\n", __func__, i, env[i]);
+    }
+}
+
 static void execJobStep(Forwarder_Data_t *fwdata, int rerun)
 {
     Step_t *step = fwdata->userData;
@@ -696,7 +716,16 @@ static void execJobStep(Forwarder_Data_t *fwdata, int rerun)
 
     /* build mpiexec argV */
     strvInit(&argV, NULL, 0);
-    strvAdd(&argV, ustrdup(MPIEXEC_BINARY));
+    if (getenv("PMI_SPAWNED")) {
+	char *tmpStr = getenv("__PSI_MPIEXEC_KVSPROVIDER");
+	if (tmpStr) {
+	    strvAdd(&argV, ustrdup(tmpStr));
+	} else {
+	    strvAdd(&argV, ustrdup(LIBEXECDIR "/kvsprovider"));
+	}
+    } else {
+	strvAdd(&argV, ustrdup(MPIEXEC_BINARY));
+    }
 
     /* always export all environment variables */
     strvAdd(&argV, ustrdup("-x"));
@@ -735,6 +764,8 @@ static void execJobStep(Forwarder_Data_t *fwdata, int rerun)
     setRlimitsFromEnv(&step->env, 1);
 
     removeUserVars(&step->env);
+
+    if (DEBUG_MPIEXEC_OPTIONS) debugMpiexecStart(argV.strings, step->env.vars);
 
     /* start mpiexec to spawn the parallel job */
     closelog();
@@ -882,10 +913,10 @@ int execUserJob(Job_t *job)
 
     fwdata = ForwarderData_new();
 
-    snprintf(fname, sizeof(fname), "psslurm-job:%s", job->id);
+    snprintf(fname, sizeof(fname), "psslurm-job:%u", job->jobid);
     fwdata->pTitle = ustrdup(fname);
 
-    fwdata->jobID = ustrdup(job->id);
+    fwdata->jobID = ustrdup(strJobID(job->jobid));
     fwdata->userData = job;
     fwdata->graceTime = grace;
     fwdata->accounted = true;
@@ -895,7 +926,8 @@ int execUserJob(Job_t *job)
     fwdata->hookChild = handleChildStartJob;
 
     if (!startForwarder(fwdata)) {
-	mlog("%s: starting forwarder for job '%s' failed\n", __func__, job->id);
+	mlog("%s: starting forwarder for job '%u' failed\n",
+	     __func__, job->jobid);
 	return 0;
     }
 

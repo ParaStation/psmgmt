@@ -7,7 +7,6 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-
 #include "plugincomm.h"
 #include "pluginhelper.h"
 #include "pluginmalloc.h"
@@ -38,13 +37,14 @@ bool __packSlurmAuth(PS_DataBuffer_t *data, Slurm_Auth_t *auth,
     return true;
 }
 
-bool __unpackSlurmAuth(char **ptr, Slurm_Auth_t **authPtr, const char *caller,
-			const int line)
+bool __unpackSlurmAuth(Slurm_Msg_t *sMsg, Slurm_Auth_t **authPtr,
+		       const char *caller, const int line)
 {
     Slurm_Auth_t *auth;
+    char **ptr = &sMsg->ptr;
 
-    if (!ptr) {
-	mlog("%s: invalid ptr from '%s' at %i\n", __func__, caller, line);
+    if (!sMsg) {
+	mlog("%s: invalid sMsg from '%s' at %i\n", __func__, caller, line);
 	return false;
     }
 
@@ -86,7 +86,7 @@ static Gres_Cred_t *unpackGresStep(char **ptr, uint16_t index)
 
     if (magic != GRES_MAGIC) {
 	mlog("%s: magic error: '%u' : '%u'\n", __func__, magic, GRES_MAGIC);
-	freeGresCred(gres);
+	releaseGresCred(gres);
 	return NULL;
     }
 
@@ -134,7 +134,7 @@ static Gres_Cred_t *unpackGresJob(char **ptr, uint16_t index)
 
     if (magic != GRES_MAGIC) {
 	mlog("%s: magic error '%u' : '%u'\n", __func__, magic, GRES_MAGIC);
-	freeGresCred(gres);
+	releaseGresCred(gres);
 	return NULL;
     }
 
@@ -192,11 +192,10 @@ static Gres_Cred_t *unpackGresJob(char **ptr, uint16_t index)
     return gres;
 }
 
-static void unpackGres(char **ptr, Gres_Cred_t *gresList, uint32_t jobid,
+static void unpackGres(char **ptr, list_t *gresList, uint32_t jobid,
 		uint32_t stepid, uid_t uid)
 {
     uint16_t count, i;
-    Gres_Cred_t *gres;
 
     /* extract gres job data */
     getUint16(ptr, &count);
@@ -204,8 +203,9 @@ static void unpackGres(char **ptr, Gres_Cred_t *gresList, uint32_t jobid,
 	    "count '%u'\n", __func__, jobid, stepid,  uid, count);
 
     for (i=0; i<count; i++) {
-	if (!(gres = unpackGresJob(ptr, i))) continue;
-	list_add_tail(&(gres->list), &(gresList->list));
+	Gres_Cred_t *gres = unpackGresJob(ptr, i);
+	if (!gres) continue;
+	list_add_tail(&gres->next, gresList);
     }
 
     /* extract gres step data */
@@ -214,19 +214,21 @@ static void unpackGres(char **ptr, Gres_Cred_t *gresList, uint32_t jobid,
 	    "count '%u'\n", __func__, jobid, stepid,  uid, count);
 
     for (i=0; i<count; i++) {
-	if (!(gres = unpackGresStep(ptr, i))) continue;
-	list_add_tail(&(gres->list), &(gresList->list));
+	Gres_Cred_t *gres = unpackGresStep(ptr, i);
+	if (!gres) continue;
+	list_add_tail(&gres->next, gresList);
     }
 }
 
-bool __unpackJobCred(char **ptr, JobCred_t **credPtr, Gres_Cred_t **gresPtr,
-		    char **credEnd, const char *caller, const int line)
+bool __unpackJobCred(Slurm_Msg_t *sMsg, JobCred_t **credPtr,
+		     list_t *gresList, char **credEnd, const char *caller,
+		     const int line)
 {
     JobCred_t *cred;
-    Gres_Cred_t *gres;
+    char **ptr = &sMsg->ptr;
 
-    if (!ptr) {
-	mlog("%s: invalid ptr from '%s' at %i\n", __func__, caller, line);
+    if (!sMsg) {
+	mlog("%s: invalid sMsg from '%s' at %i\n", __func__, caller, line);
 	return false;
     }
 
@@ -235,8 +237,8 @@ bool __unpackJobCred(char **ptr, JobCred_t **credPtr, Gres_Cred_t **gresPtr,
 	return false;
     }
 
-    if (!gresPtr) {
-	mlog("%s: invalid gresPtr from '%s' at %i\n", __func__, caller, line);
+    if (!gresList) {
+	mlog("%s: invalid gresList from '%s' at %i\n", __func__, caller, line);
 	return false;
     }
 
@@ -246,7 +248,6 @@ bool __unpackJobCred(char **ptr, JobCred_t **credPtr, Gres_Cred_t **gresPtr,
     }
 
     cred = ucalloc(sizeof(JobCred_t));
-    gres = getGresCred();
 
     /* jobid / stepid */
     getUint32(ptr, &cred->jobid);
@@ -255,7 +256,7 @@ bool __unpackJobCred(char **ptr, JobCred_t **credPtr, Gres_Cred_t **gresPtr,
     getUint32(ptr, &cred->uid);
 
     /* gres job/step allocations */
-    unpackGres(ptr, gres, cred->jobid, cred->stepid, cred->uid);
+    unpackGres(ptr, gresList, cred->jobid, cred->stepid, cred->uid);
 
     /* count of specialized cores */
     getUint16(ptr, &cred->jobCoreSpec);
@@ -309,23 +310,24 @@ bool __unpackJobCred(char **ptr, JobCred_t **credPtr, Gres_Cred_t **gresPtr,
 	    cred->jobCoreBitmap, cred->stepCoreBitmap);
 
     if (cred->coreArraySize) {
-	getUint16Array(ptr, &cred->coresPerSocket, &cred->coresPerSocketLen);
-	if (cred->coresPerSocketLen != cred->coreArraySize) {
-	    mlog("%s: invalid corePerSocketLen %u should be %u\n", __func__,
-		 cred->coresPerSocketLen, cred->coreArraySize);
-	    goto ERROR;
-	}
-	getUint16Array(ptr, &cred->socketsPerNode, &cred->socketsPerNodeLen);
-	if (cred->socketsPerNodeLen != cred->coreArraySize) {
-	    mlog("%s: invalid socketsPerNodeLen %u should be %u\n", __func__,
-		 cred->socketsPerNodeLen, cred->coreArraySize);
-	    goto ERROR;
-	}
+	uint32_t len;
 
-	getUint32Array(ptr, &cred->sockCoreRepCount, &cred->sockCoreRepCountLen);
-	if (cred->sockCoreRepCountLen != cred->coreArraySize) {
-	    mlog("%s: invalid sockCoreRepCountLen %u should be %u\n", __func__,
-		 cred->sockCoreRepCountLen, cred->coreArraySize);
+	getUint16Array(ptr, &cred->coresPerSocket, &len);
+	if (len != cred->coreArraySize) {
+	    mlog("%s: invalid corePerSocket size %u should be %u\n", __func__,
+		 len, cred->coreArraySize);
+	    goto ERROR;
+	}
+	getUint16Array(ptr, &cred->socketsPerNode, &len);
+	if (len != cred->coreArraySize) {
+	    mlog("%s: invalid socketsPerNode size %u should be %u\n", __func__,
+		 len, cred->coreArraySize);
+	    goto ERROR;
+	}
+	getUint32Array(ptr, &cred->sockCoreRepCount, &len);
+	if (len != cred->coreArraySize) {
+	    mlog("%s: invalid sockCoreRepCount size %u should be %u\n", __func__,
+		 len, cred->coreArraySize);
 	    goto ERROR;
 	}
     }
@@ -337,24 +339,23 @@ bool __unpackJobCred(char **ptr, JobCred_t **credPtr, Gres_Cred_t **gresPtr,
     cred->sig = getStringM(ptr);
 
     *credPtr = cred;
-    *gresPtr = gres;
 
     return true;
 
 ERROR:
-    freeGresCred(gres);
     freeJobCred(cred);
     return false;
 }
 
-bool __unpackBCastCred(char **ptr, BCast_t *bcast, char **credEnd,
-			const char *caller, const int line)
+bool __unpackBCastCred(Slurm_Msg_t *sMsg, BCast_t *bcast, char **credEnd,
+		       const char *caller, const int line)
 {
+    char **ptr = &sMsg->ptr;
     time_t ctime;
     char *nodes;
 
-    if (!ptr) {
-	mlog("%s: invalid ptr from '%s' at %i\n", __func__, caller, line);
+    if (!sMsg) {
+	mlog("%s: invalid sMsg from '%s' at %i\n", __func__, caller, line);
 	return false;
     }
 
@@ -486,7 +487,7 @@ bool __packSlurmIOMsg(PS_DataBuffer_t *data, Slurm_IO_Header_t *ioh, char *body,
 }
 
 bool __unpackSlurmIOHeader(char **ptr, Slurm_IO_Header_t **iohPtr,
-			    const char *caller, const int line)
+			   const char *caller, const int line)
 {
     Slurm_IO_Header_t *ioh;
 
@@ -515,10 +516,21 @@ bool __unpackSlurmIOHeader(char **ptr, Slurm_IO_Header_t **iohPtr,
     return true;
 }
 
-bool __unpackReqTerminate(char **ptr, Req_Terminate_Job_t **reqPtr,
-			    const char *caller, const int line)
+bool __unpackReqTerminate(Slurm_Msg_t *sMsg, Req_Terminate_Job_t **reqPtr,
+			  const char *caller, const int line)
 {
     Req_Terminate_Job_t *req;
+    char **ptr = &sMsg->ptr;
+
+    if (!sMsg) {
+	mlog("%s: invalid sMsg from '%s' at %i\n", __func__, caller, line);
+	return false;
+    }
+
+    if (!reqPtr) {
+	mlog("%s: invalid reqPtr from '%s' at %i\n", __func__, caller, line);
+	return false;
+    }
 
     req = ucalloc(sizeof(Req_Terminate_Job_t));
 
@@ -642,16 +654,17 @@ static void unpackStepIOoptions(Step_t *step, char **ptr)
     }
 }
 
-bool __unpackReqLaunchTasks(char **ptr, Step_t **stepPtr,
+bool __unpackReqLaunchTasks(Slurm_Msg_t *sMsg, Step_t **stepPtr,
 			    const char *caller, const int line)
 {
+    char **ptr = &sMsg->ptr;
     Step_t *step;
     uint16_t debug;
     uint32_t jobid, stepid, count, i, tmp;
     char jobOpt[512];
 
-    if (!ptr) {
-	mlog("%s: invalid ptr from '%s' at %i\n", __func__, caller, line);
+    if (!sMsg) {
+	mlog("%s: invalid sMsg from '%s' at %i\n", __func__, caller, line);
 	return false;
     }
 
@@ -662,13 +675,20 @@ bool __unpackReqLaunchTasks(char **ptr, Step_t **stepPtr,
     step = addStep(jobid, stepid);
 
 #ifdef SLURM_PROTOCOL_1702
-    /* mpi jobid */
-    getUint32(ptr, &step->mpiJobid);
-    getUint32(ptr, &step->mpiNnodes);
-    getUint32(ptr, &step->mpiNtasks);
-    getUint32(ptr, &step->mpiStepfnodeid);
-    getUint32(ptr, &step->mpiStepftaskid);
-    getUint32(ptr, &step->mpiStepid);
+    /* unused and to be removed in 1711  */
+    uint32_t mpiJobid;
+    uint32_t mpiNnodes;
+    uint32_t mpiNtasks;
+    uint32_t mpiStepfnodeid;
+    uint32_t mpiStepftaskid;
+    uint32_t mpiStepid;
+
+    getUint32(ptr, &mpiJobid);
+    getUint32(ptr, &mpiNnodes);
+    getUint32(ptr, &mpiNtasks);
+    getUint32(ptr, &mpiStepfnodeid);
+    getUint32(ptr, &mpiStepftaskid);
+    getUint32(ptr, &mpiStepid);
 #endif
     /* ntasks */
     getUint32(ptr, &step->np);
@@ -679,10 +699,14 @@ bool __unpackReqLaunchTasks(char **ptr, Step_t **stepPtr,
     getUint16(ptr, &step->ntasksPerSocket);
 #endif
 #if SLURM_PROTOCOL_1702
+    /* currently unused */
+    uint32_t packJobid;
+    uint32_t packStepid;
+
     /* pack jobid */
-    getUint32(ptr, &step->packJobid);
+    getUint32(ptr, &packJobid);
     /* pack stepid */
-    getUint32(ptr, &step->packStepid);
+    getUint32(ptr, &packStepid);
 #endif
     /* uid */
     getUint32(ptr, &step->uid);
@@ -724,7 +748,7 @@ bool __unpackReqLaunchTasks(char **ptr, Step_t **stepPtr,
 #endif
 
     /* job credentials */
-    if (!(step->cred = extractJobCred(&step->gres, ptr, 1))) {
+    if (!(step->cred = extractJobCred(&step->gresList, sMsg, 1))) {
 	mlog("%s: extracting job credential failed\n", __func__);
 	goto ERROR;
     }
@@ -793,8 +817,8 @@ bool __unpackReqLaunchTasks(char **ptr, Step_t **stepPtr,
 
     /* node alias */
     step->nodeAlias = getStringM(ptr);
-    /* nodelist */
-    step->slurmNodes = getStringM(ptr);
+    /* hostlist */
+    step->slurmHosts = getStringM(ptr);
 
     /* I/O open_mode */
     getUint8(ptr, &step->appendMode);
@@ -860,15 +884,16 @@ static void readJobCpuOptions(Job_t *job, char **ptr)
     }
 }
 
-bool __unpackReqBatchJobLaunch(char **ptr, Job_t **jobPtr,
-			    const char *caller, const int line)
+bool __unpackReqBatchJobLaunch(Slurm_Msg_t *sMsg, Job_t **jobPtr,
+			       const char *caller, const int line)
 {
+    char **ptr = &sMsg->ptr;
     Job_t *job;
     uint32_t jobid, tmp, count;
     char buf[1024];
 
-    if (!ptr) {
-	mlog("%s: invalid ptr from '%s' at %i\n", __func__, caller, line);
+    if (!sMsg) {
+	mlog("%s: invalid sMsg from '%s' at %i\n", __func__, caller, line);
 	return false;
     }
 
@@ -926,8 +951,8 @@ bool __unpackReqBatchJobLaunch(char **ptr, Job_t **jobPtr,
     job->nodeAlias = getStringM(ptr);
     /* cpu bind string */
     getString(ptr, buf, sizeof(buf));
-    /* nodelist */
-    job->slurmNodes = getStringM(ptr);
+    /* hostlist */
+    job->slurmHosts = getStringM(ptr);
     /* jobscript */
     job->jsData = getStringM(ptr);
     /* work dir */
@@ -964,7 +989,7 @@ bool __unpackReqBatchJobLaunch(char **ptr, Job_t **jobPtr,
 #endif
 
     /* job credential */
-    if (!(job->cred = extractJobCred(&job->gres, ptr, 1))) {
+    if (!(job->cred = extractJobCred(&job->gresList, sMsg, 1))) {
 	mlog("%s: extracting job credentail failed\n", __func__);
 	goto ERROR;
     }
@@ -1275,13 +1300,14 @@ bool __packRespNodeRegStatus(PS_DataBuffer_t *data, Resp_Node_Reg_Status_t *stat
     return true;
 }
 
-bool __unpackReqFileBcast(char **ptr, BCast_t **bcastPtr,
-			    const char *caller, const int line)
+bool __unpackReqFileBcast(Slurm_Msg_t *sMsg, BCast_t **bcastPtr,
+			  const char *caller, const int line)
 {
+    char **ptr = &sMsg->ptr;
     BCast_t *bcast;
     size_t len;
 
-    if (!ptr) {
+    if (!sMsg) {
 	mlog("%s: invalid ptr from '%s' at %i\n", __func__, caller, line);
 	return false;
     }
@@ -1392,12 +1418,101 @@ bool __packSlurmMsg(PS_DataBuffer_t *data, Slurm_Msg_Header_t *head,
     if (logger_getMask(psslurmlogger) & PSSLURM_LOG_IO_VERB) {
 	printBinaryData(data->buf + lastBufLen, data->bufUsed - lastBufLen,
 			"msg body");
-	lastBufLen = data->bufUsed;
     }
 
     /* set real message length without the uint32 for the length itself! */
     ptr = data->buf + msgStart;
     *(uint32_t *) ptr = htonl(data->bufUsed - sizeof(uint32_t));
+
+    return true;
+}
+
+bool __packRespDaemonStatus(PS_DataBuffer_t *data, Resp_Daemon_Status_t *stat,
+			    const char *caller, const int line)
+{
+    if (!data) {
+	mlog("%s: invalid data pointer from '%s' at %i\n", __func__,
+		caller, line);
+	return false;
+    }
+
+    if (!stat) {
+	mlog("%s: invalid stat pointer from '%s' at %i\n", __func__,
+		caller, line);
+	return false;
+    }
+
+    /* slurmd_start_time */
+    addTimeToMsg(stat->startTime, data);
+    /* last slurmctld msg */
+    addTimeToMsg(stat->now, data);
+    /* debug */
+    addUint16ToMsg(stat->debug, data);
+    /* cpus */
+    addUint16ToMsg(stat->cpus, data);
+    /* boards */
+    addUint16ToMsg(stat->boards, data);
+    /* sockets */
+    addUint16ToMsg(stat->sockets, data);
+    /* cores */
+    addUint16ToMsg(stat->coresPerSocket, data);
+    /* threads */
+    addUint16ToMsg(stat->threadsPerCore, data);
+    /* real mem */
+#ifdef SLURM_PROTOCOL_1702
+    addUint64ToMsg(stat->realMem, data);
+#else
+    addUint32ToMsg((uint32_t) stat->realMem, data);
+#endif
+    /* tmp disk */
+    addUint32ToMsg(stat->tmpDisk, data);
+    /* pid */
+    addUint32ToMsg(stat->pid, data);
+    /* hostname */
+    addStringToMsg(stat->hostname, data);
+    /* logfile */
+    addStringToMsg(stat->logfile, data);
+    /* step list */
+    addStringToMsg(stat->stepList, data);
+    /* version */
+    addStringToMsg(stat->verStr, data);
+
+    return true;
+}
+
+bool __packRespLaunchTasks(PS_DataBuffer_t *data, Resp_Launch_Tasks_t *ltasks,
+			    const char *caller, const int line)
+{
+    uint32_t i;
+
+    if (!data) {
+	mlog("%s: invalid data pointer from '%s' at %i\n", __func__,
+		caller, line);
+	return false;
+    }
+
+    if (!ltasks) {
+	mlog("%s: invalid ltasks pointer from '%s' at %i\n", __func__,
+		caller, line);
+	return false;
+    }
+
+    /* return code */
+    addUint32ToMsg(ltasks->returnCode, data);
+    /* node_name */
+    addStringToMsg(ltasks->nodeName, data);
+    /* count of pids */
+    addUint32ToMsg(ltasks->countPIDs, data);
+    /* local pids */
+    addUint32ToMsg(ltasks->countLocalPIDs, data);
+    for (i=0; i<ltasks->countLocalPIDs; i++) {
+	addUint32ToMsg(ltasks->localPIDs[i], data);
+    }
+    /* global task IDs */
+    addUint32ToMsg(ltasks->countGlobalTIDs, data);
+    for (i=0; i<ltasks->countGlobalTIDs; i++) {
+	addUint32ToMsg(ltasks->globalTIDs[i], data);
+    }
 
     return true;
 }

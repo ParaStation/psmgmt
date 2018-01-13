@@ -7,7 +7,6 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-
 #define _GNU_SOURCE
 #include <fenv.h>
 
@@ -39,7 +38,6 @@
 #include "pluginhelper.h"
 #include "pluginfrag.h"
 #include "pspluginprotocol.h"
-#include "psdaemonprotocol.h"
 #include "psidplugin.h"
 #include "psidhook.h"
 #include "psidnodes.h"
@@ -81,11 +79,6 @@ uint32_t configHash;
 PSnodes_ID_t slurmController;
 PSnodes_ID_t slurmBackupController;
 
-handlerFunc_t oldChildBornHandler = NULL;
-handlerFunc_t oldCCMsgHandler = NULL;
-handlerFunc_t oldSpawnFailedHandler = NULL;
-handlerFunc_t oldSpawnReqHandler = NULL;
-
 /** psid plugin requirements */
 char name[] = "psslurm";
 int version = 116;
@@ -125,41 +118,13 @@ static void cleanupJobs(void)
 }
 
 /**
- * @brief Unregister all hooks and message handler.
+ * @brief Unregister all hooks
  *
  * @param verbose If set to true an error message will be displayed
  * when unregistering a hook or a message handle fails.
- *
- * @return No return value.
  */
 static void unregisterHooks(int verbose)
 {
-    /* unregister psslurm msg */
-    PSID_clearMsg(PSP_CC_PLUG_PSSLURM);
-
-    /* unregister various messages */
-    if (oldChildBornHandler) {
-	PSID_registerMsg(PSP_DD_CHILDBORN, (handlerFunc_t) oldChildBornHandler);
-    }
-
-    if (oldCCMsgHandler) {
-	PSID_registerMsg(PSP_CC_MSG, (handlerFunc_t) oldCCMsgHandler);
-    }
-
-    if (oldSpawnFailedHandler) {
-	PSID_registerMsg(PSP_CD_SPAWNFAILED,
-			(handlerFunc_t) oldSpawnFailedHandler);
-    }
-
-    if (oldSpawnReqHandler) {
-	PSID_registerMsg(PSP_CD_SPAWNREQ,
-			(handlerFunc_t) oldSpawnReqHandler);
-    }
-
-    /* unregister msg drop handler */
-    PSID_clearDropper(PSP_CC_PLUG_PSSLURM);
-
-    /* unregister hooks */
     if (!(PSIDhook_del(PSIDHOOK_NODE_DOWN, handleNodeDown))) {
 	if (verbose) mlog("unregister 'PSIDHOOK_NODE_DOWN' failed\n");
     }
@@ -193,27 +158,11 @@ static void unregisterHooks(int verbose)
     }
 }
 
+/**
+* @brief Register various hooks
+*/
 static int registerHooks(void)
 {
-    /* register psslurm msg */
-    PSID_registerMsg(PSP_CC_PLUG_PSSLURM, (handlerFunc_t) handlePsslurmMsg);
-
-    /* register various messages */
-    oldChildBornHandler = PSID_registerMsg(PSP_DD_CHILDBORN,
-					    (handlerFunc_t) handleChildBornMsg);
-
-    oldCCMsgHandler = PSID_registerMsg(PSP_CC_MSG, (handlerFunc_t) handleCCMsg);
-
-    oldSpawnFailedHandler = PSID_registerMsg(PSP_CD_SPAWNFAILED,
-					    (handlerFunc_t) handleSpawnFailed);
-
-    oldSpawnReqHandler = PSID_registerMsg(PSP_CD_SPAWNREQ,
-					    (handlerFunc_t) handleSpawnReq);
-
-    /* register handler for dropped msgs */
-    PSID_registerDropper(PSP_CC_PLUG_PSSLURM, (handlerFunc_t) handleDroppedMsg);
-
-    /* register various hooks */
     if (!(PSIDhook_add(PSIDHOOK_NODE_DOWN, handleNodeDown))) {
 	mlog("register 'PSIDHOOK_NODE_DOWN' failed\n");
 	return 0;
@@ -568,10 +517,6 @@ int initialize(void)
 	initPluginLogger("psslurm", NULL);
     }
 
-    /* init all data lists */
-    initJobList();
-    initGresConf();
-
     /* we need to have root privileges */
     if(getuid() != 0) {
 	mlog("%s: psslurm must have root privileges\n", __func__);
@@ -591,6 +536,7 @@ int initialize(void)
 
     enableFPEexceptions();
 
+    initPScomm();
     if (!(registerHooks())) goto INIT_ERROR;
     if (!(initPluginHandles())) goto INIT_ERROR;
     if (!(initLimits())) goto INIT_ERROR;
@@ -695,6 +641,9 @@ void cleanup(void)
 
     /* unregister timer */
     if (cleanupTimerID != -1) Timer_remove(cleanupTimerID);
+
+    /* unregister PS messages */
+    finalizePScomm();
 
     /* remove all registered hooks and msg handler */
     unregisterHooks(1);

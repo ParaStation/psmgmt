@@ -1367,7 +1367,7 @@ void PSIADM_SetParam(PSP_Option_t type, PSP_Optval_t value, char *nl)
 	}
 	break;
     case PSP_OP_MASTER:
-	if (value<0 || value>=PSC_getNrOfNodes()) {
+	if (!PSC_validNode(value)) {
 	    printf(" value must be 0 <= val < %d.\n", PSC_getNrOfNodes());
 	    return;
 	}

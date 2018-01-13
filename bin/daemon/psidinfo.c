@@ -145,7 +145,7 @@ static void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 	case PSP_INFO_NODE:
 	{
 	    PSnodes_ID_t node = *(PSnodes_ID_t *) inmsg->buf;
-	    if ((node >= 0) && (node < PSC_getNrOfNodes())) {
+	    if (PSC_validNode(node)) {
 		*(in_addr_t *)msg.buf = PSIDnodes_getAddr(node);
 	    } else {
 		*(in_addr_t *)msg.buf = INADDR_ANY;

@@ -148,14 +148,16 @@ bool jobIDInHistory(char *jobid)
     return false;
 }
 
-int countActiveJobs(void)
+int countJobs(bool active)
 {
     int count = 0;
     list_t *j;
 
     list_for_each(j, &jobList) {
 	Job_t *job = list_entry(j, Job_t, next);
-	if (job->prologueTrack > 0 || job->epilogueTrack > 0) count++;
+	if (active && !(job->prologueTrack > 0 || job->epilogueTrack > 0))
+	    continue;
+	count++;
     }
     return count;
 }

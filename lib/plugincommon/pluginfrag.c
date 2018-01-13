@@ -1,13 +1,12 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2012-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2012-2017 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
@@ -91,9 +90,7 @@ static int handleNodeDown(void *nodeID)
 
     PSnodes_ID_t id = *(PSnodes_ID_t *)nodeID;
 
-    PSnodes_ID_t nrOfNodes = PSC_getNrOfNodes();
-
-    if (id < 0 || id >= nrOfNodes) {
+    if (!PSC_validNode(id)) {
 	pluginlog("%s: invalid node id %i\n", __func__, id);
 	return 1;
     }
@@ -196,7 +193,7 @@ bool __recvFragMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_func_t *func,
 	return false;
     }
 
-    if (srcNode < 0 || srcNode >= PSC_getNrOfNodes()) {
+    if (!PSC_validNode(srcNode)) {
 	pluginlog("%s: invalid sender node '%i'\n", __func__, srcNode);
 	return false;
     }

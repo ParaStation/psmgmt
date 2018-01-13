@@ -7,7 +7,6 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -75,49 +74,6 @@ void freeEnvFilter(void)
     }
     ufree(envFilter);
 }
-
-/*
-static void addInt2StringList(uint32_t val, char **list, size_t *listSize,
-				int finish)
-{
-    static uint32_t last, repeat = 1;
-    char tmp[256];
-
-    if (!*list) {
-	if (finish) {
-	    snprintf(tmp, sizeof(tmp), "%u", val);
-	    str2Buf(tmp, list, listSize);
-	} else {
-	    str2Buf("", list, listSize);
-	}
-	repeat = 1;
-    } else {
-	if (val == last) {
-	    repeat++;
-	    if (finish) {
-		if (strlen(*list) >0) str2Buf(",", list, listSize);
-		if (repeat >1) {
-		    snprintf(tmp, sizeof(tmp), "%u(x%i)", val, repeat);
-		} else {
-		    snprintf(tmp, sizeof(tmp), "%u", val);
-		}
-		str2Buf(tmp, list, listSize);
-	    }
-	} else {
-	    if (strlen(*list) >0) str2Buf(",", list, listSize);
-	    if (repeat >1) {
-		snprintf(tmp, sizeof(tmp), "%u(x%i)", val, repeat);
-	    } else {
-		snprintf(tmp, sizeof(tmp), "%u", val);
-	    }
-	    str2Buf(tmp, list, listSize);
-	    repeat = 1;
-	}
-    }
-
-    last = val;
-}
-*/
 
 static char *getCPUsPerNode(Job_t *job)
 {
@@ -242,8 +198,8 @@ void setSlurmJobEnv(Job_t *job)
     envSet(&job->env, "SLURMD_NODENAME",
 		getConfValueC(&Config, "SLURM_HOSTNAME"));
 
-    envSet(&job->env, "SLURM_JOBID", job->id);
-    envSet(&job->env, "SLURM_JOB_ID", job->id);
+    envSet(&job->env, "SLURM_JOBID", strJobID(job->jobid));
+    envSet(&job->env, "SLURM_JOB_ID", strJobID(job->jobid));
 
     snprintf(tmp, sizeof(tmp), "%u", job->nrOfNodes);
     envSet(&job->env, "SLURM_JOB_NUM_NODES", tmp);
@@ -278,8 +234,8 @@ void setSlurmJobEnv(Job_t *job)
 	envSet(&job->env, "SLURM_ARRAY_TASK_ID", tmp);
     }
 
-    envSet(&job->env, "SLURM_NODELIST", job->slurmNodes);
-    envSet(&job->env, "SLURM_JOB_NODELIST", job->slurmNodes);
+    envSet(&job->env, "SLURM_NODELIST", job->slurmHosts);
+    envSet(&job->env, "SLURM_JOB_NODELIST", job->slurmHosts);
     envSet(&job->env, "SLURM_CHECKPOINT_IMAGE_DIR", job->checkpoint);
 
     if (!job->nodeAlias || !strlen(job->nodeAlias)) {
@@ -293,7 +249,8 @@ void setSlurmJobEnv(Job_t *job)
     }
 
     /* gres "gpu" plugin */
-    if ((gres = findGresCred(job->gres, GRES_PLUGIN_GPU, 1))) {
+    gres = findGresCred(&job->gresList, GRES_PLUGIN_GPU, 1);
+    if (gres) {
 #ifdef MIN_SLURM_PROTO_1605
 	hexBitstr2List(gres->bitAlloc[0], &list, &listSize);
 #else
@@ -308,7 +265,8 @@ void setSlurmJobEnv(Job_t *job)
     }
 
     /* gres "mic" plugin */
-    if ((gres = findGresCred(job->gres, GRES_PLUGIN_MIC, 1))) {
+    gres = findGresCred(&job->gresList, GRES_PLUGIN_MIC, 1);
+    if (gres) {
 #ifdef MIN_SLURM_PROTO_1605
 	hexBitstr2List(gres->bitAlloc[0], &list, &listSize);
 #else
@@ -413,7 +371,6 @@ void setRankEnv(int32_t rank, Step_t *step)
     char tmp[128], *myGTIDs, *list = NULL, *val, *display;
     size_t listSize = 0;
     uint32_t myNodeId = step->myNodeIndex, myLocalId, count = 0, localNodeId;
-    Gres_Cred_t *gres;
     Alloc_t *alloc;
     Job_t *job;
 
@@ -474,8 +431,10 @@ void setRankEnv(int32_t rank, Step_t *step)
     }
 
     if ((int32_t) localNodeId != -1) {
+	Gres_Cred_t *gres;
 	/* gres "gpu" plugin */
-	if ((gres = findGresCred(step->gres, GRES_PLUGIN_GPU, 0))) {
+	gres = findGresCred(&step->gresList, GRES_PLUGIN_GPU, 0);
+	if (gres) {
 	    if (gres->bitAlloc[localNodeId]) {
 #ifdef MIN_SLURM_PROTO_1605
 		hexBitstr2List(gres->bitAlloc[localNodeId], &list, &listSize);
@@ -495,7 +454,8 @@ void setRankEnv(int32_t rank, Step_t *step)
 	}
 
 	/* gres "mic" plugin */
-	if ((gres = findGresCred(step->gres, GRES_PLUGIN_MIC, 0))) {
+	gres = findGresCred(&step->gresList, GRES_PLUGIN_MIC, 0);
+	if (gres) {
 	    if (gres->bitAlloc[localNodeId]) {
 #ifdef MIN_SLURM_PROTO_1605
 		hexBitstr2List(gres->bitAlloc[localNodeId], &list, &listSize);
@@ -571,7 +531,6 @@ void removeUserVars(env_t *env)
 
 	if (!strncmp(env->vars[i], "PMI_", 4)) continue;
 	if (!strncmp(env->vars[i], "__PMI_", 6)) continue;
-	if (!strncmp(env->vars[i], "SERVICE_KVS_PROVIDER", 20)) continue;
 	if (!strncmp(env->vars[i], "MEASURE_KVS_PROVIDER", 20)) continue;
 
 	envUnsetIndex(env, i);

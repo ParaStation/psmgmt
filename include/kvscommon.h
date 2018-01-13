@@ -7,17 +7,10 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-/**
- * $Id$
- *
- * \author
- * Michael Rauh <rauh@par-tec.com>
- *
- */
-
 #ifndef __KVSCOMMON_H
 #define __KVSCOMMON_H
 
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 
@@ -83,9 +76,9 @@ void setPMIDelim(const char *newDelim);
  * @param vallen The size of the buffer which receives the extracted
  * value.
  *
- * @return On Success 1 is returned, 0 on error.
+ * @return On Success true is returned, or false on error.
  */
-int getpmiv(char *name, char *vbuffer, char *pmivalue, size_t vallen);
+bool getpmiv(char *name, char *vbuffer, char *pmivalue, size_t vallen);
 
 /**
  * @brief Extract a single value from a pmi message

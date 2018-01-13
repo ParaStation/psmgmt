@@ -64,9 +64,50 @@ typedef struct {
     PSnodes_ID_t *nodes;
 } SlurmAccData_t;
 
+typedef struct {
+    time_t startTime;
+    time_t now;
+    uint16_t debug;
+    uint16_t cpus;
+    uint16_t boards;
+    uint16_t sockets;
+    uint16_t coresPerSocket;
+    uint16_t threadsPerCore;
+    uint64_t realMem;
+    uint32_t tmpDisk;
+    uint32_t pid;
+    char *hostname;
+    char *logfile;
+    char *stepList;
+    char verStr[64];
+} Resp_Daemon_Status_t;
+
+typedef struct {
+    const char *nodeName;
+    uint32_t returnCode;
+    uint32_t countPIDs;
+    uint32_t countLocalPIDs;
+    uint32_t *localPIDs;
+    uint32_t countGlobalTIDs;
+    uint32_t *globalTIDs;
+} Resp_Launch_Tasks_t;
+
 void sendNodeRegStatus(uint32_t status, int protoVersion);
-void getNodesFromSlurmHL(char *slurmNodes, uint32_t *nrOfNodes,
+
+/**
+ * @brief Convert a Slurm hostlist to PS node IDs
+ *
+ * @param slurmHosts The Slurm hostlist to convert
+ *
+ * @param nrOfNodes The number of converted nodes
+ *
+ * @param nodes The PS nodelist holding the result
+ *
+ * @param localId Will receive the local job node ID
+ */
+void getNodesFromSlurmHL(char *slurmHosts, uint32_t *nrOfNodes,
 			    PSnodes_ID_t **nodes, uint32_t *localId);
+
 int getSlurmMsgHeader(Slurm_Msg_t *sMsg, Connection_Forward_t *fw);
 
 /**
@@ -121,7 +162,27 @@ int __sendSlurmReply(Slurm_Msg_t *sMsg, slurm_msg_type_t type,
  */
 bool writeJobscript(Job_t *job);
 
-int sendTaskPids(Step_t *step);
+/**
+ * @brief Send a RESPONSE_LAUNCH_TASKS message to srun
+ *
+ * Send a RESPONSE_LAUNCH_TASKS message including the local
+ * PIDs and matching global task IDs of the locally started processes
+ * from the given step.
+ *
+ * @param step The step to send the message for
+ */
+void sendTaskPids(Step_t *step);
+
+/**
+ * @brief Send a RESPONSE_LAUNCH_TASKS error message to srun
+ *
+ * Send a RESPONSE_LAUNCH_TASKS error message for all
+ * nodes and tasks of the step.
+ *
+ * @param step The step to send the message for
+ *
+ * @param error Slurm error code
+ */
 void sendLaunchTasksFailed(Step_t *step, uint32_t error);
 
 /**

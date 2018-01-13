@@ -7,7 +7,6 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
@@ -76,12 +75,12 @@ Slurm_Auth_t *getSlurmAuth(void)
     return auth;
 }
 
-bool extractSlurmAuth(char **ptr, Slurm_Msg_Header_t *msgHead)
+bool extractSlurmAuth(Slurm_Msg_t *sMsg)
 {
     Slurm_Auth_t *auth = NULL;
     int ret;
 
-    if (!unpackSlurmAuth(ptr, &auth)) {
+    if (!unpackSlurmAuth(sMsg, &auth)) {
 	mlog("%s: unpacking slurm authentication failed\n", __func__);
 	goto ERROR;
     }
@@ -99,7 +98,7 @@ bool extractSlurmAuth(char **ptr, Slurm_Msg_Header_t *msgHead)
     }
     */
 
-    ret = psMungeDecode(auth->cred, &msgHead->uid, &msgHead->gid);
+    ret = psMungeDecode(auth->cred, &sMsg->head.uid, &sMsg->head.gid);
 
     if (!ret) {
 	mlog("%s: decoding munge credential failed\n", __func__);
@@ -107,7 +106,7 @@ bool extractSlurmAuth(char **ptr, Slurm_Msg_Header_t *msgHead)
     }
 
     mdbg(PSSLURM_LOG_AUTH, "%s: valid message from user uid '%u' gid '%u'\n",
-	    __func__, msgHead->uid, msgHead->gid);
+	    __func__, sMsg->head.uid, sMsg->head.gid);
 
     freeSlurmAuth(auth);
     return true;
@@ -144,9 +143,9 @@ bool verifyStepData(Step_t *step)
 	return false;
     }
 
-    if (!!(strcmp(step->slurmNodes, cred->hostlist))) {
+    if (!!(strcmp(step->slurmHosts, cred->hostlist))) {
 	mlog("%s: mismatching hostlist '%s' - '%s'\n", __func__,
-		step->slurmNodes, cred->hostlist);
+		step->slurmHosts, cred->hostlist);
 	return false;
     }
 
@@ -160,7 +159,7 @@ bool verifyJobData(Job_t *job)
     JobCred_t *cred;
 
     if (!(cred = job->cred)) {
-	mlog("%s: no cred for job '%s'\n", __func__, job->id);
+	mlog("%s: no cred for job '%u'\n", __func__, job->jobid);
 	return false;
     }
 
@@ -187,9 +186,9 @@ bool verifyJobData(Job_t *job)
 	return false;
     }
 
-    if (!!(strcmp(job->slurmNodes, cred->jobHostlist))) {
+    if (!!(strcmp(job->slurmHosts, cred->jobHostlist))) {
 	mlog("%s: mismatching hostlist '%s' - '%s'\n", __func__,
-		job->slurmNodes, cred->jobHostlist);
+		job->slurmHosts, cred->jobHostlist);
 	return false;
     }
 
@@ -197,16 +196,16 @@ bool verifyJobData(Job_t *job)
     return true;
 }
 
-bool extractBCastCred(char **ptr, BCast_t *bcast)
+bool extractBCastCred(Slurm_Msg_t *sMsg, BCast_t *bcast)
 {
-    char *credStart = *ptr, *credEnd, *sigBuf = NULL;
+    char *credStart = sMsg->ptr, *credEnd, *sigBuf = NULL;
     int sigBufLen, credLen;
     uid_t sigUid;
     gid_t sigGid;
     BCast_t *firstBCast = NULL;
 
     errno = 0;
-    if (!unpackBCastCred(ptr, bcast, &credEnd)) {
+    if (!unpackBCastCred(sMsg, bcast, &credEnd)) {
 	mlog("%s: unpacking bcast credential failed\n", __func__);
 	goto ERROR;
     }
@@ -279,32 +278,32 @@ void freeJobCred(JobCred_t *cred)
     ufree(cred);
 }
 
-JobCred_t *extractJobCred(Gres_Cred_t **gres, char **ptr, bool verify)
+JobCred_t *extractJobCred(list_t *gresList, Slurm_Msg_t *sMsg, bool verify)
 {
-    char *credStart = *ptr, *credEnd, *sigBuf = NULL;
+    char *credStart = sMsg->ptr, *credEnd, *sigBuf = NULL;
     JobCred_t *cred = NULL;
     int sigBufLen, credLen;
     uid_t sigUid;
     gid_t sigGid;
     uint32_t i;
 
-    if (!unpackJobCred(ptr, &cred, gres, &credEnd)) {
+    if (!unpackJobCred(sMsg, &cred, gresList, &credEnd)) {
 	mlog("%s: unpacking job credential failed\n", __func__);
 	goto ERROR;
     }
 
-    for (i=0; i<cred->coresPerSocketLen; i++) {
-	mdbg(PSSLURM_LOG_PART, "%s: coresPerSocket '%u'\n", __func__,
-		cred->coresPerSocket[i]);
+    mdbg(PSSLURM_LOG_PART, "%s:", __func__);
+    for (i=0; i<cred->coreArraySize; i++) {
+	mdbg(PSSLURM_LOG_PART, " coresPerSocket '%u'", cred->coresPerSocket[i]);
     }
-    for (i=0; i<cred->socketsPerNodeLen; i++) {
-	mdbg(PSSLURM_LOG_PART, "%s: socketsPerNode '%u'\n", __func__,
-		cred->socketsPerNode[i]);
+    for (i=0; i<cred->coreArraySize; i++) {
+	mdbg(PSSLURM_LOG_PART, " socketsPerNode '%u'", cred->socketsPerNode[i]);
     }
-    for (i=0; i<cred->sockCoreRepCountLen; i++) {
-	mdbg(PSSLURM_LOG_PART, "%s: sockCoreRepCount '%u'\n", __func__,
+    for (i=0; i<cred->coreArraySize; i++) {
+	mdbg(PSSLURM_LOG_PART, " sockCoreRepCount '%u'",
 		cred->sockCoreRepCount[i]);
     }
+    mdbg(PSSLURM_LOG_PART, "\n");
 
     credLen = credEnd - credStart;
 
@@ -332,11 +331,7 @@ JobCred_t *extractJobCred(Gres_Cred_t **gres, char **ptr, bool verify)
 	free(sigBuf);
     }
 
-#ifdef SLURM_PROTOCOL_1702
     mdbg(PSSLURM_LOG_AUTH, "%s: cred len:%u jobMemLimit '%lu' stepMemLimit '%lu' "
-#else
-    mdbg(PSSLURM_LOG_AUTH, "%s: cred len:%u jobMemLimit '%u' stepMemLimit '%u' "
-#endif
 	    "hostlist '%s' jobhostlist '%s' ctime '%lu' " "sig '%s'\n",
 	    __func__, credLen, cred->jobMemLimit, cred->stepMemLimit,
 	    cred->hostlist, cred->jobHostlist, cred->ctime, cred->sig);

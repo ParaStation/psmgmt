@@ -379,7 +379,7 @@ static void msg_SETOPTION(DDOptionMsg_t *msg)
 	    case PSP_OP_MASTER:
 	    {
 		PSnodes_ID_t id = msg->opt[i].value;
-		if (PSIDnodes_validID(id) && !PSIDnodes_isUp(id)) {
+		if (PSC_validNode(id) && !PSIDnodes_isUp(id)) {
 		    send_DAEMONCONNECT(id);
 		}
 		break;

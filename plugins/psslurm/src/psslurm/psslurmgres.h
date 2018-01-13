@@ -7,9 +7,10 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-
 #ifndef __PS_SLURM_GRES
 #define __PS_SLURM_GRES
+
+#include <stdint.h>
 
 #include "list.h"
 #include "plugincomm.h"
@@ -19,6 +20,7 @@
 #define GRES_PLUGIN_MIC	6515053
 
 typedef struct {
+    list_t next;                /**< used to put into some gres-conf-lists */
     char *name;
     char *cpus;
     char *file;
@@ -29,10 +31,10 @@ typedef struct {
     uint32_t count;
 #endif
     uint32_t id;
-    struct list_head list;  /* the gres list header */
 } Gres_Conf_t;
 
 typedef struct {
+    list_t next;                /**< used to put into some gres-cred-lists */
     uint32_t id;
 #ifdef MIN_SLURM_PROTO_1605
     uint64_t countAlloc;
@@ -47,17 +49,41 @@ typedef struct {
     char **bitStepAlloc;
     char *nodeInUse;
     int job;
-    struct list_head list;  /* the gres list header */
 } Gres_Cred_t;
 
-Gres_Conf_t GresConfList;
-
-Gres_Cred_t* getGresCred(void);
-void initGresConf(void);
-void clearGresConf(void);
+/**
+ * @doctodo
+ */
 Gres_Conf_t *addGresConf(char *name, char *count, char *file, char *cpus);
-void addGresData(PS_DataBuffer_t *msg, int version);
-void freeGresCred(Gres_Cred_t *gresList);
-Gres_Cred_t * findGresCred(Gres_Cred_t *gresList, uint32_t id, int job);
 
-#endif
+/**
+ * @doctodo
+ */
+void addGresData(PS_DataBuffer_t *msg, int version);
+
+/**
+ * @doctodo
+ */
+void clearGresConf(void);
+
+/**
+ * @doctodo
+ */
+Gres_Cred_t * getGresCred(void);
+
+/**
+ * @doctodo
+ */
+Gres_Cred_t * findGresCred(list_t *gresList, uint32_t id, int job);
+
+/**
+ * @doctodo
+ */
+void releaseGresCred(Gres_Cred_t *gres);
+
+/**
+ * @doctodo
+ */
+void freeGresCred(list_t *gresList);
+
+#endif /* __PS_SLURM_GRES */

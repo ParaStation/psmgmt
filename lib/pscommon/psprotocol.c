@@ -74,6 +74,7 @@ static struct {
     { PSP_CC_MSG              , "PSP_CC_MSG"              },
     { PSP_CC_ERROR            , "PSP_CC_ERROR"            },
 
+    { PSP_CD_UNKNOWN          , "PSP_CD_UNKNOWN"          },
     { PSP_CD_ERROR            , "PSP_CD_ERROR"            },
 
     {0,NULL}

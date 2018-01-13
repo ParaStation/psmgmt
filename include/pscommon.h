@@ -15,6 +15,7 @@
 #ifndef __PSCOMMON_H
 #define __PSCOMMON_H
 
+#include <stdbool.h>
 #include <stdio.h>
 #include <sys/types.h>
 #include <netinet/in.h>
@@ -46,6 +47,18 @@ PSnodes_ID_t PSC_getNrOfNodes(void);
  * @return No return value.
  */
 void PSC_setNrOfNodes(PSnodes_ID_t numNodes);
+
+/**
+ * @brief Test ParaStation ID
+ *
+ * Test the validity of the ParaStation node ID @a id.
+ *
+ * @param id ParaStation node ID to check
+ *
+ * @return Return true if @a id is valid, or false if it is out of
+ * range
+ */
+bool PSC_validNode(PSnodes_ID_t id);
 
 /**
  * @brief Determines the local ID within the cluster.

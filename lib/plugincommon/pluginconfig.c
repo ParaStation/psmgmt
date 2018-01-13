@@ -187,10 +187,16 @@ int verifyConfigEntry(const ConfDef_t confDef[], char *key, char *value)
     const ConfDef_t *def;
     long testNum;
 
-    if (!(def = getConfigDef(key, confDef))) return 1;
+    if (!(def = getConfigDef(key, confDef))) {
+	pluginlog("%s: unknown option '%s'\n", __func__, key);
+	return 1;
+    }
 
     if (def->isNum) {
-	if ((sscanf(value, "%li", &testNum)) != 1) return 2;
+	if ((sscanf(value, "%li", &testNum)) != 1) {
+	    pluginlog("%s: option '%s' is not a number\n", __func__, key);
+	    return 2;
+	}
     }
 
     return 0;
