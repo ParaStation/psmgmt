@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2017-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -322,7 +322,7 @@ static char *getProcessMap(int np)
 {
     int i, sid = 0, nodeCount = 0, procCount = 0;
     int oldProcCount = 0;
-    char pMap[PMI_VALLEN_MAX], buf[20];
+    char pMap[PMI_VALLEN_MAX], buf[64];
 
     if (getenv("PMI_SPAWNED")) {
 	snprintf(pMap, sizeof(pMap), "(vector,(0,%i,1))", np);
