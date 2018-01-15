@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -190,13 +190,13 @@ static void dropPSMsg(DDTypedBufferMsg_t *msg)
 {
     PSnodes_ID_t nodeId = PSC_getID(msg->header.dest);
     const char *hname = getHostnameByNodeId(nodeId);
+    char *ptr = msg->buf, buf[300];
+    Job_t *job;
 
     mlog("%s: msg type '%s (%i)' to host '%s(%i)' got dropped\n", __func__,
 	 pspMsgType2Str(msg->type), msg->type, hname, nodeId);
 
     switch (msg->type) {
-	char *ptr = msg->buf, buf[300];
-	Job_t *job;
     case PSP_PSMOM_PROLOGUE_START:
 	/* hashname */
 	getString(&ptr, buf, sizeof(buf));

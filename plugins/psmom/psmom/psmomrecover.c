@@ -1,13 +1,12 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -123,8 +122,7 @@ void recoverJobInfo()
 
 void saveJobInfo(Job_t *job)
 {
-    struct list_head *pos;
-    Data_Entry_t *next;
+    list_t *d;
     FILE *fp;
     char accFile[400], *accPath = NULL;
 
@@ -151,15 +149,13 @@ void saveJobInfo(Job_t *job)
     fprintf(fp, "%s\n", job->user);
 
     /* save job account information */
-    list_for_each(pos, &job->status.list) {
-	if ((next = list_entry(pos, Data_Entry_t, list)) == NULL) {
+    list_for_each(d, &job->status.list) {
+	Data_Entry_t *dEntry = list_entry(d, Data_Entry_t, list);
+	if (!dEntry->name || *dEntry->name == '\0') {
 	    break;
 	}
-	if (!next->name || next->name == '\0') {
-	    break;
-	}
-	if (!(strcmp(next->name, "resources_used"))) {
-	    fprintf(fp, "%s=%s\n", next->resource, next->value);
+	if (!strcmp(dEntry->name, "resources_used")) {
+	    fprintf(fp, "%s=%s\n", dEntry->resource, dEntry->value);
 	}
     }
     fclose(fp);
