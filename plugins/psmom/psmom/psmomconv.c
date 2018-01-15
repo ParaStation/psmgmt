@@ -1,20 +1,12 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2013 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-/**
- * $Id$
- *
- * \author
- * Michael Rauh <rauh@par-tec.com>
- *
- */
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -311,8 +303,8 @@ static int filterDataEntry(const Data_Filter_t *filter, char *name, char *value)
     return 0;
 }
 
-int ReadDataStruct(ComHandle_t *com, size_t len, struct list_head *list,
-    const Data_Filter_t *filter)
+int ReadDataStruct(ComHandle_t *com, size_t len, list_t *list,
+		   const Data_Filter_t *filter)
 {
     char *name = NULL;
     char *resource = NULL;
@@ -394,53 +386,43 @@ int ReadDataStruct(ComHandle_t *com, size_t len, struct list_head *list,
 
 int WriteDataStruct(ComHandle_t *com, Data_Entry_t *data)
 {
-    struct list_head *pos;
-    Data_Entry_t *next;
+    list_t *d;
     size_t count = 0;
-    size_t len;
 
     if (!data || list_empty(&data->list)) return 0;
 
-    list_for_each(pos, &data->list) {
+    list_for_each(d, &data->list) {
+	Data_Entry_t *dEntry = list_entry(d, Data_Entry_t, list);
 	count++;
-	if ((next = list_entry(pos, Data_Entry_t, list)) == NULL) {
-	    mlog("%s: list error\n", __func__);
-	    return -1;
-	}
-	if (!next->name || next->name == '\0') {
-	    break;
-	}
+	if (!dEntry->name || *dEntry->name == '\0') break;
     }
 
     mdbg(PSMOM_LOG_STRUCT, "%s: sending :%zu data array(s)\n", __func__,
-	count);
+	 count);
     WriteDigit(com, count);
 
-    list_for_each(pos, &data->list) {
-	if ((next = list_entry(pos, Data_Entry_t, list)) == NULL) {
-	    break;
-	}
-	if (!next->name || next->name == '\0') {
-	    break;
-	}
+    list_for_each(d, &data->list) {
+	Data_Entry_t *dEntry = list_entry(d, Data_Entry_t, list);
 
-	len =  strlen(next->name) + 1 + strlen(next->value) + 1;
-	if (next->resource && next->resource[0] != '\0') {
-	    len += strlen(next->resource) + 1;
+	if (!dEntry->name || *dEntry->name == '\0') break;
+
+	size_t len =  strlen(dEntry->name) + 1 + strlen(dEntry->value) + 1;
+	if (dEntry->resource && dEntry->resource[0]) {
+	    len += strlen(dEntry->resource) + 1;
 	}
 
 	mdbg(PSMOM_LOG_STRUCT, "%s: DataEntry name:%s resource:%s value:%s\n",
-	    __func__, next->name, next->resource, next->value);
+	    __func__, dEntry->name, dEntry->resource, dEntry->value);
 
 	WriteDigit(com, len);
-	WriteString(com, next->name);
-	if (next->resource && next->resource[0] != '\0') {
+	WriteString(com, dEntry->name);
+	if (dEntry->resource && dEntry->resource[0]) {
 	    WriteDigit(com, 1);
-	    WriteString(com, next->resource);
+	    WriteString(com, dEntry->resource);
 	} else {
 	    WriteDigit(com, 0);
 	}
-	WriteString(com, next->value);
+	WriteString(com, dEntry->value);
 	WriteDigit(com, 0);
     }
 
