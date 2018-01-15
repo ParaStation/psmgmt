@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2008-2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2008-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -80,6 +80,7 @@ void PSID_shutdown(void)
 	PSID_registerLoopAct(PSID_shutdown);
 	PSIDhook_call(PSIDHOOK_SHUTDOWN, NULL);
 	PSID_disableMasterSock();
+	/* fallthrough */
     case 1:
 	PSIDclient_killAll(SIGTERM, 0);
 	break;
@@ -153,6 +154,7 @@ void PSID_reset(void)
     case 0:
 	daemonState |= PSID_STATE_RESET;
 	PSID_registerLoopAct(PSID_reset);
+	/* fallthrough */
     case 1:
 	num = PSIDclient_killAll(SIGTERM, 0);
 	break;

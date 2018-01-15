@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -271,12 +271,12 @@ static void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 	case PSP_INFO_LIST_NORMJOBS:
 	case PSP_INFO_LIST_ALLOCJOBS:
 	case PSP_INFO_LIST_EXCLUSIVE:
-	    if ((! PSID_config->useMCast) && (PSC_getMyID() != getMasterID())) {
+	    if (!PSID_config->useMCast && (PSC_getMyID() != getMasterID())) {
 		/* Handled by master node -> forward */
 		inmsg->header.dest = PSC_getTID(getMasterID(), 0);
 		msg_INFOREQUEST(inmsg);
 		return;
-	    }
+	    } /* else fallthrough */
 	case PSP_INFO_LIST_HOSTSTATUS:
 	case PSP_INFO_LIST_VIRTCPUS:
 	case PSP_INFO_LIST_PHYSCPUS:
@@ -473,6 +473,7 @@ static void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 
 	    msg.header.len = len;
 	    msg.type = PSP_INFO_LIST_END;
+	    break;
 	}
 	case PSP_INFO_LIST_RESNODES:
 	{
