@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -624,14 +624,14 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
     task->group = taskGroup;
     if (PSI_infoTaskID(-1, PSP_INFO_LOGGERTID, NULL, &(task->loggertid), 0)) {
 	PSI_warn(-1, errno, "%s: unable to determine logger's TID", __func__);
-	goto error;
+	goto cleanup;
     }
 
     mywd = mygetwd(workingdir);
 
     if (!mywd) {
 	PSI_warn(-1, errno, "%s: unable to get working directory", __func__);
-	goto error;
+	goto cleanup;
     }
 
     task->workingdir = mywd;
@@ -647,7 +647,7 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
 
     if (!task->argv) {
 	PSI_warn(-1, errno, "%s: unable to store argument vector", __func__);
-	goto error;
+	goto cleanup;
     }
     {
 	struct stat statbuf;
@@ -667,7 +667,7 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
 	    task->argv[0] = strdup(myexec);
 #else
 	    PSI_log(-1, "%s: Cannot start job from PATH.\n", __func__);
-	    goto error;
+	    goto cleanup;
 #endif
 	} else {
 	    task->argv[0] = strdup(argv[0]);
@@ -696,13 +696,13 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
 
 	for (i=1; i < task->argc; i++) {
 	    task->argv[i+3]=strdup(argv[i]);
-	    if (!task->argv[i+3]) goto error;
+	    if (!task->argv[i+3]) goto cleanup;
 	}
 	task->argc+=3;
     } else {
 	for (i=1; i < task->argc; i++) {
 	    task->argv[i]=strdup(argv[i]);
-	    if (!task->argv[i]) goto error;
+	    if (!task->argv[i]) goto cleanup;
 	}
     }
     task->argv[task->argc] = NULL;
@@ -710,7 +710,7 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
     task->environ = dumpPSIEnv();
     if (!task->environ) {
 	PSI_log(-1, "%s: cannot dump environment.", __func__);
-	goto error;
+	goto cleanup;
     }
 
     /* test if task can be send */
@@ -726,7 +726,7 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
 	if (!PSC_validNode(dstnodes[i])) {
 	    errors[i] = ENETUNREACH;
 	    if (tids) tids[i] = -1;
-	    goto error;
+	    goto cleanup;
 	}
 	if (hugeTask || hugeArgv) {
 	    int proto = getProtoVersion(dstnodes[i]);
@@ -737,12 +737,12 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
 		PSI_log(-1, "%s: size of task too large.", __func__);
 		PSI_log(-1, " Working directory '%s' too long?\n",
 			task->workingdir);
-		goto error;
+		goto cleanup;
 	    }
 	    if (hugeArgv) {
 		PSI_log(-1, "%s: size of task too large.", __func__);
 		PSI_log(-1, " Too many/too long arguments?\n");
-		goto error;
+		goto cleanup;
 	    }
 	}
     }
@@ -761,24 +761,24 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
 	task->rank = rank;
 
 	/* send actual task */
-	if (sendTask(&msg, task) < 0) goto error;
+	if (sendTask(&msg, task) < 0) goto cleanup;
 
 	msg.type = PSP_SPAWN_ARG;
 
 	/* send argv stuff */
-	if (sendArgv(&msg, task->argv) < 0) goto error;
+	if (sendArgv(&msg, task->argv) < 0) goto cleanup;
 
 	if (lastNode != dstnodes[i]) {
 	    /* Send the static part of the environment */
 	    msg.type = PSP_SPAWN_ENV;
-	    if (sendEnv(&msg, task->environ, &len) < 0) goto error;
+	    if (sendEnv(&msg, task->environ, &len) < 0) goto cleanup;
 	} else {
 	    /* Let the new rank use the environment of its sibling */
 	    msg.type = PSP_SPAWN_ENV_CLONE;
 	    msg.header.len = sizeof(msg.header) + sizeof(msg.type);
 	    if (PSI_sendMsg(&msg) < 0) {
 		PSI_warn(-1, errno, "%s: PSI_sendMsg", __func__);
-		goto error;
+		goto cleanup;
 	    }
 	}
 	lastNode = dstnodes[i];
@@ -791,20 +791,20 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
 		if (len) {
 		    if (PSI_sendMsg(&msg) < 0) {
 			PSI_warn(-1, errno, "%s: PSI_sendMsg", __func__);
-			goto error;
+			goto cleanup;
 		    }
 		    msg.header.len -= len;
 		}
 
 		msg.type = PSP_SPAWN_ENV;
-		if (sendEnv(&msg, extraEnv, &len) < 0) goto error;
+		if (sendEnv(&msg, extraEnv, &len) < 0) goto cleanup;
 	    }
 	}
 
 	msg.type = PSP_SPAWN_END;
 	if (PSI_sendMsg(&msg) < 0) {
 	    PSI_warn(-1, errno, "%s: PSI_sendMsg", __func__);
-	    goto error;
+	    goto cleanup;
 	}
 	msg.header.len -= len;
 
@@ -815,10 +815,11 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
 	    int r = handleAnswer(firstRank, count, dstnodes, errors, tids);
 	    switch (r) {
 	    case -1:
-		goto error;
+		goto cleanup;
 		break;
 	    case 0:
 		error = true;
+		/* fallthrough */
 	    case 1:
 		outstanding_answers--;
 		ret++;
@@ -844,6 +845,7 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
 	    break;
 	case 0:
 	    error = true;
+	    /* fallthrough */
 	case 1:
 	    outstanding_answers--;
 	    ret++;
@@ -860,7 +862,7 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
     if (error) ret = -ret;
     return ret;
 
- error:
+ cleanup:
     PStask_delete(task);
 
     return -1;
