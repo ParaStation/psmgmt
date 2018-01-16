@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -1528,7 +1528,7 @@ void PSIADM_ShowParam(PSP_Option_t type, char *nl)
 		    if (value==OVERBOOK_AUTO) {
 			printf("AUTO\n");
 			break;
-		    }
+		    } /* else fallthrough */
 		case PSP_OP_FREEONSUSP:
 		case PSP_OP_EXCLUSIVE:
 		case PSP_OP_RUNJOBS:

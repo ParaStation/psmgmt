@@ -1,17 +1,12 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2007-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2007-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-#ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__((used)) =
-    "$Id$";
-#endif /* DOXYGEN_SHOULD_SKIP_THIS */
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -22,36 +17,30 @@ static char vcid[] __attribute__((used)) =
 /** Number of bits (i.e. CPUs) encoded within @ref PSCPU_mask_t. */
 #define CPUmask_s (8*sizeof(PSCPU_mask_t))
 
-int16_t PSCPU_any(PSCPU_set_t set, uint16_t physCPUs)
+bool PSCPU_any(PSCPU_set_t set, uint16_t physCPUs)
 {
-    int any=0;
     unsigned int i;
-
     for (i=0; i<PSCPU_MAX/CPUmask_s && physCPUs>0; i++, physCPUs-=CPUmask_s) {
 	PSCPU_mask_t m = set[i];
-	if (m && (physCPUs >= CPUmask_s || m << (CPUmask_s-physCPUs))) {
-	    any=1;
-	    break;
+	if (m && (physCPUs >= CPUmask_s || (m << (CPUmask_s-physCPUs)) != 0)) {
+	    return true;
 	}
     }
 
-    return any;
+    return false;
 }
 
-int16_t PSCPU_all(PSCPU_set_t set, uint16_t physCPUs)
+bool PSCPU_all(PSCPU_set_t set, uint16_t physCPUs)
 {
-    int all=1;
     unsigned int i;
-
     for (i=0; i<PSCPU_MAX/CPUmask_s && physCPUs>0; i++, physCPUs-=CPUmask_s) {
 	PSCPU_mask_t m = ~set[i];
-	if (m && (physCPUs >= CPUmask_s || m << (CPUmask_s-physCPUs))) {
-	    all=0;
-	    break;
+	if (m && (physCPUs >= CPUmask_s || (m << (CPUmask_s-physCPUs)) != 0)) {
+	    return false;
 	}
     }
 
-    return all;
+    return true;
 }
 
 int16_t PSCPU_first(PSCPU_set_t set, uint16_t physCPUs)

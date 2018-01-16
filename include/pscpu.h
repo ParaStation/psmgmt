@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2007-2015 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2007-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -10,25 +10,13 @@
 /**
  * @file
  * Small toolbox to handle CPU sets.
- *
- * $Id$
- *
- * @author
- * Norbert Eicker <eicker@par-tec.com>
- *
  */
 #ifndef __PSCPU_H
 #define __PSCPU_H
 
+#include <stdbool.h>
 #include <stdint.h>
 #include <string.h>
-
-#ifdef __cplusplus
-extern "C" {
-#if 0
-} /* <- just for emacs indentation */
-#endif
-#endif
 
 /** Maximum number of CPUs per node. This has to be a multipe of 8 */
 #define PSCPU_MAX 1024
@@ -159,9 +147,9 @@ static inline void PSCPU_remCPUs(PSCPU_set_t set, PSCPU_set_t rem)
  *
  * @param cpu The number of the CPU to test
  *
- * @return If the tested bit is set, 1 is returned. Or 0 otherwise.
+ * @return If the tested bit is set, true is returned. Or false otherwise.
  */
-static inline int PSCPU_isSet(PSCPU_set_t set, int16_t cpu)
+static inline bool PSCPU_isSet(PSCPU_set_t set, int16_t cpu)
 {
     return set[cpu/CPUmask_s] & 1<<cpu%CPUmask_s;
 }
@@ -177,9 +165,9 @@ static inline int PSCPU_isSet(PSCPU_set_t set, int16_t cpu)
  *
  * @param physCPUs The number of CPUs actualy to investigate.
  *
- * @return If any CPU is set, 1 is returned. Otherwise 0 is returned.
+ * @return If any CPU is set, true is returned. Otherwise false is returned
  */
-int16_t PSCPU_any(PSCPU_set_t set, uint16_t physCPUs);
+bool PSCPU_any(PSCPU_set_t set, uint16_t physCPUs);
 
 /**
  * @brief Test for CPUs
@@ -193,9 +181,9 @@ int16_t PSCPU_any(PSCPU_set_t set, uint16_t physCPUs);
  *
  * @param physCPUs The number of CPUs actualy to investigate.
  *
- * @return If all CPU are set, 1 is returned. Otherwise 0 is returned.
+ * @return If all CPU are set, true is returned. Otherwise false is returned
  */
-int16_t PSCPU_all(PSCPU_set_t set, uint16_t physCPUs);
+bool PSCPU_all(PSCPU_set_t set, uint16_t physCPUs);
 
 /**
  * @brief Get first CPU
@@ -419,11 +407,6 @@ static inline int PSCPU_cmp(PSCPU_set_t s1, PSCPU_set_t s2)
     return 0;
 }
 
-
 #undef CPUmask_s
-
-#ifdef __cplusplus
-}/* extern "C" */
-#endif
 
 #endif  /* __PSCPU_H */

@@ -1,13 +1,12 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -2022,8 +2021,9 @@ static void handleTMError(ComHandle_t *com, unsigned int cmd)
 		}
 	    }
 	    readAllData(com);
+	    /* fallthrough */
 	default:
-	    mlog("%s: got error cmd err_code '%i' err_msg '%s' from '%s:%i'\n",
+	    mlog("%s: got error cmd err_code %i err_msg '%s' from %s:%i\n",
 		__func__, cmd, buf, com->remoteAddr, com->remotePort);
     }
 }

@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2011-2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2011-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -161,7 +161,7 @@ static char *showJob(Job_t *job, char *buf, size_t *bufSize)
 
 	list_for_each(pos, &job->data.list) {
 	    if ((next = list_entry(pos, Data_Entry_t, list)) == NULL) break;
-	    if (!next->name || next->name == '\0') break;
+	    if (!next->name || *next->name == '\0') break;
 
 	    if (next->resource) {
 		snprintf(line, sizeof(line), "%s:%s = %s\n", next->name,
@@ -181,7 +181,7 @@ static char *showJob(Job_t *job, char *buf, size_t *bufSize)
 
 	list_for_each(pos, &job->status.list) {
 	    if ((next = list_entry(pos, Data_Entry_t, list)) == NULL)  break;
-	    if (!next->name || next->name == '\0') break;
+	    if (!next->name || *next->name == '\0') break;
 
 	    if (next->resource) {
 		snprintf(line, sizeof(line), "%s:%s = %s\n", next->name,
@@ -252,7 +252,7 @@ static char *showState(char *buf, size_t *bufSize)
 
 	list_for_each(pos, &infoData.list) {
 	    if ((next = list_entry(pos, Data_Entry_t, list)) == NULL) break;
-	    if (!next->name || next->name == '\0') break;
+	    if (!next->name || *next->name == '\0') break;
 
 	    str2Buf(next->value, &buf, bufSize);
 	    str2Buf("\n", &buf, bufSize);
@@ -264,7 +264,7 @@ static char *showState(char *buf, size_t *bufSize)
 
 	list_for_each(pos, &staticInfoData.list) {
 	    if ((next = list_entry(pos, Data_Entry_t, list)) == NULL) break;
-	    if (!next->name || next->name == '\0') break;
+	    if (!next->name || *next->name == '\0') break;
 
 	    str2Buf(next->value, &buf, bufSize);
 	    str2Buf("\n", &buf, bufSize);
@@ -287,7 +287,7 @@ static char *showConnectionState(char *buf, size_t *bufSize)
 {
     struct list_head *pos;
     ComHandle_t *com;
-    char *info, local[20], remote[20], lport[10], rport[10];
+    char *info, local[32], remote[32], lport[16], rport[16];
 
     snprintf(line, sizeof(line), "\nsocket\ttype\t%20s\t%20s\tinfo\n",
 		"local", "remote");
