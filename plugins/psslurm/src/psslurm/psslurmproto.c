@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014-2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -1522,12 +1522,12 @@ static void handleAbortReq(Slurm_Msg_t *sMsg, uint32_t jobid, uint32_t stepid)
  * @param nfo Kill information structure to define which steps
  * should be could
  *
- * @return bool Always return false to walk throw the complete
+ * @return bool Always return false to walk through the complete
  * step list
  */
-static bool killSelectedSteps(Step_t *step, const void *nfo)
+static bool killSelectedSteps(Step_t *step, const void *killInfo)
 {
-    const Kill_Info_t *info = nfo;
+    const Kill_Info_t *info = killInfo;
     char buf[512];
 
     if (step->jobid != info->jobid) return false;
@@ -1552,20 +1552,20 @@ static bool killSelectedSteps(Step_t *step, const void *nfo)
 
 static void handleKillReq(Slurm_Msg_t *sMsg, Kill_Info_t *info)
 {
-    Job_t *job;
-    Alloc_t *alloc;
-
     traverseSteps(killSelectedSteps, info);
 
     /* if we only kill one selected step, we are done */
     if (info->stepid != NO_VAL) goto SEND_SUCCESS;
 
     /* kill request for complete job */
-    if ((job = findJobById(info->jobid))) job->terminate++;
-    if ((alloc = findAlloc(info->jobid))) alloc->terminate++;
+    Job_t *job = findJobById(info->jobid);
+    if (job) job->terminate++;
+
+    Alloc_t *alloc = findAlloc(info->jobid);
+    if (alloc) alloc->terminate++;
 
     if (!job && !alloc) {
-	mlog("%s: job '%u' not found\n", __func__, info->jobid);
+	mlog("%s: job %u not found\n", __func__, info->jobid);
 	goto SEND_SUCCESS;
     }
 
