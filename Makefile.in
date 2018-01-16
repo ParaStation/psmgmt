@@ -17,7 +17,7 @@
 #
 # ParaStation
 #
-# Copyright (C) 2012-2017 ParTec Cluster Competence Center GmbH, Munich
+# Copyright (C) 2012-2018 ParTec Cluster Competence Center GmbH, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -422,7 +422,7 @@ CLEANFILES = VERSION.psmgmt
 @BUILD_WITHOUT_PSCONFIG_TRUE@AM_CONFIGARGS := $(AM_CONFIGARGS) -without psconfig
 @MUNGE_ENABLED_FALSE@AM_CONFIGARGS := $(AM_CONFIGARGS) -without munge
 @PAM_ENABLED_FALSE@AM_CONFIGARGS := $(AM_CONFIGARGS) -without pam
-@SLURM_PROTOCOL_1403_TRUE@AM_CONFIGARGS := $(AM_CONFIGARGS) -without slurm1605
+@SLURM_PROTOCOL_1605_TRUE@AM_CONFIGARGS := $(AM_CONFIGARGS) -without slurm1702
 
 # keep "make distcheck" happy
 AM_DISTCHECK_CONFIGURE_FLAGS = \

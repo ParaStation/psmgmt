@@ -639,8 +639,8 @@ LIBOBJS
 HAVE_SYSTEMD_FALSE
 HAVE_SYSTEMD_TRUE
 unitdir
-SLURM_PROTOCOL_1403_FALSE
-SLURM_PROTOCOL_1403_TRUE
+SLURM_PROTOCOL_1605_FALSE
+SLURM_PROTOCOL_1605_TRUE
 TESTPLUGINS_ENABLED_FALSE
 TESTPLUGINS_ENABLED_TRUE
 AM_LDFLAGS
@@ -800,7 +800,7 @@ enable_libtool_lock
 with_pamdir
 enable_psconfig
 enable_testplugins
-enable_slurm_1605
+enable_slurm_1702
 with_unitdir
 '
       ac_precious_vars='build_alias
@@ -1455,8 +1455,8 @@ Optional Features:
   --disable-libtool-lock  avoid locking (might break parallel builds)
   --disable-psconfig      build without psconfig support
   --enable-testplugins    build test plugins
-  --disable-slurm_1605    disable slurm protocol 16.05 support and support
-                          14.03 instead
+  --disable-slurm_1702    disable slurm protocol 17.02 support and support
+                          16.05 instead
 
 Optional Packages:
   --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
@@ -12755,30 +12755,32 @@ else
 fi
 
 
-# Check whether --enable-slurm_1605 was given.
-if test "${enable_slurm_1605+set}" = set; then :
-  enableval=$enable_slurm_1605;
+# Check whether --enable-slurm_1702 was given.
+if test "${enable_slurm_1702+set}" = set; then :
+  enableval=$enable_slurm_1702;
 fi
 
- if test "x$enable_slurm_1605" = xno; then
-  SLURM_PROTOCOL_1403_TRUE=
-  SLURM_PROTOCOL_1403_FALSE='#'
+ if test "x$enable_slurm_1702" = xno; then
+  SLURM_PROTOCOL_1605_TRUE=
+  SLURM_PROTOCOL_1605_FALSE='#'
 else
-  SLURM_PROTOCOL_1403_TRUE='#'
-  SLURM_PROTOCOL_1403_FALSE=
+  SLURM_PROTOCOL_1605_TRUE='#'
+  SLURM_PROTOCOL_1605_FALSE=
 fi
 
 
-if test -z "$SLURM_PROTOCOL_1403_TRUE"; then :
+AM_CFLAGS="$AM_CFLAGS -DSLURM_PROTOCOL_1605"
 
-  { $as_echo "$as_me:${as_lineno-$LINENO}: Building with slurm protocol 14.03 support" >&5
-$as_echo "$as_me: Building with slurm protocol 14.03 support" >&6;}
-
-else
+if test -z "$SLURM_PROTOCOL_1605_TRUE"; then :
 
   { $as_echo "$as_me:${as_lineno-$LINENO}: Building with slurm protocol 16.05 support" >&5
 $as_echo "$as_me: Building with slurm protocol 16.05 support" >&6;}
-  AM_CFLAGS="$AM_CFLAGS -DSLURM_PROTOCOL_1605"
+
+else
+
+  { $as_echo "$as_me:${as_lineno-$LINENO}: Building with slurm protocol 17.02 support" >&5
+$as_echo "$as_me: Building with slurm protocol 17.02 support" >&6;}
+  AM_CFLAGS="$AM_CFLAGS -DSLURM_PROTOCOL_1702"
 
 fi
 
@@ -13208,8 +13210,8 @@ if test -z "${TESTPLUGINS_ENABLED_TRUE}" && test -z "${TESTPLUGINS_ENABLED_FALSE
   as_fn_error $? "conditional \"TESTPLUGINS_ENABLED\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
-if test -z "${SLURM_PROTOCOL_1403_TRUE}" && test -z "${SLURM_PROTOCOL_1403_FALSE}"; then
-  as_fn_error $? "conditional \"SLURM_PROTOCOL_1403\" was never defined.
+if test -z "${SLURM_PROTOCOL_1605_TRUE}" && test -z "${SLURM_PROTOCOL_1605_FALSE}"; then
+  as_fn_error $? "conditional \"SLURM_PROTOCOL_1605\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${HAVE_SYSTEMD_TRUE}" && test -z "${HAVE_SYSTEMD_FALSE}"; then

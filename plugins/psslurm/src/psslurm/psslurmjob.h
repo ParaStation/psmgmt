@@ -89,6 +89,7 @@ typedef struct {
     env_t pelogueEnv;
     char *resvPorts;
     uint32_t groupNum;
+    bool timeout;               /* job was cancelled due to time limit */
 } Job_t;
 
 /**
