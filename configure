@@ -12769,12 +12769,11 @@ else
 fi
 
 
-AM_CFLAGS="$AM_CFLAGS -DSLURM_PROTOCOL_1605"
-
 if test -z "$SLURM_PROTOCOL_1605_TRUE"; then :
 
   { $as_echo "$as_me:${as_lineno-$LINENO}: Building with slurm protocol 16.05 support" >&5
 $as_echo "$as_me: Building with slurm protocol 16.05 support" >&6;}
+  AM_CFLAGS="$AM_CFLAGS -DSLURM_PROTOCOL_1605"
 
 else
 

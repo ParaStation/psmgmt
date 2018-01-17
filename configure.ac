@@ -103,10 +103,9 @@ AC_ARG_ENABLE([slurm_1702], [AS_HELP_STRING([--disable-slurm_1702],
   [disable slurm protocol 17.02 support and support 16.05 instead])])
 AM_CONDITIONAL([SLURM_PROTOCOL_1605], [test "x$enable_slurm_1702" = xno])
 
-AM_CFLAGS="$AM_CFLAGS -DSLURM_PROTOCOL_1605"
-
 AM_COND_IF([SLURM_PROTOCOL_1605], [
   AC_MSG_NOTICE([Building with slurm protocol 16.05 support])
+  AM_CFLAGS="$AM_CFLAGS -DSLURM_PROTOCOL_1605"
 ], [
   AC_MSG_NOTICE([Building with slurm protocol 17.02 support])
   AM_CFLAGS="$AM_CFLAGS -DSLURM_PROTOCOL_1702"
