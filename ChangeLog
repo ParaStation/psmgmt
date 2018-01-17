@@ -1,3 +1,673 @@
+Version psmgmt-5.1.8:
+=====================
+------------------------------------------------------------------------
+3398e973 | Norbert Eicker | Wed, 17 Jan 2018 23:11:04 +0100
+
+Update README describing the release process
+
+------------------------------------------------------------------------
+d829f864 | Norbert Eicker | Wed, 17 Jan 2018 17:07:35 +0100
+
+Define SLURM_PROTOCOL_1605 only exactly for v16.05
+
+------------------------------------------------------------------------
+917b0900 | Norbert Eicker | Wed, 17 Jan 2018 17:03:48 +0100
+
+Fix #ifdef to work for SLURM 16.05 and higher
+
+------------------------------------------------------------------------
+6a608ad3 | Norbert Eicker | Tue, 16 Jan 2018 22:41:28 +0100
+
+Push automake to version 1.15.1
+
+------------------------------------------------------------------------
+66fc74ba | Norbert Eicker | Tue, 16 Jan 2018 22:39:11 +0100
+
+Merge branch 'psslurm-devel-1702'
+
+------------------------------------------------------------------------
+07d7fe9d | Norbert Eicker | Tue, 16 Jan 2018 22:37:33 +0100
+
+Update buildsystem to support SLURM 17.02 and 16.05
+
+ - This drops support for SLURM 14.05 protocol
+ - Standard protocol is SLURM 17.02 from now on
+
+------------------------------------------------------------------------
+63343f87 | Norbert Eicker | Tue, 16 Jan 2018 22:33:44 +0100
+
+Fix typo in comment
+
+------------------------------------------------------------------------
+77c52327 | Norbert Eicker | Tue, 16 Jan 2018 22:02:16 +0100
+
+Minor streamlining and fixing typos
+
+------------------------------------------------------------------------
+556345db | Norbert Eicker | Tue, 16 Jan 2018 19:46:08 +0100
+
+Fix missing includes
+
+------------------------------------------------------------------------
+f7fbc37e | Norbert Eicker | Tue, 16 Jan 2018 19:44:59 +0100
+
+Fix missing include
+
+------------------------------------------------------------------------
+5d4fb7b5 | Norbert Eicker | Tue, 16 Jan 2018 18:31:25 +0100
+
+Remove reference to SIGUNUSED
+
+ - SIGUNUSED was removed from glibc 2.26
+ - Take the opportunity to streamline psmomsignal
+
+------------------------------------------------------------------------
+fe1b874a | Norbert Eicker | Mon, 15 Jan 2018 21:43:06 +0100
+
+Fix missing include unveiled by gcc 7
+
+------------------------------------------------------------------------
+bece7420 | Norbert Eicker | Mon, 15 Jan 2018 21:26:55 +0100
+
+Fix various bug and warnings highlighted by gcc 7
+
+------------------------------------------------------------------------
+77654777 | Norbert Eicker | Mon, 15 Jan 2018 21:24:58 +0100
+
+Fix various bugs and warnings highlighted by gcc 7
+
+ - In addition do some streamlining of psmomconv and psmomlist
+
+------------------------------------------------------------------------
+e446c797 | Norbert Eicker | Mon, 15 Jan 2018 20:41:51 +0100
+
+Fix two warnings issued by gcc 7
+
+------------------------------------------------------------------------
+055bd6dc | Norbert Eicker | Mon, 15 Jan 2018 19:02:03 +0100
+
+Fix various 'fall through' warnings from gcc 7
+
+------------------------------------------------------------------------
+1d5c9ea6 | Norbert Eicker | Mon, 15 Jan 2018 19:00:57 +0100
+
+Fix 'fall through' warnings from gcc 7
+
+ - In addition rename label from error to cleanup to avoid ambiguity
+
+------------------------------------------------------------------------
+cf06f160 | Norbert Eicker | Mon, 15 Jan 2018 18:24:31 +0100
+
+Prevent warning from gcc 7
+
+ - Write down check for any bits set more explicitely
+ - Booleanize the pscpu toolbox
+
+------------------------------------------------------------------------
+e8f04a9a | Michael Rauh | Fri, 12 Jan 2018 12:57:55 +0100
+
+Merge branch 'master' into psslurm-devel-1702
+
+------------------------------------------------------------------------
+d69d21ef | Michael Rauh | Fri, 12 Jan 2018 10:55:55 +0100
+
+Fix merge error
+
+------------------------------------------------------------------------
+6ae6c4af | Michael Rauh | Fri, 29 Sep 2017 16:34:28 +0200
+
+Let psiadmin change the debug mask of the pelogue plugin
+
+------------------------------------------------------------------------
+fbbbdff2 | Michael Rauh | Thu, 11 Jan 2018 15:19:55 +0100
+
+Merge branch 'master' into psslurm-devel-1702
+
+------------------------------------------------------------------------
+a8295869 | Michael Rauh | Mon, 18 Sep 2017 16:36:49 +0200
+
+Bugfix: fix segmentation fault in psslurm step callback (jrt:#6980)
+
+------------------------------------------------------------------------
+76d3cf2e | Stephan Krempel | Mon, 24 Jul 2017 15:50:06 +0200
+
+psslurm: Modified socket and ldom pinning
+
+------------------------------------------------------------------------
+d3497c9e | Norbert Eicker | Thu, 21 Dec 2017 12:37:48 +0100
+
+Streamlining and request for docu of psslurmgres etc.
+
+------------------------------------------------------------------------
+6ee9922c | Norbert Eicker | Tue, 5 Dec 2017 17:54:50 +0100
+
+Remove obsolete psslurmjobinfo stuff
+
+------------------------------------------------------------------------
+fd022700 | Norbert Eicker | Tue, 5 Dec 2017 15:50:52 +0100
+
+Streamlining and request for docu of psslurmtask etc.
+
+------------------------------------------------------------------------
+a3da5ee0 | Norbert Eicker | Tue, 5 Dec 2017 13:20:12 +0100
+
+Streamlining and request for docu of psslurmjobcred
+
+------------------------------------------------------------------------
+eb28319a | Norbert Eicker | Tue, 5 Dec 2017 13:10:39 +0100
+
+Streamlining and request for docu of psslurmjob
+
+------------------------------------------------------------------------
+dd3e53e9 | Norbert Eicker | Tue, 5 Dec 2017 09:57:47 +0100
+
+Streamlining and request for docu of psslurmstep
+
+------------------------------------------------------------------------
+0e316dec | Norbert Eicker | Tue, 5 Dec 2017 09:21:11 +0100
+
+Streamlining and request for docu of psslurmbcast
+
+------------------------------------------------------------------------
+0eb6feef | Michael Rauh | Fri, 10 Nov 2017 11:22:02 +0100
+
+Get rid of string jobid and job history in psslurm
+
+------------------------------------------------------------------------
+e7c346dc | Michael Rauh | Thu, 9 Nov 2017 10:53:35 +0100
+
+Move bcast implementation to psslurmbcast
+
+------------------------------------------------------------------------
+cd9ebbe7 | Michael Rauh | Tue, 7 Nov 2017 13:54:47 +0100
+
+Remove unused pmiSrunPort and pmiStepNodes from Step_t
+
+------------------------------------------------------------------------
+a1ad05cb | Michael Rauh | Tue, 7 Nov 2017 10:15:35 +0100
+
+Cleanup JobCred_t
+
+------------------------------------------------------------------------
+32fe4e2b | Michael Rauh | Mon, 6 Nov 2017 14:04:24 +0100
+
+Move step implementation to psslurmstep
+
+------------------------------------------------------------------------
+d57585bc | Michael Rauh | Fri, 3 Nov 2017 16:54:47 +0100
+
+Remove unused fields from Step_t
+
+------------------------------------------------------------------------
+d701f45b | Michael Rauh | Fri, 3 Nov 2017 16:31:57 +0100
+
+Move JobCred_t to psslurmjobcred.h
+
+------------------------------------------------------------------------
+109a08b3 | Michael Rauh | Fri, 3 Nov 2017 16:04:55 +0100
+
+Move IO_Opt_t to psslurmio
+
+------------------------------------------------------------------------
+90319301 | Michael Rauh | Fri, 3 Nov 2017 12:14:46 +0100
+
+Move task code from psslurmjob to psslurmtasks
+
+------------------------------------------------------------------------
+b40a9a9d | Michael Rauh | Thu, 2 Nov 2017 16:54:31 +0100
+
+Remove obsolete RLimits_t in psslurmjob
+
+------------------------------------------------------------------------
+0d50f1ec | Michael Rauh | Thu, 2 Nov 2017 13:31:49 +0100
+
+Improve plugin config parsing
+
+------------------------------------------------------------------------
+5c135f44 | Michael Rauh | Fri, 27 Oct 2017 13:22:55 +0200
+
+Added missing includes for peloguekvs.c
+
+------------------------------------------------------------------------
+c288c3ef | Michael Rauh | Thu, 26 Oct 2017 15:58:36 +0200
+
+Bugfix: fix segmentation fault if epilogue start messages
+    get dropped (jrt:#7129)
+
+------------------------------------------------------------------------
+5c412790 | Michael Rauh | Thu, 26 Oct 2017 15:55:56 +0200
+
+Show active and registered jobs in pelogue show query
+
+------------------------------------------------------------------------
+3c5722b5 | Michael Rauh | Thu, 26 Oct 2017 12:07:35 +0200
+
+Clear psid message registration in psslurm and pelogue if
+    no old message handler is found
+
+------------------------------------------------------------------------
+ab9858b8 | Michael Rauh | Thu, 26 Oct 2017 11:56:53 +0200
+
+Move psid message registration into pslurmpscomm
+
+------------------------------------------------------------------------
+951f133c | Michael Rauh | Tue, 24 Oct 2017 13:50:59 +0200
+
+Let pelogue handle PSP_CD_UNKNOWN messages
+
+------------------------------------------------------------------------
+cefa65be | Michael Rauh | Tue, 24 Oct 2017 13:17:01 +0200
+
+First step to support multiple Slurm protocol versions
+
+------------------------------------------------------------------------
+1fdab425 | Michael Rauh | Mon, 23 Oct 2017 16:36:07 +0200
+
+Remove obsolete addInt2StringList() function
+
+------------------------------------------------------------------------
+13f24801 | Michael Rauh | Mon, 23 Oct 2017 16:25:09 +0200
+
+Let psslurm handle PSP_CD_UNKNOWN messages
+
+Fix some typos
+
+------------------------------------------------------------------------
+056bc3b6 | Michael Rauh | Mon, 23 Oct 2017 15:24:01 +0200
+
+Remove obsolete message types in psslurm
+
+------------------------------------------------------------------------
+b22c8fe4 | Norbert Eicker | Fri, 20 Oct 2017 17:58:16 +0200
+
+Merge branch 'psmgmt-5.1.7'
+
+------------------------------------------------------------------------
+e249f183 | Norbert Eicker | Fri, 20 Oct 2017 13:43:50 +0200
+
+Ignore flow-control messages withing libpsi (#261)
+
+------------------------------------------------------------------------
+bc2a6e08 | Michael Rauh | Thu, 12 Oct 2017 16:27:46 +0200
+
+Added pack function for RESPONSE_LAUNCH_TASKS messages
+
+------------------------------------------------------------------------
+2ed57ec9 | Norbert Eicker | Mon, 9 Oct 2017 18:49:54 +0200
+
+Create error messaage for unhandled messages
+
+------------------------------------------------------------------------
+60b31d73 | Michael Rauh | Thu, 5 Oct 2017 17:26:16 +0200
+
+Improved debug output in psslurm
+
+------------------------------------------------------------------------
+2e26f7d6 | Michael Rauh | Mon, 2 Oct 2017 16:44:22 +0200
+
+Fix two warnings found by clang's scan-build
+
+------------------------------------------------------------------------
+916df887 | Norbert Eicker | Wed, 27 Sep 2017 13:30:01 +0200
+
+Ensure that psslurm implements correct interfaces
+
+------------------------------------------------------------------------
+fa3ebc0d | Michael Rauh | Wed, 27 Sep 2017 12:59:53 +0200
+
+Added support for RPC DAEMON_STATUS in psslurm (pct:#134)
+
+------------------------------------------------------------------------
+3e566056 | Michael Rauh | Tue, 26 Sep 2017 13:47:27 +0200
+
+Added support for RPC REQUEST_SHUTDOWN in psslurm (pct:#178)
+
+------------------------------------------------------------------------
+525f6f44 | Michael Rauh | Tue, 26 Sep 2017 12:28:20 +0200
+
+Fix rpm build by removing obsolete file psslurmkvs.h
+
+------------------------------------------------------------------------
+5081356a | Michael Rauh | Tue, 26 Sep 2017 12:15:15 +0200
+
+Make various lists private in psslurmjob.c
+
+------------------------------------------------------------------------
+4323282f | Michael Rauh | Mon, 18 Sep 2017 16:36:49 +0200
+
+Bugfix: fix segmentation fault in psslurm step callback (jrt:#6980)
+
+------------------------------------------------------------------------
+a3774470 | Michael Rauh | Fri, 15 Sep 2017 16:02:55 +0200
+
+Adopt new timeout exit codes from 17.02
+
+------------------------------------------------------------------------
+1ae48d6d | Stephan Krempel | Mon, 24 Jul 2017 15:50:06 +0200
+
+psslurm: Modified socket and ldom pinning
+
+------------------------------------------------------------------------
+4d3a0cd5 | Michael Rauh | Thu, 14 Sep 2017 10:22:51 +0200
+
+Merge branch 'master' into psslurm-devel-1702
+
+------------------------------------------------------------------------
+a9c32165 | Michael Rauh | Tue, 12 Sep 2017 09:48:57 +0200
+
+Better differentiation between nodelist and hostlist in psslurm
+
+------------------------------------------------------------------------
+3a923c62 | Thomas Moschny | Fri, 4 Aug 2017 10:44:18 +0200
+
+Fix building the psconfig-less RPM.
+
+------------------------------------------------------------------------
+0eab6f8a | Norbert Eicker | Thu, 3 Aug 2017 08:09:17 +0200
+
+Merge branch 'mpiexec'
+
+------------------------------------------------------------------------
+9056e8e8 | Norbert Eicker | Thu, 3 Aug 2017 07:58:26 +0200
+
+Improve fixes done in 75f3605c
+
+------------------------------------------------------------------------
+75f3605c | Thomas Moschny | Wed, 2 Aug 2017 18:25:36 +0200
+
+Fix two cppcheck memleakOnRealloc errors.
+
+------------------------------------------------------------------------
+ac79cd92 | Norbert Eicker | Mon, 31 Jul 2017 18:20:22 +0200
+
+Bugfix: Seems that SLURM steps need the logger sometimes
+
+------------------------------------------------------------------------
+c1d172ed | Michael Rauh | Mon, 31 Jul 2017 17:15:22 +0200
+
+Update regression test suite:
+
+    commit 5652b4326a35f3c8b15948094aff3017fc72bafb (dorian/pstest)
+    Author: Chrysovalantis Paschoulas <c.paschoulas@fz-juelich.de>
+    Date:   Fri Jul 28 18:15:00 2017 +0200
+
+	Created new test sbatch-env-notmem for Slurm 17.02
+
+	For Slurm 17.04 the env var SLURM_MEM_PER_NODE is exported
+	only when "--mem" is used during submission. This test
+	checks if without the "--mem" options the env var is not
+	set as expected.
+
+    commit cb96cc72bf650cc88434b88a5a91587a59793c0d
+    Author: Chrysovalantis Paschoulas <c.paschoulas@fz-juelich.de>
+    Date:   Fri Jul 28 18:13:14 2017 +0200
+
+	Created new test sbatch-env-mem for Slurm 17.02
+
+	For Slurm 17.04 the env var SLURM_MEM_PER_NODE is exported
+	only when "--mem" is used during submission. This test
+	checks if it set correctly.
+
+    commit a8715e1d885e390bd92ebbbdd99aec414f49c104
+    Author: Chrysovalantis Paschoulas <c.paschoulas@fz-juelich.de>
+    Date:   Fri Jul 28 18:09:42 2017 +0200
+
+	Fix test unbuffered-stdout for Slurm 17.02
+
+	For Slurm 17.02, srun with "--unbuffered" option prints an extra
+	newline/return special char in stdout. Test is aware of this now.
+
+    commit d7f7214352fd6ca25c25d752305107b239239124
+    Author: Chrysovalantis Paschoulas <c.paschoulas@fz-juelich.de>
+    Date:   Fri Jul 28 18:08:05 2017 +0200
+
+	Fix test timeout-exit-15 for Slurm 17.02
+
+	When a jobstep is cancelled (e.g. reached timeout) then the exit
+	code will 0:15 instead of 0:1. Test now expects the correct rc.
+
+    commit c1301d7c12627d064b01e94e00252770fef80715
+    Author: Chrysovalantis Paschoulas <c.paschoulas@fz-juelich.de>
+    Date:   Fri Jul 28 18:07:15 2017 +0200
+
+	Fix test signal-3 for Slurm 17.02
+
+	When a jobstep is cancelled (e.g. reached timeout) then the exit
+	code will 0:15 instead of 0:1. Test now expects the correct rc.
+
+    commit 51c9360ebf61ca4061760d4ea98d1f8773b22def
+    Author: Chrysovalantis Paschoulas <c.paschoulas@fz-juelich.de>
+    Date:   Fri Jul 28 18:05:46 2017 +0200
+
+	Fix test sbatch-env ti support Slurm 17.02
+
+	For test "sbatch-env" vanilla Slurm version 17.02
+	is not exporting by defautl env var SLURM_MEM_PER_NODE,
+	but only if we give the "--mem" to sbatch. Removed the
+	check for this env var (created other tests).
+
+    commit 835ea80741db19b3437cd222533cc7a2dbc535ef
+    Author: Chrysovalantis Paschoulas <c.paschoulas@fz-juelich.de>
+    Date:   Fri Jul 28 18:02:47 2017 +0200
+
+	Fix eval.py of test debugger-test to support Slurm 17.02
+
+	When a jobstep is cancelled (e.g. reached timeout) then the exit
+	code will 0:15 instead of 0:1. Test now expects the correct rc.
+
+    commit c630198a9bcf118f72f270724f5e7ccb7008524a
+    Author: Chrysovalantis Paschoulas <c.paschoulas@fz-juelich.de>
+    Date:   Fri Jul 28 17:58:25 2017 +0200
+
+	Fix eval.py of test accounting-2 for Slurm 17.02
+
+	When a jobstep is cancelled (e.g. reached timeout) then the exit
+	code will 0:15 instead of 0:1. Also some times (most probably
+	because of some race conditions = bug) the order of sending
+	SIGTERM to kill the processes is wrong and the jobsteps will
+	fail instead of be cancelled normally. This test accepts (at
+	least for now) the failed state (rc) also as correct/expected.
+
+    commit 04e8a9148f7727d0f4463ba10f4591e6cdb6cca0
+    Author: Chrysovalantis Paschoulas <c.paschoulas@fz-juelich.de>
+    Date:   Fri Jul 28 17:30:53 2017 +0200
+
+	Fix test accounting-1 for Slurm 17.02
+
+	When a jobstep is cancelled (e.g. reached timeout) then the exit
+	code will 0:15 instead of 0:1. Test now expects the correct rc.
+
+    commit 643c2b9c53ba6097bc3988068322533e17ed0951
+    Author: Chrysovalantis Paschoulas <c.paschoulas@fz-juelich.de>
+    Date:   Thu Jun 8 12:49:47 2017 +0200
+
+	add doc notes update the tests state from scripts
+
+    commit 709e1cc9bcfd90e1f71671abdab35254a4a99b4e
+    Author: Chrysovalantis Paschoulas <c.paschoulas@fz-juelich.de>
+    Date:   Tue Jun 6 11:08:52 2017 +0200
+
+	add docs, how to push changes to partec repo
+
+------------------------------------------------------------------------
+3e675326 | Norbert Eicker | Mon, 31 Jul 2017 14:53:43 +0200
+
+Bugfix: Ensure timer does not expire in localtime() (#2636)
+
+------------------------------------------------------------------------
+262822f8 | Norbert Eicker | Mon, 31 Jul 2017 14:44:54 +0200
+
+Start improving psaccounter
+
+ - Use list_t
+ - Improve logging
+
+------------------------------------------------------------------------
+0bfed462 | Norbert Eicker | Mon, 31 Jul 2017 12:36:26 +0200
+
+Improve documentation of getMemFromBuf().
+
+------------------------------------------------------------------------
+a05a3331 | Norbert Eicker | Sun, 30 Jul 2017 22:28:32 +0200
+
+More use of PSP_put/getMsgBuf in psidstatus
+
+------------------------------------------------------------------------
+318235a6 | Norbert Eicker | Sun, 30 Jul 2017 22:20:05 +0200
+
+Finally use false-flag for selected message types
+
+ - Test only for messages of type PSP_DD_DAEMONCONNECT and
+   PSP_DD_DAEMONESTABLISHED
+
+------------------------------------------------------------------------
+cd37b346 | Norbert Eicker | Fri, 21 Jul 2017 09:48:40 +0200
+
+Streamline kvs
+
+------------------------------------------------------------------------
+de5b5a97 | Norbert Eicker | Fri, 21 Jul 2017 09:10:52 +0200
+
+Streamline kvscommon
+
+------------------------------------------------------------------------
+39a7c44c | Norbert Eicker | Wed, 19 Jul 2017 15:03:17 +0200
+
+Make header files accessible for autotools
+
+------------------------------------------------------------------------
+0137285e | Norbert Eicker | Wed, 19 Jul 2017 15:02:30 +0200
+
+Extract providerloop from libpskvs
+
+------------------------------------------------------------------------
+6e2d8186 | Norbert Eicker | Wed, 19 Jul 2017 13:24:22 +0200
+
+Restructure libpskvs
+
+------------------------------------------------------------------------
+12aaae5e | Norbert Eicker | Tue, 18 Jul 2017 18:40:12 +0200
+
+Enhance efficiency of environment propagation
+
+------------------------------------------------------------------------
+51622b89 | Norbert Eicker | Tue, 18 Jul 2017 13:10:00 +0200
+
+Booleanize psispawn.c
+
+ - More formatting beautification
+
+------------------------------------------------------------------------
+039dd652 | Norbert Eicker | Tue, 18 Jul 2017 11:57:30 +0200
+
+Adapt psslurm plugin to new mpiexec
+
+------------------------------------------------------------------------
+78a2628e | Norbert Eicker | Tue, 18 Jul 2017 11:56:33 +0200
+
+Adapt pspmi plugin to new mpiexec
+
+------------------------------------------------------------------------
+1d92404e | Norbert Eicker | Tue, 18 Jul 2017 11:53:24 +0200
+
+Continue splitting up mpiexec
+
+ - Extract kvsprovider into its own executable
+ - Major re-organization of common parts
+ - Rename environment.[ch] -> common.[ch]
+
+------------------------------------------------------------------------
+92059ceb | Norbert Eicker | Tue, 18 Jul 2017 09:50:05 +0200
+
+Always check for PMI consistency
+
+------------------------------------------------------------------------
+485fdb92 | Norbert Eicker | Tue, 18 Jul 2017 09:46:19 +0200
+
+Bugfix: Handle executable names including ')' correctly
+
+------------------------------------------------------------------------
+cda9ba36 | Norbert Eicker | Fri, 14 Jul 2017 00:43:01 +0200
+
+Enhancement: Allow to set the task-group via PSI_spawnService()
+
+------------------------------------------------------------------------
+ffaa63ea | Norbert Eicker | Thu, 13 Jul 2017 17:51:26 +0200
+
+Use ENV_NUM_SERVICE_PROCS instead of its value
+
+------------------------------------------------------------------------
+d8fdc187 | Michael Rauh | Tue, 11 Jul 2017 11:30:30 +0200
+
+Merge branch 'master' into psslurm-devel-1702
+
+------------------------------------------------------------------------
+e4952ae3 | Norbert Eicker | Fri, 7 Jul 2017 17:07:10 +0200
+
+Drop spawner's unneeded dependency on libpskvs
+
+------------------------------------------------------------------------
+d274c4f9 | Norbert Eicker | Fri, 7 Jul 2017 13:52:52 +0200
+
+Get rid of testacct's libpse dependency
+
+------------------------------------------------------------------------
+7c3456d6 | Norbert Eicker | Fri, 7 Jul 2017 13:40:58 +0200
+
+Reorganize buildsystem in bin directory
+
+------------------------------------------------------------------------
+335ae89e | Norbert Eicker | Fri, 7 Jul 2017 12:50:40 +0200
+
+Start using SUBDIRS for build-system in bin
+
+------------------------------------------------------------------------
+fb5db414 | Norbert Eicker | Fri, 7 Jul 2017 11:48:06 +0200
+
+Extract spawner part of mpiexec into its own executable
+
+------------------------------------------------------------------------
+9772040e | Norbert Eicker | Thu, 6 Jul 2017 21:26:22 +0200
+
+Extract mpiexec's environment setup into its own src
+
+------------------------------------------------------------------------
+2682f8dd | Michael Rauh | Mon, 3 Jul 2017 10:22:12 +0200
+
+Merge branch 'master' into psslurm-devel-1702
+
+------------------------------------------------------------------------
+550c635f | Michael Rauh | Fri, 30 Jun 2017 10:57:27 +0200
+
+Hide connection reset with debug mask PSSLURM_LOG_COMM
+
+------------------------------------------------------------------------
+fdacff84 | Michael Rauh | Thu, 29 Jun 2017 16:35:13 +0200
+
+Cleanup associated selector and timer if a message buffer gets deleted
+
+------------------------------------------------------------------------
+b1c48ae0 | Michael Rauh | Tue, 27 Jun 2017 13:07:24 +0200
+
+Switch to non-blocking read/write for Slurm messages (psc:#255).
+Store and resend important Slurm messages if the slurmctld
+    is temporally unavailable (jrt:#3389).
+
+------------------------------------------------------------------------
+639f3b33 | Michael Rauh | Tue, 27 Jun 2017 13:04:13 +0200
+
+Merge branch 'master' into psslurm-devel-1702
+
+------------------------------------------------------------------------
+1da330e2 | Michael Rauh | Tue, 16 May 2017 17:45:14 +0200
+
+First implementation of the 17.02 protocol.
+Move more pack/unpack code into psslurmpack.
+Minor cleanup.
+
+------------------------------------------------------------------------
+
+
 Version psmgmt-5.1.7:
 =====================
 ------------------------------------------------------------------------
