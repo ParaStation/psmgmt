@@ -1,13 +1,12 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2017-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-
 #include <stdlib.h>
 
 #include "pluginmalloc.h"
@@ -215,7 +214,7 @@ void initSlurmMsgHead(Slurm_Msg_Header_t *head)
     memset(head, 0, sizeof(Slurm_Msg_Header_t));
     head->version = SLURM_CUR_PROTOCOL_VERSION;
     head->flags |= SLURM_GLOBAL_AUTH_KEY;
-#ifdef SLURM_PROTOCOL_1605
+#ifdef MIN_SLURM_PROTO_1605
     head->treeWidth = 1;
 #endif
 }
