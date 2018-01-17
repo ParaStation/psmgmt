@@ -3,9 +3,9 @@ How to prepare a new release:
 1. Commit all changes.
 
 2. Update the ChangeLog. Use:
-git log --topo-order --pretty=format:\
+git log --pretty=format:\
 "------------------------------------------------------------------------"\
-"%n%h | %an | %aD%n%n%B" <last-tag>..
+"%n%h | %an | %aD%n%n%B" <last-tag>..HEAD
    in order to create the list of changes.
 
 3. Condense ChangeLog's changes into NEWS file.
