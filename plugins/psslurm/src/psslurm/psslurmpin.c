@@ -43,6 +43,87 @@ typedef struct {
     uint32_t threadCount;    /* number of hardware threads */
 } nodeinfo_t;
 
+enum thread_iter_strategy {
+    FLAT,
+    CORES,
+    SOCKETS
+};
+
+typedef struct {
+    enum thread_iter_strategy strategy;
+    const nodeinfo_t *nodeinfo;
+    uint32_t next;
+    uint8_t valid;    /* is this iterator still valid */
+} thread_iterator;
+
+/*
+ * Initialize an hardware thread iterator
+ *
+ * @param iter      iterator to be initialized
+ * @param strategy  iteration strategy
+ * @param nodeinfo  node information
+ * @param start     first thread that will be returned by thread_iter_next
+ */
+static void thread_iter_init(thread_iterator *iter,
+	enum thread_iter_strategy strategy, const nodeinfo_t *nodeinfo,
+	uint32_t start) {
+    iter->strategy = strategy;
+    iter->nodeinfo = nodeinfo;
+    iter->next = start;
+    iter->valid = (iter->next < nodeinfo->threadCount) ? 1 : 0;
+}
+
+static int thread_iter_next(thread_iterator *iter, uint32_t *result) {
+
+    uint16_t coresPerSocket; /* number of cores per socket */
+    uint32_t coreCount;      /* number of cores */
+    uint32_t threadCount;    /* number of hardware threads */
+    uint16_t socket;
+
+    if (!iter->valid) return 0;
+
+    coresPerSocket = iter->nodeinfo->coresPerSocket;
+    coreCount = iter->nodeinfo->coreCount;
+    threadCount = iter->nodeinfo->threadCount;
+
+    *result = iter->next;
+
+    if (iter->next == iter->nodeinfo->threadCount - 1) {
+	/* this is the last thread */
+	iter->valid = 0;
+	return 1;
+    }
+
+    socket = iter->next % coreCount / coresPerSocket;
+
+    switch(iter->strategy) {
+    case FLAT:
+	iter->next++;
+	break;
+    case CORES:
+	iter->next += coreCount;
+	if (iter->next > threadCount) {
+	    iter->next %= threadCount;
+	    iter->next += 1;
+	}
+	break;
+    case SOCKETS:
+	iter->next += 1;
+	if ((iter->next % coreCount) / coresPerSocket > socket
+		|| iter->next % coreCount == 0) {
+	    /* use next hw thread */
+	    iter->next += coreCount - coresPerSocket;
+	    if (iter->next / threadCount >= 1) {
+		iter->next %= threadCount;
+		iter->next += coresPerSocket;
+	    }
+	}
+	break;
+    }
+
+    return 1;
+}
+
 /*
  * Parse the coreBitmap of @a step and generate a coreMap.
  *
