@@ -1,0 +1,17 @@
+Steps to test pinning:
+
+1. Adjust parameters in test_psslurmpin.c
+
+2. Compile test_psslurmpin:
+
+> cd build
+> mkdir plugins/psslurm/tests
+> gcc -Wall ../plugins/psslurm/tests/test_psslurmpin.c -o plugins/psslurm/tests/test_psslurmpin \
+      -I../include -I../plugins/psslurm/src/common -I../plugins/psslurm/src/psslurm -lnuma -lm\
+      plugins/psslurm/src/psslurm/.libs/psslurm_la-psslurmpin.o \
+      lib/plugincommon/.libs/pluginmalloc.o lib/pscommon/.libs/pscpu.o
+
+3. run plugins/psslurm/tests/test_psslurmpin
+
+
+To get debugging output, add -DVERBOSE to gcc parameters.
