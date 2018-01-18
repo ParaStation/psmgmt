@@ -3,6 +3,7 @@
 #include <stdint.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <string.h>
 
 #include "psslurmpin.h"
 
@@ -31,10 +32,10 @@ typedef struct {
  * CPU_BIND_TO_LDOMS            - pin to whole sockets (same as CPU_BIND_TO_SOCKETS)
  * CPU_BIND_LDRANK              - pin to as many threads as needed inside sockets
  * CPU_BIND_RANK                - concerned as default
- * CPU_BIND_TO_THREADS          - concerned as default (same as CPU_BIND_TO_THREADS)
+ * CPU_BIND_TO_THREADS          - concerned as default (same as CPU_BIND_RANK)
 */
 
-int main(void)
+int main(int argc, char *argv[])
 {
     int i;
 
@@ -63,6 +64,42 @@ int main(void)
     /* output variables */
     PSCPU_set_t CPUset;
 
+    if (argc != 9) {
+	printf("Usage: test_psslurmpin <sockets> <coresPerSocket>"
+		" <threadsPerCore> <tasks> <threadsPerTask> <bindType>"
+		" <bindString> <oneThreadPerCore>\n");
+	return -1;
+    }
+
+    socketCount = atoi(argv[1]);
+    coresPerSocket = atoi(argv[2]);
+    threadsPerCore = atoi(argv[3]);
+    threadCount = socketCount * coresPerSocket * threadsPerCore;
+
+    /* task info */
+    tasksPerNode = atoi(argv[4]);
+    threadsPerTask = atoi(argv[5]);
+
+    /* pinning info */
+    if (strcmp(argv[6], "none") == 0) cpuBindType = CPU_BIND_NONE;
+    else if (strcmp(argv[6], "map") == 0) cpuBindType = CPU_BIND_MAP;
+    else if (strcmp(argv[6], "mask") == 0) cpuBindType = CPU_BIND_MASK;
+    else if (strcmp(argv[6], "ldmap") == 0) cpuBindType = CPU_BIND_LDMAP;
+    else if (strcmp(argv[6], "ldmask") == 0) cpuBindType = CPU_BIND_LDMASK;
+    else if (strcmp(argv[6], "sockets") == 0) cpuBindType = CPU_BIND_TO_SOCKETS;
+    else if (strcmp(argv[6], "ldoms") == 0) cpuBindType = CPU_BIND_TO_LDOMS;
+    else if (strcmp(argv[6], "ldrank") == 0) cpuBindType = CPU_BIND_LDRANK;
+    else if (strcmp(argv[6], "rank") == 0) cpuBindType = CPU_BIND_RANK;
+    else {
+	printf("Unknown bind type: '%s'.\n", argv[6]);
+	return -1;
+    }
+
+    cpuBindString = argv[7];
+
+    if (atoi(argv[8]) != 0) {
+	cpuBindType |= CPU_BIND_ONE_THREAD_PER_CORE;
+    }
 
     coreMap = malloc(threadCount * sizeof(*coreMap));
     for (i = 0; i < threadCount; coreMap[i++] = 1);
@@ -75,6 +112,8 @@ int main(void)
 	    socketCount, coresPerSocket, threadsPerCore);
     printf("job: %d tasks, %d threads per task\n", tasksPerNode,
 	    threadsPerTask);
+    printf("flags: oneThreadPerCore %s\n", atoi(argv[8]) != 0 ? "set" : "unset");
+    printf("\n");
 
     lastCpu = -1; /* no cpu assigned yet */
     thread = 0;

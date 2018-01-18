@@ -1,8 +1,6 @@
 Steps to test pinning:
 
-1. Adjust parameters in test_psslurmpin.c
-
-2. Compile test_psslurmpin:
+1. Compile test_psslurmpin:
 
 > cd build
 > mkdir plugins/psslurm/tests
@@ -11,7 +9,18 @@ Steps to test pinning:
       plugins/psslurm/src/psslurm/.libs/psslurm_la-psslurmpin.o \
       lib/plugincommon/.libs/pluginmalloc.o lib/pscommon/.libs/pscpu.o
 
+To get debugging output, add -DVERBOSE to gcc parameters.
+
+
 3. run plugins/psslurm/tests/test_psslurmpin
 
+Usage: test_psslurmpin <sockets> <coresPerSocket> <threadsPerCore>
+                       <tasks> <threadsPerTask> <bindType> <bindString> <oneThreadPerCore>
 
-To get debugging output, add -DVERBOSE to gcc parameters.
+With: sockets, coresPerSocket, threadsPerCore, tasks, threadsPerTask are any natural number
+      bindType is one of none, map, mask, ldmap, ldmask, sockets, ldoms, ldrank, rank
+      bindString is the string used for map, mask, ldmap, ldmask
+      oneThreadPerCore is 1 or 0
+
+Example: plugins/psslurm/tests/test_psslurmpin  2 8 2  8 4  rank ""  0
+
