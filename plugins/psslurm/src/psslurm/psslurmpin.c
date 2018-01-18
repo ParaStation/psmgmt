@@ -35,6 +35,14 @@
 
 #include "psslurmpin.h"
 
+typedef struct {
+    uint16_t socketCount;    /* number of sockets */
+    uint16_t coresPerSocket; /* number of cores per socket */
+    uint16_t threadsPerCore; /* number of hardware threads per core */
+    uint32_t coreCount;      /* number of cores */
+    uint32_t threadCount;    /* number of hardware threads */
+} nodeinfo_t;
+
 /*
  * Parse the coreBitmap of @a step and generate a coreMap.
  *
@@ -553,6 +561,14 @@ static void setCPUset(PSCPU_set_t *CPUset, uint16_t cpuBindType, char *cpuBindSt
     if (cpuBindType & CPU_BIND_ONE_THREAD_PER_CORE) {
 	hwThreads = 1;
     }
+
+    nodeinfo_t nodeinfo = {
+	.socketCount = socketCount,
+	.coresPerSocket = coresPerSocket,
+	.threadsPerCore = hwThreads,
+	.coreCount = cpuCount,
+	.threadCount = cpuCount * hwThreads
+    };
 
     if (cpuBindType & CPU_BIND_NONE) {
 	PSCPU_setAll(*CPUset);
