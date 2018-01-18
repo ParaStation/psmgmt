@@ -188,7 +188,7 @@ typedef enum task_dist_states {
         SLURM_DIST_BLOCK_CFULL, /* Same as block:cyclic except for
                                    multi-cpu tasks cyclically
                                    bind cpus  */
-#endif /* SLURM_PROTOCOL_1605 */
+#endif /* MIN_SLURM_PROTO_1605 */
 } task_dist_states_t;
 
 #ifdef MIN_SLURM_PROTO_1605

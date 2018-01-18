@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014-2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -50,6 +50,12 @@
 #include "psslurmproto.h"
 
 #undef DEBUG_MSG_HEADER
+
+typedef struct {
+    uint32_t jobid;
+    uint32_t stepid;
+    bool timeout;
+} Kill_Info_t;
 
 /**
  * @brief Send a ping response
@@ -1508,71 +1514,77 @@ static void handleAbortReq(Slurm_Msg_t *sMsg, uint32_t jobid, uint32_t stepid)
     }
 }
 
-static void handleKillReq(Slurm_Msg_t *sMsg, uint32_t jobid,
-			    uint32_t stepid, int time)
+/**
+ * @brief Visitor to kill selected steps
+ *
+ * @param step The next step to visit
+ *
+ * @param nfo Kill information structure to define which steps
+ * should be could
+ *
+ * @return bool Always return false to walk through the complete
+ * step list
+ */
+static bool killSelectedSteps(Step_t *step, const void *killInfo)
 {
-    Step_t *step;
-    Job_t *job;
-    Alloc_t *alloc;
+    const Kill_Info_t *info = killInfo;
     char buf[512];
 
-    if (stepid != NO_VAL) {
-	if (!(step = findStepByStepId(jobid, stepid))) {
-	    mlog("%s: step '%u:%u' not found\n", __func__, jobid, stepid);
-	    goto SEND_SUCCESS;
-	}
-	if (time) {
-	    snprintf(buf, sizeof(buf), "error: *** step %u:%u CANCELLED DUE "
-			"TO TIME LIMIT ***\n", jobid, stepid);
-	    mlog("%s: timeout for step '%u:%u'\n", __func__, jobid, stepid);
-	    printChildMessage(step, buf, strlen(buf), STDERR, 0);
-	    sendStepTimeout(step->fwdata);
-	    step->timeout = 1;
-	} else {
-	    snprintf(buf, sizeof(buf), "error: *** PREEMPTION for step "
-			"%u:%u ***\n", jobid, stepid);
-	    mlog("%s: preemption for step '%u:%u'\n", __func__, jobid, stepid);
-	}
-	signalStep(step, SIGTERM);
-	goto SEND_SUCCESS;
+    if (step->jobid != info->jobid) return false;
+    if (info->stepid != NO_VAL && info->stepid != step->stepid) return false;
+
+    if (info->timeout) {
+	snprintf(buf, sizeof(buf), "error: *** step %u:%u CANCELLED DUE TO"
+		" TIME LIMIT ***\n", step->jobid, step->stepid);
+	printChildMessage(step, buf, strlen(buf), STDERR, 0);
+	sendStepTimeout(step->fwdata);
+	step->timeout = 1;
+    } else {
+	snprintf(buf, sizeof(buf), "error: *** PREEMPTION for step "
+		"%u:%u ***\n", step->jobid, step->stepid);
+	printChildMessage(step, buf, strlen(buf), STDERR, 0);
     }
 
-    if ((job = findJobById(jobid))) job->terminate++;
-    if ((alloc = findAlloc(jobid))) alloc->terminate++;
-    step = findStepByJobid(jobid);
+    if (step->stepid != NO_VAL) signalStep(step, SIGTERM);
+
+    return false;
+}
+
+static void handleKillReq(Slurm_Msg_t *sMsg, Kill_Info_t *info)
+{
+    traverseSteps(killSelectedSteps, info);
+
+    /* if we only kill one selected step, we are done */
+    if (info->stepid != NO_VAL) goto SEND_SUCCESS;
+
+    /* kill request for complete job */
+    Job_t *job = findJobById(info->jobid);
+    if (job) job->terminate++;
+
+    Alloc_t *alloc = findAlloc(info->jobid);
+    if (alloc) alloc->terminate++;
 
     if (!job && !alloc) {
-	mlog("%s: job '%u' not found\n", __func__, jobid);
+	mlog("%s: job %u not found\n", __func__, info->jobid);
 	goto SEND_SUCCESS;
     }
 
-    if (time) {
-	if (step) {
-	    snprintf(buf, sizeof(buf), "error: *** step %u CANCELLED DUE TO"
-			" TIME LIMIT ***\n", jobid);
-	    printChildMessage(step, buf, strlen(buf), STDERR, 0);
-	    sendStepTimeout(step->fwdata);
-	    step->timeout = 1;
-	} else {
-	    mlog("%s: timeout for job '%u'\n", __func__, jobid);
-	}
+    if (info->timeout) {
+	if (job) job->timeout = 1;
+	/* TODO: redirect to job output */
+	mlog("error: *** job %u CANCELLED DUE TO TIME LIMIT ***\n",
+	     info->jobid);
     } else {
-	if (step) {
-	    snprintf(buf, sizeof(buf), "error: *** PREEMPTION for step "
-		    "%u ***\n", jobid);
-	    printChildMessage(step, buf, strlen(buf), STDERR, 0);
-	} else {
-	    mlog("%s: preemption for job '%u'\n", __func__, jobid);
-	}
+	/* TODO: redirect to job output */
+	mlog("error: *** PREEMPTION for job %u ***\n", info->jobid);
     }
 
     if (job) {
 	handleTerminateJob(sMsg, job, SIGTERM);
     } else {
-	signalStepsByJobid(jobid, SIGTERM);
+	signalStepsByJobid(info->jobid, SIGTERM);
 	goto SEND_SUCCESS;
     }
-
     return;
 
 SEND_SUCCESS:
@@ -1586,6 +1598,7 @@ static void handleTerminateReq(Slurm_Msg_t *sMsg)
     Job_t *job;
     Alloc_t *alloc;
     Req_Terminate_Job_t *req = NULL;
+    Kill_Info_t info;
 
     /* unpack request */
     if (!(unpackReqTerminate(sMsg, &req))) {
@@ -1617,6 +1630,8 @@ static void handleTerminateReq(Slurm_Msg_t *sMsg)
     } else if (alloc && !alloc->firstKillRequest) {
 	alloc->firstKillRequest = time(NULL);
     }
+    info.jobid = req->jobid;
+    info.stepid = req->stepid;
 
     /* remove all unfinished spawn requests */
     PSIDspawn_cleanupBySpawner(PSC_getMyTID());
@@ -1624,10 +1639,12 @@ static void handleTerminateReq(Slurm_Msg_t *sMsg)
 
     switch (sMsg->head.type) {
 	case REQUEST_KILL_PREEMPTED:
-	    handleKillReq(sMsg, req->jobid, req->stepid, 0);
+	    info.timeout = 0;
+	    handleKillReq(sMsg, &info);
 	    break;
 	case REQUEST_KILL_TIMELIMIT:
-	    handleKillReq(sMsg, req->jobid, req->stepid, 1);
+	    info.timeout = 1;
+	    handleKillReq(sMsg, &info);
 	    break;
 	case REQUEST_ABORT_JOB:
 	    handleAbortReq(sMsg, req->jobid, req->stepid);
@@ -2197,11 +2214,12 @@ void sendStepExit(Step_t *step, uint32_t exit_status)
     addUint32ToMsg(0, &body);
     addUint32ToMsg(step->nrOfNodes -1, &body);
     /* exit status */
-    if (step->timeout) {
-	addUint32ToMsg(NO_VAL, &body);
-    } else {
-	addUint32ToMsg(exit_status, &body);
-    }
+#ifdef SLURM_PROTOCOL_1702
+    exit_status = (step->timeout) ? 0 : exit_status;
+#else
+    exit_status = (step->timeout) ? NO_VAL : exit_status;
+#endif
+    addUint32ToMsg(exit_status, &body);
 
     /* account data */
     childPid = (step->fwdata) ? step->fwdata->cPid : 1;
@@ -2224,7 +2242,15 @@ static void doSendTaskExit(Step_t *step, int exitCode, uint32_t *count,
     int i, sock;
 
     /* exit status */
+#ifdef SLURM_PROTOCOL_1702
+    if (step->timeout) {
+	addUint32ToMsg(SIGTERM, &body);
+    } else {
+	addUint32ToMsg(exitCode, &body);
+    }
+#else
     addUint32ToMsg(exitCode, &body);
+#endif
 
     /* number of processes exited */
     list_for_each(t, &step->tasks) {
@@ -2275,7 +2301,11 @@ static void doSendTaskExit(Step_t *step, int exitCode, uint32_t *count,
     if (!ctlPort || !ctlAddr) {
 	mlog("%s: sending MESSAGE_TASK_EXIT '%u:%u' exit '%i'\n",
 		__func__, exitCount, *count,
+#ifdef SLURM_PROTOCOL_1702
+		(step->timeout ? SIGTERM : exitCode));
+#else
 		(step->timeout ? 0 : exitCode));
+#endif
 
 	srunSendMsg(-1, step, MESSAGE_TASK_EXIT, &body);
     } else {
@@ -2481,6 +2511,7 @@ void sendJobExit(Job_t *job, uint32_t exit_status)
     PS_DataBuffer_t body = { .buf = NULL };
 
     if (job->signaled) exit_status = 0;
+    if (job->timeout) exit_status = SIGTERM;
 
     mlog("%s: REQUEST_COMPLETE_BATCH_SCRIPT: jobid '%u' exit '%u'\n",
 	 __func__, job->jobid, exit_status);

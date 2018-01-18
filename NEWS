@@ -1,8 +1,44 @@
 psmgmt NEWS -- history of user-visible changes.
 
-Copyright (C) 2010-2017 ParTec Cluster Competence Center GmbH, Munich
+Copyright (C) 2010-2018 ParTec Cluster Competence Center GmbH, Munich
 
 Please send bug reports, questions and suggestions to <support@par-tec.com>
+
+
+Version 5.1.8:
+==============
+Bugfixes:
+ - Fix segmentation fault in psslurm step callback (jrt:#6980)
+ - Fix segmentation fault if epilogue start messages get dropped (jrt:#7129)
+ - Ensure timer does not expire in localtime() (#2636)
+ - Store and resend important Slurm messages if the slurmctld is
+   temporally unavailable (jrt:#3389).
+ - Switch to non-blocking read/write for Slurm messages (psc:#255).
+ - Ignore flow-control messages withing libpsi (#261)
+ - Handle executable names including ')' correctly in psaccount plugin
+ - Fix message unregistration in plugins
+ - Drop use of SIGUNUSED which was removed from glibc 2.26
+ - Fix various bugs unveiled by gcc 7
+
+Enhancements:
+ - Add support for SLURM 17.02 in psslurm
+ - Modify psslurm plugin's socket and ldom pinning
+ - Show active and registered jobs in pelogue plugin's show query
+ - Add support for RPC DAEMON_STATUS in psslurm (pct:#134)
+ - Add support for RPC REQUEST_SHUTDOWN in psslurm (pct:#178)
+ - Add support to change pelogue plugin's debug mask during runtime
+ - Introduce PSP_CD_UNKNOWN message type to tell sender about not
+   handling some messages
+ - Allow to set the task-group via PSI_spawnService()
+ - Split mpiexec into three executables: mpiexec, kvsprovider, and spawner
+ - Hide connection reset with debug mask PSSLURM_LOG_COMM
+ - Improve config parsing for various plugins
+ - Improved debug output in psslurm
+
+Additional changes:
+ - Push automake to version 1.15.1
+ - Drop support for SLURM 14.05
+ - Major code refactoring, cleanup and streamlining concentrating on psslurm
 
 
 Version 5.1.7:

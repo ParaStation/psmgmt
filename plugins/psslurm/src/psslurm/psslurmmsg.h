@@ -1,13 +1,12 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2017-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-
 #ifndef __PSSLURM_MESSAGE
 #define __PSSLURM_MESSAGE
 
@@ -43,7 +42,7 @@ typedef struct {
     uint32_t addr;
     uint16_t port;
     uint32_t timeout;
-#ifdef SLURM_PROTOCOL_1605
+#ifdef MIN_SLURM_PROTO_1605
     uint16_t index;
     uint16_t treeWidth;
 #endif

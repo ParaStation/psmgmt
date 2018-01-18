@@ -1,47 +1,30 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-#include <stdlib.h>
-#include <stdio.h>
-#include <sys/types.h>
-#include <sys/time.h>
-#include <sys/resource.h>
-#include <sys/wait.h>
-#include <unistd.h>
-#include <time.h>
-#include <string.h>
-#include <execinfo.h>
 #include <signal.h>
-
-#include "timer.h"
+#include <string.h>
 
 #include "psaccounthandles.h"
 
-#include "psmom.h"
-#include "psmomlog.h"
-#include "psmomjob.h"
-#include "psmomcomm.h"
-#include "psmomproto.h"
-#include "psmomcollect.h"
-#include "psmomconfig.h"
 #include "psmomchild.h"
-#include "psmomscript.h"
+#include "psmomcomm.h"
 #include "psmomconv.h"
 #include "psmomlocalcomm.h"
+#include "psmomlog.h"
 
 #include "psmomsignal.h"
 
 static struct sigTable {
-    char *sigName;
-    char *sigStrNum;
-    int sigNum;
-} sig_Table[] = {
+    char *name;
+    char *strNum;
+    int num;
+} sigTable[] = {
     { "SIGHUP",	    "1",    SIGHUP },
     { "SIGINT",	    "2",    SIGINT },
     { "SIGQUIT",    "3",    SIGQUIT },
@@ -75,36 +58,28 @@ static struct sigTable {
     { "SIGIO",      "29",   SIGIO },
     { "SIGPWR",     "30",   SIGPWR },
     { "SIGSYS",     "31",   SIGSYS },
-    { "SIGUNUSED",  "31",   SIGUNUSED },
     { "",	    "",	    0}
 };
 
-int string2Signal(char *signal)
+int string2Signal(char *sig)
 {
-    struct sigTable *ptr;
-    ptr = sig_Table;
-
-    while (ptr->sigNum !=  0) {
-	if (!(strcmp(ptr->sigName, signal)) ||
-		!(strcmp(ptr->sigStrNum, signal))) {
-	    return ptr->sigNum;
-	}
-	ptr++;
+    struct sigTable *s = sigTable;
+    while (s->num) {
+	if (!strcmp(s->name, sig) || !strcmp(s->strNum, sig)) return s->num;
+	s++;
     }
+
     return 0;
 }
 
-char *signal2String(int signal)
+char *signal2String(int sig)
 {
-    struct sigTable *ptr;
-    ptr = sig_Table;
-
-    while (ptr->sigNum !=  0) {
-	if (ptr->sigNum == signal) {
-	    return ptr->sigName;
-	}
-	ptr++;
+    struct sigTable *s = sigTable;
+    while (s->num) {
+	if (s->num == sig) return s->name;
+	s++;
     }
+
     return NULL;
 }
 
@@ -114,22 +89,22 @@ bool signalJob(Job_t *job, int signal, char *reason)
     Child_t *child;
 
     if (job->sid != -1) {
-	mlog("signal '%s (%i)' to job '%s' - reason '%s' - sid '%i'\n",
-		signal2String(signal), signal, job->id, reason, job->sid);
+	mlog("signal '%s'(%i) to job '%s' - reason '%s' - sid %i\n",
+	     signal2String(signal), signal, job->id, reason, job->sid);
 	psAccountSignalSession(job->sid, signal);
     } else if (job->pid != -1) {
-	mlog("signal '%s (%i)' to job '%s' - reason '%s' - pid '%i'\n",
-		signal2String(signal), signal, job->id, reason, job->pid);
+	mlog("signal '%s'(%i) to job '%s' - reason '%s' - pid %i\n",
+	     signal2String(signal), signal, job->id, reason, job->pid);
 	kill(job->pid, signal);
     } else if ((comForward = getJobCom(job, JOB_CON_FORWARD))) {
-	mlog("signal '%s (%i)' to job '%s' - reason '%s' - forwarder\n",
-		signal2String(signal), signal, job->id, reason);
+	mlog("signal '%s'(%i) to job '%s' - reason '%s' - forwarder\n",
+	     signal2String(signal), signal, job->id, reason);
 	WriteDigit(comForward, CMD_LOCAL_SIGNAL);
 	WriteDigit(comForward, signal);
 	wDoSend(comForward);
     } else if ((child = findChildByJobid(job->id, -1))) {
-	mlog("signal '%s (%i)' to job '%s' - reason '%s' - child\n",
-		signal2String(signal), signal, job->id, reason);
+	mlog("signal '%s'(%i) to job '%s' - reason '%s' - child\n",
+	     signal2String(signal), signal, job->id, reason);
 	if (signal == SIGKILL) {
 	    /* let the forwarder a little time for cleanup before killing it
 	     * hard via SIGKILL */
