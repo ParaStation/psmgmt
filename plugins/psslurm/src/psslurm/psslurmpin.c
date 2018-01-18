@@ -43,6 +43,11 @@ typedef struct {
     uint32_t threadCount;    /* number of hardware threads */
 } nodeinfo_t;
 
+typedef struct {
+    uint8_t *usedHwThreads;   /* boolean array of hardware threads already assigned */
+    int16_t lastSocket;       /* number of the socket used last */
+} pininfo_t;
+
 enum thread_iter_strategy {
     FLAT,
     CORES,
@@ -641,6 +646,7 @@ static void getSocketBinding(PSCPU_set_t *CPUset, uint8_t *coreMap,
  * @param tasksPerNode   <IN>   number of tasks per node
  * @param threadsPerTask <IN>   number of hardware threads to assign to each task
  * @param local_tid      <IN>   local task id (current task on this node)
+ * @param pininfo        <BOTH> Pinning information structure (for this node)
  *
  */
 static void setCPUset(PSCPU_set_t *CPUset, uint16_t cpuBindType, char *cpuBindString,
@@ -648,8 +654,10 @@ static void setCPUset(PSCPU_set_t *CPUset, uint16_t cpuBindType, char *cpuBindSt
 		uint16_t socketCount, uint16_t coresPerSocket,
 		uint32_t cpuCount, int32_t *lastCpu, uint32_t nodeid,
 		int *thread, int hwThreads, uint32_t tasksPerNode,
-		uint16_t threadsPerTask, uint32_t local_tid)
+		uint16_t threadsPerTask, uint32_t local_tid,
+		pininfo_t *pininfo)
 {
+
     /* handle --hint=nomultithread */
     if (cpuBindType & CPU_BIND_ONE_THREAD_PER_CORE) {
 	hwThreads = 1;
@@ -732,6 +740,7 @@ int setHWthreads(Step_t *step)
     Job_t *job;
     PSpart_slot_t *slots = NULL;
     PSCPU_set_t CPUset;
+    pininfo_t pininfo;
 
     cred = step->cred;
 
@@ -798,6 +807,11 @@ int setHWthreads(Step_t *step)
 
 	lastCpu = -1; /* no cpu assigned yet */
 
+	/* initialize pininfo struct (currently only used for RANK_LDOM) */
+	pininfo.usedHwThreads = calloc(cpuCount * hwThreads,
+					 sizeof(*pininfo.usedHwThreads));
+	pininfo.lastSocket = -1;
+
 	/* set node and cpuset for every task on this node */
 	for (local_tid=0; local_tid < step->globalTaskIdsLen[node];
 		local_tid++) {
@@ -822,7 +836,7 @@ int setHWthreads(Step_t *step)
 		    coreMapIndex, cred->socketsPerNode[coreArrayIndex],
 		    cred->coresPerSocket[coreArrayIndex], cpuCount, &lastCpu,
 		    node, &thread, hwThreads, step->globalTaskIdsLen[node],
-		    step->tpp, local_tid);
+		    step->tpp, local_tid, &pininfo);
 
 	    slots[tid].node = step->nodes[node];
 
