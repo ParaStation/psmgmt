@@ -507,7 +507,19 @@ static void pinToAllSockets(PSCPU_set_t *CPUset, uint32_t cpuCount, int hwThread
 }
 
 /*
- * Set CPUset to bind processes to sockets.
+ * Pin to all hardware threads
+ */
+static void pinToAllThreads(PSCPU_set_t *CPUset, const nodeinfo_t *nodeinfo)
+{
+    uint32_t i;
+
+    for (i = 0; i < nodeinfo->threadCount; i++) {
+	PSCPU_setCPU(*CPUset, i);
+    }
+}
+
+/*
+ * Set CPUset to bind processes to whole sockets.
  *
  * This function assumes the hardware threads to be numbered in
  * cores-sockets-threads order:
