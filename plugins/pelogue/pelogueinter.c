@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2013-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2013-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -28,29 +28,9 @@ bool psPelogueDelPluginConfig(char *name)
 
 bool psPelogueAddJob(const char *plugin, const char *jobid, uid_t uid,
 		     gid_t gid, int numNodes, PSnodes_ID_t *nodes,
-		     PElogueJobCb_t *cb)
+		     PElogueJobCb_t *cb, void *info)
 {
-    if (numNodes > PSC_getNrOfNodes()) {
-	mlog("%s: invalid numNodes '%u'\n", __func__, numNodes);
-	return false;
-    }
-
-    if (!plugin || !jobid) {
-	mlog("%s: invalid plugin %s or jobid %s\n", __func__, plugin, jobid);
-	return false;
-    }
-
-    if (!nodes) {
-	mlog("%s: invalid nodes\n", __func__);
-	return false;
-    }
-
-    if (!cb) {
-	mlog("%s: invalid plugin callback\n", __func__);
-	return false;
-    }
-
-    return !!addJob(plugin, jobid, uid, gid, numNodes, nodes, cb);
+    return !!addJob(plugin, jobid, uid, gid, numNodes, nodes, cb, info);
 }
 
 bool psPelogueStartPE(const char *plugin, const char *jobid, PElogueType_t type,

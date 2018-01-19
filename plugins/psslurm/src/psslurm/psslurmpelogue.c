@@ -52,7 +52,7 @@ bool startStep(Step_t *step, const void *info)
     return false;
 }
 
-static void letAllStepsRun(uint32_t jobid)
+void letAllStepsRun(uint32_t jobid)
 {
     traverseSteps(startStep, &jobid);
 }
@@ -88,7 +88,7 @@ static void handleFailedPElogue(int prologue, uint32_t nrOfNodes, env_t *env,
 }
 
 static void cbPElogueAlloc(char *sjobid, int exit_status, bool timeout,
-			   PElogueResList_t *resList)
+			   PElogueResList_t *resList, void *info)
 {
     Alloc_t *alloc;
     Step_t *step;
@@ -191,7 +191,7 @@ void handleEpilogueJobCB(Job_t *job)
 }
 
 static void cbPElogueJob(char *jobid, int exit_status, bool timeout,
-			 PElogueResList_t *resList)
+			 PElogueResList_t *resList, void *info)
 {
     Job_t *job;
 
@@ -247,22 +247,25 @@ void startPElogue(uint32_t jobid, uid_t uid, gid_t gid, char *username,
 {
     char sjobid[256], buf[512];
     env_t clone;
+    bool disPrologue;
 
     if (!nodes) {
 	mlog("%s: invalid nodelist for job '%u'\n", __func__, jobid);
 	return;
     }
 
+    disPrologue = getConfValueI(&Config, "DISABLE_PROLOGUE");
+
     snprintf(sjobid, sizeof(sjobid), "%u", jobid);
 
-    if (prologue) {
+    if (prologue || disPrologue) {
 	/* register job to pelogue */
 	if (!step) {
 	    psPelogueAddJob("psslurm", sjobid, uid, gid, nrOfNodes, nodes,
-			    cbPElogueJob);
+			    cbPElogueJob, NULL);
 	} else {
 	    psPelogueAddJob("psslurm", sjobid, uid, gid, nrOfNodes, nodes,
-			    cbPElogueAlloc);
+			    cbPElogueAlloc, NULL);
 	}
     }
 

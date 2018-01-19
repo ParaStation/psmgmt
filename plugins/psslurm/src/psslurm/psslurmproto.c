@@ -365,6 +365,9 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
 	goto ERROR;
     }
 
+    bool disPrologue;
+    disPrologue = getConfValueI(&Config, "DISABLE_PROLOGUE");
+
     if (step->nodes[0] == PSC_getMyID()) {
 	/* mother superior */
 	step->srunControlMsg.sock = sMsg->sock;
@@ -376,13 +379,20 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
 	    alloc->motherSup = PSC_getMyTID();
 	    send_PS_AllocLaunch(alloc);
 
-	    /* start prologue for steps without job */
-	    alloc->state = step->state = JOB_PROLOGUE;
-	    mdbg(PSSLURM_LOG_JOB, "%s: step '%u:%u' in '%s'\n", __func__,
-		    step->jobid, step->stepid, strJobState(step->state));
-	    startPElogue(alloc->jobid, alloc->uid, alloc->gid, alloc->username,
-			    alloc->nrOfNodes, alloc->nodes, &alloc->env,
-			    &alloc->spankenv, 1, 1);
+	    if (disPrologue) {
+		/* start all waiting steps */
+		alloc->state = JOB_RUNNING;
+		send_PS_AllocState(alloc);
+		letAllStepsRun(alloc->jobid);
+	    } else {
+		/* start prologue for steps without job */
+		alloc->state = step->state = JOB_PROLOGUE;
+		mdbg(PSSLURM_LOG_JOB, "%s: step '%u:%u' in '%s'\n", __func__,
+			step->jobid, step->stepid, strJobState(step->state));
+		startPElogue(alloc->jobid, alloc->uid, alloc->gid, alloc->username,
+				alloc->nrOfNodes, alloc->nodes, &alloc->env,
+				&alloc->spankenv, 1, 1);
+	    }
 	} else if (!job && alloc->state == JOB_PROLOGUE) {
 	    /* prologue already running, wait till it is finished */
 	    mlog("%s: step %u:%u waiting for prologue\n", __func__,
@@ -400,9 +410,15 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
 	}
     } else {
 	/* sister node */
-	if (job || step->stepid) {
+	if (job || step->stepid || disPrologue) {
 	    /* start I/O forwarder */
 	    execStepFWIO(step);
+	}
+	if (disPrologue) {
+	    char sJobid[128];
+	    snprintf(sJobid, sizeof(sJobid), "%u", step->jobid);
+	    psPamAddUser(step->username, sJobid, PSPAM_STATE_JOB);
+	    psPamSetState(step->username, sJobid, PSPAM_STATE_JOB);
 	}
 	if (sMsg->sock != -1) {
 	    /* say ok to waiting srun */

@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2015-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2015-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -88,7 +88,7 @@ typedef struct {
  * @return No return value
  */
 typedef void(PElogueJobCb_t)(char *jobid, int exit, bool timeout,
-			     PElogueResList_t *res);
+			     PElogueResList_t *res, void *info);
 
 /**
  * @brief Add configuration
@@ -154,12 +154,16 @@ typedef bool(psPelogueDelPluginConfig_t)(char *name);
  *
  * @param cb Callback called on finalization of a pelogue run
  *
+ * @param info Pointer to additional information passed to @a
+ * cb Callback.
+ *
  * @return Return true on success or false if the job could not be
  * registered.
  */
 typedef bool(psPelogueAddJob_t)(const char *plugin, const char *jobid,
 				uid_t uid, gid_t gid, int numNode,
-				PSnodes_ID_t *nodes, PElogueJobCb_t *cb);
+				PSnodes_ID_t *nodes, PElogueJobCb_t *cb,
+				void *info);
 
 /**
  * @brief Start job's pelogues
