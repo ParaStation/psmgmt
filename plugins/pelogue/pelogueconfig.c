@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2013-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2013-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -45,12 +45,14 @@ void initPluginConfigs(void)
     initialized = true;
 }
 
-static Config_t *getPluginConfig(const char *plugin)
+static Config_t *getPluginConfig(const char *plugin, const char *caller,
+				 const int line)
 {
     if (!plugin) {
-	mlog("%s: no plugin given\n", __func__);
+	mlog("%s: no plugin given, caller %s:%i\n", __func__, caller, line);
     } else if (!initialized) {
-	mlog("%s: configuration not initialized\n", __func__);
+	mlog("%s: configuration not initialized caller %s:%i\n",
+	     __func__, caller, line);
     } else {
 	int i;
 	for (i=0; i<MAX_SUPPORTED_PLUGINS; i++) {
@@ -59,23 +61,26 @@ static Config_t *getPluginConfig(const char *plugin)
 		return pluginConfList[i].conf;
 	    }
 	}
-	mlog("%s: no config for plugin %s\n", __func__, plugin);
+	mlog("%s: no config for plugin %s caller %s:%i\n", __func__, plugin,
+	     caller, line);
     }
     return NULL;
 }
 
-int getPluginConfValueI(const char *plugin, char *key)
+int __getPluginConfValueI(const char *plugin, char *key, const char *caller,
+			  const int line)
 {
-    Config_t *config = getPluginConfig(plugin);
+    Config_t *config = getPluginConfig(plugin, caller, line);
 
     if (!key || !config) return -1;
 
     return getConfValueI(config, key);
 }
 
-char *getPluginConfValueC(const char *plugin, char *key)
+char *__getPluginConfValueC(const char *plugin, char *key, const char *caller,
+			  const int line)
 {
-    Config_t *config = getPluginConfig(plugin);
+    Config_t *config = getPluginConfig(plugin, caller, line);
 
     if (!key || !config) return NULL;
 
