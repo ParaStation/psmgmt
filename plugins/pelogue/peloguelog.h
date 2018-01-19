@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -22,12 +22,9 @@ extern logger_t *peloguelogger;
 
 /** Various types of logging levels for more verbose logging */
 typedef enum {
-    PELOGUE_LOG_DEBUG    =	0x000010, /**< Debug */
-    PELOGUE_LOG_WARN     =	0x000020, /**< Warnings */
-    PELOGUE_LOG_COMM     =	0x000040, /**< Warnings */
-    PELOGUE_LOG_PROCESS  =	0x000080, /**< Warnings */
-    PELOGUE_LOG_VERBOSE  =	0x000100, /**< Warnings */
-    PELOGUE_LOG_PSIDCOM  =	0x000200, /**< Warnings */
+    PELOGUE_LOG_WARN      =	0x000010, /**< Warnings */
+    PELOGUE_LOG_COMM      =	0x000020, /**< PS communication */
+    PELOGUE_LOG_PROCESS   =	0x000040, /**< Process */
 } PELOGUE_log_types_t;
 
 /**

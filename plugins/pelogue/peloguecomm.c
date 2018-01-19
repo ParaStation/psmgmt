@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2013-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2013-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -50,7 +50,7 @@ static void sendFragMsgToHostList(Job_t *job, PS_DataBuffer_t *data,
 	    continue;
 	}
 
-	mdbg(PELOGUE_LOG_PSIDCOM, "%s: to %i\n", __func__, PSC_getID(dest));
+	mdbg(PELOGUE_LOG_COMM, "%s: to %i\n", __func__, PSC_getID(dest));
 	sendFragMsg(data, dest, PSP_CC_PLUG_PELOGUE, type);
     }
 }
@@ -170,7 +170,7 @@ void sendPElogueSignal(Job_t *job, int sig, char *reason)
 	if (status != PELOGUE_PENDING) continue;
 
 	msg.header.dest = PSC_getTID(node, 0);
-	mdbg(PELOGUE_LOG_PSIDCOM, "%s: send to %i\n", __func__, node);
+	mdbg(PELOGUE_LOG_COMM, "%s: send to %i\n", __func__, node);
 	if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
 	    mwarn(errno, "%s: sendMsg() to %i failed", __func__, node);
 	}
