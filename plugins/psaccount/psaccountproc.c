@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -310,16 +310,14 @@ static void initCpuFreq(void)
 	}
 
 	while (fgets(buf, sizeof(buf), fd)) {
-	    if (strncmp (buf, "processor", 8))
-		localcount++;
+	    if (strncmp(buf, "processor", 8)) localcount++;
 	    if (!strncmp(buf, "cpu MHz", 7) || !strncmp(buf, "cpu GHz", 7)) {
 		break;
 	    }
 	}
-	
+
 	/* did we find anything? */
 	if (!feof (fd)) { /* yes, we did */
-	    
 	    sfreq = strchr(buf, ':') + 2;
 	    tmp = sfreq;
 	    while (tmp++) {
@@ -330,18 +328,16 @@ static void initCpuFreq(void)
 	    }
 	    i = strlen(sfreq);
 	    sfreq[i-2] = '\0';
-	    
+
 	    if (sscanf(sfreq, "%d", &freq) != 1) {
 		cpuCount = 0;
 		ufree(cpuFreq);
 		fclose(fd);
 		return;
 	    }
-	    
-	    for (i=0; i<cpuCount; i++) {
-		cpuFreq[i] = freq;
-	    }
-	    
+
+	    for (i=0; i<cpuCount; i++) cpuFreq[i] = freq;
+
 	    fclose(fd);
 	    cpuGovEnabled = false;
 	}
