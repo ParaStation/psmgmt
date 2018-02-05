@@ -12,7 +12,7 @@
 
 #include "psslurmjob.h"
 #include "psslurmio.h"
-#include "plugincomm.h"
+#include "psserial.h"
 #include "psslurmmsg.h"
 #include "psslurmauth.h"
 

@@ -37,7 +37,7 @@
 #include "pluginmalloc.h"
 #include "pluginhelper.h"
 #include "pluginconfig.h"
-#include "plugincomm.h"
+#include "psserial.h"
 #include "env.h"
 #include "selector.h"
 #include "psaccounthandles.h"

@@ -13,7 +13,7 @@
 #include <stdint.h>
 
 #include "list.h"
-#include "plugincomm.h"
+#include "psserial.h"
 #include "slurmcommon.h"
 
 #define GRES_PLUGIN_GPU	7696487

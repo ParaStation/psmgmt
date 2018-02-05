@@ -12,7 +12,7 @@
 
 #include "pspluginprotocol.h"
 
-#include "plugincomm.h"
+#include "psserial.h"
 #include "psmomjob.h"
 
 typedef enum {

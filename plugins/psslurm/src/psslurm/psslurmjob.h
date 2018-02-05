@@ -22,7 +22,7 @@
 #include "psslurmstep.h"
 
 #include "pluginforwarder.h"
-#include "plugincomm.h"
+#include "psserial.h"
 #include "pluginenv.h"
 
 typedef struct {

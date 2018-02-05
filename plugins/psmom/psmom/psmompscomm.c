@@ -15,6 +15,7 @@
 #include <time.h>
 
 #include "pluginfrag.h"
+#include "psserial.h"
 #include "pluginhelper.h"
 #include "pluginmalloc.h"
 

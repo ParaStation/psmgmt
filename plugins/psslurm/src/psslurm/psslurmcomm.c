@@ -30,7 +30,7 @@
 #include "psslurmpscomm.h"
 #include "psslurmpack.h"
 
-#include "plugincomm.h"
+#include "psserial.h"
 #include "pluginconfig.h"
 #include "pluginhelper.h"
 #include "pluginmalloc.h"

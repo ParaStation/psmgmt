@@ -30,7 +30,7 @@
 #include "slurmcommon.h"
 
 #include "pluginhelper.h"
-#include "plugincomm.h"
+#include "psserial.h"
 #include "pluginmalloc.h"
 #include "pluginenv.h"
 

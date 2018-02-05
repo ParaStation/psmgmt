@@ -24,7 +24,7 @@
 #include "slurmcommon.h"
 #include "psidtask.h"
 #include "pluginmalloc.h"
-#include "plugincomm.h"
+#include "psserial.h"
 #include "pspamhandles.h"
 #include "peloguehandles.h"
 

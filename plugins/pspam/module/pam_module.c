@@ -22,7 +22,7 @@
 
 #include "pspamcommon.h"
 
-#include "plugincomm.h"
+#include "psserial.h"
 
 /* needed for static modules but also recommended for shared modules */
 #define PAM_SM_AUTH

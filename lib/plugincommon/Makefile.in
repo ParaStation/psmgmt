@@ -125,7 +125,7 @@ CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
 LTLIBRARIES = $(noinst_LTLIBRARIES)
 libplugincommon_la_DEPENDENCIES =
-am_libplugincommon_la_OBJECTS = plugincomm.lo pluginconfig.lo \
+am_libplugincommon_la_OBJECTS = psserial.lo pluginconfig.lo \
 	pluginfrag.lo pluginhelper.lo pluginlog.lo pluginmalloc.lo \
 	pluginstrv.lo pluginpty.lo pluginpartition.lo \
 	pluginhostlist.lo pluginenv.lo pluginforwarder.lo
@@ -370,7 +370,7 @@ scriptsdir = $(prefix)/scripts
 @HAVE_SYSTEMD_FALSE@default_cgroup_name = psmgmtGrp
 @HAVE_SYSTEMD_TRUE@default_cgroup_name = system.slice/psid.service/descendants
 noinst_LTLIBRARIES = libplugincommon.la
-libplugincommon_la_SOURCES = plugincomm.c pluginconfig.c pluginfrag.c	\
+libplugincommon_la_SOURCES = psserial.c pluginconfig.c pluginfrag.c	\
 	pluginhelper.c pluginlog.c pluginmalloc.c pluginstrv.c		\
 	pluginpty.c pluginpartition.c pluginhostlist.c pluginenv.c	\
 	pluginforwarder.c
@@ -431,7 +431,6 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/plugincomm.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pluginconfig.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pluginenv.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pluginforwarder.Plo@am__quote@
@@ -443,6 +442,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pluginpartition.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pluginpty.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pluginstrv.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psserial.Plo@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	$(AM_V_CC)depbase=`echo $@ | sed 's|[^/]*$$|$(DEPDIR)/&|;s|\.o$$||'`;\

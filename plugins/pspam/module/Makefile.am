@@ -15,7 +15,7 @@ AM_CPPFLAGS += -I$(top_srcdir)/plugins/pspam/include
 
 pam_LTLIBRARIES = pam_pspam.la
 
-plugincommon_objs = $(top_builddir)/lib/plugincommon/plugincomm.lo
+plugincommon_objs = $(top_builddir)/lib/plugincommon/psserial.lo
 plugincommon_objs += $(top_builddir)/lib/plugincommon/pluginmalloc.lo
 plugincommon_objs += $(top_builddir)/lib/plugincommon/pluginlog.lo
 libpscommon = $(top_builddir)/lib/pscommon/libpscommon.la

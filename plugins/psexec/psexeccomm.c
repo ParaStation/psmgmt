@@ -15,7 +15,7 @@
 #include <limits.h>
 
 #include "pluginmalloc.h"
-#include "plugincomm.h"
+#include "psserial.h"
 #include "pluginfrag.h"
 #include "pspluginprotocol.h"
 #include "pscommon.h"

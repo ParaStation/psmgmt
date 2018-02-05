@@ -16,7 +16,7 @@
 
 #include "psnodes.h"
 #include "pstaskid.h"
-#include "plugincomm.h"
+#include "psserial.h"
 #include "slurmmsg.h"
 
 typedef struct {

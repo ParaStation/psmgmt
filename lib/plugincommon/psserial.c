@@ -19,7 +19,7 @@
 #include "pluginmalloc.h"
 #include "pluginlog.h"
 
-#include "plugincomm.h"
+#include "psserial.h"
 
 #define UINT64_SWAP_LE_BE(val) ((uint64_t) (				\
     (((uint64_t) (val) & (uint64_t) (0x00000000000000ffU)) << 56)	\

@@ -21,7 +21,7 @@
 #include "psidpartition.h"
 #include "pluginenv.h"
 #include "psidtask.h"
-#include "plugincomm.h"
+#include "psserial.h"
 #include "pluginmalloc.h"
 #include "pluginhelper.h"
 #include "pluginfrag.h"

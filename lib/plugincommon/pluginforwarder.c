@@ -25,7 +25,7 @@
 #include "selector.h"
 #include "timer.h"
 #include "psidutil.h"
-#include "plugincomm.h"
+#include "psserial.h"
 #include "pluginhelper.h"
 #include "pluginmalloc.h"
 #include "pluginlog.h"

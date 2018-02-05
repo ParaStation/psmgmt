@@ -17,7 +17,7 @@
 #include "pluginfrag.h"
 #include "pluginmalloc.h"
 #include "pluginhelper.h"
-#include "plugincomm.h"
+#include "psserial.h"
 
 #include "peloguechild.h"
 #include "pelogueconfig.h"

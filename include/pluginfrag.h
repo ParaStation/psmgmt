@@ -17,7 +17,7 @@
 #include "psprotocol.h"
 #include "pstaskid.h"
 
-#include "plugincomm.h"
+#include "psserial.h"
 
 /** Header providing meta-information on a single fragment */
 typedef struct {

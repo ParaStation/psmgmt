@@ -7,7 +7,7 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-#include "plugincomm.h"
+#include "psserial.h"
 #include "pluginhelper.h"
 #include "pluginmalloc.h"
 #include "slurmcommon.h"

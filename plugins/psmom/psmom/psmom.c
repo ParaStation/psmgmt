@@ -34,6 +34,7 @@
 #include "plugin.h"
 #include "pluginhelper.h"
 #include "pluginfrag.h"
+#include "psserial.h"
 
 #include "psaccounthandles.h"
 #include "pspamhandles.h"

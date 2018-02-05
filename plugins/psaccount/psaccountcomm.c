@@ -16,6 +16,7 @@
 #include "pspluginprotocol.h"
 #include "pluginmalloc.h"
 #include "pluginfrag.h"
+#include "psserial.h"
 #include "psidcomm.h"
 #include "psidhook.h"
 

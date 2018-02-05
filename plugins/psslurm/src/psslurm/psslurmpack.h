@@ -13,7 +13,7 @@
 #include <netinet/in.h>
 #include <stdbool.h>
 
-#include "plugincomm.h"
+#include "psserial.h"
 #include "psslurmauth.h"
 #include "psslurmio.h"
 #include "psslurmproto.h"

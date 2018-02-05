@@ -395,7 +395,7 @@ scriptsdir = $(prefix)/scripts
 @HAVE_SYSTEMD_FALSE@default_cgroup_name = psmgmtGrp
 @HAVE_SYSTEMD_TRUE@default_cgroup_name = system.slice/psid.service/descendants
 pam_LTLIBRARIES = pam_pspam.la
-plugincommon_objs = $(top_builddir)/lib/plugincommon/plugincomm.lo \
+plugincommon_objs = $(top_builddir)/lib/plugincommon/psserial.lo \
 	$(top_builddir)/lib/plugincommon/pluginmalloc.lo \
 	$(top_builddir)/lib/plugincommon/pluginlog.lo
 libpscommon = $(top_builddir)/lib/pscommon/libpscommon.la
