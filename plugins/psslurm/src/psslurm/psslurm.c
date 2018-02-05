@@ -36,7 +36,6 @@
 #include "pluginmalloc.h"
 #include "pluginlog.h"
 #include "pluginhelper.h"
-#include "pluginfrag.h"
 #include "pspluginprotocol.h"
 #include "psidplugin.h"
 #include "psidhook.h"
@@ -541,7 +540,6 @@ int initialize(void)
     if (!(initPluginHandles())) goto INIT_ERROR;
     if (!(initLimits())) goto INIT_ERROR;
     if (!(initEnvFilter())) goto INIT_ERROR;
-    if (!(initFragComm())) goto INIT_ERROR;
 
     /* we want to have periodic updates on used resources */
     if (!PSIDnodes_acctPollI(PSC_getMyID())) {
@@ -602,7 +600,6 @@ int initialize(void)
 INIT_ERROR:
     psPelogueDelPluginConfig("psslurm");
     unregisterHooks(0);
-    finalizeFragComm();  /* needed for unregister hooks */
     return 1;
 }
 
@@ -660,7 +657,6 @@ void cleanup(void)
     freeConfig(&SlurmConfig);
     freeConfig(&SlurmGresConfig);
     freeEnvFilter();
-    finalizeFragComm();
 
     mlog("...Bye.\n");
 

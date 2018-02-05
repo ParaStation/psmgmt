@@ -14,7 +14,6 @@
 #include <math.h>
 #include <time.h>
 
-#include "pluginfrag.h"
 #include "psserial.h"
 #include "pluginhelper.h"
 #include "pluginmalloc.h"
@@ -37,26 +36,6 @@
 #include "psmompscomm.h"
 
 #define PSMOM_PSCOMM_VERSION 101
-
-void sendFragMsgToHostList(Job_t *job, PS_DataBuffer_t *data, int32_t type,
-			    int myself)
-{
-    int i, id;
-    PStask_ID_t myTID = PSC_getMyTID(), dest;
-
-    for (i=0; i<job->nrOfUniqueNodes; i++) {
-	id = job->nodes[i].id;
-
-	dest = PSC_getTID(id, 0);
-
-	/* skip sending to myself if requested */
-	if (!myself && myTID == dest) continue;
-
-	mdbg(PSMOM_LOG_PSCOM, "%s: send to %i [%i->%i]\n", __func__, id,
-		myTID, dest);
-	sendFragMsg(data, dest, PSP_CC_PLUG_PSMOM, type);
-    }
-}
 
 static void sendPSMsgToHostList(Job_t *job, DDTypedBufferMsg_t *msg, int myself)
 {
@@ -429,6 +408,8 @@ static void handlePSMsg(DDTypedBufferMsg_t *msg)
 
 void initPSComm(void)
 {
+    initSerial(0, sendMsg);
+
     /* register inter psmom msg */
     PSID_registerMsg(PSP_CC_PLUG_PSMOM, (handlerFunc_t) handlePSMsg);
 
@@ -443,4 +424,6 @@ void finalizePSComm(void)
 
     /* unregister msg drop handler */
     PSID_clearDropper(PSP_CC_PLUG_PSMOM);
+
+    finalizeSerial();
 }

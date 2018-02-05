@@ -24,7 +24,6 @@
 #include "psserial.h"
 #include "pluginmalloc.h"
 #include "pluginhelper.h"
-#include "pluginfrag.h"
 #include "pluginpartition.h"
 #include "peloguehandles.h"
 #include "psexechandles.h"
@@ -252,9 +251,15 @@ error:
 
 void send_PS_JobLaunch(Job_t *job)
 {
-    PS_DataBuffer_t data = { .buf = NULL };
+    PS_SendDB_t data;
     PStask_ID_t myID = PSC_getMyID();
     uint32_t i;
+
+    initFragBuffer(&data, PSP_CC_PLUG_PSSLURM, PSP_JOB_LAUNCH);
+    for (i=0; i<job->nrOfNodes; i++) {
+	if (job->nodes[i] == myID) continue;
+	setFragDest(&data, PSC_getTID(job->nodes[i], 0));
+    }
 
     /* add jobid */
     addUint32ToMsg(job->jobid, &data);
@@ -268,22 +273,20 @@ void send_PS_JobLaunch(Job_t *job)
     addStringToMsg(job->slurmHosts, &data);
 
     /* send the messages */
-    for (i=0; i<job->nrOfNodes; i++) {
-	if (job->nodes[i] == myID) continue;
-
-	sendFragMsg(&data, PSC_getTID(job->nodes[i], 0),
-			PSP_CC_PLUG_PSSLURM, PSP_JOB_LAUNCH);
-    }
-
-    ufree(data.buf);
+    sendFragMsg(&data);
 }
 
 void send_PS_AllocLaunch(Alloc_t *alloc)
 {
-
-    PS_DataBuffer_t data = { .buf = NULL };
+    PS_SendDB_t data;
     PStask_ID_t myID = PSC_getMyID();
     uint32_t i;
+
+    initFragBuffer(&data, PSP_CC_PLUG_PSSLURM, PSP_ALLOC_LAUNCH);
+    for (i=0; i<alloc->nrOfNodes; i++) {
+	if (alloc->nodes[i] == myID) continue;
+	setFragDest(&data, PSC_getTID(alloc->nodes[i], 0));
+    }
 
     /* add jobid */
     addUint32ToMsg(alloc->jobid, &data);
@@ -298,22 +301,20 @@ void send_PS_AllocLaunch(Alloc_t *alloc)
     addStringToMsg(alloc->slurmHosts, &data);
 
     /* send the messages */
-    for (i=0; i<alloc->nrOfNodes; i++) {
-	if (alloc->nodes[i] == myID) continue;
-
-	sendFragMsg(&data, PSC_getTID(alloc->nodes[i], 0),
-			PSP_CC_PLUG_PSSLURM, PSP_ALLOC_LAUNCH);
-    }
-
-    ufree(data.buf);
+    sendFragMsg(&data);
 }
 
 void send_PS_AllocState(Alloc_t *alloc)
 {
-
-    PS_DataBuffer_t data = { .buf = NULL };
+    PS_SendDB_t data;
     PStask_ID_t myID = PSC_getMyID();
     uint32_t i;
+
+    initFragBuffer(&data, PSP_CC_PLUG_PSSLURM, PSP_ALLOC_STATE);
+    for (i=0; i<alloc->nrOfNodes; i++) {
+	if (alloc->nodes[i] == myID) continue;
+	setFragDest(&data, PSC_getTID(alloc->nodes[i], 0));
+    }
 
     /* add jobid */
     addUint32ToMsg(alloc->jobid, &data);
@@ -322,14 +323,7 @@ void send_PS_AllocState(Alloc_t *alloc)
     addUint16ToMsg(alloc->state, &data);
 
     /* send the messages */
-    for (i=0; i<alloc->nrOfNodes; i++) {
-	if (alloc->nodes[i] == myID) continue;
-
-	sendFragMsg(&data, PSC_getTID(alloc->nodes[i], 0),
-			PSP_CC_PLUG_PSSLURM, PSP_ALLOC_STATE);
-    }
-
-    ufree(data.buf);
+    sendFragMsg(&data);
 }
 
 static int retryExecScript(PSnodes_ID_t remote, uint16_t scriptID)
@@ -444,31 +438,23 @@ void requeueBatchJob(Job_t *job, PSnodes_ID_t dest)
 void send_PS_JobExit(uint32_t jobid, uint32_t stepid, uint32_t nrOfNodes,
 			PSnodes_ID_t *nodes)
 {
-    DDTypedBufferMsg_t msg;
-    PS_DataBuffer_t data = { .buf = NULL };
+    DDTypedBufferMsg_t msg = {
+	.header = {
+	    .type = PSP_CC_PLUG_PSSLURM,
+	    .sender = PSC_getMyTID(),
+	    .len = sizeof(msg.header) + sizeof(msg.type) },
+	.type = PSP_JOB_EXIT,
+        .buf = {'\0'} };
     PStask_ID_t myID = PSC_getMyID();
     uint32_t i;
 
     /* add jobid */
-    addUint32ToMsg(jobid, &data);
+    addUint32ToMsgBuf(&msg, jobid);
 
     /* add stepid */
-    addUint32ToMsg(stepid, &data);
+    addUint32ToMsgBuf(&msg, stepid);
 
     /* send the messages */
-    msg = (DDTypedBufferMsg_t) {
-       .header = (DDMsg_t) {
-       .type = PSP_CC_PLUG_PSSLURM,
-       .sender = PSC_getMyTID(),
-       .len = sizeof(msg.header) },
-       .buf = {'\0'} };
-
-    msg.type = PSP_JOB_EXIT;
-    msg.header.len += sizeof(msg.type);
-
-    memcpy(msg.buf, data.buf, data.bufUsed);
-    msg.header.len += data.bufUsed;
-
     for (i=0; i<nrOfNodes; i++) {
 	if (nodes[i] == myID) continue;
 
@@ -478,43 +464,33 @@ void send_PS_JobExit(uint32_t jobid, uint32_t stepid, uint32_t nrOfNodes,
 		    PSC_printTID(msg.header.dest));
 	}
     }
-
-    ufree(data.buf);
 }
 
 void send_PS_SignalTasks(Step_t *step, int signal, PStask_group_t group)
 {
-    DDTypedBufferMsg_t msg;
-    PS_DataBuffer_t data = { .buf = NULL };
+    DDTypedBufferMsg_t msg = {
+	.header = {
+	    .type = PSP_CC_PLUG_PSSLURM,
+	    .sender = PSC_getMyTID(),
+	    .len = sizeof(msg.header) + sizeof(msg.type) },
+	.type = PSP_SIGNAL_TASKS,
+        .buf = {'\0'} };
     PSnodes_ID_t myID = PSC_getMyID();
     uint32_t i;
 
     /* add jobid */
-    addUint32ToMsg(step->jobid, &data);
+    addUint32ToMsgBuf(&msg, step->jobid);
 
     /* add stepid */
-    addUint32ToMsg(step->stepid, &data);
+    addUint32ToMsgBuf(&msg, step->stepid);
 
     /* add group */
-    addInt32ToMsg(group, &data);
+    addInt32ToMsgBuf(&msg, group);
 
     /* add signal */
-    addUint32ToMsg(signal, &data);
+    addUint32ToMsgBuf(&msg, signal);
 
     /* send the messages */
-    msg = (DDTypedBufferMsg_t) {
-       .header = (DDMsg_t) {
-       .type = PSP_CC_PLUG_PSSLURM,
-       .sender = PSC_getMyTID(),
-       .len = sizeof(msg.header) },
-       .buf = {'\0'} };
-
-    msg.type = PSP_SIGNAL_TASKS;
-    msg.header.len += sizeof(msg.type);
-
-    memcpy(msg.buf, data.buf, data.bufUsed);
-    msg.header.len += data.bufUsed;
-
     for (i=0; i<step->nrOfNodes; i++) {
 	if (step->nodes[i] == myID) continue;
 
@@ -524,41 +500,29 @@ void send_PS_SignalTasks(Step_t *step, int signal, PStask_group_t group)
 		    PSC_printTID(msg.header.dest));
 	}
     }
-
-    ufree(data.buf);
 }
 
 void send_PS_JobState(uint32_t jobid, PStask_ID_t dest)
 {
-    DDTypedBufferMsg_t msg;
-    PS_DataBuffer_t data = { .buf = NULL };
+    DDTypedBufferMsg_t msg = {
+	.header = {
+	    .type = PSP_CC_PLUG_PSSLURM,
+	    .sender = PSC_getMyTID(),
+	    .dest = dest,
+	    .len = sizeof(msg.header) + sizeof(msg.type) },
+	.type = PSP_JOB_STATE_REQ,
+        .buf = {'\0'} };
 
     mlog("%s: jobid '%u' dest '%s'\n", __func__, jobid, PSC_printTID(dest));
 
     /* add jobid */
-    addUint32ToMsg(jobid, &data);
+    addUint32ToMsgBuf(&msg, jobid);
 
     /* send the messages */
-    msg = (DDTypedBufferMsg_t) {
-       .header = (DDMsg_t) {
-       .type = PSP_CC_PLUG_PSSLURM,
-       .sender = PSC_getMyTID(),
-       .len = sizeof(msg.header) },
-       .buf = {'\0'} };
-
-    msg.type = PSP_JOB_STATE_REQ;
-    msg.header.len += sizeof(msg.type);
-
-    memcpy(msg.buf, data.buf, data.bufUsed);
-    msg.header.len += data.bufUsed;
-
-    msg.header.dest = dest;
     if ((sendMsg(&msg)) == -1 && errno != EWOULDBLOCK) {
 	mwarn(errno, "%s: sending msg to %s failed ", __func__,
 		PSC_printTID(msg.header.dest));
     }
-
-    ufree(data.buf);
 }
 
 static void handle_PS_JobExit(DDTypedBufferMsg_t *msg)
@@ -625,14 +589,21 @@ static void handle_PS_JobStateRes(DDTypedBufferMsg_t *msg)
     }
 }
 
-static void handle_PS_JobStateReq(DDTypedBufferMsg_t *msg)
+static void handle_PS_JobStateReq(DDTypedBufferMsg_t *inmsg)
 {
-    PS_DataBuffer_t data = { .buf = NULL };
+    DDTypedBufferMsg_t msg = {
+	.header = {
+	    .type = PSP_CC_PLUG_PSSLURM,
+	    .sender = PSC_getMyTID(),
+	    .dest = inmsg->header.sender,
+	    .len = sizeof(msg.header) + sizeof(msg.type) },
+	.type = PSP_JOB_STATE_RES,
+        .buf = {'\0'} };
     Job_t *job;
     Alloc_t *alloc;
     uint32_t jobid;
     uint8_t res = 0, state = 0;
-    char *ptr = msg->buf;
+    char *ptr = inmsg->buf;
 
     /* get jobid */
     getUint32(&ptr, &jobid);
@@ -646,30 +617,18 @@ static void handle_PS_JobStateReq(DDTypedBufferMsg_t *msg)
     }
 
     mlog("%s: from '%s' jobid '%u' res '%u' state '%s'\n", __func__,
-	    PSC_printTID(msg->header.sender), jobid, res,
+	    PSC_printTID(inmsg->header.sender), jobid, res,
 	    strJobState(state));
 
-    addUint32ToMsg(jobid, &data);
-    addUint8ToMsg(res, &data);
-    addUint8ToMsg(state, &data);
+    addUint32ToMsgBuf(&msg, jobid);
+    addUint8ToMsgBuf(&msg, res);
+    addUint8ToMsgBuf(&msg, state);
 
     /* send the messages */
-    msg->header.dest = msg->header.sender;
-    msg->header.sender = PSC_getMyTID();
-    msg->header.len = sizeof(msg->header);
-
-    msg->type = PSP_JOB_STATE_RES;
-    msg->header.len += sizeof(msg->type);
-
-    memcpy(msg->buf, data.buf, data.bufUsed);
-    msg->header.len += data.bufUsed;
-
-    if ((sendMsg(msg)) == -1 && errno != EWOULDBLOCK) {
+    if ((sendMsg(&msg)) == -1 && errno != EWOULDBLOCK) {
 	mwarn(errno, "%s: sending msg to %s failed ", __func__,
-		PSC_printTID(msg->header.dest));
+		PSC_printTID(msg.header.dest));
     }
-
-    ufree(data.buf);
 }
 
 static void handle_PS_JobLaunch(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
@@ -800,8 +759,15 @@ void forwardSlurmMsg(Slurm_Msg_t *sMsg, Connection_Forward_t *fw)
 {
     uint32_t nrOfNodes, i, len, localId;
     PSnodes_ID_t *nodes = NULL;
+    PS_SendDB_t msg;
 
-    PS_DataBuffer_t msg = { .buf = NULL };
+    /* convert nodelist to PS nodes */
+    getNodesFromSlurmHL(fw->head.nodeList, &nrOfNodes, &nodes, &localId);
+
+    initFragBuffer(&msg, PSP_CC_PLUG_PSSLURM, PSP_FORWARD_SMSG);
+    for (i=0; i<nrOfNodes; i++) {
+	setFragDest(&msg, PSC_getTID(nodes[i], 0));
+    }
 
     /* add forward information */
     addInt16ToMsg(sMsg->sock, &msg);
@@ -828,18 +794,12 @@ void forwardSlurmMsg(Slurm_Msg_t *sMsg, Connection_Forward_t *fw)
     len = sMsg->data->bufUsed - (sMsg->ptr - sMsg->data->buf);
     addMemToMsg(sMsg->ptr, len, &msg);
 
-    /* convert nodelist to PS nodes */
-    getNodesFromSlurmHL(fw->head.nodeList, &nrOfNodes, &nodes, &localId);
+    /* send the message(s) */
+    sendFragMsg(&msg);
 
     /* save infos in connection */
     fw->nodes = nodes;
     fw->nodesCount = nrOfNodes;
-
-    for (i=0; i<nrOfNodes; i++) {
-	sendFragMsg(&msg, PSC_getTID(nodes[i], 0),
-			PSP_CC_PLUG_PSSLURM, PSP_FORWARD_SMSG);
-    }
-    ufree(msg.buf);
 
     /* complete the forward header */
     fw->head.forward = sMsg->head.forward;
@@ -863,10 +823,15 @@ void forwardSlurmMsg(Slurm_Msg_t *sMsg, Connection_Forward_t *fw)
 
 int send_PS_ForwardRes(Slurm_Msg_t *sMsg)
 {
-    PS_DataBuffer_t msg = { .buf = NULL };
+    PS_DataBuffer_t data = { .bufUsed = 0 };
+    PS_SendDB_t msg;
     int ret;
 
+    memToDataBuffer(sMsg->outdata->buf, sMsg->outdata->bufUsed, &data);
+
     /* add forward information */
+    initFragBuffer(&msg, PSP_CC_PLUG_PSSLURM, PSP_FORWARD_SMSG_RES);
+    setFragDest(&msg, sMsg->source);
 
     /* socket */
     addInt16ToMsg(sMsg->sock, &msg);
@@ -874,12 +839,11 @@ int send_PS_ForwardRes(Slurm_Msg_t *sMsg)
     addTimeToMsg(sMsg->recvTime, &msg);
     /* message type */
     addUint16ToMsg(sMsg->head.type, &msg);
+    /* msg payload */
+    addMemToMsg(data.buf, data.bufUsed, &msg);
+    ufree(data.buf);
 
-    addMemToMsg(sMsg->data->buf, sMsg->data->bufUsed, &msg);
-
-    ret = sendFragMsg(&msg, sMsg->source, PSP_CC_PLUG_PSSLURM,
-		      PSP_FORWARD_SMSG_RES);
-    ufree(msg.buf);
+    ret = sendFragMsg(&msg);
 
     mdbg(PSSLURM_LOG_FWD, "%s: type '%s' source '%s' socket '%i' recvTime "
 	    "'%zu'\n", __func__, msgType2String(sMsg->head.type),
@@ -918,13 +882,11 @@ static void handleFWslurmMsgRes(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 {
     Slurm_Msg_t sMsg;
     char *ptr = data->buf;
-    PS_DataBuffer_t body = { .buf = NULL };
-    uint32_t len = data->bufUsed;
+    PS_SendDB_t outdata;
     int16_t socket;
 
     initSlurmMsg(&sMsg);
     sMsg.source = msg->header.sender;
-    sMsg.data = &body;
 
     /* socket */
     getInt16(&ptr, &socket);
@@ -933,12 +895,12 @@ static void handleFWslurmMsgRes(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     getTime(&ptr, &sMsg.recvTime);
     /* message type */
     getUint16(&ptr, &sMsg.head.type);
-
-    len -=  (2 * sizeof(uint16_t)) + sizeof (int64_t);
-    addMemToMsg(ptr, len, &body);
+    /* save payload in data buffer */
+    outdata.bufUsed = data->bufUsed - (ptr - data->buf);
+    outdata.buf = ptr;
+    sMsg.outdata = &outdata;
 
     saveFrwrdMsgRes(&sMsg, SLURM_SUCCESS);
-    ufree(body.buf);
 }
 
 /**
@@ -953,8 +915,8 @@ static void handlePsslurmMsg(DDTypedBufferMsg_t *msg)
     strncpy(sender, PSC_printTID(msg->header.sender), sizeof(sender));
     strncpy(dest, PSC_printTID(msg->header.dest), sizeof(dest));
 
-    mdbg(PSSLURM_LOG_COMM, "%s: new msg type: '%i' [%s->%s]\n", __func__,
-	msg->type, sender, dest);
+    mdbg(PSSLURM_LOG_COMM, "%s: new msg type: %s (%i) [%s->%s]\n", __func__,
+	 msg2Str(msg->type), msg->type, sender, dest);
 
     switch (msg->type) {
 	case PSP_SIGNAL_TASKS:
@@ -985,7 +947,7 @@ static void handlePsslurmMsg(DDTypedBufferMsg_t *msg)
 	    recvFragMsg(msg, handleAllocState);
 	    break;
 	default:
-	    mlog("%s: received unknown msg type:%i [%s -> %s]\n", __func__,
+	    mlog("%s: received unknown msg type: %i [%s -> %s]\n", __func__,
 		msg->type, sender, dest);
     }
 }
@@ -1039,6 +1001,8 @@ int handleNodeDown(void *nodeID)
 {
     PSnodes_ID_t node = *((PSnodes_ID_t *) nodeID);
 
+    psserialNodeDown(nodeID);
+
     traverseJobs(nodeDownJobs, &node);
 
     traverseSteps(nodeDownSteps, &node);
@@ -1051,13 +1015,13 @@ int handleNodeDown(void *nodeID)
 static void saveForwardError(DDTypedBufferMsg_t *msg)
 {
     Slurm_Msg_t sMsg;
-    PS_DataBuffer_t data = { .buf = NULL };
+    PS_SendDB_t outdata = { .buf = NULL, .bufUsed = 0 };
     char *ptr = msg->buf;
     int16_t socket;
     PS_Frag_Msg_Header_t *rhead;
 
     initSlurmMsg(&sMsg);
-    sMsg.data = &data;
+    sMsg.outdata = &outdata;
     sMsg.source = msg->header.dest;
     sMsg.head.type = RESPONSE_FORWARD_FAILED;
 
@@ -1772,10 +1736,14 @@ void finalizePScomm(void)
 
     /* unregister msg drop handler */
     PSID_clearDropper(PSP_CC_PLUG_PSSLURM);
+
+    finalizeSerial();
 }
 
 void initPScomm(void)
 {
+    initSerial(0, sendMsg);
+
     /* register psslurm PSP_CC_PLUG_PSSLURM message */
     PSID_registerMsg(PSP_CC_PLUG_PSSLURM, (handlerFunc_t) handlePsslurmMsg);
 

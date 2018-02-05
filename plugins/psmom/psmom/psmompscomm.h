@@ -39,9 +39,6 @@ typedef enum {
  */
 void sendJobUpdate(Job_t *job);
 
-void sendFragMsgToHostList(Job_t *job, PS_DataBuffer_t *data, int32_t type,
-			   int myself);
-
 void sendPSmomVersion(Job_t *job);
 
 void sendJobInfo(Job_t *job, int start);

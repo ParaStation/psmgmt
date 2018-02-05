@@ -67,7 +67,7 @@ typedef struct {
  */
 static void sendPing(Slurm_Msg_t *sMsg)
 {
-    PS_DataBuffer_t msg = { .buf = NULL };
+    PS_SendDB_t msg = { .bufUsed = 0, .useFrag = 0 };
     struct sysinfo info;
     float div;
     Resp_Ping_t ping;
@@ -81,9 +81,8 @@ static void sendPing(Slurm_Msg_t *sMsg)
     }
 
     packRespPing(&msg, &ping);
-    sMsg->data = &msg;
+    sMsg->outdata = &msg;
     sendSlurmReply(sMsg, RESPONSE_PING_SLURMD);
-    ufree(msg.buf);
 }
 
 uint32_t getLocalRankID(uint32_t rank, Step_t *step, uint32_t nodeId)
@@ -547,9 +546,8 @@ static void handleCheckpointTasks(Slurm_Msg_t *sMsg)
 
 static void sendReattchReply(Step_t *step, Slurm_Msg_t *sMsg, uint32_t rc)
 {
-    PS_DataBuffer_t reply = { .buf = NULL };
-    char *ptrCount;
-    uint32_t i, numTasks, countPIDS = 0;
+    PS_SendDB_t reply = { .bufUsed = 0, .useFrag = 0 };
+    uint32_t i, numTasks, countPIDS = 0, countPos;
     list_t *t;
 
     /* hostname */
@@ -565,7 +563,7 @@ static void sendReattchReply(Step_t *step, Slurm_Msg_t *sMsg, uint32_t rc)
 	addUint32ArrayToMsg(step->globalTaskIds[step->myNodeIndex],
 			    numTasks, &reply);
 	/* local pids */
-	ptrCount = reply.buf + reply.bufUsed;
+	countPos = reply.bufUsed;
 	addUint32ToMsg(0, &reply);
 
 	list_for_each(t, &step->tasks) {
@@ -575,7 +573,7 @@ static void sendReattchReply(Step_t *step, Slurm_Msg_t *sMsg, uint32_t rc)
 		addUint32ToMsg(PSC_getPID(task->childTID), &reply);
 	    }
 	}
-	*(uint32_t *) ptrCount = htonl(countPIDS);
+	*(uint32_t *) (reply.buf + countPos) = htonl(countPIDS);
 
 	/* executable names */
 	for (i=0; i<numTasks; i++) {
@@ -591,10 +589,8 @@ static void sendReattchReply(Step_t *step, Slurm_Msg_t *sMsg, uint32_t rc)
 	/* no executable names */
     }
 
-    sMsg->data = &reply;
+    sMsg->outdata = &reply;
     sendSlurmReply(sMsg, RESPONSE_REATTACH_TASKS);
-
-    ufree(reply.buf);
 }
 
 static void handleReattachTasks(Slurm_Msg_t *sMsg)
@@ -819,7 +815,7 @@ static void handleHealthCheck(Slurm_Msg_t *sMsg)
 
 static void handleAcctGatherUpdate(Slurm_Msg_t *sMsg)
 {
-    PS_DataBuffer_t msg = { .buf = NULL };
+    PS_SendDB_t msg = { .bufUsed = 0, .useFrag = 0 };
 
     /* check permissions */
     if (sMsg->head.uid != 0 && sMsg->head.uid != slurmUserID) {
@@ -845,14 +841,13 @@ static void handleAcctGatherUpdate(Slurm_Msg_t *sMsg)
     addTimeToMsg(now, &msg);
 #endif
 
-    sMsg->data = &msg;
+    sMsg->outdata = &msg;
     sendSlurmReply(sMsg, RESPONSE_ACCT_GATHER_UPDATE);
-    ufree(msg.buf);
 }
 
 static void handleAcctGatherEnergy(Slurm_Msg_t *sMsg)
 {
-    PS_DataBuffer_t msg = { .buf = NULL };
+    PS_SendDB_t msg = { .bufUsed = 0, .useFrag = 0 };
 
     /* check permissions */
     if (sMsg->head.uid != 0 && sMsg->head.uid != slurmUserID) {
@@ -878,9 +873,8 @@ static void handleAcctGatherEnergy(Slurm_Msg_t *sMsg)
     addTimeToMsg(now, &msg);
 #endif
 
-    sMsg->data = &msg;
+    sMsg->outdata = &msg;
     sendSlurmReply(sMsg, RESPONSE_ACCT_GATHER_ENERGY);
-    ufree(msg.buf);
 }
 
 /**
@@ -890,7 +884,6 @@ static void handleAcctGatherEnergy(Slurm_Msg_t *sMsg)
  */
 static void handleJobId(Slurm_Msg_t *sMsg)
 {
-    PS_DataBuffer_t msg = { .buf = NULL };
     char **ptr = &sMsg->ptr;
     uint32_t pid = 0;
     Step_t *step;
@@ -898,12 +891,13 @@ static void handleJobId(Slurm_Msg_t *sMsg)
     getUint32(ptr, &pid);
 
     if ((step = findStepByTaskPid(pid))) {
+	PS_SendDB_t msg = { .bufUsed = 0, .useFrag = 0 };
+
 	addUint32ToMsg(step->jobid, &msg);
 	addUint32ToMsg(SLURM_SUCCESS, &msg);
+	sMsg->outdata = &msg;
 
-	sMsg->data = &msg;
 	sendSlurmReply(sMsg, RESPONSE_JOB_ID);
-	ufree(msg.buf);
     } else {
 	sendSlurmRC(sMsg, ESLURM_INVALID_JOB_ID);
     }
@@ -980,11 +974,10 @@ CLEANUP:
 
 static void handleStepStat(Slurm_Msg_t *sMsg)
 {
-    PS_DataBuffer_t msg = { .buf = NULL };
+    PS_SendDB_t msg = { .bufUsed = 0, .useFrag = 0 };
     char **ptr = &sMsg->ptr;
-    uint32_t jobid, stepid, numTasks;
+    uint32_t jobid, stepid, numTasks, numTasksUsed;
     Step_t *step;
-    char *ptrNumTasks;
 
     getUint32(ptr, &jobid);
     getUint32(ptr, &stepid);
@@ -1004,25 +997,24 @@ static void handleStepStat(Slurm_Msg_t *sMsg)
 
     /* add return code */
     addUint32ToMsg(SLURM_SUCCESS, &msg);
-    /* add num tasks */
-    ptrNumTasks = msg.buf + msg.bufUsed;
+    /* add placeholder for num tasks */
+    numTasksUsed = msg.bufUsed;
     addUint32ToMsg(SLURM_SUCCESS, &msg);
     /* account data */
     numTasks = addSlurmAccData(step->accType, 0, step->loggerTID, &msg,
 				step->nodes, step->nrOfNodes);
     /* correct numTasks */
-    *(uint32_t *) ptrNumTasks = htonl(numTasks);
+    *(uint32_t *) (msg.buf + numTasksUsed) = htonl(numTasks);
     /* add step pids */
     addSlurmPids(step->loggerTID, &msg);
 
-    sMsg->data = &msg;
+    sMsg->outdata = &msg;
     sendSlurmReply(sMsg, RESPONSE_JOB_STEP_STAT);
-    ufree(msg.buf);
 }
 
 static void handleStepPids(Slurm_Msg_t *sMsg)
 {
-    PS_DataBuffer_t msg = { .buf = NULL };
+    PS_SendDB_t msg = { .bufUsed = 0, .useFrag = 0 };
     char **ptr = &sMsg->ptr;
     Step_t *step;
     uint32_t jobid, stepid;
@@ -1046,9 +1038,8 @@ static void handleStepPids(Slurm_Msg_t *sMsg)
     /* add step pids */
     addSlurmPids(step->loggerTID, &msg);
 
-    sMsg->data = &msg;
+    sMsg->outdata = &msg;
     sendSlurmReply(sMsg, RESPONSE_JOB_STEP_PIDS);
-    ufree(msg.buf);
 }
 
 static uint32_t getNodeMem(void)
@@ -1103,7 +1094,7 @@ static uint32_t getTmpDisk(void)
 static void handleDaemonStatus(Slurm_Msg_t *sMsg)
 {
     Resp_Daemon_Status_t stat;
-    PS_DataBuffer_t msg = { .buf = NULL };
+    PS_SendDB_t msg = { .bufUsed = 0, .useFrag = 0 };
 
     /* start time */
     stat.startTime = start_time;
@@ -1145,7 +1136,6 @@ static void handleDaemonStatus(Slurm_Msg_t *sMsg)
     sendSlurmMsg(sMsg->sock, RESPONSE_SLURMD_STATUS, &msg);
 
     ufree(stat.stepList);
-    ufree(msg.buf);
 }
 
 static void handleJobNotify(Slurm_Msg_t *sMsg)
@@ -1979,7 +1969,7 @@ void clearSlurmdProto(void)
 
 void sendNodeRegStatus(uint32_t status, int protoVersion)
 {
-    PS_DataBuffer_t msg = { .buf = NULL };
+    PS_SendDB_t msg = { .bufUsed = 0, .useFrag = 0 };
     struct utsname sys;
     struct sysinfo info;
     int haveSysInfo = 0;
@@ -2062,7 +2052,6 @@ void sendNodeRegStatus(uint32_t status, int protoVersion)
 
     ufree(stat.jobids);
     ufree(stat.stepids);
-    ufree(msg.buf);
 }
 
 int __sendSlurmReply(Slurm_Msg_t *sMsg, slurm_msg_type_t type,
@@ -2076,7 +2065,7 @@ int __sendSlurmReply(Slurm_Msg_t *sMsg, slurm_msg_type_t type,
     if (sMsg->source == -1) {
 	if (!sMsg->head.forward) {
 	    /* no forwarding active for this message, just send the answer */
-	    ret = sendSlurmMsg(sMsg->sock, type, sMsg->data);
+	    ret = sendSlurmMsg(sMsg->sock, type, sMsg->outdata);
 	} else {
 	    /* we are the root of the forwarding tree, so we save the result
 	     * and wait for all other forwarded messages to return */
@@ -2094,11 +2083,11 @@ int __sendSlurmReply(Slurm_Msg_t *sMsg, slurm_msg_type_t type,
 int __sendSlurmRC(Slurm_Msg_t *sMsg, uint32_t rc, const char *func,
 		    const int line)
 {
-    PS_DataBuffer_t body = { .buf = NULL };
+    PS_SendDB_t body = { .bufUsed = 0, .useFrag = 0 };
     int ret = 1;
 
     addUint32ToMsg(rc, &body);
-    sMsg->data = &body;
+    sMsg->outdata = &body;
     ret = __sendSlurmReply(sMsg, RESPONSE_SLURM_RC, func, line);
 
     if (!sMsg->head.forward) freeSlurmMsg(sMsg);
@@ -2108,11 +2097,10 @@ int __sendSlurmRC(Slurm_Msg_t *sMsg, uint32_t rc, const char *func,
 		func, line);
     }
 
-    ufree(body.buf);
     return ret;
 }
 
-void addSlurmPids(PStask_ID_t loggerTID, PS_DataBuffer_t *data)
+void addSlurmPids(PStask_ID_t loggerTID, PS_SendDB_t *data)
 {
     uint32_t count = 0, i;
     pid_t *pids = NULL;
@@ -2141,8 +2129,8 @@ int getSlurmNodeID(PSnodes_ID_t psNodeID, PSnodes_ID_t *nodes,
 }
 
 int addSlurmAccData(uint8_t accType, pid_t childPid, PStask_ID_t loggerTID,
-			PS_DataBuffer_t *data, PSnodes_ID_t *nodes,
-			uint32_t nrOfNodes)
+		    PS_SendDB_t *data, PSnodes_ID_t *nodes,
+		    uint32_t nrOfNodes)
 {
     AccountDataExt_t accData;
     bool res;
@@ -2219,7 +2207,7 @@ PACK_RESPONSE:
 
 void sendStepExit(Step_t *step, uint32_t exit_status)
 {
-    PS_DataBuffer_t body = { .buf = NULL };
+    PS_SendDB_t body = { .bufUsed = 0, .useFrag = 0 };
     pid_t childPid;
 
     /* jobid */
@@ -2246,13 +2234,12 @@ void sendStepExit(Step_t *step, uint32_t exit_status)
 	    __func__, exit_status);
 
     sendSlurmMsg(SLURMCTLD_SOCK, REQUEST_STEP_COMPLETE, &body);
-    ufree(body.buf);
 }
 
 static void doSendTaskExit(Step_t *step, int exitCode, uint32_t *count,
 			   int *ctlPort, int *ctlAddr)
 {
-    PS_DataBuffer_t body = { .buf = NULL };
+    PS_SendDB_t body = { .bufUsed = 0, .useFrag = 0 };
     list_t *t;
     uint32_t exitCount = 0, exitCount2 = 0;
     int i, sock;
@@ -2299,14 +2286,12 @@ static void doSendTaskExit(Step_t *step, int exitCode, uint32_t *count,
     if (exitCount < 1) {
 	mlog("%s: failed to find tasks for exitCode '%i'\n", __func__,
 		exitCode);
-	ufree(body.buf);
 	return;
     }
 
     if (exitCount != exitCount2) {
 	mlog("%s: mismatching exit count '%i:%i'\n", __func__,
 		exitCount, exitCount2);
-	ufree(body.buf);
 	return;
     }
 
@@ -2337,7 +2322,6 @@ static void doSendTaskExit(Step_t *step, int exitCode, uint32_t *count,
 	    }
 	}
     }
-    ufree(body.buf);
 }
 
 /**
@@ -2405,7 +2389,7 @@ void sendTaskExit(Step_t *step, int *ctlPort, int *ctlAddr)
 
 void sendLaunchTasksFailed(Step_t *step, uint32_t error)
 {
-    PS_DataBuffer_t body = { .buf = NULL };
+    PS_SendDB_t body = { .bufUsed = 0, .useFrag = 0 };
     int sock = -1;
     uint32_t i;
     Resp_Launch_Tasks_t resp;
@@ -2446,13 +2430,11 @@ void sendLaunchTasksFailed(Step_t *step, uint32_t error)
 		__func__, step->jobid, step->stepid, step->globalTaskIdsLen[i],
 		resp.nodeName);
     }
-
-    ufree(body.buf);
 }
 
 void sendTaskPids(Step_t *step)
 {
-    PS_DataBuffer_t body = { .buf = NULL };
+    PS_SendDB_t body = { .bufUsed = 0, .useFrag = 0 };
     uint32_t countPIDs = 0, countLocalPIDs = 0, countGTIDs = 0;
     int sock = -1;
     list_t *t;
@@ -2517,14 +2499,13 @@ void sendTaskPids(Step_t *step)
 	    __func__, step->jobid, step->stepid, countPIDs);
 
 CLEANUP:
-    ufree(body.buf);
     ufree(resp.localPIDs);
     ufree(resp.globalTIDs);
 }
 
 void sendJobExit(Job_t *job, uint32_t exit_status)
 {
-    PS_DataBuffer_t body = { .buf = NULL };
+    PS_SendDB_t body = { .bufUsed = 0, .useFrag = 0 };
 
     if (job->signaled) exit_status = 0;
     if (job->timeout) exit_status = SIGTERM;
@@ -2552,12 +2533,11 @@ void sendJobExit(Job_t *job, uint32_t exit_status)
     addStringToMsg(job->hostname, &body);
 
     sendSlurmMsg(SLURMCTLD_SOCK, REQUEST_COMPLETE_BATCH_SCRIPT, &body);
-    ufree(body.buf);
 }
 
 void sendEpilogueComplete(uint32_t jobid, uint32_t rc)
 {
-    PS_DataBuffer_t body = { .buf = NULL };
+    PS_SendDB_t body = { .bufUsed = 0, .useFrag = 0 };
 
     mlog("%s: jobid '%u'\n", __func__, jobid);
 
@@ -2569,7 +2549,6 @@ void sendEpilogueComplete(uint32_t jobid, uint32_t rc)
     addStringToMsg(getConfValueC(&Config, "SLURM_HOSTNAME"), &body);
 
     sendSlurmMsg(SLURMCTLD_SOCK, MESSAGE_EPILOG_COMPLETE, &body);
-    ufree(body.buf);
 }
 
 /* vim: set ts=8 sw=4 tw=0 sts=4 noet:*/

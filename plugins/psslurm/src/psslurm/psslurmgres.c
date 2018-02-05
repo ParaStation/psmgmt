@@ -39,47 +39,54 @@ static uint32_t getGresId(char *name)
     return gresId;
 }
 
-void addGresData(PS_DataBuffer_t *msg, int version)
+void addGresData(PS_SendDB_t *msg, int version)
 {
     int count=0, cpus;
     list_t *g;
-    PS_DataBuffer_t data = { .buf = NULL };
+    size_t startGresData;
+    uint32_t len;
+    char *ptr;
 
     cpus = getConfValueI(&Config, "SLURM_CPUS");
 
+    /* add placeholder for gres info size */
+    startGresData = msg->bufUsed;
+    addUint32ToMsg(0, msg);
+    /* add placeholder again for gres info size in pack_mem() */
+    addUint32ToMsg(0, msg);
+
     /* add slurm version */
-    addUint16ToMsg(version, &data);
+    addUint16ToMsg(version, msg);
 
     list_for_each(g, &GresConfList) count++;
-    addUint16ToMsg(count, &data);
+    addUint16ToMsg(count, msg);
 
     list_for_each(g, &GresConfList) {
 	Gres_Conf_t *gres = list_entry(g, Gres_Conf_t, next);
 
-	addUint32ToMsg(GRES_MAGIC, &data);
+	addUint32ToMsg(GRES_MAGIC, msg);
 #ifdef MIN_SLURM_PROTO_1605
-	addUint64ToMsg(gres->count, &data);
+	addUint64ToMsg(gres->count, msg);
 #else
-	addUint32ToMsg(gres->count, &data);
+	addUint32ToMsg(gres->count, msg);
 #endif
-	addUint32ToMsg(cpus, &data);
-	addUint8ToMsg((gres->file ? 1 : 0), &data);
-	addUint32ToMsg(gres->id, &data);
-	addStringToMsg(gres->cpus, &data);
-	addStringToMsg(gres->name, &data);
+	addUint32ToMsg(cpus, msg);
+	addUint8ToMsg((gres->file ? 1 : 0), msg);
+	addUint32ToMsg(gres->id, msg);
+	addStringToMsg(gres->cpus, msg);
+	addStringToMsg(gres->name, msg);
 #ifdef MIN_SLURM_PROTO_1605
-	addStringToMsg(gres->type, &data);
+	addStringToMsg(gres->type, msg);
 #endif
     }
 
-    /* gres info size */
-    addUint32ToMsg(data.bufUsed, msg);
-    /* again gres info size for pack_mem() */
-    addUint32ToMsg(data.bufUsed, msg);
+    /* set real gres info size */
+    ptr = msg->buf + startGresData;
+    len = msg->bufUsed - startGresData - (2 * sizeof(uint32_t));
 
-    /** pack data into msg */
-    addMemToMsg(data.buf, data.bufUsed, msg);
-    ufree(data.buf);
+    *(uint32_t *)ptr = htonl(len);
+    ptr += sizeof(uint32_t);
+    *(uint32_t *)ptr = htonl(len);
 }
 
 static int setGresCount(Gres_Conf_t *gres, char *count)

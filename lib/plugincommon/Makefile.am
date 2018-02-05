@@ -14,9 +14,9 @@ AM_CPPFLAGS += -I$(top_srcdir)/bin/daemon
 
 noinst_LTLIBRARIES = libplugincommon.la
 
-libplugincommon_la_SOURCES = psserial.c pluginconfig.c pluginfrag.c	\
-	pluginhelper.c pluginlog.c pluginmalloc.c pluginstrv.c		\
-	pluginpty.c pluginpartition.c pluginhostlist.c pluginenv.c	\
+libplugincommon_la_SOURCES = psserial.c pluginconfig.c pluginhelper.c   \
+	pluginlog.c pluginmalloc.c pluginstrv.c	pluginpty.c 		\
+	pluginpartition.c pluginhostlist.c pluginenv.c			\
 	pluginforwarder.c
 
 pluginforwarder.lo: CPPFLAGS = $(AM_CPPFLAGS) \

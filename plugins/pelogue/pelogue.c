@@ -21,7 +21,6 @@
 #include "timer.h"
 #include "psaccounthandles.h"
 
-#include "pluginfrag.h"
 #include "pluginhelper.h"
 
 #include "peloguelog.h"
@@ -137,7 +136,6 @@ int initialize(void)
     }
 
     initPluginConfigs();
-    initFragComm();
     initComm();
 
     /* get psaccount function handles */
@@ -172,7 +170,6 @@ int initialize(void)
 
 INIT_ERROR:
     unregisterHooks(false);
-    finalizeFragComm();
     return 1;
 }
 
@@ -205,7 +202,6 @@ void cleanup(void)
     clearJobList();
     clearAllPluginConfigs();
     unregisterHooks(true);
-    finalizeFragComm();
 
     mlog("...Bye.\n");
 

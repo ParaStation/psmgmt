@@ -250,10 +250,10 @@ static void handleBufferedMsg(char *msg, uint32_t len, PS_DataBuffer_t *buffer,
 	nlLen = nl ? nl - msg +1: len;
 	writeLabelIOmsg(msg, nlLen, taskid, type, fwdata, step, lrank);
 	if (len - nlLen > 0) {
-	    addMemToMsg(msg + nlLen, len - nlLen, buffer);
+	    memToDataBuffer(msg + nlLen, len - nlLen, buffer);
 	}
     } else {
-	addMemToMsg(msg, len, buffer);
+	memToDataBuffer(msg, len, buffer);
     }
 }
 
@@ -335,15 +335,12 @@ static void handlePrintChildMsg(Forwarder_Data_t *fwdata, char *ptr)
 static void closeIOchannel(Forwarder_Data_t *fwdata, uint32_t taskid,
 			   uint8_t type)
 {
-    PS_DataBuffer_t msg = { .buf = NULL };
+    PS_SendDB_t msg = { .bufUsed = 0, .useFrag = 0 };
 
-    msg.bufUsed = 0;
     addUint8ToMsg(type, &msg);
     addUint32ToMsg(taskid, &msg);
     addDataToMsg(NULL, 0, &msg);
     handlePrintChildMsg(fwdata, msg.buf);
-
-    ufree(msg.buf);
 }
 
 void stepFinalize(Forwarder_Data_t *fwdata)

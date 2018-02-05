@@ -15,6 +15,7 @@
 #include <time.h>
 #include <string.h>
 #include <arpa/inet.h>
+#include <stdlib.h>
 
 #include "pluginmalloc.h"
 #include "pluginlog.h"
@@ -41,6 +42,13 @@
 
 #define FLOAT_CONVERT 1000000
 
+#define DEFAULT_BUFFER_SIZE 256 * 1024
+
+typedef enum {
+    FRAGMENT_PART = 0x01,   /* one fragment, more to follow */
+    FRAGMENT_END  = 0x02,   /* the end of a fragmented message */
+} FragType_t;
+
 /** Flag output of debug information */
 static bool debug = false;
 
@@ -49,6 +57,298 @@ static bool byteOrder = true;
 
 /** Flag insertion of type information into actual messages */
 static bool typeInfo = false;
+
+/** send buffer for non fragmented messages */
+static char *sendBuf = NULL;
+
+/** the send buffer size */
+static uint32_t sendBufLen = sizeof(DDTypedBufferMsg_t) * 100;
+
+/** destination nodes for fragmented messages */
+static PStask_ID_t *destNodes = NULL;
+
+/** */
+static DDTypedBufferMsg_t fragMsg;
+
+/**
+ * Temporary receive buffers used to collect fragments of a
+ * message. One per node.
+ */
+static PS_DataBuffer_t *recvBuffers = NULL;
+
+/**
+ * Custom function used by @ref __sendFragMsg() to actually send
+ * fragments. Set via @ref initSerial().
+ */
+static Send_Msg_Func_t *sendPSMsg = NULL;
+
+bool initSerial(size_t bufSize, Send_Msg_Func_t *func)
+{
+    uint16_t i;
+    PSnodes_ID_t nrOfNodes = PSC_getNrOfNodes();
+
+    sendPSMsg = func;
+
+    if (sendBuf) return false;
+
+    /* allocate send buffers */
+    bufSize = bufSize ? bufSize : DEFAULT_BUFFER_SIZE;
+    sendBuf = umalloc(bufSize);
+
+    /* allocated space for destination nodes */
+    if (nrOfNodes == -1) {
+	pluginlog("%s: unable to get number of nodes\n", __func__);
+	return false;
+    }
+    destNodes = umalloc(sizeof(*destNodes) * nrOfNodes);
+
+    /* allocate receive buffers */
+    recvBuffers = umalloc(sizeof(PS_DataBuffer_t) * nrOfNodes);
+    for (i=0; i<nrOfNodes; i++) {
+	recvBuffers[i].buf = umalloc(bufSize);
+	recvBuffers[i].bufSize = bufSize;
+	recvBuffers[i].bufUsed = 0;
+    }
+
+    return true;
+}
+
+void finalizeSerial(void)
+{
+    if (sendBuf) {
+	ufree(sendBuf);
+	sendBuf = NULL;
+	sendBufLen = 0;
+    }
+    if (destNodes) {
+	ufree(destNodes);
+	destNodes = NULL;
+    }
+    if (recvBuffers) {
+	ufree(recvBuffers);
+	recvBuffers = NULL;
+    }
+}
+
+void initFragBuffer(PS_SendDB_t *buffer, int32_t headType, int32_t msgType)
+{
+    buffer->useFrag = 1;
+    buffer->nrOfNodes = 0;
+    buffer->bufUsed = 0;
+    buffer->headType = headType;
+    buffer->msgType = msgType;
+}
+
+bool setFragDest(PS_SendDB_t *buffer, PStask_ID_t id)
+{
+    PSnodes_ID_t nrOfNodes = PSC_getNrOfNodes();
+
+    if (buffer->nrOfNodes >= nrOfNodes) {
+	pluginlog("%s: maximal number of %i destinations reached\n",
+		__func__, nrOfNodes);
+	return false;
+    }
+
+    if (!PSC_validNode(PSC_getID(id))) {
+	pluginlog("%s: node ID %i is out of range\n", __func__, PSC_getID(id));
+	return false;
+    }
+
+    destNodes[buffer->nrOfNodes++] = id;
+
+    return true;
+}
+
+/**
+ * @brief Send a message fragment
+ *
+ * Send a message fragment to all nodes set in @a destNodes.
+ *
+ * @param buffer The send buffer to use
+ *
+ * @param caller Function name of the calling function
+ *
+ * @param line Line number where this function is called
+ */
+static bool sendFragment(PS_SendDB_t *buffer, const char *caller,
+			 const int line)
+{
+    int res = -1;
+    bool ret = true;
+    PSnodes_ID_t i;
+    PS_Frag_Msg_Header_t *fhead = &buffer->fhead;
+    PStask_ID_t localTask = -1;
+
+    if (!buffer->nrOfNodes) {
+	pluginlog("%s: empty nodelist from caller %s at line %i\n", __func__,
+		  caller, line);
+	return false;
+    }
+
+    for (i=0; i<buffer->nrOfNodes; i++) {
+	if (PSC_getID(destNodes[i]) == PSC_getMyID()) {
+	    /* local messages can overwrite the shared send message buffer,
+	     * therefore it needs to be the last message send */
+	    localTask = destNodes[i];
+	    continue;
+	}
+	fragMsg.header.dest = destNodes[i];
+	pluginlog("%s: sending msg fragment %i to %s len %u\n", __func__,
+		  fhead->fragNum, PSC_printTID(fragMsg.header.dest),
+		  fragMsg.header.len);
+
+	res = sendPSMsg(&fragMsg);
+
+	if (res == -1 && errno != EWOULDBLOCK) {
+	    ret = false;
+	    PSC_warn(-1, errno, "%s(%s:%i): %s failed, fragment %u", __func__,
+		     caller, line, sendPSMsg ? "sendPSMsg()" : "sendMsg()",
+		     fhead->fragNum);
+	}
+    }
+
+    /* send any local messages now */
+    if (localTask != -1) {
+	fragMsg.header.dest = localTask;
+	pluginlog("%s: sending msg fragment %i to %s len %u\n", __func__,
+		  fhead->fragNum, PSC_printTID(fragMsg.header.dest),
+		  fragMsg.header.len);
+
+	res = sendPSMsg(&fragMsg);
+
+	if (res == -1 && errno != EWOULDBLOCK) {
+	    ret = false;
+	    PSC_warn(-1, errno, "%s(%s:%i): %s failed, fragment %u", __func__,
+		     caller, line, sendPSMsg ? "sendPSMsg()" : "sendMsg()",
+		     fhead->fragNum);
+	}
+    }
+    return ret;
+}
+
+int psserialNodeDown(void *nodeID)
+{
+    if (!nodeID) return 1;
+
+    PSnodes_ID_t id = *(PSnodes_ID_t *)nodeID;
+
+    if (!PSC_validNode(id)) {
+	pluginlog("%s: invalid node id %i\n", __func__, id);
+	return 1;
+    }
+
+    pluginlog("%s: freeing recv buffer for node '%i'\n", __func__, id);
+    recvBuffers[id].bufUsed = 0;
+
+    return 1;
+}
+
+bool __recvFragMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_func_t *func,
+		   const char *caller, const int line)
+{
+    PSnodes_ID_t srcNode = PSC_getID(msg->header.sender);
+    PS_Frag_Msg_Header_t *fhead;
+    uint64_t toCopy;
+    char *payLoad, *ptr;
+    PS_DataBuffer_t *recvBuf;
+
+    if (!recvBuffers) {
+	pluginlog("%s:(%s:%i): please call initFragComm() first\n",
+		    __func__, caller, line);
+	return false;
+    }
+
+    if (!msg) {
+	pluginlog("%s(%s:%i): invalid msg\n", __func__, caller, line);
+	return false;
+    }
+
+    if (!func) {
+	pluginlog("%s(%s:%i): invalid callback function\n", __func__,
+		  caller, line);
+	return false;
+    }
+
+    if (!PSC_validNode(srcNode)) {
+	pluginlog("%s: invalid sender node '%i'\n", __func__, srcNode);
+	return false;
+    }
+
+    recvBuf = &recvBuffers[srcNode];
+    payLoad = msg->buf;
+
+    /* extract fragment header */
+    fhead = (PS_Frag_Msg_Header_t *) payLoad;
+    payLoad += sizeof(*fhead);
+
+    if (fhead->fragType != FRAGMENT_PART && fhead->fragType != FRAGMENT_END) {
+	pluginlog("%s: invalid fragment type %u from %s\n", __func__,
+		  fhead->fragType, PSC_printTID(msg->header.sender));
+	return false;
+    }
+
+    /* copy payload */
+    toCopy = msg->header.len - sizeof(msg->header) - sizeof(msg->type) -
+	     sizeof(*fhead);
+
+    if (toCopy + recvBuf->bufUsed > recvBuf->bufSize) {
+	pluginlog("%s: grow recv buffer for node %u\n", __func__, srcNode);
+	/* TODO  grow BUFFER */
+	return false;
+    }
+
+    ptr = recvBuf->buf + recvBuf->bufUsed;
+    memcpy(ptr, payLoad, toCopy);
+    recvBuf->bufUsed += toCopy;
+
+    pluginlog("%s: recv fragment %i from %s\n", __func__, fhead->fragNum,
+	      PSC_printTID(msg->header.sender));
+
+    /* last message fragment ? */
+    if (fhead->fragType == FRAGMENT_END) {
+	/* invoke callback */
+
+	pluginlog("%s: msg complete with %u bytes from %s\n", __func__,
+		  recvBuf->bufUsed, PSC_printTID(msg->header.sender));
+
+	msg->buf[0] = '\0';
+	func(msg, recvBuf);
+
+	/* cleanup data */
+	recvBuf->bufUsed = 0;
+    }
+
+    return true;
+}
+
+int __sendFragMsg(PS_SendDB_t *buffer, const char *caller, const int line)
+{
+    bool ret;
+    PS_Frag_Msg_Header_t *fhead;
+
+    if (!sendBuf) {
+	pluginlog("%s: %s at line %u, please call initSerial() before usage\n",
+		  __func__, caller, line);
+	return -1;
+    }
+
+    if (!buffer->bufUsed) {
+	pluginlog("%s: no data to send for caller %s line %i\n",
+		  __func__, caller, line);
+	return -1;
+    }
+
+    /* last fragmented message */
+    fhead = (PS_Frag_Msg_Header_t *) fragMsg.buf;
+    fhead->fragType = FRAGMENT_END;
+
+    ret = sendFragment(buffer, caller, line);
+
+    fragMsg.header.len = 0;
+    if (!ret) return -1;
+
+    return buffer->bufUsed;
+}
 
 bool setByteOrder(bool flag)
 {
@@ -122,7 +422,7 @@ void freeDataBuffer(PS_DataBuffer_t *data)
 
 PS_DataBuffer_t * dupDataBuffer(PS_DataBuffer_t *data)
 {
-    PS_DataBuffer_t *dup = malloc(sizeof(*dup));
+    PS_DataBuffer_t *dup = umalloc(sizeof(*dup));
 
     dup->buf = umalloc(data->bufSize);
     memcpy(dup->buf, data->buf, data->bufSize);
@@ -130,6 +430,30 @@ PS_DataBuffer_t * dupDataBuffer(PS_DataBuffer_t *data)
     dup->bufUsed = data->bufUsed;
 
     return dup;
+}
+
+bool __memToDataBuffer(void *mem, size_t len, PS_DataBuffer_t *buffer,
+		       const char *caller, const int line)
+{
+    char *ptr;
+
+    if (!buffer) {
+	pluginlog("%s: invalid buffer from '%s' at %d\n", __func__,
+		  caller, line);
+	return false;
+    }
+
+    if (!growDataBuffer(len, buffer, caller, line)) {
+	pluginlog("%s: growing buffer failed from '%s' at %d\n", __func__,
+		caller, line);
+	return false;
+    }
+
+    ptr = buffer->buf + buffer->bufUsed;
+    memcpy(ptr, mem, len);
+    buffer->bufUsed += len;
+
+    return true;
 }
 
 /** Maximum number of retries within @ref __doWrite() and __doRead() */
@@ -153,7 +477,7 @@ int __doWriteEx(int fd, void *buffer, size_t toWrite, size_t *written,
 	    time_t now = time(NULL);
 	    if (lastLog == now) return -1;
 
-	    pluginwarn(eno, "%s (%s): write(%i) failed", __func__, func, fd);
+	    PSC_warn(-1, eno, "%s (%s): write(%i) failed", __func__, func, fd);
 	    lastLog = now;
 	    return -1;
 	} else if (!ret) {
@@ -196,7 +520,7 @@ int __doReadExt(int fd, void *buffer, size_t toRead, size_t *numRead,
 	    time_t now = time(NULL);
 	    if (lastLog == now) return -1;
 
-	    pluginwarn(eno, "%s (%s): read(%i) failed", __func__, func, fd);
+	    PSC_warn(-1, eno, "%s (%s): read(%i) failed", __func__, func, fd);
 	    lastLog = now;
 	    return -1;
 	} else if (!num) {
@@ -399,19 +723,91 @@ bool __getStringArrayM(char **ptr, char ***array, uint32_t *len,
 
 /******************** adding data  ********************/
 
-static void addDataType(void **ptr, PS_DataType_t type)
+static void addFragmentedData(PS_SendDB_t *buffer, const void *data,
+			      const size_t dataLen, const char *caller,
+			      const int line)
 {
-    *(uint8_t *) *ptr = type;
-    *ptr += sizeof(uint8_t);
+    size_t dataLeft = dataLen;
+    void *ptr;
+
+    if (!buffer->bufUsed || !fragMsg.header.len) {
+	/* init first message */
+	fragMsg.header.len = sizeof(fragMsg.header) + sizeof(fragMsg.type);
+	fragMsg.header.sender = PSC_getMyTID();
+	fragMsg.header.type = buffer->headType;
+	fragMsg.type = buffer->msgType;
+	buffer->fhead.fragType = FRAGMENT_PART;
+	buffer->fhead.fragNum = 0;
+	PSP_putTypedMsgBuf(&fragMsg, __func__, "fragHeader",
+			   &buffer->fhead, sizeof(buffer->fhead));
+    }
+
+    while (dataLeft>0) {
+	size_t chunkLeft = 0, off = 0, tocopy;
+	size_t buffOffset = offsetof(DDTypedBufferMsg_t, buf);
+
+	/* calc free buffer space in current msg */
+	off = fragMsg.header.len - buffOffset;
+	chunkLeft = BufTypedMsgSize - off;
+
+	if (!chunkLeft) {
+	    /* no space left, send fragment to all nodes */
+	    sendFragment(buffer, caller, line);
+
+	    fragMsg.header.len = sizeof(fragMsg.header) + sizeof(fragMsg.type);
+	    buffer->fhead.fragNum++;
+	    PSP_putTypedMsgBuf(&fragMsg, __func__, "fragHeader",
+			       &buffer->fhead, sizeof(buffer->fhead));
+	    continue;
+	}
+
+	/* fill message buffer */
+	ptr = fragMsg.buf + off;
+	tocopy = (chunkLeft < dataLeft) ? chunkLeft : dataLeft;
+	memcpy(ptr, data + (dataLen - dataLeft), tocopy);
+	fragMsg.header.len += tocopy;
+	dataLeft -= tocopy;
+	buffer->bufUsed += tocopy;
+    }
 }
 
-bool addToBuf(const void *val, const uint32_t size, PS_DataBuffer_t *data,
+/**
+ * @brief Add data to a send buffer.
+ *
+ * @param buffer The send buffer to use
+ *
+ * @param data The data to add
+ *
+ * @param dataLen The size of the data to add
+ */
+static void addData(PS_SendDB_t *buffer, const void *data, const size_t dataLen,
+		    const char *caller, const int line)
+{
+    if (buffer->useFrag) {
+	/* fragmented message */
+	addFragmentedData(buffer, data, dataLen, caller, line);
+    } else {
+	void *ptr;
+
+	if (!buffer->buf) buffer->bufUsed = 0;
+	/* grow send buffer if needed */
+	if (buffer->bufUsed + dataLen > sendBufLen) {
+	    sendBufLen *= 2;
+	    sendBuf = urealloc(sendBuf, sendBufLen);
+	    pluginlog("%s: realloc send buffer to %u\n", __func__, sendBufLen);
+	}
+
+	ptr = sendBuf + buffer->bufUsed;
+	memcpy(ptr, data, dataLen);
+	buffer->bufUsed += dataLen;
+	buffer->buf = sendBuf;
+    }
+}
+
+bool addToBuf(const void *val, const uint32_t size, PS_SendDB_t *data,
 	      PS_DataType_t type, const char *caller, const int line)
 {
-    void *ptr;
     bool hasLen = (type == PSDATA_STRING || type == PSDATA_DATA);
-    size_t growth = (typeInfo ? sizeof(uint8_t) : 0)
-	+ (hasLen ? sizeof(uint32_t) : 0) + size;
 
     if (!data) {
 	pluginlog("%s: invalid data from '%s' at %d\n", __func__, caller, line);
@@ -423,52 +819,58 @@ bool addToBuf(const void *val, const uint32_t size, PS_DataBuffer_t *data,
 	return false;
     }
 
-    if (!growDataBuffer(growth, data, caller, line)) {
-	pluginlog("%s: growing buffer failed from '%s' at %d\n", __func__,
-		  caller, line);
+    if (!sendBuf) {
+	pluginlog("%s: %s at line %u, please call initSerial() before usage\n",
+		  __func__, caller, line);
 	return false;
     }
-    ptr = data->buf + data->bufUsed;
 
     /* add data type */
     if (typeInfo) {
-	addDataType(&ptr, type);
-	data->bufUsed += sizeof(uint8_t);
+	uint8_t dataType = type;
+	addData(data, &dataType, sizeof(dataType), caller, line);
     }
 
     /* add data length if required */
     if (hasLen) {
-	*(uint32_t *) ptr = byteOrder ? htonl(size) : size;
-	ptr += sizeof(uint32_t);
-	data->bufUsed += sizeof(uint32_t);
+	uint32_t len = byteOrder ? htonl(size) : size;
+	addData(data, &len, sizeof(len), caller, line);
     }
 
     /* add data */
-    if (size) memcpy(ptr, val, size);
     if (byteOrder && !hasLen && type != PSDATA_MEM) {
+	uint16_t tmp16;
+	uint32_t tmp32;
+	uint64_t tmp64;
 	switch (size) {
 	case 1:
+	    addData(data, val, size, caller, line);
 	    break;
 	case 2:
-	    *(uint16_t*)ptr = htons(*(uint16_t*)ptr);
+	    tmp16 = htons(*(uint16_t*)val);
+	    addData(data, &tmp16, sizeof(uint16_t), caller, line);
 	    break;
 	case 4:
-	    *(uint32_t*)ptr = htonl(*(uint32_t*)ptr);
+	    tmp32 = htonl(*(uint32_t*)val);
+	    addData(data, &tmp32, sizeof(uint32_t), caller, line);
 	    break;
 	case 8:
-	    *(uint64_t*)ptr = HTON64(*(uint64_t*)ptr);
+	    tmp64 = HTON64(*(uint64_t*)val);
+	    addData(data, &tmp64, sizeof(uint64_t), caller, line);
 	    break;
 	default:
+	    addData(data, val, size, caller, line);
 	    pluginlog("%s(%s@%d): unknown conversion for size %d\n",
 		      __func__, caller, line, size);
 	}
+    } else {
+	addData(data, val, size, caller, line);
     }
-    data->bufUsed += size;
 
     return true;
 }
 
-bool addArrayToBuf(const void *val, const uint32_t num, PS_DataBuffer_t *data,
+bool addArrayToBuf(const void *val, const uint32_t num, PS_SendDB_t *data,
 		   PS_DataType_t type, size_t size,
 		   const char *caller, const int line)
 {
@@ -483,6 +885,8 @@ bool addArrayToBuf(const void *val, const uint32_t num, PS_DataBuffer_t *data,
 	pluginlog("%s: invalid val from '%s' at %d\n", __func__, caller, line);
 	return false;
     }
+
+    pluginlog("%s:!!!!!! adding num %u\n", __func__, num);
 
     if (!addToBuf(&num, sizeof(num), data, PSDATA_UINT32, caller, line))
 	return false;

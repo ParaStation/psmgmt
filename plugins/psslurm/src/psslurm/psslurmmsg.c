@@ -259,13 +259,13 @@ void deleteMsgBuf(Slurm_Msg_Buf_t *msgBuf)
     }
 
     freeSlurmMsgHead(&msgBuf->head);
-    freeDataBuffer(msgBuf->body);
     freeSlurmAuth(msgBuf->auth);
+    ufree(msgBuf->body.buf);
     list_del(&msgBuf->list);
     ufree(msgBuf);
 }
 
-Slurm_Msg_Buf_t *saveSlurmMsg(Slurm_Msg_Header_t *head, PS_DataBuffer_t *body,
+Slurm_Msg_Buf_t *saveSlurmMsg(Slurm_Msg_Header_t *head, PS_SendDB_t *body,
 			      Slurm_Auth_t *auth, int sock, size_t written)
 {
     Slurm_Msg_Buf_t *msgBuf;
@@ -285,8 +285,9 @@ Slurm_Msg_Buf_t *saveSlurmMsg(Slurm_Msg_Header_t *head, PS_DataBuffer_t *body,
     /* dup msg head */
     dupSlurmMsgHead(&msgBuf->head, head);
 
-    /* dup data buffer */
-    msgBuf->body = dupDataBuffer(body);
+    /* save data buffer */
+    msgBuf->body.bufUsed = 0;
+    memToDataBuffer(body->buf, body->bufUsed, &msgBuf->body);
 
     /* dup auth */
     msgBuf->auth = (auth) ? dupSlurmAuth(auth) : NULL;
@@ -326,7 +327,7 @@ bool needMsgResend(uint16_t type)
 
 int resendSlurmMsg(int sock, void *msg)
 {
-    PS_DataBuffer_t data = { .buf = NULL };
+    PS_SendDB_t data = { .bufUsed = 0, .useFrag = 0 };
     Slurm_Msg_Buf_t *savedMsg = msg;
     int ret;
     size_t written;
@@ -336,7 +337,7 @@ int resendSlurmMsg(int sock, void *msg)
 	savedMsg->authTime = time(NULL);
     }
 
-    packSlurmMsg(&data, &savedMsg->head, savedMsg->body, savedMsg->auth);
+    packSlurmMsg(&data, &savedMsg->head, &savedMsg->body, savedMsg->auth);
 
     ret = sendDataBuffer(sock, &data, savedMsg->offset, &written);
 

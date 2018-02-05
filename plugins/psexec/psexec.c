@@ -11,7 +11,6 @@
 #include <unistd.h>
 
 #include "plugin.h"
-#include "pluginfrag.h"
 
 #include "pspluginprotocol.h"
 
@@ -37,7 +36,6 @@ int initialize(void)
 	return 1;
     }
 
-    initFragComm();
     initComm();
 
     mlog("(%i) successfully started\n", version);
@@ -49,7 +47,6 @@ void cleanup(void)
     /* make sure all processes are gone */
     clearScriptList();
     finalizeComm();
-    finalizeFragComm();
 
     mlog("...Bye.\n");
 

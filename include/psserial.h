@@ -38,6 +38,148 @@ typedef struct {
     uint32_t bufUsed;    /**< Used bytes of @ref buf */
 } PS_DataBuffer_t;
 
+/** Receive header providing meta-information on a single fragment */
+typedef struct {
+    uint8_t fragType;	/**< Type of this fragment */
+    uint16_t fragNum;   /**< Sequence number of this fragment*/
+} PS_Frag_Msg_Header_t;
+
+/** Send data-buffer for fragmented and regular messages */
+typedef struct {
+    int32_t headType;		/**< message header type */
+    int32_t msgType;		/**< message (sub-)type */
+    char *buf;			/**< buffer for non fragmented msg */
+    uint32_t bufUsed;		/**< the size of the buffer */
+    bool useFrag;		/**< if true use fragmentation */
+    PS_Frag_Msg_Header_t fhead; /**< fragmentation header */
+    PSnodes_ID_t nrOfNodes;	/**< the number of destinations */
+} PS_SendDB_t;
+
+/** Prototype of custom sender functions used by @ref initSerial() */
+typedef int Send_Msg_Func_t(void *);
+
+/** Prototype for @ref __recvFragMsg()'s callback */
+typedef void PS_DataBuffer_func_t(DDTypedBufferMsg_t *msg,
+				  PS_DataBuffer_t *data);
+
+/**
+ * @brief Initialize the Psserial facility.
+ *
+ * Allocated memory for the message buffers. This function should
+ * be called at the beginning of the program.  The ParaStation daemon's
+ * @ref sendMsg() function is usually used for the send function.
+ *
+ * @param bufSize The size of the send/receive buffers
+ *
+ * @param func The sender function to use
+ * */
+bool initSerial(size_t bufSize, Send_Msg_Func_t *func);
+
+/**
+ * @brief Finalize the Psserial facility.
+ *
+ * Finalize the Pscomm facility. For this, all administrative
+ * structures are cleaned up.
+ */
+void finalizeSerial(void);
+
+/**
+ * @brief Callback on downed node
+ *
+ * This callback is called if the hosting daemon detects that a remote
+ * node went down. It aims to cleanup all now useless data structures,
+ * i.e. all incomplete messages to be received from the node that went
+ * down.
+ *
+ * @param nodeID ParaStation ID of the node that went down
+ *
+ * @return Always return 1 to make the calling hook-handler happy
+ */
+int psserialNodeDown(void *nodeID);
+
+/**
+ * @brief Initialize a fragmented message buffer.
+ *
+ * @param buffer The buffer to use
+ *
+ * @param headType Type of the messages used to send the fragments
+ *
+ * @param msgType Sub-type of the messages to send
+ */
+void initFragBuffer(PS_SendDB_t *buffer, int32_t headType, int32_t msgType);
+
+/**
+ * @brief Set an additional destination for fragmented messages.
+ *
+ * Add the provided Task ID as an additional destination to send
+ * the fragmented message to. This functions needs to be called
+ * before using any functions to add data to the buffer. A good place
+ * is right after the call to @ref initFragBuffer.
+ *
+ * @param buffer The send buffer to use
+ *
+ * @param id The Task ID to add
+ *
+ * @return Returns true if the destition was added or false on error
+ */
+bool setFragDest(PS_SendDB_t *buffer, PStask_ID_t id);
+
+/**
+ * @brief Receive fragmented message
+ *
+ * Add the fragment contained in the message @a msg to the overall
+ * message to receive stored in a separate message buffer. Upon
+ * complete receive of the message, i.e. after the last fragment
+ * arrived, the callback @a func will be called with @a msg as the
+ * first parameter and the message buffer used to collect all
+ * fragments as the second argument.
+ *
+ * @param msg Message to handle
+ *
+ * @param func Callback function to be called upon message completion
+ *
+ * @param caller Function name of the calling function
+ *
+ * @param line Line number where this function is called
+ *
+ * @return On success true is returned or false in case of an
+ * error.
+ */
+bool __recvFragMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_func_t *func,
+		   const char *caller, const int line);
+
+#define recvFragMsg(msg, func) __recvFragMsg(msg, func, __func__, __LINE__)
+
+/**
+ * @brief Send fragmented message
+ *
+ * Send the message content found in the message buffer @a buffer to
+ * the task ID(s) registered before using @ref setFragDest() as a series
+ * of fragments put into ParaStation protocol messages of type
+ * @ref DDTypedBufferMsg_t. Each message is of RDPType and the
+ * sub-type defined previously by @ref initFragBuffer().
+ *
+ * The sender function which was registered before via @ref
+ * initFragBuffer() method is used to send the fragments.
+ *
+ * Each fragment holds its own meta-data used to put together the
+ * overall message on the receiving side as required by @ref
+ * __recvFragMsg()
+ *
+ * @param buffer Buffer to send
+ *
+ * @param caller Function name of the calling function
+ *
+ * @param line Line number where this function is called
+ *
+ * @return The total number of payload bytes sent is returned. Or -1
+ * in case of sending one fragment failed. In the latter case the
+ * amount of data received on the other side is undefined.
+ */
+int __sendFragMsg(PS_SendDB_t *buffer, const char *caller, const int line);
+
+#define sendFragMsg(buffer) __sendFragMsg(buffer, __func__, __LINE__)
+
 /**
  * @brief Set byte-order flag
  *
@@ -108,6 +250,30 @@ void freeDataBuffer(PS_DataBuffer_t *data);
  * returned. Or NULL in case of error.
  */
 PS_DataBuffer_t * dupDataBuffer(PS_DataBuffer_t *data);
+
+/**
+ * @brief Write to data buffer
+ *
+ * Write data from @a mem to the @a buffer. The buffer is
+ * growing in size as needed.
+ *
+ * @param mem Pointer holding the data to write
+ *
+ * @param len Number of bytes to write
+ *
+ * @param buffer The buffer to write to
+ *
+ * @param caller Function name of the calling function
+ *
+ * @param line Line number where this function is called
+ *
+ * @param Returns true on success and false on error
+ */
+bool __memToDataBuffer(void *mem, size_t len, PS_DataBuffer_t *buffer,
+		       const char *caller, const int line);
+
+#define memToDataBuffer(mem, size, buffer) \
+    __memToDataBuffer(mem, size, buffer, __func__, __LINE__)
 
 /**
  * @brief Write data to file descriptor
@@ -507,7 +673,7 @@ bool __getStringArrayM(char **ptr, char ***array, uint32_t *len,
  *
  * @return On success true is returned or false in case of an error.
  */
-bool addToBuf(const void *val, const uint32_t size, PS_DataBuffer_t *data,
+bool addToBuf(const void *val, const uint32_t size, PS_SendDB_t *data,
 	      PS_DataType_t type, const char *caller, const int line);
 
 #define addInt8ToMsg(val, data) { int8_t _x = val;		\
@@ -594,7 +760,7 @@ bool addToBuf(const void *val, const uint32_t size, PS_DataBuffer_t *data,
  *
  * @return On success true is returned or false in case of an error.
  */
-bool addArrayToBuf(const void *val, const uint32_t num, PS_DataBuffer_t *data,
+bool addArrayToBuf(const void *val, const uint32_t num, PS_SendDB_t *data,
 		   PS_DataType_t type, size_t size,
 		   const char *caller, const int line);
 

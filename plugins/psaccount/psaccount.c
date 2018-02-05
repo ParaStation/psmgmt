@@ -27,7 +27,7 @@
 #include "plugin.h"
 #include "psidnodes.h"
 #include "psidutil.h"
-#include "pluginfrag.h"
+#include "psidcomm.h"
 
 #define PSACCOUNT_CONFIG "psaccount.conf"
 
@@ -105,7 +105,6 @@ int initialize(void)
 
     /* init all lists */
     initProc();
-    initFragComm();
 
     /* init the config facility */
     snprintf(configfn, sizeof(configfn), "%s/%s", PLUGINDIR, PSACCOUNT_CONFIG);
@@ -181,5 +180,4 @@ void cleanup(void)
     clearAllClients();
     finalizeProc();
     freeConfig(&config);
-    finalizeFragComm();
 }

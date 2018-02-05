@@ -238,7 +238,7 @@ static PSPAMResult_t checkPsPamAllowance(const char *uName, const char *rhost)
 {
     int sock = openConnection(pspamSocketName);
     PSPAMResult_t res;
-    PS_DataBuffer_t data = { .buf = NULL};
+    PS_SendDB_t data = { .buf = NULL};
     int written;
 
     if (sock == -1) {
@@ -370,7 +370,7 @@ static int checkAllowance(const char *uName, const char *rhost)
 static void informPlugin(const char *uName, const char *rhost)
 {
     int sock = openConnection(pspamSocketName);
-    PS_DataBuffer_t data = { .buf = NULL};
+    PS_SendDB_t data = { .buf = NULL};
     int written;
 
     if (sock == -1) {

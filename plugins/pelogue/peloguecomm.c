@@ -14,7 +14,6 @@
 #include "pscommon.h"
 #include "pspluginprotocol.h"
 #include "psidcomm.h"
-#include "pluginfrag.h"
 #include "pluginmalloc.h"
 #include "pluginhelper.h"
 #include "psserial.h"
@@ -50,46 +49,13 @@ typedef struct {
 /** Old handler for PSP_CD_UNKNOWN messages */
 handlerFunc_t oldUnkownHandler = NULL;
 
-/**
- * @brief Send a pelogue message to all nodes in a job
- *
- * @param job The job to send the message for
- *
- * @param data The message data to send
- *
- * @param type The message type
- *
- * @return Returns 0 on success and -1 on error.
- */
-static int sendFragMsgToHostList(Job_t *job, PS_DataBuffer_t *data,
-				  int32_t type)
-{
-    int i, res = 0;
-
-    for (i=0; i<job->numNodes; i++) {
-	PStask_ID_t dest = PSC_getTID(job->nodes[i].id, 0);
-
-	if (dest == -1) {
-	    mlog("%s: skipping invalid node %u\n", __func__, job->nodes[i].id);
-	    res = -1;
-	    continue;
-	}
-
-	mdbg(PELOGUE_LOG_COMM, "%s: to %i\n", __func__, PSC_getID(dest));
-	if ((sendFragMsg(data, dest, PSP_CC_PLUG_PELOGUE, type)) == -1) {
-	    res = -1;
-	}
-    }
-
-    return res;
-}
-
 int sendPElogueStart(Job_t *job, PElogueType_t type, int rounds, env_t *env)
 {
-    PS_DataBuffer_t data = { .buf = NULL};
+    PS_SendDB_t data;
     int32_t timeout, msgType;
     uint32_t i;
     int ret = 0;
+    PSnodes_ID_t n;
 
     if (type == PELOGUE_PROLOGUE) {
 	timeout = getPluginConfValueI(job->plugin, "TIMEOUT_PROLOGUE");
@@ -102,6 +68,11 @@ int sendPElogueStart(Job_t *job, PElogueType_t type, int rounds, env_t *env)
     } else {
 	mlog("%s: unkown pelogue type %d\n", __func__, type);
 	return -1;
+    }
+
+    initFragBuffer(&data, PSP_CC_PLUG_PELOGUE, msgType);
+    for (n=0; n<job->numNodes; n++) {
+	setFragDest(&data, PSC_getTID(job->nodes[n].id, 0));
     }
 
     addStringToMsg(job->plugin, &data);
@@ -123,9 +94,7 @@ int sendPElogueStart(Job_t *job, PElogueType_t type, int rounds, env_t *env)
     startJobMonitor(job);
 
     /* send the message to all hosts in the job */
-    ret = sendFragMsgToHostList(job, &data, msgType);
-
-    ufree(data.buf);
+    sendFragMsg(&data);
 
     return ret;
 }
@@ -157,7 +126,6 @@ static void CBprologueResp(char *jobid, int exit, bool timeout,
 			     PElogueResList_t *res, void *info)
 {
     RPC_Info_t *rpcInfo = info;
-    PS_DataBuffer_t config = { .buf = NULL };
     Job_t *job;
 
     if (!(job = findJobById(rpcInfo->requestor, jobid))) {
@@ -169,11 +137,18 @@ static void CBprologueResp(char *jobid, int exit, bool timeout,
     sendPrologueResp(jobid, exit, timeout, rpcInfo->sender);
 
     if (job) {
+	PS_SendDB_t data;
+	PSnodes_ID_t n;
+
 	/* delete old configuration */
-	addStringToMsg(rpcInfo->requestor, &config);
-	sendFragMsgToHostList(job, &config, PSP_PLUGIN_CONFIG_DEL);
+	initFragBuffer(&data, PSP_CC_PLUG_PELOGUE, PSP_PLUGIN_CONFIG_DEL);
+	for (n=0; n<job->numNodes; n++) {
+	    setFragDest(&data, PSC_getTID(job->nodes[n].id, 0));
+	}
+	addStringToMsg(rpcInfo->requestor, &data);
+	sendFragMsg(&data);
+
 	deleteJob(job);
-	ufree(config.buf);
     }
     ufree(rpcInfo->requestor);
     ufree(rpcInfo);
@@ -229,8 +204,9 @@ static void handlePElogueReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
     PSnodes_ID_t *nodes;
     env_t env;
     uint8_t type;
+    PSnodes_ID_t n;
     RPC_Info_t *info;
-    PS_DataBuffer_t config = { .buf = NULL };
+    PS_SendDB_t config;
     Job_t *job = NULL;
     int ret;
 
@@ -268,12 +244,16 @@ static void handlePElogueReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
     }
 
     /* send config to all my sisters nodes */
+    initFragBuffer(&config, PSP_CC_PLUG_PELOGUE, PSP_PLUGIN_CONFIG_ADD);
+    for (n=0; n<job->numNodes; n++) {
+	setFragDest(&config, PSC_getTID(job->nodes[n].id, 0));
+    }
+
     addStringToMsg(requestor, &config);
     addStringToMsg(timeout, &config);
     addStringToMsg(grace, &config);
 
-    ret = sendFragMsgToHostList(job, &config, PSP_PLUGIN_CONFIG_ADD);
-    ufree(config.buf);
+    ret = sendFragMsg(&config);
 
     if (ret == -1) {
 	mlog("%s: sending configuration for job %s to sister nodes failed\n",
@@ -677,6 +657,7 @@ static void handleUnknownMsg(DDBufferMsg_t *msg)
 
 bool initComm(void)
 {
+    initSerial(0, sendMsg);
     PSID_registerMsg(PSP_CC_PLUG_PELOGUE, (handlerFunc_t) handlePElogueMsg);
     PSID_registerDropper(PSP_CC_PLUG_PELOGUE, (handlerFunc_t) dropPElogueMsg);
     oldUnkownHandler = PSID_registerMsg(PSP_CD_UNKNOWN,
@@ -694,4 +675,5 @@ void finalizeComm(void)
     } else {
 	PSID_clearMsg(PSP_CD_UNKNOWN);
     }
+    finalizeSerial();
 }

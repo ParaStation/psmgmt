@@ -478,8 +478,8 @@ int sendPElogueStart(Job_t *job, bool prologue)
 {
     char *jobUserName, *group, *limits, *queue, *jobtype;
     char buf[300], *res_used = NULL, *gpu = NULL;
-    PS_DataBuffer_t data = { .buf = NULL};
-    int32_t timeout, type;
+    PS_SendDB_t data;
+    int32_t timeout, type, i;
 
     if (prologue) {
 	timeout = getConfValueI(&config, "TIMEOUT_PROLOGUE");
@@ -490,6 +490,10 @@ int sendPElogueStart(Job_t *job, bool prologue)
     }
 
     /* add PElogue data structure */
+    initFragBuffer(&data, PSP_CC_PLUG_PSMOM, type);
+    for (i=0; i<job->nrOfUniqueNodes; i++) {
+	setFragDest(&data, PSC_getTID(job->nodes[i].id, 0));
+    }
 
     /* add job hashname */
     addStringToMsg(job->hashname, &data);
@@ -564,9 +568,8 @@ int sendPElogueStart(Job_t *job, bool prologue)
     addStringToMsg(job->server, &data);
 
     /* send the message to all hosts in the job */
-    sendFragMsgToHostList(job, &data, type, 1);
+    sendFragMsg(&data);
 
-    ufree(data.buf);
     return 1;
 }
 

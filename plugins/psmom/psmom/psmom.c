@@ -33,7 +33,6 @@
 #include "psidnodes.h"
 #include "plugin.h"
 #include "pluginhelper.h"
-#include "pluginfrag.h"
 #include "psserial.h"
 
 #include "psaccounthandles.h"
@@ -676,7 +675,6 @@ int initialize(void)
     openMasterSock();
 
     /* We'll use fragmented messages between different psmoms */
-    initFragComm();
     initPSComm();
 
     oldSpawnReqHandler = PSID_registerMsg(PSP_CD_SPAWNREQ,
@@ -799,7 +797,6 @@ void cleanup(void)
     clearJobInfoList();
     clearAuthList();
     if (memoryDebug) fclose(memoryDebug);
-    finalizeFragComm();
 
     mlog("...Bye.\n");
     logger_finalize(psmomlogger);

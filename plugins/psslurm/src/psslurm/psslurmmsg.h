@@ -58,6 +58,7 @@ typedef struct {
     int sock;			/* socket the message was red from */
     PStask_ID_t source;		/* root TID of the forwarding tree */
     PS_DataBuffer_t *data;
+    PS_SendDB_t *outdata;
     char *ptr;
     time_t recvTime;		/* time the message was received */
 } Slurm_Msg_t;
@@ -65,7 +66,7 @@ typedef struct {
 typedef struct {
     Slurm_Auth_t *auth;		/* Slurm authentication */
     Slurm_Msg_Header_t head;	/* Slurm message head */
-    PS_DataBuffer_t *body;	/* Slurm message body */
+    PS_DataBuffer_t body;	/* Slurm message body */
     size_t offset;		/* bytes already written */
     int sock;			/* the connected socket */
     int sendRetry;		/* actual retries to send the message */
@@ -177,7 +178,7 @@ void freeSlurmMsgHead(Slurm_Msg_Header_t *head);
  *
  * @return Returns the buffer holding the saved message
  */
-Slurm_Msg_Buf_t *saveSlurmMsg(Slurm_Msg_Header_t *head, PS_DataBuffer_t *body,
+Slurm_Msg_Buf_t *saveSlurmMsg(Slurm_Msg_Header_t *head, PS_SendDB_t *body,
 			      Slurm_Auth_t *auth, int sock, size_t written);
 
 /**

@@ -37,8 +37,8 @@
  * @return On success true is returned or false in case of an
  * error. If writing was not successful, @a data might be not updated.
  */
-bool __packSlurmAuth(PS_DataBuffer_t *data, Slurm_Auth_t *auth,
-		    const char *caller, const int line);
+bool __packSlurmAuth(PS_SendDB_t *data, Slurm_Auth_t *auth,
+		     const char *caller, const int line);
 
 #define packSlurmAuth(data, auth) \
     __packSlurmAuth(data, auth, __func__, __LINE__)
@@ -135,8 +135,8 @@ bool __unpackBCastCred(Slurm_Msg_t *sMsg, BCast_t *bcast, char **credEnd,
  * @return On success true is returned or false in case of an
  * error. If writing was not successful, @a data might be not updated.
  */
-bool __packSlurmHeader(PS_DataBuffer_t *data, Slurm_Msg_Header_t *head,
-		    const char *caller, const int line);
+bool __packSlurmHeader(PS_SendDB_t *data, Slurm_Msg_Header_t *head,
+		       const char *caller, const int line);
 
 #define packSlurmHeader(data, head) \
     __packSlurmHeader(data, head, __func__, __LINE__)
@@ -160,8 +160,8 @@ bool __packSlurmHeader(PS_DataBuffer_t *data, Slurm_Msg_Header_t *head,
  * @return On success true is returned or false in case of an
  * error. If writing was not successful, @a data might be not updated.
  */
-bool __packSlurmIOMsg(PS_DataBuffer_t *data, Slurm_IO_Header_t *ioh, char *body,
-			const char *caller, const int line);
+bool __packSlurmIOMsg(PS_SendDB_t *data, Slurm_IO_Header_t *ioh, char *body,
+		      const char *caller, const int line);
 
 #define packSlurmIOMsg(data, ioMsg, body) \
     __packSlurmIOMsg(data, ioMsg, body, __func__, __LINE__)
@@ -279,7 +279,7 @@ bool __unpackReqBatchJobLaunch(Slurm_Msg_t *sMsg, Job_t **jobPtr,
  * @return On success true is returned or false in case of an
  * error. If writing was not successful, @a data might be not updated.
  */
-bool __packRespPing(PS_DataBuffer_t *data, Resp_Ping_t *ping,
+bool __packRespPing(PS_SendDB_t *data, Resp_Ping_t *ping,
 		    const char *caller, const int line);
 
 #define packRespPing(data, ping) \
@@ -302,7 +302,7 @@ bool __packRespPing(PS_DataBuffer_t *data, Resp_Ping_t *ping,
  * @return On success true is returned or false in case of an
  * error. If writing was not successful, @a data might be not updated.
  */
-bool __packSlurmAccData(PS_DataBuffer_t *data, SlurmAccData_t *slurmAccData,
+bool __packSlurmAccData(PS_SendDB_t *data, SlurmAccData_t *slurmAccData,
 		        const char *caller, const int line);
 
 #define packSlurmAccData(data, slurmAccData) \
@@ -325,7 +325,7 @@ bool __packSlurmAccData(PS_DataBuffer_t *data, SlurmAccData_t *slurmAccData,
  * @return On success true is returned or false in case of an
  * error. If writing was not successful, @a data might be not updated.
  */
-bool __packRespNodeRegStatus(PS_DataBuffer_t *data, Resp_Node_Reg_Status_t *stat,
+bool __packRespNodeRegStatus(PS_SendDB_t *data, Resp_Node_Reg_Status_t *stat,
 			     const char *caller, const int line);
 
 #define packRespNodeRegStatus(data, stat) \
@@ -376,7 +376,7 @@ bool __unpackReqFileBcast(Slurm_Msg_t *sMsg, BCast_t **bcastPtr,
  * @return On success true is returned or false in case of an
  * error. If writing was not successful, @a data might be not updated.
  */
-bool __packSlurmMsg(PS_DataBuffer_t *data, Slurm_Msg_Header_t *head,
+bool __packSlurmMsg(PS_SendDB_t *data, Slurm_Msg_Header_t *head,
 		    PS_DataBuffer_t *body, Slurm_Auth_t *auth,
 		    const char *caller, const int line);
 
@@ -400,7 +400,7 @@ bool __packSlurmMsg(PS_DataBuffer_t *data, Slurm_Msg_Header_t *head,
  * @return On success true is returned or false in case of an
  * error. If writing was not successful, @a data might be not updated.
  */
-bool __packRespDaemonStatus(PS_DataBuffer_t *data, Resp_Daemon_Status_t *stat,
+bool __packRespDaemonStatus(PS_SendDB_t *data, Resp_Daemon_Status_t *stat,
 			    const char *caller, const int line);
 
 #define packRespDaemonStatus(data, stat) \
@@ -423,8 +423,8 @@ bool __packRespDaemonStatus(PS_DataBuffer_t *data, Resp_Daemon_Status_t *stat,
  * @return On success true is returned or false in case of an
  * error. If writing was not successful, @a data might be not updated.
  */
-bool __packRespLaunchTasks(PS_DataBuffer_t *data, Resp_Launch_Tasks_t *ltasks,
-			    const char *caller, const int line);
+bool __packRespLaunchTasks(PS_SendDB_t *data, Resp_Launch_Tasks_t *ltasks,
+			   const char *caller, const int line);
 
 #define packRespLaunchTasks(data, ltasks) \
     __packRespLaunchTasks(data, ltasks, __func__, __LINE__)
