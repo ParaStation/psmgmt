@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014-2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -73,7 +73,7 @@ static int jobCallback(int32_t exit_status, Forwarder_Data_t *fw)
     }
 
     /* make sure all processes are gone */
-    signalStepsByJobid(job->jobid, SIGKILL);
+    signalStepsByJobid(job->jobid, SIGKILL, 0);
     signalTasks(job->jobid, job->uid, &job->tasks, SIGKILL, -1);
     killForwarderByJobid(job->jobid);
 
@@ -142,7 +142,7 @@ static int stepCallback(int32_t exit_status, Forwarder_Data_t *fw)
     }
 
     /* make sure all processes are gone */
-    signalStep(step, SIGKILL);
+    signalStep(step, SIGKILL, 0);
     killChild(step->loggerTID, SIGKILL);
 
     freeSlurmMsg(&step->srunIOMsg);

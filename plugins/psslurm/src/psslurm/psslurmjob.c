@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014-2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -220,11 +220,17 @@ void getJobInfos(uint32_t *infoCount, uint32_t **jobids, uint32_t **stepids)
     *infoCount += count;
 }
 
-int signalJob(Job_t *job, int signal, char *reason)
+int signalJob(Job_t *job, int signal, uid_t reqUID)
 {
-    int count = 0;
+    int count;
 
-    count += signalStepsByJobid(job->jobid, signal);
+    /* check permissions */
+    if (!(verifyUserId(reqUID, job->uid))) {
+	mlog("%s: request from invalid user '%u'\n", __func__, reqUID);
+	return -1;
+    }
+
+    count = signalStepsByJobid(job->jobid, signal, reqUID);
 
     if (!job->fwdata) return count;
 
@@ -240,17 +246,17 @@ int signalJob(Job_t *job, int signal, char *reason)
     return count;
 }
 
-int signalJobs(int signal, char *reason)
+int signalJobs(int signal)
 {
     list_t *j, *tmp;
     int count = 0;
 
     list_for_each_safe(j, tmp, &JobList) {
 	Job_t *job = list_entry(j, Job_t, next);
-	count += signalJob(job, signal, reason);
+	count += signalJob(job, signal, 0);
     }
 
-    count += signalAllocations(signal, reason);
+    count += signalAllocations(signal);
 
     return count;
 }

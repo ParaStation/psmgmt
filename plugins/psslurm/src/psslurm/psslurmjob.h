@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014-2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -152,14 +152,35 @@ int countJobs(void);
 void getJobInfos(uint32_t *infoCount, uint32_t **jobids, uint32_t **stepids);
 
 /**
- * @doctodo
+ * @brief Send a signal to all tasks of a job
+ *
+ * Send a signal to all tasks of the given @a job. The corresponding steps will
+ * be signaled if they are not in job-state JOB_COMPLETE. The @reqUID must
+ * have the appropriate permissions to send the signal.
+ *
+ * @param job The job to send the signal to
+ *
+ * @param signal The signal to send
+ *
+ * @param reqUID The UID of the requesting process
+ *
+ * @return Returns the number of tasks which were signaled or -1
+ *  if the @a reqUID is not permitted to signal the tasks
  */
-int signalJob(Job_t *job, int signal, char *reason);
+int signalJob(Job_t *job, int signal, uid_t reqUID);
 
 /**
- * @doctodo
+ * @brief Send a signal to all jobs
+ *
+ * Send a signal to all jobs. All tasks of the jobs will be signaled
+ * if the job-state is not JOB_COMPLETE. The signals are send with
+ * the UID of root.
+ *
+ * @param signal The signal to send
+ *
+ * @return Returns the number of tasks signaled.
  */
-int signalJobs(int signal, char *reason);
+int signalJobs(int signal);
 
 /**
  * @doctodo

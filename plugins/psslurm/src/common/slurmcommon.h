@@ -216,6 +216,7 @@ typedef enum task_dist_states {
 #define KILL_JOB_ARRAY  0x0002  /* kill all elements of a job array */
 #define KILL_STEPS_ONLY 0x0004  /* Do not signal batch script */
 #define KILL_FULL_JOB   0x0008  /* Signal all steps, including batch script */
+#define KILL_FED_REQUEUE 0x0010 /* Mark job as requeued when requeued */
 
 
 /* task flags */

@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014-2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -113,7 +113,7 @@ static void cleanupJobs(void)
 
     if (obitTimeCounter >= obitTime) {
 	mlog("sending SIGKILL to %i remaining jobs\n", jcount);
-	signalJobs(SIGKILL, "shutdown");
+	signalJobs(SIGKILL);
     }
 }
 
@@ -616,7 +616,7 @@ void finalize(void)
 	struct timeval cleanupTimer = {1,0};
 
 	mlog("sending SIGTERM to %i remaining jobs\n", jcount);
-	signalJobs(SIGTERM, "shutdown");
+	signalJobs(SIGTERM);
 
 	/* re-investigate every second */
 	cleanupTimerID = Timer_register(&cleanupTimer, cleanupJobs);

@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2017-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -206,14 +206,39 @@ Step_t *findStepByTaskPid(pid_t pid);
 int countSteps(void);
 
 /**
- * @doctodo
+ * @brief Send a signal to all steps of a job
+ *
+ * Send a signal to all steps with the given @a jobid. All
+ * matching steps will be signaled if they are not in state JOB_COMPLETE.
+ * The @reqUID must have the appropriate permissions to send the signal.
+ *
+ * @param jobid The jobid to send the signal to
+ *
+ * @param signal The signal to send
+ *
+ * @param reqUID The UID of the requesting process
+ *
+ * @return Returns the number of tasks which were signaled or -1
+ *  if the @a reqUID is not permitted to signal the tasks
  */
-int signalStepsByJobid(uint32_t jobid, int signal);
+int signalStepsByJobid(uint32_t jobid, int signal, uid_t reqUID);
 
 /**
- * @doctodo
+ * @brief Send a signal to all tasks of a step
+ *
+ * Send a signal to all (local and remote) tasks of a step. The
+ * @reqUID must have the appropriate permissions to send the signal.
+ *
+ * @param step The step to signal
+ *
+ * @param signal The signal to send
+ *
+ * @param reqUID The UID of the requesting process
+ *
+ * @return Returns the number of tasks which were signaled or -1
+ *  if the @a reqUID is not permitted to signal the tasks
  */
-int signalStep(Step_t *step, int signal);
+int signalStep(Step_t *step, int signal, uid_t reqUID);
 
 /**
  * @doctodo
@@ -345,8 +370,16 @@ void clearAllocList(void);
 int countAllocs(void);
 
 /**
- * @doctodo
+ * @brief Send a signal to all allocations
+ *
+ * Send a signal to all allocations. All tasks of the allocations
+ * will be signaled if the job-state is not JOB_COMPLETE. The signals are
+ * send with the UID of root.
+ *
+ * @param signal The signal to send
+ *
+ * @return Returns the number of tasks signaled.
  */
-int signalAllocations(int signal, char *reason);
+int signalAllocations(int signal);
 
 #endif  /* __PS_PSSLURM_STEP */

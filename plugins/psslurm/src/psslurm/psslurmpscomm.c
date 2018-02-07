@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014-2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -1005,7 +1005,7 @@ bool nodeDownJobs(Job_t *job, const void *info)
 		    job->state != JOB_COMPLETE &&
 		    job->state != JOB_EXIT) {
 
-		signalJob(job, SIGKILL, "node failure");
+		signalJob(job, SIGKILL, 0);
 	    }
 	}
     }
@@ -1028,7 +1028,7 @@ bool nodeDownSteps(Step_t *step, const void *info)
 		    step->state != JOB_COMPLETE &&
 		    step->state != JOB_EXIT) {
 
-		signalStep(step, SIGKILL);
+		signalStep(step, SIGKILL, 0);
 	    }
 	}
     }
@@ -1107,12 +1107,12 @@ static void handleDroppedMsg(DDTypedBufferMsg_t *msg)
 
 	    if ((job = findJobById(jobid))) {
 		mlog("%s: deleting job '%u'\n", __func__, jobid);
-		signalJob(job, SIGKILL, "mother superior dead");
+		signalJob(job, SIGKILL, 0);
 		sendEpilogueComplete(jobid, 0);
 		deleteJob(jobid);
 	    } else if ((alloc = findAlloc(jobid))) {
 		mlog("%s: deleting allocation '%u'\n", __func__, jobid);
-		signalStepsByJobid(alloc->jobid, SIGKILL);
+		signalStepsByJobid(alloc->jobid, SIGKILL, 0);
 		sendEpilogueComplete(jobid, 0);
 		deleteAlloc(jobid);
 	    }

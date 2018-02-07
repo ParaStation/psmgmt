@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2017-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -196,13 +196,19 @@ int deleteStep(uint32_t jobid, uint32_t stepid)
     return 1;
 }
 
-int signalStep(Step_t *step, int signal)
+int signalStep(Step_t *step, int signal, uid_t reqUID)
 {
     int ret = 0;
     PStask_group_t group;
 
     if (!step) return 0;
     group = (signal == SIGTERM || signal == SIGKILL) ? -1 : TG_ANY;
+
+    /* check permissions */
+    if (!(verifyUserId(reqUID, step->uid))) {
+	mlog("%s: request from invalid user '%u'\n", __func__, reqUID);
+	return -1;
+    }
 
     /* if we are not the mother superior we just signal all our local tasks */
     if (step->nodes[0] != PSC_getMyID()) {
@@ -250,18 +256,19 @@ void shutdownStepForwarder(uint32_t jobid)
     }
 }
 
-int signalStepsByJobid(uint32_t jobid, int signal)
+int signalStepsByJobid(uint32_t jobid, int signal, uid_t reqUID)
 {
     list_t *s, *tmp;
-    int count = 0;
+    int ret = 0, count = 0;
 
     list_for_each_safe(s, tmp, &StepList) {
 	Step_t *step = list_entry(s, Step_t, next);
 	if (step->jobid == jobid && step->state != JOB_COMPLETE) {
-	    if (signalStep(step, signal)) count++;
+	    ret = signalStep(step, signal, reqUID);
+	    if (ret != -1) count += ret;
 	}
     }
-    return count;
+    return (ret == -1) ? -1 : count;
 }
 
 int countSteps(void)
@@ -479,13 +486,13 @@ int deleteAlloc(uint32_t jobid)
     return 1;
 }
 
-int signalAllocations(int signal, char *reason)
+int signalAllocations(int signal)
 {
     int count = 0;
     list_t *a, *tmp;
     list_for_each_safe(a, tmp, &AllocList) {
 	Alloc_t *alloc = list_entry(a, Alloc_t, next);
-	count += signalStepsByJobid(alloc->jobid, signal);
+	count += signalStepsByJobid(alloc->jobid, signal, 0);
     }
 
     return count;
