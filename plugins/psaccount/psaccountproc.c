@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -265,6 +265,7 @@ static int clearMem(void *dummy)
 #define PROC_CPU_INFO	"/proc/cpuinfo"
 #define SYS_CPU_FREQ	"/sys/devices/system/cpu/cpu%d/cpufreq/cpuinfo_cur_freq"
 
+/** array of CPU frequencies in kHz */
 static int *cpuFreq = NULL;
 
 static int cpuCount = 0;
@@ -292,16 +293,21 @@ static int getCPUCount(void)
 
 static void initCpuFreq(void)
 {
-    char buf[256], *tmp, *sfreq;
+    char buf[256];
     struct stat sbuf;
-    int freq, i;
 
     cpuFreq = umalloc(sizeof(*cpuFreq) * cpuCount);
 
     snprintf(buf, sizeof(buf), SYS_CPU_FREQ, 0);
-
-    if (stat(buf, &sbuf) == -1) {
+    if (!stat(buf, &sbuf)) {
+	 /* we have a scaling governor */
+	cpuGovEnabled = true;
+    } else {
+	/* try to determine static frequency assuming all CPUs are identical */
 	FILE *fd = fopen(PROC_CPU_INFO, "r");
+	double freq, freqFactor = 1.0;
+
+	cpuGovEnabled = false;
 	if (!fd) {
 	    cpuCount = 0;
 	    ufree(cpuFreq);
@@ -309,37 +315,32 @@ static void initCpuFreq(void)
 	}
 
 	while (fgets(buf, sizeof(buf), fd)) {
-	    if (!strncmp(buf, "cpu MHz", 7) || !strncmp(buf, "cpu GHz", 7)) {
+	    if (!strncmp(buf, "cpu MHz", 7)) {
+		freqFactor = 1.0e3;
+		break;
+	    } else if (!strncmp(buf, "cpu GHz", 7)) {
+		freqFactor = 1.0e6;
 		break;
 	    }
 	}
 
-	sfreq = strchr(buf, ':') + 2;
-	tmp = sfreq;
-	while (tmp++) {
-	    if (tmp[0] == '.') {
-		tmp[0] = '0';
-		break;
+	/* did we find anything? */
+	if (!feof(fd)) { /* yes, we did */
+	    char *sfreq = strchr(buf, ':') + 2;
+
+	    if (sscanf(sfreq, "%lf", &freq) != 1) {
+		/* read failed => fall back to 1 GHz default */
+		freq = 1.0e6;
+		freqFactor = 1.0;
 	    }
+	} else {
+	    /* Assume the default of 1 GHz */
+	    freq = 1.0e6;
 	}
-	i = strlen(sfreq);
-	sfreq[i-2] = '\0';
-
-	if (sscanf(sfreq, "%d", &freq) != 1) {
-	    cpuCount = 0;
-	    ufree(cpuFreq);
-	    fclose(fd);
-	    return;
-	}
-
-	for (i=0; i<cpuCount; i++) {
-	    cpuFreq[i] = freq;
-	}
-
 	fclose(fd);
-	cpuGovEnabled = false;
-    } else {
-	cpuGovEnabled = true;
+
+	int i;
+	for (i=0; i<cpuCount; i++) cpuFreq[i] = freq * freqFactor;
     }
 }
 
