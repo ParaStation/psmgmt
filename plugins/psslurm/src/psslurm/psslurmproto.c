@@ -241,6 +241,55 @@ static void setAccOpts(char *freqString, uint16_t *accType)
     }
 }
 
+/**
+ * @brief Print various step information
+ *
+ * @param step The step to print the infos from
+ */
+static void printLaunchTasksInfos(Step_t *step)
+{
+    uint32_t i;
+
+    /* env */
+    for (i=0; i<step->env.cnt; i++) {
+	mdbg(PSSLURM_LOG_ENV, "%s: env%i: '%s'\n", __func__, i,
+		step->env.vars[i]);
+    }
+
+    /* spank env */
+    for (i=0; i<step->spankenv.cnt; i++) {
+	mdbg(PSSLURM_LOG_ENV, "%s: spankenv%i: '%s'\n", __func__, i,
+		step->spankenv.vars[i]);
+    }
+
+    /* set stdout/stderr/stdin options */
+    if (!(step->taskFlags & LAUNCH_USER_MANAGED_IO)) {
+	mdbg(PSSLURM_LOG_IO, "%s: stdOut '%s' stdOutRank '%i' stdOutOpt '%i'\n",
+		__func__, step->stdOut, step->stdOutRank, step->stdOutOpt);
+
+	mdbg(PSSLURM_LOG_IO, "%s: stdErr '%s' stdErrRank '%i' stdErrOpt '%i'\n",
+		__func__, step->stdErr, step->stdErrRank, step->stdErrOpt);
+
+	mdbg(PSSLURM_LOG_IO, "%s: stdIn '%s' stdInRank '%i' stdInOpt '%i'\n",
+		__func__, step->stdIn, step->stdInRank, step->stdInOpt);
+
+	mdbg(PSSLURM_LOG_IO, "%s: bufferedIO '%i' labelIO '%i'\n", __func__,
+	     step->taskFlags & LAUNCH_BUFFERED_IO,
+	     step->taskFlags & LAUNCH_LABEL_IO);
+    }
+
+    /* job state */
+    mdbg(PSSLURM_LOG_JOB, "%s: step '%u:%u' in '%s'\n", __func__,
+	    step->jobid, step->stepid, strJobState(step->state));
+
+    /* pinning */
+    mdbg(PSSLURM_LOG_PART, "%s: cpuBindType '0x%hx', cpuBind '%s'\n", __func__,
+            step->cpuBindType, step->cpuBind);
+
+    mdbg(PSSLURM_LOG_PART, "%s: memBindType '0x%hx', memBind '%s'\n", __func__,
+            step->memBindType, step->memBind);
+}
+
 static void handleLaunchTasks(Slurm_Msg_t *sMsg)
 {
     Alloc_t *alloc = NULL;
@@ -263,6 +312,7 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
     }
 
     step->state = JOB_QUEUED;
+    printLaunchTasksInfos(step);
 
     /* set accounting options */
     setAccOpts(step->acctFreq, &step->accType);
@@ -271,12 +321,8 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
     step->srun.sin_addr.s_addr = sMsg->head.addr;
     step->srun.sin_port = sMsg->head.port;
 
-    /* env */
+    /* env / spank env */
     step->env.size = step->env.cnt;
-    for (i=0; i<step->env.cnt; i++) {
-	mdbg(PSSLURM_LOG_ENV, "%s: env%i: '%s'\n", __func__, i,
-		step->env.vars[i]);
-    }
 
     /* spank env */
     step->spankenv.size = step->spankenv.cnt;
@@ -285,37 +331,14 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
 		step->spankenv.vars[i], 38))) {
 	    step->x11forward = 1;
 	}
-	mdbg(PSSLURM_LOG_ENV, "%s: spankenv%i: '%s'\n", __func__, i,
-		step->spankenv.vars[i]);
     }
 
     /* set stdout/stderr/stdin options */
     if (!(step->taskFlags & LAUNCH_USER_MANAGED_IO)) {
 	setIOoptions(step->stdOut, &step->stdOutOpt, &step->stdOutRank);
-	mdbg(PSSLURM_LOG_IO, "%s: stdOut '%s' stdOutRank '%i' stdOutOpt '%i'\n",
-		__func__, step->stdOut, step->stdOutRank, step->stdOutOpt);
-
 	setIOoptions(step->stdErr, &step->stdErrOpt, &step->stdErrRank);
-	mdbg(PSSLURM_LOG_IO, "%s: stdErr '%s' stdErrRank '%i' stdErrOpt '%i'\n",
-		__func__, step->stdErr, step->stdErrRank, step->stdErrOpt);
-
 	setIOoptions(step->stdIn, &step->stdInOpt, &step->stdInRank);
-	mdbg(PSSLURM_LOG_IO, "%s: stdIn '%s' stdInRank '%i' stdInOpt '%i'\n",
-		__func__, step->stdIn, step->stdInRank, step->stdInOpt);
-
-	mdbg(PSSLURM_LOG_IO, "%s: bufferedIO '%i' labelIO '%i'\n", __func__,
-	     step->taskFlags & LAUNCH_BUFFERED_IO,
-	     step->taskFlags & LAUNCH_LABEL_IO);
     }
-
-    mdbg(PSSLURM_LOG_JOB, "%s: step '%u:%u' in '%s'\n", __func__,
-	    step->jobid, step->stepid, strJobState(step->state));
-
-    mdbg(PSSLURM_LOG_PART, "%s: cpuBindType '0x%hx', cpuBind '%s'\n", __func__,
-            step->cpuBindType, step->cpuBind);
-
-    mdbg(PSSLURM_LOG_PART, "%s: memBindType '0x%hx', memBind '%s'\n", __func__,
-            step->memBindType, step->memBind);
 
     /* convert slurm hostlist to PSnodes   */
     getNodesFromSlurmHL(step->slurmHosts, &count, &step->nodes,
