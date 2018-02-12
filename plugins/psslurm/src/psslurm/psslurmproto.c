@@ -213,9 +213,17 @@ static void setIOoptions(char *ioString, int *Opt, int32_t *rank)
     }
 }
 
-static void setAccFreq(char *freqString)
+/**
+ * @brief Set the accounting frequency and type
+ *
+ * @param freqString String to extract the frequency from
+ *
+ * @param accType The accounting type to set
+ */
+static void setAccOpts(char *freqString, uint16_t *accType)
 {
     int freq;
+    char *strAcctType;
 
     if (!(strncmp("task=", freqString, 5))) {
 	freq = atoi(freqString+5);
@@ -224,6 +232,12 @@ static void setAccFreq(char *freqString)
 	    mlog("%s: setting acct freq to '%i'\n", __func__, freq);
 	    PSIDnodes_setAcctPollI(PSC_getMyID(), freq);
 	}
+    }
+
+    if ((strAcctType = getConfValueC(&SlurmConfig, "JobAcctGatherType"))) {
+	*accType = (!(strcmp(strAcctType, "jobacct_gather/none"))) ? 0 : 1;
+    } else {
+	*accType = 0;
     }
 }
 
@@ -234,7 +248,6 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
     Step_t *step = NULL;
     uint32_t count, i;
     int32_t nodeIndex;
-    char *acctType;
 
     if (pluginShutdown) {
 	/* don't accept new steps if a shutdown is in progress */
@@ -251,8 +264,8 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
 
     step->state = JOB_QUEUED;
 
-    /* set accounting frequency */
-    setAccFreq(step->acctFreq);
+    /* set accounting options */
+    setAccOpts(step->acctFreq, &step->accType);
 
     /* srun addr is always empty, use msg header addr instead */
     step->srun.sin_addr.s_addr = sMsg->head.addr;
@@ -341,12 +354,6 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
     if (!(verifyStepData(step))) {
 	sendSlurmRC(sMsg, ESLURMD_INVALID_JOB_CREDENTIAL);
 	goto ERROR;
-    }
-
-    if ((acctType = getConfValueC(&SlurmConfig, "JobAcctGatherType"))) {
-	step->accType = (!(strcmp(acctType, "jobacct_gather/none"))) ? 0 : 1;
-    } else {
-	step->accType = 0;
     }
 
     /* set hardware threads */
@@ -1197,7 +1204,6 @@ static void handleLaunchProlog(Slurm_Msg_t *sMsg)
 static void handleBatchJobLaunch(Slurm_Msg_t *sMsg)
 {
     Job_t *job;
-    char *acctType;
     uint32_t i;
 
     if (pluginShutdown) {
@@ -1242,8 +1248,8 @@ static void handleBatchJobLaunch(Slurm_Msg_t *sMsg)
 		job->spankenv.vars[i]);
     }
 
-    /* acctg freq */
-    setAccFreq(job->acctFreq);
+    /* set accounting options */
+    setAccOpts(job->acctFreq, &job->accType);
 
     /* convert slurm hostlist to PSnodes   */
     getNodesFromSlurmHL(job->slurmHosts, &job->nrOfNodes, &job->nodes,
@@ -1259,11 +1265,6 @@ static void handleBatchJobLaunch(Slurm_Msg_t *sMsg)
     job->extended = 1;
     job->hostname = ustrdup(getConfValueC(&Config, "SLURM_HOSTNAME"));
 
-    if ((acctType = getConfValueC(&SlurmConfig, "JobAcctGatherType"))) {
-	job->accType = (!(strcmp(acctType, "jobacct_gather/none"))) ? 0 : 1;
-    } else {
-	job->accType = 0;
-    }
 
     /* write the jobscript */
     if (!(writeJobscript(job))) {
