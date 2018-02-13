@@ -45,4 +45,9 @@ char *genCPUbindString(Step_t *step);
  */
 char *genMemBindString(Step_t *step);
 
+void test_pinning(PSCPU_set_t *CPUset, uint16_t cpuBindType,
+	char *cpuBindString, uint8_t *coreMap, uint32_t coreMapIndex,
+	uint16_t socketCount, uint16_t coresPerSocket, uint16_t threadsPerCore,
+	uint32_t tasksPerNode, uint16_t threadsPerTask,	uint32_t local_tid,
+	int32_t *lastCpu, int *thread, void *pininfo);
 #endif  /* __PS_SLURM_PIN */

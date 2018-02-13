@@ -1,0 +1,117 @@
+This document describes the cpu pinning decisions made by psslurm based on the options received from slurm
+
+---------------------
+| Term descriptions |
+---------------------
+
+* Socket
+
+  Single CPU socket, we assume this are equivalent to NUMA domains
+
+
+* NUMA Domain
+
+  Memory access domain as reported by libnuma
+
+
+* Core
+
+  Physical core of a CPU
+
+
+* Hardware Thread
+
+  Logical processing unit of a CPU core (Hyper-Threading, Simultaneous Multithreading)
+
+
+---------------------------------
+| Mapping srun options to flags |
+---------------------------------
+
+--cpu_bind=<x> for x in {boards, cores, threads, ldoms, sockets}
+
+  sets flag CPU_BIND_TO_<X>
+
+--cpu_bind=<x> for x in {none, rank}
+
+  sets flag CPU_BIND_<X>
+
+--cpu_bind=map_cpu:<y>
+
+  sets flag CPU_BIND_MAP
+
+--cpu_bind=mask_cpu:<y>
+
+  sets flag CPU_BIND_MASK
+
+--cpu_bind=map_ldom:<y>
+
+  sets flag CPU_BIND_LDMAP
+
+--cpu_bind=mask_ldom:<y>
+
+  sets flag CPU_BIND_LDMASK
+
+--cpu_bind=rank_ldom:<y>
+
+  sets flag CPU_BIND_LDRANK
+
+--hint=nomultithread
+
+  sets flag CPU_BIND_ONE_THREAD_PER_CORE
+
+
+---------------------------------
+| psslurm handling of each flag |
+---------------------------------
+
+CPU_BIND_ONE_THREAD_PER_CORE
+
+This option is respected in combination with any other option and the pinning is done as if each core would have only one hardware thread.
+
+
+CPU_BIND_NONE
+
+The process is pinned to all cores.
+
+
+CPU_BIND_TO_BOARDS
+
+We do not support this. The process is pinned to all cores.
+
+
+CPU_BIND_MAP
+CPU_BIND_MASK
+CPU_BIND_LDMAP
+CPU_BIND_LDMASK
+
+The process is pinned according to the given mask or map. In case of a parsing error, it is pinned to all cores.
+
+
+CPU_BIND_TO_SOCKETS
+CPU_BIND_TO_LDOMS
+
+The process is pinned to as many whole sockets as it needs to meet its threads count requirements. The cores of a socket are filled first, then the additional hardware threads are. The tasks are distributed over the sockets round-robin.
+
+The process is always pinned to whole sockets, which means:
+- if it is pinned to a socket, it is pinned to all cores and all hardware threads of that socket
+- if the number of threads is larger than the product of cores per socket and sockets in the node, it is pinned to all cores of the node.
+
+
+CPU_BIND_LDRANK
+
+The process is pinned to as many threads as it needs to meet its threads count requirements in as little sockets as possible. The cores of a socket are filled first, then the additional hardware threads are. The tasks are distributed over the sockets round-robin.
+
+
+psslurm default
+CPU_BIND_RANK
+CPU_BIND_TO_CORES
+CPU_BIND_TO_THREADS
+
+The process is pinned to as many hardware threads as it requires, round robin over the cores.
+
+That means:
+- if a process needs less threads than the node has free cores, it is pinned to one hardware thread of as many cores as needed.
+- the first hardware thread of each core is filled first, before the second hardware thread of any core is used
+
+

@@ -35,6 +35,100 @@
 
 #include "psslurmpin.h"
 
+typedef struct {
+    uint16_t socketCount;    /* number of sockets */
+    uint16_t coresPerSocket; /* number of cores per socket */
+    uint16_t threadsPerCore; /* number of hardware threads per core */
+    uint32_t coreCount;      /* number of cores */
+    uint32_t threadCount;    /* number of hardware threads */
+} nodeinfo_t;
+
+typedef struct {
+    uint8_t *usedHwThreads;   /* boolean array of hardware threads already assigned */
+    int16_t lastSocket;       /* number of the socket used last */
+} pininfo_t;
+
+enum thread_iter_strategy {
+    FLAT,
+    CORES,
+    SOCKETS
+};
+
+typedef struct {
+    enum thread_iter_strategy strategy;
+    const nodeinfo_t *nodeinfo;
+    uint32_t next;
+    uint8_t valid;    /* is this iterator still valid */
+} thread_iterator;
+
+/*
+ * Initialize an hardware thread iterator
+ *
+ * @param iter      iterator to be initialized
+ * @param strategy  iteration strategy
+ * @param nodeinfo  node information
+ * @param start     first thread that will be returned by thread_iter_next
+ */
+static void thread_iter_init(thread_iterator *iter,
+	enum thread_iter_strategy strategy, const nodeinfo_t *nodeinfo,
+	uint32_t start) {
+    iter->strategy = strategy;
+    iter->nodeinfo = nodeinfo;
+    iter->next = start;
+    iter->valid = (iter->next < nodeinfo->threadCount) ? 1 : 0;
+}
+
+static int thread_iter_next(thread_iterator *iter, uint32_t *result) {
+
+    uint16_t coresPerSocket; /* number of cores per socket */
+    uint32_t coreCount;      /* number of cores */
+    uint32_t threadCount;    /* number of hardware threads */
+    uint16_t socket;
+
+    if (!iter->valid) return 0;
+
+    coresPerSocket = iter->nodeinfo->coresPerSocket;
+    coreCount = iter->nodeinfo->coreCount;
+    threadCount = iter->nodeinfo->threadCount;
+
+    *result = iter->next;
+
+    if (iter->next == iter->nodeinfo->threadCount - 1) {
+	/* this is the last thread */
+	iter->valid = 0;
+	return 1;
+    }
+
+    socket = iter->next % coreCount / coresPerSocket;
+
+    switch(iter->strategy) {
+    case FLAT:
+	iter->next++;
+	break;
+    case CORES:
+	iter->next += coreCount;
+	if (iter->next > threadCount) {
+	    iter->next %= threadCount;
+	    iter->next += 1;
+	}
+	break;
+    case SOCKETS:
+	iter->next += 1;
+	if ((iter->next % coreCount) / coresPerSocket > socket
+		|| iter->next % coreCount == 0) {
+	    /* use next hw thread */
+	    iter->next += coreCount - coresPerSocket;
+	    if (iter->next / threadCount >= 1) {
+		iter->next %= threadCount;
+		iter->next += coresPerSocket;
+	    }
+	}
+	break;
+    }
+
+    return 1;
+}
+
 /*
  * Parse the coreBitmap of @a step and generate a coreMap.
  *
@@ -418,7 +512,19 @@ static void pinToAllSockets(PSCPU_set_t *CPUset, uint32_t cpuCount, int hwThread
 }
 
 /*
- * Set CPUset to bind processes to sockets.
+ * Pin to all hardware threads
+ */
+static void pinToAllThreads(PSCPU_set_t *CPUset, const nodeinfo_t *nodeinfo)
+{
+    uint32_t i;
+
+    for (i = 0; i < nodeinfo->threadCount; i++) {
+	PSCPU_setCPU(*CPUset, i);
+    }
+}
+
+/*
+ * Set CPUset to bind processes to whole sockets.
  *
  * This function assumes the hardware threads to be numbered in
  * cores-sockets-threads order:
@@ -521,6 +627,89 @@ static void getSocketBinding(PSCPU_set_t *CPUset, uint8_t *coreMap,
 }
 
 /*
+ * Set CPUset to bind processes to ranks inside sockets.
+ *
+ * This function assumes the hardware threads to be numbered in
+ * cores-sockets-threads order:
+ *
+ * cores:   0123456701234567
+ * sockets: 0000111100001111
+ * threads: 0000000011111111
+ *
+ * @param CPUset           <OUT>  Output
+ * @param coreMap          <IN>   Map of cores to use (whole partition)
+ * @param coreMapIndex     <IN>   Global CPU ID of the first CPU in this node
+ *                                (=> Index of @a coreMap)
+ * @param nodeinfo         <IN>   Information about the number of cores,
+ *                                threads and sockets in this node
+ * @param nodeid           <IN>   ID of this node
+ * @param thread           <BOTH> current hardware thread to fill
+ *                                (currently only used for debugging output)
+ * @param threadsPerTask   <IN>   number of hardware threads to assign to each task
+ * @param local_tid        <IN>   local task id (current task on this node)
+ * @param pininfo          <BOTH> Pinning information structure (for this node)
+ *
+ */
+static void getSocketRankBinding(PSCPU_set_t *CPUset, uint8_t *coreMap,
+		uint32_t coreMapIndex, const nodeinfo_t *nodeinfo,
+		uint32_t nodeid, uint16_t threadsPerTask, uint32_t local_tid,
+		pininfo_t *pininfo)
+{
+    uint32_t thread, core, start, threadsLeft;
+    thread_iterator iter;
+
+    PSCPU_clrAll(*CPUset);
+
+    /* handle overbooking */
+    if (threadsPerTask > nodeinfo->threadCount) {
+	pinToAllThreads(CPUset, nodeinfo);
+	return;
+    }
+
+    /* set core initially to first core of last used socket */
+    core = pininfo->lastSocket * nodeinfo->coresPerSocket;
+
+    /* start iteration on the next socket */
+    start = ((pininfo->lastSocket + 1) % nodeinfo->socketCount);
+    start *= nodeinfo->coresPerSocket;
+
+    thread_iter_init(&iter, SOCKETS, nodeinfo, start);
+
+    threadsLeft = threadsPerTask;
+
+    while (threadsLeft > 0 && thread_iter_next(&iter, &thread)) {
+
+	/* on which core is this thread? */
+	core = thread % nodeinfo->coreCount;
+
+	mdbg(PSSLURM_LOG_PART, "%s: node '%i' task '%i' start '%i' thread '%i'"
+		" core '%i' (global '%i') socket '%i' lastSocket '%i'\n",
+		__func__, nodeid, local_tid, start, thread, core,
+		coreMapIndex + core, core / nodeinfo->coresPerSocket,
+		pininfo->lastSocket);
+
+	/* omit cpus not to use or already assigned */
+	if (coreMap[coreMapIndex + core] != 1
+		|| pininfo->usedHwThreads[thread] == 1) {
+	    continue;
+	}
+
+	/* assign hardware thread */
+	PSCPU_setCPU(*CPUset, thread);
+	pininfo->usedHwThreads[thread] = 1;
+	threadsLeft--;
+    }
+
+    /* remember last used socket */
+    pininfo->lastSocket = core / nodeinfo->coresPerSocket;
+
+    /* if there were not enough threads left, pin to all */
+    if (threadsLeft > 0) {
+	pinToAllThreads(CPUset, nodeinfo);
+    }
+}
+
+/*
  * Set CPUset according to cpuBindType.
  *
  * @param CPUset         <OUT>  Output
@@ -540,6 +729,7 @@ static void getSocketBinding(PSCPU_set_t *CPUset, uint8_t *coreMap,
  * @param tasksPerNode   <IN>   number of tasks per node
  * @param threadsPerTask <IN>   number of hardware threads to assign to each task
  * @param local_tid      <IN>   local task id (current task on this node)
+ * @param pininfo        <BOTH> Pinning information structure (for this node)
  *
  */
 static void setCPUset(PSCPU_set_t *CPUset, uint16_t cpuBindType, char *cpuBindString,
@@ -547,12 +737,22 @@ static void setCPUset(PSCPU_set_t *CPUset, uint16_t cpuBindType, char *cpuBindSt
 		uint16_t socketCount, uint16_t coresPerSocket,
 		uint32_t cpuCount, int32_t *lastCpu, uint32_t nodeid,
 		int *thread, int hwThreads, uint32_t tasksPerNode,
-		uint16_t threadsPerTask, uint32_t local_tid)
+		uint16_t threadsPerTask, uint32_t local_tid,
+		pininfo_t *pininfo)
 {
+
     /* handle --hint=nomultithread */
     if (cpuBindType & CPU_BIND_ONE_THREAD_PER_CORE) {
 	hwThreads = 1;
     }
+
+    nodeinfo_t nodeinfo = {
+	.socketCount = socketCount,
+	.coresPerSocket = coresPerSocket,
+	.threadsPerCore = hwThreads,
+	.coreCount = cpuCount,
+	.threadCount = cpuCount * hwThreads
+    };
 
     if (cpuBindType & CPU_BIND_NONE) {
 	PSCPU_setAll(*CPUset);
@@ -567,16 +767,13 @@ static void setCPUset(PSCPU_set_t *CPUset, uint16_t cpuBindType, char *cpuBindSt
 	getBindMapFromString(CPUset, cpuBindType, cpuBindString, socketCount,
 			     coresPerSocket, cpuCount, nodeid, hwThreads,
 			     local_tid);
-    } else if (cpuBindType & (CPU_BIND_TO_SOCKETS | CPU_BIND_TO_LDOMS
-				| CPU_BIND_LDRANK)) {
+    } else if (cpuBindType & (CPU_BIND_TO_SOCKETS | CPU_BIND_TO_LDOMS)) {
 	getSocketBinding(CPUset, coreMap, coreMapIndex, socketCount,
 		coresPerSocket, cpuCount, lastCpu, nodeid, thread, hwThreads,
 		threadsPerTask, local_tid);
-
-#if 0
     } else if (cpuBindType & CPU_BIND_LDRANK) {
-        /* TODO implement */
-#endif
+	getSocketRankBinding(CPUset, coreMap, coreMapIndex, &nodeinfo, nodeid,
+		threadsPerTask, local_tid, pininfo);
     } else { /* default, CPU_BIND_RANK, CPU_BIND_TO_THREADS */
 	getRankBinding(CPUset, coreMap, coreMapIndex, cpuCount, lastCpu,
 			nodeid, thread, hwThreads, threadsPerTask, local_tid);
@@ -623,6 +820,7 @@ int setHWthreads(Step_t *step)
     Job_t *job;
     PSpart_slot_t *slots = NULL;
     PSCPU_set_t CPUset;
+    pininfo_t pininfo;
 
     cred = step->cred;
 
@@ -689,6 +887,11 @@ int setHWthreads(Step_t *step)
 
 	lastCpu = -1; /* no cpu assigned yet */
 
+	/* initialize pininfo struct (currently only used for RANK_LDOM) */
+	pininfo.usedHwThreads = calloc(cpuCount * hwThreads,
+					 sizeof(*pininfo.usedHwThreads));
+	pininfo.lastSocket = -1;
+
 	/* set node and cpuset for every task on this node */
 	for (local_tid=0; local_tid < step->globalTaskIdsLen[node];
 		local_tid++) {
@@ -713,7 +916,7 @@ int setHWthreads(Step_t *step)
 		    coreMapIndex, cred->socketsPerNode[coreArrayIndex],
 		    cred->coresPerSocket[coreArrayIndex], cpuCount, &lastCpu,
 		    node, &thread, hwThreads, step->globalTaskIdsLen[node],
-		    step->tpp, local_tid);
+		    step->tpp, local_tid, &pininfo);
 
 	    slots[tid].node = step->nodes[node];
 
@@ -1328,4 +1531,23 @@ char *genMemBindString(Step_t *step)
     return string;
 }
 
+/*
+ * this function in for testing the static function setCPUset
+ */
+void test_pinning(PSCPU_set_t *CPUset, uint16_t cpuBindType,
+	char *cpuBindString, uint8_t *coreMap, uint32_t coreMapIndex,
+	uint16_t socketCount, uint16_t coresPerSocket, uint16_t threadsPerCore,
+	uint32_t tasksPerNode, uint16_t threadsPerTask,	uint32_t local_tid,
+	int32_t *lastCpu, int *thread, void *pininfo) {
+
+    uint32_t nodeid = 0;  /* only used for debugging output */
+
+    uint32_t coreCount = socketCount * coresPerSocket;
+
+    setCPUset(CPUset, cpuBindType, cpuBindString, coreMap, coreMapIndex,
+	    socketCount, coresPerSocket, coreCount, lastCpu, nodeid, thread,
+	    threadsPerCore, tasksPerNode, threadsPerTask, local_tid,
+	    (pininfo_t*)pininfo);
+
+}
 /* vim: set ts=8 sw=4 tw=0 sts=4 noet :*/
