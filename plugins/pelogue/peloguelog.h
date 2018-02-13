@@ -25,7 +25,7 @@ typedef enum {
     PELOGUE_LOG_WARN      =	0x000010, /**< Warnings */
     PELOGUE_LOG_COMM      =	0x000020, /**< PS communication */
     PELOGUE_LOG_PROCESS   =	0x000040, /**< Process */
-    PELOGUE_LOG_PSPELOGUE =     0x000080, /**< Verbose pspelogue infos */
+    PELOGUE_LOG_VERB      =	0x000080, /**< be more verbose */
 } PELOGUE_log_types_t;
 
 /**

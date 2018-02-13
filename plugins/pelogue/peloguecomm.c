@@ -132,8 +132,8 @@ static void CBprologueResp(char *jobid, int exit, bool timeout,
 	mlog("%s: could not find job '%s'\n", __func__, jobid);
     }
 
-    mdbg(PELOGUE_LOG_PSPELOGUE, "%s: finished, sending result for job %s to "
-	 "%s\n", __func__, jobid, PSC_printTID(rpcInfo->sender));
+    mdbg(PELOGUE_LOG_VERB, "%s: finished, sending result for job %s to %s\n",
+	 __func__, jobid, PSC_printTID(rpcInfo->sender));
     sendPrologueResp(jobid, exit, timeout, rpcInfo->sender);
 
     if (job) {
@@ -163,7 +163,7 @@ static void handlePluginConfigDel(DDTypedBufferMsg_t *msg,
     /* plugin */
     plugin = getStringM(&ptr);
 
-    mdbg(PELOGUE_LOG_PSPELOGUE, "%s: deleting plugin conf\n", __func__);
+    mdbg(PELOGUE_LOG_VERB, "%s: deleting plugin conf\n", __func__);
     delPluginConfig(plugin);
 }
 
@@ -191,7 +191,7 @@ static void handlePluginConfigAdd(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data
     addConfigEntry(config, "TIMEOUT_PE_GRACE", grace);
     addConfigEntry(config, "DIR_SCRIPTS", SPOOL_DIR "/scripts");
 
-    mdbg(PELOGUE_LOG_PSPELOGUE, "%s: adding plugin config\n", __func__);
+    mdbg(PELOGUE_LOG_VERB, "%s: adding plugin config\n", __func__);
     addPluginConfig(plugin, config);
 }
 
@@ -233,8 +233,8 @@ static void handlePElogueReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
     info->sender = msg->header.sender;
     info->requestor = requestor;
 
-    mdbg(PELOGUE_LOG_PSPELOGUE, "%s: handle request from %s for job %s\n",
-	 __func__, PSC_printTID(msg->header.sender), jobid);
+    mdbg(PELOGUE_LOG_VERB, "%s: handle request from %s for job %s\n", __func__,
+	 PSC_printTID(msg->header.sender), jobid);
 
     /* add job */
     if (!(job = addJob(requestor, jobid, uid, gid, nrOfNodes, nodes,
