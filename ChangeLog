@@ -1,3 +1,129 @@
+Version psmgmt-5.1.9:
+=====================
+------------------------------------------------------------------------
+7e780921 | Norbert Eicker | Tue, 13 Feb 2018 10:26:38 +0100
+
+Merge branch 'psslurm-pinning'
+
+------------------------------------------------------------------------
+464291dc | Michael Rauh | Mon, 12 Feb 2018 15:43:18 +0100
+
+Move verbose step launch infos to printLaunchTasksInfos()
+
+------------------------------------------------------------------------
+ce8c4b30 | Michael Rauh | Mon, 12 Feb 2018 15:34:00 +0100
+
+Cleanup setting accounting options for jobs and steps in psslurm
+
+------------------------------------------------------------------------
+1c2b9410 | Norbert Eicker | Fri, 9 Feb 2018 10:20:13 +0100
+
+Merge branch 'pn/ticket_2621'
+
+------------------------------------------------------------------------
+f49c1e10 | Michael Rauh | Wed, 7 Feb 2018 15:40:04 +0100
+
+Adopted psslurm to changed signal handling beginning with Slurm
+version 17.02.8 (psc:#22, psc:#133)
+
+------------------------------------------------------------------------
+d217867a | Norbert Eicker | Wed, 31 Jan 2018 10:52:05 +0100
+
+Fix CPU frequency determination for ARM platforms
+
+------------------------------------------------------------------------
+9430fc2a | Norbert Eicker | Tue, 30 Jan 2018 15:57:00 +0100
+
+More whitespace fixes
+
+------------------------------------------------------------------------
+dd63b40a | Peter Niessen | Mon, 29 Jan 2018 16:53:58 +0100
+
+changed indentation from 2 to 4 spaces
+
+------------------------------------------------------------------------
+55f8208b | Stephan Krempel | Thu, 18 Jan 2018 14:39:30 +0100
+
+psslurmpin: make test program controllable by cmdline parameters
+
+------------------------------------------------------------------------
+0f655837 | Stephan Krempel | Thu, 18 Jan 2018 13:53:59 +0100
+
+Merge branch 'master' into pinning
+
+------------------------------------------------------------------------
+4c11bc5a | Stephan Krempel | Thu, 18 Jan 2018 13:50:33 +0100
+
+psslurm: Add pinning documentation
+
+------------------------------------------------------------------------
+e0cec36f | Stephan Krempel | Thu, 18 Jan 2018 13:37:04 +0100
+
+psslurmpin: Add implementation for cpuBindType CPU_BIND_LDRANK
+
+------------------------------------------------------------------------
+5477f62f | Stephan Krempel | Thu, 18 Jan 2018 13:34:19 +0100
+
+psslurmpin: Add test program for local pinning tests
+
+With test_psslurmpin one can simulate different pinning scenarios
+and see the resulting pinning.
+
+------------------------------------------------------------------------
+fcf92370 | Stephan Krempel | Thu, 18 Jan 2018 13:32:21 +0100
+
+psslurmpin: Introduce pininfo struct
+
+------------------------------------------------------------------------
+e83c43fb | Stephan Krempel | Thu, 18 Jan 2018 13:30:14 +0100
+
+psslurmpin: Introduce pinToAllThreads()
+
+pinToAllThreads() will replace pinToAllSockets() using nodeinfo struct
+
+------------------------------------------------------------------------
+279af782 | Stephan Krempel | Thu, 18 Jan 2018 13:28:11 +0100
+
+psslurmpin: Introduce thread iterator
+
+------------------------------------------------------------------------
+eb5a3a94 | Stephan Krempel | Thu, 18 Jan 2018 13:24:18 +0100
+
+psslurmpin: Introduce nodeinfo structure
+
+------------------------------------------------------------------------
+b305561e | Norbert Eicker | Thu, 18 Jan 2018 09:58:57 +0100
+
+Fix typo
+
+------------------------------------------------------------------------
+02ca9893 | Stephan Krempel | Tue, 16 Jan 2018 14:30:27 +0100
+
+Merge branch 'master' into pinning
+
+------------------------------------------------------------------------
+74ed33ce | Stephan Krempel | Sat, 13 Jan 2018 01:41:35 +0100
+
+Merge branch 'master' into pinning
+
+------------------------------------------------------------------------
+7b49c18c | Peter Niessen | Tue, 9 Jan 2018 12:55:23 +0100
+
+Handle absence of Frequency statements in /proc/cpuinfo (#2621)
+
+------------------------------------------------------------------------
+399d8ea0 | Peter Niessen | Tue, 19 Dec 2017 15:08:43 +0100
+
+make sure that missing cpu MHz lines don't segfault
+
+------------------------------------------------------------------------
+cabb1903 | Stephan Krempel | Mon, 24 Jul 2017 15:50:06 +0200
+
+psslurm: Modified socket and ldom pinning
+
+------------------------------------------------------------------------
+
+
 Version psmgmt-5.1.8:
 =====================
 ------------------------------------------------------------------------

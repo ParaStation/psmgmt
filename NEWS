@@ -4,6 +4,23 @@ Copyright (C) 2010-2018 ParTec Cluster Competence Center GmbH, Munich
 
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
+Version 5.1.9:
+==============
+Bugfixes:
+ - Adapt psslurm to changed signal handling starting with v17.02.8
+   (psc:#22, psc:#133)
+ - Handle absence of Frequency statements in /proc/cpuinfo (#2621)
+
+Enhancements:
+ - Fix CPU frequency determination for ARM platforms
+ - Add implementation for cpuBindType CPU_BIND_LDRANK to psslurm
+ - Modified socket and ldom pinning
+
+Additional changes:
+ - Move verbose step launch infos to printLaunchTasksInfos()
+ - Add test program for local pinning tests to simulate different
+   pinning scenarios and see the resulting pinning.
+
 
 Version 5.1.8:
 ==============
