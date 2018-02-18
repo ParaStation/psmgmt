@@ -154,8 +154,7 @@ typedef bool(psPelogueDelPluginConfig_t)(char *name);
  *
  * @param cb Callback called on finalization of a pelogue run
  *
- * @param info Pointer to additional information passed to @a
- * cb Callback.
+ * @param info Pointer to additional information passed to callback @a cb
  *
  * @return Return true on success or false if the job could not be
  * registered.

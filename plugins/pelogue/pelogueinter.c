@@ -30,7 +30,7 @@ bool psPelogueAddJob(const char *plugin, const char *jobid, uid_t uid,
 		     gid_t gid, int numNodes, PSnodes_ID_t *nodes,
 		     PElogueJobCb_t *cb, void *info)
 {
-    return !!addJob(plugin, jobid, uid, gid, numNodes, nodes, cb, info);
+    return addJob(plugin, jobid, uid, gid, numNodes, nodes, cb, info);
 }
 
 bool psPelogueStartPE(const char *plugin, const char *jobid, PElogueType_t type,

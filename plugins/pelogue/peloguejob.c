@@ -56,7 +56,6 @@ Job_t *addJob(const char *plugin, const char *jobid, uid_t uid, gid_t gid,
 	     int numNodes, PSnodes_ID_t *nodes, PElogueJobCb_t *cb, void *info)
 {
     Job_t *job = findJobById(plugin, jobid);
-    int i = 0;
 
     if (numNodes > PSC_getNrOfNodes()) {
 	mlog("%s: invalid numNodes '%u'\n", __func__, numNodes);
@@ -81,32 +80,42 @@ Job_t *addJob(const char *plugin, const char *jobid, uid_t uid, gid_t gid,
     if (job) deleteJob(job);
 
     job = umalloc(sizeof(*job));
-    job->plugin = ustrdup(plugin);
-    job->id = ustrdup(jobid);
-    job->uid = uid;
-    job->gid = gid;
-    job->numNodes = numNodes;
-    job->signalFlag = 0;
-    job->prologueTrack = -1;
-    job->prologueExit = 0;
-    job->epilogueTrack = -1;
-    job->epilogueExit = 0;
-    job->monitorId = -1;
-    job->cb = cb;
-    job->info = info;
+    if (job) {
+	int i;
+	job->plugin = ustrdup(plugin);
+	job->id = ustrdup(jobid);
+	job->uid = uid;
+	job->gid = gid;
+	job->numNodes = numNodes;
+	job->signalFlag = 0;
+	job->prologueTrack = -1;
+	job->prologueExit = 0;
+	job->epilogueTrack = -1;
+	job->epilogueExit = 0;
+	job->monitorId = -1;
+	job->cb = cb;
+	job->info = info;
 
-    job->nodes = umalloc(sizeof(*job->nodes) * numNodes);
-    for (i=0; i<job->numNodes; i++) {
-	job->nodes[i].id = nodes[i];
-	job->nodes[i].prologue = PELOGUE_PENDING;
-	job->nodes[i].epilogue = PELOGUE_PENDING;
+	job->nodes =umalloc(sizeof(*job->nodes) * numNodes);
+	if (job->nodes) {
+	    for (i=0; i<job->numNodes; i++) {
+		job->nodes[i].id = nodes[i];
+		job->nodes[i].prologue = PELOGUE_PENDING;
+		job->nodes[i].epilogue = PELOGUE_PENDING;
+	    }
+
+	    /* add job to job history */
+	    strncpy(jobHistory[jobHistIndex++], jobid, sizeof(jobHistory[0]));
+	    if (jobHistIndex >= JOB_HISTORY_SIZE) jobHistIndex = 0;
+
+	    list_add_tail(&job->next, &jobList);
+	} else {
+	    if (job->plugin) free(job->plugin);
+	    if (job->id) free(job->id);
+	    free(job);
+	    job = NULL;
+	}
     }
-
-    /* add job to job history */
-    strncpy(jobHistory[jobHistIndex++], jobid, sizeof(jobHistory[0]));
-    if (jobHistIndex >= JOB_HISTORY_SIZE) jobHistIndex = 0;
-
-    list_add_tail(&job->next, &jobList);
 
     return job;
 }

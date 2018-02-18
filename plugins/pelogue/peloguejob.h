@@ -44,8 +44,8 @@ typedef struct {
     JobState_t state;     /**< current state of the job */
     PElogueJobCb_t *cb;   /**< callback on finalization of pelogue execution */
     time_t PElogue_start; /**< start time of pelogue execution */
-    time_t start_time;	  /**< the time when job started */
-    void *info;		  /**< Pointer to additional information passed to cb */
+    time_t start_time;    /**< time the job started */
+    void *info;           /**< pointer to additional infos passed to cb */
 } Job_t;
 
 /**
@@ -85,7 +85,7 @@ char *jobState2String(JobState_t state);
  *
  * @param cb Callback called on finalization of a pelogue run
  *
- * @param info Additional information to be passed to @a cb.
+ * @param info Additional information to be passed to @a cb
  *
  * @return Returns the newly created job structure or NULL on error
  */
