@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2015-2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2015-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -52,7 +52,7 @@ bool startStep(Step_t *step, const void *info)
     return false;
 }
 
-void letAllStepsRun(uint32_t jobid)
+void startAllSteps(uint32_t jobid)
 {
     traverseSteps(startStep, &jobid);
 }
@@ -139,7 +139,7 @@ static void cbPElogueAlloc(char *sjobid, int exit_status, bool timeout,
 	    send_PS_AllocState(alloc);
 
 	    /* start all waiting steps */
-	    letAllStepsRun(alloc->jobid);
+	    startAllSteps(alloc->jobid);
 	} else {
 	    /* Prologue failed.
 	     * The prologue script will offline the corresponding node itself.
@@ -242,23 +242,22 @@ static void cbPElogueJob(char *jobid, int exit_status, bool timeout,
 }
 
 void startPElogue(uint32_t jobid, uid_t uid, gid_t gid, char *username,
-		    uint32_t nrOfNodes, PSnodes_ID_t *nodes, env_t *env,
-		    env_t *spankenv, int step, int prologue)
+		  uint32_t nrOfNodes, PSnodes_ID_t *nodes, env_t *env,
+		  env_t *spankenv, int step, int prologue)
 {
     char sjobid[256], buf[512];
     env_t clone;
-    bool disPrologue;
 
     if (!nodes) {
 	mlog("%s: invalid nodelist for job '%u'\n", __func__, jobid);
 	return;
     }
 
-    disPrologue = getConfValueI(&Config, "DISABLE_PROLOGUE");
+    bool disablePrologue = getConfValueI(&Config, "DISABLE_PROLOGUE");
 
     snprintf(sjobid, sizeof(sjobid), "%u", jobid);
 
-    if (prologue || disPrologue) {
+    if (prologue || disablePrologue) {
 	/* register job to pelogue */
 	if (!step) {
 	    psPelogueAddJob("psslurm", sjobid, uid, gid, nrOfNodes, nodes,
