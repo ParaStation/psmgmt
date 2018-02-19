@@ -15,7 +15,9 @@
 #include <time.h>
 #include <string.h>
 #include <arpa/inet.h>
-#include <stdlib.h>
+#include <dlfcn.h>
+
+#include "psidhook.h"
 
 #include "pluginmalloc.h"
 #include "pluginlog.h"
@@ -82,6 +84,70 @@ static PS_DataBuffer_t *recvBuffers = NULL;
  */
 static Send_Msg_Func_t *sendPSMsg = NULL;
 
+/**
+ * @brief Callback on downed node
+ *
+ * This callback is called by a hosting daemon if it detects that a
+ * remote node went down. It aims to cleanup all now useless data
+ * structures, i.e. all incomplete messages to be received from the
+ * node that went down.
+ *
+ * Keep in mind that this mechanism can only work within psid!
+ *
+ * @param nodeID ParaStation ID of the node that went down
+ *
+ * @return Always return 1 to make the calling hook-handler happy
+ */
+static int nodeDownHandler(void *nodeID)
+{
+    if (!nodeID) return 1;
+
+    PSnodes_ID_t id = *(PSnodes_ID_t *)nodeID;
+
+    if (!PSC_validNode(id)) {
+	pluginlog("%s: invalid node id %i\n", __func__, id);
+	return 1;
+    }
+
+    pluginlog("%s: freeing recv buffer for node '%i'\n", __func__, id);
+    recvBuffers[id].bufUsed = 0;
+
+    return 1;
+}
+
+/** Function to remove registered hooks later on */
+static int (*hookDelFunc)(PSIDhook_t, PSIDhook_func_t) = NULL;
+
+/**
+ * @brief Register hook for down nodes if possible
+ *
+ * Try to register @ref nodeDownHandler() to the PSIDHOOK_NODE_DOWN
+ * hook of psid. For this try to determine if we are running within
+ * psid by searching for the symbols of @ref PSIDhook_add() and @ref
+ * PSIDhook_del(). If both symbols are found they are used to register
+ * @ref nodeDownHandler() immediately. Furthermore, @a hookDelFunc is
+ * set in order to be prepared to remove nodeDownHandler() from the
+ * hook within @ref finalizeSerial().
+ *
+ * @return No return value
+ */
+static void initNodeDownHook(void)
+{
+    /* Determine if PSIDhook_add is available */
+    void *mainHandle = dlopen(NULL, 0);
+
+    int (*hookAdd)(PSIDhook_t, PSIDhook_func_t) = dlsym(mainHandle,
+							"PSIDhook_add");
+    hookDelFunc = dlsym(mainHandle, "PSIDhook_del");
+
+    if (hookAdd && hookDelFunc) {
+	if (!hookAdd(PSIDHOOK_NODE_DOWN, nodeDownHandler)) {
+	    pluginlog("%s: cannot register PSIDHOOK_NODE_DOWN\n", __func__);
+	    return;
+	}
+    }
+}
+
 bool initSerial(size_t bufSize, Send_Msg_Func_t *func)
 {
     uint16_t i;
@@ -101,6 +167,8 @@ bool initSerial(size_t bufSize, Send_Msg_Func_t *func)
 	return false;
     }
     destNodes = umalloc(sizeof(*destNodes) * nrOfNodes);
+
+    initNodeDownHook();
 
     /* allocate receive buffers */
     recvBuffers = umalloc(sizeof(PS_DataBuffer_t) * nrOfNodes);
@@ -128,6 +196,8 @@ void finalizeSerial(void)
 	ufree(recvBuffers);
 	recvBuffers = NULL;
     }
+
+    if (hookDelFunc) hookDelFunc(PSIDHOOK_NODE_DOWN, nodeDownHandler);
 }
 
 void initFragBuffer(PS_SendDB_t *buffer, int32_t headType, int32_t msgType)
@@ -185,9 +255,15 @@ static bool sendFragment(PS_SendDB_t *buffer, const char *caller,
 	return false;
     }
 
+    if (!sendPSMsg) {
+	pluginlog("%s: no send function defined from caller %s at line %i\n",
+		  __func__, caller, line);
+	return false;
+    }
+
     for (i=0; i<buffer->nrOfNodes; i++) {
 	if (PSC_getID(destNodes[i]) == PSC_getMyID()) {
-	    /* local messages can overwrite the shared send message buffer,
+	    /* local messages might overwrite the shared send message buffer,
 	     * therefore it needs to be the last message send */
 	    localTask = destNodes[i];
 	    continue;
@@ -224,23 +300,6 @@ static bool sendFragment(PS_SendDB_t *buffer, const char *caller,
 	}
     }
     return ret;
-}
-
-int psserialNodeDown(void *nodeID)
-{
-    if (!nodeID) return 1;
-
-    PSnodes_ID_t id = *(PSnodes_ID_t *)nodeID;
-
-    if (!PSC_validNode(id)) {
-	pluginlog("%s: invalid node id %i\n", __func__, id);
-	return 1;
-    }
-
-    pluginlog("%s: freeing recv buffer for node '%i'\n", __func__, id);
-    recvBuffers[id].bufUsed = 0;
-
-    return 1;
 }
 
 bool __recvFragMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_func_t *func,
@@ -727,12 +786,12 @@ static void addFragmentedData(PS_SendDB_t *buffer, const void *data,
 			      const size_t dataLen, const char *caller,
 			      const int line)
 {
+    const size_t bufOffset = offsetof(DDTypedBufferMsg_t, buf);
     size_t dataLeft = dataLen;
-    void *ptr;
 
     if (!buffer->bufUsed || !fragMsg.header.len) {
 	/* init first message */
-	fragMsg.header.len = sizeof(fragMsg.header) + sizeof(fragMsg.type);
+	fragMsg.header.len = bufOffset;
 	fragMsg.header.sender = PSC_getMyTID();
 	fragMsg.header.type = buffer->headType;
 	fragMsg.type = buffer->msgType;
@@ -743,31 +802,26 @@ static void addFragmentedData(PS_SendDB_t *buffer, const void *data,
     }
 
     while (dataLeft>0) {
-	size_t chunkLeft = 0, off = 0, tocopy;
-	size_t buffOffset = offsetof(DDTypedBufferMsg_t, buf);
+	size_t off = fragMsg.header.len - bufOffset;
+	size_t chunkLeft = BufTypedMsgSize - off;
 
-	/* calc free buffer space in current msg */
-	off = fragMsg.header.len - buffOffset;
-	chunkLeft = BufTypedMsgSize - off;
+	/* fill message buffer */
+	size_t tocopy = (chunkLeft < dataLeft) ? chunkLeft : dataLeft;
+	memcpy(fragMsg.buf + off, data + (dataLen - dataLeft), tocopy);
+	fragMsg.header.len += tocopy;
+	dataLeft -= tocopy;
+	chunkLeft -= tocopy;
+	buffer->bufUsed += tocopy; // @todo still needed?
 
 	if (!chunkLeft) {
-	    /* no space left, send fragment to all nodes */
+	    /* message is filled, send fragment to all nodes */
 	    sendFragment(buffer, caller, line);
 
-	    fragMsg.header.len = sizeof(fragMsg.header) + sizeof(fragMsg.type);
+	    fragMsg.header.len = bufOffset;
 	    buffer->fhead.fragNum++;
 	    PSP_putTypedMsgBuf(&fragMsg, __func__, "fragHeader",
 			       &buffer->fhead, sizeof(buffer->fhead));
-	    continue;
 	}
-
-	/* fill message buffer */
-	ptr = fragMsg.buf + off;
-	tocopy = (chunkLeft < dataLeft) ? chunkLeft : dataLeft;
-	memcpy(ptr, data + (dataLen - dataLeft), tocopy);
-	fragMsg.header.len += tocopy;
-	dataLeft -= tocopy;
-	buffer->bufUsed += tocopy;
     }
 }
 

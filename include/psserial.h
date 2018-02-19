@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2012-2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2012-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -10,8 +10,12 @@
 #ifndef __PLUGIN_LIB_COMM
 #define __PLUGIN_LIB_COMM
 
+#include <stdbool.h>
+#include <stdint.h>
+
 #include "pscommon.h"
 #include "psprotocol.h"
+#include "pstaskid.h"
 
 /** Data type information used to tag data in messages */
 typedef enum {
@@ -63,39 +67,35 @@ typedef void PS_DataBuffer_func_t(DDTypedBufferMsg_t *msg,
 				  PS_DataBuffer_t *data);
 
 /**
- * @brief Initialize the Psserial facility.
+ * @brief Initialize Psserial facility
  *
- * Allocated memory for the message buffers. This function should
- * be called at the beginning of the program.  The ParaStation daemon's
- * @ref sendMsg() function is usually used for the send function.
+ * Initialize Psserial facility and enable it to use a default
+ * buffer-size of @a bufSize for send- and receive-buffers and @a func
+ * as the sending funtion. Initialization includes allocating memory.
+ * This function shall be called upon start of a program.
  *
- * @param bufSize The size of the send/receive buffers
+ * A good choice for @a func is the ParaStation daemon's @ref
+ * sendMsg() function.
  *
- * @param func The sender function to use
- * */
+ * @param bufSize Size of the internal buffers. It this is 0, the
+ * default size of 256 kB is used.
+ *
+ * @param func Sending function to use
+ *
+ * @return If anything was initialized, true is returned. Otherwise
+ * false is returned. The latter might happen is the Psserial facility
+ * was initialized before.
+ */
 bool initSerial(size_t bufSize, Send_Msg_Func_t *func);
 
 /**
- * @brief Finalize the Psserial facility.
+ * @brief Finalize Psserial facility
  *
- * Finalize the Pscomm facility. For this, all administrative
- * structures are cleaned up.
+ * Finalize the Psserial facility. This includes releasing all buffers.
+ *
+ * @return No return value
  */
 void finalizeSerial(void);
-
-/**
- * @brief Callback on downed node
- *
- * This callback is called if the hosting daemon detects that a remote
- * node went down. It aims to cleanup all now useless data structures,
- * i.e. all incomplete messages to be received from the node that went
- * down.
- *
- * @param nodeID ParaStation ID of the node that went down
- *
- * @return Always return 1 to make the calling hook-handler happy
- */
-int psserialNodeDown(void *nodeID);
 
 /**
  * @brief Initialize a fragmented message buffer.

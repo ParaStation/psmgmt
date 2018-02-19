@@ -1015,8 +1015,6 @@ static int handleNodeDown(void *nodeID)
 {
     PSnodes_ID_t node = *((PSnodes_ID_t *) nodeID);
 
-    psserialNodeDown(nodeID);
-
     traverseJobs(nodeDownJobs, &node);
 
     traverseSteps(nodeDownSteps, &node);
