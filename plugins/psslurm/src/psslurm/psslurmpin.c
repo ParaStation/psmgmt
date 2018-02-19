@@ -142,13 +142,12 @@ static int thread_iter_next(thread_iterator *iter, uint32_t *result) {
  * The coreMap is related to the over all job partition (might be multiple
  * nodes), so its indices are the global CPU IDs of the job.
  *
- * @param slots   unused
  * @param step    Step structure of the job step
  *
  * @return  coreMap
  *
  */
-static uint8_t *getCPUsForPartition(PSpart_slot_t *slots, Step_t *step)
+static uint8_t *getCPUsForPartition(Step_t *step)
 {
     uint8_t *coreMap;
 
@@ -789,7 +788,7 @@ int setHWthreads(Step_t *step)
     PSpart_slot_t *slots = umalloc(slotsSize * sizeof(PSpart_slot_t));
 
     /* get cpus from job credential */
-    if (!(coreMap = getCPUsForPartition(slots, step))) {
+    if (!(coreMap = getCPUsForPartition(step))) {
 	mlog("%s: getting cpus for partition failed\n", __func__);
 	goto error;
     }
