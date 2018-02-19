@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014-2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -122,37 +122,25 @@ static void cleanupJobs(void)
  * @param verbose If set to true an error message will be displayed
  * when unregistering a hook or a message handle fails.
  */
-static void unregisterHooks(int verbose)
+static void unregisterHooks(bool verbose)
 {
-    if (!(PSIDhook_del(PSIDHOOK_NODE_DOWN, handleNodeDown))) {
-	if (verbose) mlog("unregister 'PSIDHOOK_NODE_DOWN' failed\n");
-    }
-
-    if (!(PSIDhook_del(PSIDHOOK_CREATEPART, handleCreatePart))) {
-	if (verbose) mlog("unregister 'PSIDHOOK_CREATEPART' failed\n");
-    }
-
-    if (!(PSIDhook_del(PSIDHOOK_CREATEPARTNL, handleCreatePartNL))) {
-	if (verbose) mlog("unregister 'PSIDHOOK_CREATEPARTNL' failed\n");
-    }
-
-    if (!(PSIDhook_del(PSIDHOOK_EXEC_CLIENT, handleExecClient))) {
+    if (!PSIDhook_del(PSIDHOOK_EXEC_CLIENT, handleExecClient)) {
 	if (verbose) mlog("unregister 'PSIDHOOK_EXEC_CLIENT' failed\n");
     }
 
-    if (!(PSIDhook_del(PSIDHOOK_EXEC_CLIENT_USER, handleExecClientUser))) {
+    if (!PSIDhook_del(PSIDHOOK_EXEC_CLIENT_USER, handleExecClientUser)) {
 	if (verbose) mlog("unregister 'PSIDHOOK_EXEC_CLIENT_USER' failed\n");
     }
 
-    if (!(PSIDhook_del(PSIDHOOK_FRWRD_INIT, handleForwarderInit))) {
+    if (!PSIDhook_del(PSIDHOOK_FRWRD_INIT, handleForwarderInit)) {
 	if (verbose) mlog("unregister 'PSIDHOOK_FRWRD_INIT' failed\n");
     }
 
-    if (!(PSIDhook_del(PSIDHOOK_FRWRD_CLIENT_STAT, handleForwarderClientStatus))) {
+    if (!PSIDhook_del(PSIDHOOK_FRWRD_CLIENT_STAT, handleForwarderClientStatus)){
 	if (verbose) mlog("unregister 'PSIDHOOK_FRWRD_CLIENT_STAT' failed\n");
     }
 
-    if (!(PSIDhook_del(PSIDHOOK_PELOGUE_FINISH, handleLocalPElogueFinish))) {
+    if (!PSIDhook_del(PSIDHOOK_PELOGUE_FINISH, handleLocalPElogueFinish)) {
 	if (verbose) mlog("unregister 'PSIDHOOK_PELOGUE_FINISH' failed\n");
     }
 }
@@ -160,260 +148,281 @@ static void unregisterHooks(int verbose)
 /**
 * @brief Register various hooks
 */
-static int registerHooks(void)
+static bool registerHooks(void)
 {
-    if (!(PSIDhook_add(PSIDHOOK_NODE_DOWN, handleNodeDown))) {
-	mlog("register 'PSIDHOOK_NODE_DOWN' failed\n");
-	return 0;
-    }
-
-    if (!(PSIDhook_add(PSIDHOOK_CREATEPART, handleCreatePart))) {
-	mlog("register 'PSIDHOOK_CREATEPART' failed\n");
-	return 0;
-    }
-
-    if (!(PSIDhook_add(PSIDHOOK_CREATEPARTNL, handleCreatePartNL))) {
-	mlog("register 'PSIDHOOK_CREATEPARTNL' failed\n");
-	return 0;
-    }
-
-    if (!(PSIDhook_add(PSIDHOOK_EXEC_CLIENT, handleExecClient))) {
+    if (!PSIDhook_add(PSIDHOOK_EXEC_CLIENT, handleExecClient)) {
 	mlog("register 'PSIDHOOK_EXEC_CLIENT' failed\n");
-	return 0;
+	return false;
     }
 
-    if (!(PSIDhook_add(PSIDHOOK_EXEC_CLIENT_USER, handleExecClientUser))) {
+    if (!PSIDhook_add(PSIDHOOK_EXEC_CLIENT_USER, handleExecClientUser)) {
 	mlog("register 'PSIDHOOK_EXEC_CLIENT_USER' failed\n");
-	return 0;
+	return false;
     }
 
-    if (!(PSIDhook_add(PSIDHOOK_FRWRD_INIT, handleForwarderInit))) {
+    if (!PSIDhook_add(PSIDHOOK_FRWRD_INIT, handleForwarderInit)) {
 	mlog("register 'PSIDHOOK_FRWRD_INIT' failed\n");
-	return 0;
+	return false;
     }
 
-    if (!(PSIDhook_add(PSIDHOOK_FRWRD_CLIENT_STAT, handleForwarderClientStatus))) {
+    if (!PSIDhook_add(PSIDHOOK_FRWRD_CLIENT_STAT, handleForwarderClientStatus)){
 	mlog("register 'PSIDHOOK_FRWRD_CLIENT_STAT' failed\n");
-	return 0;
+	return false;
     }
 
-    if (!(PSIDhook_add(PSIDHOOK_PELOGUE_FINISH, handleLocalPElogueFinish))) {
+    if (!PSIDhook_add(PSIDHOOK_PELOGUE_FINISH, handleLocalPElogueFinish)) {
 	mlog("register 'PSIDHOOK_PELOGUE_FINISH' failed\n");
-	return 0;
+	return false;
     }
 
-    return 1;
+    return true;
 }
 
-static int regPsAccountHandles(void)
+static bool regPsAccountHandles(void)
 {
-    void *pluginHandle = NULL;
+    void *pluginHandle = PSIDplugin_getHandle("psaccount");
 
-    /* get psaccount function handles */
-    if (!(pluginHandle = PSIDplugin_getHandle("psaccount"))) {
+    if (!pluginHandle) {
 	mlog("%s: getting psaccount handle failed\n", __func__);
-	return 0;
+	return false;
     }
 
-    if (!(psAccountSignalSession = dlsym(pluginHandle,
-	    "psAccountSignalSession"))) {
-	mlog("%s: loading function psAccountSignalSession() failed\n",
-		__func__);
-	return 0;
+    psAccountSignalSession = dlsym(pluginHandle, "psAccountSignalSession");
+    if (!psAccountSignalSession) {
+	mlog("%s: loading psAccountSignalSession() failed\n", __func__);
+	return false;
     }
 
-    if (!(psAccountRegisterJob = dlsym(pluginHandle,
-            "psAccountRegisterJob"))) {
-        mlog("%s: loading function psAccountRegisterJob() failed\n",
-                __func__);
-        return 0;
+    psAccountRegisterJob = dlsym(pluginHandle, "psAccountRegisterJob");
+    if (!psAccountRegisterJob) {
+	mlog("%s: loading psAccountRegisterJob() failed\n", __func__);
+	return false;
     }
 
-    if (!(psAccountUnregisterJob = dlsym(pluginHandle,
-            "psAccountUnregisterJob"))) {
-        mlog("%s: loading function psAccountUnregisterJob() failed\n",
-                __func__);
-        return 0;
+    psAccountUnregisterJob = dlsym(pluginHandle, "psAccountUnregisterJob");
+    if (!psAccountUnregisterJob) {
+	mlog("%s: loading psAccountUnregisterJob() failed\n", __func__);
+	return false;
     }
 
-    if (!(psAccountSetGlobalCollect = dlsym(pluginHandle,
-            "psAccountSetGlobalCollect"))) {
-        mlog("%s: loading function psAccountSetGlobalCollect() failed\n",
-                __func__);
-        return 0;
+    psAccountSetGlobalCollect = dlsym(pluginHandle,
+				      "psAccountSetGlobalCollect");
+    if (!psAccountSetGlobalCollect) {
+	mlog("%s: loading psAccountSetGlobalCollect() failed\n", __func__);
+	return false;
     }
 
-    if (!(psAccountGetDataByJob = dlsym(pluginHandle,
-	    "psAccountGetDataByJob"))) {
-        mlog("%s: loading function psAccountGetDataByJob() failed\n", __func__);
-        return 0;
+    psAccountGetDataByJob = dlsym(pluginHandle, "psAccountGetDataByJob");
+    if (!psAccountGetDataByJob) {
+	mlog("%s: loading psAccountGetDataByJob() failed\n", __func__);
+	return false;
     }
 
-    if (!(psAccountGetDataByLogger = dlsym(pluginHandle,
-	    "psAccountGetDataByLogger"))) {
-        mlog("%s: loading function psAccountGetDataByLogger() failed\n",
-		__func__);
-        return 0;
+    psAccountGetDataByLogger = dlsym(pluginHandle, "psAccountGetDataByLogger");
+    if (!psAccountGetDataByLogger) {
+	mlog("%s: loading psAccountGetDataByLogger() failed\n", __func__);
+	return false;
     }
 
-    if (!(psAccountGetPidsByLogger = dlsym(pluginHandle,
-	    "psAccountGetPidsByLogger"))) {
-        mlog("%s: loading function psAccountGetPidsByLogger() failed\n",
-		__func__);
-        return 0;
+    psAccountGetPidsByLogger = dlsym(pluginHandle, "psAccountGetPidsByLogger");
+    if (!psAccountGetPidsByLogger) {
+	mlog("%s: loading psAccountGetPidsByLogger() failed\n", __func__);
+	return false;
     }
 
-    if (!(psAccountDelJob = dlsym(pluginHandle,
-	    "psAccountDelJob"))) {
-        mlog("%s: loading function psAccountDelJob() failed\n",
-		__func__);
-        return 0;
+    psAccountDelJob = dlsym(pluginHandle, "psAccountDelJob");
+    if (!psAccountDelJob) {
+	mlog("%s: loading psAccountDelJob() failed\n", __func__);
+	return false;
     }
-    return 1;
+    return true;
 }
 
-static int regPElogueHandles(void)
+static bool regPElogueHandles(void)
 {
-    void *pluginHandle = NULL;
+    void *pluginHandle = PSIDplugin_getHandle("pelogue");
 
-    /* get pelogue function handles */
-    if (!(pluginHandle = PSIDplugin_getHandle("pelogue"))) {
+    if (!pluginHandle) {
 	mlog("%s: getting pelogue handle failed\n", __func__);
-	return 0;
+	return false;
     }
 
-    if (!(psPelogueAddPluginConfig = dlsym(pluginHandle,
-	    "psPelogueAddPluginConfig"))) {
-	mlog("%s: loading function psPelogueAddPluginConfig() failed\n",
-		__func__);
-	return 0;
+    psPelogueAddPluginConfig = dlsym(pluginHandle, "psPelogueAddPluginConfig");
+    if (!psPelogueAddPluginConfig) {
+	mlog("%s: loading psPelogueAddPluginConfig() failed\n", __func__);
+	return false;
     }
 
-    if (!(psPelogueDelPluginConfig = dlsym(pluginHandle,
-	    "psPelogueDelPluginConfig"))) {
-	mlog("%s: loading function psPelogueDelPluginConfig() failed\n",
-		__func__);
-	return 0;
+    psPelogueDelPluginConfig = dlsym(pluginHandle, "psPelogueDelPluginConfig");
+    if (!psPelogueDelPluginConfig) {
+	mlog("%s: loading psPelogueDelPluginConfig() failed\n", __func__);
+	return false;
     }
 
-    if (!(psPelogueAddJob = dlsym(pluginHandle, "psPelogueAddJob"))) {
-	mlog("%s: loading function psPelogueAddJob() failed\n", __func__);
-	return 0;
+    psPelogueAddJob = dlsym(pluginHandle, "psPelogueAddJob");
+    if (!psPelogueAddJob) {
+	mlog("%s: loading psPelogueAddJob() failed\n", __func__);
+	return false;
     }
 
-    if (!(psPelogueDeleteJob = dlsym(pluginHandle, "psPelogueDeleteJob"))) {
-	mlog("%s: loading function psPelogueDeleteJob() failed\n", __func__);
-	return 0;
+    psPelogueDeleteJob = dlsym(pluginHandle, "psPelogueDeleteJob");
+    if (!psPelogueDeleteJob) {
+	mlog("%s: loading psPelogueDeleteJob() failed\n", __func__);
+	return false;
     }
 
-    if (!(psPelogueStartPE = dlsym(pluginHandle, "psPelogueStartPE"))) {
-	mlog("%s: loading function psPelogueStartPE() failed\n", __func__);
-	return 0;
+    psPelogueStartPE = dlsym(pluginHandle, "psPelogueStartPE");
+    if (!psPelogueStartPE) {
+	mlog("%s: loading psPelogueStartPE() failed\n", __func__);
+	return false;
     }
 
-    if (!(psPelogueSignalPE = dlsym(pluginHandle, "psPelogueSignalPE"))) {
-	mlog("%s: loading function psPelogueSignalPE() failed\n", __func__);
-	return 0;
+    psPelogueSignalPE = dlsym(pluginHandle, "psPelogueSignalPE");
+    if (!psPelogueSignalPE) {
+	mlog("%s: loading psPelogueSignalPE() failed\n", __func__);
+	return false;
     }
-    return 1;
+    return true;
 }
 
-static int initPluginHandles(void)
+static bool regMungeHandles(void)
 {
-    void *pluginHandle = NULL;
-
-    /* get psaccount function handles */
-    if (!regPsAccountHandles()) return 0;
+    void *pluginHandle = PSIDplugin_getHandle("psmunge");
 
     /* get pelogue function handles */
-    if (!regPElogueHandles()) return 0;
+    if (!pluginHandle) {
+	mlog("%s: getting psmunge handle failed\n", __func__);
+	return false;
+    }
+
+    psMungeEncode = dlsym(pluginHandle, "psMungeEncode");
+    if (!psMungeEncode) {
+	mlog("%s: loading psMungeEncode() failed\n", __func__);
+	return false;
+    }
+
+    psMungeDecode = dlsym(pluginHandle, "psMungeDecode");
+    if (!psMungeDecode) {
+	mlog("%s: loading psMungeDecode() failed\n", __func__);
+	return false;
+    }
+
+    psMungeDecodeBuf = dlsym(pluginHandle, "psMungeDecodeBuf");
+    if (!psMungeDecodeBuf) {
+	mlog("%s: loading psMungeDecodeBuf() failed\n", __func__);
+	return false;
+    }
+
+    return true;
+}
+
+static bool regPsPAMHandles(void)
+{
+    void *pluginHandle = PSIDplugin_getHandle("pspam");
+
+    if (!pluginHandle) {
+	mlog("%s: getting pspam handle failed\n", __func__);
+	return false;
+    }
+
+    psPamAddUser = dlsym(pluginHandle, "psPamAddUser");
+    if (!psPamAddUser) {
+	mlog("%s: loading psPamAddUser() failed\n", __func__);
+	return false;
+    }
+
+    psPamDeleteUser = dlsym(pluginHandle, "psPamDeleteUser");
+    if (!psPamDeleteUser) {
+	mlog("%s: loading psPamDeleteUser() failed\n", __func__);
+	return false;
+    }
+
+    psPamSetState = dlsym(pluginHandle, "psPamSetState");
+    if (!psPamSetState) {
+	mlog("%s: loading psPamSetState() failed\n", __func__);
+	return false;
+    }
+
+    return true;
+}
+
+static bool regPsExecHandles(void)
+{
+    void *pluginHandle = PSIDplugin_getHandle("psexec");
+
+    if (!pluginHandle) {
+	mlog("%s: getting psexec handle failed\n", __func__);
+	return false;
+    }
+
+    psExecStartScript = dlsym(pluginHandle, "psExecStartScript");
+    if (!psExecStartScript) {
+	mlog("%s: loading psExecStartScript() failed\n", __func__);
+	return false;
+    }
+
+    psExecSendScriptStart = dlsym(pluginHandle, "psExecSendScriptStart");
+    if (!psExecSendScriptStart) {
+	mlog("%s: loading psExecSendScriptStart() failed\n", __func__);
+	return false;
+    }
+
+    psExecStartLocalScript = dlsym(pluginHandle, "psExecStartLocalScript");
+    if (!psExecStartLocalScript) {
+	mlog("%s: loading psExecStartLocalScript() failed\n", __func__);
+	return false;
+    }
+
+    return true;
+}
+
+static bool regPsPMIHandles(void)
+{
+    void *pluginHandle = PSIDplugin_getHandle("pspmi");
+
+    if (!pluginHandle) {
+	mlog("%s: getting pspmi handle failed\n", __func__);
+	return false;
+    }
+
+    psPmiSetFillSpawnTaskFunction =
+	dlsym(pluginHandle, "psPmiSetFillSpawnTaskFunction");
+    if (!psPmiSetFillSpawnTaskFunction) {
+	mlog("%s: loading psPmiSetFillSpawnTaskFunction() failed\n", __func__);
+	return false;
+    }
+
+    psPmiResetFillSpawnTaskFunction =
+	dlsym(pluginHandle, "psPmiResetFillSpawnTaskFunction");
+    if (!psPmiResetFillSpawnTaskFunction) {
+	mlog("%s: loading psPmiResetFillSpawnTaskFunction() failed\n",__func__);
+	return false;
+    }
+
+    return true;
+}
+
+static bool initPluginHandles(void)
+{
+    /* get psaccount function handles */
+    if (!regPsAccountHandles()) return false;
+
+    /* get pelogue function handles */
+    if (!regPElogueHandles()) return false;
 
     /* get psmunge function handles */
-    if (!(pluginHandle = PSIDplugin_getHandle("psmunge"))) {
-	mlog("%s: getting psmunge handle failed\n", __func__);
-	return 0;
-    }
-
-    if (!(psMungeEncode = dlsym(pluginHandle, "psMungeEncode"))) {
-	mlog("%s: loading function psMungeEncode() failed\n", __func__);
-	return 0;
-    }
-
-    if (!(psMungeDecode = dlsym(pluginHandle, "psMungeDecode"))) {
-	mlog("%s: loading function psMungeDecode() failed\n", __func__);
-	return 0;
-    }
-
-    if (!(psMungeDecodeBuf = dlsym(pluginHandle, "psMungeDecodeBuf"))) {
-	mlog("%s: loading function psMungeDecodeBuf() failed\n", __func__);
-	return 0;
-    }
+    if (!regMungeHandles()) return false;
 
     /* get pspam function handles */
-    if (!(pluginHandle = PSIDplugin_getHandle("pspam"))) {
-	mlog("%s: getting pspam handle failed\n", __func__);
-	return 0;
-    }
-
-    if (!(psPamAddUser = dlsym(pluginHandle, "psPamAddUser"))) {
-	mlog("%s: loading function psPamAddUser() failed\n", __func__);
-	return 0;
-    }
-
-    if (!(psPamDeleteUser = dlsym(pluginHandle, "psPamDeleteUser"))) {
-	mlog("%s: loading function psPamDeleteUser() failed\n", __func__);
-	return 0;
-    }
-
-    if (!(psPamSetState = dlsym(pluginHandle, "psPamSetState"))) {
-	mlog("%s: loading function psPamSetState() failed\n", __func__);
-	return 0;
-    }
+    if (!regPsPAMHandles()) return false;
 
     /* get psexec function handles */
-    if (!(pluginHandle = PSIDplugin_getHandle("psexec"))) {
-	mlog("%s: getting psexec handle failed\n", __func__);
-	return 0;
-    }
-
-    if (!(psExecStartScript = dlsym(pluginHandle, "psExecStartScript"))) {
-	mlog("%s: loading function psExecStartScript() failed\n", __func__);
-	return 0;
-    }
-
-    if (!(psExecSendScriptStart = dlsym(pluginHandle,
-					    "psExecSendScriptStart"))) {
-	mlog("%s: loading function psExecSendScriptStart() failed\n", __func__);
-	return 0;
-    }
-
-    if (!(psExecStartLocalScript = dlsym(pluginHandle,
-					    "psExecStartLocalScript"))) {
-	mlog("%s: loading function psExecStartLocalScript() failed\n", __func__);
-	return 0;
-    }
+    if (!regPsExecHandles()) return false;
 
     /* get pspmi function handles */
-    if (!(pluginHandle = PSIDplugin_getHandle("pspmi"))) {
-	mlog("%s: getting pspmi handle failed\n", __func__);
-	return 0;
-    }
+    if (!regPsPMIHandles()) return false;
 
-    if (!(psPmiSetFillSpawnTaskFunction =
-		dlsym(pluginHandle, "psPmiSetFillSpawnTaskFunction"))) {
-	mlog("%s: loading function psPmiSetFillSpawnTaskFunction() failed\n",
-		__func__);
-	return 0;
-    }
-
-    if (!(psPmiResetFillSpawnTaskFunction =
-		dlsym(pluginHandle, "psPmiResetFillSpawnTaskFunction"))) {
-	mlog("%s: loading function psPmiResetFillSpawnTaskFunction() failed\n",
-		__func__);
-	return 0;
-    }
-
-    return 1;
+    return true;
 }
 
 static void setConfOpt(void)
@@ -482,7 +491,7 @@ static void enableFPEexceptions(void)
 {
     int ret;
 
-    if (!(getConfValueI(&Config, "ENABLE_FPE_EXCEPTION"))) return;
+    if (!getConfValueI(&Config, "ENABLE_FPE_EXCEPTION")) return;
 
     ret = feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW | FE_UNDERFLOW);
 
@@ -523,7 +532,7 @@ int initialize(void)
     }
 
     /* init the configuration */
-    if (!(initConfig(PSSLURM_CONFIG_FILE, &configHash))) {
+    if (!initConfig(PSSLURM_CONFIG_FILE, &configHash)) {
 	mlog("%s: init of the configuration failed\n", __func__);
 	return 1;
     }
@@ -535,11 +544,11 @@ int initialize(void)
 
     enableFPEexceptions();
 
-    initPScomm();
-    if (!(registerHooks())) goto INIT_ERROR;
-    if (!(initPluginHandles())) goto INIT_ERROR;
-    if (!(initLimits())) goto INIT_ERROR;
-    if (!(initEnvFilter())) goto INIT_ERROR;
+    if (!initPScomm()) goto INIT_ERROR;
+    if (!registerHooks()) goto INIT_ERROR;
+    if (!initPluginHandles()) goto INIT_ERROR;
+    if (!initLimits()) goto INIT_ERROR;
+    if (!initEnvFilter()) goto INIT_ERROR;
 
     /* we want to have periodic updates on used resources */
     if (!PSIDnodes_acctPollI(PSC_getMyID())) {
@@ -575,7 +584,7 @@ int initialize(void)
     }
 
     /* resolve controller IDs */
-    if (!(getControllerIDs())) goto INIT_ERROR;
+    if (!getControllerIDs()) goto INIT_ERROR;
 
     /* listening on slurmd port */
     ctlPort = getConfValueI(&SlurmConfig, "SlurmdPort");
@@ -640,10 +649,10 @@ void cleanup(void)
     if (cleanupTimerID != -1) Timer_remove(cleanupTimerID);
 
     /* unregister PS messages */
-    finalizePScomm();
+    finalizePScomm(true);
 
     /* remove all registered hooks and msg handler */
-    unregisterHooks(1);
+    unregisterHooks(true);
 
     /* reset collect mode in psaccount */
     if (psAccountSetGlobalCollect) psAccountSetGlobalCollect(false);

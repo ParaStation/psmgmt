@@ -1,13 +1,12 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014-2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
@@ -17,6 +16,7 @@
 #include "pspluginprotocol.h"
 #include "pscommon.h"
 #include "psidcomm.h"
+#include "psidhook.h"
 #include "psidspawn.h"
 #include "psidpartition.h"
 #include "pluginenv.h"
@@ -145,7 +145,14 @@ static void rejectPartRequest(PStask_ID_t dest, PStask_t *task)
     }
 }
 
-int handleCreatePart(void *msg)
+/**
+ * @brief Handle a create partition message
+ *
+ * @param msg The message to handle.
+ *
+ * @return Always returns 0.
+ */
+static int handleCreatePart(void *msg)
 {
     DDBufferMsg_t *inmsg = (DDBufferMsg_t *) msg;
     Step_t *step;
@@ -208,7 +215,14 @@ error:
     return 0;
 }
 
-int handleCreatePartNL(void *msg)
+/**
+ * @brief Handle a create partition nodelist message
+ *
+ * @param msg The message to handle.
+ *
+ * @return Always returns 0.
+ */
+static int handleCreatePartNL(void *msg)
 {
     DDBufferMsg_t *inmsg = (DDBufferMsg_t *) msg;
     int enforceBatch;
@@ -444,7 +458,7 @@ void send_PS_JobExit(uint32_t jobid, uint32_t stepid, uint32_t nrOfNodes,
 	    .sender = PSC_getMyTID(),
 	    .len = sizeof(msg.header) + sizeof(msg.type) },
 	.type = PSP_JOB_EXIT,
-        .buf = {'\0'} };
+	.buf = {'\0'} };
     PStask_ID_t myID = PSC_getMyID();
     uint32_t i;
 
@@ -474,7 +488,7 @@ void send_PS_SignalTasks(Step_t *step, int signal, PStask_group_t group)
 	    .sender = PSC_getMyTID(),
 	    .len = sizeof(msg.header) + sizeof(msg.type) },
 	.type = PSP_SIGNAL_TASKS,
-        .buf = {'\0'} };
+	.buf = {'\0'} };
     PSnodes_ID_t myID = PSC_getMyID();
     uint32_t i;
 
@@ -511,7 +525,7 @@ void send_PS_JobState(uint32_t jobid, PStask_ID_t dest)
 	    .dest = dest,
 	    .len = sizeof(msg.header) + sizeof(msg.type) },
 	.type = PSP_JOB_STATE_REQ,
-        .buf = {'\0'} };
+	.buf = {'\0'} };
 
     mlog("%s: jobid '%u' dest '%s'\n", __func__, jobid, PSC_printTID(dest));
 
@@ -598,7 +612,7 @@ static void handle_PS_JobStateReq(DDTypedBufferMsg_t *inmsg)
 	    .dest = inmsg->header.sender,
 	    .len = sizeof(msg.header) + sizeof(msg.type) },
 	.type = PSP_JOB_STATE_RES,
-        .buf = {'\0'} };
+	.buf = {'\0'} };
     Job_t *job;
     Alloc_t *alloc;
     uint32_t jobid;
@@ -693,7 +707,7 @@ static void handleAllocLaunch(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     ufree(slurmHosts);
 
     mlog("%s: jobid '%u' user '%s' nodes '%u' from '%s'\n", __func__, jobid,
-	    alloc->username, alloc->nrOfNodes, PSC_printTID(msg->header.sender));
+	 alloc->username, alloc->nrOfNodes, PSC_printTID(msg->header.sender));
 }
 
 static void handleAllocState(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
@@ -997,7 +1011,7 @@ bool nodeDownSteps(Step_t *step, const void *info)
     return false;
 }
 
-int handleNodeDown(void *nodeID)
+static int handleNodeDown(void *nodeID)
 {
     PSnodes_ID_t node = *((PSnodes_ID_t *) nodeID);
 
@@ -1691,45 +1705,58 @@ static void handleUnknownMsg(DDBufferMsg_t *msg)
     if (oldUnkownHandler) oldUnkownHandler(msg);
 }
 
-void finalizePScomm(void)
+void finalizePScomm(bool verbose)
 {
     /* unregister psslurm msg */
     PSID_clearMsg(PSP_CC_PLUG_PSSLURM);
 
+    /* unregister different hooks */
+    if (!PSIDhook_del(PSIDHOOK_NODE_DOWN, handleNodeDown)) {
+	if (verbose) mlog("%s: failed to unregister PSIDHOOK_NODE_DOWN\n",
+			  __func__);
+    }
+
+    if (!PSIDhook_del(PSIDHOOK_CREATEPART, handleCreatePart)) {
+	if (verbose) mlog("%s: failed to unregister PSIDHOOK_CREATEPART\n",
+			  __func__);
+    }
+
+    if (!PSIDhook_del(PSIDHOOK_CREATEPARTNL, handleCreatePartNL)) {
+	if (verbose) mlog("%s: failed to unregister PSIDHOOK_CREATEPARTNL\n",
+			  __func__);
+    }
+
     /* unregister various messages */
     if (oldChildBornHandler) {
-	PSID_registerMsg(PSP_DD_CHILDBORN, (handlerFunc_t) oldChildBornHandler);
+	PSID_registerMsg(PSP_DD_CHILDBORN, oldChildBornHandler);
     } else {
 	PSID_clearMsg(PSP_DD_CHILDBORN);
     }
 
     /* unregister PSP_CC_MSG message handler */
     if (oldCCMsgHandler) {
-	PSID_registerMsg(PSP_CC_MSG, (handlerFunc_t) oldCCMsgHandler);
+	PSID_registerMsg(PSP_CC_MSG, oldCCMsgHandler);
     } else {
 	PSID_clearMsg(PSP_CC_MSG);
     }
 
     /* unregister PSP_CD_SPAWNFAILED message handler */
     if (oldSpawnFailedHandler) {
-	PSID_registerMsg(PSP_CD_SPAWNFAILED,
-			(handlerFunc_t) oldSpawnFailedHandler);
+	PSID_registerMsg(PSP_CD_SPAWNFAILED, oldSpawnFailedHandler);
     } else {
 	PSID_clearMsg(PSP_CD_SPAWNFAILED);
     }
 
     /* unregister PSP_CD_SPAWNREQ message handler */
     if (oldSpawnReqHandler) {
-	PSID_registerMsg(PSP_CD_SPAWNREQ,
-			(handlerFunc_t) oldSpawnReqHandler);
+	PSID_registerMsg(PSP_CD_SPAWNREQ, oldSpawnReqHandler);
     } else {
 	PSID_clearMsg(PSP_CD_SPAWNREQ);
     }
 
     /* unregister PSP_CD_UNKNOWN message handler */
     if (oldUnkownHandler) {
-	PSID_registerMsg(PSP_CD_UNKNOWN,
-			(handlerFunc_t) oldUnkownHandler);
+	PSID_registerMsg(PSP_CD_UNKNOWN, oldUnkownHandler);
     } else {
 	PSID_clearMsg(PSP_CD_UNKNOWN);
     }
@@ -1740,7 +1767,7 @@ void finalizePScomm(void)
     finalizeSerial();
 }
 
-void initPScomm(void)
+bool initPScomm(void)
 {
     initSerial(0, sendMsg);
 
@@ -1749,25 +1776,42 @@ void initPScomm(void)
 
     /* register PSP_DD_CHILDBORN message */
     oldChildBornHandler = PSID_registerMsg(PSP_DD_CHILDBORN,
-					    (handlerFunc_t) handleChildBornMsg);
+					   (handlerFunc_t) handleChildBornMsg);
 
     /* register PSP_CC_MSG message */
     oldCCMsgHandler = PSID_registerMsg(PSP_CC_MSG, (handlerFunc_t) handleCCMsg);
 
     /* register PSP_CD_SPAWNFAILED message */
     oldSpawnFailedHandler = PSID_registerMsg(PSP_CD_SPAWNFAILED,
-					    (handlerFunc_t) handleSpawnFailed);
+					     (handlerFunc_t) handleSpawnFailed);
 
     /* register PSP_CD_SPAWNREQ message */
     oldSpawnReqHandler = PSID_registerMsg(PSP_CD_SPAWNREQ,
-					    (handlerFunc_t) handleSpawnReq);
+					  (handlerFunc_t) handleSpawnReq);
 
     /* register PSP_CD_UNKNOWN message */
     oldUnkownHandler = PSID_registerMsg(PSP_CD_UNKNOWN,
-				        (handlerFunc_t) handleUnknownMsg);
+					(handlerFunc_t) handleUnknownMsg);
 
     /* register handler for dropped msgs */
     PSID_registerDropper(PSP_CC_PLUG_PSSLURM, (handlerFunc_t) handleDroppedMsg);
+
+    if (!PSIDhook_add(PSIDHOOK_NODE_DOWN, handleNodeDown)) {
+	mlog("%s: cannot register PSIDHOOK_NODE_DOWN\n", __func__);
+	return false;
+    }
+
+    if (!PSIDhook_add(PSIDHOOK_CREATEPART, handleCreatePart)) {
+	mlog("%s: cannot register PSIDHOOK_CREATEPART\n", __func__);
+	return false;
+    }
+
+    if (!PSIDhook_add(PSIDHOOK_CREATEPARTNL, handleCreatePartNL)) {
+	mlog("%s: cannot register PSIDHOOK_CREATEPARTNL\n", __func__);
+	return false;
+    }
+
+    return true;
 }
 
 /* vim: set ts=8 sw=4 tw=0 sts=4 noet:*/

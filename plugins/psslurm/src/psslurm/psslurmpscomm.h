@@ -1,15 +1,16 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014-2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-
 #ifndef __PS_SLURM_PSCOMM
 #define __PS_SLURM_PSCOMM
+
+#include <stdbool.h>
 
 #include "list.h"
 
@@ -37,26 +38,6 @@ void releaseDelayedSpawns(uint32_t jobid, uint32_t stepid);
  */
 void cleanupDelayedSpawns(uint32_t jobid, uint32_t stepid);
 
-/**
- * @brief Handle a create partition message
- *
- * @param msg The message to handle.
- *
- * @return Always returns 0.
- */
-int handleCreatePart(void *msg);
-
-/**
- * @brief Handle a create partition nodelist message
- *
- * @param msg The message to handle.
- *
- * @return Always returns 0.
- */
-int handleCreatePartNL(void *msg);
-
-int handleNodeDown(void *nodeID);
-
 void send_PS_SignalTasks(Step_t *step, int signal, PStask_group_t group);
 
 void send_PS_JobExit(uint32_t jobid, uint32_t stepid, uint32_t nrOfNodes,
@@ -80,13 +61,26 @@ void send_PS_AllocLaunch(Alloc_t *alloc);
 void send_PS_AllocState(Alloc_t *alloc);
 
 /**
-* @brief Register various psid messages
-*/
-void initPScomm(void);
+ * @brief Initialzie PScomm facility
+ *
+ * Initialize the facility handling communication via psid. This
+ * includes registering various psid messages and hooks
+ *
+ * @return On success true is returned of false otherwise
+ */
+bool initPScomm(void);
 
 /**
-* @brief Unregister various psid messages
-*/
-void finalizePScomm(void);
+ * @brief Finalize PScomm facility
+ *
+ * Initialize the facility handling communication via psid. This
+ * includes cleaning up various psid messages and hooks. If @a verbose
+ * is true, diferent problems when doing so are reported.
+ *
+ * @param verbose More verbose reports on problems
+ *
+ * @return No return value
+ */
+void finalizePScomm(bool verbose);
 
 #endif
