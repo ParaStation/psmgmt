@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2017-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -67,7 +67,7 @@ typedef struct {
     bool pmiDbg;        /**< Flag debug messages from PMI */
     bool pmiDbgClient;  /**< Flag additional debug from the PMI plugin */
     bool pmiDbgKVS;     /**< Flag additional debug from PMI's key-value space */
-    bool pmiDisable;     /**< Flag overall disabling of PMI */
+    bool pmiDisable;    /**< Flag overall disabling of PMI */
     /* options going to pscom library */
     int PSComSndbuf;    /**< PSCom's TCP send-buffer size */
     int PSComRcvbuf;    /**< PSCom's TCP receive-buffer size */

@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2017-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -989,7 +989,7 @@ static void setupConf(Conf_t *conf)
 
     if (!conf) return;
 
-    conf->verbose = !!verbose;
+    conf->verbose = verbose;
     envStr = getenv("MPIEXEC_VERBOSE");
     if (envStr) conf->verbose = true;
 
@@ -1004,8 +1004,8 @@ static void setupConf(Conf_t *conf)
     /* exec, execCount, and maxTPP already fixed */
     conf->envTPP = envtpp;
 
-    conf->dryrun = !!dryrun;
-    conf->envall = !!envall;
+    conf->dryrun = dryrun;
+    conf->envall = envall;
     conf->u_mask = u_mask;
 
     /* resource options */
@@ -1014,66 +1014,66 @@ static void setupConf(Conf_t *conf)
     if (hFile) { conf->hFile = strdup(hFile); hFile = NULL; }
     if (sort) { conf->sort = strdup(sort); sort = NULL; }
 
-    conf->overbook = !!overbook;
-    conf->exclusive = !!exclusive;
-    conf->wait = !!wait;
-    conf->loopnodesfirst = !!loopnodesfirst;
+    conf->overbook = overbook;
+    conf->exclusive = exclusive;
+    conf->wait = wait;
+    conf->loopnodesfirst = loopnodesfirst;
     conf->dynamic = dynamic;
 
     /* special modes */
-    conf->gdb = !!gdb;
-    conf->gdb_noargs = !! gdb_noargs;
-    conf->valgrind = !!valgrind;
-    conf->memcheck = !!memcheck;
-    conf->callgrind = !!callgrind;
-    conf->openMPI = !!openMPI;
+    conf->gdb = gdb;
+    conf->gdb_noargs = gdb_noargs;
+    conf->valgrind = valgrind;
+    conf->memcheck = memcheck;
+    conf->callgrind = callgrind;
+    conf->openMPI = openMPI;
     if (getenv("PSI_OPENMPI")) conf->openMPI = true;
     conf->mpichComp = mpichcom;
     if (getenv("MPIEXEC_BNR")) conf->mpichComp = true;
 
     /* PMI options */
-    conf->pmiTCP = !!pmienabletcp;
-    conf->pmiSock = !!pmienablesockp;
+    conf->pmiTCP = pmienabletcp;
+    conf->pmiSock = pmienablesockp;
     conf->pmiTmout = pmitmout;
-    conf->pmiDbg = !!pmidebug;
-    conf->pmiDbgClient = !!pmidebug_client;
-    conf->pmiDbgKVS = !!pmidebug_kvs;
-    conf->pmiDisable = !!pmidis;
+    conf->pmiDbg = pmidebug;
+    conf->pmiDbgClient = pmidebug_client;
+    conf->pmiDbgKVS = pmidebug_kvs;
+    conf->pmiDisable = pmidis;
 
     /* options going to pscom library */
     conf->PSComSndbuf = sndbuf;
     conf->PSComRcvbuf = rcvbuf;
-    conf->PSComNoDelay = !!nodelay;
-    conf->PSComSchedYield = !!schedyield;
+    conf->PSComNoDelay = nodelay;
+    conf->PSComSchedYield = schedyield;
     conf->PSComRetry = retry;
-    conf->PSComSigQUIT = !!sigquit;
+    conf->PSComSigQUIT = sigquit;
     conf->PSComOnDemand = -1;
     if (ondemand) conf->PSComOnDemand = 1;
     if (no_ondemand) conf->PSComOnDemand = 0;
-    conf->PSComColl = !!collectives;
+    conf->PSComColl = collectives;
     if (plugindir) { conf->PSComPlgnDir = strdup(plugindir); plugindir = NULL; }
     if (discom) { conf->PSComDisCom = strdup(discom); discom = NULL; }
     if (network) { conf->PSComNtwrk = strdup(network); network = NULL; }
 
     /* options going to psmgmt (psid/logger/forwarder) */
-    conf->sourceprintf = !!sourceprintf;
-    conf->merge = !!mergeout;
+    conf->sourceprintf = sourceprintf;
+    conf->merge = mergeout;
     conf->mergeDepth = mergedepth;
     conf->mergeTmout = mergetmout;
-    conf->rusage = !!rusage;
-    conf->timestamp = !!timestamp;
-    conf->interactive = !!interactive;
+    conf->rusage = rusage;
+    conf->timestamp = timestamp;
+    conf->interactive = interactive;
     conf->maxtime = maxtime;
     if (dest) { conf->dest = strdup(dest); dest = NULL; }
     if (accenvlist) { conf->envList = accenvlist; accenvlist = NULL; }
     if (path) { conf->path = strdup(path); path = NULL; }
 
     /* debug options */
-    conf->loggerDbg = !!loggerdb;
-    conf->forwarderDbg = !!forwarderdb;
-    conf->PSComDbg = !!pscomdb;
-    conf->ompiDbg = !!ompidebug;
-    conf->loggerrawmode = !!loggerrawmode;
+    conf->loggerDbg = loggerdb;
+    conf->forwarderDbg = forwarderdb;
+    conf->PSComDbg = pscomdb;
+    conf->ompiDbg = ompidebug;
+    conf->loggerrawmode = loggerrawmode;
     conf->psiDbgMask = psidb;
 }
 

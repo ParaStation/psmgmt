@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2017-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -112,9 +112,10 @@ int main(int argc, const char *argv[], char** envp)
     envPtr = getenv("__PMI_SPAWN_SERVICE_RANK");
     if (envPtr) sRank = atoi(envPtr);
 
-    setPSIEnv("PMI_SPAWNED", getenv("PMI_SPAWNED"), 1);
-    snprintf(tmp, sizeof(tmp), "%i", PSC_getMyTID());
-    setPSIEnv("__KVS_PROVIDER_TID", tmp, 1);
+    if (!conf->pmiDisable) {
+	snprintf(tmp, sizeof(tmp), "%i", PSC_getMyTID());
+	setPSIEnv("__KVS_PROVIDER_TID", tmp, 1);
+    }
 
     /* determine node the spawn service process shall run on */
     PSnodes_ID_t startNode = distStart ? getIDbyIdx(conf, 2): PSC_getMyID();
@@ -146,10 +147,23 @@ int main(int argc, const char *argv[], char** envp)
 	}
 	exit(EXIT_FAILURE);
     }
+
     argv[0] = origArgv0;
 
     bool verbose = conf->verbose;
+    bool pmiDisable = conf->pmiDisable;
     releaseConf(conf);
+
+    if (pmiDisable) {
+	/* nothing more to do -- release myself and exit */
+	ret = PSI_release(PSC_getMyTID());
+	if (ret == -1 && errno != ESRCH) {
+	    fprintf(stderr, "%s: error releasing service process %s\n", argv[0],
+		    PSC_printTID(PSC_getMyTID()));
+	}
+
+	return 0;
+    }
 
     /* set the process title */
     envPtr = getenv("__PSI_LOGGER_TID");
@@ -160,7 +174,7 @@ int main(int argc, const char *argv[], char** envp)
 		 PSC_printTID(logger), getenv("PMI_KVS_TMP"));
 	PSC_setProcTitle(argc, argv, pTitle, 1);
     } else {
-	printf("%s: No logger TID in environment\n", argv[0]);
+	fprintf(stderr, "%s: No logger TID in environment\n", argv[0]);
     }
 
     /* start the KVS provider */
