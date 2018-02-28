@@ -59,6 +59,30 @@ typedef struct {
 } Kill_Info_t;
 
 /**
+ * @brief Get CPU load average and free memory
+ *
+ * @param cpuload One minute CPU load average
+ *
+ * @param freemem Available memory
+ *
+ * @param uptime Seconds since boot
+ */
+static void getSysInfo(uint32_t *cpuload, uint64_t *freemem, uint32_t *uptime)
+{
+    struct sysinfo info;
+    float div;
+
+    if (sysinfo(&info) < 0) {
+	*cpuload = *freemem = *uptime = 0;
+    } else {
+	div = (float)(1 << SI_LOAD_SHIFT);
+	*cpuload = (info.loads[0]/div) * 100.0;
+	*freemem = (((uint64_t )info.freeram)*info.mem_unit)/(1024*1024);
+	*uptime = info.uptime;
+    }
+}
+
+/**
  * @brief Send a ping response
  *
  * Send a Slurm ping message including the current system
@@ -69,17 +93,10 @@ typedef struct {
 static void sendPing(Slurm_Msg_t *sMsg)
 {
     PS_DataBuffer_t msg = { .buf = NULL };
-    struct sysinfo info;
-    float div;
     Resp_Ping_t ping;
+    uint32_t unused;
 
-    if (sysinfo(&info) < 0) {
-	ping.cpuload = ping.freemem = 0;
-    } else {
-	div = (float)(1 << SI_LOAD_SHIFT);
-	ping.cpuload = (info.loads[1]/div) * 100.0;
-	ping.freemem = (((uint64_t )info.freeram)*info.mem_unit)/(1024*1024);
-    }
+    getSysInfo(&ping.cpuload, &ping.freemem, &unused);
 
     packRespPing(&msg, &ping);
     sMsg->data = &msg;
@@ -1975,8 +1992,6 @@ void sendNodeRegStatus(uint32_t status, int protoVersion)
 {
     PS_DataBuffer_t msg = { .buf = NULL };
     struct utsname sys;
-    struct sysinfo info;
-    int haveSysInfo = 0;
 
     Resp_Node_Reg_Status_t stat;
     memset(&stat, 0, sizeof(stat));
@@ -2016,27 +2031,13 @@ void sendNodeRegStatus(uint32_t status, int protoVersion)
     stat.realMem = getNodeMem();
     /* tmp disk */
     stat.tmpDisk = getTmpDisk();
-    /* uptime */
-    if ((haveSysInfo = sysinfo(&info)) < 0) {
-	stat.uptime = 0;
-    } else {
-	stat.uptime = info.uptime;
-    }
+    /* sysinfo (uptime, cpu load average, free mem) */
+    getSysInfo(&stat.cpuload, &stat.freemem, &stat.uptime);
     /* hash value of the SLURM config file */
     if (getConfValueI(&Config, "DISABLE_CONFIG_HASH") == 1) {
 	stat.config = NO_VAL;
     } else {
 	stat.config = configHash;
-    }
-
-    /* cpu load / free mem */
-    if (haveSysInfo < 0) {
-	stat.cpuload = stat.freemem = 0;
-    } else {
-	float div;
-	div = (float)(1 << SI_LOAD_SHIFT);
-	stat.cpuload = (info.loads[1] / div) * 100.0;
-	stat.freemem = (((uint64_t )info.freeram)*info.mem_unit)/(1024*1024);
     }
 
     /* job id infos (count, array (jobid/stepid) */
