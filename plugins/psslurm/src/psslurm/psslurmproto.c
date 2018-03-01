@@ -1591,8 +1591,13 @@ static void handleKillReq(Slurm_Msg_t *sMsg, Kill_Info_t *info)
     if (alloc) alloc->terminate++;
 
     if (!job && !alloc) {
-	mlog("%s: job %u not found\n", __func__, info->jobid);
-	goto SEND_SUCCESS;
+	sendSlurmRC(sMsg, SLURM_SUCCESS);
+	/* make sure every step is really gone */
+	signalStepsByJobid(info->jobid, SIGKILL, sMsg->head.uid);
+	killForwarderByJobid(info->jobid);
+
+	sendEpilogueComplete(info->jobid, SLURM_SUCCESS);
+	return;
     }
 
     if (info->timeout) {
