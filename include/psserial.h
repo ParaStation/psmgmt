@@ -48,7 +48,15 @@ typedef struct {
     uint16_t fragNum;   /**< Sequence number of this fragment*/
 } PS_Frag_Msg_Header_t;
 
-/** Send data-buffer for fragmented and regular messages */
+/**
+ * Send data-buffer for fragmented and regular messages
+ *
+ * In order to set things up for messages not using the fragmentation
+ * mechanism @a useFrag has to be set to false and @a bufUsed to 0.
+ *
+ * If fragmentation shall be used the corresponding structure has to
+ * be initializied using @ref initFragBuffer().
+ */
 typedef struct {
     int32_t headType;		/**< message header type */
     int32_t msgType;		/**< message (sub-)type */
