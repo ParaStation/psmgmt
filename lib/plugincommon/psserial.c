@@ -203,10 +203,11 @@ void finalizeSerial(void)
 void initFragBuffer(PS_SendDB_t *buffer, int32_t headType, int32_t msgType)
 {
     buffer->useFrag = true;
-    buffer->numDest = 0;
     buffer->bufUsed = 0;
     buffer->headType = headType;
     buffer->msgType = msgType;
+    buffer->fragNum = 0;
+    buffer->numDest = 0;
 }
 
 bool setFragDest(PS_SendDB_t *buffer, PStask_ID_t id)
@@ -234,7 +235,7 @@ bool setFragDest(PS_SendDB_t *buffer, PStask_ID_t id)
  *
  * Send a message fragment to all nodes set in @a destNodes.
  *
- * @param buffer The send buffer to use
+ * @param buf Buffer to send
  *
  * @param caller Function name of the calling function
  *
@@ -244,15 +245,13 @@ bool setFragDest(PS_SendDB_t *buffer, PStask_ID_t id)
  * true is returned. Or false in case of at least one failed
  * destination or no send at all.
  */
-static bool sendFragment(PS_SendDB_t *buffer, const char *caller,
-			 const int line)
+static bool sendFragment(PS_SendDB_t *buf, const char *caller, const int line)
 {
     bool ret = true;
     PSnodes_ID_t i;
-    PS_Frag_Msg_Header_t *fhead = &buffer->fhead;
     PStask_ID_t localTask = -1;
 
-    if (!buffer->numDest) {
+    if (!buf->numDest) {
 	pluginlog("%s: empty nodelist from caller %s at line %i\n", __func__,
 		  caller, line);
 	return false;
@@ -264,7 +263,7 @@ static bool sendFragment(PS_SendDB_t *buffer, const char *caller,
 	return false;
     }
 
-    for (i=0; i<buffer->numDest; i++) {
+    for (i = 0; i < buf->numDest; i++) {
 	if (PSC_getID(destNodes[i]) == PSC_getMyID()) {
 	    /* local messages might overwrite the shared send message buffer,
 	     * therefore it needs to be the last message send */
@@ -273,16 +272,14 @@ static bool sendFragment(PS_SendDB_t *buffer, const char *caller,
 	}
 	fragMsg.header.dest = destNodes[i];
 	pluginlog("%s: sending msg fragment %i to %s len %u\n", __func__,
-		  fhead->fragNum, PSC_printTID(fragMsg.header.dest),
-		  fragMsg.header.len);
+		  buf->fragNum, PSC_printTID(destNodes[i]), fragMsg.header.len);
 
 	int res = sendPSMsg(&fragMsg);
 
 	if (res == -1 && errno != EWOULDBLOCK) {
 	    ret = false;
-	    PSC_warn(-1, errno, "%s(%s:%i): %s failed, fragment %u", __func__,
-		     caller, line, sendPSMsg ? "sendPSMsg()" : "sendMsg()",
-		     fhead->fragNum);
+	    PSC_warn(-1, errno, "%s(%s:%i): send failed, fragment %u",
+		     __func__, caller, line, buf->fragNum);
 	}
     }
 
@@ -290,16 +287,14 @@ static bool sendFragment(PS_SendDB_t *buffer, const char *caller,
     if (localTask != -1) {
 	fragMsg.header.dest = localTask;
 	pluginlog("%s: sending msg fragment %i to %s len %u\n", __func__,
-		  fhead->fragNum, PSC_printTID(fragMsg.header.dest),
-		  fragMsg.header.len);
+		  buf->fragNum, PSC_printTID(localTask), fragMsg.header.len);
 
 	int res = sendPSMsg(&fragMsg);
 
 	if (res == -1 && errno != EWOULDBLOCK) {
 	    ret = false;
-	    PSC_warn(-1, errno, "%s(%s:%i): %s failed, fragment %u", __func__,
-		     caller, line, sendPSMsg ? "sendPSMsg()" : "sendMsg()",
-		     fhead->fragNum);
+	    PSC_warn(-1, errno, "%s(%s:%i): send failed, fragment %u",
+		     __func__, caller, line, buf->fragNum);
 	}
     }
     return ret;
@@ -309,9 +304,10 @@ bool __recvFragMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_func_t *func,
 		   const char *caller, const int line)
 {
     PSnodes_ID_t srcNode = PSC_getID(msg->header.sender);
-    PS_Frag_Msg_Header_t *fhead;
-    uint64_t toCopy;
-    char *payLoad, *ptr;
+    size_t used = 0;
+    uint8_t fType;
+    uint16_t fNum;
+
     PS_DataBuffer_t *recvBuf;
 
     if (!recvBuffers) {
@@ -337,37 +333,32 @@ bool __recvFragMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_func_t *func,
     }
 
     recvBuf = &recvBuffers[srcNode];
-    payLoad = msg->buf;
 
-    /* extract fragment header */
-    fhead = (PS_Frag_Msg_Header_t *) payLoad;
-    payLoad += sizeof(*fhead);
+    PSP_getTypedMsgBuf(msg, &used, __func__, "fragType", &fType, sizeof(fType));
+    PSP_getTypedMsgBuf(msg, &used, __func__, "fragNum", &fNum, sizeof(fNum));
 
-    if (fhead->fragType != FRAGMENT_PART && fhead->fragType != FRAGMENT_END) {
+    if (fType != FRAGMENT_PART && fType != FRAGMENT_END) {
 	pluginlog("%s: invalid fragment type %u from %s\n", __func__,
-		  fhead->fragType, PSC_printTID(msg->header.sender));
+		  fType, PSC_printTID(msg->header.sender));
 	return false;
     }
 
     /* copy payload */
-    toCopy = msg->header.len - sizeof(msg->header) - sizeof(msg->type) -
-	     sizeof(*fhead);
-
+    size_t toCopy = msg->header.len - used;
     if (toCopy + recvBuf->bufUsed > recvBuf->bufSize) {
 	pluginlog("%s: grow recv buffer for node %u\n", __func__, srcNode);
 	/* TODO  grow BUFFER */
 	return false;
     }
-
-    ptr = recvBuf->buf + recvBuf->bufUsed;
-    memcpy(ptr, payLoad, toCopy);
+    char *ptr = recvBuf->buf + recvBuf->bufUsed;
+    PSP_getTypedMsgBuf(msg, &used, __func__, "payload", ptr, toCopy);
     recvBuf->bufUsed += toCopy;
 
-    pluginlog("%s: recv fragment %i from %s\n", __func__, fhead->fragNum,
+    pluginlog("%s: recv fragment %i from %s\n", __func__, fNum,
 	      PSC_printTID(msg->header.sender));
 
     /* last message fragment ? */
-    if (fhead->fragType == FRAGMENT_END) {
+    if (fType == FRAGMENT_END) {
 	/* invoke callback */
 
 	pluginlog("%s: msg complete with %u bytes from %s\n", __func__,
@@ -386,7 +377,6 @@ bool __recvFragMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_func_t *func,
 int __sendFragMsg(PS_SendDB_t *buffer, const char *caller, const int line)
 {
     bool ret;
-    PS_Frag_Msg_Header_t *fhead;
 
     if (!sendBuf) {
 	pluginlog("%s: %s at line %u, please call initSerial() before usage\n",
@@ -401,12 +391,9 @@ int __sendFragMsg(PS_SendDB_t *buffer, const char *caller, const int line)
     }
 
     /* last fragmented message */
-    fhead = (PS_Frag_Msg_Header_t *) fragMsg.buf;
-    fhead->fragType = FRAGMENT_END;
+    *(uint8_t *) fragMsg.buf = FRAGMENT_END;
 
     ret = sendFragment(buffer, caller, line);
-
-    fragMsg.header.len = 0;
     if (!ret) return -1;
 
     return buffer->bufUsed;
@@ -787,18 +774,20 @@ static void addFragmentedData(PS_SendDB_t *buffer, const void *data,
 			      const int line)
 {
     const size_t bufOffset = offsetof(DDTypedBufferMsg_t, buf);
+    const uint8_t type = FRAGMENT_PART;
     size_t dataLeft = dataLen;
 
-    if (!buffer->bufUsed || !fragMsg.header.len) {
+    if (!buffer->bufUsed) {
 	/* init first message */
+	buffer->fragNum = 0;
+
 	fragMsg.header.len = bufOffset;
 	fragMsg.header.sender = PSC_getMyTID();
 	fragMsg.header.type = buffer->headType;
 	fragMsg.type = buffer->msgType;
-	buffer->fhead.fragType = FRAGMENT_PART;
-	buffer->fhead.fragNum = 0;
-	PSP_putTypedMsgBuf(&fragMsg, __func__, "fragHeader",
-			   &buffer->fhead, sizeof(buffer->fhead));
+	PSP_putTypedMsgBuf(&fragMsg, __func__, "fragType", &type, sizeof(type));
+	PSP_putTypedMsgBuf(&fragMsg, __func__, "fragNum",
+			   &buffer->fragNum, sizeof(buffer->fragNum));
     }
 
     while (dataLeft>0) {
@@ -806,21 +795,24 @@ static void addFragmentedData(PS_SendDB_t *buffer, const void *data,
 	size_t chunkLeft = BufTypedMsgSize - off;
 
 	/* fill message buffer */
-	size_t tocopy = (chunkLeft < dataLeft) ? chunkLeft : dataLeft;
-	memcpy(fragMsg.buf + off, data + (dataLen - dataLeft), tocopy);
-	fragMsg.header.len += tocopy;
+	size_t tocopy = (dataLeft > chunkLeft) ? chunkLeft : dataLeft;
+	PSP_putTypedMsgBuf(&fragMsg, __func__, "payload",
+			   data + (dataLen - dataLeft), tocopy);
 	dataLeft -= tocopy;
 	chunkLeft -= tocopy;
-	buffer->bufUsed += tocopy; // @todo still needed?
+	buffer->bufUsed += tocopy;
 
 	if (!chunkLeft) {
 	    /* message is filled, send fragment to all nodes */
 	    sendFragment(buffer, caller, line);
 
+	    /* prepare for next fragment */
 	    fragMsg.header.len = bufOffset;
-	    buffer->fhead.fragNum++;
-	    PSP_putTypedMsgBuf(&fragMsg, __func__, "fragHeader",
-			       &buffer->fhead, sizeof(buffer->fhead));
+	    buffer->fragNum++;
+	    PSP_putTypedMsgBuf(&fragMsg, __func__, "fragType", &type,
+			       sizeof(type));
+	    PSP_putTypedMsgBuf(&fragMsg, __func__, "fragNum",
+			       &buffer->fragNum, sizeof(buffer->fragNum));
 	}
     }
 }
@@ -871,7 +863,7 @@ bool addToBuf(const void *val, const uint32_t size, PS_SendDB_t *data,
     }
 
     if (!sendBuf) {
-	pluginlog("%s: %s at line %u, please call initSerial() before usage\n",
+	pluginlog("%s: %s at line %u, must call initSerial() before\n",
 		  __func__, caller, line);
 	return false;
     }

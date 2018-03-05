@@ -42,12 +42,6 @@ typedef struct {
     uint32_t bufUsed;    /**< Used bytes of @ref buf */
 } PS_DataBuffer_t;
 
-/** Receive header providing meta-information on a single fragment */
-typedef struct {
-    uint8_t fragType;	/**< Type of this fragment */
-    uint16_t fragNum;   /**< Sequence number of this fragment*/
-} PS_Frag_Msg_Header_t;
-
 /**
  * Send data-buffer for fragmented and regular messages
  *
@@ -58,12 +52,13 @@ typedef struct {
  * be initializied using @ref initFragBuffer().
  */
 typedef struct {
+    char *buf;			/**< buffer for non fragmented msg */
+    uint32_t bufUsed;		/**< number of bytes used in the buffer */
+    bool useFrag;		/**< if true use fragmentation */
+    /* all further members only used for fragmented messages */
     int32_t headType;		/**< message header type */
     int32_t msgType;		/**< message (sub-)type */
-    char *buf;			/**< buffer for non fragmented msg */
-    uint32_t bufUsed;		/**< the size of the buffer */
-    bool useFrag;		/**< if true use fragmentation */
-    PS_Frag_Msg_Header_t fhead; /**< fragmentation header */
+    uint16_t fragNum;           /**< next fragment number to send */
     PSnodes_ID_t numDest;	/**< number of destinations */
 } PS_SendDB_t;
 

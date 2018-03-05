@@ -275,23 +275,25 @@ static void handleExecScriptRes(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 
 static void dropExecMsg(DDTypedBufferMsg_t *msg)
 {
-    Script_t *script;
+    size_t used = 0;
+    uint8_t fType;
+    uint16_t fNum;
     uint16_t uID;
-    char *ptr = msg->buf;
-    PS_Frag_Msg_Header_t *rhead;
 
-    /* fragmented message header */
-    rhead = (PS_Frag_Msg_Header_t *) ptr;
-    ptr += sizeof(PS_Frag_Msg_Header_t);
+    PSP_getTypedMsgBuf(msg, &used, __func__, "fragType", &fType, sizeof(fType));
+    PSP_getTypedMsgBuf(msg, &used, __func__, "fragNum", &fNum, sizeof(fNum));
 
     /* ignore follow up messages */
-    if (rhead->fragNum) return;
+    if (fNum) return;
+
+    /* skip fragmented message header */
+    char *ptr = (char*)msg + used;
 
     /* uID */
     getUint16(&ptr, &uID);
 
     /* return result to callback */
-    script = findScriptByuID(uID);
+    Script_t *script = findScriptByuID(uID);
     if (!script) {
 	mlog("%s: no script for uID %u\n", __func__, uID);
 	return;

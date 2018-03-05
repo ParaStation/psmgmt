@@ -1027,22 +1027,25 @@ static int handleNodeDown(void *nodeID)
 static void saveForwardError(DDTypedBufferMsg_t *msg)
 {
     Slurm_Msg_t sMsg;
-    PS_SendDB_t outdata = { .buf = NULL, .bufUsed = 0 };
-    char *ptr = msg->buf;
+    PS_SendDB_t outdata = { .bufUsed = 0, .useFrag = false };
+    size_t used = 0;
+    uint8_t fType;
+    uint16_t fNum;
     int16_t socket;
-    PS_Frag_Msg_Header_t *rhead;
+
+    PSP_getTypedMsgBuf(msg, &used, __func__, "fragType", &fType, sizeof(fType));
+    PSP_getTypedMsgBuf(msg, &used, __func__, "fragNum", &fNum, sizeof(fNum));
+
+    /* ignore follow up messages */
+    if (fNum) return;
+
+    /* skip fragmented message header */
+    char *ptr = (char*)msg + used;
 
     initSlurmMsg(&sMsg);
     sMsg.outdata = &outdata;
     sMsg.source = msg->header.dest;
     sMsg.head.type = RESPONSE_FORWARD_FAILED;
-
-    /* fragmented message header */
-    rhead = (PS_Frag_Msg_Header_t *) ptr;
-    ptr += sizeof(PS_Frag_Msg_Header_t);
-
-    /* ignore follow up messages */
-    if (rhead->fragNum) return;
 
     /* socket */
     getInt16(&ptr, &socket);

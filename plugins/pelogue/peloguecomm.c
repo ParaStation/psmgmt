@@ -527,21 +527,24 @@ static char *msg2Str(PSP_PELOGUE_t type)
 
 static void dropPElogueStartMsg(DDTypedBufferMsg_t *msg)
 {
-    char *ptr = msg->buf, *plugin, *jobid;;
-    PS_Frag_Msg_Header_t *rhead = (PS_Frag_Msg_Header_t *)ptr;
     bool prologue = msg->type == PSP_PROLOGUE_START;
-    Job_t *job;
+    size_t used = 0;
+    uint8_t fType;
+    uint16_t fNum;
+
+    PSP_getTypedMsgBuf(msg, &used, __func__, "fragType", &fType, sizeof(fType));
+    PSP_getTypedMsgBuf(msg, &used, __func__, "fragNum", &fNum, sizeof(fNum));
 
     /* ignore follow up messages */
-    if (rhead->fragNum) return;
+    if (fNum) return;
 
     /* skip fragmented message header */
-    ptr += sizeof(PS_Frag_Msg_Header_t);
+    char *ptr = (char*)msg + used;
 
-    plugin = getStringM(&ptr);
-    jobid = getStringM(&ptr);
+    char *plugin = getStringM(&ptr);
+    char *jobid = getStringM(&ptr);
 
-    job = findJobById(plugin, jobid);
+    Job_t *job = findJobById(plugin, jobid);
     if (!job) {
 	mlog("%s: plugin '%s' job '%s' not found\n", __func__, plugin, jobid);
 	if (plugin) free(plugin);
