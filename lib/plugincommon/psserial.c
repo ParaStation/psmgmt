@@ -202,7 +202,7 @@ void finalizeSerial(void)
 
 void initFragBuffer(PS_SendDB_t *buffer, int32_t headType, int32_t msgType)
 {
-    buffer->useFrag = 1;
+    buffer->useFrag = true;
     buffer->nrOfNodes = 0;
     buffer->bufUsed = 0;
     buffer->headType = headType;

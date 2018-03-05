@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2016-2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2016-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -446,7 +446,7 @@ bool __packSlurmHeader(PS_SendDB_t *data, Slurm_Msg_Header_t *head,
 	/* msg body */
 	if (head->fwdata[i].body.bufUsed) {
 	    addMemToMsg(head->fwdata[i].body.buf,
-		        head->fwdata[i].body.bufUsed, data);
+			head->fwdata[i].body.bufUsed, data);
 	}
     }
 
@@ -1068,7 +1068,7 @@ static void packAccNodeId(PS_SendDB_t *data, int type,
 }
 
 bool __packSlurmAccData(PS_SendDB_t *data, SlurmAccData_t *slurmAccData,
-		        const char *caller, const int line)
+			const char *caller, const int line)
 {
     AccountDataExt_t *accData = slurmAccData->accData;
     int i;

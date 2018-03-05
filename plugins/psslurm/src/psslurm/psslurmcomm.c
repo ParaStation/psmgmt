@@ -1,13 +1,12 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014-2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
@@ -182,7 +181,8 @@ void __saveFrwrdMsgRes(Slurm_Msg_t *sMsg, uint32_t error, const char *func,
     if (srcNode == PSC_getMyID()) {
 	/* save local processed message */
 	fw->head.type = sMsg->head.type;
-	if (!memToDataBuffer(sMsg->outdata->buf, sMsg->outdata->bufUsed, &fw->body)) {
+	if (!memToDataBuffer(sMsg->outdata->buf, sMsg->outdata->bufUsed,
+			     &fw->body)) {
 	    mlog("%s: error saving local result, caller %s at %i\n",
 		 __func__, func, line);
 	}
@@ -201,8 +201,9 @@ void __saveFrwrdMsgRes(Slurm_Msg_t *sMsg, uint32_t error, const char *func,
 		fwdata->type = sMsg->head.type;
 		fwdata->node = srcNode;
 		if (sMsg->outdata->bufUsed) {
-		    if (!memToDataBuffer(sMsg->outdata->buf, sMsg->outdata->bufUsed,
-				     &fwdata->body)) {
+		    if (!memToDataBuffer(sMsg->outdata->buf,
+					 sMsg->outdata->bufUsed,
+					 &fwdata->body)) {
 			mlog("%s: saving error failed, caller %s at %i\n",
 			     __func__, func, line);
 		    }
@@ -224,7 +225,7 @@ void __saveFrwrdMsgRes(Slurm_Msg_t *sMsg, uint32_t error, const char *func,
 	    PSC_printTID(sMsg->source), sMsg->sock, sMsg->recvTime);
 
     if (fw->res == fw->nodesCount + 1) {
-	PS_SendDB_t msg = { .bufUsed = 0, .useFrag = 0 };
+	PS_SendDB_t msg = { .bufUsed = 0, .useFrag = false };
 
 	/* all answers collected */
 	mdbg(PSSLURM_LOG_FWD, "%s: forward %s complete, sending answer\n",
@@ -610,7 +611,7 @@ int __sendSlurmMsg(int sock, slurm_msg_type_t type, PS_SendDB_t *body,
 int __sendSlurmMsgEx(int sock, Slurm_Msg_Header_t *head, PS_SendDB_t *body,
 		     const char *caller, const int line)
 {
-    PS_SendDB_t data = { .bufUsed = 0, .useFrag = 0 };
+    PS_SendDB_t data = { .bufUsed = 0, .useFrag = false };
     PS_DataBuffer_t payload = { .bufUsed = 0 };
     Slurm_Auth_t *auth;
     int ret = 0;
@@ -1090,7 +1091,7 @@ int srunOpenPTYConnection(Step_t *step)
 int srunOpenIOConnectionEx(Step_t *step, uint32_t addr, uint16_t port,
 			   char *sig)
 {
-    PS_SendDB_t data = { .bufUsed = 0, .useFrag = 0 };
+    PS_SendDB_t data = { .bufUsed = 0, .useFrag = false };
     PSnodes_ID_t nodeID = step->myNodeIndex;
     uint32_t i;
     int sock;
@@ -1217,7 +1218,7 @@ int srunSendIO(uint16_t type, uint16_t taskid, Step_t *step, char *buf,
 
 int srunSendIOEx(int sock, Slurm_IO_Header_t *iohead, char *buf, int *error)
 {
-    PS_SendDB_t data = { .bufUsed = 0, .useFrag = 0 };
+    PS_SendDB_t data = { .bufUsed = 0, .useFrag = false };
     int ret = 0, once = 1;
     int32_t towrite, written = 0;
     Slurm_IO_Header_t ioh;

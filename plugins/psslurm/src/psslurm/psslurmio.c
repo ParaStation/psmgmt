@@ -1,13 +1,12 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2015-2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2015-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-
 #define _GNU_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
@@ -335,7 +334,7 @@ static void handlePrintChildMsg(Forwarder_Data_t *fwdata, char *ptr)
 static void closeIOchannel(Forwarder_Data_t *fwdata, uint32_t taskid,
 			   uint8_t type)
 {
-    PS_SendDB_t msg = { .bufUsed = 0, .useFrag = 0 };
+    PS_SendDB_t msg = { .bufUsed = 0, .useFrag = false };
 
     addUint8ToMsg(type, &msg);
     addUint32ToMsg(taskid, &msg);
