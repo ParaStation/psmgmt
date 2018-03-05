@@ -64,7 +64,7 @@ static bool typeInfo = false;
 static char *sendBuf = NULL;
 
 /** the send buffer size */
-static uint32_t sendBufLen = sizeof(DDTypedBufferMsg_t) * 100;
+static uint32_t sendBufLen = 0;
 
 /** destination nodes for fragmented messages */
 static PStask_ID_t *destNodes = NULL;
@@ -153,21 +153,21 @@ bool initSerial(size_t bufSize, Send_Msg_Func_t *func)
     uint16_t i;
     PSnodes_ID_t nrOfNodes = PSC_getNrOfNodes();
 
-    sendPSMsg = func;
-
     if (sendBuf) return false;
 
-    /* allocate send buffers */
-    bufSize = bufSize ? bufSize : DEFAULT_BUFFER_SIZE;
-    sendBuf = umalloc(bufSize);
-
-    /* allocated space for destination nodes */
     if (nrOfNodes == -1) {
 	pluginlog("%s: unable to get number of nodes\n", __func__);
 	return false;
     }
+
+    /* allocate send buffers */
+    sendBufLen = bufSize ? bufSize : DEFAULT_BUFFER_SIZE;
+    sendBuf = umalloc(sendBufLen);
+
+    /* allocated space for destination nodes */
     destNodes = umalloc(sizeof(*destNodes) * nrOfNodes);
 
+    sendPSMsg = func;
     initNodeDownHook();
 
     /* allocate receive buffers */
@@ -841,18 +841,15 @@ static void addData(PS_SendDB_t *buffer, const void *data, const size_t dataLen,
 	/* fragmented message */
 	addFragmentedData(buffer, data, dataLen, caller, line);
     } else {
-	void *ptr;
-
 	if (!buffer->buf) buffer->bufUsed = 0;
 	/* grow send buffer if needed */
 	if (buffer->bufUsed + dataLen > sendBufLen) {
-	    sendBufLen *= 2;
+	    sendBufLen = sendBufLen ? sendBufLen * 2 : DEFAULT_BUFFER_SIZE;
 	    sendBuf = urealloc(sendBuf, sendBufLen);
 	    pluginlog("%s: realloc send buffer to %u\n", __func__, sendBufLen);
 	}
 
-	ptr = sendBuf + buffer->bufUsed;
-	memcpy(ptr, data, dataLen);
+	memcpy(sendBuf + buffer->bufUsed, data, dataLen);
 	buffer->bufUsed += dataLen;
 	buffer->buf = sendBuf;
     }
