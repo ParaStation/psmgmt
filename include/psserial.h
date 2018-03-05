@@ -64,7 +64,7 @@ typedef struct {
     uint32_t bufUsed;		/**< the size of the buffer */
     bool useFrag;		/**< if true use fragmentation */
     PS_Frag_Msg_Header_t fhead; /**< fragmentation header */
-    PSnodes_ID_t nrOfNodes;	/**< the number of destinations */
+    PSnodes_ID_t numDest;	/**< number of destinations */
 } PS_SendDB_t;
 
 /** Prototype of custom sender functions used by @ref initSerial() */

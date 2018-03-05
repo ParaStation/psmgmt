@@ -69,7 +69,7 @@ static uint32_t sendBufLen = 0;
 /** destination nodes for fragmented messages */
 static PStask_ID_t *destNodes = NULL;
 
-/** */
+/** message to collect and send fragments */
 static DDTypedBufferMsg_t fragMsg;
 
 /**
@@ -151,11 +151,11 @@ static void initNodeDownHook(void)
 bool initSerial(size_t bufSize, Send_Msg_Func_t *func)
 {
     uint16_t i;
-    PSnodes_ID_t nrOfNodes = PSC_getNrOfNodes();
+    PSnodes_ID_t numNodes = PSC_getNrOfNodes();
 
     if (sendBuf) return false;
 
-    if (nrOfNodes == -1) {
+    if (numNodes == -1) {
 	pluginlog("%s: unable to get number of nodes\n", __func__);
 	return false;
     }
@@ -165,14 +165,14 @@ bool initSerial(size_t bufSize, Send_Msg_Func_t *func)
     sendBuf = umalloc(sendBufLen);
 
     /* allocated space for destination nodes */
-    destNodes = umalloc(sizeof(*destNodes) * nrOfNodes);
+    destNodes = umalloc(sizeof(*destNodes) * numNodes);
 
     sendPSMsg = func;
     initNodeDownHook();
 
     /* allocate receive buffers */
-    recvBuffers = umalloc(sizeof(PS_DataBuffer_t) * nrOfNodes);
-    for (i=0; i<nrOfNodes; i++) {
+    recvBuffers = umalloc(sizeof(PS_DataBuffer_t) * numNodes);
+    for (i=0; i<numNodes; i++) {
 	recvBuffers[i].buf = umalloc(bufSize);
 	recvBuffers[i].bufSize = bufSize;
 	recvBuffers[i].bufUsed = 0;
@@ -203,7 +203,7 @@ void finalizeSerial(void)
 void initFragBuffer(PS_SendDB_t *buffer, int32_t headType, int32_t msgType)
 {
     buffer->useFrag = true;
-    buffer->nrOfNodes = 0;
+    buffer->numDest = 0;
     buffer->bufUsed = 0;
     buffer->headType = headType;
     buffer->msgType = msgType;
@@ -211,11 +211,11 @@ void initFragBuffer(PS_SendDB_t *buffer, int32_t headType, int32_t msgType)
 
 bool setFragDest(PS_SendDB_t *buffer, PStask_ID_t id)
 {
-    PSnodes_ID_t nrOfNodes = PSC_getNrOfNodes();
+    PSnodes_ID_t numNodes = PSC_getNrOfNodes();
 
-    if (buffer->nrOfNodes >= nrOfNodes) {
-	pluginlog("%s: maximal number of %i destinations reached\n",
-		__func__, nrOfNodes);
+    if (buffer->numDest >= numNodes) {
+	pluginlog("%s: maximum number of %i destinations reached\n",
+		__func__, numNodes);
 	return false;
     }
 
@@ -224,7 +224,7 @@ bool setFragDest(PS_SendDB_t *buffer, PStask_ID_t id)
 	return false;
     }
 
-    destNodes[buffer->nrOfNodes++] = id;
+    destNodes[buffer->numDest++] = id;
 
     return true;
 }
@@ -239,17 +239,20 @@ bool setFragDest(PS_SendDB_t *buffer, PStask_ID_t id)
  * @param caller Function name of the calling function
  *
  * @param line Line number where this function is called
+ *
+ * @return If the fragment was sent successfully to all destinations,
+ * true is returned. Or false in case of at least one failed
+ * destination or no send at all.
  */
 static bool sendFragment(PS_SendDB_t *buffer, const char *caller,
 			 const int line)
 {
-    int res = -1;
     bool ret = true;
     PSnodes_ID_t i;
     PS_Frag_Msg_Header_t *fhead = &buffer->fhead;
     PStask_ID_t localTask = -1;
 
-    if (!buffer->nrOfNodes) {
+    if (!buffer->numDest) {
 	pluginlog("%s: empty nodelist from caller %s at line %i\n", __func__,
 		  caller, line);
 	return false;
@@ -261,7 +264,7 @@ static bool sendFragment(PS_SendDB_t *buffer, const char *caller,
 	return false;
     }
 
-    for (i=0; i<buffer->nrOfNodes; i++) {
+    for (i=0; i<buffer->numDest; i++) {
 	if (PSC_getID(destNodes[i]) == PSC_getMyID()) {
 	    /* local messages might overwrite the shared send message buffer,
 	     * therefore it needs to be the last message send */
@@ -273,7 +276,7 @@ static bool sendFragment(PS_SendDB_t *buffer, const char *caller,
 		  fhead->fragNum, PSC_printTID(fragMsg.header.dest),
 		  fragMsg.header.len);
 
-	res = sendPSMsg(&fragMsg);
+	int res = sendPSMsg(&fragMsg);
 
 	if (res == -1 && errno != EWOULDBLOCK) {
 	    ret = false;
@@ -290,7 +293,7 @@ static bool sendFragment(PS_SendDB_t *buffer, const char *caller,
 		  fhead->fragNum, PSC_printTID(fragMsg.header.dest),
 		  fragMsg.header.len);
 
-	res = sendPSMsg(&fragMsg);
+	int res = sendPSMsg(&fragMsg);
 
 	if (res == -1 && errno != EWOULDBLOCK) {
 	    ret = false;
@@ -494,8 +497,6 @@ PS_DataBuffer_t * dupDataBuffer(PS_DataBuffer_t *data)
 bool __memToDataBuffer(void *mem, size_t len, PS_DataBuffer_t *buffer,
 		       const char *caller, const int line)
 {
-    char *ptr;
-
     if (!buffer) {
 	pluginlog("%s: invalid buffer from '%s' at %d\n", __func__,
 		  caller, line);
@@ -508,8 +509,7 @@ bool __memToDataBuffer(void *mem, size_t len, PS_DataBuffer_t *buffer,
 	return false;
     }
 
-    ptr = buffer->buf + buffer->bufUsed;
-    memcpy(ptr, mem, len);
+    memcpy(buffer->buf + buffer->bufUsed, mem, len);
     buffer->bufUsed += len;
 
     return true;
