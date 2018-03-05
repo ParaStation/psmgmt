@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2016-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -70,7 +70,7 @@ int sendExecScript(Script_t *script, PSnodes_ID_t dest)
     env_t *env = &script->env;
 
     initFragBuffer(&data, PSP_CC_PLUG_PSEXEC, PSP_EXEC_SCRIPT);
-    setFragDest(&data,  PSC_getTID(dest, 0));
+    setFragDest(&data, PSC_getTID(dest, 0));
 
     /* add uID */
     addUint16ToMsg(script->uID, &data);
