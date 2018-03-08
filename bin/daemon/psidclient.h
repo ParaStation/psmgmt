@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -161,6 +161,22 @@ void PSIDclient_releaseACK(int fd);
  * @see errno(3)
  */
 int PSIDclient_send(DDMsg_t *msg);
+
+/**
+ * @brief Wrapper around @ref PSIDclient_send()
+ *
+ * Wrapper around @ref PSIDclient_send() basically dropping its return
+ * value. This enables @ref PSIDclient_send() to be used as a message
+ * handler that simply forwards the corresponding message type.
+ *
+ * @param msg Message to handle, i.e. to be sent
+ *
+ * @return No return value
+ */
+static inline void PSIDclient_frwd(DDBufferMsg_t *msg)
+{
+    PSIDclient_send((DDMsg_t *)msg);
+}
 
 /**
  * @brief Receive message from client.

@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2009-2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2009-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -1686,7 +1686,7 @@ void initPlugins(void)
 {
     /* Register msg-handlers for plugin load/unload */
     PSID_registerMsg(PSP_CD_PLUGIN, (handlerFunc_t)msg_PLUGIN);
-    PSID_registerMsg(PSP_CD_PLUGINRES, (handlerFunc_t)sendMsg);
+    PSID_registerMsg(PSP_CD_PLUGINRES, frwdMsg);
 
     PSID_registerDropper(PSP_CD_PLUGIN, drop_PLUGIN);
 

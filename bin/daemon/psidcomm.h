@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -49,6 +49,22 @@ void PSIDcomm_init(void);
  * @see sendRDP(), sendClient()
  */
 int sendMsg(void *msg);
+
+/**
+ * @brief Wrapper around @ref sendMsg()
+ *
+ * Wrapper around @ref sendMsg() basically dropping its return
+ * value. This enables @ref sendMsg() to be used as a message handler
+ * that simply forwards the corresponding message type.
+ *
+ * @param msg Message to handle, i.e. to be sent
+ *
+ * @return No return value
+ */
+static inline void frwdMsg(DDBufferMsg_t *msg)
+{
+    sendMsg(msg);
+}
 
 /**
  * @brief Receive a message

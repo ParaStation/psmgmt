@@ -1,17 +1,12 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2011-2014 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2011-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-#ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__((used)) =
-    "$Id$";
-#endif /* DOXYGEN_SHOULD_SKIP_THIS */
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -212,5 +207,5 @@ void initEnvironment(void)
 {
     /* Register msg-handlers for environment modifications */
     PSID_registerMsg(PSP_CD_ENV, (handlerFunc_t)msg_ENV);
-    PSID_registerMsg(PSP_CD_ENVRES, (handlerFunc_t)sendMsg);
+    PSID_registerMsg(PSP_CD_ENVRES, frwdMsg);
 }

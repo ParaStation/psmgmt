@@ -5305,7 +5305,7 @@ void initPartition(void)
 
     PSID_registerMsg(PSP_CD_CREATEPART, msg_CREATEPART);
     PSID_registerMsg(PSP_CD_CREATEPARTNL, msg_CREATEPARTNL);
-    PSID_registerMsg(PSP_CD_PARTITIONRES, (handlerFunc_t) sendMsg);
+    PSID_registerMsg(PSP_CD_PARTITIONRES, frwdMsg);
     PSID_registerMsg(PSP_DD_GETPART, msg_GETPART);
     PSID_registerMsg(PSP_DD_GETPARTNL, msg_GETPARTNL);
     PSID_registerMsg(PSP_DD_PROVIDEPART, msg_PROVIDEPART);
@@ -5317,7 +5317,7 @@ void initPartition(void)
     PSID_registerMsg(PSP_CD_GETRANKNODE, msg_GETRANKNODE);
     PSID_registerMsg(PSP_DD_GETRANKNODE, msg_GETRANKNODE);
     PSID_registerMsg(PSP_DD_NODESRES, msg_NODESRES);
-    PSID_registerMsg(PSP_CD_NODESRES, (handlerFunc_t) sendMsg);
+    PSID_registerMsg(PSP_CD_NODESRES, frwdMsg);
     PSID_registerMsg(PSP_DD_GETTASKS, msg_GETTASKS);
     PSID_registerMsg(PSP_DD_PROVIDETASK, msg_PROVIDETASK);
     PSID_registerMsg(PSP_DD_PROVIDETASKSL, msg_PROVIDETASKSL);
@@ -5330,11 +5330,11 @@ void initPartition(void)
     PSID_registerMsg(PSP_DD_TASKRESUME, (handlerFunc_t) msg_TASKRESUME);
     PSID_registerMsg(PSP_CD_GETRESERVATION, msg_GETRESERVATION);
     PSID_registerMsg(PSP_DD_GETRESERVATION, msg_GETRESERVATION);
-    PSID_registerMsg(PSP_CD_RESERVATIONRES, (handlerFunc_t) sendMsg);
+    PSID_registerMsg(PSP_CD_RESERVATIONRES, frwdMsg);
     PSID_registerMsg(PSP_CD_GETSLOTS, msg_GETSLOTS);
     PSID_registerMsg(PSP_DD_GETSLOTS, msg_GETSLOTS);
     PSID_registerMsg(PSP_DD_SLOTSRES, msg_SLOTSRES);
-    PSID_registerMsg(PSP_CD_SLOTSRES, (handlerFunc_t) sendMsg);
+    PSID_registerMsg(PSP_CD_SLOTSRES, frwdMsg);
 
     PSID_registerDropper(PSP_DD_TASKDEAD, drop_TASKDEAD);
 
