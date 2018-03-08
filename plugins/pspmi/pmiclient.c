@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2007-2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2007-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -69,7 +69,7 @@ static bool pmi_init_client = false;
 static int kvs_next = 0;
 
 /** My KVS name */
-static char myKVSname[PMI_KVSNAME_MAX];
+static char myKVSname[PMI_KVSNAME_MAX+12];
 
 /** If set debug output is generated */
 static bool debug = false;
@@ -2553,7 +2553,7 @@ int handlePMIclientMsg(char *msg)
     /* cmd not found */
     elog("%s(r%i): unsupported PMI cmd received '%s'\n", __func__, rank, cmd);
 
-    snprintf(reply, sizeof(reply), "cmd=%s rc=%i info=not_supported_cmd\n",
+    snprintf(reply, sizeof(reply), "cmd=%.512s rc=%i info=not_supported_cmd\n",
 	     cmd, PMI_ERROR);
     PMI_send(reply);
 

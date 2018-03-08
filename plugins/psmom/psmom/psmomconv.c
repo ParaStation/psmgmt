@@ -193,7 +193,7 @@ static int ReadDigit(ComHandle_t *com, char *digit, size_t digitSize)
     //strncpy(digit, buf, digitSize);
 
     if (neg) {
-	snprintf(digit, digitSize, "-%s", buf);
+	snprintf(digit, digitSize, "-%.256s", buf);
 	/*
 	mlog("%s: singed: '%s'\n", __func__, digit);
 	return -1;

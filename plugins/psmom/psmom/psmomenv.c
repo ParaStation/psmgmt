@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2011-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2011-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -403,7 +403,7 @@ void setupPBSEnv(Job_t *job, int interactive)
     /* setup tmp dir */
     confTmpDir = getConfValueC(&config, "DIR_TEMP");
     if (confTmpDir) {
-	char tmpDir[400];
+	char tmpDir[256];
 
 	snprintf(tmpDir, sizeof(tmpDir), "%s/%s", confTmpDir, job->hashname);
 	snprintf(name, sizeof(name), "TMPDIR=%s", tmpDir);

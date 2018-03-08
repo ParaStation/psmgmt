@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -758,7 +758,6 @@ int execCopyForwarder(void *info)
 	return 1;
     } else if (forwarder_child_pid == 0) {
 	int i;
-	char tmp[400];
 	Copy_Data_files_t **files;
 	wordexp_t fExpr;
 
@@ -779,7 +778,7 @@ int execCopyForwarder(void *info)
 
 	/* copy all files */
 	for (i=0; i<data->count; i++) {
-	    char src[400], *s, *dest, *d;
+	    char src[256], *s, *dest, *d;
 	    int cp_status;
 
 	    /* setup source file */
@@ -798,6 +797,7 @@ int execCopyForwarder(void *info)
 		dest = files[i]->remote;
 	    } else {
 		if (strlen(dest) <= 1) {
+		    char tmp[256];
 		    snprintf(tmp, sizeof(tmp), "%s/%s",
 				DEFAULT_DIR_JOB_UNDELIVERED, s);
 		    mlog("%s: dest invalid, saving file '%s' in '%s'\n",
@@ -820,6 +820,7 @@ int execCopyForwarder(void *info)
 	    if (!(expandWords(&fExpr, dest))) {
 		dest = fExpr.we_wordv[0];
 	    } else {
+		char tmp[512];
 		snprintf(tmp, sizeof(tmp), "%s/%s", DEFAULT_DIR_JOB_UNDELIVERED,
 			    src);
 		mlog("%s: save file '%s' in '%s'\n", __func__, src, tmp);
@@ -837,6 +838,7 @@ int execCopyForwarder(void *info)
 
 	    /* do the copy in a new process */
 	    if ((cp_status = copyFile(src, dest, NULL)) != 0) {
+		char tmp[256];
 		snprintf(tmp, sizeof(tmp), "%s/%s",
 			DEFAULT_DIR_JOB_UNDELIVERED, s);
 		mlog("%s: copy failed: (%i), saving file '%s' in '%s'\n",
@@ -1558,11 +1560,9 @@ static void setPElogueName(char *script, PElogue_Data_t *data, char *buf,
     size_t bufSize)
 {
     struct stat sb;
-    char path[300], par[50] = { '\0' };
+    char path[300], *par = "\0";
 
-    if (!data->frontend) {
-	snprintf(par, sizeof(par), ".parallel");
-    }
+    if (!data->frontend) par = ".parallel";
 
     if (!strlen(data->nameExt)) {
 	snprintf(buf, bufSize, "%s%s", script, par);

@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -768,7 +768,7 @@ int hasRunningJobs(char *user)
 
 char *listJobs(char *buf, size_t *bufSize)
 {
-    char line[160];
+    char line[256];
     list_t *j;
 
     if (list_empty(&jobList)) {
@@ -782,7 +782,7 @@ char *listJobs(char *buf, size_t *bufSize)
 
     list_for_each(j, &jobList) {
 	Job_t *job = list_entry(j, Job_t, next);
-	char start[50], timeout[50], logger[15], procs[8], nodes[6];
+	char start[50], timeout[32], logger[15], procs[8], nodes[6];
 	struct tm *ts;
 	long secTimeout;
 

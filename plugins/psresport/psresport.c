@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2012-2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2012-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -654,7 +654,7 @@ static char *showReservationCount(char *buf, size_t *bufSize)
  */
 static char *dumpNodeBitmask(char *buf, size_t *bufSize)
 {
-    char line[50], tmp[50];
+    char line[64], tmp[32];
     int i, node;
 
     buf = showReservationCount(buf, bufSize);

@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2007-2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2007-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -874,7 +874,7 @@ int main(int argc, char *argv[])
 
     /* Setup various environment variables depending on passed arguments */
     if (dest >= 0) {
-	char val[6];
+	char val[16];
 
 	snprintf(val, sizeof(val), "%d", dest);
 	setenv("PSI_INPUTDEST", val, 1);

@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -600,7 +600,7 @@ void handlePELogueFinish(DDTypedBufferMsg_t *msg, char *msgData)
 static void PElogueTimeoutAction(char *server, char *jobid, int prologue,
 				    const char *host)
 {
-    char note[100], buf[100];
+    char note[128], buf[32];
     int offline;
     struct tm *ts;
     time_t now;

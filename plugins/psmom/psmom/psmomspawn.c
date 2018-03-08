@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -923,7 +923,7 @@ void handleFailedSpawn()
     Server_t *serv;
     struct tm *ts;
     time_t now;
-    char buf[100], note[100];
+    char buf[32], note[128];
 
     now = time(NULL);
     ts = localtime(&now);

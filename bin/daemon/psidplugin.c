@@ -1202,7 +1202,7 @@ static void sendAvail(PStask_ID_t dest)
     if (!(dir = opendir(dirName))) {
 	int eno = errno;
 	PSID_warn(-1, eno, "%s: opendir(%s) failed", __func__, dirName);
-	snprintf(res, sizeof(res), "opendir(%s) failed: %s\n", dirName,
+	snprintf(res, sizeof(res), "opendir(%.200s) failed: %s\n", dirName,
 		 strerror(eno));
 	goto end;
     }

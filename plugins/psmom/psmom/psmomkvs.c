@@ -287,7 +287,7 @@ static char *showConnectionState(char *buf, size_t *bufSize)
 {
     struct list_head *pos;
     ComHandle_t *com;
-    char *info, local[32], remote[32], lport[16], rport[16];
+    char *info, local[32], remote[32], lport[8], rport[8];
 
     snprintf(line, sizeof(line), "\nsocket\ttype\t%20s\t%20s\tinfo\n",
 		"local", "remote");
