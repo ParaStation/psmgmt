@@ -547,7 +547,6 @@ static void sendReattchReply(Step_t *step, Slurm_Msg_t *sMsg, uint32_t rc)
 {
     PS_SendDB_t reply = { .bufUsed = 0, .useFrag = false };
     uint32_t i, numTasks, countPIDS = 0, countPos;
-    list_t *t;
 
     /* hostname */
     addStringToMsg(getConfValueC(&Config, "SLURM_HOSTNAME"), &reply);
@@ -555,6 +554,7 @@ static void sendReattchReply(Step_t *step, Slurm_Msg_t *sMsg, uint32_t rc)
     addUint32ToMsg(rc, &reply);
 
     if (rc == SLURM_SUCCESS) {
+	list_t *t;
 	numTasks = step->globalTaskIdsLen[step->myNodeIndex];
 	/* number of tasks */
 	addUint32ToMsg(numTasks, &reply);
@@ -885,11 +885,11 @@ static void handleJobId(Slurm_Msg_t *sMsg)
 {
     char **ptr = &sMsg->ptr;
     uint32_t pid = 0;
-    Step_t *step;
 
     getUint32(ptr, &pid);
 
-    if ((step = findStepByTaskPid(pid))) {
+    Step_t *step = findStepByTaskPid(pid);
+    if (step) {
 	PS_SendDB_t msg = { .bufUsed = 0, .useFrag = false };
 
 	addUint32ToMsg(step->jobid, &msg);
@@ -971,6 +971,99 @@ CLEANUP:
     deleteBCast(bcast);
 }
 
+static void addSlurmPids(PStask_ID_t loggerTID, PS_SendDB_t *data)
+{
+    uint32_t count = 0, i;
+    pid_t *pids = NULL;
+
+    /* node_name */
+    addStringToMsg(getConfValueC(&Config, "SLURM_HOSTNAME"), data);
+
+    psAccountGetPidsByLogger(loggerTID, &pids, &count);
+
+    addUint32ToMsg(count, data);
+    for (i=0; i<count; i++) {
+	addUint32ToMsg((uint32_t)pids[i], data);
+    }
+    ufree(pids);
+}
+
+static int addSlurmAccData(uint8_t accType, pid_t childPid,
+			   PStask_ID_t loggerTID, PS_SendDB_t *data,
+			   PSnodes_ID_t *nodes, uint32_t nrOfNodes)
+{
+    AccountDataExt_t accData;
+    bool res;
+    uint64_t avgVsize = 0, avgRss = 0;
+    SlurmAccData_t slurmAccData;
+
+    slurmAccData.type = accType;
+    slurmAccData.nodes = nodes;
+    slurmAccData.nrOfNodes = nrOfNodes;
+    slurmAccData.accData = &accData;
+    accData.numTasks = 0;
+
+    if (!accType) {
+	/* no accounting */
+	goto PACK_RESPONSE;
+    }
+
+    if (childPid) {
+	res = psAccountGetDataByJob(childPid, &accData);
+    } else {
+	res = psAccountGetDataByLogger(loggerTID, &accData);
+    }
+
+    slurmAccData.empty = !res;
+
+    if (!res) {
+	/* getting account data failed */
+	mlog("%s: getting account data for pid %u logger '%s' failed\n",
+	     __func__, childPid, PSC_printTID(loggerTID));
+	goto PACK_RESPONSE;
+    }
+
+    avgVsize = accData.avgVsizeCount ?
+		    accData.avgVsizeTotal / accData.avgVsizeCount : 0;
+    avgRss = accData.avgRssCount ?
+		    accData.avgRssTotal / accData.avgRssCount : 0;
+
+    mlog("%s: adding account data: maxVsize %zu maxRss %zu pageSize %lu "
+	 "u_sec %lu u_usec %lu s_sec %lu s_usec %lu num_tasks %u avgVsize %lu"
+	 " avgRss %lu avg cpufreq %.2fG\n", __func__, accData.maxVsize,
+	 accData.maxRss, accData.pageSize, accData.rusage.ru_utime.tv_sec,
+	 accData.rusage.ru_utime.tv_usec, accData.rusage.ru_stime.tv_sec,
+	 accData.rusage.ru_stime.tv_usec, accData.numTasks, avgVsize, avgRss,
+	 ((double) accData.cpuFreq / (double) accData.numTasks)
+	 / (double) 1048576);
+
+    mdbg(PSSLURM_LOG_ACC, "%s: nodes maxVsize %u maxRss %u maxPages %u "
+	 "minCpu %u maxDiskRead %u maxDiskWrite %u\n", __func__,
+	 PSC_getID(accData.taskIds[ACCID_MAX_VSIZE]),
+	 PSC_getID(accData.taskIds[ACCID_MAX_RSS]),
+	 PSC_getID(accData.taskIds[ACCID_MAX_PAGES]),
+	 PSC_getID(accData.taskIds[ACCID_MIN_CPU]),
+	 PSC_getID(accData.taskIds[ACCID_MAX_DISKREAD]),
+	 PSC_getID(accData.taskIds[ACCID_MAX_DISKWRITE]));
+
+    if (accData.avgVsizeCount > 0 &&
+	accData.avgVsizeCount != accData.numTasks) {
+	mlog("%s: warning: total Vsize is not sum of #tasks values (%lu!=%u)\n",
+		__func__, accData.avgVsizeCount, accData.numTasks);
+    }
+
+    if (accData.avgRssCount > 0 &&
+	    accData.avgRssCount != accData.numTasks) {
+	mlog("%s: warning: total RSS is not sum of #tasks values (%lu!=%u)\n",
+		__func__, accData.avgRssCount, accData.numTasks);
+    }
+
+PACK_RESPONSE:
+    packSlurmAccData(data, &slurmAccData);
+
+    return accData.numTasks;
+}
+
 static void handleStepStat(Slurm_Msg_t *sMsg)
 {
     PS_SendDB_t msg = { .bufUsed = 0, .useFrag = false };
@@ -1003,7 +1096,7 @@ static void handleStepStat(Slurm_Msg_t *sMsg)
     numTasks = addSlurmAccData(step->accType, 0, step->loggerTID, &msg,
 				step->nodes, step->nrOfNodes);
     /* correct numTasks */
-    *(uint32_t *) (msg.buf + numTasksUsed) = htonl(numTasks);
+    *(uint32_t *)(msg.buf + numTasksUsed) = htonl(numTasks);
     /* add step pids */
     addSlurmPids(step->loggerTID, &msg);
 
@@ -2053,7 +2146,7 @@ void sendNodeRegStatus(uint32_t status, int protoVersion)
 }
 
 int __sendSlurmReply(Slurm_Msg_t *sMsg, slurm_msg_type_t type,
-			const char *func, const int line)
+		     const char *func, const int line)
 {
     int ret = 1;
 
@@ -2097,23 +2190,6 @@ int __sendSlurmRC(Slurm_Msg_t *sMsg, uint32_t rc, const char *func,
     return ret;
 }
 
-void addSlurmPids(PStask_ID_t loggerTID, PS_SendDB_t *data)
-{
-    uint32_t count = 0, i;
-    pid_t *pids = NULL;
-
-    /* node_name */
-    addStringToMsg(getConfValueC(&Config, "SLURM_HOSTNAME"), data);
-
-    psAccountGetPidsByLogger(loggerTID, &pids, &count);
-
-    addUint32ToMsg(count, data);
-    for (i=0; i<count; i++) {
-	addUint32ToMsg((uint32_t)pids[i], data);
-    }
-    ufree(pids);
-}
-
 int getSlurmNodeID(PSnodes_ID_t psNodeID, PSnodes_ID_t *nodes,
 		    uint32_t nrOfNodes)
 {
@@ -2123,82 +2199,6 @@ int getSlurmNodeID(PSnodes_ID_t psNodeID, PSnodes_ID_t *nodes,
 	if (nodes[i] == psNodeID) return i;
     }
     return -1;
-}
-
-int addSlurmAccData(uint8_t accType, pid_t childPid, PStask_ID_t loggerTID,
-		    PS_SendDB_t *data, PSnodes_ID_t *nodes,
-		    uint32_t nrOfNodes)
-{
-    AccountDataExt_t accData;
-    bool res;
-    uint64_t avgVsize = 0, avgRss = 0;
-    SlurmAccData_t slurmAccData;
-
-    slurmAccData.type = accType;
-    slurmAccData.nodes = nodes;
-    slurmAccData.nrOfNodes = nrOfNodes;
-    slurmAccData.accData = &accData;
-    accData.numTasks = 0;
-
-    if (!accType) {
-	/* no accounting */
-	goto PACK_RESPONSE;
-    }
-
-    if (childPid) {
-	res = psAccountGetDataByJob(childPid, &accData);
-    } else {
-	res = psAccountGetDataByLogger(loggerTID, &accData);
-    }
-
-    slurmAccData.empty = !res;
-
-    if (!res) {
-	/* getting account data failed */
-	mlog("%s: getting account data for pid %u logger '%s' failed\n",
-	     __func__, childPid, PSC_printTID(loggerTID));
-	goto PACK_RESPONSE;
-    }
-
-    avgVsize = accData.avgVsizeCount ?
-		    accData.avgVsizeTotal / accData.avgVsizeCount : 0;
-    avgRss = accData.avgRssCount ?
-		    accData.avgRssTotal / accData.avgRssCount : 0;
-
-    mlog("%s: adding account data: maxVsize %zu maxRss %zu pageSize %lu "
-	 "u_sec %lu u_usec %lu s_sec %lu s_usec %lu num_tasks %u avgVsize %lu"
-	 " avgRss %lu avg cpufreq %.2fG\n", __func__, accData.maxVsize,
-	 accData.maxRss, accData.pageSize, accData.rusage.ru_utime.tv_sec,
-	 accData.rusage.ru_utime.tv_usec, accData.rusage.ru_stime.tv_sec,
-	 accData.rusage.ru_stime.tv_usec, accData.numTasks, avgVsize, avgRss,
-	 ((double) accData.cpuFreq / (double) accData.numTasks)
-	 / (double) 1048576);
-
-    mdbg(PSSLURM_LOG_ACC, "%s: nodes maxVsize %u maxRss %u maxPages %u "
-	 "minCpu %u maxDiskRead %u maxDiskWrite %u\n", __func__,
-	 PSC_getID(accData.taskIds[ACCID_MAX_VSIZE]),
-	 PSC_getID(accData.taskIds[ACCID_MAX_RSS]),
-	 PSC_getID(accData.taskIds[ACCID_MAX_PAGES]),
-	 PSC_getID(accData.taskIds[ACCID_MIN_CPU]),
-	 PSC_getID(accData.taskIds[ACCID_MAX_DISKREAD]),
-	 PSC_getID(accData.taskIds[ACCID_MAX_DISKWRITE]));
-
-    if (accData.avgVsizeCount > 0 &&
-	accData.avgVsizeCount != accData.numTasks) {
-	mlog("%s: warning: total Vsize is not sum of #tasks values (%lu!=%u)\n",
-		__func__, accData.avgVsizeCount, accData.numTasks);
-    }
-
-    if (accData.avgRssCount > 0 &&
-	    accData.avgRssCount != accData.numTasks) {
-	mlog("%s: warning: total RSS is not sum of #tasks values (%lu!=%u)\n",
-		__func__, accData.avgRssCount, accData.numTasks);
-    }
-
-PACK_RESPONSE:
-    packSlurmAccData(data, &slurmAccData);
-
-    return accData.numTasks;
 }
 
 void sendStepExit(Step_t *step, uint32_t exit_status)
