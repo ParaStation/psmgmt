@@ -837,11 +837,8 @@ void forwardSlurmMsg(Slurm_Msg_t *sMsg, Connection_Forward_t *fw)
 
 int send_PS_ForwardRes(Slurm_Msg_t *sMsg)
 {
-    PS_DataBuffer_t data = { .bufUsed = 0 };
     PS_SendDB_t msg;
     int ret;
-
-    memToDataBuffer(sMsg->outdata->buf, sMsg->outdata->bufUsed, &data);
 
     /* add forward information */
     initFragBuffer(&msg, PSP_CC_PLUG_PSSLURM, PSP_FORWARD_SMSG_RES);
@@ -854,8 +851,7 @@ int send_PS_ForwardRes(Slurm_Msg_t *sMsg)
     /* message type */
     addUint16ToMsg(sMsg->head.type, &msg);
     /* msg payload */
-    addMemToMsg(data.buf, data.bufUsed, &msg);
-    ufree(data.buf);
+    addMemToMsg(sMsg->outdata->buf, sMsg->outdata->bufUsed, &msg);
 
     ret = sendFragMsg(&msg);
 
