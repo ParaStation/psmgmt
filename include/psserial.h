@@ -40,6 +40,7 @@ typedef struct {
     char *buf;           /**< Actual data-buffer */
     uint32_t bufSize;    /**< Current size of @ref buf */
     uint32_t bufUsed;    /**< Used bytes of @ref buf */
+    uint16_t nextFrag;   /**< Next fragment number to expect */
 } PS_DataBuffer_t;
 
 /**
