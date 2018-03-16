@@ -154,6 +154,8 @@ int deleteJob(uint32_t jobid)
     ufree(job->resvName);
     ufree(job->acctFreq);
     ufree(job->resvPorts);
+    ufree(job->gids);
+    ufree(job->packHostlist);
 
     for (i=0; i<job->argc; i++) {
 	ufree(job->argv[i]);

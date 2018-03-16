@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014-2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -25,11 +25,7 @@
 #include "psslurmauth.h"
 
 #define AUTH_MUNGE_STRING "auth/munge"
-#ifdef MIN_SLURM_PROTO_1605
- #define AUTH_MUNGE_VERSION SLURM_CUR_VERSION
-#else
- #define AUTH_MUNGE_VERSION 10
-#endif
+#define AUTH_MUNGE_VERSION 10
 
 bool verifyUserId(uid_t userID, uid_t validID)
 {
@@ -119,34 +115,68 @@ ERROR:
 bool verifyStepData(Step_t *step)
 {
     JobCred_t *cred;
+    uint32_t i;
 
     if (!(cred = step->cred)) {
 	mlog("%s: no cred for step '%u:%u'\n", __func__, step->jobid,
 		step->stepid);
 	return false;
     }
-
+    /* jobid */
     if (step->jobid != cred->jobid) {
 	mlog("%s: mismatching jobid '%u:%u'\n", __func__, step->jobid,
 		cred->jobid);
 	return false;
     }
-
+    /* stepid */
     if (step->stepid != cred->stepid) {
 	mlog("%s: mismatching stepid '%u:%u'\n", __func__, step->stepid,
 		cred->stepid);
 	return false;
     }
-
+    /* uid */
     if (step->uid != cred->uid) {
 	mlog("%s: mismatching uid '%u:%u'\n", __func__, step->uid, cred->uid);
 	return false;
     }
-
-    if (!!(strcmp(step->slurmHosts, cred->hostlist))) {
+    if (slurmProto >= SLURM_17_11_PROTO_VERSION) {
+	/* gid */
+	if (step->gid != cred->gid) {
+	    mlog("%s: mismatching gid '%u:%u'\n", __func__,
+		 step->gid, cred->gid);
+	    return false;
+	}
+	/* username */
+	if (!!(strcmp(step->username, cred->username))) {
+	    mlog("%s: mismatching username '%s' - '%s'\n", __func__,
+		 step->username, cred->username);
+	    return false;
+	}
+	/* gids */
+	if (step->gidsLen != cred->gidsLen) {
+	    mlog("%s: mismatching gids length %u : %u\n", __func__,
+		 step->gidsLen, cred->gidsLen);
+	    return false;
+	}
+	for (i=0; i<cred->gidsLen; i++) {
+	    if (cred->gids[i] != step->gids[i]) {
+		mlog("%s: mismatching gid[%i] %u : %u\n", __func__,
+		     i, step->gids[i], cred->gids[i]);
+		return false;
+	    }
+	}
+    }
+    /* hostlist */
+    if (!!(strcmp(step->slurmHosts, cred->stepHL))) {
 	mlog("%s: mismatching hostlist '%s' - '%s'\n", __func__,
-		step->slurmHosts, cred->hostlist);
+		step->slurmHosts, cred->stepHL);
 	return false;
+    }
+
+    /* resolve empty username (needed since 17.11) */
+    if (!step->username || step->username[0] == '\0') {
+	ufree(step->username);
+	step->username = uid2String(step->uid);
     }
 
     mdbg(PSSLURM_LOG_AUTH, "%s: step '%u:%u' success\n", __func__,
@@ -157,39 +187,72 @@ bool verifyStepData(Step_t *step)
 bool verifyJobData(Job_t *job)
 {
     JobCred_t *cred;
+    uint32_t i;
 
     if (!(cred = job->cred)) {
 	mlog("%s: no cred for job '%u'\n", __func__, job->jobid);
 	return false;
     }
-
+    /* jobid */
     if (job->jobid != cred->jobid) {
 	mlog("%s: mismatching jobid '%u:%u'\n", __func__, job->jobid,
 		cred->jobid);
 	return false;
     }
-
+    /* stepid */
     if (SLURM_BATCH_SCRIPT != cred->stepid) {
 	mlog("%s: mismatching stepid '%u:%u'\n", __func__, SLURM_BATCH_SCRIPT,
 		cred->stepid);
 	return false;
     }
-
+    /* uid */
     if (job->uid != cred->uid) {
 	mlog("%s: mismatching uid '%u:%u'\n", __func__, job->uid, cred->uid);
 	return false;
     }
-
+    /* nrOfNodes */
     if (job->nrOfNodes != cred->jobNumHosts) {
 	mlog("%s: mismatching node count '%u:%u'\n", __func__, job->nrOfNodes,
 		cred->jobNumHosts);
 	return false;
     }
-
+    /* hostlist */
     if (!!(strcmp(job->slurmHosts, cred->jobHostlist))) {
 	mlog("%s: mismatching hostlist '%s' - '%s'\n", __func__,
 		job->slurmHosts, cred->jobHostlist);
 	return false;
+    }
+    if (slurmProto >= SLURM_17_11_PROTO_VERSION) {
+	/* gid */
+	if (job->gid != cred->gid) {
+	    mlog("%s: mismatching gid '%u:%u'\n", __func__, job->gid, cred->gid);
+	    return false;
+	}
+	/* username */
+	if (!!(strcmp(job->username, cred->username))) {
+	    mlog("%s: mismatching username '%s' - '%s'\n", __func__,
+		 job->username, cred->username);
+	    return false;
+	}
+	/* gids */
+	if (job->gidsLen != cred->gidsLen) {
+	    mlog("%s: mismatching gids length %u : %u\n", __func__,
+		 job->gidsLen, cred->gidsLen);
+	    return false;
+	}
+	for (i=0; i<cred->gidsLen; i++) {
+	    if (cred->gids[i] != job->gids[i]) {
+		mlog("%s: mismatching gid[%i] %u : %u\n", __func__,
+		     i, job->gids[i], cred->gids[i]);
+		return false;
+	    }
+	}
+    }
+
+    /* resolve empty username (needed since 17.11) */
+    if (!job->username || job->username[0] == '\0') {
+	ufree(job->username);
+	job->username = uid2String(job->uid);
     }
 
     mdbg(PSSLURM_LOG_AUTH, "%s: job '%u' success\n", __func__, job->jobid);
@@ -198,21 +261,22 @@ bool verifyJobData(Job_t *job)
 
 bool extractBCastCred(Slurm_Msg_t *sMsg, BCast_t *bcast)
 {
-    char *credStart = sMsg->ptr, *credEnd, *sigBuf = NULL;
-    int sigBufLen, credLen;
-    uid_t sigUid;
-    gid_t sigGid;
-    BCast_t *firstBCast = NULL;
+    char *credStart = sMsg->ptr, *sigBuf = NULL;
+    BCast_Cred_t cred;
 
     errno = 0;
-    if (!unpackBCastCred(sMsg, bcast, &credEnd)) {
+    if (!unpackBCastCred(sMsg, &cred)) {
 	mlog("%s: unpacking bcast credential failed\n", __func__);
 	goto ERROR;
     }
-    credLen = credEnd - credStart;
 
     if (bcast->blockNumber == 1) {
-	if (!(psMungeDecodeBuf(bcast->sig, (void **) &sigBuf, &sigBufLen,
+	int sigBufLen;
+	int credLen = cred.end - credStart;
+	uid_t sigUid;
+	gid_t sigGid;
+
+	if (!(psMungeDecodeBuf(cred.sig, (void **) &sigBuf, &sigBufLen,
 		&sigUid, &sigGid))) {
 	    mlog("%s: decoding creditial failed\n", __func__);
 	    goto ERROR;
@@ -235,6 +299,8 @@ bool extractBCastCred(Slurm_Msg_t *sMsg, BCast_t *bcast)
 	    goto ERROR;
 	}
     } else {
+	BCast_t *firstBCast;
+
 	if (!(firstBCast = findBCast(bcast->jobid, bcast->fileName, 1))) {
 	    mlog("%s: no matching bcast for jobid '%u' fileName '%s' "
 		    "blockNum '%u'\n", __func__, bcast->jobid, bcast->fileName,
@@ -247,17 +313,24 @@ bool extractBCastCred(Slurm_Msg_t *sMsg, BCast_t *bcast)
 	    goto ERROR;
 	}
 
-	if (bcast->expTime < time(NULL)) {
+	if (cred.etime < time(NULL)) {
 	    mlog("%s: credential expired: %zu : %zu\n", __func__,
-		 bcast->expTime, time(NULL));
+		 cred.etime, time(NULL));
 	    goto ERROR;
 	}
     }
 
+    /* update bcast */
+    bcast->sig = cred.sig;
+    cred.sig = NULL;
+    bcast->jobid = cred.jobid;
+
+    freeBCastCred(&cred);
     free(sigBuf);
     return true;
 
 ERROR:
+    freeBCastCred(&cred);
     free(sigBuf);
     return false;
 }
@@ -266,10 +339,12 @@ void freeJobCred(JobCred_t *cred)
 {
     if (!cred) return;
 
+    ufree(cred->username);
+    ufree(cred->gids);
     ufree(cred->coresPerSocket);
     ufree(cred->socketsPerNode);
     ufree(cred->sockCoreRepCount);
-    ufree(cred->hostlist);
+    ufree(cred->stepHL);
     ufree(cred->jobCoreBitmap);
     ufree(cred->stepCoreBitmap);
     ufree(cred->jobHostlist);
@@ -332,9 +407,9 @@ JobCred_t *extractJobCred(list_t *gresList, Slurm_Msg_t *sMsg, bool verify)
     }
 
     mdbg(PSSLURM_LOG_AUTH, "%s: cred len:%u jobMemLimit '%lu' stepMemLimit '%lu' "
-	    "hostlist '%s' jobhostlist '%s' ctime '%lu' " "sig '%s'\n",
+	    "stepHostlist '%s' jobHostlist '%s' ctime '%lu' " "sig '%s'\n",
 	    __func__, credLen, cred->jobMemLimit, cred->stepMemLimit,
-	    cred->hostlist, cred->jobHostlist, cred->ctime, cred->sig);
+	    cred->stepHL, cred->jobHostlist, cred->ctime, cred->sig);
 
     return cred;
 

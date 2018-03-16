@@ -1,13 +1,12 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-
 #ifndef __PSSLURM_LOG
 #define __PSSLURM_LOG
 
@@ -42,6 +41,7 @@ typedef enum {
     PSSLURM_LOG_IO       =      0x020000, /**< I/O */
     PSSLURM_LOG_ACC      =      0x040000, /**< Account */
     PSSLURM_LOG_IO_VERB  =      0x080000, /**< more verbose I/O */
+    PSSLURM_LOG_PACK	 =	0x100000, /**< job pack */
 } PSSLURM_log_types_t;
 
 #endif  /* __PSSLURM_LOG */

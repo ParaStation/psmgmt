@@ -18,16 +18,28 @@
 #include "psslurmcomm.h"
 #include "psaccounttypes.h"
 
+/** Slurm protocol version */
+extern uint32_t slurmProto;
+
+/** Slurm protocol version string */
+extern char *slurmProtoStr;
+
 typedef struct {
     uint32_t jobid;
     uint32_t stepid;
     uint32_t jobstate;
     uid_t uid;
     char *nodes;
-    env_t pelogueEnv;
     env_t spankEnv;
     time_t startTime;
 } Req_Terminate_Job_t;
+
+typedef struct {
+    uint32_t jobid;
+    uint32_t stepid;
+    uint16_t signal;
+    uint16_t flags;
+} Req_Signal_Tasks_t;
 
 typedef struct {
     uint32_t cpuload;
@@ -87,6 +99,8 @@ typedef struct {
 
 typedef struct {
     const char *nodeName;
+    uint32_t jobid;
+    uint32_t stepid;
     uint32_t returnCode;
     uint32_t countPIDs;
     uint32_t countLocalPIDs;
@@ -95,7 +109,12 @@ typedef struct {
     uint32_t *globalTIDs;
 } Resp_Launch_Tasks_t;
 
-void sendNodeRegStatus(uint32_t status, int protoVersion);
+/**
+ * @brief Send a node registration message
+ *
+ * Send the current node configuration and status to the slurmctld.
+ */
+void sendNodeRegStatus(void);
 
 /**
  * @brief Convert a Slurm hostlist to PS node IDs
@@ -285,8 +304,19 @@ slurmdHandlerFunc_t clearSlurmdMsg(int msgType);
  */
 int handleSlurmdMsg(Slurm_Msg_t *msg);
 
-void initSlurmdProto(void);
+bool initSlurmdProto(void);
 
 void clearSlurmdProto(void);
+
+/**
+ * @brief Convert a user ID to string
+ *
+ * @param uid The user ID to convert
+ *
+ * @return Returns the converted username or "nobody" if the user ID could
+ * not be resolved. The caller is responsible to release the memory for
+ * the username calling @ref ufree().
+ */
+char *uid2String(uid_t uid);
 
 #endif /* __PSSLURM_PROTO */

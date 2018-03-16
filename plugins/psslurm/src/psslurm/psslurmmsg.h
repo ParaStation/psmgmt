@@ -42,10 +42,8 @@ typedef struct {
     uint32_t addr;
     uint16_t port;
     uint32_t timeout;
-#ifdef MIN_SLURM_PROTO_1605
     uint16_t index;
     uint16_t treeWidth;
-#endif
     char *nodeList;
     Slurm_Forward_Data_t *fwdata;
     uint32_t fwSize;

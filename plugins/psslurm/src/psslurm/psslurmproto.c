@@ -16,6 +16,7 @@
 #include <signal.h>
 #include <sys/vfs.h>
 #include <malloc.h>
+#include <pwd.h>
 
 #include "slurmcommon.h"
 #include "psslurmjob.h"
@@ -51,12 +52,38 @@
 
 #undef DEBUG_MSG_HEADER
 
+/** Slurm protocol version */
+uint32_t slurmProto;
+
+/** Slurm protocol version string */
+char *slurmProtoStr = NULL;
+
 typedef struct {
     uint32_t jobid;
     uint32_t stepid;
     bool timeout;
     uid_t uid;
 } Kill_Info_t;
+
+char *uid2String(uid_t uid)
+{
+    struct passwd *pwd = NULL;
+
+    if (!uid) return ustrdup("root");
+
+    while (!pwd) {
+	errno = 0;
+	pwd = getpwuid(uid);
+	if (!pwd) {
+	    if (errno == EINTR) continue;
+	    mwarn(errno, "%s: getpwuid for %i failed\n", __func__, uid);
+	    break;
+	}
+    }
+    if (!pwd) return ustrdup("nobody");
+
+    return ustrdup(pwd->pw_name);
+}
 
 /**
  * @brief Get CPU load average and free memory
@@ -307,12 +334,68 @@ static void printLaunchTasksInfos(Step_t *step)
             step->memBindType, step->memBind);
 }
 
+static bool extractStepPackInfos(Step_t *step)
+{
+    char *sPackSize, *nextId;
+    char packIdName[256], sJobID[256];
+    uint32_t nrOfNodes, i, localid;
+
+    mdbg(PSSLURM_LOG_PACK, "%s: packNodeOffset %u  packJobid %u packNtasks %u "
+	 "packOffset %u packTaskOffset %u packHostlist '%s' packNrOfNodes %u\n",
+	    __func__, step->packNodeOffset, step->packJobid, step->packNtasks,
+	    step->packOffset, step->packTaskOffset, step->packHostlist,
+	    step->packNrOfNodes);
+
+    /* get PS nodes from pack hostlist */
+    getNodesFromSlurmHL(step->packHostlist, &nrOfNodes,
+	    &step->packNodes, &localid);
+    if (step->packNrOfNodes != nrOfNodes) {
+	mlog("%s extracting PS nodes from Slurm pack hostlist failed\n",
+		__func__);
+	return false;
+    }
+
+    for (i=0; i<step->packNrOfNodes; i++) {
+	mdbg(PSSLURM_LOG_PACK, "%s: packTaskCount[%u]: %u\n", __func__, i,
+		step->packTaskCounts[i]);
+    }
+    mdbg(PSSLURM_LOG_PACK, "\n");
+
+
+    /* extract pack size */
+    if (!(sPackSize = envGet(&step->env, "SLURM_PACK_SIZE"))) {
+	mlog("%s: missing SLURM_PACK_SIZE environment\n", __func__);
+	return false;
+    }
+    step->packSize = atoi(sPackSize);
+
+    /* extract my pack ID */
+    snprintf(sJobID, sizeof(sJobID), "%u", step->jobid);
+    step->packMyId = NO_VAL;
+    for (i=0; i<step->packSize; i++) {
+	snprintf(packIdName, sizeof(packIdName),
+		 "SLURM_JOB_ID_PACK_GROUP_%i", i);
+
+	nextId = envGet(&step->env, packIdName);
+	if (nextId && !strcmp(sJobID, nextId)) {
+	    step->packMyId = i;
+	    break;
+	}
+    }
+    if (step->packMyId == NO_VAL) {
+	mlog("%s: error extracting my pack ID\n", __func__);
+	return false;
+    }
+
+    return true;
+}
+
 static void handleLaunchTasks(Slurm_Msg_t *sMsg)
 {
     Alloc_t *alloc = NULL;
     Job_t *job = NULL;
     Step_t *step = NULL;
-    uint32_t count, i;
+    uint32_t count, i, id;
     int32_t nodeIndex;
 
     if (pluginShutdown) {
@@ -323,9 +406,16 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
 
     /* unpack request */
     if (!(unpackReqLaunchTasks(sMsg, &step))) {
-	mlog("%s: unpacking launch request failed\n", __func__);
+	mlog("%s: unpacking launch request (%u) failed\n", __func__,
+	     sMsg->head.version);
 	sendSlurmRC(sMsg, SLURM_ERROR);
 	return;
+    }
+
+    /* verify job credential */
+    if (!(verifyStepData(step))) {
+	sendSlurmRC(sMsg, ESLURMD_INVALID_JOB_CREDENTIAL);
+	goto ERROR;
     }
 
     step->state = JOB_QUEUED;
@@ -340,8 +430,6 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
 
     /* env / spank env */
     step->env.size = step->env.cnt;
-
-    /* spank env */
     step->spankenv.size = step->spankenv.cnt;
     for (i=0; i<step->spankenv.cnt; i++) {
 	if (!(strncmp("_SLURM_SPANK_OPTION_x11spank_forward_x",
@@ -375,25 +463,48 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
     }
     step->myNodeIndex = nodeIndex;
 
-    mlog("%s: step '%u:%u' user '%s' np '%u' nodes '%s' N '%u' tpp '%u' exe "
-	 "'%s'\n", __func__, step->jobid, step->stepid, step->username,
-	 step->np, step->slurmHosts, step->nrOfNodes, step->tpp, step->argv[0]);
+    /* determine my role in the step */
+    if (step->packJobid != NO_VAL) {
+	/* step with pack */
+	if (step->nodes[0] == PSC_getMyID() && !step->packNodeOffset) {
+	    step->leader = true;
+	}
+    } else {
+	if (step->nodes[0] == PSC_getMyID()) step->leader = true;
+    }
 
-    /* add allocation */
-    if (!(job = findJobById(step->jobid))) {
-	if (!(alloc = findAlloc(step->jobid))) {
-	    alloc = addAllocation(step->jobid, step->cred->jobNumHosts,
-		    step->cred->jobHostlist, &step->env,
-		    &step->spankenv, step->uid, step->gid, step->username);
-	    /* first received step does *not* have to be step 0 */
-	    alloc->state = JOB_PROLOGUE;
+    mlog("%s: step '%u:%u' user '%s' np '%u' nodes '%s' N '%u' tpp '%u' "
+	 "pack size '%u' leader '%i' exe '%s'\n", __func__, step->jobid,
+	 step->stepid, step->username, step->np, step->slurmHosts,
+	 step->nrOfNodes, step->tpp, step->packSize, step->leader,
+	 step->argv[0]);
+
+    /* pack info */
+    if (step->packNrOfNodes != NO_VAL) {
+	if (!(extractStepPackInfos(step))) {
+	    mlog("%s: extracting pack information failed\n", __func__);
+	    goto ERROR;
 	}
     }
 
-    /* verify job credential */
-    if (!(verifyStepData(step))) {
-	sendSlurmRC(sMsg, ESLURMD_INVALID_JOB_CREDENTIAL);
-	goto ERROR;
+    /* add allocation */
+    id = step->packJobid != NO_VAL ? step->packJobid : step->jobid;
+    if (!(job = findJobById(id))) {
+	if (!(alloc = findAlloc(step->jobid))) {
+	    if (step->packNrOfNodes != NO_VAL) {
+		alloc = addAllocation(step->packJobid, step->packNrOfNodes,
+				      step->packHostlist, &step->env,
+				      &step->spankenv, step->uid, step->gid,
+				      step->username);
+	    } else {
+		alloc = addAllocation(step->jobid, step->cred->jobNumHosts,
+				      step->cred->jobHostlist, &step->env,
+				      &step->spankenv, step->uid, step->gid,
+				      step->username);
+	    }
+	    /* first received step does *not* have to be step 0 */
+	    alloc->state = JOB_PROLOGUE;
+	}
     }
 
     /* set hardware threads */
@@ -413,8 +524,14 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
 	goto ERROR;
     }
 
-    if (step->nodes[0] == PSC_getMyID()) {
-	/* mother superior */
+    if (step->leader) {
+	/* mother superior (pack leader) */
+	if (step->packJobid != NO_VAL) {
+	    /* allocate memory for pack infos from other mother superiors */
+	    step->rPackInfo = umalloc(sizeof(step->rPackInfo) *
+				      (step->packSize-1));
+	}
+
 	step->srunControlMsg.sock = sMsg->sock;
 	step->srunControlMsg.head.forward = sMsg->head.forward;
 	step->srunControlMsg.recvTime = sMsg->recvTime;
@@ -442,14 +559,22 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
 	    step->state = JOB_PRESTART;
 	    mdbg(PSSLURM_LOG_JOB, "%s: step '%u:%u' in '%s'\n", __func__,
 		    step->jobid, step->stepid, strJobState(step->state));
-	    if (!(execUserStep(step))) {
-		sendSlurmRC(sMsg, ESLURMD_FORK_FAILED);
+	    if (step->packJobid == NO_VAL) {
+		if (!(execUserStep(step))) {
+		    sendSlurmRC(sMsg, ESLURMD_FORK_FAILED);
+		    goto ERROR;
+		}
 	    }
 	}
     } else {
-	/* sister node */
+	/* sister node (pack follower) */
+	if (step->packJobid != NO_VAL && step->packNodeOffset &&
+	    step->nodes[0] == PSC_getMyID()) {
+	    /* forward hw thread infos to pack leader */
+	    send_PS_PackInfo(step);
+	}
 	if (job || step->stepid) {
-	    /* start I/O forwarder */
+	    /* start I/O forwarder if the prologue is done */
 	    execStepFWIO(step);
 	}
 	if (sMsg->sock != -1) {
@@ -458,6 +583,7 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
 	}
     }
 
+    handleCachedMsg(step);
     releaseDelayedSpawns(step->jobid, step->stepid);
     return;
 
@@ -468,25 +594,23 @@ ERROR:
 
 static void handleSignalTasks(Slurm_Msg_t *sMsg)
 {
-    char **ptr = &sMsg->ptr;
-    uint32_t jobid, stepid, siginfo, flag;
-    int signal;
     Step_t *step = NULL;
     Job_t *job = NULL;
+    Req_Signal_Tasks_t *req = NULL;
 
-    getUint32(ptr, &jobid);
-    getUint32(ptr, &stepid);
-    getUint32(ptr, &siginfo);
-
-    /* extract flags and signal */
-    flag = siginfo >> 24;
-    signal = siginfo & 0xfff;
+    /* unpack request */
+    if (!unpackReqSignalTasks(sMsg, &req)) {
+	mlog("%s: unpacking request signal tasks failed\n", __func__);
+	sendSlurmRC(sMsg, SLURM_ERROR);
+	return;
+    }
 
     /* find job */
-    if (stepid == SLURM_BATCH_SCRIPT) {
-	if (!(job = findJobById(jobid)) && !(step = findStepByJobid(jobid))) {
-	    mlog("%s: steps with jobid '%u' to signal not found\n", __func__,
-		    jobid);
+    if (req->stepid == SLURM_BATCH_SCRIPT) {
+	if (!(job = findJobById(req->jobid)) &&
+	    !(step = findStepByJobid(req->jobid))) {
+	    mlog("%s: steps with jobid '%u' to signal not found\n",
+		 __func__, req->jobid);
 	    sendSlurmRC(sMsg, ESLURM_INVALID_JOB_ID);
 	    return;
 	}
@@ -498,11 +622,11 @@ static void handleSignalTasks(Slurm_Msg_t *sMsg)
 	    return;
 	}
     } else {
-       step = findStepByStepId(jobid, stepid);
+       step = findStepByStepId(req->jobid, req->stepid);
     }
 
     /* handle magic slurm signals */
-    switch (signal) {
+    switch (req->signal) {
 	case SIG_PREEMPTED:
 	    mlog("%s: implement me!\n", __func__);
 	    sendSlurmRC(sMsg, SLURM_SUCCESS);
@@ -537,28 +661,33 @@ static void handleSignalTasks(Slurm_Msg_t *sMsg)
 	    return;
     }
 
-    if (flag & KILL_FULL_JOB) {
-	mlog("%s: send full job '%u' signal '%u'\n", __func__, jobid, signal);
+    if (req->flags & KILL_FULL_JOB) {
+	mlog("%s: send full job '%u' signal '%u'\n", __func__,
+	     req->jobid, req->signal);
 	if (job) {
 	    /* first signal jobscript only, not all corresponding steps */
+	    mlog("%s: job-state %u job->fwdata %p \n", __func__,
+		job->state, job->fwdata);
 	    if (job->state == JOB_RUNNING && job->fwdata) {
-		killChild(job->fwdata->cPid, signal);
+		mlog("%s: cPid %i\n", __func__, job->fwdata->cPid);
+		killChild(job->fwdata->cPid, req->signal);
 	    }
 	}
-	signalStepsByJobid(jobid, signal, sMsg->head.uid);
-    } else if (flag & KILL_STEPS_ONLY) {
-	mlog("%s: send steps '%u' signal '%u'\n", __func__, jobid, signal);
-	signalStepsByJobid(jobid, signal, sMsg->head.uid);
+	signalStepsByJobid(req->jobid, req->signal, sMsg->head.uid);
+    } else if (req->flags & KILL_STEPS_ONLY) {
+	mlog("%s: send steps '%u' signal '%u'\n", __func__,
+	     req->jobid, req->signal);
+	signalStepsByJobid(req->jobid, req->signal, sMsg->head.uid);
     } else {
-	mlog("%s: send step '%u:%u' signal '%u'\n", __func__, jobid,
-		stepid, signal);
-	if (stepid == SLURM_BATCH_SCRIPT) {
+	mlog("%s: send step '%u:%u' signal '%u'\n", __func__, req->jobid,
+	     req->stepid, req->signal);
+	if (req->stepid == SLURM_BATCH_SCRIPT) {
 	    /* signal jobscript only, not all corresponding steps */
 	    if (job && job->state == JOB_RUNNING && job->fwdata) {
-		killChild(job->fwdata->cPid, signal);
+		killChild(job->fwdata->cPid, req->signal);
 	    }
 	} else {
-	    signalStep(step, signal, sMsg->head.uid);
+	    signalStep(step, req->signal, sMsg->head.uid);
 	}
     }
 
@@ -844,22 +973,8 @@ static void handleAcctGatherUpdate(Slurm_Msg_t *sMsg)
 	return;
     }
 
-    /* node name */
-    addStringToMsg(getConfValueC(&Config, "SLURM_HOSTNAME"), &msg);
-
-    /* set dummy energy data */
-#ifdef MIN_SLURM_PROTO_1605
-    /* sensor count */
-    addUint16ToMsg(0, &msg);
-#else
-    time_t now = 0;
-    int i;
-
-    for (i=0; i<5; i++) {
-	addUint32ToMsg(0, &msg);
-    }
-    addTimeToMsg(now, &msg);
-#endif
+    /* pack dummy data */
+    packEnergyData(&msg);
 
     sMsg->data = &msg;
     sendSlurmReply(sMsg, RESPONSE_ACCT_GATHER_UPDATE);
@@ -877,22 +992,8 @@ static void handleAcctGatherEnergy(Slurm_Msg_t *sMsg)
 	return;
     }
 
-    /* node name */
-    addStringToMsg(getConfValueC(&Config, "SLURM_HOSTNAME"), &msg);
-
-    /* set dummy energy data */
-#ifdef MIN_SLURM_PROTO_1605
-    /* sensor count */
-    addUint16ToMsg(0, &msg);
-#else
-    time_t now = 0;
-    int i;
-
-    for (i=0; i<5; i++) {
-	addUint32ToMsg(0, &msg);
-    }
-    addTimeToMsg(now, &msg);
-#endif
+    /* pack dummy data */
+    packEnergyData(&msg);
 
     sMsg->data = &msg;
     sendSlurmReply(sMsg, RESPONSE_ACCT_GATHER_ENERGY);
@@ -1155,7 +1256,7 @@ static void handleDaemonStatus(Slurm_Msg_t *sMsg)
     }
     /* version string */
     snprintf(stat.verStr, sizeof(stat.verStr), "psslurm-%i-p%s", version,
-	    SLURM_CUR_PROTOCOL_VERSION_STR);
+	     slurmProtoStr);
 
     packRespDaemonStatus(&msg, &stat);
     sendSlurmMsg(sMsg->sock, RESPONSE_SLURMD_STATUS, &msg);
@@ -1229,7 +1330,6 @@ static void handleLaunchProlog(Slurm_Msg_t *sMsg)
     nodes = getStringM(ptr);
     partition = getStringM(ptr);
 
-
     mlog("%s: start prolog jobid '%u' uid '%u' gid '%u' alias '%s' nodes "
 	    "'%s' partition '%s'\n", __func__, jobid, uid, gid, alias, nodes,
 	    partition);
@@ -1239,6 +1339,45 @@ static void handleLaunchProlog(Slurm_Msg_t *sMsg)
     ufree(nodes);
     ufree(alias);
     ufree(partition);
+}
+
+static bool extractJobPackInfos(Job_t *job)
+{
+    char *sPackSize;
+    uint32_t i, tmp;
+    size_t nlSize = 0;
+
+    /* extract pack size */
+    if (!(sPackSize = envGet(&job->env, "SLURM_PACK_SIZE"))) {
+	return true;
+    }
+    job->packSize = atoi(sPackSize);
+
+    /* extract pack nodes */
+    for (i=0; i<job->packSize; i++) {
+	char *next, nodeListName[256];
+
+	snprintf(nodeListName, sizeof(nodeListName),
+		 "SLURM_JOB_NODELIST_PACK_GROUP_%i", i);
+
+	if (!(next = envGet(&job->env, nodeListName))) {
+	    mlog("%s: %s not found in job environment\n", __func__,
+		 nodeListName);
+	    ufree(job->packHostlist);
+	    job->packHostlist = NULL;
+	    job->packSize = 0;
+	    return false;
+	}
+	if (nlSize) str2Buf(",", &job->packHostlist, &nlSize);
+	str2Buf(next, &job->packHostlist, &nlSize);
+    }
+    getNodesFromSlurmHL(job->packHostlist, &job->packNrOfNodes, &job->packNodes,
+			&tmp);
+
+    mdbg(PSSLURM_LOG_PACK, "%s: pack hostlist '%s'\n", __func__,
+	 job->packHostlist);
+
+    return true;
 }
 
 static void handleBatchJobLaunch(Slurm_Msg_t *sMsg)
@@ -1259,6 +1398,17 @@ static void handleBatchJobLaunch(Slurm_Msg_t *sMsg)
     if (!(unpackReqBatchJobLaunch(sMsg, &job))) {
 	mlog("%s: unpacking job launch request failed\n", __func__);
 	sendSlurmRC(sMsg, SLURM_ERROR);
+	return;
+    }
+
+    /* convert slurm hostlist to PSnodes   */
+    getNodesFromSlurmHL(job->slurmHosts, &job->nrOfNodes, &job->nodes,
+			&job->localNodeId);
+
+    /* verify job credential */
+    if (!(verifyJobData(job))) {
+	sendSlurmRC(sMsg, ESLURMD_INVALID_JOB_CREDENTIAL);
+	deleteJob(job->jobid);
 	return;
     }
 
@@ -1291,20 +1441,14 @@ static void handleBatchJobLaunch(Slurm_Msg_t *sMsg)
     /* set accounting options */
     setAccOpts(job->acctFreq, &job->accType);
 
-    /* convert slurm hostlist to PSnodes   */
-    getNodesFromSlurmHL(job->slurmHosts, &job->nrOfNodes, &job->nodes,
-			&job->localNodeId);
-
-    /* verify job credential */
-    if (!(verifyJobData(job))) {
+    if (!(extractJobPackInfos(job))) {
+	mlog("%s: invalid job pack information\n", __func__);
 	sendSlurmRC(sMsg, ESLURMD_INVALID_JOB_CREDENTIAL);
-	deleteJob(job->jobid);
 	return;
     }
 
     job->extended = 1;
     job->hostname = ustrdup(getConfValueC(&Config, "SLURM_HOSTNAME"));
-
 
     /* write the jobscript */
     if (!(writeJobscript(job))) {
@@ -1318,8 +1462,9 @@ static void handleBatchJobLaunch(Slurm_Msg_t *sMsg)
     }
 
     mlog("%s: job '%u' user '%s' np '%u' nodes '%s' N '%u' tpp '%u' "
-	    "script '%s'\n", __func__, job->jobid, job->username, job->np,
-	    job->slurmHosts, job->nrOfNodes, job->tpp, job->jobscript);
+	    "pack size '%u' script '%s'\n", __func__, job->jobid, job->username,
+	    job->np, job->slurmHosts, job->nrOfNodes, job->tpp, job->packSize,
+	    job->jobscript);
 
     /* sanity check nrOfNodes */
     if (job->nrOfNodes > (uint16_t) PSC_getNrOfNodes()) {
@@ -1347,8 +1492,15 @@ static void handleBatchJobLaunch(Slurm_Msg_t *sMsg)
     mdbg(PSSLURM_LOG_JOB, "%s: job '%u' in '%s'\n", __func__,
 	    job->jobid, strJobState(job->state));
 
-    startPElogue(job->jobid, job->uid, job->gid, job->username, job->nrOfNodes,
-		    job->nodes, &job->env, &job->spankenv, 0, 1);
+    if (job->packSize) {
+	startPElogue(job->jobid, job->uid, job->gid, job->username,
+		     job->packNrOfNodes, job->packNodes, &job->env,
+		     &job->spankenv, 0, 1);
+    } else {
+	startPElogue(job->jobid, job->uid, job->gid, job->username,
+		     job->nrOfNodes, job->nodes, &job->env,
+		     &job->spankenv, 0, 1);
+    }
 }
 
 static void handleTerminateJob(Slurm_Msg_t *sMsg, Job_t *job, int signal)
@@ -1700,7 +1852,6 @@ static void handleTerminateReq(Slurm_Msg_t *sMsg)
 
 CLEANUP:
     envDestroy(&req->spankEnv);
-    envDestroy(&req->pelogueEnv);
     ufree(req->nodes);
     ufree(req);
 }
@@ -1737,9 +1888,7 @@ int getSlurmMsgHeader(Slurm_Msg_t *sMsg, Connection_Forward_t *fw)
 
     getUint16(ptr, &sMsg->head.version);
     getUint16(ptr, &sMsg->head.flags);
-#ifdef MIN_SLURM_PROTO_1605
     getUint16(ptr, &sMsg->head.index);
-#endif
     getUint16(ptr, &sMsg->head.type);
     getUint32(ptr, &sMsg->head.bodyLen);
 
@@ -1748,9 +1897,7 @@ int getSlurmMsgHeader(Slurm_Msg_t *sMsg, Connection_Forward_t *fw)
     if (sMsg->head.forward >0) {
 	fw->head.nodeList = getStringM(ptr);
 	getUint32(ptr, &fw->head.timeout);
-#ifdef MIN_SLURM_PROTO_1605
 	getUint16(ptr, &sMsg->head.treeWidth);
-#endif
     }
     getUint16(ptr, &sMsg->head.returnList);
 
@@ -1764,7 +1911,7 @@ int getSlurmMsgHeader(Slurm_Msg_t *sMsg, Connection_Forward_t *fw)
 	getUint16(ptr, &i);
     }
 
-#if defined (MIN_SLURM_PROTO_1605) && defined (DEBUG_MSG_HEADER)
+#if defined (DEBUG_MSG_HEADER)
     mlog("%s: version '%u' flags '%u' index '%u' type '%u' bodyLen '%u' "
 	    "forward '%u' treeWidth '%u' returnList '%u'\n",
 	    __func__, sMsg->head.version, sMsg->head.flags, sMsg->head.index,
@@ -1783,16 +1930,12 @@ int getSlurmMsgHeader(Slurm_Msg_t *sMsg, Connection_Forward_t *fw)
 
 static int testSlurmVersion(uint32_t version, uint32_t cmd)
 {
-    if (version < SLURM_CUR_PROTOCOL_VERSION) {
-	if (cmd == REQUEST_PING) return 1;
-	if ((cmd == REQUEST_TERMINATE_JOB ||
-	     cmd == REQUEST_NODE_REGISTRATION_STATUS) &&
-	    version >= SLURM_2_5_PROTOCOL_VERSION) {
-	    return 1;
-	}
-	mlog("%s: slurm protocol '%u' < '%s' not supported, cmd(%i) '%s'\n",
-	     __func__, version, SLURM_CUR_PROTOCOL_VERSION_STR, cmd,
-	     msgType2String(cmd));
+    if (cmd == REQUEST_PING) return 1;
+
+    if (version < SLURM_MIN_PROTO_VERSION ||
+	version > SLURM_MAX_PROTO_VERSION) {
+	mlog("%s: slurm protocol version '%u' not supported, cmd(%i) '%s'\n",
+	     __func__, version, cmd, msgType2String(cmd));
 	return 0;
     }
     return 1;
@@ -1801,27 +1944,23 @@ static int testSlurmVersion(uint32_t version, uint32_t cmd)
 static void handleNodeRegStat(Slurm_Msg_t *sMsg)
 {
     sendPing(sMsg);
-    sendNodeRegStatus(SLURM_SUCCESS, sMsg->head.version);
+    sendNodeRegStatus();
 }
 
 static void handleInvalid(Slurm_Msg_t *sMsg)
 {
-    mlog("%s: got invalid %s request\n", __func__,
-	 msgType2String(sMsg->head.type));
+    mlog("%s: got invalid %s (%i) request\n", __func__,
+	 msgType2String(sMsg->head.type), sMsg->head.type);
 
     switch (sMsg->head.type) {
-    case REQUEST_SUSPEND:
-	break;
-    case REQUEST_COMPLETE_BATCH_SCRIPT:
-    case REQUEST_STEP_COMPLETE:
-    case REQUEST_STEP_COMPLETE_AGGR:
-	sendSlurmRC(sMsg, SLURM_ERROR);
-	break;
-    case MESSAGE_COMPOSITE:
-	sendSlurmRC(sMsg, ESLURM_NOT_SUPPORTED);
-	break;
-    default:
-	break;
+	case REQUEST_COMPLETE_BATCH_SCRIPT:
+	case REQUEST_STEP_COMPLETE:
+	case REQUEST_STEP_COMPLETE_AGGR:
+	    sendSlurmRC(sMsg, SLURM_ERROR);
+	    break;
+	case MESSAGE_COMPOSITE:
+	    sendSlurmRC(sMsg, ESLURM_NOT_SUPPORTED);
+	    break;
     }
 }
 
@@ -1913,8 +2052,24 @@ slurmdHandlerFunc_t clearSlurmdMsg(int msgType)
     return NULL;
 }
 
-void initSlurmdProto(void)
+bool initSlurmdProto(void)
 {
+    char *pver;
+
+    /* Slurm protocol version */
+    pver = getConfValueC(&Config, "SLURM_PROTO_VERSION");
+
+    if (!strcmp(pver, "17.11") || !strcmp(pver, "1711")) {
+	slurmProto = SLURM_17_11_PROTO_VERSION;
+	slurmProtoStr = ustrdup("17.11");
+    } else if (!strcmp(pver, "17.02") || !strcmp(pver, "1702")) {
+	slurmProto = SLURM_17_02_PROTO_VERSION;
+	slurmProtoStr = ustrdup("17.02");
+    } else {
+	mlog("%s: unsupported Slurm protocol version %s\n", __func__, pver);
+	return false;
+    }
+
     registerSlurmdMsg(REQUEST_LAUNCH_PROLOG, handleLaunchProlog);
     registerSlurmdMsg(REQUEST_BATCH_JOB_LAUNCH, handleBatchJobLaunch);
     registerSlurmdMsg(REQUEST_LAUNCH_TASKS, handleLaunchTasks);
@@ -1926,9 +2081,8 @@ void initSlurmdProto(void)
     registerSlurmdMsg(REQUEST_KILL_TIMELIMIT, handleTerminateReq);
     registerSlurmdMsg(REQUEST_ABORT_JOB, handleTerminateReq);
     registerSlurmdMsg(REQUEST_TERMINATE_JOB, handleTerminateReq);
-    registerSlurmdMsg(REQUEST_SUSPEND, handleInvalid);
     registerSlurmdMsg(REQUEST_SUSPEND_INT, handleSuspendInt);
-    registerSlurmdMsg(REQUEST_SIGNAL_JOB, handleSignalJob);
+    registerSlurmdMsg(REQUEST_SIGNAL_JOB, handleSignalJob); /* defunct in 17.11 */
     registerSlurmdMsg(REQUEST_COMPLETE_BATCH_SCRIPT, handleInvalid);
     registerSlurmdMsg(REQUEST_UPDATE_JOB_TIME, handleUpdateJobTime);
     registerSlurmdMsg(REQUEST_SHUTDOWN, handleShutdown);
@@ -1951,6 +2105,8 @@ void initSlurmdProto(void)
     registerSlurmdMsg(REQUEST_NETWORK_CALLERID, handleNetworkCallerID);
     registerSlurmdMsg(MESSAGE_COMPOSITE, handleInvalid);
     registerSlurmdMsg(RESPONSE_MESSAGE_COMPOSITE, handleRespMessageComposite);
+
+    return true;
 }
 
 void clearSlurmdProto(void)
@@ -1966,7 +2122,6 @@ void clearSlurmdProto(void)
     clearSlurmdMsg(REQUEST_KILL_TIMELIMIT);
     clearSlurmdMsg(REQUEST_ABORT_JOB);
     clearSlurmdMsg(REQUEST_TERMINATE_JOB);
-    clearSlurmdMsg(REQUEST_SUSPEND);
     clearSlurmdMsg(REQUEST_SUSPEND_INT);
     clearSlurmdMsg(REQUEST_SIGNAL_JOB);
     clearSlurmdMsg(REQUEST_COMPLETE_BATCH_SCRIPT);
@@ -1991,9 +2146,11 @@ void clearSlurmdProto(void)
     clearSlurmdMsg(REQUEST_NETWORK_CALLERID);
     clearSlurmdMsg(MESSAGE_COMPOSITE);
     clearSlurmdMsg(RESPONSE_MESSAGE_COMPOSITE);
+
+    ufree(slurmProtoStr);
 }
 
-void sendNodeRegStatus(uint32_t status, int protoVersion)
+void sendNodeRegStatus(void)
 {
     PS_DataBuffer_t msg = { .buf = NULL };
     struct utsname sys;
@@ -2001,20 +2158,15 @@ void sendNodeRegStatus(uint32_t status, int protoVersion)
     Resp_Node_Reg_Status_t stat;
     memset(&stat, 0, sizeof(stat));
 
-    mlog("%s: host '%s' protoVersion '%u' status '%u'\n", __func__,
-	getConfValueC(&Config, "SLURM_HOSTNAME"), protoVersion, status);
-
-    if (protoVersion < SLURM_2_5_PROTOCOL_VERSION) {
-	mlog("%s: unsupported protocol version %u\n", __func__, protoVersion);
-	return;
-    }
+    mlog("%s: host '%s' protoVersion '%u'\n", __func__,
+	getConfValueC(&Config, "SLURM_HOSTNAME"), slurmProto);
 
     /* current time */
     stat.now = time(NULL);
     /* start time */
     stat.startTime = start_time;
     /* status */
-    stat.status = status;
+    stat.status = SLURM_SUCCESS;
     /* node_name */
     stat.nodeName = getConfValueC(&Config, "SLURM_HOSTNAME");
     /* architecture */
@@ -2054,7 +2206,7 @@ void sendNodeRegStatus(uint32_t status, int protoVersion)
 
     /* version string */
     snprintf(stat.verStr, sizeof(stat.verStr), "psslurm-%i-p%s", version,
-	    SLURM_CUR_PROTOCOL_VERSION_STR);
+	     slurmProtoStr);
 
     packRespNodeRegStatus(&msg, &stat);
 
@@ -2230,11 +2382,7 @@ void sendStepExit(Step_t *step, uint32_t exit_status)
     addUint32ToMsg(0, &body);
     addUint32ToMsg(step->nrOfNodes -1, &body);
     /* exit status */
-#ifdef SLURM_PROTOCOL_1702
     exit_status = (step->timeout) ? 0 : exit_status;
-#else
-    exit_status = (step->timeout) ? NO_VAL : exit_status;
-#endif
     addUint32ToMsg(exit_status, &body);
 
     /* account data */
@@ -2258,15 +2406,11 @@ static void doSendTaskExit(Step_t *step, int exitCode, uint32_t *count,
     int i, sock;
 
     /* exit status */
-#ifdef SLURM_PROTOCOL_1702
     if (step->timeout) {
 	addUint32ToMsg(SIGTERM, &body);
     } else {
 	addUint32ToMsg(exitCode, &body);
     }
-#else
-    addUint32ToMsg(exitCode, &body);
-#endif
 
     /* number of processes exited */
     list_for_each(t, &step->tasks) {
@@ -2317,11 +2461,7 @@ static void doSendTaskExit(Step_t *step, int exitCode, uint32_t *count,
     if (!ctlPort || !ctlAddr) {
 	mlog("%s: sending MESSAGE_TASK_EXIT '%u:%u' exit '%i'\n",
 		__func__, exitCount, *count,
-#ifdef SLURM_PROTOCOL_1702
 		(step->timeout ? SIGTERM : exitCode));
-#else
-		(step->timeout ? 0 : exitCode));
-#endif
 
 	srunSendMsg(-1, step, MESSAGE_TASK_EXIT, &body);
     } else {
@@ -2458,6 +2598,8 @@ void sendTaskPids(Step_t *step)
     list_t *t;
     Resp_Launch_Tasks_t resp;
 
+    resp.jobid = step->jobid;
+    resp.stepid = step->stepid;
     resp.returnCode = SLURM_SUCCESS;
     resp.nodeName = getConfValueC(&Config, "SLURM_HOSTNAME");
 

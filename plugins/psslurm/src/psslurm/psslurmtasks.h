@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2017-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -105,7 +105,7 @@ PS_Tasks_t *findTaskByRank(list_t *taskList, int32_t rank);
  *
  * @return Returns the found task or NULL on error
  */
-PS_Tasks_t *findTaskByForwarder(list_t *taskList, PStask_ID_t fwTID);
+PS_Tasks_t *findTaskByFwd(list_t *taskList, PStask_ID_t fwTID);
 
 /**
  * @brief Find a task identified by its child PID

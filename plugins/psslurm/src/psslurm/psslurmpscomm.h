@@ -1,13 +1,12 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014-2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-
 #ifndef __PS_SLURM_PSCOMM
 #define __PS_SLURM_PSCOMM
 
@@ -78,6 +77,32 @@ void requeueBatchJob(Job_t *job, PSnodes_ID_t dest);
 void send_PS_AllocLaunch(Alloc_t *alloc);
 
 void send_PS_AllocState(Alloc_t *alloc);
+
+/**
+ * @brief Send pack information to leader ms
+ *
+ * Send pack information only known by the local mother superior
+ * to the leader of the pack.
+ *
+ * @param step The step to send the information for
+ */
+void send_PS_PackInfo(Step_t *step);
+
+/**
+ * @brief Free all unhandled cached messages for a step
+ *
+ * @param jobid The jobid of the step
+ *
+ * @param stepid The stepid of the step
+ */
+void deleteCachedMsg(uint32_t jobid, uint32_t stepid);
+
+/**
+ * @brief Handle all cached messages for a step
+ *
+ * @param step The step to handle
+ */
+void handleCachedMsg(Step_t *step);
 
 /**
 * @brief Register various psid messages

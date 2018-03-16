@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2016-2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2016-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -14,6 +14,7 @@
 
 #include "psslurmlog.h"
 #include "psslurmpack.h"
+#include "psslurmconfig.h"
 
 bool __packSlurmAuth(PS_DataBuffer_t *data, Slurm_Auth_t *auth,
 		    const char *caller, const int line)
@@ -76,11 +77,7 @@ static Gres_Cred_t *unpackGresStep(char **ptr, uint16_t index)
 
     getUint32(ptr, &magic);
     getUint32(ptr, &gres->id);
-#ifdef MIN_SLURM_PROTO_1605
     getUint64(ptr, &gres->countAlloc);
-#else
-    getUint32(ptr, &gres->countAlloc);
-#endif
     getUint32(ptr, &gres->nodeCount);
     gres->nodeInUse = getBitString(ptr);
 
@@ -90,11 +87,7 @@ static Gres_Cred_t *unpackGresStep(char **ptr, uint16_t index)
 	return NULL;
     }
 
-#ifdef MIN_SLURM_PROTO_1605
     mdbg(PSSLURM_LOG_GRES, "%s: index '%i' pluginID '%u' gresCountAlloc '%lu'"
-#else
-    mdbg(PSSLURM_LOG_GRES, "%s: index '%i' pluginID '%u' gresCountAlloc '%u'"
-#endif
 	    " nodeCount '%u' nodeInUse '%s'\n", __func__, index, gres->id,
 	    gres->countAlloc, gres->nodeCount, gres->nodeInUse);
 
@@ -124,12 +117,8 @@ static Gres_Cred_t *unpackGresJob(char **ptr, uint16_t index)
 
     getUint32(ptr, &magic);
     getUint32(ptr, &gres->id);
-#ifdef MIN_SLURM_PROTO_1605
     getUint64(ptr, &gres->countAlloc);
     gres->typeModel = getStringM(ptr);
-#else
-    getUint32(ptr, &gres->countAlloc);
-#endif
     getUint32(ptr, &gres->nodeCount);
 
     if (magic != GRES_MAGIC) {
@@ -139,11 +128,7 @@ static Gres_Cred_t *unpackGresJob(char **ptr, uint16_t index)
     }
 
     mdbg(PSSLURM_LOG_GRES, "%s: index '%i' pluginID '%u' "
-#ifdef MIN_SLURM_PROTO_1605
 	    "gresCountAlloc '%lu' nodeCount '%u'\n", __func__, index,
-#else
-	    "gresCountAlloc '%u' nodeCount '%u'\n", __func__, index,
-#endif
 	    gres->id, gres->countAlloc, gres->nodeCount);
 
     /* bit allocation */
@@ -172,21 +157,12 @@ static Gres_Cred_t *unpackGresJob(char **ptr, uint16_t index)
     /* count step allocation */
     getUint8(ptr, &more);
     if (more) {
-#ifdef MIN_SLURM_PROTO_1605
 	gres->countStepAlloc = umalloc(sizeof(uint64_t) * gres->nodeCount);
 	for (i=0; i<gres->nodeCount; i++) {
 	    getUint64(ptr, &(gres->countStepAlloc)[i]);
 	    mdbg(PSSLURM_LOG_GRES, "%s: node '%u' gres_cnt_step_alloc "
 		    "'%lu'\n", __func__, i, gres->countStepAlloc[i]);
 	}
-#else
-	gres->countStepAlloc = umalloc(sizeof(uint32_t) * gres->nodeCount);
-	for (i=0; i<gres->nodeCount; i++) {
-	    getUint32(ptr, &(gres->countStepAlloc)[i]);
-	    mdbg(PSSLURM_LOG_GRES, "%s: node '%u' gres_cnt_step_alloc "
-		    "'%u'\n", __func__, i, gres->countStepAlloc[i]);
-	}
-#endif
     }
 
     return gres;
@@ -226,6 +202,9 @@ bool __unpackJobCred(Slurm_Msg_t *sMsg, JobCred_t **credPtr,
 {
     JobCred_t *cred;
     char **ptr = &sMsg->ptr;
+    uint16_t msgVer = sMsg->head.version;
+    char *bitStr;
+    size_t listSize;
 
     if (!sMsg) {
 	mlog("%s: invalid sMsg from '%s' at %i\n", __func__, caller, line);
@@ -255,53 +234,52 @@ bool __unpackJobCred(Slurm_Msg_t *sMsg, JobCred_t **credPtr,
     /* uid */
     getUint32(ptr, &cred->uid);
 
+    if (msgVer >= SLURM_17_11_PROTO_VERSION) {
+	/* gid */
+	getUint32(ptr, &cred->gid);
+	/* username */
+	cred->username = getStringM(ptr);
+	/* gids */
+	getUint32Array(ptr, &cred->gids, &cred->gidsLen);
+    }
+
     /* gres job/step allocations */
     unpackGres(ptr, gresList, cred->jobid, cred->stepid, cred->uid);
 
     /* count of specialized cores */
     getUint16(ptr, &cred->jobCoreSpec);
     /* job/step memory limit */
-#ifdef SLURM_PROTOCOL_1702
     getUint64(ptr, &cred->jobMemLimit);
     getUint64(ptr, &cred->stepMemLimit);
-#else
-    getUint32(ptr, &cred->jobMemLimit);
-    getUint32(ptr, &cred->stepMemLimit);
-#endif
-#ifdef MIN_SLURM_PROTO_1605
     /* job constraints */
     cred->jobConstraints = getStringM(ptr);
-#endif
-    /* hostlist */
-    cred->hostlist = getStringM(ptr);
-    if (!cred->hostlist) {
-	mlog("%s: empty hostlist in credential\n", __func__);
+    /* step hostlist */
+    cred->stepHL = getStringM(ptr);
+    if (!cred->stepHL) {
+	mlog("%s: empty step hostlist in credential\n", __func__);
 	goto ERROR;
+    }
+    if (msgVer >= SLURM_17_11_PROTO_VERSION) {
+	/* x11 */
+	getUint16(ptr, &cred->x11);
     }
     /* time */
     getTime(ptr, &cred->ctime);
-    /* core/socket maps */
+    /* total core count */
     getUint32(ptr, &cred->totalCoreCount);
-
-#ifdef SLURM_PROTOCOL_1702
-    char *bitStr;
-    size_t listSize;
-
+    /* job core bitmap */
     bitStr = getBitString(ptr);
     cred->jobCoreBitmap = NULL;
     listSize = 0;
     hexBitstr2List(bitStr, &cred->jobCoreBitmap, &listSize);
     ufree(bitStr);
-
+    /* step core bitmap */
     bitStr = getBitString(ptr);
     cred->stepCoreBitmap = NULL;
     listSize = 0;
     hexBitstr2List(bitStr, &cred->stepCoreBitmap, &listSize);
     ufree(bitStr);
-#else
-    cred->jobCoreBitmap = getStringM(ptr);
-    cred->stepCoreBitmap = getStringM(ptr);
-#endif
+    /* core array size */
     getUint16(ptr, &cred->coreArraySize);
 
     mdbg(PSSLURM_LOG_PART, "%s: totalCoreCount '%u' coreArraySize '%u' "
@@ -331,11 +309,12 @@ bool __unpackJobCred(Slurm_Msg_t *sMsg, JobCred_t **credPtr,
 	    goto ERROR;
 	}
     }
-
+    /* job number of hosts */
     getUint32(ptr, &cred->jobNumHosts);
+    /* job hostlist */
     cred->jobHostlist = getStringM(ptr);
+    /* munge signature */
     *credEnd = *ptr;
-
     cred->sig = getStringM(ptr);
 
     *credPtr = cred;
@@ -347,41 +326,48 @@ ERROR:
     return false;
 }
 
-bool __unpackBCastCred(Slurm_Msg_t *sMsg, BCast_t *bcast, char **credEnd,
+bool __unpackBCastCred(Slurm_Msg_t *sMsg, BCast_Cred_t *cred,
 		       const char *caller, const int line)
 {
     char **ptr = &sMsg->ptr;
-    time_t ctime;
-    char *nodes;
+    uint16_t msgVer = sMsg->head.version;
 
     if (!sMsg) {
 	mlog("%s: invalid sMsg from '%s' at %i\n", __func__, caller, line);
 	return false;
     }
 
-    if (!bcast) {
-	mlog("%s: invalid bcast from '%s' at %i\n", __func__, caller, line);
+    if (!cred) {
+	mlog("%s: invalid cred from '%s' at %i\n", __func__, caller, line);
 	return false;
     }
 
-    if (!credEnd) {
-	mlog("%s: invalid credEnd from '%s' at %i\n", __func__, caller, line);
-	return false;
-    }
-
+    /* init cred */
+    memset(cred, 0, sizeof(*cred));
     /* creation time */
-    getTime(ptr, &ctime);
+    getTime(ptr, &cred->ctime);
     /* expiration time */
-    getTime(ptr, &bcast->expTime);
+    getTime(ptr, &cred->etime);
     /* jobid */
-    getUint32(ptr, &bcast->jobid);
-    /* nodes */
-    nodes = getStringM(ptr);
-    ufree(nodes);
+    getUint32(ptr, &cred->jobid);
 
-    *credEnd = *ptr;
+    if (msgVer >= SLURM_17_11_PROTO_VERSION) {
+	/* uid */
+	getUint32(ptr, &cred->uid);
+	/* gid */
+	getUint32(ptr, &cred->gid);
+	/* username */
+	cred->username = getStringM(ptr);
+	/* gids */
+	getUint32Array(ptr, &cred->gids, &cred->gidsLen);
+    }
+
+    /* hostlist */
+    cred->hostlist = getStringM(ptr);
+    /* credential end */
+    cred->end = *ptr;
     /* signature */
-    bcast->sig = getStringML(ptr, &bcast->sigLen);
+    cred->sig = getStringML(ptr, &cred->sigLen);
 
     return true;
 }
@@ -408,10 +394,8 @@ bool __packSlurmHeader(PS_DataBuffer_t *data, Slurm_Msg_Header_t *head,
     addUint16ToMsg(head->version, data);
     /* flags */
     addUint16ToMsg(head->flags, data);
-#ifdef MIN_SLURM_PROTO_1605
     /* index */
     addUint16ToMsg(head->index, data);
-#endif
     /* type */
     addUint16ToMsg(head->type, data);
     /* body len */
@@ -424,10 +408,8 @@ bool __packSlurmHeader(PS_DataBuffer_t *data, Slurm_Msg_Header_t *head,
 	addStringToMsg(head->nodeList, data);
 	/* timeout */
 	addUint32ToMsg(head->timeout, data);
-#ifdef MIN_SLURM_PROTO_1605
 	/* tree width */
 	addUint16ToMsg(head->treeWidth, data);
-#endif
     }
 
     /* return list */
@@ -520,7 +502,9 @@ bool __unpackReqTerminate(Slurm_Msg_t *sMsg, Req_Terminate_Job_t **reqPtr,
 			  const char *caller, const int line)
 {
     Req_Terminate_Job_t *req;
+    uint32_t tmp;
     char **ptr = &sMsg->ptr;
+    uint16_t msgVer = sMsg->head.version;
 
     if (!sMsg) {
 	mlog("%s: invalid sMsg from '%s' at %i\n", __func__, caller, line);
@@ -536,25 +520,22 @@ bool __unpackReqTerminate(Slurm_Msg_t *sMsg, Req_Terminate_Job_t **reqPtr,
 
     /* jobid*/
     getUint32(ptr, &req->jobid);
-#ifndef SLURM_PROTOCOL_1702
-    /* stepid */
-    getUint32(ptr, &req->stepid);
-#endif
     /* jobstate */
-#ifdef MIN_SLURM_PROTO_1605
     getUint32(ptr, &req->jobstate);
-#else
-    getUint16(ptr,(uint16_t) &req->jobstate);
-#endif
     /* user id */
     getUint32(ptr, &req->uid);
-#ifdef SLURM_PROTOCOL_1702
-    uint32_t tmp;
-
     /* nodes */
     req->nodes = getStringM(ptr);
-    /* pelogue env */
-    getStringArrayM(ptr, &req->pelogueEnv.vars, &req->pelogueEnv.cnt);
+
+    if (msgVer == SLURM_17_02_PROTO_VERSION) {
+	env_t pelogueEnv;
+
+	/* pelogue env */
+	envInit(&pelogueEnv);
+	getStringArrayM(ptr, &pelogueEnv.vars, &pelogueEnv.cnt);
+	envDestroy(&pelogueEnv);
+    }
+
     /* job info */
     getUint32(ptr, &tmp);
     /* spank env */
@@ -563,7 +544,53 @@ bool __unpackReqTerminate(Slurm_Msg_t *sMsg, Req_Terminate_Job_t **reqPtr,
     getTime(ptr, &req->startTime);
     /* step id */
     getUint32(ptr, &req->stepid);
-#endif
+
+    *reqPtr = req;
+    return true;
+}
+
+bool __unpackReqSignalTasks(Slurm_Msg_t *sMsg, Req_Signal_Tasks_t **reqPtr,
+			    const char *caller, const int line)
+{
+    Req_Signal_Tasks_t *req;
+    char **ptr = &sMsg->ptr;
+    uint16_t msgVer = sMsg->head.version;
+
+    if (!sMsg) {
+	mlog("%s: invalid sMsg from '%s' at %i\n", __func__, caller, line);
+	return false;
+    }
+
+    if (!reqPtr) {
+	mlog("%s: invalid reqPtr from '%s' at %i\n", __func__, caller, line);
+	return false;
+    }
+
+    req = ucalloc(sizeof(Req_Terminate_Job_t));
+
+    if (msgVer >= SLURM_17_11_PROTO_VERSION) {
+	/* flags */
+	getUint16(ptr, &req->flags);
+	/* jobid*/
+	getUint32(ptr, &req->jobid);
+	/* stepid */
+	getUint32(ptr, &req->stepid);
+	/* signal */
+	getUint16(ptr, &req->signal);
+    } else {
+	uint32_t sigInfo;
+
+	/* jobid*/
+	getUint32(ptr, &req->jobid);
+	/* stepid */
+	getUint32(ptr, &req->stepid);
+	/* encoded flags and signal */
+	getUint32(ptr, &sigInfo);
+
+	/* extract flags and signal */
+	req->flags = sigInfo >> 24;
+	req->signal = sigInfo & 0xfff;
+    }
 
     *reqPtr = req;
     return true;
@@ -617,11 +644,6 @@ static void unpackStepIOoptions(Step_t *step, char **ptr)
 {
     uint32_t i;
 
-#ifndef SLURM_PROTOCOL_1702
-    uint16_t userManagedIO;
-    getUint16(ptr, &userManagedIO);
-    if (userManagedIO) step->taskFlags |= LAUNCH_USER_MANAGED_IO;
-#endif
     if (!(step->taskFlags & LAUNCH_USER_MANAGED_IO)) {
 	/* stdout options */
 	step->stdOut = getStringM(ptr);
@@ -629,20 +651,6 @@ static void unpackStepIOoptions(Step_t *step, char **ptr)
 	step->stdErr = getStringM(ptr);
 	/* stdin options */
 	step->stdIn = getStringM(ptr);
-#ifndef SLURM_PROTOCOL_1702
-	uint8_t bufferedIO, labelIO;
-	/* buffered I/O = default (unbufferd = RAW) */
-	getUint8(ptr, &bufferedIO);
-#ifdef SLURM_PROTOCOL_1605
-	/* flag now stands for unbuffered IO */
-	if (!bufferedIO) step->taskFlags |= LAUNCH_BUFFERED_IO;
-#else
-	if (bufferedIO) step->taskFlags |= LAUNCH_BUFFERED_IO;
-#endif /* end SLURM_PROTOCOL_1605 */
-	/* label I/O = sourceprintf */
-	getUint8(ptr, &labelIO);
-	if (labelIO) step->taskFlags |= LAUNCH_LABEL_IO;
-#endif
 	/* I/O Ports */
 	getUint16(ptr, &step->numIOPort);
 	if (step->numIOPort >0) {
@@ -658,8 +666,8 @@ bool __unpackReqLaunchTasks(Slurm_Msg_t *sMsg, Step_t **stepPtr,
 			    const char *caller, const int line)
 {
     char **ptr = &sMsg->ptr;
+    uint16_t msgVer = sMsg->head.version, debug;
     Step_t *step;
-    uint16_t debug;
     uint32_t jobid, stepid, count, i, tmp;
     char jobOpt[512];
 
@@ -674,56 +682,91 @@ bool __unpackReqLaunchTasks(Slurm_Msg_t *sMsg, Step_t **stepPtr,
 
     step = addStep(jobid, stepid);
 
-#ifdef SLURM_PROTOCOL_1702
-    /* unused and to be removed in 1711  */
-    uint32_t mpiJobid;
-    uint32_t mpiNnodes;
-    uint32_t mpiNtasks;
-    uint32_t mpiStepfnodeid;
-    uint32_t mpiStepftaskid;
-    uint32_t mpiStepid;
+    if (msgVer >= SLURM_17_11_PROTO_VERSION) {
+	/* uid */
+	getUint32(ptr, &step->uid);
+	/* gid */
+	getUint32(ptr, &step->gid);
+	/* username */
+	step->username = getStringM(ptr);
+	/* secondary group ids */
+	getUint32Array(ptr, &step->gids, &step->gidsLen);
+	/* node offset */
+	getUint32(ptr, &step->packNodeOffset);
+	/* pack jobid */
+	getUint32(ptr, &step->packJobid);
+	/* pack number of nodes */
+	getUint32(ptr, &step->packNrOfNodes);
+	/* pack task counts */
+	if (step->packNrOfNodes != NO_VAL) {
+	    getUint16Array(ptr, &step->packTaskCounts, &tmp);
+	    if (step->packNrOfNodes != tmp) {
+		mlog("%s: invalid packTaskCounts len %u : %u\n", __func__, tmp,
+		     step->packNrOfNodes);
+		goto ERROR;
+	    }
+	}
+	/* pack ntasks */
+	getUint32(ptr, &step->packNtasks);
+	/* pack offset */
+	getUint32(ptr, &step->packOffset);
+	/* pack task offset */
+	getUint32(ptr, &step->packTaskOffset);
+	if (step->packTaskOffset == NO_VAL) step->packTaskOffset = 0;
+	/* pack nodelist */
+	step->packHostlist = getStringM(ptr);
+	/* ntasks */
+	getUint32(ptr, &step->np);
+	/* ntasks per board/core/socket */
+	getUint16(ptr, &step->ntasksPerBoard);
+	getUint16(ptr, &step->ntasksPerCore);
+	getUint16(ptr, &step->ntasksPerSocket);
+	/* partition */
+	step->partition = getStringM(ptr);
+    } else {
+	uint32_t mpiJobid;
+	uint32_t mpiNnodes;
+	uint32_t mpiNtasks;
+	uint32_t mpiStepfnodeid;
+	uint32_t mpiStepftaskid;
+	uint32_t mpiStepid;
+	uint32_t packStepid;
 
-    getUint32(ptr, &mpiJobid);
-    getUint32(ptr, &mpiNnodes);
-    getUint32(ptr, &mpiNtasks);
-    getUint32(ptr, &mpiStepfnodeid);
-    getUint32(ptr, &mpiStepftaskid);
-    getUint32(ptr, &mpiStepid);
-#endif
-    /* ntasks */
-    getUint32(ptr, &step->np);
-#ifdef MIN_SLURM_PROTO_1605
-    /* ntasks per board/core/socket */
-    getUint16(ptr, &step->ntasksPerBoard);
-    getUint16(ptr, &step->ntasksPerCore);
-    getUint16(ptr, &step->ntasksPerSocket);
-#endif
-#if SLURM_PROTOCOL_1702
-    /* currently unused */
-    uint32_t packJobid;
-    uint32_t packStepid;
+	/* unused */
+	getUint32(ptr, &mpiJobid);
+	getUint32(ptr, &mpiNnodes);
+	getUint32(ptr, &mpiNtasks);
+	getUint32(ptr, &mpiStepfnodeid);
+	getUint32(ptr, &mpiStepftaskid);
+	getUint32(ptr, &mpiStepid);
+	/* ntasks */
+	getUint32(ptr, &step->np);
+	/* ntasks per board/core/socket */
+	getUint16(ptr, &step->ntasksPerBoard);
+	getUint16(ptr, &step->ntasksPerCore);
+	getUint16(ptr, &step->ntasksPerSocket);
+	/* pack jobid */
+	getUint32(ptr, &step->packJobid);
+	/* pack stepid */
+	getUint32(ptr, &packStepid);
+	/* uid */
+	getUint32(ptr, &step->uid);
+	/* partition */
+	step->partition = getStringM(ptr);
+	/* username */
+	step->username = getStringM(ptr);
+	/* gid */
+	getUint32(ptr, &step->gid);
+	/* set pack values to default */
+	step->packJobid = NO_VAL;
+	step->packNrOfNodes = NO_VAL;
+	step->packOffset = NO_VAL;
+	step->packMyId = NO_VAL;
+    }
 
-    /* pack jobid */
-    getUint32(ptr, &packJobid);
-    /* pack stepid */
-    getUint32(ptr, &packStepid);
-#endif
-    /* uid */
-    getUint32(ptr, &step->uid);
-    /* partition */
-    step->partition = getStringM(ptr);
-    /* username */
-    step->username = getStringM(ptr);
-    /* gid */
-    getUint32(ptr, &step->gid);
     /* job/step mem limit */
-#if SLURM_PROTOCOL_1702
     getUint64(ptr, &step->jobMemLimit);
     getUint64(ptr, &step->stepMemLimit);
-#else
-    getUint32(ptr, &step->jobMemLimit);
-    getUint32(ptr, &step->stepMemLimit);
-#endif
     /* num of nodes */
     getUint32(ptr, &step->nrOfNodes);
     if (!step->nrOfNodes) {
@@ -733,19 +776,13 @@ bool __unpackReqLaunchTasks(Slurm_Msg_t *sMsg, Step_t **stepPtr,
     /* cpus_per_task */
     getUint16(ptr, &step->tpp);
     /* task distribution */
-#ifdef MIN_SLURM_PROTO_1605
     getUint32(ptr, &step->taskDist);
-#else
-    getUint16(ptr, &step->taskDist);
-#endif
     /* node cpus */
     getUint16(ptr, &step->nodeCpus);
     /* count of specialized cores */
     getUint16(ptr, &step->jobCoreSpec);
-#ifdef MIN_SLURM_PROTO_1605
     /* accel bind type */
     getUint16(ptr, &step->accelBindType);
-#endif
 
     /* job credentials */
     if (!(step->cred = extractJobCred(&step->gresList, sMsg, 1))) {
@@ -773,17 +810,8 @@ bool __unpackReqLaunchTasks(Slurm_Msg_t *sMsg, Step_t **stepPtr,
     step->memBind = getStringM(ptr);
     /* args */
     getStringArrayM(ptr, &step->argv, &step->argc);
-#ifdef SLURM_PROTOCOL_1702
     /* task flags */
     getUint32(ptr, &step->taskFlags);
-#else
-    /* task flags */
-    getUint16(ptr, (uint16_t *) &step->taskFlags);
-    /* multi prog */
-    uint16_t multiProg;
-    getUint16(ptr, &multiProg);
-    if (multiProg) step->taskFlags |= LAUNCH_MULTI_PROG;
-#endif
     /* I/O options */
     unpackStepIOoptions(step, ptr);
 
@@ -796,6 +824,10 @@ bool __unpackReqLaunchTasks(Slurm_Msg_t *sMsg, Step_t **stepPtr,
     getUint16(ptr, &debug);
 
     /* switch plugin, does not add anything when using "switch/none" */
+    if (msgVer >= SLURM_17_11_PROTO_VERSION) {
+	/* job info */
+	getUint32(ptr, &tmp);
+    }
 
     /* job options (plugin) */
     getString(ptr, jobOpt, sizeof(jobOpt));
@@ -822,31 +854,25 @@ bool __unpackReqLaunchTasks(Slurm_Msg_t *sMsg, Step_t **stepPtr,
 
     /* I/O open_mode */
     getUint8(ptr, &step->appendMode);
-#ifndef SLURM_PROTOCOL_1702
-    /* pty */
-    uint8_t pty;
-    getUint8(ptr, &pty);
-    if (pty) step->taskFlags |= LAUNCH_PTY;
-#endif
     /* acctg freq */
     step->acctFreq = getStringM(ptr);
-#ifdef MIN_SLURM_PROTO_1605
     /* cpu freq min/max/gov */
     getUint32(ptr, &step->cpuFreqMin);
     getUint32(ptr, &step->cpuFreqMax);
     getUint32(ptr, &step->cpuFreqGov);
-#else
-    /* cpu freq */
-    getUint32(ptr, &step->cpuFreq);
-#endif
     step->checkpoint = getStringM(ptr);
     step->restart = getStringM(ptr);
     /* jobinfo plugin id */
     getUint32(ptr, &tmp);
-#ifdef SLURM_PROTOCOL_1702
-    /* pelogue env */
-    getStringArrayM(ptr, &step->pelogueEnv.vars, &step->pelogueEnv.cnt);
-#endif
+
+    if (msgVer == SLURM_17_02_PROTO_VERSION) {
+	env_t pelogueEnv;
+
+	/* pelogue env */
+	envInit(&pelogueEnv);
+	getStringArrayM(ptr, &pelogueEnv.vars, &pelogueEnv.cnt);
+	envDestroy(&pelogueEnv);
+    }
 
     *stepPtr = step;
     return true;
@@ -888,6 +914,7 @@ bool __unpackReqBatchJobLaunch(Slurm_Msg_t *sMsg, Job_t **jobPtr,
 			       const char *caller, const int line)
 {
     char **ptr = &sMsg->ptr;
+    uint16_t msgVer = sMsg->head.version;
     Job_t *job;
     uint32_t jobid, tmp, count;
     char buf[1024];
@@ -910,21 +937,32 @@ bool __unpackReqBatchJobLaunch(Slurm_Msg_t *sMsg, Job_t **jobPtr,
 
     /* uid */
     getUint32(ptr, &job->uid);
-    /* partition */
-    job->partition = getStringM(ptr);
-    /* username */
-    job->username = getStringM(ptr);
-    /* gid */
-    getUint32(ptr, &job->gid);
+
+    if (msgVer >= SLURM_17_11_PROTO_VERSION) {
+	/* gid */
+	getUint32(ptr, &job->gid);
+	/* username */
+	job->username = getStringM(ptr);
+	/* gids */
+	getUint32Array(ptr, &job->gids, &job->gidsLen);
+	/* partition */
+	job->partition = getStringM(ptr);
+    } else if (msgVer == SLURM_17_02_PROTO_VERSION) {
+	/* partition */
+	job->partition = getStringM(ptr);
+	/* username */
+	job->username = getStringM(ptr);
+	/* gid */
+	getUint32(ptr, &job->gid);
+    } else {
+	mlog("%s: unsupported protocol version %u\n", __func__, msgVer);
+	return false;
+    }
+
     /* ntasks */
     getUint32(ptr, &job->np);
-#ifdef SLURM_PROTOCOL_1702
     /* pn_min_memory */
     getUint64(ptr, &job->nodeMinMemory);
-#else
-    /* pn_min_memory */
-    getUint32(ptr, &job->nodeMinMemory);
-#endif
     /* open_mode */
     getUint8(ptr, &job->appendMode);
     /* overcommit (overbook) */
@@ -982,11 +1020,7 @@ bool __unpackReqBatchJobLaunch(Slurm_Msg_t *sMsg, Job_t **jobPtr,
 	goto ERROR;
     }
     /* TODO use job memory limit */
-#ifdef SLURM_PROTOCOL_1702
     getUint64(ptr, &job->memLimit);
-#else
-    getUint32(ptr, &job->memLimit);
-#endif
 
     /* job credential */
     if (!(job->cred = extractJobCred(&job->gresList, sMsg, 1))) {
@@ -996,24 +1030,28 @@ bool __unpackReqBatchJobLaunch(Slurm_Msg_t *sMsg, Job_t **jobPtr,
 
     /* jobinfo plugin id */
     getUint32(ptr, &tmp);
-#ifdef MIN_SLURM_PROTO_1605
     /* TODO: account */
     job->account = getStringM(ptr);
     /* TODO: qos */
     job->qos = getStringM(ptr);
     /* TODO: resv name */
     job->resvName = getStringM(ptr);
-#endif
-#ifdef SLURM_PROTOCOL_1702
     /* TODO: profile */
     getUint32(ptr, &job->profile);
-    /* TODO: pelogue env */
-    getStringArrayM(ptr, &job->pelogueEnv.vars, &job->pelogueEnv.cnt);
-    /* TODO: resv ports */
-    job->resvPorts = getStringM(ptr);
-    /* TODO: group number */
-    getUint32(ptr, &job->groupNum);
-#endif
+
+    if (msgVer == SLURM_17_02_PROTO_VERSION) {
+	env_t pelogueEnv;
+
+	/* pelogue env */
+	envInit(&pelogueEnv);
+	getStringArrayM(ptr, &pelogueEnv.vars, &pelogueEnv.cnt);
+	envDestroy(&pelogueEnv);
+
+	/* TODO: resv ports */
+	job->resvPorts = getStringM(ptr);
+	/* TODO: group number */
+	getUint32(ptr, &job->groupNum);
+    }
 
     *jobPtr = job;
     return true;
@@ -1041,11 +1079,7 @@ bool __packRespPing(PS_DataBuffer_t *data, Resp_Ping_t *ping,
     /* cpu load */
     addUint32ToMsg(ping->cpuload, data);
     /* free memory */
-#ifdef SLURM_PROTOCOL_1702
     addUint64ToMsg(ping->freemem, data);
-#else
-    addUint32ToMsg((uint32_t) ping->freemem, data);
-#endif
 
     return true;
 }
@@ -1100,17 +1134,9 @@ bool __packSlurmAccData(PS_DataBuffer_t *data, SlurmAccData_t *slurmAccData,
 	for (i=0; i<5; i++) {
 	    addUint32ToMsg(0, data);
 	}
-#ifdef MIN_SLURM_PROTO_1605
 	addDoubleToMsg(0, data);
-#else
 	addUint32ToMsg(0, data);
-#endif
-	addUint32ToMsg(0, data);
-#ifdef MIN_SLURM_PROTO_1605
 	addUint64ToMsg(0, data);
-#else
-	addUint32ToMsg(0, data);
-#endif
 	for (i=0; i<4; i++) {
 	    addDoubleToMsg(0, data);
 	}
@@ -1147,21 +1173,13 @@ bool __packSlurmAccData(PS_DataBuffer_t *data, SlurmAccData_t *slurmAccData,
     addUint32ToMsg(accData->minCputime, data);
 
     /* total cpu time */
-#ifdef MIN_SLURM_PROTO_1605
     addDoubleToMsg(accData->totCputime, data);
-#else
-    addUint32ToMsg(accData->totCputime, data);
-#endif
 
     /* act cpufreq */
     addUint32ToMsg(accData->cpuFreq, data);
 
     /* energy consumed */
-#ifdef MIN_SLURM_PROTO_1605
     addUint64ToMsg(0, data);
-#else
-    addUint32ToMsg(0, data);
-#endif
 
     /* max/total disk read */
     addDoubleToMsg(accData->maxDiskRead, data);
@@ -1188,7 +1206,6 @@ bool __packSlurmAccData(PS_DataBuffer_t *data, SlurmAccData_t *slurmAccData,
     return true;
 }
 
-
 bool __packRespNodeRegStatus(PS_DataBuffer_t *data, Resp_Node_Reg_Status_t *stat,
 			     const char *caller, const int line)
 {
@@ -1212,19 +1229,15 @@ bool __packRespNodeRegStatus(PS_DataBuffer_t *data, Resp_Node_Reg_Status_t *stat
     addTimeToMsg(stat->startTime, data);
     /* status */
     addUint32ToMsg(stat->status, data);
-#ifdef MIN_SLURM_PROTO_1605
     /* features active/avail */
     addStringToMsg(NULL, data);
     addStringToMsg(NULL, data);
-#endif
     /* node_name */
     addStringToMsg(stat->nodeName, data);
     /* architecture */
     addStringToMsg(stat->arch, data);
-#ifdef MIN_SLURM_PROTO_1605
     /* cpu spec list */
     addStringToMsg("", data);
-#endif
     /* os */
     addStringToMsg(stat->sysname, data);
     /* cpus */
@@ -1238,11 +1251,7 @@ bool __packRespNodeRegStatus(PS_DataBuffer_t *data, Resp_Node_Reg_Status_t *stat
     /* threads */
     addUint16ToMsg(stat->threadsPerCore, data);
     /* real mem */
-#ifdef SLURM_PROTOCOL_1702
     addUint64ToMsg(stat->realMem, data);
-#else
-    addUint32ToMsg((uint32_t) stat->realMem, data);
-#endif
     /* tmp disk */
     addUint32ToMsg(stat->tmpDisk, data);
     /* uptime */
@@ -1252,11 +1261,7 @@ bool __packRespNodeRegStatus(PS_DataBuffer_t *data, Resp_Node_Reg_Status_t *stat
     /* cpu load */
     addUint32ToMsg(stat->cpuload, data);
     /* free memory */
-#ifdef SLURM_PROTOCOL_1702
     addUint64ToMsg(stat->freemem, data);
-#else
-    addUint32ToMsg((uint32_t) stat->freemem, data);
-#endif
     /* job infos */
     addUint32ToMsg(stat->jobInfoCount, data);
     for (i=0; i<stat->jobInfoCount; i++) {
@@ -1275,22 +1280,14 @@ bool __packRespNodeRegStatus(PS_DataBuffer_t *data, Resp_Node_Reg_Status_t *stat
     addUint16ToMsg(0, data);
 
     /* add gres configuration */
-    addGresData(data, SLURM_CUR_PROTOCOL_VERSION);
+    addGresData(data, slurmProto);
 
     /* TODO: acct_gather_energy_pack(msg->energy, buffer, protocol_version); */
-#ifdef MIN_SLURM_PROTO_1605
     addUint64ToMsg(0, data);
     addUint32ToMsg(0, data);
     addUint64ToMsg(0, data);
     addUint32ToMsg(0, data);
     addUint64ToMsg(0, data);
-#else
-    addUint32ToMsg(0, data);
-    addUint32ToMsg(0, data);
-    addUint32ToMsg(0, data);
-    addUint32ToMsg(0, data);
-    addUint32ToMsg(0, data);
-#endif
     time_t now = 0;
     addTimeToMsg(now, data);
 
@@ -1315,15 +1312,9 @@ bool __unpackReqFileBcast(Slurm_Msg_t *sMsg, BCast_t **bcastPtr,
     bcast = addBCast();
 
     /* block number */
-#ifdef SLURM_PROTOCOL_1702
     getUint32(ptr, &bcast->blockNumber);
-#else
-    getUint16(ptr, &bcast->blockNumber);
-#endif
     /* compression */
-#ifdef MIN_SLURM_PROTO_1605
     getUint16(ptr, &bcast->compress);
-#endif
     /* last block */
     getUint16(ptr, &bcast->lastBlock);
     /* force */
@@ -1344,18 +1335,12 @@ bool __unpackReqFileBcast(Slurm_Msg_t *sMsg, BCast_t **bcastPtr,
     bcast->fileName = getStringM(ptr);
     /* block length */
     getUint32(ptr, &bcast->blockLen);
-#ifdef MIN_SLURM_PROTO_1605
     /* uncompressed length */
     getUint32(ptr, &bcast->uncompLen);
-#ifdef SLURM_PROTOCOL_1702
     /* block offset */
     getUint64(ptr, &bcast->blockOffset);
-#else
-    getUint32(ptr, &bcast->blockOffset);
-#endif
     /* file size */
     getUint64(ptr, &bcast->fileSize);
-#endif
     /* data block */
     bcast->block = getDataM(ptr, &len);
     if (bcast->blockLen != len) {
@@ -1459,11 +1444,7 @@ bool __packRespDaemonStatus(PS_DataBuffer_t *data, Resp_Daemon_Status_t *stat,
     /* threads */
     addUint16ToMsg(stat->threadsPerCore, data);
     /* real mem */
-#ifdef SLURM_PROTOCOL_1702
     addUint64ToMsg(stat->realMem, data);
-#else
-    addUint32ToMsg((uint32_t) stat->realMem, data);
-#endif
     /* tmp disk */
     addUint32ToMsg(stat->tmpDisk, data);
     /* pid */
@@ -1497,6 +1478,13 @@ bool __packRespLaunchTasks(PS_DataBuffer_t *data, Resp_Launch_Tasks_t *ltasks,
 	return false;
     }
 
+    if (slurmProto >= SLURM_17_11_PROTO_VERSION) {
+	/* jobid */
+	addUint32ToMsg(ltasks->jobid, data);
+	/* stepid */
+	addUint32ToMsg(ltasks->stepid, data);
+    }
+
     /* return code */
     addUint32ToMsg(ltasks->returnCode, data);
     /* node_name */
@@ -1513,6 +1501,31 @@ bool __packRespLaunchTasks(PS_DataBuffer_t *data, Resp_Launch_Tasks_t *ltasks,
     for (i=0; i<ltasks->countGlobalTIDs; i++) {
 	addUint32ToMsg(ltasks->globalTIDs[i], data);
     }
+
+    return true;
+}
+
+bool __packEnergyData(PS_DataBuffer_t *data, const char *caller, const int line)
+{
+    if (!data) {
+	mlog("%s: invalid data pointer from '%s' at %i\n", __func__,
+		caller, line);
+	return false;
+    }
+
+    /* node name */
+    addStringToMsg(getConfValueC(&Config, "SLURM_HOSTNAME"), data);
+
+    /* we need at least 1 dummy sensor to prevent segfaults in slurmctld */
+    addUint16ToMsg(1, data);
+
+    /* dummy sensor data */
+    addUint64ToMsg(0, data);
+    addUint32ToMsg(0, data);
+    addUint64ToMsg(0, data);
+    addUint32ToMsg(0, data);
+    addUint64ToMsg(0, data);
+    addTimeToMsg(0, data);
 
     return true;
 }

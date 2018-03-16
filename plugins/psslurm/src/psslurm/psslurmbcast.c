@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2017-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -73,4 +73,12 @@ BCast_t *findBCast(uint32_t jobid, char *fileName, uint32_t blockNum)
 	    !strcmp(bcast->fileName, fileName)) return bcast;
     }
     return NULL;
+}
+
+void freeBCastCred(BCast_Cred_t *cred)
+{
+    ufree(cred->username);
+    ufree(cred->gids);
+    ufree(cred->hostlist);
+    ufree(cred->sig);
 }

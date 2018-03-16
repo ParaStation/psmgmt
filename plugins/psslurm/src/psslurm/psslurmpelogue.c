@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2015-2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2015-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -38,15 +38,21 @@ bool startStep(Step_t *step, const void *info)
 {
     uint32_t jobid = *(uint32_t *) info;
 
-    if (step->jobid != jobid) return false;
+    if (step->jobid == jobid ||
+	(step->packJobid != NO_VAL && step->packJobid == jobid)) {
 
-    step->state = JOB_PRESTART;
-    mdbg(PSSLURM_LOG_JOB, "%s: step '%u:%u' in '%s'\n", __func__,
-	    step->jobid, step->stepid, strJobState(step->state));
+	step->state = JOB_PRESTART;
+	mdbg(PSSLURM_LOG_JOB, "%s: step '%u:%u' in '%s'\n", __func__,
+		step->jobid, step->stepid, strJobState(step->state));
 
-    psPamSetState(step->username, strJobID(jobid), PSPAM_STATE_JOB);
-    if (!(execUserStep(step))) {
-	sendSlurmRC(&step->srunControlMsg, ESLURMD_FORK_FAILED);
+	psPamSetState(step->username, strJobID(jobid), PSPAM_STATE_JOB);
+
+	if (step->packJobid == NO_VAL ||
+	    (step->packNtasks == step->numHwThreads + step->numRPackThreads)) {
+	    if (!(execUserStep(step))) {
+		sendSlurmRC(&step->srunControlMsg, ESLURMD_FORK_FAILED);
+	    }
+	}
     }
 
     return false;
@@ -279,6 +285,33 @@ void startPElogue(uint32_t jobid, uid_t uid, gid_t gid, char *username,
     envDestroy(&clone);
 }
 
+/**
+ * @brief Start IO forwarder for all steps with matching jobid
+ *
+ * Start a IO forwarder if the step has the matching jobid
+ * or packjobid.
+ *
+ * @param step The next step in the step list
+ *
+ * @param info The jobid of the step to start
+ */
+static bool startIOforwarder(Step_t *step, const void *info)
+{
+    uint32_t jobid = *(uint32_t *) info;
+
+    if (step->leader) return false;
+
+    if (step->jobid == jobid ||
+	(step->packJobid != NO_VAL && step->packJobid == jobid)) {
+
+	mlog("%s: pelogue exit, starting IO forwarder for step %u:%u \n",
+	     __func__, step->jobid, step->stepid);
+	execStepFWIO(step);
+    }
+
+    return false;
+}
+
 int handleLocalPElogueFinish(void *data)
 {
     PElogueChild_t *pedata = data;
@@ -313,10 +346,9 @@ int handleLocalPElogueFinish(void *data)
 	}
     }
 
-    /* start I/O forwarder */
-    if (pedata->type == PELOGUE_PROLOGUE && step
-	&& step->nodes[0] != PSC_getMyID() && !pedata->exit) {
-	execStepFWIO(step);
+    /* start I/O forwarder for all waiting steps */
+    if (!pedata->exit && pedata->type == PELOGUE_PROLOGUE) {
+	traverseSteps(startIOforwarder, &jobid);
     }
 
     /* set myself offline */

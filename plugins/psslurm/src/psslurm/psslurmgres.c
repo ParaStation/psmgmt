@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014-2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -57,19 +57,13 @@ void addGresData(PS_DataBuffer_t *msg, int version)
 	Gres_Conf_t *gres = list_entry(g, Gres_Conf_t, next);
 
 	addUint32ToMsg(GRES_MAGIC, &data);
-#ifdef MIN_SLURM_PROTO_1605
 	addUint64ToMsg(gres->count, &data);
-#else
-	addUint32ToMsg(gres->count, &data);
-#endif
 	addUint32ToMsg(cpus, &data);
 	addUint8ToMsg((gres->file ? 1 : 0), &data);
 	addUint32ToMsg(gres->id, &data);
 	addStringToMsg(gres->cpus, &data);
 	addStringToMsg(gres->name, &data);
-#ifdef MIN_SLURM_PROTO_1605
 	addStringToMsg(gres->type, &data);
-#endif
     }
 
     /* gres info size */
@@ -158,9 +152,7 @@ Gres_Conf_t *addGresConf(char *name, char *count, char *file, char *cpus)
 
     /* TODO support CPUs in gres */
     gres->cpus = NULL;
-#ifdef MIN_SLURM_PROTO_1605
     gres->type = NULL;
-#endif
 
     /* parse file */
     if (file) {
@@ -172,14 +164,10 @@ Gres_Conf_t *addGresConf(char *name, char *count, char *file, char *cpus)
 	if (!setGresCount(gres, count)) goto GRES_ERROR;
     }
 
-#ifdef MIN_SLURM_PROTO_1605
-    mlog("%s: gres conf '%s' count %lu file '%s' cpus '%s' "
-#else
-    mlog("%s: gres conf '%s' count %u file '%s' cpus '%s' "
-#endif
-	 "id %u\n", __func__, gres->name, gres->count, gres->file,
+    mlog("%s: gres conf '%s' count '%lu' file '%s' cpus '%s' "
+	 "id '%u'\n", __func__, gres->name, gres->count, gres->file,
 	 gres->cpus, gres->id);
-	 list_add_tail(&gres->next, &GresConfList);
+    list_add_tail(&gres->next, &GresConfList);
 
     return gres;
 
@@ -187,9 +175,7 @@ GRES_ERROR:
     ufree(gres->name);
     ufree(gres->cpus);
     ufree(gres->file);
-#ifdef MIN_SLURM_PROTO_1605
     ufree(gres->type);
-#endif
     return NULL;
 }
 
@@ -201,9 +187,7 @@ void clearGresConf(void)
 	ufree(gres->name);
 	ufree(gres->cpus);
 	ufree(gres->file);
-#ifdef MIN_SLURM_PROTO_1605
 	ufree(gres->type);
-#endif
 
 	list_del(&gres->next);
 	ufree(gres);
@@ -247,9 +231,7 @@ void releaseGresCred(Gres_Cred_t *gres)
 
     ufree(gres->countStepAlloc);
     ufree(gres->nodeInUse);
-#ifdef MIN_SLURM_PROTO_1605
     ufree(gres->typeModel);
-#endif
     ufree(gres);
 }
 

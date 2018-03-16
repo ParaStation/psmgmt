@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2016-2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2016-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -107,16 +107,14 @@ bool __unpackJobCred(Slurm_Msg_t *sMsg, JobCred_t **credPtr,
  *
  * @param bcast The bcast credential holding the result
  *
- * @param credEnd Pointer updated to the end of the credential
- *
  * @return On success true is returned or false in case of an
  * error. If reading was not successful, @a sMsg might be not updated.
  */
-bool __unpackBCastCred(Slurm_Msg_t *sMsg, BCast_t *bcast, char **credEnd,
+bool __unpackBCastCred(Slurm_Msg_t *sMsg, BCast_Cred_t *cred,
 		       const char *caller, const int line);
 
-#define unpackBCastCred(sMsg, bcast, credEnd) \
-    __unpackBCastCred(sMsg, bcast, credEnd, __func__, __LINE__)
+#define unpackBCastCred(sMsg, bcast) \
+    __unpackBCastCred(sMsg, bcast, __func__, __LINE__)
 
 /**
  * @brief Pack a Slurm message header
@@ -213,6 +211,29 @@ bool __unpackReqTerminate(Slurm_Msg_t *sMsg, Req_Terminate_Job_t **reqPtr,
 
 #define unpackReqTerminate(sMsg, reqPtr) \
     __unpackReqTerminate(sMsg, reqPtr, __func__, __LINE__)
+
+/**
+ * @brief Unpack a signal tasks request
+ *
+ * Unpack a signal tasks request from the provided message pointer.
+ * The memory is allocated using umalloc(). The caller is responsible
+ * to free the memory using ufree().
+ *
+ * @param sMsg The message to unpack
+ *
+ * @param reqPtr The request structure holding the result
+ *
+ * @param caller Function name of the calling function
+ *
+ * @param line Line number where this function is called
+ *
+ * @return On success true is returned or false in case of an
+ * error. If reading was not successful, @a sMsg might be not updated.
+ */
+bool __unpackReqSignalTasks(Slurm_Msg_t *sMsg, Req_Signal_Tasks_t **reqPtr,
+			    const char *caller, const int line);
+#define unpackReqSignalTasks(sMsg, reqPtr) \
+    __unpackReqSignalTasks(sMsg, reqPtr, __func__, __LINE__)
 
 /**
  * @brief Unpack a task launch request
@@ -428,5 +449,25 @@ bool __packRespLaunchTasks(PS_DataBuffer_t *data, Resp_Launch_Tasks_t *ltasks,
 
 #define packRespLaunchTasks(data, ltasks) \
     __packRespLaunchTasks(data, ltasks, __func__, __LINE__)
+
+/**
+ * @brief Pack dummy energy data
+ *
+ * Pack dummy energy data and add it to the provided data
+ * buffer.
+ *
+ * @param data Data buffer to save data to
+ *
+ * @param caller Function name of the calling function
+ *
+ * @param line Line number where this function is called
+ *
+ * @return On success true is returned or false in case of an
+ * error. If writing was not successful, @a data might be not updated.
+ */
+bool __packEnergyData(PS_DataBuffer_t *data, const char *caller,
+		      const int line);
+
+#define packEnergyData(data) __packEnergyData(data, __func__, __LINE__)
 
 #endif  /* __PS_SLURM_PACK */

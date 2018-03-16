@@ -23,30 +23,12 @@
 
 #define SLURM_GLOBAL_AUTH_KEY   0x0001
 
-
 /* protocol versions */
-#ifdef SLURM_PROTOCOL_1702
- #define SLURM_CUR_VERSION 0x100502
- #define SLURM_CUR_PROTOCOL_VERSION_STR "17.02"
- #define SLURM_CUR_PROTOCOL_VERSION  SLURM_17_02_PROTOCOL_VERSION
- #define MIN_SLURM_PROTO_1605
-#elif SLURM_PROTOCOL_1605
- #define SLURM_CUR_VERSION 0x100502
- #define SLURM_CUR_PROTOCOL_VERSION_STR "16.05"
- #define SLURM_CUR_PROTOCOL_VERSION  SLURM_16_05_PROTOCOL_VERSION
- #define MIN_SLURM_PROTO_1605
-#else
- #define SLURM_CUR_PROTOCOL_VERSION_STR "14.03"
- #define SLURM_CUR_PROTOCOL_VERSION  SLURM_14_03_PROTOCOL_VERSION
-#endif
+#define SLURM_MAX_PROTO_VERSION SLURM_17_11_PROTO_VERSION
+#define SLURM_MIN_PROTO_VERSION SLURM_17_02_PROTO_VERSION
 
-#define SLURM_17_02_PROTOCOL_VERSION ((31 << 8) | 0)
-#define SLURM_16_05_PROTOCOL_VERSION ((30 << 8) | 0)
-#define SLURM_15_08_PROTOCOL_VERSION ((29 << 8) | 0)
-#define SLURM_14_11_PROTOCOL_VERSION ((28 << 8) | 0)
-#define SLURM_14_03_PROTOCOL_VERSION ((27 << 8) | 0)
-#define SLURM_2_6_PROTOCOL_VERSION   ((26 << 8) | 0)
-#define SLURM_2_5_PROTOCOL_VERSION   ((25 << 8) | 0)
+#define SLURM_17_11_PROTO_VERSION ((32 << 8) | 0)
+#define SLURM_17_02_PROTO_VERSION ((31 << 8) | 0)
 
 /* stepid of batch jobs */
 #define SLURM_BATCH_SCRIPT (0xfffffffe)
@@ -125,7 +107,6 @@ typedef enum mem_bind_type {    /* memory binding type from --mem_bind=... */
  */
 typedef enum task_dist_states {
 	/* NOTE: start SLURM_DIST_CYCLIC at 1 for HP MPI */
-#ifdef MIN_SLURM_PROTO_1605
 	SLURM_DIST_CYCLIC               = 0x0001,
 	SLURM_DIST_BLOCK                = 0x0002,
 	SLURM_DIST_ARBITRARY            = 0x0003,
@@ -165,33 +146,8 @@ typedef enum task_dist_states {
 
 	SLURM_DIST_NO_LLLP              = 0x1000,
 	SLURM_DIST_UNKNOWN              = 0x2000
-#else /* slurm protocol <= 14.11 */
-        SLURM_DIST_CYCLIC = 1,  /* distribute tasks 1 per node, round robin */
-        SLURM_DIST_BLOCK,       /* distribute tasks filling node by node */
-        SLURM_DIST_ARBITRARY,   /* arbitrary task distribution  */
-        SLURM_DIST_PLANE,       /* distribute tasks by filling up
-                                   planes of lllp first and then by
-                                   going across the nodes See
-                                   documentation for more
-                                   information */
-        SLURM_DIST_CYCLIC_CYCLIC,/* distribute tasks 1 per node,
-                                    round robin, same for lowest
-                                    level of logical processor (lllp) */
-        SLURM_DIST_CYCLIC_BLOCK, /* cyclic for node and block for lllp  */
-        SLURM_DIST_BLOCK_CYCLIC, /* block for node and cyclic for lllp  */
-        SLURM_DIST_BLOCK_BLOCK, /* block for node and block for lllp  */
-        SLURM_NO_LLLP_DIST,     /* No distribution specified for lllp */
-        SLURM_DIST_UNKNOWN,     /* unknown dist */
-        SLURM_DIST_CYCLIC_CFULL, /* Same as cyclic:cyclic except for
-                                    multi-cpu tasks cyclically
-                                    bind cpus */
-        SLURM_DIST_BLOCK_CFULL, /* Same as block:cyclic except for
-                                   multi-cpu tasks cyclically
-                                   bind cpus  */
-#endif /* MIN_SLURM_PROTO_1605 */
 } task_dist_states_t;
 
-#ifdef MIN_SLURM_PROTO_1605
 #define SLURM_DIST_STATE_BASE		0x00FFFF
 #define SLURM_DIST_STATE_FLAGS		0xFF0000
 #define SLURM_DIST_PACK_NODES		0x800000
@@ -201,7 +157,6 @@ typedef enum task_dist_states {
 #define SLURM_DIST_SOCKMASK               0xF0F0
 #define SLURM_DIST_COREMASK               0xFF00
 #define SLURM_DIST_NODESOCKMASK           0xF0FF
-#endif
 
 /* magic slurm signals */
 #define SIG_PREEMPTED   994     /* Dummy signal value for job preemption */

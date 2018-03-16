@@ -532,7 +532,7 @@ int initialize(void)
     /* set various config options */
     setConfOpt();
 
-    initSlurmdProto();
+    if (!(initSlurmdProto())) goto INIT_ERROR;
 
     enableFPEexceptions();
 
@@ -590,12 +590,12 @@ int initialize(void)
 	snprintf(buf, sizeof(buf), "%u", PSSLURM_SLURMCTLD_PORT);
 	addConfigEntry(&SlurmConfig, "SlurmctldPort", buf);
     }
-    sendNodeRegStatus(SLURM_SUCCESS, SLURM_CUR_PROTOCOL_VERSION);
+    sendNodeRegStatus();
 
     isInit = 1;
 
-    mlog("(%i) successfully started, protocol '%s'\n", version,
-	    SLURM_CUR_PROTOCOL_VERSION_STR);
+    mlog("(%i) successfully started, protocol '%s (%i)'\n", version,
+	 slurmProtoStr, slurmProto);
 
     return 0;
 

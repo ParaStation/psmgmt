@@ -46,8 +46,6 @@ const char *msgType2String(int type)
 	    return "REQUEST_REATTACH_TASKS";
 	case REQUEST_SIGNAL_JOB:
 	    return "REQUEST_SIGNAL_JOB";
-	case REQUEST_SUSPEND:
-	    return "REQUEST_SUSPEND";
 	case REQUEST_SUSPEND_INT:
 	    return "REQUEST_SUSPEND_INT";
 	case REQUEST_ABORT_JOB:
@@ -212,11 +210,9 @@ void releaseSlurmMsg(Slurm_Msg_t *sMsg)
 void initSlurmMsgHead(Slurm_Msg_Header_t *head)
 {
     memset(head, 0, sizeof(Slurm_Msg_Header_t));
-    head->version = SLURM_CUR_PROTOCOL_VERSION;
+    head->version = slurmProto;
     head->flags |= SLURM_GLOBAL_AUTH_KEY;
-#ifdef MIN_SLURM_PROTO_1605
     head->treeWidth = 1;
-#endif
 }
 
 void freeSlurmMsgHead(Slurm_Msg_Header_t *head)

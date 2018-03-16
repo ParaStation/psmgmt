@@ -2,6 +2,9 @@
 #  Configuration file for ParaStation psslurm plugin
 #
 
+# Slurm protocol version
+# SLURM_PROTO_VERSION = 17.02
+
 # Set various soft resources limits (comma separated list, unlimited = -1)
 #RLIMITS_SOFT = RLIMIT_CORE=0,RLIMIT_NOFILE=1024
 

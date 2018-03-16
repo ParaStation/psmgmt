@@ -22,9 +22,17 @@
 #include "psslurmmsg.h"
 
 typedef struct {
+    char **argv;		    /**< program arguments */
+    uint32_t argc;		    /**< number of arguments */
+    PSpart_HWThread_t *hwThreads;   /**< PS hardware threads */
+    uint32_t numHwThreads;	    /**< number of hardware threads */
+    uint32_t np;		    /**< number of processes */
+} RemotePackInfos_t;
+
+typedef struct {
     list_t next;                /**< used to put into some step-lists */
-    uint32_t jobid;
-    uint32_t stepid;
+    uint32_t jobid;		/* uniq job identifier */
+    uint32_t stepid;		/* uniq step identifier */
     uint32_t np;		/* number of processes */
     uint16_t tpp;		/* HW-threads per process (PSI_TPP) */
     char *username;		/* username of step owner */
@@ -34,16 +42,12 @@ typedef struct {
     JobCred_t *cred;		/* job/step creditials */
     list_t gresList;		/* general resource informations */
     PSnodes_ID_t *nodes;	/* all participating nodes in the step */
-    uint32_t nrOfNodes;
+    uint32_t nrOfNodes;		/* number of nodes */
     char *slurmHosts;		/* Slurm compressed hostlist (SLURM_NODELIST) */
     uint32_t myNodeIndex;
     uint32_t jobMemLimit;
     uint32_t stepMemLimit;
-#ifdef MIN_SLURM_PROTO_1605
     uint32_t taskDist;
-#else
-    uint16_t taskDist;
-#endif
     uint16_t nodeCpus;
     uint16_t jobCoreSpec;	/* count of specialized cores */
     uint16_t *tasksToLaunch;	/* number of tasks to launch (per node) */
@@ -63,8 +67,8 @@ typedef struct {
     uint32_t profile;
     int state;
     int exitCode;
-    char **argv;
-    uint32_t argc;
+    char **argv;		/** program arguments */
+    uint32_t argc;		/** number of arguments */
     env_t env;
     env_t spankenv;
     env_t pelogueEnv;
@@ -90,7 +94,6 @@ typedef struct {
     uint8_t appendMode;	       /* stdout/stderr will truncate(=0)/append(=1) */
     uint16_t accType;
     char *nodeAlias;
-#ifdef MIN_SLURM_PROTO_1605
     uint32_t cpuFreqMin;
     uint32_t cpuFreqMax;
     uint32_t cpuFreqGov;
@@ -98,22 +101,36 @@ typedef struct {
     uint16_t ntasksPerCore;
     uint16_t ntasksPerSocket;
     uint16_t accelBindType;
-#else
-    uint32_t cpuFreq;
-#endif
     char *checkpoint;
     char *restart;
     uint8_t x11forward;
     uint32_t fwInitCount;
-    uint32_t numHwThreads;
     uint8_t timeout;
     uint8_t ioCon;
     uint32_t localNodeId;
     time_t start_time;           /* time the step started */
     Forwarder_Data_t *fwdata;
+    uint32_t numHwThreads;
     PSpart_HWThread_t *hwThreads;
     list_t tasks;
     char *acctFreq;
+    uint32_t *gids;		    /**< extended group ids */
+    uint32_t gidsLen;		    /**< size of extendend group ids */
+    uint32_t packNodeOffset;	    /**< pack node offset */
+    uint32_t packJobid;		    /**< pack jobid */
+    uint32_t packNrOfNodes;	    /**< number of nodes in pack */
+    uint16_t *packTaskCounts;	    /**< number of tasks for each node */
+    uint32_t packNtasks;	    /**< pack total task count */
+    uint32_t packOffset;	    /**< pack job offset */
+    uint32_t packTaskOffset;	    /**< pack task offset */
+    uint32_t packSize;		    /**< the size of the pack */
+    uint32_t packMyId;		    /**< pack Id of current node */
+    char *packHostlist;		    /**< pack hostlist (Slurm compressed) */
+    PSnodes_ID_t *packNodes;	    /**< all participating nodes in the pack */
+    RemotePackInfos_t *rPackInfo;   /**< remote pack infos */
+    uint32_t numRPackInfo;	    /**< number of remote pack infos */
+    uint32_t numRPackThreads;	    /**< number of remote hardware threads */
+    bool leader;		    /**< true if node is pack leader */
 } Step_t;
 
 typedef struct {

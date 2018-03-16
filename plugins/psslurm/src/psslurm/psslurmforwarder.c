@@ -104,11 +104,12 @@ static int jobCallback(int32_t exit_status, Forwarder_Data_t *fw)
 
 static int stepFWIOcallback(int32_t exit_status, Forwarder_Data_t *fw)
 {
-    Step_t *step = fw->userData;
+    Step_t *step = fw->userData, *tmp;
 
-    if (!findStepByStepId(step->jobid, step->stepid)) {
-	mlog("%s: step '%u:%u' not found\n", __func__, step->jobid,
-		step->stepid);
+    /* validate step pointer */
+    tmp = findStepByStepId(step->jobid, step->stepid);
+    if (!tmp || tmp != step) {
+	mlog("%s: step %u:%u not found\n", __func__, step->jobid, step->stepid);
 	return 0;
     }
 
@@ -129,17 +130,20 @@ static int stepFWIOcallback(int32_t exit_status, Forwarder_Data_t *fw)
 
 static int stepCallback(int32_t exit_status, Forwarder_Data_t *fw)
 {
-    Step_t *step = fw->userData;
+    Step_t *step = fw->userData, *tmp;
     Alloc_t *alloc;
+
+    /* validate step pointer */
+    tmp = findStepByStepId(step->jobid, step->stepid);
+    if (!tmp || tmp != step) {
+	mlog("%s: step %u:%u not found\n", __func__, step->jobid, step->stepid);
+	return 0;
+    }
 
     mlog("%s: step %u:%u state '%s' finished, exit %i / %i\n", __func__,
 	 step->jobid, step->stepid, strJobState(step->state), exit_status,
 	 fw->estatus);
 
-    if (!findStepByStepId(step->jobid, step->stepid)) {
-	mlog("%s: step %u:%u not found\n", __func__, step->jobid, step->stepid);
-	return 0;
-    }
 
     /* make sure all processes are gone */
     signalStep(step, SIGKILL, 0);
@@ -500,6 +504,11 @@ int handleExecClientUser(void *data)
     unsetenv("MALLOC_CHECK_");
 
     if ((step = findStepByEnv(task->environ, &jobid, NULL, isAdmin))) {
+	/* set supplementary groups */
+	if (step->gidsLen) {
+	    setgroups(step->gidsLen, step->gids);
+	}
+
 	if (!(redirectIORank(step, task->rank))) return -1;
 
 	/* stop child after exec */
@@ -748,6 +757,25 @@ static void execJobStep(Forwarder_Data_t *fwdata, int rerun)
 	/* executable and arguments */
 	for (i=0; i<step->argc; i++) {
 	    strvAdd(&argV, step->argv[i]);
+	}
+    }
+
+    /* additional executables from job pack */
+    if (step->packJobid != NO_VAL) {
+	for (i=0; i<step->numRPackInfo; i++) {
+	    uint32_t z;
+
+	    strvAdd(&argV, ":");
+
+	    /* number of processes */
+	    strvAdd(&argV, ustrdup("-np"));
+	    snprintf(buf, sizeof(buf), "%u", step->rPackInfo[i].np);
+	    strvAdd(&argV, ustrdup(buf));
+
+	    /* executable and arguments */
+	    for (z=0; z<step->rPackInfo[i].argc; z++) {
+		strvAdd(&argV, step->rPackInfo[i].argv[z]);
+	    }
 	}
     }
 

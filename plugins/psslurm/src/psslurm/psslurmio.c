@@ -1,13 +1,12 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2015-2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2015-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-
 #define _GNU_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
@@ -300,15 +299,9 @@ static void handlePrintChildMsg(Forwarder_Data_t *fwdata, char *ptr)
     }
 
     /* handle unbuffered IO */
-#ifdef MIN_SLURM_PROTO_1605
     if (type == STDERR || (!(step->taskFlags & LAUNCH_LABEL_IO)
 	&& !(step->taskFlags & LAUNCH_BUFFERED_IO))
 	|| step->taskFlags & LAUNCH_PTY) {
-#else
-    if ((!(step->taskFlags & LAUNCH_LABEL_IO) &&
-	!(step->taskFlags & LAUNCH_BUFFERED_IO)) ||
-	step->taskFlags & LAUNCH_PTY) {
-#endif
 	writeIOmsg(msg, len, taskid, type, fwdata, step, lrank);
 	ufree(msg);
 	return;
@@ -387,14 +380,16 @@ static void handleFWfinalize(Forwarder_Data_t *fwdata, char *ptr)
     size_t len;
     PSLog_Msg_t *msg = getDataM(&ptr, &len);
     PStask_ID_t sender = msg->header.sender;
-    PS_Tasks_t *task = findTaskByForwarder(&step->tasks, sender);
+    PS_Tasks_t *task = findTaskByFwd(&step->tasks, sender);
+    uint32_t taskid = msg->sender - step->packTaskOffset;
+
 
     mdbg(PSSLURM_LOG_IO, "%s from %s\n", __func__, PSC_printTID(sender));
 
     if (!(step->taskFlags & LAUNCH_PTY)) {
 	/* close stdout/stderr */
-	closeIOchannel(fwdata, msg->sender, STDOUT);
-	closeIOchannel(fwdata, msg->sender, STDERR);
+	closeIOchannel(fwdata, taskid, STDOUT);
+	closeIOchannel(fwdata, taskid, STDERR);
     }
 
     if (!task) {
@@ -491,7 +486,7 @@ static void handleInfoTasks(Forwarder_Data_t *fwdata, char *ptr)
     /*
     mlog("%s: got TID '%s' rank '%i' count tasks '%u'\n", __func__,
 	    PSC_printTID(task->childTID), task->childRank,
-	    countRegTasks(&step->tasks.list));
+	    countRegTasks(step->tasks.next));
     */
 
     if (step->globalTaskIdsLen[step->myNodeIndex] ==

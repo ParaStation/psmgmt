@@ -72,13 +72,8 @@ typedef struct {
     uint8_t appendMode;	    /* stdout/stderr will truncate(=0) / append(=1) */
     uint32_t arrayJobId;
     uint32_t arrayTaskId;
-#ifdef SLURM_PROTOCOL_1702
     uint64_t memLimit;
     uint64_t nodeMinMemory; /* minimum memory per node */
-#else
-    uint32_t memLimit;
-    uint32_t nodeMinMemory; /* minimum memory per node */
-#endif
     uint32_t localNodeId;
     time_t start_time;	    /* the time were the job started */
     char *nodeAlias;
@@ -86,10 +81,15 @@ typedef struct {
     time_t firstKillRequest;
     Forwarder_Data_t *fwdata;
     uint32_t profile;
-    env_t pelogueEnv;
     char *resvPorts;
     uint32_t groupNum;
-    bool timeout;               /* job was cancelled due to time limit */
+    bool timeout;		    /**< job was cancelled due to time limit */
+    uint32_t *gids;		    /**< extended group IDs from slurmctld */
+    uint32_t gidsLen;		    /**< size of the gids array */
+    uint32_t packSize;		    /**< the size of the pack */
+    char *packHostlist;		    /**< pack hostlist (Slurm compressed) */
+    uint32_t packNrOfNodes;	    /**< number of nodes in pack */
+    PSnodes_ID_t *packNodes;	    /**< all participating nodes in the pack */
 } Job_t;
 
 /**

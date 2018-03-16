@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014-2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -251,12 +251,7 @@ void setSlurmJobEnv(Job_t *job)
     /* gres "gpu" plugin */
     gres = findGresCred(&job->gresList, GRES_PLUGIN_GPU, 1);
     if (gres) {
-#ifdef MIN_SLURM_PROTO_1605
 	hexBitstr2List(gres->bitAlloc[0], &list, &listSize);
-#else
-	uint32_t count = 0;
-	range2List(NULL, gres->bitAlloc[0], &list, &listSize, &count);
-#endif
 	envSet(&job->env, "CUDA_VISIBLE_DEVICES", list);
 	envSet(&job->env, "GPU_DEVICE_ORDINAL", list);
 	ufree(list);
@@ -267,12 +262,7 @@ void setSlurmJobEnv(Job_t *job)
     /* gres "mic" plugin */
     gres = findGresCred(&job->gresList, GRES_PLUGIN_MIC, 1);
     if (gres) {
-#ifdef MIN_SLURM_PROTO_1605
 	hexBitstr2List(gres->bitAlloc[0], &list, &listSize);
-#else
-	uint32_t count = 0;
-	range2List(NULL, gres->bitAlloc[0], &list, &listSize, &count);
-#endif
 	envSet(&job->env, "OFFLOAD_DEVICES", list);
 	ufree(list);
 	list = NULL;
@@ -436,12 +426,7 @@ void setRankEnv(int32_t rank, Step_t *step)
 	gres = findGresCred(&step->gresList, GRES_PLUGIN_GPU, 0);
 	if (gres) {
 	    if (gres->bitAlloc[localNodeId]) {
-#ifdef MIN_SLURM_PROTO_1605
 		hexBitstr2List(gres->bitAlloc[localNodeId], &list, &listSize);
-#else
-		range2List(NULL, gres->bitAlloc[localNodeId], &list,
-			    &listSize, &count);
-#endif
 		setenv("CUDA_VISIBLE_DEVICES", list, 1);
 		setenv("GPU_DEVICE_ORDINAL", list, 1);
 		ufree(list);
@@ -457,12 +442,7 @@ void setRankEnv(int32_t rank, Step_t *step)
 	gres = findGresCred(&step->gresList, GRES_PLUGIN_MIC, 0);
 	if (gres) {
 	    if (gres->bitAlloc[localNodeId]) {
-#ifdef MIN_SLURM_PROTO_1605
 		hexBitstr2List(gres->bitAlloc[localNodeId], &list, &listSize);
-#else
-		range2List(NULL, gres->bitAlloc[localNodeId], &list,
-			    &listSize, &count);
-#endif
 		setenv("OFFLOAD_DEVICES", list, 1);
 		ufree(list);
 		list = NULL;
@@ -544,6 +524,13 @@ void setStepEnv(Step_t *step)
     mode_t slurmUmask;
     int dist;
 
+    /* overwrite with pack jobid/stepid, will be reset
+     * in the rank env */
+    snprintf(tmp, sizeof(tmp), "%u", step->jobid);
+    envSet(&step->env, "SLURM_JOBID", tmp);
+    snprintf(tmp, sizeof(tmp), "%u", step->stepid);
+    envSet(&step->env, "SLURM_STEPID", tmp);
+
     snprintf(tmp, sizeof(tmp), "%u", step->numHwThreads / step->np);
     envSet(&step->env, "PSI_TPP", tmp);
 
@@ -602,11 +589,7 @@ void setBatchEnv(Job_t *job)
     envSet(&job->env, "SLURM_NODEID", "0");
     envSet(&job->env, "SLURM_PROCID", "0");
     envSet(&job->env, "SLURM_LOCALID", "0");
-#ifdef SLURM_PROTOCOL_1702
     snprintf(tmp, sizeof(tmp), "%lu", job->nodeMinMemory);
-#else
-    snprintf(tmp, sizeof(tmp), "%u", job->nodeMinMemory);
-#endif
     envSet(&job->env, "SLURM_MEM_PER_NODE", tmp);
 
     snprintf(tmp, sizeof(tmp), "%u", getpid());

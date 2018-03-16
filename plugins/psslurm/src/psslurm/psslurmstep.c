@@ -31,7 +31,10 @@ Step_t *addStep(uint32_t jobid, uint32_t stepid)
 {
     Step_t *step = ucalloc(sizeof(Step_t));
 
-    deleteStep(jobid, stepid);
+    if (deleteStep(jobid, stepid)) {
+	mlog("%s: warning: deleting old step structure %u:%u\n",
+	     __func__, jobid, stepid);
+    }
 
     step->jobid = jobid;
     step->stepid = stepid;
@@ -46,6 +49,7 @@ Step_t *addStep(uint32_t jobid, uint32_t stepid)
     step->stdErrOpt = IO_UNDEF;
     step->ioCon = 1;
     step->start_time = time(0);
+    step->leader = false;
 
     INIT_LIST_HEAD(&step->tasks);
     envInit(&step->env);
@@ -66,6 +70,10 @@ Step_t *findStepByStepId(uint32_t jobid, uint32_t stepid)
     list_for_each(s, &StepList) {
 	Step_t *step = list_entry(s, Step_t, next);
 	if (jobid == step->jobid && step->stepid == stepid) return step;
+	if (step->packJobid != NO_VAL && jobid == step->packJobid &&
+	    stepid == step->stepid) {
+	    return step;
+	}
     }
     return NULL;
 }
@@ -133,6 +141,7 @@ int deleteStep(uint32_t jobid, uint32_t stepid)
     /* make sure all connections for the step are closed */
     closeAllStepConnections(step);
     clearBCastByJobid(jobid);
+    deleteCachedMsg(jobid, stepid);
 
     ufree(step->srunPorts);
     ufree(step->tasksToLaunch);
@@ -158,6 +167,10 @@ int deleteStep(uint32_t jobid, uint32_t stepid)
     ufree(step->errChannels);
     ufree(step->hwThreads);
     ufree(step->acctFreq);
+    ufree(step->gids);
+    ufree(step->packTaskCounts);
+    ufree(step->packHostlist);
+    ufree(step->packNodes);
 
     clearTasks(&step->tasks);
     freeGresCred(&step->gresList);
@@ -186,6 +199,15 @@ int deleteStep(uint32_t jobid, uint32_t stepid)
     }
     ufree(step->argv);
 
+    for (i=0; i<step->numRPackInfo; i++) {
+	uint32_t x;
+	for (x=0; x<step->rPackInfo[i].argc; x++) {
+	    ufree(step->rPackInfo[i].argv[x]);
+	}
+	ufree(step->rPackInfo[i].hwThreads);
+    }
+    ufree(step->rPackInfo);
+
     envDestroy(&step->env);
     envDestroy(&step->spankenv);
     envDestroy(&step->pelogueEnv);
@@ -211,7 +233,7 @@ int signalStep(Step_t *step, int signal, uid_t reqUID)
     }
 
     /* if we are not the mother superior we just signal all our local tasks */
-    if (step->nodes[0] != PSC_getMyID()) {
+    if (!step->leader) {
 	ret = signalTasks(step->jobid, step->uid, &step->tasks, signal, group);
 	return ret;
     }
