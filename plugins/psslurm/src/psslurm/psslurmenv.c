@@ -32,7 +32,7 @@
 
 char **envFilter = NULL;
 
-int initEnvFilter(void)
+bool initEnvFilter(void)
 {
     char *conf, *dup, *next, *saveptr;
     const char delimiters[] =",\n";
@@ -40,7 +40,7 @@ int initEnvFilter(void)
 
     if (!(conf = getConfValueC(&Config, "PELOGUE_ENV_FILTER"))) {
 	mlog("%s: invalid PELOGUE_ENV_FILTER config option", __func__);
-	return 0;
+	return false;
     }
 
     dup = ustrdup(conf);
@@ -61,7 +61,7 @@ int initEnvFilter(void)
     envFilter[index] = NULL;
     ufree(dup);
 
-    return 1;
+    return true;
 }
 
 void freeEnvFilter(void)
@@ -75,6 +75,14 @@ void freeEnvFilter(void)
     ufree(envFilter);
 }
 
+/**
+ * @brief Calculate the number of CPUs per node
+ *
+ * @param job The job to calculate the number of CPUs
+ *
+ * @return Returns a comma separated list representing the
+ * number of CPUs per node
+ */
 static char *getCPUsPerNode(Job_t *job)
 {
     char *buffer = NULL;
@@ -104,10 +112,12 @@ static char *getCPUsPerNode(Job_t *job)
  *
  * The returned array has to be freed using ufree()
  *
- * In case of an error, NULL is returned
+ * @param job The job to calculate the tasks per node
+ *
+ * @return In case of an error, NULL is returned
  */
-static uint16_t * calcTasksPerNode(Job_t *job) {
-
+static uint16_t *calcTasksPerNode(Job_t *job)
+{
     uint32_t N, n, i;
     uint16_t *tasksPerNode;
 
@@ -130,12 +140,18 @@ static uint16_t * calcTasksPerNode(Job_t *job) {
  * @brief create string for SLURM_TASKS_PER_NODE
  *
  * @param tasksPerNode array with the number of tasks for each node
+ *
  * @param nrOfNodes    number of nodes, length of @a tasksPerNode
+ *
  * @param str          pointer to an allocated string
+ *
  * @param strsize      length of @a str
+ *
+ * @return Returns the requested tasks per node as comma separated string
+ * or NULL on error
  */
-static char * getTasksPerNode(uint16_t tasksPerNode[], uint32_t nrOfNodes) {
-
+static char *getTasksPerNode(uint16_t tasksPerNode[], uint32_t nrOfNodes)
+{
     char *buffer = NULL;
     size_t bufSize = 0;
     uint32_t i;
@@ -170,7 +186,7 @@ static char * getTasksPerNode(uint16_t tasksPerNode[], uint32_t nrOfNodes) {
     return buffer;
 }
 
-void setSlurmJobEnv(Job_t *job)
+void initJobEnv(Job_t *job)
 {
     char tmp[1024], *cpus = NULL, *list = NULL;
     Gres_Cred_t *gres;
@@ -270,22 +286,34 @@ void setSlurmJobEnv(Job_t *job)
     }
 }
 
-static char *getMyGTIDsForNode(uint32_t **globalTaskIds,
-				uint32_t *globalTaskIdsLen, PSnodes_ID_t nodeId)
+/**
+ * @brief Convert my global task IDs to a list
+ *
+ * @param step The step holding the global task IDs
+ *
+ * @return Returns a comma separated list of my global task IDs
+ */
+static char *GTIDsToList(Step_t *step)
 {
     char *buf = NULL;
     size_t bufSize;
     uint32_t i;
     char tmp[128];
 
-    for (i=0; i<globalTaskIdsLen[nodeId]; i++) {
+    for (i=0; i<step->globalTaskIdsLen[step->myNodeIndex]; i++) {
 	if (i > 0) str2Buf(",", &buf, &bufSize);
-	snprintf(tmp, sizeof(tmp), "%u", globalTaskIds[nodeId][i]);
+	snprintf(tmp, sizeof(tmp), "%u",
+		 step->globalTaskIds[step->myNodeIndex][i]);
 	str2Buf(tmp, &buf, &bufSize);
     }
     return buf;
 }
 
+/**
+ * @brief Set binding environment variables
+ *
+ * @param step The step to set the variables for
+ */
 static void setBindingEnvVars(Step_t *step)
 {
     char *val;
@@ -402,8 +430,7 @@ void setRankEnv(int32_t rank, Step_t *step)
     if (myNodeId < step->nrOfNodes) {
 	snprintf(tmp, sizeof(tmp), "%u", myNodeId);
 	setenv("SLURM_NODEID", tmp, 1);
-	myGTIDs = getMyGTIDsForNode(step->globalTaskIds,
-					step->globalTaskIdsLen, myNodeId);
+	myGTIDs = GTIDsToList(step);
 	setenv("SLURM_GTIDS", myGTIDs, 1);
 	ufree(myGTIDs);
     }
@@ -473,6 +500,11 @@ void setRankEnv(int32_t rank, Step_t *step)
     setenv("SLURM_TASKS_PER_NODE", val, 1);
 }
 
+/**
+ * @brief Remove spank options from environment
+ *
+ * @param env The environment to alter
+ */
 static void removeSpankOptions(env_t *env)
 {
     uint32_t i;
@@ -580,7 +612,7 @@ void setStepEnv(Step_t *step)
     removeSpankOptions(&step->env);
 }
 
-void setBatchEnv(Job_t *job)
+void setJobEnv(Job_t *job)
 {
     char tmp[1024], *val = NULL;
     mode_t slurmUmask;

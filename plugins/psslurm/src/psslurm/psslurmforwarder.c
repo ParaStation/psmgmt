@@ -279,7 +279,7 @@ static void execBatchJob(Forwarder_Data_t *fwdata, int rerun)
     redirectJobOutput(job);
 
     /* setup batch specific env */
-    setBatchEnv(job);
+    setJobEnv(job);
 
     /* set rlimits */
     setRlimitsFromEnv(&job->env, 0);

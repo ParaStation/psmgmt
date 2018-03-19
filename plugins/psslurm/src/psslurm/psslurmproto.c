@@ -1490,7 +1490,7 @@ static void handleBatchJobLaunch(Slurm_Msg_t *sMsg)
     send_PS_JobLaunch(job);
 
     /* setup job environment */
-    setSlurmJobEnv(job);
+    initJobEnv(job);
     job->interactive = 0;
 
     /* start prologue */
