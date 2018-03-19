@@ -1051,6 +1051,12 @@ static void handleFileBCast(Slurm_Msg_t *sMsg)
 	goto CLEANUP;
     }
 
+    if (bcast->compress) {
+	mlog("%s: implement compression for bcast\n", __func__);
+	sendSlurmRC(sMsg, SLURM_ERROR);
+	goto CLEANUP;
+    }
+
     /* assign to job/allocation */
     if (!(job = findJobById(bcast->jobid))) {
 	if (!(alloc = findAlloc(bcast->jobid))) {
