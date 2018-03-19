@@ -17,6 +17,7 @@
 #include "pluginforwarder.h"
 #include "psslurmmsg.h"
 
+/** credential to verify a BCast request */
 typedef struct {
     time_t ctime;	/**< creation time */
     time_t etime;	/**< expire time */
@@ -32,56 +33,66 @@ typedef struct {
     size_t sigLen;	/**< signature length */
 } BCast_Cred_t;
 
-/**
- * @doctodo
- */
+/** structure holding an BCast request */
 typedef struct {
-    list_t next;
+    list_t next;		/**< used to put into some BCast-lists */
     char *fileName;		/**< name of the file */
-    uint32_t blockNumber;
-    uint64_t blockOffset;
-    uint16_t compress;
-    uint16_t lastBlock;
+    uint32_t blockNumber;	/**< block number of this part */
+    uint64_t blockOffset;	/**< offset of this part */
+    uint16_t compress;		/**< compression algorithm used */
+    uint16_t lastBlock;		/**< flag to signal the transfer is complete */
     uint16_t force;		/**< overwrite destination file */
     uint16_t modes;		/**< access rights */
-    uint32_t blockLen;
-    uint32_t uncompLen;
+    uint32_t blockLen;		/**< length of this part */
+    uint32_t uncompLen;		/**< uncompressed length of this data part */
     uint32_t jobid;		/**< the associated jobid */
-    uint64_t fileSize;
-    time_t atime;
-    time_t mtime;
-    char *block;
-    char *username;
-    Slurm_Msg_t msg;
-    uid_t uid;
-    gid_t gid;
-    Forwarder_Data_t *fwdata;
+    uint64_t fileSize;		/**< size of the file */
+    time_t atime;		/**< last access time of the file */
+    time_t mtime;		/**< last modification time of the file */
+    char *block;		/**< data of this part */
+    char *username;		/**< username of the BCast requestor */
+    Slurm_Msg_t msg;		/**< connection of the BCast request */
+    uid_t uid;			/**< user id of the BCast requestor */
+    gid_t gid;			/**< group id of the BCast requestor */
+    Forwarder_Data_t *fwdata;	/**< forwarder executing the request */
     char *sig;			/**< credential signature */
-    size_t sigLen;
+    size_t sigLen;		/**< signature length */
 } BCast_t;
 
 /**
- * @doctodo
+ * @brief Add a new BCast request
  */
 BCast_t *addBCast(void);
 
 /**
- * @doctodo
+ * @brief Find a BCast request
+ *
+ * @param jobid The jobid of the request to find
+ *
+ * @param fileName The filename of the request to find
+ *
+ * @param blockNum The block number of the request to find
+ *
+ * @return Returns a pointer to the BCast request or NULL on error
  */
 BCast_t *findBCast(uint32_t jobid, char *fileName, uint32_t blockNum);
 
 /**
- * @doctodo
+ * @brief Delete a BCast request
+ *
+ * @param bcast Pointer to the request to delete
  */
 void deleteBCast(BCast_t *bcast);
 
 /**
- * @doctodo
+ * @brief Delete all BCast requests for a job
+ *
+ * @param jobid The jobid to delete all requests for
  */
 void clearBCastByJobid(uint32_t jobid);
 
 /**
- * @doctodo
+ * @brief Free all lingering BCast requests
  */
 void clearBCastList(void);
 
