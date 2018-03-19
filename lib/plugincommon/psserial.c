@@ -364,8 +364,8 @@ bool __recvFragMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_func_t *func,
     }
 
     /* copy payload */
-    size_t toCopy = msg->header.len - used;
-    if (toCopy + recvBuf->bufUsed > recvBuf->bufSize) {
+    size_t toCopy = msg->header.len - offsetof(DDTypedBufferMsg_t, buf) - used;
+    if (recvBuf->bufUsed + toCopy > recvBuf->bufSize) {
 	/* grow buffer, if necessary */
 	recvBuf->bufSize *= 2;
 	recvBuf->buf = urealloc(recvBuf->buf, recvBuf->bufSize);
@@ -798,7 +798,6 @@ static void addFragmentedData(PS_SendDB_t *buffer, const void *data,
 			      const size_t dataLen, const char *caller,
 			      const int line)
 {
-    const size_t bufOffset = offsetof(DDTypedBufferMsg_t, buf);
     const uint8_t type = FRAGMENT_PART;
     size_t dataLeft = dataLen;
 
@@ -806,7 +805,7 @@ static void addFragmentedData(PS_SendDB_t *buffer, const void *data,
 	/* init first message */
 	buffer->fragNum = 0;
 
-	fragMsg.header.len = bufOffset;
+	fragMsg.header.len = offsetof(DDTypedBufferMsg_t, buf);
 	fragMsg.header.sender = PSC_getMyTID();
 	fragMsg.header.type = buffer->headType;
 	fragMsg.type = buffer->msgType;
@@ -816,7 +815,7 @@ static void addFragmentedData(PS_SendDB_t *buffer, const void *data,
     }
 
     while (dataLeft>0) {
-	size_t off = fragMsg.header.len - bufOffset;
+	size_t off = fragMsg.header.len - offsetof(DDTypedBufferMsg_t, buf);
 	size_t chunkLeft = BufTypedMsgSize - off;
 
 	/* fill message buffer */
@@ -832,7 +831,7 @@ static void addFragmentedData(PS_SendDB_t *buffer, const void *data,
 	    sendFragment(buffer, caller, line);
 
 	    /* prepare for next fragment */
-	    fragMsg.header.len = bufOffset;
+	    fragMsg.header.len = offsetof(DDTypedBufferMsg_t, buf);
 	    buffer->fragNum++;
 	    PSP_putTypedMsgBuf(&fragMsg, __func__, "fragType", &type,
 			       sizeof(type));

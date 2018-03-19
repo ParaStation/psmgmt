@@ -1026,7 +1026,7 @@ static void saveForwardError(DDTypedBufferMsg_t *msg)
     if (fNum) return;
 
     /* skip fragmented message header */
-    char *ptr = (char*)msg + used;
+    char *ptr = msg->buf + used;
 
     initSlurmMsg(&sMsg);
     sMsg.outdata = &outdata;

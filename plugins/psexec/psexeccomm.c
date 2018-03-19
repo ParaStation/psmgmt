@@ -287,7 +287,7 @@ static void dropExecMsg(DDTypedBufferMsg_t *msg)
     if (fNum) return;
 
     /* skip fragmented message header */
-    char *ptr = (char*)msg + used;
+    char *ptr = msg->buf + used;
 
     /* uID */
     getUint16(&ptr, &uID);

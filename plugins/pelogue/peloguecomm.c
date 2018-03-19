@@ -539,7 +539,7 @@ static void dropPElogueStartMsg(DDTypedBufferMsg_t *msg)
     if (fNum) return;
 
     /* skip fragmented message header */
-    char *ptr = (char*)msg + used;
+    char *ptr = msg->buf + used;
 
     char *plugin = getStringM(&ptr);
     char *jobid = getStringM(&ptr);
