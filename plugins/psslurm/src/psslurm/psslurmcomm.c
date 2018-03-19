@@ -41,22 +41,30 @@
 
 #define MAX_PACK_STR_LEN (16 * 1024 * 1024)
 
+/** socket to listen for new Slurm connections */
 static int slurmListenSocket = -1;
 
+/** structure holding connection management data */
 typedef struct {
-    list_t next;
-    PS_DataBuffer_t data;
-    Connection_CB_t *cb;
-    int error;
-    int sock;
-    time_t recvTime;
-    bool redSize;
-    Connection_Forward_t fw;
+    list_t next;	    /**< used to put into connection-list */
+    PS_DataBuffer_t data;   /**< buffer for received message parts */
+    Connection_CB_t *cb;    /**< function to handle received messages */
+    int sock;		    /**< socket of the connection */
+    time_t recvTime;	    /**< time first complete message was received */
+    bool redSize;	    /**< true if the message size was red */
+    Msg_Forward_t fw;	    /**< message forwarding structure */
 } Connection_t;
 
 /* list which holds all connections */
 static LIST_HEAD(connectionList);
 
+/**
+ * @brief Find a connection
+ *
+ * @param socket The socket of the connection to find
+ *
+ * @return Returns a pointer to the connection or NULL on error
+ */
 static Connection_t *findConnection(int socket)
 {
     list_t *c;
@@ -69,6 +77,17 @@ static Connection_t *findConnection(int socket)
     return NULL;
 }
 
+/**
+ * @brief Find a connection
+ *
+ * Find a connection by its socket and receive time.
+ *
+ * @param socket The socket of the connection to find
+ *
+ * @param recvTime The time the connection received its first message
+ *
+ * @return Returns a pointer to the connection or NULL on error
+ */
 static Connection_t *findConnectionEx(int socket, time_t recvTime)
 {
     list_t *c;
@@ -81,22 +100,40 @@ static Connection_t *findConnectionEx(int socket, time_t recvTime)
     return NULL;
 }
 
-static int resetConnection(int socket)
+/**
+ * @brief Reset a connection structure
+ *
+ * Free used memory and reset management data of a connection.
+ *
+ * @param socket The socket of the connection to reset
+ *
+ * @return Returns false if the connection could not be found
+ * and true on success
+ */
+static bool resetConnection(int socket)
 {
     Connection_t *con = findConnection(socket);
 
-    if (!con) return 0;
+    if (!con) return false;
 
     ufree(con->data.buf);
     con->data.buf = NULL;
     con->data.bufSize = 0;
     con->data.bufUsed = 0;
-    con->error = 0;
-    con->redSize = 0;
+    con->redSize = false;
 
-    return 1;
+    return true;
 }
 
+/**
+ * @brief Add a new connection
+ *
+ * @param socket The socket of the connection to add
+ *
+ * @param cb The function to call to handle received messages
+ *
+ * @return Returns a pointer to the added connection
+ */
 static Connection_t *addConnection(int socket, Connection_CB_t *cb)
 {
     Connection_t *con = findConnection(socket);
@@ -155,7 +192,7 @@ void __saveFrwrdMsgRes(Slurm_Msg_t *sMsg, uint32_t error, const char *func,
 		       const int line)
 {
     Connection_t *con;
-    Connection_Forward_t *fw;
+    Msg_Forward_t *fw;
     Slurm_Forward_Data_t *fwdata;
     uint16_t i, saved = 0;
     PSnodes_ID_t srcNode;
@@ -175,7 +212,7 @@ void __saveFrwrdMsgRes(Slurm_Msg_t *sMsg, uint32_t error, const char *func,
     }
 
     fw = &con->fw;
-    fw->res++;
+    fw->numRes++;
     srcNode = PSC_getID(sMsg->source);
 
     if (srcNode == PSC_getMyID()) {
@@ -192,7 +229,7 @@ void __saveFrwrdMsgRes(Slurm_Msg_t *sMsg, uint32_t error, const char *func,
 	    if (fwdata->node == srcNode) {
 		mlog("%s: result for node %i already saved, caller %s "
 		     "line %i\n", __func__, srcNode, func, line);
-		fw->res--;
+		fw->numRes--;
 		return;
 	    }
 	    if (fwdata->node == -1) {
@@ -219,10 +256,10 @@ void __saveFrwrdMsgRes(Slurm_Msg_t *sMsg, uint32_t error, const char *func,
 
     mdbg(PSSLURM_LOG_FWD, "%s(%s:%i): type %s forward %u resCount %u "
 	    "source %s sock %i recvTime %zu\n", __func__, func, line,
-	    msgType2String(sMsg->head.type), fw->head.forward, fw->res,
+	    msgType2String(sMsg->head.type), fw->head.forward, fw->numRes,
 	    PSC_printTID(sMsg->source), sMsg->sock, sMsg->recvTime);
 
-    if (fw->res == fw->nodesCount + 1) {
+    if (fw->numRes == fw->nodesCount + 1) {
 	/* all answers collected */
 	mdbg(PSSLURM_LOG_FWD, "%s: forward %s complete, sending answer\n",
 		__func__, msgType2String(sMsg->head.type));
@@ -241,6 +278,15 @@ void __saveFrwrdMsgRes(Slurm_Msg_t *sMsg, uint32_t error, const char *func,
     }
 }
 
+/**
+ * @brief Get remote address and port of a socket
+ *
+ * @param addr Pointer to save the remote address
+ *
+ * @param port Pointer to save the remote port
+ *
+ * Returns true on success and false on error
+ */
 static bool getSockInfo(int socket, uint32_t *addr, uint16_t *port)
 {
     struct sockaddr_in sock_addr;
@@ -344,7 +390,7 @@ static int readSlurmMsg(int sock, void *param)
 	dBuf->buf = urealloc(dBuf->buf, msglen);
 	dBuf->bufSize = msglen;
 	dBuf->bufUsed = 0;
-	con->redSize = 1;
+	con->redSize = true;
     }
 
     /* try to read the actual payload (missing data) */
@@ -419,7 +465,17 @@ CALLBACK:
     return 0;
 }
 
-static int registerSlurmMessage(int sock, Connection_CB_t *cb)
+/**
+ * @brief Register a Slurm socket
+ *
+ * Add a Slurm connection for a socket and monitor it for incoming
+ * data.
+ *
+ * @param sock The socket to register
+ *
+ * @param cb The function to call to handle received messages
+ */
+static void registerSlurmSocket(int sock, Connection_CB_t *cb)
 {
     Connection_t *con;
 
@@ -428,9 +484,18 @@ static int registerSlurmMessage(int sock, Connection_CB_t *cb)
     if (Selector_register(sock, readSlurmMsg, con) == -1) {
 	mlog("%s: register socket %i failed\n", __func__, sock);
     }
-    return 1;
 }
 
+/**
+ * @brief Handle a reply from slurmctld
+ *
+ * Report errors for failed requests send to slurmctld and close
+ * the corresponding connection.
+ *
+ * @param sMsg The reply message to handle
+ *
+ * @return Always returns 0.
+ */
 static int handleSlurmctldReply(Slurm_Msg_t *sMsg)
 {
     char **ptr;
@@ -562,7 +627,7 @@ int connect2Slurmctld(void)
     mdbg(PSSLURM_LOG_IO | PSSLURM_LOG_IO_VERB,
 	 "%s: connect to %s socket %i\n", __func__, addr, sock);
 
-    registerSlurmMessage(sock, handleSlurmctldReply);
+    registerSlurmSocket(sock, handleSlurmctldReply);
 
     return sock;
 }
@@ -749,6 +814,15 @@ bool hexBitstr2List(char *bitstr, char **list, size_t *listSize)
     return true;
 }
 
+/**
+ * @brief Accept a new Slurm client
+ *
+ * @param socket The socket of the new client
+ *
+ * @param data Unused
+ *
+ * @return Always returns 0
+ */
 static int acceptSlurmClient(int socket, void *data)
 {
     struct sockaddr_in SAddr;
@@ -763,7 +837,7 @@ static int acceptSlurmClient(int socket, void *data)
     mdbg(PSSLURM_LOG_COMM, "%s: from %s:%u socket:%i\n", __func__,
 	 inet_ntoa(SAddr.sin_addr), ntohs(SAddr.sin_port), newSock);
 
-    registerSlurmMessage(newSock, handleSlurmdMsg);
+    registerSlurmSocket(newSock, handleSlurmdMsg);
 
     return 0;
 }
@@ -828,6 +902,17 @@ int openSlurmdSocket(int port)
     return sock;
 }
 
+/**
+ * @brief Handle a PTY control message
+ *
+ * Handle a srun PTY message to set the window size.
+ *
+ * @param sock The socket to read the message from
+ *
+ * @param data The step of the message
+ *
+ * @return Always returns 0
+ */
 static int handleSrunPTYMsg(int sock, void *data)
 {
     Step_t *step = data;
@@ -866,6 +951,19 @@ static int handleSrunPTYMsg(int sock, void *data)
     return 0;
 }
 
+/**
+ * @brief Forward an input message to a rank
+ *
+ * @param step The step of the rank
+ *
+ * @param rank The rank to forward the message to
+ *
+ * @param buf The message to forward
+ *
+ * @param bufLen The size of the message
+ *
+ * @return Returns the number of bytes written or -1 on error
+ */
 static int forwardInputMsg(Step_t *step, uint16_t rank, char *buf, int bufLen)
 {
     char *ptr = buf;
@@ -1272,7 +1370,7 @@ void handleBrokenConnection(PSnodes_ID_t nodeID)
     list_t *c, *tmp;
     list_for_each_safe(c, tmp, &connectionList) {
 	Connection_t *con = list_entry(c, Connection_t, next);
-	Connection_Forward_t *fw = &con->fw;
+	Msg_Forward_t *fw = &con->fw;
 	uint32_t i;
 
 	for (i=0; i<fw->nodesCount; i++) {

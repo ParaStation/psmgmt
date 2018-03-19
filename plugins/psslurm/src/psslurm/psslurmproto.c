@@ -1880,7 +1880,7 @@ static void handleRespMessageComposite(Slurm_Msg_t *sMsg)
     sendSlurmRC(sMsg, ESLURM_NOT_SUPPORTED);
 }
 
-int getSlurmMsgHeader(Slurm_Msg_t *sMsg, Connection_Forward_t *fw)
+int getSlurmMsgHeader(Slurm_Msg_t *sMsg, Msg_Forward_t *fw)
 {
     char **ptr = &sMsg->ptr;
     uint16_t i;

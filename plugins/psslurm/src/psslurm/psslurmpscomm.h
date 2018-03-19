@@ -65,7 +65,7 @@ void send_PS_JobLaunch(Job_t *job);
 
 void send_PS_JobState(uint32_t jobid, PStask_ID_t dest);
 
-void forwardSlurmMsg(Slurm_Msg_t *sMsg, Connection_Forward_t *fw);
+void forwardSlurmMsg(Slurm_Msg_t *sMsg, Msg_Forward_t *fw);
 
 int send_PS_ForwardRes(Slurm_Msg_t *msg);
 

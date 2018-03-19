@@ -130,7 +130,7 @@ void sendNodeRegStatus(void);
 void getNodesFromSlurmHL(char *slurmHosts, uint32_t *nrOfNodes,
 			    PSnodes_ID_t **nodes, uint32_t *localId);
 
-int getSlurmMsgHeader(Slurm_Msg_t *sMsg, Connection_Forward_t *fw);
+int getSlurmMsgHeader(Slurm_Msg_t *sMsg, Msg_Forward_t *fw);
 
 /**
  * @brief Send a Slurm rc message

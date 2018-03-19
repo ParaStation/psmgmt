@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014-2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -18,25 +18,29 @@
 
 #define SLURMCTLD_SOCK -1
 
+/** callback function of a connection structure */
 typedef int Connection_CB_t(Slurm_Msg_t *msg);
 
+/** structure to track message forwarding for a connection */
 typedef struct {
-    PSnodes_ID_t *nodes;
-    uint32_t nodesCount;
-    uint32_t res;
-    PS_DataBuffer_t body;
-    Slurm_Msg_Header_t head;
-} Connection_Forward_t;
+    PSnodes_ID_t *nodes;	/** all nodes the message is forwarded to
+				    (including myself) */
+    uint32_t nodesCount;	/** size of the nodes array */
+    uint32_t numRes;		/** number of forwarded message results */
+    PS_DataBuffer_t body;	/** message body holding local result */
+    Slurm_Msg_Header_t head;	/** header with saved results for
+				    each forwarded node */
+} Msg_Forward_t;
 
 /**
- * @brief Close all slurm connections and free used memory
+ * @brief Close all Slurm connections and free used memory
  */
 void clearSlurmCon(void);
 
 /**
- * @brief Close a slurm connection
+ * @brief Close a Slurm connection
  *
- * Close a slurm connection and free used memory.
+ * Close a Slurm connection and free used memory.
  *
  * @param socket The socket for the connection to close
  */

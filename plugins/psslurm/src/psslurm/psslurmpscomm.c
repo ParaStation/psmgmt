@@ -927,7 +927,7 @@ static void handle_PS_SignalTasks(DDTypedBufferMsg_t *msg)
     signalTasks(step->jobid, step->uid, &step->tasks, signal, group);
 }
 
-void forwardSlurmMsg(Slurm_Msg_t *sMsg, Connection_Forward_t *fw)
+void forwardSlurmMsg(Slurm_Msg_t *sMsg, Msg_Forward_t *fw)
 {
     uint32_t nrOfNodes, i, len, localId;
     PSnodes_ID_t *nodes = NULL;
