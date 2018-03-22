@@ -100,24 +100,20 @@ int sendPElogueStart(Job_t *job, PElogueType_t type, int rounds, env_t *env)
 static int sendPrologueResp(char *jobid, int exit, bool timeout,
 			    PStask_ID_t dest)
 {
-    DDTypedBufferMsg_t msg = (DDTypedBufferMsg_t) {
-	.header = (DDMsg_t) {
-	    .type = PSP_CC_MSG,
-	    .sender = PSC_getMyTID(),
-	    .dest = dest,
-	    .len = offsetof(DDTypedBufferMsg_t, buf) },
-	.type = PSP_PELOGUE_RESP,
-	.buf = { 0 } };
+    PS_SendDB_t data;
+
+    initFragBuffer(&data, PSP_CC_MSG, PSP_PELOGUE_RESP);
+    setFragDest(&data, dest);
 
     /* jobid */
-    addStringToMsgBuf(&msg, jobid);
+    addStringToMsg(jobid, &data);
     /* exit status */
-    addInt32ToMsgBuf(&msg, exit);
+    addInt32ToMsg(exit, &data);
     /* timeout */
-    addUint8ToMsgBuf(&msg, timeout);
+    addUint8ToMsg(timeout, &data);
 
     /* send response */
-    return sendMsg(&msg);
+    return sendFragMsg(&data);
 }
 
 static void CBprologueResp(char *jobid, int exit, bool timeout,
@@ -323,47 +319,38 @@ static void handlePElogueStart(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 
 void sendPElogueSignal(Job_t *job, int sig, char *reason)
 {
-    DDTypedBufferMsg_t msg = (DDTypedBufferMsg_t) {
-	.header = (DDMsg_t) {
-	    .type = PSP_CC_PLUG_PELOGUE,
-	    .sender = PSC_getMyTID(),
-	    .dest = -1,
-	    .len = offsetof(DDTypedBufferMsg_t, buf) },
-	.type = PSP_PELOGUE_SIGNAL,
-	.buf = {'\0'} };
-    int i;
+    PS_SendDB_t data;
+    PSnodes_ID_t n;
 
-    addStringToMsgBuf(&msg, job->plugin);
-    addStringToMsgBuf(&msg, job->id);
-    addInt32ToMsgBuf(&msg, sig);
-    addStringToMsgBuf(&msg, reason);
-
-    for (i=0; i<job->numNodes; i++) {
-	PSnodes_ID_t node = job->nodes[i].id;
+    initFragBuffer(&data, PSP_CC_PLUG_PELOGUE, PSP_PELOGUE_SIGNAL);
+    for (n=0; n<job->numNodes; n++) {
 	PElogueState_t status = (job->state == JOB_PROLOGUE) ?
-	    job->nodes[i].prologue : job->nodes[i].epilogue;
+	    job->nodes[n].prologue : job->nodes[n].epilogue;
 	if (status != PELOGUE_PENDING) continue;
 
-	msg.header.dest = PSC_getTID(node, 0);
-	mdbg(PELOGUE_LOG_COMM, "%s: send to %i\n", __func__, node);
-	if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
-	    mwarn(errno, "%s: sendMsg() to %i failed", __func__, node);
-	}
+	setFragDest(&data, PSC_getTID(job->nodes[n].id, 0));
     }
+
+    addStringToMsg(job->plugin, &data);
+    addStringToMsg(job->id, &data);
+    addInt32ToMsg(sig, &data);
+    addStringToMsg(reason, &data);
+
+    sendFragMsg(&data);
+
     job->signalFlag = sig;
 }
 
-static void handlePElogueSignal(DDTypedBufferMsg_t *msg)
+static void handlePElogueSignal(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 {
-    char *ptr = msg->buf;
-    char *plugin, *jobid, *reason;
+    char *ptr = rData->buf;
     int32_t signal;
     PElogueChild_t *child;
 
-    plugin = getStringM(&ptr);
-    jobid = getStringM(&ptr);
+    char *plugin = getStringM(&ptr);
+    char *jobid = getStringM(&ptr);
     getInt32(&ptr, &signal);
-    reason = getStringM(&ptr);
+    char *reason = getStringM(&ptr);
 
     /* find job */
     child = findChild(plugin, jobid);
@@ -383,34 +370,26 @@ static void handlePElogueSignal(DDTypedBufferMsg_t *msg)
 
 void sendPElogueFinish(PElogueChild_t *child)
 {
-    DDTypedBufferMsg_t msg = (DDTypedBufferMsg_t) {
-	.header = (DDMsg_t) {
-	    .type = PSP_CC_PLUG_PELOGUE,
-	    .sender = PSC_getMyTID(),
-	    .dest = PSC_getTID(child->mainPElogue, 0),
-	    .len = offsetof(DDTypedBufferMsg_t, buf) },
-	.type = (child->type == PELOGUE_PROLOGUE) ?
-				    PSP_PROLOGUE_FINISH : PSP_EPILOGUE_FINISH,
-	.buf = {'\0'} };
-    int ret;
+    PS_SendDB_t data;
+    int32_t type = (child->type == PELOGUE_PROLOGUE) ?
+	PSP_PROLOGUE_FINISH : PSP_EPILOGUE_FINISH;
 
-    addStringToMsgBuf(&msg, child->plugin);
-    addStringToMsgBuf(&msg, child->jobid);
-    addTimeToMsgBuf(&msg, child->startTime);
-    addInt32ToMsgBuf(&msg, child->exit);
-    addInt32ToMsgBuf(&msg, child->signalFlag);
+    initFragBuffer(&data, PSP_CC_PLUG_PELOGUE, type);
+    setFragDest(&data, PSC_getTID(child->mainPElogue, 0));
 
-    ret = sendMsg(&msg);
-    if (ret == -1 && errno != EWOULDBLOCK) {
-	mwarn(errno, "%s: sendMsg()", __func__);
-    }
+    addStringToMsg(child->plugin, &data);
+    addStringToMsg(child->jobid, &data);
+    addTimeToMsg(child->startTime, &data);
+    addInt32ToMsg(child->exit, &data);
+    addInt32ToMsg(child->signalFlag, &data);
+
+    sendFragMsg(&data);
 }
 
-static void handlePElogueFinish(DDTypedBufferMsg_t *msg, char *msgData)
+static void handlePElogueFinish(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 {
     PSnodes_ID_t node = PSC_getID(msg->header.sender);
-    char *ptr = msg->buf, *plugin, *jobid, peType[32];
-    Job_t *job;
+    char *ptr = rData->buf, peType[32];
     int32_t res = 1, signalFlag = 0;
     time_t job_start;
     bool prologue = msg->type == PSP_PROLOGUE_FINISH;
@@ -419,10 +398,10 @@ static void handlePElogueFinish(DDTypedBufferMsg_t *msg, char *msgData)
 	     node == PSC_getMyID() ? "local" : "remote",
 	     prologue ? "prologue" : "epilogue");
 
-    plugin = getStringM(&ptr);
-    jobid = getStringM(&ptr);
+    char *plugin = getStringM(&ptr);
+    char *jobid = getStringM(&ptr);
 
-    job = findJobById(plugin, jobid);
+    Job_t *job = findJobById(plugin, jobid);
     if (plugin) free(plugin);
     if (!job) {
 	if (!jobIDInHistory(jobid)) {
@@ -480,10 +459,10 @@ static void handlePElogueMsg(DDTypedBufferMsg_t *msg)
 	break;
     case PSP_PROLOGUE_FINISH:
     case PSP_EPILOGUE_FINISH:
-	handlePElogueFinish(msg, NULL);
+	recvFragMsg(msg, handlePElogueFinish);
 	break;
     case PSP_PELOGUE_SIGNAL:
-	handlePElogueSignal(msg);
+	recvFragMsg(msg, handlePElogueSignal);
 	break;
     case PSP_PELOGUE_REQ:
 	recvFragMsg(msg, handlePElogueReq);
@@ -562,14 +541,23 @@ static void dropPElogueStartMsg(DDTypedBufferMsg_t *msg)
 
 static void dropPElogueSignalMsg(DDTypedBufferMsg_t *msg)
 {
-    char *ptr = msg->buf, *plugin, *jobid;
     bool prologue = msg->type == PSP_PROLOGUE_START;
-    Job_t *job;
+    size_t used = 0;
+    uint8_t fType;
+    uint16_t fNum;
 
-    plugin = getStringM(&ptr);
-    jobid = getStringM(&ptr);
+    PSP_getTypedMsgBuf(msg, &used, __func__, "fragType", &fType, sizeof(fType));
+    PSP_getTypedMsgBuf(msg, &used, __func__, "fragNum", &fNum, sizeof(fNum));
 
-    job = findJobById(plugin, jobid);
+    /* ignore follow up messages */
+    if (fNum) return;
+
+    char *ptr = msg->buf + used;
+
+    char *plugin = getStringM(&ptr);
+    char *jobid = getStringM(&ptr);
+
+    Job_t *job = findJobById(plugin, jobid);
     if (!job) {
 	mlog("%s: plugin '%s' job '%s' not found\n", __func__, plugin, jobid);
 	if (plugin) free(plugin);
