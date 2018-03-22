@@ -7,8 +7,22 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-#ifndef __PLUGIN_LIB_COMM
-#define __PLUGIN_LIB_COMM
+/**
+ * @file Serialization layer for messages potentially not fitting into
+ * a single message of the ParaStation protocol. Data added to such
+ * messages might either be stored in a PS_DataBuffer_t structure
+ * ready to be send as a whole via a stream-connection or send via a
+ * series of RDP messages as soon as a single message-buffer is
+ * completely filled.
+ *
+ * The actual sending mode might be chosen by either setting
+ * PS_SendSB_t's @ref useFrag flag to false (accumulate serialized
+ * data in a buffer) or by initializing the PS_SendSB_t structure via
+ * initFragBuffer() and setFragDest() (immediately send a series of
+ * RDP messages).
+ */
+#ifndef __PSSERIAL_H
+#define __PSSERIAL_H
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -17,7 +31,7 @@
 #include "psprotocol.h"
 #include "pstaskid.h"
 
-/** Data type information used to tag data in messages */
+/** Data type information used to tag data in serialized messages */
 typedef enum {
     PSDATA_STRING = 0x03,
     PSDATA_TIME,
@@ -50,7 +64,7 @@ typedef struct {
  * mechanism @a useFrag has to be set to false and @a bufUsed to 0.
  *
  * If fragmentation shall be used the corresponding structure has to
- * be initializied using @ref initFragBuffer().
+ * be initialized using @ref initFragBuffer().
  */
 typedef struct {
     char *buf;			/**< buffer for non fragmented msg */
@@ -74,21 +88,21 @@ typedef void PS_DataBuffer_func_t(DDTypedBufferMsg_t *msg,
  * @brief Initialize Psserial facility
  *
  * Initialize Psserial facility and enable it to use a default
- * buffer-size of @a bufSize for send- and receive-buffers and @a func
- * as the sending funtion. Initialization includes allocating memory.
- * This function shall be called upon start of a program.
+ * buffer-size of @a bufSize for send-buffers and @a func as the
+ * sending function. Initialization includes allocating memory. This
+ * function shall be called upon start of a program.
  *
  * A good choice for @a func is the ParaStation daemon's @ref
  * sendMsg() function.
  *
- * @param bufSize Size of the internal buffers. It this is 0, the
+ * @param bufSize Size of the internal buffers. If this is 0, the
  * default size of 256 kB is used.
  *
  * @param func Sending function to use
  *
- * @return If anything was initialized, true is returned. Otherwise
- * false is returned. The latter might happen is the Psserial facility
- * was initialized before.
+ * @return If Psserial was initialized successfully, true is
+ * returned. Otherwise false is returned. The latter might happen is
+ * the Psserial facility was initialized before.
  */
 bool initSerial(size_t bufSize, Send_Msg_Func_t *func);
 
@@ -102,7 +116,7 @@ bool initSerial(size_t bufSize, Send_Msg_Func_t *func);
 void finalizeSerial(void);
 
 /**
- * @brief Initialize a fragmented message buffer.
+ * @brief Initialize a fragmented message buffer
  *
  * @param buffer The buffer to use
  *
@@ -839,4 +853,4 @@ bool addToMsgBuf(DDTypedBufferMsg_t *msg, void *val, uint32_t size,
 	addToMsgBuf(msg, &_x, sizeof(_x), PSDATA_UINT32, __func__); }
 
 
-#endif  /* __PLUGIN_LIB_COMM */
+#endif  /* __PSSERIAL_H */
