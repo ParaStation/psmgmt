@@ -307,15 +307,10 @@ bool __recvFragMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_func_t *func,
 		   const char *caller, const int line)
 {
     PSnodes_ID_t srcNode = PSC_getID(msg->header.sender);
+    PS_DataBuffer_t *recvBuf, myRecvBuf;
     size_t used = 0;
     uint8_t fType;
     uint16_t fNum;
-
-    if (!recvBuffers) {
-	pluginlog("%s:(%s:%i): call initFragComm() first\n", __func__,
-		  caller, line);
-	return false;
-    }
 
     if (!msg) {
 	pluginlog("%s(%s:%i): invalid msg\n", __func__, caller, line);
@@ -333,8 +328,6 @@ bool __recvFragMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_func_t *func,
 	return false;
     }
 
-    PS_DataBuffer_t *recvBuf = &recvBuffers[srcNode];
-
     PSP_getTypedMsgBuf(msg, &used, __func__, "fragType", &fType, sizeof(fType));
     PSP_getTypedMsgBuf(msg, &used, __func__, "fragNum", &fNum, sizeof(fNum));
 
@@ -344,36 +337,54 @@ bool __recvFragMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_func_t *func,
 	return false;
     }
 
-    if (fNum != recvBuf->nextFrag) {
-	pluginlog("%s: unexpected fragment %u/%u from %s\n", __func__,
-		  fNum, recvBuf->nextFrag,
-		  PSC_printTID(msg->header.sender));
-	if (fNum) return false;
-    }
+    if (fType == FRAGMENT_END && fNum == 0) {
+	/* Shortcut: message consists of just one fragment */
+	uint32_t s = msg->header.len - offsetof(DDTypedBufferMsg_t, buf) - used;
 
-    if (fNum == 0) {
-	if (recvBuf->buf) {
-	    pluginlog("%s: found buffer for%s\n", __func__,
-		      PSC_printTID(msg->header.sender));
-	    ufree(recvBuf->buf);
+	myRecvBuf.buf = msg->buf + used;
+	myRecvBuf.bufSize = myRecvBuf.bufUsed = s;
+
+	recvBuf = &myRecvBuf;
+    } else {
+	if (!recvBuffers) {
+	    pluginlog("%s:(%s:%i): call initFragComm() first\n", __func__,
+		      caller, line);
+	    return false;
 	}
-	recvBuf->bufSize = DEFAULT_BUFFER_SIZE;
-	recvBuf->buf = umalloc(recvBuf->bufSize);
-	recvBuf->bufUsed = 0;
-	recvBuf->nextFrag = 0;
-    }
 
-    /* copy payload */
-    size_t toCopy = msg->header.len - offsetof(DDTypedBufferMsg_t, buf) - used;
-    if (recvBuf->bufUsed + toCopy > recvBuf->bufSize) {
-	/* grow buffer, if necessary */
-	recvBuf->bufSize *= 2;
-	recvBuf->buf = urealloc(recvBuf->buf, recvBuf->bufSize);
+	recvBuf = &recvBuffers[srcNode];
+
+	if (fNum != recvBuf->nextFrag) {
+	    pluginlog("%s: unexpected fragment %u/%u from %s\n", __func__,
+		      fNum, recvBuf->nextFrag,
+		      PSC_printTID(msg->header.sender));
+	    if (fNum) return false;
+	}
+
+	if (fNum == 0) {
+	    if (recvBuf->buf) {
+		pluginlog("%s: found buffer for%s\n", __func__,
+			  PSC_printTID(msg->header.sender));
+		ufree(recvBuf->buf);
+	    }
+	    recvBuf->bufSize = DEFAULT_BUFFER_SIZE;
+	    recvBuf->buf = umalloc(recvBuf->bufSize);
+	    recvBuf->bufUsed = 0;
+	    recvBuf->nextFrag = 0;
+	}
+
+	/* copy payload */
+	size_t toCopy = msg->header.len-offsetof(DDTypedBufferMsg_t, buf)-used;
+	if (recvBuf->bufUsed + toCopy > recvBuf->bufSize) {
+	    /* grow buffer, if necessary */
+	    recvBuf->bufSize *= 2;
+	    recvBuf->buf = urealloc(recvBuf->buf, recvBuf->bufSize);
+	}
+	char *ptr = recvBuf->buf + recvBuf->bufUsed;
+	PSP_getTypedMsgBuf(msg, &used, __func__, "payload", ptr, toCopy);
+	recvBuf->bufUsed += toCopy;
+	recvBuf->nextFrag++;
     }
-    char *ptr = recvBuf->buf + recvBuf->bufUsed;
-    PSP_getTypedMsgBuf(msg, &used, __func__, "payload", ptr, toCopy);
-    recvBuf->bufUsed += toCopy;
-    recvBuf->nextFrag++;
 
     pluginlog("%s: recv fragment %i from %s\n", __func__, fNum,
 	      PSC_printTID(msg->header.sender));
@@ -388,12 +399,14 @@ bool __recvFragMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_func_t *func,
 	msg->buf[0] = '\0';
 	func(msg, recvBuf);
 
-	/* cleanup data */
-	ufree(recvBuf->buf);
-	recvBuf->buf = NULL;
-	recvBuf->bufSize = 0;
-	recvBuf->bufUsed = 0;
-	recvBuf->nextFrag = 0;
+	/* cleanup data if necessary */
+	if (!fNum) {
+	    ufree(recvBuf->buf);
+	    recvBuf->buf = NULL;
+	    recvBuf->bufSize = 0;
+	    recvBuf->bufUsed = 0;
+	    recvBuf->nextFrag = 0;
+	}
     }
 
     return true;
