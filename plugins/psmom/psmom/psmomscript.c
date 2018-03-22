@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -118,7 +118,7 @@ void signalPElogue(Job_t *job, char *signal, char *reason)
 }
 
 int getScriptCBData(int fd, PSID_scriptCBInfo_t *info, int32_t *exit,
-    char *errMsg, size_t errMsgLen, size_t *errLen)
+		    char *errMsg, size_t errMsgLen, size_t *errLen)
 {
     int iofd = -1;
 
@@ -517,26 +517,25 @@ void handlePELogueSignal(DDTypedBufferMsg_t *msg)
     }
 }
 
-void handlePELogueFinish(DDTypedBufferMsg_t *msg, char *msgData)
+void handlePELogueFinish(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 {
     PSnodes_ID_t nodeId = PSC_getID(msg->header.sender);
-    char *ptr, buf[300], *peType;
-    Job_t *job;
+    char *ptr = rData->buf;
+    char buf[300], *peType;
     int32_t res = 1, signalFlag;
     time_t job_start;
-    Job_Node_List_t *nodeEntry;
     int prologue = msg->type == PSP_PSMOM_PROLOGUE_FINISH ? 1 : 0;
 
-    ptr = msg->buf;
     peType = prologue ? "prologue" : "epilogue";
 
     /* get jobid */
     getString(&ptr, buf, sizeof(buf));
 
-    if ((job = findJobById(buf)) == NULL) {
-	if (!(isJobIDinHistory(buf))) {
+    Job_t *job = findJobById(buf);
+    if (!job) {
+	if (!isJobIDinHistory(buf)) {
 	    mdbg(PSMOM_LOG_WARN, "%s: '%s' finish message for unknown"
-		    " job '%s', ignoring it\n", __func__, peType, buf);
+		 " job '%s', ignoring it\n", __func__, peType, buf);
 	}
 	return;
     }
@@ -554,7 +553,8 @@ void handlePELogueFinish(DDTypedBufferMsg_t *msg, char *msgData)
     /* get result */
     getInt32(&ptr, &res);
 
-    if ((nodeEntry = findJobNodeEntry(job, nodeId))) {
+    Job_Node_List_t *nodeEntry = findJobNodeEntry(job, nodeId);
+    if (nodeEntry) {
 	if (prologue) {
 	    nodeEntry->prologue = res;
 	} else {
@@ -566,18 +566,17 @@ void handlePELogueFinish(DDTypedBufferMsg_t *msg, char *msgData)
     getInt32(&ptr, &signalFlag);
 
     /* on error get errmsg */
-    if (res != 0) {
-
+    if (res) {
 	getString(&ptr, buf, sizeof(buf));
 
 	/* suppress error message if we have killed the pelogue by request */
 	if (!signalFlag) {
 	    mlog("%s: '%s' for job '%s' node '%s(%i)' failed: %s", __func__,
-		    peType, job->id, getHostnameByNodeId(nodeId), nodeId, buf);
+		 peType, job->id, getHostnameByNodeId(nodeId), nodeId, buf);
 	} else {
 	    mdbg(PSMOM_LOG_PELOGUE, "%s: '%s' for job '%s' node '%s(%i)' "
-		    "failed: %s", __func__, peType, job->id,
-		    getHostnameByNodeId(nodeId), nodeId, buf);
+		 "failed: %s", __func__, peType, job->id,
+		 getHostnameByNodeId(nodeId), nodeId, buf);
 	}
     }
 
@@ -628,15 +627,13 @@ static void PElogueTimeoutAction(char *server, char *jobid, int prologue,
  */
 static int callbackPElogue(int fd, PSID_scriptCBInfo_t *info)
 {
-    int32_t exit_status, signalFlag = 0;
+    int32_t exitStat, signalFlag = 0;
     PElogue_Data_t *data;
     char errMsg[300] = {'\0'};
-    Child_t *child;
     size_t errLen;
 
     /* fetch error msg and exit status */
-    if ((getScriptCBData(fd, info, &exit_status, errMsg, sizeof(errMsg),
-			    &errLen))) {
+    if (getScriptCBData(fd, info, &exitStat, errMsg, sizeof(errMsg), &errLen)) {
 	mlog("%s: invalid cb data\n", __func__);
 	return 0;
     }
@@ -648,39 +645,34 @@ static int callbackPElogue(int fd, PSID_scriptCBInfo_t *info)
     }
 
     /* do some sanity checks and free the child */
-    if (!(child = findChildByJobid(data->jobid, PSMOM_CHILD_PROLOGUE))) {
+    Child_t *child = findChildByJobid(data->jobid, PSMOM_CHILD_PROLOGUE);
+    if (!child) {
 	child = findChildByJobid(data->jobid, PSMOM_CHILD_EPILOGUE);
     }
     if (!child) {
 	mlog("%s: finding child '%s' failed\n", __func__, data->jobid);
     } else {
 	signalFlag = child->signalFlag;
-	if (!(deleteChild(child->pid))) {
+	if (!deleteChild(child->pid)) {
 	    mlog("%s: deleting child '%s' failed\n", __func__, data->jobid);
 	}
     }
 
     /* prepare result msg */
-    DDTypedBufferMsg_t msgRes = (DDTypedBufferMsg_t) {
-	.header = (DDMsg_t) {
-	    .type = PSP_CC_PLUG_PSMOM,
-	    .sender = PSC_getMyTID(),
-	    .dest = data->mainMom,
-	    .len = sizeof(msgRes.header) + sizeof(msgRes.type)},
-       .buf = {'\0'} };
+    PS_SendDB_t msg;
 
     if (data->prologue) {
-	msgRes.type = PSP_PSMOM_PROLOGUE_FINISH;
+	initFragBuffer(&msg, PSP_CC_PLUG_PSMOM, PSP_PSMOM_PROLOGUE_FINISH);
 
 	/* add to statistic */
 	if (data->frontend){
-	    if (exit_status != 0) {
+	    if (exitStat) {
 		stat_failedlPrologue++;
 	    } else {
 		stat_lPrologue++;
 	    }
 	} else {
-	    if (exit_status != 0) {
+	    if (exitStat) {
 		stat_failedrPrologue++;
 	    } else {
 		stat_rPrologue++;
@@ -688,45 +680,45 @@ static int callbackPElogue(int fd, PSID_scriptCBInfo_t *info)
 	}
 
 	/* delete temp directory if prologue failed */
-	if (exit_status != 0 && data->tmpDir) {
+	if (exitStat != 0 && data->tmpDir) {
 	    removeDir(data->tmpDir, 1);
 	}
     } else {
-	msgRes.type = PSP_PSMOM_EPILOGUE_FINISH;
+	initFragBuffer(&msg, PSP_CC_PLUG_PSMOM, PSP_PSMOM_EPILOGUE_FINISH);
 
 	/* delete temp directory in epilogue */
 	if (data->tmpDir) {
 	    removeDir(data->tmpDir, 1);
 	}
     }
+    setFragDest(&msg, data->mainMom);
 
     /* add jobid */
-    addStringToMsgBuf(&msgRes, data->jobid);
+    addStringToMsg(data->jobid, &msg);
 
     /* add start_time */
-    addTimeToMsgBuf(&msgRes, data->start_time);
+    addTimeToMsg(data->start_time, &msg);
 
     /* add result */
-    addInt32ToMsgBuf(&msgRes, exit_status);
+    addInt32ToMsg(exitStat, &msg);
 
     /* add signal flag */
-    addInt32ToMsgBuf(&msgRes, signalFlag);
+    addInt32ToMsg(signalFlag, &msg);
 
     /* add error msg */
-    if (exit_status != 0) {
-	if ((strlen(errMsg) <= 0)) {
-	    mlog("%s: exit without error msg for '%s'\n", __func__,
-		data->jobid);
-	    addStringToMsgBuf(&msgRes, "no error msg received");
+    if (exitStat) {
+	if (strlen(errMsg) <= 0) {
+	    mlog("%s: exit without message for '%s'\n", __func__, data->jobid);
+	    addStringToMsg("no error msg received", &msg);
 	} else {
-	    addStringToMsgBuf(&msgRes, errMsg);
+	    addStringToMsg(errMsg, &msg);
 	}
     }
 
-    sendMsg(&msgRes);
+    sendFragMsg(&msg);
 
     /* pelogue timed out */
-    if (exit_status == -4) {
+    if (exitStat == -4) {
 	PElogueTimeoutAction(data->server, data->jobid, data->prologue, NULL);
     }
 
@@ -875,20 +867,11 @@ void monitorPELogueTimeout(Job_t *job)
 
 void handlePELogueStart(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *msgData)
 {
-    DDTypedBufferMsg_t msgRes = (DDTypedBufferMsg_t) {
-	.header = (DDMsg_t) {
-	    .type = PSP_CC_PLUG_PSMOM,
-	    .sender = PSC_getMyTID(),
-	    .dest = msg->header.sender,
-	    .len = sizeof(msgRes.header) + sizeof(msgRes.type)},
-	.buf = {'\0'} };
     char *ptr, ctype[20], buf[300], tmpDir[400] = { '\0' };
     char *dirScripts, *confTmpDir;
     int itype, disPE;
     PElogue_Data_t *data;
-    time_t job_start;
-    pid_t pid;
-    struct stat statbuf;
+    PS_SendDB_t ans;
     bool prologue = msg->type == PSP_PSMOM_PROLOGUE_START ? true : false;
 
     ptr = msgData->buf;
@@ -904,63 +887,67 @@ void handlePELogueStart(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *msgData)
     getString(&ptr, buf, sizeof(buf));
 
     if (prologue) {
+	struct stat statbuf;
+
+	initFragBuffer(&ans, PSP_CC_PLUG_PSMOM, PSP_PSMOM_PROLOGUE_FINISH);
+
 	snprintf(ctype, sizeof(ctype), "%s", "prologue");
 	itype = PSMOM_CHILD_PROLOGUE;
-	msgRes.type = PSP_PSMOM_PROLOGUE_FINISH;
 
-	if (confTmpDir && (stat(tmpDir, &statbuf) == -1)) {
-	    if ((mkdir(tmpDir, S_IRWXU) == -1)) {
+	if (confTmpDir && stat(tmpDir, &statbuf) == -1) {
+	    if (mkdir(tmpDir, S_IRWXU == -1)) {
 		mdbg(PSMOM_LOG_WARN, "%s: mkdir (%s) failed : %s\n", __func__,
-			tmpDir, strerror(errno));
+		     tmpDir, strerror(errno));
 	    } else {
-		struct passwd *spasswd;
+		struct passwd *spasswd = getpwnam(buf);
 
-		if (!(spasswd = getpwnam(buf))) {
+		if (!spasswd) {
 		    mlog("%s: getpwnam(%s) failed\n", __func__, buf);
 		} else {
-		    if ((chown(tmpDir, spasswd->pw_uid, spasswd->pw_gid)) == -1) {
+		    if (chown(tmpDir, spasswd->pw_uid, spasswd->pw_gid) == -1) {
 			mlog("%s: chown(%s) failed : %s\n", __func__, tmpDir,
-			    strerror(errno));
+			     strerror(errno));
 		    }
 		}
 	    }
 	}
     } else {
+	initFragBuffer(&ans, PSP_CC_PLUG_PSMOM, PSP_PSMOM_EPILOGUE_FINISH);
+
 	snprintf(ctype, sizeof(ctype), "%s", "epilogue");
 	itype = PSMOM_CHILD_EPILOGUE;
-	msgRes.type = PSP_PSMOM_EPILOGUE_FINISH;
 
 	/* delete temp directory in epilogue */
 	if (confTmpDir) {
 	    removeDir(tmpDir, 1);
 	}
     }
+    setFragDest(&ans, msg->header.sender);
 
     disPE = getConfValueI(&config, "DISABLE_PELOGUE");
 
     if (disPE == 1) {
 	/* no PElogue scripts to run */
-	char *jobid;
-	int32_t exit = 0;
+	time_t jobStart;
 
 	/* get jobid from received msg */
-	jobid = getStringM(&ptr);
+	char *jobid = getStringM(&ptr);
 
 	/* get start_time */
-	getTime(&ptr, &job_start);
+	getTime(&ptr, &jobStart);
 
 	if (prologue) psPamAddUser(buf, jobid, PSPAM_STATE_PROLOGUE);
 
 	/* add jobid */
-	addStringToMsgBuf(&msgRes, jobid);
+	addStringToMsg(jobid, &ans);
 
 	/* add start_time */
-	addTimeToMsgBuf(&msgRes, job_start);
+	addTimeToMsg(jobStart, &ans);
 
 	/* add result */
-	addInt32ToMsgBuf(&msgRes, exit);
+	addInt32ToMsg(0, &ans);
 
-	sendMsg(&msgRes);
+	sendFragMsg(&ans);
 	ufree(jobid);
 
 	return;
@@ -1016,22 +1003,21 @@ void handlePELogueStart(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *msgData)
 
     /* spawn child to prevent the pelogue script from blocking
      * the psmom/psid */
-    if ((pid = PSID_execFunc(execPElogueForwarder, prepScriptEnv,
-			     callbackPElogue, data)) == -1) {
-	int32_t exit = -2;
-
+    pid_t pid = PSID_execFunc(execPElogueForwarder, prepScriptEnv,
+			      callbackPElogue, data);
+    if (pid == -1) {
 	mlog("%s: exec '%s'-script failed\n", __func__, ctype);
 
 	/* add jobid */
-	addStringToMsgBuf(&msgRes, data->jobid);
+	addStringToMsg(data->jobid, &ans);
 
 	/* add start_time */
-	addTimeToMsgBuf(&msgRes, data->start_time);
+	addTimeToMsg(data->start_time, &ans);
 
 	/* add result */
-	addInt32ToMsgBuf(&msgRes, exit);
+	addInt32ToMsg(-2, &ans);
 
-	sendMsg(&msgRes);
+	sendFragMsg(&ans);
 
 	if (data->tmpDir) ufree(data->tmpDir);
 	ufree(data->dirScripts);
@@ -1052,8 +1038,8 @@ void handlePELogueStart(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *msgData)
     }
 
     addChild(pid, itype, data->jobid);
-    mdbg(PSMOM_LOG_PROCESS, "%s: %s [%i] for job %s started\n",
-	    __func__, ctype, pid, data->jobid);
+    mdbg(PSMOM_LOG_PROCESS, "%s: %s [%i] for job %s started\n", __func__,
+	 ctype, pid, data->jobid);
 }
 
 int handleNodeDown(void *nodeID)
