@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2015-2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2015-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -49,7 +49,7 @@ void redirectStepIO(Forwarder_Data_t *fwdata, Step_t *step);
 void redirectStepIO2(Forwarder_Data_t *fwdata, Step_t *step);
 void sendEnableSrunIO(Step_t *step);
 void printChildMessage(Step_t *step, char *msg, uint32_t msgLen,
-			uint8_t type, int64_t taskid);
+		       uint8_t type, int32_t rank);
 int handleUserOE(int sock, void *data);
 int setFilePermissions(Job_t *job);
 void stepFinalize(Forwarder_Data_t *fwData);

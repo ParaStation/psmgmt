@@ -15,6 +15,7 @@
 #include <string.h>
 #include <stdint.h>
 #include <fcntl.h>
+#include <arpa/inet.h>
 #include <sys/stat.h>
 #include <sys/prctl.h>
 
@@ -260,7 +261,7 @@ static void handlePrintChildMsg(Forwarder_Data_t *fwdata, char *ptr)
 {
     Step_t *step = fwdata->userData;
     uint8_t type;
-    uint32_t taskid, lrank, i;
+    uint32_t rank, lrank, i;
     size_t len;
     char *msg = NULL;
     static IO_Msg_Buf_t *lineBuf;
@@ -269,13 +270,14 @@ static void handlePrintChildMsg(Forwarder_Data_t *fwdata, char *ptr)
 
     /* read message */
     getUint8(&ptr, &type);
-    getUint32(&ptr, &taskid);
+    getUint32(&ptr, &rank);
     msg = getDataM(&ptr, &len);
 
-    /* get local rank from taskid */
-    if ((lrank = getLocalRankID(taskid, step, myNodeID)) == (uint32_t )-1) {
-	mlog("%s: invalid node rank for taskid '%i' myNodeID '%i'\n",
-		__func__, taskid, myNodeID);
+    /* get local rank from rank */
+    lrank = getLocalRankID(rank, step, myNodeID);
+    if (lrank == (uint32_t )-1) {
+	mlog("%s: invalid node rank for rank %i myNodeID %i\n",
+		__func__, rank, myNodeID);
 	ufree(msg);
 	return;
     }
@@ -308,15 +310,15 @@ static void handlePrintChildMsg(Forwarder_Data_t *fwdata, char *ptr)
 	!(step->taskFlags & LAUNCH_BUFFERED_IO)) ||
 	step->taskFlags & LAUNCH_PTY) {
 #endif
-	writeIOmsg(msg, len, taskid, type, fwdata, step, lrank);
+	writeIOmsg(msg, len, rank, type, fwdata, step, lrank);
 	ufree(msg);
 	return;
     }
 
     /* handle buffered IO */
     if (!initBuf) {
-	lineBuf = umalloc(sizeof(IO_Msg_Buf_t) *
-				step->globalTaskIdsLen[myNodeID]);
+	lineBuf = umalloc(sizeof(IO_Msg_Buf_t)
+			  * step->globalTaskIdsLen[myNodeID]);
 	for (i=0; i<step->globalTaskIdsLen[myNodeID]; i++) {
 	    lineBuf[i].out.buf = lineBuf[i].err.buf = NULL;
 	    lineBuf[i].out.bufUsed = lineBuf[i].err.bufUsed = 0;
@@ -326,7 +328,7 @@ static void handlePrintChildMsg(Forwarder_Data_t *fwdata, char *ptr)
 
    handleBufferedMsg(msg, len,
 		    type == STDOUT ?  &lineBuf[lrank].out : &lineBuf[lrank].err,
-		    fwdata, step, taskid, type, lrank);
+		    fwdata, step, rank, type, lrank);
 
     ufree(msg);
 }
@@ -540,26 +542,31 @@ void sendBrokeIOcon(Step_t *step)
 	    .type = PSP_CC_MSG,
 	    .dest = PSC_getTID(-1,0),
 	    .sender = PSC_getMyTID(),
-	    .len = PSLog_headerSize },
+	    .len = offsetof(PSLog_Msg_t, buf) },
 	.version = PLUGINFW_PROTO_VERSION,
 	.type = CMD_BROKE_IO_CON,
 	.sender = -1};
+    DDBufferMsg_t *bMsg = (DDBufferMsg_t *)&msg;
+    uint32_t myJobID = step->jobid, myStepID = step->stepid;
 
-    addUint32ToMsgBuf((DDTypedBufferMsg_t*)&msg, step->jobid);
-    addUint32ToMsgBuf((DDTypedBufferMsg_t*)&msg, step->stepid);
+    PSP_putMsgBuf(bMsg, __func__, "jobID", &myJobID, sizeof(myJobID));
+    PSP_putMsgBuf(bMsg, __func__, "stepID", &myStepID, sizeof(myStepID));
+
     sendMsgToMother(&msg);
 }
 
-static void handleBrokeIOcon(char *ptr)
+static void handleBrokeIOcon(PSLog_Msg_t *msg)
 {
-    Step_t *step;
-    uint32_t jobid, stepid;
+    DDBufferMsg_t *bMsg = (DDBufferMsg_t *)&msg;
+    size_t used = offsetof(PSLog_Msg_t, buf) - offsetof(DDBufferMsg_t, buf);
+    uint32_t jobID, stepID;
 
-    getUint32(&ptr, &jobid);
-    getUint32(&ptr, &stepid);
+    PSP_getMsgBuf(bMsg, &used, __func__, "jobID", &jobID, sizeof(jobID));
+    PSP_getMsgBuf(bMsg, &used, __func__, "stepID", &stepID, sizeof(stepID));
 
     /* step might already be deleted */
-    if (!(step = findStepByStepId(jobid, stepid))) return;
+    Step_t *step = findStepByStepId(jobID, stepID);
+    if (!step) return;
 
     if (step->ioCon < 2) step->ioCon = 2;
 }
@@ -569,7 +576,7 @@ int hookFWmsg(PSLog_Msg_t *msg, Forwarder_Data_t *fwData)
     PSSLURM_Fw_Cmds_t type = msg->type;
     switch (type) {
     case CMD_BROKE_IO_CON:
-	handleBrokeIOcon(msg->buf);
+	handleBrokeIOcon(msg);
 	break;
     default:
 	mdbg(PSSLURM_LOG_IO_VERB, "%s: Unhandled type %d\n", __func__, type);
@@ -1095,12 +1102,12 @@ void sendEnableSrunIO(Step_t *step)
 	    .type = PSP_CC_MSG,
 	    .dest = step->fwdata ? step->fwdata->tid : -1,
 	    .sender = PSC_getMyTID(),
-	    .len = PSLog_headerSize },
+	    .len = offsetof(PSLog_Msg_t, buf) },
 	.version = PLUGINFW_PROTO_VERSION,
 	.type = CMD_ENABLE_SRUN_IO,
 	.sender = -1};
 
-    /* might happen if forwarder is already gone */
+    /* might happen that forwarder is already gone */
     if (!step->fwdata) return;
     mdbg(PSSLURM_LOG_IO, "%s: to %s\n", __func__,
 	 PSC_printTID(step->fwdata->tid));
@@ -1108,22 +1115,22 @@ void sendEnableSrunIO(Step_t *step)
 }
 
 void printChildMessage(Step_t *step, char *plMsg, uint32_t msgLen,
-		       uint8_t type, int64_t taskid)
+		       uint8_t type, int32_t rank)
 {
     PSLog_Msg_t msg = (PSLog_Msg_t) {
 	.header = (DDMsg_t) {
 	    .type = PSP_CC_MSG,
 	    .dest = step->fwdata ? step->fwdata->tid : -1,
 	    .sender = PSC_getMyTID(),
-	    .len = PSLog_headerSize },
+	    .len = offsetof(PSLog_Msg_t, buf) },
 	.version = PLUGINFW_PROTO_VERSION,
 	.type = CMD_PRINT_CHILD_MSG,
 	.sender = -1};
     const size_t chunkSize = sizeof(msg.buf) - sizeof(uint8_t)
-	- sizeof(uint32_t) - sizeof(uint32_t) /* len field */;
+	- sizeof(uint32_t) - sizeof(uint32_t);
     size_t left = msgLen;
 
-    /* might happen if forwarder is already gone */
+    /* might happen that forwarder is already gone */
     if (!step->fwdata) return;
 
     /* connection to srun broke */
@@ -1136,14 +1143,20 @@ void printChildMessage(Step_t *step, char *plMsg, uint32_t msgLen,
     }
 
     /* if msg from service rank, let it seem like it comes from first task */
-    if (taskid < 0) taskid = step->globalTaskIds[step->myNodeIndex][0];
+    if (rank < 0) rank = step->globalTaskIds[step->myNodeIndex][0];
 
     do {
-	size_t chunk = left > chunkSize ? chunkSize : left;
-	msg.header.len = PSLog_headerSize;
-	addUint8ToMsgBuf((DDTypedBufferMsg_t*)&msg, type);
-	addUint32ToMsgBuf((DDTypedBufferMsg_t*)&msg, taskid);
-	addDataToMsgBuf((DDTypedBufferMsg_t*)&msg, plMsg + msgLen-left, chunk);
+	uint32_t chunk = left > chunkSize ? chunkSize : left;
+	uint32_t nRank = htonl(rank);
+	uint32_t len = htonl(chunk);
+	DDBufferMsg_t *bMsg = (DDBufferMsg_t *)&msg;
+	bMsg->header.len = offsetof(PSLog_Msg_t, buf);
+
+	PSP_putMsgBuf(bMsg, __func__, "type", &type, sizeof(type));
+	PSP_putMsgBuf(bMsg, __func__, "rank", &nRank, sizeof(nRank));
+	/* Add data chunk including its length mimicking addData */
+	PSP_putMsgBuf(bMsg, __func__, "len", &len, sizeof(len));
+	PSP_putMsgBuf(bMsg, __func__, "data", plMsg + msgLen - left, chunk);
 
 	sendMsg(&msg);
 	left -= chunk;
@@ -1158,18 +1171,24 @@ void reattachTasks(Forwarder_Data_t *fwdata, uint32_t addr,
 	    .type = PSP_CC_MSG,
 	    .dest = fwdata ? fwdata->tid : -1,
 	    .sender = PSC_getMyTID(),
-	    .len = PSLog_headerSize },
+	    .len = offsetof(PSLog_Msg_t, buf) },
 	.version = PLUGINFW_PROTO_VERSION,
 	.type = CMD_REATTACH_TASKS,
 	.sender = -1};
+    DDBufferMsg_t *bMsg = (DDBufferMsg_t *)&msg;
+    uint32_t nAddr = htonl(addr);
+    uint16_t nioPort = htons(ioPort), nctlPort = htons(ctlPort);
+    uint32_t len = htonl(PSP_strLen(sig));
 
-    /* might happen if forwarder is already gone */
+    /* might happen that forwarder is already gone */
     if (!fwdata) return;
 
-    addUint32ToMsgBuf((DDTypedBufferMsg_t*)&msg, addr);
-    addUint16ToMsgBuf((DDTypedBufferMsg_t*)&msg, ioPort);
-    addUint16ToMsgBuf((DDTypedBufferMsg_t*)&msg, ctlPort);
-    addStringToMsgBuf((DDTypedBufferMsg_t*)&msg, sig);
+    PSP_putMsgBuf(bMsg, __func__, "addr", &nAddr, sizeof(nAddr));
+    PSP_putMsgBuf(bMsg, __func__, "ioPort", &nioPort, sizeof(nioPort));
+    PSP_putMsgBuf(bMsg, __func__, "ctlPort", &nctlPort, sizeof(nctlPort));
+    /* Add string including its length mimicking addString */
+    PSP_putMsgBuf(bMsg, __func__, "len", &len, sizeof(len));
+    PSP_putMsgBuf(bMsg, __func__, "sigStr", sig, PSP_strLen(sig));
 
     sendMsg(&msg);
 }
@@ -1181,16 +1200,20 @@ void sendFWfinMessage(Forwarder_Data_t *fwdata, PSLog_Msg_t *plMsg)
 	    .type = PSP_CC_MSG,
 	    .dest = fwdata ? fwdata->tid : -1,
 	    .sender = PSC_getMyTID(),
-	    .len = PSLog_headerSize },
+	    .len = offsetof(PSLog_Msg_t, buf) },
 	.version = PLUGINFW_PROTO_VERSION,
 	.type = CMD_FW_FINALIZE,
 	.sender = -1};
+    DDBufferMsg_t *bMsg = (DDBufferMsg_t *)&msg;
+    uint32_t len = htonl(plMsg->header.len);
 
-    /* might happen if forwarder is already gone */
+    /* might happen that forwarder is already gone */
     if (!fwdata) return;
 
     /* This shall be okay since FINALIZE messages are << PSLog_Msg_t */
-    addDataToMsgBuf((DDTypedBufferMsg_t*)&msg, plMsg, plMsg->header.len);
+    /* Add data including its length mimicking addData */
+    PSP_putMsgBuf(bMsg, __func__, "len", &len, sizeof(len));
+    PSP_putMsgBuf(bMsg, __func__, "plMsg", plMsg, plMsg->header.len);
 
     if (msg.header.dest == -1) mlog("%s unkown destination for %s\n", __func__,
 				    PSC_printTID(plMsg->header.sender));
@@ -1204,15 +1227,19 @@ void sendFWtaskInfo(Forwarder_Data_t *fwdata, PS_Tasks_t *task)
 	    .type = PSP_CC_MSG,
 	    .dest = fwdata ? fwdata->tid : -1,
 	    .sender = PSC_getMyTID(),
-	    .len = PSLog_headerSize },
+	    .len = offsetof(PSLog_Msg_t, buf) },
 	.version = PLUGINFW_PROTO_VERSION,
 	.type = CMD_INFO_TASKS,
 	.sender = -1};
+    DDBufferMsg_t *bMsg = (DDBufferMsg_t *)&msg;
+    uint32_t len = htonl(sizeof(*task));
 
-    /* might happen if forwarder is already gone */
+    /* might happen that forwarder is already gone */
     if (!fwdata) return;
 
-    addDataToMsgBuf((DDTypedBufferMsg_t*)&msg, task, sizeof(*task));
+    /* Add data including its length mimicking addData */
+    PSP_putMsgBuf(bMsg, __func__, "len", &len, sizeof(len));
+    PSP_putMsgBuf(bMsg, __func__, "task", task, sizeof(*task));
 
     sendMsg(&msg);
 }
@@ -1224,12 +1251,12 @@ void sendStepTimeout(Forwarder_Data_t *fwdata)
 	    .type = PSP_CC_MSG,
 	    .dest = fwdata ? fwdata->tid : -1,
 	    .sender = PSC_getMyTID(),
-	    .len = PSLog_headerSize },
+	    .len = offsetof(PSLog_Msg_t, buf) },
 	.version = PLUGINFW_PROTO_VERSION,
 	.type = CMD_STEP_TIMEOUT,
 	.sender = -1};
 
-    /* might happen if forwarder is already gone */
+    /* might happen that forwarder is already gone */
     if (!fwdata) return;
 
     sendMsg(&msg);

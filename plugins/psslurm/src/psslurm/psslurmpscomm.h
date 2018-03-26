@@ -38,7 +38,7 @@ void releaseDelayedSpawns(uint32_t jobid, uint32_t stepid);
  */
 void cleanupDelayedSpawns(uint32_t jobid, uint32_t stepid);
 
-void send_PS_SignalTasks(Step_t *step, int signal, PStask_group_t group);
+void send_PS_SignalTasks(Step_t *step, uint32_t signal, PStask_group_t group);
 
 void send_PS_JobExit(uint32_t jobid, uint32_t stepid, uint32_t nrOfNodes,
 			PSnodes_ID_t *nodes);
