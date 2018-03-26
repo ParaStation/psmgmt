@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014-2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -258,27 +258,27 @@ int signalJobs(int signal, char *reason)
 char *strJobState(JobState_t state)
 {
     switch (state) {
-	case JOB_INIT:
-	    return "INIT";
-	case JOB_QUEUED:
-	    return "QUEUED";
-	case JOB_PRESTART:
-	    return "PRESTART";
-	case JOB_SPAWNED:
-	    return "SPAWNED";
-	case JOB_RUNNING:
-	    return "RUNNING";
-	case JOB_PROLOGUE:
-	    return "PROLOGUE";
-	case JOB_EPILOGUE:
-	    return "EPILOGUE";
-	case JOB_EXIT:
-	    return "EXIT";
-	case JOB_COMPLETE:
-	    return "COMPLETE";
+    case JOB_INIT:
+	return "INIT";
+    case JOB_QUEUED:
+	return "QUEUED";
+    case JOB_PRESTART:
+	return "PRESTART";
+    case JOB_SPAWNED:
+	return "SPAWNED";
+    case JOB_RUNNING:
+	return "RUNNING";
+    case JOB_PROLOGUE:
+	return "PROLOGUE";
+    case JOB_EPILOGUE:
+	return "EPILOGUE";
+    case JOB_EXIT:
+	return "EXIT";
+    case JOB_COMPLETE:
+	return "COMPLETE";
+    default:
+	return "<unknown>";
     }
-
-    return NULL;
 }
 
 char *strJobID(uint32_t jobid)
