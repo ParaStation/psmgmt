@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2007-2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2007-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -1425,7 +1425,7 @@ static void handleKVScacheUpdate(PSLog_Msg_t *msg, char *ptr, bool lastUpdate)
     /* sanity check */
     if ((int) (PMIUPDATE_HEADER_LEN + sizeof(int32_t) + len) != msgSize) {
 	elog("%s(r%i): got invalid update message\n", __func__, rank);
-	elog("%s(r%i): msg.header.size:%i, len:%i msgSize:%i pslog_header:%i\n",
+	elog("%s(r%i): msg.header.len:%i, len:%i msgSize:%i pslog_header:%zi\n",
 	     __func__, rank, msg->header.len, len, msgSize, PSLog_headerSize);
 	critErr();
 	return;

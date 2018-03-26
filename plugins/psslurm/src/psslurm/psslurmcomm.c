@@ -899,7 +899,7 @@ static int forwardInputMsg(Step_t *step, uint16_t rank, char *buf, int bufLen)
 	int n = (c > sizeof(msg.buf)) ? sizeof(msg.buf) : c;
 	if (n) memcpy(msg.buf, ptr, n);
 	mdbg(PSSLURM_LOG_IO | PSSLURM_LOG_IO_VERB,
-	     "%s: rank %u len %u msg.header.len %u to %s\n", __func__,
+	     "%s: rank %u len %u msg.header.len %zu to %s\n", __func__,
 	     rank, n, PSLog_headerSize + n, PSC_printTID(task->forwarderTID));
 	mdbg(PSSLURM_LOG_IO_VERB, "%s: '%.*s'\n", __func__, n, msg.buf);
 	msg.header.len = PSLog_headerSize + n;
