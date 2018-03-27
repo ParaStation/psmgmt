@@ -85,23 +85,33 @@ void signalPElogue(Job_t *job, char *signal, char *reason)
 	    .type = PSP_CC_PLUG_PSMOM,
 	    .sender = PSC_getMyTID(),
 	    .dest = PSC_getMyTID(),
-	    .len = sizeof(msg.header) + sizeof(msg.type)},
+	    .len = offsetof(DDTypedBufferMsg_t, buf) },
 	.type = PSP_PSMOM_PELOGUE_SIGNAL};
-    int32_t *finishPtr;
-    int i, id;
+    int32_t *finishPtr, i;
 
-    addStringToMsgBuf(&msg, job->id);
-    addStringToMsgBuf(&msg, signal);
+    /* Add string including its length mimicking addString */
+    uint32_t len = htonl(PSP_strLen(job->id));
+    PSP_putTypedMsgBuf(&msg, __func__, "len", &len, sizeof(len));
+    PSP_putTypedMsgBuf(&msg, __func__, "jobID", job->id, PSP_strLen(job->id));
+
+    /* Add string including its length mimicking addString */
+    len = htonl(PSP_strLen(signal));
+    PSP_putTypedMsgBuf(&msg, __func__, "len", &len, sizeof(len));
+    PSP_putTypedMsgBuf(&msg, __func__, "signal", signal, PSP_strLen(signal));
 
     /* add space for finish flag */
-    finishPtr = (int32_t *) (msg.buf + (msg.header.len - sizeof(msg.header)
-					- sizeof(msg.type)));
-    addInt32ToMsgBuf(&msg, 1);
+    finishPtr = (int32_t *)(msg.buf + (msg.header.len
+				       - offsetof(DDTypedBufferMsg_t, buf)));
 
-    addStringToMsgBuf(&msg, reason);
+    PSP_putTypedMsgBuf(&msg, __func__, "<wild-card>", NULL, sizeof(int32_t));
+
+    /* Add string including its length mimicking addString */
+    len = htonl(PSP_strLen(reason));
+    PSP_putTypedMsgBuf(&msg, __func__, "len", &len, sizeof(len));
+    PSP_putTypedMsgBuf(&msg, __func__, "reason", reason, PSP_strLen(reason));
 
     for (i=0; i<job->nrOfUniqueNodes; i++) {
-	id = job->nodes[i].id;
+	PSnodes_ID_t id = job->nodes[i].id;
 
 	/* add the individual pelogue finish flag */
 	if (job->state == JOB_PROLOGUE) {
@@ -111,8 +121,9 @@ void signalPElogue(Job_t *job, char *signal, char *reason)
 	}
 	msg.header.dest = PSC_getTID(id, 0);
 
-	mdbg(PSMOM_LOG_PSCOM, "%s: send to %i [%i->%i]\n", __func__, id,
-		msg.header.sender, msg.header.dest);
+	mdbg(PSMOM_LOG_PSCOM, "%s: send to %i [%s", __func__, id,
+	     PSC_printTID(msg.header.sender));
+	mdbg(PSMOM_LOG_PSCOM, "->%s]\n", PSC_printTID(msg.header.dest));
 	sendMsg(&msg);
     }
 }
@@ -439,12 +450,11 @@ static void PElogueExit(Job_t *job, int status, bool prologue)
 void handlePELogueSignal(DDTypedBufferMsg_t *msg)
 {
     struct stat statbuf;
-    char *ptr, buf[100], signal[100], jobid[JOB_NAME_LEN], reason[100];
+    char buf[100], signal[100], jobid[JOB_NAME_LEN], reason[100];
+    char *ptr = msg->buf;
     int isignal;
     int32_t finish;
     Child_t *child;
-
-    ptr = msg->buf;
 
     /* get jobid */
     getString(&ptr, jobid, sizeof(jobid));
