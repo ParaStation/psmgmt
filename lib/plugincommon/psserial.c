@@ -8,6 +8,7 @@
  * file.
  */
 #include <stdbool.h>
+#include <stddef.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -19,7 +20,6 @@
 
 #include "psidhook.h"
 
-#include "pluginmalloc.h"
 #include "pluginlog.h"
 
 #include "psserial.h"
@@ -84,6 +84,34 @@ static PS_DataBuffer_t *recvBuffers = NULL;
  */
 static Send_Msg_Func_t *sendPSMsg = NULL;
 
+/** Minimum size of any allocation done by psserial */
+#define MIN_MALLOC_SIZE 64
+
+/** Wrapper around malloc enforcing @ref MIN_MALLOC_SIZE */
+static inline void *umalloc(size_t size)
+{
+    return malloc(size < MIN_MALLOC_SIZE ? MIN_MALLOC_SIZE : size);
+}
+
+/**
+ * @brief Reset data buffer
+ *
+ * Reset the data buffer @a b is pointing to. This includes to free
+ * all memory.
+ *
+ * @param b Pointer to data buffer to reset
+ *
+ * @return No return value
+ */
+static void resetBuf(PS_DataBuffer_t *b)
+{
+    if (b->buf) free(b->buf);
+    b->buf = NULL;
+    b->bufSize = 0;
+    b->bufUsed = 0;
+    b->nextFrag = 0;
+}
+
 /**
  * @brief Callback on downed node
  *
@@ -110,10 +138,7 @@ static int nodeDownHandler(void *nodeID)
     }
 
     pluginlog("%s: freeing recv buffer for node '%i'\n", __func__, id);
-    if (recvBuffers[id].buf) ufree(recvBuffers[id].buf);
-    recvBuffers[id].bufSize = 0;
-    recvBuffers[id].bufUsed = 0;
-    recvBuffers[id].nextFrag = 0;
+    resetBuf(&recvBuffers[id]);
 
     return 1;
 }
@@ -164,16 +189,29 @@ bool initSerial(size_t bufSize, Send_Msg_Func_t *func)
 
     /* allocate send buffers */
     sendBufLen = bufSize ? bufSize : DEFAULT_BUFFER_SIZE;
-    sendBuf = umalloc(sendBufLen);
+    sendBuf = malloc(sendBufLen);
 
     /* allocated space for destination nodes */
-    destNodes = umalloc(sizeof(*destNodes) * numNodes);
+    destNodes = malloc(sizeof(*destNodes) * numNodes);
 
     sendPSMsg = func;
     initNodeDownHook();
 
     /* allocate receive buffers */
-    recvBuffers = umalloc(sizeof(*recvBuffers) * numNodes);
+    recvBuffers = malloc(sizeof(*recvBuffers) * numNodes);
+
+    if (!sendBuf || !destNodes || !recvBuffers) {
+	pluginlog("%s: cannot allocate all buffers\n", __func__);
+	if (sendBuf) free(sendBuf);
+	sendBuf = NULL;
+	if (destNodes) free(destNodes);
+	destNodes = NULL;
+	if (recvBuffers) free(recvBuffers);
+	recvBuffers = NULL;
+
+	return false;
+    }
+
     memset(recvBuffers, 0, sizeof(*recvBuffers) * numNodes);
 
     return true;
@@ -181,22 +219,19 @@ bool initSerial(size_t bufSize, Send_Msg_Func_t *func)
 
 void finalizeSerial(void)
 {
-    if (sendBuf) {
-	ufree(sendBuf);
-	sendBuf = NULL;
-	sendBufLen = 0;
-    }
-    if (destNodes) {
-	ufree(destNodes);
-	destNodes = NULL;
-    }
+    if (sendBuf) free(sendBuf);
+    sendBuf = NULL;
+    sendBufLen = 0;
+    if (destNodes) free(destNodes);
+    destNodes = NULL;
+
     if (recvBuffers) {
 	PSnodes_ID_t i, numNodes = PSC_getNrOfNodes();
 
 	for (i=0; i<numNodes; i++) {
 	    if (recvBuffers[i].buf) free(recvBuffers[i].buf);
 	}
-	ufree(recvBuffers);
+	free(recvBuffers);
 	recvBuffers = NULL;
     }
 
@@ -362,15 +397,17 @@ bool __recvFragMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_func_t *func,
 	}
 
 	if (fNum == 0) {
-	    if (recvBuf->buf) {
-		pluginlog("%s: found buffer for%s\n", __func__,
-			  PSC_printTID(msg->header.sender));
-		ufree(recvBuf->buf);
-	    }
+	    if (recvBuf->buf) pluginlog("%s: found buffer for%s\n", __func__,
+					PSC_printTID(msg->header.sender));
+
+	    resetBuf(recvBuf);
 	    recvBuf->bufSize = DEFAULT_BUFFER_SIZE;
-	    recvBuf->buf = umalloc(recvBuf->bufSize);
-	    recvBuf->bufUsed = 0;
-	    recvBuf->nextFrag = 0;
+	    recvBuf->buf = malloc(recvBuf->bufSize);
+	    if (!recvBuf->buf) {
+		pluginlog("%s(%s:%i): no memory\n", __func__, caller, line);
+		recvBuf->bufSize = 0;
+		return false;
+	    }
 	}
 
 	/* copy payload */
@@ -378,7 +415,12 @@ bool __recvFragMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_func_t *func,
 	if (recvBuf->bufUsed + toCopy > recvBuf->bufSize) {
 	    /* grow buffer, if necessary */
 	    recvBuf->bufSize *= 2;
-	    recvBuf->buf = urealloc(recvBuf->buf, recvBuf->bufSize);
+	    char * tmp = realloc(recvBuf->buf, recvBuf->bufSize);
+	    if (!tmp) {
+		resetBuf(recvBuf);
+		return false;
+	    }
+	    recvBuf->buf = tmp;
 	}
 	char *ptr = recvBuf->buf + recvBuf->bufUsed;
 	PSP_getTypedMsgBuf(msg, &used, __func__, "payload", ptr, toCopy);
@@ -400,13 +442,7 @@ bool __recvFragMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_func_t *func,
 	func(msg, recvBuf);
 
 	/* cleanup data if necessary */
-	if (!fNum) {
-	    ufree(recvBuf->buf);
-	    recvBuf->buf = NULL;
-	    recvBuf->bufSize = 0;
-	    recvBuf->bufUsed = 0;
-	    recvBuf->nextFrag = 0;
-	}
+	if (!fNum) resetBuf(recvBuf);
     }
 
     return true;
@@ -414,8 +450,6 @@ bool __recvFragMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_func_t *func,
 
 int __sendFragMsg(PS_SendDB_t *buffer, const char *caller, const int line)
 {
-    bool ret;
-
     if (!sendBuf) {
 	pluginlog("%s: %s at line %u, please call initSerial() before usage\n",
 		  __func__, caller, line);
@@ -431,8 +465,7 @@ int __sendFragMsg(PS_SendDB_t *buffer, const char *caller, const int line)
     /* last fragmented message */
     *(uint8_t *) fragMsg.buf = FRAGMENT_END;
 
-    ret = sendFragment(buffer, caller, line);
-    if (!ret) return -1;
+    if (!sendFragment(buffer, caller, line)) return -1;
 
     return buffer->bufUsed;
 }
@@ -469,9 +502,8 @@ void setFDblock(int fd, bool block)
  * into the buffer. Buffers will grow by multiples of @ref
  * BufTypedMsgSize and never grow beyond @ref UINT32_MAX.
  *
- * @a caller and @a line are passed to the corresponding allocation
- * functions @ref __umalloc() and __urealloc() in order to create
- * debug messages if required.
+ * @a caller and @a line are in order to create debug messages if
+ * required.
  *
  * @param len Number of additional bytes needed
  *
@@ -486,13 +518,24 @@ void setFDblock(int fd, bool block)
 static bool growDataBuffer(size_t len, PS_DataBuffer_t *data,
 			   const char *caller, const int line)
 {
-    if (!data->buf) data->bufSize = data->bufUsed = 0;
+    size_t newLen;
 
-    size_t newLen = (!len) ? (data->bufSize ? data->bufSize: BufTypedMsgSize) :
-	((data->bufUsed + len - 1) / BufTypedMsgSize + 1) * BufTypedMsgSize;
+    if (!data->buf) resetBuf(data);
+
+    if (len) {
+	newLen = ((data->bufUsed+len-1) / BufTypedMsgSize + 1)*BufTypedMsgSize;
+    } else {
+	newLen = data->bufSize ? data->bufSize: BufTypedMsgSize;
+    }
     if (newLen > UINT32_MAX) return false;
 
-    data->buf = __urealloc(data->buf, newLen, caller, line);
+    char *tmp = realloc(data->buf, newLen);
+    if (!tmp) {
+	pluginlog("%s(%s@%d): allocation of %zd failed\n",
+		  __func__, caller, line, newLen);
+	return false;
+    }
+    data->buf = tmp;
     data->bufSize = newLen;
 
     return true;
@@ -502,16 +545,25 @@ void freeDataBuffer(PS_DataBuffer_t *data)
 {
     if (!data) return;
 
-    if (data->buf) ufree(data->buf);
-    data->buf = NULL;
-    data->bufUsed = data->bufSize = 0;
+    resetBuf(data);
 }
 
-PS_DataBuffer_t * dupDataBuffer(PS_DataBuffer_t *data)
+PS_DataBuffer_t *dupDataBuffer(PS_DataBuffer_t *data)
 {
     PS_DataBuffer_t *dup = umalloc(sizeof(*dup));
 
+    if (!dup) {
+	pluginlog("%s: duplication failed\n", __func__);
+	return NULL;
+    }
+
     dup->buf = umalloc(data->bufSize);
+    if (!dup->buf) {
+	pluginlog("%s: buffer duplication failed\n", __func__);
+	free(dup);
+	return NULL;
+    }
+
     memcpy(dup->buf, data->buf, data->bufSize);
     dup->bufSize = data->bufSize;
     dup->bufUsed = data->bufUsed;
@@ -724,7 +776,12 @@ bool getArrayFromBuf(char **ptr, void **val, uint32_t *len,
 	return false;
 
     if (*len <= 0) return true;
-    *val = __umalloc(size * *len, caller, line);
+    *val = umalloc(size * *len);
+    if (!*val) {
+	pluginlog("%s(%s@%d): allocation of %zd failed\n",
+		  __func__, caller, line, size * *len);
+	return false;
+    }
 
     for (i = 0; i < *len; i++) {
 	getFromBuf(ptr, *val + i*size, type, size, caller, line);
@@ -739,14 +796,13 @@ void *getMemFromBuf(char **ptr, char *data, size_t dataSize, size_t *len,
     uint32_t l;
 
     if (dataSize && !data) {
-	pluginlog("%s: invalid buffer from '%s' at %d\n", __func__,
-		  caller, line);
+	pluginlog("%s(%s@%d): invalid buffer\n", __func__, caller, line);
 	return NULL;
     }
 
     if (!*ptr) {
-	if (debug) pluginlog("%s: invalid ptr from '%s' at %d\n", __func__,
-			     caller, line);
+	if (debug) pluginlog("%s(%s@%d): invalid pointer\n",
+			     __func__, caller, line);
 	return NULL;
     }
 
@@ -762,12 +818,17 @@ void *getMemFromBuf(char **ptr, char *data, size_t dataSize, size_t *len,
     if (data) {
 	if (l >= dataSize) {
 	    /* buffer to small */
-	    pluginlog("%s: buffer (%zu) to small for message (%u) from '%s'"
-		      " at %d\n", __func__, dataSize, l, caller, line);
+	    pluginlog("%s(%s@%d): buffer (%zu) to small for message (%u)\n",
+		      __func__, caller, line, dataSize, l);
 	    return NULL;
 	}
     } else {
-	data = __umalloc(l, caller, line);
+	data = umalloc(l);
+	if (!data) {
+	    pluginlog("%s(%s@%d): allocation of %u failed\n",
+		      __func__, caller, line, l);
+	    return NULL;
+	}
     }
 
     /* extract data */
@@ -793,7 +854,12 @@ bool __getStringArrayM(char **ptr, char ***array, uint32_t *len,
 
     if (!*len) return true;
 
-    *array = __umalloc(sizeof(char *) * (*len + 1), caller, line);
+    *array = umalloc(sizeof(char *) * (*len + 1));
+    if (!*array) {
+	pluginlog("%s(%s@%d): allocation of %zd failed\n",
+		  __func__, caller, line, sizeof(char *) * (*len + 1));
+	return false;
+    }
 
     for (i = 0; i < *len; i++) {
 	(*array)[i] = getMemFromBuf(ptr, NULL, 0, NULL, PSDATA_STRING,
@@ -863,7 +929,7 @@ static void addFragmentedData(PS_SendDB_t *buffer, const void *data,
  *
  * @param dataLen The size of the data to add
  */
-static void addData(PS_SendDB_t *buffer, const void *data, const size_t dataLen,
+static bool addData(PS_SendDB_t *buffer, const void *data, const size_t dataLen,
 		    const char *caller, const int line)
 {
     if (buffer->useFrag) {
@@ -873,15 +939,22 @@ static void addData(PS_SendDB_t *buffer, const void *data, const size_t dataLen,
 	if (!buffer->buf) buffer->bufUsed = 0;
 	/* grow send buffer if needed */
 	if (buffer->bufUsed + dataLen > sendBufLen) {
-	    sendBufLen = sendBufLen ? sendBufLen * 2 : DEFAULT_BUFFER_SIZE;
-	    sendBuf = urealloc(sendBuf, sendBufLen);
-	    pluginlog("%s: realloc send buffer to %u\n", __func__, sendBufLen);
+	    size_t s = sendBufLen ? sendBufLen * 2 : DEFAULT_BUFFER_SIZE;
+	    char *tmp = realloc(sendBuf, s);
+	    if (!tmp) {
+		pluginlog("%s(%s@%d): allocation of %zd failed\n",
+			  __func__, caller, line, s);
+		return false;
+	    }
+	    sendBufLen = s;
+	    sendBuf = tmp;
 	}
 
 	memcpy(sendBuf + buffer->bufUsed, data, dataLen);
 	buffer->bufUsed += dataLen;
 	buffer->buf = sendBuf;
     }
+    return true;
 }
 
 bool addToBuf(const void *val, const uint32_t size, PS_SendDB_t *data,
@@ -890,61 +963,63 @@ bool addToBuf(const void *val, const uint32_t size, PS_SendDB_t *data,
     bool hasLen = (type == PSDATA_STRING || type == PSDATA_DATA);
 
     if (!data) {
-	pluginlog("%s: invalid data from '%s' at %d\n", __func__, caller, line);
+	pluginlog("%s(%s@%d): invalid data\n", __func__, caller, line);
 	return false;
     }
 
     if (!val && (!hasLen || size)) {
-	pluginlog("%s: invalid val from '%s' at %d\n", __func__, caller, line);
+	pluginlog("%s(%s@%d): invalid val\n", __func__, caller, line);
 	return false;
     }
 
     if (!sendBuf) {
-	pluginlog("%s: %s at line %u, must call initSerial() before\n",
-		  __func__, caller, line);
+	pluginlog("%s(%s@%d): call initSerial()\n", __func__, caller, line);
 	return false;
     }
 
     /* add data type */
     if (typeInfo) {
-	uint8_t dataType = type;
-	addData(data, &dataType, sizeof(dataType), caller, line);
+	uint8_t dType = type;
+	if (!addData(data, &dType, sizeof(dType), caller, line)) return false;
     }
 
     /* add data length if required */
     if (hasLen) {
 	uint32_t len = byteOrder ? htonl(size) : size;
-	addData(data, &len, sizeof(len), caller, line);
+	if (!addData(data, &len, sizeof(len), caller, line)) return false;
     }
 
     /* add data */
     if (byteOrder && !hasLen && type != PSDATA_MEM) {
-	uint16_t tmp16;
-	uint32_t tmp32;
-	uint64_t tmp64;
 	switch (size) {
 	case 1:
-	    addData(data, val, size, caller, line);
+	    if (!addData(data, val, size, caller, line)) return false;
 	    break;
 	case 2:
-	    tmp16 = htons(*(uint16_t*)val);
-	    addData(data, &tmp16, sizeof(uint16_t), caller, line);
+	{
+	    uint16_t u16 = htons(*(uint16_t*)val);
+	    if (!addData(data, &u16, sizeof(u16), caller, line)) return false;
 	    break;
+	}
 	case 4:
-	    tmp32 = htonl(*(uint32_t*)val);
-	    addData(data, &tmp32, sizeof(uint32_t), caller, line);
+	{
+	    uint32_t u32 = htonl(*(uint32_t*)val);
+	    if (!addData(data, &u32, sizeof(u32), caller, line)) return false;
 	    break;
+	}
 	case 8:
-	    tmp64 = HTON64(*(uint64_t*)val);
-	    addData(data, &tmp64, sizeof(uint64_t), caller, line);
+	{
+	    uint64_t u64 = HTON64(*(uint64_t*)val);
+	    if (!addData(data, &u64, sizeof(u64), caller, line)) return false;
 	    break;
+	}
 	default:
-	    addData(data, val, size, caller, line);
+	    if (!addData(data, val, size, caller, line)) return false;
 	    pluginlog("%s(%s@%d): unknown conversion for size %d\n",
 		      __func__, caller, line, size);
 	}
     } else {
-	addData(data, val, size, caller, line);
+	if (!addData(data, val, size, caller, line)) return false;
     }
 
     return true;
@@ -958,15 +1033,13 @@ bool addArrayToBuf(const void *val, const uint32_t num, PS_SendDB_t *data,
     const char *valPtr = val;
 
     if (!data) {
-	pluginlog("%s: invalid data from '%s' at %d\n", __func__, caller, line);
+	pluginlog("%s(%s@%d): invalid data\n", __func__, caller, line);
 	return false;
     }
     if (!val) {
-	pluginlog("%s: invalid val from '%s' at %d\n", __func__, caller, line);
+	pluginlog("%s(%s@%d): invalid val\n", __func__, caller, line);
 	return false;
     }
-
-    pluginlog("%s:!!!!!! adding num %u\n", __func__, num);
 
     if (!addToBuf(&num, sizeof(num), data, PSDATA_UINT32, caller, line))
 	return false;

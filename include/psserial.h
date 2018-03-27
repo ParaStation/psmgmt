@@ -267,7 +267,7 @@ void freeDataBuffer(PS_DataBuffer_t *data);
  * @return On success, a pointer to the copy of the data buffer is
  * returned. Or NULL in case of error.
  */
-PS_DataBuffer_t * dupDataBuffer(PS_DataBuffer_t *data);
+PS_DataBuffer_t *dupDataBuffer(PS_DataBuffer_t *data);
 
 /**
  * @brief Write to data buffer
