@@ -437,7 +437,7 @@ bool __recvFragMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_func_t *func,
 	func(msg, recvBuf);
 
 	/* cleanup data if necessary */
-	if (!fNum) resetBuf(recvBuf);
+	if (fNum) resetBuf(recvBuf);
     }
 
     return true;
