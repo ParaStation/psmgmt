@@ -322,6 +322,8 @@ void sendPElogueSignal(Job_t *job, int sig, char *reason)
     PS_SendDB_t data;
     PSnodes_ID_t n;
 
+    job->signalFlag = sig;
+
     initFragBuffer(&data, PSP_CC_PLUG_PELOGUE, PSP_PELOGUE_SIGNAL);
     for (n=0; n<job->numNodes; n++) {
 	PElogueState_t status = (job->state == JOB_PROLOGUE) ?
@@ -330,6 +332,7 @@ void sendPElogueSignal(Job_t *job, int sig, char *reason)
 
 	setFragDest(&data, PSC_getTID(job->nodes[n].id, 0));
     }
+    if (!getNumFragDest(&data)) return;
 
     addStringToMsg(job->plugin, &data);
     addStringToMsg(job->id, &data);
@@ -337,8 +340,6 @@ void sendPElogueSignal(Job_t *job, int sig, char *reason)
     addStringToMsg(reason, &data);
 
     sendFragMsg(&data);
-
-    job->signalFlag = sig;
 }
 
 static void handlePElogueSignal(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)

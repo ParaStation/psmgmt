@@ -74,7 +74,7 @@ typedef struct {
     int32_t headType;		/**< message header type */
     int32_t msgType;		/**< message (sub-)type */
     uint16_t fragNum;           /**< next fragment number to send */
-    PSnodes_ID_t numDest;	/**< number of destinations */
+    int32_t numDest;            /**< number of destinations */
 } PS_SendDB_t;
 
 /** Prototype of custom sender functions used by @ref initSerial() */
@@ -141,6 +141,24 @@ void initFragBuffer(PS_SendDB_t *buffer, int32_t headType, int32_t msgType);
  * @return Returns true if the destition was added or false on error
  */
 bool setFragDest(PS_SendDB_t *buffer, PStask_ID_t id);
+
+/**
+ * @brief Get number of destinations
+ *
+ * Get the number of destinations registered to @a buffer via @ref
+ * setFragDest().
+ *
+ * @param buffer Buffer to investigate
+ *
+ * @return Number of destinations registered to @a buffer or -1 if @a
+ * buffer is invalid
+ */
+static inline int32_t getNumFragDest(PS_SendDB_t *buffer)
+{
+    if (!buffer) return -1;
+
+    return buffer->numDest;
+}
 
 /**
  * @brief Receive fragmented message

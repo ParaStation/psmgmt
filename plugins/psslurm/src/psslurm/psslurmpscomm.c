@@ -275,6 +275,7 @@ void send_PS_JobLaunch(Job_t *job)
 	if (job->nodes[i] == myID) continue;
 	setFragDest(&data, PSC_getTID(job->nodes[i], 0));
     }
+    if (!getNumFragDest(&data)) return;
 
     /* add jobid */
     addUint32ToMsg(job->jobid, &data);
@@ -302,6 +303,7 @@ void send_PS_AllocLaunch(Alloc_t *alloc)
 	if (alloc->nodes[i] == myID) continue;
 	setFragDest(&data, PSC_getTID(alloc->nodes[i], 0));
     }
+    if (!getNumFragDest(&data)) return;
 
     /* add jobid */
     addUint32ToMsg(alloc->jobid, &data);
@@ -330,6 +332,7 @@ void send_PS_AllocState(Alloc_t *alloc)
 	if (alloc->nodes[i] == myID) continue;
 	setFragDest(&data, PSC_getTID(alloc->nodes[i], 0));
     }
+    if (!getNumFragDest(&data)) return;
 
     /* add jobid */
     addUint32ToMsg(alloc->jobid, &data);

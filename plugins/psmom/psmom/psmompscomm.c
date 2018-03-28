@@ -92,6 +92,7 @@ void sendPSmomVersion(Job_t *job)
 
     initFragBuffer(&msg, PSP_CC_PLUG_PSMOM, PSP_PSMOM_VERSION);
     setFragDestFromJob(&msg, job, false);
+    if (!getNumFragDest(&msg)) return;
 
     addInt32ToMsg(PSMOM_PSCOMM_VERSION, &msg);
 
@@ -238,6 +239,7 @@ void sendJobUpdate(Job_t *job)
 
     initFragBuffer(&msg, PSP_CC_PLUG_PSMOM, PSP_PSMOM_JOB_UPDATE);
     setFragDestFromJob(&msg, job, false);
+    if (!getNumFragDest(&msg)) return;
 
     /* add jobid */
     addStringToMsg(job->id, &msg);
@@ -254,6 +256,7 @@ void sendJobInfo(Job_t *job, int start)
 
     initFragBuffer(&msg, PSP_CC_PLUG_PSMOM, PSP_PSMOM_JOB_INFO);
     setFragDestFromJob(&msg, job, false);
+    if (!getNumFragDest(&msg)) return;
 
     /* add info type */
     addInt32ToMsg(start, &msg);
