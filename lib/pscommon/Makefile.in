@@ -17,18 +17,6 @@
 #
 # ParaStation
 #
-# Copyright (C) 2012-2015 ParTec Cluster Competence Center GmbH, Munich
-#
-# This file may be distributed under the terms of the Q Public License
-# as defined in the file LICENSE.QPL included in the packaging of this
-# file.
-#
-# Author:	Thomas Moschny <moschny@par-tec.com>
-#
-
-#
-# ParaStation
-#
 # Copyright (C) 2012-2017 ParTec Cluster Competence Center GmbH, Munich
 #
 # This file may be distributed under the terms of the Q Public License
@@ -126,10 +114,10 @@ mkinstalldirs = $(install_sh) -d
 CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
 LTLIBRARIES = $(noinst_LTLIBRARIES)
-libpscommon_la_LIBADD =
+libpscommon_la_DEPENDENCIES =
 am_libpscommon_la_OBJECTS = logging.lo pscommon.lo pscpu.lo \
-	pspartition.lo psprotocol.lo pstask.lo pssignal.lo \
-	psreservation.lo
+	pspartition.lo psprotocol.lo psreservation.lo psserial.lo \
+	pssignal.lo pstask.lo
 libpscommon_la_OBJECTS = $(am_libpscommon_la_OBJECTS)
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
@@ -153,7 +141,8 @@ am__maybe_remake_depfiles = depfiles
 am__depfiles_remade = ./$(DEPDIR)/logging.Plo ./$(DEPDIR)/pscommon.Plo \
 	./$(DEPDIR)/pscpu.Plo ./$(DEPDIR)/pspartition.Plo \
 	./$(DEPDIR)/psprotocol.Plo ./$(DEPDIR)/psreservation.Plo \
-	./$(DEPDIR)/pssignal.Plo ./$(DEPDIR)/pstask.Plo
+	./$(DEPDIR)/psserial.Plo ./$(DEPDIR)/pssignal.Plo \
+	./$(DEPDIR)/pstask.Plo
 am__mv = mv -f
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
@@ -337,6 +326,16 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 unitdir = @unitdir@
+
+#
+# ParaStation
+#
+# Copyright (C) 2012-2018 ParTec Cluster Competence Center GmbH, Munich
+#
+# This file may be distributed under the terms of the Q Public License
+# as defined in the file LICENSE.QPL included in the packaging of this
+# file.
+#
 AM_CPPFLAGS = -I$(top_srcdir)/include -DNDEBUG -DPREFIX=\"$(prefix)\"
 subst_verbose = $(subst_verbose_$(V))
 subst_verbose_ = $(subst_verbose_$(AM_DEFAULT_VERBOSITY))
@@ -375,8 +374,9 @@ scriptsdir = $(prefix)/scripts
 @HAVE_SYSTEMD_TRUE@default_cgroup_name = system.slice/psid.service/descendants
 noinst_LTLIBRARIES = libpscommon.la
 libpscommon_la_SOURCES = logging.c pscommon.c pscpu.c pspartition.c	\
-	psprotocol.c pstask.c pssignal.c psreservation.c
+	psprotocol.c psreservation.c psserial.c pssignal.c pstask.c
 
+libpscommon_la_LIBADD = -ldl
 all: all-am
 
 .SUFFIXES:
@@ -438,6 +438,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pspartition.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psprotocol.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psreservation.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psserial.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pssignal.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pstask.Plo@am__quote@ # am--include-marker
 
@@ -608,6 +609,7 @@ distclean: distclean-am
 	-rm -f ./$(DEPDIR)/pspartition.Plo
 	-rm -f ./$(DEPDIR)/psprotocol.Plo
 	-rm -f ./$(DEPDIR)/psreservation.Plo
+	-rm -f ./$(DEPDIR)/psserial.Plo
 	-rm -f ./$(DEPDIR)/pssignal.Plo
 	-rm -f ./$(DEPDIR)/pstask.Plo
 	-rm -f Makefile
@@ -661,6 +663,7 @@ maintainer-clean: maintainer-clean-am
 	-rm -f ./$(DEPDIR)/pspartition.Plo
 	-rm -f ./$(DEPDIR)/psprotocol.Plo
 	-rm -f ./$(DEPDIR)/psreservation.Plo
+	-rm -f ./$(DEPDIR)/psserial.Plo
 	-rm -f ./$(DEPDIR)/pssignal.Plo
 	-rm -f ./$(DEPDIR)/pstask.Plo
 	-rm -f Makefile
@@ -702,6 +705,8 @@ uninstall-am:
 
 %: %.in
 	$(subst_verbose)$(do_subst) < $^ > $@ && chmod --reference $^ $@
+
+psserial.lo: CPPFLAGS = $(AM_CPPFLAGS) -I$(top_srcdir)/bin/daemon
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.

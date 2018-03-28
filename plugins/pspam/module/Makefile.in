@@ -17,16 +17,6 @@
 #
 # ParaStation
 #
-# Copyright (C) 2014-2017 ParTec Cluster Competence Center GmbH, Munich
-#
-# This file may be distributed under the terms of the Q Public License
-# as defined in the file LICENSE.QPL included in the packaging of this
-# file.
-#
-
-#
-# ParaStation
-#
 # Copyright (C) 2012-2017 ParTec Cluster Competence Center GmbH, Munich
 #
 # This file may be distributed under the terms of the Q Public License
@@ -152,7 +142,7 @@ am__uninstall_files_from_dir = { \
   }
 am__installdirs = "$(DESTDIR)$(pamdir)"
 LTLIBRARIES = $(pam_LTLIBRARIES)
-pam_pspam_la_DEPENDENCIES = $(libpscommon) $(plugincommon_objs)
+pam_pspam_la_DEPENDENCIES = $(libpscommon)
 am_pam_pspam_la_OBJECTS = pam_module.lo
 pam_pspam_la_OBJECTS = $(am_pam_pspam_la_OBJECTS)
 AM_V_lt = $(am__v_lt_@AM_V@)
@@ -227,6 +217,16 @@ ACLOCAL = @ACLOCAL@
 AMTAR = @AMTAR@
 AM_CFLAGS = @AM_CFLAGS@
 AM_DEFAULT_VERBOSITY = @AM_DEFAULT_VERBOSITY@
+
+#
+# ParaStation
+#
+# Copyright (C) 2014-2018 ParTec Cluster Competence Center GmbH, Munich
+#
+# This file may be distributed under the terms of the Q Public License
+# as defined in the file LICENSE.QPL included in the packaging of this
+# file.
+#
 AM_LDFLAGS = @AM_LDFLAGS@ -avoid-version -module
 AR = @AR@
 AUTOCONF = @AUTOCONF@
@@ -396,12 +396,9 @@ scriptsdir = $(prefix)/scripts
 @HAVE_SYSTEMD_FALSE@default_cgroup_name = psmgmtGrp
 @HAVE_SYSTEMD_TRUE@default_cgroup_name = system.slice/psid.service/descendants
 pam_LTLIBRARIES = pam_pspam.la
-plugincommon_objs = $(top_builddir)/lib/plugincommon/psserial.lo \
-	$(top_builddir)/lib/plugincommon/pluginmalloc.lo \
-	$(top_builddir)/lib/plugincommon/pluginlog.lo
 libpscommon = $(top_builddir)/lib/pscommon/libpscommon.la
 pam_pspam_la_SOURCES = pam_module.c
-pam_pspam_la_LIBADD = -lpam $(libpscommon) $(plugincommon_objs)
+pam_pspam_la_LIBADD = -lpam $(libpscommon)
 all: all-am
 
 .SUFFIXES:
