@@ -241,6 +241,10 @@ exit 0
 %{_plugindir}/cgroup.so
 %exclude %{_plugindir}/cgroup.la
 %config(noreplace) %{_plugindir}/cgroup.conf
+%{_plugindir}/jail.so
+%exclude %{_plugindir}/jail.la
+%config(noreplace) %{_plugindir}/jail.conf
+%config(noreplace) %{_plugindir}/jail.sh
 %{_plugindir}/pelogue.so
 %exclude %{_plugindir}/pelogue.la
 %{_plugindir}/psaccount.so

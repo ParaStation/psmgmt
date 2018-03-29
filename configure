@@ -12938,6 +12938,8 @@ ac_config_files="$ac_config_files plugins/Makefile"
 
 ac_config_files="$ac_config_files plugins/cgroup/Makefile"
 
+ac_config_files="$ac_config_files plugins/jail/Makefile"
+
 ac_config_files="$ac_config_files plugins/pelogue/Makefile"
 
 ac_config_files="$ac_config_files plugins/psaccount/Makefile"
@@ -14060,6 +14062,7 @@ do
     "lib/putil/Makefile") CONFIG_FILES="$CONFIG_FILES lib/putil/Makefile" ;;
     "plugins/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/Makefile" ;;
     "plugins/cgroup/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/cgroup/Makefile" ;;
+    "plugins/jail/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/jail/Makefile" ;;
     "plugins/pelogue/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/pelogue/Makefile" ;;
     "plugins/psaccount/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/psaccount/Makefile" ;;
     "plugins/psexec/Makefile") CONFIG_FILES="$CONFIG_FILES plugins/psexec/Makefile" ;;
