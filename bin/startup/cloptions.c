@@ -1118,7 +1118,7 @@ PARSE_MPIEXEC_OPT:
 	    break;
 	case 'l':
 	    if (accenvlist) {
-		char *tmp = PSC_concat(accenvlist, ",", envlist);
+		char *tmp = PSC_concat(accenvlist, ",", envlist, NULL);
 		free(accenvlist);
 		accenvlist = tmp;
 	    } else {

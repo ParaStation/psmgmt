@@ -337,7 +337,7 @@ static void setupPSIEnv(Conf_t *conf)
 
 	envStr = getenv("PSI_EXPORTS");
 	if (envStr) {
-	    val = PSC_concat(envStr, ",", conf->envList);
+	    val = PSC_concat(envStr, ",", conf->envList, NULL);
 	} else {
 	    val = strdup(conf->envList);
 	}
