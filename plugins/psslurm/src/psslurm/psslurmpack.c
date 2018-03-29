@@ -7,7 +7,7 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-#include "plugincomm.h"
+#include "psserial.h"
 #include "pluginhelper.h"
 #include "pluginmalloc.h"
 #include "slurmcommon.h"
@@ -16,8 +16,8 @@
 #include "psslurmpack.h"
 #include "psslurmconfig.h"
 
-bool __packSlurmAuth(PS_DataBuffer_t *data, Slurm_Auth_t *auth,
-		    const char *caller, const int line)
+bool __packSlurmAuth(PS_SendDB_t *data, Slurm_Auth_t *auth,
+		     const char *caller, const int line)
 {
     if (!data) {
 	mlog("%s: invalid data pointer from '%s' at %i\n", __func__,
@@ -372,8 +372,8 @@ bool __unpackBCastCred(Slurm_Msg_t *sMsg, BCast_Cred_t *cred,
     return true;
 }
 
-bool __packSlurmHeader(PS_DataBuffer_t *data, Slurm_Msg_Header_t *head,
-		    const char *caller, const int line)
+bool __packSlurmHeader(PS_SendDB_t *data, Slurm_Msg_Header_t *head,
+		       const char *caller, const int line)
 {
     uint32_t i;
     const char *hn;
@@ -428,7 +428,7 @@ bool __packSlurmHeader(PS_DataBuffer_t *data, Slurm_Msg_Header_t *head,
 	/* msg body */
 	if (head->fwdata[i].body.bufUsed) {
 	    addMemToMsg(head->fwdata[i].body.buf,
-		        head->fwdata[i].body.bufUsed, data);
+			head->fwdata[i].body.bufUsed, data);
 	}
     }
 
@@ -439,8 +439,8 @@ bool __packSlurmHeader(PS_DataBuffer_t *data, Slurm_Msg_Header_t *head,
     return true;
 }
 
-bool __packSlurmIOMsg(PS_DataBuffer_t *data, Slurm_IO_Header_t *ioh, char *body,
-			const char *caller, const int line)
+bool __packSlurmIOMsg(PS_SendDB_t *data, Slurm_IO_Header_t *ioh, char *body,
+		      const char *caller, const int line)
 {
     if (!data) {
 	mlog("%s: invalid data pointer from '%s' at %i\n", __func__,
@@ -1061,7 +1061,7 @@ ERROR:
     return false;
 }
 
-bool __packRespPing(PS_DataBuffer_t *data, Resp_Ping_t *ping,
+bool __packRespPing(PS_SendDB_t *data, Resp_Ping_t *ping,
 		    const char *caller, const int line)
 {
     if (!data) {
@@ -1084,9 +1084,9 @@ bool __packRespPing(PS_DataBuffer_t *data, Resp_Ping_t *ping,
     return true;
 }
 
-static void packAccNodeId(PS_DataBuffer_t *data, int type,
-			    AccountDataExt_t *accData, PSnodes_ID_t *nodes,
-			    uint32_t nrOfNodes)
+static void packAccNodeId(PS_SendDB_t *data, int type,
+			  AccountDataExt_t *accData, PSnodes_ID_t *nodes,
+			  uint32_t nrOfNodes)
 {
     PSnodes_ID_t psNodeID;
     int nid;
@@ -1101,8 +1101,8 @@ static void packAccNodeId(PS_DataBuffer_t *data, int type,
     addUint16ToMsg((uint16_t) 0, data);
 }
 
-bool __packSlurmAccData(PS_DataBuffer_t *data, SlurmAccData_t *slurmAccData,
-		        const char *caller, const int line)
+bool __packSlurmAccData(PS_SendDB_t *data, SlurmAccData_t *slurmAccData,
+			const char *caller, const int line)
 {
     AccountDataExt_t *accData = slurmAccData->accData;
     int i;
@@ -1206,7 +1206,7 @@ bool __packSlurmAccData(PS_DataBuffer_t *data, SlurmAccData_t *slurmAccData,
     return true;
 }
 
-bool __packRespNodeRegStatus(PS_DataBuffer_t *data, Resp_Node_Reg_Status_t *stat,
+bool __packRespNodeRegStatus(PS_SendDB_t *data, Resp_Node_Reg_Status_t *stat,
 			     const char *caller, const int line)
 {
     uint32_t i;
@@ -1354,7 +1354,7 @@ bool __unpackReqFileBcast(Slurm_Msg_t *sMsg, BCast_t **bcastPtr,
     return true;
 }
 
-bool __packSlurmMsg(PS_DataBuffer_t *data, Slurm_Msg_Header_t *head,
+bool __packSlurmMsg(PS_SendDB_t *data, Slurm_Msg_Header_t *head,
 		    PS_DataBuffer_t *body, Slurm_Auth_t *auth,
 		    const char *caller, const int line)
 {
@@ -1412,7 +1412,7 @@ bool __packSlurmMsg(PS_DataBuffer_t *data, Slurm_Msg_Header_t *head,
     return true;
 }
 
-bool __packRespDaemonStatus(PS_DataBuffer_t *data, Resp_Daemon_Status_t *stat,
+bool __packRespDaemonStatus(PS_SendDB_t *data, Resp_Daemon_Status_t *stat,
 			    const char *caller, const int line)
 {
     if (!data) {
@@ -1461,8 +1461,8 @@ bool __packRespDaemonStatus(PS_DataBuffer_t *data, Resp_Daemon_Status_t *stat,
     return true;
 }
 
-bool __packRespLaunchTasks(PS_DataBuffer_t *data, Resp_Launch_Tasks_t *ltasks,
-			    const char *caller, const int line)
+bool __packRespLaunchTasks(PS_SendDB_t *data, Resp_Launch_Tasks_t *ltasks,
+			   const char *caller, const int line)
 {
     uint32_t i;
 
@@ -1505,7 +1505,7 @@ bool __packRespLaunchTasks(PS_DataBuffer_t *data, Resp_Launch_Tasks_t *ltasks,
     return true;
 }
 
-bool __packEnergyData(PS_DataBuffer_t *data, const char *caller, const int line)
+bool __packEnergyData(PS_SendDB_t *data, const char *caller, const int line)
 {
     if (!data) {
 	mlog("%s: invalid data pointer from '%s' at %i\n", __func__,

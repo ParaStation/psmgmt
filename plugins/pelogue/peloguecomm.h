@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2013-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2013-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -39,9 +39,9 @@
  *
  * @param env Environment to use on the target node for the pelogue
  *
- * @return No return value
+ * @return Returns 0 on succes and -1 on error.
  */
-void sendPElogueStart(Job_t *job, PElogueType_t type, int rounds, env_t *env);
+int sendPElogueStart(Job_t *job, PElogueType_t type, int rounds, env_t *env);
 
 /**
  * @brief Signal job's pelogues

@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -33,7 +33,7 @@
 #include "psidnodes.h"
 #include "plugin.h"
 #include "pluginhelper.h"
-#include "pluginfrag.h"
+#include "psserial.h"
 
 #include "psaccounthandles.h"
 #include "pspamhandles.h"
@@ -675,7 +675,6 @@ int initialize(void)
     openMasterSock();
 
     /* We'll use fragmented messages between different psmoms */
-    initFragComm();
     initPSComm();
 
     oldSpawnReqHandler = PSID_registerMsg(PSP_CD_SPAWNREQ,
@@ -798,7 +797,6 @@ void cleanup(void)
     clearJobInfoList();
     clearAuthList();
     if (memoryDebug) fclose(memoryDebug);
-    finalizeFragComm();
 
     mlog("...Bye.\n");
     logger_finalize(psmomlogger);

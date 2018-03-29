@@ -1,17 +1,15 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2016-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-
 #include <unistd.h>
 
 #include "plugin.h"
-#include "pluginfrag.h"
 
 #include "pspluginprotocol.h"
 
@@ -37,7 +35,6 @@ int initialize(void)
 	return 1;
     }
 
-    initFragComm();
     initComm();
 
     mlog("(%i) successfully started\n", version);
@@ -49,7 +46,6 @@ void cleanup(void)
     /* make sure all processes are gone */
     clearScriptList();
     finalizeComm();
-    finalizeFragComm();
 
     mlog("...Bye.\n");
 

@@ -58,7 +58,7 @@ bool startStep(Step_t *step, const void *info)
     return false;
 }
 
-static void letAllStepsRun(uint32_t jobid)
+void startAllSteps(uint32_t jobid)
 {
     traverseSteps(startStep, &jobid);
 }
@@ -94,7 +94,7 @@ static void handleFailedPElogue(int prologue, uint32_t nrOfNodes, env_t *env,
 }
 
 static void cbPElogueAlloc(char *sjobid, int exit_status, bool timeout,
-			   PElogueResList_t *resList)
+			   PElogueResList_t *resList, void *info)
 {
     Alloc_t *alloc;
     Step_t *step;
@@ -145,7 +145,7 @@ static void cbPElogueAlloc(char *sjobid, int exit_status, bool timeout,
 	    send_PS_AllocState(alloc);
 
 	    /* start all waiting steps */
-	    letAllStepsRun(alloc->jobid);
+	    startAllSteps(alloc->jobid);
 	} else {
 	    /* Prologue failed.
 	     * The prologue script will offline the corresponding node itself.
@@ -197,7 +197,7 @@ void handleEpilogueJobCB(Job_t *job)
 }
 
 static void cbPElogueJob(char *jobid, int exit_status, bool timeout,
-			 PElogueResList_t *resList)
+			 PElogueResList_t *resList, void *info)
 {
     Job_t *job;
 
@@ -248,8 +248,8 @@ static void cbPElogueJob(char *jobid, int exit_status, bool timeout,
 }
 
 void startPElogue(uint32_t jobid, uid_t uid, gid_t gid, char *username,
-		    uint32_t nrOfNodes, PSnodes_ID_t *nodes, env_t *env,
-		    env_t *spankenv, int step, int prologue)
+		  uint32_t nrOfNodes, PSnodes_ID_t *nodes, env_t *env,
+		  env_t *spankenv, int step, int prologue)
 {
     char sjobid[256], buf[512];
     env_t clone;
@@ -259,16 +259,18 @@ void startPElogue(uint32_t jobid, uid_t uid, gid_t gid, char *username,
 	return;
     }
 
+    bool disablePrologue = getConfValueI(&Config, "DISABLE_PROLOGUE");
+
     snprintf(sjobid, sizeof(sjobid), "%u", jobid);
 
-    if (prologue) {
+    if (prologue || disablePrologue) {
 	/* register job to pelogue */
 	if (!step) {
 	    psPelogueAddJob("psslurm", sjobid, uid, gid, nrOfNodes, nodes,
-			    cbPElogueJob);
+			    cbPElogueJob, NULL);
 	} else {
 	    psPelogueAddJob("psslurm", sjobid, uid, gid, nrOfNodes, nodes,
-			    cbPElogueAlloc);
+			    cbPElogueAlloc, NULL);
 	}
     }
 

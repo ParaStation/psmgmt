@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -752,7 +752,7 @@ static int readFromDaemon(int fd, void *data)
 	switch (msg.type) {
 	case STDIN:
 	    if (verbose) {
-		PSIDfwd_printMsgf(STDERR, "%s: %s: %d bytes on STDIN\n", tag,
+		PSIDfwd_printMsgf(STDERR, "%s: %s: %zd bytes on STDIN\n", tag,
 				  __func__, msg.header.len - PSLog_headerSize);
 	    }
 	    if (childTask->stdin_fd < 0) {

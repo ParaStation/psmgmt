@@ -1,7 +1,7 @@
 /*
  *               ParaStation
  *
- * Copyright (C) 2011-2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2011-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -22,7 +22,7 @@
 
 #include "pspamcommon.h"
 
-#include "plugincomm.h"
+#include "psserial.h"
 
 /* needed for static modules but also recommended for shared modules */
 #define PAM_SM_AUTH
@@ -238,7 +238,7 @@ static PSPAMResult_t checkPsPamAllowance(const char *uName, const char *rhost)
 {
     int sock = openConnection(pspamSocketName);
     PSPAMResult_t res;
-    PS_DataBuffer_t data = { .buf = NULL};
+    PS_SendDB_t data = { .bufUsed = 0, .useFrag = false };
     int written;
 
     if (sock == -1) {
@@ -263,7 +263,6 @@ static PSPAMResult_t checkPsPamAllowance(const char *uName, const char *rhost)
     *(int32_t *)data.buf = data.bufUsed - sizeof(int32_t);
 
     written = writeToPspam(sock, data.buf, data.bufUsed);
-    free(data.buf);
     if (written != (int)data.bufUsed) {
 	elog("sending pspam auth request failed");
 	return PSPAM_RES_DENY;
@@ -370,7 +369,7 @@ static int checkAllowance(const char *uName, const char *rhost)
 static void informPlugin(const char *uName, const char *rhost)
 {
     int sock = openConnection(pspamSocketName);
-    PS_DataBuffer_t data = { .buf = NULL};
+    PS_SendDB_t data = { .bufUsed = 0, .useFrag = false };
     int written;
 
     if (sock == -1) {
@@ -391,7 +390,6 @@ static void informPlugin(const char *uName, const char *rhost)
     *(int32_t *)data.buf = data.bufUsed - sizeof(int32_t);
 
     written = writeToPspam(sock, data.buf, data.bufUsed);
-    free(data.buf);
     if (written != (int)data.bufUsed) {
 	elog("sending pspam close request failed");
 	return;

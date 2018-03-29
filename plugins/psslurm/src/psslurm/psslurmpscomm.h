@@ -10,6 +10,8 @@
 #ifndef __PS_SLURM_PSCOMM
 #define __PS_SLURM_PSCOMM
 
+#include <stdbool.h>
+
 #include "list.h"
 
 #include "psprotocol.h"
@@ -36,27 +38,7 @@ void releaseDelayedSpawns(uint32_t jobid, uint32_t stepid);
  */
 void cleanupDelayedSpawns(uint32_t jobid, uint32_t stepid);
 
-/**
- * @brief Handle a create partition message
- *
- * @param msg The message to handle.
- *
- * @return Always returns 0.
- */
-int handleCreatePart(void *msg);
-
-/**
- * @brief Handle a create partition nodelist message
- *
- * @param msg The message to handle.
- *
- * @return Always returns 0.
- */
-int handleCreatePartNL(void *msg);
-
-int handleNodeDown(void *nodeID);
-
-void send_PS_SignalTasks(Step_t *step, int signal, PStask_group_t group);
+void send_PS_SignalTasks(Step_t *step, uint32_t signal, PStask_group_t group);
 
 void send_PS_JobExit(uint32_t jobid, uint32_t stepid, uint32_t nrOfNodes,
 			PSnodes_ID_t *nodes);
@@ -105,13 +87,26 @@ void deleteCachedMsg(uint32_t jobid, uint32_t stepid);
 void handleCachedMsg(Step_t *step);
 
 /**
-* @brief Register various psid messages
-*/
-void initPScomm(void);
+ * @brief Initialzie PScomm facility
+ *
+ * Initialize the facility handling communication via psid. This
+ * includes registering various psid messages and hooks
+ *
+ * @return On success true is returned of false otherwise
+ */
+bool initPScomm(void);
 
 /**
-* @brief Unregister various psid messages
-*/
-void finalizePScomm(void);
+ * @brief Finalize PScomm facility
+ *
+ * Initialize the facility handling communication via psid. This
+ * includes cleaning up various psid messages and hooks. If @a verbose
+ * is true, diferent problems when doing so are reported.
+ *
+ * @param verbose More verbose reports on problems
+ *
+ * @return No return value
+ */
+void finalizePScomm(bool verbose);
 
 #endif

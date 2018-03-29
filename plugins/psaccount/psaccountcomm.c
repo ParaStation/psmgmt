@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -15,7 +15,7 @@
 #include "psprotocol.h"
 #include "pspluginprotocol.h"
 #include "pluginmalloc.h"
-#include "pluginfrag.h"
+#include "psserial.h"
 #include "psidcomm.h"
 #include "psidhook.h"
 
@@ -364,8 +364,11 @@ static void handleSwitchUpdate(DDTypedBufferMsg_t *msg, bool enable)
 
 void sendAggData(PStask_ID_t logger, AccountDataExt_t *aggData)
 {
-    PS_DataBuffer_t data = { .buf = NULL };
+    PS_SendDB_t data;
     PSnodes_ID_t loggerNode = PSC_getID(logger);
+
+    initFragBuffer(&data, PSP_CC_PLUG_ACCOUNT, PSP_ACCOUNT_AGG_DATA_UPDATE);
+    setFragDest(&data, PSC_getTID(loggerNode, 0));
 
     /* add logger TaskID */
     addInt32ToMsg(logger, &data);
@@ -412,10 +415,7 @@ void sendAggData(PStask_ID_t logger, AccountDataExt_t *aggData)
     addTimeToMsg(aggData->rusage.ru_stime.tv_sec, &data);
     addTimeToMsg(aggData->rusage.ru_stime.tv_usec, &data);
 
-    sendFragMsg(&data, PSC_getTID(loggerNode, 0), PSP_CC_PLUG_ACCOUNT,
-		PSP_ACCOUNT_AGG_DATA_UPDATE);
-
-    ufree(data.buf);
+    sendFragMsg(&data);
 
     mdbg(PSACC_LOG_UPDATE_MSG, "%s: to %i maxThreadsTot %lu maxVsizeTot %lu"
 	 " maxRsstot %lu maxThreads %lu maxVsize %lu maxRss %lu numTasks %u"
@@ -510,15 +510,15 @@ static void handleAggDataUpdate(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
  */
 static void sendAggDataFinish(PStask_ID_t logger)
 {
-    PS_DataBuffer_t data = { .buf = NULL };
+    PS_SendDB_t data;
+
+    initFragBuffer(&data, PSP_CC_PLUG_ACCOUNT, PSP_ACCOUNT_AGG_DATA_FINISH);
+    setFragDest(&data, PSC_getTID(PSC_getID(logger), 0));
 
     /* add logger TaskID */
     addInt32ToMsg(logger, &data);
 
-    sendFragMsg(&data, PSC_getTID(PSC_getID(logger), 0), PSP_CC_PLUG_ACCOUNT,
-		PSP_ACCOUNT_AGG_DATA_FINISH);
-
-    ufree(data.buf);
+    sendFragMsg(&data);
 }
 
 static void handleAggDataFinish(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
@@ -585,6 +585,8 @@ static int setDaemonSock(void *dsock)
 
 bool initAccComm(void)
 {
+    initSerial(0, sendMsg);
+
     origHandler = PSID_registerMsg(PSP_CD_ACCOUNT, (handlerFunc_t) handlePSMsg);
     PSID_registerMsg(PSP_CC_PLUG_ACCOUNT, (handlerFunc_t) handleInterAccount);
 
@@ -605,4 +607,5 @@ void finalizeAccComm(void)
     if (!PSIDhook_del(PSIDHOOK_FRWRD_DSOCK, setDaemonSock)) {
 	mlog("unregister 'PSIDHOOK_FRWRD_DSOCK' failed\n");
     }
+    finalizeSerial();
 }

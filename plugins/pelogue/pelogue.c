@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014-2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -21,7 +21,6 @@
 #include "timer.h"
 #include "psaccounthandles.h"
 
-#include "pluginfrag.h"
 #include "pluginhelper.h"
 
 #include "peloguelog.h"
@@ -137,7 +136,6 @@ int initialize(void)
     }
 
     initPluginConfigs();
-    initFragComm();
     initComm();
 
     /* get psaccount function handles */
@@ -172,7 +170,6 @@ int initialize(void)
 
 INIT_ERROR:
     unregisterHooks(false);
-    finalizeFragComm();
     return 1;
 }
 
@@ -205,7 +202,6 @@ void cleanup(void)
     clearJobList();
     clearAllPluginConfigs();
     unregisterHooks(true);
-    finalizeFragComm();
 
     mlog("...Bye.\n");
 

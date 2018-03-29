@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -12,7 +12,7 @@
 
 #include "pspluginprotocol.h"
 
-#include "plugincomm.h"
+#include "psserial.h"
 #include "psmomjob.h"
 
 typedef enum {
@@ -38,9 +38,6 @@ typedef enum {
  * @return No return value.
  */
 void sendJobUpdate(Job_t *job);
-
-void sendFragMsgToHostList(Job_t *job, PS_DataBuffer_t *data, int32_t type,
-			   int myself);
 
 void sendPSmomVersion(Job_t *job);
 

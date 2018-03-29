@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -20,8 +20,6 @@
 #include "pstask.h"
 
 #include "pslog.h"
-
-const int PSLog_headerSize = offsetof(PSLog_Msg_t, buf);
 
 static int daemonsock = -1;
 static int id;

@@ -1,19 +1,37 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2012-2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2012-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-#ifndef __PLUGIN_LIB_COMM
-#define __PLUGIN_LIB_COMM
+/**
+ * @file Serialization layer for messages potentially not fitting into
+ * a single message of the ParaStation protocol. Data added to such
+ * messages might either be stored in a PS_DataBuffer_t structure
+ * ready to be send as a whole via a stream-connection or send via a
+ * series of RDP messages as soon as a single message-buffer is
+ * completely filled.
+ *
+ * The actual sending mode might be chosen by either setting
+ * PS_SendSB_t's @ref useFrag flag to false (accumulate serialized
+ * data in a buffer) or by initializing the PS_SendSB_t structure via
+ * initFragBuffer() and setFragDest() (immediately send a series of
+ * RDP messages).
+ */
+#ifndef __PSSERIAL_H
+#define __PSSERIAL_H
+
+#include <stdbool.h>
+#include <stdint.h>
 
 #include "pscommon.h"
 #include "psprotocol.h"
+#include "pstaskid.h"
 
-/** Data type information used to tag data in messages */
+/** Data type information used to tag data in serialized messages */
 typedef enum {
     PSDATA_STRING = 0x03,
     PSDATA_TIME,
@@ -36,7 +54,167 @@ typedef struct {
     char *buf;           /**< Actual data-buffer */
     uint32_t bufSize;    /**< Current size of @ref buf */
     uint32_t bufUsed;    /**< Used bytes of @ref buf */
+    uint16_t nextFrag;   /**< Next fragment number to expect */
 } PS_DataBuffer_t;
+
+/**
+ * Send data-buffer for fragmented and regular messages
+ *
+ * In order to set things up for messages not using the fragmentation
+ * mechanism @a useFrag has to be set to false and @a bufUsed to 0.
+ *
+ * If fragmentation shall be used the corresponding structure has to
+ * be initialized using @ref initFragBuffer().
+ */
+typedef struct {
+    char *buf;			/**< buffer for non fragmented msg */
+    uint32_t bufUsed;		/**< number of bytes used in the buffer */
+    bool useFrag;		/**< if true use fragmentation */
+    /* all further members only used for fragmented messages */
+    int32_t headType;		/**< message header type */
+    int32_t msgType;		/**< message (sub-)type */
+    uint16_t fragNum;           /**< next fragment number to send */
+    int32_t numDest;            /**< number of destinations */
+} PS_SendDB_t;
+
+/** Prototype of custom sender functions used by @ref initSerial() */
+typedef int Send_Msg_Func_t(void *);
+
+/** Prototype for @ref __recvFragMsg()'s callback */
+typedef void PS_DataBuffer_func_t(DDTypedBufferMsg_t *msg,
+				  PS_DataBuffer_t *data);
+
+/**
+ * @brief Initialize Psserial facility
+ *
+ * Initialize Psserial facility and enable it to use a default
+ * buffer-size of @a bufSize for send-buffers and @a func as the
+ * sending function. Initialization includes allocating memory. This
+ * function shall be called upon start of a program.
+ *
+ * A good choice for @a func is the ParaStation daemon's @ref
+ * sendMsg() function.
+ *
+ * @param bufSize Size of the internal buffers. If this is 0, the
+ * default size of 256 kB is used.
+ *
+ * @param func Sending function to use
+ *
+ * @return If Psserial was initialized successfully, true is
+ * returned. Otherwise false is returned. The latter might happen is
+ * the Psserial facility was initialized before.
+ */
+bool initSerial(size_t bufSize, Send_Msg_Func_t *func);
+
+/**
+ * @brief Finalize Psserial facility
+ *
+ * Finalize the Psserial facility. This includes releasing all buffers.
+ *
+ * @return No return value
+ */
+void finalizeSerial(void);
+
+/**
+ * @brief Initialize a fragmented message buffer
+ *
+ * @param buffer The buffer to use
+ *
+ * @param headType Type of the messages used to send the fragments
+ *
+ * @param msgType Sub-type of the messages to send
+ */
+void initFragBuffer(PS_SendDB_t *buffer, int32_t headType, int32_t msgType);
+
+/**
+ * @brief Set an additional destination for fragmented messages.
+ *
+ * Add the provided Task ID as an additional destination to send
+ * the fragmented message to. This functions needs to be called
+ * before using any functions to add data to the buffer. A good place
+ * is right after the call to @ref initFragBuffer.
+ *
+ * @param buffer The send buffer to use
+ *
+ * @param id The Task ID to add
+ *
+ * @return Returns true if the destition was added or false on error
+ */
+bool setFragDest(PS_SendDB_t *buffer, PStask_ID_t id);
+
+/**
+ * @brief Get number of destinations
+ *
+ * Get the number of destinations registered to @a buffer via @ref
+ * setFragDest().
+ *
+ * @param buffer Buffer to investigate
+ *
+ * @return Number of destinations registered to @a buffer or -1 if @a
+ * buffer is invalid
+ */
+static inline int32_t getNumFragDest(PS_SendDB_t *buffer)
+{
+    if (!buffer) return -1;
+
+    return buffer->numDest;
+}
+
+/**
+ * @brief Receive fragmented message
+ *
+ * Add the fragment contained in the message @a msg to the overall
+ * message to receive stored in a separate message buffer. Upon
+ * complete receive of the message, i.e. after the last fragment
+ * arrived, the callback @a func will be called with @a msg as the
+ * first parameter and the message buffer used to collect all
+ * fragments as the second argument.
+ *
+ * @param msg Message to handle
+ *
+ * @param func Callback function to be called upon message completion
+ *
+ * @param caller Function name of the calling function
+ *
+ * @param line Line number where this function is called
+ *
+ * @return On success true is returned or false in case of an
+ * error.
+ */
+bool __recvFragMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_func_t *func,
+		   const char *caller, const int line);
+
+#define recvFragMsg(msg, func) __recvFragMsg(msg, func, __func__, __LINE__)
+
+/**
+ * @brief Send fragmented message
+ *
+ * Send the message content found in the message buffer @a buffer to
+ * the task ID(s) registered before using @ref setFragDest() as a series
+ * of fragments put into ParaStation protocol messages of type
+ * @ref DDTypedBufferMsg_t. Each message is of RDPType and the
+ * sub-type defined previously by @ref initFragBuffer().
+ *
+ * The sender function which was registered before via @ref
+ * initFragBuffer() method is used to send the fragments.
+ *
+ * Each fragment holds its own meta-data used to put together the
+ * overall message on the receiving side as required by @ref
+ * __recvFragMsg()
+ *
+ * @param buffer Buffer to send
+ *
+ * @param caller Function name of the calling function
+ *
+ * @param line Line number where this function is called
+ *
+ * @return The total number of payload bytes sent is returned. Or -1
+ * in case of sending one fragment failed. In the latter case the
+ * amount of data received on the other side is undefined.
+ */
+int __sendFragMsg(PS_SendDB_t *buffer, const char *caller, const int line);
+
+#define sendFragMsg(buffer) __sendFragMsg(buffer, __func__, __LINE__)
 
 /**
  * @brief Set byte-order flag
@@ -107,7 +285,31 @@ void freeDataBuffer(PS_DataBuffer_t *data);
  * @return On success, a pointer to the copy of the data buffer is
  * returned. Or NULL in case of error.
  */
-PS_DataBuffer_t * dupDataBuffer(PS_DataBuffer_t *data);
+PS_DataBuffer_t *dupDataBuffer(PS_DataBuffer_t *data);
+
+/**
+ * @brief Write to data buffer
+ *
+ * Write data from @a mem to the @a buffer. The buffer is
+ * growing in size as needed.
+ *
+ * @param mem Pointer holding the data to write
+ *
+ * @param len Number of bytes to write
+ *
+ * @param buffer The buffer to write to
+ *
+ * @param caller Function name of the calling function
+ *
+ * @param line Line number where this function is called
+ *
+ * @param Returns true on success and false on error
+ */
+bool __memToDataBuffer(void *mem, size_t len, PS_DataBuffer_t *buffer,
+		       const char *caller, const int line);
+
+#define memToDataBuffer(mem, size, buffer) \
+    __memToDataBuffer(mem, size, buffer, __func__, __LINE__)
 
 /**
  * @brief Write data to file descriptor
@@ -507,7 +709,7 @@ bool __getStringArrayM(char **ptr, char ***array, uint32_t *len,
  *
  * @return On success true is returned or false in case of an error.
  */
-bool addToBuf(const void *val, const uint32_t size, PS_DataBuffer_t *data,
+bool addToBuf(const void *val, const uint32_t size, PS_SendDB_t *data,
 	      PS_DataType_t type, const char *caller, const int line);
 
 #define addInt8ToMsg(val, data) { int8_t _x = val;		\
@@ -594,7 +796,7 @@ bool addToBuf(const void *val, const uint32_t size, PS_DataBuffer_t *data,
  *
  * @return On success true is returned or false in case of an error.
  */
-bool addArrayToBuf(const void *val, const uint32_t num, PS_DataBuffer_t *data,
+bool addArrayToBuf(const void *val, const uint32_t num, PS_SendDB_t *data,
 		   PS_DataType_t type, size_t size,
 		   const char *caller, const int line);
 
@@ -614,59 +816,4 @@ bool addArrayToBuf(const void *val, const uint32_t num, PS_DataBuffer_t *data,
     addArrayToBuf(val, num, data, PSDATA_INT32, sizeof(int32_t),	\
 		  __func__, __LINE__)
 
-
-
-/**
- * @brief Add element to message buffer
- *
- * Add an element of @a size bytes located at @a val to the buffer of
- * the message @a msg. If the global flag @ref typeInfo is true the
- * element will be annotated to be of type @a type.
- *
- * If the data is of type PSDATA_STRING it will be annotated by an
- * additional length item.
- *
- * If the global @ref byteOrder flag is true the data will be shuffled
- * into network byte-order unless it is of type PSDATA_STRING.
- *
- * This function uses @ref PSP_putTypedMsgBuf(), i.e. the len element
- * of the messages header is updated appropriately.
- *
- * @param msg Message to add data to
- *
- * @param val Address of the data to add
- *
- * @param size Number of bytes of the element to add
- *
- * @param type Type of the element to add
- *
- * @param caller Function name of the calling function
- *
- * @return On success true is returned or false in case of an error.
- */
-bool addToMsgBuf(DDTypedBufferMsg_t *msg, void *val, uint32_t size,
-		 PS_DataType_t type, const char *caller);
-
-#define addStringToMsgBuf(msg, str)					\
-    addToMsgBuf(msg, str, PSP_strLen(str), PSDATA_STRING, __func__)
-
-#define addDataToMsgBuf(msg, data, len)			\
-    addToMsgBuf(msg, data, len, PSDATA_DATA, __func__)
-
-#define addTimeToMsgBuf(msg, time) { time_t _x = time;			\
-	addToMsgBuf(msg, &_x, sizeof(_x), PSDATA_TIME, __func__); }
-
-#define addInt32ToMsgBuf(msg, val) { int32_t _x = val;			\
-	addToMsgBuf(msg, &_x, sizeof(_x), PSDATA_INT32, __func__); }
-
-#define addUint8ToMsgBuf(msg, val) { uint8_t _x = val;			\
-	addToMsgBuf(msg, &_x, sizeof(_x), PSDATA_UINT8, __func__); }
-
-#define addUint16ToMsgBuf(msg, val) { uint16_t _x = val;		\
-	addToMsgBuf(msg, &_x, sizeof(_x), PSDATA_UINT16, __func__); }
-
-#define addUint32ToMsgBuf(msg, val) { uint32_t _x = val;		\
-	addToMsgBuf(msg, &_x, sizeof(_x), PSDATA_UINT32, __func__); }
-
-
-#endif  /* __PLUGIN_LIB_COMM */
+#endif  /* __PSSERIAL_H */

@@ -150,6 +150,8 @@ int PSIDnodes_grow(PSnodes_ID_t num)
     nodes = realloc(nodes, sizeof(*nodes) * numNodes);
     if (!nodes) {
 	PSID_warn(-1, ENOMEM, "%s", __func__);
+	nodes=oldNodes;
+	numNodes = oldNum;
 	return -1;
     }
 

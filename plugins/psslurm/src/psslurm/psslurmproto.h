@@ -248,10 +248,6 @@ void sendStepExit(Step_t *step, uint32_t exit_status);
 void sendJobExit(Job_t *job, uint32_t exit_status);
 
 void sendEpilogueComplete(uint32_t jobid, uint32_t rc);
-int addSlurmAccData(uint8_t accType, pid_t childPid, PStask_ID_t loggerTID,
-			PS_DataBuffer_t *data, PSnodes_ID_t *nodes,
-			uint32_t nrOfNodes);
-void addSlurmPids(PStask_ID_t loggerTID, PS_DataBuffer_t *data);
 
 int getSlurmNodeID(PSnodes_ID_t psNodeID, PSnodes_ID_t *nodes,
 		    uint32_t nrOfNodes);

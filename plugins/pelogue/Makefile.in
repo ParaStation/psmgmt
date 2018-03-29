@@ -17,7 +17,7 @@
 #
 # ParaStation
 #
-# Copyright (C) 2013-2017 ParTec Cluster Competence Center GmbH, Munich
+# Copyright (C) 2013-2018 ParTec Cluster Competence Center GmbH, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -153,10 +153,11 @@ am__uninstall_files_from_dir = { \
 am__installdirs = "$(DESTDIR)$(plugindir)"
 LTLIBRARIES = $(plugin_LTLIBRARIES)
 pelogue_la_DEPENDENCIES = $(libplugincommon) $(libpscommon)
-am_pelogue_la_OBJECTS = pelogue.lo peloguelog.lo peloguecomm.lo \
-	pelogueconfig.lo peloguechild.lo peloguescript.lo \
-	peloguejob.lo pelogueinter.lo pelogueforwarder.lo \
-	peloguekvs.lo
+am_pelogue_la_OBJECTS = pelogue_la-pelogue.lo pelogue_la-peloguelog.lo \
+	pelogue_la-peloguecomm.lo pelogue_la-pelogueconfig.lo \
+	pelogue_la-peloguechild.lo pelogue_la-peloguescript.lo \
+	pelogue_la-peloguejob.lo pelogue_la-pelogueinter.lo \
+	pelogue_la-pelogueforwarder.lo pelogue_la-peloguekvs.lo
 pelogue_la_OBJECTS = $(am_pelogue_la_OBJECTS)
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
@@ -177,12 +178,16 @@ am__v_at_1 =
 DEFAULT_INCLUDES = -I.@am__isrc@
 depcomp = $(SHELL) $(top_srcdir)/scripts/depcomp
 am__maybe_remake_depfiles = depfiles
-am__depfiles_remade = ./$(DEPDIR)/pelogue.Plo \
-	./$(DEPDIR)/peloguechild.Plo ./$(DEPDIR)/peloguecomm.Plo \
-	./$(DEPDIR)/pelogueconfig.Plo ./$(DEPDIR)/pelogueforwarder.Plo \
-	./$(DEPDIR)/pelogueinter.Plo ./$(DEPDIR)/peloguejob.Plo \
-	./$(DEPDIR)/peloguekvs.Plo ./$(DEPDIR)/peloguelog.Plo \
-	./$(DEPDIR)/peloguescript.Plo
+am__depfiles_remade = ./$(DEPDIR)/pelogue_la-pelogue.Plo \
+	./$(DEPDIR)/pelogue_la-peloguechild.Plo \
+	./$(DEPDIR)/pelogue_la-peloguecomm.Plo \
+	./$(DEPDIR)/pelogue_la-pelogueconfig.Plo \
+	./$(DEPDIR)/pelogue_la-pelogueforwarder.Plo \
+	./$(DEPDIR)/pelogue_la-pelogueinter.Plo \
+	./$(DEPDIR)/pelogue_la-peloguejob.Plo \
+	./$(DEPDIR)/pelogue_la-peloguekvs.Plo \
+	./$(DEPDIR)/pelogue_la-peloguelog.Plo \
+	./$(DEPDIR)/pelogue_la-peloguescript.Plo
 am__mv = mv -f
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
@@ -415,6 +420,7 @@ pelogue_la_SOURCES = pelogue.c peloguelog.c peloguelog.h		\
 	peloguehandles.h peloguetypes.h
 
 pelogue_la_LIBADD = $(libplugincommon) $(libpscommon)
+pelogue_la_CPPFLAGS = $(AM_CPPFLAGS) -DLOCALSTATEDIR=\"$(localstatedir)\"
 all: all-am
 
 .SUFFIXES:
@@ -494,16 +500,16 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pelogue.Plo@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/peloguechild.Plo@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/peloguecomm.Plo@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pelogueconfig.Plo@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pelogueforwarder.Plo@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pelogueinter.Plo@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/peloguejob.Plo@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/peloguekvs.Plo@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/peloguelog.Plo@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/peloguescript.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pelogue_la-pelogue.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pelogue_la-peloguechild.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pelogue_la-peloguecomm.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pelogue_la-pelogueconfig.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pelogue_la-pelogueforwarder.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pelogue_la-pelogueinter.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pelogue_la-peloguejob.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pelogue_la-peloguekvs.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pelogue_la-peloguelog.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pelogue_la-peloguescript.Plo@am__quote@ # am--include-marker
 
 $(am__depfiles_remade):
 	@$(MKDIR_P) $(@D)
@@ -534,6 +540,76 @@ am--depfiles: $(am__depfiles_remade)
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='$<' object='$@' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LTCOMPILE) -c -o $@ $<
+
+pelogue_la-pelogue.lo: pelogue.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(pelogue_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT pelogue_la-pelogue.lo -MD -MP -MF $(DEPDIR)/pelogue_la-pelogue.Tpo -c -o pelogue_la-pelogue.lo `test -f 'pelogue.c' || echo '$(srcdir)/'`pelogue.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/pelogue_la-pelogue.Tpo $(DEPDIR)/pelogue_la-pelogue.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='pelogue.c' object='pelogue_la-pelogue.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(pelogue_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o pelogue_la-pelogue.lo `test -f 'pelogue.c' || echo '$(srcdir)/'`pelogue.c
+
+pelogue_la-peloguelog.lo: peloguelog.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(pelogue_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT pelogue_la-peloguelog.lo -MD -MP -MF $(DEPDIR)/pelogue_la-peloguelog.Tpo -c -o pelogue_la-peloguelog.lo `test -f 'peloguelog.c' || echo '$(srcdir)/'`peloguelog.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/pelogue_la-peloguelog.Tpo $(DEPDIR)/pelogue_la-peloguelog.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='peloguelog.c' object='pelogue_la-peloguelog.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(pelogue_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o pelogue_la-peloguelog.lo `test -f 'peloguelog.c' || echo '$(srcdir)/'`peloguelog.c
+
+pelogue_la-peloguecomm.lo: peloguecomm.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(pelogue_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT pelogue_la-peloguecomm.lo -MD -MP -MF $(DEPDIR)/pelogue_la-peloguecomm.Tpo -c -o pelogue_la-peloguecomm.lo `test -f 'peloguecomm.c' || echo '$(srcdir)/'`peloguecomm.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/pelogue_la-peloguecomm.Tpo $(DEPDIR)/pelogue_la-peloguecomm.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='peloguecomm.c' object='pelogue_la-peloguecomm.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(pelogue_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o pelogue_la-peloguecomm.lo `test -f 'peloguecomm.c' || echo '$(srcdir)/'`peloguecomm.c
+
+pelogue_la-pelogueconfig.lo: pelogueconfig.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(pelogue_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT pelogue_la-pelogueconfig.lo -MD -MP -MF $(DEPDIR)/pelogue_la-pelogueconfig.Tpo -c -o pelogue_la-pelogueconfig.lo `test -f 'pelogueconfig.c' || echo '$(srcdir)/'`pelogueconfig.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/pelogue_la-pelogueconfig.Tpo $(DEPDIR)/pelogue_la-pelogueconfig.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='pelogueconfig.c' object='pelogue_la-pelogueconfig.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(pelogue_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o pelogue_la-pelogueconfig.lo `test -f 'pelogueconfig.c' || echo '$(srcdir)/'`pelogueconfig.c
+
+pelogue_la-peloguechild.lo: peloguechild.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(pelogue_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT pelogue_la-peloguechild.lo -MD -MP -MF $(DEPDIR)/pelogue_la-peloguechild.Tpo -c -o pelogue_la-peloguechild.lo `test -f 'peloguechild.c' || echo '$(srcdir)/'`peloguechild.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/pelogue_la-peloguechild.Tpo $(DEPDIR)/pelogue_la-peloguechild.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='peloguechild.c' object='pelogue_la-peloguechild.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(pelogue_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o pelogue_la-peloguechild.lo `test -f 'peloguechild.c' || echo '$(srcdir)/'`peloguechild.c
+
+pelogue_la-peloguescript.lo: peloguescript.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(pelogue_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT pelogue_la-peloguescript.lo -MD -MP -MF $(DEPDIR)/pelogue_la-peloguescript.Tpo -c -o pelogue_la-peloguescript.lo `test -f 'peloguescript.c' || echo '$(srcdir)/'`peloguescript.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/pelogue_la-peloguescript.Tpo $(DEPDIR)/pelogue_la-peloguescript.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='peloguescript.c' object='pelogue_la-peloguescript.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(pelogue_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o pelogue_la-peloguescript.lo `test -f 'peloguescript.c' || echo '$(srcdir)/'`peloguescript.c
+
+pelogue_la-peloguejob.lo: peloguejob.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(pelogue_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT pelogue_la-peloguejob.lo -MD -MP -MF $(DEPDIR)/pelogue_la-peloguejob.Tpo -c -o pelogue_la-peloguejob.lo `test -f 'peloguejob.c' || echo '$(srcdir)/'`peloguejob.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/pelogue_la-peloguejob.Tpo $(DEPDIR)/pelogue_la-peloguejob.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='peloguejob.c' object='pelogue_la-peloguejob.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(pelogue_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o pelogue_la-peloguejob.lo `test -f 'peloguejob.c' || echo '$(srcdir)/'`peloguejob.c
+
+pelogue_la-pelogueinter.lo: pelogueinter.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(pelogue_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT pelogue_la-pelogueinter.lo -MD -MP -MF $(DEPDIR)/pelogue_la-pelogueinter.Tpo -c -o pelogue_la-pelogueinter.lo `test -f 'pelogueinter.c' || echo '$(srcdir)/'`pelogueinter.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/pelogue_la-pelogueinter.Tpo $(DEPDIR)/pelogue_la-pelogueinter.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='pelogueinter.c' object='pelogue_la-pelogueinter.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(pelogue_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o pelogue_la-pelogueinter.lo `test -f 'pelogueinter.c' || echo '$(srcdir)/'`pelogueinter.c
+
+pelogue_la-pelogueforwarder.lo: pelogueforwarder.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(pelogue_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT pelogue_la-pelogueforwarder.lo -MD -MP -MF $(DEPDIR)/pelogue_la-pelogueforwarder.Tpo -c -o pelogue_la-pelogueforwarder.lo `test -f 'pelogueforwarder.c' || echo '$(srcdir)/'`pelogueforwarder.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/pelogue_la-pelogueforwarder.Tpo $(DEPDIR)/pelogue_la-pelogueforwarder.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='pelogueforwarder.c' object='pelogue_la-pelogueforwarder.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(pelogue_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o pelogue_la-pelogueforwarder.lo `test -f 'pelogueforwarder.c' || echo '$(srcdir)/'`pelogueforwarder.c
+
+pelogue_la-peloguekvs.lo: peloguekvs.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(pelogue_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT pelogue_la-peloguekvs.lo -MD -MP -MF $(DEPDIR)/pelogue_la-peloguekvs.Tpo -c -o pelogue_la-peloguekvs.lo `test -f 'peloguekvs.c' || echo '$(srcdir)/'`peloguekvs.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/pelogue_la-peloguekvs.Tpo $(DEPDIR)/pelogue_la-peloguekvs.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='peloguekvs.c' object='pelogue_la-peloguekvs.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(pelogue_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o pelogue_la-peloguekvs.lo `test -f 'peloguekvs.c' || echo '$(srcdir)/'`peloguekvs.c
 
 mostlyclean-libtool:
 	-rm -f *.lo
@@ -669,16 +745,16 @@ clean-am: clean-generic clean-libtool clean-pluginLTLIBRARIES \
 	mostlyclean-am
 
 distclean: distclean-am
-		-rm -f ./$(DEPDIR)/pelogue.Plo
-	-rm -f ./$(DEPDIR)/peloguechild.Plo
-	-rm -f ./$(DEPDIR)/peloguecomm.Plo
-	-rm -f ./$(DEPDIR)/pelogueconfig.Plo
-	-rm -f ./$(DEPDIR)/pelogueforwarder.Plo
-	-rm -f ./$(DEPDIR)/pelogueinter.Plo
-	-rm -f ./$(DEPDIR)/peloguejob.Plo
-	-rm -f ./$(DEPDIR)/peloguekvs.Plo
-	-rm -f ./$(DEPDIR)/peloguelog.Plo
-	-rm -f ./$(DEPDIR)/peloguescript.Plo
+		-rm -f ./$(DEPDIR)/pelogue_la-pelogue.Plo
+	-rm -f ./$(DEPDIR)/pelogue_la-peloguechild.Plo
+	-rm -f ./$(DEPDIR)/pelogue_la-peloguecomm.Plo
+	-rm -f ./$(DEPDIR)/pelogue_la-pelogueconfig.Plo
+	-rm -f ./$(DEPDIR)/pelogue_la-pelogueforwarder.Plo
+	-rm -f ./$(DEPDIR)/pelogue_la-pelogueinter.Plo
+	-rm -f ./$(DEPDIR)/pelogue_la-peloguejob.Plo
+	-rm -f ./$(DEPDIR)/pelogue_la-peloguekvs.Plo
+	-rm -f ./$(DEPDIR)/pelogue_la-peloguelog.Plo
+	-rm -f ./$(DEPDIR)/pelogue_la-peloguescript.Plo
 	-rm -f Makefile
 distclean-am: clean-am distclean-compile distclean-generic \
 	distclean-tags
@@ -724,16 +800,16 @@ install-ps-am:
 installcheck-am:
 
 maintainer-clean: maintainer-clean-am
-		-rm -f ./$(DEPDIR)/pelogue.Plo
-	-rm -f ./$(DEPDIR)/peloguechild.Plo
-	-rm -f ./$(DEPDIR)/peloguecomm.Plo
-	-rm -f ./$(DEPDIR)/pelogueconfig.Plo
-	-rm -f ./$(DEPDIR)/pelogueforwarder.Plo
-	-rm -f ./$(DEPDIR)/pelogueinter.Plo
-	-rm -f ./$(DEPDIR)/peloguejob.Plo
-	-rm -f ./$(DEPDIR)/peloguekvs.Plo
-	-rm -f ./$(DEPDIR)/peloguelog.Plo
-	-rm -f ./$(DEPDIR)/peloguescript.Plo
+		-rm -f ./$(DEPDIR)/pelogue_la-pelogue.Plo
+	-rm -f ./$(DEPDIR)/pelogue_la-peloguechild.Plo
+	-rm -f ./$(DEPDIR)/pelogue_la-peloguecomm.Plo
+	-rm -f ./$(DEPDIR)/pelogue_la-pelogueconfig.Plo
+	-rm -f ./$(DEPDIR)/pelogue_la-pelogueforwarder.Plo
+	-rm -f ./$(DEPDIR)/pelogue_la-pelogueinter.Plo
+	-rm -f ./$(DEPDIR)/pelogue_la-peloguejob.Plo
+	-rm -f ./$(DEPDIR)/pelogue_la-peloguekvs.Plo
+	-rm -f ./$(DEPDIR)/pelogue_la-peloguelog.Plo
+	-rm -f ./$(DEPDIR)/pelogue_la-peloguescript.Plo
 	-rm -f Makefile
 maintainer-clean-am: distclean-am maintainer-clean-generic
 

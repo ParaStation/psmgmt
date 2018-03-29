@@ -24,7 +24,7 @@
 #include "slurmcommon.h"
 #include "psidtask.h"
 #include "pluginmalloc.h"
-#include "plugincomm.h"
+#include "psserial.h"
 #include "pspamhandles.h"
 #include "peloguehandles.h"
 
@@ -266,27 +266,27 @@ int signalJobs(int signal)
 char *strJobState(JobState_t state)
 {
     switch (state) {
-	case JOB_INIT:
-	    return "INIT";
-	case JOB_QUEUED:
-	    return "QUEUED";
-	case JOB_PRESTART:
-	    return "PRESTART";
-	case JOB_SPAWNED:
-	    return "SPAWNED";
-	case JOB_RUNNING:
-	    return "RUNNING";
-	case JOB_PROLOGUE:
-	    return "PROLOGUE";
-	case JOB_EPILOGUE:
-	    return "EPILOGUE";
-	case JOB_EXIT:
-	    return "EXIT";
-	case JOB_COMPLETE:
-	    return "COMPLETE";
+    case JOB_INIT:
+	return "INIT";
+    case JOB_QUEUED:
+	return "QUEUED";
+    case JOB_PRESTART:
+	return "PRESTART";
+    case JOB_SPAWNED:
+	return "SPAWNED";
+    case JOB_RUNNING:
+	return "RUNNING";
+    case JOB_PROLOGUE:
+	return "PROLOGUE";
+    case JOB_EPILOGUE:
+	return "EPILOGUE";
+    case JOB_EXIT:
+	return "EXIT";
+    case JOB_COMPLETE:
+	return "COMPLETE";
+    default:
+	return "<unknown>";
     }
-
-    return NULL;
 }
 
 char *strJobID(uint32_t jobid)

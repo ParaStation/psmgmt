@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2017 Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2018 Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -63,7 +63,7 @@ typedef struct PSLog_Msg_T {
 /**
  * Header-size of PSLog message. Size of header, type and sender within
  * #PSLog_Msg_t. */
-extern const int PSLog_headerSize;
+#define PSLog_headerSize offsetof(PSLog_Msg_t, buf)
 
 /**
  * @brief Setup the PSLog facility.

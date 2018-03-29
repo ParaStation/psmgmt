@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2016-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -98,6 +98,7 @@ static int initDefaultContext(void)
     defDecCtx = munge_ctx_create();
     if (!defDecCtx) {
 	munge_ctx_destroy(defEncCtx);
+	defEncCtx = NULL;
 	mlog("%s: creating decoding context failed\n", __func__);
 	return 0;
     }
@@ -138,18 +139,12 @@ bool initMunge(void)
     if (!initDefaultContext()) return false;
 
     /* test munge functionality */
-    if (!psMungeEncode(&cred)) goto INIT_ERROR;
-    if (!psMungeDecode(cred, &uid, &gid)) goto INIT_ERROR;
-    free(cred);
+    if (!psMungeEncode(&cred) || !psMungeDecode(cred, &uid, &gid)) {
+	if (cred) free(cred);
+	return false;
+    }
 
     return true;
-
-INIT_ERROR:
-    if (defEncCtx) munge_ctx_destroy(defEncCtx);
-    if (defDecCtx) munge_ctx_destroy(defDecCtx);
-    if (cred) free(cred);
-
-    return false;
 }
 
 void finalizeMunge(void)

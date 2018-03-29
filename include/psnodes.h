@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2006 Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2018 Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -12,24 +12,12 @@
  * @file
  * Functions for handling the various informations about the nodes
  * with a ParaStation cluster
- *
- * $Id$
- *
- * @author
- * Norbert Eicker <eicker@par-tec.com>
- *
  */
 #ifndef __PSNODES_H
 #define __PSNODES_H
 
+#include <stdint.h>
 #include <sys/types.h>
-
-#ifdef __cplusplus
-extern "C" {
-#if 0
-} /* <- just for emacs indentation */
-#endif
-#endif
 
 /** Type to store unique node IDs in. This enables us to have 32168 nodes. */
 typedef int16_t PSnodes_ID_t;
@@ -49,9 +37,5 @@ typedef enum {
     OVERBOOK_TRUE,    /**< Complete overbooking */
     OVERBOOK_AUTO,    /**< Overbooking on user request */
 } PSnodes_overbook_t;
-
-#ifdef __cplusplus
-}/* extern "C" */
-#endif
 
 #endif  /* __PSNODES_H */

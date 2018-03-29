@@ -130,6 +130,14 @@ const ConfDef_t CONFIG_VALUES[] =
 	"string",
 	"17.02",
 	"Slurm protocol version as string (e.g. 17.11)" },
+    { "DISABLE_PROLOGUE", 1,
+	"bool",
+	"0",
+	"Disable the execution of the parallel prologue" },
+    { "DISABLE_EPILOGUE", 1,
+	"bool",
+	"0",
+	"Disable the execution of the parallel epilogue" },
     { NULL, 0, NULL, NULL, NULL },
 };
 

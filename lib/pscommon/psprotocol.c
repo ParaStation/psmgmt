@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -192,7 +192,7 @@ static bool doPutMsgBuf(DDBufferMsg_t *msg, const char *callName,
 			const char *funcName, const char *dataName,
 			const void *data, size_t size, bool typed, bool try)
 {
-    size_t off, used;
+    size_t off;
 
     if (!msg) {
 	PSC_log(-1, "%s: no 'msg' provided for '%s' in %s()\n", callName,
@@ -210,17 +210,19 @@ static bool doPutMsgBuf(DDBufferMsg_t *msg, const char *callName,
 	msg->header.len += t_off;
     }
 
-    if (data) {
-	used = (sizeof(msg->buf) - off >= size) ? size : 0;
-	if (used) memcpy(msg->buf+off, data, size);
-    } else {
-	used = (sizeof(msg->buf) - off > 0) ? 1 : 0;
-	if (used) msg->buf[off] = '\0';
-    }
+    size_t s = size ? size : 1;
+    size_t used = (sizeof(msg->buf) - off >= s) ? s : 0;
+
     if (!used) {
 	PSC_log(try ? PSC_LOG_VERB : -1, "%s: data '%s' too large in %s()\n",
-		callName, dataName, funcName);
+		callName, dataName ? dataName : "<empty>", funcName);
 	return false;
+    }
+
+    if (data) {
+	memcpy(msg->buf+off, data, size);
+    } else {
+	msg->buf[off] = '\0';
     }
     msg->header.len += used;
 

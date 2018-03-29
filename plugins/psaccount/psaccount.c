@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2010-2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2010-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -27,7 +27,7 @@
 #include "plugin.h"
 #include "psidnodes.h"
 #include "psidutil.h"
-#include "pluginfrag.h"
+#include "psidcomm.h"
 
 #define PSACCOUNT_CONFIG "psaccount.conf"
 
@@ -105,7 +105,6 @@ int initialize(void)
 
     /* init all lists */
     initProc();
-    initFragComm();
 
     /* init the config facility */
     snprintf(configfn, sizeof(configfn), "%s/%s", PLUGINDIR, PSACCOUNT_CONFIG);
@@ -181,5 +180,4 @@ void cleanup(void)
     clearAllClients();
     finalizeProc();
     freeConfig(&config);
-    finalizeFragComm();
 }

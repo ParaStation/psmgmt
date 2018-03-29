@@ -17,7 +17,7 @@
 #include <sys/un.h>
 #include <pwd.h>
 
-#include "plugincomm.h"
+#include "psserial.h"
 #include "pluginmalloc.h"
 #include "pluginpartition.h"
 #include "selector.h"

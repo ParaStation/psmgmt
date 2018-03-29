@@ -719,7 +719,7 @@ static void handleOutMsg(PSLog_Msg_t *msg, int outfd)
 {
     static int lastSender = lastSenderMagic;
     static bool nlAtEnd = true;
-    PSIlog_log(PSILOG_LOG_VERB, "Got %d bytes from %s\n",
+    PSIlog_log(PSILOG_LOG_VERB, "Got %zd bytes from %s\n",
 	       msg->header.len - PSLog_headerSize,
 	       PSC_printTID(msg->header.sender));
 
@@ -732,7 +732,7 @@ static void handleOutMsg(PSLog_Msg_t *msg, int outfd)
 	size_t count = msg->header.len - PSLog_headerSize;
 
 	if (PSIlog_getDebugMask() & PSILOG_LOG_VERB) {
-	    snprintf(prefix, sizeof(prefix), "[%d, %d]: ", msg->sender,
+	    snprintf(prefix, sizeof(prefix), "[%d, %zd]: ", msg->sender,
 		     msg->header.len - PSLog_headerSize);
 	} else if (count > 0) {
 	    snprintf(prefix, sizeof(prefix), "[%d]: ", msg->sender);
@@ -786,14 +786,14 @@ static void handleOutMsg(PSLog_Msg_t *msg, int outfd)
 		PSIlog_stdout(-1, "\n");
 	    }
 	    PSIlog_stdout(-1, "%.*s",
-			  msg->header.len-PSLog_headerSize, msg->buf);
+			  (int)(msg->header.len-PSLog_headerSize), msg->buf);
 	    break;
 	case STDERR_FILENO:
 	    if (msg->sender != lastSender && !nlAtEnd) {
 		PSIlog_stdout(-1, "\n");
 	    }
 	    PSIlog_stderr(-1, "%.*s",
-			  msg->header.len-PSLog_headerSize, msg->buf);
+			  (int)(msg->header.len-PSLog_headerSize), msg->buf);
 	    break;
 	default:
 	    PSIlog_log(-1, "%s: unknown outfd %d\n", __func__, outfd);

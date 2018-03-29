@@ -13,7 +13,7 @@
 #include <stdint.h>
 
 #include "list.h"
-#include "plugincomm.h"
+#include "psserial.h"
 #include "slurmcommon.h"
 
 #define GRES_PLUGIN_GPU	7696487
@@ -50,7 +50,7 @@ Gres_Conf_t *addGresConf(char *name, char *count, char *file, char *cpus);
 /**
  * @doctodo
  */
-void addGresData(PS_DataBuffer_t *msg, int version);
+void addGresData(PS_SendDB_t *msg, int version);
 
 /**
  * @doctodo

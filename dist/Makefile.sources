@@ -150,11 +150,9 @@ include/logging.h \
 include/mcast.h \
 include/parser.h \
 include/plugin.h \
-include/plugincomm.h \
 include/pluginconfig.h \
 include/pluginenv.h \
 include/pluginforwarder.h \
-include/pluginfrag.h \
 include/pluginhelper.h \
 include/pluginhostlist.h \
 include/pluginlog.h \
@@ -183,6 +181,7 @@ include/pspluginprotocol.h \
 include/psprotocol.h \
 include/psprotocolenv.h \
 include/psreservation.h \
+include/psserial.h \
 include/pssignal.h \
 include/psstrings.h \
 include/pstask.h \
@@ -194,10 +193,8 @@ lib/Makefile.am \
 lib/Makefile.in \
 lib/plugincommon/Makefile.am \
 lib/plugincommon/Makefile.in \
-lib/plugincommon/plugincomm.c \
 lib/plugincommon/pluginconfig.c \
 lib/plugincommon/pluginenv.c \
-lib/plugincommon/pluginfrag.c \
 lib/plugincommon/pluginforwarder.c \
 lib/plugincommon/pluginhelper.c \
 lib/plugincommon/pluginhostlist.c \
@@ -214,6 +211,7 @@ lib/pscommon/pscpu.c \
 lib/pscommon/pspartition.c \
 lib/pscommon/psprotocol.c \
 lib/pscommon/psreservation.c \
+lib/pscommon/psserial.c \
 lib/pscommon/pssignal.c \
 lib/pscommon/pstask.c \
 lib/pse/Makefile.am \

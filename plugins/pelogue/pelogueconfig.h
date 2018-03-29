@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2013-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2013-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -62,11 +62,19 @@ bool addPluginConfig(const char *name, Config_t *config);
  *
  * @param key Key identifying the entry
  *
+ * @param caller Function name of the calling function
+ *
+ * @param line Line number where this function is called
+ *
  * @return If a corresponding entry is found and its value can be
  * converted to an integer, this value is returned. Otherwise -1 is
  * returned.
  */
-int getPluginConfValueI(const char *plugin, char *key);
+int __getPluginConfValueI(const char *plugin, char *key, const char *caller,
+			  const int line);
+
+#define getPluginConfValueI(plugin, key) \
+	__getPluginConfValueI(plugin, key, __func__, __LINE__)
 
 /**
  * @brief Get value as character array
@@ -82,7 +90,11 @@ int getPluginConfValueI(const char *plugin, char *key);
  * @return If a corresponding entry is found, a pointer to the value's
  * character array is returned. Otherwise NULL is returned.
  */
-char *getPluginConfValueC(const char *plugin, char *key);
+char *__getPluginConfValueC(const char *plugin, char *key, const char *caller,
+			    const int line);
+
+#define getPluginConfValueC(plugin, key) \
+	__getPluginConfValueC(plugin, key, __func__, __LINE__)
 
 /**
  * @brief Remove configuration

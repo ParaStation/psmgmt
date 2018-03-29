@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2016-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -15,8 +15,7 @@
 #include <limits.h>
 
 #include "pluginmalloc.h"
-#include "plugincomm.h"
-#include "pluginfrag.h"
+#include "psserial.h"
 #include "pspluginprotocol.h"
 #include "pscommon.h"
 #include "psidcomm.h"
@@ -40,7 +39,7 @@ typedef enum {
 
 int sendScriptResult(Script_t *script, int32_t res)
 {
-    PS_DataBuffer_t data = { .buf = NULL };
+    PS_SendDB_t data;
     int ret;
 
     if (script->initiator == -1) {
@@ -49,25 +48,29 @@ int sendScriptResult(Script_t *script, int32_t res)
 	return -1;
     }
 
+    initFragBuffer(&data, PSP_CC_PLUG_PSEXEC, PSP_EXEC_SCRIPT_RES);
+    setFragDest(&data, script->initiator);
+
     /* add uID */
     addUint16ToMsg(script->id, &data);
     /* add res */
     addInt32ToMsg(res, &data);
 
     /* send the messages */
-    ret = sendFragMsg(&data, script->initiator, PSP_CC_PLUG_PSEXEC,
-		      PSP_EXEC_SCRIPT_RES);
-    ufree(data.buf);
+    ret = sendFragMsg(&data);
 
     return ret;
 }
 
 int sendExecScript(Script_t *script, PSnodes_ID_t dest)
 {
-    PS_DataBuffer_t data = { .buf = NULL };
+    PS_SendDB_t data;
     uint32_t i;
     int ret;
     env_t *env = &script->env;
+
+    initFragBuffer(&data, PSP_CC_PLUG_PSEXEC, PSP_EXEC_SCRIPT);
+    setFragDest(&data, PSC_getTID(dest, 0));
 
     /* add uID */
     addUint16ToMsg(script->uID, &data);
@@ -82,10 +85,7 @@ int sendExecScript(Script_t *script, PSnodes_ID_t dest)
     }
 
     /* send the messages */
-    ret = sendFragMsg(&data, PSC_getTID(dest, 0), PSP_CC_PLUG_PSEXEC,
-		      PSP_EXEC_SCRIPT);
-
-    ufree(data.buf);
+    ret = sendFragMsg(&data);
 
     return ret;
 }
@@ -275,23 +275,25 @@ static void handleExecScriptRes(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 
 static void dropExecMsg(DDTypedBufferMsg_t *msg)
 {
-    Script_t *script;
+    size_t used = 0;
+    uint8_t fType;
+    uint16_t fNum;
     uint16_t uID;
-    char *ptr = msg->buf;
-    PS_Frag_Msg_Header_t *rhead;
 
-    /* fragmented message header */
-    rhead = (PS_Frag_Msg_Header_t *) ptr;
-    ptr += sizeof(PS_Frag_Msg_Header_t);
+    PSP_getTypedMsgBuf(msg, &used, __func__, "fragType", &fType, sizeof(fType));
+    PSP_getTypedMsgBuf(msg, &used, __func__, "fragNum", &fNum, sizeof(fNum));
 
     /* ignore follow up messages */
-    if (rhead->fragNum) return;
+    if (fNum) return;
+
+    /* skip fragmented message header */
+    char *ptr = msg->buf + used;
 
     /* uID */
     getUint16(&ptr, &uID);
 
     /* return result to callback */
-    script = findScriptByuID(uID);
+    Script_t *script = findScriptByuID(uID);
     if (!script) {
 	mlog("%s: no script for uID %u\n", __func__, uID);
 	return;
@@ -347,6 +349,7 @@ static void dropPsExecMsg(DDTypedBufferMsg_t *msg)
 
 bool initComm(void)
 {
+    initSerial(0, sendMsg);
     PSID_registerMsg(PSP_CC_PLUG_PSEXEC, (handlerFunc_t) handlePsExecMsg);
     PSID_registerDropper(PSP_CC_PLUG_PSEXEC, (handlerFunc_t) dropPsExecMsg);
 
@@ -357,4 +360,5 @@ void finalizeComm(void)
 {
     PSID_clearMsg(PSP_CC_PLUG_PSEXEC);
     PSID_clearDropper(PSP_CC_PLUG_PSSLURM);
+    finalizeSerial();
 }

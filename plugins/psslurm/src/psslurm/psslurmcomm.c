@@ -29,7 +29,7 @@
 #include "psslurmpscomm.h"
 #include "psslurmpack.h"
 
-#include "plugincomm.h"
+#include "psserial.h"
 #include "pluginconfig.h"
 #include "pluginhelper.h"
 #include "pluginmalloc.h"
@@ -197,7 +197,7 @@ void __saveFrwrdMsgRes(Slurm_Msg_t *sMsg, uint32_t error, const char *func,
     uint16_t i, saved = 0;
     PSnodes_ID_t srcNode;
 
-    if (!sMsg || !sMsg->data) {
+    if (!sMsg || !sMsg->outdata) {
 	mlog("%s: invalid %s from %s at %i\n", __func__,
 		(!sMsg ? "sMsg" : "data"), func, line);
 	return;
@@ -218,7 +218,8 @@ void __saveFrwrdMsgRes(Slurm_Msg_t *sMsg, uint32_t error, const char *func,
     if (srcNode == PSC_getMyID()) {
 	/* save local processed message */
 	fw->head.type = sMsg->head.type;
-	if (!addMemToMsg(sMsg->data->buf, sMsg->data->bufUsed, &fw->body)) {
+	if (!memToDataBuffer(sMsg->outdata->buf, sMsg->outdata->bufUsed,
+			     &fw->body)) {
 	    mlog("%s: error saving local result, caller %s at %i\n",
 		 __func__, func, line);
 	}
@@ -236,9 +237,10 @@ void __saveFrwrdMsgRes(Slurm_Msg_t *sMsg, uint32_t error, const char *func,
 		fwdata->error = error;
 		fwdata->type = sMsg->head.type;
 		fwdata->node = srcNode;
-		if (sMsg->data->bufUsed) {
-		    if (!addMemToMsg(sMsg->data->buf, sMsg->data->bufUsed,
-				     &fwdata->body)) {
+		if (sMsg->outdata->bufUsed) {
+		    if (!memToDataBuffer(sMsg->outdata->buf,
+					 sMsg->outdata->bufUsed,
+					 &fwdata->body)) {
 			mlog("%s: saving error failed, caller %s at %i\n",
 			     __func__, func, line);
 		    }
@@ -260,6 +262,8 @@ void __saveFrwrdMsgRes(Slurm_Msg_t *sMsg, uint32_t error, const char *func,
 	    PSC_printTID(sMsg->source), sMsg->sock, sMsg->recvTime);
 
     if (fw->numRes == fw->nodesCount + 1) {
+	PS_SendDB_t msg = { .bufUsed = 0, .useFrag = false };
+
 	/* all answers collected */
 	mdbg(PSSLURM_LOG_FWD, "%s: forward %s complete, sending answer\n",
 		__func__, msgType2String(sMsg->head.type));
@@ -273,7 +277,10 @@ void __saveFrwrdMsgRes(Slurm_Msg_t *sMsg, uint32_t error, const char *func,
 	    closeSlurmCon(con->sock);
 	    return;
 	}
-	sendSlurmMsgEx(con->sock, &fw->head, &fw->body);
+
+	msg.buf = fw->body.buf;
+	msg.bufUsed = fw->body.bufUsed;
+	sendSlurmMsgEx(con->sock, &fw->head, &msg);
 	closeSlurmCon(con->sock);
     }
 }
@@ -632,7 +639,7 @@ int connect2Slurmctld(void)
     return sock;
 }
 
-int __sendDataBuffer(int sock, PS_DataBuffer_t *data, size_t offset,
+int __sendDataBuffer(int sock, PS_SendDB_t *data, size_t offset,
 		     size_t *written, const char *caller, const int line)
 {
     int ret;
@@ -647,7 +654,6 @@ int __sendDataBuffer(int sock, PS_DataBuffer_t *data, size_t offset,
 	mlog("%s: writing message of length %i failed, ret %i written %zu "
 	     "caller %s " "line %i\n", __func__, data->bufUsed, ret, *written,
 	     caller, line);
-	ufree(data->buf);
 	return -1;
     }
     mdbg(PSSLURM_LOG_COMM, "%s: wrote data: %zu offset: %zu for caller %s "
@@ -656,7 +662,7 @@ int __sendDataBuffer(int sock, PS_DataBuffer_t *data, size_t offset,
     return ret;
 }
 
-int __sendSlurmMsg(int sock, slurm_msg_type_t type, PS_DataBuffer_t *body,
+int __sendSlurmMsg(int sock, slurm_msg_type_t type, PS_SendDB_t *body,
 		    const char *caller, const int line)
 {
     Slurm_Msg_Header_t head;
@@ -667,10 +673,11 @@ int __sendSlurmMsg(int sock, slurm_msg_type_t type, PS_DataBuffer_t *body,
     return __sendSlurmMsgEx(sock, &head, body, caller, line);
 }
 
-int __sendSlurmMsgEx(int sock, Slurm_Msg_Header_t *head, PS_DataBuffer_t *body,
-		    const char *caller, const int line)
+int __sendSlurmMsgEx(int sock, Slurm_Msg_Header_t *head, PS_SendDB_t *body,
+		     const char *caller, const int line)
 {
-    PS_DataBuffer_t data = { .buf = NULL };
+    PS_SendDB_t data = { .bufUsed = 0, .useFrag = false };
+    PS_DataBuffer_t payload = { .bufUsed = 0 };
     Slurm_Auth_t *auth;
     int ret = 0;
     size_t written = 0;
@@ -708,7 +715,8 @@ int __sendSlurmMsgEx(int sock, Slurm_Msg_Header_t *head, PS_DataBuffer_t *body,
     setFDblock(sock, false);
 
     auth = getSlurmAuth();
-    packSlurmMsg(&data, head, body, auth);
+    memToDataBuffer(body->buf, body->bufUsed, &payload);
+    packSlurmMsg(&data, head, &payload, auth);
 
     ret = __sendDataBuffer(sock, &data, 0, &written, caller, line);
     if (ret == -1) {
@@ -727,7 +735,7 @@ int __sendSlurmMsgEx(int sock, Slurm_Msg_Header_t *head, PS_DataBuffer_t *body,
     }
 
     freeSlurmAuth(auth);
-    ufree(data.buf);
+    ufree(payload.buf);
 
     return ret;
 }
@@ -989,7 +997,7 @@ static int forwardInputMsg(Step_t *step, uint16_t rank, char *buf, int bufLen)
 	int n = (c > sizeof(msg.buf)) ? sizeof(msg.buf) : c;
 	if (n) memcpy(msg.buf, ptr, n);
 	mdbg(PSSLURM_LOG_IO | PSSLURM_LOG_IO_VERB,
-	     "%s: rank %u len %u msg.header.len %u to %s\n", __func__,
+	     "%s: rank %u len %u msg.header.len %zu to %s\n", __func__,
 	     rank, n, PSLog_headerSize + n, PSC_printTID(task->forwarderTID));
 	mdbg(PSSLURM_LOG_IO_VERB, "%s: '%.*s'\n", __func__, n, msg.buf);
 	msg.header.len = PSLog_headerSize + n;
@@ -1132,7 +1140,7 @@ int srunOpenControlConnection(Step_t *step)
 }
 
 int srunSendMsg(int sock, Step_t *step, slurm_msg_type_t type,
-		PS_DataBuffer_t *body)
+		PS_SendDB_t *body)
 {
     if (sock < 0) {
 	sock = srunOpenControlConnection(step);
@@ -1145,8 +1153,7 @@ int srunSendMsg(int sock, Step_t *step, slurm_msg_type_t type,
     }
 
     mdbg(PSSLURM_LOG_IO | PSSLURM_LOG_IO_VERB,
-	 "%s: sock %u, len: body.bufUsed %u body.bufSize %u\n",
-	 __func__, sock, body->bufUsed, body->bufSize);
+	 "%s: sock %u, len: body.bufUsed %u\n", __func__, sock, body->bufUsed);
 
     return sendSlurmMsg(sock, type, body);
 }
@@ -1182,7 +1189,7 @@ int srunOpenPTYConnection(Step_t *step)
 int srunOpenIOConnectionEx(Step_t *step, uint32_t addr, uint16_t port,
 			   char *sig)
 {
-    PS_DataBuffer_t data = { .buf = NULL };
+    PS_SendDB_t data = { .bufUsed = 0, .useFrag = false };
     PSnodes_ID_t nodeID = step->myNodeIndex;
     uint32_t i;
     int sock;
@@ -1250,7 +1257,6 @@ int srunOpenIOConnectionEx(Step_t *step, uint32_t addr, uint16_t port,
     addMemToMsg(sig, (uint32_t) SLURM_IO_KEY_SIZE, &data);
 
     doWriteP(sock, data.buf, data.bufUsed);
-    ufree(data.buf);
 
     return sock;
 }
@@ -1310,7 +1316,7 @@ int srunSendIO(uint16_t type, uint16_t taskid, Step_t *step, char *buf,
 
 int srunSendIOEx(int sock, Slurm_IO_Header_t *iohead, char *buf, int *error)
 {
-    PS_DataBuffer_t data = { .buf = NULL };
+    PS_SendDB_t data = { .bufUsed = 0, .useFrag = false };
     int ret = 0, once = 1;
     int32_t towrite, written = 0;
     Slurm_IO_Header_t ioh;
@@ -1336,7 +1342,6 @@ int srunSendIOEx(int sock, Slurm_IO_Header_t *iohead, char *buf, int *error)
 
 	if (ret < 0) {
 	    *error = errno;
-	    ufree(data.buf);
 	    return -1;
 	}
 	if (!ret) continue;
@@ -1348,7 +1353,6 @@ int srunSendIOEx(int sock, Slurm_IO_Header_t *iohead, char *buf, int *error)
 	     " towrite %i\n", __func__, sock, ret, written, towrite);
     }
 
-    ufree(data.buf);
     return written;
 }
 

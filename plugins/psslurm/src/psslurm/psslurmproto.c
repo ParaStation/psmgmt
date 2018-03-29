@@ -38,7 +38,7 @@
 #include "pluginmalloc.h"
 #include "pluginhelper.h"
 #include "pluginconfig.h"
-#include "plugincomm.h"
+#include "psserial.h"
 #include "env.h"
 #include "selector.h"
 #include "psaccounthandles.h"
@@ -119,16 +119,15 @@ static void getSysInfo(uint32_t *cpuload, uint64_t *freemem, uint32_t *uptime)
  */
 static void sendPing(Slurm_Msg_t *sMsg)
 {
-    PS_DataBuffer_t msg = { .buf = NULL };
+    PS_SendDB_t msg = { .bufUsed = 0, .useFrag = false };
     Resp_Ping_t ping;
     uint32_t unused;
 
     getSysInfo(&ping.cpuload, &ping.freemem, &unused);
 
     packRespPing(&msg, &ping);
-    sMsg->data = &msg;
+    sMsg->outdata = &msg;
     sendSlurmReply(sMsg, RESPONSE_PING_SLURMD);
-    ufree(msg.buf);
 }
 
 uint32_t getLocalRankID(uint32_t rank, Step_t *step, uint32_t nodeId)
@@ -273,7 +272,7 @@ static void setAccOpts(char *freqString, uint16_t *accType)
 	freq = atoi(freqString+5);
 
 	if (freq >0) {
-	    mlog("%s: setting acct freq to '%i'\n", __func__, freq);
+	    mlog("%s: setting acct freq to %i\n", __func__, freq);
 	    PSIDnodes_setAcctPollI(PSC_getMyID(), freq);
 	}
     }
@@ -308,14 +307,14 @@ static void printLaunchTasksInfos(Step_t *step)
 
     /* set stdout/stderr/stdin options */
     if (!(step->taskFlags & LAUNCH_USER_MANAGED_IO)) {
-	mdbg(PSSLURM_LOG_IO, "%s: stdOut '%s' stdOutRank '%i' stdOutOpt '%i'\n",
-		__func__, step->stdOut, step->stdOutRank, step->stdOutOpt);
+	mdbg(PSSLURM_LOG_IO, "%s: stdOut '%s' stdOutRank %i stdOutOpt %i\n",
+	     __func__, step->stdOut, step->stdOutRank, step->stdOutOpt);
 
-	mdbg(PSSLURM_LOG_IO, "%s: stdErr '%s' stdErrRank '%i' stdErrOpt '%i'\n",
-		__func__, step->stdErr, step->stdErrRank, step->stdErrOpt);
+	mdbg(PSSLURM_LOG_IO, "%s: stdErr '%s' stdErrRank %i stdErrOpt %i\n",
+	     __func__, step->stdErr, step->stdErrRank, step->stdErrOpt);
 
-	mdbg(PSSLURM_LOG_IO, "%s: stdIn '%s' stdInRank '%i' stdInOpt '%i'\n",
-		__func__, step->stdIn, step->stdInRank, step->stdInOpt);
+	mdbg(PSSLURM_LOG_IO, "%s: stdIn '%s' stdInRank %i stdInOpt %i\n",
+	     __func__, step->stdIn, step->stdInRank, step->stdInOpt);
 
 	mdbg(PSSLURM_LOG_IO, "%s: bufferedIO '%i' labelIO '%i'\n", __func__,
 	     step->taskFlags & LAUNCH_BUFFERED_IO,
@@ -323,15 +322,15 @@ static void printLaunchTasksInfos(Step_t *step)
     }
 
     /* job state */
-    mdbg(PSSLURM_LOG_JOB, "%s: step '%u:%u' in '%s'\n", __func__,
-	    step->jobid, step->stepid, strJobState(step->state));
+    mdbg(PSSLURM_LOG_JOB, "%s: step %u:%u in %s\n", __func__,
+	 step->jobid, step->stepid, strJobState(step->state));
 
     /* pinning */
-    mdbg(PSSLURM_LOG_PART, "%s: cpuBindType '0x%hx', cpuBind '%s'\n", __func__,
-            step->cpuBindType, step->cpuBind);
+    mdbg(PSSLURM_LOG_PART, "%s: cpuBindType 0x%hx, cpuBind '%s'\n", __func__,
+	 step->cpuBindType, step->cpuBind);
 
-    mdbg(PSSLURM_LOG_PART, "%s: memBindType '0x%hx', memBind '%s'\n", __func__,
-            step->memBindType, step->memBind);
+    mdbg(PSSLURM_LOG_PART, "%s: memBindType 0x%hx, memBind '%s'\n", __func__,
+	 step->memBindType, step->memBind);
 }
 
 static bool extractStepPackInfos(Step_t *step)
@@ -449,7 +448,7 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
     getNodesFromSlurmHL(step->slurmHosts, &count, &step->nodes,
 			&step->localNodeId);
     if (count != step->nrOfNodes) {
-	mlog("%s: mismatching number of nodes '%u:%u' for step %u:%u\n",
+	mlog("%s: mismatching number of nodes %u:%u for step %u:%u\n",
 	     __func__, count, step->nrOfNodes, step->jobid, step->stepid);
 	step->nrOfNodes = count;
     }
@@ -473,15 +472,14 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
 	if (step->nodes[0] == PSC_getMyID()) step->leader = true;
     }
 
-    mlog("%s: step '%u:%u' user '%s' np '%u' nodes '%s' N '%u' tpp '%u' "
-	 "pack size '%u' leader '%i' exe '%s'\n", __func__, step->jobid,
-	 step->stepid, step->username, step->np, step->slurmHosts,
-	 step->nrOfNodes, step->tpp, step->packSize, step->leader,
-	 step->argv[0]);
+    mlog("%s: step %u:%u user '%s' np %u nodes '%s' N %u tpp %u pack size %u"
+	 " leader %i exe '%s'\n", __func__, step->jobid, step->stepid,
+	 step->username, step->np, step->slurmHosts, step->nrOfNodes, step->tpp,
+	 step->packSize, step->leader, step->argv[0]);
 
     /* pack info */
     if (step->packNrOfNodes != NO_VAL) {
-	if (!(extractStepPackInfos(step))) {
+	if (!extractStepPackInfos(step)) {
 	    mlog("%s: extracting pack information failed\n", __func__);
 	    goto ERROR;
 	}
@@ -517,12 +515,14 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
 
     /* sanity check nrOfNodes */
     if (step->nrOfNodes > (uint16_t) PSC_getNrOfNodes()) {
-	mlog("%s: invalid nrOfNodes '%u' known Nodes '%u' for step %u:%u\n",
+	mlog("%s: invalid nrOfNodes %u known Nodes %u for step %u:%u\n",
 	     __func__, step->nrOfNodes, PSC_getNrOfNodes(), step->jobid,
 	     step->stepid);
 	sendSlurmRC(sMsg, ESLURMD_INVALID_JOB_CREDENTIAL);
 	goto ERROR;
     }
+
+    bool disablePrologue = getConfValueI(&Config, "DISABLE_PROLOGUE");
 
     if (step->leader) {
 	/* mother superior (pack leader) */
@@ -541,13 +541,20 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
 	    alloc->motherSup = PSC_getMyTID();
 	    send_PS_AllocLaunch(alloc);
 
-	    /* start prologue for steps without job */
-	    alloc->state = step->state = JOB_PROLOGUE;
-	    mdbg(PSSLURM_LOG_JOB, "%s: step '%u:%u' in '%s'\n", __func__,
-		    step->jobid, step->stepid, strJobState(step->state));
-	    startPElogue(alloc->jobid, alloc->uid, alloc->gid, alloc->username,
-			    alloc->nrOfNodes, alloc->nodes, &alloc->env,
-			    &alloc->spankenv, 1, 1);
+	    if (disablePrologue) {
+		/* start all waiting steps */
+		alloc->state = JOB_RUNNING;
+		send_PS_AllocState(alloc);
+		startAllSteps(alloc->jobid);
+	    } else {
+		/* start prologue for steps without job */
+		alloc->state = step->state = JOB_PROLOGUE;
+		mdbg(PSSLURM_LOG_JOB, "%s: step %u:%u in '%s'\n", __func__,
+		     step->jobid, step->stepid, strJobState(step->state));
+		startPElogue(alloc->jobid, alloc->uid, alloc->gid,
+			     alloc->username, alloc->nrOfNodes, alloc->nodes,
+			     &alloc->env, &alloc->spankenv, 1, 1);
+	    }
 	} else if (!job && alloc->state == JOB_PROLOGUE) {
 	    /* prologue already running, wait till it is finished */
 	    mlog("%s: step %u:%u waiting for prologue\n", __func__,
@@ -557,7 +564,7 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
 	    /* start mpiexec to spawn the parallel processes,
 	     * intercept createPart call to overwrite the nodelist */
 	    step->state = JOB_PRESTART;
-	    mdbg(PSSLURM_LOG_JOB, "%s: step '%u:%u' in '%s'\n", __func__,
+	    mdbg(PSSLURM_LOG_JOB, "%s: step %u:%u in '%s'\n", __func__,
 		    step->jobid, step->stepid, strJobState(step->state));
 	    if (step->packJobid == NO_VAL) {
 		if (!(execUserStep(step))) {
@@ -573,9 +580,15 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
 	    /* forward hw thread infos to pack leader */
 	    send_PS_PackInfo(step);
 	}
-	if (job || step->stepid) {
-	    /* start I/O forwarder if the prologue is done */
+	if (job || step->stepid || disablePrologue) {
+	    /* start I/O forwarder */
 	    execStepFWIO(step);
+	}
+	if (disablePrologue) {
+	    char sJobid[128];
+	    snprintf(sJobid, sizeof(sJobid), "%u", step->jobid);
+	    psPamAddUser(step->username, sJobid, PSPAM_STATE_JOB);
+	    psPamSetState(step->username, sJobid, PSPAM_STATE_JOB);
 	}
 	if (sMsg->sock != -1) {
 	    /* say ok to waiting srun */
@@ -609,14 +622,14 @@ static void handleSignalTasks(Slurm_Msg_t *sMsg)
     if (req->stepid == SLURM_BATCH_SCRIPT) {
 	if (!(job = findJobById(req->jobid)) &&
 	    !(step = findStepByJobid(req->jobid))) {
-	    mlog("%s: steps with jobid '%u' to signal not found\n",
-		 __func__, req->jobid);
+	    mlog("%s: step with jobid %u to signal not found\n", __func__,
+		 req->jobid);
 	    sendSlurmRC(sMsg, ESLURM_INVALID_JOB_ID);
 	    return;
 	}
 	/* check permission */
-	if (!(verifyUserId(sMsg->head.uid, job->uid))) {
-	    mlog("%s: request from invalid user '%u'\n", __func__,
+	if (!verifyUserId(sMsg->head.uid, job->uid)) {
+	    mlog("%s: request from invalid user %u\n", __func__,
 		 sMsg->head.uid);
 	    sendSlurmRC(sMsg, ESLURM_USER_ID_MISSING);
 	    return;
@@ -662,7 +675,7 @@ static void handleSignalTasks(Slurm_Msg_t *sMsg)
     }
 
     if (req->flags & KILL_FULL_JOB) {
-	mlog("%s: send full job '%u' signal '%u'\n", __func__,
+	mlog("%s: send full job %u signal %u\n", __func__,
 	     req->jobid, req->signal);
 	if (job) {
 	    /* first signal jobscript only, not all corresponding steps */
@@ -675,11 +688,11 @@ static void handleSignalTasks(Slurm_Msg_t *sMsg)
 	}
 	signalStepsByJobid(req->jobid, req->signal, sMsg->head.uid);
     } else if (req->flags & KILL_STEPS_ONLY) {
-	mlog("%s: send steps '%u' signal '%u'\n", __func__,
+	mlog("%s: send steps %u signal %u\n", __func__,
 	     req->jobid, req->signal);
 	signalStepsByJobid(req->jobid, req->signal, sMsg->head.uid);
     } else {
-	mlog("%s: send step '%u:%u' signal '%u'\n", __func__, req->jobid,
+	mlog("%s: send step %u:%u signal %u\n", __func__, req->jobid,
 	     req->stepid, req->signal);
 	if (req->stepid == SLURM_BATCH_SCRIPT) {
 	    /* signal jobscript only, not all corresponding steps */
@@ -703,10 +716,8 @@ static void handleCheckpointTasks(Slurm_Msg_t *sMsg)
 
 static void sendReattchReply(Step_t *step, Slurm_Msg_t *sMsg, uint32_t rc)
 {
-    PS_DataBuffer_t reply = { .buf = NULL };
-    char *ptrCount;
-    uint32_t i, numTasks, countPIDS = 0;
-    list_t *t;
+    PS_SendDB_t reply = { .bufUsed = 0, .useFrag = false };
+    uint32_t i, numTasks, countPIDS = 0, countPos;
 
     /* hostname */
     addStringToMsg(getConfValueC(&Config, "SLURM_HOSTNAME"), &reply);
@@ -714,6 +725,7 @@ static void sendReattchReply(Step_t *step, Slurm_Msg_t *sMsg, uint32_t rc)
     addUint32ToMsg(rc, &reply);
 
     if (rc == SLURM_SUCCESS) {
+	list_t *t;
 	numTasks = step->globalTaskIdsLen[step->myNodeIndex];
 	/* number of tasks */
 	addUint32ToMsg(numTasks, &reply);
@@ -721,7 +733,7 @@ static void sendReattchReply(Step_t *step, Slurm_Msg_t *sMsg, uint32_t rc)
 	addUint32ArrayToMsg(step->globalTaskIds[step->myNodeIndex],
 			    numTasks, &reply);
 	/* local pids */
-	ptrCount = reply.buf + reply.bufUsed;
+	countPos = reply.bufUsed;
 	addUint32ToMsg(0, &reply);
 
 	list_for_each(t, &step->tasks) {
@@ -731,7 +743,7 @@ static void sendReattchReply(Step_t *step, Slurm_Msg_t *sMsg, uint32_t rc)
 		addUint32ToMsg(PSC_getPID(task->childTID), &reply);
 	    }
 	}
-	*(uint32_t *) ptrCount = htonl(countPIDS);
+	*(uint32_t *) (reply.buf + countPos) = htonl(countPIDS);
 
 	/* executable names */
 	for (i=0; i<numTasks; i++) {
@@ -747,10 +759,8 @@ static void sendReattchReply(Step_t *step, Slurm_Msg_t *sMsg, uint32_t rc)
 	/* no executable names */
     }
 
-    sMsg->data = &reply;
+    sMsg->outdata = &reply;
     sendSlurmReply(sMsg, RESPONSE_REATTACH_TASKS);
-
-    ufree(reply.buf);
 }
 
 static void handleReattachTasks(Slurm_Msg_t *sMsg)
@@ -767,7 +777,7 @@ static void handleReattachTasks(Slurm_Msg_t *sMsg)
     getUint32(ptr, &stepid);
 
     if (!(step = findStepByStepId(jobid, stepid))) {
-	mlog("%s: step '%u:%u' to reattach not found\n", __func__,
+	mlog("%s: step %u:%u to reattach not found\n", __func__,
 		jobid, stepid);
 	rc = ESLURM_INVALID_JOB_ID;
 	goto SEND_REPLY;
@@ -775,7 +785,7 @@ static void handleReattachTasks(Slurm_Msg_t *sMsg)
 
     /* check permissions */
     if (!(verifyUserId(sMsg->head.uid, step->uid))) {
-	mlog("%s: request from invalid user '%u' step '%u:%u'\n", __func__,
+	mlog("%s: request from invalid user %u step %u:%u\n", __func__,
 		sMsg->head.uid, jobid, stepid);
 	rc = ESLURM_USER_ID_MISSING;
 	goto SEND_REPLY;
@@ -783,7 +793,7 @@ static void handleReattachTasks(Slurm_Msg_t *sMsg)
 
     if (!step->fwdata) {
 	/* no forwarder to attach to */
-	mlog("%s: forwarder for step '%u:%u' to reattach not found\n", __func__,
+	mlog("%s: forwarder for step %u:%u to reattach not found\n", __func__,
 		jobid, stepid);
 	rc = ESLURM_INVALID_JOB_ID;
 	goto SEND_REPLY;
@@ -818,7 +828,7 @@ static void handleReattachTasks(Slurm_Msg_t *sMsg)
     /* job credential including I/O key */
     cred = extractJobCred(&gresList, sMsg, 0);
     if (!cred) {
-	mlog("%s: invalid credential for step '%u:%u'\n", __func__,
+	mlog("%s: invalid credential for step %u:%u\n", __func__,
 		jobid, stepid);
 	rc = ESLURM_INVALID_JOB_CREDENTIAL;
 	goto SEND_REPLY;
@@ -826,7 +836,7 @@ static void handleReattachTasks(Slurm_Msg_t *sMsg)
     freeGresCred(&gresList);
 
     if (strlen(cred->sig) +1 != SLURM_IO_KEY_SIZE) {
-	mlog("%s: invalid I/O key size '%zu'\n", __func__,
+	mlog("%s: invalid I/O key size %zu\n", __func__,
 		strlen(cred->sig) +1);
 	rc = ESLURM_INVALID_JOB_CREDENTIAL;
 	goto SEND_REPLY;
@@ -864,25 +874,25 @@ static void handleSignalJob(Slurm_Msg_t *sMsg)
     step = findStepByJobid(jobid);
 
     if (!job && !step) {
-	mlog("%s: job '%u' to signal not found\n", __func__, jobid);
+	mlog("%s: job %u to signal not found\n", __func__, jobid);
 	sendSlurmRC(sMsg, ESLURM_INVALID_JOB_ID);
 	return;
     }
 
     if (job && (flag & KILL_JOB_BATCH)) {
-	mlog("%s: send jobscript '%u' signal '%u'\n", __func__,
+	mlog("%s: send jobscript %u signal %u\n", __func__,
 		jobid, signal);
 	/* signal only job, not all corresponding steps */
 	if (job->state == JOB_RUNNING && job->fwdata) {
 	    killChild(PSC_getPID(job->fwdata->tid), signal);
 	}
     } else if (job) {
-	mlog("%s: send job '%u' signal '%u'\n", __func__,
+	mlog("%s: send job %u signal %u\n", __func__,
 		jobid, signal);
 	if (signal == SIGUSR1) job->signaled = 1;
 	signalJob(job, signal, sMsg->head.uid);
     } else {
-	mlog("%s: send steps with jobid '%u' signal '%u'\n", __func__,
+	mlog("%s: send steps with jobid %u signal %u\n", __func__,
 		jobid, signal);
 	signalStepsByJobid(jobid, signal, sMsg->head.uid);
     }
@@ -902,7 +912,7 @@ static void handleUpdateJobTime(Slurm_Msg_t *sMsg)
 
     /* check permissions */
     if (sMsg->head.uid != 0 && sMsg->head.uid != slurmUserID) {
-	mlog("%s: request from invalid user '%u'\n", __func__, sMsg->head.uid);
+	mlog("%s: request from invalid user %u\n", __func__, sMsg->head.uid);
 	sendSlurmRC(sMsg, ESLURM_USER_ID_MISSING);
 	return;
     }
@@ -922,7 +932,7 @@ static void handleShutdown(Slurm_Msg_t *sMsg)
 {
     /* check permissions */
     if (sMsg->head.uid != 0 && sMsg->head.uid != slurmUserID) {
-	mlog("%s: request from invalid user '%u'\n", __func__, sMsg->head.uid);
+	mlog("%s: request from invalid user %u\n", __func__, sMsg->head.uid);
 	sendSlurmRC(sMsg, ESLURM_USER_ID_MISSING);
 	return;
     }
@@ -936,7 +946,7 @@ static void handleReconfigure(Slurm_Msg_t *sMsg)
 {
     /* check permissions */
     if (sMsg->head.uid != 0 && sMsg->head.uid != slurmUserID) {
-	mlog("%s: request from invalid user '%u'\n", __func__, sMsg->head.uid);
+	mlog("%s: request from invalid user %u\n", __func__, sMsg->head.uid);
 	sendSlurmRC(sMsg, ESLURM_USER_ID_MISSING);
 	return;
     }
@@ -948,7 +958,7 @@ static void handleRebootNodes(Slurm_Msg_t *sMsg)
 {
     /* check permissions */
     if (sMsg->head.uid != 0 && sMsg->head.uid != slurmUserID) {
-	mlog("%s: request from invalid user '%u'\n", __func__, sMsg->head.uid);
+	mlog("%s: request from invalid user %u\n", __func__, sMsg->head.uid);
 	sendSlurmRC(sMsg, ESLURM_USER_ID_MISSING);
 	return;
     }
@@ -964,11 +974,11 @@ static void handleHealthCheck(Slurm_Msg_t *sMsg)
 
 static void handleAcctGatherUpdate(Slurm_Msg_t *sMsg)
 {
-    PS_DataBuffer_t msg = { .buf = NULL };
+    PS_SendDB_t msg = { .bufUsed = 0, .useFrag = false };
 
     /* check permissions */
     if (sMsg->head.uid != 0 && sMsg->head.uid != slurmUserID) {
-	mlog("%s: request from invalid user '%u'\n", __func__, sMsg->head.uid);
+	mlog("%s: request from invalid user %u\n", __func__, sMsg->head.uid);
 	sendSlurmRC(sMsg, ESLURM_USER_ID_MISSING);
 	return;
     }
@@ -976,18 +986,17 @@ static void handleAcctGatherUpdate(Slurm_Msg_t *sMsg)
     /* pack dummy data */
     packEnergyData(&msg);
 
-    sMsg->data = &msg;
+    sMsg->outdata = &msg;
     sendSlurmReply(sMsg, RESPONSE_ACCT_GATHER_UPDATE);
-    ufree(msg.buf);
 }
 
 static void handleAcctGatherEnergy(Slurm_Msg_t *sMsg)
 {
-    PS_DataBuffer_t msg = { .buf = NULL };
+    PS_SendDB_t msg = { .bufUsed = 0, .useFrag = false };
 
     /* check permissions */
     if (sMsg->head.uid != 0 && sMsg->head.uid != slurmUserID) {
-	mlog("%s: request from invalid user '%u'\n", __func__, sMsg->head.uid);
+	mlog("%s: request from invalid user %u\n", __func__, sMsg->head.uid);
 	sendSlurmRC(sMsg, ESLURM_USER_ID_MISSING);
 	return;
     }
@@ -995,9 +1004,8 @@ static void handleAcctGatherEnergy(Slurm_Msg_t *sMsg)
     /* pack dummy data */
     packEnergyData(&msg);
 
-    sMsg->data = &msg;
+    sMsg->outdata = &msg;
     sendSlurmReply(sMsg, RESPONSE_ACCT_GATHER_ENERGY);
-    ufree(msg.buf);
 }
 
 /**
@@ -1007,20 +1015,20 @@ static void handleAcctGatherEnergy(Slurm_Msg_t *sMsg)
  */
 static void handleJobId(Slurm_Msg_t *sMsg)
 {
-    PS_DataBuffer_t msg = { .buf = NULL };
     char **ptr = &sMsg->ptr;
     uint32_t pid = 0;
-    Step_t *step;
 
     getUint32(ptr, &pid);
 
-    if ((step = findStepByTaskPid(pid))) {
+    Step_t *step = findStepByTaskPid(pid);
+    if (step) {
+	PS_SendDB_t msg = { .bufUsed = 0, .useFrag = false };
+
 	addUint32ToMsg(step->jobid, &msg);
 	addUint32ToMsg(SLURM_SUCCESS, &msg);
+	sMsg->outdata = &msg;
 
-	sMsg->data = &msg;
 	sendSlurmReply(sMsg, RESPONSE_JOB_ID);
-	ufree(msg.buf);
     } else {
 	sendSlurmRC(sMsg, ESLURM_INVALID_JOB_ID);
     }
@@ -1060,7 +1068,7 @@ static void handleFileBCast(Slurm_Msg_t *sMsg)
     /* assign to job/allocation */
     if (!(job = findJobById(bcast->jobid))) {
 	if (!(alloc = findAlloc(bcast->jobid))) {
-	    mlog("%s: job '%u' not found\n", __func__, bcast->jobid);
+	    mlog("%s: job %u not found\n", __func__, bcast->jobid);
 	    sendSlurmRC(sMsg, ESLURM_INVALID_JOB_ID);
 	    goto CLEANUP;
 	} else {
@@ -1086,7 +1094,7 @@ static void handleFileBCast(Slurm_Msg_t *sMsg)
     }
 
     if (bcast->blockNumber == 1) {
-	mlog("%s: jobid '%u' file '%s' user '%s'\n", __func__, bcast->jobid,
+	mlog("%s: jobid %u file '%s' user '%s'\n", __func__, bcast->jobid,
 		bcast->fileName, bcast->username);
     }
 
@@ -1101,51 +1109,142 @@ CLEANUP:
     deleteBCast(bcast);
 }
 
+static void addSlurmPids(PStask_ID_t loggerTID, PS_SendDB_t *data)
+{
+    uint32_t count = 0, i;
+    pid_t *pids = NULL;
+
+    /* node_name */
+    addStringToMsg(getConfValueC(&Config, "SLURM_HOSTNAME"), data);
+
+    psAccountGetPidsByLogger(loggerTID, &pids, &count);
+
+    addUint32ToMsg(count, data);
+    for (i=0; i<count; i++) {
+	addUint32ToMsg((uint32_t)pids[i], data);
+    }
+    ufree(pids);
+}
+
+static int addSlurmAccData(uint8_t accType, pid_t childPid,
+			   PStask_ID_t loggerTID, PS_SendDB_t *data,
+			   PSnodes_ID_t *nodes, uint32_t nrOfNodes)
+{
+    AccountDataExt_t accData;
+    bool res;
+    uint64_t avgVsize = 0, avgRss = 0;
+    SlurmAccData_t slurmAccData;
+
+    slurmAccData.type = accType;
+    slurmAccData.nodes = nodes;
+    slurmAccData.nrOfNodes = nrOfNodes;
+    slurmAccData.accData = &accData;
+    accData.numTasks = 0;
+
+    if (!accType) {
+	/* no accounting */
+	goto PACK_RESPONSE;
+    }
+
+    if (childPid) {
+	res = psAccountGetDataByJob(childPid, &accData);
+    } else {
+	res = psAccountGetDataByLogger(loggerTID, &accData);
+    }
+
+    slurmAccData.empty = !res;
+
+    if (!res) {
+	/* getting account data failed */
+	mlog("%s: getting account data for pid %u logger '%s' failed\n",
+	     __func__, childPid, PSC_printTID(loggerTID));
+	goto PACK_RESPONSE;
+    }
+
+    avgVsize = accData.avgVsizeCount ?
+		    accData.avgVsizeTotal / accData.avgVsizeCount : 0;
+    avgRss = accData.avgRssCount ?
+		    accData.avgRssTotal / accData.avgRssCount : 0;
+
+    mlog("%s: adding account data: maxVsize %zu maxRss %zu pageSize %lu "
+	 "u_sec %lu u_usec %lu s_sec %lu s_usec %lu num_tasks %u avgVsize %lu"
+	 " avgRss %lu avg cpufreq %.2fG\n", __func__, accData.maxVsize,
+	 accData.maxRss, accData.pageSize, accData.rusage.ru_utime.tv_sec,
+	 accData.rusage.ru_utime.tv_usec, accData.rusage.ru_stime.tv_sec,
+	 accData.rusage.ru_stime.tv_usec, accData.numTasks, avgVsize, avgRss,
+	 ((double) accData.cpuFreq / (double) accData.numTasks)
+	 / (double) 1048576);
+
+    mdbg(PSSLURM_LOG_ACC, "%s: nodes maxVsize %u maxRss %u maxPages %u "
+	 "minCpu %u maxDiskRead %u maxDiskWrite %u\n", __func__,
+	 PSC_getID(accData.taskIds[ACCID_MAX_VSIZE]),
+	 PSC_getID(accData.taskIds[ACCID_MAX_RSS]),
+	 PSC_getID(accData.taskIds[ACCID_MAX_PAGES]),
+	 PSC_getID(accData.taskIds[ACCID_MIN_CPU]),
+	 PSC_getID(accData.taskIds[ACCID_MAX_DISKREAD]),
+	 PSC_getID(accData.taskIds[ACCID_MAX_DISKWRITE]));
+
+    if (accData.avgVsizeCount > 0 &&
+	accData.avgVsizeCount != accData.numTasks) {
+	mlog("%s: warning: total Vsize is not sum of #tasks values (%lu!=%u)\n",
+		__func__, accData.avgVsizeCount, accData.numTasks);
+    }
+
+    if (accData.avgRssCount > 0 &&
+	    accData.avgRssCount != accData.numTasks) {
+	mlog("%s: warning: total RSS is not sum of #tasks values (%lu!=%u)\n",
+		__func__, accData.avgRssCount, accData.numTasks);
+    }
+
+PACK_RESPONSE:
+    packSlurmAccData(data, &slurmAccData);
+
+    return accData.numTasks;
+}
+
 static void handleStepStat(Slurm_Msg_t *sMsg)
 {
-    PS_DataBuffer_t msg = { .buf = NULL };
+    PS_SendDB_t msg = { .bufUsed = 0, .useFrag = false };
     char **ptr = &sMsg->ptr;
-    uint32_t jobid, stepid, numTasks;
+    uint32_t jobid, stepid, numTasks, numTasksUsed;
     Step_t *step;
-    char *ptrNumTasks;
 
     getUint32(ptr, &jobid);
     getUint32(ptr, &stepid);
 
     if (!(step = findStepByStepId(jobid, stepid))) {
-	mlog("%s: step '%u.%u' to signal not found\n", __func__, jobid, stepid);
+	mlog("%s: step %u.%u to signal not found\n", __func__, jobid, stepid);
 	sendSlurmRC(sMsg, ESLURM_INVALID_JOB_ID);
 	return;
     }
 
     /* check permissions */
     if (!(verifyUserId(sMsg->head.uid, step->uid))) {
-	mlog("%s: request from invalid user '%u'\n", __func__, sMsg->head.uid);
+	mlog("%s: request from invalid user %u\n", __func__, sMsg->head.uid);
 	sendSlurmRC(sMsg, ESLURM_USER_ID_MISSING);
 	return;
     }
 
     /* add return code */
     addUint32ToMsg(SLURM_SUCCESS, &msg);
-    /* add num tasks */
-    ptrNumTasks = msg.buf + msg.bufUsed;
+    /* add placeholder for num tasks */
+    numTasksUsed = msg.bufUsed;
     addUint32ToMsg(SLURM_SUCCESS, &msg);
     /* account data */
     numTasks = addSlurmAccData(step->accType, 0, step->loggerTID, &msg,
 				step->nodes, step->nrOfNodes);
     /* correct numTasks */
-    *(uint32_t *) ptrNumTasks = htonl(numTasks);
+    *(uint32_t *)(msg.buf + numTasksUsed) = htonl(numTasks);
     /* add step pids */
     addSlurmPids(step->loggerTID, &msg);
 
-    sMsg->data = &msg;
+    sMsg->outdata = &msg;
     sendSlurmReply(sMsg, RESPONSE_JOB_STEP_STAT);
-    ufree(msg.buf);
 }
 
 static void handleStepPids(Slurm_Msg_t *sMsg)
 {
-    PS_DataBuffer_t msg = { .buf = NULL };
+    PS_SendDB_t msg = { .bufUsed = 0, .useFrag = false };
     char **ptr = &sMsg->ptr;
     Step_t *step;
     uint32_t jobid, stepid;
@@ -1154,14 +1253,14 @@ static void handleStepPids(Slurm_Msg_t *sMsg)
     getUint32(ptr, &stepid);
 
     if (!(step = findStepByStepId(jobid, stepid))) {
-	mlog("%s: step '%u.%u' to signal not found\n", __func__, jobid, stepid);
+	mlog("%s: step %u.%u to signal not found\n", __func__, jobid, stepid);
 	sendSlurmRC(sMsg, ESLURM_INVALID_JOB_ID);
 	return;
     }
 
     /* check permissions */
     if (!(verifyUserId(sMsg->head.uid, step->uid))) {
-	mlog("%s: request from invalid user '%u'\n", __func__, sMsg->head.uid);
+	mlog("%s: request from invalid user %u\n", __func__, sMsg->head.uid);
 	sendSlurmRC(sMsg, ESLURM_USER_ID_MISSING);
 	return;
     }
@@ -1169,9 +1268,8 @@ static void handleStepPids(Slurm_Msg_t *sMsg)
     /* add step pids */
     addSlurmPids(step->loggerTID, &msg);
 
-    sMsg->data = &msg;
+    sMsg->outdata = &msg;
     sendSlurmReply(sMsg, RESPONSE_JOB_STEP_PIDS);
-    ufree(msg.buf);
 }
 
 static uint32_t getNodeMem(void)
@@ -1226,7 +1324,7 @@ static uint32_t getTmpDisk(void)
 static void handleDaemonStatus(Slurm_Msg_t *sMsg)
 {
     Resp_Daemon_Status_t stat;
-    PS_DataBuffer_t msg = { .buf = NULL };
+    PS_SendDB_t msg = { .bufUsed = 0, .useFrag = false };
 
     /* start time */
     stat.startTime = start_time;
@@ -1268,7 +1366,6 @@ static void handleDaemonStatus(Slurm_Msg_t *sMsg)
     sendSlurmMsg(sMsg->sock, RESPONSE_SLURMD_STATUS, &msg);
 
     ufree(stat.stepList);
-    ufree(msg.buf);
 }
 
 static void handleJobNotify(Slurm_Msg_t *sMsg)
@@ -1288,21 +1385,21 @@ static void handleJobNotify(Slurm_Msg_t *sMsg)
     }
 
     if (!step) {
-	mlog("%s: step '%u.%u' to signal not found\n", __func__, jobid, stepid);
+	mlog("%s: step %u.%u to signal not found\n", __func__, jobid, stepid);
 	sendSlurmRC(sMsg, ESLURM_INVALID_JOB_ID);
 	return;
     }
 
     /* check permissions */
     if (!(verifyUserId(sMsg->head.uid, step->uid))) {
-	mlog("%s: request from invalid user '%u'\n", __func__, sMsg->head.uid);
+	mlog("%s: request from invalid user %u\n", __func__, sMsg->head.uid);
 	sendSlurmRC(sMsg, ESLURM_USER_ID_MISSING);
 	return;
     }
 
     msg = getStringM(ptr);
     /*
-    mlog("%s: send message '%s' to step '%u:%u'\n", __func__, msg, step->jobid,
+    mlog("%s: send message '%s' to step %u:%u\n", __func__, msg, step->jobid,
 	    step->stepid);
     */
 
@@ -1336,9 +1433,9 @@ static void handleLaunchProlog(Slurm_Msg_t *sMsg)
     nodes = getStringM(ptr);
     partition = getStringM(ptr);
 
-    mlog("%s: start prolog jobid '%u' uid '%u' gid '%u' alias '%s' nodes "
-	    "'%s' partition '%s'\n", __func__, jobid, uid, gid, alias, nodes,
-	    partition);
+    mlog("%s: start prolog jobid %u uid %u gid %u alias '%s' nodes '%s'"
+	 " partition '%s'\n", __func__, jobid, uid, gid, alias, nodes,
+	 partition);
 
     sendSlurmRC(sMsg, SLURM_SUCCESS);
 
@@ -1419,14 +1516,14 @@ static void handleBatchJobLaunch(Slurm_Msg_t *sMsg)
     }
 
     job->state = JOB_QUEUED;
-    mdbg(PSSLURM_LOG_JOB, "%s: job '%u' in '%s'\n", __func__,
+    mdbg(PSSLURM_LOG_JOB, "%s: job %u in '%s'\n", __func__,
 	    job->jobid, strJobState(job->state));
 
     /* log cpu options */
     if (job->cpusPerNode && job->cpuCountReps) {
 	for (i=0; i<job->cpuGroupCount; i++) {
-	    mdbg(PSSLURM_LOG_PART, "cpusPerNode '%u' cpuCountReps '%u'\n",
-		    job->cpusPerNode[i], job->cpuCountReps[i]);
+	    mdbg(PSSLURM_LOG_PART, "cpusPerNode %u cpuCountReps %u\n",
+		 job->cpusPerNode[i], job->cpuCountReps[i]);
 	}
     }
 
@@ -1467,15 +1564,15 @@ static void handleBatchJobLaunch(Slurm_Msg_t *sMsg)
 	return;
     }
 
-    mlog("%s: job '%u' user '%s' np '%u' nodes '%s' N '%u' tpp '%u' "
-	    "pack size '%u' script '%s'\n", __func__, job->jobid, job->username,
-	    job->np, job->slurmHosts, job->nrOfNodes, job->tpp, job->packSize,
-	    job->jobscript);
+    mlog("%s: job %u user '%s' np %u nodes '%s' N %u tpp %u pack size %u"
+	 " script '%s'\n", __func__, job->jobid, job->username, job->np,
+	 job->slurmHosts, job->nrOfNodes, job->tpp, job->packSize,
+	 job->jobscript);
 
     /* sanity check nrOfNodes */
     if (job->nrOfNodes > (uint16_t) PSC_getNrOfNodes()) {
-	mlog("%s: invalid nrOfNodes '%u' known Nodes '%u'\n", __func__,
-		job->nrOfNodes, PSC_getNrOfNodes());
+	mlog("%s: invalid nrOfNodes %u known Nodes %u\n", __func__,
+	     job->nrOfNodes, PSC_getNrOfNodes());
 	sendSlurmRC(sMsg, ESLURMD_INVALID_JOB_CREDENTIAL);
 	return;
     }
@@ -1495,8 +1592,8 @@ static void handleBatchJobLaunch(Slurm_Msg_t *sMsg)
 
     /* start prologue */
     job->state = JOB_PROLOGUE;
-    mdbg(PSSLURM_LOG_JOB, "%s: job '%u' in '%s'\n", __func__,
-	    job->jobid, strJobState(job->state));
+    mdbg(PSSLURM_LOG_JOB, "%s: job %u in '%s'\n", __func__,
+	 job->jobid, strJobState(job->state));
 
     if (job->packSize) {
 	startPElogue(job->jobid, job->uid, job->gid, job->username,
@@ -1516,7 +1613,7 @@ static void handleTerminateJob(Slurm_Msg_t *sMsg, Job_t *job, int signal)
     if (job->firstKillRequest) {
 	grace = getConfValueI(&SlurmConfig, "KillWait");
 	if (time(NULL) - job->firstKillRequest > grace + 10) {
-	    mlog("%s: sending SIGKILL to fowarders of job '%u'\n", __func__,
+	    mlog("%s: sending SIGKILL to fowarders of job %u\n", __func__,
 		    job->jobid);
 	    killForwarderByJobid(job->jobid);
 	    signal = SIGKILL;
@@ -1531,7 +1628,7 @@ static void handleTerminateJob(Slurm_Msg_t *sMsg, Job_t *job, int signal)
 	if (job->terminate > 3) {
 	    if (!job->mother || job->mother == -1) {
 		/* unknown mother superior */
-		mlog("%s: unknown mother superior, releasing job '%u'\n",
+		mlog("%s: unknown mother superior, releasing job %u\n",
 			__func__, job->jobid);
 		sendEpilogueComplete(job->jobid, 0);
 		deleteJob(job->jobid);
@@ -1572,9 +1669,9 @@ static void handleTerminateJob(Slurm_Msg_t *sMsg, Job_t *job, int signal)
     sendSlurmRC(sMsg, SLURM_SUCCESS);
 
     /* wait till job/epilogue is complete */
-    mlog("%s: starting epilogue for job '%u'\n", __func__, job->jobid);
+    mlog("%s: starting epilogue for job %u\n", __func__, job->jobid);
     job->state = JOB_EPILOGUE;
-    mdbg(PSSLURM_LOG_JOB, "%s: job '%u' in '%s'\n", __func__,
+    mdbg(PSSLURM_LOG_JOB, "%s: job %u in '%s'\n", __func__,
 	    job->jobid, strJobState(job->state));
     startPElogue(job->jobid, job->uid, job->gid, job->username, job->nrOfNodes,
 		    job->nodes, &job->env, &job->spankenv, 0, 0);
@@ -1592,7 +1689,7 @@ static void handleTerminateAlloc(Slurm_Msg_t *sMsg, Alloc_t *alloc)
     if (alloc->firstKillRequest) {
 	grace = getConfValueI(&SlurmConfig, "KillWait");
 	if (time(NULL) - alloc->firstKillRequest > grace + 10) {
-	    mlog("%s: sending SIGKILL to fowarders of job '%u'\n", __func__,
+	    mlog("%s: sending SIGKILL to fowarders of job %u\n", __func__,
 		    alloc->jobid);
 	    killForwarderByJobid(alloc->jobid);
 	    signal = SIGKILL;
@@ -1606,7 +1703,7 @@ static void handleTerminateAlloc(Slurm_Msg_t *sMsg, Alloc_t *alloc)
 	if (alloc->terminate > 3) {
 	    if (!alloc->motherSup || alloc->motherSup == -1) {
 		/* unknown mother superior */
-		mlog("%s: unknown mother superior, releasing allocation '%u'\n",
+		mlog("%s: unknown mother superior, releasing allocation %u\n",
 			__func__, alloc->jobid);
 		sendEpilogueComplete(alloc->jobid, 0);
 		deleteAlloc(alloc->jobid);
@@ -1627,7 +1724,7 @@ static void handleTerminateAlloc(Slurm_Msg_t *sMsg, Alloc_t *alloc)
 		mlog("%s: waiting till steps are completed\n", __func__);
 	    } else {
 		/* no running steps left, lets start epilogue */
-		mlog("%s: starting epilogue for allocation '%u' state '%s'\n",
+		mlog("%s: starting epilogue for allocation %u state '%s'\n",
 			__func__, alloc->jobid, strJobState(alloc->state));
 		alloc->state = JOB_EPILOGUE;
 		startPElogue(alloc->jobid, alloc->uid, alloc->gid,
@@ -1659,7 +1756,7 @@ static void handleAbortReq(Slurm_Msg_t *sMsg, uint32_t jobid, uint32_t stepid)
 
     if (stepid != NO_VAL) {
 	if (!(step = findStepByStepId(jobid, stepid))) {
-	    mlog("%s: step '%u:%u' not found\n", __func__, jobid, stepid);
+	    mlog("%s: step %u:%u not found\n", __func__, jobid, stepid);
 	    return;
 	}
 	signalStep(step, SIGKILL, sMsg->head.uid);
@@ -1671,7 +1768,7 @@ static void handleAbortReq(Slurm_Msg_t *sMsg, uint32_t jobid, uint32_t stepid)
     alloc = findAlloc(jobid);
 
     if (!job && !alloc) {
-	mlog("%s: job '%u' not found\n", __func__, jobid);
+	mlog("%s: job %u not found\n", __func__, jobid);
 
 	/* make sure every step is really gone */
 	signalStepsByJobid(jobid, SIGKILL, sMsg->head.uid);
@@ -1798,12 +1895,12 @@ static void handleTerminateReq(Slurm_Msg_t *sMsg)
 
     /* check permissions */
     if (sMsg->head.uid != 0 && sMsg->head.uid != slurmUserID) {
-	mlog("%s: request from invalid user '%u'\n", __func__, sMsg->head.uid);
+	mlog("%s: request from invalid user %u\n", __func__, sMsg->head.uid);
 	sendSlurmRC(sMsg, ESLURM_USER_ID_MISSING);
 	goto CLEANUP;
     }
 
-    mlog("%s: jobid '%u:%u' state '%u' uid '%u' type '%s'\n", __func__,
+    mlog("%s: jobid %u:%u state %u uid %u type '%s'\n", __func__,
 	    req->jobid, req->stepid, req->jobstate, req->uid,
 	    msgType2String(sMsg->head.type));
 
@@ -1841,7 +1938,7 @@ static void handleTerminateReq(Slurm_Msg_t *sMsg)
 	    break;
 	case REQUEST_TERMINATE_JOB:
 	    if (!job && !alloc) {
-		mlog("%s: job '%u:%u' not found\n", __func__,
+		mlog("%s: job %u:%u not found\n", __func__,
 		     req->jobid, req->stepid);
 		sendSlurmRC(sMsg, ESLURMD_KILL_JOB_ALREADY_COMPLETE);
 		goto CLEANUP;
@@ -1918,16 +2015,15 @@ int getSlurmMsgHeader(Slurm_Msg_t *sMsg, Msg_Forward_t *fw)
     }
 
 #if defined (DEBUG_MSG_HEADER)
-    mlog("%s: version '%u' flags '%u' index '%u' type '%u' bodyLen '%u' "
-	    "forward '%u' treeWidth '%u' returnList '%u'\n",
-	    __func__, sMsg->head.version, sMsg->head.flags, sMsg->head.index,
-	    sMsg->head.type, sMsg->head.bodyLen, sMsg->head.forward,
-	    sMsg->head.treeWidth, sMsg->head.returnList);
+    mlog("%s: version %u flags %u index %u type %u bodyLen %u forward %u"
+	 " treeWidth %u returnList %u\n", __func__, sMsg->head.version,
+	 sMsg->head.flags, sMsg->head.index, sMsg->head.type,
+	 sMsg->head.bodyLen, sMsg->head.forward, sMsg->head.treeWidth,
+	 sMsg->head.returnList);
 
     if (sMsg->head.forward) {
-	mlog("%s: forward to nodeList '%s' timeout '%u' treeWidth '%u'\n",
-		__func__, fw->head.nodeList, fw->head.timeout,
-		sMsg->head.treeWidth);
+	mlog("%s: forward to nodeList '%s' timeout %u treeWidth %u\n", __func__,
+	     fw->head.nodeList, fw->head.timeout, sMsg->head.treeWidth);
     }
 #endif
 
@@ -1940,7 +2036,7 @@ static int testSlurmVersion(uint32_t version, uint32_t cmd)
 
     if (version < SLURM_MIN_PROTO_VERSION ||
 	version > SLURM_MAX_PROTO_VERSION) {
-	mlog("%s: slurm protocol version '%u' not supported, cmd(%i) '%s'\n",
+	mlog("%s: slurm protocol version %u not supported, cmd(%i) %s\n",
 	     __func__, version, cmd, msgType2String(cmd));
 	return 0;
     }
@@ -1981,14 +2077,14 @@ static LIST_HEAD(msgList);
 
 int handleSlurmdMsg(Slurm_Msg_t *sMsg)
 {
-    mdbg(PSSLURM_LOG_PROTO, "%s: msg(%i): %s, version '%u' "
-	    "addr '%u.%u.%u.%u' port '%u'\n", __func__, sMsg->head.type,
-	    msgType2String(sMsg->head.type), sMsg->head.version,
-	    (sMsg->head.addr & 0x000000ff),
-	    (sMsg->head.addr & 0x0000ff00) >> 8,
-	    (sMsg->head.addr & 0x00ff0000) >> 16,
-	    (sMsg->head.addr & 0xff000000) >> 24,
-	    sMsg->head.port);
+    mdbg(PSSLURM_LOG_PROTO, "%s: msg(%i): %s, version %u addr %u.%u.%u.%u"
+	 " port %u\n", __func__, sMsg->head.type,
+	 msgType2String(sMsg->head.type), sMsg->head.version,
+	 (sMsg->head.addr & 0x000000ff),
+	 (sMsg->head.addr & 0x0000ff00) >> 8,
+	 (sMsg->head.addr & 0x00ff0000) >> 16,
+	 (sMsg->head.addr & 0xff000000) >> 24,
+	 sMsg->head.port);
 
     if (!testSlurmVersion(sMsg->head.version, sMsg->head.type)) {
 	sendSlurmRC(sMsg, SLURM_PROTOCOL_VERSION_ERROR);
@@ -2158,14 +2254,14 @@ void clearSlurmdProto(void)
 
 void sendNodeRegStatus(void)
 {
-    PS_DataBuffer_t msg = { .buf = NULL };
+    PS_SendDB_t msg = { .bufUsed = 0, .useFrag = false };
     struct utsname sys;
 
     Resp_Node_Reg_Status_t stat;
     memset(&stat, 0, sizeof(stat));
 
-    mlog("%s: host '%s' protoVersion '%u'\n", __func__,
-	getConfValueC(&Config, "SLURM_HOSTNAME"), slurmProto);
+    mlog("%s: host '%s' protoVersion %u\n", __func__,
+	 getConfValueC(&Config, "SLURM_HOSTNAME"), slurmProto);
 
     /* current time */
     stat.now = time(NULL);
@@ -2220,11 +2316,10 @@ void sendNodeRegStatus(void)
 
     ufree(stat.jobids);
     ufree(stat.stepids);
-    ufree(msg.buf);
 }
 
 int __sendSlurmReply(Slurm_Msg_t *sMsg, slurm_msg_type_t type,
-			const char *func, const int line)
+		     const char *func, const int line)
 {
     int ret = 1;
 
@@ -2234,7 +2329,7 @@ int __sendSlurmReply(Slurm_Msg_t *sMsg, slurm_msg_type_t type,
     if (sMsg->source == -1) {
 	if (!sMsg->head.forward) {
 	    /* no forwarding active for this message, just send the answer */
-	    ret = sendSlurmMsg(sMsg->sock, type, sMsg->data);
+	    ret = sendSlurmMsg(sMsg->sock, type, sMsg->outdata);
 	} else {
 	    /* we are the root of the forwarding tree, so we save the result
 	     * and wait for all other forwarded messages to return */
@@ -2252,39 +2347,20 @@ int __sendSlurmReply(Slurm_Msg_t *sMsg, slurm_msg_type_t type,
 int __sendSlurmRC(Slurm_Msg_t *sMsg, uint32_t rc, const char *func,
 		    const int line)
 {
-    PS_DataBuffer_t body = { .buf = NULL };
+    PS_SendDB_t body = { .bufUsed = 0, .useFrag = false };
     int ret = 1;
 
     addUint32ToMsg(rc, &body);
-    sMsg->data = &body;
+    sMsg->outdata = &body;
     ret = __sendSlurmReply(sMsg, RESPONSE_SLURM_RC, func, line);
 
     if (!sMsg->head.forward) freeSlurmMsg(sMsg);
 
     if (ret < 1) {
-	mlog("%s: sending rc '%u' for '%s:%u' failed\n", __func__, rc,
-		func, line);
+	mlog("%s: sending rc %u for %s:%u failed\n", __func__, rc, func, line);
     }
 
-    ufree(body.buf);
     return ret;
-}
-
-void addSlurmPids(PStask_ID_t loggerTID, PS_DataBuffer_t *data)
-{
-    uint32_t count = 0, i;
-    pid_t *pids = NULL;
-
-    /* node_name */
-    addStringToMsg(getConfValueC(&Config, "SLURM_HOSTNAME"), data);
-
-    psAccountGetPidsByLogger(loggerTID, &pids, &count);
-
-    addUint32ToMsg(count, data);
-    for (i=0; i<count; i++) {
-	addUint32ToMsg((uint32_t)pids[i], data);
-    }
-    ufree(pids);
 }
 
 int getSlurmNodeID(PSnodes_ID_t psNodeID, PSnodes_ID_t *nodes,
@@ -2298,86 +2374,9 @@ int getSlurmNodeID(PSnodes_ID_t psNodeID, PSnodes_ID_t *nodes,
     return -1;
 }
 
-int addSlurmAccData(uint8_t accType, pid_t childPid, PStask_ID_t loggerTID,
-			PS_DataBuffer_t *data, PSnodes_ID_t *nodes,
-			uint32_t nrOfNodes)
-{
-    AccountDataExt_t accData;
-    bool res;
-    uint64_t avgVsize = 0, avgRss = 0;
-    SlurmAccData_t slurmAccData;
-
-    slurmAccData.type = accType;
-    slurmAccData.nodes = nodes;
-    slurmAccData.nrOfNodes = nrOfNodes;
-    slurmAccData.accData = &accData;
-    accData.numTasks = 0;
-
-    if (!accType) {
-	/* no accounting */
-	goto PACK_RESPONSE;
-    }
-
-    if (childPid) {
-	res = psAccountGetDataByJob(childPid, &accData);
-    } else {
-	res = psAccountGetDataByLogger(loggerTID, &accData);
-    }
-
-    slurmAccData.empty = !res;
-
-    if (!res) {
-	/* getting account data failed */
-	mlog("%s: getting account data for pid '%u' logger '%s' failed\n",
-		__func__, childPid, PSC_printTID(loggerTID));
-	goto PACK_RESPONSE;
-    }
-
-    avgVsize = accData.avgVsizeCount ?
-		    accData.avgVsizeTotal / accData.avgVsizeCount : 0;
-    avgRss = accData.avgRssCount ?
-		    accData.avgRssTotal / accData.avgRssCount : 0;
-
-    mlog("%s: adding account data: maxVsize '%zu' maxRss '%zu' pageSize '%lu' "
-	    "u_sec '%lu' u_usec '%lu' s_sec '%lu' s_usec '%lu' "
-	    "num_tasks '%u' avgVsize '%lu' avgRss '%lu' avg cpufreq "
-	    "'%.2fG'\n", __func__, accData.maxVsize, accData.maxRss,
-	    accData.pageSize, accData.rusage.ru_utime.tv_sec,
-	    accData.rusage.ru_utime.tv_usec, accData.rusage.ru_stime.tv_sec,
-	    accData.rusage.ru_stime.tv_usec, accData.numTasks, avgVsize, avgRss,
-	    ((double) accData.cpuFreq / (double) accData.numTasks)
-		/ (double) 1048576);
-
-    mdbg(PSSLURM_LOG_ACC, "%s: nodes maxVsize '%u' maxRss '%u' maxPages '%u' "
-	    "minCpu '%u' maxDiskRead '%u' maxDiskWrite '%u'\n", __func__,
-	    PSC_getID(accData.taskIds[ACCID_MAX_VSIZE]),
-	    PSC_getID(accData.taskIds[ACCID_MAX_RSS]),
-	    PSC_getID(accData.taskIds[ACCID_MAX_PAGES]),
-	    PSC_getID(accData.taskIds[ACCID_MIN_CPU]),
-	    PSC_getID(accData.taskIds[ACCID_MAX_DISKREAD]),
-	    PSC_getID(accData.taskIds[ACCID_MAX_DISKWRITE]));
-
-    if (accData.avgVsizeCount > 0 &&
-	   accData.avgVsizeCount != accData.numTasks) {
-	mlog("%s: warning: total Vsize is not sum of #tasks values (%lu!=%u)\n",
-		__func__, accData.avgVsizeCount, accData.numTasks);
-    }
-
-    if (accData.avgRssCount > 0 &&
-	    accData.avgRssCount != accData.numTasks) {
-	mlog("%s: warning: total RSS is not sum of #tasks values (%lu!=%u)\n",
-		__func__, accData.avgRssCount, accData.numTasks);
-    }
-
-PACK_RESPONSE:
-    packSlurmAccData(data, &slurmAccData);
-
-    return accData.numTasks;
-}
-
 void sendStepExit(Step_t *step, uint32_t exit_status)
 {
-    PS_DataBuffer_t body = { .buf = NULL };
+    PS_SendDB_t body = { .bufUsed = 0, .useFrag = false };
     pid_t childPid;
 
     /* jobid */
@@ -2396,17 +2395,16 @@ void sendStepExit(Step_t *step, uint32_t exit_status)
     addSlurmAccData(step->accType, 0, PSC_getTID(-1, childPid),
 		    &body, step->nodes, step->nrOfNodes);
 
-    mlog("%s: sending REQUEST_STEP_COMPLETE to slurmctld: exit '%u'\n",
-	    __func__, exit_status);
+    mlog("%s: sending REQUEST_STEP_COMPLETE to slurmctld: exit %u\n", __func__,
+	 exit_status);
 
     sendSlurmMsg(SLURMCTLD_SOCK, REQUEST_STEP_COMPLETE, &body);
-    ufree(body.buf);
 }
 
 static void doSendTaskExit(Step_t *step, int exitCode, uint32_t *count,
 			   int *ctlPort, int *ctlAddr)
 {
-    PS_DataBuffer_t body = { .buf = NULL };
+    PS_SendDB_t body = { .bufUsed = 0, .useFrag = false };
     list_t *t;
     uint32_t exitCount = 0, exitCount2 = 0;
     int i, sock;
@@ -2447,16 +2445,13 @@ static void doSendTaskExit(Step_t *step, int exitCode, uint32_t *count,
     *count += exitCount;
 
     if (exitCount < 1) {
-	mlog("%s: failed to find tasks for exitCode '%i'\n", __func__,
-		exitCode);
-	ufree(body.buf);
+	mlog("%s: failed to find tasks for exitCode %i\n", __func__, exitCode);
 	return;
     }
 
     if (exitCount != exitCount2) {
-	mlog("%s: mismatching exit count '%i:%i'\n", __func__,
-		exitCount, exitCount2);
-	ufree(body.buf);
+	mlog("%s: mismatching exit count %i:%i\n", __func__,
+	     exitCount, exitCount2);
 	return;
     }
 
@@ -2465,9 +2460,8 @@ static void doSendTaskExit(Step_t *step, int exitCode, uint32_t *count,
     addUint32ToMsg(step->stepid, &body);
 
     if (!ctlPort || !ctlAddr) {
-	mlog("%s: sending MESSAGE_TASK_EXIT '%u:%u' exit '%i'\n",
-		__func__, exitCount, *count,
-		(step->timeout ? SIGTERM : exitCode));
+	mlog("%s: sending MESSAGE_TASK_EXIT %u:%u exit %i\n", __func__,
+	     exitCount, *count,	(step->timeout ? SIGTERM : exitCode));
 
 	srunSendMsg(-1, step, MESSAGE_TASK_EXIT, &body);
     } else {
@@ -2475,15 +2469,14 @@ static void doSendTaskExit(Step_t *step, int exitCode, uint32_t *count,
 	    if (ctlPort[i] != -1) {
 
 		if ((sock = tcpConnectU(ctlAddr[i], ctlPort[i])) <0) {
-		    mlog("%s: connection to srun '%u:%u' failed\n", __func__,
-			    ctlAddr[i], ctlPort[i]);
+		    mlog("%s: connection to srun %u:%u failed\n", __func__,
+			 ctlAddr[i], ctlPort[i]);
 		} else {
 		    srunSendMsg(sock, step, MESSAGE_TASK_EXIT, &body);
 		}
 	    }
 	}
     }
-    ufree(body.buf);
 }
 
 /**
@@ -2539,8 +2532,8 @@ void sendTaskExit(Step_t *step, int *ctlPort, int *ctlAddr)
 
 	if (exitCode == -100) {
 	    if (count != taskCount) {
-		mlog("%s: failed to find next exit code, count '%u' "
-			"taskCount '%u'\n", __func__, count, taskCount);
+		mlog("%s: failed to find next exit code, count %u"
+		     " taskCount %u\n", __func__, count, taskCount);
 	    }
 	    return;
 	}
@@ -2551,7 +2544,7 @@ void sendTaskExit(Step_t *step, int *ctlPort, int *ctlAddr)
 
 void sendLaunchTasksFailed(Step_t *step, uint32_t error)
 {
-    PS_DataBuffer_t body = { .buf = NULL };
+    PS_SendDB_t body = { .bufUsed = 0, .useFrag = false };
     int sock = -1;
     uint32_t i;
     Resp_Launch_Tasks_t resp;
@@ -2579,26 +2572,24 @@ void sendLaunchTasksFailed(Step_t *step, uint32_t error)
 	if ((sock = srunOpenControlConnection(step)) != -1) {
 	    setFDblock(sock, 1);
 	    if ((sendSlurmMsg(sock, RESPONSE_LAUNCH_TASKS, &body)) < 1) {
-		mlog("%s: send RESPONSE_LAUNCH_TASKS failed step '%u:%u'\n",
-			__func__, step->jobid, step->stepid);
+		mlog("%s: send RESPONSE_LAUNCH_TASKS failed step %u:%u\n",
+		     __func__, step->jobid, step->stepid);
 	    }
 	    close(sock);
 	} else {
-	    mlog("%s: open control connection failed, step '%u:%u'\n",
+	    mlog("%s: open control connection failed, step %u:%u\n",
 		    __func__, step->jobid, step->stepid);
 	}
 
-	mlog("%s: send RESPONSE_LAUNCH_TASKS step '%u:%u' pids '%u' for %s\n",
+	mlog("%s: send RESPONSE_LAUNCH_TASKS step %u:%u pids %u for '%s'\n",
 		__func__, step->jobid, step->stepid, step->globalTaskIdsLen[i],
 		resp.nodeName);
     }
-
-    ufree(body.buf);
 }
 
 void sendTaskPids(Step_t *step)
 {
-    PS_DataBuffer_t body = { .buf = NULL };
+    PS_SendDB_t body = { .bufUsed = 0, .useFrag = false };
     uint32_t countPIDs = 0, countLocalPIDs = 0, countGTIDs = 0;
     int sock = -1;
     list_t *t;
@@ -2641,8 +2632,8 @@ void sendTaskPids(Step_t *step)
 
     if (countPIDs != countGTIDs || countPIDs != countLocalPIDs
 	|| countPIDs != countGTIDs) {
-	mlog("%s: mismatching PID '%u' and GTID '%u' count\n", __func__,
-		countPIDs, countGTIDs);
+	mlog("%s: mismatching PID %u and GTID %u count\n", __func__,
+	     countPIDs, countGTIDs);
 	goto CLEANUP;
     }
 
@@ -2652,32 +2643,31 @@ void sendTaskPids(Step_t *step)
     if ((sock = srunOpenControlConnection(step)) != -1) {
 	setFDblock(sock, 1);
 	if (sendSlurmMsg(sock, RESPONSE_LAUNCH_TASKS, &body) < 1) {
-	    mlog("%s: send RESPONSE_LAUNCH_TASKS failed step '%u:%u'\n",
-		    __func__, step->jobid, step->stepid);
+	    mlog("%s: send RESPONSE_LAUNCH_TASKS failed step %u:%u\n",
+		 __func__, step->jobid, step->stepid);
 	}
 	close(sock);
     } else {
-	mlog("%s: open control connection failed, step '%u:%u'\n",
-		__func__, step->jobid, step->stepid);
+	mlog("%s: open control connection failed, step %u:%u\n",
+	     __func__, step->jobid, step->stepid);
     }
 
-    mlog("%s: send RESPONSE_LAUNCH_TASKS step '%u:%u' pids '%u'\n",
-	    __func__, step->jobid, step->stepid, countPIDs);
+    mlog("%s: send RESPONSE_LAUNCH_TASKS step %u:%u pids %u\n",
+	 __func__, step->jobid, step->stepid, countPIDs);
 
 CLEANUP:
-    ufree(body.buf);
     ufree(resp.localPIDs);
     ufree(resp.globalTIDs);
 }
 
 void sendJobExit(Job_t *job, uint32_t exit_status)
 {
-    PS_DataBuffer_t body = { .buf = NULL };
+    PS_SendDB_t body = { .bufUsed = 0, .useFrag = false };
 
     if (job->signaled) exit_status = 0;
     if (job->timeout) exit_status = SIGTERM;
 
-    mlog("%s: REQUEST_COMPLETE_BATCH_SCRIPT: jobid '%u' exit '%u'\n",
+    mlog("%s: REQUEST_COMPLETE_BATCH_SCRIPT: jobid %u exit %u\n",
 	 __func__, job->jobid, exit_status);
 
     /* batch job */
@@ -2700,14 +2690,13 @@ void sendJobExit(Job_t *job, uint32_t exit_status)
     addStringToMsg(job->hostname, &body);
 
     sendSlurmMsg(SLURMCTLD_SOCK, REQUEST_COMPLETE_BATCH_SCRIPT, &body);
-    ufree(body.buf);
 }
 
 void sendEpilogueComplete(uint32_t jobid, uint32_t rc)
 {
-    PS_DataBuffer_t body = { .buf = NULL };
+    PS_SendDB_t body = { .bufUsed = 0, .useFrag = false };
 
-    mlog("%s: jobid '%u'\n", __func__, jobid);
+    mlog("%s: jobid %u\n", __func__, jobid);
 
     /* jobid */
     addUint32ToMsg(jobid, &body);
@@ -2717,7 +2706,6 @@ void sendEpilogueComplete(uint32_t jobid, uint32_t rc)
     addStringToMsg(getConfValueC(&Config, "SLURM_HOSTNAME"), &body);
 
     sendSlurmMsg(SLURMCTLD_SOCK, MESSAGE_EPILOG_COMPLETE, &body);
-    ufree(body.buf);
 }
 
 /* vim: set ts=8 sw=4 tw=0 sts=4 noet:*/

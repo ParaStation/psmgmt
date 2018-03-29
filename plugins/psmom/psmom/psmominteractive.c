@@ -28,7 +28,7 @@
 #include "psmomlog.h"
 #include "psmomconv.h"
 #include "psmomlocalcomm.h"
-#include "plugincomm.h"
+#include "psserial.h"
 #include "pluginmalloc.h"
 #include "pluginpty.h"
 #include "selector.h"

@@ -12,18 +12,19 @@
 #include <errno.h>
 #include <stdbool.h>
 #include <signal.h>
+#include <arpa/inet.h>
 
 #include "pspluginprotocol.h"
 #include "pscommon.h"
 #include "psidcomm.h"
+#include "psidhook.h"
 #include "psidspawn.h"
 #include "psidpartition.h"
 #include "pluginenv.h"
 #include "psidtask.h"
-#include "plugincomm.h"
+#include "psserial.h"
 #include "pluginmalloc.h"
 #include "pluginhelper.h"
-#include "pluginfrag.h"
 #include "pluginpartition.h"
 #include "peloguehandles.h"
 #include "psexechandles.h"
@@ -160,7 +161,14 @@ static void rejectPartRequest(PStask_ID_t dest, PStask_t *task)
     }
 }
 
-int handleCreatePart(void *msg)
+/**
+ * @brief Handle a create partition message
+ *
+ * @param msg The message to handle.
+ *
+ * @return Always returns 0.
+ */
+static int handleCreatePart(void *msg)
 {
     DDBufferMsg_t *inmsg = (DDBufferMsg_t *) msg;
     Step_t *step;
@@ -189,8 +197,8 @@ int handleCreatePart(void *msg)
     }
 
     if (!step->hwThreads) {
-	mlog("%s: invalid hw threads in step '%u:%u'\n", __func__,
-		step->jobid, step->stepid);
+	mlog("%s: invalid hw threads in step %u:%u\n", __func__,
+	     step->jobid, step->stepid);
 	errno = EACCES;
 	goto error;
     }
@@ -204,7 +212,7 @@ int handleCreatePart(void *msg)
     }
     pTptr = task->partThrds;
 
-    mlog("%s: register TID '%s' to step '%u:%u' numThreads '%u'\n", __func__,
+    mlog("%s: register TID %s to step %u:%u numThreads %u\n", __func__,
 	    PSC_printTID(task->tid), step->jobid, step->stepid, numThreads);
 
     /* copy local hw threads */
@@ -238,7 +246,14 @@ error:
     return 0;
 }
 
-int handleCreatePartNL(void *msg)
+/**
+ * @brief Handle a create partition nodelist message
+ *
+ * @param msg The message to handle.
+ *
+ * @return Always returns 0.
+ */
+static int handleCreatePartNL(void *msg)
 {
     DDBufferMsg_t *inmsg = (DDBufferMsg_t *) msg;
     int enforceBatch;
@@ -281,9 +296,25 @@ error:
 
 void send_PS_JobLaunch(Job_t *job)
 {
-    PS_DataBuffer_t data = { .buf = NULL };
+    PS_SendDB_t data;
     PStask_ID_t myID = PSC_getMyID();
-    uint32_t i;
+
+    initFragBuffer(&data, PSP_CC_PLUG_PSSLURM, PSP_JOB_LAUNCH);
+
+    if (job->packSize) {
+	uint32_t n;
+	for (n = 0; n < job->packNrOfNodes; n++) {
+	    if (job->packNodes[n] == myID) continue;
+	    setFragDest(&data, PSC_getTID(job->packNodes[n], 0));
+	}
+    } else {
+	uint32_t n;
+	for (n = 0; n < job->nrOfNodes; n++) {
+	    if (job->nodes[n] == myID) continue;
+	    setFragDest(&data, PSC_getTID(job->nodes[n], 0));
+	}
+    }
+    if (!getNumFragDest(&data)) return;
 
     /* add jobid */
     addUint32ToMsg(job->jobid, &data);
@@ -296,36 +327,27 @@ void send_PS_JobLaunch(Job_t *job)
     if (job->packSize) {
 	/* pack node list */
 	addStringToMsg(job->packHostlist, &data);
-
-	/* send the messages */
-	for (i=0; i<job->packNrOfNodes; i++) {
-	    if (job->nodes[i] == myID) continue;
-
-	    sendFragMsg(&data, PSC_getTID(job->packNodes[i], 0),
-			    PSP_CC_PLUG_PSSLURM, PSP_JOB_LAUNCH);
-	}
     } else {
 	/* node list */
 	addStringToMsg(job->slurmHosts, &data);
-
-	/* send the messages */
-	for (i=0; i<job->nrOfNodes; i++) {
-	    if (job->nodes[i] == myID) continue;
-
-	    sendFragMsg(&data, PSC_getTID(job->nodes[i], 0),
-			    PSP_CC_PLUG_PSSLURM, PSP_JOB_LAUNCH);
-	}
     }
 
-    ufree(data.buf);
+    /* send the messages */
+    sendFragMsg(&data);
 }
 
 void send_PS_AllocLaunch(Alloc_t *alloc)
 {
-
-    PS_DataBuffer_t data = { .buf = NULL };
+    PS_SendDB_t data;
     PStask_ID_t myID = PSC_getMyID();
     uint32_t i;
+
+    initFragBuffer(&data, PSP_CC_PLUG_PSSLURM, PSP_ALLOC_LAUNCH);
+    for (i=0; i<alloc->nrOfNodes; i++) {
+	if (alloc->nodes[i] == myID) continue;
+	setFragDest(&data, PSC_getTID(alloc->nodes[i], 0));
+    }
+    if (!getNumFragDest(&data)) return;
 
     /* add jobid */
     addUint32ToMsg(alloc->jobid, &data);
@@ -340,22 +362,21 @@ void send_PS_AllocLaunch(Alloc_t *alloc)
     addStringToMsg(alloc->slurmHosts, &data);
 
     /* send the messages */
-    for (i=0; i<alloc->nrOfNodes; i++) {
-	if (alloc->nodes[i] == myID) continue;
-
-	sendFragMsg(&data, PSC_getTID(alloc->nodes[i], 0),
-			PSP_CC_PLUG_PSSLURM, PSP_ALLOC_LAUNCH);
-    }
-
-    ufree(data.buf);
+    sendFragMsg(&data);
 }
 
 void send_PS_AllocState(Alloc_t *alloc)
 {
-
-    PS_DataBuffer_t data = { .buf = NULL };
+    PS_SendDB_t data;
     PStask_ID_t myID = PSC_getMyID();
     uint32_t i;
+
+    initFragBuffer(&data, PSP_CC_PLUG_PSSLURM, PSP_ALLOC_STATE);
+    for (i=0; i<alloc->nrOfNodes; i++) {
+	if (alloc->nodes[i] == myID) continue;
+	setFragDest(&data, PSC_getTID(alloc->nodes[i], 0));
+    }
+    if (!getNumFragDest(&data)) return;
 
     /* add jobid */
     addUint32ToMsg(alloc->jobid, &data);
@@ -364,22 +385,15 @@ void send_PS_AllocState(Alloc_t *alloc)
     addUint16ToMsg(alloc->state, &data);
 
     /* send the messages */
-    for (i=0; i<alloc->nrOfNodes; i++) {
-	if (alloc->nodes[i] == myID) continue;
-
-	sendFragMsg(&data, PSC_getTID(alloc->nodes[i], 0),
-			PSP_CC_PLUG_PSSLURM, PSP_ALLOC_STATE);
-    }
-
-    ufree(data.buf);
+    sendFragMsg(&data);
 }
 
 static int retryExecScript(PSnodes_ID_t remote, uint16_t scriptID)
 {
     if (remote == slurmController && slurmBackupController > -1) {
 	/* retry using slurm backup controller */
-	mlog("%s: using backup controller, nodeID '%i'\n", __func__,
-		slurmBackupController);
+	mlog("%s: using backup controller, nodeID %i\n", __func__,
+	     slurmBackupController);
 	return psExecSendScriptStart(scriptID, slurmBackupController);
     } else if (remote != PSC_getMyID()) {
 	/* retry using local offline script */
@@ -397,7 +411,7 @@ static int callbackNodeOffline(uint32_t id, int32_t exit, PSnodes_ID_t remote,
     Job_t *job = NULL;
     Alloc_t *alloc = NULL;
 
-    mlog("%s: id '%u' exit %i remote '%i'\n", __func__, id, exit, remote);
+    mlog("%s: id %u exit %i remote %i\n", __func__, id, exit, remote);
 
     if (exit) {
 	if (retryExecScript(remote, scriptID) != -1) return 2;
@@ -405,8 +419,8 @@ static int callbackNodeOffline(uint32_t id, int32_t exit, PSnodes_ID_t remote,
 
     if ((job = findJobById(id))) {
 	if (!exit) {
-	    mlog("%s: success job '%u' state '%s'\n", __func__, job->jobid,
-		    strJobState(job->state));
+	    mlog("%s: success job %u state %s\n", __func__, job->jobid,
+		 strJobState(job->state));
 	    if (job->state == JOB_PROLOGUE || job->state == JOB_QUEUED ||
 		job->state == JOB_EXIT) {
 		/* only mother superior should try to requeue a job */
@@ -419,13 +433,13 @@ static int callbackNodeOffline(uint32_t id, int32_t exit, PSnodes_ID_t remote,
 	}
     } else if ((alloc = findAlloc(id))) {
 	if (!exit) {
-	    mlog("%s: success alloc '%u' state '%s'\n", __func__, alloc->jobid,
-		    strJobState(alloc->state));
+	    mlog("%s: success alloc %u state %s\n", __func__, alloc->jobid,
+		 strJobState(alloc->state));
 	}  else {
 	    mlog("%s: failed\n", __func__);
 	}
     } else {
-	mlog("%s: job/alloc '%u' not found\n", __func__, id);
+	mlog("%s: job/alloc %u not found\n", __func__, id);
     }
 
     return 0;
@@ -445,7 +459,7 @@ void setNodeOffline(env_t *env, uint32_t id, PSnodes_ID_t dest,
     envSet(&clone, "SLURM_HOSTNAME", host);
     envSet(&clone, "SLURM_REASON", reason);
 
-    mlog("%s: node '%s' exec script on node '%i'\n", __func__, host, dest);
+    mlog("%s: node '%s' exec script on node %i\n", __func__, host, dest);
     psExecStartScript(id, "psslurm-offline", &clone, dest, callbackNodeOffline);
 
     envDestroy(&clone);
@@ -454,18 +468,17 @@ void setNodeOffline(env_t *env, uint32_t id, PSnodes_ID_t dest,
 static int callbackRequeueBatchJob(uint32_t id, int32_t exit,
 					PSnodes_ID_t remote, uint16_t scriptID)
 {
-    Job_t *job;
-
     if (!exit) {
-	mlog("%s: success for job '%u'\n", __func__, id);
+	mlog("%s: success for job %u\n", __func__, id);
     }  else {
 	if (retryExecScript(remote, scriptID) != -1) return 2;
 
-	mlog("%s: failed for job '%u' exit '%u' remote '%i'\n", __func__,
+	mlog("%s: failed for job %u exit %u remote %i\n", __func__,
 		id, exit, remote);
 
 	/* cancel job */
-	if ((job = findJobById(id))) sendJobExit(job, -1);
+	Job_t *job = findJobById(id);
+	if (job) sendJobExit(job, -1);
     }
     return 0;
 }
@@ -483,152 +496,109 @@ void requeueBatchJob(Job_t *job, PSnodes_ID_t dest)
     envDestroy(&clone);
 }
 
-void send_PS_JobExit(uint32_t jobid, uint32_t stepid, uint32_t nrOfNodes,
-			PSnodes_ID_t *nodes)
+void send_PS_JobExit(uint32_t jobid, uint32_t stepid, uint32_t numDest,
+		     PSnodes_ID_t *nodes)
 {
-    DDTypedBufferMsg_t msg;
-    PS_DataBuffer_t data = { .buf = NULL };
+    DDTypedBufferMsg_t msg = {
+	.header = {
+	    .type = PSP_CC_PLUG_PSSLURM,
+	    .sender = PSC_getMyTID(),
+	    .len = offsetof(DDTypedBufferMsg_t, buf) },
+	.type = PSP_JOB_EXIT,
+	.buf = {'\0'} };
     PStask_ID_t myID = PSC_getMyID();
-    uint32_t i;
+    uint32_t n;
 
-    /* add jobid */
-    addUint32ToMsg(jobid, &data);
-
-    /* add stepid */
-    addUint32ToMsg(stepid, &data);
+    PSP_putTypedMsgBuf(&msg, __func__, "jobID", &jobid, sizeof(jobid));
+    PSP_putTypedMsgBuf(&msg, __func__, "stepID", &stepid, sizeof(stepid));
 
     /* send the messages */
-    msg = (DDTypedBufferMsg_t) {
-       .header = (DDMsg_t) {
-       .type = PSP_CC_PLUG_PSSLURM,
-       .sender = PSC_getMyTID(),
-       .len = sizeof(msg.header) },
-       .buf = {'\0'} };
+    for (n = 0; n < numDest; n++) {
+	if (nodes[n] == myID) continue;
 
-    msg.type = PSP_JOB_EXIT;
-    msg.header.len += sizeof(msg.type);
-
-    memcpy(msg.buf, data.buf, data.bufUsed);
-    msg.header.len += data.bufUsed;
-
-    for (i=0; i<nrOfNodes; i++) {
-	if (nodes[i] == myID) continue;
-
-	msg.header.dest = PSC_getTID(nodes[i], 0);
-	if ((sendMsg(&msg)) == -1 && errno != EWOULDBLOCK) {
+	msg.header.dest = PSC_getTID(nodes[n], 0);
+	if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
 	    mwarn(errno, "%s: sending msg to %s failed ", __func__,
-		    PSC_printTID(msg.header.dest));
+		  PSC_printTID(msg.header.dest));
 	}
     }
-
-    ufree(data.buf);
 }
 
-void send_PS_SignalTasks(Step_t *step, int signal, PStask_group_t group)
+void send_PS_SignalTasks(Step_t *step, uint32_t signal, PStask_group_t group)
 {
-    DDTypedBufferMsg_t msg;
-    PS_DataBuffer_t data = { .buf = NULL };
+    DDTypedBufferMsg_t msg = {
+	.header = {
+	    .type = PSP_CC_PLUG_PSSLURM,
+	    .sender = PSC_getMyTID(),
+	    .len = offsetof(DDTypedBufferMsg_t, buf) },
+	.type = PSP_SIGNAL_TASKS,
+	.buf = {'\0'} };
     PSnodes_ID_t myID = PSC_getMyID();
-    uint32_t i;
+    uint32_t jobID = step->jobid, stepID = step->stepid, grp = group;
 
-    /* add jobid */
-    addUint32ToMsg(step->jobid, &data);
-
-    /* add stepid */
-    addUint32ToMsg(step->stepid, &data);
-
-    /* add group */
-    addInt32ToMsg(group, &data);
-
-    /* add signal */
-    addUint32ToMsg(signal, &data);
+    PSP_putTypedMsgBuf(&msg, __func__, "jobID", &jobID, sizeof(jobID));
+    PSP_putTypedMsgBuf(&msg, __func__, "stepID", &stepID, sizeof(stepID));
+    PSP_putTypedMsgBuf(&msg, __func__, "group", &grp, sizeof(grp));
+    PSP_putTypedMsgBuf(&msg, __func__, "signal", &signal, sizeof(signal));
 
     /* send the messages */
-    msg = (DDTypedBufferMsg_t) {
-       .header = (DDMsg_t) {
-       .type = PSP_CC_PLUG_PSSLURM,
-       .sender = PSC_getMyTID(),
-       .len = sizeof(msg.header) },
-       .buf = {'\0'} };
-
-    msg.type = PSP_SIGNAL_TASKS;
-    msg.header.len += sizeof(msg.type);
-
-    memcpy(msg.buf, data.buf, data.bufUsed);
-    msg.header.len += data.bufUsed;
-
-
     if (step->packNrOfNodes != NO_VAL) {
-	for (i=0; i<step->packNrOfNodes; i++) {
-	    if (step->packNodes[i] == myID) continue;
+	uint32_t n;
+	for (n = 0; n < step->packNrOfNodes; n++) {
+	    if (step->packNodes[n] == myID) continue;
 
-	    msg.header.dest = PSC_getTID(step->packNodes[i], 0);
-	    if ((sendMsg(&msg)) == -1 && errno != EWOULDBLOCK) {
+	    msg.header.dest = PSC_getTID(step->packNodes[n], 0);
+	    if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
 		mwarn(errno, "%s: sending msg to %s failed ", __func__,
-			PSC_printTID(msg.header.dest));
+		      PSC_printTID(msg.header.dest));
 	    }
 	}
     } else {
-	for (i=0; i<step->nrOfNodes; i++) {
-	    if (step->nodes[i] == myID) continue;
+	uint32_t n;
+	for (n = 0; n < step->nrOfNodes; n++) {
+	    if (step->nodes[n] == myID) continue;
 
-	    msg.header.dest = PSC_getTID(step->nodes[i], 0);
-	    if ((sendMsg(&msg)) == -1 && errno != EWOULDBLOCK) {
+	    msg.header.dest = PSC_getTID(step->nodes[n], 0);
+	    if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
 		mwarn(errno, "%s: sending msg to %s failed ", __func__,
-			PSC_printTID(msg.header.dest));
+		      PSC_printTID(msg.header.dest));
 	    }
 	}
     }
-
-    ufree(data.buf);
 }
 
 void send_PS_JobState(uint32_t jobid, PStask_ID_t dest)
 {
-    DDTypedBufferMsg_t msg;
-    PS_DataBuffer_t data = { .buf = NULL };
+    DDTypedBufferMsg_t msg = {
+	.header = {
+	    .type = PSP_CC_PLUG_PSSLURM,
+	    .sender = PSC_getMyTID(),
+	    .dest = dest,
+	    .len = offsetof(DDTypedBufferMsg_t, buf) },
+	.type = PSP_JOB_STATE_REQ,
+	.buf = {'\0'} };
 
-    mlog("%s: jobid '%u' dest '%s'\n", __func__, jobid, PSC_printTID(dest));
+    mlog("%s: jobid %u dest '%s'\n", __func__, jobid, PSC_printTID(dest));
 
     /* add jobid */
-    addUint32ToMsg(jobid, &data);
+    PSP_putTypedMsgBuf(&msg, __func__, "jobID", &jobid, sizeof(jobid));
 
     /* send the messages */
-    msg = (DDTypedBufferMsg_t) {
-       .header = (DDMsg_t) {
-       .type = PSP_CC_PLUG_PSSLURM,
-       .sender = PSC_getMyTID(),
-       .len = sizeof(msg.header) },
-       .buf = {'\0'} };
-
-    msg.type = PSP_JOB_STATE_REQ;
-    msg.header.len += sizeof(msg.type);
-
-    memcpy(msg.buf, data.buf, data.bufUsed);
-    msg.header.len += data.bufUsed;
-
-    msg.header.dest = dest;
-    if ((sendMsg(&msg)) == -1 && errno != EWOULDBLOCK) {
+    if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
 	mwarn(errno, "%s: sending msg to %s failed ", __func__,
 		PSC_printTID(msg.header.dest));
     }
-
-    ufree(data.buf);
 }
 
 static void handle_PS_JobExit(DDTypedBufferMsg_t *msg)
 {
     uint32_t jobid, stepid;
-    Step_t *step;
-    char *ptr = msg->buf;
+    size_t used = 0;
 
-    /* get jobid */
-    getUint32(&ptr, &jobid);
+    PSP_getTypedMsgBuf(msg, &used, __func__, "jobID", &jobid, sizeof(jobid));
+    PSP_getTypedMsgBuf(msg, &used, __func__, "stepID", &stepid, sizeof(stepid));
 
-    /* get stepid */
-    getUint32(&ptr, &stepid);
-
-    mlog("%s: id '%u:%u' from '%s'\n", __func__, jobid, stepid,
+    mlog("%s: id %u:%u from '%s'\n", __func__, jobid, stepid,
 	    PSC_printTID(msg->header.sender));
 
     /* delete all steps */
@@ -640,106 +610,99 @@ static void handle_PS_JobExit(DDTypedBufferMsg_t *msg)
 	return;
     }
 
-    if (!(step = findStepByStepId(jobid, stepid))) {
-      mlog("%s: step '%u:%u' not found\n", __func__, jobid, stepid);
+    Step_t *step = findStepByStepId(jobid, stepid);
+    if (!step) {
+	mlog("%s: step %u:%u not found\n", __func__, jobid, stepid);
     } else {
 	step->state = JOB_EXIT;
-	mdbg(PSSLURM_LOG_JOB, "%s: step '%u:%u' in '%s'\n", __func__,
-		step->jobid, step->stepid, strJobState(step->state));
+	mdbg(PSSLURM_LOG_JOB, "%s: step %u:%u in %s\n", __func__,
+	     step->jobid, step->stepid, strJobState(step->state));
     }
 }
 
 static void handle_PS_JobStateRes(DDTypedBufferMsg_t *msg)
 {
-    Job_t *job;
-    Alloc_t *alloc;
     uint32_t jobid;
     uint8_t res = 0, state = 0;
-    char *ptr = msg->buf;
+    size_t used = 0;
 
-    /* get jobid */
-    getUint32(&ptr, &jobid);
+    PSP_getTypedMsgBuf(msg, &used, __func__, "jobID", &jobid, sizeof(jobid));
+    PSP_getTypedMsgBuf(msg, &used, __func__, "res", &res, sizeof(res));
+    PSP_getTypedMsgBuf(msg, &used, __func__, "state", &state, sizeof(state));
 
-    /* get info */
-    getUint8(&ptr, &res);
-    getUint8(&ptr, &state);
+    mlog("%s: jobid %u res %u state %s from %s\n", __func__, jobid, res,
+	 strJobState(state), PSC_printTID(msg->header.sender));
 
-    mlog("%s: jobid '%u' res '%u' state '%s' from '%s'\n", __func__, jobid, res,
-	    strJobState(state), PSC_printTID(msg->header.sender));
-
-    if ((job = findJobById(jobid))) {
+    Job_t *job = findJobById(jobid);
+    if (job) {
 	if (!res || job->state == JOB_EXIT) {
 	    sendEpilogueComplete(jobid, 0);
 	    deleteJob(jobid);
 	}
-    } else if ((alloc = findAlloc(jobid))) {
-	if (!res || alloc->state == JOB_EXIT) {
+    } else {
+	Alloc_t *alloc = findAlloc(jobid);
+	if (alloc && (!res || alloc->state == JOB_EXIT)) {
 	    sendEpilogueComplete(jobid, 0);
 	    deleteAlloc(jobid);
 	}
     }
 }
 
-static void handle_PS_JobStateReq(DDTypedBufferMsg_t *msg)
+static void handle_PS_JobStateReq(DDTypedBufferMsg_t *inmsg)
 {
-    PS_DataBuffer_t data = { .buf = NULL };
-    Job_t *job;
-    Alloc_t *alloc;
+    DDTypedBufferMsg_t msg = {
+	.header = {
+	    .type = PSP_CC_PLUG_PSSLURM,
+	    .sender = PSC_getMyTID(),
+	    .dest = inmsg->header.sender,
+	    .len = offsetof(DDTypedBufferMsg_t, buf) },
+	.type = PSP_JOB_STATE_RES,
+	.buf = {'\0'} };
     uint32_t jobid;
     uint8_t res = 0, state = 0;
-    char *ptr = msg->buf;
+    size_t used = 0;
 
     /* get jobid */
-    getUint32(&ptr, &jobid);
+    PSP_getTypedMsgBuf(inmsg, &used, __func__, "jobID", &jobid, sizeof(jobid));
 
-    if ((job = findJobById(jobid))) {
+    Job_t *job = findJobById(jobid);
+    if (job) {
 	res = 1;
 	state = job->state;
-    } else if ((alloc = findAlloc(jobid))) {
-	res = 1;
-	state = alloc->state;
+    } else {
+	Alloc_t *alloc = findAlloc(jobid);
+	if (alloc) {
+	    res = 1;
+	    state = alloc->state;
+	}
     }
 
-    mlog("%s: from '%s' jobid '%u' res '%u' state '%s'\n", __func__,
-	    PSC_printTID(msg->header.sender), jobid, res,
-	    strJobState(state));
+    mlog("%s: from '%s' jobid %u res %u state %s\n", __func__,
+	 PSC_printTID(inmsg->header.sender), jobid, res, strJobState(state));
 
-    addUint32ToMsg(jobid, &data);
-    addUint8ToMsg(res, &data);
-    addUint8ToMsg(state, &data);
+    PSP_putTypedMsgBuf(&msg, __func__, "jobID", &jobid, sizeof(jobid));
+    PSP_putTypedMsgBuf(&msg, __func__, "res", &res, sizeof(res));
+    PSP_putTypedMsgBuf(&msg, __func__, "state", &state, sizeof(state));
 
     /* send the messages */
-    msg->header.dest = msg->header.sender;
-    msg->header.sender = PSC_getMyTID();
-    msg->header.len = sizeof(msg->header);
-
-    msg->type = PSP_JOB_STATE_RES;
-    msg->header.len += sizeof(msg->type);
-
-    memcpy(msg->buf, data.buf, data.bufUsed);
-    msg->header.len += data.bufUsed;
-
-    if ((sendMsg(msg)) == -1 && errno != EWOULDBLOCK) {
+    if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
 	mwarn(errno, "%s: sending msg to %s failed ", __func__,
-		PSC_printTID(msg->header.dest));
+	      PSC_printTID(msg.header.dest));
     }
-
-    ufree(data.buf);
 }
 
 static void handle_PS_JobLaunch(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 {
     uint32_t jobid;
-    Job_t *job;
     char *ptr = data->buf;
 
     /* get jobid */
     getUint32(&ptr, &jobid);
 
-    job = addJob(jobid);
+    Job_t *job = addJob(jobid);
     job->state = JOB_QUEUED;
-    mdbg(PSSLURM_LOG_JOB, "%s: job '%u' in '%s'\n", __func__,
-	    job->jobid, strJobState(job->state));
+    mdbg(PSSLURM_LOG_JOB, "%s: job %u in %s\n", __func__, job->jobid,
+	 strJobState(job->state));
     job->mother = msg->header.sender;
 
     /* get uid/gid */
@@ -754,7 +717,7 @@ static void handle_PS_JobLaunch(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     getNodesFromSlurmHL(job->slurmHosts, &job->nrOfNodes, &job->nodes,
 			&job->localNodeId);
 
-    mlog("%s: jobid '%u' user '%s' nodes '%u' from '%s'\n", __func__, jobid,
+    mlog("%s: jobid %u user '%s' nodes %u from '%s'\n", __func__, jobid,
 	    job->username, job->nrOfNodes, PSC_printTID(msg->header.sender));
 }
 
@@ -788,8 +751,8 @@ static void handleAllocLaunch(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     ufree(username);
     ufree(slurmHosts);
 
-    mlog("%s: jobid '%u' user '%s' nodes '%u' from '%s'\n", __func__, jobid,
-	    alloc->username, alloc->nrOfNodes, PSC_printTID(msg->header.sender));
+    mlog("%s: jobid %u user '%s' nodes %u from '%s'\n", __func__, jobid,
+	 alloc->username, alloc->nrOfNodes, PSC_printTID(msg->header.sender));
 }
 
 static void handleAllocState(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
@@ -806,14 +769,14 @@ static void handleAllocState(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     getUint16(&ptr, &state);
 
     if (!(alloc = findAlloc(jobid))) {
-	mlog("%s: allocation '%u' not found\n", __func__, jobid);
+	mlog("%s: allocation %u not found\n", __func__, jobid);
 	return;
     }
 
     alloc->state = state;
 
-    mlog("%s: jobid '%u' state '%s' from '%s'\n", __func__, jobid,
-	    strJobState(alloc->state), PSC_printTID(msg->header.sender));
+    mlog("%s: jobid %u state '%s' from %s\n", __func__, jobid,
+	 strJobState(alloc->state), PSC_printTID(msg->header.sender));
 }
 
 static void handlePackInfo(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
@@ -894,45 +857,43 @@ static void handlePackInfo(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 
 static void handle_PS_SignalTasks(DDTypedBufferMsg_t *msg)
 {
-    uint32_t jobid, stepid;
-    uint32_t signal;
-    int32_t group;
-    char *ptr = msg->buf;
-    Step_t *step;
+    uint32_t jobid, stepid, group, sig;
+    size_t used = 0;
 
-    /* get jobid */
-    getUint32(&ptr, &jobid);
+    PSP_getTypedMsgBuf(msg, &used, __func__, "jobID", &jobid, sizeof(jobid));
+    PSP_getTypedMsgBuf(msg, &used, __func__, "stepID", &stepid, sizeof(stepid));
+    PSP_getTypedMsgBuf(msg, &used, __func__, "group", &group, sizeof(group));
+    PSP_getTypedMsgBuf(msg, &used, __func__, "signal", &sig, sizeof(sig));
 
-    /* get stepid */
-    getUint32(&ptr, &stepid);
-
-    /* get group */
-    getInt32(&ptr, &group);
-
-    /* get signal */
-    getUint32(&ptr, &signal);
-
-    if (!(step = findStepByStepId(jobid, stepid))) {
-      mlog("%s: step '%u:%u' to signal not found\n", __func__, jobid, stepid);
+    Step_t *step = findStepByStepId(jobid, stepid);
+    if (!step) {
+      mlog("%s: step %u:%u to signal not found\n", __func__, jobid, stepid);
       return;
     }
 
     /* shutdown io */
-    if (signal == SIGTERM || signal == SIGKILL) {
+    if (sig == SIGTERM || sig == SIGKILL) {
 	if (step->fwdata) shutdownForwarder(step->fwdata);
     }
 
     /* signal tasks */
-    mlog("%s: id '%u:%u' signal '%u'\n", __func__, jobid, stepid, signal);
-    signalTasks(step->jobid, step->uid, &step->tasks, signal, group);
+    mlog("%s: id %u:%u signal %u\n", __func__, jobid, stepid, sig);
+    signalTasks(step->jobid, step->uid, &step->tasks, sig, group);
 }
 
 void forwardSlurmMsg(Slurm_Msg_t *sMsg, Msg_Forward_t *fw)
 {
     uint32_t nrOfNodes, i, len, localId;
     PSnodes_ID_t *nodes = NULL;
+    PS_SendDB_t msg;
 
-    PS_DataBuffer_t msg = { .buf = NULL };
+    /* convert nodelist to PS nodes */
+    getNodesFromSlurmHL(fw->head.nodeList, &nrOfNodes, &nodes, &localId);
+
+    initFragBuffer(&msg, PSP_CC_PLUG_PSSLURM, PSP_FORWARD_SMSG);
+    for (i=0; i<nrOfNodes; i++) {
+	setFragDest(&msg, PSC_getTID(nodes[i], 0));
+    }
 
     /* add forward information */
     addInt16ToMsg(sMsg->sock, &msg);
@@ -957,18 +918,12 @@ void forwardSlurmMsg(Slurm_Msg_t *sMsg, Msg_Forward_t *fw)
     len = sMsg->data->bufUsed - (sMsg->ptr - sMsg->data->buf);
     addMemToMsg(sMsg->ptr, len, &msg);
 
-    /* convert nodelist to PS nodes */
-    getNodesFromSlurmHL(fw->head.nodeList, &nrOfNodes, &nodes, &localId);
+    /* send the message(s) */
+    sendFragMsg(&msg);
 
     /* save infos in connection */
     fw->nodes = nodes;
     fw->nodesCount = nrOfNodes;
-
-    for (i=0; i<nrOfNodes; i++) {
-	sendFragMsg(&msg, PSC_getTID(nodes[i], 0),
-			PSP_CC_PLUG_PSSLURM, PSP_FORWARD_SMSG);
-    }
-    ufree(msg.buf);
 
     /* complete the forward header */
     fw->head.forward = sMsg->head.forward;
@@ -985,17 +940,19 @@ void forwardSlurmMsg(Slurm_Msg_t *sMsg, Msg_Forward_t *fw)
 	fw->head.fwdata[i].body.bufUsed = 0;
     }
 
-    mdbg(PSSLURM_LOG_FWD, "%s: forward: type '%s' count '%u' nodelist '%s' "
-	    "timeout '%u'\n", __func__, msgType2String(sMsg->head.type),
-	    sMsg->head.forward, fw->head.nodeList, fw->head.timeout);
+    mdbg(PSSLURM_LOG_FWD, "%s: forward: type '%s' count %u nodelist '%s' "
+	 "timeout %u\n", __func__, msgType2String(sMsg->head.type),
+	 sMsg->head.forward, fw->head.nodeList, fw->head.timeout);
 }
 
 int send_PS_ForwardRes(Slurm_Msg_t *sMsg)
 {
-    PS_DataBuffer_t msg = { .buf = NULL };
+    PS_SendDB_t msg;
     int ret;
 
     /* add forward information */
+    initFragBuffer(&msg, PSP_CC_PLUG_PSSLURM, PSP_FORWARD_SMSG_RES);
+    setFragDest(&msg, sMsg->source);
 
     /* socket */
     addInt16ToMsg(sMsg->sock, &msg);
@@ -1003,16 +960,14 @@ int send_PS_ForwardRes(Slurm_Msg_t *sMsg)
     addTimeToMsg(sMsg->recvTime, &msg);
     /* message type */
     addUint16ToMsg(sMsg->head.type, &msg);
+    /* msg payload */
+    addMemToMsg(sMsg->outdata->buf, sMsg->outdata->bufUsed, &msg);
 
-    addMemToMsg(sMsg->data->buf, sMsg->data->bufUsed, &msg);
+    ret = sendFragMsg(&msg);
 
-    ret = sendFragMsg(&msg, sMsg->source, PSP_CC_PLUG_PSSLURM,
-		      PSP_FORWARD_SMSG_RES);
-    ufree(msg.buf);
-
-    mdbg(PSSLURM_LOG_FWD, "%s: type '%s' source '%s' socket '%i' recvTime "
-	    "'%zu'\n", __func__, msgType2String(sMsg->head.type),
-	    PSC_printTID(sMsg->source), sMsg->sock, sMsg->recvTime);
+    mdbg(PSSLURM_LOG_FWD, "%s: type '%s' source '%s' socket %i recvTime %zu\n",
+	 __func__, msgType2String(sMsg->head.type), PSC_printTID(sMsg->source),
+	 sMsg->sock, sMsg->recvTime);
 
     return ret;
 }
@@ -1036,9 +991,9 @@ static void handleFWslurmMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     sMsg.ptr = ptr;
     getSlurmMsgHeader(&sMsg, NULL);
 
-    mdbg(PSSLURM_LOG_FWD, "%s: sender '%s' sock '%u' time '%lu' datalen '%u'\n",
-	    __func__, PSC_printTID(sMsg.source), sMsg.sock, sMsg.recvTime,
-	    data->bufUsed);
+    mdbg(PSSLURM_LOG_FWD, "%s: sender '%s' sock %u time %lu datalen %u\n",
+	 __func__, PSC_printTID(sMsg.source), sMsg.sock, sMsg.recvTime,
+	 data->bufUsed);
 
     handleSlurmdMsg(&sMsg);
 }
@@ -1047,13 +1002,11 @@ static void handleFWslurmMsgRes(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 {
     Slurm_Msg_t sMsg;
     char *ptr = data->buf;
-    PS_DataBuffer_t body = { .buf = NULL };
-    uint32_t len = data->bufUsed;
+    PS_SendDB_t outdata;
     int16_t socket;
 
     initSlurmMsg(&sMsg);
     sMsg.source = msg->header.sender;
-    sMsg.data = &body;
 
     /* socket */
     getInt16(&ptr, &socket);
@@ -1062,12 +1015,12 @@ static void handleFWslurmMsgRes(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     getTime(&ptr, &sMsg.recvTime);
     /* message type */
     getUint16(&ptr, &sMsg.head.type);
-
-    len -=  (2 * sizeof(uint16_t)) + sizeof (int64_t);
-    addMemToMsg(ptr, len, &body);
+    /* save payload in data buffer */
+    outdata.bufUsed = data->bufUsed - (ptr - data->buf);
+    outdata.buf = ptr;
+    sMsg.outdata = &outdata;
 
     saveFrwrdMsgRes(&sMsg, SLURM_SUCCESS);
-    ufree(body.buf);
 }
 
 /**
@@ -1082,8 +1035,8 @@ static void handlePsslurmMsg(DDTypedBufferMsg_t *msg)
     strncpy(sender, PSC_printTID(msg->header.sender), sizeof(sender));
     strncpy(dest, PSC_printTID(msg->header.dest), sizeof(dest));
 
-    mdbg(PSSLURM_LOG_COMM, "%s: new msg type: '%i' [%s->%s]\n", __func__,
-	msg->type, sender, dest);
+    mdbg(PSSLURM_LOG_COMM, "%s: new msg type: %s (%i) [%s->%s]\n", __func__,
+	 msg2Str(msg->type), msg->type, sender, dest);
 
     switch (msg->type) {
 	case PSP_SIGNAL_TASKS:
@@ -1117,7 +1070,7 @@ static void handlePsslurmMsg(DDTypedBufferMsg_t *msg)
 	    recvFragMsg(msg, handlePackInfo);
 	    break;
 	default:
-	    mlog("%s: received unknown msg type:%i [%s -> %s]\n", __func__,
+	    mlog("%s: received unknown msg type: %i [%s -> %s]\n", __func__,
 		msg->type, sender, dest);
     }
 }
@@ -1129,14 +1082,10 @@ bool nodeDownJobs(Job_t *job, const void *info)
 
     for (i=0; i<job->nrOfNodes; i++) {
 	if (job->nodes[i] == node) {
-	    mlog("%s: node '%i' which is running job '%u' "
-		    "state '%u' is down\n", __func__, node,
-		    job->jobid, job->state);
-
-	    if (job->state != JOB_EPILOGUE &&
-		    job->state != JOB_COMPLETE &&
-		    job->state != JOB_EXIT) {
-
+	    mlog("%s: node %i running job %u state %u is down\n", __func__,
+		 node, job->jobid, job->state);
+	    if (job->state != JOB_EPILOGUE && job->state != JOB_COMPLETE
+		&& job->state != JOB_EXIT) {
 		signalJob(job, SIGKILL, 0);
 	    }
 	}
@@ -1151,15 +1100,10 @@ bool nodeDownSteps(Step_t *step, const void *info)
 
     for (i=0; i<step->nrOfNodes; i++) {
 	if (step->nodes[i] == node) {
-	    mlog("%s: node '%i' which is running step '%u:%u' "
-		    "state '%u' is down\n", __func__, node,
-		    step->jobid, step->stepid, step->state);
-
-	    if ((!(findJobById(step->jobid))) &&
-		    step->state != JOB_EPILOGUE &&
-		    step->state != JOB_COMPLETE &&
-		    step->state != JOB_EXIT) {
-
+	    mlog("%s: node %i running step %u:%u state %u is down\n", __func__,
+		 node, step->jobid, step->stepid, step->state);
+	    if (!findJobById(step->jobid) && step->state != JOB_EPILOGUE
+		&& step->state != JOB_COMPLETE && step->state != JOB_EXIT) {
 		signalStep(step, SIGKILL, 0);
 	    }
 	}
@@ -1167,7 +1111,7 @@ bool nodeDownSteps(Step_t *step, const void *info)
     return false;
 }
 
-int handleNodeDown(void *nodeID)
+static int handleNodeDown(void *nodeID)
 {
     PSnodes_ID_t node = *((PSnodes_ID_t *) nodeID);
 
@@ -1183,22 +1127,25 @@ int handleNodeDown(void *nodeID)
 static void saveForwardError(DDTypedBufferMsg_t *msg)
 {
     Slurm_Msg_t sMsg;
-    PS_DataBuffer_t data = { .buf = NULL };
-    char *ptr = msg->buf;
+    PS_SendDB_t outdata = { .bufUsed = 0, .useFrag = false };
+    size_t used = 0;
+    uint8_t fType;
+    uint16_t fNum;
     int16_t socket;
-    PS_Frag_Msg_Header_t *rhead;
 
-    initSlurmMsg(&sMsg);
-    sMsg.data = &data;
-    sMsg.source = msg->header.dest;
-    sMsg.head.type = RESPONSE_FORWARD_FAILED;
-
-    /* fragmented message header */
-    rhead = (PS_Frag_Msg_Header_t *) ptr;
-    ptr += sizeof(PS_Frag_Msg_Header_t);
+    PSP_getTypedMsgBuf(msg, &used, __func__, "fragType", &fType, sizeof(fType));
+    PSP_getTypedMsgBuf(msg, &used, __func__, "fragNum", &fNum, sizeof(fNum));
 
     /* ignore follow up messages */
-    if (rhead->fragNum) return;
+    if (fNum) return;
+
+    /* skip fragmented message header */
+    char *ptr = msg->buf + used;
+
+    initSlurmMsg(&sMsg);
+    sMsg.outdata = &outdata;
+    sMsg.source = msg->header.dest;
+    sMsg.head.type = RESPONSE_FORWARD_FAILED;
 
     /* socket */
     getInt16(&ptr, &socket);
@@ -1216,53 +1163,56 @@ static void saveForwardError(DDTypedBufferMsg_t *msg)
 */
 static void handleDroppedMsg(DDTypedBufferMsg_t *msg)
 {
-    char *ptr;
     const char *hname;
     PSnodes_ID_t nodeId;
-    uint32_t jobid;
-    Job_t *job;
-    Alloc_t *alloc;
 
     /* get hostname for message destination */
     nodeId = PSC_getID(msg->header.dest);
     hname = getHostnameByNodeId(nodeId);
 
-    mlog("%s: msg type '%s (%i)' to host '%s(%i)' got dropped\n", __func__,
-	    msg2Str(msg->type), msg->type, hname, nodeId);
-    ptr = msg->buf;
+    mlog("%s: msg type %s (%i) to host %s (%i) got dropped\n", __func__,
+	 msg2Str(msg->type), msg->type, hname, nodeId);
 
     switch (msg->type) {
-	case PSP_JOB_STATE_REQ:
-	    getUint32(&ptr, &jobid);
-	    mlog("%s: mother superior is dead, releasing job '%u'\n", __func__,
-		    jobid);
+    case PSP_JOB_STATE_REQ:
+    {
+	uint32_t jobid;
+	size_t used = 0;
+	PSP_getTypedMsgBuf(msg, &used, __func__, "jobID", &jobid,sizeof(jobid));
 
-	    if ((job = findJobById(jobid))) {
-		mlog("%s: deleting job '%u'\n", __func__, jobid);
-		signalJob(job, SIGKILL, 0);
-		sendEpilogueComplete(jobid, 0);
-		deleteJob(jobid);
-	    } else if ((alloc = findAlloc(jobid))) {
-		mlog("%s: deleting allocation '%u'\n", __func__, jobid);
+	mlog("%s: mother superior dead, releasing job %u\n", __func__, jobid);
+
+	Job_t *job = findJobById(jobid);
+	if (job) {
+	    mlog("%s: deleting job %u\n", __func__, jobid);
+	    signalJob(job, SIGKILL, 0);
+	    sendEpilogueComplete(jobid, 0);
+	    deleteJob(jobid);
+	} else {
+	    Alloc_t *alloc  = findAlloc(jobid);
+	    if (alloc) {
+		mlog("%s: deleting allocation %u\n", __func__, jobid);
 		signalStepsByJobid(alloc->jobid, SIGKILL, 0);
 		sendEpilogueComplete(jobid, 0);
 		deleteAlloc(jobid);
 	    }
-	    break;
-	case PSP_FORWARD_SMSG:
-	    saveForwardError(msg);
-	    break;
-	case PSP_FORWARD_SMSG_RES:
-	case PSP_JOB_LAUNCH:
-	case PSP_JOB_EXIT:
-	case PSP_JOB_STATE_RES:
-	case PSP_SIGNAL_TASKS:
-	case PSP_ALLOC_LAUNCH:
-	case PSP_ALLOC_STATE:
-	    /* nothing we can do here */
-	    break;
-	default:
-	    mlog("%s: unknown msg type '%i'\n", __func__, msg->type);
+	}
+	break;
+    }
+    case PSP_FORWARD_SMSG:
+	saveForwardError(msg);
+	break;
+    case PSP_FORWARD_SMSG_RES:
+    case PSP_JOB_LAUNCH:
+    case PSP_JOB_EXIT:
+    case PSP_JOB_STATE_RES:
+    case PSP_SIGNAL_TASKS:
+    case PSP_ALLOC_LAUNCH:
+    case PSP_ALLOC_STATE:
+	/* nothing we can do here */
+	break;
+    default:
+	mlog("%s: unknown msg type %i\n", __func__, msg->type);
     }
 }
 
@@ -1273,15 +1223,16 @@ static void forwardToSrunProxy(Step_t *step, PSLog_Msg_t *lmsg, int taskid)
 	    .type = PSP_CC_MSG,
 	    .dest = step->fwdata ? step->fwdata->tid : -1,
 	    .sender = lmsg->header.sender,
-	    .len = PSLog_headerSize },
+	    .len = offsetof(PSLog_Msg_t, buf) },
 	.version = PLUGINFW_PROTO_VERSION,
 	.type = CMD_PRINT_CHILD_MSG,
 	.sender = -1};
     const size_t chunkSize = sizeof(msg.buf) - sizeof(uint8_t)
-	- sizeof(uint32_t) - sizeof(uint32_t) /* len field */;
+	- sizeof(uint32_t) - sizeof(uint32_t);
     char *buf = lmsg->buf;
-    size_t msgLen = lmsg->header.len - PSLog_headerSize;
+    size_t msgLen = lmsg->header.len - offsetof(PSLog_Msg_t, buf);
     size_t left = msgLen;
+    int32_t senderRank = lmsg->sender;
 
     /* might happen if forwarder is already gone */
     if (!step->fwdata) return;
@@ -1290,20 +1241,27 @@ static void forwardToSrunProxy(Step_t *step, PSLog_Msg_t *lmsg, int taskid)
     if (step->ioCon > 2) return;
 
     if (step->ioCon == 2) {
-	mlog("%s: I/O connection for step '%u:%u' is broken\n", __func__,
+	mlog("%s: I/O connection for step %u:%u is broken\n", __func__,
 	     step->jobid, step->stepid);
 	step->ioCon = 3;
     }
 
     /* if msg from service rank, let it seem like it comes from first task */
-    if (taskid < 0) taskid = step->globalTaskIds[step->myNodeIndex][0];
+    if (senderRank < 0) senderRank = step->globalTaskIds[step->myNodeIndex][0];
 
     do {
-	size_t chunk = left > chunkSize ? chunkSize : left;
-	msg.header.len = PSLog_headerSize;
-	addUint8ToMsgBuf((DDTypedBufferMsg_t*)&msg, lmsg->type);
-	addUint32ToMsgBuf((DDTypedBufferMsg_t*)&msg, taskid);
-	addDataToMsgBuf((DDTypedBufferMsg_t*)&msg, buf + msgLen-left, chunk);
+	uint32_t chunk = left > chunkSize ? chunkSize : left;
+	uint8_t type = lmsg->type;
+	uint32_t nRank = htonl(senderRank);
+	uint32_t len = htonl(chunk);
+	DDBufferMsg_t *bMsg = (DDBufferMsg_t *)&msg;
+	bMsg->header.len = offsetof(PSLog_Msg_t, buf);
+
+	PSP_putMsgBuf(bMsg, __func__, "type", &type, sizeof(type));
+	PSP_putMsgBuf(bMsg, __func__, "rank", &nRank, sizeof(nRank));
+       /* Add data chunk including its length mimicking addData */
+	PSP_putMsgBuf(bMsg, __func__, "len", &len, sizeof(len));
+	PSP_putMsgBuf(bMsg, __func__, "data", buf + msgLen - left, chunk);
 
 	sendMsg(&msg);
 	left -= chunk;
@@ -1338,7 +1296,7 @@ static void handleCC_IO_Msg(PSLog_Msg_t *msg)
     taskid = msg->sender - step->packTaskOffset;
 
     /*
-    mdbg(PSSLURM_LOG_IO, "%s: sender '%s' msgLen '%i' type '%i' taskid '%i'\n",
+    mdbg(PSSLURM_LOG_IO, "%s: sender '%s' msgLen %i type %i taskid %i\n",
 	    __func__, PSC_printTID(msg->header.sender),
 	    msg->header.len - PSLog_headerSize, msg->type, msg->sender);
 
@@ -1415,20 +1373,17 @@ static void handleCC_INIT_Msg(PSLog_Msg_t *msg)
 
 static void handleCC_STDIN_Msg(PSLog_Msg_t *msg)
 {
-    int msgLen;
-    Step_t *step;
-    PStask_t *task;
-
-    msgLen = msg->header.len - PSLog_headerSize;
+    int msgLen = msg->header.len - offsetof(PSLog_Msg_t, buf);
 
     mdbg(PSSLURM_LOG_IO, "%s: src '%s' ", __func__,
-	    PSC_printTID(msg->header.sender));
-    mdbg(PSSLURM_LOG_IO, "dest '%s' data len '%u'\n",
-	    PSC_printTID(msg->header.dest),
-	    msgLen);
+	 PSC_printTID(msg->header.sender));
+    mdbg(PSSLURM_LOG_IO, "dest '%s' data len %u\n",
+	 PSC_printTID(msg->header.dest), msgLen);
 
-    if (!(step = findActiveStepByLogger(msg->header.sender))) {
-	if ((task = PStasklist_find(&managedTasks, msg->header.sender))) {
+    Step_t *step = findActiveStepByLogger(msg->header.sender);
+    if (!step) {
+	PStask_t *task = PStasklist_find(&managedTasks, msg->header.sender);
+	if (task) {
 	    /* allow mpiexec jobs from admin users to pass */
 	    if (isPSAdminUser(task->uid, task->gid)) goto OLD_MSG_HANDLER;
 	}
@@ -1512,7 +1467,7 @@ static int getJobIDbyTask(PStask_t *task, uint32_t *jobid, uint32_t *stepid)
     int32_t i=0;
 
     if (!task->environ) {
-	mlog("%s: environ == NULL in task structure of task '%s' rank '%d'\n",
+	mlog("%s: environ == NULL in task structure of task '%s' rank %d\n",
 		__func__, PSC_printTID(task->tid), task->rank);
 	return 0;
     }
@@ -1535,14 +1490,12 @@ static int getJobIDbyTask(PStask_t *task, uint32_t *jobid, uint32_t *stepid)
 
 	if (!sjobid) {
 	    mlog("%s: could not find job id in environment of task '%s'"
-		    " rank '%d'\n", __func__, PSC_printTID(task->tid),
-		    task->rank);
+		 " rank %d\n", __func__, PSC_printTID(task->tid), task->rank);
 	}
 
 	if (!sstepid) {
 	    mlog("%s: could not find step id in environment of task '%s'"
-		    " rank '%d'\n", __func__, PSC_printTID(task->tid),
-		    task->rank);
+		 " rank %d\n", __func__, PSC_printTID(task->tid), task->rank);
 	}
 	return 0;
     }
@@ -1578,7 +1531,7 @@ static int getJobIDbyForwarderMsgHeader(DDMsg_t *header, PStask_t **fwPtr,
     }
 
     /*
-    mlog("%s: forwarder '%s' rank '%i'\n", __func__,
+    mlog("%s: forwarder '%s' rank %i\n", __func__,
 	    PSC_printTID(forwarder->tid), forwarder->rank);
     */
 
@@ -1607,9 +1560,9 @@ static void handleSpawnFailed(DDErrorMsg_t *msg)
     uint32_t jobid, stepid;
     Step_t *step = NULL;
 
-    mwarn(msg->error, "%s: spawn failed: forwarder '%s' rank '%i' errno '%i'",
-	    __func__, PSC_printTID(msg->header.sender),
-	    msg->request, msg->error);
+    mwarn(msg->error, "%s: spawn failed: forwarder '%s' rank %i errno %i",
+	  __func__, PSC_printTID(msg->header.sender),
+	  msg->request, msg->error);
 
     if (!getJobIDbyForwarderMsgHeader(&msg->header, &forwarder, &jobid,
 				      &stepid)) {
@@ -1807,7 +1760,7 @@ static void handleChildBornMsg(DDErrorMsg_t *msg)
     if (stepid == SLURM_BATCH_SCRIPT) {
 	Job_t *job = findJobById(jobid);
 	if (!job) {
-	    mlog("%s: job '%u' not found\n", __func__, jobid);
+	    mlog("%s: job %u not found\n", __func__, jobid);
 	    goto FORWARD_CHILD_BORN;
 	}
 	addTask(&job->tasks, msg->request, forwarder->tid, forwarder,
@@ -1815,7 +1768,7 @@ static void handleChildBornMsg(DDErrorMsg_t *msg)
     } else {
 	Step_t *step = findStepByStepId(jobid, stepid);
 	if (!step) {
-	    mlog("%s: step '%u:%u' not found\n", __func__, jobid, stepid);
+	    mlog("%s: step %u:%u not found\n", __func__, jobid, stepid);
 	    goto FORWARD_CHILD_BORN;
 	}
 	task = addTask(&step->tasks, msg->request, forwarder->tid, forwarder,
@@ -1860,58 +1813,58 @@ static void handleUnknownMsg(DDBufferMsg_t *msg)
     if (oldUnkownHandler) oldUnkownHandler(msg);
 }
 
-/**
- * @brief Free all unhandled cached messages
- */
-static void clearMsgCache(void)
-{
-    list_t *s, *tmp;
-
-    list_for_each_safe(s, tmp, &msgCache) {
-	Msg_Cache_t *cache = list_entry(s, Msg_Cache_t, next);
-	deleteCachedMsg(cache->jobid, cache->stepid);
-    }
-}
-
-void finalizePScomm(void)
+void finalizePScomm(bool verbose)
 {
     /* unregister psslurm msg */
     PSID_clearMsg(PSP_CC_PLUG_PSSLURM);
 
+    /* unregister different hooks */
+    if (!PSIDhook_del(PSIDHOOK_NODE_DOWN, handleNodeDown)) {
+	if (verbose) mlog("%s: failed to unregister PSIDHOOK_NODE_DOWN\n",
+			  __func__);
+    }
+
+    if (!PSIDhook_del(PSIDHOOK_CREATEPART, handleCreatePart)) {
+	if (verbose) mlog("%s: failed to unregister PSIDHOOK_CREATEPART\n",
+			  __func__);
+    }
+
+    if (!PSIDhook_del(PSIDHOOK_CREATEPARTNL, handleCreatePartNL)) {
+	if (verbose) mlog("%s: failed to unregister PSIDHOOK_CREATEPARTNL\n",
+			  __func__);
+    }
+
     /* unregister various messages */
     if (oldChildBornHandler) {
-	PSID_registerMsg(PSP_DD_CHILDBORN, (handlerFunc_t) oldChildBornHandler);
+	PSID_registerMsg(PSP_DD_CHILDBORN, oldChildBornHandler);
     } else {
 	PSID_clearMsg(PSP_DD_CHILDBORN);
     }
 
     /* unregister PSP_CC_MSG message handler */
     if (oldCCMsgHandler) {
-	PSID_registerMsg(PSP_CC_MSG, (handlerFunc_t) oldCCMsgHandler);
+	PSID_registerMsg(PSP_CC_MSG, oldCCMsgHandler);
     } else {
 	PSID_clearMsg(PSP_CC_MSG);
     }
 
     /* unregister PSP_CD_SPAWNFAILED message handler */
     if (oldSpawnFailedHandler) {
-	PSID_registerMsg(PSP_CD_SPAWNFAILED,
-			(handlerFunc_t) oldSpawnFailedHandler);
+	PSID_registerMsg(PSP_CD_SPAWNFAILED, oldSpawnFailedHandler);
     } else {
 	PSID_clearMsg(PSP_CD_SPAWNFAILED);
     }
 
     /* unregister PSP_CD_SPAWNREQ message handler */
     if (oldSpawnReqHandler) {
-	PSID_registerMsg(PSP_CD_SPAWNREQ,
-			(handlerFunc_t) oldSpawnReqHandler);
+	PSID_registerMsg(PSP_CD_SPAWNREQ, oldSpawnReqHandler);
     } else {
 	PSID_clearMsg(PSP_CD_SPAWNREQ);
     }
 
     /* unregister PSP_CD_UNKNOWN message handler */
     if (oldUnkownHandler) {
-	PSID_registerMsg(PSP_CD_UNKNOWN,
-			(handlerFunc_t) oldUnkownHandler);
+	PSID_registerMsg(PSP_CD_UNKNOWN, oldUnkownHandler);
     } else {
 	PSID_clearMsg(PSP_CD_UNKNOWN);
     }
@@ -1919,42 +1872,63 @@ void finalizePScomm(void)
     /* unregister msg drop handler */
     PSID_clearDropper(PSP_CC_PLUG_PSSLURM);
 
-    /* free cached messages */
-    clearMsgCache();
+    finalizeSerial();
 }
 
-void initPScomm(void)
+bool initPScomm(void)
 {
+    initSerial(0, sendMsg);
+
     /* register psslurm PSP_CC_PLUG_PSSLURM message */
     PSID_registerMsg(PSP_CC_PLUG_PSSLURM, (handlerFunc_t) handlePsslurmMsg);
 
     /* register PSP_DD_CHILDBORN message */
     oldChildBornHandler = PSID_registerMsg(PSP_DD_CHILDBORN,
-					    (handlerFunc_t) handleChildBornMsg);
+					   (handlerFunc_t) handleChildBornMsg);
 
     /* register PSP_CC_MSG message */
     oldCCMsgHandler = PSID_registerMsg(PSP_CC_MSG, (handlerFunc_t) handleCCMsg);
 
     /* register PSP_CD_SPAWNFAILED message */
     oldSpawnFailedHandler = PSID_registerMsg(PSP_CD_SPAWNFAILED,
-					    (handlerFunc_t) handleSpawnFailed);
+					     (handlerFunc_t) handleSpawnFailed);
 
     /* register PSP_CD_SPAWNREQ message */
     oldSpawnReqHandler = PSID_registerMsg(PSP_CD_SPAWNREQ,
-					    (handlerFunc_t) handleSpawnReq);
+					  (handlerFunc_t) handleSpawnReq);
 
     /* register PSP_CD_UNKNOWN message */
     oldUnkownHandler = PSID_registerMsg(PSP_CD_UNKNOWN,
-				        (handlerFunc_t) handleUnknownMsg);
+					(handlerFunc_t) handleUnknownMsg);
 
     /* register handler for dropped msgs */
     PSID_registerDropper(PSP_CC_PLUG_PSSLURM, (handlerFunc_t) handleDroppedMsg);
+
+    if (!PSIDhook_add(PSIDHOOK_NODE_DOWN, handleNodeDown)) {
+	mlog("%s: cannot register PSIDHOOK_NODE_DOWN\n", __func__);
+	return false;
+    }
+
+    if (!PSIDhook_add(PSIDHOOK_CREATEPART, handleCreatePart)) {
+	mlog("%s: cannot register PSIDHOOK_CREATEPART\n", __func__);
+	return false;
+    }
+
+    if (!PSIDhook_add(PSIDHOOK_CREATEPARTNL, handleCreatePartNL)) {
+	mlog("%s: cannot register PSIDHOOK_CREATEPARTNL\n", __func__);
+	return false;
+    }
+
+    return true;
 }
 
 void send_PS_PackInfo(Step_t *step)
 {
-    PS_DataBuffer_t data = { .buf = NULL };
+    PS_SendDB_t data;
     uint32_t i;
+
+    initFragBuffer(&data, PSP_CC_PLUG_PSSLURM, PSP_PACK_INFO);
+    setFragDest(&data,  PSC_getTID(step->packNodes[0], 0));
 
     /* pack jobid */
     addUint32ToMsg(step->packJobid, &data);
@@ -1986,8 +1960,7 @@ void send_PS_PackInfo(Step_t *step)
 	 PSC_printTID(PSC_getTID(step->packNodes[0], 0)));
 
     /* send msg to pack group leader */
-    sendFragMsg(&data, PSC_getTID(step->packNodes[0], 0), PSP_CC_PLUG_PSSLURM,
-		PSP_PACK_INFO);
+    sendFragMsg(&data);
 }
 
 void deleteCachedMsg(uint32_t jobid, uint32_t stepid)

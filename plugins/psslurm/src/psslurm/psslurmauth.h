@@ -14,7 +14,7 @@
 
 #include "list.h"
 #include "psslurmjob.h"
-#include "plugincomm.h"
+#include "psserial.h"
 #include "psslurmcomm.h"
 #include "psslurmbcast.h"
 

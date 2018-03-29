@@ -12,7 +12,7 @@
 
 #include "psslurmjob.h"
 #include "psslurmio.h"
-#include "plugincomm.h"
+#include "psserial.h"
 #include "psslurmmsg.h"
 #include "psslurmauth.h"
 
@@ -68,7 +68,7 @@ void closeSlurmCon(int socket);
  *
  * @return Returns the number of bytes written or -1 on error
  */
-int __sendSlurmMsg(int sock, slurm_msg_type_t type, PS_DataBuffer_t *body,
+int __sendSlurmMsg(int sock, slurm_msg_type_t type, PS_SendDB_t *body,
 		    const char *caller, const int line);
 
 #define sendSlurmMsg(sock, type, body) \
@@ -96,8 +96,8 @@ int __sendSlurmMsg(int sock, slurm_msg_type_t type, PS_DataBuffer_t *body,
  * @return Returns the number of bytes written, -1 on error or -2 if
  * the message was stored and will be send out later
  */
-int __sendSlurmMsgEx(int sock, Slurm_Msg_Header_t *head, PS_DataBuffer_t *body,
-			const char *caller, const int line);
+int __sendSlurmMsgEx(int sock, Slurm_Msg_Header_t *head, PS_SendDB_t *body,
+		     const char *caller, const int line);
 
 #define sendSlurmMsgEx(sock, head, body) \
     __sendSlurmMsgEx(sock, head, body, __func__, __LINE__)
@@ -120,7 +120,7 @@ int __sendSlurmMsgEx(int sock, Slurm_Msg_Header_t *head, PS_DataBuffer_t *body,
  * @return Returns the number of bytes written or -1 on error. In the
  * latter cases the number of bytes written anyhow is reported in @a written.
  */
-int __sendDataBuffer(int sock, PS_DataBuffer_t *data, size_t offset,
+int __sendDataBuffer(int sock, PS_SendDB_t *data, size_t offset,
 		     size_t *written, const char *caller, const int line);
 
 #define sendDataBuffer(sock, data, offset, written) \
@@ -334,7 +334,7 @@ int srunSendIOEx(int sock, Slurm_IO_Header_t *ioh, char *buf, int *error);
  * @return Returns the number of bytes written or -1 on error
  */
 int srunSendMsg(int sock, Step_t *step, slurm_msg_type_t type,
-		PS_DataBuffer_t *body);
+		PS_SendDB_t *body);
 
 /**
  * @brief Handle a message from srun

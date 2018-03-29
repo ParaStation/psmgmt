@@ -7,6 +7,7 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
+#include <stdbool.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <netdb.h>
@@ -14,7 +15,7 @@
 #include <math.h>
 #include <time.h>
 
-#include "pluginfrag.h"
+#include "psserial.h"
 #include "pluginhelper.h"
 #include "pluginmalloc.h"
 
@@ -37,61 +38,19 @@
 
 #define PSMOM_PSCOMM_VERSION 101
 
-void sendFragMsgToHostList(Job_t *job, PS_DataBuffer_t *data, int32_t type,
-			    int myself)
+static void setFragDestFromJob(PS_SendDB_t *msg, Job_t *job, bool myself)
 {
-    int i, id;
-    PStask_ID_t myTID = PSC_getMyTID(), dest;
+    PStask_ID_t myID = PSC_getMyID();
+    int n;
 
-    for (i=0; i<job->nrOfUniqueNodes; i++) {
-	id = job->nodes[i].id;
-
-	dest = PSC_getTID(id, 0);
+    for (n=0; n<job->nrOfUniqueNodes; n++) {
+	PSnodes_ID_t id = job->nodes[n].id;
 
 	/* skip sending to myself if requested */
-	if (!myself && myTID == dest) continue;
+	if (id == myID && !myself) continue;
 
-	mdbg(PSMOM_LOG_PSCOM, "%s: send to %i [%i->%i]\n", __func__, id,
-		myTID, dest);
-	sendFragMsg(data, dest, PSP_CC_PLUG_PSMOM, type);
+	setFragDest(msg, PSC_getTID(id, 0));
     }
-}
-
-static void sendPSMsgToHostList(Job_t *job, DDTypedBufferMsg_t *msg, int myself)
-{
-    int i, id;
-    PStask_ID_t myTID = PSC_getMyTID();
-
-    msg->header.sender = myTID;
-
-    for (i=0; i<job->nrOfUniqueNodes; i++) {
-	id = job->nodes[i].id;
-
-	msg->header.dest = PSC_getTID(id, 0);
-
-	/* skip sending to myself if requested */
-	if (!myself && myTID == msg->header.dest) continue;
-
-	mdbg(PSMOM_LOG_PSCOM, "%s: send to %i [%i->%i]\n", __func__, id,
-		msg->header.sender, msg->header.dest);
-	sendMsg(msg);
-    }
-}
-
-void sendPSmomVersion(Job_t *job)
-{
-    int32_t ver = PSMOM_PSCOMM_VERSION;
-    DDTypedBufferMsg_t msg = (DDTypedBufferMsg_t) {
-	.header = (DDMsg_t) {
-	    .type = PSP_CC_PLUG_PSMOM,
-	    .sender = PSC_getMyTID(),
-	    .dest = PSC_getMyTID(),
-	    .len = sizeof(msg.header) + sizeof(msg.type) },
-	.type = PSP_PSMOM_VERSION,
-	.buf = {'\0'} };
-    PSP_putTypedMsgBuf(&msg, __func__, "proto version", &ver, sizeof(ver));
-
-    sendPSMsgToHostList(job, &msg, 0);
 }
 
 static void shutMyselfDown(char *reason)
@@ -126,13 +85,26 @@ static void handleShutdownReq(DDTypedBufferMsg_t *msg)
     shutMyselfDown(note);
 }
 
-static void handleVersion(DDTypedBufferMsg_t *msg)
+void sendPSmomVersion(Job_t *job)
 {
-    size_t used = 0;
-    int32_t version;
+    PS_SendDB_t msg;
 
-    PSP_getTypedMsgBuf(msg, &used, __func__, "proto version",
-		       &version, sizeof(version));
+    initFragBuffer(&msg, PSP_CC_PLUG_PSMOM, PSP_PSMOM_VERSION);
+    setFragDestFromJob(&msg, job, false);
+    if (!getNumFragDest(&msg)) return;
+
+    addInt32ToMsg(PSMOM_PSCOMM_VERSION, &msg);
+
+    sendFragMsg(&msg);
+}
+
+static void handleVersion(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
+{
+    int32_t version;
+    char *ptr = rData->buf;
+
+    /* get jobid */
+    getInt32(&ptr, &version);
 
     if (version != PSMOM_PSCOMM_VERSION) {
 	char note[100];
@@ -262,63 +234,60 @@ static void dropPSMsg(DDTypedBufferMsg_t *msg)
 
 void sendJobUpdate(Job_t *job)
 {
-    DDTypedBufferMsg_t msg = (DDTypedBufferMsg_t) {
-	.header = (DDMsg_t) {
-	    .type = PSP_CC_PLUG_PSMOM,
-	    .sender = PSC_getMyTID(),
-	    .dest = PSC_getMyTID(),
-	    .len = sizeof(msg.header) + sizeof(msg.type) },
-	.type = PSP_PSMOM_JOB_UPDATE };
+    PS_SendDB_t msg;
+
+    initFragBuffer(&msg, PSP_CC_PLUG_PSMOM, PSP_PSMOM_JOB_UPDATE);
+    setFragDestFromJob(&msg, job, false);
+    if (!getNumFragDest(&msg)) return;
 
     /* add jobid */
-    addStringToMsgBuf(&msg, job->id);
+    addStringToMsg(job->id, &msg);
 
     /* add mpiexec/logger pid */
-    addInt32ToMsgBuf(&msg, job->mpiexec);
+    addInt32ToMsg(job->mpiexec, &msg);
 
-    sendPSMsgToHostList(job, &msg, 0);
+    sendFragMsg(&msg);
 }
 
 void sendJobInfo(Job_t *job, int start)
 {
-    DDTypedBufferMsg_t msg = (DDTypedBufferMsg_t) {
-	.header = (DDMsg_t) {
-	    .type = PSP_CC_PLUG_PSMOM,
-	    .sender = PSC_getMyTID(),
-	    .dest = PSC_getMyTID(),
-	    .len = sizeof(msg.header) + sizeof(msg.type) },
-	.type = PSP_PSMOM_JOB_INFO };
+    PS_SendDB_t msg;
+
+    initFragBuffer(&msg, PSP_CC_PLUG_PSMOM, PSP_PSMOM_JOB_INFO);
+    setFragDestFromJob(&msg, job, false);
+    if (!getNumFragDest(&msg)) return;
 
     /* add info type */
-    addInt32ToMsgBuf(&msg, start);
+    addInt32ToMsg(start, &msg);
 
     /* add jobid */
-    addStringToMsgBuf(&msg, job->id);
+    addStringToMsg(job->id, &msg);
 
     /* add username */
-    addStringToMsgBuf(&msg, job->user);
+    addStringToMsg(job->user, &msg);
 
     if (start) {
 	/* add timeout */
-	addStringToMsgBuf(&msg, getJobDetail(&job->data,
-					     "Resource_List", "walltime"));
+	addStringToMsg(getJobDetail(&job->data, "Resource_List", "walltime"),
+		       &msg);
 	/* add cookie */
-	addStringToMsgBuf(&msg, job->cookie);
+	addStringToMsg(job->cookie, &msg);
     }
-    sendPSMsgToHostList(job, &msg, 0);
+
+    sendFragMsg(&msg);
 }
 
-static void handleJobUpdate(DDTypedBufferMsg_t *msg)
+static void handleJobUpdate(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 {
     char jobid[JOB_NAME_LEN] = {'\0'};
-    char *ptr = msg->buf;
-    JobInfo_t *jInfo;
     int32_t loggerPID, node;
+    char *ptr = rData->buf;
 
     /* get jobid */
     getString(&ptr, jobid, sizeof(jobid));
 
-    if (!(jInfo = findJobInfoById(jobid))) {
+    JobInfo_t *jInfo = findJobInfoById(jobid);
+    if (!jInfo) {
 	mlog("%s: remote job info for '%s' not found\n", __func__, jobid);
 	return;
     }
@@ -330,11 +299,11 @@ static void handleJobUpdate(DDTypedBufferMsg_t *msg)
     jInfo->logger = PSC_getTID(node, loggerPID);
 }
 
-static void handleJobInfo(DDTypedBufferMsg_t *msg)
+static void handleJobInfo(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 {
     char jobid[JOB_NAME_LEN] = {'\0'}, username[USER_NAME_LEN] = {'\0'};
     char timeout[100] = {'\0'}, cookie[100] = {'\0'};
-    char *ptr = msg->buf;
+    char *ptr = rData->buf;
     int32_t start;
 
     /* get info type (start/stop) */
@@ -394,31 +363,27 @@ static void handlePSMsg(DDTypedBufferMsg_t *msg)
 
     switch (msg->type) {
 	case PSP_PSMOM_PROLOGUE_START:
-	    recvFragMsg(msg, handlePELogueStart);
-	    break;
-	case PSP_PSMOM_PROLOGUE_FINISH:
-	    handlePELogueFinish(msg, NULL);
-	    break;
 	case PSP_PSMOM_EPILOGUE_START:
 	    recvFragMsg(msg, handlePELogueStart);
 	    break;
+	case PSP_PSMOM_PROLOGUE_FINISH:
 	case PSP_PSMOM_EPILOGUE_FINISH:
-	    handlePELogueFinish(msg, NULL);
+	    recvFragMsg(msg, handlePELogueFinish);
 	    break;
 	case PSP_PSMOM_PELOGUE_SIGNAL:
 	    handlePELogueSignal(msg);
 	    break;
 	case PSP_PSMOM_VERSION:
-	    handleVersion(msg);
+	    recvFragMsg(msg, handleVersion);
 	    break;
 	case PSP_PSMOM_SHUTDOWN:
 	    handleShutdownReq(msg);
 	    break;
 	case PSP_PSMOM_JOB_INFO:
-	    handleJobInfo(msg);
+	    recvFragMsg(msg, handleJobInfo);
 	    break;
 	case PSP_PSMOM_JOB_UPDATE:
-	    handleJobUpdate(msg);
+	    recvFragMsg(msg, handleJobUpdate);
 	    break;
 	default:
 	    mlog("%s: unknown msg type %i %s\n", __func__, msg->type, cover);
@@ -427,6 +392,8 @@ static void handlePSMsg(DDTypedBufferMsg_t *msg)
 
 void initPSComm(void)
 {
+    initSerial(0, sendMsg);
+
     /* register inter psmom msg */
     PSID_registerMsg(PSP_CC_PLUG_PSMOM, (handlerFunc_t) handlePSMsg);
 
@@ -441,4 +408,6 @@ void finalizePSComm(void)
 
     /* unregister msg drop handler */
     PSID_clearDropper(PSP_CC_PLUG_PSMOM);
+
+    finalizeSerial();
 }
