@@ -174,11 +174,30 @@ static void initNodeDownHook(void)
     }
 }
 
+bool initSerialBuf(size_t bufSize)
+{
+    if (sendBuf) return true;
+
+    if (!PSC_logInitialized()) PSC_initLog(stderr);
+
+    /* allocate send buffers */
+    sendBufLen = bufSize ? bufSize : DEFAULT_BUFFER_SIZE;
+    sendBuf = malloc(sendBufLen);
+
+    if (!sendBuf) {
+	PSC_log(-1, "%s: cannot allocate buffer\n", __func__);
+
+	return false;
+    }
+
+    return true;
+}
+
 bool initSerial(size_t bufSize, Send_Msg_Func_t *func)
 {
     PSnodes_ID_t numNodes = PSC_getNrOfNodes();
 
-    if (sendBuf) return false;
+    if (sendBuf && recvBuffers) return true;
 
     if (!PSC_logInitialized()) PSC_initLog(stderr);
 
@@ -187,9 +206,7 @@ bool initSerial(size_t bufSize, Send_Msg_Func_t *func)
 	return false;
     }
 
-    /* allocate send buffers */
-    sendBufLen = bufSize ? bufSize : DEFAULT_BUFFER_SIZE;
-    sendBuf = malloc(sendBufLen);
+    if (!initSerialBuf(bufSize)) return false;
 
     /* allocated space for destination nodes */
     destNodes = malloc(sizeof(*destNodes) * numNodes);

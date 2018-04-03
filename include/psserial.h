@@ -85,9 +85,25 @@ typedef void PS_DataBuffer_func_t(DDTypedBufferMsg_t *msg,
 				  PS_DataBuffer_t *data);
 
 /**
+ * @brief Initialize buffer handling of the Psserial facility
+ *
+ * Initialize only the buffer handling of the Psserial facility
+ * and enable it to use a default buffer-size of @a bufSize for the
+ * send-buffer. This function shall be called before using any buffer
+ * handling of Psserial.
+ *
+ * @param bufSize Size of the internal buffers. If this is 0, the
+ * default size of 256 kB is used.
+ *
+ * @return If the buffer handling of Psserial is successfully
+ * initialized, true is returned. Otherwise false is returned.
+ */
+bool initSerialBuf(size_t bufSize);
+
+/**
  * @brief Initialize Psserial facility
  *
- * Initialize Psserial facility and enable it to use a default
+ * Initialize the Psserial facility and enable it to use a default
  * buffer-size of @a bufSize for send-buffers and @a func as the
  * sending function. Initialization includes allocating memory. This
  * function shall be called upon start of a program.
@@ -100,9 +116,8 @@ typedef void PS_DataBuffer_func_t(DDTypedBufferMsg_t *msg,
  *
  * @param func Sending function to use
  *
- * @return If Psserial was initialized successfully, true is
- * returned. Otherwise false is returned. The latter might happen is
- * the Psserial facility was initialized before.
+ * @return If Psserial is successfully initialized, true is
+ * returned. Otherwise false is returned.
  */
 bool initSerial(size_t bufSize, Send_Msg_Func_t *func);
 

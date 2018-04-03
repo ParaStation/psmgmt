@@ -246,6 +246,8 @@ static PSPAMResult_t checkPsPamAllowance(const char *uName, const char *rhost)
 	return PSPAM_RES_DENY;
     }
 
+    initSerialBuf(0);
+
     /* add length placeholder */
     addInt32ToMsg(0, &data);
     /* add command */
@@ -263,6 +265,9 @@ static PSPAMResult_t checkPsPamAllowance(const char *uName, const char *rhost)
     *(int32_t *)data.buf = data.bufUsed - sizeof(int32_t);
 
     written = writeToPspam(sock, data.buf, data.bufUsed);
+
+    finalizeSerial();
+
     if (written != (int)data.bufUsed) {
 	elog("sending pspam auth request failed");
 	return PSPAM_RES_DENY;
@@ -377,6 +382,8 @@ static void informPlugin(const char *uName, const char *rhost)
 	return;
     }
 
+    initSerialBuf(0);
+
     /* add length placeholder */
     addInt32ToMsg(0, &data);
     /* add command */
@@ -390,6 +397,9 @@ static void informPlugin(const char *uName, const char *rhost)
     *(int32_t *)data.buf = data.bufUsed - sizeof(int32_t);
 
     written = writeToPspam(sock, data.buf, data.bufUsed);
+
+    finalizeSerial();
+
     if (written != (int)data.bufUsed) {
 	elog("sending pspam close request failed");
 	return;
@@ -398,7 +408,6 @@ static void informPlugin(const char *uName, const char *rhost)
     if (verbose > 2) {
 	ilog("close: %s@%s pid %u", uName, rhost, getpid());
     }
-
 }
 
 PAM_EXTERN int
