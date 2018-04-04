@@ -14,19 +14,22 @@
 #include <signal.h>
 #include <malloc.h>
 
+#include "psserial.h"
+
+#include "psidtask.h"
+
+#include "pluginmalloc.h"
+
+#include "pspamhandles.h"
+#include "peloguehandles.h"
+
+#include "slurmcommon.h"
 #include "psslurmlog.h"
 #include "psslurmpscomm.h"
 #include "psslurmcomm.h"
 #include "psslurmauth.h"
 #include "psslurmenv.h"
 #include "psslurmproto.h"
-
-#include "slurmcommon.h"
-#include "psidtask.h"
-#include "pluginmalloc.h"
-#include "psserial.h"
-#include "pspamhandles.h"
-#include "peloguehandles.h"
 
 #include "psslurmjob.h"
 

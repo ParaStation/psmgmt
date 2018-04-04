@@ -13,7 +13,9 @@
 #include <stdbool.h>
 
 #include "list.h"
+#include "psenv.h"
 #include "psnodes.h"
+#include "psserial.h"
 #include "pstask.h"
 
 #include "psslurmgres.h"
@@ -22,8 +24,6 @@
 #include "psslurmstep.h"
 
 #include "pluginforwarder.h"
-#include "psserial.h"
-#include "pluginenv.h"
 
 typedef struct {
     list_t next;            /**< used to put into some job-lists */

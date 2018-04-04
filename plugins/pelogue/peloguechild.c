@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2013-2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2013-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -22,11 +22,14 @@
 
 #include "list.h"
 #include "pscommon.h"
-#include "pluginenv.h"
+#include "psenv.h"
+
+#include "psidhook.h"
+
 #include "pluginforwarder.h"
 #include "pluginhelper.h"
 #include "pluginmalloc.h"
-#include "psidhook.h"
+
 #include "psaccounthandles.h"
 
 #include "peloguecomm.h"

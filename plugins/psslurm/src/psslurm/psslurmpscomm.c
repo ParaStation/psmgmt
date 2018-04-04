@@ -14,23 +14,26 @@
 #include <signal.h>
 #include <arpa/inet.h>
 
-#include "pspluginprotocol.h"
 #include "pscommon.h"
+#include "psdaemonprotocol.h"
+#include "psenv.h"
+#include "pspluginprotocol.h"
+#include "psserial.h"
+
 #include "psidcomm.h"
 #include "psidhook.h"
 #include "psidspawn.h"
 #include "psidpartition.h"
-#include "pluginenv.h"
 #include "psidtask.h"
-#include "psserial.h"
+
 #include "pluginmalloc.h"
 #include "pluginhelper.h"
 #include "pluginpartition.h"
+
 #include "peloguehandles.h"
 #include "psexechandles.h"
 #include "psaccounthandles.h"
 #include "psexectypes.h"
-#include "psdaemonprotocol.h"
 
 #include "slurmcommon.h"
 #include "psslurmforwarder.h"

@@ -17,12 +17,10 @@
 
 #include "psidnodes.h"
 
-#include "pluginenv.h"
 #include "pluginmalloc.h"
 
 #include "slurmcommon.h"
 #include "psslurmconfig.h"
-#include "psslurmjob.h"
 #include "psslurmlog.h"
 #include "psslurmproto.h"
 #include "psslurmpin.h"

@@ -1,20 +1,12 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2015-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2015-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-/**
- * $Id$
- *
- * \author
- * Stephan Krempel <krempel@par-tec.com>
- *
- */
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -22,17 +14,18 @@
 #include <unistd.h>
 #include <sys/types.h>
 
+#include "psenv.h"
+#include "psserial.h"
+
+#include "pluginmalloc.h"
+#include "pluginhelper.h"
+
+#include "slurmcommon.h"
 #include "psslurmlog.h"
 #include "psslurmauth.h"
 #include "psslurmcomm.h"
 #include "psslurmspawn.h"
 #include "psslurmlog.h"
-#include "slurmcommon.h"
-
-#include "pluginhelper.h"
-#include "psserial.h"
-#include "pluginmalloc.h"
-#include "pluginenv.h"
 
 #define SRUN_BINARY "/usr/bin/srun"
 

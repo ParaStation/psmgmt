@@ -15,8 +15,9 @@
 
 #include "list.h"
 #include "psnodes.h"
+#include "psenv.h"
+
 #include "pluginconfig.h"
-#include "pluginenv.h"
 #include "pluginforwarder.h"
 
 /** Types of pelogues currently handled */

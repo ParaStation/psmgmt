@@ -12,7 +12,7 @@
 
 #include <stdbool.h>
 
-#include "pluginenv.h"
+#include "psenv.h"
 
 #include "peloguechild.h"
 #include "peloguejob.h"

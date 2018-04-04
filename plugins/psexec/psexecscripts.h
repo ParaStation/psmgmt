@@ -1,13 +1,12 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2016-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-
 #ifndef __PSEXEC__SCRIPTS
 #define __PSEXEC__SCRIPTS
 
@@ -16,8 +15,9 @@
 #include <sys/types.h>
 
 #include "list_t.h"
-#include "pluginenv.h"
+#include "psenv.h"
 #include "pstaskid.h"
+
 #include "psexectypes.h"
 
 /** Structure holding all information on a given script to execute */

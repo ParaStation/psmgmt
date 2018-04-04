@@ -1,22 +1,22 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2016-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <signal.h>
 #include <errno.h>
 
 #include "list.h"
-#include "pluginmalloc.h"
-#include "pluginenv.h"
 #include "psidscripts.h"
+
+#include "pluginmalloc.h"
+
 #include "psexeccomm.h"
 #include "psexeclog.h"
 

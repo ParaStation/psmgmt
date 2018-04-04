@@ -14,8 +14,10 @@
 #include <stdint.h>
 #include <sys/types.h>
 
+#include "psenv.h"
+#include "psnodes.h"
+
 #include "pluginforwarder.h"
-#include "pluginenv.h"
 
 #include "psslurmjobcred.h"
 #include "psslurmgres.h"

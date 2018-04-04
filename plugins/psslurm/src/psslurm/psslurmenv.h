@@ -10,6 +10,8 @@
 #ifndef __PS_SLURM_ENV
 #define __PS_SLURM_ENV
 
+#include "psenv.h"
+
 #include "psslurmjob.h"
 
 /** environment filter for prologue/epilogue execution */
@@ -79,4 +81,4 @@ void setRankEnv(int32_t rank, Step_t *step);
  */
 void removeUserVars(env_t *env);
 
-#endif
+#endif  /* __PS_SLURM_ENV */

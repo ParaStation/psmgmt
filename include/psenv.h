@@ -1,15 +1,14 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-
-#ifndef __PLUGIN_LIB_ENV
-#define __PLUGIN_LIB_ENV
+#ifndef __PSENV_H
+#define __PSENV_H
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -73,17 +72,10 @@ char *envGetIndex(env_t *env, uint32_t idx);
  *
  * @param val Value of the entry to add
  *
- * @param func Function name of the calling function
- *
- * @param line Line number where this function is called
- *
  * @return If the entry was added, true is returned. Otherwise false
  * is returned.
  */
-bool __envSet(env_t *env, const char *name, const char *val, const char *func,
-	      const int line);
-
-#define envSet(env, name, val) __envSet(env, name, val, __func__, __LINE__)
+bool envSet(env_t *env, const char *name, const char *val);
 
 /**
  * @brief Remove from environment
@@ -95,15 +87,9 @@ bool __envSet(env_t *env, const char *name, const char *val, const char *func,
  *
  * @param name Key of the entry to remove
  *
- * @param func Function name of the calling function
- *
- * @param line Line number where this function is called
- *
  * @return No return value
  */
-void __envUnset(env_t *env, const char *name, const char *func, const int line);
-
-#define envUnset(env, name) __envUnset(env, name, __func__, __LINE__)
+void envUnset(env_t *env, const char *name);
 
 /**
  * @brief Clear environment
@@ -113,15 +99,9 @@ void __envUnset(env_t *env, const char *name, const char *func, const int line);
  *
  * @param env Environment to clear
  *
- * @param func Function name of the calling function
- *
- * @param line Line number where this function is called
- *
  * @return No return value
  */
-void __envDestroy(env_t *env, const char *func, const int line);
-
-#define envDestroy(env) __envDestroy(env, __func__, __LINE__)
+void envDestroy(env_t *env);
 
 /**
  * @brief Put into environment
@@ -135,17 +115,10 @@ void __envDestroy(env_t *env, const char *func, const int line);
  * @param envString Character string of the form <name>=<value> to be
  * added to the environment.
  *
- * @param func Function name of the calling function
- *
- * @param line Line number where this function is called
- *
  * @return If the entry was added, true is returned. Otherwise false
  * is returned.
  */
-bool __envPut(env_t *env, const char *envString, const char *func,
-	     const int line);
-
-#define envPut(env, envstring) __envPut(env, envstring, __func__, __LINE__)
+bool envPut(env_t *env, const char *envString);
 
 /**
  * @brief Get integer from environment
@@ -174,16 +147,9 @@ bool envGetUint32(env_t *env, const char *name, uint32_t *val);
  *
  * @param idx Index of the entry to remove
  *
- * @param func Function name of the calling function
- *
- * @param line Line number where this function is called
- *
  * @return No return value
  */
-void __envUnsetIndex(env_t *env, uint32_t idx, const char *func,
-		     const int line);
-
-#define envUnsetIndex(env, idx) __envUnsetIndex(env, idx, __func__, __LINE__)
+void envUnsetIndex(env_t *env, uint32_t idx);
 
 /**
  * @brief Clone environment
@@ -206,17 +172,11 @@ void __envUnsetIndex(env_t *env, uint32_t idx, const char *func,
  * @param filter Array of strings to match those elements of @a env to
  * clone
  *
- * @param func Function name of the calling function
- *
- * @param line Line number where this function is called
- *
- * @return No return value
+ * @return If the environments was successfully clone, true is
+ * returned. Or false in case of error. In the latter case @a clone
+ * might be incomplete upon return and contain only parts of @a env.
  */
-void __envClone(env_t *env, env_t *clone, char **filter, const char *func,
-		const int line);
-
-#define envClone(env, clone, filter) __envClone(env, clone, filter,	\
-						__func__, __LINE__)
+bool envClone(env_t *env, env_t *clone, char **filter);
 
 /**
  * @brief Concatenate two environments
@@ -239,16 +199,10 @@ void __envClone(env_t *env, env_t *clone, char **filter, const char *func,
  * @param filter Array of strings to match those elements of @a env2 to
  * be added to @a env1
  *
- * @param func Function name of the calling function
- *
- * @param line Line number where this function is called
- *
- * @return No return value
+ * @return If both environments were successfully concatenated, true
+ * is returned. Or false in case of error. In the latter case @a env1
+ * might be modified upon return and contain parts of @a env2.
  */
-void __envCat(env_t *env1, env_t *env2, char **filter, const char *func,
-	      const int line);
+bool envCat(env_t *env1, env_t *env2, char **filter);
 
-#define envCat(env1, env2, filter) __envCat(env1, env2, filter, \
-					    __func__, __LINE__)
-
-#endif  /* __PLUGIN_LIB_ENV */
+#endif  /* __PSENV_H */

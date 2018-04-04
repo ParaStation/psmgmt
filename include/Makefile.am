@@ -7,7 +7,6 @@
 # as defined in the file LICENSE.QPL included in the packaging of this
 # file.
 #
-
 include $(top_srcdir)/common.am
 
 include_HEADERS = pse.h psprotocol.h psnodes.h pstask.h pspartition.h	\
@@ -15,11 +14,11 @@ include_HEADERS = pse.h psprotocol.h psnodes.h pstask.h pspartition.h	\
 	pscpu.h list_t.h config_parsing.h list.h plugin.h		\
 	psdaemonprotocol.h selector.h timer.h psicomm.h			\
 	psicomm_proto.h pssignal.h psreservation.h pstaskid.h		\
-	pshostlist.h
+	psenv.h pshostlist.h
 
 noinst_HEADERS = env.h hardware.h kvscommon.h kvs.h mcast.h parser.h	\
 	psbyteorder.h psilog.h pslog.h pspartition.h psstrings.h	\
 	rdp.h psipartition.h psparamspace.h kvslog.h pluginmalloc.h	\
 	psserial.h pluginlog.h psprotocolenv.h pluginconfig.h		\
 	pluginhelper.h pluginstrv.h pluginpty.h pluginpartition.h	\
-	pluginenv.h pluginforwarder.h linenoise.h pspluginprotocol.h
+	pluginforwarder.h linenoise.h pspluginprotocol.h

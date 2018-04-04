@@ -1,19 +1,18 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2016-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-
 #ifndef __PSEXEC__TYPES
 #define __PSEXEC__TYPES
 
 #include <stdint.h>
 
-#include "pluginenv.h"
+#include "psenv.h"
 #include "psnodes.h"
 
 /** Magic value to keep script information alive callback */
@@ -121,4 +120,4 @@ typedef int(psExecSendScriptStart_t)(uint16_t uID, PSnodes_ID_t dest);
 typedef int(psExecStartLocalScript_t)(uint16_t uID);
 
 
-#endif
+#endif  /* __PSEXEC__TYPES */
