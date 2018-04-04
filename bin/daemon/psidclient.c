@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -696,9 +696,8 @@ int PSIDclient_killAll(int sig, int killAdminTasks)
 	if ((task->group==TG_ADMIN || task->group==TG_FORWARDER)
 	    && !killAdminTasks) continue;
 
-	PSID_log(PSID_LOG_CLIENT, "%s: sending %s to %s pid %d fd %d\n",
-		 __func__, sys_siglist[sig],
-		 PSC_printTID(task->tid), pid, task->fd);
+	PSID_log(PSID_LOG_CLIENT, "%s: send %s to %s pid %d fd %d\n", __func__,
+		 strsignal(sig), PSC_printTID(task->tid), pid, task->fd);
 
 	if (pid > 0) {
 	    if (sig == SIGKILL) kill(pid, SIGCONT);

@@ -836,11 +836,9 @@ static bool handleFINALIZEMsg(PSLog_Msg_t *msg)
 	if (WIFSIGNALED(status)) {
 	    int sig = WTERMSIG(status);
 	    int key = (sig == SIGTERM) ? PSILOG_LOG_TERM|PSILOG_LOG_VERB : -1;
-	    const char *sigStr = sys_siglist[sig];
 
-	    PSIlog_log(key, "Child with rank %d exited on signal %d",
-		       msg->sender, WTERMSIG(status));
-	    PSIlog_log(key, ": %s\n", sigStr ? sigStr : "Unknown signal");
+	    PSIlog_log(key, "Child with rank %d exited on signal %d: %s\n",
+		       msg->sender, sig, strsignal(sig));
 	    signaled = true;
 	}
 
