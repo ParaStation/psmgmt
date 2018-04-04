@@ -1,15 +1,14 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014-2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-
-#ifndef __PLUGIN_LIB_HOSTLIST
-#define __PLUGIN_LIB_HOSTLIST
+#ifndef __PSHOSTLIST_H
+#define __PSHOSTLIST_H
 
 #include <stdbool.h>
 #include <stddef.h>
@@ -66,4 +65,4 @@ bool range2List(char *prefix, char *range, char **list, size_t *size,
  */
 char *expandHostList(char *hostlist, uint32_t *count);
 
-#endif   /* __PLUGIN_LIB_HOSTLIST */
+#endif   /* __PSHOSTLIST_H */

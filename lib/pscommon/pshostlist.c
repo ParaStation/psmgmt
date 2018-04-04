@@ -7,7 +7,6 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -48,10 +47,10 @@ static char *str2Buf(char *strSave, char **buffer, size_t *bufSize)
 bool range2List(char *prefix, char *range, char **list, size_t *size,
 		uint32_t *count)
 {
-    char *sep;
+    char *sep = strchr(range, '-');
     unsigned int i, min, max, pad;
 
-    if (!(sep = strchr(range, '-'))) {
+    if (!sep) {
 	if (*size) str2Buf(",", list, size);
 	if (prefix) str2Buf(prefix, list, size);
 	str2Buf(range, list, size);
@@ -59,7 +58,7 @@ bool range2List(char *prefix, char *range, char **list, size_t *size,
 	return true;
     }
 
-    if ((sscanf(range, "%u%n-%u", &min, &pad, &max)) != 2) {
+    if (sscanf(range, "%u%n-%u", &min, &pad, &max) != 2) {
 	PSC_log(-1, "%s: invalid range '%s'\n", __func__, range);
 	return false;
     }
@@ -109,7 +108,7 @@ char *expandHostList(char *hostlist, uint32_t *count)
 	    prefix = strdup(next);
 	    if (!prefix) PSC_exit(errno, "%s: strdup(next)", __func__);
 
-	    if (!(range2List(prefix, range, &expHL, &expHLSize, count))) {
+	    if (!range2List(prefix, range, &expHL, &expHLSize, count)) {
 		goto expandError;
 	    }
 	    isOpen = true;
@@ -121,7 +120,7 @@ char *expandHostList(char *hostlist, uint32_t *count)
 
 	    range = openBrk +1;
 	    *closeBrk = *openBrk = '\0';
-	    if (!(range2List(next, range, &expHL, &expHLSize, count))) {
+	    if (!range2List(next, range, &expHL, &expHLSize, count)) {
 		goto expandError;
 	    }
 	} else if (closeBrk) {
@@ -135,7 +134,7 @@ char *expandHostList(char *hostlist, uint32_t *count)
 	    }
 
 	    *closeBrk = '\0';
-	    if (!(range2List(prefix, next, &expHL, &expHLSize, count))) {
+	    if (!range2List(prefix, next, &expHL, &expHLSize, count)) {
 		goto expandError;
 	    }
 
@@ -147,7 +146,7 @@ char *expandHostList(char *hostlist, uint32_t *count)
 		PSC_log(-1, "%s: error invalid prefix\n", __func__);
 		goto expandError;
 	    }
-	    if (!(range2List(prefix, next, &expHL, &expHLSize, count))) {
+	    if (!range2List(prefix, next, &expHL, &expHLSize, count)) {
 		goto expandError;
 	    }
 	} else {
