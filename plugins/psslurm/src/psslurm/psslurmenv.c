@@ -16,10 +16,9 @@
 #include <sys/stat.h>
 
 #include "psidnodes.h"
-#include "pluginenv.h"
 
+#include "pluginenv.h"
 #include "pluginmalloc.h"
-#include "pluginhostlist.h"
 
 #include "slurmcommon.h"
 #include "psslurmconfig.h"

@@ -154,7 +154,6 @@ include/pluginconfig.h \
 include/pluginenv.h \
 include/pluginforwarder.h \
 include/pluginhelper.h \
-include/pluginhostlist.h \
 include/pluginlog.h \
 include/pluginmalloc.h \
 include/pluginpartition.h \
@@ -165,6 +164,7 @@ include/pscommon.h \
 include/pscpu.h \
 include/psdaemonprotocol.h \
 include/pse.h \
+include/pshostlist.h \
 include/psi.h \
 include/psicomm.h \
 include/psicomm_proto.h \
@@ -197,7 +197,6 @@ lib/plugincommon/pluginconfig.c \
 lib/plugincommon/pluginenv.c \
 lib/plugincommon/pluginforwarder.c \
 lib/plugincommon/pluginhelper.c \
-lib/plugincommon/pluginhostlist.c \
 lib/plugincommon/pluginlog.c \
 lib/plugincommon/pluginmalloc.c \
 lib/plugincommon/pluginpartition.c \
@@ -208,6 +207,7 @@ lib/pscommon/Makefile.in \
 lib/pscommon/logging.c \
 lib/pscommon/pscommon.c \
 lib/pscommon/pscpu.c \
+lib/pscommon/pshostlist.c \
 lib/pscommon/pspartition.c \
 lib/pscommon/psprotocol.c \
 lib/pscommon/psreservation.c \

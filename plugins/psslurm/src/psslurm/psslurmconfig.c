@@ -12,8 +12,9 @@
 #include <string.h>
 #include <sys/stat.h>
 
+#include "pshostlist.h"
+
 #include "pluginmalloc.h"
-#include "pluginhostlist.h"
 
 #include "psslurmlog.h"
 #include "psslurmgres.h"

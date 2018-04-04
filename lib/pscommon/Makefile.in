@@ -116,8 +116,8 @@ CONFIG_CLEAN_VPATH_FILES =
 LTLIBRARIES = $(noinst_LTLIBRARIES)
 libpscommon_la_DEPENDENCIES =
 am_libpscommon_la_OBJECTS = logging.lo pscommon.lo pscpu.lo \
-	pspartition.lo psprotocol.lo psreservation.lo psserial.lo \
-	pssignal.lo pstask.lo
+	pshostlist.lo pspartition.lo psprotocol.lo psreservation.lo \
+	psserial.lo pssignal.lo pstask.lo
 libpscommon_la_OBJECTS = $(am_libpscommon_la_OBJECTS)
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
@@ -139,10 +139,10 @@ DEFAULT_INCLUDES = -I.@am__isrc@
 depcomp = $(SHELL) $(top_srcdir)/scripts/depcomp
 am__maybe_remake_depfiles = depfiles
 am__depfiles_remade = ./$(DEPDIR)/logging.Plo ./$(DEPDIR)/pscommon.Plo \
-	./$(DEPDIR)/pscpu.Plo ./$(DEPDIR)/pspartition.Plo \
-	./$(DEPDIR)/psprotocol.Plo ./$(DEPDIR)/psreservation.Plo \
-	./$(DEPDIR)/psserial.Plo ./$(DEPDIR)/pssignal.Plo \
-	./$(DEPDIR)/pstask.Plo
+	./$(DEPDIR)/pscpu.Plo ./$(DEPDIR)/pshostlist.Plo \
+	./$(DEPDIR)/pspartition.Plo ./$(DEPDIR)/psprotocol.Plo \
+	./$(DEPDIR)/psreservation.Plo ./$(DEPDIR)/psserial.Plo \
+	./$(DEPDIR)/pssignal.Plo ./$(DEPDIR)/pstask.Plo
 am__mv = mv -f
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
@@ -373,8 +373,9 @@ scriptsdir = $(prefix)/scripts
 @HAVE_SYSTEMD_FALSE@default_cgroup_name = psmgmtGrp
 @HAVE_SYSTEMD_TRUE@default_cgroup_name = system.slice/psid.service/descendants
 noinst_LTLIBRARIES = libpscommon.la
-libpscommon_la_SOURCES = logging.c pscommon.c pscpu.c pspartition.c	\
-	psprotocol.c psreservation.c psserial.c pssignal.c pstask.c
+libpscommon_la_SOURCES = logging.c pscommon.c pscpu.c pshostlist.c	\
+	pspartition.c psprotocol.c psreservation.c psserial.c		\
+	pssignal.c pstask.c
 
 libpscommon_la_LIBADD = -ldl
 all: all-am
@@ -435,6 +436,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/logging.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pscommon.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pscpu.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pshostlist.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pspartition.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psprotocol.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psreservation.Plo@am__quote@ # am--include-marker
@@ -606,6 +608,7 @@ distclean: distclean-am
 		-rm -f ./$(DEPDIR)/logging.Plo
 	-rm -f ./$(DEPDIR)/pscommon.Plo
 	-rm -f ./$(DEPDIR)/pscpu.Plo
+	-rm -f ./$(DEPDIR)/pshostlist.Plo
 	-rm -f ./$(DEPDIR)/pspartition.Plo
 	-rm -f ./$(DEPDIR)/psprotocol.Plo
 	-rm -f ./$(DEPDIR)/psreservation.Plo
@@ -660,6 +663,7 @@ maintainer-clean: maintainer-clean-am
 		-rm -f ./$(DEPDIR)/logging.Plo
 	-rm -f ./$(DEPDIR)/pscommon.Plo
 	-rm -f ./$(DEPDIR)/pscpu.Plo
+	-rm -f ./$(DEPDIR)/pshostlist.Plo
 	-rm -f ./$(DEPDIR)/pspartition.Plo
 	-rm -f ./$(DEPDIR)/psprotocol.Plo
 	-rm -f ./$(DEPDIR)/psreservation.Plo

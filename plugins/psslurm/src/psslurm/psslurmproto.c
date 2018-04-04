@@ -18,6 +18,23 @@
 #include <malloc.h>
 #include <pwd.h>
 
+#include "pshostlist.h"
+#include "psserial.h"
+#include "env.h"
+#include "selector.h"
+
+#include "psidnodes.h"
+#include "psidspawn.h"
+#include "psidplugin.h"
+
+#include "pluginmalloc.h"
+#include "pluginhelper.h"
+#include "pluginconfig.h"
+
+#include "psaccounthandles.h"
+#include "peloguehandles.h"
+#include "pspamhandles.h"
+
 #include "slurmcommon.h"
 #include "psslurmjob.h"
 #include "psslurmgres.h"
@@ -33,20 +50,6 @@
 #include "psslurmpelogue.h"
 #include "psslurmpack.h"
 #include "psslurm.h"
-
-#include "pluginhostlist.h"
-#include "pluginmalloc.h"
-#include "pluginhelper.h"
-#include "pluginconfig.h"
-#include "psserial.h"
-#include "env.h"
-#include "selector.h"
-#include "psaccounthandles.h"
-#include "peloguehandles.h"
-#include "pspamhandles.h"
-#include "psidnodes.h"
-#include "psidspawn.h"
-#include "psidplugin.h"
 
 #include "psslurmproto.h"
 

@@ -13,13 +13,14 @@
 #include <errno.h>
 #include <sys/stat.h>
 
+#include "pshostlist.h"
+
+#include "pluginmalloc.h"
+
 #include "slurmcommon.h"
 #include "psslurmlog.h"
 #include "psslurmconfig.h"
 #include "psslurmcomm.h"
-
-#include "pluginmalloc.h"
-#include "pluginhostlist.h"
 
 #include "psslurmgres.h"
 
