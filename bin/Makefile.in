@@ -17,7 +17,7 @@
 #
 # ParaStation
 #
-# Copyright (C) 2012-2017 ParTec Cluster Competence Center GmbH, Munich
+# Copyright (C) 2012-2018 ParTec Cluster Competence Center GmbH, Munich
 #
 # This file may be distributed under the terms of the Q Public License
 # as defined in the file LICENSE.QPL included in the packaging of this
@@ -114,7 +114,7 @@ target_triplet = @target@
 bin_PROGRAMS = mlisten$(EXEEXT) psmstart$(EXEEXT) mpirun_chp4$(EXEEXT) \
 	psispawn$(EXEEXT) mpirun_chgm$(EXEEXT) gmspawner$(EXEEXT) \
 	mpirun_openib$(EXEEXT) test_pse$(EXEEXT) pssh$(EXEEXT) \
-	psaccounter$(EXEEXT)
+	psaccounter$(EXEEXT) pspelogue$(EXEEXT)
 noinst_PROGRAMS = testacct$(EXEEXT)
 subdir = bin
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
@@ -162,6 +162,9 @@ psispawn_DEPENDENCIES = $(libpsi)
 psmstart_SOURCES = psmstart.c
 psmstart_OBJECTS = psmstart.$(OBJEXT)
 psmstart_DEPENDENCIES = $(libpse) $(am__DEPENDENCIES_1)
+pspelogue_SOURCES = pspelogue.c
+pspelogue_OBJECTS = pspelogue.$(OBJEXT)
+pspelogue_DEPENDENCIES = $(libpsi) $(am__DEPENDENCIES_1)
 pssh_SOURCES = pssh.c
 pssh_OBJECTS = pssh.$(OBJEXT)
 pssh_DEPENDENCIES = $(libpse) $(am__DEPENDENCIES_1)
@@ -190,8 +193,9 @@ am__depfiles_remade = ./$(DEPDIR)/gmspawner-gmspawner.Po \
 	./$(DEPDIR)/mlisten.Po ./$(DEPDIR)/mpirun_chgm.Po \
 	./$(DEPDIR)/mpirun_chp4.Po ./$(DEPDIR)/mpirun_openib.Po \
 	./$(DEPDIR)/psaccounter-psaccounter.Po ./$(DEPDIR)/psispawn.Po \
-	./$(DEPDIR)/psmstart.Po ./$(DEPDIR)/pssh.Po \
-	./$(DEPDIR)/test_pse.Po ./$(DEPDIR)/testacct.Po
+	./$(DEPDIR)/psmstart.Po ./$(DEPDIR)/pspelogue.Po \
+	./$(DEPDIR)/pssh.Po ./$(DEPDIR)/test_pse.Po \
+	./$(DEPDIR)/testacct.Po
 am__mv = mv -f
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
@@ -212,11 +216,11 @@ am__v_CCLD_ = $(am__v_CCLD_@AM_DEFAULT_V@)
 am__v_CCLD_0 = @echo "  CCLD    " $@;
 am__v_CCLD_1 = 
 SOURCES = gmspawner.c mlisten.c mpirun_chgm.c mpirun_chp4.c \
-	mpirun_openib.c psaccounter.c psispawn.c psmstart.c pssh.c \
-	test_pse.c testacct.c
+	mpirun_openib.c psaccounter.c psispawn.c psmstart.c \
+	pspelogue.c pssh.c test_pse.c testacct.c
 DIST_SOURCES = gmspawner.c mlisten.c mpirun_chgm.c mpirun_chp4.c \
-	mpirun_openib.c psaccounter.c psispawn.c psmstart.c pssh.c \
-	test_pse.c testacct.c
+	mpirun_openib.c psaccounter.c psispawn.c psmstart.c \
+	pspelogue.c pssh.c test_pse.c testacct.c
 RECURSIVE_TARGETS = all-recursive check-recursive cscopelist-recursive \
 	ctags-recursive dvi-recursive html-recursive info-recursive \
 	install-data-recursive install-dvi-recursive \
@@ -477,6 +481,7 @@ test_pse_LDADD = $(libpse) $(POPT_LIBS)
 pssh_LDADD = $(libpse) $(POPT_LIBS)
 psaccounter_CPPFLAGS = $(AM_CPPFLAGS) -DLOCALSTATEDIR=\"$(localstatedir)\"
 psaccounter_LDADD = $(libpse) $(POPT_LIBS)
+pspelogue_LDADD = $(libpsi) $(POPT_LIBS)
 testacct_LDADD = $(libpsi) $(POPT_LIBS)
 all: all-recursive
 
@@ -603,6 +608,10 @@ psmstart$(EXEEXT): $(psmstart_OBJECTS) $(psmstart_DEPENDENCIES) $(EXTRA_psmstart
 	@rm -f psmstart$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(psmstart_OBJECTS) $(psmstart_LDADD) $(LIBS)
 
+pspelogue$(EXEEXT): $(pspelogue_OBJECTS) $(pspelogue_DEPENDENCIES) $(EXTRA_pspelogue_DEPENDENCIES) 
+	@rm -f pspelogue$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(pspelogue_OBJECTS) $(pspelogue_LDADD) $(LIBS)
+
 pssh$(EXEEXT): $(pssh_OBJECTS) $(pssh_DEPENDENCIES) $(EXTRA_pssh_DEPENDENCIES) 
 	@rm -f pssh$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(pssh_OBJECTS) $(pssh_LDADD) $(LIBS)
@@ -629,6 +638,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psaccounter-psaccounter.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psispawn.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psmstart.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pspelogue.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pssh.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_pse.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/testacct.Po@am__quote@ # am--include-marker
@@ -906,6 +916,7 @@ distclean: distclean-recursive
 	-rm -f ./$(DEPDIR)/psaccounter-psaccounter.Po
 	-rm -f ./$(DEPDIR)/psispawn.Po
 	-rm -f ./$(DEPDIR)/psmstart.Po
+	-rm -f ./$(DEPDIR)/pspelogue.Po
 	-rm -f ./$(DEPDIR)/pssh.Po
 	-rm -f ./$(DEPDIR)/test_pse.Po
 	-rm -f ./$(DEPDIR)/testacct.Po
@@ -962,6 +973,7 @@ maintainer-clean: maintainer-clean-recursive
 	-rm -f ./$(DEPDIR)/psaccounter-psaccounter.Po
 	-rm -f ./$(DEPDIR)/psispawn.Po
 	-rm -f ./$(DEPDIR)/psmstart.Po
+	-rm -f ./$(DEPDIR)/pspelogue.Po
 	-rm -f ./$(DEPDIR)/pssh.Po
 	-rm -f ./$(DEPDIR)/test_pse.Po
 	-rm -f ./$(DEPDIR)/testacct.Po
