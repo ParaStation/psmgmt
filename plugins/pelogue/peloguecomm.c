@@ -161,18 +161,25 @@ static void handlePluginConfigAdd(DDTypedBufferMsg_t *msg,
 				  PS_DataBuffer_t *data)
 {
     char *ptr = data->buf;
-    char *plugin = getStringM(&ptr);
-    char *timeout = getStringM(&ptr);
-    char *grace = getStringM(&ptr);
+    uint32_t timeout, grace;
     Config_t *config = umalloc(sizeof(*config));
+
+    /* fetch info from message */
+    char *plugin = getStringM(&ptr);
+    getUint32(&ptr, &timeout);
+    getUint32(&ptr, &grace);
 
     /* remove old configuration if any */
     delPluginConfig(plugin);
 
     INIT_LIST_HEAD(config);
-    addConfigEntry(config, "TIMEOUT_PROLOGUE", timeout);
-    addConfigEntry(config, "TIMEOUT_EPILOGUE", timeout);
-    addConfigEntry(config, "TIMEOUT_PE_GRACE", grace);
+    char timeoutStr[16];
+    snprintf(timeoutStr, sizeof(timeoutStr), "%d", timeout);
+    addConfigEntry(config, "TIMEOUT_PROLOGUE", timeoutStr);
+    addConfigEntry(config, "TIMEOUT_EPILOGUE", timeoutStr);
+    char graceStr[16];
+    snprintf(graceStr, sizeof(graceStr), "%d", grace);
+    addConfigEntry(config, "TIMEOUT_PE_GRACE", graceStr);
     addConfigEntry(config, "DIR_SCRIPTS", SPOOL_DIR "/scripts");
 
     mdbg(PELOGUE_LOG_VERB, "%s: add conf for '%s'\n", __func__, plugin);
@@ -182,20 +189,24 @@ static void handlePluginConfigAdd(DDTypedBufferMsg_t *msg,
 static void handlePElogueReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 {
     char *ptr = rData->buf;
-    char *requestor = getStringM(&ptr);
-    uint8_t type = getUint8(&ptr, &type);
-    char *timeout = getStringM(&ptr);
-    char *grace = getStringM(&ptr);
-    char *jobid = getStringM(&ptr);
-    uid_t uid = getUint32(&ptr, &uid);
-    gid_t gid = getUint32(&ptr, &gid);
-    uint32_t nrOfNodes;
-    PSnodes_ID_t *nodes;
+    uint8_t type;
+    uint32_t timeout, grace, nrOfNodes;;
+    uid_t uid;
+    gid_t gid;
+    PSnodes_ID_t *nodes, n;
     env_t env;
-    PSnodes_ID_t n;
     RPC_Info_t *info;
     PS_SendDB_t config;
     int ret;
+
+    /* fetch info from message */
+    char *requestor = getStringM(&ptr);
+    getUint8(&ptr, &type);
+    getUint32(&ptr, &timeout);
+    getUint32(&ptr, &grace);
+    char *jobid = getStringM(&ptr);
+    getUint32(&ptr, &uid);
+    getUint32(&ptr, &gid);
 
     /* nodelist */
     getInt16Array(&ptr, &nodes, &nrOfNodes);
@@ -224,8 +235,8 @@ static void handlePElogueReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
     }
 
     addStringToMsg(requestor, &config);
-    addStringToMsg(timeout, &config);
-    addStringToMsg(grace, &config);
+    addUint32ToMsg(timeout, &config);
+    addUint32ToMsg(grace, &config);
 
     ret = sendFragMsg(&config);
 
@@ -249,8 +260,6 @@ static void handlePElogueReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 	goto ERROR;
     }
 
-    ufree(timeout);
-    ufree(grace);
     ufree(jobid);
     envDestroy(&env);
     return;
@@ -262,8 +271,6 @@ ERROR:
     deleteJob(job);
     ufree(info->requestor);
     ufree(info);
-    ufree(timeout);
-    ufree(grace);
     ufree(jobid);
     envDestroy(&env);
 }
