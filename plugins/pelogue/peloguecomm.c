@@ -155,6 +155,8 @@ static void handlePluginConfigDel(DDTypedBufferMsg_t *msg,
 
     mdbg(PELOGUE_LOG_VERB, "%s: delete conf for '%s'\n", __func__, plugin);
     delPluginConfig(plugin);
+
+    ufree(plugin);
 }
 
 static void handlePluginConfigAdd(DDTypedBufferMsg_t *msg,
@@ -184,6 +186,8 @@ static void handlePluginConfigAdd(DDTypedBufferMsg_t *msg,
 
     mdbg(PELOGUE_LOG_VERB, "%s: add conf for '%s'\n", __func__, plugin);
     addPluginConfig(plugin, config);
+
+    ufree(plugin);
 }
 
 static void handlePElogueReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
