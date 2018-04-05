@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -13,6 +13,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <errno.h>
+#include <signal.h>
 #include <syslog.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -545,4 +546,21 @@ int PSC_getWidth(void)
     if (width < 60) width = 60;
 
     return width;
+}
+
+void (*PSC_setSigHandler(int signum, void handler(int)))(int)
+{
+    struct sigaction saNew, saOld;
+
+    sigemptyset(&saNew.sa_mask);
+    saNew.sa_flags = 0;
+    saNew.sa_handler = handler;
+    if (sigaction(signum, &saNew, &saOld) == -1) {
+	int eno = errno;
+	PSC_warn(-1, errno, "%s: sigaction()", __func__);
+	errno = eno;
+	return SIG_ERR;
+    }
+
+    return saOld.sa_handler;
 }

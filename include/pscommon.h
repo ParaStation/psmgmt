@@ -499,4 +499,22 @@ int PSC_setProcTitle(int argc, const char **argv, char *title, int saveEnv);
  */
 int PSC_getWidth(void);
 
+/**
+ * @brief Register signal handler
+ *
+ * Register the signal handler @a handler to the signal @a signum. This
+ * is basically a replacement for the inadvisable @ref signal(). It
+ * utilizes the now preferred @ref sigaction().
+ *
+ * @param signum Number of the signal to be handled
+ *
+ * @param handler Function to call when signal @a signum is delivered
+ * to the process
+ *
+ * @return Return the previous value of the signal handler, or SIG_ERR
+ * on error. In the event of an error, errno is set to indicate the
+ * cause.
+ */
+void (*PSC_setSigHandler(int signum, void handler(int)))(int);
+
 #endif  /* __PSCOMMON_H */
