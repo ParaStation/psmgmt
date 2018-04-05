@@ -4,8 +4,9 @@ How to prepare a new release:
 
 2. Update the ChangeLog. Use:
 git log --pretty=format:\
-"------------------------------------------------------------------------"\
-"%n%h | %an | %aD%n%n%B" <last-tag>..HEAD
+"%n%h | %an | %aD%n%n%B"\
+"------------------------------------------------------------------------" \
+`git describe --abbrev=0 --tags`..HEAD > log
    in order to create the list of changes.
 
 3. Condense ChangeLog's changes into NEWS file.
