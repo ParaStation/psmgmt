@@ -80,7 +80,15 @@ typedef struct {
 /** Prototype of custom sender functions used by @ref initSerial() */
 typedef int Send_Msg_Func_t(void *);
 
-/** Prototype for @ref __recvFragMsg()'s callback */
+/**
+ * @brief Prototype for @ref __recvFragMsg()'s callback
+ *
+ * @param msg Message header (including the type) of the last
+ * fragment. The buffer of this last fragment is invalidated and part
+ * of @a data
+ *
+ * @param data Data buffer presenting payload assembled for all fragments
+ */
 typedef void PS_DataBuffer_func_t(DDTypedBufferMsg_t *msg,
 				  PS_DataBuffer_t *data);
 
