@@ -1,3 +1,337 @@
+Version psmgmt-5.1.10:
+======================
+------------------------------------------------------------------------
+2a52c23f | Norbert Eicker | Thu, 5 Apr 2018 13:47:46 +0200
+
+Fix potential memory leaks
+------------------------------------------------------------------------
+7a4c0e9e | Norbert Eicker | Thu, 5 Apr 2018 13:16:24 +0200
+
+Yet another format update for the changelog
+------------------------------------------------------------------------
+a7f4db20 | Norbert Eicker | Thu, 5 Apr 2018 13:06:46 +0200
+
+Yet another update to README
+------------------------------------------------------------------------
+0594c55e | Norbert Eicker | Thu, 5 Apr 2018 12:37:18 +0200
+
+Fix protocol between pspelogue and pelogue plugin
+------------------------------------------------------------------------
+b7f93424 | Norbert Eicker | Thu, 5 Apr 2018 12:28:58 +0200
+
+Add some more docu
+------------------------------------------------------------------------
+63a15cc8 | Norbert Eicker | Wed, 4 Apr 2018 19:11:51 +0200
+
+Merge pspelogue from the corresponding branch
+------------------------------------------------------------------------
+0663afef | Norbert Eicker | Wed, 4 Apr 2018 19:00:18 +0200
+
+Move environment handling from plugincommon to pscommon
+------------------------------------------------------------------------
+54abfbf6 | Norbert Eicker | Wed, 4 Apr 2018 17:14:46 +0200
+
+Minor cleanup
+------------------------------------------------------------------------
+9a737cee | Norbert Eicker | Wed, 4 Apr 2018 14:56:23 +0200
+
+Remove superfluous include
+------------------------------------------------------------------------
+17667df2 | Norbert Eicker | Wed, 4 Apr 2018 14:52:22 +0200
+
+Move hostlist handling from plugincommon to pscommon
+------------------------------------------------------------------------
+595c6048 | Norbert Eicker | Wed, 4 Apr 2018 13:00:34 +0200
+
+Get rid of sys_siglist
+------------------------------------------------------------------------
+25d37aa4 | Norbert Eicker | Tue, 3 Apr 2018 16:50:03 +0200
+
+Bugfix: Buffer handling of psserial must be initialized
+------------------------------------------------------------------------
+c4816694 | Norbert Eicker | Thu, 29 Mar 2018 21:24:27 +0200
+
+Bugfix: Ensure correct use PSC_concat()
+------------------------------------------------------------------------
+a7f1c09e | Norbert Eicker | Thu, 29 Mar 2018 21:17:55 +0200
+
+Merge branch 'psserial'
+
+ - fix various conflicts in:
+	lib/plugincommon/Makefile.in
+	lib/pscommon/Makefile.in
+	plugins/pelogue/Makefile.in
+	plugins/psslurm/src/psslurm/psslurmcomm.c
+	plugins/psslurm/src/psslurm/psslurmconfig.c
+	plugins/psslurm/src/psslurm/psslurmgres.c
+	plugins/psslurm/src/psslurm/psslurmio.c
+	plugins/psslurm/src/psslurm/psslurmpack.c
+	plugins/psslurm/src/psslurm/psslurmpin.c
+	plugins/psslurm/src/psslurm/psslurmproto.c
+	plugins/psslurm/src/psslurm/psslurmpscomm.c
+	plugins/psslurm/src/psslurm/psslurmpscomm.h
+------------------------------------------------------------------------
+a76f1d9f | Norbert Eicker | Thu, 29 Mar 2018 18:01:41 +0200
+
+Enhancement: Introduce jail plugin (#2666)
+------------------------------------------------------------------------
+6790e17a | Norbert Eicker | Thu, 29 Mar 2018 10:55:28 +0200
+
+Push automake to 1.16.1
+------------------------------------------------------------------------
+b80eab50 | Norbert Eicker | Wed, 28 Mar 2018 17:51:18 +0200
+
+Prevent sending fragments to empty nodeists
+------------------------------------------------------------------------
+7a4efeb3 | Norbert Eicker | Wed, 28 Mar 2018 16:47:16 +0200
+
+Bugfix: Only free() a buffer if it's actually a buffer
+------------------------------------------------------------------------
+75c6562e | Norbert Eicker | Wed, 28 Mar 2018 15:00:46 +0200
+
+Move psserial to libpscommon
+------------------------------------------------------------------------
+cbd60bcf | Norbert Eicker | Wed, 28 Mar 2018 14:02:46 +0200
+
+Bugfix: Avoid double free() if loading psmunge fails
+------------------------------------------------------------------------
+0f8483d6 | Norbert Eicker | Wed, 28 Mar 2018 06:55:55 +0200
+
+Push automake to 1.16.1
+------------------------------------------------------------------------
+c360e158 | Norbert Eicker | Tue, 27 Mar 2018 20:37:05 +0200
+
+Get rid of dependeny on pluginlog in psserial
+------------------------------------------------------------------------
+eeba8ff4 | Norbert Eicker | Tue, 27 Mar 2018 18:48:21 +0200
+
+Get rid of dependeny on pluginmalloc in psserial
+------------------------------------------------------------------------
+96a1fa59 | Norbert Eicker | Tue, 27 Mar 2018 13:08:42 +0200
+
+Fix potential memory leak
+------------------------------------------------------------------------
+6f6e7cb6 | Norbert Eicker | Tue, 27 Mar 2018 12:11:12 +0200
+
+Remove now obsolete add*ToMsgBuf() from psserial
+------------------------------------------------------------------------
+4da1f612 | Norbert Eicker | Tue, 27 Mar 2018 12:05:59 +0200
+
+Retire remaining add*ToMsgBuf() from psmom
+------------------------------------------------------------------------
+0d723129 | Norbert Eicker | Tue, 27 Mar 2018 11:47:27 +0200
+
+Allow to insert gaps of arbitrary size via PSP_putMsgBuf()
+------------------------------------------------------------------------
+475e7719 | Norbert Eicker | Mon, 26 Mar 2018 13:38:59 +0200
+
+Simplify definition of PSLog_headerSize
+------------------------------------------------------------------------
+48cfe4bb | Norbert Eicker | Mon, 26 Mar 2018 13:25:40 +0200
+
+Retire add*ToMsgBuf() from psslurm
+------------------------------------------------------------------------
+c2a278ca | Norbert Eicker | Mon, 26 Mar 2018 13:17:16 +0200
+
+Add default string to strJobState()
+------------------------------------------------------------------------
+0b41b1fc | Norbert Eicker | Thu, 22 Mar 2018 16:42:44 +0100
+
+Major streamlining
+------------------------------------------------------------------------
+01bdcb06 | Norbert Eicker | Thu, 22 Mar 2018 14:42:05 +0100
+
+Retire most add*ToMsgBuf() from psmom
+------------------------------------------------------------------------
+ba9c6eb4 | Norbert Eicker | Thu, 22 Mar 2018 12:58:34 +0100
+
+Retire add*ToMsgBuf() from pelogue
+------------------------------------------------------------------------
+5a7aaedd | Norbert Eicker | Thu, 22 Mar 2018 10:11:59 +0100
+
+Take a shortcut if messages consists of just on fragment
+------------------------------------------------------------------------
+dee228c7 | Norbert Eicker | Thu, 22 Mar 2018 09:34:30 +0100
+
+Update psserial documentation
+------------------------------------------------------------------------
+f3802af6 | Michael Rauh | Mon, 19 Mar 2018 17:30:57 +0100
+
+Minor cleanup and documentation of psslurmenv
+------------------------------------------------------------------------
+382ce39f | Michael Rauh | Mon, 19 Mar 2018 15:22:44 +0100
+
+Detect the use of compression in psslurm bcast request
+------------------------------------------------------------------------
+a78269f6 | Michael Rauh | Mon, 19 Mar 2018 14:42:32 +0100
+
+Minor cleanup and documentation of psslurmcomm
+------------------------------------------------------------------------
+30a81ea9 | Norbert Eicker | Mon, 19 Mar 2018 12:37:07 +0100
+
+Fix offset when creating pointer from used variable
+------------------------------------------------------------------------
+7b1a28a1 | Michael Rauh | Mon, 19 Mar 2018 11:54:43 +0100
+
+Add documentation to psslurmbcast.h
+------------------------------------------------------------------------
+18224731 | Michael Rauh | Fri, 16 Mar 2018 16:31:25 +0100
+
+Removed SLURM protocol switch from buildsystem
+------------------------------------------------------------------------
+6fcdb643 | Michael Rauh | Fri, 16 Mar 2018 16:18:06 +0100
+
+Added support for SLURM 17.11 protocol including job packs
+
+- This drops support for SLURM 16.05 protocol
+- Standard protocol is SLURM 17.02
+- The SLURM protocol can be changed using the SLURM_PROTO_VERSION
+  option of the psslurm configuration
+------------------------------------------------------------------------
+6239b3eb | Norbert Eicker | Mon, 12 Mar 2018 23:14:26 +0100
+
+Fix copyright
+------------------------------------------------------------------------
+41010f2a | Norbert Eicker | Mon, 12 Mar 2018 23:03:18 +0100
+
+Make addSlurmAccData() and addSlurmPids() private
+
+ - Some streamlining of psslurmproto.c
+------------------------------------------------------------------------
+e641c588 | Norbert Eicker | Mon, 12 Mar 2018 22:44:42 +0100
+
+Major streamlining of psslurmpscomm.c
+------------------------------------------------------------------------
+83fa0168 | Norbert Eicker | Mon, 12 Mar 2018 22:09:24 +0100
+
+Avoid excessive allocation of memory in psserial
+
+ - Do not statically allocate 256 kB per communication partner
+ - Check if the expected fragment was received
+ - Allow receive buffers to grow dynamically in fragmentation layer
+------------------------------------------------------------------------
+73bc2430 | Norbert Eicker | Mon, 12 Mar 2018 22:08:32 +0100
+
+Avoid double copy
+------------------------------------------------------------------------
+1712a0c6 | Norbert Eicker | Thu, 8 Mar 2018 20:13:56 +0100
+
+Fix various warning unvieled by gcc-8
+------------------------------------------------------------------------
+fa5e5b67 | Norbert Eicker | Thu, 8 Mar 2018 16:42:11 +0100
+
+Fix gcc-8 warnings by introducing inline-wrappers
+------------------------------------------------------------------------
+0a04dfb4 | Norbert Eicker | Tue, 6 Mar 2018 00:05:40 +0100
+
+Reorganize handling of fragment headers
+------------------------------------------------------------------------
+eb2eb93d | Norbert Eicker | Mon, 5 Mar 2018 22:24:11 +0100
+
+Rename some variables and streamline
+------------------------------------------------------------------------
+324fe4cb | Norbert Eicker | Mon, 5 Mar 2018 22:17:12 +0100
+
+Streamlining
+------------------------------------------------------------------------
+c141877a | Norbert Eicker | Mon, 5 Mar 2018 21:03:51 +0100
+
+Fix sendBuf handling in psserial
+
+ - This shall also fix potential use after free() errors in the PAM module
+------------------------------------------------------------------------
+c970be5d | Norbert Eicker | Mon, 5 Mar 2018 20:59:10 +0100
+
+Minor streamlining
+------------------------------------------------------------------------
+ea853832 | Norbert Eicker | Mon, 5 Mar 2018 18:35:28 +0100
+
+Booleanize and streamline
+------------------------------------------------------------------------
+7edf7686 | Norbert Eicker | Mon, 5 Mar 2018 18:25:12 +0100
+
+Document how to correctly initialize PS_SendDB_t
+------------------------------------------------------------------------
+d057af55 | Michael Rauh | Thu, 1 Mar 2018 15:48:28 +0100
+
+Make sure unknown jobs get released for REQUEST_KILL_TIMELIMIT
+------------------------------------------------------------------------
+d4fabda1 | Michael Rauh | Wed, 28 Feb 2018 15:48:30 +0100
+
+Changed psslurm CPU load reporting to one minute average (psc:#265)
+------------------------------------------------------------------------
+13ba34ec | Norbert Eicker | Mon, 26 Feb 2018 23:01:43 +0100
+
+Disable kvsprovider if --pmidisable is given (psc:#264)
+------------------------------------------------------------------------
+e8caf1d6 | Norbert Eicker | Mon, 19 Feb 2018 18:13:12 +0100
+
+Use the actual NODE_DOWN hook in psserial
+
+ - Determine if running within psid and use the actual hook if possible
+ - Send fragments earlier
+ - Improve docu comments
+------------------------------------------------------------------------
+6e880de6 | Norbert Eicker | Mon, 19 Feb 2018 11:51:50 +0100
+
+Make psslurmpscomm's hook private
+
+ - Also improve some docu comments
+ - Combined with some streamlining of psslurm
+------------------------------------------------------------------------
+f1d60600 | Norbert Eicker | Mon, 19 Feb 2018 10:16:35 +0100
+
+Streamline psnodes.h
+------------------------------------------------------------------------
+0a78de7a | Norbert Eicker | Sun, 18 Feb 2018 23:42:11 +0100
+
+Some streamlining in pelogue
+------------------------------------------------------------------------
+0283e63d | Norbert Eicker | Sun, 18 Feb 2018 23:34:31 +0100
+
+Some streamlining in psslurm
+
+ - Rename letAllStepsRun() to startAllSteps()
+ - Rename disPrologue to disablePrologue
+ - Add @doctodos
+------------------------------------------------------------------------
+89b4b870 | Norbert Eicker | Sun, 18 Feb 2018 23:31:53 +0100
+
+Streamline logging output
+------------------------------------------------------------------------
+876f46af | Norbert Eicker | Tue, 13 Feb 2018 12:33:56 +0100
+
+Go back to automake 1.15.1.
+
+ - This has effects on configure and aclocal.m4
+------------------------------------------------------------------------
+bf42f373 | Norbert Eicker | Tue, 13 Feb 2018 08:18:46 +0100
+
+Rename PELOGUE_LOG_PSPELOGUE to PELOGUE_LOG_VERB
+------------------------------------------------------------------------
+3dee7c1e | Michael Rauh | Mon, 5 Feb 2018 09:48:19 +0100
+
+Rework fragmentation layer to send message fragments instantly. Use
+pre-allocated buffers for non fragmented messages to avoid memory
+fragmentation.
+------------------------------------------------------------------------
+57d7b7b4 | Michael Rauh | Mon, 5 Feb 2018 10:18:05 +0100
+
+Rename plugincomm to psserial
+------------------------------------------------------------------------
+01859343 | Michael Rauh | Fri, 19 Jan 2018 10:58:03 +0100
+
+First steps to add support for slurmctld parallel prologue
+------------------------------------------------------------------------
+cee0eb74 | Michael Rauh | Fri, 19 Jan 2018 10:35:58 +0100
+
+Add caller info to pelogueconfig
+------------------------------------------------------------------------
+944557a0 | Michael Rauh | Fri, 19 Jan 2018 10:24:04 +0100
+
+Cleanup pelogue log masks
+------------------------------------------------------------------------
+
 Version psmgmt-5.1.9:
 =====================
 ------------------------------------------------------------------------

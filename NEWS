@@ -4,6 +4,35 @@ Copyright (C) 2010-2018 ParTec Cluster Competence Center GmbH, Munich
 
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
+
+Version 5.1.10:
+===============
+Bugfixes:
+ - Disable kvsprovider if --pmidisable is given (psc:#264)
+ - Make sure unknown jobs get released for REQUEST_KILL_TIMELIMIT
+ - Avoid double free() if loading psmunge fails
+ - Ensure correct use PSC_concat()
+ - Fix various potential memory leaks
+
+Enhancements:
+ - Add support for SLURM 17.11 protocol including job packs
+   * This drops support for SLURM 16.05 protocol
+   * Standard protocol is SLURM 17.02
+   * The SLURM protocol can be changed using the SLURM_PROTO_VERSION
+     option of the psslurm configuration
+ - Add pspelogue to allow slurmctld parallel prologues
+ - Change psslurm CPU load reporting to one minute average (psc:#265)
+ - Introduce jail plugin (#2666)
+ - Detect the use of compression in psslurm bcast request
+ - Improve handling of fragmented messages
+
+Additional changes:
+ - Move various functionality from libplugincommon to libpscommon. This
+   includes environment and hostlist handling, serialization, etc.
+ - Remove now obsolete add*ToMsgBuf() calls
+ - Fix various warning unvieled by gcc-8
+
+
 Version 5.1.9:
 ==============
 Bugfixes:
