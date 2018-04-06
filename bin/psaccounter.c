@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2006-2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2006-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -391,20 +391,21 @@ static void sig_handler(int sig)
     /* flush all ouptput streams */
     fflush(NULL);
 
-    /* dump running jobs */
-    if (sig == SIGUSR1) {
+    switch (sig) {
+    case SIGUSR1:
+	/* dump running jobs */
 	alog("Dumping known jobs:\n");
 	dumpJobs(btroot);
-    }
-
-    /* ignore term signals */
-    if (sig == SIGTERM) {
-	if(debug & 0x010) alog("Caught SIGTERM, ignoring.\n");
-    }
-
-    if (sig == SIGINT) {
-	if(debug &0x010) alog("Caught SIGINT, exiting.\n");
+	break;
+    case SIGTERM:
+	/* ignore term signals */
+	if (debug & 0x010) alog("Caught SIGTERM, ignoring\n");
+	break;
+    case SIGINT:
+	if (debug &0x010) alog("Caught SIGINT, exiting\n");
 	exit(EXIT_SUCCESS);
+    default:
+	alog("Caught signal %s, ignoring\n", strsignal(sig));
     }
 }
 
@@ -419,8 +420,8 @@ static void sig_handler(int sig)
  */
 static void protocolError(char *err, const char *func)
 {
-	alog("%s: protocol error:%s\n", func, err);
-	exit(EXIT_FAILURE);
+    alog("%s: protocol error:%s\n", func, err);
+    exit(EXIT_FAILURE);
 }
 
 /**
@@ -1749,10 +1750,10 @@ int main(int argc, char *argv[])
 	 "directory to save coredump files", "dir"},
 	POPT_AUTOHELP {NULL, '\0', 0, NULL, 0, NULL, NULL}
     };
-    signal(SIGALRM, &timer_handler);
-    signal(SIGTERM, sig_handler);
-    signal(SIGINT, sig_handler);
-    signal(SIGUSR1, sig_handler);
+    PSC_setSigHandler(SIGALRM, &timer_handler);
+    PSC_setSigHandler(SIGTERM, sig_handler);
+    PSC_setSigHandler(SIGINT, sig_handler);
+    PSC_setSigHandler(SIGUSR1, sig_handler);
 
     /* emergency logger during startup */
     alogger = logger_init(NULL, stderr);
