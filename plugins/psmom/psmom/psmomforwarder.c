@@ -322,10 +322,10 @@ static void sendForkFailed(void)
 static void resetSignalHandling(void)
 {
     /* restore sighandler */
-    signal(SIGALRM, SIG_DFL);
-    signal(SIGTERM, SIG_DFL);
-    signal(SIGCHLD, SIG_DFL);
-    signal(SIGPIPE, SIG_DFL);
+    PSC_setSigHandler(SIGALRM, SIG_DFL);
+    PSC_setSigHandler(SIGTERM, SIG_DFL);
+    PSC_setSigHandler(SIGCHLD, SIG_DFL);
+    PSC_setSigHandler(SIGPIPE, SIG_DFL);
 
     /* unblock blocked signals */
     blockSignal(SIGCHLD, 0);
@@ -384,7 +384,6 @@ static void stopForwarderLoop(void)
 static void signalHandler(int sig)
 {
     static char errmsg[] = "\r\npsmom: job timeout reached, terminating.\n\n\r";
-    signal(sig, signalHandler);
 
     switch (sig) {
 	case SIGTERM:
@@ -549,10 +548,10 @@ static int initForwarder(int forwarderType, char *jobname)
     blockSignal(SIGCHLD, 1);
     blockSignal(SIGALRM, 1);
 
-    signal(SIGALRM, signalHandler);
-    signal(SIGTERM, signalHandler);
-    signal(SIGCHLD, signalHandler);
-    signal(SIGPIPE, signalHandler);
+    PSC_setSigHandler(SIGALRM, signalHandler);
+    PSC_setSigHandler(SIGTERM, signalHandler);
+    PSC_setSigHandler(SIGCHLD, signalHandler);
+    PSC_setSigHandler(SIGPIPE, signalHandler);
 
     /* open control fds */
     if (socketpair(PF_UNIX, SOCK_STREAM, 0, controlFDs)<0) {
@@ -1418,10 +1417,10 @@ static void spawnTimeoutScript(char *script, PElogue_Data_t *data,
 	}
 
 	/* reset signals */
-	signal(SIGALRM, SIG_DFL);
-	signal(SIGTERM, SIG_DFL);
-	signal(SIGCHLD, SIG_DFL);
-	signal(SIGPIPE, SIG_DFL);
+	PSC_setSigHandler(SIGALRM, SIG_DFL);
+	PSC_setSigHandler(SIGTERM, SIG_DFL);
+	PSC_setSigHandler(SIGCHLD, SIG_DFL);
+	PSC_setSigHandler(SIGPIPE, SIG_DFL);
 
 	/* setup env */
 	setenv("PBS_JOBID", data->jobid, 1);
@@ -1486,9 +1485,9 @@ static int runPElogueScript(PElogue_Data_t *data, char *filename, int root)
 	    }
 
 	    /* reset signals */
-	    signal(SIGALRM, SIG_DFL);
-	    signal(SIGTERM, SIG_DFL);
-	    signal(SIGCHLD, SIG_DFL);
+	    PSC_setSigHandler(SIGALRM, SIG_DFL);
+	    PSC_setSigHandler(SIGTERM, SIG_DFL);
+	    PSC_setSigHandler(SIGCHLD, SIG_DFL);
 
 	    startPElogue(data->prologue, data, buf, root);
 
@@ -1842,10 +1841,10 @@ static void backupJob(char *backupScript, Job_t *job, char *outLog,
 	}
 
 	/* reset signals */
-	signal(SIGALRM, SIG_DFL);
-	signal(SIGTERM, SIG_DFL);
-	signal(SIGCHLD, SIG_DFL);
-	signal(SIGPIPE, SIG_DFL);
+	PSC_setSigHandler(SIGALRM, SIG_DFL);
+	PSC_setSigHandler(SIGTERM, SIG_DFL);
+	PSC_setSigHandler(SIGCHLD, SIG_DFL);
+	PSC_setSigHandler(SIGPIPE, SIG_DFL);
 
 	if ((backup_pid = fork()) == -1) {
 	    sendForkFailed();
@@ -1871,7 +1870,7 @@ static void backupJob(char *backupScript, Job_t *job, char *outLog,
 	    /* monitor backup process with a timeout */
 	    timeout = getConfValueI(&config, "TIMEOUT_BACKUP");
 	    if (timeout > 0) {
-		signal(SIGALRM, backupTimeout);
+		PSC_setSigHandler(SIGALRM, backupTimeout);
 		alarm(timeout);
 	    }
 
