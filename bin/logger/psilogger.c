@@ -12,6 +12,7 @@
  * @file
  * psilogger: Log-daemon for ParaStation I/O forwarding facility
  */
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -510,8 +511,6 @@ static void sighandler(int sig)
 
     fflush(stdout);
     fflush(stderr);
-
-    signal(sig, sighandler);
 }
 
 static void handleMaxTime(void)
@@ -1359,16 +1358,15 @@ int main( int argc, char**argv)
 	PSIlog_warn(-1, errno, "sigprocmask()");
     }
 
-    signal(SIGTERM,  sighandler);
-    signal(SIGINT,   sighandler);
-//    signal(SIGTTIN,  sighandler);
-    signal(SIGHUP,   sighandler);
-    signal(SIGTSTP,  sighandler);
-    signal(SIGCONT,  sighandler);
-    signal(SIGWINCH, sighandler);
-    signal(SIGUSR1,  sighandler);
-    signal(SIGUSR2,  sighandler);
-    signal(SIGQUIT,  sighandler);
+    PSC_setSigHandler(SIGTERM,  sighandler);
+    PSC_setSigHandler(SIGINT,   sighandler);
+    PSC_setSigHandler(SIGHUP,   sighandler);
+    PSC_setSigHandler(SIGTSTP,  sighandler);
+    PSC_setSigHandler(SIGCONT,  sighandler);
+    PSC_setSigHandler(SIGWINCH, sighandler);
+    PSC_setSigHandler(SIGUSR1,  sighandler);
+    PSC_setSigHandler(SIGUSR2,  sighandler);
+    PSC_setSigHandler(SIGQUIT,  sighandler);
 
     if (argc < 3) {
 	PSIlog_log(-1, "Sorry, program must be called correctly"
