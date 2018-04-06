@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -11,17 +11,8 @@
 /**
  * @file Helper in order to start MPIch/GM applications within a ParaStation
  * cluster.
- *
- * $Id$
- *
- * @author
- * Norbert Eicker <eicker@par-tec.com>
- * */
-#ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__((used)) =
-    "$Id$";
-#endif /* DOXYGEN_SHOULD_SKIP_THIS */
-
+ */
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -61,12 +52,12 @@ static void collectInfo(int listensock, unsigned int np, unsigned int magic,
 			int verbose)
 {
     unsigned int index = np, i;
-    int valid = 1;
+    bool valid = true;
 
     if (clients) {
 	for (i=0; i<np; i++) valid = valid && !clients[i].pid;
     } else {
-	valid = 0;
+	valid = false;
     }
 
     if (!valid) {
@@ -341,18 +332,16 @@ static void *listenToClients(void *val)
 static int createListener(int startport, unsigned int np, unsigned int magic,
 			  int verbose)
 {
-    int sock, one=1, ret, port=startport;
-
-    struct protoent *proto;
+    int one=1, ret, port = startport;
     struct sockaddr_in addr;
 
-    proto = getprotobyname("TCP");
+    struct protoent *proto = getprotobyname("TCP");
     if (!proto) {
 	fprintf(stderr, "%s: Unable to lookup 'TCP' protocol\n", __func__);
 	return -1;
     }
 
-    sock = socket(PF_INET, SOCK_STREAM, proto->p_proto);
+    int sock = socket(PF_INET, SOCK_STREAM, proto->p_proto);
     if (sock<0) {
 	perror(__func__);
 	return -1;
@@ -409,15 +398,11 @@ static void sighandler(int sig)
     default:
 	fprintf(stderr, "gmspawner: Got signal %d.\n", sig);
     }
-
-    signal(sig, sighandler);
 }
 
 static inline void propagateEnv(const char *env, int req)
 {
-    char *value;
-
-    value = getenv(env);
+    char *value = getenv(env);
 
     if (req && !value) {
 	fprintf(stderr, "No value for required environment '%s'\n", env);
@@ -600,58 +585,47 @@ int main(int argc, const char *argv[])
     propagateEnv("GMPI_EAGER", 0);
     propagateEnv("GMPI_RECV", 1);
 
-    signal(SIGALRM, sighandler);
+    PSC_setSigHandler(SIGALRM, sighandler);
 
-    {
-	/* spawn all processes */
+    /* spawn all processes */
+
+    PSI_RemoteArgs(argc - dup_argc, (char **)&argv[dup_argc],
+		   &dup_argc, &dup_argv);
+
+    for (rank=0; rank<np; rank++) {
+	if (waittime && rank) sleep(waittime);
+
+	setIntEnv("GMPI_ID", rank);
+	setIntEnv("GMPI_BOARD", -1);
+
+	char slavestring[20];
+	PSnodes_ID_t node;
+	struct in_addr ip;
+	int err;
+
+	err = PSI_infoNodeID(-1, PSP_INFO_RANKID, &rank, &node, 1);
+	if (err) {
+	    fprintf(stderr, "Could not determine rank %d's node.\n", rank);
+	    exit(1);
+	}
+
+	err = PSI_infoUInt(-1, PSP_INFO_NODE, &node, &ip.s_addr, 1);
+	if (err) {
+	    fprintf(stderr, "Could not determine node %d's IP\n", node);
+	    exit(1);
+	}
+
+	snprintf(slavestring, sizeof(slavestring), "%s", inet_ntoa(ip));
+	setPSIEnv("GMPI_SLAVE", slavestring, 1);
+
+	/* spawn the process */
 	int error;
-
-	PSI_RemoteArgs(argc - dup_argc, (char **) &argv[dup_argc],
-		       &dup_argc, &dup_argv);
-
-	for (rank=0; rank<np; rank++) {
-
-	    if (waittime && rank) sleep(waittime);
-
-	    setIntEnv("GMPI_ID", rank);
-	    setIntEnv("GMPI_BOARD", -1);
-
-	    {
-		char slavestring[20];
-		PSnodes_ID_t node;
-		struct in_addr ip;
-		int err;
-
-		err = PSI_infoNodeID(-1, PSP_INFO_RANKID, &rank, &node, 1);
-		if (err) {
-		    fprintf(stderr, "Could not determine rank %d's node.\n",
-			    rank);
-		    exit(1);
-		}
-
-		err = PSI_infoUInt(-1, PSP_INFO_NODE, &node, &ip.s_addr, 1);
-		if (err) {
-		    fprintf(stderr,
-			    "Could not determine node %d's IP address.\n",
-			    node);
-		    exit(1);
-		}
-
-		snprintf(slavestring, sizeof(slavestring),
-			 "%s", inet_ntoa(ip));
-
-		setPSIEnv("GMPI_SLAVE", slavestring, 1);
-	    }
-
-	    /* spawn the process */
-	    if (!PSI_spawnRank(rank, ".", dup_argc, dup_argv, &error)) {
-		if (error) {
-		    char *errstr = strerror(error);
-		    fprintf(stderr,
-			    "Could not spawn process %d (%s) error = %s.\n",
-			    rank, dup_argv[0], errstr ? errstr : "UNKNOWN");
-		    exit(1);
-		}
+	if (!PSI_spawnRank(rank, ".", dup_argc, dup_argv, &error)) {
+	    if (error) {
+		char *errstr = strerror(error);
+		fprintf(stderr, "Could not spawn process %d (%s) error = %s.\n",
+			rank, dup_argv[0], errstr ? errstr : "UNKNOWN");
+		exit(1);
 	    }
 	}
     }
@@ -684,5 +658,5 @@ int main(int argc, const char *argv[])
     PSI_release(PSC_getMyTID());
     PSI_exitClient();
 
-    exit(0);
+    return 0;
 }

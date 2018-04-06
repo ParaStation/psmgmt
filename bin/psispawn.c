@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -11,17 +11,7 @@
 /**
  * @file Simple wrapper to allow MPIch/P4 programs to run under the
  * control of ParaStation.
- *
- * $Id$
- *
- * @author Norbert Eicker <eicker@par-tec.com>
- *
  */
-#ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__((used)) =
-    "$Id$";
-#endif /* DOXYGEN_SHOULD_SKIP_THIS */
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -54,24 +44,15 @@ int main(int argc, char *argv[])
 
     /** @todo test validity of argv[1] (hostname) */
 
-    if (strstr(argv[2], "-l") != argv[2]) {
-	usage(argv[0]);
+    if (strstr(argv[2], "-l") != argv[2]) usage(argv[0]);
+
+    struct passwd *passwd = getpwnam(argv[3]);
+    if (passwd->pw_uid != getuid()) {
+	fprintf(stderr, "Don't try to change the uid to %s.\n", argv[3]);
+	exit(1);
     }
 
-    {
-	struct passwd *passwd;
-
-	passwd = getpwnam(argv[3]);
-
-	if (passwd->pw_uid != getuid()) {
-	    fprintf(stderr, "Don't try to change the uid to %s.\n", argv[3]);
-	    exit(1);
-	}
-    }
-
-    if (strstr(argv[4], "-n") != argv[4]) {
-	usage(argv[0]);
-    }
+    if (strstr(argv[4], "-n") != argv[4]) usage(argv[0]);
 
     /* Replace '\-' at begin of argument by '-' */
     for (i=5; i<argc; i++) {
@@ -93,11 +74,11 @@ int main(int argc, char *argv[])
 	exit(1);
     }
 
-    signal(SIGHUP,  SIG_IGN);
-    signal(SIGINT,  SIG_IGN);
-    signal(SIGTERM, SIG_IGN);
-    signal(SIGUSR1, SIG_IGN);
-    signal(SIGUSR2, SIG_IGN);
+    PSC_setSigHandler(SIGHUP,  SIG_IGN);
+    PSC_setSigHandler(SIGINT,  SIG_IGN);
+    PSC_setSigHandler(SIGTERM, SIG_IGN);
+    PSC_setSigHandler(SIGUSR1, SIG_IGN);
+    PSC_setSigHandler(SIGUSR2, SIG_IGN);
 
     /* We will use PSI instead of PSE since our task is more low-level */
     if (!PSI_initClient(TG_SPAWNER)) {
@@ -106,44 +87,32 @@ int main(int argc, char *argv[])
     }
 
     /* Propagate some environment variables */
-    {
-	char *env_str;
+    char *env_str;
 
-	if ((env_str = getenv("HOME"))) {
-	    setPSIEnv("HOME", env_str, 1);
-	}
-	if ((env_str = getenv("USER"))) {
-	    setPSIEnv("USER", env_str, 1);
-	}
-	if ((env_str = getenv("SHELL"))) {
-	    setPSIEnv("SHELL", env_str, 1);
-	}
-	if ((env_str = getenv("TERM"))) {
-	    setPSIEnv("TERM", env_str, 1);
-	}
-    }
+    if ((env_str = getenv("HOME"))) setPSIEnv("HOME", env_str, 1);
+    if ((env_str = getenv("USER"))) setPSIEnv("USER", env_str, 1);
+    if ((env_str = getenv("SHELL"))) setPSIEnv("SHELL", env_str, 1);
+    if ((env_str = getenv("TERM"))) setPSIEnv("TERM", env_str, 1);
     PSI_propEnvList("PSI_EXPORTS");
     PSI_propEnvList("__PSI_EXPORTS");
 
     /* spawning the process */
-    {
-	int error, dup_argc;
-	PStask_ID_t spawnedProcess;
-	char **dup_argv;
+    int error, dup_argc;
+    PStask_ID_t spawnedProcess;
+    char **dup_argv;
 
-	PSI_RemoteArgs(argc-5, &argv[5], &dup_argc, &dup_argv);
+    PSI_RemoteArgs(argc-5, &argv[5], &dup_argc, &dup_argv);
 
-	/* spawn client processes */
-	spawnedProcess = PSI_spawnRank(rank, ".", dup_argc, dup_argv, &error);
-	if (!spawnedProcess) {
-	    char *errstr = strerror(error);
+    /* spawn client processes */
+    spawnedProcess = PSI_spawnRank(rank, ".", dup_argc, dup_argv, &error);
+    if (!spawnedProcess) {
+	char *errstr = strerror(error);
 
-	    fprintf(stderr, "Could%s spawn '%s' process %d%s%s.",
-		    error ? " not" : " ", argv[0], i+1,
-		    error ? ", error = " : "",
-		    error ? (errstr ? errstr : "UNKNOWN") : "");
-	    exit(1);
-	}
+	fprintf(stderr, "Could%s spawn '%s' process %d%s%s.",
+		error ? " not" : " ", argv[0], i+1,
+		error ? ", error = " : "",
+		error ? (errstr ? errstr : "UNKNOWN") : "");
+	exit(1);
     }
 
     /* Wait for the spawned process to complete */
@@ -163,5 +132,5 @@ int main(int argc, char *argv[])
 
     PSI_exitClient();
 
-    return(0);
+    return 0;
 }

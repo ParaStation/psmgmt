@@ -17,6 +17,7 @@
  * Ohio State University's Network-Based Computing Laboratory (NBCL),
  * headed by Professor Dhabaleswar K. (DK) Panda.
  */
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -28,11 +29,12 @@
 #include <arpa/inet.h>
 #include <popt.h>
 
-#include <pse.h>
-#include <psi.h>
-#include <psienv.h>
-#include <psiinfo.h>
-#include <psispawn.h>
+#include "pscommon.h"
+#include "pse.h"
+#include "psi.h"
+#include "psienv.h"
+#include "psiinfo.h"
+#include "psispawn.h"
 
 /** Magic versionv number of mpirun <-> application-process protocol */
 #define PMGR_VERSION 5
@@ -166,7 +168,7 @@ static char *skip_white(char *s)
  * reads the param file and stores each of the environment variables
  * to the ParaStation environment.
  */
-static void read_param_file(char *paramfile, int verbose)
+static void read_param_file(char *paramfile, bool verbose)
 {
     FILE *pf;
     char name[128], value[256];
@@ -222,8 +224,6 @@ static void sighandler(int sig)
 
     fflush(stdout);
     fflush(stderr);
-
-    signal(sig, sighandler);
 }
 
 static void setupCommonEnv(int np)
@@ -249,7 +249,7 @@ static void setupCommonEnv(int np)
 }
 
 /* Flag, if verbose-option is set */
-static int verboseRankMsg = 0;
+static bool verboseRankMsg = false;
 
 static char ** setupNodeEnv(int i, void *info)
 {
@@ -283,7 +283,7 @@ static char ** setupNodeEnv(int i, void *info)
  * @return On success, the number of processes spawned is returned. Or
  * -1, if an error occurred.
  */
-static int startProcs(int np, int argc, char *argv[], int verbose)
+static int startProcs(int np, int argc, char *argv[], bool verbose)
 {
     int i, ret, *errors;
 
@@ -918,15 +918,11 @@ int main(int argc, char *argv[])
     createSpawner(argc, argv, np);
 
     /* reading default param file */
-    if (access(PARAM_GLOBAL, R_OK) == 0) {
-	read_param_file(PARAM_GLOBAL, verbose);
-    }
+    if (access(PARAM_GLOBAL, R_OK) == 0) read_param_file(PARAM_GLOBAL, verbose);
 
     /* reading file specified by user env */
     envstr = getenv("MVAPICH_DEF_PARAMFILE");
-    if (envstr) {
-	read_param_file(envstr, verbose);
-    }
+    if (envstr) read_param_file(envstr, verbose);
     if (paramfile) {
 	/* construct a string of environment variable definitions from
 	 * the entries in the paramfile.  These environment variables
@@ -974,7 +970,7 @@ int main(int argc, char *argv[])
 	exit(1);
     }
 
-    signal(SIGTERM, sighandler);
+    PSC_setSigHandler(SIGTERM, sighandler);
 
     /* Hostid exchange start */
     alarm(1000);
