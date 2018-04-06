@@ -222,7 +222,7 @@ const char *PSLog_printMsgType(PSLog_msg_t type)
 	return "PLGN_SIGNAL";
     case PLGN_REQ_ACCNT:
 	return "PLGN_REQ_ACCNT";
+    default:
+	return "<unknown>";
     }
-
-    return "UNKNOWN";
 }
