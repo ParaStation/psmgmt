@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -19,6 +19,7 @@
 #include <signal.h>
 #include <sys/ioctl.h>
 
+#include "pscommon.h"
 #include "pluginlog.h"
 #include "pluginpty.h"
 
@@ -90,13 +91,13 @@ void pty_make_controlling_tty(int *ttyfd, const char *tty)
 #error No TIOCSCTTY
 #endif /* TIOCSCTTY */
 
-    oldCONT = signal(SIGCONT, SIG_IGN);
-    oldHUP = signal(SIGHUP, SIG_IGN);
+    oldCONT = PSC_setSigHandler(SIGCONT, SIG_IGN);
+    oldHUP = PSC_setSigHandler(SIGHUP, SIG_IGN);
     if (vhangup() < 0) {
 	pluginlog("vhangup()\n");
     }
-    signal(SIGCONT, oldCONT);
-    signal(SIGHUP, oldHUP);
+    PSC_setSigHandler(SIGCONT, oldCONT);
+    PSC_setSigHandler(SIGHUP, oldHUP);
 
     if ((fd = open(tty, O_RDWR)) < 0) {
 	pluginlog("%s: open(%s) : %s\n", __func__, tty, strerror(errno));

@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014-2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -226,8 +226,6 @@ static int handleSignalFd(int fd, void *info)
  */
 static void signalHandler(int sig)
 {
-    signal(sig, signalHandler);
-
     switch (sig) {
     case SIGTERM:
 	if (sendHardKill) return;
@@ -264,9 +262,9 @@ static bool initForwarder(int motherFD, Forwarder_Data_t *fw)
     Selector_init(NULL);
     Timer_init(NULL);
 
-    signal(SIGALRM, signalHandler);
-    signal(SIGTERM, signalHandler);
-    signal(SIGPIPE, signalHandler);
+    PSC_setSigHandler(SIGALRM, signalHandler);
+    PSC_setSigHandler(SIGTERM, signalHandler);
+    PSC_setSigHandler(SIGPIPE, signalHandler);
 
     /* overwrite proc title */
     if (fw->pTitle) {
@@ -343,10 +341,10 @@ static void initChild(int controlFD, Forwarder_Data_t *fw)
     }
 
     /* restore sighandler */
-    signal(SIGALRM, SIG_DFL);
-    signal(SIGTERM, SIG_DFL);
-    signal(SIGCHLD, SIG_DFL);
-    signal(SIGPIPE, SIG_DFL);
+    PSC_setSigHandler(SIGALRM, SIG_DFL);
+    PSC_setSigHandler(SIGTERM, SIG_DFL);
+    PSC_setSigHandler(SIGCHLD, SIG_DFL);
+    PSC_setSigHandler(SIGPIPE, SIG_DFL);
 
     /* unblock blocked signals */
     blockSignal(SIGCHLD, 0);
