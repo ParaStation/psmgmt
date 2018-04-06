@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -21,11 +21,9 @@
 #include <syslog.h>
 #include <fcntl.h>
 #include <malloc.h>
-#include <sys/time.h>
-#include <sys/resource.h>
 #include <sys/wait.h>
-#include <sys/socket.h>
 #include <sys/signalfd.h>
+#include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
@@ -278,7 +276,7 @@ static int handleSIGUSR1(int fd, void *info)
 {
     struct signalfd_siginfo sigInfo;
 
-    /* Ignore data available on fd. We rely on waitpid() alone */
+    /* Ignore data available on fd */
     if (read(fd, &sigInfo, sizeof(sigInfo)) < 0) {
 	PSID_warn(-1, errno, "%s: read()", __func__);
     }
@@ -324,7 +322,7 @@ static int handleSIGUSR2(int fd, void *info)
 {
     struct signalfd_siginfo sigInfo;
 
-    /* Ignore data available on fd. We rely on waitpid() alone */
+    /* Ignore data available on fd */
     if (read(fd, &sigInfo, sizeof(sigInfo)) < 0) {
 	PSID_warn(-1, errno, "%s: read()", __func__);
     }
@@ -337,103 +335,63 @@ static int handleSIGUSR2(int fd, void *info)
 }
 
 /**
- * @brief Signal handler
+ * @brief Handling of most signals
  *
- * Handle signals caught by the local daemon.
+ * Print some info on received signal and possibly shutdown more or less
+ * gracefully.
  *
- * @param sig Signal to handle.
+ * @param fd File descriptor providing info on the received signal
  *
- * @return No return value.
+ * @param info Dummy pointer to extra info. Ignored.
+ *
+ * @return Always returns 0
  */
-static void sighandler(int sig)
+static int handleSignals(int fd, void *info)
 {
-    char sigStr[10];
+    struct signalfd_siginfo sigInfo;
+    ssize_t got = read(fd, &sigInfo, sizeof(sigInfo));
 
-    snprintf(sigStr, sizeof(sigStr), "%d", sig);
-
-    switch (sig) {
-    case SIGABRT:
-    case SIGSEGV:
-    case SIGILL:     /* (*) illegal instruction (not reset when caught)*/
-    case SIGFPE:     /* (*) floating point exception */
-	PSID_log(-1, "Received signal %s. Shut down hardly.\n",
-		 sys_siglist[sig] ? sys_siglist[sig] : sigStr);
-	PSID_finalizeLogs();
-	exit(-1);
-	break;
-    case SIGTERM:
-	PSID_log(-1, "Received signal %s. Shut down.\n",
-		 sys_siglist[sig] ? sys_siglist[sig] : sigStr);
-	PSID_shutdown();
-	break;
-    case  SIGPIPE:   /* write on a pipe with no one to read it */
-	/* Ignore silently */
-	break;
-    case  SIGHUP:    /* hangup, generated when terminal disconnects */
-//  case  SIGINT:    /* interrupt, generated from terminal special char */
-    case  SIGQUIT:   /* (*) quit, generated from terminal special char */
-    case  SIGTSTP:   /* (@) interactive stop */
-    case  SIGCONT:   /* (!) continue if stopped */
-    case  SIGVTALRM: /* virtual time alarm (see setitimer) */
-    case  SIGPROF:   /* profiling time alarm (see setitimer) */
-    case  SIGWINCH:  /* (+) window size changed */
-    case  SIGALRM:   /* alarm clock timeout */
-	PSID_log(-1, "Received signal %s. Continue\n",
-		 sys_siglist[sig] ? sys_siglist[sig] : sigStr);
-	break;
-    case  SIGTRAP:   /* (*) trace trap (not reset when caught) */
-    case  SIGBUS:    /* (*) bus error (specification exception) */
-#ifdef SIGEMT
-    case  SIGEMT:    /* (*) EMT instruction */
-#endif
-#ifdef SIGSYS
-    case  SIGSYS:    /* (*) bad argument to system call */
-#endif
-#ifdef SIGINFO
-    case  SIGINFO:   /* (+) information request */
-#endif
-#ifdef SIGURG
-    case  SIGURG:    /* (+) urgent condition on I/O channel */
-#endif
-#ifdef SIGIO
-    case  SIGIO:     /* (+) I/O possible, or completed */
-#endif
-    case  SIGTTIN:   /* (@) background read attempted from control terminal*/
-    case  SIGTTOU:   /* (@) background write attempted to control terminal */
-    case  SIGXCPU:   /* cpu time limit exceeded (see setrlimit()) */
-    case  SIGXFSZ:   /* file size limit exceeded (see setrlimit()) */
-    default:
-	PSID_log(-1, "Received signal %s. Shut down\n",
-		 sys_siglist[sig] ? sys_siglist[sig] : sigStr);
-	PSID_shutdown();
-	break;
+    if (got < 0) {
+	int eno = errno;
+	PSID_warn(-1, errno, "%s: read()", __func__);
+	Selector_remove(fd);
+	errno = eno;
+	return -1;
+    } else if (!got) {
+	PSID_log(-1, "%s: fd closed", __func__);
+	close(fd);
+	Selector_remove(fd);
+    } else {
+	uint32_t sig = sigInfo.ssi_signo;
+	switch (sig) {
+	case SIGPIPE:   /* write on a pipe with no one to read it */
+	    /* Ignore silently */
+	    break;
+	case SIGQUIT:   /* (*) quit, generated from terminal special char */
+	case SIGTSTP:   /* (@) interactive stop */
+	case SIGCONT:   /* (!) continue if stopped */
+	case SIGVTALRM: /* virtual time alarm (see setitimer) */
+	case SIGPROF:   /* profiling time alarm (see setitimer) */
+	case SIGWINCH:  /* (+) window size changed */
+	    PSID_log(-1, "Received signal '%s'. Continue\n", strsignal(sig));
+	    break;
+	case SIGABRT:
+	case SIGSEGV:
+	case SIGILL:    /* illegal instruction (not reset when caught) */
+	case SIGFPE:    /* floating point exception */
+	    PSID_log(-1, "Received signal '%s'. Shut down hardly.\n",
+		     strsignal(sig));
+	    PSID_finalizeLogs();
+	    exit(-1);
+	    break;
+	default:
+	    PSID_log(-1, "Received signal '%s'. Shut down\n", strsignal(sig));
+	    PSID_shutdown();
+	    break;
+	}
     }
 
-    /* reset the sighandler */
-    signal(sig, sighandler);
-}
-
-static void initSignalFD(int sig, Selector_CB_t handler)
-{
-    sigset_t set;
-    int sigFD;
-
-    sigemptyset(&set);
-    sigaddset(&set, sig);
-
-    if (sigprocmask(SIG_BLOCK, &set, NULL) < 0) {
-	PSID_exit(errno, "%s(%s): sigprocmask()", __func__, strsignal(sig));
-    }
-
-    sigFD = signalfd(-1, &set, SFD_NONBLOCK | SFD_CLOEXEC);
-    if (sigFD < 0) {
-	PSID_exit(errno, "%s(%s): signalfd()", __func__, strsignal(sig));
-    }
-
-    if (Selector_register(sigFD, handler, NULL) < 0) {
-	PSID_exit(errno, "%s(%s): Selector_register()", __func__,
-		  strsignal(sig));
-    }
+    return 0;
 }
 
 /**
@@ -448,36 +406,22 @@ static void initSignalFD(int sig, Selector_CB_t handler)
  */
 static void initSigHandlers(void)
 {
-    signal(SIGINT   ,sighandler);
-    signal(SIGQUIT  ,sighandler);
-    signal(SIGILL   ,sighandler);
-    signal(SIGTRAP  ,sighandler);
-    signal(SIGPIPE  ,sighandler);
-    signal(SIGTERM  ,sighandler);
-    signal(SIGCONT  ,sighandler);
-    signal(SIGTSTP  ,sighandler);
-    signal(SIGTTIN  ,sighandler);
-    signal(SIGTTOU  ,sighandler);
-    signal(SIGURG   ,sighandler);
-    signal(SIGXCPU  ,sighandler);
-    signal(SIGXFSZ  ,sighandler);
-    signal(SIGVTALRM,sighandler);
-    signal(SIGPROF  ,sighandler);
-    signal(SIGWINCH ,sighandler);
-    signal(SIGIO    ,sighandler);
-#if defined(__alpha)
-    /* Linux on Alpha*/
-    signal( SIGSYS  ,sighandler);
-    signal( SIGINFO ,sighandler);
-#else
-    signal(SIGSTKFLT,sighandler);
-#endif
-    signal(SIGHUP   ,SIG_IGN);
+    sigset_t set;
 
-    /* Some signals are better handled via Selector */
-    initSignalFD(SIGCHLD, handleSIGCHLD);
-    initSignalFD(SIGUSR1, handleSIGUSR1);
-    initSignalFD(SIGUSR2, handleSIGUSR2);
+    PSID_prepareSigs(handleSignals);
+
+    /* Some signals have to be handled separately */
+    sigemptyset(&set);
+    sigaddset(&set, SIGCHLD);
+    PSID_initSignalFD(&set, handleSIGCHLD);
+
+    sigemptyset(&set);
+    sigaddset(&set, SIGUSR1);
+    PSID_initSignalFD(&set, handleSIGUSR1);
+
+    sigemptyset(&set);
+    sigaddset(&set, SIGUSR2);
+    PSID_initSignalFD(&set, handleSIGUSR2);
 }
 
 /**
@@ -543,7 +487,6 @@ int main(int argc, const char *argv[])
     int rc, version = 0, debugMask = 0, pipeFD[2] = {-1, -1}, magic = FORKMAGIC;
     char *logdest = NULL, *configfile = "/etc/parastation.conf";
     FILE *logfile = NULL;
-    struct rlimit rlimit;
 
     struct poptOption optionsTable[] = {
 	{ "debug", 'd', POPT_ARG_INT, &debugMask, 0,
@@ -736,14 +679,6 @@ int main(int argc, const char *argv[])
     /* Setup handling of signals */
     initSigHandlers();
 
-    /* Catch SIGSEGV, SIGABRT and SIGBUS only if core dumps are suppressed */
-    getrlimit(RLIMIT_CORE, &rlimit);
-    if (!rlimit.rlim_cur) {
-	signal(SIGSEGV, sighandler);
-	signal(SIGABRT, sighandler);
-	signal(SIGBUS, sighandler);
-	signal(SIGFPE   ,sighandler);
-    }
     if (PSID_config->coreDir) {
 	if (chdir(PSID_config->coreDir) < 0) {
 	    PSID_warn(-1, errno, "Unable to chdir() to coreDirectory '%s'",

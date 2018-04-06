@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -22,6 +22,7 @@
 #include "psprotocol.h"
 #include "logging.h"
 #include "config_parsing.h"
+#include "selector.h"
 #include "pscommon.h"
 
 /** The logger we use inside PSID */
@@ -231,7 +232,53 @@ int PSID_readall(int fd, void *buf, size_t count);
 int PSID_blockSig(int block, int sig);
 
 /**
- * @brief Reset signal handlers.
+ * @brief Create file descriptor for accepting signals
+ *
+ * Create a file descriptor for accepting signals and register the
+ * selector handler @a handler to it. The new file descriptor will
+ * handle all signals in @a set.
+ *
+ * @param set Set of signals to be handled via the new file descriptor
+ *
+ * @param handler Selector handler to be registered to the new file
+ * descriptor
+ *
+ * @return File descriptor used for signal handling. This function
+ * might call @ref PSID_exit() if anything goes wrong during
+ * registration.
+ */
+int PSID_initSignalFD(sigset_t *set, Selector_CB_t handler);
+
+/**
+ * @brief Prepare signal handlers
+ *
+ * Prepare a collection of signals to be handled by @a handler via a
+ * signal file-descriptor (aka signalfd). For this, normal handling of
+ * these signals is blocked.
+ *
+ * This changes the handling of the following signals (if available):
+ *
+ * SIGINT, SIGQUIT, SIGILL, SIGTRAP, SIGPIPE, SIGTERM, SIGCONT,
+ * SIGTSTP, SIGTTIN, SIGTTOU, SIGURG, SIGXCPU, SIGXFSZ, SIGVTALRM,
+ * SIGPROF, SIGWINCH, SIGIO, SIGSYS, SIGINFO
+ *
+ * SIGABRT, SIGSEGV, SIGBUS, and SIGFPE are touched only if core dumps are
+ * suppressed
+ *
+ * Furthermore, SIGHUP is set to be ignored.
+ *
+ * In order to reset handling of this signals @ref PSID_resetSigs()
+ * shall be used.
+ *
+ * @param handler Callback registered for handling data available at
+ * the signalfd
+ *
+ * @return No return value
+ */
+void PSID_prepareSigs(Selector_CB_t handler);
+
+/**
+ * @brief Reset signal handlers
  *
  * Reset all the signal handlers distorted by the daemon to
  * SIG_DFL. SIGCHLD needs special handling here in order to catch

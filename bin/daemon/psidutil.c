@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -20,7 +20,10 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/file.h>
+#include <sys/signalfd.h>
 #include <sys/stat.h>
+#include <sys/time.h>
+#include <sys/resource.h>
 #include <sys/wait.h>
 
 #include "pscommon.h"
@@ -90,44 +93,82 @@ int PSID_blockSig(int block, int sig)
     return sigismember(&oldset, sig);
 }
 
+int PSID_initSignalFD(sigset_t *set, Selector_CB_t handler)
+{
+    int sigFD;
+
+    if (sigprocmask(SIG_BLOCK, set, NULL) < 0) {
+	PSID_exit(errno, "%s(%p): sigprocmask()", __func__, handler);
+    }
+
+    sigFD = signalfd(-1, set, SFD_NONBLOCK | SFD_CLOEXEC);
+    if (sigFD < 0) {
+	PSID_exit(errno, "%s(%p): signalfd()", __func__, handler);
+    }
+
+    if (Selector_register(sigFD, handler, NULL) < 0) {
+	PSID_exit(errno, "%s(%p): Selector_register()", __func__, handler);
+    }
+
+    return sigFD;
+}
+
+static sigset_t handledSet;
+
+void PSID_prepareSigs(Selector_CB_t handler)
+{
+    struct rlimit rlimit;
+
+    sigemptyset(&handledSet);
+    sigaddset(&handledSet, SIGINT);
+    sigaddset(&handledSet, SIGQUIT);
+    sigaddset(&handledSet, SIGILL);
+    sigaddset(&handledSet, SIGTRAP);
+    sigaddset(&handledSet, SIGPIPE);
+    sigaddset(&handledSet, SIGTERM);
+    sigaddset(&handledSet, SIGCONT);
+    sigaddset(&handledSet, SIGTSTP);
+    sigaddset(&handledSet, SIGTTIN);
+    sigaddset(&handledSet, SIGTTOU);
+    sigaddset(&handledSet, SIGURG);
+    sigaddset(&handledSet, SIGXCPU);
+    sigaddset(&handledSet, SIGXFSZ);
+    sigaddset(&handledSet, SIGVTALRM);
+    sigaddset(&handledSet, SIGPROF);
+    sigaddset(&handledSet, SIGWINCH);
+    sigaddset(&handledSet, SIGIO);
+    sigaddset(&handledSet, SIGSYS);
+#ifdef SIGINFO
+    sigaddset(&handledSet, SIGINFO);
+#endif
+    /* Catch SIGABRT, SIGSEGV, SIGBUS, and SIGFPE only if core dumps
+     * are suppressed */
+    getrlimit(RLIMIT_CORE, &rlimit);
+    if (!rlimit.rlim_cur) {
+	sigaddset(&handledSet, SIGABRT);
+	sigaddset(&handledSet, SIGSEGV);
+	sigaddset(&handledSet, SIGBUS);
+	sigaddset(&handledSet, SIGFPE);
+    }
+
+    PSID_initSignalFD(&handledSet, handler);
+
+    /* In addition, ignore SIGHUP */
+    PSC_setSigHandler(SIGHUP, SIG_IGN);
+}
+
 void PSID_resetSigs(void)
 {
-    signal(SIGHUP   ,SIG_DFL);
-    signal(SIGALRM  ,SIG_DFL);
-    signal(SIGINT   ,SIG_DFL);
-    signal(SIGQUIT  ,SIG_DFL);
-    signal(SIGILL   ,SIG_DFL);
-    signal(SIGTRAP  ,SIG_DFL);
-    signal(SIGABRT  ,SIG_DFL);
-    signal(SIGIOT   ,SIG_DFL);
-    signal(SIGBUS   ,SIG_DFL);
-    signal(SIGFPE   ,SIG_DFL);
-    signal(SIGUSR1  ,SIG_DFL);
-    signal(SIGSEGV  ,SIG_DFL);
-    signal(SIGUSR2  ,SIG_DFL);
-    signal(SIGPIPE  ,SIG_DFL);
-    signal(SIGTERM  ,SIG_DFL);
-    signal(SIGCONT  ,SIG_DFL);
-    signal(SIGTSTP  ,SIG_DFL);
-    signal(SIGTTIN  ,SIG_DFL);
-    signal(SIGTTOU  ,SIG_DFL);
-    signal(SIGURG   ,SIG_DFL);
-    signal(SIGXCPU  ,SIG_DFL);
-    signal(SIGXFSZ  ,SIG_DFL);
-    signal(SIGVTALRM,SIG_DFL);
-    signal(SIGPROF  ,SIG_DFL);
-    signal(SIGWINCH ,SIG_DFL);
-    signal(SIGIO    ,SIG_DFL);
-#if defined(__alpha)
-    /* Linux on Alpha*/
-    signal( SIGSYS  ,SIG_DFL);
-    signal( SIGINFO ,SIG_DFL);
-#else
-    signal(SIGSTKFLT,SIG_DFL);
-#endif
+    /* Add further signals, but keep SIGCHLD out of the game */
+    sigaddset(&handledSet, SIGUSR1);
+    sigaddset(&handledSet, SIGUSR2);
 
-    PSID_blockSig(0, SIGUSR1);
-    PSID_blockSig(0, SIGUSR2);
+    if (sigprocmask(SIG_UNBLOCK, &handledSet, NULL) < 0) {
+	PSID_warn(-1, errno, "%s: sigprocmask()", __func__);
+    }
+
+    /* Also reset SIGHUP */
+    PSC_setSigHandler(SIGHUP, SIG_DFL);
 }
 
 /* Reading and basic handling of the configuration */
