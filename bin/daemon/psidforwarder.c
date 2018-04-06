@@ -1047,21 +1047,17 @@ static void sighandler(int sig)
 	PSID_log(-1, "%s: %s", __func__, txt);
 	break;
     case SIGUSR2:
-	PSIDfwd_printMsgf(STDERR, "%s: Got SIGUSR2\n", tag);
+	PSIDfwd_printMsgf(STDERR, "%s: Got %s\n", tag, strsignal(sig));
 	raise(SIGSEGV);
 	break;
     case SIGTERM:
 	sendSignal(PSC_getPID(childTask->tid), SIGTERM);
 	break;
     case SIGTTIN:
-	PSIDfwd_printMsgf(STDERR, "%s: got SIGTTIN\n", tag);
-	break;
     case SIGPIPE:
-	PSIDfwd_printMsgf(STDERR, "%s: Got SIGPIPE\n", tag);
+	PSIDfwd_printMsgf(STDERR, "%s: got %s\n", tag, strsignal(sig));
 	break;
     }
-
-    signal(sig, sighandler);
 }
 
 static void finalizeForwarder(void)
@@ -1304,29 +1300,6 @@ static int handleSIGCHLD(int fd, void *info)
     return 0;
 }
 
-static void initSignalFD(int sig, Selector_CB_t handler)
-{
-    sigset_t set;
-    int sigFD;
-
-    sigemptyset(&set);
-    sigaddset(&set, sig);
-
-    if (sigprocmask(SIG_BLOCK, &set, NULL) < 0) {
-	PSID_exit(errno, "%s(%s): sigprocmask()", __func__, strsignal(sig));
-    }
-
-    sigFD = signalfd(-1, &set, SFD_NONBLOCK | SFD_CLOEXEC);
-    if (sigFD < 0) {
-	PSID_exit(errno, "%s(%s): signalfd()", __func__, strsignal(sig));
-    }
-
-    if (Selector_register(sigFD, handler, NULL) < 0) {
-	PSID_exit(errno, "%s(%s): Selector_register()", __func__,
-		  strsignal(sig));
-    }
-}
-
 static void waitForChildsDead(void)
 {
     while (!gotSIGCHLD) {
@@ -1362,15 +1335,18 @@ void PSID_forwarder(PStask_t *task, int daemonfd, int eno)
     childTask = task;
     daemonSock = daemonfd;
 
-    initSignalFD(SIGCHLD, handleSIGCHLD);
+    sigset_t set;
+    sigemptyset(&set);
+    sigaddset(&set, SIGCHLD);
+    PSID_initSignalFD(&set, handleSIGCHLD);
 
     /* Catch some additional signals */
-    signal(SIGUSR1, sighandler);
-    signal(SIGTERM, sighandler);
-    signal(SIGTTIN, sighandler);
-    signal(SIGPIPE, sighandler);
+    PSC_setSigHandler(SIGUSR1, sighandler);
+    PSC_setSigHandler(SIGTERM, sighandler);
+    PSC_setSigHandler(SIGTTIN, sighandler);
+    PSC_setSigHandler(SIGPIPE, sighandler);
     if (getenv("PSIDFORWARDER_DUMP_CORE_ON_SIGUSR2")) {
-	signal(SIGUSR2, sighandler);
+	PSC_setSigHandler(SIGUSR2, sighandler);
     }
 
     PSLog_init(daemonSock, childTask->rank, 3);

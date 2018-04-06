@@ -260,11 +260,11 @@ static void pty_make_controlling_tty(int *ttyfd, const char *tty)
 #error No TIOCSCTTY
 #endif /* TIOCSCTTY */
 
-    oldCONT = signal(SIGCONT, SIG_IGN);
-    oldHUP = signal(SIGHUP, SIG_IGN);
+    oldCONT = PSC_setSigHandler(SIGCONT, SIG_IGN);
+    oldHUP = PSC_setSigHandler(SIGHUP, SIG_IGN);
     if (vhangup() < 0) PSID_warn(-1, errno, "%s: vhangup()", __func__);
-    signal(SIGCONT, oldCONT);
-    signal(SIGHUP, oldHUP);
+    PSC_setSigHandler(SIGCONT, oldCONT);
+    PSC_setSigHandler(SIGHUP, oldHUP);
 
     fd = open(tty, O_RDWR);
     if (fd < 0) {
@@ -954,14 +954,16 @@ static void execClient(PStask_t *task)
 	if (ret > 0) umask(mask);
     }
 
+    /* setup alarm */
     alarmFD = task->fd;
-    signal(SIGALRM, alarmHandler);
+    PSC_setSigHandler(SIGALRM, alarmHandler);
     envStr = getenv("__PSI_ALARM_TMOUT");
     if (envStr) {
 	int tmout, ret = sscanf(envStr, "%d", &tmout);
 	if (ret > 0) timeout = tmout;
     }
     alarm(timeout);
+
     if ((eno = changeToWorkDir(task))) {
 	if (write(task->fd, &eno, sizeof(eno)) < 0) {
 	    eno = errno;
@@ -980,6 +982,9 @@ static void execClient(PStask_t *task)
 	exit(1);
     }
     alarm(0);
+
+    /* reset handling of SIGALRM */
+    PSC_setSigHandler(SIGALRM, SIG_DFL);
 
     doClamps(task);
 
