@@ -8,6 +8,7 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
+#include <stdbool.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -98,33 +99,33 @@ static int extendList(sizedList_t *list, size_t size, const char *caller)
  *
  * @param itemSize The size of each item within @a list.
  *
- * @return On success, 1 is returned, or 0, if an error occurred.
+ * @return On success, true is returned, or false if an error occurred.
  */
-static int getFullList(sizedList_t *list, PSP_Info_t what, size_t itemSize)
+static bool getFullList(sizedList_t *list, PSP_Info_t what, size_t itemSize)
 {
     int recv, hosts;
     char funcStr[256];
 
     snprintf(funcStr, sizeof(funcStr),
 	     "%s(%s)", __func__, PSP_printInfo(what));
-    if (!extendList(list, itemSize*PSC_getNrOfNodes(), funcStr)) return 0;
+    if (!extendList(list, itemSize*PSC_getNrOfNodes(), funcStr)) return false;
 
     recv = PSI_infoList(-1, what, NULL, list->list, list->actSize, 1);
     hosts = recv/itemSize;
 
     if (hosts != PSC_getNrOfNodes()) {
 	printf("%s: failed.\n", funcStr);
-	return 0;
+	return false;
     }
 
-    return 1;
+    return true;
 }
 
 /** List used for storing of host stati. */
 static sizedList_t hostStatus = { .actSize = 0, .list = NULL };
 
 /** Simple wrapper for retrieval of host status */
-static inline int getHostStatus(void)
+static inline bool getHostStatus(void)
 {
     return getFullList(&hostStatus, PSP_INFO_LIST_HOSTSTATUS, sizeof(char));
 }
@@ -133,7 +134,7 @@ static inline int getHostStatus(void)
 static sizedList_t hwList = { .actSize = 0, .list = NULL };
 
 /** Simple wrapper for retrieval of hardware statuses */
-static inline int getHWStat(void)
+static inline bool getHWStat(void)
 {
     return getFullList(&hwList, PSP_INFO_LIST_HWSTATUS, sizeof(uint32_t));
 }
@@ -146,7 +147,7 @@ static sizedList_t tnfList = { .actSize = 0, .list = NULL };
 static sizedList_t tnaList = { .actSize = 0, .list = NULL };
 
 /** Simple wrapper for retrieval of task numbers */
-static inline int getTaskNum(PSP_Info_t what)
+static inline bool getTaskNum(PSP_Info_t what)
 {
     sizedList_t *list;
 
@@ -162,7 +163,7 @@ static inline int getTaskNum(PSP_Info_t what)
 	break;
     default:
 	printf("%s: Unknown type %s\n", __func__, PSP_printInfo(what));
-	return 0;
+	return false;
     }
 
     return getFullList(list, what, sizeof(uint16_t));
@@ -172,7 +173,7 @@ static inline int getTaskNum(PSP_Info_t what)
 static sizedList_t ldList = { .actSize = 0, .list = NULL };
 
 /** Simple wrapper for retrieval of loads */
-static inline int getLoads(void)
+static inline bool getLoads(void)
 {
     return getFullList(&ldList, PSP_INFO_LIST_LOAD, 3 * sizeof(float));
 }
@@ -181,7 +182,7 @@ static inline int getLoads(void)
 static sizedList_t memList = { .actSize = 0, .list = NULL };
 
 /** Simple wrapper for retrieval of memory info */
-static inline int getMem(void)
+static inline bool getMem(void)
 {
     return getFullList(&memList, PSP_INFO_LIST_MEMORY, 2 * sizeof(uint64_t));
 }
@@ -192,13 +193,13 @@ static sizedList_t pcpuList = { .actSize = 0, .list = NULL };
 static sizedList_t vcpuList = { .actSize = 0, .list = NULL };
 
 /** Simple wrapper for retrieval of physical CPU numbers */
-static inline int getPhysCPUs(void)
+static inline bool getPhysCPUs(void)
 {
     return getFullList(&pcpuList, PSP_INFO_LIST_PHYSCPUS, sizeof(uint16_t));
 }
 
 /** Simple wrapper for retrieval of virtual CPU numbers */
-static inline int getVirtCPUs(void)
+static inline bool getVirtCPUs(void)
 {
     return getFullList(&vcpuList, PSP_INFO_LIST_VIRTCPUS, sizeof(uint16_t));
 }
@@ -208,7 +209,7 @@ static inline int getVirtCPUs(void)
 static sizedList_t exclList = { .actSize = 0, .list = NULL };
 
 /** Simple wrapper for retrieval of exclusive flags */
-static inline int getExclusiveFlags(void)
+static inline bool getExclusiveFlags(void)
 {
     return getFullList(&exclList, PSP_INFO_LIST_EXCLUSIVE, sizeof(int8_t));
 }
@@ -304,7 +305,7 @@ void PSIADM_ShutdownNode(int silent, char *nl)
 	.dest = 0,
 	.len = sizeof(msg) };
     PSnodes_ID_t node;
-    int send_local = 0;
+    bool send_local = false;
 
     if (geteuid()) {
 	printf("Insufficient privilege\n");
@@ -320,7 +321,7 @@ void PSIADM_ShutdownNode(int silent, char *nl)
 	    if (!silent) printf("%s\talready down\n", nodeString(node));
 	} else {
 	    if (node == PSC_getMyID()) {
-		send_local = 1;
+		send_local = true;
 	    } else {
 		msg.dest = PSC_getTID(node, 0);
 		PSI_sendMsg(&msg);
@@ -1126,8 +1127,8 @@ void PSIADM_JobStat(PStask_ID_t task, PSpart_list_t opt)
     char buf[sizeof(PStask_ID_t)
 	     +sizeof(PSpart_list_t)
 	     +sizeof(PSpart_request_t)];
-    int recvd;
-    int found = 0, masterDaemonPSPversion = getMasterProtocolVersion(true);
+    int recvd, masterDaemonPSPversion = getMasterProtocolVersion(true);
+    bool found = false;
     PStask_ID_t rootTID, parentTID;
     PSpart_request_t *req;
 
@@ -1245,7 +1246,7 @@ void PSIADM_JobStat(PStask_ID_t task, PSpart_list_t opt)
 		printf(" %s", req->start ? ctime(&startTime) : "unknown\n");
 	    }
 
-	    found=1;
+	    found = true;
 	}
     }
 
@@ -1665,7 +1666,7 @@ void PSIADM_ShowParamList(PSP_Option_t type, char *nl)
  * Flag to mark an ongoing restart of the local daemon. Thus SIGTERM
  * signals sent by the daemon can be ignored if different from 0.
  */
-static int doRestart = 0;
+static bool doRestart = false;
 
 void PSIADM_sighandler(int sig)
 {
@@ -1685,8 +1686,7 @@ void PSIADM_sighandler(int sig)
 	    PSIadm_log(-1, "%s: can't contact my own daemon.\n", __func__);
 	    exit(-1);
 	}
-	doRestart = 0;
-	signal(SIGTERM, PSIADM_sighandler);
+	doRestart = false;
 
 	break;
     }
@@ -1703,7 +1703,7 @@ void PSIADM_Reset(int reset_hw, char *nl)
 	.buf = { 0 } };
     int32_t *action = (int32_t *)msg.buf;
     PSnodes_ID_t node;
-    int send_local = 0;
+    bool send_local = false;
 
     if (geteuid()) {
 	printf("Insufficient privilege\n");
@@ -1713,7 +1713,7 @@ void PSIADM_Reset(int reset_hw, char *nl)
     *action = 0;
     if (reset_hw) {
 	*action |= PSP_RESET_HW;
-	doRestart = 1;
+	doRestart = true;
     }
 
     if (! getHostStatus()) return;
@@ -1723,7 +1723,7 @@ void PSIADM_Reset(int reset_hw, char *nl)
 
 	if (hostStatus.list[node]) {
 	    if (node == PSC_getMyID()) {
-		send_local = 1;
+		send_local = true;
 	    } else {
 		msg.header.dest = PSC_getTID(node, 0);
 		PSI_sendMsg(&msg);
@@ -1854,13 +1854,13 @@ void PSIADM_Plugin(char *nl, char *name, PSP_Plugin_t action)
     }
 }
 
-static int recvPluginKeyAnswers(PStask_ID_t src, PSP_Plugin_t action,
-				char *nodeStr)
+static bool recvPluginKeyAnswers(PStask_ID_t src, PSP_Plugin_t action,
+				 char *nodeStr)
 {
     DDTypedBufferMsg_t answer;
-    int first = 1;
+    bool first = true;
 
-    while (1) {
+    while (true) {
 	if (PSI_recvMsg((DDMsg_t *)&answer, sizeof(answer)) < 0) {
 	    int eno = errno;
 	    char *errStr = strerror(eno);
@@ -1880,7 +1880,7 @@ static int recvPluginKeyAnswers(PStask_ID_t src, PSP_Plugin_t action,
 
 	if (first) {
 	    printf("%s", nodeStr);
-	    first = 0;
+	    first = false;
 	}
 
 	if (answer.type == -1) {
@@ -1902,7 +1902,7 @@ static int recvPluginKeyAnswers(PStask_ID_t src, PSP_Plugin_t action,
 	printf("%s", answer.buf);
     }
 
-    return 1;
+    return true;
 }
 
 
@@ -1916,7 +1916,8 @@ void PSIADM_PluginKey(char *nl, char *name, char *key, char *value,
 	    .dest = 0,
 	    .len = sizeof(msg.header) + sizeof(msg.type) } };
     PSnodes_ID_t node;
-    int width = PSC_getWidth(), separator = 0;
+    int width = PSC_getWidth();
+    bool separator = false;
 
     msg.type = action;
 
@@ -1946,7 +1947,7 @@ void PSIADM_PluginKey(char *nl, char *name, char *key, char *value,
 	    separator = recvPluginKeyAnswers(msg.header.dest, action, nodeStr);
 	} else {
 	    printf("%s\tdown\n", nodeString(node));
-	    separator = 1;
+	    separator = true;
 	}
     }
 }
