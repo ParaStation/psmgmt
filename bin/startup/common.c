@@ -471,7 +471,7 @@ static void sighandler(int sig)
 {
     switch(sig) {
     case SIGTERM:
-	if (sigVerbose) fprintf(stderr, "Got sigterm\n");
+	if (sigVerbose) fprintf(stderr, "Got %s\n", strsignal(sig));
 	DDSignalMsg_t msg = {
 	    .header = {
 		.type = PSP_CD_WHODIED,
@@ -485,18 +485,16 @@ static void sighandler(int sig)
 	}
 	break;
     default:
-	if (sigVerbose) fprintf(stderr, "Got signal %d.\n", sig);
+	if (sigVerbose) fprintf(stderr, "Got signal %s\n", strsignal(sig));
     }
 
     fflush(stdout);
     fflush(stderr);
-
-    signal(sig, sighandler);
 }
 
 void setupSighandler(bool verbose)
 {
     sigVerbose = verbose;
 
-    signal(SIGTERM, sighandler);
+    PSC_setSigHandler(SIGTERM, sighandler);
 }

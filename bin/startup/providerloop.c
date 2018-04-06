@@ -1,12 +1,13 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2013-2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2013-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -101,13 +102,13 @@ static int forwarderFD = -1;
 static int daemonFD = -1;
 
 /** Flag to set the verbosity level */
-static int verbose = 0;
+static bool verbose = false;
 
 /** The PStask ID of our logger */
 static PStask_ID_t loggertid = -1;
 
 /** Flag to be set if kill signals should not be forwarded to parents */
-static char noParricide = 0;
+static char noParricide = false;
 
 /** Generic message buffer */
 static char buffer[1024];
@@ -139,21 +140,21 @@ static struct timeval time_diff;
 static void releaseMySelf(const char *func)
 {
     PSLog_Msg_t answer;
-    DDSignalMsg_t msg;
     PStask_ID_t myTID = PSC_getMyTID();
+    DDSignalMsg_t msg = {
+	.header = {
+	    .type = PSP_CD_RELEASE,
+	    .dest = myTID,
+	    .sender = myTID,
+	    .len = sizeof(msg) },
+	.signal = -1,
+	.answer = 1, };
     int ret;
 
-    if ((Selector_isRegistered(daemonFD))) Selector_remove(daemonFD);
-    if ((Selector_isRegistered(forwarderFD))) Selector_remove(forwarderFD);
+    if (Selector_isRegistered(daemonFD)) Selector_remove(daemonFD);
+    if (Selector_isRegistered(forwarderFD)) Selector_remove(forwarderFD);
 
-    msg.header.type = PSP_CD_RELEASE;
-    msg.header.sender = myTID;
-    msg.header.dest = myTID;
-    msg.header.len = sizeof(msg);
-    msg.signal = -1;
-    msg.answer = 1;
-
-    if ((PSI_sendMsg(&msg)) == -1) {
+    if (PSI_sendMsg(&msg) == -1) {
 	mwarn(errno, "%s: sending msg failed", __func__);
 	return;
     }
@@ -207,21 +208,19 @@ static void terminateJob(const char *func)
     }
 
     /* send kill signal to all children */
-    {
-	DDSignalMsg_t msg;
+    DDSignalMsg_t msg = {
+	.header = {
+	    .type = PSP_CD_SIGNAL,
+	    .dest = (loggertid == -1 || noParricide) ?
+	    PSC_getMyTID() : loggertid,
+	    .sender = PSC_getMyTID(),
+	    .len = sizeof(msg) },
+	.signal = -1,
+	.param = getuid(),
+	.pervasive = 1,
+	.answer = 1, };
 
-	msg.header.type = PSP_CD_SIGNAL;
-	msg.header.sender = PSC_getMyTID();
-	msg.header.dest =
-	    ((loggertid == -1) || noParricide) ? PSC_getMyTID() : loggertid;
-	msg.header.len = sizeof(msg);
-	msg.signal = -1;
-	msg.param = getuid();
-	msg.pervasive = 1;
-	msg.answer = 0;
-
-	PSI_sendMsg((DDMsg_t *)&msg);
-    }
+    PSI_sendMsg((DDMsg_t *)&msg);
 
     releaseMySelf(__func__);
     exit(1);
@@ -281,8 +280,8 @@ static PMI_Clients_t *__findClient(PSLog_Msg_t *msg, int term, const char *func)
     }
 
     if (term) {
-	mlog("%s(%s): invalid client with rank '%i' tid '%s' connected to me\n",
-		__func__, func, msg->sender, PSC_printTID(msg->header.sender));
+	mlog("%s(%s): invalid client with rank %i tid %s connected to me\n",
+	     __func__, func, msg->sender, PSC_printTID(msg->header.sender));
 
 	terminateJob(__func__);
     }
@@ -311,17 +310,16 @@ static void testMsg(const char fName[], PSLog_Msg_t *msg)
 
     /* check for invalid ranks */
     if (client->pmiRank < 0 || client->pmiRank > maxClients -1) {
-	mlog("%s: invalid PMI rank index '%i' for rank '%i'\n", __func__,
-		client->rank, msg->sender);
+	mlog("%s: invalid PMI rank index %i for rank %i\n", __func__,
+	     client->rank, msg->sender);
 	terminateJob(__func__);
     }
 
     /* check for false clients */
     if (client->tid != msg->header.sender) {
-	mlog("%s: rank '%d' pmiRank '%i' from '%s'", fName, client->rank,
-		client->pmiRank, PSC_printTID(msg->header.sender));
-	mlog(" should come from %s\n",
-		PSC_printTID(client->tid));
+	mlog("%s: rank %d pmiRank %i from %s", fName, client->rank,
+	     client->pmiRank, PSC_printTID(msg->header.sender));
+	mlog(" should come from %s\n", PSC_printTID(client->tid));
 	terminateJob(__func__);
     }
 }
@@ -571,7 +569,7 @@ static void handleKVS_Daisy_Barrier_In(PSLog_Msg_t *msg, char *ptr)
     /* check if we got the msg from the last client in chain */
     if (client->pmiRank != maxClients -1) {
 	mlog("%s: barrier from wrong rank %i on %s\n", __func__,
-		    client->pmiRank, PSC_printTID(msg->header.sender));
+	     client->pmiRank, PSC_printTID(msg->header.sender));
 	terminateJob(__func__);
     }
     barrierCount = getKVSInt32(&ptr);
@@ -585,16 +583,15 @@ static void handleKVS_Daisy_Barrier_In(PSLog_Msg_t *msg, char *ptr)
     if (measure) {
 	gettimeofday(&time_now, NULL);
 	timersub(&time_now, &time_start, &time_diff);
-	mlog("%s: barrier complete: bcount '%i' time '%f' diff '%f'"
-			"\n", __func__, barrierCount,
-			    time_now.tv_sec + 1e-6 * time_now.tv_usec,
-			    time_diff.tv_sec + 1e-6 * time_diff.tv_usec);
+	mlog("%s: barrier complete: bcount %i time %f diff %f\n", __func__,
+	     barrierCount, time_now.tv_sec + 1e-6 * time_now.tv_usec,
+	     time_diff.tv_sec + 1e-6 * time_diff.tv_usec);
     }
 
     if (putCount != globalPutCount) {
 	if (measure) {
-	mlog("%s: missing put messages got '%i' global '%i'\n", __func__,
-		putCount, globalPutCount);
+	mlog("%s: missing put messages got %i global %i\n", __func__,
+	     putCount, globalPutCount);
 	}
 	waitForPuts = globalPutCount;
 	return;
@@ -649,9 +646,9 @@ static void handleKVS_Update_Cache_Finish(PSLog_Msg_t *msg, char *ptr)
     if (measure) {
 	gettimeofday(&time_now, NULL);
 	timersub(&time_now, &time_start, &time_diff);
-	mlog("%s: cache update complete: time '%f' diff '%f'\n",
-		    __func__, time_now.tv_sec + 1e-6 * time_now.tv_usec,
-			    time_diff.tv_sec + 1e-6 * time_diff.tv_usec);
+	mlog("%s: cache update complete: time %f diff %f\n", __func__,
+	     time_now.tv_sec + 1e-6 * time_now.tv_usec,
+	     time_diff.tv_sec + 1e-6 * time_diff.tv_usec);
     }
 
     /* last forward send us an reply, so everything is ok */
@@ -769,10 +766,9 @@ static void handleKVS_Init(PSLog_Msg_t *msg)
 	if (measure) {
 	    gettimeofday(&time_now, NULL);
 	    timersub(&time_now, &time_start, &time_diff);
-	    mlog("%s: kvs init start: expected %i time '%f' diff "
-			    "'%f'\n", __func__, maxClients,
-			    time_now.tv_sec + 1e-6 * time_now.tv_usec,
-			    time_diff.tv_sec + 1e-6 * time_diff.tv_usec);
+	    mlog("%s: kvs init start: expected %i time %f diff %f\n", __func__,
+		 maxClients, time_now.tv_sec + 1e-6 * time_now.tv_usec,
+		 time_diff.tv_sec + 1e-6 * time_diff.tv_usec);
 	}
     }
     initCount++;
@@ -781,10 +777,10 @@ static void handleKVS_Init(PSLog_Msg_t *msg)
 	if (measure) {
 	    gettimeofday(&time_now, NULL);
 	    timersub(&time_now, &time_start, &time_diff);
-	    mlog("%s: kvs init complete: %i:%i time '%f' diff '%f'\n",
-			    __func__, initCount, maxClients,
-			    time_now.tv_sec + 1e-6 * time_now.tv_usec,
-			    time_diff.tv_sec + 1e-6 * time_diff.tv_usec);
+	    mlog("%s: kvs init complete: %i:%i time %f diff %f\n", __func__,
+		 initCount, maxClients,
+		 time_now.tv_sec + 1e-6 * time_now.tv_usec,
+		 time_diff.tv_sec + 1e-6 * time_diff.tv_usec);
 	}
 	Timer_remove(timerid);
 	timerid = -1;
@@ -808,12 +804,12 @@ static void handleKVS_Join(PSLog_Msg_t *msg, char *ptr)
     /* verify that the client has the same kvsname */
     getKVSString(&ptr, client_kvs, sizeof(client_kvs));
     if (!!(strcmp(client_kvs, kvsname))) {
-	mlog("%s: got invalid default KVS name '%s' from rank '%i'\n", __func__,
-		client_kvs, rank);
+	mlog("%s: got invalid default KVS name '%s' from rank %i\n", __func__,
+	     client_kvs, rank);
 	terminateJob(__func__);
     }
     if ((rRank = getKVSInt32(&ptr)) != rank) {
-	mlog("%s: mismatching ranks '%i' - '%i'.\n", __func__, rank, rRank);
+	mlog("%s: mismatching ranks %i - %i.\n", __func__, rank, rRank);
 	terminateJob(__func__);
     }
     pmiRank = getKVSInt32(&ptr);
@@ -822,10 +818,9 @@ static void handleKVS_Join(PSLog_Msg_t *msg, char *ptr)
 	if (measure) {
 	    gettimeofday(&time_now, NULL);
 	    timersub(&time_now, &time_start, &time_diff);
-	    mlog("%s: kvs join start: expected '%i' time '%f' diff "
-			    "'%f'\n", __func__, maxClients,
-			    time_now.tv_sec + 1e-6 * time_now.tv_usec,
-			    time_diff.tv_sec + 1e-6 * time_diff.tv_usec);
+	    mlog("%s: kvs join start: expected %i time %f diff %f\n", __func__,
+		 maxClients, time_now.tv_sec + 1e-6 * time_now.tv_usec,
+		 time_diff.tv_sec + 1e-6 * time_diff.tv_usec);
 	}
     }
     totalKVSclients++;
@@ -834,10 +829,10 @@ static void handleKVS_Join(PSLog_Msg_t *msg, char *ptr)
 	if (measure) {
 	    gettimeofday(&time_now, NULL);
 	    timersub(&time_now, &time_start, &time_diff);
-	    mlog("%s: kvs join complete: %i:%i time '%f' diff '%f'\n",
-			    __func__, maxClients, totalKVSclients,
-			    time_now.tv_sec + 1e-6 * time_now.tv_usec,
-			    time_diff.tv_sec + 1e-6 * time_diff.tv_usec);
+	    mlog("%s: kvs join complete: %i:%i time %f diff %f\n", __func__,
+		 maxClients, totalKVSclients,
+		 time_now.tv_sec + 1e-6 * time_now.tv_usec,
+		 time_diff.tv_sec + 1e-6 * time_diff.tv_usec);
 	}
     }
 
@@ -851,9 +846,8 @@ static void handleKVS_Join(PSLog_Msg_t *msg, char *ptr)
     */
 
     if (clients[pmiRank].tid != -1) {
-	mlog("%s(%i): %s (rank %d) pmiRank '%i' already in KVS.\n", __func__,
-		getpid(), PSC_printTID(msg->header.sender), msg->sender,
-		pmiRank);
+	mlog("%s(%i): %s (rank %d) pmiRank %i already in KVS.\n", __func__,
+	     getpid(), PSC_printTID(msg->header.sender), msg->sender, pmiRank);
     } else {
 	clients[pmiRank].tid = msg->header.sender;
 
@@ -884,8 +878,8 @@ static void handleKVS_Leave(PSLog_Msg_t *msg)
     client = findClient(msg, 1);
 
     if (client->flags & PMI_CLIENT_GONE) {
-	mlog("%s: rank '%i' pmiRank '%i' already left\n", __func__,
-		client->rank, client->pmiRank);
+	mlog("%s: rank %i pmiRank %i already left\n", __func__,
+	     client->rank, client->pmiRank);
 	return;
     }
     totalKVSclients--;
@@ -893,9 +887,9 @@ static void handleKVS_Leave(PSLog_Msg_t *msg)
 	if (measure) {
 	    gettimeofday(&time_now, NULL);
 	    timersub(&time_now, &time_start, &time_diff);
-	    mlog("%s: kvs leave complete: time '%f' diff '%f'\n",
-			    __func__, time_now.tv_sec + 1e-6 * time_now.tv_usec,
-			    time_diff.tv_sec + 1e-6 * time_diff.tv_usec);
+	    mlog("%s: kvs leave complete: time %f diff %f\n", __func__,
+		 time_now.tv_sec + 1e-6 * time_now.tv_usec,
+		 time_diff.tv_sec + 1e-6 * time_diff.tv_usec);
 	}
 	releaseMySelf(__func__);
 	exit(0);
@@ -937,17 +931,16 @@ static void handleKvsMsg(PSLog_Msg_t *msg)
     char *ptr;
 
     if (msg->version < 3) {
-	mlog("%s: unsupported PSLog msg version '%i' from '%s'\n",
-		    __func__, msg->version, PSC_printTID(msg->header.sender));
+	mlog("%s: unsupported PSLog msg version %i from %s\n", __func__,
+	     msg->version, PSC_printTID(msg->header.sender));
 	terminateJob(__func__);
     }
 
     ptr = msg->buf;
     cmd = getKVSCmd(&ptr);
 
-    mdbg(KVS_LOG_PROVIDER, "%s: cmd '%s' from %s rank '%i'\n",
-	    __func__, PSKVScmdToString(cmd), PSC_printTID(msg->header.sender),
-	    msg->sender);
+    mdbg(KVS_LOG_PROVIDER, "%s: cmd %s from %s rank %i\n", __func__,
+	 PSKVScmdToString(cmd), PSC_printTID(msg->header.sender), msg->sender);
 
     switch (cmd) {
 	case JOIN:
@@ -969,8 +962,8 @@ static void handleKvsMsg(PSLog_Msg_t *msg)
 	    handleKVS_Leave(msg);
 	    break;
 	default:
-	    mlog("%s: unsupported PMI KVS cmd '%i' from '%s' rank'%i'\n",
-		__func__, cmd, PSC_printTID(msg->header.sender), msg->sender);
+	    mlog("%s: unsupported PMI KVS cmd %i from %s rank %i\n", __func__,
+		 cmd, PSC_printTID(msg->header.sender), msg->sender);
 	    terminateJob(__func__);
     }
 }
@@ -989,9 +982,9 @@ static void handleCCMsg(PSLog_Msg_t *msg)
 	    handleKvsMsg(msg);
 	    break;
 	default:
-	    mlog("%s: unexpected CC message type '%s' from '%s'\n", __func__,
-		    PSLog_printMsgType(msg->type),
-		    PSC_printTID(msg->header.sender));
+	    mlog("%s: unexpected CC message type %s from %s\n", __func__,
+		 PSLog_printMsgType(msg->type),
+		 PSC_printTID(msg->header.sender));
     }
 }
 
@@ -1023,39 +1016,38 @@ static int handlePSIMessage(int fd, void *data)
     }
 
     switch (msg.header.type) {
-	case PSP_CC_MSG:
-	    handleCCMsg(&msg);
-	    break;
-	case PSP_CD_WHODIED:
-	    if (verbose) {
-		mlog("%s: got signal '%i' from '%s'\n", __func__,
-			sigMsg->signal, PSC_printTID(msg.header.sender));
-	    }
+    case PSP_CC_MSG:
+	handleCCMsg(&msg);
+	break;
+    case PSP_CD_WHODIED:
+	if (verbose) {
+	    mlog("%s: got signal %i from %s\n", __func__, sigMsg->signal,
+		 PSC_printTID(msg.header.sender));
+	}
 
-	    if (sigMsg->signal == SIGTERM) {
-		releaseMySelf(__func__);
-		exit(0);
+	if (sigMsg->signal == SIGTERM) {
+	    releaseMySelf(__func__);
+	    exit(0);
+	}
+	terminateJob(__func__);
+    case PSP_CC_ERROR:
+	if (msg.header.sender == loggertid) {
+	    /* logger died, nothing left for me to do here */
+	    exit(0);
+	}
+	if ((client = findClient(&msg, 0))) {
+	    if (!(client->flags & PMI_CLIENT_GONE)) {
+		mdbg(KVS_LOG_VERBOSE, "%s: client %s already gone\n",
+		     __func__, PSC_printTID(msg.header.sender));
 	    }
-	    terminateJob(__func__);
-	case PSP_CC_ERROR:
-	    if (msg.header.sender == loggertid) {
-		/* logger died, nothing left for me to do here */
-		exit(0);
-	    }
-	    if ((client = findClient(&msg, 0))) {
-		if (!(client->flags & PMI_CLIENT_GONE)) {
-		    mdbg(KVS_LOG_VERBOSE, "%s: client '%s' already gone\n",
-			    __func__, PSC_printTID(msg.header.sender));
-		}
-	    } else {
-		mlog("%s: got CC_ERROR from unknown source '%s'\n", __func__,
-			PSC_printTID(msg.header.sender));
-	    }
-	    break;
-	default:
-	    mlog("%s: unexpected PSLog message type '%s' from '%s'\n",
-		    __func__, PSP_printMsg(msg.header.type),
-		    PSC_printTID(msg.header.sender));
+	} else {
+	    mlog("%s: got CC_ERROR from unknown source %s\n", __func__,
+		 PSC_printTID(msg.header.sender));
+	}
+	break;
+    default:
+	mlog("%s: unexpected PSLog message type %s from %s\n", __func__,
+	     PSP_printMsg(msg.header.type), PSC_printTID(msg.header.sender));
     }
 
     return 0;
@@ -1074,13 +1066,11 @@ static int handlePSIMessage(int fd, void *data)
 static void sighandler(int sig)
 {
     switch(sig) {
-	case SIGTERM:
-	    terminateJob(__func__);
-	default:
-	    if (verbose) mlog("Got signal %d.\n", sig);
+    case SIGTERM:
+	terminateJob(__func__);
+    default:
+	if (verbose) mlog("Got signal %s\n", strsignal(sig));
     }
-
-    signal(sig, sighandler);
 }
 
 /**
@@ -1101,7 +1091,7 @@ static void initKvsProvider(void)
     initKVSLogger(tmp, stderr);
 
     /* install sig handlers */
-    signal(SIGTERM, sighandler);
+    PSC_setSigHandler(SIGTERM, sighandler);
 
     /* set KVS debug mode */
     if ((envstr = getenv("PMI_DEBUG"))) {
@@ -1115,7 +1105,7 @@ static void initKvsProvider(void)
     /* set the starting size of the job */
     if ((envstr = getenv("PMI_SIZE"))) {
 	if ((maxClients = atoi(envstr)) < 1) {
-	    mlog("%s: PMI_SIZE '%i' is invalid\n", __func__, maxClients);
+	    mlog("%s: PMI_SIZE %i is invalid\n", __func__, maxClients);
 	    terminateJob(__func__);
 	}
     } else {
@@ -1200,8 +1190,8 @@ void kvsProviderLoop(int kvsverbose)
 
     if (measure) {
 	gettimeofday(&time_start, NULL);
-	mlog("%s: kvs provider ready, time '%f'\n", __func__,
-			time_start.tv_sec + 1e-6 * time_start.tv_usec);
+	mlog("%s: kvs provider ready, time %f\n", __func__,
+	     time_start.tv_sec + 1e-6 * time_start.tv_usec);
     }
 
     while (1) {
