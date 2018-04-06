@@ -2,12 +2,13 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
+#include <stdbool.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
@@ -28,13 +29,13 @@
 #include "psipartition.h"
 
 /** Flag used to mark environment originating from batch-system */
-static int batchPartition = 0;
+static bool batchPartition = false;
 
 /** Flag used to mark ENV_PART_WAIT was set during PSI_createPartition() */
-static int waitForPartition = 0;
+static bool waitForPartition = false;
 
 /** Flag used to mark PART_OPT_WAIT was set in PSI_getReservation() */
-static int waitForReservation = 0;
+static bool waitForReservation = false;
 
 /**
  * Name of the evironment variable used in order to enable a
@@ -139,7 +140,7 @@ void PSI_LSF(void)
 	    unsetenv(ENV_NODE_HOSTFILE);
 	}
 	unsetenv(ENV_NODE_PEFILE);
-	batchPartition = 1;
+	batchPartition = true;
     }
 }
 
@@ -164,7 +165,7 @@ void PSI_PBS(void)
 	unsetenv(ENV_NODE_HOSTS);
 	setenv(ENV_NODE_HOSTFILE, pbs_hostfile, 1);
 	unsetenv(ENV_NODE_PEFILE);
-	batchPartition = 1;
+	batchPartition = true;
     }
 }
 
@@ -188,7 +189,7 @@ void PSI_LL(void)
 	setenv(ENV_NODE_HOSTS, ll_hosts, 1);
 	unsetenv(ENV_NODE_HOSTFILE);
 	unsetenv(ENV_NODE_PEFILE);
-	batchPartition = 1;
+	batchPartition = true;
     }
 }
 
@@ -213,7 +214,7 @@ void PSI_SGE(void)
 	unsetenv(ENV_NODE_HOSTS);
 	unsetenv(ENV_NODE_HOSTFILE);
 	setenv(ENV_NODE_PEFILE, sge_pefile, 1);
-	batchPartition = 1;
+	batchPartition = true;
     }
 }
 
@@ -298,10 +299,10 @@ typedef struct {
  * @param nl The nodelist to be extended.
  *
  * @return On success, i.e. if the nodelist's allocated space was
- * large enough or if the extension of this space worked well, 1 is
- * returned. Or 0, if something went wrong.
+ * large enough or if the extension of this space worked well, true is
+ * returned. Or false, if something went wrong.
  */
-static int addNode(PSnodes_ID_t node, nodelist_t *nl)
+static bool addNode(PSnodes_ID_t node, nodelist_t *nl)
 {
     PSI_log(PSI_LOG_VERB, "%s(%d)\n", __func__, node);
 
@@ -312,14 +313,14 @@ static int addNode(PSnodes_ID_t node, nodelist_t *nl)
 	if (!nl->nodes) {
 	    if (tmp) free(tmp);
 	    PSI_log(-1, "%s: no memory\n", __func__);
-	    return 0;
+	    return false;
 	}
     }
 
     nl->nodes[nl->size] = node;
     nl->size++;
 
-    return 1;
+    return true;
 }
 
 static void freeNodelist(nodelist_t *nl)
@@ -740,8 +741,6 @@ static int sendNodelist(nodelist_t *nodelist, DDBufferMsg_t *msg)
  *
  * @return On success, i.e. all hardware types given are known, the
  * hardware-mask is returned. Otherwise 0 is returned.
- *
- *
  */
 static uint32_t getHWEnv(void)
 {
@@ -821,9 +820,9 @@ static uint16_t getTPPEnv(void)
  *
  * @param itemSize The size of each item within @a list.
  *
- * @return On success, 1 is returned, or 0, if an error occurred.
+ * @return On success, true is returned, or false if an error occurred.
  */
-static int getFullList(void *list, PSP_Info_t what, size_t itemSize)
+static bool getFullList(void *list, PSP_Info_t what, size_t itemSize)
 {
     int recv, hosts;
     size_t listSize = itemSize*PSC_getNrOfNodes();
@@ -832,7 +831,7 @@ static int getFullList(void *list, PSP_Info_t what, size_t itemSize)
     if (!*myList) *myList = malloc(listSize);
     if (!*myList) {
 	PSI_log(-1, "%s(%s): out of memory\n", __func__, PSP_printInfo(what));
-	return 0;
+	return false;
     }
 
     recv = PSI_infoList(-1, what, NULL, *myList, listSize, 1);
@@ -840,10 +839,10 @@ static int getFullList(void *list, PSP_Info_t what, size_t itemSize)
 
     if (hosts != PSC_getNrOfNodes()) {
 	PSI_log(-1, "%s(%s): failed\n", __func__, PSP_printInfo(what));
-	return 0;
+	return false;
     }
 
-    return 1;
+    return true;
 }
 
 static void analyzeError(PSpart_request_t *request, nodelist_t *nodelist)
@@ -922,14 +921,14 @@ end:
     if (numThreads) free(numThreads);
 }
 
-static int alarmCalled = 0;
+static bool alarmCalled = false;
 
 static void alarmHandlerPart(int sig)
 {
     if (waitForPartition) {
 	time_t now = time(NULL);
 	char *timeStr = ctime(&now);
-	alarmCalled = 1;
+	alarmCalled = true;
 	timeStr[strlen(timeStr)-1] = '\0';
 	PSI_log(-1, "%s -- Waiting for partition\n", timeStr);
     } else {
@@ -943,7 +942,7 @@ static void alarmHandlerRes(int sig)
     if (waitForReservation) {
 	time_t now = time(NULL);
 	char *timeStr = ctime(&now);
-	alarmCalled = 1;
+	alarmCalled = true;
 	timeStr[strlen(timeStr)-1] = '\0';
 	PSI_log(alarmCalled ? PSI_LOG_VERB : -1,
 		"%s -- Waiting for reservation\n", timeStr);
@@ -1078,18 +1077,19 @@ int PSI_createPartition(unsigned int size, uint32_t hwType)
     }
 
     if (request->options & PART_OPT_WAIT) {
-	waitForPartition = 1;
+	waitForPartition = true;
 	alarm(2);
     } else {
 	alarm(60);
     }
-    signal(SIGALRM, alarmHandlerPart);
+    PSC_setSigHandler(SIGALRM, alarmHandlerPart);
 recv_retry:
     if (PSI_recvMsg((DDMsg_t *)&msg, sizeof(msg))<0) {
 	PSI_warn(-1, errno, "%s: PSI_recvMsg", __func__);
 	goto end;
     }
     alarm(0);
+    PSC_setSigHandler(SIGALRM, SIG_DFL);
 
     switch (msg.header.type) {
     case PSP_CD_PARTITIONRES:
@@ -1295,14 +1295,14 @@ PSrsrvtn_ID_t PSI_getReservation(uint32_t nMin, uint32_t nMax, uint16_t ppn,
 	return 0;
     }
 
+    PSC_setSigHandler(SIGALRM, alarmHandlerRes);
+    alarmCalled = false;
     if (options & PART_OPT_WAIT) {
-	waitForReservation = 1;
+	waitForReservation = true;
 	alarm(2);
     } else {
 	alarm(60);
     }
-    signal(SIGALRM, alarmHandlerRes);
-    alarmCalled = 0;
 
 recv_retry:
     if (PSI_recvMsg((DDMsg_t *)&msg, sizeof(msg)) < 0) {
@@ -1310,6 +1310,7 @@ recv_retry:
 	return 0;
     }
     alarm(0);
+    PSC_setSigHandler(SIGALRM, SIG_DFL);
 
     if (got) *got = 0;
     switch (msg.header.type) {
