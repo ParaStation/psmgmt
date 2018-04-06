@@ -239,7 +239,7 @@ static void handleResponse(void)
     if (debug) printf("%s: ...done, waiting for answer ...\n", __func__);
 
     /* recv answer */
-    signal(SIGALRM, timeoutHandler);
+    PSC_setSigHandler(SIGALRM, timeoutHandler);
     alarm(pelogueTimeout + recvTimeout + graceTime);
 
     if (PSI_recvMsg((DDMsg_t *)&answer, sizeof(answer))<0) {
@@ -248,6 +248,7 @@ static void handleResponse(void)
     }
 
     alarm(0);
+    PSC_setSigHandler(SIGALRM, SIG_DFL);
 
     gettimeofday(&time_now, NULL);
     timersub(&time_now, &time_start, &time_diff);
