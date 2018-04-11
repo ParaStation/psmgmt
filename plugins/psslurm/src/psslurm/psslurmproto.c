@@ -623,7 +623,7 @@ static void handleSignalTasks(Slurm_Msg_t *sMsg)
 
     /* find job */
     if (req->stepid == SLURM_BATCH_SCRIPT) {
-	if (!(job = findJobById(req->jobid)) &&
+	if (!(job = findJobById(req->jobid)) ||
 	    !(step = findStepByJobid(req->jobid))) {
 	    mlog("%s: step with jobid %u to signal not found\n", __func__,
 		 req->jobid);
