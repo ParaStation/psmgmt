@@ -688,7 +688,7 @@ static void printHelp(int argc, const char *argv[])
  *
  * @param hwStr Character string describing the requested HW type
  *
- * @return Bit-array encoding the hardwre types
+ * @return Bit-array encoding the hardware types
  */
 static uint32_t getNodeType(char *hwStr)
 {
@@ -715,6 +715,12 @@ static uint32_t getNodeType(char *hwStr)
 	hwList[count++] = next;
 	next = strtok_r(NULL, delimiters, &toksave);
     }
+    if (!hwList) {
+	snprintf(msgStr, sizeof(msgStr), "%s: empty hwStr '%s'?", __func__,
+		 hwStr);
+	errExit(msgStr);
+    }
+
     hwList[count] = NULL;
 
     if (PSI_resolveHWList(hwList, &hwType) == -1) {
