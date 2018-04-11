@@ -1,13 +1,12 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2011-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2011-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -93,21 +92,17 @@ void clearServerList()
 
 Server_t *findServerByrAddr(char *addr)
 {
-    list_t *pos;
-    Server_t *serv;
+    list_t *s;
 
     if (!addr) return NULL;
 
-    if (list_empty(&ServerList.list)) return NULL;
-
-    list_for_each(pos, &ServerList.list) {
-	if ((serv = list_entry(pos, Server_t, list)) == NULL) return NULL;
+    list_for_each(s, &ServerList.list) {
+	Server_t *serv = list_entry(s, Server_t, list);
 
 	if (!strcmp(serv->addr, addr)) return serv;
-
-	if (!serv->com->remoteAddr) continue;
 	if (!strcmp(serv->com->remoteAddr, addr)) return serv;
     }
+
     return NULL;
 }
 

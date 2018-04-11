@@ -503,7 +503,7 @@ static void handleStepTimeout(Forwarder_Data_t *fwdata)
 
 int stepForwarderMsg(PSLog_Msg_t *msg, Forwarder_Data_t *fwData)
 {
-    PSSLURM_Fw_Cmds_t type = msg->type;
+    PSSLURM_Fw_Cmds_t type = (PSSLURM_Fw_Cmds_t)msg->type;
     switch (type) {
     case CMD_PRINT_CHILD_MSG:
 	handlePrintChildMsg(fwData, msg->buf);
@@ -540,7 +540,7 @@ void sendBrokeIOcon(Step_t *step)
 	    .sender = PSC_getMyTID(),
 	    .len = offsetof(PSLog_Msg_t, buf) },
 	.version = PLUGINFW_PROTO_VERSION,
-	.type = CMD_BROKE_IO_CON,
+	.type = (PSLog_msg_t)CMD_BROKE_IO_CON,
 	.sender = -1};
     DDBufferMsg_t *bMsg = (DDBufferMsg_t *)&msg;
     uint32_t myJobID = step->jobid, myStepID = step->stepid;
@@ -569,7 +569,7 @@ static void handleBrokeIOcon(PSLog_Msg_t *msg)
 
 int hookFWmsg(PSLog_Msg_t *msg, Forwarder_Data_t *fwData)
 {
-    PSSLURM_Fw_Cmds_t type = msg->type;
+    PSSLURM_Fw_Cmds_t type = (PSSLURM_Fw_Cmds_t)msg->type;
     switch (type) {
     case CMD_BROKE_IO_CON:
 	handleBrokeIOcon(msg);
@@ -1100,7 +1100,7 @@ void sendEnableSrunIO(Step_t *step)
 	    .sender = PSC_getMyTID(),
 	    .len = offsetof(PSLog_Msg_t, buf) },
 	.version = PLUGINFW_PROTO_VERSION,
-	.type = CMD_ENABLE_SRUN_IO,
+	.type = (PSLog_msg_t)CMD_ENABLE_SRUN_IO,
 	.sender = -1};
 
     /* might happen that forwarder is already gone */
@@ -1120,7 +1120,7 @@ void printChildMessage(Step_t *step, char *plMsg, uint32_t msgLen,
 	    .sender = PSC_getMyTID(),
 	    .len = offsetof(PSLog_Msg_t, buf) },
 	.version = PLUGINFW_PROTO_VERSION,
-	.type = CMD_PRINT_CHILD_MSG,
+	.type = (PSLog_msg_t)CMD_PRINT_CHILD_MSG,
 	.sender = -1};
     const size_t chunkSize = sizeof(msg.buf) - sizeof(uint8_t)
 	- sizeof(uint32_t) - sizeof(uint32_t);
@@ -1169,7 +1169,7 @@ void reattachTasks(Forwarder_Data_t *fwdata, uint32_t addr,
 	    .sender = PSC_getMyTID(),
 	    .len = offsetof(PSLog_Msg_t, buf) },
 	.version = PLUGINFW_PROTO_VERSION,
-	.type = CMD_REATTACH_TASKS,
+	.type = (PSLog_msg_t)CMD_REATTACH_TASKS,
 	.sender = -1};
     DDBufferMsg_t *bMsg = (DDBufferMsg_t *)&msg;
     uint32_t nAddr = htonl(addr);
@@ -1198,7 +1198,7 @@ void sendFWfinMessage(Forwarder_Data_t *fwdata, PSLog_Msg_t *plMsg)
 	    .sender = PSC_getMyTID(),
 	    .len = offsetof(PSLog_Msg_t, buf) },
 	.version = PLUGINFW_PROTO_VERSION,
-	.type = CMD_FW_FINALIZE,
+	.type = (PSLog_msg_t)CMD_FW_FINALIZE,
 	.sender = -1};
     DDBufferMsg_t *bMsg = (DDBufferMsg_t *)&msg;
     uint32_t len = htonl(plMsg->header.len);
@@ -1225,7 +1225,7 @@ void sendFWtaskInfo(Forwarder_Data_t *fwdata, PS_Tasks_t *task)
 	    .sender = PSC_getMyTID(),
 	    .len = offsetof(PSLog_Msg_t, buf) },
 	.version = PLUGINFW_PROTO_VERSION,
-	.type = CMD_INFO_TASKS,
+	.type = (PSLog_msg_t)CMD_INFO_TASKS,
 	.sender = -1};
     DDBufferMsg_t *bMsg = (DDBufferMsg_t *)&msg;
     uint32_t len = htonl(sizeof(*task));
@@ -1249,7 +1249,7 @@ void sendStepTimeout(Forwarder_Data_t *fwdata)
 	    .sender = PSC_getMyTID(),
 	    .len = offsetof(PSLog_Msg_t, buf) },
 	.version = PLUGINFW_PROTO_VERSION,
-	.type = CMD_STEP_TIMEOUT,
+	.type = (PSLog_msg_t)CMD_STEP_TIMEOUT,
 	.sender = -1};
 
     /* might happen that forwarder is already gone */

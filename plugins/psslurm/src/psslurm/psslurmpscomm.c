@@ -1228,7 +1228,7 @@ static void forwardToSrunProxy(Step_t *step, PSLog_Msg_t *lmsg, int taskid)
 	    .sender = lmsg->header.sender,
 	    .len = offsetof(PSLog_Msg_t, buf) },
 	.version = PLUGINFW_PROTO_VERSION,
-	.type = CMD_PRINT_CHILD_MSG,
+	.type = (PSLog_msg_t)CMD_PRINT_CHILD_MSG,
 	.sender = -1};
     const size_t chunkSize = sizeof(msg.buf) - sizeof(uint8_t)
 	- sizeof(uint32_t) - sizeof(uint32_t);
