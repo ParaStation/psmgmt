@@ -477,6 +477,7 @@ static char *showAllowedPid(char *key, char *buf, size_t *bufSize)
 
     /* check for local job */
     found = showAllowedJobPid(pid, sid, psAccLogger, &reason);
+    if (found) goto FINISH;
 
     /* check for remote job */
     found = showAllowedJobInfoPid(pid, psAccLogger, &reason);
