@@ -23,20 +23,8 @@
 #include "psi.h"
 #include "psiinfo.h"
 
-typedef enum {
-    PSP_PROLOGUE_START,     /**< prologue script start */
-    PSP_PROLOGUE_FINISH,    /**< result from prologue */
-    PSP_EPILOGUE_START,     /**< epilogue script start */
-    PSP_EPILOGUE_FINISH,    /**< result from epilogue script */
-    PSP_PELOGUE_SIGNAL,     /**< send a signal to a PElogue script */
-    PSP_PELOGUE_REQ,        /**< remote pelogue request */
-    PSP_PELOGUE_RESP,       /**< remote pelogue response */
-} PSP_PELOGUE_t;
+#include "peloguetypes.h"
 
-typedef enum {
-    PELOGUE_PROLOGUE = 1,  /**< prologue */
-    PELOGUE_EPILOGUE,      /**< epilogue */
-} PElogueType_t;
 
 /** job ID this pspelogue is handling */
 static char *jobID = NULL;

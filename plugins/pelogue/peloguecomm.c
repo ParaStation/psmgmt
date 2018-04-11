@@ -18,6 +18,7 @@
 #include "pluginhelper.h"
 #include "psserial.h"
 
+#include "peloguetypes.h"
 #include "peloguechild.h"
 #include "pelogueconfig.h"
 #include "peloguejob.h"
@@ -26,19 +27,6 @@
 #include "peloguecomm.h"
 
 #define SPOOL_DIR LOCALSTATEDIR "/spool/parastation"
-
-/** Various message types used in between pelogue plugins */
-typedef enum {
-    PSP_PROLOGUE_START,	    /**< prologue script start */
-    PSP_PROLOGUE_FINISH,    /**< result from prologue */
-    PSP_EPILOGUE_START,	    /**< epilogue script start */
-    PSP_EPILOGUE_FINISH,    /**< result from epilogue script */
-    PSP_PELOGUE_SIGNAL,	    /**< send a signal to a PElogue script */
-    PSP_PELOGUE_REQ,	    /**< remote pelogue request */
-    PSP_PELOGUE_RESP,	    /**< remote pelogue response */
-    PSP_PLUGIN_CONFIG_ADD,  /**< add plugin configuration */
-    PSP_PLUGIN_CONFIG_DEL,  /**< delete plugin configuration */
-} PSP_PELOGUE_t;
 
 typedef struct {
     PStask_ID_t sender;

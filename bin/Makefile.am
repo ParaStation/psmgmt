@@ -47,6 +47,7 @@ pssh_LDADD = $(libpse) $(POPT_LIBS)
 psaccounter_CPPFLAGS = $(AM_CPPFLAGS) -DLOCALSTATEDIR=\"$(localstatedir)\"
 psaccounter_LDADD = $(libpse) $(POPT_LIBS)
 
+pspelogue_CPPFLAGS = $(AM_CPPFLAGS)  -I$(top_srcdir)/plugins/pelogue
 pspelogue_LDADD = $(libpsi) $(POPT_LIBS)
 
 testacct_LDADD = $(libpsi) $(POPT_LIBS)

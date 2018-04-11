@@ -17,16 +17,6 @@
 #
 # ParaStation
 #
-# Copyright (C) 2012-2018 ParTec Cluster Competence Center GmbH, Munich
-#
-# This file may be distributed under the terms of the Q Public License
-# as defined in the file LICENSE.QPL included in the packaging of this
-# file.
-#
-
-#
-# ParaStation
-#
 # Copyright (C) 2012-2017 ParTec Cluster Competence Center GmbH, Munich
 #
 # This file may be distributed under the terms of the Q Public License
@@ -163,7 +153,7 @@ psmstart_SOURCES = psmstart.c
 psmstart_OBJECTS = psmstart.$(OBJEXT)
 psmstart_DEPENDENCIES = $(libpse) $(am__DEPENDENCIES_1)
 pspelogue_SOURCES = pspelogue.c
-pspelogue_OBJECTS = pspelogue.$(OBJEXT)
+pspelogue_OBJECTS = pspelogue-pspelogue.$(OBJEXT)
 pspelogue_DEPENDENCIES = $(libpsi) $(am__DEPENDENCIES_1)
 pssh_SOURCES = pssh.c
 pssh_OBJECTS = pssh.$(OBJEXT)
@@ -193,7 +183,7 @@ am__depfiles_remade = ./$(DEPDIR)/gmspawner-gmspawner.Po \
 	./$(DEPDIR)/mlisten.Po ./$(DEPDIR)/mpirun_chgm.Po \
 	./$(DEPDIR)/mpirun_chp4.Po ./$(DEPDIR)/mpirun_openib.Po \
 	./$(DEPDIR)/psaccounter-psaccounter.Po ./$(DEPDIR)/psispawn.Po \
-	./$(DEPDIR)/psmstart.Po ./$(DEPDIR)/pspelogue.Po \
+	./$(DEPDIR)/psmstart.Po ./$(DEPDIR)/pspelogue-pspelogue.Po \
 	./$(DEPDIR)/pssh.Po ./$(DEPDIR)/test_pse.Po \
 	./$(DEPDIR)/testacct.Po
 am__mv = mv -f
@@ -463,6 +453,16 @@ scriptsdir = $(prefix)/scripts
 @HAVE_SYSTEMD_TRUE@default_cgroup_root = /sys/fs/cgroup/
 @HAVE_SYSTEMD_FALSE@default_cgroup_name = psmgmtGrp
 @HAVE_SYSTEMD_TRUE@default_cgroup_name = system.slice/psid.service/descendants
+
+#
+# ParaStation
+#
+# Copyright (C) 2012-2018 ParTec Cluster Competence Center GmbH, Munich
+#
+# This file may be distributed under the terms of the Q Public License
+# as defined in the file LICENSE.QPL included in the packaging of this
+# file.
+#
 SUBDIRS = admin daemon logger startup
 PKG_VER := $(shell ${top_srcdir}/scripts/vcversion -r $(top_srcdir) --fmt version -n)
 PKG_REL := $(shell ${top_srcdir}/scripts/vcversion -r $(top_srcdir) --fmt release -n)
@@ -481,6 +481,7 @@ test_pse_LDADD = $(libpse) $(POPT_LIBS)
 pssh_LDADD = $(libpse) $(POPT_LIBS)
 psaccounter_CPPFLAGS = $(AM_CPPFLAGS) -DLOCALSTATEDIR=\"$(localstatedir)\"
 psaccounter_LDADD = $(libpse) $(POPT_LIBS)
+pspelogue_CPPFLAGS = $(AM_CPPFLAGS)  -I$(top_srcdir)/plugins/pelogue
 pspelogue_LDADD = $(libpsi) $(POPT_LIBS)
 testacct_LDADD = $(libpsi) $(POPT_LIBS)
 all: all-recursive
@@ -638,7 +639,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psaccounter-psaccounter.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psispawn.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/psmstart.Po@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pspelogue.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pspelogue-pspelogue.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pssh.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_pse.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/testacct.Po@am__quote@ # am--include-marker
@@ -700,6 +701,20 @@ psaccounter-psaccounter.obj: psaccounter.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='psaccounter.c' object='psaccounter-psaccounter.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(psaccounter_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o psaccounter-psaccounter.obj `if test -f 'psaccounter.c'; then $(CYGPATH_W) 'psaccounter.c'; else $(CYGPATH_W) '$(srcdir)/psaccounter.c'; fi`
+
+pspelogue-pspelogue.o: pspelogue.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(pspelogue_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT pspelogue-pspelogue.o -MD -MP -MF $(DEPDIR)/pspelogue-pspelogue.Tpo -c -o pspelogue-pspelogue.o `test -f 'pspelogue.c' || echo '$(srcdir)/'`pspelogue.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/pspelogue-pspelogue.Tpo $(DEPDIR)/pspelogue-pspelogue.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='pspelogue.c' object='pspelogue-pspelogue.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(pspelogue_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o pspelogue-pspelogue.o `test -f 'pspelogue.c' || echo '$(srcdir)/'`pspelogue.c
+
+pspelogue-pspelogue.obj: pspelogue.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(pspelogue_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT pspelogue-pspelogue.obj -MD -MP -MF $(DEPDIR)/pspelogue-pspelogue.Tpo -c -o pspelogue-pspelogue.obj `if test -f 'pspelogue.c'; then $(CYGPATH_W) 'pspelogue.c'; else $(CYGPATH_W) '$(srcdir)/pspelogue.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/pspelogue-pspelogue.Tpo $(DEPDIR)/pspelogue-pspelogue.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='pspelogue.c' object='pspelogue-pspelogue.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(pspelogue_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o pspelogue-pspelogue.obj `if test -f 'pspelogue.c'; then $(CYGPATH_W) 'pspelogue.c'; else $(CYGPATH_W) '$(srcdir)/pspelogue.c'; fi`
 
 mostlyclean-libtool:
 	-rm -f *.lo
@@ -916,7 +931,7 @@ distclean: distclean-recursive
 	-rm -f ./$(DEPDIR)/psaccounter-psaccounter.Po
 	-rm -f ./$(DEPDIR)/psispawn.Po
 	-rm -f ./$(DEPDIR)/psmstart.Po
-	-rm -f ./$(DEPDIR)/pspelogue.Po
+	-rm -f ./$(DEPDIR)/pspelogue-pspelogue.Po
 	-rm -f ./$(DEPDIR)/pssh.Po
 	-rm -f ./$(DEPDIR)/test_pse.Po
 	-rm -f ./$(DEPDIR)/testacct.Po
@@ -973,7 +988,7 @@ maintainer-clean: maintainer-clean-recursive
 	-rm -f ./$(DEPDIR)/psaccounter-psaccounter.Po
 	-rm -f ./$(DEPDIR)/psispawn.Po
 	-rm -f ./$(DEPDIR)/psmstart.Po
-	-rm -f ./$(DEPDIR)/pspelogue.Po
+	-rm -f ./$(DEPDIR)/pspelogue-pspelogue.Po
 	-rm -f ./$(DEPDIR)/pssh.Po
 	-rm -f ./$(DEPDIR)/test_pse.Po
 	-rm -f ./$(DEPDIR)/testacct.Po

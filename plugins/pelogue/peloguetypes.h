@@ -49,8 +49,7 @@ typedef struct {
     int32_t exit;       /**< pelogue's exit value */
 } PElogueChild_t;
 
-
-/** Various state a pelogue might be in */
+/** Various states a pelogue might be in */
 typedef enum {
     PELOGUE_PENDING = 1,  /**< pelogue is started, no result yet */
     PELOGUE_DONE,         /**< pelogue finished succesfully */
@@ -64,6 +63,19 @@ typedef struct {
     PElogueState_t prologue; /**< result of the corresponding prologue */
     PElogueState_t epilogue; /**< result of the corresponding epilogue */
 } PElogueResList_t;
+
+/** Various message types used in between pelogue plugins */
+typedef enum {
+    PSP_PROLOGUE_START,	    /**< prologue script start */
+    PSP_PROLOGUE_FINISH,    /**< result from prologue */
+    PSP_EPILOGUE_START,	    /**< epilogue script start */
+    PSP_EPILOGUE_FINISH,    /**< result from epilogue script */
+    PSP_PELOGUE_SIGNAL,	    /**< send a signal to a PElogue script */
+    PSP_PELOGUE_REQ,	    /**< remote pelogue request */
+    PSP_PELOGUE_RESP,	    /**< remote pelogue response */
+    PSP_PLUGIN_CONFIG_ADD,  /**< add plugin configuration */
+    PSP_PLUGIN_CONFIG_DEL,  /**< delete plugin configuration */
+} PSP_PELOGUE_t;
 
 /**
  * @brief Job callback
