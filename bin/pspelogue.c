@@ -367,25 +367,25 @@ int main(const int argc, const char *argv[], char *envp[])
     /* make sure we have all the infos we need */
     jobID = getenv("SLURM_JOB_ID");
     if (!jobID) {
-	fprintf(stderr, "%s: invalid SLURM_JOB_ID\n", __func__);
+	fprintf(stderr, "%s: invalid SLURM_JOB_ID\n", argv[0]);
 	exit(1);
     }
 
     char *slurmHosts = getenv("SLURM_JOB_NODELIST");
     if (!slurmHosts) {
-	fprintf(stderr, "%s: invalid SLURM_JOB_NODELIST\n", __func__);
+	fprintf(stderr, "%s: invalid SLURM_JOB_NODELIST\n", argv[0]);
 	exit(1);
     }
 
     char *sUid = getenv("SLURM_JOB_UID");
     if (!sUid) {
-	fprintf(stderr, "%s: invalid SLURM_JOB_UID\n", __func__);
+	fprintf(stderr, "%s: invalid SLURM_JOB_UID\n", argv[0]);
 	exit(1);
     }
 
     char *sGid = getenv("SLURM_JOB_GID");
     if (!sGid) {
-	fprintf(stderr, "%s: invalid SLURM_JOB_GID\n", __func__);
+	fprintf(stderr, "%s: invalid SLURM_JOB_GID\n", argv[0]);
 	exit(1);
     }
 
@@ -400,6 +400,11 @@ int main(const int argc, const char *argv[], char *envp[])
     /* convert Slurm hostlist into PS IDs */
     getNodesFromSlurmHL(slurmHosts, &nrOfNodes, &nodes);
 
+    if (!nrOfNodes) {
+	fprintf(stderr, "%s: no nodes found\n", argv[0]);
+	exit(1);
+    }
+
     if (verbose) printf("parallel pelogue for job %s starting\n", jobID);
 
     /* send pelogue start request */
@@ -407,6 +412,8 @@ int main(const int argc, const char *argv[], char *envp[])
 
     /* receive and handle result */
     handleResponse();
+
+    if (nodes) free(nodes);
 
     if (verbose) {
 	printf("parallel pelogue for job %s finished in %.3f seconds\n",
