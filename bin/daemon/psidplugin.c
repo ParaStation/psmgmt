@@ -366,7 +366,7 @@ static void printRefList(char *buf, size_t size, list_t *refList)
     list_for_each(p, refList) {
 	plugin_ref_t *ref = list_entry(p, plugin_ref_t, next);
 
-	if (ref && ref->plugin && ref->plugin->name
+	if (ref->plugin && ref->plugin->name
 	    && &ref->plugin->triggers != refList)
 	    snprintf(buf+strlen(buf), size-strlen(buf),
 		     " %s", ref->plugin->name);
