@@ -84,8 +84,8 @@ static int jailProcess(void *info)
 
     if (command) {
 	int ret = system(command);
-	free(command);
 	if (ret == -1) jlog(-1, "%s: system(%s) failed\n", __func__, command);
+	free(command);
     }
 
     return 0;
