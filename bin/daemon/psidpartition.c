@@ -1947,10 +1947,15 @@ static int sendSlotlist(PSpart_slot_t *slots, int num, DDBufferMsg_t *msg)
     }
     slotsChunk = 1024/(sizeof(PSnodes_ID_t)+PSCPU_bytesForCPUs(maxCPUs));
 
+    uint16_t nBytes = PSCPU_bytesForCPUs(maxCPUs);
+    if (!nBytes) {
+	PSID_log(-1, "%s: Too many CPUs (%d)\n", __func__, maxCPUs);
+	return -1;
+    }
+
     while (offset < num && PSIDnodes_isUp(PSC_getID(msg->header.dest))) {
 	PSpart_slot_t *mySlots = slots+offset;
 	uint16_t chunk = (num-offset > slotsChunk) ? slotsChunk : num-offset;
-	uint16_t nBytes = PSCPU_bytesForCPUs(maxCPUs);
 	msg->header.len = sizeof(msg->header) + bufOffset;
 
 	PSP_putMsgBuf(msg, __func__, "chunk", &chunk, sizeof(chunk));
@@ -5033,8 +5038,9 @@ static void msg_PROVIDETASKSL(DDBufferMsg_t *msg)
  * @param req Request containing the information to be sent.
  *
  * @return Upon success @a true is returned. Or @a false if an error
- * occurred, i.e. the message's payload-buffer is too small to encode
- * the request.
+ * occurred, e.g. the message's payload-buffer is too small to encode
+ * the request, sending a message failed or too many CPUs have to be
+ * sent.
  */
 static bool sendReqSlots(DDTypedBufferMsg_t *msg, PSpart_request_t *req)
 {
@@ -5046,9 +5052,19 @@ static bool sendReqSlots(DDTypedBufferMsg_t *msg, PSpart_request_t *req)
 	unsigned short cpus = PSIDnodes_getVirtCPUs(req->slots[n].node);
 	if (cpus > maxCPUs) maxCPUs = cpus;
     }
+    if (!maxCPUs) {
+	PSID_log(-1, "%s: No remote CPUs\n", __func__);
+	return false;
+    }
 
     maxChunk = (BufTypedMsgSize - sizeof(uint16_t))
 	/ (sizeof(PSnodes_ID_t) + PSCPU_bytesForCPUs(maxCPUs));
+
+    uint16_t nBytes = PSCPU_bytesForCPUs(maxCPUs);
+    if (!nBytes) {
+	PSID_log(-1, "%s: Too many CPUs (%d)\n", __func__, maxCPUs);
+	return false;
+    }
 
     /* Reset message setup */
     msg->header.len = sizeof(msg->header) + sizeof(msg->type);
@@ -5063,7 +5079,6 @@ static bool sendReqSlots(DDTypedBufferMsg_t *msg, PSpart_request_t *req)
     while (offset < num) {
 	size_t chunk = (num - offset > maxChunk) ? maxChunk : num - offset;
 	PSpart_slot_t *slots = req->slots+offset;
-	uint16_t nBytes = PSCPU_bytesForCPUs(maxCPUs);
 
 	if (!offset) {
 	    PSP_putTypedMsgBuf(msg, __func__, "nBytes",
