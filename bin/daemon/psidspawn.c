@@ -8,6 +8,7 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -418,32 +419,32 @@ static void appendToMap(short cpu, CPUmap_t *map)
  *
  * @param range Character-string describing the range
  *
- * @return On success, 1 is returned, or 0, if an error occurred.
+ * @return On success, true is returned, or false if an error occurred.
  */
-static int appendRange(CPUmap_t *map, char *range)
+static bool appendRange(CPUmap_t *map, char *range)
 {
     long first, last, i;
     char *start = strsep(&range, "-"), *end;
 
     if (*start == '\0') {
 	fprintf(stderr, "core -%s out of range\n", range);
-	return 0;
+	return false;
     }
 
     first = strtol(start, &end, 0);
-    if (*end != '\0') return 0;
+    if (*end != '\0') return false;
     if (first < 0 || first >= PSIDnodes_getVirtCPUs(PSC_getMyID())) {
 	fprintf(stderr, "core %ld out of range\n", first);
-	return 0;
+	return false;
     }
 
     if (range) {
-	if (*range == '\0') return 0;
+	if (*range == '\0') return false;
 	last = strtol(range, &end, 0);
 	if (*end != '\0') return 0;
 	if (last < 0 || last >= PSIDnodes_getVirtCPUs(PSC_getMyID())) {
 	    fprintf(stderr, "core %ld out of range\n", last);
-	    return 0;
+	    return false;
 	}
     } else {
 	last = first;
@@ -455,7 +456,7 @@ static int appendRange(CPUmap_t *map, char *range)
 	for (i=first; i<=last; i++) appendToMap(i, map);
     }
 
-    return 1;
+    return true;
 }
 
 /**
