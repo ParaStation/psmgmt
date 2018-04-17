@@ -110,29 +110,27 @@ int PSLog_avail(void);
 /**
  * @brief Send a PSLog message.
  *
- * Send a PSLog message of length @a count referenced by @a buf with
+ * Send a PSLog message of length @a cnt referenced by @a buf with
  * type @a type to @a destTID.
  *
  *
- * @param destTID ParaStation task ID of the task the message is sent to.
+ * @param dest ParaStation task ID of the task the message is sent to
  *
- * @param type Type of the message.
+ * @param type Type of message to send
  *
  * @param buf Pointer to the buffer containing the data to send within
  * the body of the message. If @a buf is NULL, the body of the PSLog
  * message will be empty.
  *
- * @param len Amount of meaningful data within @a buf in bytes. If @a
- * len is larger the 1024, more than one message will be generated.
- * The number of messages can be computed by (len/1024 + 1).
- *
+ * @param cnt Amount of meaningful data within @a buf in bytes. If @a
+ * cnt is larger the 1048, more than one message will be generated.
+ * The number of messages can be computed by (len/1048 + 1).
  *
  * @return On success, the number of bytes written is returned,
- * i.e. usually this is @a len. On error, -1 is returned, and errno is
+ * i.e. usually this is @a cnt. On error, -1 is returned, and errno is
  * set appropriately.
  */
-int PSLog_write(PStask_ID_t destTID, PSLog_msg_t type, char *buf,
-		size_t count);
+ssize_t PSLog_write(PStask_ID_t dest, PSLog_msg_t type, char *buf, size_t cnt);
 
 /**
  * @brief Send a character string as PSLog message.
@@ -143,18 +141,18 @@ int PSLog_write(PStask_ID_t destTID, PSLog_msg_t type, char *buf,
  * This is mainly a wrapper for PSLog_write().
  *
  *
- * @param destTID ParaStation task ID of the task the message is sent to.
+ * @param dest ParaStation task ID of the task the message is sent to
  *
- * @param type Type of the message.
+ * @param type Type of message to send
  *
- * @param buf Address of a \\0 terminated character string.
+ * @param buf Address of a \\0 terminated character string
  *
  *
  * @return On success, the number of bytes written is returned,
  * i.e. usually this is strlen(@a buf). On error, -1 is returned, and
  * errno is set appropriately.
  */
-int PSLog_print(PStask_ID_t destTID, PSLog_msg_t type, char *buf);
+ssize_t PSLog_print(PStask_ID_t dest, PSLog_msg_t type, char *buf);
 
 /**
  * @brief Read a PSLog message.

@@ -42,53 +42,82 @@ int PSLog_avail(void)
     return daemonsock != -1;
 }
 
-int PSLog_write(PStask_ID_t destTID, PSLog_msg_t type, char *buf, size_t count)
+/**
+ * @brief Actually send a message
+ *
+ * Send message @a msg.
+ *
+ * @param msg Message to send
+ *
+ * @return Upon success the number of bytes sent is returned. Or -1 if
+ * an error occurred. In the latter case errno is set appropriately.
+ */
+static ssize_t doSend(PSLog_Msg_t *msg)
 {
-    int n;
-    size_t c = count;
-    PSLog_Msg_t msg;
+    char *buf = (char *)msg;
+    size_t cnt = msg->header.len;
+
+    while (cnt > 0) {
+	errno = 0;
+	ssize_t ret = send(daemonsock, buf, cnt, 0);
+
+	if (!ret) {
+	    errno = EIO;
+	    return -1;
+	} else if (ret < 0) {
+	    switch (errno) {
+	    case EAGAIN:
+	    case EINTR:
+		continue;
+	    default:
+		return -1;
+	    }
+	} else {
+	    buf += ret;
+	    cnt -= ret;
+	}
+    }
+
+    return msg->header.len;
+}
+
+ssize_t PSLog_write(PStask_ID_t dest, PSLog_msg_t type, char *buf, size_t cnt)
+{
+    PSLog_Msg_t msg = {
+	.header = {
+	    .type = PSP_CC_MSG,
+	    .sender = PSC_getTID(-1, getpid()),
+	    .dest = dest,
+	    .len = offsetof(PSLog_Msg_t, buf) },
+	.version = version,
+	.type = type,
+	.sender = id };
+    size_t rem = cnt;
 
     if (daemonsock < 0) {
 	errno = EBADF;
 	return -1;
     }
 
-    msg.header.type = PSP_CC_MSG;
-    msg.header.sender = PSC_getTID(-1, getpid());
-    msg.header.dest = destTID;
-    msg.version = version;
-    msg.type = type;
-    msg.sender = id;
+    do { /* allow to send message with empty payload for end of stream */
+	size_t n = (rem > sizeof(msg.buf)) ? sizeof(msg.buf) : rem;
 
-    do {
-	n = (c>sizeof(msg.buf)) ? sizeof(msg.buf) : c;
 	if (n) memcpy(msg.buf, buf, n);
-	msg.header.len = PSLog_headerSize + n;
-	n = send(daemonsock, &msg, msg.header.len, 0);
-	if (n < 0) {
-	    switch(errno) {
-	    case EAGAIN:
-	    case EINTR:
-		continue;
-		break;
-	    default:
-		return n;             /* error, return < 0 */
-	    }
-	}
-	if ( (n > 0) && (n < (int) sizeof(msg.header))) {
-	    errno = EIO;
-	    return -1;
-	}
-	c -= n - PSLog_headerSize;
-	buf += n - PSLog_headerSize;
-    } while (c > 0);
+	msg.header.len = offsetof(PSLog_Msg_t, buf) + n;
 
-    return count;
+	ssize_t ret = doSend(&msg);
+	if (ret < 0) return ret;
+
+	rem -= n;
+	buf += n;
+    } while (rem > 0);
+
+    return cnt;
 }
 
-int PSLog_print(PStask_ID_t destTID, PSLog_msg_t type, char *buf)
+ssize_t PSLog_print(PStask_ID_t dest, PSLog_msg_t type, char *buf)
 {
-    return PSLog_write(destTID, type, buf, strlen(buf));
+    return PSLog_write(dest, type, buf, strlen(buf));
 }
 
 static int dorecv(char *buf, size_t count)
