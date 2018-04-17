@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2013 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -11,25 +11,12 @@
 /**
  * \file
  * Handling of all input/output forwarding between logger and client.
- *
- * $Id$
- *
- * \author
- * Norbert Eicker <eicker@par-tec.com>
- *
  */
 #ifndef __PSIDFORWARDER_H
 #define __PSIDFORWARDER_H
 
 #include "pstask.h"
 #include "pslog.h"
-
-#ifdef __cplusplus
-extern "C" {
-#if 0
-} /* <- just for emacs indentation */
-#endif
-#endif
 
 /**
  * @brief The forwarder process.
@@ -89,7 +76,7 @@ int sendDaemonMsg(DDMsg_t *msg);
  * i.e. usually this is strlen(@a buf). On error, -1 is returned, and
  * errno is set appropriately.
  *
- * @see PSLog_print()
+ * @see PSLog_write()
  */
 int PSIDfwd_printMsg(PSLog_msg_t type, char *buf);
 
@@ -110,13 +97,9 @@ int PSIDfwd_printMsg(PSLog_msg_t type, char *buf);
  * i.e. usually this is strlen(@a buf). On error, -1 is returned, and
  * errno is set appropriately.
  *
- * @see PSLog_print()
+ * @see PSLog_write()
  */
 int PSIDfwd_printMsgf(PSLog_msg_t type, const char *format, ...)
 	__attribute__ ((__format__ (__printf__, 2, 3)));
-
-#ifdef __cplusplus
-}/* extern "C" */
-#endif
 
 #endif /* __PSIDFORWARDER_H */
