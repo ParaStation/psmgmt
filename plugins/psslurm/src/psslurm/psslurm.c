@@ -540,13 +540,15 @@ int initialize(void)
     /* set various config options */
     setConfOpt();
 
+    /* init plugin handles, *has* to be called before using INIT_ERROR */
+    if (!initPluginHandles()) return 1;
+
     if (!(initSlurmdProto())) goto INIT_ERROR;
 
     enableFPEexceptions();
 
     if (!initPScomm()) goto INIT_ERROR;
     if (!registerHooks()) goto INIT_ERROR;
-    if (!initPluginHandles()) goto INIT_ERROR;
     if (!initLimits()) goto INIT_ERROR;
     if (!initEnvFilter()) goto INIT_ERROR;
 
