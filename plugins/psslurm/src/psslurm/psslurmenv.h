@@ -78,7 +78,9 @@ void setRankEnv(int32_t rank, Step_t *step);
  * for spawning of processes via mpiexec.
  *
  * @param env The environment to strip
+ *
+ * @param PMIdisabled True if the PMI layer is disabled
  */
-void removeUserVars(env_t *env);
+void removeUserVars(env_t *env, bool PMIdisabled);
 
 #endif  /* __PS_SLURM_ENV */

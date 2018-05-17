@@ -410,6 +410,13 @@ void setRankEnv(int32_t rank, Step_t *step)
 	if (!(strncmp(step->env.vars[count], "PMI_UNIVERSE_SIZE=", 18))) {
 	    continue;
 	}
+	if (!(strncmp(step->env.vars[count], "PMI_ID=", 7))) continue;
+	if (!(strncmp(step->env.vars[count], "PMI_APPNUM=", 11))) continue;
+	if (!(strncmp(step->env.vars[count], "PMI_ENABLE_SOCKP=", 17))) {
+	    continue;
+	}
+	if (!(strncmp(step->env.vars[count], "PMI_SUBVERSION=", 15))) continue;
+	if (!(strncmp(step->env.vars[count], "PMI_VERSION=", 12))) continue;
 
 	putenv(step->env.vars[count]);
     }
@@ -515,7 +522,7 @@ static void removeSpankOptions(env_t *env)
     }
 }
 
-void removeUserVars(env_t *env)
+void removeUserVars(env_t *env, bool PMIdisabled)
 {
     uint32_t i = 0;
 
@@ -537,10 +544,11 @@ void removeUserVars(env_t *env)
 
 	if (!strncmp(env->vars[i], "PSI_", 4)) continue;
 	if (!strncmp(env->vars[i], "__PSI_", 6)) continue;
-
-	if (!strncmp(env->vars[i], "PMI_", 4)) continue;
-	if (!strncmp(env->vars[i], "__PMI_", 6)) continue;
-	if (!strncmp(env->vars[i], "MEASURE_KVS_PROVIDER", 20)) continue;
+	if (!PMIdisabled) {
+	    if (!strncmp(env->vars[i], "PMI_", 4)) continue;
+	    if (!strncmp(env->vars[i], "__PMI_", 6)) continue;
+	    if (!strncmp(env->vars[i], "MEASURE_KVS_PROVIDER", 20)) continue;
+	}
 
 	envUnsetIndex(env, i);
 	i--;

@@ -676,15 +676,14 @@ static void setupStepIO(Forwarder_Data_t *fwdata, Step_t *step)
     }
 }
 
-static int isPMIdisabled(Step_t *step)
+static bool isPMIdisabled(Step_t *step)
 {
     char *val;
 
     if ((val = envGet(&step->env, "SLURM_MPI_TYPE"))) {
-	if (!strcmp(val, "none")) return 1;
+	if (!strcmp(val, "none")) return true;
     }
-
-    return 0;
+    return false;
 }
 
 static void debugMpiexecStart(char **argv, char **env)
@@ -708,6 +707,7 @@ static void execJobStep(Forwarder_Data_t *fwdata, int rerun)
     unsigned int i;
     strv_t argV;
     char buf[128];
+    bool PMIdisabled = isPMIdisabled(step);
 
     /* reopen syslog */
     openlog("psid", LOG_PID|LOG_CONS, LOG_DAEMON);
@@ -744,7 +744,7 @@ static void execJobStep(Forwarder_Data_t *fwdata, int rerun)
     /* label output */
     if (step->taskFlags & LAUNCH_LABEL_IO) strvAdd(&argV, ustrdup("-l"));
     /* PMI layer support */
-    if (isPMIdisabled(step)) strvAdd(&argV, ustrdup("--pmidisable"));
+    if (PMIdisabled) strvAdd(&argV, ustrdup("--pmidisable"));
 
     if (step->taskFlags & LAUNCH_MULTI_PROG) {
 	setupArgsFromMultiProg(step, fwdata, &argV);
@@ -791,7 +791,7 @@ static void execJobStep(Forwarder_Data_t *fwdata, int rerun)
     /* set rlimits */
     setRlimitsFromEnv(&step->env, 1);
 
-    removeUserVars(&step->env);
+    removeUserVars(&step->env, PMIdisabled);
 
     if (DEBUG_MPIEXEC_OPTIONS) debugMpiexecStart(argV.strings, step->env.vars);
 
