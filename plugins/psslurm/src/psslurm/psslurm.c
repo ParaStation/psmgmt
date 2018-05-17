@@ -456,9 +456,11 @@ static int getControllerIDs(void)
     char *conAddr;
 
     /* resolve main controller */
-    if (!(conAddr = getConfValueC(&SlurmConfig, "ControlMachine"))) {
-	mlog("%s: invalid ControlMachine\n", __func__);
-	return 0;
+    if (!(conAddr = getConfValueC(&SlurmConfig, "ControlAddr"))) {
+	if (!(conAddr = getConfValueC(&SlurmConfig, "ControlMachine"))) {
+	    mlog("%s: invalid ControlMachine\n", __func__);
+	    return 0;
+	}
     }
 
     if ((slurmController = getNodeIDbyName(conAddr)) == -1) {
@@ -467,9 +469,11 @@ static int getControllerIDs(void)
     }
 
     /* resolve backup controller */
-    if (!(conAddr = getConfValueC(&SlurmConfig, "BackupController"))) {
-	/* we could be running without backup controller */
-	return 1;
+    if (!(conAddr = getConfValueC(&SlurmConfig, "BackupAddr"))) {
+	if (!(conAddr = getConfValueC(&SlurmConfig, "BackupController"))) {
+	    /* we could be running without backup controller */
+	    return 1;
+	}
     }
 
     if ((slurmBackupController = getNodeIDbyName(conAddr)) == -1) {
@@ -574,12 +578,12 @@ int initialize(void)
 	confAccPollTime = 30;
     }
 
-    /* save the slurm user id */
+    /* save the Slurm user id */
     if ((slurmUser = getConfValueC(&SlurmConfig, "SlurmUser"))) {
 	if ((pw = getpwnam(slurmUser))) {
 	    slurmUserID = pw->pw_uid;
 	} else {
-	    mwarn(errno, "%s: getting userid of slurm user '%s' failed: ",
+	    mwarn(errno, "%s: getting userid of Slurm user '%s' failed: ",
 		    __func__, slurmUser);
 	    goto INIT_ERROR;
 	}
@@ -610,7 +614,8 @@ int initialize(void)
 
 INIT_ERROR:
     psPelogueDelPluginConfig("psslurm");
-    unregisterHooks(0);
+    unregisterHooks(false);
+    finalizePScomm(false);
     return 1;
 }
 

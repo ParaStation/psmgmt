@@ -117,18 +117,25 @@ typedef struct {
 void sendNodeRegStatus(void);
 
 /**
- * @brief Convert a Slurm hostlist to PS node IDs
+ * @brief Convert a Slurm hostlist to ParaStation node IDs
  *
- * @param slurmHosts The Slurm hostlist to convert
+ * The compressed Slurm hostlist is first converted to a comma
+ * separated list of hostnames. For every host the corresponding
+ * ParaStation node ID is then looked up in the HostLT table via
+ * @ref getNodeIDbyAddr().
+ *
+ * @param slurmHosts The compressed Slurm hostlist to convert
  *
  * @param nrOfNodes The number of converted nodes
  *
  * @param nodes The PS nodelist holding the result
  *
  * @param localId Will receive the local job node ID
+ *
+ * @return Returns true on success or false on error
  */
-void getNodesFromSlurmHL(char *slurmHosts, uint32_t *nrOfNodes,
-			    PSnodes_ID_t **nodes, uint32_t *localId);
+bool getNodesFromSlurmHL(char *slurmHosts, uint32_t *nrOfNodes,
+			 PSnodes_ID_t **nodes, uint32_t *localId);
 
 int getSlurmMsgHeader(Slurm_Msg_t *sMsg, Msg_Forward_t *fw);
 

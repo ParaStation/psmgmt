@@ -34,6 +34,7 @@
 #include "psexechandles.h"
 #include "psaccounthandles.h"
 #include "psexectypes.h"
+#include "pshostlist.h"
 
 #include "slurmcommon.h"
 #include "psslurmforwarder.h"
@@ -60,6 +61,11 @@ typedef struct {
     DDTypedBufferMsg_t msg;	/**< used to save the msg header */
     PS_DataBuffer_t *data;	/**< msg payload */
 } Msg_Cache_t;
+
+typedef struct {
+    char *hostname;
+    PSnodes_ID_t nodeid;
+} Host_Lookup_t;
 
 /** List of all cached messages */
 static LIST_HEAD(msgCache);
@@ -91,6 +97,9 @@ static handlerFunc_t oldSpawnReqHandler = NULL;
 
 /** Old handler for PSP_CD_UNKNOWN messages */
 static handlerFunc_t oldUnkownHandler = NULL;
+
+/** hostname lookup table for PS node IDs */
+static Host_Lookup_t *HostLT = NULL;
 
 char *msg2Str(PSP_PSSLURM_t type)
 {
@@ -891,7 +900,11 @@ void forwardSlurmMsg(Slurm_Msg_t *sMsg, Msg_Forward_t *fw)
     PS_SendDB_t msg;
 
     /* convert nodelist to PS nodes */
-    getNodesFromSlurmHL(fw->head.nodeList, &nrOfNodes, &nodes, &localId);
+    if (!getNodesFromSlurmHL(fw->head.nodeList, &nrOfNodes, &nodes, &localId)) {
+	mlog("%s: resolving PS nodeIDs from %s failed\n", __func__,
+	     fw->head.nodeList);
+	return;
+    }
 
     initFragBuffer(&msg, PSP_CC_PLUG_PSSLURM, PSP_FORWARD_SMSG);
     for (i=0; i<nrOfNodes; i++) {
@@ -1816,6 +1829,19 @@ static void handleUnknownMsg(DDBufferMsg_t *msg)
     if (oldUnkownHandler) oldUnkownHandler(msg);
 }
 
+static void freeHostLT(void)
+{
+    PSnodes_ID_t i, nrOfNodes = PSC_getNrOfNodes();
+
+    if (!HostLT) return;
+
+    for (i=0; i<nrOfNodes; i++) {
+	ufree(HostLT[i].hostname);
+    }
+    ufree(HostLT);
+    HostLT = NULL;
+}
+
 void finalizePScomm(bool verbose)
 {
     /* unregister psslurm msg */
@@ -1876,6 +1902,211 @@ void finalizePScomm(bool verbose)
     PSID_clearDropper(PSP_CC_PLUG_PSSLURM);
 
     finalizeSerial();
+
+    freeHostLT();
+}
+
+/**
+ * @brief Expand a single NodeName and NodeAddr entry
+ *
+ * @param idx The index of the entry to expand
+ *
+ * @param hostList Receives the comma separated list of hostnames
+ *
+ * @param addrList Receives the comma separated list of host addresses
+ *
+ * @return Returns true on success or false on error
+ */
+static bool expHostEntry(int idx, char **hostList, char **addrList)
+{
+    char *hostEntry, *hostAddr, tmp[128];
+    uint32_t nrOfHosts, nrOfAddr;
+
+    *hostList = *addrList = NULL;
+
+    /* expand host list */
+    snprintf(tmp, sizeof(tmp), "SLURM_HOST_ENTRY_%i", idx);
+    hostEntry = getConfValueC(&Config, tmp);
+    if (!hostEntry) {
+	mlog("%s: host entry %s not found\n", __func__, tmp);
+	return false;
+    }
+
+    if (!(*hostList = expandHostList(hostEntry, &nrOfHosts))) {
+	mlog("%s: expanding host entry %i failed\n", __func__, idx);
+	return false;
+    }
+
+    /* expand optional node address */
+    snprintf(tmp, sizeof(tmp), "SLURM_HOST_ADDR_%i", idx);
+    if ((hostAddr = getConfValueC(&Config, tmp))) {
+	if (!(*addrList = expandHostList(hostAddr, &nrOfAddr))) {
+	    mlog("%s: expanding host entry %i failed\n", __func__, idx);
+	    return false;
+	}
+	if (nrOfHosts != nrOfAddr) {
+	    mlog("%s: mismatching numbers of NodeName (%i) and NodeAddr (%i) "
+		 "for entry %i\n", __func__, nrOfHosts, nrOfAddr, idx);
+	    return false;
+	}
+    }
+    return true;
+}
+
+/**
+ * @brief Resolve and save a hostname/PS node ID pair in HostLT
+ *
+ * @param hostIdx The index in the HostLT array to use
+ *
+ * @param hostList Comma separated list of hostnames
+ *
+ * @param addrList Comma separated list of host addresses
+ *
+ * @param skHosts Number of unresolved hosts
+ *
+ * @return Returns true on success or false on error
+ */
+static bool saveHostEntry(int *hostIdx, char *hostList, char *addrList,
+			  int *skHosts)
+{
+    char *next, *saveptr;
+    const char delimiters[] =", \n";
+    int addrCnt = 0, idx, addrIdx = 0, weakIDcheck;
+    PSnodes_ID_t i, nrOfNodes = PSC_getNrOfNodes();
+    PSnodes_ID_t *nodeIDs = NULL;
+
+    /* resolve PS nodeIDs from optional address list */
+    if (addrList) {
+	nodeIDs = umalloc(sizeof(*nodeIDs) * nrOfNodes);
+	for (i=0; i<nrOfNodes; i++) nodeIDs[i] = -1;
+
+	next = strtok_r(addrList, delimiters, &saveptr);
+	while (next) {
+	    nodeIDs[addrCnt++] = getNodeIDbyName(next);
+	    next = strtok_r(NULL, delimiters, &saveptr);
+	}
+    }
+
+    /* save hostname and PS nodeID in HostLT */
+    next = strtok_r(hostList, delimiters, &saveptr);
+    idx = *hostIdx;
+    weakIDcheck = getConfValueI(&Config, "WEAK_NODEID_CHECK");
+    while (next) {
+	/* enough space for next host? */
+	if (idx >= nrOfNodes) {
+	    mlog("%s: more Slurm host definitions %i than PS nodes %i\n",
+		 __func__, idx, nrOfNodes);
+	    ufree(nodeIDs);
+	    return false;
+	}
+	if (!addrList) {
+	    /* resolve hostname if NodeAddr is not used */
+	    HostLT[idx].nodeid = getNodeIDbyName(next);
+	} else {
+	    if (addrIdx >= nrOfNodes || addrIdx >= addrCnt) {
+		mlog("%s: invalid index %i of %i nodes and %i addresses\n",
+		     __func__, addrIdx, nrOfNodes, addrCnt);
+		ufree(nodeIDs);
+		return false;
+	    }
+	    HostLT[idx].nodeid = nodeIDs[addrIdx++];
+	}
+	/* did we found a vaild PS ID ? */
+	if (HostLT[idx].nodeid == -1) {
+	    (*skHosts)++;
+	    if (weakIDcheck) {
+		mdbg(PSSLURM_LOG_WARN, "%s: unable to get PS nodeID for %s\n",
+			__func__, next);
+		next = strtok_r(NULL, delimiters, &saveptr);
+		continue;
+	    } else {
+		mlog("%s: unable to get PS nodeID for %s\n", __func__, next);
+		ufree(nodeIDs);
+		return false;
+	    }
+	}
+	mdbg(PSSLURM_LOG_DEBUG, "%s: idx %i nodeid %i hostname %s\n",
+	     __func__, idx, HostLT[idx].nodeid, next);
+	HostLT[idx++].hostname = ustrdup(next);
+	next = strtok_r(NULL, delimiters, &saveptr);
+    }
+    ufree(nodeIDs);
+    *hostIdx += (idx - *hostIdx);
+
+    return true;
+}
+
+PSnodes_ID_t getNodeIDbyHost(char *host)
+{
+    PSnodes_ID_t i = 0;
+
+    if (!HostLT) return -1;
+
+    while(HostLT[i].hostname) {
+	if (!strcmp(host, HostLT[i].hostname)) {
+	    return HostLT[i].nodeid;
+	}
+	i++;
+    }
+    return -1;
+}
+
+/**
+ * @brief Initialize host lookup table
+ *
+ * Parse the NodeName and NodeAddr options of slurm.conf. Build
+ * up the host lookup table HostLT holding pairs of a nodes
+ * hostname and its corresponding ParaStation node ID.
+ *
+ * HostLT is later used to convert every received Slurm
+ * compressed hostlist into a list of ParaStation node IDs.
+ *
+ * @return Returns true on success or false on error.
+ */
+static bool initHostLT(void)
+{
+    int numEntry, hostIdx = 0, skHosts = 0;
+    char *hostList = NULL, *addrList = NULL;
+    PSnodes_ID_t i, nrOfNodes = PSC_getNrOfNodes();
+
+    HostLT = umalloc(sizeof(*HostLT) * nrOfNodes);
+    for (i=0; i<nrOfNodes; i++) {
+	HostLT[i].hostname = NULL;
+	HostLT[i].nodeid = -1;
+    }
+
+    numEntry = getConfValueI(&Config, "SLURM_HOST_ENTRY_COUNT");
+    if (numEntry == -1) {
+	mlog("%s: missing NodeName definition in psslurm.conf\n", __func__);
+	goto ERROR;
+    }
+
+    for (i=1; i<=numEntry; i++) {
+	/* expand next NodeName and NodeAddr entry */
+	if (!expHostEntry(i, &hostList, &addrList)) {
+	    mlog("%s: expanding host entry %i failed\n", __func__, i);
+	    goto ERROR;
+	}
+	/* find PS nodeIDs and save the result in HostLT */
+	if (!saveHostEntry(&hostIdx, hostList, addrList, &skHosts)) {
+	    mlog("%s: saving host entry %i failed\n", __func__, i);
+	    goto ERROR;
+	}
+	ufree(hostList);
+	ufree(addrList);
+    }
+    if (skHosts) {
+	mlog("%s: failed to resolve %i Slurm hostnames\n", __func__, skHosts);
+    }
+    mdbg(PSSLURM_LOG_DEBUG, "%s: found %i PS nodes\n", __func__, hostIdx);
+    return true;
+
+ERROR:
+    ufree(hostList);
+    ufree(addrList);
+    freeHostLT();
+
+    return false;
 }
 
 bool initPScomm(void)
@@ -1919,6 +2150,11 @@ bool initPScomm(void)
 
     if (!PSIDhook_add(PSIDHOOK_CREATEPARTNL, handleCreatePartNL)) {
 	mlog("%s: cannot register PSIDHOOK_CREATEPARTNL\n", __func__);
+	return false;
+    }
+
+    if (!(initHostLT())) {
+	mlog("%s: resolving Slurm hosts failed\n", __func__);
 	return false;
     }
 

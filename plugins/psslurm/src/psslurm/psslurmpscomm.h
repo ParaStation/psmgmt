@@ -87,6 +87,15 @@ void deleteCachedMsg(uint32_t jobid, uint32_t stepid);
 void handleCachedMsg(Step_t *step);
 
 /**
+ * @brief Find PS nodeID by hostname (address)
+ *
+ * @param addr The hostname to lookup
+ *
+ * @return Returns the requested nodeID or -1 on error
+ */
+PSnodes_ID_t getNodeIDbyHost(char *host);
+
+/**
  * @brief Initialzie PScomm facility
  *
  * Initialize the facility handling communication via psid. This

@@ -139,10 +139,21 @@ const ConfDef_t CONFIG_VALUES[] =
 	"bool",
 	"0",
 	"Disable the execution of the parallel epilogue" },
+    { "WEAK_NODEID_CHECK", 1,
+	"bool",
+	"0",
+	"Allow nodes in slurm.conf to have no PS node ID" },
     { NULL, 0, NULL, NULL, NULL },
 };
 
-static int addHostOptions(char *options)
+/**
+ * @brief Add current host options to psslurm configuration
+ *
+ * @param options The current host options to add
+ *
+ * @param return Returns true on success or false on error
+ */
+static bool addHostOptions(char *options)
 {
     char *toksave, *next;
     const char delimiters[] =" \n";
@@ -171,16 +182,25 @@ static int addHostOptions(char *options)
 	    addConfigEntry(&Config, "SLURM_REAL_MEMORY", next+11);
 	} else if (!(strncasecmp(next, "Boards=", 7))) {
 	    addConfigEntry(&Config, "SLURM_BOARDS", next+7);
+	} else if (!(strncasecmp(next, "NodeAddr=", 9))) {
+	    /* already set before */
 	} else {
 	    mlog("%s: unknown node option '%s'\n", __func__, next);
-	    return 0;
+	    return false;
 	}
 	next = strtok_r(NULL, delimiters, &toksave);
     }
-    return 1;
+    return true;
 }
 
-static int parseGresOptions(char *options)
+/**
+ * @brief Parse and add gres options of current host to psslurm configuration
+ *
+ * @param options The current gres options to add
+ *
+ * @param return Returns true on success or false on error
+ */
+static bool parseGresOptions(char *options)
 {
     char *toksave, *next;
     const char delimiters[] =" \n";
@@ -199,7 +219,7 @@ static int parseGresOptions(char *options)
 	    cpus = ustrdup(next+5);
 	} else {
 	    mlog("%s: unknown gres option '%s'\n", __func__, next);
-	    return 0;
+	    return false;
 	}
 	next = strtok_r(NULL, delimiters, &toksave);
     }
@@ -209,26 +229,31 @@ static int parseGresOptions(char *options)
     ufree(count);
     ufree(file);
     ufree(cpus);
-    return 1;
+    return true;
 }
 
-static int setMyHostDef(const char *hn, char *line, int gres)
+/**
+ * @brief Search and save the current host definition
+ *
+ * @param hn hostname of current host
+ *
+ * @param hosts The host range to parse
+ *
+ * @param hostopt The host options to parse
+ *
+ * @param gres True if the hosts are from a gres configuration
+ *
+ * @param return Returns true on success or false on error
+ */
+static bool setMyHostDef(const char *hn, char *hosts, char *hostopt, int gres)
 {
-    char *hostopt, *hostrange, *hostlist, *host, *toksave, *ptr;
+    char *hostlist, *host, *toksave, *ptr;
     uint32_t numHosts;
     const char delimiters[] =", \n";
 
-    if (!(hostopt = strchr(line, ' '))) {
-	mlog("%s: invalid node definition '%s'\n", __func__, line);
-	return 0;
-    }
-    hostopt[0] = '\0';
-    hostopt++;
-    hostrange = line;
-
-    if (!(hostlist = expandHostList(hostrange, &numHosts))) {
-	mlog("%s: expanding NodeName '%s' failed\n", __func__, hostrange);
-	return 0;
+    if (!(hostlist = expandHostList(hosts, &numHosts))) {
+	mlog("%s: expanding NodeName '%s' failed\n", __func__, hosts);
+	return false;
     }
 
     /*
@@ -241,7 +266,7 @@ static int setMyHostDef(const char *hn, char *line, int gres)
 	if ((ptr = strchr(host, '.'))) ptr[0] = '\0';
 	if (gres) {
 	    if (!(strcmp(host, hn))) {
-		if (!(parseGresOptions(hostopt))) return 0;
+		if (!(parseGresOptions(hostopt))) return false;
 	    }
 	} else {
 	    if (!(strcmp(host, "DEFAULT"))) {
@@ -253,16 +278,93 @@ static int setMyHostDef(const char *hn, char *line, int gres)
 			hostopt);
 		addConfigEntry(&Config, "SLURM_HOSTNAME", host);
 		ufree(hostlist);
-		if (!(addHostOptions(hostopt))) return 0;
-		return 1;
+		if (!(addHostOptions(hostopt))) return false;
+		return true;
 	    }
 	}
 	host = strtok_r(NULL, delimiters, &toksave);
     }
     ufree(hostlist);
-    return 1;
+    return true;
 }
 
+/**
+ * @brief Parse a Slurm NodeName entry
+ *
+ * @param hn hostname of the current host
+ *
+ * @param line NodeName line to parse
+ *
+ * @param gres True if the NodeName line is from a gres configuration
+ *
+ * @param return Returns true on success or false on error
+ */
+static bool parseNodeNameEntry(const char *hn, char *line, int gres)
+{
+    char *hostopt;
+
+    if (!(hostopt = strchr(line, ' '))) {
+	mlog("%s: invalid node definition '%s'\n", __func__, line);
+	return false;
+    }
+    hostopt[0] = '\0';
+    hostopt++;
+
+    /* save all host definitions except for gres and the default host */
+    if (!gres && !!strcmp(line, "DEFAULT")) {
+	char tmp[128];
+	const char delimiters[] =" \n";
+	int numEntry;
+	char *toksave, *next, *nodeAddr = NULL;
+	char *options = ustrdup(hostopt);
+
+	/* save node entry in config */
+	numEntry = getConfValueI(&Config, "SLURM_HOST_ENTRY_COUNT");
+	numEntry = (numEntry == -1) ? 0 : numEntry;
+	numEntry++;
+
+	snprintf(tmp, sizeof(tmp), "SLURM_HOST_ENTRY_%i", numEntry);
+	addConfigEntry(&Config, tmp, line);
+
+	/* find optional node address */
+	next = strtok_r(options, delimiters, &toksave);
+	while (next) {
+	    if (!(strncasecmp(next, "NodeAddr=", 9))) {
+		nodeAddr = next+9;
+		break;
+	    }
+	    next = strtok_r(NULL, delimiters, &toksave);
+	}
+
+	if (nodeAddr) {
+	    snprintf(tmp, sizeof(tmp), "SLURM_HOST_ADDR_%i", numEntry);
+	    addConfigEntry(&Config, tmp, nodeAddr);
+	}
+	ufree(options);
+
+	/* update node entry count */
+	snprintf(tmp, sizeof(tmp), "%i", numEntry);
+	addConfigEntry(&Config, "SLURM_HOST_ENTRY_COUNT", tmp);
+    }
+
+    /* search for definition of the current host */
+    if (!(setMyHostDef(hn, line, hostopt, gres))) return false;
+
+    return true;
+}
+
+/**
+ * @brief Parse a Slurm configuration pair
+ *
+ * @param key The key to parse
+ *
+ * @param value The value to parse
+ *
+ * @param info Additional infos holding the current hostname and
+ * gres flag
+ *
+ * @param return Returns false on success or true on error
+ */
 static bool parseSlurmConf(char *key, char *value, const void *info)
 {
     const Slurm_Conf_Info *i = info;
@@ -271,8 +373,9 @@ static bool parseSlurmConf(char *key, char *value, const void *info)
     /* parse all NodeName entries */
     if (!(strcmp(key, "NodeName"))) {
 	hostline = ustrdup(value);
-	if (!(setMyHostDef(i->hostname, hostline, i->gres))) {
+	if (!(parseNodeNameEntry(i->hostname, hostline, i->gres))) {
 	    ufree(hostline);
+	    /* an error occured, return true to stop parsing */
 	    return true;
 	}
 	ufree(hostline);
@@ -283,38 +386,42 @@ static bool parseSlurmConf(char *key, char *value, const void *info)
 	parseGresOptions(tmp);
 	ufree(tmp);
     }
-
+    /* parsing was successful, continue with next line */
     return false;
 }
 
-static int verifySlurmConf(void)
+/**
+ * @brief Do various sanity checks for a Slurm configuration
+ *
+ * @return Returns true on success or false on error
+ */
+static bool verifySlurmConf(void)
 {
     if (!getConfValueC(&Config, "SLURM_CPUS")) {
 	mlog("%s: invalid SLURM_CPUS\n", __func__);
-	return 0;
+	return false;
     }
     if (!getConfValueC(&Config, "SLURM_HOSTNAME")) {
 	mlog("%s: invalid SLURM_HOSTNAME\n", __func__);
-	return 0;
+	return false;
     }
     if (!getConfValueC(&Config, "SLURM_SOCKETS")) {
 	mlog("%s: invalid SLURM_SOCKETS\n", __func__);
-	return 0;
+	return false;
     }
     if (!getConfValueC(&Config, "SLURM_CORES_PER_SOCKET")) {
 	mlog("%s: invalid SLURM_CORES_PER_SOCKET\n", __func__);
-	return 0;
+	return false;
     }
     if (!getConfValueC(&Config, "SLURM_THREADS_PER_CORE")) {
 	mlog("%s: invalid SLURM_THREADS_PER_CORE\n", __func__);
-	return 0;
+	return false;
     }
     if (!getConfValueC(&Config, "SLURM_BOARDS")) {
 	/* set default boards */
 	addConfigEntry(&Config, "SLURM_BOARDS", "1");
     }
-
-    return 1;
+    return true;
 }
 
 int initConfig(char *filename, uint32_t *hash)
