@@ -605,11 +605,19 @@ TCP_RECONNECT:
 
 int connect2Slurmctld(void)
 {
-    int sock, len;
+    int sock = -1, len;
     char *addr, *port;
 
     port = getConfValueC(&SlurmConfig, "SlurmctldPort");
-    addr = getConfValueC(&SlurmConfig, "ControlMachine");
+    if (!(addr = getConfValueC(&SlurmConfig, "ControlAddr"))) {
+	addr = getConfValueC(&SlurmConfig, "ControlMachine");
+    }
+
+    if (!addr || !port) {
+	mlog("%s: invalid control address %s or port %s\n",
+	     __func__, addr, port);
+	return sock;
+    }
 
     if (addr[0] == '"') addr++;
     len = strlen(addr);
@@ -619,7 +627,9 @@ int connect2Slurmctld(void)
     sock = tcpConnect(addr, port);
     if (sock < 0) {
 	/* try to connect to backup controller */
-	addr = getConfValueC(&SlurmConfig, "BackupController");
+	if (!(addr = getConfValueC(&SlurmConfig, "BackupAddr"))) {
+	    addr = getConfValueC(&SlurmConfig, "BackupController");
+	}
 	if (!addr) return sock;
 
 	if (addr[0] == '"') addr++;
