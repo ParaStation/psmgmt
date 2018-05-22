@@ -2233,6 +2233,8 @@ config_t *parseConfig(FILE* logfile, int logmask, char *configfile)
 {
     int ret;
 
+    char *pos, *nodename;
+
     /* Check if configfile exists and has not length 0.
        If so, use it, else use psconfig. */
 
@@ -2271,6 +2273,8 @@ config_t *parseConfig(FILE* logfile, int logmask, char *configfile)
 	parser_comment(-1,
 		       "ERROR: Reading nodes configuration from psconfig"
 		       " failed.\n");
+	psconfig_unref(psconfig);
+	psconfig = NULL;
 	return NULL;
     }
 
@@ -2279,6 +2283,29 @@ config_t *parseConfig(FILE* logfile, int logmask, char *configfile)
     strncpy(psconfigobj, "host:", 6);
     gethostname(psconfigobj+5, 65);
     psconfigobj[69] = '\0'; //assure object to be null terminated
+
+    // check if the host object exists or we have to cut the hostname
+    if (getString("NodeName", &nodename)) {
+	// cut hostname
+	parser_comment(PARSER_LOG_VERB, "%s: Cutting hostname \"%s\" for"
+		" psconfig.\n", __func__, psconfigobj);
+	pos = strchr(psconfigobj, '.');
+	if (pos == NULL) {
+	    parser_comment(-1,
+			   "ERROR: Cannot find host object for this node.\n");
+	    free(psconfigobj);
+	    psconfigobj = NULL;
+	    psconfig_unref(psconfig);
+	    psconfig = NULL;
+	    return NULL;
+	}
+	*pos = '\0';
+	parser_comment(-1, "INFO: Trying to use cutted hostname \"%s\" for"
+		" psconfig.\n", psconfigobj);
+    }
+    else {
+	free(nodename);
+    }
 
     // set default UID/GID for local node
     setID(&nodeUID, PSNODES_ANYUSER);
@@ -2292,6 +2319,10 @@ config_t *parseConfig(FILE* logfile, int logmask, char *configfile)
     if (ret) {
 	parser_comment(-1,
 		       "ERROR: Reading configuration from psconfig failed.\n");
+	free(psconfigobj);
+	psconfigobj = NULL;
+	psconfig_unref(psconfig);
+	psconfig = NULL;
 	return NULL;
     }
 
@@ -2300,6 +2331,10 @@ config_t *parseConfig(FILE* logfile, int logmask, char *configfile)
      */
     if (PSIDnodes_getNum() == -1) {
 	parser_comment(-1, "ERROR: No Nodes found.\n");
+	free(psconfigobj);
+	psconfigobj = NULL;
+	psconfig_unref(psconfig);
+	psconfig = NULL;
 	return NULL;
     }
 
@@ -2312,7 +2347,9 @@ config_t *parseConfig(FILE* logfile, int logmask, char *configfile)
     parser_finalize(); //TODO
 
     free(psconfigobj);
+    psconfigobj = NULL;
     psconfig_unref(psconfig);
+    psconfig = NULL;
 
     return &config;
 }
