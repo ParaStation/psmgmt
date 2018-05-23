@@ -508,15 +508,15 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
     if (!(job = findJobById(id))) {
 	if (!(alloc = findAlloc(step->jobid))) {
 	    if (step->packNrOfNodes != NO_VAL) {
-		alloc = addAllocation(step->packJobid, step->packNrOfNodes,
-				      step->packHostlist, &step->env,
-				      &step->spankenv, step->uid, step->gid,
-				      step->username);
+		alloc = addAlloc(step->packJobid, step->packNrOfNodes,
+				 step->packHostlist, &step->env,
+				 &step->spankenv, step->uid, step->gid,
+				 step->username);
 	    } else {
-		alloc = addAllocation(step->jobid, step->cred->jobNumHosts,
-				      step->cred->jobHostlist, &step->env,
-				      &step->spankenv, step->uid, step->gid,
-				      step->username);
+		alloc = addAlloc(step->jobid, step->cred->jobNumHosts,
+				 step->cred->jobHostlist, &step->env,
+				 &step->spankenv, step->uid, step->gid,
+				 step->username);
 	    }
 	    /* first received step does *not* have to be step 0 */
 	    alloc->state = JOB_PROLOGUE;

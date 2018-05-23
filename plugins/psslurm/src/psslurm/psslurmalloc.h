@@ -45,11 +45,10 @@ typedef struct {
     uint32_t localNodeId;
 } Alloc_t;
 
-
 /**
  * @doctodo
  */
-Alloc_t *addAllocation(uint32_t jobid, uint32_t nrOfNodes, char *slurmHosts,
+Alloc_t *addAlloc(uint32_t id, uint32_t nrOfNodes, char *slurmHosts,
 		       env_t *env, env_t *spankenv, uid_t uid, gid_t gid,
 		       char *username);
 
@@ -93,12 +92,12 @@ bool traverseAllocs(AllocVisitor_t visitor, const void *info);
 /**
  * @doctodo
  */
-Alloc_t *findAlloc(uint32_t jobid);
+Alloc_t *findAlloc(uint32_t id);
 
 /**
  * @doctodo
  */
-int deleteAlloc(uint32_t jobid);
+int deleteAlloc(uint32_t id);
 
 /**
  * @doctodo
@@ -121,6 +120,6 @@ int countAllocs(void);
  *
  * @return Returns the number of tasks signaled.
  */
-int signalAllocations(int signal);
+int signalAllocs(int signal);
 
 #endif  /* __PS_PSSLURM_ALLOC */

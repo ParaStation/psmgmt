@@ -261,7 +261,7 @@ int signalJobs(int signal)
 	count += signalJob(job, signal, 0);
     }
 
-    count += signalAllocations(signal);
+    count += signalAllocs(signal);
 
     return count;
 }

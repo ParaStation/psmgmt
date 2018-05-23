@@ -755,8 +755,8 @@ static void handleAllocLaunch(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     getUint32(&ptr, &nrOfNodes);
     slurmHosts = getStringM(&ptr);
 
-    alloc = addAllocation(jobid, nrOfNodes, slurmHosts,
-			    NULL, NULL, uid, gid, username);
+    alloc = addAlloc(jobid, nrOfNodes, slurmHosts,
+		     NULL, NULL, uid, gid, username);
     alloc->state = JOB_PROLOGUE;
     alloc->motherSup = msg->header.sender;
 

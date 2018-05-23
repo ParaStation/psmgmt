@@ -7,7 +7,6 @@
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-
 #include <time.h>
 
 #include "pluginmalloc.h"
@@ -23,7 +22,7 @@
 /** List of all allocations */
 static LIST_HEAD(AllocList);
 
-Alloc_t *addAllocation(uint32_t id, uint32_t nrOfNodes, char *slurmHosts,
+Alloc_t *addAlloc(uint32_t id, uint32_t nrOfNodes, char *slurmHosts,
 			    env_t *env, env_t *spankenv, uid_t uid, gid_t gid,
 			    char *username)
 {
@@ -102,25 +101,25 @@ void clearAllocList(void)
     }
 }
 
-Alloc_t *findAlloc(uint32_t jobid)
+Alloc_t *findAlloc(uint32_t id)
 {
     list_t *a;
     list_for_each(a, &AllocList) {
 	Alloc_t *alloc = list_entry(a, Alloc_t, next);
-	if (alloc->id == jobid) return alloc;
+	if (alloc->id == id) return alloc;
     }
     return NULL;
 }
 
-int deleteAlloc(uint32_t jobid)
+int deleteAlloc(uint32_t id)
 {
     Alloc_t *alloc;
 
     /* delete all corresponding steps */
-    clearStepList(jobid);
-    clearBCastByJobid(jobid);
+    clearStepList(id);
+    clearBCastByJobid(id);
 
-    if (!(alloc = findAlloc(jobid))) return 0;
+    if (!(alloc = findAlloc(id))) return 0;
 
     /* free corresponding pelogue job */
     psPelogueDeleteJob("psslurm", strJobID(alloc->id));
@@ -131,7 +130,7 @@ int deleteAlloc(uint32_t jobid)
 		alloc->nrOfNodes, alloc->nodes);
     }
 
-    psPamDeleteUser(alloc->username, strJobID(jobid));
+    psPamDeleteUser(alloc->username, strJobID(id));
 
     ufree(alloc->nodes);
     ufree(alloc->slurmHosts);
@@ -145,7 +144,7 @@ int deleteAlloc(uint32_t jobid)
     return 1;
 }
 
-int signalAllocations(int signal)
+int signalAllocs(int signal)
 {
     int count = 0;
     list_t *a, *tmp;
