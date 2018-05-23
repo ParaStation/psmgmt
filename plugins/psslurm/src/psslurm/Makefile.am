@@ -47,7 +47,7 @@ psslurm_la_SOURCES = psslurm.c psslurm.h psslurmlog.c psslurmlog.h	\
 	psslurmtypes.h psslurminter.c psslurminter.h psslurmhandles.h	\
 	psslurmmsg.h psslurmmsg.c psslurmtasks.h psslurmtasks.c		\
 	psslurmjobcred.h psslurmstep.c psslurmstep.h psslurmbcast.c	\
-	psslurmbcast.h
+	psslurmbcast.h psslurmalloc.c psslurmalloc.h
 
 psslurm_la_CPPFLAGS = $(AM_CPPFLAGS) -DPLUGINDIR=\"$(plugindir)\"	\
 	-DLOCALSTATEDIR=\"$(localstatedir)\"				\
