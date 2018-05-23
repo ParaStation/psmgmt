@@ -362,7 +362,7 @@ void send_PS_AllocLaunch(Alloc_t *alloc)
     if (!getNumFragDest(&data)) return;
 
     /* add jobid */
-    addUint32ToMsg(alloc->jobid, &data);
+    addUint32ToMsg(alloc->id, &data);
 
     /* uid/gid */
     addUint32ToMsg(alloc->uid, &data);
@@ -391,7 +391,7 @@ void send_PS_AllocState(Alloc_t *alloc)
     if (!getNumFragDest(&data)) return;
 
     /* add jobid */
-    addUint32ToMsg(alloc->jobid, &data);
+    addUint32ToMsg(alloc->id, &data);
 
     /* add state */
     addUint16ToMsg(alloc->state, &data);
@@ -445,7 +445,7 @@ static int callbackNodeOffline(uint32_t id, int32_t exit, PSnodes_ID_t remote,
 	}
     } else if ((alloc = findAlloc(id))) {
 	if (!exit) {
-	    mlog("%s: success alloc %u state %s\n", __func__, alloc->jobid,
+	    mlog("%s: success alloc %u state %s\n", __func__, alloc->id,
 		 strJobState(alloc->state));
 	}  else {
 	    mlog("%s: failed\n", __func__);
@@ -1208,7 +1208,7 @@ static void handleDroppedMsg(DDTypedBufferMsg_t *msg)
 	    Alloc_t *alloc  = findAlloc(jobid);
 	    if (alloc) {
 		mlog("%s: deleting allocation %u\n", __func__, jobid);
-		signalStepsByJobid(alloc->jobid, SIGKILL, 0);
+		signalStepsByJobid(alloc->id, SIGKILL, 0);
 		sendEpilogueComplete(jobid, 0);
 		deleteAlloc(jobid);
 	    }

@@ -17,6 +17,7 @@
 #include "psslurmconfig.h"
 #include "psslurmlog.h"
 #include "psslurmjob.h"
+#include "psslurmalloc.h"
 #include "psslurmpin.h"
 #include "psidtask.h"
 
@@ -122,7 +123,7 @@ static bool addAllocInfo(Alloc_t *alloc, const void *info)
     char start[50];
     StrBuffer_t *strBuf = (StrBuffer_t *) info;
 
-    snprintf(line, sizeof(line), "- jobid %u -\n", alloc->jobid);
+    snprintf(line, sizeof(line), "- jobid %u -\n", alloc->id);
     addStrBuf(line, strBuf);
 
     snprintf(line, sizeof(line), "user '%s'\n", alloc->username);

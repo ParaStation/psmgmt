@@ -17,6 +17,7 @@
 #include "psprotocol.h"
 #include "pslog.h"
 #include "psslurmjob.h"
+#include "psslurmalloc.h"
 
 #include "psslurmcomm.h"
 

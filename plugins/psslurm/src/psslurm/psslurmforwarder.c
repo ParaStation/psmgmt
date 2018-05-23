@@ -27,6 +27,7 @@
 #include <utime.h>
 
 #include "psslurm.h"
+#include "psslurmalloc.h"
 #include "psslurmlog.h"
 #include "psslurmlimits.h"
 #include "psslurmcomm.h"

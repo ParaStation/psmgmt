@@ -123,7 +123,7 @@ static void cbPElogueAlloc(char *sjobid, int exit_status, bool timeout,
     if (exit_status != 0) {
 	handleFailedPElogue(alloc->state == JOB_PROLOGUE ? 1 : 0,
 			    alloc->nrOfNodes, &alloc->env, resList,
-			    alloc->jobid);
+			    alloc->id);
     }
 
     if (alloc->state == JOB_PROLOGUE) {
@@ -132,11 +132,11 @@ static void cbPElogueAlloc(char *sjobid, int exit_status, bool timeout,
 	    if (pluginShutdown) {
 		alloc->state = step->state = JOB_EXIT;
 		send_PS_AllocState(alloc);
-		deleteAlloc(alloc->jobid);
+		deleteAlloc(alloc->id);
 	    } else {
 		alloc->state = JOB_EPILOGUE;
 		send_PS_AllocState(alloc);
-		startPElogue(alloc->jobid, alloc->uid, alloc->gid,
+		startPElogue(alloc->id, alloc->uid, alloc->gid,
 			alloc->username, alloc->nrOfNodes, alloc->nodes,
 			&alloc->env, &alloc->spankenv, 1, 0);
 	    }
@@ -145,7 +145,7 @@ static void cbPElogueAlloc(char *sjobid, int exit_status, bool timeout,
 	    send_PS_AllocState(alloc);
 
 	    /* start all waiting steps */
-	    startAllSteps(alloc->jobid);
+	    startAllSteps(alloc->id);
 	} else {
 	    /* Prologue failed.
 	     * The prologue script will offline the corresponding node itself.
@@ -155,22 +155,22 @@ static void cbPElogueAlloc(char *sjobid, int exit_status, bool timeout,
 	    send_PS_AllocState(alloc);
 	    mdbg(PSSLURM_LOG_JOB, "%s: step '%u:%u' in '%s'\n", __func__,
 		    step->jobid, step->stepid, strJobState(step->state));
-	    if (pluginShutdown) deleteAlloc(alloc->jobid);
+	    if (pluginShutdown) deleteAlloc(alloc->id);
 	}
     } else if (alloc->state == JOB_EPILOGUE) {
 	alloc->state = step->state = JOB_EXIT;
 	send_PS_AllocState(alloc);
 	mdbg(PSSLURM_LOG_JOB, "%s: step '%u:%u' in '%s'\n", __func__,
 		step->jobid, step->stepid, strJobState(step->state));
-	sendEpilogueComplete(alloc->jobid, 0);
+	sendEpilogueComplete(alloc->id, 0);
 
 	if (alloc->motherSup == PSC_getMyTID()) {
-	    send_PS_JobExit(alloc->jobid, SLURM_BATCH_SCRIPT,
+	    send_PS_JobExit(alloc->id, SLURM_BATCH_SCRIPT,
 		    alloc->nrOfNodes, alloc->nodes);
 	}
 
-	if (alloc->terminate || !haveRunningSteps(alloc->jobid)) {
-	    deleteAlloc(alloc->jobid);
+	if (alloc->terminate || !haveRunningSteps(alloc->id)) {
+	    deleteAlloc(alloc->id);
 	}
     } else {
 	mlog("%s: allocation in state '%s', not in pelogue\n", __func__,

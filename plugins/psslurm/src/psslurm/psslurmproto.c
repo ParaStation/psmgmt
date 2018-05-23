@@ -563,13 +563,13 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
 		/* start all waiting steps */
 		alloc->state = JOB_RUNNING;
 		send_PS_AllocState(alloc);
-		startAllSteps(alloc->jobid);
+		startAllSteps(alloc->id);
 	    } else {
 		/* start prologue for steps without job */
 		alloc->state = step->state = JOB_PROLOGUE;
 		mdbg(PSSLURM_LOG_JOB, "%s: step %u:%u in '%s'\n", __func__,
 		     step->jobid, step->stepid, strJobState(step->state));
-		startPElogue(alloc->jobid, alloc->uid, alloc->gid,
+		startPElogue(alloc->id, alloc->uid, alloc->gid,
 			     alloc->username, alloc->nrOfNodes, alloc->nodes,
 			     &alloc->env, &alloc->spankenv, 1, 1);
 	    }
@@ -620,7 +620,7 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
 
 ERROR:
     if (step) deleteStep(step->jobid, step->stepid);
-    if (alloc) deleteAlloc(alloc->jobid);
+    if (alloc) deleteAlloc(alloc->id);
 }
 
 static void handleSignalTasks(Slurm_Msg_t *sMsg)
@@ -1719,8 +1719,8 @@ static void handleTerminateAlloc(Slurm_Msg_t *sMsg, Alloc_t *alloc)
 	grace = getConfValueI(&SlurmConfig, "KillWait");
 	if (time(NULL) - alloc->firstKillRequest > grace + 10) {
 	    mlog("%s: sending SIGKILL to fowarders of job %u\n", __func__,
-		    alloc->jobid);
-	    killForwarderByJobid(alloc->jobid);
+		    alloc->id);
+	    killForwarderByJobid(alloc->id);
 	    signal = SIGKILL;
 	}
     }
@@ -1728,16 +1728,16 @@ static void handleTerminateAlloc(Slurm_Msg_t *sMsg, Alloc_t *alloc)
 
     /* wait for mother superior to release the allocation */
     if (alloc->motherSup != PSC_getMyTID()) {
-	shutdownStepForwarder(alloc->jobid);
+	shutdownStepForwarder(alloc->id);
 	if (alloc->terminate > 3) {
 	    if (!alloc->motherSup || alloc->motherSup == -1) {
 		/* unknown mother superior */
 		mlog("%s: unknown mother superior, releasing allocation %u\n",
-			__func__, alloc->jobid);
-		sendEpilogueComplete(alloc->jobid, 0);
-		deleteAlloc(alloc->jobid);
+			__func__, alloc->id);
+		sendEpilogueComplete(alloc->id, 0);
+		deleteAlloc(alloc->id);
 	    } else {
-		send_PS_JobState(alloc->jobid, PSC_getTID(alloc->motherSup, 0));
+		send_PS_JobState(alloc->id, PSC_getTID(alloc->motherSup, 0));
 		alloc->terminate = 1;
 	    }
 	}
@@ -1748,15 +1748,15 @@ static void handleTerminateAlloc(Slurm_Msg_t *sMsg, Alloc_t *alloc)
     switch (alloc->state) {
 	case JOB_RUNNING:
 	    /* check if we still have running steps and kill them */
-	    if ((haveRunningSteps(alloc->jobid)) && alloc->terminate < 40) {
-		signalStepsByJobid(alloc->jobid, signal, sMsg->head.uid);
+	    if ((haveRunningSteps(alloc->id)) && alloc->terminate < 40) {
+		signalStepsByJobid(alloc->id, signal, sMsg->head.uid);
 		mlog("%s: waiting till steps are completed\n", __func__);
 	    } else {
 		/* no running steps left, lets start epilogue */
 		mlog("%s: starting epilogue for allocation %u state '%s'\n",
-			__func__, alloc->jobid, strJobState(alloc->state));
+			__func__, alloc->id, strJobState(alloc->state));
 		alloc->state = JOB_EPILOGUE;
-		startPElogue(alloc->jobid, alloc->uid, alloc->gid,
+		startPElogue(alloc->id, alloc->uid, alloc->gid,
 				alloc->username, alloc->nrOfNodes, alloc->nodes,
 				&alloc->env, &alloc->spankenv, 1, 0);
 	    }
@@ -1767,7 +1767,7 @@ static void handleTerminateAlloc(Slurm_Msg_t *sMsg, Alloc_t *alloc)
 	    break;
 	case JOB_EXIT:
 	    sendSlurmRC(sMsg, ESLURMD_KILL_JOB_ALREADY_COMPLETE);
-	    deleteAlloc(alloc->jobid);
+	    deleteAlloc(alloc->id);
 	    return;
     }
 
@@ -1816,8 +1816,8 @@ static void handleAbortReq(Slurm_Msg_t *sMsg, uint32_t jobid, uint32_t stepid)
 	deleteJob(jobid);
     } else {
 	if (alloc->motherSup == PSC_getMyTID()) {
-	    signalStepsByJobid(alloc->jobid, SIGKILL, sMsg->head.uid);
-	    send_PS_JobExit(alloc->jobid, SLURM_BATCH_SCRIPT,
+	    signalStepsByJobid(alloc->id, SIGKILL, sMsg->head.uid);
+	    send_PS_JobExit(alloc->id, SLURM_BATCH_SCRIPT,
 		    alloc->nrOfNodes, alloc->nodes);
 	}
 	deleteAlloc(jobid);

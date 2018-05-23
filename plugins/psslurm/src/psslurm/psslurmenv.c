@@ -24,6 +24,7 @@
 #include "psslurmlog.h"
 #include "psslurmproto.h"
 #include "psslurmpin.h"
+#include "psslurmalloc.h"
 
 #include "psslurmenv.h"
 
