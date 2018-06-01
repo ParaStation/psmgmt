@@ -1254,16 +1254,16 @@ static void forwardToSrunProxy(Step_t *step, PSLog_Msg_t *lmsg, int taskid)
     if (!step->fwdata) return;
 
     /* connection to srun broke */
-    if (step->ioCon > 2) return;
+    if (step->ioCon == CON_BROKE) return;
 
-    if (step->ioCon == 2) {
+    if (step->ioCon == CON_ERROR) {
 	mlog("%s: I/O connection for step %u:%u is broken\n", __func__,
 	     step->jobid, step->stepid);
-	step->ioCon = 3;
+	step->ioCon = CON_BROKE;
     }
 
     /* if msg from service rank, let it seem like it comes from first task */
-    if (senderRank < 0) senderRank = step->globalTaskIds[step->myNodeIndex][0];
+    if (senderRank < 0) senderRank = step->globalTaskIds[step->localNodeId][0];
 
     do {
 	uint32_t chunk = left > chunkSize ? chunkSize : left;
@@ -1362,7 +1362,7 @@ static void handleCC_INIT_Msg(PSLog_Msg_t *msg)
 		if (task->childRank < 0) return;
 		step->fwInitCount++;
 
-		if (step->tasksToLaunch[step->myNodeIndex] ==
+		if (step->tasksToLaunch[step->localNodeId] ==
 			step->fwInitCount) {
 
 		    mdbg(PSSLURM_LOG_IO, "%s: enable srunIO\n", __func__);

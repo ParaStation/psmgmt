@@ -44,8 +44,8 @@ Step_t *addStep(uint32_t jobid, uint32_t stepid)
     step->stdInOpt = IO_UNDEF;
     step->stdOutOpt = IO_UNDEF;
     step->stdErrOpt = IO_UNDEF;
-    step->ioCon = 1;
-    step->start_time = time(0);
+    step->ioCon = CON_NORM;
+    step->startTime = time(0);
     step->leader = false;
 
     INIT_LIST_HEAD(&step->tasks);
@@ -154,7 +154,6 @@ int deleteStep(uint32_t jobid, uint32_t stepid)
     ufree(step->stdOut);
     ufree(step->stdIn);
     ufree(step->stdErr);
-    ufree(step->restart);
     ufree(step->checkpoint);
     ufree(step->partition);
     ufree(step->username);

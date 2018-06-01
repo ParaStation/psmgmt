@@ -27,30 +27,30 @@ typedef enum {
 } AllocState_t;
 
 typedef struct {
-    list_t next;              /**< used to put into some allocation-lists */
-    uint32_t id;
-    uid_t uid;
-    gid_t gid;
-    uint32_t nrOfNodes;
-    PSnodes_ID_t *nodes;
-    char *slurmHosts;	      /* Slurm compressed hostlist (SLURM_NODELIST) */
-    env_t env;
-    env_t spankenv;
-    uint8_t terminate;
-    int state;
-    char *username;
-    time_t firstKillRequest;
-    PStask_ID_t motherSup;
-    time_t start_time;        /**< time the allocation started */
-    uint32_t localNodeId;
+    list_t next;            /**< used to put into some allocation-lists */
+    uint32_t id;	    /**< unique allocation identifier */
+    uid_t uid;		    /**< user ID of the allocation owner */
+    gid_t gid;		    /**< group of the allocation owner */
+    uint32_t nrOfNodes;	    /**< number of nodes */
+    PSnodes_ID_t *nodes;    /**< all participating nodes in the allocation */
+    char *slurmHosts;	    /**< Slurm compressed host-list (SLURM_NODELIST) */
+    env_t env;		    /**< environment variables */
+    env_t spankenv;	    /**< spank environment variables */
+    uint8_t terminate;	    /**< track number of terminate requests */
+    int state;		    /**< current state of the allocation */
+    char *username;	    /**< username of allocation owner */
+    time_t firstKillReq;    /**< time the first kill request was received */
+    PStask_ID_t motherSup;  /**< PS task ID of mother superior */
+    time_t startTime;       /**< time the allocation started */
+    uint32_t localNodeId;   /**< local node ID for this allocation */
 } Alloc_t;
 
 /**
  * @doctodo
  */
 Alloc_t *addAlloc(uint32_t id, uint32_t nrOfNodes, char *slurmHosts,
-		       env_t *env, env_t *spankenv, uid_t uid, gid_t gid,
-		       char *username);
+		  env_t *env, env_t *spankenv, uid_t uid, gid_t gid,
+		  char *username);
 
 /**
  * @brief Visitor function
@@ -78,7 +78,7 @@ typedef bool AllocVisitor_t(Alloc_t *alloc, const void *info);
  * If @a visitor returns true, the traversal will be stopped
  * immediately and true is returned to the calling function.
  *
- * @param visitor Visitor function to be called for each alloc
+ * @param visitor Visitor function to be called for each allocation
  *
  * @param info Additional information to be passed to @a visitor while
  * visiting the allocations

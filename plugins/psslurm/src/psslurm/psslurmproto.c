@@ -143,19 +143,6 @@ uint32_t getLocalRankID(uint32_t rank, Step_t *step, uint32_t nodeId)
     return -1;
 }
 
-static int32_t getMyNodeIndex(PSnodes_ID_t *nodes, uint32_t nrOfNodes)
-{
-    uint32_t i;
-    PSnodes_ID_t myNodeId;
-
-    myNodeId = PSC_getMyID();
-
-    for (i=0; i<nrOfNodes; i++) {
-	if (nodes[i] == myNodeId) return i;
-    }
-    return -1;
-}
-
 bool getNodesFromSlurmHL(char *slurmHosts, uint32_t *nrOfNodes,
 			 PSnodes_ID_t **nodes, uint32_t *localId)
 {
@@ -407,7 +394,6 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
     Job_t *job = NULL;
     Step_t *step = NULL;
     uint32_t count, i, id;
-    int32_t nodeIndex;
 
     if (pluginShutdown) {
 	/* don't accept new steps if a shutdown is in progress */
@@ -470,15 +456,6 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
 	     __func__, count, step->nrOfNodes, step->jobid, step->stepid);
 	step->nrOfNodes = count;
     }
-
-    /* calculate my node index */
-    if ((nodeIndex = getMyNodeIndex(step->nodes, step->nrOfNodes)) < 0) {
-	mlog("%s: failed getting my node index for step %u:%u\n", __func__,
-	     step->jobid, step->stepid);
-	sendSlurmRC(sMsg, SLURM_ERROR);
-	goto ERROR;
-    }
-    step->myNodeIndex = nodeIndex;
 
     /* determine my role in the step */
     if (step->packJobid != NO_VAL) {
@@ -744,11 +721,11 @@ static void sendReattchReply(Step_t *step, Slurm_Msg_t *sMsg, uint32_t rc)
 
     if (rc == SLURM_SUCCESS) {
 	list_t *t;
-	numTasks = step->globalTaskIdsLen[step->myNodeIndex];
+	numTasks = step->globalTaskIdsLen[step->localNodeId];
 	/* number of tasks */
 	addUint32ToMsg(numTasks, &reply);
 	/* gtids */
-	addUint32ArrayToMsg(step->globalTaskIds[step->myNodeIndex],
+	addUint32ArrayToMsg(step->globalTaskIds[step->localNodeId],
 			    numTasks, &reply);
 	/* local pids */
 	countPos = reply.bufUsed;
@@ -862,8 +839,8 @@ static void handleReattachTasks(Slurm_Msg_t *sMsg)
 
     /* send message to forwarder */
     reattachTasks(step->fwdata, sMsg->head.addr,
-		    ioPorts[step->myNodeIndex % numIOports],
-		    ctlPorts[step->myNodeIndex % numCtlPorts],
+		    ioPorts[step->localNodeId % numIOports],
+		    ctlPorts[step->localNodeId % numCtlPorts],
 		    cred->sig);
 SEND_REPLY:
 
@@ -907,7 +884,7 @@ static void handleSignalJob(Slurm_Msg_t *sMsg)
     } else if (job) {
 	mlog("%s: send job %u signal %u\n", __func__,
 		jobid, signal);
-	if (signal == SIGUSR1) job->signaled = 1;
+	if (signal == SIGUSR1) job->signaled = true;
 	signalJob(job, signal, sMsg->head.uid);
     } else {
 	mlog("%s: send steps with jobid %u signal %u\n", __func__,
@@ -1579,7 +1556,6 @@ static void handleBatchJobLaunch(Slurm_Msg_t *sMsg)
 	return;
     }
 
-    job->extended = 1;
     job->hostname = ustrdup(getConfValueC(&Config, "SLURM_HOSTNAME"));
 
     /* write the jobscript */
@@ -1606,7 +1582,7 @@ static void handleBatchJobLaunch(Slurm_Msg_t *sMsg)
 	return;
     }
 
-    /* return success to slurmctld and start prologue*/
+    /* return success to slurmctld and start prologue */
     sendSlurmRC(sMsg, SLURM_SUCCESS);
 
     /* add user in pam for ssh access */
@@ -1617,7 +1593,6 @@ static void handleBatchJobLaunch(Slurm_Msg_t *sMsg)
 
     /* setup job environment */
     initJobEnv(job);
-    job->interactive = 0;
 
     /* start prologue */
     job->state = JOB_PROLOGUE;
@@ -1639,9 +1614,9 @@ static void handleTerminateJob(Slurm_Msg_t *sMsg, Job_t *job, int signal)
 {
     int grace;
 
-    if (job->firstKillRequest) {
+    if (job->firstKillReq) {
 	grace = getConfValueI(&SlurmConfig, "KillWait");
-	if (time(NULL) - job->firstKillRequest > grace + 10) {
+	if (time(NULL) - job->firstKillReq > grace + 10) {
 	    mlog("%s: sending SIGKILL to fowarders of job %u\n", __func__,
 		    job->jobid);
 	    killForwarderByJobid(job->jobid);
@@ -1715,9 +1690,9 @@ static void handleTerminateAlloc(Slurm_Msg_t *sMsg, Alloc_t *alloc)
 	return;
     }
 
-    if (alloc->firstKillRequest) {
+    if (alloc->firstKillReq) {
 	grace = getConfValueI(&SlurmConfig, "KillWait");
-	if (time(NULL) - alloc->firstKillRequest > grace + 10) {
+	if (time(NULL) - alloc->firstKillReq > grace + 10) {
 	    mlog("%s: sending SIGKILL to fowarders of job %u\n", __func__,
 		    alloc->id);
 	    killForwarderByJobid(alloc->id);
@@ -1848,7 +1823,7 @@ static bool killSelectedSteps(Step_t *step, const void *killInfo)
 		" TIME LIMIT ***\n", step->jobid, step->stepid);
 	printChildMessage(step, buf, strlen(buf), STDERR, 0);
 	sendStepTimeout(step->fwdata);
-	step->timeout = 1;
+	step->timeout = true;
     } else {
 	snprintf(buf, sizeof(buf), "error: *** PREEMPTION for step "
 		"%u:%u ***\n", step->jobid, step->stepid);
@@ -1940,10 +1915,10 @@ static void handleTerminateReq(Slurm_Msg_t *sMsg)
     job = findJobById(req->jobid);
     alloc = findAlloc(req->jobid);
 
-    if (job && !job->firstKillRequest) {
-	job->firstKillRequest = time(NULL);
-    } else if (alloc && !alloc->firstKillRequest) {
-	alloc->firstKillRequest = time(NULL);
+    if (job && !job->firstKillReq) {
+	job->firstKillReq = time(NULL);
+    } else if (alloc && !alloc->firstKillReq) {
+	alloc->firstKillReq = time(NULL);
     }
     info.jobid = req->jobid;
     info.stepid = req->stepid;

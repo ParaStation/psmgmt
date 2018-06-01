@@ -34,6 +34,13 @@ typedef enum {
     IO_NODE_FILE,	/** separate I/O file per node */
 } IO_Opt_t;
 
+/** used to track connection state */
+typedef enum {
+    CON_NORM = 1,   /**< default state */
+    CON_ERROR,	    /**< new error occurred */
+    CON_BROKE,	    /**< connection broken */
+} Con_State_t;
+
 void writeIOmsg(char *msg, uint32_t msgLen, uint32_t taskid,
 			uint8_t type, Forwarder_Data_t *fwdata, Step_t *step,
 			uint32_t lrank);

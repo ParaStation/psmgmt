@@ -23,8 +23,8 @@
 static LIST_HEAD(AllocList);
 
 Alloc_t *addAlloc(uint32_t id, uint32_t nrOfNodes, char *slurmHosts,
-			    env_t *env, env_t *spankenv, uid_t uid, gid_t gid,
-			    char *username)
+		  env_t *env, env_t *spankenv, uid_t uid, gid_t gid,
+		  char *username)
 {
     Alloc_t *alloc = findAlloc(id);
 
@@ -38,9 +38,9 @@ Alloc_t *addAlloc(uint32_t id, uint32_t nrOfNodes, char *slurmHosts,
     alloc->terminate = 0;
     alloc->slurmHosts = ustrdup(slurmHosts);
     alloc->username = ustrdup(username);
-    alloc->firstKillRequest = 0;
+    alloc->firstKillReq = 0;
     alloc->motherSup = -1;
-    alloc->start_time = time(0);
+    alloc->startTime = time(0);
 
     /* init nodes */
     getNodesFromSlurmHL(slurmHosts, &alloc->nrOfNodes, &alloc->nodes,

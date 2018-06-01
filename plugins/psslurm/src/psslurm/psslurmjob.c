@@ -47,7 +47,7 @@ Job_t *addJob(uint32_t jobid)
     job->jobid = jobid;
     INIT_LIST_HEAD(&job->gresList);
     job->state = JOB_INIT;
-    job->start_time = time(0);
+    job->startTime = time(0);
     INIT_LIST_HEAD(&job->tasks);
     envInit(&job->env);
     envInit(&job->spankenv);
@@ -147,16 +147,11 @@ int deleteJob(uint32_t jobid)
     ufree(job->hostname);
     ufree(job->slurmHosts);
     ufree(job->checkpoint);
-    ufree(job->restart);
     ufree(job->nodeAlias);
     ufree(job->partition);
     ufree(job->cpusPerNode);
     ufree(job->cpuCountReps);
-    ufree(job->account);
-    ufree(job->qos);
-    ufree(job->resvName);
     ufree(job->acctFreq);
-    ufree(job->resvPorts);
     ufree(job->gids);
     ufree(job->packHostlist);
 

@@ -265,7 +265,7 @@ static void handlePrintChildMsg(Forwarder_Data_t *fwdata, char *ptr)
     size_t len;
     char *msg = NULL;
     static IO_Msg_Buf_t *lineBuf;
-    int32_t myNodeID = step->myNodeIndex;
+    int32_t myNodeID = step->localNodeId;
     static int initBuf = 0;
 
     /* read message */
@@ -341,7 +341,7 @@ static void closeIOchannel(Forwarder_Data_t *fwdata, uint32_t taskid,
 void stepFinalize(Forwarder_Data_t *fwdata)
 {
     Step_t *step = fwdata->userData;
-    uint32_t i, myNodeID = step->myNodeIndex;
+    uint32_t i, myNodeID = step->localNodeId;
 
     /* make sure to close all leftover I/O channels */
     for (i=0; i<step->globalTaskIdsLen[myNodeID]; i++) {
@@ -488,7 +488,7 @@ static void handleInfoTasks(Forwarder_Data_t *fwdata, char *ptr)
 	    countRegTasks(step->tasks.next));
     */
 
-    if (step->globalTaskIdsLen[step->myNodeIndex] ==
+    if (step->globalTaskIdsLen[step->localNodeId] ==
 	countRegTasks(&step->tasks)) {
 	sendTaskPids(step);
     }
@@ -498,7 +498,7 @@ static void handleStepTimeout(Forwarder_Data_t *fwdata)
 {
     Step_t *step = fwdata->userData;
 
-    step->timeout = 1;
+    step->timeout = true;
 }
 
 int stepForwarderMsg(PSLog_Msg_t *msg, Forwarder_Data_t *fwData)
@@ -564,7 +564,7 @@ static void handleBrokeIOcon(PSLog_Msg_t *msg)
     Step_t *step = findStepByStepId(jobID, stepID);
     if (!step) return;
 
-    if (step->ioCon < 2) step->ioCon = 2;
+    if (step->ioCon == CON_NORM) step->ioCon = CON_ERROR;
 }
 
 int hookFWmsg(PSLog_Msg_t *msg, Forwarder_Data_t *fwData)
@@ -611,7 +611,7 @@ char *replaceStepSymbols(Step_t *step, int rank, char *path)
     }
 
     return replaceSymbols(step->jobid, step->stepid, hostname,
-			    step->myNodeIndex, step->username,
+			    step->localNodeId, step->username,
 			    arrayJobId, arrayTaskId, rank, path);
 }
 
@@ -851,7 +851,7 @@ void redirectStepIO(Forwarder_Data_t *fwdata, Step_t *step)
 {
     char *outFile = NULL, *errFile = NULL, *inFile;
     int flags = 0;
-    int32_t myNodeID = step->myNodeIndex;
+    int32_t myNodeID = step->localNodeId;
     uint32_t i;
 
     flags = getAppendFlags(step->appendMode);
@@ -990,7 +990,7 @@ void redirectStepIO2(Forwarder_Data_t *fwdata, Step_t *step)
 {
     char *outFile = NULL, *errFile = NULL, *inFile;
     int flags = 0;
-    int32_t myNodeID = step->myNodeIndex;
+    int32_t myNodeID = step->localNodeId;
     uint32_t i;
 
     flags = getAppendFlags(step->appendMode);
@@ -1130,16 +1130,16 @@ void printChildMessage(Step_t *step, char *plMsg, uint32_t msgLen,
     if (!step->fwdata) return;
 
     /* connection to srun broke */
-    if (step->ioCon > 2) return;
+    if (step->ioCon == CON_BROKE) return;
 
-    if (step->ioCon == 2) {
+    if (step->ioCon == CON_ERROR) {
 	mlog("%s: I/O connection for step '%u:%u' is broken\n", __func__,
 	     step->jobid, step->stepid);
-	step->ioCon = 3;
+	step->ioCon = CON_BROKE;
     }
 
     /* if msg from service rank, let it seem like it comes from first task */
-    if (rank < 0) rank = step->globalTaskIds[step->myNodeIndex][0];
+    if (rank < 0) rank = step->globalTaskIds[step->localNodeId][0];
 
     do {
 	uint32_t chunk = left > chunkSize ? chunkSize : left;

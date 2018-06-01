@@ -298,10 +298,10 @@ static char *GTIDsToList(Step_t *step)
     uint32_t i;
     char tmp[128];
 
-    for (i=0; i<step->globalTaskIdsLen[step->myNodeIndex]; i++) {
+    for (i=0; i<step->globalTaskIdsLen[step->localNodeId]; i++) {
 	if (i > 0) str2Buf(",", &buf, &bufSize);
 	snprintf(tmp, sizeof(tmp), "%u",
-		 step->globalTaskIds[step->myNodeIndex][i]);
+		 step->globalTaskIds[step->localNodeId][i]);
 	str2Buf(tmp, &buf, &bufSize);
     }
     return buf;
@@ -386,7 +386,7 @@ void setRankEnv(int32_t rank, Step_t *step)
 {
     char tmp[128], *myGTIDs, *list = NULL, *val, *display;
     size_t listSize = 0;
-    uint32_t myNodeId = step->myNodeIndex, myLocalId, count = 0, localNodeId;
+    uint32_t myNodeId = step->localNodeId, myLocalId, count = 0, localNodeId;
     Alloc_t *alloc;
     Job_t *job;
 

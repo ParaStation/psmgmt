@@ -70,7 +70,7 @@ static bool addJobInfo(Job_t *job, const void *info)
     }
 
     /* format start time */
-    ts = localtime(&job->start_time);
+    ts = localtime(&job->startTime);
     strftime(start, sizeof(start), "%Y-%m-%d %H:%M:%S", ts);
 
     snprintf(line, sizeof(line), "start time '%s'\n", start);
@@ -140,7 +140,7 @@ static bool addAllocInfo(Alloc_t *alloc, const void *info)
     addStrBuf(line, strBuf);
 
     /* format start time */
-    ts = localtime(&alloc->start_time);
+    ts = localtime(&alloc->startTime);
     strftime(start, sizeof(start), "%Y-%m-%d %H:%M:%S", ts);
 
     snprintf(line, sizeof(line), "start time '%s'\n", start);
@@ -324,7 +324,7 @@ static bool addStepInfo(Step_t *step, const void *info)
     }
 
     /* format start time */
-    ts = localtime(&step->start_time);
+    ts = localtime(&step->startTime);
     strftime(start, sizeof(start), "%Y-%m-%d %H:%M:%S", ts);
 
     snprintf(line, sizeof(line), "start time: '%s'\n", start);

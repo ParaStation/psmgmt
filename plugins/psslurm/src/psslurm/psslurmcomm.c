@@ -1047,8 +1047,8 @@ int handleSrunMsg(int sock, void *data)
     }
     pty = step->taskFlags & LAUNCH_PTY;
     fd = pty ? step->fwdata->stdOut[1] : step->fwdata->stdIn[1];
-    myTaskIdsLen = step->globalTaskIdsLen[step->myNodeIndex];
-    myTaskIds = step->globalTaskIds[step->myNodeIndex];
+    myTaskIdsLen = step->globalTaskIdsLen[step->localNodeId];
+    myTaskIds = step->globalTaskIds[step->localNodeId];
 
     if (!unpackSlurmIOHeader(&ptr, &ioh)) {
 	mlog("%s: unpack slurm I/O header failed\n", __func__);
@@ -1133,7 +1133,7 @@ int srunOpenControlConnection(Step_t *step)
     }
 
     snprintf(port, sizeof(port), "%u",
-	     step->srunPorts[step->myNodeIndex % step->numSrunPorts]);
+	     step->srunPorts[step->localNodeId % step->numSrunPorts]);
     sock = tcpConnect(inet_ntoa(step->srun.sin_addr), port);
     if (sock < 0) {
 	mlog("%s: connection to srun %s:%s failed\n", __func__,
@@ -1200,7 +1200,7 @@ int srunOpenIOConnectionEx(Step_t *step, uint32_t addr, uint16_t port,
 			   char *sig)
 {
     PS_SendDB_t data = { .bufUsed = 0, .useFrag = false };
-    PSnodes_ID_t nodeID = step->myNodeIndex;
+    PSnodes_ID_t nodeID = step->localNodeId;
     uint32_t i;
     int sock;
 
@@ -1281,8 +1281,8 @@ void srunEnableIO(Step_t *step)
 
     if (step->stdInRank != -1) {
 	/* close stdin for all other ranks */
-	myTaskIdsLen = step->globalTaskIdsLen[step->myNodeIndex];
-	myTaskIds = step->globalTaskIds[step->myNodeIndex];
+	myTaskIdsLen = step->globalTaskIdsLen[step->localNodeId];
+	myTaskIds = step->globalTaskIds[step->localNodeId];
 
 	for (i=0; i<myTaskIdsLen; i++) {
 	    if ((uint32_t) step->stdInRank == myTaskIds[i]) continue;

@@ -665,7 +665,7 @@ static void unpackStepIOoptions(Step_t *step, char **ptr)
 bool __unpackReqLaunchTasks(Slurm_Msg_t *sMsg, Step_t **stepPtr,
 			    const char *caller, const int line)
 {
-    char **ptr = &sMsg->ptr;
+    char **ptr = &sMsg->ptr, *unused;
     uint16_t msgVer = sMsg->head.version, debug;
     Step_t *step;
     uint32_t jobid, stepid, count, i, tmp;
@@ -717,10 +717,10 @@ bool __unpackReqLaunchTasks(Slurm_Msg_t *sMsg, Step_t **stepPtr,
 	step->packHostlist = getStringM(ptr);
 	/* ntasks */
 	getUint32(ptr, &step->np);
-	/* ntasks per board/core/socket */
-	getUint16(ptr, &step->ntasksPerBoard);
-	getUint16(ptr, &step->ntasksPerCore);
-	getUint16(ptr, &step->ntasksPerSocket);
+	/* ntasks per board/core/socket (unused) */
+	getUint16(ptr, &tmp);
+	getUint16(ptr, &tmp);
+	getUint16(ptr, &tmp);
 	/* partition */
 	step->partition = getStringM(ptr);
     } else {
@@ -741,10 +741,10 @@ bool __unpackReqLaunchTasks(Slurm_Msg_t *sMsg, Step_t **stepPtr,
 	getUint32(ptr, &mpiStepid);
 	/* ntasks */
 	getUint32(ptr, &step->np);
-	/* ntasks per board/core/socket */
-	getUint16(ptr, &step->ntasksPerBoard);
-	getUint16(ptr, &step->ntasksPerCore);
-	getUint16(ptr, &step->ntasksPerSocket);
+	/* ntasks per board/core/socket (unused) */
+	getUint16(ptr, &tmp);
+	getUint16(ptr, &tmp);
+	getUint16(ptr, &tmp);
 	/* pack jobid */
 	getUint32(ptr, &step->packJobid);
 	/* pack stepid */
@@ -777,12 +777,12 @@ bool __unpackReqLaunchTasks(Slurm_Msg_t *sMsg, Step_t **stepPtr,
     getUint16(ptr, &step->tpp);
     /* task distribution */
     getUint32(ptr, &step->taskDist);
-    /* node cpus */
-    getUint16(ptr, &step->nodeCpus);
+    /* node cpus (unused) */
+    getUint16(ptr, &tmp);
     /* count of specialized cores */
     getUint16(ptr, &step->jobCoreSpec);
-    /* accel bind type */
-    getUint16(ptr, &step->accelBindType);
+    /* accelerator bind type */
+    getUint16(ptr, &tmp);
 
     /* job credentials */
     if (!(step->cred = extractJobCred(&step->gresList, sMsg, 1))) {
@@ -814,9 +814,8 @@ bool __unpackReqLaunchTasks(Slurm_Msg_t *sMsg, Step_t **stepPtr,
     getUint32(ptr, &step->taskFlags);
     /* I/O options */
     unpackStepIOoptions(step, ptr);
-
-    /* profile */
-    getUint32(ptr, &step->profile);
+    /* profile (unused) see srun --profile */
+    getUint32(ptr, &tmp);
     /* prologue/epilogue */
     step->taskProlog = getStringM(ptr);
     step->taskEpilog = getStringM(ptr);
@@ -849,19 +848,29 @@ bool __unpackReqLaunchTasks(Slurm_Msg_t *sMsg, Step_t **stepPtr,
 
     /* node alias */
     step->nodeAlias = getStringM(ptr);
-    /* hostlist */
+    /* host list */
     step->slurmHosts = getStringM(ptr);
 
     /* I/O open_mode */
     getUint8(ptr, &step->appendMode);
-    /* acctg freq */
+    /* accounting frequency */
     step->acctFreq = getStringM(ptr);
-    /* cpu freq min/max/gov */
-    getUint32(ptr, &step->cpuFreqMin);
-    getUint32(ptr, &step->cpuFreqMax);
-    getUint32(ptr, &step->cpuFreqGov);
+    /* CPU frequency minimal (unused)
+     * see srun --cpu-freq */
+    getUint32(ptr, &tmp);
+    /* CPU frequency maximal (unused)
+     * see srun --cpu-freq */
+    getUint32(ptr, &tmp);
+    /* CPU frequency governor (unused)
+     * see srun --cpu-freq */
+    getUint32(ptr, &tmp);
+    /* directory for checkpoints */
     step->checkpoint = getStringM(ptr);
-    step->restart = getStringM(ptr);
+    /* directory for restarting checkpoints (unused)
+     * see srun --restart-dir */
+    unused = getStringM(ptr);
+    ufree(unused);
+
     /* jobinfo plugin id */
     getUint32(ptr, &tmp);
 
@@ -914,10 +923,10 @@ bool __unpackReqBatchJobLaunch(Slurm_Msg_t *sMsg, Job_t **jobPtr,
 			       const char *caller, const int line)
 {
     char **ptr = &sMsg->ptr;
-    uint16_t msgVer = sMsg->head.version;
+    uint16_t msgVer = sMsg->head.version, cpuBindType;
     Job_t *job;
     uint32_t jobid, tmp, count;
-    char buf[1024];
+    char buf[1024], *unused;
 
     if (!sMsg) {
 	mlog("%s: invalid sMsg from '%s' at %i\n", __func__, caller, line);
@@ -973,8 +982,8 @@ bool __unpackReqBatchJobLaunch(Slurm_Msg_t *sMsg, Job_t **jobPtr,
     getUint32(ptr, &job->arrayTaskId);
     /* acctg freq */
     job->acctFreq = getStringM(ptr);
-    /* cpu bind type */
-    getUint16(ptr, &job->cpuBindType);
+    /* cpu bind type (unused for jobs) */
+    getUint16(ptr, &cpuBindType);
     /* cpus per task */
     getUint16(ptr, &job->tpp);
     /* TODO: restart count */
@@ -995,10 +1004,12 @@ bool __unpackReqBatchJobLaunch(Slurm_Msg_t *sMsg, Job_t **jobPtr,
     job->jsData = getStringM(ptr);
     /* work dir */
     job->cwd = getStringM(ptr);
-    /* checkpoint dir */
+    /* directory for checkpoints */
     job->checkpoint = getStringM(ptr);
-    /* restart dir */
-    job->restart = getStringM(ptr);
+    /* directory for restarting checkpoints (unused)
+     * see srun --restart-dir */
+    unused = getStringM(ptr);
+    ufree(unused);
     /* std I/O/E */
     job->stdErr = getStringM(ptr);
     job->stdIn = getStringM(ptr);
@@ -1030,14 +1041,17 @@ bool __unpackReqBatchJobLaunch(Slurm_Msg_t *sMsg, Job_t **jobPtr,
 
     /* jobinfo plugin id */
     getUint32(ptr, &tmp);
-    /* TODO: account */
-    job->account = getStringM(ptr);
-    /* TODO: qos */
-    job->qos = getStringM(ptr);
-    /* TODO: resv name */
-    job->resvName = getStringM(ptr);
-    /* TODO: profile */
-    getUint32(ptr, &job->profile);
+    /* account (unused) */
+    unused = getStringM(ptr);
+    ufree(unused);
+    /* qos (unused) see srun --qos */
+    unused = getStringM(ptr);
+    ufree(unused);
+    /* reservation name (unused) */
+    unused = getStringM(ptr);
+    ufree(unused);
+    /* profile (unused) see srun --profile */
+    getUint32(ptr, &tmp);
 
     if (msgVer == SLURM_17_02_PROTO_VERSION) {
 	env_t pelogueEnv;
@@ -1047,10 +1061,11 @@ bool __unpackReqBatchJobLaunch(Slurm_Msg_t *sMsg, Job_t **jobPtr,
 	getStringArrayM(ptr, &pelogueEnv.vars, &pelogueEnv.cnt);
 	envDestroy(&pelogueEnv);
 
-	/* TODO: resv ports */
-	job->resvPorts = getStringM(ptr);
-	/* TODO: group number */
-	getUint32(ptr, &job->groupNum);
+	/* reserved ports (unused) */
+	unused = getStringM(ptr);
+	ufree(unused);
+	/* jobpack group number index (unused) */
+	getUint32(ptr, &tmp);
     }
 
     *jobPtr = job;

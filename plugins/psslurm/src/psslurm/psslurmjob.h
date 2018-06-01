@@ -27,69 +27,59 @@
 
 typedef struct {
     list_t next;            /**< used to put into some job-lists */
-    uint32_t jobid;
-    char *username;	    /* username of job owner */
-    uint32_t np;	    /* number of processes */
-    uint16_t tpp;	    /* cpus per tasks = threads per process (PSI_TPP) */
-    uid_t uid;		    /* user id of the job owner */
-    gid_t gid;		    /* group of the job owner */
-    PSnodes_ID_t *nodes;    /* all participating nodes in the job */
-    char *slurmHosts;	    /* Slurm compressed hostlist (SLURM_NODELIST) */
-    PStask_ID_t mother;
-    char *partition;
-    JobCred_t *cred;	    /* job/step creditials */
-    list_t gresList;	    /* general resource informations */
-    char **argv;
-    uint32_t argc;
-    env_t env;
-    env_t spankenv;
-    uint32_t nrOfNodes;
-    uint16_t cpuBindType;
-    uint16_t jobCoreSpec;   /* count of specilized cores */
-    uint8_t overcommit;
-    uint32_t cpuGroupCount;
-    uint16_t *cpusPerNode;
-    uint32_t *cpuCountReps;
-    char *cwd;
-    char *stdOut;	    /* redirect stdout to this file */
-    char *stdIn;	    /* redirect stdin from this file */
-    char *stdErr;	    /* redirect stderr to this file */
-    char *jobscript;	    /* absolute path of the jobscript */
-    char *jsData;	    /* jobscript data */
-    char *hostname;
-    char *checkpoint;
-    char *restart;
-    char *account;
-    char *qos;
-    char *resvName;
-    char *acctFreq;
-    int state;
-    int signaled;
-    uint8_t terminate;
-    uint16_t interactive;   /* interactive(1) or batch(0) job */
-    uint16_t extended;	    /* full integrated mode */
-    uint16_t accType;
-    uint8_t appendMode;	    /* stdout/stderr will truncate(=0) / append(=1) */
-    uint32_t arrayJobId;
-    uint32_t arrayTaskId;
-    uint64_t memLimit;
-    uint64_t nodeMinMemory; /* minimum memory per node */
-    uint32_t localNodeId;
-    time_t start_time;	    /* the time were the job started */
-    char *nodeAlias;
-    list_t tasks;
-    time_t firstKillRequest;
-    Forwarder_Data_t *fwdata;
-    uint32_t profile;
-    char *resvPorts;
-    uint32_t groupNum;
-    bool timeout;		    /**< job was cancelled due to time limit */
-    uint32_t *gids;		    /**< extended group IDs from slurmctld */
-    uint32_t gidsLen;		    /**< size of the gids array */
-    uint32_t packSize;		    /**< the size of the pack */
-    char *packHostlist;		    /**< pack hostlist (Slurm compressed) */
-    uint32_t packNrOfNodes;	    /**< number of nodes in pack */
-    PSnodes_ID_t *packNodes;	    /**< all participating nodes in the pack */
+    uint32_t jobid;	    /**< unique job identifier */
+    char *username;	    /**< username of job owner */
+    uint32_t np;	    /**< number of processes */
+    uint16_t tpp;	    /**< HW-threads per process (PSI_TPP) */
+    uid_t uid;		    /**< user id of the job owner */
+    gid_t gid;		    /**< group of the job owner */
+    PSnodes_ID_t *nodes;    /**< all participating nodes in the job */
+    char *slurmHosts;	    /**< Slurm compressed host-list (SLURM_NODELIST) */
+    PStask_ID_t mother;	    /**< TaskID of mother superior */
+    char *partition;	    /**< Slurm partition of the job */
+    JobCred_t *cred;	    /**< job/step credentials */
+    list_t gresList;	    /**< list of generic resources */
+    char **argv;	    /**< program arguments */
+    uint32_t argc;	    /**< number of arguments */
+    env_t env;		    /**< environment variables */
+    env_t spankenv;	    /**< spank environment variables */
+    uint32_t nrOfNodes;	    /**< number of nodes */
+    uint16_t jobCoreSpec;   /**< count of specialized cores */
+    uint8_t overcommit;	    /**< allow overbooking of resources */
+    uint32_t cpuGroupCount; /**< size of cpusPerNode/cpuCountReps */
+    uint16_t *cpusPerNode;  /**< used CPUs per node */
+    uint32_t *cpuCountReps; /**< number of nodes with same used CPUs */
+    char *cwd;		    /**< working directory of the job */
+    char *stdOut;	    /**< redirect stdout to this file */
+    char *stdIn;	    /**< redirect stdin from this file */
+    char *stdErr;	    /**< redirect stderr to this file */
+    char *jobscript;	    /**< absolute path of the jobscript */
+    char *jsData;	    /**< jobscript data */
+    char *hostname;	    /**< hostname of the jobscript */
+    char *checkpoint;	    /**< directory for checkpoints */
+    char *acctFreq;	    /**< account polling frequency */
+    int state;		    /**< current state of the job */
+    bool signaled;	    /**< true if job received SIGUSR1 */
+    uint8_t terminate;	    /**< track number of terminate requests */
+    uint16_t accType;	    /**< type of accounting */
+    uint8_t appendMode;	    /**< stdout/stderr will truncate(=0) / append(=1) */
+    uint32_t arrayJobId;    /**< master jobid of job-array */
+    uint32_t arrayTaskId;   /**< taskID of job-array */
+    uint64_t memLimit;	    /**< memory limit of job */
+    uint64_t nodeMinMemory; /**< minimum memory per node */
+    uint32_t localNodeId;   /**< local node ID for this job */
+    time_t startTime;	    /**< the time were the job started */
+    char *nodeAlias;	    /**< node alias */
+    list_t tasks;	    /**< running tasks for this job */
+    time_t firstKillReq;    /**< time the first terminate request was received */
+    Forwarder_Data_t *fwdata;/**< parameters of running job forwarder */
+    bool timeout;	    /**< job was cancelled due to time limit */
+    uint32_t *gids;	    /**< extended group IDs from slurmctld */
+    uint32_t gidsLen;	    /**< size of the gids array */
+    uint32_t packSize;	    /**< the size of the pack */
+    char *packHostlist;	    /**< pack host-list (Slurm compressed) */
+    uint32_t packNrOfNodes; /**< number of nodes in pack */
+    PSnodes_ID_t *packNodes;/**< all participating nodes in the pack */
 } Job_t;
 
 /**

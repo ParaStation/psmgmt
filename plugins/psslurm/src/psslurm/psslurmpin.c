@@ -1141,7 +1141,7 @@ void verboseCpuPinningOutput(Step_t *step, PS_Tasks_t *task) {
 		 "cpu_bind%s=%s - %s, task %2d %2u [%d]: mask %s%s\n", units,
 		 bind_type, getConfValueC(&Config, "SLURM_HOSTNAME"),
 		 task->childRank, getLocalRankID(task->childRank, step,
-						 step->myNodeIndex),
+						 step->localNodeId),
 		 pid, printCpuMask(pid), action);
 
 	printChildMessage(step, vStr, strlen(vStr), STDERR, task->childRank);
@@ -1182,7 +1182,7 @@ void verboseMemPinningOutput(Step_t *step, PStask_t *task) {
 		"%s, task %2d %2u [%d]: mask %s%s\n", bind_type,
 		getConfValueC(&Config, "SLURM_HOSTNAME"), // hostname
 		task->rank,
-		getLocalRankID(task->rank, step, step->myNodeIndex),
+		getLocalRankID(task->rank, step, step->localNodeId),
 		getpid(), printMemMask(), action);
     }
 }
@@ -1311,7 +1311,7 @@ void doMemBind(Step_t *step, PStask_t *task)
 	return;
     }
 
-    lTID = getLocalRankID(task->rank, step, step->myNodeIndex);
+    lTID = getLocalRankID(task->rank, step, step->localNodeId);
 
     if (step->memBindType & MEM_BIND_RANK) {
 	if (lTID > (unsigned int)numa_max_node()) {
@@ -1338,13 +1338,13 @@ void doMemBind(Step_t *step, PStask_t *task)
     }
 
     ents = ustrdup(step->memBind);
-    entarray = umalloc(step->tasksToLaunch[step->myNodeIndex] * sizeof(char*));
+    entarray = umalloc(step->tasksToLaunch[step->localNodeId] * sizeof(char*));
     numents = 0;
     myent = NULL;
     entarray[0] = NULL;
 
     next = strtok_r(ents, delimiters, &saveptr);
-    while (next && (numents < step->tasksToLaunch[step->myNodeIndex])) {
+    while (next && (numents < step->tasksToLaunch[step->localNodeId])) {
 	entarray[numents++] = next;
 	if (numents == lTID+1) {
 	    myent = next;
@@ -1394,7 +1394,7 @@ void doMemBind(Step_t *step, PStask_t *task)
 	    goto cleanup;
 	}
 	mdbg(PSSLURM_LOG_PART, "%s: (bind_map) node %i local task %i"
-	     " memstr '%s'\n", __func__, step->myNodeIndex, lTID, myent);
+	     " memstr '%s'\n", __func__, step->localNodeId, lTID, myent);
 
     } else if (step->memBindType & MEM_BIND_MASK) {
 	parseNUMAmask(nodemask, myent, task->rank);
