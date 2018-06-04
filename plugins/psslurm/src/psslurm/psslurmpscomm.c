@@ -1232,7 +1232,8 @@ static void handleDroppedMsg(DDTypedBufferMsg_t *msg)
     }
 }
 
-static void forwardToSrunProxy(Step_t *step, PSLog_Msg_t *lmsg, int taskid)
+static void forwardToSrunProxy(Step_t *step, PSLog_Msg_t *lmsg,
+			       int32_t senderRank)
 {
     PSLog_Msg_t msg = (PSLog_Msg_t) {
 	.header = (DDMsg_t) {
@@ -1248,7 +1249,6 @@ static void forwardToSrunProxy(Step_t *step, PSLog_Msg_t *lmsg, int taskid)
     char *buf = lmsg->buf;
     size_t msgLen = lmsg->header.len - offsetof(PSLog_Msg_t, buf);
     size_t left = msgLen;
-    int32_t senderRank = lmsg->sender;
 
     /* might happen if forwarder is already gone */
     if (!step->fwdata) return;
