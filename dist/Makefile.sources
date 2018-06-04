@@ -484,6 +484,8 @@ plugins/psslurm/src/common/slurmmsg.h \
 plugins/psslurm/src/psslurm/Makefile.am \
 plugins/psslurm/src/psslurm/Makefile.in \
 plugins/psslurm/src/psslurm/psslurm.h \
+plugins/psslurm/src/psslurm/psslurmalloc.c \
+plugins/psslurm/src/psslurm/psslurmalloc.h \
 plugins/psslurm/src/psslurm/psslurmauth.c \
 plugins/psslurm/src/psslurm/psslurmauth.h \
 plugins/psslurm/src/psslurm/psslurmbcast.c \
