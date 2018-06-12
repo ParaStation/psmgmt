@@ -1594,19 +1594,29 @@ static void handleBatchJobLaunch(Slurm_Msg_t *sMsg)
     /* setup job environment */
     initJobEnv(job);
 
-    /* start prologue */
-    job->state = JOB_PROLOGUE;
-    mdbg(PSSLURM_LOG_JOB, "%s: job %u in '%s'\n", __func__,
-	 job->jobid, strJobState(job->state));
+    bool disablePrologue = getConfValueI(&Config, "DISABLE_PROLOGUE");
 
-    if (job->packSize) {
-	startPElogue(job->jobid, job->uid, job->gid, job->username,
-		     job->packNrOfNodes, job->packNodes, &job->env,
-		     &job->spankenv, 0, 1);
+    if (disablePrologue) {
+	job->state = JOB_PRESTART;
+	mdbg(PSSLURM_LOG_JOB, "%s: job '%u' in '%s'\n", __func__,
+		job->jobid, strJobState(job->state));
+	execUserJob(job);
+	psPamSetState(job->username, strJobID(job->jobid), PSPAM_STATE_JOB);
     } else {
-	startPElogue(job->jobid, job->uid, job->gid, job->username,
-		     job->nrOfNodes, job->nodes, &job->env,
-		     &job->spankenv, 0, 1);
+	/* start prologue */
+	job->state = JOB_PROLOGUE;
+	mdbg(PSSLURM_LOG_JOB, "%s: job %u in '%s'\n", __func__,
+	     job->jobid, strJobState(job->state));
+
+	if (job->packSize) {
+	    startPElogue(job->jobid, job->uid, job->gid, job->username,
+			 job->packNrOfNodes, job->packNodes, &job->env,
+			 &job->spankenv, 0, 1);
+	} else {
+	    startPElogue(job->jobid, job->uid, job->gid, job->username,
+			 job->nrOfNodes, job->nodes, &job->env,
+			 &job->spankenv, 0, 1);
+	}
     }
 }
 
