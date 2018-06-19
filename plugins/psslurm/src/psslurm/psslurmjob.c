@@ -203,21 +203,19 @@ int countJobs(void)
 void getJobInfos(uint32_t *infoCount, uint32_t **jobids, uint32_t **stepids)
 {
     list_t *j, *tmp;
-    uint32_t max = countJobs(), count = 0;
+    uint32_t max = countSteps() + *infoCount;
 
-    *jobids = urealloc(*jobids, sizeof(uint32_t) * (*infoCount + max));
-    *stepids = urealloc(*stepids, sizeof(uint32_t) * (*infoCount + max));
+    *jobids = urealloc(*jobids, sizeof(uint32_t) * max);
+    *stepids = urealloc(*stepids, sizeof(uint32_t) * max);
 
     list_for_each_safe(j, tmp, &JobList) {
 	Job_t *job = list_entry(j, Job_t, next);
-	if (count == max) break;
+	if (*infoCount == max) break;
 	if (job->state == JOB_EXIT || job->state == JOB_COMPLETE) continue;
-	(*jobids)[count] = job->jobid;
-	(*stepids)[count] = SLURM_BATCH_SCRIPT;
-	count++;
+	(*jobids)[*infoCount] = job->jobid;
+	(*stepids)[*infoCount] = SLURM_BATCH_SCRIPT;
+	(*infoCount)++;
     }
-
-    *infoCount += count;
 }
 
 int signalJob(Job_t *job, int signal, uid_t reqUID)

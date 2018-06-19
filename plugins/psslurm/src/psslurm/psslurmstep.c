@@ -364,20 +364,17 @@ int killStepFWbyJobid(uint32_t jobid)
 void getStepInfos(uint32_t *infoCount, uint32_t **jobids, uint32_t **stepids)
 {
     list_t *s, *tmp;
-    uint32_t max;
-    uint32_t count = 0;
+    uint32_t max = countSteps() + *infoCount;
 
-    max = countSteps();
-    *jobids = urealloc(*jobids, sizeof(uint32_t) * (*infoCount + max));
-    *stepids = urealloc(*stepids, sizeof(uint32_t) * (*infoCount + max));
+    *jobids = urealloc(*jobids, sizeof(uint32_t) * max);
+    *stepids = urealloc(*stepids, sizeof(uint32_t) * max);
 
     list_for_each_safe(s, tmp, &StepList) {
 	Step_t *step = list_entry(s, Step_t, next);
-	if (count == max) break;
+	if (*infoCount == max) break;
 	if (step->state == JOB_EXIT || step->state == JOB_COMPLETE) continue;
-	(*jobids)[count] = step->jobid;
-	(*stepids)[count] = step->stepid;
-	count++;
+	(*jobids)[*infoCount] = step->jobid;
+	(*stepids)[*infoCount] = step->stepid;
+	(*infoCount)++;
     }
-    *infoCount += count;
 }
