@@ -228,6 +228,21 @@ int signalStep(Step_t *step, int signal, uid_t reqUID)
 	return -1;
     }
 
+    /* handle magic slurm signals */
+    switch (signal) {
+	case SIG_DEBUG_WAKE:
+	    if (!(step->taskFlags & LAUNCH_PARALLEL_DEBUG)) return 0;
+	    signal = SIGCONT;
+	    break;
+	case SIG_PREEMPTED:
+	case SIG_TIME_LIMIT:
+	case SIG_ABORT:
+	case SIG_NODE_FAIL:
+	case SIG_FAILURE:
+	    mlog("%s: implement signal %u\n", __func__, signal);
+	    return 0;
+    }
+
     /* if we are not the mother superior we just signal all our local tasks */
     if (!step->leader) {
 	ret = signalTasks(step->jobid, step->uid, &step->tasks, signal, group);

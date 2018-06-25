@@ -600,10 +600,17 @@ ERROR:
     if (alloc) deleteAlloc(alloc->id);
 }
 
+/**
+ * @brief Handle a signal tasks request
+ *
+ * Request to send a signal to selected tasks. Depending on the options
+ * decoded in the flags the signal will be send to all tasks of a job/step
+ * or to a single jobscript.
+ *
+ * @param sMsg The message holding the request
+ */
 static void handleSignalTasks(Slurm_Msg_t *sMsg)
 {
-    Step_t *step = NULL;
-    Job_t *job = NULL;
     Req_Signal_Tasks_t *req = NULL;
 
     /* unpack request */
@@ -613,92 +620,36 @@ static void handleSignalTasks(Slurm_Msg_t *sMsg)
 	return;
     }
 
-    /* find job */
-    if (req->stepid == SLURM_BATCH_SCRIPT) {
-	if (!(job = findJobById(req->jobid)) ||
-	    !(step = findStepByJobid(req->jobid))) {
-	    mlog("%s: step with jobid %u to signal not found\n", __func__,
-		 req->jobid);
-	    sendSlurmRC(sMsg, ESLURM_INVALID_JOB_ID);
-	    return;
-	}
-	/* check permission */
-	if (!verifyUserId(sMsg->head.uid, job->uid)) {
-	    mlog("%s: request from invalid user %u\n", __func__,
-		 sMsg->head.uid);
-	    sendSlurmRC(sMsg, ESLURM_USER_ID_MISSING);
-	    return;
-	}
-    } else {
-       step = findStepByStepId(req->jobid, req->stepid);
-    }
-
-    /* handle magic slurm signals */
-    switch (req->signal) {
-	case SIG_PREEMPTED:
-	    mlog("%s: implement me!\n", __func__);
-	    sendSlurmRC(sMsg, SLURM_SUCCESS);
-	    return;
-	case SIG_DEBUG_WAKE:
-	    if (!step) {
-		sendSlurmRC(sMsg, ESLURM_INVALID_JOB_ID);
-		return;
-	    }
-	    if (!(step->taskFlags & LAUNCH_PARALLEL_DEBUG)) {
-		sendSlurmRC(sMsg, SLURM_SUCCESS);
-		return;
-	    }
-	    signalStep(step, SIGCONT, sMsg->head.uid);
-	    sendSlurmRC(sMsg, SLURM_SUCCESS);
-	    return;
-	case SIG_TIME_LIMIT:
-	    mlog("%s: implement me!\n", __func__);
-	    sendSlurmRC(sMsg, SLURM_SUCCESS);
-	    return;
-	case SIG_ABORT:
-	    mlog("%s: implement me!\n", __func__);
-	    sendSlurmRC(sMsg, SLURM_SUCCESS);
-	    return;
-	case SIG_NODE_FAIL:
-	    mlog("%s: implement me!\n", __func__);
-	    sendSlurmRC(sMsg, SLURM_SUCCESS);
-	    return;
-	case SIG_FAILURE:
-	    mlog("%s: implement me!\n", __func__);
-	    sendSlurmRC(sMsg, SLURM_SUCCESS);
-	    return;
-    }
-
     if (req->flags & KILL_FULL_JOB) {
-	mlog("%s: send full job %u signal %u\n", __func__,
+	/* send signal to complete job including all steps */
+	mlog("%s: sending all processes of job %u signal %u\n", __func__,
 	     req->jobid, req->signal);
-	if (job) {
-	    /* first signal jobscript only, not all corresponding steps */
-	    mlog("%s: job-state %u job->fwdata %p \n", __func__,
-		job->state, job->fwdata);
-	    if (job->state == JOB_RUNNING && job->fwdata) {
-		mlog("%s: cPid %i\n", __func__, job->fwdata->cPid);
-		killChild(job->fwdata->cPid, req->signal);
-	    }
-	}
+	signalJobscript(req->jobid, req->signal, sMsg->head.uid);
 	signalStepsByJobid(req->jobid, req->signal, sMsg->head.uid);
     } else if (req->flags & KILL_STEPS_ONLY) {
+	/* send signal to all steps excluding the jobscript */
 	mlog("%s: send steps %u signal %u\n", __func__,
 	     req->jobid, req->signal);
 	signalStepsByJobid(req->jobid, req->signal, sMsg->head.uid);
     } else {
-	mlog("%s: send step %u:%u signal %u\n", __func__, req->jobid,
-	     req->stepid, req->signal);
+	int ret = 0;
+
 	if (req->stepid == SLURM_BATCH_SCRIPT) {
 	    /* signal jobscript only, not all corresponding steps */
-	    if (job && job->state == JOB_RUNNING && job->fwdata) {
-		killChild(job->fwdata->cPid, req->signal);
-	    }
+	    ret = signalJobscript(req->jobid, req->signal, sMsg->head.uid);
 	} else {
-	    signalStep(step, req->signal, sMsg->head.uid);
+	    /* signal a single step */
+	    mlog("%s: sending step %u:%u signal %u\n", __func__, req->jobid,
+		 req->stepid, req->signal);
+	    Step_t *step = findStepByStepId(req->jobid, req->stepid);
+	    if (step) ret = signalStep(step, req->signal, sMsg->head.uid);
+	}
+	/* we only return an error if we signal a specific jobscript/step */
+	if (ret != 1) {
+	    sendSlurmRC(sMsg, ESLURM_INVALID_JOB_ID);
+	    return;
 	}
     }
-
     sendSlurmRC(sMsg, SLURM_SUCCESS);
 }
 

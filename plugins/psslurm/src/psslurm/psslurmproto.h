@@ -34,11 +34,12 @@ typedef struct {
     time_t startTime;
 } Req_Terminate_Job_t;
 
+/** structure holding a signal tasks request */
 typedef struct {
-    uint32_t jobid;
-    uint32_t stepid;
-    uint16_t signal;
-    uint16_t flags;
+    uint32_t jobid;	/**< unique job identifier */
+    uint32_t stepid;	/**< unique step identifier */
+    uint16_t signal;	/**< the signal to send */
+    uint16_t flags;	/**< various signal options */
 } Req_Signal_Tasks_t;
 
 typedef struct {

@@ -218,6 +218,27 @@ void getJobInfos(uint32_t *infoCount, uint32_t **jobids, uint32_t **stepids)
     }
 }
 
+bool signalJobscript(uint32_t jobid, int signal, uid_t reqUID)
+{
+    Job_t *job = findJobById(jobid);
+
+    if (!job) return false;
+
+    /* check permission */
+    if (!verifyUserId(reqUID, job->uid)) {
+	mlog("%s: request from invalid user %u\n", __func__, reqUID);
+	return false;
+    }
+
+    if (job && job->state == JOB_RUNNING && job->fwdata) {
+	mlog("%s: sending signal %u to jobscript with pid %i\n", __func__,
+	     signal, job->fwdata->cPid);
+	killChild(job->fwdata->cPid, signal);
+	return true;
+    }
+    return false;
+}
+
 int signalJob(Job_t *job, int signal, uid_t reqUID)
 {
     int count;

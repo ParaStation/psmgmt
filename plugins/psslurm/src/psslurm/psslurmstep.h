@@ -200,6 +200,7 @@ int countSteps(void);
  * Send a signal to all steps with the given @a jobid. All
  * matching steps will be signaled if they are not in state JOB_COMPLETE.
  * The @reqUID must have the appropriate permissions to send the signal.
+ * The function accepts magic SLURM signals for @a signal.
  *
  * @param jobid The jobid to send the signal to
  *
@@ -217,6 +218,7 @@ int signalStepsByJobid(uint32_t jobid, int signal, uid_t reqUID);
  *
  * Send a signal to all (local and remote) tasks of a step. The
  * @reqUID must have the appropriate permissions to send the signal.
+ * The function accepts magic SLURM signals for @a signal.
  *
  * @param step The step to signal
  *

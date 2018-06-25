@@ -142,6 +142,23 @@ int countJobs(void);
 void getJobInfos(uint32_t *infoCount, uint32_t **jobids, uint32_t **stepids);
 
 /**
+ * @brief Send a signal to a jobscript
+ *
+ * Send a signal to the jobscript with the given @a jobid. Only the jobscript
+ * itself will receive the signal. The @reqUID must have the appropriate
+ * permissions to send the signal.
+ *
+ * @param jobid The jobid of the jobscript to signal
+ *
+ * @param signal The signal to send
+ *
+ * @param reqUID The UID of the requesting process
+ *
+ * @return Returns true on success and false on error.
+ */
+bool signalJobscript(uint32_t jobid, int signal, uid_t reqUID);
+
+/**
  * @brief Send a signal to all tasks of a job
  *
  * Send a signal to all tasks of the given @a job. The corresponding steps will
