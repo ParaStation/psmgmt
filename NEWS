@@ -5,6 +5,28 @@ Copyright (C) 2010-2018 ParTec Cluster Competence Center GmbH, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 5.1.11:
+===============
+Bugfixes:
+ - Reporting of invalid jobids might lead to orphan jobs (jrt:#3565)
+ - Prevent possible segmentation fault when loading psslurm
+ - Ensure pslog-protocol will not mess up (#1321)
+ - Fix various possible problems unveiled by scan-build
+
+Enhancements:
+ - Disable prologue for batch jobs if DISABLE_PROLOGUE option is given
+ - psconfig parser: try to cut hostname to short
+ - Remove PMI environment variables if MPI support is disabled (psc:#251)
+ - Add support for NodeAddr, ControlAddr, and BackupAddr in slurm.conf (#2687)
+ - Retire signal() from all places of psmgmt (#516)
+
+Additional changes:
+ - Cleanup and improved documentation of Job_t, Step_t and Alloc_t
+ - Ensure pspelogue and pelogue plugin have a common understanding of
+   the protocol in between
+ - Fix warnings unveiled by Clang6
+
+
 Version 5.1.10:
 ===============
 Bugfixes:

@@ -1,3 +1,182 @@
+Version psmgmt-5.1.11:
+======================
+------------------------------------------------------------------------
+2f0cdf52 | Michael Rauh | Mon, 25 Jun 2018 10:02:33 +0200
+
+Remove obsolete code from handleSignalTasks()
+------------------------------------------------------------------------
+d2db121a | Michael Rauh | Tue, 19 Jun 2018 12:57:09 +0200
+
+Bugfix: fix reporting of invalid jobids leading to orphan jobs (#3565)
+------------------------------------------------------------------------
+640520e2 | Michael Rauh | Tue, 12 Jun 2018 17:12:56 +0200
+
+Bugfix: disable prologue for batch jobs if DISABLE_PROLOGUE option is
+given
+------------------------------------------------------------------------
+fdd80ed6 | Michael Rauh | Mon, 4 Jun 2018 16:50:11 +0200
+
+Bugfix: use correct output rank for pack jobs (introduced in a7f1c09ed6fb3)
+------------------------------------------------------------------------
+86bb20d2 | Michael Rauh | Mon, 4 Jun 2018 09:16:50 +0200
+
+Added missing psslurmalloc.[ch] to rpm
+------------------------------------------------------------------------
+8a028db7 | Michael Rauh | Fri, 1 Jun 2018 10:18:06 +0200
+
+Cleanup and improved documentation of Job_t, Step_t and Alloc_t
+------------------------------------------------------------------------
+ebe20303 | Michael Rauh | Wed, 23 May 2018 16:26:03 +0200
+
+Minor cleanup
+------------------------------------------------------------------------
+14d3c049 | Michael Rauh | Wed, 23 May 2018 16:13:51 +0200
+
+Update buildsystem for psslurmalloc
+------------------------------------------------------------------------
+4c280f94 | Michael Rauh | Wed, 23 May 2018 16:12:24 +0200
+
+Move allocation code to psslurmalloc
+------------------------------------------------------------------------
+4c51d4ca | Stephan Krempel | Tue, 22 May 2018 17:02:28 +0200
+
+psconfig parser: try to cut hostname to short
+
+If the host object generated from the result of gethostname()
+is not found, try to cut the hostname to its short version.
+------------------------------------------------------------------------
+8eefb482 | Michael Rauh | Thu, 17 May 2018 17:27:00 +0200
+
+Remove PMI environment variables if MPI support is disabled via
+"--mpi=none" (psc:#251)
+------------------------------------------------------------------------
+04f962b5 | Michael Rauh | Thu, 17 May 2018 15:21:18 +0200
+
+Use ControlAddr and BackupAddr also for TCP/IP connections
+------------------------------------------------------------------------
+1e830ac4 | Michael Rauh | Thu, 17 May 2018 14:16:55 +0200
+
+Added support for NodeAddr, ControlAddr, and BackupAddr options
+of slurm.conf (#2687)
+
+ - The PS node ID is resolved for every node defined in slurm.conf at
+   initialisation of psslurm
+ - The created lookup table is used to convert Slurm compressed
+   hostlists to ParaStation nodes
+ - New psslurm config option WEAK_NODEID_CHECK allows nodes defined in
+   slurm.conf to have no corresponding PS node ID
+------------------------------------------------------------------------
+80de1c91 | Michael Rauh | Fri, 11 May 2018 12:47:56 +0200
+
+Prevent possible segmentation fault when psslurm is loaded
+------------------------------------------------------------------------
+9f81f63f | Norbert Eicker | Tue, 17 Apr 2018 17:54:34 +0200
+
+Ensure pslog-protocol will not mess up (#1321)
+------------------------------------------------------------------------
+0a61bc84 | Norbert Eicker | Tue, 17 Apr 2018 17:43:07 +0200
+
+Fix docu comment
+------------------------------------------------------------------------
+1ac1c696 | Norbert Eicker | Wed, 11 Apr 2018 19:37:33 +0200
+
+Hedge pspelogue communication
+
+ - Ensure pspelogue and pelogue plugin have a common understanding of
+   the protocol
+------------------------------------------------------------------------
+5a1e201f | Norbert Eicker | Wed, 11 Apr 2018 19:28:24 +0200
+
+Catch possible segfault unveiled by scan-build
+------------------------------------------------------------------------
+6dc60900 | Norbert Eicker | Wed, 11 Apr 2018 19:26:56 +0200
+
+Fix logical error unveiled by scan-build
+------------------------------------------------------------------------
+a0f12ab4 | Norbert Eicker | Wed, 11 Apr 2018 19:23:28 +0200
+
+Fix PID-identification in psmom plugin
+------------------------------------------------------------------------
+552dd4c0 | Norbert Eicker | Wed, 11 Apr 2018 19:22:47 +0200
+
+Prevent use-after-free in jail plugin unveiled by scan-build
+------------------------------------------------------------------------
+127f15fe | Norbert Eicker | Wed, 11 Apr 2018 19:21:32 +0200
+
+Prevent memory-leak in (short-running) pspelogue unveiled by scan-build
+------------------------------------------------------------------------
+625b28ed | Norbert Eicker | Wed, 11 Apr 2018 19:20:48 +0200
+
+Booleanize appendRange()
+------------------------------------------------------------------------
+41e148c0 | Norbert Eicker | Wed, 11 Apr 2018 19:18:03 +0200
+
+Prevent zero-sized array unveiled by scan-build
+------------------------------------------------------------------------
+398cdd89 | Norbert Eicker | Wed, 11 Apr 2018 19:16:58 +0200
+
+Avoid unnecessary check
+------------------------------------------------------------------------
+91c4db6e | Norbert Eicker | Wed, 11 Apr 2018 15:32:33 +0200
+
+Fix warning unveiled by Clang6
+------------------------------------------------------------------------
+61804863 | Norbert Eicker | Fri, 6 Apr 2018 15:02:06 +0200
+
+Retire signal() from psmom plugin (#516)
+------------------------------------------------------------------------
+8e680cba | Norbert Eicker | Fri, 6 Apr 2018 14:59:19 +0200
+
+Retire signal() from libpsi (#516)
+------------------------------------------------------------------------
+d8cffd3d | Norbert Eicker | Fri, 6 Apr 2018 14:44:26 +0200
+
+Retire signal() from libplugincommon (#516)
+------------------------------------------------------------------------
+91c60917 | Norbert Eicker | Fri, 6 Apr 2018 14:39:09 +0200
+
+Retire signal() from psid (#516)
+------------------------------------------------------------------------
+bcb1af24 | Norbert Eicker | Fri, 6 Apr 2018 14:27:20 +0200
+
+Retire signal() from various programs (#516)
+------------------------------------------------------------------------
+0bd8418b | Norbert Eicker | Fri, 6 Apr 2018 14:26:19 +0200
+
+Retire signal() from psaccounter
+------------------------------------------------------------------------
+b55af567 | Norbert Eicker | Fri, 6 Apr 2018 14:25:10 +0200
+
+Retire signal() from pspelogue
+------------------------------------------------------------------------
+37a45c56 | Norbert Eicker | Fri, 6 Apr 2018 14:23:50 +0200
+
+Retire signal() from mpiexec et al combined with streamlining
+------------------------------------------------------------------------
+73b133e9 | Norbert Eicker | Fri, 6 Apr 2018 14:22:50 +0200
+
+Minor streamlining
+------------------------------------------------------------------------
+50f5d1f6 | Norbert Eicker | Fri, 6 Apr 2018 14:21:43 +0200
+
+Retire signal() from psilogger
+------------------------------------------------------------------------
+041c360f | Norbert Eicker | Fri, 6 Apr 2018 10:10:44 +0200
+
+Retire signal() from psiadmin
+
+ - Also do some booleanization
+------------------------------------------------------------------------
+37b48d9a | Norbert Eicker | Fri, 6 Apr 2018 09:53:00 +0200
+
+Let all signals in psid be handled via file descriptor
+------------------------------------------------------------------------
+622cbfde | Norbert Eicker | Thu, 5 Apr 2018 18:36:23 +0200
+
+Introduce PSC_setSigHandler to retire signal() (#516)
+------------------------------------------------------------------------
+
+
 Version psmgmt-5.1.10:
 ======================
 ------------------------------------------------------------------------
@@ -331,6 +510,7 @@ Add caller info to pelogueconfig
 
 Cleanup pelogue log masks
 ------------------------------------------------------------------------
+
 
 Version psmgmt-5.1.9:
 =====================
