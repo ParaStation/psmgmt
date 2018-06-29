@@ -166,7 +166,7 @@ bool getNodesFromSlurmHL(char *slurmHosts, uint32_t *nrOfNodes,
     next = strtok_r(hostlist, delimiters, &saveptr);
 
     while (next) {
-	(*nodes)[i] = getNodeIDbyHost(next);
+	(*nodes)[i] = getNodeIDbySlurmHost(next);
 	if ((*nodes)[i] == -1) {
 	    mlog("%s: failed resolving hostname %s\n", __func__, next);
 	    ufree(hostlist);
@@ -2521,7 +2521,7 @@ void sendLaunchTasksFailed(Step_t *step, uint32_t error)
 	/* return code */
 	resp.returnCode = error;
 	/* hostname */
-	resp.nodeName = getHostnameByNodeId(step->nodes[i]);
+	resp.nodeName = getSlurmHostbyNodeID(step->nodes[i]);
 	/* count of PIDs */
 	resp.countPIDs = step->globalTaskIdsLen[i];
 	/* local PIDs */

@@ -14,6 +14,7 @@
 
 #include "psslurmlog.h"
 #include "psslurmpack.h"
+#include "psslurmpscomm.h"
 #include "psslurmconfig.h"
 
 bool __packSlurmAuth(PS_SendDB_t *data, Slurm_Auth_t *auth,
@@ -422,7 +423,7 @@ bool __packSlurmHeader(PS_SendDB_t *data, Slurm_Msg_Header_t *head,
 	addUint16ToMsg(head->fwdata[i].type, data);
 
 	/* nodename */
-	hn = getHostnameByNodeId(head->fwdata[i].node);
+	hn = getSlurmHostbyNodeID(head->fwdata[i].node);
 	addStringToMsg(hn, data);
 
 	/* msg body */

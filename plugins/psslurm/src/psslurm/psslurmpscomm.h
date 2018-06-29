@@ -88,13 +88,32 @@ void deleteCachedMsg(uint32_t jobid, uint32_t stepid);
 void handleCachedMsg(Step_t *step);
 
 /**
- * @brief Find PS nodeID by hostname (address)
+ * @brief Lookup hostname from PS node ID
+ *
+ * Lookup the hostname from a ParaStation node ID.
+ * Warning: the function will *ONLY* work for compute nodes
+ * configured in slurm.conf. The used lookup table is build
+ * at startup of the psslurm plugin.
+ *
+ * @param nodeID The PS node ID to lookup
+ *
+ * @return Returns the requested hostname or NULL on error
+ */
+const char *getSlurmHostbyNodeID(PSnodes_ID_t nodeID);
+
+/**
+ * @brief Lookup PS nodeID by hostname (address)
+ *
+ * Lookup the ParaStation node ID by hostname.
+ * Warning: the function will *ONLY* work for compute nodes
+ * configured in slurm.conf. The used lookup table is build
+ * at startup of the psslurm plugin.
  *
  * @param addr The hostname to lookup
  *
  * @return Returns the requested nodeID or -1 on error
  */
-PSnodes_ID_t getNodeIDbyHost(char *host);
+PSnodes_ID_t getNodeIDbySlurmHost(char *host);
 
 /**
  * @brief Initialzie PScomm facility

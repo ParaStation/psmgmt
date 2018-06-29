@@ -89,7 +89,7 @@ static void handleFailedPElogue(int prologue, uint32_t nrOfNodes, env_t *env,
 	    }
 	}
 	if (offline) setNodeOffline(env, jobid, slurmController,
-				    getHostnameByNodeId(resList[i].id), msg);
+				    getSlurmHostbyNodeID(resList[i].id), msg);
     }
 }
 

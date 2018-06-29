@@ -2011,7 +2011,7 @@ static bool saveHostEntry(int *hostIdx, char *hostList, char *addrList,
 	    }
 	    HostLT[idx].nodeid = nodeIDs[addrIdx++];
 	}
-	/* did we found a vaild PS ID ? */
+	/* did we find a valid ParaStation node ID? */
 	if (HostLT[idx].nodeid == -1) {
 	    (*skHosts)++;
 	    if (weakIDcheck) {
@@ -2036,7 +2036,22 @@ static bool saveHostEntry(int *hostIdx, char *hostList, char *addrList,
     return true;
 }
 
-PSnodes_ID_t getNodeIDbyHost(char *host)
+const char *getSlurmHostbyNodeID(PSnodes_ID_t nodeID)
+{
+    PSnodes_ID_t i = 0;
+
+    if (!HostLT) return NULL;
+
+    while(HostLT[i].hostname) {
+        if (nodeID == HostLT[i].nodeid) {
+            return HostLT[i].hostname;
+        }
+        i++;
+    }
+    return NULL;
+}
+
+PSnodes_ID_t getNodeIDbySlurmHost(char *host)
 {
     PSnodes_ID_t i = 0;
 
@@ -2059,7 +2074,8 @@ PSnodes_ID_t getNodeIDbyHost(char *host)
  * hostname and its corresponding ParaStation node ID.
  *
  * HostLT is later used to convert every received Slurm
- * compressed hostlist into a list of ParaStation node IDs.
+ * compressed hostlist into a list of ParaStation node IDs and vice
+ * versa.
  *
  * @return Returns true on success or false on error.
  */
