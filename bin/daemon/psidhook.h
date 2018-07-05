@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2013-2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2013-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -120,6 +120,10 @@ typedef enum {
 				Arg is a pointer of type PSrsrvtn_dynRes_t which
 				contains the reservation id and the actual slot
 				to be released. */
+    PSIDHOOK_PELOGUE_START,   /** Right before exec()ing the child to start a
+			        prologue/epilogue script. Used by batch-system
+				plugins to get information about allocations.
+				Arg is pointer to PElogueChild_t */
     PSIDHOOK_PELOGUE_PREPARE, /** Prepare argument vector and environment of a
 				prologue/epilogue script. Used by batch-system
 				plugins in order to provide the script the

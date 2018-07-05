@@ -14,6 +14,7 @@
 #include "pscommon.h"
 #include "pspluginprotocol.h"
 #include "psidcomm.h"
+#include "psidhook.h"
 #include "pluginmalloc.h"
 #include "pluginhelper.h"
 #include "psserial.h"
@@ -303,6 +304,8 @@ static void handlePElogueStart(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
 
     /* the scripts directory */
     child->scriptDir = ustrdup(getPluginConfValueC(plugin, "DIR_SCRIPTS"));
+
+    PSIDhook_call(PSIDHOOK_PELOGUE_START, child);
 
     if (getPluginConfValueI(plugin, "DISABLE_PELOGUE") == 1) {
 	mlog("%s: fixmeeee!!!\n", __func__);

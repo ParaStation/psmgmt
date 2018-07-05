@@ -121,8 +121,10 @@ static LIST_HEAD(pluginList);
  * 117: added PSIDspawn_localTask()
  *
  * 118: added PSID_adjustLoginUID()
+ *
+ * 119: added PSIDHOOK_PELOGUE_START
  */
-static int pluginAPIVersion = 118;
+static int pluginAPIVersion = 119;
 
 
 /** Grace period between finalize and unload on forcefully unloads */
