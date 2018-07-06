@@ -247,7 +247,7 @@ static bool parseGresOptions(char *options)
  */
 static bool setMyHostDef(const char *hn, char *hosts, char *hostopt, int gres)
 {
-    char *hostlist, *host, *toksave, *ptr;
+    char *hostlist, *host, *toksave;
     uint32_t numHosts;
     const char delimiters[] =", \n";
 
@@ -263,7 +263,6 @@ static bool setMyHostDef(const char *hn, char *hosts, char *hostopt, int gres)
 
     host = strtok_r(hostlist, delimiters, &toksave);
     while (host) {
-	if ((ptr = strchr(host, '.'))) ptr[0] = '\0';
 	if (gres) {
 	    if (!(strcmp(host, hn))) {
 		if (!(parseGresOptions(hostopt))) return false;
@@ -395,14 +394,15 @@ static bool parseSlurmConf(char *key, char *value, const void *info)
  *
  * @return Returns true on success or false on error
  */
-static bool verifySlurmConf(void)
+static bool verifySlurmConf(char *hostname)
 {
-    if (!getConfValueC(&Config, "SLURM_CPUS")) {
-	mlog("%s: invalid SLURM_CPUS\n", __func__);
+    if (!getConfValueC(&Config, "SLURM_HOSTNAME")) {
+	mlog("%s: could not find my host %s in slurm.conf\n",
+	     __func__, hostname);
 	return false;
     }
-    if (!getConfValueC(&Config, "SLURM_HOSTNAME")) {
-	mlog("%s: invalid SLURM_HOSTNAME\n", __func__);
+    if (!getConfValueC(&Config, "SLURM_CPUS")) {
+	mlog("%s: invalid SLURM_CPUS\n", __func__);
 	return false;
     }
     if (!getConfValueC(&Config, "SLURM_SOCKETS")) {
@@ -450,7 +450,7 @@ int initConfig(char *filename, uint32_t *hash)
 	return 0;
     registerConfigHashAccumulator(NULL);
     if (traverseConfig(&SlurmConfig, parseSlurmConf, &sinfo)) return 0;
-    if (!(verifySlurmConf())) return 0;
+    if (!(verifySlurmConf(sinfo.hostname))) return 0;
 
     /* parse optional slurm gres config file */
     INIT_LIST_HEAD(&SlurmGresConfig);
