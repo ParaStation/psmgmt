@@ -1710,10 +1710,12 @@ static int insertNode(void)
     in_addr_t ipaddr;
     int nodenum, ret;
 
-    // get parameters for the node
-    if (getString("NodeName", &nodename)) return -1;
-    CHECK_PSCONFIG_EMPTY_STRING_AND_RETURN(nodename, "NodeName", -1);
+    // ignore this host object silently if NodeName is not set
+    if (getString("NodeName", &nodename) || (*nodename == '\0')) {
+	return 0;
+    }
 
+    // get parameters for the node
     if (getString("Psid.NetworkName", &netname)) {
 	g_free(nodename);
 	return -1;
@@ -1785,6 +1787,14 @@ static int getNodes(void)
     psconfigobj = NULL;
 
     parser_comment(PARSER_LOG_NODE, "%d nodes registered\n", nodesfound);
+
+    if (PSC_getMyID() == -1) {
+	parser_comment(-1, "PSConfig-Error: Local node not configured.\n"
+		" The host object for this node needs to contain a valid"
+		" NodeName\n"
+		" and <Psid.NetworkName>.DevIPAddress matching a local IP"
+		" address.\n");
+    }
 
     return ret;
 }
