@@ -806,10 +806,9 @@ static int callbackJob(int fd, PSID_scriptCBInfo_t *info)
 
 void spawnJobScript(Job_t *job)
 {
-    pid_t pid;
+    pid_t pid = PSID_execFunc(execJobscriptForwarder, NULL, callbackJob, job);
 
-    if ((pid = PSID_execFunc(execJobscriptForwarder, NULL,
-		    callbackJob, job)) == -1) {
+    if (pid == -1) {
 	mlog("%s: exec jobscript script failed\n", __func__);
 	job->state = JOB_EXIT;
 	job->jobscriptExit = job->prologueExit;
@@ -817,7 +816,7 @@ void spawnJobScript(Job_t *job)
 	handleFailedSpawn();
     } else {
 	mdbg(PSMOM_LOG_JOB, "batch job '%s' user '%s' np '%i' is starting\n",
-		job->id, job->user, job->nrOfNodes);
+	     job->id, job->user, job->nrOfNodes);
 
 	/* register child */
 	addChild(pid, PSMOM_CHILD_JOBSCRIPT, job->id);
@@ -836,14 +835,14 @@ void startInteractiveJob(Job_t *job, ComHandle_t *com)
 {
     int pid = 0, exit = 0;
 
-    mdbg(PSMOM_LOG_JOB, "interactive job '%s' user '%s' np '%i' is starting\n",
-	    job->id, job->user, job->nrOfNodes);
+    mdbg(PSMOM_LOG_JOB, "interactive job '%s' user '%s' np %i is starting\n",
+	 job->id, job->user, job->nrOfNodes);
 
     wWrite(com, &exit, sizeof(exit));
 
     job->state = JOB_PRESTART;
 
-    if ((wDoSend(com)) < 0) {
+    if (wDoSend(com) < 0) {
 	mlog("%s: writing prologue exit status failed, killing job '%s'\n",
 		__func__, job->id);
 

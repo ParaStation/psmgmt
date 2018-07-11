@@ -124,8 +124,8 @@ static void doForwarderChildStart(void)
     close(controlFDs[1]);
 
     /* read sid */
-    if ((doRead(controlFDs[0], &forwarder_child_sid, sizeof(pid_t))
-	 != sizeof(pid_t))) {
+    if (doRead(controlFDs[0], &forwarder_child_sid, sizeof(pid_t))
+	 != sizeof(pid_t)) {
 	mlog("%s: reading childs sid failed\n", __func__);
 	kill(SIGKILL, forwarder_child_pid);
     }
@@ -187,8 +187,8 @@ static void initChild(void)
     }
 
     /* send sid to forwarder */
-    if ((doWrite(controlFDs[1], &forwarder_child_sid,
-	    sizeof(pid_t))) != sizeof(pid_t)) {
+    if (doWrite(controlFDs[1], &forwarder_child_sid, sizeof(pid_t))
+	!= sizeof(pid_t)) {
 	mlog("%s: failed writing childs sid\n", __func__);
 	exit(1);
     }
@@ -221,7 +221,7 @@ void killForwarderChild(char *reason)
 		reason);
     }
 
-    if ((psAccountSignalSession(forwarder_child_sid, SIGTERM)) > 0) {
+    if (psAccountSignalSession(forwarder_child_sid, SIGTERM) > 0) {
 	killAllChildren = 1;
 	alarm(obitTime);
     }
@@ -241,11 +241,11 @@ static void sendForwarderChildExit(struct rusage *rusg, int status)
     uint64_t cputime;
 
     /* wait for all children to exit */
-    if ((psAccountSignalSession(forwarder_child_sid, SIGTERM)) > 0) {
+    if (psAccountSignalSession(forwarder_child_sid, SIGTERM) > 0) {
 	if (!killAllChildren) killForwarderChild(NULL);
 	sleep(2);
 
-	while ((psAccountSignalSession(forwarder_child_sid, SIGTERM)) > 0) {
+	while (psAccountSignalSession(forwarder_child_sid, SIGTERM) > 0) {
 	    if (sentHardKill) break;
 	    sleep(2);
 	}
@@ -367,7 +367,7 @@ static void stopForwarderLoop(void)
 {
     int res = 1;
 
-    if ((doWrite(signalFD[0], &res, sizeof(res))) != sizeof(res)) {
+    if (doWrite(signalFD[0], &res, sizeof(res)) != sizeof(res)) {
 	mlog("%s: writing to signalFD failed : %s\n", __func__,
 		strerror(errno));
 	exit(1);
@@ -461,17 +461,14 @@ static void forwarderLoop(void)
 static int handleMainMessage(int fd, void *info)
 {
     unsigned int cmd;
-    int ret;
 
-    if ((ret = ReadDigitUI(com, &cmd)) < 0){
-	if (Selector_isRegistered(com->socket)) {
-	    Selector_remove(com->socket);
-	}
+    if (ReadDigitUI(com, &cmd) < 0) {
+	if (Selector_isRegistered(com->socket)) Selector_remove(com->socket);
 	wClose(com);
 
-	if ((com = openLocalConnection())) {
-	    Selector_register(com->socket, handleMainMessage, NULL);
-	}
+	com = openLocalConnection();
+	if (com) Selector_register(com->socket, handleMainMessage, NULL);
+
 	mlog("%s: reconnected broken connection to main psmom\n", __func__);
 	return 0;
     }
@@ -537,7 +534,8 @@ static int initForwarder(int forwarderType, char *jobname)
     forwarder_type = forwarderType;
     jobid = jobname;
 
-    if (!(com = openLocalConnection())) {
+    com = openLocalConnection();
+    if (!com) {
 	fprintf(stderr, "%s: open connection to psmom failed\n", __func__);
 	return 1;
     }
@@ -616,7 +614,7 @@ static int expandWords(wordexp_t *fExpr, char *words)
 	envInit = 1;
     }
 
-    if ((wordexp(words, fExpr, WRDE_NOCMD | WRDE_UNDEF)) == 0) {
+    if (!wordexp(words, fExpr, WRDE_NOCMD | WRDE_UNDEF)) {
 	if (fExpr->we_wordc > 1) {
 	    wordfree(fExpr);
 	    return 1;
@@ -690,7 +688,6 @@ static char *rewriteCopyDest(char *dest)
 static int copyFile(char *src, char *dest, char *opt)
 {
     char *cmd_cp, *opt_cp;
-    pid_t pid;
     int cp_status = -1, cp_wstat;
     struct rusage cp_rusage;
 
@@ -701,7 +698,8 @@ static int copyFile(char *src, char *dest, char *opt)
 	opt_cp = opt;
     }
 
-    if ((pid = fork()) == -1) {
+    pid_t pid = fork();
+    if (pid == -1) {
 	mwarn(errno, "%s: fork() failed", __func__);
 	sendForkFailed();
 	exit(1);
@@ -712,12 +710,12 @@ static int copyFile(char *src, char *dest, char *opt)
 	exit(1);
     } else {
 	/* wait for cp to finish */
-	if ((wait4(pid, &cp_wstat, 0, &cp_rusage)) == -1) {
+	if (wait4(pid, &cp_wstat, 0, &cp_rusage) == -1) {
 	    cp_status =  1;
 	} else {
-	    if ((WIFEXITED(cp_wstat))) {
+	    if (WIFEXITED(cp_wstat)) {
 		cp_status = WEXITSTATUS(cp_wstat);
-	    } else if ((WIFSIGNALED(cp_wstat))) {
+	    } else if (WIFSIGNALED(cp_wstat)) {
 		cp_status = WTERMSIG(cp_wstat) + 0x100;
 	    } else {
 		cp_status = 1;
@@ -733,18 +731,18 @@ int execCopyForwarder(void *info)
     int status, wstat;
     struct rusage rusage;
     Copy_Data_t *data;
-    Job_t *job;
 
     if (!(data = (Copy_Data_t *) info)) {
 	mlog("%s: invalid data\n", __func__);
 	return 1;
     }
 
-    if ((initForwarder(FORWARDER_COPY, data->jobid))) return 1;
+    if (initForwarder(FORWARDER_COPY, data->jobid)) return 1;
 
-    if ((job = findJobById(data->jobid)) == NULL) {
+    Job_t *job = findJobById(data->jobid);
+    if (!job) {
 	fprintf(stderr, "%s: job for jobid '%s' not found\n", __func__,
-		    data->jobid);
+		data->jobid);
 	return 1;
     }
 
@@ -782,7 +780,7 @@ int execCopyForwarder(void *info)
 
 	    /* setup source file */
 	    s = files[i]->local;
-	    if (!(expandWords(&fExpr, s))) {
+	    if (!expandWords(&fExpr, s)) {
 		s = fExpr.we_wordv[0];
 	    } else {
 		mlog("%s: src file '%s' can not be copied\n", __func__,
@@ -801,7 +799,7 @@ int execCopyForwarder(void *info)
 				DEFAULT_DIR_JOB_UNDELIVERED, s);
 		    mlog("%s: dest invalid, saving file '%s' in '%s'\n",
 			    __func__, src, tmp);
-		    if ((rename(src, tmp)) == -1) {
+		    if (rename(src, tmp) == -1) {
 			mlog("%s: saving output to undelivered failed : %s\n",
 				__func__, strerror(errno));
 		    }
@@ -811,19 +809,18 @@ int execCopyForwarder(void *info)
 	    }
 
 	    /* rewrite the destination */
-	    if ((d = rewriteCopyDest(dest))) {
-		dest = d;
-	    }
+	    d = rewriteCopyDest(dest);
+	    if (d) dest = d;
 
 	    /* expand environment args */
-	    if (!(expandWords(&fExpr, dest))) {
+	    if (!expandWords(&fExpr, dest)) {
 		dest = fExpr.we_wordv[0];
 	    } else {
 		char tmp[512];
 		snprintf(tmp, sizeof(tmp), "%s/%s", DEFAULT_DIR_JOB_UNDELIVERED,
 			    src);
 		mlog("%s: save file '%s' in '%s'\n", __func__, src, tmp);
-		if ((rename(src, tmp)) == -1) {
+		if (rename(src, tmp) == -1) {
 		    mlog("%s: saving output to undelivered failed : %s\n",
 			    __func__, strerror(errno));
 		}
@@ -831,7 +828,7 @@ int execCopyForwarder(void *info)
 	    }
 
 	    /* skip invalid destinations */
-	    if (!(strcmp(dest, "/dev/null"))) continue;
+	    if (!strcmp(dest, "/dev/null")) continue;
 
 	    //mlog("%s: local:%s dest:%s\n", __func__, src, dest);
 
@@ -842,7 +839,7 @@ int execCopyForwarder(void *info)
 			DEFAULT_DIR_JOB_UNDELIVERED, s);
 		mlog("%s: copy failed: (%i), saving file '%s' in '%s'\n",
 			__func__, cp_status, src, tmp);
-		if ((rename(src, tmp)) == -1) {
+		if (rename(src, tmp) == -1) {
 		    mlog("%s: saving output to undelivered failed : %s\n",
 			    __func__, strerror(errno));
 		}
@@ -856,14 +853,14 @@ int execCopyForwarder(void *info)
 
     forwarderLoop();
 
-    if ((wait4(forwarder_child_pid, &wstat, 0, &rusage)) == -1) {
+    if (wait4(forwarder_child_pid, &wstat, 0, &rusage) == -1) {
 	fprintf(stderr, "%s: waitpid for %d failed\n", __func__,
 	    forwarder_child_pid);
 	status =  1;
     } else {
-	if ((WIFEXITED(wstat))) {
+	if (WIFEXITED(wstat)) {
 	    status = WEXITSTATUS(wstat);
-	} else if ((WIFSIGNALED(wstat))) {
+	} else if (WIFSIGNALED(wstat)) {
 	    status = WTERMSIG(wstat) + 0x100;
 	} else {
 	    status = 1;
@@ -1071,11 +1068,12 @@ static void doSpawn(Job_t *job, char **argv, int argc)
 {
     char **env = NULL;
     int envc;
-    char *pShell, *end, *login, *shell, tmp[100], *ptr;
+    char *pShell, *end, *login, *shell, tmp[100];
     struct stat sb;
 
     /* open shell */
-    if ((ptr = getJobDetail(&job->data, "Shell_Path_List", NULL))) {
+    char *ptr = getJobDetail(&job->data, "Shell_Path_List", NULL);
+    if (ptr) {
 	pShell = ustrdup(ptr);
 
 	/* throw away host def */
@@ -1089,7 +1087,7 @@ static void doSpawn(Job_t *job, char **argv, int argc)
 	}
 
 	/* lets see if we find the shell */
-	if ((stat(pShell, &sb)) == -1) {
+	if (stat(pShell, &sb) == -1) {
 	    mlog("psmom: stat of shell '%s' failed, aborting"
 		    " job\n\r", pShell);
 	    exit(1);
@@ -1115,11 +1113,11 @@ static void doSpawn(Job_t *job, char **argv, int argc)
     addEnv(tmp);
 
     /* overwrite commando to execute qsub -x */
-    if ((ptr = getJobDetail(&job->data, "inter_cmd", NULL))) {
+    ptr = getJobDetail(&job->data, "inter_cmd", NULL);
+    if (ptr) {
 	argv[argc++] = ustrdup("-c");
 	argv[argc++] = ustrdup(ptr);
     }
-
 
     env = getEnvArray(&envc);
     argv[argc++] = NULL;
@@ -1187,14 +1185,14 @@ int execInterForwarder(void *info)
     struct rusage rusage;
     char *x11Cookie;
     Inter_Data_t *data;
-    Job_t *job;
+    Job_t *job = (Job_t *)info;
 
-    if (!(job = (Job_t *) info)) {
+    if (!job) {
 	fprintf(stderr, "%s: invalid job id\n", __func__);
 	return 1;
     }
 
-    if ((initForwarder(FORWARDER_INTER, job->id))) return 1;
+    if (initForwarder(FORWARDER_INTER, job->id)) return 1;
 
     timeout = stringTimeToSec(getJobDetail(&job->data, "Resource_List",
 	"walltime"));
@@ -1205,19 +1203,19 @@ int execInterForwarder(void *info)
     setupPBSEnv(job, 1);
 
     /* open pty */
-    if ((openpty(&stderrfds[0], &stderrfds[1], NULL, NULL, NULL)) == -1) {
+    if (openpty(&stderrfds[0], &stderrfds[1], NULL, NULL, NULL) == -1) {
 	fprintf(stderr, "%s: openpty() failed\n", __func__);
 	return 1;
     }
 
     /* connect to waiting qsub */
-    if (!(initQsubConnection(job, data, stderrfds[0]))) {
+    if (!initQsubConnection(job, data, stderrfds[0])) {
 	return 1;
     }
 
     /* prepare x11 support */
     if ((x11Cookie = getJobDetail(&job->data, "forward_x11", ""))) {
-	if ((initX11Forwarding1(job, &x11Port))) return 1;
+	if (initX11Forwarding1(job, &x11Port)) return 1;
     }
 
     /* open control fds */
@@ -1332,8 +1330,8 @@ int execInterForwarder(void *info)
 	forwarderExit();
 	return 0;
     } else {
-	if ((doWrite(controlPro[0], &prologue_exit, sizeof(int)))
-		!= sizeof(int)) {
+	if (doWrite(controlPro[0], &prologue_exit, sizeof(int))
+	    != sizeof(int)) {
 	    fprintf(stderr, "%s: write to interactive child failed\n",
 		    __func__);
 	    kill(forwarder_child_pid, SIGKILL);
@@ -1352,14 +1350,14 @@ int execInterForwarder(void *info)
 
     forwarderLoop();
 
-    if ((wait4(forwarder_child_pid, &wstat, 0, &rusage)) == -1) {
+    if (wait4(forwarder_child_pid, &wstat, 0, &rusage) == -1) {
 	fprintf(stderr, "%s: waitpid for %d failed\n", __func__,
-	    forwarder_child_pid);
+		forwarder_child_pid);
 	status = 1;
     } else {
-	if ((WIFEXITED(wstat))) {
+	if (WIFEXITED(wstat)) {
 	    status = WEXITSTATUS(wstat);
-	} else if ((WIFSIGNALED(wstat))) {
+	} else if (WIFSIGNALED(wstat)) {
 	    status = WTERMSIG(wstat) + 0x100;
 	} else {
 	    status = 1;
@@ -1398,9 +1396,9 @@ static void spawnTimeoutScript(char *script, PElogue_Data_t *data,
 				char *pelogue)
 {
     char *argv[1];
-    pid_t pid;
 
-    if ((pid = fork()) == -1) {
+    pid_t pid = fork();
+    if (pid == -1) {
 	mwarn(errno, "%s: fork() failed", __func__);
 	sendForkFailed();
 	return;
@@ -1500,15 +1498,15 @@ static int runPElogueScript(PElogue_Data_t *data, char *filename, int root)
 
 	forwarderLoop();
 
-	if ((wait4(forwarder_child_pid, &wstat, 0, &rusage)) == -1) {
+	if (wait4(forwarder_child_pid, &wstat, 0, &rusage) == -1) {
 	    fprintf(stdout, "waitpid for %d failed\n", forwarder_child_pid);
 	    return -3;
 	}
 	alarm(0);
 
-	if ((WIFEXITED(wstat))) {
+	if (WIFEXITED(wstat)) {
 	    status = WEXITSTATUS(wstat);
-	} else if ((WIFSIGNALED(wstat))) {
+	} else if (WIFSIGNALED(wstat)) {
 	    status = WTERMSIG(wstat) + 0x100;
 	} else {
 	    status = 1;
@@ -1572,9 +1570,7 @@ static void setPElogueName(char *script, PElogue_Data_t *data, char *buf,
     snprintf(buf, bufSize, "%s%s.%s", script, par, data->nameExt);
     snprintf(path, sizeof(path), "%s/%s", data->dirScripts, buf);
 
-    if ((stat(path, &sb)) != -1) {
-	return;
-    }
+    if (stat(path, &sb) != -1) return;
 
     /* if the choosen script does not exist, fallback to standard script */
     snprintf(buf, bufSize, "%s%s", script, par);
@@ -1591,7 +1587,7 @@ int execPElogueForwarder(void *info)
     /* set timeout from mother superior */
     timeout = data->timeout;
 
-    if ((initForwarder(FORWARDER_PELOGUE, data->jobid))) return 1;
+    if (initForwarder(FORWARDER_PELOGUE, data->jobid)) return 1;
 
     if (data->prologue) {
 	mdbg(PSMOM_LOG_PELOGUE, "Running prologue script(s) [max %li sec]\n",
@@ -1646,7 +1642,7 @@ int execPElogueForwarder(void *info)
 static int setOutputStreams(Job_t *job, char *outLog, size_t outLen,
 				char *errLog, size_t errLen)
 {
-    char *keep_files, *seq, *tmp, *spoolDir, *homeDir, *jobname, *join_path;
+    char *seq, *tmp, *spoolDir, *homeDir, *join_path;
     char out[500], error[500];
 
     /* get dirs */
@@ -1658,12 +1654,14 @@ static int setOutputStreams(Job_t *job, char *outLog, size_t outLen,
     }
 
     /* write output/error to users home not spool dir */
-    if (!(keep_files = getJobDetail(&job->data, "Keep_Files", NULL))) {
+    char *keep_files = getJobDetail(&job->data, "Keep_Files", NULL);
+    if (!keep_files) {
 	mlog("%s: job detail keep_files not found\n", __func__);
 	return 0;
     }
 
-    if (!(jobname = getJobDetail(&job->data, "Job_Name", NULL))) {
+    char *jobname = getJobDetail(&job->data, "Job_Name", NULL);
+    if (!jobname) {
 	mlog("%s: jobname not found\n", __func__);
 	return 0;
     }
@@ -1675,13 +1673,13 @@ static int setOutputStreams(Job_t *job, char *outLog, size_t outLen,
     }
     tmp[0] = '\0';
 
-    if (!(strcmp(keep_files, "oe")) || !(strcmp(keep_files, "eo"))) {
+    if (!strcmp(keep_files, "oe") || !strcmp(keep_files, "eo")) {
 	snprintf(error, sizeof(error), "%s/%s.e%s", homeDir, jobname, seq);
 	snprintf(out, sizeof(out), "%s/%s.o%s", homeDir, jobname, seq);
-    } else if (!(strcmp(keep_files, "e"))) {
+    } else if (!strcmp(keep_files, "e")) {
 	snprintf(error, sizeof(error), "%s/%s.e%s", homeDir, jobname, seq);
 	snprintf(out, sizeof(out), "%s/%s.OU", spoolDir, job->hashname);
-    } else if (!(strcmp(keep_files, "o"))) {
+    } else if (!strcmp(keep_files, "o")) {
 	snprintf(out, sizeof(out), "%s/%s.o%s", homeDir, jobname, seq);
 	snprintf(error, sizeof(error), "%s/%s.ER", spoolDir, job->hashname);
     } else {
@@ -1696,10 +1694,10 @@ static int setOutputStreams(Job_t *job, char *outLog, size_t outLen,
 	return 0;
     }
 
-    if (!(strcmp(join_path, "oe"))) {
+    if (!strcmp(join_path, "oe")) {
 	snprintf(outLog, outLen, "%s", out);
 	snprintf(errLog, errLen, "%s", out);
-    } else if (!(strcmp(join_path, "eo"))) {
+    } else if (!strcmp(join_path, "eo")) {
 	snprintf(outLog, outLen, "%s", error);
 	snprintf(errLog, errLen, "%s", error);
     } else {
@@ -1742,9 +1740,8 @@ static void writeAccData(char *errLog, int status)
 	fprintf(errFile, "%-10s %i\n", "exit_code", status);
 	list_for_each(pos, &accData.list) {
 	    if ((next = list_entry(pos, Data_Entry_t, list)) == NULL) break;
-	    if (!(strcmp(next->name, "resources_used"))) {
-		fprintf(errFile, "%-10s %s\n",
-			next->resource, next->value);
+	    if (!strcmp(next->name, "resources_used")) {
+		fprintf(errFile, "%-10s %s\n", next->resource, next->value);
 	    }
 	}
 	fclose(errFile);
@@ -1781,7 +1778,7 @@ static void backupJob(char *backupScript, Job_t *job, char *outLog,
     len = strlen(spoolFiles);
 
     /* copy stdout */
-    if (!(strncmp(outLog, spoolFiles, len))) {
+    if (!strncmp(outLog, spoolFiles, len)) {
 	snprintf(dest, sizeof(dest), "%s/%s.OU", localBackupDir, job->hashname);
 	setenv("PSMOM_BACKUP_OUTPUT", dest, 1);
 	copyFile(outLog, dest, opt);
@@ -1790,8 +1787,8 @@ static void backupJob(char *backupScript, Job_t *job, char *outLog,
     }
 
     /* copy stderr */
-    if (!!(strcmp(outLog, errLog))) {
-	if (!(strncmp(errLog, spoolFiles, len))) {
+    if (!!strcmp(outLog, errLog)) {
+	if (!strncmp(errLog, spoolFiles, len)) {
 	    snprintf(dest, sizeof(dest), "%s/%s.ER", localBackupDir,
 			job->hashname);
 	    setenv("PSMOM_BACKUP_ERROR", dest, 1);
@@ -1828,7 +1825,8 @@ static void backupJob(char *backupScript, Job_t *job, char *outLog,
     strftime(start, sizeof(start), "%Y-%m-%d %H:%M:%S", ts);
     setenv("PSMOM_JOBSTART", start, 1);
 
-    if ((pid = fork()) == -1) {
+    pid = fork();
+    if (pid == -1) {
 	mwarn(errno, "%s: fork() failed", __func__);
 	sendForkFailed();
 	return;
@@ -1875,30 +1873,26 @@ static void backupJob(char *backupScript, Job_t *job, char *outLog,
 	    }
 
 	    /* wait for the backup script */
-	    if ((wait4(backup_pid, &wstat, 0, &rusage)) == -1) {
+	    if (wait4(backup_pid, &wstat, 0, &rusage) == -1) {
 		mlog("%s: waiting for backup process failed\n", __func__);
 	    }
 
 	    /* delete leftover copies */
-	    if ((ptr = getenv("PSMOM_BACKUP_OUTPUT"))) {
-		if (!(strncmp(outLog, spoolFiles, len))) {
-		    unlink(ptr);
-		}
-	    }
-	    if ((ptr = getenv("PSMOM_BACKUP_ERROR"))) {
-		if (!(strncmp(errLog, spoolFiles, len))) {
-		    unlink(ptr);
-		}
-	    }
-	    if ((ptr = getenv("PSMOM_BACKUP_NODES"))) {
-		unlink(ptr);
-	    }
-	    if ((ptr = getenv("PSMOM_BACKUP_ACCOUNT"))) {
-		unlink(ptr);
-	    }
-	    if ((ptr = getenv("PSMOM_BACKUP_JOBSCRIPT"))) {
-		unlink(ptr);
-	    }
+	    ptr = getenv("PSMOM_BACKUP_OUTPUT");
+	    if (ptr && !strncmp(outLog, spoolFiles, len)) unlink(ptr);
+
+	    ptr = getenv("PSMOM_BACKUP_ERROR");
+	    if (ptr && !strncmp(errLog, spoolFiles, len)) unlink(ptr);
+
+	    ptr = getenv("PSMOM_BACKUP_NODES");
+	    if (ptr) unlink(ptr);
+
+	    ptr = getenv("PSMOM_BACKUP_ACCOUNT");
+	    if (ptr) unlink(ptr);
+
+	    ptr = getenv("PSMOM_BACKUP_JOBSCRIPT");
+	    if (ptr) unlink(ptr);
+
 	    exit(0);
 	}
     }
@@ -1913,24 +1907,24 @@ int execJobscriptForwarder(void *info)
 
     job = (Job_t *) info;
 
-    if ((initForwarder(FORWARDER_JOBSCRIPT, job->id))) return 1;
+    if (initForwarder(FORWARDER_JOBSCRIPT, job->id)) return 1;
 
     timeout = stringTimeToSec(getJobDetail(&job->data, "Resource_List",
-	"walltime"));
+					   "walltime"));
 
     mdbg(PSMOM_LOG_VERBOSE, "%s starting user job:%s\n", __func__, job->id);
 
     /* set jobscript permissions */
-    if ((chown(job->jobscript, job->passwd.pw_uid, job->passwd.pw_gid)) == -1) {
+    if (chown(job->jobscript, job->passwd.pw_uid, job->passwd.pw_gid) == -1) {
 	mlog("%s: chown(%i:%i) '%s' failed : %s\n", __func__,
-		job->passwd.pw_uid, job->passwd.pw_gid, job->jobscript,
-		strerror(errno));
+	     job->passwd.pw_uid, job->passwd.pw_gid, job->jobscript,
+	     strerror(errno));
 	return 1;
     }
 
-    if ((chmod(job->jobscript, 0700)) == -1) {
+    if (chmod(job->jobscript, 0700) == -1) {
 	mlog("%s: chmod 0700 on '%s' failed : %s\n", __func__,
-		job->jobscript, strerror(errno));
+	     job->jobscript, strerror(errno));
 	return 1;
     }
 
@@ -1944,8 +1938,8 @@ int execJobscriptForwarder(void *info)
     setupPBSEnv(job, 0);
 
     /* setup output and error log files for jobscript */
-    if (!(setOutputStreams(job, outLog, sizeof(outLog), errLog,
-	sizeof(errLog)))) {
+    if (!setOutputStreams(job, outLog, sizeof(outLog), errLog,
+			  sizeof(errLog))) {
 	return 1;
     }
 
@@ -1977,7 +1971,7 @@ int execJobscriptForwarder(void *info)
 	opt_mask = getJobDetail(&job->data, "umask", NULL);
 	if (opt_mask) {
 	    /* switch to umask choosen by user via qsub -W umask option */
-	    if ((sscanf(opt_mask, "%i", &mask)) != 1) {
+	    if (sscanf(opt_mask, "%i", &mask) != 1) {
 		mlog("%s: invalid umask from qsub: %s\n", __func__,
 			opt_mask);
 		exit(1);
@@ -1987,13 +1981,13 @@ int execJobscriptForwarder(void *info)
 	    old_mask = umask(mask);
 	} else if ((opt_mask = getConfValueC(&config, "JOB_UMASK"))) {
 	    if (opt_mask[0] == '0') {
-		if ((sscanf(opt_mask, "%o", &mask)) != 1) {
+		if (sscanf(opt_mask, "%o", &mask) != 1) {
 		    mlog("%s: invalid umask from config: %s\n", __func__,
 			    opt_mask);
 		    exit(1);
 		}
 	    } else {
-		if ((sscanf(opt_mask, "%i", &mask)) != 1) {
+		if (sscanf(opt_mask, "%i", &mask) != 1) {
 		    mlog("%s: invalid umask from config: %s\n", __func__,
 			    opt_mask);
 		    exit(1);
@@ -2021,12 +2015,12 @@ int execJobscriptForwarder(void *info)
     /* write jobname to stdin of login shell */
     close(stdinFD[1]);
     len = strlen(job->jobscript);
-    if ((doWrite(stdinFD[0], job->jobscript, len)) != len) {
+    if (doWrite(stdinFD[0], job->jobscript, len) != len) {
 	fprintf(stderr, "%s: writing job filename(1) failed\n", __func__);
 	kill(SIGKILL, forwarder_child_pid);
 	return 1;
     }
-    if ((doWrite(stdinFD[0], "\n", 1)) != 1) {
+    if (doWrite(stdinFD[0], "\n", 1) != 1) {
 	fprintf(stderr, "%s: writing job filename(2) failed\n", __func__);
 	kill(SIGKILL, forwarder_child_pid);
 	return 1;
@@ -2042,14 +2036,14 @@ int execJobscriptForwarder(void *info)
     /* wait for the jobscript to exit */
     forwarderLoop();
 
-    if ((wait4(forwarder_child_pid, &wstat, 0, &rusage)) == -1) {
+    if (wait4(forwarder_child_pid, &wstat, 0, &rusage) == -1) {
 	fprintf(stdout, "%s: waitpid for %d failed\n", __func__,
 		forwarder_child_pid);
 	status = -3;
     } else {
-	if ((WIFEXITED(wstat))) {
+	if (WIFEXITED(wstat)) {
 	    status = WEXITSTATUS(wstat);
-	} else if ((WIFSIGNALED(wstat))) {
+	} else if (WIFSIGNALED(wstat)) {
 	    status = WTERMSIG(wstat) + 0x100;
 	} else {
 	    status = 1;
