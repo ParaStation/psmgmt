@@ -234,9 +234,9 @@ static void handleExecScript(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     /* env */
     getUint32(&ptr, &envc);
     for (i=0; i<envc; i++) {
-	char buf[1024];
-	getString(&ptr, buf, sizeof(buf));
-	envPut(&script->env, buf);
+	char *env = getStringM(&ptr);
+	envPut(&script->env, env);
+	ufree(env);
     }
 
     if (!execScript(script, callbackScript)) {
