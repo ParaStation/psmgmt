@@ -76,7 +76,7 @@ bool pluginShutdown = false;
 uint32_t configHash;
 
 PSnodes_ID_t slurmController;
-PSnodes_ID_t slurmBackupController;
+PSnodes_ID_t slurmBackupController = -1;
 
 /** psid plugin requirements */
 char name[] = "psslurm";
