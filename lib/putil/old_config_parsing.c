@@ -2,17 +2,12 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-#ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__((used)) =
-    "$Id$";
-#endif /* DOXYGEN_SHOULD_SKIP_THIS */
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -27,8 +22,6 @@ static char vcid[] __attribute__((used)) =
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
-#include <sys/ioctl.h>
-#include <net/if.h>
 #include <libgen.h>
 #include <pwd.h>
 #include <grp.h>
@@ -84,107 +77,6 @@ static int currentID = DEFAULT_ID;
 static int nodesfound = 0;
 
 static int nrOfNodesGiven = 0;
-
-/*----------------------------------------------------------------------*/
-
-/** List type to store IP-address entries */
-typedef struct {
-    struct list_head next;
-    in_addr_t addr;
-} IPent_t;
-
-static LIST_HEAD(localIPs);
-
-/**
- * @brief Determine local IP addresses
- *
- * Create a list of local IP addresses @ref localIPs. This is used
- * from within @ref isLocalNode() in order to determine, if the
- * current node to be registered is the local one.
- *
- * @return No return value.
- */
-static void getLocalIPs(void)
-{
-    int numNICs = 1;
-    int skfd, n;
-    struct ifconf ifc;
-    struct ifreq *ifr;
-
-    /* Get a IPv4 socket */
-    skfd = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
-    if (skfd<0) {
-	parser_exit(errno, "%s: socket()", __func__);
-    }
-    parser_comment(PARSER_LOG_VERB, "%s: get list of NICs\n", __func__);
-    /* Get list of NICs */
-    ifc.ifc_buf = NULL;
-    do {
-	numNICs *= 2; /* double the number of expected NICs */
-	ifc.ifc_len = numNICs * sizeof(struct ifreq);
-	ifc.ifc_buf = (char *)realloc(ifc.ifc_buf, ifc.ifc_len);
-	if (!ifc.ifc_buf) {
-	    parser_exit(errno, "%s: realloc()", __func__);
-	}
-
-	if (ioctl(skfd, SIOCGIFCONF, &ifc) < 0) {
-	    parser_exit(errno, "%s: ioctl(SIOCGIFCONF)", __func__);
-	}
-    } while (ifc.ifc_len == numNICs * (int)sizeof(struct ifreq));
-
-    /* Register the IP-addresses assigned to this NICs */
-    ifr = ifc.ifc_req;
-    for (n = 0; n < ifc.ifc_len; ifr++, n += sizeof(struct ifreq)) {
-	if (ifr->ifr_addr.sa_family == AF_INET) {
-	    struct in_addr *sin_addr =
-		&((struct sockaddr_in *)&ifr->ifr_addr)->sin_addr;
-	    IPent_t *newEnt;
-
-	    if ((ntohl(sin_addr->s_addr) >> 24) == IN_LOOPBACKNET) continue;
-
-	    newEnt = malloc(sizeof(*newEnt));
-	    if (!newEnt) parser_exit(errno, "%s", __func__);
-
-	    parser_comment(PARSER_LOG_VERB, "%s: register address %s\n",
-			   __func__, inet_ntoa(*sin_addr));
-	    newEnt->addr = sin_addr->s_addr;
-	    list_add_tail(&newEnt->next, &localIPs);
-	}
-    }
-    /* Clean up */
-    free(ifc.ifc_buf);
-    close(skfd);
-
-    if (list_empty(&localIPs))
-	parser_exit(0, "%s: No devices configured\n", __func__);
-}
-
-/**
- * @brief Test if IP address is local
- *
- * Test, if the IP address @a ipaddr is configured on one of the local
- * devices. Therefore, a list of corresponding IP addresses is created
- * on demand during the first call to this function.
- *
- * @param ipaddr The IP address to search for.
- *
- * @return If one of the local devices is configured to have the IP
- * address @a ipaddr, 1 is returned. Or 0, if the address is not found
- * locally.
- */
-static int isLocalNode(in_addr_t ipaddr)
-{
-    list_t *pos;
-
-    if (list_empty(&localIPs)) getLocalIPs();
-
-    list_for_each(pos, &localIPs) {
-	IPent_t *ent = list_entry(pos, IPent_t, next);
-	if (ent->addr == ipaddr) return 1;
-    }
-
-    return 0;
-}
 
 /*----------------------------------------------------------------------*/
 
@@ -2196,7 +2088,7 @@ static int getNodeLine(char *token)
     ret = newHost(nodenum, ipaddr);
     if (ret) return ret;
 
-    if (isLocalNode(ipaddr)) {
+    if (PSC_isLocalIP(ipaddr)) {
 	pushAndClearEnv();
 	PSC_setMyID(nodenum);
     } else {
@@ -2413,7 +2305,7 @@ static int getMultiNodes(char *token)
 	ret = newHost(nodenum, ipaddr);
 	if (ret) return ret;
 
-	if (isLocalNode(ipaddr)) {
+	if (PSC_isLocalIP(ipaddr)) {
 	    pushAndClearEnv();
 	    PSC_setMyID(nodenum);
 	}

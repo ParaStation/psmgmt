@@ -354,6 +354,26 @@ char *PSC_lookupInstalldir(char *hint);
 int PSC_getServicePort(char* name , int def);
 
 /**
+ * @brief Test if IP address is assigned to the local node
+ *
+ * Test if the IP address @a ipaddr is assigned to on one of the local
+ * network devices. Internally a list of assigned IP addresses is
+ * created on the fly during the first call of this function. This
+ * list will never be discarded. Therefore, changes to the local IP
+ * configuration during the runtime of pscommon are never detected.
+ *
+ * This function might call exit() if an error occurred during
+ * determination of local IP addresses.
+ *
+ * @param ipaddr The IP address to search for
+ *
+ * @return If the IP address @a ipaddr is assigned to one of the local
+ * network devices, true is returned. Or false if the address is not
+ * found.
+ */
+bool PSC_isLocalIP(in_addr_t ipaddr);
+
+/**
  * @brief Get nodelist from string.
  *
  * Parse the string @a descr describing a nodelist and create and

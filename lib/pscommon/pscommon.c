@@ -15,14 +15,17 @@
 #include <errno.h>
 #include <signal.h>
 #include <syslog.h>
+#include <sys/ioctl.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/socket.h>
+#include <net/if.h>
 #include <netdb.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
 #include "logging.h"
+#include "list.h"
 
 #include "pscommon.h"
 
@@ -563,4 +566,90 @@ void (*PSC_setSigHandler(int signum, void handler(int)))(int)
     }
 
     return saOld.sa_handler;
+}
+
+/** List type to store IP-address entries */
+typedef struct {
+    struct list_head next;
+    in_addr_t addr;
+} IPent_t;
+
+static LIST_HEAD(localIPs);
+
+/**
+ * @brief Determine local IP addresses
+ *
+ * Fill the list of local IP addresses @ref localIPs. This is used
+ * from within @ref PSC_isLocalIP() in order to determine if the
+ * given IP address is assigned to one of the local network devices.
+ *
+ * This function might exit if an error occurred during determination
+ * of local IP addresses.
+ *
+ * @return No return value
+ */
+void getLocalIPs(void)
+{
+    int skfd, n;
+    struct ifconf ifc = { .ifc_buf = NULL } ;
+    struct ifreq *ifr;
+
+    /* Get a IPv4 socket */
+    skfd = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
+    if (skfd<0) {
+	PSC_exit(errno, "%s: socket()", __func__);
+    }
+    PSC_log(PSC_LOG_VERB, "%s: get list of NICs\n", __func__);
+
+    /* Get list of NICs */
+    /* Determine required size first */
+    if (ioctl(skfd, SIOCGIFCONF, &ifc) < 0) {
+	PSC_exit(errno, "%s: ioctl(SIOCGIFCONF, NULL)", __func__);
+    }
+    ifc.ifc_buf = malloc(ifc.ifc_len);
+    if (!ifc.ifc_buf) PSC_exit(errno, "%s: malloc()", __func__);
+
+    /* No get the actual configuration */
+    if (ioctl(skfd, SIOCGIFCONF, &ifc) < 0) {
+	PSC_exit(errno, "%s: ioctl(SIOCGIFCONF)", __func__);
+    }
+
+    /* Register the IP-addresses assigned to this NICs */
+    ifr = ifc.ifc_req;
+    for (n = 0; n < ifc.ifc_len; ifr++, n += sizeof(struct ifreq)) {
+	if (ifr->ifr_addr.sa_family != AF_INET) continue;
+
+	struct in_addr *sin_addr =
+	    &((struct sockaddr_in *)&ifr->ifr_addr)->sin_addr;
+	IPent_t *newEnt;
+
+	if ((ntohl(sin_addr->s_addr) >> 24) == IN_LOOPBACKNET) continue;
+
+	newEnt = malloc(sizeof(*newEnt));
+	if (!newEnt) PSC_exit(errno, "%s", __func__);
+
+	PSC_log(PSC_LOG_VERB, "%s: register address %s\n", __func__,
+		inet_ntoa(*sin_addr));
+	newEnt->addr = sin_addr->s_addr;
+	list_add_tail(&newEnt->next, &localIPs);
+    }
+    /* Clean up */
+    free(ifc.ifc_buf);
+    close(skfd);
+
+    if (list_empty(&localIPs)) PSC_log(-1, "%s: No devices found\n", __func__);
+}
+
+bool PSC_isLocalIP(in_addr_t ipaddr)
+{
+    list_t *pos;
+
+    if (list_empty(&localIPs)) getLocalIPs();
+
+    list_for_each(pos, &localIPs) {
+	IPent_t *ent = list_entry(pos, IPent_t, next);
+	if (ent->addr == ipaddr) return true;
+    }
+
+    return false;
 }
