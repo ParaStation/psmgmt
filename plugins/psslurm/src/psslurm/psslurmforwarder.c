@@ -53,6 +53,7 @@
 #include "pspmihandles.h"
 #include "pslog.h"
 #include "psidhook.h"
+#include "psipartition.h"
 
 #include "psslurmforwarder.h"
 
@@ -782,6 +783,9 @@ static void execJobStep(Forwarder_Data_t *fwdata, int rerun)
 
     /* setup step specific env */
     setStepEnv(step);
+
+    /* prevent mpiexec from resolving the nodelist */
+    setenv(ENV_PSID_BATCH, "1", 1);
 
     /* setup x11 forwarding */
     if (step->x11forward) initX11Forward(step);

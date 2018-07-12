@@ -455,7 +455,7 @@ static int nodelistFromHostStr(char *hostStr, nodelist_t *nodelist)
     int total = 0;
 
     while (host) {
-	if (!(strncmp(host, "ifhn=", 5))) {
+	if (!strncmp(host, "ifhn=", 5)) {
 	    host += 5;
 	    if (host && host[0] != '\0') {
 		if ((envstr = getenv("PSP_NETWORK"))) {
@@ -627,17 +627,18 @@ static int nodelistFromPEFile(char *fileName, nodelist_t *nodelist)
  */
 static nodelist_t *getNodelist(void)
 {
+    PSI_log(PSI_LOG_VERB, "%s()\n", __func__);
+
+    if (getenv(ENV_PSID_BATCH)) return NULL;
+
     char *nodeStr = getenv(ENV_NODE_NODES);
     char *hostStr = getenv(ENV_NODE_HOSTS);
     char *hostfileStr = getenv(ENV_NODE_HOSTFILE);
     char *pefileStr = getenv(ENV_NODE_PEFILE);
-    nodelist_t *nodelist;
-
-    PSI_log(PSI_LOG_VERB, "%s()\n", __func__);
 
     if (! (nodeStr || hostStr || hostfileStr || pefileStr)) return NULL;
 
-    nodelist = malloc(sizeof(nodelist_t));
+    nodelist_t *nodelist = malloc(sizeof(nodelist_t));
     if (!nodelist) {
 	PSI_log(-1, "%s: no memory\n", __func__);
 	return NULL;

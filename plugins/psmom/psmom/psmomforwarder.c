@@ -29,6 +29,7 @@
 #include "pscommon.h"
 #include "selector.h"
 #include "timer.h"
+#include "psipartition.h"
 
 #include "pluginhelper.h"
 #include "pluginmalloc.h"
@@ -1110,6 +1111,10 @@ static void doSpawn(Job_t *job, char **argv, int argc)
 
     /* set shell environment var */
     snprintf(tmp, sizeof(tmp), "SHELL=%s", shell);
+    addEnv(tmp);
+
+    /* prevent mpiexec from resolving the nodelist */
+    snprintf(tmp, sizeof(tmp), "%s=1", ENV_PSID_BATCH);
     addEnv(tmp);
 
     /* overwrite commando to execute qsub -x */

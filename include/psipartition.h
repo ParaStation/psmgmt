@@ -2,21 +2,14 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
 /**
- * @file
- * User-functions for partitions of ParaStation nodes.
- *
- * $Id$
- *
- * @author
- * Norbert Eicker <eicker@par-tec.com>
- *
+ * @file User-functions for partitions of ParaStation nodes.
  */
 #ifndef __PSIPARTITION_H__
 #define __PSIPARTITION_H__
@@ -53,6 +46,14 @@
  * number of processes to be placed on this nodes.
  */
 #define ENV_NODE_PEFILE    "PSI_PEFILE"
+
+/**
+ * Name of the environment variable that disables all handling of
+ * nodelists during the creation of partitions. It is intended to be
+ * set by batch-system plugins of psid which enforce their partitions
+ * anyhow (as e.g. psmom and psslurm)
+ */
+#define ENV_PSID_BATCH     "__PSID_BATCH"
 
 /**
  * Name of the environment variable steering the sorting of nodes
