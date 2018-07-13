@@ -187,6 +187,10 @@ static int handleCreatePart(void *msg)
     PStask_t *task;
     uint32_t i, numThreads;
     PSpart_HWThread_t *pTptr;
+    int enforceBatch = getConfValueI(&Config, "ENFORCE_BATCH_START");
+
+    /* everyone is allowed to start, nothing to do for us here */
+    if (!enforceBatch) return 1;
 
     /* find task */
     if (!(task = PStasklist_find(&managedTasks, inmsg->header.sender))) {
@@ -268,11 +272,10 @@ error:
 static int handleCreatePartNL(void *msg)
 {
     DDBufferMsg_t *inmsg = (DDBufferMsg_t *) msg;
-    int enforceBatch;
+    int enforceBatch = getConfValueI(&Config, "ENFORCE_BATCH_START");
     PStask_t *task;
 
     /* everyone is allowed to start, nothing to do for us here */
-    enforceBatch = getConfValueI(&Config, "ENFORCE_BATCH_START");
     if (!enforceBatch) return 1;
 
     /* find task */
