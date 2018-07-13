@@ -16,6 +16,7 @@
 #include <sys/stat.h>
 
 #include "psidnodes.h"
+#include "psipartition.h"
 
 #include "pluginmalloc.h"
 
@@ -392,6 +393,7 @@ void setRankEnv(int32_t rank, Step_t *step)
 
     /* remove unwanted variables */
     unsetenv("PSI_INPUTDEST");
+    unsetenv(ENV_PSID_BATCH);
 
     /* we need the DISPLAY variable set by psslurm */
     display = getenv("DISPLAY");
@@ -550,6 +552,7 @@ void removeUserVars(env_t *env, bool PMIdisabled)
 	    if (!strncmp(env->vars[i], "__PMI_", 6)) continue;
 	    if (!strncmp(env->vars[i], "MEASURE_KVS_PROVIDER", 20)) continue;
 	}
+	if (!strncmp(env->vars[i], "__PSID_", 7)) continue;
 
 	envUnsetIndex(env, i);
 	i--;
@@ -613,6 +616,9 @@ void setStepEnv(Step_t *step)
 		    (strcmp(val, "none") == 0))) {
 	envSet(&step->env, "__PSI_NO_MEMBIND", "1");
     }
+
+    /* prevent mpiexec from resolving the nodelist */
+    envSet(&step->env, ENV_PSID_BATCH, "1");
 
     /* cleanup env */
     removeSpankOptions(&step->env);

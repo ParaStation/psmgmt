@@ -784,9 +784,6 @@ static void execJobStep(Forwarder_Data_t *fwdata, int rerun)
     /* setup step specific env */
     setStepEnv(step);
 
-    /* prevent mpiexec from resolving the nodelist */
-    setenv(ENV_PSID_BATCH, "1", 1);
-
     /* setup x11 forwarding */
     if (step->x11forward) initX11Forward(step);
 
@@ -796,6 +793,7 @@ static void execJobStep(Forwarder_Data_t *fwdata, int rerun)
     /* set rlimits */
     setRlimitsFromEnv(&step->env, 1);
 
+    /* remove environment variables not evaluted by mpiexec */
     removeUserVars(&step->env, PMIdisabled);
 
     if (DEBUG_MPIEXEC_OPTIONS) debugMpiexecStart(argV.strings, step->env.vars);
