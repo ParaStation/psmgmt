@@ -909,6 +909,25 @@ void forwardSlurmMsg(Slurm_Msg_t *sMsg, Msg_Forward_t *fw)
 	return;
     }
 
+    /* save infos in connection, has to be
+       done *before* sending any messages  */
+    fw->nodes = nodes;
+    fw->nodesCount = nrOfNodes;
+    fw->head.forward = sMsg->head.forward;
+    fw->head.returnList = sMsg->head.returnList;
+    fw->head.fwSize = sMsg->head.forward;
+    fw->head.fwdata =
+	umalloc(sMsg->head.forward * sizeof(Slurm_Forward_Data_t));
+
+    for (i=0; i<sMsg->head.forward; i++) {
+	fw->head.fwdata[i].error = SLURM_COMMUNICATIONS_CONNECTION_ERROR;
+	fw->head.fwdata[i].type = RESPONSE_FORWARD_FAILED;
+	fw->head.fwdata[i].node = -1;
+	fw->head.fwdata[i].body.buf = NULL;
+	fw->head.fwdata[i].body.bufUsed = 0;
+    }
+
+    /* send the message to other nodes */
     initFragBuffer(&msg, PSP_CC_PLUG_PSSLURM, PSP_FORWARD_SMSG);
     for (i=0; i<nrOfNodes; i++) {
 	setFragDest(&msg, PSC_getTID(nodes[i], 0));
@@ -939,25 +958,6 @@ void forwardSlurmMsg(Slurm_Msg_t *sMsg, Msg_Forward_t *fw)
 
     /* send the message(s) */
     sendFragMsg(&msg);
-
-    /* save infos in connection */
-    fw->nodes = nodes;
-    fw->nodesCount = nrOfNodes;
-
-    /* complete the forward header */
-    fw->head.forward = sMsg->head.forward;
-    fw->head.returnList = sMsg->head.returnList;
-    fw->head.fwSize = sMsg->head.forward;
-    fw->head.fwdata =
-	umalloc(sMsg->head.forward * sizeof(Slurm_Forward_Data_t));
-
-    for (i=0; i<sMsg->head.forward; i++) {
-	fw->head.fwdata[i].error = SLURM_COMMUNICATIONS_CONNECTION_ERROR;
-	fw->head.fwdata[i].type = RESPONSE_FORWARD_FAILED;
-	fw->head.fwdata[i].node = -1;
-	fw->head.fwdata[i].body.buf = NULL;
-	fw->head.fwdata[i].body.bufUsed = 0;
-    }
 
     mdbg(PSSLURM_LOG_FWD, "%s: forward: type '%s' count %u nodelist '%s' "
 	 "timeout %u\n", __func__, msgType2String(sMsg->head.type),
