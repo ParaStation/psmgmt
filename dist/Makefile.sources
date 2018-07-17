@@ -468,7 +468,6 @@ plugins/psresport/psresportconfig.c \
 plugins/psresport/psresportconfig.h \
 plugins/psresport/psresportlog.c \
 plugins/psresport/psresportlog.h \
-plugins/psslurm/ChangeLog-History \
 plugins/psslurm/Makefile.am \
 plugins/psslurm/Makefile.in \
 plugins/psslurm/doc/Makefile.am \
