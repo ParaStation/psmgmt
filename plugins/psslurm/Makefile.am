@@ -10,5 +10,3 @@
 include $(top_srcdir)/common.am
 
 SUBDIRS = doc src/common src/psslurm
-
-dist_noinst_DATA = ChangeLog-History
