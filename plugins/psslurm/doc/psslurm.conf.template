@@ -3,32 +3,135 @@
 #
 
 # Slurm protocol version
-# SLURM_PROTO_VERSION = 17.02
+#
+# Supported versions: 17.02, 17.11
+#
+# (string, default: 17.02)
+#SLURM_PROTO_VERSION = 17.11
 
-# Set various soft resources limits (comma separated list, unlimited = -1)
+# Soft resources limits
+#
+# Supported limits:
+#
+# RLIMIT_CPU, RLIMIT_FSIZE, RLIMIT_DATA, RLIMIT_STACK, RLIMIT_CORE
+# RLIMIT_RSS, RLIMIT_NPROC, RLIMIT_NOFILE, RLIMIT_MEMLOCK, RLIMIT_AS
+#
+# (comma separated list, unlimited = -1)
 #RLIMITS_SOFT = RLIMIT_CORE=0,RLIMIT_NOFILE=1024
 
-# Set various hard resources limits (comma separated list, unlimited = -1)
+# Hard resources limits
+#
+# Supported limits:
+#
+# RLIMIT_CPU, RLIMIT_FSIZE, RLIMIT_DATA, RLIMIT_STACK, RLIMIT_CORE
+# RLIMIT_RSS, RLIMIT_NPROC, RLIMIT_NOFILE, RLIMIT_MEMLOCK, RLIMIT_AS
+#
+# (comma separated list, unlimited = -1)
 #RLIMITS_HARD = RLIMIT_CORE=-1
 
-# Set default membind type (string, values: {none|local}, default: local)
+# Default membind type
+#
+# (string, values: {none|local}, default: local)
 #MEMBIND_DEFAULT = local
 
-# Enable libc malloc checking (1 = enabled, 0 = disabled)
-#MALLOC_CHECK = 0
+# Enable libc malloc checking
+#
+# (bool, 1 = enabled, 0 = disabled, default: 0)
+#MALLOC_CHECK = 1
 
-# Positive filter which will allow forwarding of selected environment
-# variables to prologue/epilogue.
+# Positive filter for forwarding selected environment
+# variables to prologue/epilogue scripts
+#
+# (comma separted list, default = SLURM_*)
 #PELOGUE_ENV_FILTER = SLURM_*
 
-# Directory to store jobscripts.
-#DIR_JOB_FILES = /var/spool/parastation/jobs
+# Directory to store jobscripts
+#
+# (string, default: /var/spool/parastation/jobs)
+#DIR_JOB_FILES = /var/spool/jobscripts
 
 # Distribute mpiexec service processes at startup
+#
+# (bool, 1 = enabled, 0 = disabled, default: 0)
 #DIST_START = 1
 
-# Set the psslurm debug mask
+# Debug mask
+#
+#  Supported masks:
+#
+#   0x000010 Debug
+#   0x000020 Warnings
+#   0x000040 Daemon communication
+#   0x000080 Process
+#   0x000100 Slurm communication
+#   0x000400 Job
+#   0x000800 Environment
+#   0x001000 Protocol
+#   0x002000 Auth
+#   0x004000 Partition
+#   0x008000 GRES
+#   0x010000 Message forwarding
+#   0x020000 I/O
+#   0x040000 Account
+#   0x080000 more verbose I/O
+#   0x100000 job pack
+#
+# (hex value, default: 0x0)
 #DEBUG_MASK = 0x020000
 
-# Set the plugin library debug mask
+# Plugin library debug mask
+#
+# Supported masks:
+#
+#  0x000010 Other verbose stuff
+#  0x000020 Log memory allocation
+#  0x000040 Verbose forwarder
+#
+# (hex value, default: 0x0)
 #PLUGIN_DEBUG_MASK = 0x000040
+
+# Path to the Slurm configuration file
+#
+# (string, default: /etc/slurm/slurm.conf)
+#SLURM_CONF = /etc/slurm.conf
+
+# Path to the Slurm GRES configuration file
+#
+# (string, default: /etc/slurm/gres.conf)
+#SLURM_GRES_CONF = /etc/gres.conf
+
+# Enforce jobs to use the batchsystem, only PS admin user
+# may use mpiexec directly
+#
+# (bool, 1 = enabled, 0 = disabled, default: 1)
+#ENFORCE_BATCH_START = 1
+
+# Disable transmission of Slurm configuration hash
+#
+# (bool, 1 = enabled, 0 = disabled, default: 0)
+#DISABLE_CONFIG_HASH = 1
+
+# Enable libc FPE exception traps
+#
+# (bool, 1 = enabled, 0 = disabled, default: 0)
+#ENABLE_FPE_EXCEPTION = 1
+
+# Maximum TCP connection retries for Slurm communication
+#
+# (integer, default: 360)
+#RECONNECT_MAX_RETRIES = 500
+
+# Time in seconds between reconnection attempts for Slurm communication
+#
+# (integer, default: 60)
+#RECONNECT_TIME = 120
+
+# Timeout in seconds for resending a Slurm messages
+#
+# (integer, default: 300)
+#RESEND_TIMEOUT = 400
+
+# Allow nodes in slurm.conf to have no corresponding PS node ID
+#
+# (1 = enabled, 0 = disabled, default: 0)
+#WEAK_NODEID_CHECK = 1
