@@ -16,7 +16,7 @@
 # RLIMIT_CPU, RLIMIT_FSIZE, RLIMIT_DATA, RLIMIT_STACK, RLIMIT_CORE
 # RLIMIT_RSS, RLIMIT_NPROC, RLIMIT_NOFILE, RLIMIT_MEMLOCK, RLIMIT_AS
 #
-# (comma separated list, unlimited = -1)
+# (comma separated list, unlimited = -1, default: none)
 #RLIMITS_SOFT = RLIMIT_CORE=0,RLIMIT_NOFILE=1024
 
 # Hard resources limits
@@ -26,7 +26,7 @@
 # RLIMIT_CPU, RLIMIT_FSIZE, RLIMIT_DATA, RLIMIT_STACK, RLIMIT_CORE
 # RLIMIT_RSS, RLIMIT_NPROC, RLIMIT_NOFILE, RLIMIT_MEMLOCK, RLIMIT_AS
 #
-# (comma separated list, unlimited = -1)
+# (comma separated list, unlimited = -1, default: none)
 #RLIMITS_HARD = RLIMIT_CORE=-1
 
 # Default membind type
@@ -44,6 +44,41 @@
 #
 # (comma separted list, default = SLURM_*)
 #PELOGUE_ENV_FILTER = SLURM_*
+
+# Directory to search for prologue/epilogue scripts
+#
+# (string, default: SPOOL_DIR/scripts
+#DIR_SCRIPTS = /var/spool/scripts
+
+# Maximal prologue execution time in seconds
+#
+# (integer, default: 300)
+#TIMEOUT_PROLOGUE = 400
+
+# Maximal epilogue execution time in seconds
+#
+# (integer, default: 300)
+#TIMEOUT_EPILOGUE = 400
+
+# Grace time in seconds for prologue/epilogue scripts
+#
+# (integer, default: 60)
+#TIMEOUT_PE_GRACE = 20
+
+# Number of seconds until a child must connect to its mother superior
+#
+# (integer, default: 10)
+#TIMEOUT_CHILD_CONNECT=30
+
+# Offline local node if a prologue/epilogue script timed out
+#
+# (bool, 1 = enabled, 0 = disabled, default: 1)
+#OFFLINE_PELOGUE_TIMEOUT=0
+
+# Script which is called when a prologue/epilogue timeout occurs
+#
+# (string, default: none)
+#TIMEOUT_SCRIPT=/var/spool/parastation/scripts/timeout.sh
 
 # Directory to store jobscripts
 #
@@ -135,3 +170,5 @@
 #
 # (1 = enabled, 0 = disabled, default: 0)
 #WEAK_NODEID_CHECK = 1
+
+
