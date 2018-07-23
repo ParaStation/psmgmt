@@ -309,10 +309,11 @@ static bool setMyHostDef(char *hosts, char *hostopt, char *nodeAddr, int gres)
 
     bool res = true;
     host = strtok_r(hostlist, delimiters, &toksave);
+    char *myHost = getConfValueC(&Config, "SLURM_HOSTNAME");
     while (host) {
 	count++;
 	if (gres) {
-	    if (isLocalAddr(host)) {
+	    if (myHost && !strcmp(myHost, host)) {
 		res = parseGresOptions(hostopt);
 		break;
 	    }
