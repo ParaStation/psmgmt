@@ -1,17 +1,12 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2011 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2011-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-#ifndef DOXYGEN_SHOULD_SKIP_THIS
-static char vcid[] __attribute__((used)) =
-    "$Id$";
-#endif /* DOXYGEN_SHOULD_SKIP_THIS */
-
 #include <stdlib.h>
 #include <errno.h>
 

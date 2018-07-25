@@ -9,12 +9,12 @@
  * file.
  */
 /**
- * @file
- * Communication multiplexer for the ParaStation daemon
+ * @file Communication multiplexer for the ParaStation daemon
  */
 #ifndef __PSIDCOMM_H
 #define __PSIDCOMM_H
 
+#include <stdbool.h>
 #include <sys/types.h>
 
 #include "psprotocol.h"
@@ -65,6 +65,24 @@ static inline void frwdMsg(DDBufferMsg_t *msg)
 {
     sendMsg(msg);
 }
+
+/**
+ * @brief Enable to drop messages for debugging purposes
+ *
+ * Allow to drop random messages for debugging purposes via the
+ * PSIDHOOK_RANDOM_DROP hook. If @a enable is true, the corresponding
+ * hook call is made. It allows the registered hook-function to mark
+ * specific messages to be dropped. If @a enable is false, no hook call
+ * is executed for performance reasons. The default behavior is to not
+ * call the hook and, thus, to not drop messages.
+ *
+ * This is mainly for the psBlackHole testing plugin.
+ *
+ * @param enable Steer if the PSIDHOOK_RANDOM_DROP is called
+ *
+ * @return Return the previous state of the switch
+ */
+bool PSIDcomm_enableDropHook(bool enable);
 
 /**
  * @brief Receive a message

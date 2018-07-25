@@ -8,8 +8,7 @@
  * file.
  */
 /**
- * @file
- * Handling of hooks within the ParaStation daemon.
+ * @file Handling of hooks within the ParaStation daemon.
  */
 #ifndef __PSIDHOOK_H
 #define __PSIDHOOK_H
@@ -121,7 +120,7 @@ typedef enum {
 				contains the reservation id and the actual slot
 				to be released. */
     PSIDHOOK_PELOGUE_START,   /** Right before exec()ing the child to start a
-			        prologue/epilogue script. Used by batch-system
+				prologue/epilogue script. Used by batch-system
 				plugins to get information about allocations.
 				Arg is pointer to PElogueChild_t */
     PSIDHOOK_PELOGUE_PREPARE, /** Prepare argument vector and environment of a
@@ -138,6 +137,10 @@ typedef enum {
     PSIDHOOK_JAIL_CHILD,      /**< Jail child into cgroup, arg points to pid */
     PSIDHOOK_CLEARMEM,        /**< Release memory after forking before handling
 				other tasks, e.g. becoming a forwarder.  */
+    PSIDHOOK_RANDOM_DROP,     /**< Determine if a message shall be dropped by
+				sendMsg(), arg points to the message to be
+				inspected. If the message shall	be dropped,
+				return 0, otherwise return 1 */
     PSIDHOOK_LAST,            /**< This has to be the last one */
 } PSIDhook_t;
 

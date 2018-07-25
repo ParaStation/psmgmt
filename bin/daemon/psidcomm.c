@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -21,15 +21,16 @@
 #include "psprotocol.h"
 #include "psdaemonprotocol.h"
 
-#include "psidutil.h"
-#include "psidnodes.h"
-#include "psidtask.h"
-#include "psidmsgbuf.h"
 #include "psidclient.h"
+#include "psidflowcontrol.h"
+#include "psidhook.h"
+#include "psidmsgbuf.h"
+#include "psidnodes.h"
 #include "psidrdp.h"
 #include "psidstatus.h"
 #include "psidstate.h"
-#include "psidflowcontrol.h"
+#include "psidtask.h"
+#include "psidutil.h"
 
 #include "psidcomm.h"
 
@@ -52,6 +53,9 @@ static msgHandlerHash_t dropHash;
 
 /** Flag to mark initialization of @ref msgHash and @ref dropHash */
 static bool hashesInitialized = false;
+
+/** Flag to steer calls of the PSIDHOOK_RANDOM_DROP hook */
+static bool randomDrop = false;
 
 /**
  * @brief Initialize @ref msgHash and @ref dropHash
@@ -164,6 +168,15 @@ int sendMsg(void *amsg)
 	PSID_log(PSID_LOG_COMM, "%s(type %s (len=%d) to %s\n",
 		 __func__, PSDaemonP_printMsg(msg->type), msg->len,
 		 PSC_printTID(msg->dest));
+    }
+
+    if (randomDrop && PSIDhook_call(PSIDHOOK_RANDOM_DROP, amsg) == 0) {
+	PSID_log(-1, "%s(type %s (len=%d) %s is randomly dropped\n", __func__,
+		 PSDaemonP_printMsg(msg->type), msg->len,
+		 PSC_printTID(msg->dest));
+	PSID_dropMsg((DDBufferMsg_t *)msg);
+	errno = EHOSTUNREACH;
+	return -1;
     }
 
     if (msg->dest==PSC_getMyTID()) { /* myself */
@@ -410,4 +423,13 @@ void PSIDcomm_init(void)
     PSID_registerMsg(PSP_CD_SIGRES, condSendMsg);
     PSID_registerMsg(PSP_CC_ERROR, condSendMsg);
     PSID_registerMsg(PSP_CD_UNKNOWN, condSendMsg);
+}
+
+bool PSIDcomm_enableDropHook(bool enable)
+{
+    bool ret = randomDrop;
+
+    randomDrop = enable;
+
+    return ret;
 }

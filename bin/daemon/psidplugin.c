@@ -123,8 +123,10 @@ static LIST_HEAD(pluginList);
  * 118: added PSID_adjustLoginUID()
  *
  * 119: added PSIDHOOK_PELOGUE_START
+ *
+ * 120: new hook PSIDHOOK_RANDOM_DROP
  */
-static int pluginAPIVersion = 119;
+static int pluginAPIVersion = 120;
 
 
 /** Grace period between finalize and unload on forcefully unloads */
