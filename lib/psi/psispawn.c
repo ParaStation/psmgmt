@@ -565,8 +565,6 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
     int fd = 0;
     PStask_t* task; /* structure to store the information of the new process */
     unsigned int firstRank = rank;
-    char *offset = NULL;
-    bool hugeTask = false, hugeArgv = false;
     char *valgrind;
     char *callgrind;
     PSnodes_ID_t lastNode = -1;
@@ -713,14 +711,6 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
 	goto cleanup;
     }
 
-    /* test if task can be send */
-    PStask_encodeTask(msg.buf, sizeof(msg.buf), task, &offset);
-    if (offset) hugeTask = true;
-
-    i = 0;
-    PStask_encodeArgv(msg.buf, sizeof(msg.buf), task->argv, &i, &offset);
-    if (i != -1) hugeArgv = true;
-
     for (i = 0; i < count; i++) {
 	/* check if dstnode is ok */
 	if (!PSC_validNode(dstnodes[i])) {
@@ -728,28 +718,14 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
 	    if (tids) tids[i] = -1;
 	    goto cleanup;
 	}
-	if (hugeTask || hugeArgv) {
-	    int proto = getProtoVersion(dstnodes[i]);
-
-	    if (proto > 339) continue;
-
-	    if (hugeTask) {
-		PSI_log(-1, "%s: size of task too large.", __func__);
-		PSI_log(-1, " Working directory '%s' too long?\n",
-			task->workingdir);
-		goto cleanup;
-	    }
-	    if (hugeArgv) {
-		PSI_log(-1, "%s: size of task too large.", __func__);
-		PSI_log(-1, " Too many/too long arguments?\n");
-		goto cleanup;
-	    }
-	}
     }
 
     /* send actual requests */
     for (i = 0; i < count && !error; i++) {
 	size_t len = 0;
+	int proto = getProtoVersion(dstnodes[i]);
+
+	if (proto > 341) continue; // @todo new spawn mechanism
 
 	msg.header.type = PSP_CD_SPAWNREQ;
 	msg.header.dest = PSC_getTID(dstnodes[i], 0);
