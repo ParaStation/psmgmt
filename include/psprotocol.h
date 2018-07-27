@@ -2,15 +2,14 @@
  * ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
 /**
- * @file
- * ParaStation client-daemon high-level protocol.
+ * @file ParaStation client-daemon high-level protocol.
  */
 #ifndef __PSPROTOCOL_H
 #define __PSPROTOCOL_H
@@ -225,6 +224,7 @@ typedef enum {
 } PSP_Info_t;
 
 /** Messages concerning spawning of tasks. */
+#define PSP_CD_SPAWNREQUEST      0x0020  /**< Spawn one or more processes */
 #define PSP_CD_SPAWNSUCCESS      0x0021  /**< Reply on successful spawn */
 #define PSP_CD_SPAWNFAILED       0x0022  /**< Reply on failed spawn */
 #define PSP_CD_SPAWNFINISH       0x0023  /**< Reply after successful end of

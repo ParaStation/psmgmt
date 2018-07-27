@@ -33,6 +33,7 @@ static struct {
     { PSP_CD_INFOREQUEST      , "PSP_CD_INFOREQUEST"      },
     { PSP_CD_INFORESPONSE     , "PSP_CD_INFORESPONSE"     },
 
+    { PSP_CD_SPAWNREQUEST     , "PSP_CD_SPAWNREQUEST"     },
     { PSP_CD_SPAWNSUCCESS     , "PSP_CD_SPAWNSUCCESS"     },
     { PSP_CD_SPAWNFAILED      , "PSP_CD_SPAWNFAILED"      },
     { PSP_CD_SPAWNFINISH      , "PSP_CD_SPAWNFINISH"      },
