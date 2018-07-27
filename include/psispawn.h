@@ -2,15 +2,14 @@
  * ParaStation
  *
  * Copyright (C) 1999-2003 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
 /**
- * @file
- * User-functions for spawning of ParaStation tasks.
+ * @file User-functions for spawning of ParaStation tasks.
  */
 #ifndef __PSISPAWN_H__
 #define __PSISPAWN_H__
@@ -84,6 +83,29 @@ void PSI_RemoteArgs(int Argc,char **Argv,int *RArgc,char ***RArgv);
  * @return No return value.
  */
 void PSI_registerRankEnvFunc(char **(*func)(int, void *), void *info);
+
+/**
+ * @brief Send spawn messages
+ *
+ * Send a bunch of messages to node @a dest in order to spawn a
+ * process as described in the task structure @a task. Messages are
+ * actually sent via @a sendFunc. @a envClone flags the use of
+ * environment cloning on the receiving side in order to reduce the
+ * total size of byte to be transfered.
+ *
+ * @param task Task structure describing the process to be spawned
+ *
+ * @param envClone Flag the use of environment cloning on the spawning
+ * node in order to reduce the amount of data to be transferred.
+ *
+ * @param dest Destination node of the messages to be sent
+ *
+ * @param sendFunc Actual function used to send out the messsage(s)
+ *
+ * @return On success true is returned; or false in case of error
+ */
+bool PSI_sendSpawnMsg(PStask_t* task, bool envClone, PSnodes_ID_t dest,
+		      int (*sendFunc)(void *));
 
 /**
  * @brief Spawn one or more tasks within the cluster.
