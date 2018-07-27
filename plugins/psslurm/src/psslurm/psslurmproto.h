@@ -203,17 +203,24 @@ bool writeJobscript(Job_t *job);
  */
 void sendTaskPids(Step_t *step);
 
+/* Magic value for a nodeID to send a launch response to all nodes */
+#define ALL_NODES -1
+
 /**
  * @brief Send a RESPONSE_LAUNCH_TASKS error message to srun
  *
- * Send a RESPONSE_LAUNCH_TASKS error message for all
- * nodes and tasks of the step.
+ * Send a RESPONSE_LAUNCH_TASKS error message for all or a selected
+ * node of a step. This is basically a wrapper for
+ * @ref doSendLaunchTasksFailed().
  *
  * @param step The step to send the message for
  *
+ * @param nodeID The step local nodeID to send the message for. Use ALL_NODES
+ * to send the message for every node of the step.
+ *
  * @param error Slurm error code
  */
-void sendLaunchTasksFailed(Step_t *step, uint32_t error);
+void sendLaunchTasksFailed(Step_t *step, uint32_t nodeID, uint32_t error);
 
 /**
  * @brief Send a task exit message

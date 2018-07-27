@@ -2463,7 +2463,8 @@ static void addMissingTasks(Step_t *step)
     for (i=0; i<step->globalTaskIdsLen[step->localNodeId]; i++) {
 	rank = step->globalTaskIds[step->localNodeId][i];
 	if (!findTaskByRank(&step->tasks, rank)) {
-	    addTask(&step->tasks, -1, -1, NULL, TG_ANY, rank);
+	    PS_Tasks_t *task = addTask(&step->tasks, -1, -1, NULL, TG_ANY, rank);
+	    task->exitCode = -1;
 	}
     }
 }
@@ -2507,48 +2508,69 @@ void sendTaskExit(Step_t *step, int *ctlPort, int *ctlAddr)
     }
 }
 
-void sendLaunchTasksFailed(Step_t *step, uint32_t error)
+/**
+ * @brief Send a single Task Launch Failed Response
+ *
+ * Send a Task Launch Failed message to srun. srun will
+ * wait until it receives a launch result for every process
+ * in the step. It is possible to send results for processes
+ * not spawned on the local node.
+ *
+ * @param step The step which failed to launch
+ *
+ * @param nodeID The step local nodeID to send the message for
+ *
+ * @param error Error code
+ */
+static void doSendLaunchTasksFailed(Step_t *step, uint32_t nodeID,
+				    uint32_t error)
 {
+    Resp_Launch_Tasks_t resp = { .jobid = step->jobid, .stepid = step->stepid };
     PS_SendDB_t body = { .bufUsed = 0, .useFrag = false };
-    int sock = -1;
-    uint32_t i;
-    Resp_Launch_Tasks_t resp;
 
-    for (i=0; i<step->nrOfNodes; i++) {
-	body.bufUsed = 0;
-	body.buf = NULL;
+    /* return code */
+    resp.returnCode = error;
+    /* hostname */
+    resp.nodeName = getSlurmHostbyNodeID(step->nodes[nodeID]);
+    /* count of PIDs */
+    resp.countPIDs = step->globalTaskIdsLen[nodeID];
+    /* local PIDs */
+    resp.countLocalPIDs = step->globalTaskIdsLen[nodeID];
+    resp.localPIDs = step->globalTaskIds[nodeID];
+    /* global task IDs */
+    resp.countGlobalTIDs = step->globalTaskIdsLen[nodeID];
+    resp.globalTIDs = step->globalTaskIds[nodeID];
 
-	/* return code */
-	resp.returnCode = error;
-	/* hostname */
-	resp.nodeName = getSlurmHostbyNodeID(step->nodes[i]);
-	/* count of PIDs */
-	resp.countPIDs = step->globalTaskIdsLen[i];
-	/* local PIDs */
-	resp.countLocalPIDs = step->globalTaskIdsLen[i];
-	resp.localPIDs = step->globalTaskIds[i];
-	/* global task IDs */
-	resp.countGlobalTIDs = step->globalTaskIdsLen[i];
-	resp.globalTIDs = step->globalTaskIds[i];
+    packRespLaunchTasks(&body, &resp);
 
-	packRespLaunchTasks(&body, &resp);
-
-	/* send the message to srun */
-	if ((sock = srunOpenControlConnection(step)) != -1) {
-	    setFDblock(sock, 1);
-	    if ((sendSlurmMsg(sock, RESPONSE_LAUNCH_TASKS, &body)) < 1) {
-		mlog("%s: send RESPONSE_LAUNCH_TASKS failed step %u:%u\n",
-		     __func__, step->jobid, step->stepid);
-	    }
-	    close(sock);
-	} else {
-	    mlog("%s: open control connection failed, step %u:%u\n",
+    /* send the message to srun */
+    int sock = srunOpenControlConnection(step);
+    if (sock != -1) {
+	setFDblock(sock, 1);
+	if ((sendSlurmMsg(sock, RESPONSE_LAUNCH_TASKS, &body)) < 1) {
+	    mlog("%s: send RESPONSE_LAUNCH_TASKS failed step %u:%u\n",
 		    __func__, step->jobid, step->stepid);
 	}
+	close(sock);
+    } else {
+	mlog("%s: open control connection failed, step %u:%u\n",
+		__func__, step->jobid, step->stepid);
+    }
 
-	mlog("%s: send RESPONSE_LAUNCH_TASKS step %u:%u pids %u for '%s'\n",
-		__func__, step->jobid, step->stepid, step->globalTaskIdsLen[i],
-		resp.nodeName);
+    mlog("%s: send RESPONSE_LAUNCH_TASKS step %u:%u pids %u for '%s'\n",
+	    __func__, step->jobid, step->stepid, step->globalTaskIdsLen[nodeID],
+	    resp.nodeName);
+}
+
+void sendLaunchTasksFailed(Step_t *step, uint32_t nodeID, uint32_t error)
+{
+    if (nodeID == (uint32_t) ALL_NODES) {
+	uint32_t i;
+	for (i=0; i<step->nrOfNodes; i++) {
+	    doSendLaunchTasksFailed(step, i, error);
+	}
+    } else {
+	doSendLaunchTasksFailed(step, nodeID, error);
     }
 }
 

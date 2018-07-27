@@ -115,6 +115,12 @@ static int stepFWIOcallback(int32_t exit_status, Forwarder_Data_t *fw)
 	return 0;
     }
 
+    /* send launch error if local processes failed to start */
+    unsigned int taskCount = countRegTasks(&step->tasks);
+    if (taskCount != step->globalTaskIdsLen[step->localNodeId]) {
+	sendLaunchTasksFailed(step, step->localNodeId, SLURM_ERROR);
+    }
+
     /* send task exit to srun processes */
     sendTaskExit(step, NULL, NULL);
 
@@ -161,7 +167,7 @@ static int stepCallback(int32_t exit_status, Forwarder_Data_t *fw)
 	    sendSlurmRC(&step->srunControlMsg, SLURM_ERROR);
 	}
     } else if (step->state == JOB_SPAWNED) {
-	    sendLaunchTasksFailed(step, SLURM_ERROR);
+	    sendLaunchTasksFailed(step, ALL_NODES, SLURM_ERROR);
     } else {
 	/* send task exit to srun processes */
 	sendTaskExit(step, NULL, NULL);
