@@ -2,25 +2,19 @@
  * ParaStation
  *
  * Copyright (C) 1999-2002 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2011 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
 /**
- * @file
- * Logging facility for the ParaStation user library.
- *
- * $Id$
- *
- * @author
- * Norbert Eicker <eicker@par-tec.com>
- *
+ * @file Logging facility of the ParaStation user-space library libpsi
  */
 #ifndef __PSILOG_H
 #define __PSILOG_H
 
+#include <stdbool.h>
 #include <stdint.h>
 
 #include "logging.h"
@@ -34,10 +28,6 @@ extern logger_t* PSI_logger;
  * Initialize the PSI logging facility. This is mainly a wrapper to
  * @ref logger_init().
  *
- * @param logfile Alternative file to use for logging.
- *
- * @return No return value.
- *
  * If @a logfile is NULL, syslog() will be used for any
  * output. Otherwise @a logfile will be used.
  *
@@ -45,8 +35,12 @@ extern logger_t* PSI_logger;
  * initialized, too. In this case @a logfile is also passed to the PSC
  * logging facility.
  *
- * @ref PSI_logInitialized() might be used in order to test, if the
+ * @ref PSI_logInitialized() might be used in order to test if the
  * PSI logging facility is already initialized.
+ *
+ * @param logfile Alternative file to use for logging.
+ *
+ * @return No return value.
  *
  * @see logger_init(), syslog(3), PSI_logInitialized()
  */
@@ -58,12 +52,12 @@ void PSI_initLog(FILE* logfile);
  * Test, if the PSI logging facility was initialized by calling @ref
  * PSI_initLog().
  *
- * @return If PSI_initLog() was called before, 1 is
- * returned. Otherwise 0 is returned.
+ * @return If PSI_initLog() was called before, true is
+ * returned. Otherwise false is returned.
  *
  * @see PSI_initLog()
  */
-int PSI_logInitialized(void);
+bool PSI_logInitialized(void);
 
 /**
  * @brief Get the log-mask of the PSI logging facility.
