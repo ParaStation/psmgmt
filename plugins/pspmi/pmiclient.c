@@ -16,6 +16,8 @@
 #include <errno.h>
 
 #include "pscommon.h"
+#include "psilog.h"
+#include "psispawn.h"
 #include "pluginmalloc.h"
 #include "pluginstrv.h"
 #include "kvs.h"
@@ -29,7 +31,6 @@
 
 #include "pmilog.h"
 #include "pmiforwarder.h"
-#include "pmiservice.h"
 #include "pmiclientspawn.h"
 
 #include "pmiclient.h"
@@ -1282,6 +1283,8 @@ int pmi_init(int pmisocket, PStask_t *childTask)
 	strncpy(kvs_name_prefix, "kvs_root", sizeof(kvs_name_prefix) -1);
     }
 
+    if (!PSI_logInitialized()) PSI_initLog(NULL);
+
     initialized = true;
     updateMsgCount = 0;
 
@@ -2310,7 +2313,12 @@ static bool tryPMISpawn(SpawnRequest_t *req, int universeSize,
     }
 #endif
 
-    return sendSpawnMessage(task);
+    bool ret = PSI_sendSpawnMsg(task, false, PSC_getMyID(),
+				(int (*)(void *))sendDaemonMsg);
+
+    PStask_delete(task);
+
+    return ret;
 }
 
 /**

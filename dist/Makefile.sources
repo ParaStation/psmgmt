@@ -455,8 +455,6 @@ plugins/pspmi/pmikvs.h \
 plugins/pspmi/pmilog.c \
 plugins/pspmi/pmilog.h \
 plugins/pspmi/pmimain.c \
-plugins/pspmi/pmiservice.c \
-plugins/pspmi/pmiservice.h \
 plugins/pspmi/pmispawn.c \
 plugins/pspmi/pmispawn.h \
 plugins/pspmi/pmitypes.h \
