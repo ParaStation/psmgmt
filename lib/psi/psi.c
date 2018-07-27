@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 1999-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -410,8 +410,7 @@ int PSI_sendMsg(void *amsg)
     if (ret <= 0) {
 	if (!errno) errno = ENOTCONN;
 
-	PSI_warn(-1, errno,
-		 "%s: Lost connection to ParaStation daemon", __func__);
+	PSI_warn(-1, errno, "%s(%s)", __func__, PSP_printMsg(msg->type));
 
 	close(daemonSock);
 	daemonSock = -1;
