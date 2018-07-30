@@ -1,3 +1,145 @@
+Version psmgmt-5.1.12:
+======================
+------------------------------------------------------------------------
+5dc1bf77 | Norbert Eicker | Mon, 30 Jul 2018 10:59:10 +0200
+
+Don't determine the protocol version in dospawn's main loop
+------------------------------------------------------------------------
+f260a17a | Norbert Eicker | Fri, 27 Jul 2018 16:25:33 +0200
+
+More detailed error reporting in PSI_sendMsg()
+------------------------------------------------------------------------
+11e00f4a | Norbert Eicker | Fri, 27 Jul 2018 14:32:24 +0200
+
+Print user-visible message if execv() fails (juwelstrac:#629)
+------------------------------------------------------------------------
+66f521a3 | Michael Rauh | Fri, 27 Jul 2018 13:12:57 +0200
+
+Bugfix: make sure srun terminates if spawning of processes gets
+interrupted (juwels:#683)
+------------------------------------------------------------------------
+9ee86402 | Norbert Eicker | Thu, 26 Jul 2018 14:52:46 +0200
+
+Get rid of obsolete tests in dospawn()
+------------------------------------------------------------------------
+0038c612 | Norbert Eicker | Wed, 25 Jul 2018 18:09:34 +0200
+
+Add the actual psBlackHole plugin (#2721)
+------------------------------------------------------------------------
+7e99593d | Norbert Eicker | Wed, 25 Jul 2018 18:08:21 +0200
+
+Add machinery for psBlackHole plugin (#2721)
+------------------------------------------------------------------------
+e29a437e | Norbert Eicker | Mon, 23 Jul 2018 17:46:07 +0200
+
+Push build environment to automake 1.16.1
+------------------------------------------------------------------------
+19b05db0 | Michael Rauh | Mon, 23 Jul 2018 10:52:32 +0200
+
+Use host tag to identify the local gres configuration (juwels:#440)
+------------------------------------------------------------------------
+09391d6f | Michael Rauh | Wed, 18 Jul 2018 13:49:14 +0200
+
+Added prologue/epilogue configuration options to psslurm.conf.template (#2719)
+------------------------------------------------------------------------
+0b9bbd2d | Michael Rauh | Wed, 18 Jul 2018 13:29:35 +0200
+
+Undo commit 4c3672325793
+------------------------------------------------------------------------
+4c367232 | Michael Rauh | Wed, 18 Jul 2018 13:19:21 +0200
+
+Remove obsolete configuration options from psslurm
+------------------------------------------------------------------------
+eb7c475c | Michael Rauh | Wed, 18 Jul 2018 13:17:26 +0200
+
+Add missing configuration options to psslurm.conf.template (#2719)
+------------------------------------------------------------------------
+7c16cca9 | Michael Rauh | Tue, 17 Jul 2018 16:17:46 +0200
+
+Remove ChangeLog-History from build system
+------------------------------------------------------------------------
+4219e0ab | Michael Rauh | Tue, 17 Jul 2018 14:05:22 +0200
+
+Remove ChangeLog-History from Makefile.sources
+------------------------------------------------------------------------
+b029e533 | Michael Rauh | Tue, 17 Jul 2018 13:55:50 +0200
+
+Remove obsolete ChangeLog-History of psslurm (#2720)
+------------------------------------------------------------------------
+5ed8c38a | Michael Rauh | Mon, 16 Jul 2018 14:51:36 +0200
+
+Bugfix: fix memory corruption in psslurm if forwarded messages get dropped
+------------------------------------------------------------------------
+e18e4036 | Michael Rauh | Fri, 13 Jul 2018 13:14:14 +0200
+
+Actually forward ENV_PSID_BATCH to mpiexec called by psslurm
+------------------------------------------------------------------------
+28204562 | Michael Rauh | Fri, 13 Jul 2018 12:40:44 +0200
+
+Bugfix: evaluate ENFORCE_BATCH_START also in handleCreatePart()
+------------------------------------------------------------------------
+eff3c683 | Michael Rauh | Thu, 12 Jul 2018 17:15:35 +0200
+
+Use local addresses to identify the host configuration in psslurm.conf
+------------------------------------------------------------------------
+9ff7daa6 | Norbert Eicker | Thu, 12 Jul 2018 09:17:45 +0200
+
+Prevent mpiexec et al. from unnecessary resolving (#2710)
+------------------------------------------------------------------------
+07fc7879 | Norbert Eicker | Thu, 12 Jul 2018 09:16:25 +0200
+
+Merge branch 'master' of git.ccc:/psmgmt
+------------------------------------------------------------------------
+252dc9f3 | Norbert Eicker | Wed, 11 Jul 2018 16:36:08 +0200
+
+Merge remote-tracking branch 'refs/remotes/origin/master'
+------------------------------------------------------------------------
+eeb9b3ef | Michael Rauh | Wed, 11 Jul 2018 16:34:45 +0200
+
+Bugfix: set correct node ID for unused slurmBackupController
+------------------------------------------------------------------------
+83391c66 | Michael Rauh | Wed, 11 Jul 2018 15:06:30 +0200
+
+Bugfix: use dynamic memory allocation for psexec environment
+------------------------------------------------------------------------
+41fd986b | Norbert Eicker | Wed, 11 Jul 2018 10:55:51 +0200
+
+Some streamlining
+------------------------------------------------------------------------
+89f04f6e | Norbert Eicker | Wed, 11 Jul 2018 09:46:40 +0200
+
+Make isLocalNode() functionality public (#2711)
+
+ - Refactor isLocalNode() from config_parsing.c and old_config_parsing.c
+   into libpscommon
+ - New function PSC_isLocalIP() provides requested functionality
+------------------------------------------------------------------------
+c0543aa3 | Stephan Krempel | Tue, 10 Jul 2018 13:04:53 +0200
+
+PSConfig: Ignore host objects without NodeName set
+
+* Silently ignore host objects without NodeName set.
+* Throw error if the local node is not configured giving
+  hints for the possible reasons.
+
+Closes pt#2631
+------------------------------------------------------------------------
+15ea4522 | Michael Rauh | Fri, 6 Jul 2018 10:27:59 +0200
+
+Accept fully qualified host names in slurm.conf
+------------------------------------------------------------------------
+e1c1a407 | Michael Rauh | Thu, 5 Jul 2018 14:59:23 +0200
+
+Add PSIDHOOK_PELOGUE_START
+    - called in pelogue before executing a prologue/epilogue script
+    - used by psslurm to get allocation information
+------------------------------------------------------------------------
+88186ce2 | Michael Rauh | Fri, 29 Jun 2018 16:48:10 +0200
+
+Use host lookup table also for resolving node IDs in psslurm
+------------------------------------------------------------------------
+
+
 Version psmgmt-5.1.11:
 ======================
 ------------------------------------------------------------------------

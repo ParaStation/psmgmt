@@ -640,6 +640,7 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
     unsigned int firstRank = rank;
     char *valgrind;
     char *callgrind;
+    static int *protoVer = NULL;
 
     if (!errors) {
 	PSI_log(-1, "%s: unable to reports errors\n", __func__);
@@ -783,6 +784,14 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
 	goto cleanup;
     }
 
+    if (!protoVer) {
+	protoVer = malloc(PSC_getNrOfNodes() * sizeof(*protoVer));
+	if (!protoVer) {
+	    PSI_log(-1, "%s: cannot determine protocol versions.", __func__);
+	    goto cleanup;
+	}
+    }
+
     for (i = 0; i < count; i++) {
 	/* check if dstnode is ok */
 	if (!PSC_validNode(dstnodes[i])) {
@@ -790,6 +799,7 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
 	    if (tids) tids[i] = -1;
 	    goto cleanup;
 	}
+	protoVer[dstnodes[i]] = getProtoVersion(dstnodes[i]);
     }
 
     /* send actual requests */
@@ -797,7 +807,7 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
     while (i < count && !error) {
 	int num, proto = getProtoVersion(dstnodes[i]);
 
-	if (proto > 340) {
+	if (protoVer[dstnodes[i]] > 340) {
 	    // num = sendNewMessages(rank, task, &dstnodes[i]);
 	    // if (!num) goto cleanup; // @todo
 	} else {

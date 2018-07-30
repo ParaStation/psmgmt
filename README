@@ -28,5 +28,5 @@ Just for completeness here's the version used in SVN times:
 2. Update the ChangeLog. Use 'svn log -r HEAD:lastHead' in order to
    create the list of changes.
 3. Condense ChangeLog's changes into NEWS file.
-4. Check these changes in using the message "New version (psmgmt-5.0.z)".
-5. Tag the new release using 'make -C dist VERSION=5.0.z RELEASE=y tag'.
+4. Check these changes in using the message "New version (psmgmt-5.1.z)".
+5. Tag the new release using 'make -C dist VERSION=5.1.z RELEASE=y tag'.
