@@ -14,14 +14,14 @@
 #include <unistd.h>
 #include <limits.h>
 
-#include "pluginmalloc.h"
+#include "pscommon.h"
 #include "psserial.h"
 #include "pspluginprotocol.h"
-#include "pscommon.h"
 #include "psidcomm.h"
 #include "psidscripts.h"
 #include "psidutil.h"
 #include "selector.h"
+#include "pluginmalloc.h"
 
 #include "psexeclog.h"
 #include "psexecscripts.h"

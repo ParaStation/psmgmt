@@ -15,7 +15,6 @@
 #include "list.h"
 #include "psenv.h"
 #include "psnodes.h"
-#include "psserial.h"
 #include "pstask.h"
 
 #include "psslurmgres.h"
