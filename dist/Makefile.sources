@@ -182,6 +182,7 @@ include/pspluginprotocol.h \
 include/psprotocol.h \
 include/psprotocolenv.h \
 include/psreservation.h \
+include/pssenddb_t.h \
 include/psserial.h \
 include/pssignal.h \
 include/psstrings.h \

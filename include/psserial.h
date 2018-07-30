@@ -27,6 +27,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include "pssenddb_t.h"
 #include "pscommon.h"
 #include "psprotocol.h"
 #include "pstaskid.h"
@@ -56,26 +57,6 @@ typedef struct {
     uint32_t bufUsed;    /**< Used bytes of @ref buf */
     uint16_t nextFrag;   /**< Next fragment number to expect */
 } PS_DataBuffer_t;
-
-/**
- * Send data-buffer for fragmented and regular messages
- *
- * In order to set things up for messages not using the fragmentation
- * mechanism @a useFrag has to be set to false and @a bufUsed to 0.
- *
- * If fragmentation shall be used the corresponding structure has to
- * be initialized using @ref initFragBuffer().
- */
-typedef struct {
-    char *buf;			/**< buffer for non fragmented msg */
-    uint32_t bufUsed;		/**< number of bytes used in the buffer */
-    bool useFrag;		/**< if true use fragmentation */
-    /* all further members only used for fragmented messages */
-    int32_t headType;		/**< message header type */
-    int32_t msgType;		/**< message (sub-)type */
-    uint16_t fragNum;           /**< next fragment number to send */
-    int32_t numDest;            /**< number of destinations */
-} PS_SendDB_t;
 
 /** Prototype of custom sender functions used by @ref initSerial() */
 typedef int Send_Msg_Func_t(void *);
