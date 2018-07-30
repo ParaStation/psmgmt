@@ -5,6 +5,35 @@ Copyright (C) 2010-2018 ParTec Cluster Competence Center GmbH, Munich
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
 
+Version 5.1.12:
+===============
+Bugfixes:
+ - Make sure srun terminates if spawning gets interrupted (juwelstrac:#683)
+ - Fix memory corruption in psslurm if forwarded messages get dropped
+ - Set correct node ID for unused slurmBackupController
+ - Use dynamic memory allocation for psexec environment
+ - Evaluate ENFORCE_BATCH_START also in handleCreatePart()
+
+Enhancements:
+ - Print user-visible message if execv() fails (juwelstrac:#629)
+ - Use host tag to identify the local gres configuration (juwels:#440)
+ - Accept fully qualified host names in slurm.conf
+ - Use local addresses to identify the host configuration in psslurm.conf
+ - Use host lookup table also for resolving node IDs in psslurm
+ - PSConfig: Ignore host objects without NodeName set (#2631)
+ - More detailed error reporting in PSI_sendMsg()
+ - Add missing configuration options to psslurm.conf.template (#2719)
+
+Additional changes:
+ - Add PSIDHOOK_PELOGUE_START
+ - Make isLocalNode() functionality public (#2711)
+ - Remove obsolete ChangeLog-History of psslurm (#2720)
+ - Prevent mpiexec et al. from unnecessary resolving (#2710)
+ - Get rid of obsolete tests in dospawn()
+ - Add psBlackHole debug plugin (#2721)
+ - Push build environment to automake 1.16.1
+
+
 Version 5.1.11:
 ===============
 Bugfixes:
