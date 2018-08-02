@@ -21,7 +21,7 @@
 #include "pstaskid.h"
 
 /** Unique version number of the high-level protocol */
-#define PSProtocolVersion 340
+#define PSProtocolVersion 341
 
 /** The location of the UNIX socket used to contact the daemon. */
 #ifdef __linux__
