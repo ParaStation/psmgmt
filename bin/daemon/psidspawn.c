@@ -37,6 +37,7 @@
 #include "psprotocolenv.h"
 #include "psdaemonprotocol.h"
 #include "pscpu.h"
+#include "psserial.h"
 #include "selector.h"
 #include "timer.h"
 
@@ -673,7 +674,7 @@ static int changeToWorkDir(PStask_t *task)
  */
 static void doClamps(PStask_t *task)
 {
-    setenv("PSID_CPU_PINNING",  PSCPU_print(task->CPUset), 1);
+    setenv("PSID_CPU_PINNING", PSCPU_print(task->CPUset), 1);
 
     int16_t physCPUs = PSIDnodes_getVirtCPUs(PSC_getMyID());
 
@@ -1885,7 +1886,7 @@ void sendCHILDRESREL(PStask_ID_t loggerTID, PSCPU_set_t set, PStask_ID_t sender)
 	    .dest = loggerTID,
 	    .sender = sender,
 	    .len = sizeof(resRelMsg.header)},
-	.buf = {0} };
+	.buf = { 0 } };
     PSCPU_set_t setBuf;
     uint16_t nBytes = PSCPU_bytesForCPUs(PSIDnodes_getVirtCPUs(PSC_getMyID()));
 
@@ -2026,7 +2027,7 @@ static void msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
 	    .len = sizeof(answer) },
 	.error = 0,
 	.request = 0,};
-    int localSender = (PSC_getID(msg->header.sender)==PSC_getMyID());
+    bool localSender = (PSC_getID(msg->header.sender) == PSC_getMyID());
     size_t usedBytes;
     int32_t rank = -1;
     PStask_group_t group = TG_ANY;
@@ -2038,7 +2039,7 @@ static void msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
     /* If message is from my node, test if everything is okay */
     if (localSender && msg->type == PSP_SPAWN_TASK) {
 	task = PStask_new();
-	PStask_decodeTask(msg->buf, task);
+	PStask_decodeTask(msg->buf, task, false);
 	answer.request = task->rank;
 	answer.error = checkRequest(msg->header.sender, task);
 
@@ -2079,7 +2080,7 @@ static void msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
 	    && group != TG_SERVICE_SIG && group != TG_ADMINTASK
 	    && group != TG_KVS) {
 
-	    if (!ptask->spawnNodes || rank >= ptask->spawnNum) {
+	    if (!ptask->spawnNodes || rank >= (int)ptask->spawnNum) {
 		PSID_log(-1, "%s: rank %d out of range\n", __func__, rank);
 		answer.error = EADDRNOTAVAIL;
 	    } else if (!PSCPU_any(ptask->spawnNodes[rank].CPUset, PSCPU_MAX)) {
@@ -2153,7 +2154,7 @@ static void msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
 	    return;
 	}
 	task = PStask_new();
-	PStask_decodeTask(msg->buf, task);
+	PStask_decodeTask(msg->buf, task, true);
 	task->tid = msg->header.sender;
 	task->argc = 0;           /* determine from argv later */
 
@@ -2162,7 +2163,7 @@ static void msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
 	    || task->group == TG_ADMINTASK || task->group == TG_KVS) {
 	    PSCPU_setAll(task->CPUset);
 	} else if (localSender) {
-	    if (!ptask->spawnNodes || rank >= ptask->spawnNum) {
+	    if (!ptask->spawnNodes || rank >= (int)ptask->spawnNum) {
 		PSID_log(-1, "%s: rank %d out of range\n", __func__, rank);
 		answer.error = EADDRNOTAVAIL;
 	    } else if (!PSCPU_any(ptask->spawnNodes[rank].CPUset, PSCPU_MAX)) {
@@ -2321,31 +2322,611 @@ static void msg_SPAWNREQ(DDTypedBufferMsg_t *msg)
 }
 
 /**
- * @brief Drop a PSP_CD_SPAWNREQ[UEST] message.
+ * @brief Provide resource information to spawn
  *
- * Drop the message @a msg of type PSP_CD_SPAWNREQ[UEST].
+ * Provide information on resources for subsequent PSP_CD_SPAWNREQUEST
+ * messages. For this, one or more messages of type PSP_DD_SPAWNLOC
+ * are emitted. The collection of messages will contain resource
+ * information on @a num processes to spawn. The first process to
+ * spawn is expected to have rank @a rank. Further processes will have
+ * subsequent ranks. Resource are marked to expect a spawn initiated
+ * by task @a sender. The destination of all messages is @a
+ * dest. Resource information is taken from the task structure @a
+ * ptask.
  *
- * Since the spawning process waits for a reaction to its request a
- * corresponding answer is created. This work for both generations of
- * spawn-requests.
+ * @param num Number of processes to spawn
  *
- * @param msg Pointer to the message to drop.
+ * @param rank First rank to spawn
+ *
+ * @param sender Initiator of the PSP_CD_SPAWNREQUEST message
+ *
+ * @param dest Destination of the spawn request
+ *
+ * @param ptask Task structure holding resource information to be sent
+ *
+ * @return On success, true is returned, or false if an error occurred.
+ */
+static bool send_SPAWNLOC(uint32_t num, int32_t rank, PStask_ID_t sender,
+			  PStask_ID_t dest, PStask_t *ptask)
+{
+    DDBufferMsg_t locMsg = (DDBufferMsg_t) {
+	.header = (DDMsg_t) {
+	    .type = PSP_DD_SPAWNLOC,
+	    .sender = sender,
+	    .dest = dest,
+	    .len = offsetof(DDBufferMsg_t, buf) },
+	.buf = { 0 } };
+    PSnodes_ID_t destID = PSC_getID(dest);
+    uint32_t i;
+
+    PSID_log(PSID_LOG_SPAWN, "%s: send PSP_DD_SPAWNLOC to node %d\n", __func__,
+	     destID);
+
+    short numCPUs = PSIDnodes_getVirtCPUs(destID);
+    uint16_t nBytes = PSCPU_bytesForCPUs(numCPUs);
+
+    PSP_putMsgBuf(&locMsg, __func__, "num", &num, sizeof(num));
+    PSP_putMsgBuf(&locMsg, __func__, "rank", &rank, sizeof(rank));
+    PSP_putMsgBuf(&locMsg, __func__, "nBytes", &nBytes, sizeof(nBytes));
+
+    for (i = 0; i < num; i++) {
+	PSCPU_set_t setBuf;
+
+	PSCPU_extract(setBuf, ptask->spawnNodes[rank+i].CPUset, nBytes);
+	PSID_log(PSID_LOG_SPAWN, "%s: add %s for rank %d\n", __func__,
+		 PSCPU_print_part(setBuf, nBytes), rank + i);
+	/* Invalidate this entry */
+	PSCPU_clrAll(ptask->spawnNodes[rank+i].CPUset);
+
+	if (!PSP_tryPutMsgBuf(&locMsg, __func__, "CPUset", setBuf, nBytes)) {
+	    int32_t myR = rank + i;
+	    if (sendMsg(&locMsg) < 0) {
+		PSID_warn(-1, errno, "%s: send to %d",  __func__, destID);
+		return false;
+	    }
+
+	    PSID_log(PSID_LOG_SPAWN, "%s: next msg...\n", __func__);
+
+	    locMsg.header.len = offsetof(DDBufferMsg_t, buf);
+	    PSP_putMsgBuf(&locMsg, __func__, "num", &num, sizeof(num));
+	    PSP_putMsgBuf(&locMsg, __func__, "rank", &myR, sizeof(myR));
+	    PSP_putMsgBuf(&locMsg, __func__, "nBytes", &nBytes, sizeof(nBytes));
+	    PSP_putMsgBuf(&locMsg, __func__, "CPUset", setBuf, nBytes);
+	}
+    }
+    if (sendMsg(&locMsg) < 0) {
+	PSID_warn(-1, errno, "%s: send to %d",  __func__, destID);
+	return false;
+    }
+
+    return true;
+}
+
+static LIST_HEAD(pendingResources);
+
+typedef struct {
+    list_t next;          /**< used to put into pendingResources */
+    PStask_ID_t sender;   /**< initiator of the spawn */
+    int32_t rank;         /**< first rank */
+    uint32_t num;         /**< number of entries */
+    PSCPU_set_t *CPUsets; /**< CPU set buffers for adressed ranks */
+} PendingRes_t;
+
+static inline PendingRes_t *findPendingRes(PStask_ID_t sender, int32_t rank)
+{
+    list_t *r;
+    list_for_each(r, &pendingResources) {
+	PendingRes_t *res = list_entry(r, PendingRes_t, next);
+	if (res->sender == sender && res->rank <= rank
+	    && rank - res->rank < (int32_t)res->num) return res;
+    }
+
+    return NULL;
+}
+
+/**
+ * @brief Handle a PSP_DD_SPAWNLOC message
+ *
+ * Handle the message @a msg of type PSP_DD_SPAWNLOC. This type of
+ * message are emitted before forwarding the first fragment of a
+ * PSP_CD_SPAWNREQUEST message in order to inform the destination node
+ * about the resources to use for the specific spawns. The
+ * corresponding information is stored in a corresponding structure of
+ * type PendingRes_t.
+ *
+ * The resource information for a PSP_CD_SPAWNREQUEST message might be
+ * split across several messages of type PSP_DD_SPAWNLOC depending
+ * on the number of CPUs on the receiving node and the number of
+ * processes to start. Thus, the information contained in a specific
+ * message might be appended to structure holding information of
+ * previous messages.
+ *
+ * @param msg Pointer to the message to handle.
  *
  * @return No return value.
  */
+static void msg_SPAWNLOC(DDBufferMsg_t *msg)
+{
+    uint32_t num;
+    int32_t rank;
+    uint16_t nBytes, myBytes = PSCPU_bytesForCPUs(PSCPU_MAX);
+    size_t used = 0;
+
+    PSP_getMsgBuf(msg, &used, __func__, "num", &num, sizeof(num));
+    PSP_getMsgBuf(msg, &used, __func__, "rank", &rank, sizeof(rank));
+    PSP_getMsgBuf(msg, &used, __func__, "nBytes", &nBytes, sizeof(nBytes));
+
+    PSID_log(PSID_LOG_SPAWN, "%s: got %d from %s for rank %d width %d\n",
+	     __func__, num, PSC_printTID(msg->header.sender), rank, nBytes);
+
+    if (nBytes > myBytes) {
+	PSID_log(-1, "%s: from %s: expecting %d CPUs\n", __func__,
+		 PSC_printTID(msg->header.sender), nBytes*8);
+    }
+
+    PendingRes_t *newRes = findPendingRes(msg->header.sender, rank);
+    if (!newRes) {
+	newRes = malloc(sizeof(*newRes));
+	if (!newRes) {
+	    PSID_warn(-1, errno, "%s", __func__);
+	    return;
+	}
+	newRes->sender = msg->header.sender;
+	newRes->rank = rank;
+	newRes->num = num;
+	newRes->CPUsets = malloc(num * sizeof(*newRes->CPUsets));
+	if (!newRes->CPUsets) {
+	    PSID_warn(-1, errno, "%s: CPUsets", __func__);
+	    free(newRes);
+	    return;
+	}
+	list_add_tail(&newRes->next, &pendingResources);
+    }
+
+    PSCPU_set_t setBuf;
+    while (PSP_tryGetMsgBuf(msg, &used, __func__, "CPUset", setBuf, nBytes)) {
+	int32_t off = rank - newRes->rank;
+	if (off >= (int32_t)newRes->num) {
+	    PSID_log(-1, "%s: rank %d out of range (%d)\n", __func__, rank,
+		     newRes->rank + newRes->num -1);
+	    break;
+	}
+	PSCPU_clrAll(newRes->CPUsets[off]);
+	PSCPU_inject(newRes->CPUsets[off], setBuf, nBytes);
+	rank++;
+    }
+}
+
+/**
+ * @brief Append string vector
+ *
+ * Append the string vector @a newStrV to the existing vector @a
+ * strV. @a strV contains @a strVSize entries before. @a strVSize will
+ * be updated by this function and hold the new size of @a strV upon
+ * return.
+ *
+ * This function will consume all the content strings of @a
+ * newStrV. I.e. calling free() for this strings will affect the
+ * consistency of @a strV. Thus, free() must not be called for any
+ * element of @a newStrV[] after this call.
+ *
+ * @param strV String vector to extend
+ *
+ * @param strVSize Current and updated size of @a strV
+ *
+ * @param newStrV String vector to append to @a strV
+ *
+ * @return Open success true is returned; or false in case of an error
+ */
+static bool appendStrV(char ***strV, uint32_t *strVSize, char **newStrV)
+{
+    int32_t i, num = 0;
+
+    while (newStrV[num]) num++;
+
+    char **tmp = realloc(*strV, (*strVSize + num + 1) * sizeof(**strV));
+    if (!tmp) return false;
+    *strV = tmp;
+
+    for (i = 0; i < num; i++) (*strV)[*strVSize + i] = newStrV[i];
+    (*strV)[*strVSize + num] = NULL;  /* trailing NULL */
+
+    *strVSize += num;
+
+    return true;
+}
+
+static inline bool isServiceTask(PStask_group_t group)
+{
+    return (group == TG_SERVICE || group == TG_SERVICE_SIG
+	    || group == TG_ADMINTASK || group == TG_KVS);
+}
+
+/**
+ * @brief Spawn processes
+ *
+ * Actually spawn processes as described on the data buffer @a
+ * rData. It contains a whole message of type PSP_CD_SPAWNREQUEST
+ * holding all information on the processes requested to be
+ * created. Additional information can be obtained for @a msg
+ * containing meta-information of the last fragment received.
+ *
+ * @param msg Message header (including the type) of the last fragment
+ *
+ * @param rData Data buffer presenting the actual PSP_CD_SPAWNREQUEST
+ *
+ * @return No return value
+ */
+static void handleSpawnReq(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
+{
+    char *ptr = rData->buf;
+    DDErrorMsg_t answer = {
+	.header = {
+	    .type = PSP_CD_SPAWNFAILED,
+	    .sender = msg->header.dest,
+	    .dest = msg->header.sender,
+	    .len = sizeof(answer) },
+	.error = 0,
+	.request = 0,};
+    uint32_t num, r;
+    PStask_t *task;
+
+    /* ensure we use the same byteorder as libpsi */
+    bool byteOrder = setByteOrder(true);
+
+    /* fetch info from message */
+    getUint32(&ptr, &num);
+
+    task = PStask_new();
+
+    ptr += PStask_decodeTask(ptr, task, false);
+    task->workingdir = getStringM(&ptr);
+    getStringArrayM(&ptr, &task->argv, &task->argc);
+    getStringArrayM(&ptr, &task->environ, &task->envSize);
+
+
+    /* Check if we have to and can copy the location */
+    if (isServiceTask(task->group)) {
+	PSCPU_setAll(task->CPUset);
+    }
+
+    PendingRes_t *res = findPendingRes(msg->header.sender, task->rank);
+
+    for (r = 0; r < num; r++) {
+	char **extraEnv;
+	uint32_t extraEnvSize;
+
+	PStask_t *clone = PStask_clone(task);
+	clone->rank += r;
+	int32_t rank = clone->rank;
+	answer.request = rank;
+
+	getStringArrayM(&ptr, &extraEnv, &extraEnvSize);
+
+	if (extraEnvSize) {
+	    appendStrV(&clone->environ, &clone->envSize, extraEnv);
+	    free(extraEnv);
+	}
+
+	if (!isServiceTask(task->group)) {
+	    bool localSender = (PSC_getID(msg->header.sender) == PSC_getMyID());
+	    if (localSender) {
+		PStask_t *ptask = PStasklist_find(&managedTasks,
+						  msg->header.sender);
+		if (!ptask) {
+		    PSID_log(-1, "%s: no parent task?!\n", __func__);
+		    answer.error = EACCES;
+		} else if (!ptask->spawnNodes || rank >= (int)ptask->spawnNum) {
+		    PSID_log(-1, "%s: rank %d out of range\n", __func__, rank);
+		    answer.error = EADDRNOTAVAIL;
+		} else if (!PSCPU_any(ptask->spawnNodes[rank].CPUset,
+				      PSCPU_MAX)) {
+		    PSID_log(-1, "%s: rank %d exhausted\n", __func__, rank);
+		    answer.error = EADDRINUSE;
+		} else {
+		    PSCPU_set_t *rankSet = &ptask->spawnNodes[rank].CPUset;
+		    memcpy(clone->CPUset, *rankSet, sizeof(clone->CPUset));
+
+		    PSID_log(PSID_LOG_SPAWN, "%s: get cores locally: ...%s\n",
+			     __func__, PSCPU_print_part(clone->CPUset, 8));
+
+		    /* Invalidate this entry */
+		    PSCPU_clrAll(*rankSet);
+		}
+	    } else {
+		if (!res || rank - res->rank >= (int32_t)res->num) {
+		    PSID_log(-1, "%s: rank %d out of range\n", __func__, rank);
+		    answer.error = EADDRNOTAVAIL;
+		} else if (!PSCPU_any(res->CPUsets[rank - res->rank],
+				      PSCPU_MAX)) {
+		    PSID_log(-1, "%s: rank %d exhausted\n", __func__, rank);
+		    answer.error = EADDRINUSE;
+		} else {
+		    PSCPU_set_t *rankSet = &res->CPUsets[rank - res->rank];
+		    memcpy(clone->CPUset, *rankSet, sizeof(clone->CPUset));
+
+		    PSID_log(PSID_LOG_SPAWN, "%s: get cores remotely: ...%s\n",
+			     __func__, PSCPU_print_part(clone->CPUset, 8));
+		}
+	    }
+
+	    if  (answer.error) {
+		sendMsg(&answer);
+		PStask_delete(clone);
+		continue;
+	    }
+	}
+
+	// Now clone might be used for actual spawn
+	PStask_ID_t loggerTID = clone->loggertid;
+	PSCPU_set_t CPUset;
+	PSCPU_copy(CPUset, clone->CPUset);
+	char tasktxt[192];
+
+	PStask_snprintf(tasktxt, sizeof(tasktxt), clone);
+	PSID_log(PSID_LOG_SPAWN, "%s: Spawning %s\n", __func__, tasktxt);
+
+	answer.error = spawnTask(clone);
+
+	if (answer.error) {
+	    /* send only on failure. success reported by forwarder */
+	    sendMsg(&answer);
+	    sendCHILDRESREL(loggerTID, CPUset, PSC_getMyTID());
+	}
+
+    }
+
+    /* reset psserial's byteorder */
+    setByteOrder(byteOrder);
+
+    /* cleanup res if any */
+    if (res) {
+	list_del(&res->next);
+	free(res);
+    }
+
+    PStask_delete(task);
+
+    return;
+}
+
+/**
+ * @brief Handle a PSP_CD_SPAWNREQUEST message.
+ *
+ * Handle the message @a msg of type PSP_CD_SPAWNREQUEST.
+ *
+ * This will spawn processes as described within this message. Since
+ * the serialization layer is utilized depending on the number of
+ * processes to spawn and the sizes of the argument vector and the
+ * environment the messages might be split into multiple fragments.
+ *
+ * This function will collect these fragments into a single message
+ * using the serialization layer or forward single fragments to the
+ * final destination of the spawn request. Furthermore, on the node of
+ * the initiating task, various tests are undertaken in order to
+ * determine if the spawn is allowed. If all tests pass, the message
+ * is forwarded to the target-node where the processes to spawn are
+ * created.
+ *
+ * Additional information on the resources to be used for the spawn
+ * will be forwarded to the destination node via @ref send_SPAWNLOC()
+ *
+ * The actual handling of the spawn request once all fragments are
+ * received is done within @ref handleSpawnReq().
+ *
+ * @param msg Pointer to the message holding the fragment to handle
+ *
+ * @return No return value.
+ */
+static void msg_SPAWNREQUEST(DDTypedBufferMsg_t *msg)
+{
+    PStask_t *task, *ptask = NULL;
+    DDErrorMsg_t answer = {
+	.header = {
+	    .type = PSP_CD_SPAWNFAILED,
+	    .sender = msg->header.dest,
+	    .dest = msg->header.sender,
+	    .len = sizeof(answer) },
+	.error = 0,
+	.request = 0,};
+    bool localSender = (PSC_getID(msg->header.sender)==PSC_getMyID());
+    size_t used = 0;
+    uint8_t fType;
+    uint16_t fNum;
+    uint32_t num, i;
+    int32_t rank = -1;
+    PStask_group_t group = TG_ANY;
+
+    PSP_getTypedMsgBuf(msg, &used, __func__, "fragType", &fType, sizeof(fType));
+    PSP_getTypedMsgBuf(msg, &used, __func__, "fragNum", &fNum, sizeof(fNum));
+
+    PSID_log(PSID_LOG_SPAWN, "%s: fragment %d from %s msglen %d\n", __func__,
+	     fNum, PSC_printTID(msg->header.sender), msg->header.len);
+
+    /* If message is first from my node, test if everything is okay */
+    if (localSender && fNum == 0) {
+	char *ptr = msg->buf + used;
+
+	/* ensure we use the same byteorder as libpsi */
+	bool byteOrder = setByteOrder(true);
+
+	/* fetch info from message */
+	getUint32(&ptr, &num);
+	task = PStask_new();
+	ptr += PStask_decodeTask(ptr, task, false);
+
+	/* reset psserial's byteorder */
+	setByteOrder(byteOrder);
+
+	answer.error = checkRequest(msg->header.sender, task);
+
+	/* Store some info from task for latter use */
+	group = task->group;
+	rank = task->rank;
+
+	PStask_delete(task);
+
+	if (answer.error) {
+	    for (i = 0; i < num; i++) {
+		answer.request = rank + i;
+		sendMsg(&answer);
+	    }
+
+	    return;
+	}
+
+	/* Since checkRequest() did not fail, we will find ptask */
+	ptask = PStasklist_find(&managedTasks, msg->header.sender);
+	if (!ptask) {
+	    PSID_log(-1, "%s: no parent task?!\n", __func__);
+	    return;
+	}
+    }
+
+
+    if (PSC_getID(msg->header.dest) == PSC_getMyID()) {
+	/* destination is here */
+	recvFragMsg(msg, handleSpawnReq);
+	return;
+    }
+
+    /* destination is remote */
+
+    if (!PSIDnodes_isUp(PSC_getID(msg->header.dest))) {
+	answer.error = EHOSTDOWN;
+	for (i = 0; i < num; i++) {
+	    answer.request = rank + i;
+	    sendMsg(&answer);
+	}
+	return;
+    }
+
+    /* Check if we have to and can send a LOC-message */
+    if (localSender && fNum == 0 && !isServiceTask(group)) {
+	PSpart_slot_t *spawnNodes = ptask->spawnNodes;
+	if (!spawnNodes || rank + num - 1 >= ptask->spawnNum) {
+	    PSID_log(-1, "%s: ranks %d-%d  out of range\n", __func__,
+		     rank, rank + num -1);
+	    answer.error = EADDRNOTAVAIL;
+	} else {
+	    bool notAvail = false;
+	    for (i = 0; i < num; i++) {
+		notAvail = notAvail
+		    || !PSCPU_any(spawnNodes[rank+i].CPUset, PSCPU_MAX);
+	    }
+	    if (notAvail) {
+		PSID_log(-1, "%s: node exhausted\n", __func__);
+		answer.error = EADDRINUSE;
+	    }
+	}
+
+	if (answer.error) {
+	    for (i = 0; i < num; i++) {
+		answer.request = rank + i;
+		sendMsg(&answer);
+	    }
+	    return;
+	} else {
+	    if (!send_SPAWNLOC(num, rank, msg->header.sender,
+			       msg->header.dest, ptask)) {
+		answer.error = EHOSTDOWN;
+		for (i = 0; i < num; i++) {
+		    answer.request = rank + i;
+		    sendMsg(&answer);
+		}
+		return;
+	    }
+	}
+    }
+
+    PSID_log(PSID_LOG_SPAWN, "%s: forward to node %d\n", __func__,
+	     PSC_getID(msg->header.dest));
+    if (sendMsg(msg) < 0) {
+	answer.error = errno;
+	for (i = 0; i < num; i++) {
+	    answer.request = rank + i;
+	    sendMsg(&answer);
+	}
+    }
+}
+
+/**
+ * @brief Drop a PSP_CD_SPAWNREQ message
+ *
+ * Drop the message @a msg of type PSP_CD_SPAWNREQ.
+ *
+ * Since the spawning process waits for a reaction to its request a
+ * corresponding answer is created.
+ *
+ * @param msg Pointer to the message to drop.
+ *
+ * @return No return value
+ */
 static void drop_SPAWNREQ(DDBufferMsg_t *msg)
 {
-    DDErrorMsg_t errmsg;
+    DDErrorMsg_t errMsg = {
+	.header = {
+	    .type = PSP_CD_SPAWNFAILED,
+	    .sender = msg->header.dest,
+	    .dest = msg->header.sender,
+	    .len = sizeof(errMsg) },
+	.error = EHOSTDOWN,
+	.request = 0,};
 
-    errmsg.header.type = PSP_CD_SPAWNFAILED;
-    errmsg.header.dest = msg->header.sender;
-    errmsg.header.sender = msg->header.dest;
-    errmsg.header.len = sizeof(errmsg);
+    sendMsg(&errMsg);
+}
 
-    errmsg.error = EHOSTDOWN;
-    errmsg.request = 0;
+/**
+ * @brief Drop a PSP_CD_SPAWNREQUEST message
+ *
+ * Drop the message @a msg of type PSP_CD_SPAWNREQUEST.
+ *
+ * Since the spawning process waits for a reaction to its request a
+ * corresponding number of answers is created. Since the corresponding
+ * information is only contained in the first fragment, all further
+ * fragments are ignored.
+ *
+ * @param msg Pointer to the message to drop.
+ *
+ * @return No return value
+ */
+static void drop_SPAWNREQUEST(DDTypedBufferMsg_t *msg)
+{
+    DDErrorMsg_t errMsg = {
+	.header = {
+	    .type = PSP_CD_SPAWNFAILED,
+	    .sender = msg->header.dest,
+	    .dest = msg->header.sender,
+	    .len = sizeof(errMsg) },
+	.error = EHOSTDOWN,
+	.request = 0,};
+    size_t used = 0;
+    uint8_t fType;
+    uint16_t fNum;
+    uint32_t num, i;
 
-    sendMsg(&errmsg);
+    PSID_log(PSID_LOG_SPAWN, "%s: from %s msglen %d\n", __func__,
+	     PSC_printTID(msg->header.sender), msg->header.len);
+
+    PSP_getTypedMsgBuf(msg, &used, __func__, "fragType", &fType, sizeof(fType));
+    PSP_getTypedMsgBuf(msg, &used, __func__, "fragNum", &fNum, sizeof(fNum));
+
+    /* Ignore trailing fragments */
+    if (fNum) return;
+
+    PSP_getTypedMsgBuf(msg, &used, __func__, "num", &num, sizeof(num));
+
+    PStask_t *task = PStask_new();
+    PStask_decodeTask(msg->buf + used, task, false);
+
+    int32_t rank = task->rank;
+
+    PStask_delete(task);
+
+    for (i = 0; i < num; i++) {
+	errMsg.request = rank + i;
+	sendMsg(&errMsg);
+    }
 }
 
 void PSIDspawn_delayTask(PStask_t *task)
@@ -2661,7 +3242,7 @@ static void msg_CHILDBORN(DDErrorMsg_t *msg)
     }
 
     if (forwarder->argv) {
-	int i;
+	uint32_t i;
 	for (i=0; i<forwarder->argc; i++) {
 	    if (forwarder->argv[i]) free(forwarder->argv[i]);
 	}
@@ -2972,14 +3553,17 @@ void PSIDspawn_init(void)
     PSID_log(PSID_LOG_VERB, "%s()\n", __func__);
 
     PSID_registerMsg(PSP_CD_SPAWNREQ, (handlerFunc_t) msg_SPAWNREQ);
+    PSID_registerMsg(PSP_CD_SPAWNREQUEST, (handlerFunc_t) msg_SPAWNREQUEST);
     PSID_registerMsg(PSP_CD_SPAWNSUCCESS, (handlerFunc_t) msg_SPAWNSUCCESS);
     PSID_registerMsg(PSP_CD_SPAWNFAILED, (handlerFunc_t) msg_SPAWNFAILED);
     PSID_registerMsg(PSP_CD_SPAWNFINISH, (handlerFunc_t) msg_SPAWNFINISH);
     PSID_registerMsg(PSP_DD_CHILDDEAD, (handlerFunc_t) msg_CHILDDEAD);
     PSID_registerMsg(PSP_DD_CHILDBORN, (handlerFunc_t) msg_CHILDBORN);
     PSID_registerMsg(PSP_DD_CHILDACK, PSIDclient_frwd);
+    PSID_registerMsg(PSP_DD_SPAWNLOC, msg_SPAWNLOC);
 
     PSID_registerDropper(PSP_CD_SPAWNREQ, drop_SPAWNREQ);
+    PSID_registerDropper(PSP_CD_SPAWNREQUEST, (handlerFunc_t)drop_SPAWNREQUEST);
 
     PSID_registerLoopAct(checkObstinateTasks);
     PSID_registerLoopAct(cleanupSpawnTasks);
