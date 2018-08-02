@@ -110,14 +110,15 @@ bool PSI_sendSpawnMsg(PStask_t* task, bool envClone, PSnodes_ID_t dest,
 /**
  * @brief Send spawn request
  *
- * Use the serialization layer in order to send the request to spawn a
- * number of processes. The request might be split into multiple
+ * Use the serialization layer in order to send the request to spawn
+ * at most @a max processes. The request might be split into multiple
  * messages depending on the amount of information that needs to be
  * submitted. The task structure @a task describes the processes to be
  * spawned containing e.g. the argument vector or the environment. @a
  * dstnodes holds the ID of the destination node (in dstnodes[0]) and
  * the number of processes to spawn (encoded in the number of
- * consecutive elements identical to dstnodes[0]).
+ * consecutive elements identical to dstnodes[0]). Nevertheless, @a
+ * max limits the number of processes anyhow.
  *
  * This function will consider the per rank environment characterized
  * through the function to be registered via @ref
@@ -133,10 +134,12 @@ bool PSI_sendSpawnMsg(PStask_t* task, bool envClone, PSnodes_ID_t dest,
  *
  * @param dstnodes Destination nodes of the spawn requests
  *
+ * @param max Maximum number of processes to spawn -- might be less
+ *
  * @return On success the number of spawned ranks is returned; or
  * -1 in case of an error
  */
-int PSI_sendSpawnReq(PStask_t* task, PSnodes_ID_t *dstnodes);
+int PSI_sendSpawnReq(PStask_t* task, PSnodes_ID_t *dstnodes, uint32_t max);
 
 /**
  * @brief Spawn one or more tasks within the cluster.
