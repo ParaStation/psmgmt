@@ -2,15 +2,14 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
 /**
- * @file
- * ParaStation daemon-daemon high-level protocol.
+ * @file ParaStation daemon-daemon high-level protocol.
  */
 #ifndef __PSDAEMONPROTOCOL_H
 #define __PSDAEMONPROTOCOL_H
@@ -93,6 +92,9 @@
 #define PSP_DD_GETRESERVATION      0x013C  /**< Forwarded GETRESERVATION msg */
 #define PSP_DD_GETSLOTS            0x013D  /**< Forwarded GETSLOTS msg */
 #define PSP_DD_SLOTSRES            0x013E  /**< Results of GETSLOTS msg */
+
+/** Messages for ressource passing during spawn */
+#define PSP_DD_SPAWNLOC            0x0140  /**< Resources for spawn */
 
     /***********************************************************/
     /* The IDs from 0x0200 on are reserved for plugin messages */
