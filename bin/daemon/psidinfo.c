@@ -515,8 +515,8 @@ static void msg_INFOREQUEST(DDTypedBufferMsg_t *inmsg)
 	{
 	    PStask_t *task = PStasklist_find(&managedTasks, inmsg->header.dest);
 	    if (task) {
-		int i;
-		for (i=0; i<task->argc; i++) {
+		uint32_t i;
+		for (i = 0; i < task->argc; i++) {
 		    snprintf(&msg.buf[strlen(msg.buf)],
 			     sizeof(msg.buf)-strlen(msg.buf),
 			     "%s ", task->argv[i]);

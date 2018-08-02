@@ -3700,7 +3700,7 @@ static void msg_NODESRES(DDBufferMsg_t *msg)
 {
     if (PSC_getID(msg->header.dest) == PSC_getMyID()) {
 	PStask_t *task = PStasklist_find(&managedTasks, msg->header.dest);
-	int32_t nextRank;
+	uint32_t nextRank;
 	int16_t rqstd, num;
 	uint16_t nBytes, myBytes = PSCPU_bytesForCPUs(PSCPU_MAX);
 	PSpart_slot_t *slots;
@@ -3724,7 +3724,7 @@ static void msg_NODESRES(DDBufferMsg_t *msg)
 
 	/* Store assigned slots */
 	if (!task->spawnNodes || task->spawnNodesSize < nextRank+rqstd) {
-	    int r;
+	    uint32_t r;
 	    task->spawnNodes = realloc(task->spawnNodes, (nextRank+rqstd)
 				       * sizeof(*task->spawnNodes));
 	    for (r = task->spawnNodesSize; r < nextRank + rqstd; r++) {
@@ -4526,7 +4526,7 @@ static void msg_SLOTSRES(DDBufferMsg_t *msg)
 {
     PStask_t *task = PStasklist_find(&managedTasks, msg->header.dest);
     size_t used = 0;
-    int32_t rank;
+    uint32_t rank;
     int16_t requested, num;
     int n;
     PSpart_slot_t *slots;
@@ -4554,7 +4554,7 @@ static void msg_SLOTSRES(DDBufferMsg_t *msg)
 
     /* Store assigned slots */
     if (!task->spawnNodes || task->spawnNodesSize < rank + requested) {
-	int r;
+	uint32_t r;
 	task->spawnNodes = realloc(task->spawnNodes, (rank + requested)
 				   * sizeof(*task->spawnNodes));
 	for (r = task->spawnNodesSize; r < rank + requested; r++) {
@@ -4609,7 +4609,7 @@ static void msg_SLOTSRES(DDBufferMsg_t *msg)
 void PSIDpart_cleanupSlots(PStask_t *task)
 {
     DDBufferMsg_t relMsg;
-    int r;
+    uint32_t r;
 
     if (!task || !task->spawnNodes) return;
 

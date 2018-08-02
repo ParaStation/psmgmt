@@ -2293,13 +2293,14 @@ static bool tryPMISpawn(SpawnRequest_t *req, int universeSize,
     task->environ = env.strings;
     task->envSize = env.count;
 
+    uint32_t j;
     if (debug) {
 	elog("%s(r%i): Executing '", __func__, rank);
-	for (i = 0; i < task->argc; i++) elog(" %s", task->argv[i]);
+	for (j = 0; j < task->argc; j++) elog(" %s", task->argv[j]);
 	elog("'\n");
     }
     mlog("%s(r%i): Executing '", __func__, rank);
-    for (i = 0; i < task->argc; i++) mlog(" %s", task->argv[i]);
+    for (j = 0; j < task->argc; j++) mlog(" %s", task->argv[j]);
     mlog("'\n");
 
 #if 0
