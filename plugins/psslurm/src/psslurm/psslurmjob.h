@@ -136,7 +136,13 @@ char *strJobState(JobState_t state);
 int countJobs(void);
 
 /**
- * @doctodo
+ * @brief Get a list of all known job on the local node
+ *
+ * @param infoCount The number of jobids/stepids
+ *
+ * @param jobids The jobids of all known jobs
+ *
+ * @param stepids Always set to SLURM_BATCH_SCRIPT
  */
 void getJobInfos(uint32_t *infoCount, uint32_t **jobids, uint32_t **stepids);
 

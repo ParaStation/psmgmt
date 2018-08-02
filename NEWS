@@ -4,6 +4,10 @@ Copyright (C) 2010-2018 ParTec Cluster Competence Center GmbH, Munich
 
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
+Version 5.1.12-1:
+===============
+Bugfixes:
+ - Report all known jobs/steps in node registration status (#jrt:8639)
 
 Version 5.1.12:
 ===============

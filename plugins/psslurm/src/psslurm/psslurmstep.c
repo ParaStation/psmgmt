@@ -387,9 +387,11 @@ void getStepInfos(uint32_t *infoCount, uint32_t **jobids, uint32_t **stepids)
     list_for_each_safe(s, tmp, &StepList) {
 	Step_t *step = list_entry(s, Step_t, next);
 	if (*infoCount == max) break;
-	if (step->state == JOB_EXIT || step->state == JOB_COMPLETE) continue;
+	/* report all known jobs, even in state complete/exit */
 	(*jobids)[*infoCount] = step->jobid;
 	(*stepids)[*infoCount] = step->stepid;
 	(*infoCount)++;
+	mdbg(PSSLURM_LOG_DEBUG, "%s: add step %u:%u\n", __func__,
+	     step->jobid, step->stepid);
     }
 }
