@@ -27,6 +27,7 @@
 
 #include "pscommon.h"
 #include "psprotocol.h"
+#include "psserial.h"
 #include "pstask.h"
 
 #include "psi.h"
@@ -515,6 +516,44 @@ recv_retry:
     return 1;
 }
 
+int PSI_sendSpawnReq(PStask_t* task, PSnodes_ID_t *dstnodes)
+{
+    PS_SendDB_t msg;
+    uint32_t r, num = 0;
+    PStask_ID_t dest = PSC_getTID(dstnodes[0], 0);
+
+    initFragBuffer(&msg, PSP_CD_SPAWNREQUEST, -1);
+    setFragDest(&msg, dest);
+
+    while (dstnodes[num] == dstnodes[0]) num++;
+
+    PSI_log(PSI_LOG_SPAWN, "%s: %d proc to %d at rank %d\n", __func__, num,
+	    dstnodes[0], task->rank);
+
+    addUint32ToMsg(num, &msg);
+    if (!PStask_sendTask(&msg, task)) return -1;
+    if (!PStask_sendStrV(&msg, task->argv)) return -1;
+    if (!PStask_sendStrV(&msg, task->environ)) return -1;
+
+    for (r = 0; r < num; r++) {
+	char **extraEnv;
+
+	if (extraEnvFunc
+	    && (extraEnv = extraEnvFunc(task->rank + r, extraEnvInfo))) {
+	    if (!PStask_sendStrV(&msg, extraEnv)) return -1;
+	} else {
+	    addUint32ToMsg(0, &msg);
+	}
+    }
+
+    if (sendFragMsg(&msg) == -1) {
+	PSI_log(-1, "%s: send to %d failed\n", __func__,  dstnodes[0]);
+	return -1;
+    }
+
+    return num;
+}
+
 bool PSI_sendSpawnMsg(PStask_t* task, bool envClone, PSnodes_ID_t dest,
 		      int (*sendFunc)(void *))
 {
@@ -765,15 +804,17 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
 	    task->argv[2]=strdup("--tool=callgrind");
 	}
 
-	for (i=1; i < task->argc; i++) {
-	    task->argv[i+3]=strdup(argv[i]);
-	    if (!task->argv[i+3]) goto cleanup;
+	uint32_t a;
+	for (a = 1; a < task->argc; a++) {
+	    task->argv[a+3]=strdup(argv[a]);
+	    if (!task->argv[a+3]) goto cleanup;
 	}
 	task->argc+=3;
     } else {
-	for (i=1; i < task->argc; i++) {
-	    task->argv[i]=strdup(argv[i]);
-	    if (!task->argv[i]) goto cleanup;
+	uint32_t a;
+	for (a=1; a < task->argc; a++) {
+	    task->argv[a]=strdup(argv[a]);
+	    if (!task->argv[a]) goto cleanup;
 	}
     }
     task->argv[task->argc] = NULL;
@@ -802,16 +843,22 @@ static int dospawn(int count, PSnodes_ID_t *dstnodes, char *workingdir,
 	protoVer[dstnodes[i]] = getProtoVersion(dstnodes[i]);
     }
 
+    if (!initSerial(0, PSI_sendMsg)) {
+	PSI_log(-1, "%s: initSerial() failed\n", __func__);
+	goto cleanup;
+    }
+
+
     /* send actual requests */
     i = 0;
     while (i < count && !error) {
-	int num, proto = getProtoVersion(dstnodes[i]);
+	int num;
 
+	task->rank = rank;
 	if (protoVer[dstnodes[i]] > 340) {
-	    // num = sendNewMessages(rank, task, &dstnodes[i]);
-	    // if (!num) goto cleanup; // @todo
+	    num = PSI_sendSpawnReq(task, &dstnodes[i]);
+	    if (num < 0) goto cleanup;
 	} else {
-	    task->rank = rank;
 	    if (!PSI_sendSpawnMsg(task, true, dstnodes[i], PSI_sendMsg)) {
 		goto cleanup;
 	    }
