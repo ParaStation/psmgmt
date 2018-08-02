@@ -3095,6 +3095,7 @@ static int releaseThreads(PSpart_slot_t *slot, unsigned int nSlots,
 		    PSID_log(-1, "%s: Adjust timesUsed %d for (%d/%d) by %s\n",
 			     __func__, thrd->timesUsed, thrd->node, thrd->id,
 			     caller);
+		    totalRelease += thrd->timesUsed;
 		    thrd->timesUsed = 0;
 		}
 		PSCPU_clrCPU(slot[s].CPUset, thrd->id);
