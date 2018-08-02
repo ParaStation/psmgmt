@@ -203,7 +203,7 @@ int countJobs(void)
 void getJobInfos(uint32_t *infoCount, uint32_t **jobids, uint32_t **stepids)
 {
     list_t *j, *tmp;
-    uint32_t max = countSteps() + *infoCount;
+    uint32_t max = countJobs() + *infoCount;
 
     *jobids = urealloc(*jobids, sizeof(uint32_t) * max);
     *stepids = urealloc(*stepids, sizeof(uint32_t) * max);
@@ -211,10 +211,12 @@ void getJobInfos(uint32_t *infoCount, uint32_t **jobids, uint32_t **stepids)
     list_for_each_safe(j, tmp, &JobList) {
 	Job_t *job = list_entry(j, Job_t, next);
 	if (*infoCount == max) break;
-	if (job->state == JOB_EXIT || job->state == JOB_COMPLETE) continue;
+	/* report all known jobs, even in state complete/exit */
 	(*jobids)[*infoCount] = job->jobid;
 	(*stepids)[*infoCount] = SLURM_BATCH_SCRIPT;
 	(*infoCount)++;
+	mdbg(PSSLURM_LOG_DEBUG, "%s: add job %u\n", __func__,
+	     job->jobid);
     }
 }
 

@@ -292,7 +292,13 @@ char *getActiveStepList();
 int killStepFWbyJobid(uint32_t jobid);
 
 /**
- * @doctodo
+ * @brief Get a list of all known steps on the local node
+ *
+ * @param infoCount The number of jobids/stepids
+ *
+ * @param jobids The jobids of all known steps
+ *
+ * @param stepids The stepids of all known steps
  */
 void getStepInfos(uint32_t *infoCount, uint32_t **jobids, uint32_t **stepids);
 
