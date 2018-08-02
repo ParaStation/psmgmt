@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -20,6 +20,7 @@
 #include "list.h"
 #include "pssignal.h"
 #include "psreservation.h"
+#include "psserial.h"
 
 #include "pstask.h"
 
@@ -73,7 +74,7 @@ PStask_t* PStask_new(void)
     PStask_t* task;
 
     PSC_log(PSC_LOG_TASK, "%s()\n", __func__);
-    task = (PStask_t*)malloc(sizeof(PStask_t));
+    task = malloc(sizeof(PStask_t));
 
     if (task) PStask_init(task);
 
@@ -182,7 +183,7 @@ static void delReservationList(list_t *list)
 
 int PStask_reinit(PStask_t* task)
 {
-    int i;
+    uint32_t i;
 
     PSC_log(PSC_LOG_TASK, "%s(%p)\n", __func__, task);
 
@@ -194,16 +195,12 @@ int PStask_reinit(PStask_t* task)
     if (task->workingdir)
 	free(task->workingdir);
 
-    for (i=0;i<task->argc;i++)
-	if (task->argv && task->argv[i])
-	    free(task->argv[i]);
+    for (i = 0; i < task->argc; i++)
+	if (task->argv && task->argv[i]) free(task->argv[i]);
     if (task->argv) free(task->argv);
 
     if (task->environ) {
-	int i;
-	for (i=0; task->environ[i]; i++) {
-	    free(task->environ[i]);
-	}
+	for (i = 0; task->environ[i]; i++) free(task->environ[i]);
 	free(task->environ);
 	task->environ = NULL;
     }
@@ -291,7 +288,8 @@ static void cloneSigList(list_t *cloneList, list_t *origList)
 PStask_t* PStask_clone(PStask_t* task)
 {
     PStask_t *clone;
-    int i, eno = 0;
+    int eno = 0;
+    uint32_t i;
 
     PSC_log(PSC_LOG_TASK, "%s(%p)\n", __func__, task);
 
@@ -329,7 +327,7 @@ PStask_t* PStask_clone(PStask_t* task)
 	eno = EINVAL;
 	goto error;
     }
-    clone->argv = (char**)malloc(sizeof(char*)*(task->argc+1));
+    clone->argv = malloc((task->argc + 1) * sizeof(*clone->argv));
     if (!clone->argv) {
 	eno = errno;
 	PSC_warn(-1, eno, "%s: malloc(argv)", __func__);
@@ -356,7 +354,7 @@ PStask_t* PStask_clone(PStask_t* task)
 	    eno = EINVAL;
 	    goto error;
 	}
-	clone->environ = (char**)malloc(task->envSize*sizeof(char*));
+	clone->environ = malloc((task->envSize + 1) * sizeof(*clone->environ));
 	if (!clone->environ) {
 	    eno = errno;
 	    PSC_warn(-1, eno, "%s: malloc(environ)", __func__);
@@ -399,25 +397,31 @@ PStask_t* PStask_clone(PStask_t* task)
     cloneSigList(&clone->deadBefore, &task->deadBefore);
 
     clone->request = NULL; /* Do not clone requests */
-    clone->partitionSize = task->partitionSize;
     clone->options = task->options;
-    clone->partition = malloc(task->partitionSize * sizeof(*task->partition));
-    if (!clone->partition) {
-	eno = errno;
-	PSC_warn(-1, eno, "%s: malloc(partition)", __func__);
-	goto error;
+    clone->partitionSize = task->partitionSize;
+    if (clone->partitionSize) {
+	clone->partition = malloc(clone->partitionSize
+				  * sizeof(*clone->partition));
+	if (!clone->partition) {
+	    eno = errno;
+	    PSC_warn(-1, eno, "%s: malloc(partition)", __func__);
+	    goto error;
+	}
+	memcpy(clone->partition, task->partition,
+	       task->partitionSize * sizeof(*task->partition));
     }
-    memcpy(clone->partition, task->partition,
-	   task->partitionSize * sizeof(*task->partition));
     clone->totalThreads = task->totalThreads;
-    clone->partThrds = malloc(task->totalThreads * sizeof(*task->partThrds));
-    if (!clone->partThrds) {
-	eno = errno;
-	PSC_warn(-1, eno, "%s: malloc(partThrds)", __func__);
-	goto error;
+    if (clone->totalThreads) {
+	clone->partThrds = malloc(task->totalThreads
+				  * sizeof(*task->partThrds));
+	if (!clone->partThrds) {
+	    eno = errno;
+	    PSC_warn(-1, eno, "%s: malloc(partThrds)", __func__);
+	    goto error;
+	}
+	memcpy(clone->partThrds, task->partThrds,
+	       task->totalThreads * sizeof(*task->partThrds));
     }
-    memcpy(clone->partThrds, task->partThrds,
-	   task->totalThreads * sizeof(*task->partThrds));
     clone->usedThreads = task->usedThreads;
 
     /* Do not clone reservations */
@@ -425,14 +429,17 @@ PStask_t* PStask_clone(PStask_t* task)
     clone->activeChild = task->activeChild;
     clone->numChild = task->numChild;
     clone->spawnNodesSize = task->spawnNodesSize;
-    clone->spawnNodes = malloc(task->spawnNodesSize*sizeof(*task->spawnNodes));
-    if (!clone->spawnNodes) {
-	eno = errno;
-	PSC_warn(-1, eno, "%s: malloc(spawnNodes)", __func__);
-	goto error;
+    if (clone->spawnNodesSize) {
+	clone->spawnNodes = malloc(task->spawnNodesSize
+				   * sizeof(*task->spawnNodes));
+	if (!clone->spawnNodes) {
+	    eno = errno;
+	    PSC_warn(-1, eno, "%s: malloc(spawnNodes)", __func__);
+	    goto error;
+	}
+	memcpy(clone->spawnNodes, task->spawnNodes,
+	       clone->spawnNodesSize * sizeof(*task->spawnNodes));
     }
-    memcpy(clone->spawnNodes, task->spawnNodes,
-	   clone->spawnNodesSize * sizeof(*task->spawnNodes));
     clone->spawnNum = task->spawnNum;
     clone->delegate = task->delegate;
     clone->injectedEnv = task->injectedEnv;
@@ -456,11 +463,11 @@ static void snprintfStruct(char *txt, size_t size, PStask_t *task)
     if (!task) return;
 
     snprintf(txt, size, "tid 0x%08x ptid 0x%08x uid %d gid %d group %s"
-	     " childGroup %s rank %d cpus %s loggertid %08x fd %d argc %d",
+	     " childGroup %s rank %d cpus ...%s loggertid %08x fd %d argc %d",
 	     task->tid, task->ptid, task->uid, task->gid,
 	     PStask_printGrp(task->group), PStask_printGrp(task->childGroup),
-	     task->rank, PSCPU_print(task->CPUset), task->loggertid, task->fd,
-	     task->argc);
+	     task->rank, PSCPU_print_part(task->CPUset, 16), task->loggertid,
+	     task->fd, task->argc);
 }
 
 static void snprintfStrV(char *txt, size_t size, char **strV)
@@ -505,7 +512,7 @@ static struct {
     PStask_group_t group;
     int32_t rank;
     PStask_ID_t loggertid;
-    int32_t argc;
+    uint32_t argc;
     int32_t noParricide;
 } tmpTask;
 
@@ -532,7 +539,7 @@ size_t PStask_encodeTask(char *buffer, size_t size, PStask_t *task, char **off)
     tmpTask.rank = task->rank;
     tmpTask.loggertid = task->loggertid;
     tmpTask.argc = task->argc;
-    tmpTask.noParricide = task->noParricide ? 1 : 0;
+    tmpTask.noParricide = task->noParricide;
 
     memcpy(buffer, &tmpTask, sizeof(tmpTask));
 
@@ -556,9 +563,41 @@ size_t PStask_encodeTask(char *buffer, size_t size, PStask_t *task, char **off)
     return msglen;
 }
 
-int PStask_decodeTask(char *buffer, PStask_t *task)
+bool PStask_sendTask(PS_SendDB_t *msg, PStask_t *task)
 {
-    int msglen, len;
+    char *wDir;
+
+    snprintfStruct(someStr, sizeof(someStr), task);
+    PSC_log(PSC_LOG_TASK, "%s(%p, task(%s))\n", __func__, msg, someStr);
+
+    tmpTask.tid = task->tid;
+    tmpTask.ptid = task->ptid;
+    tmpTask.uid = task->uid;
+    tmpTask.gid = task->gid;
+    tmpTask.aretty = task->aretty;
+    tmpTask.termios = task->termios;
+    tmpTask.winsize = task->winsize;
+    tmpTask.group = task->group;
+    tmpTask.rank = task->rank;
+    tmpTask.loggertid = task->loggertid;
+    tmpTask.argc = task->argc;
+    tmpTask.noParricide = task->noParricide;
+
+    if (!addMemToMsg(&tmpTask, sizeof(tmpTask), msg)) return false;
+
+    if (task->workingdir) {
+	wDir = task->workingdir;
+    } else {
+	wDir = "";
+    }
+    if (!addStringToMsg(wDir, msg)) return false;
+
+    return true;
+}
+
+int PStask_decodeTask(char *buffer, PStask_t *task, bool withWDir)
+{
+    int msglen;
 
     if (!task) {
 	PSC_log(-1, "%s: task is NULL\n", __func__);
@@ -587,12 +626,14 @@ int PStask_decodeTask(char *buffer, PStask_t *task)
     task->rank = tmpTask.rank;
     task->loggertid = tmpTask.loggertid;
     task->argc = tmpTask.argc;
-    task->noParricide = !!tmpTask.noParricide;
+    task->noParricide = tmpTask.noParricide;
 
-    len = strlen(&buffer[msglen]);
+    if (withWDir) {
+	int len = strlen(&buffer[msglen]);
 
-    if (len) task->workingdir = strdup(&buffer[msglen]);
-    msglen += len+1;
+	if (len) task->workingdir = strdup(&buffer[msglen]);
+	msglen += len+1;
+    }
 
     if (PSC_getDebugMask() & PSC_LOG_TASK) {
 	snprintfStruct(someStr, sizeof(someStr), task);
@@ -601,6 +642,18 @@ int PStask_decodeTask(char *buffer, PStask_t *task)
     }
 
     return msglen;
+}
+
+bool PStask_sendStrV(PS_SendDB_t *msg, char **strV)
+{
+    uint32_t num = 0, i;
+
+    while (strV[num]) num++;
+
+    addUint32ToMsg(num, msg);
+    for (i = 0; i < num; i++) if (!addStringToMsg(strV[i], msg)) return false;
+
+    return true;
 }
 
 /**
@@ -716,10 +769,10 @@ static size_t encodeStrV(char *buffer, size_t size, char **strV,
  * @return The number of characters within @a buffer used in order to
  * decode the string-vector.
  */
-static int decodeStrV(char *buffer, char ***strV, int *size)
+static int decodeStrV(char *buffer, char ***strV, uint32_t *size)
 {
     int msglen = 0;
-    int oldSize = *size;
+    uint32_t oldSize = *size;
 
     if (!strV) {
 	PSC_log(-1, "%s: strV is NULL\n", __func__);

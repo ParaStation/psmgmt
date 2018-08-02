@@ -2,15 +2,14 @@
  * ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
 /**
- * @file
- * User-functions for interaction with ParaStation tasks.
+ * @file User-functions for interaction with ParaStation tasks.
  */
 #ifndef __PSTASK_H
 #define __PSTASK_H
@@ -28,6 +27,7 @@
 
 #include "psnodes.h"
 #include "pscpu.h"
+#include "pssenddb_t.h"
 
 /**
  * @brief Get the name of a PStask_group.
@@ -74,7 +74,7 @@ typedef struct __task__ PStask_t;
 typedef void PStask_sigChldCB_t(int status, PStask_t *task);
 
 /** Task structure */
-/* Members marked with C are (un)packed by PStask_encode()/PStask_decode() */
+/* Members marked C are handled by PStask_[en|de]code()/PStask_sendTask() */
 struct __task__ {
     list_t next;                   /**< used to put into managedTasks, etc. */
     /*C*/ PStask_ID_t tid;         /**< unique task identifier */
@@ -96,11 +96,10 @@ struct __task__ {
     PSCPU_set_t CPUset;            /**< set of logical CPUs to pin to */
     short fd;                      /**< connection fd within psid */
     /*C*/ char *workingdir;        /**< working directory */
-    /*C*/ int32_t argc;            /**< num of args, length of @a argv */
+    /*C*/ uint32_t argc;           /**< size of argv (w/o trailing NULL) */
     /*C*/ char **argv;             /**< command line arguments */
     /*C*/ char **environ;          /**< PS environment, used for spawning */
-    int envSize;                   /**< Cur. size of environ (needed
-				      during @ref PStask_decodeEnv()) */
+    /*C*/ uint32_t envSize;        /**< Size of environ (w/o trailing NULL) */
     int relativesignal;            /**< the signal sent when a relative (i.e.
 				      parent or child) dies */
     int pendingReleaseRes;         /**< num of pending RELEASERES messages */
@@ -141,8 +140,8 @@ struct __task__ {
     int32_t activeChild;           /**< # of active children right now */
     int32_t numChild;              /**< Total # of children spawned over time */
     PSpart_slot_t *spawnNodes;     /**< Nodes the task can spawn to */
-    int32_t spawnNodesSize;        /**< Current size of @ref spawnNodes */
-    int32_t spawnNum;              /**< Amount of content of @ref spawnNodes */
+    uint32_t spawnNodesSize;       /**< Current size of @ref spawnNodes */
+    uint32_t spawnNum;             /**< Amount of content of @ref spawnNodes */
     PStask_t *delegate;            /**< Delegate holding resources */
     int injectedEnv;               /**< Flag an injected environment into the
 				      current spawn. Used by psmom, etc. */
@@ -289,20 +288,62 @@ size_t PStask_encodeTask(char *buffer, size_t size, PStask_t *task,
 			 char **offset);
 
 /**
- * @brief Decode a task structure.
+ * @brief Decode a task structure
  *
  * Decode a task structure encoded by PStask_encodeTask() and stored
  * within @a buffer and write it to the task structure @a task is
- * pointing to.
+ * pointing to. @a withWdir flags if also a string describing the
+ * working directory of the task shall be fetched from @a buffer and
+ * added to the task structure @a task. This string is expected to be
+ * located right after the encoded task structure within @a buffer.
  *
- * @param buffer The buffer the encoded task structure is stored in.
+ * @param buffer The buffer the encoded task structure is stored in
  *
- * @param task The task structure to write to.
+ * @param task The task structure to write to
+ *
+ * @param withWDir Flag to also fetch the working directory from buffer
  *
  * @return The number of characters within @a buffer used in order to
- * decode the task structure.
+ * decode the task structure
  */
-int PStask_decodeTask(char *buffer, PStask_t *task);
+int PStask_decodeTask(char *buffer, PStask_t *task, bool withWdir);
+
+/**
+ * @brief Send task structure
+ *
+ * Send task structure @a task via the serialization layer utilizing
+ * the data buffer @a msg. Only the core members of @a task will be
+ * sent. Further parts like the argument vector or the environment are
+ * omitted and have to be sent explicitely via @ref PStask_sendStrV().
+ *
+ * @a msg has to be setup before in order to provide the message type,
+ * the destination address, etc.
+ *
+ * @param msg Data buffer used for sending
+ *
+ * @param task Task structure to be sent
+ *
+ * @return On success true is returned; or false in case of error
+ */
+bool PStask_sendTask(PS_SendDB_t *msg, PStask_t *task);
+
+/**
+ * @brief Send vector of strings
+ *
+ * Send vector of strings @a strV via the serialization layer
+ * utilizing the data buffer @a msg. Data might be received on the
+ * destination side using the @ref getStringArrayM() function
+ *
+ * @a msg has to be setup before in order to provide the message type,
+ * the destination address, etc.
+ *
+ * @param msg Data buffer used for sending
+ *
+ * @param strV Vector of strings to be sent
+ *
+ * @return On success true is returned; or false in case of error
+ */
+bool PStask_sendStrV(PS_SendDB_t *msg, char **strV);
 
 /**
  * @brief Encode argv part of task structure.
