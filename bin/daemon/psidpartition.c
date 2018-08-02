@@ -3069,10 +3069,12 @@ static void msg_PROVIDEPARTRP(DDBufferMsg_t *inmsg)
  *
  * @param task Tasks whose list of HW-threads is to be manipulated
  *
+ * @param caller Name of the calling function for logging
+ *
  * @return Return the total number of HW-threads released.
  */
 static int releaseThreads(PSpart_slot_t *slot, unsigned int nSlots,
-			  PStask_t *task)
+			  PStask_t *task, const char *caller)
 {
     unsigned int t, s, totalRelease = 0, numToRelease;
 
@@ -3090,8 +3092,9 @@ static int releaseThreads(PSpart_slot_t *slot, unsigned int nSlots,
 	    if (slot[s].node == thrd->node
 		&& PSCPU_isSet(slot[s].CPUset, thrd->id)) {
 		if (--(thrd->timesUsed) < 0) {
-		    PSID_log(-1, "%s: Adjusting timesUsed %d for (%d/%d)\n",
-			     __func__, thrd->timesUsed, thrd->node, thrd->id);
+		    PSID_log(-1, "%s: Adjust timesUsed %d for (%d/%d) by %s\n",
+			     __func__, thrd->timesUsed, thrd->node, thrd->id,
+			     caller);
 		    thrd->timesUsed = 0;
 		}
 		PSCPU_clrCPU(slot[s].CPUset, thrd->id);
@@ -3531,7 +3534,7 @@ static void msg_CHILDRESREL(DDBufferMsg_t *msg)
     numToRelease = PSCPU_getCPUs(dynRes.slot.CPUset, NULL, PSCPU_MAX);
 
     /* Find and release the corresponding slots */
-    released = releaseThreads(&dynRes.slot, 1, delegate);
+    released = releaseThreads(&dynRes.slot, 1, delegate, __func__);
     delegate->usedThreads -= released;
     /* double entry bookkeeping on delegation */
     if (task->delegate) {
@@ -4034,7 +4037,8 @@ static int handleSingleResRequest(PSrsrvtn_t *r)
 		task->numChild -= r->nMax;            /* Fix the gap */
 		/* free resource and error */
 		if (got > 0) {
-		    int released = releaseThreads(r->slots, got, delegate);
+		    int released = releaseThreads(r->slots, got,
+						  delegate, __func__);
 		    delegate->usedThreads -= released;
 		    /* double entry bookkeeping on delegation */
 		    if (task->delegate) task->usedThreads -= released;
@@ -4155,7 +4159,8 @@ int PSIDpart_extendRes(PStask_ID_t tid, PSrsrvtn_ID_t resID,
 	PSP_putMsgBuf(&msg, __func__, "error", &null, sizeof(null));
 
 	if (res->slots) {
-	    int released = releaseThreads(res->slots, res->nSlots, delegate);
+	    int released = releaseThreads(res->slots, res->nSlots,
+					  delegate, __func__);
 
 	    free(res->slots);
 	    res->slots = NULL;
@@ -4368,7 +4373,8 @@ void PSIDpart_cleanupRes(PStask_t *task)
 
 	if (res->slots) {
 	    released += releaseThreads(res->slots + res->nextSlot,
-				       res->nSlots - res->nextSlot, delegate);
+				       res->nSlots - res->nextSlot,
+				       delegate, __func__);
 	    res->relSlots += res->nSlots - res->nextSlot;
 	    if (task->options & PART_OPT_DYNAMIC) {
 		/* Maybe some resources were dynamically assigned */
