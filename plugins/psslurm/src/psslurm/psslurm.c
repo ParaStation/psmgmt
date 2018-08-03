@@ -433,7 +433,7 @@ static bool initPluginHandles(void)
 
 static void setConfOpt(void)
 {
-    int mask, mCheck;
+    int mask, measure;
 
     /* psslurm debug */
     mask = getConfValueI(&Config, "DEBUG_MASK");
@@ -450,10 +450,24 @@ static void setConfOpt(void)
     }
 
     /* glib malloc checking */
-    mCheck = getConfValueI(&Config, "MALLOC_CHECK");
+    int mCheck = getConfValueI(&Config, "MALLOC_CHECK");
     if (mCheck) {
 	mlog("%s: enable memory checking\n", __func__);
 	setenv("MALLOC_CHECK_", "2", 1);
+    }
+
+    /* measure libmunge */
+    measure = getConfValueI(&Config, "MEASURE_MUNGE");
+    if (measure) {
+	mlog("%s: measure libmunge executing times\n", __func__);
+	psMungeMeasure(true);
+    }
+
+    /* measure RPC calls */
+    measure = getConfValueI(&Config, "MEASURE_RPC");
+    if (measure) {
+	mlog("%s: measure Slurm RPC calls\n", __func__);
+	measureRPC = true;
     }
 }
 
@@ -547,11 +561,11 @@ int initialize(void)
 	return 1;
     }
 
-    /* set various config options */
-    setConfOpt();
-
     /* init plugin handles, *has* to be called before using INIT_ERROR */
     if (!initPluginHandles()) return 1;
+
+    /* set various config options */
+    setConfOpt();
 
     if (!(initSlurmdProto())) goto INIT_ERROR;
 

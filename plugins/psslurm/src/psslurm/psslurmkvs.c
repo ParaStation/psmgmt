@@ -19,6 +19,7 @@
 #include "psslurmjob.h"
 #include "psslurmalloc.h"
 #include "psslurmpin.h"
+#include "psslurmproto.h"
 
 #include "psidtask.h"
 #include "plugin.h"
@@ -469,6 +470,15 @@ char *set(char *key, char *value)
 		return str2Buf("\nInvalid flag: NAN\n", &buf, &bufSize);
 	    }
 	    psMungeMeasure(active);
+	}
+
+	if (!strcmp(key, "MEASURE_RPC")) {
+	    int32_t active;
+
+	    if (sscanf(value, "%i", &active) != 1) {
+		return str2Buf("\nInvalid flag: NAN\n", &buf, &bufSize);
+	    }
+	    measureRPC = active;
 	}
 
 	/* save new config value */

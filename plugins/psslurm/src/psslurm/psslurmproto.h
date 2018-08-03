@@ -24,6 +24,9 @@ extern uint32_t slurmProto;
 /** Slurm protocol version string */
 extern char *slurmProtoStr;
 
+/** Flag to measure Slurm RPC execution times */
+extern bool measureRPC;
+
 typedef struct {
     uint32_t jobid;
     uint32_t stepid;

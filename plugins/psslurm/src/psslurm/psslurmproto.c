@@ -61,6 +61,9 @@ uint32_t slurmProto;
 /** Slurm protocol version string */
 char *slurmProtoStr = NULL;
 
+/** Flag to measure Slurm RPC execution times */
+bool measureRPC = false;
+
 typedef struct {
     uint32_t jobid;
     uint32_t stepid;
@@ -2042,6 +2045,8 @@ static LIST_HEAD(msgList);
 
 int handleSlurmdMsg(Slurm_Msg_t *sMsg)
 {
+    struct timeval time_start, time_now, time_diff;
+
     mdbg(PSSLURM_LOG_PROTO, "%s: msg(%i): %s, version %u addr %u.%u.%u.%u"
 	 " port %u\n", __func__, sMsg->head.type,
 	 msgType2String(sMsg->head.type), sMsg->head.version,
@@ -2066,7 +2071,22 @@ int handleSlurmdMsg(Slurm_Msg_t *sMsg)
 	msgHandler_t *msgHandler = list_entry(h, msgHandler_t, next);
 
 	if (msgHandler->msgType == sMsg->head.type) {
+	    if (measureRPC) {
+		gettimeofday(&time_start, NULL);
+		mlog("%s: exec RPC %s at %.4f\n", __func__,
+		     msgType2String(msgHandler->msgType),
+		     time_start.tv_sec + 1e-6 * time_start.tv_usec);
+	    }
+
 	    if (msgHandler->handler) msgHandler->handler(sMsg);
+
+	    if (measureRPC) {
+		gettimeofday(&time_now, NULL);
+		timersub(&time_now, &time_start, &time_diff);
+		mlog("%s: exec RPC %s took %.4f seconds\n", __func__,
+		     msgType2String(msgHandler->msgType),
+		     time_diff.tv_sec + 1e-6 * time_diff.tv_usec);
+	    }
 	    return 0;
 	}
     }

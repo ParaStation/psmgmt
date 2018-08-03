@@ -144,6 +144,10 @@ const ConfDef_t CONFIG_VALUES[] =
 	"bool",
 	"0",
 	"Measure execution times of libmunge calls" },
+    { "MEASURE_RPC", 1,
+	"bool",
+	"0",
+	"Measure execution times of RPC calls" },
     { NULL, 0, NULL, NULL, NULL },
 };
 
