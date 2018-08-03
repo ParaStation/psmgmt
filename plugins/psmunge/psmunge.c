@@ -18,7 +18,7 @@
 
 /** psid plugin requirements */
 char name[] = "psmunge";
-int version = 3;
+int version = 4;
 int requiredAPI = 109;
 plugin_dep_t dependencies[] = {
     { .name = NULL, .version = 0 } };
