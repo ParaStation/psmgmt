@@ -83,7 +83,7 @@ char name[] = "psslurm";
 int version = 116;
 int requiredAPI = 117;
 plugin_dep_t dependencies[] = {
-    { .name = "psmunge", .version = 3 },
+    { .name = "psmunge", .version = 4 },
     { .name = "psaccount", .version = 25 },
     { .name = "pelogue", .version = 6 },
     { .name = "pspam", .version = 3 },
@@ -310,6 +310,12 @@ static bool regMungeHandles(void)
     psMungeDecodeBuf = dlsym(pluginHandle, "psMungeDecodeBuf");
     if (!psMungeDecodeBuf) {
 	mlog("%s: loading psMungeDecodeBuf() failed\n", __func__);
+	return false;
+    }
+
+    psMungeMeasure = dlsym(pluginHandle, "psMungeMeasure");
+    if (!psMungeMeasure) {
+	mlog("%s: loading psMungeMeasure() failed\n", __func__);
 	return false;
     }
 

@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2016-2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2016-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -19,9 +19,10 @@
 #include "psslurmjob.h"
 #include "psslurmalloc.h"
 #include "psslurmpin.h"
-#include "psidtask.h"
 
+#include "psidtask.h"
 #include "plugin.h"
+#include "psmungehandles.h"
 
 typedef struct {
     StrBuffer_t strBuf;
@@ -459,6 +460,15 @@ char *set(char *key, char *value)
 		return str2Buf("\nInvalid debug mask: NAN\n", &buf, &bufSize);
 	    }
 	    maskLogger(mask);
+	}
+
+	if (!strcmp(key, "MEASURE_MUNGE")) {
+	    int32_t active;
+
+	    if (sscanf(value, "%i", &active) != 1) {
+		return str2Buf("\nInvalid flag: NAN\n", &buf, &bufSize);
+	    }
+	    psMungeMeasure(active);
 	}
 
 	/* save new config value */

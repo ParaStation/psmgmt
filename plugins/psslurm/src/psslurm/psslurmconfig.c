@@ -140,6 +140,10 @@ const ConfDef_t CONFIG_VALUES[] =
 	"bool",
 	"0",
 	"Allow nodes in slurm.conf to have no PS node ID" },
+    { "MEASURE_MUNGE", 1,
+	"bool",
+	"0",
+	"Measure execution times of libmunge calls" },
     { NULL, 0, NULL, NULL, NULL },
 };
 
