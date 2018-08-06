@@ -310,6 +310,74 @@ static bool getSockInfo(int socket, uint32_t *addr, uint16_t *port)
 }
 
 /**
+ * @brief Forward a Slurm message using RDP
+ *
+ * @param sMsg The Slurm message to forward
+ *
+ * @param fw The forward header of the connection
+ *
+ * @return Returns true on success otherwise false
+ */
+static bool slurmTreeForward(Slurm_Msg_t *sMsg, Msg_Forward_t *fw)
+{
+    PSnodes_ID_t *nodes = NULL;
+    uint32_t i, nrOfNodes, localId;
+    bool verbose = logger_getMask(psslurmlogger) & PSSLURM_LOG_FWD;
+    struct timeval time_start, time_now, time_diff;
+
+    /* no forwarding active for this message? */
+    if (!sMsg->head.forward) return true;
+
+    /* convert nodelist to PS nodes */
+    if (!getNodesFromSlurmHL(fw->head.nodeList, &nrOfNodes, &nodes, &localId)) {
+	mlog("%s: resolving PS nodeIDs from %s failed\n", __func__,
+	     fw->head.nodeList);
+	return false;
+    }
+
+    /* save forward information in connection, has to be
+       done *before* sending any messages  */
+    fw->nodes = nodes;
+    fw->nodesCount = nrOfNodes;
+    fw->head.forward = sMsg->head.forward;
+    fw->head.returnList = sMsg->head.returnList;
+    fw->head.fwSize = sMsg->head.forward;
+    fw->head.fwdata =
+	umalloc(sMsg->head.forward * sizeof(Slurm_Forward_Data_t));
+
+    for (i=0; i<sMsg->head.forward; i++) {
+	fw->head.fwdata[i].error = SLURM_COMMUNICATIONS_CONNECTION_ERROR;
+	fw->head.fwdata[i].type = RESPONSE_FORWARD_FAILED;
+	fw->head.fwdata[i].node = -1;
+	fw->head.fwdata[i].body.buf = NULL;
+	fw->head.fwdata[i].body.bufUsed = 0;
+    }
+
+    if (verbose) {
+	gettimeofday(&time_start, NULL);
+
+	mlog("%s: forward type %s count %u nodelist %s timeout %u "
+	     "at %.4f\n", __func__, msgType2String(sMsg->head.type),
+	     sMsg->head.forward, fw->head.nodeList, fw->head.timeout,
+	     time_start.tv_sec + 1e-6 * time_start.tv_usec);
+    }
+
+    /* use RDP to send the message to other nodes */
+    int ret = forwardSlurmMsg(sMsg, nrOfNodes, nodes);
+
+    if (verbose) {
+	gettimeofday(&time_now, NULL);
+	timersub(&time_now, &time_start, &time_diff);
+	mlog("%s: forward type %s of size %u took %.4f seconds\n", __func__,
+	     msgType2String(sMsg->head.type), ret,
+	     time_diff.tv_sec + 1e-6 * time_diff.tv_usec);
+
+    }
+
+    return true;
+}
+
+/**
  * @brief Read a Slurm message
  *
  * Read a Slurm message from the provided socket. In the first step the size of
@@ -453,13 +521,12 @@ CALLBACK:
 	/* extract slurm message header */
 	getSlurmMsgHeader(&sMsg, &con->fw);
 
-	/* forward the message */
-	if (sMsg.head.forward > 0) {
-	    forwardSlurmMsg(&sMsg, &con->fw);
-	}
+	/* forward the message using RDP */
+	if (slurmTreeForward(&sMsg, &con->fw)) {
 
-	/* let the callback handle the message */
-	con->cb(&sMsg);
+	    /* let the callback handle the message */
+	    con->cb(&sMsg);
+	}
     }
     resetConnection(sock);
 

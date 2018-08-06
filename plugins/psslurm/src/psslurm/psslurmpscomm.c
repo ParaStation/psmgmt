@@ -896,41 +896,17 @@ static void handle_PS_SignalTasks(DDTypedBufferMsg_t *msg)
     signalTasks(step->jobid, step->uid, &step->tasks, sig, group);
 }
 
-void forwardSlurmMsg(Slurm_Msg_t *sMsg, Msg_Forward_t *fw)
+int forwardSlurmMsg(Slurm_Msg_t *sMsg, uint32_t nrOfNodes, PSnodes_ID_t *nodes)
 {
-    uint32_t nrOfNodes, i, len, localId;
-    PSnodes_ID_t *nodes = NULL;
     PS_SendDB_t msg;
-
-    /* convert nodelist to PS nodes */
-    if (!getNodesFromSlurmHL(fw->head.nodeList, &nrOfNodes, &nodes, &localId)) {
-	mlog("%s: resolving PS nodeIDs from %s failed\n", __func__,
-	     fw->head.nodeList);
-	return;
-    }
-
-    /* save infos in connection, has to be
-       done *before* sending any messages  */
-    fw->nodes = nodes;
-    fw->nodesCount = nrOfNodes;
-    fw->head.forward = sMsg->head.forward;
-    fw->head.returnList = sMsg->head.returnList;
-    fw->head.fwSize = sMsg->head.forward;
-    fw->head.fwdata =
-	umalloc(sMsg->head.forward * sizeof(Slurm_Forward_Data_t));
-
-    for (i=0; i<sMsg->head.forward; i++) {
-	fw->head.fwdata[i].error = SLURM_COMMUNICATIONS_CONNECTION_ERROR;
-	fw->head.fwdata[i].type = RESPONSE_FORWARD_FAILED;
-	fw->head.fwdata[i].node = -1;
-	fw->head.fwdata[i].body.buf = NULL;
-	fw->head.fwdata[i].body.bufUsed = 0;
-    }
 
     /* send the message to other nodes */
     initFragBuffer(&msg, PSP_CC_PLUG_PSSLURM, PSP_FORWARD_SMSG);
+    uint32_t i;
     for (i=0; i<nrOfNodes; i++) {
-	setFragDest(&msg, PSC_getTID(nodes[i], 0));
+	if (!(setFragDest(&msg, PSC_getTID(nodes[i], 0)))) {
+	    return -1;
+	}
     }
 
     /* add forward information */
@@ -953,15 +929,11 @@ void forwardSlurmMsg(Slurm_Msg_t *sMsg, Msg_Forward_t *fw)
     addUint16ToMsg(sMsg->head.port, &msg);
 
     /* add message body */
-    len = sMsg->data->bufUsed - (sMsg->ptr - sMsg->data->buf);
+    uint32_t len = sMsg->data->bufUsed - (sMsg->ptr - sMsg->data->buf);
     addMemToMsg(sMsg->ptr, len, &msg);
 
     /* send the message(s) */
-    sendFragMsg(&msg);
-
-    mdbg(PSSLURM_LOG_FWD, "%s: forward: type '%s' count %u nodelist '%s' "
-	 "timeout %u\n", __func__, msgType2String(sMsg->head.type),
-	 sMsg->head.forward, fw->head.nodeList, fw->head.timeout);
+    return sendFragMsg(&msg);
 }
 
 int send_PS_ForwardRes(Slurm_Msg_t *sMsg)

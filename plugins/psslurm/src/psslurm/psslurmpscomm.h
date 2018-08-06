@@ -48,7 +48,19 @@ void send_PS_JobLaunch(Job_t *job);
 
 void send_PS_JobState(uint32_t jobid, PStask_ID_t dest);
 
-void forwardSlurmMsg(Slurm_Msg_t *sMsg, Msg_Forward_t *fw);
+/**
+ * @brief Forward a Slurm message using RDP
+ *
+ * @param sMsg The Slurm message to forward
+ *
+ * @param nrOfNodes The number of nodes
+ *
+ * @param nodes The nodelist to forward the message to
+ *
+ * @return The total number of bytes sent is returned or
+ * -1 if an error occured.
+ */
+int forwardSlurmMsg(Slurm_Msg_t *sMsg, uint32_t nrOfNodes, PSnodes_ID_t *nodes);
 
 int send_PS_ForwardRes(Slurm_Msg_t *msg);
 
