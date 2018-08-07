@@ -10,12 +10,32 @@
 #ifndef __PS_SLURM_PELOGUE
 #define __PS_SLURM_PELOGUE
 
-/** @doctodo */
-void startPElogue(uint32_t jobid, uid_t uid, gid_t gid, char *username,
-		  uint32_t nrOfNodes, PSnodes_ID_t *nodes, env_t *env,
-		  env_t *spankenv, int step, int prologue);
+#include "psslurmalloc.h"
+#include "peloguetypes.h"
 
-/** @doctodo */
+/**
+ * @brief Start a pelogue for an allocation
+ *
+ * @param alloc The allocation to start the pelogue for
+ *
+ * @param type Supported types are prologue and epilogue
+ */
+bool startPElogue(Alloc_t *alloc, PElogueType_t type);
+
+int handleLocalPElogueStart(void *data);
+
+/**
+ * @brief Handle local prologue/epilogue finish
+ *
+ * This hook will be called every time a local prologue/epilogue
+ * script finished executing. It is used to allow or revoke SSH
+ * access to the local node, start step I/O forwarders and set the node
+ * offline in case of an error.
+ *
+ * @param data Pointer to the PElogueChild structure
+ *
+ * @return Always returns 0.
+ */
 int handleLocalPElogueFinish(void *data);
 
 /** @doctodo */
@@ -32,13 +52,16 @@ void execTaskEpilogues(void *data, int rerun);
 void startAllSteps(uint32_t jobid);
 
 /**
- * @brief Handle epilogue job callback
+ * @brief Finalize an epilogue on the allocation leader node
  *
- * Update the job status and tell the slurmctld and sister
- * nodes that the epilogue for the job completed.
+ * If all sister nodes send the result of their epilogue
+ * to mother superior the allocation will be freed.
  *
- * @param job The job to handle
+ * @param alloc The allocation of the epilogue
+ *
+ * @return Returns true if the epilogue is finished
+ * or false otherwise.
  */
-void handleEpilogueJobCB(Job_t *job);
+bool finalizeEpilogue(Alloc_t *alloc);
 
 #endif

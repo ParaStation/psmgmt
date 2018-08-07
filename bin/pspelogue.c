@@ -264,9 +264,10 @@ static void handleResponse(void)
 	exit(1);
     }
 
-    if (debug) printf("%s: received answer at %f diff %f\n", __func__,
+    if (debug) printf("%s: received answer at %f diff %f from %s\n", __func__,
 		      time_now.tv_sec + 1e-6 * time_now.tv_usec,
-		      time_diff.tv_sec + 1e-6 * time_diff.tv_usec);
+		      time_diff.tv_sec + 1e-6 * time_diff.tv_usec,
+		      PSC_printTID(answer.header.sender));
 
     recvFragMsg(&answer, handlePElogueResp);
 }
@@ -345,12 +346,12 @@ int main(const int argc, const char *argv[], char *envp[])
     uint32_t nrOfNodes, envc = 0;
     PSnodes_ID_t *nodes = NULL;
     env_t env, clone;
-    char *filter[5] = { "SLURM_SPANK_*", "SLURM_JOBID", "SLURM_JOB_ID",
-			NULL, NULL };
+    char *filter[6] = { "SLURM_SPANK_*", "SLURM_JOBID", "SLURM_JOB_ID",
+			"SLURM_JOB_NODELIST", NULL, NULL };
 
     init(argc, argv);
 
-    filter[3] = addFilter;
+    filter[4] = addFilter;
 
     /* make sure we have all the infos we need */
     jobID = getenv("SLURM_JOB_ID");

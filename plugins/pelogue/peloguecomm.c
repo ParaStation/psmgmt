@@ -305,7 +305,15 @@ static void handlePElogueStart(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *rData)
     /* the scripts directory */
     child->scriptDir = ustrdup(getPluginConfValueC(plugin, "DIR_SCRIPTS"));
 
-    PSIDhook_call(PSIDHOOK_PELOGUE_START, child);
+    int ret = PSIDhook_call(PSIDHOOK_PELOGUE_START, child);
+
+    if (ret <0) {
+	mlog("%s: PSIDHOOK_PELOGUE_START failed with %u\n", __func__, ret);
+	child->exit = -3;
+	sendPElogueFinish(child);
+	deleteChild(child);
+	return;
+    }
 
     if (getPluginConfValueI(plugin, "DISABLE_PELOGUE") == 1) {
 	mlog("%s: fixmeeee!!!\n", __func__);

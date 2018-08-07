@@ -85,7 +85,7 @@ int requiredAPI = 117;
 plugin_dep_t dependencies[] = {
     { .name = "psmunge", .version = 4 },
     { .name = "psaccount", .version = 25 },
-    { .name = "pelogue", .version = 6 },
+    { .name = "pelogue", .version = 7 },
     { .name = "pspam", .version = 3 },
     { .name = "psexec", .version = 1 },
     { .name = "pspmi", .version = 4 },
@@ -140,6 +140,10 @@ static void unregisterHooks(bool verbose)
 	if (verbose) mlog("unregister 'PSIDHOOK_FRWRD_CLIENT_STAT' failed\n");
     }
 
+    if (!PSIDhook_del(PSIDHOOK_PELOGUE_START, handleLocalPElogueStart)) {
+	if (verbose) mlog("unregister 'PSIDHOOK_PELOGUE_START' failed\n");
+    }
+
     if (!PSIDhook_del(PSIDHOOK_PELOGUE_FINISH, handleLocalPElogueFinish)) {
 	if (verbose) mlog("unregister 'PSIDHOOK_PELOGUE_FINISH' failed\n");
     }
@@ -167,6 +171,11 @@ static bool registerHooks(void)
 
     if (!PSIDhook_add(PSIDHOOK_FRWRD_CLIENT_STAT, handleForwarderClientStatus)){
 	mlog("register 'PSIDHOOK_FRWRD_CLIENT_STAT' failed\n");
+	return false;
+    }
+
+    if (!PSIDhook_add(PSIDHOOK_PELOGUE_START, handleLocalPElogueStart)) {
+	mlog("register 'PSIDHOOK_PELOGUE_START' failed\n");
 	return false;
     }
 

@@ -265,10 +265,42 @@ void sendStepExit(Step_t *step, uint32_t exit_status);
  */
 void sendJobExit(Job_t *job, uint32_t exit_status);
 
+/**
+ * @brief Send a epilogue complete message
+ *
+ * Send a epilogue complete message to the slurmctld.
+ *
+ * @param jobid The jobid to send the message for
+ *
+ * @param rc The return code of the epilogue
+ */
 void sendEpilogueComplete(uint32_t jobid, uint32_t rc);
 
+/**
+ * @brief Convert a PS node ID to a job local node ID
+ *
+ * @param psNodeID The ParaStation node ID to convert
+ *
+ * @param nodes ParaStation node-list of the job
+ *
+ * @param nrOfNodes Number of nodes in the node-list
+ *
+ * @return Returns the requested node ID or -1 on error
+ */
 int getSlurmNodeID(PSnodes_ID_t psNodeID, PSnodes_ID_t *nodes,
 		    uint32_t nrOfNodes);
+
+/**
+ * @brief Convert a Slurm job global rank to a node local rank
+ *
+ * @param rank The job global rank to convert
+ *
+ * @param step The step for the rank to convert
+ *
+ * @param nodeId The node ID of the rank to convert
+ *
+ * @return Returns the converted node local rank or -1 on error
+ */
 uint32_t getLocalRankID(uint32_t rank, Step_t *step, uint32_t nodeId);
 
 /**

@@ -22,9 +22,8 @@
 /** List of all allocations */
 static LIST_HEAD(AllocList);
 
-Alloc_t *addAlloc(uint32_t id, uint32_t nrOfNodes, char *slurmHosts,
-		  env_t *env, env_t *spankenv, uid_t uid, gid_t gid,
-		  char *username)
+Alloc_t *addAlloc(uint32_t id, char *slurmHosts, env_t *env, uid_t uid,
+		  gid_t gid, char *username)
 {
     Alloc_t *alloc = findAlloc(id);
 
@@ -39,33 +38,24 @@ Alloc_t *addAlloc(uint32_t id, uint32_t nrOfNodes, char *slurmHosts,
     alloc->slurmHosts = ustrdup(slurmHosts);
     alloc->username = ustrdup(username);
     alloc->firstKillReq = 0;
-    alloc->motherSup = -1;
     alloc->startTime = time(0);
+    alloc->epilogCnt = 0;
 
-    /* init nodes */
+    /* init node-list */
     getNodesFromSlurmHL(slurmHosts, &alloc->nrOfNodes, &alloc->nodes,
 			&alloc->localNodeId);
-    if (alloc->nrOfNodes != nrOfNodes) {
-	mlog("%s: mismatching nrOfNodes '%u:%u'\n", __func__, nrOfNodes,
-		alloc->nrOfNodes);
-    }
+    alloc->epilogRes = ucalloc(sizeof(bool) * alloc->nrOfNodes);
 
-    /* init env */
+    /* init environment */
     if (env) {
 	envClone(env, &alloc->env, envFilter);
     } else {
 	envInit(&alloc->env);
     }
 
-    if (spankenv) {
-	envClone(spankenv, &alloc->spankenv, envFilter);
-    } else {
-	envInit(&alloc->spankenv);
-    }
-
     list_add_tail(&alloc->next, &AllocList);
 
-    /* add user in pam for ssh access */
+    /* add user in pspam for SSH access */
     psPamAddUser(alloc->username, strJobID(id), PSPAM_STATE_PROLOGUE);
 
     return alloc;
@@ -111,21 +101,22 @@ Alloc_t *findAlloc(uint32_t id)
     return NULL;
 }
 
-int deleteAlloc(uint32_t id)
+bool deleteAlloc(uint32_t id)
 {
     Alloc_t *alloc;
 
-    /* delete all corresponding steps */
+    /* free corresponding resources */
+    deleteJob(id);
     clearStepList(id);
     clearBCastByJobid(id);
 
-    if (!(alloc = findAlloc(id))) return 0;
+    if (!(alloc = findAlloc(id))) return false;
 
     /* free corresponding pelogue job */
     psPelogueDeleteJob("psslurm", strJobID(alloc->id));
 
     /* tell sisters the allocation is revoked */
-    if (alloc->motherSup == PSC_getMyTID()) {
+    if (isAllocLeader(alloc)) {
 	send_PS_JobExit(alloc->id, SLURM_BATCH_SCRIPT,
 		alloc->nrOfNodes, alloc->nodes);
     }
@@ -135,13 +126,13 @@ int deleteAlloc(uint32_t id)
     ufree(alloc->nodes);
     ufree(alloc->slurmHosts);
     ufree(alloc->username);
+    ufree(alloc->epilogRes);
     envDestroy(&alloc->env);
-    envDestroy(&alloc->spankenv);
 
     list_del(&alloc->next);
     ufree(alloc);
 
-    return 1;
+    return true;
 }
 
 int signalAllocs(int signal)
@@ -154,4 +145,53 @@ int signalAllocs(int signal)
     }
 
     return count;
+}
+
+int signalAlloc(uint32_t id, int signal, uid_t reqUID)
+{
+    Alloc_t *alloc = findAlloc(id);
+    Job_t *job = findJobById(id);
+    int count = 0;
+
+    if  (!alloc) return 0;
+
+    if (job) {
+	count = signalJob(job, signal, reqUID);
+    } else {
+	count = signalStepsByJobid(id, signal, reqUID);
+    }
+
+    return count;
+}
+
+const char *strAllocState(AllocState_t state)
+{
+    static char buf[128];
+
+    switch (state) {
+	case A_INIT:
+	    return "A_INIT";
+	case A_PROLOGUE:
+	    return "A_PROLOGUE";
+	case A_PROLOGUE_FINISH:
+	    return "A_PROLOGUE_FINISH";
+	case A_RUNNING:
+	    return "A_RUNNING";
+	case A_EPILOGUE:
+	    return "A_EPILOGUE";
+	case A_EPILOGUE_FINISH:
+	    return "A_EPILOGUE_FINISH";
+	case A_EXIT:
+	    return "A_EXIT";
+	default:
+	    snprintf(buf, sizeof(buf), "<unknown: %u>", state);
+	    return buf;
+    }
+}
+
+bool isAllocLeader(Alloc_t *alloc)
+{
+    if (!alloc || !alloc->nodes) return false;
+    if (alloc->nodes[0] == PSC_getMyID()) return true;
+    return false;
 }

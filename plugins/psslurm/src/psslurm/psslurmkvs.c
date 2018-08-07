@@ -138,7 +138,7 @@ static bool addAllocInfo(Alloc_t *alloc, const void *info)
     addStrBuf(line, strBuf);
 
     snprintf(line, sizeof(line), "alloc state '%s'\n",
-	    strJobState(alloc->state));
+	    strAllocState(alloc->state));
     addStrBuf(line, strBuf);
 
     /* format start time */
