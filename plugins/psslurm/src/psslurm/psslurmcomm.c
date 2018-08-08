@@ -755,7 +755,6 @@ int __sendSlurmMsgEx(int sock, Slurm_Msg_Header_t *head, PS_SendDB_t *body,
 {
     PS_SendDB_t data = { .bufUsed = 0, .useFrag = false };
     PS_DataBuffer_t payload = { .bufUsed = 0 };
-    Slurm_Auth_t *auth;
     int ret = 0;
     size_t written = 0;
 
@@ -769,10 +768,17 @@ int __sendSlurmMsgEx(int sock, Slurm_Msg_Header_t *head, PS_SendDB_t *body,
 	return -1;
     }
 
+    Slurm_Auth_t *auth = getSlurmAuth();
+    if (!auth) {
+	flog("getting a slurm authentication token failed\n");
+	return -1;
+    }
+
     /* connect to slurmctld */
     if (sock < 0) {
 	sock = connect2Slurmctld();
 	if (sock < 0) {
+	    freeSlurmAuth(auth);
 	    if (needMsgResend(head->type)) {
 		Slurm_Msg_Buf_t *savedMsg;
 
@@ -791,7 +797,6 @@ int __sendSlurmMsgEx(int sock, Slurm_Msg_Header_t *head, PS_SendDB_t *body,
     /* non blocking write */
     setFDblock(sock, false);
 
-    auth = getSlurmAuth();
     memToDataBuffer(body->buf, body->bufUsed, &payload);
     packSlurmMsg(&data, head, &payload, auth);
 
