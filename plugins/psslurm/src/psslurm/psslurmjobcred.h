@@ -20,8 +20,6 @@ typedef enum {
     JOB_PRESTART,               /**< forwarder was spawned to start mpiexec */
     JOB_SPAWNED,                /**< mpiexec was started, srun was informed */
     JOB_RUNNING,                /**< the user job is executed */
-    JOB_PROLOGUE,               /**< the prologue is executed */
-    JOB_EPILOGUE,               /**< the epilogue is executed */
     JOB_EXIT,                   /**< the job is exiting */
     JOB_COMPLETE,
 } JobState_t;

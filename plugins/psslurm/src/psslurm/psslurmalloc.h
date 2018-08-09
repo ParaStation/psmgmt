@@ -20,10 +20,13 @@
 #include "pstaskid.h"
 
 typedef enum {
-    A_INIT = 0x010,
+    A_INIT = 0x020,
     A_PROLOGUE,
+    A_PROLOGUE_FINISH,
     A_RUNNING,
-    A_EPILOGUE
+    A_EPILOGUE,
+    A_EPILOGUE_FINISH,
+    A_EXIT
 } AllocState_t;
 
 typedef struct {
@@ -35,22 +38,36 @@ typedef struct {
     PSnodes_ID_t *nodes;    /**< all participating nodes in the allocation */
     char *slurmHosts;	    /**< Slurm compressed host-list (SLURM_NODELIST) */
     env_t env;		    /**< environment variables */
-    env_t spankenv;	    /**< spank environment variables */
     uint8_t terminate;	    /**< track number of terminate requests */
     int state;		    /**< current state of the allocation */
     char *username;	    /**< username of allocation owner */
     time_t firstKillReq;    /**< time the first kill request was received */
-    PStask_ID_t motherSup;  /**< PS task ID of mother superior */
     time_t startTime;       /**< time the allocation started */
     uint32_t localNodeId;   /**< local node ID for this allocation */
+    bool *epilogRes;	    /**< track epilogue results per node */
+    uint32_t epilogCnt;     /**< number of nodes finished epilogue */
 } Alloc_t;
 
 /**
- * @doctodo
+ * @brief Add a new allocation
+ *
+ * @param id unique allocation identifier
+ *
+ * @param slurmHosts Slurm compressed host-list
+ *
+ * @param env environment variables
+ *
+ * @param uid user ID of the allocation owner
+ *
+ * @param gid group of the allocation owner
+ *
+ * @param username username of the allocation owner
+ *
+ * @return Returns the newly created allocation or a existing allocation
+ * with the given @a id
  */
-Alloc_t *addAlloc(uint32_t id, uint32_t nrOfNodes, char *slurmHosts,
-		  env_t *env, env_t *spankenv, uid_t uid, gid_t gid,
-		  char *username);
+Alloc_t *addAlloc(uint32_t id, char *slurmHosts, env_t *env, uid_t uid,
+		  gid_t gid, char *username);
 
 /**
  * @brief Visitor function
@@ -90,22 +107,34 @@ typedef bool AllocVisitor_t(Alloc_t *alloc, const void *info);
 bool traverseAllocs(AllocVisitor_t visitor, const void *info);
 
 /**
- * @doctodo
+ * @brief Find an allocation
+ *
+ * @param id unique allocation identifier
+ *
+ * @return Returns the requested allocation or NULL on error
  */
 Alloc_t *findAlloc(uint32_t id);
 
 /**
- * @doctodo
+ * @brief Delete an allocation
+ *
+ * Delete an allocation and its corresponding job and steps.
+ *
+ * @param id unique allocation identifier
+ *
+ * @return Returns true on success or false on error
  */
-int deleteAlloc(uint32_t id);
+bool deleteAlloc(uint32_t id);
 
 /**
- * @doctodo
+ * @brief Delete all remaining allocations
  */
 void clearAllocList(void);
 
 /**
- * @doctodo
+ * @brief Count all allocations
+ *
+ * @return Returns the number of allocations
  */
 int countAllocs(void);
 
@@ -121,5 +150,43 @@ int countAllocs(void);
  * @return Returns the number of tasks signaled.
  */
 int signalAllocs(int signal);
+
+/**
+ * @brief Signal an allocation
+ *
+ * Send a signal to an allocation including a corresponding job and all steps
+ * with the given @a id. All matching steps will be signaled if they are not in
+ * state JOB_COMPLETE.  The @reqUID must have the appropriate permissions to
+ * send the signal.
+ *
+ * @param id The allocation ID to send the signal to
+ *
+ * @param signal The signal to send
+ *
+ * @param reqUID The UID of the requesting process
+ *
+ * @return Returns the number of tasks which were signaled or -1
+ *  if the @a reqUID is not permitted to signal the tasks
+ */
+int signalAlloc(uint32_t id, int signal, uid_t reqUID);
+
+/**
+ * @brief Convert an allocation state to string
+ *
+ * @param state The state to convert
+ *
+ * @return Returns the state as string representation
+ */
+const char *strAllocState(AllocState_t state);
+
+/**
+ * @brief Test if local node is the leader of an allocation
+ *
+ * @param alloc The allocation to test
+ *
+ * @return Returns true if the local node is the leader otherwise
+ * false
+ */
+bool isAllocLeader(Alloc_t *alloc);
 
 #endif  /* __PS_PSSLURM_ALLOC */

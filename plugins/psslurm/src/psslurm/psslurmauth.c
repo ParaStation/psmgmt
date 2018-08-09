@@ -62,11 +62,14 @@ Slurm_Auth_t *dupSlurmAuth(Slurm_Auth_t *auth)
 Slurm_Auth_t *getSlurmAuth(void)
 {
     Slurm_Auth_t *auth;
+    char *cred;
+
+    if (!psMungeEncode(&cred)) return NULL;
 
     auth = umalloc(sizeof(Slurm_Auth_t));
     auth->method = strdup(AUTH_MUNGE_STRING);
     auth->version = AUTH_MUNGE_VERSION;
-    psMungeEncode(&auth->cred);
+    auth->cred = cred;
 
     return auth;
 }

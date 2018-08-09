@@ -59,7 +59,6 @@ typedef struct {
     char *acctFreq;	    /**< account polling frequency */
     int state;		    /**< current state of the job */
     bool signaled;	    /**< true if job received SIGUSR1 */
-    uint8_t terminate;	    /**< track number of terminate requests */
     uint16_t accType;	    /**< type of accounting */
     uint8_t appendMode;	    /**< stdout/stderr will truncate(=0) / append(=1) */
     uint32_t arrayJobId;    /**< master jobid of job-array */
@@ -70,7 +69,6 @@ typedef struct {
     time_t startTime;	    /**< the time were the job started */
     char *nodeAlias;	    /**< node alias */
     list_t tasks;	    /**< running tasks for this job */
-    time_t firstKillReq;    /**< time the first terminate request was received */
     Forwarder_Data_t *fwdata;/**< parameters of running job forwarder */
     bool timeout;	    /**< job was cancelled due to time limit */
     uint32_t *gids;	    /**< extended group IDs from slurmctld */
@@ -121,9 +119,13 @@ Job_t *findJobByIdC(char *id);
 PSnodes_ID_t *findJobNodeEntry(Job_t *job, PSnodes_ID_t id);
 
 /**
- * @doctodo
+ * @brief Delete a single job.
+ *
+ * @param jobid The jobid to identify the job
+ *
+ * @return Returns true on success and false on error
  */
-int deleteJob(uint32_t jobid);
+bool deleteJob(uint32_t jobid);
 
 /**
  * @doctodo

@@ -39,26 +39,108 @@ void releaseDelayedSpawns(uint32_t jobid, uint32_t stepid);
  */
 void cleanupDelayedSpawns(uint32_t jobid, uint32_t stepid);
 
+/**
+ * @brief Send a signal tasks request
+ *
+ * Send a request to signal all tasks of a chosen step. The request is usually
+ * send from the mother superior to all sister nodes of the step.
+ *
+ * @param step The step to send the signal for
+ *
+ * @param signal The signal to send
+ *
+ * @param group The PS task group to signal
+ */
 void send_PS_SignalTasks(Step_t *step, uint32_t signal, PStask_group_t group);
 
+/**
+ * @brief Send a job exit message
+ *
+ * Inform sister nodes a job or step is finished.
+ *
+ * @param jobid Unique job identifier
+ *
+ * @param stepid Unique step identifier
+ *
+ * @param nrOfNodes The number of nodes in the nodelist
+ *
+ * @param nodes The nodes to inform
+ */
 void send_PS_JobExit(uint32_t jobid, uint32_t stepid, uint32_t nrOfNodes,
-			PSnodes_ID_t *nodes);
+		     PSnodes_ID_t *nodes);
 
+/**
+ * @brief Send a job launch request
+ *
+ * Send a job launch request holding all information to create
+ * a job structure. The job launch request is send from the mother superior to
+ * all sister nodes of a job.
+ *
+ * @param job The job to send the request for
+ */
 void send_PS_JobLaunch(Job_t *job);
 
-void send_PS_JobState(uint32_t jobid, PStask_ID_t dest);
+/**
+ * @brief Send local epilogue launch
+ *
+ * Start a local epilogue on all nodes of the allocation.
+ *
+ * @param alloc The allocation to start the epilogue for
+ */
+void send_PS_EpilogueLaunch(Alloc_t *alloc);
 
-void forwardSlurmMsg(Slurm_Msg_t *sMsg, Msg_Forward_t *fw);
+/**
+ * @brief Send result of local epilogue
+ *
+ * Send result of a local epilogue to allocation leader.
+ *
+ * @param alloc The allocation of the completed epilogue
+ *
+ * @param res The result of the epilogue
+ */
+void send_PS_EpilogueRes(Alloc_t *alloc, int16_t res);
 
+/**
+ * @brief Request the status of an epilogue
+ *
+ * @param alloc The allocation to request the status for
+ */
+void send_PS_EpilogueStateReq(Alloc_t *alloc);
+
+/**
+ * @brief Forward a Slurm message using RDP
+ *
+ * @param sMsg The Slurm message to forward
+ *
+ * @param nrOfNodes The number of nodes
+ *
+ * @param nodes The nodelist to forward the message to
+ *
+ * @return The total number of bytes sent is returned or
+ * -1 if an error occured.
+ */
+int forwardSlurmMsg(Slurm_Msg_t *sMsg, uint32_t nrOfNodes, PSnodes_ID_t *nodes);
+
+/**
+ * @brief Response for a forwarded message request
+ *
+ * Send the result of a forwarded message which was processed
+ * locally back to the sender.
+ *
+ * @param The forwarded message to send the result for
+ *
+ * @return Returns the number of bytes send or -1 on error
+ */
 int send_PS_ForwardRes(Slurm_Msg_t *msg);
 
-void setNodeOffline(env_t *env, uint32_t id, PSnodes_ID_t dest,
-			const char *host, char *reason);
-
-void requeueBatchJob(Job_t *job, PSnodes_ID_t dest);
-
-void send_PS_AllocLaunch(Alloc_t *alloc);
-
+/**
+ * @brief Send allocation state change
+ *
+ * Inform all nodes of an allocation that it changed
+ * to a new state.
+ *
+ * @para alloc The allocation with the new state
+ */
 void send_PS_AllocState(Alloc_t *alloc);
 
 /**
@@ -70,6 +152,11 @@ void send_PS_AllocState(Alloc_t *alloc);
  * @param step The step to send the information for
  */
 void send_PS_PackInfo(Step_t *step);
+
+void setNodeOffline(env_t *env, uint32_t id, PSnodes_ID_t dest,
+			const char *host, char *reason);
+
+void requeueBatchJob(Job_t *job, PSnodes_ID_t dest);
 
 /**
  * @brief Free all unhandled cached messages for a step

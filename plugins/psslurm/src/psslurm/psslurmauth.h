@@ -24,6 +24,8 @@
  * Generate and return a Slurm authentication token. Currently only
  * psmunge is supported as authentication method. The caller is
  * responsible to free the allocated memory using freeSlurmAuth().
+ *
+ * @return Returns the authentication token or NULL on error.
  */
 Slurm_Auth_t *getSlurmAuth(void);
 

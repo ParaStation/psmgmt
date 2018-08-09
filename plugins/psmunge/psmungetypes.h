@@ -12,6 +12,7 @@
 #define __PSMUNGE_TYPES
 
 #include <sys/types.h>
+#include <stdbool.h>
 
 /**
  * @brief Create credential
@@ -73,5 +74,15 @@ typedef int(psMungeDecode_t)(const char *cred, uid_t *uid, gid_t *gid);
  */
 typedef int(psMungeDecodeBuf_t)(const char *cred, void **buf, int *len,
 				uid_t *uid, gid_t *gid);
+
+/**
+ * @brief Measure calls to libmunge
+ *
+ * Log execution times of libmunge encode/decoce calls to syslog
+ * if @a active is set to true.
+ *
+ * @param active Flag to enable or disable timing information
+ */
+typedef void(psMungeMeasure_t)(bool active);
 
 #endif  /* __PSMUNGE_TYPES */

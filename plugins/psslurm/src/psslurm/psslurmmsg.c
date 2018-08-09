@@ -330,6 +330,10 @@ int resendSlurmMsg(int sock, void *msg)
 
     if (!savedMsg->auth) {
 	savedMsg->auth = getSlurmAuth();
+	if (!savedMsg->auth) {
+	    flog("getting a slurm authentication token failed\n");
+	    goto CLEANUP;
+	}
 	savedMsg->authTime = time(NULL);
     }
 

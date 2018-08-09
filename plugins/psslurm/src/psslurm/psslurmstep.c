@@ -140,6 +140,14 @@ int deleteStep(uint32_t jobid, uint32_t stepid)
     clearBCastByJobid(jobid);
     deleteCachedMsg(jobid, stepid);
 
+    if (step->fwdata) {
+	signalTasks(jobid, step->uid, &step->tasks, SIGKILL, -1);
+	if (step->fwdata->cPid) killChild(step->fwdata->cPid, SIGKILL);
+	if (step->fwdata->tid != -1) {
+	    killChild(PSC_getPID(step->fwdata->tid), SIGKILL);
+	}
+    }
+
     ufree(step->srunPorts);
     ufree(step->tasksToLaunch);
     ufree(step->slurmHosts);
@@ -170,14 +178,6 @@ int deleteStep(uint32_t jobid, uint32_t stepid)
 
     clearTasks(&step->tasks);
     freeGresCred(&step->gresList);
-
-    if (step->fwdata) {
-	if (step->fwdata->cPid) killChild(step->fwdata->cPid, SIGKILL);
-	if (step->fwdata->tid != -1) {
-	    killChild(PSC_getPID(step->fwdata->tid), SIGKILL);
-	}
-    }
-
     freeJobCred(step->cred);
 
     if (step->globalTaskIds) {
@@ -246,6 +246,7 @@ int signalStep(Step_t *step, int signal, uid_t reqUID)
     /* if we are not the mother superior we just signal all our local tasks */
     if (!step->leader) {
 	ret = signalTasks(step->jobid, step->uid, &step->tasks, signal, group);
+	if (signal == SIGKILL && step->fwdata) shutdownForwarder(step->fwdata);
 	return ret;
     }
 

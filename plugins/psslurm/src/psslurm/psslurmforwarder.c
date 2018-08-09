@@ -66,6 +66,7 @@
 static int jobCallback(int32_t exit_status, Forwarder_Data_t *fw)
 {
     Job_t *job = fw->userData;
+    Alloc_t *alloc;
 
     mlog("%s: job '%u' finished, exit %i / %i\n", __func__, job->jobid,
 	 exit_status, fw->estatus);
@@ -85,19 +86,22 @@ static int jobCallback(int32_t exit_status, Forwarder_Data_t *fw)
     sendJobExit(job, fw->estatus);
     psAccountDelJob(PSC_getTID(-1, fw->cPid));
 
+    if (!(alloc = findAlloc(job->jobid))) {
+	flog("allocation for job %u not found\n", job->jobid);
+	deleteJob(job->jobid);
+	return 0;
+    }
+
     if (pluginShutdown) {
 	/* shutdown in progress, hence we skip the epilogue */
-	handleEpilogueJobCB(job);
-	deleteJob(job->jobid);
-    } else if (job->terminate && job->nodes) {
+	sendEpilogueComplete(alloc->id, SLURM_SUCCESS);
+	deleteAlloc(alloc->id);
+    } else if (alloc->terminate) {
 	/* run epilogue now */
-	mlog("%s: starting epilogue for job '%u'\n", __func__, job->jobid);
-	job->state = JOB_EPILOGUE;
+	mlog("%s: starting epilogue for allocation %u\n", __func__, alloc->id);
 	mdbg(PSSLURM_LOG_JOB, "%s: job '%u' in '%s'\n", __func__,
 		job->jobid, strJobState(job->state));
-	startPElogue(job->jobid, job->uid, job->gid, job->username,
-			job->nrOfNodes, job->nodes, &job->env,
-			&job->spankenv, 0, 0);
+	startPElogue(alloc, PELOGUE_EPILOGUE);
     }
 
     job->fwdata = NULL;
@@ -133,13 +137,22 @@ static int stepFWIOcallback(int32_t exit_status, Forwarder_Data_t *fw)
     mdbg(PSSLURM_LOG_JOB, "%s: step '%u:%u' in '%s'\n", __func__,
 	    step->jobid, step->stepid, strJobState(step->state));
 
+    /* test if we were waiting only for this step to finish */
+    Alloc_t *alloc = findAlloc(step->jobid);
+    if (!findJobById(step->jobid) && alloc && alloc->state == A_RUNNING
+	&& alloc->terminate) {
+	/* run epilogue now */
+	mlog("%s: starting epilogue for step '%u:%u'\n", __func__, step->jobid,
+		step->stepid);
+	startPElogue(alloc, PELOGUE_EPILOGUE);
+    }
+
     return 0;
 }
 
 static int stepCallback(int32_t exit_status, Forwarder_Data_t *fw)
 {
     Step_t *step = fw->userData, *tmp;
-    Alloc_t *alloc;
 
     /* validate step pointer */
     tmp = findStepByStepId(step->jobid, step->stepid);
@@ -188,17 +201,14 @@ static int stepCallback(int32_t exit_status, Forwarder_Data_t *fw)
 	    step->jobid, step->stepid, strJobState(step->state));
     psAccountDelJob(PSC_getTID(-1, fw->cPid));
 
-    alloc = findAlloc(step->jobid);
-    if (alloc && alloc->state == JOB_RUNNING &&
-	alloc->terminate &&
-	alloc->motherSup == PSC_getMyTID()) {
+    /* test if we were waiting only for this step to finish */
+    Alloc_t *alloc = findAlloc(step->jobid);
+    if (!findJobById(step->jobid) && alloc && alloc->state == A_RUNNING
+	&& alloc->terminate) {
 	/* run epilogue now */
 	mlog("%s: starting epilogue for step '%u:%u'\n", __func__, step->jobid,
 		step->stepid);
-	alloc->state = JOB_EPILOGUE;
-	startPElogue(step->jobid, step->uid, step->gid, step->username,
-			step->nrOfNodes, step->nodes, &step->env,
-			&step->spankenv, 1, 0);
+	startPElogue(alloc, PELOGUE_EPILOGUE);
     }
 
     if (!alloc) {
@@ -939,7 +949,7 @@ int execUserStep(Step_t *step)
     return 1;
 }
 
-int execUserJob(Job_t *job)
+bool execUserJob(Job_t *job)
 {
     Forwarder_Data_t *fwdata;
     char fname[300];
@@ -965,14 +975,14 @@ int execUserJob(Job_t *job)
     if (!startForwarder(fwdata)) {
 	mlog("%s: starting forwarder for job '%u' failed\n",
 	     __func__, job->jobid);
-	return 0;
+	return false;
     }
 
     job->state = JOB_RUNNING;
     mdbg(PSSLURM_LOG_JOB, "%s: job '%u' in '%s'\n", __func__,
 	    job->jobid, strJobState(job->state));
     job->fwdata = fwdata;
-    return 1;
+    return true;
 }
 
 static void execBCast(Forwarder_Data_t *fwdata, int rerun)

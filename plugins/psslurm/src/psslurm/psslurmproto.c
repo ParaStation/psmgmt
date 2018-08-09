@@ -61,6 +61,9 @@ uint32_t slurmProto;
 /** Slurm protocol version string */
 char *slurmProtoStr = NULL;
 
+/** Flag to measure Slurm RPC execution times */
+bool measureRPC = false;
+
 typedef struct {
     uint32_t jobid;
     uint32_t stepid;
@@ -484,19 +487,18 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
     id = step->packJobid != NO_VAL ? step->packJobid : step->jobid;
     if (!(job = findJobById(id))) {
 	if (!(alloc = findAlloc(step->jobid))) {
+	    flog("NO ALLOCATION with id %u found\n", step->jobid);
 	    if (step->packNrOfNodes != NO_VAL) {
-		alloc = addAlloc(step->packJobid, step->packNrOfNodes,
-				 step->packHostlist, &step->env,
-				 &step->spankenv, step->uid, step->gid,
+		alloc = addAlloc(step->packJobid, step->packHostlist,
+				 &step->env, step->uid, step->gid,
 				 step->username);
 	    } else {
-		alloc = addAlloc(step->jobid, step->cred->jobNumHosts,
-				 step->cred->jobHostlist, &step->env,
-				 &step->spankenv, step->uid, step->gid,
+		alloc = addAlloc(step->jobid, step->cred->jobHostlist,
+				 &step->env, step->uid, step->gid,
 				 step->username);
 	    }
 	    /* first received step does *not* have to be step 0 */
-	    alloc->state = JOB_PROLOGUE;
+	    alloc->state = A_PROLOGUE;
 	}
     }
 
@@ -517,8 +519,6 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
 	goto ERROR;
     }
 
-    bool disablePrologue = getConfValueI(&Config, "DISABLE_PROLOGUE");
-
     if (step->leader) {
 	/* mother superior (pack leader) */
 	if (step->packJobid != NO_VAL) {
@@ -532,29 +532,29 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
 	step->srunControlMsg.recvTime = sMsg->recvTime;
 
 	if (!step->stepid && !job) {
-	    /* forward allocation info */
-	    alloc->motherSup = PSC_getMyTID();
-	    send_PS_AllocLaunch(alloc);
-
-	    if (disablePrologue) {
-		/* start all waiting steps */
-		alloc->state = JOB_RUNNING;
-		send_PS_AllocState(alloc);
-		startAllSteps(alloc->id);
-	    } else {
+	    if (alloc->state == A_PROLOGUE) {
 		/* start prologue for steps without job */
-		alloc->state = step->state = JOB_PROLOGUE;
-		mdbg(PSSLURM_LOG_JOB, "%s: step %u:%u in '%s'\n", __func__,
-		     step->jobid, step->stepid, strJobState(step->state));
-		startPElogue(alloc->id, alloc->uid, alloc->gid,
-			     alloc->username, alloc->nrOfNodes, alloc->nodes,
-			     &alloc->env, &alloc->spankenv, 1, 1);
+		mdbg(PSSLURM_LOG_PELOG, "%s: starting prologue for %u:%u\n",
+		     __func__, step->jobid, step->stepid);
+		startPElogue(alloc, PELOGUE_PROLOGUE);
+	    } else {
+		/* job/pspelogue already ran parallel prologue */
+		mdbg(PSSLURM_LOG_PELOG, "%s: starting step %u:%u\n",
+		     __func__, step->jobid, step->stepid);
+		step->state = JOB_PRESTART;
+		if (step->packJobid == NO_VAL) {
+		    if (!(execUserStep(step))) {
+			sendSlurmRC(sMsg, ESLURMD_FORK_FAILED);
+			goto ERROR;
+		    }
+		}
 	    }
-	} else if (!job && alloc->state == JOB_PROLOGUE) {
+	    mdbg(PSSLURM_LOG_JOB, "%s: step %u:%u in '%s'\n", __func__,
+		    step->jobid, step->stepid, strJobState(step->state));
+	} else if (!job && alloc->state == A_PROLOGUE) {
 	    /* prologue already running, wait till it is finished */
 	    mlog("%s: step %u:%u waiting for prologue\n", __func__,
 		 step->jobid, step->stepid);
-	    step->state = JOB_PROLOGUE;
 	} else {
 	    /* start mpiexec to spawn the parallel processes,
 	     * intercept createPart call to overwrite the nodelist */
@@ -575,15 +575,9 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
 	    /* forward hw thread infos to pack leader */
 	    send_PS_PackInfo(step);
 	}
-	if (job || step->stepid || disablePrologue) {
+	if (job || step->stepid || alloc->state == A_PROLOGUE_FINISH) {
 	    /* start I/O forwarder */
 	    execStepFWIO(step);
-	}
-	if (disablePrologue) {
-	    char sJobid[128];
-	    snprintf(sJobid, sizeof(sJobid), "%u", step->jobid);
-	    psPamAddUser(step->username, sJobid, PSPAM_STATE_JOB);
-	    psPamSetState(step->username, sJobid, PSPAM_STATE_JOB);
 	}
 	if (sMsg->sock != -1) {
 	    /* say ok to waiting srun */
@@ -1390,6 +1384,13 @@ static void handleLaunchProlog(Slurm_Msg_t *sMsg)
     ufree(partition);
 }
 
+/**
+ * @brief Extract jobpack information
+ *
+ * Extract the jobpack size and hostlist from a jobs environment.
+ *
+ * @param job The job to extract the information from
+ */
 static bool extractJobPackInfos(Job_t *job)
 {
     char *sPackSize;
@@ -1434,10 +1435,45 @@ static bool extractJobPackInfos(Job_t *job)
     return true;
 }
 
+/**
+ * @brief Print various job information
+ *
+ * @param job The job to print the infos from
+ */
+static void printJobLaunchInfos(Job_t *job)
+{
+    uint32_t i;
+
+    mdbg(PSSLURM_LOG_JOB, "%s: job %u in '%s'\n", __func__,
+	    job->jobid, strJobState(job->state));
+
+    /* log cpu options */
+    if (job->cpusPerNode && job->cpuCountReps) {
+	for (i=0; i<job->cpuGroupCount; i++) {
+	    mdbg(PSSLURM_LOG_PART, "cpusPerNode %u cpuCountReps %u\n",
+		 job->cpusPerNode[i], job->cpuCountReps[i]);
+	}
+    }
+
+    /* job env */
+    job->env.size = job->env.cnt;
+    for (i=0; i<job->env.cnt; i++) {
+	mdbg(PSSLURM_LOG_ENV, "%s: env%i: '%s'\n", __func__, i,
+		job->env.vars[i]);
+    }
+
+    /* spank env */
+    job->spankenv.size = job->spankenv.cnt;
+    for (i=0; i<job->spankenv.cnt; i++) {
+	mdbg(PSSLURM_LOG_ENV, "%s: spankenv%i: '%s'\n", __func__, i,
+		job->spankenv.vars[i]);
+    }
+}
+
 static void handleBatchJobLaunch(Slurm_Msg_t *sMsg)
 {
     Job_t *job;
-    uint32_t i;
+    Alloc_t *alloc;
 
     if (pluginShutdown) {
 	/* don't accept new jobs if a shutdown is in progress */
@@ -1471,32 +1507,9 @@ static void handleBatchJobLaunch(Slurm_Msg_t *sMsg)
 	deleteJob(job->jobid);
 	return;
     }
-
     job->state = JOB_QUEUED;
-    mdbg(PSSLURM_LOG_JOB, "%s: job %u in '%s'\n", __func__,
-	    job->jobid, strJobState(job->state));
 
-    /* log cpu options */
-    if (job->cpusPerNode && job->cpuCountReps) {
-	for (i=0; i<job->cpuGroupCount; i++) {
-	    mdbg(PSSLURM_LOG_PART, "cpusPerNode %u cpuCountReps %u\n",
-		 job->cpusPerNode[i], job->cpuCountReps[i]);
-	}
-    }
-
-    /* job env */
-    job->env.size = job->env.cnt;
-    for (i=0; i<job->env.cnt; i++) {
-	mdbg(PSSLURM_LOG_ENV, "%s: env%i: '%s'\n", __func__, i,
-		job->env.vars[i]);
-    }
-
-    /* spank env */
-    job->spankenv.size = job->spankenv.cnt;
-    for (i=0; i<job->spankenv.cnt; i++) {
-	mdbg(PSSLURM_LOG_ENV, "%s: spankenv%i: '%s'\n", __func__, i,
-		job->spankenv.vars[i]);
-    }
+    printJobLaunchInfos(job);
 
     /* set accounting options */
     setAccOpts(job->acctFreq, &job->accType);
@@ -1533,11 +1546,23 @@ static void handleBatchJobLaunch(Slurm_Msg_t *sMsg)
 	return;
     }
 
-    /* return success to slurmctld and start prologue */
-    sendSlurmRC(sMsg, SLURM_SUCCESS);
+    /* add allocation if pspelogue isn't used */
+    if (job->packSize) {
+	alloc = addAlloc(job->jobid, job->packHostlist, &job->env, job->uid,
+			 job->gid, job->username);
+    } else {
+	alloc = addAlloc(job->jobid, job->slurmHosts, &job->env,
+			 job->uid, job->gid, job->username);
+    }
 
-    /* add user in pam for ssh access */
-    psPamAddUser(job->username, strJobID(job->jobid), PSPAM_STATE_PROLOGUE);
+    /* santy check allocation state */
+    if (alloc->state != A_INIT && alloc->state != A_PROLOGUE_FINISH) {
+	flog("allocation %u in invalid state %s\n", alloc->id,
+	     strAllocState(alloc->state));
+	sendSlurmRC(sMsg, ESLURMD_INVALID_JOB_CREDENTIAL);
+	deleteJob(job->jobid);
+	return;
+    }
 
     /* forward job info to other nodes in the job */
     send_PS_JobLaunch(job);
@@ -1545,169 +1570,99 @@ static void handleBatchJobLaunch(Slurm_Msg_t *sMsg)
     /* setup job environment */
     initJobEnv(job);
 
-    bool disablePrologue = getConfValueI(&Config, "DISABLE_PROLOGUE");
-
-    if (disablePrologue) {
-	job->state = JOB_PRESTART;
-	mdbg(PSSLURM_LOG_JOB, "%s: job '%u' in '%s'\n", __func__,
-		job->jobid, strJobState(job->state));
-	execUserJob(job);
-	psPamSetState(job->username, strJobID(job->jobid), PSPAM_STATE_JOB);
-    } else {
+    bool ret;
+    if (alloc->state == A_INIT) {
 	/* start prologue */
-	job->state = JOB_PROLOGUE;
-	mdbg(PSSLURM_LOG_JOB, "%s: job %u in '%s'\n", __func__,
-	     job->jobid, strJobState(job->state));
-
-	if (job->packSize) {
-	    startPElogue(job->jobid, job->uid, job->gid, job->username,
-			 job->packNrOfNodes, job->packNodes, &job->env,
-			 &job->spankenv, 0, 1);
-	} else {
-	    startPElogue(job->jobid, job->uid, job->gid, job->username,
-			 job->nrOfNodes, job->nodes, &job->env,
-			 &job->spankenv, 0, 1);
-	}
+	flog("start prologue\n");
+	ret = startPElogue(alloc, PELOGUE_PROLOGUE);
+    } else {
+	/* pspelogue already ran parallel prologue, start job */
+	flog("start job\n");
+	alloc->state = A_RUNNING;
+	ret = execUserJob(job);
     }
-}
-
-static void handleTerminateJob(Slurm_Msg_t *sMsg, Job_t *job, int signal)
-{
-    int grace;
-
-    if (job->firstKillReq) {
-	grace = getConfValueI(&SlurmConfig, "KillWait");
-	if (time(NULL) - job->firstKillReq > grace + 10) {
-	    mlog("%s: sending SIGKILL to fowarders of job %u\n", __func__,
-		    job->jobid);
-	    killForwarderByJobid(job->jobid);
-	    signal = SIGKILL;
-	}
-    }
-
-    /* set terminate flag */
-    job->terminate++;
-
-    /* we wait for mother superior to release the job */
-    if (job->mother) {
-	if (job->terminate > 3) {
-	    if (!job->mother || job->mother == -1) {
-		/* unknown mother superior */
-		mlog("%s: unknown mother superior, releasing job %u\n",
-			__func__, job->jobid);
-		sendEpilogueComplete(job->jobid, 0);
-		deleteJob(job->jobid);
-	    } else {
-		send_PS_JobState(job->jobid, job->mother);
-		job->terminate = 1;
-	    }
-	}
-	sendSlurmRC(sMsg, SLURM_SUCCESS);
-	return;
-    }
-
-    switch (job->state) {
-	case JOB_RUNNING:
-	    if ((signalJob(job, signal, sMsg->head.uid)) > 0) {
-		sendSlurmRC(sMsg, SLURM_SUCCESS);
-		mlog("%s: waiting till job is complete\n", __func__);
-		/* wait till job is complete */
-		return;
-	    }
-	    break;
-	case JOB_PROLOGUE:
-	case JOB_EPILOGUE:
-	    sendSlurmRC(sMsg, SLURM_SUCCESS);
-	    mlog("%s: waiting till job pro/epilogue is complete\n", __func__);
-	    return;
-	case JOB_EXIT:
-	    sendSlurmRC(sMsg, ESLURMD_KILL_JOB_ALREADY_COMPLETE);
-	    deleteJob(job->jobid);
-	    return;
-	case JOB_INIT:
-	case JOB_QUEUED:
-	    sendSlurmRC(sMsg, ESLURMD_KILL_JOB_ALREADY_COMPLETE);
-	    deleteJob(job->jobid);
-	    return;
-    }
-
-    sendSlurmRC(sMsg, SLURM_SUCCESS);
-
-    /* wait till job/epilogue is complete */
-    mlog("%s: starting epilogue for job %u\n", __func__, job->jobid);
-    job->state = JOB_EPILOGUE;
     mdbg(PSSLURM_LOG_JOB, "%s: job %u in '%s'\n", __func__,
-	    job->jobid, strJobState(job->state));
-    startPElogue(job->jobid, job->uid, job->gid, job->username, job->nrOfNodes,
-		    job->nodes, &job->env, &job->spankenv, 0, 0);
+	 job->jobid, strJobState(job->state));
+
+    /* return result to slurmctld */
+    if (ret) {
+	sendSlurmRC(sMsg, SLURM_SUCCESS);
+    } else {
+	sendSlurmRC(sMsg, ESLURMD_INVALID_JOB_CREDENTIAL);
+	deleteJob(job->jobid);
+    }
 }
 
-static void handleTerminateAlloc(Slurm_Msg_t *sMsg, Alloc_t *alloc)
+static void doTerminateAlloc(Slurm_Msg_t *sMsg, Alloc_t *alloc)
 {
-    int grace, signal = SIGTERM;
+    int grace = getConfValueI(&SlurmConfig, "KillWait");
+    int signal = SIGTERM, pcount;
 
-    if (!alloc) {
-	mlog("%s: invalid allocation\n", __func__);
-	return;
-    }
-
-    if (alloc->firstKillReq) {
-	grace = getConfValueI(&SlurmConfig, "KillWait");
-	if (time(NULL) - alloc->firstKillReq > grace + 10) {
-	    mlog("%s: sending SIGKILL to fowarders of job %u\n", __func__,
-		    alloc->id);
-	    killForwarderByJobid(alloc->id);
-	    signal = SIGKILL;
-	}
+    if (!alloc->firstKillReq) alloc->firstKillReq = time(NULL);
+    if (time(NULL) - alloc->firstKillReq > grace + 10) {
+	/* grace time is over, use SIGKILL from now on */
+	mlog("%s: sending SIGKILL to fowarders of allocation %u\n", __func__,
+		alloc->id);
+	killForwarderByJobid(alloc->id);
+	signal = SIGKILL;
     }
     alloc->terminate++;
 
-    /* wait for mother superior to release the allocation */
-    if (alloc->motherSup != PSC_getMyTID()) {
-	shutdownStepForwarder(alloc->id);
-	if (alloc->terminate > 3) {
-	    if (!alloc->motherSup || alloc->motherSup == -1) {
-		/* unknown mother superior */
-		mlog("%s: unknown mother superior, releasing allocation %u\n",
-			__func__, alloc->id);
-		sendEpilogueComplete(alloc->id, 0);
+    switch (alloc->state) {
+	case A_RUNNING:
+	    if ((pcount = signalAlloc(alloc->id, signal, sMsg->head.uid)) > 0) {
+		sendSlurmRC(sMsg, SLURM_SUCCESS);
+		flog("waiting for %i processes to complete\n", pcount);
+		return;
+	    }
+	    break;
+	case A_PROLOGUE:
+	    sendSlurmRC(sMsg, SLURM_SUCCESS);
+	    mlog("%s: waiting for prologue to finish\n", __func__);
+	    return;
+	case A_EPILOGUE:
+	    sendSlurmRC(sMsg, SLURM_SUCCESS);
+	    mlog("%s: waiting for epilogue to finish\n", __func__);
+	    return;
+	case A_EPILOGUE_FINISH:
+	case A_EXIT:
+	    if (!isAllocLeader(alloc)) {
+		/* epilogue already executed, we are done */
+		sendSlurmRC(sMsg, ESLURMD_KILL_JOB_ALREADY_COMPLETE);
 		deleteAlloc(alloc->id);
 	    } else {
-		send_PS_JobState(alloc->id, PSC_getTID(alloc->motherSup, 0));
-		alloc->terminate = 1;
+		/* mother superior will wait for other nodes */
+		if (!finalizeEpilogue(alloc)) {
+		    if (alloc->terminate > 20) {
+			flog("stop waiting for %u sister node(s) for "
+			     "allocation %u\n",
+			     alloc->nrOfNodes - alloc->epilogCnt, alloc->id);
+			sendEpilogueComplete(alloc->id, 0);
+			deleteAlloc(alloc->id);
+		    } else {
+			flog("waiting for %u sister node(s) to complete "
+			     "epilogue\n", alloc->nrOfNodes - alloc->epilogCnt);
+			send_PS_EpilogueStateReq(alloc);
+		    }
+		}
 	    }
-	}
-	sendSlurmRC(sMsg, SLURM_SUCCESS);
-	return;
-    }
-
-    switch (alloc->state) {
-	case JOB_RUNNING:
-	    /* check if we still have running steps and kill them */
-	    if ((haveRunningSteps(alloc->id)) && alloc->terminate < 40) {
-		signalStepsByJobid(alloc->id, signal, sMsg->head.uid);
-		mlog("%s: waiting till steps are completed\n", __func__);
-	    } else {
-		/* no running steps left, lets start epilogue */
-		mlog("%s: starting epilogue for allocation %u state '%s'\n",
-			__func__, alloc->id, strJobState(alloc->state));
-		alloc->state = JOB_EPILOGUE;
-		startPElogue(alloc->id, alloc->uid, alloc->gid,
-				alloc->username, alloc->nrOfNodes, alloc->nodes,
-				&alloc->env, &alloc->spankenv, 1, 0);
-	    }
+	    return;
+	case A_INIT:
+	    /* no processes started, execute epilogue now */
+	case A_PROLOGUE_FINISH:
+	    /* local epilogue can start now */
 	    break;
-	case JOB_PROLOGUE:
-	case JOB_EPILOGUE:
-	    mlog("%s: waiting till alloc pro/epilogue is complete\n", __func__);
-	    break;
-	case JOB_EXIT:
-	    sendSlurmRC(sMsg, ESLURMD_KILL_JOB_ALREADY_COMPLETE);
+	default:
+	    flog("invalid allocation state %u\n", alloc->state);
 	    deleteAlloc(alloc->id);
 	    return;
     }
 
+    /* job/steps already finished, start epilogue now */
     sendSlurmRC(sMsg, SLURM_SUCCESS);
+    mlog("%s: starting epilogue for allocation %u state %s\n", __func__,
+	 alloc->id, strAllocState(alloc->state));
+    startPElogue(alloc, PELOGUE_EPILOGUE);
 }
 
 static void handleAbortReq(Slurm_Msg_t *sMsg, uint32_t jobid, uint32_t stepid)
@@ -1732,17 +1687,6 @@ static void handleAbortReq(Slurm_Msg_t *sMsg, uint32_t jobid, uint32_t stepid)
     job = findJobById(jobid);
     alloc = findAlloc(jobid);
 
-    if (!job && !alloc) {
-	mlog("%s: job %u not found\n", __func__, jobid);
-
-	/* make sure every step is really gone */
-	signalStepsByJobid(jobid, SIGKILL, sMsg->head.uid);
-	killForwarderByJobid(jobid);
-
-	sendEpilogueComplete(jobid, SLURM_SUCCESS);
-	return;
-    }
-
     if (job) {
 	if (!job->mother) {
 	    signalJob(job, SIGKILL, sMsg->head.uid);
@@ -1751,7 +1695,7 @@ static void handleAbortReq(Slurm_Msg_t *sMsg, uint32_t jobid, uint32_t stepid)
 	}
 	deleteJob(jobid);
     } else {
-	if (alloc->motherSup == PSC_getMyTID()) {
+	if (isAllocLeader(alloc)) {
 	    signalStepsByJobid(alloc->id, SIGKILL, sMsg->head.uid);
 	    send_PS_JobExit(alloc->id, SLURM_BATCH_SCRIPT,
 		    alloc->nrOfNodes, alloc->nodes);
@@ -1796,29 +1740,20 @@ static bool killSelectedSteps(Step_t *step, const void *killInfo)
     return false;
 }
 
-static void handleKillReq(Slurm_Msg_t *sMsg, Kill_Info_t *info)
+static void handleKillReq(Slurm_Msg_t *sMsg, Alloc_t *alloc, Kill_Info_t *info)
 {
     traverseSteps(killSelectedSteps, info);
 
     /* if we only kill one selected step, we are done */
-    if (info->stepid != NO_VAL) goto SEND_SUCCESS;
-
-    /* kill request for complete job */
-    Job_t *job = findJobById(info->jobid);
-    if (job) job->terminate++;
-
-    Alloc_t *alloc = findAlloc(info->jobid);
-    if (alloc) alloc->terminate++;
-
-    if (!job && !alloc) {
+    if (info->stepid != NO_VAL) {
 	sendSlurmRC(sMsg, SLURM_SUCCESS);
-	/* make sure every step is really gone */
-	signalStepsByJobid(info->jobid, SIGKILL, sMsg->head.uid);
-	killForwarderByJobid(info->jobid);
-
-	sendEpilogueComplete(info->jobid, SLURM_SUCCESS);
 	return;
     }
+
+    /* kill request for complete allocation */
+    if (!alloc->firstKillReq) alloc->firstKillReq = time(NULL);
+    alloc->terminate++;
+    Job_t *job = findJobById(info->jobid);
 
     if (info->timeout) {
 	if (job) job->timeout = 1;
@@ -1830,23 +1765,20 @@ static void handleKillReq(Slurm_Msg_t *sMsg, Kill_Info_t *info)
 	mlog("error: *** PREEMPTION for job %u ***\n", info->jobid);
     }
 
-    if (job) {
-	handleTerminateJob(sMsg, job, SIGTERM);
-    } else {
-	signalStepsByJobid(info->jobid, SIGTERM, sMsg->head.uid);
-	goto SEND_SUCCESS;
+    if (alloc->state == A_RUNNING || alloc->state == A_PROLOGUE_FINISH) {
+	int pcount = signalAlloc(alloc->id, SIGTERM, sMsg->head.uid);
+	if (pcount > 0) {
+	    flog("waiting for %i processes to complete\n", pcount);
+	    sendSlurmRC(sMsg, SLURM_SUCCESS);
+	    return;
+	} else {
+	    doTerminateAlloc(sMsg, alloc);
+	}
     }
-    return;
-
-SEND_SUCCESS:
-
-    /* send success back to slurmctld */
-    sendSlurmRC(sMsg, SLURM_SUCCESS);
 }
 
 static void handleTerminateReq(Slurm_Msg_t *sMsg)
 {
-    Job_t *job;
     Alloc_t *alloc;
     Req_Terminate_Job_t *req = NULL;
     Kill_Info_t info;
@@ -1857,6 +1789,9 @@ static void handleTerminateReq(Slurm_Msg_t *sMsg)
 	sendSlurmRC(sMsg, SLURM_ERROR);
 	return;
     }
+    info.jobid = req->jobid;
+    info.stepid = req->stepid;
+    info.uid = sMsg->head.uid;
 
     /* check permissions */
     if (sMsg->head.uid != 0 && sMsg->head.uid != slurmUserID) {
@@ -1872,47 +1807,39 @@ static void handleTerminateReq(Slurm_Msg_t *sMsg)
     /* restore account freq */
     PSIDnodes_setAcctPollI(PSC_getMyID(), confAccPollTime);
 
-    /* find the corresponding job/allocation */
-    job = findJobById(req->jobid);
+    /* find the corresponding allocation */
     alloc = findAlloc(req->jobid);
-
-    if (job && !job->firstKillReq) {
-	job->firstKillReq = time(NULL);
-    } else if (alloc && !alloc->firstKillReq) {
-	alloc->firstKillReq = time(NULL);
-    }
-    info.jobid = req->jobid;
-    info.stepid = req->stepid;
-    info.uid = sMsg->head.uid;
 
     /* remove all unfinished spawn requests */
     PSIDspawn_cleanupBySpawner(PSC_getMyTID());
     cleanupDelayedSpawns(req->jobid, req->stepid);
 
+    if (!alloc) {
+	mlog("%s: allocation %u:%u not found\n", __func__,
+	     req->jobid, req->stepid);
+	if (sMsg->head.type == REQUEST_TERMINATE_JOB) {
+	    sendSlurmRC(sMsg, ESLURMD_KILL_JOB_ALREADY_COMPLETE);
+	} else {
+	    sendSlurmRC(sMsg, SLURM_SUCCESS);
+	    sendEpilogueComplete(req->jobid, SLURM_SUCCESS);
+	}
+	goto CLEANUP;
+    }
+
     switch (sMsg->head.type) {
 	case REQUEST_KILL_PREEMPTED:
 	    info.timeout = 0;
-	    handleKillReq(sMsg, &info);
+	    handleKillReq(sMsg, alloc, &info);
 	    break;
 	case REQUEST_KILL_TIMELIMIT:
 	    info.timeout = 1;
-	    handleKillReq(sMsg, &info);
+	    handleKillReq(sMsg, alloc, &info);
 	    break;
 	case REQUEST_ABORT_JOB:
 	    handleAbortReq(sMsg, req->jobid, req->stepid);
 	    break;
 	case REQUEST_TERMINATE_JOB:
-	    if (!job && !alloc) {
-		mlog("%s: job %u:%u not found\n", __func__,
-		     req->jobid, req->stepid);
-		sendSlurmRC(sMsg, ESLURMD_KILL_JOB_ALREADY_COMPLETE);
-		goto CLEANUP;
-	    }
-	    if (job) {
-		handleTerminateJob(sMsg, job, SIGTERM);
-	    } else {
-		handleTerminateAlloc(sMsg, alloc);
-	    }
+	    doTerminateAlloc(sMsg, alloc);
 	    break;
 	default:
 	    mlog("%s: unknown terminate request\n", __func__);
@@ -2042,6 +1969,8 @@ static LIST_HEAD(msgList);
 
 int handleSlurmdMsg(Slurm_Msg_t *sMsg)
 {
+    struct timeval time_start, time_now, time_diff;
+
     mdbg(PSSLURM_LOG_PROTO, "%s: msg(%i): %s, version %u addr %u.%u.%u.%u"
 	 " port %u\n", __func__, sMsg->head.type,
 	 msgType2String(sMsg->head.type), sMsg->head.version,
@@ -2066,7 +1995,22 @@ int handleSlurmdMsg(Slurm_Msg_t *sMsg)
 	msgHandler_t *msgHandler = list_entry(h, msgHandler_t, next);
 
 	if (msgHandler->msgType == sMsg->head.type) {
+	    if (measureRPC) {
+		gettimeofday(&time_start, NULL);
+		mlog("%s: exec RPC %s at %.4f\n", __func__,
+		     msgType2String(msgHandler->msgType),
+		     time_start.tv_sec + 1e-6 * time_start.tv_usec);
+	    }
+
 	    if (msgHandler->handler) msgHandler->handler(sMsg);
+
+	    if (measureRPC) {
+		gettimeofday(&time_now, NULL);
+		timersub(&time_now, &time_start, &time_diff);
+		mlog("%s: exec RPC %s took %.4f seconds\n", __func__,
+		     msgType2String(msgHandler->msgType),
+		     time_diff.tv_sec + 1e-6 * time_diff.tv_usec);
+	    }
 	    return 0;
 	}
     }
@@ -2683,7 +2627,8 @@ void sendEpilogueComplete(uint32_t jobid, uint32_t rc)
 {
     PS_SendDB_t body = { .bufUsed = 0, .useFrag = false };
 
-    mlog("%s: jobid %u\n", __func__, jobid);
+    mdbg(PSSLURM_LOG_PELOG, "%s: allocation %u to slurmctld\n",
+	 __func__, jobid);
 
     /* jobid */
     addUint32ToMsg(jobid, &body);

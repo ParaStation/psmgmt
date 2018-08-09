@@ -38,84 +38,15 @@
 /** List of all jobs */
 static LIST_HEAD(JobList);
 
-Job_t *addJob(uint32_t jobid)
-{
-    Job_t *job = ucalloc(sizeof(Job_t));
-
-    deleteJob(jobid);
-
-    job->jobid = jobid;
-    INIT_LIST_HEAD(&job->gresList);
-    job->state = JOB_INIT;
-    job->startTime = time(0);
-    INIT_LIST_HEAD(&job->tasks);
-    envInit(&job->env);
-    envInit(&job->spankenv);
-
-    list_add_tail(&job->next, &JobList);
-
-    return job;
-}
-
-Job_t *findJobByIdC(char *id)
-{
-    uint32_t jobid;
-
-    if ((sscanf(id, "%u", &jobid)) != 1) return NULL;
-    return findJobById(jobid);
-}
-
-Job_t *findJobById(uint32_t jobid)
-{
-    list_t *j;
-    list_for_each(j, &JobList) {
-	Job_t *job = list_entry(j, Job_t, next);
-	if (job->jobid == jobid) return job;
-    }
-    return NULL;
-}
-
-PSnodes_ID_t *findJobNodeEntry(Job_t *job, PSnodes_ID_t id)
+static void doDeleteJob(Job_t *job)
 {
     unsigned int i;
 
-    if (!job->nodes) return NULL;
+    mdbg(PSSLURM_LOG_JOB, "%s: '%u'\n", __func__, job->jobid);
 
-    for (i=0; i<job->nrOfNodes; i++) {
-	if (job->nodes[i] == id) return &job->nodes[i];
-    }
-    return NULL;
-}
-
-void clearJobList(void)
-{
-    list_t *j, *tmp;
-
-    clearAllocList();
-    clearBCastList();
-
-    list_for_each_safe(j, tmp, &JobList) {
-	Job_t *job = list_entry(j, Job_t, next);
-	deleteJob(job->jobid);
-    }
-}
-
-int deleteJob(uint32_t jobid)
-{
-    Job_t *job = findJobById(jobid);
-    unsigned int i;
-
-    if (!job) return 0;
-
-    mdbg(PSSLURM_LOG_JOB, "%s: '%u'\n", __func__, jobid);
-    clearBCastByJobid(jobid);
-    psPamDeleteUser(job->username, strJobID(jobid));
-
-    /* free corresponding pelogue job */
-    psPelogueDeleteJob("psslurm", strJobID(job->jobid));
-
-    /* cleanup all corresponding allocations and steps */
-    deleteAlloc(job->jobid);
+    /* cleanup all corresponding resources */
+    clearStepList(job->jobid);
+    clearBCastByJobid(job->jobid);
     freeGresCred(&job->gresList);
 
     /* cleanup local job */
@@ -170,7 +101,78 @@ int deleteJob(uint32_t jobid)
     ufree(job);
 
     malloc_trim(200);
-    return 1;
+}
+
+Job_t *addJob(uint32_t jobid)
+{
+    Job_t *job = ucalloc(sizeof(Job_t));
+
+    deleteJob(jobid);
+
+    job->jobid = jobid;
+    INIT_LIST_HEAD(&job->gresList);
+    job->state = JOB_INIT;
+    job->startTime = time(0);
+    INIT_LIST_HEAD(&job->tasks);
+    envInit(&job->env);
+    envInit(&job->spankenv);
+
+    list_add_tail(&job->next, &JobList);
+
+    return job;
+}
+
+Job_t *findJobByIdC(char *id)
+{
+    uint32_t jobid;
+
+    if ((sscanf(id, "%u", &jobid)) != 1) return NULL;
+    return findJobById(jobid);
+}
+
+Job_t *findJobById(uint32_t jobid)
+{
+    list_t *j;
+    list_for_each(j, &JobList) {
+	Job_t *job = list_entry(j, Job_t, next);
+	if (job->jobid == jobid) return job;
+    }
+    return NULL;
+}
+
+PSnodes_ID_t *findJobNodeEntry(Job_t *job, PSnodes_ID_t id)
+{
+    unsigned int i;
+
+    if (!job->nodes) return NULL;
+
+    for (i=0; i<job->nrOfNodes; i++) {
+	if (job->nodes[i] == id) return &job->nodes[i];
+    }
+    return NULL;
+}
+
+void clearJobList(void)
+{
+    list_t *j, *tmp;
+
+    clearBCastList();
+
+    list_for_each_safe(j, tmp, &JobList) {
+	Job_t *job = list_entry(j, Job_t, next);
+	doDeleteJob(job);
+    }
+}
+
+bool deleteJob(uint32_t jobid)
+{
+    Job_t *job = findJobById(jobid);
+
+    if (!job) return false;
+
+    doDeleteJob(job);
+
+    return true;
 }
 
 int killForwarderByJobid(uint32_t jobid)
@@ -284,6 +286,8 @@ int signalJobs(int signal)
 
 char *strJobState(JobState_t state)
 {
+    static char buf[128];
+
     switch (state) {
     case JOB_INIT:
 	return "INIT";
@@ -295,16 +299,13 @@ char *strJobState(JobState_t state)
 	return "SPAWNED";
     case JOB_RUNNING:
 	return "RUNNING";
-    case JOB_PROLOGUE:
-	return "PROLOGUE";
-    case JOB_EPILOGUE:
-	return "EPILOGUE";
     case JOB_EXIT:
 	return "EXIT";
     case JOB_COMPLETE:
 	return "COMPLETE";
     default:
-	return "<unknown>";
+	snprintf(buf, sizeof(buf), "<unknown: %u>", state);
+	return buf;
     }
 }
 

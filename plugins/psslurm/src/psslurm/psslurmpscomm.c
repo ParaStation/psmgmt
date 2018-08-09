@@ -71,16 +71,20 @@ typedef struct {
 static LIST_HEAD(msgCache);
 
 typedef enum {
-    PSP_SIGNAL_TASKS = 17,
+    PSP_SIGNAL_TASKS = 17,  /**< request to signal all tasks of a step */
     PSP_JOB_EXIT,
-    PSP_JOB_LAUNCH,
-    PSP_JOB_STATE_REQ,
-    PSP_JOB_STATE_RES,
-    PSP_FORWARD_SMSG,
-    PSP_FORWARD_SMSG_RES,
-    PSP_ALLOC_LAUNCH = 25,
-    PSP_ALLOC_STATE,
-    PSP_PACK_INFO,
+    PSP_JOB_LAUNCH,	    /**< inform sister nodes about a new job */
+    PSP_JOB_STATE_REQ,	    /**< defunct, tbr */
+    PSP_JOB_STATE_RES,	    /**< defunct, tbr */
+    PSP_FORWARD_SMSG,	    /**< forward a Slurm message */
+    PSP_FORWARD_SMSG_RES,   /**< result of forwarding a Slurm message */
+    PSP_ALLOC_LAUNCH = 25,  /**< defunct, tbr */
+    PSP_ALLOC_STATE,	    /**< allocation state change */
+    PSP_PACK_INFO,	    /**< send pack information to mother superior */
+    PSP_EPILOGUE_LAUNCH,    /**< start local epilogue */
+    PSP_EPILOGUE_RES,	    /**< result of local epilogue */
+    PSP_EPILOGUE_STATE_REQ, /**< request delayed epilogue status */
+    PSP_EPILOGUE_STATE_RES, /**< response to epilogue status request */
 } PSP_PSSLURM_t;
 
 /** Old handler for PSP_DD_CHILDBORN messages */
@@ -124,6 +128,14 @@ char *msg2Str(PSP_PSSLURM_t type)
 	    return "PSP_ALLOC_STATE";
 	case PSP_PACK_INFO:
 	    return "PSP_PACK_INFO";
+	case PSP_EPILOGUE_LAUNCH:
+	    return "PSP_EPILOGUE_LAUNCH";
+	case PSP_EPILOGUE_RES:
+	    return "PSP_EPILOGUE_RES";
+	case PSP_EPILOGUE_STATE_REQ:
+	    return "PSP_EPILOGUE_STATE_REQ";
+	case PSP_EPILOGUE_STATE_RES:
+	    return "PSP_EPILOGUE_STATE_RES";
     }
     return NULL;
 }
@@ -351,35 +363,6 @@ void send_PS_JobLaunch(Job_t *job)
     sendFragMsg(&data);
 }
 
-void send_PS_AllocLaunch(Alloc_t *alloc)
-{
-    PS_SendDB_t data;
-    PStask_ID_t myID = PSC_getMyID();
-    uint32_t i;
-
-    initFragBuffer(&data, PSP_CC_PLUG_PSSLURM, PSP_ALLOC_LAUNCH);
-    for (i=0; i<alloc->nrOfNodes; i++) {
-	if (alloc->nodes[i] == myID) continue;
-	setFragDest(&data, PSC_getTID(alloc->nodes[i], 0));
-    }
-    if (!getNumFragDest(&data)) return;
-
-    /* add jobid */
-    addUint32ToMsg(alloc->id, &data);
-
-    /* uid/gid */
-    addUint32ToMsg(alloc->uid, &data);
-    addUint32ToMsg(alloc->gid, &data);
-    addStringToMsg(alloc->username, &data);
-
-    /* node list */
-    addUint32ToMsg(alloc->nrOfNodes, &data);
-    addStringToMsg(alloc->slurmHosts, &data);
-
-    /* send the messages */
-    sendFragMsg(&data);
-}
-
 void send_PS_AllocState(Alloc_t *alloc)
 {
     PS_SendDB_t data;
@@ -423,8 +406,8 @@ static int retryExecScript(PSnodes_ID_t remote, uint16_t scriptID)
 static int callbackNodeOffline(uint32_t id, int32_t exit, PSnodes_ID_t remote,
 				uint16_t scriptID)
 {
-    Job_t *job = NULL;
-    Alloc_t *alloc = NULL;
+    Job_t *job = findJobById(id);
+    Alloc_t *alloc = findAlloc(id);
 
     mlog("%s: id %u exit %i remote %i\n", __func__, id, exit, remote);
 
@@ -432,30 +415,23 @@ static int callbackNodeOffline(uint32_t id, int32_t exit, PSnodes_ID_t remote,
 	if (retryExecScript(remote, scriptID) != -1) return 2;
     }
 
-    if ((job = findJobById(id))) {
-	if (!exit) {
-	    mlog("%s: success job %u state %s\n", __func__, job->jobid,
-		 strJobState(job->state));
-	    if (job->state == JOB_PROLOGUE || job->state == JOB_QUEUED ||
-		job->state == JOB_EXIT) {
-		/* only mother superior should try to requeue a job */
-		if (job->nodes[0] == PSC_getMyID()) {
-		    requeueBatchJob(job, slurmController);
-		}
-	    }
-	}  else {
-	    mlog("%s: failed\n", __func__);
-	}
-    } else if ((alloc = findAlloc(id))) {
-	if (!exit) {
-	    mlog("%s: success alloc %u state %s\n", __func__, alloc->id,
-		 strJobState(alloc->state));
-	}  else {
-	    mlog("%s: failed\n", __func__);
-	}
-    } else {
-	mlog("%s: job/alloc %u not found\n", __func__, id);
+    if (!alloc) {
+	flog("allocation with ID %u not found\n", id);
+	return 0;
     }
+
+    if (job) {
+	if (alloc->state == A_PROLOGUE || job->state == JOB_QUEUED ||
+	    job->state == JOB_EXIT) {
+	    /* only mother superior should try to requeue a job */
+	    if (job->nodes[0] == PSC_getMyID()) {
+		requeueBatchJob(job, slurmController);
+	    }
+	}
+    }
+
+    flog("%s alloc %u state %s\n", exit ? "error" : "success", alloc->id,
+	 strAllocState(alloc->state));
 
     return 0;
 }
@@ -582,21 +558,74 @@ void send_PS_SignalTasks(Step_t *step, uint32_t signal, PStask_group_t group)
     }
 }
 
-void send_PS_JobState(uint32_t jobid, PStask_ID_t dest)
+void send_PS_EpilogueLaunch(Alloc_t *alloc)
 {
     DDTypedBufferMsg_t msg = {
 	.header = {
 	    .type = PSP_CC_PLUG_PSSLURM,
 	    .sender = PSC_getMyTID(),
-	    .dest = dest,
 	    .len = offsetof(DDTypedBufferMsg_t, buf) },
-	.type = PSP_JOB_STATE_REQ,
+	.type = PSP_EPILOGUE_LAUNCH,
 	.buf = {'\0'} };
 
-    mlog("%s: jobid %u dest '%s'\n", __func__, jobid, PSC_printTID(dest));
+    flog("alloc ID %u\n", alloc->id);
 
-    /* add jobid */
-    PSP_putTypedMsgBuf(&msg, __func__, "jobID", &jobid, sizeof(jobid));
+    /* add id */
+    PSP_putTypedMsgBuf(&msg, __func__, "ID", &alloc->id, sizeof(alloc->id));
+
+    /* send the messages */
+    uint32_t n;
+    for (n=0; n<alloc->nrOfNodes; n++) {
+
+	msg.header.dest = PSC_getTID(alloc->nodes[n], 0);
+	if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
+	    mwarn(errno, "%s: sending msg to %s failed ", __func__,
+		  PSC_printTID(msg.header.dest));
+	}
+    }
+}
+
+void send_PS_EpilogueStateReq(Alloc_t *alloc)
+{
+    DDTypedBufferMsg_t msg = {
+	.header = {
+	    .type = PSP_CC_PLUG_PSSLURM,
+	    .sender = PSC_getMyTID(),
+	    .len = offsetof(DDTypedBufferMsg_t, buf) },
+	.type = PSP_EPILOGUE_STATE_REQ,
+	.buf = {'\0'} };
+
+    /* add id */
+    PSP_putTypedMsgBuf(&msg, __func__, "ID", &alloc->id, sizeof(alloc->id));
+
+    uint32_t n;
+    for (n=0; n<alloc->nrOfNodes; n++) {
+	if (!alloc->epilogRes[n]) {
+	    msg.header.dest = PSC_getTID(alloc->nodes[n], 0);
+	    if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
+		mwarn(errno, "%s: sending msg to %s failed ", __func__,
+		      PSC_printTID(msg.header.dest));
+	    }
+	}
+    }
+}
+
+void send_PS_EpilogueRes(Alloc_t *alloc, int16_t res)
+{
+    DDTypedBufferMsg_t msg = {
+	.header = {
+	    .type = PSP_CC_PLUG_PSSLURM,
+	    .sender = PSC_getMyTID(),
+	    .dest = PSC_getTID(alloc->nodes[0], 0),
+	    .len = offsetof(DDTypedBufferMsg_t, buf) },
+	.type = PSP_EPILOGUE_RES,
+	.buf = {'\0'} };
+
+    mdbg(PSSLURM_LOG_PELOG, "%s: result: %i dest:%u\n",
+	 __func__, res, msg.header.dest);
+
+    PSP_putTypedMsgBuf(&msg, __func__, "ID", &alloc->id, sizeof(alloc->id));
+    PSP_putTypedMsgBuf(&msg, __func__, "res", &res, sizeof(res));
 
     /* send the messages */
     if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
@@ -605,7 +634,7 @@ void send_PS_JobState(uint32_t jobid, PStask_ID_t dest)
     }
 }
 
-static void handle_PS_JobExit(DDTypedBufferMsg_t *msg)
+static void handle_JobExit(DDTypedBufferMsg_t *msg)
 {
     uint32_t jobid, stepid;
     size_t used = 0;
@@ -616,12 +645,10 @@ static void handle_PS_JobExit(DDTypedBufferMsg_t *msg)
     mlog("%s: id %u:%u from '%s'\n", __func__, jobid, stepid,
 	    PSC_printTID(msg->header.sender));
 
-    /* delete all steps */
     if (stepid == SLURM_BATCH_SCRIPT) {
-	if (!findAlloc(jobid) && !findJobById(jobid)) return;
-	sendEpilogueComplete(jobid, 0);
-	deleteAlloc(jobid);
-	deleteJob(jobid);
+	Job_t *job = findJobById(jobid);
+	if (!job) return;
+	job->state = JOB_EXIT;
 	return;
     }
 
@@ -631,82 +658,201 @@ static void handle_PS_JobExit(DDTypedBufferMsg_t *msg)
     } else {
 	step->state = JOB_EXIT;
 	mdbg(PSSLURM_LOG_JOB, "%s: step %u:%u in %s\n", __func__,
-	     step->jobid, step->stepid, strJobState(step->state));
+	     step->jobid, step->stepid, strAllocState(step->state));
     }
 }
 
-static void handle_PS_JobStateRes(DDTypedBufferMsg_t *msg)
+/**
+ * @brief Handle a local epilogue launch request
+ *
+ * @param msg The message to handle
+ */
+static void handle_EpilogueLaunch(DDTypedBufferMsg_t *msg)
 {
-    uint32_t jobid;
-    uint8_t res = 0, state = 0;
+    uint32_t id;
     size_t used = 0;
 
-    PSP_getTypedMsgBuf(msg, &used, __func__, "jobID", &jobid, sizeof(jobid));
-    PSP_getTypedMsgBuf(msg, &used, __func__, "res", &res, sizeof(res));
-    PSP_getTypedMsgBuf(msg, &used, __func__, "state", &state, sizeof(state));
+    PSP_getTypedMsgBuf(msg, &used, __func__, "id", &id, sizeof(id));
 
-    mlog("%s: jobid %u res %u state %s from %s\n", __func__, jobid, res,
-	 strJobState(state), PSC_printTID(msg->header.sender));
-
-    Job_t *job = findJobById(jobid);
-    if (job) {
-	if (!res || job->state == JOB_EXIT) {
-	    sendEpilogueComplete(jobid, 0);
-	    deleteJob(jobid);
-	}
+    Alloc_t *alloc = findAlloc(id);
+    if (!alloc) {
+	flog("allocation with ID %u not found\n", id);
     } else {
-	Alloc_t *alloc = findAlloc(jobid);
-	if (alloc && (!res || alloc->state == JOB_EXIT)) {
-	    sendEpilogueComplete(jobid, 0);
-	    deleteAlloc(jobid);
+	if (alloc->state != A_EPILOGUE && A_EPILOGUE_FINISH &&
+	    alloc->state != A_EXIT) {
+	    flog("id %u\n", id);
+	    startPElogue(alloc, PELOGUE_EPILOGUE);
 	}
     }
 }
 
-static void handle_PS_JobStateReq(DDTypedBufferMsg_t *inmsg)
+static void send_PS_EpilogueStateRes(PStask_ID_t dest, uint32_t id, uint16_t res)
 {
     DDTypedBufferMsg_t msg = {
 	.header = {
 	    .type = PSP_CC_PLUG_PSSLURM,
 	    .sender = PSC_getMyTID(),
-	    .dest = inmsg->header.sender,
+	    .dest = dest,
 	    .len = offsetof(DDTypedBufferMsg_t, buf) },
-	.type = PSP_JOB_STATE_RES,
+	.type = PSP_EPILOGUE_STATE_RES,
 	.buf = {'\0'} };
-    uint32_t jobid;
-    uint8_t res = 0, state = 0;
-    size_t used = 0;
 
-    /* get jobid */
-    PSP_getTypedMsgBuf(inmsg, &used, __func__, "jobID", &jobid, sizeof(jobid));
+    flog("alloc ID %u\n", id);
 
-    Job_t *job = findJobById(jobid);
-    if (job) {
-	res = 1;
-	state = job->state;
-    } else {
-	Alloc_t *alloc = findAlloc(jobid);
-	if (alloc) {
-	    res = 1;
-	    state = alloc->state;
-	}
-    }
+    /* add id */
+    PSP_putTypedMsgBuf(&msg, __func__, "ID", &id, sizeof(id));
+    PSP_putTypedMsgBuf(&msg, __func__, "ID", &res, sizeof(res));
 
-    mlog("%s: from '%s' jobid %u res %u state %s\n", __func__,
-	 PSC_printTID(inmsg->header.sender), jobid, res, strJobState(state));
-
-    PSP_putTypedMsgBuf(&msg, __func__, "jobID", &jobid, sizeof(jobid));
-    PSP_putTypedMsgBuf(&msg, __func__, "res", &res, sizeof(res));
-    PSP_putTypedMsgBuf(&msg, __func__, "state", &state, sizeof(state));
-
-    /* send the messages */
     if (sendMsg(&msg) == -1 && errno != EWOULDBLOCK) {
 	mwarn(errno, "%s: sending msg to %s failed ", __func__,
-	      PSC_printTID(msg.header.dest));
+		PSC_printTID(msg.header.dest));
     }
 }
 
-static void handle_PS_JobLaunch(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
+/**
+ * @brief Handle a local epilogue state response
+ *
+ * @param msg The message to handle
+ */
+static void handle_EpilogueStateRes(DDTypedBufferMsg_t *msg)
+{
+    uint32_t id;
+    uint16_t res;
+    size_t used = 0;
+
+    PSP_getTypedMsgBuf(msg, &used, __func__, "id", &id, sizeof(id));
+    PSP_getTypedMsgBuf(msg, &used, __func__, "res", &res, sizeof(res));
+
+    Alloc_t *alloc = findAlloc(id);
+    if (!alloc) {
+	flog("allocation with ID %u not found\n", id);
+	return;
+    }
+
+    PSnodes_ID_t sender = PSC_getID(msg->header.sender);
+    int localID = getSlurmNodeID(sender, alloc->nodes, alloc->nrOfNodes);
+
+    if (localID < 0) {
+	flog("sender node %i in allocation %u not found\n",
+		sender, alloc->id);
+	return;
+    }
+
+    switch (res) {
+	case 0:
+	    /* allocation already gone */
+	case A_EPILOGUE_FINISH:
+	case A_EXIT:
+	    if (alloc->epilogRes[localID] == false) {
+		alloc->epilogRes[localID] = true;
+		alloc->epilogCnt++;
+	    }
+	    break;
+    }
+
+    finalizeEpilogue(alloc);
+}
+
+/**
+ * @brief Handle a local epilogue state request
+ *
+ * @param msg The message to handle
+ */
+static void handle_EpilogueStateReq(DDTypedBufferMsg_t *msg)
+{
+    uint32_t id;
+    uint16_t res;
+    size_t used = 0;
+
+    PSP_getTypedMsgBuf(msg, &used, __func__, "id", &id, sizeof(id));
+
+    Alloc_t *alloc = findAlloc(id);
+    if (!alloc) {
+	flog("allocation with ID %u not found\n", id);
+	res = 0;
+    } else {
+	res = alloc->state;
+	if (alloc->state != A_EPILOGUE && A_EPILOGUE_FINISH &&
+	    alloc->state != A_EXIT) {
+	    flog("starting epilogue for allocation %u state %s\n", id,
+		 strAllocState(alloc->state));
+	    startPElogue(alloc, PELOGUE_EPILOGUE);
+	}
+    }
+    send_PS_EpilogueStateRes(msg->header.sender, id, res);
+}
+
+/**
+ * @brief Handle a local epilogue result
+ *
+ * @param msg The message to handle
+ */
+static void handle_EpilogueRes(DDTypedBufferMsg_t *msg)
+{
+    uint32_t id;
+    uint16_t res;
+    size_t used = 0;
+
+    PSP_getTypedMsgBuf(msg, &used, __func__, "id", &id, sizeof(id));
+    PSP_getTypedMsgBuf(msg, &used, __func__, "res", &res, sizeof(res));
+
+    mdbg(PSSLURM_LOG_PELOG, "%s: result %i for allocation %u from %s\n",
+	 __func__, res, id, PSC_printTID(msg->header.sender));
+
+    Alloc_t *alloc = findAlloc(id);
+    if (!alloc) {
+	flog("allocation with ID %u not found\n", id);
+    } else {
+	PSnodes_ID_t sender = PSC_getID(msg->header.sender);
+	int localID = getSlurmNodeID(sender, alloc->nodes, alloc->nrOfNodes);
+
+	if (localID < 0) {
+	    flog("sender node %i in allocation %u not found\n",
+		 sender, alloc->id);
+	    return;
+	}
+	if (res == PELOGUE_PENDING) {
+	    /* should not happen */
+	    flog("epilogue still running on %u\n", sender);
+	    return;
+	}
+
+	if (alloc->epilogRes[localID] == false) {
+	    alloc->epilogRes[localID] = true;
+	    alloc->epilogCnt++;
+	}
+
+	if (res != PELOGUE_DONE) {
+	    /* epilogue failed, set node offline */
+	    char reason[256];
+
+	    if (res == PELOGUE_FAILED) {
+		snprintf(reason, sizeof(reason), "psslurm: epilogue failed\n");
+	    } else if (res == PELOGUE_TIMEDOUT) {
+		snprintf(reason, sizeof(reason), "psslurm: epilogue timed out\n");
+	    }
+	    setNodeOffline(&alloc->env, alloc->id, slurmController,
+			   getSlurmHostbyNodeID(sender), reason);
+	} else {
+	    mdbg(PSSLURM_LOG_PELOG, "%s: success for allocation %u on "
+		 "node %i\n", __func__, id, sender);
+	}
+	finalizeEpilogue(alloc);
+    }
+}
+
+/**
+ * @brief Handle a job launch request
+ *
+ * Handle a job launch request holding all information to create
+ * a job structure. The job launch request is send from the mother superior to
+ * all sister nodes of a job.
+ *
+ * @param msg The fragmented message header
+ *
+ * @param data The request to handle
+ */
+static void handle_JobLaunch(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 {
     uint32_t jobid;
     char *ptr = data->buf;
@@ -717,7 +863,7 @@ static void handle_PS_JobLaunch(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     Job_t *job = addJob(jobid);
     job->state = JOB_QUEUED;
     mdbg(PSSLURM_LOG_JOB, "%s: job %u in %s\n", __func__, job->jobid,
-	 strJobState(job->state));
+	 strAllocState(job->state));
     job->mother = msg->header.sender;
 
     /* get uid/gid */
@@ -734,40 +880,6 @@ static void handle_PS_JobLaunch(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 
     mlog("%s: jobid %u user '%s' nodes %u from '%s'\n", __func__, jobid,
 	    job->username, job->nrOfNodes, PSC_printTID(msg->header.sender));
-}
-
-static void handleAllocLaunch(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
-{
-    uint32_t jobid, nrOfNodes;
-    char *ptr = data->buf, *username, *slurmHosts;
-    Alloc_t *alloc;
-    uid_t uid;
-    gid_t gid;
-
-    /* get jobid */
-    getUint32(&ptr, &jobid);
-
-    /* get uid/gid */
-    getUint32(&ptr, &uid);
-    getUint32(&ptr, &gid);
-
-    /* get username */
-    username = getStringM(&ptr);
-
-    /* get nodelist */
-    getUint32(&ptr, &nrOfNodes);
-    slurmHosts = getStringM(&ptr);
-
-    alloc = addAlloc(jobid, nrOfNodes, slurmHosts,
-		     NULL, NULL, uid, gid, username);
-    alloc->state = JOB_PROLOGUE;
-    alloc->motherSup = msg->header.sender;
-
-    ufree(username);
-    ufree(slurmHosts);
-
-    mlog("%s: jobid %u user '%s' nodes %u from '%s'\n", __func__, jobid,
-	 alloc->username, alloc->nrOfNodes, PSC_printTID(msg->header.sender));
 }
 
 static void handleAllocState(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
@@ -791,7 +903,7 @@ static void handleAllocState(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     alloc->state = state;
 
     mlog("%s: jobid %u state '%s' from %s\n", __func__, jobid,
-	 strJobState(alloc->state), PSC_printTID(msg->header.sender));
+	 strAllocState(alloc->state), PSC_printTID(msg->header.sender));
 }
 
 static void handlePackInfo(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
@@ -800,11 +912,17 @@ static void handlePackInfo(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     uint32_t packJobid, stepid, packMyId, i;
     Step_t *step;
     RemotePackInfos_t *rInfo;
+    Alloc_t *alloc;
 
     /* pack jobid */
     getUint32(&ptr, &packJobid);
     /* stepid */
     getUint32(&ptr, &stepid);
+
+    if (!(alloc = findAlloc(packJobid))) {
+	flog("allocation %u not found\n", packJobid);
+	return;
+    }
 
     if (!(step = findStepByStepId(packJobid, stepid))) {
 	Msg_Cache_t *cache = umalloc(sizeof(*cache));
@@ -860,7 +978,7 @@ static void handlePackInfo(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     step->numRPackInfo++;
 
     /* test if we have all infos to start */
-    if (step->state != JOB_PROLOGUE &&
+    if (alloc->state != A_PROLOGUE &&
         step->packNtasks == step->numHwThreads + step->numRPackThreads) {
 	if (!(execUserStep(step))) {
 	    mlog("%s: starting user step failed\n", __func__);
@@ -870,7 +988,15 @@ static void handlePackInfo(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     }
 }
 
-static void handle_PS_SignalTasks(DDTypedBufferMsg_t *msg)
+/**
+ * @brief Handle a signal tasks request
+ *
+ * Handle a request to signal all tasks of a chosen step. The request is usually
+ * send from the mother superior to all sister nodes of the step.
+ *
+ * @param msg The message to handle
+ */
+static void handle_SignalTasks(DDTypedBufferMsg_t *msg)
 {
     uint32_t jobid, stepid, group, sig;
     size_t used = 0;
@@ -896,41 +1022,17 @@ static void handle_PS_SignalTasks(DDTypedBufferMsg_t *msg)
     signalTasks(step->jobid, step->uid, &step->tasks, sig, group);
 }
 
-void forwardSlurmMsg(Slurm_Msg_t *sMsg, Msg_Forward_t *fw)
+int forwardSlurmMsg(Slurm_Msg_t *sMsg, uint32_t nrOfNodes, PSnodes_ID_t *nodes)
 {
-    uint32_t nrOfNodes, i, len, localId;
-    PSnodes_ID_t *nodes = NULL;
     PS_SendDB_t msg;
-
-    /* convert nodelist to PS nodes */
-    if (!getNodesFromSlurmHL(fw->head.nodeList, &nrOfNodes, &nodes, &localId)) {
-	mlog("%s: resolving PS nodeIDs from %s failed\n", __func__,
-	     fw->head.nodeList);
-	return;
-    }
-
-    /* save infos in connection, has to be
-       done *before* sending any messages  */
-    fw->nodes = nodes;
-    fw->nodesCount = nrOfNodes;
-    fw->head.forward = sMsg->head.forward;
-    fw->head.returnList = sMsg->head.returnList;
-    fw->head.fwSize = sMsg->head.forward;
-    fw->head.fwdata =
-	umalloc(sMsg->head.forward * sizeof(Slurm_Forward_Data_t));
-
-    for (i=0; i<sMsg->head.forward; i++) {
-	fw->head.fwdata[i].error = SLURM_COMMUNICATIONS_CONNECTION_ERROR;
-	fw->head.fwdata[i].type = RESPONSE_FORWARD_FAILED;
-	fw->head.fwdata[i].node = -1;
-	fw->head.fwdata[i].body.buf = NULL;
-	fw->head.fwdata[i].body.bufUsed = 0;
-    }
 
     /* send the message to other nodes */
     initFragBuffer(&msg, PSP_CC_PLUG_PSSLURM, PSP_FORWARD_SMSG);
+    uint32_t i;
     for (i=0; i<nrOfNodes; i++) {
-	setFragDest(&msg, PSC_getTID(nodes[i], 0));
+	if (!(setFragDest(&msg, PSC_getTID(nodes[i], 0)))) {
+	    return -1;
+	}
     }
 
     /* add forward information */
@@ -953,15 +1055,11 @@ void forwardSlurmMsg(Slurm_Msg_t *sMsg, Msg_Forward_t *fw)
     addUint16ToMsg(sMsg->head.port, &msg);
 
     /* add message body */
-    len = sMsg->data->bufUsed - (sMsg->ptr - sMsg->data->buf);
+    uint32_t len = sMsg->data->bufUsed - (sMsg->ptr - sMsg->data->buf);
     addMemToMsg(sMsg->ptr, len, &msg);
 
     /* send the message(s) */
-    sendFragMsg(&msg);
-
-    mdbg(PSSLURM_LOG_FWD, "%s: forward: type '%s' count %u nodelist '%s' "
-	 "timeout %u\n", __func__, msgType2String(sMsg->head.type),
-	 sMsg->head.forward, fw->head.nodeList, fw->head.timeout);
+    return sendFragMsg(&msg);
 }
 
 int send_PS_ForwardRes(Slurm_Msg_t *sMsg)
@@ -1059,19 +1157,13 @@ static void handlePsslurmMsg(DDTypedBufferMsg_t *msg)
 
     switch (msg->type) {
 	case PSP_SIGNAL_TASKS:
-	    handle_PS_SignalTasks(msg);
+	    handle_SignalTasks(msg);
 	    break;
 	case PSP_JOB_EXIT:
-	    handle_PS_JobExit(msg);
+	    handle_JobExit(msg);
 	    break;
 	case PSP_JOB_LAUNCH:
-	    recvFragMsg(msg, handle_PS_JobLaunch);
-	    break;
-	case PSP_JOB_STATE_REQ:
-	    handle_PS_JobStateReq(msg);
-	    break;
-	case PSP_JOB_STATE_RES:
-	    handle_PS_JobStateRes(msg);
+	    recvFragMsg(msg, handle_JobLaunch);
 	    break;
 	case PSP_FORWARD_SMSG:
 	    recvFragMsg(msg, handleFWslurmMsg);
@@ -1079,14 +1171,28 @@ static void handlePsslurmMsg(DDTypedBufferMsg_t *msg)
 	case PSP_FORWARD_SMSG_RES:
 	    recvFragMsg(msg, handleFWslurmMsgRes);
 	    break;
-	case PSP_ALLOC_LAUNCH:
-	    recvFragMsg(msg, handleAllocLaunch);
-	    break;
 	case PSP_ALLOC_STATE:
 	    recvFragMsg(msg, handleAllocState);
 	    break;
 	case PSP_PACK_INFO:
 	    recvFragMsg(msg, handlePackInfo);
+	    break;
+	case PSP_EPILOGUE_LAUNCH:
+	    handle_EpilogueLaunch(msg);
+	    break;
+	case PSP_EPILOGUE_RES:
+	    handle_EpilogueRes(msg);
+	    break;
+	case PSP_EPILOGUE_STATE_REQ:
+	    handle_EpilogueStateReq(msg);
+	    break;
+	case PSP_EPILOGUE_STATE_RES:
+	    handle_EpilogueStateRes(msg);
+	    break;
+	case PSP_ALLOC_LAUNCH:
+	case PSP_JOB_STATE_REQ:
+	case PSP_JOB_STATE_RES:
+	    flog("defunct msg type %i [%s -> %s]\n", msg->type, sender, dest);
 	    break;
 	default:
 	    mlog("%s: received unknown msg type: %i [%s -> %s]\n", __func__,
@@ -1094,50 +1200,60 @@ static void handlePsslurmMsg(DDTypedBufferMsg_t *msg)
     }
 }
 
-bool nodeDownJobs(Job_t *job, const void *info)
+/**
+ * @brief Test if a unreachable node is part of an allocation
+ *
+ * If a unreachable node is part of an allocation the corresponding
+ * job and steps are signaled. Also the node is marked as unavailable
+ * for a following epilogue execution.
+ *
+ * @param alloc The allocation to test
+ *
+ * @param info Pointer to the node unreachable
+ *
+ * @return Returns true if the allocation was found otherwise
+ * false
+ */
+static bool nodeDownAlloc(Alloc_t *alloc, const void *info)
 {
     uint32_t i;
     const PSnodes_ID_t node = *(PSnodes_ID_t *) info;
 
-    for (i=0; i<job->nrOfNodes; i++) {
-	if (job->nodes[i] == node) {
-	    mlog("%s: node %i running job %u state %u is down\n", __func__,
-		 node, job->jobid, job->state);
-	    if (job->state != JOB_EPILOGUE && job->state != JOB_COMPLETE
-		&& job->state != JOB_EXIT) {
-		signalJob(job, SIGKILL, 0);
+    for (i=0; i<alloc->nrOfNodes; i++) {
+	if (alloc->nodes[i] == node) {
+	    mlog("%s: node %i in allocation %u state %s is down\n", __func__,
+		 node, alloc->id, strAllocState(alloc->state));
+
+	    /* node will not be available for epilogue */
+	    if (alloc->epilogRes[i] == false) {
+		alloc->epilogRes[i] = true;
+		alloc->epilogCnt++;
 	    }
+
+	    if (alloc->state == A_RUNNING || alloc->state == A_PROLOGUE_FINISH) {
+		signalAlloc(alloc->id, SIGKILL, 0);
+	    }
+	    return true;
 	}
     }
     return false;
 }
 
-bool nodeDownSteps(Step_t *step, const void *info)
-{
-    uint32_t i;
-    const PSnodes_ID_t node = *(PSnodes_ID_t *) info;
-
-    for (i=0; i<step->nrOfNodes; i++) {
-	if (step->nodes[i] == node) {
-	    mlog("%s: node %i running step %u:%u state %u is down\n", __func__,
-		 node, step->jobid, step->stepid, step->state);
-	    if (!findJobById(step->jobid) && step->state != JOB_EPILOGUE
-		&& step->state != JOB_COMPLETE && step->state != JOB_EXIT) {
-		signalStep(step, SIGKILL, 0);
-	    }
-	}
-    }
-    return false;
-}
-
+/**
+ * @brief Handler for the hook PSIDHOOK_NODE_DOWN
+ *
+ * @param nodeID Pointer to the node ID of the unreachable node
+ *
+ * @return Always returns 0
+ */
 static int handleNodeDown(void *nodeID)
 {
     PSnodes_ID_t node = *((PSnodes_ID_t *) nodeID);
 
-    traverseJobs(nodeDownJobs, &node);
+    /* test if the node is part of an allocation */
+    traverseAllocs(nodeDownAlloc, &node);
 
-    traverseSteps(nodeDownSteps, &node);
-
+    /* test for missing tree forwarded message of the unreachable node */
     handleBrokenConnection(node);
 
     return 0;
@@ -1176,6 +1292,46 @@ static void saveForwardError(DDTypedBufferMsg_t *msg)
 }
 
 /**
+ * @brief Handle a dropped epilogue message
+ *
+ * @param msg The message to handle
+ */
+static void handleDroppedEpilogue(DDTypedBufferMsg_t *msg)
+{
+    size_t used = 0;
+    uint32_t id;
+
+    PSP_getTypedMsgBuf(msg, &used, __func__, "id", &id, sizeof(id));
+
+    Alloc_t *alloc = findAlloc(id);
+    if (!alloc) {
+	flog("allocation with ID %u not found\n", id);
+	return;
+    }
+
+    PSnodes_ID_t dest = PSC_getID(msg->header.dest);
+    int localID = getSlurmNodeID(dest, alloc->nodes, alloc->nrOfNodes);
+
+    if (localID < 0) {
+	flog("dest node %i in allocation %u not found\n",
+		dest, alloc->id);
+	return;
+    }
+
+    if (alloc->epilogRes[localID] == false) {
+	alloc->epilogRes[localID] = true;
+	alloc->epilogCnt++;
+    }
+
+    flog("node %i for epilogue %u unreachable\n", dest, alloc->id);
+    setNodeOffline(&alloc->env, alloc->id, slurmController,
+		   getSlurmHostbyNodeID(dest),
+		   "psslurm: node unreachable for epilogue");
+
+    finalizeEpilogue(alloc);
+}
+
+/**
 * @brief Handle a dropped PSP_CC_PLUG_PSSLURM message
 *
 * @param msg The message to handle
@@ -1193,31 +1349,10 @@ static void handleDroppedMsg(DDTypedBufferMsg_t *msg)
 	 msg2Str(msg->type), msg->type, hname, nodeId);
 
     switch (msg->type) {
-    case PSP_JOB_STATE_REQ:
-    {
-	uint32_t jobid;
-	size_t used = 0;
-	PSP_getTypedMsgBuf(msg, &used, __func__, "jobID", &jobid,sizeof(jobid));
-
-	mlog("%s: mother superior dead, releasing job %u\n", __func__, jobid);
-
-	Job_t *job = findJobById(jobid);
-	if (job) {
-	    mlog("%s: deleting job %u\n", __func__, jobid);
-	    signalJob(job, SIGKILL, 0);
-	    sendEpilogueComplete(jobid, 0);
-	    deleteJob(jobid);
-	} else {
-	    Alloc_t *alloc  = findAlloc(jobid);
-	    if (alloc) {
-		mlog("%s: deleting allocation %u\n", __func__, jobid);
-		signalStepsByJobid(alloc->id, SIGKILL, 0);
-		sendEpilogueComplete(jobid, 0);
-		deleteAlloc(jobid);
-	    }
-	}
+    case PSP_EPILOGUE_LAUNCH:
+    case PSP_EPILOGUE_STATE_REQ:
+	handleDroppedEpilogue(msg);
 	break;
-    }
     case PSP_FORWARD_SMSG:
 	saveForwardError(msg);
 	break;
@@ -1228,6 +1363,8 @@ static void handleDroppedMsg(DDTypedBufferMsg_t *msg)
     case PSP_SIGNAL_TASKS:
     case PSP_ALLOC_LAUNCH:
     case PSP_ALLOC_STATE:
+    case PSP_EPILOGUE_RES:
+    case PSP_EPILOGUE_STATE_RES:
 	/* nothing we can do here */
 	break;
     default:

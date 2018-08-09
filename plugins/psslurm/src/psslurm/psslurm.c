@@ -83,9 +83,9 @@ char name[] = "psslurm";
 int version = 116;
 int requiredAPI = 117;
 plugin_dep_t dependencies[] = {
-    { .name = "psmunge", .version = 3 },
+    { .name = "psmunge", .version = 4 },
     { .name = "psaccount", .version = 25 },
-    { .name = "pelogue", .version = 6 },
+    { .name = "pelogue", .version = 7 },
     { .name = "pspam", .version = 3 },
     { .name = "psexec", .version = 1 },
     { .name = "pspmi", .version = 4 },
@@ -140,6 +140,10 @@ static void unregisterHooks(bool verbose)
 	if (verbose) mlog("unregister 'PSIDHOOK_FRWRD_CLIENT_STAT' failed\n");
     }
 
+    if (!PSIDhook_del(PSIDHOOK_PELOGUE_START, handleLocalPElogueStart)) {
+	if (verbose) mlog("unregister 'PSIDHOOK_PELOGUE_START' failed\n");
+    }
+
     if (!PSIDhook_del(PSIDHOOK_PELOGUE_FINISH, handleLocalPElogueFinish)) {
 	if (verbose) mlog("unregister 'PSIDHOOK_PELOGUE_FINISH' failed\n");
     }
@@ -167,6 +171,11 @@ static bool registerHooks(void)
 
     if (!PSIDhook_add(PSIDHOOK_FRWRD_CLIENT_STAT, handleForwarderClientStatus)){
 	mlog("register 'PSIDHOOK_FRWRD_CLIENT_STAT' failed\n");
+	return false;
+    }
+
+    if (!PSIDhook_add(PSIDHOOK_PELOGUE_START, handleLocalPElogueStart)) {
+	mlog("register 'PSIDHOOK_PELOGUE_START' failed\n");
 	return false;
     }
 
@@ -313,6 +322,12 @@ static bool regMungeHandles(void)
 	return false;
     }
 
+    psMungeMeasure = dlsym(pluginHandle, "psMungeMeasure");
+    if (!psMungeMeasure) {
+	mlog("%s: loading psMungeMeasure() failed\n", __func__);
+	return false;
+    }
+
     return true;
 }
 
@@ -427,7 +442,7 @@ static bool initPluginHandles(void)
 
 static void setConfOpt(void)
 {
-    int mask, mCheck;
+    int mask, measure;
 
     /* psslurm debug */
     mask = getConfValueI(&Config, "DEBUG_MASK");
@@ -444,10 +459,24 @@ static void setConfOpt(void)
     }
 
     /* glib malloc checking */
-    mCheck = getConfValueI(&Config, "MALLOC_CHECK");
+    int mCheck = getConfValueI(&Config, "MALLOC_CHECK");
     if (mCheck) {
 	mlog("%s: enable memory checking\n", __func__);
 	setenv("MALLOC_CHECK_", "2", 1);
+    }
+
+    /* measure libmunge */
+    measure = getConfValueI(&Config, "MEASURE_MUNGE");
+    if (measure) {
+	mlog("%s: measure libmunge executing times\n", __func__);
+	psMungeMeasure(true);
+    }
+
+    /* measure RPC calls */
+    measure = getConfValueI(&Config, "MEASURE_RPC");
+    if (measure) {
+	mlog("%s: measure Slurm RPC calls\n", __func__);
+	measureRPC = true;
     }
 }
 
@@ -541,11 +570,11 @@ int initialize(void)
 	return 1;
     }
 
-    /* set various config options */
-    setConfOpt();
-
     /* init plugin handles, *has* to be called before using INIT_ERROR */
     if (!initPluginHandles()) return 1;
+
+    /* set various config options */
+    setConfOpt();
 
     if (!(initSlurmdProto())) goto INIT_ERROR;
 

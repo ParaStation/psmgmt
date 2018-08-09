@@ -11,6 +11,7 @@
 #include <stdlib.h>
 #include <munge.h>
 #include <sys/types.h>
+#include <sys/time.h>
 
 #include "pluginhelper.h"
 #include "psmungelog.h"
@@ -23,9 +24,27 @@ static munge_ctx_t defEncCtx = NULL;
 /** Default decoding context */
 static munge_ctx_t defDecCtx = NULL;
 
+/** Flag to measure libmunge execution times */
+static bool timeMunge = false;
+
 static int mungeEncCtx(char **cred, munge_ctx_t ctx, const void *buf, int len)
 {
+    struct timeval time_start, time_now, time_diff;
+
+    if (timeMunge) {
+	gettimeofday(&time_start, NULL);
+	mlog("%s: start munge_encode at %.4f\n", __func__,
+	     time_start.tv_sec + 1e-6 * time_start.tv_usec);
+    }
+
     munge_err_t err = munge_encode(cred, ctx, buf, len);
+
+    if (timeMunge) {
+	gettimeofday(&time_now, NULL);
+	timersub(&time_now, &time_start, &time_diff);
+	mlog("%s: munge_encode took %.4f seconds\n", __func__,
+	     time_diff.tv_sec + 1e-6 * time_diff.tv_usec);
+    }
 
     if (err != EMUNGE_SUCCESS) {
 	mlog("%s: encode failed: %s\n", __func__, munge_strerror(err));
@@ -65,7 +84,22 @@ static void mungeLogCredTime(munge_ctx_t ctx)
 static int mungeDecCtx(const char *cred, munge_ctx_t ctx, void **buf, int *len,
 		       uid_t *uid, gid_t *gid)
 {
+    struct timeval time_start, time_now, time_diff;
+
+    if (timeMunge) {
+	gettimeofday(&time_start, NULL);
+	mlog("%s: start munge_decode at %.4f\n", __func__,
+	     time_start.tv_sec + 1e-6 * time_start.tv_usec);
+    }
+
     munge_err_t err = munge_decode(cred, ctx, buf, len, uid, gid);
+
+    if (timeMunge) {
+	gettimeofday(&time_now, NULL);
+	timersub(&time_now, &time_start, &time_diff);
+	mlog("%s: munge_decode took %.4f seconds\n", __func__,
+	     time_diff.tv_sec + 1e-6 * time_diff.tv_usec);
+    }
 
     if (err != EMUNGE_SUCCESS) {
 	mlog("%s: decode failed: %s\n", __func__, munge_strerror(err));
@@ -128,6 +162,11 @@ static int initDefaultContext(void)
     */
 
     return 1;
+}
+
+void psMungeMeasure(bool active)
+{
+    timeMunge = active;
 }
 
 bool initMunge(void)

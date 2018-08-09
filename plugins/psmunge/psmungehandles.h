@@ -16,5 +16,6 @@
 psMungeEncode_t *psMungeEncode;
 psMungeDecode_t *psMungeDecode;
 psMungeDecodeBuf_t *psMungeDecodeBuf;
+psMungeMeasure_t *psMungeMeasure;
 
 #endif  /* __PSMUNGE_HANDLES */

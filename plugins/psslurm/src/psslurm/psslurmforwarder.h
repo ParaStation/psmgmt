@@ -25,7 +25,7 @@ typedef enum {
 } PSSLURM_Fw_Cmds_t;
 
 int execUserStep(Step_t *step);
-int execUserJob(Job_t *job);
+bool execUserJob(Job_t *job);
 int execUserBCast(BCast_t *bcast);
 int execStepFWIO(Step_t *step);
 int handleExecClient(void *data);
