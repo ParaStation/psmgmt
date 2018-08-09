@@ -1,10 +1,55 @@
-Version psmgmt-5.1.12-1:
+Version psmgmt-5.1.13:
 ======================
+------------------------------------------------------------------------
+5240dbc1 | Michael Rauh | Wed, 8 Aug 2018 12:38:20 +0200
+
+Let psslurm drop messages if munge service is not available (#2727)
+------------------------------------------------------------------------
+cd13dc78 | Michael Rauh | Tue, 7 Aug 2018 13:08:32 +0200
+
+Finalize support for slurmctld parallel prologue
+
+  - Allocation information is distributed from the slurmctld prologue
+    via pelogue to psslurm
+  - The prologue and epilogue is now tracked in the allocation for jobs
+    and steps
+  - Every node is starting a local epilogue when receiving a terminate
+    request and sending the result to the allocation leader
+  - The allocation leader will track the epilogue results and offline
+    unresponsive nodes
+  - The psslurm configuration options DISABLE_PROLOGUE and
+    DISABLE_EPILOGUE were removed
+  - If slurmctld prologue is not used psslurm will automatically start
+    the parallel prologue the usual way
+------------------------------------------------------------------------
+3c32abc1 | Michael Rauh | Mon, 6 Aug 2018 10:42:05 +0200
+
+Add timing information to psslurm tree forwarding
+debug mask PSSLURM_LOG_FWD
+------------------------------------------------------------------------
+1eeb6a7c | Michael Rauh | Fri, 3 Aug 2018 15:22:30 +0200
+
+Add MEASURE_RPC configuration option to psslurm
+------------------------------------------------------------------------
+c742a5ae | Michael Rauh | Fri, 3 Aug 2018 14:27:00 +0200
+
+Add MEASURE_MUNGE configuration option to psslurm
+------------------------------------------------------------------------
+65017b16 | Michael Rauh | Fri, 3 Aug 2018 14:24:07 +0200
+
+Add psMungeMeasure() to psmunge for measuring encode/decode times
+spend in libmunge
+------------------------------------------------------------------------
+
+
+Version psmgmt-5.1.12-1:
+========================
 ------------------------------------------------------------------------
 37dbdb24 | Michael Rauh | Thu, 2 Aug 2018 13:06:54 +0200
 
 Bugfix: report all known jobs/steps in node registration status (#jrt:8639)
 ------------------------------------------------------------------------
+
 
 Version psmgmt-5.1.12:
 ======================

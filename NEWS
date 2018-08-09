@@ -4,10 +4,37 @@ Copyright (C) 2010-2018 ParTec Cluster Competence Center GmbH, Munich
 
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
+Version 5.1.13:
+===============
+Bugfixes:
+ - Let psslurm drop messages if munge service is not available (#2727)
+
+Enhancements:
+ - Finalize support for slurmctld parallel prologue
+   * Allocation information is distributed from the slurmctld prologue
+     via pelogue to psslurm
+   * The prologue and epilogue is now tracked in the allocation for jobs
+     and steps
+   * Every node is starting a local epilogue when receiving a terminate
+     request and sending the result to the allocation leader
+   * The allocation leader will track the epilogue results and offline
+     unresponsive nodes
+   * The psslurm configuration options DISABLE_PROLOGUE and
+     DISABLE_EPILOGUE were removed
+   * If slurmctld prologue is not used psslurm will automatically start
+     the parallel prologue the usual way
+ - Add timing information to psslurm tree forwarding
+ - Add MEASURE_RPC configuration option to psslurm
+ - Add MEASURE_MUNGE configuration option to psslurm
+ - Add psMungeMeasure() to psmunge for measuring encode/decode times spend in
+   libmunge
+
+
 Version 5.1.12-1:
 ===============
 Bugfixes:
  - Report all known jobs/steps in node registration status (#jrt:8639)
+
 
 Version 5.1.12:
 ===============
