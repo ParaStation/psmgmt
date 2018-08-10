@@ -305,6 +305,12 @@ static void execBatchJob(Forwarder_Data_t *fwdata, int rerun)
     /* do exec */
     closelog();
     execve(job->jobscript, job->argv, job->env.vars);
+
+    /* execve failed */
+    fprintf(stderr, "%s: execve %s failed: %s\n", __func__, job->argv[0],
+	    strerror(errno));
+    mwarn(errno, "%s: execve %s failed: ", __func__, job->argv[0]);
+    exit(errno);
 }
 
 /**
@@ -817,6 +823,12 @@ static void execJobStep(Forwarder_Data_t *fwdata, int rerun)
     /* start mpiexec to spawn the parallel job */
     closelog();
     execve(argV.strings[0], argV.strings, step->env.vars);
+
+    /* execve failed */
+    fprintf(stderr, "%s: execve %s failed: %s\n", __func__, argV.strings[0],
+	    strerror(errno));
+    mwarn(errno, "%s: execve %s failed: ", __func__, argV.strings[0]);
+    exit(errno);
 }
 
 static int stepForwarderInit(Forwarder_Data_t *fwdata)
