@@ -953,6 +953,7 @@ static void handlePackInfo(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 
     /* np */
     getUint32(&ptr, &rInfo->np);
+    step->numRPackNP += rInfo->np;
     /* argc/argv */
     getStringArrayM(&ptr, &rInfo->argv, &rInfo->argc);
     /* number of hwThreads */
@@ -961,7 +962,7 @@ static void handlePackInfo(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     /* hwThreads */
     rInfo->hwThreads = umalloc(rInfo->numHwThreads * sizeof(*rInfo->hwThreads));
 
-    mdbg(PSSLURM_LOG_PACK, "%s: pack info from %s for step %u:%u packid %u "
+    mdbg(PSSLURM_LOG_PACK, "%s: from %s for step %u:%u packid %u "
 	 "numHwThreads %i argc %i np %i\n", __func__,
 	 PSC_printTID(msg->header.sender), packJobid, stepid, packMyId,
 	 rInfo->numHwThreads, rInfo->argc, rInfo->np);
@@ -977,9 +978,13 @@ static void handlePackInfo(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     }
     step->numRPackInfo++;
 
+    mdbg(PSSLURM_LOG_PACK, "%s: step packNtasks %u numHwThreads %u "
+	 "numRPackThreads %u numRPackNP %u\n", __func__, step->packNtasks,
+	 step->numHwThreads, step->numRPackThreads, step->numRPackNP);
+
     /* test if we have all infos to start */
     if (alloc->state != A_PROLOGUE &&
-        step->packNtasks == step->numHwThreads + step->numRPackThreads) {
+        step->packNtasks == step->np + step->numRPackNP) {
 	if (!(execUserStep(step))) {
 	    mlog("%s: starting user step failed\n", __func__);
 	    sendSlurmRC(&step->srunControlMsg, ESLURMD_FORK_FAILED);
@@ -2345,7 +2350,7 @@ void send_PS_PackInfo(Step_t *step)
     for (i=0; i<step->numHwThreads; i++) {
 	addInt16ToMsg(step->hwThreads[i].node, &data);
 	addInt16ToMsg(step->hwThreads[i].id, &data);
-	mlog("%s: thread %i node %i id %i\n", __func__, i,
+	mdbg(PSSLURM_LOG_PACK, "%s: thread %i node %i id %i\n", __func__, i,
 		step->hwThreads[i].node, step->hwThreads[i].id);
     }
 
