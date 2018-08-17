@@ -572,12 +572,6 @@ void setStepEnv(Step_t *step)
     snprintf(tmp, sizeof(tmp), "%u", step->stepid);
     envSet(&step->env, "SLURM_STEPID", tmp);
 
-    snprintf(tmp, sizeof(tmp), "%u", step->numHwThreads / step->np);
-    envSet(&step->env, "PSI_TPP", tmp);
-
-    //envSet(&step->env, "PSI_LOGGERDEBUG", "1");
-    //envSet(&step->env, "PSI_FORWARDERDEBUG", "1");
-
     /* distribute mpiexec service processes */
     dist = getConfValueI(&Config, "DIST_START");
     if (dist) envSet(&step->env, "__MPIEXEC_DIST_START", "1");

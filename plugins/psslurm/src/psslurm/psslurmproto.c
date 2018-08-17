@@ -360,8 +360,6 @@ static bool extractStepPackInfos(Step_t *step)
 	mdbg(PSSLURM_LOG_PACK, "%s: packTaskCount[%u]: %u\n", __func__, i,
 		step->packTaskCounts[i]);
     }
-    mdbg(PSSLURM_LOG_PACK, "\n");
-
 
     /* extract pack size */
     if (!(sPackSize = envGet(&step->env, "SLURM_PACK_SIZE"))) {
