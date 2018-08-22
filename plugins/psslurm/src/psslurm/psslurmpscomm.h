@@ -179,7 +179,7 @@ void handleCachedMsg(Step_t *step);
  *
  * Lookup the hostname from a ParaStation node ID.
  * Warning: the function will *ONLY* work for compute nodes
- * configured in slurm.conf. The used lookup table is build
+ * configured in slurm.conf. The used hash table is build
  * at startup of the psslurm plugin.
  *
  * @param nodeID The PS node ID to lookup
