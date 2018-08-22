@@ -144,14 +144,16 @@ int send_PS_ForwardRes(Slurm_Msg_t *msg);
 void send_PS_AllocState(Alloc_t *alloc);
 
 /**
- * @brief Send pack information to leader ms
+ * @brief Send pack information to pack leader
  *
  * Send pack information only known by the local mother superior
  * to the leader of the pack.
  *
  * @param step The step to send the information for
+ *
+ * @return Returns the number of bytes send or -1 on error
  */
-void send_PS_PackInfo(Step_t *step);
+int send_PS_PackInfo(Step_t *step);
 
 void setNodeOffline(env_t *env, uint32_t id, PSnodes_ID_t dest,
 			const char *host, char *reason);

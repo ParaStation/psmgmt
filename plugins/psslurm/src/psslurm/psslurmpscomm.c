@@ -1380,6 +1380,7 @@ static void handleDroppedMsg(DDTypedBufferMsg_t *msg)
     case PSP_ALLOC_STATE:
     case PSP_EPILOGUE_RES:
     case PSP_EPILOGUE_STATE_RES:
+    case PSP_PACK_INFO:
 	/* nothing we can do here */
 	break;
     default:
@@ -2371,7 +2372,7 @@ bool initPScomm(void)
     return true;
 }
 
-void send_PS_PackInfo(Step_t *step)
+int send_PS_PackInfo(Step_t *step)
 {
     PS_SendDB_t data;
     uint32_t i;
@@ -2409,7 +2410,7 @@ void send_PS_PackInfo(Step_t *step)
 	 PSC_printTID(PSC_getTID(step->packNodes[0], 0)));
 
     /* send msg to pack group leader */
-    sendFragMsg(&data);
+    return sendFragMsg(&data);
 }
 
 void deleteCachedMsg(uint32_t jobid, uint32_t stepid)

@@ -571,7 +571,10 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
 	if (step->packJobid != NO_VAL && step->packNodeOffset &&
 	    step->nodes[0] == PSC_getMyID()) {
 	    /* forward hw thread infos to pack leader */
-	    send_PS_PackInfo(step);
+	    if (send_PS_PackInfo(step) == -1) {
+		sendSlurmRC(sMsg, ESLURMD_INVALID_JOB_CREDENTIAL);
+		goto ERROR;
+	    }
 	}
 	if (job || step->stepid || alloc->state == A_PROLOGUE_FINISH) {
 	    /* start I/O forwarder */
