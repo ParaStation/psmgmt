@@ -747,7 +747,7 @@ static void buildMpiexecArgs(Forwarder_Data_t *fwdata, strv_t *argV,
 	if (tmpStr) {
 	    strvAdd(argV, ustrdup(tmpStr));
 	} else {
-	    strvAdd(argV, ustrdup(LIBEXECDIR "/kvsprovider"));
+	    strvAdd(argV, ustrdup(PKGLIBEXECDIR "/kvsprovider"));
 	}
     } else {
 	strvAdd(argV, ustrdup(MPIEXEC_BINARY));

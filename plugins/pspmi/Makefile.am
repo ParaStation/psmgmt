@@ -29,6 +29,6 @@ pspmi_la_SOURCES = pmiclient.c pmiclient.h pmiforwarder.c		\
 	pmiclientspawn.c pmiclientspawn.h pmitypes.h pspmihandles.h
 
 pspmi_la_CPPFLAGS = $(AM_CPPFLAGS) -DPLUGINDIR=\"$(plugindir)\" \
-	-DLIBEXECDIR=\"$(pkglibexecdir)\"
+	-DPKGLIBEXECDIR=\"$(pkglibexecdir)\"
 
 pspmi_la_LIBADD = $(libpskvs) $(libpsi) $(libplugincommon)
