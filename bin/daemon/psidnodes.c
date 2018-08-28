@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -102,10 +102,10 @@ static void nodeInit(node_t *node)
     node->CPUmapSize = 0;
     node->CPUmapMaxSize = 0;
     node->allowUserMap = 0;
-    node->uid_list = LIST_HEAD_INIT(node->uid_list);
-    node->gid_list = LIST_HEAD_INIT(node->gid_list);
-    node->admuid_list = LIST_HEAD_INIT(node->admuid_list);
-    node->admgid_list = LIST_HEAD_INIT(node->admgid_list);
+    INIT_LIST_HEAD(&node->uid_list);
+    INIT_LIST_HEAD(&node->gid_list);
+    INIT_LIST_HEAD(&node->admuid_list);
+    INIT_LIST_HEAD(&node->admgid_list);
     node->maxProcs = -1;
     node->acctPollInterval = 0;
     node->killDelay = 0;
