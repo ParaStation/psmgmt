@@ -20,8 +20,10 @@
 #include <dlfcn.h>
 
 #include "pscommon.h"
+#include "psitems.h"
 
 #include "psidhook.h"
+#include "psidutil.h"
 
 #include "psserial.h"
 
@@ -45,7 +47,7 @@
 
 #define FLOAT_CONVERT 1000000
 
-#define DEFAULT_BUFFER_SIZE 256 * 1024
+#define DEFAULT_BUFFER_SIZE 128 * 1024
 
 typedef enum {
     FRAGMENT_PART = 0x01,   /* one fragment, more to follow */
@@ -58,7 +60,7 @@ static bool byteOrder = true;
 /** Flag insertion of type information into actual messages */
 static bool typeInfo = false;
 
-/** send buffer for non fragmented messages */
+/** send buffer for non fragmented messages; this also flags initialization */
 static char *sendBuf = NULL;
 
 /** the send buffer size */
@@ -69,12 +71,6 @@ static PStask_ID_t *destNodes = NULL;
 
 /** message to collect and send fragments */
 static DDTypedBufferMsg_t fragMsg;
-
-/**
- * Temporary receive buffers used to collect fragments of a
- * message. One per node.
- */
-static PS_DataBuffer_t *recvBuffers = NULL;
 
 /**
  * Custom function used by @ref __sendFragMsg() to actually send
@@ -110,6 +106,82 @@ static void resetBuf(PS_DataBuffer_t *b)
     b->nextFrag = 0;
 }
 
+typedef struct {
+    list_t next;          /**< used to put into reservation-lists */
+    PStask_ID_t tid;      /**< task ID of the message sender */
+    PS_DataBuffer_t dBuf; /**< data buffer to collect message fragments in */
+} recvBuf_t;
+
+/** data structure to handle a chunk of receive buffers (of type recvBuf_t) */
+static PSitems_t recvBuffers;
+
+/** List of active receive buffers */
+static LIST_HEAD(activeRecvBufs);
+
+/**
+ * @brief Get receive buffer from pool
+ *
+ * Get a receive buffer from the pool of idle receive buffers.
+ *
+ * @return On success, a pointer to the new receive buffer is
+ * returned. Or NULL if an error occurred.
+ */
+static recvBuf_t *getRecvBuf(void)
+{
+    recvBuf_t *r = PSitems_getItem(&recvBuffers);
+
+    if (!r) {
+	PSC_log(-1, "%s: no receive buffers left\n", __func__);
+	return NULL;
+    }
+
+    resetBuf(&r->dBuf);
+
+    return r;
+}
+
+/**
+ * @brief Put receive buffer to pool
+ *
+ * Put the receive buffer @a recvBuf into the pool of idle receive
+ * buffers. For this @a recvBuf will be removed from the list it
+ * belongs to -- if any.
+ *
+ * @return On success, a pointer to the new receive buffer is
+ * returned. Or NULL if an error occurred.
+ */
+static void putRecvBuf(recvBuf_t *recvBuf)
+{
+    recvBuf->tid = PSITEM_IDLE;
+    resetBuf(&recvBuf->dBuf);
+    if (!list_empty(&recvBuf->next)) list_del(&recvBuf->next);
+    PSitems_putItem(&recvBuffers, recvBuf);
+}
+
+/**
+ * @brief Find receive buffer
+ *
+ * Find an active receive buffer holding messages from sender @a tid
+ * in the list @ref activeRecvBufs. If a corresponding receive buffer
+ * was found a pointer to the corresponding data buffer is returned.
+ *
+ * @param tid Sender's task ID of the active receive buffer to search for
+ *
+ * @return If a receive buffer was foud a pointer to its data buffer
+ * is returned. Or NULL in case of error, i.e. no buffer was found.
+ */
+static PS_DataBuffer_t *findRecvBuf(PStask_ID_t tid)
+{
+    list_t *r;
+    list_for_each(r, &activeRecvBufs) {
+	recvBuf_t *recvBuf = list_entry(r, recvBuf_t, next);
+
+	if (recvBuf->tid == tid) return &recvBuf->dBuf;
+    }
+
+    return NULL;
+}
+
 /**
  * @brief Callback on downed node
  *
@@ -135,40 +207,138 @@ static int nodeDownHandler(void *nodeID)
 	return 1;
     }
 
-    PSC_log(PSC_LOG_COMM, "%s: free recvBuffer for node %i\n", __func__, id);
-    resetBuf(&recvBuffers[id]);
+    list_t *r, *tmp;
+    list_for_each_safe(r, tmp, &activeRecvBufs) {
+	recvBuf_t *recvBuf = list_entry(r, recvBuf_t, next);
+
+	if (PSC_getID(recvBuf->tid) == id) {
+	    PSC_log(PSC_LOG_COMM, "%s: free recvBuffer for %s\n", __func__,
+		    PSC_printTID(recvBuf->tid));
+	    putRecvBuf(recvBuf);
+	}
+    }
 
     return 1;
 }
 
+/**
+ * @brief Callback to clear memory
+ *
+ * This callback is called by the (child of the) hosting daemon to
+ * aggresively clear memory after a new process was forked right
+ * before handling other tasks, e.g. becoming a forwarder.
+ *
+ * @param dummy Ignored parameter
+ *
+ * @return Always return 0
+ */
+static int clearMem(void *dummy)
+{
+    if (sendBuf) free(sendBuf);
+    sendBuf = NULL;
+    sendBufLen = 0;
+    if (destNodes) free(destNodes);
+    destNodes = NULL;
+
+    list_t *r, *tmp;
+    list_for_each_safe(r, tmp, &activeRecvBufs) {
+	recvBuf_t *recvBuf = list_entry(r, recvBuf_t, next);
+
+	putRecvBuf(recvBuf);
+    }
+    PSitems_clearMem(&recvBuffers);
+
+    return 0;
+}
+
 /** Function to remove registered hooks later on */
-static int (*hookDelFunc)(PSIDhook_t, PSIDhook_func_t) = NULL;
+static int (*hookDel)(PSIDhook_t, PSIDhook_func_t) = NULL;
 
 /**
  * @brief Register hook for down nodes if possible
  *
  * Try to register @ref nodeDownHandler() to the PSIDHOOK_NODE_DOWN
- * hook of psid. For this try to determine if we are running within
- * psid by searching for the symbols of @ref PSIDhook_add() and @ref
- * PSIDhook_del(). If both symbols are found they are used to register
- * @ref nodeDownHandler() immediately. Furthermore, @a hookDelFunc is
- * set in order to be prepared to remove nodeDownHandler() from the
- * hook within @ref finalizeSerial().
+ * hook and @ref clearMem() to the PSIDHOOK_CLEARMEM hook of psid. For
+ * this try to determine if we are running within psid by searching
+ * for the symbols of @ref PSIDhook_add() and @ref PSIDhook_del(). If
+ * both symbols are found they are used to register the hook functions
+ * immediately. Furthermore, @a hookDel is set in order to be
+ * prepared to remove the hook functions from the hooks within @ref
+ * finalizeSerial().
  *
  * @return No return value
  */
-static void initNodeDownHook(void)
+static void initSerialHooks(void)
 {
     /* Determine if PSIDhook_add is available */
     void *mainHandle = dlopen(NULL, 0);
 
     int (*hookAdd)(PSIDhook_t, PSIDhook_func_t) = dlsym(mainHandle,
 							"PSIDhook_add");
-    hookDelFunc = dlsym(mainHandle, "PSIDhook_del");
+    hookDel = dlsym(mainHandle, "PSIDhook_del");
 
-    if (hookAdd && hookDelFunc) {
+    if (hookAdd && hookDel) {
 	if (!hookAdd(PSIDHOOK_NODE_DOWN, nodeDownHandler)) {
 	    PSC_log(-1, "%s: cannot register PSIDHOOK_NODE_DOWN\n", __func__);
+	}
+	if (!hookAdd(PSIDHOOK_CLEARMEM, clearMem)) {
+	    PSC_log(-1, "%s: cannot register PPSIDHOOK_CLEARMEM\n", __func__);
+	}
+    }
+}
+
+static bool relocRecvBuf(void *item)
+{
+    recvBuf_t *orig = (recvBuf_t *)item, *repl = getRecvBuf();
+
+    if (!repl) return false;
+
+    repl->tid = orig->tid;
+    repl->dBuf.buf = orig->dBuf.buf;
+    repl->dBuf.bufSize = orig->dBuf.bufSize;
+    repl->dBuf.bufUsed = orig->dBuf.bufUsed;
+    repl->dBuf.nextFrag = orig->dBuf.nextFrag;
+
+    /* tweak the list */
+    __list_add(&repl->next, orig->next.prev, orig->next.next);
+
+    return true;
+}
+
+static void recvBuf_gc(void)
+{
+    PSitems_gc(&recvBuffers, relocRecvBuf);
+}
+
+/** Function to remove registered hooks later on */
+static int (*relLoopAct)(PSID_loopAction_t) = NULL;
+
+/**
+ * @brief Register loop action if possible
+ *
+ * Try to register the garbage collector @ref recvBuf_gc() to the
+ * hosting daemons central loop action. For this try to determine if
+ * we are running within psid by searching for the symbols of @ref
+ * PSID_registerLoopAct() and @ref PSID_unregisterLoopAct(). If both
+ * symbols are found they are used to register @ref recvBuf_gc()
+ * immediately. Furthermore, @a relLoopAct is set in order to be
+ * prepared to remove it from the central loop within @ref
+ * finalizeSerial().
+ *
+ * @return No return value
+ */
+static void initLoopAction(void)
+{
+    /* Determine if PSID_registerLoopAct is available */
+    void *mainHandle = dlopen(NULL, 0);
+
+    int (*regLoopAct)(PSID_loopAction_t) = dlsym(mainHandle,
+						 "PSID_registerLoopAct");
+    relLoopAct = dlsym(mainHandle, "PSID_unregisterLoopAct");
+
+    if (regLoopAct && relLoopAct) {
+	if (regLoopAct(recvBuf_gc) < 0) {
+	    PSC_warn(-1, errno, "%s: register loop action", __func__);
 	    return;
 	}
     }
@@ -197,7 +367,7 @@ bool initSerial(size_t bufSize, Send_Msg_Func_t *func)
 {
     PSnodes_ID_t numNodes = PSC_getNrOfNodes();
 
-    if (sendBuf && recvBuffers) return true;
+    if (sendBuf) return true;
 
     if (!PSC_logInitialized()) PSC_initLog(stderr);
 
@@ -211,48 +381,35 @@ bool initSerial(size_t bufSize, Send_Msg_Func_t *func)
     /* allocated space for destination nodes */
     destNodes = malloc(sizeof(*destNodes) * numNodes);
 
-    sendPSMsg = func;
-    initNodeDownHook();
-
-    /* allocate receive buffers */
-    recvBuffers = malloc(sizeof(*recvBuffers) * numNodes);
-
-    if (!sendBuf || !destNodes || !recvBuffers) {
+    if (!sendBuf || !destNodes) {
 	PSC_log(-1, "%s: cannot allocate all buffers\n", __func__);
 	if (sendBuf) free(sendBuf);
 	sendBuf = NULL;
 	if (destNodes) free(destNodes);
 	destNodes = NULL;
-	if (recvBuffers) free(recvBuffers);
-	recvBuffers = NULL;
 
 	return false;
     }
 
-    memset(recvBuffers, 0, sizeof(*recvBuffers) * numNodes);
+    sendPSMsg = func;
+    initSerialHooks();
+    initLoopAction();
+
+    /* Initialize receive buffer handling */
+    PSitems_init(&recvBuffers, sizeof(recvBuf_t), "recvBuffers");
 
     return true;
 }
 
 void finalizeSerial(void)
 {
-    if (sendBuf) free(sendBuf);
-    sendBuf = NULL;
-    sendBufLen = 0;
-    if (destNodes) free(destNodes);
-    destNodes = NULL;
+    clearMem(NULL);
 
-    if (recvBuffers) {
-	PSnodes_ID_t i, numNodes = PSC_getNrOfNodes();
-
-	for (i=0; i<numNodes; i++) {
-	    if (recvBuffers[i].buf) free(recvBuffers[i].buf);
-	}
-	free(recvBuffers);
-	recvBuffers = NULL;
+    if (hookDel) {
+	hookDel(PSIDHOOK_NODE_DOWN, nodeDownHandler);
+	hookDel(PSIDHOOK_CLEARMEM, clearMem);
     }
-
-    if (hookDelFunc) hookDelFunc(PSIDHOOK_NODE_DOWN, nodeDownHandler);
+    if (relLoopAct) relLoopAct(recvBuf_gc);
 }
 
 void initFragBuffer(PS_SendDB_t *buffer, int32_t headType, int32_t msgType)
@@ -355,7 +512,6 @@ static bool sendFragment(PS_SendDB_t *buf, const char *caller, const int line)
 bool __recvFragMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_func_t *func,
 		   const char *caller, const int line)
 {
-    PSnodes_ID_t srcNode = PSC_getID(msg->header.sender);
     PS_DataBuffer_t *recvBuf, myRecvBuf;
     size_t used = 0;
     uint8_t fType;
@@ -368,11 +524,6 @@ bool __recvFragMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_func_t *func,
 
     if (!func) {
 	PSC_log(-1, "%s(%s@%d): no callback\n", __func__, caller, line);
-	return false;
-    }
-
-    if (!PSC_validNode(srcNode)) {
-	PSC_log(-1, "%s: invalid sender node %d\n", __func__, srcNode);
 	return false;
     }
 
@@ -394,18 +545,30 @@ bool __recvFragMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_func_t *func,
 
 	recvBuf = &myRecvBuf;
     } else {
-	if (!recvBuffers) {
+	if (!sendBuf) {
 	    PSC_log(-1, "%s(%s@%d): call initSerial()\n", __func__,
 		    caller, line);
 	    return false;
 	}
 
-	recvBuf = &recvBuffers[srcNode];
+	recvBuf = findRecvBuf(msg->header.sender);
+	uint16_t expectedFrag = recvBuf ? recvBuf->nextFrag : 0;
 
-	if (fNum != recvBuf->nextFrag) {
+	if (fNum != expectedFrag) {
 	    PSC_log(-1, "%s: unexpected fragment %u/%u from %s\n", __func__,
-		    fNum, recvBuf->nextFrag, PSC_printTID(msg->header.sender));
+		    fNum, expectedFrag, PSC_printTID(msg->header.sender));
 	    if (fNum) return false;
+	}
+
+	if (!recvBuf) {
+	    recvBuf_t *r = getRecvBuf();
+	    if (!r) {
+		PSC_log(-1, "%s(%s@%d): no buffer\n", __func__, caller, line);
+		return false;
+	    }
+	    r->tid = msg->header.sender;
+	    recvBuf = &r->dBuf;
+	    list_add_tail(&r->next, &activeRecvBufs);
 	}
 
 	if (fNum == 0) {
@@ -417,7 +580,7 @@ bool __recvFragMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_func_t *func,
 	    recvBuf->buf = malloc(recvBuf->bufSize);
 	    if (!recvBuf->buf) {
 		PSC_log(-1, "%s(%s@%d): no memory\n", __func__, caller, line);
-		recvBuf->bufSize = 0;
+		putRecvBuf(list_entry(recvBuf, recvBuf_t, dBuf));
 		return false;
 	    }
 	}
@@ -429,7 +592,7 @@ bool __recvFragMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_func_t *func,
 	    recvBuf->bufSize *= 2;
 	    char * tmp = realloc(recvBuf->buf, recvBuf->bufSize);
 	    if (!tmp) {
-		resetBuf(recvBuf);
+		putRecvBuf(list_entry(recvBuf, recvBuf_t, dBuf));
 		return false;
 	    }
 	    recvBuf->buf = tmp;
@@ -454,7 +617,7 @@ bool __recvFragMsg(DDTypedBufferMsg_t *msg, PS_DataBuffer_func_t *func,
 	func(msg, recvBuf);
 
 	/* cleanup data if necessary */
-	if (fNum) resetBuf(recvBuf);
+	if (fNum) putRecvBuf(list_entry(recvBuf, recvBuf_t, dBuf));
     }
 
     return true;
