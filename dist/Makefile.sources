@@ -169,6 +169,7 @@ include/pshostlist.h \
 include/psi.h \
 include/psicomm.h \
 include/psicomm_proto.h \
+include/psitems.h \
 include/psienv.h \
 include/psiinfo.h \
 include/psilog.h \
@@ -210,6 +211,7 @@ lib/pscommon/pscommon.c \
 lib/pscommon/pscpu.c \
 lib/pscommon/psenv.c \
 lib/pscommon/pshostlist.c \
+lib/pscommon/psitems.c \
 lib/pscommon/pspartition.c \
 lib/pscommon/psprotocol.c \
 lib/pscommon/psreservation.c \

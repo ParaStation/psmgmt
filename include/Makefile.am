@@ -14,7 +14,7 @@ include_HEADERS = pse.h psprotocol.h psnodes.h pstask.h pspartition.h	\
 	pscpu.h list_t.h config_parsing.h list.h plugin.h		\
 	psdaemonprotocol.h selector.h timer.h psicomm.h			\
 	psicomm_proto.h pssignal.h psreservation.h pstaskid.h		\
-	psenv.h pshostlist.h
+	psenv.h pshostlist.h psitems.h
 
 noinst_HEADERS = env.h hardware.h kvscommon.h kvs.h mcast.h parser.h	\
 	psbyteorder.h psilog.h pslog.h pspartition.h psstrings.h	\

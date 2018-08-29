@@ -13,9 +13,9 @@ AM_CPPFLAGS += -DPREFIX=\"$(prefix)\"
 
 noinst_LTLIBRARIES = libpscommon.la
 
-libpscommon_la_SOURCES = logging.c pscommon.c pscpu.c psenv.c	\
-	pshostlist.c pspartition.c psprotocol.c psreservation.c	\
-	psserial.c pssignal.c pstask.c
+libpscommon_la_SOURCES = logging.c psitems.c pscommon.c pscpu.c	\
+	psenv.c pshostlist.c pspartition.c psprotocol.c		\
+	psreservation.c psserial.c pssignal.c pstask.c
 
 psserial.lo: CPPFLAGS = $(AM_CPPFLAGS) -I$(top_srcdir)/bin/daemon
 
