@@ -28,11 +28,11 @@ libpse = $(top_builddir)/lib/pse/libpse.la
 libpskvs = $(top_builddir)/lib/pskvs/libpskvs.la
 
 mpiexec_SOURCES = mpiexec.c
-mpiexec_CPPFLAGS = $(AM_CPPFLAGS) -DLIBEXECDIR=\"$(pkglibexecdir)\"
+mpiexec_CPPFLAGS = $(AM_CPPFLAGS) -DPKGLIBEXECDIR=\"$(pkglibexecdir)\"
 mpiexec_LDADD = libstartupcommon.la $(libpse) $(POPT_LIBS)
 
 kvsprovider_SOURCES = kvsprovider.c providerloop.c
-kvsprovider_CPPFLAGS = $(AM_CPPFLAGS) -DLIBEXECDIR=\"$(pkglibexecdir)\"
+kvsprovider_CPPFLAGS = $(AM_CPPFLAGS) -DPKGLIBEXECDIR=\"$(pkglibexecdir)\"
 kvsprovider_LDADD = libstartupcommon.la $(libpse) $(libpskvs) $(POPT_LIBS)
 
 spawner_SOURCES = spawner.c

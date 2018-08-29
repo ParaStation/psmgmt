@@ -360,8 +360,6 @@ static bool extractStepPackInfos(Step_t *step)
 	mdbg(PSSLURM_LOG_PACK, "%s: packTaskCount[%u]: %u\n", __func__, i,
 		step->packTaskCounts[i]);
     }
-    mdbg(PSSLURM_LOG_PACK, "\n");
-
 
     /* extract pack size */
     if (!(sPackSize = envGet(&step->env, "SLURM_PACK_SIZE"))) {
@@ -573,7 +571,10 @@ static void handleLaunchTasks(Slurm_Msg_t *sMsg)
 	if (step->packJobid != NO_VAL && step->packNodeOffset &&
 	    step->nodes[0] == PSC_getMyID()) {
 	    /* forward hw thread infos to pack leader */
-	    send_PS_PackInfo(step);
+	    if (send_PS_PackInfo(step) == -1) {
+		sendSlurmRC(sMsg, ESLURMD_INVALID_JOB_CREDENTIAL);
+		goto ERROR;
+	    }
 	}
 	if (job || step->stepid || alloc->state == A_PROLOGUE_FINISH) {
 	    /* start I/O forwarder */

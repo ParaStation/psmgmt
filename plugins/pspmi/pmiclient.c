@@ -2045,7 +2045,7 @@ static int fillWithMpiexec(SpawnRequest_t *req, int usize, PStask_t *task)
     if (tmpStr) {
 	strvAdd(&args, ustrdup(tmpStr));
     } else {
-	strvAdd(&args, ustrdup(LIBEXECDIR "/kvsprovider"));
+	strvAdd(&args, ustrdup(PKGLIBEXECDIR "/kvsprovider"));
     }
     strvAdd(&args, ustrdup("-u"));
 

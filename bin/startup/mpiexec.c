@@ -152,7 +152,7 @@ int main(int argc, const char *argv[])
     if (envPtr) {
 	argv[0] = envPtr;
     } else {
-	argv[0] = LIBEXECDIR "/kvsprovider";
+	argv[0] = PKGLIBEXECDIR "/kvsprovider";
     }
 
     /* determine working directory */

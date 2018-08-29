@@ -126,7 +126,7 @@ int main(int argc, const char *argv[], char** envp)
     if (envPtr) {
 	argv[0] = envPtr;
     } else {
-	argv[0] = LIBEXECDIR "/spawner";
+	argv[0] = PKGLIBEXECDIR "/spawner";
     }
 
     /* determine working directory */

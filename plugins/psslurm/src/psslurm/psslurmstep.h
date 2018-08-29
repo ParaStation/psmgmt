@@ -120,7 +120,8 @@ typedef struct {
     PSnodes_ID_t *packNodes;	/**< all participating nodes in the pack */
     RemotePackInfos_t *rPackInfo;/**< remote pack infos */
     uint32_t numRPackInfo;	/**< number of remote pack infos */
-    uint32_t numRPackThreads;	/**< number of remote hardware threads */
+    uint32_t numRPackThreads;	/**< number of remote hardware threads in pack */
+    uint32_t numRPackNP;	/**< number of remote processes in pack */
     bool leader;		/**< true if node is pack leader */
 } Step_t;
 

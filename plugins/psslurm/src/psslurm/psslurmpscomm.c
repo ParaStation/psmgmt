@@ -13,6 +13,10 @@
 #include <stdbool.h>
 #include <signal.h>
 #include <arpa/inet.h>
+#define __USE_GNU
+#include <search.h>
+#undef __USE_GNU
+#include <math.h>
 
 #include "pscommon.h"
 #include "psdaemonprotocol.h"
@@ -64,7 +68,7 @@ typedef struct {
 
 typedef struct {
     char *hostname;
-    PSnodes_ID_t nodeid;
+    PSnodes_ID_t nodeID;
 } Host_Lookup_t;
 
 /** List of all cached messages */
@@ -104,6 +108,12 @@ static handlerFunc_t oldUnkownHandler = NULL;
 
 /** hostname lookup table for PS node IDs */
 static Host_Lookup_t *HostLT = NULL;
+
+/** number of entrys in HostLT array */
+static size_t numHostLT = 0;
+
+/** hostname hash table */
+static struct hsearch_data HostHash;
 
 char *msg2Str(PSP_PSSLURM_t type)
 {
@@ -953,6 +963,7 @@ static void handlePackInfo(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
 
     /* np */
     getUint32(&ptr, &rInfo->np);
+    step->numRPackNP += rInfo->np;
     /* argc/argv */
     getStringArrayM(&ptr, &rInfo->argv, &rInfo->argc);
     /* number of hwThreads */
@@ -961,7 +972,7 @@ static void handlePackInfo(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     /* hwThreads */
     rInfo->hwThreads = umalloc(rInfo->numHwThreads * sizeof(*rInfo->hwThreads));
 
-    mdbg(PSSLURM_LOG_PACK, "%s: pack info from %s for step %u:%u packid %u "
+    mdbg(PSSLURM_LOG_PACK, "%s: from %s for step %u:%u packid %u "
 	 "numHwThreads %i argc %i np %i\n", __func__,
 	 PSC_printTID(msg->header.sender), packJobid, stepid, packMyId,
 	 rInfo->numHwThreads, rInfo->argc, rInfo->np);
@@ -977,9 +988,13 @@ static void handlePackInfo(DDTypedBufferMsg_t *msg, PS_DataBuffer_t *data)
     }
     step->numRPackInfo++;
 
+    mdbg(PSSLURM_LOG_PACK, "%s: step packNtasks %u numHwThreads %u "
+	 "numRPackThreads %u numRPackNP %u\n", __func__, step->packNtasks,
+	 step->numHwThreads, step->numRPackThreads, step->numRPackNP);
+
     /* test if we have all infos to start */
     if (alloc->state != A_PROLOGUE &&
-        step->packNtasks == step->numHwThreads + step->numRPackThreads) {
+        step->packNtasks == step->np + step->numRPackNP) {
 	if (!(execUserStep(step))) {
 	    mlog("%s: starting user step failed\n", __func__);
 	    sendSlurmRC(&step->srunControlMsg, ESLURMD_FORK_FAILED);
@@ -1365,6 +1380,7 @@ static void handleDroppedMsg(DDTypedBufferMsg_t *msg)
     case PSP_ALLOC_STATE:
     case PSP_EPILOGUE_RES:
     case PSP_EPILOGUE_STATE_RES:
+    case PSP_PACK_INFO:
 	/* nothing we can do here */
 	break;
     default:
@@ -2044,6 +2060,7 @@ void finalizePScomm(bool verbose)
     finalizeSerial();
 
     freeHostLT();
+    hdestroy_r(&HostHash);
 }
 
 /**
@@ -2141,7 +2158,7 @@ static bool saveHostEntry(int *hostIdx, char *hostList, char *addrList,
 	}
 	if (!addrList) {
 	    /* resolve hostname if NodeAddr is not used */
-	    HostLT[idx].nodeid = getNodeIDbyName(next);
+	    HostLT[idx].nodeID = getNodeIDbyName(next);
 	} else {
 	    if (addrIdx >= nrOfNodes || addrIdx >= addrCnt) {
 		mlog("%s: invalid index %i of %i nodes and %i addresses\n",
@@ -2149,10 +2166,10 @@ static bool saveHostEntry(int *hostIdx, char *hostList, char *addrList,
 		ufree(nodeIDs);
 		return false;
 	    }
-	    HostLT[idx].nodeid = nodeIDs[addrIdx++];
+	    HostLT[idx].nodeID = nodeIDs[addrIdx++];
 	}
 	/* did we find a valid ParaStation node ID? */
-	if (HostLT[idx].nodeid == -1) {
+	if (HostLT[idx].nodeID == -1) {
 	    (*skHosts)++;
 	    if (weakIDcheck) {
 		mdbg(PSSLURM_LOG_WARN, "%s: unable to get PS nodeID for %s\n",
@@ -2165,8 +2182,8 @@ static bool saveHostEntry(int *hostIdx, char *hostList, char *addrList,
 		return false;
 	    }
 	}
-	mdbg(PSSLURM_LOG_DEBUG, "%s: idx %i nodeid %i hostname %s\n",
-	     __func__, idx, HostLT[idx].nodeid, next);
+	mdbg(PSSLURM_LOG_DEBUG, "%s: idx %i nodeID %i hostname %s\n",
+	     __func__, idx, HostLT[idx].nodeID, next);
 	HostLT[idx++].hostname = ustrdup(next);
 	next = strtok_r(NULL, delimiters, &saveptr);
     }
@@ -2176,34 +2193,48 @@ static bool saveHostEntry(int *hostIdx, char *hostList, char *addrList,
     return true;
 }
 
+/**
+ * @brief Helper function to compare two nodeIDs
+ *
+ * @param entry1 First host LT entry to compare
+ *
+ * @param entry2 Second host LT entry to compare
+ *
+ * @return Returns -1 if the first nodeID is smaller than
+ * the second, 1 if the first nodeID is larger than the second
+ * and 0 if they are equal.
+ */
+static int compareNodeIDs(const void *entry1, const void *entry2)
+{
+    const Host_Lookup_t *e1 = (Host_Lookup_t *) entry1;
+    const Host_Lookup_t *e2 = (Host_Lookup_t *) entry2;
+
+     return (e1->nodeID > e2->nodeID) - (e1->nodeID < e2->nodeID);
+}
+
 const char *getSlurmHostbyNodeID(PSnodes_ID_t nodeID)
 {
-    PSnodes_ID_t i = 0;
+    Host_Lookup_t *e;
 
     if (!HostLT) return NULL;
 
-    while(HostLT[i].hostname) {
-        if (nodeID == HostLT[i].nodeid) {
-            return HostLT[i].hostname;
-        }
-        i++;
-    }
+    e = bsearch(&nodeID, HostLT, numHostLT, sizeof(*HostLT), compareNodeIDs);
+    if (e) return e->hostname;
+
     return NULL;
 }
 
 PSnodes_ID_t getNodeIDbySlurmHost(char *host)
 {
-    PSnodes_ID_t i = 0;
+    ENTRY e, *f;
 
     if (!HostLT) return -1;
 
-    while(HostLT[i].hostname) {
-	if (!strcmp(host, HostLT[i].hostname)) {
-	    return HostLT[i].nodeid;
-	}
-	i++;
-    }
-    return -1;
+    /* use hash table for lookup */
+    e.key = host;
+    if (!hsearch_r(e, FIND, &f, &HostHash)) return -1;
+
+    return *(PSnodes_ID_t *) f->data;
 }
 
 /**
@@ -2228,7 +2259,7 @@ static bool initHostLT(void)
     HostLT = umalloc(sizeof(*HostLT) * nrOfNodes);
     for (i=0; i<nrOfNodes; i++) {
 	HostLT[i].hostname = NULL;
-	HostLT[i].nodeid = -1;
+	HostLT[i].nodeID = -1;
     }
 
     numEntry = getConfValueI(&Config, "SLURM_HOST_ENTRY_COUNT");
@@ -2251,10 +2282,34 @@ static bool initHostLT(void)
 	ufree(hostList);
 	ufree(addrList);
     }
+    numHostLT = hostIdx;
     if (skHosts) {
 	mlog("%s: failed to resolve %i Slurm hostnames\n", __func__, skHosts);
     }
-    mdbg(PSSLURM_LOG_DEBUG, "%s: found %i PS nodes\n", __func__, hostIdx);
+    mdbg(PSSLURM_LOG_DEBUG, "%s: found %zu PS nodes\n", __func__, numHostLT);
+
+    /* sort the array for later use of bsearch */
+    qsort(HostLT, numHostLT, sizeof(*HostLT), compareNodeIDs);
+
+    /* create hash table to search for hostnames */
+    size_t hsize = numHostLT + (int)ceil((numHostLT/100.0)*30);
+    if (!hcreate_r(hsize, &HostHash)) {
+	mwarn(errno, "%s: hcreate(%zu) failed: ", __func__, hsize);
+	goto ERROR;
+    }
+    ENTRY e, *f;
+    size_t z;
+    for (z=0; z<numHostLT; z++) {
+	e.key = HostLT[z].hostname;
+        e.data = &HostLT[z].nodeID;
+        if (!hsearch_r(e, ENTER, &f, &HostHash)) {
+	    mwarn(errno, "%s: hsearch(%s, ENTER) failed: ", __func__,
+		  HostLT[z].hostname);
+	    hdestroy_r(&HostHash);
+	    goto ERROR;
+	}
+    }
+
     return true;
 
 ERROR:
@@ -2317,7 +2372,7 @@ bool initPScomm(void)
     return true;
 }
 
-void send_PS_PackInfo(Step_t *step)
+int send_PS_PackInfo(Step_t *step)
 {
     PS_SendDB_t data;
     uint32_t i;
@@ -2345,7 +2400,7 @@ void send_PS_PackInfo(Step_t *step)
     for (i=0; i<step->numHwThreads; i++) {
 	addInt16ToMsg(step->hwThreads[i].node, &data);
 	addInt16ToMsg(step->hwThreads[i].id, &data);
-	mlog("%s: thread %i node %i id %i\n", __func__, i,
+	mdbg(PSSLURM_LOG_PACK, "%s: thread %i node %i id %i\n", __func__, i,
 		step->hwThreads[i].node, step->hwThreads[i].id);
     }
 
@@ -2355,7 +2410,7 @@ void send_PS_PackInfo(Step_t *step)
 	 PSC_printTID(PSC_getTID(step->packNodes[0], 0)));
 
     /* send msg to pack group leader */
-    sendFragMsg(&data);
+    return sendFragMsg(&data);
 }
 
 void deleteCachedMsg(uint32_t jobid, uint32_t stepid)

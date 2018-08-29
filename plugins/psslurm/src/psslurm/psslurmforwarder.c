@@ -234,7 +234,6 @@ static int bcastCallback(int32_t exit_status, Forwarder_Data_t *fw)
     return 0;
 }
 
-
 void switchUser(char *username, uid_t uid, gid_t gid, char *cwd)
 {
     pid_t pid = getpid();
@@ -305,6 +304,12 @@ static void execBatchJob(Forwarder_Data_t *fwdata, int rerun)
     /* do exec */
     closelog();
     execve(job->jobscript, job->argv, job->env.vars);
+
+    /* execve failed */
+    fprintf(stderr, "%s: execve %s failed: %s\n", __func__, job->argv[0],
+	    strerror(errno));
+    mwarn(errno, "%s: execve %s failed: ", __func__, job->argv[0]);
+    exit(errno);
 }
 
 /**
@@ -719,10 +724,93 @@ static void debugMpiexecStart(char **argv, char **env)
     }
 }
 
+/**
+ * @brief Build up mpiexec argument vector
+ *
+ * @param fwdata Forwarder data of the step
+ *
+ * @param argV Argument vector to build
+ *
+ * @param PMIdisabled Flag to signal if PMI is used
+ */
+static void buildMpiexecArgs(Forwarder_Data_t *fwdata, strv_t *argV,
+			     bool PMIdisabled)
+{
+    Step_t *step = fwdata->userData;
+    char buf[128];
+    uint32_t i;
+
+    strvInit(argV, NULL, 0);
+
+    if (getenv("PMI_SPAWNED")) {
+	char *tmpStr = getenv("__PSI_MPIEXEC_KVSPROVIDER");
+	if (tmpStr) {
+	    strvAdd(argV, ustrdup(tmpStr));
+	} else {
+	    strvAdd(argV, ustrdup(PKGLIBEXECDIR "/kvsprovider"));
+	}
+    } else {
+	strvAdd(argV, ustrdup(MPIEXEC_BINARY));
+    }
+
+    /* always export all environment variables */
+    strvAdd(argV, ustrdup("-x"));
+
+    /* interactive mode */
+    if (step->taskFlags & LAUNCH_PTY) strvAdd(argV, ustrdup("-i"));
+    /* label output */
+    if (step->taskFlags & LAUNCH_LABEL_IO) strvAdd(argV, ustrdup("-l"));
+    /* PMI layer support */
+    if (PMIdisabled) strvAdd(argV, ustrdup("--pmidisable"));
+
+    if (step->taskFlags & LAUNCH_MULTI_PROG) {
+	setupArgsFromMultiProg(step, fwdata, argV);
+    } else {
+	/* number of processes */
+	strvAdd(argV, ustrdup("-np"));
+	snprintf(buf, sizeof(buf), "%u", step->np);
+	strvAdd(argV, ustrdup(buf));
+
+	/* threads per processes */
+	strvAdd(argV, ustrdup("-tpp"));
+	snprintf(buf, sizeof(buf), "%u", step->numHwThreads/step->np);
+	strvAdd(argV, ustrdup(buf));
+
+	/* executable and arguments */
+	for (i=0; i<step->argc; i++) {
+	    strvAdd(argV, step->argv[i]);
+	}
+    }
+
+    /* additional executables from job pack */
+    if (step->packJobid != NO_VAL) {
+	for (i=0; i<step->numRPackInfo; i++) {
+	    uint32_t z;
+
+	    strvAdd(argV, ":");
+
+	    /* number of processes */
+	    strvAdd(argV, ustrdup("-np"));
+	    snprintf(buf, sizeof(buf), "%u", step->rPackInfo[i].np);
+	    strvAdd(argV, ustrdup(buf));
+
+	    /* threads per processes */
+	    uint16_t tpp = step->rPackInfo[i].numHwThreads/step->rPackInfo[i].np;
+	    strvAdd(argV, ustrdup("-tpp"));
+	    snprintf(buf, sizeof(buf), "%u", tpp);
+	    strvAdd(argV, ustrdup(buf));
+
+	    /* executable and arguments */
+	    for (z=0; z<step->rPackInfo[i].argc; z++) {
+		strvAdd(argV, step->rPackInfo[i].argv[z]);
+	    }
+	}
+    }
+}
+
 static void execJobStep(Forwarder_Data_t *fwdata, int rerun)
 {
     Step_t *step = fwdata->userData;
-    unsigned int i;
     strv_t argV;
     char buf[128];
     bool PMIdisabled = isPMIdisabled(step);
@@ -741,61 +829,8 @@ static void execJobStep(Forwarder_Data_t *fwdata, int rerun)
     /* switch user */
     switchUser(step->username, step->uid, step->gid, step->cwd);
 
-    /* build mpiexec argV */
-    strvInit(&argV, NULL, 0);
-    if (getenv("PMI_SPAWNED")) {
-	char *tmpStr = getenv("__PSI_MPIEXEC_KVSPROVIDER");
-	if (tmpStr) {
-	    strvAdd(&argV, ustrdup(tmpStr));
-	} else {
-	    strvAdd(&argV, ustrdup(LIBEXECDIR "/kvsprovider"));
-	}
-    } else {
-	strvAdd(&argV, ustrdup(MPIEXEC_BINARY));
-    }
-
-    /* always export all environment variables */
-    strvAdd(&argV, ustrdup("-x"));
-
-    /* interactive mode */
-    if (step->taskFlags & LAUNCH_PTY) strvAdd(&argV, ustrdup("-i"));
-    /* label output */
-    if (step->taskFlags & LAUNCH_LABEL_IO) strvAdd(&argV, ustrdup("-l"));
-    /* PMI layer support */
-    if (PMIdisabled) strvAdd(&argV, ustrdup("--pmidisable"));
-
-    if (step->taskFlags & LAUNCH_MULTI_PROG) {
-	setupArgsFromMultiProg(step, fwdata, &argV);
-    } else {
-	/* number of processes */
-	strvAdd(&argV, ustrdup("-np"));
-	snprintf(buf, sizeof(buf), "%u", step->np);
-	strvAdd(&argV, ustrdup(buf));
-
-	/* executable and arguments */
-	for (i=0; i<step->argc; i++) {
-	    strvAdd(&argV, step->argv[i]);
-	}
-    }
-
-    /* additional executables from job pack */
-    if (step->packJobid != NO_VAL) {
-	for (i=0; i<step->numRPackInfo; i++) {
-	    uint32_t z;
-
-	    strvAdd(&argV, ":");
-
-	    /* number of processes */
-	    strvAdd(&argV, ustrdup("-np"));
-	    snprintf(buf, sizeof(buf), "%u", step->rPackInfo[i].np);
-	    strvAdd(&argV, ustrdup(buf));
-
-	    /* executable and arguments */
-	    for (z=0; z<step->rPackInfo[i].argc; z++) {
-		strvAdd(&argV, step->rPackInfo[i].argv[z]);
-	    }
-	}
-    }
+    /* build mpiexec argument vector */
+    buildMpiexecArgs(fwdata, &argV, PMIdisabled);
 
     /* setup step specific env */
     setStepEnv(step);
@@ -817,6 +852,12 @@ static void execJobStep(Forwarder_Data_t *fwdata, int rerun)
     /* start mpiexec to spawn the parallel job */
     closelog();
     execve(argV.strings[0], argV.strings, step->env.vars);
+
+    /* execve failed */
+    fprintf(stderr, "%s: execve %s failed: %s\n", __func__, argV.strings[0],
+	    strerror(errno));
+    mwarn(errno, "%s: execve %s failed: ", __func__, argV.strings[0]);
+    exit(errno);
 }
 
 static int stepForwarderInit(Forwarder_Data_t *fwdata)

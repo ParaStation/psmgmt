@@ -1,7 +1,7 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2006-2011 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2006-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -24,7 +24,7 @@
 
 #include "list_t.h" /* IWYU pragma: export */
 
-#define LIST_HEAD_INIT(name) (list_t) { &(name), &(name) }
+#define LIST_HEAD_INIT(name) { &(name), &(name) }
 
 #define LIST_HEAD(name) \
 	struct list_head name = LIST_HEAD_INIT(name)

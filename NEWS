@@ -4,6 +4,20 @@ Copyright (C) 2010-2018 ParTec Cluster Competence Center GmbH, Munich
 
 Please send bug reports, questions and suggestions to <support@par-tec.com>
 
+Version 5.1.14:
+===============
+Bugfixes:
+ - Fix pinning with different TPP for job packs (pct:#272, pct:#273)
+ - Fix Slurm option cpus-per-task in combination with job packs (pct:#272)
+ - Some minor improvement in error handling starting a job pack
+Enhancements:
+ - Report errors spawning a jobscript in psslurm to the user (pct:#262)
+ - Use hash table and binary search to convert hostnames <=> PS nodeIDs
+Additional changes:
+ - Remove cast disliked by EL7's gcc 4.8.5 for stdc>89
+ - Change the LIBEXECDIR define to PKGLIBEXECDIR, which is more precise
+
+
 Version 5.1.13:
 ===============
 Bugfixes:
