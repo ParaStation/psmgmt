@@ -2,36 +2,22 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
 /**
- * \file
- * Helper functions for timer handling within the ParaStation daemon.
+ * @file Helper functions for timer handling within the ParaStation daemon
  *
  * All the stuff within this file is defined inline. Thus no
  * psidtimer.c is necessary.
- *
- * $Id$
- *
- * \author
- * Norbert Eicker <eicker@par-tec.com>
- *
  */
 #ifndef __PSIDTIMER_H
 #define __PSIDTIMER_H
 
 #include <sys/time.h>
-
-#ifdef __cplusplus
-extern "C" {
-#if 0
-} /* <- just for emacs indentation */
-#endif
-#endif
 
 /**
  * @brief Operate on a timer.
@@ -83,9 +69,5 @@ extern "C" {
  */
 #define mytimersub(tvp,sec,usec) timerop(tvp,sec,usec,-)
 
-
-#ifdef __cplusplus
-}/* extern "C" */
-#endif
 
 #endif /* __PSIDTIMER_H */
