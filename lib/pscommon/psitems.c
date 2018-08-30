@@ -17,7 +17,7 @@
 
 #define CHUNK_SIZE (128*1024)
 
-/** Sub-chunk holding the actual items */
+/** Chunk holding the actual items */
 typedef struct {
     list_t next;    /**< Use to put into list of chunks */
     char itemBuf[]; /**< Space for actual items */
@@ -53,17 +53,17 @@ typedef struct {
 } item_t;
 
 /**
- * @brief Grow chunk of items
+ * @brief Grow pool of items
  *
- * Grow the chunk of items represented by @a items. The number of
- * added items depends on the size of the individual items such that
- * the amount of memory allocated is at least 128 kB. This means each
- * sub-chunk is at least of size 128 kB.
+ * Grow the pool of items represented by @a items. The number of added
+ * items depends on the size of the individual items such that the
+ * amount of memory allocated is at least 128 kB. This means each
+ * chunk is at least of size 128 kB.
  *
- * All new items are added to the pool of idle items ready to be
+ * All new items are added to the list of idle items ready to be
  * consumed by @ref PSitems_getItem().
  *
- * @param items Structure holding all information on the chunk of items
+ * @param items Structure holding all information on the pool of items
  *
  * @return If new items were added successfully, the number of new
  * items is returned or 0 in case of error.
@@ -129,27 +129,27 @@ void PSitems_putItem(PSitems_t *items, void *item)
     items->used--;
 }
 
-bool PSitems_gcRequired(PSitems_t *chunk)
+bool PSitems_gcRequired(PSitems_t *items)
 {
-    return chunk->avail > chunk->iPC
-	&& chunk->used < (chunk->avail - chunk->iPC)/2;
+    return items->avail > items->iPC
+	&& items->used < (items->avail - items->iPC)/2;
 }
 
 /**
  * @brief Free a chunk of items
  *
- * Free the sub-chunk of items @a chunk part of the chunk of items @a
- * items. For that, all empty items from this sub-chunk are removed
- * from the list of idle items and marked as drained. All items still
- * in use are replaced by calling @a relocItem().
+ * Free the chunk of items @a chunk part of the pool of items @a
+ * items. For that, all idle items from this chunk are removed from
+ * the list of idle items and marked as drained. All items still in
+ * use are replaced by calling @a relocItem().
  *
- * Once all items of the sub-chunk are empty, the whole chunk is free()ed.
+ * Once all items of the chunk are drained, the whole chunk is free()ed.
  *
- * @param items Structure holding all information on the chunk of items
+ * @param items Structure holding all information on the pool of items
  *
- * @param chunk Sub-chunk of items to free
+ * @param chunk Chunk of items to free
  *
- * @param relocItem Function to relocate single items
+ * @param relocItem Function to relocate a single item
  *
  * @return No return value
  */
@@ -188,7 +188,7 @@ static void freeChunk(PSitems_t *items, chunk_t *chunk, bool(*relocItem)(void*))
 	item->state = PSITEM_DRAINED;
     }
 
-    /* Now that the sub-chunk is completely empty, free() it */
+    /* Now that the chunk is completely empty, free() it */
     list_del(&chunk->next);
     free(chunk);
     items->avail -= items->iPC;
