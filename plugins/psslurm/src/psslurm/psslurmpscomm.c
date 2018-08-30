@@ -2226,12 +2226,11 @@ const char *getSlurmHostbyNodeID(PSnodes_ID_t nodeID)
 
 PSnodes_ID_t getNodeIDbySlurmHost(char *host)
 {
-    ENTRY e, *f;
+    ENTRY *f, e = { .key = host, .data = NULL };
 
     if (!HostLT) return -1;
 
     /* use hash table for lookup */
-    e.key = host;
     if (!hsearch_r(e, FIND, &f, &HostHash)) return -1;
 
     return *(PSnodes_ID_t *) f->data;
