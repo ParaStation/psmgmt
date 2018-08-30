@@ -1,15 +1,14 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2015-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2015-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
 /**
- * @file
- * Helper structures and functions to put resevations into lists.
+ * @file Helper structures and functions to put resevations into lists
  */
 #ifndef __PSRESERVATION_H
 #define __PSRESERVATION_H
@@ -17,21 +16,15 @@
 #include <stdint.h>
 
 #include "list_t.h"
+#include "psitems.h"
 
 #include "pspartition.h"
 
-#ifdef __cplusplus
-extern "C" {
-#if 0
-} /* <- just for emacs indentation */
-#endif
-#endif
-
 /** Internal state of PSrsrvtn_t structure */
 typedef enum {
-    RES_USED,           /**< In use */
-    RES_UNUSED,         /**< Unused and ready for re-use */
-    RES_DRAINED,        /**< Unused and ready for discard */
+    RES_DRAINED = PSITEM_DRAINED,  /**< Unused and ready for discard */
+    RES_UNUSED = PSITEM_IDLE,      /**< Unused and ready for re-use */
+    RES_USED,                      /**< In use */
 } PSrsrvtn_state_t;
 
 typedef int32_t PSrsrvtn_ID_t;
@@ -39,6 +32,7 @@ typedef int32_t PSrsrvtn_ID_t;
 /** Reservation structure */
 typedef struct {
     list_t next;              /**< used to put into reservation-lists */
+    PSrsrvtn_state_t state;   /**< flag internal state of structure */
     PStask_ID_t task;         /**< Task holding the associated partition */
     PStask_ID_t requester;    /**< The task requesting the registration */
     uint32_t nMin;            /**< The minimum number of slots requested */
@@ -55,7 +49,6 @@ typedef struct {
     int relSlots;             /**< Number of slots already released */
     char checked;             /**< Was checked to be completable */
     char dynSent;             /**< Dynamic request was sent */
-    PSrsrvtn_state_t state;   /**< flag internal state of structure */
 } PSrsrvtn_t;
 
 /** Structure used for the PSIDHOOK_RELS_PART_DYNAMIC hook */
@@ -63,6 +56,16 @@ typedef struct{
     PSrsrvtn_ID_t rid;        /**< Unique reservation identifier */
     PSpart_slot_t slot;       /**< Slot to be released */
 } PSrsrvtn_dynRes_t;
+
+/**
+ * @brief Initialize the reservation structure pool
+ *
+ * Initialize to pool of reservation structure. Must be called before
+ * any other function function of this module.
+ *
+ * @return No return value
+ */
+void PSrsrvtn_init(void);
 
 /**
  * @brief Get reservation structure from pool
@@ -115,20 +118,6 @@ void PSrsrvtn_put(PSrsrvtn_t *rp);
 void PSrsrvtn_gc(void);
 
 /**
- * @brief Garbage collection required?
- *
- * Find out if a call to PSrsrvtn_gc() will have any effect, i.e. if
- * sufficiently many unused reservation structures are available to
- * free().
- *
- * @return If enough reservation structure to free() are available,
- * true is returned. Otherwise false is given back.
- *
- * @see Psreservation_gc()
- */
-bool PSrsrvtn_gcRequired(void);
-
-/**
  * @brief Print statistics
  *
  * Print statistics concerning the usage of reservation structures.
@@ -151,9 +140,5 @@ void PSrsrvtn_printStat(void);
  * @return No return value.
  */
 void PSrsrvtn_clearMem(void);
-
-#ifdef __cplusplus
-}/* extern "C" */
-#endif
 
 #endif  /* __PSRESERVATION_H */

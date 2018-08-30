@@ -5325,6 +5325,8 @@ void initPartition(void)
 {
     PSID_log(PSID_LOG_VERB, "%s()\n", __func__);
 
+    PSrsrvtn_init();
+
     PSID_registerMsg(PSP_CD_CREATEPART, msg_CREATEPART);
     PSID_registerMsg(PSP_CD_CREATEPARTNL, msg_CREATEPARTNL);
     PSID_registerMsg(PSP_CD_PARTITIONRES, frwdMsg);
