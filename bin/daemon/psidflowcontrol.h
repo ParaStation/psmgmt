@@ -1,42 +1,27 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
 /**
- * \file
- * Flow-control of the ParaStation protocol
- *
- * $Id$
- *
- * \author
- * Norbert Eicker <eicker@par-tec.com>
- *
+ * @file Flow-control handling for the ParaStation protocol
  */
 #ifndef __PSIDFLOWCONTROL_H
 #define __PSIDFLOWCONTROL_H
 
 #include "list.h"
-
+#include "psprotocol.h"
 #include "pstask.h"
-
-#ifdef __cplusplus
-extern "C" {
-#if 0
-} /* <- just for emacs indentation */
-#endif
-#endif
 
 /** The actual size of the flow-control hashes */
 #define FLWCNTRL_HASH_SIZE 32
 
 /** Hash to store IDs of tasks that got a SENDSTOP message */
 typedef list_t PSIDFlwCntrl_hash_t[FLWCNTRL_HASH_SIZE];
-
 
 /**
  * @brief Initialize flow-control.
@@ -169,8 +154,5 @@ void PSIDFlwCntrl_printStat(void);
  */
 void PSIDFlwCntrl_clearMem(void);
 
-#ifdef __cplusplus
-}/* extern "C" */
-#endif
 
 #endif /* __PSIDFLOWCONTROL_H */

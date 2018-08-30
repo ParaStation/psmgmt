@@ -1,13 +1,13 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2014-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2014-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
-
+#include <stdbool.h>
 #include <stdlib.h>
 #include <errno.h>
 
@@ -15,6 +15,7 @@
 
 #include "pscommon.h"
 #include "psdaemonprotocol.h"
+#include "psitems.h"
 
 #include "psidnodes.h"
 #include "psidcomm.h"
@@ -24,221 +25,32 @@
 
 #include "psidflowcontrol.h"
 
+/** Flag to track initialization */
+static bool initialized = false;
+
 /** StopTID structure */
 typedef struct {
     list_t next;              /**< used to put into hashtable-lists */
     PStask_ID_t tid;          /**< unique task identifier */
 } stopTID_t;
 
-/* ==================== Chunk management for stopTIDs ==================== */
+/** data structure to handle a pool of stopTIDs */
+static PSitems_t stopTIDs;
 
-/**
- * Number of stopTID structures allocated at once. Ensure this chunk is
- * larger than 128 kB to force it into mmap()ed memory
- */
-#define STOPTID_CHUNK 8192
+/* ==================== Pool management for stopTIDs ==================== */
 
-/** Some magic values */
-#define UNUSED -1   /**< stopTID is unused, i.e. no TID is stored */
-#define DRAINED -2  /**< stopTID is drained, i.e. not available */
-
-/** Single chunk of stopTID structs allocated at once within incFreeList() */
-typedef struct {
-    list_t next;                      /**< Use to put into chunkList */
-    stopTID_t stids[STOPTID_CHUNK];   /**< the stopTID structures */
-} stopTID_chunk_t;
-
-/**
- * Pool of stopTID structures ready to use. Initialized by @ref
- * initStopTIDList(). To get a buffer from this pool, use @ref
- * getStopTID(), to put it back into it use @ref putStopTID().
- */
-static LIST_HEAD(stopTIDFreeList);
-
-/** List of chunks of stopTID structures */
-static LIST_HEAD(chunkList);
-
-/** Number of stopTID structures currently in use */
-static unsigned int usedStopTIDs = 0;
-
-/** Total number of stopTID structures currently available */
-static unsigned int availStopTIDs = 0;
-
-/**
- * @brief Increase stopTID structures
- *
- * Increase the number of available stopTID structures. For that, a
- * chunk of @ref STOPTID_CHUNK stopTID structures is allocated. All
- * stopTID structures are appended to the list of free stopTID
- * structures @ref sigFreeList. Additionally, the chunk is registered
- * within @ref chunkList. Chunks might be released within @ref
- * PSIDFlwCntrl_gc() as soon as enough stopTID structures are available
- * again.
- *
- * return On success, 1 is returned. Or 0 if allocating the required
- * memory failed. In the latter case errno is set appropriately.
- */
-static int incFreeList(void)
+static bool relocStopTID(void *item)
 {
-    stopTID_chunk_t *chunk = malloc(sizeof(*chunk));
-    unsigned int i;
+    stopTID_t *orig = item, *repl = PSitems_getItem(&stopTIDs);
 
-    if (!chunk) return 0;
+    if (!repl) return false;
 
-    list_add_tail(&chunk->next, &chunkList);
+    repl->tid = orig->tid;
 
-    for (i=0; i<STOPTID_CHUNK; i++) {
-	chunk->stids[i].tid = UNUSED;
-	list_add_tail(&chunk->stids[i].next, &stopTIDFreeList);
-    }
+    /* tweak the list */
+    __list_add(&repl->next, orig->next.prev, orig->next.next);
 
-    availStopTIDs += STOPTID_CHUNK;
-    PSID_log(PSID_LOG_FLWCNTRL, "%s: now used %d.\n", __func__, availStopTIDs);
-
-    return 1;
-}
-
-/**
- * @brief Get stopTID structure from pool
- *
- * Get a stopTID structure from the pool of free stopTID structures. If
- * there is no structure left in the pool, this will be extended by
- * @ref STOPTID_CHUNK structures via calling @ref incFreeList().
- *
- * The stopTID structure returned will be prepared, i.e. the
- * list-handle @a next is initialized, the tid is set to UNUSED, etc.
- *
- * @return On success, a pointer to the new stopTID structure is
- * returned. Or NULL if an error occurred.
- */
-static stopTID_t *getStopTID(void)
-{
-    stopTID_t *sp;
-
-    if (list_empty(&stopTIDFreeList)) {
-	PSID_log(PSID_LOG_FLWCNTRL, "%s: no more elements\n", __func__);
-	if (!incFreeList()) {
-	    PSID_log(-1, "%s: no memory\n", __func__);
-	    return NULL;
-	}
-    }
-
-    /* get list's first usable element */
-    sp = list_entry(stopTIDFreeList.next, stopTID_t, next);
-    if (sp->tid != UNUSED) {
-	PSID_log(-1, "%s: TID is %s. Never be here.\n", __func__,
-		 (sp->tid == DRAINED) ? "DRAINED" : PSC_printTID(sp->tid));
-	return NULL;
-    }
-
-    list_del(&sp->next);
-
-    INIT_LIST_HEAD(&sp->next);
-
-    usedStopTIDs++;
-
-    return sp;
-}
-
-/**
- * @brief Put stopTID structure back into pool
- *
- * Put the stopTID structure @a sp back into the pool of free stopTID
- * structures. The stopTID structure might get reused and handed back
- * to the application by calling @ref getStopTID().
- *
- * @param sp Pointer to the stopTID structure to be put back into the
- * pool.
- *
- * @return No return value
- */
-static void putStopTID(stopTID_t *sp)
-{
-    sp->tid = UNUSED;
-    list_add_tail(&sp->next, &stopTIDFreeList);
-
-    usedStopTIDs--;
-}
-
-/**
- * @brief Free a chunk of stopTID structures
- *
- * Free the chunk of stopTID structures @a chunk. For that, all empty
- * stopTID structures from this chunk are removed from @ref
- * stopTIDFreeList and marked as drained. All stopTID structures still
- * in use are replaced by using other free stopTID structure from @ref
- * stopTIDFreeList.
- *
- * Once all stopTID structures of the chunk are empty, the whole chunk
- * is free()ed.
- *
- * @param chunk The chunk of stopTID structures to free.
- *
- * @return No return value.
- */
-static void freeChunk(stopTID_chunk_t *chunk)
-{
-    unsigned int i;
-
-    if (!chunk) return;
-
-    /* First round: remove stopTID structs from stopTIDFreeList */
-    for (i=0; i<STOPTID_CHUNK; i++) {
-	if (chunk->stids[i].tid == UNUSED) {
-	    list_del(&chunk->stids[i].next);
-	    chunk->stids[i].tid = DRAINED;
-	}
-    }
-
-    /* Second round: now copy and release all used stopTID structs */
-    for (i=0; i<STOPTID_CHUNK; i++) {
-	stopTID_t *old = &chunk->stids[i], *new;
-
-	if (old->tid == DRAINED) continue;
-
-	if (old->tid == UNUSED) {
-	    list_del(&old->next);
-	    old->tid = DRAINED;
-	} else {
-	    new = getStopTID();
-	    if (!new) {
-		PSID_log(-1, "%s: new is NULL\n", __func__);
-		return;
-	    }
-
-	    /* copy stopTID struct's content */
-	    new->tid = old->tid;
-
-	    /* tweak the list */
-	    __list_add(&new->next, old->next.prev, old->next.next);
-
-	    old->tid = DRAINED;
-	}
-	usedStopTIDs--;
-    }
-
-    /* Now that the chunk is completely empty, free() it */
-    list_del(&chunk->next);
-    free(chunk);
-    availStopTIDs -= STOPTID_CHUNK;
-    PSID_log(PSID_LOG_FLWCNTRL, "%s: now used %d.\n", __func__, availStopTIDs);
-}
-
-/**
- * @brief Garbage collection required?
- *
- * Find out if a call to PSIDFlwCntrl_gc() will have any effect,
- * i.e. if sufficiently many unused stopTID structures are available
- * to free().
- *
- * @return If enough stopTID structures to free() are available, 1 is
- * returned. Otherwise 0 is given back.
- *
- * @see Selector_gc()
- */
-static int PSIDFlwCntrl_gcRequired(void)
-{
-    return ((int)usedStopTIDs < ((int)availStopTIDs - STOPTID_CHUNK)/2);
+    return true;
 }
 
 /**
@@ -254,35 +66,7 @@ static int PSIDFlwCntrl_gcRequired(void)
  */
 static void PSIDFlwCntrl_gc(void)
 {
-    list_t *c, *tmp;
-    unsigned int i;
-    int first = 1;
-
-    if (!PSIDFlwCntrl_gcRequired()) return;
-
-    PSID_log(PSID_LOG_FLWCNTRL, "%s()\n", __func__);
-
-    list_for_each_safe(c, tmp, &chunkList) {
-	stopTID_chunk_t *chunk = list_entry(c, stopTID_chunk_t, next);
-	int unused = 0;
-
-	/* always keep the first one */
-	if (first) {
-	    first = 0;
-	    continue;
-	}
-
-	for (i=0; i<STOPTID_CHUNK; i++) {
-	    if (chunk->stids[i].tid == UNUSED
-		|| chunk->stids[i].tid == DRAINED) {
-		unused++;
-	    }
-	}
-
-	if (unused > STOPTID_CHUNK/2) freeChunk(chunk);
-
-	if (!PSIDFlwCntrl_gcRequired()) break;
-    }
+    PSitems_gc(&stopTIDs, relocStopTID);
 }
 
 /* ==================== Hash management for stopTIDs ==================== */
@@ -290,23 +74,21 @@ static void PSIDFlwCntrl_gc(void)
 void PSIDFlwCntrl_initHash(PSIDFlwCntrl_hash_t hash)
 {
     int i;
-
     for (i = 0; i < FLWCNTRL_HASH_SIZE; i++) INIT_LIST_HEAD(&hash[i]);
 }
 
 void PSIDFlwCntrl_emptyHash(PSIDFlwCntrl_hash_t hash)
 {
     int i;
-
     for (i = 0; i < FLWCNTRL_HASH_SIZE; i++) {
-	if (!list_empty(&hash[i])) {
-	    list_t *s, *tmp;
-	    list_for_each_safe(s, tmp, &hash[i]) {
-		stopTID_t *stop = list_entry(s, stopTID_t, next);
+	if (list_empty(&hash[i])) continue;
 
-		list_del(&stop->next);
-		putStopTID(stop);
-	    }
+	list_t *s, *tmp;
+	list_for_each_safe(s, tmp, &hash[i]) {
+	    stopTID_t *stop = list_entry(s, stopTID_t, next);
+
+	    list_del(&stop->next);
+	    PSitems_putItem(&stopTIDs, stop);
 	}
     }
 }
@@ -314,19 +96,17 @@ void PSIDFlwCntrl_emptyHash(PSIDFlwCntrl_hash_t hash)
 int PSIDFlwCntrl_addStop(PSIDFlwCntrl_hash_t table, PStask_ID_t key)
 {
     list_t *t;
-    stopTID_t *new;
-
     list_for_each(t, &table[key%FLWCNTRL_HASH_SIZE]) {
 	stopTID_t *stid = list_entry(t, stopTID_t, next);
 
 	if (stid->tid == key) return 0;
     }
 
-    new = getStopTID();
-    if (!new) return -1;
+    stopTID_t *stop = PSitems_getItem(&stopTIDs);
+    if (!stop) return -1;
 
-    new->tid = key;
-    list_add_tail(&new->next, &table[key%FLWCNTRL_HASH_SIZE]);
+    stop->tid = key;
+    list_add_tail(&stop->next, &table[key%FLWCNTRL_HASH_SIZE]);
 
     return 1;
 }
@@ -348,7 +128,7 @@ int PSIDFlwCntrl_sendContMsgs(PSIDFlwCntrl_hash_t stops, PStask_ID_t sender)
 		num++;
 	    }
 	    list_del(&stop->next);
-	    putStopTID(stop);
+	    PSitems_putItem(&stopTIDs, stop);
 	}
     }
 
@@ -482,28 +262,23 @@ static void msg_SENDCONT(DDMsg_t *msg)
 
 void PSIDFlwCntrl_clearMem(void)
 {
-    list_t *c, *tmp;
-
-    list_for_each_safe(c, tmp, &chunkList) {
-	stopTID_chunk_t *chunk = list_entry(c, stopTID_chunk_t, next);
-
-	list_del(&chunk->next);
-	free(chunk);
-    }
+    PSitems_clearMem(&stopTIDs);
 }
 
 void PSIDFlwCntrl_printStat(void)
 {
     PSID_log(-1, "%s: Stops %d/%d (used/avail)\n", __func__,
-	     usedStopTIDs, availStopTIDs);
+	     PSitems_getUsed(&stopTIDs), PSitems_getAvail(&stopTIDs));
 }
 
 
 void PSIDFlwCntrl_init(void)
 {
-    if (availStopTIDs) return;
+    if (initialized) return;
 
-    if (!incFreeList()) PSID_exit(ENOMEM, "%s", __func__);
+    initialized = true;
+
+    PSitems_init(&stopTIDs, sizeof(stopTID_t), "stopdTIDs");
 
     PSID_registerMsg(PSP_DD_SENDSTOP, (handlerFunc_t) msg_SENDSTOP);
     PSID_registerMsg(PSP_DD_SENDCONT, (handlerFunc_t) msg_SENDCONT);
