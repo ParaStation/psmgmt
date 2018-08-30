@@ -37,7 +37,7 @@ typedef struct {
     char msg[MSGBUF_SMALLSIZE];    /**< The actual message to store */
 } smallMsgBuf_t;
 
-/** data structure to handle a chunk of small message buffers*/
+/** data structure to handle a pool of small message buffers*/
 static PSitems_t smallMsgBufs;
 
 /** Number of messages-buffers currently in use */
@@ -45,8 +45,7 @@ static unsigned int usedBufs = 0;
 
 static bool relocSmallMsgBuf(void *item)
 {
-    smallMsgBuf_t *orig = item;
-    smallMsgBuf_t *repl = PSitems_getItem(&smallMsgBufs);
+    smallMsgBuf_t *orig = item, *repl = PSitems_getItem(&smallMsgBufs);
 
     if (!repl) return false;
 

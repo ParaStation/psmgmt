@@ -112,7 +112,7 @@ typedef struct {
     PS_DataBuffer_t dBuf; /**< data buffer to collect message fragments in */
 } recvBuf_t;
 
-/** data structure to handle a chunk of receive buffers (of type recvBuf_t) */
+/** data structure to handle a pool of receive buffers (of type recvBuf_t) */
 static PSitems_t recvBuffers;
 
 /** List of active receive buffers */
