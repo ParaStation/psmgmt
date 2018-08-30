@@ -2,34 +2,21 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
 /**
- * \file
- * Functions for temporary message storing
- *
- * $Id$
- *
- * \author
- * Norbert Eicker <eicker@par-tec.com>
- *
+ * @file Functions for temporary message storing
  */
 #ifndef __PSIDMSGBUF_H
 #define __PSIDMSGBUF_H
 
-#include "psprotocol.h"
-#include "list.h"
+#include <stddef.h>
 
-#ifdef __cplusplus
-extern "C" {
-#if 0
-} /* <- just for emacs indentation */
-#endif
-#endif
+#include "list.h"
 
 /**
  * Message buffer used to temporarily store a message that cannot be
@@ -115,8 +102,5 @@ void PSIDMsgbuf_printStat(void);
  */
 void PSIDMsgbuf_init(void);
 
-#ifdef __cplusplus
-}/* extern "C" */
-#endif
 
 #endif /* __PSIDMSGBUF_H */
