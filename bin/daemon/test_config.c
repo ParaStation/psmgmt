@@ -34,6 +34,7 @@ void PSIDclient_register(int fd, PStask_ID_t tid, PStask_t *task) {}
 void PSID_clearMem(void) {}
 /* stub required to link against psidutil.o */
 list_t managedTasks;
+/* stub required to link against psidtask.o */
 PStask_t *PStasklist_find(list_t *list, PStask_ID_t tid) {return NULL;}
 
 /**
