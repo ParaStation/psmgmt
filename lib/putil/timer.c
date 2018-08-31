@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2002-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -284,7 +284,7 @@ void Timer_init(FILE* logfile)
     nextID = 1;
 }
 
-int Timer_isInitialized(void)
+bool Timer_isInitialized(void)
 {
     return (nextID > 0);
 }
@@ -432,14 +432,13 @@ int Timer_remove(int id)
 int Timer_block(int id, bool block)
 {
     Timer_t *timer = findTimer(id);
-    int wasBlocked;
 
     if (!timer) {
 	logger_print(logger, -1, "%s: no timer found id=%d\n", __func__, id);
 	return -1;
     }
 
-    wasBlocked = timer->sigBlocked;
+    bool wasBlocked = timer->sigBlocked;
 
     if (!block && timer->sigPending) {
 	if (timer->timeoutHandler.stdHandler) {
@@ -451,7 +450,7 @@ int Timer_block(int id, bool block)
 	}
 	timer->sigPending = false;
     }
-    timer->sigBlocked = !!block;
+    timer->sigBlocked = block;
 
     return wasBlocked;
 }

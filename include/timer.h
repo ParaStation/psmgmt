@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2002-2003 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -48,9 +48,9 @@ void Timer_init(FILE* logfile);
  * Test if the Timer module is initialized, i.e. if Timer_init() was called
  * before.
  *
- * @return If the Timer module is initialized 1 is returned, 0 otherwise.
+ * @return If the Timer module is initialized, true is returned, false otherwise
  */
-int Timer_isInitialized(void);
+bool Timer_isInitialized(void);
 
 /**
  * Various message classes for logging. These define the different
