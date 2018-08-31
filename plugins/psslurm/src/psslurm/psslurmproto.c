@@ -1996,7 +1996,8 @@ int handleSlurmdMsg(Slurm_Msg_t *sMsg)
 	msgHandler_t *msgHandler = list_entry(h, msgHandler_t, next);
 
 	if (msgHandler->msgType == sMsg->head.type) {
-	    if (measureRPC) {
+	    bool measure = measureRPC;
+	    if (measure) {
 		gettimeofday(&time_start, NULL);
 		mlog("%s: exec RPC %s at %.4f\n", __func__,
 		     msgType2String(msgHandler->msgType),
@@ -2005,7 +2006,7 @@ int handleSlurmdMsg(Slurm_Msg_t *sMsg)
 
 	    if (msgHandler->handler) msgHandler->handler(sMsg);
 
-	    if (measureRPC) {
+	    if (measure) {
 		gettimeofday(&time_now, NULL);
 		timersub(&time_now, &time_start, &time_diff);
 		mlog("%s: exec RPC %s took %.4f seconds\n", __func__,

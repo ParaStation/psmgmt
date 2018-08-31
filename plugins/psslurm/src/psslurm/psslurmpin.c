@@ -884,8 +884,8 @@ int setHWthreads(Step_t *step)
 	lastCpu = -1; /* no cpu assigned yet */
 
 	/* initialize pininfo struct (currently only used for RANK_LDOM) */
-	pininfo.usedHwThreads = calloc(cpuCount * hwThreads,
-					 sizeof(*pininfo.usedHwThreads));
+	pininfo.usedHwThreads = ucalloc(cpuCount * hwThreads
+		* sizeof(*pininfo.usedHwThreads));
 	pininfo.lastSocket = -1;
 
 	/* set node and cpuset for every task on this node */
@@ -941,6 +941,8 @@ int setHWthreads(Step_t *step)
 	    }
 
 	}
+
+	ufree(pininfo.usedHwThreads);
 
 	/* update global core map index to first core of the next node */
 	coreMapIndex += cpuCount;
