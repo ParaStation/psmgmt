@@ -346,12 +346,13 @@ int main(const int argc, const char *argv[], char *envp[])
     uint32_t nrOfNodes, envc = 0;
     PSnodes_ID_t *nodes = NULL;
     env_t env, clone;
-    char *filter[6] = { "SLURM_SPANK_*", "SLURM_JOBID", "SLURM_JOB_ID",
-			"SLURM_JOB_NODELIST", NULL, NULL };
+    char *filter[] = { "SLURM_SPANK_*", "_SLURM_SPANK_OPTION_*", "SLURM_JOBID",
+		       "SLURM_JOB_ID", "SLURM_JOB_NODELIST", NULL, NULL };
+    size_t numFilter = sizeof(filter)/sizeof(*filter);
 
     init(argc, argv);
 
-    filter[4] = addFilter;
+    filter[numFilter-2] = addFilter;
 
     /* make sure we have all the infos we need */
     jobID = getenv("SLURM_JOB_ID");
