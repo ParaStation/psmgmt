@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003-2004 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -1704,11 +1704,7 @@ static void drop_RELEASE(DDBufferMsg_t *msg)
 
 static void signalGC(void)
 {
-    int blockedRDP;
-
-    if (!PSsignal_gcRequired()) return;
-
-    blockedRDP = RDP_blockTimer(1);
+    bool blockedRDP = RDP_blockTimer(1);
     PSsignal_gc();
     RDP_blockTimer(blockedRDP);
 }
@@ -1716,6 +1712,8 @@ static void signalGC(void)
 void initSignal(void)
 {
     PSID_log(PSID_LOG_VERB, "%s()\n", __func__);
+
+    PSsignal_init();
 
     PSID_registerMsg(PSP_CD_NOTIFYDEAD, (handlerFunc_t) msg_NOTIFYDEAD);
     PSID_registerMsg(PSP_CD_NOTIFYDEADRES, (handlerFunc_t) msg_NOTIFYDEADRES);

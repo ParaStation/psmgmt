@@ -1,45 +1,23 @@
 /*
  * ParaStation
  *
- * Copyright (C) 2015-2016 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2015-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
  * file.
  */
 /**
- * @file
- * Helper structures and functions to store signals in lists.
- *
- * $Id$
- *
- * @author
- * Norbert Eicker <eicker@par-tec.com>
- *
+ * @file Helper structures and functions to store signals in lists
  */
 #ifndef __PSSIGNAL_H
 #define __PSSIGNAL_H
 
-#include <stdint.h>
 #include <stdbool.h>
+#include <stdint.h>
 
 #include "list_t.h"
-
 #include "pstask.h"
-
-#ifdef __cplusplus
-extern "C" {
-#if 0
-} /* <- just for emacs indentation */
-#endif
-#endif
-
-/** Internal state of PSsignal_t structure */
-typedef enum {
-    SIG_USED,           /**< In use */
-    SIG_UNUSED,         /**< Unused and ready for re-use */
-    SIG_DRAINED,        /**< Unused and ready for discard */
-} PSsignal_state_t;
 
 /** Signal structure */
 typedef struct {
@@ -48,19 +26,26 @@ typedef struct {
     int32_t signal;           /**< signal to send, or -1 for child-signal */
     bool deleted;             /**< flag to mark deleted signal structs.
 				 Will be removed later when save. */
-    PSsignal_state_t state;   /**< flag internal state of structure */
 } PSsignal_t;
+
+/**
+ * @brief Initialize the signal structure pool
+ *
+ * Initialize to pool of signal structures. Must be called before any
+ * other function function in this module.
+ *
+ * @return No return value
+ */
+void PSsignal_init(void);
 
 /**
  * @brief Get signal structure from pool
  *
- * Get a signal structure from the pool of free signal structures. If
- * there is no structure left in the pool, this will be extended by
- * @ref SIGNAL_CHUNK structures via calling @ref incFreeList().
+ * Get a signal structure from the pool of idle signal structures.
  *
  * The signal structure returned will be prepared, i.e. the
- * list-handle @a next is initialized, the deleted flag is cleared, it
- * is marked as SIG_USED, etc.
+ * list-handle @a next is initialized, the deleted flag is cleared,
+ * etc.
  *
  * @return On success, a pointer to the new signal structure is
  * returned. Or NULL if an error occurred.
@@ -70,7 +55,7 @@ PSsignal_t *PSsignal_get(void);
 /**
  * @brief Put signal structure back into pool
  *
- * Put the signal structure @a sp back into the pool of free signal
+ * Put the signal structure @a sp back into the pool of idle signal
  * structures. The signal structure might get reused and handed back
  * to the application by calling @ref PSsignal_get().
  *
@@ -91,23 +76,8 @@ void PSsignal_put(PSsignal_t *sp);
  * free() signal structures no longer required.
  *
  * @return No return value.
- *
- * @see Pssignal_gcRequired()
  */
 void PSsignal_gc(void);
-
-/**
- * @brief Garbage collection required?
- *
- * Find out if a call to PSsignal_gc() will have any effect, i.e. if
- * sufficiently many unused signal structures are available to free().
- *
- * @return If enough signal structure to free() are available, 1 is
- * returned. Otherwise 0 is given back.
- *
- * @see Pssignal_gc()
- */
-int PSsignal_gcRequired(void);
 
 /**
  * @brief Print statistics
@@ -117,9 +87,5 @@ int PSsignal_gcRequired(void);
  * @return No return value.
  */
 void PSsignal_printStat(void);
-
-#ifdef __cplusplus
-}/* extern "C" */
-#endif
 
 #endif  /* __PSSIGNAL_H */
