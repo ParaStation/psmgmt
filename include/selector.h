@@ -2,7 +2,7 @@
  * ParaStation
  *
  * Copyright (C) 2003 ParTec AG, Karlsruhe
- * Copyright (C) 2005-2017 ParTec Cluster Competence Center GmbH, Munich
+ * Copyright (C) 2005-2018 ParTec Cluster Competence Center GmbH, Munich
  *
  * This file may be distributed under the terms of the Q Public License
  * as defined in the file LICENSE.QPL included in the packaging of this
@@ -24,8 +24,9 @@
 #ifndef __SELECTOR_H
 #define __SELECTOR_H
 
-#include <stdio.h>
+#include <stdbool.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <sys/types.h>
 #include <sys/time.h>
 
@@ -49,10 +50,10 @@ void Selector_init(FILE* logfile);
  * Test if the Selector module is initialized, i.e. if Selector_init()
  * was called before.
  *
- * @return If the Selector module is initialized, 1 is returned and 0
- * otherwise.
+ * @return If the Selector module is initialized, true is returned or
+ * false otherwise
  */
-int Selector_isInitialized(void);
+bool Selector_isInitialized(void);
 
 /**
  * Various message classes for logging. These define the different
@@ -194,9 +195,9 @@ int Selector_remove(int fd);
  * @brief Register a write selector.
  *
  * Register the write handler @a writeHandler to a selector identified
- * by the file descriptor @a fd. Only one write-handler per
- * file descriptor can be registered. Subsequent calls to this
- * function will replace prior handlers and shall be avoided.
+ * by the file descriptor @a fd. Only one write-handler per file
+ * descriptor can be registered. Subsequent calls to this function
+ * will replace prior handlers and shall be avoided.
  *
  * The @a writeHandler will be called if data can be written to @a fd
  * during a call to @ref Sselect() or @ref Swait(). Additional
@@ -260,10 +261,10 @@ int Selector_vacateWrite(int fd);
  *
  * @param fd The file descriptor to test.
  *
- * @return If a selector is found, 1 is returned. Otherwise 0 is
- * returned.
+ * @return If a selector is found, true is returned. Otherwise false
+ * is returned.
  */
-int Selector_isRegistered(int fd);
+bool Selector_isRegistered(int fd);
 
 /**
  * @brief Disable a selector.
@@ -409,19 +410,6 @@ void Selector_startOver(void);
  * @see Selector_gcRequired()
  */
 void Selector_gc(void);
-
-/**
- * @brief Garbage collection required?
- *
- * Find out if a call to Selector_gc() will have any effect, i.e. if
- * sufficiently many unused selector structures are available to free().
- *
- * @return If enough selector structure to free() are available, 1 is
- * returned. Otherwise 0 is given back.
- *
- * @see Selector_gc()
- */
-int Selector_gcRequired(void);
 
 /**
  * @brief Print statistics
