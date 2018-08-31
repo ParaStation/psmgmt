@@ -13,18 +13,20 @@
 #include <stdbool.h>
 
 #include "list.h"
+#include "psitems.h"
 #include "psaccounttypes.h"
 
 /** Internal state of ProcSnapshot_t structure */
 typedef enum {
-    PROC_USED,                /**< In use */
-    PROC_UNUSED,              /**< Unused and ready for re-use */
-    PROC_DRAINED,             /**< Unused and ready for discard */
+    PROC_DRAINED = PSITEM_DRAINED,  /**< Unused and ready for discard */
+    PROC_UNUSED = PSITEM_IDLE,      /**< Unused and ready for re-use */
+    PROC_USED,                      /**< In use */
 } ProcSnapshot_state_t;
 
 /** Snapshot of a process' entry in the /proc filesystem */
 typedef struct {
     list_t next;              /**< used to put into list */
+    ProcSnapshot_state_t state; /**< flag internal state of structure */
     uid_t uid;                /**< Process' user ID */
     pid_t pid;                /**< Process' process ID */
     pid_t ppid;               /**< Process' parent process ID */
@@ -37,7 +39,6 @@ typedef struct {
     unsigned long mem;        /**< Process' resident set size */
     unsigned long majflt;     /**< Process' major page faults */
     uint16_t cpu;             /**< Last CPU the process last executed on */
-    ProcSnapshot_state_t state; /**< flag internal state of structure */
 } ProcSnapshot_t;
 
 /** Resource usage of individual processes directly from /proc/<PID>/stat */
